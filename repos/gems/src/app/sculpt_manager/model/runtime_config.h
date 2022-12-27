@@ -47,13 +47,13 @@ class Sculpt::Runtime_config
 		static Start_name _to_name(Xml_node node)
 		{
 			Start_name result { };
-			node.with_sub_node("child", [&] (Xml_node child) {
+			node.with_optional_sub_node("child", [&] (Xml_node child) {
 				result = child.attribute_value("name", Start_name()); });
 
 			if (result.valid())
 				return result;
 
-			node.with_sub_node("parent", [&] (Xml_node parent) {
+			node.with_optional_sub_node("parent", [&] (Xml_node parent) {
 
 				Service::Type_name const service =
 					node.attribute_value("name", Service::Type_name());
@@ -143,8 +143,8 @@ class Sculpt::Runtime_config
 		static Start_name _primary_dependency(Xml_node const start)
 		{
 			Start_name result { };
-			start.with_sub_node("route", [&] (Xml_node route) {
-				route.with_sub_node("service", [&] (Xml_node service) {
+			start.with_optional_sub_node("route", [&] (Xml_node route) {
+				route.with_optional_sub_node("service", [&] (Xml_node service) {
 					result = _to_name(service); }); });
 
 			return result;
@@ -291,14 +291,14 @@ class Sculpt::Runtime_config
 					{
 						Dep::Update_policy policy { _alloc };
 
-						node.with_sub_node("route", [&] (Xml_node route) {
+						node.with_optional_sub_node("route", [&] (Xml_node route) {
 							elem.deps.update_from_xml(policy, route); });
 					}
 
 					{
 						Child_service::Update_policy policy { elem.name, _alloc };
 
-						node.with_sub_node("provides", [&] (Xml_node provides) {
+						node.with_optional_sub_node("provides", [&] (Xml_node provides) {
 							elem._child_services.update_from_xml(policy,
 							                                     provides); });
 					}
@@ -340,7 +340,7 @@ class Sculpt::Runtime_config
 				_vimrc     { _r, Type::ROM,         "default vim configuration",      "config -> vimrc" },
 				_fonts     { _r, Type::ROM,         "system font configuration",      "config -> managed/fonts" },
 				_pf_info   { _r, Type::ROM,         "platform information",           "platform_info" },
-				_system    { _r, Type::ROM,         "system status",                  "config -> system" },
+				_system    { _r, Type::ROM,         "system status",                  "config -> managed/system" },
 				_report    { _r, Type::REPORT,      "system reports" },
 				_shape     { _r, Type::REPORT,      "pointer shape",    "shape",     Service::Match_label::LAST },
 				_copy      { _r, Type::REPORT,      "global clipboard", "clipboard", Service::Match_label::LAST },
@@ -356,6 +356,8 @@ class Sculpt::Runtime_config
 				_pci_audio { _r, Type::PLATFORM,    "audio hardware",   "audio" },
 				_pci_acpi  { _r, Type::PLATFORM,    "ACPI",             "acpica" },
 				_hw_gpu    { _r, Type::PLATFORM,    "GPU hardware",     "gpu" },
+				_pin_state { _r, Type::PIN_STATE,   "GPIO pin state" },
+				_pin_ctrl  { _r, Type::PIN_CONTROL, "GPIO pin control" },
 				_trace     { _r, Type::TRACE,       "system-global tracing" },
 				_vm        { _r, Type::VM,          "virtualization hardware" },
 				_pd        { _r, Type::PD,          "system PD service" };

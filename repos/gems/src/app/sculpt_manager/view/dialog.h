@@ -74,7 +74,7 @@ struct Sculpt::Dialog : Interface
 	{
 		Hover_result result = Hover_result::UNMODIFIED;
 
-		hover.with_sub_node(sub_node, [&] (Xml_node sub_hover) {
+		hover.with_optional_sub_node(sub_node, [&] (Xml_node sub_hover) {
 			if (_match_sub_dialog(sub_hover, tail...) == Hover_result::CHANGED)
 				result = Hover_result::CHANGED; });
 

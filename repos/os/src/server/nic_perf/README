@@ -1,0 +1,46 @@
+The 'nic_perf' component is a benchmark component for the Nic and Uplink
+service. It can act as a Nic/Uplink server and a Nic client. The component
+periodically logs the number of transmitted/received packets and the resulting
+data rate. When enabled, it transmits continuous stream of UDP packets to a
+predefined receiver as a test stimulus.
+
+
+Basics
+~~~~~~
+
+This is an example configuration:
+
+! <config period_ms="5000" count="10000">
+!    <default-policy>
+!       <tx mtu="1500" to="10.0.1.2" udp_port="12345"/>
+!    </default-policy>
+!    <nic-client>
+!       <interface ip="10.0.2.1" dhcp_client_ip="10.0.2.2"/>
+!    </nic-client>
+! </config>
+
+The 'period_ms' attribute specifies the logging intervall (in milliseconds). By
+default, logging is disabled. The 'count' attribute defines after how may
+periods the component exits. Session policies for connecting Nic/Uplink clients
+are specified by '<policy>' nodes resp. a '<default-policy>' node. The component
+opens a single Nic connection if a '<nic-client>' node is provided.
+
+All sub-nodes comprise an optional '<interface>' node and an optional '<tx>'
+node. This is an overview of their attributes:
+
+:interface.ip:
+  Optional. Specifies the own IP address. If not specified, the component will
+  send DHCP requests to acquire an IP.
+
+:interface.dhcp_client_ip:
+  Optional. If specified, the component responds to DHCP requests with this IP
+  address.
+
+:tx.mtu:
+  Optional. Sets the size of the transmitted test packets.
+
+:tx.to:
+  Mandatory. Specifies the destination IP address.
+
+:tx.udp_port:
+  Mandatory. Specifies the destination port.

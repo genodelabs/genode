@@ -1,5 +1,5 @@
 /*
- * \brief  Virt Qemu device config generator for ARM platform driver
+ * \brief  Virt Qemu device ROM generator for platform driver
  * \author Piotr Tworek
  * \date   2020-07-01
  */
@@ -20,6 +20,9 @@
 #include <rom_session/rom_session.h>
 #include <root/component.h>
 #include <util/xml_generator.h>
+
+/* local includes */
+#include "platform_config.h"
 
 namespace Virtdev_rom {
 	using namespace Genode;
@@ -81,16 +84,7 @@ class Virtdev_rom::Root : public Root_component<Session_component>
 
 struct Virtdev_rom::Main
 {
-	enum {
-		/* Taken from include/hw/arm/virt.h in Qemu source tree. */
-		NUM_VIRTIO_TRANSPORTS = 32,
-		/* Taken from hw/arm/virt.c in Qemu source tree. */
-		BASE_ADDRESS      = 0x0A000000,
-		DEVICE_SIZE       = 0x200,
-		IRQ_BASE          = 48,
-		VIRTIO_MMIO_MAGIC = 0x74726976,
-	};
-
+	enum { VIRTIO_MMIO_MAGIC = 0x74726976 };
 	enum { MAX_ROM_SIZE = 4096, DEVICE_NAME_LEN = 64 };
 
 	Env                      &_env;
@@ -137,9 +131,8 @@ struct Virtdev_rom::Main
 	void _probe_devices()
 	{
 		Attached_dataspace ds(_env.rm(), _ds);
-		Attached_rom_dataspace config { _env, "config" };
 
-		Xml_generator xml(ds.local_addr<char>(), ds.size(), "config", [&] ()
+		Xml_generator xml(ds.local_addr<char>(), ds.size(), "devices", [&] ()
 		{
 			uint8_t device_type_idx[Device::Id::MAX_VAL] = { 0 };
 
@@ -148,7 +141,7 @@ struct Virtdev_rom::Main
 				Device device { _env, BASE_ADDRESS + idx * DEVICE_SIZE, DEVICE_SIZE };
 
 				if (device.read<Device::Magic>() != VIRTIO_MMIO_MAGIC) {
-					warning("Found non VirrtIO MMIO device @ ", addr);
+					warning("Found non VirtIO MMIO device @ ", Hex(addr));
 					continue;
 				}
 
@@ -171,10 +164,6 @@ struct Virtdev_rom::Main
 					});
 				});
 			}
-
-			config.xml().with_raw_content([&] (char const *txt, size_t sz) {
-				xml.append(txt, sz);
-			});
 		});
 	}
 

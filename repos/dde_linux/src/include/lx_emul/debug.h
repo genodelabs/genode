@@ -1,6 +1,7 @@
 /*
  * \brief  Lx_emul support to debug Linux kernel ports
  * \author Stefan Kalkowski
+ * \author Christian Helmuth
  * \date   2021-03-16
  */
 
@@ -21,6 +22,8 @@ extern "C" {
 __attribute__((noreturn)) void lx_emul_trace_and_stop(const char * func);
 
 void lx_emul_trace(const char * func);
+
+void lx_emul_backtrace(void);
 
 #ifdef __cplusplus
 }

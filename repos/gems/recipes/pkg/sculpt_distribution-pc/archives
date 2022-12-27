@@ -3,8 +3,6 @@ _/pkg/drivers_managed-pc
 _/pkg/wifi
 _/pkg/ipxe_nic_drv
 _/pkg/vbox6
-_/pkg/vbox6-capture
-_/pkg/vbox5-nova-sculpt
 _/pkg/acpica
 _/pkg/system_clock-pc
 _/pkg/mesa_gpu-intel

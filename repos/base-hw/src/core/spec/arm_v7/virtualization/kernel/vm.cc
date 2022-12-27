@@ -19,6 +19,7 @@
 #include <kernel/cpu.h>
 #include <kernel/vm.h>
 #include <kernel/main.h>
+#include <spec/arm_v7/virtualization/hypervisor.h>
 
 namespace Kernel {
 
@@ -41,7 +42,7 @@ namespace Kernel {
 using namespace Kernel;
 
 
-struct Host_context
+struct Hypervisor::Host_context
 {
 	Cpu::Ttbr_64bit::access_t vttbr;
 	Cpu::Hcr::access_t        hcr;
@@ -61,15 +62,13 @@ struct Host_context
 } vt_host_context;
 
 
-extern "C" void hypervisor_enter_vm(Genode::Vm_state&, Host_context&);
-
-
-static Host_context & host_context(Cpu & cpu)
+static Hypervisor::Host_context & host_context(Cpu & cpu)
 {
-	static Genode::Constructible<Host_context> host_context[NR_OF_CPUS];
+	static Genode::Constructible<Hypervisor::Host_context>
+		host_context[NR_OF_CPUS];
 	if (!host_context[cpu.id()].constructed()) {
 		host_context[cpu.id()].construct();
-		Host_context & c = *host_context[cpu.id()];
+		Hypervisor::Host_context & c = *host_context[cpu.id()];
 		c.sp     = cpu.stack_start();
 		c.ttbr0  = Cpu::Ttbr0_64bit::read();
 		c.ttbr1  = Cpu::Ttbr1_64bit::read();
@@ -152,6 +151,15 @@ Kernel::Vm::Vm(Irq::Pool              & user_irq_pool,
 }
 
 
+Kernel::Vm::~Vm()
+{
+	Cpu::Ttbr_64bit::access_t vttbr =
+		Cpu::Ttbr_64bit::Ba::masked((Cpu::Ttbr_64bit::access_t)_id.table);
+	Cpu::Ttbr_64bit::Asid::set(vttbr, _id.id);
+	Hypervisor::invalidate_tlb(vttbr);
+}
+
+
 void Kernel::Vm::exception(Cpu & cpu)
 {
 	switch(_state.cpu_exception) {
@@ -190,7 +198,7 @@ void Kernel::Vm::proceed(Cpu & cpu)
 	_state.esr_el2   = Cpu::Hstr::init();
 	_state.hpfar_el2 = Cpu::Hcr::init();
 
-	hypervisor_enter_vm(_state, host_context(cpu));
+	Hypervisor::switch_world(_state, host_context(cpu));
 }
 
 

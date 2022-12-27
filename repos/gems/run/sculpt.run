@@ -7,7 +7,7 @@
 #
 # Note: the string must be exactly 5 bytes long.
 #
-proc sculpt_version { } { return "21.11" }
+proc sculpt_version { } { return "22.10" }
 
 
 proc assert_platform_supported { } {
@@ -160,6 +160,15 @@ proc nic_drv { } {
 }
 
 
+proc nic_drv_dtb { } {
+
+	if {[have_board imx8q_evk]}   { return fec_nic_drv-imx8q_evk.dtb  }
+	if {[have_board mnt_reform2]} { return fec_nic_drv-mnt_reform2.dtb  }
+
+	return nic_unavailable
+}
+
+
 proc log_core_start_node { } {
 
 	if {[have_board linux]} return
@@ -180,7 +189,8 @@ proc log_core_start_node { } {
 
 proc log_kernel_start_node { } {
 
-	if {[have_board linux]} return
+	if {[have_board linux]}     return
+	if {[have_board pinephone]} return
 
 	return {
 	<start name="log_kernel">
@@ -224,7 +234,7 @@ install_config {
 
 	<start name="timer" priority="0">
 		<resource name="RAM" quantum="1M"/>
-		<resource name="CPU" quantum="10"/>
+		<resource name="CPU" quantum="5"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
@@ -234,6 +244,8 @@ install_config {
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<policy label="leitzentrale_config -> leitzentrale"
+			        report="global_keys_handler -> leitzentrale"/>
+			<policy label="leitzentrale -> manager -> leitzentrale"
 			        report="global_keys_handler -> leitzentrale"/>
 			<policy label="pointer -> hover" report="nitpicker -> hover"/>
 			<policy label="pointer -> xray"
@@ -362,9 +374,9 @@ install_config {
 		</route>
 	</start>
 
-	<start name="drivers" caps="4600" priority="-1" managing_system="yes">
+	<start name="drivers" caps="4850" priority="-1" managing_system="yes">
 		<resource name="RAM" quantum="200M"/>
-		<resource name="CPU" quantum="40"/>
+		<resource name="CPU" quantum="10"/>
 		<binary name="init"/>
 		<route>
 			} [log_route] {
@@ -385,7 +397,11 @@ install_config {
 			<service name="ROM" label_last="usb_policy">
 				<child name="config_fs_rom" label="usb"/> </service>
 			<service name="ROM" label_last="system">
-				<child name="config_fs_rom" label="system"/> </service>
+				<child name="config_fs_rom" label="managed/system"/> </service>
+			<service name="ROM" label_last="modem.config">
+				<child name="config_fs_rom" label="managed/modem"/> </service>
+			<service name="ROM" label_last="audio.config">
+				<child name="config_fs_rom" label="managed/audio"/> </service>
 			<service name="ROM" label_last="numlock">  <child name="report_rom"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
 			<service name="Capture"> <child name="nitpicker"/> </service>
@@ -398,11 +414,14 @@ install_config {
 			<service name="Usb"/>
 			<service name="Platform"/>
 			<service name="Gpu"/>
+			<service name="Pin_state"/>
+			<service name="Pin_control"/>
 		</provides>
 	</start>
 
 	<start name="nitpicker" caps="1000" priority="0">
 		<resource name="RAM" quantum="12M"/>
+		<resource name="CPU" quantum="10"/>
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -519,6 +538,7 @@ install_config {
 	<start name="leitzentrale" caps="2350" priority="-1">
 		<binary name="init"/>
 		<resource name="RAM" quantum="130M"/>
+		<resource name="CPU" quantum="35"/>
 		<affinity xpos="1" width="1"/> <!-- decouple leitzentrale from boot CPU -->
 		<provides>
 			<service name="Gui"/>
@@ -541,6 +561,8 @@ install_config {
 			<service name="ROM" label_prefix="config -> ">
 				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label="manager -> nitpicker_hover">
+				<child name="report_rom"/> </service>
+			<service name="ROM" label="manager -> leitzentrale">
 				<child name="report_rom"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="Gui"> <child name="nitpicker"/> </service>
@@ -606,11 +628,14 @@ install_config {
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="LOG" label="unlogged"> <parent/> </service>
 			} [log_route] {
-			<service name="ROM" label="nic_drv"> <parent label="} [nic_drv] {"/> </service>
+			<service name="ROM" label="nic_drv">     <parent label="} [nic_drv] {"/> </service>
+			<service name="ROM" label="nic_drv.dtb"> <parent label="} [nic_drv_dtb] {"/> </service>
 			<service name="Event"   label="global">       <child name="nitpicker"/>    </service>
 			<service name="Event"   label="leitzentrale"> <child name="leitzentrale"/> </service>
 			<service name="Capture" label="global">       <child name="nitpicker"/>    </service>
 			<service name="Capture" label="leitzentrale"> <child name="leitzentrale"/> </service>
+			<service name="Pin_state">   <child name="drivers"/> </service>
+			<service name="Pin_control"> <child name="drivers"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -667,9 +692,14 @@ foreach config $required_configs {
 	set ingredient [single_ingredient $config "default"]
 	set from [ingredient_path $config $ingredient]
 	set to   [initial_config_file $config]
-	copy_file $from $to }
+	check_xml_syntax $from
+	copy_file $from $to
+}
 
 # selection of depot users (pubkey and download files) and launchers
+foreach ingredient [ingredients_of_type launcher] {
+	check_xml_syntax [ingredient_path launcher $ingredient] }
+
 foreach type { depot launcher } {
 	foreach ingredient [ingredients_of_type $type] {
 		set from [ingredient_path $type $ingredient]
@@ -683,6 +713,7 @@ copy_file [genode_dir]/repos/gems/run/sculpt/vimrc          [initial_config_file
 foreach file { en_us de_ch de_de fr_ch fr_fr special } {
 	set from [genode_dir]/repos/os/src/server/event_filter/$file.chargen
 	set to   [file join [initial_config_dir] keyboard $file]
+	check_xml_syntax $from
 	copy_file $from $to }
 
 
@@ -703,8 +734,15 @@ set fd [open [managed_config_path depot_query] w]
 puts $fd "<query/>"
 close $fd
 
-foreach config { fonts wifi runtime event_filter } {
-	file copy [ingredient_path $config default] [managed_config_path $config] }
+foreach config { fonts wifi runtime event_filter system } {
+	set ingredient [single_ingredient $config "default"]
+	if {$ingredient != ""} {
+		set from [ingredient_path $config $ingredient]
+		set to   [managed_config_path $config]
+		check_xml_syntax $from
+		copy_file $from $to
+	}
+}
 
 copy_file [file join [initial_config_dir] fb_drv] [managed_config_path fb_drv]
 
@@ -779,12 +817,40 @@ proc pkg_archive_paths { values } {
 }
 
 
+##
+# Return which kind of depot archive is wanted: 'tar', 'omit', or 'list'
+#
+# tar  - includes the depot content referenced by the deploy configuration as
+#        tar archive named 'depot.tar'
+#
+# omit - skips the evaluation of the deploy configuration
+#
+# list - outputs the list of packages needed for the deployment, which can
+#        taken as input for manually publishing those packages
+#
+proc depot_archive { } {
+
+	global ::env
+
+	set archive "tar"
+	if {[info exists ::env(DEPOT)]} {
+		set archive "$::env(DEPOT)" }
+
+	if {$archive != "omit" && $archive != "tar" && $archive != "list"} {
+		puts stderr "Error: invalid value of DEPOT=$archive variable!" }
+
+	return $archive
+}
+
+
 #
 # Trigger the creation / updating of referenced depot content
 #
 # This step may update pkg versions if '--depot-auto-update' is enabled.
 #
-_collect_from_depot [pkg_archive_paths [referenced_pkg_values]]
+if {[depot_archive] == "tar" || [depot_archive] == "list"} {
+	_collect_from_depot [pkg_archive_paths [referenced_pkg_values]]
+}
 
 
 #
@@ -842,8 +908,19 @@ exec sed -i "/config/s/arch=\"\"/arch=\"[depot_spec]\"/" [initial_config_file de
 ## Depot content integrated in the Sculpt image
 ##
 
-create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
+proc create_depot_archive { } {
+
+	if {[depot_archive] == "tar"} {
+		create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
                                {*}[pkg_archive_paths [referenced_pkg_values]]
+
+	} elseif {[depot_archive] == "list"} {
+		puts "Do not forget to publish:"
+		puts [pkg_archive_paths [referenced_pkg_values]]
+	}
+}
+
+create_depot_archive
 
 
 #
@@ -874,7 +951,6 @@ if {[have_board linux]} {
 	#
 	copy_file [run_dir]/genode/fs_rom [run_dir]/genode/cached_fs_rom
 }
-
 
 # support for the Leitzentrale GUI
 copy_file [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/

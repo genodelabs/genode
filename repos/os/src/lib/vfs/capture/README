@@ -1,0 +1,6 @@
+This VFS plugin offers access to Genode's 'Capture' session.
+
+In its current state, it merely provides a single file named
+"capture". Reading from this file delivers the pixel data of
+a 640x480 image with 4 bytes per pixel, which is mainly useful
+to receive images from a webcam.

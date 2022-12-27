@@ -36,6 +36,9 @@ extern int buses_init(void);
 extern int classes_init(void);
 extern int platform_bus_init(void);
 
+/* definition from kernel/main.c implemented architecture specific */
+extern void time_init(void);
+
 enum system_states system_state;
 
 static __initdata DECLARE_COMPLETION(kthreadd_done);
@@ -70,8 +73,16 @@ static void timer_loop(void)
 {
 	for (;;) {
 		tick_nohz_idle_enter();
+
+		if (!lx_emul_task_another_runnable())
+			tick_nohz_idle_stop_tick();
+
 		lx_emul_task_schedule(true);
 		lx_emul_time_handle();
+
+		/* check restarting ticking */
+		tick_nohz_idle_restart_tick();
+
 		tick_nohz_idle_exit();
 	}
 }
@@ -92,12 +103,11 @@ int lx_emul_init_task_function(void * dtb)
 	 * Here we do the minimum normally done start_kernel() of init/main.c
 	 */
 
-	/* calls from setup_arch of arch/arm64/kernel/setup.c */
-	early_init_dt_scan(dtb);
-	unflatten_device_tree();
+	lx_emul_setup_arch(dtb);
 
 	jump_label_init();
 	kmem_cache_init();
+	wait_bit_init();
 	radix_tree_init();
 	workqueue_init_early();
 
@@ -110,11 +120,7 @@ int lx_emul_init_task_function(void * dtb)
 	softirq_init();
 	timekeeping_init();
 
-	/* arch/arm64/kernel/time.c */
-	lx_emul_time_init(); /* replaces timer_probe() */
-	tick_setup_hrtimer_broadcast();
-	lpj_fine = 1000000 / HZ;
-	/* arch/arm64/kernel/time.c end */
+	time_init();
 
 	sched_clock_init();
 
@@ -134,8 +140,11 @@ int lx_emul_init_task_function(void * dtb)
 }
 
 
+static struct cred _init_task_cred;
+
+
 struct task_struct init_task = {
-	.state           = 0,
+	.__state         = 0,
 	.usage           = REFCOUNT_INIT(2),
 	.flags           = PF_KTHREAD,
 	.prio            = MAX_PRIO - 20,
@@ -160,5 +169,6 @@ struct task_struct init_task = {
 		.signal = {{0}}
 	},
 	.blocked         = {{0}},
+	.cred            = &_init_task_cred,
 };
 void * lx_emul_init_task_struct = &init_task;

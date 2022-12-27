@@ -114,6 +114,8 @@ class Net::Icmp_packet
 
 		void update_checksum(Genode::size_t data_sz);
 
+		void update_checksum(Internet_checksum_diff const &icd);
+
 		bool checksum_error(Genode::size_t data_sz) const;
 
 
@@ -156,6 +158,9 @@ class Net::Icmp_packet
 		void rest_of_header(Genode::uint32_t v) { _rest_of_header_u32[0] = host_to_big_endian(v); }
 		void query_id(Genode::uint16_t v)       { _rest_of_header_u16[0] = host_to_big_endian(v); }
 		void query_seq(Genode::uint16_t v)      { _rest_of_header_u16[1] = host_to_big_endian(v); }
+
+		void type_and_code(Type t, Code c, Internet_checksum_diff &icd);
+		void query_id(Genode::uint16_t v, Internet_checksum_diff &icd);
 
 
 		/*********

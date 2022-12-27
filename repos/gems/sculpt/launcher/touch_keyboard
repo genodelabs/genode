@@ -1,0 +1,7 @@
+<launcher pkg="touch_keyboard">
+	<route>
+		<service name="Gui"> <parent label="touch_keyboard"/> </service>
+		<service name="Event"> <parent label="global"/> </service>
+		<service name="File_system" label="fonts"> <child name="fonts_fs"/> </service>
+	</route>
+</launcher>

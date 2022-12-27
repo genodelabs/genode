@@ -17,12 +17,11 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <os/reporter.h>
+#include <os/vfs.h>
 #include <util/list.h>
 #include <util/string.h>
 #include <util/xml_generator.h>
 #include <util/xml_node.h>
-#include <file_system_session/connection.h>
-#include <file_system/util.h>
 
 
 namespace Usb_filter {
@@ -50,14 +49,12 @@ class Usb_filter::Device_registry
 
 		Genode::Env       &_env;
 		Genode::Allocator &_alloc;
+		Genode::Directory &_root_dir;
 
 		Genode::Reporter   _reporter { _env, "usb_devices" };
 
 		Attached_rom_dataspace _devices_rom        { _env, "devices" };
 		Attached_rom_dataspace _usb_drv_config_rom { _env, "usb_drv_config" };
-
-		Genode::Allocator_avl    _fs_packet_alloc { &_alloc };
-		File_system::Connection  _fs              { _env, _fs_packet_alloc, "usb_drv.config" };
 
 		struct Entry : public Genode::List<Entry>::Element
 		{
@@ -149,36 +146,17 @@ class Usb_filter::Device_registry
 			});
 		}
 
-		void _write_usb_drv_config(Xml_node & usb_devices)
+		void _write_usb_drv_config(Xml_node const &drv_config,
+		                           Xml_node const &usb_devices)
 		{
 			using namespace Genode;
 
-			Constructible<File_system::File_handle> file;
+			bool const uhci_enabled = drv_config.attribute_value<bool>("uhci", false);
+			bool const ehci_enabled = drv_config.attribute_value<bool>("ehci", false);
+			bool const xhci_enabled = drv_config.attribute_value<bool>("xhci", false);
 
-			try {
-				File_system::Dir_handle root_dir = _fs.dir("/", false);
-				file.construct(_fs.file(root_dir, config_file, File_system::READ_WRITE, false));
-			} catch (...) {
-				error("could not open '", config_file, "'");
-				return;
-			}
-
-			char old_file[1024];
-			size_t n = File_system::read(_fs, *file, old_file,
-			                                   sizeof(old_file));
-			if (n == 0) {
-				error("could not read '", config_file, "'");
-				return;
-			}
-
-			Xml_node drv_config(old_file, n);
-
-			bool const uhci_enabled    = drv_config.attribute_value<bool>("uhci", false);
-			bool const ehci_enabled    = drv_config.attribute_value<bool>("ehci", false);
-			bool const xhci_enabled    = drv_config.attribute_value<bool>("xhci", false);
-
-			char new_file[1024];
-			Genode::Xml_generator xml(new_file, sizeof(new_file), "config", [&] {
+			char new_content[1024];
+			Xml_generator xml(new_content, sizeof(new_content), "config", [&] {
 				if (uhci_enabled) xml.attribute("uhci", "yes");
 				if (ehci_enabled) xml.attribute("ehci", "yes");
 				if (xhci_enabled) xml.attribute("xhci", "yes");
@@ -214,18 +192,38 @@ class Usb_filter::Device_registry
 				});
 			});
 
-			new_file[xml.used()] = 0;
+			new_content[xml.used()] = 0;
 			if (verbose)
-				log("new usb_drv configuration:\n", Cstring(new_file));
+				log("new usb_drv configuration:\n", Cstring(new_content));
 
-			n = File_system::write(_fs, *file, new_file, xml.used());
-			if (n == 0)
+			try {
+				New_file new_file(_root_dir, config_file);
+				new_file.append(new_content, xml.used());
+			}
+			catch (...) {
 				error("could not write '", config_file, "'");
-
-			_fs.close(*file);
+			}
 		}
 
-		Genode::Signal_handler<Device_registry> _devices_handler =
+		void _write_usb_drv_config(Xml_node const &usb_devices)
+		{
+			using namespace Genode;
+
+			try {
+				File_content::Limit limit { 64*1024 };
+				File_content old_file { _alloc, _root_dir, config_file,
+				                        limit };
+
+				old_file.xml([&] (Xml_node const &old_drv_config) {
+					_write_usb_drv_config(old_drv_config, usb_devices); });
+
+			} catch (...) {
+				error("could not access '", config_file, "'");
+				return;
+			}
+		}
+
+		Genode::Signal_handler<Device_registry> _devices_handler
 		{ _env.ep(), *this, &Device_registry::_handle_devices };
 
 		void _handle_devices()
@@ -361,8 +359,10 @@ class Usb_filter::Device_registry
 		/**
 		 * Constructor
 		 */
-		Device_registry(Genode::Env &env, Genode::Allocator &alloc)
-		:  _env(env), _alloc(alloc)
+		Device_registry(Genode::Env &env, Genode::Allocator &alloc,
+		                Genode::Directory &root_dir)
+		:
+			_env(env), _alloc(alloc), _root_dir(root_dir)
 		{
 			_reporter.enabled(true);
 
@@ -418,6 +418,8 @@ struct Usb_filter::Main
 
 	Genode::Attached_rom_dataspace _config { _env, "config" };
 
+	Genode::Root_directory _root_dir { _env, _heap, _config.xml().sub_node("vfs") };
+
 	Genode::Signal_handler<Main> _config_handler =
 	{ _env.ep(), *this, &Main::_handle_config };
 
@@ -427,7 +429,7 @@ struct Usb_filter::Main
 		device_registry.update_entries(_config.xml());
 	}
 
-	Device_registry device_registry { _env, _heap };
+	Device_registry device_registry { _env, _heap, _root_dir };
 
 	Main(Genode::Env &env) : _env(env)
 	{

@@ -12,8 +12,8 @@ REQUIRES += installation_of_yasm
 REQUIRES += installation_of_iasl
 endif
 
-VIRTUALBOX_DIR = $(call select_from_ports,virtualbox5)/src/app/virtualbox
-VIRTUALBOX_SDK_DIR = $(call select_from_ports,virtualbox5)/src/app/virtualbox_sdk
+VIRTUALBOX_DIR := $(call select_from_ports,virtualbox5)/src/app/virtualbox
+VIRTUALBOX_SDK_DIR := $(call select_from_ports,virtualbox5)/src/app/virtualbox_sdk
 
 VBOX_DIR       = $(VIRTUALBOX_DIR)/src/VBox
 

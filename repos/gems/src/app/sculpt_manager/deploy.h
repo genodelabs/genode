@@ -185,7 +185,6 @@ struct Sculpt::Deploy
 	{
 		_managed_deploy_rom.update();
 		handle_deploy();
-		_depot_query.trigger_depot_query();
 	}
 
 	/**

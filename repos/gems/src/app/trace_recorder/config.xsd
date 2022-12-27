@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<xs:include schemaLocation="base_types.xsd"/>
+	<xs:include schemaLocation="timeout_types.xsd"/>
+
+	<xs:simpleType name="Trace_policy_name">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+			<xs:maxLength value="40"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Trace_policy_name -->
+
+	<xs:simpleType name="Path">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+			<xs:maxLength value="256"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Path -->
+
+	<xs:element name="config">
+		<xs:complexType>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+
+				<xs:element name="vfs"/>
+
+				<xs:element name="default-policy">
+					<xs:complexType>
+						<xs:attribute name="thread" type="Thread_name" />
+						<xs:attribute name="buffer" type="Number_of_bytes" />
+						<xs:attribute name="policy" type="Trace_policy_name" use="required"/>
+					</xs:complexType>
+				</xs:element><!-- default-policy -->
+
+				<xs:element name="policy">
+					<xs:complexType>
+					<xs:complexContent>
+					<xs:extension base="Session_policy">
+						<xs:choice minOccurs="1" maxOccurs="unbounded">
+							<xs:element name="ctf"/>
+							<xs:element name="log"/>
+							<xs:element name="pcapng"/>
+						</xs:choice>
+						<xs:attribute name="thread" type="Thread_name" />
+						<xs:attribute name="buffer" type="Number_of_bytes" />
+						<xs:attribute name="policy" type="Trace_policy_name" use="required"/>
+					</xs:extension>
+					</xs:complexContent>
+					</xs:complexType>
+				</xs:element><!-- policy -->
+
+			</xs:choice>
+			<xs:attribute name="period_ms"   type="Seconds" use="required"/>
+			<xs:attribute name="target_root" type="Path"/>
+			<xs:attribute name="enable"      type="Boolean" />
+		</xs:complexType>
+	</xs:element><!-- config -->
+
+</xs:schema>

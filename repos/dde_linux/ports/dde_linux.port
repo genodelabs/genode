@@ -1,8 +1,8 @@
 LICENSE     := GPLv2
 VERSION     := 2
-DOWNLOADS   := intel_fb.archive lxip.archive \
-               wifi.archive fec.archive libnl.archive wpa_supplicant.git \
-               fw.archive usb_host.archive dwc_otg_host.git usb_hid.archive \
+DOWNLOADS   := lxip.archive \
+               fec.archive \
+               usb_host.archive dwc_otg_host.git usb_hid.archive \
                usb_modem.archive usb_net.archive
 
 #
@@ -65,28 +65,6 @@ DIR(dwc_otg_host) := $(SRC_DIR_USB_HOST)/drivers/usb/host
 
 
 #
-# Intel framebuffer driver
-#
-SRC_DIR_INTEL_FB  := src/drivers/framebuffer/intel
-VERSION_INTEL_FB  := 4.16.3
-URL(intel_fb)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_INTEL_FB).tar.xz
-SHA(intel_fb)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
-DIR(intel_fb)     := $(SRC_DIR_INTEL_FB)
-TAR_OPT(intel_fb) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_INTEL_FB)/g' $(REP_DIR)/intel_fb.list)
-HASH_INPUT        += $(REP_DIR)/intel_fb.list
-
-#
-# mac80211 stack, iwlwifi sources
-#
-SRC_DIR_WIFI  := src/lib/wifi
-VERSION_WIFI  := 4.16.3
-URL(wifi)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_WIFI).tar.xz
-SHA(wifi)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
-DIR(wifi)     := $(SRC_DIR_WIFI)
-TAR_OPT(wifi) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_WIFI)/g' $(REP_DIR)/wifi.list)
-HASH_INPUT    += $(REP_DIR)/wifi.list
-
-#
 # IP stack sources
 #
 SRC_DIR_LXIP  := src/lib/lxip
@@ -109,39 +87,12 @@ TAR_OPT(fec) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSIO
 HASH_INPUT   += $(REP_DIR)/fec.list
 
 #
-# libnl sources
-#
-URL(libnl) := https://github.com/thom311/libnl/releases/download/libnl3_2_25/libnl-3.2.25.tar.gz
-SHA(libnl) := 8beb7590674957b931de6b7f81c530b85dc7c1ad8fbda015398bc1e8d1ce8ec5
-DIR(libnl) := src/lib/libnl
-
-#
-# wpa_supplicant sources
-#
-URL(wpa_supplicant) := git://w1.fi/srv/git/hostap.git
-REV(wpa_supplicant) := 25bd4e7beb582509596fe60cb3591e1299f3121b
-DIR(wpa_supplicant) := src/app/wpa_supplicant
-
-#
-# Firmware images
-#
-FW_REV  := 73f503c65139f368e6155eed8c74d006a2f0219d
-URL(fw) := https://github.com/cnuke/dde_linux_firmware/archive/$(FW_REV).tar.gz
-SHA(fw) := d5a61cb07384a828560b8f869e4e899cb723d462646a48b45c398514bb246925
-DIR(fw) := firmware
-
-#
 # Patches
 #
-PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/wpa*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/libnl*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/wifi*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_host*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_modem*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/fec_*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_hid*.patch)))
 
@@ -154,18 +105,6 @@ PATCH_OPT(patches/lxip_netlink.patch)      := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_request_sock.patch) := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_sk_wq.patch)        := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
-
-# WIFI
-WIFI_OPT = -p1 -d$(SRC_DIR_WIFI)
-PATCH_OPT(patches/wifi.patch)        := $(WIFI_OPT)
-PATCH_OPT(patches/wifi_mem.patch)    := $(WIFI_OPT)
-PATCH_OPT(patches/wifi_rfkill.patch) := $(WIFI_OPT)
-
-# libnl
-PATCH_OPT(patches/libnl.patch) := -p1 -d ${DIR(libnl)}
-
-# WPA supplicant
-PATCH_OPT(patches/wpa_supplicant.patch) := -p1 -d ${DIR(wpa_supplicant)}
 
 # USB HOST
 USB_HOST_OPT = -p1 -d$(SRC_DIR_USB_HOST)
@@ -190,14 +129,6 @@ PATCH_OPT(patches/usb_net_skbuff_cast.patch) := $(USB_NET_OPT)
 # USB MODEM
 USB_MODEM_OPT = -p1 -d$(SRC_DIR_USB_MODEM)
 PATCH_OPT(patches/usb_modem_skbuff_cast.patch) := $(USB_MODEM_OPT)
-
-# INTEL FB
-PATCH_OPT(patches/intel_fb_backlight.patch) := -p1 -d$(SRC_DIR_INTEL_FB)
-PATCH_OPT(patches/intel_fb_drm.patch)       := -p1 -d$(SRC_DIR_INTEL_FB)
-PATCH_OPT(patches/intel_fb_early.patch)     := -p1 -d$(SRC_DIR_INTEL_FB)
-# drop it when https://bugs.freedesktop.org/show_bug.cgi?id=107125 gets fixed
-PATCH_OPT(patches/intel_fb_hotplug.patch)   := -p1 -d$(SRC_DIR_INTEL_FB)
-PATCH_OPT(patches/intel_fb_aperture_de_irq.patch):= -p1 -d$(SRC_DIR_INTEL_FB)
 
 # Freescale NIC
 PATCH_OPT(patches/fec_skbuff_cast.patch) := -p1 -d$(SRC_DIR_FEC)

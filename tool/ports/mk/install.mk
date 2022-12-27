@@ -20,6 +20,8 @@
 # XXX remove this line when the tool has stabilized
 STRICT_HASH ?= no
 
+PORTS_TOOL_DIR ?= $(GENODE_DIR)/tool/ports
+
 #
 # Utility to check if a python module is installed
 #
@@ -45,7 +47,7 @@ _prefer = $(if $1,$1,$2)
 #
 # Include common definitions
 #
-include $(GENODE_DIR)/tool/ports/mk/common.inc
+include $(PORTS_TOOL_DIR)/mk/common.inc
 
 #
 # Include definitions provided by the port description file
@@ -87,7 +89,7 @@ _dirs: $(DOWNLOADS)
 ## Generate the HASH file
 ##
 
-include $(GENODE_DIR)/tool/ports/mk/hash.inc
+include $(PORTS_TOOL_DIR)/mk/hash.inc
 
 
 ##
@@ -266,10 +268,12 @@ _extract_function = $(call _assert,\
 # because it requires a specific automake version on the host.
 #
 # We rename the rule target to discharge this magic and keep using the
-# provided 'Makefile.in'.
+# provided 'Makefile.in'. A similar quirk is required for 'aclocal.m4'.
 #
+_DISCHARGE_PATTERN  =  /Makefile\.in:.*Makefile\.am/s/^/IGNORE-/
+_DISCHARGE_PATTERN += ;/(ACLOCAL_M4):.*am__aclocal_m4_deps)/s/^/IGNORE-/
 _discharge_automake = ( find $(DIR) -name "Makefile.in" |\
-                        xargs -r sed -i "/Makefile\.in:.*Makefile\.am/s/^/IGNORE-/" )
+                        xargs -r sed -i "$(_DISCHARGE_PATTERN)" )
 
 %.archive: %.file
 	@$(MSG_EXTRACT)"$(ARCHIVE) ($*)"

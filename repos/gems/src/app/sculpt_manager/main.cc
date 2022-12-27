@@ -24,6 +24,8 @@
 #include <event_session/event_session.h>
 #include <capture_session/capture_session.h>
 #include <gpu_session/gpu_session.h>
+#include <pin_state_session/pin_state_session.h>
+#include <pin_control_session/pin_control_session.h>
 
 /* included from depot_deploy tool */
 #include <children.h>
@@ -53,6 +55,7 @@ struct Sculpt::Main : Input_event_handler,
                       Dialog::Generator,
                       Runtime_config_generator,
                       Storage::Target_user,
+                      Network::Action,
                       Graph::Action,
                       Panel_dialog::Action,
                       Popup_dialog::Action,
@@ -62,7 +65,8 @@ struct Sculpt::Main : Input_event_handler,
                       Depot_query,
                       Panel_dialog::State,
                       Dialog,
-                      Popup_dialog::Refresh
+                      Popup_dialog::Refresh,
+                      Menu_view::Hover_update_handler
 {
 	Env &_env;
 
@@ -72,11 +76,13 @@ struct Sculpt::Main : Input_event_handler,
 
 	Registry<Child_state> _child_states { };
 
+	Input::Seq_number _global_input_seq_number { };
+
 	Gui::Connection _gui { _env, "input" };
 
 	bool _gui_mode_ready = false;  /* becomes true once the graphics driver is up */
 
-	Gui::Root _gui_root { _env, _heap, *this };
+	Gui::Root _gui_root { _env, _heap, *this, _global_input_seq_number };
 
 	Signal_handler<Main> _input_handler {
 		_env.ep(), *this, &Main::_handle_input };
@@ -85,6 +91,14 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_gui.input()->for_each_event([&] (Input::Event const &ev) {
 			handle_input_event(ev); });
+	}
+
+	Managed_config<Main> _system_config {
+		_env, "system", "system", *this, &Main::_handle_system_config };
+
+	void _handle_system_config(Xml_node)
+	{
+		_system_config.try_generate_manually_managed();
 	}
 
 	Signal_handler<Main> _gui_mode_handler {
@@ -110,6 +124,8 @@ struct Sculpt::Main : Input_event_handler,
 								double const px = ttf.attribute_value("size_px", 0.0);
 								if (px > 0.0)
 									_font_size_px = px; }); } }); } }); });
+
+		_font_size_px = max(_font_size_px, _min_font_size_px);
 
 		_handle_gui_mode();
 
@@ -165,16 +181,19 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_pci_devices()
 	{
 		_pci_devices.update();
-		_pci_info.wifi_present = false;
+		_pci_info.wifi_present  = false;
+		_pci_info.lan_present   = true;
+		_pci_info.modem_present = false;
 
 		_pci_devices.xml().for_each_sub_node("device", [&] (Xml_node device) {
-
-			/* detect Intel Wireless card */
-			if (device.attribute_value("class_code", 0UL) == 0x28000)
-				_pci_info.wifi_present = true;
+			device.with_optional_sub_node("pci-config", [&] (Xml_node pci) {
+				/* detect Intel Wireless card */
+				if (pci.attribute_value("class", 0UL) == 0x28000)
+					_pci_info.wifi_present = true;
+			});
 		});
 
-		_network.update_view();
+		update_network_dialog();
 	}
 
 
@@ -208,8 +227,20 @@ struct Sculpt::Main : Input_event_handler,
 		generate_runtime_config();
 	}
 
+	Network _network { _env, _heap, *this, _child_states, *this, _runtime_state, _pci_info };
 
-	Network _network { _env, _heap, _child_states, *this, _runtime_state, _pci_info };
+	Menu_view _network_menu_view { _env, _child_states, _network.dialog, "network_view",
+	                               Ram_quota{4*1024*1024}, Cap_quota{150},
+	                               "network_dialog", "network_view_hover",
+	                               *this };
+
+	/**
+	 * Network::Action interface
+	 */
+	void update_network_dialog() override
+	{
+		_network_menu_view.generate();
+	}
 
 
 	/************
@@ -357,7 +388,6 @@ struct Sculpt::Main : Input_event_handler,
 		_deploy._handle_managed_deploy();
 	}
 
-
 	Deploy _deploy { _env, _heap, _child_states, _runtime_state, *this, *this, *this,
 	                 _launcher_listing_rom, _blueprint_rom, _download_queue };
 
@@ -379,6 +409,8 @@ struct Sculpt::Main : Input_event_handler,
 	 ************/
 
 	Settings _settings { };
+
+	double const _min_font_size_px = 6.0;
 
 	double _font_size_px = 14;
 
@@ -515,6 +547,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Attached_rom_dataspace const _platform { _env, "platform_info" };
 
+
 	/****************************************
 	 ** Cached model of the runtime config **
 	 ****************************************/
@@ -546,7 +579,136 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Interactive operations **
 	 ****************************/
 
+	/*
+	 * Track nitpicker's "clicked" report to reliably detect clicks outside
+	 * any menu view (closing the popup window).
+	 */
+
+	Attached_rom_dataspace _clicked_rom { _env, "clicked" };
+
+	Signal_handler<Main> _clicked_handler {
+		_env.ep(), *this, &Main::_handle_clicked };
+
+	void _handle_clicked()
+	{
+		_clicked_rom.update();
+		_try_handle_click();
+	}
+
 	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase, *this };
+
+	Constructible<Input::Seq_number> _clicked_seq_number { };
+	Constructible<Input::Seq_number> _clacked_seq_number { };
+
+	void _try_handle_click()
+	{
+		if (!_clicked_seq_number.constructed())
+			return;
+
+		Input::Seq_number const seq = *_clicked_seq_number;
+
+		auto click_outside_popup = [&] ()
+		{
+			Xml_node const clicked = _clicked_rom.xml();
+
+			if (!clicked.has_attribute("seq"))
+				return false;
+
+			if (clicked.attribute_value("seq", 0u) != seq.value)
+				return false;
+
+			Label const popup_label { "wm -> runtime -> leitzentrale -> popup_view" };
+
+			if (clicked.attribute_value("label", Label()) == popup_label)
+				return false;
+
+			return true;
+		};
+
+		/* remove popup dialog when clicking somewhere outside */
+		if (click_outside_popup() && _popup.state == Popup::VISIBLE
+		 && !_graph.add_button_hovered()) {
+
+			_popup.state = Popup::OFF;
+			_popup_dialog.reset();
+			discard_construction();
+
+			/* de-select '+' button */
+			_graph_menu_view.generate();
+
+			/* remove popup window from window layout */
+			_handle_window_layout();
+		}
+
+		if (_main_menu_view.hovered(seq)) {
+			_main_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+		else if (_graph_menu_view.hovered(seq)) {
+			_graph.click(*this);
+			_graph_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+		else if (_popup_menu_view.hovered(seq)) {
+			_popup_dialog.click(*this);
+			_popup_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+		else if (_panel_menu_view.hovered(seq)) {
+			_panel_dialog.click(*this);
+			_clicked_seq_number.destruct();
+		}
+		else if (_settings_menu_view.hovered(seq)) {
+			_settings_dialog.click(*this);
+			_settings_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+		else if (_network_menu_view.hovered(seq)) {
+			_network.dialog.click(_network);
+			_network_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+		else if (_file_browser_menu_view.hovered(seq)) {
+			_file_browser_dialog.click(*this);
+			_file_browser_menu_view.generate();
+			_clicked_seq_number.destruct();
+		}
+	}
+
+	void _try_handle_clack()
+	{
+		if (!_clacked_seq_number.constructed())
+			return;
+
+		Input::Seq_number const seq = *_clacked_seq_number;
+
+		if (_main_menu_view.hovered(seq)) {
+			_storage.dialog.clack(_storage);
+			_main_menu_view.generate();
+			_clacked_seq_number.destruct();
+		}
+		else if (_graph_menu_view.hovered(seq)) {
+			_graph.clack(*this, _storage);
+			_graph_menu_view.generate();
+			_clacked_seq_number.destruct();
+		}
+		else if (_popup_menu_view.hovered(seq)) {
+			_popup_dialog.clack(*this);
+			_clacked_seq_number.destruct();
+		}
+	}
+
+	/**
+	 * Menu_view::Hover_update_handler interface
+	 */
+	void menu_view_hover_updated() override
+	{
+		if (_clicked_seq_number.constructed())
+			_try_handle_click();
+
+		if (_clacked_seq_number.constructed())
+			_try_handle_clack();
+	}
 
 	/**
 	 * Input_event_handler interface
@@ -555,61 +717,14 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		bool need_generate_dialog = false;
 
-		if (ev.key_press(Input::BTN_LEFT)) {
-
-			/* remove popup dialog when clicking somewhere outside */
-			if (!_popup_menu_view.hovered() && _popup.state == Popup::VISIBLE
-			 && !_graph.add_button_hovered()) {
-
-				_popup.state = Popup::OFF;
-				_popup_dialog.reset();
-				discard_construction();
-
-				/* de-select '+' button */
-				_graph_menu_view.generate();
-
-				/* remove popup window from window layout */
-				_handle_window_layout();
-			}
-
-			if (_main_menu_view.hovered()) {
-				_main_menu_view.generate();
-			}
-			else if (_graph_menu_view.hovered()) {
-				_graph.click(*this);
-				_graph_menu_view.generate();
-			}
-			else if (_popup_menu_view.hovered()) {
-				_popup_dialog.click(*this);
-				_popup_menu_view.generate();
-			}
-			else if (_panel_menu_view.hovered()) {
-				_panel_dialog.click(*this);
-			}
-			else if (_settings_menu_view.hovered()) {
-				_settings_dialog.click(*this);
-				_settings_menu_view.generate();
-			}
-			else if (_network.dialog_hovered()) {
-				_network.dialog.click(_network);
-				_network.update_view();
-			}
-			else if (_file_browser_menu_view.hovered()) {
-				_file_browser_dialog.click(*this);
-				_file_browser_menu_view.generate();
-			}
+		if (ev.key_press(Input::BTN_LEFT) || ev.touch()) {
+			_clicked_seq_number.construct(_global_input_seq_number);
+			_try_handle_click();
 		}
 
 		if (ev.key_release(Input::BTN_LEFT)) {
-			if (_main_menu_view.hovered()) {
-				_storage.dialog.clack(_storage);
-				_main_menu_view.generate();
-			}
-			else if (_graph_menu_view.hovered()) {
-				_graph.clack(*this, _storage);
-				_graph_menu_view.generate();
-			}
-			else if (_popup_menu_view.hovered()) _popup_dialog.clack(*this);
+			_clacked_seq_number.construct(_global_input_seq_number);
+			_try_handle_clack();
 		}
 
 		if (_keyboard_focus.target == Keyboard_focus::WPA_PASSPHRASE)
@@ -695,6 +810,11 @@ struct Sculpt::Main : Input_event_handler,
 		} else if (name == "wifi_drv") {
 
 			_network.restart_wifi_drv_on_next_runtime_cfg();
+			generate_runtime_config();
+
+		} else if (name == "usb_net") {
+
+			_network.restart_usb_net_on_next_runtime_cfg();
 			generate_runtime_config();
 
 		} else {
@@ -1021,17 +1141,17 @@ struct Sculpt::Main : Input_event_handler,
 
 	Menu_view _panel_menu_view { _env, _child_states, _panel_dialog, "panel_view",
 	                             Ram_quota{4*1024*1024}, Cap_quota{150},
-	                             "panel_dialog", "panel_view_hover" };
+	                             "panel_dialog", "panel_view_hover", *this };
 
 	Settings_dialog _settings_dialog { _settings };
 
 	Menu_view _settings_menu_view { _env, _child_states, _settings_dialog, "settings_view",
 	                                Ram_quota{4*1024*1024}, Cap_quota{150},
-	                                "settings_dialog", "settings_view_hover" };
+	                                "settings_dialog", "settings_view_hover", *this };
 
 	Menu_view _main_menu_view { _env, _child_states, *this, "menu_view",
 	                             Ram_quota{4*1024*1024}, Cap_quota{150},
-	                             "menu_dialog", "menu_view_hover" };
+	                             "menu_dialog", "menu_view_hover", *this };
 
 	Popup_dialog _popup_dialog { _env, *this, _launchers,
 	                             _network._nic_state, _network._nic_target,
@@ -1040,13 +1160,13 @@ struct Sculpt::Main : Input_event_handler,
 
 	Menu_view _popup_menu_view { _env, _child_states, _popup_dialog, "popup_view",
 	                             Ram_quota{4*1024*1024}, Cap_quota{150},
-	                             "popup_dialog", "popup_view_hover" };
+	                             "popup_dialog", "popup_view_hover", *this };
 
 	File_browser_dialog _file_browser_dialog { _cached_runtime_config, _file_browser_state };
 
 	Menu_view _file_browser_menu_view { _env, _child_states, _file_browser_dialog, "file_browser_view",
 	                                    Ram_quota{8*1024*1024}, Cap_quota{150},
-	                                    "file_browser_dialog", "file_browser_view_hover" };
+	                                    "file_browser_dialog", "file_browser_view_hover", *this };
 
 	/**
 	 * Popup_dialog::Refresh interface
@@ -1098,7 +1218,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Menu_view _graph_menu_view { _env, _child_states, _graph, "runtime_view",
 	                             Ram_quota{8*1024*1024}, Cap_quota{200},
-	                             "runtime_dialog", "runtime_view_hover" };
+	                             "runtime_dialog", "runtime_view_hover", *this };
 	Main(Env &env) : _env(env)
 	{
 		_manual_deploy_rom.sigh(_manual_deploy_handler);
@@ -1117,6 +1237,7 @@ struct Sculpt::Main : Input_event_handler,
 		_launcher_listing_rom.sigh(_launcher_listing_handler);
 		_blueprint_rom       .sigh(_blueprint_handler);
 		_editor_saved_rom    .sigh(_editor_saved_handler);
+		_clicked_rom         .sigh(_clicked_handler);
 
 		/*
 		 * Generate initial configurations
@@ -1129,14 +1250,14 @@ struct Sculpt::Main : Input_event_handler,
 		 */
 		_handle_gui_mode();
 		_storage.handle_storage_devices_update();
-		_deploy.handle_deploy();
 		_handle_pci_devices();
 		_handle_runtime_config();
+		_handle_clicked();
 
 		/*
 		 * Read static platform information
 		 */
-		_platform.xml().with_sub_node("affinity-space", [&] (Xml_node const &node) {
+		_platform.xml().with_optional_sub_node("affinity-space", [&] (Xml_node const &node) {
 			_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
 			                                  node.attribute_value("height", 1U));
 		});
@@ -1198,9 +1319,7 @@ void Sculpt::Main::_handle_window_layout()
 	_window_list.update();
 	Xml_node const window_list = _window_list.xml();
 
-	auto win_size = [&] (Xml_node win) {
-		return Area(win.attribute_value("width",  0U),
-		            win.attribute_value("height", 0U)); };
+	auto win_size = [&] (Xml_node win) { return Area::from_xml(win); };
 
 	unsigned panel_height = 0;
 	_with_window(window_list, panel_view_label, [&] (Xml_node win) {
@@ -1395,14 +1514,14 @@ void Sculpt::Main::_handle_gui_mode()
 
 		_font_size_px = (double)mode.area.h() / 60.0;
 
+		if (_settings.font_size == Settings::Font_size::SMALL) _font_size_px *= 0.85;
+		if (_settings.font_size == Settings::Font_size::LARGE) _font_size_px *= 1.35;
+
 		/*
 		 * Limit lower bound of font size. Otherwise, the glyph rendering
 		 * may suffer from division-by-zero problems.
 		 */
-		_font_size_px = max(_font_size_px, 2.0);
-
-		if (_settings.font_size == Settings::Font_size::SMALL) _font_size_px *= 0.85;
-		if (_settings.font_size == Settings::Font_size::LARGE) _font_size_px *= 1.35;
+		_font_size_px = max(_font_size_px, _min_font_size_px);
 
 		_fonts_config.generate([&] (Xml_generator &xml) {
 			xml.attribute("copy",  true);
@@ -1452,7 +1571,7 @@ void Sculpt::Main::_handle_gui_mode()
 	_panel_menu_view.min_width = _screen_size.w();
 	unsigned const menu_width = max((unsigned)(_font_size_px*21.0), 320u);
 	_main_menu_view.min_width = menu_width;
-	_network.min_dialog_width(menu_width);
+	_network_menu_view.min_width = menu_width;
 
 	/* font size may has changed, propagate fonts config of runtime view */
 	generate_runtime_config();
@@ -1481,20 +1600,21 @@ void Sculpt::Main::_handle_update_state()
 	_download_queue.apply_update_state(update_state);
 	_download_queue.remove_inactive_downloads();
 
-	Xml_node const blueprint = _blueprint_rom.xml();
-	bool const new_depot_query_needed = popup_watches_downloads
-	                                 || blueprint_any_missing(blueprint)
-	                                 || blueprint_any_rom_missing(blueprint);
-	if (new_depot_query_needed)
-		trigger_depot_query();
-
-	if (popup_watches_downloads)
-		_deploy.update_installation();
-
 	bool const installation_complete =
 		!update_state.attribute_value("progress", false);
 
 	if (installation_complete) {
+
+		Xml_node const blueprint = _blueprint_rom.xml();
+		bool const new_depot_query_needed = popup_watches_downloads
+		                                 || blueprint_any_missing(blueprint)
+		                                 || blueprint_any_rom_missing(blueprint);
+		if (new_depot_query_needed)
+			trigger_depot_query();
+
+		if (popup_watches_downloads)
+			_deploy.update_installation();
+
 		_deploy.reattempt_after_installation();
 	}
 }
@@ -1628,9 +1748,6 @@ void Sculpt::Main::_handle_runtime_state()
 		if (exit_state.exited) {
 			_prepare_completed = _prepare_version;
 
-			/* trigger deployment */
-			_deploy.handle_deploy();
-
 			/* trigger update and deploy */
 			reconfigure_runtime = true;
 		}
@@ -1674,12 +1791,6 @@ void Sculpt::Main::_handle_runtime_state()
 		}
 	});
 
-	/*
-	 * Re-attempt NIC-router configuration as the uplink may have become
-	 * available in the meantime.
-	 */
-	_network.reattempt_nic_router_config();
-
 	if (_deploy.update_child_conditions()) {
 		reconfigure_runtime = true;
 		regenerate_dialog   = true;
@@ -1710,7 +1821,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("buffer",     "1M");
 	});
 
-	xml.node("heartbeat", [&] () { xml.attribute("rate_ms", 1000); });
+	xml.node("heartbeat", [&] () { xml.attribute("rate_ms", 2000); });
 
 	xml.node("parent-provides", [&] () {
 		gen_parent_service<Rom_session>(xml);
@@ -1734,6 +1845,8 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		gen_parent_service<Event::Session>(xml);
 		gen_parent_service<Capture::Session>(xml);
 		gen_parent_service<Gpu::Session>(xml);
+		gen_parent_service<Pin_state::Session>(xml);
+		gen_parent_service<Pin_control::Session>(xml);
 	});
 
 	xml.node("affinity-space", [&] () {
@@ -1747,7 +1860,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	_panel_menu_view.gen_start_node(xml);
 	_main_menu_view.gen_start_node(xml);
 	_settings_menu_view.gen_start_node(xml);
-	_network._menu_view.gen_start_node(xml);
+	_network_menu_view.gen_start_node(xml);
 	_popup_menu_view.gen_start_node(xml);
 	_file_browser_menu_view.gen_start_node(xml);
 
@@ -1848,6 +1961,9 @@ void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 								xml.attribute("speed_percent", -10); });
 						});
 					});
+
+					xml.node("touch-click", [&] () {
+						gen_input("touch"); });
 
 					gen_input("usb");
 					gen_input("touch");

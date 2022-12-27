@@ -23,7 +23,7 @@
 
 /* Linux emulation environment includes */
 #include <legacy/lx_kit/internal/list.h>
-#include <legacy/lx_kit/internal/arch_execute.h>
+#include <lx_kit/arch_execute.h>
 
 
 namespace Lx {

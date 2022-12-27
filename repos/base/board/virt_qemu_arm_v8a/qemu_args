@@ -1,0 +1,8 @@
+-m 2048
+-M virt,virtualization=true,gic-version=3 -cpu cortex-a53 -smp 4
+-global virtio-mmio.force-legacy=false
+-device virtio-net-device,bus=virtio-mmio-bus.0,netdev=net0
+-device virtio-mouse-device
+-device virtio-keyboard-device
+-device virtio-gpu-device
+-netdev user,id=net0

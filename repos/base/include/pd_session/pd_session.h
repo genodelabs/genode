@@ -312,6 +312,37 @@ struct Genode::Pd_session : Session, Ram_allocator
 	virtual Managing_system_state managing_system(Managing_system_state const &) = 0;
 
 
+	/*******************************************
+	 ** Support for user-level device drivers **
+	 *******************************************/
+
+	/**
+	 * Return start address of the dataspace to be used for DMA transfers
+	 *
+	 * The intended use of this function is the use of RAM dataspaces as DMA
+	 * buffers. On systems without IOMMU, device drivers need to know the
+	 * physical address of DMA buffers for issuing DMA transfers.
+	 *
+	 * \return  DMA address, or 0 if the dataspace is invalid or the
+	 *          PD lacks the permission to obtain the information
+	 */
+	virtual addr_t dma_addr(Ram_dataspace_capability) = 0;
+
+	enum class Attach_dma_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
+	struct     Attach_dma_ok    { };
+
+	using Attach_dma_result = Attempt<Attach_dma_ok, Attach_dma_error>;
+
+	/**
+	 * Attach dataspace to I/O page table at specified address 'at'
+	 *
+	 * This operation is preserved to privileged system-management components
+	 * like the platform driver to assign DMA buffers to device protection
+	 * domains. The attach can be reverted by using 'address_space().detach()'.
+	 */
+	virtual Attach_dma_result attach_dma(Dataspace_capability, addr_t at) = 0;
+
+
 	/*********************
 	 ** RPC declaration **
 	 *********************/
@@ -361,6 +392,9 @@ struct Genode::Pd_session : Session, Ram_allocator
 
 	GENODE_RPC(Rpc_managing_system, Managing_system_state, managing_system,
 	           Managing_system_state const &);
+	GENODE_RPC(Rpc_dma_addr, addr_t, dma_addr, Ram_dataspace_capability);
+	GENODE_RPC(Rpc_attach_dma, Attach_dma_result, attach_dma,
+	           Dataspace_capability, addr_t);
 
 	GENODE_RPC_INTERFACE(Rpc_assign_parent, Rpc_assign_pci, Rpc_map,
 	                     Rpc_alloc_signal_source, Rpc_free_signal_source,
@@ -370,7 +404,8 @@ struct Genode::Pd_session : Session, Ram_allocator
 	                     Rpc_transfer_cap_quota, Rpc_cap_quota, Rpc_used_caps,
 	                     Rpc_try_alloc, Rpc_free,
 	                     Rpc_transfer_ram_quota, Rpc_ram_quota, Rpc_used_ram,
-	                     Rpc_native_pd, Rpc_managing_system);
+	                     Rpc_native_pd, Rpc_managing_system,
+	                     Rpc_dma_addr, Rpc_attach_dma);
 };
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

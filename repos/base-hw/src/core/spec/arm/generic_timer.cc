@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -34,7 +34,6 @@ Board::Timer::Timer(unsigned) : ticks_per_ms((unsigned)(_freq() / 1000))
 
 void Timer::_start_one_shot(time_t const ticks)
 {
-	_device.last_time = Cpu::Cntpct::read();
 	Cpu::Cntp_tval::write((Cpu::Cntp_tval::access_t)ticks);
 	Cpu::Cntp_ctl::access_t ctl = Cpu::Cntp_ctl::read();
 	Cpu::Cntp_ctl::Istatus::set(ctl, 0);
@@ -44,7 +43,7 @@ void Timer::_start_one_shot(time_t const ticks)
 
 time_t Timer::_duration() const
 {
-	return Cpu::Cntpct::read() - _device.last_time;
+	return Cpu::Cntpct::read() - _time;
 }
 
 

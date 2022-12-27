@@ -251,7 +251,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 	Vm_space::Map_attr const attr {
 		.cached         = (dsc.cacheability() == CACHED),
 		.write_combined = (dsc.cacheability() == WRITE_COMBINED),
-		.writeable      = dsc.writable() && attribute.writeable,
+		.writeable      = dsc.writeable() && attribute.writeable,
 		.executable     = attribute.executable,
 		.flush_support  = false };
 

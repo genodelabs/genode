@@ -15,56 +15,24 @@
 #include <base/log.h>
 #include <base/component.h>
 #include <base/heap.h>
-#include <trace/timestamp.h>
 
-using namespace Genode::Trace;
+#include "genode_time.h"
+#include "common.h"
 
-class Test
+void triplet_test(void * src, void * dst, size_t size, unsigned iterations)
 {
-	private:
-		Genode::Heap      &_alloc;
-		Genode::size_t     _size;
+	size_t size_kb = size / 1024;
 
-		unsigned *_data { 0 };
+	unsigned long res1 = timed_test(src, nullptr, size, iterations, touch_words);
+	unsigned long res2 = timed_test(src, src,     size, iterations, memcpy_cpu);
+	unsigned long res3 = timed_test(src, dst,     size, iterations, memcpy_cpu);
 
-		Timestamp ts_to_time(Timestamp start, Timestamp end)
-		{
-			Timestamp diff = end - start;
-			if (end < start) diff--;
+	log(size_kb, "KB (Cycles/KB): ",
+	             res1 / size_kb / iterations, " | ",
+	             res2 / size_kb / iterations, " | ",
+	             res3 / size_kb / iterations);
+}
 
-			return diff;
-		}
-
-		Test(const Test &);
-		void operator=(const Test&);
-
-	public:
-
-		Test(Genode::Heap &alloc, Genode::size_t size_bytes)
-			: _alloc(alloc),
-			  _size(size_bytes/sizeof(unsigned))
-		{
-			_data = new (_alloc) unsigned[_size];
-		}
-
-		~Test()
-		{
-			destroy(_alloc, _data);
-		}
-
-		Timestamp read_write(unsigned iterations=100)
-		{
-			Timestamp start_ts = timestamp();
-
-			for (Genode::size_t i=0; i < iterations; i++) {
-				for (Genode::size_t index=0; index < _size; index++) {
-					_data[index]++;
-				}
-			}
-
-			return ts_to_time(start_ts, timestamp()) / iterations;
-		}
-};
 
 struct Main
 {
@@ -80,28 +48,23 @@ Main::Main(Genode::Env &env) : env(env)
 {
 	using namespace Genode;
 
-	log("--- test-cache started ---");
+	enum { MAX_KB = 4*1024 };
 
-	enum {
-		START_SIZE = 8,
-		END_SIZE   = 1024 * 4,
-		THRESHOLD_PERCENT = 10,
-	};
+	char * buf1 = new (heap) char[MAX_KB*1024];
+	char * buf2 = new (heap) char[MAX_KB*1024];
 
-	size_t size = START_SIZE;
-	while (size <= END_SIZE)
-	{
-		log("\n--- Running tests for size ", size, "KB ---");
+	memset(buf1, 0, MAX_KB*1024);
+	memset(buf2, 0, MAX_KB*1024);
 
-		Test test(heap, size*1024);
-		log("Read/write: ", test.read_write() / size, " cycles on average per KB");
+	log("--- test-cache started (touch words | touch lines | memcpy) ---");
 
-		size = size << 1;
-	}
+	sweep_test<8, MAX_KB>(buf1, buf2, 30, triplet_test);
 
 	log("--- test-cache done ---");
+
+	destroy(heap, buf1);
+	destroy(heap, buf2);
 }
 
 void Component::construct(Genode::Env &env) { static Main inst(env); }
-Genode::size_t Component::stack_size() { return 32*1024*sizeof(long); }
 

@@ -21,6 +21,7 @@
 #include <base/exception.h>
 #include <io_mem_session/client.h>
 #include <irq_session/client.h>
+#include <io_port_session/client.h>
 #include <platform_session/connection.h>
 
 class Platform::Device : Interface, Noncopyable
@@ -29,6 +30,7 @@ class Platform::Device : Interface, Noncopyable
 
 		struct Mmio;
 		struct Irq;
+		struct Io_port_range;
 
 		typedef Platform::Session::Device_name Name;
 
@@ -47,12 +49,17 @@ class Platform::Device : Interface, Noncopyable
 			return _cap.call<Device_interface::Rpc_irq>(index);
 		}
 
-		Io_mem_session_capability _io_mem(unsigned index, Range &range, Cache cache)
+		Io_mem_session_capability _io_mem(unsigned index, Range &range)
 		{
-			return _cap.call<Device_interface::Rpc_io_mem>(index, range, cache);
+			return _cap.call<Device_interface::Rpc_io_mem>(index, range);
 		}
 
-		Region_map &_rm() { return _platform._rm; }
+		Io_port_session_capability _io_port_range(unsigned index)
+		{
+			return _cap.call<Device_interface::Rpc_io_port_range>(index);
+		}
+
+		Region_map &_rm() { return _platform._env.rm(); }
 
 	public:
 
@@ -85,7 +92,7 @@ class Platform::Device::Mmio : Range, Attached_dataspace, public Genode::Mmio
 
 		Dataspace_capability _ds_cap(Device &device, unsigned id)
 		{
-			Io_mem_session_client io_mem(device._io_mem(id, *this, UNCACHED));
+			Io_mem_session_client io_mem(device._io_mem(id, *this));
 			return io_mem.dataspace();
 		}
 
@@ -110,6 +117,8 @@ class Platform::Device::Mmio : Range, Attached_dataspace, public Genode::Mmio
 
 		template <typename T>
 		T *local_addr() { return reinterpret_cast<T *>(_local_addr()); }
+
+		Dataspace_capability cap() { return Attached_dataspace::cap(); }
 };
 
 
@@ -165,6 +174,35 @@ class Platform::Device::Irq : Noncopyable
 		{
 			_irq.sigh(sigh);
 		}
+};
+
+
+class Platform::Device::Io_port_range : Noncopyable
+{
+	private:
+
+		Io_port_session_client _io_port_range;
+
+	public:
+
+		struct Index  { unsigned value; };
+
+		Io_port_range(Device &device, Index index)
+		: _io_port_range(device._io_port_range(index.value)) { }
+
+		explicit Io_port_range(Device &device)
+		: Io_port_range(device, Index { 0 }) { }
+
+		uint8_t  inb(uint16_t addr) { return _io_port_range.inb(addr); };
+		uint16_t inw(uint16_t addr) { return _io_port_range.inw(addr); };
+		uint32_t inl(uint16_t addr) { return _io_port_range.inl(addr); };
+
+		void outb(uint16_t addr, uint8_t  value) {
+			_io_port_range.outb(addr, value); };
+		void outw(uint16_t addr, uint16_t value) {
+			_io_port_range.outw(addr, value); };
+		void outl(uint16_t addr, uint32_t value) {
+			_io_port_range.outl(addr, value); };
 };
 
 #endif /* _INCLUDE__PLATFORM_SESSION__DEVICE_H_ */

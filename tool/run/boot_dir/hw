@@ -46,16 +46,13 @@ proc run_boot_dir {binaries} {
 	#
 	set bootstrap_arg ""
 	set core_arg      ""
-	set ld_arg        ""
 
-	if {![file exists [run_dir]/genode/ld.lib.so]}              { set ld_arg        lib/ld/hw    }
 	if {![file exists [run_dir]/genode/core-hw-[board].a]}      { set core_arg      core/hw      }
 	if {![file exists [run_dir]/genode/bootstrap-hw-[board].o]} { set bootstrap_arg bootstrap/hw }
 
-	set build_args "$bootstrap_arg $core_arg $ld_arg"
+	set build_args "$bootstrap_arg $core_arg"
 	if {[llength $build_args]} { build $build_args }
 
-	if {$ld_arg        != ""} { copy_file bin/ld-hw.lib.so  [run_dir]/genode/ld.lib.so }
 	if {$core_arg      != ""} { copy_file bin/core-hw-[board].a      [run_dir]/genode/ }
 	if {$bootstrap_arg != ""} { copy_file bin/bootstrap-hw-[board].o [run_dir]/genode/ }
 

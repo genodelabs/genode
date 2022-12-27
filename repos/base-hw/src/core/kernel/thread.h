@@ -57,6 +57,10 @@ struct Kernel::Thread_fault
  */
 class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 {
+	public:
+
+		enum Type { USER, CORE, IDLE };
+
 	private:
 
 		/*
@@ -149,7 +153,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		capid_t                            _timeout_sigid            { 0 };
 		bool                               _paused                   { false };
 		bool                               _cancel_next_await_signal { false };
-		bool const                         _core                     { false };
+		Type const                         _type;
 
 		Genode::Constructible<Tlb_invalidation> _tlb_invalidation {};
 		Genode::Constructible<Destroy>          _destroy {};
@@ -230,6 +234,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		void _call_restart_thread();
 		void _call_yield_thread();
 		void _call_delete_thread();
+		void _call_delete_pd();
 		void _call_await_request_msg();
 		void _call_send_request_msg();
 		void _call_send_reply_msg();
@@ -301,7 +306,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		       unsigned                    const  priority,
 		       unsigned                    const  quota,
 		       char                 const *const  label,
-		       bool                               core = false);
+		       Type                        const  type);
 
 		/**
 		 * Constructor for core/kernel thread
@@ -315,7 +320,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		       char                 const *const  label)
 		:
 			Thread(addr_space_id_alloc, user_irq_pool, cpu_pool, core_pd,
-			       Cpu_priority::min(), 0, label, true)
+			       Cpu_priority::min(), 0, label, CORE)
 		{ }
 
 		~Thread();
@@ -432,6 +437,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		char const * label() const { return _label; }
 		Thread_fault fault() const { return _fault; }
 		Genode::Native_utcb *utcb() { return _utcb; }
+		Type type() const { return _type; }
 
 		Pd &pd() const
 		{

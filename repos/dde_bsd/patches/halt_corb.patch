@@ -1,0 +1,25 @@
+--- a/dev/pci/azalia.c
++++ b/dev/pci/azalia.c
+@@ -1063,10 +1063,6 @@
+ 	uint16_t corbrp, corbwp;
+ 	uint8_t corbctl;
+ 
+-	err = azalia_halt_corb(az);
+-	if (err)
+-		return(err);
+-
+ 	if (!resuming) {
+ 		err = azalia_alloc_dmamem(az,
+ 		    az->corb_entries * sizeof(corb_entry_t), 128,
+@@ -1079,6 +1075,11 @@
+ 	}
+ 	timeout_set(&az->unsol_to, azalia_rirb_kick_unsol_events, az);
+ 
++	/* do after the allocation as it will access 'corb_dma' */
++	err = azalia_halt_corb(az);
++	if (err)
++		return(err);
++
+ 	AZ_WRITE_4(az, CORBLBASE, (uint32_t)AZALIA_DMA_DMAADDR(&az->corb_dma));
+ 	AZ_WRITE_4(az, CORBUBASE, PTR_UPPER32(AZALIA_DMA_DMAADDR(&az->corb_dma)));
+ 	AZ_WRITE_1(az, CORBSIZE, az->corbsize);

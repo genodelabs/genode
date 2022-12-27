@@ -26,7 +26,7 @@ using namespace Genode;
 
 Irq_session_component::Irq_session_component(Range_allocator &, const char *args)
 :
-	_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
+	_irq_number((unsigned)Arg_string::find_arg(args, "irq_number").long_value(-1)),
 	_irq_object(_irq_number)
 {
 	_irq_object.start();

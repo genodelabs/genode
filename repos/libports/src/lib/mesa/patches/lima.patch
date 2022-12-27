@@ -1,0 +1,12 @@
+--- a/src/lib/mesa/src/loader/loader.c
+--- b/src/lib/mesa/src/loader/loader.c
+@@ -473,6 +473,9 @@
+ 	if (fd == 43) {
+ 		return strdup("iris");
+ 	}
++	if (fd == 44) {
++		return strdup("lima");
++	}
+    char *driver;
+ 
+    /* Allow an environment variable to force choosing a different driver

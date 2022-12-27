@@ -106,6 +106,9 @@ struct Rtc::Main
 	bool const _set_rtc {
 		_config_rom.xml().attribute_value("allow_setting_rtc", false) };
 
+	bool const _verbose {
+		_config_rom.xml().attribute_value("verbose", false) };
+
 	Constructible<Attached_rom_dataspace> _update_rom { };
 
 	struct Invalid_timestamp_xml : Exception {};
@@ -124,7 +127,12 @@ struct Rtc::Main
 		}
 
 		try {
-			Rtc::set_time(env, _parse_xml(_config_rom.xml()));
+			Timestamp ts = _parse_xml(_config_rom.xml());
+
+			if (_verbose)
+				Genode::log("set time to ", ts);
+
+			Rtc::set_time(env, ts);
 		} catch (Invalid_timestamp_xml &) {}
 
 		env.parent().announce(env.ep().manage(root));
@@ -189,7 +197,12 @@ void Rtc::Main::_handle_update()
 	Genode::Xml_node node = _update_rom->xml();
 
 	try {
-		Rtc::set_time(env, _parse_xml(node));
+		Timestamp ts = _parse_xml(node);
+
+		if (_verbose)
+			Genode::log("set time to ", ts);
+
+		Rtc::set_time(env, ts);
 		root.notify_clients();
 	} catch (Invalid_timestamp_xml &) {
 		Genode::warning("set_rtc: ignoring incomplete RTC update"); }

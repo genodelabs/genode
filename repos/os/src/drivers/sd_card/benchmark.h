@@ -16,6 +16,7 @@
 #include <timer_session/connection.h>
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
+#include <platform_session/dma_buffer.h>
 
 /* local includes */
 #include <driver.h>
@@ -60,10 +61,8 @@ struct Benchmark
 	size_t const              buf_size_kib { config.xml().attribute_value("buffer_size_kib",
 	                                                                      (size_t)0) };
 	size_t const              buf_size     { buf_size_kib * 1024 };
-	Attached_ram_dataspace    buf          { env.ram(), env.rm(), buf_size, UNCACHED };
+	Platform::Dma_buffer      buf          { platform, buf_size, UNCACHED };
 	char                     *buf_virt     { buf.local_addr<char>() };
-	addr_t                    buf_phys     { Dataspace_client(buf.cap())
-	                                         .phys_addr() };
 	size_t                    buf_off_done { 0 };
 	size_t                    buf_off_pend { 0 };
 	unsigned                  req_size_id  { 0 };
@@ -125,7 +124,7 @@ struct Benchmark
 				if (drv.dma_enabled()) {
 
 					/* request with DMA */
-					addr_t const phys = buf_phys + buf_off_pend;
+					addr_t const phys = buf.dma_addr() + buf_off_pend;
 					switch (operation) {
 					case READ:   drv.read_dma(nr, cnt, phys, pkt); break;
 					case WRITE: drv.write_dma(nr, cnt, phys, pkt); break; }

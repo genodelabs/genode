@@ -4,6 +4,267 @@
                                ===========
 
 
+Genode OS Framework release 22.11 | 2022-11-30
+##############################################
+
+| Genode 22.11 enables hardware-accelerated graphics on up-to-date Intel
+| GEN12+ hardware, introduces work flows for hardware-software co-design,
+| wraps up the framework's unified device-driver infrastructure across PC and
+| ARM, and pushes forward the use of Genode on the PinePhone.
+
+The Genode OS framework is both a dependable foundation for custom operating
+systems - like Sculpt OS - and at the same time a playground for new ideas.
+The just released version 22.11 pays tribute to both facets. On the one hand,
+it features the results of our year-long effort of unifying and simplifying
+the framework's device-driver infrastructure across all base platforms, which
+subjects the interaction of driver components with device hardware to an
+unprecedentedly rigid regime of least privilege. This makes Genode-based
+systems ever more dependable and clear.
+
+The role of Genode as a playground for innovation is embodied by the
+combination of the framework with reconfigurable hardware. The release
+introduces new work flows for designing hardware IP cores and Genode
+components in tandem, which allows for low-complexity software-hardware
+co-designs that fit like a glove.
+
+Feature-wise, the new version covers a vast area of topics. The enhancement of
+our Intel GPU multiplexer to current GEN12+ hardware stands out most. Further
+topics range from the emerging user interface for Genode on the PinePhone,
+over plenty of device-driver work, to virtualization improvements on ARM and
+PC hardware.
+
+These and many more topics of the new version are covered by the official
+[https:/documentation/release-notes/22.11 - release documentation of version 22.11...]
+
+
+Sculpt OS release 22.10 | 2022-10-13
+####################################
+
+| Sculpt OS 22.10 is a maintenance release of our Genode-based
+| general-purpose OS. It imposes a new rigid regime to the management of
+| low-level devices, improves USB hotplug support, and comes with numerous
+| performance optimizations.
+
+The just released version 22.10 of the Sculpt operating system bears the fruit
+of our year-long effort to apply the rigidity of Genode's architecture to the
+management of PCI configuration and device interrupts. This sweeping change
+left no single device driver unturned. If we did our job right, you should not
+notice any visible difference from the previous Sculpt version.
+
+However, you should definitely _feel_ a difference when using the new version.
+We put several performance optimizations in place - from accelerated system
+startup, over increased network thoughput, to improved user-interface
+responsiveness. Moreover, we put much emphasis on stressing Sculpt's USB
+hotplug support, which includes the dynamic assignment and revocation of
+USB devices to and from virtual machines.
+
+With respect to available software, Sculpt users can enjoy an updated
+Chromium engine - via the Falkon or Morph web browsers - and an updated
+audio driver based on OpenBSD 7.1.
+
+Sculpt OS 22.10 is available as ready-to-use system image at the
+[https://genode.org/download/sculpt - Sculpt download page] along with
+updated [https://genode.org/documentation/articles/sculpt-22-10 - documentation].
+
+
+Genode OS Framework release 22.08 | 2022-08-31
+##############################################
+
+| The overarching theme of Genode 22.08 is the emerging phone variant of
+| Sculpt OS, touching topics as diverse as USB ECM, Mali-400 GPU, SD-card
+| access, telephony, mobile-data connectivity, the Morph web browser, and a
+| custom user interface. Among the further highlights are new tracing tools,
+| improved network performance USB smart-card support, and VirtIO drivers for
+| RISC-V.
+
+The vision of a Genode-based smart phone is certainly our most ambitious
+undertaking since we created Sculpt OS for the PC. Over the past two years, we
+relentlessly pursued this vision while targeting the PinePhone hardware.
+The scope of work reaches from custom firmware for the system-control
+processor, over kernel development, a staggering variety of device drivers, to
+the user-interface and application level. With Genode 22.08, those efforts
+culminate in a first complete system - a phone variant of Sculpt OS. The
+[https://genode.org/documentation/release-notes/22.08 - release documentation]
+tells the story behind this line of work in great detail.
+
+Beside phone-related topics, the new release features new tooling for
+gathering and analyzing system traces that allow for holistic performance
+studies covering the interplay between components. One particular success
+story of the new trace recorder is a profoundly improved network performance.
+Further highlights are the support for USB smart cards via PKCS#11, VirtIO
+drivers for RISC-V, and the update of Qt5 to version 5.15.2.
+
+For the complete picture, please enjoy the official
+[https:/documentation/release-notes/22.08 - release documentation of version 22.08...]
+
+
+Genode OS Framework release 22.05 | 2022-05-31
+##############################################
+
+| The highlights of Genode 22.05 are the new support for WireGuard virtual
+| private networks and a fresh lineup of PC device drivers. Further topics are
+| basic telephony with the PinePhone and dynamic device management on Xilinx
+| Zynq.
+
+Version 22.05 closely adheres the goals as set forth in our
+[https://genode.org/about/road-map - roadmap].
+In particular, the envisioned support of WireGuard VPNs came to fruition
+in the form of a dedicated VPN component based on the Linux implementation of
+the WireGuard protocol. Thanks to this component, the network access of Genode
+systems like [https://genode.org/download/sculpt - Sculpt OS] can now be
+protected using state-of-the-art VPN security.
+
+The second prominent topic is the new lineup of PC device drivers, which had
+been developed using Genode's novel Linux device-driver environment that
+allows the reuse of Linux kernel subsystems as individually sandboxed Genode
+components. The work comprises complex drivers like the wireless LAN stack
+including Intel's Wifi driver and the latest Intel display driver. The
+revamped drivers not only bring the modern feature set of the respective Linux
+5.14.21 subsystems to Genode, but they also validate the efficiency of the new
+porting approach.
+
+The vision of a Genode-based smartphone appears as a recurring topic throughout
+the year, with the current release not being an exception. Three achievements
+stand out. First, Genode gained the principle ability to issue and receive
+voice calls with the PinePhone. Second, in anticipation of sophisticated
+energy-management, the release introduces a Genode-specific custom firmware
+for the PinePhone's system-control processor. And third, it is accompanied
+with the second revision of the
+[https://genode.org/documentation/genode-platforms-22-05.pdf - Genode Platforms]
+document that covers the porting process of Genode to a mobile platform in a
+tutorial of over 200 pages.
+
+Besides those prominent topics, the release comes with numerous framework
+improvements, reaching from a forthcoming new PC platform driver, over
+performance optimizations and usability refinements, to dynamic device
+management on FPGA-based Xilinx Zynq devices.
+
+Discover these and more topics of the new version in the official
+[https:/documentation/release-notes/22.05 - release documentation of version 22.05...]
+
+
+Genode SoC porting guide | 2022-05-25
+#####################################
+
+| In the second revision of the Genode Platforms document, Genode Labs shares
+| its former in-house expertise about moving Genode to new hardware devices.
+
+If you ever wondered how to make sense of highly-complex ARM SoCs without
+accurate public documentation, what it takes to bring a modern microkernel
+from one SoC to another, how to transplant and re-animate individual Linux
+kernel subsystems into sandboxed user-level components, or how to craft a
+custom bare-bones operating system out of Genode's components, the new
+revision of the Genode Platforms document is for you.
+
+[https://genode.org/documentation/genode-platforms-22-05.pdf - Genode Platforms 22.05] (PDF)
+
+During the past two years, Genode developer Norman Feske captured his
+practical experience with enabling Genode on a new hardware platform, namely
+the PinePhone.
+
+The process starts with basics like executing tiny bits of custom code, and
+continues with the porting of the microkernel, creating work flows for testing
+and packaging, and bringing up the Genode user land.
+
+With those fundamentals covered, the main part is concerned with the
+complexities of driving the device hardware of modern SoCs, ranging from
+low-level pin controls, over networking, up to driving sophisticated devices
+like the display and touch screen. For the latter, the ability of reusing
+device drivers from the Linux kernel plays a crucial role. Hence, the guide
+presents Genode's practical methodology and tooling behind the black art of
+transplanting and reanimating unmodified Linux kernel code into Genode
+components. Along the way, there are countless little tips and tricks that
+help to turn low-level grunt work into a fun and worthwhile experience.
+
+The document closes with a glimpse at real-world scenarios, culminating in
+the setup of the modem and the routing of audio signals to issue voice calls.
+
+
+Sculpt OS release 22.04 | 2022-04-28
+####################################
+
+| Sculpt OS version 22.04 introduces the concept of service-level sandboxing
+| and features completely new drivers for wireless, graphics, and USB.
+
+On the user-visible surface, the new version of Sculpt OS looks and feels
+familiar to users of the previous version. Under the hood, however, at the
+nitty-gritty hardware-support level, it features completely revamped device
+drivers for Intel wireless, Intel graphics, and USB.
+
+In a major surgery, the new drivers got transplanted from the Linux kernel
+version 5.14.21 using Genode's unique
+[https://genode.org/documentation/release-notes/21.08#Linux-device-driver_environment_re-imagined - DDE]
+approach.
+In contrast to Linux where the drivers are part of the almighty operating-system
+kernel, Sculpt OS hosts each of the drivers in a dedicated sandbox as plain
+user-level component. So Sculpt users can enjoy the broad hardware support
+of up-to-date Linux drivers without ultimately trusting those staggeringly
+complex driver stacks.
+
+Closely related, the support of hardware-accelerated graphics that we
+introduced with the previous version
+[https://genode.org/news/sculpt-os-release-21.10 - 21.10]
+received substantial optimization and stabilization. With the new version,
+Sculpt users can not only run native OpenGL applications but can even go as far
+as using hardware-accelerated graphics via guest operating systems hosted
+within VirtualBox on top of Sculpt.
+
+Being a component-based operating system following the principle of least
+privilege, Sculpt OS gives users ultimate control over the system resources
+exposed to each component. The new version equips the user with additional
+means to exercise control over the deployed software: A new optional
+component called black hole can now be used as placeholder for various system
+resources when deploying an application. For example, a virtual machine can
+be shielded from the network by connecting its network traffic to the black
+hole. This also works for audio, video capturing, USB, and other commonly used
+system resources. As this mechanism works at the level of individual services,
+the documentation refers to it as _service-level sandboxing_, resembling a
+poster-child for the natural power of capability-based security.
+
+Sculpt OS 22.04 is available as ready-to-use system image at the
+[https://genode.org/download/sculpt - Sculpt download page] and is accompanied
+with updated [https://genode.org/documentation/articles/sculpt-22-04 - documentation].
+
+
+Genode OS Framework release 22.02 | 2022-02-28
+##############################################
+
+| With Genode 22.02, 3D acceleration becomes available to guest operating
+| systems running in VirtualBox 6, Sculpt OS evolves into a versatile framework
+| for building special-purpose operating systems, and Genode starts to interact
+| with the modem of the PinePhone.
+
+The features mentioned above are merely the tip of the iceberg of version
+22.02. In fact, the majority of the development work during the release cycle
+was focused on topics beyond the visible surface, ranging from the
+reorganization of the code base for streamlining the targeting of new hardware,
+over the tightening of foundational framework APIs, to the raising of the
+default warning level used when building genuine Genode components. Over the
+course of this infrastructural work, almost no component was left unturned.
+
+Functionality-wise, improvements of the Genode-based Sculpt OS are at the
+center stage of the release. Originally pursued with the vision of a
+Genode-based general-purpose OS that is fit for day-to-day use on commodity PC
+hardware, the current release lifts the potential of Sculpt's architecture for
+the creation of special-purpose operating-system appliances. The gained
+flexibility took even us developers by surprise! Thanks to the new modular
+approach, we were able to demonstrate a bare-bones version of Sculpt OS on
+the PinePhone at FOSDEM, or accelerate our development workflow by routinely
+running Sculpt OS directly on the Linux kernel.
+
+The intensive device-driver-related developments of the previous releases
+continued as well. This time, we took our new approach for running Linux
+drivers in Genode to PC hardware, starting with a fresh port of the USB host
+controller driver. The Intel GPU driver received numerous performance
+improvements and can now even be combined with guest operating systems running
+in VirtualBox 6. Further notable driver-related improvements are the new
+ability to interact with the modem on the PinePhone and largely streamlined
+driver infrastructure for the Raspberry Pi.
+
+All the details of the new version can be found in the
+[https:/documentation/release-notes/22.02 - release documentation of version 22.02...]
+
+
 Road Map for 2022 | 2022-01-18
 ##############################
 
@@ -13,12 +274,12 @@ Road Map for 2022 | 2022-01-18
 Following Genode's major technical breakthroughs in the areas of reusing Linux
 drivers, hardware-accelerated graphics, and the native execution of Chromium
 during 2021, we will pursue _mobile usability_ as overarching theme in 2022.
-Specifically, we aspire the routine use of Genode on the Pinephone as a
+Specifically, we aspire the routine use of Genode on the PinePhone as a
 platform for video chat, using WireGuard to protect the communications.
 
 This vision motivates a large variety of challenging technical topics.
 To name a few, we have to squeeze good performance out of the
-resource-constrained Pinephone hardware, focus on UI latency and the quality
+resource-constrained PinePhone hardware, focus on UI latency and the quality
 of service of audio streaming, come up with a somewhat usable touch-based
 user interface, and get to the guts of power management.
 
@@ -37,7 +298,7 @@ Genode OS Framework release 21.11 | 2021-11-30
 ##############################################
 
 | Genode 21.11 puts the spotlight on device drivers. Interactive Genode
-| scenarios come to the Pinephone, hardware-accelerated graphics becomes
+| scenarios come to the PinePhone, hardware-accelerated graphics becomes
 | available on Intel Gen9+ and Vivante GPUs, and Xilnx Zynq receives
 | new love.
 
@@ -45,7 +306,7 @@ The previous release presented our new take on porting drivers from Linux, and
 the architectural integration of hardware-accelerated graphics in Genode-based
 systems. The just released version 21.11 is the continuation of both topics.
 Thanks to our streamlined approach for transplanting Linux drivers to Genode, we
-were able to reuse the Pinephone's Linux drivers for the display and
+were able to reuse the PinePhone's Linux drivers for the display and
 touchscreen without modification. But, in contrast to running those drivers in
 the Linux kernel, we are walking on new ground by confining each driver in a
 separate sandbox.
@@ -126,7 +387,7 @@ Genode OS Framework release 21.08 | 2021-08-31
 ##############################################
 
 | The highlights of Genode 21.08 are revamped GPU support as well as new
-| drivers for the Pinephone and MNT-Reform laptop based on a new streamlined
+| drivers for the PinePhone and MNT-Reform laptop based on a new streamlined
 | approach for porting Linux kernel code. Further topics range from VirtualBox
 | improvements, over media playback in the native web browser, to LTE
 | connectivity in Sculpt OS.
@@ -139,7 +400,7 @@ Linux to Genode used to be a time-intensive affair, which forced a narrow
 focus on very few SoCs on us. With the streamlined porting approach introduced
 with the new release, we become able to dramatically reduce the costs,
 creating the prospect of a much broader hardware support. The first success
-stories of the new way of porting are added graphics drivers for the Pinephone
+stories of the new way of porting are added graphics drivers for the PinePhone
 and the MNT-Reform laptop, a network driver for the Pine-A64-LTS board, and an
 SD-card driver for the MNT-Reform.
 
@@ -271,7 +532,7 @@ Genode OS Framework release 21.02 | 2021-02-25
 | support for the Pine-A64-LTS board, and revived work on RISC-V.
 
 Many topics of the current release draw a connection to our overarching goal
-to use Genode on the Pinephone by the end of the year. Besides the obvious
+to use Genode on the PinePhone by the end of the year. Besides the obvious
 steps of enabling the hardware - starting with the Pine-A64-LTS board - the
 release introduces mobile-data connectivity as a Genode feature, and changes
 the network-driver architecture in anticipation of dynamic power-management
@@ -295,7 +556,7 @@ For the full story, please refer to the
 Road Map for 2021 | 2021-01-15
 ##############################
 
-| In 2021, we plan to bring Genode to the Pinephone, advance the framework's
+| In 2021, we plan to bring Genode to the PinePhone, advance the framework's
 | GPU support, and focus on development workflows.
 
 During the annual road-map discussion on Genode's public
@@ -303,13 +564,13 @@ During the annual road-map discussion on Genode's public
 the following hot topics for this year emerged.
 
 First and most inspiring for many Genode developers, we aspire to have
-Genode running on the Pinephone with basic feature-phone functionality by the
+Genode running on the PinePhone with basic feature-phone functionality by the
 end of the year. Since this will involve substantial device-driver-related
 developments, the team will take this line of work as an opportunity to
 advance the tooling and workflows for carrying out such tasks. This, in turn,
 will hopefully ease the on-boarding of new driver developers in the future.
 
-Closely related to the Pinephone scenario, the project will make optimizations
+Closely related to the PinePhone scenario, the project will make optimizations
 a top priority this year. The opportunities are plenty, ranging from
 micro-optimizations, over API refinements, to architectural changes if
 needed.

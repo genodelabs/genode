@@ -25,9 +25,8 @@
 /* base-hw internal includes */
 #include <hw/spec/arm/cpu.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <spec/arm/address_space_id_allocator.h>
-#include <kernel/interface_support.h>
 #include <util.h>
 
 namespace Kernel { struct Thread_fault; }
@@ -47,7 +46,7 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		uint64_t d0_d31[32];  /* VFP/SIMD - general purpose registers   */
 	};
 
-	struct alignas(4) Context : Cpu_state, Fpu_context
+	struct alignas(8) Context : Cpu_state, Fpu_context
 	{
 		Context(bool privileged);
 	};
@@ -105,7 +104,8 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		else      Tlbiall::write(0);
 	}
 
-	void switch_to(Context&, Mmu_context & o);
+	bool active(Mmu_context &);
+	void switch_to(Mmu_context &);
 
 	static void mmu_fault(Context & c, Kernel::Thread_fault & fault);
 	static void mmu_fault_status(Fsr::access_t fsr,

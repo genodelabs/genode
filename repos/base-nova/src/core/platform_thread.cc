@@ -314,17 +314,22 @@ const char * Platform_thread::pd_name() const {
 
 Trace::Execution_time Platform_thread::execution_time() const
 {
-	unsigned long long time = 0;
+	uint64_t sc_time = 0;
+	uint64_t ec_time = 0;
 
-	/* for ECs without a SC we simply return 0 */
-	if (!sc_created())
-		return { time, time, Nova::Qpd::DEFAULT_QUANTUM, _priority };
+	if (!sc_created()) {
+		/* time executed by EC (on whatever SC) */
+		uint8_t res = Nova::ec_time(_sel_ec(), ec_time);
+		if (res != Nova::NOVA_OK)
+			warning("ec_time failed res=", res);
+		return { ec_time, sc_time, Nova::Qpd::DEFAULT_QUANTUM, _priority };
+	}
 
-	uint8_t res = Nova::sc_ctrl(_sel_sc(), time);
+	uint8_t res = Nova::sc_ec_time(_sel_sc(), _sel_ec(), sc_time, ec_time);
 	if (res != Nova::NOVA_OK)
 		warning("sc_ctrl failed res=", res);
 
-	return { time, time, Nova::Qpd::DEFAULT_QUANTUM, _priority };
+	return { ec_time, sc_time, Nova::Qpd::DEFAULT_QUANTUM, _priority };
 }
 
 

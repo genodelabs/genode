@@ -54,18 +54,11 @@ proc board_qemu_args { } {
 
 	##
 	# Each line is appended to qemu_args.
-	# Arguments might be general or restricted to a particular spec as follows:
-	#   general arguments
-	#   arm_v7a: arguments for arm_v7a
 	#
 	set qemu_args ""
 	foreach line [split $file_content "\n"] {
-		if {[regexp {^([\w]+):(.*)$} $line dummy spec arg]} {
-			if {[have_spec $spec]} { append qemu_args " $arg" }
-		} else {
 			# general arguments
 			append qemu_args " $line"
-		}
 	}
 
 	return $qemu_args

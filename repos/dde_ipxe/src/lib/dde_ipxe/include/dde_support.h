@@ -72,15 +72,26 @@ void dde_lock_leave(void);
  ** Interrupt handling **
  ************************/
 
-int dde_interrupt_attach(void (*handler)(void *), void *priv);
+void dde_interrupt_attach(void (*handler)(void *), void *priv);
 
 
 /******************
  ** PCI handling **
  ******************/
 
-int dde_pci_first_device(int *, int *, int *);
-int dde_pci_next_device(int *, int *, int *);
+struct dde_pci_device_info
+{
+	const char *   name;
+	unsigned short vendor;
+	unsigned short device;
+	unsigned int   class_code;
+	unsigned int   revision;
+	unsigned long  io_mem_addr;
+	unsigned short io_port_start;
+};
+typedef struct dde_pci_device_info dde_pci_device_t;
+
+dde_pci_device_t dde_pci_device(void);
 
 void dde_pci_readb(int, dde_uint8_t *);
 void dde_pci_readw(int, dde_uint16_t *);
@@ -93,8 +104,6 @@ void dde_pci_writel(int, dde_uint32_t);
 /**************
  ** I/O port **
  **************/
-
-void dde_request_io(dde_uint8_t);
 
 dde_uint8_t  dde_inb(dde_addr_t);
 dde_uint16_t dde_inw(dde_addr_t);

@@ -66,10 +66,10 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 		if (is_conventional_memory(base))
 			return base;
 
-		/* align large I/O dataspaces on a super-page boundary within core */
+		/* align large I/O dataspaces to super page size, otherwise to size */
 		size_t const align = (size >= get_super_page_size())
-		                   ? get_super_page_size_log2()
-		                   : get_page_size_log2();
+		                           ? get_super_page_size_log2()
+		                           : log2(size);
 
 		return platform().region_alloc().alloc_aligned(size, align).convert<addr_t>(
 			[&] (void *ptr) { return (addr_t)ptr; },

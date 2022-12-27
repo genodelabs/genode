@@ -8,7 +8,7 @@ LX_EMUL_H           := $(REP_DIR)/src/drivers/usb_net/lx_emul.h
 # of these header files we create a symlink to 'lx_emul.h'.
 #
 SCAN_DIRS := $(addprefix $(USB_NET_CONTRIB_DIR)/include/, asm-generic linux uapi net) \
-             $(addprefix $(USB_NET_CONTRIB_DIR)/,         drivers net)
+             $(addprefix $(USB_NET_CONTRIB_DIR)/,         drivers net lib)
 GEN_INCLUDES := $(shell grep -rIh "^\#include .*\/" $(SCAN_DIRS) |\
                         sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" |\
                         sort | uniq)

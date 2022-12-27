@@ -8,13 +8,18 @@ proc binary_name_timer     { } { return "linux_timer_drv" }
 #
 proc run_boot_dir {binaries} {
 
-	if {![file exists [run_dir]/genode/ld.lib.so]} { build { lib/ld/linux } }
-
 	set missing_boot_modules { }
 	foreach binary $binaries {
+
 		set src_binary_path "[pwd]/bin/[kernel_specific_binary $binary]"
+
+		set dst_binary "[kernel_specific_binary $binary]"
+		if {$dst_binary == "core-linux"}      { set dst_binary "core" }
+		if {$dst_binary == "ld-linux.lib.so"} { set dst_binary "ld.lib.so" }
+		if {$dst_binary == "linux_timer_drv"} { set dst_binary "timer" }
+
 		if {[file exists $src_binary_path]} {
-			exec ln -sf $src_binary_path [run_dir]/genode/$binary
+			exec ln -sf $src_binary_path [run_dir]/genode/$dst_binary
 		} else {
 			lappend missing_boot_modules $binary
 		}
@@ -31,35 +36,35 @@ proc run_boot_dir {binaries} {
 	# Save config part of the image.elf for easy inspection
 	exec cp -f [run_dir]/genode/config [run_dir].config
 
-        if {[have_board pc]} {
+	if {[have_board pc]} {
 
-            build_initrd $binaries
+		build_initrd $binaries
 
-            copy_file [genode_dir]/tool/boot/vmlinuz [run_dir]/vmlinuz
+		copy_file [genode_dir]/tool/boot/vmlinuz [run_dir]/vmlinuz
 
-            if {[have_include "image/iso"]} {
-                install_iso_bootloader_to_run_dir
-            }
+		if {[have_include "image/iso"]} {
+			install_iso_bootloader_to_run_dir
+		}
 
-            if {[have_include "image/uefi"]} {
+		if {[have_include "image/uefi"]} {
 
-                exec mkdir -p [run_dir]/efi/boot
-                exec cp [get_grub2_dir]/boot/grub2/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
-                exec cp [get_grub2_dir]/boot/grub2/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
-                exec mkdir -p [run_dir]/boot/grub
-            }
+			exec mkdir -p [run_dir]/efi/boot
+			exec cp [get_grub2_dir]/boot/grub2/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
+			exec cp [get_grub2_dir]/boot/grub2/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
+			exec mkdir -p [run_dir]/boot/grub
+		}
 
-            set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
-            puts $fh "set timeout=0"
-            puts $fh "menuentry 'Genode on Linux' {"
-            puts $fh " insmod linux"
-            puts $fh " linux /vmlinuz console=ttyS0,115200 amd_iommu=off intel_iommu=off"
-            puts $fh " initrd /initrd"
-            puts $fh "}"
-            close $fh
+		set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
+		puts $fh "set timeout=0"
+		puts $fh "menuentry 'Genode on Linux' {"
+		puts $fh " insmod linux"
+		puts $fh " linux /vmlinuz console=ttyS0,115200 amd_iommu=off intel_iommu=off"
+		puts $fh " initrd /initrd"
+		puts $fh "}"
+		close $fh
 
-            run_image
-        }
+		run_image
+	}
 }
 
 

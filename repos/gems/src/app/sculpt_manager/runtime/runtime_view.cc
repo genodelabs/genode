@@ -24,6 +24,9 @@ void Sculpt::gen_runtime_view_start_content(Xml_generator &xml,
 {
 	state.gen_start_node_content(xml);
 
+	gen_named_node(xml, "resource", "CPU", [&] () {
+		xml.attribute("quantum", 20); });
+
 	gen_named_node(xml, "binary", "menu_view");
 
 	xml.node("config", [&] () {

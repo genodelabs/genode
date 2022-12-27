@@ -320,6 +320,28 @@ static int vmmr0_gmm_allocate_pages(GMMALLOCATEPAGESREQ &request)
 }
 
 
+static int vmmr0_gmm_free_pages(GMMFREEPAGESREQ &request)
+{
+	for (unsigned i = 0; i < request.cPages; i++) {
+
+		GMMFREEPAGEDESC &page = request.aPages[i];
+
+		Sup::Gmm::Pages one_page { 1 };
+
+		using Vmm_addr = Sup::Gmm::Vmm_addr;
+		using Page_id  = Sup::Gmm::Page_id;
+
+		Page_id const page_id { page.idPage };
+
+		Vmm_addr const vmm_addr = sup_drv->gmm().vmm_addr(page_id);
+
+		sup_drv->gmm().free(vmm_addr, one_page);
+	}
+
+	return VINF_SUCCESS;
+}
+
+
 static int vmmr0_gmm_map_unmap_chunk(GMMMAPUNMAPCHUNKREQ &request)
 {
 	if (request.idChunkMap != NIL_GMM_CHUNKID) {
@@ -513,18 +535,16 @@ static int vmmr0_pgm_allocate_handy_pages(PVMR0 pvmr0)
 	uint32_t const start_idx = vm.pgm.s.cHandyPages;
 	uint32_t const stop_idx  = RT_ELEMENTS(vm.pgm.s.aHandyPages);
 
-	Sup::Gmm::Pages pages { stop_idx - start_idx };
-
 	using Vmm_addr = Sup::Gmm::Vmm_addr;
 	using Page_id  = Sup::Gmm::Page_id;
 
-	Vmm_addr const vmm_addr = sup_drv->gmm().alloc_from_reservation(pages);
-
 	for (unsigned i = start_idx; i < stop_idx; ++i) {
+
+		Vmm_addr const vmm_addr = sup_drv->gmm().alloc_from_reservation( Sup::Gmm::Pages { 1 } );
 
 		GMMPAGEDESC &page = vm.pgm.s.aHandyPages[i];
 
-		Vmm_addr const page_addr { vmm_addr.value + i*PAGE_SIZE };
+		Vmm_addr const page_addr { vmm_addr.value };
 		Page_id  const page_id = sup_drv->gmm().page_id(page_addr);
 
 		page.HCPhysGCPhys = page_addr.value;
@@ -595,6 +615,10 @@ static void ioctl(SUPCALLVMMR0 &request)
 
 	case VMMR0_DO_GMM_ALLOCATE_PAGES:
 		rc = vmmr0_gmm_allocate_pages(*(GMMALLOCATEPAGESREQ *)request.abReqPkt);
+		return;
+
+	case VMMR0_DO_GMM_FREE_PAGES:
+		rc = vmmr0_gmm_free_pages(*(GMMFREEPAGESREQ *)request.abReqPkt);
 		return;
 
 	case VMMR0_DO_GMM_MAP_UNMAP_CHUNK:

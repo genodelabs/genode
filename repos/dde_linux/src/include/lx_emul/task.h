@@ -26,6 +26,8 @@ struct task_struct * lx_emul_task_get_current(void);
 
 struct task_struct * lx_emul_task_get(int pid);
 
+int  lx_emul_task_pid(struct task_struct *task);
+
 void lx_emul_task_create(struct task_struct * task,
                          const char * name,
                          int pid,
@@ -39,6 +41,12 @@ void lx_emul_task_priority(struct task_struct * task, int prio);
 void lx_emul_task_schedule(int block);
 
 void lx_emul_task_name(struct task_struct * task, const char * name);
+
+void *lx_emul_task_stack(struct task_struct const * task);
+
+char lx_emul_task_another_runnable(void);
+
+void  lx_emul_task_mark_for_removal(struct task_struct const * task);
 
 #ifdef __cplusplus
 }

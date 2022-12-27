@@ -70,7 +70,47 @@ extern "C" struct task_struct * lx_emul_task_get(int pid)
 }
 
 
+extern "C" int lx_emul_task_pid(struct task_struct * t)
+{
+	int ret = -1;
+
+	Lx_kit::env().scheduler.for_each_task([&] (Lx_kit::Task & task) {
+		if (t == task.lx_task())
+			ret = task.pid();
+	});
+
+	return ret;
+}
+
+
 extern "C" void lx_emul_task_name(struct task_struct * t, const char * name)
 {
 	Lx_kit::env().scheduler.task((void*)t).name(name);
+}
+
+
+extern "C" void * lx_emul_task_stack(struct task_struct const * t)
+{
+	void * ret = nullptr;
+
+	Lx_kit::env().scheduler.for_each_task([&] (Lx_kit::Task const & task) {
+		if (t == task.lx_task())
+			ret = task.stack();
+	});
+
+	return ret;
+}
+
+
+extern "C" char lx_emul_task_another_runnable()
+{
+	Lx_kit::Task & task = Lx_kit::env().scheduler.current();
+
+	return Lx_kit::env().scheduler.another_runnable(&task);
+}
+
+
+extern "C" void lx_emul_task_mark_for_removal(struct task_struct const *t)
+{
+	Lx_kit::env().scheduler.task((void*)t).mark_for_destruction();
 }

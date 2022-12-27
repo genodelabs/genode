@@ -34,16 +34,19 @@ Dhcp_server_base::Dhcp_server_base(Xml_node const &node,
 {
 	node.for_each_sub_node("dns-server", [&] (Xml_node const &sub_node) {
 
-		try {
-			_dns_servers.insert_as_tail(*new (alloc)
-				Dns_server(sub_node.attribute_value("ip", Ipv4_address())));
-
-		} catch (Dns_server::Invalid) {
-
-			_invalid(domain, "invalid DNS server entry");
-		}
+		Dns_server::construct(
+			alloc, sub_node.attribute_value("ip", Ipv4_address { }),
+			[&] /* handle_success */ (Dns_server &server)
+			{
+				_dns_servers.insert_as_tail(server);
+			},
+			[&] /* handle_failure */ ()
+			{
+				_invalid(domain, "invalid DNS server entry");
+			}
+		);
 	});
-	node.with_sub_node("dns-domain", [&] (Xml_node const &sub_node) {
+	node.with_optional_sub_node("dns-domain", [&] (Xml_node const &sub_node) {
 		xml_node_with_attribute(sub_node, "name", [&] (Xml_attribute const &attr) {
 			_dns_domain_name.set_to(attr);
 
@@ -78,11 +81,21 @@ void Dhcp_server_base::_invalid(Domain const &domain,
  ** Dhcp_server **
  *****************/
 
+bool Dhcp_server::dns_servers_empty() const
+{
+	if (_dns_config_from.valid()) {
+
+		return _resolve_dns_config_from().dns_servers_empty();
+	}
+	return _dns_servers.empty();
+}
+
+
 Dhcp_server::Dhcp_server(Xml_node            const  node,
                          Domain                    &domain,
                          Allocator                 &alloc,
                          Ipv4_address_prefix const &interface,
-                         Domain_tree               &domains)
+                         Domain_dict               &domains)
 :
 	Dhcp_server_base(node, domain, alloc),
 	_dns_config_from(_init_dns_config_from(node, domains)),
@@ -193,7 +206,7 @@ void Dhcp_server::free_ip(Domain       const &domain,
 
 
 Pointer<Domain> Dhcp_server::_init_dns_config_from(Genode::Xml_node const  node,
-                                                   Domain_tree            &domains)
+                                                   Domain_dict            &domains)
 {
 	if (!_dns_servers.empty() ||
 	    _dns_domain_name.valid()) {
@@ -206,19 +219,16 @@ Pointer<Domain> Dhcp_server::_init_dns_config_from(Genode::Xml_node const  node,
 	if (dns_config_from == Domain_name()) {
 		return Pointer<Domain>();
 	}
-	try { return domains.find_by_name(dns_config_from); }
-	catch (Domain_tree::No_match) { throw Invalid(); }
+	return domains.deprecated_find_by_name<Invalid>(dns_config_from);
 }
 
 
-bool Dhcp_server::ready() const
+bool Dhcp_server::has_invalid_remote_dns_cfg() const
 {
-	if (!_dns_servers.empty()) {
-		return true;
+	if (_dns_config_from.valid()) {
+		return !_dns_config_from().ip_config().valid();
 	}
-	try { return _dns_config_from().ip_config().valid(); }
-	catch (Pointer<Domain>::Invalid) { }
-	return true;
+	return false;
 }
 
 
@@ -229,7 +239,7 @@ bool Dhcp_server::ready() const
 Dhcp_allocation::Dhcp_allocation(Interface      &interface,
                              Ipv4_address const &ip,
                              Mac_address  const &mac,
-                             Timer::Connection  &timer,
+                             Cached_timer       &timer,
                              Microseconds        lifetime)
 :
 	_interface(interface), _ip(ip), _mac(mac),

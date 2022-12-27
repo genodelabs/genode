@@ -21,15 +21,15 @@ using namespace Genode;
 
 struct Cpu_burn : Thread
 {
-	List_element<Cpu_burn>  _list_element { this };
-	Env           &_env;
-	Blockade       _block { };
-	bool volatile  _stop  { false };
+	List_element<Cpu_burn> _list_element { this };
+	Env                   &_env;
+	Blockade               _block { };
+	bool volatile          _stop  { false };
 
-	Cpu_burn(Genode::Env &env, Location const &location)
+	Cpu_burn(Env &env, Location const &location)
 	:
-		Genode::Thread(env, Name("burn_", location.xpos(), "x", location.ypos()),
-		               4 * 4096, location, Weight(), env.cpu()),
+		Thread(env, Name("burn_", location.xpos(), "x", location.ypos()),
+		       4 * 4096, location, Weight(), env.cpu()),
 		_env(env)
 	{ }
 
@@ -45,12 +45,13 @@ struct Cpu_burn : Thread
 	}
 };
 
-typedef List<List_element<Cpu_burn> >  Thread_list;
 
 struct Cpu_burner
 {
-	Genode::Env       &_env;
-	Genode::Heap       _heap   { _env.ram(), _env.rm() };
+	typedef List<List_element<Cpu_burn> >  Thread_list;
+
+	Env              &_env;
+	Heap              _heap   { _env.ram(), _env.rm() };
 	Timer::Connection _timer   { _env };
 	Thread_list       _threads { };
 
@@ -58,7 +59,7 @@ struct Cpu_burner
 	unsigned short    _percent  { 100 };
 	bool              _burning  { false };
 
-	Genode::Attached_rom_dataspace _config { _env, "config" };
+	Attached_rom_dataspace _config { _env, "config" };
 
 	void _handle_config()
 	{
@@ -72,7 +73,7 @@ struct Cpu_burner
 			_percent = 100;
 	}
 
-	Genode::Signal_handler<Cpu_burner> _config_handler {
+	Signal_handler<Cpu_burner> _config_handler {
 		_env.ep(), *this, &Cpu_burner::_handle_config };
 
 	void _handle_period()
@@ -121,10 +122,10 @@ struct Cpu_burner
 		_timer.trigger_once(next_timer_ms*1000);
 	}
 
-	Genode::Signal_handler<Cpu_burner> _period_handler {
+	Signal_handler<Cpu_burner> _period_handler {
 		_env.ep(), *this, &Cpu_burner::_handle_period };
 
-	Cpu_burner(Genode::Env &env) : _env(env)
+	Cpu_burner(Env &env) : _env(env)
 	{
 		_config.sigh(_config_handler);
 		_handle_config();
@@ -145,7 +146,7 @@ struct Cpu_burner
 };
 
 
-void Component::construct(Genode::Env &env)
+void Component::construct(Env &env)
 {
 	static Cpu_burner cpu_burner(env);
 }

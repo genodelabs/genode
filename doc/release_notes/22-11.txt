@@ -1,0 +1,1015 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 22.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+With version 22.11, we pursued two new exploratory topics as we envisioned on
+the project's [https://genode.org/about/road-map - road map] for this year,
+namely the use of the framework for hardware-software co-design work,
+and principally enabling suspend/resume functionality on PCs.
+
+A decade ago, we
+[https://genode.org/documentation/release-notes/11.02#Approaching_platform_support_for_Xilinx_MicroBlaze - explored the combination]
+of Genode with FPGA technology for the first time.
+Our interest in this direction got reignited two years ago when we started
+enabling Genode on a board based on the Xilinx Zynq, which combines an ARMv7
+SoC with FPGA fabric. This line of work eventually culminated in new
+development work flows for creating hardware IP cores and Genode components in
+tandem. Section [Hardware-software co-design with Genode on Xilinx Zynq] covers
+the results of this line of work.
+
+The second largely exploratory topic is the practical use of sleep states
+on PC hardware, which - until this point - remained rather mysterious to us.
+Section [Low-level mechanism for suspend/resume on PC platforms] reports
+on our findings and the forthcoming integration of this feature into Genode.
+
+Besides the exploration work, the profound enhancement of our Intel GPU
+multiplexer stands out. As detailed in Section
+[Hardware-accelerated graphics with Intel GEN12+ GPUs], the new version
+supports up-to-date GEN12+ GPUs, comes with numerous robustness and
+performance improvements, and got adapted to Genode's new uniform driver
+infrastructure.
+
+The latter point brings us to the most elaborate development under the hood
+of the framework, which is the great unification of the device-driver
+interfaces across all supported architectures.
+Section [Uniform use of new platform-driver interface] wraps up this
+intensive line of work, which left no PC-related driver unturned.
+
+A recurring theme throughout this year is the use of Genode on the PinePhone.
+The current release is no exception.
+Sections [Emerging Sculpt OS variant for the PinePhone] and
+[PinePhone drivers for audio, camera, and power control] report on the
+progress at the user-facing side as well as the driver-related achievements
+digging deep into the realms of power management, audio, and the camera.
+
+Among the many further topics of the current release are virtualization on PC
+and ARM (Sections [ARM virtual machine monitor] and [Seoul VMM]), plenty
+of device-driver improvements, and enhanced tooling that makes the framework
+ever more enjoyable to use (Section [Build system and tools]).
+
+
+Hardware-software co-design with Genode on Xilinx Zynq
+######################################################
+
+A distinct feature of the Xilinx Zynq-7000 SoC is the combination of its
+Cortex-A9 CPU with an FPGA, which is also referred to as _programmable logic_.
+As the name suggests, the FPGA can be programmed with custom hardware designs
+and thus act as an accelerator, DSP, or an arbitrary peripheral device. The
+Zynq platform thereby accommodates a playground for hardware-software co-design
+for a comparably low budget.
+
+While extending the platform support for the Zynq in general, we have
+particularly been working towards establishing the required infrastructure
+for supporting hardware-software co-design in Genode. With this release, we
+can draw an almost complete picture of such a co-design workflow in Genode.
+Our achievements culminate in a beginner-level tutorial for the Zybo Z7 board.
+
+
+Runtime reconfiguration of the FPGA
+===================================
+
+A key component to FPGA runtime reconfiguration in Genode is the
+_drivers_fpga-zynq_ subsystem that we already
+[https://genode.org/documentation/release-notes/22.05#Xilinx_Zynq - introduced with release 22.05].
+
+This subsystem enabled bitstream loading at runtime in order to reprogram the
+FPGA. In conjunction with the _Zynq Driver Manager_, it allowed
+launching/stopping of device drivers in accordance with the availability of the
+devices implemented on the FPGA.
+
+For this release, we reworked this subsystem in order to support switching
+between several bitstreams. In particular, we added a _devices manager_ to
+merge the static 'devices' ROM with a bitstream-dependent set of devices. The
+latter is specified by the component's configuration as follows:
+
+! <config>
+!   <bitstream name="my_bitstream.bit">
+!     <devices>
+!       <device name="my_device" type="my_type">
+!         <io_mem address="0x43c00000" size="0x1000"/>
+!       </device>
+!     </devices>
+!   </bitstream>
+! </config>
+
+The configuration comprises an arbitrary number of _bitstream_ nodes with a
+mandatory _name_ attribute. Each _bitstream_ node may contain a set of device
+specifications as expected by the platform driver. The _devices manager_ merges
+the static 'devices' ROM with the devices of the currently loaded bitstream,
+which is reported by the _fpga_drv_ component. The result is then consumed
+by the platform driver. The bitstream to be loaded is specified by the
+configuration of the _fpga_drv_ as follows:
+
+! <config>
+!   <bitstream name="my_bitstream.bit"/>
+! </config>
+
+These changes are bundled into the new _drivers_fpga-zynq_ subsystem.
+The figure below illustrates how this subsystem is used as a replacement for
+the platform driver.
+
+[image zynq_driver_manager_22_11]
+
+Just as the standard platform driver, the subsystem expects a 'policy' and
+'devices' ROM. In addition, we must provide it with a _devices_manager.config_
+ROM as shown above. The bitstreams as well as the configuration for the internal
+_fpga_drv_ component must be provided via a file system session.
+
+In addition to these changes to the _drivers_fpga-zynq_ subsystem, we added
+configurability of the four FPGA clocks ("fpga0" to "fpga3") to the Zynq
+platform driver. Moreover, we added four equally named reset domains.
+
+All changes are found in the
+[https://github.com/genodelabs/genode-zynq - genode-zynq]
+repository.
+
+
+Packaging of bitstreams with Goa
+================================
+
+Custom hardware designs for the Zynq SoC are created with Xilinx Vivado.
+In order to simplify reproducing a bitstream from its sources and creating
+corresponding depot archives, we added Vivado as a supported build system to
+[https://github.com/nfeske/goa - Goa]. In particular, we leveraged the fact
+that a hardware project can be exported from Vivado as a tcl script that
+reproduces the project. With this approach, we only need to keep the custom
+source files and omit any generated glue code.
+
+In addition, we added support for auto-generating a _devices_manager.config_
+from a hardware design. When provided with a sparse _devices_ file (mentioning
+the name or type of each device), Goa tries to extract the corresponding MMIO
+addresses and clock rates from the design and adds a corresponding
+_devices_manager.config_ to the depot archive.
+
+Please find detailed instructions in the Goa documentation via
+
+! $ goa help build-systems
+
+
+Pin driver and co-design tutorial
+=================================
+
+Following the lead of the Allwinner SoC, we implemented a pin driver for the
+Zynq platform. Since GPIO on the Zynq may require loading of a custom bitstream
+in case the FPGA's I/O pins are used, we developed and published a tutorial
+for the Zybo Z7 board. This tutorial showcases a co-design workflow
+demonstrating the use of the pin driver, custom hardware design with Xilinx
+Vivado, bitstream generation and packaging with Goa as well as bitstream
+switching at runtime.
+You can find the tutorial on the new
+[https://www.hackster.io/genode/ - Genode channel on hackster.io].
+
+
+Hardware-accelerated graphics with Intel GEN12+ GPUs
+####################################################
+
+With our big [https://mesa3d.org - Mesa 3D] library update from version 11.2.2
+to version [https://genode.org/documentation/release-notes/21.08 - 21.0.0],
+we also switched the Intel graphics back end from the dated DRI2/i965 to the
+Gallium/Iris based graphics driver. The reason for doing so is becoming
+apparent with the current Genode release. The old i965 driver does not support
+newer Intel Graphics hardware and is limited to (U)HD graphics devices found,
+for example, on Broadwell, Skylake, or Kabylake platforms. The new
+[https://en.wikipedia.org/wiki/Intel_Xe - Intel Xe] (eXascale for
+everyone = GEN12) hardware is only supported by the Iris driver and can be
+found on current architectures like Tigerlake or Alderlake. Intel Xe comes
+with a completely new instruction set architecture (ISA). Thanks to our switch
+to Iris, most of these ISA changes are handled transparently by the Mesa
+library for us. The main task for Genode was to adjust our Intel GPU
+multiplexer to the new graphics-device generation.
+
+
+Intel GPU-GEN12 multiplexer adjustments
+=======================================
+
+Genode's GPU multiplexer is a very low level component within the 3D graphics
+stack. Technically, it handles the GPU resources (like graphics memory) and the
+scheduling and execution of compiled GPU code (i.e., batch buffers) of the
+graphics device. It is also responsible for providing separation of different
+GPU clients, which is achieved by GPU contexts with a separate page table per
+client in hardware. Also, it serves interrupts and informs the clients,
+respectively the 3D applications, about progress so a client can submit the
+next rendering request. For Intel Xe, there are only two changes within this
+low level ISA. First, the interrupt handling registers have been improved.
+It has become easier to distinguish, for example, between a display-engine
+interrupt and a rendering interrupt. Since graphics cards can have many
+interrupt causes, this is a useful and welcome change. Second, it is now
+possible to schedule 16 instead of 4 jobs onto the GPU. While we don't take
+advantage of this feature yet - we schedule one job at a time - this may come
+in handy for use cases like 3D compositing. Additionally, the multiplexer has
+to provide information about slices, subslices, and EUs (Execution Units) to
+Mesa clients.
+
+
+Stability and resource improvements
+===================================
+
+Resources need to be traded on Genode, and it is essential that the GPU
+multiplexer does not pay for memory allocations or capability upgrades from
+its own budget. The client has to donate these resources beforehand.
+If this rule is violated, the multiplexer might run out of budget and stall
+all clients. Because 3D applications can require a huge amount of resources,
+this has been a challenging topic during the last release cycle, and we are
+glad to announce that even sophisticated workloads are now running well on
+Genode. There is still room for improvement, but the current situation is
+already reassuring. Stability-wise, we have tested the updated 3D stack with
+various workloads (games, browsers, VirtualBox6-3D) and did fix all issues
+that we came across.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Base API changes
+================
+
+New 'Dictionary' utility
+------------------------
+
+Throughout the Genode code base, there are several places where objects are
+accessed by using a name as key. To avoid the repeated manual crafting of such
+data structures, we introduced a basic 'Dictionary' data structure located at
+_base/include/util/dictionary.h_.
+
+It follows the patterns of the existing 'Id_space' and 'Registry'. That is,
+elements are automatically added to the dictionary at construction time,
+respectively removed at destruction time. There exists a 'with_element' method
+for applying a functor to one element by specifying a name as key, and a
+'with_any_element' method that can be used to destruct all dictionary items.
+
+
+Tightening the 'Xml_node' interface
+-----------------------------------
+
+The former 'with_sub_node' method has been renamed to 'with_optional_sub_node'
+to better reflect the intention of the caller. If no sub node of the specified
+type exists, the specified functor is not executed.
+
+Use cases where a sub node is mandatory are best covered by the new
+'with_sub_node' method that takes two functors as arguments, one called with
+the matching sub node, and one that is called if no such sub node exists.
+
+
+NIC router
+==========
+
+The NIC router now generates reports triggered by internal events
+(re-configuration, link state change, etc.) asynchronously. This has the
+benefit that the potentially expensive report update does not delay the event
+processing that triggered the update and that a report is guaranteed to reflect
+a consistent state of the router's internals.
+
+Furthermore, if the '<report>' attribute 'link_state_triggers' is set, the
+router now updates the report also whenever a network session gets constructed
+or destructed. This is definitely necessary with sessions whose link state is
+"up" because we should consider a non-existent session to be "down". However,
+in real-world scenarios, a subscriber might want to know about the
+construction and destruction of sessions that are "down" as well because one
+has to be able to synchronize the lifetime of local objects that keep track of
+the link states.
+
+Besides the polishing of the report functionality, there are some improvements
+related to the DHCP processing in the router. First, the router is now robust
+against invalid DNS addresses in DHCP ACK packets. Next, the DHCP client
+doesn't produce oversized Ethernet packets anymore. This is important in
+networks with a low bandwidth. Then, the link state of a session that is bound
+to the state of another domain via the '<dhcp-server>' attribute
+'dns_config_from' is now correctly synchronized to whether that domain has an
+IP configuration or not. And, last but not least, the DHCP server now accepts
+the optimized startup sequence of clients like Debian that store their lease
+persistently and directly try re-requesting it on boot-up (no DHCP DISCOVER).
+These last two changes both prevent DHCP re-attempts that could cause a
+significantly delayed network boot-up at applications behind the router.
+
+
+Improved support for time-multiplexed GPIO pins
+===============================================
+
+Prompted by the need to enable a bit-banging I2C driver on the PinePhone,
+we extended Genode's pin-driver framework introduced in version
+[https://genode.org/documentation/release-notes/21.11#Pin_I_O_session_interfaces - 21.11]
+with support for the time-multiplexed operation of a pin as output or input.
+
+To operate a pin in both directions, a driver obtains both a pin-state and a
+pin-control session for the same pin. The pin-state session can be used to
+sense the current pin state. The control session allows the client to set the
+pin to high or low (using the 'state' method), or to set it to high-impedance
+via the 'yield' method. Once switched to high-impedance, the pin can be used
+as input.
+
+
+Libraries and applications
+##########################
+
+Emerging Sculpt OS variant for the PinePhone
+============================================
+
+Genode on the PinePhone has come a long way, most of which is covered by the
+[https://genode.org/documentation/genode-platforms-22-05.pdf - Genode Platforms]
+document. Device-driver work accounts for the majority of the effort, which is
+nicely wrapped up with the current release as described in
+Section [PinePhone drivers for audio, camera, and power control].
+With the fundamental device drivers for the PinePhone covered, we can now turn
+our attention to system-integration work, ultimately raising the question of
+how a Genode-based phone should best present itself to the user.
+
+[image sculpt_pinephone_22_11]
+  The forthcoming phone variant of the user interface of Sculpt OS.
+
+We take this question as an opportunity for exploration. Similarly to
+how the so-called Leitzentrale of [https://genode.org/download/sculpt - Sculpt OS]
+provides the user with an administrative view on the system that is separate
+from the user-defined desktop runtime, we pursued the division of the phone's
+UI into two faces that can be toggled with a simple touch gesture. The first
+one accommodates the role of the device as a fixed-function appliance similar
+to the functionality of a feature phone whereas the second one can be shaped
+entirely by the user. The screenshots above give a glimpse of the user
+interface of the appliance side. It covers low-level device parameters, voice
+calls, establishing network connectivity, and the installation and management
+of the software running on the user-defined side. One can see several cues
+from Sculpt OS such as the component graph.
+
+The clear-cut separation of the two roles of the device opens up new ways to
+leverage Genode's component architecture. For example, observing that the
+appliance role needs only a subset of components, we can orchestrate the
+startup of the system such that those components are started first. This way,
+the device's basic functions like voice calls become available in under 7
+seconds when powering-on the device.
+
+Regarding the built-in feature set, we implemented the fundamental device
+functions that everyone takes for granted, like displaying the battery state,
+triggering the charging when a charger gets connected, controlling the
+brightness of the display, or powering down the device.
+
+The phone variant of Sculpt OS evolves in the
+[https://github.com/nfeske/genode-allwinner - genode-allwinner] repository,
+specifically within the _sculpt/_ and _src/app/phone_manager/_ directories.
+It can be built via the following command:
+
+! build/arm_v8a$ make run/sculpt KERNEL=hw BOARD=pinephone SCULPT=phone
+
+For loading the system on the PinePhone, please follow the instructions given
+in the following article.
+
+:Booting Genode on the PinePhone:
+
+  [https://genodians.org/nfeske/2021-09-20-pine-fun-pinephone-boot]
+
+Note that the current version is still at a rather developer-focused stage.
+To avoid testimonies of a prematurely released version, we decided to postpone
+the release of a ready-to-use image until the feature set generally expected
+from a phone is complete and well tested.
+
+
+ARM virtual machine monitor
+===========================
+
+The hardware-assisted virtual machine monitor (VMM) for ARM developed for
+Genode is part of the framework since release
+[https://genode.org/documentation/release-notes/15.02#Virtualization_on_ARM - 15.02].
+Over the years, it got extended to support recent ARMv8 hardware, VirtIO
+device models for console, network, block, and so on. Nevertheless, the given
+device models, memory dimensions, and Linux specifics like initramfs size
+remained hard-coded within the VMM component, and not easily configurable.
+
+Now, the VMM accepts a configuration that enables one to define various
+aspects of the virtual machine and guest OS. The VMM is still focused on Linux
+OS guests though. Formerly, a pre-compiled flattened device-tree binary (DTB)
+was used by the VMM to boot the Linux guest. The new version of the VMM
+generates the DTB based on its own configuration.
+
+An example configuration looks like the following:
+
+! <config kernel_rom="linux"
+!         initrd_rom="initrd"
+!         ram_size="512M"
+!         cpu_count="4"
+!         cpu_type="arm,cortex-a53"
+!         gic_version="3"
+!         bootargs="console=hvc0">
+!   <virtio_device name="hvc0" type="console"/>
+!   <virtio_device name="eth0" type="net"/>
+!   <virtio_device name="hd0"  type="block"/>
+! </config>
+
+The RAM size and CPU count attributes are mandatory. All other attributes are
+optional and use default values. However, it is noteworthy that you should use
+the correct values for the CPU type and the Generic Interrupt Controller (GIC)
+version that matches your underlying hardware. Due to the usage of
+hardware-dependent virtualization extensions, the VMM and guest OS should see
+the correct hardware description for CPU and interrupt controller.
+
+
+Seoul VMM
+=========
+
+The Seoul/Vancouver VMM - introduced to Genode with release 11.11 - is an
+x86 based VMM which runs on Genode@NOVA, Genode@seL4, and Genode@Fiasco.OC on
+Intel and on AMD hardware. It is used with 32-bit Linux VMs typically.
+
+Over the last and this year, the VMM got VirtIO support with the goal to
+improve the usability when used day-to-day, e.g., on Sculpt OS. Given the
+observation that most Linux guests come readily (or easy to install) equipped
+with VirtIO driver support, we can avoid fiddling with building or integrating
+guest drivers manually. The Seoul VMM got extended by implementations for the
+VirtIO input device model, VirtIO GPU device model (2D by now) and VirtIO
+audio device model.
+
+With the new input model, absolute mouse positions are supported, so that the
+mouse pointer positions in Genode's Sculpt OS and in the guest VM can be kept
+in sync. Beforehand, it was hardly possible when solely using the PS/2 model
+using relative motion vectors.
+With the new 2D GPU model, the mouse pointer shape of the guest VM can be
+exported and shown by Genode's GUI multiplexer instead of the native mouse
+pointer, which improves the visual impression and avoids confusion.
+Additionally, with the new GPU model, resizeable and arbitrary resolution
+dimension are possible, which was not feasible with the former VGA/VESA model.
+The overall painting overhead is more manageable since partial updates are
+supported by the device model.
+The VirtIO audio model enables playback of music when streaming & surfing in
+the VM, which was beforehand not possible because no audio model was
+available. The new VirtIO models of the Seoul VMM were finally mapped to
+Genode's GUI, input and audio-out session interfaces.
+
+Combined, the new device models improve the overall usability when using Seoul
+on Sculpt OS. Several packages of alex-ab's depot are available to get
+started, ranging from a full on target Debian installation over pre-packed and
+ready to use VMs to up-to-date Firefox and Thunderbird VMs based on Tiny Core
+Linux. Whereas the Firefox VM is entirely disposable - as mentioned in
+[https://genodians.org/alex-ab/2019-03-06-disposal-browser-vm] -
+the Thunderbird VM relies on persistent storage.
+
+
+Device drivers
+##############
+
+Uniform use of new platform-driver interface
+============================================
+
+In release
+[https://genode.org/documentation/release-notes/22.02#Platform_driver - 22.02],
+Genode's generic platform API for all architectures got introduced and the
+x86-specific platform API got deprecated. However, at that point, all
+x86-based device drivers still used the deprecated API and the deprecated
+platform driver. With this release, all device drivers are now reworked to use
+the generic platform API, and driver. The deprecated platform driver and API
+have been removed.
+
+To make all previous scenarios work again, several changes were necessary. The
+changes - especially concerning the _pci_decode_ and _platform_drv_
+components - are described in the following.
+
+PCI decoder
+-----------
+
+The PCI decoder, introduced in release
+[https://genode.org/documentation/release-notes/22.05#Platform_driver - 22.05],
+consumes ACPI information delivered by the ACPI driver and additional platform
+information from the core component. It uses this information to find and scan
+PCI buses for devices and their capabilities. Finally, it creates a report
+about all PCI devices found.
+
+While using more and more device drivers with the generic platform driver and
+PCI decoder, we realized that on some platforms, not all PCI bridges are
+necessarily enabled, which leaves the devices behind such a bridge unusable.
+This is now fixed by enabling all PCI bridges.
+
+The information about reserved memory regions for PCI devices is already used
+in the boot process, e.g., memory for video graphic cards is discovered by the
+ACPI driver. However, the PCI decoder did not yet offer this information in
+its devices report. Therefore, the platform driver did not know about the
+reserved memory, and could not set up an IOMMU appropriately. From now on,
+the PCI decoder reports such memory regions as follows.
+
+! <device name="00:02.0" type="pci">
+!   ...
+!   <reserved_memory address="0xdd000000" size="0x2800000"/>
+! </device>
+
+The PCI memory _Base Address Registers_ (BARs) provide information about
+pre-fetchable memory. This information is now additionally exported by the PCI
+decoder and can be used by the platform driver (see the next section for
+details). The information is presented in the following form:
+
+! <device name="00:02.0" type="pci">
+!   ...
+!   <io_mem pci_bar="2" address="0xe0000000" size="0x10000000" prefetchable="true"/>
+! </device>
+
+Currently, the PCI decoder decides about the type of interrupt which can be
+used for a PCI device. The background is that several kernels, like OKL4,
+do not support the use of _Message-Signaled-Interrupts_ (MSI) or MSI-X.  Older
+kernels, like Pistachio, do not even support the I/O _Advanced Programmable_
+_Interrupt Controller_ (IOAPIC), and are even more limited regarding available
+interrupt pins.
+On kernels that support all kinds of interrupts, devices with support for MSI
+or MSI-X were reported to prefer MSI-X. However, in rare cases we observed
+problems with the WiFi driver on MSI-X capable hardware. Therefore, we switch
+the priority of reporting MSI over MSI-X if both are available.
+In addition, we experienced problems with some Intel HDAUDIO cards and MSIs.
+Therefore, we do not report the MSI capability on those devices for the
+time being.
+
+
+Platform driver
+---------------
+
+The generic platform driver got re-worked to support the newly provided
+information from the PCI decoder. The given reserved memory regions of a
+device are used to add corresponding entries in the IOMMU.
+
+The new "prefetchable" attribute for corresponding I/O memory regions -
+typically only "stolen memory" of the video graphics card - is used to decide
+when I/O memory can be mapped as write-combined into the address space of the
+client. Now that the platform driver decides for which I/O memory these
+special paging attributes are sensible to use, the actual driver no longer
+needs to distinguish special paging attributes for I/O memory.
+Therefore, we removed those details from the 'io_mem' call.
+
+PCI devices on x86 without MSI or MSI-X support may still share the same
+interrupt line. To make the generic platform driver functional on these
+platforms, we had to add shared interrupt support. When the platform driver
+receives its devices report, it iterates over all devices and their interrupt
+resources, and detects any shared interrupts. For those interrupts, the
+platform driver provides a custom IRQ service, thereby realizing the sharing.
+For all other interrupts, it hands out the IRQ capability as obtained from
+core directly.
+
+The generic platform driver can now set up MSI-X within the PCI configuration
+space of a device, if the devices ROM instructs it to do so.
+
+The ability to power and reset PCI devices was also missing in the generic
+platform driver so far. We caught up on implementing this feature.
+
+Several PCI enablement quirks are needed for correctly running devices and
+drivers. Especially the hand-off of devices in between BIOS/UEFI and OS are an
+example for this. We encountered problems when doing this too late. Therefore,
+we moved the PCI quirks from the moment of first usage to the startup of the
+platform driver. Moreover, PCI quirks for EHCI and HDAUDIO were added.
+
+VirtIO PCI devices hide several important information about their queues inside
+the PCI configuration space. Now that we do not provide direct access to the
+PCI configuration space to device drivers, the platform driver needs to
+identify VirtIO devices, and provide the necessary information via the devices
+ROM to the driver. It does so in the following way:
+
+! <device ...>
+!   <pci-config ...>
+!     ...
+!     <virtio_range type="notify" index="1" offset="0x200" size="0x100"/>
+!   </pci-config>
+! </device>
+
+Sometimes a device driver is needed to set up a device but doesn't necessarily
+need to stay present while the device is active. The PCIe host controller for
+the i.MX 8MQ SoC described in
+Section [New PCI and network drivers for NXP i.MX] is such an example.
+To be able to destruct a platform resp. single device session at the platform
+driver without automatically powering it off or resetting it, we introduced
+the "leave_operational" attribute. As the name suggests, it leaves a device
+untouched when its session gets closed. The attribute is part of the policy
+node for the client within the platform driver's configuration.
+
+Platform driver for PC hardware
+-------------------------------
+
+The vanished and deprecated x86-specific platform driver was able to reset a
+machine via I/O port access. It did so upon observing the 'state' attribute of
+the system ROM having the value "reset".
+This feature is mainly used within Sculpt OS. To not lose this ability,
+a platform driver specific to PCs is now part of the _repos/pc_ repository.
+It shares all code and semantics with the generic platform driver, but adds
+this single functionality.
+
+Platform API clients
+--------------------
+
+All remaining x86-centered device drivers got reworked to use the generic
+platform API and its helper utilities in _platform_session/device.h_ and
+_platform_session/dma_buffer.h_.
+
+The lx_kit and lx_emul layers within the _repos/dde_linux_ repository now use
+one and the same generic layer too. While reworking these libraries, we
+addressed a performance penalty in the interrupt handling. The multiple
+opening and closing of interrupt sessions is now eliminated.
+Moreover, we removed the legacy_pc_usb_host_drv from _repos/dde_linux_.
+
+All run-scripts and packages were revised to use the new drivers.
+
+
+PinePhone drivers for audio, camera, and power control
+======================================================
+
+Over the past 18 months, we have steadily expanded the base of device drivers
+for the PinePhone, initially addressing the
+[https://genodians.org/nfeske/2021-12-21-pine-fun-display - display] and
+[https://genodians.org/nfeske/2022-03-16-pine-fun-touchscreen - touchscreen],
+later covering the
+[https://genode.org/documentation/release-notes/22.02#PinePhone_modem_access - modem],
+[https://genode.org/documentation/release-notes/22.05#Custom_system-control_processor__SCP__firmware - system control],
+[https://genode.org/documentation/release-notes/22.08#GPU_and_Mesa_driver_for_Mali-400 - GPU], and
+[https://genode.org/documentation/release-notes/22.08#SD-card_driver_for_the_PinePhone - SD-card].
+With the current release, we wrap up this line of work with drivers for
+audio, camera, and power control.
+
+As a prerequisite step for enabling the camera, we changed the version of the
+Linux kernel that we use as donor of the driver code. Up to now, we relied on
+the vanilla Linux kernel for the Allwinner SoC. However, the camera support
+still resides on [https://xnux.eu - Ondrej Jirman's] custom kernel
+(orange-pi-5.14), which is apparently the kernel of choice for most Linux
+distributions for the PinePhone. We follow suit.
+
+
+Audio
+-----
+
+The added audio support consists of two separate components, namely an
+audio-control driver and audio in/out driver. The former controls the audio
+routing and mixing on the hardware level. It is responsible to route the mic
+to the modem during voice call, control the gain, or enable/disable the
+speaker. The privacy-sensitive audio-control driver is meant to be part of the
+base system of Sculpt. It operates according to its configuration, which can
+be updated dynamically.
+
+Volumes can be configured by nodes within the '<config>' node using a volume
+attribute (range 0-100) where 0 implies turning off the input or output
+device. Supported nodes are '<mic>', '<speaker>', and '<earpiece>'.
+Furthermore, a '<codec>' node can be used to switch the audio path between the
+modem and the ARM application processor (SoC). Its 'target' attribute can be
+set to either "soc" (default) or "modem". The "soc" mode implicitly sets the
+codec's sample rate to 44.1 KHz whereas "modem" mode sets the sample rate to
+48 KHz. This distinction is required because the modem is compatible with 8
+KHz only. The modem's 8 KHz can be cleanly converted to 48 KHz.
+
+In contrast to the audio-control driver, the audio in/out driver is concerned
+with streaming PCM audio data to/from the ARM application processor. It allows
+audio applications hosted in the user-defined runtime of Sculpt OS to record
+and play audio via Genode's audio-in and audio-out session interfaces.
+The combination of both drivers can be exercised via the
+[https://github.com/genodelabs/genode-allwinner/blob/master/run/audio_pinephone.run - audio_pinephone.run]
+script.
+
+
+Power control
+-------------
+
+The new power-control driver is based on our custom firmware for the A64's
+system-control processor (SCP) in combination with Genode's dedicated
+scp-session interface that allows Genode components to interact with the SCP.
+
+To properly arbitrate the access to the power-management IC (PMIC) between the
+SCP firmware and the ARM application processor, the PMIC driver has been moved
+entirely to the SCP side. This way, both the SCP firmware and Genode-based SCP
+clients become able to safely access the PMIC without stepping on each other's
+toes. In particular, the platform driver acts as an SCP client to toggle power
+controls. Since the platform driver now depends on the SCP, we co-located the
+formerly separate SCP driver component with the platform driver.
+
+Built upon this infrastructure, a new power driver exercises control over
+several low-level aspects of the PinePhone hardware such as:
+
+* Platform reboot (via the PMIC),
+* Powering down the system (via the PMIC),
+* Switching between the power profiles "performance" and "economic",
+  which clock the ARM CPU at 1296 MHz and 816 MHz respectively,
+* Reporting the remaining battery capacity, power draw, or charge current,
+* Triggering the charging when connecting a charger, and
+* Adjusting the backlight brightness.
+
+Besides being integrated in Sculpt OS, the driver can be exercised in
+isolation using the
+[https://github.com/genodelabs/genode-allwinner/blob/master/run/power_pinephone.run - power_pinephone.run]
+script.
+
+
+Camera
+------
+
+The added camera driver component consists of a port of the Linux SUN6I-CSI as
+well as OV5640 and GC2145 drivers. It renders the captured camera image data
+into a GUI session according to the following configuration attributes.
+
+The 'camera' attribute selects the camera. Supported values as "front" and
+"rear". The 'width' and 'height' attributes select the horizontal and vertical
+resolution. Valid configurations are 640x480 as well as 1280x720. The 'fps'
+attribute selects the capture rate of the camera. Valid values are "15" and
+"30". The 'format' attribute selects the capture format. The only valid value
+is "yuv", which selects YUV420. The 'convert' attribute specifies if the
+captured image data is converted to the pixel format suitable for the GUI
+display. Default is "true". The 'rotate' attribute specifies if the capture
+image data is rotated counter-clockwise and flipped. Default is 'true'.
+
+The integration of the driver is exemplified by the
+[https://github.com/genodelabs/genode-allwinner/blob/master/run/camera_pinephone.run - camera_pinephone.run] script.
+The test scenario displays the camera image on the framebuffer. It repeatedly
+switches between front and rear camera.
+
+
+New PCI and network drivers for NXP i.MX
+========================================
+
+PCIe host controller for i.MX 8MQ
+---------------------------------
+
+The i.MX 8MQ SoC includes two PCI-express host controllers. The MNT Reform 2
+laptop for example exposes both via one M.2 and one miniPCIe socket, e.g., to
+drive an NVMe card and a WiFi card. In contrast to x86-based PCs, those PCIe
+controllers are not set up by boot-firmware like BIOS or UEFI, but need to be
+driven by the OS first. Therefore, this release contains a new PCIe driver for
+the mentioned SoC. This driver does not provide a special API. It uses the
+platform driver to obtain the device resources of the PCIe controller, and
+enables and configures it appropriately. It then parses the PCI configuration
+space of the device behind the controller, which in fact acts as PCI host
+bridge. The collected device and PCI information is then exposed via the
+report service analogously to the PCI decode component available for x86.
+Finally, the platform driver resp. another incarnation of the platform driver
+can consume this report as devices ROM, and provide the device resources to a
+driver of the PCI device.
+
+In practice, we have tested the PCIe host controller driver in combination
+with an NVMe card used in the MNT Reform 2 laptop only. Moreover, it got
+integrated in Sculpt OS for the MNT Reform 2. Therefore, we had to add an
+i.MX 8MQ specific driver manager. This management component is able to check
+for the availability of an NVMe device, controls the driver's lifetime, and
+assembles a block-device report that covers both SD-card and NVMe devices.
+
+
+FEC Network driver
+------------------
+
+There is long-standing support for the _Freescale Ethernet Controller_ (FEC)
+within Genode available, supporting a broad range of SoCs from i.MX 53 up to
+i.MX 8.
+But the existing driver port taken from Linux 4.16.3 was running shakily on
+the i.MX 8MQ SoC and the i.MX 6 Sabrelite board. Instead of trying to
+investigate potentially violated semantics in the legacy DDE Linux emulation
+code, we ported the Linux device driver for FEC from scratch. Thereby, we've
+used the recent DDE Linux porting approach, first described in the
+[https://genode.org/documentation/release-notes/21.08#Linux-device-driver_environment_re-imagined - 21.08]
+release.
+The new driver is based on the vanilla Linux kernel 5.11 plus the MNT Reform 2
+patches provided by Lukas Hartmann, which we already use for other drivers
+available in the genode-imx repository.
+
+To enable the driver to work correctly, it needs information about its clock
+frequencies. Therefore, we have extended the platform driver for i.MX 53, and
+introduced new rudimentary platform drivers specific to i.MX 6 and 7, which
+expose the needed clock frequencies.
+
+
+USB-C on i.MX 8MQ EVK
+---------------------
+
+The USB host controller driver for the i.MX 8MQ EVK board did not enable the
+second USB host controller yet, which is connected to the USB-C socket of the
+board. Now this host controller gets driven too.
+
+
+Intel graphics
+==============
+
+The Intel display driver was enabled to run on Intel Alderlake graphics PCs,
+tested on the 12th Gen
+[https://frame.work/de/en/products/laptop-12-gen-intel - Framework Laptop].
+Furthermore, the driver now supports 4K displays, tested specifically on Dell
+Ultrasharp and LG 27MU67 hardware. Additionally, the driver may now be
+configured to set up an upper resolution bound to avoid out-of-service
+exceptions due to unexpectedly high memory needs. This feature is used by
+default on Sculpt to limit resolutions to WQHD aka 1440p aka 2560x1440 pixels
+and can be changed in _repos/gems/sculpt/fb_drv/default_.
+
+
+Audio driver updated to OpenBSD 7.1
+===================================
+
+We updated the audio-driver component to OpenBSD version 7.1 that brings in
+support for playback on more recent 12th Gen Intel machines. Besides the
+update, we remedied a long-standing shortcoming when handling multiple
+HD-Audio devices and removed the support for old audio devices.
+
+The component contained a simple check to exclude known non-working devices
+but depending on the machine's configuration, this check was incomplete. Rather
+than extending the check, we took a step back and changed the probing
+behavior of the component:
+
+![init -> audio_drv] azalia0 [8086:160c]
+![init -> audio_drv] :
+![init -> audio_drv] azalia0: no supported codecs
+![init -> audio_drv] azalia1 [8086:9ca0]
+![init -> audio_drv] :
+![init -> audio_drv] azalia1: codecs: Realtek ALC292
+![init -> audio_drv] audio0 at azalia1
+
+It now checks all available devices and picks the first one it can use. This
+comes in handy in configurations where the virtual PCI-bus is populated with
+all audio devices found in a machine and some of them contain unsupported
+codecs as, among others, found on GPUs.
+
+Furthermore, we decided to remove the _eap_ and _auich_ drivers as these
+drivers rely on I/O port access, which still had to be enabled in the
+component after the switch to the new platform driver and due to being of
+minor importance in daily use. The first one was mainly used to initially
+develop the component and later on for testing in QEMU. The second one on the
+other hand was merely enabled to provide a shot at getting audio in VirtualBox
+VMs where the component did not work with the HDA device model at the time.
+
+
+Improved ACPICA driver
+======================
+
+The ACPICA driver got improved support for Thinkpad notebooks to report ACPI
+events and in particular battery state changes. The frequency of checking of
+state changes, which are not triggered by an ACPI event, can now be configured
+explicitly, which is documented in the README file of the component.
+
+Additionally, the ACPICA component got extended to support ACPI suspend &
+resume functionality. On the one hand the component can be configured to
+determine and report the supported ACPI sleep states (S1-S5) of a PC machine.
+On the other hand, the component can now react on 'system' ROM changes and
+participate on sleep state preparation and the subsequent wakeup procedure
+using the ACPICA library, e.g., AcpiEnterSleepStatePrep,
+AcpiLeaveSleepStatePrep and AcpiLeaveSleepState.
+
+
+Wireless-networking improvements
+================================
+
+In the process of enabling the Intel AX211 WiFi card, DDE-Linux and the WiFi
+driver were enhanced to support loading PNVM firmware files. Ultimately, a
+[https://github.com/QubesOS/qubes-linux-kernel/commit/5fcfe0f19ed5ff2bd3514644afce0af642c326c6 - workaround]
+from QubesOS was needed to make the card work, highlighting shared challenges
+that both our projects face when using Linux drivers in unconventional ways to
+improve system security.
+
+
+Platforms
+#########
+
+Low-level mechanism for suspend/resume on PC platforms
+======================================================
+
+On modern PC platforms, suspend and resume is realized by using a mechanism
+provided by ACPI. The Advanced Configuration and Power Interface defines
+(besides many other things) several global states (Gx) and six sleep states (Sx)
+an operating system (OS) can choose. Oversimplified, the S0 state is the
+normal working state, S1-S2 are light sleeping states, S3 is known as
+"suspend to RAM" state, S4 is called "suspend to disk" and S5 is mostly "off".
+See [https://en.wikipedia.org/wiki/ACPI#OSPM_responsibilities] for a basic
+overview and further pointers for reading.
+
+The supported sleep states vary between PCs, some of which do not even support
+all states. An operating system has to look up and determine the supported Sx
+states, which are part of ACPI tables and ACPI AML code. Beginning with this
+Genode release, we can use the ACPICA driver to lookup the supported Sx
+states. The sleep states themselves are represented as two values (TYP_SLPa
+and TYP_SLPb in ACPI specification) and are reported by the ACPICA driver.
+
+In order to trigger/program the intended sleep state, an OS like Genode + used
+kernel has to look up and set up several ACPI tables, e.g., FACS & FADT. Via
+the tables, the OS deposits a wakeup vector, which is called by the UEFI
+firmware on wakeup. Before actually going to sleep, the OS has to take care to
+flush all kinds of hardware cached state either to memory or persistence
+storage, depending on the Sx state.
+
+With this release, we added principal support for S3 "suspend to RAM" in
+Genode using the NOVA kernel. The kernel now supports a privileged suspend
+syscall, which is solely available to Genode's core roottask. The invocation
+is triggered and guarded by Genode's 'Pd::managing_system' RPC function, which
+takes both TYP_SLPa and TYP_SLPb values as parameters representing the
+intended Sx state. On invocation, Genode's core will check that the component
+holds Genode's managing-system capability. On success, the suspend syscall of
+the NOVA kernel is invoked and will lead to holding all CPUs, depositing the
+wakeup vector in the ACPI tables, flushing cached state of Genode's components
+to memory, like CPU registers, FPU state, IO-APIC state and virtualization
+state of Intel' VMX or AMD's SVM. Finally, both TYP_SLP values will be used to
+trigger the sleep state.
+
+On ACPI wakeup, the UEFI/BIOS firmware wakes up the NOVA kernel via the
+deposited wakeup vector. The kernel re-initializes the CPU and wakes up all
+other CPUs. Finally, control will be transferred to Genode's roottask (core),
+which can thereby return from the 'Pd::managing_system' RPC call.
+
+Before and after the actual suspend and resume, the ACPICA driver should
+be used to run ACPI AML methods to prepare and post-process the system state
+change, which may affect the success of the Sx state transfer depending on the
+used PC platform. Additionally, after resume, all hardware and their drivers
+must be considered to be re-initialized. The re-initialization and re-starting
+of drivers and hardware, e.g., PCI, is not finished currently.
+
+An early prototype for exercising this scenario is available in the form of
+the _acpi_suspend.run_ script in the _libports_ repository. This test scenario
+periodically suspends and resumes the hardware and also restarts the used
+display driver. The low level ACPI suspend and resume can be observed to work
+quite reliable, which we could validate across several generations of Intel
+notebooks and some AMD desktop machines. However, the re-starting of the
+display driver is not always reliable. Restarting the Intel display driver
+worked notably well on older Thinkpad notebooks, e.g., X201 and T420.
+
+Note that the suspend/resume feature is still work in progress. The next
+potential work items are the addition of suspend/resume support to the base-hw
+kernel, ways to power-off and power-on (PCI) hardware, e.g.,via the new
+platform driver, and re-initializing and/or re-starting drivers. Additionally,
+a convenient way to debug resume issues is desired when no serial output is
+working anymore after resume.
+
+
+Base-HW microkernel
+===================
+
+The base-hw kernel, which was specifically developed for Genode, did not
+provide the use of _Message-Signaled-Interrupts_ (MSI), and MSI-X yet. With
+this release, x86 architectural support for MSI and MSI-X entered the base-hw
+kernel. The usage of MSI or legacy interrupts is transparent to the user. It
+gets determined in the interplay of the PCI decode component, platform driver,
+and core.
+
+
+NOVA microhypervisor
+====================
+
+Besides the added ACPI suspend/resume support described in
+Section [Low-level mechanism for suspend/resume on PC platforms], the kernel
+received principal support to run on more than 32 CPUs. By default, Genode's
+and the kernel's CPU limit is set to 64, configurable by the constants
+MAX_SUPPORTED_CPUS in Genode's core respectively NUM_CPU in the kernel.
+In our tests, up to 250 CPUs were usable in Qemu.
+
+
+Build system and tools
+######################
+
+Streamlined building of libraries
+=================================
+
+The release adds special handling for 'lib/<libname>' arguments to the build
+system, which supersedes the former 'LIB=<libname>' mechanism. Whereas the old
+mechanism was limited to a single library, the new convention allows multiple
+library arguments, similar to regular targets.
+
+The change brings two immediate benefits. First, the streamlining of library
+and target arguments allows for the building of libraries via the 'build'
+command of the run tool. Second, it alleviates the need for pseudo _target.mk_
+files for building shared libraries that have no direct dependencies, in
+particular VFS plugins.
+
+Note that _target.mk_ files located under _src/lib/_ are no longer reachable.
+Therefore, all run scripts that used to trigger the build of a shared library
+via a pseudo target must be adapted. E.g., 'build lib/vfs/tap' must be
+replaced by 'build lib/vfs_tap'.
+
+The former 'LIB=<libname>' option is no longer supported.
+
+
+Boot-loading over HTTP
+======================
+
+The standard network-boot approach for x86 at Genode Labs has been a
+combination of the PC-integrated Preboot Execution Environment (PXE), the
+Pulsar boot loader, and the TFTP protocol for years. Because Pulsar is tied
+to legacy BIOS interfaces, UEFI-only hardware demands for alternatives. iPXE
+is a field-tested, UEFI-compatible alternative that is already supported in
+Genode's run tool via _load/ipxe_.
+
+One of the prominent features of iPXE is the support for additional network
+(boot) protocols beyond TFTP with HTTP as a tempting option to improve boot
+performance. This release enhances the _load/ipxe_ run module to optionally
+configure and spawn the lightweight HTTP server _lighttpd_ to serve the boot
+image to iPXE using the following declarations in _etc/build.conf_.
+
+! RUN_OPT += --include load/ipxe
+! RUN_OPT +=   --load-ipxe-base-dir /tftpboot
+! RUN_OPT +=   --load-ipxe-boot-dir /ipxe
+! RUN_OPT +=   --load-ipxe-lighttpd
+! RUN_OPT +=   --load-ipxe-lighttpd-port 2209
+
+The HTTP server is run only while the run tool is executed, killed on exit,
+and limited to serve the contents of the test-specific directory under
+_var/run/_ in your build directory. Your iPXE boot loader should be configured
+to chain the automatically generated _boot.cfg_ file as follows.
+
+! #!ipxe
+! chain http://<host ip address>:2209/boot.cfg
+
+For more details, please refer to the dedicated Genodians.org article.
+
+:Getting Fujitsu U7411 up and running - Network Boot:
+
+  [https://genodians.org/chelmuth/2022-11-24-u7411-up-and-running]
+
+
+Configurable Intel HWP mode
+===========================
+
+We updated our version of the Bender chain-boot loader to be configurable
+regarding the mode in which to run Intel's Hardware P-States (HWP). When
+running Genode on NOVA, the HWP mode can now be controlled via the new run
+option '--bender-intel-hwp-mode'. The option responds to the values 'off',
+'performance', 'balanced', and 'power_saving'. The default value is
+'performance' in order to stay backwards compatible. On kernels other than
+NOVA, HWP remains turned off in general.

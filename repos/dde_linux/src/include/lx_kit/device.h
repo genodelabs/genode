@@ -19,6 +19,7 @@
 #include <irq_session/client.h>
 #include <io_mem_session/client.h>
 #include <platform_session/device.h>
+#include <pci/types.h>
 #include <util/list.h>
 #include <util/xml_node.h>
 
@@ -35,10 +36,7 @@ struct clk {
 
 class Lx_kit::Device : List<Device>::Element
 {
-	private:
-
-		friend class Device_list;
-		friend class List<Device>;
+	public:
 
 		using Name = String<64>;
 		using Type = Platform::Device::Type;
@@ -47,16 +45,17 @@ class Lx_kit::Device : List<Device>::Element
 		{
 			using Index = Platform::Device::Mmio::Index;
 
-			Index  idx;
-			addr_t addr;
-			size_t size;
+			Index    idx;
+			addr_t   addr;
+			size_t   size;
+			unsigned pci_bar;
 
 			Constructible<Platform::Device::Mmio> io_mem {};
 
 			bool match(addr_t addr, size_t size);
 
-			Io_mem(unsigned idx, addr_t addr, size_t size)
-			: idx{idx}, addr(addr), size(size) {}
+			Io_mem(unsigned idx, addr_t addr, size_t size, unsigned pci_bar)
+			: idx{idx}, addr(addr), size(size), pci_bar(pci_bar) {}
 		};
 
 		struct Irq : List<Irq>::Element
@@ -66,12 +65,33 @@ class Lx_kit::Device : List<Device>::Element
 			Index                  idx;
 			unsigned               number;
 			Io_signal_handler<Irq> handler;
+			bool                   masked  { true  };
+			bool                   occured { false };
 
 			Constructible<Platform::Device::Irq> session {};
 
 			Irq(Entrypoint & ep, unsigned idx, unsigned number);
 
+			void _handle();
 			void handle();
+		};
+
+		struct Io_port : List<Io_port>::Element
+		{
+			using Index = Platform::Device::Io_port_range::Index;
+
+			Index    idx;
+			uint16_t addr;
+			uint16_t size;
+			unsigned pci_bar;
+
+			Constructible<Platform::Device::Io_port_range> io_port {};
+
+			bool match(uint16_t addr);
+
+			Io_port(unsigned idx, uint16_t addr, uint16_t size,
+			        unsigned pci_bar)
+			: idx{idx}, addr(addr), size(size), pci_bar(pci_bar) {}
 		};
 
 		struct Clock : List<Clock>::Element
@@ -84,6 +104,21 @@ class Lx_kit::Device : List<Device>::Element
 			: idx(idx), name(name), lx_clock{0} {}
 		};
 
+		struct Pci_config
+		{
+			Pci::vendor_t vendor_id;
+			Pci::device_t device_id;
+			Pci::class_t  class_code;
+			Pci::rev_t    rev;
+			Pci::vendor_t sub_v_id;
+			Pci::device_t sub_d_id;
+		};
+
+	private:
+
+		friend class Device_list;
+		friend class List<Device>;
+
 		Device(Entrypoint           & ep,
 		       Platform::Connection & plat,
 		       Xml_node             & xml,
@@ -92,18 +127,12 @@ class Lx_kit::Device : List<Device>::Element
 		Platform::Connection          & _platform;
 		Name                      const _name;
 		Type                      const _type;
-		List<Io_mem>                    _io_mems {};
-		List<Irq>                       _irqs    {};
-		List<Clock>                     _clocks  {};
-		Constructible<Platform::Device> _pdev    {};
-
-		template <typename FN>
-		void _for_each_io_mem(FN const & fn) {
-			for (Io_mem * i = _io_mems.first(); i; i = i->next()) fn(*i); }
-
-		template <typename FN>
-		void _for_each_irq(FN const & fn) {
-			for (Irq * i = _irqs.first(); i; i = i->next()) fn(*i); }
+		List<Io_mem>                    _io_mems    {};
+		List<Io_port>                   _io_ports   {};
+		List<Irq>                       _irqs       {};
+		List<Clock>                     _clocks     {};
+		Constructible<Pci_config>       _pci_config {};
+		Constructible<Platform::Device> _pdev       {};
 
 		template <typename FN>
 		void _for_each_clock(FN const & fn) {
@@ -112,7 +141,23 @@ class Lx_kit::Device : List<Device>::Element
 	public:
 
 		const char * compatible();
-		const char * name();
+		Name name();
+
+		template <typename FN>
+		void for_each_io_mem(FN const & fn) {
+			for (Io_mem * i = _io_mems.first(); i; i = i->next()) fn(*i); }
+
+		template <typename FN>
+		void for_each_io_port(FN const & fn) {
+			for (Io_port * i = _io_ports.first(); i; i = i->next()) fn(*i); }
+
+		template <typename FN>
+		void for_each_irq(FN const & fn) {
+			for (Irq * i = _irqs.first(); i; i = i->next()) fn(*i); }
+
+		template <typename FN>
+		void for_pci_config(FN const & fn) {
+			if (_pci_config.constructed()) fn(*_pci_config); }
 
 		void   enable();
 		clk *  clock(const char * name);
@@ -122,6 +167,17 @@ class Lx_kit::Device : List<Device>::Element
 		bool   irq_unmask(unsigned irq);
 		void   irq_mask(unsigned irq);
 		void   irq_ack(unsigned irq);
+
+		bool   read_config(unsigned reg, unsigned len, unsigned *val);
+		bool   write_config(unsigned reg, unsigned len, unsigned  val);
+
+		bool     io_port(uint16_t addr);
+		uint8_t  io_port_inb(uint16_t addr);
+		uint16_t io_port_inw(uint16_t addr);
+		uint32_t io_port_inl(uint16_t addr);
+		void     io_port_outb(uint16_t addr, uint8_t  val);
+		void     io_port_outw(uint16_t addr, uint16_t val);
+		void     io_port_outl(uint16_t addr, uint32_t val);
 };
 
 
@@ -131,11 +187,20 @@ class Lx_kit::Device_list : List<Device>
 
 		Platform::Connection & _platform;
 
+		void _handle_signal() {}
+
 	public:
 
 		template <typename FN>
 		void for_each(FN const & fn) {
 			for (Device * d = first(); d; d = d->next()) fn(*d); }
+
+		template <typename FN>
+		void with_xml(FN const & fn)
+		{
+			_platform.update();
+			_platform.with_xml([&] (Xml_node & xml) { fn(xml); });
+		}
 
 		Device_list(Entrypoint           & ep,
 		            Heap                 & heap,

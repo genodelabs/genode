@@ -7,3 +7,5 @@ SHA(coreutils) := 92d0fa1c311cacefa89853bdb53c62f4110cdfda3820346b59cbd098f40f95
 SIG(coreutils) := ${URL(coreutils)}.sig
 KEY(coreutils) := GNU
 DIR(coreutils) := src/noux-pkg/coreutils
+
+PATCHES := src/noux-pkg/coreutils/copy.patch

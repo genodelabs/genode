@@ -51,9 +51,6 @@ class Packet_stream_rx::Client : public Genode::Rpc_client<CHANNEL>
 			/* wire data-flow signals for the packet receiver */
 			_sink.register_sigh_ack_avail(Base::template call<Rpc_ack_avail>());
 			_sink.register_sigh_ready_to_submit(Base::template call<Rpc_ready_to_submit>());
-
-			sigh_ready_to_ack(_sink.sigh_ready_to_ack());
-			sigh_packet_avail(_sink.sigh_packet_avail());
 		}
 
 		void sigh_ready_to_ack(Genode::Signal_context_capability sigh) override {

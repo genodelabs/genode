@@ -15,6 +15,7 @@
 #define _INCLUDE__UTIL__GEOMETRY_H_
 
 #include <util/misc_math.h>
+#include <util/xml_node.h>
 #include <base/stdint.h>
 #include <base/output.h>
 
@@ -68,6 +69,17 @@ class Genode::Point
 			Genode::print(out, _x >= 0 ? "+" : "-", abs(_x),
 			                   _y >= 0 ? "+" : "-", abs(_y));
 		}
+
+		/**
+		 * Construct point from XML node attributes
+		 *
+		 * The XML node is expected to feature the attributes 'xpos' and 'ypos'.
+		 */
+		static Point from_xml(Xml_node const &node)
+		{
+			return Point((CT)node.attribute_value("xpos", (CT)0),
+			             (CT)node.attribute_value("ypos", (CT)0));
+		}
 };
 
 
@@ -104,6 +116,18 @@ class Genode::Area
 		bool operator == (Area const &a) const { return a.w() == _w && a.h() == _h; }
 
 		void print(Output &out) const { Genode::print(out, _w, "x", _h); }
+
+		/**
+		 * Construct area from XML node attributes
+		 *
+		 * The XML node is expected to feature the attributes 'width' and
+		 * 'height'.
+		 */
+		static Area from_xml(Xml_node const &node)
+		{
+			return Area((DT)node.attribute_value("width",  (DT)0),
+			            (DT)node.attribute_value("height", (DT)0));
+		}
 };
 
 
@@ -210,9 +234,21 @@ class Genode::Rect
 		 *
 		 * The output has the form 'width' x 'height' +/- 'p1.x' +/- 'p1.y'.
 		 * For example, a rectange of size 15x16 as position (-13, 14) is
-		 * printed as "15x16-13+14"
+		 * printed as "15x16-13+14".
 		 */
 		void print(Output &out) const { Genode::print(out, area(), p1()); }
+
+		/**
+		 * Construct rectangle from XML node attributes
+		 *
+		 * The XML node is expected to feature the attributes 'xpos', 'ypos'.
+		 * 'width', and 'height'. If an attribute is absent, the corresponding
+		 * value is set to 0.
+		 */
+		static Rect from_xml(Xml_node const &node)
+		{
+			return Rect(Point<CT>::from_xml(node), Area<DT>::from_xml(node));
+		}
 };
 
 #endif /* _INCLUDE__UTIL__GEOMETRY_H_ */

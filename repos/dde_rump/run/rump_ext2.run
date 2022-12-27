@@ -2,7 +2,7 @@ if {[have_spec arm]} {
    assert_spec arm_v7
 }
 
-if {[get_cmd_switch --autopilot] && [have_board riscv_qemu]} {
+if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 	puts "Autopilot mode is not supported on this platform."
 	exit 0
 }
@@ -20,8 +20,8 @@ set build_components {
 	core init timer
 	server/vfs_block
 	server/vfs
-	lib/vfs/rump
-	lib/vfs/import
+	lib/vfs_rump
+	lib/vfs_import
 	test/libc_vfs
 }
 
@@ -39,7 +39,7 @@ create_boot_directory
 # Generate config
 #
 append config {
-<config>
+<config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -73,7 +73,7 @@ append config {
 		</config>
 	</start>
 	<start name="vfs" caps="200">
-		<resource name="RAM" quantum="16M" />
+		<resource name="RAM" quantum="25M" />
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs> <rump fs="ext2fs" ram="10M"/> </vfs>

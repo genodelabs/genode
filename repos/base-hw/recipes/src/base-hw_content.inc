@@ -115,6 +115,12 @@ SRC_LIB_BASE += $(notdir $(wildcard $(BASE_HW_DIR)/src/lib/base/*.cc)) \
                 $(notdir $(wildcard $(BASE_DIR)/src/lib/base/*.cc)) \
                 ${call selected_content,SRC_LIB_BASE_SPECS}
 
+SRC_LIB_TIMEOUT += duration.cc \
+                   hw/timer_connection_timestamp.cc \
+                   timeout.cc \
+                   timer_connection.cc \
+                   timer_connection_time.cc
+
 SRC_LIB_STARTUP += init_main_thread.cc _main.cc \
                    $(addprefix spec/,${call selected_content,SRC_LIB_STARTUP_SPECS})
 
@@ -125,15 +131,24 @@ SRC_CORE += $(notdir $(wildcard $(BASE_HW_DIR)/src/core/*.cc)) \
             $(addprefix board/,$(BOARD)) \
             version.inc target.inc include hw kernel
 
-LIB_MK := base-hw-common.mk base-hw.mk bootstrap-hw.inc core-hw.inc \
-          timeout-hw.mk cxx.mk base.inc base-common.inc startup.inc \
-          $(addprefix spec/,${call selected_content,LIB_MK_SPECS})
+# names of the lib/mk/ files to consider for inclusion in the src archive
+LIB_MK_FILES := base-common.inc base-hw-common.mk \
+                base.inc base-hw.mk \
+                bootstrap-hw.inc bootstrap-hw-$(BOARD).inc bootstrap-hw-$(BOARD).mk \
+                core-hw.inc core-hw-$(BOARD).inc core-hw-$(BOARD).mk \
+                startup.inc startup-hw.mk \
+                timeout-hw.mk cxx.mk ld-hw.mk syscall-hw.mk
+
+LIB_MK_DIRS := lib/mk $(addprefix lib/mk/spec/,${call selected_content,LIB_MK_SPECS})
+
+CONTENT += $(foreach D,$(LIB_MK_DIRS),$(addprefix $D/,$(LIB_MK_FILES)))
 
 CONTENT += $(addprefix src/timer/,$(SRC_TIMER)) \
            $(addprefix src/include/hw/,$(SRC_INCLUDE_HW)) \
            $(addprefix src/bootstrap/,$(SRC_BOOTSTRAP)) \
            $(addprefix lib/mk/,$(LIB_MK)) \
            $(addprefix src/lib/base/,$(SRC_LIB_BASE)) \
+           $(addprefix src/lib/timeout/,$(SRC_LIB_TIMEOUT)) \
            $(addprefix src/lib/startup/,$(SRC_LIB_STARTUP)) \
            $(addprefix src/core/,$(SRC_CORE)) \
            src/lib/hw src/lib/ld src/lib/cxx \
@@ -180,7 +195,6 @@ generalize_target_names: $(CONTENT)
 	# apply kernel-agnostic convention of naming the timer and ld.lib.so
 	for subdir in ${call selected_content,LD_MK_DIRS}; do \
 		mv $$subdir/ld-hw.mk $$subdir/ld.mk; done
-	sed -i "s/ld-hw/ld/"           src/lib/ld/hw/target.mk
 	sed -i "s/hw_timer_drv/timer/" src/timer/hw/target.mk
 	# supplement BOARD definition that normally comes form the build dir
 	sed -i "s/\?= unknown/:= $(BOARD)/" src/core/hw/target.mk
@@ -189,5 +203,4 @@ generalize_target_names: $(CONTENT)
 	sed -i "1aREQUIRES := $(ARCH)"      src/core/hw/target.mk
 	sed -i "1aREQUIRES     := $(ARCH)"  src/bootstrap/hw/target.mk
 	sed -i "/REQUIRES/s/hw/hw $(ARCH)/" src/timer/hw/target.mk
-	sed -i "1aREQUIRES := $(ARCH)"      src/lib/ld/hw/target.mk
 

@@ -123,6 +123,8 @@ class Genode::Timeout : private Noncopyable,
 		void discard();
 
 		bool scheduled();
+
+		Microseconds deadline() const { return _deadline; }
 };
 
 

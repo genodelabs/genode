@@ -542,7 +542,7 @@ class Fs_rom::Rom_root : public Root_component<Fs_rom::Rom_session_component>
 			_env(env)
 		{
 			/* Process CONTENT_CHANGED acknowledgement packets at the entrypoint  */
-			_fs.sigh_ack_avail(_packet_handler);
+			_fs.sigh(_packet_handler);
 
 			env.parent().announce(env.ep().manage(*this));
 		}

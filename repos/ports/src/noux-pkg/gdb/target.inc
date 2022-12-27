@@ -1,4 +1,4 @@
-PKG_DIR = $(call select_from_ports,gdb)/src/noux-pkg/gdb
+PKG_DIR := $(call select_from_ports,gdb)/src/noux-pkg/gdb
 
 CONFIGURE_ARGS += --program-prefix=$(PROGRAM_PREFIX) \
                   --target=$(GDB_TARGET) \

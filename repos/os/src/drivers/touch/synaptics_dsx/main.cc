@@ -77,7 +77,7 @@ struct Synaptics
 		_i2c.send(I2C_ADDR, _buf, 1);
 		_i2c.recv(I2C_ADDR, (uint8_t *)fingers, sizeof(fingers));
 
-		for (int i = 0; i < FINGERS; i++) {
+		for (unsigned i = 0; i < FINGERS; i++) {
 			Finger_data &current = fingers[i];
 
 			Input::Touch_id id { i };

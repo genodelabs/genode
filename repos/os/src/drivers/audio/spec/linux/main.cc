@@ -205,13 +205,10 @@ struct Audio_out::Root_policy
 	{
 		size_t ram_quota =
 			Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-		size_t session_size =
-			align_addr(sizeof(Audio_out::Session_component), 12);
 
-		if ((ram_quota < session_size) ||
-		    (sizeof(Stream) > ram_quota - session_size)) {
+		if (sizeof(Stream) > ram_quota) {
 			Genode::error("insufficient 'ram_quota', got ", ram_quota,
-			              " need ", sizeof(Stream) + session_size);
+			              " need ", sizeof(Stream));
 			throw Genode::Insufficient_ram_quota();
 		}
 

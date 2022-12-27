@@ -102,6 +102,15 @@ class Net::Ethernet_frame
 			return *Genode::construct_at<T>(_data);
 		}
 
+		template <typename SIZE_GUARD>
+		void memcpy_to_data(void const     *src_base,
+		                    Genode::size_t  src_size,
+		                    SIZE_GUARD     &size_guard)
+		{
+			size_guard.consume_head(src_size);
+			Genode::memcpy(_data, src_base, src_size);
+		}
+
 		static Ethernet_frame &construct_at(void       *base,
 		                                    Size_guard &size_guard)
 		{

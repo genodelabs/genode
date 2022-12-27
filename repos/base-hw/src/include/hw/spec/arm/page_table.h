@@ -261,13 +261,13 @@ class Hw::Page_table
 				}
 
 				/**
-				 * Lookup translation
+				 * Lookup writeable translation
 				 *
 				 * \param virt  virtual address offset to look for
 				 * \param phys  physical address to return
 				 * \returns true if lookup was successful, otherwise false
 				 */
-				bool lookup_translation(addr_t const virt, addr_t & phys)
+				bool lookup_rw_translation(addr_t const virt, addr_t & phys)
 				{
 					unsigned idx = 0;
 					if (!_index_by_vo(idx, virt)) return false;
@@ -275,8 +275,10 @@ class Hw::Page_table
 					switch (Descriptor::type(_entries[idx])) {
 					case Descriptor::SMALL_PAGE:
 						{
+							Small_page::access_t ap =
+								Small_page::Ap::get(_entries[idx]);
 							phys = Small_page::Pa::masked(_entries[idx]);
-							return true;
+							return ap == 1 || ap == 3;
 						}
 					default: return false;
 					}
@@ -607,14 +609,15 @@ class Hw::Page_table
 		}
 
 		/**
-		 * Lookup translation
+		 * Lookup writeable translation
 		 *
 		 * \param virt  virtual address to look at
 		 * \param phys  physical address to return
 		 * \param alloc second level translation table allocator
 		 * \returns true if a translation was found, otherwise false
 		 */
-		bool lookup_translation(addr_t const virt, addr_t & phys, Allocator & alloc)
+		bool lookup_rw_translation(addr_t const virt, addr_t & phys,
+		                           Allocator & alloc)
 		{
 			unsigned idx = 0;
 			if (!_index_by_vo(idx, virt)) return false;
@@ -623,8 +626,10 @@ class Hw::Page_table
 
 			case Descriptor::SECTION:
 				{
+					Section::access_t ap =
+						Section::Ap::get(_entries[idx]);
 					phys = Section::Pa::masked(_entries[idx]);
-					return true;
+					return ap == 1 || ap == 3;
 				}
 
 			case Descriptor::PAGE_TABLE:
@@ -636,7 +641,7 @@ class Hw::Page_table
 						alloc.virt_addr<Pt>(Ptd::Pa::masked(_entries[idx]));
 
 					addr_t const offset = virt - Section::Pa::masked(virt);
-					return pt.lookup_translation(offset, phys);
+					return pt.lookup_rw_translation(offset, phys);
 				}
 			default: return false;
 			};

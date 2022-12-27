@@ -4,8 +4,7 @@ GMP_MPN_DIR = $(GMP_DIR)/mpn
 # this file uses the 'sdiv_qrnnd' symbol which is not defined
 FILTER_OUT += udiv_w_sdiv.c
 
-FILTER_OUT += pre_divrem_1.c sec_div.c sec_pi1_div.c copyi.c copyd.c
-
+FILTER_OUT += pre_divrem_1.c sec_pi1_div.c copyi.c copyd.c
 
 # add x86_64-specific assembly files and filter out the generic C files if needed
 
@@ -13,6 +12,8 @@ SRC_ASM += copyd.asm copyi.asm invert_limb.asm invert_limb_table.asm
 
 CC_OPT_add_n = -DOPERATION_add_n
 CC_OPT_sub_n = -DOPERATION_sub_n
+CC_OPT_sec_aors_1 = -DOPERATION_sec_add_1 
+CC_OPT_sec_div = -DOPERATION_sec_div_r 
 
 FILTER_OUT += popham.c
 
@@ -23,7 +24,7 @@ include $(REP_DIR)/lib/mk/gmp.inc
 
 PWD := $(shell pwd)
 
-SRC_O += $(SRC_ASM:.asm=.o) hamdist.o popcount.o
+SRC_O += $(SRC_ASM:.asm=.o) hamdist.o popcount.o sqr_diag_addlsh1.o
 
 #
 # Create execution environment for the m4-ccas tool, which is used by the gmp

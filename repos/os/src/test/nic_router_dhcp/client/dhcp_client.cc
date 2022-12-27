@@ -75,6 +75,7 @@ void Dhcp_client::_discover()
 
 void Dhcp_client::_rerequest(State next_state)
 {
+	_handler.ip_config(Ipv4_config { });
 	_set_state(next_state, _rerequest_timeout(2));
 	Ipv4_address const client_ip = _handler.ip_config().interface.address;
 	_send(Message_type::REQUEST, client_ip, Ipv4_address(), client_ip);
@@ -91,14 +92,14 @@ void Dhcp_client::_set_state(State state, Microseconds timeout)
 Microseconds Dhcp_client::_rerequest_timeout(unsigned lease_time_div_log2)
 {
 	/* FIXME limit the time because of shortcomings in timeout framework */
-	enum { MAX_TIMEOUT_SEC = 3600 };
-	uint64_t timeout_sec = _lease_time_sec >> lease_time_div_log2;
+	enum : uint64_t { MAX_TIMEOUT_US = (uint64_t)3600 * 1000 * 1000 };
+	uint64_t timeout_us = (_lease_time_sec * 1000 * 1000) >> lease_time_div_log2;
 
-	if (timeout_sec > MAX_TIMEOUT_SEC) {
-		timeout_sec = MAX_TIMEOUT_SEC;
+	if (timeout_us > MAX_TIMEOUT_US) {
+		timeout_us = MAX_TIMEOUT_US;
 		warning("Had to prune the state timeout of DHCP client");
 	}
-	return Microseconds(timeout_sec * 1000 * 1000);
+	return Microseconds(timeout_us);
 }
 
 
@@ -140,6 +141,59 @@ void Dhcp_client::handle_eth(Ethernet_frame &eth, Size_guard &size_guard)
 }
 
 
+void
+Dhcp_client::_handle_dhcp_reply_in_request_state(Message_type  msg_type,
+                                                 Dhcp_packet  &dhcp,
+                                                 char const   *request_state)
+{
+	if (msg_type != Message_type::ACK) {
+		throw Drop_packet_inform("DHCP client expects an acknowledgement");
+	}
+	_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
+	_set_state(State::BOUND, _rerequest_timeout(1));
+
+	static unsigned long event_idx { 0 };
+	log("Event ", ++event_idx, ", DHCP ", request_state, " completed:");
+	log("  IP lease time: ", _lease_time_sec, " seconds");
+	log("  Interface: ", Ipv4_address_prefix(dhcp.yiaddr(), dhcp.option<Dhcp_packet::Subnet_mask>().value()));
+	log("  Router: ", dhcp.option<Dhcp_packet::Router_ipv4>().value());
+
+	Ipv4_address dns_server_addr { };
+	unsigned idx { 1 };
+	try {
+		Dhcp_packet::Dns_server const &dns_server {
+			dhcp.option<Dhcp_packet::Dns_server>() };
+
+		dns_server.for_each_address([&] (Ipv4_address const &addr) {
+
+			if (!dns_server_addr.valid()) {
+				dns_server_addr = addr;
+			}
+			log("  DNS server #", idx++, ": ", addr);
+		});
+	}
+	catch (Dhcp_packet::Option_not_found) { }
+	try {
+		Dhcp_packet::Domain_name const &domain_name {
+			dhcp.option<Dhcp_packet::Domain_name>() };
+
+		domain_name.with_string([&] (char const *base, size_t size) {
+			log("  DNS domain name: ", Cstring { base, size });
+		});
+	}
+	catch (Dhcp_packet::Option_not_found) { }
+
+	Ipv4_config ip_config(
+		Ipv4_address_prefix(
+			dhcp.yiaddr(),
+			dhcp.option<Dhcp_packet::Subnet_mask>().value()),
+		dhcp.option<Dhcp_packet::Router_ipv4>().value(),
+		dns_server_addr);
+
+	_handler.ip_config(ip_config);
+}
+
+
 void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 {
 	Message_type const msg_type =
@@ -157,64 +211,9 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 		      dhcp.yiaddr());
 		break;
 
-	case State::REQUEST:
-		{
-			if (msg_type != Message_type::ACK) {
-				throw Drop_packet_inform("DHCP client expects an acknowledgement");
-			}
-			_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
-			_set_state(State::BOUND, _rerequest_timeout(1));
-
-			log("DHCP request completed:");
-			log("  IP lease time: ", _lease_time_sec, " seconds");
-			log("  Interface: ", Ipv4_address_prefix(dhcp.yiaddr(), dhcp.option<Dhcp_packet::Subnet_mask>().value()));
-			log("  Router: ", dhcp.option<Dhcp_packet::Router_ipv4>().value());
-
-			Ipv4_address dns_server_addr { };
-			unsigned idx { 1 };
-			try {
-				Dhcp_packet::Dns_server const &dns_server {
-					dhcp.option<Dhcp_packet::Dns_server>() };
-
-				dns_server.for_each_address([&] (Ipv4_address const &addr) {
-
-					if (!dns_server_addr.valid()) {
-						dns_server_addr = addr;
-					}
-					log("  DNS server #", idx++, ": ", addr);
-				});
-			}
-			catch (Dhcp_packet::Option_not_found) { }
-			try {
-				Dhcp_packet::Domain_name const &domain_name {
-					dhcp.option<Dhcp_packet::Domain_name>() };
-
-				domain_name.with_string([&] (char const *base, size_t size) {
-					log("  DNS domain name: ", Cstring { base, size });
-				});
-			}
-			catch (Dhcp_packet::Option_not_found) { }
-
-			Ipv4_config ip_config(
-				Ipv4_address_prefix(
-					dhcp.yiaddr(),
-					dhcp.option<Dhcp_packet::Subnet_mask>().value()),
-				dhcp.option<Dhcp_packet::Router_ipv4>().value(),
-				dns_server_addr);
-
-			_handler.ip_config(ip_config);
-			break;
-		}
-	case State::RENEW:
-	case State::REBIND:
-
-		if (msg_type != Message_type::ACK) {
-			throw Drop_packet_inform("DHCP client expects an acknowledgement");
-		}
-		_set_state(State::BOUND, _rerequest_timeout(1));
-		_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
-		break;
-
+	case State::REQUEST: _handle_dhcp_reply_in_request_state(msg_type, dhcp, "request"); break;
+	case State::RENEW:   _handle_dhcp_reply_in_request_state(msg_type, dhcp, "renew");   break;
+	case State::REBIND:  _handle_dhcp_reply_in_request_state(msg_type, dhcp, "rebind");  break;
 	default: throw Drop_packet_inform("DHCP client doesn't expect a packet");
 	}
 }

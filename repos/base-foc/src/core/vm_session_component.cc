@@ -176,7 +176,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 	using namespace Foc;
 
 	uint8_t flags = L4_FPAGE_RO;
-	if (dsc.writable() && attribute.writeable)
+	if (dsc.writeable() && attribute.writeable)
 		if (attribute.executable)
 			flags = L4_FPAGE_RWX;
 		else

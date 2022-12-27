@@ -128,7 +128,6 @@ if {$wrong_version} {
 }
 
 # netperf configuration
-set packet_size 1024
 set netperf_tests "TCP_STREAM TCP_MAERTS"
 
 proc socket_fs_plugin {} {
@@ -141,48 +140,36 @@ create_boot_directory
 
 set packages "
 	[depot_user]/src/[base_src]
-	[depot_user]/pkg/[drivers_nic_pkg]
 	[depot_user]/src/init
 	[depot_user]/src/libc
 	[depot_user]/src/posix
+	[depot_user]/src/report_rom
 	[depot_user]/src/vfs
 	[depot_user]/src/nic_router
 "
-
-append_if [expr !$use_lxip] packages " [depot_user]/src/vfs_lwip          "
-append_if $use_lxip         packages " [depot_user]/src/vfs_lxip          "
-append_if $use_nic_bridge   packages " [depot_user]/src/nic_bridge        "
-append_if $use_usb_driver   packages " [depot_user]/src/platform_drv      "
-append_if $use_wifi_driver  packages " [depot_user]/src/fs_rom            "
-append_if $use_wifi_driver  packages " [depot_user]/src/vfs_import        "
-append_if $use_wifi_driver  packages " [depot_user]/src/report_rom        "
-append_if $use_wifi_driver  packages " [depot_user]/src/wifi_drv          "
-append_if $use_wifi_driver  packages " [depot_user]/src/openssl           "
-append_if $use_wifi_driver  packages " [depot_user]/src/vfs_jitterentropy "
-append_if $use_wifi_driver  packages " [depot_user]/raw/wifi_firmware     "
+set use_nic_drv [expr !$use_usb_driver && !$use_wifi_driver]
+append_if $use_nic_drv      packages " [depot_user]/pkg/[drivers_nic_pkg]         "
+append_if [expr !$use_lxip] packages " [depot_user]/src/vfs_lwip                  "
+append_if $use_lxip         packages " [depot_user]/src/vfs_lxip                  "
+append_if $use_nic_bridge   packages " [depot_user]/src/nic_bridge                "
+append_if $use_usb_driver   packages " [depot_user]/pkg/test_usb_host_drv-[board] "
+append_if $use_usb_driver   packages " [depot_user]/src/usb_net_drv               "
+append_if $use_wifi_driver  packages " [depot_user]/src/fs_rom                    "
+append_if $use_wifi_driver  packages " [depot_user]/src/vfs_import                "
+append_if $use_wifi_driver  packages " [depot_user]/pkg/wifi                      "
+append_if $use_wifi_driver  packages " [depot_user]/src/acpi_drv                  "
+append_if $use_wifi_driver  packages " [depot_user]/src/pci_decode                "
+append_if $use_wifi_driver  packages " [depot_user]/src/platform_drv              "
 
 import_from_depot $packages
 
-set build_components { app/netperf }
-
-append_if $use_usb_driver build_components " drivers/usb_host "
-append_if $use_usb_driver build_components " drivers/usb_net  "
-
-build $build_components
+build { app/netperf }
 
 #
 # Generate config
 #
 
 set lx_ip_addr "10.0.2.55"
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-proc platform_drv_policy {} {
-	global use_wifi_driver
-	if { $use_wifi_driver } {
-		return {<policy label_prefix="nic_drv" msix="false"> <pci class="WIFI"/> </policy>}}
-	return {<policy label_prefix="usb_host_drv"> <pci class="USB"/> </policy>}
-}
 
 set config {
 <config verbose="yes" prio_levels="2">
@@ -207,12 +194,41 @@ set config {
 	</start> }
 
 if { $use_wifi_driver } {
-	append_platform_drv_config
 	append config {
-	<start name="report_rom">
+	<start name="report_rom" caps="70">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="ROM" />
+			<service name="Report" />
+		</provides>
+		<config>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+	</start>
+
+	<start name="acpi_drv" caps="250">
+		<resource name="RAM" quantum="4M"/>
+	</start>
+
+	<start name="pci_decode" caps="350">
 		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Report" /> <service name="ROM" /> </provides>
-		<config> <rom/> </config>
+		<route>
+			<service name="ROM" label="system"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config>
+			<policy label_prefix="nic_drv" info="yes"> <pci class="WIFI"/> </policy>
+		</config>
 	</start>
 
 	<start name="config_fs">
@@ -245,13 +261,13 @@ append  config { </wifi_config>
 	</start>
 
 	<start name="nic_drv" caps="300">
-		<binary name="wifi_drv"/>
+		<binary name="pc_wifi_drv"/>
 		<resource name="RAM" quantum="32M"/>
 		<config>
 			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
-					<log/> <null/>
+					<log/> <null/> <wifi/>
 					<jitterentropy name="random"/>
 					<jitterentropy name="urandom"/>
 					<inline name="rtc">2018-01-01 00:01</inline>
@@ -270,43 +286,25 @@ append  config { </wifi_config>
 
 } elseif { $use_usb_driver } {
 
-	append_platform_drv_config
 	append config {
 
-	<start name="usb_host_drv" caps="130"> }
-
-	append config "<binary name=\"[usb_host_drv_binary]\"/>"
-	append config {
-
-		<resource name="RAM" quantum="12M"/>
+	<start name="usb_drv" caps="1500" managing_system="yes">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
-		<config bios_handoff="yes"> }
-
-	append_if [have_board arndale] config {
-
-			<policy label_prefix="nic_drv" vendor_id="0x0b95" product_id="0x772a"/> }
-
-	append_if [have_board rpi] config {
-
-			<policy label_prefix="nic_drv" vendor_id="0x0424" product_id="0xec00"/> }
-
-	append_if [have_spec x86] config {
-
-			<policy label_prefix="nic_drv" vendor_id="0x0b95" product_id="0x1790"/> }
-
-	append config {
-
-		</config>
 		<route>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
 	<start name="nic_drv" caps="200">
 		<binary name="usb_net_drv"/>
 		<resource name="RAM" quantum="20M"/>
-		<config mode="uplink_client" mac="02:00:00:00:01:01" />
+		<config mac="02:00:00:00:01:01" />
 		<route>
 			<service name="Uplink"><child name="nic_router"/></service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -432,11 +430,22 @@ append config {
 
 install_config $config
 
+#
+# Define USB host controller config
+#
+if { $use_usb_driver } {
+	set fd [open [run_dir]/genode/usb_host_drv.config w]
+	append usb_config {<config bios_handoff="yes">}
+	append_if [have_board rpi] usb_config {
+		<policy label_prefix="nic_drv" vendor_id="0x0424" product_id="0xec00"/> }
+	append_if [have_spec x86] usb_config {
+		<policy label_prefix="nic_drv" vendor_id="0x0b95" product_id="0x1790"/> }
+	append usb_config {</config>}
+	puts $fd $usb_config
+	close $fd
+}
+
 set boot_modules { netserver }
-
-append_if $use_usb_driver boot_modules " [usb_host_drv_binary] "
-append_if $use_usb_driver boot_modules " usb_net_drv  "
-
 build_boot_image $boot_modules
 
 #
@@ -468,34 +477,40 @@ sleep 3
 foreach netperf_test $netperf_tests {
 	puts "\n---------------------------- $netperf_test -----------------------"
 
-	spawn netperf-$version -4 -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- $packet_size $force_ports
+	spawn netperf-$version -4 -H $ip_addr -P 1 -v 2 -f m -t $netperf_test -c -C -- $force_ports \
+	-k THROUGHPUT,THROUGHPUT_UNITS,LOCAL_TRANSPORT_RETRANS,MEAN_LATENCY,REMOTE_SEND_CALLS,REMOTE_RECV_CALLS,ELAPSED_TIME
 	set netperf_id $spawn_id
 
 	set spawn_id_list [list $netperf_id $serial_id]
 
 	# reset output, so that we get on the second run not the result of the first
 	set output ""
-	run_genode_until "Segment" 120 $spawn_id_list
+	run_genode_until "ELAPSED_TIME=.*\n" 120 $spawn_id_list
+
+	set units "Mbit/s"
 
 	# get throughput from netperf output
-	set throughput [regexp -all -inline {([0-9]+[ ]+){3}[0-9]+\.[0-9]+[ ]+[0-9]+\.[0-9]+} $output]
-	set throughput [regexp -all -inline {[0-9]+\.[0-9]+} $throughput]
+	regexp {THROUGHPUT=([\d\.]+)} $output dummy throughput
 
-	# calculate packets per second rate
-	set all_bytes [regexp -all -inline {([0-9]+[ ]+){5}} $output]
-	set all_bytes [lindex $all_bytes 0 4]
+	# get elapsed time from netperf output
+	regexp {ELAPSED_TIME=([\d\.]+)} $output dummy elapsed_time
 
-	set elapsed_time [regexp -all -inline {([0-9]+[ ]+){3}[0-9]+\.[0-9]+[ ]+} $output]
-	set elapsed_time [lindex $elapsed_time 0 3]
-	set packets_second [expr $all_bytes / $packet_size / $elapsed_time]
+	# get send calls from netperf output
+	regexp {REMOTE_SEND_CALLS=([\d]+)} $output dummy send_calls
 
-	puts "\ncalculation: overall bytes / size per packet / time = packets per second"
-	puts -nonewline "             $all_bytes Bytes / $packet_size Bytes / $elapsed_time s = "
-	puts "[format %8.0f $packets_second] packets/s\n"
+	# get recv calls from netperf output
+	regexp {REMOTE_RECV_CALLS=([\d]+)} $output dummy recv_calls
+
+	set sends_second [expr $send_calls / $elapsed_time]
+	set recvs_second [expr $recv_calls / $elapsed_time]
+
+	puts ""
+	puts "[format %8.0f $sends_second] send()/s"
+	puts "[format %8.0f $recvs_second] recv()/s"
 
 	# format output parseable for post proccessing scripts
 	puts -nonewline "! PERF: $netperf_test"
 	if {$use_nic_bridge} { puts -nonewline "_bridge" }
 	if {$use_usb_driver} { puts -nonewline "_xhci"   }
-	puts "              [lindex $throughput 1] MBit/s ok"
+	puts "              $throughput $units ok"
 }

@@ -180,14 +180,9 @@ class Kernel::Cpu_scheduler
 		void timeout()          { _need_to_schedule = true; }
 
 		/**
-		 * Update head according to the consumed time
+		 * Update head according to the current (absolute) time
 		 */
 		void update(time_t time);
-
-		/**
-		 * Set 's1' ready and return wether this outdates current head
-		 */
-		void ready_check(Share &s1);
 
 		/**
 		 * Set share 's' ready

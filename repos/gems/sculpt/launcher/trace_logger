@@ -1,0 +1,23 @@
+<launcher pkg="trace_logger">
+
+	<route>
+		<service name="TRACE"> <parent/> </service>
+	</route>
+
+	<config verbose="yes"
+	        session_ram="90M"
+	        session_arg_buffer="1M"
+	        session_parent_levels="3"
+	        period_sec="10"
+	        default_policy="null"
+	        default_buffer="4K">
+
+		<policy label_prefix="init -> runtime -> "/>
+
+		<!-- uncomment to trace the drivers subsystem
+		<policy label_prefix="init -> drivers -> "/>
+		-->
+
+	</config>
+
+</launcher>

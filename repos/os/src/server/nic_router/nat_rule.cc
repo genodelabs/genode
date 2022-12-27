@@ -26,59 +26,24 @@ using namespace Net;
 using namespace Genode;
 
 
-Domain &Nat_rule::_find_domain(Domain_tree    &domains,
-                               Xml_node const  node)
-{
-	try {
-		return domains.find_by_name(
-			node.attribute_value("domain", Domain_name()));
-	}
-	catch (Domain_tree::No_match) { throw Invalid(); }
-}
-
-
 bool Nat_rule::higher(Nat_rule *rule)
 {
 	return (addr_t)&rule->domain() > (addr_t)&_domain;
 }
 
 
-Nat_rule::Nat_rule(Domain_tree    &domains,
+Nat_rule::Nat_rule(Domain_dict    &domains,
                    Port_allocator &tcp_port_alloc,
                    Port_allocator &udp_port_alloc,
                    Port_allocator &icmp_port_alloc,
                    Xml_node const  node,
                    bool     const  verbose)
 :
-	_domain(_find_domain(domains, node)),
-	_tcp_port_alloc (tcp_port_alloc,  node.attribute_value("tcp-ports", 0UL), verbose),
-	_udp_port_alloc (udp_port_alloc,  node.attribute_value("udp-ports", 0UL), verbose),
-	_icmp_port_alloc(icmp_port_alloc, node.attribute_value("icmp-ids", 0UL), verbose)
+	_domain          { domains.deprecated_find_by_domain_attr<Invalid>(node) },
+	_tcp_port_alloc  { tcp_port_alloc,  node.attribute_value("tcp-ports", 0U), verbose },
+	_udp_port_alloc  { udp_port_alloc,  node.attribute_value("udp-ports", 0U), verbose },
+	_icmp_port_alloc { icmp_port_alloc, node.attribute_value("icmp-ids",  0U), verbose }
 { }
-
-
-Nat_rule &Nat_rule::find_by_domain(Domain &domain)
-{
-	if (&domain == &_domain) {
-		return *this; }
-
-	bool const side = (addr_t)&domain > (addr_t)&_domain;
-	Nat_rule *const rule = Avl_node<Nat_rule>::child(side);
-	if (!rule) {
-		throw Nat_rule_tree::No_match(); }
-
-	return rule->find_by_domain(domain);
-}
-
-
-Nat_rule &Nat_rule_tree::find_by_domain(Domain &domain)
-{
-	Nat_rule *const rule = first();
-	if (!rule) {
-		throw No_match(); }
-
-	return rule->find_by_domain(domain);
-}
 
 
 void Nat_rule::print(Output &output) const

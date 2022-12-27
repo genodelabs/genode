@@ -1,1 +1,2 @@
-INC_DIR += $(call select_from_ports,libgcrypt)/include/libgcrypt
+LIBGCRYPT_DIR := $(call select_from_ports,libgcrypt)
+INC_DIR += $(LIBGCRYPT_DIR)/include/libgcrypt

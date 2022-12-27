@@ -29,8 +29,8 @@ extern "C" void lx_emul_time_stop()
 }
 
 
-extern "C" unsigned long lx_emul_time_counter()
+extern "C" unsigned long long lx_emul_time_counter()
 {
-	unsigned long ret = Lx_kit::env().timer.curr_time().trunc_to_plain_us().value;
+	unsigned long long ret = Lx_kit::env().timer.curr_time().trunc_to_plain_us().value;
 	return ret;
 }

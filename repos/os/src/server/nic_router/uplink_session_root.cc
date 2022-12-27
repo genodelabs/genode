@@ -83,7 +83,7 @@ Net::Uplink_session_component::Interface_policy::determine_domain_name() const
 Net::Uplink_session_component::Uplink_session_component(Session_env                    &session_env,
                                                         size_t                   const  tx_buf_size,
                                                         size_t                   const  rx_buf_size,
-                                                        Timer::Connection              &timer,
+                                                        Cached_timer                   &timer,
                                                         Mac_address              const  mac,
                                                         Session_label            const &label,
                                                         Interface_list                 &interfaces,
@@ -101,10 +101,15 @@ Net::Uplink_session_component::Uplink_session_component(Session_env             
 {
 	_interface.attach_to_domain();
 
-	_tx.sigh_ready_to_ack   (_interface.sink_ack());
-	_tx.sigh_packet_avail   (_interface.sink_submit());
-	_rx.sigh_ack_avail      (_interface.source_ack());
-	_rx.sigh_ready_to_submit(_interface.source_submit());
+	/* install packet stream signal handlers */
+	_tx.sigh_packet_avail(_interface.pkt_stream_signal_handler());
+	_rx.sigh_ack_avail   (_interface.pkt_stream_signal_handler());
+
+	/*
+	 * We do not install ready_to_submit because submission is only triggered
+	 * by incoming packets (and dropped if the submit queue is full).
+	 * The ack queue should never be full otherwise we'll be leaking packets.
+	 */
 }
 
 
@@ -113,7 +118,7 @@ Net::Uplink_session_component::Uplink_session_component(Session_env             
  *************************/
 
 Net::Uplink_session_root::Uplink_session_root(Env               &env,
-                                              Timer::Connection &timer,
+                                              Cached_timer      &timer,
                                               Allocator         &alloc,
                                               Configuration     &config,
                                               Quota             &shared_quota,

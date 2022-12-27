@@ -1,5 +1,5 @@
 /*
- * \brief  VMM address space utility
+ * \brief  VMM - board definitions for ARM 32-bit
  * \author Stefan Kalkowski
  * \date   2019-11-13
  */
@@ -11,47 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__SERVER__VMM__BOARD_H_
-#define _SRC__SERVER__VMM__BOARD_H_
+#ifndef _SRC__SERVER__VMM__SPEC__ARM_V7__BOARD_H_
+#define _SRC__SERVER__VMM__SPEC__ARM_V7__BOARD_H_
+
+#include <board_base.h>
 
 namespace Vmm {
-
-	enum {
-		SIZE_1_MB                 = 1024 * 1024,
-		KERNEL_OFFSET             = 54 * SIZE_1_MB,
-		DTB_OFFSET                = 64 * SIZE_1_MB,
-		INITRD_OFFSET             = 96 * SIZE_1_MB,
-
-		GIC_VERSION               = 2,
-		GICD_MMIO_START           = 0x8000000,
-		GICD_MMIO_SIZE            = 0x10000,
-		GICC_MMIO_START           = 0x8010000,
-		GICR_MMIO_START           = 0x80a0000,
-		GICR_MMIO_SIZE            = 0xf60000,
-
-		PL011_MMIO_START          = 0x9000000,
-		PL011_MMIO_SIZE           = 0x1000,
-		PL011_IRQ                 = 33,
-
-		VIRTIO_CONSOLE_MMIO_START = 0xa000000,
-		VIRTIO_CONSOLE_MMIO_SIZE  = 0x200,
-		VIRTIO_CONSOLE_IRQ        = 48,
-
-		VIRTIO_NET_MMIO_START     = 0xa000200,
-		VIRTIO_NET_MMIO_SIZE      = 0x200,
-		VIRTIO_NET_IRQ            = 49,
-
-		VIRTIO_BLK_MMIO_START     = 0xa000400,
-		VIRTIO_BLK_MMIO_SIZE      = 0x200,
-		VIRTIO_BLK_IRQ            = 50,
-
-		RAM_START                 = 0x40000000,
-		RAM_SIZE                  = 128 * 1024 *1024,
-
-		VTIMER_IRQ                = 27,
-
-		MAX_CPUS                  = 1,
-	};
+	enum { KERNEL_OFFSET = 0x8000, };
 }
 
-#endif /* _SRC__SERVER__VMM__BOARD_H_ */
+#endif /* _SRC__SERVER__VMM__SPEC__ARM_V7__BOARD_H_ */
+

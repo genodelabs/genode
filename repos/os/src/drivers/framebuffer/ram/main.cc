@@ -16,6 +16,7 @@
 #include <base/log.h>
 #include <capture_session/connection.h>
 #include <platform_session/device.h>
+#include <platform_session/dma_buffer.h>
 #include <timer_session/connection.h>
 #include <util/endian.h>
 #include <util/mmio.h>
@@ -61,13 +62,8 @@ class Main
 		Platform::Device::Mmio _fw_mem { _fw_dev };
 		Fw                     _fw { (addr_t)_fw_mem.local_addr<addr_t>() };
 
-		Ram_dataspace_capability _fb_ds_cap  {
-			_platform.alloc_dma_buffer(SCR_HEIGHT * SCR_STRIDE, UNCACHED) };
-		Attached_dataspace       _fb_ds      { _env.rm(), _fb_ds_cap };
-
-		Ram_dataspace_capability _config_ds_cap  {
-			_platform.alloc_dma_buffer(0x1000, UNCACHED) };
-		Attached_dataspace       _config_ds      { _env.rm(), _config_ds_cap };
+		Platform::Dma_buffer _fb_dma     { _platform, SCR_HEIGHT * SCR_STRIDE, UNCACHED };
+		Platform::Dma_buffer _config_dma { _platform, 0x1000, UNCACHED };
 
 		Capture::Area const _size { SCR_WIDTH, SCR_HEIGHT };
 		Capture::Connection _capture { _env };
@@ -81,7 +77,7 @@ class Main
 		{
 			using Pixel = Capture::Pixel;
 
-			Surface<Pixel> surface(_fb_ds.local_addr<Pixel>(), _size);
+			Surface<Pixel> surface(_fb_dma.local_addr<Pixel>(), _size);
 
 			_captured_screen.apply_to_surface(surface);
 		}
@@ -173,9 +169,9 @@ class Main
 
 			_fw_selector(file.key);
 
-			addr_t config_addr = (addr_t)_config_ds.local_addr<addr_t>();
-			addr_t config_phys = (addr_t)_platform.dma_addr(_config_ds_cap);
-			addr_t fb_phys     = (addr_t)_platform.dma_addr(_fb_ds_cap);
+			addr_t config_addr = (addr_t)_config_dma.local_addr<addr_t>();
+			addr_t config_phys = _config_dma.dma_addr();
+			addr_t fb_phys     = _fb_dma.dma_addr();
 
 			Ram_fb_config config { config_addr };
 			config.write<Ram_fb_config::Address>(host_to_big_endian(fb_phys));

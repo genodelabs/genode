@@ -71,7 +71,7 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 		Genode::uint64_t  fpcr;
 	};
 
-	struct alignas(8) Context : Cpu_state
+	struct alignas(16) Context : Cpu_state
 	{
 		Genode::uint64_t pstate { };
 		Genode::uint64_t exception_type { RESET };
@@ -99,14 +99,15 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 				return Ttbr::Asid::get(ttbr) & 0xffff; }
 	};
 
-	void switch_to(Context&, Mmu_context &);
+	bool active(Mmu_context &);
+	void switch_to(Mmu_context &);
 
 	static void mmu_fault(Context &, Kernel::Thread_fault &);
 
 	/**
 	 * Return kernel name of the executing CPU
 	 */
-	static unsigned executing_id() { return Cpu::Mpidr::read() & 0xff; }
+	static unsigned executing_id() { return Cpu::current_core_id(); }
 
 	static size_t cache_line_size();
 	static void clear_memory_region(addr_t const addr,

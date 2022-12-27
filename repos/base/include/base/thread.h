@@ -138,7 +138,7 @@ class Genode::Thread
 		 * Some threads need special treatment at construction. This enum
 		 * is solely used to distinguish them at construction.
 		 */
-		enum Type { NORMAL, MAIN, REINITIALIZED_MAIN };
+		enum Type { NORMAL, MAIN };
 
 	private:
 

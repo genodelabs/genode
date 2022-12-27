@@ -13,7 +13,9 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/raw/ttf-bitstream-vera-minimal
 
 create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
-                               [depot_user]/pkg/sculpt-installation \
+                               [depot_user]/pkg/chroot \
+                               [depot_user]/pkg/system_shell \
+                               [depot_user]/pkg/fonts_fs \
                                [depot_user]/pkg/wm \
                                [depot_user]/pkg/nano3d \
                                [depot_user]/pkg/window_layouter \
@@ -86,7 +88,7 @@ install_config {
 		<binary name="report_rom"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes">
+		<config verbose="no">
 			<policy label="depot_deploy -> blueprint" report="depot_query -> blueprint"/>
 			<policy label="depot_query -> query"      report="depot_deploy -> query"/>
 			<policy label="dynamic -> config"         report="depot_deploy -> init.config"/>
@@ -270,7 +272,7 @@ install_config {
 
 build { app/depot_query app/depot_deploy }
 
-copy_file [genode_dir]/repos/gems/run/sculpt/fonts.config [run_dir]/genode/
+copy_file [genode_dir]/repos/gems/sculpt/fonts/default [run_dir]/genode/fonts.config
 copy_file [genode_dir]/repos/ports/recipes/raw/system_shell/system_shell.config [run_dir]/genode/
 
 #

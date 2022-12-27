@@ -61,10 +61,8 @@ class Net::Nic
 		bool             const &_verbose;
 		::Nic::Packet_allocator _pkt_alloc          { &_alloc };
 		::Nic::Connection       _nic                { _env, &_pkt_alloc, BUF_SIZE, BUF_SIZE };
-		Signal_handler          _sink_ack           { _env.ep(), *this, &Nic::_ack_avail };
-		Signal_handler          _sink_submit        { _env.ep(), *this, &Nic::_ready_to_submit };
-		Signal_handler          _source_ack         { _env.ep(), *this, &Nic::_ready_to_ack };
-		Signal_handler          _source_submit      { _env.ep(), *this, &Nic::_packet_avail };
+		Signal_handler          _sink_handler       { _env.ep(), *this, &Nic::_handle_sink };
+		Signal_handler          _source_handler     { _env.ep(), *this, &Nic::_handle_source };
 		Signal_handler          _link_state_handler { _env.ep(), *this, &Nic::handle_link_state };
 		Mac_address      const  _mac                { _nic.mac_address() };
 
@@ -76,10 +74,8 @@ class Net::Nic
 		 ** Packet-stream signal handlers **
 		 ***********************************/
 
-		void _ready_to_submit();
-		void _ack_avail() { }
-		void _ready_to_ack();
-		void _packet_avail() { }
+		void _handle_sink();
+		void _handle_source();
 
 	public:
 
@@ -93,10 +89,10 @@ class Net::Nic
 			_handler (handler),
 			_verbose (verbose)
 		{
-			_nic.rx_channel()->sigh_ready_to_ack(_sink_ack);
-			_nic.rx_channel()->sigh_packet_avail(_sink_submit);
-			_nic.tx_channel()->sigh_ack_avail(_source_ack);
-			_nic.tx_channel()->sigh_ready_to_submit(_source_submit);
+			_nic.rx_channel()->sigh_ready_to_ack(_sink_handler);
+			_nic.rx_channel()->sigh_packet_avail(_sink_handler);
+			_nic.tx_channel()->sigh_ack_avail(_source_handler);
+			_nic.tx_channel()->sigh_ready_to_submit(_source_handler);
 			_nic.link_state_sigh(_link_state_handler);
 		}
 

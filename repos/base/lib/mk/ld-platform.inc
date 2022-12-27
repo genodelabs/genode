@@ -20,6 +20,7 @@ SYMBOLS := $(BASE_DIR)/lib/symbols/ld
 # Generate symbol map from the ABI
 #
 $(LIB).lib.so: symbol.map
+$(LIB).abi.so: symbol.map
 symbol.map: $(MAKEFILE_LIST)
 symbol.map: $(BASE_DIR)/lib/symbols/ld
 	$(MSG_CONVERT)$@

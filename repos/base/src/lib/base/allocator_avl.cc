@@ -172,9 +172,10 @@ void Allocator_avl_base::_cut_from_block(Block &b, addr_t addr, size_t size, Two
 
 
 template <typename FN>
-void Allocator_avl_base::_revert_block_ranges(FN const &any_block_fn)
+bool Allocator_avl_base::_revert_block_ranges(FN const &any_block_fn)
 {
-	for (bool loop = true; loop; ) {
+	size_t blocks = 0;
+	for (bool loop = true; loop; blocks++) {
 
 		Block *block_ptr = any_block_fn();
 		if (!block_ptr)
@@ -188,12 +189,14 @@ void Allocator_avl_base::_revert_block_ranges(FN const &any_block_fn)
 					loop = false; /* give up on OUT_OF_RAM or OUT_OF_CAPS */
 			});
 	}
+
+	return blocks > 0;
 }
 
 
-void Allocator_avl_base::_revert_unused_ranges()
+bool Allocator_avl_base::_revert_unused_ranges()
 {
-	_revert_block_ranges([&] () {
+	return _revert_block_ranges([&] () {
 		return _find_any_unused_block(_addr_tree.first()); });
 }
 
@@ -319,7 +322,7 @@ Allocator_avl_base::_allocate(size_t const size, unsigned align, Range range,
 			Block *b_ptr = _addr_tree.first();
 			b_ptr = b_ptr ? search_fn(*b_ptr) : 0;
 
-			if (!b_ptr) {
+			if (!b_ptr || b_ptr->used()) {
 				/* range conflict */
 				_md_alloc.free(two_blocks.b1_ptr, sizeof(Block));
 				_md_alloc.free(two_blocks.b2_ptr, sizeof(Block));
@@ -359,10 +362,6 @@ Allocator_avl_base::alloc_aligned(size_t size, unsigned align, Range range)
 Range_allocator::Alloc_result Allocator_avl_base::alloc_addr(size_t size, addr_t addr)
 {
 	/* check for integer overflow */
-	if (addr + size - 1 < addr)
-		return Alloc_error::DENIED;
-
-	/* check for range conflict */
 	if (!_sum_in_range(addr, size))
 		return Alloc_error::DENIED;
 
@@ -394,15 +393,18 @@ void Allocator_avl_base::free(void *addr)
 }
 
 
-size_t Allocator_avl_base::size_at(void const *addr) const
+Allocator_avl_base::Size_at_result Allocator_avl_base::size_at(void const *addr) const
 {
 	/* lookup corresponding block */
 	Block *b = _find_by_address(reinterpret_cast<addr_t>(addr));
 
 	if (b && (b->addr() != (addr_t)addr))
-		return 0;
+		return Size_at_error::MISMATCHING_ADDR;
 
-	return (b && b->used()) ? b->size() : 0;
+	if (b && b->used())
+		return b->size();
+
+	return Size_at_error::UNKNOWN_ADDR;
 }
 
 

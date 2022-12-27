@@ -53,7 +53,7 @@ static void gen_vfs_start(Xml_generator &xml,
                           Ram_fs_state const &ram_fs_state)
 {
 	gen_common_start_content(xml, "vfs",
-	                         Cap_quota{200}, Ram_quota{5*1024*1024},
+	                         Cap_quota{200}, Ram_quota{6*1024*1024},
 	                         Priority::LEITZENTRALE);
 
 	gen_provides<::File_system::Session>(xml);
@@ -79,7 +79,9 @@ static void gen_vfs_start(Xml_generator &xml,
 
 			auto fs_dir = [&] (String<64> const &label) {
 				gen_named_node(xml, "dir", label, [&] () {
-					xml.node("fs", [&] () { xml.attribute("label", label); }); }); };
+					xml.node("fs", [&] () {
+						xml.attribute("buffer_size", 272u << 10);
+						xml.attribute("label", label); }); }); };
 
 			fs_dir("config");
 			fs_dir("report");
@@ -152,7 +154,7 @@ static void gen_fs_rom_start(Xml_generator &xml)
 static void gen_bash_start(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "bash",
-	                         Cap_quota{400}, Ram_quota{15*1024*1024},
+	                         Cap_quota{400}, Ram_quota{16*1024*1024},
 	                         Priority::LEITZENTRALE);
 
 	gen_named_node(xml, "binary", "/bin/bash", [&] () { });
@@ -167,7 +169,9 @@ static void gen_bash_start(Xml_generator &xml)
 			xml.attribute("rtc",    "/dev/rtc");
 		});
 
-		xml.node("vfs", [&] () { xml.node("fs", [&] () { }); });
+		xml.node("vfs", [&] () {
+			xml.node("fs", [&] () {
+				xml.attribute("buffer_size", 272u << 10); }); });
 
 		auto gen_env = [&] (auto key, auto value) {
 			xml.node("env", [&] () {

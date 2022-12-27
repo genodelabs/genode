@@ -95,8 +95,9 @@ class Hw::Pl310 : public Genode::Mmio
 
 		struct Prefetch_ctrl : Register<0xf60, 32>
 		{
-			struct Data_prefetch : Bitfield<28,1> { };
-			struct Inst_prefetch : Bitfield<29,1> { };
+			struct Data_prefetch   : Bitfield<28,1> { };
+			struct Inst_prefetch   : Bitfield<29,1> { };
+			struct Double_linefill : Bitfield<30,1> { };
 		};
 
 		void _sync() { while (read<Cache_sync>()) ; }

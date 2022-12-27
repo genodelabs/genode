@@ -2,6 +2,7 @@
  * \brief  Lx_kit format string backend
  * \author Stefan Kalkowski
  * \author Sebastian Sumpf
+ * \author Christian Helmuth
  * \date   2021-03-17
  *
  * Greatly inspired by the former DDE Linux Lx_kit implementation.
@@ -127,6 +128,7 @@ class Lx_kit::Console
 	public:
 
 		void vprintf(const char *format, va_list list);
+		void print_string(const char *str);
 };
 
 #endif /* _LX_KIT__CONSOLE_H_ */

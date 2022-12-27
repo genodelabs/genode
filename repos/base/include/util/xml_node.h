@@ -35,13 +35,17 @@ class Genode::Xml_attribute
 {
 	private:
 
-		/**
-		 * Scanner policy that accepts hyphens in identifiers
-		 */
-		struct Scanner_policy_xml_identifier {
-			static bool identifier_char(char c, unsigned i) {
+		struct Scanner_policy_xml_identifier
+		{
+			static bool identifier_char(char c, unsigned i)
+			{
+				/* accepts hyphens in identifiers */
 				return is_letter(c) || c == '_' || c == ':'
-				    || (i && (c == '-' || c == '.' || is_digit(c))); } };
+				    || (i && (c == '-' || c == '.' || is_digit(c)));
+			}
+
+			static bool end_of_quote(const char *s) { return s[1] == '\"'; }
+		};
 
 		/**
 		 * Define tokenizer that matches XML tags (with hyphens) as identifiers
@@ -51,17 +55,16 @@ class Genode::Xml_attribute
 		struct Tokens
 		{
 			Token name;
-			Token value;
+			Token equals { name  .next().eat_whitespace() };
+			Token value  { equals.next().eat_whitespace() };
 
-			Tokens(Token t)
-			: name(t.eat_whitespace()), value(name.next().next()) { };
+			Tokens(Token t) : name(t.eat_whitespace()) { };
 
 			bool valid() const
 			{
-				bool const tag_present   = (name.type() == Token::IDENT);
-				bool const value_present = (name.next()[0] == '=' &&
-				                            value.type() == Token::STRING);
-				return tag_present && value_present;
+				return (name.type()  == Token::IDENT)
+				    && (equals[0]    == '=')
+				    && (value.type() == Token::STRING);
 			}
 		} _tokens;
 
@@ -99,7 +102,7 @@ class Genode::Xml_attribute
 		/**
 		 * Return token following the attribute declaration
 		 */
-		Token _next_token() const { return _tokens.name.next().next().next(); }
+		Token _next_token() const { return _tokens.value.next(); }
 
 	public:
 
@@ -351,7 +354,7 @@ class Genode::Xml_node
 				}
 
 				/**
-				 * Return true if tag as at least one attribute
+				 * Return true if tag has at least one attribute
 				 */
 				bool has_attribute() const { return Xml_attribute::_valid(_name.next()); }
 
@@ -842,10 +845,25 @@ class Genode::Xml_node
 		 * If no matching sub node exists, the functor is not called.
 		 */
 		template <typename FN>
-		void with_sub_node(char const *type, FN const &fn) const
+		void with_optional_sub_node(char const *type, FN const &fn) const
 		{
 			if (has_sub_node(type))
 				fn(sub_node(type));
+		}
+
+		/**
+		 * Apply functor 'fn' to first sub node of specified type
+		 *
+		 * The functor is called with the sub node as argument.
+		 * If no matching sub node exists, the functor 'fn_nexists' is called.
+		 */
+		template <typename FN, typename FN_NEXISTS>
+		void with_sub_node(char const *type, FN const &fn, FN_NEXISTS const &fn_nexists) const
+		{
+			if (has_sub_node(type))
+				fn(sub_node(type));
+			else
+				fn_nexists();
 		}
 
 		/**

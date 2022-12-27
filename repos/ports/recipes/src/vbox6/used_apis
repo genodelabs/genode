@@ -6,6 +6,7 @@ gui_session
 input_session
 libc
 libiconv
+mesa
 nic_session
 nitpicker_gfx
 os

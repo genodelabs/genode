@@ -26,16 +26,6 @@ using namespace Net;
 using namespace Genode;
 
 
-/*****************
- ** Domain_base **
- *****************/
-
-Domain_base::Domain_base(Xml_node const node)
-:
-	_name(node.attribute_value("name", Domain_name()))
-{ }
-
-
 /************
  ** Domain **
  ************/
@@ -46,6 +36,26 @@ void Domain::_log_ip_config() const
 		log("[", *this, "] ", _ip_config_dynamic ? "dynamic" : "static",
 		    " IP config: ", *_ip_config);
 	}
+}
+
+
+bool Domain::ready() const
+{
+	if (_dhcp_server.valid()) {
+		if (_dhcp_server().has_invalid_remote_dns_cfg()) {
+			return false;
+		}
+	}
+	return true;
+}
+
+
+void Domain::update_ready_state()
+{
+	bool const rdy { ready() };
+	_interfaces.for_each([&] (Interface &interface) {
+		interface.handle_domain_ready_state(rdy);
+	});
 }
 
 
@@ -65,9 +75,7 @@ void Domain::_prepare_reconstructing_ip_config()
 			interface.detach_from_ip_config(*this);
 		});
 		_ip_config_dependents.for_each([&] (Domain &domain) {
-			domain._interfaces.for_each([&] (Interface &interface) {
-				interface.detach_from_remote_ip_config();
-			});
+			domain.update_ready_state();
 		});
 		/* dissolve foreign ARP waiters */
 		while (_foreign_arp_waiters.first()) {
@@ -88,9 +96,7 @@ void Domain::_finish_reconstructing_ip_config()
 			interface.attach_to_ip_config(*this, ip_config());
 		});
 		_ip_config_dependents.for_each([&] (Domain &domain) {
-			domain._interfaces.for_each([&] (Interface &interface) {
-				interface.attach_to_remote_ip_config();
-			});
+			domain.update_ready_state();
 		});
 	} else {
 		_interfaces.for_each([&] (Interface &interface) {
@@ -132,7 +138,7 @@ void Domain::try_reuse_ip_config(Domain const &domain)
 
 
 void Domain::_read_forward_rules(Cstring  const    &protocol,
-                                 Domain_tree       &domains,
+                                 Domain_dict       &domains,
                                  Xml_node const     node,
                                  char     const    *type,
                                  Forward_rule_tree &rules)
@@ -158,7 +164,7 @@ void Domain::_invalid(char const *reason) const
 
 
 void Domain::_read_transport_rules(Cstring  const      &protocol,
-                                   Domain_tree         &domains,
+                                   Domain_dict         &domains,
                                    Xml_node const       node,
                                    char     const      *type,
                                    Transport_rule_list &rules)
@@ -177,17 +183,20 @@ void Domain::_read_transport_rules(Cstring  const      &protocol,
 
 void Domain::print(Output &output) const
 {
-	if (_name == Domain_name()) {
+	if (name() == Domain_name()) {
 		Genode::print(output, "?");
 	} else {
-		Genode::print(output, _name); }
+		Genode::print(output, name()); }
 }
 
 
-Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
+Domain::Domain(Configuration     &config,
+               Xml_node    const &node,
+               Domain_name const &name,
+               Allocator         &alloc,
+               Domain_dict       &domains)
 :
-	Domain_base          { node },
-	Avl_string_base      { Domain_base::_name.string() },
+	Domain_dict::Element { domains, name },
 	_config              { config },
 	_node                { node },
 	_alloc               { alloc },
@@ -196,6 +205,8 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	                                            config.verbose_packets()) },
 	_verbose_packet_drop { node.attribute_value("verbose_packet_drop",
 	                                            config.verbose_packet_drop()) },
+	_trace_packets       { node.attribute_value("trace_packets",
+	                                            config.trace_packets()) },
 	_icmp_echo_server    { node.attribute_value("icmp_echo_server",
 	                                            config.icmp_echo_server()) },
 	_use_arp             { _node.attribute_value("use_arp", true) },
@@ -204,7 +215,7 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 {
 	_log_ip_config();
 
-	if (_name == Domain_name()) {
+	if (Domain::name() == Domain_name()) {
 		_invalid("missing name attribute"); }
 
 	if (_config.verbose_domain_state()) {
@@ -232,14 +243,14 @@ Domain::~Domain()
 Dhcp_server &Domain::dhcp_server()
 {
 	Dhcp_server &dhcp_server = _dhcp_server();
-	if (!dhcp_server.ready()) {
+	if (dhcp_server.has_invalid_remote_dns_cfg()) {
 		throw Pointer<Dhcp_server>::Invalid();
 	}
 	return dhcp_server;
 }
 
 
-void Domain::init(Domain_tree &domains)
+void Domain::init(Domain_dict &domains)
 {
 	/* read DHCP server configuration */
 	try {
@@ -364,8 +375,11 @@ void Domain::detach_interface(Interface &interface)
 {
 	_interfaces.remove(&interface);
 	_interface_cnt--;
-	if (!_interface_cnt && _ip_config_dynamic) {
-		discard_ip_config();
+	if (!_interface_cnt) {
+		_arp_cache.destroy_all_entries();
+		if (_ip_config_dynamic) {
+			discard_ip_config();
+		}
 	}
 	if (_config.verbose_domain_state()) {
 		log("[", *this, "] NIC sessions: ", _interface_cnt);
@@ -383,7 +397,7 @@ void Domain::report(Xml_generator &xml)
 {
 	xml.node("domain", [&] () {
 		bool empty = true;
-		xml.attribute("name", _name);
+		xml.attribute("name", name());
 		if (_config.report().bytes()) {
 			xml.attribute("rx_bytes", _tx_bytes);
 			xml.attribute("tx_bytes", _rx_bytes);

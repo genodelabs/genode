@@ -22,24 +22,34 @@
 .global hypervisor_exception_vector
 hypervisor_exception_vector:
 	.rept 16
-	add sp, sp, #-16   /* push x0, x1 to stack               */
-	stp x0, x1, [sp]
-	mrs x1, hcr_el2    /* read HCR register                  */
-	tst x1, #1         /* check VM bit                       */
-	beq _host_to_vm    /* if VM bit is not set, switch to VM */
-	ldr x0, [sp, #32]  /* otherwise, load vm_state pointer   */
-	adr x1, .          /* hold exception vector offset in x1 */
-	and x1, x1, #0xf80
-	b   _vm_to_host
+	add sp, sp, #-16   /* push x29, x30 to stack */
+	stp x29, x30, [sp]
+	mrs x30, hcr_el2   /* read HCR register */
+	tst x30, #1        /* check VM bit */
+	beq _from_host     /* if VM bit is not set, its a host call */
+	ldr x29, [sp, #32] /* otherwise, load vm_state pointer */
+	adr x30, .         /* hold exception vector offset in x30 */
+	and x30, x30, #0xf80
+	b   _from_vm
 	.balign 128
 	.endr
 
-_host_to_vm:
+_from_host:
+	ldp x29, x30, [sp], #2*8  /* pop x29, x30 from stack */
+	cmp x0, #0
+	beq _to_vm
+	cmp x0, #1
+	beq _invalidate_tlb
+	eret
 
-	add sp, sp, #-16    /* push arg2 (vm pic state) to stack */
-	str x2, [sp]
+_to_vm:
+	add sp, sp, #-16    /* push arg1/2 (vm/host state to stack */
+	stp x1, x2, [sp]
+	add sp, sp, #-16    /* push arg3 (vm pic state) to stack */
+	str x3, [sp]
 
-	msr vttbr_el2, x3   /* stage2 table pointer was arg3 */
+	msr vttbr_el2, x4   /* stage2 table pointer was arg4 */
+	mov x0, x1
 
 	add  x0, x0, #31*8  /* skip x0...x30, loaded later */
 
@@ -179,27 +189,38 @@ _host_to_vm:
 
 	eret
 
-_vm_to_host:
+
+_invalidate_tlb:
+	msr  vttbr_el2, x1
+	tlbi vmalle1is
+	msr  vttbr_el2, xzr
+	eret
+
+
+_from_vm:
 
 	/*********************
 	 ** Save vm context **
 	 *********************/
 
 	/** general-purpose register **/
-	add        x0,   x0, #2*8    /* skip x0 and x1 for now */
-	stp   x2,  x3, [x0], #2*8
-	stp   x4,  x5, [x0], #2*8
-	stp   x6,  x7, [x0], #2*8
-	stp   x8,  x9, [x0], #2*8
-	stp  x10, x11, [x0], #2*8
-	stp  x12, x13, [x0], #2*8
-	stp  x14, x15, [x0], #2*8
-	stp  x16, x17, [x0], #2*8
-	stp  x18, x19, [x0], #2*8
-	stp  x20, x21, [x0], #2*8
-	stp  x22, x23, [x0], #2*8
-	stp  x24, x25, [x0], #2*8
-	stp  x26, x27, [x0], #2*8
+	stp   x0,  x1, [x29], #2*8
+	stp   x2,  x3, [x29], #2*8
+	stp   x4,  x5, [x29], #2*8
+	stp   x6,  x7, [x29], #2*8
+	stp   x8,  x9, [x29], #2*8
+	stp  x10, x11, [x29], #2*8
+	stp  x12, x13, [x29], #2*8
+	stp  x14, x15, [x29], #2*8
+	stp  x16, x17, [x29], #2*8
+	stp  x18, x19, [x29], #2*8
+	stp  x20, x21, [x29], #2*8
+	stp  x22, x23, [x29], #2*8
+	stp  x24, x25, [x29], #2*8
+	stp  x26, x27, [x29], #2*8
+	mov  x0,  x29
+	mov  x1,  x30
+	ldp  x29, x30, [sp], #2*8  /* pop x29, x30 from stack */
 	stp  x28, x29, [x0], #2*8
 	str       x30, [x0], #1*8
 
@@ -284,11 +305,8 @@ _vm_to_host:
 	mov  x0, #0b111
 	msr  cnthctl_el2, x0
 
-
-	ldp x0,  x1, [sp], #2*8    /* pop x0, x1 from stack             */
-	ldr x29,     [sp], #2*8    /* pop vm pic state from stack       */
-	ldp x2, x30, [sp], #2*8    /* pop vm, and host state from stack */
-	stp x0,  x1, [x2]          /* save x0, x1 to vm state           */
+	ldr x29,     [sp], #2*8  /* pop vm pic state from stack       */
+	ldp x2, x30, [sp], #2*8  /* pop vm, and host state from stack */
 
 
 	/**********************
@@ -364,6 +382,7 @@ _vm_to_host:
 	eret
 
 /* host kernel must jump to this point to switch to a vm */
-.global hypervisor_enter_vm
-hypervisor_enter_vm:
+.global hypervisor_call
+hypervisor_call:
 	hvc #0
+	ret

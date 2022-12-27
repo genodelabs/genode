@@ -2,7 +2,7 @@
 # Create symlink to elfweaver so that the run tool can use it from within the
 # build directory.
 #
-OKL4_DIR    = $(call select_from_ports,okl4)/src/kernel/okl4
+OKL4_DIR   := $(call select_from_ports,okl4)/src/kernel/okl4
 HOST_TOOLS += $(BUILD_BASE_DIR)/tool/okl4/elfweaver
 
 $(BUILD_BASE_DIR)/tool/okl4/elfweaver:

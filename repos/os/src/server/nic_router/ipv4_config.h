@@ -91,11 +91,12 @@ class Net::Ipv4_config
 		 ** Accessors **
 		 ***************/
 
-		bool                       valid()           const { return _valid; }
-		Ipv4_address_prefix const &interface()       const { return _interface; }
-		Ipv4_address        const &gateway()         const { return _gateway; }
-		bool                       gateway_valid()   const { return _gateway_valid; }
-		Dns_domain_name     const &dns_domain_name() const { return _dns_domain_name; }
+		bool                       valid()             const { return _valid; }
+		Ipv4_address_prefix const &interface()         const { return _interface; }
+		Ipv4_address        const &gateway()           const { return _gateway; }
+		bool                       gateway_valid()     const { return _gateway_valid; }
+		Dns_domain_name     const &dns_domain_name()   const { return _dns_domain_name; }
+		bool                       dns_servers_empty() const { return _dns_servers.empty(); }
 };
 
 #endif /* _IPV4_CONFIG_H_ */

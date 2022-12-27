@@ -43,11 +43,23 @@ class Net::Dns_server : private Genode::Noncopyable,
 
 		Net::Ipv4_address const _ip;
 
+		Dns_server(Net::Ipv4_address const &ip);
+
 	public:
 
-		struct Invalid : Genode::Exception { };
+		template <typename HANDLE_SUCCESS_FN,
+		          typename HANDLE_FAILURE_FN>
 
-		Dns_server(Net::Ipv4_address const &ip);
+		static void construct(Genode::Allocator       &alloc,
+		                      Net::Ipv4_address const &ip,
+		                      HANDLE_SUCCESS_FN     && handle_success,
+		                      HANDLE_FAILURE_FN     && handle_failure)
+		{
+			if (!ip.valid()) {
+				handle_failure();
+			}
+			handle_success(*new (alloc) Dns_server(ip));
+		}
 
 		bool equal_to(Dns_server const &server) const;
 

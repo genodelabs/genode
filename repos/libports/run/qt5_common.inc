@@ -16,6 +16,7 @@ import_from_depot [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/src/rom_filter \
                   [depot_user]/src/stdcxx \
                   [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_gpu \
                   [depot_user]/src/vfs_pipe \
 
 #

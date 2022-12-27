@@ -108,7 +108,7 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 		{
 			_buffer = Buffer(value);
 
-			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
+			_handle_registry.for_each([] (Registered_watch_handle &handle) {
 				handle.watch_response(); });
 		}
 

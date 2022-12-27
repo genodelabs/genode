@@ -23,7 +23,7 @@ namespace Genode {
 	class Log;
 	class Raw;
 	class Trace_output;
-	class Log_tsc_probe;
+	template <typename> class Log_tsc_probe;
 }
 
 
@@ -76,6 +76,15 @@ class Genode::Log
 		 * Return component-global singleton instance of the 'Log'
 		 */
 		static Log &log();
+
+		/**
+		 * Type for writing a log message, designated use as template argument
+		 */
+		struct Log_fn
+		{
+			template <typename... ARGS>
+			Log_fn(ARGS && ... args) { log().output(LOG, args...); }
+		};
 };
 
 
@@ -137,6 +146,18 @@ class Genode::Trace_output
 		 * Return component-global singleton instance of the 'Trace_output'
 		 */
 		static Trace_output &trace_output();
+
+		/**
+		 * Type for writing a trace entry, designated use as template argument
+		 */
+		struct Fn
+		{
+			template <typename... ARGS>
+			Fn(ARGS && ... args)
+			{
+				trace_output().output(Trace::timestamp(), ": ", args...);
+			}
+		};
 };
 
 
@@ -146,7 +167,7 @@ namespace Genode {
 	 * Write 'args' as a regular message to the log
 	 */
 	template <typename... ARGS>
-	void log(ARGS &&... args) { Log::log().output(Log::LOG, args...); }
+	void log(ARGS &&... args) { Log::Log_fn(args...); }
 
 
 	/**
@@ -187,14 +208,14 @@ namespace Genode {
 	 * The message is prefixed with a timestamp value
 	 */
 	template <typename... ARGS>
-	void trace(ARGS && ... args) {
-		Trace_output::trace_output().output(Trace::timestamp(), ": ", args...); }
+	void trace(ARGS && ... args) { Trace_output::Fn(args...); }
 }
 
 
 /*
  * Helper for the 'GENODE_LOG_TSC' utility
  */
+template <typename OUTPUT_FN>
 class Genode::Log_tsc_probe : Noncopyable
 {
 	private:
@@ -263,8 +284,8 @@ class Genode::Log_tsc_probe : Noncopyable
 					if (_cycle_count < _sample_rate)
 						return;
 
-					log(" TSC ", name, ": ", Pretty_tsc { _tsc_sum }, " "
-					    "(", _calls, " calls, last ", Pretty_tsc { duration }, ")");
+					OUTPUT_FN("TSC ", name, ": ", Pretty_tsc { _tsc_sum }, " "
+					          "(", _calls, " calls, last ", Pretty_tsc { duration }, ")");
 					_cycle_count = 0;
 				}
 
@@ -314,9 +335,7 @@ class Genode::Log_tsc_probe : Noncopyable
  * are printed. It allows for the tuning of the amount of output depending on
  * the instrumented function.
  */
-#define GENODE_LOG_TSC(n) \
-	static Genode::Log_tsc_probe::Stats genode_log_tsc_stats { n }; \
-	Genode::Log_tsc_probe genode_log_tsc_probe(genode_log_tsc_stats, __func__);
+#define GENODE_LOG_TSC(n) GENODE_LOG_TSC_NAMED(n, __func__)
 
 
 /**
@@ -327,8 +346,28 @@ class Genode::Log_tsc_probe : Noncopyable
  * within the same class or same-named methods of different classes.
  */
 #define GENODE_LOG_TSC_NAMED(n, name) \
-	static Genode::Log_tsc_probe::Stats genode_log_tsc_stats { n }; \
-	Genode::Log_tsc_probe genode_log_tsc_probe(genode_log_tsc_stats, name);
+	using Genode_log_tsc_probe = Genode::Log_tsc_probe<Genode::Log::Log_fn>; \
+	static Genode_log_tsc_probe::Stats genode_log_tsc_stats { n }; \
+	Genode_log_tsc_probe genode_log_tsc_probe(genode_log_tsc_stats, name);
+
+
+/**
+ * Trace TSC (time-stamp counter) ticks consumed by the calling function
+ *
+ * See the documentation of 'GENODE_LOG_TSC' for further information.
+ */
+#define GENODE_TRACE_TSC(n) GENODE_TRACE_TSC_NAMED(n, __func__)
+
+
+/**
+ * Variant of 'GENODE_TRACE_TSC' that accepts the name of the probe as argument
+ *
+ * See the documentation of 'GENODE_LOG_TSC_NAMED' for further information.
+ */
+#define GENODE_TRACE_TSC_NAMED(n, name) \
+	using Genode_log_tsc_probe = Genode::Log_tsc_probe<Genode::Trace_output::Fn>; \
+	static Genode_log_tsc_probe::Stats genode_log_tsc_stats { n }; \
+	Genode_log_tsc_probe genode_log_tsc_probe(genode_log_tsc_stats, name);
 
 
 #endif /* _INCLUDE__BASE__LOG_H_ */

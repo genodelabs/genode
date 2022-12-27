@@ -58,6 +58,7 @@ Irq_session_component::~Irq_session_component()
 	using namespace Kernel;
 
 	_irq_alloc.free((void *)(addr_t)_irq_number);
+	if (_is_msi) Platform::free_msi_vector(_address, _value);
 }
 
 
@@ -72,10 +73,10 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 		Arg_string::find_arg(args, "device_config_phys").long_value(0);
 
 	if (mmconf) {
-		_is_msi =
-			Platform::get_msi_params(mmconf, _address, _value, _irq_number);
+		_is_msi = Platform::alloc_msi_vector(_address, _value);
 		if (!_is_msi)
 			throw Service_denied();
+		_irq_number = (unsigned) _value;
 	}
 
 	/* allocate interrupt */

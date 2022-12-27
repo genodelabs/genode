@@ -215,7 +215,8 @@ int main(int argc, char **argv)
 
 	ts.tv_sec = ts.tv_nsec = 0;
 	clock_gettime(CLOCK_REALTIME, &ts);
-	printf("sleep/gettime(CLOCK_REALTIME): %.09f\n", ts.tv_sec + ts.tv_nsec / 1000000000.0);
+	printf("sleep/gettime(CLOCK_REALTIME): %.09f %s\n",
+	       ts.tv_sec + ts.tv_nsec / 1000000000.0, asctime(localtime(&ts.tv_sec)));
 
 	{
 		unsigned long long buf = 0;

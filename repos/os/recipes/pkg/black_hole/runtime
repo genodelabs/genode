@@ -4,12 +4,24 @@
 		<audio_in/>
 		<audio_out/>
 		<capture/>
+		<event/>
+		<nic/>
+		<uplink/>
+		<rom/>
+		<gpu/>
+		<usb/>
 	</provides>
 
 	<config>
 		<audio_in/>
 		<audio_out/>
 		<capture/>
+		<event/>
+		<nic/>
+		<uplink/>
+		<rom/>
+		<gpu/>
+		<usb/>
 	</config>
 
 	<content>

@@ -27,7 +27,9 @@ extern "C" {
 #include "stdio.h"
 }
 
-typedef Genode::Path<File_system::MAX_PATH_LEN> Absolute_path;
+using namespace Genode;
+
+typedef Path<File_system::MAX_PATH_LEN> Absolute_path;
 
 struct FILE { };
 
@@ -37,25 +39,153 @@ FILE *stderr = &stderr_file;
 
 struct Gcov_env
 {
-	Genode::Env                    &env;
-	Genode::Attached_rom_dataspace  config { env, "config" };
-	Genode::Heap                    heap { env.ram(), env.rm() };
-	Genode::Allocator_avl           fs_alloc { &heap };
-	File_system::Connection         fs { env, fs_alloc, "gcov_data" };
-	unsigned long                   seek_offset { 0 };
+	using seek_off_t = File_system::seek_off_t;
+
+	Env                    &env;
+	Attached_rom_dataspace  config { env, "config" };
+	Heap                    heap { env.ram(), env.rm() };
+	Allocator_avl           fs_alloc { &heap };
+
+	/*
+	 * We use a file-system session directly to exfiltrate the gcov data from
+	 * the component without any interplay with the libc or the component's
+	 * VFS.
+	 */
+
+	File_system::Connection fs { env, fs_alloc, "gcov_data" };
+	seek_off_t              seek_offset { 0 };
+
+	Io_signal_handler<Gcov_env> _fs_signal_handler {
+		env.ep(), *this, &Gcov_env::_handle_fs_signal };
+
+	void _handle_fs_signal() { }
 
 	/* only one file is open at a time */
-	Genode::Constructible<File_system::File_handle> file_handle;
-	FILE                                            file;
+	Constructible<File_system::File_handle> file_handle;
+	FILE                                    file;
 
-	Gcov_env(Genode::Env &env) : env(env) { }
+	void _block_for_ack()
+	{
+		while (!fs.tx()->ack_avail())
+			env.ep().wait_and_dispatch_one_io_signal();
+	}
+
+	Gcov_env(Env &env)
+	:
+		env(env)
+	{
+		fs.sigh(_fs_signal_handler);
+	}
+
+	size_t read (File_system::Node_handle const &, void *,       size_t, seek_off_t);
+	size_t write(File_system::Node_handle const &, void const *, size_t, seek_off_t);
 };
 
 
-static Genode::Constructible<Gcov_env> gcov_env;
+size_t Gcov_env::read(File_system::Node_handle const &node_handle,
+                      void *dst, size_t count, seek_off_t seek_offset)
+{
+	bool success = true;
+	File_system::Session::Tx::Source &source = *fs.tx();
+
+	size_t const max_packet_size = source.bulk_buffer_size() / 2;
+
+	size_t remaining_count = count;
+
+	while (remaining_count && success) {
+
+		size_t const curr_packet_size =
+			min(remaining_count, max_packet_size);
+
+		File_system::Packet_descriptor
+			packet(source.alloc_packet(curr_packet_size),
+			       node_handle,
+			       File_system::Packet_descriptor::READ,
+			       curr_packet_size,
+			       seek_offset);
+
+		/* pass packet to server side */
+		source.submit_packet(packet);
+
+		_block_for_ack();
+
+		packet = source.get_acked_packet();
+		success = packet.succeeded();
+
+		size_t const read_num_bytes =
+			min(packet.length(), curr_packet_size);
+
+		/* copy-out payload into destination buffer */
+		memcpy(dst, source.packet_content(packet), read_num_bytes);
+
+		source.release_packet(packet);
+
+		/* prepare next iteration */
+		seek_offset += read_num_bytes;
+		dst = (void *)((addr_t)dst + read_num_bytes);
+		remaining_count -= read_num_bytes;
+
+		/*
+		 * If we received less bytes than requested, we reached the end
+		 * of the file.
+		 */
+		if (read_num_bytes < curr_packet_size)
+			break;
+	}
+
+	return count - remaining_count;
+}
 
 
-void gcov_init(Genode::Env &env)
+size_t Gcov_env::write(File_system::Node_handle const &node_handle,
+                       void const *src, size_t count,
+                       seek_off_t seek_offset)
+{
+	bool success = true;
+	File_system::Session::Tx::Source &source = *fs.tx();
+
+	size_t const max_packet_size = source.bulk_buffer_size() / 2;
+
+	size_t remaining_count = count;
+
+	while (remaining_count && success) {
+
+		size_t const curr_packet_size =
+			min(remaining_count, max_packet_size);
+
+		File_system::Packet_descriptor
+			packet(source.alloc_packet(curr_packet_size),
+			       node_handle,
+			       File_system::Packet_descriptor::WRITE,
+			       curr_packet_size,
+			       seek_offset);
+
+		/* copy-out source buffer into payload */
+		memcpy(source.packet_content(packet), src, curr_packet_size);
+
+		/* pass packet to server side */
+		source.submit_packet(packet);
+
+		_block_for_ack();
+
+		packet = source.get_acked_packet();;
+		success = packet.succeeded();
+		source.release_packet(packet);
+
+		/* prepare next iteration */
+		seek_offset += curr_packet_size;
+		src = (void *)((addr_t)src + curr_packet_size);
+		remaining_count -= curr_packet_size;
+	}
+
+	return count - remaining_count;
+}
+
+
+static Constructible<Gcov_env> gcov_env;
+
+
+void gcov_init(Env &env)
 {
 	gcov_env.construct(env);
 }
@@ -63,14 +193,14 @@ void gcov_init(Genode::Env &env)
 
 extern "C" void abort()
 {
-	Genode::error("abort() called: not implemented");
-	Genode::sleep_forever();
+	error("abort() called: not implemented");
+	sleep_forever();
 }
 
 
 extern "C" int atoi(const char *nptr)
 {
-	Genode::error("atoi() called: not implemented");
+	error("atoi() called: not implemented");
 	return 0;
 }
 
@@ -78,7 +208,7 @@ extern "C" int atoi(const char *nptr)
 extern "C" void exit(int status)
 {
 	gcov_env->env.parent().exit(status);
-	Genode::sleep_forever();
+	sleep_forever();
 }
 
 
@@ -105,12 +235,12 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 		                                                  file_name.base() + 1,
 		                                                  File_system::READ_WRITE,
 		                                                  false));
-		if (Genode::strcmp(mode, "w+b", 3) == 0)
+		if (strcmp(mode, "w+b", 3) == 0)
 			gcov_env->fs.truncate(*(gcov_env->file_handle), 0);
 
 	} catch (File_system::Lookup_failed) {
 
-		if (Genode::strcmp(mode, "w+b", 3) == 0)
+		if (strcmp(mode, "w+b", 3) == 0)
 			gcov_env->file_handle.construct(gcov_env->fs.file(dir,
 			                                                  file_name.base() + 1,
 			                                                  File_system::READ_WRITE,
@@ -128,10 +258,10 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 
 	try {
 
-		Genode::Xml_node config(gcov_env->config.local_addr<char>(),
-		                        gcov_env->config.size());
+		Xml_node config(gcov_env->config.local_addr<char>(),
+		                gcov_env->config.size());
 
-		Genode::Xml_node libgcov_node = config.sub_node("libgcov");
+		Xml_node libgcov_node = config.sub_node("libgcov");
 
 		Absolute_path annotate_file_name { file_name };
 		annotate_file_name.remove_trailing('a');
@@ -144,29 +274,26 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 
 		File_system::seek_off_t seek_offset = 0;
 
-		libgcov_node.for_each_sub_node("annotate",
-		                               [&] (Genode::Xml_node annotate_node) {
+		libgcov_node.for_each_sub_node("annotate", [&] (Xml_node annotate_node) {
 
-			typedef Genode::String<File_system::MAX_PATH_LEN> Source;
+			typedef String<File_system::MAX_PATH_LEN> Source;
 			Source const source = annotate_node.attribute_value("source", Source());
 
-			seek_offset += File_system::write(gcov_env->fs,
-			                                  annotate_file_handle,
-			                                  source.string(),
-			                                  Genode::strlen(source.string()),
-			                                  seek_offset);
+			seek_offset += gcov_env->write(annotate_file_handle,
+			                               source.string(),
+			                               strlen(source.string()),
+			                               seek_offset);
 
-			seek_offset += File_system::write(gcov_env->fs,
-			                                  annotate_file_handle,
-			                                  "\n",
-			                                  1,
-			                                  seek_offset);
+			seek_offset += gcov_env->write(annotate_file_handle,
+			                               "\n",
+			                               1,
+			                               seek_offset);
 		});
 
 		gcov_env->fs.close(annotate_file_handle);	
 	}
-	catch (Genode::Xml_node::Nonexistent_sub_node) { }
-	catch (Genode::Xml_attribute::Nonexistent_attribute) { }
+	catch (Xml_node::Nonexistent_sub_node) { }
+	catch (Xml_attribute::Nonexistent_attribute) { }
 
 	return &gcov_env->file;
 }
@@ -175,7 +302,7 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 extern "C" int fprintf(FILE *stream, const char *format, ...)
 {
 	if (stream != stderr) {
-		Genode::error("fprintf() called: not implemented");
+		error("fprintf() called: not implemented");
 		return 0;
 	}
 
@@ -190,9 +317,9 @@ extern "C" int fprintf(FILE *stream, const char *format, ...)
 
 extern "C" size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
-	size_t bytes_read = File_system::read(gcov_env->fs, *(gcov_env->file_handle),
-	                                      ptr, size * nmemb,
-	                                      gcov_env->seek_offset);
+	size_t bytes_read = gcov_env->read(*(gcov_env->file_handle),
+	                                   ptr, size * nmemb,
+	                                   gcov_env->seek_offset);
 
 	gcov_env->seek_offset += bytes_read;
 	
@@ -212,7 +339,7 @@ extern "C" void free(void *ptr)
 extern "C" int fseek(FILE *stream, long offset, int whence)
 {
 	if (whence != 0)
-		Genode::error("fseek(): unsupported 'whence'");
+		error("fseek(): unsupported 'whence'");
 
 	gcov_env->seek_offset = offset;
 
@@ -229,14 +356,13 @@ extern "C" long ftell(FILE *stream)
 extern "C" size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
 	if (stream == stderr) {
-		Genode::log(Genode::Cstring((const char*)ptr, size*nmemb));
+		log(Cstring((const char*)ptr, size*nmemb));
 		return 0;
 	}
 
-	size_t bytes_written = File_system::write(gcov_env->fs,
-	                                          *(gcov_env->file_handle),
-	                                          ptr, size * nmemb,
-	                                          gcov_env->seek_offset);
+	size_t bytes_written = gcov_env->write(*(gcov_env->file_handle),
+	                                       ptr, size * nmemb,
+	                                       gcov_env->seek_offset);
 
 	gcov_env->seek_offset += bytes_written;
 
@@ -263,7 +389,7 @@ extern "C" void *malloc(size_t size)
 {
 	return gcov_env->heap.try_alloc(size).convert<void *>(
 		[&] (void *ptr) { return ptr; },
-		[&] (Genode::Allocator::Alloc_error) -> void * { return nullptr; });
+		[&] (Allocator::Alloc_error) -> void * { return nullptr; });
 }
 
 
@@ -316,7 +442,7 @@ extern "C" char *strchr(const char *s, int c)
 
 extern "C" char *strcpy(char *dest, const char *src)
 {
-	Genode::copy_cstring(dest, src, Genode::strlen(src) + 1);
+	copy_cstring(dest, src, strlen(src) + 1);
 
 	return dest;
 }

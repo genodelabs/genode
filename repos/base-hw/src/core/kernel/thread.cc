@@ -329,6 +329,23 @@ void Thread::_call_start_thread()
 	/* join protection domain */
 	thread._pd = (Pd *) user_arg_3();
 	thread._ipc_init(*(Native_utcb *)user_arg_4(), *this);
+
+	/*
+	 * Sanity check core threads!
+	 *
+	 * Currently, the model assumes that there is only one core
+	 * entrypoint, which serves requests, and which can destroy
+	 * threads and pds. If this changes, we have to inform all
+	 * cpus about pd destructions to remove their page-tables
+	 * from the hardware in case that a core-thread running with
+	 * that same pd is currently active. Therefore, warn if the
+	 * semantic changes, and additional core threads are started
+	 * across cpu cores.
+	 */
+	if (thread._pd == &_core_pd && cpu.id() != _cpu_pool.primary_cpu().id())
+	        Genode::raw("Error: do not start core threads"
+	                    " on CPU cores different than boot cpu");
+
 	thread._become_active();
 }
 
@@ -369,7 +386,7 @@ void Thread::_call_restart_thread()
 
 	Thread &thread = *thread_ptr;
 
-	if (!_core && (&pd() != &thread.pd())) {
+	if (_type == USER && (&pd() != &thread.pd())) {
 		raw(*this, ": failed to lookup thread ", (unsigned)user_arg_1(),
 		        " to restart it");
 		_die();
@@ -444,6 +461,18 @@ void Thread::_call_delete_thread()
 	 */
 	_destroy.construct(*this, to_delete);
 	to_delete->_cpu->trigger_ip_interrupt();
+}
+
+
+void Thread::_call_delete_pd()
+{
+	Genode::Kernel_object<Pd> & pd =
+		*(Genode::Kernel_object<Pd>*)user_arg_1();
+
+	if (_cpu->active(pd->mmu_regs))
+		_cpu->switch_to(_core_pd.mmu_regs);
+
+	_call_delete<Pd>();
 }
 
 
@@ -793,7 +822,7 @@ void Thread::_call()
 	case call_id_pause_vm():                 _call_pause_vm(); return;
 	default:
 		/* check wether this is a core thread */
-		if (!_core) {
+		if (_type != CORE) {
 			Genode::raw(*this, ": not entitled to do kernel call");
 			_die();
 			return;
@@ -805,7 +834,7 @@ void Thread::_call()
 		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
 		                  _core_pd, (unsigned) user_arg_2(),
 		                  (unsigned) _core_to_kernel_quota(user_arg_3()),
-		                  (char const *) user_arg_4());
+		                  (char const *) user_arg_4(), USER);
 		return;
 	case call_id_new_core_thread():
 		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
@@ -822,7 +851,7 @@ void Thread::_call()
 		              *(Genode::Platform_pd *) user_arg_3(),
 		              _addr_space_id_alloc);
 		return;
-	case call_id_delete_pd():              _call_delete<Pd>(); return;
+	case call_id_delete_pd():              _call_delete_pd(); return;
 	case call_id_new_signal_receiver():    _call_new<Signal_receiver>(); return;
 	case call_id_new_signal_context():
 		_call_new<Signal_context>(*(Signal_receiver*) user_arg_2(), user_arg_3());
@@ -857,7 +886,7 @@ void Thread::_mmu_exception()
 		return;
 	}
 
-	if (_core)
+	if (_type != USER)
 		Genode::raw(*this, " raised a fault, which should never happen ",
 		            _fault);
 
@@ -874,7 +903,7 @@ Thread::Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
                unsigned                    const  priority,
                unsigned                    const  quota,
                char                 const *const  label,
-               bool                               core)
+               Type                               type)
 :
 	Kernel::Object       { *this },
 	Cpu_job              { priority, quota },
@@ -885,8 +914,8 @@ Thread::Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
 	_ipc_node            { *this },
 	_state               { AWAITS_START },
 	_label               { label },
-	_core                { core },
-	regs                 { core }
+	_type                { type },
+	regs                 { type != USER }
 { }
 
 

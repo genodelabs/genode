@@ -17,8 +17,8 @@
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <os/vfs.h>
+#include <util/dictionary.h>
 #include <depot/archive.h>
-#include <gems/lru_cache.h>
 
 /* fs_query includes */
 #include <for_each_subdir_name.h>
@@ -29,13 +29,91 @@ namespace Depot_query {
 
 	typedef String<64> Rom_label;
 
+	struct Directory_cache;
 	struct Recursion_limit;
 	struct Dependencies;
-	class  Stat_cache;
-	struct Rom_query;
-	class  Cached_rom_query;
 	struct Main;
 }
+
+
+struct Depot_query::Directory_cache : Noncopyable
+{
+	Allocator &_alloc;
+
+	using Name = Directory::Entry::Name;
+
+	struct Listing;
+	using Listings = Dictionary<Listing, Directory::Path>;
+
+	struct Listing : Listings::Element
+	{
+		Allocator &_alloc;
+
+		struct File;
+		using Files = Dictionary<File, Name>;
+
+		struct File : Files::Element
+		{
+			File(Files &files, Name const &name) : Files::Element(files, name) { }
+		};
+
+		Files _files { };
+
+		Listing(Listings &listings, Allocator &alloc, Directory &dir,
+		        Directory::Path const &path)
+		:
+			Listings::Element(listings, path), _alloc(alloc)
+		{
+			try {
+				Directory(dir, path).for_each_entry([&] (Directory::Entry const &entry) {
+					new (_alloc) File(_files, entry.name()); });
+			}
+			catch (Directory::Nonexistent_directory) {
+				warning("directory '", path, "' does not exist");
+			}
+		}
+
+		~Listing()
+		{
+			auto destroy_fn = [&] (File &f) { destroy(_alloc, &f); };
+
+			while (_files.with_any_element(destroy_fn));
+		}
+
+		bool file_exists(Name const &name) const { return _files.exists(name); }
+	};
+
+	Listings mutable _listings { };
+
+	Directory_cache(Allocator &alloc) : _alloc(alloc) { }
+
+	~Directory_cache()
+	{
+		auto destroy_fn = [&] (Listing &l) { destroy(_alloc, &l); };
+
+		while (_listings.with_any_element(destroy_fn));
+	}
+
+	bool file_exists(Directory &dir, Directory::Path const &path, Name const &name) const
+	{
+		bool listing_known = false;
+
+		bool const result =
+			_listings.with_element(path,
+				[&] /* match */ (Listing const &listing) {
+					listing_known = true;
+					return listing.file_exists(name);
+				},
+				[&] /* no_match */ { return false; });
+
+		if (listing_known)
+			return result;
+
+		Listing &new_listing = *new (_alloc) Listing(_listings, _alloc, dir, path);
+
+		return new_listing.file_exists(name);
+	}
+};
 
 
 class Depot_query::Recursion_limit : Noncopyable
@@ -155,172 +233,7 @@ class Depot_query::Dependencies
 };
 
 
-class Depot_query::Stat_cache
-{
-	private:
-
-		struct Key
-		{
-			struct Value
-			{
-				Archive::Path path;
-
-				bool operator > (Value const &other) const
-				{
-					return strcmp(path.string(), other.path.string()) > 0;
-				}
-
-				bool operator == (Value const &other) const
-				{
-					return path == other.path;
-				}
-
-			} value;
-		};
-
-		struct Result { bool file_exists; };
-
-		typedef Lru_cache<Key, Result> Cache;
-
-		Cache::Size const _size;
-
-		Cache _cache;
-
-		Directory const &_dir;
-
-	public:
-
-		Stat_cache(Directory const &dir, Allocator &alloc, Xml_node const config)
-		:
-			_size({.value = config.attribute_value("stat_cache", Number_of_bytes(64*1024))
-			              / Cache::element_size()}),
-			_cache(alloc, _size),
-			_dir(dir)
-		{ }
-
-		bool file_exists(Archive::Path const path)
-		{
-			/* don't cache the state of the 'local' depot user */
-			if (Archive::user(path) == "local")
-				return _dir.file_exists(path);
-
-			bool result = false;
-
-			auto hit_fn  = [&] (Result const &cached_result)
-			{
-				result = cached_result.file_exists;
-			};
-
-			auto miss_fn = [&] (Cache::Missing_element &missing_element)
-			{
-				Result const stat_result { _dir.file_exists(path) };
-
-				/*
-				 * Don't cache negative results because files may appear
-				 * during installation. Later queries may find files absent
-				 * from earlier queries.
-				 */
-				if (stat_result.file_exists)
-					missing_element.construct(stat_result);
-			};
-
-			Key const key { .value = { .path = path } };
-			(void)_cache.try_apply(key, hit_fn, miss_fn);
-
-			return result;
-		}
-};
-
-
-struct Depot_query::Rom_query : Interface
-{
-	/**
-	 * Look up ROM module 'rom_label' in the archives referenced by 'pkg_path'
-	 *
-	 * \throw Directory::Nonexistent_directory
-	 * \throw Directory::Nonexistent_file
-	 * \throw File::Truncated_during_read
-	 * \throw Recursion_limit::Reached
-	 */
-	virtual Archive::Path find_rom_in_pkg(Directory::Path const &pkg_path,
-	                                      Rom_label       const &rom_label,
-	                                      Recursion_limit        recursion_limit) = 0;
-};
-
-
-class Depot_query::Cached_rom_query : public Rom_query
-{
-	private:
-
-		struct Key
-		{
-			struct Value
-			{
-				Archive::Path pkg;
-				Rom_label     rom;
-
-				bool operator > (Value const &other) const
-				{
-					return strcmp(pkg.string(), other.pkg.string()) > 0
-					    && strcmp(rom.string(), other.rom.string()) > 0;
-				}
-
-				bool operator == (Value const &other) const
-				{
-					return pkg == other.pkg && rom == other.rom;
-				}
-
-			} value;
-		};
-
-		typedef Lru_cache<Key, Archive::Path> Cache;
-
-		Cache::Size const _size;
-
-		Cache mutable _cache;
-
-		Rom_query &_rom_query;
-
-	public:
-
-		Cached_rom_query(Rom_query &rom_query, Allocator &alloc, Xml_node const config)
-		:
-			_size({.value = config.attribute_value("rom_query_cache", Number_of_bytes(64*1024))
-			              / Cache::element_size() }),
-			_cache(alloc, _size),
-			_rom_query(rom_query)
-		{ }
-
-		Archive::Path find_rom_in_pkg(Directory::Path const &pkg_path,
-		                              Rom_label       const &rom_label,
-		                              Recursion_limit        recursion_limit) override
-		{
-			/* don't cache the state of the 'local' depot user */
-			if (Archive::user(pkg_path) == "local")
-				return _rom_query.find_rom_in_pkg(pkg_path, rom_label, recursion_limit);
-
-			Archive::Path result { };
-
-			auto hit_fn  = [&] (Archive::Path const &path) { result = path; };
-
-			auto miss_fn = [&] (Cache::Missing_element &missing_element)
-			{
-				Archive::Path const path =
-					_rom_query.find_rom_in_pkg(pkg_path, rom_label, recursion_limit);
-
-				if (path.valid())
-					missing_element.construct(path);
-			};
-
-			Key const key { .value = { .pkg = pkg_path, .rom = rom_label } };
-			(void)_cache.try_apply(key, hit_fn, miss_fn);
-
-			return result;
-		}
-};
-
-
-struct Depot_query::Main : private Rom_query
+struct Depot_query::Main
 {
 	Env &_env;
 
@@ -334,7 +247,7 @@ struct Depot_query::Main : private Rom_query
 
 	Directory _depot_dir { _root, "depot" };
 
-	Stat_cache _depot_stat_cache { _depot_dir, _heap, _config.xml() };
+	Constructible<Directory_cache> _directory_cache { };
 
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
@@ -365,6 +278,16 @@ struct Depot_query::Main : private Rom_query
 
 	Architecture _architecture  { };
 
+	bool _file_exists(Directory::Path const &path, Rom_label const &file_name)
+	{
+		if (!_directory_cache.constructed()) {
+			error("directory cache is unexpectedly not constructed");
+			return false;
+		}
+
+		return _directory_cache->file_exists(_depot_dir, path, file_name);
+	}
+
 	template <typename FN>
 	void _with_file_content(Directory::Path const &path, char const *name, FN const &fn)
 	{
@@ -375,6 +298,7 @@ struct Depot_query::Main : private Rom_query
 		}
 		catch (File_content::Nonexistent_file)   { }
 		catch (Directory::Nonexistent_directory) { }
+		catch (File::Truncated_during_read)      { }
 	}
 
 	/**
@@ -399,14 +323,7 @@ struct Depot_query::Main : private Rom_query
 		});
 	}
 
-	Cached_rom_query _cached_rom_query { *this, _heap, _config.xml() };
-
-	/**
-	 * Rom_query interface
-	 */
-	Archive::Path find_rom_in_pkg(Directory::Path const &, Rom_label const &,
-	                              Recursion_limit) override;
-
+	Archive::Path _find_rom_in_pkg(File_content const &, Rom_label const &, Recursion_limit);
 	void _gen_rom_path_nodes(Xml_generator &, Xml_node const &,
 	                         Archive::Path const &, Xml_node const &);
 	void _gen_inherited_rom_path_nodes(Xml_generator &, Xml_node const &,
@@ -424,6 +341,8 @@ struct Depot_query::Main : private Rom_query
 		_config.update();
 
 		Xml_node const config = _config.xml();
+
+		_directory_cache.construct(_heap);
 
 		/*
 		 * Depending of the 'query' config attribute, we obtain the query
@@ -449,8 +368,13 @@ struct Depot_query::Main : private Rom_query
 		_construct_if(query.has_sub_node("scan"),
 		              _scan_reporter, _env, "scan", "scan");
 
+		/*
+		 * Use 64 KiB as initial report size to avoid the repetitive querying
+		 * when successively expanding the reporter.
+		 */
 		_construct_if(query.has_sub_node("blueprint"),
-		              _blueprint_reporter, _env, "blueprint", "blueprint");
+		              _blueprint_reporter, _env, "blueprint", "blueprint",
+		              Expanding_reporter::Initial_buffer_size { 64*1024 });
 
 		_construct_if(query.has_sub_node("dependencies"),
 		              _dependencies_reporter, _env, "dependencies", "dependencies");
@@ -535,21 +459,10 @@ struct Depot_query::Main : private Rom_query
 
 
 Depot_query::Archive::Path
-Depot_query::Main::find_rom_in_pkg(Directory::Path const &pkg_path,
-                                   Rom_label       const &rom_label,
-                                   Recursion_limit        recursion_limit)
+Depot_query::Main::_find_rom_in_pkg(File_content    const &archives,
+                                    Rom_label       const &rom_label,
+                                    Recursion_limit        recursion_limit)
 {
-	/*
-	 * \throw Directory::Nonexistent_directory
-	 */
-	Directory pkg_dir(_depot_dir, pkg_path);
-
-	/*
-	 * \throw Directory::Nonexistent_file
-	 * \throw File::Truncated_during_read
-	 */
-	File_content archives(_heap, pkg_dir, "archives", File_content::Limit{16*1024});
-
 	Archive::Path result;
 
 	archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
@@ -561,36 +474,38 @@ Depot_query::Main::find_rom_in_pkg(Directory::Path const &pkg_path,
 		case Archive::SRC:
 			{
 				Archive::Path const
-					rom_path(Archive::user(archive_path),    "/bin/",
-					         _architecture,                  "/",
-					         Archive::name(archive_path),    "/",
-					         Archive::version(archive_path), "/", rom_label);
+					rom_path(Archive::user(archive_path), "/bin/",
+					         _architecture,               "/",
+					         Archive::name(archive_path), "/",
+					         Archive::version(archive_path));
 
-				if (_depot_stat_cache.file_exists(rom_path))
-					result = rom_path;
+				if (_file_exists(rom_path, rom_label))
+					result = Archive::Path(rom_path, "/", rom_label);
 			}
 			break;
 
 		case Archive::RAW:
 			{
 				Archive::Path const
-					rom_path(Archive::user(archive_path),    "/raw/",
-					         Archive::name(archive_path),    "/",
-					         Archive::version(archive_path), "/", rom_label);
+					rom_path(Archive::user(archive_path), "/raw/",
+					         Archive::name(archive_path), "/",
+					         Archive::version(archive_path));
 
-				if (_depot_stat_cache.file_exists(rom_path))
-					result = rom_path;
+				if (_file_exists(rom_path, rom_label))
+					result = Archive::Path(rom_path, "/", rom_label);
 			}
 			break;
 
 		case Archive::PKG:
 
-			Archive::Path const result_from_pkg =
-				_cached_rom_query.find_rom_in_pkg(archive_path, rom_label, recursion_limit);
+			_with_file_content(archive_path, "archives", [&] (File_content const &archives) {
 
-			if (result_from_pkg.valid())
-				result = result_from_pkg;
+				Archive::Path const result_from_pkg =
+					_find_rom_in_pkg(archives, rom_label, recursion_limit);
 
+				if (result_from_pkg.valid())
+					result = result_from_pkg;
+			});
 			break;
 		}
 	});
@@ -603,43 +518,45 @@ void Depot_query::Main::_gen_rom_path_nodes(Xml_generator       &xml,
                                             Archive::Path const &pkg_path,
                                             Xml_node      const &runtime)
 {
-	runtime.for_each_sub_node("content", [&] (Xml_node content) {
-		content.for_each_sub_node([&] (Xml_node node) {
+	_with_file_content(pkg_path, "archives", [&] (File_content const &archives) {
+		runtime.for_each_sub_node("content", [&] (Xml_node content) {
+			content.for_each_sub_node([&] (Xml_node node) {
 
-			/* skip non-rom nodes */
-			if (!node.has_type("rom"))
-				return;
+				/* skip non-rom nodes */
+				if (!node.has_type("rom"))
+					return;
 
-			Rom_label const label = node.attribute_value("label", Rom_label());
+				Rom_label const label = node.attribute_value("label", Rom_label());
 
-			/* skip ROM that is provided by the environment */
-			bool provided_by_env = false;
-			env_xml.for_each_sub_node("rom", [&] (Xml_node node) {
-				if (node.attribute_value("label", Rom_label()) == label)
-					provided_by_env = true; });
+				/* skip ROM that is provided by the environment */
+				bool provided_by_env = false;
+				env_xml.for_each_sub_node("rom", [&] (Xml_node node) {
+					if (node.attribute_value("label", Rom_label()) == label)
+						provided_by_env = true; });
 
-			if (provided_by_env) {
-				xml.node("rom", [&] () {
-					xml.attribute("label", label);
-					xml.attribute("env", "yes");
-				});
-				return;
-			}
+				if (provided_by_env) {
+					xml.node("rom", [&] () {
+						xml.attribute("label", label);
+						xml.attribute("env", "yes");
+					});
+					return;
+				}
 
-			Archive::Path const rom_path =
-				_cached_rom_query.find_rom_in_pkg(pkg_path, label, Recursion_limit{8});
+				Archive::Path const rom_path =
+					_find_rom_in_pkg(archives, label, Recursion_limit{8});
 
-			if (rom_path.valid()) {
-				xml.node("rom", [&] () {
-					xml.attribute("label", label);
-					xml.attribute("path", rom_path);
-				});
+				if (rom_path.valid()) {
+					xml.node("rom", [&] () {
+						xml.attribute("label", label);
+						xml.attribute("path", rom_path);
+					});
 
-			} else {
+				} else {
 
-				xml.node("missing_rom", [&] () {
-					xml.attribute("label", label); });
-			}
+					xml.node("missing_rom", [&] () {
+						xml.attribute("label", label); });
+				}
+			});
 		});
 	});
 }

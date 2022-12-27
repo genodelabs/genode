@@ -11,5 +11,5 @@ _/src/rom_filter
 _/src/report_rom
 _/src/stdcxx
 _/src/vfs
+_/src/vfs_libusb
 _/src/vfs_pipe
-

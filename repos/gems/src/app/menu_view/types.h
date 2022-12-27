@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <gui_session/connection.h>
 #include <util/misc_math.h>
-#include <decorator/xml_utils.h>
 #include <nitpicker_gfx/box_painter.h>
 #include <nitpicker_gfx/texture_painter.h>
 #include <base/attached_rom_dataspace.h>

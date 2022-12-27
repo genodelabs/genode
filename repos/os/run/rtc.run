@@ -58,7 +58,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Rtc"/></provides>}
 append_if $test_update config {
-		<config allow_setting_rtc="true"/>
+		<config allow_setting_rtc="true" verbose="yes"/>
 		<route>
 			<service name="ROM" label="set_rtc">
 				<child name="report_rom"/>

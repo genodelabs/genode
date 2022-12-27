@@ -22,7 +22,6 @@ src/gcov:
 
 src/lib/gcov:
 	$(mirror_from_rep_dir)
-	echo "LIBS = libgcov" > $@/target.mk
 
 LICENSE:
 	cp $(PORT_DIR)/src/gcov/COPYING $@

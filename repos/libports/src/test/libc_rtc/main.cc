@@ -21,23 +21,18 @@ int main()
 	unsigned idx = 1;
 	while (1) {
 		struct timespec ts;
-		if (clock_gettime(0, &ts)) {
+		if (clock_gettime(0, &ts))
 			return -1;
-		}
 
 		struct tm *tm = localtime((time_t*)&ts.tv_sec);
-		if (!tm) {
+		if (!tm)
 			return -1;
-		}
 
-		printf("Timestamp #%d: %d-%d-%d %d:%d %ds\n",
-			idx++,
-			1900 + tm->tm_year,
-			1 + tm->tm_mon,
-			tm->tm_mday,
-			tm->tm_hour,
-			tm->tm_min,
-			tm->tm_sec);
+		char time_str[32];
+		if (!strftime(time_str, sizeof(time_str), "%F %T", tm))
+			return -1;
+
+		printf("Timestamp #%d: %s\n", idx++, time_str);
 
 		sleep(1);
 	}

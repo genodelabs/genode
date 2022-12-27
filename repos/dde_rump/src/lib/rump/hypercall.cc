@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -17,6 +17,7 @@
 #include <base/log.h>
 #include <base/sleep.h>
 #include <rump/env.h>
+#include <rump/timed_semaphore.h>
 #include <util/allocator_fap.h>
 #include <util/random.h>
 #include <util/string.h>
@@ -49,13 +50,6 @@ static Hard_context *myself()
 		Genode::error("Hard context is nullptr (", Genode::Thread::myself(), ")");
 
 	return h;
-}
-
-
-Timer::Connection &Hard_context::timer()
-{
-	static Timer::Connection _timer { Rump::env().env() };
-	return _timer;
 }
 
 
@@ -300,10 +294,9 @@ void rumpuser_free(void *mem, size_t len)
 
 int rumpuser_clock_gettime(int enum_rumpclock, int64_t *sec, long *nsec)
 {
-	Hard_context *h = myself();
-	Genode::uint64_t t = h->timer().elapsed_ms();
+	Genode::uint64_t t = Rump::env().timer().elapsed_ms();
 	*sec = (int64_t)t / 1000;
-	*nsec = (t % 1000) * 1000;
+	*nsec = (t % 1000) * 1000 * 1000;
 	return 0;
 }
 
@@ -313,20 +306,25 @@ int rumpuser_clock_sleep(int enum_rumpclock, int64_t sec, long nsec)
 	int nlocks;
 	Genode::uint64_t msec = 0;
 
-	Timer::Connection &timer  = myself()->timer();
-
 	rumpkern_unsched(&nlocks, 0);
 	switch (enum_rumpclock) {
 		case RUMPUSER_CLOCK_RELWALL:
 			msec = (Genode::uint64_t)sec * 1000 + nsec / (1000*1000UL);
 			break;
 		case RUMPUSER_CLOCK_ABSMONO:
-			msec = timer.elapsed_ms();
-			msec = (((Genode::uint64_t)sec * 1000) + ((Genode::uint64_t)nsec / (1000 * 1000))) - msec;
+			Genode::uint64_t target_abs_msec =
+				(((Genode::uint64_t)sec * 1000) +
+				 ((Genode::uint64_t)nsec / (1000 * 1000)));
+			Genode::uint64_t current_abs_msec = Rump::env().timer().elapsed_ms();
+
+			if (target_abs_msec > current_abs_msec)
+				msec = target_abs_msec - current_abs_msec;
+
 			break;
 	}
 
-	timer.msleep(msec);
+	Rump::env().sleep_sem().down(true, Genode::Microseconds(msec * 1000));
+
 	rumpkern_sched(nlocks, 0);
 	return 0;
 }

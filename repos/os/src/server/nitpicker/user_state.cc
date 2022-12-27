@@ -89,6 +89,9 @@ static Input::Event merge_motion_events(Input::Event const *ev, unsigned n)
 
 void User_state::_handle_input_event(Input::Event ev)
 {
+	ev.handle_seq_number([&] (Input::Seq_number const &seq) {
+		_last_seq_number.construct(seq); });
+
 	/* transparently convert relative into absolute motion event */
 	ev.handle_relative_motion([&] (int x, int y) {
 
@@ -105,24 +108,39 @@ void User_state::_handle_input_event(Input::Event ev)
 	ev.handle_absolute_motion([&] (int x, int y) {
 		_pointer_pos = Point(x, y); });
 
+	/* let pointer position correspond to most recent touch position */
+	ev.handle_touch([&] (Input::Touch_id, float x, float y) {
+		_pointer_pos = Point((int)x, (int)y); });
+
+	/* track key states, drop double press/release events */
+	{
+		bool drop = false;
+
+		ev.handle_press([&] (Keycode key, Codepoint) {
+			if (_key_array.pressed(key)) {
+				warning("suspicious double press of ", Input::key_name(key));
+				drop = true;
+			}
+			_key_array.pressed(key, true);
+		});
+
+		ev.handle_release([&] (Keycode key) {
+			if (!_key_array.pressed(key)) {
+				warning("suspicious double release of ", Input::key_name(key));
+				drop = true;
+			}
+			_key_array.pressed(key, false);
+		});
+
+		if (drop)
+			return;
+	}
+
 	/* count keys */
 	if (ev.press()) _key_cnt++;
 	if (ev.release() && (_key_cnt > 0)) _key_cnt--;
 
-	/* track key states */
-	ev.handle_press([&] (Keycode key, Codepoint) {
-		if (_key_array.pressed(key))
-			Genode::warning("suspicious double press of ", Input::key_name(key));
-		_key_array.pressed(key, true);
-	});
-
-	ev.handle_release([&] (Keycode key) {
-		if (!_key_array.pressed(key))
-			Genode::warning("suspicious double release of ", Input::key_name(key));
-		_key_array.pressed(key, false);
-	});
-
-	if (ev.absolute_motion() || ev.relative_motion()) {
+	if (ev.absolute_motion() || ev.relative_motion() || ev.touch()) {
 		update_hover();
 
 		if (_key_cnt > 0) {
@@ -153,6 +171,8 @@ void User_state::_handle_input_event(Input::Event ev)
 
 		if (_mouse_button(keycode))
 			_clicked_count++;
+
+		_last_clicked = nullptr;
 
 		/* update focused session */
 		if (_mouse_button(keycode)
@@ -224,7 +244,10 @@ void User_state::_handle_input_event(Input::Event ev)
 	/*
 	 * Deliver event to session
 	 */
-	if (ev.absolute_motion() || ev.wheel() || ev.touch() || ev.touch_release()) {
+	bool const forward_to_session = (ev.absolute_motion() || ev.wheel() ||
+	                                 ev.touch() || ev.touch_release() ||
+	                                 ev.seq_number());
+	if (forward_to_session) {
 
 		if (_key_cnt == 0) {
 
@@ -411,6 +434,9 @@ void User_state::report_focused_view_owner(Xml_generator &xml, bool active) cons
 
 void User_state::report_last_clicked_view_owner(Xml_generator &xml) const
 {
+	if (_last_seq_number.constructed())
+		xml.attribute("seq", _last_seq_number->value);
+
 	if (_last_clicked)
 		_last_clicked->report(xml);
 

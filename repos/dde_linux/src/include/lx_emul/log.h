@@ -1,6 +1,7 @@
 /*
  * \brief  Lx_emul support to log messages from the kernel code
  * \author Stefan Kalkowski
+ * \author Christian Helmuth
  * \date   2021-03-24
  */
 
@@ -19,6 +20,7 @@ extern "C" {
 #endif
 
 void lx_emul_vprintf(char const *, va_list);
+void lx_emul_print_string(char const *);
 
 #ifdef __cplusplus
 }

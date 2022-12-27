@@ -32,6 +32,8 @@ class Lx_kit::Scheduler
 		List<Task> _present_list { };
 		Task     * _current      { nullptr };
 
+		Genode::Entrypoint &ep;
+
 	public:
 
 		Task & current();
@@ -45,10 +47,14 @@ class Lx_kit::Scheduler
 		void unblock_irq_handler();
 		void unblock_time_handler();
 
+		bool another_runnable(Task *);
+
 		Task & task(void * t);
 
 		template <typename FN>
 		void for_each_task(FN const & fn);
+
+		Scheduler(Genode::Entrypoint &ep) : ep(ep) { }
 };
 
 

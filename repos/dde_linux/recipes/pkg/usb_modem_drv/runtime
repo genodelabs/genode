@@ -3,7 +3,7 @@
 	<requires> <uplink/> <usb/> <rm/> </requires>
 	<provides> <terminal/> </provides>
 
-	<config mac="02:00:00:00:01:01" mode="uplink_client"/>
+	<config mac="02:00:00:00:01:01"/>
 
 	<content>
 		<rom label="ld.lib.so"/>

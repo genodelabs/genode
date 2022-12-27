@@ -20,7 +20,7 @@ ICON_H = $(call select_from_repositories,include/qoost/icon.h)
 
 # fall-back to the qoost port directory if that fails
 ifeq ($(ICON_H),)
-ICON_H = $(call select_from_ports,qoost)/include/qoost/icon.h
+ICON_H := $(call select_from_ports,qoost)/include/qoost/icon.h
 endif
 
 icon.h: $(ICON_H)

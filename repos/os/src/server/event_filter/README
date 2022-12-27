@@ -86,6 +86,14 @@ one of the following filters:
   touch input. The original touch events are preserved, enabling touch-aware
   applications to interpet touch gestures.
 
+:<touch-key>:
+
+  Triggers an artificial key tap (a press event followed by a release event)
+  when touching a preconfigured area on a touch screen. The filter node can
+  host any number of '<tap>' sub nodes. Each sub node must define a
+  rectangular area - using the attributes 'xpos', 'ypos', 'width', and
+  'height' - and the name of the tapped key as 'key' attribute.
+
 
 Character generator rules
 -------------------------

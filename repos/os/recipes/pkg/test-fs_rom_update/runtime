@@ -69,7 +69,9 @@
 		</start>
 		<start name="rom_to_file">
 			<resource name="RAM" quantum="2M"/>
-			<config rom="dynamic_rom"/>
+			<config rom="dynamic_rom">
+				<vfs> <fs/> </vfs>
+			</config>
 			<route>
 				<service name="ROM" label="dynamic_rom"> <child name="dynamic_rom"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>

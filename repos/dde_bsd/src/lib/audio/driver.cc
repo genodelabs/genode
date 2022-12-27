@@ -33,8 +33,8 @@
 
 extern struct cfdriver audio_cd;
 
-static dev_t const adev = 0x00; /* audio0 (minor nr   0) */
-static dev_t const mdev = 0x10; /* mixer0 (minor nr  16) */
+static dev_t const adev = 0x00; /* /dev/audio0 */
+static dev_t const mdev = 0xc0; /* /dev/audioctl */
 
 static bool adev_usuable = false;
 
@@ -327,6 +327,11 @@ static bool open_audio_device(dev_t dev)
 		return false;
 
 	int err = audioopen(dev, FWRITE|FREAD, 0 /* ifmt */, 0 /* proc */);
+
+	/* try to open playback only, if capturing potentially failed */
+	if (err == ENODEV)
+		err = audioopen(dev, FWRITE, 0 /* ifmt */, 0 /* proc */);
+
 	if (err)
 		return false;
 
@@ -616,7 +621,6 @@ void Audio::init_driver(Genode::Env &env, Genode::Allocator &alloc,
                         Genode::Signal_context_capability announce_sigh)
 {
 	Bsd::mem_init(env, alloc);
-	Bsd::irq_init(env.ep(), alloc);
 	Bsd::timer_init(env);
 
 	static Task bsd_task(env, alloc, config, announce_sigh);

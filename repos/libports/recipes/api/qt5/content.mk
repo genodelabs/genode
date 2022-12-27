@@ -1,4 +1,5 @@
-MIRROR_FROM_REP_DIR := lib/import/import-qt5_qmake.mk
+MIRROR_FROM_REP_DIR := lib/import/import-qt5_cmake.mk \
+                       lib/import/import-qt5_qmake.mk
 
 content: $(MIRROR_FROM_REP_DIR)
 

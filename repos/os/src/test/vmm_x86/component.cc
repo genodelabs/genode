@@ -216,6 +216,9 @@ class Vmm::Vcpu
 };
 
 
+extern char _binary_guest_bin_start[];
+extern char _binary_guest_bin_end[];
+
 class Vmm::Vm
 {
 	private:
@@ -295,17 +298,9 @@ class Vmm::Vm
 
 			/* prepare guest memory with some instructions for testing */
 			uint8_t * guest = env.rm().attach(_memory);
-			unsigned byte = 0xff0;
 
-			guest[byte++] = 0x0f; /* rdtscp */
-			guest[byte++] = 0x01;
-			guest[byte++] = 0xf9;
+			memcpy(guest, &_binary_guest_bin_start, 4096);
 
-			guest[byte++] = 0xf4; /* HLT instruction */
-			guest[byte++] = 0xf4; /* HLT instruction */
-			guest[byte++] = 0xeb; /* JMP - endless loop to RIP */
-			guest[byte++] = 0xfe; /* JMP   of -2 byte (size of JMP inst) */
-			guest[byte++] = 0xf4; /* HLT instruction */
 			env.rm().detach(guest);
 
 			log ("let vCPUs run - first EP");

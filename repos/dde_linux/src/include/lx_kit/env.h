@@ -15,7 +15,6 @@
 #define _LX_KIT__ENV_H_
 
 #include <base/env.h>
-#include <platform_session/connection.h>
 #include <timer_session/connection.h>
 #include <lx_kit/console.h>
 #include <lx_kit/device.h>
@@ -42,12 +41,13 @@ struct Lx_kit::Env
 	Genode::Env        & env;
 	Genode::Heap         heap            { env.ram(), env.rm() };
 	Initcalls            initcalls       { heap                };
+	Pci_fixup_calls      pci_fixup_calls { heap                };
 	Console              console         { };
 	Platform::Connection platform        { env };
 	Timer::Connection    timer           { env };
 	Mem_allocator        memory          { env, heap, platform, CACHED   };
 	Mem_allocator        uncached_memory { env, heap, platform, UNCACHED };
-	Scheduler            scheduler       { };
+	Scheduler            scheduler       { env.ep() };
 	Device_list          devices         { env.ep(), heap, platform };
 	Lx_kit::Timeout      timeout         { timer, scheduler };
 	unsigned int         last_irq        { 0 };

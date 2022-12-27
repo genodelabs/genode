@@ -35,18 +35,6 @@ extern "C" {
  ********************/
 
 /**
- * Callback called during peer session request to allocate dma-capable shared buffer
- */
-typedef struct genode_attached_dataspace * (*genode_usb_alloc_peer_buffer_t)
-	(unsigned long size);
-
-/**
- * Callback called when closing peer session to free shared buffer
- */
-typedef void (*genode_usb_free_peer_buffer_t)
-	(struct genode_attached_dataspace * ds);
-
-/**
  * Callback to copy over config descriptor for given device
  */
 typedef unsigned (*genode_usb_rpc_config_desc_t)
@@ -80,14 +68,35 @@ typedef int (*genode_usb_rpc_endp_desc_t)
 	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned idx,
 	 unsigned alt, unsigned endp, void * buf, unsigned long buf_size);
 
+/**
+ * Callback to claim a given interface
+ */
+typedef int (*genode_usb_rpc_claim_t)
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned iface);
+
+/**
+ * Callback to release a given interface
+ */
+typedef int (*genode_usb_rpc_release_t)
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned iface);
+
+/**
+ * Callback to release all interfaces
+ */
+typedef void (*genode_usb_rpc_release_all_t)
+	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev);
+
 struct genode_usb_rpc_callbacks {
-	genode_usb_alloc_peer_buffer_t alloc_fn;
-	genode_usb_free_peer_buffer_t  free_fn;
-	genode_usb_rpc_config_desc_t   cfg_desc_fn;
-	genode_usb_rpc_alt_settings_t  alt_settings_fn;
-	genode_usb_rpc_iface_desc_t    iface_desc_fn;
-	genode_usb_rpc_iface_extra_t   iface_extra_fn;
-	genode_usb_rpc_endp_desc_t     endp_desc_fn;
+	genode_shared_dataspace_alloc_attach_t alloc_fn;
+	genode_shared_dataspace_free_t         free_fn;
+	genode_usb_rpc_config_desc_t           cfg_desc_fn;
+	genode_usb_rpc_alt_settings_t          alt_settings_fn;
+	genode_usb_rpc_iface_desc_t            iface_desc_fn;
+	genode_usb_rpc_iface_extra_t           iface_extra_fn;
+	genode_usb_rpc_endp_desc_t             endp_desc_fn;
+	genode_usb_rpc_claim_t                 claim_fn;
+	genode_usb_rpc_release_t               release_fn;
+	genode_usb_rpc_release_all_t           release_all_fn;
 };
 
 /**
@@ -139,8 +148,6 @@ struct genode_usb_request_control
 };
 
 enum Iso  { MAX_PACKETS = 32 };
-enum Transfer { BULK, IRQ, ISOC };
-typedef enum Transfer genode_usb_transfer_type_t;
 
 struct genode_usb_request_transfer
 {
@@ -151,6 +158,27 @@ struct genode_usb_request_transfer
 	unsigned long packet_size[MAX_PACKETS];
 	unsigned long actual_packet_size[MAX_PACKETS];
 };
+
+enum Urb_type { CTRL, BULK, IRQ, ISOC, NONE };
+typedef enum Urb_type genode_usb_urb_t;
+
+struct genode_usb_request_urb
+{
+	genode_usb_urb_t type;
+	void           * req;
+};
+
+static inline struct genode_usb_request_control *
+genode_usb_get_request_control(struct genode_usb_request_urb * urb)
+{
+	return (urb->type == CTRL) ? (struct genode_usb_request_control*)urb->req : 0;
+}
+
+static inline struct genode_usb_request_transfer *
+genode_usb_get_request_transfer(struct genode_usb_request_urb * urb)
+{
+	return (urb->type != CTRL) ? (struct genode_usb_request_transfer*)urb->req : 0;
+}
 
 enum Request_return_error {
 	NO_ERROR,
@@ -165,43 +193,46 @@ enum Request_return_error {
 };
 typedef enum Request_return_error genode_usb_request_ret_t;
 
-typedef genode_usb_request_ret_t (*genode_usb_req_ctrl_t)
-	(struct genode_usb_request_control * req,
-	 void                              * payload,
-	 unsigned long                       payload_size,
-	 void                              * opaque_data);
+typedef void (*genode_usb_req_urb_t)
+	(struct genode_usb_request_urb req,
+	 genode_usb_session_handle_t   session_handle,
+	 genode_usb_request_handle_t   request_handle,
+	 void                        * payload,
+	 unsigned long                 payload_size,
+	 void                        * opaque_data);
 
-typedef genode_usb_request_ret_t (*genode_usb_req_transfer_t)
-	(struct genode_usb_request_transfer * req,
-	 genode_usb_transfer_type_t           type,
-	 genode_usb_session_handle_t          session_handle,
-	 genode_usb_request_handle_t          request_handle,
-	 void                               * payload,
-	 unsigned long                        payload_size,
-	 void                               * opaque_data);
-
-typedef genode_usb_request_ret_t (*genode_usb_req_string_t)
+typedef void (*genode_usb_req_string_t)
 	(struct genode_usb_request_string * req,
+	 genode_usb_session_handle_t        session_handle,
+	 genode_usb_request_handle_t        request_handle,
 	 void                             * payload,
 	 unsigned long                      payload_size,
 	 void                             * opaque_data);
 
-typedef genode_usb_request_ret_t (*genode_usb_req_altsetting_t)
-	(unsigned iface, unsigned alt_setting, void * opaque_data);
+typedef void (*genode_usb_req_altsetting_t)
+	(unsigned iface, unsigned alt_setting,
+	 genode_usb_session_handle_t session_handle,
+	 genode_usb_request_handle_t request_handle,
+	 void * opaque_data);
 
-typedef genode_usb_request_ret_t (*genode_usb_req_config_t)
-	(unsigned config_idx, void * opaque_data);
+typedef void (*genode_usb_req_config_t)
+	(unsigned config_idx,
+	 genode_usb_session_handle_t session_handle,
+	 genode_usb_request_handle_t request_handle,
+	 void * opaque_data);
 
-typedef genode_usb_request_ret_t (*genode_usb_req_flush_t)
-	(unsigned char ep, void * opaque_data);
+typedef void (*genode_usb_req_flush_t)
+	(unsigned char ep,
+	 genode_usb_session_handle_t session_handle,
+	 genode_usb_request_handle_t request_handle,
+	 void * opaque_data);
 
 typedef genode_usb_request_ret_t (*genode_usb_response_t)
-	(struct genode_usb_request_transfer * req,
-	 void                               * opaque_data);
+	(struct genode_usb_request_urb req,
+	 void                        * opaque_data);
 
 struct genode_usb_request_callbacks {
-	genode_usb_req_ctrl_t       control_fn;
-	genode_usb_req_transfer_t   transfer_fn;
+	genode_usb_req_urb_t        urb_fn;
 	genode_usb_req_string_t     string_fn;
 	genode_usb_req_altsetting_t altsetting_fn;
 	genode_usb_req_config_t     config_fn;
@@ -221,6 +252,8 @@ void genode_usb_ack_request(genode_usb_session_handle_t session_handle,
                             void *                      callback_data);
 
 void genode_usb_notify_peers(void);
+
+void genode_usb_handle_empty_sessions(void);
 
 #ifdef __cplusplus
 }

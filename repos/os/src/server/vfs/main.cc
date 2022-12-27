@@ -193,7 +193,7 @@ class Vfs_server::Session_component : private Session_resources,
 				{
 					drop_packet_from_submit_queue();
 					packet.succeeded(false);
-					_stream.acknowledge_packet(packet);
+					_stream.try_ack_packet(packet);
 
 					overall_progress      = true;
 					progress_in_iteration = true;
@@ -335,6 +335,9 @@ class Vfs_server::Session_component : private Session_resources,
 
 				overall_progress |= progress_in_iteration;
 			}
+
+			_stream.wakeup();
+
 			return overall_progress ? Process_packets_result::PROGRESS
 			                        : Process_packets_result::NONE;
 		}
@@ -587,10 +590,16 @@ class Vfs_server::Session_component : private Session_resources,
 				throw Out_of_caps();
 			}
 
-			Node &node = *new (_alloc)
-				Watch_node(_node_space, path_str, *vfs_handle, *this);
+			try {
+				Node &node = *new (_alloc)
+					Watch_node(_node_space, path_str, *vfs_handle, *this);
 
-			return Watch_handle { node.id().value };
+				return Watch_handle { node.id().value };
+			}
+			catch (...) {
+				vfs_handle->close();
+				throw;
+			}
 		}
 
 		void close(Node_handle handle) override
@@ -651,8 +660,6 @@ class Vfs_server::Session_component : private Session_resources,
 				{
 					switch (vfs_stat.type) {
 					case Vfs::Node_type::DIRECTORY:
-						return _vfs.num_dirent(node.path()) * sizeof(Directory_entry);
-
 					case Vfs::Node_type::SYMLINK:
 						return 0ULL;
 
@@ -677,6 +684,12 @@ class Vfs_server::Session_component : private Session_resources,
 			});
 
 			return fs_stat;
+		}
+
+		unsigned num_entries(Dir_handle dir_handle) override
+		{
+			return _apply(dir_handle, [&] (Directory &dir) {
+				return (unsigned)_vfs.num_dirent(dir.path()); });
 		}
 
 		void unlink(Dir_handle dir_handle, Name const &name) override
@@ -867,13 +880,9 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 			if (!tx_buf_size)
 				throw Service_denied();
 
-			size_t session_size =
-				max((size_t)4096, sizeof(Session_component)) +
-				tx_buf_size;
-
-			if (session_size > ram_quota) {
+			if (tx_buf_size > ram_quota) {
 				error("insufficient 'ram_quota' from '", label, "' "
-				      "got ", ram_quota, ", need ", session_size);
+				      "got ", ram_quota, ", need ", tx_buf_size);
 				throw Insufficient_ram_quota();
 			}
 

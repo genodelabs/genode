@@ -4,6 +4,7 @@ _/src/init
 _/src/libdrm
 _/src/libc
 _/src/vfs
+_/src/vfs_gpu
 _/src/expat
 _/src/zlib
 _/src/stdcxx

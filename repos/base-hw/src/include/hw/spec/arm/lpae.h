@@ -388,7 +388,10 @@ class Hw::Level_3_translation_table :
 					if (!Descriptor::valid(desc))
 						return;
 					phys = Block_descriptor::Output_address::masked(desc);
-					found = true;
+					typename Block_descriptor::access_t ap =
+						Block_descriptor::Access_permission::get(desc);
+					found = ap == Block_descriptor::Access_permission::PRIVILEGED_RW ||
+					        ap == Block_descriptor::Access_permission::USER_RW;
 				}
 		};
 
@@ -409,7 +412,7 @@ class Hw::Level_3_translation_table :
 			_range_op(vo, pa, size, Remove_func());
 		}
 
-		bool lookup_translation(addr_t vo, addr_t & pa, Allocator&)
+		bool lookup_rw_translation(addr_t vo, addr_t & pa, Allocator&)
 		{
 			size_t page_size = 1 << SIZE_LOG2_4KB;
 			Lookup_func functor {};
@@ -542,15 +545,18 @@ class Hw::Level_x_translation_table :
 				case Descriptor::BLOCK:
 					{
 						phys = Block_descriptor::Output_address::masked(desc);
-						found = true;
+						typename Block_descriptor::access_t ap =
+							Block_descriptor::Access_permission::get(desc);
+						found = ap == Block_descriptor::Access_permission::PRIVILEGED_RW ||
+						        ap == Block_descriptor::Access_permission::USER_RW;
 						return;
 					};
 				case Descriptor::TABLE:
 					{
 						/* use allocator to retrieve virt address of table */
 						E & table = alloc.virt_addr<E>(Nt::masked(desc));
-						found = table.lookup_translation(vo - (vo & Base::BLOCK_MASK),
-						                                 phys, alloc);
+						found = table.lookup_rw_translation(vo - (vo & Base::BLOCK_MASK),
+						                                    phys, alloc);
 						return;
 					};
 				case Descriptor::INVALID: return;
@@ -596,13 +602,13 @@ class Hw::Level_x_translation_table :
 		}
 
 		/**
-		 * Lookup translation
+		 * Lookup writeable translation
 		 *
 		 * \param virt   region offset within the tables virtual region
 		 * \param phys   region size
 		 * \param alloc  second level translation table allocator
 		 */
-		bool lookup_translation(addr_t const virt, addr_t & phys,
+		bool lookup_rw_translation(addr_t const virt, addr_t & phys,
 		                        Allocator & alloc)
 		{
 			size_t page_size = 1 << SIZE_LOG2_4KB;

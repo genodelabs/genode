@@ -28,7 +28,14 @@ void Menu_view::_handle_hover()
 
 	Hover_result hover_result = Hover_result::UNMODIFIED;
 
-	_hover_rom.xml().with_sub_node("dialog", [&] (Xml_node hover) {
+	Xml_node hover = _hover_rom.xml();
+
+	if (hover.has_attribute("seq_number")) {
+		Input::Seq_number const seq { hover.attribute_value("seq_number", 0U) };
+		_seq_number.construct(seq);
+	}
+
+	hover.with_optional_sub_node("dialog", [&] (Xml_node hover) {
 		_hovered = true;
 		hover_result = _dialog.hover(hover);
 	});
@@ -41,6 +48,9 @@ void Menu_view::_handle_hover()
 
 	if (dialog_hover_changed || widget_hover_changed)
 		generate();
+
+	/* trigger handling of pending click/clack actions */
+	_hover_update_handler.menu_view_hover_updated();
 }
 
 
@@ -48,13 +58,17 @@ Menu_view::Menu_view(Env &env, Registry<Child_state> &registry,
                      Dialog &dialog, Start_name const &name,
                      Ram_quota ram_quota, Cap_quota cap_quota,
                      Session_label const &dialog_report_name,
-                     Session_label const &hover_rom_name)
+                     Session_label const &hover_rom_name,
+                     Hover_update_handler &hover_update_handler,
+                     Alpha alpha, Color background_color)
 :
 	_dialog(dialog),
+	_hover_update_handler(hover_update_handler),
 	_child_state(registry, name, Priority::LEITZENTRALE, ram_quota, cap_quota),
 	_dialog_reporter(env, "dialog", dialog_report_name.string()),
 	_hover_rom(env, hover_rom_name.string()),
-	_hover_handler(env.ep(), *this, &Menu_view::_handle_hover)
+	_hover_handler(env.ep(), *this, &Menu_view::_handle_hover),
+	_opaque(alpha == Alpha::OPAQUE), _background_color(background_color)
 {
 	_hover_rom.sigh(_hover_handler);
 
@@ -88,11 +102,17 @@ void Menu_view::_gen_start_node_content(Xml_generator &xml) const
 {
 	_child_state.gen_start_node_content(xml);
 
+	gen_named_node(xml, "resource", "CPU", [&] () {
+		xml.attribute("quantum", 10); });
+
 	gen_named_node(xml, "binary", "menu_view");
 
 	xml.node("config", [&] () {
 		if (min_width)  xml.attribute("width",  min_width);
 		if (min_height) xml.attribute("height", min_height);
+		if (_opaque)    xml.attribute("opaque", "yes");
+
+		xml.attribute("background", String<20>(_background_color));
 
 		xml.node("libc", [&] () { xml.attribute("stderr", "/dev/log"); });
 		xml.node("report", [&] () { xml.attribute("hover", "yes"); });

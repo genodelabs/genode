@@ -30,7 +30,7 @@ class Genode::Cached_font : public Text_painter::Font
 
 		struct Cached_glyph : Glyph, Noncopyable
 		{
-			Glyph::Opacity _values[];
+			Glyph::Opacity _values[0];
 
 			/*
 			 * The number of values is not statically known but runtime-

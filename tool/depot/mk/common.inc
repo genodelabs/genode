@@ -33,3 +33,7 @@ file_content = $(if $(wildcard $1),$(shell cat $1),)
 
 # Force stable sorting order
 SORT := LC_ALL=C sort
+
+# ensure pipes might fail but do not confuse sub-makes
+.SHELLFLAGS := -o pipefail -c
+unexport .SHELLFLAGS

@@ -48,9 +48,9 @@ int Region_map_mmap::_dataspace_fd(Dataspace_capability ds)
 }
 
 
-bool Region_map_mmap::_dataspace_writable(Dataspace_capability ds)
+bool Region_map_mmap::_dataspace_writeable(Dataspace_capability ds)
 {
-	return Dataspace_client(ds).writable();
+	return Dataspace_client(ds).writeable();
 }
 
 

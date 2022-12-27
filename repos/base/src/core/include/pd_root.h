@@ -47,7 +47,11 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 			if (_managing_system(args) == Pd_session_component::Managing_system::DENIED)
 				return Ram_dataspace_factory::any_phys_range();
 
-			addr_t const start = 0;
+			/*
+			 * Leave out first page because currently return value zero
+			 * for dma_addr is recognized as a fault
+			 */
+			addr_t const start = 0x1000;
 			addr_t const end   = (sizeof(long) == 4) /* 32bit arch ? */
 			                   ? 0xbfffffffUL : 0xffffffffUL;
 

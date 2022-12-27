@@ -1,8 +1,7 @@
 SRC_DIR := src/app/backdrop
 include $(GENODE_DIR)/repos/base/recipes/src/content.inc
 
-content: include/decorator
+content: src/lib/file lib/mk/file.mk
 
-include/decorator:
-	mkdir -p $@
-	cp $(GENODE_DIR)/repos/os/include/decorator/* $@
+src/lib/file lib/mk/file.mk:
+	$(mirror_from_rep_dir)

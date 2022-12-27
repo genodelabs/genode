@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <base/registry.h>
 #include <pin_control_session/connection.h>
+#include <pin_state_session/connection.h>
 #include <irq_session/connection.h>
 
 #include <lx_emul/pin.h>
@@ -75,9 +76,12 @@ namespace {
 		Name const name;
 
 		Constructible<Pin_control::Connection> _control { };
+		Constructible<Pin_state::Connection>   _state   { };
 		Constructible<Irq_connection>          _irq     { };
 
 		Io_signal_handler<Pin> _irq_handler { _env.ep(), *this, &Pin::_handle_irq };
+
+		enum class Direction { IN, OUT } _direction { Direction::IN };
 
 		void _handle_irq()
 		{
@@ -100,6 +104,25 @@ namespace {
 				_control.construct(_env, name.string());
 
 			_control->state(enabled);
+			_direction = Direction::OUT;
+		}
+
+		bool sense()
+		{
+			if (_irq.constructed()) {
+				error("attempt to drive interrupt pin ", name, " as input");
+				return false;
+			}
+
+			if (_control.constructed() && (_direction == Direction::OUT)) {
+				_control->yield();
+				_direction = Direction::IN;
+			}
+
+			if (!_state.constructed())
+				_state.construct(_env, name.string());
+
+			return _state->state();
 		}
 
 		void associate_with_gic_and_unmask_irq(Irq_info irq_info)
@@ -197,6 +220,18 @@ extern "C" void lx_emul_pin_control(char const *pin_name, bool enabled)
 {
 	pins().with_pin(pin_name, [&] (Pin &pin) {
 		pin.control(enabled); });
+}
+
+
+extern "C" void lx_emul_backtrace(void);
+
+
+extern "C" int lx_emul_pin_sense(char const *pin_name)
+{
+	bool result = false;
+	pins().with_pin(pin_name, [&] (Pin &pin) {
+		result = pin.sense(); });
+	return result;
 }
 
 

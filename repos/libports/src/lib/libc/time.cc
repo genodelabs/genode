@@ -78,8 +78,10 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 		if (!_current_real_time_ptr)
 			throw Missing_call_of_init_time();
 
-		if (!_current_real_time_ptr->has_real_time())
+		if (!_current_real_time_ptr->has_real_time()) {
+			warning("clock_gettime(): missing real-time clock");
 			return Errno(EINVAL);
+		}
 
 		*ts = _current_real_time_ptr->current_real_time();
 		break;

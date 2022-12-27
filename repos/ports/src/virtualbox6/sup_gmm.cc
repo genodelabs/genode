@@ -100,6 +100,7 @@ void Sup::Gmm::reservation_pages(Pages pages)
 }
 
 
+
 Sup::Gmm::Vmm_addr Sup::Gmm::alloc_ex(Pages pages)
 {
 	Mutex::Guard guard(_mutex);
@@ -117,6 +118,12 @@ Sup::Gmm::Vmm_addr Sup::Gmm::alloc_from_reservation(Pages pages)
 	Mutex::Guard guard(_mutex);
 
 	return _alloc_pages(pages);
+}
+
+
+void Sup::Gmm::free(Vmm_addr addr, Pages pages)
+{
+	_alloc.free((void *)(addr.value - _map.base.value), 1);
 }
 
 

@@ -217,6 +217,12 @@ CXX_LINK_OPT       += $(addprefix $(LD_OPT_PREFIX),$(LD_OPT))
 CXX_LINK_OPT       += $(LD_OPT_NOSTDLIB)
 
 #
+# Genode linker does not support .gnu.hash so there is no point in having it
+# in the ELF files. Tell the linker to only produce SysV hash tables.
+#
+LD_OPT += --hash-style=sysv
+
+#
 # Linker script for dynamically linked programs
 #
 LD_SCRIPT_DYN ?= $(BASE_DIR)/src/ld/genode_dyn.ld

@@ -1006,7 +1006,9 @@ class Lwip::Udp_socket_dir final :
 
 					err_t err = udp_sendto(_pcb, buf, &_to_addr, _to_port);
 					pbuf_free(buf);
-					if (err != ERR_OK)
+					if (err == ERR_WOULDBLOCK)
+						return Write_result::WRITE_ERR_WOULD_BLOCK;
+					else if (err != ERR_OK)
 						return Write_result::WRITE_ERR_IO;
 					remain -= buf->tot_len;
 					src += buf->tot_len;
@@ -1496,7 +1498,13 @@ class Lwip::Tcp_socket_dir final :
 					}
 
 					/* send queued data */
-					if (out > 0) tcp_output(_pcb);
+					if (out > 0) {
+						err_t err = tcp_output(_pcb);
+						if (err == ERR_WOULDBLOCK)
+							return Write_result::WRITE_ERR_WOULD_BLOCK;
+						else if (err != ERR_OK)
+							return Write_result::WRITE_ERR_IO;
+					}
 
 					out_count = out;
 					return res;
@@ -2064,12 +2072,6 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			if (Lwip_file_handle *handle = dynamic_cast<Lwip_file_handle*>(vfs_handle))
 				return handle->notify_read_ready();
 			return false;
-		}
-
-		bool check_unblock(Vfs_handle*, bool, bool, bool) override
-		{
-			Genode::error("VFS lwIP: ",__func__," not implemented");
-			return true;
 		}
 
 		Sync_result complete_sync(Vfs_handle *vfs_handle) override

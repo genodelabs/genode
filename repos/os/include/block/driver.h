@@ -187,14 +187,18 @@ class Block::Driver : Genode::Interface
 		 */
 		virtual bool dma_enabled() { return false; }
 
+		struct Dma_buffer
+		{
+			Genode::Ram_dataspace_capability ds;
+			Genode::addr_t dma_addr;
+		};
+
 		/**
 		 * Allocate buffer which is suitable for DMA.
 		 *
 		 * Note: has to be overriden by DMA-capable devices
 		 */
-		virtual Genode::Ram_dataspace_capability
-		alloc_dma_buffer(Genode::size_t size, Genode::Cache cache) {
-			return _ram.alloc(size, cache); }
+		virtual Dma_buffer alloc_dma_buffer(Genode::size_t, Genode::Cache) = 0;
 
 		/**
 		 * Free buffer which is suitable for DMA.

@@ -21,11 +21,10 @@
 using namespace Adma2;
 
 
-Table::Table(Ram_allocator &ram, Region_map &rm)
+Table::Table(Platform::Connection &platform)
 :
-	_ds(ram, rm, _ds_size, UNCACHED),
-	_base_virt(_ds.local_addr<Desc::access_t>()),
-	_base_phys(Dataspace_client(_ds.cap()).phys_addr())
+	_ds(platform, _ds_size, UNCACHED),
+	_base_virt(_ds.local_addr<Desc::access_t>())
 { }
 
 

@@ -100,7 +100,16 @@ void Kernel::Thread::_call_cache_invalidate_data_region() { }
 
 void Kernel::Thread::proceed(Cpu & cpu)
 {
-	cpu.switch_to(_pd->mmu_regs);
+	/*
+	 * The sstatus register defines to which privilege level
+	 * the machine returns when doing an exception return
+	 */
+	Cpu::Sstatus::access_t v = Cpu::Sstatus::read();
+	Cpu::Sstatus::Spp::set(v, (type() == USER) ? 0 : 1);
+	Cpu::Sstatus::write(v);
+
+	if (!cpu.active(pd().mmu_regs) && type() != CORE)
+		cpu.switch_to(_pd->mmu_regs);
 
 	asm volatile("csrw sscratch, %1                                \n"
 	             "mv   x31, %0                                     \n"

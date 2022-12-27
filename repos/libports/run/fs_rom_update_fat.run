@@ -5,8 +5,8 @@ set build_components {
 	core init timer
 	app/rom_logger
 	app/rom_to_file
-	lib/vfs/fatfs
-	lib/vfs/import
+	lib/vfs_fatfs
+	lib/vfs_import
 	server/dynamic_rom
 	server/fs_rom
 	server/vfs_block
@@ -93,7 +93,9 @@ append config {
 	</start>
 	<start name="rom_to_file">
 		<resource name="RAM" quantum="2M"/>
-		<config rom="dynamic_rom"/>
+		<config rom="dynamic_rom">
+			<vfs> <fs/> </vfs>
+		</config>
 		<route>
 			<service name="ROM" label="dynamic_rom"> <child name="dynamic_rom"/> </service>
 			<service name="File_system" > <child name="vfs"/> </service>

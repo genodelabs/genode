@@ -1,0 +1,114 @@
+This directory contains the implementation of Genode's platform driver.
+
+Devices ROM
+-----------
+
+The platform driver knows which devices exist, as well as what resources
+they need by parsing XML information from a devices ROM. This ROM might be
+a boot module, written by a system integrator, or is dynamically produced
+after investigating ACPI and PCI(*) information. The devices ROM name can be
+defined by setting the "devices_rom" attribute in the config of the
+platform driver:
+
+! <config devices_rom="my_devices">
+!   ...
+! </config>
+
+If the attribute isn't set, the platform driver asks for a ROM called
+"devices" by default.
+
+Behavior
+--------
+
+Per client a policy must be configured that states, which client can
+access certain devices to form a virtual bus per client. The client may
+iterate through the virtual bus using the devices_rom() function of
+the platform_session interface to discover all available devices of the virtual
+bus. When identified a specific device, its device capability can be obtained
+via its unique name. Simple device drivers that drive exactly one device do
+not need the devices ROM, but can simply obtain their device capability via
+the acquire_single_device() function of the platform session interface.
+
+With the device capability the resources of the devices can be obtained, e.g.
+io_port, io_mem and irq of the platform_device interface.
+
+Policy usage
+------------
+
+A policy may contain several nodes describing several devices.
+
+!<start name="platform_drv" managing_system="yes">
+! <resource name="RAM" quantum="8M"/>
+! ...
+! <config>
+!  <policy label_prefix="usb_drv" info="yes">
+!   <device name="ehci"/>
+!   <device name="uhci"/>
+!  </policy>
+! </config>
+! ...
+
+The managing_system attribute is evaluated by init. If set to "yes", it
+permits a component, the platform driver, to restrict the allocation of memory to
+specific physical RAM ranges. The platform driver uses this feature to ensure that
+the allocation of DMA capable memory consider several restrictions. For
+example, some drivers, as the UHCI controller, requires a
+physical memory address below 4G. Another example is: on 32bit hosts
+physical to virtual identical mappings of DMA memory for the device PD
+(required when IOMMU is used) must be below the kernel memory boundary (3G).
+On some systems, e.g., base-hw kernel on certain ARM platforms, it allows the
+platform driver to call system management firmware via kernel syscalls.
+
+The 'info' attribute in a policy node describe, whether the client's devices
+ROM will contain detailed information about physical resources of the devices
+of its virtual bus. This is only useful, when using ported legacy drivers, which
+operate with global names of physical resources.
+
+Policy for PCI devices
+----------------------
+
+Policies for PCI devices do not necessarily need to state the name of
+the device, but can either state a class of devices, or a vendor/device
+pair of identifiers inside a pci sub-node:
+
+! <config>
+! <policy label="usb_drv -> ">
+!   <pci class="USB"/>
+! </policy>
+! <policy label="nvme_drv -> ">
+!   <pci vendor_id="0x1987" device_id="0x5007"/>
+! </policy>
+
+The following class names are supported which correspond to the
+specified PCI base class (B), sub class (S) and programming interface
+(P) combinations. ('-' matches all devices in the category)
+
+alias       B   S   P
+
+AHCI       01  06   -
+AUDIO      04  01   -
+ETHERNET   02  00   -
+HDAUDIO    04  03   -
+ISABRIDGE  06  01   -
+NVME       01  08  02
+USB        0c  03  00 10 20 30
+USB4       0c  03  40
+VGA        03  00  00
+WIFI       02  80   -
+
+Report facilities
+-----------------
+
+The configuration of the platform driver supports different levels of reports.
+By default the platform driver does not report anything. But when adding a
+report node:
+
+! <config>
+!  <report devices="yes" config="yes"/>
+!   ...
+! </config>
+
+it is possible to enable either a devices and/or config report. The first will
+open up a Report session to dynamically report all accessible devices, and its
+state. Whereby the second report states the currently active configuration of
+the platform driver.

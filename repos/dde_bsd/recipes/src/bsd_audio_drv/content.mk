@@ -1,6 +1,6 @@
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/dde_bsd)
 
-MK_FILES := dde_bsd_audio.inc dde_bsd_audio_include.mk dde_bsd_audio_pci.mk
+MK_FILES := dde_bsd_audio.inc dde_bsd_audio_include.mk dde_bsd_audio_pci.inc
 
 LIB_MK := $(addprefix lib/mk/, $(MK_FILES)) \
           $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/dde_bsd_audio.mk) \
@@ -11,18 +11,13 @@ MIRROR_FROM_REP_DIR := $(LIB_MK) src/lib src/drivers patches include
 MIRROR_FROM_PORT_DIR := $(addprefix src/lib/audio/, \
                           dev/pci/azalia_codec.c \
                           dev/pci/pcidevs.h \
-                          dev/pci/eap.c \
                           dev/pci/pcidevs_data.h \
                           dev/pci/azalia.h \
-                          dev/pci/eapreg.h \
                           dev/pci/azalia.c \
-                          dev/pci/auich.c \
                           dev/mulaw.h \
                           dev/audio_if.h \
                           dev/mulaw.c \
                           dev/audio.c \
-                          dev/ic/ac97.h \
-                          dev/ic/ac97.c \
                           lib/libkern \
                           sys/device.h \
                           sys/audioio.h \

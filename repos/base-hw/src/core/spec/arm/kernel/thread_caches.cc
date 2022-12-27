@@ -37,15 +37,15 @@ static void for_cachelines(addr_t           base,
 	}
 
 	/**
-	 * Lookup whether the page is backed, and if so make the memory coherent
-	 * in between I-, and D-cache
+	 * Lookup whether the page is backed and writeable,
+	 * and if so make the memory coherent in between I-, and D-cache
 	 */
 	addr_t phys = 0;
-	if (thread.pd().platform_pd().lookup_translation(base, phys)) {
+	if (thread.pd().platform_pd().lookup_rw_translation(base, phys)) {
 		fn(base, size);
 	} else {
-		Genode::raw(thread, " tried to make invalid address ",
-		            (void*)base, " cache coherent");
+		Genode::raw(thread, " tried to do cache maintainance at ",
+					"unallowed address ", (void*)base);
 	}
 }
 

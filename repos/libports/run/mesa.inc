@@ -26,12 +26,12 @@ import_from_depot $imports
 
 set build_components {
 	drivers/gpu/intel
-	lib/mesa/softpipe
+	lib/mesa_softpipe
 	core init timer
 }
 
-lappend_if $use_iris    build_components lib/mesa/iris
-lappend_if $use_etnaviv build_components lib/mesa/etnaviv
+lappend_if $use_iris    build_components lib/mesa_iris
+lappend_if $use_etnaviv build_components lib/mesa_etnaviv
 lappend_if $use_etnaviv build_components drivers/gpu/etnaviv
 lappend build_components $demo_component
 
@@ -157,7 +157,7 @@ set boot_modules {
 	egl.lib.so mesa.lib.so stdcxx.lib.so
 	expat.lib.so glapi.lib.so zlib.lib.so
 	core init ld.lib.so timer mesa_gpu-softpipe.lib.so
-	libdrm.lib.so
+	libdrm.lib.so vfs_gpu.lib.so
 }
 
 append_if $use_iris boot_modules {

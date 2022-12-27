@@ -88,6 +88,7 @@ append config {
 			<driver name="usb"/>
 			<driver name="ps2"/>
 
+
 			<message string="test merging of two input sources"/>
 
 			<filter_config>
@@ -483,6 +484,7 @@ append config {
 			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
 			<expect_press code="KEY_A" char="b"/> <expect_release code="KEY_A"/>
 
+
 			<message string="test remap of KEY_UNKNOWN"/>
 
 			<filter_config>
@@ -501,6 +503,7 @@ append config {
 			</usb>
 			<expect_press code="KEY_A" />
 			<expect_release code="KEY_A" />
+
 
 			<message string="test ignore-key"/>
 
@@ -524,6 +527,7 @@ append config {
 			<not_expect_press code="KEY_A" />
 			<not_expect_release code="KEY_A" />
 
+
 			<message string="test log output"/>
 
 			<filter_config>
@@ -544,6 +548,29 @@ append config {
 				<press code="KEY_UNKNOWN" />
 				<release code="KEY_UNKNOWN"/>
 			</usb>
+
+			<message string="test touch key"/>
+
+			<filter_config>
+				<output>
+					<touch-key>
+						<tap xpos="0" ypos="400" width="50" height="600" key="KEY_DASHBOARD"/>
+						<input name="usb"/>
+					</touch-key>
+				</output>
+				<policy label_suffix="usb" input="usb"/>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<touch x="10" y="500" /> <!-- hits special area -->
+				<touch-release/>
+				<touch x="100" y="500" /> <!-- besides special area -->
+				<touch-release/>
+			</usb>
+			<expect_press code="KEY_DASHBOARD" />
+			<expect_release code="KEY_DASHBOARD" />
+			<expect_touch x="100" y="500"/>
+			<expect_touch_release/>
 
 		</config>
 		<route>

@@ -3,13 +3,13 @@ VERSION   := 1
 DOWNLOADS := audio.archive
 
 #
-# Audio drivers from OpenBSD 6.6
+# Audio drivers from OpenBSD 7.1
 #
 SRC_DIR_AUDIO  := src/lib/audio
-VERSION_AUDIO  := 6.6
-BASE_URL       := https://ftp.openbsd.org/pub/OpenBSD
+VERSION_AUDIO  := 7.1
+BASE_URL       := https://cdn.openbsd.org/pub/OpenBSD
 URL(audio)     := $(BASE_URL)/$(VERSION_AUDIO)/sys.tar.gz
-SHA(audio)     := a1b19665989c02a2017a639d47a042f4fe7f584b6298727e982a5536020b832d
+SHA(audio)     := 890cb97c01052f26cefe5430d635e0fdf6047ca701a99992968e16801e2a6565
 DIR(audio)     := $(SRC_DIR_AUDIO)
 TAR_OPT(audio) := --strip-components=1 --files-from $(REP_DIR)/audio.list
 HASH_INPUT     += $(REP_DIR)/audio.list
@@ -18,12 +18,6 @@ HASH_INPUT     += $(REP_DIR)/audio.list
 # Patches
 #
 PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/*.patch)))
-
-AUDIO_OPT := -p1 -d$(SRC_DIR_AUDIO)
-PATCH_OPT(patches/oppress_warning.patch) := $(AUDIO_OPT)
-PATCH_OPT(patches/azalia_c.patch)        := $(AUDIO_OPT)
-PATCH_OPT(patches/azalia_h.patch)        := $(AUDIO_OPT)
-PATCH_OPT(patches/azalia_codec_c.patch)  := $(AUDIO_OPT)
-PATCH_OPT(patches/notify.patch)          := $(AUDIO_OPT)
+PATCH_OPT := -p1 -d$(SRC_DIR_AUDIO)
 
 # vi: set ft=make :

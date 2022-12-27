@@ -19,7 +19,7 @@ void Sculpt::Network::_generate_nic_router_uplink(Xml_generator &xml,
                                                   char    const *label)
 {
 	xml.node("policy", [&] () {
-		xml.attribute("label", label);
+		xml.attribute("label_prefix", label);
 		xml.attribute("domain", "uplink");
 	});
 	gen_named_node(xml, "domain", "uplink", [&] () {
@@ -50,22 +50,12 @@ void Sculpt::Network::handle_key_press(Codepoint code)
 	if (_wifi_connection.state == Wifi_connection::CONNECTING)
 		wifi_connect(_wifi_connection.bssid);
 
-	_menu_view.generate();
+	_action.update_network_dialog();
 }
 
 
 void Sculpt::Network::_generate_nic_router_config()
 {
-	if ((_nic_target.wired() && !_runtime_info.present_in_runtime("nic_drv"))
-	 || (_nic_target.wifi()  && !_runtime_info.present_in_runtime("wifi_drv"))) {
-
-		/* defer NIC router reconfiguration until the needed uplink is present */
-		_nic_router_config_up_to_date = false;
-		return;
-	}
-
-	_nic_router_config_up_to_date = true;
-
 	if (_nic_router_config.try_generate_manually_managed())
 		return;
 
@@ -90,8 +80,9 @@ void Sculpt::Network::_generate_nic_router_config()
 
 		bool uplink_exists = true;
 		switch (_nic_target.type()) {
-		case Nic_target::WIRED: _generate_nic_router_uplink(xml, "nic_drv -> "); break;
-		case Nic_target::WIFI:  _generate_nic_router_uplink(xml, "wifi_drv -> ");  break;
+		case Nic_target::WIRED: _generate_nic_router_uplink(xml, "nic_drv -> ");  break;
+		case Nic_target::WIFI:  _generate_nic_router_uplink(xml, "wifi_drv -> "); break;
+		case Nic_target::MODEM: _generate_nic_router_uplink(xml, "usb_net -> ");  break;
 		default: uplink_exists = false;
 		}
 		gen_named_node(xml, "domain", "default", [&] () {
@@ -100,7 +91,7 @@ void Sculpt::Network::_generate_nic_router_config()
 			xml.node("dhcp-server", [&] () {
 				xml.attribute("ip_first", "10.0.1.2");
 				xml.attribute("ip_last",  "10.0.1.200");
-				if (_nic_target.type() != Nic_target::LOCAL) {
+				if (_nic_target.type() != Nic_target::DISCONNECTED) {
 					xml.attribute("dns_config_from", "uplink"); }
 			});
 
@@ -136,7 +127,7 @@ void Sculpt::Network::_handle_wlan_accesspoints()
 
 	Access_point_update_policy policy(_alloc);
 	_access_points.update_from_xml(policy, _wlan_accesspoints_rom.xml());
-	_menu_view.generate();
+	_action.update_network_dialog();
 }
 
 
@@ -144,7 +135,7 @@ void Sculpt::Network::_handle_wlan_state()
 {
 	_wlan_state_rom.update();
 	_wifi_connection = Wifi_connection::from_xml(_wlan_state_rom.xml());
-	_menu_view.generate();
+	_action.update_network_dialog();
 }
 
 
@@ -156,7 +147,7 @@ void Sculpt::Network::_handle_nic_router_state()
 	_nic_state = Nic_state::from_xml(_nic_router_state_rom.xml());
 
 	if (_nic_state.ipv4 != old_nic_state.ipv4)
-		_menu_view.generate();
+		_action.update_network_dialog();
 
 	/* if the nic state becomes ready, consider spawning the update subsystem */
 	if (old_nic_state.ready() != _nic_state.ready())
@@ -164,53 +155,49 @@ void Sculpt::Network::_handle_nic_router_state()
 }
 
 
-void Sculpt::Network::_handle_nic_router_config(Xml_node config)
+void Sculpt::Network::_update_nic_target_from_config(Xml_node const &config)
 {
-	Nic_target::Type target = _nic_target.managed_type;
-
 	_nic_target.policy = config.has_type("empty")
 	                   ? Nic_target::MANAGED : Nic_target::MANUAL;
 
-	if (_nic_target.manual()) {
-
-		/* obtain uplink information from configuration */
-		target = Nic_target::LOCAL;
-
+	/* obtain uplink information from configuration */
+	auto nic_target_from_config = [] (Xml_node const &config)
+	{
 		if (!config.has_sub_node("domain"))
-			target = Nic_target::OFF;
+			return Nic_target::OFF;
 
-		struct Break : Exception { };
-		try {
-			config.for_each_sub_node("domain", [&] (Xml_node domain) {
+		Nic_target::Type result = Nic_target::DISCONNECTED;
 
-				/* skip domains that are not called "uplink" */
-				if (domain.attribute_value("name", String<16>()) != "uplink")
-					return;
+		config.for_each_sub_node("policy", [&] (Xml_node uplink) {
 
-				config.for_each_sub_node("policy", [&] (Xml_node uplink) {
+			/* skip uplinks not assigned to a domain called "uplink" */
+			if (uplink.attribute_value("domain", String<16>()) != "uplink")
+				return;
 
-					/* skip uplinks not assigned to a domain called "uplink" */
-					if (uplink.attribute_value("domain", String<16>()) != "uplink")
-						return;
+			if (uplink.attribute_value("label_prefix", String<16>()) == "nic_drv -> ")
+				result = Nic_target::WIRED;
 
-					if (uplink.attribute_value("label", String<16>()) == "nic_drv -> ") {
-						target = Nic_target::WIRED;
-						throw Break();
-					}
-					if (uplink.attribute_value("label", String<16>()) == "wifi_drv -> ") {
-						target = Nic_target::WIFI;
-						throw Break();
-					}
-				});
-			});
-		} catch (Break) { }
-		_nic_target.manual_type = target;
-	}
+			if (uplink.attribute_value("label_prefix", String<16>()) == "wifi_drv -> ")
+				result = Nic_target::WIFI;
 
-	nic_target(target);
+			if (uplink.attribute_value("label_prefix", String<16>()) == "usb_net -> ")
+				result = Nic_target::MODEM;
+		});
+		return result;
+	};
+
+	if (_nic_target.manual())
+		_nic_target.manual_type = nic_target_from_config(config);
+}
+
+
+
+void Sculpt::Network::_handle_nic_router_config(Xml_node config)
+{
+	_update_nic_target_from_config(config);
 	_generate_nic_router_config();
 	_runtime_config_generator.generate_runtime_config();
-	_menu_view.generate();
+	_action.update_network_dialog();
 }
 
 
@@ -235,17 +222,24 @@ void Sculpt::Network::gen_runtime_start_nodes(Xml_generator &xml) const
 		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
 		break;
 
-	case Nic_target::LOCAL:
+	case Nic_target::MODEM:
+
+		xml.node("start", [&] () {
+			xml.attribute("version", _usb_net_version);
+			gen_usb_net_start_content(xml);
+		});
+		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
+		break;
+
+	case Nic_target::DISCONNECTED:
 
 		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
 		break;
 
 	case Nic_target::OFF:
-
 		break;
 
 	case Nic_target::UNDEFINED:
-
 		break;
 	}
 }

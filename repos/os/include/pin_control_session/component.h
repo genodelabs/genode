@@ -39,6 +39,12 @@ class Pin_control::Session_component : public Session_object<Session>
 
 		using Session_object<Session>::label;
 
+		void _state(Pin::Level level)
+		{
+			if (_assignment.target.constructed())
+				_assignment.driver.pin_state(_assignment.target->id, level);
+		}
+
 	public:
 
 		using Pin_id = ID;
@@ -57,8 +63,15 @@ class Pin_control::Session_component : public Session_object<Session>
 		 */
 		void state(bool enabled) override
 		{
-			if (_assignment.target.constructed())
-				_assignment.driver.pin_state(_assignment.target->id, enabled);
+			_state(enabled ? Pin::Level::HIGH : Pin::Level::LOW);
+		}
+
+		/**
+		 * Pin_control::Session interface
+		 */
+		void yield() override
+		{
+			_state(Pin::Level::HIGH_IMPEDANCE);
 		}
 
 		void update_assignment()

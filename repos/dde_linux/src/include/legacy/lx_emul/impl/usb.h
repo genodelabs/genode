@@ -112,7 +112,6 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 	return 0;
 }
 
-
 void usb_free_urb(struct urb *urb)
 {
 	if (!urb)
@@ -121,6 +120,10 @@ void usb_free_urb(struct urb *urb)
 	/* free 'Urb' object */
 	if (urb->hcpriv) {
 		Urb *u = (Urb*)urb->hcpriv;
+
+		/* URB is not fred through packet stream */
+		if (u->completed() == false) return;
+
 		u->~Urb();
 		kfree(urb->hcpriv);
 	}

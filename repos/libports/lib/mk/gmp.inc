@@ -1,4 +1,4 @@
-GMP_DIR = $(call select_from_ports,gmp)/src/lib/gmp
+GMP_DIR := $(call select_from_ports,gmp)/src/lib/gmp
 
 include $(REP_DIR)/lib/import/import-gmp.mk
 

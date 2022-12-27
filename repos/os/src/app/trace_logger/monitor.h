@@ -62,12 +62,23 @@ class Monitor : public Monitor_base,
 
 	public:
 
-		Monitor(Genode::Trace::Connection         &trace,
-		        Genode::Region_map                &rm,
-		        Genode::Trace::Subject_id          subject_id,
-		        Genode::Trace::Subject_info const &info);
+		struct Formatting
+		{
+			unsigned thread_name, affinity, state, total_cpu, recent_cpu;
+		};
 
-		void print(bool activity, bool affinity);
+		Monitor(Genode::Trace::Connection &trace,
+		        Genode::Region_map        &rm,
+		        Genode::Trace::Subject_id  subject_id);
+
+		/**
+		 * Expand column formatting according to the monitor's constraints
+		 */
+		void apply_formatting(Formatting &) const;
+
+		struct Level_of_detail { bool state, active_only; };
+
+		void print(Formatting, Level_of_detail);
 
 
 		/**************
@@ -87,6 +98,11 @@ class Monitor : public Monitor_base,
 		Genode::Trace::Subject_info const &info()       const { return _info; }
 
 		void update_info(Genode::Trace::Subject_info const &);
+
+		bool recently_active() const
+		{
+			return (_recent_exec_time != 0) || !_buffer.empty();
+		}
 };
 
 

@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,6 +18,7 @@ extern "C" {
 #include <base/mutex.h>
 #include <util/fifo.h>
 #include <rump/env.h>
+#include <rump/timed_semaphore.h>
 
 #include "sched.h"
 
@@ -208,13 +209,14 @@ static uint64_t timeout_ms(struct timespec currtime,
 }
 
 
-
 struct Cond
 {
 	int                     num_waiters;
 	int                     num_signallers;
 	Genode::Mutex           counter_mutex;
-	Timed_semaphore         signal_sem { Rump::env().timeout_ep() };
+	Timed_semaphore         signal_sem { Rump::env().env(),
+	                                     Rump::env().ep_thread(),
+	                                     Rump::env().timer() };
 	Genode::Semaphore       handshake_sem;
 
 	Cond() : num_waiters(0), num_signallers(0) { }
@@ -237,15 +239,13 @@ struct Cond
 			struct timespec currtime;
 			rumpuser_clock_gettime(0, &currtime.tv_sec, &currtime.tv_nsec);
 
-			Alarm::Time timeout = timeout_ms(currtime, *abstime);
-			try {
-				signal_sem.down(timeout);
-			} catch (Timeout_exception) {
-				result = -2;
-			}
-			catch (Nonblocking_exception) {
-				result = 0;
-			}
+			Genode::Microseconds timeout_us =
+				Genode::Microseconds(timeout_ms(currtime, *abstime) * 1000);
+	
+			signal_sem.down(true, timeout_us).with_result(
+				[&] (Timed_semaphore::Down_ok) { },
+				[&] (Timed_semaphore::Down_timed_out) { result = -2; }
+			);
 		}
 	
 		counter_mutex.acquire();

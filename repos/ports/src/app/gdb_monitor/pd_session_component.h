@@ -148,6 +148,12 @@ class Gdb_monitor::Pd_session_component : public Rpc_object<Pd_session>
 		Managing_system_state
 		managing_system(Managing_system_state const & state) override {
 			return _pd.managing_system(state); }
+
+		addr_t dma_addr(Ram_dataspace_capability ds) override {
+			return _pd.dma_addr(ds); }
+
+		Attach_dma_result attach_dma(Dataspace_capability ds, addr_t at) override {
+			return _pd.attach_dma(ds, at); }
 };
 
 #endif /* _PD_SESSION_COMPONENT_H_ */

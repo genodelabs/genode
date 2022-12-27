@@ -109,4 +109,37 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 
 using State = Genode::Pd_session::Managing_system_state;
 
-State Pd_session_component::managing_system(State const &) { return State(); }
+State Pd_session_component::managing_system(State const &request)
+{
+	bool const suspend = (_managing_system == Managing_system::PERMITTED) &&
+	                     (request.trapno   == State::ACPI_SUSPEND_REQUEST);
+	State respond { };
+
+	if (!suspend) {
+		/* report failed attempt */
+		respond.trapno = 0;
+		return respond;
+	}
+
+	/*
+	 * The trapno/ip/sp registers used below are just convention to transfer
+	 * the intended sleep state S0 ... S5. The values are read out by an
+	 * ACPI AML component and are of type TYP_SLPx as described in the
+	 * ACPI specification, e.g. TYP_SLPa and TYP_SLPb. The values differ
+	 * between different PC systems/boards.
+	 *
+	 * \note trapno/ip/sp registers are chosen because they exist in
+	 *       Managing_system_state for x86_32 and x86_64.
+	 */
+	uint8_t const sleep_type_a = uint8_t(request.ip);
+	uint8_t const sleep_type_b = uint8_t(request.sp);
+
+	auto const cap_suspend = platform_specific().core_pd_sel() + 3;
+	auto const result      = Nova::acpi_suspend(cap_suspend, sleep_type_a,
+	                                            sleep_type_b);
+
+	if (result == Nova::NOVA_OK)
+		respond.trapno = 1 /* success, which means we resumed already */;
+
+	return respond;
+}

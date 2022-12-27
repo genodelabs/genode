@@ -3,7 +3,7 @@ include $(call select_from_repositories,mk/spec/nova.mk)
 TARGET           = hypervisor
 REQUIRES         = x86 nova
 NOVA_BUILD_DIR   = $(BUILD_BASE_DIR)/kernel
-NOVA_SRC_DIR     = $(call select_from_ports,nova)/src/kernel/nova
+NOVA_SRC_DIR    := $(call select_from_ports,nova)/src/kernel/nova
 SRC_CC           = $(sort $(notdir $(wildcard $(NOVA_SRC_DIR)/src/*.cpp)))
 SRC_S            = $(sort $(notdir $(wildcard $(NOVA_SRC_DIR)/src/*.S)))
 INC_DIR          = $(NOVA_SRC_DIR)/include

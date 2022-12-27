@@ -255,14 +255,27 @@ void Heap::free(void *addr, size_t)
 	/* serialize access of heap functions */
 	Mutex::Guard guard(_mutex);
 
-	/* try to find the size in our local allocator */
-	size_t const size = _alloc->size_at(addr);
+	using Size_at_error = Allocator_avl::Size_at_error;
 
-	if (size != 0) {
+	Allocator_avl::Size_at_result size_at_result = _alloc->size_at(addr);
 
+	if (size_at_result.ok()) {
 		/* forward request to our local allocator */
-		_alloc->free(addr, size);
-		_quota_used -= size;
+		size_at_result.with_result(
+			[&] (size_t size) {
+				/* forward request to our local allocator */
+				_alloc->free(addr, size);
+				_quota_used -= size;
+			},
+			[&] (Size_at_error) { });
+
+		return;
+	}
+
+	if (size_at_result == Size_at_error::MISMATCHING_ADDR) {
+		/* address was found in local allocator but is not a block start address */
+		error("heap could not free memory block: given address ", addr,
+				" is not a block start adress");
 		return;
 	}
 
@@ -278,7 +291,7 @@ void Heap::free(void *addr, size_t)
 			break;
 
 	if (!ds) {
-		warning("heap could not free memory block");
+		warning("heap could not free memory block: invalid address");
 		return;
 	}
 

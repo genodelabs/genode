@@ -24,6 +24,10 @@ void lx_emul_register_initcall(int (*initcall)(void), const char * name);
 
 void lx_emul_start_kernel(void * dtb);
 
+void lx_emul_execute_kernel_until(int (*condition)(void));
+
+void lx_emul_setup_arch(void * dtb);
+
 int  lx_emul_init_task_function(void * dtb);
 
 extern void * lx_emul_init_task_struct;
@@ -31,6 +35,11 @@ extern void * lx_emul_init_task_struct;
 void lx_emul_register_of_clk_initcall(char const *compat, void *fn);
 
 void lx_emul_register_of_irqchip_initcall(char const *compat, void *fn);
+
+struct pci_dev;
+void lx_emul_register_pci_fixup(void (*fn)(struct pci_dev*), char const *name);
+
+void lx_emul_execute_pci_fixup(struct pci_dev *pci_dev);
 
 #ifdef __cplusplus
 }

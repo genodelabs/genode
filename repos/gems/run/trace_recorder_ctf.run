@@ -1,0 +1,175 @@
+assert_spec linux
+
+# check that babeltrace2 is present
+set babeltrace_missing [catch {
+	spawn babeltrace2 -V
+	expect {
+		{Babeltrace 2.*}  { }
+		eof { return }
+		timeout { return }
+	}
+}]
+
+if {$babeltrace_missing} {
+	puts "\nPlease install babeltrace2 on your host system."
+	exit 1;
+}
+
+build { server/lx_fs }
+
+create_boot_directory
+
+import_from_depot \
+	[depot_user]/src/[base_src] \
+	[depot_user]/src/init \
+	[depot_user]/src/libc \
+	[depot_user]/src/rom_logger \
+	[depot_user]/src/report_rom \
+	[depot_user]/src/vfs \
+	[depot_user]/src/dummy_rtc_drv \
+	[depot_user]/src/trace_recorder \
+	[depot_user]/raw/trace_recorder \
+	[depot_user]/src/trace_recorder_policy \
+	[depot_user]/src/dynamic_rom
+
+install_config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="TRACE"/>
+		</parent-provides>
+
+		<default-route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+
+		<start name="dynamic_rom">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="ROM"/></provides>
+			<config>
+				<rom name="test">
+					<inline>
+						<foo/>
+					</inline>
+					<sleep milliseconds="1000"/>
+					<inline>
+						<bar/>
+					</inline>
+					<sleep milliseconds="1000"/>
+					<inline>
+						<baz/>
+					</inline>
+					<sleep milliseconds="1000"/>
+					<inline>
+						<foo/>
+					</inline>
+					<sleep milliseconds="1000"/>
+					<inline>
+						<bar/>
+					</inline>
+					<sleep milliseconds="1000"/>
+					<inline>
+						<foo/>
+					</inline>
+					<sleep milliseconds="1000"/>
+					<inline>
+						<bar/>
+					</inline>
+					<sleep milliseconds="1000"/>
+					<inline>
+						<foo/>
+					</inline>
+					<sleep milliseconds="1000"/>
+					<inline>
+						<bar/>
+					</inline>
+					<sleep milliseconds="1000"/>
+					<inline>
+						<end/>
+					</inline>
+					<sleep milliseconds="1000"/>
+				</rom>
+			</config>
+		</start>
+
+		<start name="rom_logger">
+			<resource name="RAM" quantum="1M"/>
+			<config rom="test"/>
+			<route>
+				<service name="ROM" label="test"> <child name="dynamic_rom"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="dummy_rtc_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Rtc"/> </provides>
+		</start>
+
+		<start name="lx_fs" ld="no">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<default-policy root="/fs" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="report_rom">
+			<resource name="RAM" quantum="1M"/>
+			<provides>
+				<service name="Report"/>
+				<service name="ROM"/>
+			</provides>
+			<config verbose="yes">
+			</config>
+		</start>
+
+		<start name="trace_recorder" caps="200">
+			<resource name="RAM" quantum="16M"/>
+			<config period_ms="5000" enable="yes">
+				<vfs> <fs/> </vfs>
+				<policy label_suffix="dynamic_rom" thread="dynamic_rom" policy="ctf0">
+					<ctf/>
+				</policy>
+				<policy label_suffix="rom_logger"  policy="ctf0">
+					<ctf/>
+				</policy>
+			</config>
+			<route>
+				<service name="File_system"> <child name="lx_fs"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+	</config>
+}
+
+exec rm -rf bin/fs
+exec mkdir -p bin/fs
+
+build_boot_image { lx_fs
+                   fs }
+
+append qemu_args " -nographic "
+
+run_genode_until {Enabled ctf writer for init -> rom_logger -> ep} 20
+set spawn_id [output_spawn_id]
+run_genode_until {<end/>} 60 $spawn_id
+
+# trace file has non-zero size
+exec test -s bin/fs/0-0-0\ 0\:0\:0/init/rom_logger/ep
+
+# check generated trace by reading CTF trace as fast as possible using a dummy output
+exec babeltrace2 bin/fs/0-0-0\ 0\:0\:0/init/rom_logger --output-format=dummy

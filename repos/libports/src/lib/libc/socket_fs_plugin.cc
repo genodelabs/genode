@@ -43,7 +43,6 @@
 #include <internal/init.h>
 #include <internal/suspend.h>
 #include <internal/pthread.h>
-#include <internal/unconfirmed.h>
 
 
 namespace Libc {
@@ -604,12 +603,11 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 		return Errno(EMFILE);
 	}
 
-	auto _accept_fd = make_unconfirmed([&] { file_descriptor_allocator()->free(accept_fd); });
-
 	if (addr && addrlen) {
 		Socket_fs::Remote_functor func(*accept_context, false);
 		int ret = read_sockaddr_in(func, (sockaddr_in *)addr, addrlen);
 		if (ret == -1) {
+			file_descriptor_allocator()->free(accept_fd);
 			Libc::Allocator alloc { };
 			destroy(alloc, accept_context);
 			return ret;
@@ -619,7 +617,6 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 	/* inherit the O_NONBLOCK flag if set */
 	accept_context->fd_flags(listen_context->fd_flags());
 
-	_accept_fd.confirm();
 	return accept_fd->libc_fd;
 }
 
@@ -635,7 +632,7 @@ extern "C" int socket_fs_bind(int libc_fd, sockaddr const *addr, socklen_t addrl
 	if (!addr) return Errno(EFAULT);
 
 	if (addr->sa_family != AF_INET) {
-		error(__func__, ": family not supported");
+		error(__func__, ": family ", addr->sa_family, " not supported");
 		return Errno(EAFNOSUPPORT);
 	}
 
@@ -845,8 +842,78 @@ extern "C" ssize_t socket_fs_recv(int libc_fd, void *buf, ::size_t len, int flag
 
 extern "C" ssize_t socket_fs_recvmsg(int libc_fd, msghdr *msg, int flags)
 {
-	warning("##########  TODO  ########## ", __func__);
-	return 0;
+	/* TODO just a simple implementation that handles the easy cases */
+	size_t numberOfBytes = 0;
+	char *data = nullptr;
+	size_t length = 0;
+	char *buffer;
+	ssize_t res;
+	size_t amount;
+	socklen_t client_address_len;
+
+	/* iterate over all msg_iov to get the number of bytes that have to be read. */
+	for (int i = 0; i < msg->msg_iovlen; i++) {
+		numberOfBytes += msg->msg_iov[i].iov_len;
+		/*
+		 * As an optimization, we set the initial values of DATA and LEN from
+		 * the first non-empty iovec. This kicks-in in the case where the whole
+		 * packet fits into the first iovec buffer.
+		 */
+		if (data == nullptr && msg->msg_iov[i].iov_len > 0) {
+			data = (char*)msg->msg_iov[i].iov_base;
+			length = msg->msg_iov[i].iov_len;
+		}
+	}
+
+	buffer = data;
+
+	struct sockaddr_in client_address;
+	client_address_len = sizeof (client_address);
+
+	/* do socket communication */
+	res = socket_fs_recvfrom(libc_fd, buffer, length, flags,
+	                         (struct sockaddr *) &client_address,
+	                         &client_address_len);
+
+	if(res < 0) {
+		return res;
+	}
+
+	/* copy client address to msg_name */
+	if (msg->msg_name != nullptr && client_address_len > 0) {
+		if (msg->msg_namelen > client_address_len) {
+			msg->msg_namelen = client_address_len;
+		}
+
+		::memcpy (msg->msg_name, &client_address, msg->msg_namelen);
+	} else if (msg->msg_name != nullptr) {
+		msg->msg_namelen = 0;
+	}
+
+	/* handle payload */
+	if (buffer == data) {
+		buffer += length;
+	} else {
+		amount = length;
+		buffer = data;
+		for (int i = 0; i < msg->msg_iovlen; i++) {
+#define min(a, b)        ((a) > (b) ? (b) : (a))
+			size_t copy = min (msg->msg_iov[i].iov_len, amount);
+			::memcpy (msg->msg_iov[i].iov_base, buffer, copy);
+			buffer += copy;
+			amount -= copy;
+			if (length == 0)
+				break;
+		}
+
+		Libc::Allocator alloc { };
+		destroy(alloc, data);
+	}
+
+	/* handle control data, not supported yet */
+	msg->msg_controllen = 0;
+
+	return res;
 }
 
 
@@ -1068,6 +1135,13 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 			Socket_fs::Context(proto, handle_fd);
 	} catch (New_socket_failed) { return Errno(ENFILE); }
 
+	if (context) {
+		int flags = 0;
+		if (type & SOCK_NONBLOCK) flags |= O_NONBLOCK;
+		if (type & SOCK_CLOEXEC)  flags |= O_CLOEXEC;
+		context->fd_flags(flags);
+	}
+
 	File_descriptor *fd = file_descriptor_allocator()->alloc(&plugin(), context);
 	if (!fd) {
 		Libc::Allocator alloc { };
@@ -1146,6 +1220,11 @@ int Socket_fs::Plugin::fcntl(File_descriptor *fd, int cmd, long arg)
 	if (!context) return Errno(EBADF);
 
 	switch (cmd) {
+	case F_GETFD:
+		return context->fd_flags();
+	case F_SETFD:
+		context->fd_flags(arg);
+		return 0;
 	case F_GETFL:
 		return context->fd_flags() | O_RDWR;
 	case F_SETFL:

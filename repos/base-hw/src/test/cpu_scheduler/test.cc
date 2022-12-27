@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,124 +18,109 @@
 /* core includes */
 #include <kernel/cpu_scheduler.h>
 
-/*
- * Utilities
- */
+using namespace Genode;
+using namespace Kernel;
 
-using Genode::size_t;
-using Genode::addr_t;
-using Genode::construct_at;
-using Kernel::Cpu_share;
-using Kernel::Cpu_scheduler;
-
-
-struct Data
+struct Main
 {
-	Cpu_share idle;
-	Cpu_scheduler scheduler;
-	char shares[9][sizeof(Cpu_share)];
+	enum { MAX_SHARES = 10 };
 
-	Data() : idle(0, 0), scheduler(idle, 1000, 100) { }
+	Constructible<Cpu_share> shares[MAX_SHARES] {};
+	Cpu_scheduler            scheduler;
+	time_t                   current_time { 0 };
+
+	Cpu_share & _idle()
+	{
+		if (!shares[0].constructed()) shares[0].construct(0, 0);
+		return *shares[0];
+	}
+
+	Main() : scheduler(_idle(), 1000, 100) { }
+
+	void done()
+	{
+		Genode::log("done");
+		while (1) ;
+	}
+
+	unsigned share_id(Cpu_share & share)
+	{
+		for (unsigned i = 0; i < MAX_SHARES; i++)
+			if (shares[i].constructed() && (&*shares[i] == &share))
+				return i;
+		return ~0U;
+	}
+
+	Cpu_share & share(unsigned const id)
+	{
+		return *shares[id];
+	}
+
+	void create(unsigned const id)
+	{
+		switch (id) {
+			case 1: shares[id].construct(2, 230); break;
+			case 2: shares[id].construct(0, 170); break;
+			case 3: shares[id].construct(3, 110); break;
+			case 4: shares[id].construct(1,  90); break;
+			case 5: shares[id].construct(3, 120); break;
+			case 6: shares[id].construct(3,   0); break;
+			case 7: shares[id].construct(2, 180); break;
+			case 8: shares[id].construct(2, 100); break;
+			case 9: shares[id].construct(2,   0); break;
+			default: return;
+		}
+		scheduler.insert(*shares[id]);
+	}
+
+	void destroy(unsigned const id)
+	{
+		if (!id || id >= MAX_SHARES)
+			return;
+
+		scheduler.remove(share(id));
+		shares[id].destruct();
+	}
+
+	unsigned time()
+	{
+		return scheduler.quota() - scheduler.residual();
+	}
+
+	void update_check(unsigned const l, unsigned const c, unsigned const t,
+	                  unsigned const s, unsigned const q)
+	{
+		current_time += c;
+		scheduler.update(current_time);
+		unsigned const st = time();
+		if (t != st) {
+			log("wrong time ", st, " in line ", l);
+			done();
+		}
+		Cpu_share & hs = scheduler.head();
+		unsigned const hq = scheduler.head_quota();
+		if (&hs != &share(s)) {
+			log("wrong share ", share_id(hs), " in line ", l);
+			done();
+		}
+		if (hq != q) {
+			log("wrong quota ", hq, " in line ", l);
+			done();
+		}
+	}
+
+	void ready_check(unsigned const l, unsigned const s, bool const x)
+	{
+		scheduler.ready(share(s));
+		if (scheduler.need_to_schedule() != x) {
+			log("wrong check result ", scheduler.need_to_schedule(), " in line ", l);
+			done();
+		}
+	}
+
+	void test();
 };
 
-
-Data * data()
-{
-	static Data d;
-	return &d;
-}
-
-
-void done()
-{
-	Genode::log("done");
-	while (1) ;
-}
-
-
-unsigned share_id(void * const pointer)
-{
-	addr_t const address = (addr_t)pointer;
-	addr_t const base = (addr_t)data()->shares;
-	if (address < base || address >= base + sizeof(data()->shares)) {
-		return 0; }
-	return (unsigned)((address - base) / sizeof(Cpu_share) + 1);
-}
-
-
-Cpu_share * share(unsigned const id)
-{
-	if (!id) { return &data()->idle; }
-	return reinterpret_cast<Cpu_share *>(&data()->shares[id - 1]);
-}
-
-
-void create(unsigned const id)
-{
-	Cpu_share * const s = share(id);
-	void * const p = (void *)s;
-	switch (id) {
-	case 1: construct_at<Cpu_share>(p, 2, 230); break;
-	case 2: construct_at<Cpu_share>(p, 0, 170); break;
-	case 3: construct_at<Cpu_share>(p, 3, 110); break;
-	case 4: construct_at<Cpu_share>(p, 1,  90); break;
-	case 5: construct_at<Cpu_share>(p, 3, 120); break;
-	case 6: construct_at<Cpu_share>(p, 3,   0); break;
-	case 7: construct_at<Cpu_share>(p, 2, 180); break;
-	case 8: construct_at<Cpu_share>(p, 2, 100); break;
-	case 9: construct_at<Cpu_share>(p, 2,   0); break;
-	default: return;
-	}
-	data()->scheduler.insert(*s);
-}
-
-
-void destroy(unsigned const id)
-{
-	Cpu_share * const s = share(id);
-	data()->scheduler.remove(*s);
-	s->~Cpu_share();
-}
-
-
-unsigned time()
-{
-	return data()->scheduler.quota() -
-	       data()->scheduler.residual();
-}
-
-
-void update_check(unsigned const l, unsigned const c, unsigned const t,
-                  unsigned const s, unsigned const q)
-{
-	data()->scheduler.update(c);
-	unsigned const st = time();
-	if (t != st) {
-		Genode::log("wrong time ", st, " in line ", l);
-		done();
-	}
-	Cpu_share &hs = data()->scheduler.head();
-	unsigned const hq = data()->scheduler.head_quota();
-	if (&hs != share(s)) {
-		unsigned const hi = share_id(&hs);
-		Genode::log("wrong share ", hi, " in line ", l);
-		done();
-	}
-	if (hq != q) {
-		Genode::log("wrong quota ", hq, " in line ", l);
-		done();
-	}
-}
-
-
-void ready_check(unsigned const l, unsigned const s, bool const x)
-{
-	data()->scheduler.ready_check(*share(s));
-	if (data()->scheduler.need_to_schedule() != x) {
-		Genode::log("wrong check result ", data()->scheduler.need_to_schedule(), " in line ", l);
-		done();
-	}
-}
 
 
 /*
@@ -144,10 +129,10 @@ void ready_check(unsigned const l, unsigned const s, bool const x)
 
 #define C(s)       create(s);
 #define D(s)       destroy(s);
-#define A(s)       data()->scheduler.ready(*share(s));
-#define I(s)       data()->scheduler.unready(*share(s));
-#define Y          data()->scheduler.yield();
-#define Q(s, q)    data()->scheduler.quota(*share(s), q);
+#define A(s)       scheduler.ready(share(s));
+#define I(s)       scheduler.unready(share(s));
+#define Y          scheduler.yield();
+#define Q(s, q)    scheduler.quota(share(s), q);
 #define U(c, t, s, q) update_check(__LINE__, c, t, s, q);
 #define O(s)       ready_check(__LINE__, s, true);
 #define N(s)       ready_check(__LINE__, s, false);
@@ -157,6 +142,13 @@ void ready_check(unsigned const l, unsigned const s, bool const x)
  * Main routine
  */
 void Component::construct(Genode::Env &)
+{
+	static Main main;
+	main.test();
+}
+
+
+void Main::test()
 {
 	/*
 	 * Step-by-step testing

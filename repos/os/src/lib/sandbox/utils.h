@@ -213,7 +213,7 @@ namespace Sandbox {
 
 		Location result = Location(0, 0, space.width(), space.height());
 
-		start_node.with_sub_node("affinity", [&] (Xml_node node) {
+		start_node.with_optional_sub_node("affinity", [&] (Xml_node node) {
 
 			Location const location = Location::from_xml(space, node);
 

@@ -1,0 +1,11 @@
+--- src/lib/e2fsprogs/e2fsck/util.c
++++ src/lib/e2fsprogs/e2fsck/util.c
+@@ -115,7 +115,7 @@
+ void *e2fsck_allocate_memory(e2fsck_t ctx, unsigned long size,
+ 			     const char *description)
+ {
+-	void *ret;
++	void *ret = NULL;
+ 	char buf[256];
+ 
+ #ifdef DEBUG_ALLOCATE_MEMORY

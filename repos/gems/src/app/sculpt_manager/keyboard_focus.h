@@ -18,6 +18,7 @@
 #include <os/reporter.h>
 
 /* local includes */
+#include <model/wpa_passphrase.h>
 #include <types.h>
 #include <view/network_dialog.h>
 #include <view/panel_dialog.h>

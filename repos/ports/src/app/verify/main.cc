@@ -33,7 +33,7 @@ struct Verify::Main
 
 	bool _verbose = false;
 
-	Constructible<Reporter> _reporter { };
+	Constructible<Expanding_reporter> _reporter { };
 
 	typedef String<256> Path;
 	typedef String<64>  Message;
@@ -91,11 +91,10 @@ void Verify::Main::_handle_config_with_libc()
 	_verbose = _config.xml().attribute_value("verbose", false);
 
 	if (!_reporter.constructed()) {
-		_reporter.construct(_env, "result");
-		_reporter->enabled(true);
+		_reporter.construct(_env, "result", "result");
 	}
 
-	Reporter::Xml_generator xml(*_reporter, [&] () {
+	_reporter->generate([&] (Xml_generator &xml) {
 		config.for_each_sub_node("verify", [&] (Xml_node node) {
 			_process_verify_node(node, xml); }); });
 }

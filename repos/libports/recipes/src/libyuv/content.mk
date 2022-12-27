@@ -11,12 +11,10 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libyuv)
 src/lib/libyuv:
 	mkdir -p $@
 	cp -r $(PORT_DIR)/src/lib/libyuv/source $@
-	echo "LIBS = libyuv" > $@/target.mk
 
 include:
 	mkdir -p $@
 	cp -a $(PORT_DIR)/include/* $@
-
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)

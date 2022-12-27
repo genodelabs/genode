@@ -89,7 +89,7 @@ void Sculpt::Deploy::handle_deploy()
 
 	/* determine CPU architecture of deployment */
 	_arch = managed_deploy.attribute_value("arch", Arch());
-	if (!_arch.valid())
+	if ((managed_deploy.type() != "empty") && !_arch.valid())
 		warning("managed deploy config lacks 'arch' attribute");
 
 	try { _children.apply_config(managed_deploy); }

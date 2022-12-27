@@ -485,10 +485,32 @@ sub-tags. The attribute states the domain from whose IP config to take the DNS
 domain name and the list of DNS server addresses that shall be propagated. Note
 that the order of DNS server adresses is not altered thereby. This is useful in
 scenarios where these addresses must be obtained dynamically through the DHCP
-client of another domain. An implication of the 'dns_config_from' attribute is
-that the link state of all interfaces at the domain with the DHCP server
-becomes bound to the validity of the IP config of the domain that is stated in
-the attribute.
+client of another domain.
+
+There is an additional feature the router implements together with the
+'dns_config_from' functionality. If a domain has a DHCP server with a
+'dns_config_from' value that denominates another valid domain, the link state
+of all interfaces, where the router is a NIC session server, at the first
+domain becomes bound to the validity of the IP config of the second domain.
+
+One motivation for having this feature is to optimize the network boot-up time
+of application clients of the NIC router by preventing DHCP re-attempt
+timeouts. Such timeouts would occur because clients attempt DHCP as soon as
+their interface goes up and without the extra feature, the DHCP server would
+potentially not be ready yet.
+
+But this feature is not only an optimization. It also implies that whenever the
+domain denominated by 'dns_config_from' receives a new IP config with a new DNS
+configuration, application clients are poked via a link state "down-up"
+sequence to re-request DHCP and thereby update their DNS configuration. I.e. it
+enables dynamic DNS config propagation.
+
+However, please be aware this feature is limited to applications that connect
+directly and via a NIC session client to the NIC router. This is due to two
+technical limitations. First, the router can't control the link state at
+interfaces where he acts as NIC session client or Uplink session server. And
+second, the router can't ensure that link state changes reach the client if
+there are intermediate network components like a NIC bridge.
 
 The lifetime of an IP address assignment that was yet only offered to the
 client can be configured for all domains in the <config> tag of the router:
@@ -720,10 +742,10 @@ information on that, refer to [Behavior regarding the NIC-session link state].
 
 'link_state_triggers'
 
-A boolean value that controls whether to enforce sending a report each time the
-state that is controlled through the 'link_state' attribute of the <report> tag
-changes. I.e., whenever the real link state of any interface at the router has
-changed.
+A boolean value that controls whether to enforce sending a report whenever the
+real link state (see description of the 'link_state' attribute) of any
+interface at the router has changed. Note that whenever an interface is created
+or destroyed this is considered a change of its real link state.
 
 'interval_sec'
 
@@ -743,7 +765,7 @@ Whether to log router decisions and optional hints.
 
 ! <config verbose_packets="no" ... >
 !     <domain verbose_packets="no" ... />
-! <config/>
+! </config>
 
 Whether to log most important protocol header fields of each packet that is
 received or sent (ETH, IPv4, ARP, UDP, TCP, DHCP, ICMP). The <config> value
@@ -751,7 +773,7 @@ affects all domains without a <domain> local value.
 
 ! <config verbose_packet_drop="no" ... >
 !     <domain verbose_packet_drop="no" ... />
-! <config/>
+! </config>
 
 Whether to log each packet drop and the rational behind it. The <config> value
 affects all domains without a <domain> local value.
@@ -760,6 +782,28 @@ affects all domains without a <domain> local value.
 
 Whether to log most important changes in the state of a domain (number of
 interfaces assigned, current IPv4 config).
+
+
+Tracing
+~~~~~~~
+
+You can use Genode's TRACE service to capture all packets that traverse the
+router. This requires a monitor component such as the trace-recorder component
+that provides and activates a corresponding trace buffer and trace policy.
+More precisely, packet tracing is realised via the 'trace_eth_packet()' hook
+that needs to be implemented by the trace policy. Note that packet tracing must
+also be enabled in the router configuration.
+
+This is how you can configure whether to trace packets (default values shown):
+
+! <config trace_packets="no">
+!     <domain trace_packets="no" ... />
+! </config>
+
+If enabled, 'trace_eth_packet()' is called for every packet received or sent by
+the router. The attribute in the <domain> tag applies only for packets
+received and sent by that domain. The attribute in the <config> tag sets the
+default value for all <domain> tags without a local setting.
 
 
 Other configuration attributes
@@ -793,7 +837,7 @@ this can lead to starvation of the other interfaces. Thus, the maximum number
 of packets handled per signal is limited by default. This limit can be
 configured as follows (default value shown):
 
-! <config max_packets_per_signal="32">
+! <config max_packets_per_signal="150">
 
 When set to zero, the limit is deactivated, meaning that the router always
 handles all available packets of an interface.
@@ -899,7 +943,7 @@ following configuration:
 ! <policy label_prefix="virtnet_b" domain="virtnet_b" />
 ! <policy label_prefic="nic_drv"   domain="home_lan"  />
 !
-! <domain name="home_lan" interface="10.0.2.55/24" gateway="10.0.2.1/24">
+! <domain name="home_lan" interface="10.0.2.55/24" gateway="10.0.2.1">
 !    <ip dst="192.168.1.0/24" domain="virtnet_a"/>
 !    <ip dst="192.168.2.0/24" domain="virtnet_b"/>
 ! </domain>
@@ -939,7 +983,7 @@ internet. The router would have the following configuration:
 ! <policy label_prefix="virtnet_b" domain="virtnet_b" />
 ! <policy label_prefic="nic_drv"   domain="home_lan"  />
 !
-! <domain name="home_lan" interface="10.0.2.55/24" gateway="10.0.2.1/24">
+! <domain name="home_lan" interface="10.0.2.55/24" gateway="10.0.2.1">
 !    <nat domain="virtnet_a" tcp_ports="1000" udp_ports="1000">
 ! </domain>
 !

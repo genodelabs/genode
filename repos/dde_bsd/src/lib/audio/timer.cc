@@ -220,6 +220,8 @@ class Bsd::Timer
 			bool const queued = _timeout->scheduled();
 			_timeout->discard();
 
+			_timeout.destruct();
+
 			return queued ? 1 : 0;
 		}
 
@@ -303,6 +305,14 @@ extern "C" int msleep(const volatile void *ident, struct mutex *mtx,
 	sleep_task->block_and_schedule();
 
 	return 0;
+}
+
+
+extern "C" int
+msleep_nsec(const volatile void *ident, struct mutex *mtx, int priority,
+			const char *wmesg, uint64_t nsecs)
+{
+	return msleep(ident, mtx, priority, wmesg, nsecs / 1000000);
 }
 
 

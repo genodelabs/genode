@@ -82,14 +82,19 @@ include $(BASE_DIR)/mk/base-libs.mk
 include $(LIB_MK)
 
 ifdef SHARED_LIB
-LIBS += ldso_so_support
+BUILD_ARTIFACTS ?= $(LIB).lib.so
+endif
 
 # record creation of shared library build artifact
 append_artifact_to_progress_log:
-	@echo -e "\n# Build artifact $(LIB).lib.so\n" >> $(LIB_PROGRESS_LOG)
+	@( $(foreach A,$(BUILD_ARTIFACTS),\
+	      echo -e "\n# Build artifact $A\n";) true \
+	) >> $(LIB_PROGRESS_LOG)
 append_lib_to_progress_log: append_artifact_to_progress_log
-endif
 
+ifdef SHARED_LIB
+LIBS += ldso_so_support
+endif
 
 #
 # Hide archive dependencies of shared libraries from users of the shared
@@ -98,9 +103,11 @@ endif
 # undefined.
 #
 ifdef SHARED_LIB
-DEP_A_VAR_NAME := PRIVATE_DEP_A_$(LIB)
+DEP_A_VAR_NAME  := PRIVATE_DEP_A_$(LIB)
+DEP_SO_VAR_NAME := PRIVATE_DEP_SO_$(LIB)
 else
-DEP_A_VAR_NAME := DEP_A_$(LIB)
+DEP_A_VAR_NAME  := DEP_A_$(LIB)
+DEP_SO_VAR_NAME := DEP_SO_$(LIB)
 endif
 
 #
@@ -117,8 +124,9 @@ warn_unsatisfied_requirements: generate_lib_rule_for_defect_library
 	@$(ECHO) "Skip library $(LIB) because it requires $(DARK_COL)$(UNSATISFIED_REQUIREMENTS)$(DEFAULT_COL)"
 
 generate_lib_rule_for_defect_library:
-	@echo "INVALID_DEPS += $(LIB)" >> $(LIB_DEP_FILE)
-	@echo "" >> $(LIB_DEP_FILE)
+	@(echo "INVALID_DEPS += $(LIB)"; \
+	  echo "$(LIB).lib:"; \
+	  echo "") >> $(LIB_DEP_FILE)
 
 LIBS_TO_VISIT = $(filter-out $(LIBS_READY),$(LIBS))
 
@@ -130,8 +138,8 @@ endif
 	@for i in $(LIBS_TO_VISIT); do \
 	  $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk REP_DIR=$(REP_DIR) LIB=$$i; done
 ifneq ($(LIBS),)
-	@(echo "$(DEP_A_VAR_NAME) = $(foreach l,$(LIBS),\$${ARCHIVE_NAME($l)} \$$(DEP_A_$l))"; \
-	  echo "DEP_SO_$(LIB) = $(foreach l,$(LIBS),\$${SO_NAME($l)} \$$(DEP_SO_$l))"; \
+	@(echo "$(DEP_A_VAR_NAME)  = $(foreach l,$(LIBS),\$${ARCHIVE_NAME($l)} \$$(DEP_A_$l))"; \
+	  echo "$(DEP_SO_VAR_NAME) = $(foreach l,$(LIBS),\$${SO_NAME($l)} \$$(DEP_SO_$l))"; \
 	  echo "") >> $(LIB_DEP_FILE)
 endif
 	@(echo "$(LIB).lib: check_ports $(addsuffix .lib,$(LIBS))"; \
@@ -142,7 +150,7 @@ endif
 	  echo "	     SYMBOLS=$(SYMBOLS) \\"; \
 	  echo "	     LIB=$(LIB) \\"; \
 	  echo "	     ARCHIVES=\"\$$(sort \$$($(DEP_A_VAR_NAME)))\" \\"; \
-	  echo "	     SHARED_LIBS=\"\$$(sort \$$(DEP_SO_$(LIB)))\" \\"; \
+	  echo "	     SHARED_LIBS=\"\$$(sort \$$($(DEP_SO_VAR_NAME)))\" \\"; \
 	  echo "	     BUILD_BASE_DIR=$(BUILD_BASE_DIR) \\"; \
 	  echo "	     SHELL=$(SHELL) \\"; \
 	  echo "	     INSTALL_DIR=\$$(INSTALL_DIR) \\"; \

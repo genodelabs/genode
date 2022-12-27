@@ -49,16 +49,18 @@ class Block::Session_component_base
 
 		Driver_factory          &_driver_factory;
 		Driver                  &_driver;
-		Ram_dataspace_capability _rq_ds;
+		Driver::Dma_buffer       _rq;
 
 		Session_component_base(Driver_factory &factory, size_t tx_buf_size)
-		: _driver_factory(factory),
-		  _driver(*factory.create()),
-		  _rq_ds(_driver.alloc_dma_buffer(tx_buf_size, UNCACHED)) {}
+		:
+			_driver_factory(factory),
+			_driver(*factory.create()),
+			_rq(_driver.alloc_dma_buffer(tx_buf_size, UNCACHED))
+		{ }
 
 		~Session_component_base()
 		{
-			_driver.free_dma_buffer(_rq_ds);
+			_driver.free_dma_buffer(_rq.ds);
 			_driver_factory.destroy(&_driver);
 		}
 };
@@ -211,8 +213,8 @@ class Block::Session_component : public Block::Session_component_base,
 		                  size_t              buf_size,
 		                  bool                writeable)
 		: Session_component_base(driver_factory, buf_size),
-		  Driver_session(rm, _rq_ds, ep.rpc_ep()),
-		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
+		  Driver_session(rm, _rq.ds, ep.rpc_ep()),
+		  _rq_phys(_rq.dma_addr),
 		  _sink_ack(ep, *this, &Session_component::_signal),
 		  _sink_submit(ep, *this, &Session_component::_signal),
 		  _req_queue_full(false),
@@ -290,21 +292,14 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 			size_t tx_buf_size =
 				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
-			/* delete ram quota by the memory needed for the session */
-			size_t session_size = max((size_t)4096,
-			                          sizeof(Session_component)
-			                          + sizeof(Allocator_avl));
-			if (ram_quota < session_size)
-				throw Insufficient_ram_quota();
-
 			/*
 			 * Check if donated ram quota suffices for both
 			 * communication buffers. Also check both sizes separately
 			 * to handle a possible overflow of the sum of both sizes.
 			 */
-			if (tx_buf_size > ram_quota - session_size) {
+			if (tx_buf_size > ram_quota) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", need ",
-				     tx_buf_size + session_size);
+				     tx_buf_size);
 				throw Insufficient_ram_quota();
 			}
 

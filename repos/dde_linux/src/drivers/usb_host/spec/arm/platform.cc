@@ -116,7 +116,7 @@ void lx_platform_device_init()
 
 				Device_interface::Range range { };
 				Io_mem_session_client io_mem_client {
-					device_cap.call<Device_interface::Rpc_io_mem>(res_count, range, UNCACHED) };
+					device_cap.call<Device_interface::Rpc_io_mem>(res_count, range) };
 
 				Io_mem & iom = *new (Lx_kit::env().heap())
 					Io_mem(io_mem_client.dataspace(), range.start, range.size,
@@ -199,6 +199,12 @@ Ram_dataspace_capability Lx::backend_alloc(addr_t size, Cache cache)
 void Lx::backend_free(Ram_dataspace_capability cap)
 {
 	return resource_env().platform.free_dma_buffer(cap);
+}
+
+
+Genode::addr_t Lx::backend_dma_addr(Genode::Ram_dataspace_capability cap)
+{
+	return resource_env().platform.dma_addr(cap);
 }
 
 

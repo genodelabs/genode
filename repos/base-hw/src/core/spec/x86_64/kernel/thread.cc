@@ -43,7 +43,10 @@ void Kernel::Thread::_call_cache_invalidate_data_region() { }
 
 void Kernel::Thread::proceed(Cpu & cpu)
 {
-	cpu.switch_to(*regs, pd().mmu_regs);
+	if (!cpu.active(pd().mmu_regs) && type() != CORE)
+		cpu.switch_to(pd().mmu_regs);
+
+	cpu.switch_to(*regs);
 
 	asm volatile("fxrstor (%1)    \n"
 	             "mov  %0, %%rsp  \n"

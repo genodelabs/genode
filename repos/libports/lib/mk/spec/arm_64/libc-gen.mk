@@ -14,7 +14,7 @@ SRC_C += flt_rounds.c fpgetmask.c fpsetmask.c infinity.c makecontext.c
 # path is in effect when building the libc from a source archive (where the
 # ucontext.h header is taken from the libc API archive).
 #
-CC_OPT_makecontext = -I$(call select_from_ports,libc)/include/libc/sys \
+CC_OPT_makecontext = -I$(LIBC_PORT_DIR)/include/libc/sys \
                      $(addprefix -I,$(call select_from_repositories,include/libc/sys))
 
 vpath %.c $(LIBC_GEN_ARM64_DIR)

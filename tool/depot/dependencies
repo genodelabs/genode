@@ -22,8 +22,10 @@ endef
 
 export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
 
-include $(GENODE_DIR)/tool/depot/mk/front_end.inc
-include $(GENODE_DIR)/tool/depot/mk/categorize_args.inc
+DEPOT_TOOL_DIR ?= $(GENODE_DIR)/tool/depot
+
+include $(DEPOT_TOOL_DIR)/mk/front_end.inc
+include $(DEPOT_TOOL_DIR)/mk/categorize_args.inc
 
 
 #
@@ -42,7 +44,7 @@ pkg_src_archives  = $(call _pkg_archives_of_type,src,$1)
 pkg_raw_archives  = $(call _pkg_archives_of_type,raw,$1)
 pkg_pkg_archives  = $(call _pkg_archives_of_type,pkg,$1)
 
-include $(GENODE_DIR)/tool/depot/mk/dependencies.inc
+include $(DEPOT_TOOL_DIR)/mk/dependencies.inc
 
 
 #

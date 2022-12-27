@@ -22,13 +22,17 @@
 
 using namespace Genode;
 using namespace Kernel;
-using Device = Board::Timer;
+
+using Device    = Board::Timer;
+using counter_t = Board::Timer::Counter::access_t;
 
 
 enum {
 	TICS_PER_MS =
 		Board::CORTEX_A9_PRIVATE_TIMER_CLK /
-		Board::CORTEX_A9_PRIVATE_TIMER_DIV / 1000
+		Board::CORTEX_A9_PRIVATE_TIMER_DIV / 1000,
+
+	MAX_COUNTER_VAL = ~(counter_t)0
 };
 
 
@@ -79,12 +83,33 @@ time_t Timer::us_to_ticks(time_t const us) const {
 
 time_t Timer::_duration() const
 {
-	Device::Counter::access_t last = _last_timeout_duration;
-	Device::Counter::access_t cnt  = _device.read<Device::Counter>();
-	Device::Counter::access_t ret  = (_device.read<Device::Interrupt_status::Event>())
-		? _max_value() - cnt + last : last - cnt;
-	return ret;
+	counter_t const start_counter_val { (counter_t)_last_timeout_duration };
+	counter_t const curr_counter_val  { _device.read<Device::Counter>() };
+
+	/*
+	 * Calculate result depending on whether the counter already wrapped or
+	 * not. See the comment in the implementation of '_max_value' for an
+	 * explanation why this comparison is done instead of checking the IRQ
+	 * status and why it is sufficient.
+	 */
+	if (curr_counter_val > start_counter_val)
+		return start_counter_val + (MAX_COUNTER_VAL - curr_counter_val);
+
+	return start_counter_val - curr_counter_val;
 }
 
 
-time_t Timer::_max_value() const { return 0xfffffffe; }
+time_t Timer::_max_value() const
+{
+	/*
+	 * We propagate a max timeout value far lower than the one required
+	 * by the hardware. This is because on some platforms (Qemu 4.2.1 PBXA9),
+	 * the IRQ status register is not reliable. Sometimes, it indicates an IRQ
+	 * too early, i.e., shortly before the counter wraps. Therefore we have to
+	 * accomplish wrap detection via counter comparison only. Therefore, we
+	 * have to make sure that we always read out the counter before it hits
+	 * the max timout value again. And, therefore, the max timeout value has
+	 * to be far away from the first value the counter has after wrapping.
+	 */
+	return MAX_COUNTER_VAL >> 1;
+}

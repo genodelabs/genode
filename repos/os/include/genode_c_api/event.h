@@ -1,6 +1,7 @@
 /*
  * \brief  C interface to Genode's event session
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2021-09-29
  */
 
@@ -62,9 +63,16 @@ struct genode_event_submit;
 
 /**
  * Interface called by 'genode_event_generator_t' to submit events
+ *
+ * Note, keycode values must conform to os/include/input/keycodes.h.
  */
 struct genode_event_submit
 {
+	void (*press) (struct genode_event_submit *, unsigned keycode);
+	void (*release) (struct genode_event_submit *, unsigned keycode);
+
+	void (*rel_motion) (struct genode_event_submit *, int x, int y);
+
 	void (*touch) (struct genode_event_submit *,
 	               struct genode_event_touch_args const *);
 

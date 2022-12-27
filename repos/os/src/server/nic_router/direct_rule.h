@@ -73,21 +73,36 @@ struct Net::Direct_rule_list : List<T>
 {
 	using Base = List<T>;
 
-	struct No_match : Genode::Exception { };
-
-	T const &longest_prefix_match(Ipv4_address const &ip) const
+	template <typename HANDLE_MATCH_FN,
+	          typename HANDLE_NO_MATCH_FN>
+	void
+	find_longest_prefix_match(Ipv4_address    const &ip,
+	                          HANDLE_MATCH_FN    &&  handle_match,
+	                          HANDLE_NO_MATCH_FN &&  handle_no_match) const
 	{
-		/* first match is sufficient as the list is prefix-size-sorted */
-		for (T const *curr = Base::first(); curr; curr = curr->next()) {
-			if (curr->dst().prefix_matches(ip)) {
-				return *curr; }
+		/*
+		 * Simply handling the first match is sufficient as the list is
+		 * sorted by the prefix size in descending order.
+		 */
+		for (T const *rule_ptr = Base::first();
+		     rule_ptr != nullptr;
+		     rule_ptr = rule_ptr->next()) {
+
+			if (rule_ptr->dst().prefix_matches(ip)) {
+
+				handle_match(*rule_ptr);
+				return;
+			}
 		}
-		throw No_match();
+		handle_no_match();
 	}
 
 	void insert(T &rule)
 	{
-		/* ensure that the list stays prefix-size-sorted (descending) */
+		/*
+		 * Ensure that the list stays sorted by the prefix size in descending
+		 * order.
+		 */
 		T *behind = nullptr;
 		for (T *curr = Base::first(); curr; curr = curr->next()) {
 			if (rule.dst().prefix >= curr->dst().prefix) {

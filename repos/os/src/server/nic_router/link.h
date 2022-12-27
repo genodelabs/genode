@@ -42,6 +42,7 @@
 #include <reference.h>
 #include <pointer.h>
 #include <l3_protocol.h>
+#include <lazy_one_shot_timeout.h>
 
 namespace Net {
 
@@ -78,7 +79,7 @@ struct Net::Link_side_id
 	 ** Standard operators **
 	 ************************/
 
-	bool operator == (Link_side_id const &id) const;
+	bool operator != (Link_side_id const &id) const;
 
 	bool operator > (Link_side_id const &id) const;
 }
@@ -101,7 +102,33 @@ class Net::Link_side : public Genode::Avl_node<Link_side>
 		          Link_side_id const &id,
 		          Link               &link);
 
-		Link_side const &find_by_id(Link_side_id const &id) const;
+		template <typename HANDLE_MATCH_FN,
+		          typename HANDLE_NO_MATCH_FN>
+
+		void find_by_id(Link_side_id    const &id,
+		                HANDLE_MATCH_FN    &&  handle_match,
+		                HANDLE_NO_MATCH_FN &&  handle_no_match) const
+		{
+			if (id != _id) {
+
+				Link_side *const link_side_ptr {
+					Avl_node<Link_side>::child(id > _id) };
+
+				if (link_side_ptr != nullptr) {
+
+					link_side_ptr->find_by_id(
+						id, handle_match, handle_no_match);
+
+				} else {
+
+					handle_no_match();
+				}
+
+			} else {
+
+				handle_match(*this);
+			}
+		}
 
 		bool is_client() const;
 
@@ -135,9 +162,22 @@ class Net::Link_side : public Genode::Avl_node<Link_side>
 
 struct Net::Link_side_tree : Genode::Avl_tree<Link_side>
 {
-	struct No_match : Genode::Exception { };
+	template <typename HANDLE_MATCH_FN,
+	          typename HANDLE_NO_MATCH_FN>
 
-	Link_side const &find_by_id(Link_side_id const &id) const;
+	void find_by_id(Link_side_id    const &id,
+	                HANDLE_MATCH_FN    &&  handle_match,
+	                HANDLE_NO_MATCH_FN &&  handle_no_match) const
+	{
+		if (first() != nullptr) {
+
+			first()->find_by_id(id, handle_match, handle_no_match);
+
+		} else {
+
+			handle_no_match();
+		}
+	}
 };
 
 
@@ -148,7 +188,7 @@ class Net::Link : public Link_list::Element
 		Reference<Configuration>       _config;
 		Interface                     &_client_interface;
 		Pointer<Port_allocator_guard>  _server_port_alloc;
-		Timer::One_shot_timeout<Link>  _dissolve_timeout;
+		Lazy_one_shot_timeout<Link>    _dissolve_timeout;
 		Genode::Microseconds           _dissolve_timeout_us;
 		L3_protocol             const  _protocol;
 		Link_side                      _client;
@@ -170,7 +210,7 @@ class Net::Link : public Link_list::Element
 		     Pointer<Port_allocator_guard>        srv_port_alloc,
 		     Domain                              &srv_domain,
 		     Link_side_id                  const &srv_id,
-		     Timer::Connection                   &timer,
+		     Cached_timer                        &timer,
 		     Configuration                       &config,
 		     L3_protocol                   const  protocol,
 		     Genode::Microseconds          const  dissolve_timeout,
@@ -234,7 +274,7 @@ class Net::Tcp_link : public Link
 		         Pointer<Port_allocator_guard>  srv_port_alloc,
 		         Domain                        &srv_domain,
 		         Link_side_id            const &srv_id,
-		         Timer::Connection             &timer,
+		         Cached_timer                  &timer,
 		         Configuration                 &config,
 		         L3_protocol             const  protocol,
 		         Interface_link_stats          &stats);
@@ -252,7 +292,7 @@ struct Net::Udp_link : Link
 	         Pointer<Port_allocator_guard>  srv_port_alloc,
 	         Domain                        &srv_domain,
 	         Link_side_id            const &srv_id,
-	         Timer::Connection             &timer,
+	         Cached_timer                  &timer,
 	         Configuration                 &config,
 	         L3_protocol             const  protocol,
 	         Interface_link_stats          &stats);
@@ -270,7 +310,7 @@ struct Net::Icmp_link : Link
 	          Pointer<Port_allocator_guard>  srv_port_alloc,
 	          Domain                        &srv_domain,
 	          Link_side_id            const &srv_id,
-	          Timer::Connection             &timer,
+	          Cached_timer                  &timer,
 	          Configuration                 &config,
 	          L3_protocol             const  protocol,
 	          Interface_link_stats          &stats);

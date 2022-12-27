@@ -48,6 +48,10 @@ The '<output>' node can contain the following sub nodes:
   has an 'input' attribute, the content of the specified input is taken
   as attribute value.
 
+:'<node>':
+  Adds a sub node with the specified 'type'. The content of <node> is evaluated
+  to generate the content of the added sub node.
+
 
 Conditions
 ----------

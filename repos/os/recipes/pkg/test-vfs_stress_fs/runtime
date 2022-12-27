@@ -34,7 +34,7 @@
 			<resource name="RAM" quantum="8M"/>
 			<config depth="16"> <vfs> <fs/> </vfs> </config>
 		</start>
-		<start name="ram_fs">
+		<start name="ram_fs" caps="120">
 			<resource name="RAM" quantum="80M"/>
 			<binary name="vfs"/>
 			<provides><service name="File_system"/></provides>

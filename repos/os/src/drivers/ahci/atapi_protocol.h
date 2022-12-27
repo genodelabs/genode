@@ -41,9 +41,8 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		void _read_sense(Port &port)
 		{
-			addr_t phys   = Dataspace_client(port.device_info_ds).phys_addr();
-
-			Command_table table(port.command_table_addr(0), phys, 0x1000);
+			Command_table table(port.command_table_addr(0),
+			                    port.device_info_dma_addr, 0x1000);
 			table.fis.atapi();
 			table.atapi_cmd.read_sense();
 
@@ -61,9 +60,8 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		void _read_capacity(Port &port)
 		{
-			addr_t phys = Dataspace_client(port.device_info_ds).phys_addr();
-
-			Command_table table(port.command_table_addr(0), phys, 0x1000);
+			Command_table table(port.command_table_addr(0),
+			                    port.device_info_dma_addr, 0x1000);
 			table.fis.atapi();
 			table.fis.byte_count(~0);
 
@@ -95,21 +93,21 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 				[&] {
 
 					_start_unit(port);
-					port.wait_for_any(port.hba.delayer(),
+					port.wait_for_any(port.delayer,
 					                  Port::Is::Dss::Equal(1), Port::Is::Pss::Equal(1),
 					                  Port::Is::Dhrs::Equal(1));
 					port.ack_irq();
 
 					/* read sense */
 					_read_sense(port);
-					port.wait_for_any(port.hba.delayer(),
+					port.wait_for_any(port.delayer,
 					                  Port::Is::Dss::Equal(1), Port::Is::Pss::Equal(1),
 					                  Port::Is::Dhrs::Equal(1));
 					port.ack_irq();
 
 						/* test unit ready */
 					_test_unit_ready(port);
-					port.wait_for(port.hba.delayer(), Port::Is::Dhrs::Equal(1));
+					port.wait_for(port.delayer, Port::Is::Dhrs::Equal(1));
 					port.ack_irq();
 
 					Device_fis f(port.fis_base);
@@ -118,7 +116,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 						throw Port::Polling_timeout();
 
 					_read_capacity(port);
-					port.wait_for_any(port.hba.delayer(),
+					port.wait_for_any(port.delayer,
 					                  Port::Is::Dss::Equal(1), Port::Is::Pss::Equal(1),
 					                  Port::Is::Dhrs::Equal(1));
 					port.ack_irq();

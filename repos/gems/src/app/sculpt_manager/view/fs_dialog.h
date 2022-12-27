@@ -14,6 +14,7 @@
 #ifndef _VIEW__FS_DIALOG_H_
 #define _VIEW__FS_DIALOG_H_
 
+#include <feature.h>
 #include <view/dialog.h>
 #include <model/storage_target.h>
 
@@ -48,14 +49,16 @@ struct Sculpt::Fs_dialog : Noncopyable, Dialog
 
 	void generate(Xml_generator &xml, File_system const &file_system) const
 	{
-		xml.node("button", [&] () {
-			_inspect_item.gen_button_attr(xml, "browse");
+		if (Feature::INSPECT_VIEW) {
+			xml.node("button", [&] () {
+				_inspect_item.gen_button_attr(xml, "browse");
 
-			if (file_system.inspected)
-				xml.attribute("selected", "yes");
+				if (file_system.inspected)
+					xml.attribute("selected", "yes");
 
-			xml.node("label", [&] () { xml.attribute("text", "Inspect"); });
-		});
+				xml.node("label", [&] () { xml.attribute("text", "Inspect"); });
+			});
+		}
 
 		if (!_used_target.valid() || _used_target == _target) {
 			xml.node("button", [&] () {

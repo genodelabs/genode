@@ -78,7 +78,6 @@ class Genode::Trace::Session_component
 		Dataspace_capability policy(Policy_id) override;
 		void unload_policy(Policy_id) override;
 		void trace(Subject_id, Policy_id, size_t) override;
-		void rule(Session_label const &, Thread_name const &, Policy_id, size_t) override;
 		void pause(Subject_id) override;
 		void resume(Subject_id) override;
 		Dataspace_capability buffer(Subject_id) override;

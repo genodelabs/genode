@@ -65,7 +65,7 @@ proc run_boot_dir_x86 {binaries} {
 	set kernel_arg ""
 	set ld_arg     ""
 	if {![file exists [run_dir]/genode/foc]}       { set kernel_arg "kernel/foc" }
-	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     "lib/ld/foc" }
+	if {![file exists [run_dir]/genode/ld.lib.so]} { set ld_arg     "lib/ld-foc" }
 	set targets "$kernel_arg $ld_arg"
 
 	if {[llength $targets]} { build $targets }
@@ -146,7 +146,7 @@ proc run_boot_dir_x86 {binaries} {
 	}
 
 	if {[have_include "load/ipxe"]} {
-		create_ipxe_iso_config
+		create_ipxe_config
 		update_ipxe_boot_dir
 		create_symlink_for_iso
 	}
@@ -157,7 +157,7 @@ proc run_boot_dir_arm { binaries } {
 
 	global run_target
 
-	build { lib/ld/foc kernel/foc }
+	build { lib/ld-foc kernel/foc }
 
 	build_core_image $binaries
 

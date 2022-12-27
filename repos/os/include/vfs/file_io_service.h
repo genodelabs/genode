@@ -141,17 +141,6 @@ struct Vfs::File_io_service : Interface
 		return IOCTL_ERR_INVALID;
 	}
 
-
-	/**
-	 * Return true if an unblocking condition of the file is satisfied
-	 *
-	 * \param rd  if true, check for data available for reading
-	 * \param wr  if true, check for readiness for writing
-	 * \param ex  if true, check for exceptions
-	 */
-	virtual bool check_unblock(Vfs_handle *, bool /* rd */, bool /* wr */, bool /* ex */)
-	{ return true; }
-
 	virtual void register_read_ready_sigh(Vfs_handle *, Signal_context_capability)
 	{ }
 

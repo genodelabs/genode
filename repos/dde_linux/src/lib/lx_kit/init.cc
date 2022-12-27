@@ -16,7 +16,11 @@
 #include <lx_kit/env.h>
 #include <lx_kit/init.h>
 
-namespace Lx_kit { class Initcalls; }
+namespace Lx_kit {
+
+	class Initcalls;
+	class Pci_fixup_calls;
+}
 
 
 void Lx_kit::Initcalls::add(int (*initcall)(void), unsigned int prio) {
@@ -40,8 +44,18 @@ void Lx_kit::Initcalls::execute_in_order()
 }
 
 
+void Lx_kit::Pci_fixup_calls::add(void (*fn)(struct pci_dev*)) {
+	_call_list.insert(new (_heap) E(fn)); }
+
+
+void Lx_kit::Pci_fixup_calls::execute(struct pci_dev *pci_dev)
+{
+	for (E * entry = _call_list.first(); entry; entry = entry->next())
+		entry->call(pci_dev);
+}
+
+
 void Lx_kit::initialize(Genode::Env & env)
 {
 	Lx_kit::env(&env);
-	env.exec_static_constructors();
 }

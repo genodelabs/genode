@@ -20,6 +20,7 @@
 #include <pointer.h>
 #include <dns.h>
 #include <ipv4_config.h>
+#include <cached_timer.h>
 
 /* Genode includes */
 #include <net/mac_address.h>
@@ -39,7 +40,7 @@ namespace Net {
 	/* forward declarations */
 	class Interface;
 	class Domain;
-	class Domain_tree;
+	class Domain_dict;
 }
 
 
@@ -80,7 +81,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 		Genode::Microseconds _init_ip_lease_time(Genode::Xml_node const node);
 
 		Pointer<Domain> _init_dns_config_from(Genode::Xml_node const  node,
-		                                      Domain_tree            &domains);
+		                                      Domain_dict            &domains);
 
 		Ipv4_config const &_resolve_dns_config_from() const;
 
@@ -95,7 +96,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 		            Domain                    &domain,
 		            Genode::Allocator         &alloc,
 		            Ipv4_address_prefix const &interface,
-		            Domain_tree               &domains);
+		            Domain_dict               &domains);
 
 		Ipv4_address alloc_ip();
 
@@ -104,7 +105,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 		void free_ip(Domain       const &domain,
 		             Ipv4_address const &ip);
 
-		bool ready() const;
+		bool has_invalid_remote_dns_cfg() const;
 
 		template <typename FUNC>
 		void for_each_dns_server_ip(FUNC && functor) const
@@ -123,6 +124,8 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 				});
 			}
 		}
+
+		bool dns_servers_empty() const;
 
 		Dns_domain_name const &dns_domain_name() const
 		{
@@ -171,7 +174,7 @@ class Net::Dhcp_allocation : public  Genode::Avl_node<Dhcp_allocation>,
 		Dhcp_allocation(Interface            &interface,
 		                Ipv4_address   const &ip,
 		                Mac_address    const &mac,
-		                Timer::Connection    &timer,
+		                Cached_timer         &timer,
 		                Genode::Microseconds  lifetime);
 
 		~Dhcp_allocation();

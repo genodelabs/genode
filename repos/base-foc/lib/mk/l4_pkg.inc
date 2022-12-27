@@ -39,6 +39,9 @@ PKG_TAGS     = $(addsuffix .tag,$(addsuffix .$(BOARD),$(PKGS)))
 
 BUILD_OUTPUT_FILTER = 2>&1 | sed "s~^~      [$*]  ~"
 
+# do not confuse third-party sub-makes
+unexport .SHELLFLAGS
+
 #
 # Execute the rules in this file only at the second build stage when we know
 # about the complete build settings, e.g., 'CROSS_DEV_PREFIX'.
@@ -55,8 +58,7 @@ endif
 .NOTPARALLEL: $(PKG_TAGS)
 
 %.$(BOARD).tag:
-	$(VERBOSE_MK) set -o pipefail; \
-	              $(MAKE) $(VERBOSE_DIR) O=$(L4_BUILD_DIR) -C $(L4_PKG_DIR)/$* \
+	$(VERBOSE_MK) $(MAKE) $(VERBOSE_DIR) O=$(L4_BUILD_DIR) -C $(L4_PKG_DIR)/$* \
 	                      "$(L4_BUILD_OPT)" WARNINGS=$(WARNINGS) $(BUILD_OUTPUT_FILTER)
 	$(VERBOSE)mkdir -p $(dir $@) && touch $@
 

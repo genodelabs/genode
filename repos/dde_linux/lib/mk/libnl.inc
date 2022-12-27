@@ -3,7 +3,7 @@ LIB_INC_DIR = $(LIB_DIR)/include
 
 LIBS += libc libnl_include
 
-LIBNL_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/libnl
+LIBNL_CONTRIB_DIR := $(call select_from_ports,libnl)/src/lib/libnl
 
 INC_DIR += $(LIB_INC_DIR)
 INC_DIR += $(LIBNL_CONTRIB_DIR)/include

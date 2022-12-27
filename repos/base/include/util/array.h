@@ -26,7 +26,7 @@ namespace Genode { template <typename, unsigned> class Array; }
 template <typename T, unsigned MAX>
 class Genode::Array
 {
-	private:
+	protected:
 
 		unsigned _count { 0 };
 		T        _objs[MAX];

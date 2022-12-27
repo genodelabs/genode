@@ -37,8 +37,9 @@ MAKE_JOBS ?= 4
 GENODE_DIR               ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 CONTRIB_DIR               = $(shell $(GENODE_DIR)/tool/ports/current qt5-host)
 QTBASE_DIR                = $(CONTRIB_DIR)/src/lib/qtbase
+QTDECLARATIVE_DIR         = $(CONTRIB_DIR)/src/lib/qtdeclarative
 QTTOOLS_DIR               = $(CONTRIB_DIR)/src/lib/qttools
-TOOL_VERSION              = 20.08
+TOOL_VERSION              = 22.08
 BUILD_DIR                 = $(GENODE_DIR)/build/tool/qt5/$(TOOL_VERSION)
 DEFAULT_INSTALL_LOCATION  = /usr/local/genode/qt5/$(TOOL_VERSION)
 INSTALL_LOCATION         ?= $(DEFAULT_INSTALL_LOCATION)
@@ -79,11 +80,15 @@ $(BUILD_DIR)/qtbase/bin/uic: $(BUILD_DIR)/qtbase/src/Makefile
 $(BUILD_DIR)/qtbase/bin/qlalr: $(BUILD_DIR)/qtbase/src/Makefile
 	$(VERBOSE)make -C $(BUILD_DIR)/qtbase/src -j$(MAKE_JOBS) sub-qlalr
 
-$(BUILD_DIR)/qtbase/bin/qfloat16-tables: $(BUILD_DIR)/qtbase/src/Makefile
-	$(VERBOSE)make -C $(BUILD_DIR)/qtbase/src -j$(MAKE_JOBS) sub-qfloat16-tables
-
 $(BUILD_DIR)/qtbase/lib/libQt5Xml.so.5: $(BUILD_DIR)/qtbase/src/Makefile
 	$(VERBOSE)make -C $(BUILD_DIR)/qtbase/src -j$(MAKE_JOBS) sub-xml
+
+$(BUILD_DIR)/qtdeclarative/src/qmltyperegistrar/Makefile: $(QTDECLARATIVE_DIR)/src/qmltyperegistrar/qmltyperegistrar.pro
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cd $(dir $@) && $(BUILD_DIR)/qtbase/bin/qmake $<
+
+$(BUILD_DIR)/qtdeclarative/bin/qmltyperegistrar: $(BUILD_DIR)/qtdeclarative/src/qmltyperegistrar/Makefile
+	$(VERBOSE)make -C $(dir $<) -j$(MAKE_JOBS)
 
 $(BUILD_DIR)/qttools/Makefile: $(QTTOOLS_DIR)/qttools.pro $(BUILD_DIR)/qtbase/lib/libQt5Xml.so.5
 	$(VERBOSE)mkdir -p $(dir $@)
@@ -109,7 +114,7 @@ build: $(BUILD_DIR)/qtbase/bin/moc \
        $(BUILD_DIR)/qtbase/bin/rcc \
        $(BUILD_DIR)/qtbase/bin/uic \
        $(BUILD_DIR)/qtbase/bin/qlalr \
-       $(BUILD_DIR)/qtbase/bin/qfloat16-tables \
+       $(BUILD_DIR)/qtdeclarative/bin/qmltyperegistrar \
        $(BUILD_DIR)/qttools/bin/lupdate \
        $(BUILD_DIR)/qttools/bin/lrelease
 
@@ -141,8 +146,9 @@ $(INSTALL_LOCATION)/bin/qlalr: $(BUILD_DIR)/qtbase/bin/qlalr $(INSTALL_LOCATION)
 	$(VERBOSE)cd $(BUILD_DIR)/qtbase/src && \
               $(SUDO) strip $< -o $@
 
-$(INSTALL_LOCATION)/bin/qfloat16-tables: $(BUILD_DIR)/qtbase/bin/qfloat16-tables $(INSTALL_LOCATION)/bin
-	$(VERBOSE)$(SUDO) strip $< -o $@
+$(INSTALL_LOCATION)/bin/qmltyperegistrar: $(BUILD_DIR)/qtdeclarative/bin/qmltyperegistrar $(INSTALL_LOCATION)/bin
+	$(VERBOSE)cd $(BUILD_DIR)/qtdeclarative/src && \
+              $(SUDO) strip $< -o $@
 
 $(INSTALL_LOCATION)/bin/qmake: $(BUILD_DIR)/qtbase/bin/qmake $(INSTALL_LOCATION)/bin
 	$(VERBOSE)$(SUDO) strip $< -o $@
@@ -160,9 +166,9 @@ install: $(INSTALL_LOCATION)/bin/moc \
          $(INSTALL_LOCATION)/bin/rcc \
          $(INSTALL_LOCATION)/bin/uic \
          $(INSTALL_LOCATION)/bin/qlalr \
-         $(INSTALL_LOCATION)/bin/qfloat16-tables \
          $(INSTALL_LOCATION)/bin/qmake \
          $(INSTALL_LOCATION)/bin/syncqt.pl \
+         $(INSTALL_LOCATION)/bin/qmltyperegistrar \
          $(INSTALL_LOCATION)/bin/lupdate \
          $(INSTALL_LOCATION)/bin/lrelease
 ifeq ($(INSTALL_LOCATION),$(DEFAULT_INSTALL_LOCATION))

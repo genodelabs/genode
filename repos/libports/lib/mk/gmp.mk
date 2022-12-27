@@ -10,7 +10,7 @@ SRC_C += assert.c compat.c errno.c extract-dbl.c invalid.c \
          mp_minv_tab.c mp_get_fns.c mp_set_fns.c rand.c randclr.c \
          randdef.c randiset.c randlc2s.c randlc2x.c randmt.c \
          randmts.c rands.c randsd.c randsdui.c randbui.c randmui.c \
-         version.c tal-reent.c
+         version.c tal-reent.c nextprime.c
 
 #
 # Source codes from subdirectories

@@ -81,7 +81,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	native_thread().ec_sel = Native_thread::INVALID_INDEX;
 
 	/* for main threads the member initialization differs */
-	if (type == MAIN || type == REINITIALIZED_MAIN) {
+	if (type == MAIN) {
 		_thread_cap = main_thread_cap();
 
 		native_thread().exc_pt_sel = 0;

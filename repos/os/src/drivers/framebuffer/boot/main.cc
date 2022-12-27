@@ -45,8 +45,8 @@ struct Framebuffer::Main
 		static Info from_platform_info(Xml_node const &node)
 		{
 			Info result { };
-			node.with_sub_node("boot", [&] (Xml_node const &boot) {
-				boot.with_sub_node("framebuffer", [&] (Xml_node const &fb) {
+			node.with_optional_sub_node("boot", [&] (Xml_node const &boot) {
+				boot.with_optional_sub_node("framebuffer", [&] (Xml_node const &fb) {
 					result = {
 						.addr   = fb.attribute_value("phys",  0UL),
 						.size = { fb.attribute_value("width",  0U),

@@ -347,20 +347,14 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			if (!tx_buf_size)
 				throw Service_denied();
 
-			/* delete ram quota by the memory needed for the session */
-			size_t session_size = max((size_t)4096,
-			                          sizeof(Session_component));
-			if (ram_quota.value < session_size)
-				throw Insufficient_ram_quota();
-
 			/*
 			 * Check if donated ram quota suffices for both
 			 * communication buffers. Also check both sizes separately
 			 * to handle a possible overflow of the sum of both sizes.
 			 */
-			if (tx_buf_size > ram_quota.value - session_size) {
+			if (tx_buf_size > ram_quota.value) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", need ",
-				     tx_buf_size + session_size);
+				     tx_buf_size);
 				throw Insufficient_ram_quota();
 			}
 
@@ -396,19 +390,16 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 		 ** Update_jobs_policy **
 		 ************************/
 
-		void consume_read_result(Job &job, seek_off_t,
-		                         char const *src, size_t length)
+		void consume_read_result(Job &job, off_t offset, char const *src, size_t length)
 		{
 			if (!_sessions[job.number]) return;
 
-			memcpy((void *)(job.addr + job.offset), src, length);
-			job.offset += length;
+			memcpy((void *)(job.addr + offset), src, length);
 		}
 
-		void produce_write_content(Job &job, seek_off_t, char *dst, size_t length)
+		void produce_write_content(Job &job, off_t offset, char *dst, size_t length)
 		{
-			memcpy(dst, (void *)(job.addr + job.offset), length);
-			job.offset += length;
+			memcpy(dst, (void *)(job.addr + offset), length);
 		}
 
 		void completed(Job &job, bool success)

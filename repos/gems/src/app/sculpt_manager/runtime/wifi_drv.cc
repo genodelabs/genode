@@ -16,8 +16,12 @@
 void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "wifi_drv",
-	                         Cap_quota{200}, Ram_quota{32*1024*1024},
+	                         Cap_quota{250}, Ram_quota{32*1024*1024},
 	                         Priority::NETWORK);
+
+	xml.node("binary", [&] () {
+		xml.attribute("name", "pc_wifi_drv");
+	});
 
 	xml.node("config", [&] () {
 
@@ -27,6 +31,7 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 				xml.node("zero", [&] () {});
 				xml.node("log",  [&] () {});
 				xml.node("null", [&] () {});
+				xml.node("wifi", [&] () {});
 				gen_named_node(xml, "jitterentropy", "random");
 				gen_named_node(xml, "jitterentropy", "urandom"); });
 				gen_named_node(xml, "inline", "rtc", [&] () {
@@ -47,6 +52,7 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 			xml.attribute("name", "Uplink");
 			xml.node("child", [&] () {
 				xml.attribute("name", "nic_router");
+				xml.attribute("label", "wifi_drv -> ");
 			});
 		});
 
@@ -54,13 +60,14 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 			xml.node("parent", [&] () {
 				xml.attribute("label", "wifi"); }); });
 
-		gen_parent_rom_route(xml, "wifi_drv");
+		gen_parent_rom_route(xml, "pc_wifi_drv");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "libcrypto.lib.so");
 		gen_parent_rom_route(xml, "vfs.lib.so");
 		gen_parent_rom_route(xml, "libc.lib.so");
 		gen_parent_rom_route(xml, "libm.lib.so");
 		gen_parent_rom_route(xml, "vfs_jitterentropy.lib.so");
+		gen_parent_rom_route(xml, "vfs_wifi.lib.so");
 		gen_parent_rom_route(xml, "libssl.lib.so");
 		gen_parent_rom_route(xml, "wifi.lib.so");
 		gen_parent_rom_route(xml, "wpa_driver_nl80211.lib.so");
@@ -78,7 +85,13 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 		gen_parent_rom_route(xml, "iwlwifi-8000C-36.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-8265-36.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-9000-pu-b0-jf-b0-34.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-9000-pu-b0-jf-b0-46.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-QuZ-a0-hr-b0-63.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-so-a0-hr-b0-64.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-so-a0-gf-a0-64.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-so-a0-gf-a0.pnvm");
 		gen_parent_rom_route(xml, "regulatory.db");
+		gen_parent_rom_route(xml, "regulatory.db.p7s");
 		gen_parent_route<Cpu_session>      (xml);
 		gen_parent_route<Pd_session>       (xml);
 		gen_parent_route<Rm_session>       (xml);

@@ -100,14 +100,6 @@ void prepare_init_main_thread()
 	}
 }
 
-void prepare_reinit_main_thread()
-{
-	using namespace Genode;
-	construct_at<Capability_map>(&cap_map());
-	construct_at<Initial_cap_range>(&initial_cap_range());
-	prepare_init_main_thread();
-}
-
 
 /************
  ** Thread **

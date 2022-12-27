@@ -47,14 +47,14 @@ struct Libc::Rtc : Vfs::Watch_response_handler
 			try {
 				File_content const content(_alloc, root_dir, _rtc_path.string(),
 				                           File_content::Limit{4096U});
-
 				content.bytes([&] (char const *ptr, size_t size) {
 
 					char buf[32] { };
 					::memcpy(buf, ptr, min(sizeof(buf) - 1, size));
 
 					struct tm tm { };
-					if (strptime(buf, "%Y-%m-%d %R", &tm)) {
+					if (strptime(buf, "%Y-%m-%d %H:%M:%S", &tm)
+					 || strptime(buf, "%Y-%m-%d %H:%M", &tm)) {
 						_rtc_value = mktime(&tm);
 						if (_rtc_value == (time_t)-1)
 							_rtc_value = 0;

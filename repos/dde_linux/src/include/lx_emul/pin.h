@@ -26,6 +26,13 @@ extern "C" {
 void lx_emul_pin_control(char const *pin_name, bool enabled);
 
 /**
+ * Get input state of GPIO pin
+ *
+ * \pin_name  GPIO name used as label for corresponding 'Pin_state' session
+ */
+int lx_emul_pin_sense(char const *pin_name);
+
+/**
  * Request interrupt backed by an IRQ session
  */
 void lx_emul_pin_irq_unmask(unsigned gic_irq, unsigned pin_irq,

@@ -127,13 +127,6 @@ void Session_component::trace(Subject_id subject_id, Policy_id policy_id,
 }
 
 
-void Session_component::rule(Session_label const &, Thread_name const &,
-                             Policy_id, size_t)
-{
-	/* not implemented yet */
-}
-
-
 void Session_component::pause(Subject_id subject_id)
 {
 	_subjects.lookup_by_id(subject_id).pause();

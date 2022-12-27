@@ -1,0 +1,121 @@
+/* CTF 1.8 */
+
+typealias integer { size = 8; align = 8; signed = false; } := uint8_t;
+typealias uint8_t := char;
+typealias integer { size = 16; align = 8; signed = false; } := uint16_t;
+typealias integer { size = 32; align = 8; signed = false; } := uint32_t;
+typealias integer { size = 64; align = 8; signed = false; } := uint64_t;
+typealias integer { size = 4; align = 1; signed = false; } := uint4_t;
+
+trace {
+	major = 1;
+	minor = 8;
+	uuid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+	byte_order = le;
+	packet.header := struct {
+		uint32_t magic;
+		uint32_t stream_id;
+	};
+};
+
+clock {
+	name = "monotonic";
+	freq = 1000000000; /* Frequency, in Hz (DO NOT REMOVE) */
+};
+
+typealias integer {
+	size = 64; align = 8; signed = false;
+	map = clock.monotonic.value;
+} := uint64_tsc_t;
+
+struct packet_context {
+	uint64_tsc_t timestamp_begin;
+	uint64_tsc_t timestamp_end;
+	uint32_t     packet_size;
+	uint16_t     _hdrsz;
+	uint4_t      xpos;
+	uint4_t      ypos;
+	uint4_t      width;
+	uint4_t      height;
+	uint8_t      priority;
+	string       session_label;
+	string       thread_name;
+};
+
+struct event_header {
+	uint8_t      id;
+	uint64_tsc_t timestamp;
+} align(8);
+
+stream {
+	id = 0;
+	event.header   := struct event_header;
+	packet.context := struct packet_context;
+};
+
+event {
+	name = "Rpc_call";
+	id = 1;
+	stream_id = 0;
+	fields := struct {
+		string _name;
+	};
+};
+
+event {
+	name = "Rpc_returned";
+	id = 2;
+	stream_id = 0;
+	fields := struct {
+		string _name;
+	};
+};
+
+event {
+	name = "Rpc_dispatch";
+	id = 3;
+	stream_id = 0;
+	fields := struct {
+		string _name;
+	};
+};
+
+event {
+	name = "Rpc_reply";
+	id = 4;
+	stream_id = 0;
+	fields := struct {
+		string _name;
+	};
+};
+
+event {
+	name = "Signal_submit";
+	id = 5;
+	stream_id = 0;
+	fields := struct {
+		uint32_t _number;
+	};
+};
+
+event {
+	name = "Signal_receive";
+	id = 6;
+	stream_id = 0;
+	fields := struct {
+		uint32_t _number;
+		uint64_t _context;
+	};
+};
+
+event {
+	name = "Checkpoint";
+	id = 7;
+	stream_id = 0;
+	fields := struct {
+		uint32_t _data;
+		uint64_t _addr;
+		uint8_t  _type;
+		string _name;
+	};
+};

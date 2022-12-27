@@ -6,7 +6,7 @@
 # QT5_PORT_LIBS:        Qt5 libraries used from port (for example libQt5Core)
 #
 
-QT_TOOLS_DIR = /usr/local/genode/qt5/20.08
+QT_TOOLS_DIR = /usr/local/genode/qt5/22.08
 QMAKE        = $(QT_TOOLS_DIR)/bin/qmake
 
 ifeq ($(filter-out $(SPECS),arm),)
@@ -25,9 +25,9 @@ ifeq ($(CONTRIB_DIR),)
 QT_DIR     = $(call select_from_repositories,src/lib/qt5)
 QT_API_DIR = $(call select_from_repositories,mkspecs)/..
 else
-QT_PORT_DIR = $(call select_from_ports,qt5)
-QT_DIR      = $(QT_PORT_DIR)/src/lib/qt5
-QT_API_DIR  = $(QT_DIR)/genode/api
+QT_PORT_DIR := $(call select_from_ports,qt5)
+QT_DIR       = $(QT_PORT_DIR)/src/lib/qt5
+QT_API_DIR   = $(QT_DIR)/genode/api
 endif
 
 ifneq ($(VERBOSE),)
@@ -104,8 +104,8 @@ ifeq ($(CONTRIB_DIR),)
 GENODE_QMAKE_INCDIR_OPENGL = $(call select_from_repositories,include/GL)/..
 GENODE_QMAKE_INCDIR_EGL = $(call select_from_repositories,include/EGL)/..
 else
-GENODE_QMAKE_INCDIR_OPENGL = $(call select_from_ports,mesa)/include
-GENODE_QMAKE_INCDIR_EGL = $(call select_from_ports,mesa)/include
+GENODE_QMAKE_INCDIR_OPENGL := $(call select_from_ports,mesa)/include
+GENODE_QMAKE_INCDIR_EGL := $(call select_from_ports,mesa)/include
 endif
 
 GENODE_QMAKE_LIBS_OPENGL = $(CURDIR)/qmake_root/lib/mesa.lib.so
@@ -161,6 +161,9 @@ qmake_root/lib/%.lib.a: qmake_root/lib
 qmake_root/mkspecs: qmake_root
 	$(VERBOSE)mkdir -p $@
 	$(VERBOSE)ln -sf $(QT_API_DIR)/mkspecs/* $@/
+	$(VERBOSE)rm -f $@/modules
+	$(VERBOSE)mkdir $@/modules
+	$(VERBOSE)ln -snf $(QT_API_DIR)/mkspecs/modules/* $@/modules/
 	$(VERBOSE)ln -sf $(QMAKE_PLATFORM)/qconfig.pri $@/
 	$(VERBOSE)ln -sf $(QMAKE_PLATFORM)/qmodule.pri $@/
 

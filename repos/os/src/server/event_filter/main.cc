@@ -26,6 +26,7 @@
 #include <accelerate_source.h>
 #include <log_source.h>
 #include <touch_click_source.h>
+#include <touch_key_source.h>
 #include <event_session.h>
 
 namespace Event_filter { struct Main; }
@@ -253,6 +254,9 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 
 		if (node.type() == Touch_click_source::name())
 			return *new (_heap) Touch_click_source(owner, node, *this);
+
+		if (node.type() == Touch_key_source::name())
+			return *new (_heap) Touch_key_source(owner, node, *this, _heap);
 
 		warning("unknown <", node.type(), "> input-source node type");
 		throw Source::Invalid_config();

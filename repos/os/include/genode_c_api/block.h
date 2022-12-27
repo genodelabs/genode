@@ -21,25 +21,16 @@ struct genode_block_session; /* definition is private to the implementation */
 
 
 #ifdef __cplusplus
+
+void genode_block_apply_config(Genode::Xml_node const & config);
+
 extern "C" {
-#endif
+#endif /* __cplusplus */
 
 
 /********************
  ** Initialization **
  ********************/
-
-/**
- * Callback called during peer session request to allocate dma-capable shared buffer
- */
-typedef struct genode_attached_dataspace * (*genode_block_alloc_peer_buffer_t)
-	(unsigned long size);
-
-/**
- * Callback called when closing peer session to free shared buffer
- */
-typedef void (*genode_block_free_peer_buffer_t)
-	(struct genode_attached_dataspace * ds);
 
 /**
  * Initialize block root component
@@ -49,8 +40,9 @@ typedef void (*genode_block_free_peer_buffer_t)
 void genode_block_init(struct genode_env            *env,
                        struct genode_allocator      *alloc,
                        struct genode_signal_handler *handler,
-                       genode_block_alloc_peer_buffer_t,
-                       genode_block_free_peer_buffer_t);
+                       genode_shared_dataspace_alloc_attach_t,
+                       genode_shared_dataspace_free_t);
+
 
 
 /**************************************

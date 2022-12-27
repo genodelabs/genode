@@ -25,7 +25,7 @@ append config {
 append config [qt5_start_nodes]
 
 append config {
-	<start name="basic" caps="350">
+	<start name="basic" caps="450">
 		<resource name="RAM" quantum="100M"/>
 		<config>
 			<vfs>

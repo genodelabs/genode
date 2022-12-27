@@ -31,6 +31,8 @@ extern Wifi::Socket_call socket_call;
 
 extern "C" {
 
+unsigned int wifi_ifindex(void);
+
 int ioctl(int fd, unsigned long request, ...)
 {
 	long arg;
@@ -46,7 +48,7 @@ int ioctl(int fd, unsigned long request, ...)
 		Genode::error("ioctl: request SIOCGIFADDR not implemented.");
 		return -1;
 	case SIOCGIFINDEX:
-		ifr->ifr_ifindex = 1;
+		ifr->ifr_ifindex = wifi_ifindex();
 		return 0;
 	case SIOCGIFHWADDR:
 		socket_call.get_mac_address((unsigned char*)ifr->ifr_hwaddr.sa_data);

@@ -1011,7 +1011,7 @@ class Vfs::Dir_file_system : public File_system
 			Dir_vfs_handle *dir_vfs_handle =
 				static_cast<Dir_vfs_handle*>(vfs_handle);
 
-			auto f = [&result, dir_vfs_handle] (Dir_vfs_handle::Subdir_handle_element &e) {
+			auto f = [&result] (Dir_vfs_handle::Subdir_handle_element &e) {
 				if (e.synced)
 					return;
 

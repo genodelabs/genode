@@ -1,13 +1,17 @@
 _/raw/vbox6
+_/src/expat
 _/src/init
 _/src/jpeg
 _/src/libc
+_/src/libdrm
 _/src/libiconv
 _/src/libyuv
+_/src/mesa
 _/src/posix
 _/src/stdcxx
 _/src/vbox6
 _/src/vfs
+_/src/vfs_gpu
 _/src/vfs_oss
 _/src/vfs_pipe
 _/src/zlib

@@ -37,19 +37,6 @@ bool Arp_cache_entry::_higher(Ipv4_address const &ip) const
 }
 
 
-Arp_cache_entry const &
-Arp_cache_entry::find_by_ip(Ipv4_address const &ip) const
-{
-	if (ip == _ip) {
-		return *this; }
-
-	Arp_cache_entry const *const entry = child(_higher(ip));
-	if (!entry) {
-		throw Arp_cache::No_match(); }
-
-	return entry->find_by_ip(ip);
-}
-
 void Arp_cache_entry::print(Output &output) const
 {
 	Genode::print(output, _ip, " > ", _mac);
@@ -79,15 +66,6 @@ void Arp_cache::new_entry(Ipv4_address const &ip, Mac_address const &mac)
 }
 
 
-Arp_cache_entry const &Arp_cache::find_by_ip(Ipv4_address const &ip) const
-{
-	if (!first()) {
-		throw No_match(); }
-
-	return first()->find_by_ip(ip);
-}
-
-
 void Arp_cache::destroy_entries_with_mac(Mac_address const &mac)
 {
 	for (unsigned curr = 0; curr < NR_OF_ENTRIES; curr++) {
@@ -103,5 +81,19 @@ void Arp_cache::destroy_entries_with_mac(Mac_address const &mac)
 			_entries[curr].destruct();
 
 		} catch (Arp_cache_entry_slot::Deref_unconstructed_object) { }
+	}
+}
+
+
+void Arp_cache::destroy_all_entries()
+{
+	if (_domain.config().verbose()) {
+		log("[", _domain, "] destroy all ARP entries");
+	}
+	while (Arp_cache_entry *entry = first()) {
+		remove(entry);
+	}
+	for (unsigned curr = 0; curr < NR_OF_ENTRIES; curr++) {
+		_entries[curr].destruct();
 	}
 }

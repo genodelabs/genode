@@ -1,4 +1,4 @@
-if {[get_cmd_switch --autopilot] && [have_board riscv_qemu]} {
+if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 	puts "Autopilot mode is not supported on this platform."
 	exit 0
 }
@@ -6,9 +6,9 @@ if {[get_cmd_switch --autopilot] && [have_board riscv_qemu]} {
 set mkfs_cmd  [installed_command mke2fs]
 set mkfs_opts "-F"
 
-set test_build_components "lib/vfs/rump"
+set test_build_components "lib/vfs_rump"
 
-set test_vfs_config "<rump fs=\"ext2fs\" ram=\"7M\" writeable=\"yes\"/>"
+set test_vfs_config "<rump fs=\"ext2fs\" ram=\"10M\" writeable=\"yes\"/>"
 
 set test_boot_modules {
 	rump_fs.lib.so

@@ -1,4 +1,4 @@
-content: include/libc-plugin src/lib/libc/target.mk lib/mk LICENSE
+content: include/libc-plugin src/lib/libc lib/mk LICENSE
 
 LIBC_PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libc)
 LIBM_PORT_DIR := $(LIBC_PORT_DIR)
@@ -8,11 +8,7 @@ src/lib/libc:
 	cp -r $(LIBC_PORT_DIR)/src/lib/libc/* $@
 	cp -r $(REP_DIR)/src/lib/libc/* $@
 
-# target.mk for triggering the build of both libraries libc and libm
-src/lib/libc/target.mk: src/lib/libc
-	echo "LIBS += libc libm" > $@
-
-include/libc-plugin include/libc/sys/ucontext.h:
+include/libc-plugin:
 	$(mirror_from_rep_dir)
 
 lib/mk:

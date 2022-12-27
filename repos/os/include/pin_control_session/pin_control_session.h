@@ -40,8 +40,11 @@ struct Pin_control::Session : Genode::Session
 
 	virtual void state(bool) = 0;
 
+	virtual void yield() = 0;
+
 	GENODE_RPC(Rpc_state, void, state, bool);
-	GENODE_RPC_INTERFACE(Rpc_state);
+	GENODE_RPC(Rpc_yield, void, yield);
+	GENODE_RPC_INTERFACE(Rpc_state, Rpc_yield);
 };
 
 #endif /* _INCLUDE__PIN_CONTROL_SESSION__PIN_CONTROL_SESSION_H_ */

@@ -7,9 +7,13 @@ INC_DIR += $(E2FS_DIR)/e2fsck
 
 CC_DEF += -DROOT_SYSCONFDIR=\"/etc\"
 
-SRC_C := $(addprefix misc/, mke2fs.c util.c default_profile.c)
-SRC_C += $(addprefix e2fsck/, profile.c prof_err.c)
+SRC_C := \
+         create_inode.c \
+         default_profile.c \
+         mk_hugefiles.c \
+         mke2fs.c \
+         util.c
 
-vpath %.c $(E2FS_DIR)
+vpath %.c $(E2FS_DIR)/misc
 
 CC_CXX_WARN_STRICT =

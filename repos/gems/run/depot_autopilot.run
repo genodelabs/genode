@@ -649,8 +649,7 @@ set default_test_pkgs {
 	test-spark
 	test-spark_exception
 	test-spark_secondary_stack
-	test-block
-	test-block_cache
+	test-black_hole
 	test-clipboard
 	test-depot_query_index
 	test-ds_ownership
@@ -659,7 +658,6 @@ set default_test_pkgs {
 	test-entrypoint
 	test-expat
 	test-fault_detection
-	test-fs_log
 	test-fs_packet
 	test-fs_report
 	test-fs_rom_update
@@ -689,7 +687,6 @@ set default_test_pkgs {
 	test-libc_vfs_ram
 	test-log
 	test-lx_block
-	test-magic_ring_buffer
 	test-mmio
 	test-new_delete
 	test-nic_loopback
@@ -723,6 +720,7 @@ set default_test_pkgs {
 	test-tls
 	test-token
 	test-trace
+	test-trace_buffer
 	test-trace_logger
 	test-utf8
 	test-vfs_block
@@ -759,7 +757,7 @@ proc non_executable_supported { } {
 #
 set skip_test(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
 set skip_test(test-fs_packet)       [expr ![interactive] && [have_include "power_on/qemu"]]
-set skip_test(test-libc)            [expr [have_spec sel4] || [have_board rpi] || [expr [have_board pbxa9] && [have_spec foc]] || [have_board imx53_qsb_tz]]
+set skip_test(test-libc)            [expr [have_spec sel4] || [have_board rpi] || [have_board imx53_qsb_tz]]
 set skip_test(test-lx_block)        [expr ![have_board linux]]
 set skip_test(test-rm_fault)        [expr [have_board linux] || ![non_executable_supported]]
 set skip_test(test-rm_fault_no_nox) [expr [have_board linux] || ![skip_test test-rm_fault]]
@@ -769,14 +767,21 @@ set skip_test(test-spark_exception) [expr [have_spec arm]]
 set skip_test(test-tcp_bulk_lwip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
 set skip_test(test-tcp_bulk_lxip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
 
+if {[have_spec foc]} {
+	set skip_test(test-entrypoint)    [have_board pbxa9]
+	set skip_test(test-libc)          [have_board pbxa9]
+	set skip_test(test-tcp_bulk_lxip) [have_board pbxa9]
+}
 if {[have_spec riscv]} {
 	set skip_test(gcov)                              true
 	set skip_test(test-libc_connect_lxip)            true
 	set skip_test(test-libc_connect_vfs_server_lxip) true
+	set skip_test(test-rm_fault_no_nox)              true
 	set skip_test(test-spark)                        true
 	set skip_test(test-spark_exception)              true
 	set skip_test(test-spark_secondary_stack)        true
 	set skip_test(test-tcp_bulk_lxip)                true
+	set skip_test(test-trace_logger)                 true
 	set skip_test(test-xml_generator)                true
 }
 

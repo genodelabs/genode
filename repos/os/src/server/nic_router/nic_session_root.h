@@ -118,8 +118,7 @@ class Net::Nic_session_component : private Nic_session_component_base,
 				void handle_config(Configuration const &config) override { _config = config; }
 				Genode::Session_label const &label() const override { return _label; }
 				void report(Genode::Xml_generator &xml) const override { _session_env.report(xml); };
-				void interface_unready() override;
-				void interface_ready() override;
+				void handle_domain_ready_state(bool state) override;
 				bool interface_link_state() const override;
 		};
 
@@ -132,7 +131,7 @@ class Net::Nic_session_component : private Nic_session_component_base,
 		Nic_session_component(Genode::Session_env                    &session_env,
 		                      Genode::size_t                   const  tx_buf_size,
 		                      Genode::size_t                   const  rx_buf_size,
-		                      Timer::Connection                      &timer,
+		                      Cached_timer                           &timer,
 		                      Mac_address                      const  mac,
 		                      Mac_address                      const &router_mac,
 		                      Genode::Session_label            const &label,
@@ -169,7 +168,7 @@ class Net::Nic_session_root
 		enum { MAC_ALLOC_BASE = 0x02 };
 
 		Genode::Env              &_env;
-		Timer::Connection        &_timer;
+		Cached_timer             &_timer;
 		Mac_allocator             _mac_alloc;
 		Mac_address        const  _router_mac;
 		Reference<Configuration>  _config;
@@ -189,7 +188,7 @@ class Net::Nic_session_root
 	public:
 
 		Nic_session_root(Genode::Env       &env,
-		                 Timer::Connection &timer,
+		                 Cached_timer      &timer,
 		                 Genode::Allocator &alloc,
 		                 Configuration     &config,
 		                 Quota             &shared_quota,

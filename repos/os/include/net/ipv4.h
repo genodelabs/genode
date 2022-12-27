@@ -27,8 +27,10 @@
 namespace Genode { class Output; }
 
 namespace Net {
+
 	enum { IPV4_ADDR_LEN = 4 };
 
+	class Internet_checksum_diff;
 	class Ipv4_address;
 	class Ipv4_packet;
 
@@ -54,6 +56,8 @@ struct Net::Ipv4_address : Network_address<IPV4_ADDR_LEN, '.', false>
 
 	bool is_in_range(Ipv4_address const &first,
 	                 Ipv4_address const &last) const;
+
+	bool is_multicast() const;
 }
 __attribute__((packed));
 
@@ -93,6 +97,11 @@ class Net::Ipv4_packet
 		static Ipv4_address ip_from_string(const char *ip);
 
 		void update_checksum();
+
+		void update_checksum(Internet_checksum_diff const &icd);
+
+		void update_checksum(Internet_checksum_diff const &icd,
+		                     Internet_checksum_diff       &caused_icd);
 
 		bool checksum_error() const;
 
@@ -143,6 +152,13 @@ class Net::Ipv4_packet
 			UDP  = 17,
 		};
 
+		static Ipv4_packet const &cast_from(void const *base,
+		                                    Size_guard &size_guard)
+		{
+			size_guard.consume_head(sizeof(Ipv4_packet));
+			return *(Ipv4_packet const *)base;
+		}
+
 		template <typename T>
 		T const &data(Size_guard &size_guard) const
 		{
@@ -187,10 +203,11 @@ class Net::Ipv4_packet
 		Ipv4_address         src()             const { return Ipv4_address((void *)&_src); }
 		Ipv4_address         dst()             const { return Ipv4_address((void *)&_dst); }
 
-		void header_length(Genode::size_t v)     { Offset_0_u8::Ihl::set(_offset_0_u8, v); }
+		void header_length(Genode::size_t v)     { Offset_0_u8::Ihl::set(_offset_0_u8, (Offset_0_u8::access_t)v); }
 		void version(Genode::uint8_t v)          { Offset_0_u8::Version::set(_offset_0_u8, v); }
 		void diff_service(Genode::uint8_t v)     { Offset_1_u8::Dscp::set(_offset_1_u8, v); }
 		void ecn(Genode::uint8_t v)              { Offset_1_u8::Ecn::set(_offset_1_u8, v); }
+		void diff_service_ecn(Genode::uint8_t v) { _offset_1_u8 = v; }
 		void total_length(Genode::size_t v)      { _total_length = host_to_big_endian((Genode::uint16_t)v); }
 		void identification(Genode::uint16_t v)  { _identification = host_to_big_endian(v); }
 		void time_to_live(Genode::uint8_t v)     { _time_to_live = v; }
@@ -198,6 +215,8 @@ class Net::Ipv4_packet
 		void checksum(Genode::uint16_t checksum) { _checksum = host_to_big_endian(checksum); }
 		void src(Ipv4_address v)                 { v.copy(&_src); }
 		void dst(Ipv4_address v)                 { v.copy(&_dst); }
+		void src_big_endian(Genode::uint32_t v)  { *(Genode::uint32_t *)&_src = v; }
+		void dst_big_endian(Genode::uint32_t v)  { *(Genode::uint32_t *)&_dst = v; }
 
 		void flags(Genode::uint8_t v)
 		{
@@ -209,7 +228,7 @@ class Net::Ipv4_packet
 		void fragment_offset(Genode::size_t v)
 		{
 			Genode::uint16_t be = host_to_big_endian(_offset_6_u16);
-			Offset_6_u16::Fragment_offset::set(be, v);
+			Offset_6_u16::Fragment_offset::set(be, (Offset_6_u16::access_t)v);
 			_offset_6_u16 = host_to_big_endian(be);
 		}
 
@@ -226,6 +245,9 @@ class Net::Ipv4_packet
 			Offset_6_u16::More_fragments::set(be, v);
 			_offset_6_u16 = host_to_big_endian(be);
 		}
+
+		void src(Ipv4_address v, Internet_checksum_diff &icd);
+		void dst(Ipv4_address v, Internet_checksum_diff &icd);
 
 
 		/*********

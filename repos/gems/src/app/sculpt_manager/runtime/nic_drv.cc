@@ -17,10 +17,10 @@
 void Sculpt::gen_nic_drv_start_content(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "nic_drv",
-	                         Cap_quota{300}, Ram_quota{16*1024*1024},
+	                         Cap_quota{300}, Ram_quota{20*1024*1024},
 	                         Priority::NETWORK);
 
-	gen_named_node(xml, "resource", "CPU", [&] () { xml.attribute("quantum", "50"); });
+	gen_named_node(xml, "resource", "CPU", [&] () { xml.attribute("quantum", "10"); });
 
 	xml.node("config", [&] () { });
 
@@ -35,6 +35,7 @@ void Sculpt::gen_nic_drv_start_content(Xml_generator &xml)
 				xml.attribute("label", "nic"); }); });
 
 		gen_parent_rom_route(xml, "nic_drv");
+		gen_parent_rom_route(xml, "nic_drv.dtb");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session>    (xml);
 		gen_parent_route<Pd_session>     (xml);

@@ -64,7 +64,6 @@ struct ctrl_iface_global_priv {
 };
 
 
-extern void lx_printf(char const *, ...) __attribute__((format(printf, 1, 2)));
 extern void nl_set_wpa_ctrl_fd(void);
 
 
@@ -80,7 +79,6 @@ static void send_reply(struct ctrl_iface_priv *priv, char const *txt, size_t len
 	size_t  mlen = priv->send_buffer_size;
 
 	if (len >= mlen) {
-		lx_printf("Warning: cmd reply will be truncated\n");
 		len = mlen - 1;
 	}
 
@@ -136,22 +134,12 @@ static void wpa_supplicant_ctrl_iface_receive(int fd, void *eloop_ctx,
 }
 
 
-static void print_txt(char const *txt, size_t len)
-{
-	char buffer[256];
-	memset(buffer, 0, sizeof(buffer));
-	memcpy(buffer, txt, len < sizeof(buffer) - 1 ? len : sizeof(buffer) - 1);
-	lx_printf("   %s\n", buffer);
-}
-
-
 static void send_event(struct ctrl_iface_priv *priv, char const *txt, size_t len)
 {
 	char   *msg  = priv->event_buffer;
 	size_t  mlen = priv->event_buffer_size;
 
 	if (len >= mlen) {
-		lx_printf("Warning: event will be truncated\n");
 		len = mlen - 1;
 	}
 
@@ -170,16 +158,6 @@ static void wpa_supplicant_ctrl_iface_msg_cb(void *ctx, int level,
                                              enum wpa_msg_type type,
                                              const char *txt, size_t len)
 {
-#if 0
-	int const dont_print =
-		   strncmp(txt, "BSS:", 4) == 0
-		|| strncmp(txt, "BSS:", 4) == 0
-		|| strncmp(txt, "CTRL-EVENT-BSS", 14) == 0
-		|| strncmp(txt, "   skip", 7) == 0
-	;
-	if (!dont_print) { print_txt(txt, len); }
-#endif
-
 	/* there is not global support */
 	if (type == WPA_MSG_ONLY_GLOBAL) { return; }
 

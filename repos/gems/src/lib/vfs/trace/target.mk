@@ -1,1 +1,0 @@
-LIBS = vfs_trace

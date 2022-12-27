@@ -18,14 +18,14 @@ using namespace Net;
 using namespace Genode;
 
 
-void Net::Nic::_ready_to_ack()
+void Net::Nic::_handle_source()
 {
 	while (_source().ack_avail()) {
 		_source().release_packet(_source().get_acked_packet()); }
 }
 
 
-void Net::Nic::_ready_to_submit()
+void Net::Nic::_handle_sink()
 {
 	while (_sink().packet_avail()) {
 

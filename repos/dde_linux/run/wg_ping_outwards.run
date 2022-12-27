@@ -1,0 +1,172 @@
+#
+# Let a Genode in Qemu ping the host Linux through a Wireguard tunnel.
+#
+
+source ${genode_dir}/repos/dde_linux/run/wg_qemu_tap_preamble.inc
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/nic_router
+
+install_config {
+
+<config>
+
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<start name="timer" caps="100">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="drivers" caps="1000" managing_system="yes">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/>
+			</service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Uplink">  <child name="outer_router"/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="RM">      <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="PD">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+		</route>
+	</start>
+
+	<start name="outer_router" caps="200">
+		<binary name="nic_router"/>
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes" dhcp_discover_timeout_sec="1">
+
+			<policy label_prefix="drivers"           domain="uplink"/>
+			<policy label="wireguard -> nic_session" domain="downlink"/>
+
+			<domain name="uplink">
+				<nat domain="downlink" udp-ports="100"/>
+			</domain>
+
+			<domain name="downlink" interface="10.0.3.1/24">
+
+				<dhcp-server ip_first="10.0.3.2"
+				             ip_last="10.0.3.2"
+				             dns_config_from="uplink"/>
+
+				<udp dst="10.0.2.1/24">
+					<permit port="49001" domain="uplink"/>
+				</udp>
+			</domain>
+
+		</config>
+		<route>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="ROM">   <parent/> </service>
+			<service name="PD">    <parent/> </service>
+			<service name="CPU">   <parent/> </service>
+			<service name="LOG">   <parent/> </service>
+		</route>
+	</start>
+
+	<start name="inner_router" caps="200">
+		<binary name="nic_router"/>
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes" dhcp_discover_timeout_sec="1">
+
+			<policy label="wireguard -> uplink_session" domain="uplink"/>
+			<policy label="ping -> "                    domain="downlink"/>
+
+			<domain name="uplink" interface="10.0.9.2/24" use_arp="no" >
+				<nat domain="downlink" icmp-ids="100"/>
+			</domain>
+
+			<domain name="downlink" interface="10.1.2.1/24">
+				<dhcp-server ip_first="10.1.2.2" ip_last="10.1.2.2"/>
+				<icmp dst="10.0.9.1/24" domain="uplink"/>
+			</domain>
+		</config>
+		<route>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="ROM">   <parent/> </service>
+			<service name="PD">    <parent/> </service>
+			<service name="CPU">   <parent/> </service>
+			<service name="LOG">   <parent/> </service>
+		</route>
+	</start>
+
+	<start name="wireguard" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<config private_key="8GRSQZMgG1uuvz4APIBqrDmiLj8L886r++hzixjjHFc="
+		        listen_port="49002">
+
+			<peer public_key="r1Gslnm82X8NaijsWzPoSFzDZGl2tTJoPa+EJL4gYQw="
+			      endpoint_ip="10.0.2.1"
+			      endpoint_port="49001"
+			      allowed_ip="10.0.9.1/32" />
+
+		</config>
+		<route>
+			<service name="Timer">    <child name="timer"/> </service>
+			<service name="Nic">      <child name="outer_router"/> </service>
+			<service name="Uplink">   <child name="inner_router"/> </service>
+			<service name="ROM">      <parent/> </service>
+			<service name="PD">       <parent/> </service>
+			<service name="CPU">      <parent/> </service>
+			<service name="LOG">      <parent/> </service>
+		</route>
+	</start>
+
+	<start name="ping" caps="100">
+		<resource name="RAM" quantum="8M"/>
+		<config dst_ip="10.0.9.1" period_sec="1" count="3"/>
+		<route>
+			<service name="Nic">   <child name="inner_router"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="ROM">   <parent/> </service>
+			<service name="PD">    <parent/> </service>
+			<service name="CPU">   <parent/> </service>
+			<service name="LOG">   <parent/> </service>
+		</route>
+	</start>
+
+</config> }
+
+build { app/wireguard app/ping }
+
+build_boot_image { wireguard ping }
+
+append wait_for_string "64 bytes from 10.0.9.1.*"
+append wait_for_string "64 bytes from 10.0.9.1.*"
+append wait_for_string "64 bytes from 10.0.9.1.*\n"
+
+run_genode_until $wait_for_string 60

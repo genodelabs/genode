@@ -22,17 +22,6 @@ using namespace Net;
 using namespace Genode;
 
 
-/*********************
- ** Nic_client_base **
- *********************/
-
-Net::Nic_client_base::Nic_client_base(Xml_node const &node)
-:
-	_label  { node.attribute_value("label",  Session_label::String()) },
-	_domain { node.attribute_value("domain", Domain_name()) }
-{ }
-
-
 /****************
  ** Nic_client **
  ****************/
@@ -40,47 +29,55 @@ Net::Nic_client_base::Nic_client_base(Xml_node const &node)
 void Nic_client::_invalid(char const *reason) const
 {
 	if (_config.verbose()) {
-		log("[", domain(), "] invalid NIC client: ", *this, " (", reason, ")"); }
-
+		log("[", domain(), "] invalid NIC client: ", label(),
+		    " (", reason, ")");
+	}
 	throw Invalid();
 }
 
 
-Net::Nic_client::Nic_client(Xml_node    const &node,
-                            Allocator         &alloc,
-                            Nic_client_tree   &old_nic_clients,
-                            Env               &env,
-                            Timer::Connection &timer,
-                            Interface_list    &interfaces,
-                            Configuration     &config)
+Net::Nic_client::Nic_client(Session_label const &label_arg,
+                            Domain_name   const &domain_arg,
+                            Allocator           &alloc,
+                            Nic_client_dict     &old_nic_clients,
+                            Nic_client_dict     &new_nic_clients,
+                            Env                 &env,
+                            Cached_timer        &timer,
+                            Interface_list      &interfaces,
+                            Configuration       &config)
 :
-	Nic_client_base { node },
-	Avl_string_base { label().string() },
-	_alloc          { alloc },
-	_config         { config }
+	Nic_client_dict::Element { new_nic_clients, label_arg },
+	_alloc                   { alloc },
+	_config                  { config },
+	_domain                  { domain_arg }
 {
-	/* if an interface with this label already exists, reuse it */
-	try {
-		Nic_client &old_nic_client = old_nic_clients.find_by_name(label());
-		Nic_client_interface &interface = old_nic_client._interface();
-		old_nic_client._interface = Pointer<Nic_client_interface>();
-		interface.domain_name(domain());
-		_interface = interface;
-	}
-	/* if not, create a new one */
-	catch (Nic_client_tree::No_match) {
-		if (config.verbose()) {
-			log("[", domain(), "] create NIC client: ", *this); }
+	old_nic_clients.with_element(
+		label(),
+		[&] /* handle_match */ (Nic_client &old_nic_client)
+		{
+			/* reuse existing interface */
+			Nic_client_interface &interface = old_nic_client._interface();
+			old_nic_client._interface = Pointer<Nic_client_interface>();
+			interface.domain_name(domain());
+			_interface = interface;
+		},
+		[&] /* handle_no_match */ ()
+		{
+			/* create a new interface */
+			if (config.verbose()) {
+				log("[", domain(), "] create NIC client: ", label()); }
 
-		try {
-			_interface = *new (_alloc)
-				Nic_client_interface { env, timer, alloc, interfaces, config,
-				                       domain(), label() };
+			try {
+				_interface = *new (_alloc)
+					Nic_client_interface {
+						env, timer, alloc, interfaces, config, domain(),
+						label() };
+			}
+			catch (Insufficient_ram_quota) { _invalid("NIC session RAM quota"); }
+			catch (Insufficient_cap_quota) { _invalid("NIC session CAP quota"); }
+			catch (Service_denied)         { _invalid("NIC session denied"); }
 		}
-		catch (Insufficient_ram_quota) { _invalid("NIC session RAM quota"); }
-		catch (Insufficient_cap_quota) { _invalid("NIC session CAP quota"); }
-		catch (Service_denied)         { _invalid("NIC session denied"); }
-	}
+	);
 }
 
 
@@ -90,20 +87,11 @@ Net::Nic_client::~Nic_client()
 	try {
 		Nic_client_interface &interface = _interface();
 		if (_config.verbose()) {
-			log("[", domain(), "] destroy NIC client: ", *this); }
+			log("[", domain(), "] destroy NIC client: ", label()); }
 
 		destroy(_alloc, &interface);
 	}
 	catch (Pointer<Nic_client_interface>::Invalid) { }
-}
-
-
-void Net::Nic_client::print(Output &output) const
-{
-	if (label() == Session_label()) {
-		Genode::print(output, "?"); }
-	else {
-		Genode::print(output, label()); }
 }
 
 
@@ -122,21 +110,15 @@ Net::Nic_client_interface_base::
 { }
 
 
-void Net::Nic_client_interface_base::interface_unready()
+void Net::Nic_client_interface_base::handle_domain_ready_state(bool state)
 {
-	_interface_ready = false;
-};
-
-
-void Net::Nic_client_interface_base::interface_ready()
-{
-	_interface_ready = true;
-};
+	_domain_ready = state;
+}
 
 
 bool Net::Nic_client_interface_base::interface_link_state() const
 {
-	return _interface_ready && _session_link_state;
+	return _domain_ready && _session_link_state;
 }
 
 
@@ -145,7 +127,7 @@ bool Net::Nic_client_interface_base::interface_link_state() const
  **************************/
 
 Net::Nic_client_interface::Nic_client_interface(Env                 &env,
-                                                Timer::Connection   &timer,
+                                                Cached_timer        &timer,
                                                 Genode::Allocator   &alloc,
                                                 Interface_list      &interfaces,
                                                 Configuration       &config,
@@ -162,10 +144,14 @@ Net::Nic_client_interface::Nic_client_interface(Env                 &env,
 	                              *this }
 {
 	/* install packet stream signal handlers */
-	rx_channel()->sigh_ready_to_ack   (_interface.sink_ack());
-	rx_channel()->sigh_packet_avail   (_interface.sink_submit());
-	tx_channel()->sigh_ack_avail      (_interface.source_ack());
-	tx_channel()->sigh_ready_to_submit(_interface.source_submit());
+	rx_channel()->sigh_packet_avail(_interface.pkt_stream_signal_handler());
+	tx_channel()->sigh_ack_avail   (_interface.pkt_stream_signal_handler());
+
+	/*
+	 * We do not install ready_to_submit because submission is only triggered
+	 * by incoming packets (and dropped if the submit queue is full).
+	 * The ack queue should never be full otherwise we'll be leaking packets.
+	 */
 
 	/* initialize link state handling */
 	Nic::Connection::link_state_sigh(_session_link_state_handler);

@@ -14,8 +14,8 @@ set build_components {
 	core init timer
 	test/vfs_stress
 	server/vfs_block
-	lib/vfs/rump
-	lib/vfs/import
+	lib/vfs_rump
+	lib/vfs_import
 }
 
 build $build_components
@@ -37,7 +37,6 @@ install_config {
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
-		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>

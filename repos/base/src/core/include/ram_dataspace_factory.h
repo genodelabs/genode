@@ -101,6 +101,8 @@ class Genode::Ram_dataspace_factory : public Ram_allocator,
 				       static_cap_cast<Dataspace>(ds->cap())));
 		}
 
+		addr_t dataspace_dma_addr(Ram_dataspace_capability);
+
 
 		/*****************************
 		 ** Ram_allocator interface **

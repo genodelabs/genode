@@ -14,8 +14,8 @@
 #ifndef _KERNEL__TYPES_H_
 #define _KERNEL__TYPES_H_
 
-/* base-hw includes */
-#include <kernel/interface_support.h>
+/* Genode includes */
+#include <base/stdint.h>
 
 namespace Kernel {
 
@@ -24,6 +24,11 @@ namespace Kernel {
 	using capid_t   = Genode::uint16_t;
 	using time_t    = Genode::uint64_t;
 	using timeout_t = Genode::uint32_t;
+
+	using Call_arg  = Genode::umword_t;
+	using Call_ret  = Genode::umword_t;
+
+	using Call_ret_64 = Genode::uint64_t;
 
 	constexpr capid_t cap_id_invalid() { return 0; }
 }

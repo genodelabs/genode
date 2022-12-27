@@ -216,6 +216,10 @@ struct Fetchurl::Main
 			if (!end_of_elem)
 				continue;
 
+			/* handle leading '/' */
+			if (end_of_elem && (sub_path_len == 0))
+				continue;
+
 			Genode::String<256> sub_path(Genode::Cstring(out_path, sub_path_len));
 
 			/* skip '/' */

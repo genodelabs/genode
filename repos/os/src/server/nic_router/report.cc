@@ -20,13 +20,14 @@ using namespace Net;
 using namespace Genode;
 
 
-Net::Report::Report(bool        const &verbose,
-                    Xml_node    const  node,
-                    Timer::Connection &timer,
-                    Domain_tree       &domains,
-                    Quota       const &shared_quota,
-                    Pd_session        &pd,
-                    Reporter          &reporter)
+Net::Report::Report(bool                      const &verbose,
+                    Xml_node                  const  node,
+                    Cached_timer                    &timer,
+                    Domain_dict                     &domains,
+                    Quota                     const &shared_quota,
+                    Pd_session                      &pd,
+                    Reporter                        &reporter,
+                    Signal_context_capability const &signal_cap)
 :
 	_verbose             { verbose },
 	_config              { node.attribute_value("config", true) },
@@ -42,15 +43,15 @@ Net::Report::Report(bool        const &verbose,
 	_reporter            { reporter },
 	_domains             { domains },
 	_timeout             { timer, *this, &Report::_handle_report_timeout,
-	                       read_sec_attr(node, "interval_sec", 5) }
-{ }
-
-
-void Net::Report::_report()
+	                       read_sec_attr(node, "interval_sec", 5) },
+	_signal_transmitter  { signal_cap }
 {
-	if (!_reporter.enabled()) {
-		return;
-	}
+	_reporter.enabled(true);
+}
+
+
+void Net::Report::generate()
+{
 	try {
 		Reporter::Xml_generator xml(_reporter, [&] () {
 			if (_quota) {
@@ -79,22 +80,23 @@ void Net::Report::_report()
 
 void Net::Report::_handle_report_timeout(Duration)
 {
-	_report();
+	generate();
 }
 
 
 void Net::Report::handle_config()
 {
 	if (!_config_triggers) {
-		return; }
-
-	_report();
+		return;
+	}
+	_signal_transmitter.submit();
 }
+
 
 void Net::Report::handle_interface_link_state()
 {
 	if (!_link_state_triggers) {
-		return; }
-
-	_report();
+		return;
+	}
+	_signal_transmitter.submit();
 }

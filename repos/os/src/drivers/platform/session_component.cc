@@ -14,6 +14,7 @@
 #include <dataspace/client.h>
 
 #include <device.h>
+#include <pci.h>
 #include <session_component.h>
 
 using Driver::Session_component;
@@ -23,7 +24,7 @@ Genode::Capability<Platform::Device_interface>
 Session_component::_acquire(Device & device)
 {
 	Device_component * dc = new (heap())
-		Device_component(_device_registry, *this, device);
+		Device_component(_device_registry, _env, *this, _devices, device);
 	device.acquire(*this);
 	return _env.ep().rpc_ep().manage(dc);
 };
@@ -43,17 +44,24 @@ void Session_component::_release_device(Device_component & dc)
 void Session_component::_free_dma_buffer(Dma_buffer & buf)
 {
 	Ram_dataspace_capability cap = buf.cap;
+	_device_pd.free_dma_mem(buf.dma_addr);
 	destroy(heap(), &buf);
 	_env_ram.free(cap);
 }
 
 
-bool Session_component::matches(Device & dev) const
+bool Session_component::matches(Device const & dev) const
 {
 	bool ret = false;
 
 	try {
 		Session_policy const policy { label(), _config.xml() };
+
+		/* check PCI devices */
+		if (pci_device_matches(policy, dev))
+			return true;
+
+		/* check for dedicated device name */
 		policy.for_each_sub_node("device", [&] (Xml_node node) {
 			if (dev.name() == node.attribute_value("name", Device::Name()))
 				ret = true;
@@ -73,7 +81,7 @@ void Session_component::update_policy(bool info, Policy_version version)
 
 	_device_registry.for_each([&] (Device_component & dc) {
 		Device_state state = AWAY;
-		_devices.for_each([&] (Device & dev) {
+		_devices.for_each([&] (Device const & dev) {
 			if (dev.name() != dc.device())
 				return;
 			state = (dev.owner() == _owner_id) ? UNCHANGED : CHANGED;
@@ -97,24 +105,18 @@ void Session_component::update_policy(bool info, Policy_version version)
 
 void Session_component::produce_xml(Xml_generator &xml)
 {
-	if (!_info)
-		return;
-
 	if (_version.valid())
 		xml.attribute("version", _version);
 
-	_devices.for_each([&] (Device & dev) {
-		if (matches(dev)) dev.report(xml, *this); });
+	_devices.for_each([&] (Device const & dev) {
+		if (matches(dev)) dev.generate(xml, _info); });
 }
 
 
-Genode::Env & Session_component::env() { return _env; }
-
-
-Driver::Device_model & Session_component::devices() { return _devices; }
-
-
 Genode::Heap & Session_component::heap() { return _md_alloc; }
+
+
+Driver::Device_pd & Session_component::device_pd() { return _device_pd; }
 
 
 void Session_component::update_devices_rom()
@@ -131,15 +133,6 @@ Genode::Capability<Platform::Device_interface>
 Session_component::acquire_device(Platform::Session::Device_name const &name)
 {
 	Capability<Platform::Device_interface> cap;
-
-	/* Search for existing, aquired device session */
-	_device_registry.for_each([&] (Device_component & dc) {
-		if (dc.device() == name)
-			cap = dc.cap();
-	});
-
-	if (cap.valid())
-		return cap;
 
 	_devices.for_each([&] (Device & dev)
 	{
@@ -160,15 +153,8 @@ Session_component::acquire_single_device()
 {
 	Capability<Platform::Device_interface> cap;
 
-	/* Search for existing, aquired device session */
-	_device_registry.for_each([&] (Device_component & dc) {
-		cap = dc.cap(); });
-
-	if (cap.valid())
-		return cap;
-
 	_devices.for_each([&] (Device & dev) {
-		if (matches(dev) && !dev.owner().valid())
+		if (!cap.valid() && matches(dev) && !dev.owner().valid())
 			cap = _acquire(dev); });
 
 	return cap;
@@ -189,16 +175,46 @@ void Session_component::release_device(Capability<Platform::Device_interface> de
 Genode::Ram_dataspace_capability
 Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 {
-	Ram_dataspace_capability ram_cap = _env_ram.alloc(size, cache);
+	Ram_dataspace_capability ram_cap { };
+
+	/*
+	 * Check available quota beforehand and reflect the state back
+	 * to the client because the 'Expanding_pd_session_client' will
+	 * ask its parent otherwise.
+	 */
+	enum { WATERMARK_CAP_QUOTA = 8, };
+	if (_env.pd().avail_caps().value < WATERMARK_CAP_QUOTA)
+		throw Out_of_caps();
+
+	enum { WATERMARK_RAM_QUOTA = 4096, };
+	if (_env.pd().avail_ram().value < WATERMARK_RAM_QUOTA)
+		throw Out_of_ram();
+
+	try {
+		ram_cap = _env_ram.alloc(size, cache);
+	} catch (Ram_allocator::Denied) { }
 
 	if (!ram_cap.valid()) return ram_cap;
 
+	Dma_buffer *buf { nullptr };
 	try {
-		new (heap()) Dma_buffer(_buffer_registry, ram_cap);
+			buf = new (heap()) Dma_buffer(_buffer_registry, ram_cap);
 	} catch (Out_of_ram)  {
 		_env_ram.free(ram_cap);
 		throw;
 	} catch (Out_of_caps) {
+		_env_ram.free(ram_cap);
+		throw;
+	}
+
+	try {
+		buf->dma_addr = _device_pd.attach_dma_mem(ram_cap, _env.pd().dma_addr(buf->cap), false);
+	} catch (Out_of_ram)  {
+		destroy(heap(), buf);
+		_env_ram.free(ram_cap);
+		throw;
+	} catch (Out_of_caps) {
+		destroy(heap(), buf);
 		_env_ram.free(ram_cap);
 		throw;
 	}
@@ -224,30 +240,30 @@ Genode::addr_t Session_component::dma_addr(Ram_dataspace_capability ram_cap)
 	if (!ram_cap.valid())
 		return ret;
 
-	_buffer_registry.for_each([&] (Dma_buffer & buf) {
-		if (buf.cap.local_name() == ram_cap.local_name()) {
-			Dataspace_client dsc(buf.cap);
-			ret = dsc.phys_addr();
-		} });
+	_buffer_registry.for_each([&] (Dma_buffer const & buf) {
+		if (buf.cap.local_name() == ram_cap.local_name())
+			ret = buf.dma_addr; });
 
 	return ret;
 }
 
 
-Session_component::Session_component(Env                    & env,
-                                     Attached_rom_dataspace & config,
-                                     Device_model           & devices,
-                                     Session_registry       & registry,
-                                     Label          const   & label,
-                                     Resources      const   & resources,
-                                     Diag           const   & diag,
-                                     bool           const     info,
-                                     Policy_version const     version)
+Session_component::Session_component(Env                          & env,
+                                     Attached_rom_dataspace const & config,
+                                     Device_model                 & devices,
+                                     Session_registry             & registry,
+                                     Label          const         & label,
+                                     Resources      const         & resources,
+                                     Diag           const         & diag,
+                                     bool           const           info,
+                                     Policy_version const           version,
+                                     bool           const           iommu)
 :
 	Session_object<Platform::Session>(env.ep(), resources, label, diag),
 	Session_registry::Element(registry, *this),
 	Dynamic_rom_session::Xml_producer("devices"),
-	_env(env), _config(config), _devices(devices), _info(info), _version(version)
+	_env(env), _config(config), _devices(devices), _info(info), _version(version),
+	_iommu(iommu)
 {
 	/*
 	 * FIXME: As the ROM session does not propagate Out_of_*

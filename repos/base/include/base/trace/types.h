@@ -107,17 +107,18 @@ class Genode::Trace::Subject_info
 {
 	public:
 
-		enum State { INVALID, UNTRACED, TRACED, FOREIGN, ERROR, DEAD };
+		enum State { INVALID, UNATTACHED, ATTACHED, TRACED, FOREIGN, ERROR, DEAD };
 
 		static char const *state_name(State state)
 		{
 			switch (state) {
-			case INVALID:  return "INVALID";
-			case UNTRACED: return "UNTRACED";
-			case TRACED:   return "TRACED";
-			case FOREIGN:  return "FOREIGN";
-			case ERROR:    return "ERROR";
-			case DEAD:     return "DEAD";
+			case INVALID:    return "INVALID";
+			case UNATTACHED: return "UNATTACHED";
+			case ATTACHED:   return "ATTACHED";
+			case TRACED:     return "TRACED";
+			case FOREIGN:    return "FOREIGN";
+			case ERROR:      return "ERROR";
+			case DEAD:       return "DEAD";
 			}
 			return "INVALID";
 		}

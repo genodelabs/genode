@@ -1,0 +1,24 @@
+<runtime ram="8M" caps="100" binary="part_block">
+
+	<requires> <block/> <report/> </requires>
+	<provides> <block/> </provides>
+
+	<config>
+		<report partitions="yes"/>
+		<policy label="1" partition="1" writeable="yes"/>
+		<policy label="2" partition="2" writeable="yes"/>
+		<policy label="3" partition="3" writeable="yes"/>
+		<policy label="4" partition="4" writeable="yes"/>
+		<policy label="5" partition="5" writeable="yes"/>
+		<policy label="6" partition="6" writeable="yes"/>
+		<policy label="7" partition="7" writeable="yes"/>
+		<policy label="8" partition="8" writeable="yes"/>
+		<policy label="9" partition="9" writeable="yes"/>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="part_block"/>
+	</content>
+
+</runtime>

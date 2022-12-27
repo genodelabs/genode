@@ -25,7 +25,7 @@ if {[have_board linux] ||
     [have_board rpi3]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
-if {[get_cmd_switch --autopilot] && [have_board riscv_qemu]} {
+if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 	puts "Autopilot mode is not supported on this platform."
 	exit 0
 }

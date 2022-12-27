@@ -104,7 +104,7 @@ set build_components {
 	server/event_filter
 	server/report_rom server/fs_rom server/vfs
 	server/tcp_terminal drivers/nic
-	lib/vfs/lwip lib/vfs/pipe lib/vfs/import
+	lib/vfs_lwip lib/vfs_pipe lib/vfs_import
 	server/nic_router
 }
 

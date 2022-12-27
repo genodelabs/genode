@@ -82,7 +82,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t,
 
 		/* map it */
 		Nova::Utcb &utcb = *reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
-		const Nova::Rights rights(true, writeable && ds.writable(), executable);
+		const Nova::Rights rights(true, writeable && ds.writeable(), executable);
 
 		if (map_local(platform_specific().core_pd_sel(), utcb,
 		              ds.phys_addr(), reinterpret_cast<addr_t>(virt_ptr),

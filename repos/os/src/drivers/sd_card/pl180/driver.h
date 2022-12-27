@@ -118,19 +118,6 @@ class Sd_card::Driver : public  Block::Driver,
 		size_t          const _block_size  = 512;
 		Block::sector_t const _block_count = 0x20000000 / _block_size;
 
-		Dataspace_capability _io_mem_ds(Platform::Connection &platform)
-		{
-			using Device = Platform::Device_interface;
-
-			Capability<Device> device_cap = platform.acquire_device();
-
-			Device::Range range { };
-			Io_mem_session_client io_mem {
-				device_cap.call<Device::Rpc_io_mem>(1, range, UNCACHED) };
-
-			return io_mem.dataspace();
-		}
-
 	public:
 
 		Driver(Env &env, Platform::Connection & platform);
@@ -140,6 +127,16 @@ class Sd_card::Driver : public  Block::Driver,
 		/******************
 		 ** Block-driver **
 		 ******************/
+
+		Dma_buffer alloc_dma_buffer(size_t size, Cache cache) override
+		{
+			Ram_dataspace_capability ds =
+				_platform.retry_with_upgrade(Ram_quota{4096}, Cap_quota{2},
+					[&] () { return _platform.alloc_dma_buffer(size, cache); });
+
+			return { .ds       = ds,
+			         .dma_addr = _platform.dma_addr(ds) };
+		}
 
 		Block::Session::Info info() const override
 		{

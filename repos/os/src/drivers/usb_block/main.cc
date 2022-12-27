@@ -149,7 +149,7 @@ struct Usb::Block_driver : Usb::Completion
 	Usb::Connection       usb { env, &alloc,
 		get_label<128>(config.xml()).string(), 2 * (1<<20), state_change_dispatcher };
 	Usb::Device           device;
-	Signal_handler<Main> &wake_up_handler;
+	Signal_handler<Main> &block_request_handler;
 
 	/*
 	 * Reporter
@@ -169,6 +169,9 @@ struct Usb::Block_driver : Usb::Completion
 
 	uint8_t active_interface = 0;
 	uint8_t active_lun       = 0;
+
+	enum { INVALID_ALT_SETTING = 256 };
+	uint16_t active_alt_setting = 0;
 
 	uint32_t active_tag = 0;
 	uint32_t new_tag() { return ++active_tag % 0xffffffu; }
@@ -431,6 +434,43 @@ struct Usb::Block_driver : Usb::Completion
 			IPROTO_BULK_ONLY    = 80
 		};
 
+		/*
+		 * Devices following the USB Attached SCSI specification
+		 * normally expose the bulk-only transport in interface 0 alt 0
+		 * and the UAS endpoints in interface 0 alt 1.
+		 *
+		 * The default interface and thereby 'iface.current()', however,
+		 * might point to the interface 0 alt 1 for such devices.
+		 *
+		 * In case the alternate setting was not explicitly configured
+		 * we look for the first bulk-only setting.
+		 */
+
+		if (active_alt_setting == INVALID_ALT_SETTING) {
+
+			/* cap value in case there is no bulk-only */
+			active_alt_setting = 0;
+
+			for (unsigned i = 0; i < iface.alternate_count(); i++) {
+				Alternate_interface &aif = iface.alternate_interface(i);
+				if (aif.iclass == ICLASS_MASS_STORAGE
+				    && aif.isubclass == ISUBCLASS_SCSI
+				    && aif.iprotocol == IPROTO_BULK_ONLY) {
+
+					active_alt_setting = i;
+
+					Genode::log("Use probed alternate setting ",
+					            active_alt_setting, " for interface ",
+					            active_interface);
+					break;
+				}
+			}
+		}
+
+		Alternate_interface &aif =
+			iface.alternate_interface((uint8_t)active_alt_setting);
+		iface.set_alternate_interface(aif);
+
 		Alternate_interface &alt_iface = iface.current();
 
 		if (alt_iface.iclass != ICLASS_MASS_STORAGE
@@ -651,7 +691,11 @@ struct Usb::Block_driver : Usb::Completion
 		request->block_request.success = success;
 		request->completed             = true;
 
-		wake_up_handler.dispatch(0);
+		/*
+		 * An I/O operation completed, thus trigger block-request handling on
+		 * component service level.
+		 */
+		block_request_handler.local_submit();
 	}
 
 	/**
@@ -778,6 +822,10 @@ struct Usb::Block_driver : Usb::Completion
 		active_lun       = node.attribute_value("lun",          0UL);
 		reset_device     = node.attribute_value("reset_device", false);
 		verbose_scsi     = node.attribute_value("verbose_scsi", false);
+
+		active_alt_setting =
+			node.attribute_value("alt_setting",
+			                     (unsigned long)INVALID_ALT_SETTING);
 	}
 
 	/**
@@ -789,10 +837,10 @@ struct Usb::Block_driver : Usb::Completion
 	 */
 	Block_driver(Env &env, Allocator &alloc,
 	             Genode::Signal_context_capability sigh,
-	             Signal_handler<Main> &wake_up_handler)
+	             Signal_handler<Main> &block_request_handler)
 	:
 		env(env), ep(env.ep()), announce_sigh(sigh), alloc(&alloc),
-		device(&alloc, usb, ep), wake_up_handler(wake_up_handler)
+		device(&alloc, usb, ep), block_request_handler(block_request_handler)
 	{
 		parse_config(config.xml());
 		reporter.enabled(true);
@@ -915,7 +963,7 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 	Signal_handler<Main> announce_dispatcher {
 		env.ep(), *this, &Usb::Main::announce };
 
-	Io_signal_handler<Main>  request_handler {
+	Signal_handler<Main>  request_handler {
 		env.ep(), *this, &Main::handle_requests };
 
 	Block_driver driver { env, heap, announce_dispatcher, request_handler };

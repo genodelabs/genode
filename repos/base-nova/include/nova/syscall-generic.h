@@ -56,7 +56,7 @@ namespace Nova {
 		NOVA_CREATE_PT  = 0x5,
 		NOVA_CREATE_SM  = 0x6,
 		NOVA_REVOKE     = 0x7,
-		NOVA_LOOKUP     = 0x8,
+		NOVA_MISC       = 0x8, /* lookup, delegate, acpi_suspend */
 		NOVA_EC_CTRL    = 0x9,
 		NOVA_SC_CTRL    = 0xa,
 		NOVA_PT_CTRL    = 0xb,
@@ -128,8 +128,9 @@ namespace Nova {
 		uint32_t const tsc_freq;    /* time-stamp counter frequency in kHz     */
 		uint32_t const bus_freq;    /* bus frequency in kHz                    */
 
-		bool has_feature_vmx() const { return feature_flags & (1 << 1); }
-		bool has_feature_svm() const { return feature_flags & (1 << 2); }
+		bool has_feature_iommu() const { return feature_flags & (1 << 0); }
+		bool has_feature_vmx()   const { return feature_flags & (1 << 1); }
+		bool has_feature_svm()   const { return feature_flags & (1 << 2); }
 
 		struct Cpu_desc {
 			uint8_t flags;
@@ -242,12 +243,44 @@ namespace Nova {
 		EC_DONATE_SC = 2U,
 		EC_RESCHEDULE = 3U,
 		EC_MIGRATE = 4U,
+		EC_TIME = 5U,
+	};
+
+	enum Sc_op {
+		SC_TIME_IDLE   = 0,
+		SC_TIME_CROSS  = 1,
+		SC_TIME_KILLED = 2,
+		SC_EC_TIME     = 3,
 	};
 
 	/**
 	 * Pd operations
 	 */
 	enum Pd_op { TRANSFER_QUOTA = 0U, PD_DEBUG = 2U };
+
+	class Gsi_flags
+	{
+		private:
+
+			uint8_t _value { 0 };
+
+		public:
+
+			enum Mode { HIGH, LOW, EDGE };
+
+			Gsi_flags() { }
+
+			Gsi_flags(Mode m)
+			{
+				switch (m) {
+				case HIGH: _value = 0b110; break; /* level-high */
+				case LOW:  _value = 0b111; break; /* level-low */
+				case EDGE: _value = 0b100; break; /* edge-triggered */
+				}
+			}
+
+			uint8_t value() const { return _value; }
+	};
 
 
 	class Descriptor

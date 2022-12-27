@@ -41,6 +41,12 @@
 ##
 
 #
+# We initially enforce .SHELLFLAGS flags in case build.mk called recursively
+# (from tool/run) as SHELL will be reset to /bin/sh before setting up bash.
+#
+.SHELLFLAGS := -c
+
+#
 # Whenever using the 'run/%' rule and the run tool spawns this Makefile again
 # when encountering a 'build' step, the build.conf is included a second time,
 # with the content taken from the environment variable. We need to reset the
@@ -66,6 +72,7 @@ export LIB_DEP_FILE     ?= var/libdeps
 export ECHO             ?= echo -e
 export CONTRIB_DIR
 export BOARD
+export KERNEL
 
 #
 # Convert user-defined directories to absolute directories
@@ -90,7 +97,17 @@ endif
 # standard shell is dash, which breaks colored output via its built-in echo
 # command.
 #
-export SHELL := $(shell sh -c "command -v bash")
+# SHELL is exported into the environment for tools used in rules
+# (like tool/run). Unfortunately, sub-make instances will reset SHELL to
+# /bin/sh if it is not explicitly provided on the command like (as we do
+# below). See GNU Make manual "5.3.2 Choosing the Shell" for further details.
+# .SHELLFLAGS is extended by option pipefail to make pipes fail if any pipe
+# element fails.
+#
+export SHELL       := $(shell sh -c "command -v bash")
+export .SHELLFLAGS := -o pipefail $(.SHELLFLAGS)
+
+MAKE := $(MAKE) SHELL=$(SHELL)
 
 #
 # Discharge variables evaluated by ccache mechanism that may be inherited when
@@ -137,10 +154,33 @@ export LIBGCC_INC_DIR := $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-n
 #
 # Find out about the target directories to build
 #
-DST_DIRS := $(filter-out clean cleanall again run/%,$(MAKECMDGOALS))
+# Arguments starting with 'run/' and 'lib/' are special. The former triggers
+# the execution of a run script. The latter issues the build of a library.
+#
+DST_DIRS := $(filter-out clean cleanall again run/% lib/%,$(MAKECMDGOALS))
 
 ifeq ($(MAKECMDGOALS),)
 DST_DIRS := *
+endif
+
+#
+# Detect use of obsoleted LIB=<libname> option
+#
+ifneq ($(LIB),)
+$(error the 'LIB=$(LIB)' option is no longer supported, use 'make lib/$(LIB)')
+endif
+
+#
+# Determine library targets specified as lib/<libname> at the command line
+#
+LIBS := $(notdir $(filter lib/%,$(MAKECMDGOALS)))
+
+ifeq ($(MAKECMDGOALS),)
+ALL_LIB_MK_DIRS  := $(wildcard \
+                       $(foreach R,$(REPOSITORIES),\
+                          $R/lib/mk $(foreach S,$(SPECS),$R/lib/mk/spec/$S)))
+ALL_LIB_MK_FILES := $(wildcard $(addsuffix /*.mk,$(ALL_LIB_MK_DIRS)))
+LIBS             := $(sort $(notdir $(ALL_LIB_MK_FILES:.mk=)))
 endif
 
 #
@@ -170,7 +210,7 @@ endif
 #
 # Default rule: build all directories specified as make arguments
 #
-_all $(DST_DIRS): gen_deps_and_build_targets
+_all $(DST_DIRS) $(addprefix lib/,$(LIBS)) : gen_deps_and_build_targets
 	@true
 
 ##
@@ -258,44 +298,29 @@ endif
 # we would need to spawn one additional shell per target, which would take
 # 10-20 percent more time.
 #
-traverse_target_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
+traverse_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
 	$(VERBOSE_MK) \
+	for lib in $(LIBS); do \
+	    $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk \
+	            REP_DIR=$$rep LIB=$$lib \
+	            BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
+	            DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)"; \
+	    echo "all: $$lib.lib" >> $(LIB_DEP_FILE); \
+	done; \
 	for target in $(TARGETS_TO_VISIT); do \
 	  for rep in $(REPOSITORIES); do \
 	    test -f $$rep/src/$$target || continue; \
 	    $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_prg.mk \
 	            REP_DIR=$$rep TARGET_MK=$$rep/src/$$target \
 	            BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
-	            SHELL=$(SHELL) \
 	            DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)" || result=false; \
 	    break; \
 	  done; \
 	done; $$result;
 
-#
-# Generate content of libdep file if manually building a single library
-# specified via the 'LIB' argument.
-#
-traverse_lib_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
-	$(VERBOSE_MK) \
-	$(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk \
-	        REP_DIR=$$rep LIB=$(LIB) \
-	        BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
-	        SHELL=$(SHELL) \
-	        DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)"; \
-	echo "all: $(LIB).lib" >> $(LIB_DEP_FILE); \
-
 .PHONY: $(LIB_DEP_FILE)
 
-#
-# Depending on whether the top-level target is a list of targets or a
-# single library, we populate the LIB_DEP_FILE differently.
-#
-ifeq ($(LIB),)
-$(LIB_DEP_FILE): traverse_target_dependencies
-else
-$(LIB_DEP_FILE): traverse_lib_dependencies
-endif
+$(LIB_DEP_FILE): traverse_dependencies
 
 
 ##
@@ -322,11 +347,12 @@ gen_deps_and_build_targets: $(INSTALL_DIR) $(DEBUG_DIR) $(LIB_DEP_FILE)
 	  echo "check_ports:"; \
 	  echo "endif"; \
 	  echo "") >> $(LIB_DEP_FILE)
-	@$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
+	$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
+
 
 .PHONY: again
 again: $(INSTALL_DIR) $(DEBUG_DIR)
-	@$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
+	$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) -f $(LIB_DEP_FILE) all
 
 #
 # Read tools configuration to obtain the cross-compiler prefix passed
@@ -432,7 +458,6 @@ clean_targets:
 					-f $(BASE_DIR)/mk/prg.mk \
 					BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
 					PRG_REL_DIR=$$d \
-					SHELL=$(SHELL) \
 					REP_DIR=$$r || \
 				true; \
 		done; \

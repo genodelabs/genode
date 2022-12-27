@@ -187,11 +187,14 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 	/* copy reply to the UTCBs message registers */
 	copy_msg_to_utcb(snd_msg, exc.value);
 
-	/* perform non-blocking IPC send operation */
-	L4_MsgTag_t rcv_tag = L4_Reply(Capability_space::ipc_cap_data(caller).dst);
-
-	if (L4_IpcFailed(rcv_tag))
-		error("ipc error in ipc_reply - gets ignored");
+	/*
+	 * Perform non-blocking IPC-send operation
+	 *
+	 * Errors are deliberately ignored. The operation may fail if the
+	 * client disappeared during the IPC call. But this condition does
+	 * not concern the server side.
+	 */
+	(void)L4_Reply(Capability_space::ipc_cap_data(caller).dst);
 }
 
 

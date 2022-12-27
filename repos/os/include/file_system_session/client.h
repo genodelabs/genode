@@ -51,13 +51,9 @@ class File_system::Session_client : public Genode::Rpc_client<Session>
 
 		Tx::Source *tx() override { return _tx.source(); }
 
-		void sigh_ready_to_submit(Genode::Signal_context_capability sigh)
+		void sigh(Genode::Signal_context_capability sigh)
 		{
 			_tx.sigh_ready_to_submit(sigh);
-		}
-
-		void sigh_ack_avail(Genode::Signal_context_capability sigh)
-		{
 			_tx.sigh_ack_avail(sigh);
 		}
 
@@ -115,6 +111,11 @@ class File_system::Session_client : public Genode::Rpc_client<Session>
 		          Dir_handle to_dir,   Name const &to_name) override
 		{
 			call<Rpc_move>(from_dir, from_name, to_dir, to_name);
+		}
+
+		unsigned num_entries(Dir_handle dir) override
+		{
+			return call<Rpc_num_entries>(dir);
 		}
 };
 

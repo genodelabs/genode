@@ -15,6 +15,7 @@
 #define _VIEW__RAM_FS_DIALOG_H_
 
 #include <view/fs_dialog.h>
+#include <view/selectable_item.h>
 #include <model/ram_fs_state.h>
 
 namespace Sculpt { struct Ram_fs_dialog; }

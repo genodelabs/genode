@@ -52,7 +52,7 @@ Interface_policy::Interface_policy(Genode::Session_label const &label,
 	_config      { config },
 	_session_env { session_env }
 {
-	_session_link_state_transition(UP);
+	_session_link_state_transition(DOWN);
 }
 
 
@@ -86,70 +86,72 @@ Interface_policy::_session_link_state_transition(Transient_link_state tls)
 }
 
 
-void Net::Nic_session_component::Interface_policy::interface_unready()
+void Net::
+Nic_session_component::Interface_policy::handle_domain_ready_state(bool state)
 {
-	switch (_transient_link_state) {
-	case UP_ACKNOWLEDGED:
+	if (state) {
 
-		_session_link_state_transition(DOWN);
-		break;
+		switch (_transient_link_state) {
+		case DOWN_ACKNOWLEDGED:
 
-	case UP:
+			_session_link_state_transition(UP);
+			break;
 
-		_transient_link_state = UP_DOWN;
-		break;
+		case DOWN:
 
-	case DOWN_UP:
+			_transient_link_state = DOWN_UP;
+			break;
 
-		_transient_link_state = DOWN_UP_DOWN;
-		break;
+		case UP_DOWN:
 
-	case UP_DOWN:
+			_transient_link_state = UP_DOWN_UP;
+			break;
 
-		break;
+		case DOWN_UP:
 
-	case UP_DOWN_UP:
+			break;
 
-		_transient_link_state = UP_DOWN;
-		break;
+		case DOWN_UP_DOWN:
 
-	case DOWN_ACKNOWLEDGED: break;
-	case DOWN:              break;
-	case DOWN_UP_DOWN:      break;
-	}
-}
+			_transient_link_state = DOWN_UP;
+			break;
 
+		case UP_ACKNOWLEDGED: break;
+		case UP:              break;
+		case UP_DOWN_UP:      break;
+		}
 
-void Net::Nic_session_component::Interface_policy::interface_ready()
-{
-	switch (_transient_link_state) {
-	case DOWN_ACKNOWLEDGED:
+	} else {
 
-		_session_link_state_transition(UP);
-		break;
+		switch (_transient_link_state) {
+		case UP_ACKNOWLEDGED:
 
-	case DOWN:
+			_session_link_state_transition(DOWN);
+			break;
 
-		_transient_link_state = DOWN_UP;
-		break;
+		case UP:
 
-	case UP_DOWN:
+			_transient_link_state = UP_DOWN;
+			break;
 
-		_transient_link_state = UP_DOWN_UP;
-		break;
+		case DOWN_UP:
 
-	case DOWN_UP:
+			_transient_link_state = DOWN_UP_DOWN;
+			break;
 
-		break;
+		case UP_DOWN:
 
-	case DOWN_UP_DOWN:
+			break;
 
-		_transient_link_state = DOWN_UP;
-		break;
+		case UP_DOWN_UP:
 
-	case UP_ACKNOWLEDGED: break;
-	case UP:              break;
-	case UP_DOWN_UP:      break;
+			_transient_link_state = UP_DOWN;
+			break;
+
+		case DOWN_ACKNOWLEDGED: break;
+		case DOWN:              break;
+		case DOWN_UP_DOWN:      break;
+		}
 	}
 }
 
@@ -234,7 +236,7 @@ Nic_session_component::
 Nic_session_component(Session_env                    &session_env,
                       size_t                   const  tx_buf_size,
                       size_t                   const  rx_buf_size,
-                      Timer::Connection              &timer,
+                      Cached_timer                   &timer,
                       Mac_address              const  mac,
                       Mac_address              const &router_mac,
                       Session_label            const &label,
@@ -253,10 +255,15 @@ Nic_session_component(Session_env                    &session_env,
 {
 	_interface.attach_to_domain();
 
-	_tx.sigh_ready_to_ack   (_interface.sink_ack());
-	_tx.sigh_packet_avail   (_interface.sink_submit());
-	_rx.sigh_ack_avail      (_interface.source_ack());
-	_rx.sigh_ready_to_submit(_interface.source_submit());
+	/* install packet stream signal handlers */
+	_tx.sigh_packet_avail(_interface.pkt_stream_signal_handler());
+	_rx.sigh_ack_avail   (_interface.pkt_stream_signal_handler());
+
+	/*
+	 * We do not install ready_to_submit because submission is only triggered by
+	 * incoming packets (and dropped if the submit queue is full).
+	 * The ack queue should never be full otherwise we'll be leaking packets.
+	 */
 }
 
 
@@ -278,7 +285,7 @@ Nic_session_component::link_state_sigh(Signal_context_capability sigh)
  **********************/
 
 Net::Nic_session_root::Nic_session_root(Env               &env,
-                                        Timer::Connection &timer,
+                                        Cached_timer      &timer,
                                         Allocator         &alloc,
                                         Configuration     &config,
                                         Quota             &shared_quota,

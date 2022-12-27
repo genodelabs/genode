@@ -23,13 +23,11 @@
 #include <kernel/vm.h>
 #include <kernel/main.h>
 
+#include <spec/arm_v8/virtualization/hypervisor.h>
+
 using Genode::addr_t;
 using Kernel::Cpu;
 using Kernel::Vm;
-
-extern     void * kernel_stack;
-extern "C" void   hypervisor_enter_vm(addr_t vm, addr_t host,
-                                      addr_t pic, addr_t guest_table);
 
 
 static Genode::Vm_state & host_context(Cpu & cpu)
@@ -154,6 +152,15 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 }
 
 
+Vm::~Vm()
+{
+	Cpu::Vttbr_el2::access_t vttbr_el2 =
+		Cpu::Vttbr_el2::Ba::masked((Cpu::Vttbr_el2::access_t)_id.table);
+	Cpu::Vttbr_el2::Asid::set(vttbr_el2, _id.id);
+	Hypervisor::invalidate_tlb(vttbr_el2);
+}
+
+
 void Vm::exception(Cpu & cpu)
 {
 	switch (_state.exception_type) {
@@ -197,7 +204,7 @@ void Vm::proceed(Cpu & cpu)
 	addr_t pic   = Hw::Mm::el2_addr(&_vcpu_context.pic);
 	addr_t host  = Hw::Mm::el2_addr(&host_context(cpu));
 
-	hypervisor_enter_vm(guest, host, pic, vttbr_el2);
+	Hypervisor::switch_world(guest, host, pic, vttbr_el2);
 }
 
 

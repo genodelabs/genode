@@ -40,12 +40,15 @@ short pv[] = { -1, PCI_BUS_PARENT };
 struct cfdata cfdata[] = {
 	{&audio_ca,  &audio_cd,  0, 0, 0, 0, pv+0, 0, 0},
 	{&azalia_ca, &azalia_cd, 0, 0, 0, 0, pv+1, 0, 0},
-	{&eap_ca,    &eap_cd,    0, 0, 0, 0, pv+1, 0, 0},
-	{&auich_ca,  &auich_cd,  0, 0, 0, 0, pv+1, 0, 0},
 };
 
 
 struct device pci_bus = { DV_DULL, { 0, 0 }, 0, 0, { 'p', 'c', 'i', '0'}, 0, 0, 0 };
+
+
+/* global unit counter */
+static int dv_unit;
+
 
 /**
  * This function is our little helper that matches and attaches
@@ -74,11 +77,22 @@ int probe_cfdata(struct pci_attach_args *pa)
 			                                              M_DEVBUF, M_NOWAIT|M_ZERO);
 
 			dev->dv_cfdata = cf;
+			dev->dv_unit = dv_unit++;
 
 			snprintf(dev->dv_xname, sizeof(dev->dv_xname), "%s%d", cd->cd_name,
 			         dev->dv_unit);
-			printf("%s at %s\n", dev->dv_xname, pci_bus.dv_xname);
+			printf("%s [%x:%x]\n", dev->dv_xname,
+			       pa->pa_id & 0xffffu, (pa->pa_id >> 16u) & 0xffffu);
 			ca->ca_attach(&pci_bus, dev, pa);
+
+			/*
+			 * The contrib code is patched to set the dv_ref when the
+			 * driver attached successfully.
+			 */
+			if (!pci_bus.dv_ref) {
+				free(dev, M_DEVBUF, ca->ca_devsize);
+				return 0;
+			}
 
 			return 1;
 		}

@@ -24,6 +24,9 @@ $(KERNEL_BUILD_DIR)/Makefile:
 #
 unexport CCACHE
 
+# do not confuse third-party sub-makes
+unexport .SHELLFLAGS
+
 #
 # How to pass custom compiler flags to the Pistachio build system
 #

@@ -67,7 +67,7 @@ class Lx_kit::Slab_backend_alloc : public Lx::Slab_backend_alloc,
 				Region_map_client::attach_at(_ds_cap[_index], _index * V_BLOCK_SIZE, P_BLOCK_SIZE, 0);
 
 				/* lookup phys. address */
-				_ds_phys[_index] = Genode::Dataspace_client(_ds_cap[_index]).phys_addr();
+				_ds_phys[_index] = Lx::backend_dma_addr(_ds_cap[_index]);
 			} catch (...) { return false; }
 
 			/* return base + offset in VM area */

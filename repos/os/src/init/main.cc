@@ -49,7 +49,7 @@ struct Init::Main : Sandbox::State_handler
 		Xml_node const config = _config.xml();
 
 		bool reporter_enabled = false;
-		config.with_sub_node("report", [&] (Xml_node report) {
+		config.with_optional_sub_node("report", [&] (Xml_node report) {
 
 			reporter_enabled = true;
 

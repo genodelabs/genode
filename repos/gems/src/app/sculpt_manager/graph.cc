@@ -12,6 +12,7 @@
  */
 
 #include <graph.h>
+#include <feature.h>
 #include <view/dialog.h>
 
 using namespace Sculpt;
@@ -157,7 +158,7 @@ void Graph::generate(Xml_generator &xml) const
 {
 	xml.node("depgraph", [&] () {
 
-		if (_sculpt_partition.valid()) {
+		if (Feature::PRESENT_PLUS_MENU && _sculpt_partition.valid()) {
 			gen_named_node(xml, "button", "global+", [&] () {
 				_add_button_item.gen_button_attr(xml, "global+");
 
@@ -168,7 +169,10 @@ void Graph::generate(Xml_generator &xml) const
 					xml.attribute("text", "+"); }); });
 		}
 
-		_gen_storage_node(xml);
+		if (Feature::STORAGE_DIALOG_HOSTED_IN_GRAPH)
+			_gen_storage_node(xml);
+		else
+			_gen_parent_node(xml, "storage", "Storage");
 
 		if (_storage_devices.usb_present)
 			_gen_usb_node(xml);
@@ -302,25 +306,22 @@ Dialog::Hover_result Graph::hover(Xml_node hover)
 		/* update anchor geometry of popup menu */
 		auto hovered_rect = [] (Xml_node const dialog)
 		{
-			if (!dialog.has_type("dialog")) return Rect();
+			if (!dialog.has_type("dialog"))
+				return Rect();
 
-			auto point_from_xml = [] (Xml_node node) {
-				return Point((int)node.attribute_value("xpos", 0L),
-				             (int)node.attribute_value("ypos", 0L)); };
+			if (!dialog.has_sub_node("depgraph"))
+				return Rect();
 
-			auto area_from_xml = [] (Xml_node node) {
-				return Area(node.attribute_value("width",  0U),
-				            node.attribute_value("height", 0U)); };
-
-			if (!dialog.has_sub_node("depgraph")) return Rect();
 			Xml_node const depgraph = dialog.sub_node("depgraph");
 
-			if (!depgraph.has_sub_node("button")) return Rect();
+			if (!depgraph.has_sub_node("button"))
+				return Rect();
+
 			Xml_node const button = depgraph.sub_node("button");
 
-			return Rect(point_from_xml(dialog) + point_from_xml(depgraph) +
-			            point_from_xml(button),
-			            area_from_xml(button));
+			return Rect(Point::from_xml(dialog) + Point::from_xml(depgraph) +
+			            Point::from_xml(button),
+			            Area::from_xml(button));
 		};
 
 		_popup_anchor = hovered_rect(hover);

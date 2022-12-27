@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2014-2018 Genode Labs GmbH
+ * Copyright (C) 2014-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,7 +18,6 @@
 #include <rump_fs/fs.h>
 #include <vfs/file_system_factory.h>
 #include <vfs/vfs_handle.h>
-#include <timer_session/connection.h>
 #include <os/path.h>
 
 extern "C" {
@@ -43,6 +42,10 @@ namespace Vfs { struct Rump_file_system; };
 
 static void _rump_sync()
 {
+	/* prevent nested calls into rump */
+	if (rump_io_backend_blocked_for_io())
+		return;
+
 	/* sync through front-end */
 	rump_sys_sync();
 
@@ -658,12 +661,12 @@ class Vfs::Rump_file_system : public File_system
 			}
 			catch (Genode::Out_of_ram) { return OPENLINK_ERR_OUT_OF_RAM; }
 			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
-	    }
+		}
 
 		void close(Vfs_handle *vfs_handle) override
 		{
 			if (Rump_vfs_file_handle *handle =
-				static_cast<Rump_vfs_file_handle *>(vfs_handle))
+				dynamic_cast<Rump_vfs_file_handle *>(vfs_handle))
 			{
 				_file_handles.remove(handle);
 				if (handle->modifying())
@@ -672,13 +675,13 @@ class Vfs::Rump_file_system : public File_system
 			}
 			else
 			if (Rump_vfs_dir_handle *handle =
-				static_cast<Rump_vfs_dir_handle *>(vfs_handle))
+				dynamic_cast<Rump_vfs_dir_handle *>(vfs_handle))
 			{
 				destroy(vfs_handle->alloc(), handle);
 			}
 			else
 			if (Rump_vfs_symlink_handle *handle =
-				static_cast<Rump_vfs_symlink_handle *>(vfs_handle))
+				dynamic_cast<Rump_vfs_symlink_handle *>(vfs_handle))
 			{
 				destroy(vfs_handle->alloc(), handle);
 			}
@@ -754,11 +757,15 @@ class Vfs::Rump_file_system : public File_system
 			if (fd < 0)
 				return WATCH_ERR_UNACCESSIBLE;
 
-			auto *watch_handle = new (alloc)
-				Rump_watch_handle(*this, alloc, fd);
-			_watchers.insert(watch_handle);
-			*handle = watch_handle;
-			return WATCH_OK;
+			try {
+				auto *watch_handle = new (alloc)
+					Rump_watch_handle(*this, alloc, fd);
+				_watchers.insert(watch_handle);
+				*handle = watch_handle;
+				return WATCH_OK;
+			}
+			catch (Genode::Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_watch_handle *vfs_handle) override
@@ -838,19 +845,10 @@ class Vfs::Rump_file_system : public File_system
 
 class Rump_factory : public Vfs::File_system_factory
 {
-	private:
-
-		Timer::Connection                       _timer;
-		Genode::Io_signal_handler<Rump_factory> _sync_handler;
-
-		void _sync() { _rump_sync(); }
-
 	public:
 
 		Rump_factory(Genode::Env &env, Genode::Allocator &alloc,
 		             Genode::Xml_node config)
-		: _timer(env, "rump-sync"),
-		  _sync_handler(env.ep(), *this, &Rump_factory::_sync)
 		{
 			Rump::construct_env(env);
 
@@ -884,12 +882,6 @@ class Rump_factory : public Vfs::File_system_factory
 				rlim.rlim_cur = rlim.rlim_max;
 				rump_sys_setrlimit(RLIMIT_NOFILE, &rlim);
 			}
-
-			/* start syncing */
-			enum { TEN_SEC = 10*1000*1000 };
-			_timer.sigh(_sync_handler);
-			_timer.trigger_periodic(TEN_SEC);
-
 		}
 
 		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override

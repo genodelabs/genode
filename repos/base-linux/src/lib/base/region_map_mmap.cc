@@ -129,12 +129,12 @@ void *Region_map_mmap::_map_local(Dataspace_capability ds,
                                   bool                 overmap,
                                   bool                 writeable)
 {
-	int  const  fd        = _dataspace_fd(ds);
-	bool const  writable  = _dataspace_writable(ds) && writeable;
+	writeable = _dataspace_writeable(ds) && writeable;
 
+	int  const  fd        = _dataspace_fd(ds);
 	int  const  flags     = MAP_SHARED | (overmap ? MAP_FIXED : 0);
 	int  const  prot      = PROT_READ
-	                      | (writable   ? PROT_WRITE : 0)
+	                      | (writeable  ? PROT_WRITE : 0)
 	                      | (executable ? PROT_EXEC  : 0);
 	void * const addr_in  = use_local_addr ? (void*)local_addr : 0;
 	void * const addr_out = lx_mmap(addr_in, size, prot, flags, fd, offset);
@@ -172,6 +172,24 @@ void Region_map_mmap::_add_to_rmap(Region const &region)
 }
 
 
+/*
+ * Tracing must be inhibited in attach/detach as RPC trace points may trigger
+ * attachment of trace dataspaces, which would result in nested mutex
+ * acquisition.
+ */
+
+namespace Genode { extern bool inhibit_tracing; }
+
+struct Inhibit_tracing_guard
+{
+	bool old_value = inhibit_tracing;
+
+	Inhibit_tracing_guard() { inhibit_tracing = true; }
+
+	~Inhibit_tracing_guard() { inhibit_tracing = old_value; }
+};
+
+
 Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
                                                size_t size, off_t offset,
                                                bool use_local_addr,
@@ -179,6 +197,8 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
                                                bool executable, bool writeable)
 {
 	Mutex::Guard mutex_guard(mutex());
+
+	Inhibit_tracing_guard it_guard { };
 
 	/* only support attach_at for sub RM sessions */
 	if (_sub_rm && !use_local_addr) {
@@ -324,6 +344,8 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 void Region_map_mmap::detach(Region_map::Local_addr local_addr)
 {
 	Mutex::Guard mutex_guard(mutex());
+
+	Inhibit_tracing_guard it_guard { };
 
 	/*
 	 * Cases

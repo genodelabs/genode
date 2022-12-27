@@ -128,9 +128,12 @@ struct Line_painter
 		 */
 		Rect const clip(surface.clip().p1(), surface.clip().p2() + Point(-1, -1));
 
+		if (!clip.valid())
+			return;
+
 		/* both points must reside within clipping area */
-		if (!surface.clip().contains(Point(x1.integer(), y1.integer())) ||
-		    !surface.clip().contains(Point(x2.integer(), y2.integer())))
+		if (!clip.contains(Point(x1.integer(), y1.integer())) ||
+		    !clip.contains(Point(x2.integer(), y2.integer())))
 			return;
 
 		long const dx_f = x2.value - x1.value,

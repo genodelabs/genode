@@ -219,17 +219,18 @@ struct Usb::Session : public Genode::Session
 	GENODE_RPC(Rpc_tx_cap, Capability<Tx>, _tx_cap);
 	GENODE_RPC_THROW(Rpc_config_descr, void, config_descriptor, GENODE_TYPE_LIST(Device_not_found),
 	                 Device_descriptor *, Config_descriptor *);
-	GENODE_RPC(Rpc_alt_settings, unsigned, alt_settings, unsigned);
+	GENODE_RPC_THROW(Rpc_alt_settings, unsigned, alt_settings, GENODE_TYPE_LIST(Device_not_found,
+	                 Interface_not_found), unsigned);
 	GENODE_RPC_THROW(Rpc_iface_descr, void, interface_descriptor, GENODE_TYPE_LIST(Device_not_found,
 	                 Interface_not_found), unsigned, unsigned, Interface_descriptor *);
 	GENODE_RPC_THROW(Rpc_iface_extra, bool, interface_extra, GENODE_TYPE_LIST(Device_not_found,
 	                 Interface_not_found), unsigned, unsigned, Interface_extra *);
 	GENODE_RPC_THROW(Rpc_ep_descr, void, endpoint_descriptor, GENODE_TYPE_LIST(Device_not_found,
 	                 Interface_not_found), unsigned, unsigned, unsigned, Endpoint_descriptor *);
-	GENODE_RPC_THROW(Rpc_claim_interface, void, claim_interface, GENODE_TYPE_LIST(Interface_not_found,
-	                 Interface_already_claimed), unsigned);
-	GENODE_RPC_THROW(Rpc_release_interface, void, release_interface, GENODE_TYPE_LIST(Interface_not_found),
-	                 unsigned);
+	GENODE_RPC_THROW(Rpc_claim_interface, void, claim_interface, GENODE_TYPE_LIST(Device_not_found,
+	                 Interface_not_found, Interface_already_claimed), unsigned);
+	GENODE_RPC_THROW(Rpc_release_interface, void, release_interface, GENODE_TYPE_LIST(Device_not_found,
+	                 Interface_not_found), unsigned);
 	GENODE_RPC_INTERFACE(Rpc_plugged, Rpc_sigh_state_change, Rpc_tx_cap, Rpc_config_descr,
 	                     Rpc_iface_descr, Rpc_iface_extra, Rpc_ep_descr, Rpc_alt_settings,
 	                     Rpc_claim_interface, Rpc_release_interface);

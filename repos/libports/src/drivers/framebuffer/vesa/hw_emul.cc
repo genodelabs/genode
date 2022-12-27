@@ -33,8 +33,7 @@ static const bool verbose = false;
  ** PCI virtualization **
  ************************/
 
-#include <legacy/x86/platform_session/connection.h>
-#include <legacy/x86/platform_device/client.h>
+#include <platform_session/device.h>
 
 enum {
 	PCI_ADDR_REG = 0xcf8,
@@ -42,89 +41,59 @@ enum {
 };
 
 
-struct Devfn
-{
-	unsigned char b, d, f;
-
-	Devfn(Platform::Device &device) { device.bus_address(&b, &d, &f); }
-
-	Devfn(unsigned short devfn)
-	: b((devfn >> 8) & 0xff), d((devfn >> 3) & 0x1f), f(devfn & 7) { }
-
-	unsigned short devfn() const { return b << 8 | d << 3 | f; }
-
-	void print(Genode::Output &out) const
-	{
-		Genode::print(out, Hex(b, Hex::OMIT_PREFIX, Hex::PAD), ":",
-		                   Hex(d, Hex::OMIT_PREFIX, Hex::PAD), ".",
-		                   Hex(f, Hex::OMIT_PREFIX));
-	}
-};
-
-
 class Pci_card
 {
 	private:
 
-		Platform::Connection    _pci_drv;
-		Platform::Device_client _device;
-		Devfn                   _devfn;
+		enum { BAR_MAX = 6 };
 
-		Platform::Device_capability _first_device()
-		{
-			return _pci_drv.with_upgrade([&] () {
-				return _pci_drv.first_device(); });
-		}
-
-		Platform::Device_capability _next_device(Platform::Device_capability prev)
-		{
-			return _pci_drv.with_upgrade([&] () {
-				return _pci_drv.next_device(prev); });
-		}
-
-		Platform::Device_capability _find_vga_card()
-		{
-			/*
-			 * Iterate through all accessible devices.
-			 */
-			Platform::Device_capability prev_device_cap, device_cap;
-			for (device_cap = _first_device();
-			     device_cap.valid();
-			     device_cap = _next_device(prev_device_cap)) {
-
-				Platform::Device_client device(device_cap);
-
-				if (prev_device_cap.valid())
-					_pci_drv.release_device(prev_device_cap);
-				/*
-				 * If the device is an VGA compatible controller with base
-				 * class 0x03 and sub class 0x00 stop iteration. (We shift out
-				 * the interface bits.)
-				 */
-				if ((device.class_code() >> 8) == 0x0300)
-					break;
-
-				prev_device_cap = device_cap;
-			}
-
-			if (!device_cap.valid()) {
-				Genode::error("PCI VGA card not found.");
-				throw Framebuffer::Fatal();
-			}
-
-			return device_cap;
-		}
+		Platform::Connection _pci_drv;
+		Platform::Device     _device           { _pci_drv };
+		unsigned             _vendor_device_id { 0 };
+		unsigned             _class_code       { 0 };
+		uint32_t             _bar[BAR_MAX]     { 0xffffffff};
 
 	public:
 
-		Pci_card(Genode::Env &env)
-		: _pci_drv(env), _device(_find_vga_card()), _devfn(_device)
+		struct Invalid_bar : Exception {};
+
+		Pci_card(Genode::Env &env) : _pci_drv(env)
 		{
-			Genode::log("Found PCI VGA at ", _devfn);
+			_pci_drv.update();
+			_pci_drv.with_xml([&] (Xml_node node) {
+				node.with_optional_sub_node("device", [&] (Xml_node node) {
+					node.for_each_sub_node("io_mem", [&] (Xml_node node) {
+						unsigned bar  = node.attribute_value("pci_bar", 0U);
+						uint32_t addr = node.attribute_value("phys_addr", 0UL);
+						if (bar >= BAR_MAX) throw Invalid_bar();
+						_bar[bar] = addr;
+					});
+					node.for_each_sub_node("io_port_range", [&] (Xml_node node) {
+						unsigned bar = node.attribute_value("pci_bar", 0U);
+						uint32_t addr = node.attribute_value("phys_addr", 0UL);
+						if (bar >= BAR_MAX) throw Invalid_bar();
+						_bar[bar] = addr | 1;
+					});
+					node.with_optional_sub_node("pci-config", [&] (Xml_node node) {
+						unsigned v = node.attribute_value("vendor_id", 0U);
+						unsigned d = node.attribute_value("device_id", 0U);
+						unsigned c = node.attribute_value("class",     0U);
+						unsigned r = node.attribute_value("revision",  0U);
+						_vendor_device_id = v | d << 16;
+						_class_code       = r | c << 8;
+					});
+				});
+			});
 		}
 
-		Platform::Device &device()   { return _device; }
-		unsigned short devfn() const { return _devfn.devfn(); }
+		unsigned vendor_device_id() { return _vendor_device_id; }
+		unsigned class_code()       { return _class_code;       }
+
+		uint32_t bar(unsigned bar)
+		{
+			if (bar >= BAR_MAX) throw Invalid_bar();
+			return _bar[bar];
+		}
 };
 
 
@@ -151,14 +120,6 @@ static bool handle_pci_port_write(unsigned short port, T val)
 		{
 			if (sizeof(T) != 4) {
 				warning("writing with size ", sizeof(T), " not supported", sizeof(T));
-				return true;
-			}
-
-			unsigned const devfn = (val >> 8) & 0xffff;
-			if (devfn != pci_card->devfn()) {
-				if (verbose)
-					warning("accessing unknown PCI device ", Devfn(devfn));
-				pci_cfg_addr_valid = false;
 				return true;
 			}
 
@@ -208,14 +169,12 @@ static bool handle_pci_port_read(unsigned short port, T *val)
 			switch (pci_cfg_addr) {
 
 			case 0: /* vendor / device ID */
-				raw_val = pci_card->device().vendor_id() |
-				         (pci_card->device().device_id() << 16);
+				raw_val = pci_card->vendor_device_id();
 				break;
 
 			case 4: /* status and command */
 			case 8: /* class code / revision ID */
-				raw_val = pci_card->device().config_read(pci_cfg_addr,
-				                                           Platform::Device::ACCESS_32BIT);
+				raw_val = pci_card->class_code();
 				break;
 
 			case 0x10: /* base address register 0 */
@@ -225,16 +184,8 @@ static bool handle_pci_port_read(unsigned short port, T *val)
 			case 0x20: /* base address register 4 */
 			case 0x24: /* base address register 5 */
 				{
-					unsigned bar = (pci_cfg_addr - 0x10) / 4;
-					Platform::Device::Resource res = pci_card->device().resource(bar);
-					if (res.type() == Platform::Device::Resource::INVALID) {
-						warning("requested PCI resource ", bar, " invalid");
-						*val = 0;
-						return true;
-					}
-
-					raw_val = res.bar();
-					break;
+				raw_val = pci_card->bar((pci_cfg_addr-0x10)/4);
+				break;
 				}
 
 			default:

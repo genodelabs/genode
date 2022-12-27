@@ -2,9 +2,11 @@ LICENSE   := BSD
 VERSION   := 0.13b
 DOWNLOADS := fatfs.archive
 
-URL(fatfs) := http://www.elm-chan.org/fsw/ff/arc/ff13b.zip
-SHA(fatfs) := 43a577724e5595d73c643891cb2959919885b458149794a085a98254784f5a9b
+URL(fatfs) := https://github.com/abbrev/fatfs/archive/refs/tags/R$(VERSION).tar.gz
+SHA(fatfs) := 7b182f2d65387d8d300a684773b21c0579bc3665a8c32138475cdcfd086149fc
 DIR(fatfs) := src/lib/fatfs
+
+TAR_OPT(fatfs) := --strip-components 1
 
 DIRS := include/fatfs
 DIR_CONTENT(include/fatfs) := \

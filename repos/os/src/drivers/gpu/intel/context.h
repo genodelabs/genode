@@ -842,11 +842,12 @@ class Igd::Rcs_context
 			_ext_engine_context(),
 			_urb_atomic_context()
 		{
-			Genode::log(__func__, ":",
-			            " map_base:", Genode::Hex(map_base),
-			            " ring_buffer_start:", Genode::Hex(ring_buffer_start),
-			            " ring_buffer_length:", Genode::Hex(ring_buffer_length),
-			            " plm4_addr:", Genode::Hex(plm4_addr, Genode::Hex::PREFIX, Genode::Hex::PAD));
+			if (false)
+				Genode::log(__func__, ":",
+				            " map_base:", Genode::Hex(map_base),
+				            " ring_buffer_start:", Genode::Hex(ring_buffer_start),
+				            " ring_buffer_length:", Genode::Hex(ring_buffer_length),
+				            " plm4_addr:", Genode::Hex(plm4_addr, Genode::Hex::PREFIX, Genode::Hex::PAD));
 
 			using C = Execlist_context<RCS_RING_BASE>;
 

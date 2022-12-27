@@ -11,9 +11,9 @@
 Version 21.11 of the Genode OS Framework puts device drivers into the
 spotlight. Where to begin? Back in
 [https://genode.org/news/road-map-for-2021 - January], we envisioned Genode
-running on the Pinephone. With the current release, the first interactive
+running on the PinePhone. With the current release, the first interactive
 Genode scenarios become alive on this platform. Unlike the regular Linux-based
-systems used on the Pinephone, we are walking on new ground by running each
+systems used on the PinePhone, we are walking on new ground by running each
 individual driver in a dedicated sandbox.
 
 Speaking of 64-bit ARM platforms, Genode's support for the i.MX8 SoC family
@@ -91,7 +91,7 @@ Kalkowski took the i.MX-related code to his
 Johannes Schlatow took the Xilinx Zynq code to his
 [https://github.com/jschlatow/genode-zynq - genode-zynq] repository,
 Norman Feske
-maintains the Allwinner code for the Pinephone in
+maintains the Allwinner code for the PinePhone in
 his [https://github.com/nfeske/genode-allwinner - genode-allwinner]
 repository, and Sebastian Sumpf gave the RISC-V support a new home
 at his [https://github.com/ssumpf/genode-riscv - genode-riscv] repository.
@@ -173,11 +173,11 @@ corresponding line in your etc/build.conf. Step-by-step instructions for
 individual boards can be found at _repos/zynq/doc/_.
 
 
-Allwinner A64 (Pinephone)
+Allwinner A64 (PinePhone)
 =========================
 
 During the release cycle, Genode's support for the Allwinner A64 SoC, and
-the Pinephone in particular, made big leaps forward. The corresponding code
+the PinePhone in particular, made big leaps forward. The corresponding code
 is hosted in the dedicated
 [https://github.com/nfeske/genode-allwinner - genode-allwinner] repository.
 
@@ -186,7 +186,7 @@ updated to 5.14.1 in order to support the revision v2 of the Pine-A64-LTS
 board, which features a different Ethernet PHY, namely the Motorcomm YT8511
 PHY. Genode's 'pine_a64lts' board supports both board revisions now.
 
-To enable touchscreen input on the Pinephone, the corresponding driver for the
+To enable touchscreen input on the PinePhone, the corresponding driver for the
 Goodix touchscreen controller has been ported from the Linux kernel. It
 complements the framebuffer driver that we introduced with the previous
 release. Combined, both drivers enable the use of Genode's regular interactive
@@ -199,10 +199,10 @@ now handled by a new A64-specific version of the platform driver.
   Genode's nano-3D example responding to touch input
 
 The improved driver support is accompanied with new tooling for booting Genode
-on the Pinephone, either via USB fastboot, or via SD-card. Both options are
+on the PinePhone, either via USB fastboot, or via SD-card. Both options are
 described in the following Genodians article.
 
-:Booting Genode on the Pinephone:
+:Booting Genode on the PinePhone:
 
   [https://genodians.org/nfeske/2021-09-20-pine-fun-pinephone-boot]
 
@@ -291,7 +291,7 @@ input becomes explicit. A client can no longer drive a pin that is an input
 signal unless explicitly permitted.
 
 The interfaces were created and time-tested in the context of our
-Pinephone-related development, in particular during the work described in the
+PinePhone-related development, in particular during the work described in the
 following two articles.
 
 :Device access from the user level:
@@ -325,7 +325,7 @@ Time-multiplexed pin direction
 
 There exist rare use cases for changing the direction of an I/O pin during
 runtime. For example, the Goodix touchscreen controller as found in the
-Pinephone monitors the state of its interrupt signal during reset. During its
+PinePhone monitors the state of its interrupt signal during reset. During its
 normal operation, this signal is driven by the touchscreen controller but
 during reset, it is driven by the host to send one bit of information (I2C
 address selection). We support this time-multiplexed use of one pin as both
@@ -367,7 +367,7 @@ Genode events. The interface is located at
 _repos/os/include/genode_c_api/event.h_ whereas the implementation resides at
 _repos/os/src/lib/genode_c_api/event.cc_.
 The initial version is limited to multitouch events only.
-As of now, it is used by the Goodix touchscreen driver for the Pinephone.
+As of now, it is used by the Goodix touchscreen driver for the PinePhone.
 
 
 Event filter for converting touch to pointer input
@@ -399,7 +399,7 @@ as input filter, reworked in
 [https://genode.org/documentation/release-notes/20.08#Replacing_the_input_filter_with_an_event_filter - 20.08]).
 The new filter comes in the form of a new '<touch-click>' node in the filter's
 '<output>' definition. For example, the configuration of the event filter that
-sits in-between the Goodix touchscreen driver for the Pinephone and the
+sits in-between the Goodix touchscreen driver for the PinePhone and the
 nitpicker GUI server looks as follows.
 
 ! <config>

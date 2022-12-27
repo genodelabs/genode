@@ -17,6 +17,7 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <vfs/dir_file_system.h>
+#include <net/mac_address.h>
 
 /* libc includes */
 #include <errno.h>
@@ -32,6 +33,8 @@
 #include <sys/disk.h>
 #include <sys/soundcard.h>
 #include <dlfcn.h>
+#include <net/if.h>
+#include <net/if_tap.h>
 
 /* libc plugin interface */
 #include <libc-plugin/plugin.h>
@@ -98,7 +101,7 @@ static Libc::Plugin_context *vfs_context(Vfs::Vfs_handle *vfs_handle)
 static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src,
                                          struct stat *dst)
 {
-	enum { FS_BLOCK_SIZE = 4096 };
+	enum { FS_BLOCK_SIZE = 4096 * 16 };
 
 	unsigned const readable_bits   = S_IRUSR,
 	               writeable_bits  = S_IWUSR,
@@ -1679,7 +1682,41 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 		if (!argp) return { true, EINVAL };
 
-		/* dummy implementation */
+		int mask = *(int *)argp;
+
+		if (((fd->flags & O_ACCMODE) == O_RDONLY) ||
+		    ((fd->flags & O_ACCMODE) == O_RDWR)) {
+
+			char enable_input_string[2];
+
+			::snprintf(enable_input_string, sizeof(enable_input_string),
+			           "%u", (mask & PCM_ENABLE_INPUT) ? 1 : 0);
+
+			Absolute_path enable_input_path = ioctl_dir(*fd);
+			enable_input_path.append_element("enable_input");
+			File_descriptor *enable_input_fd = open(enable_input_path.base(), O_WRONLY);
+			if (!enable_input_fd)
+				return { true, ENOTSUP };
+			write(enable_input_fd, enable_input_string, sizeof(enable_input_string));
+			close(enable_input_fd);
+		}
+
+		if (((fd->flags & O_ACCMODE) == O_WRONLY) ||
+		    ((fd->flags & O_ACCMODE) == O_RDWR)) {
+
+			char enable_output_string[2];
+
+			::snprintf(enable_output_string, sizeof(enable_output_string),
+			           "%u", (mask & PCM_ENABLE_OUTPUT) ? 1 : 0);
+
+			Absolute_path enable_output_path = ioctl_dir(*fd);
+			enable_output_path.append_element("enable_output");
+			File_descriptor *enable_output_fd = open(enable_output_path.base(), O_WRONLY);
+			if (!enable_output_fd)
+				return { true, ENOTSUP };
+			write(enable_output_fd, enable_output_string, sizeof(enable_output_string));
+			close(enable_output_fd);
+		}
 
 		handled = true;
 
@@ -1770,6 +1807,85 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 }
 
 
+Libc::Vfs_plugin::Ioctl_result
+Libc::Vfs_plugin::_ioctl_tapctl(File_descriptor *fd, unsigned long request, char *argp)
+{
+	bool handled = false;
+	int  result  = 0;
+
+	if (request == TAPGIFNAME) {       /* return device name */
+		if (!argp)
+			return { true, EINVAL };
+
+		ifreq *ifr = reinterpret_cast<ifreq*>(argp);
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() == "tap") {
+					String<IFNAMSIZ> name = info.attribute_value("name", String<IFNAMSIZ> { });
+					copy_cstring(ifr->ifr_name, name.string(), IFNAMSIZ);
+					handled = true;
+				}
+			});
+
+			return Fn::COMPLETE;
+		});
+	}
+	else if (request == SIOCGIFADDR) { /* get MAC address */
+		if (!argp)
+			return { true, EINVAL };
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() == "tap") {
+					Net::Mac_address mac = info.attribute_value("mac_addr", Net::Mac_address { });
+					mac.copy(argp);
+					handled = true;
+				}
+			});
+
+			return Fn::COMPLETE;
+		});
+	}
+	else if (request == SIOCSIFADDR) { /* set MAC address */
+		if (!argp)
+			return { true, EINVAL };
+
+		Net::Mac_address new_mac    { argp };
+		String<18>       mac_string { new_mac };
+
+		/* write string into file */
+		Absolute_path mac_addr_path = ioctl_dir(*fd);
+		mac_addr_path.append_element("mac_addr");
+		File_descriptor *mac_addr_fd = open(mac_addr_path.base(), O_RDWR);
+		if (!mac_addr_fd)
+			return { true, ENOTSUP };
+		write(mac_addr_fd, mac_string.string(), mac_string.length());
+		close(mac_addr_fd);
+
+		monitor().monitor([&] {
+			/* check whether mac address changed, return ENOTSUP if not */
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() == "tap") {
+					if (!info.has_attribute("mac_addr"))
+						result = ENOTSUP;
+					else {
+						Net::Mac_address cur_mac = info.attribute_value("mac_addr", Net::Mac_address { });
+						if (cur_mac != new_mac)
+							result = ENOTSUP;
+					}
+
+					handled = true;
+				}
+			});
+
+			return Fn::COMPLETE;
+		});
+	}
+
+	return { handled, result };
+}
+
 int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *argp)
 {
 	Ioctl_result result { false, 0 };
@@ -1806,6 +1922,15 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *ar
 	case SNDCTL_DSP_SYNC:
 	case SNDCTL_SYSINFO:
 		result = _ioctl_sndctl(fd, request, argp);
+		break;
+	case TAPSIFINFO:
+	case TAPGIFINFO:
+	case TAPSDEBUG:
+	case TAPGDEBUG:
+	case TAPGIFNAME:
+	case SIOCGIFADDR:
+	case SIOCSIFADDR:
+		result = _ioctl_tapctl(fd, request, argp);
 		break;
 	default:
 		break;
@@ -2429,11 +2554,22 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 
 int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 {
-	if (mem_alloc()->size_at(addr) > 0) {
+	using Size_at_error = Mem_alloc::Size_at_error;
+
+	Mem_alloc::Size_at_result const size_at_result = mem_alloc()->size_at(addr);
+
+	if (size_at_result.ok()) {
 		/* private mapping */
-		mem_alloc()->free(addr);
+		size_at_result.with_result(
+			[&] (size_t)        { mem_alloc()->free(addr); },
+			[&] (Size_at_error) {                          });
+
 		return 0;
 	}
+
+	/* return error if addr is not a block start address */
+	if (size_at_result == Size_at_error::MISMATCHING_ADDR)
+		return Errno(EINVAL);
 
 	/* shared mapping */
 

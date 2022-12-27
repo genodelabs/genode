@@ -1,4 +1,4 @@
-OKL4_DIR = $(call select_from_ports,okl4)/src/kernel/okl4
+OKL4_DIR := $(call select_from_ports,okl4)/src/kernel/okl4
 
 #
 # Make sure that symlink modification times are handled correctly.

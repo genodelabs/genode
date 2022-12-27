@@ -15,11 +15,13 @@
  */
 
 /* Genode includes */
+#include <base/entrypoint.h>
 #include <base/log.h>
 #include <base/sleep.h>
+#include <base/thread.h>
 #include <os/backtrace.h>
 
-#include <lx_kit/scheduler.h>
+#include <lx_kit/env.h>
 #include <lx_kit/task.h>
 
 using namespace Genode;
@@ -91,6 +93,17 @@ Task & Scheduler::task(void * lx_task)
 
 void Scheduler::schedule()
 {
+	/* sanity check that right thread & stack is in use */
+	auto const thread = Genode::Thread::myself();
+	if (!ep.rpc_ep().myself(addr_t(&thread))) {
+		Genode::error("Lx_kit::Scheduler called by invalid thread/stack ",
+		              thread->name(), " ",
+		              Genode::Hex(thread->mystack().base), "-",
+		              Genode::Hex(thread->mystack().top));
+		Genode::backtrace();
+		Genode::sleep_forever();
+	}
+
 	/*
 	 * Iterate over all tasks and run first runnable.
 	 *
@@ -105,6 +118,17 @@ void Scheduler::schedule()
 
 		/* update jiffies before running task */
 		//Lx::timer_update_jiffies();
+
+		for (Task * t = _present_list.first(); t; ) {
+
+			Task *tmp = t;
+			t = t->next();
+
+			if (!tmp->destroy())
+				continue;
+
+			Genode::destroy(Lx_kit::env().heap, tmp);
+		}
 
 		for (Task * t = _present_list.first(); t; t = t->next()) {
 
@@ -126,4 +150,21 @@ void Scheduler::schedule()
 
 	/* clear current as no task is running */
 	_current = nullptr;
+}
+
+
+bool Scheduler::another_runnable(Task * skip)
+{
+	for (Task * t = _present_list.first(); t; t = t->next()) {
+
+		if (!t->runnable())
+			continue;
+
+		if (skip && t == skip)
+			continue;
+
+		return true;
+	};
+
+	return false;
 }

@@ -37,7 +37,7 @@ class Verbose_node
 
 		Verbose_node(Genode::Xml_node const &config)
 		{
-			config.with_sub_node("verbose", [&] (Genode::Xml_node const &verbose)
+			config.with_optional_sub_node("verbose", [&] (Genode::Xml_node const &verbose)
 			{
 				_cmd_pool_cmd_pending     = verbose.attribute_value("cmd_pool_cmd_pending"    , false);
 				_cmd_pool_cmd_in_progress = verbose.attribute_value("cmd_pool_cmd_in_progress", false);

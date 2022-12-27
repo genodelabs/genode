@@ -1,4 +1,4 @@
-LIBSSL_PORT_DIR = $(call select_from_ports,openssl)
+LIBSSL_PORT_DIR := $(call select_from_ports,openssl)
 
 LIBS    += libcrypto
 SRC_CC  += aes_cbc_4k.cc

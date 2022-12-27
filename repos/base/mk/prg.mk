@@ -183,7 +183,7 @@ $(LINK_ITEMS) $(TARGET): $(HOST_TOOLS)
 #
 # Trigger build of additional program specific targets
 #
-$(TARGET): $(CUSTOM_TARGET_DEPS)
+all: $(CUSTOM_TARGET_DEPS)
 
 LD_CMD += -Wl,--whole-archive -Wl,--start-group
 LD_CMD += $(LINK_ITEMS_BRIEF)

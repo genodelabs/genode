@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -20,6 +20,7 @@
 
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
+#include <timer_session/connection.h>
 
 #include <util/reconstructible.h>
 #include <util/xml_node.h>
@@ -45,22 +46,77 @@ namespace Acpica {
 #include "fixed.h"
 
 
+using namespace Genode;
+
+
 struct Acpica::Statechange
 {
-	Genode::Signal_handler<Acpica::Statechange> _dispatcher;
-	Genode::Attached_rom_dataspace _system_state;
+	Signal_handler<Acpica::Statechange> _dispatcher;
+	Attached_rom_dataspace _system_state;
 	bool _enable_reset;
 	bool _enable_poweroff;
+	bool _enable_sleep;
 
-	Statechange(Genode::Env &env, bool reset, bool poweroff)
+	Statechange(Env &env, bool reset, bool poweroff, bool sleep)
 	:
 		_dispatcher(env.ep(), *this, &Statechange::state_changed),
 		_system_state(env, "system"),
-		_enable_reset(reset), _enable_poweroff(poweroff)
+		_enable_reset(reset), _enable_poweroff(poweroff), _enable_sleep(sleep)
 	{
 		_system_state.sigh(_dispatcher);
 
 		state_changed();
+	}
+
+	template <typename T>
+	void suspend_prepare_check(T const &state)
+	{
+		if (!_enable_sleep)
+			return;
+
+		UINT8 sleep_state = 0;
+
+		if (state == "s0_prepare") { sleep_state = 0; } else
+		if (state == "s1_prepare") { sleep_state = 1; } else
+		if (state == "s2_prepare") { sleep_state = 2; } else
+		if (state == "s3_prepare") { sleep_state = 3; } else
+		if (state == "s4_prepare") { sleep_state = 4; } else
+		if (state == "s5_prepare") { sleep_state = 5; } else
+			return;
+
+		Genode::log("prepare suspend S", sleep_state);
+
+		ACPI_STATUS res = AcpiEnterSleepStatePrep(sleep_state);
+		if (ACPI_FAILURE(res))
+			Genode::error("AcpiEnterSleepStatePrep failed ",
+			              res, " ", AcpiFormatException(res));
+	}
+
+	template <typename T>
+	void resume_check(T const &state)
+	{
+		if (!_enable_sleep)
+			return;
+
+		UINT8 sleep_state = 0;
+
+		if (state == "s0_resume") { sleep_state = 0; } else
+		if (state == "s1_resume") { sleep_state = 1; } else
+		if (state == "s2_resume") { sleep_state = 2; } else
+		if (state == "s3_resume") { sleep_state = 3; } else
+		if (state == "s4_resume") { sleep_state = 4; } else
+		if (state == "s5_resume") { sleep_state = 5; } else
+			return;
+
+		ACPI_STATUS res = AcpiLeaveSleepStatePrep(sleep_state);
+		if (ACPI_FAILURE(res))
+			Genode::error("AcpiLeaveSleepStatePrep failed ",
+			              res, " ", AcpiFormatException(res));
+
+		res = AcpiLeaveSleepState(sleep_state);
+		if (ACPI_FAILURE(res))
+			Genode::error("AcpiLeaveSleepState failed ",
+			              res, " ", AcpiFormatException(res));
 	}
 
 	void state_changed() {
@@ -69,17 +125,16 @@ struct Acpica::Statechange
 
 		if (!_system_state.valid()) return;
 
-		Genode::Xml_node system(_system_state.local_addr<char>(),
-		                       _system_state.size());
+		Xml_node system(_system_state.local_addr<char>(),
+		                _system_state.size());
 
-		typedef Genode::String<32> State;
+		typedef String<32> State;
 		State const state = system.attribute_value("state", State());
 
 		if (_enable_poweroff && state == "poweroff") {
 			ACPI_STATUS res0 = AcpiEnterSleepStatePrep(5);
 			ACPI_STATUS res1 = AcpiEnterSleepState(5);
-			Genode::error("system poweroff failed - "
-			              "res=", Genode::Hex(res0), ",", Genode::Hex(res1));
+			error("system poweroff failed - res=", Hex(res0), ",", Hex(res1));
 			return;
 		}
 
@@ -89,25 +144,34 @@ struct Acpica::Statechange
 				res = AcpiReset();
 			} catch (...) { }
 
-			Genode::uint64_t const space_addr = AcpiGbl_FADT.ResetRegister.Address;
-			Genode::error("system reset failed - "
-			              "err=", res, " "
-			              "reset=", !!(AcpiGbl_FADT.Flags & ACPI_FADT_RESET_REGISTER), " "
-			              "spaceid=", Genode::Hex(AcpiGbl_FADT.ResetRegister.SpaceId), " "
-			              "addr=", Genode::Hex(space_addr));
+			uint64_t const space_addr = AcpiGbl_FADT.ResetRegister.Address;
+			error("system reset failed - err=", res,
+			      " reset=", !!(AcpiGbl_FADT.Flags & ACPI_FADT_RESET_REGISTER),
+			      " spaceid=", Hex(AcpiGbl_FADT.ResetRegister.SpaceId),
+			      " addr=", Hex(space_addr));
 		}
+
+		suspend_prepare_check(state);
+
+		resume_check(state);
+
 	}
 };
 
+
 struct Acpica::Main
 {
-	Genode::Env  &env;
-	Genode::Heap  heap { env.ram(), env.rm() };
+	Env  &env;
+	Heap  heap { env.ram(), env.rm() };
 
-	Genode::Attached_rom_dataspace config { env, "config" };
+	Attached_rom_dataspace config { env, "config" };
 
-	Genode::Signal_handler<Acpica::Main>          sci_irq;
-	Genode::Constructible<Genode::Irq_connection> sci_conn;
+	Signal_handler<Acpica::Main>  sci_irq;
+	Constructible<Irq_connection> sci_conn;
+
+	Timer::Connection             timer { env };
+	Signal_handler<Acpica::Main>  timer_trigger { env.ep(), *this,
+	                                              &Main::handle_timer };
 
 	Acpica::Reportstate * report { nullptr };
 
@@ -115,60 +179,73 @@ struct Acpica::Main
 	unsigned unchanged_state_max;
 
 	static struct Irq_handler {
-		UINT32 irq;
-		ACPI_OSD_HANDLER handler;
-		void *context;
+		UINT32                 irq;
+		Irq_session::Trigger   trigger;
+		Irq_session::Polarity  polarity;
+		ACPI_OSD_HANDLER       handler;
+		void                  *context;
 	} irq_handler;
 
-	void init_acpica(Acpica::Wait_acpi_ready, Acpica::Act_as_acpi_drv);
+	Expanding_reporter report_sleep_states { env, "sleep_states", "sleep_states" };
 
-	Main(Genode::Env &env)
+	void init_acpica();
+
+	Main(Env &env)
 	:
 		env(env),
 		sci_irq(env.ep(), *this, &Main::acpi_irq),
-		unchanged_state_max(config.xml().attribute_value("update_unchanged", 20U))
+		unchanged_state_max(config.xml().attribute_value("update_unchanged", 10U))
 	{
+		bool const enable_sleep    = config.xml().attribute_value("sleep", false);
 		bool const enable_reset    = config.xml().attribute_value("reset", false);
 		bool const enable_poweroff = config.xml().attribute_value("poweroff", false);
 		bool const enable_report   = config.xml().attribute_value("report", false);
-		bool const enable_ready    = config.xml().attribute_value("acpi_ready", false);
-		bool const act_as_acpi_drv = config.xml().attribute_value("act_as_acpi_drv", false);
+		auto const periodic_ms     = config.xml().attribute_value("report_period_ms", 0ULL);
 
 		if (enable_report)
 			report = new (heap) Acpica::Reportstate(env);
 
-		init_acpica(Wait_acpi_ready{enable_ready},
-		            Act_as_acpi_drv{act_as_acpi_drv});
+		init_acpica();
 
 		if (enable_report)
 			report->enable();
 
-		if (enable_reset || enable_poweroff)
-			new (heap) Acpica::Statechange(env, enable_reset, enable_poweroff);
+		if (enable_reset || enable_poweroff || enable_sleep)
+			new (heap) Acpica::Statechange(env, enable_reset, enable_poweroff,
+			                               enable_sleep);
 
 		/* setup IRQ */
 		if (!irq_handler.handler) {
-			Genode::warning("no IRQ handling available");
+			warning("no IRQ handling available");
 			return;
 		}
 
-		sci_conn.construct(env, irq_handler.irq);
+		sci_conn.construct(env, irq_handler.irq, irq_handler.trigger, irq_handler.polarity);
 
-		Genode::log("SCI IRQ: ", irq_handler.irq);
+		log("SCI IRQ: ", irq_handler.irq, " (", irq_handler.trigger, "-",
+		    irq_handler.polarity, ")");
 
 		sci_conn->sigh(sci_irq);
 		sci_conn->ack_irq();
 
-		if (!enable_ready)
+		if (periodic_ms) {
+			timer.sigh(timer_trigger);
+			timer.trigger_periodic(Microseconds(periodic_ms * 1000).value);
+		}
+	}
+
+
+	void handle_timer()
+	{
+		if (!irq_handler.handler)
 			return;
 
-		/* we are ready - signal it via changing system state */
-		static Genode::Reporter _system_rom(env, "system", "acpi_ready");
-		_system_rom.enabled(true);
-		Genode::Reporter::Xml_generator xml(_system_rom, [&] () {
-			xml.attribute("state", "acpi_ready");
-		});
+		irq_handler.handler(irq_handler.context);
+
+		if (report)
+			report->generate_report(true /* force */);
 	}
+
 
 	void acpi_irq()
 	{
@@ -191,9 +268,6 @@ struct Acpica::Main
 					unchanged_state_count ++;
 
 				if (unchanged_state_count >= unchanged_state_max) {
-					Genode::log("generate report because of ",
-					            unchanged_state_count, " irqs without state "
-					            "changes");
 					report->generate_report(true);
 					unchanged_state_count = 0;
 				}
@@ -209,7 +283,6 @@ struct Acpica::Main
 #include "lid.h"
 #include "sb.h"
 #include "ec.h"
-#include "bridge.h"
 #include "fujitsu.h"
 
 ACPI_STATUS init_pic_mode()
@@ -229,169 +302,185 @@ ACPI_STATUS init_pic_mode()
 	                          &arguments, nullptr);
 }
 
-ACPI_STATUS Bridge::detect(ACPI_HANDLE bridge, UINT32, void * m,
-                           void **return_bridge)
+
+void Acpica::Main::init_acpica()
 {
-	Acpica::Main * main = reinterpret_cast<Acpica::Main *>(m);
-	Bridge * dev_obj = new (main->heap) Bridge(main->report, bridge);
-
-	if (*return_bridge == (void *)PCI_ROOT_HID_STRING)
-		Genode::log("detected - bridge - PCI root bridge");
-	if (*return_bridge == (void *)PCI_EXPRESS_ROOT_HID_STRING)
-		Genode::log("detected - bridge - PCIE root bridge");
-
-	*return_bridge = dev_obj;
-
-	return AE_OK;
-}
-
-void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready,
-                               Act_as_acpi_drv act_as_acpi_drv)
-{
-	Acpica::init(env, heap, wait_acpi_ready, act_as_acpi_drv);
+	Acpica::init(env, heap);
 
 	/* enable debugging: */
 	if (false) {
 		AcpiDbgLevel |= ACPI_LV_IO | ACPI_LV_INTERRUPTS | ACPI_LV_INIT_NAMES;
 		AcpiDbgLayer |= ACPI_TABLES;
-		Genode::log("debugging level=", Genode::Hex(AcpiDbgLevel),
-		            " layers=", Genode::Hex(AcpiDbgLayer));
+		log("debugging level=", Hex(AcpiDbgLevel),
+		            " layers=", Hex(AcpiDbgLayer));
 	}
 
 	ACPI_STATUS status = AcpiInitializeSubsystem();
 	if (status != AE_OK) {
-		Genode::error("AcpiInitializeSubsystem failed, status=", status);
+		error("AcpiInitializeSubsystem failed, status=", status);
 		return;
 	}
 
 	status = AcpiInitializeTables(nullptr, 0, true);
 	if (status != AE_OK) {
-		Genode::error("AcpiInitializeTables failed, status=", status);
+		error("AcpiInitializeTables failed, status=", status);
 		return;
 	}
 
 	status = AcpiLoadTables();
 	if (status != AE_OK) {
-		Genode::error("AcpiLoadTables failed, status=", status);
+		error("AcpiLoadTables failed, status=", status);
 		return;
+	}
+
+	{
+		/*
+		 * ACPI Spec 2.1 General ACPI Terminology
+		 *
+		 * System Control Interrupt (SCI) A system interrupt used by hardware
+		 * to notify the OS of ACPI events. The SCI is an active, low,
+		 * shareable, level interrupt.
+		 */
+		irq_handler.irq      = AcpiGbl_FADT.SciInterrupt;
+		irq_handler.trigger  = Irq_session::TRIGGER_LEVEL;
+		irq_handler.polarity = Irq_session::POLARITY_LOW;
+
+		/* apply potential override in MADT */
+		ACPI_TABLE_MADT *madt = nullptr;
+
+		ACPI_STATUS status = AcpiGetTable(ACPI_STRING(ACPI_SIG_MADT), 0, (ACPI_TABLE_HEADER **)&madt);
+		if (status == AE_OK) {
+			for_each_element(madt, (ACPI_SUBTABLE_HEADER *) nullptr,
+			                 [&](ACPI_SUBTABLE_HEADER const * const s) {
+
+				if (s->Type != ACPI_MADT_TYPE_INTERRUPT_OVERRIDE)
+					return;
+
+				ACPI_MADT_INTERRUPT_OVERRIDE const * const irq =
+					reinterpret_cast<ACPI_MADT_INTERRUPT_OVERRIDE const * const>(s);
+
+				auto polarity_from_flags = [] (UINT16 flags) {
+					switch (flags & 0b11) {
+					case 0b01: return Irq_session::POLARITY_HIGH;
+					case 0b11: return Irq_session::POLARITY_LOW;
+					case 0b00:
+					default:
+						return Irq_session::POLARITY_UNCHANGED;
+					}
+				};
+
+				auto trigger_from_flags = [] (UINT16 flags) {
+					switch ((flags & 0b1100) >> 2) {
+					case 0b01: return Irq_session::TRIGGER_EDGE;
+					case 0b11: return Irq_session::TRIGGER_LEVEL;
+					case 0b00:
+					default:
+						return Irq_session::TRIGGER_UNCHANGED;
+					}
+				};
+
+				if (irq->SourceIrq == AcpiGbl_FADT.SciInterrupt) {
+					irq_handler.irq      = irq->GlobalIrq;
+					irq_handler.trigger  = trigger_from_flags(irq->IntiFlags);
+					irq_handler.polarity = polarity_from_flags(irq->IntiFlags);
+
+					AcpiGbl_FADT.SciInterrupt = irq->GlobalIrq;
+				}
+			}, [](ACPI_SUBTABLE_HEADER const * const s) { return s->Length; });
+		}
 	}
 
 	status = AcpiEnableSubsystem(ACPI_FULL_INITIALIZATION);
 	if (status != AE_OK) {
-		Genode::error("AcpiEnableSubsystem failed, status=", status);
+		error("AcpiEnableSubsystem failed, status=", status);
 		return;
 	}
 
 	status = AcpiInitializeObjects(ACPI_NO_DEVICE_INIT);
 	if (status != AE_OK) {
-		Genode::error("AcpiInitializeObjects (no devices) failed, status=", status);
+		error("AcpiInitializeObjects (no devices) failed, status=", status);
 		return;
 	}
 
 	/* set APIC mode */
 	status = init_pic_mode();
 	if (status != AE_OK) {
-		Genode::error("Setting PIC mode failed, status=", status);
+		error("Setting PIC mode failed, status=", status);
 		return;
 	}
 
 	/* Embedded controller */
 	status = AcpiGetDevices(ACPI_STRING("PNP0C09"), Ec::detect, this, nullptr);
 	if (status != AE_OK) {
-		Genode::error("AcpiGetDevices failed, status=", status);
+		error("AcpiGetDevices failed, status=", status);
 		return;
 	}
 
 	status = AcpiInitializeObjects(ACPI_FULL_INITIALIZATION);
 	if (status != AE_OK) {
-		Genode::error("AcpiInitializeObjects (full init) failed, status=", status);
+		error("AcpiInitializeObjects (full init) failed, status=", status);
 		return;
 	}
 
 	status = AcpiUpdateAllGpes();
 	if (status != AE_OK) {
-		Genode::error("AcpiUpdateAllGpes failed, status=", status);
+		error("AcpiUpdateAllGpes failed, status=", status);
 		return;
 	}
 
 	status = AcpiEnableAllRuntimeGpes();
 	if (status != AE_OK) {
-		Genode::error("AcpiEnableAllRuntimeGpes failed, status=", status);
+		error("AcpiEnableAllRuntimeGpes failed, status=", status);
 		return;
 	}
 
-	/* note: ACPI_EVENT_PMTIMER claimed by nova kernel - not usable by us */
 	Fixed * acpi_fixed = new (heap) Fixed(report);
 
 	status = AcpiInstallFixedEventHandler(ACPI_EVENT_POWER_BUTTON,
 	                                      Fixed::handle_power_button,
 	                                      acpi_fixed);
 	if (status != AE_OK)
-		Genode::log("failed   - power button registration - error=", status);
+		log("failed   - power button registration - error=", status);
 
 	status = AcpiInstallFixedEventHandler(ACPI_EVENT_SLEEP_BUTTON,
 	                                      Fixed::handle_sleep_button,
 	                                      acpi_fixed);
 	if (status != AE_OK)
-		Genode::log("failed   - sleep button registration - error=", status);
+		log("failed   - sleep button registration - error=", status);
 
 
 	/* AC Adapters and Power Source Objects */
 	status = AcpiGetDevices(ACPI_STRING("ACPI0003"), Ac::detect, this, nullptr);
 	if (status != AE_OK) {
-		Genode::error("AcpiGetDevices (ACPI0003) failed, status=", status);
+		error("AcpiGetDevices (ACPI0003) failed, status=", status);
 		return;
 	}
 
 	/* Smart battery control devices */
 	status = AcpiGetDevices(ACPI_STRING("PNP0C0A"), Battery::detect, this, nullptr);
 	if (status != AE_OK) {
-		Genode::error("AcpiGetDevices (PNP0C0A) failed, status=", status);
+		error("AcpiGetDevices (PNP0C0A) failed, status=", status);
 		return;
 	}
 
 	/* LID device */
 	status = AcpiGetDevices(ACPI_STRING("PNP0C0D"), Lid::detect, this, nullptr);
 	if (status != AE_OK) {
-		Genode::error("AcpiGetDevices (PNP0C0D) failed, status=", status);
+		error("AcpiGetDevices (PNP0C0D) failed, status=", status);
 		return;
 	}
 
 	/* Fujitsu HID device */
 	status = AcpiGetDevices(ACPI_STRING("FUJ02E3"), Fuj02e3::detect, this, nullptr);
 	if (status != AE_OK) {
-		Genode::error("AcpiGetDevices (FUJ02E3) failed, status=", status);
+		error("AcpiGetDevices (FUJ02E3) failed, status=", status);
 		return;
 	}
 
-	if (act_as_acpi_drv.enabled) {
-		/* lookup PCI root bridge */
-		void * pci_bridge = (void *)PCI_ROOT_HID_STRING;
-		status = AcpiGetDevices(ACPI_STRING(PCI_ROOT_HID_STRING), Bridge::detect,
-		                        this, &pci_bridge);
-		if (status != AE_OK || pci_bridge == (void *)PCI_ROOT_HID_STRING)
-			pci_bridge = nullptr;
-
-		/* lookup PCI Express root bridge */
-		void * pcie_bridge = (void *)PCI_EXPRESS_ROOT_HID_STRING;
-		status = AcpiGetDevices(ACPI_STRING(PCI_EXPRESS_ROOT_HID_STRING),
-		                        Bridge::detect, this, &pcie_bridge);
-		if (status != AE_OK || pcie_bridge == (void *)PCI_EXPRESS_ROOT_HID_STRING)
-			pcie_bridge = nullptr;
-
-		if (pcie_bridge && pci_bridge)
-			Genode::log("PCI and PCIE root bridge found - using PCIE for IRQ "
-			            "routing information");
-
-		Bridge *bridge = pcie_bridge ? reinterpret_cast<Bridge *>(pcie_bridge)
-		                             : reinterpret_cast<Bridge *>(pci_bridge);
-
-		/* Generate report for platform driver */
-		Acpica::generate_report(env, bridge);
-	}
-
-	/* Tell PCI backend to use platform_drv for PCI device access from now on */
-	Acpica::use_platform_drv();
+	/* report S0-S5 support and the SLP_TYPa/b values to be used by kernel(s) */
+	report_sleep_states.generate([&] (auto &xml) {
+		Acpica::generate_suspend_report(xml);
+	});
 }
 
 
@@ -401,14 +490,19 @@ struct Acpica::Main::Irq_handler Acpica::Main::irq_handler;
 ACPI_STATUS AcpiOsInstallInterruptHandler(UINT32 irq, ACPI_OSD_HANDLER handler,
                                           void *context)
 {
-	Acpica::Main::irq_handler.irq = irq;
+	if (irq != Acpica::Main::irq_handler.irq) {
+		error("SCI interrupt is ", Acpica::Main::irq_handler.irq,
+		              " but library requested ", irq);
+		return AE_BAD_PARAMETER;
+	}
+
 	Acpica::Main::irq_handler.handler = handler;
 	Acpica::Main::irq_handler.context = context;
 	return AE_OK;
 }
 
 
-void Component::construct(Genode::Env &env)
+void Component::construct(Env &env)
 {
 	/* XXX execute constructors of global statics */
 	env.exec_static_constructors();

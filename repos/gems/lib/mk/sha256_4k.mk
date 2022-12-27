@@ -1,4 +1,4 @@
-CBE_DIR = $(call select_from_ports,cbe)
+CBE_DIR := $(call select_from_ports,cbe)
 
 SRC_ADB := sha256_4k.adb
 LIBS    += spark libsparkcrypto

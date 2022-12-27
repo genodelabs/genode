@@ -1,0 +1,8 @@
+
+:Warning:
+
+Although in principal functioning, the WireGuard port has not been exposed to a
+sufficient amount of real-world testing, so far. Therefore, we strongly
+recommend not to use it in any security-critical scenarios! There is no
+guarantee that the port meets any of the security goals pursued by the
+WireGuard protocol or other WireGuard implementations!

@@ -109,8 +109,12 @@ extern "C" void *realloc(void *ptr, ::size_t size)
 	unsigned long old_size = size;
 
 	if (!initial_memory(ptr)) {
+		using Size_at_error = Libc::Mem_alloc::Size_at_error;
+
 		/* determine size of old block content (without header) */
-		old_size = memory()->size_at(ptr);
+		old_size = memory()->size_at(ptr).convert<size_t>(
+			[ ] (size_t s)      { return s;  },
+			[ ] (Size_at_error) { return 0U; });
 
 		/* do not reallocate if new size is less than the current size */
 		if (size <= old_size)

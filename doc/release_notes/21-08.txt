@@ -30,7 +30,7 @@ DDE-Linux could be. Section [Linux-device-driver environment re-imagined]
 presents the results of this recent line of development that promises to dwarf
 the costs of driver-porting work compared to our time-tested approach. The
 results have an immediate impact on our ambition to bring Genode to the
-Pinephone as our added network and framebuffer drivers for the Allwinner A64
+PinePhone as our added network and framebuffer drivers for the Allwinner A64
 SoC leverage the new DDE already.
 
 The challenge of using hardware-accelerated graphics (GPUs) on Genode makes a
@@ -187,7 +187,7 @@ resounding success. The i.MX8MQ repository features drivers for framebuffer
 output and SD-card access,
 [https://genodians.org/skalk/2021-08-02-mnt-reform2-sdcard - targeting the MNT Reform laptop].
 The Allwinner repository contains a network driver for the Pine-A64-LTS board
-and a new framebuffer driver for the Pinephone. No single line of Linux code
+and a new framebuffer driver for the PinePhone. No single line of Linux code
 had to be changed.
 
 We found that the development of those driver components took only a fraction
@@ -203,7 +203,7 @@ exploratory experience.
 That said, it is not all roses. Components based on Linux drivers have to
 carry substantial Linux-specific bureaucracy along with them. The resulting
 components tend to be somewhat obese given their relatively narrow purpose.
-E.g., the executable binary of the framebuffer driver for the Pinephone is
+E.g., the executable binary of the framebuffer driver for the PinePhone is
 1.5 MiB in size, most of which is presumably dead weight.
 
 
@@ -568,7 +568,7 @@ Modular integration of LTE modem stack in Sculpt OS
 
 In version [https://genode.org/documentation/release-notes/21.02#LTE_modem_stack - 21.02],
 we announced the LTE modem support as a prerequisite for using Genode on the
-Pinephone. Since most of our development laptops also come with LTE modems or
+PinePhone. Since most of our development laptops also come with LTE modems or
 an extension slot for installing one, we explored ways to augment the Sculpt
 scenario with mobile networking on demand, i.e., by the installation of
 additional components. The result is documented by means of an

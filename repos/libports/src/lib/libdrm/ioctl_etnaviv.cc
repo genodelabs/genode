@@ -21,7 +21,11 @@
 #include <gpu/info_etnaviv.h>
 #include <util/string.h>
 
+#include <vfs_gpu.h>
+
 extern "C" {
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -34,6 +38,7 @@ extern "C" {
 
 enum { verbose_ioctl = false };
 
+namespace {
 
 /**
  * Get DRM command number
@@ -103,8 +108,10 @@ const char *command_name(unsigned long request)
 	}
 }
 
+} /* anonymous namespace */
 
-namespace Drm {
+
+namespace Etnaviv {
 
 	size_t get_payload_size(drm_etnaviv_gem_submit const &submit);
 
@@ -126,7 +133,7 @@ namespace Drm {
 } /* anonymous namespace */
 
 
-size_t Drm::get_payload_size(drm_etnaviv_gem_submit const &submit)
+size_t Etnaviv::get_payload_size(drm_etnaviv_gem_submit const &submit)
 {
 	size_t size = 0;
 
@@ -139,7 +146,7 @@ size_t Drm::get_payload_size(drm_etnaviv_gem_submit const &submit)
 }
 
 
-void Drm::serialize(drm_etnaviv_gem_submit *submit, char *content)
+void Etnaviv::serialize(drm_etnaviv_gem_submit *submit, char *content)
 {
 	size_t offset = 0;
 
@@ -202,7 +209,7 @@ void Drm::serialize(drm_etnaviv_gem_submit *submit, char *content)
 }
 
 
-size_t Drm::get_payload_size(drm_version const &version)
+size_t Etnaviv::get_payload_size(drm_version const &version)
 {
 	size_t size = 0;
 	size += version.name_len;
@@ -212,7 +219,7 @@ size_t Drm::get_payload_size(drm_version const &version)
 }
 
 
-void Drm::serialize(drm_version *version, char *content)
+void Etnaviv::serialize(drm_version *version, char *content)
 {
 	size_t offset = 0;
 	char *start = 0;
@@ -234,7 +241,7 @@ void Drm::serialize(drm_version *version, char *content)
 }
 
 
-void Drm::deserialize(drm_version *version, char *content)
+void Etnaviv::deserialize(drm_version *version, char *content)
 {
 	drm_version *cversion = reinterpret_cast<drm_version*>(content);
 
@@ -256,8 +263,9 @@ void Drm::deserialize(drm_version *version, char *content)
 }
 
 
-namespace Gpu {
+namespace Etnaviv {
 	using namespace Genode;
+	using namespace Gpu;
 
 	struct Call;
 } /* namespace Gpu */
@@ -267,16 +275,16 @@ struct Gpu::Buffer
 {
 	Gpu::Connection &_gpu;
 
-	Id_space<Gpu::Buffer>::Element const _elem;
+	Genode::Id_space<Gpu::Buffer>::Element const _elem;
 
-	Dataspace_capability const cap;
-	size_t               const size;
+	Genode::Dataspace_capability const cap;
+	size_t                       const size;
 
-	Constructible<Genode::Attached_dataspace> _attached_buffer { };
+	Genode::Constructible<Genode::Attached_dataspace> _attached_buffer { };
 
-	Buffer(Gpu::Connection      &gpu,
-	       size_t                 size,
-	       Id_space<Gpu::Buffer> &space)
+	Buffer(Gpu::Connection               &gpu,
+	       size_t                         size,
+	       Genode::Id_space<Gpu::Buffer> &space)
 	:
 		_gpu  { gpu },
 		_elem { *this, space },
@@ -310,7 +318,7 @@ struct Gpu::Buffer
 };
 
 
-class Gpu::Call
+class Etnaviv::Call
 {
 	private:
 
@@ -320,14 +328,14 @@ class Gpu::Call
 		Call(Call const &) = delete;
 		Call &operator=(Call const &) = delete;
 
-		Genode::Env  &_env;
+		Genode::Env  &_env { *vfs_gpu_env() };
 		Genode::Heap  _heap { _env.ram(), _env.rm() };
 
 		/*****************
 		 ** Gpu session **
 		 *****************/
 
-		Gpu::Connection _gpu_session;
+		Gpu::Connection _gpu_session { _env };
 		Gpu::Info_etnaviv const &_gpu_info {
 			*_gpu_session.attached_info<Gpu::Info_etnaviv>() };
 
@@ -475,7 +483,7 @@ class Gpu::Call
 
 		int _drm_etnaviv_gem_submit(drm_etnaviv_gem_submit &arg)
 		{
-			size_t const payload_size = Drm::get_payload_size(arg);
+			size_t const payload_size = Etnaviv::get_payload_size(arg);
 			if (payload_size > EXEC_BUFFER_SIZE) {
 				Genode::error(__func__, ": exec buffer too small (",
 				              (unsigned)EXEC_BUFFER_SIZE, ") needed ", payload_size);
@@ -488,7 +496,7 @@ class Gpu::Call
 			 */
 			char *local_exec_buffer = (char*)_exec_buffer->mmap_addr();
 			Genode::memset(local_exec_buffer, 0, EXEC_BUFFER_SIZE);
-			Drm::serialize(&arg, local_exec_buffer);
+			Etnaviv::serialize(&arg, local_exec_buffer);
 
 			try {
 				Genode::uint64_t const pending_exec_buffer =
@@ -592,17 +600,24 @@ class Gpu::Call
 
 		int _drm_version(drm_version &version)
 		{
-			static char buffer[1] = { '\0' };
-
 			version.version_major = 1;
 			version.version_minor = 3;
 			version.version_patchlevel = 0;
-			version.name_len = 0;
-			version.name = buffer;
-			version.date_len = 0;
-			version.date = buffer;
-			version.desc_len = 0;
-			version.desc = buffer;
+
+			/**
+			 * Libdrm probes the length by calling version twice
+			 * and the second time strings are allocated.
+			 */
+
+			version.name_len = 1;
+			if (version.name)
+				version.name[0] = '\0';
+			version.date_len = 1;
+			if (version.date)
+				version.date[0] = '\0';
+			version.desc_len = 1;
+			if (version.desc)
+				version.desc[0] = '\0';
 
 			return 0;
 		}
@@ -629,10 +644,7 @@ class Gpu::Call
 
 	public:
 
-		Call(Env &env)
-		:
-			_env         { env },
-			_gpu_session { _env }
+		Call()
 		{
 			try {
 				_exec_buffer.construct(_gpu_session,
@@ -674,18 +686,22 @@ class Gpu::Call
 };
 
 
-static Genode::Constructible<Gpu::Call> _drm;
+static Genode::Constructible<Etnaviv::Call> _drm;
 
 
-void drm_init(Genode::Env &env)
+void etnaviv_drm_init()
 {
-	_drm.construct(env);
+	struct ::stat buf;
+	if (stat("/dev/gpu", &buf) < 0) {
+		Genode::error("'/dev/gpu' not accessible: ",
+				          "try configure '<gpu>' in 'dev' directory of VFS'");
+		return;
+	}
+
+	_drm.construct();
 }
 
 
-/**
- * Dump I/O control request to LOG
- */
 static void dump_ioctl(unsigned long request)
 {
 	using namespace Genode;
@@ -699,10 +715,7 @@ static void dump_ioctl(unsigned long request)
 }
 
 
-/**
- * Perfom I/O control request
- */
-extern "C" int genode_ioctl(int /* fd */, unsigned long request, void *arg)
+int etnaviv_drm_ioctl(unsigned long request, void *arg)
 {
 	if (verbose_ioctl)
 		dump_ioctl(request);
@@ -720,28 +733,14 @@ extern "C" int genode_ioctl(int /* fd */, unsigned long request, void *arg)
 }
 
 
-/**
- * Map DRM buffer-object
- */
-void *drm_mmap(void *addr, size_t length, int prot, int flags,
-               int fd, off_t offset)
+void *etnaviv_drm_mmap(off_t offset, size_t length)
 {
-	(void)addr;
-	(void)prot;
-	(void)flags;
-	(void)fd;
-
 	return _drm->mmap(offset, length);
 }
 
 
-/**
- * Unmap DRM buffer-object
- */
-int drm_munmap(void *addr, size_t length)
+int etnaviv_drm_munmap(void *addr)
 {
-	(void)length;
-
 	_drm->munmap(addr);
 	return 0;
 }

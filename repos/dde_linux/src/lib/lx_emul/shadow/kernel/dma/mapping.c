@@ -24,10 +24,12 @@ void * dma_alloc_attrs(struct device * dev,
 {
 	void * addr;
 
+#ifdef CONFIG_ARM
 	if (dev && dev->dma_mem) {
 		printk("We do not support device DMA memory yet!\n");
 		lx_emul_trace_and_stop(__func__);
 	}
+#endif
 
 	addr = lx_emul_mem_alloc_aligned_uncached(size, PAGE_SIZE);
 	*dma_handle = lx_emul_mem_dma_addr(addr);

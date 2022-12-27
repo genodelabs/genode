@@ -55,6 +55,16 @@ void Thread::exception(Cpu & cpu)
 				            " ISS=", Cpu::Esr::Iss::get(esr),
 				            " ip=", (void*)regs->ip);
 			};
+			
+			/*
+			 * If the machine exception is caused by a non-privileged
+			 * component, mark it dead, and continue execution.
+			 */
+			if (regs->exception_type == Cpu::SYNC_LEVEL_EL0) {
+				Genode::raw("Will freeze thread ", *this);
+				_become_inactive(DEAD);
+				return;
+			}
 			break;
 		}
 	default:
@@ -75,9 +85,13 @@ void Thread::exception(Cpu & cpu)
 void Kernel::Thread::Tlb_invalidation::execute() { };
 
 
-bool Kernel::Pd::invalidate_tlb(Cpu &, addr_t addr, size_t size)
+bool Kernel::Pd::invalidate_tlb(Cpu & cpu, addr_t addr, size_t size)
 {
 	using namespace Genode;
+
+	/* only apply to the active cpu */
+	if (cpu.id() != Cpu::executing_id())
+		return false;
 
 	/**
 	 * The kernel part of the address space is mapped as global
@@ -108,7 +122,9 @@ bool Kernel::Pd::invalidate_tlb(Cpu &, addr_t addr, size_t size)
 
 void Thread::proceed(Cpu & cpu)
 {
-	cpu.switch_to(*regs, pd().mmu_regs);
+	if (!cpu.active(pd().mmu_regs) && type() != CORE)
+		cpu.switch_to(pd().mmu_regs);
+
 	kernel_to_user_context_switch((static_cast<Cpu::Context*>(&*regs)),
 	                              (void*)cpu.stack_start());
 }

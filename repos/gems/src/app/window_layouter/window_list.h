@@ -72,7 +72,7 @@ class Window_layouter::Window_list
 			Window &create_element(Xml_node node)
 			{
 				unsigned const id           = node.attribute_value("id", 0U);
-				Area     const initial_size = area_attribute(node);
+				Area     const initial_size = Area::from_xml(node);
 
 				Window::Label const label =
 					node.attribute_value("label",Window::Label());
@@ -85,7 +85,7 @@ class Window_layouter::Window_list
 
 			void update_element(Window &win, Xml_node node)
 			{
-				win.client_size(area_attribute(node));
+				win.client_size(Area::from_xml(node));
 				win.title      (node.attribute_value("title", Window::Title("")));
 				win.has_alpha  (node.attribute_value("has_alpha",  false));
 				win.hidden     (node.attribute_value("hidden",     false));

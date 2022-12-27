@@ -15,7 +15,7 @@ set build_components {
 	server/fs_rom
 	server/vfs_block
 	server/vfs
-	lib/vfs/rump
+	lib/vfs_rump
 	test/iso
 }
 

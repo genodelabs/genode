@@ -24,7 +24,6 @@
 #include <report.h>
 
 /* Genode includes */
-#include <nic_session/nic_session.h>
 #include <net/dhcp.h>
 #include <net/icmp.h>
 
@@ -32,10 +31,22 @@ namespace Genode { class Xml_generator; }
 
 namespace Net {
 
-	using Packet_descriptor    = ::Nic::Packet_descriptor;
-	using Packet_stream_sink   = ::Nic::Packet_stream_sink< ::Nic::Session::Policy>;
-	using Packet_stream_source = ::Nic::Packet_stream_source< ::Nic::Session::Policy>;
-	using Domain_name          = Genode::String<160>;
+	enum { PKT_STREAM_QUEUE_SIZE = 1024 };
+
+	/*
+	 * In order to be compliant to both the Uplink and the Nic packet stream
+	 * types, we use the more base types from the Genode namespace here and
+	 * combine them with the same parameters as in the Uplink and Nic
+	 * namespaces. I.e., we assume the Uplink and Nic packet stream types to
+	 * be factually the same although they are logically independent from each
+	 * other.
+	 */
+	using Packet_descriptor    = Genode::Packet_descriptor;
+	using Packet_stream_policy = Genode::Packet_stream_policy<Packet_descriptor, PKT_STREAM_QUEUE_SIZE, PKT_STREAM_QUEUE_SIZE, char>;
+	using Packet_stream_sink   = Genode::Packet_stream_sink<Packet_stream_policy>;
+	using Packet_stream_source = Genode::Packet_stream_source<Packet_stream_policy>;
+
+	using Domain_name = Genode::String<160>;
 	class Ipv4_config;
 	class Forward_rule_tree;
 	class Transport_rule_list;
@@ -92,9 +103,7 @@ struct Net::Interface_policy
 
 	virtual Genode::Session_label const &label() const = 0;
 
-	virtual void interface_ready() = 0;
-
-	virtual void interface_unready() = 0;
+	virtual void handle_domain_ready_state(bool) = 0;
 
 	virtual bool interface_link_state() const = 0;
 
@@ -135,15 +144,12 @@ class Net::Interface : private Interface_list::Element
 
 		Packet_stream_sink                   &_sink;
 		Packet_stream_source                 &_source;
-		Signal_handler                        _sink_ack;
-		Signal_handler                        _sink_submit;
-		Signal_handler                        _source_ack;
-		Signal_handler                        _source_submit;
+		Signal_handler                        _pkt_stream_signal_handler;
 		Mac_address                    const  _router_mac;
 		Mac_address                    const  _mac;
 		Reference<Configuration>              _config;
 		Interface_policy                     &_policy;
-		Timer::Connection                    &_timer;
+		Cached_timer                         &_timer;
 		Genode::Allocator                    &_alloc;
 		Pointer<Domain>                       _domain                    { };
 		Arp_waiter_list                       _own_arp_waiters           { };
@@ -221,9 +227,10 @@ class Net::Interface : private Interface_list::Element
 		void _send_arp_reply(Ethernet_frame &request_eth,
 		                     Arp_packet     &request_arp);
 
-		void _handle_dhcp_request(Ethernet_frame &eth,
-		                          Dhcp_packet    &dhcp,
-		                          Domain         &local_domain);
+		void _handle_dhcp_request(Ethernet_frame            &eth,
+		                          Dhcp_packet               &dhcp,
+		                          Domain                    &local_domain,
+		                          Ipv4_address_prefix const &local_intf);
 
 		void _handle_ip(Ethernet_frame          &eth,
 		                Size_guard              &size_guard,
@@ -233,6 +240,7 @@ class Net::Interface : private Interface_list::Element
 		void _handle_icmp_query(Ethernet_frame          &eth,
 		                        Size_guard              &size_guard,
 		                        Ipv4_packet             &ip,
+		                        Internet_checksum_diff  &ip_icd,
 		                        Packet_descriptor const &pkt,
 		                        L3_protocol              prot,
 		                        void                    *prot_base,
@@ -242,6 +250,7 @@ class Net::Interface : private Interface_list::Element
 		void _handle_icmp_error(Ethernet_frame          &eth,
 		                        Size_guard              &size_guard,
 		                        Ipv4_packet             &ip,
+		                        Internet_checksum_diff  &ip_icd,
 		                        Packet_descriptor const &pkt,
 		                        Domain                  &local_domain,
 		                        Icmp_packet             &icmp,
@@ -250,6 +259,7 @@ class Net::Interface : private Interface_list::Element
 		void _handle_icmp(Ethernet_frame            &eth,
 		                  Size_guard                &size_guard,
 		                  Ipv4_packet               &ip,
+		                  Internet_checksum_diff    &ip_icd,
 		                  Packet_descriptor   const &pkt,
 		                  L3_protocol                prot,
 		                  void                      *prot_base,
@@ -265,6 +275,7 @@ class Net::Interface : private Interface_list::Element
 		void _nat_link_and_pass(Ethernet_frame         &eth,
 		                        Size_guard             &size_guard,
 		                        Ipv4_packet            &ip,
+		                        Internet_checksum_diff &ip_icd,
 		                        L3_protocol      const  prot,
 		                        void            *const  prot_base,
 		                        Genode::size_t   const  prot_size,
@@ -279,16 +290,14 @@ class Net::Interface : private Interface_list::Element
 		                       Size_guard     &size_guard,
 		                       Domain         &local_domain);
 
-		void _pass_prot(Ethernet_frame         &eth,
-		                Size_guard             &size_guard,
-		                Ipv4_packet            &ip,
-		                L3_protocol      const  prot,
-		                void            *const  prot_base,
-		                Genode::size_t   const  prot_size);
-
-		void _pass_ip(Ethernet_frame       &eth,
-		              Size_guard           &size_guard,
-		              Ipv4_packet          &ip);
+		void _pass_prot_to_domain(Domain                       &domain,
+		                          Ethernet_frame               &eth,
+		                          Size_guard                   &size_guard,
+		                          Ipv4_packet                  &ip,
+		                          Internet_checksum_diff const &ip_icd,
+		                          L3_protocol            const  prot,
+		                          void                  *const  prot_base,
+		                          Genode::size_t         const  prot_size);
 
 		void _handle_pkt();
 
@@ -307,10 +316,6 @@ class Net::Interface : private Interface_list::Element
 		                 Domain                   &local_domain);
 
 		void _ack_packet(Packet_descriptor const &pkt);
-
-		void _send_alloc_pkt(Genode::Packet_descriptor   &pkt,
-		                     void                      * &pkt_base,
-		                     Genode::size_t               pkt_size);
 
 		void _send_submit_pkt(Genode::Packet_descriptor   &pkt,
 		                      void                      * &pkt_base,
@@ -348,6 +353,8 @@ class Net::Interface : private Interface_list::Element
 
 		void _failed_to_send_packet_link();
 
+		void _failed_to_send_packet_submit();
+
 		void _failed_to_send_packet_alloc();
 
 		void _send_icmp_dst_unreachable(Ipv4_address_prefix const &local_intf,
@@ -357,15 +364,11 @@ class Net::Interface : private Interface_list::Element
 
 		bool link_state() const;
 
+		void _handle_pkt_stream_signal();
 
-		/***********************************
-		 ** Packet-stream signal handlers **
-		 ***********************************/
+		void _reset_and_refetch_domain_ready_state();
 
-		void _ready_to_submit();
-		void _ack_avail() { }
-		void _ready_to_ack();
-		void _packet_avail() { }
+		void _refetch_domain_ready_state();
 
 	public:
 
@@ -384,7 +387,7 @@ class Net::Interface : private Interface_list::Element
 		};
 
 		Interface(Genode::Entrypoint     &ep,
-		          Timer::Connection      &timer,
+		          Cached_timer           &timer,
 		          Mac_address      const  router_mac,
 		          Genode::Allocator      &alloc,
 		          Mac_address      const  mac,
@@ -405,18 +408,23 @@ class Net::Interface : private Interface_list::Element
 				_failed_to_send_packet_link();
 				return;
 			}
-			try {
-				Packet_descriptor  pkt;
-				void              *pkt_base;
-
-				_send_alloc_pkt(pkt, pkt_base, pkt_size);
-				Size_guard size_guard(pkt_size);
-				write_to_pkt(pkt_base, size_guard);
-				_send_submit_pkt(pkt, pkt_base, pkt_size);
+			if (!_source.ready_to_submit()) {
+				_failed_to_send_packet_submit();
+				return;
 			}
-			catch (Packet_stream_source::Packet_alloc_failed) {
-				_failed_to_send_packet_alloc();
-			}
+			_source.alloc_packet_attempt(pkt_size).with_result(
+				[&] (Packet_descriptor pkt)
+				{
+					void *pkt_base { _source.packet_content(pkt) };
+					Size_guard size_guard(pkt_size);
+					write_to_pkt(pkt_base, size_guard);
+					_send_submit_pkt(pkt, pkt_base, pkt_size);
+				},
+				[&] (Packet_stream_source::Alloc_packet_error)
+				{
+					_failed_to_send_packet_alloc();
+				}
+			);
 		}
 
 		void send(Ethernet_frame &eth,
@@ -451,25 +459,26 @@ class Net::Interface : private Interface_list::Element
 
 		void report(Genode::Xml_generator &xml);
 
+		void handle_domain_ready_state(bool state);
+
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Configuration    const &config()     const { return _config(); }
-		Domain                 &domain()           { return _domain(); }
-		Mac_address      const &router_mac() const { return _router_mac; }
-		Mac_address      const &mac()        const { return _mac; }
-		Arp_waiter_list        &own_arp_waiters()  { return _own_arp_waiters; }
-		Signal_handler         &sink_ack()         { return _sink_ack; }
-		Signal_handler         &sink_submit()      { return _sink_submit; }
-		Signal_handler         &source_ack()       { return _source_ack; }
-		Signal_handler         &source_submit()    { return _source_submit; }
-		Interface_link_stats   &udp_stats()        { return _udp_stats; }
-		Interface_link_stats   &tcp_stats()        { return _tcp_stats; }
-		Interface_link_stats   &icmp_stats()       { return _icmp_stats; }
-		Interface_object_stats &arp_stats()        { return _arp_stats; }
-		Interface_object_stats &dhcp_stats()       { return _dhcp_stats; }
+		Configuration       const &config()                    const { return _config(); }
+		Domain                    &domain()                          { return _domain(); }
+		Mac_address         const &router_mac()                const { return _router_mac; }
+		Mac_address         const &mac()                       const { return _mac; }
+		Arp_waiter_list           &own_arp_waiters()                 { return _own_arp_waiters; }
+		Signal_context_capability  pkt_stream_signal_handler() const { return _pkt_stream_signal_handler; }
+		Interface_link_stats      &udp_stats()                       { return _udp_stats; }
+		Interface_link_stats      &tcp_stats()                       { return _tcp_stats; }
+		Interface_link_stats      &icmp_stats()                      { return _icmp_stats; }
+		Interface_object_stats    &arp_stats()                       { return _arp_stats; }
+		Interface_object_stats    &dhcp_stats()                      { return _dhcp_stats; }
+		void                       wakeup_source()                   { _source.wakeup(); }
+		void                       wakeup_sink()                     { _sink.wakeup(); }
 };
 
 #endif /* _INTERFACE_H_ */

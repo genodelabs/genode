@@ -1,5 +1,8 @@
 FROM_BASE_NOVA := etc include
-FROM_BASE      := lib/mk/timeout.mk src/lib/timeout
+
+# base-nova.lib.a depends on timeout.lib.a, which includes base/internal/gloabls.h
+FROM_BASE := lib/mk/timeout.mk src/lib/timeout \
+             src/include/base/internal/globals.h
 
 content: $(FROM_BASE_NOVA) $(FROM_BASE) LICENSE
 

@@ -188,7 +188,6 @@ struct Faulting_loader_grand_child_test
 			"<config>\n"
 			"  <parent-provides>\n"
 			"    <service name=\"ROM\"/>\n"
-			"    <service name=\"RAM\"/>\n"
 			"    <service name=\"CPU\"/>\n"
 			"    <service name=\"PD\"/>\n"
 			"    <service name=\"LOG\"/>\n"

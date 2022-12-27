@@ -48,7 +48,7 @@ extern "C" void lx_emul_register_initcall(int (*initcall)(void),
 }
 
 
-void lx_emul_start_kernel(void * dtb)
+extern "C" void lx_emul_start_kernel(void * dtb)
 {
 	using namespace Lx_kit;
 
@@ -60,4 +60,14 @@ void lx_emul_start_kernel(void * dtb)
 	                      env().scheduler, Task::IRQ_HANDLER);
 
 	env().scheduler.schedule();
+}
+
+
+extern "C" void lx_emul_execute_kernel_until(int (*condition)(void))
+{
+	Lx_kit::env().scheduler.schedule();
+
+	while (!condition()) {
+		Lx_kit::env().env.ep().wait_and_dispatch_one_io_signal();
+	}
 }

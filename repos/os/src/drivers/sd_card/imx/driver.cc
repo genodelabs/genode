@@ -250,7 +250,7 @@ int Driver::_prepare_dma_mb(Block::Packet_descriptor packet,
 	if (_adma2_table.setup_request(req_size, buf_phys)) { return -1; }
 
 	/* configure DMA at host */
-	Mmio::write<Adsaddr>(_adma2_table.base_phys());
+	Mmio::write<Adsaddr>(_adma2_table.base_dma());
 	Mmio::write<Blkattr::Blksize>(_block_size());
 	Mmio::write<Blkattr::Blkcnt>(blk_cnt);
 

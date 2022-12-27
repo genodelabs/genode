@@ -1,5 +1,5 @@
 SHARED_LIB = yes
-LIBS       = libc egl iris
+LIBS       = libc egl
 
 include $(REP_DIR)/lib/mk/mesa-common.inc
 

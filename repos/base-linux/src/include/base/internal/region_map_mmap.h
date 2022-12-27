@@ -97,9 +97,9 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 		int _dataspace_fd(Capability<Dataspace>);
 
 		/**
-		 * Determine whether dataspace is writable
+		 * Determine whether dataspace is writeable
 		 */
-		bool _dataspace_writable(Capability<Dataspace>);
+		bool _dataspace_writeable(Capability<Dataspace>);
 
 	public:
 
@@ -134,9 +134,7 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 
 		size_t size() override { return _size; }
 
-		addr_t phys_addr() override { return 0; }
-
-		bool writable() override { return true; }
+		bool writeable() override { return true; }
 
 		/**
 		 * Return pseudo dataspace capability of the RM session

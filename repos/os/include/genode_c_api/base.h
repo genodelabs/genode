@@ -26,7 +26,7 @@ extern "C" {
 struct genode_env;
 struct genode_allocator;
 struct genode_signal_handler;
-struct genode_attached_dataspace;
+struct genode_shared_dataspace;
 
 #ifdef __cplusplus
 } /* extern "C" */
@@ -43,10 +43,9 @@ struct genode_attached_dataspace;
 #include <base/allocator.h>
 #include <base/attached_dataspace.h>
 
-struct genode_env                : Genode::Env { };
-struct genode_allocator          : Genode::Allocator { };
-struct genode_signal_handler     : Genode::Signal_dispatcher_base { };
-struct genode_attached_dataspace : Genode::Attached_dataspace { };
+struct genode_env                  : Genode::Env { };
+struct genode_allocator            : Genode::Allocator { };
+struct genode_signal_handler       : Genode::Signal_dispatcher_base { };
 
 static inline auto genode_env_ptr(Genode::Env &env)
 {
@@ -69,11 +68,30 @@ static inline Genode::Signal_context_capability cap(genode_signal_handler *sigh_
 	return *static_cast<Genode::Signal_handler<Genode::Meta::Empty> *>(dispatcher_ptr);
 }
 
-static inline auto genode_attached_dataspace_ptr(Genode::Attached_dataspace &ds)
-{
-	return static_cast<genode_attached_dataspace *>(&ds);
-}
+/**
+ * Returns local address of attached shared dataspace
+ */
+Genode::addr_t
+genode_shared_dataspace_local_address(struct genode_shared_dataspace * ds);
+
+/**
+ * Returns capability of shared dataspace
+ */
+Genode::Dataspace_capability
+genode_shared_dataspace_capability(struct genode_shared_dataspace * ds);
 
 #endif
+
+/**
+ * Callback definition to allocate and attach a dataspace to share
+ */
+typedef struct genode_shared_dataspace *
+	(*genode_shared_dataspace_alloc_attach_t) (unsigned long size);
+
+/**
+ * Callback definition to detach and free dataspace
+ */
+typedef void
+	(*genode_shared_dataspace_free_t) (struct genode_shared_dataspace * ds);
 
 #endif /* _INCLUDE__GENODE_C_API__BASE_H_ */

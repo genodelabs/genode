@@ -73,6 +73,11 @@ struct Sandbox::Parent_provides_model : Noncopyable
 		_alloc(alloc), _verbose(verbose), _factory(factory)
 	{ }
 
+	~Parent_provides_model()
+	{
+		update_from_xml(Xml_node("<empty/>"));
+	}
+
 	void update_from_xml(Xml_node const &xml)
 	{
 		bool first_log = true;

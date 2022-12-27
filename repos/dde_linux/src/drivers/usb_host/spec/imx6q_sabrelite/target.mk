@@ -1,6 +1,6 @@
 include $(REP_DIR)/src/drivers/usb_host/target.inc
 
-TARGET    = imx6q_sabrelite_usb_host_drv
+TARGET    = legacy_imx6q_sabrelite_usb_host_drv
 REQUIRES  = arm_v7
 
 SRC_C    += usb/chipidea/ci_hdrc_imx.c

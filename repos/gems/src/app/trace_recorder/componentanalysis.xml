@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmfxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="xmlDefinition.xsd">
+	<stateProvider version="0" id="genode.componentstate">
+		<head>
+			<label value="Genode Component Analysis"/>
+		</head>
+
+		<definedValue name="READY"       value="ready"/>
+		<definedValue name="WAIT_REPLY"  value="await_reply"/>
+		<definedValue name="WAIT_SIGNAL" value="await_signal"/>
+		<definedValue name="WAIT_CALL"   value="await_rpc"/>
+
+		<eventHandler eventName="Rpc_call">
+			<stateChange>
+				<stateAttribute type="constant" value="Genode"/>
+				<stateAttribute type="constant" value="Component"/>
+				<stateAttribute type="eventField" value="context.session_label"/>
+				<stateAttribute type="constant" value="Thread"/>
+				<stateAttribute type="eventField" value="context.thread_name"/>
+				<stateAttribute type="constant" value="state"/>
+				<stateValue type="string" value="$WAIT_REPLY"/>
+			</stateChange>
+		</eventHandler>
+
+		<eventHandler eventName="Rpc_returned">
+			<stateChange>
+				<stateAttribute type="constant" value="Genode"/>
+				<stateAttribute type="constant" value="Component"/>
+				<stateAttribute type="eventField" value="context.session_label"/>
+				<stateAttribute type="constant" value="Thread"/>
+				<stateAttribute type="eventField" value="context.thread_name"/>
+				<stateAttribute type="constant" value="state"/>
+				<stateValue type="string" value="$READY"/>
+			</stateChange>
+		</eventHandler>
+
+		<eventHandler eventName="Rpc_reply">
+			<stateChange>
+				<stateAttribute type="constant" value="Genode"/>
+				<stateAttribute type="constant" value="Component"/>
+				<stateAttribute type="eventField" value="context.session_label"/>
+				<stateAttribute type="constant" value="Thread"/>
+				<stateAttribute type="eventField" value="context.thread_name"/>
+				<stateAttribute type="constant" value="state"/>
+				<stateValue type="string" value="$WAIT_CALL"/>
+			</stateChange>
+		</eventHandler>
+
+		<eventHandler eventName="Rpc_dispatch">
+			<stateChange>
+				<stateAttribute type="constant" value="Genode"/>
+				<stateAttribute type="constant" value="Component"/>
+				<stateAttribute type="eventField" value="context.session_label"/>
+				<stateAttribute type="constant" value="Thread"/>
+				<stateAttribute type="eventField" value="context.thread_name"/>
+				<stateAttribute type="constant" value="state"/>
+				<stateValue type="string" value="$READY"/>
+			</stateChange>
+		</eventHandler>
+
+		<eventHandler eventName="Signal_receive">
+			<stateChange>
+				<stateAttribute type="constant" value="Genode"/>
+				<stateAttribute type="constant" value="Component"/>
+				<stateAttribute type="eventField" value="context.session_label"/>
+				<stateAttribute type="constant" value="Thread"/>
+				<stateAttribute type="eventField" value="context.thread_name"/>
+				<stateAttribute type="constant" value="state"/>
+				<stateValue type="string" value="$READY"/>
+			</stateChange>
+		</eventHandler>
+
+	</stateProvider>
+
+	<pattern version="1" id="genode.roundtrippattern">
+		<head>
+			<label value="Genode RPC Latency" />
+			<viewLabelPrefix value="RPC Latency"/>
+		</head>
+
+		<patternHandler>
+			<test id="context_condition">
+				<if>
+					<and>
+						<condition>
+							<stateValue type="eventField" value="name"/>
+							<stateValue type="query">
+								<stateAttribute type="constant" value="#CurrentScenario"/>
+								<stateAttribute type="constant" value="name"/>
+							</stateValue>
+						</condition>
+						<condition>
+							<stateValue type="eventField" value="context.session_label"/>
+							<stateValue type="query">
+								<stateAttribute type="constant" value="#CurrentScenario"/>
+								<stateAttribute type="constant" value="component"/>
+							</stateValue>
+						</condition>
+						<condition>
+							<stateValue type="eventField" value="context.thread_name"/>
+							<stateValue type="query">
+								<stateAttribute type="constant" value="#CurrentScenario"/>
+								<stateAttribute type="constant" value="thread"/>
+							</stateValue>
+						</condition>
+					</and>
+				</if>
+			</test>
+
+			<action id="start">
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario"/>
+					<stateAttribute type="constant" value="name"/>
+					<stateValue type="eventField" value="name"/>
+				</stateChange>
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario"/>
+					<stateAttribute type="constant" value="component"/>
+					<stateValue type="eventField" value="context.session_label"/>
+				</stateChange>
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario"/>
+					<stateAttribute type="constant" value="thread"/>
+					<stateValue type="eventField" value="context.thread_name"/>
+				</stateChange>
+			</action>
+
+			<action id="emit">
+				<segment>
+					<segType>
+						<segName>
+							<stateValue type="eventField" value="name"/>
+						</segName>
+					</segType>
+					<segContent>
+						<segField name="component" type="string">
+							<stateValue type="eventField" value="context.session_label" />
+						</segField>
+						<segField name="thread" type="string">
+							<stateValue type="eventField" value="context.thread_name" />
+						</segField>
+					</segContent>
+				</segment>
+			</action>
+
+			<fsm id="roundtrip" initial="start">
+				<precondition event="Rpc_*"/>
+				<state id="start">
+					<transition event="Rpc_call" action="start" target="waiting"/>
+				</state>
+				<state id="waiting">
+					<transition event="Rpc_returned" cond="context_condition" target="end" action="emit"/>
+				</state>
+				<final id="end"/>
+			</fsm>
+
+		</patternHandler>
+
+	</pattern>
+
+	<pattern version="1" id="genode.componentpattern">
+		<head>
+			<label value="Genode Component Latency" />
+			<viewLabelPrefix value="Component Latency"/>
+		</head>
+
+		<patternHandler>
+			<test id="context_condition">
+				<if>
+					<and>
+						<condition>
+							<stateValue type="eventField" value="context.session_label"/>
+							<stateValue type="query">
+								<stateAttribute type="constant" value="#CurrentScenario"/>
+								<stateAttribute type="constant" value="component"/>
+							</stateValue>
+						</condition>
+						<condition>
+							<stateValue type="eventField" value="context.thread_name"/>
+							<stateValue type="query">
+								<stateAttribute type="constant" value="#CurrentScenario"/>
+								<stateAttribute type="constant" value="thread"/>
+							</stateValue>
+						</condition>
+					</and>
+				</if>
+			</test>
+
+			<action id="start">
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario"/>
+					<stateAttribute type="constant" value="component"/>
+					<stateValue type="eventField" value="context.session_label"/>
+				</stateChange>
+				<stateChange>
+					<stateAttribute type="constant" value="#CurrentScenario"/>
+					<stateAttribute type="constant" value="thread"/>
+					<stateValue type="eventField" value="context.thread_name"/>
+				</stateChange>
+			</action>
+
+			<action id="emit">
+				<segment>
+					<segType>
+						<segName>
+							<!-- Limitation: Currently, there is no mechanism for concatenating multiple
+							                 field values, thus we take only the session label.
+							                 The drawback is that the analysis will not distinguish
+							                 threads from the same component.
+							-->
+							<stateValue type="eventField" value="context.session_label"/>
+						</segName>
+					</segType>
+					<segContent>
+						<segField name="component" type="string">
+							<stateValue type="eventField" value="context.session_label" />
+						</segField>
+						<segField name="thread" type="string">
+							<stateValue type="eventField" value="context.thread_name" />
+						</segField>
+					</segContent>
+				</segment>
+			</action>
+
+			<fsm id="component" initial="start">
+				<state id="start">
+					<transition event="Signal_receive" action="start" target="ready"/>
+					<transition event="Rpc_returned" action="start" target="ready"/>
+					<transition event="Rpc_dispatch" action="start" target="ready"/>
+				</state>
+				<state id="ready">
+					<transition event="Rpc_call" cond="context_condition" target="end" action="emit"/>
+					<transition event="Rpc_reply" cond="context_condition" target="end" action="emit"/>
+				</state>
+				<final id="end"/>
+			</fsm>
+
+		</patternHandler>
+
+	</pattern>
+
+	<timeGraphView id="genode.timegraph">
+		<head>
+			<analysis id="genode.componentstate" ssid="componenstate"/>
+			<label value="Component Gantt"/>
+		</head>
+
+		<entry path="Genode/Component">
+			<name type="constant" value="Context"/>
+			<entry path="*">
+				<name type="self" />
+				<entry path="Thread/*">
+					<name type="self" />
+					<entry path="state">
+						<display type="self"/>
+					</entry>
+				</entry>
+			</entry>
+		</entry>
+
+	</timeGraphView>
+</tmfxml>

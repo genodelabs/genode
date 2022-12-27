@@ -38,6 +38,9 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 }
 
 
+Vm::~Vm() {}
+
+
 void Vm::exception(Cpu & cpu)
 {
 	switch(_state.cpu_exception) {

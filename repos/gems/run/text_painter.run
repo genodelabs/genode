@@ -93,7 +93,7 @@ install_config {
 
 </config>}
 
-build { server/vfs test/text_painter lib/vfs/ttf }
+build { server/vfs test/text_painter lib/vfs_ttf }
 
 set fd [open [run_dir]/genode/focus w]
 puts $fd "<focus label=\"gui_fb -> \" domain=\"default\"/>"

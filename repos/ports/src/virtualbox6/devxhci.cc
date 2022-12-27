@@ -424,11 +424,19 @@ static DECLCALLBACK(void) xhciR3Reset(PPDMDEVINS pDevIns)
 
 
 /**
+ * @interface_method_impl{PDMDEVREG,pfnPowerOff}
+ */
+static DECLCALLBACK(void) xhciR3PowerOff(PPDMDEVINS pDevIns)
+{
+	Qemu::usb_reset();
+}
+
+
+/**
  * @nterface_method_impl{PDMDEVREG,pfnDestruct}
  */
 static DECLCALLBACK(int) xhciR3Destruct(PPDMDEVINS pDevIns)
 {
-	Qemu::usb_reset();
 	return 0;
 }
 
@@ -554,7 +562,7 @@ const PDMDEVREG g_DeviceXHCI =
     /* .pfnDetach = */              NULL,
     /* .pfnQueryInterface = */      NULL,
     /* .pfnInitComplete = */        NULL,
-    /* .pfnPowerOff = */            NULL,
+    /* .pfnPowerOff = */            xhciR3PowerOff,
     /* .pfnSoftReset = */           NULL,
     /* .pfnReserved0 = */           NULL,
     /* .pfnReserved1 = */           NULL,

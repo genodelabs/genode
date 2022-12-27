@@ -77,6 +77,8 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		   Kernel::Signal_context & context,
 		   Identity               & id);
 
+		~Vm();
+
 		/**
 		 * Inject an interrupt to this VM
 		 *

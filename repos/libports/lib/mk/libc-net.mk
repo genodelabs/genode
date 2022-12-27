@@ -15,6 +15,9 @@ SRC_C += gethostnamadr.c gethostbydns.c gethostbyht.c map_v4v6.c
 # needed for getprotobyname()
 SRC_C += getprotoent.c getprotoname.c
 
+# needed by send()
+SRC_C += sendmsg.c
+
 # defines in6addr_any
 SRC_C += vars.c
 
@@ -53,4 +56,7 @@ nsparser.c: nsparser.y
 
 vpath nsparser.y $(LIBC_NET_DIR)
 
+vpath sendmsg.c $(REP_DIR)/src/lib/libc
+
 CC_CXX_WARN_STRICT =
+

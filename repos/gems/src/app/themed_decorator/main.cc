@@ -217,7 +217,7 @@ find_hover(Genode::Xml_node pointer_node, Decorator::Window_stack &window_stack)
 	 || !pointer_node.has_attribute("ypos"))
 		return Decorator::Window_base::Hover();
 
-	return window_stack.hover(Decorator::point_attribute(pointer_node));
+	return window_stack.hover(Decorator::Point::from_xml(pointer_node));
 }
 
 

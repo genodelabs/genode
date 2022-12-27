@@ -18,7 +18,6 @@
 
 /* os includes */
 #include <event_session/connection.h>
-#include <legacy/x86/platform_session/connection.h>
 #include <timer_session/connection.h>
 
 /* local includes */
@@ -44,21 +43,11 @@ struct Ps2::Main
 	Event::Connection _event { _env };
 
 	Platform::Connection _platform { _env };
+	Platform::Device     _device   { _platform };
 
 	Timer::Connection _timer { _env };
 
-	Platform::Device_capability _ps2_device_cap()
-	{
-		return _platform.with_upgrade([&] () {
-			return _platform.device("PS2"); });
-	}
-
-	Platform::Device_client _device_ps2 { _ps2_device_cap() };
-
-	enum { REG_IOPORT_DATA = 0, REG_IOPORT_STATUS = 1 };
-
-	I8042 _i8042 { _device_ps2.io_port(REG_IOPORT_DATA),
-	               _device_ps2.io_port(REG_IOPORT_STATUS) };
+	I8042 _i8042 { _device };
 
 	Attached_rom_dataspace _config { _env, "config" };
 
@@ -70,8 +59,8 @@ struct Ps2::Main
 
 	Mouse _mouse { _i8042.aux_interface(), _timer, *_verbose };
 
-	Irq_handler _keyboard_irq { _env.ep(), _keyboard, _event, _device_ps2.irq(0) };
-	Irq_handler _mouse_irq    { _env.ep(), _mouse,    _event, _device_ps2.irq(1) };
+	Irq_handler _keyboard_irq { _env.ep(), _keyboard, _event, _device, 0 };
+	Irq_handler _mouse_irq    { _env.ep(), _mouse,    _event, _device, 1 };
 
 	Led_state _capslock { _env, "capslock" },
 	          _numlock  { _env, "numlock"  },

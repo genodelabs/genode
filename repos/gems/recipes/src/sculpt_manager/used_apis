@@ -16,3 +16,5 @@ input_session
 event_session
 capture_session
 gpu_session
+pin_state_session
+pin_control_session

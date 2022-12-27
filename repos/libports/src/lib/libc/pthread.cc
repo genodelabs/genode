@@ -685,8 +685,15 @@ extern "C" {
 	}
 
 
+	/* implemented in libc contrib sources */
+	void __cxa_thread_call_dtors();
+
 	void pthread_exit(void *value_ptr)
 	{
+		/* call 'thread_local' destructors */
+
+		__cxa_thread_call_dtors();
+
 		/* call TLS key destructors */
 
 		bool at_least_one_destructor_called;

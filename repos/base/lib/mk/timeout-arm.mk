@@ -3,6 +3,6 @@ SRC_CC += timer_connection.cc
 SRC_CC += arm/timer_connection_time.cc
 SRC_CC += duration.cc
 
-INC_DIR += $(BASE_DIR)/src/include
+REP_INC_DIR += src/include
 
-vpath % $(BASE_DIR)/src/lib/timeout
+vpath % $(call select_from_repositories,src/lib/timeout)

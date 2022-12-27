@@ -91,12 +91,13 @@ class Lx_fs::Session_component : private Session_resources,
 	private:
 
 		using Open_node      = File_system::Open_node<Node>;
+		using Dir_node       = File_system::Open_node<Directory>;
 		using Signal_handler = Genode::Signal_handler<Session_component>;
 
 		Genode::Env                 &_env;
 		Directory                   &_root;
 		Id_space<File_system::Node>  _open_node_registry { };
-		bool                         _writable;
+		bool                         _writeable;
 		Absolute_path const          _root_dir;
 		Signal_handler               _process_packet_dispatcher;
 		Notifier                    &_notifier;
@@ -239,6 +240,43 @@ class Lx_fs::Session_component : private Session_resources,
 		}
 
 		/**
+		 * Apply 'fn' to the open node referenced by 'node_handle'
+		 *
+		 * \throw Invalid_handle
+		 */
+		template <typename FN>
+		auto _with_open_node(Node_handle &node_handle, FN const &fn)
+		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
+		{
+			using Node = File_system::Node;
+			try {
+				return _open_node_registry.apply<Node>(node_handle, [&] (Node &node) {
+					return fn(static_cast<Open_node &>(node)); });
+			}
+			catch (Id_space<Node>::Unknown_id const &) {
+				throw Invalid_handle(); }
+		}
+
+		template <typename FN>
+		auto _with_open_dir_node(Dir_handle &dir_handle, FN const &fn)
+		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
+		{
+			using Node = File_system::Node;
+			try {
+				return _open_node_registry.apply<Node>(dir_handle, [&] (Node &node) {
+
+					Open_node &open_node = static_cast<Open_node &>(node);
+
+					if (!open_node.node().type_directory())
+						throw Invalid_handle();
+
+					return fn(static_cast<Dir_node &>(node)); });
+			}
+			catch (Id_space<Node>::Unknown_id const &) {
+				throw Invalid_handle(); }
+		}
+
+		/**
 		 * Watch_node::Response_handler interface
 		 */
 		void handle_watch_node_response(Lx_fs::Watch_node &node) override
@@ -258,14 +296,14 @@ class Lx_fs::Session_component : private Session_resources,
 		                  Genode::Cap_quota    cap_quota,
 		                  size_t               tx_buf_size,
 		                  char const          *root_dir,
-		                  bool                 writable,
+		                  bool                 writeable,
 		                  Notifier            &notifier)
 		:
 			Session_resources { env.pd(), env.rm(), ram_quota, cap_quota, tx_buf_size },
 			Session_rpc_object {_packet_ds.cap(), env.rm(), env.ep().rpc_ep() },
 			_env { env },
 			_root { *new (&_alloc) Directory { _alloc, root_dir, false } },
-			_writable { writable },
+			_writeable { writeable },
 			_root_dir { root_dir },
 			_process_packet_dispatcher { env.ep(), *this, &Session_component::_process_packets },
 			_notifier { notifier }
@@ -315,6 +353,7 @@ class Lx_fs::Session_component : private Session_resources,
 		void upgrade(Genode::Ram_quota ram)  { _ram_guard.upgrade(ram); }
 		void upgrade(Genode::Cap_quota caps) { _cap_guard.upgrade(caps); }
 
+
 		/***************************
 		 ** File_system interface **
 		 ***************************/
@@ -324,11 +363,11 @@ class Lx_fs::Session_component : private Session_resources,
 			if (!valid_name(name.string()))
 				throw Invalid_name();
 
-			auto file_fn = [&] (Open_node &open_node) {
+			return _with_open_dir_node(dir_handle, [&] (Dir_node &dir_node) {
 
-				Node &dir = open_node.node();
+				Node &dir = dir_node.node();
 
-				if (!_writable)
+				if (!_writeable)
 					if (create || (mode != STAT_ONLY && mode != READ_ONLY))
 						throw Permission_denied();
 
@@ -337,16 +376,8 @@ class Lx_fs::Session_component : private Session_resources,
 				Open_node *open_file =
 					new (_alloc) Open_node(*file, _open_node_registry);
 
-				return open_file->id();
-			};
-
-			try {
-				return File_handle {
-					_open_node_registry.apply<Open_node>(dir_handle, file_fn).value
-				};
-			} catch (Id_space<File_system::Node>::Unknown_id const &) {
-				throw Invalid_handle();
-			}
+				return File_handle { open_file->id().value };
+			});
 		}
 
 		Symlink_handle symlink(Dir_handle, Name const &, bool /* create */) override
@@ -367,7 +398,7 @@ class Lx_fs::Session_component : private Session_resources,
 			/* skip leading '/' */
 			path_str++;
 
-			if (!_writable && create)
+			if (!_writeable && create)
 				throw Permission_denied();
 
 			if (!path.valid_string())
@@ -415,30 +446,23 @@ class Lx_fs::Session_component : private Session_resources,
 
 		void close(Node_handle handle) override
 		{
-			auto close_fn = [&] (Open_node &open_node) {
+			_with_open_node(handle, [&] (Open_node &open_node) {
 				Node &node = open_node.node();
 				destroy(_alloc, &open_node);
 				destroy(_alloc, &node);
-			};
-
-			try {
-				_open_node_registry.apply<Open_node>(handle, close_fn);
-			} catch (Id_space<File_system::Node>::Unknown_id const &) {
-				throw Invalid_handle();
-			}
+			});
 		}
 
-		Status status(Node_handle node_handle) override
+		Status status(Node_handle handle) override
 		{
-			auto status_fn = [&] (Open_node &open_node) {
-				return open_node.node().status();
-			};
+			return _with_open_node(handle, [&] (Open_node &open_node) {
+				return open_node.node().status(); });
+		}
 
-			try {
-				return _open_node_registry.apply<Open_node>(node_handle, status_fn);
-			} catch (Id_space<File_system::Node>::Unknown_id const &) {
-				throw Invalid_handle();
-			}
+		unsigned num_entries(Dir_handle dir_handle) override
+		{
+			return _with_open_dir_node(dir_handle, [&] (Dir_node &dir_node) {
+				return dir_node.node().num_entries(); });
 		}
 
 		void control(Node_handle, Control) override
@@ -451,10 +475,10 @@ class Lx_fs::Session_component : private Session_resources,
 			if (!valid_name(name.string()))
 				throw Invalid_name();
 
-			if (!_writable)
+			if (!_writeable)
 				throw Permission_denied();
 
-			auto unlink_fn = [&] (Open_node &open_node) {
+			_with_open_node(dir_handle, [&] (Open_node &open_node) {
 
 				Absolute_path absolute_path("/");
 
@@ -489,57 +513,28 @@ class Lx_fs::Session_component : private Session_resources,
 					if (err == EACCES)
 						throw Permission_denied();
 				}
-			};
-
-			try {
-				_open_node_registry.apply<Open_node>(dir_handle, unlink_fn);
-			} catch (Id_space<File_system::Node>::Unknown_id const &) {
-				throw Invalid_handle();
-			}
+			});
 		}
 
 		void truncate(File_handle file_handle, file_size_t size) override
 		{
-			if (!_writable)
+			if (!_writeable)
 				throw Permission_denied();
 
-			auto truncate_fn = [&] (Open_node &open_node) {
-				open_node.node().truncate(size);
-			};
-
-			try {
-				_open_node_registry.apply<Open_node>(file_handle, truncate_fn);
-			} catch (Id_space<File_system::Node>::Unknown_id const &) {
-				throw Invalid_handle();
-			}
+			_with_open_node(file_handle, [&] (Open_node &open_node) {
+				open_node.node().truncate(size); });
 		}
 
 		void move(Dir_handle dir_from, Name const & name_from,
 		          Dir_handle dir_to,   Name const & name_to) override
 		{
-			typedef File_system::Open_node<Directory> Dir_node;
-
 			Directory *to = 0;
 
-			auto to_fn = [&] (Dir_node &dir_node) {
-				to = &dir_node.node();
-			};
+			_with_open_dir_node(dir_to, [&] (Dir_node &dir_node) {
+				to = &dir_node.node(); });
 
-			try {
-				_open_node_registry.apply<Dir_node>(dir_to, to_fn);
-			} catch (Id_space<File_system::Node>::Unknown_id const &) {
-				throw Invalid_handle();
-			}
-
-			auto move_fn = [&] (Dir_node &dir_node) {
-				dir_node.node().rename(*to, name_from.string(), name_to.string());
-			};
-
-			try {
-				_open_node_registry.apply<Dir_node>(dir_from, move_fn);
-			} catch (Id_space<File_system::Node>::Unknown_id const &) {
-				throw Invalid_handle();
-			}
+			_with_open_dir_node(dir_from, [&] (Dir_node &dir_node) {
+				dir_node.node().rename(*to, name_from.string(), name_to.string()); });
 		}
 };
 
@@ -618,13 +613,11 @@ class Lx_fs::Root : public Root_component<Session_component>
 			}
 
 			/*
-			 * Check if donated ram quota suffices for session data,
-			 * and communication buffer.
+			 * Check if donated ram quota suffices for communication buffer.
 			 */
-			size_t session_size = sizeof(Session_component) + tx_buf_size;
-			if (max((size_t)4096, session_size) > ram_quota) {
+			if (tx_buf_size > ram_quota) {
 				Genode::error("insufficient 'ram_quota', "
-				              "got ", ram_quota, ", need ", session_size);
+				              "got ", ram_quota, ", need ", tx_buf_size);
 				throw Insufficient_ram_quota();
 			}
 

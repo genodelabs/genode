@@ -109,7 +109,8 @@ Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_a
                               Cpu                               &cpu,
                               Pd                                &core_pd)
 :
-	Thread { addr_space_id_alloc, user_irq_pool, cpu_pool, core_pd, "idle" }
+	Thread { addr_space_id_alloc, user_irq_pool, cpu_pool, core_pd,
+	         Cpu_priority::min(), 0, "idle", Thread::IDLE }
 {
 	regs->ip = (addr_t)&idle_thread_main;
 
@@ -120,14 +121,9 @@ Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_a
 
 void Cpu::schedule(Job * const job)
 {
-	if (_id == executing_id())
-		_scheduler.ready(job->share());
-	else {
-		_scheduler.ready_check(job->share());
-
-		if (_scheduler.need_to_schedule())
-			trigger_ip_interrupt();
-	}
+	_scheduler.ready(job->share());
+	if (_id != executing_id() && _scheduler.need_to_schedule())
+		trigger_ip_interrupt();
 }
 
 

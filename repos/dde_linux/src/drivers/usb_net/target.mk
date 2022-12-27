@@ -1,6 +1,6 @@
 TARGET  := usb_net_drv
 SRC_C   := dummies.c lxc.c
-SRC_CC  := main.cc lx_emul.cc component.cc linux_network_session_base.cc
+SRC_CC  := main.cc lx_emul.cc linux_network_session_base.cc
 SRC_CC  += printf.cc bug.cc timer.cc scheduler.cc malloc.cc env.cc work.cc
 SRC_CC  += uplink_client.cc
 
@@ -20,8 +20,13 @@ SRC_C += drivers/net/usb/cdc_ether.c
 SRC_C += drivers/net/usb/rndis_host.c
 SRC_C += drivers/net/usb/smsc95xx.c
 SRC_C += drivers/net/usb/usbnet.c
+SRC_C += fs/nls/nls_base.c
+SRC_C += lib/ctype.c
+SRC_C += lib/hexdump.c
 SRC_C += net/core/skbuff.c
 SRC_C += net/ethernet/eth.c
+
+CC_OPT += -Wno-address-of-packed-member
 
 CC_C_OPT += -Wno-comment -Wno-int-conversion -Wno-incompatible-pointer-types \
             -Wno-unused-variable -Wno-pointer-sign -Wno-uninitialized \

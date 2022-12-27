@@ -1,6 +1,7 @@
 /*
  * \brief  C interface to Genode's event session
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2021-09-29
  */
 
@@ -72,10 +73,28 @@ namespace {
 			fn(static_cast<Submit *>(myself)->batch);
 		}
 
+		static void _press(struct genode_event_submit *myself, unsigned keycode)
+		{
+			_with_batch(myself, [&] (Event::Session_client::Batch &batch) {
+				batch.submit(Input::Press { Input::Keycode(keycode) }); });
+		}
+
+		static void _release(struct genode_event_submit *myself, unsigned keycode)
+		{
+			_with_batch(myself, [&] (Event::Session_client::Batch &batch) {
+				batch.submit(Input::Release { Input::Keycode(keycode) }); });
+		}
+
+		static void _rel_motion(struct genode_event_submit *myself, int x, int y)
+		{
+			_with_batch(myself, [&] (Event::Session_client::Batch &batch) {
+				batch.submit(Input::Relative_motion { x, y }); });
+		}
+
 		static void _touch(struct genode_event_submit *myself,
 		                   struct genode_event_touch_args const *args)
 		{
-			Input::Touch_id id { (int)args->finger };
+			Input::Touch_id id { args->finger };
 
 			_with_batch(myself, [&] (Event::Session_client::Batch &batch) {
 				batch.submit(Input::Touch { id, (float)args->xpos, (float)args->ypos }); });
@@ -84,7 +103,7 @@ namespace {
 		static void _touch_release(struct genode_event_submit *myself,
 		                           unsigned finger)
 		{
-			Input::Touch_id id { (int)finger };
+			Input::Touch_id id { finger };
 
 			_with_batch(myself, [&] (Event::Session_client::Batch &batch) {
 				batch.submit(Input::Touch_release { id }); });
@@ -94,6 +113,9 @@ namespace {
 		:
 			batch(batch)
 		{
+			press         = _press;
+			release       = _release;
+			rel_motion    = _rel_motion;
 			touch         = _touch;
 			touch_release = _touch_release;
 		};

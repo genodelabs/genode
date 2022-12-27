@@ -65,6 +65,43 @@ typedef signed long long off_t;
 #define     minor(x)        ((int32_t)((x) & 0xff) | (((x) & 0xffff0000) >> 8))
 
 
+/*******************
+ ** machine/cpu.h **
+ *******************/
+
+struct cpu_info { };
+extern struct cpu_info cpu_info_primary;
+
+#define curcpu() (&cpu_info_primary)
+
+
+/*********************
+ ** machine/mutex.h **
+ *********************/
+
+#define MUTEX_INITIALIZER(ipl) { 0, (ipl), 0, NULL }
+#define MUTEX_ASSERT_UNLOCK(mtx) do {                        \
+	if ((mtx)->mtx_owner != curcpu())                        \
+		panic("mutex %p not held in %s\n", (mtx), __func__); \
+} while (0)
+#define MUTEX_ASSERT_LOCKED(mtx) do {                     \
+	if ((mtx)->mtx_owner != curcpu())                     \
+	panic("mutex %p not held in %s\n", (mtx), __func__); \
+} while (0)
+#define MUTEX_ASSERT_UNLOCKED(mtx) do {              \
+	if ((mtx)->mtx_owner == curcpu())                \
+	panic("mutex %p held in %s\n", (mtx), __func__); \
+} while (0)
+
+struct mutex
+{
+	volatile int  mtx_lock;
+	int           mtx_wantipl; /* interrupt priority level */
+	int           mtx_oldipl;
+	void         *mtx_owner;
+};
+
+
 /*****************
  ** sys/errno.h **
  *****************/
@@ -215,12 +252,17 @@ struct kevent
 struct knote;
 SLIST_HEAD(klist, knote);
 
+#define FILTEROP_ISFD   0x00000001
+#define FILTEROP_MPSAFE 0x00000002
+
 struct filterops
 {
-	int  f_isfd;
+	int  f_flags;
 	int  (*f_attach)(struct knote*);
 	void (*f_detach)(struct knote*);
 	int  (*f_event)(struct knote*, long);
+	int  (*f_modify)(struct kevent *, struct knote *);
+	int  (*f_process)(struct knote *, struct kevent *);
 };
 
 struct knote
@@ -232,6 +274,15 @@ struct knote
 	const struct filterops *kn_fop;
 	void                   *kn_hook;
 };
+
+int knote_modify(const struct kevent *kev, struct knote *kn);
+int knote_process(struct knote *kn, struct kevent *kev);
+
+extern void klist_free(struct klist *);
+extern void klist_init_mutex(struct klist *, struct mutex *);
+extern void klist_insert(struct klist *, struct knote *);
+extern void klist_invalidate(struct klist *);
+extern void klist_remove(struct klist *, struct knote *);
 
 
 /*******************
@@ -247,43 +298,6 @@ void selrecord(struct proc *selector, struct selinfo *);
 void selwakeup(struct selinfo *);
 
 
-/*******************
- ** machine/cpu.h **
- *******************/
-
-struct cpu_info { };
-extern struct cpu_info cpu_info_primary;
-
-#define curcpu() (&cpu_info_primary)
-
-
-/*********************
- ** machine/mutex.h **
- *********************/
-
-#define MUTEX_INITIALIZER(ipl) { 0, (ipl), 0, NULL }
-#define MUTEX_ASSERT_UNLOCK(mtx) do {                        \
-	if ((mtx)->mtx_owner != curcpu())                        \
-		panic("mutex %p not held in %s\n", (mtx), __func__); \
-} while (0)
-#define MUTEX_ASSERT_LOCKED(mtx) do {                     \
-	if ((mtx)->mtx_owner != curcpu())                     \
-	panic("mutex %p not held in %s\n", (mtx), __func__); \
-} while (0)
-#define MUTEX_ASSERT_UNLOCKED(mtx) do {              \
-	if ((mtx)->mtx_owner == curcpu())                \
-	panic("mutex %p held in %s\n", (mtx), __func__); \
-} while (0)
-
-struct mutex
-{
-	volatile int  mtx_lock;
-	int           mtx_wantipl; /* interrupt priority level */
-	int           mtx_oldipl;
-	void         *mtx_owner;
-};
-
-
 /*****************
  ** sys/mutex.h **
  *****************/
@@ -297,6 +311,8 @@ void mtx_leave(struct mutex *);
  *****************/
 
 #define INFSLP  __UINT64_MAX__
+
+#define KERNEL_ASSERT_LOCKED()
 
 extern int nchrdev;
 
@@ -315,6 +331,7 @@ void wakeup(const volatile void*);
 int tsleep(const volatile void *, int, const char *, int);
 int tsleep_nsec(const volatile void *, int, const char *, uint64_t);
 int msleep(const volatile void *, struct mutex *, int,  const char*, int);
+int msleep_nsec(const volatile void *, struct mutex *, int,  const char*, uint64_t);
 
 int uiomove(void *, int, struct uio *);
 
@@ -708,6 +725,13 @@ int timeout_del(struct timeout *);
 #define htole32(x) ((uint32_t)(x))
 
 
+/******************
+ ** sys/stdint.h **
+ ******************/
+
+#define UINT64_MAX 0xffffffffffffffffULL
+
+
 /****************
  ** sys/time.h **
  ****************/
@@ -719,6 +743,24 @@ struct timeval
 };
 
 void microuptime(struct timeval *);
+
+static inline uint64_t SEC_TO_NSEC(uint64_t seconds)
+{
+	if (seconds > UINT64_MAX / 1000000000ULL)
+		return UINT64_MAX;
+	return seconds * 1000000000ULL;
+}
+
+
+/*************************
+ ** arch specifc intr.h **
+ *************************/
+
+#define  IPL_SOFTNET 3
+
+void *softintr_establish(int, void (*)(void *), void *);
+void  softintr_schedule(void *);
+void  softintr_disestablish(void *);
 
 
 /***************************

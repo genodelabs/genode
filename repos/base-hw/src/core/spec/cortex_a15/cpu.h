@@ -115,11 +115,14 @@ class Genode::Cpu : public Arm_v7_cpu
 		 */
 		static unsigned executing_id() { return Mpidr::Aff_0::get(Mpidr::read()); }
 
-
-		void switch_to(Context &, Mmu_context & mmu_context)
+		bool active(Mmu_context & mmu_context)
 		{
-			if (mmu_context.id() && (Ttbr0_64bit::read() != mmu_context.ttbr0))
-				Ttbr0_64bit::write(mmu_context.ttbr0);
+			return (Ttbr0_64bit::read() == mmu_context.ttbr0);
+		}
+
+		void switch_to(Mmu_context & mmu_context)
+		{
+			Ttbr0_64bit::write(mmu_context.ttbr0);
 		}
 };
 

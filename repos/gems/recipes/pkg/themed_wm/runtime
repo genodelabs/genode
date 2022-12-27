@@ -1,4 +1,4 @@
-<runtime ram="28M" caps="1000" binary="init" config="wm.config">
+<runtime ram="32M" caps="1100" binary="init" config="wm.config">
 
 	<requires>
 		<gui label="focus"/>

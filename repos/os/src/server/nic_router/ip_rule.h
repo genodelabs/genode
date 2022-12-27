@@ -20,7 +20,7 @@
 namespace Net {
 
 	class Domain;
-	class Domain_tree;
+	class Domain_dict;
 
 	class  Ip_rule;
 	struct Ip_rule_list : Direct_rule_list<Ip_rule> { };
@@ -33,12 +33,9 @@ class Net::Ip_rule : public Direct_rule<Ip_rule>
 
 		Domain &_domain;
 
-		static Domain &_find_domain(Domain_tree            &domains,
-		                            Genode::Xml_node const  node);
-
 	public:
 
-		Ip_rule(Domain_tree &domains, Genode::Xml_node const node);
+		Ip_rule(Domain_dict &domains, Genode::Xml_node const node);
 
 
 		/***************

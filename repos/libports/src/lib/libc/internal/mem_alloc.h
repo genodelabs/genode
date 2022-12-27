@@ -28,9 +28,12 @@ namespace Libc {
 
 	struct Mem_alloc
 	{
+		using Size_at_error  = Allocator_avl::Size_at_error;
+		using Size_at_result = Allocator_avl::Size_at_result;
+
 		virtual void *alloc(size_t size, size_t align_log2) = 0;
 		virtual void free(void *ptr) = 0;
-		virtual size_t size_at(void const *ptr) const = 0;
+		virtual Size_at_result size_at(void const *ptr) const = 0;
 	};
 
 	/**
@@ -124,7 +127,7 @@ namespace Libc {
 
 			void *alloc(size_t size, size_t align_log2);
 			void free(void *ptr);
-			size_t size_at(void const *ptr) const;
+			Size_at_result size_at(void const *ptr) const;
 	};
 }
 

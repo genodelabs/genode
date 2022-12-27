@@ -11,12 +11,6 @@ content: $(MIRROR_FROM_REP_DIR)
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
 
-content: src/lib/openssl/target.mk
-
-src/lib/openssl/target.mk: src/lib/openssl
-	mkdir -p $(dir $@)
-	echo "LIBS += libcrypto libssl" > $@
-
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/openssl)
 
 content: src/lib/openssl

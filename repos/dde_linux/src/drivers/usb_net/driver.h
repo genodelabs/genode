@@ -23,13 +23,13 @@
 
 /* local includes */
 #include <uplink_client.h>
-#include <component.h>
 
 /* Linux emulation environment includes */
 #include <legacy/lx_kit/scheduler.h>
-
-/* NIC driver includes */
-#include <drivers/nic/mode.h>
+#include <lx_emul.h>
+#include <legacy/lx_emul/extern_c_begin.h>
+#include <linux/usb.h>
+#include <legacy/lx_emul/extern_c_end.h>
 
 struct usb_device_id;
 struct usb_interface;
@@ -97,14 +97,61 @@ struct Driver
 		}
 	};
 
+
+	class Sync_packet : public Usb::Completion
+	{
+		private:
+
+			Usb::Session_client  & _usb;
+			Usb::Packet_descriptor _packet { _usb.alloc_packet(0) };
+			completion             _comp;
+
+		public:
+
+			Sync_packet(Usb::Session_client &usb) : _usb(usb)
+			{
+				init_completion(&_comp);
+			}
+
+			virtual ~Sync_packet()
+			{
+				_usb.source()->release_packet(_packet);
+			}
+
+			void complete(Usb::Packet_descriptor &p) override
+			{
+				::complete(&_comp);
+			}
+
+			void send()
+			{
+				_packet.completion = this;
+				_usb.source()->submit_packet(_packet);
+				wait_for_completion(&_comp);
+			}
+
+			void config(int configuration)
+			{
+				_packet.type   = Usb::Packet_descriptor::CONFIG;
+				_packet.number = configuration;
+				send();
+			}
+
+			void alt_setting(int interface, int alt_setting)
+			{
+				_packet.type = Usb::Packet_descriptor::ALT_SETTING;
+				_packet.interface.number      = interface;
+				_packet.interface.alt_setting = alt_setting;
+				send();
+			}
+	};
+
 	Devices                                                devices;
 	Genode::Env                                           &env;
 	Genode::Entrypoint                                    &ep             { env.ep() };
 	Genode::Attached_rom_dataspace                         config_rom     { env, "config" };
-	Genode::Nic_driver_mode const                          mode           { read_nic_driver_mode(config_rom.xml()) };
 	Genode::Heap                                           heap           { env.ram(), env.rm() };
 	Genode::Allocator_avl                                  alloc          { &heap };
-	Genode::Constructible<Root>                            root           { };
 	Genode::Constructible<Genode::Uplink_client>           uplink_client  { };
 	Genode::Constructible<Task>                            main_task;
 	Genode::Constructible<Genode::Attached_rom_dataspace>  report_rom;
@@ -113,20 +160,10 @@ struct Driver
 
 	void activate_network_session()
 	{
-		switch (mode) {
-		case Genode::Nic_driver_mode::NIC_SERVER:
-
-			env.parent().announce(ep.manage(*root));
-			break;
-
-		case Genode::Nic_driver_mode::UPLINK_CLIENT:
-
-			uplink_client.construct(
-				env, heap,
-				config_rom.xml().attribute_value(
-					"uplink_label", Genode::Session_label::String { "" }));
-			break;
-		}
+		uplink_client.construct(
+			env, heap,
+			config_rom.xml().attribute_value(
+				"uplink_label", Genode::Session_label::String { "" }));
 	}
 
 	static void main_task_entry(void *);

@@ -51,7 +51,7 @@ static inline __u64 rol64(__u64 word, unsigned int shift)
 	return (word << shift) | (word >> (64 - shift));
 }
 
-void *memcpy(void *dest, const void *src, size_t n);
+void *jent_memcpy(void *dest, const void *src, size_t n);
 
 #ifdef __cplusplus
 }

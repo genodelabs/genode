@@ -321,6 +321,12 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 			}
 		} else
 
+		if (node.has_type("node")) {
+			xml.node(node.attribute_value("type", Genode::String<128>()).string(), [&]() {
+					_evaluate_node(node, xml);
+			});
+		} else
+
 		if (node.has_type("inline")) {
 
 			node.with_raw_content([&] (char const *src, size_t len) {

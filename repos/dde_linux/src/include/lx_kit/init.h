@@ -22,6 +22,8 @@ namespace Lx_kit {
 
 	void initialize(Env & env);
 	class Initcalls;
+
+	class Pci_fixup_calls;
 }
 
 
@@ -46,6 +48,30 @@ class Lx_kit::Initcalls
 		void execute_in_order();
 
 		Initcalls(Heap & heap) : _heap(heap) {}
+};
+
+struct pci_dev;
+
+class Lx_kit::Pci_fixup_calls
+{
+	private:
+
+		struct E : List<E>::Element
+		{
+			void (*call) (struct pci_dev *);
+
+			E(void (*fn)(struct pci_dev *)) : call { fn } { }
+		};
+
+		Heap  & _heap;
+		List<E> _call_list {};
+
+	public:
+
+		void add(void (*fn)(struct pci_dev*));
+		void execute(struct pci_dev *);
+
+		Pci_fixup_calls(Heap & heap) : _heap(heap) { }
 };
 
 #endif /* _LX_KIT__INIT_H_ */

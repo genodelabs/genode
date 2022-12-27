@@ -1,0 +1,3 @@
+arch/x86/include/asm/io.h
+arch/x86/include/asm/io_apic.h
+arch/x86/include/asm/iomap.h

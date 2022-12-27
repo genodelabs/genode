@@ -9,6 +9,7 @@ _/src/mesa
 _/src/qt5_base
 _/src/stdcxx
 _/src/vfs
+_/src/vfs_gpu
 _/src/vfs_pipe
 _/src/zlib
 _/raw/qt5_textedit

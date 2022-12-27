@@ -19,6 +19,7 @@ extern "C" {
 #endif
 
 struct irq_desc;
+struct device_node;
 
 void lx_emul_irq_unmask(unsigned int irq);
 
@@ -32,6 +33,7 @@ extern void * lx_emul_irq_task_struct;
 
 unsigned int lx_emul_irq_last(void);
 
+int lx_emul_irq_init(struct device_node *node, struct device_node *parent);
 #ifdef __cplusplus
 }
 #endif

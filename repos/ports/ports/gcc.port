@@ -14,11 +14,23 @@ PATCH_OPT := -p1 -d ${DIR(gcc)}
 
 HASH_INPUT += $(REP_DIR)/${DIR(gcc)}/patches/series
 
-# Required version is 2.69, but there is no versioned binary name on
-# Ubuntu right now like there has been for version 2.64.
-AUTOCONF := autoconf
+AUTOCONF_VERSION = 2.69
 
-$(call check_tool,$(AUTOCONF))
+AUTOCONF_VERSION_STRING = "autoconf (GNU Autoconf) $(AUTOCONF_VERSION)"
+ifneq ($(shell autoconf -V | grep $(AUTOCONF_VERSION_STRING)),)
+  AUTOCONF = autoconf
+else
+  ifneq ($(shell which autoconf$(AUTOCONF_VERSION)),)
+    AUTOCONF = autoconf$(AUTOCONF_VERSION)
+  else
+    ifneq ($(shell which autoconf-$(AUTOCONF_VERSION)),)
+      AUTOCONF = autoconf-$(AUTOCONF_VERSION)
+    else
+      $(error Need to have 'autoconf' version $(AUTOCONF_VERSION) installed)
+    endif
+  endif
+endif
+
 $(call check_tool,autogen)
 
 default: _patch

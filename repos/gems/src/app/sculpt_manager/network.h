@@ -20,6 +20,7 @@
 
 /* local includes */
 #include <model/child_exit_state.h>
+#include <model/pci_info.h>
 #include <view/network_dialog.h>
 #include <menu_view.h>
 #include <runtime.h>
@@ -35,6 +36,13 @@ struct Sculpt::Network : Network_dialog::Action
 
 	Allocator &_alloc;
 
+	struct Action : Interface
+	{
+		virtual void update_network_dialog() = 0;
+	};
+
+	Action &_action;
+
 	Registry<Child_state> &_child_states;
 
 	Runtime_config_generator &_runtime_config_generator;
@@ -45,12 +53,11 @@ struct Sculpt::Network : Network_dialog::Action
 	Nic_target _nic_target { };
 	Nic_state  _nic_state  { };
 
-	bool _nic_router_config_up_to_date = false;
-
 	Wpa_passphrase wpa_passphrase { };
 
-	unsigned _nic_drv_version = 0;
+	unsigned _nic_drv_version  = 0;
 	unsigned _wifi_drv_version = 0;
+	unsigned _usb_net_version  = 0;
 
 	Attached_rom_dataspace _wlan_accesspoints_rom {
 		_env, "report -> runtime/wifi_drv/accesspoints" };
@@ -101,18 +108,6 @@ struct Sculpt::Network : Network_dialog::Action
 		_wifi_connection, _nic_state, wpa_passphrase, _wlan_config_policy,
 		_pci_info };
 
-	Menu_view _menu_view { _env, _child_states, dialog, "network_view",
-	                       Ram_quota{4*1024*1024}, Cap_quota{150},
-	                       "network_dialog", "network_view_hover" };
-
-	void min_dialog_width(unsigned value) { _menu_view.min_width = value; }
-
-	bool dialog_hovered() const { return _menu_view.hovered(); }
-
-	void update_view() { _menu_view.generate(); }
-
-	void trigger_dialog_restart() { _menu_view.trigger_restart(); }
-
 	Managed_config<Network> _wlan_config {
 		_env, "config", "wifi", *this, &Network::_handle_wlan_config };
 
@@ -120,7 +115,7 @@ struct Sculpt::Network : Network_dialog::Action
 	{
 		if (_wlan_config.try_generate_manually_managed()) {
 			_wlan_config_policy = Network_dialog::WLAN_CONFIG_MANUAL;
-			_menu_view.generate();
+			_action.update_network_dialog();
 			return;
 		}
 
@@ -132,11 +127,7 @@ struct Sculpt::Network : Network_dialog::Action
 			wifi_disconnect();
 	}
 
-	void reattempt_nic_router_config()
-	{
-		if (_nic_target.nic_router_needed() && !_nic_router_config_up_to_date)
-			_generate_nic_router_config();
-	}
+	void _update_nic_target_from_config(Xml_node const &);
 
 	/**
 	 * Network_dialog::Action interface
@@ -147,7 +138,7 @@ struct Sculpt::Network : Network_dialog::Action
 			_nic_target.managed_type = type;
 			_generate_nic_router_config();
 			_runtime_config_generator.generate_runtime_config();
-			_menu_view.generate();
+			_action.update_network_dialog();
 		}
 	}
 
@@ -184,15 +175,9 @@ struct Sculpt::Network : Network_dialog::Action
 		});
 	}
 
-	void restart_nic_drv_on_next_runtime_cfg()
-	{
-		_nic_drv_version++;
-	}
-
-	void restart_wifi_drv_on_next_runtime_cfg()
-	{
-		_wifi_drv_version++;
-	}
+	void restart_nic_drv_on_next_runtime_cfg()  { _nic_drv_version++; }
+	void restart_wifi_drv_on_next_runtime_cfg() { _wifi_drv_version++; }
+	void restart_usb_net_on_next_runtime_cfg()  { _usb_net_version++; }
 
 	void wifi_disconnect() override
 	{
@@ -222,22 +207,30 @@ struct Sculpt::Network : Network_dialog::Action
 		_runtime_config_generator.generate_runtime_config();
 	}
 
-	Network(Env &env, Allocator &alloc, Registry<Child_state> &child_states,
+	Network(Env &env, Allocator &alloc, Action &action,
+	        Registry<Child_state> &child_states,
 	        Runtime_config_generator &runtime_config_generator,
 	        Runtime_info const &runtime_info, Pci_info const &pci_info)
 	:
-		_env(env), _alloc(alloc), _child_states(child_states),
+		_env(env), _alloc(alloc), _action(action), _child_states(child_states),
 		_runtime_config_generator(runtime_config_generator),
 		_runtime_info(runtime_info), _pci_info(pci_info)
 	{
-		_generate_nic_router_config();
-
 		/*
 		 * Subscribe to reports
 		 */
 		_wlan_accesspoints_rom.sigh(_wlan_accesspoints_handler);
 		_wlan_state_rom       .sigh(_wlan_state_handler);
 		_nic_router_state_rom .sigh(_nic_router_state_handler);
+
+		/*
+		 * Evaluate and forward initial manually managed config
+		 */
+		_nic_router_config.with_manual_config([&] (Xml_node const &config) {
+			_update_nic_target_from_config(config); });
+
+		if (_nic_target.manual())
+			_generate_nic_router_config();
 	}
 };
 

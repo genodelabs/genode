@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/entrypoint.h>
-#include <irq_session/client.h>
+#include <platform_session/device.h>
 
 /* local includes */
 #include "input_driver.h"
@@ -25,14 +25,14 @@ class Irq_handler
 {
 	private:
 
-		Genode::Irq_session_client          _irq;
+		Platform::Device::Irq               _irq;
 		Genode::Signal_handler<Irq_handler> _handler;
 		Input_driver                       &_input_driver;
 		Event::Session_client              &_event_session;
 
 		void _handle()
 		{
-			_irq.ack_irq();
+			_irq.ack();
 
 			_event_session.with_batch([&] (Event::Session_client::Batch &batch) {
 				while (_input_driver.event_pending())
@@ -42,18 +42,18 @@ class Irq_handler
 
 	public:
 
-		Irq_handler(Genode::Entrypoint            &ep,
-		            Input_driver                  &input_driver,
-		            Event::Session_client         &event_session,
-		            Genode::Irq_session_capability irq_cap)
+		Irq_handler(Genode::Entrypoint    &ep,
+		            Input_driver          &input_driver,
+		            Event::Session_client &event_session,
+		            Platform::Device      &device,
+		            unsigned               idx)
 		:
-			_irq(irq_cap),
+			_irq(device, {idx}),
 			_handler(ep, *this, &Irq_handler::_handle),
 			_input_driver(input_driver),
 			_event_session(event_session)
 		{
 			_irq.sigh(_handler);
-			_irq.ack_irq();
 		}
 };
 

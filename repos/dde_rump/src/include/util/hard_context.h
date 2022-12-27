@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2022 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -32,10 +32,6 @@ extern "C" {
 
 typedef void *(*func)(void *);
 
-namespace Timer {
-	class Connection;
-};
-
 
 class Hard_context : public Genode::Avl_node<Hard_context>
 {
@@ -56,8 +52,6 @@ class Hard_context : public Genode::Avl_node<Hard_context>
 
 		void set_lwp(lwp *l) { _lwp = l; }
 		lwp *get_lwp() { return _lwp; }
-
-		static Timer::Connection &timer();
 
 		bool higher(Hard_context *h) { return _myself > h->_myself; }
 

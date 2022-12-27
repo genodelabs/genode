@@ -5,6 +5,8 @@ updates.
 The name of the ROM module must be specified via the 'rom' attribute of the
 components '<config>' node
 
-! <config rom="pointer"/>
+! <config rom="pointer">
+!   <vfs> <fs/> </vfs>
+! </config>
 
 See run/rom_to_file.run for an example.

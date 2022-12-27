@@ -38,6 +38,7 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 			xml.node("dir", [&] () {
 				xml.attribute("name", "download");
 				xml.node("fs", [&] () {
+					xml.attribute("buffer_size", 144u << 10);
 					xml.attribute("label", "download"); });
 			});
 			xml.node("dir", [&] () {

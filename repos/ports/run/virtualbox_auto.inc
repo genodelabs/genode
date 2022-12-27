@@ -28,6 +28,10 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/libiconv \
                   [depot_user]/src/nitpicker \
                   [depot_user]/src/part_block \
+                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/pci_decode \
+                  [depot_user]/src/report_rom \
                   [depot_user]/src/stdcxx \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_pipe \
@@ -39,7 +43,7 @@ if {$use_vms > 1} {
 }
 
 if {$use_usb} {
-	import_from_depot [depot_user]/src/usb_host_drv \
+	import_from_depot [depot_user]/src/pc_usb_host_drv \
 	                  [depot_user]/src/usb_hid_drv
 }
 
@@ -50,31 +54,25 @@ if {$use_rumpfs} {
 append build_components {
 	drivers/ahci
 	drivers/framebuffer
+	drivers/rtc
+	drivers/ps2
+	virtualbox5
 }
 
 lappend_if [expr $use_serial] build_components server/log_terminal
-lappend_if [expr $use_vbox5]  build_components virtualbox5
-lappend_if [expr $use_ps2]    build_components drivers/ps2
 lappend_if [expr $use_usb]    build_components app/usb_report_filter
-lappend_if [have_spec x86]    build_components drivers/rtc
-lappend_if [expr $use_ram_fs || $use_usb] build_components lib/vfs/import
+lappend_if [expr $use_ram_fs || $use_usb] build_components lib/vfs_import
 lappend_if [expr $use_cpu_load] build_components app/trace_subject_reporter
 lappend_if [expr $use_cpu_load] build_components app/cpu_load_display
 lappend_if [expr $use_cpu_load] build_components app/top
 lappend_if [have_spec nova] build_components app/log_core
 
-source ${genode_dir}/repos/base/run/platform_drv.inc
-# override defaults of platform_drv.inc
-proc platform_drv_priority {} { return { priority="-1"} }
-
-append_platform_drv_build_components
-
 build $build_components
 
 if {$use_rumpfs && !$use_ram_fs} {
-	set rump_writable true
+	set rump_writeable true
 } else {
-	set rump_writable false
+	set rump_writeable false
 }
 
 set config {
@@ -111,6 +109,57 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+
+	<start name="platform_reports">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Report"/>
+			<service name="ROM"/>
+		</provides>
+		<config>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+	</start>
+
+	<start name="acpi_drv" caps="350">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="Report"> <child name="platform_reports"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="ROM" label="system"> <child name="platform_reports"/> </service>
+			<service name="Report"> <child name="platform_reports"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="400" managing_system="yes">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Platform"/>
+		</provides>
+		<config>
+			<policy label_prefix="ps2_drv">  <device name="ps2"/>    </policy>
+			<policy label_prefix="ahci_drv"> <pci class="AHCI"/>     </policy>
+			<policy label_prefix="nic_drv">  <pci class="ETHERNET"/> </policy>
+			<policy label_prefix="audio_drv">
+				<pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
+			<policy label_prefix="fb_drv"  info="yes"> <pci class="VGA"/> </policy>
+			<policy label_prefix="usb_drv" info="yes"> <pci class="USB"/> </policy>
+		</config>
+		<route>
+			<service name="ROM" label="devices"> <child name="platform_reports"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 	<start name="ahci_drv" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Block"/></provides>
@@ -118,6 +167,29 @@ append config {
 			<policy label_prefix="part_block" device="0" writeable="yes"/>
 		</config>
 	</start>
+
+	<start name="ps2_drv" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<config/>
+		<route>
+			<service name="Event"> <child name="event_filter" label="ps2"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="fb_drv" priority="-1" caps="150">
+		<binary name="vesa_fb_drv"/>
+		<resource name="RAM" quantum="32M"/>
+		<config/>
+	</start>
+
+	<start name="rtc_drv" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Rtc"/>
+		</provides>
+	</start>
+
 	<start name="part_block" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Block"/></provides>
@@ -152,17 +224,17 @@ append_if [have_spec nova] config {
 append_if [expr $use_rumpfs] config {
 	<start name="rump_fs" priority="-1" caps="200">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="32M"/>
+		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config ld_verbose="yes">
 			<vfs>
-				<rump fs="ext2fs" ram="28M"/>
+				<rump fs="ext2fs" ram="48M"/>
 			</vfs>}
 
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
 			<policy label_prefix="overlay_from_disk" root="/ram" writeable="no"/>}
 append_if [expr $use_rumpfs] config {
-			<default-policy root="/" writeable="} $rump_writable {"/>
+			<default-policy root="/" writeable="} $rump_writeable {"/>
 		</config>
 		<route>
 			<any-service><child name="part_block"/> <parent/><any-child/></any-service>
@@ -219,18 +291,6 @@ append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
 		</route>
 	</start>}
 
-append_platform_drv_config
-
-append_if [expr $use_ps2] config {
-	<start name="ps2_drv" priority="-1">
-		<resource name="RAM" quantum="1M"/>
-		<config/>
-		<route>
-			<service name="Event"> <child name="event_filter" label="ps2"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>}
-
 append_if [expr $use_cpu_load] config {
 	<start name="trace_subject_reporter" priority="-1">
 		<resource name="RAM" quantum="6M"/>
@@ -280,13 +340,15 @@ append_if [expr $use_usb] config {
 				<ram/>
 				<import>
 					<inline name="usb_drv.config">
-<config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
+<config>
 	<report devices="yes"/>
 	<policy label_prefix="usb_hid_drv" class="0x3"/>
 </config>
 					</inline>
 					<inline name="usb_report_filter.config">
 <config>
+	<vfs> <fs/> </vfs>
+
 	<!-- USB device whitelist -->
 	<client label="vbox1"/>
 	<device vendor_id="0x13fe" product_id="0x5200"/> <!-- platinum stick -->
@@ -348,7 +410,7 @@ append_if [expr $use_usb] config {
 	</start>
 
 	<start name="usb_drv" caps="200">
-		<binary name="x86_pc_usb_host_drv"/>
+		<binary name="pc_usb_host_drv"/>
 		<resource name="RAM" quantum="20M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
@@ -371,21 +433,6 @@ append_if [expr $use_usb] config {
 		</route>
 	</start>}
 
-append_if [have_board pc] config {
-	<start name="fb_drv" priority="-1" caps="150">
-		<binary name="vesa_fb_drv"/>
-		<resource name="RAM" quantum="32M"/>
-		<config/>
-	</start>}
-
-append_if [have_spec x86] config {
-	<start name="rtc_drv" priority="-1">
-		<resource name="RAM" quantum="1M"/>
-		<provides>
-			<service name="Rtc"/>
-		</provides>
-	</start>}
-
 append_if [expr $use_serial] config {
 	<start name="log_terminal" priority="-1">
 		<resource name="RAM" quantum="2M"/>
@@ -404,12 +451,15 @@ install_config $config
 
 append boot_modules {
 	ahci_drv
+	ps2_drv
+	rtc_drv
+	vesa_fb_drv
 	qemu-usb.lib.so
 	libyuv.lib.so
 }
+append boot_modules $virtualbox5_binary
 
 lappend_if [expr $use_serial] boot_modules log_terminal
-lappend_if [expr $use_vbox5] boot_modules $virtualbox5_binary
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules $overlay_image
 lappend_if [expr $use_cpu_load] boot_modules trace_subject_reporter
 lappend_if [expr $use_cpu_load] boot_modules cpu_load_display
@@ -417,9 +467,4 @@ lappend_if [expr $use_cpu_load] boot_modules top
 lappend_if [have_spec nova] boot_modules log_core
 
 # platform-specific modules
-lappend_if [expr $use_ps2] boot_modules ps2_drv
 lappend_if [expr $use_usb] boot_modules usb_report_filter
-lappend_if [have_board pc] boot_modules vesa_fb_drv
-lappend_if [have_spec x86] boot_modules rtc_drv
-
-append_platform_drv_boot_modules

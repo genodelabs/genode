@@ -39,19 +39,23 @@
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
+			<policy label="pci_decode -> system"            report="acpi_drv -> acpi"/>
 			<policy label="platform_drv -> acpi"            report="acpi_drv -> acpi"/>
-			<policy label="driver_manager -> pci_devices"   report="platform_drv -> pci"/>
+			<policy label="platform_drv -> devices"         report="pci_decode -> devices"/>
 			<policy label="usb_drv -> config"               report="driver_manager -> usb_drv.config"/>
+			<policy label="dynamic -> config"               report="driver_manager -> init.config"/>
+			<policy label="driver_manager -> devices"       report="platform_drv -> devices"/>
 			<policy label="driver_manager -> usb_devices"   report="usb_drv -> devices"/>
 			<policy label="driver_manager -> dynamic_state" report="dynamic -> state"/>
-			<policy label="dynamic -> config"               report="driver_manager -> init.config"/>
 			<policy label="driver_manager -> ahci_ports"    report="dynamic -> ahci_ports"/>
 			<policy label="driver_manager -> nvme_ns"       report="dynamic -> nvme_ns"/>
 			<policy label="rom_reporter -> acpi"            report="acpi_drv -> acpi"/>
-			<policy label="rom_reporter -> pci_devices"     report="platform_drv -> pci"/>
+			<policy label="rom_reporter -> devices"         report="platform_drv -> devices"/>
+			<policy label="rom_reporter -> pci_devices"     report="pci_decode -> devices"/>
 			<policy label="rom_reporter -> usb_devices"     report="usb_drv -> devices"/>
 			<policy label="rom_reporter -> dynamic_state"   report="dynamic -> state"/>
 			<policy label="usb_hid_drv -> report"           report="usb_drv -> devices"/>
+			<policy label="dynamic -> intel_fb_drv -> intel_opregion"  report="acpi_drv -> intel_opregion"/>
 		</config>
 	</start>
 
@@ -60,16 +64,19 @@
 		<config>
 			<rom label="acpi"/>
 			<rom label="pci_devices"/>
+			<rom label="devices"/>
 			<rom label="usb_devices"/>
 			<rom label="dynamic_state"/>
 		</config>
 		<route>
 			<service name="ROM"    label="acpi">          <child name="report_rom"/> </service>
 			<service name="ROM"    label="pci_devices">   <child name="report_rom"/> </service>
+			<service name="ROM"    label="devices">       <child name="report_rom"/> </service>
 			<service name="ROM"    label="usb_devices">   <child name="report_rom"/> </service>
 			<service name="ROM"    label="dynamic_state"> <child name="report_rom"/> </service>
 			<service name="Report" label="acpi">          <parent label="acpi"/>        </service>
 			<service name="Report" label="pci_devices">   <parent label="pci_devices"/> </service>
+			<service name="Report" label="devices">       <parent label="devices"/>     </service>
 			<service name="Report" label="usb_devices">   <parent label="usb_devices"/> </service>
 			<service name="Report" label="dynamic_state"> <parent label="dynamic -> state"/> </service>
 			<service name="LOG"> <parent/> </service>
@@ -80,9 +87,10 @@
 	</start>
 
 	<start name="acpi_drv" caps="350">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="7M"/>
 		<route>
 			<service name="Report" label="acpi"> <child name="report_rom"/> </service>
+			<service name="Report" label="intel_opregion"> <child name="report_rom"/> </service>
 			<service name="Report" label="smbios_table"> <parent label="smbios_table"/> </service>
 			<service name="IO_MEM"> <parent/> </service>
 			<service name="LOG">    <parent/> </service>
@@ -93,17 +101,29 @@
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="400" managing_system="yes">
-		<binary name="legacy_pc_platform_drv"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Platform"/>
-			<service name="Acpi"/>
-		</provides>
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="2M"/>
 		<route>
-			<service name="ROM" label="system"> <parent label="system"/> </service>
-			<service name="ROM" label="acpi">   <child name="report_rom"/> </service>
-			<service name="Report" label="pci"> <child name="report_rom"/> </service>
+			<service name="Report">             <child name="report_rom"/> </service>
+			<service name="ROM" label="system"> <child name="report_rom"/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="400" managing_system="yes">
+		<binary name="pc_platform_drv"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="ROM" label="system">  <parent label="system"/> </service>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<service name="ROM" label="acpi">    <child name="report_rom"/> </service>
+			<service name="Report" label="devices"> <child name="report_rom"/> </service>
 			<service name="IRQ">     <parent/> </service>
 			<service name="IO_MEM">  <parent/> </service>
 			<service name="IO_PORT"> <parent/> </service>
@@ -113,19 +133,18 @@
 			<service name="LOG">     <parent/> </service>
 			<service name="Timer">   <parent/> </service>
 		</route>
-		<config system="yes">
-			<report pci="yes"/>
-			<policy label_prefix="ps2_drv">                <device name="PS2"/> </policy>
-			<policy label_prefix="dynamic -> vesa_fb_drv"> <pci class="VGA"/>   </policy>
+		<config>
+			<report devices="yes"/>
+			<policy label_prefix="ps2_drv"> <device name="ps2"/> </policy>
+			<policy label_prefix="dynamic -> vesa_fb_drv" info="yes"> <pci class="VGA"/> </policy>
 			<policy label_prefix="dynamic -> ahci_drv">    <pci class="AHCI"/>  </policy>
-			<policy label_prefix="dynamic -> nvme_drv">    <pci class="NVME"/>  </policy>
-			<policy label_prefix="usb_drv">                <pci class="USB"/>   </policy>
-			<policy label_prefix="dynamic -> intel_gpu_drv">
+			<policy label_prefix="dynamic -> nvme_drv" info="yes"> <pci class="NVME"/>  </policy>
+			<policy label_prefix="usb_drv" info="yes">     <pci class="USB"/>   </policy>
+			<policy label_prefix="dynamic -> intel_gpu_drv" info="yes">
 				<pci class="VGA"/>
-				<pci bus="0" device="0" function="0"/>
 				<pci class="ISABRIDGE"/>
 			</policy>
-			<policy label_suffix="-> wifi" msix="false">  <pci class="WIFI"/> </policy>
+			<policy label_suffix="-> wifi" msix="false" info="yes"> <pci class="WIFI"/> </policy>
 			<policy label_suffix="-> nic">   <pci class="ETHERNET"/> </policy>
 			<policy label_suffix="-> audio"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
 			<policy label="acpica"> </policy>
@@ -133,7 +152,7 @@
 	</start>
 
 	<start name="usb_drv" caps="200">
-		<binary name="x86_pc_usb_host_drv"/>
+		<binary name="pc_usb_host_drv"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
@@ -221,7 +240,7 @@
 			<service name="Report" label="usb_drv.config"> <child name="report_rom"/> </service>
 			<service name="Report" label="block_devices"> <parent label="block_devices"/> </service>
 			<service name="ROM" label="usb_devices">   <child name="report_rom"/> </service>
-			<service name="ROM" label="pci_devices">   <child name="report_rom"/> </service>
+			<service name="ROM" label="devices">       <child name="report_rom"/> </service>
 			<service name="ROM" label="ahci_ports">    <child name="report_rom"/> </service>
 			<service name="ROM" label="nvme_ns">       <child name="report_rom"/> </service>
 			<service name="ROM" label="dynamic_state"> <child name="report_rom"/> </service>
@@ -248,6 +267,7 @@
 			<service name="Report"> <parent/> </service>
 			<service name="Usb"> <child name="usb_drv"/> </service>
 			<service name="ROM" label="config"> <child name="report_rom"/> </service>
+			<service name="ROM" label="intel_fb_drv -> intel_opregion"> <child name="report_rom"/> </service>
 			<service name="LOG">     <parent/> </service>
 			<service name="PD">      <parent/> </service>
 			<service name="RM">      <parent/> </service>

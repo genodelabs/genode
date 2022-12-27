@@ -428,11 +428,11 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 			Affinity::Location location { };
 
 			if (affinity_from_launcher)
-				launcher_xml.with_sub_node("affinity", [&] (Xml_node node) {
+				launcher_xml.with_optional_sub_node("affinity", [&] (Xml_node node) {
 					location = Affinity::Location::from_xml(affinity_space, node); });
 
 			if (affinity_from_start)
-				start_xml.with_sub_node("affinity", [&] (Xml_node node) {
+				start_xml.with_optional_sub_node("affinity", [&] (Xml_node node) {
 					location = Affinity::Location::from_xml(affinity_space, node); });
 
 			xml.node("affinity", [&] () {
@@ -482,10 +482,13 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 					_gen_provides_sub_node(xml, service, "file_system", "File_system");
 					_gen_provides_sub_node(xml, service, "framebuffer", "Framebuffer");
 					_gen_provides_sub_node(xml, service, "input",       "Input");
+					_gen_provides_sub_node(xml, service, "event",       "Event");
 					_gen_provides_sub_node(xml, service, "log",         "LOG");
 					_gen_provides_sub_node(xml, service, "nic",         "Nic");
+					_gen_provides_sub_node(xml, service, "uplink",      "Uplink");
 					_gen_provides_sub_node(xml, service, "gui",         "Gui");
 					_gen_provides_sub_node(xml, service, "gpu",         "Gpu");
+					_gen_provides_sub_node(xml, service, "usb",         "Usb");
 					_gen_provides_sub_node(xml, service, "report",      "Report");
 					_gen_provides_sub_node(xml, service, "rom",         "ROM");
 					_gen_provides_sub_node(xml, service, "terminal",    "Terminal");

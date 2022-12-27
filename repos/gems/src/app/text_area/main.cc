@@ -92,7 +92,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 		if (!node.has_sub_node("dialog"))
 			_dialog.handle_hover(Xml_node("<empty/>"));
 
-		node.with_sub_node("dialog", [&] (Xml_node const &dialog) {
+		node.with_optional_sub_node("dialog", [&] (Xml_node const &dialog) {
 			_dialog.handle_hover(dialog); });
 	}
 
@@ -462,7 +462,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 		if (_editable()) {
 			bool const orig_saved_reporter_enabled = _saved_reporter.constructed();
 
-			config.with_sub_node("report", [&] (Xml_node const &node) {
+			config.with_optional_sub_node("report", [&] (Xml_node const &node) {
 				_saved_reporter.conditional(node.attribute_value("saved", false),
 				                            _env, "saved", "saved"); });
 
@@ -471,7 +471,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 
 			Saved_version const orig_saved_version = _saved_version;
 
-			config.with_sub_node("save", [&] (Xml_node const &node) {
+			config.with_optional_sub_node("save", [&] (Xml_node const &node) {
 				_saved_version.value =
 					node.attribute_value("version", _saved_version.value); });
 

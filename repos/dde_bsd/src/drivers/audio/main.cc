@@ -142,6 +142,7 @@ class Audio_out::Out
 
 			} else {
 				_play_silence();
+				return;
 			}
 
 			_advance_position(p_left, p_right);
@@ -221,13 +222,10 @@ struct Audio_out::Root_policy
 	{
 		size_t ram_quota =
 			Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-		size_t session_size =
-			align_addr(sizeof(Audio_out::Session_component), 12);
 
-		if ((ram_quota < session_size) ||
-		    (sizeof(Stream) > ram_quota - session_size)) {
+		if (sizeof(Stream) > ram_quota) {
 			Genode::error("insufficient 'ram_quota', got ", ram_quota,
-			              " need ", sizeof(Stream) + session_size);
+			              " need ", sizeof(Stream));
 			throw Genode::Insufficient_ram_quota();
 		}
 
@@ -412,13 +410,11 @@ struct Audio_in::Root_policy
 	void aquire(char const *args)
 	{
 		size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-		size_t session_size = align_addr(sizeof(Audio_in::Session_component), 12);
 
-		if ((ram_quota < session_size) ||
-		    (sizeof(Stream) > (ram_quota - session_size))) {
+		if (sizeof(Stream) > ram_quota) {
 			Genode::error("insufficient 'ram_quota', got ", ram_quota,
-			              " need ", sizeof(Stream) + session_size,
-			              ", denying '",Genode::label_from_args(args),"'");
+			              " need ", sizeof(Stream),
+			              ", denying '", Genode::label_from_args(args),"'");
 			throw Genode::Insufficient_ram_quota();
 		}
 

@@ -11,3 +11,9 @@ the application using libusb:
 </config>
 
 See also the README file of the USB driver for additional policy attributes.
+
+The Genode USB connection object resides in a VFS plugin named 'vfs_libusb',
+which is necessary to handle the 'ack_avail' signal in the libc kernel context.
+So, an application using libusb needs to have a '<dir name="dev"><libusb/></dev>'
+node in its VFS configuration and the 'vfs_libusb.lib.so' file loadable at
+runtime.

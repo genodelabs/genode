@@ -42,6 +42,9 @@ class Main : public Nic_handler,
 		Constructible<Dhcp_client>      _dhcp_client        { };
 		bool                            _link_state         { false };
 		Reconstructible<Ipv4_config>    _ip_config          { };
+		Timer::One_shot_timeout<Main>   _initial_delay      { _timer, *this, &Main::_handle_initial_delay };
+
+		void _handle_initial_delay(Duration);
 
 	public:
 
@@ -88,10 +91,16 @@ void Main::ip_config(Ipv4_config const &ip_config)
 }
 
 
-Main::Main(Env &env) : _env(env)
+void Main::_handle_initial_delay(Duration)
 {
 	log("Initialized");
 	_nic.handle_link_state();
+}
+
+
+Main::Main(Env &env) : _env(env)
+{
+	_initial_delay.schedule(Microseconds { 1000000 });
 }
 
 

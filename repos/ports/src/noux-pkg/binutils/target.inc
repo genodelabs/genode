@@ -11,6 +11,6 @@ CONFIGURE_ARGS = --disable-werror \
 #
 MAKE_ENV = $(MKENV)
 
-PKG_DIR = $(call select_from_ports,binutils)/src/noux-pkg/binutils
+PKG_DIR := $(call select_from_ports,binutils)/src/noux-pkg/binutils
 
 include $(call select_from_repositories,mk/noux.mk)

@@ -230,7 +230,10 @@ int nemR3NativeInitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 }
 
 
-int nemR3NativeTerm(PVM pVM) TRACE(VINF_SUCCESS)
+int nemR3NativeTerm(PVM pVM)
+{
+	return VINF_SUCCESS;
+}
 
 
 /**
@@ -248,7 +251,7 @@ void nemR3NativeReset(PVM pVM) TRACE()
  *                      reset.
  * @param   fInitIpi    Whether this is the INIT IPI or hot (un)plugging case.
  */
-void nemR3NativeResetCpu(PVMCPU pVCpu, bool fInitIpi) TRACE()
+void nemR3NativeResetCpu(PVMCPU pVCpu, bool fInitIpi) { }
 
 
 VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
@@ -516,5 +519,8 @@ void nemHCNativeNotifyPhysPageProtChanged(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS H
 
 void nemHCNativeNotifyPhysPageChanged(PVMCC pVM, RTGCPHYS GCPhys, RTHCPHYS HCPhysPrev,
                                       RTHCPHYS HCPhysNew, ::uint32_t fPageProt,
-                                      PGMPAGETYPE enmType, ::uint8_t *pu2State) STOP
+                                      PGMPAGETYPE enmType, ::uint8_t *pu2State)
+{
+	nemHCNativeNotifyPhysPageProtChanged(pVM, GCPhys, HCPhysNew, fPageProt, enmType, pu2State);
+}
 

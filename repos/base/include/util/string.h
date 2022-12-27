@@ -246,7 +246,47 @@ namespace Genode {
 	 __attribute((optimize("no-tree-loop-distribute-patterns")))
 	inline void *memset(void *dst, uint8_t i, size_t size)
 	{
-		while (size--) ((uint8_t *)dst)[size] = i;
+		typedef unsigned long word_t;
+
+		enum {
+			LEN  = sizeof(word_t),
+			MASK = LEN-1
+		};
+
+		size_t d_align = (size_t)dst & MASK;
+		uint8_t* d = (uint8_t*)dst;
+
+		/* write until word aligned */
+		for (; d_align && d_align < LEN && size;
+		       d_align++, size--, d++)
+			*d = i;
+
+		word_t word = i;
+		word |= word << 8;
+		word |= word << 16;
+		if (LEN == 8)
+			word |= (word << 16) << 16;
+
+		/* write 8-word chunks (likely matches cache line size) */
+		for (; size >= 8*LEN; size -= 8*LEN, d += 8*LEN) {
+			((word_t *)d)[0] = word;
+			((word_t *)d)[1] = word;
+			((word_t *)d)[2] = word;
+			((word_t *)d)[3] = word;
+			((word_t *)d)[4] = word;
+			((word_t *)d)[5] = word;
+			((word_t *)d)[6] = word;
+			((word_t *)d)[7] = word;
+		}
+
+		/* write remaining words */
+		for (; size >= LEN; size -= LEN, d += LEN)
+			((word_t *)d)[0] = word;
+
+		/* write remaining bytes */
+		for (; size; size--, d++)
+			*d = i;
+
 		return dst;
 	}
 
@@ -419,20 +459,21 @@ namespace Genode {
 
 
 	/**
-	 * Read signed long value from string
+	 * Read signed value from string
 	 *
 	 * \return number of consumed characters
 	 */
-	inline size_t ascii_to(const char *s, long &result)
+	template <typename T>
+	inline size_t ascii_to_signed(const char *s, T &result)
 	{
-		int i = 0;
+		size_t i = 0;
 
 		/* read sign */
 		int sign = (*s == '-') ? -1 : 1;
 
 		if (*s == '-' || *s == '+') { s++; i++; }
 
-		unsigned long value = 0;
+		T value = 0;
 
 		size_t const j = ascii_to_unsigned(s, value, 0);
 
@@ -441,6 +482,28 @@ namespace Genode {
 
 		result = sign*value;
 		return i + j;
+	}
+
+
+	/**
+	 * Read signed long value from string
+	 *
+	 * \return number of consumed characters
+	 */
+	inline size_t ascii_to(const char *s, long &result)
+	{
+		return ascii_to_signed<long>(s, result);
+	}
+
+
+	/**
+	 * Read signed integer value from string
+	 *
+	 * \return number of consumed characters
+	 */
+	inline size_t ascii_to(const char *s, int &result)
+	{
+		return ascii_to_signed<int>(s, result);
 	}
 
 
@@ -513,15 +576,6 @@ namespace Genode {
 
 
 	/**
-	 * Check for end of quotation
-	 *
-	 * Checks if next character is non-backslashed quotation mark.
-	 */
-	inline bool end_of_quote(const char *s) {
-		return s[0] != '\\' && s[1] == '\"'; }
-
-
-	/**
 	 * Unpack quoted string
 	 *
 	 * \param src   source string including the quotation marks ("...")
@@ -536,6 +590,9 @@ namespace Genode {
 			return ~0UL;
 
 		src++;
+
+		auto end_of_quote = [] (const char *s) {
+			return s[0] != '\\' && s[1] == '\"'; };
 
 		size_t i = 0;
 		for (; *src && !end_of_quote(src - 1) && (i < dst_len - 1); i++) {
@@ -749,6 +806,12 @@ class Genode::String
 		bool operator != (String<OTHER_CAPACITY> const &other) const
 		{
 			return strcmp(string(), other.string()) != 0;
+		}
+
+		template <size_t N>
+		bool operator > (String<N> const &other) const
+		{
+			return strcmp(string(), other.string()) > 0;
 		}
 
 		void print(Output &out) const { Genode::print(out, string()); }

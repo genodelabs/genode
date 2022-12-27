@@ -20,6 +20,7 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/sleep.h>
+#include <trace/trace_buffer.h>
 
 using namespace Genode;
 
@@ -68,8 +69,8 @@ class Trace_buffer_monitor
 		char                  _buf[MAX_ENTRY_BUF];
 		Region_map           &_rm;
 		Trace::Subject_id     _id;
-		Trace::Buffer        *_buffer;
-		Trace::Buffer::Entry  _curr_entry;
+		Trace::Buffer        *_buffer_raw;
+		Trace_buffer          _buffer;
 
 		const char *_terminate_entry(Trace::Buffer::Entry const &entry)
 		{
@@ -85,37 +86,30 @@ class Trace_buffer_monitor
 		                     Trace::Subject_id     id,
 		                     Dataspace_capability  ds_cap)
 		:
-			_rm(rm), _id(id), _buffer(rm.attach(ds_cap)),
-			_curr_entry(_buffer->first())
+			_rm(rm), _id(id), _buffer_raw(rm.attach(ds_cap)),
+			_buffer(*_buffer_raw)
 		{
 			log("monitor "
 				"subject:", _id.id, " "
-				"buffer:",  Hex((addr_t)_buffer));
+				"buffer:",  Hex((addr_t)_buffer_raw));
 		}
 
 		~Trace_buffer_monitor()
 		{
-			if (_buffer) { _rm.detach(_buffer); }
+			if (_buffer_raw) { _rm.detach(_buffer_raw); }
 		}
 
 		Trace::Subject_id id() { return _id; };
 
 		void dump()
 		{
-			log("overflows: ", _buffer->wrapped());
 			log("read all remaining events");
-
-			for (; !_curr_entry.last(); _curr_entry = _buffer->next(_curr_entry)) {
-				/* omit empty entries */
-				if (_curr_entry.length() == 0)
-					continue;
-
-				char const * const data = _terminate_entry(_curr_entry);
+			_buffer.for_each_new_entry([&] (Trace::Buffer::Entry &entry) {
+				char const * const data = _terminate_entry(entry);
 				if (data) { log(data); }
-			}
 
-			/* reset after we read all available entries */
-			_curr_entry = _buffer->first();
+				return true;
+			});
 		}
 };
 
@@ -208,19 +202,6 @@ struct Test_tracing
 
 	Rom_dataspace_capability  policy_module_rom_ds { };
 
-	char const *state_name(Trace::Subject_info::State state)
-	{
-		switch (state) {
-		case Trace::Subject_info::INVALID:  return "INVALID";
-		case Trace::Subject_info::UNTRACED: return "UNTRACED";
-		case Trace::Subject_info::TRACED:   return "TRACED";
-		case Trace::Subject_info::FOREIGN:  return "FOREIGN";
-		case Trace::Subject_info::ERROR:    return "ERROR";
-		case Trace::Subject_info::DEAD:     return "DEAD";
-		}
-		return "undefined";
-	}
-
 	struct Failed : Genode::Exception { };
 
 	Test_tracing(Env &env) : env(env)
@@ -268,7 +249,7 @@ struct Test_tracing
 			log("ID:",      id.id,                    " "
 			    "label:\"", info.session_label(),   "\" "
 			    "name:\"",  info.thread_name(),     "\" "
-			    "state:",   state_name(info.state()), " "
+			    "state:",   Trace::Subject_info::state_name(info.state()), " "
 			    "policy:",  info.policy_id().id,      " "
 			    "thread context time:", info.execution_time().thread_context, " "
 			    "scheduling context time:", info.execution_time().scheduling_context, " ",
@@ -278,20 +259,20 @@ struct Test_tracing
 
 		trace.for_each_subject_info(print_info);
 
-		auto check_untraced = [this] (Trace::Subject_id id, Trace::Subject_info info) {
+		auto check_unattached = [this] (Trace::Subject_id id, Trace::Subject_info info) {
 
-			if (info.state() != Trace::Subject_info::UNTRACED)
-				error("Subject ", id.id, " is not UNTRACED");
+			if (info.state() != Trace::Subject_info::UNATTACHED)
+				error("Subject ", id.id, " is not UNATTACHED");
 		};
 
-		trace.for_each_subject_info(check_untraced);
+		trace.for_each_subject_info(check_unattached);
 
 		/* enable tracing for test-thread */
 		auto enable_tracing = [this, &env] (Trace::Subject_id id,
 		                                    Trace::Subject_info info) {
 
-			if (   info.session_label() != policy_label
-			    || info.thread_name()   != policy_thread) {
+			if (info.session_label() != policy_label
+			 || info.thread_name()   != policy_thread) {
 				return;
 			}
 

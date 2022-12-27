@@ -46,11 +46,9 @@ inline void Libc::Main_blockade::wakeup()
 size_t Libc::Kernel::_user_stack_size()
 {
 	size_t size = Component::stack_size();
-	if (!_cloned)
-		return size;
 
-	_libc_env.libc_config().with_sub_node("stack", [&] (Xml_node stack) {
-		size = stack.attribute_value("size", 0UL); });
+	_libc_env.libc_config().with_optional_sub_node("stack", [&] (Xml_node stack) {
+		size = stack.attribute_value("size", Number_of_bytes(0)); });
 
 	return size;
 }
@@ -72,17 +70,7 @@ void Libc::Kernel::reset_malloc_heap()
 
 void Libc::Kernel::_init_file_descriptors()
 {
-	/**
-	 * path element token
-	 */
-	struct Scanner_policy_path_element
-	{
-		static bool identifier_char(char c, unsigned /* i */)
-		{
-			return (c != '/') && (c != 0);
-		}
-	};
-	typedef Genode::Token<Scanner_policy_path_element> Path_element_token;
+	typedef Genode::Token<Vfs::Scanner_policy_path_element> Path_element_token;
 
 	auto resolve_symlinks = [&] (Absolute_path next_iteration_working_path, Absolute_path &resolved_path)
 	{
@@ -188,43 +176,53 @@ void Libc::Kernel::_init_file_descriptors()
 		if (!node.has_attribute(attr))
 			return;
 
-		Absolute_path const path {
-			resolve_absolute_path(node.attribute_value(attr, Path())) };
+		Path const attr_value { node.attribute_value(attr, Path()) };
+		try {
+			Absolute_path const path { resolve_absolute_path(attr_value) };
 
-		struct stat out_stat { };
-		if (_vfs.stat_from_kernel(path.string(), &out_stat) != 0)
-			return;
+			struct stat out_stat { };
+			if (_vfs.stat_from_kernel(path.string(), &out_stat) != 0) {
+				warning("failed to call 'stat' on ", path);
+				return;
+			}
 
-		File_descriptor *fd = _vfs.open_from_kernel(path.string(), flags, libc_fd);
-		if (!fd)
-			return;
+			File_descriptor *fd =
+				_vfs.open_from_kernel(path.string(), flags, libc_fd);
 
-		if (fd->libc_fd != libc_fd) {
-			error("could not allocate fd ",libc_fd," for ",path,", "
-			      "got fd ",fd->libc_fd);
-			_vfs.close_from_kernel(fd);
+			if (!fd)
+				return;
+
+			if (fd->libc_fd != libc_fd) {
+				error("could not allocate fd ",libc_fd," for ",path,", "
+					  "got fd ",fd->libc_fd);
+				_vfs.close_from_kernel(fd);
+				return;
+			}
+
+			fd->cloexec = node.attribute_value("cloexec", false);
+
+			/*
+			 * We need to manually register the path. Normally this is done
+			 * by '_open'. But we call the local 'open' function directly
+			 * because we want to explicitly specify the libc fd ID.
+			 */
+			if (fd->fd_path)
+				warning("may leak former FD path memory");
+
+			{
+				char *dst = (char *)_heap.alloc(path.max_len());
+				copy_cstring(dst, path.string(), path.max_len());
+				fd->fd_path = dst;
+			}
+
+			::off_t const seek = node.attribute_value("seek", 0ULL);
+			if (seek)
+				_vfs.lseek_from_kernel(fd, seek);
+
+		} catch (Symlink_resolve_error) {
+			warning("failed to resolve path for ", attr_value);
 			return;
 		}
-
-		fd->cloexec = node.attribute_value("cloexec", false);
-
-		/*
-		 * We need to manually register the path. Normally this is done
-		 * by '_open'. But we call the local 'open' function directly
-		 * because we want to explicitly specify the libc fd ID.
-		 */
-		if (fd->fd_path)
-			warning("may leak former FD path memory");
-
-		{
-			char *dst = (char *)_heap.alloc(path.max_len());
-			copy_cstring(dst, path.string(), path.max_len());
-			fd->fd_path = dst;
-		}
-
-		::off_t const seek = node.attribute_value("seek", 0ULL);
-		if (seek)
-			_vfs.lseek_from_kernel(fd, seek);
 	};
 
 	if (_vfs.root_dir_has_dirents()) {

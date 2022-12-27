@@ -16,6 +16,7 @@
 #include <linux/cpu.h>
 #include <linux/cpumask.h>
 
+atomic_t __num_online_cpus = ATOMIC_INIT(1);
 struct cpumask __cpu_online_mask   = { .bits[0] = 1 };
 struct cpumask __cpu_possible_mask = { .bits[0] = 1 };
 struct cpumask __cpu_present_mask  = { .bits[0] = 1 };

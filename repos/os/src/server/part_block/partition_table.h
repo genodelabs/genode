@@ -49,7 +49,6 @@ struct Block::Job : public Block_connection::Job
 	Request       request;
 	addr_t  const addr;                 /* target payload address */
 	bool          completed { false };
-	off_t         offset { 0 };         /* current offset in payload for partial jobs */
 
 	Job(Block_connection &connection,
 	    Operation         operation,
@@ -128,15 +127,15 @@ struct Block::Partition_table : Interface
 					_data.block.update_jobs(*this);
 				}
 
-				void consume_read_result(Block_connection::Job &, seek_off_t,
+				void consume_read_result(Block_connection::Job &, off_t offset,
 				                         char const *src, size_t length)
 				{
 					_buffer = _data.alloc.alloc(length);
-					memcpy(_buffer, src, length);
-					_size = length;
+					memcpy((char *)_buffer + offset, src, length);
+					_size += length;
 				}
 
-				void produce_write_content(Block_connection::Job &, seek_off_t,
+				void produce_write_content(Block_connection::Job &, off_t,
 				                           char *, size_t) { }
 
 				void completed(Block_connection::Job &, bool success)

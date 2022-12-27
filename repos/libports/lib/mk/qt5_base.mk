@@ -25,6 +25,7 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 		-no-feature-dbus \
 		-no-feature-networkinterface \
 		-no-feature-process \
+		-no-feature-relocatable \
 		-no-feature-vulkan \
 		$(QT5_OUTPUT_FILTER)
 

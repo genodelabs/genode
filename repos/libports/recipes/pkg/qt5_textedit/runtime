@@ -6,6 +6,7 @@
 		<report label="shape"/>
 		<report label="clipboard"/>
 		<rom    label="clipboard"/>
+		<rom    label="mesa_gpu_drv.lib.so"/>
 		<timer/>
 	</requires>
 
@@ -30,6 +31,7 @@
 		<rom label="qt5_libqgenode.tar"/>
 		<rom label="stdcxx.lib.so"/>
 		<rom label="vfs.lib.so"/>
+		<rom label="vfs_gpu.lib.so"/>
 		<rom label="vfs_pipe.lib.so"/>
 		<rom label="zlib.lib.so"/>
 

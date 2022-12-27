@@ -10,7 +10,6 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libusb)
 src/lib/libusb:
 	mkdir -p $(dir $@)
 	cp -r $(PORT_DIR)/src/lib/libusb $@
-	echo "LIBS = libusb" > $@/target.mk
 	$(mirror_from_rep_dir)
 
 $(MIRROR_FROM_REP_DIR):

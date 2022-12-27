@@ -1,0 +1,56 @@
+The trace recorder uses Genode's trace session to insert trace policies and
+periodically process the trace buffers to record continuous traces in a file
+system. The trace recorder comprises multiple backends that produce different
+output formats.
+
+An examplary configuration is shown below:
+
+! <config period_ms="5000" target_root="/" enable="true">
+!    <vfs> <fs/> </vfs>
+!    <policy label_suffix="dynamic_rom" policy="ctf0">
+!       <ctf/>
+!    </policy>
+! </config>
+
+The mandatory argument 'period_ms' specifies the trace-buffer sampling period
+in milliseconds. The 'enable' attribute activates trace recording.
+Whenever the 'enable' attribute is toggled from "no" to "yes", a new directory
+is created (using the real-time clock) to record a new set of traces.
+
+The '<config>' node can contain an arbitray number of '<policy>' nodes by which
+the plugin determines what components and threads are traced.
+The specified 'label_suffix', 'label_prefix' and/or 'label' attributes are
+matched against the component labels. By default, all threads of the matching
+component(s) will be traced. The mandatory 'policy' attribute specifies the name
+of the trace policy to be applied to the matching threads.
+
+Every '<policy>' node must contain at least one sub-node specifying what
+backend(s) shall be used for trace output. Currently, the following backends are
+available:
+
+:'ctf':
+  Produces CTF (common trace format) traces of component interactions
+  and checkpoints. These traces can be processed with babeltrace or
+  visualised with TraceCompass. Note that the ctf backend opens a ROM
+  session "metadata" that is used as a blueprint for the
+  [https://diamon.org/ctf/ - CTF metadata file] created with the trace
+  files. Currently, only the frequency of the specified clock is adapted.
+  The metadata file is required for deserialisation of trace data.
+
+:'pcapng':
+  Captures packets (e.g. Ethernet packets) in a pcapng file that can be read
+  by wireshark, for instance.
+
+
+The '<config>' node may take the following optional attributes:
+
+:'enable': Enables/starts tracing (default: 'no')
+
+:'target_root': Sets the target root directory for trace output.
+
+
+Furthermore, the '<policy>' nodes may take the following optional attributes:
+
+:'thread': Restricts the tracing to a certain thread of the matching component(s).
+
+:'buffer': Sets the size of the trace buffer (default: '64K').

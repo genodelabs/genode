@@ -54,6 +54,8 @@ struct Wm::Decorator_content_callback : Interface
 	virtual Gui::View_capability content_view(Window_registry::Id win_id) = 0;
 
 	virtual void update_content_child_views(Window_registry::Id win_id) = 0;
+
+	virtual void hide_content_child_views(Window_registry::Id win_id) = 0;
 };
 
 
@@ -369,6 +371,9 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 			Gui::Rect rect(Gui::Point(0, 0), Gui::Area(0, 0));
 			_gui_session.enqueue<Gui::Session::Command::Geometry>(view, rect);
 			_gui_session.execute();
+
+			Window_registry::Id win_id = _content_registry.lookup(view);
+			_content_callback.hide_content_child_views(win_id);
 		}
 
 		_gui_session.destroy_view(view);

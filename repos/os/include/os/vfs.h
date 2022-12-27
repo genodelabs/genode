@@ -27,6 +27,8 @@ namespace Genode {
 	struct File;
 	class  Readonly_file;
 	class  File_content;
+	class  Writeable_file;
+	class  Append_file;
 	class  New_file;
 	class  Watcher;
 	template <typename>
@@ -124,6 +126,8 @@ struct Genode::Directory : Noncopyable, Interface
 		friend class Readonly_file;
 		friend class Root_directory;
 		friend class Watcher;
+		friend class Writeable_file;
+		friend class Append_file;
 		friend class New_file;
 
 		/*
@@ -668,22 +672,21 @@ class Genode::File_content
 
 
 /**
- * Utility for writing data to a file via the Genode VFS library
+ * Base class of `New_file` and `Append_file` providing open for write, sync,
+ * and append functionality.
  */
-class Genode::New_file : Noncopyable
+class Genode::Writeable_file : Noncopyable
 {
 	public:
 
 		struct Create_failed : Exception { };
 
-	private:
+		enum class Append_result { OK, WRITE_ERROR };
 
-		Entrypoint       &_ep;
-		Allocator        &_alloc;
-		Vfs::File_system &_fs;
-		Vfs::Vfs_handle  &_handle;
+	protected:
 
-		Vfs::Vfs_handle &_init_handle(Directory &dir, Directory::Path const &rel_path)
+		static Vfs::Vfs_handle &_init_handle(Directory             &dir,
+		                                     Directory::Path const &rel_path)
 		{
 			/* create compound directory */
 			{
@@ -701,39 +704,24 @@ class Genode::New_file : Noncopyable
 
 			Vfs::Vfs_handle *handle_ptr = nullptr;
 			Vfs::Directory_service::Open_result const res =
-				_fs.open(path.string(), mode, &handle_ptr, _alloc);
+				dir._fs.open(path.string(), mode, &handle_ptr, dir._alloc);
 
 			if (res != Vfs::Directory_service::OPEN_OK || (handle_ptr == nullptr)) {
-				error("failed to create file '", path, "', res=", (int)res);
+				error("failed to create/open file '", path, "' for writing, res=", (int)res);
 				throw Create_failed();
 			}
-
-			handle_ptr->fs().ftruncate(handle_ptr, 0);
 
 			return *handle_ptr;
 		}
 
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \throw Create_failed
-		 */
-		New_file(Directory &dir, Directory::Path const &path)
-		:
-			_ep(dir._ep), _alloc(dir._alloc), _fs(dir._fs),
-			_handle(_init_handle(dir, path))
-		{ }
-
-		~New_file()
+		static void _sync(Vfs::Vfs_handle &handle, Entrypoint &ep)
 		{
-			while (_handle.fs().queue_sync(&_handle) == false)
-				_ep.wait_and_dispatch_one_io_signal();
+			while (handle.fs().queue_sync(&handle) == false)
+				ep.wait_and_dispatch_one_io_signal();
 
 			for (bool sync_done = false; !sync_done; ) {
 
-				switch (_handle.fs().complete_sync(&_handle)) {
+				switch (handle.fs().complete_sync(&handle)) {
 
 				case Vfs::File_io_service::SYNC_QUEUED:
 					break;
@@ -749,14 +737,12 @@ class Genode::New_file : Noncopyable
 				}
 
 				if (!sync_done)
-					_ep.wait_and_dispatch_one_io_signal();
+					ep.wait_and_dispatch_one_io_signal();
 			}
-			_handle.ds().close(&_handle);
 		}
 
-		enum class Append_result { OK, WRITE_ERROR };
-
-		Append_result append(char const *src, size_t size)
+		static Append_result _append(Vfs::Vfs_handle &handle, Entrypoint &ep,
+		                             char const *src, size_t size)
 		{
 			bool write_error = false;
 
@@ -771,7 +757,7 @@ class Genode::New_file : Noncopyable
 
 					using Write_result = Vfs::File_io_service::Write_result;
 
-					switch (_handle.fs().write(&_handle, src, remaining_bytes,
+					switch (handle.fs().write(&handle, src, remaining_bytes,
 					                           out_count)) {
 
 					case Write_result::WRITE_ERR_AGAIN:
@@ -789,7 +775,7 @@ class Genode::New_file : Noncopyable
 						out_count = min((Vfs::file_size)remaining_bytes, out_count);
 						remaining_bytes -= (size_t)out_count;
 						src             += out_count;
-						_handle.advance_seek(out_count);
+						handle.advance_seek(out_count);
 						break;
 					};
 				}
@@ -797,11 +783,86 @@ class Genode::New_file : Noncopyable
 					stalled = true; }
 
 				if (stalled)
-					_ep.wait_and_dispatch_one_io_signal();
+					ep.wait_and_dispatch_one_io_signal();
 			}
 			return write_error ? Append_result::WRITE_ERROR
 			                   : Append_result::OK;
 		}
+};
+
+
+/**
+ * Utility for appending data to an existing file via the Genode VFS library
+ */
+class Genode::Append_file : public Writeable_file
+{
+	private:
+
+		Entrypoint       &_ep;
+		Vfs::Vfs_handle  &_handle;
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \throw Create_failed
+		 */
+		Append_file(Directory &dir, Directory::Path const &path)
+		:
+			_ep(dir._ep),
+			_handle(_init_handle(dir, path))
+		{
+			Vfs::Directory_service::Stat stat { };
+			if (_handle.ds().stat(path.string(), stat) == Vfs::Directory_service::STAT_OK)
+				_handle.seek(stat.size);
+		}
+
+		~Append_file()
+		{
+			_sync(_handle, _ep);
+			_handle.ds().close(&_handle);
+		}
+
+		Append_result append(char const *src, size_t size) {
+			return _append(_handle, _ep, src, size); }
+};
+
+
+/**
+ * Utility for writing data to a new file via the Genode VFS library
+ */
+class Genode::New_file : public Writeable_file
+{
+	private:
+
+		Entrypoint       &_ep;
+		Vfs::Vfs_handle  &_handle;
+
+	public:
+
+		using Writeable_file::Append_result;
+		using Writeable_file::Create_failed;
+
+		/**
+		 * Constructor
+		 *
+		 * \throw Create_failed
+		 */
+		New_file(Directory &dir, Directory::Path const &path)
+		:
+			_ep(dir._ep),
+			_handle(_init_handle(dir, path))
+		{ _handle.fs().ftruncate(&_handle, 0); }
+
+		~New_file()
+		{
+			_sync(_handle, _ep);
+			_handle.ds().close(&_handle);
+		}
+
+		Append_result append(char const *src, size_t size) {
+			return _append(_handle, _ep, src, size); }
 };
 
 

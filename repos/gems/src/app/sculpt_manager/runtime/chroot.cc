@@ -14,7 +14,7 @@
 #include <runtime.h>
 
 void Sculpt::gen_chroot_start_content(Xml_generator &xml, Start_name const &name,
-                                      Path const &path, Writeable writable)
+                                      Path const &path, Writeable writeable)
 {
 	gen_common_start_content(xml, name,
 	                         Cap_quota{100}, Ram_quota{2*1024*1024},
@@ -25,7 +25,7 @@ void Sculpt::gen_chroot_start_content(Xml_generator &xml, Start_name const &name
 	xml.node("config", [&] () {
 		xml.node("default-policy", [&] () {
 			xml.attribute("path", path);
-			if (writable == WRITEABLE)
+			if (writeable == WRITEABLE)
 				xml.attribute("writeable", "yes");
 		});
 	});

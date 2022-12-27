@@ -1,5 +1,7 @@
 include $(REP_DIR)/lib/mk/virtualbox6-common.inc
 
+LIBS += stdcxx mesa egl virtualbox6-shaderlib
+
 SRC_CC += Devices/Audio/AudioHlp.cpp
 SRC_CC += Devices/Audio/AudioMixBuffer.cpp
 SRC_CC += Devices/Audio/AudioMixer.cpp
@@ -19,8 +21,15 @@ SRC_CC += Devices/EFI/DevSmc.cpp
 SRC_CC += Devices/EFI/FlashCore.cpp
 SRC_CC += Devices/GIMDev/DrvUDP.cpp
 SRC_CC += Devices/GIMDev/GIMDev.cpp
-SRC_CC += Devices/Graphics/DevVGA.cpp
 SRC_CC += Devices/Graphics/DevVGA-SVGA.cpp
+SRC_CC += Devices/Graphics/DevVGA-SVGA3d-glHlp.cpp
+SRC_CC += Devices/Graphics/DevVGA-SVGA3d-hlp.cpp
+SRC_CC += Devices/Graphics/DevVGA-SVGA3d-info.cpp
+SRC_CC += Devices/Graphics/DevVGA-SVGA3d-ogl.cpp
+SRC_CC += Devices/Graphics/DevVGA-SVGA3d-savedstate.cpp
+SRC_CC += Devices/Graphics/DevVGA-SVGA3d-shared.cpp
+SRC_CC += Devices/Graphics/DevVGA-SVGA3d.cpp
+SRC_CC += Devices/Graphics/DevVGA.cpp
 SRC_CC += Devices/Graphics/DevVGA_VBVA.cpp
 SRC_CC += Devices/Graphics/DevVGA_VDMA.cpp
 SRC_CC += Devices/Graphics/HGSMI/HGSMIHost.cpp
@@ -105,6 +114,7 @@ SRC_CC += GuestHost/DragAndDrop/DnDPath.cpp
 
 INC_DIR += $(VBOX_DIR)/Devices/build
 INC_DIR += $(VBOX_DIR)/Devices/Bus
+INC_DIR += $(VBOX_DIR)/Devices/Graphics/shaderlib/wine/include
 INC_DIR += $(VIRTUALBOX_DIR)/include/VBox/Graphics
 
 # found in src/VBox/Devices/Makefile.kmk

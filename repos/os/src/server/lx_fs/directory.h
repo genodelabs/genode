@@ -85,7 +85,7 @@ class Lx_fs::Directory : public Node
 			return fd;
 		}
 
-		size_t _num_entries() const
+		unsigned _num_entries() const
 		{
 			unsigned num = 0;
 
@@ -111,6 +111,8 @@ class Lx_fs::Directory : public Node
 		{
 			closedir(_fd);
 		}
+
+		bool type_directory() const override { return true; }
 
 		void update_modification_time(Timestamp const time) override
 		{
@@ -250,7 +252,7 @@ class Lx_fs::Directory : public Node
 				st.st_mtime = 0;
 
 			return {
-				.size  = _num_entries() * sizeof(File_system::Directory_entry),
+				.size  = 0,
 				.type  = Node_type::DIRECTORY,
 				.rwx   = { .readable   = (st.st_mode & S_IRUSR) != 0,
 				           .writeable  = (st.st_mode & S_IWUSR) != 0,
@@ -258,6 +260,11 @@ class Lx_fs::Directory : public Node
 				.inode = (unsigned long)inode(),
 				.modification_time = { st.st_mtime }
 			};
+		}
+
+		unsigned num_entries() override
+		{
+			return _num_entries();
 		}
 
 		Path path() const override

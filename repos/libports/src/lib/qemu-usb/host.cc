@@ -27,8 +27,9 @@ static bool const verbose_host     = false;
 static bool const verbose_warnings = false;
 Mutex _mutex;
 
-static void update_ep(USBDevice *);
-static bool claim_interfaces(USBDevice *dev);
+static void update_ep(USBDevice *, uint8_t, uint8_t);
+static bool claim_interfaces(USBDevice *);
+static void reset_alt_settings(USBDevice *);
 
 using Packet_alloc_failed = Usb::Session::Tx::Source::Packet_alloc_failed;
 using Packet_type         = Usb::Packet_descriptor::Type;
@@ -182,8 +183,15 @@ struct Completion : Usb::Completion
 		case Packet_type::CONFIG:
 			if (!claim_interfaces(dev))
 				p->status = USB_RET_IOERROR;
+			else
+				reset_alt_settings(dev);
+
+			usb_generic_async_ctrl_complete(dev, p);
+			break;
 		case Packet_type::ALT_SETTING:
-			update_ep(dev);
+			update_ep(dev, packet.interface.number, packet.interface.alt_setting);
+			usb_generic_async_ctrl_complete(dev, p);
+			break;
 		case Packet_type::CTRL:
 			usb_generic_async_ctrl_complete(dev, p);
 			break;
@@ -208,29 +216,19 @@ struct Completion : Usb::Completion
  */
 struct Dev_info
 {
-	uint32_t const vendor, product;
-	uint16_t const bus, dev;
+	Session_label const label;
 
-	Dev_info(uint16_t bus, uint16_t dev, uint32_t vendor, uint32_t product)
-	:
-		vendor(vendor), product(product), bus(bus), dev(dev)
-	{ }
+	Dev_info(Session_label &label) : label(label) { }
 
 	void print(Output &out) const
 	{
-		Genode::print(out, Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
-		              Hex(dev, Hex::OMIT_PREFIX, Hex::PAD), " (",
-		              "vendor=",  Hex(vendor, Hex::OMIT_PREFIX), ", ",
-		              "product=", Hex(product, Hex::OMIT_PREFIX), ")");
+		Genode::print(out, label);
 	}
 
 	bool operator != (Dev_info const &other) const
 	{
-		if (bus && dev)
-			return bus != other.bus || dev != other.dev;
-
-		if (vendor && product)
-			return vendor != other.vendor || product != other.product;
+		if (label.length() && other.label.length())
+			return label != other.label;
 
 		return true;
 	}
@@ -279,7 +277,8 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
 			try { usb_raw.release_interface(i); }
-			catch (Usb::Session::Device_not_found) { return; }
+			catch (Usb::Session::Device_not_found)    { return; }
+			catch (Usb::Session::Interface_not_found) { return; }
 		}
 	}
 
@@ -297,7 +296,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 				usb_raw.claim_interface(i);
 			} catch (Usb::Session::Interface_already_claimed) {
 				result = false;
-			}
+			} catch (Usb::Session::Interface_not_found) { }
 		}
 
 		if (!result) error("device already claimed");
@@ -305,12 +304,10 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		return result;
 	}
 
-	Usb_host_device(Entrypoint &ep, Allocator &alloc,
-	                Env &env, char const *label,
-	                Dev_info info)
+	Usb_host_device(Entrypoint &ep, Allocator &alloc, Env &env, Dev_info info)
 	:
-		label(label), _alloc(alloc),
-		usb_raw(env, &_usb_alloc, label, 6*1024*1024, state_dispatcher),
+		_alloc(alloc),
+		usb_raw(env, &_usb_alloc, info.label.string(), 6*1024*1024, state_dispatcher),
 		info(info), _ep(ep)
 	{
 		usb_raw.tx_channel()->sigh_ack_avail(ack_avail_dispatcher);
@@ -537,7 +534,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			throw Packet_alloc_failed();
 		}
 
-		Usb::Packet_descriptor packet = usb_raw.source()->alloc_packet(length);
+		Usb::Packet_descriptor packet = usb_raw.alloc_packet(length);
 
 		if (!completion) {
 			packet.completion = nullptr;
@@ -675,6 +672,22 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		}
 	}
 
+
+	void reset_alt_settings(USBDevice *udev)
+	{
+		/* retrieve device speed */
+		Usb::Config_descriptor cdescr;
+		Usb::Device_descriptor ddescr;
+
+		try { usb_raw.config_descriptor(&ddescr, &cdescr); }
+		catch (Usb::Session::Device_not_found) { return; }
+
+		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
+			udev->altsetting[i] = usb_raw.alt_settings(i);
+		}
+	}
+
+
 	void update_ep(USBDevice *udev)
 	{
 		usb_ep_reset(udev);
@@ -687,16 +700,13 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		catch (Usb::Session::Device_not_found) { return; }
 
 		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
-			udev->altsetting[i] = usb_raw.alt_settings(i);
-		}
-
-		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
-			for (int j = 0; j < udev->altsetting[i]; j++) {
+			try {
 				Usb::Interface_descriptor iface;
-				usb_raw.interface_descriptor(i, j, &iface);
+				uint8_t const altsetting = udev->altsetting[i];
+				usb_raw.interface_descriptor(i, altsetting, &iface);
 				for (unsigned k = 0; k < iface.num_endpoints; k++) {
 					Usb::Endpoint_descriptor endp;
-					usb_raw.endpoint_descriptor(i, j, k, &endp);
+					usb_raw.endpoint_descriptor(i, altsetting, k, &endp);
 
 					int const pid      = (endp.address & USB_DIR_IN) ? USB_TOKEN_IN : USB_TOKEN_OUT;
 					int const ep       = (endp.address & 0xf);
@@ -707,7 +717,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 					usb_ep_set_ifnum(udev, pid, ep, i);
 					usb_ep_set_halted(udev, pid, ep, 0);
 				}
-			}
+			} catch (Usb::Session::Interface_not_found) { }
 		}
 	}
 };
@@ -723,11 +733,21 @@ struct Usb_host_device : List<Usb_host_device>::Element
         OBJECT_CHECK(USBHostDevice, (obj), TYPE_USB_HOST_DEVICE)
 
 
-static void update_ep(USBDevice *udev)
+static void reset_alt_settings(USBDevice *udev)
 {
 	USBHostDevice     *d = USB_HOST_DEVICE(udev);
 	Usb_host_device *dev = (Usb_host_device *)d->data;
 
+	dev->reset_alt_settings(udev);
+}
+
+
+static void update_ep(USBDevice *udev, uint8_t interface, uint8_t altsetting)
+{
+	USBHostDevice     *d = USB_HOST_DEVICE(udev);
+	Usb_host_device *dev = (Usb_host_device *)d->data;
+
+	udev->altsetting[interface] = altsetting;
 	dev->update_ep(udev);
 }
 
@@ -803,7 +823,8 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 		return;
 	default:
 		error("not supported data request");
-		break;
+		p->status = USB_RET_NAK;
+		return;
 	}
 
 	try {
@@ -874,6 +895,12 @@ static void usb_host_handle_control(USBDevice *udev, USBPacket *p,
 	packet.control.request      = request & 0xff;
 	packet.control.index        = index;
 	packet.control.value        = value;
+
+	/*
+	 * Send usb ctrl transfers with one second timeout as some devices (e.g.,
+	 * smartcard readers) do not response to certain control transfers.
+	 */
+	packet.control.timeout = 1000; /* ms */
 
 	Completion *c = dynamic_cast<Completion *>(packet.completion);
 	c->p        = p;
@@ -995,20 +1022,14 @@ struct Usb_devices : List<Usb_host_device>
 		Xml_node devices_node(_devices_rom.local_addr<char>(), _devices_rom.size());
 		devices_node.for_each_sub_node("device", [&] (Xml_node const &node) {
 
-			unsigned product = node.attribute_value<unsigned>("product_id", 0);
-			unsigned vendor  = node.attribute_value<unsigned>("vendor_id", 0);
-			unsigned bus     = node.attribute_value<unsigned>("bus", 0);
-			unsigned dev     = node.attribute_value<unsigned>("dev", 0);
+			Session_label label = node.attribute_value("label", String<160>());
 
-			Dev_info const dev_info(bus, dev, vendor, product);
+			Dev_info const dev_info(label);
 
 			if (!node.has_attribute("label")) {
 				error("no label found for device ", dev_info);
 				return;
 			}
-
-			typedef String<128> Label;
-			Label const label = node.attribute_value("label", Label());
 
 			/* ignore if already created */
 			bool exists = false;
@@ -1025,8 +1046,7 @@ struct Usb_devices : List<Usb_host_device>
 
 			try {
 				Usb_host_device *new_device = new (_alloc)
-					Usb_host_device(_ep, _alloc, _env, label.string(),
-					                dev_info);
+					Usb_host_device(_ep, _alloc, _env, dev_info);
 
 				insert(new_device);
 

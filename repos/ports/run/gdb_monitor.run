@@ -23,7 +23,7 @@ set build_components {
 	drivers/uart
 	app/gdb_monitor
 	test/gdb_monitor
-	lib/vfs/pipe
+	lib/vfs_pipe
 }
 
 lappend build_components "lib/gdbserver_platform-$::env(KERNEL)"

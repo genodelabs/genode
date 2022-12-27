@@ -1,5 +1,5 @@
 include $(REP_DIR)/lib/import/import-libpcg_random.mk
-PCG_SRC_DIR = $(call select_from_ports,pcg-c)/src/lib/pcg-c/src
+PCG_SRC_DIR := $(call select_from_ports,pcg-c)/src/lib/pcg-c/src
 
 CC_OPT += -std=c99
 

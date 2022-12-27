@@ -182,6 +182,40 @@ namespace Nova {
 		return (uint8_t)status;
 	}
 
+
+	ALWAYS_INLINE
+	inline uint8_t syscall_6(Syscall s, uint8_t flags, unsigned sel,
+	                         mword_t &p1, mword_t &p2, mword_t &p3,
+	                         mword_t &p4)
+	{
+		mword_t status = eax(s, flags, sel);
+
+		asm volatile ("  push %%ebp;"
+		              "  push %%ebx;"
+
+		              "  mov %%ecx, %%ebx;"
+		              "  mov %%esp, %%ecx;"
+		              "  mov %%edx, %%ebp;"
+
+		              "  call 0f;"
+		              "0:"
+		              "  addl $(1f-0b), (%%esp);"
+		              "  mov (%%esp), %%edx;"
+		              "sysenter;"
+		              "1:"
+
+		              "  mov %%ebp, %%edx;"
+		              "  mov %%ebx, %%ecx;"
+		              "  pop %%ebx;"
+		              "  pop %%ebp;"
+		              : "+a" (status), "+D" (p1), "+S" (p2), "+c" (p3),
+		                "+d" (p4)
+		              :
+		              : "memory");
+		return (uint8_t)status;
+	}
+
+
 	ALWAYS_INLINE
 	inline uint8_t call(unsigned pt)
 	{
@@ -240,10 +274,47 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
+	inline uint8_t util_time(Syscall const syscall, mword_t const cap,
+	                         uint8_t const op, unsigned long long &time)
+	{
+		mword_t time_h = 0, time_l = 0;
+		uint8_t res = syscall_5(syscall, op, cap, time_h, time_l);
+		time = (uint64_t(time_h) << 32ULL) | uint64_t(time_l);
+		return res;
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t sc_ec_time(mword_t const cap_sc, mword_t const cap_ec,
+	                          unsigned long long &time_sc,
+	                          unsigned long long &time_ec)
+	{
+		mword_t time_h_sc = cap_ec, time_l_sc = 0;
+		mword_t time_h_ec = 0,      time_l_ec = 0;
+		uint8_t res = syscall_6(NOVA_SC_CTRL, Sc_op::SC_EC_TIME, cap_sc,
+		                        time_h_sc, time_l_sc, time_h_ec,
+		                        time_l_ec);
+		time_sc = (uint64_t(time_h_sc) << 32ULL) | uint64_t(time_l_sc);
+		time_ec = (uint64_t(time_h_ec) << 32ULL) | uint64_t(time_l_ec);
+		return res;
+	}
+
+
+	ALWAYS_INLINE
 	inline uint8_t ec_ctrl(Ec_op op, mword_t ec = ~0UL, mword_t para = ~0UL,
 	                       Crd crd = 0)
 	{
+		if (op == EC_TIME)
+			return NOVA_INV_HYPERCALL;
+
 		return syscall_2(NOVA_EC_CTRL, op, ec, para, crd.value());
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t ec_time(mword_t const ec, unsigned long long &time)
+	{
+		return util_time(NOVA_EC_CTRL, ec, Ec_op::EC_TIME, time);
 	}
 
 
@@ -334,7 +405,7 @@ namespace Nova {
 	inline uint8_t lookup(Crd &crd)
 	{
 		mword_t crd_r;
-		uint8_t res = syscall_1(NOVA_LOOKUP, 0, 0, crd.value(), &crd_r);
+		uint8_t res = syscall_1(NOVA_MISC, 0, 0, crd.value(), &crd_r);
 		crd = Crd(crd_r);
 		return res;
 	}
@@ -343,7 +414,15 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t delegate(mword_t pd_snd, mword_t pd_dst, Crd crd_dst)
 	{
-		return syscall_2(NOVA_LOOKUP, 1, pd_snd, crd_dst.value(), pd_dst);
+		return syscall_2(NOVA_MISC, 1, pd_snd, crd_dst.value(), pd_dst);
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t acpi_suspend(mword_t sm_auth_acpi, mword_t sleep_state_a,
+	                            mword_t sleep_state_b)
+	{
+		return syscall_2(NOVA_MISC, 2, sm_auth_acpi, sleep_state_a, sleep_state_b);
 	}
 
 
@@ -386,23 +465,19 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t cpu,
 	                          mword_t &msi_addr, mword_t &msi_data,
-	                          mword_t si = ~0UL)
+	                          mword_t si = ~0UL, Gsi_flags flags = Gsi_flags())
 	{
 		msi_addr = dev;
 		msi_data = cpu;
 
-		return syscall_5(NOVA_ASSIGN_GSI, 0, sm, msi_addr, msi_data, si);
+		return syscall_5(NOVA_ASSIGN_GSI, flags.value(), sm, msi_addr, msi_data, si);
 	}
 
 
 	ALWAYS_INLINE
-	inline uint8_t sc_ctrl(unsigned sc, unsigned long long &time, uint8_t op = 0)
+	inline uint8_t sc_ctrl(unsigned const sc, unsigned long long &time, uint8_t op = 0)
 	{
-		mword_t time_h = 0, time_l = 0;
-		uint8_t res = syscall_5(NOVA_SC_CTRL, op, sc, time_h, time_l);
-		time = time_h;
-		time = (time << 32ULL) | time_l;
-		return res;
+		return util_time(NOVA_SC_CTRL, sc, op, time);
 	}
 }
 #endif /* _INCLUDE__SPEC__32BIT__NOVA__SYSCALLS_H_ */

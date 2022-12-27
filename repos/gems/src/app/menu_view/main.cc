@@ -128,12 +128,40 @@ struct Menu_view::Main
 
 	Attached_dataspace _input_ds { _env.rm(), _gui.input()->dataspace() };
 
+	bool _opaque = false;
+
+	Color _background_color { };
+
 	Widget::Hovered _last_reported_hovered { };
 
 	void _handle_config();
 
 	Signal_handler<Main> _config_handler = {
 		_env.ep(), *this, &Main::_handle_config};
+
+	struct Input_seq_number
+	{
+		Constructible<Input::Seq_number> _curr { };
+
+		bool _processed = false;
+
+		void update(Input::Seq_number const &seq_number)
+		{
+			_curr.construct(seq_number);
+			_processed = false;
+		}
+
+		bool changed() const { return _curr.constructed() && !_processed; }
+
+		void mark_as_processed() { _processed = true; }
+
+		void generate(Xml_generator &xml)
+		{
+			if (_curr.constructed())
+				xml.attribute("seq_number", _curr->value);
+		}
+
+	} _input_seq_number { };
 
 	void _handle_input();
 
@@ -212,12 +240,17 @@ void Menu_view::Main::_update_hover_report()
 
 	Widget::Hovered const new_hovered = _root_widget.hovered(_hovered_position);
 
-	if (_last_reported_hovered != new_hovered) {
+	bool const hover_changed = (_last_reported_hovered != new_hovered);
+
+	if (hover_changed || _input_seq_number.changed()) {
 
 		Genode::Reporter::Xml_generator xml(_hover_reporter, [&] () {
-			_root_widget.gen_hover_model(xml, _hovered_position); });
+			_input_seq_number.generate(xml);
+			_root_widget.gen_hover_model(xml, _hovered_position);
+		});
 
 		_last_reported_hovered = new_hovered;
+		_input_seq_number.mark_as_processed();
 	}
 }
 
@@ -226,14 +259,10 @@ void Menu_view::Main::_handle_dialog_update()
 {
 	_styles.flush_outdated_styles();
 
-	try {
-		Xml_node const config = _config.xml();
+	Xml_node const config = _config.xml();
 
-		_position = Decorator::point_attribute(config);
-
-		_configured_size = Area(config.attribute_value("width",  0U),
-		                        config.attribute_value("height", 0U));
-	} catch (...) { }
+	_position        = Point::from_xml(config);
+	_configured_size = Area ::from_xml(config);
 
 	_dialog_rom.update();
 
@@ -271,14 +300,20 @@ void Menu_view::Main::_handle_config()
 {
 	_config.update();
 
+	Xml_node const config = _config.xml();
+
 	try {
-		_hover_reporter.enabled(_config.xml().sub_node("report")
-		                                     .attribute_value("hover", false));
+		_hover_reporter.enabled(config.sub_node("report")
+		                              .attribute_value("hover", false));
 	} catch (...) {
 		_hover_reporter.enabled(false);
 	}
 
-	_config.xml().with_sub_node("vfs", [&] (Xml_node const &vfs_node) {
+	_opaque = config.attribute_value("opaque", false);
+
+	_background_color = config.attribute_value("background", Color(127, 127, 127, 255));
+
+	config.with_optional_sub_node("vfs", [&] (Xml_node const &vfs_node) {
 		_vfs_env.root_dir().apply_config(vfs_node); });
 
 	_handle_dialog_update();
@@ -291,24 +326,40 @@ void Menu_view::Main::_handle_input()
 	bool  const orig_dialog_hovered   = _dialog_hovered;
 
 	_gui.input()->for_each_event([&] (Input::Event const &ev) {
-		ev.handle_absolute_motion([&] (int x, int y) {
+
+		ev.handle_seq_number([&] (Input::Seq_number seq_number) {
+			_input_seq_number.update(seq_number); });
+
+		auto hover_at = [&] (int x, int y)
+		{
 			_dialog_hovered   = true;
 			_hovered_position = Point(x, y) - _position;
-		});
+		};
+
+		auto unhover = [&] ()
+		{
+			_dialog_hovered   = false;
+			_hovered_position = Point();
+		};
+
+		ev.handle_absolute_motion([&] (int x, int y) {
+			hover_at(x, y); });
+
+		ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
+			if (id.value == 0)
+				hover_at((int)x, (int)y); });
 
 		/*
 		 * Reset hover model when losing the focus
 		 */
-		if (ev.hover_leave()) {
-			_dialog_hovered   = false;
-			_hovered_position = Point();
-		}
+		if (ev.hover_leave())
+			unhover();
 	});
 
 	bool const hover_changed = orig_dialog_hovered   != _dialog_hovered
 	                        || orig_hovered_position != _hovered_position;
 
-	if (hover_changed)
+	if (hover_changed || _input_seq_number.changed())
 		_update_hover_report();
 }
 
@@ -348,10 +399,17 @@ void Menu_view::Main::_handle_frame_timer()
 		bool const size_increased = (max_size.w() > buffer_w)
 		                         || (max_size.h() > buffer_h);
 
-		if (!_buffer.constructed() || size_increased)
-			_buffer.construct(_gui, max_size, _env.ram(), _env.rm());
-		else
+		if (!_buffer.constructed() || size_increased) {
+			_buffer.construct(_gui, max_size, _env.ram(), _env.rm(),
+			                  _opaque ? Gui_buffer::Alpha::OPAQUE
+			                          : Gui_buffer::Alpha::ALPHA);
+			_buffer->reset_color = { _background_color.r,
+			                         _background_color.g,
+			                         _background_color.b,
+			                         _background_color.a };
+		} else {
 			_buffer->reset_surface();
+		}
 
 		_root_widget.position(Point(0, 0));
 

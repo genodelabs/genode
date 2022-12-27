@@ -1,0 +1,12 @@
+Patch to RT_OS_LINUX in SVGA OpenGL layer
+
+--- a/src/virtualbox6/src/VBox/Devices/Graphics/DevVGA-SVGA3d-ogl.cpp
++++ b/src/virtualbox6/src/VBox/Devices/Graphics/DevVGA-SVGA3d-ogl.cpp
+@@ -47,6 +47,7 @@
+ 
+ #include "DevVGA-SVGA.h"
+ #include "DevVGA-SVGA3d.h"
++#define RT_OS_LINUX /* we have to force RT_OS_LINUX */
+ #include "DevVGA-SVGA3d-internal.h"
+ 
+ #ifdef DUMP_SHADER_DISASSEMBLY

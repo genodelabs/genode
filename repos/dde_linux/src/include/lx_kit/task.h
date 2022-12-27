@@ -34,7 +34,7 @@ class Lx_kit::Task : public Genode::List<Lx_kit::Task>::Element
 
 		using Name = String<64>;
 
-		enum State { INIT, RUNNING, BLOCKED };
+		enum State { INIT, RUNNING, BLOCKED, DESTROY };
 		enum Type  { NORMAL, IRQ_HANDLER, TIME_HANDLER };
 
 	private:
@@ -73,6 +73,7 @@ class Lx_kit::Task : public Genode::List<Lx_kit::Task>::Element
 		Name   name()     const;
 		void * lx_task()  const;
 		int    pid()      const;
+		void * stack()    const;
 
 		void block();
 		void unblock();
@@ -99,6 +100,15 @@ class Lx_kit::Task : public Genode::List<Lx_kit::Task>::Element
 		 * Shortcut to enter blocking state and request scheduling
 		 */
 		void block_and_schedule();
+
+		/**
+		 * Mark for destruction
+		 *
+		 * Let the scheduler clean up the task when a new one is added.
+		 */
+		void mark_for_destruction();
+
+		bool destroy() const;
 };
 
 #endif /* _LX_KIT__TASK_H_ */

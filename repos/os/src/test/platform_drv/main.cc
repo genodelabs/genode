@@ -14,7 +14,6 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <os/reporter.h>
-
 /* WARNING DO NOT COPY THIS !!! */
 /*
  * We make everything public from the platform device classes
@@ -24,6 +23,8 @@
 #include <platform_session/device.h>
 #undef  private
 /* WARNING DO NOT COPY THIS !!! */
+
+#include <platform_session/dma_buffer.h>
 
 using namespace Genode;
 
@@ -56,10 +57,10 @@ struct Main
 	};
 
 	Env      & env;
-	Reporter   config_reporter { env, "config" };
+	Reporter   config_reporter { env, "config"  };
+	Reporter   device_reporter { env, "devices" };
 
 	Reconstructible<Platform::Connection> platform { env };
-	Constructible<Platform::Connection>   platform_2 { };
 
 	Signal_handler<Main> device_rom_handler { env.ep(), *this,
 	                                          &Main::handle_device_update };
@@ -72,36 +73,45 @@ struct Main
 	{
 		state++;
 
-		Reporter::Xml_generator xml(config_reporter, [&] ()
+		Reporter::Xml_generator devs(device_reporter, [&] ()
 		{
 			for (unsigned idx = 0; idx < total; idx++) {
-				xml.node("device", [&]
+				devs.node("device", [&]
 				{
-					xml.attribute("name", idx);
-					xml.attribute("type", "dummy-device");
-					xml.node("io_mem", [&]
+					devs.attribute("name", idx);
+					devs.attribute("type", "dummy-device");
+					devs.node("io_mem", [&]
 					{
-						xml.attribute("address",
+						devs.attribute("address",
 						              String<16>(Hex(iomem_base + idx*0x1000UL)));
-						xml.attribute("size", String<16>(Hex(0x1000UL)));
+						devs.attribute("size", String<16>(Hex(0x1000UL)));
 					});
-					xml.node("irq", [&]
+					devs.node("irq", [&]
 					{
-						xml.attribute("number", irq_base + idx);
+						devs.attribute("number", irq_base + idx);
 					});
 				});
 			}
+		});
 
-			xml.node("policy", [&]
+		Reporter::Xml_generator cfg(config_reporter, [&] ()
+		{
+			cfg.node("report", [&]
 			{
-				xml.attribute("label", "test-platform_drv -> ");
-				xml.attribute("info", true);
-				xml.attribute("version", state);
+				cfg.attribute("devices", true);
+				cfg.attribute("config",  true);
+			});
+
+			cfg.node("policy", [&]
+			{
+				cfg.attribute("label", "test-platform_drv -> ");
+				cfg.attribute("info", true);
+				cfg.attribute("version", state);
 
 				for (unsigned idx = 0; idx < assigned; idx++) {
-					xml.node("device", [&]
+					cfg.node("device", [&]
 					{
-						xml.attribute("name", idx);
+						cfg.attribute("name", idx);
 					});
 				};
 			});
@@ -149,7 +159,7 @@ struct Main
 		case 3:
 			next_step(4, 4, 0x40000000, 32);
 			return;
-		case 4:
+		case 4: {
 			/* Instantiate and destroy all devices */
 			start_driver(0);
 			start_driver(1);
@@ -160,7 +170,7 @@ struct Main
 			stop_driver(2);
 			stop_driver(3);
 			/* allocate big DMA dataspace */
-			platform->alloc_dma_buffer(0x80000, UNCACHED);
+			Platform::Dma_buffer buffer { *platform, 0x80000, UNCACHED };
 			/* close the whole session */
 			platform.destruct();
 			platform.construct(env);
@@ -171,10 +181,10 @@ struct Main
 			start_driver(3);
 			/* repeatedly start and destroy device sessions to detect leakages */
 			for (unsigned idx = 0; idx < 1000; idx++) {
-				platform->free_dma_buffer(platform->alloc_dma_buffer(0x4000, UNCACHED));
+				Platform::Dma_buffer dma { *platform, 0x4000, UNCACHED };
 			}
 			next_step(0, 0, 0x40000000, 32);
-			return;
+			return; }
 		case 5:
 			stop_driver(0);
 			stop_driver(1);
@@ -183,14 +193,6 @@ struct Main
 			next_step(1, 1, 0x40000100, 32);
 			return;
 		case 6:
-			start_driver(0);
-			platform_2.construct(env);
-			devices[1].construct(*platform_2, Platform::Device::Name(0));
-			stop_driver(1);
-			platform_2.destruct();
-			next_step(4, 4, 0x40000100, 32);
-			return;
-		case 7:
 			{
 				Platform::Device dev (*platform, Platform::Device::Type({"dummy-device"}));
 				if (dev._cap.valid()) log("Found next valid device of dummy type");
@@ -221,6 +223,7 @@ struct Main
 	{
 		platform->sigh(device_rom_handler);
 		config_reporter.enabled(true);
+		device_reporter.enabled(true);
 		step();
 	}
 };

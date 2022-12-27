@@ -33,9 +33,9 @@ constexpr size_t Link_side_id::data_size()
 }
 
 
-bool Link_side_id::operator == (Link_side_id const &id) const
+bool Link_side_id::operator != (Link_side_id const &id) const
 {
-	return memcmp(id.data_base(), data_base(), data_size()) == 0;
+	return memcmp(id.data_base(), data_base(), data_size()) != 0;
 }
 
 
@@ -62,20 +62,6 @@ Link_side::Link_side(Domain             &domain,
 }
 
 
-Link_side const &Link_side::find_by_id(Link_side_id const &id) const
-{
-	if (id == _id) {
-		return *this; }
-
-	bool const side = id > _id;
-	Link_side *const link_side = Avl_node<Link_side>::child(side);
-	if (!link_side) {
-		throw Link_side_tree::No_match(); }
-
-	return link_side->find_by_id(id);
-}
-
-
 void Link_side::print(Output &output) const
 {
 	Genode::print(output, "src ", src_ip(), ":", src_port(),
@@ -86,20 +72,6 @@ void Link_side::print(Output &output) const
 bool Link_side::is_client() const
 {
 	return this == &_link.client();
-}
-
-
-/********************
- ** Link_side_tree **
- ********************/
-
-Link_side const &Link_side_tree::find_by_id(Link_side_id const &id) const
-{
-	Link_side *const link_side = first();
-	if (!link_side) {
-		throw No_match(); }
-
-	return link_side->find_by_id(id);
 }
 
 
@@ -118,7 +90,7 @@ Link::Link(Interface                     &cln_interface,
            Pointer<Port_allocator_guard>  srv_port_alloc,
            Domain                        &srv_domain,
            Link_side_id            const &srv_id,
-           Timer::Connection             &timer,
+           Cached_timer                  &timer,
            Configuration                 &config,
            L3_protocol             const  protocol,
            Microseconds            const  dissolve_timeout,
@@ -127,7 +99,8 @@ Link::Link(Interface                     &cln_interface,
 	_config(config),
 	_client_interface(cln_interface),
 	_server_port_alloc(srv_port_alloc),
-	_dissolve_timeout(timer, *this, &Link::_handle_dissolve_timeout),
+	_dissolve_timeout(timer, *this, &Link::_handle_dissolve_timeout,
+	                  Microseconds { 100 * 1000 }),
 	_dissolve_timeout_us(dissolve_timeout),
 	_protocol(protocol),
 	_client(cln_interface.domain(), cln_id, *this),
@@ -228,7 +201,7 @@ Tcp_link::Tcp_link(Interface                     &cln_interface,
                    Pointer<Port_allocator_guard>  srv_port_alloc,
                    Domain                        &srv_domain,
                    Link_side_id            const &srv_id,
-                   Timer::Connection             &timer,
+                   Cached_timer                  &timer,
                    Configuration                 &config,
                    L3_protocol             const  protocol,
                    Interface_link_stats          &stats)
@@ -309,7 +282,7 @@ Udp_link::Udp_link(Interface                     &cln_interface,
                    Pointer<Port_allocator_guard>  srv_port_alloc,
                    Domain                        &srv_domain,
                    Link_side_id            const &srv_id,
-                   Timer::Connection             &timer,
+                   Cached_timer                  &timer,
                    Configuration                 &config,
                    L3_protocol             const  protocol,
                    Interface_link_stats          &stats)
@@ -340,7 +313,7 @@ Icmp_link::Icmp_link(Interface                     &cln_interface,
                      Pointer<Port_allocator_guard>  srv_port_alloc,
                      Domain                        &srv_domain,
                      Link_side_id            const &srv_id,
-                     Timer::Connection             &timer,
+                     Cached_timer                  &timer,
                      Configuration                 &config,
                      L3_protocol             const  protocol,
                      Interface_link_stats          &stats)

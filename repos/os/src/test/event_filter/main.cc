@@ -259,6 +259,13 @@ class Test::Input_to_filter
 					if (motion && rel)
 						batch.submit(Input::Relative_motion{(int)node.attribute_value("rx", 0L),
 						                                    (int)node.attribute_value("ry", 0L)});
+
+					if (node.has_type("touch"))
+						batch.submit(Input::Touch{ { 0 }, (float)node.attribute_value("x", 0.0),
+						                                  (float)node.attribute_value("y", 0.0)});
+
+					if (node.has_type("touch-release"))
+						batch.submit(Input::Touch_release { { 0 } } );
 				});
 			});
 		}
@@ -337,6 +344,8 @@ struct Test::Main : Input_from_filter::Event_handler
 			                                  step.type() == "expect_release" ||
 			                                  step.type() == "not_expect_press" ||
 			                                  step.type() == "not_expect_release" ||
+			                                  step.type() == "expect_touch"   ||
+			                                  step.type() == "expect_touch_release" ||
 			                                  step.type() == "expect_char"    ||
 			                                  step.type() == "expect_motion"  ||
 			                                  step.type() == "expect_wheel");
@@ -399,6 +408,7 @@ struct Test::Main : Input_from_filter::Event_handler
 
 			if (step.type() == "expect_press" || step.type() == "expect_release"
 			 || step.type() == "not_expect_press" || step.type() == "not_expect_release"
+			 || step.type() == "expect_touch" || step.type() == "expect_touch_release"
 			 || step.type() == "expect_char"  || step.type() == "expect_motion"
 			 || step.type() == "expect_wheel")
 				return;
@@ -484,6 +494,18 @@ struct Test::Main : Input_from_filter::Event_handler
 			 && (!step.has_attribute("ax") || step.attribute_value("ax", 0L) == x)
 			 && (!step.has_attribute("ay") || step.attribute_value("ay", 0L) == y))
 				step_succeeded = true; });
+
+		ev.handle_touch([&] (Input::Touch_id, float x, float y) {
+			if (step.type() == "expect_touch"
+			 && ((float)step.attribute_value("x", 0.0) == x)
+			 && ((float)step.attribute_value("y", 0.0) == y))
+				step_succeeded = true;
+		});
+
+		ev.handle_touch_release([&] (Input::Touch_id) {
+			if (step.type() == "expect_touch_release")
+				step_succeeded = true;
+		});
 
 		if (step_failed) {
 			error("got unexpected event: ", step);

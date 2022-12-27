@@ -15,6 +15,7 @@
 #include <platform.h>
 #include <kernel/cpu.h>
 #include <map_local.h>
+#include <hw/spec/x86_64/x86_64.h>
 
 using namespace Genode;
 
@@ -60,8 +61,28 @@ void Platform::_init_additional_platform_info(Xml_generator &xml)
 }
 
 
-bool Platform::get_msi_params(addr_t, addr_t &, addr_t &, unsigned &) {
-	return false; }
+Genode::Bit_allocator<64> & msi_allocator()
+{
+	static Genode::Bit_allocator<64> msi_allocator;
+	return msi_allocator;
+}
+
+
+bool Platform::alloc_msi_vector(addr_t & address, addr_t & value)
+{
+	try {
+		address = Hw::Cpu_memory_map::lapic_phys_base();
+		value   = Board::Pic::IPI - 1 - msi_allocator().alloc();
+	return true;
+	} catch(...) {}
+	return false;
+}
+
+
+void Platform::free_msi_vector(addr_t, addr_t value)
+{
+	msi_allocator().free(Board::Pic::IPI - 1 - value);
+}
 
 
 Board::Serial::Serial(addr_t, size_t, unsigned baudrate)

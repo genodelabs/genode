@@ -13,14 +13,3 @@ PATCHES   := $(addprefix ${DIR(binutils)}/patches/, \
 PATCH_OPT := -p1 -d ${DIR(binutils)}
 
 HASH_INPUT += $(REP_DIR)/${DIR(binutils)}/patches/series
-
-AUTOCONF := autoconf
-
-$(call check_tool,$(AUTOCONF))
-
-default: _patch
-	@#
-	@# Re-generate configure scripts
-	@#
-	$(VERBOSE)cd ${DIR(binutils)}/bfd; $(AUTOCONF)
-	$(VERBOSE)touch $@

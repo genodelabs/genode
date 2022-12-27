@@ -27,6 +27,7 @@ bool Task::runnable() const
 	case INIT:    return true;
 	case RUNNING: return true;
 	case BLOCKED: return false;
+	case DESTROY: return false;
 	}
 	error("Invalid task state?!");
 	return false;
@@ -41,6 +42,13 @@ static inline void * _alloc_stack(const char * name)
 }
 
 
+static inline void _free_stack(void *addr)
+{
+	Genode::Thread * th = Genode::Thread::myself();
+	th->free_secondary_stack(addr);
+}
+
+
 Task::State Task::state() const { return _state; }
 
 
@@ -48,6 +56,9 @@ Task::Type Task::type() const { return _type; }
 
 
 void * Task::lx_task() const { return _lx_task; }
+
+
+void * Task::stack() const { return _stack; }
 
 
 int Task::pid() const { return _pid; }
@@ -129,6 +140,18 @@ void Task::block_and_schedule()
 }
 
 
+void Task::mark_for_destruction()
+{
+	_state = DESTROY;
+}
+
+
+bool Task::destroy() const
+{
+	return _state == DESTROY;
+}
+
+
 Task::Task(int       (* func)(void*),
            void       * arg,
            void       * lx_task,
@@ -149,4 +172,8 @@ Task::Task(int       (* func)(void*),
 }
 
 
-Task::~Task() { _scheduler.remove(*this); }
+Task::~Task()
+{
+	_scheduler.remove(*this);
+	_free_stack(_stack);
+}

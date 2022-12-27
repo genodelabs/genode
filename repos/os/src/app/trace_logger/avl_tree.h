@@ -50,6 +50,8 @@ struct Local::Avl_tree : Genode::Avl_tree<NT>
 {
 	using Base = Genode::Avl_tree<NT>;
 
+	using Genode::Avl_tree<NT>::for_each;
+
 	template <typename FUNC>
 	void for_each(FUNC && functor) {
 		if (Base::first()) Base::first()->for_each(functor); }

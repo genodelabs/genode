@@ -35,6 +35,8 @@ struct Pin_control::Connection : private Genode::Connection<Session>,
 	{ }
 
 	void state(bool enabled) override { call<Rpc_state>(enabled); }
+
+	void yield() override { call<Rpc_yield>(); }
 };
 
 #endif /* _INCLUDE__PIN_CONTROL_SESSION__CONNECTION_H_ */

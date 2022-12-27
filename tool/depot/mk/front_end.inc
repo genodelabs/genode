@@ -5,7 +5,9 @@
 TARGET := $(firstword $(sort $(MAKECMDGOALS)))
 .PHONY: $(TARGET)
 
-include $(GENODE_DIR)/tool/depot/mk/common.inc
+DEPOT_TOOL_DIR ?= $(GENODE_DIR)/tool/depot
+
+include $(DEPOT_TOOL_DIR)/mk/common.inc
 
 # list of all repositories located at '<genode-dir>/repos/'
 REPOSITORIES ?= $(shell find $(GENODE_DIR)/repos -follow -mindepth 1 -maxdepth 1 -type d)

@@ -46,7 +46,7 @@ struct Sculpt::Child_exit_state
 					code = (int)child.attribute_value("exited", 0L);
 				}
 
-				responsive = (child.attribute_value("skipped_heartbeats", 0U) <= 2);
+				responsive = (child.attribute_value("skipped_heartbeats", 0U) <= 4);
 			}
 		});
 	}

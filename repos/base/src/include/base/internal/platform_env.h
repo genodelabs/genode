@@ -96,12 +96,6 @@ class Genode::Platform_env : public Platform_env_base
 			env_stack_area_region_map    = &_stack_area;
 		}
 
-		/*
-		 * Support functions for implementing fork on Noux.
-		 */
-		void reinit(Native_capability::Raw) override;
-		void reinit_main_thread(Capability<Region_map> &) override;
-
 
 		/******************************
 		 ** Env_deprecated interface **

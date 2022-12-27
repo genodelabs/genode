@@ -1,11 +1,6 @@
-set build_components { app/pdf_view }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-build $build_components
+build { app/pdf_view }
 
 create_boot_directory
-
 import_from_depot \
 	[depot_user]/pkg/[drivers_interactive_pkg] \
 	[depot_user]/pkg/motif_wm \
@@ -13,7 +8,7 @@ import_from_depot \
 	[depot_user]/src/init \
 	[depot_user]/src/nitpicker \
 
-set config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -96,8 +91,6 @@ set config {
 </config>
 }
 
-install_config $config
-
 #
 # Download test PDF file
 #
@@ -118,15 +111,13 @@ set fd [open [run_dir]/genode/focus w]
 puts $fd "<focus label=\"wm -> focus\"/>"
 close $fd
 
-append boot_modules {
+build_boot_image {
 	libc.lib.so vfs.lib.so libm.lib.so
 	openjpeg.lib.so freetype.lib.so libpng.lib.so zlib.lib.so jbig2dec.lib.so
 	mupdf.lib.so jpeg.lib.so
 	pdf_view
 	test.pdf
 }
-
-build_boot_image $boot_modules
 
 append qemu_args " -m 800"
 

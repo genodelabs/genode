@@ -29,7 +29,7 @@ void Genode::Mutex::release()
 {
 	Lock::Applicant myself(Thread::myself());
 	if (!_lock.lock_owner(myself)) {
-		Genode::error("denied non mutex owner the release, mutex=",
+		Genode::error("release denied, caller not owner, mutex=",
 		              this, ", return ip=", __builtin_return_address(0));
 		return;
 	}

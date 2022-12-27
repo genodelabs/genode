@@ -24,6 +24,7 @@ int __srcu_read_lock(struct srcu_struct * ssp)
 void __srcu_read_unlock(struct srcu_struct * ssp, int idx) { }
 
 
+#ifndef CONFIG_DEBUG_LOCK_ALLOC
 int init_srcu_struct(struct srcu_struct * ssp)
 {
 	mutex_init(&ssp->srcu_cb_mutex);
@@ -41,3 +42,4 @@ int init_srcu_struct(struct srcu_struct * ssp)
 	smp_store_release(&ssp->srcu_gp_seq_needed, 0); /* Init done. */
 	return ssp->sda ? 0 : -ENOMEM;
 }
+#endif
