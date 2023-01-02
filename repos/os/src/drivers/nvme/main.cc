@@ -1374,19 +1374,6 @@ class Nvme::Driver : Genode::Noncopyable
 			} catch (...) { }
 		}
 
-		/*********
-		 ** DMA **
-		 *********/
-
-		Constructible<Platform::Dma_buffer> _dma_buffer { };
-
-		/*
- 		 * The PRP (Physical Region Pages) page is used to setup
-		 * large requests.
-		 */
-		Platform::Dma_buffer _prp_list_helper { _platform, Nvme::PRP_DS_SIZE,
-		                                        UNCACHED };
-
 		/**************
 		 ** Requests **
 		 **************/
@@ -1462,6 +1449,19 @@ class Nvme::Driver : Genode::Noncopyable
 
 		Signal_context_capability _irq_sigh;
 		Nvme::Controller _nvme_ctrlr { _env, _platform, _delayer, _irq_sigh };
+
+		/*********
+		 ** DMA **
+		 *********/
+
+		Constructible<Platform::Dma_buffer> _dma_buffer { };
+
+		/*
+		 * The PRP (Physical Region Pages) page is used to setup
+		 * large requests.
+		 */
+		Platform::Dma_buffer _prp_list_helper { _platform, Nvme::PRP_DS_SIZE,
+		                                        UNCACHED };
 
 		/***********
 		 ** Block **
