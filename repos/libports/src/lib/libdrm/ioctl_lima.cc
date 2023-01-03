@@ -189,33 +189,47 @@ namespace Lima {
 	using namespace Gpu;
 
 	struct Call;
-} /* namespace Gpu */
+	struct Buffer;
+} /* namespace Lima */
 
 
-struct Gpu::Buffer
+namespace Gpu {
+	using Buffer_id = Vram_id;
+}
+
+
+struct Gpu::Vram { };
+
+struct Lima::Buffer : Gpu::Vram
 {
 	Gpu::Connection &_gpu;
 
-	Genode::Id_space<Gpu::Buffer>::Element const _elem;
+	Vram_id_space::Element const _elem;
 
-	Genode::Dataspace_capability const cap;
-	size_t                       const size;
+	size_t const size;
+	Gpu::Virtual_address va;
+	Genode::Dataspace_capability cap { };
 
 	Genode::Constructible<Genode::Attached_dataspace> _attached_buffer { };
 
-	Buffer(Gpu::Connection               &gpu,
-	       size_t                         size,
-	       Genode::Id_space<Gpu::Buffer> &space)
+	Buffer(Gpu::Connection     &gpu,
+	       size_t               size,
+	       Gpu::Virtual_address va,
+	       Vram_id_space       &space)
 	:
 		_gpu  { gpu },
 		_elem { *this, space },
-		 cap  { _gpu.alloc_buffer(_elem.id(), size) },
-		 size { size }
-	{ }
-
-	virtual ~Buffer()
+		 size { size }, va { va }
 	{
-		_gpu.free_buffer(_elem.id());
+		if (!_gpu.map_gpu(_elem.id(), size, 0, va))
+			throw -1;
+
+		cap = _gpu.map_cpu(_elem.id(), Gpu::Mapping_attributes());
+	}
+
+	~Buffer()
+	{
+		_gpu.unmap_gpu(_elem.id(), 0, Virtual_address());
 	}
 
 	bool mmap(Genode::Env &env)
@@ -229,7 +243,7 @@ struct Gpu::Buffer
 
 	Genode::addr_t mmap_addr()
 	{
-		return reinterpret_cast<addr_t>(_attached_buffer->local_addr<addr_t>());
+		return reinterpret_cast<Gpu::addr_t>(_attached_buffer->local_addr<Gpu::addr_t>());
 	}
 
 	Gpu::Buffer_id id() const
@@ -251,6 +265,7 @@ class Lima::Call
 
 		Genode::Env  &_env { *vfs_gpu_env() };
 		Genode::Heap  _heap { _env.ram(), _env.rm() };
+		Genode::Allocator_avl _va_alloc { &_heap };
 
 		/*****************
 		 ** Gpu session **
@@ -400,7 +415,7 @@ class Lima::Call
 		Gpu::Info_lima const &_gpu_info {
 			*_gpu.attached_info<Gpu::Info_lima>() };
 
-		Id_space<Buffer> _buffer_space { };
+		Gpu::Vram_id_space _buffer_space { };
 
 		/*
 		 * Play it safe, glmark2 apparently submits araound 110 KiB at
@@ -413,7 +428,7 @@ class Lima::Call
 		{
 			Buffer_id const id { .value = handle };
 			do {
-				if (_gpu.set_tiling(id, op))
+				if (_gpu.set_tiling_gpu(id, 0, op))
 					break;
 
 				char buf;
@@ -477,15 +492,25 @@ class Lima::Call
 					return;
 				arg.offset = reinterpret_cast<::uint64_t>(b.mmap_addr());
 
-				Gpu::addr_t const va = _gpu.query_buffer_ppgtt(b.id());
-				if (va == (Gpu::addr_t)-1)
+				Gpu::Virtual_address const va = b.va;
+				if (va.va == (Gpu::addr_t)-1)
 					return;
-				arg.va = (uint32_t)va;
+				arg.va = (uint32_t)va.va;
 
 				result = 0;
 			});
 
 			return result;
+		}
+
+		::uint64_t _alloc_va(::uint64_t const size)
+		{
+			return  _va_alloc.alloc_aligned(size, 12).convert<::uint64_t>(
+				[&] (void *ptr) { return (::uint64_t)ptr; },
+				[&] (Range_allocator::Alloc_error) -> ::uint64_t {
+					error("Could not allocate GPU virtual address for size: ", size);
+					return 0;
+				});
 		}
 
 		template <typename FUNC>
@@ -494,12 +519,16 @@ class Lima::Call
 			size_t donate = size;
 			Buffer *buffer = nullptr;
 
+			::uint64_t va = _alloc_va(size);
+			if (!va) return;
+
 			retry<Gpu::Session::Out_of_ram>(
 			[&] () {
 				retry<Gpu::Session::Out_of_caps>(
 				[&] () {
 					buffer =
 						new (&_heap) Buffer(_gpu, size,
+						                    Gpu::Virtual_address { va },
 						                    _buffer_space);
 				},
 				[&] () {
@@ -558,7 +587,7 @@ class Lima::Call
 						Gpu::Connection &gpu = gc.gpu();
 
 						Gpu::Sequence_number const seqno =
-							gpu.exec_buffer(_exec_buffer->id(), EXEC_BUFFER_SIZE);
+							gpu.execute(_exec_buffer->id(), 0);
 
 						sync_obj.adopt(gc, seqno);
 
@@ -653,7 +682,8 @@ class Lima::Call
 		int _drm_gem_close(drm_gem_close const &gem_close)
 		{
 			return _apply_handle(gem_close.handle,
-				[&] (Gpu::Buffer &b) {
+				[&] (Lima::Buffer &b) {
+					_va_alloc.free((void *)b.va.va);
 					destroy(_heap, &b);
 				}) ? 0 : -1;
 		}
@@ -743,9 +773,15 @@ class Lima::Call
 
 		Call()
 		{
+			_va_alloc.add_range(0x1000, 0xfff00000ul - 0x1000);
+
+			::uint64_t va = _alloc_va(EXEC_BUFFER_SIZE);
+			if (!va) throw Gpu::Session::Invalid_state();
+
 			try {
 				_exec_buffer.construct(_gpu,
 				                       (size_t)EXEC_BUFFER_SIZE,
+				                       Gpu::Virtual_address { va },
 				                       _buffer_space);
 			} catch (...) {
 				throw Gpu::Session::Invalid_state();

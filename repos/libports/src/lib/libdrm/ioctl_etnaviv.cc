@@ -268,33 +268,40 @@ namespace Etnaviv {
 	using namespace Gpu;
 
 	struct Call;
-} /* namespace Gpu */
+	struct Buffer;
+} /* namespace Etnaviv */
 
 
-struct Gpu::Buffer
+namespace Gpu {
+	using Buffer_id = Vram_id;
+}
+
+struct Gpu::Vram { };
+
+struct Etnaviv::Buffer : Gpu::Vram
 {
 	Gpu::Connection &_gpu;
 
-	Genode::Id_space<Gpu::Buffer>::Element const _elem;
+	Genode::Id_space<Gpu::Vram>::Element const _elem;
 
 	Genode::Dataspace_capability const cap;
 	size_t                       const size;
 
 	Genode::Constructible<Genode::Attached_dataspace> _attached_buffer { };
 
-	Buffer(Gpu::Connection               &gpu,
-	       size_t                         size,
-	       Genode::Id_space<Gpu::Buffer> &space)
+	Buffer(Gpu::Connection  &gpu,
+	       size_t            size,
+	       Vram_id_space    &space)
 	:
 		_gpu  { gpu },
 		_elem { *this, space },
-		 cap  { _gpu.alloc_buffer(_elem.id(), size) },
+		 cap  { _gpu.alloc_vram(_elem.id(), size) },
 		 size { size }
 	{ }
 
-	virtual ~Buffer()
+	~Buffer()
 	{
-		_gpu.free_buffer(_elem.id());
+		_gpu.free_vram(_elem.id());
 	}
 
 	bool mmap(Genode::Env &env)
@@ -306,9 +313,9 @@ struct Gpu::Buffer
 		return _attached_buffer.constructed();
 	}
 
-	Genode::addr_t mmap_addr()
+	Gpu::addr_t mmap_addr()
 	{
-		return reinterpret_cast<addr_t>(_attached_buffer->local_addr<addr_t>());
+		return reinterpret_cast<Gpu::addr_t>(_attached_buffer->local_addr<Gpu::addr_t>());
 	}
 
 	Gpu::Buffer_id id() const
@@ -339,7 +346,7 @@ class Etnaviv::Call
 		Gpu::Info_etnaviv const &_gpu_info {
 			*_gpu_session.attached_info<Gpu::Info_etnaviv>() };
 
-		Id_space<Buffer> _buffer_space { };
+		Gpu::Vram_id_space _buffer_space { };
 
 		/*
 		 * Play it safe, glmark2 apparently submits araound 110 KiB at
@@ -390,7 +397,7 @@ class Etnaviv::Call
 		int _drm_etnaviv_gem_cpu_fini(drm_etnaviv_gem_cpu_fini &arg)
 		{
 			return _apply_handle(arg.handle, [&] (Buffer const &b) {
-				_gpu_session.unmap_buffer(b.id());
+				_gpu_session.unmap_cpu(b.id());
 			}) ? 0 : -1;
 		}
 
@@ -416,7 +423,7 @@ class Etnaviv::Call
 				if (to) {
 					for (int i = 0; i < 100; i++) {
 						Dataspace_capability const map_cap =
-						_gpu_session.map_buffer(b.id(), false, attrs);
+						_gpu_session.map_cpu(b.id(), attrs);
 						if (map_cap.valid()) {
 							res = 0;
 							break;
@@ -425,7 +432,7 @@ class Etnaviv::Call
 				}
 				else {
 					Dataspace_capability const map_cap =
-						_gpu_session.map_buffer(b.id(), false, attrs);
+						_gpu_session.map_cpu(b.id(), attrs);
 					if (map_cap.valid())
 						res = 0;
 				}
@@ -438,7 +445,7 @@ class Etnaviv::Call
 				[&] (Buffer &b) {
 					if (!b.mmap(_env))
 						return;
-					arg.offset = reinterpret_cast<::uint64_t>(b.mmap_addr());
+					arg.offset = reinterpret_cast<Genode::uint64_t>(b.mmap_addr());
 				}) ? 0 : -1;
 		}
 
@@ -500,8 +507,7 @@ class Etnaviv::Call
 
 			try {
 				Genode::uint64_t const pending_exec_buffer =
-					_gpu_session.exec_buffer(_exec_buffer->id(),
-					                         EXEC_BUFFER_SIZE).value;
+					_gpu_session.execute(_exec_buffer->id(), 0).value;
 				arg.fence = pending_exec_buffer & 0xffffffffu;
 				return 0;
 			} catch (Gpu::Session::Invalid_state) { }
@@ -593,7 +599,7 @@ class Etnaviv::Call
 		int _drm_gem_close(drm_gem_close const &gem_close)
 		{
 			return _apply_handle(gem_close.handle,
-				[&] (Gpu::Buffer &b) {
+				[&] (Etnaviv::Buffer &b) {
 					destroy(_heap, &b);
 				}) ? 0 : -1;
 		}
