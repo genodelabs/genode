@@ -48,6 +48,11 @@ Firmware_list fw_list[] = {
 	{ "iwlwifi-so-a0-hr-b0-64.ucode",  1427384, nullptr },
 	{ "iwlwifi-so-a0-gf-a0-64.ucode",  1515812, nullptr },
 	{ "iwlwifi-so-a0-gf-a0.pnvm", 41808, nullptr },
+
+	{ "rtl8192eu_nic.bin",       31818, nullptr },
+	{ "rtlwifi/rtl8192eefw.bin", 31818, "rtl8192eu_nic.bin" },
+	{ "rtl8188efw.bin",          11216, nullptr },
+	{ "rtlwifi/rtl8188efw.bin",  11216, "rtl8188efw.bin" }, /* FW Power Save off */
 };
 
 

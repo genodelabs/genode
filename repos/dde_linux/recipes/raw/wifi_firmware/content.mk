@@ -5,6 +5,7 @@ content: ucode_files LICENSE.wifi_drv
 
 .PHONY: ucode_files
 ucode_files:
+	cp $(PORT_DIR)/firmware/*.bin .
 	cp $(PORT_DIR)/firmware/*.ucode .
 	cp $(PORT_DIR)/firmware/*.pnvm .
 	cp $(PORT_DIR)/firmware/regulatory.db .

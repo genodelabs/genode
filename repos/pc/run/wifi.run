@@ -314,6 +314,8 @@ set firmware_modules {
 	iwlwifi-9000-pu-b0-jf-b0-34.ucode
 	iwlwifi-9000-pu-b0-jf-b0-46.ucode
 	iwlwifi-QuZ-a0-hr-b0-63.ucode
+	rtl8192eu_nic.bin
+	rtl8188efw.bin
 	regulatory.db
 	regulatory.db.p7s
 }

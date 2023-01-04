@@ -594,8 +594,28 @@ int pci_write_config_byte(const struct pci_dev * dev,int where,u8 val)
 		 */
 		case PCI_CFG_RETRY_TIMEOUT:
 			return 0;
+
+	/*
+	 * rtlwifi: "leave D3 mode"
+	 */
+	case 0x44:
+	case PCI_COMMAND:
+		return 0;
+	/*
+	 * rtlwifi: needed for enabling DMA 64bit support
+	 */
+	case 0x719:
+		return 0;
+	/*
+	 * rtlwifi: below are registers related to ASPM and PCI link
+	 *          control that we do not handle (yet).
+	 */
+	case 0x81:
+	case 0x98:
+		return 0;
 	};
-	lx_emul_trace_and_stop(__func__);
+
+	return -1;
 }
 
 
@@ -605,6 +625,69 @@ int pci_read_config_word(const struct pci_dev * dev,int where,u16 * val)
 		case PCI_COMMAND:
 			*val = PCI_COMMAND_MASTER | PCI_COMMAND_MEMORY | PCI_COMMAND_IO;
 			return 0;
+	/*
+	 * rtlwifi: read but ignored
+	 */
+	case PCI_INTERRUPT_LINE:
+		*val = 0;
+		return 0;
 	};
-	lx_emul_trace_and_stop(__func__);
+
+	return -1;
+}
+
+
+int pci_read_config_byte(const struct pci_dev * dev,int where,u8 * val)
+{
+	switch (where) {
+	/*
+	 * rtlwifi: apparently needed for device distinction
+	 */
+	case PCI_REVISION_ID:
+		*val = dev->revision;
+		return 0;
+	/*
+	 * rtlwifi: needed for enabling DMA 64bit support
+	 */
+	case 0x719:
+		*val = 0;
+		return 0;
+	/*
+	 * rtlwifi: below are registers related to ASPM and PCI link
+	 *          control that we do not handle (yet).
+	 */
+	case 0x80:
+	case 0x81:
+	case 0x98:
+		*val = 0;
+		return 0;
+	}
+
+	return -1;
+}
+
+
+void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+{
+	struct resource *r;
+	unsigned long phys_addr;
+	unsigned long size;
+
+	if (!dev || bar > 5) {
+		printk("%s:%d: invalid request for dev: %p bar: %d\n",
+			   __func__, __LINE__, dev, bar);
+		return NULL;
+	}
+
+	printk("pci_iomap: request for dev: %s bar: %d\n", dev_name(&dev->dev), bar);
+
+	r = &dev->resource[bar];
+
+	phys_addr = r->start;
+	size      = r->end - r->start;
+
+	if (!phys_addr || !size)
+		return NULL;
+
+	return lx_emul_io_mem_map(phys_addr, size);
 }

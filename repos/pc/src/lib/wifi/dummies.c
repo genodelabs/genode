@@ -341,10 +341,18 @@ void synchronize_rcu_expedited(void)
 }
 
 
+#include <linux/pci.h>
+
 int pci_enable_msi(struct pci_dev *dev)
 {
 	lx_emul_trace(__func__);
 	return -ENOSYS;
+}
+
+
+void pci_disable_msi(struct pci_dev *dev)
+{
+    lx_emul_trace(__func__);
 }
 
 
@@ -353,4 +361,10 @@ int pci_enable_msix_range(struct pci_dev *dev, struct msix_entry *entries,
 {
 	lx_emul_trace(__func__);
 	return -ENOSYS;
+}
+
+
+void pci_disable_device(struct pci_dev * dev)
+{
+	lx_emul_trace(__func__);
 }
