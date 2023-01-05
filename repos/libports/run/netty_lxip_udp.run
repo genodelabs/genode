@@ -1,37 +1,17 @@
+# Network echo test (lxip, UDP)
+#
+# Example test command
+#
+# for i in {1..10}; do
+#   dd if=/dev/urandom bs=736 count=1 | xxd -plain | tr -d '\n'
+#   sleep 0.1
+# done | nc -u 10.0.2.55 7
+#
+
+proc ipstack         { } { return lxip }
+proc protocol        { } { return udp }
+proc use_dynamic_rom { } { return false }
+
 source ${genode_dir}/repos/libports/run/netty.inc
-
-build { test/netty/udp }
-
-append config {
-	<start name="netty-server-7">
-		<binary name="test-netty_udp"/>
-		<resource name="RAM" quantum="4M"/>
-		<config ld_verbose="yes" port="7" read_write="no" nonblock="true">
-			<vfs>
-				<dir name="dev">    <log/> </dir>
-				<dir name="socket"> <fs/>  </dir>
-				<dir name="tmp">    <ram/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-	<start name="netty-server-7070">
-		<binary name="test-netty_udp"/>
-		<resource name="RAM" quantum="4M"/>
-		<config ld_verbose="yes" mode="server" port="7070" nonblock="false">
-			<vfs>
-				<dir name="dev">    <log/> </dir>
-				<dir name="socket"> <fs/>  </dir>
-				<dir name="tmp">    <ram/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-</config>
-}
-
-install_config $config
-build_boot_image { test-netty_udp }
-run_genode_until forever
 
 # vi: set ft=tcl :

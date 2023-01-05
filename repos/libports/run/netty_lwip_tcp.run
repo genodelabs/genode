@@ -1,64 +1,14 @@
-source ${genode_dir}/repos/libports/run/netty_lwip.inc
+# Network echo test (lwIP, TCP)
+#
+# Example test command
+#
+#   dd if=/dev/urandom bs=736 count=10 | xxd -plain | tr -d '\n' | nc 10.0.2.55 80
+#
 
-build { test/netty/tcp }
+proc ipstack         { } { return lwip }
+proc protocol        { } { return tcp }
+proc use_dynamic_rom { } { return false }
 
-append config {
-	<start name="netty-server-80">
-		<binary name="test-netty_tcp"/>
-		<resource name="RAM" quantum="4M"/>
-		<config ld_verbose="yes" port="80" read_write="no" nonblock="true">
-			<vfs>
-				<dir name="dev">    <log/> </dir>
-				<dir name="socket"> <fs/>  </dir>
-				<dir name="tmp">    <ram/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-	<start name="netty-server-8080">
-		<binary name="test-netty_tcp"/>
-		<resource name="RAM" quantum="4M"/>
-		<config ld_verbose="yes" mode="server" port="8080" nonblock="false">
-			<vfs>
-				<dir name="dev">    <log/> </dir>
-				<dir name="socket"> <fs/>  </dir>
-				<dir name="tmp">    <ram/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-
-	<!--
-	<start name="netty-client-A">
-		<binary name="test-netty_tcp"/>
-		<resource name="RAM" quantum="4M"/>
-		<config ld_verbose="yes" mode="client" ip="10.0.3.1" port="8080">
-			<vfs>
-				<dir name="dev">    <log/> </dir>
-				<dir name="socket"> <fs/>  </dir>
-				<dir name="tmp">    <ram/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-	<start name="netty-client-B">
-		<binary name="test-netty_tcp"/>
-		<resource name="RAM" quantum="4M"/>
-		<config ld_verbose="yes" mode="client" ip="10.0.3.1" port="13002">
-			<vfs>
-				<dir name="dev">    <log/> </dir>
-				<dir name="socket"> <fs/>  </dir>
-				<dir name="tmp">    <ram/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-	-->
-</config>
-}
-
-install_config $config
-build_boot_image { test-netty_tcp }
-run_genode_until forever
+source ${genode_dir}/repos/libports/run/netty.inc
 
 # vi: set ft=tcl :
