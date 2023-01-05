@@ -105,7 +105,15 @@ void __lockfunc _raw_spin_unlock_irqrestore(raw_spinlock_t * lock,
 #ifndef CONFIG_INLINE_READ_LOCK
 void __lockfunc _raw_read_lock(rwlock_t * lock)
 {
-	lx_emul_trace_and_stop(__func__);
+	arch_read_lock(&(lock)->raw_lock);
+}
+#endif
+
+
+#ifndef CONFIG_INLINE_READ_UNLOCK
+void __lockfunc _raw_read_unlock(rwlock_t * lock)
+{
+	arch_read_unlock(&(lock)->raw_lock);
 }
 #endif
 
