@@ -62,8 +62,8 @@ class Black_hole::Gpu_session : public Session_object<Gpu::Session>
 			return _info_dataspace.cap();
 		}
 
-		Sequence_number exec_buffer(Buffer_id /* id */,
-		                            size_t    /* size */) override
+		Sequence_number execute(Vram_id /* id */,
+		                        Genode::off_t /* offset */) override
 		{
 			throw Gpu::Session::Invalid_state();
 		}
@@ -76,50 +76,46 @@ class Black_hole::Gpu_session : public Session_object<Gpu::Session>
 		void completion_sigh(Signal_context_capability /* sigh */) override
 		{ }
 
-		Dataspace_capability alloc_buffer(Buffer_id /* id */,
-		                                  size_t    /* size */) override
+		Dataspace_capability alloc_vram(Vram_id /* id */,
+		                                size_t  /* size */) override
 		{
 			return Dataspace_capability { };
 		}
 
-		void free_buffer(Buffer_id /* id */) override { }
+		void free_vram(Vram_id /* id */) override { }
 
-		Buffer_capability export_buffer(Buffer_id /* id */) override
+		Vram_capability export_vram(Vram_id /* id */) override
 		{
-			return Buffer_capability { };
+			return Vram_capability { };
 		}
 
-		void import_buffer(Buffer_capability /* cap */,
-		                   Buffer_id         /* id */) override
+		void import_vram(Vram_capability /* cap */, Vram_id /* id */)  override
 		{ }
 
-		Dataspace_capability
-		map_buffer(Buffer_id          /* id */,
-		           bool               /* aperture */,
-		           Mapping_attributes /* attrs */) override
+		Dataspace_capability map_cpu(Vram_id /* id */,
+		                             Mapping_attributes /* attrs */) override
 		{
 			return Dataspace_capability { };
 		}
 
-		void unmap_buffer(Buffer_id /* id */) override { }
+		void unmap_cpu(Vram_id /* id */) override { }
 
-		bool map_buffer_ppgtt(Buffer_id   /* id */,
-		                      Gpu::addr_t /* va */) override
+		bool map_gpu(Vram_id         /* id */,
+		             size_t          /* size */,
+		             off_t           /* offset */,
+		             Virtual_address /* va */) override
 		{
 			return false;
 		}
 
-		void unmap_buffer_ppgtt(Buffer_id   /* id */,
-		                        Gpu::addr_t /* va */) override
+		void unmap_gpu(Vram_id         /* id */,
+		               off_t           /* offset */,
+		               Virtual_address /* va */) override
 		{ }
 
-		Gpu::addr_t query_buffer_ppgtt(Buffer_id /* id */) override
-		{
-			return (Gpu::addr_t)-1;
-		}
-
-		bool set_tiling(Buffer_id      /* id */,
-		                uint32_t const /* mode */) override
+		bool set_tiling_gpu(Vram_id  /* id */,
+		                    off_t    /* offset */,
+		                    unsigned /* mode */) override
 		{
 			return false;
 		}
