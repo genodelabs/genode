@@ -6,7 +6,9 @@ CUSTOM_TARGET_DEPS := kernel_build.phony
 LX_DIR := $(call select_from_ports,linux)/src/linux
 PWD    := $(shell pwd)
 
-LX_MK_ARGS = ARCH=x86_64 CROSS_COMPILE=$(CROSS_DEV_PREFIX)
+# options for Linux kernel build to not depend on current time, user and host
+LX_MK_REPRODUCIBLE = KBUILD_BUILD_TIMESTAMP=no_timestamp KBUILD_BUILD_USER=genode KBUILD_BUILD_HOST=genode
+LX_MK_ARGS = ARCH=x86_64 CROSS_COMPILE=$(CROSS_DEV_PREFIX) CC=$(CC) $(LX_MK_REPRODUCIBLE)
 
 #
 # Linux kernel configuration
