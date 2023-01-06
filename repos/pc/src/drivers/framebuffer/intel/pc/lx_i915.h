@@ -35,5 +35,6 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
 void lx_emul_i915_iterate_modes(void *lx_data, void * genode_data);
 void lx_emul_i915_report_modes(void * genode_xml, struct genode_mode *);
 void lx_emul_i915_connector_config(char * name, struct genode_mode *);
+int  lx_emul_i915_config_done_and_block(void);
 
 #endif /* _LX_I915_H_ */

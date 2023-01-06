@@ -397,7 +397,8 @@ static int configure_connectors(void * data)
 
 		retry_count = 0;
 
-		lx_emul_task_schedule(true);
+		if (lx_emul_i915_config_done_and_block())
+			lx_emul_task_schedule(true /* block task */);
 	}
 
 	return 0;

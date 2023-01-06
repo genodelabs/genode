@@ -53,6 +53,9 @@ struct Framebuffer::Driver
 	Signal_handler<Driver>  timer_handler  { env.ep(), *this,
 	                                        &Driver::handle_timer };
 
+	bool                    update_in_progress { false };
+	bool                    new_config_rom     { false };
+
 	class Fb
 	{
 		private:
@@ -148,6 +151,11 @@ void Framebuffer::Driver::config_update()
 	if (!config.valid() || !lx_user_task)
 		return;
 
+	if (update_in_progress)
+		new_config_rom = true;
+	else
+		update_in_progress = true;
+
 	lx_emul_task_unblock(lx_user_task);
 	Lx_kit::env().scheduler.schedule();
 }
@@ -178,6 +186,8 @@ void Framebuffer::Driver::generate_report(void *lx_data)
 		{
 			lx_emul_i915_report(lx_data, &xml);
 		});
+
+		driver(Lx_kit::env().env).report_updated();
 	} catch (...) {
 		Genode::warning("Failed to generate report");
 	}
@@ -288,8 +298,6 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
 
 		lx_emul_i915_iterate_modes(lx_data, &xml);
 	});
-
-	driver(Lx_kit::env().env).report_updated();
 }
 
 
@@ -320,6 +328,20 @@ void lx_emul_i915_connector_config(char * name, struct genode_mode * mode)
 
 	Genode::Env &env = Lx_kit::env().env;
 	driver(env).lookup_config(name, *mode);
+}
+
+
+int lx_emul_i915_config_done_and_block(void)
+{
+	auto &state = driver(Lx_kit::env().env);
+
+	bool const new_config = state.new_config_rom;
+
+	state.update_in_progress = false;
+	state.new_config_rom     = false;
+
+	/* true if linux task should block, otherwise continue due to new config */
+	return !new_config;
 }
 
 
