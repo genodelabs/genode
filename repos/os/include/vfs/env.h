@@ -70,6 +70,26 @@ struct Vfs::Env : Interface
 	 */
 	struct User : Interface, Genode::Noncopyable
 	{
+		/**
+		 * Called whenever the VFS observes I/O
+		 *
+		 * Note that this method is usually called from the context of an
+		 * I/O signal handler. Hence, it must never execute application-level
+		 * code. Otherwise, unexpected nesting of application-level code might
+		 * occur, in particular if the application performs synchronous I/O
+		 * via 'wait_and_dispatch_one_io_signal()'.
+		 *
+		 * There are two recommended ways to safely implement this interface:
+		 *
+		 * The first option is to record the occurence of I/O for a later
+		 * application-level response by modifying a state variable.
+		 *
+		 * The second way is reflecting the condition to an application-level
+		 * signal handler by calling 'Signal_handler<T>::local_submit()'.
+		 * This way, the application-level signal handler is executed once
+		 * the component goes idle next time. This handler can then safely
+		 * enter application-level code.
+		 */
 		virtual void wakeup_vfs_user() = 0;
 	};
 
