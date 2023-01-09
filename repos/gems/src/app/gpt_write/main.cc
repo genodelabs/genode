@@ -309,7 +309,7 @@ struct Gpt::Writer
 			size_t const len    = hdr.gpe_num * hdr.gpe_size;
 			size_t const blocks = len / _block_size;
 			Block::sector_t const entries_lba = primary
-			                                  ? hdr_lba + 1
+			                                  ? hdr.gpe_lba
 			                                  : _block_count - (blocks + 1);
 			Block_io entries_io(_block, _block_size, _ep, entries_lba, blocks, true,
 			                    entries, len);
