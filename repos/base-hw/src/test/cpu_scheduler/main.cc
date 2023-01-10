@@ -23,8 +23,60 @@ using namespace Kernel;
 
 namespace Cpu_scheduler_test {
 
+	class Cpu_share;
+	class Cpu_scheduler;
 	class Main;
+
+	static Cpu_share &cast(Kernel::Cpu_share &share);
+
+	static Cpu_share const &cast(Kernel::Cpu_share const &share);
+
+	static Double_list<Kernel::Cpu_share> &cast(Double_list<Kernel::Cpu_share> const &list);
 }
+
+
+class Cpu_scheduler_test::Cpu_share : public Kernel::Cpu_share
+{
+	private:
+
+		using Label = String<32>;
+
+		Label const _label;
+
+	public:
+
+		Cpu_share(Cpu_priority const  prio,
+		          unsigned     const  quota,
+		          Label        const &label)
+		:
+			Kernel::Cpu_share { prio, quota },
+			_label            { label }
+		{ }
+
+		Label const &label() const { return _label; }
+};
+
+
+class Cpu_scheduler_test::Cpu_scheduler : public Kernel::Cpu_scheduler
+{
+	private:
+
+		template <typename F> void _for_each_prio(F f) const
+		{
+			bool cancel_for_each_prio { false };
+			for (unsigned p = Prio::max(); p != Prio::min() - 1; p--) {
+				f(p, cancel_for_each_prio);
+				if (cancel_for_each_prio)
+					return;
+			}
+		}
+
+	public:
+
+		void print(Output &output) const;
+
+		using Kernel::Cpu_scheduler::Cpu_scheduler;
+};
 
 
 class Cpu_scheduler_test::Main
@@ -36,7 +88,7 @@ class Cpu_scheduler_test::Main
 		enum { INVALID_SHARE_ID = MAX_NR_OF_SHARES };
 
 		Env                      &_env;
-		Cpu_share                 _idle_share               { 0, 0 };
+		Cpu_share                 _idle_share               { 0, 0, (unsigned)IDLE_SHARE_ID };
 		Constructible<Cpu_share>  _shares[MAX_NR_OF_SHARES] { };
 		time_t                    _current_time             { 0 };
 		Cpu_scheduler             _scheduler;
@@ -111,7 +163,7 @@ class Cpu_scheduler_test::Main
 					_env.parent().exit(-1);
 					break;
 			}
-			_shares[id].construct(prio, quota);
+			_shares[id].construct(prio, quota, id);
 			_scheduler.insert(*_shares[id]);
 		}
 
@@ -149,7 +201,7 @@ class Cpu_scheduler_test::Main
 				error("wrong time ", round_time, " in line ", line_nr);
 				_env.parent().exit(-1);
 			}
-			Cpu_share &head { _scheduler.head() };
+			Cpu_share &head { cast(_scheduler.head()) };
 			unsigned const head_quota { _scheduler.head_quota() };
 			if (&head != &_share(expected_head_id)) {
 
@@ -184,6 +236,146 @@ class Cpu_scheduler_test::Main
 		Main(Env &env);
 };
 
+
+/*************************
+ ** Utilities functions **
+ *************************/
+
+static Cpu_scheduler_test::Cpu_share &
+Cpu_scheduler_test::cast(Kernel::Cpu_share &share)
+{
+	return *static_cast<Cpu_share *>(&share);
+}
+
+
+static Cpu_scheduler_test::Cpu_share const &
+Cpu_scheduler_test::cast(Kernel::Cpu_share const &share)
+{
+	return *static_cast<Cpu_share const *>(&share);
+}
+
+
+static Double_list<Kernel::Cpu_share> &
+Cpu_scheduler_test::cast(Double_list<Kernel::Cpu_share> const &list)
+{
+	return *const_cast<Double_list<Kernel::Cpu_share> *>(&list);
+}
+
+
+/***************************************
+ ** Cpu_scheduler_test::Cpu_scheduler **
+ ***************************************/
+
+void Cpu_scheduler_test::Cpu_scheduler::print(Output &output) const
+{
+	using Genode::print;
+
+	print(output, "(\n");
+	print(output, "   quota: ", _residual, "/", _quota, ", ");
+	print(output, "fill: ", _fill, ", ");
+	print(output, "need to schedule: ", _need_to_schedule ? "true" : "false", ", ");
+	print(output, "last_time: ", _last_time);
+
+	if (_head != nullptr) {
+
+		print(output, "\n   head: ( ");
+		if (_need_to_schedule) {
+			print(output, "\033[31m");
+		} else {
+			print(output, "\033[32m");
+		}
+		print(output, "id: ", cast(*_head).label(), ", ");
+		print(output, "quota: ", _head_quota, ", ");
+		print(output, "\033[0m");
+		print(output, "claims: ", _head_claims ? "true" : "false", ", ");
+		print(output, "yields: ", _head_yields ? "true" : "false", " ");
+		print(output, ")");
+	}
+	bool prios_empty { true };
+	_for_each_prio([&] (Cpu_priority const prio, bool &) {
+		if (prios_empty && (_rcl[prio].head() || _ucl[prio].head())) {
+			prios_empty = false;
+		}
+	});
+	if (!prios_empty) {
+
+		_for_each_prio([&] (Cpu_priority const prio, bool &) {
+
+			if (_rcl[prio].head() || _ucl[prio].head()) {
+
+				print(output, "\n   prio ", (unsigned)prio, ": (");
+				if (_rcl[prio].head()) {
+
+					print(output, " ready: ");
+					bool first_share { true };
+					cast(_rcl[prio]).for_each([&] (Kernel::Cpu_share const &share) {
+
+						if (&share == _head && _head_claims) {
+							if (_need_to_schedule) {
+								print(output, "\033[31m");
+							} else {
+								print(output, "\033[32m");
+							}
+						}
+						print(
+							output, first_share ? "" : ", ", cast(share).label() , "-",
+							share._claim, "/", share._quota);
+
+						if (&share == _head && _head_claims) {
+							print(output, "\033[0m");
+						}
+						first_share = false;
+					});
+				}
+				if (_ucl[prio].head()) {
+
+					print(output, " unready: ");
+					bool first_share { true };
+					cast(_ucl[prio]).for_each([&] (Kernel::Cpu_share const &share) {
+
+						print(
+							output, first_share ? "" : ", ", cast(share).label() , "-",
+							share._claim, "/", share._quota);
+
+						first_share = false;
+					});
+				}
+				print(output, " )");
+			}
+		});
+	}
+	if (_fills.head()) {
+
+		print(output, "\n   fills: ");
+		bool first_share { true };
+		cast(_fills).for_each([&] (Kernel::Cpu_share const &share) {
+
+			if (&share == _head && !_head_claims) {
+				if (_need_to_schedule) {
+					print(output, "\033[31m");
+				} else {
+					print(output, "\033[32m");
+				}
+			}
+			print(
+				output, first_share ? "" : ", ", cast(share).label() , "-",
+				share._fill);
+
+			first_share = false;
+
+			if (&share == _head && !_head_claims) {
+				print(output, "\033[0m");
+			}
+		});
+		print(output, "\n");
+	}
+	print(output, ")");
+}
+
+
+/******************************
+ ** Cpu_scheduler_test::Main **
+ ******************************/
 
 Cpu_scheduler_test::Main::Main(Env &env)
 :

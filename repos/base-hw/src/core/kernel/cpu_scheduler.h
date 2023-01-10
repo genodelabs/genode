@@ -39,6 +39,16 @@ namespace Kernel {
 }
 
 
+namespace Cpu_scheduler_test {
+
+	/**
+	 * Forward declaration of corresponding unit-test classes for friendship
+	 */
+	class Cpu_scheduler;
+	class Cpu_share;
+}
+
+
 class Kernel::Cpu_priority
 {
 	private:
@@ -75,6 +85,8 @@ class Kernel::Cpu_priority
 class Kernel::Cpu_share
 {
 	friend class Cpu_scheduler;
+	friend class Cpu_scheduler_test::Cpu_scheduler;
+	friend class Cpu_scheduler_test::Cpu_share;
 
 	private:
 
@@ -107,6 +119,8 @@ class Kernel::Cpu_share
 
 class Kernel::Cpu_scheduler
 {
+	friend class Cpu_scheduler_test::Cpu_scheduler;
+
 	private:
 
 		typedef Cpu_share    Share;
