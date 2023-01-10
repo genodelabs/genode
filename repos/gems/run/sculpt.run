@@ -656,6 +656,9 @@ install_config {
 foreach subdir { launcher depot managed keyboard } {
 	file mkdir [file join [initial_config_dir] $subdir] }
 
+if {[llength [ingredients_of_type presets]] > 0} {
+	file mkdir [file join [initial_config_dir] presets] }
+
 # configs that are managed by the sculpt manager if absent
 set optional_configs {
 	fonts
@@ -696,15 +699,23 @@ foreach config $required_configs {
 	copy_file $from $to
 }
 
-# selection of depot users (pubkey and download files) and launchers
+# selection of depot users (pubkey and download files), launchers, and presets
 foreach ingredient [ingredients_of_type launcher] {
 	check_xml_syntax [ingredient_path launcher $ingredient] }
+
+foreach ingredient [ingredients_of_type presets] {
+	check_xml_syntax [ingredient_path deploy $ingredient] }
 
 foreach type { depot launcher } {
 	foreach ingredient [ingredients_of_type $type] {
 		set from [ingredient_path $type $ingredient]
 		set to   [file join [initial_config_dir] $type $ingredient]
 		file copy $from $to } }
+
+foreach ingredient [ingredients_of_type presets] {
+	set from [ingredient_path deploy $ingredient]
+	set to   [file join [initial_config_dir] presets $ingredient]
+	file copy $from $to }
 
 copy_file [genode_dir]/repos/gems/recipes/pkg/sculpt/README [initial_config_file README]
 copy_file [genode_dir]/repos/gems/run/sculpt/vimrc          [initial_config_file vimrc]
@@ -792,6 +803,12 @@ proc referenced_pkg_values { } {
 		lappend values {*}[pkg_attribute_values $path launcher]
 	}
 
+	# scan presets
+	foreach preset [ingredients_of_type presets] {
+		set path [file join [initial_config_dir] presets $preset]
+		lappend values {*}[pkg_attribute_values $path config/start]
+	}
+
 	# scan deploy config
 	lappend values {*}[pkg_attribute_values [initial_config_file deploy] config/start]
 
@@ -863,7 +880,7 @@ proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg]
 #
 # Supplement file with versioned pkg archive paths
 #
-# \path  deploy config or launcher to augment
+# \path  deploy config, or launcher, or preset to augment
 # \node  XML node type containing the 'pkg' attribute to modify
 #
 # Each matching XML node is inspected regarding its 'pkg' attribute. If its
@@ -884,7 +901,7 @@ proc augment_pkg_versions { path node } {
 		regsub $pattern $content "$head$pkg_path$tail" content
 	}
 
-	# write back the filtered launcher snippet
+	# write back the filtered launcher snippet, deploy config, or preset
 	set fd [open $path w]
 	puts $fd $content
 	close $fd
@@ -895,13 +912,21 @@ proc augment_pkg_versions { path node } {
 foreach launcher [ingredients_of_type launcher] {
 	augment_pkg_versions [file join [initial_config_dir] launcher $launcher] "launcher" }
 
+# presets
+foreach preset [ingredients_of_type presets] {
+	augment_pkg_versions [file join [initial_config_dir] presets $preset] "start" }
 
 # deploy config
 augment_pkg_versions [initial_config_file deploy] "start"
 
+# update arch attribute of deploy config and presets
+proc augment_arch_attribute { file } {
+	exec sed -i "/config/s/arch=\"\"/arch=\"[depot_spec]\"/" $file }
 
-# update arch attribute of deploy config
-exec sed -i "/config/s/arch=\"\"/arch=\"[depot_spec]\"/" [initial_config_file deploy]
+foreach preset [ingredients_of_type presets] {
+	augment_arch_attribute [file join [initial_config_dir] presets $preset] }
+
+augment_arch_attribute [initial_config_file deploy]
 
 
 ##
