@@ -78,7 +78,27 @@ struct Sculpt::Deploy
 	/* config obtained from '/config/managed/deploy' */
 	Attached_rom_dataspace _managed_deploy_rom { _env, "config -> managed/deploy" };
 
-	void update_managed_deploy_config(Xml_node deploy)
+	Constructible<Buffered_xml> _template { };
+
+	void use_as_deploy_template(Xml_node const &deploy)
+	{
+		_template.construct(_alloc, deploy);
+	}
+
+	void update_managed_deploy_config()
+	{
+		if (!_template.constructed())
+			return;
+
+		Xml_node const deploy = _template->xml();
+
+		if (deploy.type() == "empty")
+			return;
+
+		_update_managed_deploy_config(deploy);
+	}
+
+	void _update_managed_deploy_config(Xml_node deploy)
 	{
 		/*
 		 * Ignore intermediate states that may occur when manually updating
