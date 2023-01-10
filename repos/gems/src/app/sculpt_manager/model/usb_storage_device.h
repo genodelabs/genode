@@ -116,6 +116,16 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 	}
 
 	inline void gen_usb_block_drv_start_content(Xml_generator &xml) const;
+
+	static bool type_matches(Xml_node node)
+	{
+		return node.attribute_value("class", String<32>()) == "storage";
+	}
+
+	bool matches(Xml_node node) const
+	{
+		return node.attribute_value("label_suffix", Label()) == label;
+	}
 };
 
 
@@ -150,54 +160,5 @@ void Sculpt::Usb_storage_device::gen_usb_block_drv_start_content(Xml_generator &
 			xml.node("parent", [&] () { }); });
 	});
 }
-
-
-struct Sculpt::Usb_storage_device_update_policy
-:
-	List_model<Usb_storage_device>::Update_policy
-{
-	Env       &_env;
-	Allocator &_alloc;
-
-	bool device_added_or_vanished = false;
-
-	Signal_context_capability _sigh;
-
-	Usb_storage_device_update_policy(Env &env, Allocator &alloc,
-	                                 Signal_context_capability sigh)
-	:
-		_env(env), _alloc(alloc), _sigh(sigh)
-	{ }
-
-	typedef Usb_storage_device::Label Label;
-
-	void destroy_element(Usb_storage_device &elem)
-	{
-		device_added_or_vanished = true;
-
-		destroy(_alloc, &elem);
-	}
-
-	Usb_storage_device &create_element(Xml_node node)
-	{
-		device_added_or_vanished = true;
-
-		return *new (_alloc)
-			Usb_storage_device(_env, _alloc, _sigh,
-			                   node.attribute_value("label_suffix", Label()));
-	}
-
-	void update_element(Usb_storage_device &, Xml_node) { }
-
-	static bool node_is_element(Xml_node node)
-	{
-		return node.attribute_value("class", String<32>()) == "storage";
-	};
-
-	static bool element_matches_xml_node(Usb_storage_device const &elem, Xml_node node)
-	{
-		return node.attribute_value("label_suffix", Label()) == elem.label;
-	}
-};
 
 #endif /* _MODEL__BLOCK_DEVICE_H_ */

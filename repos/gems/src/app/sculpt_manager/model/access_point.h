@@ -43,40 +43,15 @@ struct Sculpt::Access_point : List_model<Access_point>::Element
 
 	bool unprotected()   const { return protection == UNPROTECTED; }
 	bool wpa_protected() const { return protection == WPA_PSK; }
-};
 
-
-/**
- * Policy for transforming a 'accesspoints' report into a list model
- */
-struct Sculpt::Access_point_update_policy : List_model<Access_point>::Update_policy
-{
-	Allocator &_alloc;
-
-	Access_point_update_policy(Allocator &alloc) : _alloc(alloc) { }
-
-	void destroy_element(Access_point &elem) { destroy(_alloc, &elem); }
-
-	Access_point &create_element(Xml_node node)
+	bool matches(Xml_node const &node) const
 	{
-		auto const protection = node.attribute_value("protection", String<16>());
-		bool const use_protection = protection == "WPA" || protection == "WPA2";
-
-		return *new (_alloc)
-			Access_point(node.attribute_value("bssid", Access_point::Bssid()),
-			             node.attribute_value("ssid",  Access_point::Ssid()),
-			             use_protection ? Access_point::Protection::WPA_PSK
-			                            : Access_point::Protection::UNPROTECTED);
+		return node.attribute_value("ssid", Access_point::Ssid()) == ssid;
 	}
 
-	void update_element(Access_point &ap, Xml_node node)
+	static bool type_matches(Xml_node const &node)
 	{
-		ap.quality = node.attribute_value("quality", 0U);
-	}
-
-	static bool element_matches_xml_node(Access_point const &elem, Xml_node node)
-	{
-		return node.attribute_value("ssid", Access_point::Ssid()) == elem.ssid;
+		return node.has_type("accesspoint");
 	}
 };
 

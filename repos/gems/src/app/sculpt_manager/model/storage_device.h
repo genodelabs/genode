@@ -52,6 +52,22 @@ struct Sculpt::Storage_device
 
 	unsigned _part_block_version = 0;
 
+	void _update_partitions_from_xml(Xml_node const &node)
+	{
+		update_list_model_from_xml(partitions, node,
+
+			/* create */
+			[&] (Xml_node const &node) -> Partition & {
+				return *new (_alloc) Partition(Partition::Args::from_xml(node)); },
+
+			/* destroy */
+			[&] (Partition &p) { destroy(_alloc, &p); },
+
+			/* update */
+			[&] (Partition &, Xml_node) { }
+		);
+	}
+
 	/**
 	 * Trigger the rediscovery of the device, e.g., after partitioning of after
 	 * formatting the whole device.
@@ -61,8 +77,7 @@ struct Sculpt::Storage_device
 		state = UNKNOWN;
 		_part_block_version++;
 
-		Partition_update_policy policy(_alloc);
-		partitions.update_from_xml(policy, Xml_node("<partitions/>"));
+		_update_partitions_from_xml(Xml_node("<partitions/>"));
 	}
 
 	void process_part_block_report()
@@ -75,8 +90,7 @@ struct Sculpt::Storage_device
 
 		whole_device = (report.attribute_value("type", String<16>()) == "disk");
 
-		Partition_update_policy policy(_alloc);
-		partitions.update_from_xml(policy, report);
+		_update_partitions_from_xml(report);
 
 		/*
 		 * Import whole-device partition information.

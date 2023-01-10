@@ -32,8 +32,9 @@ void Sculpt::Storage::handle_storage_devices_update()
 
 	{
 		_block_devices_rom.update();
-		Block_device_update_policy policy(_env, _alloc, _storage_device_update_handler);
-		_storage_devices.update_block_devices_from_xml(policy, _block_devices_rom.xml());
+
+		_storage_devices.update_block_devices_from_xml(_env, _alloc, _block_devices_rom.xml(),
+		                                               _storage_device_update_handler);
 
 		_storage_devices.block_devices.for_each([&] (Block_device &dev) {
 			process_part_block_report(dev); });
@@ -41,12 +42,13 @@ void Sculpt::Storage::handle_storage_devices_update()
 
 	{
 		_usb_active_config_rom.update();
-		Usb_storage_device_update_policy policy(_env, _alloc, _storage_device_update_handler);
-		Xml_node const config = _usb_active_config_rom.xml();
 
-		_storage_devices.update_usb_storage_devices_from_xml(policy, config);
+		bool const usb_storage_added_or_vanished =
+			_storage_devices.update_usb_storage_devices_from_xml(_env, _alloc,
+			                                                     _usb_active_config_rom.xml(),
+			                                                     _storage_device_update_handler);
 
-		if (policy.device_added_or_vanished)
+		if (usb_storage_added_or_vanished)
 			reconfigure_runtime = true;
 
 		_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device &dev) {

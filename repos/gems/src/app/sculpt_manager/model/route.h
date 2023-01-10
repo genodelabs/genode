@@ -148,34 +148,16 @@ struct Sculpt::Route : List_model<Route>::Element
 		});
 	}
 
-	struct Update_policy
+	bool matches(Xml_node node) const
 	{
-		typedef Route Element;
+		return required == _required(node)
+		    && required_label == node.attribute_value("label", Label());
+	}
 
-		Allocator &_alloc;
-
-		Update_policy(Allocator &alloc) : _alloc(alloc) { }
-
-		void destroy_element(Route &elem) { destroy(_alloc, &elem); }
-
-		Route &create_element(Xml_node node)
-		{
-			return *new (_alloc) Route(node);
-		}
-
-		void update_element(Route &, Xml_node) { }
-
-		static bool element_matches_xml_node(Route const &elem, Xml_node node)
-		{
-			return elem.required == _required(node)
-			    && elem.required_label == node.attribute_value("label", Label());
-		}
-
-		static bool node_is_element(Xml_node node)
-		{
-			return _required(node) != Service::Type::UNDEFINED;
-		}
-	};
+	static bool type_matches(Xml_node node)
+	{
+		return _required(node) != Service::Type::UNDEFINED;
+	}
 };
 
 #endif /* _MODEL__ROUTE_H_ */

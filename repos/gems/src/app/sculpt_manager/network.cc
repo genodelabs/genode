@@ -125,8 +125,31 @@ void Sculpt::Network::_handle_wlan_accesspoints()
 	if (!initial_scan && dialog.ap_list_hovered())
 		return;
 
-	Access_point_update_policy policy(_alloc);
-	_access_points.update_from_xml(policy, _wlan_accesspoints_rom.xml());
+	update_list_model_from_xml(_access_points, _wlan_accesspoints_rom.xml(),
+
+		/* create */
+		[&] (Xml_node const &node) -> Access_point &
+		{
+			auto const protection = node.attribute_value("protection", String<16>());
+			bool const use_protection = protection == "WPA" || protection == "WPA2";
+
+			return *new (_alloc)
+				Access_point(node.attribute_value("bssid", Access_point::Bssid()),
+				             node.attribute_value("ssid",  Access_point::Ssid()),
+				             use_protection ? Access_point::Protection::WPA_PSK
+				                            : Access_point::Protection::UNPROTECTED);
+		},
+
+		/* destroy */
+		[&] (Access_point &ap) { destroy(_alloc, &ap); },
+
+		/* update */
+		[&] (Access_point &ap, Xml_node const &node)
+		{
+			ap.quality = node.attribute_value("quality", 0U);
+		}
+	);
+
 	_action.update_network_dialog();
 }
 

@@ -37,37 +37,13 @@ struct Sculpt::Block_device : List_model<Block_device>::Element,
 	:
 		Storage_device(env, alloc, label, capacity, sigh), model(model)
 	{ }
-};
 
-
-struct Sculpt::Block_device_update_policy : List_model<Block_device>::Update_policy
-{
-	Env       &_env;
-	Allocator &_alloc;
-
-	Signal_context_capability _sigh;
-
-	Block_device_update_policy(Env &env, Allocator &alloc, Signal_context_capability sigh)
-	: _env(env), _alloc(alloc), _sigh(sigh) { }
-
-	void destroy_element(Block_device &elem) { destroy(_alloc, &elem); }
-
-	Block_device &create_element(Xml_node node)
+	bool matches(Xml_node const &node) const
 	{
-		return *new (_alloc)
-			Block_device(_env, _alloc, _sigh,
-			             node.attribute_value("label", Block_device::Label()),
-			             node.attribute_value("model", Block_device::Model()),
-			             Capacity { node.attribute_value("block_size",  0ULL)
-			                      * node.attribute_value("block_count", 0ULL) });
+		return node.attribute_value("label", Block_device::Label()) == label;
 	}
 
-	void update_element(Block_device &, Xml_node) { }
-
-	static bool element_matches_xml_node(Block_device const &elem, Xml_node node)
-	{
-		return node.attribute_value("label", Block_device::Label()) == elem.label;
-	}
+	static bool type_matches(Xml_node const &) { return true; }
 };
 
 #endif /* _MODEL__BLOCK_DEVICE_H_ */

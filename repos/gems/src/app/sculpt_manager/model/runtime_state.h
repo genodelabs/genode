@@ -73,6 +73,33 @@ class Sculpt::Runtime_state : public Runtime_info
 			bool abandoned_by_user = false;
 
 			Child(Start_name const &name) : name(name) { }
+
+			bool matches(Xml_node const &node) const
+			{
+				return node.attribute_value("name", Start_name()) == name;
+			}
+
+			static bool type_matches(Xml_node const &node)
+			{
+				return node.has_type("child");
+			}
+
+			void update_from_xml(Xml_node const &node)
+			{
+				node.with_optional_sub_node("ram", [&] (Xml_node const &ram) {
+					info.assigned_ram = max(ram.attribute_value("assigned", Number_of_bytes()),
+					                        ram.attribute_value("quota",    Number_of_bytes()));
+					info.avail_ram    =     ram.attribute_value("avail",    Number_of_bytes());
+				});
+
+				node.with_optional_sub_node("caps", [&] (Xml_node const &caps) {
+					info.assigned_caps = max(caps.attribute_value("assigned", 0UL),
+					                         caps.attribute_value("quota",    0UL));
+					info.avail_caps    =     caps.attribute_value("avail",    0UL);
+				});
+
+				info.version.value = node.attribute_value("version", 0U);
+			}
 		};
 
 		List_model<Child> _children { };
@@ -183,50 +210,6 @@ class Sculpt::Runtime_state : public Runtime_info
 			    && _currently_constructed->construction.constructed();
 		}
 
-		struct Update_policy : List_model<Child>::Update_policy
-		{
-			Allocator &_alloc;
-
-			Update_policy(Allocator &alloc) : _alloc(alloc) { }
-
-			void destroy_element(Child &elem)
-			{
-				destroy(_alloc, &elem);
-			}
-
-			Child &create_element(Xml_node node)
-			{
-				return *new (_alloc)
-					Child(node.attribute_value("name", Start_name()));
-			}
-
-			void update_element(Child &child, Xml_node node)
-			{
-				if (node.has_sub_node("ram")) {
-					Xml_node const ram = node.sub_node("ram");
-					child.info.assigned_ram = max(ram.attribute_value("assigned", Number_of_bytes()),
-					                              ram.attribute_value("quota",    Number_of_bytes()));
-					child.info.avail_ram    =     ram.attribute_value("avail",    Number_of_bytes());
-				}
-
-				if (node.has_sub_node("caps")) {
-					Xml_node const caps = node.sub_node("caps");
-					child.info.assigned_caps = max(caps.attribute_value("assigned", 0UL),
-					                               caps.attribute_value("quota",    0UL));
-					child.info.avail_caps    =     caps.attribute_value("avail",    0UL);
-				}
-
-				child.info.version.value = node.attribute_value("version", 0U);
-			}
-
-			static bool element_matches_xml_node(Child const &elem, Xml_node node)
-			{
-				return node.attribute_value("name", Start_name()) == elem.name;
-			}
-
-			static bool node_is_element(Xml_node node) { return node.has_type("child"); }
-		};
-
 		/*
 		 * Noncopyable
 		 */
@@ -242,8 +225,20 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		void update_from_state_report(Xml_node state)
 		{
-			Update_policy policy(_alloc);
-			_children.update_from_xml(policy, state);
+			update_list_model_from_xml(_children, state,
+
+				/* create */
+				[&] (Xml_node const &node) -> Child & {
+					return *new (_alloc)
+						Child(node.attribute_value("name", Start_name())); },
+
+				/* destroy */
+				[&] (Child &child) { destroy(_alloc, &child); },
+
+				/* update */
+				[&] (Child &child, Xml_node const &node) {
+					child.update_from_xml(node); }
+			);
 		}
 
 		/**

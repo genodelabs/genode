@@ -23,12 +23,12 @@ namespace Sculpt { struct Component; }
 
 struct Sculpt::Component : Noncopyable
 {
-	Route::Update_policy _route_update_policy;
-
 	typedef Depot::Archive::Path Path;
 	typedef Depot::Archive::Name Name;
 	typedef String<100>          Info;
 	typedef Start_name           Service;
+
+	Allocator &_alloc;
 
 	/* defined at construction time */
 	Path const path;
@@ -49,15 +49,31 @@ struct Sculpt::Component : Noncopyable
 	List_model<Route> routes   { };
 	Route             pd_route { "<pd/>" };
 
+	void _update_routes_from_xml(Xml_node const &node)
+	{
+		update_list_model_from_xml(routes, node,
+
+			/* create */
+			[&] (Xml_node const &route) -> Route & {
+				return *new (_alloc) Route(route); },
+
+			/* destroy */
+			[&] (Route &e) { destroy(_alloc, &e); },
+
+			/* update */
+			[&] (Route &, Xml_node) { }
+		);
+	}
+
 	Component(Allocator &alloc, Path const &path, Info const &info,
 	          Affinity::Space const space)
 	:
-		_route_update_policy(alloc), path(path), info(info), affinity_space(space)
+		_alloc(alloc), path(path), info(info), affinity_space(space)
 	{ }
 
 	~Component()
 	{
-		routes.update_from_xml(_route_update_policy, Xml_node("<empty/>"));
+		_update_routes_from_xml(Xml_node("<empty/>"));
 	}
 
 	void try_apply_blueprint(Xml_node blueprint)
@@ -73,7 +89,7 @@ struct Sculpt::Component : Noncopyable
 				caps = runtime.attribute_value("caps", 0UL);
 
 				runtime.with_optional_sub_node("requires", [&] (Xml_node requires) {
-					routes.update_from_xml(_route_update_policy, requires); });
+					_update_routes_from_xml(requires); });
 			});
 
 			blueprint_known = true;

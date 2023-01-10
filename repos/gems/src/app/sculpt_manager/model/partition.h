@@ -133,28 +133,8 @@ struct Sculpt::Partition : List_model<Partition>::Element
 	{ }
 
 	bool whole_device() const { return !number.valid(); }
-};
 
-
-/**
- * Policy for transforming a part_block report into a list of partitions
- */
-struct Sculpt::Partition_update_policy : List_model<Partition>::Update_policy
-{
-	Allocator &_alloc;
-
-	Partition_update_policy(Allocator &alloc) : _alloc(alloc) { }
-
-	void destroy_element(Partition &elem) { destroy(_alloc, &elem); }
-
-	Partition &create_element(Xml_node node)
-	{
-		return *new (_alloc) Partition(Partition::Args::from_xml(node));
-	}
-
-	void update_element(Partition &, Xml_node) { }
-
-	static bool node_is_element(Xml_node node)
+	static bool type_matches(Xml_node node)
 	{
 		/*
 		 * Partition "0" is a pseudo partition that refers to the whole device
@@ -163,9 +143,9 @@ struct Sculpt::Partition_update_policy : List_model<Partition>::Update_policy
 		return (node.attribute_value("number", Partition::Number()) != "0");
 	}
 
-	static bool element_matches_xml_node(Partition const &elem, Xml_node node)
+	bool matches(Xml_node node) const
 	{
-		return node.attribute_value("number", Partition::Number()) == elem.number;
+		return node.attribute_value("number", Partition::Number()) == number;
 	}
 };
 

@@ -167,35 +167,15 @@ class Sculpt::Runtime_config
 			Child_service(Start_name server, Xml_node provides)
 			: Service(server, type_from_xml(provides), Label()) { }
 
-			struct Update_policy
+			static bool type_matches(Xml_node const &node)
 			{
-				typedef Child_service Element;
+				return type_from_xml(node) != Service::Type::UNDEFINED;
+			}
 
-				Start_name _server;
-				Allocator &_alloc;
-
-				Update_policy(Start_name const &server, Allocator &alloc)
-				: _server(server), _alloc(alloc) { }
-
-				void destroy_element(Element &elem) { destroy(_alloc, &elem); }
-
-				Element &create_element(Xml_node node)
-				{
-					return *new (_alloc) Child_service(_server, node);
-				}
-
-				void update_element(Element &, Xml_node) { }
-
-				static bool element_matches_xml_node(Element const &elem, Xml_node node)
-				{
-					return type_from_xml(node) == elem.type;
-				}
-
-				static bool node_is_element(Xml_node node)
-				{
-					return type_from_xml(node) != Service::Type::UNDEFINED;
-				}
-			};
+			bool matches(Xml_node const &node) const
+			{
+				return type_from_xml(node) == type;
+			}
 		};
 
 	public:
@@ -212,33 +192,15 @@ class Sculpt::Runtime_config
 
 				Dep(Start_name to_name) : to_name(to_name) { }
 
-				struct Update_policy
+				bool matches(Xml_node const &node) const
 				{
-					typedef Dep Element;
+					return _to_name(node) == to_name;
+				}
 
-					Allocator &_alloc;
-
-					Update_policy(Allocator &alloc) : _alloc(alloc) { }
-
-					void destroy_element(Dep &elem) { destroy(_alloc, &elem); }
-
-					Dep &create_element(Xml_node node)
-					{
-						return *new (_alloc) Dep(_to_name(node));
-					}
-
-					void update_element(Dep &, Xml_node) { }
-
-					static bool element_matches_xml_node(Dep const &elem, Xml_node node)
-					{
-						return _to_name(node) == elem.to_name;
-					}
-
-					static bool node_is_element(Xml_node node)
-					{
-						return _to_name(node).valid();
-					}
-				};
+				static bool type_matches(Xml_node const &node)
+				{
+					return _to_name(node).valid();
+				}
 			};
 
 			/* dependencies on other child components */
@@ -262,55 +224,53 @@ class Sculpt::Runtime_config
 				_child_services.for_each(fn);
 			}
 
-			struct Update_policy
+			void update_from_xml(Allocator &alloc, Xml_node const &node)
 			{
-				typedef Component Element;
+				primary_dependency = _primary_dependency(node);
 
-				Allocator &_alloc;
+				node.with_optional_sub_node("route", [&] (Xml_node route) {
 
-				Update_policy(Allocator &alloc) : _alloc(alloc) { }
+					update_list_model_from_xml(deps, route,
 
-				void destroy_element(Component &elem)
-				{
-					/* flush list models */
-					update_element(elem, Xml_node("<start> <route/> <provides/> </start>"));
+						/* create */
+						[&] (Xml_node const &node) -> Dep & {
+							return *new (alloc) Dep(_to_name(node)); },
 
-					destroy(_alloc, &elem);
-				}
+						/* destroy */
+						[&] (Dep &e) { destroy(alloc, &e); },
 
-				Component &create_element(Xml_node node)
-				{
-					return *new (_alloc)
-						Component(node.attribute_value("name", Start_name()));
-				}
+						/* update */
+						[&] (Dep &, Xml_node) { }
+					);
+				});
 
-				void update_element(Component &elem, Xml_node node)
-				{
-					elem.primary_dependency = _primary_dependency(node);
+				node.with_optional_sub_node("provides", [&] (Xml_node provides) {
 
-					{
-						Dep::Update_policy policy { _alloc };
+					update_list_model_from_xml(_child_services, provides,
 
-						node.with_optional_sub_node("route", [&] (Xml_node route) {
-							elem.deps.update_from_xml(policy, route); });
-					}
+						/* create */
+						[&] (Xml_node const &node) -> Child_service & {
+							return *new (alloc)
+								Child_service(name, node); },
 
-					{
-						Child_service::Update_policy policy { elem.name, _alloc };
+						/* destroy */
+						[&] (Child_service &e) { destroy(alloc, &e); },
 
-						node.with_optional_sub_node("provides", [&] (Xml_node provides) {
-							elem._child_services.update_from_xml(policy,
-							                                     provides); });
-					}
-				}
+						/* update */
+						[&] (Child_service &, Xml_node) { }
+					);
+				});
+			}
 
-				static bool element_matches_xml_node(Component const &elem, Xml_node node)
-				{
-					return node.attribute_value("name", Start_name()) == elem.name;
-				}
+			bool matches(Xml_node const &node) const
+			{
+				return node.attribute_value("name", Start_name()) == name;
+			}
 
-				static bool node_is_element(Xml_node node) { return node.has_type("start"); }
-			};
+			static bool type_matches(Xml_node const &node)
+			{
+				return node.has_type("start");
+			}
 		};
 
 	private:
@@ -377,8 +337,26 @@ class Sculpt::Runtime_config
 
 		void update_from_xml(Xml_node config)
 		{
-			Component::Update_policy policy(_alloc);
-			_components.update_from_xml(policy, config);
+			update_list_model_from_xml(_components, config,
+
+				/* create */
+				[&] (Xml_node const &node) -> Component & {
+					return *new (_alloc)
+						Component(node.attribute_value("name", Start_name())); },
+
+				/* destroy */
+				[&] (Component &e) {
+
+					/* flush list models */
+					e.update_from_xml(_alloc, Xml_node("<start> <route/> <provides/> </start>"));
+
+					destroy(_alloc, &e);
+				},
+
+				/* update */
+				[&] (Component &e, Xml_node const &node) {
+					e.update_from_xml(_alloc, node); }
+			);
 		}
 
 		template <typename FN>

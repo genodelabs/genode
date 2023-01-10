@@ -45,6 +45,16 @@ class Sculpt::Launchers : public Noncopyable
 
 		struct Launcher : Dict::Element, List_model<Launcher>::Element
 		{
+			bool matches(Xml_node const &node) const
+			{
+				return node.attribute_value("name", Path()) == name;
+			}
+
+			static bool type_matches(Xml_node const &node)
+			{
+				return node.has_type("file");
+			}
+
 			Launcher(Dict &dict, Path const &path) : Dict::Element(dict, path) { }
 		};
 
@@ -52,46 +62,32 @@ class Sculpt::Launchers : public Noncopyable
 
 		List_model<Launcher> _launchers { };
 
-		struct Update_policy : List_model<Launcher>::Update_policy
-		{
-			Allocator &_alloc;
-
-			Dict &_sorted;
-
-			Update_policy(Allocator &alloc, Dict &sorted)
-			: _alloc(alloc), _sorted(sorted) { }
-
-			void destroy_element(Launcher &elem) { destroy(_alloc, &elem); }
-
-			Launcher &create_element(Xml_node node)
-			{
-				return *new (_alloc)
-					Launcher(_sorted, node.attribute_value("name", Path()));
-			}
-
-			void update_element(Launcher &, Xml_node) { }
-
-			static bool element_matches_xml_node(Launcher const &elem, Xml_node node)
-			{
-				return node.attribute_value("name", Path()) == elem.name;
-			}
-		};
-
 	public:
 
 		Launchers(Allocator &alloc) : _alloc(alloc) { }
 
-		void update_from_xml(Xml_node const &node)
+		void update_from_xml(Xml_node const &launchers)
 		{
-			Update_policy policy(_alloc, _sorted);
-			_launchers.update_from_xml(policy, node);
+			update_list_model_from_xml(_launchers, launchers,
+
+				/* create */
+				[&] (Xml_node const &node) -> Launcher & {
+					return *new (_alloc)
+						Launcher(_sorted,
+						         node.attribute_value("name", Path())); },
+
+				/* destroy */
+				[&] (Launcher &e) { destroy(_alloc, &e); },
+
+				/* update */
+				[&] (Launcher &, Xml_node) { }
+			);
 		}
 
 		template <typename FN>
 		void for_each(FN const &fn) const
 		{
-			_sorted.for_each([&] (Dict::Element const &e) {
-				fn(Info(e.name)); });
+			_sorted.for_each([&] (Dict::Element const &e) { fn(Info(e.name)); });
 		}
 };
 

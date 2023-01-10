@@ -34,10 +34,27 @@ struct Sculpt::Storage_devices
 	/**
 	 * Update 'block_devices' from 'block_devices' report
 	 */
-	template <typename POLICY>
-	void update_block_devices_from_xml(POLICY &policy, Xml_node node)
+	void update_block_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
+	                                   Signal_context_capability sigh)
 	{
-		block_devices.update_from_xml(policy, node);
+		update_list_model_from_xml(block_devices, node,
+
+			/* create */
+			[&] (Xml_node const &node) -> Block_device & {
+				return *new (alloc)
+					Block_device(env, alloc, sigh,
+					             node.attribute_value("label", Block_device::Label()),
+					             node.attribute_value("model", Block_device::Model()),
+					             Capacity { node.attribute_value("block_size",  0ULL)
+					                      * node.attribute_value("block_count", 0ULL) });
+			},
+
+			/* destroy */
+			[&] (Block_device &b) { destroy(alloc, &b); },
+
+			/* update */
+			[&] (Block_device &, Xml_node const &) { }
+		);
 
 		if (node.has_type("block_devices"))
 			_block_devices_report_valid = true;
@@ -45,17 +62,46 @@ struct Sculpt::Storage_devices
 
 	/**
 	 * Update 'usb_storage_devices' from 'usb_active_config' report
+	 *
+	 * \return true if USB storage device was added or vanished
 	 */
-	template <typename POLICY>
-	void update_usb_storage_devices_from_xml(POLICY &policy, Xml_node node)
+	bool update_usb_storage_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
+	                                         Signal_context_capability sigh)
 	{
-		usb_storage_devices.update_from_xml(policy, node);
+		using Label = Usb_storage_device::Label;
+
+		bool device_added_or_vanished = false;
+
+		update_list_model_from_xml(usb_storage_devices, node,
+
+			/* create */
+			[&] (Xml_node const &node) -> Usb_storage_device &
+			{
+				device_added_or_vanished = true;
+
+				return *new (alloc)
+					Usb_storage_device(env, alloc, sigh,
+					                   node.attribute_value("label_suffix", Label()));
+			},
+
+			/* destroy */
+			[&] (Usb_storage_device &elem)
+			{
+				device_added_or_vanished = true;
+				destroy(alloc, &elem);
+			},
+
+			/* update */
+			[&] (Usb_storage_device &, Xml_node const &) { }
+		);
 
 		_usb_active_config_valid = true;
 
 		usb_present = false;
 		usb_storage_devices.for_each([&] (Storage_device const &) {
 			usb_present = true; });
+
+		return device_added_or_vanished;
 	}
 
 	/**
