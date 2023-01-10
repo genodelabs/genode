@@ -44,7 +44,7 @@ class Genode::Dictionary : Noncopyable
 
 				Dictionary<T, NAME> &_dictionary;
 
-				bool higher(T const *other) const { return name > other->This::name; }
+				bool higher(T const *other) const { return other->This::name > name; }
 
 				friend class Avl_tree<T>;
 				friend class Avl_node<T>;
@@ -52,7 +52,7 @@ class Genode::Dictionary : Noncopyable
 
 				static T *_matching_sub_tree(T &curr, NAME const &name)
 				{
-					typename Avl_node<T>::Side side = (curr.This::name > name);
+					typename Avl_node<T>::Side side = (name > curr.This::name);
 					return curr.Avl_node<T>::child(side);
 				}
 
