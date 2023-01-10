@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/list_model.h>
-#include <util/avl_tree.h>
+#include <util/dictionary.h>
 
 /* local includes */
 #include <types.h>
@@ -39,24 +39,16 @@ class Sculpt::Launchers : public Noncopyable
 
 		Allocator &_alloc;
 
-		struct Launcher : Info, Avl_node<Launcher>, List_model<Launcher>::Element
+		struct Launcher;
+
+		using Dict = Dictionary<Launcher, Path>;
+
+		struct Launcher : Dict::Element, List_model<Launcher>::Element
 		{
-			Avl_tree<Launcher> &_avl_tree;
-
-			Launcher(Avl_tree<Launcher> &avl_tree, Path const &path)
-			: Info(path), _avl_tree(avl_tree)
-			{ _avl_tree.insert(this); }
-
-			~Launcher() { _avl_tree.remove(this); }
-
-			/**
-			 * Avl_node interface
-			 */
-			bool higher(Launcher *l) {
-				return strcmp(l->path.string(), path.string()) > 0; }
+			Launcher(Dict &dict, Path const &path) : Dict::Element(dict, path) { }
 		};
 
-		Avl_tree<Launcher> _sorted { };
+		Dict _sorted { };
 
 		List_model<Launcher> _launchers { };
 
@@ -64,9 +56,9 @@ class Sculpt::Launchers : public Noncopyable
 		{
 			Allocator &_alloc;
 
-			Avl_tree<Launcher> &_sorted;
+			Dict &_sorted;
 
-			Update_policy(Allocator &alloc, Avl_tree<Launcher> &sorted)
+			Update_policy(Allocator &alloc, Dict &sorted)
 			: _alloc(alloc), _sorted(sorted) { }
 
 			void destroy_element(Launcher &elem) { destroy(_alloc, &elem); }
@@ -81,7 +73,7 @@ class Sculpt::Launchers : public Noncopyable
 
 			static bool element_matches_xml_node(Launcher const &elem, Xml_node node)
 			{
-				return node.attribute_value("name", Path()) == elem.path;
+				return node.attribute_value("name", Path()) == elem.name;
 			}
 		};
 
@@ -89,14 +81,18 @@ class Sculpt::Launchers : public Noncopyable
 
 		Launchers(Allocator &alloc) : _alloc(alloc) { }
 
-		void update_from_xml(Xml_node node)
+		void update_from_xml(Xml_node const &node)
 		{
 			Update_policy policy(_alloc, _sorted);
 			_launchers.update_from_xml(policy, node);
 		}
 
 		template <typename FN>
-		void for_each(FN const &fn) const { _sorted.for_each(fn); }
+		void for_each(FN const &fn) const
+		{
+			_sorted.for_each([&] (Dict::Element const &e) {
+				fn(Info(e.name)); });
+		}
 };
 
 #endif /* _MODEL__LAUNCHERS_H_ */
