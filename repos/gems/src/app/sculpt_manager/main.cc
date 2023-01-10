@@ -35,6 +35,7 @@
 #include <model/child_exit_state.h>
 #include <model/file_operation_queue.h>
 #include <model/settings.h>
+#include <model/presets.h>
 #include <view/download_status.h>
 #include <view/popup_dialog.h>
 #include <view/panel_dialog.h>
@@ -368,21 +369,26 @@ struct Sculpt::Main : Input_event_handler,
 		_env, "report -> /runtime/launcher_query/listing" };
 
 	Launchers _launchers { _heap };
+	Presets   _presets   { _heap };
 
-	Signal_handler<Main> _launcher_listing_handler {
-		_env.ep(), *this, &Main::_handle_launcher_listing };
+	Signal_handler<Main> _launcher_and_preset_listing_handler {
+		_env.ep(), *this, &Main::_handle_launcher_and_preset_listing };
 
-	void _handle_launcher_listing()
+	void _handle_launcher_and_preset_listing()
 	{
 		_launcher_listing_rom.update();
 
-		Xml_node listing = _launcher_listing_rom.xml();
-		if (listing.has_sub_node("dir")) {
-			Xml_node dir = listing.sub_node("dir");
+		Xml_node const listing = _launcher_listing_rom.xml();
+		listing.for_each_sub_node("dir", [&] (Xml_node const &dir) {
 
-			/* let 'update_from_xml' iterate over <file> nodes */
-			_launchers.update_from_xml(dir);
-		}
+			Path const dir_path = dir.attribute_value("path", Path());
+
+			if (dir_path == "/launcher")
+				_launchers.update_from_xml(dir); /* iterate over <file> nodes */
+
+			if (dir_path == "/presets")
+				_presets.update_from_xml(dir);   /* iterate over <file> nodes */
+		});
 
 		_popup_menu_view.generate();
 		_deploy._handle_managed_deploy();
@@ -1235,7 +1241,7 @@ struct Sculpt::Main : Input_event_handler,
 		_pci_devices         .sigh(_pci_devices_handler);
 		_window_list         .sigh(_window_list_handler);
 		_decorator_margins   .sigh(_decorator_margins_handler);
-		_launcher_listing_rom.sigh(_launcher_listing_handler);
+		_launcher_listing_rom.sigh(_launcher_and_preset_listing_handler);
 		_blueprint_rom       .sigh(_blueprint_handler);
 		_editor_saved_rom    .sigh(_editor_saved_handler);
 		_clicked_rom         .sigh(_clicked_handler);

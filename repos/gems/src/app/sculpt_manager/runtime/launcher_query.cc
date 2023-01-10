@@ -30,6 +30,11 @@ void Sculpt::gen_launcher_query_start_content(Xml_generator &xml)
 			xml.attribute("path", "/launcher");
 			xml.attribute("content", "yes");
 		});
+
+		xml.node("query", [&] () {
+			xml.attribute("path", "/presets");
+			xml.attribute("content", "yes");
+		});
 	});
 
 	xml.node("route", [&] () {
