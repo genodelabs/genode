@@ -13,8 +13,8 @@
 #
 
 $(foreach TYPE,api src raw pkg,\
-   $(foreach PATH,${ARCHIVES(${TYPE})},\
-      $(eval ARCHIVE_VERSION(${PATH}) := $(call archive_curr_version,$(PATH)))))
+   $(foreach A,${ARCHIVES(${TYPE})},\
+      $(eval ARCHIVE_VERSION($A) := $(call archive_curr_version,$A))))
 
 archive_exists_in_depot = $(wildcard $(DEPOT_DIR)/$1)
 

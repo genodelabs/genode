@@ -20,9 +20,9 @@ ARCHIVE_TYPES := api src raw bin pkg
 #
 #
 
-categorize_archives = $(foreach PATH,$(ARCHIVE_PATHS),\
-                         $(if $(call archive_has_type,$(PATH),$1),\
-                            $(eval ARCHIVES($1) += $(PATH))))
+categorize_archives = $(foreach A,$(ARCHIVE_PATHS),\
+                         $(if $(call archive_has_type,$A,$1),\
+                            $(eval ARCHIVES($1) += $A)))
 
 $(foreach TYPE,$(ARCHIVE_TYPES),$(call categorize_archives,$(TYPE)))
 
