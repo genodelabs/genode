@@ -31,6 +31,38 @@ enum { NUM_TEST_INTS = 1<<20, BULK_ITERATIONS = 2 };
 
 static uint32_t data[NUM_TEST_INTS];
 
+/* fill data array with random numbers (1) or ascending integers (0) */
+static int use_random = 1;
+static pcg32_random_t pcg32_rng = PCG32_INITIALIZER;
+
+static void prepare_data()
+{
+	for (size_t i = 0; i < NUM_TEST_INTS; ++i)
+		data[i] = use_random ? pcg32_random_r(&pcg32_rng) : i;
+}
+
+static void check_data()
+{
+	int bad_offset = -1;
+	uint32_t expected = 0, actual = 0;
+
+	for (size_t i = 0; i < NUM_TEST_INTS; ++i) {
+		expected = use_random ? pcg32_random_r(&pcg32_rng) : i;
+
+		if (data[i] != expected) {
+			bad_offset = i << 2;
+			actual     = data[i];
+			break;
+		}
+	}
+
+	if (bad_offset != -1) {
+		fprintf(stderr, "bad data at byte offset %#x expected=%#08x got=%#08x\n", bad_offset, expected, actual);
+		exit(-1);
+	}
+}
+
+
 int test_send(char const *host)
 {
 	usleep(1000000);
@@ -54,15 +86,13 @@ int test_send(char const *host)
 		}
 	}
 
-	pcg32_random_t rng = PCG32_INITIALIZER;
 	for (int j = 0; j < BULK_ITERATIONS; ++j) {
-		for (size_t i = 0; i < NUM_TEST_INTS; ++i)
-			data[i] = pcg32_random_r(&rng);
+		prepare_data();
 
-		size_t total = sizeof(data);
+		size_t const total = sizeof(data);
 		size_t offset = 0;
 
-		char *buf = (char *)data;
+		char const *buf = (char const *)data;
 		while (offset < total) {
 			ssize_t res = send(sock, buf+offset, total-offset, 0);
 			if (res < 1) {
@@ -100,9 +130,8 @@ int test_recv()
 		}
 	}
 
-	if (listen(sock, 1)) {
+	if (listen(sock, 1))
 		perror("listen broke");
-	}
 
 	for (;;) {
 		char string[INET_ADDRSTRLEN];
@@ -116,14 +145,15 @@ int test_recv()
 		}
 
 		inet_ntop(AF_INET, &(addr.sin_addr), string, super_socket_safety);
-		fprintf(stderr, "recv from %s\n", string);
+		fprintf(stderr, "connection from %s\n", string);
 
-		pcg32_random_t rng = PCG32_INITIALIZER;
 		for (int j = 0; j < BULK_ITERATIONS; ++j) {
 
-			size_t total = sizeof(data);
+			size_t const total = sizeof(data);
 			size_t offset = 0;
 			char *buf = (char *)data;
+
+			memset(buf, total, 0x55);
 			while (offset < total) {
 				ssize_t res = recv(client, buf+offset, total-offset, 0);
 				if (res < 1) {
@@ -133,12 +163,7 @@ int test_recv()
 				offset += res;
 			}
 
-			for (size_t i = 0; i < NUM_TEST_INTS; ++i) {
-				if (data[i] != pcg32_random_r(&rng)) {
-					fprintf(stderr, "bad data at byte offset %ld\n", i<<2);
-					return ~0;
-				}
-			}
+			check_data();
 		}
 
 		fprintf(stderr, "close client\n");
