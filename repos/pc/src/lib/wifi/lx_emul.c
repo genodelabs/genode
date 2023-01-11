@@ -630,6 +630,36 @@ int pci_write_config_byte(const struct pci_dev * dev,int where,u8 val)
 }
 
 
+int pci_write_config_dword(const struct pci_dev * dev,int where,u32 val)
+{
+	switch (where) {
+	/*
+	 * ath9k: "Disable the bETRY_TIMEOUT register (0x41) to keep
+	 *        PCI Tx retries from interfering with C3 CPU state."
+	 */
+	case 0x40:
+		return 0;
+	}
+
+	return -1;
+}
+
+
+int pci_read_config_dword(const struct pci_dev * dev,int where,u32 * val)
+{
+	switch (where) {
+	/*
+	 * ath9k: "Disable the bETRY_TIMEOUT register (0x41) to keep
+	 *        PCI Tx retries from interfering with C3 CPU state."
+	 */
+	case 0x40:
+		return 0;
+	}
+
+	return -1;
+}
+
+
 int pci_read_config_word(const struct pci_dev * dev,int where,u16 * val)
 {
 	switch (where) {
@@ -704,10 +734,16 @@ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
 }
 
 
-int pci_read_config_dword(const struct pci_dev * dev,int where,u32 * val)
+void __iomem *pcim_iomap(struct pci_dev *pdev, int bar, unsigned long maxlen)
 {
-	*val = 0;
-	return 0;
+	return pci_iomap(pdev, bar, maxlen);
+}
+
+
+void *dmam_alloc_attrs(struct device *dev, size_t size, dma_addr_t *dma_handle,
+                       gfp_t gfp, unsigned long attrs)
+{
+	return dma_alloc_attrs(dev, size, dma_handle, gfp, attrs);
 }
 
 

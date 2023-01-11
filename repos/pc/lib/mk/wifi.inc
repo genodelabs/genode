@@ -27,6 +27,8 @@ SRC_C   += lx_emul/common_dummies.c
 CC_C_OPT += -I$(LX_SRC_DIR)/drivers/net/wireless/intel/iwlwifi
 CC_C_OPT += -I$(LX_SRC_DIR)/drivers/net/wireless/realtek/rtlwifi
 CC_C_OPT += -I$(LX_SRC_DIR)/drivers/net/wireless/realtek/rtlwifi/rtl8188ee
+CC_C_OPT += -I$(LX_SRC_DIR)/drivers/net/wireless/ath/
+CC_C_OPT += -I$(LX_SRC_DIR)/drivers/net/wireless/ath/ath9k
 CC_C_OPT += -I$(LX_SRC_DIR)/include/linux
 
 CC_C_OPT += -Wno-address-of-packed-member

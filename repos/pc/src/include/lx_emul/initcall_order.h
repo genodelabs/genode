@@ -227,6 +227,8 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_phylink_init6",
 	"__initcall_phy_module_init6",
 	"__initcall_fixed_mdio_bus_init6",
+	"__initcall_ath9k_init6",
+	"__initcall_ath9k_cmn_init6",
 	"__initcall_iwl_drv_init6",
 	"__initcall_iwl_init6",
 	"__initcall_iwl_mvm_init6",

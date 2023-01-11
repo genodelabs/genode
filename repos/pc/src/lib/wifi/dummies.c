@@ -478,6 +478,25 @@ noinstr void ct_irq_exit(void)
 }
 
 
+unsigned int pci_rescan_bus(struct pci_bus *bus)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void pcim_pin_device(struct pci_dev *pdev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void pcim_iounmap(struct pci_dev *pdev, void __iomem *addr)
+{
+	lx_emul_trace(__func__);
+}
+
+
 #include <linux/sysctl.h>
 
 void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name)
@@ -496,3 +515,18 @@ int sysfs_add_file_to_group(struct kobject * kobj,const struct attribute * attr,
 
 
 void * high_memory;
+
+
+int pcim_iomap_regions(struct pci_dev *pdev, int mask, const char *name)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+int pcie_capability_clear_and_set_word(struct pci_dev *dev, int pos,
+                                       u16 clear, u16 set)
+{
+	lx_emul_trace_and_stop(__func__);
+	return 0;
+}
