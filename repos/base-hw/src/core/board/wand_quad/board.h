@@ -20,7 +20,7 @@
 #include <hw/spec/arm/wand_quad_board.h>
 
 /* base-hw Core includes */
-#include <spec/arm/cortex_a9_private_timer.h>
+#include <spec/arm/cortex_a9_global_timer.h>
 #include <spec/cortex_a9/cpu.h>
 
 namespace Board {
@@ -35,8 +35,8 @@ namespace Board {
 	L2_cache & l2_cache();
 
 	enum {
-		CORTEX_A9_PRIVATE_TIMER_CLK = 500000000, /* timer clk runs half the CPU freq */
-		CORTEX_A9_PRIVATE_TIMER_DIV = 100,
+		CORTEX_A9_GLOBAL_TIMER_CLK = 500000000, /* timer clk runs half the CPU freq */
+		CORTEX_A9_GLOBAL_TIMER_DIV = 100,
 	};
 }
 

@@ -7,7 +7,7 @@
 # add C++ sources
 SRC_CC += spec/cortex_a9/board.cc
 SRC_CC += spec/cortex_a9/cpu.cc
-SRC_CC += spec/arm/cortex_a9_private_timer.cc
+SRC_CC += spec/arm/cortex_a9_global_timer.cc
 SRC_CC += spec/arm/gicv2.cc
 SRC_CC += spec/arm/kernel/lock.cc
 SRC_CC += kernel/vm_thread_off.cc

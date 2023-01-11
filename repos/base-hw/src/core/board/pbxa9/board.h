@@ -19,7 +19,7 @@
 #include <hw/spec/arm/pbxa9_board.h>
 
 /* base-hw Core includes */
-#include <spec/arm/cortex_a9_private_timer.h>
+#include <spec/arm/cortex_a9_global_timer.h>
 #include <spec/cortex_a9/cpu.h>
 
 namespace Board {
