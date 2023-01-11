@@ -18,7 +18,7 @@
 
 namespace Board {
 
-	class Global_interrupt_controller { };
+	class Global_interrupt_controller { public: void init() {} };
 	class Pic;
 };
 

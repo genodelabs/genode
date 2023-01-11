@@ -29,7 +29,7 @@ namespace Board {
 
 	using L2_cache = Hw::Pl310;
 
-	class Global_interrupt_controller { };
+	class Global_interrupt_controller { public: void init() {} };
 	class Pic : public Hw::Gicv2 { public: Pic(Global_interrupt_controller &) { } };
 
 	L2_cache & l2_cache();

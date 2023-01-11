@@ -246,17 +246,24 @@ Global_interrupt_controller::Global_interrupt_controller()
 			_irq_mode[i].trigger_mode = TRIGGER_LEVEL;
 			_irq_mode[i].polarity = POLARITY_LOW;
 		}
-
-		/* remap all IRQs managed by I/O APIC */
-		if (i < _irte_count) {
-			Irte::access_t irte = _create_irt_entry(i);
-			write<Ioregsel>(IOREDTBL + 2 * i + 1);
-			write<Iowin>((Iowin::access_t)(irte >> Iowin::ACCESS_WIDTH));
-			write<Ioregsel>(IOREDTBL + 2 * i);
-			write<Iowin>((Iowin::access_t)(irte));
-		}
 	}
-};
+
+	init();
+}
+
+
+void Global_interrupt_controller::init()
+{
+	/* remap all IRQs managed by I/O APIC */
+	for (unsigned i = 0; i < _irte_count; i++)
+	{
+		Irte::access_t irte = _create_irt_entry(i);
+		write<Ioregsel>(IOREDTBL + 2 * i + 1);
+		write<Iowin>((Iowin::access_t)(irte >> Iowin::ACCESS_WIDTH));
+		write<Ioregsel>(IOREDTBL + 2 * i);
+		write<Iowin>((Iowin::access_t)(irte));
+	}
+}
 
 
 void Global_interrupt_controller::toggle_mask(unsigned const vector,

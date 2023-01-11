@@ -144,6 +144,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 				kernel_initialized     = false;
 
 				Main::_instance->_serial.init();
+				Main::_instance->_global_irq_ctrl.init();
 			}
 
 			nr_of_initialized_cpus ++;

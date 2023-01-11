@@ -26,7 +26,7 @@ namespace Board {
 
 	using namespace Hw::Imx6q_sabrelite_board;
 
-	class Global_interrupt_controller { };
+	class Global_interrupt_controller { public: void init() {} };
 	class Pic : public Hw::Gicv2 { public: Pic(Global_interrupt_controller &) { } };
 
 	using L2_cache = Hw::Pl310;

@@ -27,7 +27,7 @@ namespace Board {
 	struct Vm_page_table {};
 	struct Vm_page_table_array {};
 
-	class Global_interrupt_controller { };
+	class Global_interrupt_controller { public: void init() {} };
 	struct Pic : Hw::Pic { struct Virtual_context {}; Pic(Global_interrupt_controller &) { } };
 	struct Vcpu_context { Vcpu_context(Kernel::Cpu &) {} };
 }

@@ -114,6 +114,8 @@ class Board::Global_interrupt_controller : public Genode::Mmio
 
 		Global_interrupt_controller();
 
+		void init();
+
 		/**
 		 * Set/unset mask bit of IRTE for given vector
 		 *
