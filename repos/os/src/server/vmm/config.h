@@ -38,7 +38,7 @@ class Vmm::Config
 
 		struct Virtio_device : List_model<Virtio_device>::Element
 		{
-			enum Type { INVALID, CONSOLE, NET, BLOCK };
+			enum Type { INVALID, CONSOLE, NET, BLOCK, GPU };
 
 			enum { MMIO_SIZE = 0x200 };
 
@@ -94,6 +94,7 @@ class Vmm::Config
 				if (type == "console") t = Virtio_device::CONSOLE;
 				if (type == "net")     t = Virtio_device::NET;
 				if (type == "block")   t = Virtio_device::BLOCK;
+				if (type == "gpu")     t = Virtio_device::GPU;
 				return t;
 			}
 

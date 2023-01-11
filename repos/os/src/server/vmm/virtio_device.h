@@ -19,6 +19,7 @@
 #include <util/mmio.h>
 #include <util/reconstructible.h>
 
+#include <cpu.h>
 #include <gic.h>
 #include <ram.h>
 #include <mmio.h>

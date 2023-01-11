@@ -21,9 +21,7 @@
 #include <cpu.h>
 #include <gic.h>
 #include <pl011.h>
-#include <virtio_console.h>
-#include <virtio_net.h>
-#include <virtio_block.h>
+#include <virtio_device.h>
 
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>

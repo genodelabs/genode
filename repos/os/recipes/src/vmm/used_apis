@@ -1,7 +1,11 @@
 base-hw
 base
 block_session
+gui_session
+framebuffer_session
+input_session
 nic_session
 os
 terminal_session
 timer_session
+blit
