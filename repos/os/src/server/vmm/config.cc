@@ -37,7 +37,7 @@ Config::Virtio_device::~Virtio_device()
 void Vmm::Config::update(Xml_node node)
 {
 	_kernel_name = node.attribute_value("kernel_rom",  Name("linux"));
-	_initrd_name = node.attribute_value("initrd_rom",  Name("initrd"));
+	_initrd_name = node.attribute_value("initrd_rom",  Name());
 	_ram_size    = node.attribute_value("ram_size",    Number_of_bytes());
 	_cpu_count   = node.attribute_value("cpu_count",   0U);
 	_cpu_type    = node.attribute_value("cpu_type",    Name("arm,cortex-a15"));

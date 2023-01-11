@@ -26,7 +26,8 @@ Configuration attributes explained in more detail:
 
 :initrd_rom:
   This attribute is optional. It denotes the ROM, which is requested as initramfs
-  resp. initrd to be loaded. The default name requested will be "initrd".
+  resp. initrd to be loaded. If no name is given, no initramfs will be provided
+  to the guest OS.
 
 :ram_size:
   This attribute is mandatory. It defines the size of the VM's memory.

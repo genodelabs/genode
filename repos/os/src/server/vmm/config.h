@@ -130,6 +130,8 @@ class Vmm::Config
 		Config(Heap & heap) : _heap(heap) {
 			_mmio_alloc.add_range(VIRTIO_MMIO_START, VIRTIO_MMIO_SIZE); }
 
+		bool initrd() const { return _initrd_name.valid(); }
+
 		const char * kernel_name() const { return _kernel_name.string(); }
 		const char * initrd_name() const { return _initrd_name.string(); }
 		const char * cpu_type()    const { return _cpu_type.string();    }

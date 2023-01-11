@@ -54,7 +54,6 @@ class Vmm::Vm
 		Config                 & _config;
 		Vm_connection            _vm         { _env           };
 		Attached_rom_dataspace   _kernel_rom { _env, _config.kernel_name() };
-		Attached_rom_dataspace   _initrd_rom { _env, _config.initrd_name() };
 		Attached_ram_dataspace   _vm_ram     { _env.ram(), _env.rm(),
 		                                       _config.ram_size(), CACHED };
 		Ram                      _ram        { RAM_START, _config.ram_size(),
@@ -65,9 +64,11 @@ class Vmm::Vm
 		List<Virtio_device_base> _device_list;
 		Pl011                    _uart;
 
-		Constructible<Gui::Connection> _gui {};
+		Constructible<Attached_rom_dataspace> _initrd_rom {};
+		Constructible<Gui::Connection>        _gui {};
 
 		addr_t _initrd_offset() const;
+		size_t _initrd_size()   const;
 		addr_t _dtb_offset()    const;
 
 		void _load_kernel();

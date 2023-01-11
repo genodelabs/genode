@@ -338,12 +338,16 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 
 		node(Name("chosen"), [&] ()
 		{
+			property(Name("bootargs"),           Name(config.bootargs()));
+			property(Name("stdout-path"),        Name("/pl011"));
+
+			if (!initrd_size)
+				return;
+
 			/* we're sure that the initrd start address is wide below 4GB */
 			uint32_t start = (uint32_t)((addr_t)initrd_start & 0xffffffff);
 			property(Name("linux,initrd-start"), Value(start));
 			property(Name("linux,initrd-end"),   Value(start+initrd_size));
-			property(Name("bootargs"),           Name(config.bootargs()));
-			property(Name("stdout-path"),        Name("/pl011"));
 		});
 
 		config.for_each_virtio_device([&] (Config::Virtio_device const & dev) {
