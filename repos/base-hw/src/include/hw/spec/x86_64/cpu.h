@@ -117,6 +117,17 @@ struct Hw::X86_64_cpu
 	/* AMD host save physical address */
 	X86_64_MSR_REGISTER(Amd_vm_hsavepa, 0xC0010117);
 
+	X86_64_MSR_REGISTER(Platform_id, 0x17,
+		struct Bus_ratio : Bitfield<8, 5> { }; /* Bus ratio on Core 2, see SDM 19.7.3 */
+	);
+
+	X86_64_MSR_REGISTER(Platform_info, 0xCE,
+		struct Ratio : Bitfield< 8, 8> { }; /* Maximum Non-Turbo Ratio (R/O) */
+	);
+
+	X86_64_MSR_REGISTER(Fsb_freq, 0xCD,
+		struct Speed : Bitfield< 0, 3> { }; /* Scaleable Bus Speed (R/O) */
+	);
 
 	X86_64_MSR_REGISTER(Ia32_efer, 0xC0000080,
 		struct Svme : Bitfield< 12, 1> { }; /* Secure Virtual Machine Enable */
@@ -129,9 +140,16 @@ struct Hw::X86_64_cpu
 	 */
 	X86_64_MSR_REGISTER(Ia32_tsc_aux, 0xc0000103);
 
+	X86_64_CPUID_REGISTER(Cpuid_0_eax, 0, eax);
 	X86_64_CPUID_REGISTER(Cpuid_0_ebx, 0, ebx);
 	X86_64_CPUID_REGISTER(Cpuid_0_ecx, 0, ecx);
 	X86_64_CPUID_REGISTER(Cpuid_0_edx, 0, edx);
+
+	X86_64_CPUID_REGISTER(Cpuid_1_eax, 1, eax);
+
+	X86_64_CPUID_REGISTER(Cpuid_1_ecx, 1, ecx,
+		struct Tsc_deadline : Bitfield<24, 1> { };
+	);
 
 	X86_64_CPUID_REGISTER(Cpuid_1_edx, 1, edx,
 		struct Pat : Bitfield<16, 1> { };
@@ -140,8 +158,16 @@ struct Hw::X86_64_cpu
 	/* Number of address space identifiers (ASID) */
 	X86_64_CPUID_REGISTER(Amd_nasid, 0x8000000A, ebx);
 
+	X86_64_CPUID_REGISTER(Cpuid_15_eax, 15, eax);
+	X86_64_CPUID_REGISTER(Cpuid_15_ebx, 15, ebx);
+	X86_64_CPUID_REGISTER(Cpuid_15_ecx, 15, ecx);
+
 	X86_64_CPUID_REGISTER(Cpuid_8000000A_edx, 0x8000000A, edx,
 		struct Np : Bitfield<0, 1> { }; /* Nested paging */
+	);
+
+	X86_64_CPUID_REGISTER(Cpuid_80000007_eax, 0x80000007, eax,
+		struct Invariant_tsc : Bitfield<2, 1> { }; /* Invariant TSC */
 	);
 
 	X86_64_CPUID_REGISTER(Cpuid_80000001_ecx, 0x80000001, ecx,

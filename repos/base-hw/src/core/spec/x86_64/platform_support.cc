@@ -52,10 +52,14 @@ void Platform::_init_additional_platform_info(Xml_generator &xml)
 			xml.attribute("pitch",  boot_fb.pitch);
 		});
 	});
-	xml.node("hardware", [&] () {
+	xml.node("hardware", [&]() {
 		xml.node("features", [&] () {
 			xml.attribute("svm", Hw::Virtualization_support::has_svm());
 			xml.attribute("vmx", false);
+		});
+		xml.node("tsc", [&]() {
+			xml.attribute("invariant", Hw::Lapic::invariant_tsc());
+			xml.attribute("freq_khz", Hw::Lapic::tsc_freq());
 		});
 	});
 }
