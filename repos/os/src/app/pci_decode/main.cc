@@ -170,6 +170,13 @@ void Main::parse_pci_function(Bdf             bdf,
 				    device_id == 0x780d)
 					msi = msi_x = false;
 			}
+
+			/*
+			 * Force use of GSI on given ath9k device as using MSI
+			 * does not work.
+			 */
+			if (vendor_id == 0x168c || device_id == 0x0034)
+				msi = msi_x = false;
 		}
 
 		/*
