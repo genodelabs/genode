@@ -1989,6 +1989,7 @@ void Interface::_update_udp_tcp_links(L3_protocol  prot,
 
 		try {
 			/* try to find forward rule that matches the server port */
+			bool done { false };
 			_forward_rules(cln_dom, prot).find_by_port(
 				link.client().dst_port(),
 				[&] /* handle_match */ (Forward_rule const &rule)
@@ -2026,7 +2027,6 @@ void Interface::_update_udp_tcp_links(L3_protocol  prot,
 				[&] /* handle_no_match */ () {
 					try {
 						/* try to find transport rule that matches the server IP */
-						bool done { false };
 						_transport_rules(cln_dom, prot).find_best_match(
 							link.client().dst_ip(),
 							link.client().dst_port(),
@@ -2048,6 +2048,9 @@ void Interface::_update_udp_tcp_links(L3_protocol  prot,
 					catch (Dismiss_link) { }
 				}
 			);
+			if (done) {
+				return;
+			}
 		}
 		catch (Dismiss_link) { }
 		destroy_link(link);
