@@ -18,7 +18,7 @@
 .data
 
 	/********************************************
-	 ** Identity mapping from 4KiB to 1GiB     **
+	 ** Identity mapping from 4KiB to 4GiB     **
 	 ** plus mappings for LAPIC, I/O APIC MMIO **
 	 ** Page 0 containing the Bios Data Area   **
 	 ** gets mapped to 2MiB - 4KiB readonly.   **
@@ -35,7 +35,7 @@
 	.p2align MIN_PAGE_SIZE_LOG2
 	_kernel_pdp:
 	.quad _kernel_pd_0 + 0xf
-	.fill 1, 8, 0x0
+	.quad _kernel_pd_1 + 0xf
 	.quad _kernel_pd_2 + 0xf
 	.quad _kernel_pd_3 + 0xf
 	.fill 508, 8, 0x0
@@ -46,6 +46,15 @@
 	.quad _kernel_pt_bda + 0xf
 	.set entry, 0x20018f
 	.rept 511
+	.quad entry
+	.set entry, entry + 0x200000
+	.endr
+
+	/* PD [1G-2G) */
+	.p2align MIN_PAGE_SIZE_LOG2
+	_kernel_pd_1:
+	.set entry, 0x4000018f
+	.rept 512
 	.quad entry
 	.set entry, entry + 0x200000
 	.endr
