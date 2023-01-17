@@ -38,7 +38,7 @@ $(TARGET) $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE): checked_content_mk_exists
 # triggered as soon as the specific tag file appears but before the entire
 # sub make is finished with populating the archive directory.
 #
-.NOTPARALLEL: $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE)
+.NOTPARALLEL: $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE) $(DEPOT_ARCHIVE_DIR).hash
 
 #
 # Assemble archive content by invoking the recipe's content.mk file

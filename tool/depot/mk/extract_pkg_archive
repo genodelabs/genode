@@ -77,7 +77,7 @@ ifeq ($(filter $(RECIPE_FILES),runtime),runtime)
 	$(VERBOSE)xmllint --noout $(addprefix $(RECIPE_DIR)/,runtime)
 endif
 
-.NOTPARALLEL: $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE)
+.NOTPARALLEL: $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE) $(DEPOT_ARCHIVE_DIR).hash
 
 $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE): checked_readme_exists checked_runtime_valid
 	$(VERBOSE)cp $(addprefix $(RECIPE_DIR)/,$(RECIPE_FILES)) $(DEPOT_ARCHIVE_DIR)/
@@ -85,7 +85,7 @@ $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE): checked_readme_exists checked_runtime_valid
 #
 # Replace the '_' marker in the 'archives' list with the actual user name
 #
-$(DEPOT_ARCHIVE_DIR)/archives: $(DEPOT_ARCHIVE_DIR).hash $(DEPOT_ARCHIVE_DIR)/_archives
+$(DEPOT_ARCHIVE_DIR)/archives: $(DEPOT_ARCHIVE_DIR).hash
 	$(VERBOSE)sed "s/^_/$(USER)/" $(DEPOT_ARCHIVE_DIR)/_archives > $@
 	$(VERBOSE)rm -f $(DEPOT_ARCHIVE_DIR)/_archives
 
