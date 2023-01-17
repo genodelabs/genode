@@ -331,13 +331,12 @@ class Net::Interface : private Interface_list::Element
 
 		void _update_icmp_links(Domain &cln_dom);
 
-		void _update_link_check_nat(Link        &link,
-		                            Domain      &new_srv_dom,
-		                            L3_protocol  prot,
-		                            Domain      &cln_dom);
+		bool _try_update_link(Link        &link,
+		                      Domain      &new_srv_dom,
+		                      L3_protocol  prot,
+		                      Domain      &cln_dom);
 
-		void _dismiss_link_log(Link       &link,
-		                       char const *reason);
+		void _dismiss_link(Link &link);
 
 		void _update_domain_object(Domain &new_domain);
 

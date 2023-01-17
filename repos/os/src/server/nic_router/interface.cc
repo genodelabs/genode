@@ -1920,65 +1920,55 @@ Interface::Interface(Genode::Entrypoint     &ep,
 }
 
 
-void Interface::_dismiss_link_log(Link       &link,
-                                  char const *reason)
+void Interface::_dismiss_link(Link &link)
 {
-	if (!_config().verbose()) {
-		return;
+	if (_config().verbose()) {
+		log("[", link.client().domain(), "] dismiss link client: ", link.client());
+		log("[", link.server().domain(), "] dismiss link server: ", link.server());
 	}
-	log("[", link.client().domain(), "] dismiss link client: ", link.client(), " (", reason, ")");
-	log("[", link.server().domain(), "] dismiss link server: ", link.server(), " (", reason, ")");
+	destroy_link(link);
 }
 
 
-void Interface::_update_link_check_nat(Link        &link,
-                                       Domain      &new_srv_dom,
-                                       L3_protocol  prot,
-                                       Domain      &cln_dom)
+bool Interface::_try_update_link(Link        &link,
+                                 Domain      &new_srv_dom,
+                                 L3_protocol  prot,
+                                 Domain      &cln_dom)
 {
-	/* if server domain or its IP config changed, dismiss link */
-	Domain &old_srv_dom = link.server().domain();
+	Domain &old_srv_dom { link.server().domain() };
 	if (old_srv_dom.name()      != new_srv_dom.name() ||
 	    old_srv_dom.ip_config() != new_srv_dom.ip_config())
-	{
-		_dismiss_link_log(link, "rule targets other domain");
-		throw Dismiss_link();
-	}
-	Pointer<Port_allocator_guard> remote_port_alloc_ptr;
-	if (link.client().src_ip() == link.server().dst_ip()) {
-		link.handle_config(cln_dom, new_srv_dom, remote_port_alloc_ptr, _config());
-		return;
-	}
-	try {
-		if (link.server().dst_ip() != new_srv_dom.ip_config().interface().address) {
-			_dismiss_link_log(link, "NAT IP");
-			throw Dismiss_link();
-		}
-		bool done { false };
-		new_srv_dom.nat_rules().find_by_domain(
-			cln_dom,
-			[&] /* handle_match */ (Nat_rule &nat)
-			{
-				Port_allocator_guard &remote_port_alloc = nat.port_alloc(prot);
-				remote_port_alloc.alloc(link.server().dst_port());
-				remote_port_alloc_ptr = remote_port_alloc;
-				link.handle_config(
-					cln_dom, new_srv_dom, remote_port_alloc_ptr, _config());
+		return false;
 
-				done = true;
-			},
-			[&] /* handle_no_match */ ()
-			{
-				_dismiss_link_log(link, "no NAT rule");
-			}
-		);
-		if (done) {
-			return;
-		}
+	if (link.client().src_ip() == link.server().dst_ip()) {
+
+		link.handle_config(
+			cln_dom, new_srv_dom, Pointer<Port_allocator_guard> { },
+			_config());
+
+		return true;
 	}
-	catch (Port_allocator::Allocation_conflict)  { _dismiss_link_log(link, "no NAT-port"); }
-	catch (Port_allocator_guard::Out_of_indices) { _dismiss_link_log(link, "no NAT-port quota"); }
-	throw Dismiss_link();
+	if (link.server().dst_ip() != new_srv_dom.ip_config().interface().address)
+		return false;
+
+	bool keep_link { false };
+	new_srv_dom.nat_rules().find_by_domain(
+		cln_dom,
+		[&] /* handle_match */ (Nat_rule &nat)
+		{
+			Port_allocator_guard &remote_port_alloc { nat.port_alloc(prot) };
+			try { remote_port_alloc.alloc(link.server().dst_port()); }
+			catch (Port_allocator::Allocation_conflict)  { return; }
+			catch (Port_allocator_guard::Out_of_indices) { return; }
+
+			link.handle_config(
+				cln_dom, new_srv_dom, remote_port_alloc, _config());
+
+			keep_link = true;
+		},
+		[&] /* handle_no_match */ () { }
+	);
+	return keep_link;
 }
 
 
@@ -1987,101 +1977,76 @@ void Interface::_update_udp_tcp_links(L3_protocol  prot,
 {
 	links(prot).for_each([&] (Link &link) {
 
-		try {
-			/* try to find forward rule that matches the server port */
-			bool done { false };
+		bool link_has_been_updated { false };
+
+		if (link.server().src_ip() != link.client().dst_ip()) {
+
 			_forward_rules(cln_dom, prot).find_by_port(
 				link.client().dst_port(),
 				[&] /* handle_match */ (Forward_rule const &rule)
 				{
-					/* if destination IP of forwarding changed, dismiss link */
-					if (rule.to_ip() != link.server().src_ip()) {
-						_dismiss_link_log(link, "other forward-rule to");
-						throw Dismiss_link();
-					}
-					/*
-					 * If destination port of forwarding was set and then was
-					 * modified or unset, dismiss link
-					 */
-					if (!(link.server().src_port() == link.client().dst_port())) {
-						if (!(rule.to_port() == link.server().src_port())) {
-							_dismiss_link_log(link, "other forward-rule to_port");
-							throw Dismiss_link();
-						}
-					}
-					/*
-					 * If destination port of forwarding was not set and then was
-					 * set, dismiss link
-					 */
-					else {
-						if (!(rule.to_port() == link.server().src_port()) &&
-						    !(rule.to_port() == Port(0)))
-						{
-							_dismiss_link_log(link, "new forward-rule to_port");
-							throw Dismiss_link();
-						}
-					}
-					_update_link_check_nat(link, rule.domain(), prot, cln_dom);
-					return;
-				},
-				[&] /* handle_no_match */ () {
-					try {
-						/* try to find transport rule that matches the server IP */
-						_transport_rules(cln_dom, prot).find_best_match(
-							link.client().dst_ip(),
-							link.client().dst_port(),
-							[&] /* handle_match */ (Transport_rule const &,
-							                        Permit_rule    const &permit_rule)
-							{
-								_update_link_check_nat(link, permit_rule.domain(), prot, cln_dom);
-								done = true;
-							},
-							[&] /* handle_no_match */ ()
-							{
-								_dismiss_link_log(link, "no matching transport/permit/forward rule");
-							}
-						);
-						if (done) {
+					if (rule.to_ip() != link.server().src_ip())
+						return;
+
+					if (rule.to_port() == Port { 0 }) {
+
+						if (link.server().src_port() !=
+						    link.client().dst_port())
 							return;
-						}
+
+					} else {
+
+						if (rule.to_port() != link.server().src_port())
+							return;
 					}
-					catch (Dismiss_link) { }
-				}
+					link_has_been_updated =
+						_try_update_link(link, rule.domain(), prot, cln_dom);
+				},
+				[&] /* handle_no_match */ () { }
 			);
-			if (done) {
-				return;
-			}
+
+		} else {
+
+			_transport_rules(cln_dom, prot).find_best_match(
+				link.client().dst_ip(),
+				link.client().dst_port(),
+				[&] /* handle_match */ (Transport_rule const &,
+				                        Permit_rule    const &rule)
+				{
+					link_has_been_updated =
+						_try_update_link(link, rule.domain(), prot, cln_dom);
+				},
+				[&] /* handle_no_match */ () { }
+			);
 		}
-		catch (Dismiss_link) { }
-		destroy_link(link);
+		if (link_has_been_updated)
+			return;
+
+		_dismiss_link(link);
 	});
 }
 
 
 void Interface::_update_icmp_links(Domain &cln_dom)
 {
-	L3_protocol const prot = L3_protocol::ICMP;
+	L3_protocol const prot { L3_protocol::ICMP };
 	links(prot).for_each([&] (Link &link) {
-		try {
-			bool done { false };
-			cln_dom.icmp_rules().find_longest_prefix_match(
-				link.client().dst_ip(),
-				[&] /* handle_match */ (Ip_rule const &rule)
-				{
-					_update_link_check_nat(link, rule.domain(), prot, cln_dom);
-					done = true;
-				},
-				[&] /* handle_no_match */ ()
-				{
-					_dismiss_link_log(link, "no ICMP rule");
-				}
-			);
-			if (done) {
-				return;
-			}
-		}
-		catch (Dismiss_link) { }
-		destroy_link(link);
+
+		bool link_has_been_updated { false };
+
+		cln_dom.icmp_rules().find_longest_prefix_match(
+			link.client().dst_ip(),
+			[&] /* handle_match */ (Ip_rule const &rule)
+			{
+				link_has_been_updated =
+					_try_update_link(link, rule.domain(), prot, cln_dom);
+			},
+			[&] /* handle_no_match */ () { }
+		);
+		if (link_has_been_updated)
+			return;
+
+		_dismiss_link(link);
 	});
 }
 
