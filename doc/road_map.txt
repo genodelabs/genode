@@ -14,82 +14,90 @@ The road map is not fixed. If there is commercial interest of pushing the
 Genode technology to a certain direction, we are willing to revisit our plans.
 
 
-Review of 2021
+Review of 2022
 ##############
 
-Genode's year 2021 was defined by three extremely challenging lines of work.
+The two main topics of 2022 went hand in hand. First, we reimagined Genode's
+driver landscape across x86 and ARM, universally adopting a new method of
+reusing Linux drivers to great success, and rigidly applying the framework's
+security architecture to driver components. This effort unlocked the second
+major achievement, namely the use of Genode as mobile OS on the PinePhone.
 
-First, we conquered the territory of GPU support that was ridden with
-uncertainties and seemed almost impenetrable when we started. But at the end
-of the year, our custom Intel-GPU multiplexer has landed in Sculpt OS like it
-always belonged there. In tandem with the Intel-GPU work, we explored the
-Vivante GPU as a representative of an ARM platform. The work required a deep
-dive into the respective GPU architectures and the Mesa software stack. It
-eventually led us to the design of Genode's device-agnostic GPU interfaces.
+Following the introduction of Genode's rigid driver architecture on ARM
+platforms in 2021, we took the year 2022 as opportunity to consistently
+establish this architecture across all platforms.
+We conquered the convoluted world of x86 in greater depth than ever before,
+leaving almost no stone unturned. On top of the new architecture, we built an
+arsenal of fresh driver components, most of them based on our Linux
+device-driver environment. Other drivers had been written from scratch
+specifically for Genode, most prominently our custom Intel GPU multiplexer
+that covers recent hardware generations like Intel Alderlake and Tigerlake.
 
-The second line of work was concerned with the reuse of Linux drivers as
-Genode components. Over the year, the puzzle pieces of our new Linux
-device-driver environment come together, replacing former confusion and chaos
-with knowledge and order, ultimately uncovering the treasure of Linux drivers
-for Genode with very little friction. On the way, we created new methodology
-and tooling, as well as extensive documentation in the form of the "Genode
-Platforms" document. Thanks to the new drivers ported from the Linux kernel,
-we were able to witness interactive Genode scenarios becoming alive on the
-PinePhone by the end of the year.
+Our intense engagement with the PinePhone was driven by the vision of a
+Genode-based smartphone. It entailed the enablement of device hardware ranging
+from touch screen, over power management, audio, storage, telephony, camera,
+GPU, to mobile-data connectivity. The challenge of getting the hardware to
+cooperate was met by the challenge of enabling meaningful application
+workloads. The ability to run the Chromium-based morph browser directly on
+Genode on the PinePhone is certainly the most prolific result. Moreover, we
+haven't merely managed to get it to work, but we gained detailed guidance
+material ([https://genode.org/documentation/genode-platforms-22-05.pdf - PDF])
+along the way, lowering the barrier of entry for others who wish to port
+Genode to further mobile platforms in the future.
 
-The third major topic was the growing sophistication of Genode-native
-workloads, with the media features of the Chromium-based browser on 64-bit ARM
-being the most impressive example. Apart from the apparent functional benefits
-for Genode and Sculpt OS, this is the long outstanding validation of some bold
-design decisions we took years ago, in particular the role and architecture of
-the VFS and its interplay with the libc.
-
-When reviewing the road map for 2021, some items remained uncovered. In
-particular the seL4-related topics became stale. At the end of 2020 - when we
-assembled the road map for the past year - there was a tangible prospect of
-pursuing this topic as funded work. However, those plans were repeatedly
-deferred and remained uncertain. Also, there are some items that have seen
-healthy doses of progress - like the topics related to Ada/SPARK or Goa - but
-received less attention than anticipated. On the other hand, the four releases
-([https://genode.org/documentation/release-notes/21.02 - 21.02],
-[https://genode.org/documentation/release-notes/21.05 - 21.05],
-[https://genode.org/documentation/release-notes/21.08 - 21.08],
-[https://genode.org/documentation/release-notes/21.11 - 21.11])
-of 2021 covered quite a few topics not advertised at the road
-map, e.g., webcam support, Xilinx Zynq, or RISC-V.
-
-It is fair to say that the level of technical risks we took in 2021 had been
-unprecedented in Genode's development history. We are more than proud of the
-outcome, which will hopefully propel Genode to new heights in 2022.
+Besides these two main lines of development, 2022 was packed with further
+intriguing topics as well. To name a few, we combined Genode with FPGAs for
+new hardware-software co-design opportunities, enabled the use of
+WireGuard-based virtual private networks, experimented with hardware security
+modules, and explored suspend/resume functionality on PC hardware.
+The [https://genode.org/documentation/release-notes/index - documentation] of
+the four releases of 2022 presents the whole picture.
 
 
-2022 - Mobile Usability
-#######################
+2023 - Rocking the platforms we support!
+########################################
 
-After having enabled the first interactive Genode scenarios on the PinePhone
-last year, we plan to take Genode on the PinePhone to a level where we can
-routinely use it for advanced applications, in particular video chat. This
-vision confronts us with a multitude of hard technical nuts to crack such as
-power efficiency, UI latency, quality-of-service of audio processing, drivers
-for multi-media devices, WebRTC performance, and usability. This grand theme
-will not only address the PinePhone specifically. The efficiency gains will
-benefit all Genode use cases large and small.
+Genode has already come a long way to support a variety of device form factors
+ranging from the embedded appliances, over the PinePhone, to PC hardware.
+With the term "support", we used to refer to the principle use of fundamental
+platform features like storage, networking, display, audio, or USB. The needs
+of most real-world scenarios, however, go beyond those functional basics.
+Think of suspend/resume, quick boot times, the deliberate management of
+energy-efficient versus high-performance CPU cores, prolonged standby,
+bounded audio latency, scaling down (towards microcontrollers), and
+scaling up (towards edge-computing platforms).
 
-Our theme of the Genode-based video chat on the PinePhone fuels several
-ambitions in closely related areas. In particular, we aspire using WireGuard
-to secure private communication, and experiment with the operation of
-hardware-based trust anchors as the basis for encrypted storage and
-communication.
+In 2023, we are going to move from making things work to making things rock!
 
-Besides the PinePhone, we will steadily nurture the quality and scope of
-driver support on PC hardware, which remains the primary platform for the
-day-to-day use of Sculpt OS. So you can expect us to keep up with recent
-generations of Intel-based hardware. In this area, we plan to make IOMMU
-support available with kernels beyond NOVA, and explore the use of
-power-management features like suspend-resume with Sculpt OS.
+Specifically, to rock the PinePhone, we will invite the community to
+participate in multiple rounds of field tests, allowing us to enable and
+refine advanced features, like prolonged standby, in an iterative way.
+
+Regarding the PC, we aim at leveraging the different power characteristics
+of CPU cores found in modern Intel platforms, step up our game regarding GPU
+support (peeking at Vulkan), and making suspend/resume a regular feature that
+just works.
+
+These efforts will be flanked by continuous architectural work that will make
+the framework ever cleaner and leaner, e.g., by reducing the reliance on
+complex C++ features like exceptions, and continuously simplifying the
+framework fundamentals and interfaces. On our mission to attain least
+complexity of the base system, we strive to host the fully featured PC version
+of Sculpt OS on Genode's custom-tailored microkernel by the end of the year.
+
+In addition to the overarching theme outlined above, the following additional
+topics stood out during our yearly brainstorming session on the mailing list.
+First, several developers expressed their curiosity in working on AMD graphics
+(display and GPU) as a side activity. A second recurring topic was the
+usability of Genode as desktop OS, easing the work with files on Sculpt,
+supporting Drag'n'Drop, tightening the work-flow integration of app-VMs
+using the light-weight Seoul VMM, or the use of Qemu on top of Genode for
+cross development.
+Even though those topics are absent from the timeline below, we can expect
+improvements in these areas throughout the year.
 
 
-Milestones for 2022
+Milestones for 2023
 ###################
 
 In the following, we present a rough schedule of the planned work. As usual,
@@ -97,45 +105,73 @@ it is not set in stone. If you are interested in a particular line of work,
 please get in touch.
 
 
-February - Release 22.02
+February - Release 23.02
 ========================
 
-* OpenGL in VirtualBox 6
-* Sculpt OS as tool kit for special-purpose OS images
-* PinePhone
-  * Modem access
-  * Touch-screen compatibility of Sculpt OS
+* Mobile version of Sculpt OS (PinePhone)
+  * Ready-to-use system image for first field test
+  * Quick switch between different system scenarios as presets
+  * On-target system update
+  * Boot optimization
+* Goa support for porting 3rd-party libraries to Genode
+* Improved I/O performance (Intel GPU buffer management, VFS I/O batching,
+  TCP throughput)
+* Custom IP block for DMA protection on Xilinx Zynq
+* PC suspend/resume mechanism for the base-hw kernel
+* Optimized base-hw multimedia support (kernel scheduling, latency)
+* Completed driver support for MNT Reform 2 laptop (i.e., Wifi)
+* Interactive graphical VMs on ARM
 
 
-May - Release 22.05
+May - Release 23.05
 ===================
 
-* Annual update of the "Genode Foundations" book
-* Second edition of the "Genode Platforms" documentation
-* WireGuard VPN
-* Updated drivers for PC hardware (Wifi, Intel framebuffer, USB)
-* New tracing tool with support for CTF and PCAP
-* PinePhone telephony
+* Updated "Genode Foundations" book
+* Tool-chain update, switch to C++20 by default
+* Mobile version of Sculpt OS (PinePhone)
+  * First system image fit for general use
+  * Reuse of an existing SDK for building applications
+  * Integration of file vault and WireGuard
+  * Prolonged standby mode
+  * Easy installation of user-supplied applications
+  * Wifi
+* Principle x86 virtualization support for base-hw kernel (on Qemu)
+* Base-hw kernel support for the tracing of scheduling events
+* Updated DDE-Linux based driver for USB HID and USB network
+* Replacing iPXE network driver by DDE-Linux-based driver
+* Revision of the consistent block encrypter (CBE) + usability improvements
+* Goa support for building simple Rust programs for Genode
 
 
-August - Release 22.08
+August - Release 23.08
 ======================
 
-* PinePhone
-  * Morph browser
-  * Media record and playback capabilities
-* FPGA-powered DMA protection for the Zynq-7000 SoC
-* Kernel-agnostic IOMMU support for PC hardware
-* Optimized GUI latency and synchronization
+* Improved PC platform support
+  * Pre-boot ACPI discovery, sandboxing of ACPICA
+  * Device & driver restart and/or resume support after ACPI wakeup
+  * Support for I2C based HID devices in Intel GEN12 (e.g., touchpad)
+  * Management of efficient/performance cores on Intel GEN12
+* Mobile version of Sculpt OS (PinePhone)
+  * File-management functionality
+  * Support for receiving and sending SMS messages
+* User-level IPv6 routing (using IPv6 by VMs)
+* VirtualBox on Intel hardware running on the base-hw kernel
+* DDE-Linux update to kernel version 6.x
+* System wind-down protocol (component life-cycle management)
+* Exemplary port of non-trivial Rust-based application using Goa
+* Revival of GDB monitor (update, making it easier to use)
 
 
-November - Release 22.11
+November - Release 23.11
 ========================
 
-* PinePhone
-  * WebRTC-based video chat
-  * Power management
-* Base mechanism for suspend-resume on PC hardware
-* Support for hardware-based trust anchor for CBE and WireGuard
-* Software-hardware co-design example for the Zynq-7000 SoC
+* Feature-complete PC version of Sculpt OS on the base-hw kernel
+  * IOMMU handled in platform driver
+* Suspend/resume for Sculpt OS on the PC
+* Mobile version of Sculpt OS (PinePhone)
+  * GPS, compass
+  * Open-street-map client
+* IPv6 protocol stack (lxIP update, using IPv6 by native applications)
+* Revised audio (timing robustness, pluggable drivers, sample-rate conversion)
+* Dynamic VFS configuration
 

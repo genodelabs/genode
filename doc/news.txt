@@ -4,6 +4,39 @@
                                ===========
 
 
+Road Map for 2023 | 2023-01-17
+##############################
+
+| In 2023, we will make the mobile version of Sculpt OS fit for end users,
+| unleash advanced hardware features of Intel platforms,
+| switch to C++20 by default, and run the feature-complete PC version
+| of Sculpt OS on Genode's custom-tailored microkernel.
+
+After having enabled all hardware features of the PinePhone that are
+fundamental for a mobile phone over the course of the past year, the
+project now aims at getting the mobile version of Sculpt OS into the hands of
+end users. Throughout the year, there will be multiple rounds of field tests
+within the community, allowing us to reach the desired state of maturity and
+usefulness in an iterative way.
+
+On PC platforms, Genode will increasingly address advanced platform features
+like the distinction between power-efficient and high-performance cores, the
+management of temperatures and frequencies, or the practical use of
+suspend/resume. By the end of the year, we envision the PC version of Sculpt
+OS running on Genode's custom-tailored microkernel leveraging all those
+aspects of modern PC hardware.
+
+Along the planned timeline of the project, one can spot plenty of additional
+topics of interest such as the continued line of work of combining Genode
+with FPGAs, applications implemented in Rust, the integration of IPv6, the
+use of C++20 by default, or completed driver support for the MNT Reform laptop.
+An exciting year lies ahead of us!
+
+More details including our reflections of the past year, this year's focus,
+and a rough schedule are presented at our official
+[https:/about/road-map - road-map page].
+
+
 Genode OS Framework release 22.11 | 2022-11-30
 ##############################################
 
