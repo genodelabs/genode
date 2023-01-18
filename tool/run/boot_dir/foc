@@ -187,7 +187,7 @@ proc run_boot_dir_arm { binaries } {
 	exec mkdir -p [run_dir]/boot
 	exec mv [run_dir]/image.elf [run_dir]/boot/core.elf
 	exec cp [l4_bin_dir]/bootstrap.elf [run_dir]/boot/image.elf
-	run_image [run_dir]/boot/image.elf
+	run_image
 
 	puts "\nboot image: [run_dir]/image.elf\n"
 

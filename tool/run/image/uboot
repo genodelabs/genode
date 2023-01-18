@@ -35,9 +35,9 @@ proc image_uboot_gzip_opt { } {
 ##
 # Build U-boot bootloader specific uImage
 #
-# \param  elf_img   ELF binary to build uImage from
-#
-proc run_image {elf_img} {
+proc run_image { } {
+
+	set elf_img [file join [run_dir] boot image.elf]
 
 	# parse ELF entrypoint and load address
 	set entrypoint [exec [cross_dev_prefix]readelf -h $elf_img | \

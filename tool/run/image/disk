@@ -13,7 +13,7 @@ proc image_disk_size { } { return [get_cmd_arg --image-disk-size 0] }
 ##
 # Create disk image with the content of the run directory
 #
-proc run_image { {unused ""} } {
+proc run_image { } {
 
 	set sgdisk [installed_command sgdisk]
 

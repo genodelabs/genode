@@ -12,7 +12,7 @@ proc image_uefi_size { } { return [get_cmd_arg --image-uefi_size 0] }
 ##
 # Create uefi image
 #
-proc run_image { {unused ""} } {
+proc run_image { } {
 
 	set run_size [expr [regsub {\s.*} [exec du -smL [run_dir]] {}]]
 

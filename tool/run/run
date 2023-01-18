@@ -834,9 +834,13 @@ proc run_boot_dir { binaries } {
 
 
 ##
-# Dummy image build module
+# Bring the boot-directory content into a form that can actually be booted
 #
-proc run_image { {image "" } } { return true; }
+# The form suitable for booting depends on the platform and the used boot
+# loader. By convention, this function can expect the presence of the boot
+# image in the form of an [run_dir]/boot/image.elf file.
+#
+proc run_image { } { return true; }
 
 
 ##
