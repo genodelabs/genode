@@ -32,7 +32,7 @@ proc run_load { } {
 	}
 
 	set device [load_fastboot_device]
-	set uimg "[run_dir]/uImage"
+	set uimg [file join [run_dir] boot uImage]
 
 	# sleep a bit, board might need some time to come up
 	sleep 8

@@ -47,7 +47,7 @@ proc run_image { } {
 		       grep -m 1 "LOAD"]
 	set load_addr [lindex [regexp -inline -all -- {\S+} $load_addr] 3]
 
-	set bin_img "[run_dir]/image.bin"
+	set bin_img [file join [run_dir] boot image.bin]
 	exec [cross_dev_prefix]objcopy -O binary $elf_img $bin_img
 
 	set use_gzip [expr ![image_uboot_use_no_gzip]]
@@ -66,14 +66,14 @@ proc run_image { } {
 
 	if {[image_uboot_use_fit]} {
 		# create image.itb
-		set uboot_img [run_dir]/image.itb
+		set uboot_img [file join [run_dir] boot image.itb]
 		exec mkimage -f auto -A $arch -O linux -T kernel -C $compress_type -a $load_addr \
 		             -e $entrypoint -d $bin_img$bin_ext $uboot_img
 	} else {
 		# create uImage
-		set uboot_img [run_dir]/uImage
+		set uboot_img [file join [run_dir] boot uImage]
 		exec mkimage -A $arch -O linux -T kernel -C $compress_type -a $load_addr \
 		             -e $entrypoint -d $bin_img$bin_ext $uboot_img
 	}
-	exec rm -rf $bin_img$bin_ext
+	exec rm -rf $bin_img$bin_ext $elf_img
 }
