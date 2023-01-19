@@ -770,6 +770,38 @@ close $fd
 file copy [initial_config_file VERSION] [run_dir]/genode/VERSION
 
 
+#
+# Generate build info as boot module
+#
+
+proc build_date { } { return [clock format [clock seconds] -format %Y-%m-%d] }
+
+proc genode_version { } {
+
+	if {[have_installed git] && [file exists [file join [genode_dir] .git]]} {
+		return [exec [installed_command git] -C [genode_dir] describe \
+		       {--dirty= <local changes>} 2> /dev/null] }
+
+	set fh [open [file join [genode_dir] VERSION] "RDONLY"]
+	set version [read $fh]
+	close $fh
+
+	regsub -all {\s} $version "" version
+	return $version
+}
+
+set    build_info "<build_info"
+append build_info " genode_version=\"[genode_version]\""
+append build_info " date=\"[build_date]\""
+append build_info " depot_user=\"[depot_user]\""
+append build_info " board=\"$board_var\"/"
+append build_info ">"
+
+set fd [open [run_dir]/genode/build_info w]
+puts $fd $build_info
+close $fd
+
+
 ##
 # Return list of 'pkg' attribute values found in 'type' nodes in an XML file
 #
