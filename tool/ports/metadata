@@ -1,0 +1,34 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for retrieving metadata of port sources
+# \author Christian Helmuth
+# \date   2023-01-20
+#
+
+ifndef VERBOSE
+MAKEFLAGS += --no-print-directory
+endif
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+usage:
+	@$(ECHO)
+	@$(ECHO) "Tool for retrieving version information of port sources"
+	@$(ECHO)
+	@$(ECHO) "usage:"
+	@$(ECHO)
+	@$(ECHO) "  $(notdir $(MAKEFILE_LIST)) <ports>"
+	@$(ECHO)
+	@$(ECHO) "  <ports>   whitespace-separated list of ports"
+	@$(ECHO)
+
+TARGETS = $(sort $(MAKECMDGOALS))
+
+.PHONY: $(TARGETS)
+
+.NOTPARALLEL:
+
+$(TARGETS):
+	@$(MAKE) -f $(GENODE_DIR)/tool/ports/mk/metadata_single_port.mk $@
+	@$(ECHO)
