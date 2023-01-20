@@ -3,6 +3,47 @@
  * \author Josef Soentgen
  * \author Sebastian Sumpf
  * \date   2017-04-28
+ *
+ * Notes:
+ *
+ * Because of different GPU driver architectures, functions here may have
+ * different semantics. In short, libdrm or any other client must be aware of
+ * the semantics of the respective GPU driver.
+ *
+ * Here a short explanation of the difference of Intel and Lima.
+ *
+ * Intel:
+ *
+ * 'alloc_vram' is used by Iris to create an internal buffer object cache on the
+ * internal Mesa side. Because the allocated memory is RAM, Iris 'mmap's it
+ * directly into the clients address space (Genode::attach) Iris assigns Gpu
+ * virtual addresses to buffers, these addresses may change when buffers are
+ * reused later. On DRM side, Iris calls DRM_MAP_PPGTT, which we implement
+ * through 'map_gpu' (establish a GPU mapping) on the client and multiplexer
+ * side.  Graphics memory can be also mapped through the aperture (for example,
+ * when tiling/untiling buffers, which we currently do not see, but have seen in
+ * the past). This is what 'map_cpu' is used for on Intel. It adds a GTT mapping
+ * into the aperture (IOMEM) and returns a dataspace with the physical address
+ * within the aperture. This dataspace has a different physical address than the
+ * one returned by 'alloc_vram' but in the end points to the same RAM through
+ * the GTT. This is now a nop because it is not used, which may change in newer
+ * Mesa versions again.
+ *
+ * Lima:
+ *
+ * The ported Lima driver assigns a GPU virtual address during buffer
+ * allocation.  We found a way to at least tell the driver what virtual address
+ * to use, because on default it will use an arbitrary fitting GPU virtual
+ * address, which means unlike Iris, the GPU driver manages the virtual address
+ * space on Lima. So on Lima the semantic is as follows now:
+ *
+ * 'alloc_vram' is a nop because we cannot hand a GPU virtual address over,
+ * instead  'map_gpu' will actually allocate a buffer of given size at a given
+ * Gpu::Virtual_address in the GPU page tables. On the Mesa side, we implemented
+ * a virtual address-allocator, and therefore, handle the GPU address space
+ * ourselves as Iris does in contrib Mesa code. 'map_cpu' will return the
+ * Dataspace_capability of the allocated buffer that then can be directly
+ * attached by Mesa because the GPU memory is again ordinary RAM.
  */
 
 /*
