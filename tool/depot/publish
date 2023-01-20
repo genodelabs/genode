@@ -68,8 +68,14 @@ TARGETS += $(addsuffix .tar.xz.sig,$(addprefix $(PUBLIC_DIR)/,$(ARCHIVES)))
 # Determine to-be-published index files from MAKECMDGOALS
 #
 
+# sculpt index files at <user>/index/<sculpt-version>
 INDEX_FILES := $(foreach A,$(MAKECMDGOALS),\
   $(if $(call archive_has_type,$A,index),$A,))
+
+# image index file at <user>/image/index
+INDEX_FILES += $(foreach A,$(MAKECMDGOALS),\
+  $(if $(call archive_has_type,$A,image),\
+    $(if $(filter $(call path_element,3,$A),index),$A,),))
 
 INDEX_FILES_MISSING := $(sort $(foreach I, $(INDEX_FILES),\
                           $(if $(wildcard $(DEPOT_DIR)/$I),,$I)))
@@ -85,6 +91,31 @@ index_missing_error:
 
 
 #
+# Determine to-be-published system images from MAKECMDGOALS
+#
+
+# system images at <user>/image/<name> (consider all names other than 'index')
+SYSTEM_IMAGES := $(foreach A,$(MAKECMDGOALS),\
+  $(if $(call archive_has_type,$A,image),\
+    $(if $(filter $(call path_element,3,$A),index),,$A),))
+
+SYSTEM_IMAGES_MISSING := $(sort $(foreach I, $(SYSTEM_IMAGES),\
+                           $(if $(wildcard $(DEPOT_DIR)/$I),,$I) \
+                           $(if $(wildcard $(DEPOT_DIR)/$I.img),,$I.img)))
+
+ifneq ($(SYSTEM_IMAGES_MISSING),)
+$(MAKECMDGOALS): system_images_missing_error
+else
+TARGETS += $(addsuffix .tar.xz.sig,$(addprefix $(PUBLIC_DIR)/,$(SYSTEM_IMAGES)))
+TARGETS += $(addsuffix .img.xz.sig,$(addprefix $(PUBLIC_DIR)/,$(SYSTEM_IMAGES)))
+TARGETS += $(addsuffix .zip.sig,   $(addprefix $(PUBLIC_DIR)/,$(SYSTEM_IMAGES)))
+endif
+
+system_images_missing_error:
+	@echo "Error: missing depot content: $(SYSTEM_IMAGES_MISSING)"; false
+
+
+#
 # Generate compressed and signed archives and index files
 #
 
@@ -95,12 +126,17 @@ MISSING_PUBKEY_FILES := $(sort \
                               $(if $(call pubkey_path,$A),,\
                                  $(call pubkey_filename,$A))))
 
-$(PUBLIC_DIR)/%.xz.sig : $(PUBLIC_DIR)/%.xz
-	$(VERBOSE)$(GPG) --detach-sign --digest-algo SHA256 --no-tty --use-agent \
-	              --local-user $(call pubkey_id,$*) - < $< > $@ || \
-	              ( rm -f $@; false )
+_gpg_sign_target = gpg --detach-sign --digest-algo SHA256 --no-tty --use-agent \
+                       --local-user $(call pubkey_id,$*) - < $< > $@ || \
+                   ( rm -f $@; false )
 
-.PRECIOUS: $(TARGETS:.xz.sig=.xz)
+$(PUBLIC_DIR)/%.xz.sig : $(PUBLIC_DIR)/%.xz
+	$(VERBOSE)$(_gpg_sign_target)
+
+$(PUBLIC_DIR)/%.zip.sig : $(PUBLIC_DIR)/%.zip
+	$(VERBOSE)$(_gpg_sign_target)
+
+.PRECIOUS: $(TARGETS:.xz.sig=.xz) $(TARGETS:.zip.sig=.zip)
 
 # archive
 $(PUBLIC_DIR)/%.tar.xz: $(DEPOT_DIR)/%
@@ -114,6 +150,12 @@ $(PUBLIC_DIR)/%.xz: $(DEPOT_DIR)/%
 	@$(ECHO) "$(DARK_COL)publish$(DEFAULT_COL) $@"
 	$(VERBOSE)test -e $(dir $@) || mkdir -p $(dir $@)
 	$(VERBOSE)xz --threads=$(XZ_THREADS) <$< >$@
+
+# ZIP archive of system image
+$(PUBLIC_DIR)/%.zip: $(DEPOT_DIR)/%.img
+	@$(ECHO) "$(DARK_COL)publish$(DEFAULT_COL) $@"
+	$(VERBOSE)test -e $(dir $@) || mkdir -p $(dir $@)
+	$(VERBOSE)zip -jq $@ $<
 
 ifneq ($(MISSING_PUBKEY_FILES),)
 $(MAKECMDGOALS) $(TARGETS): missing_pubkey_files
