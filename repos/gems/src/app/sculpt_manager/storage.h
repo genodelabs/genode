@@ -58,8 +58,6 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 
 	Inspect_view_version _inspect_view_version { 0 };
 
-	Storage_dialog dialog { _storage_devices, _sculpt_partition };
-
 	void handle_storage_devices_update();
 
 	Signal_handler<Storage> _storage_device_update_handler {
@@ -120,7 +118,6 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 				partition.file_system.type   = File_system::UNKNOWN;
 				partition.format_in_progress = false;
 			}
-			dialog.reset_operation();
 		});
 	}
 
@@ -139,7 +136,6 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 				partition.gpt_expand_in_progress = false;
 				partition.fs_resize_in_progress  = false;
 			}
-			dialog.reset_operation();
 		});
 	}
 
@@ -184,7 +180,6 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 	{
 		_ram_fs_state.trigger_restart();
 
-		dialog.reset_operation();
 		_runtime_config_generator.generate_runtime_config();
 	}
 

@@ -453,7 +453,7 @@ struct Sculpt::Main : Input_event_handler,
 	/**
 	 * Dialog interface
 	 */
-	Hover_result hover(Xml_node) override;
+	Hover_result hover(Xml_node) override { return Hover_result::UNMODIFIED; }
 
 	void reset() override { }
 
@@ -690,7 +690,6 @@ struct Sculpt::Main : Input_event_handler,
 		Input::Seq_number const seq = *_clacked_seq_number;
 
 		if (_main_menu_view.hovered(seq)) {
-			_storage.dialog.clack(_storage);
 			_main_menu_view.generate();
 			_clacked_seq_number.destruct();
 		}
@@ -758,6 +757,11 @@ struct Sculpt::Main : Input_event_handler,
 
 	void use(Storage_target const &target) override { _storage.use(target); }
 
+	void _reset_storage_dialog_operation()
+	{
+		_graph.reset_storage_operation();
+	}
+
 	/*
 	 * Storage_dialog::Action interface
 	 */
@@ -769,7 +773,7 @@ struct Sculpt::Main : Input_event_handler,
 	void cancel_format(Storage_target const &target) override
 	{
 		_storage.cancel_format(target);
-		_graph.reset_storage_operation();
+		_reset_storage_dialog_operation();
 	}
 
 	void expand(Storage_target const &target) override
@@ -780,7 +784,7 @@ struct Sculpt::Main : Input_event_handler,
 	void cancel_expand(Storage_target const &target) override
 	{
 		_storage.cancel_expand(target);
-		_graph.reset_storage_operation();
+		_reset_storage_dialog_operation();
 	}
 
 	void check(Storage_target const &target) override
@@ -1585,12 +1589,6 @@ void Sculpt::Main::_handle_gui_mode()
 }
 
 
-Sculpt::Dialog::Hover_result Sculpt::Main::hover(Xml_node hover)
-{
-	return _storage.dialog.match_sub_dialog(hover, "vbox", "frame", "vbox");
-}
-
-
 void Sculpt::Main::_handle_update_state()
 {
 	_update_state_rom.update();
@@ -1657,8 +1655,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 					partition.check_in_progress = 0;
 					reconfigure_runtime = true;
-					_storage.dialog.reset_operation();
-					_graph.reset_storage_operation();
+					_reset_storage_dialog_operation();
 				}
 			}
 
@@ -1677,8 +1674,7 @@ void Sculpt::Main::_handle_runtime_state()
 						device.rediscover();
 
 					reconfigure_runtime = true;
-					_storage.dialog.reset_operation();
-					_graph.reset_storage_operation();
+					_reset_storage_dialog_operation();
 				}
 			}
 
@@ -1689,8 +1685,7 @@ void Sculpt::Main::_handle_runtime_state()
 					partition.fs_resize_in_progress = false;
 					reconfigure_runtime = true;
 					device.rediscover();
-					_storage.dialog.reset_operation();
-					_graph.reset_storage_operation();
+					_reset_storage_dialog_operation();
 				}
 			}
 
@@ -1712,8 +1707,7 @@ void Sculpt::Main::_handle_runtime_state()
 			if (exit_state.exited) {
 				device.rediscover();
 				reconfigure_runtime = true;
-				_storage.dialog.reset_operation();
-				_graph.reset_storage_operation();
+				_reset_storage_dialog_operation();
 			}
 		}
 
@@ -1731,8 +1725,7 @@ void Sculpt::Main::_handle_runtime_state()
 				});
 
 				reconfigure_runtime = true;
-				_storage.dialog.reset_operation();
-				_graph.reset_storage_operation();
+				_reset_storage_dialog_operation();
 			}
 		}
 
