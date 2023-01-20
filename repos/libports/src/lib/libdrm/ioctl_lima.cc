@@ -493,9 +493,9 @@ class Lima::Call
 				arg.offset = reinterpret_cast<::uint64_t>(b.mmap_addr());
 
 				Gpu::Virtual_address const va = b.va;
-				if (va.va == (Gpu::addr_t)-1)
+				if (va.value == (Gpu::addr_t)-1)
 					return;
-				arg.va = (uint32_t)va.va;
+				arg.va = (uint32_t)va.value;
 
 				result = 0;
 			});
@@ -683,7 +683,7 @@ class Lima::Call
 		{
 			return _apply_handle(gem_close.handle,
 				[&] (Lima::Buffer &b) {
-					_va_alloc.free((void *)b.va.va);
+					_va_alloc.free((void *)b.va.value);
 					destroy(_heap, &b);
 				}) ? 0 : -1;
 		}

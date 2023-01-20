@@ -2023,19 +2023,19 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				}
 
 				try {
-				_vgpu.rcs_map_ppgtt(va.va, phys_addr + offset, size);
+				_vgpu.rcs_map_ppgtt(va.value, phys_addr + offset, size);
 				} catch (Level_4_translation_table::Double_insertion) {
-					error("PPGTT: Double insertion: va: ", Hex(va.va), " offset: ", Hex(offset),
+					error("PPGTT: Double insertion: va: ", Hex(va.value), " offset: ", Hex(offset),
 					      "size: ", Hex(size));
 					throw Mapping_vram_failed();
 				} catch(...) {
-					error("PPGTT: invalid address/range/alignment: va: ", Hex(va.va),
+					error("PPGTT: invalid address/range/alignment: va: ", Hex(va.value),
 					      " offset: ", Hex(offset),
 					      "size: ", Hex(size));
 					throw Mapping_vram_failed();
 				}
 
-				new (_heap) Vram_local::Mapping(vram_local.mappings, offset, va.va, size);
+				new (_heap) Vram_local::Mapping(vram_local.mappings, offset, va.value, size);
 			};
 
 			if (_resource_guard.avail_caps() == false)
@@ -2065,11 +2065,11 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				vram_local.mappings.with_element(offset,
 					[&] (Vram_local::Mapping &mapping) {
 
-						if (mapping.ppgtt_va != va.va) {
-							Genode::error("VRAM: not mapped at ", Hex(va.va), " offset: ", Hex(offset));
+						if (mapping.ppgtt_va != va.value) {
+							Genode::error("VRAM: not mapped at ", Hex(va.value), " offset: ", Hex(offset));
 							return;
 						}
-						_vgpu.rcs_unmap_ppgtt(va.va, mapping.ppgtt_va_size);
+						_vgpu.rcs_unmap_ppgtt(va.value, mapping.ppgtt_va_size);
 						destroy(_heap, &mapping);
 					},
 					[&] () { error("VRAM: nothing mapped at offset ", Hex(offset)); }

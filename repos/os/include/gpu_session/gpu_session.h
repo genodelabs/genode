@@ -67,7 +67,7 @@ struct Gpu::Sequence_number
 
 struct Gpu::Virtual_address
 {
-	Genode::uint64_t va;
+	Genode::uint64_t value;
 };
 
 

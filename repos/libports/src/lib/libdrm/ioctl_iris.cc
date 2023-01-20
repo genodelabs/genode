@@ -62,7 +62,7 @@ enum { verbose_ioctl = false };
 namespace Utils
 {
 	Gpu::Virtual_address limit_to_48bit(Gpu::Virtual_address addr) {
-		return Gpu::Virtual_address { addr.va & ((1ULL << 48) - 1) }; }
+		return Gpu::Virtual_address { addr.value & ((1ULL << 48) - 1) }; }
 }
 
 namespace Gpu
@@ -582,12 +582,12 @@ struct Drm::Context
 					if (b.busy)
 						Genode::warning("handle: ", obj[i].handle, " reused but is busy");
 
-					if (b.gpu_vaddr_valid && b.gpu_vaddr.va != obj[i].offset) {
+					if (b.gpu_vaddr_valid && b.gpu_vaddr.value != obj[i].offset) {
 						_unmap_buffer_gpu(b);
 					}
 
 					if (!b.gpu_vaddr_valid)
-						_map_buffer_gpu(b, Gpu::Virtual_address { .va = obj[i].offset });
+						_map_buffer_gpu(b, Gpu::Virtual_address { .value = obj[i].offset });
 
 					if (!b.gpu_vaddr_valid) {
 						Genode::error("handle: ", obj[i].handle,
