@@ -47,6 +47,7 @@ namespace Driver {
 	struct Power_domain_update_policy;
 	struct Pci_config_update_policy;
 	struct Reserved_memory_update_policy;
+	struct Io_mmu_update_policy;
 }
 
 
@@ -211,6 +212,15 @@ class Driver::Device : private List_model<Device>::Element
 			Reserved_memory(Range range) : range(range) {}
 		};
 
+		struct Io_mmu : List_model<Io_mmu>::Element
+		{
+			using Name = Genode::String<64>;
+
+			Name name;
+
+			Io_mmu(Name name) : name(name) {}
+		};
+
 		Device(Env & env, Device_model & model, Name name, Type type,
 		       bool leave_operational);
 		virtual ~Device();
@@ -269,6 +279,19 @@ class Driver::Device : private List_model<Device>::Element
 				fn(idx++, mem.range); });
 		}
 
+		template <typename FN, typename EMPTY_FN>
+		void for_each_io_mmu(FN const & fn, EMPTY_FN const & empty_fn) const
+		{
+			bool empty = true;
+			_io_mmu_list.for_each([&] (Io_mmu const & io_mmu) {
+				empty = false;
+				fn(io_mmu);
+			});
+
+			if (empty)
+				empty_fn();
+		}
+
 		void generate(Xml_generator &, bool) const;
 
 	protected:
@@ -292,6 +315,7 @@ class Driver::Device : private List_model<Device>::Element
 		List_model<Reset_domain>    _reset_domain_list {};
 		List_model<Pci_config>      _pci_config_list {};
 		List_model<Reserved_memory> _reserved_mem_list {};
+		List_model<Io_mmu>          _io_mmu_list {};
 
 		/*
 		 * Noncopyable
@@ -702,6 +726,37 @@ struct Driver::Reserved_memory_update_policy
 	static bool node_is_element(Genode::Xml_node node)
 	{
 		return node.has_type("reserved_memory");
+	}
+};
+
+
+struct Driver::Io_mmu_update_policy
+: Genode::List_model<Device::Io_mmu>::Update_policy
+{
+	Genode::Allocator & alloc;
+
+	Io_mmu_update_policy(Genode::Allocator & alloc) : alloc(alloc) {}
+
+	void destroy_element(Element & pd) {
+		Genode::destroy(alloc, &pd); }
+
+	Element & create_element(Genode::Xml_node node)
+	{
+		Element::Name name = node.attribute_value("name", Element::Name());
+		return *(new (alloc) Element(name));
+	}
+
+	void update_element(Element &, Genode::Xml_node) {}
+
+	static bool element_matches_xml_node(Element const & e, Genode::Xml_node node)
+	{
+		Element::Name name = node.attribute_value("name", Element::Name());
+		return name == e.name;
+	}
+
+	static bool node_is_element(Genode::Xml_node node)
+	{
+		return node.has_type("io_mmu");
 	}
 };
 

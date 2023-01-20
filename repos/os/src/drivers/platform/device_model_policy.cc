@@ -63,6 +63,11 @@ void Device_model::destroy_element(Device & device)
 		device._reserved_mem_list.destroy_all_elements(policy);
 	}
 
+	{
+		Io_mmu_update_policy policy(_heap);
+		device._io_mmu_list.destroy_all_elements(policy);
+	}
+
 	device.release(_owner);
 	Genode::destroy(_heap, &device);
 }
@@ -123,5 +128,10 @@ void Device_model::update_element(Device & device,
 	{
 		Reserved_memory_update_policy policy(_heap);
 		device._reserved_mem_list.update_from_xml(policy, node);
+	}
+
+	{
+		Io_mmu_update_policy policy(_heap);
+		device._io_mmu_list.update_from_xml(policy, node);
 	}
 }
