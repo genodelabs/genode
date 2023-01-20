@@ -28,6 +28,7 @@
 #include <clock.h>
 #include <reset.h>
 #include <power.h>
+#include <device_owner.h>
 
 namespace Driver {
 
@@ -36,7 +37,7 @@ namespace Driver {
 	class  Device;
 	struct Device_reporter;
 	struct Device_model;
-	class  Session_component;
+	struct Device_owner;
 	struct Irq_update_policy;
 	struct Io_mem_update_policy;
 	struct Io_port_update_policy;
@@ -70,7 +71,7 @@ class Driver::Device : private List_model<Device>::Element
 			void * obj_id;
 
 			Owner() : obj_id(nullptr) {}
-			Owner(Session_component & session);
+			Owner(Device_owner & owner);
 
 			bool operator == (Owner const & o) const {
 				return obj_id == o.obj_id; }
@@ -218,8 +219,8 @@ class Driver::Device : private List_model<Device>::Element
 		Type  type()  const;
 		Owner owner() const;
 
-		virtual void acquire(Session_component &);
-		virtual void release(Session_component &);
+		virtual void acquire(Device_owner &);
+		virtual void release(Device_owner &);
 
 		template <typename FN> void for_each_irq(FN const & fn) const
 		{

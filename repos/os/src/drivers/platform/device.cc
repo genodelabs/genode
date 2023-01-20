@@ -15,12 +15,12 @@
 
 #include <device.h>
 #include <pci.h>
+#include <device_owner.h>
 #include <device_component.h>
-#include <session_component.h>
 
 
-Driver::Device::Owner::Owner(Session_component & session)
-: obj_id(reinterpret_cast<void*>(&session)) {}
+Driver::Device::Owner::Owner(Device_owner & owner)
+: obj_id(reinterpret_cast<void*>(&owner)) {}
 
 
 Driver::Device::Name Driver::Device::name() const { return _name; }
@@ -32,9 +32,9 @@ Driver::Device::Type Driver::Device::type() const { return _type; }
 Driver::Device::Owner Driver::Device::owner() const { return _owner; }
 
 
-void Driver::Device::acquire(Session_component & sc)
+void Driver::Device::acquire(Device_owner & owner)
 {
-	if (!_owner.valid()) _owner = sc;
+	if (!_owner.valid()) _owner = owner;
 
 	_power_domain_list.for_each([&] (Power_domain & p) {
 
@@ -81,19 +81,20 @@ void Driver::Device::acquire(Session_component & sc)
 		}
 	});
 
-	pci_enable(_env, sc.device_pd(), *this);
-	sc.update_devices_rom();
+	owner.enable_device(*this);
+	owner.update_devices_rom();
+
 	_model.device_status_changed();
 }
 
 
-void Driver::Device::release(Session_component & sc)
+void Driver::Device::release(Device_owner & owner)
 {
-	if (!(_owner == sc))
+	if (!(_owner == owner))
 		return;
 
 	if (!_leave_operational) {
-		pci_disable(_env, *this);
+		owner.disable_device(*this);
 
 		_reset_domain_list.for_each([&] (Reset_domain & r)
 		{
@@ -115,7 +116,7 @@ void Driver::Device::release(Session_component & sc)
 	}
 
 	_owner = Owner();
-	sc.update_devices_rom();
+	owner.update_devices_rom();
 	_model.device_status_changed();
 }
 

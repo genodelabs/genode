@@ -125,6 +125,18 @@ void Session_component::update_devices_rom()
 }
 
 
+void Session_component::enable_device(Device const & device)
+{
+	pci_enable(_env, device_pd(), device);
+}
+
+
+void Session_component::disable_device(Device const & device)
+{
+	pci_disable(_env, device);
+}
+
+
 Genode::Rom_session_capability Session_component::devices_rom() {
 	return _rom_session.cap(); }
 

@@ -26,6 +26,7 @@
 
 #include <device_component.h>
 #include <device_pd.h>
+#include <device_owner.h>
 
 namespace Driver {
 	class Session_component;
@@ -36,6 +37,7 @@ namespace Driver {
 class Driver::Session_component
 :
 	public  Session_object<Platform::Session>,
+	public  Device_owner,
 	private Registry<Driver::Session_component>::Element,
 	private Dynamic_rom_session::Xml_producer
 {
@@ -61,13 +63,19 @@ class Driver::Session_component
 		Device_pd & device_pd();
 
 		bool matches(Device const &) const;
-		void update_devices_rom();
 
 		Ram_quota_guard & ram_quota_guard() { return _ram_quota_guard(); }
 		Cap_quota_guard & cap_quota_guard() { return _cap_quota_guard(); }
 
 		void update_policy(bool info, Policy_version version);
 
+		/**************************
+		 ** Device Owner methods **
+		 **************************/
+
+		void enable_device(Device const &) override;
+		void disable_device(Device const &) override;
+		void update_devices_rom() override;
 
 		/**************************
 		 ** Platform Session API **
