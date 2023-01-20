@@ -7,6 +7,7 @@ SRC_CC  += pci.cc
 SRC_CC  += root.cc
 SRC_CC  += session_component.cc
 SRC_CC  += shared_irq.cc
+SRC_CC  += dma_allocator.cc
 
 GENERIC_DIR := $(dir $(call select_from_repositories,src/drivers/platform/target.inc))
 

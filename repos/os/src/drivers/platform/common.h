@@ -1,5 +1,6 @@
 /*
  * \brief  Platform driver - compound object for all derivate implementations
+ * \author Johannes Schlatow
  * \author Stefan Kalkowski
  * \date   2022-05-10
  */
@@ -11,11 +12,19 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#ifndef _SRC__DRIVERS__PLATFORM__COMMON_H_
+#define _SRC__DRIVERS__PLATFORM__COMMON_H_
+
+#include <base/registry.h>
+
 #include <root.h>
+#include <device_owner.h>
+#include <io_mmu.h>
 
 namespace Driver { class Common; };
 
-class Driver::Common : Device_reporter
+class Driver::Common : Device_reporter,
+                       public Device_owner
 {
 	private:
 
@@ -25,9 +34,14 @@ class Driver::Common : Device_reporter
 		Attached_rom_dataspace   _platform_info { _env, "platform_info"    };
 		Heap                     _heap          { _env.ram(), _env.rm()    };
 		Sliced_heap              _sliced_heap   { _env.ram(), _env.rm()    };
-		Device_model             _devices       { _env, _heap, *this       };
+		Device_model             _devices       { _env, _heap, *this, *this };
 		Signal_handler<Common>   _dev_handler   { _env.ep(), *this,
 		                                          &Common::_handle_devices };
+		Device::Owner            _owner_id      { *this };
+
+		Io_mmu_devices           _io_mmu_devices   { };
+		Registry<Io_mmu_factory> _io_mmu_factories { };
+
 		Driver::Root             _root;
 
 		Constructible<Expanding_reporter> _cfg_reporter { };
@@ -44,8 +58,12 @@ class Driver::Common : Device_reporter
 		Heap         & heap()    { return _heap;    }
 		Device_model & devices() { return _devices; }
 
+		Registry<Io_mmu_factory> & io_mmu_factories() {
+			return _io_mmu_factories; }
+
 		void announce_service();
 		void handle_config(Xml_node config);
+		void acquire_io_mmu_devices();
 
 
 		/*********************
@@ -53,13 +71,38 @@ class Driver::Common : Device_reporter
 		 *********************/
 
 		void update_report() override;
+
+		/******************
+		 ** Device_owner **
+		 ******************/
+
+		void disable_device(Device const & device) override;
 };
+
+
+void Driver::Common::acquire_io_mmu_devices()
+{
+	_io_mmu_factories.for_each([&] (Io_mmu_factory & factory) {
+
+		_devices.for_each([&] (Device & dev) {
+			if (dev.owner().valid())
+				return;
+
+			if (factory.matches(dev)) {
+				dev.acquire(*this);
+				factory.create(_heap, _io_mmu_devices, dev);
+			}
+		});
+
+	});
+}
 
 
 void Driver::Common::_handle_devices()
 {
 	_devices_rom.update();
 	_devices.update(_devices_rom.xml());
+	acquire_io_mmu_devices();
 	update_report();
 	_root.update_policy();
 }
@@ -80,6 +123,15 @@ void Driver::Common::update_report()
 	if (_dev_reporter.constructed())
 		_dev_reporter->generate([&] (Xml_generator & xml) {
 			_devices.generate(xml); });
+}
+
+
+void Driver::Common::disable_device(Device const & device)
+{
+	_io_mmu_devices.for_each([&] (Io_mmu & io_mmu) {
+		if (io_mmu.name() == device.name())
+			destroy(_heap, &io_mmu);
+	});
 }
 
 
@@ -120,3 +172,5 @@ Driver::Common::Common(Genode::Env                  & env,
 	_devices_rom.sigh(_dev_handler);
 	_handle_devices();
 }
+
+#endif /* _SRC__DRIVERS__PLATFORM__COMMON_H_ */
