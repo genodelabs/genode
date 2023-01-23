@@ -138,7 +138,7 @@ append config {
 			<default-policy domain=""/>
 		</config>
 		<route>
-			<service name="Report"> <child name="acpi_report_rom"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>

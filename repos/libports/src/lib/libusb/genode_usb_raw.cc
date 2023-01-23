@@ -67,17 +67,9 @@ struct Usb_device
 		Usb::Config_descriptor  config_descriptor;
 		char                   *raw_config_descriptor = nullptr;
 
-		Usb_device(Usb::Connection *usb)
-		: usb_connection(usb)
+		bool _retrieve_raw_config_descriptor()
 		{
-			Genode::log("libusb: waiting until device is plugged...");
-			while (!usb_connection->plugged())
-				genode_env().ep().wait_and_dispatch_one_io_signal();
-			Genode::log("libusb: device is plugged");
-
-			usb_connection->config_descriptor(&device_descriptor, &config_descriptor);
-
-			raw_config_descriptor = (char*)malloc(config_descriptor.total_length);
+			Genode::log("libusb: retrieve configuration descriptor");
 
 			Usb::Packet_descriptor p =
 				usb_connection->alloc_packet(config_descriptor.total_length);
@@ -95,19 +87,39 @@ struct Usb_device
 
 			p = usb_connection->source()->get_acked_packet();
 
-			if (!p.succeded)
+			bool ret = false;
+			if (!p.succeded) {
 				Genode::error(__PRETTY_FUNCTION__,
 				              ": could not read raw configuration descriptor");
-
-			if (p.control.actual_size != config_descriptor.total_length)
+			} else if (p.control.actual_size != config_descriptor.total_length) {
 				Genode::error(__PRETTY_FUNCTION__,
 				              ": received configuration descriptor of unexpected size");
-
-			char *packet_content = usb_connection->source()->packet_content(p);
-			Genode::memcpy(raw_config_descriptor, packet_content,
-			               config_descriptor.total_length);
+			} else {
+				char *packet_content = usb_connection->source()->packet_content(p);
+				Genode::memcpy(raw_config_descriptor, packet_content,
+				               config_descriptor.total_length);
+				ret = true;
+			}
 
 			usb_connection->source()->release_packet(p);
+			return ret;
+		}
+
+		Usb_device(Usb::Connection *usb)
+		: usb_connection(usb)
+		{
+			Genode::log("libusb: waiting until device is plugged...");
+			while (!usb_connection->plugged())
+				genode_env().ep().wait_and_dispatch_one_io_signal();
+			Genode::log("libusb: device is plugged");
+
+			usb_connection->config_descriptor(&device_descriptor, &config_descriptor);
+
+			raw_config_descriptor = (char*)malloc(config_descriptor.total_length);
+
+			for (unsigned attempt = 0; attempt < 10; ++attempt)
+				if (_retrieve_raw_config_descriptor())
+					break;
 		}
 
 		~Usb_device()
