@@ -230,6 +230,8 @@ class Board::Local_interrupt_controller : public Genode::Mmio
 		}
 
 		void send_ipi(unsigned const);
+
+		void init();
 };
 
 #endif /* _CORE__SPEC__X86_64__PIC_H_ */

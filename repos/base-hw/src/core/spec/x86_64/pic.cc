@@ -43,6 +43,11 @@ Local_interrupt_controller(Global_interrupt_controller &global_irq_ctrl)
 	Mmio             { Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()) },
 	_global_irq_ctrl { global_irq_ctrl }
 {
+	init();
+}
+
+void Local_interrupt_controller::init()
+{
 	/* Start initialization sequence in cascade mode */
 	outb(PIC_CMD_MASTER, 0x11);
 	outb(PIC_CMD_SLAVE, 0x11);

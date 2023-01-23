@@ -66,7 +66,8 @@ struct Board::Timer: Genode::Mmio
 
 	struct Calibration_failed : Genode::Exception { };
 
-	Genode::uint32_t ticks_per_ms = 0;
+	Divide_configuration::access_t divider      = 0;
+	Genode::uint32_t               ticks_per_ms = 0;
 
 	/* Measure LAPIC timer frequency using PIT channel 2 */
 	Genode::uint32_t pit_calc_timer_freq(void);
