@@ -64,6 +64,9 @@ Depot_query::Main::_find_rom_in_pkg(File_content    const &archives,
 					result = result_from_pkg;
 			});
 			break;
+
+		case Archive::IMAGE:
+			break;
 		}
 	});
 	return result;
@@ -208,6 +211,7 @@ void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
 	}
 
 	case Archive::RAW:
+	case Archive::IMAGE:
 		break;
 	};
 }
@@ -242,6 +246,9 @@ void Depot_query::Main::_collect_binary_dependencies(Archive::Path const &path,
 
 	case Archive::RAW:
 		dependencies.record(path);
+		break;
+
+	case Archive::IMAGE:
 		break;
 	};
 }
@@ -373,6 +380,20 @@ void Depot_query::Main::_query_index(Archive::User    const &user,
 
 			} catch (Directory::Nonexistent_file) { }
 		}
+	});
+}
+
+
+void Depot_query::Main::_query_image(Archive::User const &user,
+                                     Archive::Name const &name,
+                                     Xml_generator &xml)
+{
+	Directory::Path const image_path("depot/", user, "/image/", name);
+	char const *node_type = _root.directory_exists(image_path)
+	                      ? "image" : "missing";
+	xml.node(node_type, [&] () {
+		xml.attribute("user", user);
+		xml.attribute("name", name);
 	});
 }
 

@@ -267,6 +267,8 @@ struct Depot_query::Main
 	Constructible_reporter _dependencies_reporter { };
 	Constructible_reporter _user_reporter         { };
 	Constructible_reporter _index_reporter        { };
+	Constructible_reporter _image_reporter        { };
+	Constructible_reporter _image_index_reporter  { };
 
 	template <typename T, typename... ARGS>
 	static void _construct_if(bool condition, Constructible<T> &obj, ARGS &&... args)
@@ -341,6 +343,8 @@ struct Depot_query::Main
 	void _gen_index_node_rec(Xml_generator &, Xml_node const &, unsigned) const;
 	void _gen_index_for_arch(Xml_generator &, Xml_node const &) const;
 	void _query_index(Archive::User const &, Archive::Version const &, bool, Xml_generator &);
+	void _query_image(Archive::User const &, Archive::Name const &, Xml_generator &);
+	void _query_image_index(Xml_node const &, Xml_generator &);
 
 	void _handle_config()
 	{
@@ -371,9 +375,6 @@ struct Depot_query::Main
 
 		Xml_node const query = (query_from_rom ? _query_rom->xml() : config);
 
-		_construct_if(query.has_sub_node("scan"),
-		              _scan_reporter, _env, "scan", "scan");
-
 		/*
 		 * Use 64 KiB as initial report size to avoid the repetitive querying
 		 * when successively expanding the reporter.
@@ -382,14 +383,18 @@ struct Depot_query::Main
 		              _blueprint_reporter, _env, "blueprint", "blueprint",
 		              Expanding_reporter::Initial_buffer_size { 64*1024 });
 
-		_construct_if(query.has_sub_node("dependencies"),
-		              _dependencies_reporter, _env, "dependencies", "dependencies");
+		auto construct_reporter_if_needed = [&] (auto &reporter, auto query_type)
+		{
+			_construct_if(query.has_sub_node(query_type),
+			              reporter, _env, query_type, query_type);
+		};
 
-		_construct_if(query.has_sub_node("user"),
-		              _user_reporter, _env, "user", "user");
-
-		_construct_if(query.has_sub_node("index"),
-		              _index_reporter, _env, "index", "index");
+		construct_reporter_if_needed(_scan_reporter,         "scan");
+		construct_reporter_if_needed(_dependencies_reporter, "dependencies");
+		construct_reporter_if_needed(_user_reporter,         "user");
+		construct_reporter_if_needed(_index_reporter,        "index");
+		construct_reporter_if_needed(_image_reporter,        "image");
+		construct_reporter_if_needed(_image_index_reporter,  "image_index");
 
 		_root.apply_config(config.sub_node("vfs"));
 
@@ -453,6 +458,16 @@ struct Depot_query::Main
 				             node.attribute_value("version", Archive::Version()),
 				             node.attribute_value("content", false),
 				             xml); }); });
+
+		_gen_versioned_report(_image_reporter, version, [&] (Xml_generator &xml) {
+			query.for_each_sub_node("image", [&] (Xml_node node) {
+				_query_image(node.attribute_value("user", Archive::User()),
+				             node.attribute_value("name", Archive::Name()),
+				             xml); }); });
+
+		_gen_versioned_report(_image_index_reporter, version, [&] (Xml_generator &xml) {
+			query.for_each_sub_node("image_index", [&] (Xml_node node) {
+				_query_image_index(node, xml); }); });
 	}
 
 	Main(Env &env) : _env(env)

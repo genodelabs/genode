@@ -30,6 +30,7 @@ struct Depot_download_manager::Job : List_model<Job>::Element
 {
 	bool started = false;
 	bool failed  = false;
+	bool done    = false;
 
 	Archive::Path const path;
 

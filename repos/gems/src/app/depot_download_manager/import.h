@@ -125,7 +125,69 @@ class Depot_download_manager::Import
 			return result;
 		}
 
+		static Archive::Path _depdendency_path(Xml_node const &item)
+		{
+			return item.attribute_value("path", Archive::Path());
+		}
+
+		static Archive::Path _index_path(Xml_node const &item)
+		{
+			return Path(item.attribute_value("user",    Archive::User()), "/index/",
+			            item.attribute_value("version", Archive::Version()));
+		}
+
+		static Archive::Path _image_path(Xml_node const &item)
+		{
+			return Path(item.attribute_value("user", Archive::User()), "/image/",
+			            item.attribute_value("name", Archive::Name()));
+		}
+
+		static Archive::Path _image_index_path(Xml_node const &item)
+		{
+			return Path(item.attribute_value("user", Archive::User()), "/image/index");
+		}
+
+		template <typename FN>
+		static void _for_each_missing_depot_path(Xml_node const &dependencies,
+		                                         Xml_node const &index,
+		                                         Xml_node const &image,
+		                                         Xml_node const &image_index,
+		                                         FN const &fn)
+		{
+			dependencies.for_each_sub_node("missing", [&] (Xml_node const &item) {
+				fn(_depdendency_path(item)); });
+
+			index.for_each_sub_node("missing", [&] (Xml_node const &item) {
+				fn(_index_path(item)); });
+
+			image.for_each_sub_node("missing", [&] (Xml_node const &item) {
+				fn(_image_path(item)); });
+
+			image_index.for_each_sub_node("missing", [&] (Xml_node const &item) {
+				fn(_image_index_path(item)); });
+		}
+
 	public:
+
+		template <typename FN>
+		static void for_each_present_depot_path(Xml_node const &dependencies,
+		                                        Xml_node const &index,
+		                                        Xml_node const &image,
+		                                        Xml_node const &image_index,
+		                                        FN const &fn)
+		{
+			dependencies.for_each_sub_node("present", [&] (Xml_node const &item) {
+				fn(_depdendency_path(item)); });
+
+			index.for_each_sub_node("index", [&] (Xml_node const &item) {
+				fn(_index_path(item)); });
+
+			image.for_each_sub_node("image", [&] (Xml_node const &item) {
+				fn(_image_path(item)); });
+
+			image_index.for_each_sub_node("present", [&] (Xml_node const &item) {
+				fn(_image_index_path(item)); });
+		}
 
 		/**
 		 * Constructor
@@ -139,26 +201,17 @@ class Depot_download_manager::Import
 		 * a future iteration.
 		 */
 		Import(Allocator &alloc, Archive::User const &user,
-		       Xml_node dependencies, Xml_node index)
+		       Xml_node const &dependencies,
+		       Xml_node const &index,
+		       Xml_node const &image,
+		       Xml_node const &image_index)
 		:
 			_alloc(alloc)
 		{
-			dependencies.for_each_sub_node("missing", [&] (Xml_node item) {
-				Archive::Path const path = item.attribute_value("path", Archive::Path());
-				if (Archive::user(path) == user)
-					new (alloc) Item(_items, path);
-			});
-
-			index.for_each_sub_node("missing", [&] (Xml_node item) {
-
-				Archive::Path const
-					path(item.attribute_value("user", Archive::User()),
-					     "/index/",
-					     item.attribute_value("version", Archive::Version()));
-
-				if (Archive::user(path) == user)
-					new (alloc) Item(_items, path);
-			});
+			_for_each_missing_depot_path(dependencies, index, image, image_index,
+				[&] (Archive::Path const &path) {
+					if (Archive::user(path) == user)
+						new (alloc) Item(_items, path); });
 		}
 
 		~Import()

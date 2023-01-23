@@ -65,6 +65,9 @@ void Depot_download_manager::gen_extract_start_content(Xml_generator       &xml,
 
 				if (Archive::index(path))
 					xml.attribute("name", Archive::index_version(path));
+
+				if (Archive::image_index(path))
+					xml.attribute("name", "index");
 			});
 		});
 	});

@@ -30,7 +30,7 @@ struct Depot::Archive
 	typedef String<80>  Name;
 	typedef String<40>  Version;
 
-	enum Type { PKG, RAW, SRC };
+	enum Type { PKG, RAW, SRC, IMAGE };
 
 	struct Unknown_archive_type : Exception { };
 
@@ -81,9 +81,10 @@ struct Depot::Archive
 		typedef String<8> Name;
 		Name const name = _path_element<Name>(path, 1);
 
-		if (name == "src") return SRC;
-		if (name == "pkg") return PKG;
-		if (name == "raw") return RAW;
+		if (name == "src")   return SRC;
+		if (name == "pkg")   return PKG;
+		if (name == "raw")   return RAW;
+		if (name == "image") return IMAGE;
 
 		throw Unknown_archive_type();
 	}
@@ -96,7 +97,23 @@ struct Depot::Archive
 		return _path_element<Name>(path, 1) == "index";
 	}
 
-	static Name    name         (Path const &path) { return _path_element<Name>(path, 2); }
+	/**
+	 * Return true if 'path' refers to a system-image index file
+	 */
+	static bool image_index(Path const &path)
+	{
+		return _path_element<Name>(path, 1) == "image" && name(path) == "index";
+	}
+
+	/**
+	 * Return true if 'path' refers to a system image
+	 */
+	static bool image(Path const &path)
+	{
+		return _path_element<Name>(path, 1) == "image" && name(path) != "index";
+	}
+
+	static Name    name         (Path const &path) { return _path_element<Name>   (path, 2); }
 	static Version version      (Path const &path) { return _path_element<Version>(path, 3); }
 	static Version index_version(Path const &path) { return _path_element<Version>(path, 2); }
 
@@ -108,10 +125,9 @@ struct Depot::Archive
 	 */
 	static Archive::Path download_file_path(Archive::Path path)
 	{
-		return Archive::index(path) ? Archive::Path(path, ".xz")
-		                            : Archive::Path(path, ".tar.xz");
+		return (index(path) || image_index(path)) ? Path(path, ".xz")
+		                                          : Path(path, ".tar.xz");
 	}
-
 };
 
 #endif /* _INCLUDE__DEPOT__ARCHIVE_H_ */

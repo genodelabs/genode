@@ -60,6 +60,8 @@ struct Depot_download_manager::Main : Import::Download_progress
 	Attached_rom_dataspace _installation      { _env, "installation"      };
 	Attached_rom_dataspace _dependencies      { _env, "dependencies"      };
 	Attached_rom_dataspace _index             { _env, "index"             };
+	Attached_rom_dataspace _image             { _env, "image"             };
+	Attached_rom_dataspace _image_index       { _env, "image_index"       };
 	Attached_rom_dataspace _init_state        { _env, "init_state"        };
 	Attached_rom_dataspace _fetchurl_progress { _env, "fetchurl_progress" };
 
@@ -143,15 +145,18 @@ struct Depot_download_manager::Main : Import::Download_progress
 			else {
 				_jobs.for_each([&] (Job const &job) {
 
-					if (!job.started)
+					if (!job.started && !job.done)
 						return;
 
-					/*
-					 * If a job has been started and has not failed, it must
-					 * have succeeded at the time when the import is finished.
-					 */
-					char const *type = Archive::index(job.path) ? "index" : "archive";
-					xml.node(type, [&] () {
+					auto type = [] (Archive::Path const &path)
+					{
+						if (Archive::index(path))       return "index";
+						if (Archive::image(path))       return "image";
+						if (Archive::image_index(path)) return "image_index";
+						return "archive";
+					};
+
+					xml.node(type(job.path), [&] () {
 						xml.attribute("path",  job.path);
 						xml.attribute("state", job.failed ? "failed" : "done");
 					});
@@ -259,6 +264,8 @@ struct Depot_download_manager::Main : Import::Download_progress
 	{
 		_dependencies     .sigh(_query_result_handler);
 		_index            .sigh(_query_result_handler);
+		_image            .sigh(_query_result_handler);
+		_image_index      .sigh(_query_result_handler);
 		_current_user     .sigh(_query_result_handler);
 		_init_state       .sigh(_init_state_handler);
 		_verified         .sigh(_init_state_handler);
@@ -353,6 +360,8 @@ void Depot_download_manager::Main::_handle_query_result()
 
 	_dependencies.update();
 	_index.update();
+	_image.update();
+	_image_index.update();
 	_current_user.update();
 
 	/* validate completeness of depot-user info */
@@ -385,14 +394,21 @@ void Depot_download_manager::Main::_handle_query_result()
 
 	Xml_node const dependencies = _dependencies.xml();
 	Xml_node const index        = _index.xml();
+	Xml_node const image        = _image.xml();
+	Xml_node const image_index  = _image_index.xml();
 
-	if (dependencies.num_sub_nodes() == 0 && index.num_sub_nodes() == 0)
-		return;
+	/* mark jobs referring to existing depot content as unneccessary */
+	Import::for_each_present_depot_path(dependencies, index, image, image_index,
+		[&] (Archive::Path const &path) {
+			_jobs.for_each([&] (Job &job) {
+				if (job.path == path)
+					job.done = true; }); });
 
-	bool const missing_dependencies = dependencies.has_sub_node("missing");
-	bool const missing_index_files  = index.has_sub_node("missing");
-
-	if (!missing_dependencies && !missing_index_files) {
+	bool const complete = !dependencies.has_sub_node("missing")
+	                   && !index       .has_sub_node("missing")
+	                   && !image       .has_sub_node("missing")
+	                   && !image_index .has_sub_node("missing");
+	if (complete) {
 		log("installation complete.");
 		_update_state_report();
 		return;
@@ -408,9 +424,16 @@ void Depot_download_manager::Main::_handle_query_result()
 	{
 		Archive::User user { };
 
-		if (missing_index_files)
-			index.with_optional_sub_node("missing", [&] (Xml_node missing) {
-				user = missing.attribute_value("user", Archive::User()); });
+		auto assign_user_from_missing_xml_sub_node = [&] (Xml_node const node)
+		{
+			if (!user.valid())
+				node.with_optional_sub_node("missing", [&] (Xml_node missing) {
+					user = missing.attribute_value("user", Archive::User()); });
+		};
+
+		assign_user_from_missing_xml_sub_node(index);
+		assign_user_from_missing_xml_sub_node(image);
+		assign_user_from_missing_xml_sub_node(image_index);
 
 		if (user.valid())
 			return user;
@@ -435,7 +458,8 @@ void Depot_download_manager::Main::_handle_query_result()
 	}
 
 	/* start new import */
-	_import.construct(_heap, _current_user_name(), dependencies, index);
+	_import.construct(_heap, _current_user_name(),
+	                  dependencies, index, image, image_index);
 
 	/* mark imported jobs as started */
 	_import->for_each_download([&] (Archive::Path const &path) {
