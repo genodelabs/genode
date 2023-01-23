@@ -52,5 +52,12 @@ Cpu::Ipi::Ipi(Cpu & cpu)
 :
 	Irq(Board::Pic::IPI, cpu, cpu.pic()), cpu(cpu)
 {
+	init();
+}
+
+
+void Cpu::Ipi::init()
+{
+	pending = false;
 	cpu.pic().unmask(Board::Pic::IPI, cpu.id());
 }

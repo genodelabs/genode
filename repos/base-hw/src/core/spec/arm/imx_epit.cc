@@ -30,6 +30,12 @@ Board::Timer::Timer(unsigned)
 :
 	Mmio(Platform::mmio_to_virt(Board::EPIT_1_MMIO_BASE))
 {
+	init();
+}
+
+
+void Board::Timer::init()
+{
 	reset();
 
 	Cr::access_t cr = read<Cr>();

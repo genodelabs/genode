@@ -61,6 +61,8 @@ struct Board::Timer : Genode::Mmio
 	Kernel::time_t current_ticks() const;
 
 	Timer(unsigned);
+
+	void init();
 };
 
 #endif /* _SRC__CORE__SPEC__ARM__CORTEX_A9_GLOBAL_TIMER_H_ */

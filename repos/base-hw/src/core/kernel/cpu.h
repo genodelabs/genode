@@ -88,6 +88,9 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 			Ipi(Cpu & cpu);
 
 
+			void init();
+
+
 			/*********************
 			 **  Irq interface  **
 			 *********************/

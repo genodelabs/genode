@@ -27,6 +27,8 @@ struct Board::Timer
 	unsigned const ticks_per_ms;
 
 	Timer(unsigned);
+
+	void init();
 };
 
 #endif /* _SRC__CORE__SPEC__ARM__GENERIC_TIMER_H_ */

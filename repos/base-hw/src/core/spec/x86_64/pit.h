@@ -72,6 +72,8 @@ struct Board::Timer: Genode::Mmio
 	Genode::uint32_t pit_calc_timer_freq(void);
 
 	Timer(unsigned);
+
+	void init();
 };
 
 #endif /* _SRC__CORE__SPEC__ARM__PIT_H_ */

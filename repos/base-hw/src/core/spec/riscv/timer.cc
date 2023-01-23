@@ -22,6 +22,12 @@ using namespace Kernel;
 
 Board::Timer::Timer(unsigned)
 {
+	init();
+}
+
+
+void Board::Timer::init()
+{
 	/* enable timer interrupt */
 	enum { STIE = 0x20 };
 	Hw::Riscv_cpu::Sie timer(STIE);

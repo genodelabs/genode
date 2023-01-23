@@ -57,6 +57,12 @@ Board::Timer::Timer(unsigned)
 :
 	Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {
+	init();
+}
+
+
+void Board::Timer::init()
+{
 	/* enable LAPIC timer in one-shot mode */
 	write<Tmr_lvt::Vector>(Board::TIMER_VECTOR_KERNEL);
 	write<Tmr_lvt::Delivery>(0);

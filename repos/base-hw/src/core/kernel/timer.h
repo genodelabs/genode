@@ -110,6 +110,9 @@ class Kernel::Timer
 		unsigned interrupt_id() const;
 
 		time_t time() const { return _time + _duration(); }
+
+		void init() { _device.init(); }
+
 };
 
 #endif /* _CORE__KERNEL__TIMER_H_ */

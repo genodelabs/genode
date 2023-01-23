@@ -88,6 +88,8 @@ struct Board::Timer : Genode::Mmio
 	}
 
 	Timer(unsigned);
+
+	void init();
 };
 
 #endif /* _SRC__CORE__SPEC__ARM__IMX_EPIT_H_ */

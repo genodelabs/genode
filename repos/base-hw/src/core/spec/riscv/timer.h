@@ -34,6 +34,8 @@ struct Board::Timer
 	Kernel::time_t stime() const;
 
 	Timer(unsigned);
+
+	void init();
 };
 
 #endif /* _SRC__CORE__SPEC__RISCV__TIMER_H_ */
