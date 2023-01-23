@@ -10,7 +10,8 @@ DIR(linux) := src/linux
 # Patches
 #
 PATCH_FILES := i915_irq.patch i915_alderlake.patch xhci_fix_event_37.patch \
-               xhci_abort_ring.patch iwlwifi_enable_irq_before_pnvm.patch
+               xhci_abort_ring.patch iwlwifi_enable_irq_before_pnvm.patch \
+               realloc-fix-gcc-12.patch
 PATCHES += $(addprefix patches/,$(PATCH_FILES))
 
 # i915
