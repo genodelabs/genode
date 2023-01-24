@@ -303,7 +303,11 @@ struct Sculpt::Main : Input_event_handler,
 				xml.attribute("arch",    _deploy._arch);
 				xml.attribute("version", _query_version.value);
 
-				_popup_dialog.gen_depot_query(xml);
+				if (_popup_dialog.depot_query_needs_users())
+					xml.node("scan", [&] () {
+						xml.attribute("users", "yes"); });
+
+				_popup_dialog.gen_depot_query(xml, _scan_rom.xml());
 
 				/* update query for blueprints of all unconfigured start nodes */
 				_deploy.gen_depot_query(xml);
@@ -364,6 +368,16 @@ struct Sculpt::Main : Input_event_handler,
 	 ************/
 
 	Deploy::Prio_levels const _prio_levels { 4 };
+
+	Attached_rom_dataspace _scan_rom { _env, "report -> runtime/depot_query/scan" };
+
+	Signal_handler<Main> _scan_handler { _env.ep(), *this, &Main::_handle_scan };
+
+	void _handle_scan()
+	{
+		_scan_rom.update();
+		_popup_dialog.depot_users_scan_updated();
+	}
 
 	Attached_rom_dataspace _launcher_listing_rom {
 		_env, "report -> /runtime/launcher_query/listing" };
@@ -1167,7 +1181,7 @@ struct Sculpt::Main : Input_event_handler,
 	Popup_dialog _popup_dialog { _env, *this, _launchers,
 	                             _network._nic_state, _network._nic_target,
 	                             _runtime_state, _cached_runtime_config,
-	                             _download_queue, *this, *this };
+	                             _download_queue, _scan_rom, *this, *this };
 
 	Menu_view _popup_menu_view { _env, _child_states, _popup_dialog, "popup_view",
 	                             Ram_quota{4*1024*1024}, Cap_quota{150},
@@ -1245,6 +1259,7 @@ struct Sculpt::Main : Input_event_handler,
 		_pci_devices         .sigh(_pci_devices_handler);
 		_window_list         .sigh(_window_list_handler);
 		_decorator_margins   .sigh(_decorator_margins_handler);
+		_scan_rom            .sigh(_scan_handler);
 		_launcher_listing_rom.sigh(_launcher_and_preset_listing_handler);
 		_blueprint_rom       .sigh(_blueprint_handler);
 		_editor_saved_rom    .sigh(_editor_saved_handler);

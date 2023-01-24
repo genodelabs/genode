@@ -38,6 +38,8 @@ namespace Sculpt { struct Popup_dialog; }
 
 struct Sculpt::Popup_dialog : Dialog
 {
+	using Depot_users = Attached_rom_dataspace;
+
 	Env &_env;
 
 	Sculpt_version const _sculpt_version { _env };
@@ -51,6 +53,7 @@ struct Sculpt::Popup_dialog : Dialog
 	Runtime_info   const &_runtime_info;
 	Runtime_config const &_runtime_config;
 	Download_queue const &_download_queue;
+	Depot_users    const &_depot_users;
 
 	Depot_query &_depot_query;
 
@@ -214,15 +217,8 @@ struct Sculpt::Popup_dialog : Dialog
 		return hover_result;
 	}
 
-	Attached_rom_dataspace _scan_rom { _env, "report -> runtime/depot_query/scan" };
-
-	Signal_handler<Popup_dialog> _scan_handler {
-		_env.ep(), *this, &Popup_dialog::_handle_scan };
-
-	void _handle_scan()
+	void depot_users_scan_updated()
 	{
-		_scan_rom.update();
-
 		if (_state == DEPOT_REQUESTED)
 			_state = DEPOT_SHOWN;
 
@@ -375,13 +371,13 @@ struct Sculpt::Popup_dialog : Dialog
 
 	void _gen_pkg_info     (Xml_generator &, Component const &) const;
 	void _gen_pkg_elements (Xml_generator &, Component const &) const;
-	void _gen_menu_elements(Xml_generator &) const;
+	void _gen_menu_elements(Xml_generator &, Xml_node const &depot_users) const;
 
 	void generate(Xml_generator &xml) const override
 	{
 		xml.node("frame", [&] () {
 			xml.node("vbox", [&] () {
-				_gen_menu_elements(xml); }); });
+				_gen_menu_elements(xml, _depot_users.xml()); }); });
 	}
 
 	void click(Action &action);
@@ -426,27 +422,26 @@ struct Sculpt::Popup_dialog : Dialog
 	             Runtime_info      const &runtime_info,
 	             Runtime_config    const &runtime_config,
 	             Download_queue    const &download_queue,
+	             Depot_users       const &depot_users,
 	             Depot_query             &depot_query,
 	             Construction_info const &construction_info)
 	:
 		_env(env), _launchers(launchers),
 		_nic_state(nic_state), _nic_target(nic_target),
 		_runtime_info(runtime_info), _runtime_config(runtime_config),
-		_download_queue(download_queue), _depot_query(depot_query),
+		_download_queue(download_queue), _depot_users(depot_users),
+		_depot_query(depot_query),
 		_refresh(refresh), _construction_info(construction_info)
 	{
-		_scan_rom.sigh(_scan_handler);
 		_index_rom.sigh(_index_handler);
 	}
 
-	void gen_depot_query(Xml_generator &xml) const
+	bool depot_query_needs_users() const { return _state >= TOP_LEVEL; }
+
+	void gen_depot_query(Xml_generator &xml, Xml_node const &depot_users) const
 	{
 		if (_state >= TOP_LEVEL)
-			xml.node("scan", [&] () {
-				xml.attribute("users", "yes"); });
-
-		if (_state >= TOP_LEVEL)
-			_scan_rom.xml().for_each_sub_node("user", [&] (Xml_node user) {
+			depot_users.for_each_sub_node("user", [&] (Xml_node user) {
 				xml.node("index", [&] () {
 					User const name = user.attribute_value("name", User());
 					xml.attribute("user",    name);

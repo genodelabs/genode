@@ -121,7 +121,7 @@ void Popup_dialog::_gen_pkg_elements(Xml_generator &xml,
 }
 
 
-void Popup_dialog::_gen_menu_elements(Xml_generator &xml) const
+void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_users) const
 {
 	/*
 	 * Lauchers
@@ -145,7 +145,7 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml) const
 	if (_state == DEPOT_SHOWN || _state == INDEX_REQUESTED) {
 		_gen_sub_menu_title(xml, "back", "Depot");
 
-		_scan_rom.xml().for_each_sub_node("user", [&] (Xml_node user) {
+		depot_users.for_each_sub_node("user", [&] (Xml_node user) {
 
 			User const name = user.attribute_value("name", User());
 			bool const selected = (_selected_user == name);
@@ -170,7 +170,7 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml) const
 	if (_state == DEPOT_SELECTION) {
 		_gen_sub_menu_title(xml, "back", "Selection");
 
-		_scan_rom.xml().for_each_sub_node("user", [&] (Xml_node user) {
+		depot_users.for_each_sub_node("user", [&] (Xml_node user) {
 
 			User const name = user.attribute_value("name", User());
 			bool const selected = _index_avail(name);
