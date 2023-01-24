@@ -1,0 +1,71 @@
+#
+# Generates publishable Sculpt system image
+#
+
+proc board_supported { } {
+	if {[have_board pinephone]} { return true }
+	if {[have_board pc]}        { return true }
+	return false
+}
+
+if {![board_supported]} {
+	puts stderr "board is not supported by the run script"
+	exit 1
+}
+
+proc assert_include { include } {
+	if {![have_include $include]} {
+		puts stderr "missing run-tool argument: --include $include"
+		exit 1
+	}
+}
+
+proc assert_run_arg { arg_name } {
+	global argv
+	if {[lsearch $argv $arg_name] == -1} {
+		puts stderr "missing run-tool argument: $arg"
+		exit 1
+	}
+}
+
+if {[have_board pinephone]} {
+	assert_include image/uboot
+	assert_include image/pine_uboot_sdcard
+	assert_run_arg "--image-uboot-gzip-best"
+}
+
+if {[have_board pc]} {
+	assert_include image/disk
+}
+
+source ${genode_dir}/repos/gems/run/sculpt.run
+
+set image_name "sculpt-$board_var-[build_date]"
+set depot_image_dir  [file join [depot_dir] [depot_user] image]
+set depot_image_path [file join $depot_image_dir $image_name]
+
+# install disk image into depot
+exec mkdir -p $depot_image_dir
+copy_file [run_dir].img $depot_image_path.img
+puts "Disk image:     $depot_image_path.img"
+
+# install content of boot directory into depot
+exec rm -rf $depot_image_path
+exec cp -r [run_dir]/boot $depot_image_path
+puts "Boot directory: $depot_image_path"
+
+puts ""
+puts "Don't forget to extend your [file join $depot_image_dir index] file"
+puts ""
+puts "<index>"
+puts "\t<image os=\"sculpt\" board=\"$board_var\" version=\"[build_date]\">"
+puts "\t\t<info text=\"...\"/>"
+puts "\t</image>"
+puts "\t..."
+puts "</index>"
+puts ""
+puts "Once updated, publish the image index along with the new image as follows:"
+puts ""
+puts "  [genode_dir]/tool/depot/publish [depot_user]/image/$image_name [depot_user]/image/index"
+puts ""
+
