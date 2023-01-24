@@ -84,13 +84,13 @@ void Session_component::update_policy(bool info, Policy_version version)
 		_devices.for_each([&] (Device const & dev) {
 			if (dev.name() != dc.device())
 				return;
-			state = (dev.owner() == _owner_id) ? UNCHANGED : CHANGED;
+			state = (dev.owner() == _owner_id && matches(dev)) ? UNCHANGED : CHANGED;
 		});
 
 		if (state == UNCHANGED)
 			return;
 
-		if (state == AWAY)
+		if (state == CHANGED)
 			warning("Device ", dc.device(),
 			        " has changed, will close device session");
 		else
