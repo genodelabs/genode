@@ -20,4 +20,5 @@ proc install_iso_bootloader_to_run_dir { } {
 	}
 
 	exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+	exec cp $grub2_path/boot/font.pf2     [run_dir]/boot/font.pf2
 }

@@ -110,12 +110,9 @@ proc run_boot_dir {binaries} {
 
 		if {[have_include "image/disk"]} {
 			exec mkdir -p [run_dir]/boot/grub
-			exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+			exec cp [genode_dir]/tool/boot/bender   [run_dir]/boot/bender
 			exec cp [genode_dir]/tool/boot/boot.png [run_dir]/boot/boot.png
-			if {[file exists /boot/grub/unicode.pf2]} {
-				# needed in graphical menu with non-scrampled characters
-				# exec cp /boot/grub/unicode.pf2 [run_dir]/boot/grub/unicode.pf2
-			}
+			exec cp [get_grub2_dir]/boot/font.pf2   [run_dir]/boot/font.pf2
 		}
 
 		if {[have_include "image/iso"]} {
@@ -123,19 +120,14 @@ proc run_boot_dir {binaries} {
 		}
 
 		if {[have_include image/uefi]} {
-			set grub2_path [get_grub2_dir]
-
 			exec mkdir -p [run_dir]/efi/boot
-			exec cp $grub2_path/boot/grub2/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
-			exec cp $grub2_path/boot/grub2/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
+			exec cp [get_grub2_dir]/boot/grub2/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
+			exec cp [get_grub2_dir]/boot/grub2/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
 			exec mkdir -p [run_dir]/boot/grub
 			exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
 
 			exec cp [genode_dir]/tool/boot/boot.png [run_dir]/boot/boot.png
-			if {[file exists /boot/grub/unicode.pf2]} {
-				# needed in graphical menu with non-scrampled characters
-				# exec cp /boot/grub/unicode.pf2 [run_dir]/boot/grub/unicode.pf2
-			}
+			exec cp [get_grub2_dir]/boot/font.pf2   [run_dir]/boot/font.pf2
 
 			append options_bender " serial_fallback"
 		}
@@ -145,8 +137,8 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
 
-		# If timeout != 0 is used and gfxterm, enable and add unicode.pf2 (see above)
-		# puts $fh "loadfont /boot/grub/unicode.pf2"
+		# If timeout != 0 is used a font is required in graphic mode
+		puts $fh "loadfont /boot/font.pf2"
 		puts $fh "set timeout=0"
 
 		# choose best graphic mode
