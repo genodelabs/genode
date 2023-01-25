@@ -175,7 +175,7 @@ struct Menu_view::Main
 	Signal_handler<Main> _frame_timer_handler = {
 		_env.ep(), *this, &Main::_handle_frame_timer};
 
-	Genode::Reporter _hover_reporter = { _env, "hover" };
+	Constructible<Genode::Expanding_reporter> _hover_reporter { };
 
 	void _update_hover_report();
 
@@ -217,11 +217,11 @@ struct Menu_view::Main
 
 void Menu_view::Main::_update_hover_report()
 {
-	if (!_hover_reporter.enabled())
+	if (!_hover_reporter.constructed())
 		return;
 
 	if (!_dialog_hovered) {
-		Genode::Reporter::Xml_generator xml(_hover_reporter, [&] () { });
+		_hover_reporter->generate([&] (Xml_generator &) { });
 		return;
 	}
 
@@ -231,7 +231,7 @@ void Menu_view::Main::_update_hover_report()
 
 	if (hover_changed || _input_seq_number.changed()) {
 
-		Genode::Reporter::Xml_generator xml(_hover_reporter, [&] () {
+		_hover_reporter->generate([&] (Xml_generator &xml) {
 			_input_seq_number.generate(xml);
 			_root_widget.gen_hover_model(xml, _hovered_position);
 		});
@@ -289,12 +289,10 @@ void Menu_view::Main::_handle_config()
 
 	Xml_node const config = _config.xml();
 
-	try {
-		_hover_reporter.enabled(config.sub_node("report")
-		                              .attribute_value("hover", false));
-	} catch (...) {
-		_hover_reporter.enabled(false);
-	}
+	config.with_optional_sub_node("report", [&] (Xml_node const &report) {
+		_hover_reporter.conditional(report.attribute_value("hover", false),
+		                            _env, "hover", "hover");
+	});
 
 	_opaque = config.attribute_value("opaque", false);
 
