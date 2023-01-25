@@ -235,6 +235,8 @@ class Depot_query::Dependencies
 
 struct Depot_query::Main
 {
+	using Url = String<256>;
+
 	Env &_env;
 
 	Heap _heap { _env.ram(), _env.rm() };
@@ -331,6 +333,7 @@ struct Depot_query::Main
 	void _query_blueprint(Directory::Path const &, Xml_generator &);
 	void _collect_source_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
 	void _collect_binary_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
+	void _scan_user(Archive::User const &, Xml_generator &);
 	void _query_user(Archive::User const &, Xml_generator &);
 	void _gen_index_node_rec(Xml_generator &, Xml_node const &, unsigned) const;
 	void _gen_index_for_arch(Xml_generator &, Xml_node const &) const;
@@ -402,8 +405,7 @@ struct Depot_query::Main
 			query.for_each_sub_node("scan", [&] (Xml_node node) {
 				if (node.attribute_value("users", false)) {
 					for_each_subdir_name(_heap, _depot_dir, [&] (auto name) {
-						xml.node("user", [&] () {
-							xml.attribute("name", name); }); }); } }); });
+						_scan_user(name, xml); }); } }); });
 
 		_gen_versioned_report(_blueprint_reporter, version, [&] (Xml_generator &xml) {
 			query.for_each_sub_node("blueprint", [&] (Xml_node node) {
@@ -687,6 +689,24 @@ void Depot_query::Main::_collect_binary_dependencies(Archive::Path const &path,
 		dependencies.record(path);
 		break;
 	};
+}
+
+
+void Depot_query::Main::_scan_user(Archive::User const &user, Xml_generator &xml)
+{
+	xml.node("user", [&] () {
+
+		Directory user_dir(_root, Directory::Path("depot/", user));
+
+		xml.attribute("name", user);
+		xml.attribute("known_pubkey", user_dir.file_exists("pubkey") ? "yes" : "no");
+
+		if (user_dir.file_exists("download")) {
+			File_content download(_heap, user_dir, "download", File_content::Limit{4*1024});
+			download.for_each_line<Url>([&] (Url const &url) {
+				xml.node("url", [&] () { xml.append_sanitized(url.string()); }); });
+		}
+	});
 }
 
 
