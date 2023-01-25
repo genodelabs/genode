@@ -72,7 +72,7 @@ void Partition_dialog::gen_operations(Xml_generator        &xml,
 					xml.attribute("text", "Default"); });
 			});
 			if (partition.relabel_in_progress())
-				xml.node("label", [&] () { xml.attribute("text", "In progress..."); });
+				xml.node("label", [&] () { xml.attribute("text", "Relabeling in progress..."); });
 		}
 
 		if (!target_in_use && !partition.format_in_progress && partition.checkable()
@@ -88,7 +88,7 @@ void Partition_dialog::gen_operations(Xml_generator        &xml,
 				xml.node("label", [&] () { xml.attribute("text", "Check"); });
 			});
 			if (partition.check_in_progress)
-				xml.node("label", [&] () { xml.attribute("text", "In progress..."); });
+				xml.node("label", [&] () { xml.attribute("text", "Check in progress..."); });
 		}
 	}
 
@@ -109,10 +109,6 @@ void Partition_dialog::gen_operations(Xml_generator        &xml,
 	                                && !relabel_in_progress
 	                                && partition.expandable()
 	                                && !_operation_item.selected("format");
-
-	bool const progress_msg_visible =
-		   (_operation_item.selected("format") && partition.format_in_progress)
-		|| (_operation_item.selected("expand") && partition.expand_in_progress());
 
 	bool const confirm_visible =
 		   (_operation_item.selected("format") && !partition.format_in_progress)
@@ -146,8 +142,14 @@ void Partition_dialog::gen_operations(Xml_generator        &xml,
 		});
 	}
 
-	if (progress_msg_visible)
-		xml.node("label", [&] () { xml.attribute("text", "In progress..."); });
+	if (partition.format_in_progress)
+		xml.node("label", [&] () { xml.attribute("text", "Formatting in progress..."); });
+
+	if (partition.gpt_expand_in_progress)
+		xml.node("label", [&] () { xml.attribute("text", "Expanding partition..."); });
+
+	if (partition.fs_resize_in_progress)
+		xml.node("label", [&] () { xml.attribute("text", "Resizing file system..."); });
 
 	if (confirm_visible) {
 		xml.node("button", [&] () {
