@@ -28,6 +28,7 @@ static int dde_irq_set_wake(struct irq_data *d, unsigned int on)
 
 static void dde_irq_unmask(struct irq_data *d)
 {
+	lx_emul_irq_eoi(d->hwirq);
 	lx_emul_irq_unmask(d->hwirq);
 }
 
@@ -52,7 +53,7 @@ static int dde_irq_set_type(struct irq_data *d, unsigned int type)
 }
 
 
-static struct irq_chip dde_irqchip_data_chip = {
+struct irq_chip dde_irqchip_data_chip = {
 	.name           = "dde-irqs",
 	.irq_eoi        = dde_irq_eoi,
 	.irq_mask       = dde_irq_mask,
@@ -176,7 +177,9 @@ int lx_emul_irq_task_function(void * data)
 		local_irq_save(flags);
 		irq_enter();
 
-		irq = irq_find_mapping(dde_irq_domain, lx_emul_irq_last());
+		irq = dde_irq_domain ? irq_find_mapping(dde_irq_domain,
+		                                        lx_emul_irq_last())
+		                     : lx_emul_irq_last();
 
 		if (!irq) {
 			ack_bad_irq(irq);

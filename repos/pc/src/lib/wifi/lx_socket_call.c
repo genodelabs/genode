@@ -177,6 +177,30 @@ int lx_sock_setsockopt(struct socket *sock, int level, int optname,
 }
 
 
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,12,0)
+int dev_get_mac_address(struct sockaddr *sa, struct net *net, char *dev_name)
+{
+	size_t size = sizeof(sa->sa_data);
+	struct net_device *dev = dev_get_by_name_rcu(net, dev_name);
+
+	if (!dev)
+		return -ENODEV;
+
+	if (!dev->addr_len)
+		memset(sa->sa_data, 0, size);
+	else
+		memcpy(sa->sa_data, dev->dev_addr,
+		       min_t(size_t, size, dev->addr_len));
+	sa->sa_family = dev->type;
+
+	return 0;
+}
+EXPORT_SYMBOL(dev_get_mac_address);
+#endif
+
+
 unsigned char const* lx_get_mac_addr()
 {
 	static char mac_addr_buffer[16];

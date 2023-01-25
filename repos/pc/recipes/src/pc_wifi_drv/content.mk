@@ -27,7 +27,7 @@ LIBNL_PORT_DIR := $(call port_dir,$(DDE_LINUX_REP_DIR)/ports/libnl)
 DDE_LINUX_LIB_MK := \
           $(addprefix lib/mk/,libnl.inc libnl_include.mk) \
           $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/libnl.mk) \
-          $(addprefix lib/mk/spec/x86/,wpa_driver_nl80211.mk wpa_supplicant.mk)
+          $(addprefix lib/mk/,wpa_driver_nl80211.mk wpa_supplicant.mk)
 
 MIRROR_FROM_DDE_LINUX_DIR := $(DDE_LINUX_LIB_MK) \
                              lib/import/import-libnl_include.mk \
