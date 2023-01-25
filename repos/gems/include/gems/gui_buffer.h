@@ -25,7 +25,7 @@
 #include <blit/painter.h>
 
 
-struct Gui_buffer
+struct Gui_buffer : Genode::Noncopyable
 {
 	typedef Genode::Pixel_rgb888 Pixel_rgb888;
 	typedef Genode::Pixel_alpha8 Pixel_alpha8;
@@ -50,7 +50,7 @@ struct Gui_buffer
 
 	bool const use_alpha;
 
-	Pixel_rgb888 reset_color { 127, 127, 127, 255 };
+	Pixel_rgb888 const reset_color;
 
 	/**
 	 * Return dataspace capability for virtual framebuffer
@@ -80,17 +80,24 @@ struct Gui_buffer
 
 	enum class Alpha { OPAQUE, ALPHA };
 
+	static Genode::Color default_reset_color()
+	{
+		return Genode::Color(127, 127, 127, 255);
+	}
+
 	/**
 	 * Constructor
 	 */
 	Gui_buffer(Gui::Connection &gui, Area size,
 	           Genode::Ram_allocator &ram, Genode::Region_map &rm,
-	           Alpha alpha = Alpha::ALPHA)
+	           Alpha alpha = Alpha::ALPHA,
+	           Genode::Color reset_color = default_reset_color())
 	:
 		ram(ram), rm(rm), gui(gui),
 		mode({ .area = { Genode::max(1U, size.w()),
 		                 Genode::max(1U, size.h()) } }),
-		use_alpha(alpha == Alpha::ALPHA)
+		use_alpha(alpha == Alpha::ALPHA),
+		reset_color(reset_color.r, reset_color.g, reset_color.b, reset_color.a)
 	{
 		reset_surface();
 	}

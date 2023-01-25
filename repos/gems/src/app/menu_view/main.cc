@@ -386,17 +386,13 @@ void Menu_view::Main::_handle_frame_timer()
 		bool const size_increased = (max_size.w() > buffer_w)
 		                         || (max_size.h() > buffer_h);
 
-		if (!_buffer.constructed() || size_increased) {
+		if (!_buffer.constructed() || size_increased)
 			_buffer.construct(_gui, max_size, _env.ram(), _env.rm(),
 			                  _opaque ? Gui_buffer::Alpha::OPAQUE
-			                          : Gui_buffer::Alpha::ALPHA);
-			_buffer->reset_color = { _background_color.r,
-			                         _background_color.g,
-			                         _background_color.b,
-			                         _background_color.a };
-		} else {
+			                          : Gui_buffer::Alpha::ALPHA,
+			                  _background_color);
+		else
 			_buffer->reset_surface();
-		}
 
 		_root_widget.position(Point(0, 0));
 
