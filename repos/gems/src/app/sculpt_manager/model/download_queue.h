@@ -37,9 +37,15 @@ struct Sculpt::Download_queue : Noncopyable
 			if (state != State::DOWNLOADING)
 				return;
 
+			auto gen_install_node = [&] (auto type, auto path) {
+				xml.node(type, [&] () { xml.attribute("path", path); }); };
+
 			if (Depot::Archive::index(path))
-				xml.node("index", [&] () {
-					xml.attribute("path", path); });
+				gen_install_node("index", path);
+			if (Depot::Archive::image_index(path))
+				gen_install_node("image_index", path);
+			if (Depot::Archive::image(path))
+				gen_install_node("image", path);
 			else
 				xml.node("archive", [&] () {
 					xml.attribute("path", path);
