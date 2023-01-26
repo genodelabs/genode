@@ -1113,7 +1113,6 @@ class Lwip::Tcp_socket_dir final :
 
 		/* queue of received data */
 		pbuf *_recv_pbuf = nullptr;
-		u16_t _recv_off  = 0;
 
 		Open_result _accept_new_socket(Vfs::File_system &fs,
                                        Genode::Allocator &alloc,
@@ -1195,13 +1194,17 @@ class Lwip::Tcp_socket_dir final :
 		/**
 		 * chain a buffer to the queue
 		 */
-		void recv(struct pbuf *buf)
+		err_t recv(struct pbuf *buf)
 		{
-			if (_recv_pbuf && buf) {
+			if (!buf)
+				return ERR_ARG;
+
+			if (_recv_pbuf)
 				pbuf_cat(_recv_pbuf, buf);
-			} else {
+			else
 				_recv_pbuf = buf;
-			}
+
+			return ERR_OK;
 		}
 
 		/**
@@ -1325,24 +1328,10 @@ class Lwip::Tcp_socket_dir final :
 							: Read_result::READ_OK;
 					}
 
-					u16_t const ucount = count;
-					u16_t const n = pbuf_copy_partial(_recv_pbuf, dst, ucount, _recv_off);
-					_recv_off += n;
-					{
-						u16_t new_off;
-						pbuf *new_head = pbuf_skip(_recv_pbuf, _recv_off, &new_off);
-						if (new_head != NULL && new_head != _recv_pbuf) {
-							/* increment the references on the new head */
-							pbuf_ref(new_head);
-							/* free the buffers chained to the old head */
-							pbuf_free(_recv_pbuf);
-						}
+					u16_t const ucount = min(count, (file_size)0xffff);
+					u16_t const n = pbuf_copy_partial(_recv_pbuf, dst, ucount, 0);
 
-						if (!new_head)
-							pbuf_free(_recv_pbuf);
-						_recv_pbuf = new_head;
-						_recv_off = new_off;
-					}
+					_recv_pbuf = pbuf_free_header(_recv_pbuf, n);
 
 					/* ACK the remote */
 					if (_pcb)
@@ -1358,8 +1347,8 @@ class Lwip::Tcp_socket_dir final :
 
 			case Lwip_file_handle::PEEK:
 				if (_recv_pbuf != nullptr) {
-					u16_t const ucount = count;
-					u16_t const n = pbuf_copy_partial(_recv_pbuf, dst, ucount, _recv_off);
+					u16_t const ucount = min(count, (file_size)0xffff);
+					u16_t const n = pbuf_copy_partial(_recv_pbuf, dst, ucount, 0);
 					out_count = n;
 				}
 				return Read_result::READ_OK;
@@ -1658,16 +1647,18 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t)
 		return ERR_ABRT;
 	}
 
+	err_t err = ERR_OK;
+
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
 	if (p == NULL) {
 		socket_dir->shutdown();
 	} else {
-		socket_dir->recv(p);
+		err = socket_dir->recv(p);
 	}
 
 	socket_dir->wakeup_vfs_user();
 	socket_dir->process_read_ready();
-	return ERR_OK;
+	return err;
 }
 
 

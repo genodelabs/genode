@@ -401,8 +401,8 @@ class Lwip::Nic_netif
 			 * pbuf into the packet.
 			 */
 			char *dst = tx.packet_content(packet);
-			for(struct pbuf *q = p; q != 0; q = q->next) {
-				char const *src = (char*)q->payload;
+			for (struct pbuf *q = p; q != nullptr; q = q->next) {
+				char const *src = (char const *)q->payload;
 				Genode::memcpy(dst, src, q->len);
 				dst += q->len;
 			}
