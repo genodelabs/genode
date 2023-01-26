@@ -127,6 +127,7 @@ append config {
 		<binary name="shim"/>
 		<affinity xpos="1" ypos="0" width="2" height="1"/>
 		<resource name="RAM" quantum="3M"/>
+		<config percent="95"/>
 		<route>
 
 			<!-- by shim binary -->
@@ -163,4 +164,4 @@ build_boot_image { core ld.lib.so init timer cpu_balancer cpu_burner top dynamic
 append qemu_args " -nographic"
 append qemu_args " -smp [expr $cpu_width * $cpu_height],cores=$cpu_width,threads=$cpu_height"
 
-run_genode_until {.*thread xpos="1" ypos="0" name="signal handler" policy="max-utilize".*\n} 60
+run_genode_until {.*thread xpos="[1-9]" ypos="0" name="signal handler" policy="max-utilize".*\n} 60
