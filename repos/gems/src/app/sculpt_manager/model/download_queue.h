@@ -28,6 +28,8 @@ struct Sculpt::Download_queue : Noncopyable
 
 		enum class State { DOWNLOADING, FAILED, DONE } state;
 
+		unsigned percent = 0;
+
 		Download(Path const &path) : path(path), state(State::DOWNLOADING) { }
 
 		void gen_installation_entry(Xml_generator &xml) const
@@ -65,13 +67,20 @@ struct Sculpt::Download_queue : Noncopyable
 		new (_alloc) Registered<Download>(_downloads, path);
 	}
 
+	template <typename FN>
+	void with_download(Path const &path, FN const &fn) const
+	{
+		_downloads.for_each([&] (Download const &download) {
+			if (download.path == path)
+				fn(download); });
+	}
+
 	bool in_progress(Path const &path) const
 	{
 		bool result = false;
 		_downloads.for_each([&] (Download const &download) {
 			if (download.path == path && download.state == Download::State::DOWNLOADING)
 				result = true; });
-
 		return result;
 	}
 
@@ -80,7 +89,10 @@ struct Sculpt::Download_queue : Noncopyable
 		/* 'elem' may be of type 'index' or 'archive' */
 		state.for_each_sub_node([&] (Xml_node elem) {
 
-			Path const path = elem.attribute_value("path", Path());
+			Path     const path    = elem.attribute_value("path", Path());
+			size_t   const total   = elem.attribute_value("total", 0UL);
+			size_t   const now     = elem.attribute_value("now",   0UL);
+			unsigned const percent = unsigned(total ? (now*100)/total : 0UL);
 
 			_downloads.for_each([&] (Download &download) {
 
@@ -89,6 +101,8 @@ struct Sculpt::Download_queue : Noncopyable
 
 				typedef String<16> State;
 				State const state = elem.attribute_value("state", State());
+
+				download.percent = percent;
 
 				if (state == "done")        download.state = Download::State::DONE;
 				if (state == "failed")      download.state = Download::State::FAILED;
@@ -105,6 +119,13 @@ struct Sculpt::Download_queue : Noncopyable
 				destroy(_alloc, &download); });
 	}
 
+	void remove_completed_downloads()
+	{
+		_downloads.for_each([&] (Download &download) {
+			if (download.state == Download::State::DONE)
+				destroy(_alloc, &download); });
+	}
+
 	void gen_installation_entries(Xml_generator &xml) const
 	{
 		_downloads.for_each([&] (Download const &download) {
@@ -116,6 +137,16 @@ struct Sculpt::Download_queue : Noncopyable
 		bool result = false;
 		_downloads.for_each([&] (Download const &download) {
 			if (!result && download.state == Download::State::DOWNLOADING)
+				result = true; });
+
+		return result;
+	}
+
+	bool any_completed_download() const
+	{
+		bool result = false;
+		_downloads.for_each([&] (Download const &download) {
+			if (!result && download.state == Download::State::DONE)
 				result = true; });
 
 		return result;
