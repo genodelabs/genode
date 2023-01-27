@@ -91,3 +91,11 @@ proc run_image { } {
 	set size_image [expr [regsub {\s.*} [exec du -sk [run_dir].img] {}]]
 	puts "Created image file [run_dir].img (${size_image}kiB)"
 }
+
+
+proc install_disk_bootloader_to_run_dir { } {
+	exec mkdir -p [run_dir]/boot/grub
+	exec cp [genode_dir]/tool/boot/bender   [run_dir]/boot/bender
+	exec cp [genode_dir]/tool/boot/boot.png [run_dir]/boot/boot.png
+	exec cp [get_grub2_dir]/boot/font.pf2   [run_dir]/boot/font.pf2
+}

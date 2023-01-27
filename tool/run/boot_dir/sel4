@@ -58,8 +58,7 @@ proc run_boot_dir {binaries} {
 		set serial_bender_opt ""
 
 		if {[have_include "image/disk"]} {
-			exec mkdir -p [run_dir]/boot/grub
-			exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+			install_disk_bootloader_to_run_dir
 		}
 
 		if {[have_include "image/iso"]} {

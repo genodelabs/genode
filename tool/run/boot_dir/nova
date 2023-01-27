@@ -109,10 +109,7 @@ proc run_boot_dir {binaries} {
 		exec gzip [run_dir]/boot/image.elf
 
 		if {[have_include "image/disk"]} {
-			exec mkdir -p [run_dir]/boot/grub
-			exec cp [genode_dir]/tool/boot/bender   [run_dir]/boot/bender
-			exec cp [genode_dir]/tool/boot/boot.png [run_dir]/boot/boot.png
-			exec cp [get_grub2_dir]/boot/font.pf2   [run_dir]/boot/font.pf2
+			install_disk_bootloader_to_run_dir
 		}
 
 		if {[have_include "image/iso"]} {
