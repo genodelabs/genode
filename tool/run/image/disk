@@ -54,7 +54,7 @@ proc run_image { } {
 
 	if {[image_disk_size] == 0} {
 		# resize image to only needed size and get size of resized image
-		exec resize2fs -M [run_dir].partition 2>/dev/null
+		exec [installed_command resize2fs] -M [run_dir].partition 2>/dev/null
 		set disk_size_b [expr [regsub {\s.*} [exec wc -c [run_dir].partition] {}]]
 		set disk_size_kb [expr $disk_size_b / 1024]
 	}
