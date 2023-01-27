@@ -31,11 +31,16 @@ void Sculpt::gen_fs_tool_start_content(Xml_generator &xml, Fs_tool_version versi
 
 		xml.node("vfs", [&] () {
 
-			gen_named_node(xml, "dir", "rw", [&] () {
-				xml.node("fs",  [&] () { xml.attribute("label", "target"); }); });
+			auto gen_fs = [&] (auto name, auto label, auto buffer_size)
+			{
+				gen_named_node(xml, "dir", name, [&] () {
+					xml.node("fs",  [&] () {
+						xml.attribute("label",       label);
+						xml.attribute("buffer_size", buffer_size); }); });
+			};
 
-			gen_named_node(xml, "dir", "config", [&] () {
-				xml.node("fs",  [&] () { xml.attribute("label", "config"); }); });
+			gen_fs("rw",     "target", "1M");
+			gen_fs("config", "config", "128K");
 		});
 
 		operations.gen_fs_tool_config(xml);
