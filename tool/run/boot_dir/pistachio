@@ -56,13 +56,13 @@ proc run_boot_dir {binaries} {
 		}
 
 		#
-		# Generate GRUB config file
+		# Generate GRUB2 config file
 		#
+		set fh [create_header_grub2_config]
+
 		# The core binary is part of the 'binaries' list but it must
 		# appear right after 'sigma0' as boot module. Hence the special case.
 		#
-		set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
-		puts $fh "set timeout=0"
 		puts $fh "menuentry 'Genode on L4ka::Pistachio' {"
 		puts $fh " insmod multiboot"
 		puts $fh " multiboot /boot/bender"
