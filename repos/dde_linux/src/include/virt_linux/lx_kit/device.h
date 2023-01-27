@@ -1,3 +1,17 @@
+/*
+ * \brief  Dummy device interface for virt_linux
+ * \author Martin Stein
+ * \author Christian Helmuth
+ * \date   2023-03-24
+ */
+
+/*
+ * Copyright (C) 2023 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2.
+ */
+
 #ifndef _LX_KIT__DEVICE_H_
 #define _LX_KIT__DEVICE_H_
 

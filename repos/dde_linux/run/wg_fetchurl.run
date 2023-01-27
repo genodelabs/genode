@@ -36,7 +36,8 @@ import_from_depot [depot_user]/src/libc \
                   [depot_user]/src/posix \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_lwip \
-                  [depot_user]/src/zlib
+                  [depot_user]/src/zlib \
+                  [depot_user]/pkg/wireguard
 
 append config {
 
@@ -369,11 +370,11 @@ append config {
 install_config $config
 
 append targets {
-	core init timer server/nic_router app/wireguard server/report_rom
+	core init timer server/nic_router server/report_rom
 	app/fetchurl }
 
 append boot_modules {
-	core init timer nic_router wireguard fetchurl report_rom curl.lib.so
+	core init timer nic_router fetchurl report_rom curl.lib.so
 	ld.lib.so }
 
 if $linux {
@@ -394,7 +395,7 @@ if $linux {
 
 build $targets
 
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 

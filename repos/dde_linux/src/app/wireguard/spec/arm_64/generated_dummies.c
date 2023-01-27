@@ -92,11 +92,6 @@ struct sk_buff * __skb_gso_segment(struct sk_buff * skb,netdev_features_t featur
 }
 
 
-#include <linux/ctype.h>
-
-const unsigned char _ctype[] = {};
-
-
 #include <linux/mm.h>
 
 atomic_long_t _totalram_pages;

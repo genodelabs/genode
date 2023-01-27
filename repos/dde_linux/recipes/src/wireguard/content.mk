@@ -1,24 +1,25 @@
 MIRRORED_FROM_REP_DIR := \
-	lib/mk/spec/x86_64/wireguard_lx_inc_dirs.mk \
-	lib/mk/spec/x86_64/wireguard.mk \
-	lib/mk/spec/arm_64/wireguard_lx_inc_dirs.mk \
-	lib/mk/spec/arm_64/wireguard.mk \
-	lib/mk/wireguard_lx_inc_dirs.inc \
-	lib/mk/wireguard.inc \
-	lib/mk/lx_emul.mk \
-	lib/import/import-lx_emul.mk \
 	lib/import/import-lx_emul_common.inc \
-	lib/mk/spec/x86_64/virt_linux_generated.mk \
+	lib/import/import-virt_lx_emul.mk \
 	lib/mk/spec/arm_64/virt_linux_generated.mk \
+	lib/mk/spec/arm_64/wireguard.mk \
+	lib/mk/spec/arm_64/wireguard_lx_inc_dirs.mk \
+	lib/mk/spec/x86_64/virt_linux_generated.mk \
+	lib/mk/spec/x86_64/wireguard.mk \
+	lib/mk/spec/x86_64/wireguard_lx_inc_dirs.mk \
 	lib/mk/virt_linux_generated.inc \
-	src/virt_linux/target.inc \
+	lib/mk/virt_lx_emul.mk \
+	lib/mk/wireguard.inc \
+	lib/mk/wireguard_lx_inc_dirs.inc \
 	src/app/wireguard \
-	src/lib/lx_emul \
-	src/lib/lx_kit \
-	src/include/spec/x86_64/lx_kit \
-	src/include/spec/arm_64/lx_kit \
 	src/include/lx_emul \
 	src/include/lx_kit \
+	src/include/spec/arm_64/lx_kit \
+	src/include/spec/x86_64/lx_kit \
+	src/include/virt_linux \
+	src/lib/lx_emul \
+	src/lib/lx_kit \
+	src/virt_linux/target.inc \
 	src/include/lx_user
 
 content: $(MIRRORED_FROM_REP_DIR)

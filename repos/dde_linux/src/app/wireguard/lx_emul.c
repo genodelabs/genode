@@ -30,26 +30,10 @@ void __icmp_send(struct sk_buff * skb_in,int type,int code,__be32 info,const str
 
 #include <linux/random.h>
 
-void get_random_bytes(void * buf,int nbytes)
-{
-	lx_emul_random_gen_bytes(buf, nbytes);
-}
-
-
-#include <linux/random.h>
-
 int wait_for_random_bytes(void)
 {
 	lx_emul_trace(__func__);
 	return 0;
-}
-
-
-#include <linux/random.h>
-
-u32 get_random_u32(void)
-{
-	return lx_emul_random_gen_u32();
 }
 
 
@@ -58,15 +42,6 @@ u32 get_random_u32(void)
 u32 prandom_u32(void)
 {
 	return lx_emul_random_gen_u32();
-}
-
-
-#include <linux/random.h>
-
-int __must_check get_random_bytes_arch(void * buf, int nbytes)
-{
-	lx_emul_random_gen_bytes(buf, nbytes);
-	return nbytes;
 }
 
 

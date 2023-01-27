@@ -13,7 +13,6 @@ GEN_PRG_DIR := $(PRG_DIR)/../..
 
 SRC_C += $(notdir $(wildcard $(PRG_DIR)/generated_dummies.c))
 SRC_C += dummies.c
-SRC_C += dummies_arch.c
 SRC_C += lx_emul.c
 SRC_C += wireguard.c
 SRC_C += genode_c_api_arch.c
@@ -25,7 +24,7 @@ vpath %.c         $(GEN_PRG_DIR)
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(GEN_PRG_DIR)
 
-LIBS += lx_emul virt_linux_generated
+LIBS += virt_lx_emul virt_linux_generated
 
 #
 # We shadow some files of lx_emul and lx_kit in order to locally apply

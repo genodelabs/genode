@@ -71,11 +71,6 @@ unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 }
 
 
-#include <linux/ctype.h>
-
-const unsigned char _ctype[] = {};
-
-
 extern const char * _parse_integer_fixup_radix(const char * s,unsigned int * base);
 const char * _parse_integer_fixup_radix(const char * s,unsigned int * base)
 {
