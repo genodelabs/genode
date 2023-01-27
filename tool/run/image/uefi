@@ -39,3 +39,15 @@ proc run_image { } {
 
 	exec rm -f [run_dir].header [run_dir].partition
 }
+
+
+proc install_uefi_bootloader_to_run_dir { } {
+	exec mkdir -p [run_dir]/efi/boot
+	exec cp [get_grub2_dir]/boot/grub2/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
+	exec cp [get_grub2_dir]/boot/grub2/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
+	exec mkdir -p [run_dir]/boot/grub
+	exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+
+	exec cp [genode_dir]/tool/boot/boot.png [run_dir]/boot/boot.png
+	exec cp [get_grub2_dir]/boot/font.pf2   [run_dir]/boot/font.pf2
+}
