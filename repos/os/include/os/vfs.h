@@ -289,14 +289,17 @@ struct Genode::Directory : Noncopyable, Interface
 			auto open_res = _nonconst_fs().openlink(
 				join(_path, rel_path).string(),
 				false, &link_handle, _alloc);
+
 			if (open_res != Directory_service::OPENLINK_OK)
 				throw Nonexistent_file();
+
 			Vfs_handle::Guard guard(link_handle);
 
 			char buf[MAX_PATH_LEN];
 
 			Vfs::file_size count = sizeof(buf)-1;
 			Vfs::file_size out_count = 0;
+
 			while (!link_handle->fs().queue_read(link_handle, count)) {
 				_io.commit_and_wait();
 			}
@@ -452,50 +455,71 @@ class Genode::Readonly_file : public File
 		struct At { Vfs::file_size value; };
 
 		/**
-		 * Read number of 'bytes' from file into local memory buffer 'dst'
-		 *
-		 * \throw Truncated_during_read
+		 * Read file content starting at 'at' into byte buffer 'range'
 		 */
-		size_t read(At at, char *dst, size_t bytes) const
+		size_t read(At at, Byte_range_ptr const &range) const
 		{
-			Vfs::file_size out_count = 0;
-
-			_handle->seek(at.value);
-
-			while (!_handle->fs().queue_read(_handle, bytes))
-				_io.commit_and_wait();
-
-			Vfs::File_io_service::Read_result result;
+			size_t total = 0;
 
 			for (;;) {
-				result = _handle->fs().complete_read(_handle, dst, bytes,
-				                                     out_count);
 
-				if (result != Vfs::File_io_service::READ_QUEUED)
+				_handle->seek(at.value + total);
+
+				while (!_handle->fs().queue_read(_handle, range.num_bytes))
+					_io.commit_and_wait();
+
+				Vfs::File_io_service::Read_result result;
+
+				Vfs::file_size read_bytes { }; /* byte count for this iteration */
+
+				for (;;) {
+					result = _handle->fs().complete_read(_handle,
+					                                     range.start     + total,
+					                                     range.num_bytes - total,
+					                                     read_bytes);
+
+					if (result != Vfs::File_io_service::READ_QUEUED)
+						break;
+
+					_io.commit_and_wait();
+				};
+
+				if (read_bytes > range.num_bytes - total) {
+					error("read beyond buffer size");
+					break;
+				}
+
+				if (read_bytes == 0)
 					break;
 
-				_io.commit_and_wait();
-			};
+				total += size_t(read_bytes);
+			}
 
-			/*
-			 * XXX handle READ_ERR_WOULD_BLOCK, READ_QUEUED
-			 */
+			return total;
+		}
 
-			if (result != Vfs::File_io_service::READ_OK)
-				throw Truncated_during_read();
+		/*
+		 * \deprecated  use 'Byte_range_ptr'
+		 */
+		size_t read(char *dst, size_t bytes) const __attribute__((deprecated))
+		{
+			return read(At{0}, Byte_range_ptr(dst, bytes));
+		}
 
-			return (size_t)out_count;
+		/*
+		 * \deprecated  use 'Byte_range_ptr'
+		 */
+		size_t read(At at, char *dst, size_t bytes) const __attribute__((deprecated))
+		{
+			return read(at, Byte_range_ptr(dst, bytes));
 		}
 
 		/**
-		 * Read number of 'bytes' from the start of the file into local memory
-		 * buffer 'dst'
-		 *
-		 * \throw Truncated_during_read
+		 * Read file content into byte buffer 'range'
 		 */
-		size_t read(char *dst, size_t bytes) const
+		size_t read(Byte_range_ptr const &range) const
 		{
-			return read(At{0}, dst, bytes);
+			return read(At{0}, range);
 		}
 };
 
@@ -504,6 +528,8 @@ class Genode::Readonly_file : public File
  * Call functor 'fn' with the data pointer and size in bytes
  *
  * If the buffer has a size of zero, 'fn' is not called.
+ *
+ * \throw Truncated_during_read
  */
 template <typename FN>
 void Genode::with_raw_file_content(Readonly_file const &file,
@@ -512,19 +538,7 @@ void Genode::with_raw_file_content(Readonly_file const &file,
 	if (range.num_bytes == 0)
 		return;
 
-	size_t total_read = 0;
-	while (total_read < range.num_bytes) {
-		size_t read_bytes = file.read(Readonly_file::At{total_read},
-				                      range.start  + total_read,
-				                      range.num_bytes - total_read);
-
-		if (read_bytes == 0)
-			break;
-
-		total_read += read_bytes;
-	}
-
-	if (total_read != range.num_bytes)
+	if (file.read(range) != range.num_bytes)
 		throw File::Truncated_during_read();
 
 	fn(range.start, range.num_bytes);
@@ -541,8 +555,8 @@ template <typename FN>
 void Genode::with_xml_file_content(Readonly_file const &file,
                                    Byte_range_ptr const &range, FN const &fn)
 {
-	with_raw_file_content(file, range,
-	                      [&] (char const *ptr, size_t num_bytes) {
+	with_raw_file_content(file, range, [&] (char const *ptr, size_t num_bytes) {
+
 		try {
 			fn(Xml_node(ptr, num_bytes));
 			return;
