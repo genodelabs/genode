@@ -195,8 +195,8 @@ set config {
 
 if { $use_wifi_driver } {
 	append config {
-	<start name="report_rom" caps="70">
-		<resource name="RAM" quantum="1M"/>
+	<start name="report_rom" caps="100">
+		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="ROM" />
 			<service name="Report" />
@@ -220,7 +220,7 @@ if { $use_wifi_driver } {
 	</start>
 
 	<start name="platform_drv" caps="100" managing_system="yes">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>
 			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
