@@ -128,9 +128,18 @@ CXXFLAGS += $(COMMON_CFLAGS_CXXFLAGS)
 # Unfortunately, the use of '--start-group' and '--end-group' does not suffice
 # in all cases because 'libtool' strips those arguments from the 'LIBS' variable.
 #
-LDLIBS_A  = $(filter %.a, $(sort $(STATIC_LIBS)) $(EXT_OBJECTS) $(LIBGCC))
+# 'STATIC_LIBS', 'EXT_OBJECTS' and 'LIBGCC' contain absolute paths.
+# We convert these to '-l:*.a' so libtool does not add these existing static
+# libraries (found in 'LIBS') to any new static libraries it creates.
+#
+LDLIBS_A_ABSOLUTE = $(filter %.a, $(sort $(STATIC_LIBS)) $(EXT_OBJECTS) $(LIBGCC))
+LDLIBS_A  = $(addprefix -l:,$(notdir $(LDLIBS_A_ABSOLUTE)))
 LDLIBS_SO = $(addprefix -l:,$(sort $(SHARED_LIBS)))
 LDLIBS   += -L$(PWD) $(LDLIBS_A) $(LDLIBS_SO) $(LDLIBS_A)
+
+static_libs_symlinks.tag:
+	$(VERBOSE)for lib in $(LDLIBS_A_ABSOLUTE); do ln -s $$lib; done
+	$(VERBOSE)touch $@
 
 #
 # By default, assume that there exists a 'configure' script in the top-level
@@ -146,7 +155,7 @@ Makefile reconfigure: $(MAKEFILE_LIST)
 #
 # Invoke configure script with the Genode environment
 #
-Makefile reconfigure: env.sh $(SHARED_LIBS)
+Makefile reconfigure: env.sh static_libs_symlinks.tag $(SHARED_LIBS)
 	@$(MSG_CONFIG)$(TARGET)
 	$(VERBOSE)source env.sh && $(CONFIGURE_SCRIPT) $(MKENV) $(CONFIGURE_ARGS) $(CONFIGURE_OUTPUT_FILTER)
 
