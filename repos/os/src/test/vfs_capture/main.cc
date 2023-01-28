@@ -168,8 +168,8 @@ struct Test::Main
 		{ }
 
 		Affected_rects capture() {
-			_capture_file.read(_capture_ds.local_addr<char>(),
-			                   _capture_ds_size);
+			_capture_file.read(Byte_range_ptr(_capture_ds.local_addr<char>(),
+			                                  _capture_ds_size));
 			Affected_rects affected { };
 			affected.rects[0] = Rect(_at, _area);
 			return affected;

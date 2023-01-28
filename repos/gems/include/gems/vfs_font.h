@@ -79,23 +79,21 @@ class Genode::Vfs_font : public Text_painter::Font
 		Area      const _bounding_box;
 		unsigned  const _height;
 
-		struct Glyph_buffer
+		struct Glyph_buffer : Byte_range_ptr
 		{
 			Allocator &_alloc;
 
-			size_t const num_bytes;
+			Glyph_header &header { *(Glyph_header *)start };
 
-			Glyph_header &header;
+			static size_t _bytes(Area size) { return sizeof(Glyph_buffer) + size.count()*4; }
 
 			Glyph_buffer(Allocator &alloc, Area size)
 			:
-				_alloc(alloc), num_bytes(sizeof(Glyph_header) + size.count()*4),
-				header(*(Glyph_header *)alloc.alloc(num_bytes))
+				Byte_range_ptr((char *)alloc.alloc(_bytes(size)), _bytes(size)),
+				_alloc(alloc)
 			{ }
 
-			~Glyph_buffer() { _alloc.free(&header, num_bytes); }
-
-			char *ptr() { return (char *)&header; }
+			~Glyph_buffer() { _alloc.free(start, num_bytes); }
 		};
 
 		Glyph_buffer mutable _buffer;
@@ -110,7 +108,7 @@ class Genode::Vfs_font : public Text_painter::Font
 			try {
 				Readonly_file const file(dir, path);
 				char buf[MAX_LEN + 1] { };
-				if (file.read(buf, sizeof(buf)) <= MAX_LEN)
+				if (file.read(Byte_range_ptr { buf, sizeof(buf) }) <= MAX_LEN)
 					if (ascii_to(buf, result))
 						return result;
 			}
@@ -149,14 +147,16 @@ class Genode::Vfs_font : public Text_painter::Font
 
 		void _apply_glyph(Codepoint c, Apply_fn const &fn) const override
 		{
-			_glyphs_file.read(_file_pos(c), _buffer.ptr(), _buffer.num_bytes);
+			_glyphs_file.read(_file_pos(c), _buffer);
 
 			fn.apply(_buffer.header.glyph());
 		}
 
 		Advance_info advance_info(Codepoint c) const override
 		{
-			_glyphs_file.read(_file_pos(c), _buffer.ptr(), sizeof(Glyph_header));
+			Byte_range_ptr header_buffer { _buffer.start, sizeof(Glyph_header) };
+
+			_glyphs_file.read(_file_pos(c), header_buffer);
 
 			Glyph const glyph = _buffer.header.glyph();
 

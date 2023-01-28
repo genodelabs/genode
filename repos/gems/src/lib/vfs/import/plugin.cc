@@ -146,7 +146,8 @@ class Vfs_import::File_system : public Vfs::File_system
 
 			while (true) {
 
-				file_size bytes_from_source { src_file.read(at, buf, sizeof(buf)) };
+				file_size const bytes_from_source =
+					src_file.read(at, Genode::Byte_range_ptr(buf, sizeof(buf)));
 
 				if (!bytes_from_source) break;
 
