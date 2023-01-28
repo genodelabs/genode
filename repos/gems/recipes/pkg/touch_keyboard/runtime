@@ -23,7 +23,8 @@
 		<start name="touch_keyboard" caps="300">
 			<binary name="touch_keyboard"/>
 			<resource name="RAM" quantum="14M"/>
-			<config min_width="720" min_height="480"/>
+			<config min_width="720" min_height="480"
+			        opaque="yes" background="#3e3e43"/>
 			<route>
 				<service name="ROM" label="layout">
 					<parent label="touch_keyboard_layout.config"/> </service>

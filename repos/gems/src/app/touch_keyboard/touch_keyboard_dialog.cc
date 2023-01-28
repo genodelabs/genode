@@ -79,11 +79,8 @@ void Dialog::produce_xml(Xml_generator &xml)
 				gen_row(row); }); });
 	};
 
-	xml.node("frame", [&] () {
-		_maps.for_each([&] (Map const &map) {
-			gen_map(map);
-		});
-	});
+	_maps.for_each([&] (Map const &map) {
+		gen_map(map); });
 }
 
 
@@ -105,13 +102,11 @@ void Dialog::handle_hover(Input::Seq_number seq, Xml_node const &dialog)
 	Row::Id hovered_row_id { };
 	Key::Id hovered_key_id { };
 
-	dialog.with_optional_sub_node("frame", [&] (Xml_node const &frame) {
-		frame.with_optional_sub_node("vbox", [&] (Xml_node const &vbox) {
-			vbox.with_optional_sub_node("hbox", [&] (Xml_node const &hbox) {
-				hbox.with_optional_sub_node("vbox", [&] (Xml_node const &button) {
-					hovered_row_id = hbox  .attribute_value("name", Row::Id());
-					hovered_key_id = button.attribute_value("name", Key::Id());
-				});
+	dialog.with_optional_sub_node("vbox", [&] (Xml_node const &vbox) {
+		vbox.with_optional_sub_node("hbox", [&] (Xml_node const &hbox) {
+			hbox.with_optional_sub_node("vbox", [&] (Xml_node const &button) {
+				hovered_row_id = hbox  .attribute_value("name", Row::Id());
+				hovered_key_id = button.attribute_value("name", Key::Id());
 			});
 		});
 	});

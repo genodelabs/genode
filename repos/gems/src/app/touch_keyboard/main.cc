@@ -46,6 +46,9 @@ struct Touch_keyboard::Main : Sandbox::Local_service_base::Wakeup,
 	unsigned _min_width  = 0;
 	unsigned _min_height = 0;
 
+	bool  _opaque = false;
+	Color _background { };
+
 	Registry<Child_state> _children { };
 
 	Child_state _menu_view_child_state { _children, "menu_view",
@@ -131,6 +134,9 @@ struct Touch_keyboard::Main : Sandbox::Local_service_base::Wakeup,
 
 				if (_min_width)  xml.attribute("width",  _min_width);
 				if (_min_height) xml.attribute("height", _min_height);
+
+				if (_opaque) xml.attribute("opaque", "yes");
+				xml.attribute("background", String<20>(_background));
 
 				xml.node("report", [&] () {
 					xml.attribute("hover", "yes"); });
@@ -281,6 +287,9 @@ struct Touch_keyboard::Main : Sandbox::Local_service_base::Wakeup,
 		_min_width  = config.attribute_value("min_width",  0U);
 		_min_height = config.attribute_value("min_height", 0U);
 
+		_opaque     = config.attribute_value("opaque", false);
+		_background = config.attribute_value("background", Color(127, 127, 127, 255));
+
 		_dialog.configure(_layout.xml());
 	}
 
@@ -304,6 +313,7 @@ struct Touch_keyboard::Main : Sandbox::Local_service_base::Wakeup,
 		_layout.sigh(_config_handler);
 		_handle_config();
 		_update_sandbox_config();
+		log("Customized touch_keyboard_dialog opaque=", _opaque);
 	}
 };
 

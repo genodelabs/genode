@@ -6,7 +6,12 @@ By default, the keyboard is positioned at the top-left corner of the screen
 with the smallest possible size, given the used font. Those defaults can be
 the overridden by the configuration as follows.
 
-! <config min_width="720" min_height="360" xpos="10" ypos="10"/>
+! <config min_width="720" min_height="360" xpos="10" ypos="10"
+!         opaque="yes" background="#000000"/>
+
+The 'opaque' and 'background' attributes control the appearance of the
+background. When setting opaque to "yes", the alpha channel is disabled
+and the color specified via the 'background' attribute is applied.
 
 The layout of the virtual keyboard is defined by a ROM module requested via
 the label "layout". An example can be found at
