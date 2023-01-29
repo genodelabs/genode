@@ -1,0 +1,69 @@
+<runtime ram="32M" caps="1100" binary="init">
+
+	<requires>
+		<gui/>
+		<trace/>
+		<timer/>
+	</requires>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="TRACE"/>
+			<service name="Gui"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<default caps="100"/>
+
+		<start name="report_rom">
+			<resource name="RAM" quantum="4M"/>
+			<provides>
+				<service name="Report"/>
+				<service name="ROM"/>
+			</provides>
+			<config>
+				<policy label="cpu_load_display -> trace_subjects"
+				        report="trace_subject_reporter -> trace_subjects"/>
+			</config>
+		</start>
+
+		<start name="trace_subject_reporter">
+			<resource name="RAM" quantum="6M"/>
+			<config period_ms="500">
+				<report activity="yes" affinity="yes"/>
+			</config>
+			<route>
+				<service name="Report"> <child name="report_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="cpu_load_display">
+			<resource name="RAM" quantum="6M"/>
+			<config/>
+			<route>
+				<service name="ROM" label="trace_subjects"> <child name="report_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+	</config>
+
+	<content>
+		<rom label="init"/>
+		<rom label="ld.lib.so"/>
+		<rom label="report_rom"/>
+		<rom label="cpu_load_display"/>
+		<rom label="trace_subject_reporter"/>
+	</content>
+
+</runtime>
