@@ -181,7 +181,7 @@ struct Gui_buffer : Genode::Noncopyable
 
 		/*
 		 * Set input mask for all pixels where the alpha value is above a
-		 * given threshold. The threshold is defines such that typical
+		 * given threshold. The threshold is defined such that typical
 		 * drop shadows are below the value.
 		 */
 		unsigned char const threshold = 100;
