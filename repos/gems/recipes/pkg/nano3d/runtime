@@ -2,8 +2,6 @@
 
 	<requires> <gui/> <timer/> </requires>
 
-	<config/>
-
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="nano3d"/>
