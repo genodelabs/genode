@@ -13,11 +13,11 @@ _assert = $(if $1,$1,$(error Error: $2))
 #
 # We must not specify an '=' here. Even though the make documentation states
 # that the omission of '=' should be equivalent to '=', the behaviour is not
-# the same.
+# the same. Note, the result of the 'eval' function is always the empty string
+# and, thus, it can be placed virtually anywhere in a makefile.
 #
 define _capture
-$(eval $2 += $1)
-$1
+$(eval $2 += $1)$1
 endef
 
 #
