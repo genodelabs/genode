@@ -1,0 +1,10 @@
+<runtime ram="2M" caps="100" binary="dynamic_rom">
+
+	<provides> <rom/> </provides>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="dynamic_rom"/>
+	</content>
+
+</runtime>
