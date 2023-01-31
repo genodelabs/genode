@@ -147,7 +147,7 @@ struct Transform::Main
 				uint64_t acpi_value = 0;
 				String<8> acpi_type;
 				String<8> acpi_value_string;
-				String<32> to_key;
+				Input::Key_name to_key;
 
 				String<16> key_type("PRESS_RELEASE");
 				Keys::Type press_release = Keys::Type::PRESS_RELEASE;
@@ -185,24 +185,7 @@ struct Transform::Main
 				} else
 					map_node.attribute("value").value(acpi_value);
 
-				Input::Keycode key_code = Input::Keycode::KEY_UNKNOWN;
-
-				if (to_key == "KEY_VENDOR")
-					key_code = Input::Keycode::KEY_VENDOR;
-				else if (to_key == "KEY_POWER")
-					key_code = Input::Keycode::KEY_POWER;
-				else if (to_key == "KEY_SLEEP")
-					key_code = Input::Keycode::KEY_SLEEP;
-				else if (to_key == "KEY_WAKEUP")
-					key_code = Input::Keycode::KEY_WAKEUP;
-				else if (to_key == "KEY_BATTERY")
-					key_code = Input::Keycode::KEY_BATTERY;
-				else if (to_key == "KEY_BRIGHTNESSUP")
-					key_code = Input::Keycode::KEY_BRIGHTNESSUP;
-				else if (to_key == "KEY_BRIGHTNESSDOWN")
-					key_code = Input::Keycode::KEY_BRIGHTNESSDOWN;
-				else if (to_key == "KEY_FN_F4")
-					key_code = Input::Keycode::KEY_FN_F4;
+				Input::Keycode key_code = Input::key_code(to_key);
 
 				if (key_code == Input::Keycode::KEY_UNKNOWN)
 					throw 4;
@@ -228,17 +211,9 @@ struct Transform::Main
 					throw 5;
 			} catch (...) {
 
-				using namespace Genode;
-
-				map_node.with_raw_node([&] (char const *start, size_t length) {
-
-					String<64> invalid_node(Cstring(start, length));
-					error("map item : '", invalid_node, "'");
-
-					/* abort on malformed configuration */
-					class Invalid_config { };
-					throw Invalid_config();
-				});
+				/* abort on malformed configuration */
+				error("map item '", map_node, "' Aborting...");
+				env.parent().exit(1);
 			}
 		});
 

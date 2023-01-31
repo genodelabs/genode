@@ -489,7 +489,7 @@ namespace Input {
 	/**
 	 * Return key code for name (linear search)
 	 */
-	Keycode key_code(Key_name name)
+	static inline Keycode key_code(Key_name const &name)
 	{
 		for (unsigned i = 0; i < KEY_MAX; ++i) {
 			Keycode const code = Keycode(i);
