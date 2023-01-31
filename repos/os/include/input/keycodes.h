@@ -17,6 +17,8 @@
 #ifndef _INCLUDE__INPUT__KEYCODES_H_
 #define _INCLUDE__INPUT__KEYCODES_H_
 
+#include <util/string.h>
+
 /*
  * C++ provides no reflection of the names of enum values. So we use the
  * preprocessor to generate the bodies of both the enum type 'Keycode' and
@@ -480,6 +482,21 @@ namespace Input {
 #undef GENODE_TAG_VALUE
 		}
 		return "KEY_UNKNOWN";
+	}
+
+	typedef Genode::String<22> Key_name;
+
+	/**
+	 * Return key code for name (linear search)
+	 */
+	Keycode key_code(Key_name name)
+	{
+		for (unsigned i = 0; i < KEY_MAX; ++i) {
+			Keycode const code = Keycode(i);
+			if (name == key_name(code))
+				return code;
+		}
+		return KEY_UNKNOWN;
 	}
 }
 
