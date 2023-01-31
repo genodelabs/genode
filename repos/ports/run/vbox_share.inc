@@ -171,7 +171,7 @@ set config_of_app {
 	</start>
 
 	<start name="tcp_terminal" priority="-1" caps="200">
-		<resource name="RAM" quantum="5M"/>
+		<resource name="RAM" quantum="6M"/>
 		<provides> <service name="Terminal"/> </provides>
 		<config>
 			<policy label_prefix="vfs" port="8888"/>
