@@ -1,0 +1,10 @@
+<runtime ram="4M" caps="100" binary="osci">
+
+	<requires> <gui/> <audio_in/> </requires>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="osci"/>
+	</content>
+
+</runtime>
