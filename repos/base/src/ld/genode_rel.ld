@@ -15,10 +15,10 @@
 
 PHDRS
 {
-  ro         PT_LOAD;
-  rw         PT_LOAD;
-  dynamic    PT_DYNAMIC;
-  eh_frame   PT_GNU_EH_FRAME;
+  ro       PT_LOAD;
+  rw       PT_LOAD;
+  dynamic  PT_DYNAMIC;
+  eh_frame PT_GNU_EH_FRAME;
 }
 
 SECTIONS
@@ -97,7 +97,7 @@ SECTIONS
   {
     /*
      * Leave space for parent capability parameters at start of data
-     * section. The protection domain creator is reponsible for storing
+     * section. The protection-domain creator is reponsible for storing
      * sane values here.
      */
      _parent_cap = .;
@@ -130,6 +130,7 @@ SECTIONS
   .ARM.extab : {
     *(.ARM.extab*)
   }
+
   __exidx_start = .;
   .ARM.exidx : {
     *(.ARM.exidx* .gnu.linkonce.armexidx.*)
@@ -189,7 +190,6 @@ SECTIONS
   .data.rel.ro : { *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*) *(.data.rel.ro* .gnu.linkonce.d.rel.ro.*) } 
 
   .data1          : { *(.data1) }
-  .dynamic        : { *(.dynamic) } : dynamic : rw
   /* See: genode_dyn.ld */
   .got            : { *(.got.plt) *(.got) }
   /* Exception handling  */
@@ -199,6 +199,9 @@ SECTIONS
     KEEP (*(.eh_frame))
     LONG(0)
   }
+
+  .dynamic : { *(.dynamic) } : rw : dynamic
+
   _edata = .; PROVIDE (edata = .);
   __bss_start = .;
   .bss            :
@@ -216,7 +219,7 @@ SECTIONS
     * pad the .data section.
     */
    . = ALIGN(. != 0 ? 32 / 8 : 1);
-  }
+  } : rw
   . = ALIGN(32 / 8);
   . = ALIGN(32 / 8);
   _end = .; PROVIDE (end = .);

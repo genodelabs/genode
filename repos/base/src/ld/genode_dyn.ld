@@ -212,17 +212,6 @@ SECTIONS
   }
   .jcr            : { KEEP (*(.jcr)) }
   .data.rel.ro : { *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*) *(.data.rel.ro* .gnu.linkonce.d.rel.ro.*) }
-  .dynamic        :
-  {
-    *(.dynamic)
-
-    /*
-     * Make sure to have a least one entry within the dynamic section, so the
-     * dynamic sgement point to something valid in case there are no dynamic
-     * symbols
-     */
-    LONG(0x0);
-   } : rw : dynamic
 
   /* merge .got.plt and .got into .got, since the ARM toolchain for OKL4
    * set's * DT_PLTGOT to .got instead of .got.plt */
@@ -247,6 +236,20 @@ SECTIONS
     LONG(0x0);
   }
   .data1          : { *(.data1) }
+
+  .dynamic        :
+  {
+    *(.dynamic)
+
+    /*
+     * Make sure to have a least one entry within the dynamic section, so the
+     * dynamic segment points to something valid in case there are no dynamic
+     * symbols in a binary. These semi-static binaries are not supported by
+     * our dynamic linker that depends on the .dynamic section.
+     */
+    LONG(0x0);
+   } : rw : dynamic
+
   _edata = .; PROVIDE (edata = .);
   __bss_start = .;
   .bss            :
@@ -264,7 +267,7 @@ SECTIONS
     * pad the .data section.
     */
    . = ALIGN(. != 0 ? 32 / 8 : 1);
-  }
+  } : rw
   . = ALIGN(32 / 8);
   . = ALIGN(32 / 8);
   _end = .; PROVIDE (end = .);
