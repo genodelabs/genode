@@ -1571,12 +1571,56 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 {
 	private:
 
+		/*
+		 * Vram managed by session ep
+		 */
+		struct Vram : Rpc_object<Gpu::Vram>
+		{
+			/*
+			 * Do not copy session cap, since this increases the session-cap reference
+			 * count for each Vram object.
+			 */
+			struct Owner {
+				Capability<Gpu::Session> cap;
+			};
+
+			Ram_dataspace_capability ds_cap;
+			Owner const             &owning_session;
+
+			enum { INVALID_FENCE = 0xff };
+			Genode::uint32_t fenced { INVALID_FENCE };
+
+			Igd::Ggtt::Mapping map { };
+
+			addr_t phys_addr { 0 };
+			size_t size { 0 };
+
+			bool   caps_used { false };
+			size_t ram_used { 0 };
+
+			Vram(Ram_dataspace_capability ds_cap, Genode::addr_t phys_addr,
+			     Owner const &owner)
+			:
+				ds_cap { ds_cap }, owning_session { owner },
+				phys_addr { phys_addr }
+			{
+				Dataspace_client buf(ds_cap);
+				size = buf.size();
+			}
+
+			bool owner(Capability<Gpu::Session> const other)
+			{
+				return owning_session.cap == other;
+			}
+		};
+
 		Genode::Env              &_env;
 		Genode::Region_map       &_rm;
 		Constrained_ram_allocator _ram;
 		Igd::Device              &_device;
 		Heap                      _heap { _device._pci_backend_alloc, _rm };
-		Capability<Gpu::Session>  _session_cap { cap() };
+		/* used to mark ownership of an allocated VRAM object */
+		Vram::Owner               _owner { cap() };
 
 		Igd::Device::Vgpu  _vgpu;
 
@@ -1635,41 +1679,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		};
 
 		Resource_guard _resource_guard { _cap_quota_guard(), _ram_quota_guard() };
-
-		/*
-		 * Vram managed by session ep
-		 */
-		struct Vram : Rpc_object<Gpu::Vram>
-		{
-			Ram_dataspace_capability ds_cap;
-			Session_capability       owner_cap;
-
-			enum { INVALID_FENCE = 0xff };
-			Genode::uint32_t fenced { INVALID_FENCE };
-
-			Igd::Ggtt::Mapping map { };
-
-			addr_t phys_addr { 0 };
-			size_t size { 0 };
-
-			bool   caps_used { false };
-			size_t ram_used { 0 };
-
-			Vram(Ram_dataspace_capability ds_cap, Genode::addr_t phys_addr,
-			     Session_capability  owner_cap)
-			:
-				ds_cap { ds_cap }, owner_cap { owner_cap },
-				phys_addr { phys_addr }
-			{
-				Dataspace_client buf(ds_cap);
-				size = buf.size();
-			}
-
-			bool owner(Capability<Gpu::Session> other)
-			{
-				return owner_cap == other;
-			}
-		};
 
 		/*
 		 * Vram session/gpu-context local vram
@@ -1796,7 +1805,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 				_apply_vram(vram_local, [&](Vram &vram) {
 
-					if (vram.owner(_session_cap) == false) return false;
+					if (vram.owner(cap()) == false) return false;
 
 					if (vram.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
 						_device.unmap_vram(_heap, vram.map);
@@ -1912,7 +1921,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 			Ram_dataspace_capability ds_cap = _device.alloc_vram(_heap, size);
 			addr_t phys_addr                = _device.dma_addr(ds_cap);
-			Vram *vram                  = new (&_heap) Vram(ds_cap, phys_addr, _session_cap);
+			Vram *vram                      = new (&_heap) Vram(ds_cap, phys_addr, _owner);
 			_env.ep().manage(*vram);
 
 			try {
@@ -1942,7 +1951,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 				_apply_vram(vram_local, [&](Vram &vram) {
 
-					if (vram.owner(_session_cap) == false) return false;
+					if (vram.owner(cap()) == false) return false;
 
 					if (vram.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
 						Genode::error("cannot free mapped vram");
@@ -2088,7 +2097,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 			Vram *v = nullptr;
 			auto lookup = [&] (Vram &vram) {
-				if (!vram.map.cap.valid() || !vram.owner(_session_cap)) { return false; }
+				if (!vram.map.cap.valid() || !vram.owner(cap())) { return false; }
 				v = &vram;
 				return false;
 			};
