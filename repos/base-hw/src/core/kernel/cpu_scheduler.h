@@ -233,7 +233,7 @@ class Kernel::Cpu_scheduler
 		 * Accessors
 		 */
 
-		Share &head() const;
+		Share &head();
 		unsigned head_quota() const {
 			return Genode::min(_head_quota, _residual); }
 		unsigned quota() const { return _quota; }

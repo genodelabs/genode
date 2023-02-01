@@ -313,9 +313,12 @@ void Cpu_scheduler::quota(Share &s, unsigned const q)
 }
 
 
-Cpu_share &Cpu_scheduler::head() const
+Cpu_share &Cpu_scheduler::head()
 {
-	assert(_head);
+	if (!_head) {
+		Genode::error("attempt to access invalid scheduler head");
+		update(_last_time);
+	}
 	return *_head;
 }
 
