@@ -326,7 +326,7 @@ void kfree_sensitive(const void *p)
 
 unsigned long get_zeroed_page(gfp_t gfp_mask)
 {
-    return (unsigned long)kzalloc(PAGE_SIZE, gfp_mask | __GFP_ZERO);
+	return (unsigned long)__alloc_pages(GFP_KERNEL, 0, 0, NULL)->virtual;
 }
 
 
