@@ -31,10 +31,10 @@ class Genode::Ipc_pager : public Native_capability
 		addr_t _reply_sel  = 0;    /* selector to save reply cap     */
 		addr_t _pf_addr    = 0;    /* page-fault address             */
 		addr_t _pf_ip      = 0;    /* instruction pointer of faulter */
-		addr_t _fault_type = 0;    /* type of fault */
-		bool   _pf_write = false;  /* true on write fault            */
-		bool   _pf_exec  = false;  /* true on exec  fault            */
-		bool   _pf_align = false;  /* true on unaligned fault */
+		bool _exception  = false;  /* true on non page fault         */
+		bool _pf_write   = false;  /* true on write fault            */
+		bool _pf_exec    = false;  /* true on exec  fault            */
+		bool _pf_align   = false;  /* true on unaligned fault        */
 
 		Mapping _reply_mapping { };
 
@@ -99,6 +99,11 @@ class Genode::Ipc_pager : public Native_capability
 		 * Install memory mapping after pager code executed.
 		 */
 		bool install_mapping();
+
+		/**
+		 * Return true if last fault was an exception
+		 */
+		bool exception() const { return _exception; }
 };
 
 #endif /* _CORE__INCLUDE__IPC_PAGER_H_ */

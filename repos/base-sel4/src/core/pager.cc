@@ -87,6 +87,8 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 	addr_t const fault_type = seL4_MessageInfo_get_label(page_fault_msg_info);
 
+	_exception = fault_type != seL4_Fault_VMFault;
+
 	auto fault_name = [] (addr_t type)
 	{
 		switch (type) {
@@ -203,6 +205,22 @@ void Pager_entrypoint::entry()
 			if (!obj)
 				return;
 
+			/* on exception (beside page fault) don't reply and submit signal */
+			if (_pager.exception()) {
+				warning("exception ", _pager.fault_addr(), " ",
+				        *obj, " ip=", Hex(_pager.fault_ip()));
+				obj->submit_exception_signal();
+				return;
+			}
+
+			/* on alignment fault don't reply and submit signal */
+			if (_pager.align_fault()) {
+				warning("alignment fault, addr=", Hex(_pager.fault_addr()),
+				        " ip=", Hex(_pager.fault_ip()));
+				reply_pending = false;
+				obj->submit_exception_signal();
+			}
+
 			/* send reply if page-fault handling succeeded */
 			reply_pending = !obj->pager(_pager);
 			if (!reply_pending) {
@@ -213,20 +231,9 @@ void Pager_entrypoint::entry()
 				return;
 			}
 
-			try {
-				/* install memory mappings */
-				if (_pager.install_mapping())
-					return;
-
-				/* on alignment fault don't reply and submit signal */
-				if (_pager.align_fault()) {
-					warning("alignment fault, addr=", Hex(_pager.fault_addr()),
-					        " ip=", Hex(_pager.fault_ip()));
-					throw 1;
-				}
-			} catch (...) {
-				reply_pending = false;
-				obj->submit_exception_signal();
+			/* install memory mappings */
+			if (_pager.install_mapping()) {
+				return;
 			}
 		});
 	}

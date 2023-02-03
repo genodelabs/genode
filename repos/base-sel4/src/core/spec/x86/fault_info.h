@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -13,9 +13,9 @@
 
 struct Fault_info
 {
-	Genode::addr_t ip    = 0;
-	Genode::addr_t pf    = 0;
-	bool           write = 0;
+	Genode::addr_t const ip;
+	Genode::addr_t const pf;
+	bool           const write;
 
 	/*
 	 * Intel manual: 6.15 EXCEPTION AND INTERRUPT REFERENCE
@@ -29,10 +29,30 @@ struct Fault_info
 		ERR_P = 1 << 0,
 	};
 
-	Fault_info(seL4_MessageInfo_t)
+	Genode::addr_t _ip_from_message(seL4_MessageInfo_t &info) const
+	{
+		auto const fault_type = seL4_MessageInfo_get_label(info);
+
+		if (fault_type == seL4_Fault_UserException)
+			return seL4_Fault_UserException_get_FaultIP(seL4_getFault(info));
+		else
+			return seL4_GetMR(0);
+	}
+
+	Genode::addr_t _pf_from_message(seL4_MessageInfo_t &info) const
+	{
+		auto const fault_type = seL4_MessageInfo_get_label(info);
+
+		if (fault_type == seL4_Fault_UserException)
+			return seL4_Fault_UserException_get_Number(seL4_getFault(info));
+		else
+			return seL4_GetMR(1);
+	}
+
+	Fault_info(seL4_MessageInfo_t info)
 	:
-		ip(seL4_GetMR(0)),
-		pf(seL4_GetMR(1)),
+		ip(_ip_from_message(info)),
+		pf(_pf_from_message(info)),
 		write(seL4_GetMR(3) & ERR_W)
 	{ }
 
