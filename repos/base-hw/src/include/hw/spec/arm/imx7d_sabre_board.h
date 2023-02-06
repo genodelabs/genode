@@ -29,6 +29,7 @@ namespace Hw::Imx7d_sabre_board {
 	enum {
 		UART_BASE  = UART_1_MMIO_BASE,
 		UART_CLOCK = 0, /* unsued value */
+		NR_OF_CPUS = 2
 	};
 }
 

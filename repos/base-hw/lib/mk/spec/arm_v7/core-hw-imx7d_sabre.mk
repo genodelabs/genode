@@ -22,8 +22,6 @@ SRC_CC += vm_session_component.cc
 # add assembly sources
 SRC_S += spec/arm_v7/virtualization/exception_vector.s
 
-NR_OF_CPUS = 2
-
 #
 # we need more specific compiler hints for some 'special' assembly code
 # override -march=armv7-a because it conflicts with -mcpu=cortex-a7

@@ -25,10 +25,6 @@ REP_INC_DIR += src/bootstrap
 REP_INC_DIR += src/include
 REP_INC_DIR += src/core/include # for boot_modules.h only
 
-# configure multiprocessor mode
-NR_OF_CPUS ?= 1
-CC_OPT += -Wa,--defsym -Wa,NR_OF_CPUS=$(NR_OF_CPUS) -DNR_OF_CPUS=$(NR_OF_CPUS)
-
 TMP         := $(call select_from_repositories,lib/mk/bootstrap-hw.inc)
 BASE_HW_DIR := $(TMP:%/lib/mk/bootstrap-hw.inc=%)
 

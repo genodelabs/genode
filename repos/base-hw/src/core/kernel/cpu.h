@@ -201,7 +201,7 @@ class Kernel::Cpu_pool
 
 		Inter_processor_work_list  _global_work_list {};
 		unsigned                   _nr_of_cpus;
-		Genode::Constructible<Cpu> _cpus[NR_OF_CPUS];
+		Genode::Constructible<Cpu> _cpus[Board::NR_OF_CPUS];
 
 	public:
 

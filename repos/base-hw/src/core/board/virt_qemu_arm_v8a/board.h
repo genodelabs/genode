@@ -34,6 +34,7 @@ namespace Board {
 	using namespace Hw::Virt_qemu_board;
 
 	enum {
+		NR_OF_CPUS          = 4,
 		TIMER_IRQ           = 30, /* PPI IRQ 14 */
 		VT_TIMER_IRQ        = 11 + 16,
 		VT_MAINTAINANCE_IRQ = 9  + 16,

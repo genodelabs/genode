@@ -22,8 +22,8 @@ namespace Hw { template <typename> struct Boot_info; }
 template <typename PLAT_INFO>
 struct Hw::Boot_info
 {
-	using Mapping_pool = Genode::Array<Mapping, 32>;
-	using Kernel_irqs  = Genode::Array<unsigned, NR_OF_CPUS + 1>;
+	using Mapping_pool = Genode::Array<Mapping,  32>;
+	using Kernel_irqs  = Genode::Array<unsigned, 32>;
 
 	addr_t        const table;
 	addr_t        const table_allocator;

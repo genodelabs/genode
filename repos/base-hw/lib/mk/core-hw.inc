@@ -66,10 +66,6 @@ SRC_CC += heartbeat.cc
 # provide Genode version information
 include $(BASE_DIR)/src/core/version.inc
 
-# configure multiprocessor mode
-NR_OF_CPUS ?= 1
-CC_OPT += -Wa,--defsym -Wa,NR_OF_CPUS=$(NR_OF_CPUS) -DNR_OF_CPUS=$(NR_OF_CPUS)
-
 TMP         := $(call select_from_repositories,lib/mk/core-hw.inc)
 BASE_HW_DIR := $(TMP:%/lib/mk/core-hw.inc=%)
 

@@ -40,7 +40,8 @@ namespace Board {
 		TIMER_IRQ           = 30 /* PPI IRQ 14 */,
 		VT_TIMER_IRQ        = 27,
 		VT_MAINTAINANCE_IRQ = 25,
-		VCPU_MAX            = 16
+		VCPU_MAX            = 16,
+		NR_OF_CPUS          = 2,
 	};
 };
 

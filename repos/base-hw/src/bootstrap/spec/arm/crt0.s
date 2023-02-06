@@ -63,8 +63,10 @@
 	mrcne p15, 0, sp, c0, c0, 5 /* read multiprocessor affinity register */
 	andne sp, sp, #0xff         /* set cpu id for non-boot cpu */
 
-	adr r0, _start_stack        /* load stack address into r0 */
-	adr r1, _start_stack_size   /* load stack size per cpu into r1 */
+	adr r0, _bootstrap_stack_local      /* load stack address into r0 */
+	adr r1, _bootstrap_stack_size_local /* load stack size per cpu into r1 */
+	ldr r0, [r0]
+	ldr r1, [r1]
 	ldr r1, [r1]
 
 	add sp, #1                  /* calculate stack start for CPU */
@@ -101,11 +103,8 @@
 	_bss_local_end:
 	.long _bss_end
 
-	_start_stack_size:
-	.long STACK_SIZE
+	_bootstrap_stack_local:
+	.long bootstrap_stack
 
-	.align 3
-	_start_stack:
-	.rept NR_OF_CPUS
-		.space STACK_SIZE
-	.endr
+	_bootstrap_stack_size_local:
+	.long bootstrap_stack_size

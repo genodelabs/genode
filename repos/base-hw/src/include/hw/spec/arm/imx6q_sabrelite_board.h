@@ -31,6 +31,7 @@ namespace Hw::Imx6q_sabrelite_board {
 		UART_BASE  = UART_2_MMIO_BASE,
 		UART_SIZE  = UART_2_MMIO_SIZE,
 		UART_CLOCK = 0, /* dummy value, not used */
+		NR_OF_CPUS = 4
 	};
 }
 

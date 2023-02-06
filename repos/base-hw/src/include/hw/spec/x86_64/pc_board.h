@@ -23,6 +23,8 @@ namespace Hw::Pc_board {
 	struct Boot_info;
 	struct Serial;
 	enum Dummies { UART_BASE, UART_CLOCK };
+
+	enum { NR_OF_CPUS = 32 };
 }
 
 

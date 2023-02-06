@@ -31,6 +31,7 @@ namespace Hw::Pbxa9_board {
 	enum {
 		UART_BASE  = PL011_0_MMIO_BASE,
 		UART_CLOCK = PL011_0_CLOCK,
+		NR_OF_CPUS = 1,
 	};
 }
 

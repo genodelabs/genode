@@ -46,7 +46,7 @@ class Bootstrap::Platform
 			Memory_region_array early_ram_regions { };
 			Memory_region_array late_ram_regions  { };
 			Mmio_space const    core_mmio;
-			unsigned            cpus              { NR_OF_CPUS };
+			unsigned            cpus              { ::Board::NR_OF_CPUS };
 			::Board::Boot_info  info              { };
 
 			Board();

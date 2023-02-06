@@ -39,7 +39,5 @@ SRC_CC += spec/64bit/memory_map.cc
 
 vpath spec/64bit/memory_map.cc $(call select_from_repositories,src/lib/hw)
 
-NR_OF_CPUS = 32
-
 # include less specific configuration
 include $(call select_from_repositories,lib/mk/core-hw.inc)

@@ -9,6 +9,4 @@ SRC_CC  += bootstrap/spec/arm/imx6_platform.cc
 SRC_CC  += bootstrap/spec/arm/arm_v7_cpu.cc
 SRC_CC  += hw/spec/32bit/memory_map.cc
 
-NR_OF_CPUS = 4
-
 include $(call select_from_repositories,lib/mk/bootstrap-hw.inc)

@@ -65,7 +65,7 @@ struct Hypervisor::Host_context
 static Hypervisor::Host_context & host_context(Cpu & cpu)
 {
 	static Genode::Constructible<Hypervisor::Host_context>
-		host_context[NR_OF_CPUS];
+		host_context[Board::NR_OF_CPUS];
 	if (!host_context[cpu.id()].constructed()) {
 		host_context[cpu.id()].construct();
 		Hypervisor::Host_context & c = *host_context[cpu.id()];

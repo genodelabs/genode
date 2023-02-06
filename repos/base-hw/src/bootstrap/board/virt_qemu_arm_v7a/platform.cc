@@ -66,7 +66,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 	::Board::Pic pic { };
 
 	/* primary cpu wakes up all others */
-	if (primary_cpu && NR_OF_CPUS > 1) {
+	if (primary_cpu && ::Board::NR_OF_CPUS > 1) {
 		Cpu::invalidate_data_cache();
 		primary_cpu = false;
 		Cpu::wake_up_all_cpus(&_start_setup_stack);

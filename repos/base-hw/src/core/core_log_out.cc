@@ -47,7 +47,7 @@ static inline bool running_in_kernel()
 {
 	addr_t const stack_base = reinterpret_cast<addr_t>(&kernel_stack);
 	static constexpr size_t stack_size =
-		NR_OF_CPUS * Kernel::Cpu::KERNEL_STACK_SIZE;
+		Board::NR_OF_CPUS * Kernel::Cpu::KERNEL_STACK_SIZE;
 
 	/* check stack variable against kernel stack area */
 	return ((addr_t)&stack_base) >= stack_base &&

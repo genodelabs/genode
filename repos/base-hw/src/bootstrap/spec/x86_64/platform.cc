@@ -31,7 +31,7 @@ extern "C" Genode::addr_t __initial_ax;
 extern "C" Genode::addr_t __initial_bx;
 
 /* pointer to stack base */
-extern "C" Genode::addr_t __bootstrap_stack;
+extern "C" Genode::addr_t bootstrap_stack;
 
 /* number of booted CPUs */
 extern "C" Genode::addr_t __cpus_booted;
@@ -296,7 +296,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base));
 
-	addr_t const stack_base = reinterpret_cast<addr_t>(&__bootstrap_stack);
+	addr_t const stack_base = reinterpret_cast<addr_t>(&bootstrap_stack);
 	addr_t const this_stack = reinterpret_cast<addr_t>(&stack_base);
 	addr_t const cpu_id     = (this_stack - stack_base) / bootstrap_stack_size;
 

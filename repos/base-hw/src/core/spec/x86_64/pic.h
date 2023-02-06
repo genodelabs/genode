@@ -85,7 +85,7 @@ class Board::Global_interrupt_controller : public Genode::Mmio
 		};
 
 		unsigned _irte_count = 0;       /* number of redirection table entries */
-		uint8_t  _lapic_id[NR_OF_CPUS]; /* unique name of the LAPIC of each CPU */
+		uint8_t  _lapic_id[Board::NR_OF_CPUS]; /* unique name of the LAPIC of each CPU */
 		Irq_mode _irq_mode[IRQ_COUNT];
 
 		/**
@@ -221,7 +221,7 @@ class Board::Local_interrupt_controller : public Genode::Mmio
 
 		void store_apic_id(unsigned const cpu_id)
 		{
-			if (cpu_id < NR_OF_CPUS) {
+			if (cpu_id < Board::NR_OF_CPUS) {
 				Id::access_t const lapic_id = read<Id>();
 				_global_irq_ctrl.lapic_id(cpu_id, (unsigned char)((lapic_id >> 24) & 0xff));
 			}

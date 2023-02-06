@@ -31,6 +31,8 @@ namespace Board {
 		static void wake_up_all_cpus(void*);
 	};
 
+	enum { NR_OF_CPUS = 4 };
+
 	using Hw::Pic;
 };
 

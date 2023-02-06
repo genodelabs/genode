@@ -8,8 +8,6 @@
 SRC_CC += kernel/cpu_up.cc
 SRC_CC += kernel/lock.cc
 
-NR_OF_CPUS = 1
-
 # include less specific configuration
 include $(call select_from_repositories,lib/mk/spec/arm_v7/core-hw.inc)
 

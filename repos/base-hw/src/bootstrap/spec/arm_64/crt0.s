@@ -114,19 +114,12 @@
 	 ** Initialize stack **
 	 **********************/
 
-	.set STACK_SIZE, 0x2000
-
 	_cpu_number
-	ldr x1, =_crt0_start_stack
-	ldr x2, [x1]
+	ldr x1, =bootstrap_stack
+	ldr x2, =bootstrap_stack_size
+	ldr x2, [x2]
+	add x0, x0, #1
 	mul x0, x0, x2
 	add x1, x1, x0
 	mov sp, x1
 	bl init
-
-	.p2align 4
-	.rept NR_OF_CPUS
-		.space STACK_SIZE
-	.endr
-	_crt0_start_stack:
-	.quad STACK_SIZE

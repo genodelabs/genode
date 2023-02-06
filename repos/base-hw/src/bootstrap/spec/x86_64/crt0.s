@@ -143,16 +143,14 @@ __gdt:
 	movq $1, %rcx
 	lock xaddq %rcx, (%rax)
 
-	/* if more CPUs started than supported, then stop them */
-	cmp $NR_OF_CPUS, %rcx
-	jge 1f
-
 	/* calculate stack depending on CPU counter */
-	movq $STACK_SIZE, %rax
+	leaq bootstrap_stack_size@GOTPCREL(%rip),%rax
+	movq (%rax), %rax
+	movq (%rax), %rax
 	inc  %rcx
 	mulq %rcx
 	movq %rax, %rcx
-	leaq __bootstrap_stack@GOTPCREL(%rip),%rax
+	leaq bootstrap_stack@GOTPCREL(%rip),%rax
 	movq (%rax), %rsp
 	addq %rcx, %rsp
 
@@ -181,10 +179,6 @@ __gdt:
 	hlt
 	jmp 1b
 
-
-	.global bootstrap_stack_size
-	bootstrap_stack_size:
-	.quad STACK_SIZE
 
 	/******************************************
 	 ** Global Descriptor Table (GDT)        **
@@ -236,14 +230,7 @@ __gdt:
  *********************************/
 
 .bss
-
-	/* stack of the temporary initial environment */
 	.p2align 12
-	.globl __bootstrap_stack
-	__bootstrap_stack:
-	.rept NR_OF_CPUS
-		.space STACK_SIZE
-	.endr
 
 	.globl __initial_ax
 	__initial_ax:

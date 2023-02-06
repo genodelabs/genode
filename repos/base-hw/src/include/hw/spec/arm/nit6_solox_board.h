@@ -31,6 +31,7 @@ namespace Hw::Nit6_solox_board {
 		UART_BASE  = UART_1_MMIO_BASE,
 		UART_SIZE  = UART_1_MMIO_SIZE,
 		UART_CLOCK = 0, /* dummy value, not used */
+		NR_OF_CPUS = 1
 	};
 }
 
