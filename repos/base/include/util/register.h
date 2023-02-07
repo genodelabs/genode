@@ -276,7 +276,8 @@ struct Genode::Bitset_2
 	template <typename T>
 	static inline access_t get(T const reg)
 	{
-		return Bits_0::get(reg) | (Bits_1::get(reg) << Bits_0::WIDTH);
+		return (access_t)
+			(Bits_0::get(reg) | (Bits_1::get(reg) << Bits_0::WIDTH));
 	}
 };
 
