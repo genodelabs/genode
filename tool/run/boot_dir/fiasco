@@ -8,6 +8,8 @@ proc fiasco_serial_esc_arg { } { return "-serial_esc " }
 proc run_boot_string       { } { return "\nL4 Bootstrapper" }
 proc core_link_address     { } { return "0x01000000" }
 
+proc boot_output { } { return "serial" }
+
 
 ##
 # Populate boot directory with binaries on fiasco
@@ -66,7 +68,7 @@ proc run_boot_dir {binaries} {
 		#
 		puts $fh "menuentry 'Genode on L4/Fiasco' {"
 		puts $fh " insmod multiboot"
-		puts $fh " multiboot /boot/bender"
+		puts $fh " multiboot /boot/bender [boot_output]"
 		puts $fh " module /boot/bootstrap -serial"
 		puts $fh " module /boot/kernel -serial -jdb_cmd=JH [fiasco_serial_esc_arg]"
 		puts $fh " module /boot/sigma0"
@@ -87,7 +89,7 @@ proc run_boot_dir {binaries} {
 		# Generate pulsar config file
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-		puts $fh " exec /boot/bender"
+		puts $fh " exec /boot/bender [boot_output]"
 		puts $fh " load /boot/bootstrap -serial"
 		puts $fh " load /boot/kernel -serial -serial_esc -jdb_cmd=JH"
 		puts $fh " load /boot/sigma0"

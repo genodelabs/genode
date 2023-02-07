@@ -5,6 +5,8 @@ proc binary_name_timer     { } { return "hw_timer_drv" }
 
 proc run_boot_string { } { return "\nkernel initialized" }
 
+proc boot_output { } { return "serial" }
+
 
 proc bootstrap_link_address { } {
 
@@ -99,13 +101,13 @@ proc run_boot_dir {binaries} {
 	exec mkdir -p [run_dir]/boot
 	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
 
+	set options_bender "[boot_output] "
+
 	if {[have_include "image/iso"] || [have_include "image/disk"] || [have_include image/uefi]} {
 		#
 		# Compress Genode image, to be uncompressed by GRUB
 		#
 		exec gzip [run_dir]/boot/image.elf
-
-		set serial_bender_opt ""
 
 		if {[have_include "image/disk"]} {
 			install_disk_bootloader_to_run_dir
@@ -117,7 +119,7 @@ proc run_boot_dir {binaries} {
 
 		if {[have_include image/uefi]} {
 			install_uefi_bootloader_to_run_dir
-			set serial_bender_opt "serial_fallback"
+			append options_bender " serial_fallback"
 		}
 
 		#
@@ -127,7 +129,7 @@ proc run_boot_dir {binaries} {
 
 		puts $fh "menuentry 'Genode on base-hw' {"
 		puts $fh " insmod multiboot2"
-		puts $fh " multiboot2 /boot/bender $serial_bender_opt"
+		puts $fh " multiboot2 /boot/bender $options_bender"
 		puts $fh " module2 /boot/image.elf.gz image.elf"
 		puts $fh "}"
 		close $fh
@@ -162,7 +164,7 @@ proc run_boot_dir {binaries} {
 		# Generate pulsar config file
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-		puts $fh " exec /boot/bender"
+		puts $fh " exec /boot/bender $options_bender"
 		puts $fh " load /boot/image.elf"
 		close $fh
 
@@ -177,7 +179,7 @@ proc run_boot_dir {binaries} {
 		puts $fh "#!ipxe"
 
 		install_pxe_bootloader_to_run_dir
-		puts $fh "kernel boot/bender"
+		puts $fh "kernel boot/bender $options_bender"
 		puts $fh "module boot/image.elf"
 		puts $fh "boot"
 		close $fh

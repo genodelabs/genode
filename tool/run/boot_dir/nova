@@ -33,6 +33,8 @@ proc binary_name_timer     { } { return "nova_timer_drv" }
 proc kernel_files { } { return hypervisor }
 proc kernel_output { } { return "novga serial" }
 
+proc boot_output { } { return "serial" }
+
 proc run_boot_string { } {
 	return "\nHypervisor NOVA "
 }
@@ -88,14 +90,9 @@ proc run_boot_dir {binaries} {
 	exec mv   [run_dir]/image.elf [run_dir]/boot/image.elf
 
 	#
-	# Setup bender and plugins
+	# Setup bender options, e.g. serial and applying Intel HWP mode
 	#
-	set options_bender ""
-
-	#
-	# Apply Intel HWP mode
-	#
-	append options_bender " [bender_intel_hwp_mode_option]"
+	set options_bender "[boot_output] [bender_intel_hwp_mode_option]"
 
 	if {[apply_microcode]} {
 		exec cp bin/micro.code [run_dir]/boot/

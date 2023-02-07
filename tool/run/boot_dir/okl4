@@ -4,6 +4,7 @@ proc binary_name_timer     { } { return "pit_timer_drv"  }
 
 proc kernel_files { } { return okl4 }
 
+proc boot_output { } { return "serial" }
 
 ##
 # Get the base-okl4 repository
@@ -178,7 +179,7 @@ proc run_boot_dir {binaries} {
 		#
 		puts $fh "menuentry 'Genode on OKL4' {"
 		puts $fh " insmod multiboot"
-		puts $fh " multiboot /boot/bender"
+		puts $fh " multiboot /boot/bender [boot_output]"
 		puts $fh " module /boot/image.elf"
 		puts $fh "}"
 		close $fh
@@ -201,7 +202,7 @@ proc run_boot_dir {binaries} {
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		# load okl4 at 256M to avoid overwritting binary, adjust by need
 		puts $fh " addr 0x10000000"
-		puts $fh " exec /boot/bender"
+		puts $fh " exec /boot/bender [boot_output]"
 		puts $fh " load /boot/image.elf"
 		close $fh
 
