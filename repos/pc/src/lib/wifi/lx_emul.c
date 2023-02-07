@@ -425,7 +425,7 @@ size_t _copy_to_iter(const void * addr, size_t bytes, struct iov_iter * i)
 
 asmlinkage __visible void dump_stack(void)
 {
-	lx_backtrace();
+	lx_emul_backtrace();
 }
 
 
@@ -479,7 +479,7 @@ void page_frag_free(void * addr)
 	struct page *page = lx_emul_virt_to_pages(addr, 1ul);
 	if (!page) {
 		printk("BUG %s: page for addr: %p not found\n", __func__, addr);
-		lx_backtrace();
+		lx_emul_backtrace();
 	}
 
 	__free_pages(page, 0ul);

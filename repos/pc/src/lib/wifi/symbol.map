@@ -21,7 +21,7 @@
 		jiffies;
 
 		/* for general debugging purposes */
-		lx_backtrace;
+		lx_emul_backtrace;
 
 	local:
 

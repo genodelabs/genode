@@ -20,9 +20,6 @@
 #include <linux/interrupt.h>
 
 
-extern void lx_backtrace(void);
-
-
 int arch_probe_nr_irqs(void)
 {
 	/* needed for 'irq_get_irq_data()' in 'pci_assign_irq()' below */
