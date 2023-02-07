@@ -15,6 +15,7 @@
 #include <base/allocator.h>
 #include <base/env.h>
 #include <base/log.h>
+#include <net/mac_address.h>
 
 /* DDE Linux includes */
 #include <wifi/socket_call.h>
@@ -470,12 +471,19 @@ class Lx::Socket
 static Lx::Socket *_socket;
 
 
+/* implemented in wlan.cc */
 extern Genode::Blockade *wpa_blockade;
+
+/* implemented in wlan.cc */
+void _wifi_report_mac_address(Net::Mac_address const &mac_address);
+
 
 extern "C" int socketcall_task_function(void *)
 {
 	static Lx::Socket inst(Lx_kit::env().env.ep());
 	_socket = &inst;
+
+	_wifi_report_mac_address({ (void *) lx_get_mac_addr() });
 
 	wpa_blockade->wakeup();
 
