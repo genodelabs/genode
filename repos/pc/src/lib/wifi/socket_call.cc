@@ -27,6 +27,10 @@
 #include "lx_socket_call.h"
 #include "libc_errno.h"
 
+
+using namespace Genode;
+
+
 /*
  * The values were taken from 'uapi/asm-generic/socket.h',
  * 'uapi/linux/netlink.h' and 'linux/socket.h' and must be
@@ -96,9 +100,9 @@ static int convert_errno_from_linux(int linux_errno)
 	case ENODEV:           return -(int)Libc::Errno::BSD_ENODEV;
 	case ENOENT:           return -(int)Libc::Errno::BSD_ENOENT;
 	case ENOEXEC:          return -(int)Libc::Errno::BSD_ENOEXEC;
-	case ENOLINK:          
-						   Genode::error("ENOLINK (", (int) ENOLINK, ") -> ", (int)Libc::Errno::BSD_ENOLINK);
-						   return -(int)Libc::Errno::BSD_ENOLINK;
+	case ENOLINK:
+	                       error("ENOLINK (", (int) ENOLINK, ") -> ", (int)Libc::Errno::BSD_ENOLINK);
+	                       return -(int)Libc::Errno::BSD_ENOLINK;
 	case ENOMEM:           return -(int)Libc::Errno::BSD_ENOMEM;
 	case ENOMSG:           return -(int)Libc::Errno::BSD_ENOMSG;
 	case ENOPROTOOPT:      return -(int)Libc::Errno::BSD_ENOPROTOOPT;
@@ -122,7 +126,7 @@ static int convert_errno_from_linux(int linux_errno)
 	case ETIMEDOUT:        return -(int)Libc::Errno::BSD_ETIMEDOUT;
 	case EXDEV:            return -(int)Libc::Errno::BSD_EXDEV;
 	default:
-		Genode::error(__func__, ": unhandled errno ", linux_errno);
+		error(__func__, ": unhandled errno ", linux_errno);
 		return linux_errno;
 	}
 }
@@ -142,7 +146,7 @@ struct Wifi::Socket
 
 	explicit Socket(void *s) : socket(s) { }
 
-	void print(Genode::Output &out) const
+	void print(Output &out) const
 	{
 		Genode::print(out, "this: ", this, " socket: ", socket, " non_block: ", non_block);
 	}
@@ -215,8 +219,8 @@ struct Call
 	int err = 0;
 };
 
-static Call              _call;
-static Genode::Semaphore _block;
+static Call      _call;
+static Semaphore _block;
 
 
 namespace Lx {
@@ -235,10 +239,10 @@ class Lx::Socket
 		Socket(const Socket&) = delete;
 		Socket& operator=(const Socket&) = delete;
 
-		Genode::Signal_transmitter         _sender { };
-		Genode::Signal_handler<Lx::Socket> _dispatcher;
+		Signal_transmitter         _sender { };
+		Signal_handler<Lx::Socket> _dispatcher;
 
-		Genode::Signal_handler<Lx::Socket> _dispatcher_blockade;
+		Signal_handler<Lx::Socket> _dispatcher_blockade;
 
 		struct socket *_sock_poll_table[Wifi::MAX_POLL_SOCKETS] { };
 
@@ -246,7 +250,7 @@ class Lx::Socket
 		{
 			struct socket *sock = static_cast<struct socket*>(_call.handle->socket);
 			if (!sock)
-				Genode::error("BUG: sock is zero");
+				error("BUG: sock is zero");
 
 			return sock;
 		}
@@ -327,11 +331,11 @@ class Lx::Socket
 			if (!addr)
 				return;
 
-			Genode::size_t const copy = 6 > _call.get_mac_address.addr_len
-				                          ? _call.get_mac_address.addr_len
-				                          : 6;
+			size_t const copy = 6 > _call.get_mac_address.addr_len
+			                  ? _call.get_mac_address.addr_len
+			                  : 6;
 
-			Genode::memcpy(_call.get_mac_address.addr, addr, copy);
+			memcpy(_call.get_mac_address.addr, addr, copy);
 		}
 
 		void _do_poll_all()
@@ -421,7 +425,7 @@ class Lx::Socket
 
 	public:
 
-		Socket(Genode::Entrypoint &ep)
+		Socket(Entrypoint &ep)
 		:
 			_dispatcher(ep, *this, &Lx::Socket::_handle),
 			_dispatcher_blockade(ep, *this, &Lx::Socket::_handle_blockade)
@@ -472,7 +476,7 @@ static Lx::Socket *_socket;
 
 
 /* implemented in wlan.cc */
-extern Genode::Blockade *wpa_blockade;
+extern Blockade *wpa_blockade;
 
 /* implemented in wlan.cc */
 void _wifi_report_mac_address(Net::Mac_address const &mac_address);
@@ -547,7 +551,7 @@ int Socket_call::close(Socket *s)
 	_socket->submit_and_block();
 
 	if (_call.err)
-		Genode::warning("closing socket failed: ", _call.err);
+		warning("closing socket failed: ", _call.err);
 
 	destroy(Lx_kit::env().heap, s);
 	return _call.err;

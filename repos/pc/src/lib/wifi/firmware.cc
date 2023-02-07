@@ -20,6 +20,9 @@
 #include <firmware_list.h>
 
 
+using namespace Genode;
+
+
 Firmware_list fw_list[] = {
 	{ "regulatory.db",     4144, nullptr },
 	{ "regulatory.db.p7s", 1182, nullptr },
@@ -72,7 +75,7 @@ extern "C" int lx_emul_request_firmware_nowait(const char *name, void **dest,
 	/* only try to load known firmware images */
 	Firmware_list *fwl = 0;
 	for (size_t i = 0; i < fw_list_len; i++) {
-		if (Genode::strcmp(name, fw_list[i].requested_name) == 0) {
+		if (strcmp(name, fw_list[i].requested_name) == 0) {
 			fwl = &fw_list[i];
 			break;
 		}
@@ -80,18 +83,18 @@ extern "C" int lx_emul_request_firmware_nowait(const char *name, void **dest,
 
 	if (!fwl ) {
 		if (warn)
-			Genode::error("firmware '", name, "' is not in the firmware white list");
+			error("firmware '", name, "' is not in the firmware white list");
 
 		return -1;
 	}
 
 	char const *fw_name = fwl->available_name
 	                    ? fwl->available_name : fwl->requested_name;
-	Genode::Rom_connection rom(Lx_kit::env().env, fw_name);
-	Genode::Dataspace_capability ds_cap = rom.dataspace();
+	Rom_connection rom(Lx_kit::env().env, fw_name);
+	Dataspace_capability ds_cap = rom.dataspace();
 
 	if (!ds_cap.valid()) {
-		Genode::error("could not get firmware ROM dataspace");
+		error("could not get firmware ROM dataspace");
 		return -1;
 	}
 
@@ -101,7 +104,7 @@ extern "C" int lx_emul_request_firmware_nowait(const char *name, void **dest,
 		return -1;
 
 	void const *image = Lx_kit::env().env.rm().attach(ds_cap);
-	Genode::memcpy(data, image, fwl->size);
+	memcpy(data, image, fwl->size);
 	Lx_kit::env().env.rm().detach(image);
 
 	*dest   = data;

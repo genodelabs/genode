@@ -36,7 +36,7 @@ using namespace Genode;
 extern "C" int  lx_emul_rfkill_get_any(void);
 extern "C" void lx_emul_rfkill_switch_all(int blocked);
 
-static Genode::Signal_context_capability _rfkill_sigh_cap;
+static Signal_context_capability _rfkill_sigh_cap;
 
 
 bool _wifi_get_rfkill(void)
@@ -68,7 +68,7 @@ void _wifi_set_rfkill(bool blocked)
 	lx_emul_task_unblock(uplink_task_struct_ptr);
 	Lx_kit::env().scheduler.schedule();
 
-	Genode::Signal_transmitter(_rfkill_sigh_cap).submit();
+	Signal_transmitter(_rfkill_sigh_cap).submit();
 }
 
 
@@ -180,11 +180,10 @@ struct Wlan
 };
 
 
-Genode::Blockade *wpa_blockade;
+Blockade *wpa_blockade;
 
 
-void wifi_init(Genode::Env      &env,
-               Genode::Blockade &blockade)
+void wifi_init(Env &env, Blockade &blockade)
 {
 	wpa_blockade = &blockade;
 
@@ -192,7 +191,7 @@ void wifi_init(Genode::Env      &env,
 }
 
 
-void wifi_set_rfkill_sigh(Genode::Signal_context_capability cap)
+void wifi_set_rfkill_sigh(Signal_context_capability cap)
 {
 	_rfkill_sigh_cap = cap;
 }
