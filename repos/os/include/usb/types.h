@@ -56,18 +56,18 @@ namespace Usb {
 	};
 
 	/**
-	 * UTF-16 string
+	 * UTF-8 string
 	 */
-	typedef Genode::uint16_t utf16_t;
+	typedef Genode::uint8_t utf8_t;
 }
 
 
 /**
- * String containing UTF-16 plane 0 characters
+ * String containing UTF-8 characters
  */
 struct Usb::String
 {
-	utf16_t *string = nullptr;
+	utf8_t *string = nullptr;
 	unsigned length = 0;
 
 	void copy(unsigned len, void *from, Genode::Allocator *md_alloc)
@@ -77,8 +77,8 @@ struct Usb::String
 		if (len == 0)
 			return;
 
-		string = (utf16_t *)md_alloc->alloc(length * sizeof(utf16_t));
-		Genode::memcpy(string, from, sizeof(utf16_t) * length);
+		string = (utf8_t *)md_alloc->alloc(length * sizeof(utf8_t));
+		Genode::memcpy(string, from, sizeof(utf8_t) * length);
 	}
 
 	void free(Genode::Allocator *md_alloc)
@@ -86,7 +86,7 @@ struct Usb::String
 		if (!string)
 			return;
 
-		md_alloc->free(string, length * sizeof(utf16_t));
+		md_alloc->free(string, length * sizeof(utf8_t));
 		string = nullptr;
 	}
 
