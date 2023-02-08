@@ -122,4 +122,10 @@ Timer::Timer(Cpu & cpu)
 	 * period).
 	 */
 	assert(ticks_to_us(_max_value()) > 2 * cpu_quota_us);
+
+	/*
+	 * Kernel::cpu_quota_us is used in ticks for quota calculations
+	 * and must fit into its datatype, which is size_t not time_t
+	 */
+	assert(us_to_ticks(cpu_quota_us) < ~0UL);
 }

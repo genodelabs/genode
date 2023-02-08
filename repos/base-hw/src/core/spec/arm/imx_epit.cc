@@ -54,7 +54,9 @@ void Timer::_start_one_shot(time_t const ticks)
 	 * otherwise if the tick is small enough, we loose an interrupt
 	 */
 	_device.write<Board::Timer::Sr::Ocif>(1);
-	_device.write<Board::Timer::Lr>(ticks - 1);
+
+	/* maximal ticks are guaranteed via _max_value */
+	_device.write<Board::Timer::Lr>((uint32_t)(ticks - 1));
 }
 
 
@@ -73,9 +75,8 @@ time_t Timer::_max_value() const {
 time_t Timer::_duration() const
 {
 	using Device = Board::Timer;
-	Device::Cnt::access_t last = _last_timeout_duration;
+	Device::Cnt::access_t last = (Device::Cnt::access_t) _last_timeout_duration;
 	Device::Cnt::access_t cnt  = _device.read<Device::Cnt>();
-	Device::Cnt::access_t ret  = (_device.read<Device::Sr::Ocif>())
-		? _max_value() - cnt + last : last - cnt;
-	return ret;
+	return (_device.read<Device::Sr::Ocif>()) ? _max_value() - cnt + last
+	                                          : last - cnt;
 }

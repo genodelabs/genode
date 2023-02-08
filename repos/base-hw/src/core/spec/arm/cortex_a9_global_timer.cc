@@ -85,8 +85,8 @@ void Timer::_start_one_shot(time_t const ticks)
 	_device.write<Device::Control::Comp_enable>(0);
 
 	time_t end_ticks = _device.current_ticks() + ticks;
-	_device.write<Device::Comparator>(end_ticks & 0xFFFFFFFF, 0);
-	_device.write<Device::Comparator>(end_ticks >> 32       , 1);
+	_device.write<Device::Comparator>((uint32_t)end_ticks, 0);
+	_device.write<Device::Comparator>((uint32_t)(end_ticks >> 32) , 1);
 
 	/* Enable comparator before setting a new value */
 	_device.write<Device::Control::Comp_enable>(1);

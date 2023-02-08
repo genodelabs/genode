@@ -103,7 +103,7 @@ class Genode::Cpu : public Arm_v7_cpu
 
 				Genode::uint8_t id() const
 				{
-					return Ttbr_64bit::Asid::get(ttbr0);
+					return (uint8_t)Ttbr_64bit::Asid::get(ttbr0);
 				}
 		};
 

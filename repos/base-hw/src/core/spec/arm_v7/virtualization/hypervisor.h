@@ -38,8 +38,8 @@ namespace Hypervisor {
 	inline void invalidate_tlb(Genode::uint64_t vttbr)
 	{
 		hypervisor_call(TLB_INVALIDATE,
-		                (vttbr & 0xffffffff),
-		                ((vttbr >> 32U) & 0xffffffff));
+		                (Call_arg)vttbr,
+		                (Call_arg)(vttbr >> 32U));
 	}
 
 

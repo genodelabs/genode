@@ -78,7 +78,8 @@ void Thread::proceed(Cpu & cpu)
 
 void Thread::user_ret_time(Kernel::time_t const t)
 {
-	regs->r0 = t >> 32UL;
+	/* split 64-bit time_t value into 2 register */
+	regs->r0 = (addr_t) (t >> 32UL);
 	regs->r1 = t & ~0UL;
 }
 

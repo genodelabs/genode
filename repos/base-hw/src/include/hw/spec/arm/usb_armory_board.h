@@ -27,6 +27,7 @@ namespace Hw::Usb_armory_board {
 	enum {
 		UART_BASE  = UART_1_MMIO_BASE,
 		UART_CLOCK = 0, /* ignored value */
+		NR_OF_CPUS = 1,
 	};
 }
 

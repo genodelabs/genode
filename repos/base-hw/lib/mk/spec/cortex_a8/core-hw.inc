@@ -10,5 +10,3 @@ SRC_CC += kernel/lock.cc
 
 # include less specific configuration
 include $(call select_from_repositories,lib/mk/spec/arm_v7/core-hw.inc)
-
-CC_CXX_WARN_STRICT_CONVERSION =
