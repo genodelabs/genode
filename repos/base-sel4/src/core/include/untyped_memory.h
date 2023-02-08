@@ -26,6 +26,7 @@
 
 namespace Genode { struct Untyped_memory; }
 
+
 struct Genode::Untyped_memory
 {
 	class Phys_alloc_failed : Exception { };

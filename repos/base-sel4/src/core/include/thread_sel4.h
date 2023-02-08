@@ -27,27 +27,7 @@
 
 namespace Genode {
 
-	struct Thread_info
-	{
-		Cap_sel tcb_sel { 0 };
-		Cap_sel ep_sel  { 0 };
-		Cap_sel lock_sel { 0 };
-		Cap_sel vcpu_sel { 0 };
-
-		addr_t ipc_buffer_phys { 0 };
-		addr_t vcpu_state_phys { 0 };
-
-		inline void write_thread_info_to_ipc_buffer(Cap_sel pd_ep_sel);
-
-		Thread_info() { }
-
-		inline void init_tcb(Platform &, Range_allocator &,
-		                     unsigned const prio, unsigned const cpu);
-		inline void init(addr_t const utcb_virt_addr, unsigned const prio);
-		inline void destruct();
-
-		bool init_vcpu(Platform &, Cap_sel ept);
-	};
+	struct Thread_info;
 
 	/**
 	 * Set register values for the instruction pointer and stack pointer and
@@ -55,7 +35,31 @@ namespace Genode {
 	 */
 	void start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp, unsigned cpu);
 	void affinity_sel4_thread(Cap_sel const &tcb_sel, unsigned cpu);
+}
+
+
+struct Genode::Thread_info
+{
+	Cap_sel tcb_sel { 0 };
+	Cap_sel ep_sel  { 0 };
+	Cap_sel lock_sel { 0 };
+	Cap_sel vcpu_sel { 0 };
+
+	addr_t ipc_buffer_phys { 0 };
+	addr_t vcpu_state_phys { 0 };
+
+	inline void write_thread_info_to_ipc_buffer(Cap_sel pd_ep_sel);
+
+	Thread_info() { }
+
+	inline void init_tcb(Platform &, Range_allocator &,
+	                     unsigned const prio, unsigned const cpu);
+	inline void init(addr_t const utcb_virt_addr, unsigned const prio);
+	inline void destruct();
+
+	bool init_vcpu(Platform &, Cap_sel ept);
 };
+
 
 void Genode::Thread_info::init_tcb(Platform &platform,
                                    Range_allocator &phys_alloc,
@@ -75,6 +79,7 @@ void Genode::Thread_info::init_tcb(Platform &platform,
 	/* place at cpu */
 	affinity_sel4_thread(tcb_sel, cpu);
 }
+
 
 void Genode::Thread_info::init(addr_t const utcb_virt_addr, unsigned const prio)
 {

@@ -21,8 +21,8 @@
 /* base-internal includes */
 #include <base/internal/page_size.h>
 
-namespace Genode
-{
+namespace Genode {
+
 	class Cpu_thread_component;
 
 	/**

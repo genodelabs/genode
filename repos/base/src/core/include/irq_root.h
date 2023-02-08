@@ -20,6 +20,7 @@
 
 namespace Genode { class Irq_root; }
 
+
 class Genode::Irq_root : public Root_component<Irq_session_component>
 {
 

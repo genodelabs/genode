@@ -27,6 +27,7 @@
 
 namespace Genode { class Page_table_registry; }
 
+
 class Genode::Page_table_registry
 {
 	public:

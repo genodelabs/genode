@@ -24,6 +24,7 @@
 
 namespace Genode { class Irq_session_component; }
 
+
 class Genode::Irq_session_component : public  Rpc_object<Irq_session>,
                                       private List<Irq_session_component>::Element
 {

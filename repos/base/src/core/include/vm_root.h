@@ -23,6 +23,7 @@
 
 namespace Genode { class Vm_root; }
 
+
 class Genode::Vm_root : public Root_component<Vm_session_component>
 {
 	private:

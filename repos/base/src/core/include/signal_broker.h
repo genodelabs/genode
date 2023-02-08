@@ -21,6 +21,7 @@
 
 namespace Genode { class Signal_broker; }
 
+
 class Genode::Signal_broker
 {
 	private:

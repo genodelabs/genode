@@ -17,6 +17,7 @@
 
 namespace Genode { class Irq_object; class Irq_args; }
 
+
 class Genode::Irq_object
 {
 	private:

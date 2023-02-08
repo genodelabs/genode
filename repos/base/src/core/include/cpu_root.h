@@ -20,71 +20,71 @@
 /* Core includes */
 #include <cpu_session_component.h>
 
-namespace Genode {
+namespace Genode { class Cpu_root; }
 
-	class Cpu_root : public Root_component<Cpu_session_component>
-	{
-		private:
 
-			Ram_allocator          &_ram_alloc;
-			Region_map             &_local_rm;
-			Rpc_entrypoint         &_thread_ep;
-			Pager_entrypoint       &_pager_ep;
-			Trace::Source_registry &_trace_sources;
+class Genode::Cpu_root : public Root_component<Cpu_session_component>
+{
+	private:
 
-		protected:
+		Ram_allocator          &_ram_alloc;
+		Region_map             &_local_rm;
+		Rpc_entrypoint         &_thread_ep;
+		Pager_entrypoint       &_pager_ep;
+		Trace::Source_registry &_trace_sources;
 
-			Cpu_session_component *_create_session(char const *args,
-			                                       Affinity const &affinity) override {
+	protected:
 
-				size_t ram_quota =
-					Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+		Cpu_session_component *_create_session(char const *args,
+		                                       Affinity const &affinity) override {
 
-				if (ram_quota < Trace::Control_area::SIZE)
-					throw Insufficient_ram_quota();
+			size_t ram_quota =
+				Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
-				if (!affinity.valid())
-					throw Service_denied();
+			if (ram_quota < Trace::Control_area::SIZE)
+				throw Insufficient_ram_quota();
 
-				return new (md_alloc())
-					Cpu_session_component(*this->ep(),
-					                      session_resources_from_args(args),
-					                      session_label_from_args(args),
-					                      session_diag_from_args(args),
-					                      _ram_alloc, _local_rm,
-					                      _thread_ep, _pager_ep, _trace_sources,
-					                      args, affinity, 0);
-			}
+			if (!affinity.valid())
+				throw Service_denied();
 
-			void _upgrade_session(Cpu_session_component *cpu, const char *args) override
-			{
-				cpu->upgrade(ram_quota_from_args(args));
-				cpu->upgrade(cap_quota_from_args(args));
-			}
+			return new (md_alloc())
+				Cpu_session_component(*this->ep(),
+				                      session_resources_from_args(args),
+				                      session_label_from_args(args),
+				                      session_diag_from_args(args),
+				                      _ram_alloc, _local_rm,
+				                      _thread_ep, _pager_ep, _trace_sources,
+				                      args, affinity, 0);
+		}
 
-		public:
+		void _upgrade_session(Cpu_session_component *cpu, const char *args) override
+		{
+			cpu->upgrade(ram_quota_from_args(args));
+			cpu->upgrade(cap_quota_from_args(args));
+		}
 
-			/**
-			 * Constructor
-			 *
-			 * \param session_ep   entry point for managing cpu session objects
-			 * \param thread_ep    entry point for managing threads
-			 * \param md_alloc     meta data allocator to be used by root component
-			 */
-			Cpu_root(Ram_allocator          &ram_alloc,
-			         Region_map             &local_rm,
-			         Rpc_entrypoint         &session_ep,
-			         Rpc_entrypoint         &thread_ep,
-			         Pager_entrypoint       &pager_ep,
-			         Allocator              &md_alloc,
-			         Trace::Source_registry &trace_sources)
-			:
-				Root_component<Cpu_session_component>(&session_ep, &md_alloc),
-				_ram_alloc(ram_alloc), _local_rm(local_rm),
-				_thread_ep(thread_ep), _pager_ep(pager_ep),
-				_trace_sources(trace_sources)
-			{ }
-	};
-}
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param session_ep   entry point for managing cpu session objects
+		 * \param thread_ep    entry point for managing threads
+		 * \param md_alloc     meta data allocator to be used by root component
+		 */
+		Cpu_root(Ram_allocator          &ram_alloc,
+		         Region_map             &local_rm,
+		         Rpc_entrypoint         &session_ep,
+		         Rpc_entrypoint         &thread_ep,
+		         Pager_entrypoint       &pager_ep,
+		         Allocator              &md_alloc,
+		         Trace::Source_registry &trace_sources)
+		:
+			Root_component<Cpu_session_component>(&session_ep, &md_alloc),
+			_ram_alloc(ram_alloc), _local_rm(local_rm),
+			_thread_ep(thread_ep), _pager_ep(pager_ep),
+			_trace_sources(trace_sources)
+		{ }
+};
 
 #endif /* _CORE__INCLUDE__CPU_ROOT_H_ */

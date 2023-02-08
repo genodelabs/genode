@@ -16,6 +16,7 @@
 
 namespace Genode { struct Boot_modules_header; }
 
+
 struct Genode::Boot_modules_header
 {
 	long name; /* physical address of null-terminated string */

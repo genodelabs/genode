@@ -20,6 +20,7 @@
 
 namespace Genode { class Rpc_cap_factory; }
 
+
 class Genode::Rpc_cap_factory
 {
 	private:

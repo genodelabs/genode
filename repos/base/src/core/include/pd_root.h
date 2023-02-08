@@ -20,9 +20,7 @@
 /* Core */
 #include <pd_session_component.h>
 
-namespace Genode {
-	class Pd_root;
-}
+namespace Genode { class Pd_root; }
 
 
 class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_component>

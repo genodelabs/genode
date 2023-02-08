@@ -19,6 +19,7 @@
 
 namespace Genode { struct Address_space; }
 
+
 struct Genode::Address_space : private Weak_object<Address_space>,
                                public  Interface
 {

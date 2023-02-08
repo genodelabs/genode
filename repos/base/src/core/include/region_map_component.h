@@ -40,7 +40,6 @@
 #include <base/internal/stack_area.h>
 
 namespace Genode {
-
 	class Cpu_thread_component;
 	class Dataspace_component;
 	class Region_map_component;
@@ -50,6 +49,7 @@ namespace Genode {
 	class Rm_faulter;
 	class Rm_session_component;
 }
+
 
 class Genode::Region_map_detach : Genode::Interface
 {

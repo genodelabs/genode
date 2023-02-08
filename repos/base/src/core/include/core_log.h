@@ -18,6 +18,7 @@
 #include <util/string.h>
 
 namespace Genode {
+
 	struct Core_log;
 
 	struct Core_log_range {

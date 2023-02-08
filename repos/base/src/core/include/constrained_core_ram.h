@@ -19,6 +19,7 @@
 
 namespace Genode { class Constrained_core_ram; }
 
+
 class Genode::Constrained_core_ram : public Allocator
 {
 	private:

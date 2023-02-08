@@ -3,7 +3,7 @@
  * \author Christian Helmuth
  * \date   2007-04-17
  *
- * We assume Core is running on IOPL3.
+ * We assume core is running on IOPL3.
  */
 
 /*
@@ -24,53 +24,53 @@
 /* core includes */
 #include <dataspace_component.h>
 
-namespace Genode {
-
-	class Io_port_session_component : public Rpc_object<Io_port_session>
-	{
-		private:
-
-			Range_allocator &_io_port_alloc;
-			unsigned short   _base = 0;
-			unsigned short   _size = 0;
-
-			/**
-			 * Check if access exceeds range
-             */
-			bool _in_bounds(unsigned short address, unsigned width) {
-				return (address >= _base) && (address + width <= _base + _size); }
-
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param io_port_alloc  IO_PORT region allocator
-			 * \param args           session construction arguments, in
-			 *                       particular port base and size
-			 * \throw                Service_denied
-			 */
-			Io_port_session_component(Range_allocator &io_port_alloc,
-			                          const char      *args);
-
-			/**
-			 * Destructor
-			 */
-			~Io_port_session_component();
+namespace Genode { class Io_port_session_component; }
 
 
-			/*******************************
-			 ** Io-port session interface **
-			 *******************************/
+class Genode::Io_port_session_component : public Rpc_object<Io_port_session>
+{
+	private:
 
-			unsigned char  inb(unsigned short) override;
-			unsigned short inw(unsigned short) override;
-			unsigned       inl(unsigned short) override;
+		Range_allocator &_io_port_alloc;
+		unsigned short   _base = 0;
+		unsigned short   _size = 0;
 
-			void outb(unsigned short, unsigned char)  override;
-			void outw(unsigned short, unsigned short) override;
-			void outl(unsigned short, unsigned)       override;
-	};
-}
+		/**
+		 * Check if access exceeds range
+         */
+		bool _in_bounds(unsigned short address, unsigned width) {
+			return (address >= _base) && (address + width <= _base + _size); }
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param io_port_alloc  IO_PORT region allocator
+		 * \param args           session construction arguments, in
+		 *                       particular port base and size
+		 * \throw                Service_denied
+		 */
+		Io_port_session_component(Range_allocator &io_port_alloc,
+		                          const char      *args);
+
+		/**
+		 * Destructor
+		 */
+		~Io_port_session_component();
+
+
+		/*******************************
+		 ** Io-port session interface **
+		 *******************************/
+
+		unsigned char  inb(unsigned short) override;
+		unsigned short inw(unsigned short) override;
+		unsigned       inl(unsigned short) override;
+
+		void outb(unsigned short, unsigned char)  override;
+		void outw(unsigned short, unsigned short) override;
+		void outl(unsigned short, unsigned)       override;
+};
 
 #endif /* _CORE__INCLUDE__IO_PORT_SESSION_COMPONENT_H_ */

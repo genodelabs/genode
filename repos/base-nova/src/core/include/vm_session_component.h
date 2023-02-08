@@ -24,6 +24,7 @@
 
 namespace Genode { class Vm_session_component; }
 
+
 class Genode::Vm_session_component
 :
 	private Ram_quota_guard,

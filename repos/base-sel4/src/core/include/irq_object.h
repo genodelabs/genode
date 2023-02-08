@@ -20,6 +20,7 @@
 
 namespace Genode { class Irq_object; }
 
+
 class Genode::Irq_object : public Thread {
 
 	private:

@@ -18,8 +18,9 @@
 
 namespace Genode { class Irq_object; }
 
-class Genode::Irq_object : public Thread {
 
+class Genode::Irq_object : public Thread
+{
 	private:
 
 		Signal_context_capability _sig_cap { };
