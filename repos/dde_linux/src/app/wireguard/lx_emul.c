@@ -70,14 +70,6 @@ int __must_check get_random_bytes_arch(void * buf, int nbytes)
 }
 
 
-#include <linux/slab.h>
-
-void * kmalloc_order(size_t size,gfp_t flags,unsigned int order)
-{
-	return kmalloc(size, flags);
-}
-
-
 #include <linux/mm.h>
 
 void * kvmalloc_node(size_t size,gfp_t flags,int node)

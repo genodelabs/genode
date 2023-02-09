@@ -47,6 +47,7 @@ LX_ENABLE += FB
 # mandatory fs support
 LX_ENABLE += PROC_FS SYSFS
 
+# disable optimization not possible in PIC code under Genode
 LX_DISABLE += CC_HAS_ASM_GOTO
 
 # slim down kernel by removing superfluous drivers

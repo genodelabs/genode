@@ -14,6 +14,7 @@
 #include <linux/mm.h>
 #include <linux/slab.h>
 #include <../mm/slab.h>
+#include <../mm/internal.h>
 #include <lx_emul/alloc.h>
 #include <lx_emul/debug.h>
 
@@ -47,4 +48,14 @@ size_t ksize(const void * objp)
 		return 0;
 
 	return __ksize(objp);
+}
+
+
+/*
+ * We can use our __kmalloc() implementation here as it supports large
+ * allocations well.
+ */
+void * kmalloc_order(size_t size, gfp_t flags, unsigned int order)
+{
+	return __kmalloc(size, flags);
 }
