@@ -298,17 +298,17 @@ class Vfs_block_io_job
 
 			case State::IN_PROGRESS:
 			{
-				file_size nr_of_read_bytes { 0 };
+				size_t read_bytes = 0;
 
 				char *const data {
 					reinterpret_cast<char *>(
 						&io_data.item(_cbe_req_io_buf_idx(_cbe_req))) };
 
-				Result const result {
-					_handle.fs().complete_read(&_handle,
-					                           data + _nr_of_processed_bytes,
-					                           _nr_of_remaining_bytes,
-					                           nr_of_read_bytes) };
+				Byte_range_ptr const dst(data + _nr_of_processed_bytes,
+				                         _nr_of_remaining_bytes);
+
+				Result const result =
+					_handle.fs().complete_read(&_handle, dst, read_bytes);
 
 				switch (result) {
 				case Result::READ_QUEUED:
@@ -318,8 +318,8 @@ class Vfs_block_io_job
 
 				case Result::READ_OK:
 
-					_nr_of_processed_bytes += nr_of_read_bytes;
-					_nr_of_remaining_bytes -= nr_of_read_bytes;
+					_nr_of_processed_bytes += read_bytes;
+					_nr_of_remaining_bytes -= read_bytes;
 
 					if (_nr_of_remaining_bytes == 0) {
 
@@ -385,17 +385,17 @@ class Vfs_block_io_job
 
 			case State::IN_PROGRESS:
 			{
-				file_size nr_of_written_bytes { 0 };
+				size_t written_bytes = 0;
 
 				char const *const data {
 					reinterpret_cast<char *>(
 						&io_data.item(_cbe_req_io_buf_idx(_cbe_req))) };
 
+				Const_byte_range_ptr const src(data + _nr_of_processed_bytes,
+				                               _nr_of_remaining_bytes);
+
 				Result const result =
-					_handle.fs().write(&_handle,
-					                   data + _nr_of_processed_bytes,
-					                   _nr_of_remaining_bytes,
-					                   nr_of_written_bytes);
+					_handle.fs().write(&_handle, src, written_bytes);
 
 				switch (result) {
 				case Result::WRITE_ERR_WOULD_BLOCK:
@@ -403,8 +403,8 @@ class Vfs_block_io_job
 
 				case Result::WRITE_OK:
 
-					_nr_of_processed_bytes += nr_of_written_bytes;
-					_nr_of_remaining_bytes -= nr_of_written_bytes;
+					_nr_of_processed_bytes += written_bytes;
+					_nr_of_remaining_bytes -= written_bytes;
 
 					if (_nr_of_remaining_bytes == 0) {
 

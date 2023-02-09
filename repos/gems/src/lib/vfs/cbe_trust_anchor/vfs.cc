@@ -68,7 +68,9 @@ class Trust_anchor
 		Trust_anchor(Trust_anchor const &) = delete;
 		Trust_anchor &operator=(Trust_anchor const&) = delete;
 
-		using size_t = Genode::size_t;
+		using size_t               = Genode::size_t;
+		using Byte_range_ptr       = Genode::Byte_range_ptr;
+		using Const_byte_range_ptr = Genode::Const_byte_range_ptr;
 
 		Vfs::Env &_vfs_env;
 
@@ -978,7 +980,7 @@ class Trust_anchor
 			return result;
 		}
 
-		bool queue_initialize(char const *src, size_t len)
+		bool queue_initialize(Const_byte_range_ptr const &src)
 		{
 			if (_job != Job::NONE) {
 				return false;
@@ -987,7 +989,7 @@ class Trust_anchor
 			if (_state != State::UNINITIALIZED) {
 				return false;
 			}
-			SHA256((unsigned char const *)src, len,
+			SHA256((unsigned char const *)src.start, src.num_bytes,
 			       (unsigned char *)_passphrase_hash_buffer.base);
 
 			_passphrase_hash_buffer.size = SHA256_DIGEST_LENGTH;
@@ -1010,7 +1012,7 @@ class Trust_anchor
 			return { true, _job_success };
 		}
 
-		bool queue_unlock(char const *src, size_t len)
+		bool queue_unlock(Const_byte_range_ptr const &src)
 		{
 			if (_job != Job::NONE) {
 				return false;
@@ -1027,7 +1029,7 @@ class Trust_anchor
 				return true;
 			}
 
-			SHA256((unsigned char const *)src, len,
+			SHA256((unsigned char const *)src.start, src.num_bytes,
 			       (unsigned char *)_passphrase_hash_buffer.base);
 
 			_passphrase_hash_buffer.size = SHA256_DIGEST_LENGTH;
@@ -1065,24 +1067,24 @@ class Trust_anchor
 			return true;
 		}
 
-		Complete_request complete_read_last_hash(char *dst, size_t len)
+		Complete_request complete_read_last_hash(Vfs::Byte_range_ptr const &dst)
 		{
 			if (_job != Job::READ_HASH || _job_state != Job_state::COMPLETE) {
 				return { false, false };
 			}
 
-			if (len < _last_hash.length) {
+			if (dst.num_bytes < _last_hash.length) {
 				Genode::warning("truncate hash");
 			}
 
-			Genode::memcpy(dst, _last_hash.value, len);
+			Genode::memcpy(dst.start, _last_hash.value, dst.num_bytes);
 
 			_job       = Job::NONE;
 			_job_state = Job_state::NONE;
 			return { true, _job_success };
 		}
 
-		bool queue_update_last_hash(char const *src, size_t len)
+		bool queue_update_last_hash(Vfs::Const_byte_range_ptr const &src)
 		{
 			if (_job != Job::NONE) {
 				return false;
@@ -1092,20 +1094,17 @@ class Trust_anchor
 				return false;
 			}
 
-			if (len != _last_hash.length) {
+			if (src.num_bytes != _last_hash.length) {
 				return false;
 			}
 
-			if (len > _hash_io_job_buffer.size) {
-				len = _hash_io_job_buffer.size;
-			}
+			size_t const len = Genode::min(src.num_bytes, _hash_io_job_buffer.size);
 
 			_hash_io_job_buffer.size = len;
 
-			Genode::memcpy(_hash_io_job_buffer.buffer, src,
-			               _hash_io_job_buffer.size);
+			Genode::memcpy(_hash_io_job_buffer.buffer, src.start, len);
 
-			Genode::memcpy(_last_hash.value, src, len);
+			Genode::memcpy(_last_hash.value, src.start, len);
 
 			_job       = Job::UPDATE_HASH;
 			_job_state = Job_state::PENDING;
@@ -1123,7 +1122,7 @@ class Trust_anchor
 			return { true, _job_success };
 		}
 
-		bool queue_encrypt_key(char const *src, size_t len)
+		bool queue_encrypt_key(Const_byte_range_ptr const &src)
 		{
 			if (_job != Job::NONE) {
 				return false;
@@ -1133,39 +1132,39 @@ class Trust_anchor
 				return false;
 			}
 
-			if (len != _encrypt_key.length) {
+			if (src.num_bytes != _encrypt_key.length) {
 				Genode::error(__func__, ": key length mismatch, expected: ",
-				              _encrypt_key.length, " got: ", len);
+				              _encrypt_key.length, " got: ", src.num_bytes);
 				return false;
 			}
 
-			Genode::memcpy(_encrypt_key.value, src, len);
+			Genode::memcpy(_encrypt_key.value, src.start, src.num_bytes);
 
 			_job       = Job::ENCRYPT;
 			_job_state = Job_state::PENDING;
 			return true;
 		}
 
-		Complete_request complete_encrypt_key(char *dst, size_t len)
+		Complete_request complete_encrypt_key(Byte_range_ptr const &dst)
 		{
 			if (_job != Job::ENCRYPT || _job_state != Job_state::COMPLETE) {
 				return { false, false };
 			}
 
-			if (len != _encrypt_key.length) {
+			if (dst.num_bytes != _encrypt_key.length) {
 				Genode::error(__func__, ": key length mismatch, expected: ",
-				              _encrypt_key.length, " got: ", len);
+				              _encrypt_key.length, " got: ", dst.num_bytes);
 				return { true, false };
 			}
 
-			Genode::memcpy(dst, _encrypt_key.value, _encrypt_key.length);
+			Genode::memcpy(dst.start, _encrypt_key.value, _encrypt_key.length);
 
 			_job       = Job::NONE;
 			_job_state = Job_state::NONE;
 			return { true, _job_success };
 		}
 
-		bool queue_decrypt_key(char const *src, size_t len)
+		bool queue_decrypt_key(Const_byte_range_ptr const &src)
 		{
 			if (_job != Job::NONE) {
 				return false;
@@ -1175,32 +1174,32 @@ class Trust_anchor
 				return false;
 			}
 
-			if (len != _decrypt_key.length) {
+			if (src.num_bytes != _decrypt_key.length) {
 				Genode::error(__func__, ": key length mismatch, expected: ",
-				              _decrypt_key.length, " got: ", len);
+				              _decrypt_key.length, " got: ", src.num_bytes);
 				return false;
 			}
 
-			Genode::memcpy(_decrypt_key.value, src, len);
+			Genode::memcpy(_decrypt_key.value, src.start, src.num_bytes);
 
 			_job       = Job::DECRYPT;
 			_job_state = Job_state::PENDING;
 			return true;
 		}
 
-		Complete_request complete_decrypt_key(char *dst, size_t len)
+		Complete_request complete_decrypt_key(Byte_range_ptr const &dst)
 		{
 			if (_job != Job::DECRYPT || _job_state != Job_state::COMPLETE) {
 				return { false, false };
 			}
 
-			if (len != _decrypt_key.length) {
+			if (dst.num_bytes != _decrypt_key.length) {
 				Genode::error(__func__, ": key length mismatch, expected: ",
-				              _decrypt_key.length, " got: ", len);
+				              _decrypt_key.length, " got: ", dst.num_bytes);
 				return { true, false };
 			}
 
-			Genode::memcpy(dst, _decrypt_key.value, _decrypt_key.length);
+			Genode::memcpy(dst.start, _decrypt_key.value, _decrypt_key.length);
 
 			_job       = Job::NONE;
 			_job_state = Job_state::NONE;
@@ -1218,21 +1217,21 @@ class Trust_anchor
 			return true;
 		}
 
-		Complete_request complete_generate_key(char *dst, size_t len)
+		Complete_request complete_generate_key(Vfs::Byte_range_ptr const &dst)
 		{
 			if (_job != Job::GENERATE || _job_state != Job_state::COMPLETE) {
 				return { false, false };
 			}
 
+			size_t len = dst.num_bytes;
+
 			if (len < _generated_key.length) {
 				Genode::warning("truncate generated key");
-			} else
-
-			if (len > _generated_key.length) {
-				len = _generated_key.length;
+			} else {
+				len = Genode::min(len, _generated_key.length);
 			}
 
-			Genode::memcpy(dst, _generated_key.value, len);
+			Genode::memcpy(dst.start, _generated_key.value, len);
 			Genode::memset(_generated_key.value, 0, sizeof (_generated_key.value));
 
 			_job       = Job::NONE;
@@ -1264,8 +1263,7 @@ class Vfs_cbe_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
 				_trust_anchor     { ta }
 			{ }
 
-			Read_result read(char *src, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &src, size_t &out_count) override
 			{
 				_trust_anchor.execute();
 
@@ -1288,14 +1286,14 @@ class Vfs_cbe_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
 				if (_state == State::PENDING_READ) {
 					try {
 						Trust_anchor::Complete_request const cr =
-							_trust_anchor.complete_read_last_hash(src, count);
+							_trust_anchor.complete_read_last_hash(src);
 						if (!cr.valid) {
 							_trust_anchor.execute();
 							return READ_QUEUED;
 						}
 
 						_state = State::NONE;
-						out_count = count;
+						out_count = src.num_bytes;
 						return cr.success ? READ_OK : READ_ERR_IO;
 					} catch (...) {
 						return READ_ERR_INVALID;
@@ -1312,7 +1310,7 @@ class Vfs_cbe_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
 						}
 
 						_state = State::NONE;
-						out_count = count;
+						out_count = src.num_bytes;
 						return cr.success ? READ_OK : READ_ERR_IO;
 					} catch (...) {
 						return READ_ERR_INVALID;
@@ -1322,8 +1320,7 @@ class Vfs_cbe_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
 				return READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count,
-			                   file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 			{
 				_trust_anchor.execute();
 
@@ -1332,8 +1329,7 @@ class Vfs_cbe_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
 				}
 
 				try {
-					bool const ok =
-						_trust_anchor.queue_update_last_hash(src, count);
+					bool const ok = _trust_anchor.queue_update_last_hash(src);
 					if (!ok) {
 						return WRITE_ERR_IO;
 					}
@@ -1343,7 +1339,7 @@ class Vfs_cbe_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
 				}
 
 				_trust_anchor.execute();
-				out_count = count;
+				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
 
@@ -1425,8 +1421,7 @@ class Vfs_cbe_trust_anchor::Generate_key_file_system : public Vfs::Single_file_s
 				_trust_anchor     { ta }
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				if (_state == State::NONE) {
 
@@ -1439,17 +1434,17 @@ class Vfs_cbe_trust_anchor::Generate_key_file_system : public Vfs::Single_file_s
 				(void)_trust_anchor.execute();
 
 				Trust_anchor::Complete_request const cr =
-					_trust_anchor.complete_generate_key(dst, count);
+					_trust_anchor.complete_generate_key(dst);
 				if (!cr.valid) {
 					return READ_QUEUED;
 				}
 
 				_state = State::NONE;
-				out_count = count;
+				out_count = dst.num_bytes;
 				return cr.success ? READ_OK : READ_ERR_IO;
 			}
 
-			Write_result write(char const *, file_size , file_size &) override
+			Write_result write(Const_byte_range_ptr const &, size_t &) override
 			{
 				return WRITE_ERR_IO;
 			}
@@ -1533,8 +1528,7 @@ class Vfs_cbe_trust_anchor::Encrypt_file_system : public Vfs::Single_file_system
 				_state        { State::NONE }
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				if (_state != State::PENDING) {
 					return READ_ERR_IO;
@@ -1544,14 +1538,14 @@ class Vfs_cbe_trust_anchor::Encrypt_file_system : public Vfs::Single_file_system
 
 				try {
 					Trust_anchor::Complete_request const cr =
-						_trust_anchor.complete_encrypt_key(dst, count);
+						_trust_anchor.complete_encrypt_key(dst);
 					if (!cr.valid) {
 						return READ_QUEUED;
 					}
 
 					_state = State::NONE;
 
-					out_count = count;
+					out_count = dst.num_bytes;
 					return cr.success ? READ_OK : READ_ERR_IO;
 				} catch (...) {
 					return READ_ERR_INVALID;
@@ -1560,8 +1554,7 @@ class Vfs_cbe_trust_anchor::Encrypt_file_system : public Vfs::Single_file_system
 				return READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count,
-			                   file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 			{
 				if (_state != State::NONE) {
 					return WRITE_ERR_IO;
@@ -1569,7 +1562,7 @@ class Vfs_cbe_trust_anchor::Encrypt_file_system : public Vfs::Single_file_system
 
 				try {
 					bool const ok =
-						_trust_anchor.queue_encrypt_key(src, count);
+						_trust_anchor.queue_encrypt_key(src);
 					if (!ok) {
 						return WRITE_ERR_IO;
 					}
@@ -1579,7 +1572,7 @@ class Vfs_cbe_trust_anchor::Encrypt_file_system : public Vfs::Single_file_system
 				}
 
 				_trust_anchor.execute();
-				out_count = count;
+				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
 
@@ -1661,8 +1654,7 @@ class Vfs_cbe_trust_anchor::Decrypt_file_system : public Vfs::Single_file_system
 				_state        { State::NONE }
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				if (_state != State::PENDING) {
 					return READ_ERR_IO;
@@ -1672,14 +1664,14 @@ class Vfs_cbe_trust_anchor::Decrypt_file_system : public Vfs::Single_file_system
 
 				try {
 					Trust_anchor::Complete_request const cr =
-						_trust_anchor.complete_decrypt_key(dst, count);
+						_trust_anchor.complete_decrypt_key(dst);
 					if (!cr.valid) {
 						return READ_QUEUED;
 					}
 
 					_state = State::NONE;
 
-					out_count = count;
+					out_count = dst.num_bytes;
 					return cr.success ? READ_OK : READ_ERR_IO;
 				} catch (...) {
 					return READ_ERR_INVALID;
@@ -1688,8 +1680,7 @@ class Vfs_cbe_trust_anchor::Decrypt_file_system : public Vfs::Single_file_system
 				return READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count,
-			                   file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 			{
 				if (_state != State::NONE) {
 					return WRITE_ERR_IO;
@@ -1697,7 +1688,7 @@ class Vfs_cbe_trust_anchor::Decrypt_file_system : public Vfs::Single_file_system
 
 				try {
 					bool const ok =
-						_trust_anchor.queue_decrypt_key(src, count);
+						_trust_anchor.queue_decrypt_key(src);
 					if (!ok) {
 						return WRITE_ERR_IO;
 					}
@@ -1707,7 +1698,7 @@ class Vfs_cbe_trust_anchor::Decrypt_file_system : public Vfs::Single_file_system
 				}
 
 				_trust_anchor.execute();
-				out_count = count;
+				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
 
@@ -1790,7 +1781,7 @@ class Vfs_cbe_trust_anchor::Initialize_file_system : public Vfs::Single_file_sys
 				_trust_anchor     { ta }
 			{ }
 
-			Read_result read(char *, file_size, file_size &) override
+			Read_result read(Byte_range_ptr const &, size_t &) override
 			{
 				if (_state != State::PENDING) {
 					return READ_ERR_INVALID;
@@ -1811,8 +1802,7 @@ class Vfs_cbe_trust_anchor::Initialize_file_system : public Vfs::Single_file_sys
 				return cr.success ? READ_OK : READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count,
-			                   file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 			{
 				if (_state != State::NONE) {
 					return WRITE_ERR_INVALID;
@@ -1820,15 +1810,15 @@ class Vfs_cbe_trust_anchor::Initialize_file_system : public Vfs::Single_file_sys
 
 				_init_pending = _trust_anchor.initialized();
 
-				bool const res = _init_pending ? _trust_anchor.queue_unlock(src, count)
-				                               : _trust_anchor.queue_initialize(src, count);
+				bool const res = _init_pending ? _trust_anchor.queue_unlock(src)
+				                               : _trust_anchor.queue_initialize(src);
 
 				if (!res) {
 					return WRITE_ERR_IO;
 				}
 				_state = State::PENDING;
 
-				out_count = count;
+				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
 

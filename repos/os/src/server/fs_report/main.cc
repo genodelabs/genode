@@ -153,12 +153,14 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 
 				size_t offset = 0;
 				while (offset < length) {
-					file_size n = 0;
+					size_t n = 0;
 
 					handle->seek(offset);
-					Write_result res = handle->fs().write(
-						handle, _ds.local_addr<char const>() + offset,
-						length - offset, n);
+
+					Const_byte_range_ptr const src(_ds.local_addr<char>() + offset,
+					                               length - offset);
+
+					Write_result res = handle->fs().write(handle, src, n);
 
 					if (res != Write_result::WRITE_OK) {
 						/* do not spam the log */
@@ -169,7 +171,7 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 						return;
 					}
 
-					offset += (size_t)n;
+					offset += n;
 				}
 
 				_file_size = length;

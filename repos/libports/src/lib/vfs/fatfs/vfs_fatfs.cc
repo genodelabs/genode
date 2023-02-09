@@ -88,9 +88,8 @@ class Fatfs::File_system : public Vfs::File_system
 		{
 			using Vfs_handle::Vfs_handle;
 
-			virtual Read_result complete_read(char *buf,
-			                                  file_size buf_size,
-			                                  file_size &out_count) = 0;
+			virtual Read_result complete_read(Byte_range_ptr const &dst,
+			                                  size_t &out_count) = 0;
 		};
 
 		struct Fatfs_file_watch_handle : Vfs_watch_handle,  Fatfs_watch_handles::Element
@@ -121,9 +120,8 @@ class Fatfs::File_system : public Vfs::File_system
 			Fatfs_file_handle(File_system &fs, Allocator &alloc, int status_flags)
 			: Fatfs_handle(fs, fs, alloc, status_flags) { }
 
-			Read_result complete_read(char *buf,
-			                          file_size buf_size,
-			                          file_size &out_count) override
+			Read_result complete_read(Byte_range_ptr const &dst,
+			                          size_t &out_count) override
 			{
 				if (!file) {
 					Genode::error("READ_ERR_INVALID");
@@ -138,7 +136,7 @@ class Fatfs::File_system : public Vfs::File_system
 				fres = f_lseek(fil, seek());
 				if (fres == FR_OK) {
 					UINT bw = 0;
-					fres = f_read(fil, buf, buf_size, &bw);
+					fres = f_read(fil, dst.start, dst.num_bytes, &bw);
 					out_count = bw;
 				}
 
@@ -163,25 +161,24 @@ class Fatfs::File_system : public Vfs::File_system
 			Fatfs_dir_handle(File_system &fs, Allocator &alloc, char const *path)
 			: Fatfs_handle(fs, fs, alloc, 0), path(path) { }
 
-			Read_result complete_read(char *buf,
-			                          file_size buf_size,
-			                          file_size &out_count) override
+			Read_result complete_read(Byte_range_ptr const &dst,
+			                          size_t &out_count) override
 			{
 				/* not very efficient, just N calls to f_readdir */
 
 				out_count = 0;
 
-				if (buf_size < sizeof(Dirent))
+				if (dst.num_bytes < sizeof(Dirent))
 					return READ_ERR_INVALID;
 
-				file_size dir_index = seek() / sizeof(Dirent);
+				size_t dir_index = size_t(seek() / sizeof(Dirent));
 				if (dir_index < cur_index) {
 					/* reset the seek position */
 					f_readdir(&dir, nullptr);
 					cur_index = 0;
 				}
 
-				Dirent &vfs_dirent = *(Dirent*)buf;
+				Dirent &vfs_dirent = *(Dirent*)dst.start;
 
 				FILINFO info;
 				FRESULT res;
@@ -692,9 +689,8 @@ class Fatfs::File_system : public Vfs::File_system
 		 ** File io service interface **
 		 *******************************/
 
-		Write_result write(Vfs_handle *vfs_handle,
-		                   char const *buf, file_size buf_size,
-		                   file_size &out_count) override
+		Write_result write(Vfs_handle *vfs_handle, Const_byte_range_ptr const &src,
+		                   size_t &out_count) override
 		{
 			Fatfs_file_handle *handle = static_cast<Fatfs_file_handle *>(vfs_handle);
 			if (!handle->file)
@@ -723,7 +719,7 @@ class Fatfs::File_system : public Vfs::File_system
 
 			if (fres == FR_OK) {
 				UINT bw = 0;
-				fres = f_write(fil, buf, buf_size, &bw);
+				fres = f_write(fil, src.start, src.num_bytes, &bw);
 				f_sync(fil);
 				handle->modifying = true;
 				out_count = bw;
@@ -738,12 +734,11 @@ class Fatfs::File_system : public Vfs::File_system
 			}
 		}
 
-		Read_result complete_read(Vfs_handle *vfs_handle, char *buf,
-		                          file_size buf_size,
-		                          file_size &out_count) override
+		Read_result complete_read(Vfs_handle *vfs_handle, Byte_range_ptr const &dst,
+		                          size_t &out_count) override
 		{
 			Fatfs_file_handle *handle = static_cast<Fatfs_file_handle *>(vfs_handle);
-			return handle->complete_read(buf, buf_size, out_count);
+			return handle->complete_read(dst, out_count);
 		}
 
 		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size len) override

@@ -197,13 +197,15 @@ struct Genode::Directory : Noncopyable, Interface
 					_io.commit_and_wait();
 
 				Vfs::File_io_service::Read_result read_result;
-				Vfs::file_size                    out_count = 0;
+
+				size_t out_count = 0;
 
 				for (;;) {
 
-					read_result = _handle->fs().complete_read(_handle,
-					                                          (char*)&entry._dirent,
-					                                          sizeof(entry._dirent),
+					Byte_range_ptr const dst { (char*)&entry._dirent,
+					                            sizeof(entry._dirent) };
+
+					read_result = _handle->fs().complete_read(_handle, dst,
 					                                          out_count);
 
 					if (read_result != Vfs::File_io_service::READ_QUEUED)
@@ -297,8 +299,8 @@ struct Genode::Directory : Noncopyable, Interface
 
 			char buf[MAX_PATH_LEN];
 
-			Vfs::file_size count = sizeof(buf)-1;
-			Vfs::file_size out_count = 0;
+			size_t count = sizeof(buf)-1;
+			size_t out_count = 0;
 
 			while (!link_handle->fs().queue_read(link_handle, count)) {
 				_io.commit_and_wait();
@@ -308,7 +310,7 @@ struct Genode::Directory : Noncopyable, Interface
 
 			for (;;) {
 				result = link_handle->fs().complete_read(
-					link_handle, buf, count, out_count);
+					link_handle, Byte_range_ptr(buf, count), out_count);
 
 				if (result != File_io_service::READ_QUEUED)
 					break;
@@ -470,12 +472,14 @@ class Genode::Readonly_file : public File
 
 				Vfs::File_io_service::Read_result result;
 
-				Vfs::file_size read_bytes { }; /* byte count for this iteration */
+				size_t read_bytes = 0; /* byte count for this iteration */
 
 				for (;;) {
-					result = _handle->fs().complete_read(_handle,
-					                                     range.start     + total,
-					                                     range.num_bytes - total,
+
+					Byte_range_ptr const partial_range { range.start     + total,
+					                                     range.num_bytes - total };
+
+					result = _handle->fs().complete_read(_handle, partial_range,
 					                                     read_bytes);
 
 					if (result != Vfs::File_io_service::READ_QUEUED)
@@ -759,21 +763,25 @@ class Genode::Writeable_file : Noncopyable
 		}
 
 		static Append_result _append(Vfs::Vfs_handle &handle, Vfs::Env::Io &io,
-		                             char const *src, size_t size)
+		                             Const_byte_range_ptr const &src)
 		{
 			bool write_error = false;
 
-			size_t remaining_bytes = size;
+			size_t remaining_bytes = src.num_bytes;
+
+			char const * src_ptr = src.start;
 
 			while (remaining_bytes > 0 && !write_error) {
 
 				bool stalled = false;
 
-				Vfs::file_size out_count = 0;
+				size_t out_count = 0;
 
 				using Write_result = Vfs::File_io_service::Write_result;
 
-				switch (handle.fs().write(&handle, src, remaining_bytes, out_count)) {
+				Const_byte_range_ptr const partial_src { src_ptr, remaining_bytes };
+
+				switch (handle.fs().write(&handle, partial_src, out_count)) {
 
 				case Write_result::WRITE_ERR_WOULD_BLOCK:
 					stalled = true;
@@ -785,9 +793,9 @@ class Genode::Writeable_file : Noncopyable
 					break;
 
 				case Write_result::WRITE_OK:
-					out_count = min((Vfs::file_size)remaining_bytes, out_count);
+					out_count = min(remaining_bytes, out_count);
 					remaining_bytes -= (size_t)out_count;
-					src             += out_count;
+					src_ptr         += out_count;
 					handle.advance_seek(out_count);
 					break;
 				};
@@ -834,8 +842,11 @@ class Genode::Append_file : public Writeable_file
 			_handle.ds().close(&_handle);
 		}
 
+		Append_result append(Const_byte_range_ptr const &src) {
+			return _append(_handle, _io, src); }
+
 		Append_result append(char const *src, size_t size) {
-			return _append(_handle, _io, src, size); }
+			return _append(_handle, _io, Const_byte_range_ptr(src, size)); }
 };
 
 
@@ -873,8 +884,11 @@ class Genode::New_file : public Writeable_file
 			_handle.ds().close(&_handle);
 		}
 
+		Append_result append(Const_byte_range_ptr const &src) {
+			return _append(_handle, _io, src); }
+
 		Append_result append(char const *src, size_t size) {
-			return _append(_handle, _io, src, size); }
+			return _append(_handle, _io, Const_byte_range_ptr(src, size)); }
 };
 
 

@@ -91,17 +91,17 @@ class Vfs_import::File_system : public Vfs::File_system
 			{
 				Flush_guard flush(env.io(), *dst_handle);
 
-				file_size count = target.length();
+				Const_byte_range_ptr const src { target.string(), target.length() };
+
 				for (;;) {
-					file_size out_count = 0;
-					auto wres = dst_handle->fs().write(
-						dst_handle, target.string(), count, out_count);
+					size_t out_count = 0;
+					auto wres = dst_handle->fs().write(dst_handle, src, out_count);
 
 					switch (wres) {
 					case WRITE_ERR_WOULD_BLOCK:
 						break;
 					default:
-						if (out_count < count) {
+						if (out_count < src.num_bytes) {
 							Genode::error("failed to write symlink ", path, ", ", wres);
 							env.root_dir().unlink(path.string());
 						}
@@ -146,22 +146,26 @@ class Vfs_import::File_system : public Vfs::File_system
 
 			while (true) {
 
-				file_size const bytes_from_source =
+				size_t const bytes_from_source =
 					src_file.read(at, Genode::Byte_range_ptr(buf, sizeof(buf)));
 
-				if (!bytes_from_source) break;
+				if (!bytes_from_source)
+					break;
 
-				bool           write_error     { false };
-				Vfs::file_size remaining_bytes { bytes_from_source };
-				char const    *src             { buf };
+				bool write_error = false;
+
+				size_t remaining_bytes = bytes_from_source;
+
+				char const *src_ptr = buf;
 
 				while (remaining_bytes > 0 && !write_error) {
 
-					Vfs::file_size out_count { 0 };
+					size_t out_count = 0;
 
-					switch (dst_handle->fs().write(dst_handle, src,
-					                               remaining_bytes,
-					                               out_count)) {
+					Const_byte_range_ptr const src { src_ptr, remaining_bytes };
+
+					switch (dst_handle->fs().write(dst_handle, src, out_count)) {
+
 					case WRITE_ERR_WOULD_BLOCK:
 						env.io().commit_and_wait();
 						break;
@@ -175,7 +179,7 @@ class Vfs_import::File_system : public Vfs::File_system
 					case WRITE_OK:
 						out_count = min(remaining_bytes, out_count);
 						remaining_bytes -= out_count;
-						src             += out_count;
+						src_ptr         += out_count;
 						at.value        += out_count;
 						dst_handle->advance_seek(out_count);
 						break;
@@ -275,14 +279,10 @@ class Vfs_import::File_system : public Vfs::File_system
 		 ** File I/O service **
 		 **********************/
 
-		Write_result write(Vfs_handle*,
-		                   const char *, file_size,
-		                   file_size &) override {
+		Write_result write(Vfs_handle*, Const_byte_range_ptr const &, size_t &) override {
 			return WRITE_ERR_INVALID; }
 
-		Read_result complete_read(Vfs_handle*,
-		                          char*, file_size,
-		                          file_size&) override {
+		Read_result complete_read(Vfs_handle*, Byte_range_ptr const &, size_t &) override {
 			return READ_ERR_INVALID; }
 
 		bool read_ready(Vfs_handle const &) const override {

@@ -80,16 +80,16 @@ class Vfs::Rump_file_system : public File_system
 		{
 			using Vfs_handle::Vfs_handle;
 
-			virtual Read_result read(char *buf, file_size buf_size,
-			                         file_size seek_offset, file_size &out_count)
+			virtual Read_result read(Byte_range_ptr const &dst,
+			                         file_size seek_offset, size_t &out_count)
 			{
 				Genode::error("Rump_vfs_handle::read() called");
 				return READ_ERR_INVALID;
 			}
 
-			virtual Write_result write(char const *buf, file_size buf_size,
+			virtual Write_result write(Const_byte_range_ptr const &src,
 			                           file_size seek_offset,
-			                           file_size &out_count)
+			                           size_t &out_count)
 			{
 				Genode::error("Rump_vfs_handle::write() called");
 				return WRITE_ERR_INVALID;
@@ -131,10 +131,10 @@ class Vfs::Rump_file_system : public File_system
 					return FTRUNCATE_OK;
 				}
 
-				Read_result read(char *buf, file_size buf_size,
-				                 file_size seek_offset, file_size &out_count) override
+				Read_result read(Byte_range_ptr const &dst,
+				                 file_size seek_offset, size_t &out_count) override
 				{
-					ssize_t n = rump_sys_pread(_fd, buf, buf_size, seek_offset);
+					ssize_t n = rump_sys_pread(_fd, dst.start, dst.num_bytes, seek_offset);
 					if (n == -1) switch (errno) {
 					case EWOULDBLOCK: return READ_ERR_WOULD_BLOCK;
 					case EINVAL:      return READ_ERR_INVALID;
@@ -148,13 +148,12 @@ class Vfs::Rump_file_system : public File_system
 					return READ_OK;
 				}
 
-				Write_result write(char const *buf, file_size buf_size,
-				                   file_size seek_offset,
-				                   file_size &out_count) override
+				Write_result write(Const_byte_range_ptr const &src,
+				                   file_size seek_offset, size_t &out_count) override
 				{
 					out_count = 0;
 
-					ssize_t n = rump_sys_pwrite(_fd, buf, buf_size, seek_offset);
+					ssize_t n = rump_sys_pwrite(_fd, src.start, src.num_bytes, seek_offset);
 					if (n == -1) switch (errno) {
 					case EWOULDBLOCK: return WRITE_ERR_WOULD_BLOCK;
 					case EINVAL:      return WRITE_ERR_INVALID;
@@ -234,18 +233,17 @@ class Vfs::Rump_file_system : public File_system
 
 				~Rump_vfs_dir_handle() { rump_sys_close(_fd); }
 
-				Read_result read(char *dst, file_size count,
-				                 file_size seek_offset,
-				                 file_size &out_count) override
+				Read_result read(Byte_range_ptr const &dst,
+				                 file_size seek_offset, size_t &out_count) override
 				{
 					out_count = 0;
 
-					if (count < sizeof(Dirent))
+					if (dst.num_bytes < sizeof(Dirent))
 						return READ_ERR_INVALID;
 
-					file_size index = seek_offset / sizeof(Dirent);
+					size_t const index = size_t(seek_offset / sizeof(Dirent));
 
-					Dirent *vfs_dir = (Dirent*)dst;
+					Dirent *vfs_dir = (Dirent*)dst.start;
 
 					out_count = sizeof(Dirent);
 
@@ -289,9 +287,8 @@ class Vfs::Rump_file_system : public File_system
 				                        int status_flags, char const *path)
 				: Rump_vfs_handle(fs, fs, alloc, status_flags), _path(path) { }
 
-				Read_result read(char *buf, file_size buf_size,
-				                 file_size seek_offset,
-				                 file_size &out_count) override
+				Read_result read(Byte_range_ptr const &dst,
+				                 file_size seek_offset, size_t &out_count) override
 				{
 					out_count = 0;
 
@@ -300,7 +297,7 @@ class Vfs::Rump_file_system : public File_system
 						return READ_ERR_INVALID;
 					}
 
-					ssize_t n = rump_sys_readlink(_path.base(), buf, buf_size);
+					ssize_t n = rump_sys_readlink(_path.base(), dst.start, dst.num_bytes);
 					if (n == -1)
 						return READ_ERR_IO;
 
@@ -309,18 +306,17 @@ class Vfs::Rump_file_system : public File_system
 					return READ_OK;
 				}
 
-				Write_result write(char const *buf, file_size buf_size,
-				                   file_size seek_offset,
-				                   file_size &out_count) override
+				Write_result write(Const_byte_range_ptr const &src,
+				                   file_size seek_offset, size_t &out_count) override
 				{
 					rump_sys_unlink(_path.base());
 
-					if (rump_sys_symlink(buf, _path.base()) != 0) {
+					if (rump_sys_symlink(src.start, _path.base()) != 0) {
 						out_count = 0;
 						return WRITE_OK;
 					}
 
-					out_count = buf_size;
+					out_count = src.num_bytes;
 					return WRITE_OK;
 				}
 		};
@@ -781,28 +777,27 @@ class Vfs::Rump_file_system : public File_system
 		 ** File io service interface **
 		 *******************************/
 
-		Write_result write(Vfs_handle *vfs_handle,
-		                   char const *buf, file_size buf_size,
-		                   file_size &out_count) override
+		Write_result write(Vfs_handle *vfs_handle, Const_byte_range_ptr const &src,
+		                   size_t &out_count) override
 		{
 			Rump_vfs_handle *handle =
 				static_cast<Rump_vfs_handle *>(vfs_handle);
 
 			if (handle)
-				return handle->write(buf, buf_size, handle->seek(), out_count);
+				return handle->write(src, handle->seek(), out_count);
 
 			return WRITE_ERR_INVALID;
 		}
 
-		Read_result complete_read(Vfs_handle *vfs_handle, char *buf,
-		                          file_size buf_size,
-		                          file_size &out_count) override
+		Read_result complete_read(Vfs_handle *vfs_handle,
+		                          Byte_range_ptr const &dst,
+		                          size_t &out_count) override
 		{
 			Rump_vfs_handle *handle =
 				static_cast<Rump_vfs_handle *>(vfs_handle);
 
 			if (handle)
-				return handle->read(buf, buf_size, handle->seek(), out_count);
+				return handle->read(dst, handle->seek(), out_count);
 
 			return READ_ERR_INVALID;
 		}

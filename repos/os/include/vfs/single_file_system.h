@@ -37,11 +37,9 @@ class Vfs::Single_file_system : public File_system
 		{
 			using Vfs_handle::Vfs_handle;
 
-			virtual Read_result read(char *dst, file_size count,
-			                         file_size &out_count) = 0;
+			virtual Read_result read(Byte_range_ptr const &, size_t &out_count) = 0;
 
-			virtual Write_result write(char const *src, file_size count,
-			                           file_size &out_count) = 0;
+			virtual Write_result write(Const_byte_range_ptr const &, size_t &out_count) = 0;
 
 			virtual Sync_result sync()
 			{
@@ -83,17 +81,16 @@ class Vfs::Single_file_system : public File_system
 					_type(type), _rwx(rwx), _filename(filename)
 				{ }
 
-				Read_result read(char *dst, file_size count,
-				                 file_size &out_count) override
+				Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 				{
 					out_count = 0;
 
-					if (count < sizeof(Dirent))
+					if (dst.num_bytes < sizeof(Dirent))
 						return READ_ERR_INVALID;
 
 					file_size index = seek() / sizeof(Dirent);
 
-					Dirent &out = *(Dirent*)dst;
+					Dirent &out = *(Dirent*)dst.start;
 
 					auto dirent_type = [&] ()
 					{
@@ -127,7 +124,7 @@ class Vfs::Single_file_system : public File_system
 					return READ_OK;
 				}
 
-				Write_result write(char const *, file_size, file_size &) override
+				Write_result write(Const_byte_range_ptr const &, size_t &) override
 				{
 					return WRITE_ERR_INVALID;
 				}
@@ -255,27 +252,26 @@ class Vfs::Single_file_system : public File_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Read_result complete_read(Vfs_handle *vfs_handle, char *dst,
-		                          file_size count,
-		                          file_size &out_count) override
+		Read_result complete_read(Vfs_handle *vfs_handle, Byte_range_ptr const &dst,
+		                          size_t &out_count) override
 		{
 			Single_vfs_handle *handle =
 				static_cast<Single_vfs_handle*>(vfs_handle);
 
 			if (handle)
-				return handle->read(dst, count, out_count);
+				return handle->read(dst, out_count);
 
 			return READ_ERR_INVALID;
 		}
 
-		Write_result write(Vfs_handle *vfs_handle, char const *src, file_size count,
-		                   file_size &out_count) override
+		Write_result write(Vfs_handle *vfs_handle, Const_byte_range_ptr const &src,
+		                   size_t &out_count) override
 		{
 			Single_vfs_handle *handle =
 				static_cast<Single_vfs_handle*>(vfs_handle);
 
 			if (handle)
-				return handle->write(src, count, out_count);
+				return handle->write(src, out_count);
 
 			return WRITE_ERR_INVALID;
 		}

@@ -68,13 +68,8 @@ struct Vfs_pipe::Pipe_handle : Vfs::Vfs_handle, private Pipe_handle_registry_ele
 
 	virtual ~Pipe_handle();
 
-	Write_result write(const char *buf,
-	                   file_size count,
-	                   file_size &out_count);
-
-	Read_result read(char *buf,
-	                 file_size count,
-	                 file_size &out_count);
+	Write_result write(Const_byte_range_ptr const &, size_t &out_count);
+	Read_result  read (Byte_range_ptr       const &, size_t &out_count);
 
 	bool read_ready()  const;
 	bool write_ready() const;
@@ -197,19 +192,18 @@ struct Vfs_pipe::Pipe
 		return Open_result::OPEN_ERR_UNACCESSIBLE;
 	}
 
-	Write_result write(Pipe_handle &,
-	                   const char *buf, file_size count,
-	                   file_size &out_count)
+	Write_result write(Pipe_handle &, Const_byte_range_ptr const &src, size_t &out_count)
 	{
-		file_size out = 0;
+		size_t out = 0;
 
 		if (buffer.avail_capacity() == 0) {
 			out_count = 0;
 			return Write_result::WRITE_OK;
 		}
 
-		while (out < count && 0 < buffer.avail_capacity()) {
-			buffer.add(*(buf++));
+		char const *buf_ptr = src.start;
+		while (out < src.num_bytes && 0 < buffer.avail_capacity()) {
+			buffer.add(*(buf_ptr++));
 			++out;
 		}
 
@@ -221,13 +215,13 @@ struct Vfs_pipe::Pipe
 		return Write_result::WRITE_OK;
 	}
 
-	Read_result read(Pipe_handle &handle,
-	                 char *buf, file_size count,
-	                 file_size &out_count)
+	Read_result read(Pipe_handle &handle, Byte_range_ptr const &dst, size_t &out_count)
 	{
-		file_size out = 0;
-		while (out < count && !buffer.empty()) {
-			*(buf++) = buffer.get();
+		size_t out = 0;
+
+		char *buf_ptr = dst.start;
+		while (out < dst.num_bytes && !buffer.empty()) {
+			*(buf_ptr++) = buffer.get();
 			++out;
 		}
 
@@ -252,21 +246,23 @@ struct Vfs_pipe::Pipe
 };
 
 
-Vfs_pipe::Pipe_handle::~Pipe_handle() {
-	pipe.remove(*this); }
+Vfs_pipe::Pipe_handle::~Pipe_handle()
+{
+	pipe.remove(*this);
+}
 
 
 Vfs_pipe::Write_result
-Vfs_pipe::Pipe_handle::write(const char *buf,
-	                         file_size count,
-	                         file_size &out_count) {
-	return Pipe_handle::pipe.write(*this, buf, count, out_count); }
+Vfs_pipe::Pipe_handle::write(Const_byte_range_ptr const &src, size_t &out_count)
+{
+	return Pipe_handle::pipe.write(*this, src, out_count);
+}
 
 
 Vfs_pipe::Read_result
-Vfs_pipe::Pipe_handle::read(char *buf, file_size count, file_size &out_count)
+Vfs_pipe::Pipe_handle::read(Byte_range_ptr const &dst, size_t &out_count)
 {
-	return Pipe_handle::pipe.read(*this, buf, count, out_count);
+	return Pipe_handle::pipe.read(*this, dst, out_count);
 }
 
 
@@ -314,13 +310,11 @@ struct Vfs_pipe::New_pipe_handle : Vfs::Vfs_handle
 		pipe.remove_new_handle();
 	}
 
-	Read_result read(char *buf,
-	                 file_size count,
-	                 file_size &out_count)
+	Read_result read(Byte_range_ptr const &dst, size_t &out_count)
 	{
 		auto name = pipe.name();
-		if (name.length() < count) {
-			memcpy(buf, name.string(), name.length());
+		if (name.length() < dst.num_bytes) {
+			memcpy(dst.start, name.string(), name.length());
 			out_count = name.length();
 			return Read_result::READ_OK;
 		}
@@ -569,24 +563,22 @@ class Vfs_pipe::File_system : public Vfs::File_system
 		 **********************/
 
 		Write_result write(Vfs_handle *vfs_handle,
-		                   const char *src, file_size count,
-		                   file_size &out_count) override
+		                   Const_byte_range_ptr const &src, size_t &out_count) override
 		{
 			if (Pipe_handle *handle = dynamic_cast<Pipe_handle*>(vfs_handle))
-				return handle->write(src, count, out_count);
+				return handle->write(src, out_count);
 
 			return WRITE_ERR_INVALID;
 		}
 
 		Read_result complete_read(Vfs_handle *vfs_handle,
-		                          char *dst, file_size count,
-		                          file_size &out_count) override
+		                          Byte_range_ptr const &dst, size_t &out_count) override
 		{
 			if (Pipe_handle *handle = dynamic_cast<Pipe_handle*>(vfs_handle))
-				return handle->read(dst, count, out_count);
+				return handle->read(dst, out_count);
 
 			if (New_pipe_handle *handle = dynamic_cast<New_pipe_handle*>(vfs_handle))
-				return handle->read(dst, count, out_count);
+				return handle->read(dst, out_count);
 
 			return READ_ERR_INVALID;
 		}

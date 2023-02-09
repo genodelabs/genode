@@ -149,7 +149,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 			Fs_file_system &_vfs_fs;
 
-			bool _queue_read(file_size count, file_size const seek_offset)
+			bool _queue_read(size_t count, file_size const seek_offset)
 			{
 				if (queued_read_state != Handle_state::Queued_state::IDLE)
 					return false;
@@ -160,8 +160,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				if (!source.ready_to_submit())
 					return false;
 
-				file_size const max_packet_size = source.bulk_buffer_size() / 2;
-				file_size const clipped_count = min(max_packet_size, count);
+				size_t const max_packet_size = source.bulk_buffer_size() / 2;
+				size_t const clipped_count = min(max_packet_size, count);
 
 				::File_system::Packet_descriptor p;
 				try {
@@ -184,8 +184,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				return true;
 			}
 
-			Read_result _complete_read(void *dst, file_size count,
-			                           file_size &out_count)
+			Read_result _complete_read(Byte_range_ptr const &dst, size_t &out_count)
 			{
 				if (queued_read_state != Handle_state::Queued_state::ACK)
 					return READ_QUEUED;
@@ -199,11 +198,11 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				Read_result result = packet.succeeded() ? READ_OK : READ_ERR_IO;
 
 				if (result == READ_OK) {
-					file_size const read_num_bytes = min((file_size)packet.length(), count);
+					size_t const read_num_bytes = min(packet.length(), dst.num_bytes);
 
-					memcpy(dst, source.packet_content(packet), (size_t)read_num_bytes);
+					memcpy(dst.start, source.packet_content(packet), (size_t)read_num_bytes);
 
-					out_count  = read_num_bytes;
+					out_count = read_num_bytes;
 				}
 
 				queued_read_state  = Handle_state::Queued_state::IDLE;
@@ -227,15 +226,14 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			::File_system::File_handle file_handle() const
 			{ return ::File_system::File_handle { id().value }; }
 
-			virtual bool queue_read(file_size /* count */)
+			virtual bool queue_read(size_t /* count */)
 			{
 				Genode::error("Fs_vfs_handle::queue_read() called");
 				return true;
 			}
 
-			virtual Read_result complete_read(char *,
-			                                  file_size /* in count */,
-			                                  file_size & /* out count */)
+			virtual Read_result complete_read(Byte_range_ptr const &,
+			                                  size_t & /* out count */)
 			{
 				Genode::error("Fs_vfs_handle::complete_read() called");
 				return READ_ERR_INVALID;
@@ -320,15 +318,14 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		{
 			using Fs_vfs_handle::Fs_vfs_handle;
 
-			bool queue_read(file_size count) override
+			bool queue_read(size_t count) override
 			{
 				return _queue_read(count, seek());
 			}
 
-			Read_result complete_read(char *dst, file_size count,
-			                          file_size &out_count) override
+			Read_result complete_read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
-				return _complete_read(dst, count, out_count);
+				return _complete_read(dst, out_count);
 			}
 		};
 
@@ -338,7 +335,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 			using Fs_vfs_handle::Fs_vfs_handle;
 
-			bool queue_read(file_size count) override
+			bool queue_read(size_t count) override
 			{
 				if (count < sizeof(Dirent))
 					return true;
@@ -347,26 +344,27 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				                   (seek() / sizeof(Dirent) * DIRENT_SIZE));
 			}
 
-			Read_result complete_read(char *dst, file_size count,
-			                          file_size &out_count) override
+			Read_result complete_read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
-				if (count < sizeof(Dirent))
+				if (dst.num_bytes < sizeof(Dirent))
 					return READ_ERR_INVALID;
 
 				using ::File_system::Directory_entry;
 
 				Directory_entry entry { };
-				file_size       entry_out_count = 0;
+
+				size_t entry_out_count = 0;
 
 				Read_result const read_result =
-					_complete_read(&entry, DIRENT_SIZE, entry_out_count);
+					_complete_read(Byte_range_ptr((char *)(&entry), DIRENT_SIZE),
+					               entry_out_count);
 
 				if (read_result != READ_OK)
 					return read_result;
 
 				entry.sanitize();
 
-				Dirent &dirent = *(Dirent*)dst;
+				Dirent &dirent = *(Dirent*)dst.start;
 
 				if (entry_out_count < DIRENT_SIZE) {
 
@@ -398,15 +396,15 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		{
 			using Fs_vfs_handle::Fs_vfs_handle;
 
-			bool queue_read(file_size count) override
+			bool queue_read(size_t count) override
 			{
 				return _queue_read(count, seek());
 			}
 
-			Read_result complete_read(char *dst, file_size count,
-			                          file_size &out_count) override
+			Read_result complete_read(Byte_range_ptr const &dst,
+			                          size_t &out_count) override
 			{
-				return _complete_read(dst, count, out_count);
+				return _complete_read(dst, out_count);
 			}
 		};
 
@@ -449,7 +447,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		};
 
 		Write_result _write(Fs_vfs_handle &handle, file_size const seek_offset,
-		                    const char *buf, file_size count, file_size &out_count)
+		                    Const_byte_range_ptr const &src, size_t &out_count)
 		{
 			/* reclaim as much space in the packet stream as possible */
 			_handle_ack();
@@ -457,8 +455,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			::File_system::Session::Tx::Source &source = *_fs.tx();
 			using ::File_system::Packet_descriptor;
 
-			file_size const max_packet_size = source.bulk_buffer_size() / 2;
-			count = min(max_packet_size, count);
+			size_t const max_packet_size = source.bulk_buffer_size() / 2;
+			size_t const count = min(max_packet_size, src.num_bytes);
 
 			if (!source.ready_to_submit()) {
 				_write_would_block = true;
@@ -466,13 +464,13 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			}
 
 			try {
-				Packet_descriptor packet_in(source.alloc_packet((size_t)count),
+				Packet_descriptor packet_in(source.alloc_packet(count),
 				                            handle.file_handle(),
 				                            Packet_descriptor::WRITE,
-				                            (size_t)count,
+				                            count,
 				                            seek_offset);
 
-				memcpy(source.packet_content(packet_in), buf, (size_t)count);
+				memcpy(source.packet_content(packet_in), src.start, count);
 
 				_submit_packet(packet_in);
 			}
@@ -889,29 +887,29 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *vfs_handle, char const *buf,
-		                   file_size count, file_size &out_count) override
+		Write_result write(Vfs_handle *vfs_handle, Const_byte_range_ptr const &src,
+		                   size_t &out_count) override
 		{
 			Fs_vfs_handle &handle = static_cast<Fs_vfs_handle &>(*vfs_handle);
 
-			return _write(handle, handle.seek(), buf, count, out_count);
+			return _write(handle, handle.seek(), src, out_count);
 		}
 
-		bool queue_read(Vfs_handle *vfs_handle, file_size count) override
+		bool queue_read(Vfs_handle *vfs_handle, size_t count) override
 		{
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
 			return handle->queue_read(count);
 		}
 
-		Read_result complete_read(Vfs_handle *vfs_handle, char *dst, file_size count,
-		                          file_size &out_count) override
+		Read_result complete_read(Vfs_handle *vfs_handle, Byte_range_ptr const &dst,
+		                          size_t &out_count) override
 		{
 			out_count = 0;
 
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
-			return handle->complete_read(dst, count, out_count);
+			return handle->complete_read(dst, out_count);
 		}
 
 		bool read_ready(Vfs_handle const &vfs_handle) const override

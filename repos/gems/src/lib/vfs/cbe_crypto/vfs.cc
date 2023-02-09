@@ -71,8 +71,7 @@ class Vfs_cbe_crypto::Encrypt_file_system : public Vfs::Single_file_system
 				_state  { State::NONE }
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				if (_state != State::PENDING) {
 					return READ_ERR_IO;
@@ -82,14 +81,14 @@ class Vfs_cbe_crypto::Encrypt_file_system : public Vfs::Single_file_system
 
 				try {
 					Cbe_crypto::Interface::Complete_request const cr =
-						_crypto.encryption_request_complete(dst, count);
+						_crypto.encryption_request_complete(dst);
 					if (!cr.valid) {
 						return READ_ERR_INVALID;
 					}
 
 					_state = State::NONE;
 
-					out_count = count;
+					out_count = dst.num_bytes;
 					return READ_OK;
 				} catch (Cbe_crypto::Interface::Buffer_too_small) {
 					return READ_ERR_INVALID;
@@ -98,8 +97,8 @@ class Vfs_cbe_crypto::Encrypt_file_system : public Vfs::Single_file_system
 				return READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count,
-			                   file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src,
+			                   size_t &out_count) override
 			{
 				if (_state != State::NONE) {
 					return WRITE_ERR_IO;
@@ -108,7 +107,7 @@ class Vfs_cbe_crypto::Encrypt_file_system : public Vfs::Single_file_system
 				try {
 					uint64_t const block_number = seek() / Cbe_crypto::BLOCK_SIZE;
 					bool const ok =
-						_crypto.submit_encryption_request(block_number, _key_id, src, count);
+						_crypto.submit_encryption_request(block_number, _key_id, src);
 					if (!ok) {
 						out_count = 0;
 						return WRITE_OK;
@@ -119,7 +118,7 @@ class Vfs_cbe_crypto::Encrypt_file_system : public Vfs::Single_file_system
 				}
 
 				_crypto.execute();
-				out_count = count;
+				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
 
@@ -206,8 +205,7 @@ class Vfs_cbe_crypto::Decrypt_file_system : public Vfs::Single_file_system
 				_state  { State::NONE }
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				if (_state != State::PENDING) {
 					return READ_ERR_IO;
@@ -217,12 +215,12 @@ class Vfs_cbe_crypto::Decrypt_file_system : public Vfs::Single_file_system
 
 				try {
 					Cbe_crypto::Interface::Complete_request const cr =
-						_crypto.decryption_request_complete(dst, count);
+						_crypto.decryption_request_complete(dst);
 					if (cr.valid) {
 					}
 					_state = State::NONE;
 
-					out_count = count;
+					out_count = dst.num_bytes;
 					return READ_OK;
 				} catch (Cbe_crypto::Interface::Buffer_too_small) {
 					return READ_ERR_INVALID;
@@ -231,8 +229,7 @@ class Vfs_cbe_crypto::Decrypt_file_system : public Vfs::Single_file_system
 				return READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count,
-			                   file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 			{
 				if (_state != State::NONE) {
 					return WRITE_ERR_IO;
@@ -241,7 +238,7 @@ class Vfs_cbe_crypto::Decrypt_file_system : public Vfs::Single_file_system
 				try {
 					uint64_t const block_number = seek() / Cbe_crypto::BLOCK_SIZE;
 					bool const ok =
-						_crypto.submit_decryption_request(block_number, _key_id, src, count);
+						_crypto.submit_decryption_request(block_number, _key_id, src);
 					if (!ok) {
 						out_count = 0;
 						return WRITE_OK;
@@ -252,7 +249,7 @@ class Vfs_cbe_crypto::Decrypt_file_system : public Vfs::Single_file_system
 				}
 
 				_crypto.execute();
-				out_count = count;
+				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
 
@@ -499,11 +496,11 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 		{
 			using Vfs_handle::Vfs_handle;
 
-			virtual Read_result read(char *dst, file_size count,
-			                         file_size &out_count) = 0;
+			virtual Read_result read(Byte_range_ptr const &dst,
+			                         size_t &out_count) = 0;
 
-			virtual Write_result write(char const *src, file_size count,
-			                           file_size &out_count) = 0;
+			virtual Write_result write(Const_byte_range_ptr const &src,
+			                           size_t &out_count) = 0;
 
 			virtual Sync_result sync()
 			{
@@ -520,9 +517,9 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 
 			bool const _root_dir { false };
 
-			Read_result _query_keys(file_size  index,
-			                        file_size &out_count,
-			                        Dirent    &out)
+			Read_result _query_keys(size_t index,
+			                        size_t &out_count,
+			                        Dirent &out)
 			{
 				if (index >= _key_reg.number_of_keys()) {
 					out_count = sizeof(Dirent);
@@ -547,9 +544,9 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 				}
 			}
 
-			Read_result _query_root(file_size  index,
-			                        file_size &out_count,
-			                        Dirent    &out)
+			Read_result _query_root(size_t  index,
+			                        size_t &out_count,
+			                        Dirent &out)
 			{
 				if (index == 0) {
 					out = {
@@ -576,17 +573,16 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 				_key_reg(key_reg), _root_dir(root_dir)
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				out_count = 0;
 
-				if (count < sizeof(Dirent))
+				if (dst.num_bytes < sizeof(Dirent))
 					return READ_ERR_INVALID;
 
-				file_size index = seek() / sizeof(Dirent);
+				size_t const index = size_t(seek() / sizeof(Dirent));
 
-				Dirent &out = *(Dirent*)dst;
+				Dirent &out = *(Dirent*)dst.start;
 
 				if (!_root_dir) {
 
@@ -599,7 +595,7 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 				}
 			}
 
-			Write_result write(char const *, file_size, file_size &) override
+			Write_result write(Const_byte_range_ptr const &, size_t &) override
 			{
 				return WRITE_ERR_INVALID;
 			}
@@ -851,13 +847,13 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs::Vfs_handle *, char const *,
-		                   file_size, file_size &) override
+		Write_result write(Vfs::Vfs_handle *,
+		                   Const_byte_range_ptr const &, size_t &) override
 		{
 			return WRITE_ERR_IO;
 		}
 
-		bool queue_read(Vfs::Vfs_handle *vfs_handle, file_size size) override
+		bool queue_read(Vfs::Vfs_handle *vfs_handle, size_t size) override
 		{
 			Dir_snap_vfs_handle *dh =
 				dynamic_cast<Dir_snap_vfs_handle*>(vfs_handle);
@@ -870,13 +866,13 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 		}
 
 		Read_result complete_read(Vfs::Vfs_handle *vfs_handle,
-		                          char *dst, file_size count,
-		                          file_size & out_count) override
+		                          Byte_range_ptr const &dst,
+		                          size_t &out_count) override
 		{
 			Local_vfs_handle *lh =
 				dynamic_cast<Local_vfs_handle*>(vfs_handle);
 			if (lh) {
-				Read_result const res = lh->read(dst, count, out_count);
+				Read_result const res = lh->read(dst, out_count);
 				return res;
 			}
 
@@ -884,7 +880,7 @@ class Vfs_cbe_crypto::Keys_file_system : public Vfs::File_system
 				dynamic_cast<Dir_snap_vfs_handle*>(vfs_handle);
 			if (dh) {
 				return dh->vfs_handle.fs().complete_read(&dh->vfs_handle,
-				                                         dst, count, out_count);
+				                                         dst, out_count);
 			}
 
 			return READ_ERR_IO;
@@ -949,13 +945,13 @@ class Vfs_cbe_crypto::Management_file_system : public Vfs::Single_file_system
 				_crypto           { crypto }
 			{ }
 
-			Read_result read(char *, file_size, file_size &) override
+			Read_result read(Byte_range_ptr const &, size_t &) override
 			{
 				return READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count,
-			                   file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src,
+			                   size_t &out_count) override
 			{
 				out_count = 0;
 
@@ -963,26 +959,26 @@ class Vfs_cbe_crypto::Management_file_system : public Vfs::Single_file_system
 					return WRITE_ERR_IO;
 				}
 
-				if (src == nullptr || count < sizeof (uint32_t)) {
+				if (src.start == nullptr || src.num_bytes < sizeof (uint32_t)) {
 					return WRITE_ERR_INVALID;
 				}
 
-				uint32_t id = *reinterpret_cast<uint32_t const*>(src);
+				uint32_t id = *reinterpret_cast<uint32_t const*>(src.start);
 				if (id == 0) {
 					return WRITE_ERR_INVALID;
 				}
 
 				if (_type == Type::ADD_KEY) {
 
-					if (count != sizeof (uint32_t) + 32 /* XXX Cbe::Key::value*/) {
+					if (src.num_bytes != sizeof (uint32_t) + 32 /* XXX Cbe::Key::value*/) {
 						return WRITE_ERR_INVALID;
 					}
 
 					try {
-						char const * value     = src + sizeof (uint32_t);
-						size_t const value_len = count - sizeof (uint32_t);
+						char const * value     = src.start     + sizeof (uint32_t);
+						size_t const value_len = src.num_bytes - sizeof (uint32_t);
 						if (_crypto.add_key(id, value, value_len)) {
-							out_count = count;
+							out_count = src.num_bytes;
 							return WRITE_OK;
 						}
 					} catch (...) { }
@@ -991,12 +987,12 @@ class Vfs_cbe_crypto::Management_file_system : public Vfs::Single_file_system
 
 				if (_type == Type::REMOVE_KEY) {
 
-					if (count != sizeof (uint32_t)) {
+					if (src.num_bytes != sizeof (uint32_t)) {
 						return WRITE_ERR_INVALID;
 					}
 
 					if (_crypto.remove_key(id)) {
-						out_count = count;
+						out_count = src.num_bytes;
 						return WRITE_OK;
 					}
 				}

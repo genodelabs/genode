@@ -42,28 +42,34 @@ class File_system::Chunk_base : Noncopyable
 
 		class Index_out_of_range { };
 
+		/*
+		 * Use 'size_t' instead of 'seek_off_t' because we can never seek
+		 * outside the addressable RAM
+		 */
+		struct Seek { size_t value; };
+
 	protected:
 
-		seek_off_t const _base_offset;
-		size_t           _num_entries; /* corresponds to last used entry */
+		Seek const _base_offset { ~0UL };
+
+		size_t _num_entries = 0; /* corresponds to last used entry */
 
 		/**
 		 * Test if specified range lies within the chunk
 		 */
-		void assert_valid_range(seek_off_t start, size_t len,
-		                        file_size_t chunk_size) const
+		void assert_valid_range(Seek start, size_t len,
+		                        size_t chunk_size) const
 		{
 			if (zero()) return;
 
-			if (start < _base_offset)
+			if (start.value < _base_offset.value)
 				throw Index_out_of_range();
 
-			if (start + len > _base_offset + chunk_size)
+			if (start.value + len > _base_offset.value + chunk_size)
 				throw Index_out_of_range();
 		}
 
-		Chunk_base(seek_off_t base_offset)
-		: _base_offset(base_offset), _num_entries(0) { }
+		Chunk_base(Seek base_offset) : _base_offset(base_offset) { }
 
 		/**
 		 * Construct zero chunk
@@ -73,19 +79,19 @@ class File_system::Chunk_base : Noncopyable
 		 * for each chunk type, the base offset is meaningless. We use a
 		 * base offset of ~0 as marker to identify zero chunks.
 		 */
-		Chunk_base() : _base_offset(~0L), _num_entries(0) { }
+		Chunk_base() { }
 
 	public:
 
 		/**
 		 * Return absolute base offset of chunk in bytes
 		 */
-		seek_off_t base_offset() const { return _base_offset; }
+		Seek base_offset() const { return _base_offset; }
 
 		/**
 		 * Return true if chunk is a read-only zero chunk
 		 */
-		bool zero() const { return _base_offset == (seek_off_t)(~0L); }
+		bool zero() const { return _base_offset.value == ~0UL; }
 
 		/**
 		 * Return true if chunk has no allocated sub chunks
@@ -117,7 +123,7 @@ class File_system::Chunk : public Chunk_base
 		 * signature of the constructor compatible to the constructor
 		 * of 'Chunk_index'.
 		 */
-		Chunk(Allocator &, seek_off_t base_offset)
+		Chunk(Allocator &, Seek base_offset)
 		:
 			Chunk_base(base_offset)
 		{
@@ -136,43 +142,43 @@ class File_system::Chunk : public Chunk_base
 		 * entry + 1. It does not correlate to the number of actually
 		 * allocated entries (there may be ranges of zero blocks).
 		 */
-		file_size_t used_size() const { return _num_entries; }
+		size_t used_size() const { return _num_entries; }
 
-		void write(char const *src, size_t len, seek_off_t seek_offset)
+		void write(Const_byte_range_ptr const &src, Seek at)
 		{
-			assert_valid_range(seek_offset, len, SIZE);
+			assert_valid_range(at, src.num_bytes, SIZE);
 
 			/* offset relative to this chunk */
-			seek_off_t const local_offset = seek_offset - base_offset();
+			size_t const local_offset = at.value - base_offset().value;
 
-			memcpy(&_data[local_offset], src, len);
+			memcpy(&_data[local_offset], src.start, src.num_bytes);
 
-			_num_entries = max(_num_entries, (size_t)(local_offset + len));
+			_num_entries = max(_num_entries, local_offset + src.num_bytes);
 		}
 
-		void read(char *dst, size_t len, seek_off_t seek_offset) const
+		void read(Byte_range_ptr const &dst, Seek at) const
 		{
-			assert_valid_range(seek_offset, len, SIZE);
+			assert_valid_range(at, dst.num_bytes, SIZE);
 
-			memcpy(dst, &_data[seek_offset - base_offset()], len);
+			memcpy(dst.start, &_data[at.value - base_offset().value], dst.num_bytes);
 		}
 
-		void truncate(file_size_t size)
+		void truncate(Seek at)
 		{
-			assert_valid_range(size, 0, SIZE);
+			assert_valid_range(at, 0, SIZE);
 
 			/*
 			 * Offset of the first free position (relative to the beginning
 			 * this chunk).
 			 */
-			seek_off_t const local_offset = size - base_offset();
+			size_t const local_offset = at.value - base_offset().value;
 
 			if (local_offset >= _num_entries)
 				return;
 
-			memset(&_data[local_offset], 0, (size_t)(_num_entries - local_offset));
+			memset(&_data[local_offset], 0, _num_entries - local_offset);
 
-			_num_entries = (size_t)local_offset;
+			_num_entries = local_offset;
 		}
 };
 
@@ -223,7 +229,7 @@ class File_system::Chunk_index : public Chunk_base
 			if (_entries[index])
 				return *_entries[index];
 
-			seek_off_t entry_offset = base_offset() + index*ENTRY_SIZE;
+			Seek const entry_offset { base_offset().value + index*ENTRY_SIZE };
 
 			_entries[index] = new (&_alloc) Entry(_alloc, entry_offset);
 
@@ -255,17 +261,17 @@ class File_system::Chunk_index : public Chunk_base
 		 * The caller of this function must make sure that the offset
 		 * parameter is within the bounds of the chunk.
 		 */
-		unsigned _index_by_offset(seek_off_t offset) const
+		unsigned _index_by_offset(Seek offset) const
 		{
-			return (unsigned)((offset - base_offset()) / ENTRY_SIZE);
+			return (unsigned)((offset.value - base_offset().value) / ENTRY_SIZE);
 		}
 
 		/**
 		 * Apply operation 'func' to a range of entries
 		 */
-		template <typename THIS, typename DATA, typename FUNC>
-		static void _range_op(THIS &obj, DATA *data, size_t len,
-		                      seek_off_t seek_offset, FUNC const &func)
+		template <typename THIS, typename RANGE_PTR, typename FUNC>
+		static void _range_op(THIS &obj, RANGE_PTR const &range_ptr,
+		                      Seek at, FUNC const &func)
 		{
 			/*
 			 * Depending on whether this function is called for reading
@@ -275,11 +281,14 @@ class File_system::Chunk_index : public Chunk_base
 			 */
 			typedef typename FUNC::Entry Const_qualified_entry;
 
-			obj.assert_valid_range(seek_offset, len, SIZE);
+			auto   data_ptr = range_ptr.start;
+			size_t len      = range_ptr.num_bytes;
+
+			obj.assert_valid_range(at, len, SIZE);
 
 			while (len > 0) {
 
-				unsigned const index = obj._index_by_offset(seek_offset);
+				unsigned const index = obj._index_by_offset(at);
 
 				Const_qualified_entry &entry = FUNC::lookup(obj, index);
 
@@ -291,20 +300,20 @@ class File_system::Chunk_index : public Chunk_base
 				 * zero chunk, which has no defined base offset. Therefore,
 				 * we calculate the base offset via index*ENTRY_SIZE.
 				 */
-				seek_off_t const local_seek_offset =
-					seek_offset - obj.base_offset() - index*ENTRY_SIZE;
+				size_t const local_seek_offset =
+					at.value - obj.base_offset().value - index*ENTRY_SIZE;
 
 				/* available capacity at 'entry' starting at seek offset */
-				size_t const capacity = ENTRY_SIZE - (size_t)local_seek_offset;
+				size_t const capacity = ENTRY_SIZE - local_seek_offset;
 				size_t const curr_len = min(len, capacity);
 
 				/* apply functor (read or write) to entry */
-				func(entry, data, (size_t)curr_len, seek_offset);
+				func(entry, RANGE_PTR(data_ptr, curr_len), at);
 
 				/* advance to next entry */
-				len         -= curr_len;
-				data        += curr_len;
-				seek_offset += curr_len;
+				len      -= curr_len;
+				data_ptr += curr_len;
+				at.value += curr_len;
 			}
 		}
 
@@ -315,10 +324,9 @@ class File_system::Chunk_index : public Chunk_base
 			static Entry &lookup(Chunk_index &chunk, unsigned i) {
 				return chunk._entry_for_writing(i); }
 
-			void operator () (Entry &entry, char const *src, size_t len,
-			                  seek_off_t seek_offset) const
+			void operator () (Entry &entry, Const_byte_range_ptr const &src, Seek at) const
 			{
-				entry.write(src, len, seek_offset);
+				entry.write(src, at);
 			}
 		};
 
@@ -329,13 +337,12 @@ class File_system::Chunk_index : public Chunk_base
 			static Entry &lookup(Chunk_index const &chunk, unsigned i) {
 				return chunk._entry_for_reading(i); }
 
-			void operator () (Entry &entry, char *dst, size_t len,
-			                  seek_off_t seek_offset) const
+			void operator () (Entry &entry, Byte_range_ptr const &dst, Seek at) const
 			{
 				if (entry.zero())
-					memset(dst, 0, len);
+					memset(dst.start, 0, dst.num_bytes);
 				else
-					entry.read(dst, len, seek_offset);
+					entry.read(dst, at);
 			}
 		};
 
@@ -362,7 +369,7 @@ class File_system::Chunk_index : public Chunk_base
 		 *                     indices and chunks
 		 * \param base_offset  absolute offset of the chunk in bytes
 		 */
-		Chunk_index(Allocator &alloc, seek_off_t base_offset)
+		Chunk_index(Allocator &alloc, Seek base_offset)
 		: Chunk_base(base_offset), _alloc(alloc) { _init_entries(); }
 
 		/**
@@ -385,13 +392,13 @@ class File_system::Chunk_index : public Chunk_base
 		 * The returned value corresponds to the position after the highest
 		 * offset that was written to.
 		 */
-		file_size_t used_size() const
+		size_t used_size() const
 		{
 			if (_num_entries == 0)
 				return 0;
 
 			/* size of entries that lie completely within the used range */
-			file_size_t const size_whole_entries = ENTRY_SIZE*(_num_entries - 1);
+			size_t const size_whole_entries = ENTRY_SIZE*(_num_entries - 1);
 
 			Entry *last_entry = _entries[_num_entries - 1];
 			if (!last_entry)
@@ -403,17 +410,17 @@ class File_system::Chunk_index : public Chunk_base
 		/**
 		 * Write data to chunk
 		 */
-		void write(char const *src, size_t len, seek_off_t seek_offset)
+		void write(Const_byte_range_ptr const &src, Seek at)
 		{
-			_range_op(*this, src, len, seek_offset, Write_func());
+			_range_op(*this, src, at, Write_func());
 		}
 
 		/**
 		 * Read data from chunk
 		 */
-		void read(char *dst, size_t len, seek_off_t seek_offset) const
+		void read(Byte_range_ptr const &dst, Seek at) const
 		{
-			_range_op(*this, dst, len, seek_offset, Read_func());
+			_range_op(*this, dst, at, Read_func());
 		}
 
 		/**
@@ -424,9 +431,9 @@ class File_system::Chunk_index : public Chunk_base
 		 * by 'used_size' refers always to the position of the last byte
 		 * written to the chunk.
 		 */
-		void truncate(file_size_t size)
+		void truncate(Seek at)
 		{
-			unsigned const trunc_index = _index_by_offset(size);
+			unsigned const trunc_index = _index_by_offset(at);
 
 			if (trunc_index >= _num_entries)
 				return;
@@ -436,7 +443,7 @@ class File_system::Chunk_index : public Chunk_base
 
 			/* traverse into sub chunks */
 			if (_entries[trunc_index])
-				_entries[trunc_index]->truncate(size);
+				_entries[trunc_index]->truncate(at);
 
 			_num_entries = trunc_index + 1;
 

@@ -26,7 +26,7 @@ using Chunk_level_1 = Chunk_index<4, Chunk_level_2>;
 
 struct Chunk_level_0 : Chunk_index<5, Chunk_level_1>
 {
-	Chunk_level_0(Allocator &alloc, seek_off_t off) : Chunk_index(alloc, off) { }
+	Chunk_level_0(Allocator &alloc, Seek off) : Chunk_index(alloc, off) { }
 
 	void print(Output &out) const
 	{
@@ -34,7 +34,7 @@ struct Chunk_level_0 : Chunk_index<5, Chunk_level_1>
 		if (used_size() > Chunk_level_0::SIZE) {
 			throw Index_out_of_range(); }
 
-		read(read_buf, (size_t)used_size(), 0);
+		read(Byte_range_ptr(read_buf, (size_t)used_size()), Seek { 0 });
 		Genode::print(out, "content (size=", used_size(), "): ");
 		Genode::print(out, "\"");
 		for (unsigned i = 0; i < used_size(); i++) {
@@ -98,6 +98,8 @@ struct Allocator_tracer : Allocator
 
 struct Main
 {
+	using Seek = Chunk_base::Seek;
+
 	Env              &env;
 	Heap              heap  { env.ram(), env.rm() };
 	Allocator_tracer  alloc { heap };
@@ -111,34 +113,35 @@ struct Main
 		log("  level 2: payload=", (int)Chunk_level_2::SIZE, " sizeof=", sizeof(Chunk_level_2));
 		log("  level 3: payload=", (int)Chunk_level_3::SIZE, " sizeof=", sizeof(Chunk_level_3));
 		{
-			Chunk_level_0 chunk(alloc, 0);
-			write(chunk, "five-o-one", 0);
+			Chunk_level_0 chunk(alloc, Seek { 0 });
+			write(chunk, "five-o-one", Seek { 0 });
 
 			/* overwrite part of the file */
-			write(chunk, "five", 7);
+			write(chunk, "five", Seek { 7 });
 
 			/* write to position beyond current file length */
-			write(chunk, "Nuance", 17);
-			write(chunk, "YM-2149", 35);
+			write(chunk, "Nuance", Seek { 17 });
+			write(chunk, "YM-2149", Seek { 35 });
 
-			truncate(chunk, 30);
+			truncate(chunk, Seek { 30 });
 			for (unsigned i = 29; i > 0; i--)
-				truncate(chunk, i);
+				truncate(chunk, Seek { i });
 		}
 		log("allocator: sum=", alloc.sum);
 		log("--- RAM filesystem chunk test finished ---");
 	}
 
-	void write(Chunk_level_0 &chunk, char const *str, off_t seek_offset)
+	void write(Chunk_level_0 &chunk, char const *str, Seek seek)
 	{
-		chunk.write(str, strlen(str), seek_offset);
-		log("write \"", str, "\" at offset ", seek_offset, " -> ", chunk);
+		chunk.write(Const_byte_range_ptr(str, strlen(str)), seek);
+
+		log("write \"", str, "\" at offset ", seek.value, " -> ", chunk);
 	}
 
-	void truncate(Chunk_level_0 &chunk, file_size_t size)
+	void truncate(Chunk_level_0 &chunk, Seek size)
 	{
 		chunk.truncate(size);
-		log("trunc(", size, ") -> ", chunk);
+		log("trunc(", size.value, ") -> ", chunk);
 	}
 };
 

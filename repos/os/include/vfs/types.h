@@ -47,6 +47,8 @@ namespace Vfs {
 	using Genode::Interface;
 	using Genode::String;
 	using Genode::size_t;
+	using Genode::Byte_range_ptr;
+	using Genode::Const_byte_range_ptr;
 
 	struct Timestamp
 	{

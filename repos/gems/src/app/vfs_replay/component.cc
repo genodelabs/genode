@@ -97,11 +97,11 @@ class Vfs_replay
 			Type        type;
 			State       state;
 			file_offset offset;
-			file_size   count;
-			file_size   out_count;
+			size_t      count;
+			size_t      out_count;
 
 			file_offset current_offset;
-			file_size   current_count;
+			size_t      current_count;
 
 			bool        success;
 			bool        complete;
@@ -174,12 +174,14 @@ class Vfs_replay
 				using Result = Vfs::File_io_service::Read_result;
 
 				bool completed = false;
-				file_size out = 0;
+				size_t out = 0;
+
+				Byte_range_ptr const dst(_read_buffer.local_addr<char>(),
+				                         request.current_count);
 
 				Result const result =
-					_vfs_handle->fs().complete_read(_vfs_handle,
-					                                _read_buffer.local_addr<char>(),
-					                                request.current_count, out);
+					_vfs_handle->fs().complete_read(_vfs_handle, dst, out);
+
 				if (result == Result::READ_QUEUED
 				 || result == Result::READ_ERR_WOULD_BLOCK) {
 					return progress;
@@ -244,12 +246,13 @@ class Vfs_replay
 				using Result = Vfs::File_io_service::Write_result;
 
 				bool completed = false;
-				file_size out = 0;
+				size_t out = 0;
 
-				Result const result =
-					_vfs_handle->fs().write(_vfs_handle,
-					                        _write_buffer.local_addr<char>(),
-					                        request.current_count, out);
+				Const_byte_range_ptr const src(_write_buffer.local_addr<char>(),
+				                               request.current_count);
+
+				Result const result = _vfs_handle->fs().write(_vfs_handle, src, out);
+
 				switch (result) {
 				case Result::WRITE_ERR_WOULD_BLOCK:
 					return progress;
@@ -342,7 +345,7 @@ class Vfs_replay
 			if (!_current_request.pending()) {
 
 				file_offset const offset = node.attribute_value("offset", file_size(~0llu));
-				file_size   const count  = node.attribute_value("count",  file_size(~0llu));
+				size_t      const count  = node.attribute_value("count",  ~0lu);
 
 				using Type_String = String<16>;
 				Type_String   const type_string = node.attribute_value("type", Type_String());

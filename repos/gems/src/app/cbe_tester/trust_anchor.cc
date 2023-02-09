@@ -36,10 +36,12 @@ void Trust_anchor::_execute_write_read_operation(Vfs_handle        &file,
 
 	case Job_state::WRITE_IN_PROGRESS:
 	{
-		file_size nr_of_written_bytes { 0 };
-		Write_result const result =
-			file.fs().write(&file, write_buf + _job.fl_offset,
-			                _job.fl_size, nr_of_written_bytes);
+		size_t written_bytes { 0 };
+
+		Const_byte_range_ptr const src(write_buf + _job.fl_offset, _job.fl_size);
+
+		Write_result const result = file.fs().write(&file, src, written_bytes);
+
 		switch (result) {
 
 		case Write_result::WRITE_ERR_WOULD_BLOCK:
@@ -47,8 +49,8 @@ void Trust_anchor::_execute_write_read_operation(Vfs_handle        &file,
 
 		case Write_result::WRITE_OK:
 
-			_job.fl_offset += nr_of_written_bytes;
-			_job.fl_size -= nr_of_written_bytes;
+			_job.fl_offset += written_bytes;
+			_job.fl_size   -= written_bytes;
 
 			if (_job.fl_size > 0) {
 
@@ -84,11 +86,11 @@ void Trust_anchor::_execute_write_read_operation(Vfs_handle        &file,
 
 	case Job_state::READ_IN_PROGRESS:
 	{
-		file_size nr_of_read_bytes { 0 };
-		Read_result const result {
-			file.fs().complete_read(
-				&file, read_buf + _job.fl_offset, _job.fl_size,
-				nr_of_read_bytes) };
+		size_t read_bytes = 0;
+
+		Byte_range_ptr const dst(read_buf + _job.fl_offset, _job.fl_size);
+
+		Read_result const result = file.fs().complete_read( &file, dst, read_bytes);
 
 		switch (result) {
 		case Read_result::READ_QUEUED:
@@ -98,8 +100,8 @@ void Trust_anchor::_execute_write_read_operation(Vfs_handle        &file,
 
 		case Read_result::READ_OK:
 
-			_job.fl_offset += nr_of_read_bytes;
-			_job.fl_size -= nr_of_read_bytes;
+			_job.fl_offset += read_bytes;
+			_job.fl_size   -= read_bytes;
 			_job.request.success(true);
 
 			if (_job.fl_size > 0) {
@@ -142,11 +144,11 @@ void Trust_anchor::_execute_write_operation(Vfs_handle        &file,
 
 	case Job_state::WRITE_IN_PROGRESS:
 	{
-		file_size nr_of_written_bytes { 0 };
-		Write_result const result =
-			file.fs().write(
-				&file, write_buf + _job.fl_offset,
-				_job.fl_size, nr_of_written_bytes);
+		size_t written_bytes = 0;
+
+		Const_byte_range_ptr const src(write_buf + _job.fl_offset, _job.fl_size);
+
+		Write_result const result = file.fs().write( &file, src, written_bytes);
 
 		switch (result) {
 
@@ -155,8 +157,8 @@ void Trust_anchor::_execute_write_operation(Vfs_handle        &file,
 
 		case Write_result::WRITE_OK:
 
-			_job.fl_offset += nr_of_written_bytes;
-			_job.fl_size -= nr_of_written_bytes;
+			_job.fl_offset += written_bytes;
+			_job.fl_size   -= written_bytes;
 
 			if (_job.fl_size > 0) {
 
@@ -192,11 +194,11 @@ void Trust_anchor::_execute_write_operation(Vfs_handle        &file,
 
 	case Job_state::READ_IN_PROGRESS:
 	{
-		file_size nr_of_read_bytes { 0 };
-		Read_result const result {
-			file.fs().complete_read(
-				&file, _read_buf + _job.fl_offset, _job.fl_size,
-				nr_of_read_bytes) };
+		size_t read_bytes = 0;
+
+		Byte_range_ptr const dst(_read_buf + _job.fl_offset, _job.fl_size);
+
+		Read_result const result = file.fs().complete_read(&file, dst, read_bytes);
 
 		switch (result) {
 		case Read_result::READ_QUEUED:
@@ -206,8 +208,8 @@ void Trust_anchor::_execute_write_operation(Vfs_handle        &file,
 
 		case Read_result::READ_OK:
 
-			_job.fl_offset += nr_of_read_bytes;
-			_job.fl_size -= nr_of_read_bytes;
+			_job.fl_offset += read_bytes;
+			_job.fl_size   -= read_bytes;
 			_job.request.success(true);
 
 			if (_job.fl_size > 0) {
@@ -254,11 +256,11 @@ void Trust_anchor::_execute_read_operation(Vfs_handle        &file,
 
 	case Job_state::READ_IN_PROGRESS:
 	{
-		file_size nr_of_read_bytes { 0 };
-		Read_result const result {
-			file.fs().complete_read(
-				&file, read_buf + _job.fl_offset, _job.fl_size,
-				nr_of_read_bytes) };
+		size_t read_bytes = 0;
+
+		Byte_range_ptr const dst(read_buf + _job.fl_offset, _job.fl_size);
+
+		Read_result const result = file.fs().complete_read(&file, dst, read_bytes);
 
 		switch (result) {
 		case Read_result::READ_QUEUED:
@@ -268,8 +270,8 @@ void Trust_anchor::_execute_read_operation(Vfs_handle        &file,
 
 		case Read_result::READ_OK:
 
-			_job.fl_offset += nr_of_read_bytes;
-			_job.fl_size -= nr_of_read_bytes;
+			_job.fl_offset += read_bytes;
+			_job.fl_size   -= read_bytes;
 			_job.request.success(true);
 
 			if (_job.fl_size > 0) {

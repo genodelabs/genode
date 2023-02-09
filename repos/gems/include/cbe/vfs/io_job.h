@@ -21,15 +21,18 @@
 
 namespace Util {
 
-	using file_size = Vfs::file_size;
-	using file_offset = Vfs::file_offset;
+	using file_size            = Vfs::file_size;
+	using file_offset          = Vfs::file_offset;
+	using Byte_range_ptr       = Vfs::Byte_range_ptr;
+	using Const_byte_range_ptr = Vfs::Const_byte_range_ptr;
+	using size_t               = Genode::size_t;
 
 	struct Io_job
 	{
 		struct Buffer
 		{
-			char        *base;
-			file_size    size;
+			char  *base;
+			size_t size;
 		};
 
 		enum class Operation { INVALID, READ, WRITE, SYNC };
@@ -83,7 +86,7 @@ namespace Util {
 		char              *_data;
 		file_offset const  _base_offset;
 		file_offset        _current_offset;
-		file_size          _current_count;
+		size_t             _current_count;
 
 		bool const _allow_partial;
 
@@ -110,12 +113,11 @@ namespace Util {
 				using Result = Vfs::File_io_service::Read_result;
 
 				bool completed = false;
-				file_size out = 0;
+				size_t out = 0;
 
-				Result const result =
-					_handle.fs().complete_read(&_handle,
-					                           _data + _current_offset,
-					                           _current_count, out);
+				Byte_range_ptr const dst { _data + _current_offset, _current_count };
+				Result const result = _handle.fs().complete_read(&_handle, dst, out);
+
 				if (result == Result::READ_QUEUED
 				 || result == Result::READ_ERR_WOULD_BLOCK) {
 					return progress;
@@ -170,12 +172,11 @@ namespace Util {
 				using Result = Vfs::File_io_service::Write_result;
 
 				bool completed = false;
-				file_size out = 0;
+				size_t out = 0;
 
+				Const_byte_range_ptr const src { _data + _current_offset, _current_count };
+				Result const result = _handle.fs().write(&_handle, src, out);
 
-				Result const result =
-					_handle.fs().write(&_handle, _data + _current_offset,
-					                   _current_count, out);
 				switch (result) {
 				case Result::WRITE_ERR_WOULD_BLOCK:
 					return progress;

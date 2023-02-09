@@ -227,7 +227,7 @@ class Backend
 				.type         = (op & RUMPUSER_BIO_WRITE)
 				              ? Block::Operation::Type::WRITE
 				              : Block::Operation::Type::READ,
-				.block_number = offset / _info.block_size,
+				.block_number = block_number_t(offset / _info.block_size),
 				.count        = length / _info.block_size };
 
 			bool const success = _synchronous_io(data, operation);

@@ -165,8 +165,7 @@ class Vfs::Tar_file_system : public File_system
 			: Vfs_handle(fs, fs, alloc, status_flags), _node(node)
 			{ }
 
-			virtual Read_result read(char *dst, file_size count,
-			                         file_size &out_count) = 0;
+			virtual Read_result read(Byte_range_ptr const &dst, size_t &out_count) = 0;
 	};
 
 
@@ -174,19 +173,18 @@ class Vfs::Tar_file_system : public File_system
 	{
 		using Tar_vfs_handle::Tar_vfs_handle;
 
-		Read_result read(char *dst, file_size count,
-		                 file_size &out_count) override
+		Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 		{
 			file_size const record_size = _node->record->size();
 
 			file_size const record_bytes_left = record_size >= seek()
 			                                  ? record_size  - seek() : 0;
 
-			count = min(record_bytes_left, count);
+			size_t const count = min(size_t(record_bytes_left), dst.num_bytes);
 
 			char const *data = (char *)_node->record->data() + seek();
 
-			memcpy(dst, data, (size_t)count);
+			memcpy(dst.start, data, count);
 
 			out_count = count;
 			return READ_OK;
@@ -197,13 +195,12 @@ class Vfs::Tar_file_system : public File_system
 	{
 		using Tar_vfs_handle::Tar_vfs_handle;
 
-		Read_result read(char *dst, file_size count,
-		                 file_size &out_count) override
+		Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 		{
-			if (count < sizeof(Dirent))
+			if (dst.num_bytes < sizeof(Dirent))
 				return READ_ERR_INVALID;
 
-			Dirent &dirent = *(Dirent*)dst;
+			Dirent &dirent = *(Dirent*)dst.start;
 
 			unsigned const index = (unsigned)(seek() / sizeof(Dirent));
 
@@ -272,14 +269,13 @@ class Vfs::Tar_file_system : public File_system
 	{
 		using Tar_vfs_handle::Tar_vfs_handle;
 
-		Read_result read(char *buf, file_size buf_size,
-		                 file_size &out_count) override
+		Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 		{
 			Record const *record = _node->record;
 
-			file_size const count = min(buf_size, 100ULL);
+			size_t const count = min(dst.num_bytes, 100UL);
 
-			memcpy(buf, record->linked_name(), (size_t)count);
+			memcpy(dst.start, record->linked_name(), count);
 
 			out_count = count;
 
@@ -751,23 +747,19 @@ class Vfs::Tar_file_system : public File_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *, char const *, file_size,
-		                   file_size &) override
+		Write_result write(Vfs_handle *, Const_byte_range_ptr const &, size_t &) override
 		{
 			return WRITE_ERR_INVALID;
 		}
 
-		Read_result complete_read(Vfs_handle *vfs_handle, char *dst,
-		                          file_size count, file_size &out_count) override
+		Read_result complete_read(Vfs_handle *vfs_handle, Byte_range_ptr const &dst,
+		                          size_t &out_count) override
 		{
 			out_count = 0;
 
-			Tar_vfs_handle *handle = static_cast<Tar_vfs_handle *>(vfs_handle);
+			Tar_vfs_handle &handle = *static_cast<Tar_vfs_handle *>(vfs_handle);
 
-			if (!handle)
-				return READ_ERR_INVALID;
-
-			return handle->read(dst, count, out_count);
+			return handle.read(dst, out_count);
 		}
 
 		Ftruncate_result ftruncate(Vfs_handle *, file_size) override

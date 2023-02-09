@@ -378,10 +378,12 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 
 		void _execute_read()
 		{
-			file_size out_count = 0;
+			size_t out_count = 0;
 
-			switch (_handle.fs().complete_read(&_handle, _payload_ptr.ptr,
-			                                   _packet.length(), out_count)) {
+			Byte_range_ptr dst { _payload_ptr.ptr, _packet.length() };
+
+			switch (_handle.fs().complete_read(&_handle, dst, out_count)) {
+
 			case Read_result::READ_OK:
 				_acknowledge_as_success((size_t)out_count);
 				break;
@@ -402,13 +404,13 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 		 *
 		 * \return number of consumed bytes
 		 */
-		size_t _execute_write(char const *src_ptr, size_t length,
-		                      seek_off_t write_pos)
+		size_t _execute_write(Const_byte_range_ptr const &src, seek_off_t write_pos)
 		{
-			file_size out_count = 0;
+			size_t out_count = 0;
 			_handle.seek(_initial_write_seek_offset + write_pos);
 
-			switch (_handle.fs().write(&_handle, src_ptr, length, out_count)) {
+			switch (_handle.fs().write(&_handle, src, out_count)) {
+
 			case Write_result::WRITE_ERR_WOULD_BLOCK:
 				break;
 
@@ -423,7 +425,7 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 
 			_modified = true;
 
-			return (size_t)out_count;
+			return out_count;
 		}
 
 		void _execute_sync()
@@ -669,10 +671,11 @@ struct Vfs_server::Symlink : Io_node
 			 */
 			case Packet_descriptor::WRITE:
 				{
-					size_t const count = _write_buffer.length();
+					Const_byte_range_ptr const src { _write_buffer.string(),
+					                                 _write_buffer.length() };
 
-					if (_execute_write(_write_buffer.string(), count, 0) == count)
-						_acknowledge_as_success(count);
+					if (_execute_write(src, 0) == src.num_bytes)
+						_acknowledge_as_success(src.num_bytes);
 					else
 						_acknowledge_as_failure();
 					break;
@@ -736,7 +739,7 @@ class Vfs_server::File : public Io_node
 		 *
 		 * Used for the incremental write to continuous files.
 		 */
-		seek_off_t _write_pos = 0;
+		size_t _write_pos = 0;
 
 		bool _watch_read_ready = false;
 
@@ -800,13 +803,13 @@ class Vfs_server::File : public Io_node
 
 			case Packet_descriptor::WRITE:
 				{
-					size_t       const count    = (size_t)(_packet.length() - _write_pos);
-					char const * const src_ptr  = _payload_ptr.ptr + _write_pos;
-					size_t       const consumed = _execute_write(src_ptr, count,
-					                                             _write_pos);
+					Const_byte_range_ptr const src { _payload_ptr.ptr + _write_pos,
+					                                 _packet.length() - _write_pos };
 
-					if (consumed == count) {
-						_acknowledge_as_success(count);
+					size_t const consumed = _execute_write(src, _write_pos);
+
+					if (consumed == src.num_bytes) {
+						_acknowledge_as_success(src.num_bytes);
 						break;
 					}
 

@@ -86,8 +86,7 @@ class Libusb_file_system : public Vfs::Single_file_system
 					return nonconst_this._usb_connection.source()->ack_avail();
 				}
 
-				Read_result read(char *dst, Vfs::file_size count,
-				                 Vfs::file_size &out_count) override
+				Read_result read(Genode::Byte_range_ptr const &, Genode::size_t &) override
 				{
 					return READ_ERR_IO;
 				}
@@ -97,8 +96,7 @@ class Libusb_file_system : public Vfs::Single_file_system
 					return true;
 				}
 
-				Write_result write(char const *src, Vfs::file_size count,
-				                   Vfs::file_size &out_count) override
+				Write_result write(Genode::Const_byte_range_ptr const &, Genode::size_t &) override
 				{
 					return WRITE_ERR_IO;
 				}

@@ -52,30 +52,31 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 				_value_fs(value_fs)
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				out_count = 0;
 
 				if (seek() > _buffer.length())
 					return READ_ERR_INVALID;
 
-				char const *   const src = _buffer.string() + seek();
-				Genode::size_t const len = min((size_t)(_buffer.length() - seek()), (size_t)count);
-				Genode::memcpy(dst, src, len);
+				char const * const src = _buffer.string() + seek();
+				size_t const len = min((size_t)(_buffer.length() - seek()), dst.num_bytes);
+
+				memcpy(dst.start, src, len);
 
 				out_count = len;
 				return READ_OK;
 			}
 
-			Write_result write(char const *src, file_size count, file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 			{
 				out_count = 0;
 				if (seek() > BUF_SIZE)
 					return WRITE_ERR_INVALID;
 
-				Genode::size_t const len = min((size_t)(BUF_SIZE- seek()), (size_t)count);
-				_buffer = Buffer(Genode::Cstring(src, len));
+				size_t const len = min(size_t(BUF_SIZE- seek()), src.num_bytes);
+
+				_buffer = Buffer(Genode::Cstring(src.start, len));
 				out_count = len;
 
 				/* inform watchers */

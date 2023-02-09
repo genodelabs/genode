@@ -30,9 +30,8 @@ struct Vfs::File_io_service : Interface
 	enum Write_result { WRITE_ERR_WOULD_BLOCK, WRITE_ERR_INVALID,
 	                    WRITE_ERR_IO,          WRITE_OK };
 
-	virtual Write_result write(Vfs_handle *vfs_handle,
-	                           char const *buf, file_size buf_size,
-	                           file_size &out_count) = 0;
+	virtual Write_result write(Vfs_handle *vfs_handle, Const_byte_range_ptr const &,
+	                           size_t &out_count) = 0;
 
 
 	/**********
@@ -51,14 +50,13 @@ struct Vfs::File_io_service : Interface
 	 * If the queue is full, the caller can try again after a previous VFS
 	 * request is completed.
 	 */
-	virtual bool queue_read(Vfs_handle *, file_size)
+	virtual bool queue_read(Vfs_handle *, size_t)
 	{
 		return true;
 	}
 
-	virtual Read_result complete_read(Vfs_handle *, char * /* dst */,
-	                                  file_size   /* in count */,
-	                                  file_size & /* out count */) = 0;
+	virtual Read_result complete_read(Vfs_handle *, Byte_range_ptr const &dst,
+	                                  size_t &out_count) = 0;
 
 	/**
 	 * Return true if the handle has readable data

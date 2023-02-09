@@ -160,10 +160,9 @@ struct Crypto : Cbe_crypto::Interface
 
 	bool submit_encryption_request(uint64_t const  block_number,
 	                               uint32_t const  key_id,
-	                               char     const *src,
-	                               size_t   const  src_len) override
+	                               Const_byte_range_ptr const &src) override
 	{
-		if (!src || src_len != sizeof (Cbe::Block_data)) {
+		if (!src.start || src.num_bytes != sizeof (Cbe::Block_data)) {
 			error("buffer has wrong size");
 			throw Buffer_size_mismatch();
 		}
@@ -179,7 +178,7 @@ struct Crypto : Cbe_crypto::Interface
 				uint64_t block_id = job.request.block_number();
 
 				Aes_cbc_4k::Block_number     block_number { block_id };
-				Aes_cbc_4k::Plaintext const &plaintext  = *reinterpret_cast<Aes_cbc_4k::Plaintext const *>(src);
+				Aes_cbc_4k::Plaintext const &plaintext  = *reinterpret_cast<Aes_cbc_4k::Plaintext const *>(src.start);
 				Aes_cbc_4k::Ciphertext      &ciphertext = *reinterpret_cast<Aes_cbc_4k::Ciphertext *>(&job.data);
 
 				/* paranoia */
@@ -190,13 +189,12 @@ struct Crypto : Cbe_crypto::Interface
 		});
 	}
 
-	Complete_request encryption_request_complete(char * const dst,
-	                                             size_t const dst_len) override
+	Complete_request encryption_request_complete(Byte_range_ptr const &dst) override
 	{
 		static_assert(sizeof(Cbe::Block_data) == sizeof(Aes_cbc_4k::Ciphertext), "size mismatch");
 		static_assert(sizeof(Cbe::Block_data) == sizeof(Aes_cbc_4k::Plaintext), "size mismatch");
 
-		if (dst_len != sizeof (Cbe::Block_data)) {
+		if (dst.num_bytes != sizeof (Cbe::Block_data)) {
 			error("buffer has wrong size");
 			throw Buffer_size_mismatch();
 		}
@@ -204,7 +202,7 @@ struct Crypto : Cbe_crypto::Interface
 		uint64_t block_id = 0;
 
 		bool const valid = jobs.apply_encrypt([&](auto const &job) {
-			Genode::memcpy(dst, &job.data, sizeof(job.data));
+			Genode::memcpy(dst.start, &job.data, sizeof(job.data));
 
 			block_id = job.request.block_number();
 
@@ -217,10 +215,9 @@ struct Crypto : Cbe_crypto::Interface
 
 	bool submit_decryption_request(uint64_t const  block_number,
 	                               uint32_t const  key_id,
-	                               char     const *src,
-	                               size_t   const  src_len) override
+	                               Const_byte_range_ptr const &src) override
 	{
-		if (src_len != sizeof (Cbe::Block_data)) {
+		if (src.num_bytes != sizeof (Cbe::Block_data)) {
 			error("buffer has wrong size");
 			throw Buffer_size_mismatch();
 		}
@@ -233,17 +230,17 @@ struct Crypto : Cbe_crypto::Interface
 			return jobs.queue_decrypt([&] (auto &job) {
 				job.request = Cbe::Request(Cbe::Request::Operation::READ,
 				                           false, block_number, 0, 1, key_id, 0);
-				Genode::memcpy(&job.data, src, sizeof(job.data));
+				Genode::memcpy(&job.data, src.start, sizeof(job.data));
 			});
 		});
 	}
 
-	Complete_request decryption_request_complete(char *dst, size_t dst_len) override
+	Complete_request decryption_request_complete(Byte_range_ptr const &dst) override
 	{
 		static_assert(sizeof(Cbe::Block_data) == sizeof(Aes_cbc_4k::Ciphertext), "size mismatch");
 		static_assert(sizeof(Cbe::Block_data) == sizeof(Aes_cbc_4k::Plaintext), "size mismatch");
 
-		if (dst_len != sizeof (Cbe::Block_data)) {
+		if (dst.num_bytes != sizeof (Cbe::Block_data)) {
 			error("buffer has wrong size");
 			throw Buffer_size_mismatch();
 		}
@@ -256,7 +253,7 @@ struct Crypto : Cbe_crypto::Interface
 
 				Aes_cbc_4k::Block_number      block_number { block_id };
 				Aes_cbc_4k::Ciphertext const &ciphertext = *reinterpret_cast<Aes_cbc_4k::Ciphertext const *>(&job.data);
-				Aes_cbc_4k::Plaintext        &plaintext  = *reinterpret_cast<Aes_cbc_4k::Plaintext *>(dst);
+				Aes_cbc_4k::Plaintext        &plaintext  = *reinterpret_cast<Aes_cbc_4k::Plaintext *>(dst.start);
 
 				/* paranoia */
 				static_assert(sizeof(ciphertext) == sizeof(job.data), "size mismatch");

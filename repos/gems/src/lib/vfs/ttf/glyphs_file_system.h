@@ -54,17 +54,19 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 				Single_vfs_handle(ds, fs, alloc, 0), _font(font)
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				out_count = 0;
 
 				if (seek() > FILE_SIZE)
 					return READ_ERR_INVALID;
 
-				Codepoint const codepoint { (uint32_t)(seek() / Vfs_font::GLYPH_SLOT_BYTES) };
+				Codepoint const codepoint { uint32_t(seek() / Vfs_font::GLYPH_SLOT_BYTES) };
 
-				file_size byte_offset = seek() % Vfs_font::GLYPH_SLOT_BYTES;
+				size_t byte_offset = size_t(seek() % Vfs_font::GLYPH_SLOT_BYTES);
+
+				char  *dst_ptr = dst.start;
+				size_t count   = dst.num_bytes;
 
 				_font.apply_glyph(codepoint, [&] (Glyph_painter::Glyph const &glyph) {
 
@@ -73,10 +75,10 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 						Glyph_header const header(glyph);
 
 						char const * const src = (char const *)&header + byte_offset;
-						size_t const len = min(sizeof(header) - (size_t)byte_offset, (size_t)count);
-						memcpy(dst, src, len);
+						size_t       const len = min(sizeof(header) - byte_offset, count);
+						memcpy(dst_ptr, src, len);
 
-						dst         += len;
+						dst_ptr     += len;
 						byte_offset += len;
 						count       -= len;
 						out_count   += len;
@@ -92,8 +94,8 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 
 					if (alpha_offset < alpha_values_len) {
 						char const * const src = (char const *)glyph.values + alpha_offset;
-						size_t const len = min(alpha_values_len - alpha_offset, (size_t)count);
-						memcpy(dst, src, len);
+						size_t const len = min(alpha_values_len - alpha_offset, count);
+						memcpy(dst_ptr, src, len);
 						out_count += len;
 					}
 				});
@@ -101,7 +103,7 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 				return READ_OK;
 			}
 
-			Write_result write(char const *, file_size, file_size &) override
+			Write_result write(Const_byte_range_ptr const &, size_t &) override
 			{
 				return WRITE_ERR_IO;
 			}

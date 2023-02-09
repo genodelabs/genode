@@ -516,8 +516,7 @@ class Vfs_cbe::Wrapper
 		}
 
 		bool submit_frontend_request(Vfs_handle              &handle,
-		                             char                    *data,
-		                             file_size                count,
+		                             Byte_range_ptr    const &data,
 		                             Cbe::Request::Operation  op,
 		                             uint32_t                 snap_id)
 		{
@@ -550,7 +549,9 @@ class Vfs_cbe::Wrapper
 
 			/* unaligned request if any condition is true */
 			unaligned_request |= (offset % Cbe::BLOCK_SIZE) != 0;
-			unaligned_request |= (count < Cbe::BLOCK_SIZE);
+			unaligned_request |= (data.num_bytes < Cbe::BLOCK_SIZE);
+
+			size_t count = data.num_bytes;
 
 			if ((count % Cbe::BLOCK_SIZE) != 0 &&
 			    !unaligned_request)
@@ -589,7 +590,7 @@ class Vfs_cbe::Wrapper
 				op,
 				false,
 				offset / Cbe::BLOCK_SIZE,
-				(uint64_t)data,
+				(uint64_t)data.start,
 				(uint32_t)(count / Cbe::BLOCK_SIZE),
 				0,
 				0);
@@ -1125,14 +1126,15 @@ class Vfs_cbe::Wrapper
 				memcpy(buffer, &key.id.value, sizeof (key.id.value));
 				memcpy(buffer + sizeof (key.id.value), key.value, sizeof (key.value));
 
-				file_size written = 0;
+				size_t written = 0;
 				_add_key_handle->seek(0);
 
 				using Write_result = Vfs::File_io_service::Write_result;
 
+				Const_byte_range_ptr const src(buffer, sizeof(buffer));
+
 				Write_result const result =
-					_add_key_handle->fs().write(_add_key_handle,
-					                            buffer, sizeof (buffer), written);
+					_add_key_handle->fs().write(_add_key_handle, src, written);
 
 				if (result == Write_result::WRITE_ERR_WOULD_BLOCK)
 					break; /* try again later */
@@ -1217,16 +1219,16 @@ class Vfs_cbe::Wrapper
 					break;
 				}
 
-				file_size written = 0;
+				size_t written = 0;
 				_remove_key_handle->seek(0);
+
+				Const_byte_range_ptr const src((char *)&key_id.value,
+				                               sizeof(key_id.value));
 
 				using Write_result = Vfs::File_io_service::Write_result;
 
 				Write_result const result =
-					_remove_key_handle->fs().write(_remove_key_handle,
-					                               (char const*)&key_id.value,
-					                               sizeof (key_id.value),
-					                               written);
+					_remove_key_handle->fs().write(_remove_key_handle, src, written);
 
 				if (result == Write_result::WRITE_ERR_WOULD_BLOCK)
 					break; /* try again later */
@@ -1345,10 +1347,12 @@ class Vfs_cbe::Wrapper
 							data = reinterpret_cast<char const*>(&cipher.item(cipher_index));
 						}
 
-						file_size out = 0;
+						size_t out = 0;
 						_handle->seek(offset);
-						_handle->fs().write(_handle, data,
-						                    file_size(sizeof (Cbe::Block_data)), out);
+
+						Const_byte_range_ptr const src(data, sizeof(Cbe::Block_data));
+
+						_handle->fs().write(_handle, src, out);
 
 						if (op == Crypto_job::Operation::ENCRYPT) {
 							cbe.crypto_cipher_data_requested(plain_index);
@@ -1377,7 +1381,7 @@ class Vfs_cbe::Wrapper
 				{
 					using Result = Vfs::File_io_service::Read_result;
 
-					file_size out = 0;
+					size_t out = 0;
 					char *data = nullptr;
 
 					if (op == Crypto_job::Operation::ENCRYPT) {
@@ -1388,9 +1392,10 @@ class Vfs_cbe::Wrapper
 						data = reinterpret_cast<char *>(&plain.item(plain_index));
 					}
 
-					Result const res =
-						_handle->fs().complete_read(_handle, data,
-						                            sizeof (Cbe::Block_data), out);
+					Byte_range_ptr const dst(data, sizeof (Cbe::Block_data));
+
+					Result const res = _handle->fs().complete_read(_handle, dst, out);
+
 					if (_read_queued(res)) {
 						break;
 					}
@@ -1815,8 +1820,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 				_w(w), _snap_id(snap_id)
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				Genode::Mutex::Guard guard { _w.frontend_mtx() };
 
@@ -1831,8 +1835,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 					using Op = Cbe::Request::Operation;
 
 					bool const accepted =
-						_w.submit_frontend_request(*this, dst, count,
-						                           Op::READ, _snap_id);
+						_w.submit_frontend_request(*this, dst, Op::READ, _snap_id);
 					if (!accepted) { return READ_ERR_IO; }
 				}
 
@@ -1865,8 +1868,8 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 				return READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count,
-			                   file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src,
+			                   size_t &out_count) override
 			{
 				Genode::Mutex::Guard guard { _w.frontend_mtx() };
 
@@ -1881,8 +1884,11 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 					using Op = Cbe::Request::Operation;
 
 					bool const accepted =
-						_w.submit_frontend_request(*this, const_cast<char*>(src),
-						                           count, Op::WRITE, _snap_id);
+						_w.submit_frontend_request(*this,
+						                           Byte_range_ptr(
+						                               const_cast<char*>(src.start),
+						                               src.num_bytes),
+						                           Op::WRITE, _snap_id);
 					if (!accepted) { return WRITE_ERR_IO; }
 				}
 
@@ -1930,7 +1936,8 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 					using Op = Cbe::Request::Operation;
 
 					bool const accepted =
-						_w.submit_frontend_request(*this, nullptr, 0, Op::SYNC, 0);
+						_w.submit_frontend_request(*this, Byte_range_ptr(nullptr, 0),
+						                           Op::SYNC, 0);
 					if (!accepted) { return SYNC_ERR_INVALID; }
 				}
 
@@ -2080,23 +2087,22 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 				_w(w)
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				if (seek() != 0) {
 					out_count = 0;
 					return READ_OK;
 				}
 				Content_string const result { content_string(_w) };
-				copy_cstring(dst, result.string(), count);
+				copy_cstring(dst.start, result.string(), dst.num_bytes);
 				size_t const length_without_nul = result.length() - 1;
-				out_count = count > length_without_nul - 1 ?
-				            length_without_nul : count;
+				out_count = dst.num_bytes > length_without_nul - 1 ?
+				            length_without_nul : dst.num_bytes;
 
 				return READ_OK;
 			}
 
-			Write_result write(char const *src, file_size count, file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 			{
 				using Type = Wrapper::Extending::Type;
 				using State = Wrapper::Extending::State;
@@ -2105,13 +2111,13 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 				}
 
 				char tree[16];
-				Arg_string::find_arg(src, "tree").string(tree, sizeof (tree), "-");
+				Arg_string::find_arg(src.start, "tree").string(tree, sizeof (tree), "-");
 				Type type = Wrapper::Extending::string_to_type(tree);
 				if (type == Type::INVALID) {
 					return WRITE_ERR_IO;
 				}
 
-				unsigned long blocks = Arg_string::find_arg(src, "blocks").ulong_value(0);
+				unsigned long blocks = Arg_string::find_arg(src.start, "blocks").ulong_value(0);
 				if (blocks == 0) {
 					return WRITE_ERR_IO;
 				}
@@ -2121,7 +2127,7 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 					return WRITE_ERR_IO;
 				}
 
-				out_count = count;
+				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
 
@@ -2271,23 +2277,22 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 				_w(w)
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				if (seek() != 0) {
 					out_count = 0;
 					return READ_OK;
 				}
 				Content_string const result { content_string(_w) };
-				copy_cstring(dst, result.string(), count);
+				copy_cstring(dst.start, result.string(), dst.num_bytes);
 				size_t const length_without_nul = result.length() - 1;
-				out_count = count > length_without_nul - 1 ?
-				            length_without_nul : count;
+				out_count = dst.num_bytes > length_without_nul - 1 ?
+				            length_without_nul : dst.num_bytes;
 
 				return READ_OK;
 			}
 
-			Write_result write(char const *src, file_size count, file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 			{
 				using State = Wrapper::Rekeying::State;
 				if (_w.rekeying_progress().state != State::IDLE) {
@@ -2295,7 +2300,7 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 				}
 
 				bool start_rekeying { false };
-				Genode::ascii_to(src, start_rekeying);
+				Genode::ascii_to(src.start, start_rekeying);
 
 				if (!start_rekeying) {
 					return WRITE_ERR_IO;
@@ -2305,7 +2310,7 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 					return WRITE_ERR_IO;
 				}
 
-				out_count = count;
+				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
 
@@ -2455,23 +2460,22 @@ class Vfs_cbe::Deinitialize_file_system : public Vfs::Single_file_system
 				_w(w)
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				if (seek() != 0) {
 					out_count = 0;
 					return READ_OK;
 				}
 				Content_string const result { content_string(_w) };
-				copy_cstring(dst, result.string(), count);
+				copy_cstring(dst.start, result.string(), dst.num_bytes);
 				size_t const length_without_nul = result.length() - 1;
-				out_count = count > length_without_nul - 1 ?
-				            length_without_nul : count;
+				out_count = dst.num_bytes > length_without_nul - 1 ?
+				            length_without_nul : dst.num_bytes;
 
 				return READ_OK;
 			}
 
-			Write_result write(char const *src, file_size count, file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 			{
 				using State = Wrapper::Deinitialize::State;
 				if (_w.deinitialize_progress().state != State::IDLE) {
@@ -2479,7 +2483,7 @@ class Vfs_cbe::Deinitialize_file_system : public Vfs::Single_file_system
 				}
 
 				bool start_deinitialize { false };
-				Genode::ascii_to(src, start_deinitialize);
+				Genode::ascii_to(src.start, start_deinitialize);
 
 				if (!start_deinitialize) {
 					return WRITE_ERR_IO;
@@ -2489,7 +2493,7 @@ class Vfs_cbe::Deinitialize_file_system : public Vfs::Single_file_system
 					return WRITE_ERR_IO;
 				}
 
-				out_count = count;
+				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
 
@@ -2605,17 +2609,16 @@ class Vfs_cbe::Create_snapshot_file_system : public Vfs::Single_file_system
 				_w(w)
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &, size_t &) override
 			{
 				return READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count, file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 			{
 				bool create_snapshot { false };
-				Genode::ascii_to(src, create_snapshot);
-				Genode::String<64> str(Genode::Cstring(src, count));
+				Genode::ascii_to(src.start, create_snapshot);
+				Genode::String<64> str(Genode::Cstring(src.start, src.num_bytes));
 
 				if (!create_snapshot) {
 					return WRITE_ERR_IO;
@@ -2626,7 +2629,7 @@ class Vfs_cbe::Create_snapshot_file_system : public Vfs::Single_file_system
 					return WRITE_OK;
 				}
 
-				out_count = count;
+				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
 
@@ -2705,18 +2708,18 @@ class Vfs_cbe::Discard_snapshot_file_system : public Vfs::Single_file_system
 				_w(w)
 			{ }
 
-			Read_result read(char *, file_size, file_size &) override
+			Read_result read(Byte_range_ptr const &, size_t &) override
 			{
 				return READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count,
-			                   file_size &out_count) override
+			Write_result write(Const_byte_range_ptr const &src,
+			                   size_t &out_count) override
 			{
 				out_count = 0;
 
 				Genode::uint64_t id { 0 };
-				Genode::ascii_to(src, id);
+				Genode::ascii_to(src.start, id);
 				if (id == 0) {
 					return WRITE_ERR_IO;
 				}
@@ -2983,11 +2986,9 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 		{
 			using Vfs_handle::Vfs_handle;
 
-			virtual Read_result read(char *dst, file_size count,
-			                         file_size &out_count) = 0;
+			virtual Read_result read(Byte_range_ptr const &, size_t &out_count) = 0;
 
-			virtual Write_result write(char const *src, file_size count,
-			                           file_size &out_count) = 0;
+			virtual Write_result write(Const_byte_range_ptr const &, size_t &out_count) = 0;
 
 			virtual Sync_result sync()
 			{
@@ -3004,9 +3005,9 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 
 			bool const _root_dir { false };
 
-			Read_result _query_snapshots(file_size  index,
-			                             file_size &out_count,
-			                             Dirent    &out)
+			Read_result _query_snapshots(size_t  index,
+			                             size_t &out_count,
+			                             Dirent &out)
 			{
 				if (index >= _snap_reg.number_of_snapshots()) {
 					out_count = sizeof(Dirent);
@@ -3031,9 +3032,9 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 				}
 			}
 
-			Read_result _query_root(file_size  index,
-			                        file_size &out_count,
-			                        Dirent    &out)
+			Read_result _query_root(size_t  index,
+			                        size_t &out_count,
+			                        Dirent &out)
 			{
 				if (index == 0) {
 					out = {
@@ -3060,17 +3061,16 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 				_snap_reg(snap_reg), _root_dir(root_dir)
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				out_count = 0;
 
-				if (count < sizeof(Dirent))
+				if (dst.num_bytes < sizeof(Dirent))
 					return READ_ERR_INVALID;
 
-				file_size index = seek() / sizeof(Dirent);
+				size_t index = size_t(seek() / sizeof(Dirent));
 
-				Dirent &out = *(Dirent*)dst;
+				Dirent &out = *(Dirent*)dst.start;
 
 				if (!_root_dir) {
 
@@ -3083,7 +3083,7 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 				}
 			}
 
-			Write_result write(char const *, file_size, file_size &) override
+			Write_result write(Const_byte_range_ptr const &, size_t &) override
 			{
 				return WRITE_ERR_INVALID;
 			}
@@ -3347,32 +3347,30 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 		 ********************************/
 
 		Write_result write(Vfs::Vfs_handle *vfs_handle,
-		                   char const *buf, file_size buf_size,
-		                   file_size &out_count) override
+		                   Const_byte_range_ptr const &, size_t &out_count) override
 		{
 			return WRITE_ERR_IO;
 		}
 
-		bool queue_read(Vfs::Vfs_handle *vfs_handle, file_size size) override
+		bool queue_read(Vfs::Vfs_handle *vfs_handle, size_t size) override
 		{
 			Dir_snap_vfs_handle *dh =
 				dynamic_cast<Dir_snap_vfs_handle*>(vfs_handle);
 			if (dh) {
-				return dh->vfs_handle.fs().queue_read(&dh->vfs_handle,
-				                                      size);
+				return dh->vfs_handle.fs().queue_read(&dh->vfs_handle, size);
 			}
 
 			return true;
 		}
 
 		Read_result complete_read(Vfs::Vfs_handle *vfs_handle,
-		                          char *dst, file_size count,
-		                          file_size & out_count) override
+		                          Byte_range_ptr const &dst,
+		                          size_t & out_count) override
 		{
 			Snap_vfs_handle *sh =
 				dynamic_cast<Snap_vfs_handle*>(vfs_handle);
 			if (sh) {
-				Read_result const res = sh->read(dst, count, out_count);
+				Read_result const res = sh->read(dst, out_count);
 				return res;
 			}
 
@@ -3380,7 +3378,7 @@ class Vfs_cbe::Snapshots_file_system : public Vfs::File_system
 				dynamic_cast<Dir_snap_vfs_handle*>(vfs_handle);
 			if (dh) {
 				return dh->vfs_handle.fs().complete_read(&dh->vfs_handle,
-				                                         dst, count, out_count);
+				                                         dst, out_count);
 			}
 
 			return READ_ERR_IO;

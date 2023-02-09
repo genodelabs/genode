@@ -290,9 +290,9 @@ struct Write_test : public Stress_test
 				path.base(), Directory_service::OPEN_MODE_WRONLY, &handle, alloc));
 			Vfs_handle::Guard guard(handle);
 
-			file_size n;
+			size_t n;
 			assert_write(handle->fs().write(
-				handle, path.base(), path_len, n));
+				handle, Const_byte_range_ptr(path.base(), path_len), n));
 			handle->fs().queue_sync(handle);
 			while (handle->fs().complete_sync(handle) ==
 			       Vfs::File_io_service::SYNC_QUEUED)
@@ -366,13 +366,15 @@ struct Read_test : public Stress_test
 			Vfs_handle::Guard guard(handle);
 
 			char tmp[MAX_PATH_LEN];
-			file_size n;
+			size_t n;
 			handle->fs().queue_read(handle, sizeof(tmp));
 
 			Vfs::File_io_service::Read_result read_result;
 
+			Byte_range_ptr const dst { tmp, sizeof(tmp) };
+
 			while ((read_result =
-			        handle->fs().complete_read(handle, tmp, sizeof(tmp), n)) ==
+			        handle->fs().complete_read(handle, dst, n)) ==
 			       Vfs::File_io_service::READ_QUEUED)
 				_io.commit_and_wait();
 
@@ -444,10 +446,11 @@ struct Unlink_test : public Stress_test
 		for (Vfs::file_size i = vfs.num_dirent(path); i;) {
 			dir_handle->seek(--i * sizeof(dirent));
 			dir_handle->fs().queue_read(dir_handle, sizeof(dirent));
-			Vfs::file_size out_count;
 
-			while (dir_handle->fs().complete_read(dir_handle, (char*)&dirent,
-			                                      sizeof(dirent), out_count) ==
+			Byte_range_ptr const dst { (char*)&dirent, sizeof(dirent) };
+			size_t out_count;
+
+			while (dir_handle->fs().complete_read(dir_handle, dst, out_count) ==
 			       Vfs::File_io_service::READ_QUEUED)
 				_io.commit_and_wait();
 

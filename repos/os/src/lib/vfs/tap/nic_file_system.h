@@ -148,8 +148,7 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 			return _link_state;
 		}
 
-		Read_result read(char *dst, file_size count,
-		                 file_size &out_count) override
+		Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 		{
 			if (!read_ready()) {
 				_blocked = true;
@@ -167,8 +166,8 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 				const char *const rx_pkt_base {
 					_nic.rx()->packet_content(rx_pkt) };
 
-				out_count = static_cast<file_size>(min(rx_pkt.size(), static_cast<size_t>(count)));
-				memcpy(dst, rx_pkt_base, static_cast<size_t>(out_count));
+				out_count = min(rx_pkt.size(), dst.num_bytes);
+				memcpy(dst.start, rx_pkt_base, out_count);
 
 				_nic.rx()->acknowledge_packet(rx_pkt);
 			}
@@ -176,8 +175,7 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 			return Read_result::READ_OK;
 		}
 
-		Write_result write(char const *src, file_size count,
-		                   file_size &out_count) override
+		Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 		{
 			out_count = 0;
 
@@ -187,18 +185,16 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 				return Write_result::WRITE_ERR_WOULD_BLOCK;
 			}
 			try {
-				size_t tx_pkt_size { static_cast<size_t>(count) };
-
 				Packet_descriptor tx_pkt {
-					_nic.tx()->alloc_packet(tx_pkt_size) };
+					_nic.tx()->alloc_packet(src.num_bytes) };
 
 				void *tx_pkt_base {
 					_nic.tx()->packet_content(tx_pkt) };
 
-				memcpy(tx_pkt_base, src, tx_pkt_size);
+				memcpy(tx_pkt_base, src.start, src.num_bytes);
 
 				_nic.tx()->submit_packet(tx_pkt);
-				out_count = tx_pkt_size;
+				out_count = src.num_bytes;
 
 				return Write_result::WRITE_OK;
 			} catch (...) {

@@ -136,8 +136,7 @@ class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
 			return _drv_link_state;
 		}
 
-		Read_result read(char *dst, file_size count,
-		                 file_size &out_count) override
+		Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 		{
 			if (!_conn.constructed())
 				return Read_result::READ_ERR_INVALID;
@@ -158,8 +157,8 @@ class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
 				const char *const conn_rx_pkt_base {
 					_conn->rx()->packet_content(conn_rx_pkt) };
 
-				out_count = static_cast<file_size>(min(conn_rx_pkt.size(), static_cast<size_t>(count)));
-				memcpy(dst, conn_rx_pkt_base, static_cast<size_t>(out_count));
+				out_count = min(conn_rx_pkt.size(), dst.num_bytes);
+				memcpy(dst.start, conn_rx_pkt_base, out_count);
 
 				_conn->rx()->acknowledge_packet(conn_rx_pkt);
 			}
@@ -167,20 +166,19 @@ class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
 			return Read_result::READ_OK;
 		}
 
-		Write_result write(char const *src, file_size count,
-		                   file_size &out_count) override
+		Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 		{
 			if (!_conn.constructed())
 				return Write_result::WRITE_ERR_INVALID;
 
 			out_count = 0;
-			_drv_rx_handle_pkt(static_cast<size_t>(count), [&] (void * dst, size_t dst_size) {
+			_drv_rx_handle_pkt(src.num_bytes, [&] (void * dst, size_t dst_size) {
 				out_count = dst_size;
-				memcpy(dst, src, dst_size);
+				memcpy(dst, src.start, dst_size);
 				return Uplink_client_base::Write_result::WRITE_SUCCEEDED;
 			});
 
-			if (out_count == count)
+			if (out_count == src.num_bytes)
 				return Write_result::WRITE_OK;
 			else
 				return Write_result::WRITE_ERR_WOULD_BLOCK;

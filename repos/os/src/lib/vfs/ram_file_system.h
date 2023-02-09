@@ -56,6 +56,7 @@ namespace Vfs_ram {
 		return start;
 	}
 
+	using Seek = File_system::Chunk_base::Seek;
 }
 
 
@@ -135,7 +136,7 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>
 		char const *name() { return _name; }
 		void name(char const *name) { copy_cstring(_name, name, MAX_NAME_LEN); }
 
-		virtual Vfs::file_size length() = 0;
+		virtual size_t length() = 0;
 
 		void open(Io_handle &handle) { _io_handles.insert(&handle); }
 		void open(Watch_handle &handle) { _watch_handles.insert(&handle); }
@@ -172,28 +173,27 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>
 			         .executable = true };
 		}
 
-		virtual size_t read(char*, size_t, file_size)
+		virtual size_t read(Byte_range_ptr const &, Seek)
 		{
 			Genode::error("Vfs_ram::Node::read() called");
 			return 0;
 		}
 
-		virtual Vfs::File_io_service::Read_result complete_read(char *,
-		                                                        file_size,
-		                                                        file_size,
-		                                                        file_size &)
+		virtual Vfs::File_io_service::Read_result complete_read(Byte_range_ptr const &,
+		                                                        Seek,
+		                                                        size_t & /* out count */)
 		{
 			Genode::error("Vfs_ram::Node::complete_read() called");
 			return Vfs::File_io_service::READ_ERR_INVALID;
 		}
 
-		virtual size_t write(char const *, size_t, file_size)
+		virtual size_t write(Const_byte_range_ptr const &, Seek)
 		{
 			Genode::error("Vfs_ram::Node::write() called");
 			return 0;
 		}
 
-		virtual void truncate(file_size)
+		virtual void truncate(Seek)
 		{
 			Genode::error("Vfs_ram::Node::truncate() called");
 		}
@@ -209,7 +209,7 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>
 		 * Find index N by walking down the tree N times,
 		 * not the most efficient way to do this.
 		 */
-		Node *index(file_offset &i)
+		Node *index(size_t &i)
 		{
 			if (i-- == 0)
 				return this;
@@ -250,18 +250,19 @@ class Vfs_ram::File : public Vfs_ram::Node
 		typedef Chunk_index<num_level_0_entries(), Chunk_level_1> Chunk_level_0;
 
 		Chunk_level_0 _chunk;
-		file_size     _length = 0;
+
+		size_t _length = 0;
 
 	public:
 
 		File(char const * const name, Allocator &alloc)
-		: Node(name), _chunk(alloc, 0) { }
+		: Node(name), _chunk(alloc, Seek{0}) { }
 
-		size_t read(char * const dst, size_t len, file_size const seek_offset) override
+		size_t read(Byte_range_ptr const &dst, Seek seek) override
 		{
-			file_size const chunk_used_size = _chunk.used_size();
+			size_t const chunk_used_size = _chunk.used_size();
 
-			if (seek_offset >= _length)
+			if (seek.value >= _length)
 				return 0;
 
 			/*
@@ -270,45 +271,46 @@ class Vfs_ram::File : public Vfs_ram::Node
 			 * Note that 'chunk_used_size' may be lower than '_length'
 			 * because 'Chunk' may have truncated tailing zeros.
 			 */
-			if (seek_offset + len >= _length)
-				len = (size_t)(_length - seek_offset);
 
-			file_size read_len = len;
+			size_t const len = (seek.value + dst.num_bytes >= _length)
+			                 ? _length - min(_length, seek.value)
+			                 : dst.num_bytes;
 
-			if (seek_offset + read_len > chunk_used_size) {
-				if (chunk_used_size >= seek_offset)
-					read_len = chunk_used_size - seek_offset;
+			size_t read_len = len;
+
+			if (seek.value + read_len > chunk_used_size) {
+				if (chunk_used_size >= seek.value)
+					read_len = chunk_used_size - seek.value;
 				else
 					read_len = 0;
 			}
 
-			_chunk.read(dst, (size_t)read_len, (size_t)seek_offset);
+			_chunk.read(Byte_range_ptr(dst.start, read_len), seek);
 
 			/* add zero padding if needed */
-			if (read_len < len)
-				memset(dst + read_len, 0, (size_t)(len - read_len));
+			if (read_len < dst.num_bytes)
+				memset(dst.start + read_len, 0, len - read_len);
 
 			return len;
 		}
 
-		Vfs::File_io_service::Read_result complete_read(char *dst,
-		                                                file_size count,
-		                                                file_size seek_offset,
-		                                                file_size &out_count) override
+		Vfs::File_io_service::Read_result complete_read(Byte_range_ptr const &dst,
+		                                                Seek seek, size_t &out_count) override
 		{
-			out_count = read(dst, (size_t)count, (size_t)seek_offset);
+			out_count = read(dst, seek);
 			return Vfs::File_io_service::READ_OK;
 		}
 
-		size_t write(char const *src, size_t len, file_size seek_offset) override
+		size_t write(Const_byte_range_ptr const &src, Seek const seek) override
 		{
-			if (seek_offset == (file_size)(~0))
-				seek_offset = _chunk.used_size();
+			size_t const at = (seek.value == ~0UL) ? _chunk.used_size() : seek.value;
 
-			if (seek_offset + len >= Chunk_level_0::SIZE)
-				len = Chunk_level_0::SIZE - (size_t)(seek_offset + len);
+			size_t len = src.num_bytes;
 
-			try { _chunk.write(src, len, (size_t)seek_offset); }
+			if (at + src.num_bytes >= Chunk_level_0::SIZE)
+				len = Chunk_level_0::SIZE - at + src.num_bytes;
+
+			try { _chunk.write(src, Seek{at}); }
 			catch (Out_of_memory) { return 0; }
 
 			/*
@@ -316,19 +318,19 @@ class Vfs_ram::File : public Vfs_ram::Node
 			 * as file length because trailing zeros may by represented
 			 * by zero chunks, which do not contribute to 'used_size()'.
 			 */
-			_length = max(_length, seek_offset + len);
+			_length = max(_length, at + len);
 
 			return len;
 		}
 
-		file_size length() override { return _length; }
+		size_t length() override { return _length; }
 
-		void truncate(file_size size) override
+		void truncate(Seek size) override
 		{
-			if (size < _chunk.used_size())
+			if (size.value < _chunk.used_size())
 				_chunk.truncate(size);
 
-			_length = size;
+			_length = size.value;
 		}
 };
 
@@ -344,43 +346,34 @@ class Vfs_ram::Symlink : public Vfs_ram::Node
 
 		Symlink(char const *name) : Node(name) { }
 
-		file_size length() override { return _len; }
+		size_t length() override { return _len; }
 
-		void set(char const *target, size_t len)
+		Vfs::File_io_service::Read_result complete_read(Byte_range_ptr const &dst, Seek,
+		                                                size_t &out_count) override
 		{
+			out_count = min(dst.num_bytes, _len);
+
+			memcpy(dst.start, _target, out_count);
+
+			return Vfs::File_io_service::READ_OK;
+		}
+
+		size_t write(Const_byte_range_ptr const &src, Seek) override
+		{
+			if (src.num_bytes > MAX_PATH_LEN)
+				return 0;
+
+			size_t len = src.num_bytes;
+
 			for (size_t i = 0; i < len; ++i) {
-				if (target[i] == '\0') {
-					len = i;
+				if (src.start[i] == '\0') {
+					len = i + 1; /* number of characters + terminating zero */
 					break;
 				}
 			}
 
 			_len = len;
-			memcpy(_target, target, _len);
-		}
-
-		size_t get(char *buf, size_t len)
-		{
-			size_t out = min(len, _len);
-			memcpy(buf, _target, out);
-			return out;
-		}
-
-		Vfs::File_io_service::Read_result complete_read(char *dst,
-		                                                file_size count,
-		                                                file_size,
-		                                                file_size &out_count) override
-		{
-			out_count = get(dst, (size_t)count);
-			return Vfs::File_io_service::READ_OK;
-		}
-
-		size_t write(char const *src, size_t len, file_size) override
-		{
-			if (len > MAX_PATH_LEN)
-				return 0;
-
-			set(src, len);
+			memcpy(_target, src.start, _len);
 
 			return len;
 		}
@@ -391,8 +384,9 @@ class Vfs_ram::Directory : public Vfs_ram::Node
 {
 	private:
 
-		Avl_tree<Node>  _entries { };
-		file_size       _count = 0;
+		Avl_tree<Node> _entries { };
+
+		size_t _count = 0;
 
 	public:
 
@@ -430,21 +424,20 @@ class Vfs_ram::Directory : public Vfs_ram::Node
 			--_count;
 		}
 
-		file_size length() override { return _count; }
+		size_t length() override { return _count; }
 
-		Vfs::File_io_service::Read_result complete_read(char *dst,
-		                                                file_size count,
-		                                                file_size seek_offset,
-			                                            file_size &out_count) override
+		Vfs::File_io_service::Read_result complete_read(Byte_range_ptr const &dst,
+		                                                Seek const seek,
+		                                                size_t &out_count) override
 		{
 			typedef Vfs::Directory_service::Dirent Dirent;
 
-			if (count < sizeof(Dirent))
+			if (dst.num_bytes < sizeof(Dirent))
 				return Vfs::File_io_service::READ_ERR_INVALID;
 
-			file_offset index = seek_offset / sizeof(Dirent);
+			size_t index = seek.value / sizeof(Dirent);
 
-			Dirent &dirent = *(Dirent*)dst;
+			Dirent &dirent = *(Dirent*)dst.start;
 
 			using Dirent_type = Vfs::Directory_service::Dirent_type;
 
@@ -883,14 +876,14 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if (!file)
 				return ds_cap;
 
-			size_t len = (size_t)file->length();
+			size_t len = file->length();
 
 			char *local_addr = nullptr;
 			try {
 				ds_cap = _env.env().ram().alloc(len);
 
 				local_addr = _env.env().rm().attach(ds_cap);
-				file->read(local_addr, (size_t)file->length(), 0);
+				file->read(Byte_range_ptr(local_addr, file->length()), Seek{0});
 				_env.env().rm().detach(local_addr);
 
 			} catch(...) {
@@ -940,30 +933,34 @@ class Vfs::Ram_file_system : public Vfs::File_system
 		 ************************/
 
 		Write_result write(Vfs_handle * const vfs_handle,
-		                   char const * const buf, file_size len,
-		                   Vfs::file_size &out) override
+		                   Const_byte_range_ptr const &buf,
+		                   size_t &out) override
 		{
 			if ((vfs_handle->status_flags() & OPEN_MODE_ACCMODE) ==  OPEN_MODE_RDONLY)
 				return WRITE_ERR_INVALID;
 
-			Vfs_ram::Io_handle * const handle =
-				static_cast<Vfs_ram::Io_handle *>(vfs_handle);
+			Vfs_ram::Io_handle &handle =
+				*static_cast<Vfs_ram::Io_handle *>(vfs_handle);
 
-			out = handle->node.write(buf, (size_t)len, handle->seek());
-			handle->modifying = true;
+			Vfs_ram::Seek const seek { size_t(handle.seek()) };
+
+			out = handle.node.write(buf, seek);
+			handle.modifying = true;
 
 			return WRITE_OK;
 		}
 
-		Read_result complete_read(Vfs_handle * const vfs_handle, char *dst,
-		                          file_size count, file_size &out_count) override
+		Read_result complete_read(Vfs_handle * const vfs_handle,
+		                          Byte_range_ptr const &dst, size_t &out_count) override
 		{
 			out_count = 0;
 
-			Vfs_ram::Io_handle const * const handle =
-				static_cast<Vfs_ram::Io_handle *>(vfs_handle);
+			Vfs_ram::Io_handle const &handle =
+				*static_cast<Vfs_ram::Io_handle *>(vfs_handle);
 
-			return handle->node.complete_read(dst, count, handle->seek(), out_count);
+			Vfs_ram::Seek const seek { size_t(handle.seek()) };
+
+			return handle.node.complete_read(dst, seek, out_count);
 		}
 
 		bool read_ready (Vfs_handle const &) const override { return true; }
@@ -974,10 +971,12 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if ((vfs_handle->status_flags() & OPEN_MODE_ACCMODE) ==  OPEN_MODE_RDONLY)
 				return FTRUNCATE_ERR_NO_PERM;
 
-			Vfs_ram::Io_handle const * const handle =
-				static_cast<Vfs_ram::Io_handle *>(vfs_handle);
+			Vfs_ram::Io_handle const &handle =
+				*static_cast<Vfs_ram::Io_handle *>(vfs_handle);
 
-			try { handle->node.truncate(len); }
+			Vfs_ram::Seek const at { size_t(len) };
+
+			try { handle.node.truncate(at); }
 			catch (Vfs_ram::Out_of_memory) { return FTRUNCATE_ERR_NO_SPACE; }
 			return FTRUNCATE_OK;
 		}
@@ -987,13 +986,14 @@ class Vfs::Ram_file_system : public Vfs::File_system
 		 */
 		Sync_result complete_sync(Vfs_handle * const vfs_handle) override
 		{
-			Vfs_ram::Io_handle * const handle =
-				static_cast<Vfs_ram::Io_handle *>(vfs_handle);
-			if (handle->modifying) {
-				handle->modifying = false;
-				handle->node.close(*handle);
-				handle->node.notify();
-				handle->node.open(*handle);
+			Vfs_ram::Io_handle &handle =
+				*static_cast<Vfs_ram::Io_handle *>(vfs_handle);
+
+			if (handle.modifying) {
+				handle.modifying = false;
+				handle.node.close(handle);
+				handle.node.notify();
+				handle.node.open(handle);
 			}
 			return SYNC_OK;
 		}
@@ -1004,11 +1004,12 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if ((vfs_handle->status_flags() & OPEN_MODE_ACCMODE) ==  OPEN_MODE_RDONLY)
 				return false;
 
-			Vfs_ram::Io_handle * const handle =
-				static_cast<Vfs_ram::Io_handle *>(vfs_handle);
-			handle->modifying = true;
+			Vfs_ram::Io_handle &handle =
+				*static_cast<Vfs_ram::Io_handle *>(vfs_handle);
 
-			return handle->node.update_modification_timestamp(time);
+			handle.modifying = true;
+
+			return handle.node.update_modification_timestamp(time);
 		}
 
 

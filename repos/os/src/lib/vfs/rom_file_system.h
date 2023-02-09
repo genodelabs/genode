@@ -39,17 +39,17 @@ class Vfs::Rom_file_system : public Single_file_system
 
 		Genode::Attached_rom_dataspace _rom { _env, _label.string() };
 
-		file_size _init_content_size()
+		size_t _init_content_size()
 		{
 			if (!_binary)
-				for (file_size pos = 0; pos < _rom.size(); pos++) 
+				for (size_t pos = 0; pos < _rom.size(); pos++)
 					if (_rom.local_addr<char>()[pos] == 0x00)
 						return pos;
 
 			return _rom.size();
 		}
 
-		file_size _content_size = _init_content_size();
+		size_t _content_size = _init_content_size();
 
 		void _update()
 		{
@@ -63,7 +63,7 @@ class Vfs::Rom_file_system : public Single_file_system
 
 				Genode::Attached_rom_dataspace &_rom;
 
-				file_size const &_content_size;
+				size_t const &_content_size;
 
 			public:
 
@@ -71,23 +71,22 @@ class Vfs::Rom_file_system : public Single_file_system
 				               File_io_service                &fs,
 				               Genode::Allocator              &alloc,
 				               Genode::Attached_rom_dataspace &rom,
-				               file_size                const &content_size)
+				               size_t                   const &content_size)
 				:
 					Single_vfs_handle(ds, fs, alloc, 0),
 					_rom(rom), _content_size(content_size)
 				{ }
 
-				Read_result read(char *dst, file_size count,
-				                 file_size &out_count) override
+				Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 				{
 					/* file read limit is the size of the dataspace */
-					file_size const max_size = _content_size;
+					size_t const max_size = _content_size;
 
 					/* current read offset */
-					file_size const read_offset = seek();
+					size_t const read_offset = size_t(seek());
 
 					/* maximum read offset, clamped to dataspace size */
-					file_size const end_offset = min(count + read_offset, max_size);
+					size_t const end_offset = min(dst.num_bytes + read_offset, max_size);
 
 					/* check if end of file is reached */
 					if (read_offset >= end_offset) {
@@ -99,16 +98,15 @@ class Vfs::Rom_file_system : public Single_file_system
 					char const *src = _rom.local_addr<char>() + read_offset;
 
 					/* copy-out bytes from ROM dataspace */
-					file_size const num_bytes = end_offset - read_offset;
+					size_t const num_bytes = end_offset - read_offset;
 
-					memcpy(dst, src, (size_t)num_bytes);
+					memcpy(dst.start, src, num_bytes);
 
 					out_count = num_bytes;
 					return READ_OK;
 				}
 
-				Write_result write(char const *, file_size,
-				                   file_size &out_count) override
+				Write_result write(Const_byte_range_ptr const &, size_t &out_count) override
 				{
 					out_count = 0;
 					return WRITE_ERR_INVALID;

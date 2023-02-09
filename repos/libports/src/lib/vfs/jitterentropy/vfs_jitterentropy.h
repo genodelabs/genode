@@ -67,29 +67,27 @@ class Jitterentropy_file_system : public Vfs::Single_file_system
 				  _ec_stir(ec_stir),
 				  _initialized(initialized) { }
 
-				Read_result read(char *dst, Vfs::file_size count,
-				                 Vfs::file_size &out_count) override
+				Read_result read(Genode::Byte_range_ptr const &dst, size_t &out_count) override
 				{
 					if (!_initialized)
 						return READ_ERR_IO;
 
-					enum { MAX_BUF_LEN = 256 };
+					enum { MAX_BUF_LEN = 256UL };
 					char buf[MAX_BUF_LEN];
 
-					size_t len = count > MAX_BUF_LEN ? MAX_BUF_LEN : count;
+					size_t const len = Genode::min(dst.num_bytes, MAX_BUF_LEN);
 
 					if (jent_read_entropy(_ec_stir, buf, len) < 0)
 						return READ_ERR_IO;
 
-					Genode::memcpy(dst, buf, len);
+					Genode::memcpy(dst.start, buf, len);
 
 					out_count = len;
 
 					return READ_OK;
 				}
 
-				Write_result write(char const *src, Vfs::file_size count,
-				                   Vfs::file_size &out_count) override
+				Write_result write(Genode::Const_byte_range_ptr const &, size_t &) override
 				{
 					return WRITE_ERR_IO;
 				}

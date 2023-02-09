@@ -16,8 +16,9 @@
 
 namespace Vfs_block {
 
-	using file_size = Vfs::file_size;
+	using file_size   = Vfs::file_size;
 	using file_offset = Vfs::file_offset;
+	using size_t      = Genode::size_t;
 
 	struct Job
 	{
@@ -57,7 +58,7 @@ namespace Vfs_block {
 		State              state;
 		file_offset const  base_offset;
 		file_offset        current_offset;
-		file_size          current_count;
+		size_t             current_count;
 
 		bool success;
 		bool complete;
@@ -82,12 +83,13 @@ namespace Vfs_block {
 				using Result = Vfs::File_io_service::Read_result;
 
 				bool completed = false;
-				file_size out = 0;
+				size_t out = 0;
 
-				Result const result =
-					_handle.fs().complete_read(&_handle,
-					                           data + current_offset,
-					                           current_count, out);
+				Genode::Byte_range_ptr const dst { data + current_offset,
+				                                   current_count };
+
+				Result const result = _handle.fs().complete_read(&_handle, dst, out);
+
 				if (result == Result::READ_QUEUED
 				 || result == Result::READ_ERR_WOULD_BLOCK) {
 					return progress;
@@ -142,11 +144,13 @@ namespace Vfs_block {
 				using Result = Vfs::File_io_service::Write_result;
 
 				bool completed = false;
-				file_size out = 0;
+				size_t out = 0;
 
-				Result result = _handle.fs().write(&_handle,
-				                                   data + current_offset,
-				                                   current_count, out);
+				Genode::Const_byte_range_ptr const src { data + current_offset,
+				                                         current_count };
+
+				Result result = _handle.fs().write(&_handle, src, out);
+
 				switch (result) {
 				case Result::WRITE_ERR_WOULD_BLOCK:
 					return progress;
@@ -243,7 +247,7 @@ namespace Vfs_block {
 		    Block::Request   request,
 		    file_offset      base_offset,
 		    char            *data,
-		    file_size        length)
+		    size_t           length)
 		:
 			_handle        { handle },
 			request        { request },

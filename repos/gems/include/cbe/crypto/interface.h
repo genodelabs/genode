@@ -22,9 +22,11 @@
 
 namespace Cbe_crypto {
 
-	using uint32_t = Genode::uint32_t;
-	using uint64_t = Genode::uint64_t;
-	using size_t   = Genode::size_t;
+	using uint32_t             = Genode::uint32_t;
+	using uint64_t             = Genode::uint64_t;
+	using size_t               = Genode::size_t;
+	using Byte_range_ptr       = Genode::Byte_range_ptr;
+	using Const_byte_range_ptr = Genode::Const_byte_range_ptr;
 
 	struct Interface;
 
@@ -103,17 +105,15 @@ struct Cbe_crypto::Interface
 
 	virtual bool submit_encryption_request(uint64_t const  block_number,
 	                                       uint32_t const  key_id,
-	                                       char     const *src,
-	                                       size_t   const  src_len) = 0;
+	                                       Const_byte_range_ptr const &src) = 0;
 
-	virtual Complete_request encryption_request_complete(char *dst, size_t const dst_len) = 0;
+	virtual Complete_request encryption_request_complete(Byte_range_ptr const &dst) = 0;
 
 	virtual bool submit_decryption_request(uint64_t const  block_number,
 	                                       uint32_t const  key_id,
-	                                       char     const *src,
-	                                       size_t   const  src_len) = 0;
+	                                       Const_byte_range_ptr const &src) = 0;
 
-	virtual Complete_request decryption_request_complete(char *dst, size_t dst_len) = 0;
+	virtual Complete_request decryption_request_complete(Byte_range_ptr const &dst) = 0;
 };
 
 #endif /* _INCLUDE__CBE__CRYPTO__INTERFACE_H_ */

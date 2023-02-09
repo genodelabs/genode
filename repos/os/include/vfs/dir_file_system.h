@@ -330,8 +330,8 @@ class Vfs::Dir_file_system : public File_system
 		}
 
 		Read_result _complete_read_of_file_systems(Dir_vfs_handle *dir_vfs_handle,
-		                                           char *dst, file_size count,
-		                                           file_size &out_count)
+		                                           Byte_range_ptr const &dst,
+		                                           size_t &out_count)
 		{
 			if (!dir_vfs_handle->queued_read_handle) {
 
@@ -340,10 +340,10 @@ class Vfs::Dir_file_system : public File_system
 				 * fs->opendir() failed
 				 */
 
-				if (count < sizeof(Dirent))
+				if (dst.num_bytes < sizeof(Dirent))
 					return READ_ERR_INVALID;
 
-				Dirent &dirent = *(Dirent*)dst;
+				Dirent &dirent = *(Dirent*)dst.start;
 				dirent = Dirent { };
 
 				out_count = sizeof(Dirent);
@@ -353,7 +353,7 @@ class Vfs::Dir_file_system : public File_system
 
 			Read_result result = dir_vfs_handle->queued_read_handle->fs().
 			                     complete_read(dir_vfs_handle->queued_read_handle,
-			                                   dst, count, out_count);
+			                                   dst, out_count);
 
 			if (result == READ_QUEUED)
 				return result;
@@ -893,12 +893,12 @@ class Vfs::Dir_file_system : public File_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *, char const *, file_size, file_size &) override
+		Write_result write(Vfs_handle *, Const_byte_range_ptr const &, size_t &) override
 		{
 			return WRITE_ERR_INVALID;
 		}
 
-		bool queue_read(Vfs_handle *vfs_handle, file_size) override
+		bool queue_read(Vfs_handle *vfs_handle, size_t) override
 		{
 			Dir_vfs_handle *dir_vfs_handle =
 				static_cast<Dir_vfs_handle*>(vfs_handle);
@@ -913,23 +913,23 @@ class Vfs::Dir_file_system : public File_system
 		}
 
 		Read_result complete_read(Vfs_handle *vfs_handle,
-		                          char *dst, file_size count,
-		                          file_size &out_count) override
+		                          Byte_range_ptr const &dst,
+		                          size_t &out_count) override
 		{
 			out_count = 0;
 
-			if (count < sizeof(Dirent))
+			if (dst.num_bytes < sizeof(Dirent))
 				return READ_ERR_INVALID;
 
 			Dir_vfs_handle *dir_vfs_handle =
 				static_cast<Dir_vfs_handle*>(vfs_handle);
 
 			if (_vfs_root)
-				return _complete_read_of_file_systems(dir_vfs_handle, dst, count, out_count);
+				return _complete_read_of_file_systems(dir_vfs_handle, dst, out_count);
 
 			if (_top_dir(dir_vfs_handle->path.base())) {
 
-				Dirent &dirent = *(Dirent*)dst;
+				Dirent &dirent = *(Dirent*)dst.start;
 
 				file_offset const index = vfs_handle->seek() / sizeof(Dirent);
 
@@ -957,7 +957,7 @@ class Vfs::Dir_file_system : public File_system
 				return READ_OK;
 			}
 
-			return _complete_read_of_file_systems(dir_vfs_handle, dst, count, out_count);
+			return _complete_read_of_file_systems(dir_vfs_handle, dst, out_count);
 		}
 
 		Ftruncate_result ftruncate(Vfs_handle *, file_size) override

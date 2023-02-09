@@ -17,8 +17,11 @@
 
 namespace Vfs_cbe {
 
-	using file_size = Vfs::file_size;
-	using file_offset = Vfs::file_offset;
+	using file_size            = Vfs::file_size;
+	using file_offset          = Vfs::file_offset;
+	using Byte_range_ptr       = Vfs::Byte_range_ptr;
+	using Const_byte_range_ptr = Vfs::Const_byte_range_ptr;
+	using size_t               = Genode::size_t;
 
 	struct Io_job
 	{
@@ -84,14 +87,14 @@ namespace Vfs_cbe {
 				using Result = Vfs::File_io_service::Read_result;
 
 				bool completed = false;
-				file_size out = 0;
+				size_t out = 0;
 
 				char * const data = reinterpret_cast<char *const>(&io_data.item(_index));
 
-				Result const result =
-					_handle.fs().complete_read(&_handle,
-					                           data + _current_offset,
-					                           _current_count, out);
+				Byte_range_ptr const dst(data + _current_offset, _current_count);
+
+				Result const result = _handle.fs().complete_read(&_handle, dst, out);
+
 				if (result == Result::READ_QUEUED
 				 || result == Result::READ_ERR_WOULD_BLOCK) {
 					return progress;
@@ -148,14 +151,15 @@ namespace Vfs_cbe {
 				using Result = Vfs::File_io_service::Write_result;
 
 				bool completed = false;
-				file_size out = 0;
+				size_t out = 0;
 
 				char const * const data =
 					reinterpret_cast<char const * const>(&io_data.item(_index));
 
-				Result const result =
-					_handle.fs().write(&_handle, data + _current_offset,
-					                   _current_count, out);
+				Const_byte_range_ptr const src(data + _current_offset, _current_count);
+
+				Result const result = _handle.fs().write(&_handle, src, out);
+
 				switch (result) {
 				case Result::WRITE_ERR_WOULD_BLOCK:
 					return progress;

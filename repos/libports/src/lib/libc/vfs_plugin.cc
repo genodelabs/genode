@@ -846,12 +846,14 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
-	Vfs::file_size out_count  = 0;
-	Result         out_result = Result::WRITE_OK;
+	::size_t out_count  = 0;
+	Result   out_result = Result::WRITE_OK;
+
+	Const_byte_range_ptr const src { (char const *)buf, count };
 
 	if (fd->flags & O_NONBLOCK) {
 		monitor().monitor([&] {
-			out_result = handle->fs().write(handle, (char const *)buf, count, out_count);
+			out_result = handle->fs().write(handle, src, out_count);
 			return Fn::COMPLETE;
 		});
 	} else {
@@ -862,7 +864,7 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 		Vfs::Vfs_handle   *_handle     { handle };
 		void const        *_buf        { buf };
 		::size_t           _count      { count };
-		Vfs::file_size    &_out_count  { out_count };
+		::size_t          &_out_count  { out_count };
 		Result            &_out_result { out_result };
 		::off_t            _offset     { 0 };
 		unsigned           _iteration  { 0 };
@@ -889,10 +891,12 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 			for (;;) {
 
 				/* number of bytes written in one iteration */
-				Vfs::file_size partial_out_count = 0;
+				::size_t partial_out_count = 0;
 
-				char const * const src = (char const *)_buf + _offset;
-				_out_result = _handle->fs().write(_handle, src, _count, partial_out_count);
+				Const_byte_range_ptr const src { (char const *)_buf + _offset,
+				                                  _count };
+
+				_out_result = _handle->fs().write(_handle, src, partial_out_count);
 
 				if (_out_result == Result::WRITE_ERR_WOULD_BLOCK)
 					return Fn::INCOMPLETE;
@@ -986,11 +990,12 @@ ssize_t Libc::Vfs_plugin::read(File_descriptor *fd, void *buf,
 	if (!succeeded)
 		return Errno(result_errno);
 
-	Vfs::file_size out_count = 0;
-	Result         out_result;
+	::size_t out_count = 0;
+	Result   out_result;
 
 	monitor().monitor([&] {
-		out_result = handle->fs().complete_read(handle, (char *)buf, count, out_count);
+		Byte_range_ptr const dst { (char *)buf, count };
+		out_result = handle->fs().complete_read(handle, dst, out_count);
 		return out_result != Result::READ_QUEUED ? Fn::COMPLETE : Fn::INCOMPLETE;
 	});
 
@@ -1033,11 +1038,12 @@ ssize_t Libc::Vfs_plugin::getdirentries(File_descriptor *fd, char *buf,
 		return handle->fs().queue_read(handle, sizeof(Dirent)) ? Fn::COMPLETE : Fn::INCOMPLETE;
 	});
 
-	Result         out_result;
-	Vfs::file_size out_count;
+	Result   out_result;
+	::size_t out_count;
 
 	monitor().monitor([&] {
-		out_result = handle->fs().complete_read(handle, (char *)&dirent_out, sizeof(Dirent), out_count);
+		Byte_range_ptr const dst { (char *)&dirent_out, sizeof(Dirent) };
+		out_result = handle->fs().complete_read(handle, dst, out_count);
 		return out_result != Result::READ_QUEUED ? Fn::COMPLETE : Fn::INCOMPLETE;
 	});
 
@@ -2070,10 +2076,12 @@ int Libc::Vfs_plugin::fsync(File_descriptor *fd)
 
 int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 {
-	Vfs::Vfs_handle     *handle    { nullptr };
-	Constructible<Sync>  sync;
-	Vfs::file_size const count     { ::strlen(target_path) + 1 };
-	Vfs::file_size       out_count { 0 };
+	Vfs::Vfs_handle *handle    { nullptr };
+	Constructible<Sync> sync;
+
+	size_t const count = ::strlen(target_path) + 1;
+
+	size_t out_count = 0;
 
 	{
 		bool succeeded { false };
@@ -2127,10 +2135,12 @@ int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 
 			case Stage::WRITE:
 				{
-					typedef Vfs::File_io_service::Write_result Result;
+					using Result = Vfs::File_io_service::Write_result;
 
-					Result result = handle->fs().write(handle, target_path,
-					                                   count, out_count);
+					Const_byte_range_ptr const src { target_path, count };
+
+					Result result = handle->fs().write(handle, src, out_count);
+
 					if (result == Result::WRITE_ERR_WOULD_BLOCK)
 						return Fn::INCOMPLETE;
 				}
@@ -2164,12 +2174,14 @@ ssize_t Libc::Vfs_plugin::readlink(const char *link_path, char *buf, ::size_t bu
 {
 	enum class Stage { OPEN, QUEUE_READ, COMPLETE_READ };
 
-	Stage            stage   { Stage::OPEN };
-	Vfs::Vfs_handle *handle  { nullptr };
-	Vfs::file_size   out_len { 0 };
+	Stage stage { Stage::OPEN };
 
-	bool succeeded { false };
-	int result_errno { 0 };
+	Vfs::Vfs_handle *handle = nullptr;
+
+	::size_t out_count    = 0;
+	bool     succeeded    = false;
+	int      result_errno = 0;
+
 	monitor().monitor([&] {
 
 		switch (stage) {
@@ -2207,10 +2219,12 @@ ssize_t Libc::Vfs_plugin::readlink(const char *link_path, char *buf, ::size_t bu
 
 		case Stage::COMPLETE_READ:
 			{
-				typedef Vfs::File_io_service::Read_result Result;
+				using Result = Vfs::File_io_service::Read_result;
+
+				Byte_range_ptr const dst { buf, buf_size };
 
 				Result out_result =
-					handle->fs().complete_read(handle, buf, buf_size, out_len);
+					handle->fs().complete_read(handle, dst, out_count);
 
 				switch (out_result) {
 				case Result::READ_QUEUED: return Fn::INCOMPLETE;;
@@ -2230,7 +2244,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *link_path, char *buf, ::size_t bu
 	if (!succeeded)
 		return Errno(result_errno);
 
-	return out_len;
+	return out_count;
 }
 
 

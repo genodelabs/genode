@@ -51,8 +51,7 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 				Single_vfs_handle(ds, fs, alloc, 0), _buffer(buffer)
 			{ }
 
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 			{
 				out_count = 0;
 
@@ -60,14 +59,14 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 					return READ_ERR_INVALID;
 
 				char const * const src = _buffer.string() + seek();
-				size_t const len = min((size_t)(_buffer.length() - seek()), (size_t)count);
-				Genode::memcpy(dst, src, len);
+				size_t const len = min(size_t(_buffer.length() - seek()), dst.num_bytes);
+				Genode::memcpy(dst.start, src, len);
 
 				out_count = len;
 				return READ_OK;
 			}
 
-			Write_result write(char const *, file_size, file_size &) override
+			Write_result write(Const_byte_range_ptr const &, size_t &) override
 			{
 				return WRITE_ERR_IO;
 			}

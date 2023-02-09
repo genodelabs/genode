@@ -84,8 +84,8 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				Block_vfs_handle(Block_vfs_handle const &);
 				Block_vfs_handle &operator = (Block_vfs_handle const &);
 
-				file_size _block_io(file_size nr, void *buf, file_size sz,
-				                    bool write, bool bulk = false)
+				size_t _block_io(file_size nr, void *buf, file_size sz,
+				                 bool write, bool bulk = false)
 				{
 					Block::Packet_descriptor::Opcode op;
 					op = write ? Block::Packet_descriptor::WRITE : Block::Packet_descriptor::READ;
@@ -164,22 +164,23 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 					_writeable(writeable)
 				{ }
 
-				Read_result read(char *dst, file_size count,
-				                 file_size &out_count) override
+				Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 				{
 					file_size seek_offset = seek();
 
-					file_size read = 0;
+					size_t count = dst.num_bytes;
+					size_t read = 0;
+
 					while (count > 0) {
 						file_size displ   = 0;
-						file_size length  = 0;
-						file_size nbytes  = 0;
 						file_size blk_nr  = seek_offset / _block_size;
+
+						size_t length = 0;
 
 						displ = seek_offset % _block_size;
 
 						if ((displ + count) > _block_size)
-							length = (_block_size - displ);
+							length = size_t(_block_size - displ);
 						else
 							length = count;
 
@@ -195,7 +196,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						if (displ == 0 && !(count < _block_size)) {
 							file_size bytes_left = count - (count % _block_size);
 
-							nbytes = _block_io(blk_nr, dst + read, bytes_left, false, true);
+							size_t const nbytes = _block_io(blk_nr, dst.start + read, bytes_left, false, true);
 							if (nbytes == 0) {
 								Genode::error("error while reading block:", blk_nr, " from block device");
 								return READ_ERR_INVALID;
@@ -208,13 +209,13 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 							continue;
 						}
 
-						nbytes = _block_io(blk_nr, _block_buffer, _block_size, false);
-						if ((unsigned)nbytes != _block_size) {
+						size_t const nbytes = _block_io(blk_nr, _block_buffer, _block_size, false);
+						if (nbytes != _block_size) {
 							Genode::error("error while reading block:", blk_nr, " from block device");
 							return READ_ERR_INVALID;
 						}
 
-						Genode::memcpy(dst + read, _block_buffer + displ, (size_t)length);
+						Genode::memcpy(dst.start + read, _block_buffer + displ, length);
 
 						read  += length;
 						count -= length;
@@ -227,8 +228,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 				}
 
-				Write_result write(char const *buf, file_size count,
-				                   file_size &out_count) override
+				Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 				{
 					if (!_writeable) {
 						Genode::error("block device is not writeable");
@@ -237,17 +237,19 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 					file_size seek_offset = seek();
 
-					file_size written = 0;
+					size_t written = 0;
+					size_t count = src.num_bytes;
+
 					while (count > 0) {
-						file_size displ   = 0;
-						file_size length  = 0;
-						file_size nbytes  = 0;
-						file_size blk_nr  = seek_offset / _block_size;
+						file_size displ  = 0;
+						file_size blk_nr = seek_offset / _block_size;
+
+						size_t length = 0;
 
 						displ = seek_offset % _block_size;
 
 						if ((displ + count) > _block_size)
-							length = (_block_size - displ);
+							length = size_t(_block_size - displ);
 						else
 							length = count;
 
@@ -263,8 +265,8 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						if (displ == 0 && !(count < _block_size)) {
 							file_size bytes_left = count - (count % _block_size);
 
-							nbytes = _block_io(blk_nr, (void*)(buf + written),
-							                   bytes_left, true, true);
+							size_t const nbytes = _block_io(blk_nr, (void*)(src.start + written),
+							                                bytes_left, true, true);
 							if (nbytes == 0) {
 								Genode::error("error while write block:", blk_nr, " to block device");
 								return WRITE_ERR_INVALID;
@@ -287,10 +289,10 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						if (displ > 0 || length < _block_size)
 							_block_io(blk_nr, _block_buffer, _block_size, false);
 
-						Genode::memcpy(_block_buffer + displ, buf + written, (size_t)length);
+						Genode::memcpy(_block_buffer + displ, src.start + written, length);
 
-						nbytes = _block_io(blk_nr, _block_buffer, _block_size, true);
-						if ((unsigned)nbytes != _block_size) {
+						size_t const nbytes = _block_io(blk_nr, _block_buffer, _block_size, true);
+						if (nbytes != _block_size) {
 							Genode::error("error while writing block:", blk_nr, " to block_device");
 							return WRITE_ERR_INVALID;
 						}

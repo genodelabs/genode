@@ -65,14 +65,13 @@ struct Crypto : Cbe_crypto::Interface
 
 	bool _submit_request(uint64_t const  block_number,
 	                     uint32_t const  /* key_id */,
-	                     char     const *src,
-	                     size_t   const  src_len)
+	                     Const_byte_range_ptr const &src)
 	{
 		if (_request.pending) {
 			return false;
 		}
 
-		if (src_len < sizeof (_internal_buffer)) {
+		if (src.num_bytes < sizeof (_internal_buffer)) {
 			error("buffer too small");
 			throw Buffer_too_small();
 		}
@@ -80,30 +79,29 @@ struct Crypto : Cbe_crypto::Interface
 		_request.pending      = true;
 		_request.block_number = block_number;
 
-		Genode::memcpy(_internal_buffer, src, sizeof (_internal_buffer));
+		Genode::memcpy(_internal_buffer, src.start, sizeof (_internal_buffer));
 		return true;
 	}
 
 	bool submit_encryption_request(uint64_t const  block_number,
 	                               uint32_t const  key_id,
-	                               char     const *src,
-	                               size_t   const  src_len) override
+	                               Const_byte_range_ptr const &src) override
 	{
-		return _submit_request(block_number, key_id, src, src_len);
+		return _submit_request(block_number, key_id, src);
 	}
 
-	Complete_request _request_complete(char *dst, size_t const dst_len)
+	Complete_request _request_complete(Byte_range_ptr const &dst)
 	{
 		if (!_request.pending) {
 			return Complete_request { .valid = false, .block_number = 0 };
 		}
 
-		if (dst_len < sizeof (_internal_buffer)) {
+		if (dst.num_bytes < sizeof (_internal_buffer)) {
 			error("buffer too small");
 			throw Buffer_too_small();
 		}
 
-		Genode::memcpy(dst, _internal_buffer, sizeof (_internal_buffer));
+		Genode::memcpy(dst.start, _internal_buffer, sizeof (_internal_buffer));
 
 		_request.pending = false;
 
@@ -112,22 +110,21 @@ struct Crypto : Cbe_crypto::Interface
 			.block_number = _request.block_number };
 	}
 
-	Complete_request encryption_request_complete(char *dst, size_t const dst_len) override
+	Complete_request encryption_request_complete(Byte_range_ptr const &dst) override
 	{
-		return _request_complete(dst, dst_len);
+		return _request_complete(dst);
 	}
 
 	bool submit_decryption_request(uint64_t const  block_number,
 	                               uint32_t const  key_id,
-	                               char     const *src,
-	                               size_t   const  src_len) override
+	                               Const_byte_range_ptr const &src) override
 	{
-		return _submit_request(block_number, key_id, src, src_len);
+		return _submit_request(block_number, key_id, src);
 	}
 
-	Complete_request decryption_request_complete(char *dst, size_t dst_len) override
+	Complete_request decryption_request_complete(Byte_range_ptr const &dst) override
 	{
-		return _request_complete(dst, dst_len);
+		return _request_complete(dst);
 	}
 };
 

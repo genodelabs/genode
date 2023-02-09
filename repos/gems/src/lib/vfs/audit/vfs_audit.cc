@@ -218,15 +218,14 @@ class Vfs_audit::File_system : public Vfs::File_system
 		 **********************/
 
 		Write_result write(Vfs_handle *vfs_handle,
-		                   const char *buf, file_size len,
-		                   file_size &out) override
+		                   Const_byte_range_ptr const &src, size_t &out) override
 		{
 			Handle &h = *static_cast<Handle*>(vfs_handle);
 			h.sync_state();
-			Write_result const result = h.audit->fs().write(h.audit, buf, len, out);
+			Write_result const result = h.audit->fs().write(h.audit, src, out);
 
 			if (result == WRITE_OK)
-				_log("wrote to ", h.path, " ", out, " / ", len);
+				_log("wrote to ", h.path, " ", out, " / ", src.num_bytes);
 			else if (result == WRITE_ERR_WOULD_BLOCK)
 				_log("write stalled for ", h.path);
 			else
@@ -235,7 +234,7 @@ class Vfs_audit::File_system : public Vfs::File_system
 			return result;
 		}
 
-		bool queue_read(Vfs_handle *vfs_handle, file_size len) override
+		bool queue_read(Vfs_handle *vfs_handle, size_t len) override
 		{
 			Handle &h = *static_cast<Handle*>(vfs_handle);
 			h.sync_state();
@@ -244,13 +243,12 @@ class Vfs_audit::File_system : public Vfs::File_system
 		}
 
 		Read_result complete_read(Vfs_handle *vfs_handle,
-		                          char *buf, file_size len,
-		                          file_size &out) override
+		                          Byte_range_ptr const &dst, size_t &out) override
 		{
 			Handle &h = *static_cast<Handle*>(vfs_handle);
 			h.sync_state();
 
-			Read_result const result = h.audit->fs().complete_read(h.audit, buf, len, out);
+			Read_result const result = h.audit->fs().complete_read(h.audit, dst, out);
 
 			if (result == READ_OK)
 				_log("completed read from ", h.path, " ", out);

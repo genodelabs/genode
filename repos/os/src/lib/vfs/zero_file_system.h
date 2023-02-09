@@ -48,35 +48,35 @@ struct Vfs::Zero_file_system : Single_file_system
 			_size(size)
 		{ }
 
-		Read_result read(char *dst, file_size count,
-		                 file_size &out_count) override
+		Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 		{
+			size_t count = dst.num_bytes;
+
 			if (_size) {
 
 				/* current read offset */
 				file_size const read_offset = seek();
 
 				/* maximum read offset */
-				file_size const end_offset = min(count + read_offset, _size);
+				file_size const end_offset = min(dst.num_bytes + read_offset, _size);
 
 				if (read_offset >= end_offset) {
 					out_count = 0;
 					return READ_OK;
 				}
-
-				count = end_offset - read_offset;
+				count = size_t(end_offset - read_offset);
 			}
 
-			memset(dst, 0, (size_t)count);
+			memset(dst.start, 0, count);
+
 			out_count = count;
 
 			return READ_OK;
 		}
 
-		Write_result write(char const *, file_size count,
-		                   file_size &out_count) override
+		Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
 		{
-			out_count = count;
+			out_count = src.num_bytes;
 
 			return WRITE_OK;
 		}
