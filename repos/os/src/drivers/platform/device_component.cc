@@ -31,8 +31,20 @@ void Driver::Device_component::_release_resources()
 	_io_port_range_registry.for_each([&] (Io_port_range & iop) {
 		destroy(_session.heap(), &iop); });
 
+	/* remove reserved memory ranges from IOMMU domains */
+	_session.domain_registry().for_each_domain(
+		[&] (Driver::Io_mmu::Domain & domain) {
+			_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
+				domain.remove_range(iomem.range);
+		});
+	});
+
 	_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
-		destroy(_session.heap(), &iomem); });
+		/* unreserve at dma allocator */
+		_session.dma_allocator().unreserve(iomem.range.start, iomem.range.size);
+
+		destroy(_session.heap(), &iomem);
+	});
 
 	if (_pci_config.constructed()) _pci_config.destruct();
 
@@ -219,9 +231,30 @@ Device_component::Device_component(Registry<Device_component> & registry,
 				Io_mem(_reserved_mem_registry, {0}, idx, range, false));
 			iomem.io_mem.construct(_env, iomem.range.start,
 			                       iomem.range.size, false);
-			session.device_pd().attach_dma_mem(iomem.io_mem->dataspace(),
-			                                   iomem.range.start, true);
+
+			/*  reserve memory at dma allocator */
+			session.dma_allocator().reserve(iomem.range.start, iomem.range.size);
 		});
+
+		auto add_range_fn = [&] (Driver::Io_mmu::Domain & domain) {
+			_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
+				domain.add_range(iomem.range, iomem.io_mem->dataspace());
+			});
+		};
+
+		/* attach reserved memory ranges to IOMMU domains */
+		device.for_each_io_mmu(
+			/* non-empty list fn */
+			[&] (Driver::Device::Io_mmu const &io_mmu) {
+				session.domain_registry().with_domain(io_mmu.name,
+				                                      add_range_fn,
+				                                      [&] () { }); },
+
+			/* empty list fn */
+			[&] () {
+				session.domain_registry().with_default_domain(add_range_fn); }
+		);
+
 	} catch(...) {
 		_release_resources();
 		throw;

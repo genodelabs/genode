@@ -25,9 +25,9 @@
 #include <platform_session/platform_session.h>
 
 #include <device_component.h>
-#include <device_pd.h>
 #include <device_owner.h>
 #include <io_mmu.h>
+#include <io_mmu_domain_registry.h>
 
 namespace Driver {
 	class Session_component;
@@ -61,14 +61,16 @@ class Driver::Session_component
 
 		~Session_component();
 
-		Heap      & heap();
-		Device_pd & device_pd();
+		Heap                   & heap();
+		Io_mmu_domain_registry & domain_registry();
+		Dma_allocator          & dma_allocator();
 
 		bool matches(Device const &) const;
 
 		Ram_quota_guard & ram_quota_guard() { return _ram_quota_guard(); }
 		Cap_quota_guard & cap_quota_guard() { return _cap_quota_guard(); }
 
+		void update_io_mmu_devices();
 		void update_policy(bool info, Policy_version version);
 
 		/**************************
@@ -98,16 +100,6 @@ class Driver::Session_component
 
 		friend class Root;
 
-		struct Dma_buffer : Registry<Dma_buffer>::Element
-		{
-			Ram_dataspace_capability const cap;
-			addr_t dma_addr { 0 };
-
-			Dma_buffer(Registry<Dma_buffer> & registry,
-			           Ram_dataspace_capability const cap)
-			: Registry<Dma_buffer>::Element(registry, *this), cap(cap) {}
-		};
-
 		Env                          & _env;
 		Attached_rom_dataspace const & _config;
 		Device_model                 & _devices;
@@ -119,7 +111,7 @@ class Driver::Session_component
 		                                              _cap_quota_guard()  };
 		Heap                           _md_alloc    { _env_ram, _env.rm() };
 		Registry<Device_component>     _device_registry { };
-		Registry<Dma_buffer>           _buffer_registry { };
+		Io_mmu_domain_registry         _domain_registry { };
 		Dynamic_rom_session            _rom_session { _env.ep(), _env.ram(),
 		                                              _env.rm(), *this    };
 		bool                           _info;
@@ -130,17 +122,17 @@ class Driver::Session_component
 		                                            _ram_quota_guard(),
 		                                            _cap_quota_guard(),
 		                                            _iommu };
+		Dma_allocator                  _dma_allocator { _md_alloc, _iommu };
 
 		Device_capability _acquire(Device & device);
 		void              _release_device(Device_component & dc);
 		void              _free_dma_buffer(Dma_buffer & buf);
-		
+
 		/*
 		 * Noncopyable
 		 */
 		Session_component(Session_component const &);
 		Session_component &operator = (Session_component const &);
-
 
 		/*******************************************
 		 ** Dynamic_rom_session::Xml_producer API **
