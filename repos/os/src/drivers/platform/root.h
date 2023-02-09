@@ -31,6 +31,7 @@ class Driver::Root : public Root_component<Session_component>
 		     Sliced_heap                  & sliced_heap,
 		     Attached_rom_dataspace const & config,
 		     Device_model                 & devices,
+		     Io_mmu_devices               & io_mmu_devices,
 		     bool const                     iommu);
 
 		void update_policy();
@@ -44,6 +45,7 @@ class Driver::Root : public Root_component<Session_component>
 		Env                          & _env;
 		Attached_rom_dataspace const & _config;
 		Device_model                 & _devices;
+		Io_mmu_devices               & _io_mmu_devices;
 		bool const                     _iommu;
 		Registry<Session_component>    _sessions {};
 };

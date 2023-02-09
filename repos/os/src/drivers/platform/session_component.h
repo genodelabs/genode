@@ -27,6 +27,7 @@
 #include <device_component.h>
 #include <device_pd.h>
 #include <device_owner.h>
+#include <io_mmu.h>
 
 namespace Driver {
 	class Session_component;
@@ -50,6 +51,7 @@ class Driver::Session_component
 		                  Attached_rom_dataspace const & config,
 		                  Device_model                 & devices,
 		                  Session_registry             & registry,
+		                  Io_mmu_devices               & io_mmu_devices,
 		                  Label            const       & label,
 		                  Resources        const       & resources,
 		                  Diag             const       & diag,
@@ -109,6 +111,8 @@ class Driver::Session_component
 		Env                          & _env;
 		Attached_rom_dataspace const & _config;
 		Device_model                 & _devices;
+
+		Io_mmu_devices               & _io_mmu_devices;
 		Device::Owner                  _owner_id    { *this };
 		Constrained_ram_allocator      _env_ram     { _env.pd(),
 		                                              _ram_quota_guard(),

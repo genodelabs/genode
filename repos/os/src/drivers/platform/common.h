@@ -167,7 +167,7 @@ Driver::Common::Common(Genode::Env                  & env,
 	_env(env),
 	_rom_name(config_rom.xml().attribute_value("devices_rom",
 	                                           String<64>("devices"))),
-	_root(_env, _sliced_heap, config_rom, _devices, _iommu())
+	_root(_env, _sliced_heap, config_rom, _devices, _io_mmu_devices, _iommu())
 {
 	_devices_rom.sigh(_dev_handler);
 	_handle_devices();

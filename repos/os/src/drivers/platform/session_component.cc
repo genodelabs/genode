@@ -264,6 +264,7 @@ Session_component::Session_component(Env                          & env,
                                      Attached_rom_dataspace const & config,
                                      Device_model                 & devices,
                                      Session_registry             & registry,
+                                     Io_mmu_devices               & io_mmu_devices,
                                      Label          const         & label,
                                      Resources      const         & resources,
                                      Diag           const         & diag,
@@ -274,7 +275,8 @@ Session_component::Session_component(Env                          & env,
 	Session_object<Platform::Session>(env.ep(), resources, label, diag),
 	Session_registry::Element(registry, *this),
 	Dynamic_rom_session::Xml_producer("devices"),
-	_env(env), _config(config), _devices(devices), _info(info), _version(version),
+	_env(env), _config(config), _devices(devices),
+	_io_mmu_devices(io_mmu_devices), _info(info), _version(version),
 	_iommu(iommu)
 {
 	/*

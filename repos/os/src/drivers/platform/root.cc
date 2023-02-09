@@ -42,7 +42,8 @@ Driver::Session_component * Driver::Root::_create_session(const char *args)
 		Session_policy const policy { label, _config.xml()      };
 
 		sc = new (md_alloc())
-			Session_component(_env, _config, _devices, _sessions, label,
+			Session_component(_env, _config, _devices, _sessions, _io_mmu_devices,
+			                  label,
 			                  session_resources_from_args(args),
 			                  session_diag_from_args(args),
 			                  policy.attribute_value("info", false),
@@ -72,6 +73,9 @@ Driver::Root::Root(Env                          & env,
                    Sliced_heap                  & sliced_heap,
                    Attached_rom_dataspace const & config,
                    Device_model                 & devices,
+                   Io_mmu_devices               & io_mmu_devices,
                    bool const                     iommu)
 : Root_component<Session_component>(env.ep(), sliced_heap),
-  _env(env), _config(config), _devices(devices), _iommu(iommu) { }
+  _env(env), _config(config), _devices(devices),
+  _io_mmu_devices(io_mmu_devices), _iommu(iommu)
+{ }
