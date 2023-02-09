@@ -874,20 +874,14 @@ int lima_drm_ioctl(unsigned long request, void *arg)
 	if (verbose_ioctl)
 		dump_ioctl(request);
 
-	try {
-		int ret = _drm->ioctl(request, arg);
+	int const ret = _drm->ioctl(request, arg);
 
-		if (verbose_ioctl)
-			Genode::log("returned ", ret);
-
-		pthread_mutex_unlock(&ioctl_mutex);
-
-		return ret;
-	} catch (...) { }
+	if (verbose_ioctl)
+		Genode::log("returned ", ret);
 
 	pthread_mutex_unlock(&ioctl_mutex);
 
-	return -1;
+	return ret;
 }
 
 
