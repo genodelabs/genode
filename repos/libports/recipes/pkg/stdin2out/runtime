@@ -1,0 +1,12 @@
+<runtime ram="2M" caps="100" binary="stdin2out">
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="stdin2out"/>
+		<rom label="posix.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="vfs.lib.so"/>
+	</content>
+
+</runtime>
