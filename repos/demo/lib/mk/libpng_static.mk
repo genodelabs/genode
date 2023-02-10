@@ -7,6 +7,9 @@ LIBS    = mini_c libz_static
 
 CC_WARN = -Wall -Wno-address -Wno-misleading-indentation
 
+# silent strncpy warnings in the PNG contrib code
+CC_C_OPT += -Wno-stringop-truncation
+
 vpath % $(REP_DIR)/src/lib/libpng/contrib
 
 include $(REP_DIR)/lib/import/import-libpng_static.mk
