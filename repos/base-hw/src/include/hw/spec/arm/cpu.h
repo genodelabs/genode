@@ -16,7 +16,10 @@
 
 #include <hw/spec/arm/register_macros.h>
 
-namespace Hw { struct Arm_cpu; }
+namespace Hw { struct Arm_cpu; struct Suspend_type; }
+
+
+struct Hw::Suspend_type { };
 
 
 struct Hw::Arm_cpu

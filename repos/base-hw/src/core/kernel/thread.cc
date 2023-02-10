@@ -169,7 +169,7 @@ Thread::Destroy::Destroy(Thread & caller, Genode::Kernel_object<Thread> & to_del
 
 
 void
-Thread::Destroy::execute()
+Thread::Destroy::execute(Cpu &)
 {
 	thread_to_destroy->_cpu->work_list().remove(&_le);
 	thread_to_destroy.destruct();

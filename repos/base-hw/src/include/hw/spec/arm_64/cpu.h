@@ -31,7 +31,10 @@
 	};
 
 
-namespace Hw { struct Arm_64_cpu; }
+namespace Hw { struct Arm_64_cpu; struct Suspend_type; }
+
+
+struct Hw::Suspend_type { };
 
 
 struct Hw::Arm_64_cpu

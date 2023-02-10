@@ -16,7 +16,10 @@
 
 #include <hw/spec/riscv/register_macros.h>
 
-namespace Hw { struct Riscv_cpu; }
+namespace Hw { struct Riscv_cpu; struct Suspend_type; }
+
+
+struct Hw::Suspend_type { };
 
 
 struct Hw::Riscv_cpu

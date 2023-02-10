@@ -32,7 +32,7 @@ class Kernel::Inter_processor_work : Genode::Interface
 {
 	public:
 
-		virtual void execute() = 0;
+		virtual void execute(Cpu &) = 0;
 
 	protected:
 

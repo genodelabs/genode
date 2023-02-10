@@ -16,7 +16,19 @@
 
 #include <hw/spec/x86_64/register_macros.h>
 
-namespace Hw { struct X86_64_cpu; }
+namespace Hw { struct X86_64_cpu; struct Suspend_type; }
+
+
+/*
+ * The intended sleep state S0 ... S5. The values are read out by an
+ * ACPI AML component and are of type TYP_SLPx as described in the
+ * ACPI specification, e.g. TYP_SLPa and TYP_SLPb. The values differ
+ * between different PC systems/boards.
+ */
+struct Hw::Suspend_type {
+	Genode::uint8_t typ_a;
+	Genode::uint8_t typ_b;
+};
 
 
 struct Hw::X86_64_cpu
@@ -95,6 +107,8 @@ struct Hw::X86_64_cpu
 	X86_64_CPUID_REGISTER(Cpuid_1_edx, 1, edx,
 		struct Pat : Bitfield<16, 1> { };
 	);
+
+	Suspend_type suspend;
 };
 
 #endif /* _SRC__LIB__HW__SPEC__X86_64__CPU_H_ */

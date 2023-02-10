@@ -19,7 +19,7 @@
 #include <kernel/pd.h>
 
 
-void Kernel::Thread::Tlb_invalidation::execute()
+void Kernel::Thread::Tlb_invalidation::execute(Cpu &)
 {
 	/* invalidate cpu-local TLB */
 	Cpu::invalidate_tlb();
@@ -30,6 +30,9 @@ void Kernel::Thread::Tlb_invalidation::execute()
 		caller._restart();
 	}
 };
+
+
+void Kernel::Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
 void Kernel::Thread::_call_cache_coherent_region() { }

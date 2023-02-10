@@ -19,12 +19,12 @@ using namespace Kernel;
 void Cpu::Ipi::occurred()
 {
 	/* lambda to iterate over a work-list and execute all work items */
-	auto iterate = [] (Genode::List<Genode::List_element<Inter_processor_work>> & li) {
+	auto iterate = [&] (Genode::List<Genode::List_element<Inter_processor_work>> & li) {
 		Genode::List_element<Inter_processor_work> const *e = li.first();
 		Genode::List_element<Inter_processor_work> const *next = nullptr;
 		for ( ; e; e = next) {
 			next = e->next();
-			e->object()->execute();
+			e->object()->execute(cpu);
 		}
 	};
 

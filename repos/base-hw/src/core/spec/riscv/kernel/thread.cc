@@ -19,7 +19,10 @@
 using namespace Kernel;
 
 
-void Thread::Tlb_invalidation::execute() {}
+void Thread::Tlb_invalidation::execute(Cpu &) { }
+
+
+void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
 void Thread::exception(Cpu & cpu)

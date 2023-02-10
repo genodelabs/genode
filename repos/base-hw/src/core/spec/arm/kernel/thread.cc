@@ -62,7 +62,10 @@ void Thread::exception(Cpu & cpu)
  * coprocessor registers (there might be ARM SoCs where this is not valid,
  * with several shareability domains, but until now we do not support them)
  */
-void Kernel::Thread::Tlb_invalidation::execute() { };
+void Kernel::Thread::Tlb_invalidation::execute(Cpu &) { }
+
+
+void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
 void Thread::proceed(Cpu & cpu)
