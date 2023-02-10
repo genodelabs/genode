@@ -42,7 +42,7 @@ class Test_thread
 			Env             &env,
 			TYPE            &object,
 			Method           method,
-			unsigned long    cpu_idx,
+			int              cpu_idx,
 			Affinity::Space  affinity_space)
 		:
 			Thread {
@@ -80,7 +80,7 @@ class Test_smp_2
 		unsigned long       _count_3            { 0 };
 		unsigned long       _count_4            { 0 };
 		unsigned long       _count_5            { 0 };
-		unsigned long       _cpu_idx            { 1 };
+		int                 _cpu_idx            { 1 };
 		bool volatile       _timeouts_discarded { false };
 		bool                _done_called        { false };
 		Mutex               _done_mutex         { };
@@ -211,7 +211,7 @@ class Test_smp_1
 
 		Env                      &_env;
 		unsigned long            &_nr_of_errors;
-		unsigned long             _cpu_idx { 1 };
+		int                       _cpu_idx { 1 };
 		bool                      _max_nr_of_handle_calls_reached { false };
 		Timer::Connection         _timeout_timer { _env };
 		Timer::Connection         _sleep_timer { _env };
