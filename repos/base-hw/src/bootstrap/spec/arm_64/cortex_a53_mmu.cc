@@ -64,7 +64,7 @@ static inline void prepare_hypervisor(Cpu::Ttbr::access_t const ttbr,
 	using namespace Hw::Mm;
 
 	/* forbid trace access */
-	Cpu::Cptr_el2::access_t cptr = Cpu::Cptr_el2::read();
+	Cpu::Cptr_el2::access_t cptr = 0;
 	Cpu::Cptr_el2::Tta::set(cptr, 1);
 	Cpu::Cptr_el2::write(cptr);
 
@@ -74,7 +74,7 @@ static inline void prepare_hypervisor(Cpu::Ttbr::access_t const ttbr,
 	/* forbid any 32bit access to coprocessor/sysregs */
 	Cpu::Hstr_el2::write(0xffff);
 
-	Cpu::Hcr_el2::access_t hcr = Cpu::Hcr_el2::read();
+	Cpu::Hcr_el2::access_t hcr = 0;
 	Cpu::Hcr_el2::Rw::set(hcr, 1); /* exec in aarch64 */
 	Cpu::Hcr_el2::write(hcr);
 
