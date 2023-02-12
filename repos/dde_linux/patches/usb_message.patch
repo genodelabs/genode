@@ -1,0 +1,19 @@
++++ src/linux/drivers/usb/core/message.c
+@@ -869,7 +869,7 @@
+ 	}
+ }
+ 
+-static int usb_string_sub(struct usb_device *dev, unsigned int langid,
++int usb_string_sub(struct usb_device *dev, unsigned int langid,
+ 			  unsigned int index, unsigned char *buf)
+ {
+ 	int rc;
+@@ -906,7 +906,7 @@
+ 	return rc;
+ }
+ 
+-static int usb_get_langid(struct usb_device *dev, unsigned char *tbuf)
++int usb_get_langid(struct usb_device *dev, unsigned char *tbuf)
+ {
+ 	int err;
+ 

@@ -340,6 +340,68 @@ handle_return_code(struct genode_usb_request_urb req, void * data)
 };
 
 
+extern int usb_get_langid(struct usb_device *dev, unsigned char *tbuf);
+extern int usb_string_sub(struct usb_device *dev, unsigned int langid, int index, unsigned char *tbuf);
+
+/**
+ * usb_string_utf16 - returns the string descriptor
+ * @dev: the device whose string descriptor is being retrieved
+ * @index: the number of the descriptor
+ * @buf: where to put the string
+ * @size: how big is "buf"?
+ *
+ * Context: task context, might sleep.
+ *
+ * This returns the UTF-16LE encoded strings returned by devices, from
+ * usb_get_string_descriptor().  Note that this function
+ * chooses strings in the first language supported by the device.
+ *
+ * This call is synchronous, and may not be used in an interrupt context.
+ *
+ * Return: length of the string (>= 0) or usb_control_msg status (< 0).
+ */
+static int usb_string_utf16(struct usb_device *dev, int index, char *buf, size_t size)
+{
+	unsigned char *tbuf;
+	int err;
+	size_t len;
+	if (dev->state == USB_STATE_SUSPENDED)
+		return -EHOSTUNREACH;
+	if (size <= 2 || buf == NULL)
+		return -EINVAL;
+	buf[0] = 0;
+	if (index <= 0 || index >= 256)
+		return -EINVAL;
+	tbuf = kmalloc(256, GFP_NOIO);
+	if (!tbuf)
+		return -ENOMEM;
+
+	err = usb_get_langid(dev, tbuf);
+	if (err < 0)
+		goto errout;
+
+	err = usb_string_sub(dev, dev->string_langid, index, tbuf);
+	if (err < 0)
+		goto errout;
+
+	len = min(size-2, (size_t)err);
+	memcpy(buf, tbuf+2, len);
+
+	buf[len] = 0;
+	buf[len+1] = 0;
+	err = len + 2;
+
+	if (tbuf[1] != USB_DT_STRING)
+		dev_dbg(&dev->dev,
+			"wrong descriptor type %02x for string %d (\"%s\")\n",
+			tbuf[1], index, buf);
+
+ errout:
+	kfree(tbuf);
+	return err;
+}
+
+
 static void
 handle_string_request(struct genode_usb_request_string * req,
                       genode_usb_session_handle_t        session,
@@ -351,7 +413,7 @@ handle_string_request(struct genode_usb_request_string * req,
 	struct usb_device * udev = (struct usb_device *) data;
 	genode_usb_request_ret_t ret = UNKNOWN_ERROR;
 
-	int length = usb_string(udev, req->index, buf, size);
+	int length = usb_string_utf16(udev, req->index, buf, size);
 	if (length < 0) {
 		printk("Could not read string descriptor index: %u\n", req->index);
 		req->length = 0;
