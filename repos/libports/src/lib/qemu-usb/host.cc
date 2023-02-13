@@ -162,15 +162,16 @@ struct Completion : Usb::Completion
 
 		p->actual_length = 0;
 
-		if (p->pid == USB_TOKEN_IN && actual_size > 0) {
-			if (data) Genode::memcpy(data, content, actual_size);
-			else      usb_packet_copy(p, content, actual_size);
-		}
+		if (packet.succeded) {
 
-		p->actual_length = actual_size;
+			if (p->pid == USB_TOKEN_IN && actual_size > 0) {
+				if (data) Genode::memcpy(data, content, actual_size);
+				else      usb_packet_copy(p, content, actual_size);
+			}
 
-		if (packet.succeded)
+			p->actual_length = actual_size;
 			p->status = USB_RET_SUCCESS;
+		}
 		else {
 			if (packet.error == Packet_error::STALL_ERROR)
 				p->status = USB_RET_STALL;
