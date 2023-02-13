@@ -11,10 +11,12 @@ DIR(linux) := src/linux
 #
 PATCH_FILES := i915_irq.patch i915_alderlake.patch xhci_fix_event_37.patch \
                xhci_abort_ring.patch iwlwifi_enable_irq_before_pnvm.patch \
-               realloc-fix-gcc-12.patch
+               realloc-fix-gcc-12.patch \
+               workqueue_deadlock.patch
 PATCHES += $(addprefix patches/,$(PATCH_FILES))
 
 # i915
 PATCH_OPT(patches/i915_irq.patch) := -p1 -d${DIR(linux)}
 PATCH_OPT(patches/xhci_abort_ring.patch) := -p1 -d${DIR(linux)}
 PATCH_OPT(patches/xhci_fix_event_37.patch) := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/workqueue_deadlock.patch) := -p1 -d${DIR(linux)}
