@@ -368,3 +368,12 @@ void pci_disable_device(struct pci_dev * dev)
 {
 	lx_emul_trace(__func__);
 }
+
+
+#include <linux/leds.h>
+#include <../net/mac80211/ieee80211_i.h> /* struct ieee80211_local */
+
+void ieee80211_free_led_names(struct ieee80211_local * local)
+{
+	lx_emul_trace(__func__);
+}

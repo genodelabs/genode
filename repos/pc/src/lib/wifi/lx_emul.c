@@ -691,3 +691,10 @@ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
 
 	return lx_emul_io_mem_map(phys_addr, size);
 }
+
+
+int pci_read_config_dword(const struct pci_dev * dev,int where,u32 * val)
+{
+	*val = 0;
+	return 0;
+}

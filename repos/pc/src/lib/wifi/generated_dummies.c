@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-07-29
+ * \date   2023-02-28
  */
 
 #include <lx_emul.h>
@@ -700,14 +700,6 @@ int open_related_ns(struct ns_common * ns,struct ns_common * (* get_ns)(struct n
 #include <linux/reboot.h>
 
 enum reboot_mode panic_reboot_mode;
-
-
-#include <linux/pci.h>
-
-int pci_read_config_dword(const struct pci_dev * dev,int where,u32 * val)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/pci.h>
