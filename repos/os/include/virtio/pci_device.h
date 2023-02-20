@@ -45,11 +45,11 @@ struct Virtio::Device_mmio : public Genode::Mmio
 	struct QueueUsedLow        : Register<0x30, 32> { };
 	struct QueueUsedHigh       : Register<0x34, 32> { };
 
-	struct Config_8            : Register_array<0x0,  8, 256, 8>  { };
-	struct Config_16           : Register_array<0x0, 16, 128, 16> { };
-	struct Config_32           : Register_array<0x0, 32,  64, 32> { };
+	template <typename T> class Config :
+		public Register_array<0x0, sizeof(T)*8,
+		                      256/sizeof(T), sizeof(T)*8> {};
 
-	struct IrqReason           : Register<0x0, 32> { };
+	struct IrqReason : Register<0x0, 32> { };
 
 	using Mmio::Mmio;
 };
@@ -184,32 +184,19 @@ class Virtio::Device
 			return _cfg_common.read<Device_mmio::QueueSize>();
 		}
 
-		uint32_t read_config(uint8_t offset, Access_size size)
+		template <typename T>
+		T read_config(const uint8_t offset)
 		{
-			switch (size) {
-			case Device::ACCESS_8BIT:
-				return _dev_config.read<Device_mmio::Config_8>(offset);
-			case Device::ACCESS_16BIT:
-				return _dev_config.read<Device_mmio::Config_16>(offset >> 1);
-			case Device::ACCESS_32BIT:
-				return _dev_config.read<Device_mmio::Config_32>(offset >> 2);
-			}
-			return 0;
+			static_assert(sizeof(T) <= 4);
+			return _dev_config.read<Device_mmio::Config<T>>(offset >> log2(sizeof(T)));
 		}
 
-		void write_config(uint8_t offset, Access_size size, uint32_t value)
+		template <typename T>
+		void write_config(const uint8_t offset, const T value)
 		{
-			switch (size) {
-			case Device::ACCESS_8BIT:
-				_dev_config.write<Device_mmio::Config_8>(value, offset);
-				break;
-			case Device::ACCESS_16BIT:
-				_dev_config.write<Device_mmio::Config_16>(value, offset >> 1);
-				break;
-			case Device::ACCESS_32BIT:
-				_dev_config.write<Device_mmio::Config_32>(value, offset >> 2);
-				break;
-			}
+			static_assert(sizeof(T) <= 4);
+			_dev_config.write<Device_mmio::Config<T>>(value,
+			                  (offset >> log2(sizeof(T))));
 		}
 
 		bool configure_queue(uint16_t queue_index, Virtio::Queue_description desc)

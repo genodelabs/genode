@@ -252,9 +252,9 @@ class Virtio_input::Driver
 
 		static size_t _cfg_select(Virtio::Device &device, Config_id sel, uint8_t subsel)
 		{
-			device.write_config(Config::SelectID, Virtio::Device::ACCESS_8BIT, sel);
-			device.write_config(Config::SelectSubID, Virtio::Device::ACCESS_8BIT, subsel);
-			return device.read_config(Config::Data_size, Virtio::Device::ACCESS_8BIT);
+			device.write_config(Config::SelectID, sel);
+			device.write_config(Config::SelectSubID, subsel);
+			return device.read_config<uint8_t>(Config::Data_size);
 		}
 
 
@@ -265,14 +265,14 @@ class Virtio_input::Driver
 
 			auto size = _cfg_select(device, Config_id::Abs_info, Event::Code::Abs_x);
 			if (size >= sizeof(cfg.x)) {
-				cfg.x.min = device.read_config(Config::Data, Virtio::Device::ACCESS_32BIT);
-				cfg.x.max = device.read_config(Config::Data + 4, Virtio::Device::ACCESS_32BIT);
+				cfg.x.min = device.read_config<uint32_t>(Config::Data);
+				cfg.x.max = device.read_config<uint32_t>(Config::Data + 4);
 			}
 
 			size = _cfg_select(device, Config_id::Abs_info, Event::Code::Abs_y);
 			if (size >= sizeof(cfg.y)) {
-				cfg.y.min = device.read_config(Config::Data, Virtio::Device::ACCESS_32BIT);
-				cfg.y.max = device.read_config(Config::Data + 4, Virtio::Device::ACCESS_32BIT);
+				cfg.y.min = device.read_config<uint32_t>(Config::Data);
+				cfg.y.max = device.read_config<uint32_t>(Config::Data + 4);
 			}
 
 			cfg.width = config.attribute_value("width", cfg.x.max);
@@ -292,10 +292,10 @@ class Virtio_input::Driver
 				throw Device_init_failed();
 			}
 
-			device_id.bus_type = (uint16_t)device.read_config(Config::Data + 0, Virtio::Device::ACCESS_16BIT);
-			device_id.vendor   = (uint16_t)device.read_config(Config::Data + 2, Virtio::Device::ACCESS_16BIT);
-			device_id.product  = (uint16_t)device.read_config(Config::Data + 4, Virtio::Device::ACCESS_16BIT);
-			device_id.version  = (uint16_t)device.read_config(Config::Data + 6, Virtio::Device::ACCESS_16BIT);
+			device_id.bus_type = device.read_config<uint16_t>(Config::Data + 0);
+			device_id.vendor   = device.read_config<uint16_t>(Config::Data + 2);
+			device_id.product  = device.read_config<uint16_t>(Config::Data + 4);
+			device_id.version  = device.read_config<uint16_t>(Config::Data + 6);
 
 			return device_id;
 		}
@@ -311,7 +311,7 @@ class Virtio_input::Driver
 			memset(buf, 0, sizeof(buf));
 
 			for (unsigned i = 0; i < size; ++i)
-				buf[i] = (uint8_t)device.read_config((uint8_t)(Config::Data + i), Virtio::Device::ACCESS_8BIT);
+				buf[i] = device.read_config<uint8_t>((uint8_t)(Config::Data + i));
 
 			return String<SZ>(buf);
 		}

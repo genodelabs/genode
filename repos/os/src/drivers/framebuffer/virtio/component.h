@@ -226,8 +226,7 @@ class Virtio_fb::Driver
 			uint32_t num_scanouts;
 			uint32_t before = 0, after = 0;
 			do {
-				num_scanouts = device.read_config(
-					Config::NUM_SCANOUTS, Virtio::Device::ACCESS_32BIT);
+				num_scanouts = device.read_config<uint32_t>(Config::NUM_SCANOUTS);
 			} while (after != before);
 			return num_scanouts;
 		}
@@ -237,12 +236,10 @@ class Virtio_fb::Driver
 			uint32_t events;
 			uint32_t before = 0, after = 0;
 			do {
-				events = _device.read_config(
-					Config::EVENTS_READ, Virtio::Device::ACCESS_32BIT);
+				events = _device.read_config<uint32_t>(Config::EVENTS_READ);
 			} while (after != before);
 			do {
-				_device.write_config(
-					Config::EVENTS_CLEAR, Virtio::Device::ACCESS_32BIT, events);
+				_device.write_config(Config::EVENTS_CLEAR, events);
 			} while (after != before);
 			return events;
 		}

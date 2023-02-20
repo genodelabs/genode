@@ -86,9 +86,9 @@ class Virtio::Device : Platform::Device::Mmio
 		 * VIRTIO 1.0 spec 64 bit wide registers are supposed to be read as
 		 * two 32 bit values.
 		 */
-		struct Config_8  : Register_array<0x100,  8, 256, 8>  { };
-		struct Config_16 : Register_array<0x100, 16, 128, 16> { };
-		struct Config_32 : Register_array<0x100, 32,  64, 32> { };
+		template <typename T> class Config :
+			public Register_array<0x100, sizeof(T)*8,
+			                      256/sizeof(T), sizeof(T)*8> {};
 
 		/*
 		 * Noncopyable
@@ -141,23 +141,18 @@ class Virtio::Device : Platform::Device::Mmio
 			return (uint16_t)read<QueueNumMax>();
 		}
 
-		uint32_t read_config(uint8_t offset, Access_size size)
+		template <typename T>
+		T read_config(const uint8_t offset)
 		{
-			switch (size) {
-			case ACCESS_8BIT:  return read<Config_8>(offset);
-			case ACCESS_16BIT: return read<Config_16>(offset >> 1);
-			case ACCESS_32BIT: return read<Config_32>(offset >> 2);
-			}
-			return 0;
+			static_assert(sizeof(T) <= 4);
+			return read<Config<T>>(offset >> log2(sizeof(T)));
 		}
 
-		void write_config(uint8_t offset, Access_size size, uint32_t value)
+		template <typename T>
+		void write_config(const uint8_t offset, const T value)
 		{
-			switch (size) {
-			case ACCESS_8BIT:  write<Config_8> ((uint8_t) value,  offset);  break;
-			case ACCESS_16BIT: write<Config_16>((uint16_t)value, (offset >> 1)); break;
-			case ACCESS_32BIT: write<Config_32>(value,           (offset >> 2)); break;
-			}
+			static_assert(sizeof(T) <= 4);
+			write<Config<T>>(value, (offset >> log2(sizeof(T))));
 		}
 
 		bool configure_queue(uint16_t queue_index,

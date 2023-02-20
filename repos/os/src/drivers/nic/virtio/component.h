@@ -112,7 +112,7 @@ class Virtio_nic::Device : Noncopyable
 		/**
 		 * See section 5.1.4 of VirtIO 1.0 specification.
 		 */
-		enum { CONFIG_MAC_BASE = 0, CONFIG_STATUS = 6 };
+		enum Config : uint8_t { CONFIG_MAC_BASE = 0, CONFIG_STATUS = 6 };
 		enum { STATUS_LINK_UP = 1 << 0 };
 
 		/**
@@ -181,10 +181,9 @@ class Virtio_nic::Device : Noncopyable
 			uint32_t before = 0, after = 0;
 			do {
 				before = device.get_config_generation();
-				for (size_t idx = 0; idx < sizeof(mac.addr); ++idx) {
-					mac.addr[idx] = device.read_config(
-						CONFIG_MAC_BASE + idx, Virtio::Device::ACCESS_8BIT);
-				}
+				for (uint8_t idx = 0; idx < sizeof(mac.addr); ++idx)
+					mac.addr[idx] =
+						device.read_config<uint8_t>(CONFIG_MAC_BASE + idx);
 				after = device.get_config_generation();
 			} while (after != before);
 
@@ -398,7 +397,7 @@ class Virtio_nic::Device : Noncopyable
 			uint8_t status = 0;
 			do {
 				before = _device.get_config_generation();
-				status = _device.read_config(CONFIG_STATUS, Virtio::Device::ACCESS_8BIT);
+				status = _device.read_config<uint8_t>(CONFIG_STATUS);
 				after = _device.get_config_generation();
 			} while (after != before);
 

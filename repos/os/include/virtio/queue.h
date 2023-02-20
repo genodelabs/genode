@@ -413,7 +413,7 @@ class Virtio::Queue
 			static_assert(!TRAITS::device_write_only);
 			static_assert(TRAITS::has_data_payload);
 
-			int const req_desc_count = 1 + (sizeof(header) + data_size) / _buffers.buffer_size();
+			size_t const req_desc_count = 1UL + (sizeof(header) + data_size) / _buffers.buffer_size();
 			if (req_desc_count > _descriptors.available_capacity())
 				return false;
 
