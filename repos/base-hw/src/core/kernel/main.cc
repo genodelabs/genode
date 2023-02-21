@@ -142,6 +142,8 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 			if (kernel_initialized) {
 				nr_of_initialized_cpus = 0;
 				kernel_initialized     = false;
+
+				Main::_instance->_serial.init();
 			}
 
 			nr_of_initialized_cpus ++;

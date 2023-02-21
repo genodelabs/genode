@@ -126,6 +126,8 @@ class Genode::Pl011_uart : Mmio
 		 * Send ASCII char 'c' over the UART interface
 		 */
 		inline void put_char(char const c);
+
+		void init() { }
 };
 
 

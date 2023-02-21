@@ -47,6 +47,8 @@ struct Hw::Riscv_uart
 	{
 		Sbi::console_put_char(c);
 	}
+
+	void init() { }
 };
 
 #endif /* _SRC__LIB__HW__SPEC__RISCV__SBI_H_ */

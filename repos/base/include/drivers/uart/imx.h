@@ -248,6 +248,11 @@ class Genode::Imx_uart: Mmio
 		 */
 		Imx_uart(addr_t base, uint32_t, uint32_t) : Mmio(base)
 		{
+			init();
+		}
+
+		void init()
+		{
 			write<Cr1>(Cr1::init_value());
 			write<Cr2>(Cr2::init_value());
 			write<Cr3>(Cr3::init_value());

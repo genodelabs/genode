@@ -24,7 +24,8 @@ class Genode::X86_uart
 {
 	private:
 
-		uint16_t _port;
+		uint16_t const _port;
+		unsigned const _baud_rate;
 
 		enum {
 			COMPORT_DATA_OFFSET   = 0,
@@ -59,32 +60,36 @@ class Genode::X86_uart
 		X86_uart(uint16_t const port, unsigned /* clock */,
 		         unsigned const baud_rate)
 		:
-			_port(port)
+			_port(port), _baud_rate(baud_rate)
 		{
+			init();
+		}
 
+		void init()
+		{
 			/**
 			 * Initialize serial port
 			 *
 			 * Based on 'init_serial' of L4ka::Pistachio's 'kdb/platform/pc99/io.cc'
 			 */
 
-			if (!port)
+			if (!_port)
 				return;
 
 			uint16_t const
-				IER  = (uint16_t)(port + 1),
-				EIR  = (uint16_t)(port + 2),
-				LCR  = (uint16_t)(port + 3),
-				MCR  = (uint16_t)(port + 4),
-				LSR  = (uint16_t)(port + 5),
-				MSR  = (uint16_t)(port + 6),
-				DLLO = (uint16_t)(port + 0),
-				DLHI = (uint16_t)(port + 1);
+				IER  = (uint16_t)(_port + 1),
+				EIR  = (uint16_t)(_port + 2),
+				LCR  = (uint16_t)(_port + 3),
+				MCR  = (uint16_t)(_port + 4),
+				LSR  = (uint16_t)(_port + 5),
+				MSR  = (uint16_t)(_port + 6),
+				DLLO = (uint16_t)(_port + 0),
+				DLHI = (uint16_t)(_port + 1);
 
 			_outb(LCR, 0x80);  /* select bank 1 */
 			for (volatile int i = 10000000; i--; );
-			_outb(DLLO, (uint8_t)((115200/baud_rate) >> 0));
-			_outb(DLHI, (uint8_t)((115200/baud_rate) >> 8));
+			_outb(DLLO, (uint8_t)((115200/_baud_rate) >> 0));
+			_outb(DLHI, (uint8_t)((115200/_baud_rate) >> 8));
 			_outb(LCR, 0x03);  /* set 8,N,1 */
 			_outb(IER, 0x00);  /* disable interrupts */
 			_outb(EIR, 0x07);  /* enable FIFOs */
