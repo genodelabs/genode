@@ -157,7 +157,8 @@ void Rpc_entrypoint::_activation_entry()
 	}
 
 	/* atomically lookup and lock referenced object */
-	auto lambda = [&] (Rpc_object_base *obj) {
+	auto lambda = [&] (Rpc_object_base *obj)
+	{
 		if (!obj) {
 			error("could not look up server object, return from call id_pt=", id_pt);
 			return;
@@ -165,8 +166,7 @@ void Rpc_entrypoint::_activation_entry()
 
 		/* dispatch request */
 		ep._snd_buf.reset();
-		try { exc = obj->dispatch(opcode, unmarshaller, ep._snd_buf); }
-		catch (Blocking_canceled) { }
+		exc = obj->dispatch(opcode, unmarshaller, ep._snd_buf);
 	};
 	ep.apply(id_pt, lambda);
 

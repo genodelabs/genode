@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/blocking.h>
 #include <base/ipc.h>
 #include <base/log.h>
 #include <base/thread.h>

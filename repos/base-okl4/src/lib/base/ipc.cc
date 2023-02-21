@@ -14,7 +14,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/ipc.h>
-#include <base/blocking.h>
+#include <base/sleep.h>
 
 /* base-internal includes */
 #include <base/internal/ipc_server.h>
@@ -162,15 +162,9 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 	L4_MsgTag_t rcv_tag = L4_Call(dst_data.dst);
 
-	enum { ERROR_MASK = 0xe, ERROR_CANCELED = 3 << 1 };
-	if (L4_IpcFailed(rcv_tag) &&
-	    ((L4_ErrorCode() & ERROR_MASK) == ERROR_CANCELED))
-		throw Genode::Blocking_canceled();
-
 	if (L4_IpcFailed(rcv_tag)) {
 		raw("Ipc failed");
-
-		return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
+		sleep_forever();
 	}
 
 	return Rpc_exception_code(extract_msg_from_utcb(rcv_tag, rcv_msg));

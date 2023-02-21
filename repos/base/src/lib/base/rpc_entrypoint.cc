@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <base/rpc_server.h>
 #include <base/rpc_client.h>
-#include <base/blocking.h>
 #include <base/env.h>
 
 /* base-internal includes */

@@ -15,7 +15,6 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/ipc.h>
-#include <base/blocking.h>
 #include <base/sleep.h>
 
 /* base-internal includes */
@@ -33,25 +32,17 @@ using namespace Pistachio;
 static inline void check_ipc_result(L4_MsgTag_t result, L4_Word_t error_code)
 {
 	/*
-	 * Test for IPC cancellation via Core's cancel-blocking mechanism
-	 */
-	enum { ERROR_MASK = 0xe, ERROR_CANCELED = 3 << 1 };
-	if (L4_IpcFailed(result) &&
-	    ((L4_ErrorCode() & ERROR_MASK) == ERROR_CANCELED))
-		throw Genode::Blocking_canceled();
-
-	/*
 	 * Provide diagnostic information on unexpected conditions
 	 */
 	if (L4_IpcFailed(result)) {
 		raw("Error in thread ", Hex(L4_Myself().raw), ". IPC failed.");
-		throw Genode::Ipc_error();
+		throw Ipc_error();
 	}
 
 	if (L4_UntypedWords(result) < 2) {
 		raw("Error in thread ", Hex(L4_Myself().raw), ". "
 		    "Expected at leat two untyped words, but got ", L4_UntypedWords(result), ".\n");
-		throw Genode::Ipc_error();
+		throw Ipc_error();
 	}
 }
 

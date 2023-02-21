@@ -47,6 +47,5 @@ void Timer::Time_source::_usleep(uint64_t us)
 	ts.tv_sec  = (long)us / (1000 * 1000);
 	ts.tv_nsec = ((long)us % (1000 * 1000)) * 1000;
 
-	if (lx_nanosleep(&ts, &ts) != 0)
-		throw Blocking_canceled();
+	lx_nanosleep(&ts, &ts);
 }

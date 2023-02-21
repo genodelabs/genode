@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/ipc.h>
-#include <base/blocking.h>
 
 /* base-internal includes */
 #include <base/internal/ipc_server.h>
@@ -166,10 +165,6 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	rcv_header.extract_caps(rcv_msg);
 
 	if (L4_IPC_IS_ERROR(ipc_result)) {
-
-		if (L4_IPC_ERROR(ipc_result) == L4_IPC_RECANCELED)
-			throw Genode::Blocking_canceled();
-
 		error("ipc_call error ", Hex(L4_IPC_ERROR(ipc_result)));
 		throw Genode::Ipc_error();
 	}

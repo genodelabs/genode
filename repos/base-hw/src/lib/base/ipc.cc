@@ -17,6 +17,7 @@
 #include <base/ipc.h>
 #include <base/allocator.h>
 #include <base/thread.h>
+#include <base/sleep.h>
 #include <util/construct_at.h>
 #include <util/retry.h>
 
@@ -106,7 +107,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		switch (Kernel::send_request_msg(Capability_space::capid(dst),
 		                                 (unsigned)rcv_caps)) {
 
-		case -1: throw Blocking_canceled();
+		case -1: sleep_forever();
 		case -2: upgrade_capability_slab(); break;
 		default: done = true; break;
 		}
@@ -152,7 +153,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 		}
 
 		switch (ret) {
-		case -1: throw Blocking_canceled();
+		case -1: sleep_forever();
 		case -2: upgrade_capability_slab(); break;
 		default: done = true; break;
 		}

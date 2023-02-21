@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <base/ipc.h>
 #include <base/thread.h>
-#include <base/blocking.h>
 #include <base/env.h>
 #include <base/sleep.h>
 #include <linux_native_cpu/linux_native_cpu.h>
@@ -326,7 +325,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	int const send_ret = lx_sendmsg(dst_socket, snd_msg.msg(), 0);
 	if (send_ret < 0) {
 		error(lx_getpid(), ":", lx_gettid(), " lx_sendmsg to sd ", dst_socket,
-		    " failed with ", send_ret, " in lx_call()");
+		      " failed with ", send_ret, " in lx_call()");
 		sleep_forever();
 	}
 
@@ -339,14 +338,19 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	rcv_msg.accept_sockets(Message::MAX_SDS_PER_MSG);
 
 	rcv_msgbuf.reset();
-	int const recv_ret = lx_recvmsg(reply_channel.local, rcv_msg.msg(), 0);
 
-	/* system call got interrupted by a signal */
-	if (recv_ret == -LX_EINTR)
-		throw Genode::Blocking_canceled();
+	for (;;) {
+		int const recv_ret = lx_recvmsg(reply_channel.local, rcv_msg.msg(), 0);
 
-	if (recv_ret < 0) {
-		error(lx_getpid(), ":", lx_gettid(), " ipc_call failed to receive result (", recv_ret, ")");
+		/* system call got interrupted by a signal */
+		if (recv_ret == -LX_EINTR)
+			continue;
+
+		if (recv_ret >= 0)
+			break;
+
+		error(lx_getpid(), ":", lx_gettid(),
+		      " ipc_call failed to receive result (", recv_ret, ")");
 		sleep_forever();
 	}
 

@@ -30,7 +30,6 @@ namespace Genode {
 	 * Invoke capability to call an RPC function
 	 *
 	 * \param rcv_caps  number of capabilities expected as result
-	 * \throw Blocking_canceled
 	 *
 	 * \noapi
 	 *

@@ -134,9 +134,7 @@ void Entrypoint::_process_incoming_signals()
 			 * as result, which has to be caught.
 			 */
 			try {
-				retry<Blocking_canceled>(
-					[&] () { _signal_proxy_cap.call<Signal_proxy::Rpc_signal>(); },
-					[]  () { warning("blocking canceled during signal processing"); });
+				_signal_proxy_cap.call<Signal_proxy::Rpc_signal>();
 			} catch (Genode::Ipc_error) { /* ignore - context got destroyed in meantime */ }
 
 			/* entrypoint destructor requested to stop signal handling */
@@ -345,11 +343,7 @@ Entrypoint::Entrypoint(Env &env)
 
 	_env.ep().manage(constructor);
 
-	try {
-		invoke_constructor_at_entrypoint(constructor.cap());
-	} catch (Blocking_canceled) {
-		warning("blocking canceled in entrypoint constructor");
-	}
+	invoke_constructor_at_entrypoint(constructor.cap());
 
 	_env.ep().dissolve(constructor);
 

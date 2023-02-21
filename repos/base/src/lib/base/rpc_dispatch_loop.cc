@@ -67,9 +67,8 @@ void Rpc_entrypoint::entry()
 
 		apply(request.badge, [&] (Rpc_object_base *obj)
 		{
-			if (!obj) { return;}
-			try { exc = obj->dispatch(opcode, unmarshaller, _snd_buf); }
-			catch(Blocking_canceled&) { }
+			if (obj)
+				exc = obj->dispatch(opcode, unmarshaller, _snd_buf);
 		});
 	}
 

@@ -21,10 +21,10 @@
  */
 
 /* Genode includes */
-#include <base/blocking.h>
 #include <base/ipc.h>
 #include <base/ipc_msgbuf.h>
 #include <base/thread.h>
+#include <base/sleep.h>
 
 /* base-internal includes */
 #include <base/internal/lock_helper.h> /* for 'thread_get_my_native_id()' */
@@ -279,11 +279,10 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	l4_msgtag_t const reply_tag =
 		l4_ipc_call(dst.data()->kcap(), l4_utcb(), call_tag, L4_IPC_NEVER);
 
-	if (l4_ipc_error(reply_tag, l4_utcb()) == L4_IPC_RECANCELED)
-		throw Genode::Blocking_canceled();
-
-	if (ipc_error(reply_tag, DEBUG_MSG))
-		throw Genode::Ipc_error();
+	if (ipc_error(reply_tag, DEBUG_MSG)) {
+		raw("L4 IPC error");
+		sleep_forever();
+	}
 
 	return Rpc_exception_code(extract_msg_from_utcb(reply_tag, rcv_window, rcv_msg));
 }

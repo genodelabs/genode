@@ -36,8 +36,7 @@ Timer::Time_source::_wait_for_irq()
 	while (_next_timeout_us > 0) {
 		_mutex.release();
 
-		try { _usleep(SLEEP_GRANULARITY_US); }
-		catch (Blocking_canceled) { }
+		_usleep(SLEEP_GRANULARITY_US);
 
 		uint64_t curr_time_us = curr_time().trunc_to_plain_us().value;
 		uint64_t sleep_duration_us = curr_time_us - last_time_us;
