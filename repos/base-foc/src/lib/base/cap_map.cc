@@ -106,7 +106,7 @@ uint8_t Cap_index::dec()
 
 Cap_index* Capability_map::find(Cap_index::id_t id)
 {
-	Lock_guard<Spin_lock> guard(_lock);
+	Spin_lock::Guard guard(_lock);
 
 	return _tree.first() ? _tree.first()->find_by_id(id) : 0;
 }
@@ -114,7 +114,7 @@ Cap_index* Capability_map::find(Cap_index::id_t id)
 
 Cap_index* Capability_map::insert(Cap_index::id_t id)
 {
-	Lock_guard<Spin_lock> guard(_lock);
+	Spin_lock::Guard guard(_lock);
 
 	ASSERT(!_tree.first() || !_tree.first()->find_by_id(id),
 	       "Double insertion in cap_map()!");
@@ -130,7 +130,7 @@ Cap_index* Capability_map::insert(Cap_index::id_t id)
 
 Cap_index* Capability_map::insert(Cap_index::id_t id, addr_t kcap)
 {
-	Lock_guard<Spin_lock> guard(_lock);
+	Spin_lock::Guard guard(_lock);
 
 	/* remove potentially existent entry */
 	Cap_index *i = _tree.first() ? _tree.first()->find_by_id(id) : 0;
@@ -150,7 +150,7 @@ Cap_index* Capability_map::insert_map(Cap_index::id_t id, addr_t kcap)
 {
 	using namespace Foc;
 
-	Lock_guard<Spin_lock> guard(_lock);
+	Spin_lock::Guard guard(_lock);
 
 	/* check whether capability id exists */
 	Cap_index *i = _tree.first() ? _tree.first()->find_by_id(id) : 0;

@@ -221,7 +221,7 @@ void Capability_map::remove(Cap_index *i)
 {
 	using namespace Foc;
 
-	Lock_guard<Spin_lock> guard(_lock);
+	Spin_lock::Guard guard(_lock);
 
 	if (i) {
 		Core_cap_index* e = static_cast<Core_cap_index*>(_tree.first()

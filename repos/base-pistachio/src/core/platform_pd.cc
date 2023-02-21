@@ -13,7 +13,6 @@
  */
 
 /* Genode includes */
-#include <base/lock_guard.h>
 #include <util.h>
 #include <platform_pd.h>
 

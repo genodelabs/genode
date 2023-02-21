@@ -73,7 +73,7 @@ class Genode::Cap_index_allocator_tpl : public Cap_index_allocator
 
 		Cap_index* alloc_range(size_t cnt) override
 		{
-			Lock_guard<Spin_lock> guard(_lock);
+			Spin_lock::Guard guard(_lock);
 
 			/*
 			 * iterate through array and find unused, consecutive entries
@@ -96,7 +96,7 @@ class Genode::Cap_index_allocator_tpl : public Cap_index_allocator
 
 		Cap_index* alloc(addr_t addr) override
 		{
-			Lock_guard<Spin_lock> guard(_lock);
+			Spin_lock::Guard guard(_lock);
 
 			/*
 			 * construct the Cap_index pointer from the given
@@ -114,7 +114,7 @@ class Genode::Cap_index_allocator_tpl : public Cap_index_allocator
 
 		void free(Cap_index* idx, size_t cnt) override
 		{
-			Lock_guard<Spin_lock> guard(_lock);
+			Spin_lock::Guard guard(_lock);
 
 			T *obj = static_cast<T*>(idx);
 			for (size_t i = 0; i < cnt; obj++, i++) {

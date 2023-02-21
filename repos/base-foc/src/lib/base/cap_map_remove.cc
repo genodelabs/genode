@@ -20,7 +20,7 @@ using namespace Genode;
 
 void Capability_map::remove(Genode::Cap_index* i)
 {
-	Lock_guard<Spin_lock> guard(_lock);
+	Spin_lock::Guard guard(_lock);
 
 	if (i) {
 		Cap_index *e = _tree.first() ? _tree.first()->find_by_id(i->id()) : 0;

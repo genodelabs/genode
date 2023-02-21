@@ -15,9 +15,6 @@
 #ifndef _CORE__SPEC__SMP__KERNEL__LOCK_H_
 #define _CORE__SPEC__SMP__KERNEL__LOCK_H_
 
-/* Genode includes */
-#include <base/lock_guard.h>
-
 namespace Kernel { class Lock; }
 
 
@@ -37,7 +34,14 @@ class Kernel::Lock
 		void lock();
 		void unlock();
 
-		using Guard = Genode::Lock_guard<Lock>;
+		struct Guard
+		{
+			Lock &_lock;
+
+			explicit Guard(Lock &lock) : _lock(lock) { _lock.lock(); }
+
+			~Guard() { _lock.unlock(); }
+		};
 };
 
 #endif /* _CORE__SPEC__SMP__KERNEL__LOCK_H_ */

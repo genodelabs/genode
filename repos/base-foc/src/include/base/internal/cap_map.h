@@ -30,7 +30,6 @@
 /* Genode includes */
 #include <base/exception.h>
 #include <base/stdint.h>
-#include <base/lock_guard.h>
 #include <util/avl_tree.h>
 #include <util/noncopyable.h>
 #include <util/string.h>
@@ -162,7 +161,14 @@ class Genode::Spin_lock
 		/**
 		 * Lock guard
 		 */
-		typedef Genode::Lock_guard<Spin_lock> Guard;
+		struct Guard : Noncopyable
+		{
+			Spin_lock &_lock;
+
+			explicit Guard(Spin_lock &lock) : _lock(lock) { _lock.lock(); }
+
+			~Guard() { _lock.unlock(); }
+		};
 };
 
 
