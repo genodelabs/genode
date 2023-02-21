@@ -17,6 +17,7 @@
 #ifndef _INCLUDE__VFS__INLINE_FILE_SYSTEM_H_
 #define _INCLUDE__VFS__INLINE_FILE_SYSTEM_H_
 
+#include <os/buffered_xml.h>
 #include <vfs/file_system.h>
 
 namespace Vfs { class Inline_file_system; }
@@ -26,7 +27,7 @@ class Vfs::Inline_file_system : public Single_file_system
 {
 	private:
 
-		Xml_node _node;
+		Genode::Buffered_xml const _node;
 
 		class Handle : public Single_vfs_handle
 		{
@@ -66,11 +67,11 @@ class Vfs::Inline_file_system : public Single_file_system
 		 * the object after construction time. The underlying backing store
 		 * must be kept in tact during the lifefile of the object.
 		 */
-		Inline_file_system(Vfs::Env&, Genode::Xml_node config)
+		Inline_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 			                   Node_rwx::rx(), config),
-			_node(config)
+			_node(env.alloc(), config)
 		{ }
 
 		static char const *name()   { return "inline"; }
@@ -100,7 +101,7 @@ class Vfs::Inline_file_system : public Single_file_system
 		{
 			Stat_result const result = Single_file_system::stat(path, out);
 
-			_node.with_raw_content([&] (char const *, size_t size) {
+			_node.xml().with_raw_content([&] (char const *, size_t size) {
 				out.size = size; });
 
 			return result;
@@ -111,7 +112,7 @@ class Vfs::Inline_file_system : public Single_file_system
 Vfs::File_io_service::Read_result
 Vfs::Inline_file_system::Handle::read(Byte_range_ptr const &dst, size_t &out_count)
 {
-	_fs._node.with_raw_content([&] (char const *start, size_t const len) {
+	_fs._node.xml().with_raw_content([&] (char const *start, size_t const len) {
 
 		/* file read limit is the size of the XML-node content */
 		size_t const max_size = len;
