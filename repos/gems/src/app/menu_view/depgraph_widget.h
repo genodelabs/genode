@@ -672,6 +672,8 @@ struct Menu_view::Depgraph_widget : Widget
 		           x4 = p2.x(),
 		           y4 = p2.y();
 
+		auto abs = [] (auto v) { return v >= 0 ? v : -v; };
+
 		/* subdivide the curve depending on the size of its bounding box */
 		unsigned const levels = (unsigned)max(log2(max(abs(x4 - x1), abs(y4 - y1)) >> 2), 3);
 

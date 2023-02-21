@@ -66,6 +66,8 @@ class Genode::Point
 
 		void print(Output &out) const
 		{
+			auto abs = [] (auto v) { return v >= 0 ? v : -v; };
+
 			Genode::print(out, _x >= 0 ? "+" : "-", abs(_x),
 			                   _y >= 0 ? "+" : "-", abs(_y));
 		}

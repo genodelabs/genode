@@ -139,6 +139,8 @@ struct Line_painter
 		long const dx_f = x2.value - x1.value,
 		           dy_f = y2.value - y1.value;
 
+		auto abs = [] (auto v) { return v >= 0 ? v : -v; };
+
 		long const num_steps = max(abs(dx_f) + 127, abs(dy_f) + 127) >> 8;
 
 		if (num_steps == 0)

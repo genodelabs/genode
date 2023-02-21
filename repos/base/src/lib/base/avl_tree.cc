@@ -84,6 +84,8 @@ void Avl_node_base::_rebalance_subtree(Avl_node_base *node, Policy &policy)
 {
 	int v = node->_child_depth(RIGHT) - node->_child_depth(LEFT);
 
+	auto abs = [] (auto v) { return v >= 0 ? v : -v; };
+
 	/* return if subtree is in balance */
 	if (abs(v) < 2) return;
 
