@@ -17,7 +17,6 @@
 #include <qemu_emul.h>
 #include <hw/usb.h>
 #include <extern_c_end.h>
-#include <base/debug.h>
 
 
 using namespace Genode;

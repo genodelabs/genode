@@ -28,7 +28,6 @@
 
 #include <base/attached_dataspace.h>
 #include <base/heap.h>
-#include <base/debug.h>
 #include <gui_session/connection.h>
 #include <libc/component.h>
 #include <libc/args.h>
@@ -106,7 +105,7 @@ void _eglutNativeInitDisplay()
 
 void _eglutNativeFiniDisplay(void)
 {
-	PDBG("not implemented");
+	Genode::warning(__PRETTY_FUNCTION__, " not implemented");
 }
 
 
@@ -123,7 +122,7 @@ void _eglutNativeInitWindow(struct eglut_window *win, const char *title,
 
 void _eglutNativeFiniWindow(struct eglut_window *win)
 {
-	PDBG("not implemented");
+	Genode::warning(__PRETTY_FUNCTION__, " not implemented");
 }
 
 

@@ -14,7 +14,6 @@
 
 /* Genode includes */
 #include <base/attached_dataspace.h>
-#include <base/debug.h>
 #include <base/heap.h>
 #include <base/log.h>
 #include <gpu_session/connection.h>
