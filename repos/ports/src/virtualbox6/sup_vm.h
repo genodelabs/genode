@@ -15,6 +15,9 @@
 #ifndef _SUP_VM_H_
 #define _SUP_VM_H_
 
+/* Genode includes */
+#include <base/exception.h>
+
 /* VirtualBox includes */
 #include <iprt/assert.h>
 #include <VBox/vmm/gvm.h>

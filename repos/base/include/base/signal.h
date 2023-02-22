@@ -21,6 +21,7 @@
 #include <util/list.h>
 #include <base/semaphore.h>
 #include <base/capability.h>
+#include <base/exception.h>
 
 /* only needed for base-hw */
 namespace Kernel { struct Signal_receiver; }

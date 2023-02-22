@@ -17,6 +17,7 @@
 #include <base/blockade.h>
 #include <base/mutex.h>
 #include <base/log.h>
+#include <base/exception.h>
 #include <util/list.h>
 
 namespace Genode {

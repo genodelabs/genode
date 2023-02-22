@@ -23,6 +23,7 @@
 #include <util/xml_node.h>
 #include <util/list.h>
 #include <base/log.h>
+#include <base/exception.h>
 
 namespace Genode {
 

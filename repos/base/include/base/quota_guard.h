@@ -16,6 +16,7 @@
 
 #include <util/string.h>
 #include <base/log.h>
+#include <base/exception.h>
 
 namespace Genode {
 

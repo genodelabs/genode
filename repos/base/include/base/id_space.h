@@ -18,6 +18,7 @@
 #include <util/meta.h>
 #include <base/mutex.h>
 #include <base/log.h>
+#include <base/exception.h>
 #include <util/avl_tree.h>
 
 namespace Genode { template <typename T> class Id_space; }
