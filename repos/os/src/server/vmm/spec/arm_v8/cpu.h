@@ -29,7 +29,7 @@ class Vmm::Cpu : public Vmm::Cpu_base
 		    Genode::Env             & env,
 		    Genode::Heap            & heap,
 		    Genode::Entrypoint      & ep,
-		    short                     cpu_id);
+		    unsigned                  cpu_id);
 
 		enum Exception_type {
 			AARCH64_SYNC   = 0x400,
@@ -45,8 +45,8 @@ class Vmm::Cpu : public Vmm::Cpu_base
 
 	private:
 
-		class Id_aa64pfr0 : public System_register,
-		                    public Genode::Register<64>
+		class Id_aa64pfr0 : public    System_register,
+		                    protected Genode::Register<64>
 		{
 			private:
 

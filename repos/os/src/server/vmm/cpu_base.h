@@ -35,11 +35,11 @@ class Vmm::Cpu_base
 
 		struct State : Genode::Vm_state
 		{
-			Genode::uint64_t reg(unsigned idx) const;
-			void reg(unsigned idx, Genode::uint64_t v);
+			addr_t reg(addr_t idx) const;
+			void reg(addr_t idx, addr_t v);
 		};
 
-		struct Esr : Genode::Register<32>
+		struct Esr : Genode::Register<sizeof(addr_t)*8>
 		{
 			struct Ec : Bitfield<26, 6>
 			{
@@ -62,7 +62,7 @@ class Vmm::Cpu_base
 		         Genode::Env             & env,
 		         Genode::Heap            & heap,
 		         Genode::Entrypoint      & ep,
-		         short const               cpu_id);
+		         unsigned                  cpu_id);
 
 		unsigned           cpu_id() const;
 		void               run();
@@ -118,14 +118,23 @@ class Vmm::Cpu_base
 
 	protected:
 
-		class System_register : public Genode::Avl_node<System_register>
+		class System_register : protected Genode::Avl_node<System_register>
 		{
 			private:
 
-				const Esr::access_t       _encoding;
-				const char               *_name;
-				const bool                _writeable;
-				Genode::uint64_t          _value;
+				const Esr::access_t  _encoding;
+				const char         * _name;
+				const bool           _writeable;
+				uint64_t             _value;
+
+				friend class Avl_node<System_register>;
+				friend class Avl_tree<System_register>;
+
+				/*
+				 * Noncopyable
+				 */
+				System_register(System_register const &);
+				System_register &operator = (System_register const &);
 
 			public:
 
@@ -169,8 +178,10 @@ class Vmm::Cpu_base
 				: System_register(0, crn, op1, crm, op2,
 				                  name, writeable, v, tree) {}
 
-				const char * name()       const { return _name;      }
-				const bool   writeable()  const { return _writeable; }
+				virtual ~System_register() {}
+
+				const char * name() const { return _name;      }
+				bool writeable()    const { return _writeable; }
 
 				System_register * find_by_encoding(Iss::access_t e)
 				{
@@ -196,7 +207,7 @@ class Vmm::Cpu_base
 					return (r->_encoding > _encoding); }
 		};
 
-		short                              _vcpu_id;
+		unsigned                           _vcpu_id;
 		bool                               _active { true };
 		Vm                               & _vm;
 		Genode::Vm_connection            & _vm_session;
@@ -205,7 +216,7 @@ class Vmm::Cpu_base
 		Genode::Vm_connection::Exit_config _exit_config { };
 		Genode::Vm_connection::Vcpu        _vm_vcpu;
 		State                            & _state;
-		Genode::Avl_tree<System_register>  _reg_tree;
+		Genode::Avl_tree<System_register>  _reg_tree {};
 
 
 		/***********************

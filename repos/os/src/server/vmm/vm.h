@@ -58,10 +58,10 @@ class Vmm::Vm
 		                                       _config.ram_size(), CACHED };
 		Ram                      _ram        { RAM_START, _config.ram_size(),
 		                                       (addr_t)_vm_ram.local_addr<void>()};
-		Mmio_bus                 _bus;
+		Mmio_bus                 _bus {};
 		Gic                      _gic;
-		List<Cpu_entry>          _cpu_list;
-		List<Virtio_device_base> _device_list;
+		List<Cpu_entry>          _cpu_list {};
+		List<Virtio_device_base> _device_list {};
 		Pl011                    _uart;
 
 		Constructible<Attached_rom_dataspace> _initrd_rom {};

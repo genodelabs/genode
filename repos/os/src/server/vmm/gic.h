@@ -50,10 +50,12 @@ class Vmm::Gic : public Vmm::Mmio_device
 					Irq * highest_enabled(unsigned cpu_id = ~0U);
 				};
 
-				struct Irq_handler {
+				struct Irq_handler
+				{
 					virtual void eoi()   {};
 					virtual void enabled() {};
 					virtual void disabled() {};
+					virtual ~Irq_handler() {};
 				};
 
 				enum Type   { SGI, PPI, SPI };
@@ -101,8 +103,8 @@ class Vmm::Gic : public Vmm::Mmio_device
 		{
 			unsigned const irq_count;
 
-			virtual Register read(Irq & irq)  { return 0; }
-			virtual void     write(Irq & irq, Register reg) { }
+			virtual Register read(Irq &) { return 0; }
+			virtual void     write(Irq &, Register) { }
 
 			Register read(Address_range  & access, Cpu&) override;
 			void     write(Address_range & access, Cpu&, Register value) override;
@@ -111,9 +113,21 @@ class Vmm::Gic : public Vmm::Mmio_device
 			        Mmio_register::Type type,
 			        Genode::uint64_t    start,
 			        unsigned            bits_per_irq,
-			        unsigned            irq_count)
-			: Mmio_register(name, type, start, bits_per_irq*irq_count/8),
+			        unsigned            irq_count,
+			        Space             & device)
+			: Mmio_register(name, type, start, bits_per_irq*irq_count/8, device),
 			  irq_count(irq_count) {}
+
+			template <typename FN>
+			void for_range(Address_range & access, FN const & fn)
+			{
+				Register bits_per_irq = size() * 8 / irq_count;
+				for (Register i = (access.start() * 8) / bits_per_irq;
+				     i < ((access.start()+access.size()) * 8) / bits_per_irq; i++) {
+					static_assert(MAX_IRQ < ~0U);
+					if (i < MAX_IRQ) fn((unsigned)i, bits_per_irq);
+				}
+			}
 		};
 
 		class Gicd_banked
@@ -132,120 +146,140 @@ class Vmm::Gic : public Vmm::Mmio_device
 				Gic                      & _gic;
 				Genode::Constructible<Irq> _sgi[MAX_SGI];
 				Genode::Constructible<Irq> _ppi[MAX_PPI];
-				Irq::List                  _pending_list;
+				Irq::List                  _pending_list {};
 
 				struct Redistributor : Mmio_device, Genode::Interface
 				{
 					unsigned      cpu_id;
 					bool          last;
 					Mmio_register gicr_ctlr     { "GICR_CTLR", Mmio_register::RO,
-					                              0x0, 4, 0b10010 };
+					                              0x0, 4, registers(), 0b10010 };
 					Mmio_register gicr_typer    { "GICR_TYPER", Mmio_register::RO,
-					                              0x8, 8,
+					                              0x8, 8, registers(),
 					                              (Genode::uint64_t)cpu_id<<32 |
 					                              cpu_id<<8 | (last ? 1<<4 : 0) };
 					Mmio_register gicr_waker    { "GICR_WAKER", Mmio_register::RO,
-					                              0x14, 4, 0 };
+					                              0x14, 4, registers(), 0 };
 					Mmio_register gicr_pidr2    { "GICR_PIDR2", Mmio_register::RO,
-					                              0xffe8, 4, (3<<4) };
+					                              0xffe8, 4, registers(), (3<<4) };
 					Mmio_register gicr_igroupr0 { "GICR_IGROUPR0", Mmio_register::RO,
-					                              0x10080, 4, 0 };
+					                              0x10080, 4, registers(), 0 };
 
 					struct Gicr_isenabler0 : Irq_reg
 					{
-						Register read(Irq & irq)              { return irq.enabled(); }
-						void     write(Irq & irq, Register v) { if (v) irq.enable();  }
+						Register read(Irq & irq) override {
+							return irq.enabled(); }
 
-						Gicr_isenabler0()
-						: Irq_reg("GICR_ISENABLER0", Mmio_register::RW, 0x10100, 1, 32) {}
-					} gicr_isenabler0;
+						void write(Irq & irq, Register v) override {
+							if (v) irq.enable(); }
+
+						Gicr_isenabler0(Space & device)
+						: Irq_reg("GICR_ISENABLER0", Mmio_register::RW,
+						          0x10100, 1, 32, device) {}
+					} gicr_isenabler0 { registers() };
 
 					struct Gicr_icenabler0 : Irq_reg
 					{
-						Register read(Irq & irq)              { return irq.enabled(); }
-						void     write(Irq & irq, Register v) { if (v) irq.disable();  }
+						Register read(Irq & irq) override {
+							return irq.enabled(); }
 
-						Gicr_icenabler0()
-						: Irq_reg("GICR_ICENABLER0", Mmio_register::RW, 0x10180, 1, 32) {}
-					} gicr_icenabler0;
+						void write(Irq & irq, Register v) override {
+							if (v) irq.disable(); }
+
+						Gicr_icenabler0(Space & device)
+						: Irq_reg("GICR_ICENABLER0", Mmio_register::RW,
+						          0x10180, 1, 32, device) {}
+					} gicr_icenabler0 { registers() };
 
 					struct Gicr_ispendr0 : Irq_reg
 					{
-						Register read(Irq & irq)              { return irq.pending(); }
-						void     write(Irq & irq, Register v) { if (v) irq.assert();  }
+						Register read(Irq & irq) override {
+							return irq.pending(); }
 
-						Gicr_ispendr0()
-						: Irq_reg("GICR_ISPENDR0", Mmio_register::RW, 0x10200, 1, 32) {}
-					} gicr_ispendr0;
+						void write(Irq & irq, Register v) override {
+							if (v) irq.assert(); }
+
+						Gicr_ispendr0(Space & device)
+						: Irq_reg("GICR_ISPENDR0", Mmio_register::RW,
+						          0x10200, 1, 32, device) {}
+					} gicr_ispendr0 { registers() };
 
 					struct Gicr_icpendr0 : Irq_reg
 					{
-						Register read(Irq & irq)              { return irq.pending();  }
-						void     write(Irq & irq, Register v) { if (v) irq.deassert(); }
+						Register read(Irq & irq) override {
+							return irq.pending(); }
 
-						Gicr_icpendr0()
-						: Irq_reg("GICR_ICPENDR0", Mmio_register::RW, 0x10280, 1, 32) {}
-					} gicr_icpendr0;
+						void write(Irq & irq, Register v) override {
+							if (v) irq.deassert(); }
+
+						Gicr_icpendr0(Space & device)
+						: Irq_reg("GICR_ICPENDR0", Mmio_register::RW,
+						          0x10280, 1, 32, device) {}
+					} gicr_icpendr0 { registers() };
 
 					struct Gicr_isactiver0 : Irq_reg
 					{
-						Register read(Irq & irq)              { return irq.active();   }
-						void     write(Irq & irq, Register v) { if (v) irq.activate(); }
+						Register read(Irq & irq) override {
+							return irq.active(); }
 
-						Gicr_isactiver0()
-						: Irq_reg("GICR_ISACTIVER0", Mmio_register::RW, 0x10300, 1, 32) {}
-					} gicr_isactiver0;
+						void write(Irq & irq, Register v) override {
+							if (v) irq.activate(); }
+
+						Gicr_isactiver0(Space & device)
+						: Irq_reg("GICR_ISACTIVER0", Mmio_register::RW,
+						          0x10300, 1, 32, device) {}
+					} gicr_isactiver0 { registers() };
 
 					struct Gicr_icactiver0 : Irq_reg
 					{
-						Register read(Irq & irq)              { return irq.active();     }
-						void     write(Irq & irq, Register v) { if (v) irq.deactivate(); }
+						Register read(Irq & irq) override {
+							return irq.active(); }
 
-						Gicr_icactiver0()
-						: Irq_reg("GICR_ICACTIVER0", Mmio_register::RW, 0x10380, 1, 32) {}
-					} gicr_icactiver0;
+						void write(Irq & irq, Register v) override {
+							if (v) irq.deactivate(); }
+
+						Gicr_icactiver0(Space & device)
+						: Irq_reg("GICR_ICACTIVER0", Mmio_register::RW,
+						          0x10380, 1, 32, device) {}
+					} gicr_icactiver0 { registers() };
 
 					struct Gicr_ipriorityr : Irq_reg
 					{
-						Register read(Irq & irq)              { return irq.priority(); }
-						void     write(Irq & irq, Register v) { irq.priority(v);       }
+						Register read(Irq & irq) override {
+							return irq.priority(); }
 
-						Gicr_ipriorityr()
-						: Irq_reg("GICR_IPRIORITYR", Mmio_register::RW, 0x10400, 8, 32) {}
-					} gicr_ipriorityr;
+						void write(Irq & irq, Register v) override {
+							irq.priority((uint8_t)v); }
+
+						Gicr_ipriorityr(Space & device)
+						: Irq_reg("GICR_IPRIORITYR", Mmio_register::RW,
+						          0x10400, 8, 32, device) {}
+					} gicr_ipriorityr { registers() };
 
 					struct Gicr_icfgr : Irq_reg
 					{
-						Register read(Irq & irq)              { return irq.level() ? 0 : 1; }
-						void     write(Irq & irq, Register v) { irq.level(!v);              }
+						Register read(Irq & irq) override {
+							return irq.level() ? 0 : 1; }
+						void write(Irq & irq, Register v) override {
+							irq.level(!v); }
 
-						Gicr_icfgr()
-						: Irq_reg("GICR_ICFGR", Mmio_register::RW, 0x10c00, 8, 32) {}
-					} gicr_icfgr;
+						Gicr_icfgr(Space & device)
+						: Irq_reg("GICR_ICFGR", Mmio_register::RW,
+						          0x10c00, 8, 32, device) {}
+					} gicr_icfgr { registers() };
 
 					Redistributor(const Genode::uint64_t addr,
 					              const Genode::uint64_t size,
+					              Space                & bus,
 					              unsigned               cpu_id,
 					              bool                   last)
-					: Mmio_device("GICR", addr, size), cpu_id(cpu_id), last(last)
-					{
-						add(gicr_ctlr);
-						add(gicr_typer);
-						add(gicr_waker);
-						add(gicr_pidr2);
-						add(gicr_igroupr0);
-						add(gicr_isenabler0);
-						add(gicr_icenabler0);
-						add(gicr_ispendr0);
-						add(gicr_icpendr0);
-						add(gicr_isactiver0);
-						add(gicr_icactiver0);
-						add(gicr_ipriorityr);
-						add(gicr_icfgr);
-					}
+					:
+						Mmio_device("GICR", addr, size, bus),
+						cpu_id(cpu_id),
+						last(last) { }
 				};
 
-				Genode::Constructible<Redistributor> _rdist;
+				Genode::Constructible<Redistributor> _rdist {};
 		};
 
 		unsigned version();
@@ -256,7 +290,7 @@ class Vmm::Gic : public Vmm::Mmio_device
 		    unsigned                 cpus,
 		    unsigned                 version,
 		    Genode::Vm_connection  & vm,
-		    Mmio_bus               & bus,
+		    Space                  & bus,
 		    Genode::Env            & env);
 
 	private:
@@ -264,167 +298,221 @@ class Vmm::Gic : public Vmm::Mmio_device
 		friend struct Gicd_banked;
 
 		Genode::Constructible<Irq> _spi[MAX_SPI];
-		Irq::List                  _pending_list;
+		Irq::List                  _pending_list {};
 		unsigned                   _cpu_cnt;
 		unsigned                   _version;
 
-		struct Gicd_ctlr : Genode::Register<32>, Mmio_register
+		struct Gicd_ctlr : Mmio_register
 		{
-			struct Enable  : Bitfield<0, 1> {};
-			struct Disable : Bitfield<6, 1> {};
+			struct Reg : Genode::Register<32>
+			{
+				struct Enable  : Bitfield<0, 1> {};
+				struct Disable : Bitfield<6, 1> {};
+			};
 
 			void write(Address_range & access, Cpu & cpu,
 			           Mmio_register::Register value) override
 			{
-				access_t v = value;
-				Disable::set(v, 0);
+				Reg::access_t v = (Reg::access_t)value;
+				Reg::Disable::set(v, 0);
 				Mmio_register::write(access, cpu, v);
 			}
 
-			Gicd_ctlr()
-			: Mmio_register("GICD_CTLR", Mmio_register::RW, 0, 4, 0) {}
-		} _ctrl;
+			Gicd_ctlr(Space & device)
+			: Mmio_register("GICD_CTLR", Mmio_register::RW, 0, 4, device, 0) {}
+		} _ctrl { registers() };
 
-		struct Gicd_typer : Genode::Register<32>, Mmio_register
+		struct Gicd_typer : Mmio_register
 		{
-			struct It_lines_number : Bitfield<0,  5> {};
-			struct Cpu_number      : Bitfield<5,  3> {};
-			struct Id_bits         : Bitfield<19, 5> {};
+			struct Reg : Genode::Register<32>
+			{
+				struct It_lines_number : Bitfield<0,  5> {};
+				struct Cpu_number      : Bitfield<5,  3> {};
+				struct Id_bits         : Bitfield<19, 5> {};
+			};
 
-			Gicd_typer(unsigned cpus)
-			:  Mmio_register("GICD_TYPER", Mmio_register::RO, 0x4, 4,
-			                 It_lines_number::bits(31) |
-			                 Cpu_number::bits(cpus-1) | Id_bits::bits(9)) {}
-		} _typer { _cpu_cnt };
+			Gicd_typer(Space & device, unsigned cpus)
+			:  Mmio_register("GICD_TYPER", Mmio_register::RO, 0x4, 4, device,
+			                 Reg::It_lines_number::bits(31) |
+			                 Reg::Cpu_number::bits(cpus-1) |
+			                 Reg::Id_bits::bits(9)) {}
+		} _typer { registers(), _cpu_cnt };
 
-		struct Gicd_iidr : Genode::Register<32>, Mmio_register
+		struct Gicd_iidr : Mmio_register
 		{
-			struct Implementer : Bitfield<0, 12> {};
-			struct Revision    : Bitfield<12, 4> {};
-			struct Variant     : Bitfield<16, 4> {};
-			struct Product_id  : Bitfield<24, 8> {};
+			struct Reg : Genode::Register<32>
+			{
+				struct Implementer : Bitfield<0, 12> {};
+				struct Revision    : Bitfield<12, 4> {};
+				struct Variant     : Bitfield<16, 4> {};
+				struct Product_id  : Bitfield<24, 8> {};
+			};
 
-			Gicd_iidr()
-			: Mmio_register("GICD_IIDR", Mmio_register::RO, 0x8, 4, 0x123) {}
-		} _iidr;
+			Gicd_iidr(Space & device)
+			: Mmio_register("GICD_IIDR", Mmio_register::RO, 0x8, 4,
+			                device, 0x123) {}
+		} _iidr { registers() };
 
 		struct Gicd_igroupr : Irq_reg
 		{
-			Gicd_igroupr()
-			: Irq_reg("GICD_IGROUPR", Mmio_register::RW, 0x80, 1, 1024) {}
-		} _igroupr;
+			Gicd_igroupr(Space & device)
+			: Irq_reg("GICD_IGROUPR", Mmio_register::RW, 0x80, 1,
+			          1024, device) {}
+		} _igroupr { registers() };
 
 		struct Gicd_isenabler : Irq_reg
 		{
-			Register read(Irq & irq)              { return irq.enabled(); }
-			void     write(Irq & irq, Register v) { if (v) irq.enable();  }
+			Register read(Irq & irq) override {
+				return irq.enabled(); }
 
-			Gicd_isenabler()
-			: Irq_reg("GICD_ISENABLER", Mmio_register::RW, 0x100, 1, 1024) {}
-		} _isenabler;
+			void write(Irq & irq, Register v) override {
+				if (v) irq.enable(); }
+
+			Gicd_isenabler(Space & device)
+			: Irq_reg("GICD_ISENABLER", Mmio_register::RW, 0x100, 1,
+			          1024, device) {}
+		} _isenabler { registers() };
 
 		struct Gicd_icenabler : Irq_reg
 		{
-			Register read(Irq & irq)              { return irq.enabled(); }
-			void     write(Irq & irq, Register v) { if (v) irq.disable(); }
+			Register read(Irq & irq) override {
+				return irq.enabled(); }
 
-			Gicd_icenabler()
-			: Irq_reg("GICD_ICENABLER", Mmio_register::RW, 0x180, 1, 1024) {}
-		} _csenabler;
+			void write(Irq & irq, Register v) override {
+				if (v) irq.disable(); }
+
+			Gicd_icenabler(Space & device)
+			: Irq_reg("GICD_ICENABLER", Mmio_register::RW, 0x180, 1,
+			          1024, device) {}
+		} _csenabler { registers() };
 
 		struct Gicd_ispendr : Irq_reg
 		{
-			Register read(Irq & irq)              { return irq.pending(); }
-			void     write(Irq & irq, Register v) { if (v) irq.assert();  }
+			Register read(Irq & irq) override {
+				return irq.pending(); }
 
-			Gicd_ispendr()
-			: Irq_reg("GICD_ISPENDR", Mmio_register::RW, 0x200, 1, 1024) {}
-		} _ispendr;
+			void write(Irq & irq, Register v) override {
+				if (v) irq.assert(); }
+
+			Gicd_ispendr(Space & device)
+			: Irq_reg("GICD_ISPENDR", Mmio_register::RW, 0x200, 1,
+			          1024, device) {}
+		} _ispendr { registers() };
 
 		struct Gicd_icpendr : Irq_reg
 		{
-			Register read(Irq & irq)              { return irq.pending();  }
-			void     write(Irq & irq, Register v) { if (v) irq.deassert(); }
+			Register read(Irq & irq) override {
+				return irq.pending();  }
 
-			Gicd_icpendr()
-			: Irq_reg("GICD_ICPENDR", Mmio_register::RW, 0x280, 1, 1024) {}
-		} _icpendr;
+			void write(Irq & irq, Register v) override {
+				if (v) irq.deassert(); }
+
+			Gicd_icpendr(Space & device)
+			: Irq_reg("GICD_ICPENDR", Mmio_register::RW, 0x280, 1,
+			          1024, device) {}
+		} _icpendr { registers() };
 
 		struct Gicd_isactiver : Irq_reg
 		{
-			Register read(Irq & irq)              { return irq.active();   }
-			void     write(Irq & irq, Register v) { if (v) irq.activate(); }
+			Register read(Irq & irq) override {
+				return irq.active(); }
 
-			Gicd_isactiver()
-			: Irq_reg("GICD_ISACTIVER", Mmio_register::RW, 0x300, 1, 1024) {}
-		} _isactiver;
+			void write(Irq & irq, Register v) override {
+				if (v) irq.activate(); }
+
+			Gicd_isactiver(Space & device)
+			: Irq_reg("GICD_ISACTIVER", Mmio_register::RW, 0x300, 1,
+			          1024, device) {}
+		} _isactiver { registers() };
 
 		struct Gicd_icactiver : Irq_reg
 		{
-			Register read(Irq & irq)              { return irq.active();     }
-			void     write(Irq & irq, Register v) { if (v) irq.deactivate(); }
+			Register read(Irq & irq) override {
+				return irq.active(); }
 
-			Gicd_icactiver()
-			: Irq_reg("GICD_ICACTIVER", Mmio_register::RW, 0x380, 1, 1024) {}
-		} _icactiver;
+			void write(Irq & irq, Register v) override {
+				if (v) irq.deactivate(); }
+
+			Gicd_icactiver(Space & device)
+			: Irq_reg("GICD_ICACTIVER", Mmio_register::RW, 0x380, 1,
+			          1024, device) {}
+		} _icactiver { registers() };
 
 		struct Gicd_ipriorityr : Irq_reg
 		{
-			Register read(Irq & irq)              { return irq.priority(); }
-			void     write(Irq & irq, Register v) { irq.priority(v);       }
+			Register read(Irq & irq) override {
+				return irq.priority(); }
 
-			Gicd_ipriorityr()
-			: Irq_reg("GICD_IPRIORITYR", Mmio_register::RW, 0x400, 8, 1024) {}
-		} _ipriorityr;
+			void write(Irq & irq, Register v) override {
+				irq.priority((uint8_t)v); }
+
+			Gicd_ipriorityr(Space & device)
+			: Irq_reg("GICD_IPRIORITYR", Mmio_register::RW, 0x400, 8,
+			          1024, device) {}
+		} _ipriorityr { registers() };
 
 		struct Gicd_itargetr : Irq_reg
 		{
-			Register read(Irq & irq)              { return irq.target(); }
-			void     write(Irq & irq, Register v) { irq.target(v);       }
+			Register read(Irq & irq) override {
+				return irq.target(); }
+
+			void write(Irq & irq, Register v) override {
+				irq.target((uint8_t)v); }
 
 			Register read(Address_range  & access, Cpu&) override;
 			void     write(Address_range & access, Cpu&, Register value) override;
 
-			Gicd_itargetr()
-			: Irq_reg("GICD_ITARGETSR", Mmio_register::RW, 0x800, 8, 1024) {}
-		} _itargetr;
+			Gicd_itargetr(Space & device)
+			: Irq_reg("GICD_ITARGETSR", Mmio_register::RW, 0x800, 8,
+			          1024, device) {}
+		} _itargetr { registers() };
 
 
 		struct Gicd_icfgr : Irq_reg
 		{
-			Register read(Irq & irq)              { return irq.level() ? 0 : 2; }
-			void     write(Irq & irq, Register v) { irq.level(!v);              }
+			Register read(Irq & irq) override {
+				return irq.level() ? 0 : 2; }
 
-			Gicd_icfgr()
-			: Irq_reg("GICD_ICFGR", Mmio_register::RW, 0xc00, 2, 1024) {}
-		} _icfgr;
+			void write(Irq & irq, Register v) override {
+				irq.level(!v); }
 
-		struct Gicd_sgir : Genode::Register<32>, Mmio_register
+			Gicd_icfgr(Space & device)
+			: Irq_reg("GICD_ICFGR", Mmio_register::RW, 0xc00, 2,
+			          1024, device) {}
+		} _icfgr { registers() };
+
+		struct Gicd_sgir : Mmio_register
 		{
-			struct Int_id        : Bitfield<0, 4>  {};
-			struct Target_list   : Bitfield<16, 8> {};
-			struct Target_filter : Bitfield<24, 2> {
-				enum Target_type { LIST, ALL, MYSELF, INVALID };
+			struct Reg : Genode::Register<32>
+			{
+				struct Int_id        : Bitfield<0, 4>  {};
+				struct Target_list   : Bitfield<16, 8> {};
+				struct Target_filter : Bitfield<24, 2> {
+					enum Target_type { LIST, ALL, MYSELF, INVALID };
+				};
 			};
 
 			void write(Address_range & access, Cpu & cpu,
 			           Mmio_register::Register value) override;
 
-			Gicd_sgir()
-			: Mmio_register("GICD_SGIR", Mmio_register::WO, 0xf00, 4, 0) {}
-		} _sgir;
+			Gicd_sgir(Space & device)
+			: Mmio_register("GICD_SGIR", Mmio_register::WO, 0xf00, 4,
+			                device, 0) {}
+		} _sgir { registers() };
 
 
 		struct Gicd_irouter : Irq_reg
 		{
-			Register read(Irq &) { return 0x0; } /* FIXME affinity routing support */
+			Register read(Irq &) override {
+				return 0x0; } /* FIXME affinity routing support */
 
-			void write(Irq & i, Register v) {
+			void write(Irq & i, Register v) override {
 				if (v) Genode::error("Affinity routing not supported ", i.number()); }
 
-			Gicd_irouter()
-			: Irq_reg("GICD_IROUTER", Mmio_register::RW, 0x6100, 64, 1024) {}
-		} _irouter;
+			Gicd_irouter(Space & device)
+			: Irq_reg("GICD_IROUTER", Mmio_register::RW, 0x6100, 64,
+			          1024, device) {}
+		} _irouter { registers() };
 
 		/**
 		 * FIXME: missing registers:
@@ -436,22 +524,14 @@ class Vmm::Gic : public Vmm::Mmio_device
          * GICD identification registers 0xfd0...
 		 */
 
-		/**
-		 * Dummy container for holding array of noncopyable objects
-		 * Workaround for gcc bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70395
-		 */
-		struct Dummy {
-			Mmio_register regs[8];
-		} _reg_container { .regs = {
-			{ "GICD_PIDR4",    Mmio_register::RO, 0xffd0, 4, 0x0                 },
-			{ "GICD_PIDR5",    Mmio_register::RO, 0xffd4, 4, 0x0                 },
-			{ "GICD_PIDR6",    Mmio_register::RO, 0xffd8, 4, 0x0                 },
-			{ "GICD_PIDR7",    Mmio_register::RO, 0xffdc, 4, 0x0                 },
-			{ "GICD_PIDR0",    Mmio_register::RO, 0xffe0, 4, 0x492               },
-			{ "GICD_PIDR1",    Mmio_register::RO, 0xffe4, 4, 0xb0                },
-			{ "GICD_PIDR2",    Mmio_register::RO, 0xffe8, 4, (_version<<4) | 0xb },
-			{ "GICD_PIDR3",    Mmio_register::RO, 0xffec, 4, 0x44                }
-		}};
+		Mmio_register _pidr0 { "GICD_PIDR0", Mmio_register::RO, 0xffe0, 4, registers(), 0x492 };
+		Mmio_register _pidr1 { "GICD_PIDR1", Mmio_register::RO, 0xffe4, 4, registers(), 0xb0  };
+		Mmio_register _pidr2 { "GICD_PIDR2", Mmio_register::RO, 0xffe8, 4, registers(), (_version<<4) | 0xb };
+		Mmio_register _pidr3 { "GICD_PIDR3", Mmio_register::RO, 0xffec, 4, registers(), 0x44  };
+		Mmio_register _pidr4 { "GICD_PIDR4", Mmio_register::RO, 0xffd0, 4, registers(), 0x0   };
+		Mmio_register _pidr5 { "GICD_PIDR5", Mmio_register::RO, 0xffd4, 4, registers(), 0x0   };
+		Mmio_register _pidr6 { "GICD_PIDR6", Mmio_register::RO, 0xffd8, 4, registers(), 0x0   };
+		Mmio_register _pidr7 { "GICD_PIDR7", Mmio_register::RO, 0xffdc, 4, registers(), 0x0   };
 };
 
 #endif /* _SRC__SERVER__VMM__GIC_H_ */

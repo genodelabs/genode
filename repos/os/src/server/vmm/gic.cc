@@ -205,10 +205,9 @@ Gic::Gicd_banked::Gicd_banked(Cpu_base & cpu, Gic & gic, Mmio_bus & bus)
 
 	if (gic.version() >= 3) {
 		_rdist.construct(GICR_MMIO_START +
-		                 (cpu.cpu_id()*0x20000), 0x20000,
+		                 (cpu.cpu_id()*0x20000), 0x20000, bus,
 		                 cpu.cpu_id(),
 		                 (_gic._cpu_cnt-1) == cpu.cpu_id());
-		bus.add(*_rdist);
 	}
 }
 
@@ -219,10 +218,9 @@ Register Gic::Irq_reg::read(Address_range & access, Cpu & cpu)
 
 	Register ret = 0;
 
-	Register bits_per_irq = size * 8 / irq_count;
-	for (unsigned i = (access.start * 8) / bits_per_irq;
-	     i < ((access.start+access.size) * 8) / bits_per_irq; i++)
-		ret |= read(cpu.gic().irq(i)) << ((i % (32/bits_per_irq) * bits_per_irq));
+	for_range(access, [&] (unsigned i, Register bits_per_irq) {
+		ret |= read(cpu.gic().irq((unsigned)i))
+		       << ((i % (32/bits_per_irq) * bits_per_irq)); });
 	return ret;
 }
 
@@ -231,12 +229,10 @@ void Gic::Irq_reg::write(Address_range & access, Cpu & cpu, Register value)
 {
 	Genode::Mutex::Guard guard(big_gic_lock());
 
-	Register bits_per_irq   = size * 8 / irq_count;
-	Register irq_value_mask = (1<<bits_per_irq) - 1;
-	for (unsigned i = (access.start * 8) / bits_per_irq;
-	     i < ((access.start+access.size) * 8) / bits_per_irq; i++)
-		write(cpu.gic().irq(i), (value >> ((i % (32/bits_per_irq))*bits_per_irq))
-		                        & irq_value_mask);
+	for_range(access, [&] (unsigned i, Register bits_per_irq) {
+		write(cpu.gic().irq((unsigned)i),
+		      (value >> ((i % (32/bits_per_irq))*bits_per_irq))
+		      & ((1<<bits_per_irq) - 1)); });
 }
 
 
@@ -246,10 +242,12 @@ unsigned Gic::version() { return _version; }
 void Gic::Gicd_sgir::write(Address_range &, Cpu & cpu,
                            Mmio_register::Register value)
 {
-	Target_filter::Target_type type =
-		(Target_filter::Target_type) Target_filter::get(value);
-	unsigned target_list = Target_list::get(value);
-	unsigned irq = Int_id::get(value);
+	using Target_filter = Reg::Target_filter;
+
+	Target_filter::Target_type type = (Target_filter::Target_type)
+		Target_filter::get((Reg::access_t)value);
+	unsigned target_list = Reg::Target_list::get((Reg::access_t)value);
+	unsigned irq = Reg::Int_id::get((Reg::access_t)value);
 
 	cpu.vm().for_each_cpu([&] (Cpu & c) {
 		switch (type) {
@@ -277,14 +275,14 @@ void Gic::Gicd_sgir::write(Address_range &, Cpu & cpu,
 
 Register Gic::Gicd_itargetr::read(Address_range & access, Cpu & cpu)
 {
-	if (access.start < 0x20) { return (1 << cpu.cpu_id()) << 8; }
+	if (access.start() < 0x20) { return (1 << cpu.cpu_id()) << 8; }
 	return Irq_reg::read(access, cpu);
 }
 
 
 void Gic::Gicd_itargetr::write(Address_range & access, Cpu & cpu, Register value)
 {
-	if (access.start >= 0x20) { Irq_reg::write(access, cpu, value); }
+	if (access.start() >= 0x20) { Irq_reg::write(access, cpu, value); }
 }
 
 
@@ -294,33 +292,15 @@ Gic::Gic(const char * const      name,
          unsigned                cpus,
          unsigned                version,
          Genode::Vm_connection & vm,
-         Mmio_bus              & bus,
-         Genode::Env           & env)
-: Mmio_device(name, addr, size), _cpu_cnt(cpus), _version(version)
+         Space                 & bus,
+         Genode::Env           &)
+:
+	Mmio_device(name, addr, size, bus),
+	_cpu_cnt(cpus),
+	_version(version)
 {
-	add(_ctrl);
-	add(_typer);
-	add(_iidr);
-	add(_igroupr);
-	add(_isenabler);
-	add(_csenabler);
-	add(_ispendr);
-	add(_icpendr);
-	add(_isactiver);
-	add(_icactiver);
-	add(_ipriorityr);
-	add(_itargetr);
-	add(_icfgr);
-	add(_irouter);
-	add(_sgir);
-
-	for (unsigned i = 0; i < (sizeof(Dummy::regs) / sizeof(Mmio_register)); i++)
-		add(_reg_container.regs[i]);
-
 	for (unsigned i = 0; i < MAX_SPI; i++)
 		_spi[i].construct(i+MAX_SGI+MAX_PPI, Irq::SPI, _pending_list);
-
-	bus.add(*this);
 
 	if (version < 3) vm.attach_pic(GICC_MMIO_START);
 }

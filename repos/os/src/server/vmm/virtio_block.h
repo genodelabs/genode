@@ -33,7 +33,7 @@ class Vmm::Virtio_block_queue : public Virtio_split_queue
 {
 	private:
 
-		Ring_index _used_idx;
+		Ring_index _used_idx {};
 
 		friend class Virtio_block_request;
 		friend class Virtio_block_device;
@@ -103,7 +103,7 @@ class Vmm::Virtio_block_request
 
 		template <typename T>
 		T * _desc_addr(Descriptor const & desc) const {
-			return (T*) _ram.local_address(desc.address(),
+			return (T*) _ram.local_address((addr_t)desc.address(),
 			                               desc.length()); }
 
 		Index              _request_idx;
@@ -193,7 +193,7 @@ class Vmm::Virtio_block_device
 			_block.update_jobs(*this);
 		}
 
-		void _notify(unsigned idx) override
+		void _notify(unsigned) override
 		{
 			auto lambda = [&] (Index              id,
 			                   Descriptor_array & array,
@@ -219,10 +219,10 @@ class Vmm::Virtio_block_device
 
 			Register read(Address_range& range,  Cpu&) override
 			{
-				if (range.start == 0 && range.size == 4)
+				if (range.start() == 0 && range.size() == 4)
 					return capacity & 0xffffffff;
 
-				if (range.start == 4 && range.size == 4)
+				if (range.start() == 4 && range.size() == 4)
 					return capacity >> 32;
 
 				throw Exception("Invalid read access of configuration area ",
@@ -230,24 +230,27 @@ class Vmm::Virtio_block_device
 			}
 
 			Configuration_area(Virtio_block_device & device, uint64_t capacity)
-			: Mmio_register("Configuration_area", Mmio_register::RO, 0x100, 8),
-			  capacity(capacity) { device.add(*this); }
+			:
+				Mmio_register("Configuration_area", Mmio_register::RO,
+				              0x100, 8, device.registers()),
+				capacity(capacity) { }
 		} _config_area{ *this, _block_info.block_count *
 		                       (_block_info.block_size / 512) };
 
 	public:
 
-		Virtio_block_device(const char * const name,
-		                    const uint64_t     addr,
-		                    const uint64_t     size,
-		                    unsigned           irq,
-		                    Cpu              & cpu,
-		                    Mmio_bus         & bus,
-		                    Ram              & ram,
-		                    Env              & env,
-		                    Heap             & heap)
-		: Virtio_device<Virtio_block_queue,1>(name, addr, size,
-		                                      irq, cpu, bus, ram, BLOCK),
+		Virtio_block_device(const char * const   name,
+		                    const uint64_t       addr,
+		                    const uint64_t       size,
+		                    unsigned             irq,
+		                    Cpu                & cpu,
+		                    Mmio_bus           & bus,
+		                    Ram                & ram,
+		                    Virtio_device_list & list,
+		                    Env                & env,
+		                    Heap               & heap)
+		: Virtio_device<Virtio_block_queue,1>(name, addr, size, irq,
+		                                      cpu, bus, ram, list, BLOCK),
 		  _heap(heap),
 		  _block(env, &_block_alloc, BLOCK_BUFFER_SIZE),
 		  _handler(cpu, env.ep(), *this, &Virtio_block_device::_block_signal) {
@@ -273,7 +276,7 @@ class Vmm::Virtio_block_device
 			memcpy((char *)job.address() + offset, src, sz);
 		}
 
-		void completed(Job &job, bool success)
+		void completed(Job &job, bool)
 		{
 			job.done(*_queue[REQUEST]);
 			_assert_irq();

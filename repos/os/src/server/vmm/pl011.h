@@ -40,9 +40,9 @@ class Vmm::Pl011 : public Vmm::Mmio_device
 		Terminal::Connection       _terminal;
 		Cpu::Signal_handler<Pl011> _handler;
 		Gic::Irq                 & _irq;
-		Ring_buffer                _rx_buf;
+		Ring_buffer                _rx_buf {};
 		Mmio_register              _uart_ris { "UARTRIS", Mmio_register::RO,
-		                                       0x3c, 2 };
+		                                       0x3c, 2, registers() };
 
 		/**
 		 * Dummy container for holding array of noncopyable objects
@@ -51,19 +51,19 @@ class Vmm::Pl011 : public Vmm::Mmio_device
 		struct Dummy {
 			Mmio_register regs[13];
 		} _reg_container { .regs = {
-			{ "UARTIBRD",      Mmio_register::RW, 0x24,  2, 0     },
-			{ "UARTFBRD",      Mmio_register::RW, 0x28,  2, 0     },
-			{ "UARTLCR_H",     Mmio_register::RW, 0x2c,  2, 0     },
-			{ "UARTCR",        Mmio_register::RW, 0x30,  2, 0x300 },
-			{ "UARTIFLS",      Mmio_register::RW, 0x34,  2, 0x12  },
-			{ "UARTPERIPHID0", Mmio_register::RO, 0xfe0, 4, 0x11  },
-			{ "UARTPERIPHID1", Mmio_register::RO, 0xfe4, 4, 0x10  },
-			{ "UARTPERIPHID2", Mmio_register::RO, 0xfe8, 4, 0x14  },
-			{ "UARTPERIPHID3", Mmio_register::RO, 0xfec, 4, 0x0   },
-			{ "UARTPCELLID0",  Mmio_register::RO, 0xff0, 4, 0xd   },
-			{ "UARTPCELLID1",  Mmio_register::RO, 0xff4, 4, 0xf0  },
-			{ "UARTPCELLID2",  Mmio_register::RO, 0xff8, 4, 0x5   },
-			{ "UARTPCELLID3",  Mmio_register::RO, 0xffc, 4, 0xb1  }
+			{ "UARTIBRD",      Mmio_register::RW, 0x24,  2, registers(), 0     },
+			{ "UARTFBRD",      Mmio_register::RW, 0x28,  2, registers(), 0     },
+			{ "UARTLCR_H",     Mmio_register::RW, 0x2c,  2, registers(), 0     },
+			{ "UARTCR",        Mmio_register::RW, 0x30,  2, registers(), 0x300 },
+			{ "UARTIFLS",      Mmio_register::RW, 0x34,  2, registers(), 0x12  },
+			{ "UARTPERIPHID0", Mmio_register::RO, 0xfe0, 4, registers(), 0x11  },
+			{ "UARTPERIPHID1", Mmio_register::RO, 0xfe4, 4, registers(), 0x10  },
+			{ "UARTPERIPHID2", Mmio_register::RO, 0xfe8, 4, registers(), 0x14  },
+			{ "UARTPERIPHID3", Mmio_register::RO, 0xfec, 4, registers(), 0x0   },
+			{ "UARTPCELLID0",  Mmio_register::RO, 0xff0, 4, registers(), 0xd   },
+			{ "UARTPCELLID1",  Mmio_register::RO, 0xff4, 4, registers(), 0xf0  },
+			{ "UARTPCELLID2",  Mmio_register::RO, 0xff8, 4, registers(), 0x5   },
+			{ "UARTPCELLID3",  Mmio_register::RO, 0xffc, 4, registers(), 0xb1  }
 		}};
 
 		struct Uartdr : Mmio_register
@@ -75,25 +75,31 @@ class Vmm::Pl011 : public Vmm::Mmio_device
 			Register read(Address_range&,  Cpu&)           override;
 			void     write(Address_range&, Cpu&, Register) override;
 
-			Uartdr(Terminal::Connection & terminal,
+			Uartdr(Space                & device,
+			       Terminal::Connection & terminal,
 			       Ring_buffer          & rx,
 			       Mmio_register        & ris)
-			: Mmio_register("UARTDR", Mmio_register::RW, 0x0, 2),
-			  terminal(terminal), rx(rx), ris(ris) {}
-		} _uart_dr { _terminal, _rx_buf, _uart_ris };
+			:
+				Mmio_register("UARTDR", Mmio_register::RW, 0x0, 2, device),
+				terminal(terminal), rx(rx), ris(ris) {}
+		} _uart_dr { registers(), _terminal, _rx_buf, _uart_ris };
 
-		struct Uartfr : Mmio_register, Genode::Register<32>
+		class Uartfr : public Mmio_register, protected Genode::Register<32>
 		{
-			struct Rx_empty : Bitfield<4, 1> {};
-			struct Rx_full  : Bitfield<6, 1> {};
+			public:
 
-			Ring_buffer & rx;
+				struct Rx_empty : Bitfield<4, 1> {};
+				struct Rx_full  : Bitfield<6, 1> {};
 
-			Mmio_register::Register read(Address_range&, Cpu&) override;
+				Ring_buffer & rx;
 
-			Uartfr(Ring_buffer & rx)
-			: Mmio_register("UARTFR", Mmio_register::RO, 0x18, 4), rx(rx) {}
-		} _uart_fr { _rx_buf };
+				Mmio_register::Register read(Address_range&, Cpu&) override;
+
+				Uartfr(Space & device, Ring_buffer & rx)
+				:
+					Mmio_register("UARTFR", Mmio_register::RO, 0x18, 4, device),
+					rx(rx) {}
+		} _uart_fr { registers(), _rx_buf };
 
 		struct Uartimsc : Mmio_register
 		{
@@ -102,10 +108,12 @@ class Vmm::Pl011 : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register) override;
 
-			Uartimsc(Gic::Irq & irq, Mmio_register & ris)
-			: Mmio_register("UARTIMSC", Mmio_register::RW, 0x38, 2, 0xf),
-			  irq(irq), ris(ris) {}
-		} _uart_imsc { _irq, _uart_ris };
+			Uartimsc(Space & device, Gic::Irq & irq, Mmio_register & ris)
+			:
+				Mmio_register("UARTIMSC", Mmio_register::RW, 0x38, 2,
+				              device, 0xf),
+				irq(irq), ris(ris) {}
+		} _uart_imsc { registers(), _irq, _uart_ris };
 
 		struct Uartmis : Mmio_register
 		{
@@ -114,10 +122,11 @@ class Vmm::Pl011 : public Vmm::Mmio_device
 
 			Register read(Address_range&,  Cpu&) override;
 
-			Uartmis(Mmio_register & ris, Uartimsc & imsc)
-			: Mmio_register("UARTMIS", Mmio_register::RO, 0x40, 2),
-			  ris(ris), imsc(imsc) {}
-		} _uart_mis { _uart_ris, _uart_imsc };
+			Uartmis(Space & device, Mmio_register & ris, Uartimsc & imsc)
+			:
+				Mmio_register("UARTMIS", Mmio_register::RO, 0x40, 2, device),
+				ris(ris), imsc(imsc) {}
+		} _uart_mis { registers(), _uart_ris, _uart_imsc };
 
 		struct Uarticr : Mmio_register
 		{
@@ -125,9 +134,11 @@ class Vmm::Pl011 : public Vmm::Mmio_device
 
 			void write(Address_range&, Cpu&, Register) override;
 
-			Uarticr(Mmio_register & ris)
-			: Mmio_register("UARTICR", Mmio_register::WO, 0x44, 2), ris(ris) {}
-		} _uart_icr { _uart_ris };
+			Uarticr(Space & device, Mmio_register & ris)
+			:
+				Mmio_register("UARTICR", Mmio_register::WO, 0x44, 2, device),
+				ris(ris) {}
+		} _uart_icr { registers(), _uart_ris };
 
 		void _read();
 
@@ -138,7 +149,7 @@ class Vmm::Pl011 : public Vmm::Mmio_device
 		      const Genode::uint64_t   size,
 		      unsigned                 irq,
 		      Cpu                    & cpu,
-		      Mmio_bus               & bus,
+		      Space                  & bus,
 		      Genode::Env            & env);
 };
 

@@ -123,9 +123,9 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 				using namespace Linux_evdev;
 
 				switch (_select) {
-				case ID_NAME:    return _name.length()   - 1;
-				case ID_SERIAL:  return _serial.length() - 1;
-				case ID_DEVIDS:  return _dev_id.length() - 1;
+				case ID_NAME:    return (uint8_t)(_name.length()   - 1);
+				case ID_SERIAL:  return (uint8_t)(_serial.length() - 1);
+				case ID_DEVIDS:  return (uint8_t)(_dev_id.length() - 1);
 				case PROP_BITS:  return 0; /* Unsupported */
 				case EV_BITS:
 					switch (_sub_select) {
@@ -143,7 +143,7 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 				return 0;
 			}
 
-			Register _data(addr_t off)
+			Register _data(Register off)
 			{
 				using namespace Linux_evdev;
 
@@ -179,32 +179,33 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 
 			Register read(Address_range & range,  Cpu&) override
 			{
-				if (range.start == SIZE)
+				if (range.start() == SIZE)
 					return _size();
 
-				if (range.start >= DATA && range.start < DATA_MAX)
-					return _data(range.start-DATA);
+				if (range.start() >= DATA && range.start() < DATA_MAX)
+					return _data(range.start()-DATA);
 
 				error("Reading from virtio input config space ",
-				      "at offset ", range.start, " is not allowed");
+				      "at offset ", range.start(), " is not allowed");
 				return 0;
 			}
 
 			void write(Address_range & range,  Cpu&, Register v) override
 			{
-				switch (range.start) {
-				case SELECT:     _select     = v; return;
-				case SUB_SELECT: _sub_select = v; return;
+				switch (range.start()) {
+				case SELECT:     _select     = (uint8_t)v; return;
+				case SUB_SELECT: _sub_select = (uint8_t)v; return;
 				default:
 					error("Writing to virtio input config space ",
-					      "at offset ", range.start, " is not allowed");
+					      "at offset ", range.start(), " is not allowed");
 				}
 			}
 
 			Configuration_area(Virtio_input_device & device)
-			: Mmio_register("Input config area",
-			                Mmio_register::RO, 0x100, 0xa4),
-			  dev(device) { device.add(*this); }
+			:
+				Mmio_register("Input config area", Mmio_register::RO,
+				              0x100, 0xa4, device.registers()),
+				dev(device) { }
 		} _config_area{ *this };
 
 		void _handle_input()
@@ -285,6 +286,12 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 
 		enum Device_id { INPUT = 18 };
 
+		/*
+		 * Noncopyable
+		 */
+		Virtio_input_device(Virtio_input_device const &);
+		Virtio_input_device &operator = (Virtio_input_device const &);
+
 	public:
 
 		Virtio_input_device(const char * const      name,
@@ -294,12 +301,13 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 		                    Cpu                   & cpu,
 		                    Mmio_bus              & bus,
 		                    Ram                   & ram,
+		                    Virtio_device_list    & list,
 		                    Env                   & env,
 		                    Heap                  & heap,
 		                    Input::Session_client & input)
 		:
-			Virtio_device<Virtio_split_queue, 2>(name, addr, size,
-			                                     irq, cpu, bus, ram, INPUT),
+			Virtio_device<Virtio_split_queue, 2>(name, addr, size, irq,
+			                                     cpu, bus, ram, list, INPUT),
 			_env(env), _heap(heap), _input(input),
 			_handler(cpu, env.ep(), *this, &Virtio_input_device::_handle_input)
 		{

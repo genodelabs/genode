@@ -118,36 +118,38 @@ Vm::Vm(Genode::Env & env, Heap & heap, Config & config)
 	_config.for_each_virtio_device([&] (Config::Virtio_device const & dev) {
 		switch (dev.type) {
 		case Config::Virtio_device::CONSOLE:
-			_device_list.insert(new (_heap)
+			new (_heap)
 				Virtio_console(dev.name.string(), (uint64_t)dev.mmio_start,
 				               dev.mmio_size, dev.irq, boot_cpu(),
-				               _bus, _ram, env));
+				               _bus, _ram, _device_list, env);
 			return;
 		case Config::Virtio_device::NET:
-			_device_list.insert(new (_heap)
+			new (_heap)
 				Virtio_net(dev.name.string(), (uint64_t)dev.mmio_start,
 				           dev.mmio_size, dev.irq, boot_cpu(), _bus, _ram,
-				           env));
+				           _device_list, env);
 			return;
 		case Config::Virtio_device::BLOCK:
-			_device_list.insert(new (_heap)
+			new (_heap)
 				Virtio_block_device(dev.name.string(), (uint64_t)dev.mmio_start,
 				                    dev.mmio_size, dev.irq, boot_cpu(),
-				                    _bus, _ram, env, heap));
+				                    _bus, _ram, _device_list, env, heap);
 			return;
 		case Config::Virtio_device::GPU:
 			if (!_gui.constructed()) _gui.construct(env);
-			_device_list.insert(new (_heap)
+			new (_heap)
 				Virtio_gpu_device(dev.name.string(), (uint64_t)dev.mmio_start,
 				                    dev.mmio_size, dev.irq, boot_cpu(),
-				                    _bus, _ram, env, heap, _vm_ram, *_gui));
+				                    _bus, _ram, _device_list, env,
+				                    heap, _vm_ram, *_gui);
 			return;
 		case Config::Virtio_device::INPUT:
 			if (!_gui.constructed()) _gui.construct(env);
-			_device_list.insert(new (_heap)
+			new (_heap)
 				Virtio_input_device(dev.name.string(), (uint64_t)dev.mmio_start,
 				                    dev.mmio_size, dev.irq, boot_cpu(),
-				                    _bus, _ram, env, heap, *_gui->input()));
+				                    _bus, _ram, _device_list, env,
+				                    heap, *_gui->input());
 		default:
 			return;
 		};

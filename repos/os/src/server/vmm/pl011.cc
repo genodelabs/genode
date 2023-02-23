@@ -54,7 +54,7 @@ Register Pl011::Uartmis::read(Address_range&,  Cpu&)
 }
 
 
-void Pl011::Uarticr::write(Address_range & ar, Cpu &, Register value)
+void Pl011::Uarticr::write(Address_range &, Cpu &, Register value)
 {
 	ris.set(ris.value() & ~value);
 }
@@ -80,23 +80,12 @@ Pl011::Pl011(const char * const       name,
              const Genode::uint64_t   size,
              unsigned                 irq,
              Cpu                    & cpu,
-             Mmio_bus               & bus,
+             Space                  & bus,
              Genode::Env            & env)
-: Mmio_device(name, addr, size),
+: Mmio_device(name, addr, size, bus),
   _terminal(env, "earlycon"),
   _handler(cpu, env.ep(), *this, &Pl011::_read),
   _irq(cpu.gic().irq(irq))
 {
-	for (unsigned i = 0; i < (sizeof(Dummy::regs) / sizeof(Mmio_register)); i++)
-		add(_reg_container.regs[i]);
-	add(_uart_ris);
-	add(_uart_dr);
-	add(_uart_fr);
-	add(_uart_imsc);
-	add(_uart_mis);
-	add(_uart_icr);
-
 	_terminal.read_avail_sigh(_handler);
-
-	bus.add(*this);
 }

@@ -17,7 +17,7 @@ using Vmm::Address_range;
 
 Address_range::Address_range(Genode::uint64_t start,
                              Genode::uint64_t size)
-: start(start), size(size) { }
+: _start(start), _size(size) { }
 
 
 Address_range & Address_range::find(Address_range & bus_addr)
@@ -26,7 +26,7 @@ Address_range & Address_range::find(Address_range & bus_addr)
 		return *this;
 
 	Address_range * ar =
-		Avl_node<Address_range>::child(bus_addr.start > start);
+		Avl_node<Address_range>::child(bus_addr._start > _start);
 	if (!ar) throw Not_found(bus_addr);
 	return ar->find(bus_addr);
 }

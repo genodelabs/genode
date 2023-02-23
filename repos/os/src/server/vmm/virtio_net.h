@@ -125,12 +125,12 @@ class Vmm::Virtio_net : public Virtio_device<Virtio_split_queue, 2>
 
 			Register read(Address_range & range,  Cpu&) override
 			{
-				if (range.start > 5) return 0;
+				if (range.start() > 5) return 0;
 
-				return mac.addr[range.start];
+				return mac.addr[range.start()];
 			}
 
-			void write(Address_range & range,  Cpu&, Register v) override {}
+			void write(Address_range &,  Cpu &, Register) override {}
 
 			Config_area(Virtio_net & device, Nic::Mac_address & mac)
 			: Reg(device, "ConfigArea", Mmio_register::RW, 0x100, 24),
@@ -140,17 +140,18 @@ class Vmm::Virtio_net : public Virtio_device<Virtio_split_queue, 2>
 
 	public:
 
-		Virtio_net(const char * const name,
-		           const uint64_t addr,
-		           const uint64_t size,
-		           unsigned irq,
-		           Cpu      &cpu,
-		           Mmio_bus &bus,
-		           Ram      &ram,
-		           Genode::Env &env)
+		Virtio_net(const char * const   name,
+		           const uint64_t       addr,
+		           const uint64_t       size,
+		           unsigned             irq,
+		           Cpu                & cpu,
+		           Mmio_bus           & bus,
+		           Ram                & ram,
+		           Virtio_device_list & list,
+		           Genode::Env        & env)
 		:
-			Virtio_device<Virtio_split_queue, 2>(name, addr, size,
-			                                     irq, cpu, bus, ram, NIC),
+			Virtio_device<Virtio_split_queue, 2>(name, addr, size, irq,
+			                                     cpu, bus, ram, list, NIC),
 			_env(env),
 			_handler(cpu, _env.ep(), *this, &Virtio_net::_handle)
 		{

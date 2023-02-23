@@ -18,44 +18,57 @@
 #include <util/avl_tree.h>
 
 namespace Vmm {
+	using namespace Genode;
+
 	struct Address_range;
-	class Address_space;
+	class  Address_space;
 }
 
 
-struct Vmm::Address_range : Genode::Avl_node<Address_range>
+class Vmm::Address_range : private Genode::Avl_node<Address_range>
 {
-	Genode::uint64_t const start;
-	Genode::uint64_t const size;
+	private:
 
-	Address_range(Genode::uint64_t start,
-	              Genode::uint64_t size);
+		uint64_t const _start;
+		uint64_t const _size;
 
-	Genode::uint64_t end() const { return start + size; }
+		friend class Avl_node<Address_range>;
+		friend class Avl_tree<Address_range>;
+		friend class Address_space;
 
-	bool match(Address_range & other) const {
-		return other.start >= start && other.end() <= end(); }
+	public:
 
-	Address_range & find(Address_range & bus_addr);
+		Address_range(uint64_t start,
+		              uint64_t size);
+		virtual ~Address_range() {}
 
-	struct Not_found : Exception
-	{
-		Not_found(Address_range & access)
-		: Exception("Could not find ", access) {}
-	};
+		uint64_t start() const { return _start;         }
+		uint64_t size()  const { return _size;          }
+		uint64_t end()   const { return _start + _size; }
 
-	void print(Genode::Output & out) const
-	{
-		Genode::print(out, "address=", Genode::Hex(start),
-		              " width=", Genode::Hex(size));
-	}
+		bool match(Address_range & other) const {
+			return other._start >= _start && other.end() <= end(); }
 
-	/************************
-	 ** Avl_node interface **
-	 ************************/
+		Address_range & find(Address_range & bus_addr);
 
-	bool higher(Address_range * range) {
-		return range->start > start; }
+		struct Not_found : Exception
+		{
+			Not_found(Address_range & access)
+			: Exception("Could not find ", access) {}
+		};
+
+		void print(Genode::Output & out) const
+		{
+			Genode::print(out, "address=", Hex(_start),
+			              " width=", Hex(_size));
+		}
+
+		/************************
+		 ** Avl_node interface **
+		 ************************/
+
+		bool higher(Address_range * range) {
+			return range->_start > _start; }
 };
 
 
@@ -63,7 +76,7 @@ class Vmm::Address_space
 {
 	private:
 
-		Genode::Avl_tree<Address_range> _tree;
+		Avl_tree<Address_range> _tree {};
 
 	public:
 

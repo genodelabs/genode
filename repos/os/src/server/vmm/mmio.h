@@ -30,23 +30,28 @@ class Vmm::Mmio_register : public Vmm::Address_range
 
 		enum Type { RO, WO, RW };
 
-		using Name     = Genode::String<64>;
-		using Register = Genode::uint64_t;
+		using Name     = String<64>;
+		using Register = uint64_t;
+		using Space    = Address_space;
 
 		virtual Register read(Address_range  & access, Cpu&);
 		virtual void     write(Address_range & access, Cpu&, Register value);
 		virtual void     set(Register value);
 		virtual Register value() const;
 
-		Mmio_register(Name             name,
-		              Type             type,
-		              Genode::uint64_t start,
-		              Genode::uint64_t size,
-		              Register         reset_value = 0)
+		Mmio_register(Name     name,
+		              Type     type,
+		              uint64_t start,
+		              uint64_t size,
+		              Space  & device,
+		              Register reset_value = 0)
 		: Address_range(start, size),
 		  _name(name),
 		  _type(type),
-		  _value(reset_value) { }
+		  _value(reset_value)
+		{
+			device.add(*this);
+		}
 
 	protected:
 
@@ -62,23 +67,32 @@ class Vmm::Mmio_device : public Vmm::Address_range
 {
 	public:
 
-		using Name     = Genode::String<64>;
-		using Register = Genode::uint64_t;
+		using Name     = String<64>;
+		using Register = uint64_t;
+		using Space    = Address_space;
+
+	private:
+
+		Name const    _name;
+		Address_space _registers {};
+
+	public:
+
+		Space & registers() { return _registers; }
 
 		virtual Register read(Address_range  & access, Cpu&);
 		virtual void     write(Address_range & access, Cpu&, Register value);
 
 		void add(Mmio_register & reg);
 
-		Mmio_device(Name             name,
-		            Genode::uint64_t start,
-		            Genode::uint64_t size)
-		: Address_range(start, size), _name(name) { }
-
-	private:
-
-		Name const    _name;
-		Address_space _registers;
+		Mmio_device(Name     name,
+		            uint64_t start,
+		            uint64_t size,
+		            Space  & bus)
+		: Address_range(start, size), _name(name)
+		{
+			bus.add(*this);
+		}
 };
 
 

@@ -35,7 +35,7 @@ void Vmm::Virtio_gpu_queue::notify(Virtio_gpu_device & dev)
 	if (!inform)
 		return;
 
-	_used.write<Used_queue::Idx>(_cur_idx.idx());
+	_used.write<Used_queue::Idx>((uint16_t)_cur_idx.idx());
 	memory_barrier();
 	if (_avail.inject_irq()) dev.assert_irq();
 }
@@ -128,7 +128,7 @@ void Vmm::Virtio_gpu_control_request::_resource_attach_backing()
 			for (unsigned i = 0; i < nr; i++) {
 				Entry entry(entry_base+i*Entry::SIZE);
 				size_t sz  = entry.read<Entry::Length>();
-				addr_t off = _device._ram.local_address(entry.read<Entry::Address>(), sz)
+				addr_t off = _device._ram.local_address((addr_t)entry.read<Entry::Address>(), sz)
 				             - _device._ram.local();
 				res.attach(off, sz);
 			}
@@ -211,7 +211,7 @@ void Vmm::Virtio_gpu_control_request::_resource_flush()
 		void * dst =
 			(void*)((addr_t)_device._fb_ds->local_addr<void>() +
 			        (_device._fb_mode.area.w() * y + x) * BYTES_PER_PIXEL);
-		size_t line = res.area.w() * BYTES_PER_PIXEL;
+		uint32_t line = res.area.w() * BYTES_PER_PIXEL;
 
 		blit(src, line, dst, line, w*BYTES_PER_PIXEL, h);
 
@@ -240,7 +240,7 @@ void Vmm::Virtio_gpu_control_request::_transfer_to_host_2d()
 		uint32_t y = tth.read<Transfer_to_host_2d::Y>();
 		uint32_t w = tth.read<Transfer_to_host_2d::Width>();
 		uint32_t h = tth.read<Transfer_to_host_2d::Height>();
-		addr_t off = tth.read<Transfer_to_host_2d::Offset>();
+		addr_t off = (addr_t)tth.read<Transfer_to_host_2d::Offset>();
 
 		if (x + w > res.area.w() || y + h > res.area.h()) {
 			response.write<Control_header::Type>(Control_header::Type::ERR_INVALID_PARAMETER);
@@ -250,7 +250,7 @@ void Vmm::Virtio_gpu_control_request::_transfer_to_host_2d()
 		void * src  = (void*)((addr_t)res.src_ds.local_addr<void>() + off);
 		void * dst  = (void*)((addr_t)res.dst_ds.local_addr<void>() +
 		              (y * res.area.w() + x) * BYTES_PER_PIXEL);
-		size_t line = res.area.w() * BYTES_PER_PIXEL;
+		uint32_t line = res.area.w() * BYTES_PER_PIXEL;
 
 		blit(src, line, dst, line, w*BYTES_PER_PIXEL, h);
 

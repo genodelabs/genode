@@ -190,7 +190,7 @@ Cpu_base::Cpu_base(Vm                      & vm,
                    Genode::Env             & env,
                    Genode::Heap            & heap,
                    Genode::Entrypoint      & ep,
-                   short const               id)
+                   unsigned                  id)
 : _vcpu_id(id),
   _vm(vm),
   _vm_session(vm_session),

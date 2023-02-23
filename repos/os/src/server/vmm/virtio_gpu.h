@@ -34,7 +34,7 @@ class Vmm::Virtio_gpu_queue : public Virtio_split_queue
 {
 	private:
 
-		Ring_index _used_idx;
+		Ring_index _used_idx {};
 
 		friend class Virtio_gpu_control_request;
 
@@ -235,7 +235,8 @@ class Vmm::Virtio_gpu_control_request
 		addr_t _desc_addr(unsigned i)
 		{
 			Descriptor d = _desc(i);
-			return _ram.local_address(d.address(), d.length());
+			/* we only support 32-bit ram addresses by now */
+			return _ram.local_address((addr_t)d.address(), d.length());
 		}
 
 		Control_header _ctrl_hdr { _desc_addr(0) };
@@ -329,7 +330,8 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 				        uint32_t w, uint32_t h)
 				:
 					Registry<Scanout>::Element(registry, *this),
-					Rect(Point((int)x,(int)y), Area((int)w,(int)h)) { }
+					Rect(Point((int)x,(int)y), Area((int)w,(int)h)),
+					id(id) { }
 
 				using Rect::Rect;
 			};
@@ -348,7 +350,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			                                    region_map.dataspace() };
 			Attached_ram_dataspace dst_ds     { device._env.ram(),
 			                                    device._env.rm(), _size() };
-			Registry<Scanout>      scanouts;
+			Registry<Scanout>      scanouts {};
 
 			Resource(Virtio_gpu_device & dev,
 			         uint32_t            id,
@@ -392,11 +394,11 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 
 			Register read(Address_range & range,  Cpu&) override
 			{
-				if (range.start == EVENTS_READ && range.size == 4)
+				if (range.start() == EVENTS_READ && range.size() == 4)
 					return dev._mode_changed ? 1 : 0;
 
 				/* we support no multi-head, just return 1 */
-				if (range.start == SCANOUTS && range.size == 4)
+				if (range.start() == SCANOUTS && range.size() == 4)
 					return 1;
 
 				return 0;
@@ -404,13 +406,15 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 
 			void write(Address_range & range,  Cpu&, Register v) override
 			{
-				if (range.start == EVENTS_CLEAR && range.size == 4 && v == 1)
+				if (range.start() == EVENTS_CLEAR && range.size() == 4 && v == 1)
 					dev._mode_changed = false;
 			}
 
 			Configuration_area(Virtio_gpu_device & device)
-			: Mmio_register("GPU config area", Mmio_register::RO, 0x100, 16),
-			  dev(device) { device.add(*this); }
+			:
+				Mmio_register("GPU config area", Mmio_register::RO,
+				              0x100, 16, device.registers()),
+				dev(device) { }
 		} _config_area{ *this };
 
 		void _mode_change()
@@ -448,15 +452,16 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 		                  const uint64_t           size,
 		                  unsigned                 irq,
 		                  Cpu                    & cpu,
-		                  Mmio_bus               & bus,
+		                  Space                  & bus,
 		                  Ram                    & ram,
+		                  Virtio_device_list     & list,
 		                  Env                    & env,
 		                  Heap                   & heap,
 		                  Attached_ram_dataspace & ram_ds,
 		                  Gui::Connection        & gui)
 		:
 			Virtio_device<Virtio_gpu_queue, 2>(name, addr, size,
-			                                   irq, cpu, bus, ram, GPU),
+			                                   irq, cpu, bus, ram, list, GPU),
 			_env(env), _heap(heap), _ram_ds(ram_ds), _gui(gui),
 			_handler(cpu, env.ep(), *this, &Virtio_gpu_device::_mode_change)
 		{

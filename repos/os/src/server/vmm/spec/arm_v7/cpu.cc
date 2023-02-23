@@ -17,29 +17,30 @@
 using Vmm::Cpu_base;
 using Vmm::Cpu;
 using Vmm::Gic;
+using namespace Genode;
 
-Genode::uint64_t Cpu_base::State::reg(unsigned idx) const
+addr_t Cpu_base::State::reg(addr_t idx) const
 {
 	if (idx > 15) return 0;
 
-	Genode::uint32_t * r = (Genode::uint32_t*)this;
+	addr_t * r = (addr_t*)this;
 	r += idx;
 	return *r;
 }
 
 
-void Cpu_base::State::reg(unsigned idx, Genode::uint64_t v)
+void Cpu_base::State::reg(addr_t idx, addr_t v)
 {
 	if (idx > 15) return;
 
-	Genode::uint32_t * r = (Genode::uint32_t*)this;
+	addr_t * r = (addr_t*)this;
 	r += idx;
 	*r = v;
 }
 
 
 Cpu_base::System_register::Iss::access_t
-Cpu_base::System_register::Iss::value(unsigned op0, unsigned crn, unsigned op1,
+Cpu_base::System_register::Iss::value(unsigned, unsigned crn, unsigned op1,
                                       unsigned crm, unsigned op2)
 {
 	access_t v = 0;
@@ -63,7 +64,7 @@ Cpu_base::System_register::Iss::mask_encoding(access_t v)
 
 void Cpu_base::_handle_brk()
 {
-	Genode::error(__func__, " not implemented yet");
+	error(__func__, " not implemented yet");
 }
 
 
@@ -85,8 +86,6 @@ void Cpu_base::handle_exception()
 
 void Cpu_base::dump()
 {
-	using namespace Genode;
-
 	auto lambda = [] (unsigned i) {
 		switch (i) {
 		case 0:   return "und";
@@ -127,7 +126,7 @@ void Cpu_base::dump()
 }
 
 
-void Cpu_base::initialize_boot(Genode::addr_t ip, Genode::addr_t dtb)
+void Cpu_base::initialize_boot(addr_t ip, addr_t dtb)
 {
 	state().reg(1, 0xffffffff); /* invalid machine type */
 	state().reg(2, dtb);
@@ -135,9 +134,9 @@ void Cpu_base::initialize_boot(Genode::addr_t ip, Genode::addr_t dtb)
 }
 
 
-Genode::addr_t Cpu::Ccsidr::read() const
+addr_t Cpu::Ccsidr::read() const
 {
-	struct Csselr : Genode::Register<32>
+	struct Csselr : Register<32>
 	{
 		struct Level : Bitfield<1, 4> {};
 	};
@@ -147,7 +146,7 @@ Genode::addr_t Cpu::Ccsidr::read() const
 	unsigned level = Csselr::Level::get(csselr.read());
 
 	if (level > 6) {
-		Genode::warning("Invalid Csselr value!");
+		warning("Invalid Csselr value!");
 		return INVALID;
 	}
 
@@ -155,14 +154,14 @@ Genode::addr_t Cpu::Ccsidr::read() const
 }
 
 
-Cpu::Cpu(Vm                      & vm,
-         Genode::Vm_connection   & vm_session,
-         Mmio_bus                & bus,
-         Gic                     & gic,
-         Genode::Env             & env,
-         Genode::Heap            & heap,
-         Genode::Entrypoint      & ep,
-         short const               id)
+Cpu::Cpu(Vm              & vm,
+         Vm_connection   & vm_session,
+         Mmio_bus        & bus,
+         Gic             & gic,
+         Env             & env,
+         Heap            & heap,
+         Entrypoint      & ep,
+         unsigned          id)
 : Cpu_base(vm, vm_session, bus, gic, env, heap, ep, id),
   _sr_midr   (0, 0, 0, 0, "MIDR",   false, 0x412fc0f1,     _reg_tree),
   _sr_mpidr  (0, 0, 0, 5, "MPIDR",  false, 1<<31|cpu_id(), _reg_tree),

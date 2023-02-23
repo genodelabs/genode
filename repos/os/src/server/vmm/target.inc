@@ -15,5 +15,3 @@ SRC_CC   += virtio_gpu.cc
 INC_DIR  += $(PRG_DIR)/../.. $(PRG_DIR)
 
 vpath %.cc $(PRG_DIR)/../..
-
-CC_CXX_WARN_STRICT :=

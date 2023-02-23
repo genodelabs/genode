@@ -36,22 +36,32 @@ class Vmm::Config
 		using Name      = String<128>;
 		using Arguments = String<512>;
 
-		struct Virtio_device : List_model<Virtio_device>::Element
+		class Virtio_device : public List_model<Virtio_device>::Element
 		{
-			enum Type { INVALID, CONSOLE, NET, BLOCK, GPU, INPUT };
+			private:
 
-			enum { MMIO_SIZE = 0x200 };
+				Config & _config;
 
-			Config & _config;
+				/**
+				 * Noncopyable
+				 */
+				Virtio_device(Virtio_device const &);
+				Virtio_device &operator = (Virtio_device const &);
 
-			Virtio_device(Name & name, Type type, Config & config);
-			~Virtio_device();
+			public:
 
-			Name     const name;
-			Type     const type;
-			void   * const mmio_start;
-			size_t   const mmio_size;
-			unsigned const irq;
+				enum Type { INVALID, CONSOLE, NET, BLOCK, GPU, INPUT };
+
+				enum { MMIO_SIZE = 0x200 };
+
+				Virtio_device(Name & name, Type type, Config & config);
+				~Virtio_device();
+
+				Name     const name;
+				Type     const type;
+				void   * const mmio_start;
+				size_t   const mmio_size;
+				unsigned const irq;
 		};
 
 	private:
@@ -60,8 +70,13 @@ class Vmm::Config
 		{
 			Bit_allocator<VIRTIO_IRQ_COUNT> _alloc {};
 
-			unsigned alloc() {
-				return VIRTIO_IRQ_START + _alloc.alloc(); }
+			unsigned alloc()
+			{
+				/* we assume that the max number of IRQs does fit unsigned */
+				static_assert(VIRTIO_IRQ_COUNT < ~0U);
+				return VIRTIO_IRQ_START + (unsigned)_alloc.alloc();
+			}
+
 			void free(unsigned irq) {
 				_alloc.free(VIRTIO_IRQ_START+irq); }
 		};
@@ -77,7 +92,7 @@ class Vmm::Config
 		unsigned      _gic_version { 0 };
 		Arguments     _bootargs    {   };
 
-		List_model<Virtio_device> _model;
+		List_model<Virtio_device> _model {};
 
 		struct Virtio_device_update_policy
 			: List_model<Config::Virtio_device>::Update_policy

@@ -275,12 +275,12 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 		node(Name("timer"), [&] ()
 		{
 			property(Name("compatible"),
-			         ::Array<Name, 2>("arm,armv8-timer", "arm,armv7-timer"));
+			         ::Array<Name, 2U>("arm,armv8-timer", "arm,armv7-timer"));
 			property(Name("interrupts"),
-			         ::Array<Value, 12>(GIC_PPI, 0xd, IRQ_TYPE_LEVEL_HIGH,
-			                            GIC_PPI, 0xe, IRQ_TYPE_LEVEL_HIGH,
-			                            GIC_PPI, 0xb, IRQ_TYPE_LEVEL_HIGH,
-			                            GIC_PPI, 0xa, IRQ_TYPE_LEVEL_HIGH));
+			         ::Array<Value, 12U>(GIC_PPI, 0xd, IRQ_TYPE_LEVEL_HIGH,
+			                             GIC_PPI, 0xe, IRQ_TYPE_LEVEL_HIGH,
+			                             GIC_PPI, 0xb, IRQ_TYPE_LEVEL_HIGH,
+			                             GIC_PPI, 0xa, IRQ_TYPE_LEVEL_HIGH));
 		});
 
 		node(Name("gic"), [&] ()
@@ -289,16 +289,16 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 			property(Name("phandle"), Value(GIC));
 			property(Name("compatible"),
 			         (gicv2) ? Name("arm,gic-400") : Name("arm,gic-v3"));
-			property(Name("ranges"),                 ::Array<Value,0>());
-			property(Name("interrupt-controller"),   ::Array<Value,0>());
+			property(Name("ranges"),                 ::Array<Value,0U>());
+			property(Name("interrupt-controller"),   ::Array<Value,0U>());
 			property(Name("#address-cells"),         Value(2));
 			property(Name("#redistributor-regions"), Value(1));
 			property(Name("#interrupt-cells"),       Value(3));
 			property(Name("#size-cells"),            Value(2));
 			property(Name("reg"),
-			         ::Array<Value, 8>(0, GICD_MMIO_START, 0, GICD_MMIO_SIZE,
-			                           0, (gicv2) ? GICC_MMIO_START : GICR_MMIO_START,
-			                           0, (gicv2) ? GICC_MMIO_SIZE  : GICR_MMIO_SIZE));
+			         ::Array<Value, 8U>(0, GICD_MMIO_START, 0, GICD_MMIO_SIZE,
+			                            0, (gicv2) ? GICC_MMIO_START : GICR_MMIO_START,
+			                            0, (gicv2) ? GICC_MMIO_SIZE  : GICR_MMIO_SIZE));
 		});
 
 		node(Name("clocks"), [&] ()
@@ -320,19 +320,20 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 		node(Name("pl011"), [&] ()
 		{
 			property(Name("compatible"),
-			         ::Array<Name, 2>("arm,pl011", "arm,primecell"));
+			         ::Array<Name, 2U>("arm,pl011", "arm,primecell"));
 			property(Name("interrupts"),
 			         ::Array<Value, 3>(GIC_SPI, PL011_IRQ-32, IRQ_TYPE_LEVEL_HIGH));
-			property(Name("reg"), ::Array<Value, 4>(0, PL011_MMIO_START,
-			                                        0, PL011_MMIO_SIZE));
+			property(Name("reg"), ::Array<Value, 4U>(0, PL011_MMIO_START,
+			                                         0, PL011_MMIO_SIZE));
 			property(Name("clock-names"),
-			         ::Array<Name, 2>("uartclk", "apb_pclk"));
-			property(Name("clocks"), ::Array<Value, 2>(CLK, CLK));
+			         ::Array<Name, 2U>("uartclk", "apb_pclk"));
+			property(Name("clocks"), ::Array<Value, 2U>(CLK, CLK));
 		});
 
 		node(Name("memory"), [&] ()
 		{
-			property(Name("reg"), ::Array<Value, 4>(0, RAM_START, 0, config.ram_size()));
+			property(Name("reg"), ::Array<Value, 4U>(0, RAM_START, 0,
+			                                         (uint32_t)config.ram_size()));
 			property(Name("device_type"), Name("memory"));
 		});
 
@@ -347,19 +348,20 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 			/* we're sure that the initrd start address is wide below 4GB */
 			uint32_t start = (uint32_t)((addr_t)initrd_start & 0xffffffff);
 			property(Name("linux,initrd-start"), Value(start));
-			property(Name("linux,initrd-end"),   Value(start+initrd_size));
+			property(Name("linux,initrd-end"),   Value(start+(uint32_t)initrd_size));
 		});
 
 		config.for_each_virtio_device([&] (Config::Virtio_device const & dev) {
 			node(Name("virtio@", dev.mmio_start), [&] ()
 			{
 				property(Name("interrupts"),
-				         ::Array<Value, 3>(GIC_SPI, dev.irq-32, IRQ_TYPE_EDGE_RISING));
+				         ::Array<Value, 3U>(GIC_SPI, dev.irq-32U,
+				                            IRQ_TYPE_EDGE_RISING));
 				property(Name("compatible"), Name("virtio,mmio"));
-				property(Name("dma-coherent"),   ::Array<Value,0>());
+				property(Name("dma-coherent"),   ::Array<Value,0U>());
 				property(Name("reg"),
-				         ::Array<Value, 4>(0, (uint32_t)((addr_t)dev.mmio_start & 0xffffffff),
-				                           0, (uint32_t)dev.mmio_size));
+				         ::Array<Value, 4U>(0U, (uint32_t)((addr_t)dev.mmio_start & 0xffffffff),
+				                            0U, (uint32_t)dev.mmio_size));
 			});
 		});
 	});

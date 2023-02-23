@@ -17,15 +17,16 @@
 using Vmm::Cpu_base;
 using Vmm::Cpu;
 using Vmm::Gic;
+using namespace Genode;
 
-Genode::uint64_t Cpu_base::State::reg(unsigned idx) const
+addr_t Cpu_base::State::reg(addr_t idx) const
 {
 	if (idx > 30) return 0;
 	return r[idx];
 }
 
 
-void Cpu_base::State::reg(unsigned idx, Genode::uint64_t v)
+void Cpu_base::State::reg(addr_t idx, addr_t v)
 {
 	if (idx > 30) return;
 	r[idx] = v;
@@ -59,14 +60,16 @@ Cpu_base::System_register::Iss::mask_encoding(access_t v)
 
 void Cpu_base::_handle_brk()
 {
-	Genode::uint64_t offset = 0x0;
+	addr_t offset = 0x0;
 	if (!(_state.pstate & 0b100)) {
 		offset = 0x400;
 	} else if (_state.pstate & 0b1) {
 		offset = 0x200;
 	}
-	_state.esr_el1  = _state.esr_el2;
-	_state.spsr_el1 = _state.pstate;
+
+	/* only the below 32-bit of system register ESR_EL2 and PSTATE are used */
+	_state.esr_el1  = (uint32_t)_state.esr_el2;
+	_state.spsr_el1 = (uint32_t)_state.pstate;
 	_state.elr_el1  = _state.ip;
 	_state.ip       = _state.vbar_el1 + offset;
 	_state.pstate   = 0b1111000101;
@@ -90,8 +93,6 @@ void Cpu_base::handle_exception()
 
 void Cpu_base::dump()
 {
-	using namespace Genode;
-
 	auto lambda = [] (addr_t exc) {
 		switch (exc) {
 		case Cpu::AARCH64_SYNC:   return "aarch64 sync";
@@ -123,7 +124,7 @@ void Cpu_base::dump()
 }
 
 
-Genode::addr_t Cpu::Ccsidr::read() const
+addr_t Cpu::Ccsidr::read() const
 {
 	struct Clidr : Genode::Register<32>
 	{
@@ -147,42 +148,42 @@ Genode::addr_t Cpu::Ccsidr::read() const
 
 	enum { INVALID = 0xffffffff };
 
-	unsigned level = Csselr::Level::get(csselr.read());
-	bool     instr = Csselr::Instr::get(csselr.read());
+	unsigned level = Csselr::Level::get((Csselr::access_t)csselr.read());
+	bool     instr = Csselr::Instr::get((Csselr::access_t)csselr.read());
 
 	if (level > 6) {
-		Genode::warning("Invalid Csselr value!");
+		warning("Invalid Csselr value!");
 		return INVALID;
 	}
 
-	unsigned ce = Clidr::level(level, state.clidr_el1);
+	unsigned ce = Clidr::level(level, (Clidr::access_t)state.clidr_el1);
 
 	if (ce == Clidr::NO_CACHE ||
 	    (ce == Clidr::DATA_CACHE_ONLY && instr)) {
-		Genode::warning("Invalid Csselr value!");
+		warning("Invalid Csselr value!");
 		return INVALID;
 	}
 
 	if (ce == Clidr::INSTRUCTION_CACHE_ONLY ||
 	    (ce == Clidr::SEPARATE_CACHE && instr)) {
-		Genode::log("Return Ccsidr instr value ", state.ccsidr_inst_el1[level]);
+		log("Return Ccsidr instr value ", state.ccsidr_inst_el1[level]);
 		return state.ccsidr_inst_el1[level];
 	}
 
-	Genode::log("Return Ccsidr value ", state.ccsidr_data_el1[level]);
+	log("Return Ccsidr value ", state.ccsidr_data_el1[level]);
 	return state.ccsidr_data_el1[level];
 }
 
 
-Genode::addr_t Cpu::Ctr_el0::read() const
+addr_t Cpu::Ctr_el0::read() const
 {
-	Genode::addr_t ret;
+	addr_t ret;
 	asm volatile("mrs %0, ctr_el0" : "=r" (ret));
 	return ret;
 }
 
 
-void Cpu::Icc_sgi1r_el1::write(Genode::addr_t v)
+void Cpu::Icc_sgi1r_el1::write(addr_t v)
 {
 
 	unsigned target_list = v & 0xffff;
@@ -197,21 +198,21 @@ void Cpu::Icc_sgi1r_el1::write(Genode::addr_t v)
 };
 
 
-void Cpu_base::initialize_boot(Genode::addr_t ip, Genode::addr_t dtb)
+void Cpu_base::initialize_boot(addr_t ip, addr_t dtb)
 {
 	state().reg(0, dtb);
 	state().ip = ip;
 }
 
 
-Cpu::Cpu(Vm                      & vm,
-         Genode::Vm_connection   & vm_session,
-         Mmio_bus                & bus,
-         Gic                     & gic,
-         Genode::Env             & env,
-         Genode::Heap            & heap,
-         Genode::Entrypoint      & ep,
-         short const               id)
+Cpu::Cpu(Vm              & vm,
+         Vm_connection   & vm_session,
+         Mmio_bus        & bus,
+         Gic             & gic,
+         Env             & env,
+         Heap            & heap,
+         Entrypoint      & ep,
+         unsigned                  id)
 : Cpu_base(vm, vm_session, bus, gic, env, heap, ep, id),
   _sr_id_aa64afr0_el1 (3, 0, 0, 5, 4, "ID_AA64AFR0_EL1",  false, 0x0, _reg_tree),
   _sr_id_aa64afr1_el1 (3, 0, 0, 5, 5, "ID_AA64AFR1_EL1",  false, 0x0, _reg_tree),
