@@ -22,9 +22,20 @@ namespace Scsi {
 
 	using namespace Genode;
 
-	uint16_t be16(uint16_t val);
-	uint32_t be32(uint32_t val);
-	uint64_t be64(uint64_t val);
+	/*******************
+	 ** Endian helper **
+	 *******************/
+
+	template <typename T>
+	T be(T val)
+	{
+		uint8_t * p = reinterpret_cast<uint8_t *>(&val);
+		T ret = 0;
+		for (size_t i = 0; i < sizeof(T); i++)
+			ret |= (T) (p[i] << ((sizeof(T)-i-1)*8));
+		return ret;
+	}
+
 
 	/******************
 	 * SCSI commands **
@@ -66,30 +77,6 @@ namespace Scsi {
 	struct Io_16;
 	struct Read_16;
 	struct Write_16;
-}
-
-
-/*******************
-** Endian helper **
-*******************/
-
-Genode::uint16_t Scsi::be16(Genode::uint16_t val)
-{
-	Genode::uint8_t *p = reinterpret_cast<Genode::uint8_t*>(&val);
-	return (p[1]<<0)|(p[0]<<8);
-}
-
-Genode::uint32_t Scsi::be32(Genode::uint32_t val)
-{
-	Genode::uint8_t *p = reinterpret_cast<Genode::uint8_t*>(&val);
-	return (p[3]<<0)|(p[2]<<8)|(p[1]<<16)|(p[0]<<24);
-}
-
-Genode::uint64_t Scsi::be64(Genode::uint64_t val)
-{
-	Genode::uint8_t *p = reinterpret_cast<Genode::uint8_t*>(&val);
-	return ((((Genode::uint64_t)(p[3]<<0)|(p[2]<<8)|(p[1]<<16)|(p[0]<<24))<<32)|
-	        (((Genode::uint32_t)(p[7]<<0)|(p[6]<<8)|(p[5]<<16)|(p[4]<<24))));
 }
 
 
@@ -189,8 +176,8 @@ struct Scsi::Capacity_response_10 : Genode::Mmio
 
 	Capacity_response_10(addr_t addr) : Mmio(addr) { }
 
-	uint32_t last_block() const { return be32(read<Lba>()); }
-	uint32_t block_size() const { return be32(read<Bs>()); }
+	uint32_t last_block() const { return be(read<Lba>()); }
+	uint32_t block_size() const { return be(read<Bs>()); }
 
 	void dump()
 	{
@@ -210,8 +197,8 @@ struct Scsi::Capacity_response_16 : Genode::Mmio
 
 	Capacity_response_16(addr_t addr) : Mmio(addr) { }
 
-	uint64_t last_block() const { return be64(read<Lba>()); }
-	uint32_t block_size() const { return be32(read<Bs>()); }
+	uint64_t last_block() const { return be(read<Lba>()); }
+	uint32_t block_size() const { return be(read<Bs>()); }
 
 	void dump()
 	{
@@ -239,7 +226,7 @@ struct Scsi::Cmd_6 : Genode::Mmio
 	void dump()
 	{
 		Genode::log("Op:  ", Genode::Hex(read<Op>()));
-		Genode::log("Lba: ", Genode::Hex(be16(read<Lba>())));
+		Genode::log("Lba: ", Genode::Hex(be(read<Lba>())));
 		Genode::log("Len: ", read<Len>());
 		Genode::log("Ctl: ", Genode::Hex(read<Ctl>()));
 	}
@@ -327,8 +314,8 @@ struct Scsi::Cmd_10 : Genode::Mmio
 	void dump()
 	{
 		Genode::log("Op:  ", Genode::Hex(read<Op>()));
-		Genode::log("Lba: ", Genode::Hex(be32(read<Lba>())));
-		Genode::log("Len: ", be16(read<Len>()));
+		Genode::log("Lba: ", Genode::Hex(be(read<Lba>())));
+		Genode::log("Len: ", be(read<Len>()));
 		Genode::log("Ctl: ", Genode::Hex(read<Ctl>()));
 	}
 };
@@ -347,8 +334,8 @@ struct Scsi::Io_10 : Cmd_10
 {
 	Io_10(addr_t addr, uint32_t lba, uint16_t len) : Cmd_10(addr)
 	{
-		write<Cmd_10::Lba>(be32(lba));
-		write<Cmd_10::Len>(be16(len));
+		write<Cmd_10::Lba>(be(lba));
+		write<Cmd_10::Len>(be(len));
 	}
 };
 
@@ -388,8 +375,8 @@ struct Scsi::Cmd_16 : Genode::Mmio
 	void dump()
 	{
 		Genode::log("Op:  ", Genode::Hex(read<Op>()));
-		Genode::log("Lba: ", Genode::Hex(be64(read<Lba>())));
-		Genode::log("Len: ", be32(read<Len>()));
+		Genode::log("Lba: ", Genode::Hex(be(read<Lba>())));
+		Genode::log("Len: ", be(read<Len>()));
 		Genode::log("Ctl: ", Genode::Hex(read<Ctl>()));
 	}
 };
@@ -408,8 +395,8 @@ struct Scsi::Io_16 : Cmd_16
 {
 	Io_16(addr_t addr, uint64_t lba, uint32_t len) : Cmd_16(addr)
 	{
-		write<Cmd_16::Lba>(be64(lba));
-		write<Cmd_16::Len>(be32(len));
+		write<Cmd_16::Lba>(be(lba));
+		write<Cmd_16::Len>(be(len));
 	}
 };
 

@@ -23,6 +23,7 @@ namespace Usb {
 
 
 using Genode::uint8_t;
+using Genode::uint16_t;
 using Genode::uint32_t;
 using Genode::uint64_t;
 using Genode::size_t;
@@ -161,7 +162,7 @@ struct Read_capacity_10 : Usb::Cbw, Scsi::Read_capacity_10
 struct Read_10 : Usb::Cbw, Scsi::Read_10
 {
 	Read_10(addr_t addr, uint32_t tag, uint8_t lun,
-	        uint32_t lba, uint32_t len, uint32_t block_size)
+	        uint32_t lba, uint16_t len, uint32_t block_size)
 	:
 		Cbw(addr, tag, len * block_size,
 		    Usb::ENDPOINT_IN, lun, Scsi::Read_10::LENGTH),
@@ -180,7 +181,7 @@ struct Read_10 : Usb::Cbw, Scsi::Read_10
 struct Write_10 : Usb::Cbw, Scsi::Write_10
 {
 	Write_10(addr_t addr, uint32_t tag, uint8_t lun,
-             uint32_t lba, uint32_t len, uint32_t block_size)
+             uint32_t lba, uint16_t len, uint32_t block_size)
 	:
 		Cbw(addr, tag, len * block_size,
 		    Usb::ENDPOINT_OUT, lun, Scsi::Write_10::LENGTH),
@@ -217,7 +218,7 @@ struct Read_capacity_16 : Usb::Cbw, Scsi::Read_capacity_16
 struct Read_16 : Usb::Cbw, Scsi::Read_16
 {
 	Read_16(addr_t addr, uint32_t tag, uint8_t lun,
-	        uint32_t lba, uint32_t len, uint32_t block_size)
+	        uint64_t lba, uint32_t len, uint32_t block_size)
 	:
 		Cbw(addr, tag, len * block_size,
 		    Usb::ENDPOINT_IN, lun, Scsi::Read_16::LENGTH),
@@ -236,7 +237,7 @@ struct Read_16 : Usb::Cbw, Scsi::Read_16
 struct Write_16 : Usb::Cbw, Scsi::Write_16
 {
 	Write_16(addr_t addr, uint32_t tag, uint8_t lun,
-             uint32_t lba, uint32_t len, uint32_t block_size)
+             uint64_t lba, uint32_t len, uint32_t block_size)
 	:
 		Cbw(addr, tag, len * block_size,
 		    Usb::ENDPOINT_OUT, lun, Scsi::Write_16::LENGTH),

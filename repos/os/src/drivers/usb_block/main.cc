@@ -142,12 +142,15 @@ struct Usb::Block_driver : Usb::Completion
 		return usb_label;
 	}
 
+	enum Sizes : size_t { PACKET_STREAM_BUF_SIZE = 2 * (1UL << 20) };
+
 	/*
 	 * USB session
 	 */
 	Allocator_avl         alloc;
 	Usb::Connection       usb { env, &alloc,
-		get_label<128>(config.xml()).string(), 2 * (1<<20), state_change_dispatcher };
+		get_label<128>(config.xml()).string(), PACKET_STREAM_BUF_SIZE,
+		state_change_dispatcher };
 	Usb::Device           device;
 	Signal_handler<Main> &block_request_handler;
 
@@ -161,7 +164,7 @@ struct Usb::Block_driver : Usb::Completion
 	 * Block session
 	 */
 	Block::sector_t _block_count { 0 };
-	size_t          _block_size  { 0 };
+	uint32_t        _block_size  { 0 };
 
 	bool _writeable = false;
 
@@ -204,7 +207,7 @@ struct Usb::Block_driver : Usb::Completion
 		uint8_t      interface;
 
 		Block::sector_t block_count = 0;
-		size_t          block_size  = 0;
+		uint32_t        block_size  = 0;
 
 		char vendor[Scsi::Inquiry_response::Vid::ITEMS+1];
 		char product[Scsi::Inquiry_response::Pid::ITEMS+1];
@@ -328,8 +331,8 @@ struct Usb::Block_driver : Usb::Completion
 					break;
 				}
 
-				uint32_t const   tag = csw.tag();
-				uint8_t const status = csw.sts();
+				uint32_t const   tag  = csw.tag();
+				uint32_t const status = csw.sts();
 				if (status != Csw::PASSED) {
 					error("CSW failed: ", Hex(status, Hex::PREFIX, Hex::PAD),
 					              " tag: ", tag);
@@ -451,7 +454,7 @@ struct Usb::Block_driver : Usb::Completion
 			/* cap value in case there is no bulk-only */
 			active_alt_setting = 0;
 
-			for (unsigned i = 0; i < iface.alternate_count(); i++) {
+			for (uint16_t i = 0; i < iface.alternate_count(); i++) {
 				Alternate_interface &aif = iface.alternate_interface(i);
 				if (aif.iclass == ICLASS_MASS_STORAGE
 				    && aif.isubclass == ISUBCLASS_SCSI
@@ -480,7 +483,7 @@ struct Usb::Block_driver : Usb::Completion
 			return false;
 		}
 
-		for (int i = 0; i < alt_iface.num_endpoints; i++) {
+		for (uint8_t i = 0; i < alt_iface.num_endpoints; i++) {
 			Endpoint ep = alt_iface.endpoint(i);
 			if (!ep.bulk())
 				continue;
@@ -617,9 +620,12 @@ struct Usb::Block_driver : Usb::Completion
 				throw -1;
 			}
 
-			if (init.block_count == 0x100000000) {
+			/**
+			 * The READ_CAPACITY_10 count is 32-bit last() block + 1.
+			 * If the maximum value is reached READ_CAPACITY_16 has to be used.
+			 */
+			if (init.block_count > ~(uint32_t)0U) {
 
-				/* capacity too large, try Scsi::Opcode::READ_CAPACITY_16 next */
 				Read_capacity_16 read_cap((addr_t)cbw_buffer, CAP_TAG, active_lun);
 
 				init.read_capacity = false;
@@ -789,7 +795,7 @@ struct Usb::Block_driver : Usb::Completion
 				break;
 			}
 
-			uint8_t const status = csw.sts();
+			uint32_t const status = csw.sts();
 			if (status != Csw::PASSED) {
 				error("CSW failed: ", Hex(status, Hex::PREFIX, Hex::PAD),
 				      " read: ", request->read(), " buffer: ", (void *)request->address,
@@ -818,14 +824,13 @@ struct Usb::Block_driver : Usb::Completion
 	{
 		_writeable       = node.attribute_value("writeable",    false);
 		_report_device   = node.attribute_value("report",       false);
-		active_interface = node.attribute_value("interface",    0UL);
-		active_lun       = node.attribute_value("lun",          0UL);
+		active_interface = node.attribute_value<uint8_t>("interface", 0);
+		active_lun       = node.attribute_value<uint8_t>("lun",       0);
 		reset_device     = node.attribute_value("reset_device", false);
 		verbose_scsi     = node.attribute_value("verbose_scsi", false);
 
 		active_alt_setting =
-			node.attribute_value("alt_setting",
-			                     (unsigned long)INVALID_ALT_SETTING);
+			node.attribute_value<uint16_t>("alt_setting", INVALID_ALT_SETTING);
 	}
 
 	/**
@@ -862,13 +867,24 @@ struct Usb::Block_driver : Usb::Completion
 	{
 		uint32_t const t = new_tag();
 
+		/**
+		 * Assuming a minimal packet size of 512. Total packet stream buffer
+		 * should not exceed 16-bit block count value.
+		 */
+		static_assert((PACKET_STREAM_BUF_SIZE / 512UL) < (uint16_t)~0UL);
+		uint16_t c = (uint16_t) count;
+
+		/**
+		 * We check for lba fitting 32-bit value for 10-Cmd mode
+		 * before entering this function
+		 */
 		char cb[Cbw::LENGTH];
 		if (read) {
-			if (force_cmd_16) Read_16 r((addr_t)cb, t, active_lun, lba, count, _block_size);
-			else              Read_10 r((addr_t)cb, t, active_lun, lba, count, _block_size);
+			if (force_cmd_16) Read_16 r((addr_t)cb, t, active_lun, lba, c, _block_size);
+			else              Read_10 r((addr_t)cb, t, active_lun, (uint32_t)lba, c, _block_size);
 		} else {
-			if (force_cmd_16) Write_16 w((addr_t)cb, t, active_lun, lba, count, _block_size);
-			else              Write_10 w((addr_t)cb, t, active_lun, lba, count, _block_size);
+			if (force_cmd_16) Write_16 w((addr_t)cb, t, active_lun, lba, c, _block_size);
+			else              Write_10 w((addr_t)cb, t, active_lun, (uint32_t)lba, c, _block_size);
 		}
 
 		cbw(cb, *this);
@@ -902,6 +918,10 @@ struct Usb::Block_driver : Usb::Completion
 		/* range check */
 		block_number_t const last = op.block_number + op.count;
 		if (last > info().block_count)
+			return Response::REJECTED;
+
+		/* we only support 32-bit block numbers in 10-Cmd mode */
+		if (!force_cmd_16 && last >= ~0U)
 			return Response::REJECTED;
 
 		/* check if request is pending */
