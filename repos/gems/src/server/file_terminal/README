@@ -4,6 +4,7 @@ redirects the terminal input and output to a file.
 ! <config>
 !   <policy label_prefix="client1" filename="test.txt"/>
 !   <policy label_prefix="client2" filename="file.dat" io_buffer_size="4K"/>
+!   <libc stdout="/dev/log"/>
 !   <vfs>
 !     <dir name="dev"> <log/> </dir>
 !     <fs/>
