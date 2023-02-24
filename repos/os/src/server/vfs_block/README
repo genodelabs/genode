@@ -22,7 +22,7 @@ component:
 !                file="/vfs_block.img" block_size="512" writeable="yes"/>
 !      </config>
 !      <route>
-!        <service name="File_system" label="backend>
+!        <service name="File_system" label="backend">
 !          <child name="fs_provider"/> </service>
 !        <any-service> <parent/> </any-service>
 !      </route>
