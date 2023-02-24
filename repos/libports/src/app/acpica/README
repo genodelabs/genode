@@ -14,6 +14,7 @@ sources:
 - ACPI fixed events        - e.g. power button
 - ACPI AC adapters         - power cable plugged/un-plugged
 - ACPI Embedded controller - some Fn-* keys and on some machines also Lid, AC, SB changes
+- Vendor-specific hardware - currently Fujitsu FUJ02E3 key events
 
 Whenever a state change is detected, a Genode report is generated, if a 
 config attribute "report" is set to "yes". The reports are named
@@ -134,3 +135,10 @@ Report 'acpi_battery' - smart battery status changes
 !    <status value="15">battery not present</status>
 !    ...
 !</acpi_battery>
+
+!<acpi_hid>
+!  <hid device="Fuj02e3">
+!    <data value="0x4000000" count="7">triggered</data> <!-- touchpad toggle -->
+!    <data value="0x20000000" count="1"/>               <!-- rfkill -->
+!  </hid>
+!</acpi_hid>

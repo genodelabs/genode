@@ -1,0 +1,79 @@
+This component maps ACPI events from ROMs to key events of an Event session.
+
+The _acpica_ component uses the Intel ACPICA library to parse and interpret
+ACPI tables and AML code. One designated feature is the monitoring of
+several ACPI event sources incl. optionally reporting of information about
+state changes. The _acpi_event_ component maps the reported ACPI events to
+key events of a requested Event session based on configuration. So, ACPI
+state changes can be processed like ordinary key press-release events via,
+for example, the _event_filter_.
+
+Configuration
+-------------
+
+A mapping node consists of the event type in the 'acpi' attribute, a
+type-specific 'value', and a key name that should be generated in 'to_key'.
+
+!<map acpi="lid" value="CLOSED" to_key="KEY_SLEEP"/>
+
+The following mapping node types are supported.
+
+:acpi="lid": lid events with value 'CLOSED' or 'OPEN'
+
+:acpi="battery": battery events
+
+:acpi="fixed": currently power-button presses only
+
+:acpi="ac": AC-dapter plug/unplug with value 'ONLINE' or 'OFFLINE'
+
+:acpi="ec": embedded controller events with value representing the data byte
+  read from the controller
+
+:acpi="hid": vendor-specific events, currently Fujitsu FUJ02E3
+
+Example configuration
+---------------------
+
+For a complete scenario please look into repos/libports/run/acpica.run.
+
+!<start name="report_rom">
+!  <resource name="RAM" quantum="2M"/>
+!  <provides> <service name="ROM"/> <service name="Report"/> </provides>
+!  <config>
+!    <policy label="acpi_event -> acpi_lid"     report="acpica -> acpi_lid"/>
+!    <policy label="acpi_event -> acpi_battery" report="acpica -> acpi_battery"/>
+!    <policy label="acpi_event -> acpi_fixed"   report="acpica -> acpi_fixed"/>
+!    <policy label="acpi_event -> acpi_ac"      report="acpica -> acpi_ac"/>
+!    <policy label="acpi_event -> acpi_ec"      report="acpica -> acpi_ec"/>
+!    <policy label="acpi_event -> acpi_hid"     report="acpica -> acpi_hid"/>
+!  </config>
+!</start>
+!
+!<start name="acpica">
+!  <resource name="RAM" quantum="8M"/>
+!  <config report="yes"/>
+!  <route>
+!    <service name="Report"> <child name="acpi_state"/> </service>
+!  </route>
+!</start>
+!
+!<start name="acpi_event">
+!  <resource name="RAM" quantum="1M"/>
+!  <config>
+!    <map acpi="lid"   value="CLOSED"    to_key="KEY_SLEEP"/>
+!    <map acpi="fixed" value="0"         to_key="KEY_POWER"/>
+!    <map acpi="ac"    value="ONLINE"    to_key="KEY_WAKEUP"/>
+!    <map acpi="ec"    value="20"        to_key="KEY_BRIGHTNESSUP"/>
+!    <map acpi="ec"    value="21"        to_key="KEY_BRIGHTNESSDOWN"/>
+!    <map acpi="hid"   value="0x4000000" to_key="KEY_FN_F4"/>
+!  </config>
+!  <route>
+!    <service name="ROM" label="acpi_lid">     <child name="acpi_state"/> </service>
+!    <service name="ROM" label="acpi_battery"> <child name="acpi_state"/> </service>
+!    <service name="ROM" label="acpi_fixed">   <child name="acpi_state"/> </service>
+!    <service name="ROM" label="acpi_ac">      <child name="acpi_state"/> </service>
+!    <service name="ROM" label="acpi_ec">      <child name="acpi_state"/> </service>
+!    <service name="ROM" label="acpi_hid">     <child name="acpi_state"/> </service>
+!    <service name="Event"> <child name="event_filter" label="acpi"/> </service>
+!  </route>
+!</start>
