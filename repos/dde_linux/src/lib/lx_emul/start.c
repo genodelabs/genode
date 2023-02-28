@@ -99,6 +99,9 @@ static int kernel_idle(void * args)
 
 static void timer_loop(void)
 {
+	/* set timer interrupt task to highest priority */
+	lx_emul_task_priority(current, 0);
+
 	for (;;) {
 		lx_emul_task_schedule(true);
 		lx_emul_time_handle();
