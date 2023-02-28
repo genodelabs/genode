@@ -4,6 +4,43 @@
                                ===========
 
 
+Genode OS Framework release 23.02 | 2023-02-28
+##############################################
+
+| Version 23.02 introduces system-update functionality to the mobile version
+| of Sculpt OS, enhances our ARM VMM for interactive guest OSes, adds DMA
+| protection to Xilinx Zynq via a custom IP core, extends suspend/resume
+| support, and makes Intel's P&E cores explicitly manageable.
+
+For the first time, Genode has become easily installable on the PinePhone.
+The first system image is not merely a re-targeted PC version of Sculpt OS but
+it comes with a novel user interface, a new mechanism for rapidly switching
+between different application scenarios, and system-update functionality. This
+is everything we need to kick off the first public field test of Genode on the
+phone. This line of development motivated plenty of optimizations - from
+kernel scheduling, over the I/O throughput of the VFS, to the interfacing of
+GPU drivers - that made it into version 23.02.
+
+Besides the focus on the phone, the release continues the hardware-software
+co-design story of the previous version by adding DMA protection to Xilinx
+Zynq SoCs using custom FPGA fabric, which is especially tailored for Genode.
+But also stationary platforms like PCs and ARM laptops received attention.
+On ARM, we enabled the use of interactive virtual machines by adding
+device models for the GPU and input events. For the PC, the principle support
+for suspend/resume has become available to Genode's custom microkernel in
+addition to NOVA, and Genode learned to distinguish Intel's performance cores
+from energy-efficient cores.
+
+Regarding application workloads, the new release is accompanied by a
+substantially improved version of the Goa tool, which streamlines the
+creation, packaging, and publishing of Genode components using commodity
+build systems. With the new version, Goa largely automates the
+porting of CMake-based 3rd-party libraries for Genode.
+
+Find these among many more topics covered by the official
+[https:/documentation/release-notes/23.02 - release documentation of version 23.02...]
+
+
 Road Map for 2023 | 2023-01-17
 ##############################
 
