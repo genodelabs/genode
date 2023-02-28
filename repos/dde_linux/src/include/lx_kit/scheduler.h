@@ -31,12 +31,17 @@ class Lx_kit::Scheduler
 
 		List<Task> _present_list { };
 		Task     * _current      { nullptr };
+		Task     * _idle         { nullptr };
 
 		Genode::Entrypoint &ep;
+
+		void _idle_pre_post_process();
 
 	public:
 
 		Task & current();
+
+		void idle(Task & idle) { _idle = &idle; }
 
 		bool active() const;
 
@@ -46,8 +51,6 @@ class Lx_kit::Scheduler
 		void schedule();
 		void unblock_irq_handler();
 		void unblock_time_handler();
-
-		bool another_runnable(Task *);
 
 		Task & task(void * t);
 

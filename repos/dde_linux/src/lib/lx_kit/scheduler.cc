@@ -27,6 +27,16 @@
 using namespace Genode;
 using namespace Lx_kit;
 
+void Scheduler::_idle_pre_post_process()
+{
+	if (!_idle)
+		return;
+
+	_current = _idle;
+	_idle->run();
+}
+
+
 Task & Scheduler::current()
 {
 	if (!_current) {
@@ -104,6 +114,8 @@ void Scheduler::schedule()
 		Genode::sleep_forever();
 	}
 
+	_idle_pre_post_process();
+
 	/*
 	 * Iterate over all tasks and run first runnable.
 	 *
@@ -115,9 +127,6 @@ void Scheduler::schedule()
 	 */
 	while (true) {
 		bool at_least_one = false;
-
-		/* update jiffies before running task */
-		//Lx::timer_update_jiffies();
 
 		for (Task * t = _present_list.first(); t; ) {
 
@@ -148,23 +157,8 @@ void Scheduler::schedule()
 			break;
 	}
 
+	_idle_pre_post_process();
+
 	/* clear current as no task is running */
 	_current = nullptr;
-}
-
-
-bool Scheduler::another_runnable(Task * skip)
-{
-	for (Task * t = _present_list.first(); t; t = t->next()) {
-
-		if (!t->runnable())
-			continue;
-
-		if (skip && t == skip)
-			continue;
-
-		return true;
-	};
-
-	return false;
 }

@@ -102,15 +102,13 @@ extern "C" void * lx_emul_task_stack(struct task_struct const * t)
 }
 
 
-extern "C" char lx_emul_task_another_runnable()
-{
-	Lx_kit::Task & task = Lx_kit::env().scheduler.current();
-
-	return Lx_kit::env().scheduler.another_runnable(&task);
-}
-
-
 extern "C" void lx_emul_task_mark_for_removal(struct task_struct const *t)
 {
 	Lx_kit::env().scheduler.task((void*)t).mark_for_destruction();
+}
+
+
+extern "C" void lx_emul_task_set_idle(void)
+{
+	return Lx_kit::env().scheduler.idle(Lx_kit::env().scheduler.current());
 }
