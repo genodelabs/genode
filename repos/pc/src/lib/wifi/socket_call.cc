@@ -487,11 +487,22 @@ extern "C" int socketcall_task_function(void *)
 	static Lx::Socket inst(Lx_kit::env().env.ep());
 	_socket = &inst;
 
-	_wifi_report_mac_address({ (void *) lx_get_mac_addr() });
+	void const *mac_addr = nullptr;
 
 	wpa_blockade->wakeup();
 
 	while (true) {
+
+		/*
+		 * Try to report the MAC address once. We have to check
+		 * 'lx_get_mac_addr' as it might by NULL in case 'wlan0'
+		 * is not yet available.
+		 */
+		if (!mac_addr) {
+			mac_addr = lx_get_mac_addr();
+			if (mac_addr)
+				_wifi_report_mac_address({ (void *) mac_addr });
+		}
 
 		_socket->exec_call();
 
