@@ -14,9 +14,11 @@
 #ifndef _CORE__MAP_LOCAL_H_
 #define _CORE__MAP_LOCAL_H_
 
+/* core includes */
+#include <types.h>
 #include <hw/page_flags.h>
 
-namespace Genode {
+namespace Core {
 
 	using Hw::Page_flags;
 

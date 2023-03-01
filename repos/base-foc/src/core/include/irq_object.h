@@ -20,10 +20,13 @@
 #include <irq_session/irq_session.h>
 #include <cap_index.h>
 
-namespace Genode { class Irq_object; }
+/* core includes */
+#include <types.h>
+
+namespace Core { class Irq_object; }
 
 
-class Genode::Irq_object
+class Core::Irq_object
 {
 	private:
 
@@ -56,8 +59,8 @@ class Genode::Irq_object
 		uint64_t msi_address() const { return _msi_addr; }
 		addr_t   msi_value()   const { return _msi_data; }
 
-		void sigh(Genode::Signal_context_capability cap) { _sig_cap = cap; }
-		void notify() { Genode::Signal_transmitter(_sig_cap).submit(1); }
+		void sigh(Signal_context_capability cap) { _sig_cap = cap; }
+		void notify() { Signal_transmitter(_sig_cap).submit(1); }
 
 		bool associate(unsigned irq, bool msi, Irq_session::Trigger,
 		               Irq_session::Polarity);

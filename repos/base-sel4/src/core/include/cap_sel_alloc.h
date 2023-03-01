@@ -20,10 +20,13 @@
 /* base-internal includes */
 #include <base/internal/capability_space_sel4.h>
 
-namespace Genode { struct Cap_sel_alloc; }
+/* core includes */
+#include <types.h>
+
+namespace Core { struct Cap_sel_alloc; }
 
 
-struct Genode::Cap_sel_alloc : Interface
+struct Core::Cap_sel_alloc : Interface
 {
 	struct Alloc_failed : Exception { };
 

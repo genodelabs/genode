@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <kernel/cpu.h>
 
 

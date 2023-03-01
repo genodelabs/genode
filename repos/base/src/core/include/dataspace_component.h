@@ -23,7 +23,7 @@
 /* core includes */
 #include <util.h>
 
-namespace Genode {
+namespace Core {
 
 	class Rm_region;
 	class Dataspace_component;
@@ -35,7 +35,7 @@ namespace Genode {
 }
 
 
-class Genode::Dataspace_component : public Rpc_object<Dataspace>
+class Core::Dataspace_component : public Rpc_object<Dataspace>
 {
 	private:
 
@@ -134,7 +134,7 @@ class Genode::Dataspace_component : public Rpc_object<Dataspace>
 		 */
 		addr_t map_src_addr() const
 		{
-			return Genode::map_src_addr(_core_local_addr, _phys_addr);
+			return Core::map_src_addr(_core_local_addr, _phys_addr);
 		}
 
 		void assign_core_local_addr(void *addr) { _core_local_addr = (addr_t)addr; }

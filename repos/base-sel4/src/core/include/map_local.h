@@ -18,8 +18,7 @@
 #include <util.h>
 #include <platform.h>
 
-
-namespace Genode {
+namespace Core {
 
 	/**
 	 * Map physical pages to core-local virtual address range

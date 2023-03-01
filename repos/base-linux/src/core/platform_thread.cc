@@ -14,13 +14,12 @@
 /* Genode includes */
 #include <util/token.h>
 #include <util/misc_math.h>
-#include <base/log.h>
 
-/* local includes */
-#include "platform_thread.h"
+/* core includes */
+#include <platform_thread.h>
 #include <linux_syscalls.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 typedef Token<Scanner_policy_identifier_with_underline> Tid_token;
@@ -77,7 +76,7 @@ Platform_thread::Registry &Platform_thread::_registry()
 Platform_thread::Platform_thread(size_t, const char *name, unsigned,
                                  Affinity::Location, addr_t)
 {
-	copy_cstring(_name, name, min(sizeof(_name), strlen(name) + 1));
+	copy_cstring(_name, name, min(sizeof(_name), Genode::strlen(name) + 1));
 
 	_registry().insert(this);
 }

@@ -8,8 +8,11 @@
 
 #include <sel4/sel4.h>
 
-long Genode::Irq_object::_associate(Irq_session::Trigger const &,
-                                    Irq_session::Polarity const &)
+using namespace Core;
+
+
+long Irq_object::_associate(Irq_session::Trigger const &,
+                            Irq_session::Polarity const &)
 {
 	seL4_CNode const root  = seL4_CapInitThreadCNode;
 	seL4_Word  const index = _kernel_irq_sel.value();

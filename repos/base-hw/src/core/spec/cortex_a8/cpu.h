@@ -15,10 +15,10 @@
 #ifndef _CORE__SPEC__CORTEX_A8__CPU_H_
 #define _CORE__SPEC__CORTEX_A8__CPU_H_
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <spec/arm_v7/cpu_support.h>
 #include <spec/cortex_a8/translation_table.h>
 
-namespace Genode { using Cpu = Arm_v7_cpu; }
+namespace Core { using Cpu = Arm_v7_cpu; }
 
 #endif /* _CORE__SPEC__CORTEX_A8__CPU_H_ */

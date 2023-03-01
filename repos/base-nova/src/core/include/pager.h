@@ -25,21 +25,23 @@
 /* NOVA includes */
 #include <nova/cap_map.h>
 
-/* core-local includes */
+/* core includes */
 #include <ipc_pager.h>
 #include <rpc_cap_factory.h>
 
-namespace Genode {
+namespace Core {
 
 	typedef Cpu_session::Thread_creation_failed Invalid_thread;
 
 	class Pager_entrypoint;
 	class Pager_object;
 	class Exception_handlers;
+
+	using Pager_capability = Capability<Pager_object>;
 }
 
 
-class Genode::Exception_handlers
+class Core::Exception_handlers
 {
 	private:
 
@@ -56,7 +58,7 @@ class Genode::Exception_handlers
 };
 
 
-class Genode::Pager_object : public Object_pool<Pager_object>::Entry
+class Core::Pager_object : public Object_pool<Pager_object>::Entry
 {
 	private:
 
@@ -168,7 +170,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		Pager_object(Cpu_session_capability cpu_session_cap,
 		             Thread_capability thread_cap,
 		             unsigned long badge, Affinity::Location location,
-		             Genode::Session_label const &,
+		             Session_label const &,
 		             Cpu_session::Name const &);
 
 		virtual ~Pager_object();
@@ -176,7 +178,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		unsigned long badge() const { return _badge; }
 		void reset_badge()
 		{
-			Genode::Mutex::Guard guard(_state_lock);
+			Mutex::Guard guard(_state_lock);
 			_badge = 0;
 		}
 
@@ -381,7 +383,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
  * For a paging entry point can hold only one activation. So, paging is
  * strictly serialized for one entry point.
  */
-class Genode::Pager_entrypoint : public Object_pool<Pager_object>
+class Core::Pager_entrypoint : public Object_pool<Pager_object>
 {
 	public:
 

@@ -16,6 +16,9 @@
 
 #include <base/thread_state.h>
 
-namespace Genode { typedef Thread_state Pager_object_exception_state; }
+/* core includes */
+#include <types.h>
+
+namespace Core { typedef Thread_state Pager_object_exception_state; }
 
 #endif /* _CORE__INCLUDE__PAGER_OBJECT_EXCEPTION_STATE_H_ */

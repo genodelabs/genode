@@ -17,14 +17,17 @@
 /* base-internal includes */
 #include <base/internal/capability_data.h>
 
-namespace Genode {
+/* core includes */
+#include <types.h>
+
+namespace Core {
 
 	class Cap_session;
 	class Core_capability_data;
 }
 
 
-class Genode::Core_capability_data : public Capability_data
+class Core::Core_capability_data : public Capability_data
 {
 	private:
 

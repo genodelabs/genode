@@ -23,7 +23,7 @@
 /* base-internal include */
 #include <core_capability_space.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 static unsigned unique_id_cnt;

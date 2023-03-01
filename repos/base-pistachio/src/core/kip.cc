@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core-local includes */
+/* core includes */
 #include <kip.h>
 
 using namespace Pistachio;

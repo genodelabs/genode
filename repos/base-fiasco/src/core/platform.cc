@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <util/misc_math.h>
@@ -35,7 +34,7 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 using namespace Fiasco;
 
 

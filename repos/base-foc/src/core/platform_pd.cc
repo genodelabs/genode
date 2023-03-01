@@ -26,7 +26,7 @@
 #include <foc/syscall.h>
 
 using namespace Foc;
-using namespace Genode;
+using namespace Core;
 
 
 static addr_t core_utcb_base()

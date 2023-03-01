@@ -15,7 +15,7 @@
 #include <base/service.h>
 #include <drivers/defs/imx53_trustzone.h>
 
-/* Core includes */
+/* core includes */
 #include <platform.h>
 #include <platform_services.h>
 #include <core_env.h>
@@ -30,10 +30,10 @@ extern int monitor_mode_exception_vector;
 /*
  * Add TrustZone specific vm service
  */
-void Genode::platform_add_local_services(Rpc_entrypoint         &ep,
-                                         Sliced_heap            &sliced_heap,
-                                         Registry<Service>      &local_services,
-                                         Trace::Source_registry &trace_sources)
+void Core::platform_add_local_services(Rpc_entrypoint    &ep,
+                                       Sliced_heap       &sliced_heap,
+                                       Registry<Service> &local_services,
+                                       Core::Trace::Source_registry &trace_sources)
 {
 	static addr_t const phys_base =
 		Platform::core_phys_addr((addr_t)&monitor_mode_exception_vector);

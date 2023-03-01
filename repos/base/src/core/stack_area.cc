@@ -15,7 +15,6 @@
 /* Genode includes */
 #include <region_map/region_map.h>
 #include <pd_session/pd_session.h>
-#include <base/log.h>
 #include <base/synced_allocator.h>
 #include <base/thread.h>
 
@@ -37,7 +36,7 @@ namespace Genode {
 }
 
 
-using namespace Genode;
+using namespace Core;
 
 
 /**
@@ -56,7 +55,7 @@ class Stack_area_region_map : public Region_map
 {
 	private:
 
-		using Ds_slab = Synced_allocator<Tslab<Dataspace_component,
+		using Ds_slab = Synced_allocator<Tslab<Core::Dataspace_component,
 		                                       get_page_size()> >;
 
 		Ds_slab _ds_slab { platform().core_mem_alloc() };

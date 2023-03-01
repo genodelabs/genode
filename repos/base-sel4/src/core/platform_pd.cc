@@ -11,9 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <platform_pd.h>
 #include <platform.h>
@@ -24,7 +21,7 @@
 /* base-internal includes */
 #include <base/internal/capability_space_sel4.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /*****************************************

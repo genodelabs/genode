@@ -14,12 +14,12 @@
 /* Genode includes */
 #include <base/rpc_server.h>
 
-/* core-local includes */
+/* core includes */
 #include <platform_generic.h>
 #include <rpc_cap_factory.h>
 #include <imprint_badge.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 static Rpc_cap_factory &rpc_cap_factory()

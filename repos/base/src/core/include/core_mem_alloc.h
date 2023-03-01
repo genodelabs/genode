@@ -15,12 +15,16 @@
 #ifndef _CORE__INCLUDE__CORE_MEM_ALLOC_H_
 #define _CORE__INCLUDE__CORE_MEM_ALLOC_H_
 
+/* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/mutex.h>
+
+/* core includes */
 #include <synced_range_allocator.h>
 #include <util.h>
 
-namespace Genode {
+namespace Core {
+
 	class Core_mem_translator;
 	class Core_mem_allocator;
 
@@ -39,7 +43,7 @@ namespace Genode {
  * Interface of an allocator that allows to return physical addresses
  * of its used virtual address ranges, and vice versa.
  */
-class Genode::Core_mem_translator : public Genode::Range_allocator
+class Core::Core_mem_translator : public Range_allocator
 {
 	public:
 
@@ -62,14 +66,13 @@ class Genode::Core_mem_translator : public Genode::Range_allocator
 /**
  * Metadata for allocator blocks that stores a related address
  */
-struct Genode::Metadata { void * map_addr; };
+struct Core::Metadata { void * map_addr; };
 
 
 /**
  * Page-size granular allocator that links ranges to related ones.
  */
-class Genode::Mapped_avl_allocator
-: public Genode::Allocator_avl_tpl<Genode::Metadata, Genode::get_page_size()>
+class Core::Mapped_avl_allocator : public Allocator_avl_tpl<Metadata, get_page_size()>
 {
 	friend class Mapped_mem_allocator;
 
@@ -99,7 +102,7 @@ class Genode::Mapped_avl_allocator
  * meta-data allocator for the other allocators and as back end for core's
  * synchronized memory allocator.
  */
-class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
+class Core::Mapped_mem_allocator : public Core_mem_translator
 {
 	private:
 
@@ -196,7 +199,7 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
  * The class itself implements a ready-to-use memory allocator for
  * core that allows to allocate memory at page granularity only.
  */
-class Genode::Core_mem_allocator : public Genode::Core_mem_translator
+class Core::Core_mem_allocator : public Core_mem_translator
 {
 	protected:
 

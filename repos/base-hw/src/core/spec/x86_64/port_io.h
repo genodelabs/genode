@@ -14,9 +14,10 @@
 #ifndef _CORE__SPEC__X86_64__PORT_IO_H_
 #define _CORE__SPEC__X86_64__PORT_IO_H_
 
-#include <base/stdint.h>
+/* core includes */
+#include <types.h>
 
-namespace Genode {
+namespace Core {
 
 	/**
 	 * Read byte from I/O port

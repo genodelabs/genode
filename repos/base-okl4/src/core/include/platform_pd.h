@@ -23,7 +23,7 @@
 /* base-internal includes */
 #include <base/internal/okl4.h>
 
-namespace Genode {
+namespace Core {
 
 	namespace Thread_id_bits {
 
@@ -39,7 +39,7 @@ namespace Genode {
 }
 
 
-class Genode::Platform_pd : public Address_space
+class Core::Platform_pd : public Address_space
 {
 	private:
 

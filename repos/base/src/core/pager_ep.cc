@@ -12,10 +12,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Core includes */
+/* core includes */
 #include <pager.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Pager_entrypoint::entry()

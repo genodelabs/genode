@@ -40,7 +40,7 @@
 #include <nova/syscalls.h>
 #include <nova/util.h>
 
-using namespace Genode;
+using namespace Core;
 using namespace Nova;
 
 
@@ -280,7 +280,7 @@ static Affinity::Space setup_affinity_space(Hip const &hip)
 {
 	unsigned cpus = 0;
 	unsigned ids_thread = 0;
-	Genode::Bit_array<1 << (sizeof(Hip::Cpu_desc::thread) * 8)> threads;
+	Bit_array<1 << (sizeof(Hip::Cpu_desc::thread) * 8)> threads;
 
 	hip.for_each_enabled_cpu([&](Hip::Cpu_desc const &cpu, unsigned) {
 		cpus ++;
@@ -1009,7 +1009,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, size_t
 {
 	/* platform_specific()->core_pd_sel() deadlocks if called from platform constructor */
 	Hip const &hip  = *(Hip const *)__initial_sp;
-	Genode::addr_t const core_pd_sel = hip.sel_exc;
+	addr_t const core_pd_sel = hip.sel_exc;
 
 	map_local(core_pd_sel,
 	          *(Utcb *)Thread::myself()->utcb(), phys_addr,

@@ -27,7 +27,7 @@
 /* base-internal includes */
 #include <base/internal/pistachio.h>
 
-namespace Genode {
+namespace Core {
 
 	class Platform_pd;
 	class Platform_thread;
@@ -44,7 +44,7 @@ inline unsigned long convert_native_thread_id_to_badge(Pistachio::L4_ThreadId_t 
 }
 
 
-class Genode::Platform_thread : Interface
+class Core::Platform_thread : Interface
 {
 	private:
 

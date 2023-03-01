@@ -30,20 +30,20 @@
 #include <kernel/core_interface.h>
 #include <kernel/pd.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <platform_generic.h>
 #include <core_region_map.h>
 #include <core_mem_alloc.h>
 #include <assertion.h>
 #include <board.h>
 
-namespace Genode {
+namespace Core {
 	class Address_space;
 	class Platform;
 };
 
 
-class Genode::Platform : public Genode::Platform_generic
+class Core::Platform : public Platform_generic
 {
 	private:
 
@@ -79,7 +79,7 @@ class Genode::Platform : public Genode::Platform_generic
 		 /**
 		  * Add additional platform-specific information.
 		  */
-		void _init_additional_platform_info(Genode::Xml_generator &);
+		void _init_additional_platform_info(Xml_generator &);
 
 		void _init_rom_modules();
 

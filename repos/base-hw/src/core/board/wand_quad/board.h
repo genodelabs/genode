@@ -19,7 +19,7 @@
 #include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/wand_quad_board.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <spec/arm/cortex_a9_global_timer.h>
 #include <spec/cortex_a9/cpu.h>
 

@@ -19,7 +19,7 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Io_mem_session_component::_unmap_local(addr_t base, size_t)

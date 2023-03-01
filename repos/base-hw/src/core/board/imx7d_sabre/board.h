@@ -17,7 +17,7 @@
 /* base-hw internal includes */
 #include <hw/spec/arm/imx7d_sabre_board.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <spec/arm/virtualization/gicv2.h>
 #include <spec/arm/generic_timer.h>
 #include <spec/arm/cpu/vm_state_virtualization.h>

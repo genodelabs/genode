@@ -17,7 +17,7 @@
 #include <sel4/objecttype.h>
 #include <platform.h>
 
-namespace Genode {
+namespace Core {
 
 	Phys_allocator &phys_alloc_16k(Allocator * core_mem_alloc = nullptr);
 

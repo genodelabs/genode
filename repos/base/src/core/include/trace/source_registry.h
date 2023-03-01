@@ -14,8 +14,8 @@
 #ifndef _CORE__INCLUDE__TRACE__SOURCE_REGISTRY_H_
 #define _CORE__INCLUDE__TRACE__SOURCE_REGISTRY_H_
 
+/* Genode includes */
 #include <util/list.h>
-#include <util/string.h>
 #include <base/mutex.h>
 #include <base/trace/types.h>
 #include <base/weak_ptr.h>
@@ -23,7 +23,13 @@
 /* base-internal include */
 #include <base/internal/trace_control.h>
 
-namespace Genode { namespace Trace {
+/* core-internal includes */
+#include <types.h>
+
+namespace Core { namespace Trace {
+
+	using namespace Genode::Trace;
+
 	class Source;
 	class Source_owner;
 	class Source_registry;
@@ -35,7 +41,7 @@ namespace Genode { namespace Trace {
 } }
 
 
-struct Genode::Trace::Source_owner { };
+struct Core::Trace::Source_owner { };
 
 
 /**
@@ -43,10 +49,9 @@ struct Genode::Trace::Source_owner { };
  *
  * There is one instance per thread.
  */
-class Genode::Trace::Source
+class Core::Trace::Source
 :
-	public Genode::Weak_object<Genode::Trace::Source>,
-	public Genode::List<Genode::Trace::Source>::Element
+	public Weak_object<Source>, public List<Source>::Element
 {
 	public:
 
@@ -148,7 +153,7 @@ class Genode::Trace::Source
  *
  * There is a single instance within core.
  */
-class Genode::Trace::Source_registry
+class Core::Trace::Source_registry
 {
 	private:
 

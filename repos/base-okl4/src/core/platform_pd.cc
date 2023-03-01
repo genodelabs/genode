@@ -20,12 +20,8 @@
 /* base-internal includes */
 #include <base/internal/okl4.h>
 
-using namespace Genode;
+using namespace Core;
 
-
-/****************************
- ** Private object members **
- ****************************/
 
 void Platform_pd::_create_pd(bool syscall)
 {

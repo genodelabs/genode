@@ -15,7 +15,6 @@
 /* Genode includes */
 #include <region_map/region_map.h>
 #include <base/ram_allocator.h>
-#include <base/log.h>
 #include <base/synced_allocator.h>
 #include <base/thread.h>
 
@@ -47,10 +46,10 @@ class Stack_area_region_map : public Region_map
 {
 	private:
 
-		using Ds_slab = Synced_allocator<Tslab<Dataspace_component,
+		using Ds_slab = Synced_allocator<Tslab<Core::Dataspace_component,
 		                                       get_page_size()> >;
 
-		Ds_slab _ds_slab { platform().core_mem_alloc() };
+		Ds_slab _ds_slab { Core::platform().core_mem_alloc() };
 
 	public:
 
@@ -60,10 +59,12 @@ class Stack_area_region_map : public Region_map
 		Local_addr attach(Dataspace_capability, size_t size, off_t,
 		                  bool, Local_addr local_addr, bool, bool) override
 		{
+			using namespace Core;
+
 			size = round_page(size);
 
 			/* allocate physical memory */
-			Range_allocator &phys_alloc = platform_specific().ram_alloc();
+			Range_allocator &phys_alloc = Core::platform_specific().ram_alloc();
 			size_t const num_pages = size >> get_page_size_log2();
 			addr_t const phys = Untyped_memory::alloc_pages(phys_alloc, num_pages);
 			Untyped_memory::convert_to_page_frames(phys, num_pages);
@@ -88,7 +89,7 @@ class Stack_area_region_map : public Region_map
 
 		void detach(Local_addr local_addr) override
 		{
-			using Genode::addr_t;
+			using namespace Core;
 
 			if ((addr_t)local_addr >= stack_area_virtual_size())
 				return;

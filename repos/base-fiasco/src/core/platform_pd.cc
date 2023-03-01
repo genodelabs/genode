@@ -29,7 +29,7 @@
 #include <fiasco/syscall.h>
 
 using namespace Fiasco;
-using namespace Genode;
+using namespace Core;
 
 
 static bool _init = false;

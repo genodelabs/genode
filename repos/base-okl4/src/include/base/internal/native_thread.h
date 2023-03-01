@@ -20,11 +20,10 @@
 /* base-internal includes */
 #include <base/internal/okl4.h>
 
-namespace Genode {
+namespace Core { class  Platform_thread; }
 
-	struct Native_thread;
-	class  Platform_thread;
-}
+
+namespace Genode { struct Native_thread; }
 
 
 struct Genode::Native_thread
@@ -38,7 +37,7 @@ struct Genode::Native_thread
 	 * the physical thread object, which is going to be destroyed
 	 * on destruction of the 'Thread'.
 	 */
-	Platform_thread *pt;
+	Core::Platform_thread *pt;
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_ */

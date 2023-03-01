@@ -14,16 +14,18 @@
 #ifndef _CORE__INCLUDE__ROM_SESSION_COMPONENT_H_
 #define _CORE__INCLUDE__ROM_SESSION_COMPONENT_H_
 
-#include <rom_fs.h>
 #include <base/rpc_server.h>
 #include <dataspace_component.h>
 #include <rom_session/rom_session.h>
 #include <base/session_label.h>
 
-namespace Genode { class Rom_session_component; }
+/* core includes */
+#include <rom_fs.h>
+
+namespace Core { class Rom_session_component; }
 
 
-class Genode::Rom_session_component : public Rpc_object<Rom_session>
+class Core::Rom_session_component : public Rpc_object<Rom_session>
 {
 	private:
 

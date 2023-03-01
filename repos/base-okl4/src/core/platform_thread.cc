@@ -14,8 +14,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
-#include <util/string.h>
 #include <util/misc_math.h>
 
 /* core includes */
@@ -27,7 +25,7 @@
 #include <base/internal/capability_space_tpl.h>
 #include <base/internal/okl4.h>
 
-using namespace Genode;
+using namespace Core;
 using namespace Okl4;
 
 

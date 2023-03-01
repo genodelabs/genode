@@ -20,11 +20,9 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-namespace Genode {
+namespace Core { struct Platform_thread; }
 
-	struct Platform_thread;
-	struct Native_thread;
-}
+namespace Genode { struct Native_thread; }
 
 
 struct Genode::Native_thread
@@ -38,7 +36,7 @@ struct Genode::Native_thread
 	 * thread object, which is going to be destroyed on destruction of the
 	 * 'Thread'.
 	 */
-	Platform_thread *pt;
+	Core::Platform_thread *pt;
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_ */

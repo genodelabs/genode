@@ -13,7 +13,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/native_capability.h>
 
 /* core includes */
@@ -23,12 +22,8 @@
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 
-
-/*****************************
- ** Signal-source component **
- *****************************/
 
 void Signal_source_component::release(Signal_context_component &context)
 {

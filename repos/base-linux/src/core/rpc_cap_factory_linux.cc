@@ -14,7 +14,7 @@
 /* core includes */
 #include <rpc_cap_factory.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Native_capability Rpc_cap_factory::alloc(Native_capability)

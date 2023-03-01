@@ -13,10 +13,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core-local includes */
+/* core includes */
 #include <pd_session_component.h>
 
-using namespace Genode;
+using namespace Core;
 
 bool Pd_session_component::assign_pci(addr_t, uint16_t) { return true; }
 

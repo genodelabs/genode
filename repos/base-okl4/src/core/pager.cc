@@ -11,9 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <ipc_pager.h>
 #include <pager.h>
@@ -29,7 +26,7 @@ static const bool verbose_page_fault = false;
 static const bool verbose_exception  = false;
 
 
-using namespace Genode;
+using namespace Core;
 using namespace Okl4;
 
 /**

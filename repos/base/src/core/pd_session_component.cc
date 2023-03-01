@@ -11,13 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <pd_session_component.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Ram_allocator::Alloc_result

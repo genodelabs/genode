@@ -17,15 +17,19 @@
 /* Genode includes */
 #include <linux_native_pd/linux_native_pd.h>
 
-namespace Genode {
+/* core includes */
+#include <types.h>
+
+namespace Core {
+
 	class Dataspace_component;
 	class Pd_session_component;
 	class Native_pd_component;
 }
 
 
-class Genode::Native_pd_component : public Rpc_object<Pd_session::Native_pd,
-                                                      Native_pd_component>
+class Core::Native_pd_component : public Rpc_object<Pd_session::Native_pd,
+                                                    Native_pd_component>
 {
 	private:
 

@@ -14,7 +14,7 @@
 /* core includes */
 #include <cpu_thread_component.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Cpu_thread_component::_update_exception_sigh()

@@ -15,8 +15,6 @@
 #ifndef _CORE__KERNEL__CPU_H_
 #define _CORE__KERNEL__CPU_H_
 
-#include <util/reconstructible.h>
-
 /* core includes */
 #include <board.h>
 #include <kernel/cpu_context.h>
@@ -66,7 +64,7 @@ namespace Kernel {
  */
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 
-class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
+class Kernel::Cpu : public Core::Cpu, private Irq::Pool, private Timeout
 {
 	private:
 

@@ -19,7 +19,7 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 
-/* core-local includes */
+/* core includes */
 #include <pager.h>
 #include <platform.h>
 #include <platform_thread.h>
@@ -34,7 +34,7 @@
 
 static bool verbose_oom = false;
 
-using namespace Genode;
+using namespace Core;
 using namespace Nova;
 
 

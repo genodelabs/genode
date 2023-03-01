@@ -13,13 +13,12 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/thread.h>
 
 /* local includes */
 #include <core_mem_alloc.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void * Mapped_avl_allocator::map_addr(void * addr)
@@ -83,8 +82,9 @@ void Mapped_mem_allocator::free(void *addr, size_t)
 	if (!b) return;
 
 	if (!_unmap_local((addr_t)addr, (addr_t)b->map_addr, b->size())) {
-		Genode::error("error on unmap virt=", addr, " phys=",
-		              Hex_range<addr_t>((addr_t)b->map_addr, b->size()));
+		error("error on unmap virt=", addr, " phys=",
+		      Hex_range<addr_t>((addr_t)b->map_addr, b->size()));
+
 		/* leak physical and virtual region because of unknown usage state */
 		return;
 	}

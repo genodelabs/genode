@@ -17,15 +17,15 @@
 #include <base/stdint.h>
 #include <base/native_capability.h>
 
-namespace Genode {
-	struct Native_thread;
-	class  Platform_thread;
-}
+namespace Genode { struct Native_thread; }
+
+
+namespace Core { class  Platform_thread; }
 
 
 struct Genode::Native_thread
 {
-	Platform_thread *platform_thread;
+	Core::Platform_thread *platform_thread;
 	Native_capability cap;
 };
 

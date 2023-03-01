@@ -17,7 +17,6 @@
 #define _CORE__INCLUDE__PD_SESSION_COMPONENT_H_
 
 /* Genode includes */
-#include <util/reconstructible.h>
 #include <base/session_object.h>
 #include <base/registry.h>
 #include <base/heap.h>
@@ -38,10 +37,10 @@
 #include <platform_generic.h>
 #include <account.h>
 
-namespace Genode { class Pd_session_component; }
+namespace Core { class Pd_session_component; }
 
 
-class Genode::Pd_session_component : public Session_object<Pd_session>
+class Core::Pd_session_component : public Session_object<Pd_session>
 {
 	public:
 
@@ -206,7 +205,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		{
 			_consume_cap(SIG_SOURCE_CAP);
 			try { return _signal_broker.alloc_signal_source(); }
-			catch (Genode::Allocator::Out_of_memory) {
+			catch (Allocator::Out_of_memory) {
 				_released_cap_silent();
 				throw Out_of_ram();
 			}

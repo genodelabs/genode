@@ -15,8 +15,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
-#include <util/string.h>
 #include <cpu_session/cpu_session.h>
 
 /* core includes */
@@ -28,7 +26,7 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 using namespace Fiasco;
 
 

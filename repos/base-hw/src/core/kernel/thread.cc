@@ -159,7 +159,7 @@ Tlb_invalidation::Tlb_invalidation(Inter_processor_work_list &global_work_list,
 }
 
 
-Thread::Destroy::Destroy(Thread & caller, Genode::Kernel_object<Thread> & to_delete)
+Thread::Destroy::Destroy(Thread & caller, Core::Kernel_object<Thread> & to_delete)
 :
 	caller(caller), thread_to_destroy(to_delete)
 {
@@ -302,7 +302,7 @@ Cpu_job * Thread::helping_destination() {
 size_t Thread::_core_to_kernel_quota(size_t const quota) const
 {
 	using Genode::Cpu_session;
-	using Genode::sizet_arithm_t;
+	using Core::sizet_arithm_t;
 
 	/* we assert at timer construction that cpu_quota_us in ticks fits size_t */
 	size_t const ticks = (size_t)
@@ -445,8 +445,8 @@ void Thread::_call_yield_thread()
 
 void Thread::_call_delete_thread()
 {
-	Genode::Kernel_object<Thread> & to_delete =
-		*(Genode::Kernel_object<Thread>*)user_arg_1();
+	Core::Kernel_object<Thread> & to_delete =
+		*(Core::Kernel_object<Thread>*)user_arg_1();
 
 	/**
 	 * Delete a thread immediately if it has no cpu assigned yet,
@@ -469,8 +469,8 @@ void Thread::_call_delete_thread()
 
 void Thread::_call_delete_pd()
 {
-	Genode::Kernel_object<Pd> & pd =
-		*(Genode::Kernel_object<Pd>*)user_arg_1();
+	Core::Kernel_object<Pd> & pd =
+		*(Core::Kernel_object<Pd>*)user_arg_1();
 
 	if (_cpu->active(pd->mmu_regs))
 		_cpu->switch_to(_core_pd.mmu_regs);
@@ -851,8 +851,8 @@ void Thread::_call()
 	case call_id_thread_pager():           _call_pager(); return;
 	case call_id_invalidate_tlb():         _call_invalidate_tlb(); return;
 	case call_id_new_pd():
-		_call_new<Pd>(*(Hw::Page_table *)      user_arg_2(),
-		              *(Genode::Platform_pd *) user_arg_3(),
+		_call_new<Pd>(*(Hw::Page_table *)    user_arg_2(),
+		              *(Core::Platform_pd *) user_arg_3(),
 		              _addr_space_id_alloc);
 		return;
 	case call_id_delete_pd():              _call_delete_pd(); return;
@@ -951,11 +951,11 @@ Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
 	Core_object<Thread>(
 		core_pd, addr_space_id_alloc, user_irq_pool, cpu_pool, core_pd, "core")
 {
-	using namespace Genode;
+	using namespace Core;
 
-	Genode::map_local(Platform::core_phys_addr((addr_t)&_utcb_instance),
-	                  (addr_t)utcb_main_thread(),
-	                  sizeof(Native_utcb) / get_page_size());
+	map_local(Platform::core_phys_addr((addr_t)&_utcb_instance),
+	          (addr_t)utcb_main_thread(),
+	          sizeof(Native_utcb) / get_page_size());
 
 	_utcb_instance.cap_add(core_capid());
 	_utcb_instance.cap_add(cap_id_invalid());

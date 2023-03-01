@@ -19,18 +19,20 @@
 #include <base/mutex.h>
 #include <base/capability.h>
 #include <base/tslab.h>
-#include <base/log.h>
 
-namespace Genode { class Rpc_cap_factory; }
+/* core includes */
+#include <types.h>
+
+namespace Core { class Rpc_cap_factory; }
 
 
-class Genode::Rpc_cap_factory
+class Core::Rpc_cap_factory
 {
 	private:
 
 		struct Cap_object : List<Cap_object>::Element
 		{
-			Genode::addr_t _cap_sel;
+			addr_t _cap_sel;
 
 			Cap_object(addr_t cap_sel) : _cap_sel(cap_sel) {}
 		};

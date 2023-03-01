@@ -13,7 +13,7 @@
 
 #include <platform.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Platform::_setup_io_port_alloc() { }

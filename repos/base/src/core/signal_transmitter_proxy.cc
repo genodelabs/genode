@@ -16,7 +16,7 @@
 #include <base/rpc_server.h>
 #include <base/trace/events.h>
 
-/* core-local includes */
+/* core includes */
 #include <core_env.h>
 #include <signal_source_component.h>
 #include <signal_transmitter.h>
@@ -24,7 +24,7 @@
 /* base-internal includes */
 #include <base/internal/globals.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 static Constructible<Signal_delivery_proxy_component> delivery_proxy;
@@ -36,7 +36,7 @@ static Constructible<Signal_delivery_proxy_component> delivery_proxy;
 static Rpc_entrypoint *_ep;
 
 
-void Genode::init_core_signal_transmitter(Rpc_entrypoint &ep) { _ep = &ep; }
+void Core::init_core_signal_transmitter(Rpc_entrypoint &ep) { _ep = &ep; }
 
 
 void Genode::init_signal_transmitter(Env &)

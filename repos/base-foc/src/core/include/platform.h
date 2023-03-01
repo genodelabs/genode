@@ -21,7 +21,7 @@
 #include <base/synced_allocator.h>
 #include <base/allocator_avl.h>
 
-/* Core includes */
+/* core includes */
 #include <pager.h>
 #include <cap_id_alloc.h>
 #include <platform_generic.h>
@@ -32,10 +32,10 @@
 namespace Foc { struct l4_kernel_info_t; }
 
 
-namespace Genode { class Platform; }
+namespace Core { class Platform; }
 
 
-class Genode::Platform : public Platform_generic
+class Core::Platform : public Platform_generic
 {
 	private:
 

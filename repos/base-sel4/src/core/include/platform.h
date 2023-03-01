@@ -22,7 +22,8 @@
 #include <initial_untyped_pool.h>
 #include <assertion.h>
 
-namespace Genode {
+namespace Core {
+
 	class Platform;
 	template <auto> class Static_allocator;
 	class Address_space;
@@ -37,7 +38,7 @@ namespace Genode {
  * The size of a single ELEM must be a multiple of sizeof(long).
  */
 template <auto MAX>
-class Genode::Static_allocator : public Allocator
+class Core::Static_allocator : public Allocator
 {
 	private:
 
@@ -76,7 +77,8 @@ class Genode::Static_allocator : public Allocator
 		bool need_size_for_free() const override { return false; }
 };
 
-class Genode::Platform : public Platform_generic
+
+class Core::Platform : public Platform_generic
 {
 	private:
 

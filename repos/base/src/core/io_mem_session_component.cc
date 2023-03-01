@@ -11,15 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <util/string.h>
+/* Genode includes */
 #include <util/arg_string.h>
 #include <root/root.h>
+
+/* core includes */
+#include <util.h>
 #include <dataspace_component.h>
 #include <io_mem_session_component.h>
-#include <base/allocator_avl.h>
-#include "util.h"
 
-using namespace Genode;
+using namespace Core;
 
 
 Io_mem_session_component::Dataspace_attr

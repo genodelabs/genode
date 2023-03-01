@@ -23,14 +23,14 @@
 #include <platform_pd.h>
 #include <assertion.h>
 
-namespace Genode {
+namespace Core {
 
 	class Platform_pd;
 	class Platform_thread;
 }
 
 
-class Genode::Platform_thread
+class Core::Platform_thread
 {
 	private:
 

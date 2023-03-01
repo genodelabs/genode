@@ -21,10 +21,12 @@
 /* base-internal includes */
 #include <base/internal/globals.h>
 
-/* core-local includes */
+/* core includes */
 #include <assertion.h>
+#include <types.h>
 
-using namespace Genode;
+using namespace Core;
+
 
 Signal_receiver::Signal_receiver() { }
 

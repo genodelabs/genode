@@ -12,16 +12,13 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <util/arg_string.h>
 
 /* core includes */
 #include <irq_root.h>
 #include <util.h>
 
-/* base-internal includes */
-
-using namespace Genode;
+using namespace Core;
 using namespace Pistachio;
 
 

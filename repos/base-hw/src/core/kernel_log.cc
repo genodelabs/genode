@@ -12,7 +12,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base-hw Core includes */
+/* core includes */
 #include <kernel/main.h>
 #include <kernel/log.h>
 

@@ -17,17 +17,17 @@
 /* Genode includes */
 #include <nova_native_pd/nova_native_pd.h>
 
-/* core-local includes */
+/* core includes */
 #include <rpc_cap_factory.h>
 
-namespace Genode {
+namespace Core {
 
 	class Pd_session_component;
 	class Native_pd_component;
 }
 
 
-class Genode::Native_pd_component : public Rpc_object<Pd_session::Native_pd>
+class Core::Native_pd_component : public Rpc_object<Pd_session::Native_pd>
 {
 	private:
 

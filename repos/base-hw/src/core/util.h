@@ -15,9 +15,11 @@
 #ifndef _CORE__UTIL_H_
 #define _CORE__UTIL_H_
 
+/* core includes */
+#include <types.h>
 #include <hw/util.h>
 
-namespace Genode {
+namespace Core {
 
 	using Hw::get_page_mask;
 	using Hw::trunc_page;

@@ -14,7 +14,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <util/arg_string.h>
 
 /* core includes */
@@ -23,7 +22,7 @@
 #include <pd_session_component.h>
 #include <platform_generic.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd_cap,
@@ -378,7 +377,7 @@ size_t Cpu_session_component::_weight_to_quota(size_t const weight) const
  ** Trace::Source_registry **
  ****************************/
 
-unsigned Trace::Source::_alloc_unique_id()
+unsigned Core::Trace::Source::_alloc_unique_id()
 {
 	static Mutex lock;
 	static unsigned cnt;

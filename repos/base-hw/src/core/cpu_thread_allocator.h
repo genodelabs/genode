@@ -15,13 +15,12 @@
 #define _CORE__CPU_THREAD_ALLOCATOR_H_
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/allocator.h>
 
 /* core includes */
 #include <assertion.h>
 
-namespace Genode { class Cpu_thread_allocator; }
+namespace Core { class Cpu_thread_allocator; }
 
 
 /**
@@ -31,7 +30,7 @@ namespace Genode { class Cpu_thread_allocator; }
  * are tiny objects, but in 'base-hw' they contain the whole kernel
  * object in addition. Thus we use the given allocator directly.
  */
-class Genode::Cpu_thread_allocator : public Allocator
+class Core::Cpu_thread_allocator : public Allocator
 {
 	private:
 

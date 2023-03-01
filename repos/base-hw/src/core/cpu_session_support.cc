@@ -21,7 +21,7 @@
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Dataspace_capability Cpu_thread_component::utcb()

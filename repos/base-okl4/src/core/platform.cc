@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <util/misc_math.h>
@@ -33,7 +32,7 @@
 #include <platform_pd.h>
 #include <map_local.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /****************************************

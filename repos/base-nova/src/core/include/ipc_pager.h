@@ -19,41 +19,41 @@
 #include <base/ipc.h>
 #include <base/stdint.h>
 
-/* core-local includes */
+/* core includes */
 #include <mapping.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
 
-namespace Genode { class Ipc_pager; }
+namespace Core { class Ipc_pager; }
 
 
-namespace Genode { enum { PAGE_SIZE_LOG2 = 12 }; }
+namespace Core { enum { PAGE_SIZE_LOG2 = 12 }; }
 
 
-static inline Nova::Rights nova_map_rights(Genode::Mapping const &mapping)
+static inline Nova::Rights nova_map_rights(Core::Mapping const &mapping)
 {
 	return Nova::Rights(true, mapping.writeable, mapping.executable);
 }
 
 
-static inline Nova::Mem_crd nova_src_crd(Genode::Mapping const &mapping)
+static inline Nova::Mem_crd nova_src_crd(Core::Mapping const &mapping)
 {
-	return Nova::Mem_crd(mapping.src_addr >> Genode::PAGE_SIZE_LOG2,
-	                     mapping.size_log2 - Genode::PAGE_SIZE_LOG2,
+	return Nova::Mem_crd(mapping.src_addr >> Core::PAGE_SIZE_LOG2,
+	                     mapping.size_log2 - Core::PAGE_SIZE_LOG2,
 	                     nova_map_rights(mapping));
 }
 
 
-static inline Nova::Mem_crd nova_dst_crd(Genode::Mapping const &mapping)
+static inline Nova::Mem_crd nova_dst_crd(Core::Mapping const &mapping)
 {
-	return Nova::Mem_crd(mapping.dst_addr >> Genode::PAGE_SIZE_LOG2,
-	                     mapping.size_log2 - Genode::PAGE_SIZE_LOG2,
+	return Nova::Mem_crd(mapping.dst_addr >> Core::PAGE_SIZE_LOG2,
+	                     mapping.size_log2 - Core::PAGE_SIZE_LOG2,
 	                     nova_map_rights(mapping));
 }
 
 
-class Genode::Ipc_pager
+class Core::Ipc_pager
 {
 	private:
 

@@ -21,7 +21,6 @@
 
 /* Genode includes */
 #include <kernel/interface.h>
-#include <base/log.h>
 #include <cpu/cpu_state.h>
 
 using namespace Kernel;

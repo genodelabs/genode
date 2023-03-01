@@ -13,18 +13,18 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/thread.h>
 
 /* base-internal includes */
 #include <base/internal/output.h>
 #include <base/internal/raw_write_string.h>
 
+/* core includes */
 #include <core_log.h>
 #include <kernel/cpu.h>
 #include <kernel/log.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Core_log::out(char const c) { Kernel::log(c); }

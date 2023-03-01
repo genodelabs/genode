@@ -14,7 +14,7 @@
 /* core includes */
 #include <io_port_session_component.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /**************

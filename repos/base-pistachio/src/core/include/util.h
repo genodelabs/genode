@@ -15,8 +15,6 @@
 #define _CORE__INCLUDE__UTIL_H_
 
 /* Genode includes */
-#include <base/stdint.h>
-#include <base/log.h>
 #include <rm_session/rm_session.h>
 #include <util/touch.h>
 
@@ -24,11 +22,14 @@
 #include <base/internal/page_size.h>
 #include <base/internal/pistachio.h>
 
-/* core-local includes */
+/* core includes */
+#include <types.h>
 #include <kip.h>
 #include <print_l4_thread_id.h>
 
-namespace Genode {
+namespace Core {
+
+	using Genode::get_page_size;
 
 	inline void log_event(const char *) { }
 	inline void log_event(const char *, unsigned, unsigned, unsigned) { }

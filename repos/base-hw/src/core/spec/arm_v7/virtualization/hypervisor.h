@@ -14,7 +14,8 @@
 #ifndef _SPEC__ARM_V7__VIRTUALIZATION_HYPERVISOR_H_
 #define _SPEC__ARM_V7__VIRTUALIZATION_HYPERVISOR_H_
 
-#include <base/stdint.h>
+/* core includes */
+#include <types.h>
 #include <cpu/vm_state_virtualization.h>
 
 namespace Hypervisor {
@@ -43,7 +44,7 @@ namespace Hypervisor {
 	}
 
 
-	inline void switch_world(Genode::Vm_state & vm_state,
+	inline void switch_world(Core::Vm_state & vm_state,
 	                         Host_context     & host_state)
 	{
 		hypervisor_call(WORLD_SWITCH,

@@ -11,14 +11,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-
 #include <board.h>
 #include <pic.h>
 #include <platform.h>
 
 Board::Pic::Pic(Global_interrupt_controller &)
 :
-	_plic(Genode::Platform::mmio_to_virt(Board::PLIC_BASE))
+	_plic(Core::Platform::mmio_to_virt(Board::PLIC_BASE))
 {
 	/* enable external interrupts */
 	enum { SEIE = 0x200 };

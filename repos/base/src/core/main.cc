@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,7 +16,6 @@
 #include <base/sleep.h>
 #include <base/service.h>
 #include <base/child.h>
-#include <base/log.h>
 #include <rm_session/connection.h>
 #include <pd_session/connection.h>
 #include <rom_session/connection.h>
@@ -40,14 +39,14 @@
 #include <trace/root.h>
 #include <platform_services.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /***************************************
  ** Core environment/platform support **
  ***************************************/
 
-Core_env &Genode::core_env()
+Core_env &Core::core_env()
 {
 	/*
 	 * Make sure to initialize the platform before constructing the core
@@ -79,14 +78,14 @@ Env_deprecated *Genode::env_deprecated() {
 	return &core_env(); }
 
 
-Platform &Genode::platform_specific()
+Platform &Core::platform_specific()
 {
 	static Platform _platform;
 	return _platform;
 }
 
 
-Platform_generic &Genode::platform() { return platform_specific(); }
+Platform_generic &Core::platform() { return platform_specific(); }
 
 
 Thread_capability Genode::main_thread_cap() { return Thread_capability(); }
@@ -203,9 +202,9 @@ void Genode::destroy_signal_thread()   { }
  ** Trace support **
  *******************/
 
-Trace::Source_registry &Trace::sources()
+Core::Trace::Source_registry &Core::Trace::sources()
 {
-	static Trace::Source_registry inst;
+	static Source_registry inst;
 	return inst;
 }
 
@@ -229,7 +228,7 @@ int main()
 
 	log("Genode ", Genode::version_string);
 
-	static Trace::Policy_registry trace_policies;
+	static Core::Trace::Policy_registry trace_policies;
 
 	static Rpc_entrypoint &ep              =  core_env().entrypoint();
 	static Ram_allocator  &core_ram_alloc  =  core_env().ram_allocator();
@@ -252,10 +251,13 @@ int main()
 
 	static Pager_entrypoint pager_ep(rpc_cap_factory);
 
+	using Trace_root              = Core::Trace::Root;
+	using Trace_session_component = Core::Trace::Session_component;
+
 	static Rom_root    rom_root    (ep, ep, platform().rom_fs(), sliced_heap);
 	static Rm_root     rm_root     (ep, sliced_heap, core_ram_alloc, local_rm, pager_ep);
 	static Cpu_root    cpu_root    (core_ram_alloc, local_rm, ep, ep, pager_ep,
-	                                sliced_heap, Trace::sources());
+	                                sliced_heap, Core::Trace::sources());
 	static Pd_root     pd_root     (ep, core_env().signal_ep(), pager_ep,
 	                                platform().ram_alloc(),
 	                                local_rm, sliced_heap,
@@ -265,8 +267,8 @@ int main()
 	                                platform().ram_alloc(), sliced_heap);
 	static Irq_root    irq_root    (*core_env().pd_session(),
 	                                platform().irq_alloc(), sliced_heap);
-	static Trace::Root trace_root  (core_ram_alloc, local_rm, ep, sliced_heap,
-	                                Trace::sources(), trace_policies);
+	static Trace_root  trace_root  (core_ram_alloc, local_rm, ep, sliced_heap,
+	                                Core::Trace::sources(), trace_policies);
 
 	static Core_service<Rom_session_component>    rom_service    (services, rom_root);
 	static Core_service<Rm_session_component>     rm_service     (services, rm_root);
@@ -275,10 +277,10 @@ int main()
 	static Core_service<Log_session_component>    log_service    (services, log_root);
 	static Core_service<Io_mem_session_component> io_mem_service (services, io_mem_root);
 	static Core_service<Irq_session_component>    irq_service    (services, irq_root);
-	static Core_service<Trace::Session_component> trace_service  (services, trace_root);
+	static Core_service<Trace_session_component>  trace_service  (services, trace_root);
 
 	/* make platform-specific services known to service pool */
-	platform_add_local_services(ep, sliced_heap, services, Trace::sources());
+	platform_add_local_services(ep, sliced_heap, services, Core::Trace::sources());
 
 	size_t const avail_ram_quota = core_pd.avail_ram().value;
 	size_t const avail_cap_quota = core_pd.avail_caps().value;
@@ -305,7 +307,7 @@ int main()
 		         Session::Resources{{Cpu_connection::RAM_QUOTA},
 		                            {Cpu_session::CAP_QUOTA}},
 		         "core", Session::Diag{false},
-		         core_ram_alloc, local_rm, ep, pager_ep, Trace::sources(), "",
+		         core_ram_alloc, local_rm, ep, pager_ep, Core::Trace::sources(), "",
 		         Affinity::unrestricted(), Cpu_session::QUOTA_LIMIT);
 
 	Cpu_session_capability core_cpu_cap = core_cpu.cap();

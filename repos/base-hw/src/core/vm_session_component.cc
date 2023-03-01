@@ -21,7 +21,7 @@
 #include <cpu_thread_component.h>
 #include <core_env.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 size_t Vm_session_component::_ds_size() {
@@ -31,20 +31,19 @@ size_t Vm_session_component::_ds_size() {
 void Vm_session_component::Vcpu::exception_handler(Signal_context_capability handler)
 {
 	if (!handler.valid()) {
-		Genode::warning("invalid signal");
+		warning("invalid signal");
 		return;
 	}
 
 	if (kobj.constructed()) {
-		Genode::warning("Cannot register vcpu handler twice");
+		warning("Cannot register vcpu handler twice");
 		return;
 	}
 
 	unsigned const cpu = location.xpos();
 
 	if (!kobj.create(cpu, ds_addr, Capability_space::capid(handler), id))
-		Genode::warning("Cannot instantiate vm kernel object, ",
-		                "invalid signal context?");
+		warning("Cannot instantiate vm kernel object, invalid signal context?");
 }
 
 

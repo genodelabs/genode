@@ -16,12 +16,13 @@
 
 #include <root/component.h>
 
-#include "io_mem_session_component.h"
+/* core includes */
+#include <io_mem_session_component.h>
 
-namespace Genode { class Io_mem_root; }
+namespace Core { class Io_mem_root; }
 
 
-class Genode::Io_mem_root : public Root_component<Io_mem_session_component>
+class Core::Io_mem_root : public Root_component<Io_mem_session_component>
 {
 
 	private:

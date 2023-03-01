@@ -16,7 +16,10 @@
 
 #include <sel4/objecttype.h>
 
-namespace Genode {
+/* core includes */
+#include <types.h>
+
+namespace Core {
 
 	enum {
 		PAGE_TABLE_LOG2_SIZE = 20 /* 1M region */

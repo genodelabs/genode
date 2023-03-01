@@ -15,19 +15,22 @@
 #include <vm_space.h>
 #include <arch_kernel_object.h>
 
-static long map_page_table(Genode::Cap_sel const pagetable,
-                           Genode::Cap_sel const vroot,
-                           Genode::addr_t  const virt)
+using namespace Core;
+
+
+static long map_page_table(Cap_sel const pagetable,
+                           Cap_sel const vroot,
+                           addr_t  const virt)
 {
 	return seL4_ARM_PageTable_Map(pagetable.value(), vroot.value(), virt,
 	                              seL4_ARM_Default_VMAttributes);
 }
 
 
-long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
-                                 Genode::addr_t  const virt,
-                                 Map_attr        const map_attr,
-                                 bool)
+long Vm_space::_map_page(Cap_sel  const &idx,
+                         addr_t   const virt,
+                         Map_attr const map_attr,
+                         bool)
 {
 	seL4_ARM_Page          const service = _idx_to_sel(idx.value()).value();
 	seL4_ARM_PageDirectory const pd      = _pd_sel.value();
@@ -45,16 +48,16 @@ long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
 }
 
 
-long Genode::Vm_space::_unmap_page(Genode::Cap_sel const &idx)
+long Vm_space::_unmap_page(Cap_sel const &idx)
 {
 	seL4_ARM_Page const service = _idx_to_sel(idx.value()).value();
 	return seL4_ARM_Page_Unmap(service);
 }
 
 
-long Genode::Vm_space::_invalidate_page(Genode::Cap_sel const &idx,
-                                        seL4_Word const start,
-                                        seL4_Word const end)
+long Vm_space::_invalidate_page(Cap_sel   const &idx,
+                                seL4_Word const start,
+                                seL4_Word const end)
 {
 	seL4_ARM_Page const service = _idx_to_sel(idx.value()).value();
 	long error = seL4_ARM_Page_CleanInvalidate_Data(service, 0, end - start);
@@ -68,8 +71,8 @@ long Genode::Vm_space::_invalidate_page(Genode::Cap_sel const &idx,
 }
 
 
-void Genode::Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
-                                                        addr_t const size)
+void Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
+                                                addr_t const size)
 {
 	addr_t constexpr PAGE_TABLE_AREA = 1UL << PAGE_TABLE_LOG2_SIZE;
 	addr_t virt = start & ~(PAGE_TABLE_AREA - 1);

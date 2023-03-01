@@ -12,13 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base includes */
-#include <util/reconstructible.h>
-
-/* base Core includes */
+/* core includes */
 #include <map_local.h>
-
-/* base-hw Core includes */
 #include <kernel/cpu.h>
 #include <kernel/lock.h>
 #include <kernel/main.h>
@@ -28,11 +23,7 @@
 /* base-hw-internal includes */
 #include <hw/boot_info.h>
 
-
-namespace Kernel {
-
-	class Main;
-}
+namespace Kernel { class Main; }
 
 
 class Kernel::Main
@@ -52,10 +43,10 @@ class Kernel::Main
 		Cpu_pool                                _cpu_pool;
 		Irq::Pool                               _user_irq_pool       { };
 		Board::Address_space_id_allocator       _addr_space_id_alloc { };
-		Genode::Core_platform_pd                _core_platform_pd    { _addr_space_id_alloc };
+		Core::Core_platform_pd                  _core_platform_pd    { _addr_space_id_alloc };
 		Genode::Constructible<Core_main_thread> _core_main_thread    { };
 		Board::Global_interrupt_controller      _global_irq_ctrl     { };
-		Board::Serial                           _serial              { Genode::Platform::mmio_to_virt(Board::UART_BASE),
+		Board::Serial                           _serial              { Core::Platform::mmio_to_virt(Board::UART_BASE),
 		                                                               Board::UART_CLOCK,
 		                                                               SERIAL_BAUD_RATE };
 
@@ -65,7 +56,7 @@ class Kernel::Main
 
 	public:
 
-		static Genode::Platform_pd &core_platform_pd();
+		static Core::Platform_pd &core_platform_pd();
 };
 
 
@@ -101,7 +92,7 @@ void Kernel::main_handle_kernel_entry()
 
 void Kernel::main_initialize_and_handle_kernel_entry()
 {
-	static_assert(sizeof(Genode::sizet_arithm_t) >= 2 * sizeof(size_t),
+	static_assert(sizeof(Core::sizet_arithm_t) >= 2 * sizeof(size_t),
 		"Bad result type for size_t arithmetics.");
 
 	using Boot_info = Hw::Boot_info<Board::Boot_info>;
@@ -226,7 +217,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 }
 
 
-Genode::Platform_pd &Kernel::Main::core_platform_pd()
+Core::Platform_pd &Kernel::Main::core_platform_pd()
 {
 	return _instance->_core_platform_pd;
 }
@@ -244,15 +235,14 @@ Kernel::time_t Kernel::main_read_idle_thread_execution_time(unsigned cpu_idx)
 }
 
 
-Genode::Platform_pd &
-Genode::Platform_thread::_kernel_main_get_core_platform_pd()
+Core::Platform_pd &Core::Platform_thread::_kernel_main_get_core_platform_pd()
 {
 	return Kernel::Main::core_platform_pd();
 }
 
 
-bool Genode::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
-                       Page_flags flags)
+bool Core::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
+                     Page_flags flags)
 {
 	return
 		Kernel::Main::core_platform_pd().insert_translation(
@@ -260,7 +250,7 @@ bool Genode::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
 }
 
 
-bool Genode::unmap_local(addr_t virt_addr, size_t num_pages)
+bool Core::unmap_local(addr_t virt_addr, size_t num_pages)
 {
 	Kernel::Main::core_platform_pd().flush(
 		virt_addr, num_pages * get_page_size());

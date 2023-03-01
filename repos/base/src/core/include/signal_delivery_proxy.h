@@ -14,21 +14,24 @@
 #ifndef _CORE__INCLUDE__SIGNAL_DELIVERY_PROXY_H_
 #define _CORE__INCLUDE__SIGNAL_DELIVERY_PROXY_H_
 
-namespace Genode {
+/* core includes */
+#include <types.h>
+
+namespace Core {
 	struct Signal_delivery_proxy;
 	struct Signal_delivery_proxy_component;
 }
 
 
-struct Genode::Signal_delivery_proxy : Interface
+struct Core::Signal_delivery_proxy : Interface
 {
 	GENODE_RPC(Rpc_deliver, void, _deliver_from_ep, Signal_context_capability, unsigned);
-	GENODE_RPC(Rpc_release, void, _release_from_ep, Genode::addr_t);
+	GENODE_RPC(Rpc_release, void, _release_from_ep, addr_t);
 	GENODE_RPC_INTERFACE(Rpc_deliver, Rpc_release);
 };
 
 
-struct Genode::Signal_delivery_proxy_component
+struct Core::Signal_delivery_proxy_component
 :
 	Rpc_object<Signal_delivery_proxy, Signal_delivery_proxy_component>
 {

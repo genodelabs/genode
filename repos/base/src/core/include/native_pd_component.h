@@ -19,17 +19,17 @@
 /* Genode includes */
 #include <pd_session/pd_session.h>
 
-/* core-local includes */
+/* core includes */
 #include <rpc_cap_factory.h>
 
-namespace Genode {
+namespace Core {
 
 	class Pd_session_component;
 	class Native_pd_component;
 }
 
 
-struct Genode::Native_pd_component
+struct Core::Native_pd_component
 {
 	Native_pd_component(Pd_session_component &, char const *) { }
 

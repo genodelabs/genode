@@ -13,9 +13,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <ipc_pager.h>
 #include <platform.h>
@@ -31,7 +28,7 @@
 #include <nova/syscalls.h>
 #include <nova/util.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 static uint8_t map_thread_portals(Pager_object &pager,

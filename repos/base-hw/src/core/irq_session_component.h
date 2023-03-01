@@ -19,15 +19,16 @@
 #include <util/list.h>
 #include <irq_session/capability.h>
 
+/* core includes */
 #include <irq_args.h>
 #include <object.h>
 #include <kernel/irq.h>
 
-namespace Genode { class Irq_session_component; }
+namespace Core { class Irq_session_component; }
 
 
-class Genode::Irq_session_component : public  Rpc_object<Irq_session>,
-                                      private List<Irq_session_component>::Element
+class Core::Irq_session_component : public  Rpc_object<Irq_session>,
+                                    private List<Irq_session_component>::Element
 {
 	private:
 

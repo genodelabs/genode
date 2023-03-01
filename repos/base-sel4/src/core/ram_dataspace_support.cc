@@ -17,7 +17,7 @@
 #include <map_local.h>
 #include <untyped_memory.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)

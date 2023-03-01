@@ -11,14 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core-local includes */
+/* core includes */
 #include <rpc_cap_factory.h>
 #include <platform.h>
 
 /* NOVA includes */
 #include <nova/capability_space.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Native_capability Rpc_cap_factory::alloc(Native_capability ep, addr_t entry, addr_t mtd)

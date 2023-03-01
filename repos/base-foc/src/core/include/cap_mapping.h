@@ -16,16 +16,15 @@
 
 /* core includes */
 #include <cap_index.h>
-#include <util/noncopyable.h>
 
-namespace Genode { class Cap_mapping; }
+namespace Core { class Cap_mapping; }
 
 
 /**
  * A Cap_mapping embodies a capability of core, and its mapped
  * copy in another protection domain.
  */
-class Genode::Cap_mapping : Noncopyable
+class Core::Cap_mapping : Noncopyable
 {
 	private:
 

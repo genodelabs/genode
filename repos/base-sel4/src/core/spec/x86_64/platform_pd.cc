@@ -16,7 +16,10 @@
 
 #include "arch_kernel_object.h"
 
-Genode::addr_t Genode::Platform_pd::_init_page_directory() const
+using namespace Core;
+
+
+addr_t Platform_pd::_init_page_directory() const
 {
 	addr_t const phys_addr = Untyped_memory::alloc_page(platform().ram_alloc());
 	seL4_Untyped const service = Untyped_memory::untyped_sel(phys_addr).value();
@@ -33,7 +36,7 @@ Genode::addr_t Genode::Platform_pd::_init_page_directory() const
 	return phys_addr;
 }
 
-void Genode::Platform_pd::_deinit_page_directory(addr_t phys_addr) const
+void Platform_pd::_deinit_page_directory(addr_t phys_addr) const
 {
 	int ret = seL4_CNode_Delete(seL4_CapInitThreadCNode,
 	                            _page_directory_sel.value(), 32);

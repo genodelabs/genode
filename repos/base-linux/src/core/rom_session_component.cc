@@ -30,7 +30,7 @@
 /* local includes */
 #include "rom_session_component.h"
 
-using namespace Genode;
+using namespace Core;
 
 
 /**

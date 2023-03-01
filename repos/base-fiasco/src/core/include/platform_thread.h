@@ -27,14 +27,14 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-namespace Genode {
+namespace Core {
 
 	class Platform_pd;
 	class Platform_thread;
 }
 
 
-class Genode::Platform_thread : Interface
+class Core::Platform_thread : Interface
 {
 	private:
 

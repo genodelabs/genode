@@ -21,7 +21,7 @@
 #include <platform_pd.h>
 #include <platform_thread.h>
 
-using namespace Genode;
+using namespace Core;
 using Hw::Page_table;
 
 

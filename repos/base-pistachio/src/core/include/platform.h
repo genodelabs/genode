@@ -27,10 +27,10 @@
 #include <platform_thread.h>
 #include <platform_pd.h>
 
-namespace Genode { class Platform; }
+namespace Core { class Platform; }
 
 
-class Genode::Platform : public Platform_generic
+class Core::Platform : public Platform_generic
 {
 	private:
 

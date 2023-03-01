@@ -14,15 +14,17 @@
 #ifndef _CORE__INCLUDE__ACCOUNT_H_
 #define _CORE__INCLUDE__ACCOUNT_H_
 
-#include <util/reconstructible.h>
 #include <base/registry.h>
 #include <base/quota_guard.h>
 
-namespace Genode { template <typename> class Account; }
+/* core includes */
+#include <types.h>
+
+namespace Core { template <typename> class Account; }
 
 
 template <typename UNIT>
-class Genode::Account
+class Core::Account
 {
 	private:
 

@@ -23,7 +23,7 @@
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 struct Vcpu_creation_error : Exception { };
@@ -44,7 +44,7 @@ Vcpu::Vcpu(Rpc_entrypoint            &ep,
 	Foc::l4_msgtag_t msg = l4_factory_create_irq(Foc::L4_BASE_FACTORY_CAP,
 	                                             _recall.local.data()->kcap());
 	if (l4_error(msg)) {
-		Genode::error("vcpu irq creation failed", l4_error(msg));
+		error("vcpu irq creation failed", l4_error(msg));
 		throw Vcpu_creation_error();
 	}
 
@@ -108,7 +108,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	l4_msgtag_t msg = l4_factory_create_vm(L4_BASE_FACTORY_CAP,
 	                                       _task_vcpu.local.data()->kcap());
 	if (l4_error(msg)) {
-		Genode::error("create_vm failed ", l4_error(msg));
+		error("create_vm failed ", l4_error(msg));
 		throw Service_denied();
 	}
 
@@ -194,7 +194,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 		                                                 L4_MAP_ITEM_MAP));
 
 		if (l4_error(msg))
-			Genode::error("task map failed ", l4_error(msg));
+			error("task map failed ", l4_error(msg));
 
 		page = flex.page();
 	}

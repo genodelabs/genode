@@ -11,23 +11,24 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <kernel/thread.h>
 #include <spec/cortex_a15/cpu.h>
 
+using namespace Core;
 
-Genode::Cpu::Mmu_context::
-Mmu_context(addr_t                             table,
-            Board::Address_space_id_allocator &addr_space_id_alloc)
+
+Cpu::Mmu_context::Mmu_context(addr_t table,
+                              Board::Address_space_id_allocator &id_alloc)
 :
-	_addr_space_id_alloc(addr_space_id_alloc),
+	_addr_space_id_alloc(id_alloc),
 	ttbr0(Ttbr_64bit::Ba::masked((Ttbr_64bit::access_t)table))
 {
-	Ttbr_64bit::Asid::set(ttbr0, (Genode::uint8_t)addr_space_id_alloc.alloc());
+	Ttbr_64bit::Asid::set(ttbr0, (uint8_t)_addr_space_id_alloc.alloc());
 }
 
 
-Genode::Cpu::Mmu_context::~Mmu_context()
+Cpu::Mmu_context::~Mmu_context()
 {
 	/* flush TLB by ASID */
 	Cpu::Tlbiasid::write(id());
@@ -35,8 +36,7 @@ Genode::Cpu::Mmu_context::~Mmu_context()
 }
 
 
-void Genode::Cpu::mmu_fault_status(Genode::Cpu::Fsr::access_t fsr,
-                                   Kernel::Thread_fault & fault)
+void Cpu::mmu_fault_status(Cpu::Fsr::access_t fsr, Kernel::Thread_fault &fault)
 {
 	enum {
 		FAULT_MASK  = 0b111100,

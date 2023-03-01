@@ -28,8 +28,8 @@
 #include <trace/source_registry.h>
 #include <foc_native_vcpu/foc_native_vcpu.h>
 
-namespace Genode
-{
+namespace Core {
+
 	class Vm_session_component;
 	struct Vcpu;
 
@@ -39,7 +39,7 @@ namespace Genode
 }
 
 
-struct Genode::Vcpu : Rpc_object<Vm_session::Native_vcpu, Vcpu>
+struct Core::Vcpu : Rpc_object<Vm_session::Native_vcpu, Vcpu>
 {
 	private:
 
@@ -69,7 +69,7 @@ struct Genode::Vcpu : Rpc_object<Vm_session::Native_vcpu, Vcpu>
 };
 
 
-class Genode::Vm_session_component
+class Core::Vm_session_component
 :
 	private Ram_quota_guard,
 	private Cap_quota_guard,

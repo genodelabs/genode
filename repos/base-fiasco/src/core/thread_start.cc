@@ -22,7 +22,7 @@
 #include <platform.h>
 #include <core_env.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Thread::_thread_start()

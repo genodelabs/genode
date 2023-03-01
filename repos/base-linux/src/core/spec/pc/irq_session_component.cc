@@ -13,15 +13,14 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/thread.h>
 
-/* core-local includes */
+/* core includes */
 #include <irq_session_component.h>
 #include <irq_object.h>
 #include <core_linux_syscalls.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Irq_session_component::Irq_session_component(Range_allocator &, const char *args)

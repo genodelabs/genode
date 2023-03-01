@@ -17,7 +17,7 @@
 #include <map_local.h>
 #include <hw/spec/x86_64/x86_64.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Platform::_init_additional_platform_info(Xml_generator &xml)
@@ -61,9 +61,9 @@ void Platform::_init_additional_platform_info(Xml_generator &xml)
 }
 
 
-Genode::Bit_allocator<64> & msi_allocator()
+Bit_allocator<64> &msi_allocator()
 {
-	static Genode::Bit_allocator<64> msi_allocator;
+	static Bit_allocator<64> msi_allocator;
 	return msi_allocator;
 }
 

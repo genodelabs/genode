@@ -18,7 +18,7 @@
 #include <vm_session_component.h>
 #include <platform.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 static Board::Vm_page_table_array & dummy_array()

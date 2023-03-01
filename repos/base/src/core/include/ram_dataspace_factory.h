@@ -24,11 +24,11 @@
 /* core includes */
 #include <dataspace_component.h>
 
-namespace Genode { class Ram_dataspace_factory; }
+namespace Core { class Ram_dataspace_factory; }
 
 
-class Genode::Ram_dataspace_factory : public Ram_allocator,
-                                      public Dataspace_owner
+class Core::Ram_dataspace_factory : public Ram_allocator,
+                                    public Dataspace_owner
 {
 	public:
 

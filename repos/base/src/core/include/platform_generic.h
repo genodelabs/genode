@@ -22,7 +22,7 @@
 /* core includes */
 #include <rom_fs.h>
 
-namespace Genode {
+namespace Core {
 
 	class Platform_generic;
 
@@ -42,7 +42,7 @@ namespace Genode {
 }
 
 
-class Genode::Platform_generic
+class Core::Platform_generic
 {
 	public:
 

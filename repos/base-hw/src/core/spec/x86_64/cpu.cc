@@ -19,6 +19,8 @@
 extern int __idt;
 extern int __idt_end;
 
+using namespace Core;
+
 
 /**
  * Pseudo Descriptor
@@ -27,15 +29,15 @@ extern int __idt_end;
  */
 struct Pseudo_descriptor
 {
-	Genode::uint16_t const limit = 0;
-	Genode::uint64_t const base  = 0;
+	uint16_t const limit = 0;
+	uint64_t const base  = 0;
 
-	constexpr Pseudo_descriptor(Genode::uint16_t l, Genode::uint64_t b)
-	: limit(l), base(b) {}
+	constexpr Pseudo_descriptor(uint16_t l, uint64_t b) : limit(l), base(b) {}
+
 } __attribute__((packed));
 
 
-Genode::Cpu::Context::Context(bool core)
+Cpu::Context::Context(bool core)
 {
 	eflags = EFLAGS_IF_SET;
 	cs     = core ? 0x8 : 0x1b;
@@ -43,19 +45,18 @@ Genode::Cpu::Context::Context(bool core)
 }
 
 
-Genode::Cpu::Mmu_context::Mmu_context(addr_t table,
-                                      Board::Address_space_id_allocator &)
+Cpu::Mmu_context::Mmu_context(addr_t table, Board::Address_space_id_allocator &)
 : cr3(Cr3::Pdb::masked(table)) { }
 
 
-void Genode::Cpu::Tss::init()
+void Cpu::Tss::init()
 {
 	enum { TSS_SELECTOR = 0x28, };
 	asm volatile ("ltr %w0" : : "r" (TSS_SELECTOR));
 }
 
 
-void Genode::Cpu::Idt::init()
+void Cpu::Idt::init()
 {
 	Pseudo_descriptor descriptor {
 		(uint16_t)((addr_t)&__idt_end - (addr_t)&__idt),
@@ -64,7 +65,7 @@ void Genode::Cpu::Idt::init()
 }
 
 
-void Genode::Cpu::Gdt::init(addr_t tss_addr)
+void Cpu::Gdt::init(addr_t tss_addr)
 {
 	tss_desc[0] = ((((tss_addr >> 24) & 0xff) << 24 |
 	                ((tss_addr >> 16) & 0xff)       |
@@ -79,7 +80,7 @@ void Genode::Cpu::Gdt::init(addr_t tss_addr)
 }
 
 
-void Genode::Cpu::mmu_fault(Context & regs, Kernel::Thread_fault & fault)
+void Cpu::mmu_fault(Context &regs, Kernel::Thread_fault &fault)
 {
 	using Fault = Kernel::Thread_fault::Type;
 
@@ -102,30 +103,30 @@ void Genode::Cpu::mmu_fault(Context & regs, Kernel::Thread_fault & fault)
 		else                return Fault::UNKNOWN;
 	};
 
-	fault.addr = Genode::Cpu::Cr2::read();
+	fault.addr = Cpu::Cr2::read();
 	fault.type = fault_lambda(regs.errcode);
 }
 
 
 extern void const * const kernel_stack;
-extern Genode::size_t const kernel_stack_size;
+extern size_t const kernel_stack_size;
 
 
-bool Genode::Cpu::active(Mmu_context &mmu_context)
+bool Cpu::active(Mmu_context &mmu_context)
 {
 	return (mmu_context.cr3 == Cr3::read());
 }
 
 
-void Genode::Cpu::switch_to(Mmu_context &mmu_context)
+void Cpu::switch_to(Mmu_context &mmu_context)
 {
 	Cr3::write(mmu_context.cr3);
 }
 
 
-void Genode::Cpu::switch_to(Context & context)
+void Cpu::switch_to(Context &context)
 {
-	tss.ist[0] = (addr_t)&context + sizeof(Genode::Cpu_state);
+	tss.ist[0] = (addr_t)&context + sizeof(Cpu_state);
 
 	addr_t const stack_base = reinterpret_cast<addr_t>(&kernel_stack);
 	context.kernel_stack = stack_base +
@@ -134,7 +135,7 @@ void Genode::Cpu::switch_to(Context & context)
 }
 
 
-unsigned Genode::Cpu::executing_id()
+unsigned Cpu::executing_id()
 {
 	void * const stack_ptr  = nullptr;
 	addr_t const stack_addr = reinterpret_cast<addr_t>(&stack_ptr);
@@ -146,15 +147,14 @@ unsigned Genode::Cpu::executing_id()
 }
 
 
-void Genode::Cpu::clear_memory_region(Genode::addr_t const addr,
-                                      Genode::size_t const size, bool)
+void Cpu::clear_memory_region(addr_t const addr, size_t const size, bool)
 {
 	if (align_addr(addr, 3) == addr && align_addr(size, 3) == size) {
-		Genode::addr_t start = addr;
-		Genode::size_t count = size / 8;
+		addr_t start = addr;
+		size_t count = size / 8;
 		asm volatile ("rep stosq" : "+D" (start), "+c" (count)
 		                          : "a" (0)  : "memory");
 	} else {
-		Genode::memset((void*)addr, 0, size);
+		memset((void*)addr, 0, size);
 	}
 }

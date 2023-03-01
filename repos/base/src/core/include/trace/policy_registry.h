@@ -18,17 +18,20 @@
 #include <base/mutex.h>
 #include <util/list.h>
 
-namespace Genode { namespace Trace {
+/* core includes */
+#include <types.h>
+
+namespace Core { namespace Trace {
 	class Policy_owner;
 	class Policy;
 	class Policy_registry;
 } }
 
 
-class Genode::Trace::Policy_owner : Interface { };
+class Core::Trace::Policy_owner : Interface { };
 
 
-class Genode::Trace::Policy : public Genode::List<Genode::Trace::Policy>::Element
+class Core::Trace::Policy : public List<Policy>::Element
 {
 	friend class Policy_registry;
 
@@ -70,7 +73,7 @@ class Genode::Trace::Policy : public Genode::List<Genode::Trace::Policy>::Elemen
 /**
  * Global policy registry
  */
-class Genode::Trace::Policy_registry
+class Core::Trace::Policy_registry
 {
 
 	private:

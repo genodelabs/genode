@@ -18,7 +18,7 @@
 #include <base/internal/capability_space_tpl.h>
 #include <base/internal/pistachio.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Pager_object::wake_up()

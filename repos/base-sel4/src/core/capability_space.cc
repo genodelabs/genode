@@ -48,7 +48,7 @@ class Genode::Native_capability::Data : public Capability_data
 };
 
 
-using namespace Genode;
+using namespace Core;
 
 
 /**

@@ -17,10 +17,11 @@
 /* Genode includes */
 #include <base/slab.h>
 
-/* core-local includes */
+/* core includes */
+#include <types.h>
 #include <signal_source_component.h>
 
-namespace Genode { struct Signal_context_slab; }
+namespace Core { struct Signal_context_slab; }
 
 
 /**
@@ -32,7 +33,7 @@ namespace Genode { struct Signal_context_slab; }
  * uses the PD session itself as backing store (which would be in the middle of
  * construction).
  */
-struct Genode::Signal_context_slab : Slab
+struct Core::Signal_context_slab : Slab
 {
 	static constexpr size_t SBS = 960*sizeof(long);
 	uint8_t _initial_sb[SBS];

@@ -18,15 +18,18 @@
 #include <base/internal/native_thread.h>
 #include <base/internal/cap_map.h>
 
-namespace Genode {
+/* core includes */
+#include <types.h>
 
+namespace Core {
+
+	class Core_cap_index;
 	class Platform_thread;
 	class Pd_session_component;
-	class Core_cap_index;
 }
 
 
-class Genode::Core_cap_index : public Native_capability::Data
+class Core::Core_cap_index : public Native_capability::Data
 {
 	private:
 

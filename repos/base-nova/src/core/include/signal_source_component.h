@@ -14,18 +14,21 @@
 #ifndef _CORE__INCLUDE__SIGNAL_SOURCE_COMPONENT_H_
 #define _CORE__INCLUDE__SIGNAL_SOURCE_COMPONENT_H_
 
+/* Genode includes */
 #include <base/object_pool.h>
+
+/* core includes */
 #include <signal_source/nova_signal_source.h>
 #include <assertion.h>
 
-namespace Genode {
+namespace Core {
 
 	class Signal_context_component;
 	class Signal_source_component;
 }
 
 
-struct Genode::Signal_context_component : Object_pool<Signal_context_component>::Entry
+struct Core::Signal_context_component : Object_pool<Signal_context_component>::Entry
 {
 	Signal_context_component(Signal_context_capability cap)
 	: Object_pool<Signal_context_component>::Entry(cap) { }
@@ -34,8 +37,8 @@ struct Genode::Signal_context_component : Object_pool<Signal_context_component>:
 };
 
 
-class Genode::Signal_source_component : public Rpc_object<Nova_signal_source,
-                                                          Signal_source_component>
+class Core::Signal_source_component : public Rpc_object<Nova_signal_source,
+                                                        Signal_source_component>
 {
 	private:
 

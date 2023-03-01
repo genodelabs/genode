@@ -14,7 +14,7 @@
 #ifndef _KERNEL__MAIN_H_
 #define _KERNEL__MAIN_H_
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <kernel/types.h>
 
 namespace Kernel {

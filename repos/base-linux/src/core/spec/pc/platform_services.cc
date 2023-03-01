@@ -22,10 +22,13 @@
 #include <io_port_root.h>
 #include <core_linux_syscalls.h>
 
-void Genode::platform_add_local_services(Rpc_entrypoint         &,
-                                         Sliced_heap            &md,
-                                         Registry<Service>      &reg,
-                                         Trace::Source_registry &)
+using namespace Core;
+
+
+void Core::platform_add_local_services(Rpc_entrypoint     &,
+                                       Sliced_heap        &md,
+                                       Registry<Service>  &reg,
+                                       Core::Trace::Source_registry &)
 {
 	if (!lx_iopl(3)) {
 		static Io_port_root io_port_root(*core_env().pd_session(),

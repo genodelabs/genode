@@ -20,10 +20,10 @@
 /* Core includes */
 #include <cpu_session_component.h>
 
-namespace Genode { class Cpu_root; }
+namespace Core { class Cpu_root; }
 
 
-class Genode::Cpu_root : public Root_component<Cpu_session_component>
+class Core::Cpu_root : public Root_component<Cpu_session_component>
 {
 	private:
 

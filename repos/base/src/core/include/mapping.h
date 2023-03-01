@@ -14,12 +14,13 @@
 #ifndef _CORE__INCLUDE__MAPPING_H_
 #define _CORE__INCLUDE__MAPPING_H_
 
-#include <base/stdint.h>
+/* core includes */
+#include <types.h>
 
-namespace Genode { struct Mapping; }
+namespace Core { struct Mapping; }
 
 
-struct Genode::Mapping
+struct Core::Mapping
 {
 	addr_t dst_addr;
 	addr_t src_addr;

@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <util/arg_string.h>
 
 /* core includes */
@@ -22,7 +21,7 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 bool Irq_object::_associate()

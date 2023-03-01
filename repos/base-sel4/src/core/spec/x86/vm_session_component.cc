@@ -22,8 +22,7 @@
 #include <cpu_thread_component.h>
 #include <arch_kernel_object.h>
 
-
-using namespace Genode;
+using namespace Core;
 
 
 /********************************
@@ -41,7 +40,7 @@ void Vm_session_component::Vcpu::_free_up()
 		if (ret == seL4_NoError)
 			platform_specific().core_sel_alloc().free(_notification);
 		else
-			Genode::error(__func__, " cnode delete error ", ret);
+			error(__func__, " cnode delete error ", ret);
 	}
 }
 
@@ -53,7 +52,7 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 :
 	_ep(ep),
 	_ram_alloc(ram_alloc),
-	_ds_cap (_ram_alloc.alloc(align_addr(sizeof(Genode::Vcpu_state), 12),
+	_ds_cap (_ram_alloc.alloc(align_addr(sizeof(Vcpu_state), 12),
 	                          Cache::CACHED))
 {
 	try {
@@ -232,7 +231,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 			free_up();
 			throw;
 		} catch (...) {
-			Genode::error("unexpected exception occurred");
+			error("unexpected exception occurred");
 			free_up();
 			return;
 		}
@@ -285,14 +284,14 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 				return;
 			}
 		} catch (Vm_space::Selector_allocator::Out_of_indices) {
-			Genode::warning("run out of indices - flush all - cap=",
-			                _cap_quota_guard().used(), "/",
-			                _cap_quota_guard().avail(), "/",
-			                _cap_quota_guard().limit(), " ram=",
-			                _ram_quota_guard().used(), "/",
-			                _ram_quota_guard().avail(), "/",
-			                _ram_quota_guard().limit(), " guest=",
-			                Genode::Hex(0UL - _map.avail()));
+			warning("run out of indices - flush all - cap=",
+			        _cap_quota_guard().used(), "/",
+			        _cap_quota_guard().avail(), "/",
+			        _cap_quota_guard().limit(), " ram=",
+			        _ram_quota_guard().used(), "/",
+			        _ram_quota_guard().avail(), "/",
+			        _ram_quota_guard().limit(), " guest=",
+			        Hex(0UL - _map.avail()));
 
 			/* drop all attachment to limit ram usage of this session */
 			while (true) {
@@ -307,7 +306,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 			_vm_space.map_guest(page.addr, page.hotspot,
 			                    (1 << page.log2_order) / 4096, attr_flush);
 		} catch (Vm_space::Alloc_page_table_failed) {
-			Genode::error("alloc page table failed");
+			error("alloc page table failed");
 			return;
 		}
 

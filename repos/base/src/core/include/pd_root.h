@@ -20,10 +20,10 @@
 /* Core */
 #include <pd_session_component.h>
 
-namespace Genode { class Pd_root; }
+namespace Core { class Pd_root; }
 
 
-class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_component>
+class Core::Pd_root : public Root_component<Pd_session_component>
 {
 	private:
 
@@ -58,7 +58,8 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 
 		static Ram_dataspace_factory::Virt_range _virt_range_from_args(char const *args)
 		{
-			addr_t const constrained = Arg_string::find_arg(args, "virt_space").ulong_value(Genode::Pd_connection::Virt_space::CONSTRAIN);
+			addr_t const constrained = Arg_string::find_arg(args, "virt_space")
+			                           .ulong_value(Pd_connection::Virt_space::CONSTRAIN);
 
 			if (!constrained)
 				return Ram_dataspace_factory::Virt_range { 0x1000, 0UL - 0x2000 };

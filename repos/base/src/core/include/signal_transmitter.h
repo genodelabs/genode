@@ -14,9 +14,14 @@
 #ifndef _CORE__INCLUDE__SIGNAL_TRANSMITTER_H_
 #define _CORE__INCLUDE__SIGNAL_TRANSMITTER_H_
 
-namespace Genode {
+/* core includes */
+#include <types.h>
 
-	class Rpc_entrypoint;
+namespace Genode { class Rpc_entrypoint; }
+
+
+namespace Core {
+
 
 	/*
 	 * Initialize the emission of signals originating from the component

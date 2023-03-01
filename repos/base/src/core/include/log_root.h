@@ -17,12 +17,13 @@
 #include <root/component.h>
 #include <util/arg_string.h>
 
-#include "log_session_component.h"
+/* core includes */
+#include <log_session_component.h>
 
-namespace Genode { class Log_root; }
+namespace Core { class Log_root; }
 
 
-class Genode::Log_root : public Root_component<Log_session_component>
+class Core::Log_root : public Root_component<Log_session_component>
 {
 	protected:
 

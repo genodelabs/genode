@@ -21,10 +21,10 @@
 /* core includes */
 #include <dataspace_component.h>
 
-namespace Genode { class Core_region_map; }
+namespace Core { class Core_region_map; }
 
 
-class Genode::Core_region_map : public Region_map
+class Core::Core_region_map : public Region_map
 {
 	private:
 

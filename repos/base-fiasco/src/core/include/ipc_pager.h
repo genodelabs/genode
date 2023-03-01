@@ -30,10 +30,10 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-namespace Genode { class Ipc_pager; }
+namespace Core { class Ipc_pager; }
 
 
-class Genode::Ipc_pager
+class Core::Ipc_pager
 {
 	private:
 

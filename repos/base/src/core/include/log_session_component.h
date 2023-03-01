@@ -14,16 +14,17 @@
 #ifndef _CORE__INCLUDE__LOG_SESSION_COMPONENT_H_
 #define _CORE__INCLUDE__LOG_SESSION_COMPONENT_H_
 
-#include <util/string.h>
-#include <base/log.h>
 #include <base/rpc_server.h>
 #include <base/session_label.h>
 #include <log_session/log_session.h>
 
-namespace Genode { class Log_session_component; }
+/* core includes */
+#include <types.h>
+
+namespace Core { class Log_session_component; }
 
 
-class Genode::Log_session_component : public Rpc_object<Log_session>
+class Core::Log_session_component : public Rpc_object<Log_session>
 {
 	private:
 
@@ -58,7 +59,7 @@ class Genode::Log_session_component : public Rpc_object<Log_session>
 			}
 
 			char const * const string = string_buf.string();
-			size_t const len = strlen(string);
+			size_t const len = Genode::strlen(string);
 
 			unsigned from_i = 0;
 			for (unsigned i = 0; i < len; i++) {

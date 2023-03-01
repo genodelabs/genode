@@ -27,16 +27,16 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 
-/* core-local includes */
+/* core includes */
 #include <mapping.h>
 
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-namespace Genode { class Ipc_pager; }
+namespace Core { class Ipc_pager; }
 
 
-class Genode::Ipc_pager : public Native_capability
+class Core::Ipc_pager : public Native_capability
 {
 	public:
 

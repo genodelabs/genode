@@ -23,10 +23,13 @@
 /* base-internal includes */
 #include <base/internal/page_size.h>
 
+/* core includes */
+#include <types.h>
 
-namespace Genode { class Rpc_cap_factory; }
+namespace Core { class Rpc_cap_factory; }
 
-class Genode::Rpc_cap_factory
+
+class Core::Rpc_cap_factory
 {
 	private:
 

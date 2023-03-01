@@ -28,7 +28,7 @@
 #include <core_linux_syscalls.h>
 
 
-using namespace Genode;
+using namespace Core;
 
 
 static int ram_ds_cnt = 0;  /* counter for creating unique dataspace IDs */

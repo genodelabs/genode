@@ -28,7 +28,10 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-namespace Genode {
+/* core includes */
+#include <types.h>
+
+namespace Core {
 
 	inline void log_event(const char *s)
 	{

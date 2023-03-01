@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <base/capability.h>
@@ -37,7 +36,7 @@
 #include <kip.h>
 #include <print_l4_thread_id.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 static const bool verbose         = true;
@@ -261,7 +260,7 @@ struct Region
 		return (((base + size) > start) && (base < end));
 	}
 
-	void print(Genode::Output &out) const
+	void print(Output &out) const
 	{
 		size_t const size = end - start;
 		Genode::print(out, Hex_range<addr_t>(start, size), " ",

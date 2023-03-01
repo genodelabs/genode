@@ -11,15 +11,12 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <core_region_map.h>
 #include <platform.h>
 #include <map_local.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Region_map::Local_addr
@@ -71,8 +68,8 @@ void Core_region_map::detach(Local_addr core_local_addr)
 	size_t size = platform_specific().region_alloc_size_at(core_local_addr);
 
 	if (!unmap_local(core_local_addr, size >> get_page_size_log2())) {
-		Genode::error("could not unmap core virtual address ",
-		              Hex(core_local_addr), " in ", __PRETTY_FUNCTION__);
+		error("could not unmap core virtual address ",
+		      Hex(core_local_addr), " in ", __PRETTY_FUNCTION__);
 		return;
 	}
 

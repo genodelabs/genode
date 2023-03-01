@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <platform_pd.h>
 #include <kernel/pd.h>
 #include <kernel/thread.h>
@@ -54,7 +54,7 @@ void Kernel::Thread::_call_cache_coherent_region()
 {
 	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this,
 	               [] (addr_t addr, size_t size) {
-		Genode::Cpu::cache_coherent_region(addr, size); });
+		Core::Cpu::cache_coherent_region(addr, size); });
 }
 
 
@@ -62,7 +62,7 @@ void Kernel::Thread::_call_cache_clean_invalidate_data_region()
 {
 	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this,
 	               [] (addr_t addr, size_t size) {
-		Genode::Cpu::cache_clean_invalidate_data_region(addr, size); });
+		Core::Cpu::cache_clean_invalidate_data_region(addr, size); });
 }
 
 
@@ -70,12 +70,12 @@ void Kernel::Thread::_call_cache_invalidate_data_region()
 {
 	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this,
 	               [] (addr_t addr, size_t size) {
-		Genode::Cpu::cache_invalidate_data_region(addr, size); });
+		Core::Cpu::cache_invalidate_data_region(addr, size); });
 }
 
 
 void Kernel::Thread::_call_cache_line_size()
 {
-	size_t const cache_line_size = Genode::Cpu::cache_line_size();
+	size_t const cache_line_size = Core::Cpu::cache_line_size();
 	user_arg_0(cache_line_size);
 }

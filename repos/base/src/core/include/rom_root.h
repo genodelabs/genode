@@ -15,12 +15,14 @@
 #define _CORE__INCLUDE__ROM_ROOT_H_
 
 #include <root/component.h>
-#include "rom_session_component.h"
 
-namespace Genode { class Rom_root; }
+/* Genode includes */
+#include <rom_session_component.h>
+
+namespace Core { class Rom_root; }
 
 
-class Genode::Rom_root : public Root_component<Rom_session_component>
+class Core::Rom_root : public Root_component<Rom_session_component>
 {
 	private:
 

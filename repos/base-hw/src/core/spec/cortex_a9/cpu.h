@@ -15,14 +15,14 @@
 #ifndef _CORE__SPEC__CORTEX_A9__CPU_H_
 #define _CORE__SPEC__CORTEX_A9__CPU_H_
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <spec/arm_v7/cpu_support.h>
 #include <spec/cortex_a9/translation_table.h>
 
-namespace Genode { struct Cpu; }
+namespace Core { struct Cpu; }
 
 
-struct Genode::Cpu : Arm_v7_cpu
+struct Core::Cpu : Arm_v7_cpu
 {
 	/**
 	 * Clean and invalidate data-cache for virtual region

@@ -16,10 +16,10 @@
 
 #include <sel4_boot_info.h>
 
-namespace Genode { class Core_cspace; }
+namespace Core { class Core_cspace; }
 
 
-class Genode::Core_cspace
+class Core::Core_cspace
 {
 	public:
 

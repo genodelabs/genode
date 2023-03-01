@@ -14,23 +14,25 @@
 #include <platform_thread.h>
 #include <arch_kernel_object.h>
 
-using Genode::Phys_allocator;
-using Genode::Allocator;
+using namespace Core;
 
-Phys_allocator& Genode::phys_alloc_16k(Allocator * core_mem_alloc)
+
+Phys_allocator &Core::phys_alloc_16k(Allocator *core_mem_alloc)
 {
-	static Genode::Phys_allocator phys_alloc_16k(core_mem_alloc);
+	static Phys_allocator phys_alloc_16k(core_mem_alloc);
 	return phys_alloc_16k;
 }
 
-void Genode::Platform_thread::affinity(Affinity::Location const location)
+
+void Platform_thread::affinity(Affinity::Location const location)
 {
 	seL4_Error const res = seL4_TCB_SetAffinity(tcb_sel().value(), location.xpos());
 	if (res == seL4_NoError)
 		_location = location;
 }
 
-bool Genode::Thread_info::init_vcpu(Platform &platform, Cap_sel ept)
+
+bool Thread_info::init_vcpu(Platform &platform, Cap_sel ept)
 {
 	enum { PAGES_16K = (1UL << Vcpu_kobj::SIZE_LOG2) / 4096 };
 

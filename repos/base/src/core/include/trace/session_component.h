@@ -21,14 +21,14 @@
 #include <base/attached_ram_dataspace.h>
 #include <trace_session/trace_session.h>
 
-/* core-local includes */
+/* core includes */
 #include <trace/subject_registry.h>
 #include <trace/policy_registry.h>
 
-namespace Genode { namespace Trace { class Session_component; } }
+namespace Core { namespace Trace { class Session_component; } }
 
 
-class Genode::Trace::Session_component
+class Core::Trace::Session_component
 :
 	public Session_object<Trace::Session,
 	                      Trace::Session_component>,

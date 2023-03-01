@@ -16,10 +16,13 @@
 
 #include <base/thread.h>
 
-namespace Genode { class Irq_object; }
+/* core includes */
+#include <types.h>
+
+namespace Core { class Irq_object; }
 
 
-class Genode::Irq_object : public Thread
+class Core::Irq_object : public Thread
 {
 	private:
 

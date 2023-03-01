@@ -14,12 +14,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core-local includes */
+/* core includes */
 #include <core_env.h>
 #include <signal_transmitter.h>
 
-using namespace Genode;
+using namespace Core;
 
-void Genode::init_core_signal_transmitter(Rpc_entrypoint &) { }
+
+void Core::init_core_signal_transmitter(Rpc_entrypoint &) { }
 
 Rpc_entrypoint &Core_env::signal_ep() { return _entrypoint; }

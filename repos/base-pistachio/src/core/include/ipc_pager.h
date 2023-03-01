@@ -17,20 +17,20 @@
 /* Genode includes */
 #include <base/cache.h>
 #include <base/ipc.h>
-#include <base/stdint.h>
 #include <util/touch.h>
 
-/* core-local includes */
+/* core includes */
+#include <types.h>
 #include <kip.h>
 #include <mapping.h>
 
 /* base-internal includes */
 #include <base/internal/pistachio.h>
 
-namespace Genode { class Ipc_pager; }
+namespace Core { class Ipc_pager; }
 
 
-class Genode::Ipc_pager
+class Core::Ipc_pager
 {
 	private:
 

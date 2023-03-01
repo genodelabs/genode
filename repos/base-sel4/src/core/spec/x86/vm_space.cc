@@ -14,10 +14,13 @@
 /* core includes */
 #include <vm_space.h>
 
-long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
-                                 Genode::addr_t  const virt,
-                                 Map_attr        const map_attr,
-                                 bool            const ept)
+using namespace Core;
+
+
+long Vm_space::_map_page(Cap_sel  const &idx,
+                         addr_t   const virt,
+                         Map_attr const map_attr,
+                         bool     const ept)
 {
 	seL4_X86_Page          const service = _idx_to_sel(idx.value()).value();
 	seL4_X86_PageDirectory const pd      = _pd_sel.value();
@@ -38,14 +41,13 @@ long Genode::Vm_space::_map_page(Genode::Cap_sel const &idx,
 		return seL4_X86_Page_Map(service, pd, virt, rights, attr);
 }
 
-long Genode::Vm_space::_unmap_page(Genode::Cap_sel const &idx)
+long Vm_space::_unmap_page(Cap_sel const &idx)
 {
 	seL4_X86_Page const service = _idx_to_sel(idx.value()).value();
 	return seL4_X86_Page_Unmap(service);
 }
 
-long Genode::Vm_space::_invalidate_page(Genode::Cap_sel const &,
-                                        seL4_Word const, seL4_Word const)
+long Vm_space::_invalidate_page(Cap_sel const &, seL4_Word const, seL4_Word const)
 {
 	return seL4_NoError;
 }
@@ -85,32 +87,31 @@ struct Ept_page_map_kobj
 	static char const *name() { return "ept page-map level-4 table"; }
 };
 
-static long map_page_table(Genode::Cap_sel const pagetable,
-                           Genode::Cap_sel const vroot,
-                           Genode::addr_t  const virt)
+static long map_page_table(Cap_sel const pagetable,
+                           Cap_sel const vroot,
+                           addr_t  const virt)
 {
 	return seL4_X86_EPTPT_Map(pagetable.value(), vroot.value(), virt,
 	                          seL4_X86_Default_VMAttributes);
 }
 
-static long map_pdpt(Genode::Cap_sel const pdpt,
-                     Genode::Cap_sel const vroot,
-                     Genode::addr_t  const virt)
+static long map_pdpt(Cap_sel const pdpt,
+                     Cap_sel const vroot,
+                     addr_t  const virt)
 {
 	return seL4_X86_EPTPDPT_Map(pdpt.value(), vroot.value(), virt,
 	                            seL4_X86_Default_VMAttributes);
 }
 
-static long map_directory(Genode::Cap_sel const pd,
-                          Genode::Cap_sel const vroot,
-                          Genode::addr_t  const virt)
+static long map_directory(Cap_sel const pd,
+                          Cap_sel const vroot,
+                          addr_t  const virt)
 {
 	return seL4_X86_EPTPD_Map(pd.value(), vroot.value(), virt,
 	                          seL4_X86_Default_VMAttributes);
 }
 
-void Genode::Vm_space::unsynchronized_alloc_guest_page_tables(addr_t const start,
-                                                              addr_t size)
+void Vm_space::unsynchronized_alloc_guest_page_tables(addr_t const start, addr_t size)
 {
 	addr_t constexpr PAGE_TABLE_AREA = 1UL << EPT_PAGE_TABLE_LOG2_SIZE;
 	addr_t virt = start & ~(PAGE_TABLE_AREA - 1);

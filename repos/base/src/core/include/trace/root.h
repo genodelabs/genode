@@ -20,10 +20,10 @@
 /* core-internal includes */
 #include <trace/session_component.h>
 
-namespace Genode { namespace Trace { class Root; } }
+namespace Core { namespace Trace { class Root; } }
 
 
-class Genode::Trace::Root : public Genode::Root_component<Session_component>
+class Core::Trace::Root : public Root_component<Session_component>
 {
 	private:
 

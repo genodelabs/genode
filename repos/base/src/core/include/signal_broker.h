@@ -14,15 +14,16 @@
 #ifndef _CORE__INCLUDE__SIGNAL_BROKER_H_
 #define _CORE__INCLUDE__SIGNAL_BROKER_H_
 
+/* core includes */
 #include <signal_source_component.h>
 #include <signal_source/capability.h>
 #include <signal_context_slab.h>
 #include <signal_delivery_proxy.h>
 
-namespace Genode { class Signal_broker; }
+namespace Core { class Signal_broker; }
 
 
-class Genode::Signal_broker
+class Core::Signal_broker
 {
 	private:
 

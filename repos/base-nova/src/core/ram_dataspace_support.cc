@@ -23,7 +23,7 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &) { }

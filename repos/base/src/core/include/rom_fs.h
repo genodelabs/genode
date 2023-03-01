@@ -15,16 +15,18 @@
 #ifndef _CORE__INCLUDE__ROM_FS_H_
 #define _CORE__INCLUDE__ROM_FS_H_
 
-#include <base/output.h>
 #include <util/avl_string.h>
 
-namespace Genode {
+/* core includes */
+#include <types.h>
+
+namespace Core {
 	struct Rom_module;
 	struct Rom_fs;
 }
 
 
-struct Genode::Rom_module : Genode::Avl_string_base
+struct Core::Rom_module : Avl_string_base
 {
 	addr_t const addr = 0;
 	size_t const size = 0;
@@ -36,12 +38,12 @@ struct Genode::Rom_module : Genode::Avl_string_base
 
 	bool valid() const { return size ? true : false; }
 
-	void print(Genode::Output & out) const {
+	void print(Output & out) const {
 		Genode::print(out, Hex_range<addr_t>(addr, size), " ", name()); }
 };
 
 
-struct Genode::Rom_fs : Genode::Avl_tree<Genode::Avl_string_base>
+struct Core::Rom_fs : Avl_tree<Avl_string_base>
 {
 	Rom_module const * find(char const * const name) const
 	{
@@ -49,7 +51,7 @@ struct Genode::Rom_fs : Genode::Avl_tree<Genode::Avl_string_base>
 		               : nullptr;
 	}
 
-	void print(Genode::Output & out) const
+	void print(Output & out) const
 	{
 		if (!first()) Genode::print(out, "No modules in Rom_fs\n");
 

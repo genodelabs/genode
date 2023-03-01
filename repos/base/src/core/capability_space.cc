@@ -11,12 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base includes */
+/* Genode includes */
 #include <base/capability.h>
-#include <base/log.h>
 
 /* base-internal includes */
 #include <base/internal/capability_space_tpl.h>
+
+/* core includes */
+#include <types.h>
 
 
 /**
@@ -33,7 +35,7 @@ struct Genode::Native_capability::Data : Capability_data
 };
 
 
-using namespace Genode;
+using namespace Core;
 
 
 /**

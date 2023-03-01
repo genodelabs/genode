@@ -15,16 +15,13 @@
 #ifndef _CORE__KERNEL__PD_H_
 #define _CORE__KERNEL__PD_H_
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <hw/assert.h>
 #include <kernel/core_interface.h>
 #include <object.h>
 #include <board.h>
 
-/* base includes */
-#include <util/reconstructible.h>
-
-namespace Genode { class Platform_pd; }
+namespace Core { class Platform_pd; }
 
 
 namespace Kernel {
@@ -50,13 +47,13 @@ class Kernel::Pd
 
 		Kernel::Object                 _kernel_object { *this };
 		Hw::Page_table                &_table;
-		Genode::Platform_pd           &_platform_pd;
+		Core::Platform_pd             &_platform_pd;
 		Capid_allocator                _capid_alloc { };
 		Object_identity_reference_tree _cap_tree    { };
 
 	public:
 
-		Genode::Cpu::Mmu_context mmu_regs;
+		Core::Cpu::Mmu_context mmu_regs;
 
 		/**
 		 * Constructor
@@ -65,7 +62,7 @@ class Kernel::Pd
 		 * \param platform_pd  core object of the PD
 		 */
 		Pd(Hw::Page_table                    &table,
-		   Genode::Platform_pd               &platform_pd,
+		   Core::Platform_pd                 &platform_pd,
 		   Board::Address_space_id_allocator &addr_space_id_alloc)
 		:
 			_table(table),
@@ -82,15 +79,15 @@ class Kernel::Pd
 				oir->~Object_identity_reference();
 		}
 
-		static capid_t syscall_create(Genode::Kernel_object<Pd> &p,
-		                              Hw::Page_table            &tt,
-		                              Genode::Platform_pd       &pd)
+		static capid_t syscall_create(Core::Kernel_object<Pd> &p,
+		                              Hw::Page_table          &tt,
+		                              Core::Platform_pd       &pd)
 		{
 			return (capid_t)call(call_id_new_pd(), (Call_arg)&p,
 			                     (Call_arg)&tt, (Call_arg)&pd);
 		}
 
-		static void syscall_destroy(Genode::Kernel_object<Pd> & p) {
+		static void syscall_destroy(Core::Kernel_object<Pd> & p) {
 			call(call_id_delete_pd(), (Call_arg)&p); }
 
 		/**
@@ -105,7 +102,7 @@ class Kernel::Pd
 		 ***************/
 
 		Object              &kernel_object()       { return _kernel_object; }
-		Genode::Platform_pd &platform_pd()         { return _platform_pd; }
+		Core::Platform_pd   &platform_pd()         { return _platform_pd; }
 		Hw::Page_table      &translation_table()   { return _table;       }
 		Capid_allocator     &capid_alloc()         { return _capid_alloc; }
 		Object_identity_reference_tree &cap_tree() { return _cap_tree;    }

@@ -15,14 +15,15 @@
 #include <base/thread.h>
 #include <base/sleep.h>
 
+/* core includes */
+#include <platform.h>
+#include <platform_thread.h>
+#include <core_env.h>
+
 /* base-internal includes */
 #include <base/internal/stack.h>
 
-/* core includes */
-#include <platform.h>
-#include <core_env.h>
-
-using namespace Genode;
+using namespace Core;
 
 
 void Thread::_thread_start()

@@ -11,9 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <platform.h>
 #include <signal_source_component.h>
@@ -21,13 +18,8 @@
 /* base-internal include */
 #include <core_capability_space.h>
 
+using namespace Core;
 
-using namespace Genode;
-
-
-/*****************************
- ** Signal-source component **
- *****************************/
 
 void Signal_source_component::release(Signal_context_component &context)
 {

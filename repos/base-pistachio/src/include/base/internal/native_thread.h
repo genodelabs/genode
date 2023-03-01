@@ -20,11 +20,9 @@
 /* base-internal includes */
 #include <base/internal/pistachio.h>
 
-namespace Genode {
-	
-	class Platform_thread;
-	struct Native_thread;
-}
+namespace Genode { struct Native_thread; }
+
+namespace Core { class Platform_thread; }
 
 
 struct Genode::Native_thread
@@ -38,7 +36,7 @@ struct Genode::Native_thread
 	 * the physical thread object, which is going to be destroyed
 	 * on destruction of the 'Thread'.
 	 */
-	Platform_thread *pt;
+	Core::Platform_thread *pt;
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_ */

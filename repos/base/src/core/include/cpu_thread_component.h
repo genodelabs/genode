@@ -28,12 +28,12 @@
 #include <trace/control_area.h>
 #include <trace/source_registry.h>
 
-namespace Genode { class Cpu_thread_component; }
+namespace Core { class Cpu_thread_component; }
 
 
-class Genode::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
-                                     private List<Cpu_thread_component>::Element,
-                                     public  Trace::Source::Info_accessor
+class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
+                                   private List<Cpu_thread_component>::Element,
+                                   public  Trace::Source::Info_accessor
 {
 	public:
 

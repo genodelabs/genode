@@ -20,16 +20,16 @@
 /* NOVA includes */
 #include <nova/capability_space.h>
 
-/* core-local includes */
+/* core includes */
 #include <platform.h>
 #include <signal_source_component.h>
 #include <signal_source/capability.h>
 #include <signal_context_slab.h>
 
-namespace Genode { class Signal_broker; }
+namespace Core { class Signal_broker; }
 
 
-class Genode::Signal_broker
+class Core::Signal_broker
 {
 	private:
 

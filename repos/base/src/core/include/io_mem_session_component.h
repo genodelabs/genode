@@ -22,10 +22,10 @@
 /* core includes */
 #include <dataspace_component.h>
 
-namespace Genode { class Io_mem_session_component; }
+namespace Core { class Io_mem_session_component; }
 
 
-class Genode::Io_mem_session_component : public Rpc_object<Io_mem_session>
+class Core::Io_mem_session_component : public Rpc_object<Io_mem_session>
 {
 	private:
 

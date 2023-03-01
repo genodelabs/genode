@@ -13,7 +13,7 @@
 
 #include <io_port_session_component.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Io_port_session_component::Io_port_session_component(Range_allocator &io_port_alloc,

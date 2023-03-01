@@ -11,14 +11,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core-internal includes */
-#include <trace/session_component.h>
+/* Genode includes */
 #include <dataspace/capability.h>
 #include <base/rpc_client.h>
 
+/* core-internal includes */
+#include <trace/session_component.h>
 
-using namespace Genode;
-using namespace Genode::Trace;
+using namespace Core;
+using namespace Core::Trace;
 
 
 Dataspace_capability Session_component::dataspace()

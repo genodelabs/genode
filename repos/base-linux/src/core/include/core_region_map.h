@@ -17,10 +17,13 @@
 /* base-internal includes */
 #include <base/internal/region_map_mmap.h>
 
-namespace Genode { class Core_region_map; }
+/* core includes */
+#include <types.h>
+
+namespace Core { class Core_region_map; }
 
 
-struct Genode::Core_region_map : Region_map_mmap
+struct Core::Core_region_map : Region_map_mmap
 {
 	Core_region_map(Rpc_entrypoint &) : Region_map_mmap(false) { }
 };

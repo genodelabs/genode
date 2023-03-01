@@ -23,7 +23,7 @@
 /* base-internal includes */
 #include <base/internal/capability_space.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 unsigned Irq_session_component::_find_irq_number(const char * const args)

@@ -11,13 +11,12 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* core includes */
 #include <pd_session_component.h>
 #include <native_pd_component.h>
-
-/* core-local includes */
 #include <imprint_badge.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Native_capability Native_pd_component::alloc_rpc_cap(Native_capability ep,

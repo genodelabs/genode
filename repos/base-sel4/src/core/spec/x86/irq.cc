@@ -4,12 +4,16 @@
  * \date   2017-07-07
  */
 
+/* core includes */
 #include <irq_object.h>
 
 #include <sel4/sel4.h>
 
-long Genode::Irq_object::_associate(Irq_session::Trigger  const &irq_trigger,
-                                    Irq_session::Polarity const &irq_polarity)
+using namespace Core;
+
+
+long Irq_object::_associate(Irq_session::Trigger  const &irq_trigger,
+                            Irq_session::Polarity const &irq_polarity)
 {
 	enum { IRQ_EDGE = 0, IRQ_LEVEL = 1 };
 	enum { IRQ_HIGH = 0, IRQ_LOW = 1 };

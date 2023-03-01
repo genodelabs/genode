@@ -21,7 +21,7 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-namespace Genode {
+namespace Core {
 
 	/**
 	 * Map page locally within core

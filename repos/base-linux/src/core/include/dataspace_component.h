@@ -19,15 +19,19 @@
 #ifndef _CORE__INCLUDE__DATASPACE_COMPONENT_H_
 #define _CORE__INCLUDE__DATASPACE_COMPONENT_H_
 
+/* Genode includes */
 #include <linux_dataspace/linux_dataspace.h>
-#include <util/string.h>
 #include <util/misc_math.h>
 #include <base/rpc_server.h>
 
 /* base-internal includes */
 #include <base/internal/capability_space_tpl.h>
 
-namespace Genode {
+/* core includes */
+#include <types.h>
+
+namespace Core {
+
 	class Dataspace_owner;
 	class Dataspace_component;
 }
@@ -36,10 +40,10 @@ namespace Genode {
 /**
  * Deriving classes can own a dataspace to implement conditional behavior
  */
-class Genode::Dataspace_owner : Interface { };
+class Core::Dataspace_owner : Interface { };
 
 
-class Genode::Dataspace_component : public Rpc_object<Linux_dataspace>
+class Core::Dataspace_component : public Rpc_object<Linux_dataspace>
 {
 	private:
 

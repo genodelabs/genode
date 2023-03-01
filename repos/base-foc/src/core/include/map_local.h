@@ -22,7 +22,7 @@
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-namespace Genode {
+namespace Core {
 
 	/**
 	 * Map pages locally within core

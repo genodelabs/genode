@@ -19,12 +19,8 @@
 /* core includes */
 #include <io_port_session_component.h>
 
-using namespace Genode;
+using namespace Core;
 
-
-/******************************
- ** Constructor / destructor **
- ******************************/
 
 Io_port_session_component::Io_port_session_component(Range_allocator &io_port_alloc,
                                                      const char      *args)

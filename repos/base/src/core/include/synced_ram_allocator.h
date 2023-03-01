@@ -18,10 +18,13 @@
 #include <base/ram_allocator.h>
 #include <base/mutex.h>
 
-namespace Genode { class Synced_ram_allocator; }
+/* core includes */
+#include <types.h>
+
+namespace Core { class Synced_ram_allocator; }
 
 
-class Genode::Synced_ram_allocator : public Ram_allocator
+class Core::Synced_ram_allocator : public Ram_allocator
 {
 	private:
 

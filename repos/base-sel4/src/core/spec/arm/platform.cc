@@ -21,7 +21,8 @@
 
 #include "arch_kernel_object.h"
 
-using namespace Genode;
+using namespace Core;
+
 
 static Phys_allocator *_phys_alloc_16k_ptr;
 
@@ -35,18 +36,18 @@ static Phys_allocator &phys_alloc_16k()
 }
 
 
-seL4_Word Genode::Untyped_memory::smallest_page_type() {
+seL4_Word Untyped_memory::smallest_page_type() {
 	return seL4_ARM_SmallPageObject; }
 
 
-void Genode::Platform::init_sel4_ipc_buffer() { }
+void Platform::init_sel4_ipc_buffer() { }
 
 
-long Genode::Platform::_unmap_page_frame(Cap_sel const &sel) {
+long Platform::_unmap_page_frame(Cap_sel const &sel) {
 	return seL4_ARM_Page_Unmap(sel.value()); }
 
 
-void Genode::Platform::_init_core_page_table_registry()
+void Platform::_init_core_page_table_registry()
 {
 	seL4_BootInfo const &bi = sel4_boot_info();
 
@@ -68,7 +69,7 @@ void Genode::Platform::_init_core_page_table_registry()
 
 	/* initialize 16k memory allocator */
 	{
-		static Genode::Phys_allocator inst(&core_mem_alloc());
+		static Phys_allocator inst(&core_mem_alloc());
 		_phys_alloc_16k_ptr = &inst;
 	}
 	
@@ -87,7 +88,7 @@ void Genode::Platform::_init_core_page_table_registry()
 }
 
 
-Genode::addr_t Genode::Platform_pd::_init_page_directory() const
+addr_t Platform_pd::_init_page_directory() const
 {
 	/* page directory table contains 4096 elements of 32bits -> 16k required */
 	enum { PAGES_16K = (1UL << Page_directory_kobj::SIZE_LOG2) / 4096 };
@@ -109,7 +110,7 @@ Genode::addr_t Genode::Platform_pd::_init_page_directory() const
 }
 
 
-void Genode::Platform_pd::_deinit_page_directory(addr_t phys_addr) const
+void Platform_pd::_deinit_page_directory(addr_t phys_addr) const
 {
 	int ret = seL4_CNode_Delete(seL4_CapInitThreadCNode,
 	                            _page_directory_sel.value(), 32);

@@ -21,7 +21,7 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 using namespace Fiasco;
 
 

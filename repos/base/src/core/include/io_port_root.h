@@ -16,15 +16,16 @@
 
 #include <root/component.h>
 
-#include "io_port_session_component.h"
+/* core includes */
+#include <io_port_session_component.h>
 
-namespace Genode {
+namespace Core {
 	class Io_port_handler;
 	class Io_port_root;
 }
 
 
-class Genode::Io_port_handler
+class Core::Io_port_handler
 {
 	private:
 
@@ -41,8 +42,8 @@ class Genode::Io_port_handler
 };
 
 
-class Genode::Io_port_root : private Io_port_handler,
-                             public Root_component<Io_port_session_component>
+class Core::Io_port_root : private Io_port_handler,
+                           public Root_component<Io_port_session_component>
 {
 
 	private:

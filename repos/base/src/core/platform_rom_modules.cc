@@ -15,7 +15,7 @@
 #include <boot_modules.h>
 #include <platform.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Platform::_init_rom_modules()

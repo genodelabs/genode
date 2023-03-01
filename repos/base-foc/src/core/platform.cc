@@ -13,7 +13,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <dataspace/capability.h>
@@ -38,7 +37,7 @@
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /***********************************
@@ -288,7 +287,7 @@ void Platform::_setup_mem_alloc()
 	 * prevent sigma0 from handing out those page as anonymous memory.
 	 */
 	volatile const char *beg, *end;
-	beg = (const char *)(((Genode::addr_t)&_prog_img_beg) & L4_PAGEMASK);
+	beg = (const char *)(((addr_t)&_prog_img_beg) & L4_PAGEMASK);
 	end = (const char *)&_prog_img_end;
 	for ( ; beg < end; beg += L4_PAGESIZE) (void)(*beg);
 

@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Core includes */
+/* core includes */
 #include <kernel/cpu.h>
 #include <kernel/timer.h>
 #include <kernel/configuration.h>

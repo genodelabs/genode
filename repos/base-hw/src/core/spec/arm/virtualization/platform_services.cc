@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/service.h>
-#include <base/heap.h>
 
 /* core includes */
 #include <platform.h>
@@ -24,20 +23,20 @@
 #include <vm_root.h>
 #include <platform.h>
 
+using namespace Core;
 
-extern Genode::addr_t hypervisor_exception_vector;
+
+extern addr_t hypervisor_exception_vector;
 
 
 /*
  * Add ARM virtualization specific vm service
  */
-void Genode::platform_add_local_services(Rpc_entrypoint         &ep,
-                                         Sliced_heap            &sh,
-                                         Registry<Service>      &services,
-                                         Trace::Source_registry &trace_sources)
+void Core::platform_add_local_services(Rpc_entrypoint    &ep,
+                                       Sliced_heap       &sh,
+                                       Registry<Service> &services,
+                                       Core::Trace::Source_registry &trace_sources)
 {
-	using namespace Genode;
-
 	map_local(Platform::core_phys_addr((addr_t)&hypervisor_exception_vector),
 	          Hw::Mm::hypervisor_exception_vector().base,
 	          Hw::Mm::hypervisor_exception_vector().size / get_page_size(),

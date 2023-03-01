@@ -11,20 +11,20 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/stdint.h>
-
 /* core includes */
+#include <types.h>
 #include <sel4_boot_info.h>
+
+using namespace Core;
 
 
 /* provided by the assembly startup code */
-extern Genode::addr_t __initial_r0;
+extern addr_t __initial_r0;
 
 /**
  * Obtain seL4 boot info structure
  */
-seL4_BootInfo const & Genode::sel4_boot_info()
+seL4_BootInfo const &Core::sel4_boot_info()
 {
 	return *(seL4_BootInfo const *)__initial_r0;
 }

@@ -15,15 +15,17 @@
 /* base-hw internal includes */
 #include <hw/assert.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <platform_pd.h>
 #include <kernel/cpu.h>
 #include <kernel/pd.h>
 
-using Mmu_context = Genode::Cpu::Mmu_context;
+using Mmu_context = Core::Cpu::Mmu_context;
+
+using namespace Core;
 
 
-Genode::Cpu::Context::Context(bool)
+Cpu::Context::Context(bool)
 {
 	/*
 	 * initialize cpu_exception with something that gets ignored in
@@ -33,13 +35,12 @@ Genode::Cpu::Context::Context(bool)
 }
 
 
-Mmu_context::
-Mmu_context(addr_t                             page_table_base,
-            Board::Address_space_id_allocator &addr_space_id_alloc)
+Mmu_context::Mmu_context(addr_t page_table_base,
+                         Board::Address_space_id_allocator &id_alloc)
 :
-	_addr_space_id_alloc(addr_space_id_alloc)
+	_addr_space_id_alloc(id_alloc)
 {
-	Satp::Asid::set(satp, (Genode::uint8_t)_addr_space_id_alloc.alloc());
+	Satp::Asid::set(satp, (uint8_t)_addr_space_id_alloc.alloc());
 	Satp::Ppn::set(satp, page_table_base >> 12);
 	Satp::Mode::set(satp, 8);
 }
@@ -53,31 +54,30 @@ Mmu_context::~Mmu_context()
 }
 
 
-bool Genode::Cpu::active(Mmu_context & context)
+bool Cpu::active(Mmu_context &context)
 {
 	return Satp::read() == context.satp;
 }
 
 
-void Genode::Cpu::switch_to(Mmu_context & context)
+void Cpu::switch_to(Mmu_context &context)
 {
 	Satp::write(context.satp);
 	sfence();
 }
 
 
-void Genode::Cpu::mmu_fault(Context &, Kernel::Thread_fault & f)
+void Cpu::mmu_fault(Context &, Kernel::Thread_fault &f)
 {
-	f.addr = Genode::Cpu::Stval::read();
+	f.addr = Cpu::Stval::read();
 	f.type = Kernel::Thread_fault::PAGE_MISSING;
 }
 
 
-void Genode::Cpu::clear_memory_region(addr_t const addr,
-                                      size_t const size, bool)
+void Cpu::clear_memory_region(addr_t const addr, size_t const size, bool)
 {
 	memset((void*)addr, 0, size);
 
 	/* FIXME: is this really necessary? */
-	Genode::Cpu::sfence();
+	Cpu::sfence();
 }

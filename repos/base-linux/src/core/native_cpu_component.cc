@@ -11,14 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core-local includes */
+/* core includes */
 #include <cpu_session_component.h>
 #include <native_cpu_component.h>
 
 /* base-internal includes */
 #include <base/internal/capability_space_tpl.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Native_cpu_component::thread_id(Thread_capability thread_cap, int pid, int tid)

@@ -25,10 +25,10 @@
 /* base-internal includes */
 #include <base/internal/capability_space_sel4.h>
 
-namespace Genode { class Platform_pd; }
+namespace Core { class Platform_pd; }
 
 
-class Genode::Platform_pd : public Address_space
+class Core::Platform_pd : public Address_space
 {
 	private:
 

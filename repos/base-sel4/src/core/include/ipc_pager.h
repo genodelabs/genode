@@ -17,13 +17,13 @@
 /* Genode includes */
 #include <base/ipc.h>
 
-/* core-local includes */
+/* core includes */
 #include <mapping.h>
 
-namespace Genode { class Ipc_pager; }
+namespace Core { class Ipc_pager; }
 
 
-class Genode::Ipc_pager : public Native_capability
+class Core::Ipc_pager : public Native_capability
 {
 	private:
 

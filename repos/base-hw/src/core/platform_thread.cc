@@ -27,7 +27,7 @@
 #include <kernel/pd.h>
 #include <kernel/main.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Platform_thread::_init() { }
@@ -199,7 +199,7 @@ void Platform_thread::pager(Pager_object &pager)
 }
 
 
-Genode::Pager_object &Platform_thread::pager()
+Core::Pager_object &Platform_thread::pager()
 {
 	if (_pager)
 		return *_pager;

@@ -11,13 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <cpu_session_component.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Dataspace_capability Cpu_thread_component::utcb()

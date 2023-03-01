@@ -16,7 +16,7 @@
 
 #include <ram_dataspace_factory.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &) { }

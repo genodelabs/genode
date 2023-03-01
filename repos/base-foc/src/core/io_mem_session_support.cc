@@ -18,7 +18,7 @@
 #include <io_mem_session_component.h>
 #include <map_local.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Io_mem_session_component::_unmap_local(addr_t base, size_t)

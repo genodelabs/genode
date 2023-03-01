@@ -17,6 +17,9 @@
 /* seL4 includes */
 #include <sel4/bootinfo.h>
 
-namespace Genode { seL4_BootInfo const &sel4_boot_info(); }
+/* core includes */
+#include <types.h>
+
+namespace Core { seL4_BootInfo const &sel4_boot_info(); }
 
 #endif /* _CORE__INCLUDE__SEL4_BOOT_INFO_H_ */

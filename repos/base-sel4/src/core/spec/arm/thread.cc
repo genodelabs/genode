@@ -21,12 +21,14 @@
 #include <thread_sel4.h>
 #include <platform_thread.h>
 
-void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp,
-                               unsigned cpu)
+using namespace Core;
+
+
+void Core::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp, unsigned cpu)
 {
 	/* set register values for the instruction pointer and stack pointer */
 	seL4_UserContext regs;
-	Genode::memset(&regs, 0, sizeof(regs));
+	memset(&regs, 0, sizeof(regs));
 	size_t const num_regs = sizeof(regs)/sizeof(seL4_Word);
 
 	regs.pc = ip;
@@ -41,13 +43,15 @@ void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp,
 	seL4_TCB_Resume(tcb_sel.value());
 }
 
-void Genode::affinity_sel4_thread(Cap_sel const &, unsigned cpu)
+
+void Core::affinity_sel4_thread(Cap_sel const &, unsigned cpu)
 {
 	if (cpu != 0)
 		error("could not set affinity of thread");
 }
 
-Genode::Thread_state Genode::Platform_thread::state()
+
+Thread_state Platform_thread::state()
 {
 	seL4_TCB   const thread         = _info.tcb_sel.value();
 	seL4_Bool  const suspend_source = false;
@@ -63,7 +67,7 @@ Genode::Thread_state Genode::Platform_thread::state()
 	}
 
 	Thread_state state;
-	Genode::memset(&state, 0, sizeof(state));
+	memset(&state, 0, sizeof(state));
 
 	state.r0   = registers.r0;
 	state.r1   = registers.r1;

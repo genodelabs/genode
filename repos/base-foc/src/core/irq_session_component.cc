@@ -14,7 +14,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <util/arg_string.h>
 #include <util/bit_array.h>
 
@@ -28,15 +27,15 @@
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-namespace Genode { class Interrupt_handler; }
+namespace Core { class Interrupt_handler; }
 
-using namespace Genode;
+using namespace Core;
 
 
 /**
  * Dispatches interrupts from kernel
  */
-class Genode::Interrupt_handler : public Thread
+class Core::Interrupt_handler : public Thread
 {
 	private:
 
@@ -239,7 +238,7 @@ void Irq_session_component::ack_irq()
 }
 
 
-void Irq_session_component::sigh(Genode::Signal_context_capability cap)
+void Irq_session_component::sigh(Signal_context_capability cap)
 {
 	_irq_object.sigh(cap);
 }
@@ -251,7 +250,7 @@ Irq_session::Info Irq_session_component::info()
 		return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
 
 	return {
-		.type    = Genode::Irq_session::Info::Type::MSI,
+		.type    = Irq_session::Info::Type::MSI,
 		.address = (addr_t)_irq_object.msi_address(),
 		.value   = _irq_object.msi_value()
 	};

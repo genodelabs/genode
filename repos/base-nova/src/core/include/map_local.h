@@ -20,7 +20,7 @@
 /* core includes */
 #include <nova_util.h>
 
-namespace Genode {
+namespace Core {
 
 	/**
 	 * Map pages locally within core

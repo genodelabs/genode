@@ -15,7 +15,7 @@
 #include <dataspace_component.h>
 #include <region_map_component.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Dataspace_component::attached_to(Rm_region &region)

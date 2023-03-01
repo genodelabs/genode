@@ -20,7 +20,7 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Pager_object::wake_up()

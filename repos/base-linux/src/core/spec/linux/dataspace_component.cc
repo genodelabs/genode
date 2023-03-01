@@ -29,7 +29,7 @@
 /* local includes */
 #include "dataspace_component.h"
 
-using namespace Genode;
+using namespace Core;
 
 
 Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
@@ -54,7 +54,7 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 
 size_t Dataspace_component::_file_size()
 {
-	uint64_t size = 0;
+	Genode::uint64_t size = 0;
 	if (lx_stat_size(_fname.buf, size) < 0)
 		throw Service_denied();
 

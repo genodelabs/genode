@@ -20,16 +20,19 @@
 #include <cpu_session/cpu_session.h>  /* for 'Thread_capability' type */
 #include <pager/capability.h>
 
-/* core-local includes */
+/* core includes */
 #include <rpc_cap_factory.h>
 
-namespace Genode {
+namespace Core {
+
 	struct Pager_object;
 	struct Pager_entrypoint;
+
+	using Pager_capability = Capability<Pager_object>;
 }
 
 
-struct Genode::Pager_object
+struct Core::Pager_object
 {
 	Thread_capability         _thread_cap { };
 	Signal_context_capability _sigh       { };
@@ -47,7 +50,7 @@ struct Genode::Pager_object
 };
 
 
-struct Genode::Pager_entrypoint
+struct Core::Pager_entrypoint
 {
 	Pager_entrypoint(Rpc_cap_factory &) { }
 

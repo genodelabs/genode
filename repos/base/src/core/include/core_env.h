@@ -29,14 +29,14 @@
 #include <synced_ram_allocator.h>
 #include <assertion.h>
 
-namespace Genode {
+namespace Core {
 
 	class Core_env;
 	extern Core_env &core_env();
 }
 
 
-class Genode::Core_env : public Env_deprecated, Noncopyable
+class Core::Core_env : public Env_deprecated, Noncopyable
 {
 	private:
 

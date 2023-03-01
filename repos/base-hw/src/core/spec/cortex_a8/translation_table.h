@@ -18,7 +18,7 @@
 /* base-hw internal includes */
 #include <hw/spec/arm/page_table.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <spec/arm/cpu_support.h>
 
 
@@ -38,7 +38,7 @@ void Hw::Page_table::_table_changed(unsigned long addr, unsigned long size)
 	 * page table entry is added. We only do this as core as the kernel
 	 * adds translations solely before MMU and caches are enabled.
 	 */
-	Genode::Arm_cpu::cache_clean_data_region(addr, size);
+	Core::Arm_cpu::cache_clean_data_region(addr, size);
 }
 
 #endif /* _CORE__SPEC__CORTEX_A8__TRANSLATION_TABLE_H_ */

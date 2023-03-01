@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/log.h>
 #include <base/sleep.h>
 
 /* base-internal includes */
@@ -28,7 +27,7 @@
 /* seL4 includes */
 #include <sel4/benchmark_utilisation_types.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Thread::_init_platform_thread(size_t, Type type)
@@ -105,9 +104,9 @@ void Thread::start()
 	start_sel4_thread(Cap_sel(native_thread().tcb_sel), (addr_t)&_thread_start,
 	                  (addr_t)stack_top(), _affinity.xpos());
 
-	struct Core_trace_source : public  Trace::Source::Info_accessor,
-	                           private Trace::Control,
-	                           private Trace::Source
+	struct Core_trace_source : public  Core::Trace::Source::Info_accessor,
+	                           private Core::Trace::Control,
+	                           private Core::Trace::Source
 	{
 		Thread &_thread;
 
@@ -129,17 +128,17 @@ void Thread::start()
 		}
 
 
-		Core_trace_source(Trace::Source_registry &registry, Thread &t)
+		Core_trace_source(Core::Trace::Source_registry &registry, Thread &t)
 		:
-			Trace::Control(),
-			Trace::Source(*this, *this), _thread(t)
+			Core::Trace::Control(),
+			Core::Trace::Source(*this, *this), _thread(t)
 		{
 			registry.insert(this);
 		}
 	};
 
 	new (platform().core_mem_alloc())
-		Core_trace_source(Trace::sources(), *this);
+		Core_trace_source(Core::Trace::sources(), *this);
 }
 
 

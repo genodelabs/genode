@@ -25,7 +25,7 @@
 */
 namespace Board { using namespace Hw::Pc_board; };
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <spec/x86_64/pic.h>
 #include <spec/x86_64/pit.h>
 #include <spec/x86_64/cpu.h>

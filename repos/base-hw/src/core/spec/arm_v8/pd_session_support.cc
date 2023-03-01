@@ -15,7 +15,7 @@
 #include <hw/spec/arm_64/psci_call.h>
 #include <pd_session_component.h>
 
-using namespace Genode;
+using namespace Core;
 using State = Genode::Pd_session::Managing_system_state;
 
 

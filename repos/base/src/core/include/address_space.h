@@ -14,14 +14,17 @@
 #ifndef _CORE__INCLUDE__ADDRESS_SPACE_H_
 #define _CORE__INCLUDE__ADDRESS_SPACE_H_
 
-#include <base/stdint.h>
+/* Genode includes */
 #include <base/weak_ptr.h>
 
-namespace Genode { struct Address_space; }
+/* core includes */
+#include <types.h>
+
+namespace Core { struct Address_space; }
 
 
-struct Genode::Address_space : private Weak_object<Address_space>,
-                               public  Interface
+struct Core::Address_space : private Weak_object<Address_space>,
+                             public  Interface
 {
 	friend class Locked_ptr<Address_space>;
 

@@ -11,14 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core-local includes */
+/* core includes */
 #include <ram_dataspace_factory.h>
 #include <map_local.h>
 
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &) { }

@@ -16,16 +16,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Base includes */
+/* Genode includes */
 #include <util/flex_iterator.h>
 
-/* Core includes */
+/* core includes */
 #include <cpu_thread_component.h>
 #include <dataspace_component.h>
 #include <vm_session_component.h>
 
-using Genode::addr_t;
-using Genode::Vm_session_component;
+using namespace Core;
+
 
 void Vm_session_component::attach(Dataspace_capability const cap,
                                   addr_t const guest_phys,
@@ -172,11 +172,11 @@ void Vm_session_component::detach(Region_map::Local_addr addr)
 	if (region)
 		detach(region->base(), region->size());
 	else
-		Genode::error(__PRETTY_FUNCTION__, " unknown region");
+		error(__PRETTY_FUNCTION__, " unknown region");
 }
 
 
 void Vm_session_component::unmap_region(addr_t base, size_t size)
 {
-	Genode::error(__func__, " unimplemented ", base, " ", size);
+	error(__func__, " unimplemented ", base, " ", size);
 }

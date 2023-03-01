@@ -12,10 +12,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
+#include <util/string.h>
+
+/* core includes */
 #include <core_log.h>
 
-static Genode::Core_log_range range { 0, 0 };
+
+static Core::Core_log_range range { 0, 0 };
 static unsigned range_pos   { 0 };
+
 
 static void out_mem(char const c)
 {
@@ -25,7 +31,7 @@ static void out_mem(char const c)
 		char data[1];
 
 		unsigned out(char const c, unsigned cur_pos,
-		             Genode::Core_log_range const &range)
+		             Core::Core_log_range const &range)
 		{
 			pos.value       = cur_pos;
 			data[cur_pos++] = c;
@@ -40,10 +46,10 @@ static void out_mem(char const c)
 }
 
 
-void Genode::init_core_log(Core_log_range const &r) { range = r; }
+void Core::init_core_log(Core_log_range const &r) { range = r; }
 
 
-void Genode::Core_log::output(char const * str)
+void Core::Core_log::output(char const * str)
 {
 	for (unsigned i = 0; i < Genode::strlen(str); i++) {
 		out(str[i]);

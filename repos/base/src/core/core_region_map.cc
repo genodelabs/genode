@@ -18,7 +18,7 @@
 #include <platform.h>
 #include <core_region_map.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Region_map::Local_addr

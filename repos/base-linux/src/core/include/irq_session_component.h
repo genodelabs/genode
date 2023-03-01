@@ -14,17 +14,20 @@
 #ifndef _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_
 #define _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_
 
+/* Genode includes */
 #include <util/list.h>
 #include <base/rpc_server.h>
 #include <base/allocator.h>
 #include <irq_session/irq_session.h>
+
+/* core includes */
 #include <irq_object.h>
 
-namespace Genode { class Irq_session_component; }
+namespace Core { class Irq_session_component; }
 
 
-class Genode::Irq_session_component : public Rpc_object<Irq_session>,
-                                      private List<Irq_session_component>::Element
+class Core::Irq_session_component : public Rpc_object<Irq_session>,
+                                    private List<Irq_session_component>::Element
 {
 	private:
 

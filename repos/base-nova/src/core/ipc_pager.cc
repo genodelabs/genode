@@ -14,14 +14,13 @@
 /* Genode includes */
 #include <base/thread.h>
 
-/* Core includes */
+/* core includes */
 #include <ipc_pager.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
 
-
-using namespace Genode;
+using namespace Core;
 
 
 void Mapping::prepare_map_operation() const { }

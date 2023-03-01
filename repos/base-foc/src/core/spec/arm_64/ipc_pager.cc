@@ -19,7 +19,7 @@
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 enum Exceptions { EX_REGS = 0x500000 };

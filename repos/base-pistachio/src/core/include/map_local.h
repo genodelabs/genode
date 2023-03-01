@@ -21,7 +21,7 @@
 /* base-internal includes */
 #include <base/internal/pistachio.h>
 
-namespace Genode {
+namespace Core {
 
 	/**
 	 * Map page locally within core

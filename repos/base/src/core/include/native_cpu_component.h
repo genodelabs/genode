@@ -19,17 +19,17 @@
 /* Genode includes */
 #include <cpu_session/cpu_session.h>
 
-/* core-local includes */
+/* core includes */
 #include <rpc_cap_factory.h>
 
-namespace Genode {
+namespace Core {
 
 	class Cpu_session_component;
 	class Native_cpu_component;
 }
 
 
-struct Genode::Native_cpu_component
+struct Core::Native_cpu_component
 {
 	Native_cpu_component(Cpu_session_component &, char const *) { }
 

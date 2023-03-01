@@ -23,7 +23,7 @@
 /* core includes */
 #include <pager.h>
 
-namespace Genode { class Platform_thread; }
+namespace Core { class Platform_thread; }
 
 
 /*
@@ -34,7 +34,7 @@ namespace Genode { class Platform_thread; }
  * turn, we find the exception handler's 'Signal_context_capability'.
  */
 
-class Genode::Platform_thread : public List<Platform_thread>::Element
+class Core::Platform_thread : public List<Platform_thread>::Element
 {
 	private:
 

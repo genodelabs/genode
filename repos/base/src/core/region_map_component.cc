@@ -14,7 +14,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <util/arg_string.h>
 #include <util/misc_math.h>
 
@@ -27,7 +26,7 @@
 static const bool verbose_page_faults = false;
 
 
-struct Genode::Region_map_component::Fault_area
+struct Core::Region_map_component::Fault_area
 {
 	addr_t _fault_addr = 0;
 	addr_t _base       = 0;
@@ -145,7 +144,7 @@ struct Genode::Region_map_component::Fault_area
 };
 
 
-using namespace Genode;
+using namespace Core;
 
 static void print_page_fault(char const *msg,
                              addr_t pf_addr,
@@ -292,7 +291,7 @@ void Rm_faulter::dissolve_from_faulting_region_map(Region_map_component &caller)
 			locked_ptr->discard_faulter(*this, DO_LOCK);
 	}
 
-	_faulting_region_map = Genode::Weak_ptr<Genode::Region_map_component>();
+	_faulting_region_map = Weak_ptr<Core::Region_map_component>();
 }
 
 
@@ -301,7 +300,7 @@ void Rm_faulter::continue_after_resolved_fault()
 	Mutex::Guard lock_guard(_mutex);
 
 	_pager_object.wake_up();
-	_faulting_region_map = Genode::Weak_ptr<Genode::Region_map_component>();
+	_faulting_region_map = Weak_ptr<Core::Region_map_component>();
 	_fault_state = Region_map::State();
 }
 

@@ -22,10 +22,10 @@
 /* core includes */
 #include <region_map_component.h>
 
-namespace Genode { class Rm_session_component; }
+namespace Core { class Rm_session_component; }
 
 
-class Genode::Rm_session_component : public Session_object<Rm_session>
+class Core::Rm_session_component : public Session_object<Rm_session>
 {
 	private:
 

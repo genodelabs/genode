@@ -13,11 +13,10 @@
 
 /* Genode includes */
 #include <util/arg_string.h>
-#include <base/log.h>
 #include <base/snprintf.h>
 #include <cpu/consts.h>
 
-/* core-local includes */
+/* core includes */
 #include <pd_session_component.h>
 #include <dataspace_component.h>
 
@@ -28,7 +27,7 @@
 /* Linux includes */
 #include <core_linux_syscalls.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /***************
@@ -122,7 +121,7 @@ void Native_pd_component::_start(Dataspace_component &ds)
 	 * the dataspace content into a temporary file whose path is passed to
 	 * 'execve()'.
 	 */
-	if (strcmp(filename, "") == 0) {
+	if (Genode::strcmp(filename, "") == 0) {
 
 		filename = tmp_filename;
 
@@ -174,7 +173,7 @@ void Native_pd_component::_start(Dataspace_component &ds)
 	_pid = lx_create_process((int (*)())_exec_child,
 	                         _execve_args_and_stack().initial_sp());
 
-	if (strcmp(filename, tmp_filename) == 0)
+	if (Genode::strcmp(filename, tmp_filename) == 0)
 		lx_unlink(filename);
 }
 

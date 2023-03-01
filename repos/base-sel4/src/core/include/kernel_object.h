@@ -21,7 +21,7 @@
 #include <untyped_memory.h>
 #include <initial_untyped_pool.h>
 
-namespace Genode {
+namespace Core {
 
 	/**
 	 * Index referring to a slot in a CNode

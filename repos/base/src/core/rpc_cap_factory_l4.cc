@@ -19,7 +19,7 @@
 #include <core_capability_space.h>
 #include <base/internal/capability_space_tpl.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 static unsigned unique_id_cnt;
@@ -36,10 +36,10 @@ Native_capability Rpc_cap_factory::_alloc(Rpc_cap_factory &,
 	Rpc_obj_key const rpc_obj_key(++unique_id_cnt);
 
 	/* combine thread ID of 'ep' with new unique ID */
-	Capability_space::Ipc_cap_data cap_data =
-		Capability_space::ipc_cap_data(ep);
+	Genode::Capability_space::Ipc_cap_data cap_data =
+		Genode::Capability_space::ipc_cap_data(ep);
 
-	return Capability_space::import(cap_data.dst, rpc_obj_key);
+	return Genode::Capability_space::import(cap_data.dst, rpc_obj_key);
 }
 
 

@@ -19,7 +19,7 @@
 #include <hw/spec/arm/imx_tzic.h>
 #include <hw/spec/arm/imx53_qsb_board.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <spec/arm/imx_epit.h>
 #include <spec/arm/trustzone_board.h>
 #include <spec/cortex_a8/cpu.h>

@@ -17,14 +17,16 @@
 /* core includes */
 #include <sel4_boot_info.h>
 
+using namespace Core;
+
 
 /* provided by the assembly startup code */
-extern Genode::addr_t __initial_di;
+extern addr_t __initial_di;
 
 /**
  * Obtain seL4 boot info structure
  */
-seL4_BootInfo const & Genode::sel4_boot_info()
+seL4_BootInfo const &Core::sel4_boot_info()
 {
 	return *(seL4_BootInfo const *)__initial_di;
 }

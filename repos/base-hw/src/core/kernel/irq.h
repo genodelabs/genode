@@ -42,7 +42,7 @@ namespace Kernel {
 }
 
 
-namespace Genode {
+namespace Core {
 
 	/**
 	 * Core front-end of a user interrupt
@@ -182,11 +182,11 @@ class Kernel::User_irq : public Kernel::Irq
 		 * \param polarity  low or high
 		 * \param sig       capability of signal context
 		 */
-		static capid_t syscall_create(Genode::Kernel_object<User_irq> & irq,
-		                              unsigned                          nr,
-		                              Genode::Irq_session::Trigger      trigger,
-		                              Genode::Irq_session::Polarity     polarity,
-		                              capid_t                           sig)
+		static capid_t syscall_create(Core::Kernel_object<User_irq> &irq,
+		                              unsigned                       nr,
+		                              Genode::Irq_session::Trigger   trigger,
+		                              Genode::Irq_session::Polarity  polarity,
+		                              capid_t                        sig)
 		{
 			return (capid_t)call(call_id_new_irq(), (Call_arg)&irq, nr,
 			                     (trigger << 2) | polarity, sig);
@@ -197,7 +197,7 @@ class Kernel::User_irq : public Kernel::Irq
 		 *
 		 * \param irq  reference to constructible object
 		 */
-		static void syscall_destroy(Genode::Kernel_object<User_irq> &irq) {
+		static void syscall_destroy(Core::Kernel_object<User_irq> &irq) {
 			call(call_id_delete_irq(), (Call_arg) &irq); }
 
 		Object &kernel_object() { return _kernel_object; }

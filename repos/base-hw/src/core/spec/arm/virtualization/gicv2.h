@@ -27,6 +27,8 @@ class Board::Pic : public Hw::Gicv2
 {
 	private:
 
+		using uint32_t = Genode::uint32_t;
+
 		struct Gich : Genode::Mmio
 		{
 			struct Gich_hcr    : Register<0x00,  32> { };
@@ -44,12 +46,12 @@ class Board::Pic : public Hw::Gicv2
 
 		struct Virtual_context
 		{
-			Genode::uint32_t lr    { 0 };
-			Genode::uint32_t apr   { 0 };
-			Genode::uint32_t vmcr  { 0x4c0000 };
-			Genode::uint32_t misr  { 0 };
-			Genode::uint32_t eisr  { 0 };
-			Genode::uint32_t elrsr { 0xffffffff };
+			uint32_t lr    { 0 };
+			uint32_t apr   { 0 };
+			uint32_t vmcr  { 0x4c0000 };
+			uint32_t misr  { 0 };
+			uint32_t eisr  { 0 };
+			uint32_t elrsr { 0xffffffff };
 		};
 
 		bool ack_virtual_irq(Virtual_context & c);

@@ -15,10 +15,10 @@
 #include <board.h>
 #include <platform.h>
 
-using namespace Genode;
+using namespace Core;
 
 
-static inline Genode::addr_t redistributor_addr()
+static inline addr_t redistributor_addr()
 {
 	return Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE
 	                              + (Cpu::executing_id() * 0x20000));

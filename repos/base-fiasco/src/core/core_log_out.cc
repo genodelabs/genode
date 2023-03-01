@@ -17,7 +17,7 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Core_log::out(char const c) { Fiasco::outchar(c); }

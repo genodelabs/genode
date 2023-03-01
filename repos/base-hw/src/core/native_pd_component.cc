@@ -14,7 +14,7 @@
 #include <pd_session_component.h>
 #include <native_pd_component.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Native_pd_component::upgrade_cap_slab()

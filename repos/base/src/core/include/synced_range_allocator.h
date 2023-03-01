@@ -18,7 +18,10 @@
 #include <base/allocator.h>
 #include <base/synced_interface.h>
 
-namespace Genode {
+/* core includes */
+#include <types.h>
+
+namespace Core {
 	class Mapped_mem_allocator;
 	template <typename> class Synced_range_allocator;
 }
@@ -33,7 +36,7 @@ namespace Genode {
  * \param ALLOC  class implementing the 'Range_allocator' interface
  */
 template <typename ALLOC>
-class Genode::Synced_range_allocator : public Range_allocator
+class Core::Synced_range_allocator : public Range_allocator
 {
 	private:
 

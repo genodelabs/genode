@@ -18,7 +18,7 @@
 #include <bios_data_area.h>
 #include <drivers/uart/x86_pc.h>
 
-void Genode::Core_log::out(char const c)
+void Core::Core_log::out(char const c)
 {
 	enum { CLOCK = 0, BAUDRATE = 115200 };
 

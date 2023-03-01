@@ -20,10 +20,13 @@
 #include <base/mutex.h>
 #include <synced_range_allocator.h>
 
-namespace Genode { class Cap_id_allocator; }
+/* core includes */
+#include <types.h>
+
+namespace Core { class Cap_id_allocator; }
 
 
-class Genode::Cap_id_allocator
+class Core::Cap_id_allocator
 {
 	public:
 

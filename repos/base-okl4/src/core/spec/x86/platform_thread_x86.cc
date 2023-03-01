@@ -17,7 +17,7 @@
 /* base-internal includes */
 #include <base/internal/okl4.h>
 
-using namespace Genode;
+using namespace Core;
 using namespace Okl4;
 
 

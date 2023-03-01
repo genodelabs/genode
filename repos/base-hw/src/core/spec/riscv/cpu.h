@@ -26,7 +26,8 @@
 #include <hw/spec/riscv/cpu.h>
 #include <hw/spec/riscv/page_table.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
+#include <types.h>
 #include <kernel/interface.h>
 #include <spec/riscv/address_space_id_allocator.h>
 
@@ -36,7 +37,7 @@ namespace Kernel { struct Thread_fault; }
 namespace Board { class Address_space_id_allocator; }
 
 
-namespace Genode {
+namespace Core {
 
 	/**
 	 * CPU driver for core
@@ -50,11 +51,11 @@ namespace Genode {
 namespace Kernel { class Pd; }
 
 
-class Genode::Cpu : public Hw::Riscv_cpu
+class Core::Cpu : public Hw::Riscv_cpu
 {
 	public:
 
-		struct alignas(8) Context : Cpu_state
+		struct alignas(8) Context : Genode::Cpu_state
 		{
 			Context(bool);
 		};
@@ -69,8 +70,7 @@ class Genode::Cpu : public Hw::Riscv_cpu
 
 				Satp::access_t satp = 0;
 
-				Mmu_context(addr_t                             page_table_base,
-				            Board::Address_space_id_allocator &addr_space_id_alloc);
+				Mmu_context(addr_t page_table_base, Board::Address_space_id_allocator &);
 
 				~Mmu_context();
 		};
@@ -112,7 +112,7 @@ class Genode::Cpu : public Hw::Riscv_cpu
 template <typename E, unsigned B, unsigned S>
 void Sv39::Level_x_translation_table<E, B, S>::_translation_added(addr_t, size_t)
 {
-	Genode::Cpu::sfence();
+	Core::Cpu::sfence();
 }
 
 

@@ -14,16 +14,13 @@
 #ifndef _CORE__INCLUDE__MAP_LOCAL_H_
 #define _CORE__INCLUDE__MAP_LOCAL_H_
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <util.h>
 
 /* base-internal includes */
 #include <base/internal/okl4.h>
 
-namespace Genode {
+namespace Core {
 
 	inline void unmap_local_log2_range(Okl4::L4_Word_t base, Okl4::L4_Word_t size_log2)
 	{

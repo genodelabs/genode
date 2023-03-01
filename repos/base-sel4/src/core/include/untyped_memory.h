@@ -24,10 +24,10 @@
 /* seL4 includes */
 #include <sel4/sel4.h>
 
-namespace Genode { struct Untyped_memory; }
+namespace Core { struct Untyped_memory; }
 
 
-struct Genode::Untyped_memory
+struct Core::Untyped_memory
 {
 	class Phys_alloc_failed : Exception { };
 
@@ -54,7 +54,7 @@ struct Genode::Untyped_memory
 	}
 
 
-	static inline void free_page(Range_allocator &phys_alloc, Genode::addr_t addr)
+	static inline void free_page(Range_allocator &phys_alloc, addr_t addr)
 	{
 		phys_alloc.free(reinterpret_cast<void *>(addr));
 	}

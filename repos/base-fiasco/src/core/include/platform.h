@@ -29,10 +29,10 @@
 #include <boot_modules.h>
 #include <assertion.h>
 
-namespace Genode { class Platform; }
+namespace Core { class Platform; }
 
 
-class Genode::Platform : public Platform_generic
+class Core::Platform : public Platform_generic
 {
 	private:
 

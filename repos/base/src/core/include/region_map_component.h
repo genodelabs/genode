@@ -16,7 +16,6 @@
 #define _CORE__INCLUDE__REGION_MAP_COMPONENT_H_
 
 /* Genode includes */
-#include <base/stdint.h>
 #include <base/mutex.h>
 #include <base/capability.h>
 #include <pager.h>
@@ -39,7 +38,7 @@
 /* base-internal includes */
 #include <base/internal/stack_area.h>
 
-namespace Genode {
+namespace Core {
 	class Cpu_thread_component;
 	class Dataspace_component;
 	class Region_map_component;
@@ -51,7 +50,7 @@ namespace Genode {
 }
 
 
-class Genode::Region_map_detach : Genode::Interface
+class Core::Region_map_detach : Interface
 {
 	public:
 
@@ -69,7 +68,7 @@ class Genode::Region_map_detach : Genode::Interface
  * organized in a linked list. The head of the list is a member of the
  * 'Dataspace_component'.
  */
-class Genode::Rm_region : public List<Rm_region>::Element
+class Core::Rm_region : public List<Rm_region>::Element
 {
 	public:
 
@@ -120,7 +119,7 @@ class Genode::Rm_region : public List<Rm_region>::Element
  * be able to handle faults by arbitrary clients (not only its own
  * clients), it maintains the list head of faulters.
  */
-class Genode::Rm_faulter : Fifo<Rm_faulter>::Element, Interface
+class Core::Rm_faulter : Fifo<Rm_faulter>::Element, Interface
 {
 	private:
 
@@ -180,8 +179,8 @@ class Genode::Rm_faulter : Fifo<Rm_faulter>::Element, Interface
  * A region map can be used as address space for any number of threads. This
  * class represents the thread's role as member of this address space.
  */
-class Genode::Rm_client : public Pager_object, public Rm_faulter,
-                          private List<Rm_client>::Element
+class Core::Rm_client : public Pager_object, public Rm_faulter,
+                        private List<Rm_client>::Element
 {
 	private:
 
@@ -219,10 +218,10 @@ class Genode::Rm_client : public Pager_object, public Rm_faulter,
 };
 
 
-class Genode::Region_map_component : private Weak_object<Region_map_component>,
-                                     public  Rpc_object<Region_map>,
-                                     private List<Region_map_component>::Element,
-                                     public  Region_map_detach
+class Core::Region_map_component : private Weak_object<Region_map_component>,
+                                   public  Rpc_object<Region_map>,
+                                   private List<Region_map_component>::Element,
+                                   public  Region_map_detach
 {
 	private:
 

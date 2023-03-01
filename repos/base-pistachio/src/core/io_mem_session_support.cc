@@ -21,7 +21,7 @@
 /* base-internal includes */
 #include <base/internal/pistachio.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /*

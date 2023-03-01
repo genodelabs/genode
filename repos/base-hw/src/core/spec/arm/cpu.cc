@@ -14,12 +14,12 @@
 /* base includes */
 #include <cpu/memory_barrier.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <kernel/cpu.h>
 #include <kernel/thread.h>
 #include <spec/arm/cpu_support.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Arm_cpu::Context::Context(bool privileged)
@@ -46,7 +46,7 @@ Mmu_context(addr_t                             table,
 { }
 
 
-Genode::Arm_cpu::Mmu_context::~Mmu_context()
+Core::Arm_cpu::Mmu_context::~Mmu_context()
 {
 	/* flush TLB by ASID */
 	Cpu::Tlbiasid::write(id());
@@ -147,8 +147,8 @@ void Arm_cpu::cache_coherent_region(addr_t const base,
 	};
 
 	/* take the smallest cacheline, either from I-, or D-cache */
-	size_t const cache_line_size = Genode::min(Cpu::instruction_cache_line_size(),
-	                                           Cpu::data_cache_line_size());
+	size_t const cache_line_size = min(Cpu::instruction_cache_line_size(),
+	                                   Cpu::data_cache_line_size());
 	cache_maintainance(base, size, cache_line_size, lambda);
 }
 

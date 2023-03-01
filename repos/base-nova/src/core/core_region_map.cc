@@ -11,9 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <core_region_map.h>
 #include <platform.h>
@@ -23,7 +20,8 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 
-using namespace Genode;
+using namespace Core;
+
 
 /**
  * Map dataspace core-locally

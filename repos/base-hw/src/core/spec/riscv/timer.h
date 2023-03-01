@@ -16,6 +16,8 @@
 
 /* Genode includes */
 #include <base/stdint.h>
+
+/* core includes */
 #include <kernel/types.h>
 
 namespace Board { class Timer; }

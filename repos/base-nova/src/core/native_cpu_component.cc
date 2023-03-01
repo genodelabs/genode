@@ -11,14 +11,11 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/stdint.h>
-
-/* core-local includes */
+/* core includes */
 #include <native_cpu_component.h>
 #include <cpu_session_component.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Native_cpu_component::thread_type(Thread_capability thread_cap,
@@ -43,7 +40,7 @@ Native_cpu_component::Native_cpu_component(Cpu_session_component &cpu_session, c
 }
 
 
-Genode::Native_cpu_component::~Native_cpu_component()
+Core::Native_cpu_component::~Native_cpu_component()
 {
 	_thread_ep.dissolve(this);
 }

@@ -16,14 +16,13 @@
 #ifndef _CORE__INCLUDE__NOVA_UTIL_H_
 #define _CORE__INCLUDE__NOVA_UTIL_H_
 
-/* Genode includes */
-#include <base/log.h>
-
 /* NOVA includes */
 #include <nova/syscalls.h>
 
-/* local includes */
+/* core includes */
+#include <types.h>
 #include <util.h>
+
 
 /**
  * Return boot CPU number. It is required if threads in core should be placed
@@ -221,7 +220,7 @@ inline void unmap_local(Nova::Utcb &, Genode::addr_t start,
 
 
 template <typename FUNC>
-inline Nova::uint8_t syscall_retry(Genode::Pager_object &pager, FUNC func)
+inline Nova::uint8_t syscall_retry(Core::Pager_object &pager, FUNC func)
 {
 	Nova::uint8_t res;
 	do {
@@ -231,7 +230,7 @@ inline Nova::uint8_t syscall_retry(Genode::Pager_object &pager, FUNC func)
 	return res;
 }
 
-inline Nova::uint8_t async_map(Genode::Pager_object &pager,
+inline Nova::uint8_t async_map(Core::Pager_object &pager,
                                Genode::addr_t const source_pd,
                                Genode::addr_t const target_pd,
                                Nova::Obj_crd const &source_initial_caps,
@@ -251,7 +250,7 @@ inline Nova::uint8_t async_map(Genode::Pager_object &pager,
 		});
 }
 
-inline Nova::uint8_t map_vcpu_portals(Genode::Pager_object &pager,
+inline Nova::uint8_t map_vcpu_portals(Core::Pager_object &pager,
                                       Genode::addr_t const source_exc_base,
                                       Genode::addr_t const target_exc_base,
                                       Nova::Utcb &utcb,
@@ -267,7 +266,7 @@ inline Nova::uint8_t map_vcpu_portals(Genode::Pager_object &pager,
 	                 source_initial_caps, target_initial_caps, utcb);
 }
 
-inline Nova::uint8_t map_pagefault_portal(Genode::Pager_object &pager,
+inline Nova::uint8_t map_pagefault_portal(Core::Pager_object &pager,
                                           Genode::addr_t const source_exc_base,
                                           Genode::addr_t const target_exc_base,
                                           Genode::addr_t const target_pd,
@@ -276,7 +275,7 @@ inline Nova::uint8_t map_pagefault_portal(Genode::Pager_object &pager,
 	using Nova::Obj_crd;
 	using Nova::PT_SEL_PAGE_FAULT;
 
-	Genode::addr_t const source_pd = Genode::platform_specific().core_pd_sel();
+	Genode::addr_t const source_pd = Core::platform_specific().core_pd_sel();
 
 	Obj_crd const source_initial_caps(source_exc_base + PT_SEL_PAGE_FAULT, 0);
 	Obj_crd const target_initial_caps(target_exc_base + PT_SEL_PAGE_FAULT, 0);

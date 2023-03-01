@@ -17,14 +17,14 @@
 /* Genode includes */
 #include <root/component.h>
 
-/* core-local includes */
+/* core includes */
 #include <rm_session_component.h>
 #include <rpc_cap_factory.h>
 
-namespace Genode { class Rm_root; }
+namespace Core { class Rm_root; }
 
 
-class Genode::Rm_root : public Root_component<Rm_session_component>
+class Core::Rm_root : public Root_component<Rm_session_component>
 {
 	private:
 

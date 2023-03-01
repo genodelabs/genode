@@ -16,15 +16,9 @@
 
 /* base-hw internal includes */
 #include <hw/spec/arm/virt_qemu_board.h>
-
-/* base-hw Core includes */
 #include <spec/arm/generic_timer.h>
 #include <spec/arm/virtualization/gicv3.h>
-
-/* base-hw includes */
 #include <spec/arm_64/cpu/vm_state_virtualization.h>
-
-/* base-hw Core includes */
 #include <kernel/configuration.h>
 #include <kernel/irq.h>
 #include <spec/arm_v8/cpu.h>

@@ -157,9 +157,9 @@ void Platform::start_core(unsigned cpu_id)
 }
 
 
-static constexpr Genode::Boot_modules_header & header()
+static constexpr Core::Boot_modules_header &header()
 {
-	return *((Genode::Boot_modules_header*) &_boot_modules_headers_begin);
+	return *((Core::Boot_modules_header*) &_boot_modules_headers_begin);
 }
 
 

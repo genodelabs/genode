@@ -26,14 +26,14 @@
 #include <install_mapping.h>
 #include <assertion.h>
 
-namespace Genode {
+namespace Core {
 
 	class Platform_pd;
 	class Platform_thread;
 }
 
 
-class Genode::Platform_thread : public List<Platform_thread>::Element
+class Core::Platform_thread : public List<Platform_thread>::Element
 {
 	private:
 

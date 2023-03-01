@@ -15,21 +15,20 @@
 #define _CORE__INCLUDE__CNODE_H_
 
 /* Genode includes */
-#include <util/noncopyable.h>
 #include <base/exception.h>
 #include <base/allocator.h>
 
 /* core includes */
 #include <kernel_object.h>
 
-namespace Genode {
+namespace Core {
 
 	class Cnode_base;
 	class Cnode;
 }
 
 
-class Genode::Cnode_base
+class Core::Cnode_base
 {
 	private:
 
@@ -127,7 +126,7 @@ class Genode::Cnode_base
 };
 
 
-class Genode::Cnode : public Cnode_base, Noncopyable
+class Core::Cnode : public Cnode_base, Noncopyable
 {
 	private:
 

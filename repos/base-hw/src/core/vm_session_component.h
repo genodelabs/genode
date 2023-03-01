@@ -24,18 +24,16 @@
 /* base-hw includes */
 #include <hw_native_vcpu/hw_native_vcpu.h>
 
-/* base-hw Core includes */
+/* core includes */
 #include <object.h>
 #include <region_map_component.h>
 #include <kernel/vm.h>
-
-/* base Core includes */
 #include <trace/source_registry.h>
 
-namespace Genode { class Vm_session_component; }
+namespace Core { class Vm_session_component; }
 
 
-class Genode::Vm_session_component
+class Core::Vm_session_component
 :
 	private Ram_quota_guard,
 	private Cap_quota_guard,

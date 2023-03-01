@@ -18,10 +18,13 @@
 #include <base/tslab.h>
 #include <base/heap.h>
 
+/* core includes */
+#include <types.h>
+
 /* base-internal includes */
 #include <base/internal/page_size.h>
 
-namespace Genode {
+namespace Core {
 
 	class Cpu_thread_component;
 

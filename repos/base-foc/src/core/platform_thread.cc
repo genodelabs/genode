@@ -13,8 +13,6 @@
 
 /* Genode includes */
 #include <base/ipc.h>
-#include <base/log.h>
-#include <util/string.h>
 #include <foc/thread_state.h>
 
 /* core includes */
@@ -25,7 +23,7 @@
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 using namespace Foc;
 
 

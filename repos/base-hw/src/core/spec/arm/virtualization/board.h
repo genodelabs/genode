@@ -14,12 +14,14 @@
 #ifndef _CORE__SPEC__ARM__VIRTUALIZATION__BOARD_H_
 #define _CORE__SPEC__ARM__VIRTUALIZATION__BOARD_H_
 
-/* base-hw Core includes */
+/* core includes */
 #include <kernel/configuration.h>
 #include <kernel/irq.h>
 
 /* base-hw internal includes */
 #include <hw/spec/arm/lpae.h>
+
+namespace Genode { struct Vm_state; }
 
 namespace Board {
 

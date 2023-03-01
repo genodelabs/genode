@@ -11,10 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-#include <base/sleep.h>
-
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 #include <base/internal/capability_space_tpl.h>
@@ -24,7 +20,7 @@
 #include <ipc_pager.h>
 #include <pager.h>
 
-using namespace Genode;
+using namespace Core;
 using namespace Pistachio;
 
 

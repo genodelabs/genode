@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/log.h>
+#include <types.h>
 #include <hw/assert.h>
 #include <kernel/cpu_scheduler.h>
 

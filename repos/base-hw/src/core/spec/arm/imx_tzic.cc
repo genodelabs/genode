@@ -15,7 +15,7 @@
 #include <board.h>
 #include <platform.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Hw::Pic::Pic() : Mmio(Platform::mmio_to_virt(Board::IRQ_CONTROLLER_BASE)) { }

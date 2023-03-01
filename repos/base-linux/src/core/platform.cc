@@ -27,7 +27,7 @@
 /* Linux includes */
 #include <core_linux_syscalls.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /**

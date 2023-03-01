@@ -14,15 +14,16 @@
 #ifndef _CORE__INCLUDE__PRINT_L4_THREAD_ID_H_
 #define _CORE__INCLUDE__PRINT_L4_THREAD_ID_H_
 
-#include <base/output.h>
+/* core includes */
+#include <types.h>
 
 /* base-internal includes */
 #include <base/internal/pistachio.h>
 
-namespace Genode { struct Formatted_tid; }
+namespace Core { struct Formatted_tid; }
 
 
-struct Genode::Formatted_tid
+struct Core::Formatted_tid
 {
 	Pistachio::L4_ThreadId_t tid;
 

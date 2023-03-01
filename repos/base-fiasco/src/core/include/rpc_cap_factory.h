@@ -18,10 +18,13 @@
 #include <base/allocator.h>
 #include <base/capability.h>
 
-namespace Genode { class Rpc_cap_factory; }
+/* core includes */
+#include <types.h>
+
+namespace Core { class Rpc_cap_factory; }
 
 
-class Genode::Rpc_cap_factory
+class Core::Rpc_cap_factory
 {
 	private:
 

@@ -17,9 +17,6 @@
 /* base includes */
 #include <util/bit_allocator.h>
 
-namespace Board {
-
-	class Address_space_id_allocator { };
-}
+namespace Board { class Address_space_id_allocator { }; }
 
 #endif /* _X86_64__ADDRESS_SPACE_ID_ALLOCATOR_H_ */

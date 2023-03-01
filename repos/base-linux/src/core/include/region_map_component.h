@@ -25,15 +25,16 @@
 #include <pager.h>
 #include <platform_thread.h>
 
-namespace Genode {
+namespace Core {
+
 	struct Rm_client;
 	struct Rm_member;
 	class Region_map_component;
 }
 
 
-class Genode::Region_map_component : public Rpc_object<Region_map>,
-                                     private List<Region_map_component>::Element
+class Core::Region_map_component : public Rpc_object<Region_map>,
+                                   private List<Region_map_component>::Element
 {
 	private:
 
@@ -74,7 +75,7 @@ class Genode::Region_map_component : public Rpc_object<Region_map>,
 };
 
 
-struct Genode::Rm_client : Pager_object
+struct Core::Rm_client : Pager_object
 {
 	Rm_client(Cpu_session_capability, Thread_capability,
 	          Region_map_component &, unsigned long,

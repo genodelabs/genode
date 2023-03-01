@@ -17,4 +17,4 @@
 /* Linux syscall bindings */
 #include <linux_syscalls.h>
 
-void Genode::Core_log::out(char const c) { lx_write(1, &c, sizeof(c)); }
+void Core::Core_log::out(char const c) { lx_write(1, &c, sizeof(c)); }

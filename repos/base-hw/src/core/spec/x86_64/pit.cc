@@ -22,7 +22,7 @@
 #include <kernel/timer.h>
 #include <platform.h>
 
-using namespace Genode;
+using namespace Core;
 using namespace Kernel;
 
 

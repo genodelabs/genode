@@ -17,13 +17,13 @@
 /* Genode includes */
 #include <base/tslab.h>
 
-/* core-local includes */
+/* core includes */
 #include <signal_source_component.h>
 
-namespace Genode { class Signal_broker; }
+namespace Core { class Signal_broker; }
 
 
-class Genode::Signal_broker
+class Core::Signal_broker
 {
 	private:
 

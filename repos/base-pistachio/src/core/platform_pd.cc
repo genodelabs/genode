@@ -20,7 +20,7 @@
 #include <base/internal/pistachio.h>
 
 using namespace Pistachio;
-using namespace Genode;
+using namespace Core;
 
 
 /**************************

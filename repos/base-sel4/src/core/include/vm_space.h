@@ -16,8 +16,6 @@
 
 /* Genode includes */
 #include <util/bit_allocator.h>
-#include <util/reconstructible.h>
-#include <base/log.h>
 #include <base/thread.h>
 #include <base/session_label.h>
 
@@ -29,10 +27,10 @@
 #include <cap_sel_alloc.h>
 #include <core_cspace.h>
 
-namespace Genode { class Vm_space; }
+namespace Core { class Vm_space; }
 
 
-class Genode::Vm_space
+class Core::Vm_space
 {
 	private:
 

@@ -13,9 +13,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <irq_root.h>
 #include <irq_args.h>
@@ -25,7 +22,7 @@
 #include <nova/syscalls.h>
 #include <nova_util.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 static bool irq_ctrl(addr_t irq_sel, addr_t &msi_addr, addr_t &msi_data,

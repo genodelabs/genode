@@ -11,8 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <util/mmio.h>
 
+/* core includes */
 #include <platform.h>
 #include <spec/arm/virtualization/gicv2.h>
 
@@ -21,7 +23,7 @@ using Board::Pic;
 
 Pic::Gich::Gich()
 :
-	Genode::Mmio(Genode::Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE))
+	Genode::Mmio(Core::Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE))
 { }
 
 

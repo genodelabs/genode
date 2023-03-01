@@ -17,7 +17,7 @@
 #include <board.h>
 #include <cpu.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Platform::_init_io_port_alloc()

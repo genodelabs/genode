@@ -21,14 +21,14 @@
 #include <base/signal.h>
 #include <pager/capability.h>
 
-/* core-local includes */
+/* core includes */
 #include <kernel/signal_receiver.h>
 #include <hw/mapping.h>
 #include <mapping.h>
 #include <object.h>
 #include <rpc_cap_factory.h>
 
-namespace Genode {
+namespace Core {
 
 	/**
 	 * Interface used by generic region_map code
@@ -50,11 +50,13 @@ namespace Genode {
 	 */
 	class Pager_entrypoint;
 
+	using Pager_capability = Capability<Pager_object>;
+
 	enum { PAGER_EP_STACK_SIZE = sizeof(addr_t) * 2048 };
 }
 
 
-class Genode::Ipc_pager
+class Core::Ipc_pager
 {
 	protected:
 
@@ -91,8 +93,8 @@ class Genode::Ipc_pager
 };
 
 
-class Genode::Pager_object : private Object_pool<Pager_object>::Entry,
-                             private Genode::Kernel_object<Kernel::Signal_context>
+class Core::Pager_object : private Object_pool<Pager_object>::Entry,
+                           private Kernel_object<Kernel::Signal_context>
 {
 	friend class Pager_entrypoint;
 	friend class Object_pool<Pager_object>;
@@ -171,9 +173,9 @@ class Genode::Pager_object : private Object_pool<Pager_object>::Entry,
 };
 
 
-class Genode::Pager_entrypoint : public  Object_pool<Pager_object>,
-                                 public  Thread,
-                                 private Ipc_pager
+class Core::Pager_entrypoint : public  Object_pool<Pager_object>,
+                               public  Thread,
+                               private Ipc_pager
 {
 	private:
 

@@ -11,10 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-#include <util/string.h>
-
 /* core includes */
 #include <platform_thread.h>
 #include <platform_pd.h>
@@ -26,7 +22,7 @@
 /* seL4 includes */
 #include <sel4/benchmark_utilisation_types.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /*****************************************************
@@ -88,7 +84,7 @@ Platform_thread_registry &platform_thread_registry()
 }
 
 
-bool Genode::install_mapping(Mapping const &mapping, unsigned long pager_object_badge)
+bool Core::install_mapping(Mapping const &mapping, unsigned long pager_object_badge)
 {
 	return platform_thread_registry().install_mapping(mapping, pager_object_badge);
 }
@@ -278,7 +274,7 @@ Trace::Execution_time Platform_thread::execution_time() const
 void Platform_thread::setup_vcpu(Cap_sel ept, Cap_sel notification)
 {
 	if (!_info.init_vcpu(platform_specific(), ept)) {
-		Genode::error("creating vCPU failed");
+		error("creating vCPU failed");
 		return;
 	}
 

@@ -18,7 +18,7 @@
 #include <base/internal/pistachio.h>
 
 
-void Genode::Core_log::out(char const c)
+void Core::Core_log::out(char const c)
 {
 	Pistachio::L4_KDB_PrintChar(c);
 }

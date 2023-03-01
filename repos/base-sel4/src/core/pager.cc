@@ -25,7 +25,7 @@
 /* seL4 includes */
 #include <sel4/sel4.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Mapping::prepare_map_operation() const { }
@@ -43,7 +43,7 @@ void Ipc_pager::wait_for_fault()
 		uint8_t    const depth   = 32;
 		int ret = seL4_CNode_SaveCaller(service, index, depth);
 		if (ret != seL4_NoError)
-			Genode::error("saving reply cap failed with ", ret);
+			error("saving reply cap failed with ", ret);
 	}
 	_reply_sel = 0;
 	_badge = 0;
@@ -53,7 +53,7 @@ void Ipc_pager::wait_for_fault()
 
 bool Ipc_pager::install_mapping()
 {
-	_badge = Genode::install_mapping(_reply_mapping, _badge);
+	_badge = Core::install_mapping(_reply_mapping, _badge);
 	return _badge;
 }
 

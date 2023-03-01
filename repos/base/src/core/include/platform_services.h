@@ -14,14 +14,17 @@
 #ifndef _CORE__INCLUDE__PLATFORM_SERVICES_H_
 #define _CORE__INCLUDE__PLATFORM_SERVICES_H_
 
+/* core includes */
 #include <core_service.h>
 #include <trace/source_registry.h>
 
 namespace Genode {
-
 	class Rpc_entrypoint;
 	class Sliced_heap;
+}
 
+
+namespace Core {
 
 	/**
 	 * Register platform-specific services at entrypoint, and service

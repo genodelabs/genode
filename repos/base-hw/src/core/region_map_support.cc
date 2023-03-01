@@ -12,17 +12,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <pager.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
 
-using namespace Genode;
+using namespace Core;
 
-
-/**********************
- ** Pager_entrypoint **
- **********************/
 
 void Pager_entrypoint::entry()
 {
@@ -43,7 +39,7 @@ void Pager_entrypoint::entry()
 		/* fetch fault data */
 		Platform_thread * const pt = (Platform_thread *)po->badge();
 		if (!pt) {
-			Genode::warning("failed to get platform thread of faulter");
+			warning("failed to get platform thread of faulter");
 			continue;
 		}
 

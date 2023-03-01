@@ -11,17 +11,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <platform.h>
 #include <irq_root.h>
 #include <irq_args.h>
 
+/* sel4 includes */
 #include <sel4/sel4.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 bool Irq_object::associate(Irq_session::Trigger const irq_trigger,

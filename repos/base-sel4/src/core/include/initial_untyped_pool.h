@@ -16,18 +16,18 @@
 
 /* Genode includes */
 #include <base/exception.h>
-#include <base/log.h>
 
-/* core-local includes */
+/* core includes */
+#include <types.h>
 #include <sel4_boot_info.h>
 
 /* seL4 includes */
 #include <sel4/sel4.h>
 
-namespace Genode { class Initial_untyped_pool; }
+namespace Core { class Initial_untyped_pool; }
 
 
-class Genode::Initial_untyped_pool
+class Core::Initial_untyped_pool
 {
 	private:
 

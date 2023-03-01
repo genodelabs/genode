@@ -11,13 +11,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Core includes */
+/* core includes */
 #include <pager.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
 
-using namespace Genode;
+using namespace Core;
 
 void Pager_object::_copy_state_from_utcb(Nova::Utcb const &utcb)
 {

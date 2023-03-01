@@ -14,12 +14,12 @@
 /* base-internal includes */
 #include <base/internal/pistachio.h>
 
-/* core-local includes */
+/* core includes */
 #include <kip.h>
 #include <platform.h>
 #include <util.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Platform::_setup_io_port_alloc()

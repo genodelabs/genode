@@ -16,12 +16,14 @@
 #define _CORE__INCLUDE__IRQ_ROOT_H_
 
 #include <root/component.h>
+
+/* core includes */
 #include <irq_session_component.h>
 
-namespace Genode { class Irq_root; }
+namespace Core { class Irq_root; }
 
 
-class Genode::Irq_root : public Root_component<Irq_session_component>
+class Core::Irq_root : public Root_component<Irq_session_component>
 {
 
 	private:

@@ -17,7 +17,7 @@
 /* core includes */
 #include <signal_source_component.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /*****************************

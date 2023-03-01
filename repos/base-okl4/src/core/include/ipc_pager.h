@@ -20,13 +20,13 @@
 /* base-internal includes */
 #include <base/internal/okl4.h>
 
-/* core-local includes */
+/* core includes */
 #include <mapping.h>
 
-namespace Genode { class Ipc_pager; }
+namespace Core { class Ipc_pager; }
 
 
-class Genode::Ipc_pager
+class Core::Ipc_pager
 {
 	private:
 

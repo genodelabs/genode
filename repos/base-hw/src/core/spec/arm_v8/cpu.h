@@ -21,10 +21,11 @@
 /* base internal includes */
 #include <base/internal/align_at.h>
 
+/* core includes */
+#include <types.h>
+
 /* base-hw internal includes */
 #include <hw/spec/arm_64/cpu.h>
-
-/* base-hw Core includes */
 #include <spec/arm_v8/address_space_id_allocator.h>
 #include <spec/arm_v8/translation_table.h>
 
@@ -34,7 +35,7 @@ namespace Kernel { struct Thread_fault; }
 namespace Board { class Address_space_id_allocator; }
 
 
-namespace Genode {
+namespace Core {
 
 	struct Cpu;
 	using sizet_arithm_t = __uint128_t;
@@ -42,7 +43,7 @@ namespace Genode {
 }
 
 
-struct Genode::Cpu : Hw::Arm_64_cpu
+struct Core::Cpu : Hw::Arm_64_cpu
 {
 	enum Exception_entry {
 		SYNC_LEVEL_EL1          = 0x000,
@@ -66,16 +67,16 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 
 	struct alignas(16) Fpu_state
 	{
-		Genode::uint128_t q[32];
-		Genode::uint64_t  fpsr;
-		Genode::uint64_t  fpcr;
+		uint128_t q[32];
+		uint64_t  fpsr;
+		uint64_t  fpcr;
 	};
 
 	struct alignas(16) Context : Cpu_state
 	{
-		Genode::uint64_t pstate { };
-		Genode::uint64_t exception_type { RESET };
-		Fpu_state        fpu_state { };
+		uint64_t  pstate { };
+		uint64_t  exception_type { RESET };
+		Fpu_state fpu_state { };
 
 		Context(bool privileged);
 	};
@@ -95,8 +96,7 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 
 			~Mmu_context();
 
-			Genode::uint16_t id() {
-				return Ttbr::Asid::get(ttbr) & 0xffff; }
+			uint16_t id() { return Ttbr::Asid::get(ttbr) & 0xffff; }
 	};
 
 	bool active(Mmu_context &);

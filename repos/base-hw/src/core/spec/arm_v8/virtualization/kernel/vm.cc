@@ -11,7 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/log.h>
 #include <cpu/vm_state_virtualization.h>
 #include <util/mmio.h>
 

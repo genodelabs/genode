@@ -15,7 +15,7 @@
 #include <hw/spec/arm/gicv2.h>
 #include <platform.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 Hw::Gicv2::Gicv2()

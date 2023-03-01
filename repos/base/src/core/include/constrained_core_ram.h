@@ -15,12 +15,16 @@
 #ifndef _CORE__INCLUDE__CORE_CONSTRAINED_CORE_RAM_H_
 #define _CORE__INCLUDE__CORE_CONSTRAINED_CORE_RAM_H_
 
+/* Genode includes */
 #include <base/allocator.h>
 
-namespace Genode { class Constrained_core_ram; }
+/* core includes */
+#include <types.h>
+
+namespace Core { class Constrained_core_ram; }
 
 
-class Genode::Constrained_core_ram : public Allocator
+class Core::Constrained_core_ram : public Allocator
 {
 	private:
 
@@ -28,7 +32,7 @@ class Genode::Constrained_core_ram : public Allocator
 		Cap_quota_guard &_cap_guard;
 		Range_allocator &_core_mem;
 
-		uint64_t core_mem_allocated { 0 };
+		Genode::uint64_t core_mem_allocated { 0 };
 
 	public:
 

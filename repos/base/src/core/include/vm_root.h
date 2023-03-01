@@ -21,10 +21,10 @@
 /* core includes */
 #include <vm_session_component.h>
 
-namespace Genode { class Vm_root; }
+namespace Core { class Vm_root; }
 
 
-class Genode::Vm_root : public Root_component<Vm_session_component>
+class Core::Vm_root : public Root_component<Vm_session_component>
 {
 	private:
 

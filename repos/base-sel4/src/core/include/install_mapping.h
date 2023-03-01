@@ -14,13 +14,13 @@
 #ifndef _CORE__INCLUDE__INSTALL_MAPPING_H_
 #define _CORE__INCLUDE__INSTALL_MAPPING_H_
 
-/* Core includes */
+/* core includes */
 #include <ipc_pager.h>
 #include <pager.h>
 
-namespace Genode {
+namespace Core {
 
-	bool install_mapping(Mapping const &mapping, unsigned long pager_object_badge);
+	bool install_mapping(Mapping const &, unsigned long pager_object_badge);
 }
 
 #endif /* _CORE__INCLUDE__INSTALL_MAPPING_H_ */

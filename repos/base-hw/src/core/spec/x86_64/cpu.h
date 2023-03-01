@@ -27,7 +27,8 @@
 /* base internal includes */
 #include <base/internal/align_at.h>
 
-/* base-hw Core includes */
+/* core includes */
+#include <types.h>
 #include <spec/x86_64/fpu.h>
 #include <spec/x86_64/address_space_id_allocator.h>
 #include <spec/x86_64/translation_table.h>
@@ -38,14 +39,14 @@ namespace Kernel { struct Thread_fault; }
 namespace Board { class Address_space_id_allocator; }
 
 
-namespace Genode {
+namespace Core {
 
 	class Cpu;
 	using sizet_arithm_t = __uint128_t;
 }
 
 
-class Genode::Cpu : public Hw::X86_64_cpu
+class Core::Cpu : public Hw::X86_64_cpu
 {
 	public:
 
@@ -136,9 +137,7 @@ class Genode::Cpu : public Hw::X86_64_cpu
 		/**
 		 * Invalidate the whole TLB
 		 */
-		static void invalidate_tlb() {
-			Genode::Cpu::Cr3::write(Genode::Cpu::Cr3::read()); }
-
+		static void invalidate_tlb() { Cr3::write(Cr3::read()); }
 
 		static void clear_memory_region(addr_t const addr,
 		                                size_t const size,

@@ -24,11 +24,11 @@
 #include <cpu_session/cpu_session.h>
 #include <ipc_pager.h>
 
-/* core-local includes */
+/* core includes */
 #include <rpc_cap_factory.h>
 #include <pager_object_exception_state.h>
 
-namespace Genode {
+namespace Core {
 
 	typedef Cpu_session::Thread_creation_failed Invalid_thread;
 
@@ -46,11 +46,13 @@ namespace Genode {
 	 */
 	class Pager_entrypoint;
 
+	using Pager_capability = Capability<Pager_object>;
+
 	enum { PAGER_EP_STACK_SIZE = sizeof(addr_t) * 2048 };
 }
 
 
-class Genode::Pager_object : public Object_pool<Pager_object>::Entry
+class Core::Pager_object : public Object_pool<Pager_object>::Entry
 {
 	protected:
 
@@ -162,8 +164,8 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 };
 
 
-class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
-                                 public Thread
+class Core::Pager_entrypoint : public Object_pool<Pager_object>,
+                               public Thread
 {
 	private:
 

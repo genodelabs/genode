@@ -11,12 +11,12 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core-local includes */
+/* core includes */
 #include <rpc_cap_factory.h>
 
-long Genode::Rpc_cap_factory::_unique_id_cnt;
+long Core::Rpc_cap_factory::_unique_id_cnt;
 
-Genode::Mutex &Genode::Rpc_cap_factory::_mutex()
+Genode::Mutex &Core::Rpc_cap_factory::_mutex()
 {
 	static Mutex static_mutex;
 	return static_mutex;

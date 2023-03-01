@@ -20,10 +20,10 @@
 #include <core_mem_alloc.h>
 #include <address_space.h>
 
-namespace Genode { class Platform; }
+namespace Core { class Platform; }
 
 
-class Genode::Platform : public Platform_generic
+class Core::Platform : public Platform_generic
 {
 	public:
 

@@ -16,11 +16,14 @@
 
 #include <base/service.h>
 
-namespace Genode { template <typename> struct Core_service; }
+/* core includes */
+#include <types.h>
+
+namespace Core { template <typename> struct Core_service; }
 
 
 template <typename SESSION>
-struct Genode::Core_service : Local_service<SESSION>
+struct Core::Core_service : Local_service<SESSION>
 {
 	Registry<Service>::Element _element;
 

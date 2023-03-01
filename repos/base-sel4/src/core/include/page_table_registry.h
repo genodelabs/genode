@@ -16,19 +16,18 @@
 
 /* Genode includes */
 #include <base/exception.h>
-#include <base/heap.h>
-#include <base/log.h>
 #include <base/tslab.h>
+#include <base/heap.h>
 #include <util/avl_tree.h>
 
 /* core includes */
 #include <util.h>
 #include <cap_sel_alloc.h>
 
-namespace Genode { class Page_table_registry; }
+namespace Core { class Page_table_registry; }
 
 
-class Genode::Page_table_registry
+class Core::Page_table_registry
 {
 	public:
 
@@ -180,9 +179,9 @@ class Genode::Page_table_registry
 					                                      level_log2_size));
 					break;
 				}
-			} catch (Genode::Allocator::Out_of_memory) {
+			} catch (Allocator::Out_of_memory) {
 				throw Mapping_cache_full(Mapping_cache_full::Type::MEMORY);
-			} catch (Genode::Out_of_caps) {
+			} catch (Out_of_caps) {
 				throw Mapping_cache_full(Mapping_cache_full::Type::CAPS);
 			}
 		}

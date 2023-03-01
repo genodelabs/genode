@@ -14,7 +14,7 @@
 #include <cpu/cpu_state.h>
 #include <pd_session_component.h>
 
-using namespace Genode;
+using namespace Core;
 using State = Genode::Pd_session::Managing_system_state;
 
 

@@ -18,15 +18,18 @@
 #include <base/rpc_server.h>
 #include <nova_native_cpu/nova_native_cpu.h>
 
-namespace Genode {
+/* core includes */
+#include <types.h>
+
+namespace Core {
 
 	class Cpu_session_component;
 	class Native_cpu_component;
 }
 
 
-class Genode::Native_cpu_component : public Rpc_object<Cpu_session::Native_cpu,
-                                                       Native_cpu_component>
+class Core::Native_cpu_component : public Rpc_object<Cpu_session::Native_cpu,
+                                                     Native_cpu_component>
 {
 	private:
 

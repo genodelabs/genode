@@ -13,7 +13,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <base/buffered_output.h>
 
 /* base-internal includes */
@@ -28,7 +27,7 @@ Genode::Log &Genode::Log::log()
 {
 	struct Buffer
 	{
-		struct Write_fn : Core_log
+		struct Write_fn : Core::Core_log
 		{
 			void operator () (char const *s) { output(s); }
 		} function { };

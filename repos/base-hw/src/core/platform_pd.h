@@ -15,7 +15,7 @@
 #ifndef _CORE__PLATFORM_PD_H_
 #define _CORE__PLATFORM_PD_H_
 
-/* base-hw Core includes */
+/* core includes */
 #include <platform.h>
 #include <address_space.h>
 #include <object.h>
@@ -29,7 +29,7 @@
 namespace Hw {
 
 	using namespace Kernel;
-	using namespace Genode;
+	using namespace Core;
 
 	/**
 	 * Memory virtualization interface of a protection domain
@@ -38,19 +38,19 @@ namespace Hw {
 }
 
 
-namespace Genode {
+namespace Core {
 
 	class Platform_thread; /* forward declaration */
 
 	class Cap_space;
 
 	/**
-	 * Platform specific part of a Genode protection domain
+	 * Platform specific part of a protection domain
 	 */
 	class Platform_pd;
 
 	/**
-	 * Platform specific part of Core's protection domain
+	 * Platform specific part of core's protection domain
 	 */
 	class Core_platform_pd;
 
@@ -58,7 +58,7 @@ namespace Genode {
 }
 
 
-class Hw::Address_space : public Genode::Address_space
+class Hw::Address_space : public Core::Address_space
 {
 	private:
 
@@ -68,19 +68,19 @@ class Hw::Address_space : public Genode::Address_space
 		Address_space(Address_space const &);
 		Address_space &operator = (Address_space const &);
 
-		friend class Genode::Platform;
-		friend class Genode::Mapped_mem_allocator;
+		friend class Core::Platform;
+		friend class Core::Mapped_mem_allocator;
 
 		using Table = Hw::Page_table;
 		using Array = Table::Allocator::Array<DEFAULT_TRANSLATION_TABLE_MAX>;
 
-		Genode::Mutex     _mutex { };          /* table lock      */
+		Mutex             _mutex { };          /* table lock      */
 		Table            &_tt;                 /* table virt addr */
-		Genode::addr_t    _tt_phys;            /* table phys addr */
+		addr_t            _tt_phys;            /* table phys addr */
 		Array            *_tt_array = nullptr;
 		Table::Allocator &_tt_alloc;           /* table allocator */
 
-		static inline Genode::Core_mem_allocator &_cma();
+		static inline Core_mem_allocator &_cma();
 
 		static inline void *_table_alloc();
 
@@ -119,11 +119,11 @@ class Hw::Address_space : public Genode::Address_space
 		 * \param size   size of memory region
 		 * \param flags  translation table flags (e.g. caching attributes)
 		 */
-		bool insert_translation(Genode::addr_t virt, Genode::addr_t phys,
-		                        Genode::size_t size, Genode::Page_flags flags);
+		bool insert_translation(addr_t virt, addr_t phys,
+		                        size_t size, Page_flags flags);
 
-		bool lookup_rw_translation(Genode::addr_t const virt,
-		                           Genode::addr_t & phys);
+		bool lookup_rw_translation(addr_t const virt, addr_t & phys);
+
 
 		/*****************************
 		 ** Address-space interface **
@@ -138,13 +138,13 @@ class Hw::Address_space : public Genode::Address_space
 		 ** Accessors **
 		 ***************/
 
-		Kernel::Pd     & kernel_pd()              { return *_kobj;   }
-		Hw::Page_table & translation_table()      { return _tt;      }
-		Genode::addr_t   translation_table_phys() { return _tt_phys; }
+		Kernel::Pd     &kernel_pd()              { return *_kobj;   }
+		Hw::Page_table &translation_table()      { return _tt;      }
+		addr_t          translation_table_phys() { return _tt_phys; }
 };
 
 
-class Genode::Cap_space
+class Core::Cap_space
 {
 	private:
 
@@ -166,8 +166,7 @@ class Genode::Cap_space
 };
 
 
-class Genode::Platform_pd : public  Hw::Address_space,
-                            private Cap_space
+class Core::Platform_pd : public Hw::Address_space, private Cap_space
 {
 	private:
 
@@ -230,7 +229,7 @@ class Genode::Platform_pd : public  Hw::Address_space,
 };
 
 
-struct Genode::Core_platform_pd : Genode::Platform_pd
+struct Core::Core_platform_pd : Platform_pd
 {
 	Core_platform_pd(Board::Address_space_id_allocator &addr_space_id_alloc);
 };

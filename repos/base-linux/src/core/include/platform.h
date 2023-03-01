@@ -19,7 +19,7 @@
 #include <base/allocator_avl.h>
 #include <util/arg_string.h>
 
-/* core-local includes */
+/* core includes */
 #include <platform_generic.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
@@ -51,7 +51,7 @@ static unsigned long ram_quota_from_env()
 }
 
 
-class Genode::Platform : public Platform_generic
+class Core::Platform : public Platform_generic
 {
 	private:
 

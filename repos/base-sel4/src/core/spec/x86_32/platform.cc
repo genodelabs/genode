@@ -21,17 +21,23 @@
 #include <thread_sel4.h>
 #include "arch_kernel_object.h"
 
-seL4_Word Genode::Untyped_memory::smallest_page_type() { return seL4_X86_4K; }
+using namespace Core;
 
-void Genode::Platform::init_sel4_ipc_buffer()
+
+seL4_Word Untyped_memory::smallest_page_type() { return seL4_X86_4K; }
+
+
+void Platform::init_sel4_ipc_buffer()
 {
 	asm volatile ("movl %0, %%fs" :: "r"(IPCBUF_GDT_SELECTOR) : "memory");
 }
 
-long Genode::Platform::_unmap_page_frame(Cap_sel const &sel) {
+
+long Platform::_unmap_page_frame(Cap_sel const &sel) {
 	return seL4_X86_Page_Unmap(sel.value()); }
 
-void Genode::Platform::_init_core_page_table_registry()
+
+void Platform::_init_core_page_table_registry()
 {
 	seL4_BootInfo const &bi = sel4_boot_info();
 

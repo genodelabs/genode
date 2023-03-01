@@ -15,7 +15,6 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/log.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -28,7 +27,7 @@
 #include <nova_util.h>
 #include <trace/source_registry.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Thread::_init_platform_thread(size_t, Type type)
@@ -116,9 +115,9 @@ void Thread::start()
 		throw Cpu_session::Thread_creation_failed();
 	}
 
-	struct Core_trace_source : public  Trace::Source::Info_accessor,
-	                           private Trace::Control,
-	                           private Trace::Source
+	struct Core_trace_source : public  Core::Trace::Source::Info_accessor,
+	                           private Core::Trace::Control,
+	                           private Core::Trace::Source
 	{
 		Thread &thread;
 
@@ -137,15 +136,15 @@ void Thread::start()
 			         Trace::Execution_time(ec_time, 0), thread._affinity };
 		}
 
-		Core_trace_source(Trace::Source_registry &registry, Thread &t)
+		Core_trace_source(Core::Trace::Source_registry &registry, Thread &t)
 		:
-			Trace::Control(),
-			Trace::Source(*this, *this), thread(t)
+			Core::Trace::Control(),
+			Core::Trace::Source(*this, *this), thread(t)
 		{
 			registry.insert(this);
 		}
 	};
 
 	new (platform().core_mem_alloc())
-		Core_trace_source(Trace::sources(), *this);
+		Core_trace_source(Core::Trace::sources(), *this);
 }

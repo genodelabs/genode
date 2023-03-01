@@ -21,20 +21,23 @@
 
 /* Genode includes */
 #include <util/list.h>
-#include <util/string.h>
 #include <base/mutex.h>
 #include <base/trace/types.h>
 #include <base/env.h>
 #include <base/weak_ptr.h>
 #include <dataspace/client.h>
 
-/* core includes */
-#include <trace/source_registry.h>
-
 /* base-internal include */
 #include <base/internal/trace_control.h>
 
-namespace Genode { namespace Trace {
+/* core includes */
+#include <types.h>
+#include <trace/source_registry.h>
+
+namespace Core { namespace Trace {
+
+	using namespace Genode::Trace;
+
 	class Subject;
 	class Subject_registry;
 } }
@@ -43,10 +46,10 @@ namespace Genode { namespace Trace {
 /**
  * Subject of tracing data
  */
-class Genode::Trace::Subject
+class Core::Trace::Subject
 :
-	public Genode::List<Genode::Trace::Subject>::Element,
-	public Genode::Trace::Source_owner
+	public List<Subject>::Element,
+	public Source_owner
 {
 	private:
 
@@ -110,7 +113,7 @@ class Genode::Trace::Subject
 					void *src = local_rm.attach(from_ds),
 					     *dst = local_rm.attach(_ds);
 
-					memcpy(dst, src, _size);
+					Genode::memcpy(dst, src, _size);
 
 					local_rm.detach(src);
 					local_rm.detach(dst);
@@ -314,7 +317,7 @@ class Genode::Trace::Subject
  *
  * There exists one instance for each TRACE session.
  */
-class Genode::Trace::Subject_registry
+class Core::Trace::Subject_registry
 {
 	private:
 

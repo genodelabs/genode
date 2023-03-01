@@ -12,17 +12,16 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <linux_dataspace/client.h>
 #include <io_mem_session_component.h>
 
 /* base-internal includes */
 #include <base/internal/page_size.h>
 
-/* core-local includes */
+/* core includes */
 #include <core_linux_syscalls.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 size_t Io_mem_session_component::get_arg_size(const char *)

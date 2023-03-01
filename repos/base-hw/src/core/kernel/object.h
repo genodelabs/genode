@@ -18,9 +18,9 @@
 #include <util/avl_tree.h>
 #include <util/bit_allocator.h>
 #include <util/list.h>
-#include <util/reconstructible.h>
 
 /* core includes */
+#include <types.h>
 #include <kernel/core_interface.h>
 #include <kernel/interface.h>
 

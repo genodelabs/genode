@@ -20,27 +20,25 @@
 #include <base/mutex.h>
 #include <base/tslab.h>
 #include <base/capability.h>
-#include <base/log.h>
 
-/* core-local includes */
+/* core includes */
 #include <object.h>
 #include <kernel/thread.h>
 
 /* base-internal includes */
 #include <base/internal/capability_space.h>
 
-namespace Genode { class Rpc_cap_factory; }
+namespace Core { class Rpc_cap_factory; }
 
 
-class Genode::Rpc_cap_factory
+class Core::Rpc_cap_factory
 {
 	private:
 
 		/**
 		 * Kernel object placeholder held in a list
 		 */
-		struct Kobject
-		: List<Kobject>::Element
+		struct Kobject : List<Kobject>::Element
 		{
 			using O = Kernel::Core_object_identity<Kernel::Thread>;
 

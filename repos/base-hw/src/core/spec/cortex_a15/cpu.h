@@ -15,14 +15,14 @@
 #ifndef _CORE__SPEC__CORTEX_A15__CPU_H_
 #define _CORE__SPEC__CORTEX_A15__CPU_H_
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <spec/arm_v7/cpu_support.h>
 #include <spec/cortex_a15/translation_table.h>
 
-namespace Genode { class Cpu; }
+namespace Core { class Cpu; }
 
 
-class Genode::Cpu : public Arm_v7_cpu
+class Core::Cpu : public Arm_v7_cpu
 {
 	public:
 
@@ -101,7 +101,7 @@ class Genode::Cpu : public Arm_v7_cpu
 
 				~Mmu_context();
 
-				Genode::uint8_t id() const
+				uint8_t id() const
 				{
 					return (uint8_t)Ttbr_64bit::Asid::get(ttbr0);
 				}

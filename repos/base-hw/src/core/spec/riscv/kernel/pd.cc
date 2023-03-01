@@ -16,7 +16,7 @@
 
 bool Kernel::Pd::invalidate_tlb(Kernel::Cpu&, addr_t, size_t)
 {
-	Genode::Cpu::sfence();
+	Core::Cpu::sfence();
 	return false;
 }
 

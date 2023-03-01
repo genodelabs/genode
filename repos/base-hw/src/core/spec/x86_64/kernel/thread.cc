@@ -63,7 +63,7 @@ void Kernel::Cpu::Halt_job::Halt_job::proceed(Kernel::Cpu &cpu)
 			asm volatile ("hlt"); }
 		break;
 	case SUSPEND:
-		using Genode::Platform;
+		using Core::Platform;
 
 		Platform::apply_with_boot_info([&](auto const &boot_info) {
 			auto table = boot_info.plat_info.acpi_fadt;
@@ -102,7 +102,7 @@ void Kernel::Cpu::Halt_job::Halt_job::proceed(Kernel::Cpu &cpu)
 void Kernel::Thread::_call_suspend()
 {
 	using Genode::uint8_t;
-	using Genode::Platform;
+	using Core::Platform;
 
 	Hw::Acpi_generic * acpi_fadt_table { };
 	unsigned           cpu_count       { };

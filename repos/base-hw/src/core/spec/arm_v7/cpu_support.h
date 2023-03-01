@@ -17,10 +17,10 @@
 /* core includes */
 #include <spec/arm/cpu_support.h>
 
-namespace Genode { struct Arm_v7_cpu; }
+namespace Core { struct Arm_v7_cpu; }
 
 
-struct Genode::Arm_v7_cpu : Arm_cpu
+struct Core::Arm_v7_cpu : Arm_cpu
 {
 	/**
 	 * Returns whether this cpu implements the multiprocessor extensions
@@ -50,7 +50,7 @@ struct Genode::Arm_v7_cpu : Arm_cpu
 
 	static inline size_t data_cache_line_size()
 	{
-		struct Ctr : Genode::Register<32> {
+		struct Ctr : Register<32> {
 			struct D_min_line : Bitfield<16,4> {};
 		};
 
@@ -66,7 +66,7 @@ struct Genode::Arm_v7_cpu : Arm_cpu
 
 	static inline size_t instruction_cache_line_size()
 	{
-		struct Ctr : Genode::Register<32> {
+		struct Ctr : Register<32> {
 			struct I_min_line : Bitfield<0,4> {};
 		};
 
@@ -82,8 +82,7 @@ struct Genode::Arm_v7_cpu : Arm_cpu
 
 
 	static inline size_t cache_line_size() {
-		return Genode::min(data_cache_line_size(),
-		                   instruction_cache_line_size()); }
+		return min(data_cache_line_size(), instruction_cache_line_size()); }
 };
 
 #endif /* _CORE__SPEC__ARM_V7__CPU_SUPPORT_H_ */

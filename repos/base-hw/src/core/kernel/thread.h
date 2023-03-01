@@ -14,12 +14,10 @@
 #ifndef _CORE__KERNEL__THREAD_H_
 #define _CORE__KERNEL__THREAD_H_
 
-
 /* Genode includes */
 #include <base/signal.h>
-#include <util/reconstructible.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <kernel/cpu_context.h>
 #include <kernel/inter_processor_work.h>
 #include <kernel/signal_receiver.h>
@@ -101,7 +99,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 */
 		struct Destroy : Inter_processor_work
 		{
-			using Kthread = Genode::Kernel_object<Thread>;
+			using Kthread = Core::Kernel_object<Thread>;
 
 			Thread  & caller; /* the caller gets blocked till the end */
 			Kthread & thread_to_destroy; /* thread to be destroyed */
@@ -300,8 +298,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		template <typename T, typename... ARGS>
 		void _call_new(ARGS &&... args)
 		{
-			Genode::Kernel_object<T> & kobj =
-				*(Genode::Kernel_object<T>*)user_arg_1();
+			Core::Kernel_object<T> & kobj = *(Core::Kernel_object<T>*)user_arg_1();
 			kobj.construct(_core_pd, args...);
 			user_arg_0(kobj->core_capid());
 		}
@@ -310,8 +307,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		template <typename T>
 		void _call_delete()
 		{
-			Genode::Kernel_object<T> & kobj =
-				*(Genode::Kernel_object<T>*)user_arg_1();
+			Core::Kernel_object<T> & kobj = *(Core::Kernel_object<T>*)user_arg_1();
 			kobj.destruct();
 		}
 
@@ -321,7 +317,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 
 	public:
 
-		Genode::Align_at<Genode::Cpu::Context> regs;
+		Genode::Align_at<Core::Cpu::Context> regs;
 
 		/**
 		 * Constructor
@@ -388,10 +384,10 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 *
 		 * \retval capability id of the new kernel object
 		 */
-		static capid_t syscall_create(Genode::Kernel_object<Thread> & t,
-		                              unsigned const                  priority,
-		                              size_t const                    quota,
-		                              char const * const              label)
+		static capid_t syscall_create(Core::Kernel_object<Thread> &t,
+		                              unsigned const               priority,
+		                              size_t const                 quota,
+		                              char const * const           label)
 		{
 			return (capid_t)call(call_id_new_thread(), (Call_arg)&t,
 			                     (Call_arg)priority, (Call_arg)quota,
@@ -406,8 +402,8 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 *
 		 * \retval capability id of the new kernel object
 		 */
-		static capid_t syscall_create(Genode::Kernel_object<Thread> & t,
-		                              char const * const              label)
+		static capid_t syscall_create(Core::Kernel_object<Thread> &t,
+		                              char const * const           label)
 		{
 			return (capid_t)call(call_id_new_core_thread(), (Call_arg)&t,
 			                     (Call_arg)label);
@@ -418,10 +414,12 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 *
 		 * \param thread  pointer to thread kernel object
 		 */
-		static void syscall_destroy(Genode::Kernel_object<Thread> & t) {
+		static void syscall_destroy(Core::Kernel_object<Thread> &t) {
 			call(call_id_delete_thread(), (Call_arg)&t); }
 
+
 		void print(Genode::Output &out) const;
+
 
 		/**************
 		 ** Ipc_node **

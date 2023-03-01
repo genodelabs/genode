@@ -24,10 +24,10 @@
 /* core includes */
 #include <dataspace_component.h>
 
-namespace Genode { class Io_port_session_component; }
+namespace Core { class Io_port_session_component; }
 
 
-class Genode::Io_port_session_component : public Rpc_object<Io_port_session>
+class Core::Io_port_session_component : public Rpc_object<Io_port_session>
 {
 	private:
 

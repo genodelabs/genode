@@ -13,17 +13,17 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <irq_session/irq_session.h>
 #include <util/xml_generator.h>
 
-#include "platform.h"
-#include "util.h"
+/* core includes */
+#include <platform.h>
+#include <util.h>
 
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Platform::_setup_io_port_alloc()

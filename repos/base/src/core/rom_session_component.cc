@@ -11,11 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <util/arg_string.h>
-#include <rom_session_component.h>
 #include <root/root.h>
 
-using namespace Genode;
+/* core includes */
+#include <rom_session_component.h>
+
+using namespace Core;
 
 
 Rom_session_component::Rom_session_component(Rom_fs         &rom_fs,

@@ -15,9 +15,10 @@
 #ifndef _CORE_LOG_H_
 #define _CORE_LOG_H_
 
-#include <util/string.h>
+/* core includes */
+#include <types.h>
 
-namespace Genode {
+namespace Core {
 
 	struct Core_log;
 
@@ -30,7 +31,7 @@ namespace Genode {
 }
 
 
-struct Genode::Core_log
+struct Core::Core_log
 {
 	void out(char const c);
 

@@ -18,13 +18,14 @@
 #include <base/rpc_server.h>
 #include <vm_session/vm_session.h>
 
+/* core includes */
 #include <trace/source_registry.h>
 #include <sel4_native_vcpu/sel4_native_vcpu.h>
 
-namespace Genode { class Vm_session_component; }
+namespace Core { class Vm_session_component; }
 
 
-class Genode::Vm_session_component
+class Core::Vm_session_component
 :
 	private Ram_quota_guard,
 	private Cap_quota_guard,

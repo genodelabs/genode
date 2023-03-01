@@ -16,7 +16,7 @@
 /* core includes */
 #include <ipc_pager.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Ipc_pager::get_regs(Foc_thread_state &state) const

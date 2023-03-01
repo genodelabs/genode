@@ -32,10 +32,10 @@ namespace Okl4 { extern "C" {
 #include <bootinfo/bootinfo.h>
 } }
 
-namespace Genode { class Platform; }
+namespace Core { class Platform; }
 
 
-class Genode::Platform : public Platform_generic
+class Core::Platform : public Platform_generic
 {
 	private:
 

@@ -14,13 +14,17 @@
 #ifndef _CORE__SPEC__ARM_TRUSTZONE_BOARD_H_
 #define _CORE__SPEC__ARM_TRUSTZONE_BOARD_H_
 
+/* Genode includes */
 #include <spec/arm/cpu/vm_state_trustzone.h>
+
+/* core includes */
+#include <types.h>
 
 namespace Kernel { class Cpu; }
 
 namespace Board {
 
-	using Genode::Vm_state;
+	using Core::Vm_state;
 
 	enum { VCPU_MAX = 1 };
 

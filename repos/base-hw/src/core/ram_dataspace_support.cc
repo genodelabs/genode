@@ -12,15 +12,12 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* core includes */
 #include <ram_dataspace_factory.h>
 #include <platform.h>
 #include <map_local.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &) { }

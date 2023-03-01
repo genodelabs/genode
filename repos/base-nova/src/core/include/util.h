@@ -16,13 +16,12 @@
 
 /* Genode includes */
 #include <rm_session/rm_session.h>
-#include <base/log.h>
 
 /* base-internal includes */
 #include <base/internal/page_size.h>
 #include <platform_thread.h>
 
-namespace Genode {
+namespace Core {
 
 	constexpr size_t get_super_page_size_log2() { return 22; }
 	constexpr size_t get_super_page_size()      { return 1 << get_super_page_size_log2(); }

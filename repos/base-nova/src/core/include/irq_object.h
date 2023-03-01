@@ -15,10 +15,13 @@
 
 #include <nova/syscall-generic.h> /* Gsi_flags */
 
-namespace Genode { class Irq_object; class Irq_args; }
+/* core includes */
+#include <types.h>
+
+namespace Core { class Irq_object; class Irq_args; }
 
 
-class Genode::Irq_object
+class Core::Irq_object
 {
 	private:
 

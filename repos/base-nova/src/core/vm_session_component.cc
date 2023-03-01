@@ -12,13 +12,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Base includes */
+/* Genode includes */
 #include <base/cache.h>
 #include <cpu/vcpu_state.h>
 #include <util/list.h>
 #include <util/flex_iterator.h>
 
-/* Core includes */
+/* core includes */
 #include <core_env.h>
 #include <cpu_thread_component.h>
 #include <dataspace_component.h>
@@ -32,7 +32,7 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 enum { CAP_RANGE_LOG2 = 2, CAP_RANGE = 1 << CAP_RANGE_LOG2 };
@@ -83,7 +83,7 @@ static uint8_t _with_kernel_quota_upgrade(addr_t const pd_target,
  ** Vm_session_component::Vcpu **
  ********************************/
 
-Trace::Source::Info Vm_session_component::Vcpu::trace_source_info() const
+Core::Trace::Source::Info Vm_session_component::Vcpu::trace_source_info() const
 {
 	uint64_t ec_time = 0;
 	uint64_t sc_time = 0;

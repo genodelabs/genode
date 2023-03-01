@@ -17,4 +17,7 @@
 /* base-internal includes */
 #include <base/internal/page_size.h>
 
+/* core includes */
+#include <types.h>
+
 #endif /* _CORE__INCLUDE__UTIL_H_ */

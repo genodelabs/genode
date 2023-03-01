@@ -31,17 +31,19 @@
 #include <kernel/core_interface.h>
 #include <kernel/thread.h>
 
-namespace Genode {
+namespace Core {
 
 	class Pager_object;
-	class Thread_state;
 	class Rm_client;
 	class Platform_thread;
 	class Platform_pd;
 }
 
 
-class Genode::Platform_thread : Noncopyable
+namespace Genode { class Thread_state; }
+
+
+class Core::Platform_thread : Noncopyable
 {
 	private:
 
@@ -130,9 +132,7 @@ class Genode::Platform_thread : Noncopyable
 		/**
 		 * Join a protection domain
 		 *
-		 * \param pd             platform pd object pointer
-		 * \param main_thread    wether thread is the first in protection domain
-		 * \param address_space  corresponding Genode address space
+		 * \param main_thread   whether thread is the first in protection domain
 		 *
 		 * This function has no effect when called more twice for a
 		 * given thread.
@@ -207,7 +207,7 @@ class Genode::Platform_thread : Noncopyable
 		 */
 		Trace::Execution_time execution_time() const
 		{
-			Genode::uint64_t execution_time =
+			uint64_t execution_time =
 				const_cast<Platform_thread *>(this)->_kobj->execution_time();
 			return { execution_time, 0, _quota, _priority }; }
 

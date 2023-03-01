@@ -18,14 +18,14 @@
 #include <platform_thread.h>
 #include <address_space.h>
 
-namespace Genode {
+namespace Core {
 
 	class Platform_thread;
 	class Platform_pd;
 }
 
 
-class Genode::Platform_pd : public Address_space
+class Core::Platform_pd : public Address_space
 {
 	private:
 

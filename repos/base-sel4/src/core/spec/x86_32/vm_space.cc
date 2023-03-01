@@ -16,16 +16,19 @@
 
 #include "arch_kernel_object.h"
 
-static long map_page_table(Genode::Cap_sel const pagetable,
-                           Genode::Cap_sel const vroot,
-                           Genode::addr_t  const virt)
+using namespace Core;
+
+
+static long map_page_table(Cap_sel const pagetable,
+                           Cap_sel const vroot,
+                           addr_t  const virt)
 {
 	return seL4_X86_PageTable_Map(pagetable.value(), vroot.value(), virt,
 	                              seL4_X86_Default_VMAttributes);
 }
 
-void Genode::Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
-                                                        addr_t const size)
+void Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
+                                                addr_t const size)
 {
 	addr_t constexpr PAGE_TABLE_AREA = 1UL << PAGE_TABLE_LOG2_SIZE;
 	addr_t virt = start & ~(PAGE_TABLE_AREA - 1);

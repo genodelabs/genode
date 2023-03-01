@@ -13,7 +13,6 @@
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <util/arg_string.h>
 
 /* core includes */
@@ -25,7 +24,7 @@
 #include <base/internal/okl4.h>
 
 using namespace Okl4;
-using namespace Genode;
+using namespace Core;
 
 
 /* bit to use for IRQ notifications */
@@ -108,7 +107,7 @@ void Irq_object::entry()
 		if (!_sig_cap.valid())
 			continue;
 
-		Genode::Signal_transmitter(_sig_cap).submit(1);
+		Signal_transmitter(_sig_cap).submit(1);
 
 		_sync_ack.block();
 	}
@@ -159,7 +158,7 @@ void Irq_session_component::ack_irq()
 }
 
 
-void Irq_session_component::sigh(Genode::Signal_context_capability cap)
+void Irq_session_component::sigh(Signal_context_capability cap)
 {
 	_irq_object.sigh(cap);
 }

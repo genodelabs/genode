@@ -21,7 +21,7 @@
 #include <port_io.h>
 #include <platform.h>
 
-using namespace Genode;
+using namespace Core;
 using namespace Board;
 
 enum {

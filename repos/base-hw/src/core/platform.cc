@@ -13,11 +13,11 @@
  */
 
 
-/* base Core includes */
+/* core includes */
 #include <boot_modules.h>
 #include <core_log.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <map_local.h>
 #include <platform.h>
 #include <platform_pd.h>
@@ -34,10 +34,9 @@
 #include <base/internal/unmanaged_singleton.h>
 
 /* base includes */
-#include <base/log.h>
 #include <trace/source_registry.h>
 
-using namespace Genode;
+using namespace Core;
 
 
 /**************
@@ -155,8 +154,7 @@ void Platform::_init_platform_info()
 		return;
 	}
 
-	Genode::Xml_generator xml(reinterpret_cast<char *>(virt_addr),
-	                          rom_size, rom_name, [&] ()
+	Xml_generator xml(reinterpret_cast<char *>(virt_addr), rom_size, rom_name, [&] ()
 	{
 		xml.node("kernel", [&] () {
 			xml.attribute("name", "hw");

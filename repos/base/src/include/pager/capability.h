@@ -16,15 +16,4 @@
 
 #include <base/capability.h>
 
-namespace Genode {
-
-	/*
-	 * The 'Pager_capability' type is returned by 'Region_map::add_client' and
-	 * passed as argument to 'Cpu_session::set_pager'. It is never invoked or
-	 * otherwise used.
-	 */
-	class Pager_object;
-	typedef Capability<Pager_object> Pager_capability;
-}
-
 #endif /* _INCLUDE__PAGER__CAPABILITY_H_ */

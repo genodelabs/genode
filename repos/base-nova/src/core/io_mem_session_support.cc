@@ -18,7 +18,8 @@
 #include <platform.h>
 #include <nova_util.h>
 
-using namespace Genode;
+using namespace Core;
+
 
 void Io_mem_session_component::_unmap_local(addr_t, size_t) { }
 

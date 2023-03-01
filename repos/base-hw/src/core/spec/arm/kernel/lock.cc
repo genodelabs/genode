@@ -15,7 +15,7 @@
 #include <cpu/atomic.h>
 #include <cpu/memory_barrier.h>
 
-/* base-hw Core includes */
+/* base-hw core includes */
 #include <kernel/cpu.h>
 #include <kernel/lock.h>
 
