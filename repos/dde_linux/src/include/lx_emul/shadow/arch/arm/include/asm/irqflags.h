@@ -14,14 +14,25 @@
 #ifndef __ASM_IRQFLAGS_H
 #define __ASM_IRQFLAGS_H
 
-static inline unsigned long arch_local_save_flags(void) {
-	return 1; }
+#include <lx_emul/irq.h>
 
-static inline void arch_local_irq_restore(unsigned long flags) { }
+#define arch_local_save_flags arch_local_save_flags
+static inline unsigned long arch_local_save_flags(void)
+{
+	return lx_emul_irq_state();
+}
+
+#define arch_local_irq_restore arch_local_irq_restore
+static inline void arch_local_irq_restore(unsigned long flags)
+{
+	lx_emul_irq_restore(flags);
+}
 
 #define arch_irqs_disabled_flags arch_irqs_disabled_flags
-static inline int arch_irqs_disabled_flags(unsigned long flags) {
-	return 1; }
+static inline int arch_irqs_disabled_flags(unsigned long flags)
+{
+	return flags & 1;
+}
 
 #define local_fiq_enable() ({})
 #define local_fiq_disable() ({})

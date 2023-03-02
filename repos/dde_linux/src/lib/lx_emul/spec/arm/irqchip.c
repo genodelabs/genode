@@ -165,6 +165,7 @@ IRQCHIP_DECLARE(dde_gic_400, "arm,gic-400",       lx_emul_irq_init);
 int lx_emul_irq_task_function(void * data)
 {
 	int irq;
+	unsigned long flags;
 
 	for (;;) {
 		lx_emul_task_schedule(true);
@@ -172,6 +173,7 @@ int lx_emul_irq_task_function(void * data)
 		if (!dde_irq_domain)
 			continue;
 
+		local_irq_save(flags);
 		irq_enter();
 
 		irq = irq_find_mapping(dde_irq_domain, lx_emul_irq_last());
@@ -184,6 +186,7 @@ int lx_emul_irq_task_function(void * data)
 		}
 
 		irq_exit();
+		local_irq_restore(flags);
 	}
 
 	return 0;

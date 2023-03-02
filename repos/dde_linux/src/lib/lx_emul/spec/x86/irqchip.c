@@ -47,11 +47,13 @@ struct irq_chip dde_irqchip_data_chip = {
 
 int lx_emul_irq_task_function(void * data)
 {
+	unsigned long flags;
 	int irq;
 
 	for (;;) {
 		lx_emul_task_schedule(true);
 
+		local_irq_save(flags);
 		irq_enter();
 
 		irq = lx_emul_irq_last();
@@ -66,6 +68,7 @@ int lx_emul_irq_task_function(void * data)
 		}
 
 		irq_exit();
+		local_irq_restore(flags);
 	}
 
 	return 0;

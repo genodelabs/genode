@@ -34,6 +34,12 @@ extern void * lx_emul_irq_task_struct;
 unsigned int lx_emul_irq_last(void);
 
 int lx_emul_irq_init(struct device_node *node, struct device_node *parent);
+
+unsigned long lx_emul_irq_enable(void);
+unsigned long lx_emul_irq_disable(void);
+unsigned long lx_emul_irq_state(void);
+void          lx_emul_irq_restore(unsigned long);
+
 #ifdef __cplusplus
 }
 #endif
