@@ -37,6 +37,7 @@ SRC_C   += lx_emul/shadow/kernel/sched/sched.c
 SRC_C   += lx_emul/shadow/kernel/smp.c
 SRC_C   += lx_emul/shadow/kernel/stop_machine.c
 SRC_C   += lx_emul/shadow/lib/cpumask.c
+SRC_C   += lx_emul/shadow/lib/delay.c
 SRC_C   += lx_emul/shadow/mm/percpu.c
 SRC_C   += lx_emul/shadow/mm/slab_common.c
 SRC_C   += lx_emul/shadow/mm/slub.c

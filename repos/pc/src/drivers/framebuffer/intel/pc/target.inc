@@ -9,7 +9,6 @@ INC_DIR += $(REL_PRG_DIR)
 
 SRC_CC  += main.cc
 SRC_CC  += emul.cc
-SRC_CC  += time.cc
 SRC_CC  += opregion_io_mem.cc
 SRC_C   += dummies.c
 SRC_C   += pci.c

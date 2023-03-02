@@ -24,8 +24,6 @@
 extern "C" {
 #endif
 
-void lx_emul_time_udelay(unsigned long usec);
-
 int  lx_emul_rfkill_get_any(void);
 void lx_emul_rfkill_switch_all(int blocked);
 

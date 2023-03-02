@@ -3,7 +3,7 @@ REQUIRES := x86_64
 TARGET  := test-driver_time
 LIBS    := base pc_lx_emul jitterentropy
 
-SRC_CC  += main.cc time.cc
+SRC_CC  += main.cc
 SRC_C   += lx_user.c
 SRC_C   += dummies.c
 SRC_C   += generated_dummies.c

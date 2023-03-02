@@ -26,8 +26,6 @@ extern "C" {
 struct dma_fence_work;
 struct dma_fence_work_ops;
 
-void lx_emul_time_udelay(unsigned long usec);
-
 void *emul_alloc_shmem_file_buffer(unsigned long);
 void  emul_free_shmem_file_buffer(void *);
 

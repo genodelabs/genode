@@ -19,13 +19,3 @@
 
 /* fix for missing include in linux/dynamic_debug.h */
 #include <linux/compiler_attributes.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void lx_emul_time_udelay(unsigned long usec);
-
-#ifdef __cplusplus
-}
-#endif

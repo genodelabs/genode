@@ -10,14 +10,3 @@
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
  */
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void lx_emul_time_udelay(unsigned long usec);
-
-#ifdef __cplusplus
-}
-#endif
