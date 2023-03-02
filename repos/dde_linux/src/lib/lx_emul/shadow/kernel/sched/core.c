@@ -103,14 +103,12 @@ static void __schedule(void)
 
 asmlinkage __visible void __sched schedule(void)
 {
+	lx_emul_time_update_jiffies();
+
 	if (current->__state) {
 		unsigned int task_flags = current->flags;
-		if (task_flags & PF_WQ_WORKER) {
-			tick_nohz_idle_enter();
-			lx_emul_time_handle();
-			tick_nohz_idle_exit();
+		if (task_flags & PF_WQ_WORKER)
 			wq_worker_sleeping(current);
-		}
 	}
 
 	__schedule();
@@ -141,6 +139,7 @@ asmlinkage __visible void __sched notrace preempt_schedule(void)
 	if (likely(!preemptible()))
 		return;
 
+	lx_emul_time_update_jiffies();
 	__schedule();
 }
 
@@ -150,6 +149,7 @@ asmlinkage __visible void __sched notrace preempt_schedule_notrace(void)
 	if (likely(!preemptible()))
 		return;
 
+	lx_emul_time_update_jiffies();
 	__schedule();
 }
 
