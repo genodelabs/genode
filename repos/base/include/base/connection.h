@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -101,6 +101,12 @@ class Genode::Connection_base : Noncopyable, Interface
 template <typename SESSION_TYPE>
 class Genode::Connection : public Connection_base
 {
+	public:
+
+		using Args         = String<Parent::Session_args::MAX_SIZE>;
+		using Session_type = SESSION_TYPE;
+		using Ram_quota    = Genode::Ram_quota;
+
 	private:
 
 		/*
@@ -126,6 +132,36 @@ class Genode::Connection : public Connection_base
 			_affinity_arg = affinity;
 		}
 
+		using Client_id = Parent::Client::Id;
+
+		static Capability<SESSION_TYPE> _request(Env                 &env,
+		                                         Client_id     const &id,
+		                                         Session_label const &label,
+		                                         Ram_quota     const &ram_quota,
+		                                         Affinity      const &affinity,
+		                                         Args          const &args)
+		{
+			/* supplement session quotas and label as session arguments */
+			Args const complete_args("label=\"",   label, "\", "
+			                         "ram_quota=", ram_quota, ", "
+			                         "cap_quota=", unsigned(SESSION_TYPE::CAP_QUOTA), ", ",
+			                         args);
+
+			if (complete_args.length() == Args::capacity())
+				warning("truncated arguments of ",
+				        SESSION_TYPE::service_name(), " session");
+
+			try {
+				return env.session<SESSION_TYPE>(id, complete_args.string(),
+				                                 affinity);
+			}
+			catch (...) {
+				error(SESSION_TYPE::service_name(), "-session creation failed "
+				      "(", complete_args, ")");
+				throw;
+			}
+		}
+
 		Capability<SESSION_TYPE> _request_cap()
 		{
 			try {
@@ -142,19 +178,38 @@ class Genode::Connection : public Connection_base
 
 	public:
 
-		typedef SESSION_TYPE Session_type;
-
 		/**
 		 * Constructor
+		 *
+		 * \deprecated
 		 */
 		Connection(Env &env, Capability<SESSION_TYPE>)
 		:
 			Connection_base(env), _cap(_request_cap())
 		{ }
 
+		Connection(Env                 &env,
+		           Session_label const &label,
+		           Ram_quota     const &ram_quota,
+		           Affinity      const &affinity,
+		           Args          const &args)
+		:
+			Connection_base(env),
+			_cap(_request(env, _id_space_element.id(),
+			              label, ram_quota, affinity, args))
+		{ }
+
 		/**
-		 * Destructor
+		 * Constructor
+		 *
+		 * Shortcut for the common case where the affinity is not specified.
 		 */
+		Connection(Env &env, Session_label const &label,
+		           Ram_quota const &ram_quota, Args const &args)
+		:
+			Connection(env, label, ram_quota, Affinity(), args)
+		{ }
+
 		~Connection() { _env.close(_id_space_element.id()); }
 
 		/**
@@ -164,6 +219,8 @@ class Genode::Connection : public Connection_base
 
 		/**
 		 * Issue session request to the parent
+		 *
+		 * \deprecated
 		 */
 		Capability<SESSION_TYPE> session(Parent &parent, const char *format_args, ...)
 		{
@@ -176,6 +233,8 @@ class Genode::Connection : public Connection_base
 
 		/**
 		 * Issue session request to the parent
+		 *
+		 * \deprecated
 		 */
 		Capability<SESSION_TYPE> session(Parent         &parent,
 		                                 Affinity const &affinity,
