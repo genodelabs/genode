@@ -23,17 +23,13 @@ namespace Loader { struct Connection; }
 
 struct Loader::Connection : Genode::Connection<Session>, Session_client
 {
-	/**
-	 * Constructor
-	 */
 	Connection(Genode::Env &env, Ram_quota ram_quota, Cap_quota cap_quota)
 	:
-		Genode::Connection<Session>(env, session(env.parent(),
-		                                         "ram_quota=%ld, cap_quota=%ld",
-		                                         ram_quota.value,
-		                                         CAP_QUOTA + cap_quota.value)),
+		Genode::Connection<Session>(env, Label(), ram_quota, Args()),
 		Session_client(cap())
-	{ }
+	{
+		upgrade_caps(cap_quota.value);
+	}
 };
 
 #endif /* _INCLUDE__LOADER_SESSION__CONNECTION_H_ */

@@ -34,11 +34,6 @@ struct I2c::Session : public Genode::Session
 
 	enum { CAP_QUOTA = 2 };
 
-
-	/***************
-	 ** Exception **
-	 ***************/
-
 	/**
 	 * Exception thrown in case of a bus error
 	 *

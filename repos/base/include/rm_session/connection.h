@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2018 Genode Labs GmbH
+ * Copyright (C) 2008-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -23,21 +23,14 @@ namespace Genode { struct Rm_connection; }
 
 struct Genode::Rm_connection : Connection<Rm_session>, Rm_session_client
 {
-	enum { RAM_QUOTA = 64*1024 };
-
-	/**
-	 * Constructor
-	 */
 	Rm_connection(Env &env)
 	:
-		Connection<Rm_session>(env, session(env.parent(), "ram_quota=%u, cap_quota=%u",
-		                       RAM_QUOTA, CAP_QUOTA)),
+		Connection<Rm_session>(env, Label(), Ram_quota { 64*1024 }, Args()),
 		Rm_session_client(cap())
 	{ }
 
 	/**
-	 * Wrapper over 'create' that handles resource requests
-	 * from the server.
+	 * Wrapper over 'create' that handles resource requests from the server
 	 */
 	Capability<Region_map> create(size_t size) override
 	{

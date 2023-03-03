@@ -76,7 +76,7 @@ C++ class in 'include/hello_session/hello_session.h'
 !{
 !  static const char *service_name() { return "Hello"; }
 !
-!  enum { CAP_QUOTA = 2 };
+!  enum { CAP_QUOTA = 4 };
 !
 !  virtual void say_hello() = 0;
 !  virtual int add(int a, int b) = 0;
@@ -93,12 +93,10 @@ across component boundaries.
 Furthermore, we use the interface to specify the name of the service by
 providing the 'service_name' method. This method will later be used by both
 the server for announcing the service at its parent and the client for
-requesting the creation of a "Hello" session. The 'CAP_QUOTA' definition
-specifies the amount of capabilities required to establish the session.
-The specified amount is transferred from the client to the server at session
-creation time. For the "Hello" session, two capabilities are required, namely
-a dataspace capability for the server-side memory occupied by the session
-object and the actual session capability that refers to the RPC interface.
+requesting the creation of a "Hello" session. The 'resources' definition
+specifies the amount of capabilities and RAM required by the server to
+establish the session. The specified amount is transferred from the client
+to the server at session creation time.
 
 The 'GENODE_RPC' macro is used to declare an RPC function. Its first argument
 is a type name that is used to refer to the RPC function. The type name can
@@ -351,10 +349,11 @@ of the session interface. For our case, the file
 !  Connection(Genode::Env &env)
 !  :
 !    /* create session */
-!    Genode::Connection<Hello::Session>(env, session(env.parent(),
-!                                                    "ram_quota=4K, cap_quota=4")),
+!    Genode::Connection<Hello::Session>(env, Label(),
+!                                       Ram_quota { 8*1024 }, Args()),
 !    /* initialize RPC interface */
-!    Session_client(cap()) { }
+!    Session_client(cap())
+!  { }
 !};
 
 

@@ -38,10 +38,9 @@ struct Audio_out::Connection : Genode::Connection<Session>, Audio_out::Session_c
 	           bool         alloc_signal = true,
 	           bool         progress_signal = false)
 	:
-		Genode::Connection<Session>(env,
-			session(env.parent(),
-			        "ram_quota=%ld, cap_quota=%ld, channel=\"%s\"",
-			        2*4096 + 2048 + sizeof(Stream), CAP_QUOTA, channel)),
+		Genode::Connection<Session>(env, Label(),
+		                            Ram_quota { 2*4096 + 2048 + sizeof(Stream) },
+		                            Args("channel=\"", channel, "\"")),
 		Session_client(env.rm(), cap(), alloc_signal, progress_signal)
 	{ }
 };

@@ -72,9 +72,7 @@ class Platform::Connection : public Genode::Connection<Session>,
 
 		Connection(Env &env)
 		:
-			Genode::Connection<Session>(env, session(env.parent(),
-			                                         "ram_quota=%u, cap_quota=%u",
-			                                         RAM_QUOTA, CAP_QUOTA)),
+			Genode::Connection<Session>(env, Label(), Ram_quota { 32*1024 }, Args()),
 			Client(cap()),
 			_env(env)
 		{

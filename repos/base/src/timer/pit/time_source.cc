@@ -200,7 +200,7 @@ Timer::Time_source::Time_source(Env &env)
 :
 	Signalled_time_source(env),
 	_io_port(env, PIT_DATA_PORT_0, PIT_CMD_PORT - PIT_DATA_PORT_0 + 1),
-	_timer_irq(env, IRQ_PIT)
+	_timer_irq(env, unsigned(IRQ_PIT))
 {
 	/* operate PIT in one-shot mode */
 	_io_port.outb(PIT_CMD_PORT, PIT_CMD_SELECT_CHANNEL_0 |

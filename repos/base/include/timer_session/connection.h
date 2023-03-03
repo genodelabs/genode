@@ -256,14 +256,15 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 * \param label  optional label used in session routing
 		 */
 		Connection(Genode::Env &env,
-		           Genode::Entrypoint & ep,
-		           char const *label = "");
+		           Genode::Entrypoint &ep,
+		           Label const &label = Label());
 
 		/**
 		 * Convenience constructor wrapper using the environment's entrypoint as
 		 * timeout handler execution context
 		 */
-		Connection(Genode::Env &env, char const *label = "");
+		Connection(Genode::Env &env, Label const &label = Label())
+		: Connection(env, env.ep(), label) { }
 
 		~Connection() { _sig_rec.dissolve(&_default_sigh_ctx); }
 

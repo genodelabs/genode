@@ -26,7 +26,7 @@ Timer::Time_source::Time_source(Env &env)
 :
 	Attached_mmio(env, Imx6::EPIT_2_MMIO_BASE, Imx6::EPIT_2_MMIO_SIZE),
 	Signalled_time_source(env),
-	_timer_irq(env, Imx6::EPIT_2_IRQ)
+	_timer_irq(env, unsigned(Imx6::EPIT_2_IRQ))
 {
 	_timer_irq.sigh(_signal_handler);
 	while (read<Cr::Swr>()) ;

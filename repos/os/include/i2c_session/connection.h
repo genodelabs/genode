@@ -23,9 +23,9 @@ namespace I2c { struct Connection; }
 
 struct I2c::Connection : Genode::Connection<I2c::Session>, I2c::Session_client
 {
-	Connection(Genode::Env &env, char const *label = "")
+	Connection(Genode::Env &env, Label const &label = Label())
 	:
-		Genode::Connection<Session>(env, session(env.parent(), "ram_quota=8K, label=%s", label)),
+		Genode::Connection<Session>(env, label, Ram_quota { 8*1024 }, Args()),
 		Session_client(cap())
 	{ }
 

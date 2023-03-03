@@ -29,7 +29,7 @@ struct Sync::Connection : public Genode::Connection<Session>,
 {
 		explicit Connection(Genode::Env &env)
 		:
-			Genode::Connection<Session>(env, session(env.parent(), "ram_quota=4K")),
+			Genode::Connection<Session>(env, Label(), Ram_quota { 4*1024 }, Args()),
 			Genode::Rpc_client<Session>(cap())
 		{ }
 

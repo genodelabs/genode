@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -15,62 +15,29 @@
 #define _INCLUDE__FRAMEBUFFER_SESSION__CONNECTION_H_
 
 #include <framebuffer_session/client.h>
-#include <util/arg_string.h>
 #include <base/connection.h>
 
 namespace Framebuffer { class Connection; }
 
 
-class Framebuffer::Connection : public Genode::Connection<Session>,
-                                public Session_client
+struct Framebuffer::Connection : Genode::Connection<Session>, Session_client
 {
-	public:
-
-		enum { RAM_QUOTA = 8*1024UL };
-
-	private:
-
-		/**
-		 * Create session and return typed session capability
-		 */
-		Session_capability _connect(Genode::Parent &parent, Area area)
-		{
-			using namespace Genode;
-
-			enum { ARGBUF_SIZE = 128 };
-			char argbuf[ARGBUF_SIZE];
-			argbuf[0] = 0;
-
-			/* donate ram and cap quota for storing server-side meta data */
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", RAM_QUOTA);
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota", CAP_QUOTA);
-
-			/* set optional session-constructor arguments */
-			if (area.w())
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_width", area.w());
-			if (area.h())
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_height", area.h());
-
-			return session(parent, argbuf);
-		}
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param mode  desired size and pixel format
-		 *
-		 * The specified values are not enforced. After creating the
-		 * session, you should validate the actual frame-buffer attributes
-		 * by calling the 'info' method of the frame-buffer interface.
-		 */
-		Connection(Genode::Env &env, Framebuffer::Mode mode)
-		:
-			Genode::Connection<Session>(env, _connect(env.parent(),
-			                                          mode.area)),
-			Session_client(cap())
-		{ }
+	/**
+	 * Constructor
+	 *
+	 * \param mode  desired size and pixel format
+	 *
+	 * The specified values are not enforced. After creating the
+	 * session, you should validate the actual frame-buffer attributes
+	 * by calling the 'info' method of the frame-buffer interface.
+	 */
+	Connection(Genode::Env &env, Framebuffer::Mode mode)
+	:
+		Genode::Connection<Session>(env, Label(), Ram_quota { 8*1024 },
+		                            Args("fb_width=",  mode.area.w(), ", "
+		                                 "fb_height=", mode.area.h())),
+		Session_client(cap())
+	{ }
 };
 
 #endif /* _INCLUDE__FRAMEBUFFER_SESSION__CONNECTION_H_ */

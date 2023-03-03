@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,35 +16,28 @@
 
 #include <rom_session/client.h>
 #include <base/connection.h>
-#include <base/log.h>
 
 namespace Genode { class Rom_connection; }
 
 
-struct Genode::Rom_connection : Connection<Rom_session>,
-                                Rom_session_client
+struct Genode::Rom_connection : Connection<Rom_session>, Rom_session_client
 {
-	class Rom_connection_failed : public Service_denied { };
-
-	enum { RAM_QUOTA = 6*1024UL };
+	struct Rom_connection_failed : Service_denied { };
 
 	/**
 	 * Constructor
 	 *
-	 * \param label  request label and name of ROM module
+	 * \param label  name of requested ROM module
 	 *
 	 * \throw Rom_connection_failed
 	 */
-	Rom_connection(Env &env, const char *label)
+	Rom_connection(Env &env, Session_label const &label)
 	try :
-		Connection<Rom_session>(env,
-		                        session(env.parent(),
-		                                "ram_quota=%ld, cap_quota=%ld, label=\"%s\"",
-		                                 RAM_QUOTA, CAP_QUOTA, label)),
+		Connection<Rom_session>(env, label, Ram_quota { RAM_QUOTA }, Args()),
 		Rom_session_client(cap())
 	{ }
 	catch (...) {
-		error("Could not open ROM session for \"", label, "\"");
+		error("could not open ROM session for \"", label, "\"");
 		throw Rom_connection_failed();
 	}
 };

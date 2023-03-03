@@ -37,7 +37,7 @@ struct Genode::Vm_session : Session
 		bool writeable;
 	};
 
-	enum { CAP_QUOTA = 3 };
+	enum { CAP_QUOTA = 10 };
 
 	class Invalid_dataspace : Exception { };
 	class Region_conflict   : Exception { };

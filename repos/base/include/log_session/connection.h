@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,23 +16,15 @@
 
 #include <log_session/client.h>
 #include <base/connection.h>
-#include <base/session_label.h>
 
 namespace Genode { struct Log_connection; }
 
 
 struct Genode::Log_connection : Connection<Log_session>, Log_session_client
 {
-	enum { RAM_QUOTA = 8*1024UL };
-
-	/**
-	 * Constructor
-	 */
-	Log_connection(Env &env, Session_label label = Session_label())
+	Log_connection(Env &env, Session_label const &label = Session_label())
 	:
-		Connection<Log_session>(env, session(env.parent(),
-		                                     "ram_quota=%ld, cap_quota=%ld, label=\"%s\"",
-		                                     RAM_QUOTA, CAP_QUOTA, label.string())),
+		Connection<Log_session>(env, label, Ram_quota { RAM_QUOTA }, Args()),
 		Log_session_client(cap())
 	{ }
 };

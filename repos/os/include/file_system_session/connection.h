@@ -66,23 +66,16 @@ struct File_system::Connection : Genode::Connection<Session>, Session_client
 	 */
 	Connection(Genode::Env             &env,
 	           Genode::Range_allocator &tx_block_alloc,
-	           char const              *label       = "",
-	           char const              *root        = "/",
+	           Label             const &label = Label(),
+	           char              const *root        = "/",
 	           bool                     writeable   = true,
 	           size_t                   tx_buf_size = DEFAULT_TX_BUF_SIZE)
 	:
-		Genode::Connection<Session>(env,
-			session(env.parent(),
-			        "ram_quota=%ld, "
-			        "cap_quota=%ld, "
-			        "tx_buf_size=%ld, "
-			        "label=\"%s\", "
-			        "root=\"%s\", "
-			        "writeable=%d",
-			        8*1024*sizeof(long) + tx_buf_size,
-			        CAP_QUOTA,
-			        tx_buf_size,
-			        label, root, writeable)),
+		Genode::Connection<Session>(env, label,
+		                            Ram_quota { 8*1024*sizeof(long) + tx_buf_size },
+		                            Args("root=\"",      root, "\", "
+		                                 "writeable=",   writeable, ", "
+		                                 "tx_buf_size=", tx_buf_size)),
 		Session_client(cap(), tx_block_alloc, env.rm())
 	{ }
 

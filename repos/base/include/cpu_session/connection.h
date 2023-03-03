@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -22,23 +22,19 @@ namespace Genode { struct Cpu_connection; }
 
 struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
 {
-	enum { RAM_QUOTA = 36*1024 };
-
 	/**
 	 * Constructor
 	 *
-	 * \param label     initial session label
 	 * \param priority  designated priority of all threads created
 	 *                  with this CPU session
 	 */
-	Cpu_connection(Env &env, const char *label = "", long priority = DEFAULT_PRIORITY,
+	Cpu_connection(Env            &env,
+	               Label    const &label    = Label(),
+	               long            priority = DEFAULT_PRIORITY,
 	               Affinity const &affinity = Affinity())
 	:
-		Connection<Cpu_session>(env,
-		                        session(env.parent(), affinity,
-		                                "priority=0x%lx, ram_quota=%u, "
-		                                "cap_quota=%u, label=\"%s\"",
-		                                priority, RAM_QUOTA, CAP_QUOTA, label)),
+		Connection<Cpu_session>(env, label, Ram_quota { RAM_QUOTA }, affinity,
+		                        Args("priority=", Hex(priority))),
 		Cpu_session_client(cap())
 	{ }
 

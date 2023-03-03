@@ -19,17 +19,12 @@
 
 namespace Input { struct Connection; }
 
+
 struct Input::Connection : Genode::Connection<Session>, Session_client
 {
-	/**
-	 * Constructor
-	 */
-	Connection(Genode::Env &env, char const *label = "")
+	Connection(Genode::Env &env, Label const &label = Label())
 	:
-		Genode::Connection<Input::Session>(env,
-		                                   session(env.parent(),
-		                                   "ram_quota=18K, cap_quota=%u, label=\"%s\"",
-		                                   CAP_QUOTA, label)),
+		Genode::Connection<Input::Session>(env, label, Ram_quota { 18*1024 }, Args()),
 		Session_client(env.rm(), cap())
 	{ }
 };

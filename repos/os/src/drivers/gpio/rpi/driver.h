@@ -68,7 +68,7 @@ class Gpio::Rpi_driver : public Driver
 		Rpi_driver(Genode::Env &env)
 		:
 			_reg(env, Rpi::GPIO_CONTROLLER_BASE, 0, Rpi::GPIO_CONTROLLER_SIZE),
-			_irq(env, IRQ),
+			_irq(env, unsigned(IRQ)),
 			_dispatcher(env.ep(), *this, &Rpi_driver::_handle),
 			_async(false)
 		{

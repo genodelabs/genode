@@ -57,10 +57,7 @@ struct Libc::Clone_connection : Connection<Clone_session>,
 
 	Clone_connection(Genode::Env &env)
 	:
-		Connection<Clone_session>(env,
-		                          session(env.parent(),
-		                                  "ram_quota=%ld, cap_quota=%ld",
-		                                  RAM_QUOTA, CAP_QUOTA)),
+		Connection<Clone_session>(env, Label(), Ram_quota { RAM_QUOTA }, Args()),
 		Rpc_client<Clone_session>(cap()),
 		_buffer(env.rm(), call<Rpc_dataspace>())
 	{ }

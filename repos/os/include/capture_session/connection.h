@@ -26,10 +26,6 @@ namespace Capture { class Connection; }
 class Capture::Connection : public Genode::Connection<Session>,
                             public Session_client
 {
-	public:
-
-		enum { RAM_QUOTA = 36*1024UL };
-
 	private:
 
 		size_t _session_quota = 0;
@@ -39,12 +35,10 @@ class Capture::Connection : public Genode::Connection<Session>,
 		/**
 		 * Constructor
 		 */
-		Connection(Genode::Env &env, char const *label = "")
+		Connection(Genode::Env &env, Label const &label = Label())
 		:
-			Genode::Connection<Capture::Session>(
-				env, session(env.parent(),
-				             "ram_quota=%u, cap_quota=%u, label=\"%s\"",
-				             RAM_QUOTA, CAP_QUOTA, label)),
+			Genode::Connection<Capture::Session>(env, label,
+			                                     Ram_quota { 36*1024 }, Args()),
 			Session_client(cap())
 		{ }
 

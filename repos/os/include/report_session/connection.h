@@ -22,16 +22,10 @@ namespace Report { struct Connection; }
 
 struct Report::Connection : Genode::Connection<Session>, Session_client
 {
-	enum { RAM_QUOTA = 10*1024 }; /* value used for 'Slave::Connection' */
-
-	Connection(Genode::Env &env, char const *label, size_t buffer_size = 4096)
+	Connection(Genode::Env &env, Label const &label, size_t buffer_size = 4096)
 	:
-		Genode::Connection<Session>(env,
-		                            session(env.parent(),
-		                                    "label=\"%s\", ram_quota=%ld, "
-		                                    "cap_quota=%ld, buffer_size=%zd",
-		                                    label, RAM_QUOTA + buffer_size,
-		                                    CAP_QUOTA, buffer_size)),
+		Genode::Connection<Session>(env, label, Ram_quota { 10*1024 + buffer_size },
+		                            Args("buffer_size=", buffer_size)),
 		Session_client(cap())
 	{ }
 };

@@ -304,7 +304,7 @@ int main()
 	/* CPU session representing core */
 	static Cpu_session_component
 		core_cpu(ep,
-		         Session::Resources{{Cpu_connection::RAM_QUOTA},
+		         Session::Resources{{Cpu_session::RAM_QUOTA},
 		                            {Cpu_session::CAP_QUOTA}},
 		         "core", Session::Diag{false},
 		         core_ram_alloc, local_rm, ep, pager_ep, Core::Trace::sources(), "",

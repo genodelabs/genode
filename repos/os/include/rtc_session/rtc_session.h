@@ -57,6 +57,7 @@ struct Rtc::Session : Genode::Session
 
 	enum { CAP_QUOTA = 2 };
 
+
 	/***********************
 	 ** Session interface **
 	 ***********************/

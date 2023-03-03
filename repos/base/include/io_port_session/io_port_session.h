@@ -38,9 +38,10 @@ struct Genode::Io_port_session : Session
 	 */
 	static const char *service_name() { return "IO_PORT"; }
 
-	enum { RAM_QUOTA = 6 * 1024, CAP_QUOTA = 2 };
+	enum { CAP_QUOTA = 2, RAM_QUOTA = 6*1024 };
 
 	virtual ~Io_port_session() { }
+
 
 	/******************************
 	 ** Read value from I/O port **

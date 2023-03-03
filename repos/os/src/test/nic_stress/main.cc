@@ -23,25 +23,20 @@
 namespace Local {
 
 	using namespace Genode;
+	struct Bad_args_nic;
 	struct Construct_destruct_test;
 	struct Main;
 }
 
 
-struct Bad_args_nic : Genode::Connection<Nic::Session>
+struct Local::Bad_args_nic : Connection<Nic::Session>
 {
-	Bad_args_nic(Genode::Env    &env,
-	             Genode::size_t  ram_quota,
-	             Genode::size_t  cap_quota,
-	             Genode::size_t  tx_buf_size,
-	             Genode::size_t  rx_buf_size,
-	             char const     *label)
+	Bad_args_nic(Env &env, size_t ram_quota, size_t tx_buf_size, size_t rx_buf_size,
+	             Session::Label const &label)
 	:
-		Genode::Connection<Nic::Session>(env,
-			session(env.parent(),
-			        "ram_quota=%ld, cap_quota=%ld, "
-			        "tx_buf_size=%ld, rx_buf_size=%ld, label=\"%s\"",
-			        ram_quota, cap_quota, tx_buf_size, rx_buf_size, label))
+		Genode::Connection<Nic::Session>(env, label, Ram_quota { ram_quota },
+		                                 Args("tx_buf_size=", tx_buf_size, ", "
+		                                      "rx_buf_size=", rx_buf_size))
 	{ }
 };
 
@@ -81,7 +76,7 @@ struct Local::Construct_destruct_test
 	                   unsigned  const round)
 	{
 		_bad_args_nic.construct(
-			_env, 0, 0, BUF_SIZE, BUF_SIZE, "bad_args");
+			_env, 0, BUF_SIZE, BUF_SIZE, "bad_args");
 		for (unsigned idx = 0; idx < _nr_of_sessions; idx++) {
 			try {
 				nic[idx].construct(_env, &_pkt_alloc, BUF_SIZE, BUF_SIZE);

@@ -17,7 +17,6 @@
 #include <gui_session/client.h>
 #include <framebuffer_session/client.h>
 #include <input_session/client.h>
-#include <util/arg_string.h>
 #include <base/connection.h>
 
 namespace Gui { class Connection; }
@@ -26,47 +25,21 @@ namespace Gui { class Connection; }
 class Gui::Connection : public Genode::Connection<Session>,
                         public Session_client
 {
-	public:
-
-		enum { RAM_QUOTA = 36*1024UL };
-
 	private:
 
 		Framebuffer::Session_client _framebuffer;
 		Input::Session_client       _input;
 		Genode::size_t              _session_quota = 0;
 
-		/**
-		 * Create session and return typed session capability
-		 */
-		Session_capability _connect(Genode::Parent &parent, char const *label)
-		{
-			enum { ARGBUF_SIZE = 128 };
-			char argbuf[ARGBUF_SIZE];
-			argbuf[0] = 0;
-
-			if (Genode::strlen(label) > 0)
-				Genode::snprintf(argbuf, sizeof(argbuf), "label=\"%s\"", label);
-
-			/*
-			 * Declare ram-quota donation
-			 */
-			using Genode::Arg_string;
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", RAM_QUOTA);
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota", CAP_QUOTA);
-
-			return session(parent, argbuf);
-		}
-
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Connection(Genode::Env &env, char const *label = "")
+		Connection(Genode::Env &env, Label const &label = Label())
 		:
 			/* establish nitpicker session */
-			Genode::Connection<Session>(env, _connect(env.parent(), label)),
+			Genode::Connection<Session>(env, label, Ram_quota { 36*1024 }, Args()),
 			Session_client(env.rm(), cap()),
 
 			/* request frame-buffer and input sub sessions */

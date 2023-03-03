@@ -35,14 +35,13 @@ struct Nic::Connection : Genode::Connection<Session>, Session_client
 	           Genode::Range_allocator *tx_block_alloc,
 	           Genode::size_t           tx_buf_size,
 	           Genode::size_t           rx_buf_size,
-	           char const              *label = "")
+	           Label             const &label = Label())
 	:
-		Genode::Connection<Session>(env,
-			session(env.parent(),
-			        "ram_quota=%ld, cap_quota=%ld, "
-			        "tx_buf_size=%ld, rx_buf_size=%ld, label=\"%s\"",
-			        32*1024*sizeof(long) + tx_buf_size + rx_buf_size,
-			        CAP_QUOTA, tx_buf_size, rx_buf_size, label)),
+		Genode::Connection<Session>(
+			env, label,
+			Ram_quota { 32*1024*sizeof(long) + tx_buf_size + rx_buf_size },
+			Args("tx_buf_size=", tx_buf_size, ", "
+			     "rx_buf_size=", rx_buf_size)),
 		Session_client(cap(), *tx_block_alloc, env.rm())
 	{ }
 };

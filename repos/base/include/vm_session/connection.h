@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2012-2021 Genode Labs GmbH
+ * Copyright (C) 2012-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -35,19 +35,6 @@ namespace Genode {
 
 struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 {
-	/**
-	 * Issue session request
-	 *
-	 * \noapi
-	 */
-	Capability<Vm_session> _session(Parent &parent, char const *label, long priority,
-	                                unsigned long affinity)
-	{
-		return session(parent,
-		               "priority=0x%lx, affinity=0x%lx, ram_quota=16K, cap_quota=10, label=\"%s\"",
-		               priority, affinity, label);
-	}
-
 	/*
 	 * VM-Exit state-transfer configuration
 	 *
@@ -82,15 +69,16 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 	/**
 	 * Constructor
 	 *
-	 * \param label     initial session label
 	 * \param priority  designated priority of the VM
 	 * \param affinity  which physical CPU the VM should run on top of
 	 */
-	Vm_connection(Env &env, const char *label = "",
+	Vm_connection(Env &env, Label const &label = Label(),
 	              long priority = Cpu_session::DEFAULT_PRIORITY,
 	              unsigned long affinity = 0)
 	:
-		Connection<Vm_session>(env, _session(env.parent(), label, priority, affinity)),
+		Connection<Vm_session>(env, label, Ram_quota { 16*1024 }, Affinity(),
+		                       Args("priority=", Hex(priority), ", "
+		                            "affinity=", Hex(affinity))),
 		Rpc_client<Vm_session>(cap())
 	{ }
 
@@ -106,6 +94,7 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 			[&] () { this->upgrade_ram(4096); }
 		);
 	}
+
 
 	/**************************
 	 ** Vm_session interface **

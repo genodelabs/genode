@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -31,12 +31,10 @@ struct Genode::Io_mem_connection : Connection<Io_mem_session>, Io_mem_session_cl
 	 */
 	Io_mem_connection(Env &env, addr_t base, size_t size, bool write_combined = false)
 	:
-		Connection<Io_mem_session>(env,
-		                           session(env.parent(),
-		                                   "cap_quota=%u, ram_quota=%u, "
-		                                   "base=0x%p, size=0x%lx, wc=%s",
-		                                   CAP_QUOTA, RAM_QUOTA, base, size,
-		                                   write_combined ? "yes" : "no")),
+		Connection<Io_mem_session>(env, Label(), Ram_quota { RAM_QUOTA },
+		                           Args("base=", Hex(base), ", "
+		                                "size=", Hex(size), ", "
+		                                "wc=",   write_combined ? "yes" : "no")),
 		Io_mem_session_client(cap())
 	{ }
 };

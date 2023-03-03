@@ -120,22 +120,15 @@ void Timer::Connection::set_timeout(Microseconds     duration,
 }
 
 
-Timer::Connection::Connection(Genode::Env &env, Genode::Entrypoint &ep,
-                              char const *label)
+Timer::Connection::Connection(Env &env, Entrypoint &ep, Label const &label)
 :
-	Genode::Connection<Session>(env, session(env.parent(),
-	                            "ram_quota=10K, cap_quota=%u, label=\"%s\"",
-	                            CAP_QUOTA, label)),
+	Genode::Connection<Session>(env, label, Ram_quota { 10*1024 }, Args()),
 	Session_client(cap()),
 	_signal_handler(ep, *this, &Connection::_handle_timeout)
 {
 	/* register default signal handler */
 	Session_client::sigh(_default_sigh_cap);
 }
-
-
-Timer::Connection::Connection(Genode::Env &env, char const *label)
-: Timer::Connection(env, env.ep(), label) {}
 
 
 Timeout_scheduler &Timer::Connection::_switch_to_timeout_framework_mode()
@@ -147,7 +140,6 @@ Timeout_scheduler &Timer::Connection::_switch_to_timeout_framework_mode()
 	_sigh(_signal_handler);
 
 	_timeout_scheduler._enable();
-
 
 	/* do initial calibration burst to make interpolation available earlier */
 	for (unsigned i = 0; i < NR_OF_INITIAL_CALIBRATIONS; i++) {

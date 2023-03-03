@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -22,19 +22,12 @@ namespace Genode { struct Pd_connection; }
 
 struct Genode::Pd_connection : Connection<Pd_session>, Pd_session_client
 {
-	enum { RAM_QUOTA = 24*1024*sizeof(long)};
 	enum Virt_space { UNCONSTRAIN = 0, CONSTRAIN = 1 };
 
-	/**
-	 * Constructor
-	 *
-	 * \param label  session label
-	 */
-	Pd_connection(Env &env, char const *label = "", Virt_space space = CONSTRAIN)
+	Pd_connection(Env &env, Label const &label = Label(), Virt_space space = CONSTRAIN)
 	:
-		Connection<Pd_session>(env, session(env.parent(),
-		                                    "ram_quota=%u, cap_quota=%u, label=\"%s\", virt_space=%u",
-		                                    RAM_QUOTA, CAP_QUOTA, label, space)),
+		Connection<Pd_session>(env, label, Ram_quota { RAM_QUOTA },
+		                       Args("virt_space=", unsigned(space))),
 		Pd_session_client(cap())
 	{ }
 
@@ -45,11 +38,9 @@ struct Genode::Pd_connection : Connection<Pd_session>, Pd_session_client
 	 */
 	Pd_connection(Env &env, Device_pd)
 	:
-		Connection<Pd_session>(env, session(env.parent(),
-		                                    "ram_quota=%u, cap_quota=%u, "
-		                                    "label=\"device PD\", virt_space=%u, "
-		                                    "managing_system=yes",
-		                                    RAM_QUOTA, CAP_QUOTA, UNCONSTRAIN)),
+		Connection<Pd_session>(env, "device PD", Ram_quota { RAM_QUOTA },
+		                       Args("virt_space=", unsigned(UNCONSTRAIN), ", "
+		                            "managing_system=yes")),
 		Pd_session_client(cap())
 	{ }
 };

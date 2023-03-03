@@ -19,17 +19,13 @@
 
 namespace Pin_state { struct Connection; }
 
+
 struct Pin_state::Connection : private Genode::Connection<Session>,
                                private Rpc_client<Session>
 {
-	enum { RAM_QUOTA = 8*1024UL };
-
-	Connection(Env &env, char const *label = "")
+	Connection(Env &env, Label const &label = Label())
 	:
-		Genode::Connection<Session>(env,
-		                            session(env.parent(),
-		                            "ram_quota=%u, cap_quota=%u, label=\"%s\"",
-		                            RAM_QUOTA, CAP_QUOTA, label)),
+		Genode::Connection<Session>(env, label, Ram_quota { 8*1024 }, Args()),
 		Rpc_client<Session>(cap())
 	{ }
 

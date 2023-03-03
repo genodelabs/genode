@@ -19,19 +19,12 @@
 
 namespace Event { struct Connection; }
 
+
 struct Event::Connection : Genode::Connection<Session>, Session_client
 {
-	enum { RAM_QUOTA = 18*1024UL };
-
-	/**
-	 * Constructor
-	 */
-	Connection(Genode::Env &env, char const *label = "")
+	Connection(Genode::Env &env, Label const &label = Label())
 	:
-		Genode::Connection<Event::Session>(env,
-		                                   session(env.parent(),
-		                                   "ram_quota=%u, cap_quota=%u, label=\"%s\"",
-		                                   RAM_QUOTA, CAP_QUOTA, label)),
+		Genode::Connection<Event::Session>(env, label, Ram_quota { 18*1024 }, Args()),
 		Session_client(env.rm(), cap())
 	{ }
 };

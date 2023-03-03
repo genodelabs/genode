@@ -19,7 +19,7 @@
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -233,12 +233,11 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 		Connection(Genode::Env             &env,
 		           Genode::Range_allocator *tx_block_alloc,
 		           Genode::size_t           tx_buf_size = 128*1024,
-		           const char              *label = "")
+		           Label             const &label = Label())
 		:
-			Genode::Connection<Session>(env,
-				session(env.parent(),
-				        "ram_quota=%ld, cap_quota=%ld, tx_buf_size=%ld, label=\"%s\"",
-				        14*1024 + tx_buf_size, CAP_QUOTA, tx_buf_size, label)),
+			Genode::Connection<Session>(env, label,
+			                            Ram_quota { 14*1024 + tx_buf_size },
+			                            Args("tx_buf_size=", tx_buf_size)),
 			Session_client(cap(), *tx_block_alloc, env.rm()),
 			_max_block_count(_init_max_block_count(_tx.source()->bulk_buffer_size()))
 		{ }

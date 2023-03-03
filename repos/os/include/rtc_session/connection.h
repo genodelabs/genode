@@ -23,13 +23,9 @@ namespace Rtc { struct Connection; }
 
 struct Rtc::Connection : Genode::Connection<Session>, Session_client
 {
-	/**
-	 * Constructor
-	 */
-	Connection(Genode::Env &env, char const *label = "")
+	Connection(Genode::Env &env, Label const &label = Label())
 	:
-		Genode::Connection<Rtc::Session>(
-			env, session(env.parent(), "ram_quota=8K, label=\"%s\"", label)),
+		Genode::Connection<Rtc::Session>(env, label, Ram_quota { 8*1024 }, Args()),
 		Session_client(cap())
 	{ }
 };

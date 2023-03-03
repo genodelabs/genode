@@ -26,4 +26,4 @@ enum {
 Timer::Time_source::Time_source(Env &env)
 : Attached_mmio(env, MMIO_BASE, MMIO_SIZE),
   Signalled_time_source(env),
-  _timer_irq(env, IRQ) { _initialize(); }
+  _timer_irq(env, unsigned(IRQ)) { _initialize(); }

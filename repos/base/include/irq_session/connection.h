@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,47 +19,27 @@
 
 namespace Genode { struct Irq_connection; }
 
+
 struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 {
 	/**
 	 * Constructor
 	 *
-	 * \param irq      physical interrupt number
+	 * \param label    physical interrupt number
 	 * \param trigger  interrupt trigger (e.g., level/edge)
 	 * \param polarity interrupt trigger polarity (e.g., low/high)
 	 */
-	Irq_connection(Env                  &env,
-	               unsigned              irq,
-	               Irq_session::Trigger  trigger  = Irq_session::TRIGGER_UNCHANGED,
-	               Irq_session::Polarity polarity = Irq_session::POLARITY_UNCHANGED,
-	               Genode::addr_t        device_config_phys = 0)
+	Irq_connection(Env         &env,
+	               Label const &label,
+	               Trigger      trigger  = Irq_session::TRIGGER_UNCHANGED,
+	               Polarity     polarity = Irq_session::POLARITY_UNCHANGED,
+	               addr_t       device_config_phys = 0)
 	:
-		Connection<Irq_session>(env, session(env.parent(),
-		                                     "ram_quota=%u, cap_quota=%u, "
-		                                     "irq_number=%u, irq_trigger=%u, "
-		                                     "irq_polarity=%u, device_config_phys=0x%lx",
-		                                     RAM_QUOTA, CAP_QUOTA,
-		                                     irq, trigger, polarity, device_config_phys)),
-		Irq_session_client(cap())
-	{ }
-
-	/**
-	 * Constructor for label-based configuration (used by pin driver)
-	 *
-	 * \param label    session label
-	 */
-	Irq_connection(Env        &env,
-	               char const *label)
-	:
-		Connection<Irq_session>(env, session(env.parent(),
-		                                     "ram_quota=%u, cap_quota=%u, "
-		                                     "irq_number=%u, irq_trigger=%u, "
-		                                     "irq_polarity=%u, device_config_phys=0x%lx, "
-		                                     "label=\"%s\"",
-		                                     RAM_QUOTA, CAP_QUOTA, 0,
-		                                     Irq_session::TRIGGER_UNCHANGED,
-		                                     Irq_session::POLARITY_UNCHANGED,
-		                                     0, label)),
+		Connection<Irq_session>(env, label, Ram_quota { RAM_QUOTA },
+		                        Args("irq_number=",         label, ", "
+		                             "irq_trigger=",        unsigned(trigger),  ", "
+		                             "irq_polarity=",       unsigned(polarity), ", "
+		                             "device_config_phys=", Hex(device_config_phys))),
 		Irq_session_client(cap())
 	{ }
 };

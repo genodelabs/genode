@@ -38,21 +38,14 @@ struct Uplink::Connection : Genode::Connection<Session>, Session_client
 	           Genode::size_t           tx_buf_size,
 	           Genode::size_t           rx_buf_size,
 	           Net::Mac_address  const &mac_address,
-	           char const              *label = "")
+	           Label             const &label = Label())
 	:
 		Genode::Connection<Session>(
-			env,
-			session(
-				env.parent(),
-				"ram_quota=%ld, cap_quota=%ld, mac_address=\"%s\", "
-				"tx_buf_size=%ld, rx_buf_size=%ld, label=\"%s\"",
-				32 * 1024 * sizeof(long) + tx_buf_size + rx_buf_size,
-				CAP_QUOTA,
-				Genode::String<18>(mac_address).string(),
-				tx_buf_size,
-				rx_buf_size,
-				label)),
-
+			env, label,
+			Ram_quota { 32*1024*sizeof(long) + tx_buf_size + rx_buf_size },
+			Args("mac_address=\"", mac_address, "\", "
+			     "tx_buf_size=",   tx_buf_size, ", "
+			     "rx_buf_size=",   rx_buf_size)),
 		Session_client(cap(), *tx_block_alloc, env.rm())
 	{ }
 };

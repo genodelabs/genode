@@ -57,7 +57,7 @@ struct Platform::Session : Genode::Session
 	 */
 	static const char *service_name() { return "Platform"; }
 
-	enum { RAM_QUOTA = 32 * 1024, CAP_QUOTA = 6 };
+	enum { CAP_QUOTA = 6 };
 
 	virtual ~Session() { }
 

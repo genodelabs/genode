@@ -46,7 +46,7 @@ struct Genode::Rom_session : Session
 	 * allocation, a dataspace capability for the ROM dataspace, and its
 	 * session capability.
 	 */
-	enum { CAP_QUOTA = 3 };
+	enum { CAP_QUOTA = 3, RAM_QUOTA = 6*1024 };
 
 	typedef Rom_session_client Client;
 
