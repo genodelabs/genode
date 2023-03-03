@@ -1,4 +1,14 @@
-set use_qemu [have_include "power_on/qemu"]
+if {![have_board pc]} {
+	puts "\nRun script is not supported on this platform.\n";
+	exit 0
+}
+
+if {[get_cmd_switch --autopilot] && ![have_include "power_on/qemu"]} {
+	puts "\nAutopilot run is not supported on this platform\n"
+	exit 0
+}
+
+proc usb_device_label {} { return "usb-1-2" }
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
@@ -9,7 +19,7 @@ import_from_depot [depot_user]/src/[base_src] \
 
 build { app/block_tester }
 
-install_config {
+append config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -58,7 +68,7 @@ install_config {
 		<provides> <service name="Block"/> </provides>
 		<config report="yes" writeable="no"/>
 		<route>
-			<service name="Usb"> <child name="usb_drv"/> </service>
+			<service name="Usb"> <child name="usb_drv" label="} [usb_device_label] {"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -81,20 +91,22 @@ install_config {
 	</start>
 </config>}
 
+install_config $config
+
 #
 # Define USB host controller config
 #
 set fd [open [run_dir]/genode/usb_host_drv.config w]
 puts $fd { <config> <default-policy class="0x8"/> </config> }
 close $fd
-build_boot_image { block_tester }
+build_boot_image [build_artifacts]
 
 #
 # Execute test case
 #
 set disk_image "bin/test.img"
 set cmd "dd if=/dev/zero of=$disk_image bs=1M count=16"
-if {$use_qemu} {
+if {[have_include "power_on/qemu"]} {
 	puts "creating disk image:\n$cmd"
 	catch { exec sh -c $cmd }
 }

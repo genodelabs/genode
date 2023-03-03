@@ -74,6 +74,7 @@ timeout_smp
 timer_accuracy
 tool_chain_auto
 tz_vmm
+usb_block
 usb_hid_raw
 usb_hid_reconnect
 vbox5_genode_usb_hid_raw
