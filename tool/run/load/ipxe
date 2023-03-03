@@ -106,7 +106,8 @@ rename exit load_ipxe_real_exit
 proc exit {{status 0}} {
 	if {[load_ipxe_lighttpd]} {
 		global lighttpd_spawn_id
-		kill_spawned $lighttpd_spawn_id
+		# variable may not exist if the script fails early
+		if {[info exists lighttpd_spawn_id]} { kill_spawned $lighttpd_spawn_id }
 	}
 
 	load_ipxe_real_exit $status
