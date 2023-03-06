@@ -4,7 +4,7 @@ SRC_CC  := main.cc lx_emul.cc linux_network_session_base.cc
 SRC_CC  += printf.cc bug.cc timer.cc scheduler.cc malloc.cc env.cc work.cc
 SRC_CC  += uplink_client.cc
 
-LIBS    := base usb_net_include lx_kit_setjmp nic_driver
+LIBS    := base usb_net_include lx_kit_setjmp nic_driver format
 
 USB_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/drivers/usb_net
 

@@ -14,10 +14,12 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/log.h>
-#include <base/snprintf.h>
 #include <util/list.h>
 #include <util/string.h>
 #include <util/misc_math.h>
+
+/* compiler includes */
+#include <stdarg.h>
 
 /* Libc includes */
 #include <unistd.h>

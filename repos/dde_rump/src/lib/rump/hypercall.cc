@@ -21,6 +21,7 @@
 #include <util/allocator_fap.h>
 #include <util/random.h>
 #include <util/string.h>
+#include <format/snprintf.h>
 
 enum {
 	SUPPORTED_RUMP_VERSION = 17,
@@ -193,7 +194,7 @@ int rumpuser_getparam(const char *name, void *buf, size_t buflen)
 		rump_ram  = Genode::min((unsigned long)MAX_VIRTUAL_MEMORY, rump_ram);
 
 		/* convert to string */
-		Genode::snprintf((char *)buf, buflen, "%zu", rump_ram);
+		Format::snprintf((char *)buf, buflen, "%zu", rump_ram);
 		return 0;
 	}
 

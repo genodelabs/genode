@@ -14,7 +14,7 @@
 
 #include <base/env.h>
 #include <usb_session/client.h>
-#include <base/snprintf.h>
+#include <format/snprintf.h>
 #include <nic_session/nic_session.h>
 #include <util/xml_node.h>
 
@@ -345,7 +345,7 @@ enum { MAC_LEN = 17 };
 static void snprint_mac(char *buf, u8 *mac)
 {
 	for (int i = 0; i < ETH_ALEN; i++) {
-		Genode::snprintf((char *)&buf[i * 3], 3, "%02x", mac[i]);
+		Format::snprintf((char *)&buf[i * 3], 3, "%02x", mac[i]);
 		if ((i * 3) < MAC_LEN)
 			buf[(i * 3) + 2] = ':';
 	}

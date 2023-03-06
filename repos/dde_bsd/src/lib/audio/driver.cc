@@ -19,6 +19,9 @@
 #include <os/reporter.h>
 #include <util/xml_node.h>
 
+/* format-string includes */
+#include <format/snprintf.h>
+
 /* local includes */
 #include <audio/audio.h>
 #include <bsd.h>
@@ -143,7 +146,7 @@ static bool set_mixer_value(Mixer &mixer, char const * const field,
 		char const * const class_name = mixer.info[mixer_class].label.name;
 		char const * const name       = info.label.name;
 
-		Genode::snprintf(buffer, sizeof(buffer), "%s.%s", class_name, name);
+		Format::snprintf(buffer, sizeof(buffer), "%s.%s", class_name, name);
 		if (Genode::strcmp(field, buffer) != 0)
 			continue;
 
@@ -238,7 +241,7 @@ static char const *get_mixer_value(mixer_devinfo_t const *info)
 		{
 			for (int i = 0; i < info->un.e.num_mem; i++)
 				if (ctrl.un.ord == info->un.e.member[i].ord) {
-					Genode::snprintf(buffer, sizeof(buffer),
+					Format::snprintf(buffer, sizeof(buffer),
 					                 "%s", info->un.e.member[i].label.name);
 					break;
 				}
@@ -250,7 +253,7 @@ static char const *get_mixer_value(mixer_devinfo_t const *info)
 			Genode::size_t n = 0;
 			for (int i = 0; i < info->un.s.num_mem; i++)
 				if (ctrl.un.mask & info->un.s.member[i].mask)
-					n += Genode::snprintf(p + n, sizeof(buffer) - n,
+					n += Format::snprintf(p + n, sizeof(buffer) - n,
 					                      "%s%s", n ? "," : "",
 					                      info->un.s.member[i].label.name);
 			break;
@@ -258,11 +261,11 @@ static char const *get_mixer_value(mixer_devinfo_t const *info)
 	case AUDIO_MIXER_VALUE:
 		{
 			if (ctrl.un.value.num_channels == 2)
-				Genode::snprintf(buffer, sizeof(buffer), "%d,%d",
+				Format::snprintf(buffer, sizeof(buffer), "%d,%d",
 				                 ctrl.un.value.level[0],
 				                 ctrl.un.value.level[1]);
 			else
-				Genode::snprintf(buffer, sizeof(buffer), "%d",
+				Format::snprintf(buffer, sizeof(buffer), "%d",
 				                 ctrl.un.value.level[0]);
 			break;
 		}
@@ -374,7 +377,7 @@ static void configure_mixer(Genode::Env &env, Mixer &mixer, Genode::Xml_node con
 				if (value) {
 					xml.node("mixer", [&]() {
 						char tmp[64];
-						Genode::snprintf(tmp, sizeof(tmp), "%s.%s",
+						Format::snprintf(tmp, sizeof(tmp), "%s.%s",
 						                 class_name, name);
 
 						xml.attribute("field", tmp);

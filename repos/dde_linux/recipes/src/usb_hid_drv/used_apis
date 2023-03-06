@@ -1,5 +1,6 @@
 base
 os
+format
 event_session
 report_session
 usb_session

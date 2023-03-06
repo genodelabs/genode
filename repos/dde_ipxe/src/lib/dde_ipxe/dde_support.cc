@@ -39,6 +39,9 @@
 #include <util/retry.h>
 #include <util/reconstructible.h>
 
+/* format-string includes */
+#include <format/snprintf.h>
+
 /* local includes */
 #include <dde_support.h>
 
@@ -77,7 +80,7 @@ extern "C" void dde_vprintf(const char *format, va_list list)
 	using namespace Genode;
 
 	char buf[128] { };
-	String_console(buf, sizeof(buf)).vprintf(format, list);
+	Format::String_console(buf, sizeof(buf)).vprintf(format, list);
 	log(Cstring(buf));
 }
 

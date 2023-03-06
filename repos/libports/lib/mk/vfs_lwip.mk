@@ -7,7 +7,7 @@ REP_INC_DIR += src/lib/lwip/include
 
 LD_OPT  += --version-script=$(VFS_DIR)/symbol.map
 
-LIBS += lwip
+LIBS += lwip format
 
 vpath %.cc $(VFS_DIR)
 

@@ -70,3 +70,5 @@ vpath %.c $(GCOV_DIR)/libgcc
 vpath libc.cc $(REP_DIR)/src/lib/gcov/libc
 
 CC_CXX_WARN_STRICT =
+
+LIBS += format

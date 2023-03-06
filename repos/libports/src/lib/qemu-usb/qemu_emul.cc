@@ -18,6 +18,9 @@
 #include <base/log.h>
 #include <util/misc_math.h>
 
+/* format-string includes */
+#include <format/snprintf.h>
+
 /* local includes */
 #include <extern_c_begin.h>
 #include <qemu_emul.h>
@@ -157,7 +160,7 @@ void qemu_printf(char const *fmt, ...)
 	char buf[BUF_SIZE] { };
 	va_list args;
 	va_start(args, fmt);
-	Genode::String_console sc(buf, BUF_SIZE);
+	Format::String_console sc(buf, BUF_SIZE);
 	sc.vprintf(fmt, args);
 	Genode::log(Genode::Cstring(buf));
 	va_end(args);
@@ -169,7 +172,7 @@ int snprintf(char *buf, size_t size, const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
-	Genode::String_console sc(buf, size);
+	Format::String_console sc(buf, size);
 	sc.vprintf(fmt, args);
 	va_end(args);
 
@@ -1056,7 +1059,7 @@ void error_setg(Error **errp, const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
-	Genode::String_console sc(e->string, sizeof(e->string));
+	Format::String_console sc(e->string, sizeof(e->string));
 	sc.vprintf(fmt, args);
 	va_end(args);
 }

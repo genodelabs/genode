@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/snprintf.h>
+#include <format/snprintf.h>
 
 
 int sprintf(char *str, const char *format, ...)
@@ -21,7 +21,7 @@ int sprintf(char *str, const char *format, ...)
 	va_list list;
 
 	va_start(list, format);
-	Genode::String_console sc(str, BUFFER_LEN);
+	Format::String_console sc(str, BUFFER_LEN);
 	sc.vprintf(format, list);
 	va_end(list);
 
@@ -34,7 +34,7 @@ int snprintf(char *buf, size_t size, const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
-	Genode::String_console sc(buf, size);
+	Format::String_console sc(buf, size);
 	sc.vprintf(fmt, args);
 	va_end(args);
 

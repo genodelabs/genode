@@ -15,9 +15,11 @@
 
 /* Genode includes */
 #include <base/entrypoint.h>
-#include <base/snprintf.h>
 #include <base/tslab.h>
 #include <irq_session/client.h>
+
+/* format-string includes */
+#include <format/snprintf.h>
 
 /* Linux emulation environment */
 #include <lx_emul.h>
@@ -43,7 +45,7 @@ class Lx_kit::Irq : public Lx::Irq
 
 			Name_composer(unsigned number)
 			{
-				Genode::snprintf(name, sizeof(name),
+				Format::snprintf(name, sizeof(name),
 				                 "irq_%02x", number);
 			}
 		};

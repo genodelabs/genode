@@ -15,8 +15,10 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/sleep.h>
-#include <base/snprintf.h>
 #include <util/string.h>
+
+/* format-string includes */
+#include <format/snprintf.h>
 
 /* local includes */
 #include <bsd_emul.h>
@@ -440,7 +442,7 @@ extern "C" int snprintf(char *str, size_t size, const char *format, ...)
 	va_list list;
 
 	va_start(list, format);
-	Genode::String_console sc(str, size);
+	Format::String_console sc(str, size);
 	sc.vprintf(format, list);
 	va_end(list);
 

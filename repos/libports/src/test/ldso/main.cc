@@ -17,6 +17,7 @@
 #include <base/heap.h>
 #include <libc/component.h>
 #include <base/shared_object.h>
+#include <format/snprintf.h>
 
 using namespace Genode;
 
@@ -126,7 +127,7 @@ static void test_stack_align(char const *fmt, ...)
 	va_start(list, fmt);
 
 	char buf[128] { };
-	String_console(buf, sizeof(buf)).vprintf(fmt, list);
+	Format::String_console(buf, sizeof(buf)).vprintf(fmt, list);
 	log(Cstring(buf));
 
 	va_end(list);

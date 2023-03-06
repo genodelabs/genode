@@ -23,6 +23,9 @@
 #include <base/registry.h>
 #include <base/log.h>
 
+/* format-string includes */
+#include <format/snprintf.h>
+
 /* LwIP includes */
 #include <lwip_genode_init.h>
 #include <nic_netif.h>
@@ -329,7 +332,7 @@ struct Lwip::Socket_dir : Lwip::Directory
 		{
 			char buf[Socket_name::capacity()];
 			return Socket_name(Genode::Cstring(
-				buf, Genode::snprintf(buf, Socket_name::capacity(), "%x", num)));
+				buf, Format::snprintf(buf, Socket_name::capacity(), "%x", num)));
 		}
 
 		Genode::Allocator &alloc;
@@ -920,7 +923,7 @@ class Lwip::Udp_socket_dir final :
 					return Read_result::READ_ERR_INVALID;
 				char const *ip_str = ipaddr_ntoa(&_pcb->local_ip);
 				/* TODO: [IPv6]:port */
-				out_count = Genode::snprintf(dst.start, dst.num_bytes, "%s:%d\n",
+				out_count = Format::snprintf(dst.start, dst.num_bytes, "%s:%d\n",
 				                             ip_str, _pcb->local_port);
 				return Read_result::READ_OK;
 			}
@@ -928,9 +931,9 @@ class Lwip::Udp_socket_dir final :
 			case Lwip_file_handle::CONNECT: {
 				/* check if the PCB was connected */
 				if (!ip_addr_isany(&_pcb->remote_ip))
-					out_count = Genode::snprintf(dst.start, dst.num_bytes, "connected");
+					out_count = Format::snprintf(dst.start, dst.num_bytes, "connected");
 				else
-					out_count = Genode::snprintf(dst.start, dst.num_bytes, "not connected");
+					out_count = Format::snprintf(dst.start, dst.num_bytes, "not connected");
 				return Read_result::READ_OK;
 			}
 
@@ -943,14 +946,14 @@ class Lwip::Udp_socket_dir final :
 					_packet_queue.head([&] (Packet &pkt) {
 						char const *ip_str = ipaddr_ntoa(&pkt.addr);
 						/* TODO: IPv6 */
-						out_count = Genode::snprintf(dst.start, dst.num_bytes, "%s:%d\n",
+						out_count = Format::snprintf(dst.start, dst.num_bytes, "%s:%d\n",
 					                                 ip_str, pkt.port);
 						result = Read_result::READ_OK;
 					});
 				} else {
 					char const *ip_str = ipaddr_ntoa(&_pcb->remote_ip);
 					/* TODO: [IPv6]:port */
-					out_count = Genode::snprintf(dst.start, dst.num_bytes, "%s:%d\n",
+					out_count = Format::snprintf(dst.start, dst.num_bytes, "%s:%d\n",
 					                             ip_str, _pcb->remote_port);
 					result = Read_result::READ_OK;
 				}
@@ -960,7 +963,7 @@ class Lwip::Udp_socket_dir final :
 				/*
 				 * Print the location of this socket directory
 				 */
-				out_count = Genode::snprintf(dst.start, dst.num_bytes, "udp/%s\n",
+				out_count = Format::snprintf(dst.start, dst.num_bytes, "udp/%s\n",
 				                             name().string());
 				return Read_result::READ_OK;
 				break;
@@ -1354,7 +1357,7 @@ class Lwip::Tcp_socket_dir final :
 						return Read_result::READ_ERR_INVALID;
 					char const *ip_str = ipaddr_ntoa(&_pcb->remote_ip);
 					/* TODO: [IPv6]:port */
-					out_count = Genode::snprintf(dst.start, dst.num_bytes, "%s:%d\n",
+					out_count = Format::snprintf(dst.start, dst.num_bytes, "%s:%d\n",
 					                             ip_str, _pcb->remote_port);
 					return Read_result::READ_OK;
 				} else {
@@ -1392,7 +1395,7 @@ class Lwip::Tcp_socket_dir final :
 				/*
 				 * Print the location of this socket directory
 				 */
-				out_count = Genode::snprintf(dst.start, dst.num_bytes, "tcp/%s\n",
+				out_count = Format::snprintf(dst.start, dst.num_bytes, "tcp/%s\n",
 				                             name().string());
 				return Read_result::READ_OK;
 				break;
@@ -1405,7 +1408,7 @@ class Lwip::Tcp_socket_dir final :
 				for (Pcb_pending *p = _pcb_pending.first(); p; p = p->next())
 					++pending_count;
 
-				out_count = Genode::snprintf(dst.start, dst.num_bytes, "%d\n", pending_count);
+				out_count = Format::snprintf(dst.start, dst.num_bytes, "%d\n", pending_count);
 				return Read_result::READ_OK;
 			}
 
@@ -1416,7 +1419,7 @@ class Lwip::Tcp_socket_dir final :
 						return Read_result::READ_ERR_INVALID;
 					char const *ip_str = ipaddr_ntoa(&_pcb->local_ip);
 					/* TODO: [IPv6]:port */
-					out_count = Genode::snprintf(dst.start, dst.num_bytes,
+					out_count = Format::snprintf(dst.start, dst.num_bytes,
 					                             "%s:%d\n", ip_str, _pcb->local_port);
 					return Read_result::READ_OK;
 				}
@@ -1425,10 +1428,10 @@ class Lwip::Tcp_socket_dir final :
 			case Lwip_file_handle::CONNECT:
 				switch (state) {
 				case READY:
-					out_count = Genode::snprintf(dst.start, dst.num_bytes, "connected");
+					out_count = Format::snprintf(dst.start, dst.num_bytes, "connected");
 					break;
 				default:
-					out_count = Genode::snprintf(dst.start, dst.num_bytes, "connection refused");
+					out_count = Format::snprintf(dst.start, dst.num_bytes, "connection refused");
 					break;
 				}
 				return Read_result::READ_OK;

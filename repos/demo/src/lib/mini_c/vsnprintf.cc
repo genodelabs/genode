@@ -11,11 +11,11 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/snprintf.h>
+#include <format/snprintf.h>
 
-extern "C" int vsnprintf(char *dst, Genode::size_t dst_len, const char *format, va_list list)
+extern "C" int vsnprintf(char *dst, Format::size_t dst_len, const char *format, va_list list)
 {
-	Genode::String_console sc(dst, dst_len);
+	Format::String_console sc(dst, dst_len);
 	sc.vprintf(format, list);
 	return (int)sc.len();
 }

@@ -8,6 +8,7 @@ INC_DIR += $(LIB_DIR) $(QEMU_USB_DIR)
 LIBS  = qemu-usb_include
 LIBS += libc
 LIBS += libyuv
+LIBS += format
 
 SRC_CC = dummies.cc qemu_emul.cc host.cc webcam.cc
 

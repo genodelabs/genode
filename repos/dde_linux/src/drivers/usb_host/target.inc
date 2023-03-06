@@ -1,7 +1,7 @@
 LX_CONTRIB_DIR    := $(call select_from_ports,dde_linux)/src/drivers/usb_host
 SRC_CC             = main.cc lx_emul.cc raw.cc
 SRC_C              = dummies.c raw_driver.c
-LIBS               = base usb_host_include lx_kit_setjmp
+LIBS               = base usb_host_include lx_kit_setjmp format
 CC_CXX_WARN_STRICT =
 
 INC_DIR  += $(PRG_DIR)

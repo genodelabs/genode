@@ -17,6 +17,7 @@
 #include <block_session/connection.h>
 #include <rump/env.h>
 #include <rump_fs/fs.h>
+#include <format/snprintf.h>
 
 static const bool verbose = false;
 
@@ -361,7 +362,7 @@ void rumpuser_dprintf(const char *format, ...)
 	va_start(list, format);
 
 	char buf[128] { };
-	Genode::String_console(buf, sizeof(buf)).vprintf(format, list);
+	Format::String_console(buf, sizeof(buf)).vprintf(format, list);
 	Genode::log(Genode::Cstring(buf));
 
 	va_end(list);

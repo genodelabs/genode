@@ -22,6 +22,9 @@
 #include <util/reconstructible.h>
 #include <io_port_session/connection.h>
 
+/* format-string includes */
+#include <format/snprintf.h>
+
 /* local includes */
 #include "ifx86emu.h"
 #include "framebuffer.h"
@@ -502,7 +505,7 @@ void X86emu::printk(const char *format, ...)
 	va_start(list, format);
 
 	char buf[128];
-	String_console sc(buf, sizeof(buf));
+	Format::String_console sc(buf, sizeof(buf));
 	sc.vprintf(format, list);
 
 	va_end(list);

@@ -20,6 +20,9 @@
 #include <util/bit_allocator.h>
 #include <util/string.h>
 
+/* format-string includes */
+#include <format/snprintf.h>
+
 /* Local includes */
 #include "signal.h"
 #include "lx_emul.h"
@@ -120,7 +123,7 @@ bool access_ok(int access, void *addr, size_t size) { return 1; }
 
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
-	Genode::String_console sc(buf, size);
+	Format::String_console sc(buf, size);
 	sc.vprintf(fmt, args);
 
 	return sc.len();
@@ -132,7 +135,7 @@ int snprintf(char *buf, size_t size, const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
-	Genode::String_console sc(buf, size);
+	Format::String_console sc(buf, size);
 	sc.vprintf(fmt, args);
 	va_end(args);
 
@@ -145,7 +148,7 @@ int scnprintf(char *buf, size_t size, const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
-	Genode::String_console sc(buf, size);
+	Format::String_console sc(buf, size);
 	sc.vprintf(fmt, args);
 	va_end(args);
 

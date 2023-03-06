@@ -15,7 +15,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/snprintf.h>
 #include <net/ipv4.h>
 #include <util/string.h>
 #include <util/xml_node.h>
@@ -24,6 +23,9 @@
 #include <vfs/file_system_factory.h>
 #include <vfs/vfs_handle.h>
 #include <timer_session/connection.h>
+
+/* format-string includes */
+#include <format/snprintf.h>
 
 /* Lxip includes */
 #include <lxip/lxip.h>
@@ -656,7 +658,7 @@ class Vfs::Lxip_listen_file final : public Vfs::Lxip_file
 		                   Byte_range_ptr const &dst,
 		                   file_size /* ignored */) override
 		{
-			return Genode::snprintf(dst.start, dst.num_bytes, "%lu\n", _backlog);
+			return Format::snprintf(dst.start, dst.num_bytes, "%lu\n", _backlog);
 		}
 };
 
@@ -764,11 +766,11 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 
 			switch (so_error) {
 			case 0:
-				return Genode::snprintf(dst.start, dst.num_bytes, "connected");
+				return Format::snprintf(dst.start, dst.num_bytes, "connected");
 			case Linux::ECONNREFUSED:
-				return Genode::snprintf(dst.start, dst.num_bytes, "connection refused");
+				return Format::snprintf(dst.start, dst.num_bytes, "connection refused");
 			default:
-				return Genode::snprintf(dst.start, dst.num_bytes, "unknown error");
+				return Format::snprintf(dst.start, dst.num_bytes, "unknown error");
 			}
 		}
 };
@@ -806,7 +808,7 @@ class Vfs::Lxip_local_file final : public Vfs::Lxip_file
 			in_addr const i_addr   = addr->sin_addr;
 			unsigned char const *a = (unsigned char *)&i_addr.s_addr;
 			unsigned char const *p = (unsigned char *)&addr->sin_port;
-			return Genode::snprintf(dst.start, dst.num_bytes,
+			return Format::snprintf(dst.start, dst.num_bytes,
 			                        "%d.%d.%d.%d:%u\n",
 			                        a[0], a[1], a[2], a[3], (p[0]<<8)|(p[1]<<0));
 		}
@@ -883,7 +885,7 @@ class Vfs::Lxip_remote_file final : public Vfs::Lxip_file
 			in_addr const i_addr   = addr->sin_addr;
 			unsigned char const *a = (unsigned char *)&i_addr.s_addr;
 			unsigned char const *p = (unsigned char *)&addr->sin_port;
-			return Genode::snprintf(dst.start, dst.num_bytes,
+			return Format::snprintf(dst.start, dst.num_bytes,
 			                        "%d.%d.%d.%d:%u\n",
 			                        a[0], a[1], a[2], a[3], (p[0]<<8)|(p[1]<<0));
 		}
@@ -1014,7 +1016,7 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 			_alloc(alloc), _parent(parent),
 			_sock(sock), id(parent.adopt_socket(*this))
 		{
-			Genode::snprintf(_name, sizeof(_name), "%u", id);
+			Format::snprintf(_name, sizeof(_name), "%u", id);
 
 			for (Vfs::File * &file : _files) file = nullptr;
 
@@ -1177,7 +1179,7 @@ struct Vfs::Lxip_socket_handle final : Vfs::Lxip_vfs_handle
 
 		Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 		{
-			out_count = Genode::snprintf(
+			out_count = Format::snprintf(
 				dst.start, dst.num_bytes, "%s/%s\n", socket_dir.parent().name(), socket_dir.name());
 			return Read_result::READ_OK;
 		}

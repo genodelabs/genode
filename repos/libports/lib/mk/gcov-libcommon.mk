@@ -26,7 +26,7 @@ CC_OPT_version += -DBASEVER="\"10.3.0\"" \
                   -DPKGVERSION="\"(GCC) \"" \
                   -DBUGURL="\"<http://gcc.gnu.org/bugs.html>\""
 
-LIBS += libc gmp stdcxx
+LIBS += libc gmp stdcxx format
 
 INC_DIR += $(GCOV_DIR)/include \
            $(GCOV_DIR)/libcpp/include

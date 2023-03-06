@@ -3,7 +3,7 @@ SRC_C   := dummies.c
 SRC_CC  := main.cc lx_emul.cc evdev.cc
 SRC_CC  += printf.cc bug.cc timer.cc scheduler.cc env.cc work.cc
 
-LIBS    := base usb_hid_include lx_kit_setjmp
+LIBS    := base usb_hid_include lx_kit_setjmp format
 
 USB_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/drivers/usb_hid
 

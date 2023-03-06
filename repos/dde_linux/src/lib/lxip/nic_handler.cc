@@ -18,6 +18,9 @@
 #include <nic/packet_allocator.h>
 #include <nic_session/connection.h>
 
+/* format-string includes */
+#include <format/snprintf.h>
+
 /* local includes */
 #include <lx.h>
 #include <nic.h>
@@ -162,7 +165,7 @@ void net_mac(void* mac, unsigned long size)
 
 	unsigned char const *mac_addr = (unsigned char const*)m.addr;
 	for (int i = 0; i < ETH_ALEN; i++) {
-		Genode::snprintf((char *)&str[i * 3], 3, "%02x", mac_addr[i]);
+		Format::snprintf((char *)&str[i * 3], 3, "%02x", mac_addr[i]);
 		if ((i * 3) < MAC_LEN)
 		str[(i * 3) + 2] = ':';
 	}

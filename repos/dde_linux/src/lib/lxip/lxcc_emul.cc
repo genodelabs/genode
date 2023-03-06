@@ -17,16 +17,17 @@
 #include <base/allocator_avl.h>
 #include <base/object_pool.h>
 #include <base/sleep.h>
-#include <base/snprintf.h>
 #include <dataspace/client.h>
 #include <region_map/client.h>
 #include <trace/timestamp.h>
 #include <timer_session/connection.h>
 
+/* format-string includes */
+#include <format/snprintf.h>
+
 /* local includes */
 #include <lx_emul.h>
 #include <lx.h>
-
 
 /* Lx_kit */
 #include <legacy/lx_kit/env.h>
@@ -271,7 +272,7 @@ int snprintf(char *str, size_t size, const char *format, ...)
 	va_list list;
 	va_start(list, format);
 
-	Genode::String_console sc(str, size);
+	Format::String_console sc(str, size);
 	sc.vprintf(format, list);
 	va_end(list);
 
@@ -457,13 +458,13 @@ static void create_event(char const *fmt, va_list list)
 
 	using namespace Genode;
 
-	String_console sc(buf, BUFFER_LEN);
+	Format::String_console sc(buf, BUFFER_LEN);
 	sc.vprintf(fmt, list);
 
 	char event[EVENT_LEN];
 	static Trace::Timestamp last = 0;
 	       Trace::Timestamp now  = Trace::timestamp();
-	Genode::snprintf(event, sizeof(event), "delta = %llu ms %s",
+	Format::snprintf(event, sizeof(event), "delta = %llu ms %s",
 	                 (now - last) / 2260000, buf);
 	Thread::trace(event);
 	last = now;
