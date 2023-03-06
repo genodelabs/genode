@@ -9,7 +9,6 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/shared_object.h>
-#include <base/snprintf.h>
 
 /* Genode-specific libc includes */
 #include <libc/allocator.h>
@@ -24,12 +23,27 @@ extern "C" {
 
 using namespace Genode;
 
-enum { MAX_ERR = 128 };
-static char err_str[MAX_ERR];
+
+using Err_string = String<128>;
+
+
+static Err_string &_err_str()
+{
+	static Err_string str { };
+	return str;
+}
+
+
+/**
+ * Set global 'dlerror' message
+ */
+template <typename... ARGS>
+static void _dlerror(ARGS &&... args) { _err_str() = { args... }; }
+
 
 char *dlerror(void)
 {
-	return err_str;
+	return (char *)_err_str().string();
 }
 
 
@@ -58,8 +72,8 @@ void *dlopen(const char *name, int mode)
 
 	/* error on unsupported mode values */
 	if (mode & ~supported) {
-		snprintf(err_str, MAX_ERR, "Unsupported mode 0x%x\n", mode & ~supported);
-		error(__func__, ": ", Cstring(err_str));
+		_dlerror("Unsupported mode ", Hex(mode & ~supported));
+		error(__func__, ": ", _err_str());
 		return nullptr;
 	}
 
@@ -82,7 +96,7 @@ void *dlopen(const char *name, int mode)
 			              name ? Genode::Path<128>(name).last_element() : nullptr, /* extract file name */
 			              bind, keep);
 	} catch (...) {
-		snprintf(err_str, MAX_ERR, "Unable to open file %s\n", name);
+		_dlerror("Unable to open file ", name);
 	}
 	return nullptr;
 }
@@ -91,7 +105,7 @@ void *dlopen(const char *name, int mode)
 void *dlsym(void *handle, const char *name)
 {
 	if (handle == nullptr || handle == RTLD_NEXT || handle == RTLD_SELF) {
-		snprintf(err_str, MAX_ERR, "Unsupported handle %p\n", handle);
+		_dlerror("Unsupported handle ", handle);
 		return nullptr;
 	}
 
@@ -106,7 +120,7 @@ void *dlsym(void *handle, const char *name)
 
 		return to_object(handle)->lookup(name);
 	} catch (...) {
-		snprintf(err_str, MAX_ERR, "Symbol '%s' not found\n", name);
+		_dlerror("Symbol '", name, "' not found");
 	}
 
 	return nullptr;
@@ -122,7 +136,7 @@ int dladdr(const void *addr, Dl_info *dlip)
 		dlip->dli_sname = info.name;
 		dlip->dli_saddr = (void *)info.addr;
 	} catch (...) {
-		snprintf(err_str, MAX_ERR, "Symbol %p at not found", addr);
+		_dlerror("Symbol at ", addr, " not found");
 		return 0;
 	}
 

@@ -23,6 +23,9 @@
 #include <libc-plugin/plugin_registry.h>
 #include <libc-plugin/plugin.h>
 
+/* compiler includes */
+#include <stdarg.h>
+
 extern "C" {
 /* libc includes */
 #include <dirent.h>
