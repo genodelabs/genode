@@ -24,7 +24,6 @@
 #include <cpu_session/capability.h>
 #include <pd_session/capability.h>
 #include <base/allocator.h>
-#include <base/snprintf.h>
 
 namespace Genode {
 

@@ -16,16 +16,15 @@
 
 #include <dataspace/dataspace.h>
 #include <base/stdint.h>
-#include <base/ipc.h>
 #include <base/rpc.h>
+#include <base/ipc.h>
 
 namespace Genode { struct Linux_dataspace; }
 
 
 struct Genode::Linux_dataspace : Dataspace
 {
-	enum { FNAME_LEN = 64 };
-	struct Filename { char buf[FNAME_LEN]; };
+	using Filename = String<64>;
 
 	virtual ~Linux_dataspace() { }
 
@@ -42,10 +41,10 @@ struct Genode::Linux_dataspace : Dataspace
 	 */
 	virtual Untyped_capability fd() = 0;
 
+
 	/*********************
 	 ** RPC declaration **
 	 *********************/
-
 
 	GENODE_RPC(Rpc_fname, Filename, fname);
 	GENODE_RPC(Rpc_fd, Untyped_capability, fd);

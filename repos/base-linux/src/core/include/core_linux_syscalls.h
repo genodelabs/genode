@@ -117,8 +117,7 @@ inline int lx_ioctl_irq(int fd, int irq)
  ** Process creation and destruction **
  **************************************/
 
-inline int lx_execve(const char *filename, char *const argv[],
-                     char *const envp[])
+inline int lx_execve(char const *filename, char const *argv[], char const *envp[])
 {
 	return (int)lx_syscall(SYS_execve, filename, argv, envp);
 }

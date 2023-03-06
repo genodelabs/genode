@@ -19,6 +19,7 @@
 #include <base/log.h>
 #include <base/rpc_server.h>
 #include <base/rpc_client.h>
+#include <util/formatted_output.h>
 #include <trace/timestamp.h>
 
 
@@ -203,41 +204,58 @@ namespace Affinity_test {
 		volatile uint64_t cnt = 0;
 		unsigned round = 0;
 
-		char const   text_cpu[] = "Affinity:      CPU: ";
-		char const text_round[] = "Affinity: Round %2u: ";
-		char * output_buffer = new (heap) char [sizeof(text_cpu) + 3 * cpus.total()];
+		static char const text_cpu[] = "Affinity:      CPU: ";
 
 		for (; round < 11;) {
 			cnt++;
 
 			/* try to get a life sign by the main thread from the remote threads */
 			if (cnt % COUNT_VALUE == 0) {
-				char * output = output_buffer;
-				snprintf(output, sizeof(text_cpu), text_cpu);
-				output += sizeof(text_cpu) - 1;
-				for (unsigned i = 0; i < cpus.total(); i++) {
-					snprintf(output, 4, "%2u ", i);
-					output += 3;
-				}
-				log(Cstring(output_buffer));
 
-				output = output_buffer;
-				snprintf(output, sizeof(text_round), text_round, round);
-				output += sizeof(text_round) - 2;
+				struct Table_header
+				{
+					unsigned num_cpus;
 
-				for (unsigned i = 0; i < cpus.total(); i++) {
-					snprintf(output, 4, "%s ",
-							 thread_cnt[i] == threads[i]->cnt ? " D" : " A");
-					output += 3;
+					void print(Output &out) const
+					{
+						using Genode::print;
+
+						print(out, text_cpu);
+						for (unsigned i = 0; i < num_cpus; i++)
+							print(out, Right_aligned(2, i), " ");
+					}
+				};
+
+				struct Table_entries
+				{
+					unsigned          num_cpus;
+					unsigned          round;
+					Spinning_thread **threads;
+					uint64_t         *thread_cnt;
+
+					void print(Output &out) const
+					{
+						using Genode::print;
+
+						print(out, "Affinity: Round ", Right_aligned(2, round), ": ");
+
+						for (unsigned i = 0; i < num_cpus; i++)
+							print(out, thread_cnt[i] == threads[i]->cnt ? " D " : " A ");
+					}
+				};
+
+				log(Table_header  { .num_cpus = cpus.total() });
+				log(Table_entries { .num_cpus   = cpus.total(),
+				                    .round      = round,
+				                    .threads    = threads,
+				                    .thread_cnt = thread_cnt });
+
+				for (unsigned i = 0; i < cpus.total(); i++)
 					thread_cnt[i] = threads[i]->cnt;
-				}
-				log(Cstring(output_buffer));
 
 				round ++;
 			}
 		}
-
-		destroy(heap, output_buffer);
 
 		for (unsigned i = 0; i < cpus.total(); i++)
 			destroy(heap, threads[i]);

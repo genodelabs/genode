@@ -15,9 +15,7 @@
 #include <base/heap.h>
 #include <base/thread.h>
 #include <base/log.h>
-#include <base/snprintf.h>
 #include <base/component.h>
-
 #include <util/touch.h>
 #include <util/retry.h>
 #include <rm_session/connection.h>
@@ -625,24 +623,18 @@ class Greedy : public Genode::Thread {
 		}
 };
 
-void check(uint8_t res, const char *format, ...)
+
+template <typename... ARGS>
+void check(uint8_t res, ARGS &&... args)
 {
-	static char buf[128];
-
-	va_list list;
-	va_start(list, format);
-
-	String_console sc(buf, sizeof(buf));
-	sc.vprintf(format, list);
-
-	va_end(list);
+	String<128> msg(args...);
 
 	if (res == Nova::NOVA_OK) {
-		error("res=", res, " ", Cstring(buf), " - TEST FAILED");
+		error("res=", res, " ", msg, " - TEST FAILED");
 		failed++;
 	}
 	else
-		log("res=", res, " ", Cstring(buf));
+		log("res=", res, " ", msg);
 }
 
 struct Main
@@ -708,7 +700,7 @@ Main::Main(Env &env) : env(env)
 	for (unsigned i = 0; i < (1U << Nova::NUM_INITIAL_PT_LOG2); i++) {
 		addr_t sel_exc = myself->native_thread().exc_pt_sel + i;
 		res = Nova::pt_ctrl(sel_exc, 0xbadbad);
-		check(res, "pt_ctrl %2u", i);
+		check(res, "pt_ctrl ", i);
 	}
 
 	/* test PAT kernel feature */

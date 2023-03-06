@@ -29,7 +29,6 @@
 
 #include <util/token.h>
 #include <util/string.h>
-#include <base/snprintf.h>
 
 namespace Genode {
 
@@ -329,10 +328,8 @@ class Genode::Arg_string
 		static bool set_arg(char *args, size_t args_len,
 		                    const char *key, int value)
 		{
-			enum { STRING_LONG_MAX = 32 };
-			char buf[STRING_LONG_MAX];
-			snprintf(buf, sizeof(buf), "%d", value);
-			return remove_arg(args, key) && add_arg(args, args_len, key, buf);
+			return remove_arg(args, key)
+			    && add_arg(args, args_len, key, String<16>(value).string());
 		}
 
 		/**

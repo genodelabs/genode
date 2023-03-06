@@ -16,7 +16,6 @@
 
 #include <util/string.h>
 #include <util/print_lines.h>
-#include <base/snprintf.h>
 
 namespace Genode { class Xml_generator; }
 
@@ -336,9 +335,7 @@ class Genode::Xml_generator
 
 		void attribute(char const *name, long long value)
 		{
-			char buf[64];
-			Genode::snprintf(buf, sizeof(buf), "%lld", value);
-			_curr_node->insert_attribute(name, buf);
+			_curr_node->insert_attribute(name, String<64>(value).string());
 		}
 
 		void attribute(char const *name, long value)
@@ -353,9 +350,7 @@ class Genode::Xml_generator
 
 		void attribute(char const *name, unsigned long long value)
 		{
-			char buf[64];
-			Genode::snprintf(buf, sizeof(buf), "%llu", value);
-			_curr_node->insert_attribute(name, buf);
+			_curr_node->insert_attribute(name, String<64>(value).string());
 		}
 
 		void attribute(char const *name, unsigned long value)

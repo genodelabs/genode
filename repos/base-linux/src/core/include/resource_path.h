@@ -18,7 +18,7 @@
 #include <linux_syscalls.h>
 
 /* Genode includes */
-#include <base/snprintf.h>
+#include <util/string.h>
 
 /**
  * Return resource path for Genode
@@ -27,18 +27,8 @@
  */
 static inline char const *resource_path()
 {
-	struct Resource_path
-	{
-		char string[32];
-
-		Resource_path()
-		{
-			Genode::snprintf(string, sizeof(string), "/tmp/genode-%d", lx_getuid());
-		}
-	};
-
-	static Resource_path path;
-	return path.string;
+	static Genode::String<32> path("/tmp/genode-", lx_getuid());
+	return path.string();
 }
 
 #endif /* _CORE__INCLUDE__RESOURCE_PATH_H_ */

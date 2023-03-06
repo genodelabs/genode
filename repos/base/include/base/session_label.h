@@ -15,7 +15,6 @@
 #ifndef _INCLUDE__BASE__SESSION_LABEL_H_
 #define _INCLUDE__BASE__SESSION_LABEL_H_
 
-#include <base/snprintf.h>
 #include <util/arg_string.h>
 #include <util/string.h>
 
@@ -40,8 +39,7 @@ struct Genode::Session_label : String<160>
 		 * copy constructors as candidate.
 		 */
 		template <size_t N>
-		Session_label(Genode::String<N> const &other)
-		: Genode::String<160>(other) { }
+		Session_label(Genode::String<N> const &other) : Genode::String<160>(other) { }
 
 		Session_label last_element() const
 		{

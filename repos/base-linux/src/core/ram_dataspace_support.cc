@@ -14,9 +14,6 @@
 /* glibc includes */
 #include <fcntl.h>
 
-/* Genode includes */
-#include <base/snprintf.h>
-
 /* local includes */
 #include <ram_dataspace_factory.h>
 #include <resource_path.h>
@@ -35,12 +32,11 @@ static int ram_ds_cnt = 0;  /* counter for creating unique dataspace IDs */
 
 void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)
 {
-	char fname[Linux_dataspace::FNAME_LEN];
+	Linux_dataspace::Filename const fname(resource_path(), "/ds-", ram_ds_cnt++);
 
 	/* create file using a unique file name in the resource path */
-	snprintf(fname, sizeof(fname), "%s/ds-%d", resource_path(), ram_ds_cnt++);
-	lx_unlink(fname);
-	int const fd = lx_open(fname, O_CREAT|O_RDWR|O_TRUNC|LX_O_CLOEXEC, S_IRWXU);
+	lx_unlink(fname.string());
+	int const fd = lx_open(fname.string(), O_CREAT|O_RDWR|O_TRUNC|LX_O_CLOEXEC, S_IRWXU);
 	lx_ftruncate(fd, ds.size());
 
 	/* remember file descriptor in dataspace component object */
@@ -52,7 +48,7 @@ void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)
 	 * gone (i.e., an open file descriptor referring to the file). A process
 	 * w/o the right file descriptor won't be able to open and access the file.
 	 */
-	lx_unlink(fname);
+	lx_unlink(fname.string());
 }
 
 

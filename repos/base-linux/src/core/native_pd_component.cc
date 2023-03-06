@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <util/arg_string.h>
-#include <base/snprintf.h>
 #include <cpu/consts.h>
 
 /* core includes */
@@ -42,8 +41,8 @@ struct Execve_args_and_stack
 	struct Args
 	{
 		char const *filename;
-		char      **argv;
-		char      **envp;
+		char const **argv;
+		char const **envp;
 		Lx_sd       parent_sd;
 	};
 
@@ -111,8 +110,7 @@ void Native_pd_component::_start(Dataspace_component &ds)
 	const char *tmp_filename = "temporary_executable_elf_dataspace_file_for_execve";
 
 	/* we need 's' on stack to make it an lvalue with an lvalue member we use the pointer to */
-	Linux_dataspace::Filename s = ds.fname();
-	const char *filename = s.buf;
+	Linux_dataspace::Filename filename = ds.fname();
 
 	/*
 	 * In order to be executable via 'execve', a program must be represented as
@@ -121,11 +119,11 @@ void Native_pd_component::_start(Dataspace_component &ds)
 	 * the dataspace content into a temporary file whose path is passed to
 	 * 'execve()'.
 	 */
-	if (Genode::strcmp(filename, "") == 0) {
+	if (filename == "") {
 
 		filename = tmp_filename;
 
-		int tmp_binary_fd = lx_open(filename, O_CREAT | O_EXCL | O_WRONLY, S_IRWXU);
+		int tmp_binary_fd = lx_open(filename.string(), O_CREAT | O_EXCL | O_WRONLY, S_IRWXU);
 		if (tmp_binary_fd < 0) {
 			error("Could not create file '", filename, "'");
 			return; /* XXX reflect error to client */
@@ -141,30 +139,24 @@ void Native_pd_component::_start(Dataspace_component &ds)
 	}
 
 	/* pass parent capability as environment variable to the child */
-	enum { ENV_STR_LEN = 256 };
-	static char envbuf[5][ENV_STR_LEN];
-	Genode::snprintf(envbuf[1], ENV_STR_LEN, "parent_local_name=%lu",
-	                 _pd_session._parent.local_name());
-	Genode::snprintf(envbuf[2], ENV_STR_LEN, "DISPLAY=%s",
-	                 get_env("DISPLAY"));
-	Genode::snprintf(envbuf[3], ENV_STR_LEN, "HOME=%s",
-	                 get_env("HOME"));
-	Genode::snprintf(envbuf[4], ENV_STR_LEN, "LD_LIBRARY_PATH=%s",
-	                 get_env("LD_LIBRARY_PATH"));
-
-	char *env[] = { &envbuf[0][0], &envbuf[1][0], &envbuf[2][0],
-		&envbuf[3][0], &envbuf[4][0], 0 };
+	using Env_string = String<256>;
+	static Env_string env_strings[] {
+		{ "parent_local_name=", _pd_session._parent.local_name() },
+		{ "DISPLAY=",           get_env("DISPLAY") },
+		{ "HOME=",              get_env("HOME") },
+		{ "LD_LIBRARY_PATH=",   get_env("LD_LIBRARY_PATH") },
+	};
+	char const *env[] = { env_strings[0].string(), env_strings[1].string(),
+	                      env_strings[2].string(), env_strings[3].string(),
+	                      nullptr };
 
 	/* prefix name of Linux program (helps killing some zombies) */
-	char const *prefix = "[Genode] ";
-	char pname_buf[sizeof(_pd_session._label) + sizeof(prefix)];
-	snprintf(pname_buf, sizeof(pname_buf), "%s%s", prefix, _pd_session._label.string());
-	char *argv_buf[2];
-	argv_buf[0] = pname_buf;
-	argv_buf[1] = 0;
+	using Pname = String<Session::Label::capacity() + 9>;
+	Pname const pname("[Genode] ", _pd_session._label);
+	char const *argv_buf[] { pname.string(), nullptr };
 
 	_execve_args_and_stack().args = Execve_args_and_stack::Args {
-		.filename  = filename,
+		.filename  = filename.string(),
 		.argv      = argv_buf,
 		.envp      = env,
 		.parent_sd = Capability_space::ipc_cap_data(_pd_session._parent).dst.socket
@@ -173,8 +165,8 @@ void Native_pd_component::_start(Dataspace_component &ds)
 	_pid = lx_create_process((int (*)())_exec_child,
 	                         _execve_args_and_stack().initial_sp());
 
-	if (Genode::strcmp(filename, tmp_filename) == 0)
-		lx_unlink(filename);
+	if (filename == tmp_filename)
+		lx_unlink(filename.string());
 }
 
 

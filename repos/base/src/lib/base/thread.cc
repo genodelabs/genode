@@ -18,7 +18,6 @@
 #include <base/thread.h>
 #include <base/env.h>
 #include <base/sleep.h>
-#include <base/snprintf.h>
 #include <deprecated/env.h>
 
 /* base-internal includes */
@@ -133,7 +132,7 @@ void Thread::_free_stack(Stack *stack)
 
 void Thread::name(char *dst, size_t dst_len)
 {
-	snprintf(dst, dst_len, "%s", _stack->name().string());
+	copy_cstring(dst, name().string(), dst_len);
 }
 
 

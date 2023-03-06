@@ -18,6 +18,7 @@
 #include <base/env.h>
 #include <base/capability.h>
 #include <base/log.h>
+#include <base/snprintf.h> /* deprecated */
 
 namespace Genode {
 

@@ -25,6 +25,9 @@
 #include <cpu_thread/client.h>
 #include <cpu/memory_barrier.h>
 
+/* compiler includes */
+#include <stdarg.h>
+
 using namespace Genode;
 
 
@@ -194,7 +197,7 @@ struct Cpu_helper : Thread
 {
 	Env &_env;
 
-	Cpu_helper(Env &env, const char * name, Cpu_session &cpu)
+	Cpu_helper(Env &env, Name const &name, Cpu_session &cpu)
 	:
 		Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(), cpu),
 		_env(env)
@@ -306,7 +309,6 @@ static void test_create_as_many_threads(Env &env)
 	                   Thread::stack_virtual_size();
 
 	Cpu_helper * threads[max];
-	static char thread_name[8];
 
 	Heap heap(env.ram(), env.rm());
 
@@ -314,8 +316,7 @@ static void test_create_as_many_threads(Env &env)
 	try {
 		for (; i < max; i++) {
 			try {
-				snprintf(thread_name, sizeof(thread_name), "%u", i + 1);
-				threads[i] = new (heap) Cpu_helper(env, thread_name, env.cpu());
+				threads[i] = new (heap) Cpu_helper(env, Thread::Name(i + 1), env.cpu());
 				threads[i]->start();
 				threads[i]->join();
 			} catch (Cpu_session::Thread_creation_failed) {

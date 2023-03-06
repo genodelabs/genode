@@ -18,18 +18,16 @@
 #define _INCLUDE__BASE__INTERNAL__ASSERT_H_
 
 /* Genode includes */
-#include <base/snprintf.h>
+#include <util/string.h>
 
 /* base-internal includes */
 #include <base/internal/kernel_debugger.h>
 
 #define ASSERT(e) \
 	do { if (!(e)) { \
-		char line_buf[32]; \
-		Genode::snprintf(line_buf, sizeof(line_buf), "%d", __LINE__); \
 		kernel_debugger_outstring("Assertion failed: " #e "\n"); \
 		kernel_debugger_outstring(__FILE__ ":"); \
-		kernel_debugger_outstring(line_buf); \
+		kernel_debugger_outstring(Genode::String<32>(__LINE__).string()); \
 		kernel_debugger_panic("\n"); \
 		} \
 	} while(0)

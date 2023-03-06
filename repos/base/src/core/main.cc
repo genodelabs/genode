@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/snprintf.h>
 #include <base/sleep.h>
 #include <base/service.h>
 #include <base/child.h>
