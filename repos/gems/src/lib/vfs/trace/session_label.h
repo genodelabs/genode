@@ -14,7 +14,6 @@
 #ifndef _SESSION_LABEL_H_
 #define _SESSION_LABEL_H_
 
-#include <base/snprintf.h>
 #include <util/arg_string.h>
 #include <util/string.h>
 

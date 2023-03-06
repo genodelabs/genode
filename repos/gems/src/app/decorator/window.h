@@ -52,12 +52,9 @@ class Decorator::Window : public Window_base
 				/*
 				 * We supply the window ID as label for the anchor view.
 				 */
-				if (id) {
-					char buf[128];
-					Genode::snprintf(buf, sizeof(buf), "%d", id);
-
-					_gui.enqueue<Command::Title>(_handle, Genode::Cstring(buf));
-				}
+				if (id)
+					_gui.enqueue<Command::Title>(_handle,
+					                             Genode::String<128>(id).string());
 			}
 
 			~Gui_view()

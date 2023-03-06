@@ -19,7 +19,6 @@
 #include <util/xml_generator.h>
 #include <util/list_model.h>
 #include <gui_session/client.h>
-#include <base/snprintf.h>
 
 /* decorator includes */
 #include <decorator/types.h>

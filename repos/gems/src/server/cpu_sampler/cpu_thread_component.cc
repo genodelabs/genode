@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/snprintf.h>
+#include <util/string.h>
 
 /* local includes */
 #include "cpu_session_component.h"
@@ -32,28 +32,14 @@ Cpu_sampler::Cpu_thread_component::Cpu_thread_component(
                                 addr_t                   utcb,
                                 char              const *thread_name,
                                 unsigned int             thread_id)
-: _cpu_session_component(cpu_session_component), _env(env),
-  _md_alloc(md_alloc),
-  _parent_cpu_thread(
-      _cpu_session_component.parent_cpu_session().create_thread(pd,
-                                                                name,
-                                                                affinity,
-                                                                weight,
-                                                                utcb))
+:
+	_cpu_session_component(cpu_session_component), _env(env), _md_alloc(md_alloc),
+	_parent_cpu_thread(
+		_cpu_session_component.parent_cpu_session()
+		                      .create_thread(pd, name, affinity, weight, utcb)),
+	_label(_cpu_session_component.session_label().string(), " -> ", thread_name),
+	_log_session_label("samples -> ", _label, ".", thread_id)
 {
-	char label_buf[Session_label::size()];
-
-	snprintf(label_buf, sizeof(label_buf), "%s -> %s",
-	         _cpu_session_component.session_label().string(),
-	         thread_name);
-
-	_label = Session_label(label_buf);
-
-	snprintf(label_buf, sizeof(label_buf), "samples -> %s.%u",
-             _label.string(), thread_id);
-
-    _log_session_label = Session_label(label_buf);
-
 	_cpu_session_component.thread_ep().manage(this);
 }
 
@@ -121,21 +107,13 @@ void Cpu_sampler::Cpu_thread_component::flush()
 		_log.construct(_env, _log_session_label);
 
 	/* number of hex characters + newline + '\0' */
-	enum { SAMPLE_STRING_SIZE = 2 * sizeof(addr_t) + 1 + 1 };
-
-	char sample_string[SAMPLE_STRING_SIZE];
-
-	char const *format_string;
-
-	if (sizeof(addr_t) == 8)
-		format_string = "%16lX\n";
-	else
-		format_string = "%8X\n";
+	using Sample = String<2 * sizeof(addr_t) + 1 + 1>;
 
 	for (unsigned int i = 0; i < _sample_buf_index; i++) {
-		snprintf(sample_string, SAMPLE_STRING_SIZE, format_string,
-		         _sample_buf[i]);
-		_log->write(sample_string);
+
+		Sample const sample(Hex(_sample_buf[i], Hex::OMIT_PREFIX, Hex::PAD), "\n");
+
+		_log->write(sample.string());
 	}
 
 	_sample_buf_index = 0;

@@ -883,16 +883,16 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		bool matches_session_label(char const *selector) const
 		{
+			using namespace Genode;
+
 			/*
 			 * Append label separator to match selectors with a trailing
 			 * separator.
 			 *
-			 * The code originates from nitpicker's 'session.h'.
+			 * The code snippet originates from nitpicker's 'gui_session.h'.
 			 */
-			char label[Genode::Session_label::capacity() + 4];
-			Genode::snprintf(label, sizeof(label), "%s ->", _session_label.string());
-			return Genode::strcmp(label, selector,
-			                      Genode::strlen(selector)) == 0;
+			String<Session_label::capacity() + 4> const label(_session_label, " ->");
+			return strcmp(label.string(), selector, strlen(selector)) == 0;
 		}
 
 		void request_resize(Area size)
