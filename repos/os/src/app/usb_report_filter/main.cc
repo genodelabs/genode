@@ -29,7 +29,6 @@ namespace Usb_filter {
 	using Genode::Xml_node;
 	using Genode::Xml_generator;
 	using Genode::Attached_rom_dataspace;
-	using Genode::snprintf;
 	using Genode::error;
 	using Genode::log;
 	using Genode::warning;
@@ -120,29 +119,30 @@ class Usb_filter::Device_registry
 			       (vendor == entry.vendor && product == entry.product);
 		}
 
+		static void _gen_dev_attributes(Xml_generator &xml, Xml_node const &node)
+		{
+			auto copy_attr = [&] (auto name)
+			{
+				using Value = Genode::String<32>;
+				xml.attribute(name, node.attribute_value(name, Value()));
+			};
+
+			copy_attr("vendor_id");
+			copy_attr("product_id");
+			copy_attr("bus");
+			copy_attr("dev");
+		}
+
 		static void _gen_policy_entry(Xml_generator &xml, Xml_node &node,
 		                        Entry const &, char const *label)
 		{
 			xml.node("policy", [&] {
-				char buf[MAX_LABEL_LEN + 16];
-
 				unsigned const bus = _get_value(node, "bus");
 				unsigned const dev = _get_value(node, "dev");
 
-				snprintf(buf, sizeof(buf), "%s -> usb-%d-%d", label, bus, dev);
-				xml.attribute("label", buf);
+				xml.attribute("label", Label(label, " -> usb-", bus, "-", dev));
 
-				snprintf(buf, sizeof(buf), "0x%4x", _get_value(node, "vendor_id"));
-				xml.attribute("vendor_id", buf);
-
-				snprintf(buf, sizeof(buf), "0x%4x", _get_value(node, "product_id"));
-				xml.attribute("product_id", buf);
-
-				snprintf(buf, sizeof(buf), "0x%4x", bus);
-				xml.attribute("bus", buf);
-
-				snprintf(buf, sizeof(buf), "0x%4x", dev);
-				xml.attribute("dev", buf);
+				_gen_dev_attributes(xml, node);
 			});
 		}
 
@@ -272,25 +272,12 @@ class Usb_filter::Device_registry
 		                              Entry const &)
 		{
 			xml.node("device", [&] {
-				char buf[16];
-
 				unsigned const bus = _get_value(node, "bus");
 				unsigned const dev = _get_value(node, "dev");
 
-				snprintf(buf, sizeof(buf), "usb-%d-%d", bus, dev);
-				xml.attribute("label", buf);
+				xml.attribute("label", Label("usb-", bus, "-", dev));
 
-				snprintf(buf, sizeof(buf), "0x%4x", _get_value(node, "vendor_id"));
-				xml.attribute("vendor_id", buf);
-
-				snprintf(buf, sizeof(buf), "0x%4x", _get_value(node, "product_id"));
-				xml.attribute("product_id", buf);
-
-				snprintf(buf, sizeof(buf), "0x%4x", bus);
-				xml.attribute("bus", buf);
-
-				snprintf(buf, sizeof(buf), "0x%4x", dev);
-				xml.attribute("dev", buf);
+				_gen_dev_attributes(xml, node);
 			});
 		}
 

@@ -116,11 +116,7 @@ Vfs::Global_file_system_factory::_try_create(Vfs::Env &env,
  */
 Library_name Vfs::Global_file_system_factory::_library_name(Node_name const &node_name)
 {
-	char lib_name [Library_name::capacity()];
-	Genode::snprintf(lib_name, sizeof(lib_name), "vfs_%s.lib.so",
-	                 node_name.string());
-
-	return Library_name(lib_name);
+	return Library_name("vfs_", node_name, ".lib.so");
 }
 
 

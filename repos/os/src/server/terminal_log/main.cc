@@ -26,11 +26,13 @@ namespace Genode {
 	{
 		public:
 
-			enum { LABEL_LEN = 64 };
+			enum { LABEL_LEN = 64u };
 
 		private:
 
-			char                  _label[LABEL_LEN];
+			using Label = Genode::String<LABEL_LEN>;
+			Label const _label;
+
 			Terminal::Connection &_terminal;
 
 		public:
@@ -39,7 +41,10 @@ namespace Genode {
 			 * Constructor
 			 */
 			Termlog_component(const char *label, Terminal::Connection &terminal)
-			: _terminal(terminal) { snprintf(_label, LABEL_LEN, "[%s] ", label); }
+			:
+				_label("[", label, "] "),
+				_terminal(terminal)
+			{ }
 
 
 			/*****************
@@ -76,7 +81,7 @@ namespace Genode {
 					return;
 				}
 
-				_terminal.write(_label, strlen(_label));
+				_terminal.write(_label.string(), strlen(_label.string()));
 				_terminal.write(string, len);
 
 				/* if last character of string was not a line break, add one */

@@ -100,12 +100,7 @@ class Test::Subsystem
 
 		bool _expect_import = true;
 
-		Label _session_label()
-		{
-			char buf[Label::capacity()];
-			snprintf(buf, sizeof(buf), "%s -> clipboard", _name.string());
-			return Label(Cstring(buf));
-		}
+		Label _session_label() { return Label(_name, " -> clipboard"); }
 
 		Attached_rom_dataspace _import_rom;
 

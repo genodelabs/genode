@@ -151,9 +151,9 @@ struct Virtdev_rom::Main
 
 				xml.node("device", [&] ()
 				{
-					static char name[DEVICE_NAME_LEN];
-					snprintf(name, sizeof(name), "%s%u", _name_for_id(id), device_type_idx[id - 1]++);
-					xml.attribute("name", name);
+					using Name = String<DEVICE_NAME_LEN>;
+
+					xml.attribute("name", Name(_name_for_id(id), device_type_idx[id - 1]++));
 					xml.attribute("type", _name_for_id(id));
 					xml.node("io_mem", [&] () {
 						xml.attribute("address", addr);

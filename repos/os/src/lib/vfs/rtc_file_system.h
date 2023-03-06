@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/registry.h>
+#include <util/formatted_output.h>
 #include <rtc_session/connection.h>
 #include <vfs/file_system.h>
 
@@ -60,10 +61,31 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 					Rtc::Timestamp ts = _rtc.current_time();
 
-					char buf[TIMESTAMP_LEN+1];
-					char *b = buf;
-					size_t n = Genode::snprintf(buf, sizeof(buf), "%04u-%02u-%02u %02u:%02u:%02u\n",
-					                            ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second);
+					struct Padded
+					{
+						unsigned pad, value;
+
+						void print(Genode::Output &out) const
+						{
+							using namespace Genode;
+
+							unsigned const len = printed_length(value);
+							if (len < pad)
+								Genode::print(out, Repeated(pad - len, Char('0')));
+
+							Genode::print(out, value);
+						}
+					};
+
+					String<TIMESTAMP_LEN+1> string { Padded { 4, ts.year   }, "-",
+					                                 Padded { 2, ts.month  }, "-",
+					                                 Padded { 2, ts.day    }, " ",
+					                                 Padded { 2, ts.hour   }, ":",
+					                                 Padded { 2, ts.minute }, ":",
+					                                 Padded { 2, ts.second }, "\n" };
+					char const *b = string.string();
+					size_t      n = string.length();
+
 					n -= size_t(seek());
 					b += seek();
 

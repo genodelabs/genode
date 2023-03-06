@@ -1605,9 +1605,7 @@ class Acpi_table
 static void attribute_hex(Xml_generator &xml, char const *name,
                           unsigned long long value)
 {
-	char buf[32];
-	Genode::snprintf(buf, sizeof(buf), "0x%llx", value);
-	xml.attribute(name, buf);
+	xml.attribute(name, String<32>(Hex(value)));
 }
 
 

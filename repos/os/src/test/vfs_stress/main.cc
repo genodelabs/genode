@@ -542,7 +542,7 @@ void Component::construct(Genode::Env &env)
 			vfs_env.io().commit_and_wait();
 	};
 
-	char path[Vfs::MAX_PATH_LEN];
+	String<Vfs::MAX_PATH_LEN> path { };
 
 	MAX_DEPTH = config_xml.attribute_value("depth", 16U);
 
@@ -563,11 +563,11 @@ void Component::construct(Genode::Env &env)
 		elapsed_ms = timer.elapsed_ms();
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
-			snprintf(path, 3, "/%d", i);
+			path = { "/", i };
 			Vfs::Vfs_handle *dir_handle;
-			vfs_root.opendir(path, true, &dir_handle, heap);
+			vfs_root.opendir(path.string(), true, &dir_handle, heap);
 			dir_handle->close();
-			Mkdir_test test(vfs_root, heap, path);
+			Mkdir_test test(vfs_root, heap, path.string());
 			count += test.wait();
 		}
 		elapsed_ms = timer.elapsed_ms() - elapsed_ms;
@@ -590,8 +590,8 @@ void Component::construct(Genode::Env &env)
 		elapsed_ms = timer.elapsed_ms();
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
-			snprintf(path, 3, "/%d", i);
-			Populate_test test(vfs_root, heap, path);
+			path = { "/", i };
+			Populate_test test(vfs_root, heap, path.string());
 			count += test.wait();
 		}
 
@@ -621,8 +621,8 @@ void Component::construct(Genode::Env &env)
 		elapsed_ms = timer.elapsed_ms();
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
-			snprintf(path, 3, "/%d", i);
-			Write_test test(vfs_root, heap, path, vfs_env.io());
+			path = { "/", i };
+			Write_test test(vfs_root, heap, path.string(), vfs_env.io());
 			count += test.wait();
 
 		}
@@ -657,8 +657,8 @@ void Component::construct(Genode::Env &env)
 		elapsed_ms = timer.elapsed_ms();
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
-			snprintf(path, 3, "/%d", i);
-			Read_test test(vfs_root, heap, path, vfs_env.io());
+			path = { "/", i };
+			Read_test test(vfs_root, heap, path.string(), vfs_env.io());
 			count += test.wait();
 		}
 
@@ -693,8 +693,8 @@ void Component::construct(Genode::Env &env)
 		elapsed_ms = timer.elapsed_ms();
 
 		for (int i = 0; i < ROOT_TREE_COUNT; ++i) {
-			snprintf(path, 3, "/%d", i);
-			Unlink_test test(vfs_root, heap, path, vfs_env.io());
+			path = { "/", i };
+			Unlink_test test(vfs_root, heap, path.string(), vfs_env.io());
 			count += test.wait();
 
 		}
