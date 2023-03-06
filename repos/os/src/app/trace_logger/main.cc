@@ -67,8 +67,9 @@ class Main
 		Monitor_tree  _monitors_0      { };
 		Monitor_tree  _monitors_1      { };
 		bool          _monitors_switch { false };
-		Policy_tree   _policies        { };
-		Policy        _default_policy  { _env, _trace, _config.default_policy_name };
+		Policy_dict   _policies        { };
+		Policy        _default_policy  { _env, _trace, _policies,
+		                                 _config.default_policy_name };
 		unsigned long _report_id       { 0 };
 
 		static void _print_monitors(Allocator &alloc, Monitor_tree const &,
@@ -181,15 +182,15 @@ class Main
 				Policy_name const policy_name =
 					session_policy.attribute_value("policy", _config.default_policy_name);
 
-				try {
-					_trace.trace(id.id, _policies.find_by_name(policy_name).id(), buffer_sz);
-
-				}
-				catch (Policy_tree::No_match) {
-					Policy &policy = *new (_heap) Policy(_env, _trace, policy_name);
-					_policies.insert(policy);
-					_trace.trace(id.id, policy.id(), buffer_sz);
-				}
+				_policies.with_element(policy_name,
+					[&] (Policy const &policy) {
+						_trace.trace(id.id, policy.id(), buffer_sz);
+					},
+					[&] /* no match */ {
+						Policy &policy = *new (_heap) Policy(_env, _trace, _policies, policy_name);
+						_trace.trace(id.id, policy.id(), buffer_sz);
+					}
+				);
 				monitors.insert(new (_heap) Monitor(_trace, _env.rm(), id));
 			}
 			catch (Trace::Source_is_dead         ) { warn_msg("Source_is_dead"         ); return; }
@@ -215,8 +216,6 @@ class Main
 
 		Main(Env &env) : _env(env)
 		{
-			_policies.insert(_default_policy);
-
 			_update_monitors();
 		}
 };
