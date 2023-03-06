@@ -19,9 +19,6 @@
 #include <l3_protocol.h>
 #include <avl_tree.h>
 
-/* Genode includes */
-#include <util/avl_string.h>
-
 namespace Net {
 
 	class Domain;
