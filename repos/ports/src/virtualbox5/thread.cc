@@ -70,13 +70,9 @@ static Genode::Cpu_connection * cpu_connection(RTTHREADTYPE type)
 	if (con[type - 1])
 		return con[type - 1];
 
-	char * data = new (vmm_heap()) char[16];
-
-	Genode::snprintf(data, 16, "vbox %u", type);
-
-	con[type - 1] = new (vmm_heap()) Cpu_connection(genode_env(), data,
+	con[type - 1] = new (vmm_heap()) Cpu_connection(genode_env(),
+	                                                { "vbox ", unsigned(type) },
 	                                                prio_class(type));
-
 	return con[type - 1];
 }
 

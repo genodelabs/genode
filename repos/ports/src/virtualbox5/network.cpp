@@ -39,7 +39,6 @@
 
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
-#include <base/snprintf.h>
 
 #include <internal/thread_create.h>
 
@@ -187,7 +186,8 @@ class Nic_client
 
 	public:
 
-		Nic_client(Genode::Env &env, PDRVNIC drvtap, char const *label)
+		Nic_client(Genode::Env &env, PDRVNIC drvtap,
+		           Genode::Session::Label const &label)
 		:
 			_tx_block_alloc(_packet_allocator()),
 			_nic(env, _tx_block_alloc, BUF_SIZE, BUF_SIZE, label),
@@ -540,19 +540,17 @@ static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 		                        N_("Configuration error: the above device/driver"
 		                            " didn't export the network config interface!\n"));
 
-	char label[8];
 	uint64_t slot;
 	rc = CFGMR3QueryInteger(pCfg, "Slot", &slot);
 	if (RT_FAILURE(rc))
 		return PDMDRV_SET_ERROR(pDrvIns, rc,
 		                        N_("Configuration error: Failed to retrieve the network interface slot"));
-	Genode::snprintf(label, sizeof(label), "%d", slot);
 
 	/*
 	 * Setup Genode nic_session connection
 	 */
 	try {
-		pThis->nic_client = new (vmm_heap()) Nic_client(genode_env(), pThis, label);
+		pThis->nic_client = new (vmm_heap()) Nic_client(genode_env(), pThis, slot);
 	} catch (...) {
 		return VERR_HOSTIF_INIT_FAILED;
 	}
