@@ -1,5 +1,8 @@
+arch/arm64/crypto/chacha-neon-core.S
 arch/arm64/crypto/poly1305-glue.c
 arch/arm64/crypto/chacha-neon-glue.c
+arch/arm64/kernel/entry-fpsimd.S
+arch/arm64/kernel/fpsimd.c
 arch/arm64/lib/memcmp.S
 arch/arm64/lib/memchr.S
 arch/arm64/lib/strcmp.S
