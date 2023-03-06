@@ -89,12 +89,30 @@ HASH_INPUT   += $(REP_DIR)/fec.list
 #
 # Patches
 #
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_host*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_modem*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/fec_*.patch)))
-PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_hid*.patch)))
+PATCHES += patches/fec_ndev_owner.patch
+PATCHES += patches/fec_skbuff_cast.patch
+PATCHES += patches/fec_tx_bounce_dma.patch
+PATCHES += patches/fec_tx_sync_dma_write.patch
+PATCHES += patches/lxip_icmp.patch
+PATCHES += patches/lxip_ip_config.patch
+PATCHES += patches/lxip_log2.patch
+PATCHES += patches/lxip_netlink.patch
+PATCHES += patches/lxip_request_sock.patch
+PATCHES += patches/lxip_sk_wq.patch
+PATCHES += patches/lxip_skbuff_cast.patch
+PATCHES += patches/usb_hid_evdev.patch
+PATCHES += patches/usb_hid_hid.patch
+PATCHES += patches/usb_hid_input.patch
+PATCHES += patches/usb_hid_usbhid.patch
+PATCHES += patches/usb_hid_wacom_sys.patch
+PATCHES += patches/usb_host_dwc_otg.patch
+PATCHES += patches/usb_host_isoc_bei.patch
+PATCHES += patches/usb_host_mem.patch
+PATCHES += patches/usb_host_omap.patch
+PATCHES += patches/usb_host_update_event_ring.patch
+PATCHES += patches/usb_modem_skbuff_cast.patch
+PATCHES += patches/usb_net_skbuff_cast.patch
+
 
 #IP stack
 LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
