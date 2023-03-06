@@ -17,7 +17,6 @@
 #include <base/heap.h>
 #include <base/log.h>
 #include <base/sleep.h>
-#include <base/snprintf.h>
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
 #include <util/string.h>

@@ -15,7 +15,6 @@
 
 #include <base/env.h>
 #include <base/service.h>
-#include <base/snprintf.h>
 #include <base/attached_dataspace.h>
 #include <launchpad/launchpad.h>
 

@@ -16,7 +16,6 @@
 #include <base/log.h>
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_io_mem_dataspace.h>
-#include <base/snprintf.h>
 #include <base/allocator.h>
 #include <util/avl_tree.h>
 #include <util/misc_math.h>

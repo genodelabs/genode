@@ -37,7 +37,6 @@
 #include <timer_session/connection.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
-#include <base/snprintf.h>
 #include <base/component.h>
 #include <base/log.h>
 #include <base/exception.h>
