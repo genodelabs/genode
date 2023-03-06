@@ -18,7 +18,6 @@
 #include <base/env.h>
 #include <base/capability.h>
 #include <base/log.h>
-#include <base/snprintf.h> /* deprecated */
 
 namespace Genode {
 
@@ -46,13 +45,6 @@ class Genode::Connection_base : Noncopyable, Interface
 			_env(env),
 			_id_space_element(_parent_client, _env.id_space())
 		{ }
-
-		/**
-		 * Legacy constructor
-		 *
-		 * \noapi
-		 */
-		Connection_base();
 
 		void upgrade(Session::Resources resources)
 		{
@@ -110,29 +102,6 @@ class Genode::Connection : public Connection_base
 
 	private:
 
-		/*
-		 * Buffer for storing the session arguments passed to the
-		 * 'session' method that is called before the 'Connection' is
-		 * constructed.
-		 */
-
-		enum { FORMAT_STRING_SIZE = Parent::Session_args::MAX_SIZE };
-
-		char _session_args[FORMAT_STRING_SIZE];
-
-		Affinity _affinity_arg { };
-
-		void _session(Parent &,
-		              Affinity const &affinity,
-		              const char *format_args, va_list list)
-		{
-			String_console sc(_session_args, FORMAT_STRING_SIZE);
-			sc.vprintf(format_args, list);
-			va_end(list);
-
-			_affinity_arg = affinity;
-		}
-
 		using Client_id = Parent::Client::Id;
 
 		static Capability<SESSION_TYPE> _request(Env                 &env,
@@ -163,31 +132,9 @@ class Genode::Connection : public Connection_base
 			}
 		}
 
-		Capability<SESSION_TYPE> _request_cap()
-		{
-			try {
-				return _env.session<SESSION_TYPE>(_id_space_element.id(),
-				                                  _session_args, _affinity_arg); }
-			catch (...) {
-				error(SESSION_TYPE::service_name(), "-session creation failed "
-				      "(", Cstring(_session_args), ")");
-				throw;
-			}
-		}
-
-		Capability<SESSION_TYPE> _cap = _request_cap();
+		Capability<SESSION_TYPE> _cap;
 
 	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 */
-		Connection(Env &env, Capability<SESSION_TYPE>)
-		:
-			Connection_base(env), _cap(_request_cap())
-		{ }
 
 		Connection(Env                 &env,
 		           Session_label const &label,
@@ -217,36 +164,6 @@ class Genode::Connection : public Connection_base
 		 * Return session capability
 		 */
 		Capability<SESSION_TYPE> cap() const { return _cap; }
-
-		/**
-		 * Issue session request to the parent
-		 *
-		 * \deprecated
-		 */
-		Capability<SESSION_TYPE> session(Parent &parent, const char *format_args, ...)
-		{
-			va_list list;
-			va_start(list, format_args);
-
-			_session(parent, Affinity(), format_args, list);
-			return Capability<SESSION_TYPE>();
-		}
-
-		/**
-		 * Issue session request to the parent
-		 *
-		 * \deprecated
-		 */
-		Capability<SESSION_TYPE> session(Parent         &parent,
-		                                 Affinity const &affinity,
-		                                 char     const *format_args, ...)
-		{
-			va_list list;
-			va_start(list, format_args);
-
-			_session(parent, affinity, format_args, list);
-			return Capability<SESSION_TYPE>();
-		}
 };
 
 #endif /* _INCLUDE__BASE__CONNECTION_H_ */

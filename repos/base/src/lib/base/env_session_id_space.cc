@@ -38,13 +38,3 @@ Id_space<Parent::Client> &Genode::env_session_id_space()
 
 	return id_space;
 }
-
-
-/*
- * \deprecated
- */
-Connection_base::Connection_base()
-:
-	_env(internal_env()),
-	_id_space_element(_parent_client, _env.id_space())
-{ }

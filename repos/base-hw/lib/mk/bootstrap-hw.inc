@@ -9,7 +9,6 @@ SRC_CC  += bootstrap/thread.cc
 SRC_CC  += hw/capability.cc
 SRC_CC  += lib/base/allocator_avl.cc
 SRC_CC  += lib/base/avl_tree.cc
-SRC_CC  += lib/base/console.cc
 SRC_CC  += lib/base/elf_binary.cc
 SRC_CC  += lib/base/heap.cc
 SRC_CC  += lib/base/registry.cc
