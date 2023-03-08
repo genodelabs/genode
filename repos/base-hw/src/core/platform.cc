@@ -173,8 +173,7 @@ void Platform::_init_platform_info()
 		return;
 	}
 
-	_rom_fs.insert(
-		new (core_mem_alloc()) Rom_module(phys_addr, rom_size, rom_name));
+	new (core_mem_alloc()) Rom_module(_rom_fs, rom_name, phys_addr, rom_size);
 
 	/* keep phys allocation but let guard revert virt allocation */
 	guard.phys_ptr = nullptr;
@@ -237,8 +236,8 @@ Platform::Platform()
 						map_local(phys_addr, (addr_t)ptr, pages);
 						memset(ptr, 0, log_size);
 
-						_rom_fs.insert(new (core_mem_alloc())
-						               Rom_module(phys_addr, log_size, "core_log"));
+						new (core_mem_alloc())
+							Rom_module(_rom_fs, "core_log", phys_addr, log_size);
 
 						init_core_log(Core_log_range { (addr_t)ptr, log_size } );
 					},

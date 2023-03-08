@@ -36,15 +36,13 @@ class Core::Rom_session_component : public Rpc_object<Rom_session>
 
 		Rom_module const &_find_rom(Rom_fs &rom_fs, const char *args)
 		{
-			/* extract label */
-			Session_label const label = label_from_args(args);
+			return rom_fs.with_element(label_from_args(args).last_element(),
 
-			/* find ROM module for trailing label element */
-			Rom_module const * rom = rom_fs.find(label.last_element().string());
-			if (rom)
-				return *rom;
+				[&] (Rom_module const &rom) -> Rom_module const & {
+					return rom; },
 
-			throw Service_denied();
+				[&] () -> Rom_module const & {
+					throw Service_denied(); });
 		}
 
 		/*

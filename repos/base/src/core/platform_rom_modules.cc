@@ -20,18 +20,18 @@ using namespace Core;
 
 void Platform::_init_rom_modules()
 {
-	/* add boot modules to ROM FS */
-	Boot_modules_header *header = &_boot_modules_headers_begin;
-	for (; header < &_boot_modules_headers_end; header++) {
+	Boot_modules_header const *header_ptr = &_boot_modules_headers_begin;
 
-		if (!header->size) {
-			warning("ignore zero-sized boot module '",
-			        Cstring((char const *)header->name), "'");
+	for (; header_ptr < &_boot_modules_headers_end; header_ptr++) {
+
+		Rom_name const name((char const *)header_ptr->name);
+
+		if (!header_ptr->size) {
+			warning("ignore zero-sized boot module '", name, "'");
 			continue;
 		}
-		Rom_module &rom_module = *new (core_mem_alloc())
-			Rom_module(_rom_module_phys(header->base), header->size,
-			           (char const *)header->name);
-		_rom_fs.insert(&rom_module);
+		new (core_mem_alloc())
+			Rom_module(_rom_fs, name,
+			           _rom_module_phys(header_ptr->base), header_ptr->size);
 	}
 }

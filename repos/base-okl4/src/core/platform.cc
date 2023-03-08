@@ -202,8 +202,8 @@ Platform::Platform()
 						map_local(phys_addr, (addr_t)ptr, pages);
 						memset(ptr, 0, log_size);
 
-						_rom_fs.insert(new (core_mem_alloc())
-						               Rom_module(phys_addr, log_size, "core_log"));
+						new (core_mem_alloc())
+							Rom_module(_rom_fs, "core_log", phys_addr, log_size);
 
 						init_core_log(Core_log_range { (addr_t)ptr, log_size } );
 					},
@@ -214,7 +214,7 @@ Platform::Platform()
 		);
 	}
 
-	/* export platform specific infos */
+	/* export platform-specific infos */
 	{
 		unsigned const pages  = 1;
 		size_t   const size   = pages << get_page_size_log2();
@@ -237,8 +237,8 @@ Platform::Platform()
 								xml.node("kernel", [&] () { xml.attribute("name", "okl4"); });
 							});
 
-							_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
-							                                                 "platform_info"));
+							new (core_mem_alloc())
+								Rom_module(_rom_fs, "platform_info", phys_addr, size);
 						}
 					},
 					[&] (Range_allocator::Alloc_error) { }

@@ -666,8 +666,8 @@ Platform::Platform()
 				memset(core_local_ptr, 0, bytes);
 				content_fn(core_local_ptr, bytes);
 
-				_rom_fs.insert(new (core_mem_alloc())
-				               Rom_module(phys_addr, bytes, rom_name));
+				new (core_mem_alloc())
+					Rom_module(_rom_fs, rom_name, phys_addr, bytes);
 
 				/* leave the ROM backing store mapped within core */
 			},
@@ -770,8 +770,8 @@ Platform::Platform()
 
 	/* export hypervisor log memory */
 	if (hyp_log && hyp_log_size)
-		_rom_fs.insert(new (core_mem_alloc()) Rom_module(hyp_log, hyp_log_size,
-		                                                 "kernel_log"));
+		new (core_mem_alloc())
+			Rom_module(_rom_fs, "kernel_log", hyp_log, hyp_log_size);
 
 	if (verbose_boot_info) {
 		if (hip.has_feature_vmx())

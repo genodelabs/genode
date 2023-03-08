@@ -343,11 +343,9 @@ void Platform::_init_rom_modules()
 		 * Register ROM module, the base address refers to location of the
 		 * ROM module within the phys CNode address space.
 		 */
-		Rom_module * rom_module = new (rom_module_slab)
-			Rom_module(dst_frame << get_page_size_log2(), header->size,
-			           (const char*)header->name);
-
-		_rom_fs.insert(rom_module);
+		new (rom_module_slab)
+			Rom_module(_rom_fs, (const char*)header->name,
+			           dst_frame << get_page_size_log2(), header->size);
 	};
 
 	auto gen_platform_info = [&] (Xml_generator &xml)
@@ -507,8 +505,8 @@ void Platform::_init_rom_modules()
 				memset(core_local_ptr, 0, size);
 				content_fn((char *)core_local_ptr, size);
 
-				_rom_fs.insert(
-					new (core_mem_alloc()) Rom_module(phys.addr, size, rom_name));
+				new (core_mem_alloc())
+					Rom_module(_rom_fs, rom_name, phys.addr, size);
 
 				phys.keep = true;
 			},

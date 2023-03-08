@@ -351,9 +351,6 @@ void Platform::_setup_basics()
 {
 	l4_kernel_info_t * kip = get_kip();
 
-	/* add KIP as ROM module */
-	_rom_fs.insert(&_kip_rom);
-
 	/* parse memory descriptors - look for virtual memory configuration */
 	/* XXX we support only one VM region (here and also inside RM) */
 	using L4::Kip::Mem_desc;
@@ -405,7 +402,7 @@ Platform::Platform()
 	_ram_alloc(nullptr), _io_mem_alloc(&core_mem_alloc()),
 	_io_port_alloc(&core_mem_alloc()), _irq_alloc(&core_mem_alloc()),
 	_region_alloc(&core_mem_alloc()),
-	_kip_rom((addr_t)get_kip(), L4_PAGESIZE, "l4v2_kip")
+	_kip_rom(_rom_fs, "l4v2_kip", (addr_t)get_kip(), L4_PAGESIZE)
 {
 	/*
 	 * We must be single-threaded at this stage and so this is safe.
@@ -459,8 +456,8 @@ Platform::Platform()
 				memset(core_local_ptr, 0, size);
 				content_fn(core_local_ptr, size);
 
-				_rom_fs.insert(new (core_mem_alloc())
-				               Rom_module(phys_addr, size, rom_name));
+				new (core_mem_alloc())
+					Rom_module(_rom_fs, rom_name, phys_addr, size);
 			},
 			[&] (Range_allocator::Alloc_error) {
 				warning("failed to export ", rom_name, " as ROM module"); }
