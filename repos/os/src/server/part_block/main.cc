@@ -212,8 +212,8 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 
 		Attached_rom_dataspace _config { _env, "config" };
 
-		Heap     _heap     { _env.ram(), _env.rm() };
-		Reporter _reporter { _env, "partitions" };
+		Heap                              _heap     { _env.ram(), _env.rm() };
+		Constructible<Expanding_reporter> _reporter { };
 
 		Number_of_bytes const _io_buffer_size =
 			_config.xml().attribute_value("io_buffer",
@@ -498,7 +498,7 @@ Block::Partition_table & Block::Main::_table()
 		report = _config.xml().sub_node("report").attribute_value
                          ("partitions", false);
 		if (report)
-			_reporter.enabled(true);
+			_reporter.construct(_env, "partitions", "partitions");
 	} catch(...) {}
 
 	/*

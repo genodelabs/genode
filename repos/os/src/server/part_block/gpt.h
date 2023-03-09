@@ -348,9 +348,9 @@ class Block::Gpt : public Block::Partition_table
 			}
 
 			/* Report the partitions */
-			if (reporter.enabled())
+			if (reporter.constructed())
 			{
-				Reporter::Xml_generator xml(reporter, [&] () {
+				reporter->generate([&] (Xml_generator &xml) {
 					xml.attribute("type", "gpt");
 
 					uint64_t const total_blocks = block.info().block_count;

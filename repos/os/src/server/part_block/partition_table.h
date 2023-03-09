@@ -152,10 +152,10 @@ struct Block::Partition_table : Interface
 					return reinterpret_cast<T>(_buffer); }
 		};
 
-		Env              &env;
-		Block_connection &block;
-		Reporter         &reporter;
-		Sector_data       data;
+		Env                               &env;
+		Block_connection                  &block;
+		Constructible<Expanding_reporter> &reporter;
+		Sector_data                        data;
 
 		Io_signal_handler<Partition_table> io_sigh {
 			env.ep(), *this, &Partition_table::handle_io };
@@ -165,10 +165,10 @@ struct Block::Partition_table : Interface
 			if (data.current) { data.current->handle_io(); }
 		}
 
-		Partition_table(Env              &env,
-		                Block_connection &block,
-		                Allocator        &alloc,
-		                Reporter         &r)
+		Partition_table(Env                               &env,
+		                Block_connection                  &block,
+		                Allocator                         &alloc,
+		                Constructible<Expanding_reporter> &r)
 		: env(env), block(block), reporter(r), data(env, block, alloc)
 		{ }
 

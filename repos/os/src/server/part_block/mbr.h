@@ -215,7 +215,7 @@ struct Block::Mbr_partition_table : public Block::Partition_table
 					Partition(0, (block_count_t)(block.info().block_count - 1)));
 
 			/* report the partitions */
-			if (reporter.enabled()) {
+			if (reporter.constructed()) {
 
 				auto gen_partition_attr = [&] (Xml_generator &xml, unsigned i)
 				{
@@ -238,7 +238,7 @@ struct Block::Mbr_partition_table : public Block::Partition_table
 						xml.attribute("file_system", fs_type);
 				};
 
-				Reporter::Xml_generator xml(reporter, [&] () {
+				reporter->generate([&] (Xml_generator &xml) {
 
 					xml.attribute("type", mbr_valid  ? "mbr"  :
 					                      ahdi_valid ? "ahdi" :
