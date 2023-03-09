@@ -15,6 +15,7 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/sleep.h>
+#include <base/session_object.h>
 #include <loader_session/loader_session.h>
 #include <root/component.h>
 #include <os/session_policy.h>
@@ -34,7 +35,7 @@ namespace Loader {
 }
 
 
-class Loader::Session_component : public Rpc_object<Session>
+class Loader::Session_component : public Session_object<Session>
 {
 	private:
 
@@ -183,7 +184,7 @@ class Loader::Session_component : public Rpc_object<Session>
 			Gui::Session_component &create(Args const &args, Affinity) override
 			{
 				if (session.constructed()) {
-					warning("attempt to open more than one GUI session");
+					Genode::warning("attempt to open more than one GUI session");
 					throw Service_denied();
 				}
 
@@ -201,13 +202,9 @@ class Loader::Session_component : public Rpc_object<Session>
 		enum { STACK_SIZE = 2*4096 };
 
 		Env                        &_env;
-		Session_label         const _label;
 		Xml_node              const _config;
-		Cap_quota             const _cap_quota;
-		Ram_quota             const _ram_quota;
-		Cap_quota_guard             _cap_guard { _cap_quota };
-		Ram_quota_guard             _ram_guard { _ram_quota };
-		Constrained_ram_allocator   _local_ram { _env.ram(), _ram_guard, _cap_guard };
+		Constrained_ram_allocator   _local_ram { _env.ram(), _ram_quota_guard(),
+		                                                     _cap_quota_guard() };
 		Heap                        _md_alloc { _local_ram, _env.rm() };
 		size_t                      _subsystem_cap_quota_limit = 0;
 		size_t                      _subsystem_ram_quota_limit = 0;
@@ -247,10 +244,10 @@ class Loader::Session_component : public Rpc_object<Session>
 		 * Constructor
 		 */
 		Session_component(Env &env, Session_label const &label, Xml_node config,
-		                  Cap_quota cap_quota, Ram_quota ram_quota)
+		                  Resources const &resources)
 		:
-			_env(env), _label(label), _config(config),
-			_cap_quota(cap_quota), _ram_quota(ram_quota)
+			Session_object(env.ep(), resources, label, Diag { }),
+			_env(env), _config(config)
 		{
 			/* fetch all parent-provided ROMs according to the config */
 			config.for_each_sub_node("parent-rom", [&] (Xml_node rom)
@@ -343,13 +340,17 @@ class Loader::Session_component : public Rpc_object<Session>
 				return;
 			}
 
+			size_t const avail_cap_quota = _cap_quota_guard().avail().value;
+
 			size_t const cap_quota = (_subsystem_cap_quota_limit > 0)
-			                       ? min(_subsystem_cap_quota_limit, _cap_quota.value)
-			                       : _cap_quota.value;
+			                       ? min(_subsystem_cap_quota_limit, avail_cap_quota)
+			                       : avail_cap_quota;
+
+			size_t const avail_ram_quota = _ram_quota_guard().avail().value;
 
 			size_t const ram_quota = (_subsystem_ram_quota_limit > 0)
-			                       ? min(_subsystem_ram_quota_limit, _ram_quota.value)
-			                       : _ram_quota.value;
+			                       ? min(_subsystem_ram_quota_limit, avail_ram_quota)
+			                       : avail_ram_quota;
 
 			try {
 				_child.construct(_env, _md_alloc, binary_name.string(),
@@ -393,9 +394,15 @@ class Loader::Root : public Root_component<Session_component>
 			try { session_config = Session_policy(label, _config); }
 			catch (...) { }
 
-			return new (md_alloc()) Session_component(_env, label, session_config,
-			                                          cap_quota_from_args(args),
-			                                          ram_quota_from_args(args));
+			return new (md_alloc())
+				Session_component(_env, label, session_config,
+				                  session_resources_from_args(args));
+		}
+
+		void _upgrade_session(Session_component *s, const char *args) override
+		{
+			s->upgrade(ram_quota_from_args(args));
+			s->upgrade(cap_quota_from_args(args));
 		}
 
 	public:
