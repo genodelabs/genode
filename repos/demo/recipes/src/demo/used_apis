@@ -1,7 +1,6 @@
 base
 os
 blit
-format
 nitpicker_gfx
 timer_session
 input_session

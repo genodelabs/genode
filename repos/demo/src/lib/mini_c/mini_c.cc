@@ -51,6 +51,10 @@ int puts(const char *s)
 	{ Genode::log("%s", s); return 1; }
 int putchar(int c)
 	{ Genode::log("%c", c); return c; }
+int vsnprintf(char *, size_t, const char *, va_list)
+	{ NOT_IMPLEMENTED; return 0; }
+int snprintf(char *, size_t, const char *, ...)
+	{ NOT_IMPLEMENTED; return 0; }
 
 #include <stdlib.h>
 
