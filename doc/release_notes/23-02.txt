@@ -20,7 +20,7 @@ overview and further links about running Genode on your PinePhone.
 
 While enabling substantial application workloads on devices as constrained as
 the PinePhone, we engaged in holistic performance optimizations, ranging from
-kernel scheduling [Base-HW microkernel], over the framework's VFS
+kernel scheduling (Section [Base-HW microkernel]), over the framework's VFS
 infrastructure (Section [VFS optimization and simplification]), to the
 interfacing of GPU drivers (Section [GPU performance optimizations]).
 
@@ -170,9 +170,10 @@ being, we applied several changes to the platform driver. These modifications
 are currently hosted in the genode-zynq repository but are going to find their
 way into the generic platform driver for the next release.
 
-If you are interested in more details about the DMA Guard's development, keep
-watching our [https://www.hackster.io/genode - hackster.io channel] where we
-will put out a new article concerning this matter very soon.
+More details about the DMA Guard are covered by the dedicated article:
+[https://www.hackster.io/johannes-schlatow/taking-control-over-dma-transactions-on-zynq-with-genode-fd60b6 - Taking control over DMA transactions on Zynq with Genode].
+To follow this line of work, keep watching our
+[https://www.hackster.io/genode - hackster.io channel].
 
 
 Base framework and OS-level infrastructure
@@ -860,8 +861,8 @@ PC and ARM platforms, the conventions of booting the platforms had to be
 unified.
 
 Traditionally, a bootable disk image for the PC contains a _boot/_ directory.
-E.g., when using NOVA it contains the GRUB boot-loader config + the hypervisor
-+ the bender pre-boot loader + the banner image + the Genode system image.
+E.g., when using NOVA, it contains the GRUB boot-loader config + the hypervisor +
+the bender pre-boot loader + the banner image + the Genode system image.
 This structure corresponds 1:1 to the _boot/_ directory as found on the 3rd
 partition of the Sculpt system, which is very nice. A manual system update of
 Sculpt comes down to replacing these files. However, on ARM platforms, SD-card
