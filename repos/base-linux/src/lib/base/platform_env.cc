@@ -174,5 +174,7 @@ Platform_env::Platform_env()
 	/* register TID and PID of the main thread at core */
 	Linux_native_cpu_client native_cpu(cpu_session()->native_cpu());
 	native_cpu.thread_id(parent()->main_thread_cap(), lx_getpid(), lx_gettid());
+
+	init_rpc_cap_alloc(_parent());
 }
 

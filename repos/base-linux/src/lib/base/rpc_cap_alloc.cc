@@ -14,12 +14,26 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/rpc_server.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
+#include <base/internal/globals.h>
 
 using namespace Genode;
+
+
+static Parent *_parent_ptr;
+static Parent &_parent()
+{
+	if (_parent_ptr)
+		return *_parent_ptr;
+
+	error("missing call of init_rpc_cap_alloc");
+	for (;;);
+}
+
+
+void Genode::init_rpc_cap_alloc(Parent &parent) { _parent_ptr = &parent; }
 
 
 Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session& pd, Native_capability,
@@ -34,9 +48,9 @@ Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session& pd, Native_capabili
 		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 2*1024*sizeof(long) }; }
 		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
 
-		env_deprecated()->parent()->upgrade(Parent::Env::pd(),
-		                                    String<100>("ram_quota=", ram_upgrade, ", "
-		                                                "cap_quota=", cap_upgrade).string());
+		_parent().upgrade(Parent::Env::pd(),
+		                  String<100>("ram_quota=", ram_upgrade, ", "
+		                              "cap_quota=", cap_upgrade).string());
 	}
 
 	return Thread::native_thread().epoll.alloc_rpc_cap();

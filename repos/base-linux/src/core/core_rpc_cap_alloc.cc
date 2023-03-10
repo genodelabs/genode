@@ -16,11 +16,12 @@
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
+#include <base/internal/globals.h>
 
-/* core includes */
-#include <types.h>
+using namespace Genode;
 
-using namespace Core;
+
+void Genode::init_rpc_cap_alloc(Parent &) { }
 
 
 Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &, Native_capability,

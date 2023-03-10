@@ -99,6 +99,7 @@ extern "C" void init_main_thread()
 	 */
 	(void)env_deprecated();
 	init_log(*env_deprecated()->parent());
+	init_rpc_cap_alloc(*env_deprecated()->parent());
 
 	/* create a thread object for the main thread */
 	main_thread();
