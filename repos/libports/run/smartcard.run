@@ -109,12 +109,7 @@ set fd [open [run_dir]/genode/usb_host_drv.config w]
 puts $fd $usb_config
 close $fd
 
-build_boot_image {
-	test-smartcard
-	ld.lib.so pcsc-lite.lib.so ccid.lib.so libusb.lib.so
-	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
-	Info.plist vfs_libusb.lib.so vfs_pipe.lib.so
-}
+build_boot_image "[build_artifacts] Info.plist"
 
 run_genode_until { Response: 62 0A 82 01 38 83 02 3F 00 8A 01 05 90 00} 30
 

@@ -39,7 +39,6 @@ class Libusb_file_system : public Vfs::Single_file_system
 				Genode::Env           &_env;
 				Vfs::Env::User        &_vfs_user;
 				Genode::Allocator_avl  _alloc_avl;
-				Usb::Connection        _usb_connection;
 
 				Genode::Io_signal_handler<Libusb_vfs_handle> _state_changed_handler {
 					_env.ep(), *this, &Libusb_vfs_handle::_handle_state_changed };
@@ -52,6 +51,9 @@ class Libusb_file_system : public Vfs::Single_file_system
 					 * constructor.
 					 */
 				}
+
+				Usb::Connection _usb_connection {
+					_env, &_alloc_avl, "usb_device", 1024*1024, _state_changed_handler };
 
 				Genode::Io_signal_handler<Libusb_vfs_handle> _ack_avail_handler {
 					_env.ep(), *this, &Libusb_vfs_handle::_handle_ack_avail };
@@ -70,11 +72,7 @@ class Libusb_file_system : public Vfs::Single_file_system
 				                  Vfs::Env::User    &vfs_user)
 				:
 					Single_vfs_handle(ds, fs, alloc, 0),
-					_env(env), _vfs_user(vfs_user), _alloc_avl(&alloc),
-					_usb_connection(_env, &_alloc_avl,
-					                "usb_device",
-					                1024*1024,
-					                _state_changed_handler)
+					_env(env), _vfs_user(vfs_user), _alloc_avl(&alloc)
 				{
 					_usb_connection.tx_channel()->sigh_ack_avail(_ack_avail_handler);
 					libusb_genode_usb_connection(&_usb_connection);
