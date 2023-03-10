@@ -474,10 +474,6 @@ class Lx::Socket
 
 static Lx::Socket *_socket;
 
-
-/* implemented in wlan.cc */
-extern Blockade *wpa_blockade;
-
 /* implemented in wlan.cc */
 void _wifi_report_mac_address(Net::Mac_address const &mac_address);
 
@@ -488,8 +484,6 @@ extern "C" int socketcall_task_function(void *)
 	_socket = &inst;
 
 	void const *mac_addr = nullptr;
-
-	wpa_blockade->wakeup();
 
 	while (true) {
 

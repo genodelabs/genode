@@ -180,7 +180,18 @@ struct Wlan
 };
 
 
-Blockade *wpa_blockade;
+static Blockade *wpa_blockade;
+
+
+extern "C" void wakeup_wpa()
+{
+	static bool called_once = false;
+	if (called_once)
+		return;
+
+	wpa_blockade->wakeup();
+	called_once = true;
+}
 
 
 void wifi_init(Env &env, Blockade &blockade)
