@@ -67,7 +67,7 @@ Session_capability Local_parent::session(Parent::Client::Id  id,
 	if (strcmp(service_name.string(), Rm_session::service_name()) == 0) {
 
 		Local_rm_session *local_rm_session = new (_alloc)
-			Local_rm_session(_alloc, _local_sessions_id_space, id);
+			Local_rm_session(_local_rm, _alloc, _local_sessions_id_space, id);
 
 		return local_rm_session->local_session_cap();
 	}
@@ -101,9 +101,9 @@ Parent::Close_result Local_parent::close(Client::Id id)
 
 
 Local_parent::Local_parent(Parent_capability parent_cap,
-                           Allocator &alloc)
+                           Region_map &local_rm, Allocator &alloc)
 :
-	Expanding_parent_client(parent_cap), _alloc(alloc)
+	Expanding_parent_client(parent_cap), _local_rm(local_rm), _alloc(alloc)
 { }
 
 
@@ -145,16 +145,23 @@ static Parent_capability obtain_parent_cap()
 }
 
 
+static Region_map_mmap &local_rm()
+{
+	static Region_map_mmap local_rm(false);
+	return local_rm;
+}
+
+
 Local_parent &Platform_env::_parent()
 {
-	static Local_parent local_parent(obtain_parent_cap(), _heap);
+	static Local_parent local_parent(obtain_parent_cap(), local_rm(),  _heap);
 	return local_parent;
 }
 
 
 Platform_env::Platform_env()
 :
-	Platform_env_base(_parent(),
+	Platform_env_base(_parent(), local_rm(),
 	                  static_cap_cast<Cpu_session>(_parent().session_cap(Parent::Env::cpu())),
 	                  static_cap_cast<Pd_session> (_parent().session_cap(Parent::Env::pd()))),
 	_heap(Platform_env_base::pd_session(), Platform_env_base::rm_session())

@@ -28,6 +28,8 @@
 #include <base/internal/local_pd_session.h>
 #include <base/internal/local_parent.h>
 
+#include <deprecated/env.h>
+
 namespace Genode {
 	class Platform_env_base;
 	class Platform_env;
@@ -44,7 +46,7 @@ class Genode::Platform_env_base : public Env_deprecated
 
 		Cpu_session_capability       _cpu_session_cap;
 		Expanding_cpu_session_client _cpu_session_client;
-		Region_map_mmap              _region_map_mmap;
+		Region_map_mmap             &_region_map_mmap;
 		Pd_session_capability        _pd_session_cap;
 
 	protected:
@@ -59,26 +61,16 @@ class Genode::Platform_env_base : public Env_deprecated
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Platform_env_base(Parent &parent,
+		Platform_env_base(Parent                &parent,
+		                  Region_map_mmap       &local_rm,
 		                  Cpu_session_capability cpu_cap,
 		                  Pd_session_capability  pd_cap)
 		:
 			_cpu_session_cap(cpu_cap),
 			_cpu_session_client(parent, cpu_cap, Parent::Env::cpu()),
-			_region_map_mmap(false),
+			_region_map_mmap(local_rm),
 			_pd_session_cap(pd_cap),
 			_local_pd_session(parent, _pd_session_cap)
-		{ }
-
-		/**
-		 * Constructor used by 'Core_env'
-		 */
-		Platform_env_base(Parent &parent)
-		:
-			Platform_env_base(parent, Cpu_session_capability(), Pd_session_capability())
 		{ }
 
 

@@ -28,24 +28,32 @@ namespace Genode { struct Local_rm_session; }
 
 struct Genode::Local_rm_session : Rm_session, Local_session
 {
-	Allocator &md_alloc;
+	Region_map &_local_rm;
+	Allocator  &_md_alloc;
 
-	Local_rm_session(Allocator &md_alloc, Id_space<Parent::Client> &id_space,
-	                 Parent::Client::Id id)
+	Local_rm_session(Region_map &local_rm, Allocator &md_alloc,
+	                 Id_space<Parent::Client> &id_space, Parent::Client::Id id)
 	:
-		Local_session(id_space, id, *this), md_alloc(md_alloc)
+		Local_session(id_space, id, *this),
+		_local_rm(local_rm), _md_alloc(md_alloc)
 	{ }
 
 	Capability<Region_map> create(size_t size) override
 	{
-		Region_map *rm = new (md_alloc) Region_map_mmap(true, size);
+		Region_map *rm = new (_md_alloc) Region_map_mmap(true, size);
 		return Local_capability<Region_map>::local_cap(rm);
 	}
 
 	void destroy(Capability<Region_map> cap) override
 	{
-		Region_map *rm = Local_capability<Region_map>::deref(cap);
-		Genode::destroy(md_alloc, rm);
+		Region_map *rm_ptr = Local_capability<Region_map>::deref(cap);
+
+		/* detach sub region map from local address space */
+		Region_map_mmap &rm = static_cast<Region_map_mmap &>(*rm_ptr);
+		rm.with_attached_sub_rm_base_ptr([&] (void *base_ptr) {
+			_local_rm.detach(base_ptr); });
+
+		Genode::destroy(_md_alloc, &rm);
 	}
 };
 
