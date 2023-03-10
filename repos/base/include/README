@@ -1,3 +1,0 @@
-This directory contains include files of interfaces that are exported
-by components to be used by other components. Each subdirectory corresponds
-to the component exporting the interface.

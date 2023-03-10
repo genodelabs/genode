@@ -28,7 +28,7 @@ to your _etc/build.conf_ file of you build directory.
 
 Finally,
 
-! make lib/vfs/rump
+! make lib/vfs_rump
 
 called from your build directory will build the plugin.
 

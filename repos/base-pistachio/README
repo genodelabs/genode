@@ -1,3 +1,1 @@
-This repository contains the L4ka::Pistachio-specific implementation of Genode.
-Please see the documentation at 'base-pistachio/doc/pistachio.txt' for further
-instructions on building and using Genode on the L4ka::Pistachio kernel.
+This repository contains the L4ka::Pistachio-specific parts of Genode.

@@ -1,19 +1,18 @@
-This is generic part of the Genode implementation. It consists of two parts:
+This is the generic Genode base system, which consists of two parts:
 
-:_Core_: is the ultimate root of the Genode application tree
-  and provides abstractions for the lowest-level hardware resources
-  such as RAM, ROM, CPU, and generic device access. All generic parts of Core
-  can be found here - for system-specific implementations refer to the
-  appropriate 'base-<system>' directory.
+:_Core_: is the root of the Genode component tree. It provides abstractions for
+  the lowest-level hardware resources such as RAM, ROM, CPU, and device access.
+  All generic parts of core can be found here. For kernel-specific parts,
+  refer to the appropriate 'base-<kernel>' directory.
 
-:_Base libraries and protocols_: that are used by each Genode component
+:_Base libraries and interfaces: that are used by each Genode component
   to interact with other components. This is the glue that holds everything
   together.
 
-_Core_ may export information about the hardware platform by an ROM
-called 'platform_info'. Depending on the platform, e.g. ARM or x86 or riscv,
-and depending on the boot mode and boot loader and kernel, some nodes may not
-be populated.
+Depending on the used kernel, core may export information about the hardware
+platform as a ROM called 'platform_info'. For example, if the ACPI RSDT and
+XSDT physical pointer are reported by the used kernel and/or bootloader, core
+provides this information in the ROM as follows.
 
 !<platform_info>
 ! <acpi revision="2" rsdt="0x1fe93074" xsdt="0x1fe930e8"/>
@@ -22,9 +21,6 @@ be populated.
 ! </boot>
 !</platform_info>
 
-If the ACPI RSDT and XSDT physical pointer is reported by the used kernel
-and/or bootloader, _Core_ may provide this information by the ROM.
-
-If the graphic device is initialised and can be directly used by a framebuffer
-driver, _Core_ may provide the physical pointer to the framebuffer, the
-resolution and color depth in bits.
+If the graphics device is initialised and can be directly used by a
+framebuffer driver, core provides the physical pointer to the framebuffer, the
+resolution, and color depth in bits.

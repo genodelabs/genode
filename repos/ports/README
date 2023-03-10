@@ -1,13 +1,13 @@
-This directory contains ports of popular 3rd-party applications to Genode.
+This directory contains ports of 3rd-party applications to Genode.
 
-The 'ports' repository follows the line of the 'libports' repository.
+The 'ports' repository follows the patterns of the 'libports' repository.
 For instructions about downloading and building 3rd-party applications,
-please refer to 'libports/README'.
+please refer to _libports/README_.
 
 
 Dependencies from other repositories
 ------------------------------------
 
-Application provided by the 'ports' repository typically expect a rich
+Applications provided by the 'ports' repository typically expect a rich
 runtime environment, including shared libraries provided by the 'libports'
 repository. Hence, 'ports' depends on 'libports'.

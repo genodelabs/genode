@@ -1,12 +1,12 @@
-This directory contains ports of popular 3rd-party software to Genode.
+This directory contains ports of 3rd-party libraries to Genode.
 
 
 Usage
 -----
 
 The tool './tool/ports/prepare_port' in the toplevel directory automates the
-task of downloading and preparing the library source codes. You can select
-individual packages that have to be prepared by specifying their base names
+task of downloading and preparing the 3rd-party source codes. One can select
+individual ports that have to be prepared by specifying their base names
 (without the version number) as command-line argument. For example, the
 following command prepares both the C library and the Freetype library:
 ! ./tool/ports/prepare_port libc freetype
@@ -28,11 +28,7 @@ files.
 How does 'libports' relate to the other repositories?
 -----------------------------------------------------
 
-Most libraries hosted in the 'libports' repository expect a complete C library,
-which is provided with the 'libc' package. Please do not forget to prepare the
-libc package when using any of the other libports packages. The libc, in turn,
-depends on the 'os' repository for its back end. Because the 'os' repository is
-the home of the dynamic linker, libraries contained in 'libports' are safe to
-assume the presence of the dynamic linker and, thus, should be built as shared
-libraries.
+Most libraries hosted in the 'libports' repository expect a complete C
+library, which is provided via the 'libc' port. The libc, in turn, depends on
+the 'os' repository for its back end.
 

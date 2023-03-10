@@ -1,5 +1,5 @@
 Mini C library
 
-This library only provides the libc support for libz and libpng.
+This library only rudimentary libc support for libz and libpng.
 Most functions are not implemented. The implemented functions might be
-slightly incompatible to a real libc. Please use this library with caution!
+slightly incompatible to a real libc.

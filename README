@@ -4,15 +4,17 @@
                       =================================
 
 
-This is the source tree of the reference implementation of the Genode OS
-architecture. For a general overview about the architecture, please refer to
-the project's official website:
+This is the source code of Genode, which is a framework for creating
+component-based operating systems. It combines capability-based security,
+microkernel technology, sandboxed device drivers, and virtualization with
+a novel operating system architecture. For a general overview about the
+architecture, please refer to the project's official website:
 
-:Official project website for the Genode OS Framework:
+:Website for the Genode OS Framework:
 
   [https://genode.org/documentation/general-overview]
 
-The current implementation can be compiled for 8 different kernels: Linux,
+Genode-based operating systems can be compiled for a variety of kernels: Linux,
 L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, seL4, and a custom "hw"
 microkernel for running Genode without a 3rd-party kernel. Whereas the Linux
 version serves us as development vehicle and enables us to rapidly develop the
@@ -22,7 +24,7 @@ one. If a microkernel pretended to be fit for all use cases, it wouldn't be
 "micro". Hence, all microkernels differ in terms of their respective features,
 complexity, and supported hardware architectures.
 
-Genode allows the use of each of the kernels listed above with a rich set of
+Genode allows for the use of each of the supported kernels with a rich set of
 device drivers, protocol stacks, libraries, and applications in a uniform way.
 For developers, the framework provides an easy way to target multiple different
 kernels instead of tying the development to a particular kernel technology. For
