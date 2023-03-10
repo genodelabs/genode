@@ -12,6 +12,7 @@ SRC_CC  += wlan.cc
 SRC_CC  += firmware.cc
 SRC_CC  += socket_call.cc
 SRC_CC  += lx_emul/random.cc
+SRC_CC  += dtb_helper.cc
 
 SRC_C   += dummies.c
 SRC_C   += lx_emul.c

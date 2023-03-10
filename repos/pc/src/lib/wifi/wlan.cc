@@ -29,6 +29,7 @@
 
 /* local includes */
 #include "lx_user.h"
+#include "dtb_helper.h"
 
 using namespace Genode;
 
@@ -155,6 +156,8 @@ struct Wlan
 	Io_signal_handler<Wlan> _signal_handler { _env.ep(), *this,
 	                                          &Wlan::_handle_signal };
 
+	Dtb_helper _dtb_helper { _env };
+
 	void _handle_signal()
 	{
 		if (uplink_task_struct_ptr) {
@@ -175,7 +178,7 @@ struct Wlan
 		                   genode_allocator_ptr(Lx_kit::env().heap),
 		                   genode_signal_handler_ptr(_signal_handler));
 
-		lx_emul_start_kernel(nullptr);
+		lx_emul_start_kernel(_dtb_helper.dtb_ptr());
 	}
 };
 
