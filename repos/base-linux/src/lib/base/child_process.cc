@@ -29,7 +29,7 @@ using namespace Genode;
  *
  * At this point in time, we do not yet know the TID and PID of the new
  * thread. Those information will be provided to core by the constructor of
- * the 'Platform_env' of the new process.
+ * the 'Platform' of the new process.
  */
 Child::Initial_thread::Initial_thread(Cpu_session          &cpu,
                                       Pd_session_capability pd,

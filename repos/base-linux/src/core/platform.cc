@@ -154,9 +154,9 @@ void Platform::wait_for_exit()
 }
 
 
-/****************************************************
- ** Support for Platform_env_base::Region_map_mmap **
- ****************************************************/
+/*********************************
+ ** Support for Region_map_mmap **
+ *********************************/
 
 size_t Region_map_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
 {

@@ -1,6 +1,5 @@
 LIBS = cxx
 
-SRC_CC  += bootstrap/env.cc
 SRC_CC  += bootstrap/init.cc
 SRC_CC  += bootstrap/lock.cc
 SRC_CC  += bootstrap/log.cc

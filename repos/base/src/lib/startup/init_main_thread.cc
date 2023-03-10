@@ -93,13 +93,7 @@ extern "C" void init_main_thread()
 	/* do platform specific preparation */
 	prepare_init_main_thread();
 
-	/*
-	 * Explicitly setup program environment at this point to ensure that its
-	 * destructor won't be registered for the atexit routine.
-	 */
-	(void)env_deprecated();
-	init_log(*env_deprecated()->parent());
-	init_rpc_cap_alloc(*env_deprecated()->parent());
+	init_platform();
 
 	/* create a thread object for the main thread */
 	main_thread();

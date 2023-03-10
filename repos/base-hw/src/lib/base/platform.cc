@@ -12,7 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/internal/platform_env.h>
+#include <deprecated/env.h>
+#include <base/internal/platform.h>
 #include <base/internal/globals.h>
 #include <base/internal/native_env.h>
 #include <base/connection.h>
@@ -20,20 +21,35 @@
 
 #include <hw_native_pd/client.h>
 
-namespace Genode {
+using namespace Genode;
 
-	/*
-	 * Request pointer to static environment of the Genode application
-	 */
-	Env_deprecated *env_deprecated()
-	{
-		/*
-		 * By placing the environment as static object here, we ensure that its
-		 * constructor gets called when this function is used the first time.
-		 */
-		static Genode::Platform_env _env;
-		return &_env;
+static Platform *_platform_ptr;
+
+
+Env_deprecated *Genode::env_deprecated()
+{
+	if (!_platform_ptr) {
+		error("missing call of init_platform");
+		for (;;);
 	}
+
+	struct Impl : Env_deprecated, Noncopyable
+	{
+		Platform &_pf;
+
+		Impl(Platform &pf) : _pf(pf) { }
+
+		Parent                *parent()          override { return &_pf.parent; }
+		Cpu_session           *cpu_session()     override { return &_pf.cpu; }
+		Cpu_session_capability cpu_session_cap() override { return  _pf.cpu.rpc_cap(); }
+		Region_map            *rm_session()      override { return &_pf.rm; }
+		Pd_session            *pd_session()      override { return &_pf.pd; }
+		Pd_session_capability  pd_session_cap()  override { return  _pf.pd.rpc_cap(); }
+	};
+
+	static Impl impl { *_platform_ptr };
+
+	return &impl;
 }
 
 
@@ -41,7 +57,7 @@ using Native_pd_capability = Genode::Capability<Genode::Pd_session::Native_pd>;
 static Native_pd_capability native_pd_cap;
 
 
-void Genode::init_parent_resource_requests(Genode::Env & env)
+void Genode::init_parent_resource_requests(Genode::Env &env)
 {
 	/**
 	 * Catch up asynchronous resource request and notification
@@ -53,10 +69,27 @@ void Genode::init_parent_resource_requests(Genode::Env & env)
 }
 
 
+void Genode::init_platform()
+{
+	static Genode::Platform platform;
+
+	init_log(platform.parent);
+	init_rpc_cap_alloc(platform.parent);
+
+	env_stack_area_ram_allocator = &platform.pd;
+	env_stack_area_region_map    = &platform.stack_area;
+
+	_platform_ptr = &platform;
+}
+
+
+void Genode::binary_ready_hook_for_platform() { }
+
+
 void Genode::upgrade_capability_slab()
 {
-	if (!native_pd_cap.valid()) {
-		Genode::error("Cannot upgrade capability slab "
+	if (!native_pd_cap.valid() || !_platform_ptr) {
+		Genode::error("cannot upgrade capability slab, "
 		              "not initialized appropriatedly");
 		return;
 	}
@@ -68,7 +101,7 @@ void Genode::upgrade_capability_slab()
 		 * 'Expanding_parent_client'.
 		 */
 		String<100> const args("ram_quota=", ram, ", cap_quota=", caps);
-		internal_env().parent().resource_request(args.string());
+		_platform_ptr->parent.resource_request(args.string());
 	};
 
 	retry<Genode::Out_of_caps>(

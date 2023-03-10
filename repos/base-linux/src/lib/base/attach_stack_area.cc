@@ -16,14 +16,14 @@
  */
 
 /* base-internal includes */
-#include <base/internal/platform_env.h>
+#include <base/internal/platform.h>
 
 using namespace Genode;
 
 
-void Platform_env::_attach_stack_area()
+void Platform::_attach_stack_area()
 {
-	_local_pd_session._address_space.attach_at(_local_pd_session._stack_area.dataspace(),
-	                                           stack_area_virtual_base(),
-	                                           stack_area_virtual_size());
+	pd._address_space.attach_at(pd._stack_area.dataspace(),
+	                            stack_area_virtual_base(),
+	                            stack_area_virtual_size());
 }

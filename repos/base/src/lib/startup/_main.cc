@@ -21,7 +21,6 @@
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/component.h>
-#include <deprecated/env.h>
 
 /* platform-specific local helper functions */
 #include <base/internal/parent_cap.h>

@@ -20,7 +20,7 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 #include <base/internal/globals.h>
-#include <base/internal/platform_env.h>
+#include <base/internal/platform.h>
 
 
 /**
@@ -125,6 +125,7 @@ Genode::size_t Component::stack_size()
 
 int main()
 {
+	Genode::init_platform();
 	Genode::bootstrap_component();
 
 	/* never reached */
@@ -558,11 +559,11 @@ Thread::~Thread()
 }
 
 
-/******************
- ** Platform_env **
- ******************/
+/**************
+ ** Platform **
+ **************/
 
-void Platform_env::_attach_stack_area()
+void Platform::_attach_stack_area()
 {
 	/*
 	 * Omit attaching the stack area to the local address space for hybrid

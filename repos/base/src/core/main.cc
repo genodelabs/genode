@@ -87,6 +87,9 @@ Platform &Core::platform_specific()
 Platform_generic &Core::platform() { return platform_specific(); }
 
 
+void Genode::init_platform() { core_env(); }
+
+
 Thread_capability Genode::main_thread_cap() { return Thread_capability(); }
 
 
@@ -185,12 +188,10 @@ class Core_child : public Child_policy
  ****************/
 
 /*
- * In contrast to the 'Platform_env' used by non-core components, core disables
- * the signal thread but overriding 'Genode::init_signal_thread' with a dummy.
- * Within core, the signal thread is not needed as core is never supposed to
- * receive any signals. Otherwise, the signal thread would be the only
- * non-entrypoint thread within core, which would be a problem on NOVA where
- * the creation of regular threads within core is unsupported.
+ * In contrast to non-core components, core disables the signal thread by
+ * overriding 'Genode::init_signal_thread' with a dummy. Within core, the
+ * signal thread is not needed as core is never supposed to receive any
+ * signals.
  */
 
 void Genode::init_signal_thread(Env &) { }

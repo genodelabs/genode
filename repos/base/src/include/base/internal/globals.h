@@ -28,6 +28,7 @@ namespace Genode {
 
 	Thread_capability main_thread_cap();
 
+	void init_platform();
 	void init_stack_area();
 	void init_exception_handling(Env &);
 	void init_signal_transmitter(Env &);
