@@ -45,6 +45,7 @@ Firmware_list fw_list[] = {
 	{ "iwlwifi-9000-pu-b0-jf-b0-34.ucode", 2678284, nullptr },
 	{ "iwlwifi-9000-pu-b0-jf-b0-36.ucode", 2678284, "iwlwifi-9000-pu-b0-jf-b0-34.ucode" },
 	{ "iwlwifi-9000-pu-b0-jf-b0-46.ucode", 1514876, nullptr },
+	{ "iwlwifi-9260-th-b0-jf-b0-46.ucode", 1489668, nullptr },
 
 	{ "iwlwifi-QuZ-a0-hr-b0-63.ucode", 1334804, nullptr },
 	{ "iwlwifi-QuZ-a0-hr-b0-64.ucode", 1334804, "iwlwifi-QuZ-a0-hr-b0-63.ucode" },
