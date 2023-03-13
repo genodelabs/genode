@@ -311,7 +311,6 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 		Constructible<Attached_dataspace>      _fb_ds { };
 		Framebuffer::Mode                      _fb_mode { _gui.mode() };
 		Gui::Session::View_handle              _view = _gui.create_view();
-		bool                                   _mode_changed { true };
 
 		using Area = Genode::Area<>;
 		using Rect = Genode::Rect<>;
@@ -390,25 +389,25 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			enum {
 				EVENTS_READ  = 0,
 				EVENTS_CLEAR = 4,
-				SCANOUTS     = 8 };
+				SCANOUTS     = 8,
+				NUM_CAPSETS  = 12
+			};
+
+			enum Events { NONE = 0, DISPLAY = 1 };
 
 			Register read(Address_range & range,  Cpu&) override
 			{
-				if (range.start() == EVENTS_READ && range.size() == 4)
-					return dev._mode_changed ? 1 : 0;
+				if (range.start() == EVENTS_READ)
+					return DISPLAY;
 
 				/* we support no multi-head, just return 1 */
-				if (range.start() == SCANOUTS && range.size() == 4)
+				if (range.start() == SCANOUTS)
 					return 1;
 
 				return 0;
 			}
 
-			void write(Address_range & range,  Cpu&, Register v) override
-			{
-				if (range.start() == EVENTS_CLEAR && range.size() == 4 && v == 1)
-					dev._mode_changed = false;
-			}
+			void write(Address_range &, Cpu&, Register) override {}
 
 			Configuration_area(Virtio_gpu_device & device)
 			:
@@ -420,21 +419,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 		void _mode_change()
 		{
 			Genode::Mutex::Guard guard(_mutex);
-
-			_fb_mode = _gui.mode();
-
-			_gui.buffer(_fb_mode, false);
-
-			if (_fb_mode.area.count() > 0)
-				_fb_ds.construct(_env.rm(),
-				                 _gui.framebuffer()->dataspace());
-
-			using Command = Gui::Session::Command;
-			_gui.enqueue<Command::Geometry>(_view, Rect(Point(0, 0), _fb_mode.area));
-			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
-			_gui.execute();
-
-			_mode_changed = true;
+			_config_notification();
 		}
 
 		void _notify(unsigned idx) override
@@ -466,12 +451,29 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			_handler(cpu, env.ep(), *this, &Virtio_gpu_device::_mode_change)
 		{
 			_gui.mode_sigh(_handler);
-			_mode_change();
 		}
 
 		void buffer_notification()
 		{
 			_buffer_notification();
+		}
+
+		Framebuffer::Mode resize()
+		{
+			_fb_ds.destruct();
+
+			_fb_mode = _gui.mode();
+			_gui.buffer(_fb_mode, false);
+
+			if (_fb_mode.area.count() > 0)
+				_fb_ds.construct(_env.rm(),
+				                 _gui.framebuffer()->dataspace());
+
+			using Command = Gui::Session::Command;
+			_gui.enqueue<Command::Geometry>(_view, Rect(Point(0, 0), _fb_mode.area));
+			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
+			_gui.execute();
+			return _gui.mode();
 		}
 };
 
