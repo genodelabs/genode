@@ -23,7 +23,6 @@
 #include <util/utf8.h>
 
 #include "partition_table.h"
-#include "fsprobe.h"
 
 static bool constexpr verbose = false;
 
@@ -193,6 +192,12 @@ class Block::Gpt : public Block::Partition_table
 		};
 
 
+		/* state needed for generating the partitions report */
+		uint64_t _gpt_part_lba_end { 0 };
+		uint64_t _gpt_total        { 0 };
+		uint64_t _gpt_used         { 0 };
+
+
 		/**
 		 * GUID partition entry format
 		 */
@@ -240,46 +245,56 @@ class Block::Gpt : public Block::Partition_table
 
 
 		/**
+		 * Iterate over each constructed partition and execute FN
+		 */
+		template <typename FN>
+		void _for_each_valid_partition(FN const &fn) const
+		{
+			for (unsigned i = 0; i < MAX_PARTITIONS; i++)
+				if (_part_list[i].constructed())
+					fn(i);
+		};
+
+
+		/**
 		 * Calculate free blocks until the start of the logical next entry
 		 *
-		 * \param header   pointer to GPT header
-		 * \param entry    pointer to current entry
-		 * \param entries  pointer to entries
-		 * \param num      number of entries
+		 * \param entry   number of current entry
+		 * \param total   number of total blocks on the device
 		 *
 		 * \return the number of free blocks to the next logical entry
 		 */
-		uint64_t _calculate_gap(Gpt_hdr   const &header,
-		                        Gpt_entry const &entry,
-		                        Gpt_entry const &entries,
-		                        Genode::uint32_t num,
-		                        Genode::uint64_t total_blocks)
+		uint64_t _calculate_gap(uint32_t entry,
+		                        uint64_t total_blocks) const
 		{
+			Partition const &current = *_part_list[entry];
+
 			/* add one block => end == start */
-			uint64_t const end_lba = entry.lba_end() + 1;
+			uint64_t const end_lba = current.lba + current.sectors;
 
 			enum { INVALID_START = ~0ull, };
 			uint64_t next_start_lba = INVALID_START;
 
-			for (uint32_t i = 0; i < num; i++) {
-				Gpt_entry const e(entries.base() + i * header.entry_size());
+			_for_each_valid_partition([&] (unsigned i) {
 
-				if (!e.valid() || e.base() == entry.base()) { continue; }
+				if (i == entry)
+					return;
+
+				Partition const &p = *_part_list[i];
 
 				/*
 				 * Check if the entry starts afterwards and save the
 				 * entry with the smallest distance.
 				 */
-				if (e.lba_start() >= end_lba) {
-					next_start_lba = min(next_start_lba, e.lba_start());
-				}
-			}
+				if (p.lba >= end_lba)
+					next_start_lba = min(next_start_lba, p.lba);
+			});
 
 			/* sanity check if GPT is broken */
-			if (end_lba > header.part_lba_end()) { return 0; }
+			if (end_lba > _gpt_part_lba_end) { return 0; }
 
-			/* if the underyling Block device changes we might be able to expand more */
-			uint64_t const part_end = max(header.part_lba_end(), total_blocks);
+			/* if the underlying Block device changes we might be able to expand more */
+			uint64_t const part_end = max(_gpt_part_lba_end, total_blocks);
 
 			/*
 			 * Use stored next start LBA or paritions end LBA from header,
@@ -299,9 +314,9 @@ class Block::Gpt : public Block::Partition_table
 		 *
 		 * \return the number of used blocks
 		 */
-		uint64_t _calculate_used(Gpt_hdr const &header,
-		                                 Gpt_entry const &entries,
-		                                 uint32_t num)
+		uint64_t _calculate_used(Gpt_hdr   const &header,
+		                         Gpt_entry const &entries,
+		                         uint32_t num)
 		{
 			uint64_t used = 0;
 
@@ -330,6 +345,10 @@ class Block::Gpt : public Block::Partition_table
 			                   gpt.entries() * gpt.entry_size() / block.info().block_size);
 			Gpt_entry entries(entry_array.addr<addr_t>());
 
+			_gpt_part_lba_end = gpt.part_lba_end();
+			_gpt_total        = (gpt.part_lba_end() - gpt.part_lba_start()) + 1;
+			_gpt_used         = _calculate_used(gpt, entries, gpt.entries());
+
 			for (int i = 0; i < MAX_PARTITIONS; i++) {
 
 				Gpt_entry e(entries.base() + i * gpt.entry_size());
@@ -337,69 +356,23 @@ class Block::Gpt : public Block::Partition_table
 				if (!e.valid())
 					continue;
 
-				block_number_t start  = e.lba_start();
-				block_count_t  length = (block_count_t)(e.lba_end() - e.lba_start() + 1); /* [...) */
+				block_number_t const lba_start = e.lba_start();
+				block_count_t  const length = (block_count_t)(e.lba_end() - lba_start + 1); /* [...) */
 
-				_part_list[i].construct(start, length);
+				enum { BYTES = 4096, };
+				Sector fs(data, lba_start, BYTES / block.info().block_size);
+				Fs::Type fs_type = Fs::probe(fs.addr<uint8_t*>(), BYTES);
 
-				log("GPT Partition ", i + 1, ": LBA ", start, " (", length,
-				    " blocks) type: '", e.type(),
-				    "' name: '", e, "'");
-			}
+				String<40>                  guid { e.guid() };
+				String<40>                  type { e.type() };
+				String<Gpt_entry::NAME_LEN> name { e };
 
-			/* Report the partitions */
-			if (reporter.constructed())
-			{
-				reporter->generate([&] (Xml_generator &xml) {
-					xml.attribute("type", "gpt");
+				_part_list[i].construct(lba_start, length, fs_type,
+				                        guid, type, name);
 
-					uint64_t const total_blocks = block.info().block_count;
-					xml.attribute("total_blocks", total_blocks);
-
-					uint64_t const gpt_total =
-						(gpt.part_lba_end() - gpt.part_lba_start()) + 1;
-					xml.attribute("gpt_total", gpt_total);
-
-					uint64_t const gpt_used =
-						_calculate_used(gpt, entries, gpt.entries());
-					xml.attribute("gpt_used", gpt_used);
-
-					for (int i = 0; i < MAX_PARTITIONS; i++) {
-						Gpt_entry e(entries.base() + i * gpt.entry_size());
-
-						if (!e.valid()){
-							continue;
-						}
-
-						enum { BYTES = 4096, };
-						Sector fs(data, e.lba_start(), BYTES / block.info().block_size);
-
-						Fs::Type fs_type = Fs::probe(fs.addr<uint8_t*>(), BYTES);
-
-						String<40>                  guid { e.guid() };
-						String<40>                  type { e.type() };
-						String<Gpt_entry::NAME_LEN> name { e };
-
-						xml.node("partition", [&] () {
-							xml.attribute("number", i + 1);
-							xml.attribute("name", name);
-							xml.attribute("type", type);
-							xml.attribute("guid", guid);;
-							xml.attribute("start", e.lba_start());
-							xml.attribute("length", e.lba_end() - e.lba_start() + 1);
-							xml.attribute("block_size", block.info().block_size);
-
-							uint64_t const gap = _calculate_gap(gpt, e, entries,
-							                                            gpt.entries(),
-							                                            total_blocks);
-							if (gap) { xml.attribute("expandable", gap); }
-
-							if (fs_type.valid()) {
-								xml.attribute("file_system", fs_type);
-							}
-						});
-					}
-				});
+				log("GPT Partition ", i + 1, ": LBA ", lba_start, " (", length,
+				    " blocks) type: '", type,
+				    "' name: '", name, "'");
 			}
 		}
 
@@ -425,13 +398,50 @@ class Block::Gpt : public Block::Partition_table
 			block.sigh(io_sigh);
 
 			Sector s(data, Gpt_hdr::Hdr_lba::LBA, 1);
-			Gpt_hdr hdr(s.addr<addr_t>());
-			_parse_gpt(hdr);
+			Gpt_hdr gpt_hdr(s.addr<addr_t>());
+
+			_parse_gpt(gpt_hdr);
 
 			for (unsigned num = 0; num < MAX_PARTITIONS; num++)
 				if (_part_list[num].constructed())
 					return true;
 			return false;
+		}
+
+		void generate_report(Xml_generator &xml) const override
+		{
+			xml.attribute("type", "gpt");
+
+			uint64_t const total_blocks = block.info().block_count;
+			xml.attribute("total_blocks", total_blocks);
+
+			xml.attribute("gpt_total", _gpt_total);
+			xml.attribute("gpt_used",  _gpt_used);
+
+			size_t const block_size = block.info().block_size;
+
+			_for_each_valid_partition([&] (unsigned i) {
+
+				Block::Partition const &part = *_part_list[i];
+
+				xml.node("partition", [&] () {
+					xml.attribute("number",     i + 1);
+					xml.attribute("name",       part.name);
+					xml.attribute("type",       part.gpt_type);
+					xml.attribute("guid",       part.guid);
+					xml.attribute("start",      part.lba);
+					xml.attribute("length",     part.sectors);
+					xml.attribute("block_size", block_size);
+
+					uint64_t const gap =
+						_calculate_gap(i, total_blocks);
+					if (gap)
+						xml.attribute("expandable", gap);
+
+					if (part.fs_type.valid())
+						xml.attribute("file_system", part.fs_type);
+				});
+			});
 		}
 };
 
