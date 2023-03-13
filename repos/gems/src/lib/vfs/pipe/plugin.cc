@@ -209,8 +209,10 @@ struct Vfs_pipe::Pipe
 
 		out_count = out;
 
-		if (out > 0)
+		if (out > 0) {
 			vfs_user.wakeup_vfs_user();
+			notify_read();
+		}
 
 		return Write_result::WRITE_OK;
 	}
