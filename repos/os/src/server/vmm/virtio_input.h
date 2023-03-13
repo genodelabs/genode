@@ -272,7 +272,7 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 				return size;
 			});
 
-			if (irq) _assert_irq();
+			if (irq) _buffer_notification();
 		}
 
 		void _notify(unsigned idx) override

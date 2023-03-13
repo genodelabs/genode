@@ -74,7 +74,7 @@ class Vmm::Virtio_net : public Virtio_device<Virtio_split_queue, 2>
 
 			bool irq = _queue[RX]->notify(recv);
 
-			if (irq) _assert_irq();
+			if (irq) _buffer_notification();
 		}
 
 		void _tx()
@@ -99,7 +99,7 @@ class Vmm::Virtio_net : public Virtio_device<Virtio_split_queue, 2>
 
 			if (!_queue[TX].constructed()) return;
 
-			if (_queue[TX]->notify(send)) _assert_irq();
+			if (_queue[TX]->notify(send)) _buffer_notification();
 			_free_packets();
 		}
 

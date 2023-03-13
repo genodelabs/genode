@@ -45,7 +45,7 @@ class Vmm::Virtio_console : public Virtio_device<Virtio_split_queue, 2>
 			if (!_terminal.avail() || !_queue[RX].constructed()) return;
 
 			_queue[RX]->notify(read);
-			_assert_irq();
+			_buffer_notification();
 		}
 
 		void _notify(unsigned idx) override
@@ -59,7 +59,7 @@ class Vmm::Virtio_console : public Virtio_device<Virtio_split_queue, 2>
 			};
 
 			if (_queue[TX]->notify(write))
-				_assert_irq();
+				_buffer_notification();
 		}
 
 		enum Device_id { CONSOLE = 0x3 };

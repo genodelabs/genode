@@ -341,16 +341,33 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, private Virtio_device_base
 			return ((uint64_t)_device_high.value()<<32) | _device_low.value();
 		}
 
-		void _assert_irq()
+		enum Irq : uint64_t {
+			NONE   = 0UL,
+			BUFFER = 1UL << 0,
+			CONFIG = 1UL << 1,
+		};
+
+		void _assert_irq(uint64_t irq)
 		{
-			_irq_status.set(0x1);
+			_irq_status.set(_irq_status.value() | irq);
 			_irq.assert();
 		}
 
-		void _deassert_irq()
+		void _deassert_irq(uint64_t irq)
 		{
-			_irq_status.set(0);
+			_irq_status.set(_irq_status.value() & ~irq);
 			_irq.deassert();
+		}
+
+		void _buffer_notification()
+		{
+			_assert_irq(BUFFER);
+		}
+
+		void _config_notification()
+		{
+			_config_gen.set(_config_gen.value() + 1);
+			_assert_irq(CONFIG);
 		}
 
 		void _construct_queue()
@@ -403,10 +420,10 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, private Virtio_device_base
 
 		struct Interrupt_ack : Reg
 		{
-			void write(Address_range&, Cpu&, Register) override
+			void write(Address_range&, Cpu&, Register v) override
 			{
 				Genode::Mutex::Guard guard(Reg::device().mutex());
-				Reg::device()._deassert_irq();
+				Reg::device()._deassert_irq(v);
 			}
 
 			Interrupt_ack(Virtio_device &device)
@@ -442,7 +459,6 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, private Virtio_device_base
 		}
 
 		Genode::Mutex & mutex() { return _mutex; }
-		void config_has_changed() { _config_gen.set(_config_gen.get() + 1); }
 };
 
 #endif /* _VIRTIO_DEVICE_H_ */

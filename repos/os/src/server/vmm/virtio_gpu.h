@@ -469,7 +469,10 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			_mode_change();
 		}
 
-		void assert_irq() { _assert_irq(); }
+		void buffer_notification()
+		{
+			_buffer_notification();
+		}
 };
 
 #endif /* _VIRTIO_GPU_H_ */

@@ -279,7 +279,7 @@ class Vmm::Virtio_block_device
 		void completed(Job &job, bool)
 		{
 			job.done(*_queue[REQUEST]);
-			_assert_irq();
+			_buffer_notification();
 			destroy(_heap, &job);
 		}
 };

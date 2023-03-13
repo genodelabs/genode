@@ -37,7 +37,7 @@ void Vmm::Virtio_gpu_queue::notify(Virtio_gpu_device & dev)
 
 	_used.write<Used_queue::Idx>((uint16_t)_cur_idx.idx());
 	memory_barrier();
-	if (_avail.inject_irq()) dev.assert_irq();
+	if (_avail.inject_irq()) dev.buffer_notification();
 }
 
 
