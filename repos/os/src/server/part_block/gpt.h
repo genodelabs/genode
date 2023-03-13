@@ -342,7 +342,7 @@ class Block::Gpt : public Block::Partition_table
 
 				_part_list[i].construct(start, length);
 
-				log("Partition ", i + 1, ": LBA ", start, " (", length,
+				log("GPT Partition ", i + 1, ": LBA ", start, " (", length,
 				    " blocks) type: '", e.type(),
 				    "' name: '", e, "'");
 			}

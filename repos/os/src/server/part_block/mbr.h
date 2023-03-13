@@ -192,7 +192,7 @@ struct Block::Mbr_partition_table : public Block::Partition_table
 			bool const mbr_valid = mbr.valid();
 			if (mbr_valid) {
 				_parse_mbr(mbr, [&] (int i, Partition_record const &r, unsigned offset) {
-					log("Partition ", i, ": LBA ",
+					log("MBR Partition ", i, ": LBA ",
 					    r.lba() + offset, " (",
 					    r.sectors(), " blocks) type: ",
 					    Hex(r.type(), Hex::OMIT_PREFIX));
