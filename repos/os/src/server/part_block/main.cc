@@ -222,8 +222,8 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 		Allocator_avl           _block_alloc { &_heap };
 		Block_connection        _block    { _env, &_block_alloc, _io_buffer_size };
 		Io_signal_handler<Main> _io_sigh  { _env.ep(), *this, &Main::_handle_io };
-		Mbr_partition_table     _mbr      { _env, _block, _heap, _reporter };
-		Gpt                     _gpt      { _env, _block, _heap, _reporter };
+		Mbr_partition_table     _mbr      { _env, _block, _heap };
+		Gpt                     _gpt      { _env, _block, _heap };
 		Partition_table        &_partition_table { _table() };
 
 		enum { MAX_SESSIONS = 128 };
@@ -494,12 +494,16 @@ Block::Partition_table & Block::Main::_table()
 		throw Invalid_config();
 	}
 
+	config.with_optional_sub_node("report", [&] (Xml_node const &node) {
+		report = node.attribute_value("partitions", false); });
+
 	try {
-		report = _config.xml().sub_node("report").attribute_value
-                         ("partitions", false);
 		if (report)
 			_reporter.construct(_env, "partitions", "partitions");
-	} catch(...) {}
+	} catch (...) {
+		error("cannot construct partitions reporter: abort");
+		throw;
+	}
 
 	/*
 	 * Try to parse MBR as well as GPT first if not instructued
@@ -536,6 +540,13 @@ Block::Partition_table & Block::Main::_table()
 	if (pmbr_found && ignore_gpt) {
 		warning("found protective MBR but GPT is to be ignored");
 	}
+
+	/* generate appropriate report */
+	if (_reporter.constructed())
+		_reporter->generate([&] (Xml_generator &xml) {
+			if (valid_gpt) _gpt.generate_report(xml);
+			if (valid_mbr) _mbr.generate_report(xml);
+		});
 
 	/*
 	 * Return the appropriate table or abort if none is found.

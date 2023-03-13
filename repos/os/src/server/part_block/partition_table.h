@@ -21,6 +21,8 @@
 #include <block_session/connection.h>
 #include <os/reporter.h>
 
+#include "fsprobe.h"
+
 namespace Block {
 	struct Partition;
 	class  Partition_table;
@@ -35,8 +37,35 @@ struct Block::Partition
 	block_number_t lba;     /* logical block address on device */
 	block_count_t  sectors; /* number of sectors in patitions */
 
-	Partition(block_number_t lba, block_count_t sectors)
-	: lba(lba), sectors(sectors) { }
+	Fs::Type fs_type { };
+
+	uint8_t  mbr_type { 0 };
+
+	using Uuid = String<40>;
+	Uuid guid     { };
+	Uuid gpt_type { };
+
+	using Name = String<72>; /* use GPT name antry length */
+	Name name { };
+
+	Partition(block_number_t lba,
+	          block_count_t  sectors,
+	          Fs::Type       fs_type,
+	          uint8_t        mbr_type)
+	:
+		lba(lba), sectors(sectors), fs_type(fs_type),
+		mbr_type(mbr_type)
+	{ }
+
+	Partition(block_number_t lba,
+	          block_count_t  sectors,
+	          Fs::Type       fs_type,
+	          Uuid const &guid, Uuid const &gpt_type,
+	          Name const &name)
+	:
+		lba(lba), sectors(sectors), fs_type(fs_type),
+		guid(guid), gpt_type(gpt_type), name(name)
+	{ }
 };
 
 
@@ -154,7 +183,6 @@ struct Block::Partition_table : Interface
 
 		Env                               &env;
 		Block_connection                  &block;
-		Constructible<Expanding_reporter> &reporter;
 		Sector_data                        data;
 
 		Io_signal_handler<Partition_table> io_sigh {
@@ -167,14 +195,15 @@ struct Block::Partition_table : Interface
 
 		Partition_table(Env                               &env,
 		                Block_connection                  &block,
-		                Allocator                         &alloc,
-		                Constructible<Expanding_reporter> &r)
-		: env(env), block(block), reporter(r), data(env, block, alloc)
+		                Allocator                         &alloc)
+		: env(env), block(block), data(env, block, alloc)
 		{ }
 
 		virtual Partition &partition(long num) = 0;
 
 		virtual bool parse() = 0;
+
+		virtual void generate_report(Xml_generator &xml) const = 0;
 };
 
 #endif /* _PART_BLOCK__PARTITION_TABLE_H_ */
