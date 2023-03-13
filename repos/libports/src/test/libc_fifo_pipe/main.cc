@@ -35,9 +35,11 @@ namespace Test_fifo_pipe {
 	class Test;
 	class Echo;
 	static char const*  TEST_DATA_FILENAME  { "/ro/test-data.bin" };
- 	static char const*  SEND_FILENAME       { "/dev/send-pipe/in" };
- 	static char const*  RECEIVE_FILENAME    { "/dev/receive-pipe/out" };
-	enum { BUF_SIZE = 4*1024 };
+	static char const*  SEND_FILENAME       { "/dev/send-pipe/in" };
+	static char const*  RECEIVE_FILENAME    { "/dev/receive-pipe/out" };
+
+	/* create a buffer that isn't a multiple of the pipe size */
+	enum { BUF_SIZE = 16 * 1024 + 42 };
 }
 
 static size_t copy(int src, int dest)
@@ -126,14 +128,14 @@ class Test_fifo_pipe::Test
 
 			size_t total_received_bytes { 0 };
 			while (true) {
-				/* read test data */
-				auto const test_data_num = read(test_data_file, test_data, BUF_SIZE);
 				/* read piped data */
 				auto const pipe_data_num = read(receive_file, receive_buffer, BUF_SIZE);
+				/* read test data */
+				auto const test_data_num = read(test_data_file, test_data, pipe_data_num);
 				if (pipe_data_num > 0) {
 					/* compare piped data to test data */
 					auto const diff_offset = Genode::memcmp(test_data, receive_buffer, test_data_num);
-					if (pipe_data_num != test_data_num || (0 != diff_offset)) {
+					if (0 != diff_offset) {
 						error("writing to pipe failed. Data sent not equal data received. diff_offset=", diff_offset);
 						error("total_received_bytes=", total_received_bytes);
 						error("pipe_data_num=", pipe_data_num, " test_data_num=", test_data_num);
