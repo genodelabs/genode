@@ -1,0 +1,73 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="30" />
+		<log meaning="succeeded">[init -> select] 3</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_pipe.lib.so"/>
+		<rom label="test-pipe_read_ready_counter"/>
+		<rom label="test-pipe_read_ready_select"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<default caps="100"/>
+
+		<start name="vfs">
+			<resource name="RAM" quantum="12M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<vfs> <pipe> <fifo name="fifo"/> </pipe> </vfs>
+				<default-policy root="/" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="select">
+			<resource name="RAM" quantum="3M"/>
+			<binary name="test-pipe_read_ready_select"/>
+			<config>
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<dir name="rw"> <fs/> </dir>
+				</vfs>
+				<libc stdin="/rw/fifo" stdout="/dev/log" stderr="/dev/log"/>
+			</config>
+		</start>
+
+		<start name="counter" caps="120">
+			<resource name="RAM" quantum="3M"/>
+			<binary name="test-pipe_read_ready_counter"/>
+			<config>
+				<vfs>
+					<dir name="dev"> <null/> <fs/> <log/> </dir>
+					<dir name="rw"> <fs/> </dir>
+				</vfs>
+				<libc stdin="/dev/null" stdout="/rw/fifo" stderr="/dev/log"/>
+			</config>
+		</start>
+
+	</config>
+
+</runtime>
