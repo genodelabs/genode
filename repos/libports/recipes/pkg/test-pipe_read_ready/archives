@@ -1,0 +1,6 @@
+_/src/init
+_/src/libc
+_/src/vfs
+_/src/vfs_pipe
+_/src/posix
+_/src/test-pipe_read_ready
