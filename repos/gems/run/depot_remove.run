@@ -1,0 +1,284 @@
+assert_spec linux
+assert_spec x86_64
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/lx_fs \
+                  [depot_user]/src/vfs_import \
+                  [depot_user]/src/init
+
+create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
+                               [depot_user]/pkg/chroot \
+                               [depot_user]/pkg/system_shell \
+                               [depot_user]/pkg/fonts_fs \
+                               [depot_user]/pkg/wm \
+                               [depot_user]/pkg/nano3d \
+                               [depot_user]/pkg/window_layouter \
+                               [depot_user]/pkg/motif_decorator \
+                               [depot_user]/pkg/themed_decorator \
+                               [depot_user]/pkg/sticks_blue_backdrop
+
+if { [get_cmd_switch --autopilot] } {
+	import_from_depot [depot_user]/src/depot_remove
+} else {
+	build { app/depot_remove }
+}
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="100M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
+	<start name="lx_fs" ld="no">
+		<resource name="RAM" quantum="100M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<policy label="depot_remove -> " root="/depot" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="depot_remove">
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="depot_remove_config"/> </service>
+			<service name="File_system"> <child name="lx_fs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+exec mkdir [run_dir]/genode/depot
+exec tar xvf [run_dir]/genode/depot.tar -C [run_dir]/genode/depot
+exec chmod -R +r [run_dir]/genode/depot
+
+if { [get_cmd_switch --autopilot] } {
+	build_boot_image {}
+} else {
+	build_boot_image [build_artifacts]
+}
+
+proc install_test_config { args } {
+	set fd [open [run_dir]/genode/depot_remove_config w]
+	puts $fd "[join $args {}]"
+	close $fd
+}
+
+proc depot_state { } {
+
+	set archives_to_keep {}
+
+	foreach dir [glob -type d [run_dir]/genode/depot/[depot_user]/pkg/*] {
+		set pkg_path [depot_user]/pkg/[file tail $dir]/[_current_depot_archive_version pkg [file tail $dir]]
+
+		set fd [open [run_dir]/genode/depot/$pkg_path/archives r]
+		set pkg_deps [split [string trim [read $fd]]]
+		close $fd
+
+		foreach dependency $pkg_deps {
+			set idx [lsearch -exact $archives_to_keep $dependency]
+			if { $idx == -1 } {
+				lappend archives_to_keep $dependency
+			}
+		}
+		lappend archives_to_keep $pkg_path
+	}
+
+	set context [dict create]
+	dict set context pkg ""
+	dict set context archives_to_delete {}
+	dict set context archives_to_keep $archives_to_keep
+
+	return $context
+}
+
+proc depot_state_for_pkg { archive } {
+	set archive_path [depot_user]/pkg/$archive/[_current_depot_archive_version pkg $archive]
+
+	# Dependencies of $archive are archives to delete
+	set fd [open [run_dir]/genode/depot/$archive_path/archives r]
+	set archives_to_delete [split [string trim [read $fd]]]
+	close $fd
+
+	set archives_to_keep {}
+
+	foreach dir [glob -type d [run_dir]/genode/depot/[depot_user]/pkg/*] {
+
+		if { [file tail $dir] != $archive } {
+
+			set pkg_path [depot_user]/pkg/[file tail $dir]/[_current_depot_archive_version pkg [file tail $dir]]
+
+			set fd [open [run_dir]/genode/depot/$pkg_path/archives r]
+			set pkg_deps [split [string trim [read $fd]]]
+			close $fd
+
+			foreach dependency $archives_to_delete {
+				set idx [lsearch -exact $pkg_deps $dependency]
+				if { $idx != -1 } {
+					lappend archives_to_keep $dependency
+				}
+			}
+		}
+	}
+
+	# Remove archive to keep from archive to delete
+	foreach dependency $archives_to_keep {
+		set idx [lsearch -exact $archives_to_delete $dependency]
+		set archives_to_delete [lreplace $archives_to_delete $idx $idx]
+	}
+
+	set context [dict create]
+	dict set context pkg "$archive_path"
+	dict set context archives_to_delete $archives_to_delete
+	dict set context archives_to_keep $archives_to_keep
+
+	return $context
+}
+
+proc check_depot_state { context } {
+
+	foreach archive [dict get $context archives_to_delete] {
+
+		regexp [_depot_archive_versioned_path_pattern] $archive dummy archive_user archive_type archive_name
+
+		if { $archive_type == "src" } {
+			set archive $archive_user/bin/x86_64/$archive_name/[_current_depot_archive_version src $archive_name]
+		}
+
+		if { [file isdirectory [run_dir]/genode/depot/$archive] } {
+			puts "ERROR: $archive is present but should has been deleted."
+			return 1
+		}
+	}
+
+	foreach archive [dict get $context archives_to_keep] {
+
+		regexp [_depot_archive_versioned_path_pattern] $archive dummy archive_user archive_type archive_name
+
+		if { $archive_type == "src" } {
+			set archive $archive_user/bin/x86_64/$archive_name/[_current_depot_archive_version src $archive_name]
+		}
+
+		if { ![file isdirectory [run_dir]/genode/depot/$archive] } {
+			puts "ERROR: $archive should still be there but it has been deleted."
+			return 1
+		}
+	}
+
+	if { [dict get $context pkg] != "" && [file isdirectory [run_dir]/genode/depot/[dict get $context pkg]] } {
+		puts "ERROR: [dict get $context pkg] is present but shoud have been deleted."
+		return 1
+	}
+
+	return 0
+}
+
+## TEST 1 --- Delete nano3d ---------------------------------------------------
+
+set context [depot_state_for_pkg "nano3d"]
+
+install_test_config {
+<config arch="x86_64" report="yes">
+	<remove user="} [depot_user] {" pkg="nano3d"/>
+	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
+</config>
+}
+
+run_genode_until ".*</removed_archives>" 10
+
+if { [check_depot_state $context] } {
+	puts " TEST 1 --- Delete nano3d -- ERROR"
+	exit 1
+}
+
+puts " TEST 1 --- Delete nano3d -- SUCCESS"
+
+## TEST 2 --- Delete non existing archive -------------------------------------
+
+set context [depot_state]
+
+install_test_config {
+<config arch="x86_64" report="yes">
+	<remove user="} [depot_user] {" pkg="nano3d"/>
+	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
+</config>
+}
+
+run_genode_until ".*<removed_archives/>" 10
+
+if { [check_depot_state $context] } {
+	puts " TEST 2 --- Delete non existing archive -- ERROR"
+	exit 1
+}
+
+puts " TEST 2 --- Delete non existing archive -- SUCCESS"
+
+## TEST 3 --- Delete a PKG archive with deps to keep --------------------------
+
+set context [depot_state_for_pkg "fonts_fs"]
+
+install_test_config {
+<config arch="x86_64" report="yes">
+	<remove user="} [depot_user] {" pkg="fonts_fs"/>
+	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
+</config>
+}
+
+run_genode_until ".*</removed_archives>" 10
+
+if { [check_depot_state $context] } {
+	puts " TEST 3 --- Delete a PKG archive with deps to keep --- ERROR"
+	exit 1
+}
+
+puts " TEST 3 --- Delete a PKG archive with deps to keep --- SUCCESS"
+
+## TEST 4 --- Remove all, keep themed_decorator PKG --------------------------
+
+set context [depot_state_for_pkg "themed_decorator"]
+
+install_test_config {
+<config arch="x86_64" report="yes">
+	<remove-all>
+		<keep user="} [depot_user] {" pkg="themed_decorator"/>
+	</remove-all>
+	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
+</config>
+}
+
+run_genode_until ".*</removed_archives>" 10
+
+if { ![check_depot_state $context] } {
+	puts " TEST 4 --- Remove all, keep themed_decorator PKG --- ERROR"
+	exit 1
+}
+
+puts " TEST 4 --- Remove all, keep themed_decorator PKG --- SUCCESS"
+

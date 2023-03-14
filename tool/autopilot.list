@@ -9,6 +9,7 @@ demo
 depot_autopilot
 depot_download
 depot_query
+depot_remove
 event_filter
 extract
 fb_bench

@@ -1,0 +1,73 @@
+This directory contains the depot_remove component. It can delete PKGs and
+its dependencies from the depot. It operates by reading its configuration and
+processes delete operations based on the provided rules. This component
+listens for configuration changes and will reactivate if it has been updated.
+
+Configuration
+~~~~~~~~~~~~~
+
+A typical configuration looks as follows.
+
+! <config arch="x86_64" report="yes">
+!     <remove user="alice" pkg="nano3d"/>
+!     <remove user="bob"   pkg="wm" version="2042-42-42"/>
+!     <remove-all>
+!         <keep user="alice" pkg="fonts_fs"/>
+!     </remove-all>
+! </config>
+
+The '<config>' node comes with two possible attributes.
+
+:arch:
+
+  This a mandatory attribute used to identify the correct directory for binary
+  archives.
+
+:report (default "no"):
+
+  This is an optional attribute. If set to "yes", a "removed_archives" report
+  is created, listing each deleted archive.
+
+The '<remove>' node instructs the component to remove a PKG archive from the
+depot. The '<remove-all>' node instructs the component to remove all PGK archives.
+It can be combined with a '<keep>' node to instruct the component to keep a
+given PKG archive while removing all the others.
+
+The '<remove>' and '<keep>' nodes accept the following attributes.
+
+
+:pkg:
+
+  This is a mandatory attribute that is used to identify the targeted PKG
+  archive.
+
+:user:
+
+  This is an optional attribute to identify the depot user for the given pkg.
+
+:version:
+
+  This is an optional attribute to identify the version for the given pkg.
+
+Reporting
+~~~~~~~~~
+
+When activated, the component reports the following content.
+
+! <removed_archives>
+!  <removed path="bob/bin/x86_64/wm/2023-04-11T1218"/>
+!  <removed path="alice/bin/x86_64/nano3d/2023-04-11T1218"/>
+!  <removed path="bob/bin/x86_64/themed_decorator/2023-04-11T1218"/>
+!  <removed path="bob/bin/x86_64/decorator/2023-04-11T1218"/>
+!  <removed path="bob/raw/wm/2020-06-21"/>
+!  <removed path="bob/raw/window_layouter/2020-02-19"/>
+!  <removed path="bob/pkg/wm/2023-04-11T1218"/>
+!  <removed path="alice/pkg/nano3d/2023-04-11T1218"/>
+! </removed_archives>
+
+Example
+~~~~~~~
+
+Please refer to the _gems/run/depot_remove.run_ script for a practical example
+of using the _depot_remove_ component.
+
