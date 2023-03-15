@@ -1805,7 +1805,11 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 				_apply_vram(vram_local, [&](Vram &vram) {
 
-					if (vram.owner(cap()) == false) return false;
+					/*
+					 * Note: cap() will return invalid cap at this point, so use
+					 * _owner.cap
+					 */
+					if (vram.owner(_owner.cap) == false) return false;
 
 					if (vram.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
 						_device.unmap_vram(_heap, vram.map);
