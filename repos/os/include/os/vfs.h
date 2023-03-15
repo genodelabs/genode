@@ -574,6 +574,10 @@ void Genode::with_xml_file_content(Readonly_file const &file,
 
 class Genode::File_content
 {
+	public:
+
+		struct Limit { size_t value; };
+
 	private:
 
 		class Buffer
@@ -597,14 +601,20 @@ class Genode::File_content
 
 		} _buffer;
 
+		static size_t _checked_file_size(Vfs::file_size file_size, Limit limit)
+		{
+			if (file_size <= limit.value)
+				return size_t(file_size);
+
+			throw Truncated_during_read();
+		}
+
 	public:
 
 		typedef Directory::Nonexistent_file Nonexistent_file;
 		typedef File::Truncated_during_read Truncated_during_read;
 
 		typedef Directory::Path Path;
-
-		struct Limit { size_t value; };
 
 		/**
 		 * Constructor
@@ -616,7 +626,7 @@ class Genode::File_content
 		File_content(Allocator &alloc, Directory const &dir, Path const &rel_path,
 		             Limit limit)
 		:
-			_buffer(alloc, min((size_t)dir.file_size(rel_path), limit.value))
+			_buffer(alloc, _checked_file_size(dir.file_size(rel_path), limit))
 		{
 			/* read the file content into the buffer */
 			with_raw_file_content(Readonly_file(dir, rel_path),
