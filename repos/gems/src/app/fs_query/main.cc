@@ -61,7 +61,7 @@ struct Fs_query::Watched_file
 
 	void _gen_content(Xml_generator &xml, Allocator &alloc, Directory const &dir) const
 	{
-		File_content content(alloc, dir, _name, File_content::Limit{4*1024});
+		File_content content(alloc, dir, _name, File_content::Limit{64*1024});
 
 		bool content_is_xml = false;
 
