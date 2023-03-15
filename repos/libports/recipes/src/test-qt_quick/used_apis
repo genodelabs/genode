@@ -2,4 +2,5 @@ libc
 mesa
 qt5
 qt5_component
+qt5_qml
 stdcxx
