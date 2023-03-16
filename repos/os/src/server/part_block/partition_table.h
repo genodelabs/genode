@@ -2,6 +2,7 @@
  * \brief  Partition table definitions
  * \author Sebastian Sumpf
  * \author Stefan Kalkowski
+ * \author Christian Helmuth
  * \date   2013-12-04
  */
 
@@ -15,193 +16,59 @@
 #ifndef _PART_BLOCK__PARTITION_TABLE_H_
 #define _PART_BLOCK__PARTITION_TABLE_H_
 
-#include <base/env.h>
-#include <base/log.h>
-#include <base/registry.h>
-#include <block_session/connection.h>
-#include <os/reporter.h>
-
+#include "block.h"
 #include "fsprobe.h"
+#include "types.h"
 
 namespace Block {
 	struct Partition;
 	class  Partition_table;
-	struct Job;
-	using namespace Genode;
-	typedef Block::Connection<Job> Block_connection;
 }
 
 
-struct Block::Partition
+struct Block::Partition : Noncopyable
 {
-	block_number_t lba;     /* logical block address on device */
-	block_count_t  sectors; /* number of sectors in patitions */
+	block_number_t const lba;     /* logical block address on device */
+	block_number_t const sectors; /* number of sectors in partitions */
 
 	Fs::Type fs_type { };
 
-	uint8_t  mbr_type { 0 };
-
-	using Uuid = String<40>;
-	Uuid guid     { };
-	Uuid gpt_type { };
-
-	using Name = String<72>; /* use GPT name antry length */
-	Name name { };
-
 	Partition(block_number_t lba,
-	          block_count_t  sectors,
-	          Fs::Type       fs_type,
-	          uint8_t        mbr_type)
-	:
-		lba(lba), sectors(sectors), fs_type(fs_type),
-		mbr_type(mbr_type)
-	{ }
-
-	Partition(block_number_t lba,
-	          block_count_t  sectors,
-	          Fs::Type       fs_type,
-	          Uuid const &guid, Uuid const &gpt_type,
-	          Name const &name)
-	:
-		lba(lba), sectors(sectors), fs_type(fs_type),
-		guid(guid), gpt_type(gpt_type), name(name)
-	{ }
+	          block_number_t sectors,
+	          Fs::Type       fs_type)
+	: lba(lba), sectors(sectors), fs_type(fs_type) { }
 };
 
 
-struct Block::Job : public Block_connection::Job
+class Block::Partition_table : Interface, Noncopyable
 {
-	Registry<Job>::Element registry_element;
+	protected:
 
-	addr_t  const index;                /* job index */
-	long    const number;               /* parition number */
-	Request       request;
-	addr_t  const addr;                 /* target payload address */
-	bool          completed { false };
+		Sync_read::Handler  &_handler;
+		Allocator           &_alloc;
+		Session::Info const  _info;
 
-	Job(Block_connection &connection,
-	    Operation         operation,
-	    Registry<Job>    &registry,
-	    addr_t const      index,
-	    addr_t const      number,
-	    Request           request,
-	    addr_t            addr)
-	: Block_connection::Job(connection, operation),
-	  registry_element(registry, *this),
-	  index(index), number(number), request(request), addr(addr) { }
-};
-
-
-struct Block::Partition_table : Interface
-{
-		struct Sector;
-
-		struct Sector_data
+		Fs::Type _fs_type(block_number_t lba)
 		{
-			Env              &env;
-			Block_connection &block;
-			Allocator        &alloc;
-			Sector          *current = nullptr;
-
-			Sector_data(Env &env, Block_connection &block, Allocator &alloc)
-			: env(env), block(block), alloc(alloc) { }
-		};
-
-		/**
-		 * Read sectors synchronously
-		 */
-		class Sector
-		{
-			private:
-
-				Sector_data &_data;
-				bool         _completed { false };
-				size_t       _size { 0 };
-				void        *_buffer { nullptr };
-
-				Sector(Sector const &);
-				Sector &operator = (Sector const &);
-
-			public:
-
-				Sector(Sector_data   &data,
-				       block_number_t block_number,
-				       block_count_t  count)
-				 : _data(data)
-				{
-					Operation const operation {
-						.type         = Operation::Type::READ,
-						.block_number = block_number,
-						.count        = count
-					};
-
-					Block_connection::Job job { data.block, operation };
-					_data.block.update_jobs(*this);
-
-					_data.current  = this;
-
-					while (!_completed)
-						data.env.ep().wait_and_dispatch_one_io_signal();
-
-					_data.current = nullptr;
-				}
-
-				~Sector()
-				{
-					_data.alloc.free(_buffer, _size);
-				}
-
-				void handle_io()
-				{
-					_data.block.update_jobs(*this);
-				}
-
-				void consume_read_result(Block_connection::Job &, off_t offset,
-				                         char const *src, size_t length)
-				{
-					_buffer = _data.alloc.alloc(length);
-					memcpy((char *)_buffer + offset, src, length);
-					_size += length;
-				}
-
-				void produce_write_content(Block_connection::Job &, off_t,
-				                           char *, size_t) { }
-
-				void completed(Block_connection::Job &, bool success)
-				{
-					_completed = true;
-
-					if (!success) {
-						error("IO error during partition parsing");
-						throw -1;
-					}
-				}
-
-				template <typename T> T addr() const {
-					return reinterpret_cast<T>(_buffer); }
-		};
-
-		Env                               &env;
-		Block_connection                  &block;
-		Sector_data                        data;
-
-		Io_signal_handler<Partition_table> io_sigh {
-			env.ep(), *this, &Partition_table::handle_io };
-
-		void handle_io()
-		{
-			if (data.current) { data.current->handle_io(); }
+			/* probe for known file-system types */
+			enum { BYTES = 4096 };
+			Sync_read fs(_handler, _alloc, lba, BYTES / _info.block_size);
+			if (fs.success())
+				return Fs::probe(fs.addr<uint8_t*>(), BYTES);
+			else
+				return Fs::Type();
 		}
 
-		Partition_table(Env                               &env,
-		                Block_connection                  &block,
-		                Allocator                         &alloc)
-		: env(env), block(block), data(env, block, alloc)
-		{ }
+	public:
 
-		virtual Partition &partition(long num) = 0;
+		Partition_table(Sync_read::Handler &handler,
+		                Allocator          &alloc,
+		                Session::Info       info)
+		: _handler(handler), _alloc(alloc), _info(info) { }
 
-		virtual bool parse() = 0;
+		virtual bool           partition_valid(long num)   const = 0;
+		virtual block_number_t partition_lba(long num)     const = 0;
+		virtual block_number_t partition_sectors(long num) const = 0;
 
 		virtual void generate_report(Xml_generator &xml) const = 0;
 };

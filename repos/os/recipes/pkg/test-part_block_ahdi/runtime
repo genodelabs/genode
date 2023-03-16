@@ -5,7 +5,6 @@
 	<events>
 		<timeout meaning="failed" sec="70" />
 		<log meaning="succeeded">
-			child "test-part*" exited with exit value 0*
 			child "test-part*" exited with exit value 0
 		</log>
 		<log meaning="failed">Error: </log>
@@ -18,7 +17,7 @@
 		<rom label="part_block"/>
 		<rom label="block_tester"/>
 		<rom label="report_rom"/>
-		<rom label="ata.gpt.raw"/>
+		<rom label="ata.ahdi.raw"/>
 	</content>
 
 	<config prio_levels="1" verbose="yes">
@@ -42,9 +41,9 @@
 			<provides><service name="Block"/></provides>
 			<config>
 				<vfs>
-					<rom name="ata.gpt.raw"/>
+					<rom name="ata.ahdi.raw"/>
 				</vfs>
-				<default-policy file="/ata.gpt.raw" block_size="512"/>
+				<default-policy file="/ata.ahdi.raw" block_size="512"/>
 			</config>
 		</start>
 		<start name="part_block">
@@ -55,8 +54,7 @@
 			</route>
 			<config>
 				<report partitions="yes"/>
-				<policy label_prefix="test-part1" partition="2"/>
-				<policy label_prefix="test-part2" partition="1"/>
+				<policy label_prefix="test-part1" partition="1"/>
 			</config>
 		</start>
 		<start name="report_rom">
@@ -68,18 +66,6 @@
 			<config verbose="yes"/>
 		</start>
 		<start name="test-part1">
-			<binary name="block_tester"/>
-			<resource name="RAM" quantum="5M" />
-			<config verbose="no" log="yes" stop_on_error="no">
-				<tests>
-					<sequential length="32K" size="1K" io_buffer="128K" batch="4"/>
-				</tests>
-			</config>
-			<route>
-				<any-service> <child name="part_block" /> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-		<start name="test-part2">
 			<binary name="block_tester"/>
 			<resource name="RAM" quantum="5M" />
 			<config verbose="no" log="yes" stop_on_error="no">

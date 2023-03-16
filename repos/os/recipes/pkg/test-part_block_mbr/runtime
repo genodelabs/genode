@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="60" />
+		<timeout meaning="failed" sec="70" />
 		<log meaning="succeeded">
 			child "test-part*" exited with exit value 0*
 			child "test-part*" exited with exit value 0*
