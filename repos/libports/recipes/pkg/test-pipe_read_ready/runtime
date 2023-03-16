@@ -56,7 +56,7 @@
 			</config>
 		</start>
 
-		<start name="counter">
+		<start name="counter" caps="120">
 			<resource name="RAM" quantum="3M"/>
 			<binary name="test-pipe_read_ready_counter"/>
 			<config>
