@@ -2,6 +2,7 @@
  * \brief  GUID Partition table definitions
  * \author Josef Soentgen
  * \author Sebastian Sumpf
+ * \author Christian Helmuth
  * \date   2014-09-19
  */
 
@@ -15,20 +16,37 @@
 #ifndef _PART_BLOCK__GPT_H_
 #define _PART_BLOCK__GPT_H_
 
-#include <base/env.h>
-#include <base/log.h>
-#include <block_session/client.h>
-#include <util/misc_math.h>
-#include <util/mmio.h>
-#include <util/utf8.h>
-
 #include "partition_table.h"
 
 static bool constexpr verbose = false;
 
 namespace Block {
+	class Gpt_partition;
 	class Gpt;
 };
+
+
+struct Block::Gpt_partition : Partition
+{
+	using Uuid = String<40>;
+	Uuid guid;
+	Uuid type;
+
+	using Name = String<72>; /* use GPT name entry length */
+	Name name;
+
+	Gpt_partition(block_number_t lba,
+	              block_count_t  sectors,
+	              Fs::Type       fs_type,
+	              Uuid    const &guid,
+	              Uuid    const &type,
+	              Name    const &name)
+	:
+		Partition(lba, sectors, fs_type),
+		guid(guid), type(type), name(name)
+	{ }
+};
+
 
 class Block::Gpt : public Block::Partition_table
 {
@@ -37,9 +55,7 @@ class Block::Gpt : public Block::Partition_table
 		enum { MAX_PARTITIONS = 128 };
 
 		/* contains valid partitions or not constructed */
-		Constructible<Partition> _part_list[MAX_PARTITIONS];
-
-		typedef Block::Partition_table::Sector Sector;
+		Constructible<Gpt_partition> _part_list[MAX_PARTITIONS];
 
 		/**
 		 * DCE uuid struct
@@ -83,7 +99,6 @@ class Block::Gpt : public Block::Partition_table
 		 * GUID parition table header
 		 */
 		struct Gpt_hdr : Mmio
-
 		{
 			struct Sig      : Register<0, 64> { };  /* identifies GUID Partition Table */
 			struct Revision : Register<8, 32> { };  /* GPT specification revision */
@@ -147,7 +162,8 @@ class Block::Gpt : public Block::Partition_table
 				log(" gpe crc: ",    Hex(read<Gpe_crc>(), Hex::OMIT_PREFIX));
 			}
 
-			bool valid(Partition_table::Sector_data &data, bool check_primary = true)
+			bool valid(Sync_read::Handler &handler, Allocator &alloc,
+			           size_t block_size, bool check_primary = true)
 			{
 				dump_hdr(check_primary);
 
@@ -172,15 +188,15 @@ class Block::Gpt : public Block::Partition_table
 
 				/* check GPT entry array */
 				size_t length = entries() * entry_size();
-				Sector gpe(data, gpe_lba(), length / data.block.info().block_size);
+				Sync_read gpe(handler, alloc, gpe_lba(), length / block_size);
 				if (crc32(gpe.addr<addr_t>(), length) != read<Gpe_crc>())
 					return false;
 
 				if (check_primary) {
 					/* check backup gpt header */
-					Sector backup_hdr(data, read<Backup_hdr_lba>(), 1);
+					Sync_read backup_hdr(handler, alloc, read<Backup_hdr_lba>(), 1);
 					Gpt_hdr backup(backup_hdr.addr<addr_t>());
-					if (!backup.valid(data, false)) {
+					if (!backup.valid(handler, alloc, block_size, false)) {
 						warning("Backup GPT header is corrupted");
 					}
 				}
@@ -336,13 +352,13 @@ class Block::Gpt : public Block::Partition_table
 		/**
 		 * Parse the GPT header
 		 */
-		void _parse_gpt(Gpt_hdr &gpt)
+		bool _parse_gpt(Gpt_hdr &gpt)
 		{
-			if (!(gpt.valid(data)))
-				throw Exception();
+			if (!gpt.valid(_handler, _alloc, _info.block_size))
+				return false;
 
-			Sector entry_array(data, gpt.gpe_lba(),
-			                   gpt.entries() * gpt.entry_size() / block.info().block_size);
+			Sync_read entry_array(_handler, _alloc, gpt.gpe_lba(),
+			                      gpt.entries() * gpt.entry_size() / _info.block_size);
 			Gpt_entry entries(entry_array.addr<addr_t>());
 
 			_gpt_part_lba_end = gpt.part_lba_end();
@@ -360,7 +376,7 @@ class Block::Gpt : public Block::Partition_table
 				block_count_t  const length = (block_count_t)(e.lba_end() - lba_start + 1); /* [...) */
 
 				enum { BYTES = 4096, };
-				Sector fs(data, lba_start, BYTES / block.info().block_size);
+				Sync_read fs(_handler, _alloc, lba_start, BYTES / _info.block_size);
 				Fs::Type fs_type = Fs::probe(fs.addr<uint8_t*>(), BYTES);
 
 				String<40>                  guid { e.guid() };
@@ -374,33 +390,21 @@ class Block::Gpt : public Block::Partition_table
 				    " blocks) type: '", type,
 				    "' name: '", name, "'");
 			}
+
+			return true;
 		}
 
 	public:
 
 		using Partition_table::Partition_table;
 
-		Partition &partition(long num) override
+		bool parse()
 		{
-			num -= 1;
-
-			if (num < 0 || num > MAX_PARTITIONS)
-				throw -1;
-
-			if (!_part_list[num].constructed())
-				throw -1;
-
-			return *_part_list[num];
-		}
-
-		bool parse() override
-		{
-			block.sigh(io_sigh);
-
-			Sector s(data, Gpt_hdr::Hdr_lba::LBA, 1);
+			Sync_read s(_handler, _alloc, Gpt_hdr::Hdr_lba::LBA, 1);
 			Gpt_hdr gpt_hdr(s.addr<addr_t>());
 
-			_parse_gpt(gpt_hdr);
+			if (!_parse_gpt(gpt_hdr))
+				return false;
 
 			for (unsigned num = 0; num < MAX_PARTITIONS; num++)
 				if (_part_list[num].constructed())
@@ -408,30 +412,49 @@ class Block::Gpt : public Block::Partition_table
 			return false;
 		}
 
+		bool partition_valid(long num) const override
+		{
+			/* 1-based partition number to 0-based array index */
+			num -= 1;
+
+			if (num < 0 || num >= MAX_PARTITIONS)
+				return false;
+
+			return _part_list[num].constructed();
+		}
+
+		block_number_t partition_lba(long num) const override
+		{
+			return partition_valid(num) ? _part_list[num - 1]->lba : 0;
+		}
+
+		block_count_t partition_sectors(long num) const override
+		{
+			return partition_valid(num) ? _part_list[num - 1]->sectors : 0;
+		}
+
 		void generate_report(Xml_generator &xml) const override
 		{
 			xml.attribute("type", "gpt");
 
-			uint64_t const total_blocks = block.info().block_count;
+			uint64_t const total_blocks = _info.block_count;
 			xml.attribute("total_blocks", total_blocks);
 
 			xml.attribute("gpt_total", _gpt_total);
 			xml.attribute("gpt_used",  _gpt_used);
 
-			size_t const block_size = block.info().block_size;
-
 			_for_each_valid_partition([&] (unsigned i) {
 
-				Block::Partition const &part = *_part_list[i];
+				Gpt_partition const &part = *_part_list[i];
 
 				xml.node("partition", [&] () {
 					xml.attribute("number",     i + 1);
 					xml.attribute("name",       part.name);
-					xml.attribute("type",       part.gpt_type);
+					xml.attribute("type",       part.type);
 					xml.attribute("guid",       part.guid);
 					xml.attribute("start",      part.lba);
 					xml.attribute("length",     part.sectors);
-					xml.attribute("block_size", block_size);
+					xml.attribute("block_size", _info.block_size);
 
 					uint64_t const gap =
 						_calculate_gap(i, total_blocks);

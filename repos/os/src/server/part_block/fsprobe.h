@@ -1,6 +1,7 @@
 /*
  * \brief  Poor man's partition probe for known file system
  * \author Josef Soentgen
+ * \author Christian Helmuth
  * \date   2018-05-03
  */
 
@@ -24,64 +25,68 @@ namespace Fs {
 
 	using Type = Genode::String<32>;
 
+	Type _probe_extfs(uint8_t *p, size_t len);
+	Type _probe_fatfs(uint8_t *p, size_t len);
 	Type probe(uint8_t *buffer, size_t len);
+}
 
-	/**
-	 * Probe for Ext2/3/4
-	 */
-	Type _probe_extfs(uint8_t *p, size_t len)
-	{
-		if (len < 4096) { return Type(); }
 
-		/* super block starts a byte offset 1024 */
-		p += 0x400;
+/**
+ * Probe for Ext2/3/4
+ */
+Fs::Type Fs::_probe_extfs(uint8_t *p, size_t len)
+{
+	if (len < 4096) { return Type(); }
 
-		bool const found_ext_sig = p[0x38] == 0x53 && p[0x39] == 0xEF;
+	/* super block starts a byte offset 1024 */
+	p += 0x400;
 
-		enum {
-			COMPAT_HAS_JOURNAL      = 0x004u,
-			INCOMPAT_EXTENTS        = 0x040u,
-			RO_COMPAT_METADATA_CSUM = 0x400u,
-		};
+	bool const found_ext_sig = p[0x38] == 0x53 && p[0x39] == 0xEF;
 
-		uint32_t const compat    = *(uint32_t*)(p + 0x5C);
-		uint32_t const incompat  = *(uint32_t*)(p + 0x60);
-		uint32_t const ro_compat = *(uint32_t*)(p + 0x64);
+	enum {
+		COMPAT_HAS_JOURNAL      = 0x004u,
+		INCOMPAT_EXTENTS        = 0x040u,
+		RO_COMPAT_METADATA_CSUM = 0x400u,
+	};
 
-		/* the feature flags should denote a given Ext version */
+	uint32_t const compat    = *(uint32_t*)(p + 0x5C);
+	uint32_t const incompat  = *(uint32_t*)(p + 0x60);
+	uint32_t const ro_compat = *(uint32_t*)(p + 0x64);
 
-		bool const ext3 = compat & COMPAT_HAS_JOURNAL;
-		bool const ext4 = ext3 && ((incompat & INCOMPAT_EXTENTS)
-		                       &&  (ro_compat & RO_COMPAT_METADATA_CSUM));
+	/* the feature flags should denote a given Ext version */
 
-		if      (found_ext_sig && ext4) { return Type("Ext4"); }
-		else if (found_ext_sig && ext3) { return Type("Ext3"); }
-		else if (found_ext_sig)         { return Type("Ext2"); }
+	bool const ext3 = compat & COMPAT_HAS_JOURNAL;
+	bool const ext4 = ext3 && ((incompat & INCOMPAT_EXTENTS)
+	                       &&  (ro_compat & RO_COMPAT_METADATA_CSUM));
 
-		return Type();
-	}
+	if      (found_ext_sig && ext4) { return Type("Ext4"); }
+	else if (found_ext_sig && ext3) { return Type("Ext3"); }
+	else if (found_ext_sig)         { return Type("Ext2"); }
 
-	/**
-	 * Probe for FAT16/32
-	 */
-	Type _probe_fatfs(uint8_t *p, size_t len)
-	{
-		if (len < 512) { return Type(); }
+	return Type();
+}
 
-		/* at least the checks ring true when mkfs.vfat is used... */
-		bool const found_boot_sig = p[510] == 0x55 && p[511] == 0xAA;
 
-		bool const fat16  =     p[38] == 0x28 || p[38] == 0x29;
-		bool const fat32  =    (p[66] == 0x28 || p[66] == 0x29)
-		                    && (p[82] == 'F' && p[83] == 'A');
-		bool const gemdos =    (p[0] == 0xe9);
+/**
+ * Probe for FAT16/32
+ */
+Fs::Type Fs::_probe_fatfs(uint8_t *p, size_t len)
+{
+	if (len < 512) { return Type(); }
 
-		if (found_boot_sig && fat32) { return Type("FAT32");  }
-		if (found_boot_sig && fat16) { return Type("FAT16");  }
-		if (gemdos)                  { return Type("GEMDOS"); }
+	/* at least the checks ring true when mkfs.vfat is used... */
+	bool const found_boot_sig = p[510] == 0x55 && p[511] == 0xAA;
 
-		return Type();
-	}
+	bool const fat16  =     p[38] == 0x28 || p[38] == 0x29;
+	bool const fat32  =    (p[66] == 0x28 || p[66] == 0x29)
+	                    && (p[82] == 'F' && p[83] == 'A');
+	bool const gemdos =    (p[0] == 0xe9);
+
+	if (found_boot_sig && fat32) { return Type("FAT32");  }
+	if (found_boot_sig && fat16) { return Type("FAT16");  }
+	if (gemdos)                  { return Type("GEMDOS"); }
+
+	return Type();
 }
 
 

@@ -3,16 +3,18 @@
  * \author Sebastian Sumpf
  * \author Stefan Kalkowski
  * \author Josef Soentgen
+ * \author Christian Helmuth
  * \date   2011-05-30
  */
 
 /*
- * Copyright (C) 2011-2020 Genode Labs GmbH
+ * Copyright (C) 2011-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <base/attached_rom_dataspace.h>
 #include <base/attached_ram_dataspace.h>
 #include <base/component.h>
@@ -20,10 +22,13 @@
 #include <block_session/rpc_object.h>
 #include <block/request_stream.h>
 #include <os/session_policy.h>
+#include <os/reporter.h>
 #include <util/bit_allocator.h>
 
 #include "gpt.h"
 #include "mbr.h"
+#include "ahdi.h"
+#include "disk.h"
 
 namespace Block {
 	class  Session_component;
@@ -202,7 +207,7 @@ class Block::Session_component : public Rpc_object<Block::Session>,
 
 
 class Block::Main : Rpc_object<Typed_root<Session>>,
-                    Dispatch
+                    Dispatch, public Sync_read::Handler
 {
 	private:
 
@@ -221,10 +226,15 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 
 		Allocator_avl           _block_alloc { &_heap };
 		Block_connection        _block    { _env, &_block_alloc, _io_buffer_size };
+		Session::Info           _info     { _block.info() };
 		Io_signal_handler<Main> _io_sigh  { _env.ep(), *this, &Main::_handle_io };
-		Mbr_partition_table     _mbr      { _env, _block, _heap };
-		Gpt                     _gpt      { _env, _block, _heap };
-		Partition_table        &_partition_table { _table() };
+		Mbr                     _mbr      { *this, _heap, _info };
+		Gpt                     _gpt      { *this, _heap, _info };
+		Ahdi                    _ahdi     { *this, _heap, _info };
+
+		Constructible<Disk> _disk { };
+
+		Partition_table & _partition_table { _table() };
 
 		enum { MAX_SESSIONS = 128 };
 		Session_component   *_sessions[MAX_SESSIONS] { };
@@ -289,6 +299,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 
 		Main(Env &env) : _env(env)
 		{
+			/* register final handler after initially synchronous block I/O */
 			_block.sigh(_io_sigh);
 
 			/* announce at parent */
@@ -326,10 +337,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 				throw Service_denied();
 			}
 
-			try {
-				_partition_table.partition(num);
-			}
-			catch (...) {
+			if (!_partition_table.partition_valid(num)) {
 				error("Partition ", num, " unavailable for '", label, "'");
 				throw Service_denied();
 			}
@@ -360,7 +368,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 
 			Session::Info info {
 				.block_size  = _block.info().block_size,
-				.block_count = _partition_table.partition(num).sectors,
+				.block_count = _partition_table.partition_sectors(num),
 				.align_log2  = 0,
 				.writeable   = writeable,
 			};
@@ -405,7 +413,6 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 		void completed(Job &job, bool success)
 		{
 			job.request.success = success;
-			job.completed       = true;
 		}
 
 
@@ -417,10 +424,9 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 
 		Response submit(long number, Request const &request, addr_t addr) override
 		{
-			Partition &partition = _partition_table.partition(number);
-			block_number_t last  = request.operation.block_number + request.operation.count;
+			block_number_t last = request.operation.block_number + request.operation.count;
 
-			if (last > partition.sectors)
+			if (last > _partition_table.partition_sectors(number))
 				return Response::REJECTED;
 
 			addr_t index = 0;
@@ -431,7 +437,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			_job_queue.with_job(index, [&](Job_object &job) {
 
 				Operation op     = request.operation;
-				op.block_number += partition.lba;
+				op.block_number += _partition_table.partition_lba(number);
 
 				job.construct(_block, op, _job_registry, index, number, request, addr);
 			});
@@ -457,7 +463,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 		void acknowledge_completed(bool all = true, long number = -1) override
 		{
 			_job_registry.for_each([&] (Job &job) {
-				if (!job.completed) return;
+				if (!job.completed()) return;
 
 				addr_t index = job.index;
 
@@ -474,6 +480,17 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 					_job_queue.free(index);
 			});
 		}
+
+		/************************
+		 ** Sync_read::Handler **
+		 ************************/
+
+		Block_connection & connection() override { return _block; }
+
+		void block_for_io() override
+		{
+			_env.ep().wait_and_dispatch_one_io_signal();
+		}
 };
 
 
@@ -487,6 +504,7 @@ Block::Partition_table & Block::Main::_table()
 	bool valid_mbr  = false;
 	bool valid_gpt  = false;
 	bool pmbr_found = false;
+	bool valid_ahdi = false;
 	bool report     = false;
 
 	if (ignore_gpt && ignore_mbr) {
@@ -506,21 +524,38 @@ Block::Partition_table & Block::Main::_table()
 	}
 
 	/*
+	 * The initial signal handler can be empty as it's only used to deblock
+	 * wait_and_dispatch_one_io_signal() in Sync_read.
+	 */
+
+	struct Io_dummy { void fn() { }; } io_dummy;
+	Io_signal_handler<Io_dummy> handler(_env.ep(), io_dummy, &Io_dummy::fn);
+	_block.sigh(handler);
+
+	/*
 	 * Try to parse MBR as well as GPT first if not instructued
 	 * to ignore either one of them.
 	 */
 
 	if (!ignore_mbr) {
-		try { valid_mbr = _mbr.parse(); }
-		catch (Mbr_partition_table::Protective_mbr_found) {
+		using Parse_result = Mbr::Parse_result;
+
+		switch (_mbr.parse()) {
+		case Parse_result::MBR:
+			valid_mbr = true;
+			break;
+		case Parse_result::PROTECTIVE_MBR:
 			pmbr_found = true;
-		} catch (...) { };
+			break;
+		case Parse_result::NO_MBR:
+			break;
+		}
 	}
 
-	if (!ignore_gpt) {
-		try { valid_gpt = _gpt.parse(); }
-		catch (...) { }
-	}
+	if (!ignore_gpt)
+		valid_gpt = _gpt.parse();
+
+	valid_ahdi = _ahdi.parse();
 
 	/*
 	 * Both tables are valid (although we would have expected a PMBR in
@@ -536,27 +571,31 @@ Block::Partition_table & Block::Main::_table()
 		warning("will use GPT without proper protective MBR");
 	}
 
-	/* PMBR missing, i.e, MBR part[0] contains whole disk and GPT valid */
 	if (pmbr_found && ignore_gpt) {
 		warning("found protective MBR but GPT is to be ignored");
 	}
 
+	auto pick_final_table = [&] () -> Partition_table & {
+		if (valid_gpt)  return _gpt;
+		if (valid_mbr)  return _mbr;
+		if (valid_ahdi) return _ahdi;
+
+		/* fall back to entire disk in partition 0 */
+		_disk.construct(*this, _heap, _info);
+
+		return *_disk;
+	};
+
+	Partition_table &table = pick_final_table();
+
 	/* generate appropriate report */
-	if (_reporter.constructed())
+	if (_reporter.constructed()) {
 		_reporter->generate([&] (Xml_generator &xml) {
-			if (valid_gpt) _gpt.generate_report(xml);
-			if (valid_mbr) _mbr.generate_report(xml);
+			table.generate_report(xml);
 		});
+	}
 
-	/*
-	 * Return the appropriate table or abort if none is found.
-	 */
-
-	if (valid_gpt) return _gpt;
-	if (valid_mbr) return _mbr;
-
-	error("Aborting: no partition table found.");
-	throw No_partition_table();
+	return table;
 }
 
 void Component::construct(Genode::Env &env) { static Block::Main main(env); }
