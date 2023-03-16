@@ -627,6 +627,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 		typedef Name Label;
 		Path  const path  = rom.attribute_value("path",  Path());
 		Label const label = rom.attribute_value("label", Label());
+		Label const as    = rom.attribute_value("as",    label);
 
 		xml.node("service", [&] () {
 			xml.attribute("name", "ROM");
@@ -634,7 +635,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 			if (route_binary_to_shim && label == _binary_name)
 				xml.attribute("label", "binary");
 			else
-				xml.attribute("label_last", label);
+				xml.attribute("label_last", as);
 
 			if (cached_depot_rom.valid()) {
 				xml.node("child", [&] () {

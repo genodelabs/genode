@@ -87,6 +87,7 @@ void Depot_query::Main::_gen_rom_path_nodes(Xml_generator       &xml,
 					return;
 
 				Rom_label const label = node.attribute_value("label", Rom_label());
+				Rom_label const as    = node.attribute_value("as",    label);
 
 				/* skip ROM that is provided by the environment */
 				bool provided_by_env = false;
@@ -94,9 +95,16 @@ void Depot_query::Main::_gen_rom_path_nodes(Xml_generator       &xml,
 					if (node.attribute_value("label", Rom_label()) == label)
 						provided_by_env = true; });
 
+				auto gen_label_attr = [&]
+				{
+					xml.attribute("label", label);
+					if (as != label)
+						xml.attribute("as", as);
+				};
+
 				if (provided_by_env) {
 					xml.node("rom", [&] () {
-						xml.attribute("label", label);
+						gen_label_attr();
 						xml.attribute("env", "yes");
 					});
 					return;
@@ -107,7 +115,7 @@ void Depot_query::Main::_gen_rom_path_nodes(Xml_generator       &xml,
 
 				if (rom_path.valid()) {
 					xml.node("rom", [&] () {
-						xml.attribute("label", label);
+						gen_label_attr();
 						xml.attribute("path", rom_path);
 					});
 
