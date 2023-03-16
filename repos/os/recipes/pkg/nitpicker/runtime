@@ -1,0 +1,11 @@
+<runtime ram="12M" caps="200" binary="nitpicker">
+
+	<requires> <timer/> <report/> </requires>
+	<provides> <gui/> <capture/> <event/> </provides>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="nitpicker"/>
+	</content>
+
+</runtime>
