@@ -2239,7 +2239,10 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 	Capability<Session> session(Root::Session_args const &args,
 	                            Affinity const &) override
 	{
-		log("new block session: ", args.string());
+		if (_block_session.constructed()) {
+			error("device is already in use");
+			throw Service_denied();
+		}
 
 		Session_label  const label  { label_from_args(args.string()) };
 		Session_policy const policy { label, _config_rom.xml() };

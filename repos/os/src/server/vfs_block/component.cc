@@ -383,6 +383,9 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 
 	void close(Capability<Session> cap) override
 	{
+		if (!_block_session.constructed())
+			return;
+
 		if (cap == _block_session->cap()) {
 			_block_session.destruct();
 			_block_file.destruct();

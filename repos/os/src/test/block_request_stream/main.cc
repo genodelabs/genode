@@ -212,7 +212,10 @@ struct Test::Main : Rpc_object<Typed_root<Block::Session> >
 	Capability<Session> session(Root::Session_args const &args,
 	                            Affinity const &) override
 	{
-		log("new block session: ", args.string());
+		if (_block_session.constructed()) {
+			error("already in use");
+			throw Service_denied();
+		}
 
 		size_t const ds_size =
 			Arg_string::find_arg(args.string(), "tx_buf_size").ulong_value(0);
