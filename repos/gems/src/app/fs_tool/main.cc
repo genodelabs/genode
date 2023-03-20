@@ -108,9 +108,9 @@ void Fs_tool::Main::_remove_file(Xml_node const &operation)
 
 		if (_verbose) {
 			if (_root_dir.directory_exists(path))
-				warning("file", path, " cannot be removed because it is a directory");
+				warning("file ", path, " cannot be removed because it is a directory");
 			else
-				warning("file", path, " cannot be removed because there is no such file");
+				warning("file ", path, " cannot be removed because there is no such file");
 		}
 		return;
 	}

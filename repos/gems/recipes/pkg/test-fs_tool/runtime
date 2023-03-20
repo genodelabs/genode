@@ -3,9 +3,9 @@
 	<events>
 		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">
-			[init -> test -> remove] *file/items cannot be removed because it is a directory*
+			[init -> test -> remove] *file /items cannot be removed because it is a directory*
 			[init -> test -> remove] remove file /items/2*
-			[init -> test -> remove] *file/3 cannot be removed because there is no such file*
+			[init -> test -> remove] *file /3 cannot be removed because there is no such file*
 			[init -> test -> remove] remove file /4*
 			[init -> report_rom] report 'test -> fs_query -> listing'
 			[init -> report_rom]   &lt;listing>
