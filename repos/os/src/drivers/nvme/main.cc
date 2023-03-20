@@ -39,13 +39,9 @@
 
 
 namespace {
+	using namespace Genode;
 
-using uint16_t = Genode::uint16_t;
-using uint32_t = Genode::uint32_t;
-using uint64_t = Genode::uint64_t;
-using size_t   = Genode::size_t;
-using addr_t   = Genode::addr_t;
-using Response = Block::Request_stream::Response;
+	using Response = Block::Request_stream::Response;
 
 } /* anonymous namespace */
 
@@ -894,9 +890,12 @@ class Nvme::Controller : Platform::Device,
 	 */
 	void _wait_for_rdy(unsigned val)
 	{
-		enum { MAX = 50u, TO_UNIT = 500u, };
-		Attempts     const a(MAX);
-		Microseconds const t(((uint64_t)read<Cap::To>() * TO_UNIT) * (1000 / MAX));
+		enum { INTERVAL = 20'000u, TO_UNIT = 500'000u }; /* microseconds */
+
+		unsigned     const to { (unsigned)read<Cap::To>() * TO_UNIT };
+		Attempts     const a  { to / INTERVAL };
+		Microseconds const t  { INTERVAL };
+
 		try {
 			wait_for(a, t, _delayer, Csts::Rdy::Equal(val));
 		} catch (Mmio::Polling_timeout) {
@@ -1008,7 +1007,7 @@ class Nvme::Controller : Platform::Device,
 	                        TO const &timeout)
 	{
 		for (uint32_t i = 0; i < num; i++) {
-			_delayer.usleep(100 * 1000);
+			_delayer.usleep(50 * 1000);
 
 			Cqe b(_admin_cq->next());
 
