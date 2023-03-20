@@ -1034,8 +1034,6 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 	Genode::Session_capability session(Root::Session_args const &args,
 	                                   Affinity const &) override
 	{
-		log("new block session: ", args.string());
-
 		if (block_session.constructed()) {
 			error("device is already in use");
 			throw Service_denied();
