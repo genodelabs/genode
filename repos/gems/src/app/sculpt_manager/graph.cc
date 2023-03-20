@@ -195,23 +195,24 @@ void Graph::generate(Xml_generator &xml) const
 			Start_name const pretty_name { Pretty(name) };
 
 			/* omit sculpt's helpers from the graph */
-			bool const blacklisted = (name == "runtime_view"
-			                       || name == "popup_view"
-			                       || name == "menu_view"
-			                       || name == "panel_view"
-			                       || name == "settings_view"
-			                       || name == "network_view"
-			                       || name == "file_browser_view"
-			                       || name == "editor"
-			                       || name == "launcher_query"
-			                       || name == "update"
-			                       || name == "fs_tool"
-			                       || name == "depot_rw"
-			                       || name == "public_rw"
-			                       || name == "depot_rom"
-			                       || name == "dynamic_depot_rom"
-			                       || name == "depot_query");
-			if (blacklisted)
+			bool const hidden = (name == "runtime_view"
+			                  || name == "popup_view"
+			                  || name == "menu_view"
+			                  || name == "panel_view"
+			                  || name == "settings_view"
+			                  || name == "network_view"
+			                  || name == "file_browser_view"
+			                  || name == "editor"
+			                  || name == "launcher_query"
+			                  || name == "update"
+			                  || name == "fs_tool"
+			                  || name == "depot_rw"
+			                  || name == "public_rw"
+			                  || name == "depot_rom"
+			                  || name == "dynamic_depot_rom"
+			                  || name == "depot_query"
+			                  || name == "manager_keyboard");
+			if (hidden)
 				return;
 
 			Runtime_state::Info const info = _runtime_state.info(name);
