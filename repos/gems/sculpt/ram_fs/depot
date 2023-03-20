@@ -2,6 +2,7 @@
 	<vfs>
 		<ram/>
 		<dir name="depot">
+			<ram/>
 			<tar name="depot.tar"/>
 		</dir>
 	</vfs>
