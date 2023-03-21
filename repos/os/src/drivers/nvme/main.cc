@@ -1102,7 +1102,7 @@ class Nvme::Controller : Platform::Device,
 		uint16_t const  id = 0;
 
 		if (!_nvme_query_ns[id].constructed())
-			_nvme_query_ns[id].construct(_platform, IDENTIFY, UNCACHED);
+			_nvme_query_ns[id].construct(_platform, IDENTIFY_LEN, UNCACHED);
 
 		Sqe_identify b(_admin_command(Opcode::IDENTIFY, ns[id], QUERYNS_CID));
 		b.write<Nvme::Sqe::Prp1>(_nvme_query_ns[id]->dma_addr());
