@@ -29,12 +29,12 @@ namespace Block {
 struct Block::Partition : Noncopyable
 {
 	block_number_t const lba;     /* logical block address on device */
-	block_count_t  const sectors; /* number of sectors in patitions */
+	block_number_t const sectors; /* number of sectors in partitions */
 
 	Fs::Type fs_type { };
 
 	Partition(block_number_t lba,
-	          block_count_t  sectors,
+	          block_number_t sectors,
 	          Fs::Type       fs_type)
 	: lba(lba), sectors(sectors), fs_type(fs_type) { }
 };
@@ -57,7 +57,7 @@ class Block::Partition_table : Interface, Noncopyable
 
 		virtual bool           partition_valid(long num)   const = 0;
 		virtual block_number_t partition_lba(long num)     const = 0;
-		virtual block_count_t  partition_sectors(long num) const = 0;
+		virtual block_number_t partition_sectors(long num) const = 0;
 
 		virtual void generate_report(Xml_generator &xml) const = 0;
 };

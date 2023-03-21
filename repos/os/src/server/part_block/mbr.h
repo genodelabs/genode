@@ -31,7 +31,7 @@ struct Block::Mbr_partition : Partition
 	uint8_t const type;
 
 	Mbr_partition(block_number_t lba,
-	              block_count_t  sectors,
+	              block_number_t sectors,
 	              Fs::Type       fs_type,
 	              uint8_t        type)
 	:
@@ -234,7 +234,7 @@ class Block::Mbr : public Partition_table
 			return partition_valid(num) ? _part_list[num - 1]->lba : 0;
 		}
 
-		block_count_t  partition_sectors(long num) const override
+		block_number_t partition_sectors(long num) const override
 		{
 			return partition_valid(num) ? _part_list[num - 1]->sectors : 0;
 		}

@@ -29,7 +29,7 @@ struct Block::Ahdi_partition : Partition
 	Type type;
 
 	Ahdi_partition(block_number_t lba,
-	               block_count_t  sectors,
+	               block_number_t sectors,
 	               Fs::Type       fs_type,
 	               Type    const &type)
 	:
@@ -139,7 +139,7 @@ class Block::Ahdi : public Partition_table
 
 			_parse_ahdi(s, [&] (unsigned i, Partition_record const &r) {
 				block_number_t lba    = r.start.value();
-				block_count_t  length = r.length.value();
+				block_number_t length = r.length.value();
 
 				Ahdi_partition::Type type = r.id();
 
@@ -178,7 +178,7 @@ class Block::Ahdi : public Partition_table
 			return partition_valid(num) ? _part_list[num - 1]->lba : 0;
 		}
 
-		block_count_t partition_sectors(long num) const override
+		block_number_t partition_sectors(long num) const override
 		{
 			return partition_valid(num) ? _part_list[num - 1]->sectors : 0;
 		}

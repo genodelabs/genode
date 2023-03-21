@@ -36,7 +36,7 @@ struct Block::Gpt_partition : Partition
 	Name name;
 
 	Gpt_partition(block_number_t lba,
-	              block_count_t  sectors,
+	              block_number_t sectors,
 	              Fs::Type       fs_type,
 	              Uuid    const &guid,
 	              Uuid    const &type,
@@ -377,13 +377,13 @@ class Block::Gpt : public Block::Partition_table
 				if (!e.valid())
 					continue;
 
-				block_number_t const lba_start = e.lba_start();
-				block_count_t  const length = (block_count_t)(e.lba_end() - lba_start + 1); /* [...) */
+				block_number_t const lba    = e.lba_start();
+				block_number_t const length = e.lba_end() - lba + 1;
 
 				/* probe for known file-system types */
 				auto fs_type = [&] {
 					enum { BYTES = 4096 };
-					Sync_read fs(_handler, _alloc, lba_start, BYTES / _info.block_size);
+					Sync_read fs(_handler, _alloc, lba, BYTES / _info.block_size);
 					if (fs.success())
 						return Fs::probe(fs.addr<uint8_t*>(), BYTES);
 					else
@@ -394,10 +394,9 @@ class Block::Gpt : public Block::Partition_table
 				String<40>                  type { e.type() };
 				String<Gpt_entry::NAME_LEN> name { e };
 
-				_part_list[i].construct(lba_start, length, fs_type(),
-				                        guid, type, name);
+				_part_list[i].construct(lba, length, fs_type(), guid, type, name);
 
-				log("GPT Partition ", i + 1, ": LBA ", lba_start, " (", length,
+				log("GPT Partition ", i + 1, ": LBA ", lba, " (", length,
 				    " blocks) type: '", type,
 				    "' name: '", name, "'");
 			}
@@ -442,7 +441,7 @@ class Block::Gpt : public Block::Partition_table
 			return partition_valid(num) ? _part_list[num - 1]->lba : 0;
 		}
 
-		block_count_t partition_sectors(long num) const override
+		block_number_t partition_sectors(long num) const override
 		{
 			return partition_valid(num) ? _part_list[num - 1]->sectors : 0;
 		}

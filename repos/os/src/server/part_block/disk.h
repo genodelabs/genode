@@ -61,7 +61,7 @@ class Block::Disk : public Partition_table
 			return partition_valid(num) ? _part.lba : 0;
 		}
 
-		block_count_t partition_sectors(long num) const override
+		block_number_t partition_sectors(long num) const override
 		{
 			return partition_valid(num) ? _part.sectors : 0;
 		}
