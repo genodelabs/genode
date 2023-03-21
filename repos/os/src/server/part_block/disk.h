@@ -23,7 +23,7 @@ class Block::Disk : public Partition_table
 {
 	private:
 
-		Partition _part { 0, _info.block_count - 1, _fs_type(0) };
+		Partition _part { 0, _info.block_count, _fs_type(0) };
 
 	public:
 
