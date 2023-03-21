@@ -42,9 +42,9 @@ struct Sculpt::Download_queue : Noncopyable
 
 			if (Depot::Archive::index(path))
 				gen_install_node("index", path);
-			if (Depot::Archive::image_index(path))
+			else if (Depot::Archive::image_index(path))
 				gen_install_node("image_index", path);
-			if (Depot::Archive::image(path))
+			else if (Depot::Archive::image(path))
 				gen_install_node("image", path);
 			else
 				xml.node("archive", [&] () {
