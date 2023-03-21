@@ -1650,6 +1650,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 	bool reconfigure_runtime = false;
 	bool regenerate_dialog   = false;
+	bool refresh_storage     = false;
 
 	/* check for completed storage operations */
 	_storage._storage_devices.for_each([&] (Storage_device &device) {
@@ -1713,6 +1714,7 @@ void Sculpt::Main::_handle_runtime_state()
 				error(device.part_block_start_name(), " got stuck");
 				device.state = Storage_device::RELEASED;
 				reconfigure_runtime = true;
+				refresh_storage     = true;
 			}
 		}
 
@@ -1810,6 +1812,9 @@ void Sculpt::Main::_handle_runtime_state()
 		reconfigure_runtime = true;
 		regenerate_dialog   = true;
 	}
+
+	if (refresh_storage)
+		_storage.handle_storage_devices_update();
 
 	if (regenerate_dialog) {
 		generate_dialog();
