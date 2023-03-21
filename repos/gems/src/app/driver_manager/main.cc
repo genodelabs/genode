@@ -30,7 +30,6 @@
 namespace Driver_manager {
 	using namespace Genode;
 	struct Main;
-	struct Block_devices_generator;
 	struct Device_driver;
 	struct Intel_gpu_driver;
 	struct Intel_fb_driver;
@@ -43,12 +42,6 @@ namespace Driver_manager {
 
 	struct Version { unsigned value; };
 }
-
-
-struct Driver_manager::Block_devices_generator : Interface
-{
-	virtual void generate_block_devices() = 0;
-};
 
 
 class Driver_manager::Device_driver : Noncopyable
@@ -351,7 +344,7 @@ struct Driver_manager::Nvme_driver : Device_driver
 };
 
 
-struct Driver_manager::Main : private Block_devices_generator
+struct Driver_manager::Main
 {
 	Env &_env;
 
@@ -372,6 +365,8 @@ struct Driver_manager::Main : private Block_devices_generator
 	Constructible<Boot_fb_driver>  _boot_fb_driver  { };
 	Constructible<Ahci_driver>     _ahci_driver     { };
 	Constructible<Nvme_driver>     _nvme_driver     { };
+
+	bool _devices_rom_parsed { false };
 
 	bool _use_ohci { true };
 
@@ -423,10 +418,20 @@ struct Driver_manager::Main : private Block_devices_generator
 
 	Ahci_driver::Default_label _default_block_device() const;
 
-	/**
-	 * Block_devices_generator interface
-	 */
-	void generate_block_devices() override { _generate_block_devices(_block_devices); }
+	void _generate_block_devices()
+	{
+		/* devices must be detected before the checks below can be conducted */
+		if (!_devices_rom_parsed)
+			return;
+
+		/* check that all drivers completed initialization before reporting */
+		if (_ahci_driver.constructed() && !_ahci_ports.xml().has_type("ports"))
+			return;
+		if (_nvme_driver.constructed() && !_nvme_ns.xml().has_type("controller"))
+			return;
+
+		_generate_block_devices(_block_devices);
+	}
 
 	Main(Env &env) : _env(env)
 	{
@@ -535,13 +540,15 @@ void Driver_manager::Main::_handle_devices_update()
 	_usb_devices.sigh(_usb_devices_update_handler);
 
 	_handle_usb_devices_update();
+
+	_devices_rom_parsed = true;
 }
 
 
 void Driver_manager::Main::_handle_ahci_ports_update()
 {
 	_ahci_ports.update();
-	_generate_block_devices(_block_devices);
+	_generate_block_devices();
 
 	/* update service forwarding rules */
 	_generate_init_config(_init_config);
@@ -551,7 +558,7 @@ void Driver_manager::Main::_handle_ahci_ports_update()
 void Driver_manager::Main::_handle_nvme_ns_update()
 {
 	_nvme_ns.update();
-	_generate_block_devices(_block_devices);
+	_generate_block_devices();
 
 	/* update service forwarding rules */
 	_generate_init_config(_init_config);
