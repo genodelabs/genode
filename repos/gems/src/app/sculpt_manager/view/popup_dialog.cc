@@ -35,7 +35,7 @@ void Popup_dialog::_gen_pkg_elements(Xml_generator &xml,
 {
 	typedef Component::Info Info;
 
-	_gen_sub_menu_title(xml, "back", Menu::Name("Add ", Pretty(_construction_name)));
+	_gen_sub_menu_title(xml, "back", Index_menu::Name("Add ", Pretty(_construction_name)));
 
 	_gen_pkg_info(xml, component);
 
@@ -186,9 +186,9 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 	 * Title of index
 	 */
 	if (_state >= INDEX_SHOWN && _state < PKG_SHOWN) {
-		Menu::Name title("Depot  ", _selected_user);
+		Index_menu::Name title("Depot  ", _selected_user);
 		if (_menu._level)
-			title = Menu::Name(title, "  ", _menu, " ");
+			title = Index_menu::Name(title, "  ", _menu, " ");
 
 		_gen_sub_menu_title(xml, "back", title);
 	}
@@ -204,8 +204,8 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 			Hoverable_item::Id const id(cnt);
 
 			if (item.has_type("index")) {
-				auto const name = item.attribute_value("name", Menu::Name());
-				_gen_menu_entry(xml, id, Menu::Name(name, " ..."), false);
+				auto const name = item.attribute_value("name", Index_menu::Name());
+				_gen_menu_entry(xml, id, Index_menu::Name(name, " ..."), false);
 			}
 
 			if (item.has_type("pkg")) {
@@ -369,13 +369,13 @@ void Popup_dialog::click(Action &action)
 
 			/* go one menu up */
 			if (clicked == "back") {
-				_menu._selected[_menu._level] = Menu::Name();
+				_menu._selected[_menu._level] = Index_menu::Name();
 				_menu._level--;
 				action.discard_construction();
 			} else {
 
 				/* enter sub menu of index */
-				if (_menu._level < Menu::MAX_LEVELS - 1) {
+				if (_menu._level < Index_menu::MAX_LEVELS - 1) {
 
 					unsigned cnt = 0;
 					_for_each_menu_item([&] (Xml_node item) {
@@ -384,8 +384,8 @@ void Popup_dialog::click(Action &action)
 
 							if (item.has_type("index")) {
 
-								Menu::Name const name =
-									item.attribute_value("name", Menu::Name());
+								Index_menu::Name const name =
+									item.attribute_value("name", Index_menu::Name());
 
 								_menu._selected[_menu._level] = name;
 								_menu._level++;

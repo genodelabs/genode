@@ -26,6 +26,7 @@
 #include <model/runtime_config.h>
 #include <model/download_queue.h>
 #include <model/nic_state.h>
+#include <model/index_menu.h>
 #include <view/dialog.h>
 #include <view/activatable_item.h>
 #include <depot_query.h>
@@ -158,47 +159,7 @@ struct Sculpt::Popup_dialog : Dialog
 					fn(route); }); });
 	}
 
-	struct Menu
-	{
-		enum { MAX_LEVELS = 5 };
-
-		unsigned _level = 0;
-
-		typedef String<64> Name;
-
-		Name _selected[MAX_LEVELS] { };
-
-		void print(Output &out) const
-		{
-			using Genode::print;
-			for (unsigned i = 0; i < _level; i++) {
-				print(out, _selected[i]);
-				if (i + 1 < _level)
-					print(out, "  ");
-			}
-		}
-
-		template <typename FN>
-		void _for_each_item(Xml_node index, FN const &fn, unsigned level) const
-		{
-			if (level == _level) {
-				index.for_each_sub_node(fn);
-				return;
-			}
-
-			index.for_each_sub_node("index", [&] (Xml_node index) {
-				if (index.attribute_value("name", Name()) == _selected[level])
-					_for_each_item(index, fn, level + 1); });
-		}
-
-		template <typename FN>
-		void for_each_item(Xml_node index, FN const &fn) const
-		{
-			_for_each_item(index, fn, 0);
-		}
-	};
-
-	Menu _menu { };
+	Index_menu _menu { };
 
 	Hover_result hover(Xml_node hover) override
 	{
@@ -233,7 +194,7 @@ struct Sculpt::Popup_dialog : Dialog
 
 	void _handle_index()
 	{
-		/* prevent modifications of index while browing it */
+		/* prevent modifications of index while browsing it */
 		if (_state >= INDEX_SHOWN)
 			return;
 
@@ -343,22 +304,7 @@ struct Sculpt::Popup_dialog : Dialog
 	template <typename FN>
 	void _for_each_menu_item(FN const &fn) const
 	{
-		Xml_node index = _index_rom.xml();
-
-		/*
-		 * The index may contain duplicates, evaluate only the first match.
-		 */
-		bool first = true;
-		index.for_each_sub_node("index", [&] (Xml_node index) {
-
-			if (index.attribute_value("user", User()) != _selected_user)
-				return;
-
-			if (first)
-				_menu.for_each_item(index, fn);
-
-			first = false;
-		});
+		_menu.for_each_item(_index_rom.xml(), _selected_user, fn);
 	}
 
 	static void _gen_info_label(Xml_generator &xml, char const *name,
