@@ -48,6 +48,17 @@ class Block::Partition_table : Interface, Noncopyable
 		Allocator           &_alloc;
 		Session::Info const  _info;
 
+		Fs::Type _fs_type(block_number_t lba)
+		{
+			/* probe for known file-system types */
+			enum { BYTES = 4096 };
+			Sync_read fs(_handler, _alloc, lba, BYTES / _info.block_size);
+			if (fs.success())
+				return Fs::probe(fs.addr<uint8_t*>(), BYTES);
+			else
+				return Fs::Type();
+		}
+
 	public:
 
 		Partition_table(Sync_read::Handler &handler,

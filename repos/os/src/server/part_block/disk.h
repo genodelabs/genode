@@ -23,22 +23,7 @@ class Block::Disk : public Partition_table
 {
 	private:
 
-		Partition _part { _construct_part() };
-
-		Partition _construct_part()
-		{
-			/* probe for known file-system types */
-			auto fs_type = [&] {
-				enum { BYTES = 4096, };
-				Sync_read fs(_handler, _alloc, 0, BYTES / _info.block_size);
-				if (fs.success())
-					return Fs::probe(fs.addr<uint8_t*>(), BYTES);
-				else
-					return Fs::Type();
-			};
-
-			return { 0, _info.block_count - 1, fs_type() };
-		}
+		Partition _part { 0, _info.block_count - 1, _fs_type(0) };
 
 	public:
 

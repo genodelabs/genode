@@ -380,21 +380,11 @@ class Block::Gpt : public Block::Partition_table
 				block_number_t const lba    = e.lba_start();
 				block_number_t const length = e.lba_end() - lba + 1;
 
-				/* probe for known file-system types */
-				auto fs_type = [&] {
-					enum { BYTES = 4096 };
-					Sync_read fs(_handler, _alloc, lba, BYTES / _info.block_size);
-					if (fs.success())
-						return Fs::probe(fs.addr<uint8_t*>(), BYTES);
-					else
-						return Fs::Type();
-				};
-
 				String<40>                  guid { e.guid() };
 				String<40>                  type { e.type() };
 				String<Gpt_entry::NAME_LEN> name { e };
 
-				_part_list[i].construct(lba, length, fs_type(), guid, type, name);
+				_part_list[i].construct(lba, length, _fs_type(lba), guid, type, name);
 
 				log("GPT Partition ", i + 1, ": LBA ", lba, " (", length,
 				    " blocks) type: '", type,
