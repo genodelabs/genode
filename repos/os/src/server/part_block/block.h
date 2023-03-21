@@ -61,14 +61,13 @@ class Block::Sync_read : Noncopyable
 			virtual void               block_for_io() = 0;
 		};
 
-		struct Io_error : Exception { };
-
 	private:
 
 		Handler   &_handler;
 		Allocator &_alloc;
 		size_t     _size      { 0 };
 		void      *_buffer    { nullptr };
+		bool       _success   { false };
 
 		/*
 		 * Noncopyable
@@ -104,6 +103,8 @@ class Block::Sync_read : Noncopyable
 			_alloc.free(_buffer, _size);
 		}
 
+		bool success() const { return _success; }
+
 		void consume_read_result(Block_connection::Job &, off_t offset,
 		                         char const *src, size_t length)
 		{
@@ -119,10 +120,10 @@ class Block::Sync_read : Noncopyable
 
 		void completed(Block_connection::Job &, bool success)
 		{
-			if (!success) {
+			if (!success)
 				error("IO error during partition parsing");
-				throw Io_error();
-			}
+
+			_success = success;
 		}
 
 		template <typename T> T addr() const {

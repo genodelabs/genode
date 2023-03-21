@@ -121,8 +121,10 @@ class Block::Mbr : public Partition_table
 			int nr = 5;
 			do {
 				Sync_read s(_handler, _alloc, lba, 1);
-				Boot_record const ebr(s.addr<addr_t>());
+				if (!s.success())
+					return;
 
+				Boot_record const ebr(s.addr<addr_t>());
 				if (!ebr.valid())
 					return;
 
@@ -182,6 +184,8 @@ class Block::Mbr : public Partition_table
 		Parse_result parse()
 		{
 			Sync_read s(_handler, _alloc, 0, 1);
+			if (!s.success())
+				return Parse_result::NO_MBR;
 
 			/* check for MBR */
 			Boot_record const mbr(s.addr<addr_t>());
@@ -190,23 +194,27 @@ class Block::Mbr : public Partition_table
 
 			return _parse_mbr(mbr, [&] (int nr, Partition_record const &r, unsigned offset)
 			{
-				log("MBR Partition ", nr, ": LBA ",
-				    r.lba() + offset, " (",
-				    r.sectors(), " blocks) type: ",
-				    Hex(r.type(), Hex::OMIT_PREFIX));
-
 				if (!r.extended()) {
 
 					block_number_t const lba = r.lba() + offset;
 
 					/* probe for known file-system types */
-					enum { PROBE_BYTES = 4096, };
-					Sync_read fs(_handler, _alloc, lba , PROBE_BYTES / _info.block_size);
-					Fs::Type const fs_type =
-						Fs::probe(fs.addr<uint8_t*>(), PROBE_BYTES);
+					auto fs_type = [&] {
+						enum { BYTES = 4096 };
+						Sync_read fs(_handler, _alloc, lba, BYTES / _info.block_size);
+						if (fs.success())
+							return Fs::probe(fs.addr<uint8_t*>(), BYTES);
+						else
+							return Fs::Type();
+					};
 
-					_part_list[nr - 1].construct(lba, r.sectors(), fs_type, r.type());
+					_part_list[nr - 1].construct(lba, r.sectors(), fs_type(), r.type());
 				}
+
+				log("MBR Partition ", nr, ": LBA ",
+				    r.lba() + offset, " (",
+				    r.sectors(), " blocks) type: ",
+				    Hex(r.type(), Hex::OMIT_PREFIX));
 			});
 		}
 

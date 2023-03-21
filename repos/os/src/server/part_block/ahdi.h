@@ -134,7 +134,7 @@ class Block::Ahdi : public Partition_table
 		{
 			Sync_read s(_handler, _alloc, 0, 1);
 
-			if (!_valid(s))
+			if (!s.success() || !_valid(s))
 				return false;
 
 			_parse_ahdi(s, [&] (unsigned i, Partition_record const &r) {
@@ -144,12 +144,16 @@ class Block::Ahdi : public Partition_table
 				Ahdi_partition::Type type = r.id();
 
 				/* probe for known file-system types */
-				enum { BYTES = 4096, };
-				Sync_read fs(_handler, _alloc, lba , BYTES / _info.block_size);
-				Fs::Type const fs_type =
-					Fs::probe(fs.addr<uint8_t*>(), BYTES);
+				auto fs_type = [&] {
+					enum { BYTES = 4096 };
+					Sync_read fs(_handler, _alloc, lba, BYTES / _info.block_size);
+					if (fs.success())
+						return Fs::probe(fs.addr<uint8_t*>(), BYTES);
+					else
+						return Fs::Type();
+				};
 
-				_part_list[i].construct(lba, length, fs_type, type);
+				_part_list[i].construct(lba, length, fs_type(), type);
 
 				log("AHDI Partition ", i + 1, ": LBA ", lba, " (", length,
 				    " blocks) type: '", type, "'");

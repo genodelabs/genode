@@ -28,12 +28,16 @@ class Block::Disk : public Partition_table
 		Partition _construct_part()
 		{
 			/* probe for known file-system types */
-			enum { BYTES = 4096, };
-			Sync_read fs(_handler, _alloc, 0, BYTES / _info.block_size);
-			Fs::Type const fs_type =
-				Fs::probe(fs.addr<uint8_t*>(), BYTES);
+			auto fs_type = [&] {
+				enum { BYTES = 4096, };
+				Sync_read fs(_handler, _alloc, 0, BYTES / _info.block_size);
+				if (fs.success())
+					return Fs::probe(fs.addr<uint8_t*>(), BYTES);
+				else
+					return Fs::Type();
+			};
 
-			return { 0, _info.block_count - 1, fs_type };
+			return { 0, _info.block_count - 1, fs_type() };
 		}
 
 	public:

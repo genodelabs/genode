@@ -189,16 +189,19 @@ class Block::Gpt : public Block::Partition_table
 				/* check GPT entry array */
 				size_t length = entries() * entry_size();
 				Sync_read gpe(handler, alloc, gpe_lba(), length / block_size);
-				if (crc32(gpe.addr<addr_t>(), length) != read<Gpe_crc>())
+				if (!gpe.success()
+				 || crc32(gpe.addr<addr_t>(), length) != read<Gpe_crc>())
 					return false;
 
 				if (check_primary) {
 					/* check backup gpt header */
 					Sync_read backup_hdr(handler, alloc, read<Backup_hdr_lba>(), 1);
+					if (!backup_hdr.success())
+						return false;
+
 					Gpt_hdr backup(backup_hdr.addr<addr_t>());
-					if (!backup.valid(handler, alloc, block_size, false)) {
+					if (!backup.valid(handler, alloc, block_size, false))
 						warning("Backup GPT header is corrupted");
-					}
 				}
 
 				return true;
@@ -359,6 +362,8 @@ class Block::Gpt : public Block::Partition_table
 
 			Sync_read entry_array(_handler, _alloc, gpt.gpe_lba(),
 			                      gpt.entries() * gpt.entry_size() / _info.block_size);
+			if (!entry_array.success())
+				return false;
 			Gpt_entry entries(entry_array.addr<addr_t>());
 
 			_gpt_part_lba_end = gpt.part_lba_end();
@@ -375,15 +380,21 @@ class Block::Gpt : public Block::Partition_table
 				block_number_t const lba_start = e.lba_start();
 				block_count_t  const length = (block_count_t)(e.lba_end() - lba_start + 1); /* [...) */
 
-				enum { BYTES = 4096, };
-				Sync_read fs(_handler, _alloc, lba_start, BYTES / _info.block_size);
-				Fs::Type fs_type = Fs::probe(fs.addr<uint8_t*>(), BYTES);
+				/* probe for known file-system types */
+				auto fs_type = [&] {
+					enum { BYTES = 4096 };
+					Sync_read fs(_handler, _alloc, lba_start, BYTES / _info.block_size);
+					if (fs.success())
+						return Fs::probe(fs.addr<uint8_t*>(), BYTES);
+					else
+						return Fs::Type();
+				};
 
 				String<40>                  guid { e.guid() };
 				String<40>                  type { e.type() };
 				String<Gpt_entry::NAME_LEN> name { e };
 
-				_part_list[i].construct(lba_start, length, fs_type,
+				_part_list[i].construct(lba_start, length, fs_type(),
 				                        guid, type, name);
 
 				log("GPT Partition ", i + 1, ": LBA ", lba_start, " (", length,
@@ -401,6 +412,9 @@ class Block::Gpt : public Block::Partition_table
 		bool parse()
 		{
 			Sync_read s(_handler, _alloc, Gpt_hdr::Hdr_lba::LBA, 1);
+			if (!s.success())
+				return false;
+
 			Gpt_hdr gpt_hdr(s.addr<addr_t>());
 
 			if (!_parse_gpt(gpt_hdr))
