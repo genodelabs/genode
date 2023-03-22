@@ -113,7 +113,7 @@ class Platform::Connection : public Genode::Connection<Session>,
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size, Cache cache) override
 		{
-			return retry_with_upgrade(Ram_quota{size}, Cap_quota{2}, [&] () {
+			return retry_with_upgrade(Ram_quota{max((size_t)4096, size)}, Cap_quota{2}, [&] () {
 				return Client::alloc_dma_buffer(size, cache); });
 		}
 
