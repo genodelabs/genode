@@ -97,6 +97,48 @@ struct Sculpt::Dialog : Interface
 		return result;
 	}
 
+	/*
+	 * Helpe for the 'Sculpt::match_sub_dialog' implementation below
+	 */
+	template <typename DIALOG>
+	struct _Recurse
+	{
+		DIALOG &dialog;
+
+		Hover_result result = Hover_result::UNMODIFIED;
+
+		_Recurse(DIALOG &dialog) : dialog(dialog) { }
+
+		template <typename... TAIL>
+		void match(Xml_node const &hover, char const *head, TAIL &&... tail)
+		{
+			hover.with_optional_sub_node(head, [&] (Xml_node const &sub_node) {
+				match(sub_node, tail...); });
+		}
+
+		void match(Xml_node const &hover) { result = dialog.hover(hover); }
+	};
+
 };
+
+
+namespace Sculpt {
+
+	template <typename DIALOG, typename... ARGS>
+	static inline Hoverable_item::Hover_result
+	match_sub_dialog(Xml_node const &hover, DIALOG &dialog, ARGS &&... args)
+	{
+		Dialog::_Recurse recurse { dialog };
+
+		recurse.match(hover, args...);
+
+		static Xml_node const unhovered { "<empty/>" };
+
+		if (recurse.result == Hoverable_item::Hover_result::UNMODIFIED)
+			dialog.hover(unhovered);
+
+		return recurse.result;
+	}
+}
 
 #endif /* _VIEW__DIALOG_H_ */
