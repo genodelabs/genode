@@ -243,7 +243,7 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 								 * inconsistent with the content contained in
 								 * the pkg's archives.
 								 */
-								if (!_pkg_missing && _pkg_rom_missing) {
+								if (_blueprint_info.incomplete()) {
 									_gen_info_label(xml, "pad2", "");
 									_gen_info_label(xml, "path", component.path);
 									_gen_info_label(xml, "pad3", "");
@@ -254,7 +254,7 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 								/*
 								 * Package is missing but can be installed
 								 */
-								else if (_pkg_missing && _nic_ready()) {
+								else if (_blueprint_info.uninstalled() && _nic_ready()) {
 
 									_gen_pkg_info(xml, component);
 									_gen_info_label(xml, "pad2", "");
@@ -273,7 +273,7 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 								 * Package is missing and we cannot do anything
 								 * about it
 								 */
-								else if (_pkg_missing) {
+								else if (_blueprint_info.uninstalled()) {
 									_gen_info_label(xml, "pad2", "");
 									_gen_info_label(xml, "path", component.path);
 									_gen_info_label(xml, "pad3", "");
@@ -398,7 +398,6 @@ void Popup_dialog::click(Action &action)
 								_construction_name = action.new_construction(path, info);
 
 								_state = PKG_REQUESTED;
-								_pkg_missing = false;
 								_depot_query.trigger_depot_query();
 							}
 						}
