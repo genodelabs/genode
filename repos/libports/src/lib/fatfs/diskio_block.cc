@@ -67,7 +67,7 @@ extern "C" {
 
 		Info const info = Block::Connection<>::info();
 
-		Io_signal_handler<Drive> _signal_handler { _ep, *this, &Drive::_update_jobs };
+		Io_signal_handler<Drive> _signal_handler { _ep, *this, &Drive::_io_dummy };
 
 		struct Read_job : Job
 		{
@@ -97,6 +97,11 @@ extern "C" {
 			{ }
 		};
 
+		void _io_dummy()
+		{
+			/* can be empty as only used to deblock wait_and_dispatch_one_io_signal() */
+		}
+
 		void _update_jobs()
 		{
 			struct Update_jobs_policy
@@ -125,11 +130,13 @@ extern "C" {
 		using Block::Connection<>::tx;
 		using Block::Connection<>::alloc_packet;
 
-		void block_for_io()
+		void block_for_completion(Job const &job)
 		{
 			_update_jobs();
-
-			_ep.wait_and_dispatch_one_io_signal();
+			while (!job.completed()) {
+				_ep.wait_and_dispatch_one_io_signal();
+				_update_jobs();
+			}
 		}
 
 		void sync()
@@ -138,8 +145,7 @@ extern "C" {
 
 			Job sync_job { *this, operation };
 
-			while (!sync_job.completed())
-				block_for_io();
+			block_for_completion(sync_job);
 		}
 
 		Drive(Platform &platform, char const *label)
@@ -209,8 +215,7 @@ extern "C" DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count)
 
 	Drive::Read_job read_job { drive, (char *)buff, sector, count };
 
-	while (!read_job.completed())
-		drive.block_for_io();
+	drive.block_for_completion(read_job);
 
 	return RES_OK;
 }
@@ -228,8 +233,7 @@ extern "C" DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT c
 
 	Drive::Write_job write_job { drive, (char const *)buff, sector, count };
 
-	while (!write_job.completed())
-		drive.block_for_io();
+	drive.block_for_completion(write_job);
 
 	return RES_OK;
 }
