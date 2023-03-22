@@ -774,6 +774,8 @@ Platform::Platform()
 			Rom_module(_rom_fs, "kernel_log", hyp_log, hyp_log_size);
 
 	if (verbose_boot_info) {
+		if (hip.has_feature_iommu())
+			log("Hypervisor features IOMMU");
 		if (hip.has_feature_vmx())
 			log("Hypervisor features VMX");
 		if (hip.has_feature_svm())
