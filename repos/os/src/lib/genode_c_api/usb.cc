@@ -87,6 +87,8 @@ class genode_usb_session : public Usb::Session_rpc_object
 		unsigned _packets_in_fly();
 		void     _ack(int err, Usb::Packet_descriptor p);
 
+		genode_usb_buffer _buffer_of_packet(Usb::Packet_descriptor p);
+
 		/*
 		 * Non_copyable
 		 */
@@ -188,9 +190,9 @@ class Root : public Root_component<genode_usb_session>
 		template <typename FUNC>
 		void _for_each_device(FUNC const & fn)
 		{
-			for (unsigned idx = 0; idx < MAX_DEVICES; idx++)
-				if (_devices[idx].constructed())
-					fn(*_devices[idx]);
+			for (auto &device : _devices)
+				if (device.constructed())
+					fn(*device);
 		}
 
 		template <typename FUNC>
@@ -278,11 +280,11 @@ void genode_usb_session::notify()
 void genode_usb_session::flush_packet_stream()
 {
 	/* ack packets in flight */
-	for (unsigned idx = 0; idx < MAX_PACKETS_IN_FLY; idx++) {
-		if (!packets[idx].constructed())
+	for (auto &p : packets) {
+		if (!p.constructed())
 			continue;
-		_ack(Usb::Packet_descriptor::NO_DEVICE_ERROR, *packets[idx]);
-		packets[idx].destruct();
+		_ack(Usb::Packet_descriptor::NO_DEVICE_ERROR, *p);
+		p.destruct();
 	}
 
 	/* ack all packets in request stream */
@@ -415,8 +417,8 @@ void genode_usb_session::release_interface(unsigned iface)
 unsigned genode_usb_session::_packets_in_fly()
 {
 	unsigned ret = 0;
-	for (unsigned idx = 0; idx < MAX_PACKETS_IN_FLY; idx++)
-		if (packets[idx].constructed()) ret++;
+	for (auto const &p : packets)
+		if (p.constructed()) ret++;
 	return ret;
 }
 
@@ -435,16 +437,31 @@ void genode_usb_session::_ack(int err, Usb::Packet_descriptor p)
 }
 
 
+genode_usb_buffer genode_usb_session::_buffer_of_packet(Usb::Packet_descriptor p)
+{
+	void * addr = nullptr;
+	void * packet_content = sink()->packet_content(p);
+	if (packet_content) {
+		addr_t offset = (addr_t)packet_content - (addr_t)sink()->ds_local_base();
+
+		addr = (void*)(genode_shared_dataspace_local_address(_ds) + offset);
+	}
+
+	return { addr, addr ? p.size() : 0 };
+}
+
+
 bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data)
 {
 	using Packet_descriptor = Usb::Packet_descriptor;
 
-	genode_usb_request_handle_t idx;
+	genode_usb_request_handle_t idx = 0;
 
 	/* find free packet slot */
-	for (idx = 0; idx < MAX_PACKETS_IN_FLY; idx++) {
-		if (!packets[idx].constructed())
+	for (auto const &p : packets) {
+		if (!p.constructed())
 			break;
+		++idx;
 	}
 	if (idx == MAX_PACKETS_IN_FLY)
 		return false;
@@ -464,10 +481,7 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 		_ack(Packet_descriptor::PACKET_INVALID_ERROR, p);
 	}
 
-	addr_t offset = (addr_t)sink()->packet_content(p) -
-	                (addr_t)sink()->ds_local_base();
-	void * addr   = (void*)(genode_shared_dataspace_local_address(_ds)
-	                        + offset);
+	genode_usb_buffer payload = _buffer_of_packet(p);
 
 	packets[idx].construct(p);
 	_id.inc(); /* increment the session ids usage */
@@ -475,19 +489,19 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 	switch (p.type) {
 	case Packet_descriptor::STRING:
 		req.string_fn((genode_usb_request_string*)&p.string,
-		              _id.id(), idx, addr, p.size(), data);
+		              _id.id(), idx, payload, data);
 		break;
 	case Packet_descriptor::CTRL:
-		req.urb_fn({ CTRL, &p.control }, _id.id(), idx, addr, p.size(), data);
+		req.urb_fn({ CTRL, &p.control }, _id.id(), idx, payload, data);
 		break;
 	case Packet_descriptor::BULK:
-		req.urb_fn({ BULK, &p.transfer }, _id.id(), idx, addr, p.size(), data);
+		req.urb_fn({ BULK, &p.transfer }, _id.id(), idx, payload, data);
 		break;
 	case Packet_descriptor::IRQ:
-		req.urb_fn({ IRQ, &p.transfer }, _id.id(), idx, addr, p.size(), data);
+		req.urb_fn({ IRQ, &p.transfer }, _id.id(), idx, payload, data);
 		break;
 	case Packet_descriptor::ISOC:
-		req.urb_fn({ ISOC, &p.transfer }, _id.id(), idx, addr, p.size(), data);
+		req.urb_fn({ ISOC, &p.transfer }, _id.id(), idx, payload, data);
 		break;
 	case Packet_descriptor::ALT_SETTING:
 		req.altsetting_fn(p.interface.number, p.interface.alt_setting,
@@ -516,22 +530,23 @@ void genode_usb_session::handle_response(genode_usb_request_handle_t id,
 {
 	using Packet_descriptor = Usb::Packet_descriptor;
 
-	Packet_descriptor p = *packets[id];
+	Packet_descriptor p       = *packets[id];
+	genode_usb_buffer payload = _buffer_of_packet(p);
 	switch (p.type) {
 	case Packet_descriptor::CTRL:
-		_ack(callback({ CTRL, &p.control }, callback_data), p);
+		_ack(callback({ CTRL, &p.control }, payload, callback_data), p);
 		break;
 	case Packet_descriptor::BULK:
-		_ack(callback({ BULK, &p.transfer }, callback_data), p);
+		_ack(callback({ BULK, &p.transfer }, payload, callback_data), p);
 		break;
 	case Packet_descriptor::IRQ:
-		_ack(callback({ IRQ, &p.transfer }, callback_data), p);
+		_ack(callback({ IRQ, &p.transfer }, payload, callback_data), p);
 		break;
 	case Packet_descriptor::ISOC:
-		_ack(callback({ ISOC, &p.transfer }, callback_data), p);
+		_ack(callback({ ISOC, &p.transfer }, payload, callback_data), p);
 		break;
 	default:
-		_ack(callback({ NONE, nullptr }, callback_data), p);
+		_ack(callback({ NONE, nullptr }, { nullptr, 0 }, callback_data), p);
 	};
 	packets[id].destruct();
 }
@@ -750,18 +765,18 @@ void ::Root::announce_device(genode_usb_vendor_id_t  vendor,
                              genode_usb_bus_num_t    bus,
                              genode_usb_dev_num_t    dev)
 {
-	for (unsigned idx = 0; idx < MAX_DEVICES; idx++) {
-		if (_devices[idx].constructed())
+	for (auto &device : _devices) {
+		if (device.constructed())
 			continue;
 
-		_devices[idx].construct(vendor, product, cla, bus, dev);
+		device.construct(vendor, product, cla, bus, dev);
 		_announce_service();
 		_report();
 
 		_for_each_session([&] (genode_usb_session & s) {
-			if (_devices[idx]->usb_session || !_matches(*_devices[idx], s))
+			if (device->usb_session || !_matches(*device, s))
 				return;
-			_devices[idx]->usb_session = &s;
+			device->usb_session = &s;
 			s.notify();
 		});
 		return;
@@ -774,18 +789,18 @@ void ::Root::announce_device(genode_usb_vendor_id_t  vendor,
 void ::Root::discontinue_device(genode_usb_bus_num_t bus,
                                 genode_usb_dev_num_t dev)
 {
-	for (unsigned idx = 0; idx < MAX_DEVICES; idx++) {
-		if (!_devices[idx].constructed() ||
-		    _devices[idx]->bus != bus ||
-		    _devices[idx]->dev != dev)
+	for (auto &device : _devices) {
+		if (!device.constructed() ||
+		    device->bus != bus ||
+		    device->dev != dev)
 			continue;
 
-		if (_devices[idx]->usb_session) {
-			_devices[idx]->usb_session->notify();
-			_devices[idx]->usb_session->flush_packet_stream();
+		if (device->usb_session) {
+			device->usb_session->notify();
+			device->usb_session->flush_packet_stream();
 		}
 
-		_devices[idx].destruct();
+		device.destruct();
 		_report();
 		return;
 	}

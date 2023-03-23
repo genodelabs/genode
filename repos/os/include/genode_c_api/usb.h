@@ -168,6 +168,12 @@ struct genode_usb_request_urb
 	void           * req;
 };
 
+struct genode_usb_buffer
+{
+	void        * addr;
+	unsigned long size;
+};
+
 static inline struct genode_usb_request_control *
 genode_usb_get_request_control(struct genode_usb_request_urb * urb)
 {
@@ -197,16 +203,14 @@ typedef void (*genode_usb_req_urb_t)
 	(struct genode_usb_request_urb req,
 	 genode_usb_session_handle_t   session_handle,
 	 genode_usb_request_handle_t   request_handle,
-	 void                        * payload,
-	 unsigned long                 payload_size,
+	 struct genode_usb_buffer      payload,
 	 void                        * opaque_data);
 
 typedef void (*genode_usb_req_string_t)
 	(struct genode_usb_request_string * req,
 	 genode_usb_session_handle_t        session_handle,
 	 genode_usb_request_handle_t        request_handle,
-	 void                             * payload,
-	 unsigned long                      payload_size,
+	 struct genode_usb_buffer           payload,
 	 void                             * opaque_data);
 
 typedef void (*genode_usb_req_altsetting_t)
@@ -229,6 +233,7 @@ typedef void (*genode_usb_req_flush_t)
 
 typedef genode_usb_request_ret_t (*genode_usb_response_t)
 	(struct genode_usb_request_urb req,
+	 struct genode_usb_buffer      payload,
 	 void                        * opaque_data);
 
 struct genode_usb_request_callbacks {
