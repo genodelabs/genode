@@ -12,11 +12,9 @@
  */
 
 #include <lx_emul/debug.h>
-#include <linux/math64.h>
 
 #include "i915_drv.h"
 
-#include <acpi/acpixf.h>
 #include <acpi/video.h>
 #include <linux/clocksource.h>
 #include <linux/cpuhotplug.h>
@@ -33,11 +31,6 @@
 #include <linux/timekeeper_internal.h>
 
 
-const guid_t pci_acpi_dsm_guid =
-	GUID_INIT(0xe5c937d0, 0x3553, 0x4d7a,
-		  0x91, 0x17, 0xea, 0x4d, 0x19, 0xc3, 0x43, 0x4d);
-
-
 void register_syscore_ops(struct syscore_ops * ops)
 {
 	lx_emul_trace(__func__);
@@ -47,13 +40,6 @@ void register_syscore_ops(struct syscore_ops * ops)
 void unregister_shrinker(struct shrinker * shrinker)
 {
 	lx_emul_trace(__func__);
-}
-
-
-int register_shrinker(struct shrinker * shrinker)
-{
-	lx_emul_trace(__func__);
-	return 0;
 }
 
 
@@ -114,18 +100,6 @@ int ___ratelimit(struct ratelimit_state * rs, const char * func)
 struct net init_net;
 
 
-#include <linux/skbuff.h>
-
-void kfree_skb(struct sk_buff * skb)
-{
-	if (!skb)
-		return;
-
-	lx_emul_trace(__func__);
-	printk("%s:%d: leaking skb: %p\n", __func__, __LINE__, skb);
-}
-
-
 #include <net/net_namespace.h>
 
 int register_pernet_subsys(struct pernet_operations * ops)
@@ -142,16 +116,11 @@ int set_pages_uc(struct page * page,int numpages)
 }
 
 
+
 bool irq_work_queue(struct irq_work * work)
 {
 	lx_emul_trace(__func__);
 	return false;
-}
-
-
-void iomap_free(resource_size_t base, unsigned long size)
-{
-	lx_emul_trace_and_stop(__func__);
 }
 
 
@@ -161,26 +130,11 @@ void acpi_video_unregister(void)
 }
 
 
+#include <linux/acpi.h>
+
 acpi_status acpi_remove_address_space_handler(acpi_handle device,
                                               acpi_adr_space_type space_id,
                                               acpi_adr_space_handler handler)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-acpi_status acpi_buffer_to_resource(u8 * aml_buffer,u16 aml_buffer_length,
-                                    struct acpi_resource ** resource_ptr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-acpi_status acpi_install_address_space_handler(acpi_handle device,
-                                               acpi_adr_space_type space_id,
-                                               acpi_adr_space_handler handler,
-                                               acpi_adr_space_setup setup,
-                                               void * context)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -195,18 +149,6 @@ int acpi_video_register(void)
 
 acpi_status acpi_get_name(acpi_handle object, u32 name_type,
                           struct acpi_buffer *ret_path_ptr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-acpi_status acpi_get_table(acpi_string signature, u32 instance, struct acpi_table_header **out_table)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-void acpi_put_table(struct acpi_table_header *table)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -243,40 +185,13 @@ enum acpi_backlight_type acpi_video_get_backlight_type(void)
 }
 
 
-bool pciehp_is_native(struct pci_dev *bridge)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-struct irq_domain *pci_host_bridge_acpi_msi_domain(struct pci_bus *bus)
-{
-	lx_emul_trace(__func__);
-	return NULL;
-}
-
-
 int pnp_range_reserved(resource_size_t start, resource_size_t end)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-int utf16s_to_utf8s(const wchar_t *pwcs, int len, enum utf16_endian endian,
-                    u8 *s, int maxlen)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 int __get_user_nocheck_1(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-unsigned long
-raw_copy_to_user(void __user *to, const void *from, unsigned long n)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -320,19 +235,14 @@ void intel_engines_add_sysfs(struct drm_i915_private * i915)
 }
 
 
-void i915_pmu_init(void)
+int i915_pmu_init(void)
 {
 	lx_emul_trace(__func__);
+	return 0;
 }
 
 
 void i915_pmu_register(struct drm_i915_private * i915)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void intel_gt_driver_late_release(struct intel_gt * gt)
 {
 	lx_emul_trace(__func__);
 }
@@ -360,25 +270,6 @@ int __intel_gt_reset(struct intel_gt * gt, intel_engine_mask_t engine_mask)
 
 
 void i915_perf_init(struct drm_i915_private * i915)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void intel_gt_init_hw_early(struct intel_gt * gt, struct i915_ggtt * ggtt)
-{
-	lx_emul_trace(__func__);
-}
-
-
-int intel_gt_probe_lmem(struct intel_gt * gt)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-
-void intel_gt_init_workarounds(struct drm_i915_private * i915)
 {
 	lx_emul_trace(__func__);
 }
@@ -463,34 +354,6 @@ int i915_gemfs_init(struct drm_i915_private * i915)
 }
 
 
-int __init i915_global_context_init(void)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-
-int __init i915_global_gem_context_init(void)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-
-int __init i915_global_request_init(void)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-
-int __init i915_global_scheduler_init(void)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-
 int intel_vgt_balloon(struct i915_ggtt * ggtt)
 {
 	lx_emul_trace(__func__);
@@ -510,49 +373,16 @@ void i915_gem_object_release_mmap_offset(struct drm_i915_gem_object * obj)
 }
 
 
-void intel_dsb_prepare(struct intel_crtc_state *crtc_state)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void intel_dsb_cleanup(struct intel_crtc_state *crtc_state)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void intel_dsb_commit(const struct intel_crtc_state *crtc_state)
-{
-	lx_emul_trace(__func__);
-}
-
-
 #include <asm/smp.h>
 
 struct smp_ops smp_ops = { };
 EXPORT_SYMBOL_GPL(smp_ops);
 
 
-#include <linux/prandom.h>
-
-u32 prandom_u32(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 int wbinvd_on_all_cpus(void)
 {
 	lx_emul_trace(__func__);
 	return 0;
-}
-
-
-void srcu_drive_gp(struct work_struct *wp);
-void srcu_drive_gp(struct work_struct *wp)
-{
-	lx_emul_trace_and_stop(__func__);
 }
 
 
@@ -587,6 +417,344 @@ int pci_enable_msi(struct pci_dev *dev)
 
 
 void pci_disable_msi(struct pci_dev *dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/random.h>
+
+u32 __get_random_u32_below(u32 ceil)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <asm/smp.h>
+
+DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);
+
+
+const struct attribute_group dev_attr_physical_location_group = {};
+
+
+typedef u32 acpi_status;
+struct acpi_resource;
+
+extern acpi_status acpi_buffer_to_resource(u8 * aml_buffer,u16 aml_buffer_length,struct acpi_resource ** resource_ptr);
+acpi_status acpi_buffer_to_resource(u8 * aml_buffer,u16 aml_buffer_length,struct acpi_resource ** resource_ptr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+struct acpi_device;
+
+extern int acpi_bus_get_status(struct acpi_device * device);
+int acpi_bus_get_status(struct acpi_device * device)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+void acpi_device_notify(struct device * dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern bool dev_add_physical_location(struct device * dev);
+bool dev_add_physical_location(struct device * dev)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+
+
+#include <linux/skbuff.h>
+
+void __fix_address kfree_skb_reason(struct sk_buff * skb,enum skb_drop_reason reason)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
+struct ctl_table_header * register_sysctl(const char * path,struct ctl_table * table)
+{
+	lx_emul_trace(__func__);
+	return NULL;
+}
+
+
+#include <acpi/acpi_bus.h>
+
+int register_acpi_bus_type(struct acpi_bus_type * type)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/sysctl.h>
+
+void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/sysfs.h>
+
+int sysfs_add_file_to_group(struct kobject * kobj,const struct attribute * attr,const char * group)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/random.h>
+
+u16 get_random_u16(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <acpi/acpi_bus.h>
+
+int acpi_bus_attach_private_data(acpi_handle handle,void * data)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <acpi/acpi_bus.h>
+
+void acpi_bus_detach_private_data(acpi_handle handle)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <acpi/acpi_bus.h>
+
+int acpi_bus_get_private_data(acpi_handle handle,void ** data)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <acpi/acpi_bus.h>
+
+void acpi_dev_clear_dependencies(struct acpi_device * supplier)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern acpi_status acpi_install_address_space_handler(acpi_handle device,acpi_adr_space_type space_id,acpi_adr_space_handler handler,acpi_adr_space_setup setup,void * context);
+acpi_status acpi_install_address_space_handler(acpi_handle device,acpi_adr_space_type space_id,acpi_adr_space_handler handler,acpi_adr_space_setup setup,void * context)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <drm/drm_drv.h>
+
+bool drm_firmware_drivers_only(void)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern int __init i915_context_module_init(void);
+int __init i915_context_module_init(void)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern int __init i915_gem_context_module_init(void);
+int __init i915_gem_context_module_init(void)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern int __init i915_request_module_init(void);
+int __init i915_request_module_init(void)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern int __init i915_scheduler_module_init(void);
+int __init i915_scheduler_module_init(void)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/iommu.h>
+
+int iommu_device_use_default_domain(struct device * dev)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/iommu.h>
+
+void iommu_device_unuse_default_domain(struct device * dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern struct ttm_device_funcs * i915_ttm_driver(void);
+struct ttm_device_funcs * i915_ttm_driver(void)
+{
+	lx_emul_trace(__func__);
+	return NULL;
+}
+
+
+#include <linux/shrinker.h>
+
+int register_shrinker(struct shrinker * shrinker,const char * fmt,...)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern void intel_guc_init_early(struct intel_guc * guc);
+void intel_guc_init_early(struct intel_guc * guc)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void intel_huc_init_early(struct intel_huc * huc);
+void intel_huc_init_early(struct intel_huc * huc)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern int intel_gt_tiles_init(struct drm_i915_private * i915);
+int intel_gt_tiles_init(struct drm_i915_private * i915)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void rt_mutex_setprio(struct task_struct *p, struct task_struct *pi_task)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/context_tracking_irq.h>
+
+noinstr void ct_irq_enter(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/context_tracking_irq.h>
+
+noinstr void ct_irq_exit(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <acpi/video.h>
+
+bool acpi_video_backlight_use_native(void)
+{
+	lx_emul_trace(__func__);
+	return 1;
+}
+
+
+#include <net/net_namespace.h>
+
+void net_ns_init(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <asm/iomap.h>
+
+void iomap_free(resource_size_t base, unsigned long size)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/slab.h>
+
+void *kmalloc_large_node(size_t size, gfp_t flags, int node)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+void * high_memory;
+
+
+void intel_dsb_prepare(struct intel_crtc_state *crtc_state)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_dsb_cleanup(struct intel_crtc_state *crtc_state)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_dsb_commit(const struct intel_crtc_state *crtc_state)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_dsb_reg_write(const struct intel_crtc_state *crtc_state,
+                         i915_reg_t reg, u32 val)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_dsb_indexed_reg_write(const struct intel_crtc_state *crtc_state,
+                                 i915_reg_t reg, u32 val)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void acpi_device_notify_remove(struct device * dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void software_node_notify_remove(struct device * dev)
 {
 	lx_emul_trace(__func__);
 }

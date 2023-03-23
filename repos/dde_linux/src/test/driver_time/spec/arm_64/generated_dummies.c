@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-03-24
+ * \date   2023-03-27
  */
 
 #include <lx_emul.h>
@@ -15,9 +15,14 @@ const char * __clk_get_name(const struct clk * clk)
 }
 
 
+#include <linux/cpumask.h>
+
+struct cpumask __cpu_active_mask;
+
+
 #include <linux/irqdomain.h>
 
-struct irq_domain * __irq_domain_add(struct fwnode_handle * fwnode,int size,irq_hw_number_t hwirq_max,int direct_max,const struct irq_domain_ops * ops,void * host_data)
+struct irq_domain * __irq_domain_add(struct fwnode_handle * fwnode,unsigned int size,irq_hw_number_t hwirq_max,int direct_max,const struct irq_domain_ops * ops,void * host_data)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -36,9 +41,33 @@ struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number
 unsigned long __per_cpu_offset[NR_CPUS] = {};
 
 
+#include <linux/printk.h>
+
+void __printk_safe_enter(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+void __printk_safe_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/sched/task.h>
 
 void __put_task_struct(struct task_struct * tsk)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+int _printk_deferred(const char * fmt,...)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -49,6 +78,46 @@ void __put_task_struct(struct task_struct * tsk)
 u64 (*arch_timer_read_counter)(void);
 
 
+#include <linux/context_tracking_irq.h>
+
+noinstr void ct_irq_enter(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/context_tracking_irq.h>
+
+void ct_irq_enter_irqson(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/context_tracking_irq.h>
+
+noinstr void ct_irq_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/context_tracking_irq.h>
+
+void ct_irq_exit_irqson(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <asm-generic/softirq_stack.h>
+
+void do_softirq_own_stack(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack(void)
@@ -57,9 +126,12 @@ asmlinkage __visible void dump_stack(void)
 }
 
 
-#include <linux/interrupt.h>
+#include <linux/rcuwait.h>
 
-bool force_irqthreads;
+void finish_rcuwait(struct rcuwait * w)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/property.h>
@@ -117,6 +189,14 @@ void handle_fasteoi_irq(struct irq_desc * desc)
 
 #include <linux/sched.h>
 
+void __sched io_schedule(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched.h>
+
 void io_schedule_finish(int token)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -157,7 +237,7 @@ void irq_domain_free_irqs_common(struct irq_domain * domain,unsigned int virq,un
 
 #include <linux/irqdomain.h>
 
-void irq_domain_set_info(struct irq_domain * domain,unsigned int virq,irq_hw_number_t hwirq,struct irq_chip * chip,void * chip_data,irq_flow_handler_t handler,void * handler_data,const char * handler_name)
+void irq_domain_set_info(struct irq_domain * domain,unsigned int virq,irq_hw_number_t hwirq,const struct irq_chip * chip,void * chip_data,irq_flow_handler_t handler,void * handler_data,const char * handler_name)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -203,9 +283,33 @@ void irq_work_tick(void)
 }
 
 
+#include <linux/slab.h>
+
+void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/kstrtox.h>
 
-int kstrtoll(const char * s,unsigned int base,long long * res)
+noinline int kstrtoint(const char * s,unsigned int base,int * res)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/kstrtox.h>
+
+noinline int kstrtoll(const char * s,unsigned int base,long long * res)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/kernel.h>
+
+char * kvasprintf(gfp_t gfp,const char * fmt,va_list ap)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -245,33 +349,17 @@ int of_property_read_string(const struct device_node * np,const char * propname,
 }
 
 
-#include <linux/printk.h>
-
-int printk_deferred(const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/rcutree.h>
-
-void rcu_irq_enter_irqson(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/rcutree.h>
-
-void rcu_irq_exit_irqson(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/siphash.h>
 
 u64 siphash_1u64(const u64 first,const siphash_key_t * key)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/smp.h>
+
+void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
 {
 	lx_emul_trace_and_stop(__func__);
 }

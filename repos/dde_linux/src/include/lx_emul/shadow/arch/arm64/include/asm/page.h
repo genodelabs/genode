@@ -35,8 +35,14 @@ struct page;
 
 typedef struct page *pgtable_t;
 
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,15,0)
 /* needed by mm/internal.h */
 #define pfn_valid(pfn) (pfn != 0UL)
+#endif
+
+static inline int pfn_is_map_memory(unsigned long pfn) { return 1; }
 
 #define virt_addr_valid(kaddr) (kaddr != 0UL)
 

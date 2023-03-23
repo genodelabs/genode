@@ -84,6 +84,8 @@ static void pci_add_resource_to_device_callback(void        * data,
 	dev->resource[number].end   = dev->resource[number].start + size - 1;
 	if (io_port)
 		dev->resource[number].flags |= IORESOURCE_IO;
+	else
+		dev->resource[number].flags |= IORESOURCE_MEM;
 }
 
 

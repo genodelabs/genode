@@ -17,12 +17,12 @@
 
 #include <linux/dma-fence.h>
 #include <linux/fs.h>
-#include <linux/intel-iommu.h>
 #include <linux/mm.h>
 #include <linux/slab.h>
 #include <linux/proc_fs.h>
 
 #include "i915_drv.h"
+#include "intel_pci_config.h"
 #include <drm/drm_managed.h>
 
 
@@ -30,16 +30,6 @@ struct dma_fence_ops const i915_fence_ops;
 
 /* Bits allowed in normal kernel mappings: */
 pteval_t __default_kernel_pte_mask __read_mostly = ~0;
-
-
-int acpi_disabled          = 0;
-int intel_iommu_gfx_mapped = 0;
-
-
-void intel_wopcm_init_early(struct intel_wopcm * wopcm)
-{
-	lx_emul_trace(__func__);
-}
 
 
 void si_meminfo(struct sysinfo * val)
@@ -213,39 +203,28 @@ struct page *shmem_read_mapping_page_gfp(struct address_space *mapping,
 }
 
 
-#ifdef CONFIG_SWIOTLB
-
-#include <linux/swiotlb.h>
-
-unsigned int swiotlb_max_segment(void)
+extern int intel_root_gt_init_early(struct drm_i915_private * i915);
+int intel_root_gt_init_early(struct drm_i915_private * i915)
 {
-	lx_emul_trace(__func__);
-	return PAGE_SIZE * 512;
-}
+	struct intel_gt *gt = to_gt(i915);
 
-
-bool is_swiotlb_active(void)
-{
-	lx_emul_trace(__func__);
-	return false;
-}
-
-#endif
-
-
-void intel_gt_init_early(struct intel_gt * gt, struct drm_i915_private * i915)
-{
 	gt->i915 = i915;
 	gt->uncore = &i915->uncore;
+	gt->irq_lock = drmm_kzalloc(&i915->drm, sizeof(*gt->irq_lock), GFP_KERNEL);
+	if (!gt->irq_lock)
+		return -ENOMEM;
 
-	spin_lock_init(&gt->irq_lock);
+	spin_lock_init(gt->irq_lock);
 
 	INIT_LIST_HEAD(&gt->closed_vma);
 	spin_lock_init(&gt->closed_lock);
 
 	init_llist_head(&gt->watchdog.list);
 
-	lx_emul_trace(__func__);
+	mutex_init(&gt->tlb.invalidate_lock);
+	seqcount_mutex_init(&gt->tlb.seqno, &gt->tlb.invalidate_lock);
+
+	intel_uc_init_early(&gt->uc);
 
 	/* disable panel self refresh (required for FUJITSU S937/S938) */
 	i915->params.enable_psr = 0;
@@ -256,8 +235,68 @@ void intel_gt_init_early(struct intel_gt * gt, struct drm_i915_private * i915)
 	 *
 	 * drivers/gpu/drm/i915/gt/intel_ggtt.c
 	 *  -> gen8_gmch_probe() -> intel_scanout_needs_vtd_wa(i915)
+	 *  ->    return DISPLAY_VER(i915) >= 6 && i915_vtd_active(i915);
+	 *
+	 * i915_vtd_active() uses
+	 *   if (device_iommu_mapped(i915->drm.dev))
+	 *     return true;
+	 *
+	 *   which checks for dev->iommu_group != NULL
+	 *
+	 * The struct iommu_group is solely defined within iommu/iommu.c and
+	 * not public available. iommu/iommu.c is not used by our port, so adding
+	 * a dummy valid pointer is sufficient to get i915_vtd_active working.
 	 */
-	intel_iommu_gfx_mapped = 1;
+	i915->drm.dev->iommu_group = kzalloc(4096, 0);
+	if (!i915_vtd_active(i915))
+		printk("i915_vtd_active is off, which may cause random runtime"
+		       "IOMMU faults on kernels with enabled IOMMUs\n");
+
+	return 0;
+}
+
+
+extern int intel_gt_probe_all(struct drm_i915_private * i915);
+int intel_gt_probe_all(struct drm_i915_private * i915)
+{
+	struct pci_dev *pdev = to_pci_dev(i915->drm.dev);
+	struct intel_gt *gt = &i915->gt0;
+	phys_addr_t phys_addr;
+	unsigned int mmio_bar;
+	int ret;
+
+	mmio_bar = GRAPHICS_VER(i915) == 2 ? GEN2_GTTMMADR_BAR : GTTMMADR_BAR;
+	phys_addr = pci_resource_start(pdev, mmio_bar);
+
+	/*
+	 * We always have at least one primary GT on any device
+	 * and it has been already initialized early during probe
+	 * in i915_driver_probe()
+	 */
+	gt->i915 = i915;
+	gt->name = "Primary GT";
+	gt->info.engine_mask = RUNTIME_INFO(i915)->platform_engine_mask;
+
+	intel_uncore_init_early(gt->uncore, gt);
+
+	ret = intel_uncore_setup_mmio(gt->uncore, phys_addr);
+	if (ret)
+		return ret;
+
+	gt->phys_addr = phys_addr;
+
+	i915->gt[0] = gt;
+
+	return 0;
+}
+
+
+extern int intel_gt_assign_ggtt(struct intel_gt * gt);
+int intel_gt_assign_ggtt(struct intel_gt * gt)
+{
+	gt->ggtt = drmm_kzalloc(&gt->i915->drm, sizeof(*gt->ggtt), GFP_KERNEL);
+
+	return gt->ggtt ? 0 : -ENOMEM;
 }
 
 
@@ -297,8 +336,9 @@ void intel_vgpu_detect(struct drm_i915_private * dev_priv)
 	 * probe/boot up are not trigged (INTEL_PPGTT_ALIASING, Lenovo T420)
 	 */
 
-	struct intel_device_info *info = mkwrite_device_info(dev_priv);
-	info->ppgtt_type = INTEL_PPGTT_NONE;
+	//struct intel_device_info *info = mkwrite_device_info(dev_priv);
+	struct intel_runtime_info *rinfo = RUNTIME_INFO(dev_priv);
+	rinfo->ppgtt_type = INTEL_PPGTT_NONE;
 
 	printk("disabling PPGTT to avoid GPU code paths\n");
 }
@@ -313,3 +353,23 @@ void kvfree_call_rcu(struct rcu_head * head,rcu_callback_t func)
 	kvfree(ptr);
 }
 
+
+#include <linux/dma-mapping.h>
+
+size_t dma_max_mapping_size(struct device * dev)
+{
+	lx_emul_trace(__func__);
+	return PAGE_SIZE * 512; /* 2 MB */
+}
+
+
+#include <linux/slab.h>
+#include <../mm/slab.h>
+
+void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
+{
+	return kmalloc(cachep->size, flags);
+}
+
+
+unsigned long __FIXADDR_TOP = 0xfffff000;

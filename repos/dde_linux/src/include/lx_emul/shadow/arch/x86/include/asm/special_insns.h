@@ -26,6 +26,11 @@ static inline void native_write_cr3(unsigned long val)
 	lx_emul_trace_and_stop(__func__);
 }
 
+static inline void native_write_cr4(unsigned long val)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
 #endif
 
 static inline void wbinvd(void)

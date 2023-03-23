@@ -11,6 +11,7 @@
  * version 2.
  */
 
+#include <linux/sched/cputime.h>
 #include <../kernel/sched/sched.h>
 #include <linux/sched/nohz.h>
 

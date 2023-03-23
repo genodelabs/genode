@@ -28,6 +28,9 @@
 #include <lx_emul/task.h>
 #include <lx_emul/time.h>
 
+#include <linux/sched/cputime.h>
+#include <linux/sched/clock.h>
+#include <linux/sched/wake_q.h>
 #include <../kernel/sched/sched.h>
 
 
@@ -193,10 +196,18 @@ unsigned long wait_task_inactive(struct task_struct * p,
 {
 	struct rq *rq = task_rq(p);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,1,0)
 	if (task_running(rq, p))
+#else
+	if (task_on_cpu(rq, p))
+#endif
 		schedule();
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,1,0)
 	if (task_running(rq, p))
+#else
+	if (task_on_cpu(rq, p))
+#endif
 		return 0;
 
 	return 1;

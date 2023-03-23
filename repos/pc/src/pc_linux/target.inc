@@ -47,6 +47,9 @@ LX_ENABLE += FB
 # mandatory fs support
 LX_ENABLE += PROC_FS SYSFS
 
+# disable cpu frequency scaling
+LX_DISABLE += SCHED_MC CPU_FREQ
+
 # disable optimization not possible in PIC code under Genode
 LX_DISABLE += CC_HAS_ASM_GOTO
 

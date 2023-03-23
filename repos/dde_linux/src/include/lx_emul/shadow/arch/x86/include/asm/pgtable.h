@@ -27,6 +27,17 @@
 
 #ifndef pgprot_noncached
 #define pgprot_noncached(prot)	(prot)
+
+static inline unsigned long pte_pfn(pte_t pte)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+static inline unsigned long pmd_pfn(pmd_t pmd)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
 #endif
 
 static inline pte_t pte_mkwrite(pte_t pte) { return pte; }

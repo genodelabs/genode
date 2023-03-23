@@ -20,6 +20,8 @@
 #include <linux/sched/task.h>
 #include <linux/cred.h>
 #include <linux/sched/signal.h>
+#include <linux/kthread.h>
+#include <linux/version.h>
 
 /*
  * We accept that we transfer the 4KiB task_struct object via stack in
@@ -76,6 +78,13 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 	.cred            = cred,
 	.signal          = signal,
 	};
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,17,0)
+	if (!set_kthread_struct(task)) {
+		kfree(task);
+		goto err_task;
+	}
+#endif
 
 #ifndef CONFIG_THREAD_INFO_IN_TASK
 	/* On arm, the 'thread_info' is hidden behind 'task->stack', we must

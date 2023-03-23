@@ -13,6 +13,7 @@
 
 #include <linux/mm.h>
 #include <linux/slab.h>
+#include <linux/version.h>
 #include <../mm/slab.h>
 #include <../mm/internal.h>
 #include <lx_emul/alloc.h>
@@ -59,3 +60,19 @@ void * kmalloc_order(size_t size, gfp_t flags, unsigned int order)
 {
 	return __kmalloc(size, flags);
 }
+
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,1,0) || defined(CONFIG_NUMA)
+void * __kmalloc_node(size_t size, gfp_t flags, int node)
+{
+	return __kmalloc(size, flags);
+}
+#endif
+
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,1,0)
+void * kmalloc_large(size_t size,gfp_t flags)
+{
+	return __kmalloc(size, flags);
+}
+#endif

@@ -31,6 +31,7 @@ void account_process_tick(struct task_struct * p,int user_tick)
 
 
 #include <linux/random.h>
+struct random_ready_callback;
 
 int add_random_ready_callback(struct random_ready_callback * rdy)
 {
@@ -44,14 +45,6 @@ int __init buses_init(void)
 {
 	lx_emul_trace(__func__);
 	return 0;
-}
-
-
-#include <linux/sched/loadavg.h>
-
-void calc_global_load(void)
-{
-	lx_emul_trace(__func__);
 }
 
 

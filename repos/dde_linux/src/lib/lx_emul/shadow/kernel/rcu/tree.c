@@ -17,6 +17,7 @@
 #include <linux/mm.h>
 #include <linux/rcutree.h>
 #include <linux/rcupdate.h>
+#include <linux/version.h>
 
 #ifdef CONFIG_PREEMPT_RCU
 void __rcu_read_lock(void) { }
@@ -29,10 +30,12 @@ extern void rcu_read_unlock_strict(void);
 void rcu_read_unlock_strict(void) { }
 
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
 int rcu_needs_cpu(u64 basemono, u64 *nextevt)
+#else
+int rcu_needs_cpu(void)
+#endif
 {
-	if (nextevt)
-		*nextevt = KTIME_MAX;
 	return 0;
 }
 

@@ -1,5 +1,4 @@
 arch/x86/lib/hweight.S
-certs/common.c
 crypto/acompress.c
 crypto/aead.c
 crypto/aes_generic.c
@@ -8,6 +7,7 @@ crypto/akcipher.c
 crypto/algapi.c
 crypto/algboss.c
 crypto/api.c
+crypto/asymmetric_keys/x509_loader.c
 crypto/ccm.c
 crypto/cipher.c
 crypto/cmac.c
@@ -20,7 +20,6 @@ crypto/gf128mul.c
 crypto/ghash-generic.c
 crypto/hash_info.c
 crypto/kpp.c
-crypto/memneq.c
 crypto/proc.c
 crypto/rng.c
 crypto/scatterwalk.c
@@ -38,8 +37,6 @@ drivers/base/devres.c
 drivers/base/driver.c
 drivers/base/platform.c
 drivers/base/property.c
-drivers/clk/clk-devres.c
-drivers/net/Space.c
 drivers/net/loopback.c
 drivers/net/wireless/intel/iwlwifi/cfg/1000.c
 drivers/net/wireless/intel/iwlwifi/cfg/2000.c
@@ -71,6 +68,7 @@ drivers/net/wireless/intel/iwlwifi/fw/init.c
 drivers/net/wireless/intel/iwlwifi/fw/notif-wait.c
 drivers/net/wireless/intel/iwlwifi/fw/paging.c
 drivers/net/wireless/intel/iwlwifi/fw/pnvm.c
+drivers/net/wireless/intel/iwlwifi/fw/rs.c
 drivers/net/wireless/intel/iwlwifi/fw/smem.c
 drivers/net/wireless/intel/iwlwifi/iwl-dbg-tlv.c
 drivers/net/wireless/intel/iwlwifi/iwl-debug.c
@@ -152,11 +150,7 @@ kernel/locking/rwsem.c
 kernel/notifier.c
 kernel/panic.c
 kernel/resource.c
-kernel/sched/clock.c
-kernel/sched/completion.c
-kernel/sched/swait.c
-kernel/sched/wait.c
-kernel/sched/wait_bit.c
+kernel/sched/build_utility.c
 kernel/smpboot.c
 kernel/softirq.c
 kernel/time/clockevents.c
@@ -180,6 +174,7 @@ lib/bitmap.c
 lib/bsearch.c
 lib/crc32.c
 lib/crypto/aes.c
+lib/crypto/memneq.c
 lib/ctype.c
 lib/debug_locks.c
 lib/dynamic_queue_limits.c
@@ -211,6 +206,7 @@ mm/util.c
 net/core/datagram.c
 net/core/dev.c
 net/core/dev_addr_lists.c
+net/core/gro.c
 net/core/link_watch.c
 net/core/net-sysfs.c
 net/core/net_namespace.c
@@ -229,6 +225,7 @@ net/mac80211/airtime.c
 net/mac80211/cfg.c
 net/mac80211/chan.c
 net/mac80211/driver-ops.c
+net/mac80211/eht.c
 net/mac80211/ethtool.c
 net/mac80211/fils_aead.c
 net/mac80211/he.c
@@ -236,6 +233,7 @@ net/mac80211/ht.c
 net/mac80211/ibss.c
 net/mac80211/iface.c
 net/mac80211/key.c
+net/mac80211/link.c
 net/mac80211/main.c
 net/mac80211/michael.c
 net/mac80211/mlme.c

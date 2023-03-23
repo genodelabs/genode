@@ -15,6 +15,7 @@
 #include <lx_emul/debug.h>
 
 #include <linux/dma-mapping.h>
+#include <linux/version.h>
 
 void * dma_alloc_attrs(struct device * dev,
                        size_t          size,
@@ -51,7 +52,7 @@ int dma_set_mask(struct device *dev, u64 mask)
 {
 	mask = (dma_addr_t)mask;
 
-	if (!dev->dma_mask || !dma_supported(dev, mask))
+	if (!dev->dma_mask)
 		return -EIO;
 
 	*dev->dma_mask = mask;
@@ -63,19 +64,20 @@ int dma_set_coherent_mask(struct device *dev, u64 mask)
 {
 	mask = (dma_addr_t)mask;
 
-	if (!dma_supported(dev, mask))
-		return -EIO;
-
 	dev->coherent_dma_mask = mask;
 	return 0;
 }
 
 
-int dma_map_sg_attrs(struct device         * dev,
-                     struct scatterlist    * sgl,
-                     int                     nents,
-                     enum dma_data_direction dir,
-                     unsigned long           attrs)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,15,0)
+int          dma_map_sg_attrs(struct device          *dev,
+#else
+unsigned int dma_map_sg_attrs(struct device          *dev,
+#endif
+                              struct scatterlist     *sgl,
+                              int                     nents,
+                              enum dma_data_direction dir,
+                              unsigned long           attrs)
 {
 	int i;
 	struct scatterlist *sg;

@@ -103,14 +103,6 @@ void ignore_signals(struct task_struct * t)
 }
 
 
-#include <linux/sched/loadavg.h>
-
-void calc_global_load(void)
-{
-	lx_emul_trace(__func__);
-}
-
-
 #include <linux/kernel_stat.h>
 
 void account_process_tick(struct task_struct * p,int user_tick)
@@ -143,6 +135,7 @@ void kernfs_put(struct kernfs_node * kn)
 
 #include <linux/random.h>
 
+struct random_ready_callback;
 int add_random_ready_callback(struct random_ready_callback * rdy)
 {
 	lx_emul_trace(__func__);
@@ -150,7 +143,7 @@ int add_random_ready_callback(struct random_ready_callback * rdy)
 }
 
 
-void add_device_randomness(const void * buf,unsigned int size)
+void add_device_randomness(const void * buf, size_t size)
 {
 	lx_emul_trace(__func__);
 }
@@ -158,7 +151,7 @@ void add_device_randomness(const void * buf,unsigned int size)
 
 #include <linux/random.h>
 
-void add_interrupt_randomness(int irq,int irq_flags)
+void add_interrupt_randomness(int irq)
 {
 	lx_emul_trace(__func__);
 }

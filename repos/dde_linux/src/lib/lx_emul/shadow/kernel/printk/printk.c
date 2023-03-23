@@ -12,7 +12,10 @@
  * version 2.
  */
 
-#include <linux/printk.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,15,0)
+#include <linux/stdarg.h>
+#endif
 #include <linux/kernel.h>
 #include <lx_emul/log.h>
 #include <lx_emul/debug.h>
@@ -20,7 +23,11 @@
 
 static char print_string[2048];
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,15,0)
 asmlinkage __visible int printk(const char * fmt,...)
+#else
+asmlinkage __visible int _printk(const char * fmt,...)
+#endif
 {
 	va_list args;
 	va_start(args, fmt);

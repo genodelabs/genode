@@ -86,7 +86,7 @@ append config {
 	</start>
 
 	<start name="acpi_drv" caps="250">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="6M"/>
 		<route>
 			<service name="IO_MEM"> <parent/> </service>
 			<service name="LOG">    <parent/> </service>

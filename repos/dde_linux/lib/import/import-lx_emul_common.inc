@@ -31,12 +31,9 @@ SRC_C   += lx_emul/shadow/kernel/rcu/tree.c
 SRC_C   += lx_emul/shadow/kernel/sched/cputime.c
 SRC_C   += lx_emul/shadow/kernel/sched/core.c
 SRC_C   += lx_emul/shadow/kernel/sched/fair.c
-SRC_C   += lx_emul/shadow/kernel/sched/isolation.c
-SRC_C   += lx_emul/shadow/kernel/sched/loadavg.c
 SRC_C   += lx_emul/shadow/kernel/sched/sched.c
 SRC_C   += lx_emul/shadow/kernel/smp.c
 SRC_C   += lx_emul/shadow/kernel/stop_machine.c
-SRC_C   += lx_emul/shadow/lib/cpumask.c
 SRC_C   += lx_emul/shadow/lib/delay.c
 SRC_C   += lx_emul/shadow/mm/percpu.c
 SRC_C   += lx_emul/shadow/mm/slab_common.c
@@ -131,6 +128,7 @@ ifeq ($(filter-out $(SPECS),arm),)
 CC_DEF += -include asm/unified.h
 endif
 
+CC_DEF   += -include $(LX_SRC_DIR)/include/linux/compiler-version.h
 CC_DEF   += -include $(LX_SRC_DIR)/include/linux/kconfig.h
 CC_DEF   += -include $(LX_SRC_DIR)/include/linux/compiler_types.h
 CC_DEF   += -D__KERNEL__ -DCONFIG_CC_HAS_K_CONSTRAINT=1
@@ -138,14 +136,15 @@ CC_DEF   += -DKASAN_SHADOW_SCALE_SHIFT=3
 CC_C_OPT += -std=gnu89
 CC_C_OPT += -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs
 CC_C_OPT += -Werror=implicit-function-declaration -Werror=implicit-int
-CC_C_OPT += -Wno-format-security -Wno-psabi
-CC_C_OPT += -Wno-frame-address -Wno-format-truncation -Wno-format-overflow
-CC_C_OPT += -Wframe-larger-than=2048 -Wno-unused-but-set-variable -Wimplicit-fallthrough
+CC_C_OPT += -Werror=return-type -Wno-format-security -Wno-psabi -Wno-sign-compare
+CC_C_OPT += -Wno-frame-address -Wno-format-truncation -Wno-format-overflow -Wno-address-of-packed-member
+CC_C_OPT += -Wframe-larger-than=2048 -Wno-main -Wno-unused-but-set-variable -Wimplicit-fallthrough
 CC_C_OPT += -Wno-unused-const-variable -Wdeclaration-after-statement -Wvla
-CC_C_OPT += -Wno-pointer-sign -Wno-stringop-truncation -Wno-array-bounds -Wno-stringop-overflow
+CC_C_OPT += -Wno-pointer-sign -Wcast-function-type -Wno-stringop-truncation -Wno-array-bounds -Wno-stringop-overflow
 CC_C_OPT += -Wno-restrict -Wno-maybe-uninitialized -Werror=date-time
+CC_C_OPT += -Wno-alloc-size-larger-than -Wimplicit-fallthrough=5 -Werror=date-time
 CC_C_OPT += -Werror=incompatible-pointer-types -Werror=designated-init
-CC_C_OPT += -Wno-packed-not-aligned
+CC_C_OPT += -Wno-packed-not-aligned -Wno-unused-but-set-variable
 CC_C_OPT += -Wno-discarded-qualifiers
 
 # avoid link errors whenever the build config's CC_OLEVEL is set to -O0

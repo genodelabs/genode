@@ -1,4 +1,3 @@
-arch/x86/include/asm/vdso/processor.h
 drivers/usb/common/common.h
 drivers/usb/core/hub.h
 drivers/usb/core/otg_productlist.h
@@ -29,15 +28,13 @@ drivers/usb/host/xhci-ext-caps.h
 drivers/usb/host/xhci-pci.h
 drivers/usb/host/xhci-trace.h
 drivers/usb/host/xhci.h
-include/asm-generic/dma-mapping.h
-include/asm-generic/export.h
 include/linux/bcd.h
 include/linux/extcon.h
 include/linux/genalloc.h
 include/linux/io-64-nonatomic-lo-hi.h
 include/linux/kcov.h
-include/linux/kfifo.h
 include/linux/phy/phy-dp.h
+include/linux/phy/phy-lvds.h
 include/linux/phy/phy-mipi-dphy.h
 include/linux/phy/phy.h
 include/linux/regulator/consumer.h
@@ -49,6 +46,7 @@ include/linux/usb/ehci-dbgp.h
 include/linux/usb/ehci_def.h
 include/linux/usb/hcd.h
 include/linux/usb/of.h
+include/linux/usb/onboard_hub.h
 include/linux/usb/otg.h
 include/linux/usb/phy.h
 include/linux/usb/quirks.h

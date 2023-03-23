@@ -1,18 +1,10 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-07-29
+ * \date   2023-03-17
  */
 
 #include <lx_emul.h>
-
-
-#include <linux/proc_fs.h>
-
-void * PDE_DATA(const struct inode * inode)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/ratelimit_types.h>
@@ -23,9 +15,22 @@ int ___ratelimit(struct ratelimit_state * rs,const char * func)
 }
 
 
-#include <linux/clk-provider.h>
+#include <linux/cpumask.h>
 
-const char * __clk_get_name(const struct clk * clk)
+struct cpumask __cpu_active_mask;
+
+
+#include <linux/printk.h>
+
+void __printk_safe_enter(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+void __printk_safe_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -79,6 +84,14 @@ unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 }
 
 
+#include <linux/printk.h>
+
+int _printk_deferred(const char * fmt,...)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern void ack_bad_irq(unsigned int irq);
 void ack_bad_irq(unsigned int irq)
 {
@@ -105,6 +118,14 @@ async_cookie_t async_schedule_node(async_func_t func,void * data,int node)
 #include <linux/async.h>
 
 void async_synchronize_full(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/arch_topology.h>
+
+const struct cpumask * cpu_clustergroup_mask(int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -150,9 +171,9 @@ bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap
 }
 
 
-#include <linux/property.h>
+#include <linux/rcuwait.h>
 
-void fwnode_remove_software_node(struct fwnode_handle * fwnode)
+void finish_rcuwait(struct rcuwait * w)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -218,6 +239,14 @@ bool initcall_debug;
 
 #include <linux/sched.h>
 
+void __sched io_schedule(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched.h>
+
 void io_schedule_finish(int token)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -240,17 +269,22 @@ long __sched io_schedule_timeout(long timeout)
 }
 
 
-#include <linux/irq_work.h>
+#include <linux/swiotlb.h>
 
-void irq_work_tick(void)
+struct io_tlb_mem io_tlb_default_mem;
+
+
+#include <linux/iommu.h>
+
+void iommu_device_unuse_default_domain(struct device * dev)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/property.h>
+#include <linux/irq_work.h>
 
-bool is_software_node(const struct fwnode_handle * fwnode)
+void irq_work_tick(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -272,6 +306,14 @@ void kill_anon_super(struct super_block * sb)
 #include <linux/sched/signal.h>
 
 int kill_pid_usb_asyncio(int sig,int errno,sigval_t addr,struct pid * pid,const struct cred * cred)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/slab.h>
+
+void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -370,9 +412,17 @@ int pci_write_config_dword(const struct pci_dev * dev,int where,u32 val)
 }
 
 
-#include <linux/printk.h>
+#include <linux/sysctl.h>
 
-int printk_deferred(const char * fmt,...)
+int proc_dointvec_minmax(struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
+int proc_douintvec(struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -381,14 +431,6 @@ int printk_deferred(const char * fmt,...)
 #include <linux/pid.h>
 
 void put_pid(struct pid * pid)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/refcount.h>
-
-bool refcount_dec_not_one(refcount_t * r)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -418,6 +460,22 @@ void seq_printf(struct seq_file * m,const char * f,...)
 }
 
 
+#include <linux/string.h>
+
+char * skip_spaces(const char * str)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/smp.h>
+
+void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/smp.h>
 
 int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
@@ -434,6 +492,27 @@ bool static_key_initialized;
 #include <linux/string_helpers.h>
 
 int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned int flags,const char * only)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/string.h>
+
+char * strreplace(char * s,char old,char new)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
+const int sysctl_vals[] = {};
+
+
+#include <linux/string.h>
+
+bool sysfs_streq(const char * s1,const char * s2)
 {
 	lx_emul_trace_and_stop(__func__);
 }

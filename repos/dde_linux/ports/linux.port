@@ -1,23 +1,20 @@
 LICENSE   := GPLv2
-VERSION   := 5.14.21
+VERSION   := 6.1.20
 DOWNLOADS := linux.archive
 
-URL(linux) := https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-$(VERSION).tar.xz
-SHA(linux) := f41a259cb2002dd2e3286524b2bb4e803f4f982992d092706ecea613584023b3
+URL(linux) := https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(VERSION).tar.xz
+SHA(linux) := 76322de8c01a3c63b42c4d1e9b9e7d1897ddb91276e10d73d1f9df3562f031f0
 DIR(linux) := src/linux
 
 #
 # Patches
 #
-PATCH_FILES := i915_irq.patch i915_alderlake.patch xhci_fix_event_37.patch \
-               xhci_abort_ring.patch iwlwifi_enable_irq_before_pnvm.patch \
-               realloc-fix-gcc-12.patch \
-               workqueue_deadlock.patch \
-               usb_message.patch
+PATCH_FILES := i915_irq.patch i915_fb_resize.patch \
+               iwlwifi_enable_irq_before_pnvm.patch \
+               usb_message.patch \
+               workqueue_deadlock.patch
 PATCHES += $(addprefix patches/,$(PATCH_FILES))
 
-# i915
-PATCH_OPT(patches/i915_irq.patch) := -p1 -d${DIR(linux)}
-PATCH_OPT(patches/xhci_abort_ring.patch) := -p1 -d${DIR(linux)}
-PATCH_OPT(patches/xhci_fix_event_37.patch) := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/i915_irq.patch)           := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/i915_fb_resize.patch)     := -p1 -d${DIR(linux)}
 PATCH_OPT(patches/workqueue_deadlock.patch) := -p1 -d${DIR(linux)}

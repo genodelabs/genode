@@ -62,6 +62,8 @@ LX_FILES += Kbuild \
             arch/arm64/tools/Makefile \
             arch/arm64/tools/cpucaps \
             arch/arm64/tools/gen-cpucaps.awk \
+            arch/arm64/tools/gen-sysreg.awk \
+            arch/arm64/tools/sysreg \
             arch/x86/Makefile \
             arch/x86/Makefile_32.cpu \
             arch/x86/configs \
@@ -94,19 +96,20 @@ LX_FILES += Kbuild \
             scripts/Makefile.lib \
             scripts/as-version.sh \
             scripts/asn1_compiler.c \
-            scripts/atomic/check-atomics.sh \
             scripts/basic/Makefile \
             scripts/basic/fixdep.c \
             scripts/cc-version.sh \
+            scripts/check-local-export \
             scripts/checksyscalls.sh \
             scripts/config \
             scripts/dtc \
-            scripts/extract-cert.c \
-            scripts/gcc-goto.sh \
             scripts/kconfig/merge_config.sh \
             scripts/ld-version.sh \
+            scripts/mkcompile_h \
             scripts/min-tool-version.sh \
             scripts/mod \
+            scripts/pahole-flags.sh \
+            scripts/pahole-version.sh \
             scripts/remove-stale-files \
             scripts/setlocalversion \
             scripts/sorttable.c \

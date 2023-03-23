@@ -17,16 +17,21 @@
 #include "i915_drv.h"
 
 #include "intel_pm.h"
+#include "../drivers/gpu/drm/i915/gt/intel_gt.h"
+#include "../drivers/gpu/drm/i915/i915_file_private.h"
 
 
 int i915_gem_object_unbind(struct drm_i915_gem_object *obj,
 			   unsigned long flags)
 {
 	struct intel_runtime_pm *rpm = &to_i915(obj->base.dev)->runtime_pm;
+	bool vm_trylock = !!(flags & I915_GEM_OBJECT_UNBIND_VM_TRYLOCK);
 	LIST_HEAD(still_in_list);
 	intel_wakeref_t wakeref;
 	struct i915_vma *vma;
 	int ret;
+
+	assert_object_held(obj);
 
 	if (list_empty(&obj->vma.list))
 		return 0;
@@ -45,8 +50,6 @@ try_again:
 	while (!ret && (vma = list_first_entry_or_null(&obj->vma.list,
 						       struct i915_vma,
 						       obj_link))) {
-		struct i915_address_space *vm = vma->vm;
-
 		list_move_tail(&vma->obj_link, &still_in_list);
 		if (!i915_vma_is_bound(vma, I915_VMA_BIND_MASK))
 			continue;
@@ -56,34 +59,44 @@ try_again:
 			break;
 		}
 
+		/*
+		 * Requiring the vm destructor to take the object lock
+		 * before destroying a vma would help us eliminate the
+		 * i915_vm_tryget() here, AND thus also the barrier stuff
+		 * at the end. That's an easy fix, but sleeping locks in
+		 * a kthread should generally be avoided.
+		 */
 		ret = -EAGAIN;
-		if (!i915_vm_tryopen(vm))
+		if (!i915_vm_tryget(vma->vm))
 			break;
 
-		/* Prevent vma being freed by i915_vma_parked as we unbind */
-		vma = __i915_vma_get(vma);
 		spin_unlock(&obj->vma.lock);
 
-		if (vma) {
-			ret = -EBUSY;
-			if (flags & I915_GEM_OBJECT_UNBIND_ACTIVE ||
-			    !i915_vma_is_active(vma)) {
-				if (flags & I915_GEM_OBJECT_UNBIND_VM_TRYLOCK) {
-					if (mutex_trylock(&vma->vm->mutex)) {
-						ret = __i915_vma_unbind(vma);
-						mutex_unlock(&vma->vm->mutex);
-					} else {
-						ret = -EBUSY;
-					}
-				} else {
-					ret = i915_vma_unbind(vma);
-				}
-			}
+		/*
+		 * Since i915_vma_parked() takes the object lock
+		 * before vma destruction, it won't race us here,
+		 * and destroy the vma from under us.
+		 */
 
-			__i915_vma_put(vma);
+		ret = -EBUSY;
+		if (flags & I915_GEM_OBJECT_UNBIND_ASYNC) {
+			assert_object_held(vma->obj);
+			ret = i915_vma_unbind_async(vma, vm_trylock);
 		}
 
-		i915_vm_close(vm);
+		if (ret == -EBUSY && (flags & I915_GEM_OBJECT_UNBIND_ACTIVE ||
+				      !i915_vma_is_active(vma))) {
+			if (vm_trylock) {
+				if (mutex_trylock(&vma->vm->mutex)) {
+					ret = __i915_vma_unbind(vma);
+					mutex_unlock(&vma->vm->mutex);
+				}
+			} else {
+				ret = i915_vma_unbind(vma);
+			}
+		}
+
+		i915_vm_put(vma->vm);
 		spin_lock(&obj->vma.lock);
 	}
 	list_splice_init(&still_in_list, &obj->vma.list);
@@ -114,16 +127,18 @@ static void discard_ggtt_vma(struct i915_vma *vma)
 struct i915_vma *
 i915_gem_object_ggtt_pin_ww(struct drm_i915_gem_object *obj,
 			    struct i915_gem_ww_ctx *ww,
-			    const struct i915_ggtt_view *view,
+			    const struct i915_gtt_view *view,
 			    u64 size, u64 alignment, u64 flags)
 {
 	struct drm_i915_private *i915 = to_i915(obj->base.dev);
-	struct i915_ggtt *ggtt = &i915->ggtt;
+	struct i915_ggtt *ggtt = to_gt(i915)->ggtt;
 	struct i915_vma *vma;
 	int ret;
 
+	GEM_WARN_ON(!ww);
+
 	if (flags & PIN_MAPPABLE &&
-	    (!view || view->type == I915_GGTT_VIEW_NORMAL)) {
+	    (!view || view->type == I915_GTT_VIEW_NORMAL)) {
 		/*
 		 * If the required space is larger than the available
 		 * aperture, we will not able to find a slot for the
@@ -166,8 +181,19 @@ new_vma:
 			if (i915_vma_is_pinned(vma) || i915_vma_is_active(vma))
 				return ERR_PTR(-ENOSPC);
 
+			/*
+			 * If this misplaced vma is too big (i.e, at-least
+			 * half the size of aperture) or hasn't been pinned
+			 * mappable before, we ignore the misplacement when
+			 * PIN_NONBLOCK is set in order to avoid the ping-pong
+			 * issue described above. In other words, we try to
+			 * avoid the costly operation of unbinding this vma
+			 * from the GGTT and rebinding it back because there
+			 * may not be enough space for this vma in the aperture.
+			 */
 			if (flags & PIN_MAPPABLE &&
-			    vma->fence_size > ggtt->mappable_end / 2)
+			    (vma->fence_size > ggtt->mappable_end / 2 ||
+			    !i915_vma_is_map_and_fenceable(vma)))
 				return ERR_PTR(-ENOSPC);
 		}
 
@@ -181,10 +207,7 @@ new_vma:
 			return ERR_PTR(ret);
 	}
 
-	if (ww)
-		ret = i915_vma_pin_ww(vma, ww, size, alignment, flags | PIN_GLOBAL);
-	else
-		ret = i915_vma_pin(vma, size, alignment, flags | PIN_GLOBAL);
+	ret = i915_vma_pin_ww(vma, ww, size, alignment, flags | PIN_GLOBAL);
 
 	if (ret)
 		return ERR_PTR(ret);
@@ -204,46 +227,19 @@ new_vma:
 	return vma;
 }
 
-void i915_gem_ww_ctx_init(struct i915_gem_ww_ctx *ww, bool intr)
+static inline int i915_gem_init_userptr(struct drm_i915_private *dev_priv)
 {
-	ww_acquire_init(&ww->ctx, &reservation_ww_class);
-	INIT_LIST_HEAD(&ww->obj_list);
-	ww->intr = intr;
-	ww->contended = NULL;
+#ifdef CONFIG_MMU_NOTIFIER
+	rwlock_init(&dev_priv->mm.notifier_lock);
+#endif
+
+	return 0;
 }
-
-static void i915_gem_ww_ctx_unlock_all(struct i915_gem_ww_ctx *ww)
-{
-	struct drm_i915_gem_object *obj;
-
-	while ((obj = list_first_entry_or_null(&ww->obj_list, struct drm_i915_gem_object, obj_link))) {
-		list_del(&obj->obj_link);
-		i915_gem_object_unlock(obj);
-	}
-}
-
-void i915_gem_ww_ctx_fini(struct i915_gem_ww_ctx *ww)
-{
-	i915_gem_ww_ctx_unlock_all(ww);
-	WARN_ON(ww->contended);
-	ww_acquire_fini(&ww->ctx);
-}
-
-static void i915_gem_init__mm(struct drm_i915_private *i915)
-{
-	spin_lock_init(&i915->mm.obj_lock);
-
-	init_llist_head(&i915->mm.free_list);
-
-	INIT_LIST_HEAD(&i915->mm.purge_list);
-	INIT_LIST_HEAD(&i915->mm.shrink_list);
-
-	i915_gem_init__objects(i915);
-}
-
 
 int i915_gem_init(struct drm_i915_private *dev_priv)
 {
+	struct intel_gt *gt;
+	unsigned int i;
 	int ret;
 
 	/* request & enforce max resolution if smaller than hardware limits */
@@ -259,8 +255,7 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 	/* We need to fallback to 4K pages if host doesn't support huge gtt. */
 /*
 	if (intel_vgpu_active(dev_priv) && !intel_vgpu_has_huge_gtt(dev_priv))
-		mkwrite_device_info(dev_priv)->page_sizes =
-			I915_GTT_PAGE_SIZE_4K;
+		RUNTIME_INFO(dev_priv)->page_sizes = I915_GTT_PAGE_SIZE_4K;
 */
 
 	ret = i915_gem_init_userptr(dev_priv);
@@ -268,7 +263,7 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 		return ret;
 
 /*
-	intel_uc_fetch_firmwares(&dev_priv->gt.uc);
+	intel_uc_fetch_firmwares(&to_gt(dev_priv)->uc);
 	intel_wopcm_init(&dev_priv->wopcm);
 */
 	ret = i915_init_ggtt(dev_priv);
@@ -290,10 +285,13 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 	intel_init_clock_gating(dev_priv);
 
 /*
-	ret = intel_gt_init(&dev_priv->gt);
-	if (ret)
-		goto err_unlock;
+	for_each_gt(gt, dev_priv, i) {
+		ret = intel_gt_init(gt);
+		if (ret)
+			goto err_unlock;
+	}
 */
+
 	return 0;
 
 	/*
@@ -305,10 +303,15 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 err_unlock:
 	i915_gem_drain_workqueue(dev_priv);
 
-/*
-	if (ret != -EIO)
-		intel_uc_cleanup_firmwares(&dev_priv->gt.uc);
-*/
+	if (ret != -EIO) {
+		for_each_gt(gt, dev_priv, i) {
+			intel_gt_driver_remove(gt);
+			intel_gt_driver_release(gt);
+			/*
+			intel_uc_cleanup_firmwares(&gt->uc);
+			*/
+		}
+	}
 
 	if (ret == -EIO) {
 		/*
@@ -316,17 +319,19 @@ err_unlock:
 		 * as wedged. But we only want to do this when the GPU is angry,
 		 * for all other failure, such as an allocation failure, bail.
 		 */
-/*
-		if (!intel_gt_is_wedged(&dev_priv->gt)) {
-			i915_probe_error(dev_priv,
-					 "Failed to initialize GPU, declaring it wedged!\n");
-			intel_gt_set_wedged(&dev_priv->gt);
+		/*
+		for_each_gt(gt, dev_priv, i) {
+			if (!intel_gt_is_wedged(gt)) {
+				i915_probe_error(dev_priv,
+						 "Failed to initialize GPU, declaring it wedged!\n");
+				intel_gt_set_wedged(gt);
+			}
 		}
-*/
+		*/
+
 		/* Minimal basic recovery for KMS */
 		ret = i915_ggtt_enable_hw(dev_priv);
-		i915_ggtt_resume(&dev_priv->ggtt);
-
+		i915_ggtt_resume(to_gt(dev_priv)->ggtt);
 		intel_init_clock_gating(dev_priv);
 	}
 
@@ -340,6 +345,17 @@ void i915_gem_driver_register(struct drm_i915_private * i915)
 	lx_emul_trace(__func__);
 }
 
+static void i915_gem_init__mm(struct drm_i915_private *i915)
+{
+	spin_lock_init(&i915->mm.obj_lock);
+
+	init_llist_head(&i915->mm.free_list);
+
+	INIT_LIST_HEAD(&i915->mm.purge_list);
+	INIT_LIST_HEAD(&i915->mm.shrink_list);
+
+	i915_gem_init__objects(i915);
+}
 
 void i915_gem_init_early(struct drm_i915_private *dev_priv)
 {
@@ -350,7 +366,7 @@ void i915_gem_init_early(struct drm_i915_private *dev_priv)
 
 	lx_emul_trace(__func__);
 
-	spin_lock_init(&dev_priv->fb_tracking.lock);
+	spin_lock_init(&dev_priv->display.fb_tracking.lock);
 
 	/*
 	 * Used by resource_size() check in shmem_get_pages in
@@ -367,16 +383,25 @@ void i915_gem_init_early(struct drm_i915_private *dev_priv)
 int i915_gem_open(struct drm_i915_private *i915, struct drm_file *file)
 {
 	struct drm_i915_file_private *file_priv;
+	struct i915_drm_client *client;
+	int ret = -ENOMEM;
 
 	DRM_DEBUG("\n");
 
 	file_priv = kzalloc(sizeof(*file_priv), GFP_KERNEL);
 	if (!file_priv)
-		return -ENOMEM;
+		goto err_alloc;
+
+	client = i915_drm_client_add(&i915->clients);
+	if (IS_ERR(client)) {
+		ret = PTR_ERR(client);
+		goto err_client;
+	}
 
 	file->driver_priv = file_priv;
 	file_priv->dev_priv = i915;
 	file_priv->file = file;
+	file_priv->client = client;
 
 	file_priv->bsd_engine = -1;
 	file_priv->hang_timestamp = jiffies;
@@ -384,19 +409,17 @@ int i915_gem_open(struct drm_i915_private *i915, struct drm_file *file)
 /*
 	ret = i915_gem_context_open(i915, file);
 	if (ret)
-		kfree(file_priv);
-
-	return ret;
+		goto err_context;
 */
-	return 0;
-}
-
-
-int i915_gem_init_userptr(struct drm_i915_private *dev_priv)
-{
-#ifdef CONFIG_MMU_NOTIFIER
-	spin_lock_init(&dev_priv->mm.notifier_lock);
-#endif
 
 	return 0;
+
+	/*
+err_context:
+	i915_drm_client_put(client);
+	*/
+err_client:
+	kfree(file_priv);
+err_alloc:
+	return ret;
 }

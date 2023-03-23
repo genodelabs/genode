@@ -13,6 +13,7 @@
 
 #include <linux/mm.h>
 #include <linux/slab.h>
+#include <linux/version.h>
 #include <../mm/slab.h>
 #include <lx_emul/alloc.h>
 #include <lx_emul/debug.h>
@@ -122,20 +123,12 @@ size_t __ksize(const void * object)
 }
 
 
-#ifdef CONFIG_NUMA
-
-void * __kmalloc_node(size_t size, gfp_t flags, int node)
-{
-	return __kmalloc(size, flags);
-}
-
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,1,0) || defined(CONFIG_NUMA)
 void * kmem_cache_alloc_node(struct kmem_cache * s, gfp_t gfpflags, int node)
 {
 	return kmem_cache_alloc(s, gfpflags);
 }
-
-#endif /* CONFIG_NUMA */
+#endif
 
 
 #ifdef CONFIG_TRACING

@@ -18,7 +18,7 @@
 
 #include <linux/pci.h>
 #include <drm/i915_drm.h>
-#include <../drivers/gpu/drm/i915/i915_reg.h>
+#include <../drivers/gpu/drm/i915/intel_pci_config.h>
 #undef GFX_FLSH_CNTL /* suppress warning of double define */
 #include <../drivers/char/agp/intel-agp.h>
 

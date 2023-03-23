@@ -1,0 +1,21 @@
+--- a/drivers/gpu/drm/i915/display/intel_fbdev.c
++++ b/drivers/gpu/drm/i915/display/intel_fbdev.c
+@@ -251,6 +251,18 @@
+ 					 &view, false, &flags);
+ 	if (IS_ERR(vma)) {
+ 		ret = PTR_ERR(vma);
++
++		/* If the partial allocation is not reverted, the next
++		 * i915_fb()->funcs->fb_probe (which calls intelfb_create)
++		 * will try the old resolution, which failed and fails again,
++		 * instead of using the new smaller resolution.
++		 */
++		if (ret == -ENOMEM && ifbdev->fb) {
++			printk("%s -ENOMEM, remove fb\n", __func__);
++			drm_framebuffer_put(&ifbdev->fb->base);
++			ifbdev->fb = NULL;
++		}
++
+ 		goto out_unlock;
+ 	}
+ 

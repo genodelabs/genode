@@ -46,7 +46,13 @@ int __must_check get_random_bytes_arch(void *buf, int nbytes)
 }
 
 
-void get_random_bytes(void *buf, int nbytes)
+void get_random_bytes(void *buf, size_t nbytes)
 {
 	nbytes = get_random_bytes_arch(buf, nbytes);
+}
+
+
+bool rng_is_initialized(void)
+{
+	return 1;
 }

@@ -53,6 +53,7 @@ Firmware_list fw_list[] = {
 	{ "iwlwifi-so-a0-gf-a0.pnvm", 41808, nullptr },
 	{ "iwlwifi-ty-a0-gf-a0-63.ucode",  1460012, nullptr },
 	{ "iwlwifi-ty-a0-gf-a0-64.ucode",  1460012, "iwlwifi-ty-a0-gf-a0-63.ucode" },
+	{ "iwlwifi-ty-a0-gf-a0-72.ucode",  1460012, "iwlwifi-ty-a0-gf-a0-63.ucode" },
 	{ "iwlwifi-ty-a0-gf-a0.pnvm",        41588, nullptr },
 
 	{ "rtl8192eu_nic.bin",       31818, nullptr },

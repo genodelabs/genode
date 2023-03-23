@@ -1,6 +1,7 @@
 arch/x86/include/asm/atomic64_64.h
 arch/x86/include/asm/checksum_64.h
 arch/x86/include/asm/cmpxchg_64.h
+arch/x86/include/asm/irq_stack.h
 arch/x86/include/asm/kaslr.h
 arch/x86/include/asm/page_64_types.h
 arch/x86/include/asm/pgtable_64_types.h

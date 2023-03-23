@@ -30,6 +30,9 @@ LX_ENABLE += CRYPTO_JITTERENTROPY CRYPTO_ANSI_CPRNG HW_RANDOM_TIMERIOMEM
 # wireguard driver
 LX_ENABLE += WIREGUARD WIREGUARD_DEBUG
 
+# disable cpu frequency scaling
+LX_DISABLE += SCHED_MC CPU_FREQ
+
 # disable optimization not possible in PIC code under Genode
 LX_DISABLE += CC_HAS_ASM_GOTO
 

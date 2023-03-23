@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-07-19
+ * \date   2023-03-27
  */
 
 #include <lx_emul.h>
@@ -23,9 +23,14 @@ struct page * __alloc_pages(gfp_t gfp,unsigned int order,int preferred_nid,nodem
 }
 
 
-#include <linux/clk-provider.h>
+#include <linux/cpumask.h>
 
-const char * __clk_get_name(const struct clk * clk)
+struct cpumask __cpu_active_mask;
+
+
+#include <linux/mm.h>
+
+void __folio_put(struct folio * folio)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -39,9 +44,17 @@ int __ipv6_addr_type(const struct in6_addr * addr)
 }
 
 
-#include <linux/mm.h>
+#include <linux/printk.h>
 
-void __put_page(struct page * page)
+void __printk_safe_enter(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+void __printk_safe_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -71,15 +84,38 @@ unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 }
 
 
-extern const char * _parse_integer_fixup_radix(const char * s,unsigned int * base);
-const char * _parse_integer_fixup_radix(const char * s,unsigned int * base)
+extern noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned long long * p);
+noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned long long * p)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-extern unsigned int _parse_integer_limit(const char * s,unsigned int base,unsigned long long * p,size_t max_chars);
-unsigned int _parse_integer_limit(const char * s,unsigned int base,unsigned long long * p,size_t max_chars)
+extern noinline const char * _parse_integer_fixup_radix(const char * s,unsigned int * base);
+noinline const char * _parse_integer_fixup_radix(const char * s,unsigned int * base)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern noinline unsigned int _parse_integer_limit(const char * s,unsigned int base,unsigned long long * p,size_t max_chars);
+noinline unsigned int _parse_integer_limit(const char * s,unsigned int base,unsigned long long * p,size_t max_chars)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+int _printk_deferred(const char * fmt,...)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/spinlock_api_smp.h>
+
+noinline int __lockfunc _raw_spin_trylock_bh(raw_spinlock_t * lock)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -92,6 +128,22 @@ atomic_long_t _totalram_pages;
 
 extern void ack_bad_irq(unsigned int irq);
 void ack_bad_irq(unsigned int irq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/context_tracking_irq.h>
+
+noinstr void ct_irq_enter(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/context_tracking_irq.h>
+
+noinstr void ct_irq_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -121,22 +173,17 @@ asmlinkage __visible void dump_stack(void)
 }
 
 
-#include <linux/interrupt.h>
+#include <linux/rcuwait.h>
 
-bool force_irqthreads;
-
-
-#include <linux/netdevice.h>
-
-void free_netdev(struct net_device * dev)
+void finish_rcuwait(struct rcuwait * w)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/sched/user.h>
+#include <linux/netdevice.h>
 
-void free_uid(struct user_struct * up)
+void free_netdev(struct net_device * dev)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -229,6 +276,14 @@ const struct in6_addr in6addr_any;
 #include <net/netfilter/nf_conntrack.h>
 
 struct net init_net;
+
+
+#include <linux/sched.h>
+
+void __sched io_schedule(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/sched.h>
@@ -328,7 +383,15 @@ void kernel_fpu_end(void)
 
 #include <linux/slab.h>
 
-int kmem_cache_alloc_bulk(struct kmem_cache * s,gfp_t flags,size_t size,void ** p)
+int kmem_cache_alloc_bulk(struct kmem_cache * s,gfp_t flags,size_t nr,void ** p)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/slab.h>
+
+void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -344,7 +407,23 @@ void kmem_cache_destroy(struct kmem_cache * s)
 
 #include <linux/kstrtox.h>
 
-int kstrtoll(const char * s,unsigned int base,long long * res)
+noinline int kstrtoint(const char * s,unsigned int base,int * res)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/kstrtox.h>
+
+noinline int kstrtoll(const char * s,unsigned int base,long long * res)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/kernel.h>
+
+char * kvasprintf(gfp_t gfp,const char * fmt,va_list ap)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -390,14 +469,6 @@ void percpu_counter_add_batch(struct percpu_counter * fbc,s64 amount,s32 batch)
 }
 
 
-#include <linux/printk.h>
-
-int printk_deferred(const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/rtnetlink.h>
 
 void rtnl_link_unregister(struct rtnl_link_ops * ops)
@@ -414,22 +485,6 @@ void sk_clear_memalloc(struct sock * sk)
 }
 
 
-#include <net/sock.h>
-
-void sk_error_report(struct sock * sk)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <net/sock.h>
-
-void sk_free(struct sock * sk)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/netdevice.h>
 
 int skb_checksum_help(struct sk_buff * skb)
@@ -441,6 +496,22 @@ int skb_checksum_help(struct sk_buff * skb)
 #include <net/sock.h>
 
 void skb_set_owner_w(struct sk_buff * skb,struct sock * sk)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/string.h>
+
+char * skip_spaces(const char * str)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/smp.h>
+
+void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
 {
 	lx_emul_trace_and_stop(__func__);
 }

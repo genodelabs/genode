@@ -29,6 +29,8 @@
 #include <linux/of.h>
 #include <linux/of_clk.h>
 #include <linux/of_fdt.h>
+#include <linux/version.h>
+#include <net/net_namespace.h>
 
 /* definitions in drivers/base/base.h */
 extern int devices_init(void);
@@ -140,10 +142,13 @@ int lx_emul_init_task_function(void * dtb)
 	hrtimers_init();
 	softirq_init();
 	timekeeping_init();
-
 	time_init();
 
 	sched_clock_init();
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,17,0)
+	net_ns_init();
+#endif
 
 	kernel_thread(kernel_init, NULL, CLONE_FS);
 	kernel_thread(kernel_idle, NULL, CLONE_FS);

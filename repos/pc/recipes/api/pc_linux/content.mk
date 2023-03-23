@@ -85,19 +85,20 @@ LX_FILES += Kbuild \
             scripts/Makefile.lib \
             scripts/asn1_compiler.c \
             scripts/as-version.sh \
-            scripts/atomic/check-atomics.sh \
             scripts/basic/Makefile \
             scripts/basic/fixdep.c \
             scripts/cc-version.sh \
+            scripts/check-local-export \
             scripts/checksyscalls.sh \
             scripts/config \
             scripts/dtc \
-            scripts/extract-cert.c \
-            scripts/gcc-goto.sh \
             scripts/kconfig/merge_config.sh \
             scripts/ld-version.sh \
+            scripts/mkcompile_h \
             scripts/min-tool-version.sh \
             scripts/mod \
+            scripts/pahole-flags.sh \
+            scripts/pahole-version.sh \
             scripts/remove-stale-files \
             scripts/setlocalversion \
             scripts/sorttable.c \
@@ -121,6 +122,7 @@ LX_FILES += $(shell cd $(LX_ABS_DIR); find -name "Kconfig*" -printf "%P\n")
 
 # needed for generated/asm-offsets.h
 LX_FILES += arch/x86/include/asm/boot.h \
+            arch/x86/include/asm/coco.h \
             arch/x86/include/asm/cpufeature.h \
             arch/x86/include/asm/current.h \
             arch/x86/include/asm/fixmap.h \
@@ -132,6 +134,7 @@ LX_FILES += arch/x86/include/asm/boot.h \
             arch/x86/include/asm/page.h \
             arch/x86/include/asm/page_32.h \
             arch/x86/include/asm/page_32_types.h \
+            arch/x86/include/asm/page_64.h \
             arch/x86/include/asm/pgtable.h \
             arch/x86/include/asm/pgtable-2level.h \
             arch/x86/include/asm/pgtable-2level_types.h \
@@ -144,12 +147,14 @@ LX_FILES += arch/x86/include/asm/boot.h \
             arch/x86/include/asm/qrwlock.h \
             arch/x86/include/asm/qspinlock.h \
             arch/x86/include/asm/sigframe.h \
+            arch/x86/include/asm/special_insns.h \
             arch/x86/include/asm/spinlock.h \
             arch/x86/include/asm/suspend.h \
             arch/x86/include/asm/suspend_32.h \
             arch/x86/include/asm/suspend_64.h \
             arch/x86/include/asm/sync_core.h \
             arch/x86/include/asm/uaccess_32.h \
+            arch/x86/include/asm/uaccess_64.h \
             arch/x86/include/asm/user_32.h \
             arch/x86/include/uapi/asm/ucontext.h \
             arch/x86/kernel/asm-offsets.c \
@@ -169,6 +174,7 @@ LX_FILES += arch/x86/include/asm/boot.h \
             include/linux/cper.h \
             include/linux/crypto.h \
             include/linux/efi.h \
+            include/linux/page_table_check.h \
             include/linux/pgtable.h \
             include/linux/pstore.h \
             include/uapi/asm-generic/ucontext.h \

@@ -74,4 +74,6 @@ static inline struct page *virt_to_page(void const *v) { return lx_emul_virt_to_
  */
 #define   __pfn_to_phys(pfn) PFN_PHYS(pfn)
 
+#define __phys_to_virt(x) ( lx_emul_trace_and_stop("__phys_to_virt"), 0UL )
+
 #endif /* __ASM_MEMORY_H */

@@ -45,6 +45,20 @@ u32 prandom_u32(void)
 }
 
 
+u32 __get_random_u32_below(u32 ceil)
+{
+	return lx_emul_random_gen_u32();
+}
+
+
+u8 get_random_u8(void)
+{
+	u8 ret;
+	lx_emul_random_gen_bytes(&ret, sizeof(ret));
+	return ret;
+}
+
+
 #include <linux/mm.h>
 
 void * kvmalloc_node(size_t size,gfp_t flags,int node)
@@ -210,14 +224,6 @@ __be16 ip_tunnel_parse_protocol(const struct sk_buff *skb)
 }
 
 
-#include <linux/random.h>
-
-bool rng_is_initialized(void)
-{
-	return true;
-}
-
-
 #include <linux/inetdevice.h>
 
 __be32 inet_confirm_addr(struct net * net,struct in_device * in_dev,__be32 dst,__be32 local,int scope)
@@ -279,7 +285,8 @@ gro_result_t napi_gro_receive(struct napi_struct * napi,struct sk_buff * skb)
 
 #include <linux/netdevice.h>
 
-void netif_napi_add(struct net_device * dev,struct napi_struct * napi,int (* poll)(struct napi_struct *,int),int weight)
+void netif_napi_add_weight(struct net_device *dev, struct napi_struct *napi,
+                           int (*poll)(struct napi_struct *, int), int weight)
 {
 	napi->dev = dev;
 	napi->poll = poll;

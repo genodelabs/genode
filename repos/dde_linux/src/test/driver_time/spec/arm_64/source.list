@@ -1,5 +1,6 @@
 arch/arm64/lib/memchr.S
 arch/arm64/lib/memcmp.S
+arch/arm64/lib/strchr.S
 arch/arm64/lib/strcmp.S
 arch/arm64/lib/strlen.S
 kernel/kthread.c
@@ -7,11 +8,7 @@ kernel/locking/mutex.c
 kernel/locking/osq_lock.c
 kernel/locking/rwsem.c
 kernel/notifier.c
-kernel/sched/clock.c
-kernel/sched/completion.c
-kernel/sched/swait.c
-kernel/sched/wait.c
-kernel/sched/wait_bit.c
+kernel/sched/build_utility.c
 kernel/smpboot.c
 kernel/softirq.c
 kernel/time/clockevents.c

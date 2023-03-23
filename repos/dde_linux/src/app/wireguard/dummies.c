@@ -136,3 +136,25 @@ __wsum csum_partial(const void * buff,int len,__wsum sum)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/interrupt.h>
+
+DEFINE_STATIC_KEY_FALSE(force_irqthreads_key);
+
+
+#include <net/net_namespace.h>
+
+void __init net_ns_init(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#ifdef CONFIG_ARM64
+extern void flush_dcache_page(struct page * page);
+void flush_dcache_page(struct page * page)
+{
+	lx_emul_trace(__func__);
+}
+#endif

@@ -14,8 +14,10 @@
 #ifndef __LINUX_PGTABLE_H
 #define __LINUX_PGTABLE_H
 
-#include <linux/init.h>
+#include <linux/pfn.h>
 #include <asm/pgtable.h>
+
+#ifndef __ASSEMBLY__
 
 pmd_t *pmd_offset(pud_t *pud, unsigned long address);
 pmd_t  pmd_swp_clear_soft_dirty(pmd_t pmd);
@@ -53,5 +55,13 @@ pte_t pte_swp_clear_soft_dirty(pte_t pte);
 pte_t ptep_get(pte_t *ptep);
 
 static inline int is_zero_pfn(unsigned long pfn) { return 0; }
+
+#define pte_unmap(pte) ((void)(pte))
+
+static inline int pte_swp_exclusive(pte_t pte) { return false; }
+
+static inline pte_t pte_swp_clear_exclusive(pte_t pte) { return pte; }
+
+#endif /* __ASSEMBLY__ */
 
 #endif /* __LINUX_PGTABLE_H */

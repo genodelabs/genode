@@ -1,18 +1,10 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2022-07-28
+ * \date   2023-03-22
  */
 
 #include <lx_emul.h>
-
-
-#include <linux/proc_fs.h>
-
-void * PDE_DATA(const struct inode * inode)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/skbuff.h>
@@ -23,17 +15,22 @@ struct sk_buff * __alloc_skb(unsigned int size,gfp_t gfp_mask,int flags,int node
 }
 
 
-#include <linux/clk-provider.h>
+#include <linux/sched.h>
 
-const char * __clk_get_name(const struct clk * clk)
+int __cond_resched_lock(spinlock_t * lock)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/sched.h>
+#include <linux/cpumask.h>
 
-int __cond_resched_lock(spinlock_t * lock)
+struct cpumask __cpu_active_mask;
+
+
+#include <linux/mm.h>
+
+void __folio_put(struct folio * folio)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -62,9 +59,17 @@ void __pagevec_release(struct pagevec * pvec)
 }
 
 
-#include <linux/mm.h>
+#include <linux/printk.h>
 
-void __put_page(struct page * page)
+void __printk_safe_enter(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+void __printk_safe_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -73,6 +78,14 @@ void __put_page(struct page * page)
 #include <linux/sched/task.h>
 
 void __put_task_struct(struct task_struct * tsk)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mm.h>
+
+void __show_mem(unsigned int filter,nodemask_t * nodemask,int max_zone_idx)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -96,7 +109,7 @@ void __unregister_chrdev(unsigned int major,unsigned int baseminor,unsigned int 
 
 #include <linux/vmalloc.h>
 
-void * __vmalloc_node(unsigned long size,unsigned long align,gfp_t gfp_mask,int node,const void * caller)
+void * __vmalloc_node_range(unsigned long size,unsigned long align,unsigned long start,unsigned long end,gfp_t gfp_mask,pgprot_t prot,unsigned long vm_flags,int node,const void * caller)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -118,6 +131,14 @@ bool _drm_lease_held(struct drm_file * file_priv,int id)
 }
 
 
+#include <linux/printk.h>
+
+int _printk_deferred(const char * fmt,...)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/mm.h>
 
 atomic_long_t _totalram_pages;
@@ -125,54 +146,6 @@ atomic_long_t _totalram_pages;
 
 extern void ack_bad_irq(unsigned int irq);
 void ack_bad_irq(unsigned int irq)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <acpi/acpi_bus.h>
-
-int acpi_bus_attach_private_data(acpi_handle handle,void * data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <acpi/acpi_bus.h>
-
-void acpi_bus_detach_private_data(acpi_handle handle)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <acpi/acpi_bus.h>
-
-int acpi_bus_get_device(acpi_handle handle,struct acpi_device ** device)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <acpi/acpi_bus.h>
-
-int acpi_bus_get_private_data(acpi_handle handle,void ** data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <acpi/acpi_bus.h>
-
-int acpi_bus_get_status(struct acpi_device * device)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <acpi/acpi_bus.h>
-
-void acpi_dev_clear_dependencies(struct acpi_device * supplier)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -194,9 +167,41 @@ int acpi_dev_get_resources(struct acpi_device * adev,struct list_head * list,int
 }
 
 
+#include <acpi/acpi_bus.h>
+
+bool acpi_dev_present(const char * hid,const char * uid,s64 hrv)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <acpi/acpi_bus.h>
+
+bool acpi_dev_ready_for_enumeration(const struct acpi_device * device)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/acpi.h>
 
 bool acpi_dev_resource_interrupt(struct acpi_resource * ares,int index,struct resource * res)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <acpi/acpi_bus.h>
+
+struct acpi_device * acpi_fetch_acpi_dev(acpi_handle handle)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <acpi/acpi_bus.h>
+
+struct acpi_device * acpi_find_child_device(struct acpi_device * parent,u64 address,bool check_children)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -225,8 +230,23 @@ void acpi_set_modalias(struct acpi_device * adev,const char * default_id,char * 
 }
 
 
+#include <acpi/video.h>
+
+void acpi_video_register_backlight(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern acpi_status acpi_walk_namespace(acpi_object_type type,acpi_handle start_object,u32 max_depth,acpi_walk_callback descending_callback,acpi_walk_callback ascending_callback,void * context,void ** return_value);
 acpi_status acpi_walk_namespace(acpi_object_type type,acpi_handle start_object,u32 max_depth,acpi_walk_callback descending_callback,acpi_walk_callback ascending_callback,void * context,void ** return_value)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void arch_trigger_cpumask_backtrace(const cpumask_t * mask,bool exclude_self);
+void arch_trigger_cpumask_backtrace(const cpumask_t * mask,bool exclude_self)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -272,9 +292,9 @@ void check_move_unevictable_pages(struct pagevec * pvec)
 }
 
 
-#include <linux/mm.h>
+#include <linux/pagemap.h>
 
-int clear_page_dirty_for_io(struct page * page)
+bool clear_page_dirty_for_io(struct page * page)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -294,11 +314,6 @@ void console_lock(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
-
-
-#include <linux/printk.h>
-
-int console_printk[] = {};
 
 
 #include <linux/console.h>
@@ -325,9 +340,33 @@ void console_unlock(void)
 }
 
 
+#include <linux/printk.h>
+
+void console_verbose(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/arch_topology.h>
+
+const struct cpumask * cpu_clustergroup_mask(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/property.h>
 
 int device_add_software_node(struct device * dev,const struct software_node * node)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/property.h>
+
+int device_create_managed_software_node(struct device * dev,const struct property_entry * properties,const struct software_node * parent)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -405,8 +444,9 @@ void dma_buf_unmap_attachment(struct dma_buf_attachment * attach,struct sg_table
 }
 
 
-extern void dma_resv_prune(struct dma_resv * resv);
-void dma_resv_prune(struct dma_resv * resv)
+#include <linux/dma-mapping.h>
+
+int dma_map_sgtable(struct device * dev,struct sg_table * sgt,enum dma_data_direction dir,unsigned long attrs)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -415,6 +455,14 @@ void dma_resv_prune(struct dma_resv * resv)
 #include <linux/netlink.h>
 
 void do_trace_netlink_extack(const char * msg)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <drm/drm_gem_atomic_helper.h>
+
+int drm_gem_plane_helper_prepare_fb(struct drm_plane * plane,struct drm_plane_state * state)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -521,25 +569,17 @@ bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap
 }
 
 
+#include <linux/rcuwait.h>
+
+void finish_rcuwait(struct rcuwait * w)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/fb.h>
 
 void framebuffer_release(struct fb_info * info)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/property.h>
-
-struct fwnode_handle * fwnode_create_software_node(const struct property_entry * properties,const struct fwnode_handle * parent)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/property.h>
-
-void fwnode_remove_software_node(struct fwnode_handle * fwnode)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -667,8 +707,22 @@ int i915_cmd_parser_get_version(struct drm_i915_private * dev_priv)
 }
 
 
+extern void i915_context_module_exit(void);
+void i915_context_module_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern struct i915_gpu_coredump * i915_first_error_state(struct drm_i915_private * i915);
 struct i915_gpu_coredump * i915_first_error_state(struct drm_i915_private * i915)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int i915_gem_backup_suspend(struct drm_i915_private * i915);
+int i915_gem_backup_suspend(struct drm_i915_private * i915)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -716,6 +770,13 @@ int i915_gem_context_getparam_ioctl(struct drm_device * dev,void * data,struct d
 }
 
 
+extern void i915_gem_context_module_exit(void);
+void i915_gem_context_module_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern void i915_gem_context_release(struct kref * ref);
 void i915_gem_context_release(struct kref * ref)
 {
@@ -746,6 +807,20 @@ int i915_gem_create_ext_ioctl(struct drm_device * dev,void * data,struct drm_fil
 
 extern int i915_gem_create_ioctl(struct drm_device * dev,void * data,struct drm_file * file);
 int i915_gem_create_ioctl(struct drm_device * dev,void * data,struct drm_file * file)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void i915_gem_drain_freed_objects(struct drm_i915_private * i915);
+void i915_gem_drain_freed_objects(struct drm_i915_private * i915)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void i915_gem_drain_workqueue(struct drm_i915_private * i915);
+void i915_gem_drain_workqueue(struct drm_i915_private * i915)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -786,22 +861,22 @@ int i915_gem_dumb_mmap_offset(struct drm_file * file,struct drm_device * dev,u32
 }
 
 
-extern int i915_gem_evict_for_node(struct i915_address_space * vm,struct drm_mm_node * target,unsigned int flags);
-int i915_gem_evict_for_node(struct i915_address_space * vm,struct drm_mm_node * target,unsigned int flags)
+extern struct intel_context * i915_gem_engines_iter_next(struct i915_gem_engines_iter * it);
+struct intel_context * i915_gem_engines_iter_next(struct i915_gem_engines_iter * it)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-extern int i915_gem_evict_something(struct i915_address_space * vm,u64 min_size,u64 alignment,unsigned long color,u64 start,u64 end,unsigned flags);
-int i915_gem_evict_something(struct i915_address_space * vm,u64 min_size,u64 alignment,unsigned long color,u64 start,u64 end,unsigned flags)
+extern int i915_gem_evict_for_node(struct i915_address_space * vm,struct i915_gem_ww_ctx * ww,struct drm_mm_node * target,unsigned int flags);
+int i915_gem_evict_for_node(struct i915_address_space * vm,struct i915_gem_ww_ctx * ww,struct drm_mm_node * target,unsigned int flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-extern int i915_gem_evict_vm(struct i915_address_space * vm);
-int i915_gem_evict_vm(struct i915_address_space * vm)
+extern int i915_gem_evict_something(struct i915_address_space * vm,struct i915_gem_ww_ctx * ww,u64 min_size,u64 alignment,unsigned long color,u64 start,u64 end,unsigned flags);
+int i915_gem_evict_something(struct i915_address_space * vm,struct i915_gem_ww_ctx * ww,u64 min_size,u64 alignment,unsigned long color,u64 start,u64 end,unsigned flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -872,6 +947,13 @@ int i915_gem_mmap_offset_ioctl(struct drm_device * dev,void * data,struct drm_fi
 
 extern int i915_gem_object_attach_phys(struct drm_i915_gem_object * obj,int align);
 int i915_gem_object_attach_phys(struct drm_i915_gem_object * obj,int align)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern struct i915_vma * __must_check i915_gem_object_ggtt_pin(struct drm_i915_gem_object * obj,const struct i915_gtt_view * view,u64 size,u64 alignment,u64 flags);
+struct i915_vma * __must_check i915_gem_object_ggtt_pin(struct drm_i915_gem_object * obj,const struct i915_gtt_view * view,u64 size,u64 alignment,u64 flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -982,6 +1064,13 @@ int i915_gem_throttle_ioctl(struct drm_device * dev,void * data,struct drm_file 
 }
 
 
+extern struct intel_memory_region * i915_gem_ttm_system_setup(struct drm_i915_private * i915,u16 type,u16 instance);
+struct intel_memory_region * i915_gem_ttm_system_setup(struct drm_i915_private * i915,u16 type,u16 instance)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern int i915_gem_userptr_ioctl(struct drm_device * dev,void * data,struct drm_file * file);
 int i915_gem_userptr_ioctl(struct drm_device * dev,void * data,struct drm_file * file)
 {
@@ -998,13 +1087,6 @@ int i915_gem_vm_create_ioctl(struct drm_device * dev,void * data,struct drm_file
 
 extern int i915_gem_vm_destroy_ioctl(struct drm_device * dev,void * data,struct drm_file * file);
 int i915_gem_vm_destroy_ioctl(struct drm_device * dev,void * data,struct drm_file * file)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int __must_check i915_gem_ww_ctx_backoff(struct i915_gem_ww_ctx * ww);
-int __must_check i915_gem_ww_ctx_backoff(struct i915_gem_ww_ctx * ww)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1066,6 +1148,13 @@ int i915_perf_remove_config_ioctl(struct drm_device * dev,void * data,struct drm
 }
 
 
+extern void i915_perf_sysctl_unregister(void);
+void i915_perf_sysctl_unregister(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern void i915_perf_unregister(struct drm_i915_private * i915);
 void i915_perf_unregister(struct drm_i915_private * i915)
 {
@@ -1087,8 +1176,8 @@ void i915_pmu_unregister(struct drm_i915_private * i915)
 }
 
 
-extern struct i915_ppgtt * i915_ppgtt_create(struct intel_gt * gt);
-struct i915_ppgtt * i915_ppgtt_create(struct intel_gt * gt)
+extern struct i915_ppgtt * i915_ppgtt_create(struct intel_gt * gt,unsigned long lmem_pt_obj_flags);
+struct i915_ppgtt * i915_ppgtt_create(struct intel_gt * gt,unsigned long lmem_pt_obj_flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1096,6 +1185,13 @@ struct i915_ppgtt * i915_ppgtt_create(struct intel_gt * gt)
 
 extern int i915_query_ioctl(struct drm_device * dev,void * data,struct drm_file * file);
 int i915_query_ioctl(struct drm_device * dev,void * data,struct drm_file * file)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int i915_reg_read_ioctl(struct drm_device * dev,void * data,struct drm_file * unused);
+int i915_reg_read_ioctl(struct drm_device * dev,void * data,struct drm_file * unused)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1115,8 +1211,15 @@ struct i915_request * i915_request_create(struct intel_context * ce)
 }
 
 
-extern long i915_request_wait(struct i915_request * rq,unsigned int flags,long timeout);
-long i915_request_wait(struct i915_request * rq,unsigned int flags,long timeout)
+extern void i915_request_module_exit(void);
+void i915_request_module_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern long i915_request_wait_timeout(struct i915_request * rq,unsigned int flags,long timeout);
+long i915_request_wait_timeout(struct i915_request * rq,unsigned int flags,long timeout)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1124,6 +1227,13 @@ long i915_request_wait(struct i915_request * rq,unsigned int flags,long timeout)
 
 extern void i915_reset_error_state(struct drm_i915_private * i915);
 void i915_reset_error_state(struct drm_i915_private * i915)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void i915_scheduler_module_exit(void);
+void i915_scheduler_module_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1163,29 +1273,8 @@ struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magi
 bool initcall_debug;
 
 
-extern void intel_dsb_indexed_reg_write(const struct intel_crtc_state * crtc_state,i915_reg_t reg,u32 val);
-void intel_dsb_indexed_reg_write(const struct intel_crtc_state * crtc_state,i915_reg_t reg,u32 val)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void intel_dsb_reg_write(const struct intel_crtc_state * crtc_state,i915_reg_t reg,u32 val);
-void intel_dsb_reg_write(const struct intel_crtc_state * crtc_state,i915_reg_t reg,u32 val)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int intel_dsi_dcs_init_backlight_funcs(struct intel_connector * intel_connector);
-int intel_dsi_dcs_init_backlight_funcs(struct intel_connector * intel_connector)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void intel_dvo_init(struct drm_i915_private * dev_priv);
-void intel_dvo_init(struct drm_i915_private * dev_priv)
+extern u64 intel_context_get_total_runtime_ns(const struct intel_context * ce);
+u64 intel_context_get_total_runtime_ns(const struct intel_context * ce)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1212,20 +1301,6 @@ unsigned int intel_engines_has_context_isolation(struct drm_i915_private * i915)
 }
 
 
-extern int intel_freq_opcode(struct intel_rps * rps,int val);
-int intel_freq_opcode(struct intel_rps * rps,int val)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int intel_gpu_freq(struct intel_rps * rps,int val);
-int intel_gpu_freq(struct intel_rps * rps,int val)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <drm/i915_drm.h>
 
 struct resource intel_graphics_stolen_res;
@@ -1233,6 +1308,27 @@ struct resource intel_graphics_stolen_res;
 
 extern void intel_gt_check_and_clear_faults(struct intel_gt * gt);
 void intel_gt_check_and_clear_faults(struct intel_gt * gt)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_gt_driver_late_release_all(struct drm_i915_private * i915);
+void intel_gt_driver_late_release_all(struct drm_i915_private * i915)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_gt_driver_release(struct intel_gt * gt);
+void intel_gt_driver_release(struct intel_gt * gt)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_gt_driver_remove(struct intel_gt * gt);
+void intel_gt_driver_remove(struct intel_gt * gt)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1252,8 +1348,29 @@ void intel_gt_flush_ggtt_writes(struct intel_gt * gt)
 }
 
 
-extern long intel_gt_retire_requests_timeout(struct intel_gt * gt,long timeout);
-long intel_gt_retire_requests_timeout(struct intel_gt * gt,long timeout)
+extern void intel_gt_invalidate_tlb(struct intel_gt * gt,u32 seqno);
+void intel_gt_invalidate_tlb(struct intel_gt * gt,u32 seqno)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern u32 intel_gt_mcr_read_any(struct intel_gt * gt,i915_reg_t reg);
+u32 intel_gt_mcr_read_any(struct intel_gt * gt,i915_reg_t reg)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_gt_release_all(struct drm_i915_private * i915);
+void intel_gt_release_all(struct drm_i915_private * i915)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern long intel_gt_retire_requests_timeout(struct intel_gt * gt,long timeout,long * remaining_timeout);
+long intel_gt_retire_requests_timeout(struct intel_gt * gt,long timeout,long * remaining_timeout)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1273,8 +1390,78 @@ void intel_gt_runtime_suspend(struct intel_gt * gt)
 }
 
 
-extern int intel_gt_wait_for_idle(struct intel_gt * gt,long timeout);
-int intel_gt_wait_for_idle(struct intel_gt * gt,long timeout)
+extern void intel_guc_ads_reset(struct intel_guc * guc);
+void intel_guc_ads_reset(struct intel_guc * guc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int intel_guc_ct_enable(struct intel_guc_ct * ct);
+int intel_guc_ct_enable(struct intel_guc_ct * ct)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_guc_ct_event_handler(struct intel_guc_ct * ct);
+void intel_guc_ct_event_handler(struct intel_guc_ct * ct)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_guc_fini(struct intel_guc * guc);
+void intel_guc_fini(struct intel_guc * guc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int intel_guc_fw_upload(struct intel_guc * guc);
+int intel_guc_fw_upload(struct intel_guc * guc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int intel_guc_init(struct intel_guc * guc);
+int intel_guc_init(struct intel_guc * guc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int intel_guc_slpc_enable(struct intel_guc_slpc * slpc);
+int intel_guc_slpc_enable(struct intel_guc_slpc * slpc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_guc_submission_disable(struct intel_guc * guc);
+void intel_guc_submission_disable(struct intel_guc * guc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_guc_submission_enable(struct intel_guc * guc);
+void intel_guc_submission_enable(struct intel_guc * guc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int intel_guc_to_host_process_recv_msg(struct intel_guc * guc,const u32 * payload,u32 len);
+int intel_guc_to_host_process_recv_msg(struct intel_guc * guc,const u32 * payload,u32 len)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_guc_write_params(struct intel_guc * guc);
+void intel_guc_write_params(struct intel_guc * guc)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1294,6 +1481,13 @@ bool intel_has_reset_engine(const struct intel_gt * gt)
 }
 
 
+extern int intel_huc_auth(struct intel_huc * huc);
+int intel_huc_auth(struct intel_huc * huc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern int intel_huc_check_status(struct intel_huc * huc);
 int intel_huc_check_status(struct intel_huc * huc)
 {
@@ -1301,15 +1495,36 @@ int intel_huc_check_status(struct intel_huc * huc)
 }
 
 
-extern u8 intel_lookup_range_max_qp(int bpc,int buf_i,int bpp_i);
-u8 intel_lookup_range_max_qp(int bpc,int buf_i,int bpp_i)
+extern void intel_huc_fini(struct intel_huc * huc);
+void intel_huc_fini(struct intel_huc * huc)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-extern u8 intel_lookup_range_min_qp(int bpc,int buf_i,int bpp_i);
-u8 intel_lookup_range_min_qp(int bpc,int buf_i,int bpp_i)
+extern int intel_huc_fw_upload(struct intel_huc * huc);
+int intel_huc_fw_upload(struct intel_huc * huc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int intel_huc_init(struct intel_huc * huc);
+int intel_huc_init(struct intel_huc * huc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_huc_update_auth_status(struct intel_huc * huc);
+void intel_huc_update_auth_status(struct intel_huc * huc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int intel_reset_guc(struct intel_gt * gt);
+int intel_reset_guc(struct intel_gt * gt)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1329,15 +1544,22 @@ void intel_rps_boost(struct i915_request * rq)
 }
 
 
-extern u32 intel_rps_read_actual_frequency(struct intel_rps * rps);
-u32 intel_rps_read_actual_frequency(struct intel_rps * rps)
+extern void intel_rps_lower_unslice(struct intel_rps * rps);
+void intel_rps_lower_unslice(struct intel_rps * rps)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-extern int intel_rps_set(struct intel_rps * rps,u8 val);
-int intel_rps_set(struct intel_rps * rps,u8 val)
+extern void intel_rps_raise_unslice(struct intel_rps * rps);
+void intel_rps_raise_unslice(struct intel_rps * rps)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern unsigned int intel_sseu_get_hsw_subslices(const struct sseu_dev_info * sseu,u8 slice);
+unsigned int intel_sseu_get_hsw_subslices(const struct sseu_dev_info * sseu,u8 slice)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1350,8 +1572,15 @@ unsigned int intel_sseu_subslice_total(const struct sseu_dev_info * sseu)
 }
 
 
-extern void intel_tv_init(struct drm_i915_private * dev_priv);
-void intel_tv_init(struct drm_i915_private * dev_priv)
+extern void intel_uc_fw_cleanup_fetch(struct intel_uc_fw * uc_fw);
+void intel_uc_fw_cleanup_fetch(struct intel_uc_fw * uc_fw)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int intel_uc_fw_fetch(struct intel_uc_fw * uc_fw);
+int intel_uc_fw_fetch(struct intel_uc_fw * uc_fw)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1380,6 +1609,14 @@ void intel_vgt_deballoon(struct i915_ggtt * ggtt)
 
 #include <linux/sched.h>
 
+void __sched io_schedule(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched.h>
+
 void io_schedule_finish(int token)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -1400,6 +1637,11 @@ long __sched io_schedule_timeout(long timeout)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/swiotlb.h>
+
+struct io_tlb_mem io_tlb_default_mem;
 
 
 #include <linux/fs.h>
@@ -1456,14 +1698,6 @@ void kill_anon_super(struct super_block * sb)
 #include <linux/slab.h>
 
 void kmem_cache_destroy(struct kmem_cache * s)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-int kmem_cache_shrink(struct kmem_cache * cachep)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1567,25 +1801,17 @@ void on_each_cpu_cond_mask(smp_cond_func_t cond_func,smp_call_func_t func,void *
 int oops_in_progress;	/* If set, an oops, panic(), BUG() or die() is in progress */
 
 
+#include <linux/mm.h>
+
+bool page_mapped(struct page * page)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/pagemap.h>
 
-struct page * pagecache_get_page(struct address_space * mapping,pgoff_t index,int fgp_flags,gfp_t gfp_mask)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/fs.h>
-
-int pagecache_write_begin(struct file * file,struct address_space * mapping,loff_t pos,unsigned len,unsigned flags,struct page ** pagep,void ** fsdata)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/fs.h>
-
-int pagecache_write_end(struct file * file,struct address_space * mapping,loff_t pos,unsigned len,unsigned copied,struct page * page,void * fsdata)
+noinline struct page * pagecache_get_page(struct address_space * mapping,pgoff_t index,int fgp_flags,gfp_t gfp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1594,6 +1820,22 @@ int pagecache_write_end(struct file * file,struct address_space * mapping,loff_t
 #include <linux/reboot.h>
 
 enum reboot_mode panic_reboot_mode;
+
+
+#include <linux/pci.h>
+
+void pci_d3cold_disable(struct pci_dev * dev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
+void pci_d3cold_enable(struct pci_dev * dev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/pci.h>
@@ -1644,31 +1886,31 @@ int pci_write_config_byte(const struct pci_dev * dev,int where,u8 val)
 }
 
 
-extern void ppgtt_bind_vma(struct i915_address_space * vm,struct i915_vm_pt_stash * stash,struct i915_vma * vma,enum i915_cache_level cache_level,u32 flags);
-void ppgtt_bind_vma(struct i915_address_space * vm,struct i915_vm_pt_stash * stash,struct i915_vma * vma,enum i915_cache_level cache_level,u32 flags)
+extern void ppgtt_bind_vma(struct i915_address_space * vm,struct i915_vm_pt_stash * stash,struct i915_vma_resource * vma_res,enum i915_cache_level cache_level,u32 flags);
+void ppgtt_bind_vma(struct i915_address_space * vm,struct i915_vm_pt_stash * stash,struct i915_vma_resource * vma_res,enum i915_cache_level cache_level,u32 flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-extern void ppgtt_unbind_vma(struct i915_address_space * vm,struct i915_vma * vma);
-void ppgtt_unbind_vma(struct i915_address_space * vm,struct i915_vma * vma)
+extern void ppgtt_unbind_vma(struct i915_address_space * vm,struct i915_vma_resource * vma_res);
+void ppgtt_unbind_vma(struct i915_address_space * vm,struct i915_vma_resource * vma_res)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/printk.h>
+#include <linux/sysctl.h>
 
-int printk_deferred(const char * fmt,...)
+int proc_dointvec_minmax(struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/printk.h>
+#include <linux/sysctl.h>
 
-void printk_safe_flush_on_panic(void)
+int proc_douintvec(struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1685,14 +1927,6 @@ void put_pid(struct pid * pid)
 #include <linux/reboot.h>
 
 enum reboot_mode reboot_mode;
-
-
-#include <linux/sched/rt.h>
-
-void rt_mutex_setprio(struct task_struct * p,struct task_struct * pi_task)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/seq_file.h>
@@ -1713,7 +1947,7 @@ void seq_puts(struct seq_file * m,const char * s)
 
 #include <linux/mm.h>
 
-int set_page_dirty(struct page * page)
+bool set_page_dirty(struct page * page)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1737,14 +1971,6 @@ struct file * shmem_file_setup_with_mnt(struct vfsmount * mnt,const char * name,
 #include <linux/shmem_fs.h>
 
 void shmem_truncate_range(struct inode * inode,loff_t lstart,loff_t lend)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
-
-void show_mem(unsigned int filter,nodemask_t * nodemask)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1784,6 +2010,14 @@ void * skb_put(struct sk_buff * skb,unsigned int len)
 
 #include <linux/smp.h>
 
+void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/smp.h>
+
 int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -1793,14 +2027,6 @@ int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
-
-
-#include <linux/string_helpers.h>
-
-int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned int flags,const char * only)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/printk.h>
@@ -1814,6 +2040,19 @@ void synchronize_rcu(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/shrinker.h>
+
+void synchronize_shrinkers(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
+const int sysctl_vals[] = {};
 
 
 #include <linux/task_work.h>
@@ -1840,14 +2079,6 @@ void ttm_mem_io_free(struct ttm_device * bdev,struct ttm_resource * mem)
 }
 
 
-#include <linux/vt_kern.h>
-
-void unblank_screen(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/pagemap.h>
 
 void unlock_page(struct page * page)
@@ -1859,6 +2090,14 @@ void unlock_page(struct page * page)
 #include <linux/mm.h>
 
 void unmap_mapping_range(struct address_space * mapping,loff_t const holebegin,loff_t const holelen,int even_cows)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <acpi/acpi_bus.h>
+
+int unregister_acpi_bus_type(struct acpi_bus_type * type)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1882,6 +2121,14 @@ void unregister_irq_proc(unsigned int irq,struct irq_desc * desc)
 #include <linux/vmalloc.h>
 
 void * vmap(struct page ** pages,unsigned int count,unsigned long flags,pgprot_t prot)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/vmalloc.h>
+
+void * vmap_pfn(unsigned long * pfns,unsigned int count,pgprot_t prot)
 {
 	lx_emul_trace_and_stop(__func__);
 }

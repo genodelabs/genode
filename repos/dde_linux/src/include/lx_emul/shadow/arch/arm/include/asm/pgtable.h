@@ -45,6 +45,9 @@ int pte_write(pte_t ptr);
 
 #define PAGE_KERNEL 0UL
 
+#define VMALLOC_START 0UL
+#define VMALLOC_END   0xffffffffUL
+
 #endif /* !__ASSEMBLY__ */
 
 #endif /* __ASM_PGTABLE_H */

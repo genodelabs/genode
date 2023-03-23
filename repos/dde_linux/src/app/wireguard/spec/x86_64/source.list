@@ -9,7 +9,7 @@ arch/x86/crypto/poly1305-x86_64-cryptogams.pl
 arch/x86/crypto/poly1305_glue.c
 arch/x86/lib/hweight.S
 crypto/algapi.c
-crypto/memneq.c
+crypto/api.c
 crypto/scatterwalk.c
 drivers/net/wireguard/allowedips.c
 drivers/net/wireguard/cookie.c
@@ -30,11 +30,7 @@ kernel/locking/mutex.c
 kernel/locking/osq_lock.c
 kernel/locking/rwsem.c
 kernel/notifier.c
-kernel/sched/clock.c
-kernel/sched/completion.c
-kernel/sched/swait.c
-kernel/sched/wait.c
-kernel/sched/wait_bit.c
+kernel/sched/build_utility.c
 kernel/smpboot.c
 kernel/softirq.c
 kernel/time/clockevents.c
@@ -61,6 +57,8 @@ lib/crypto/chacha20poly1305.c
 lib/crypto/curve25519-generic.c
 lib/crypto/curve25519-hacl64.c
 lib/crypto/libchacha.c
+lib/crypto/memneq.c
+lib/crypto/utils.c
 lib/ctype.c
 lib/find_bit.c
 lib/idr.c

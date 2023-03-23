@@ -13,6 +13,7 @@
 
 #include <linux/jump_label.h>
 #include <linux/types.h>
+#include <asm/cpufeature.h>
 
 /*
  * Flag to indicate if we have computed the system wide

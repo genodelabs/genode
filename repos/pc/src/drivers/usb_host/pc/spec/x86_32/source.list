@@ -8,10 +8,8 @@ drivers/base/devres.c
 drivers/base/driver.c
 drivers/base/platform.c
 drivers/base/property.c
-drivers/clk/clk-devres.c
 drivers/pci/pci-driver.c
 drivers/usb/common/common.c
-drivers/usb/common/debug.c
 drivers/usb/core/buffer.c
 drivers/usb/core/config.c
 drivers/usb/core/devices.c
@@ -60,11 +58,7 @@ kernel/locking/rwsem.c
 kernel/notifier.c
 kernel/panic.c
 kernel/resource.c
-kernel/sched/clock.c
-kernel/sched/completion.c
-kernel/sched/swait.c
-kernel/sched/wait.c
-kernel/sched/wait_bit.c
+kernel/sched/build_utility.c
 kernel/smpboot.c
 kernel/softirq.c
 kernel/time/clockevents.c

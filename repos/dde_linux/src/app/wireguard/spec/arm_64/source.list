@@ -5,11 +5,11 @@ arch/arm64/kernel/entry-fpsimd.S
 arch/arm64/kernel/fpsimd.c
 arch/arm64/lib/memchr.S
 arch/arm64/lib/memcmp.S
+arch/arm64/lib/strchr.S
 arch/arm64/lib/strcmp.S
 arch/arm64/lib/strlen.S
 crypto/algapi.c
 crypto/api.c
-crypto/memneq.c
 crypto/scatterwalk.c
 crypto/skcipher.c
 drivers/net/wireguard/allowedips.c
@@ -30,11 +30,7 @@ kernel/kthread.c
 kernel/locking/mutex.c
 kernel/locking/rwsem.c
 kernel/notifier.c
-kernel/sched/clock.c
-kernel/sched/completion.c
-kernel/sched/swait.c
-kernel/sched/wait.c
-kernel/sched/wait_bit.c
+kernel/sched/build_utility.c
 kernel/smpboot.c
 kernel/softirq.c
 kernel/time/clockevents.c
@@ -62,6 +58,8 @@ lib/crypto/chacha20poly1305.c
 lib/crypto/curve25519-generic.c
 lib/crypto/curve25519-hacl64.c
 lib/crypto/libchacha.c
+lib/crypto/memneq.c
+lib/crypto/utils.c
 lib/ctype.c
 lib/find_bit.c
 lib/hweight.c

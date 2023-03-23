@@ -3,18 +3,18 @@ when a work is submitted. The patch implies that three workers will be used for
 three works (before it was one). The fourth work will be queued.
 
 diff --git a/kernel/workqueue.c b/kernel/workqueue.c
-index ccad28b..ed16e05 100644
+index 7cd5f5e7e..c717a06b7 100644
 --- a/kernel/workqueue.c
 +++ b/kernel/workqueue.c
-@@ -763,7 +763,10 @@ static bool work_is_canceling(struct work_struct *work)
+@@ -782,7 +782,10 @@ static bool work_is_canceling(struct work_struct *work)
  
  static bool __need_more_worker(struct worker_pool *pool)
  {
--	return !atomic_read(&pool->nr_running);
+-	return !pool->nr_running;
 +	/*
 +	 * Assume two works can deadlock and make a third available
 +	 */
-+	return atomic_read(&pool->nr_running) < 3;
++	return pool->nr_running < 3;
  }
  
  /*
