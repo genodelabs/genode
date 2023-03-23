@@ -246,22 +246,26 @@ class Device : public List<Device>::Element
 				p.transfer.actual_size = urb->actual_length;
 				p.succeded             = true;
 
-				if (read) {
-					/* make sure the client sees the actual amount of data */
-					for (int i = 0; i < urb->number_of_packets; i++) {
-						p.transfer.actual_packet_size[i] = urb->iso_frame_desc[i].actual_length;
+				/*
+				 * We have to copy the whole transfer buffer. In case of
+				 * isochronous transfers, the controller used offsets into the
+				 * original buffer to store the data of multiple packets.
+				 */
+				if (read) _with_packet_stream([&](Tx::Sink &sink) {
+					void * payload = sink.packet_content(p);
+					if (usb_pipeisoc(urb->pipe)) {
+						/* make sure the client sees the actual amount of data */
+						Usb::Isoc_transfer &isoc = *(Usb::Isoc_transfer *)payload;
+						for (int i = 0; i < urb->number_of_packets; i++)
+							isoc.actual_packet_size[i] = urb->iso_frame_desc[i].actual_length;
+
+						/* actual data begins after metdata */
+						payload = isoc.data();
 					}
 
-					/*
-					 * We have to copy the whole transfer buffer because the
-					 * controller used the offsets into the original buffer to
-					 * store the data.
-					 */
-					_with_packet_stream([&](Tx::Sink &sink) {
-						Genode::memcpy(sink.packet_content(p), urb->transfer_buffer,
+						Genode::memcpy(payload, urb->transfer_buffer,
 						               urb->transfer_buffer_length);
-					});
-				}
+				});
 			} else if (urb->status == -ESHUTDOWN) {
 				p.error = Packet_descriptor::NO_DEVICE_ERROR;
 			} else if ((urb->status == -EPROTO) || (urb->status == -EILSEQ)) {
@@ -426,12 +430,16 @@ class Device : public List<Device>::Element
 			usb_host_endpoint *ep  = _host_ep(p.transfer.ep);
 			void              *buf = dma_malloc(p.size());
 
+			Usb::Isoc_transfer &isoc = *(Usb::Isoc_transfer *)_sink->packet_content(p);
+			void * const payload = isoc.data();
+			unsigned const payload_size = p.size() - sizeof(isoc);
+
 			if (read) {
 				pipe = usb_rcvisocpipe(&_udev, p.transfer.ep);
 			}
 			else {
 				pipe = usb_sndisocpipe(&_udev, p.transfer.ep);
-				Genode::memcpy(buf, _sink->packet_content(p), p.size());
+				Genode::memcpy(buf, payload, payload_size);
 			}
 
 			if (!ep) {
@@ -441,7 +449,7 @@ class Device : public List<Device>::Element
 				return false;
 			}
 
-			urb *urb = usb_alloc_urb(p.transfer.number_of_packets, GFP_KERNEL);
+			urb *urb = usb_alloc_urb(isoc.number_of_packets, GFP_KERNEL);
 			if (!urb) {
 				error("Failed to allocate isochronous URB");
 				dma_free(buf);
@@ -455,18 +463,18 @@ class Device : public List<Device>::Element
 			urb->start_frame            = -1;
 			urb->stream_id              = 0;
 			urb->transfer_buffer        = buf;
-			urb->transfer_buffer_length = p.size();
-			urb->number_of_packets      = p.transfer.number_of_packets;
+			urb->transfer_buffer_length = payload_size;
+			urb->number_of_packets      = isoc.number_of_packets;
 			urb->interval               = 1 << min(15, ep->desc.bInterval - 1);
 			urb->context                = (void *)data;
 			urb->transfer_flags         = URB_ISO_ASAP | (read ? URB_DIR_IN : URB_DIR_OUT);
 			urb->complete               = _async_complete;
 
 			unsigned offset = 0;
-			for (int i = 0; i < p.transfer.number_of_packets; i++) {
+			for (unsigned i = 0; i < isoc.number_of_packets; i++) {
 				urb->iso_frame_desc[i].offset = offset;
-				urb->iso_frame_desc[i].length = p.transfer.packet_size[i];
-				offset += p.transfer.packet_size[i];
+				urb->iso_frame_desc[i].length = isoc.packet_size[i];
+				offset += isoc.packet_size[i];
 			}
 
 			int ret = usb_submit_urb(urb, GFP_KERNEL);

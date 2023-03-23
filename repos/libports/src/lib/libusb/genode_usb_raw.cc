@@ -227,16 +227,18 @@ struct Usb_device
 
 						if (IS_XFERIN(transfer)) {
 
+							Usb::Isoc_transfer &isoc = *(Usb::Isoc_transfer *)packet_content;
+
 							unsigned out_offset = 0;
-							for (int i = 0; i < p.transfer.number_of_packets; i++) {
-								size_t const actual_length = p.transfer.actual_packet_size[i];
+							for (unsigned i = 0; i < isoc.number_of_packets; i++) {
+								size_t const actual_length = isoc.actual_packet_size[i];
 
 								/*
 								 * Copy the data from the proper offsets within the buffer as
 								 * a short read is still stored at this location.
 								 */
 								unsigned char       * dst = transfer->buffer + out_offset;
-								         char const * src = packet_content   + out_offset;
+								         char const * src = isoc.data() + out_offset;
 
 								Genode::memcpy(dst, src, actual_length);
 								out_offset += transfer->iso_packet_desc[i].length;
@@ -244,7 +246,7 @@ struct Usb_device
 								transfer->iso_packet_desc[i].actual_length = actual_length;
 								transfer->iso_packet_desc[i].status = LIBUSB_TRANSFER_COMPLETED;
 							}
-							transfer->num_iso_packets = p.transfer.number_of_packets;
+							transfer->num_iso_packets = isoc.number_of_packets;
 
 						}
 
@@ -611,8 +613,9 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			}
 
 			Usb::Packet_descriptor p;
+			size_t p_size = Usb::Isoc_transfer::size(total_length);
 			try {
-				p = usb_device->usb_connection->alloc_packet(total_length);
+				p = usb_device->usb_connection->alloc_packet(p_size);
 			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
 				return LIBUSB_ERROR_BUSY;
 			}
@@ -624,17 +627,16 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			p.completion  = new (libc_alloc) Completion(itransfer);
 			p.transfer.ep = transfer->endpoint;
 
+			Usb::Isoc_transfer &isoc =
+				*(Usb::Isoc_transfer *) usb_device->usb_connection->source()->packet_content(p);
+			isoc.number_of_packets = transfer->num_iso_packets;
 			for (int i = 0; i < transfer->num_iso_packets; i++) {
-				p.transfer.packet_size[i] = transfer->iso_packet_desc[i].length;
+				isoc.packet_size[i]        = transfer->iso_packet_desc[i].length;
+				isoc.actual_packet_size[i] = 0;
 			}
-			p.transfer.number_of_packets = transfer->num_iso_packets;
 
-			if (IS_XFEROUT(transfer)) {
-				char *packet_content =
-					usb_device->usb_connection->source()->packet_content(p);
-				Genode::memcpy(packet_content, transfer->buffer,
-				               transfer->length);
-			}
+			if (IS_XFEROUT(transfer))
+				Genode::memcpy(isoc.data(), transfer->buffer, transfer->length);
 
 			usb_device->usb_connection->source()->submit_packet(p);
 

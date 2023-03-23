@@ -55,11 +55,13 @@ class Isoc_packet : Fifo<Isoc_packet>::Element
 
 		int _packet_index { 0 };
 		unsigned _packet_in_offset { 0 };
+		Usb::Isoc_transfer *_isoc { (Usb::Isoc_transfer *)_content };
 
 	public:
 
 		Isoc_packet(Usb::Packet_descriptor packet, char *content)
-		: _packet(packet), _content(content),
+		:
+			_packet(packet), _content(content),
 			_size (_packet.read_transfer() ? _packet.transfer.actual_size : _packet.size())
 		{ }
 
@@ -74,13 +76,13 @@ class Isoc_packet : Fifo<Isoc_packet>::Element
 			unsigned remaining = _size - _offset;
 			int copy_size = min(usb_packet->iov.size, remaining);
 
-			usb_packet_copy(usb_packet, _content + _offset, copy_size);
+			usb_packet_copy(usb_packet, _isoc->data() + _offset, copy_size);
 
 			_offset += copy_size;
 
 			if (!_packet.read_transfer()) {
-				_packet.transfer.packet_size[_packet.transfer.number_of_packets] = copy_size;
-				_packet.transfer.number_of_packets++;
+				_isoc->packet_size[_isoc->number_of_packets] = copy_size;
+				_isoc->number_of_packets++;
 			}
 
 			return remaining <= usb_packet->iov.size;
@@ -90,24 +92,30 @@ class Isoc_packet : Fifo<Isoc_packet>::Element
 		{
 			if (!valid()) return false;
 
-			unsigned remaining = _packet.transfer.actual_packet_size[_packet_index];
+			unsigned remaining = _isoc->actual_packet_size[_packet_index];
 			/* this should not happen as there asserts in the qemu code */
 			if (remaining > usb_packet->iov.size) {
 				Genode::error("iov too small, ignoring packet content");
 			}
 			int copy_size = min(usb_packet->iov.size, remaining);
 
-			char *src = _content + _packet_in_offset;
+			char *src = _isoc->data() + _packet_in_offset;
 			usb_packet_copy(usb_packet, src, copy_size);
 
-			_packet_in_offset += _packet.transfer.packet_size[_packet_index];
+			_packet_in_offset += _isoc->packet_size[_packet_index];
 			++_packet_index;
 
-			return _packet_index == _packet.transfer.number_of_packets;
+			return _packet_index == _isoc->number_of_packets;
 		}
 
-		bool     valid()        const { return _content != nullptr; }
-		unsigned packet_count() const { return _packet.transfer.number_of_packets; }
+		bool valid() const { return _content != nullptr; }
+
+		unsigned packet_count() const
+		{
+			if (!valid()) return 0;
+
+			return _isoc->number_of_packets;
+		}
 
 		Usb::Packet_descriptor& packet() { return _packet; }
 };
@@ -253,7 +261,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	Completion  completion[NUM_COMPLETIONS];
 
 	Fifo<Isoc_packet>             isoc_read_queue { };
-	Reconstructible<Isoc_packet>  isoc_write_packet { Usb::Packet_descriptor(), nullptr };
+	Reconstructible<Isoc_packet>  isoc_write_packet { };
 
 	Genode::Ring_buffer<Isoc_packet, 5, Genode::Ring_buffer_unsynchronized> _isoch_out_queue { };
 	unsigned _isoch_out_pending { 0 };
@@ -376,9 +384,8 @@ struct Usb_host_device : List<Usb_host_device>::Element
 
 	bool isoc_read(USBPacket *packet)
 	{
-		if (isoc_read_queue.empty()) {
+		if (isoc_read_queue.empty())
 			return false;
-		}
 
 		isoc_read_queue.head([&] (Isoc_packet &head) {
 			if (head.copy_read(packet)) {
@@ -406,16 +413,19 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			return;
 		}
 
-		size_t size = usb_packet->ep->max_packet_size * NUMBER_OF_PACKETS;
+		size_t const payload_size = usb_packet->ep->max_packet_size * NUMBER_OF_PACKETS;
+		size_t const packet_size  = Usb::Isoc_transfer::size(payload_size);
 		try {
-			Usb::Packet_descriptor packet     = alloc_packet(size);
+			Usb::Packet_descriptor packet     = alloc_packet(packet_size, true);
 			packet.type                       = Packet_type::ISOC;
 			packet.transfer.ep                = usb_packet->ep->nr | USB_DIR_IN;
 			packet.transfer.polling_interval  = Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
-			packet.transfer.number_of_packets = NUMBER_OF_PACKETS;
-			for (unsigned i = 0; i < NUMBER_OF_PACKETS; i++) {
-				packet.transfer.packet_size[i] = usb_packet->ep->max_packet_size;
-			}
+
+			Usb::Isoc_transfer &isoc =
+				*(Usb::Isoc_transfer *)usb_raw.source()->packet_content(packet);
+			isoc.number_of_packets = NUMBER_OF_PACKETS;
+			for (unsigned i = 0; i < NUMBER_OF_PACKETS; i++)
+				isoc.packet_size[i] = usb_packet->ep->max_packet_size;
 
 			Completion *c = dynamic_cast<Completion *>(packet.completion);
 			c->p          = nullptr;
@@ -427,7 +437,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			submit(packet);
 		} catch (Packet_alloc_failed) {
 			if (verbose_warnings)
-				warning("xHCI: packet allocation failed (size ", Hex(size), "in ", __func__, ")");
+				warning("xHCI: packet allocation failed (size ", Hex(packet_size), "in ", __func__, ")");
 		}
 	}
 
@@ -451,37 +461,41 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	{
 		enum { NUMBER_OF_PACKETS = 32 };
 
-		bool valid = isoc_write_packet->valid();
+		bool const valid = isoc_write_packet->valid();
 		if (valid) {
 			isoc_write_packet->copy(usb_packet);
 
 			if (isoc_write_packet->packet_count() < NUMBER_OF_PACKETS)
 				return;
 
-			_isoch_out_queue.add(*&*isoc_write_packet);
+			_isoch_out_queue.add(*isoc_write_packet);
 		}
 
-		size_t size = usb_packet->ep->max_packet_size * NUMBER_OF_PACKETS;
+		size_t const payload_size = usb_packet->ep->max_packet_size * NUMBER_OF_PACKETS;
+		size_t const packet_size  = Usb::Isoc_transfer::size(payload_size);
 		try {
-			Usb::Packet_descriptor packet     = alloc_packet(size, false);
+			Usb::Packet_descriptor packet     = alloc_packet(packet_size, false);
 			packet.type                       = Packet_type::ISOC;
 			packet.transfer.ep                = usb_packet->ep->nr;
 			packet.transfer.polling_interval  = Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
-			packet.transfer.number_of_packets = 0;
 
-			isoc_write_packet.construct(packet, usb_raw.source()->packet_content(packet));
+			char *packet_content = usb_raw.source()->packet_content(packet);
+
+			Usb::Isoc_transfer &isoc = *(Usb::Isoc_transfer *)packet_content;
+			isoc.number_of_packets = 0;
+
+			isoc_write_packet.construct(packet, packet_content);
 			if (!valid) isoc_write_packet->copy(usb_packet);
 
 		} catch (Packet_alloc_failed) {
 			if (verbose_warnings)
-				warning("xHCI: packet allocation failed (size ", Hex(size), "in ", __func__, ")");
-			isoc_write_packet.construct(Usb::Packet_descriptor(), nullptr);
+				warning("xHCI: packet allocation failed (size ", Hex(packet_size), "in ", __func__, ")");
+			isoc_write_packet.construct();
 			return;
 		}
 
-		if (_isoch_out_pending == 0 && _isoch_out_queue.avail_capacity() > 1) {
+		if (_isoch_out_pending == 0 && _isoch_out_queue.avail_capacity() > 1)
 			return;
-		}
 
 		while (!_isoch_out_queue.empty()) {
 			Isoc_packet i = _isoch_out_queue.get();
@@ -528,7 +542,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	 ** Packet stream **
 	 *******************/
 
-	Usb::Packet_descriptor alloc_packet(int length, bool completion = true)
+	Usb::Packet_descriptor alloc_packet(int length, bool completion)
 	{
 		if (!usb_raw.source()->ready_to_submit()) {
 			throw Packet_alloc_failed();
@@ -621,7 +635,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		_release_interfaces();
 
 		try {
-			Usb::Packet_descriptor packet = alloc_packet(0);
+			Usb::Packet_descriptor packet = alloc_packet(0, true);
 			packet.type   =  Usb::Packet_descriptor::CONFIG;
 			packet.number = value;
 
@@ -641,7 +655,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	void set_interface(int index, uint8_t value, USBPacket *p)
 	{
 		try {
-			Usb::Packet_descriptor packet = alloc_packet(0);
+			Usb::Packet_descriptor packet = alloc_packet(0, true);
 			packet.type                  = Usb::Packet_descriptor::ALT_SETTING;
 			packet.interface.number      = index;
 			packet.interface.alt_setting = value;
@@ -828,7 +842,7 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 	}
 
 	try {
-		Usb::Packet_descriptor packet     = dev->alloc_packet(size);
+		Usb::Packet_descriptor packet     = dev->alloc_packet(size, true);
 		packet.type                       = type;
 		packet.transfer.ep                = p->ep->nr | (in ? USB_DIR_IN : 0);
 		packet.transfer.polling_interval  = Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
@@ -883,7 +897,7 @@ static void usb_host_handle_control(USBDevice *udev, USBPacket *p,
 
 	Usb::Packet_descriptor packet;
 	try {
-		packet = dev->alloc_packet(length);
+		packet = dev->alloc_packet(length, true);
 	} catch (...) {
 		if (verbose_warnings)
 			warning("Packet allocation failed");

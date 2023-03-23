@@ -542,8 +542,10 @@ handle_transfer_response(struct genode_usb_request_urb req,
 		transfer->actual_size = urb->actual_length;
 
 		if (usb_pipeisoc(urb->pipe) && usb_pipein(urb->pipe)) {
-			for (i = 0; i < urb->number_of_packets; i++)
-				transfer->actual_packet_size[i] =
+			struct genode_usb_isoc_transfer *isoc =
+				(struct genode_usb_isoc_transfer *)payload.addr;
+			for (i = 0; i < isoc->number_of_packets; i++)
+				isoc->actual_packet_size[i] =
 					urb->iso_frame_desc[i].actual_length;
 		}
 	}
@@ -700,13 +702,14 @@ static int fill_isoc_urb(struct usb_device                  * udev,
 		req->ep & USB_DIR_IN ? udev->ep_in[req->ep & 0xf]
 		                     : udev->ep_out[req->ep & 0xf];
 
+	struct genode_usb_isoc_transfer *isoc = (struct genode_usb_isoc_transfer *)buf.addr;
 
-	if (!buf.addr)
+	if (!buf.addr || isoc->number_of_packets > MAX_PACKETS)
 		return PACKET_INVALID_ERROR;
 	if (!ep)
 		return -ENOENT;
 
-	*urb = usb_alloc_urb(req->number_of_packets, GFP_KERNEL);
+	*urb = usb_alloc_urb(isoc->number_of_packets, GFP_KERNEL);
 	if (!*urb)
 		return -ENOMEM;
 
@@ -714,18 +717,18 @@ static int fill_isoc_urb(struct usb_device                  * udev,
 	(*urb)->pipe                   = pipe;
 	(*urb)->start_frame            = -1;
 	(*urb)->stream_id              = 0;
-	(*urb)->transfer_buffer        = buf.addr;
-	(*urb)->transfer_buffer_length = buf.size;
-	(*urb)->number_of_packets      = req->number_of_packets;
+	(*urb)->transfer_buffer        = isoc->data;
+	(*urb)->transfer_buffer_length = buf.size - sizeof(*isoc);
+	(*urb)->number_of_packets      = isoc->number_of_packets;
 	(*urb)->interval               = 1 << min(15, ep->desc.bInterval - 1);
 	(*urb)->context                = handle;
 	(*urb)->transfer_flags         = URB_ISO_ASAP | (read ? URB_DIR_IN : URB_DIR_OUT);
 	(*urb)->complete               = async_complete;
 
-	for (i = 0; i < req->number_of_packets; i++) {
+	for (i = 0; i < isoc->number_of_packets; i++) {
 		(*urb)->iso_frame_desc[i].offset = offset;
-		(*urb)->iso_frame_desc[i].length = req->packet_size[i];
-		offset += req->packet_size[i];
+		(*urb)->iso_frame_desc[i].length = isoc->packet_size[i];
+		offset += isoc->packet_size[i];
 	}
 
 	return 0;

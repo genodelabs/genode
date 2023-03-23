@@ -73,9 +73,9 @@ class genode_usb_session : public Usb::Session_rpc_object
 
 		friend class ::Root;
 
-		enum { MAX_PACKETS_IN_FLY = 10 };
+		enum { MAX_PACKETS_IN_FLIGHT = 32 };
 
-		Constructible<Usb::Packet_descriptor> packets[MAX_PACKETS_IN_FLY] { };
+		Constructible<Usb::Packet_descriptor> packets[MAX_PACKETS_IN_FLIGHT] { };
 
 		::Root                         & _root;
 		genode_shared_dataspace        * _ds;
@@ -84,7 +84,7 @@ class genode_usb_session : public Usb::Session_rpc_object
 		Session_label const              _label;
 		List_element<genode_usb_session> _le { this };
 
-		unsigned _packets_in_fly();
+		unsigned _packets_in_flight();
 		void     _ack(int err, Usb::Packet_descriptor p);
 
 		genode_usb_buffer _buffer_of_packet(Usb::Packet_descriptor p);
@@ -414,7 +414,7 @@ void genode_usb_session::release_interface(unsigned iface)
 }
 
 
-unsigned genode_usb_session::_packets_in_fly()
+unsigned genode_usb_session::_packets_in_flight()
 {
 	unsigned ret = 0;
 	for (auto const &p : packets)
@@ -463,7 +463,7 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 			break;
 		++idx;
 	}
-	if (idx == MAX_PACKETS_IN_FLY)
+	if (idx == MAX_PACKETS_IN_FLIGHT)
 		return false;
 
 	Packet_descriptor p;
@@ -471,7 +471,7 @@ bool genode_usb_session::request(genode_usb_request_callbacks & req, void * data
 	/* get next packet from request stream */
 	while (true) {
 		if (!sink()->packet_avail() ||
-		    (sink()->ack_slots_free() <= _packets_in_fly()))
+		    (sink()->ack_slots_free() <= _packets_in_flight()))
 			return false;
 
 		p = sink()->get_packet();

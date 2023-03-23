@@ -24,6 +24,7 @@ namespace Usb {
 	using namespace Genode;
 	class Session;
 	struct Packet_descriptor;
+	struct Isoc_transfer;
 	struct Completion;
 }
 
@@ -34,7 +35,6 @@ namespace Usb {
 struct Usb::Packet_descriptor : Genode::Packet_descriptor
 {
 	enum Type { STRING, CTRL, BULK, IRQ, ISOC, ALT_SETTING, CONFIG, RELEASE_IF, FLUSH_TRANSFERS };
-	enum Iso  { MAX_PACKETS = 32 };
 
 	/* use the polling interval stated in the endpoint descriptor */
 	enum { DEFAULT_POLLING_INTERVAL = -1 };
@@ -66,9 +66,6 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 			uint8_t ep;
 			int     actual_size; /* returned */
 			int     polling_interval; /* for interrupt transfers */
-			int     number_of_packets;
-			size_t  packet_size[MAX_PACKETS];
-			size_t  actual_packet_size[MAX_PACKETS];
 		} transfer;
 
 		struct
@@ -107,6 +104,26 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 
 	Packet_descriptor(Genode::Packet_descriptor p, Type type, Completion *completion = nullptr)
 	: Genode::Packet_descriptor(p.offset(), p.size()), type(type), completion(completion) { }
+};
+
+
+/**
+ * Isochronous transfer metadata (located at start of stream packet)
+ */
+struct Usb::Isoc_transfer
+{
+	enum { MAX_PACKETS = 32 };
+
+	unsigned number_of_packets;
+	unsigned packet_size[MAX_PACKETS];
+	unsigned actual_packet_size[MAX_PACKETS];
+
+	char *data() { return (char *)(this + 1); }
+
+	static size_t size(unsigned data_size)
+	{
+		return sizeof(Isoc_transfer) + data_size;
+	}
 };
 
 

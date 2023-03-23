@@ -147,16 +147,21 @@ struct genode_usb_request_control
 	int            timeout;
 };
 
-enum Iso  { MAX_PACKETS = 32 };
-
 struct genode_usb_request_transfer
 {
 	unsigned char ep;
 	int           actual_size;
 	int           polling_interval;
-	int           number_of_packets;
-	unsigned long packet_size[MAX_PACKETS];
-	unsigned long actual_packet_size[MAX_PACKETS];
+};
+
+enum Isoc { MAX_PACKETS = 32 };
+
+struct genode_usb_isoc_transfer
+{
+	unsigned number_of_packets;
+	unsigned packet_size[MAX_PACKETS];
+	unsigned actual_packet_size[MAX_PACKETS];
+	char     data[];
 };
 
 enum Urb_type { CTRL, BULK, IRQ, ISOC, NONE };
