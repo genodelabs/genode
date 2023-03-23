@@ -32,6 +32,7 @@ struct Sculpt::Component : Noncopyable
 	Allocator &_alloc;
 
 	/* defined at construction time */
+	Name const name;
 	Path const path;
 	Info const info;
 
@@ -120,10 +121,10 @@ struct Sculpt::Component : Noncopyable
 		virtual void trigger_pkg_download() = 0;
 	};
 
-	Component(Allocator &alloc, Path const &path, Info const &info,
-	          Affinity::Space const space)
+	Component(Allocator &alloc, Name const &name, Path const &path,
+	          Info const &info, Affinity::Space const space)
 	:
-		_alloc(alloc), path(path), info(info), affinity_space(space)
+		_alloc(alloc), name(name), path(path), info(info), affinity_space(space)
 	{ }
 
 	~Component()

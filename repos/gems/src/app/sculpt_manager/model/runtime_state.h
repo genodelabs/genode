@@ -162,7 +162,7 @@ class Sculpt::Runtime_state : public Runtime_info
 			:
 				name(name), launcher(), launched(false)
 			{
-				construction.construct(alloc, pkg_path, info, space);
+				construction.construct(alloc, name, pkg_path, info, space);
 			}
 
 			void gen_deploy_start_node(Xml_generator &xml, Runtime_state const &state) const
