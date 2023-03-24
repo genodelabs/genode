@@ -117,11 +117,6 @@ class Driver::Session_component
 		bool                           _info;
 		Policy_version                 _version;
 		bool const                     _iommu;
-		Device_pd                      _device_pd { _env,
-		                                            _md_alloc,
-		                                            _ram_quota_guard(),
-		                                            _cap_quota_guard(),
-		                                            _iommu };
 		Dma_allocator                  _dma_allocator { _md_alloc, _iommu };
 
 		Device_capability _acquire(Device & device);

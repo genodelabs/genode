@@ -1,6 +1,7 @@
 /*
  * \brief  Device PD handling for the platform driver
  * \author Alexander Boettcher
+ * \author Johannes Schlatow
  * \date   2015-11-05
  */
 
@@ -23,18 +24,22 @@
 #include <pd_session/connection.h>
 #include <io_mem_session/capability.h>
 
+/* local inludes */
+#include <io_mmu.h>
+
 namespace Driver {
 	using namespace Genode;
+
 	class Device_pd;
+	class Kernel_iommu;
 }
 
-class Driver::Device_pd
+
+class Driver::Device_pd : public Io_mmu::Domain
 {
 	private:
 
 		Pd_connection _pd;
-		Allocator_avl _dma_alloc;
-		bool const    _iommu;
 
 		/**
 		 * Custom handling of PD-session depletion during attach operations
@@ -73,19 +78,60 @@ class Driver::Device_pd
 			void upgrade_caps();
 		} _address_space;
 
-		addr_t _dma_addr(addr_t phys_addr, size_t size, bool const force_phys_addr);
+	public:
+
+		Device_pd(Env                        & env,
+		          Ram_quota_guard            & ram_guard,
+		          Cap_quota_guard            & cap_guard,
+		          Kernel_iommu               & iommu,
+		          Allocator                  & md_alloc,
+		          Registry<Dma_buffer> const & buffer_registry);
+
+		void add_range(Io_mmu::Range const &, Dataspace_capability const) override;
+		void remove_range(Io_mmu::Range const &) override;
+
+		void enable_pci_device(Io_mem_dataspace_capability const,
+		                       Pci::Bdf const) override;
+		void disable_pci_device(Io_mem_dataspace_capability const,
+		                        Pci::Bdf const) override;
+};
+
+
+class Driver::Kernel_iommu : public Io_mmu
+{
+	private:
+
+		Env & _env;
 
 	public:
 
-		Device_pd(Env &env,
-		          Allocator &md_alloc,
-		          Ram_quota_guard &ram_guard,
-		          Cap_quota_guard &cap_guard,
-		          bool const iommu);
+		/**
+		 * Iommu interface
+		 */
 
-		addr_t attach_dma_mem(Dataspace_capability, addr_t phys_addr, bool force_phys_addr);
-		void free_dma_mem(addr_t dma_addr);
-		void assign_pci(Io_mem_dataspace_capability const, Pci::Bdf const);
+		Driver::Io_mmu::Domain & create_domain(
+			Allocator                  & md_alloc,
+			Registry<Dma_buffer> const & buffer_registry,
+			Ram_quota_guard            & ram_guard,
+			Cap_quota_guard            & cap_guard) override
+		{
+			return *new (md_alloc) Device_pd(_env,
+			                                 ram_guard,
+			                                 cap_guard,
+			                                 *this,
+			                                 md_alloc,
+			                                 buffer_registry);
+		}
+
+
+		Kernel_iommu(Env                      & env,
+		             Io_mmu_devices           & io_mmu_devices,
+		             Device::Name       const & name)
+		: Io_mmu(io_mmu_devices, name),
+		  _env(env)
+		{ };
+
+		~Kernel_iommu() { _destroy_domains(); }
 };
 
 #endif /* _SRC__DRIVERS__PLATFORM__DEVICE_PD_H_ */

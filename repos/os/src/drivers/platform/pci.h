@@ -14,18 +14,25 @@
 #ifndef _SRC__DRIVERS__PLATFORM__PCI_H_
 #define _SRC__DRIVERS__PLATFORM__PCI_H_
 
+/* Genode includes */
 #include <base/env.h>
 #include <irq_session/irq_session.h>
 #include <os/session_policy.h>
 
+/* local includes */
 #include <device.h>
+#include <io_mmu_domain_registry.h>
 
 namespace Driver {
 	class Device_component;
 	class Device_pd;
 
-	void pci_enable(Genode::Env & env, Device_pd & pd, Device const & dev);
-	void pci_disable(Genode::Env & env, Device const & dev);
+	void pci_enable(Genode::Env            & env,
+	                Io_mmu_domain_registry & domain_registry,
+	                Device const           & dev);
+	void pci_disable(Genode::Env            & env,
+	                 Io_mmu_domain_registry & domain_registry,
+	                 Device const           & dev);
 	void pci_apply_quirks(Genode::Env & env, Device const & dev);
 	void pci_msi_enable(Genode::Env & env, Device_component & dc,
 	                    addr_t cfg_space, Genode::Irq_session::Info const info,

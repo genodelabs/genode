@@ -20,6 +20,7 @@
 #include <root.h>
 #include <device_owner.h>
 #include <io_mmu.h>
+#include <device_pd.h>
 
 namespace Driver { class Common; };
 
@@ -95,6 +96,10 @@ void Driver::Common::acquire_io_mmu_devices()
 		});
 
 	});
+
+	/* if kernel implements iommu, instantiate Kernel_iommu */
+	if (_iommu())
+		new (_heap) Kernel_iommu(_env, _io_mmu_devices, "kernel_iommu");
 }
 
 

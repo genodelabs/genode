@@ -231,7 +231,7 @@ void Session_component::update_devices_rom()
 
 void Session_component::enable_device(Device const & device)
 {
-	pci_enable(_env, device_pd(), device);
+	pci_enable(_env, domain_registry(), device);
 
 	auto fn = [&] (Driver::Io_mmu::Domain & domain) {
 		domain.enable_device();
@@ -251,7 +251,7 @@ void Session_component::enable_device(Device const & device)
 
 void Session_component::disable_device(Device const & device)
 {
-	pci_disable(_env, device);
+	pci_disable(_env, domain_registry(), device);
 
 	auto fn = [&] (Driver::Io_mmu::Domain & domain) {
 		domain.disable_device();
