@@ -5,52 +5,95 @@
  */
 
 /*
- * Copyright (C) 2022 Genode Labs GmbH
+ * Copyright (C) 2022-2023 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
  */
 
+#include <linux/fb.h> /* struct fb_info */
 #include <linux/sched/task.h>
 
-#include <drm/drm_fb_helper.h>
-#include <drm/drm_print.h>
+#include <drm/drm_client.h>
+#include <drm_crtc_internal.h>
 
 #include "i915_drv.h"
 #include "display/intel_backlight.h"
 #include "display/intel_display_types.h"
-#include "display/intel_opregion.h"
-#include "display/intel_panel.h"
-#include "display/intel_fbdev.h"
+#include "display/intel_fb_pin.h"
 
 #include "lx_emul.h"
 
 
 enum { MAX_BRIGHTNESS = 100, INVALID_BRIGHTNESS = MAX_BRIGHTNESS + 1 };
 
-struct task_struct * lx_user_task = NULL;
 
-static struct drm_i915_private *i915 = NULL;
+       struct task_struct    * lx_user_task = NULL;
+static struct drm_client_dev * dev_client   = NULL;
 
-static struct drm_fb_helper * i915_fb(void)
+
+static int user_register_fb(struct drm_client_dev   const * const dev,
+                            struct fb_info                * const info,
+                            struct drm_mode_fb_cmd2 const * const dumb_fb);
+
+
+static int user_attach_fb_to_crtc(struct drm_client_dev          * const dev,
+                                  struct drm_connector     const * const connector,
+                                  struct drm_crtc          const * const crtc,
+                                  struct drm_mode_modeinfo const * const mode,
+                                  unsigned                         const fb_id,
+                                  bool                             const enable);
+
+static int check_resize_fb(struct drm_client_dev       * const dev,
+                           struct drm_mode_create_dumb * const gem_dumb,
+                           struct drm_mode_fb_cmd2     * const dumb_fb,
+                           unsigned                      const width,
+                           unsigned                      const height);
+
+
+static inline bool mode_larger(struct drm_display_mode const * const x,
+                               struct drm_display_mode const * const y)
 {
-	return i915 ? i915->drm.fb_helper : NULL;
+	return (uint64_t)x->hdisplay * (uint64_t)x->vdisplay >
+	       (uint64_t)y->hdisplay * (uint64_t)y->vdisplay;
+}
+
+
+static inline bool conf_smaller_mode(struct genode_mode      const * const g,
+                                     struct drm_display_mode const * const p)
+{
+	return (uint64_t)g->max_width * (uint64_t)g->max_height <
+	       (uint64_t)p->hdisplay  * (uint64_t)p->vdisplay;
+}
+
+
+static inline bool fb_smaller_mode(struct fb_info          const * const info,
+                                   struct drm_display_mode const * const mode)
+{
+	return (uint64_t)info->var.xres * (uint64_t)info->var.yres <
+	       (uint64_t)mode->vdisplay * (uint64_t)mode->hdisplay;
 }
 
 
 /*
  * Heuristic to calculate max resolution across all connectors
  */
-static void preferred_mode(struct drm_display_mode *prefer, uint64_t smaller_as)
+static void preferred_mode(struct drm_device const * const dev,
+                           struct drm_display_mode * const prefer,
+                           struct drm_display_mode * const min_mode)
 {
-	struct drm_connector          *connector  = NULL;
-	struct drm_display_mode       *mode       = NULL;
+	struct drm_connector          *connector        = NULL;
+	struct drm_display_mode       *mode             = NULL;
+	unsigned                       connector_usable = 0;
+	struct drm_display_mode        max_enforcement  = { };
 	struct drm_connector_list_iter conn_iter;
 
 	/* read Genode's config per connector */
-	drm_connector_list_iter_begin(i915_fb()->dev, &conn_iter);
+	drm_connector_list_iter_begin(dev, &conn_iter);
 	drm_client_for_each_connector_iter(connector, &conn_iter) {
-		struct genode_mode conf_mode = { .enabled = 1 };
+		struct drm_display_mode smallest  = { .hdisplay = ~0, .vdisplay = ~0 };
+		struct genode_mode      conf_mode = { .enabled = 1 };
+		unsigned                mode_id   = 0;
 
 		/* check for connector configuration on Genode side */
 		lx_emul_i915_connector_config(connector->name, &conf_mode);
@@ -58,65 +101,92 @@ static void preferred_mode(struct drm_display_mode *prefer, uint64_t smaller_as)
 		if (!conf_mode.enabled)
 			continue;
 
-		if (conf_mode.id) {
-			unsigned mode_id = 0;
-			list_for_each_entry(mode, &connector->modes, head) {
-				mode_id ++;
+		/* look for smallest possible mode or if a specific mode is forced */
+		list_for_each_entry(mode, &connector->modes, head) {
+			mode_id ++;
 
-				if (!mode || conf_mode.id != mode_id)
-					continue;
+			if (!mode)
+				continue;
 
-				conf_mode.width  = mode->hdisplay;
-				conf_mode.height = mode->vdisplay;
-
-				break;
+			if (mode_larger(&smallest, mode)) {
+				smallest.hdisplay = mode->hdisplay;
+				smallest.vdisplay = mode->vdisplay;
 			}
+
+			if (!conf_mode.id)
+				continue;
+
+			if (!mode || conf_mode.id != mode_id)
+				continue;
+
+			conf_mode.width  = mode->hdisplay;
+			conf_mode.height = mode->vdisplay;
+
+			break;
 		}
+
+		if (mode_id)
+			connector_usable ++;
+
+		/*
+		 * If at least on mode is available, store smallest mode if it
+		 * is larger than min_mode of other connectors
+		 */
+		if (mode_id && mode_larger(&smallest, min_mode))
+			*min_mode = smallest;
 
 		/* maximal resolution enforcement */
 		if (conf_mode.max_width && conf_mode.max_height) {
-			if (conf_mode.max_width * conf_mode.height < smaller_as)
-				smaller_as = conf_mode.max_width * conf_mode.max_height + 1;
-
-			if (conf_mode.max_width * conf_mode.height < prefer->hdisplay * prefer->vdisplay)
+			max_enforcement.hdisplay = conf_mode.max_width;
+			max_enforcement.vdisplay = conf_mode.max_height;
+			if (conf_smaller_mode(&conf_mode, prefer))
 				continue;
 		}
 
 		if (!conf_mode.width || !conf_mode.height)
 			continue;
 
-		if (conf_mode.width * conf_mode.height > prefer->hdisplay * prefer->vdisplay) {
+		if (!conf_smaller_mode(&conf_mode, prefer)) {
 			prefer->hdisplay = conf_mode.width;
 			prefer->vdisplay = conf_mode.height;
 		}
 	}
 	drm_connector_list_iter_end(&conn_iter);
 
-	/* too large check */
-	if (smaller_as <= (uint64_t)prefer->hdisplay * prefer->vdisplay) {
-		prefer->hdisplay = 0;
-		prefer->vdisplay = 0;
-	}
+	/* no modes on any connector, happens during early bootup */
+	if (!min_mode->hdisplay || !min_mode->vdisplay)
+		return;
+
+	/* we got a preferred resolution */
+	if (prefer->hdisplay && prefer->vdisplay)
+		return;
 
 	/* if too large or nothing configured by Genode's config */
-	if (!prefer->hdisplay || !prefer->vdisplay) {
-		drm_connector_list_iter_begin(i915_fb()->dev, &conn_iter);
-		drm_client_for_each_connector_iter(connector, &conn_iter) {
-			list_for_each_entry(mode, &connector->modes, head) {
-				if (!mode)
-					continue;
+	drm_connector_list_iter_begin(dev, &conn_iter);
+	drm_client_for_each_connector_iter(connector, &conn_iter) {
+		list_for_each_entry(mode, &connector->modes, head) {
+			if (!mode)
+				continue;
 
-				if (smaller_as <= (uint64_t)mode->hdisplay * mode->vdisplay)
-					continue;
+			if (mode_larger(min_mode, mode))
+				continue;
 
-				if (mode->hdisplay * mode->vdisplay > prefer->hdisplay * prefer->vdisplay) {
-					prefer->hdisplay = mode->hdisplay;
-					prefer->vdisplay = mode->vdisplay;
-				}
+			if (max_enforcement.hdisplay && max_enforcement.vdisplay) {
+				if (mode_larger(mode, &max_enforcement))
+					continue;
+			}
+
+			if (mode_larger(mode, prefer)) {
+				prefer->hdisplay = mode->hdisplay;
+				prefer->vdisplay = mode->vdisplay;
 			}
 		}
-		drm_connector_list_iter_end(&conn_iter);
 	}
+	drm_connector_list_iter_end(&conn_iter);
+
+	/* handle the "never should happen case" gracefully */
+	if (!prefer->hdisplay || !prefer->vdisplay)
+		*prefer = *min_mode;
 }
 
 
@@ -155,68 +225,61 @@ static unsigned get_brightness(struct drm_connector * const connector,
 }
 
 
-static bool reconfigure(void * data)
+static bool reconfigure(struct drm_client_dev * const dev)
 {
-	static uint64_t width_smaller_as  = 100000;
-	static uint64_t height_smaller_as = 100000;
+	static struct drm_mode_create_dumb gem_dumb = {};
+	static struct drm_mode_fb_cmd2     dumb_fb  = {};
 
-	struct drm_display_mode *mode           = NULL;
 	struct drm_display_mode  mode_preferred = {};
+	struct drm_display_mode  mode_minimum   = {};
+	struct drm_display_mode  mode_real      = {};
+	struct drm_mode_modeinfo user_mode      = {};
+	struct drm_display_mode *mode           = NULL;
 	struct drm_mode_set     *mode_set       = NULL;
 	struct fb_info           report_fb_info = {};
 	bool                     report_fb      = false;
 	bool                     retry          = false;
 
-	if (!i915_fb())
-		return retry;
+	if (!dev || !dev->dev)
+		return false;
 
-	BUG_ON(!i915_fb()->funcs);
-	BUG_ON(!i915_fb()->funcs->fb_probe);
+	preferred_mode(dev->dev, &mode_preferred, &mode_minimum);
 
-	preferred_mode(&mode_preferred, width_smaller_as * height_smaller_as);
+	/* no valid modes on any connector on early boot */
+	if (!mode_minimum.hdisplay || !mode_minimum.vdisplay)
+		return false;
 
-	if (mode_preferred.hdisplay && mode_preferred.vdisplay) {
-		unsigned err = 0;
-		struct drm_fb_helper_surface_size sizes = {};
+	if (mode_larger(&mode_preferred, &mode_minimum))
+		mode_real = mode_preferred;
+	else
+		mode_real = mode_minimum;
 
-		sizes.surface_depth  = 24;
-		sizes.surface_bpp    = 32;
-		sizes.fb_width       = mode_preferred.hdisplay;
-		sizes.fb_height      = mode_preferred.vdisplay;
-		sizes.surface_width  = sizes.fb_width;
-		sizes.surface_height = sizes.fb_height;
+	{
+		int const err = check_resize_fb(dev,
+		                                &gem_dumb,
+		                                &dumb_fb,
+		                                mode_real.hdisplay,
+		                                mode_real.vdisplay);
 
-		err = (*i915_fb()->funcs->fb_probe)(i915_fb(), &sizes);
-		/* i915_fb()->fb contains adjusted drm_framebuffer object */
-
-		if (err || !i915_fb()->fbdev) {
+		if (err) {
 			printk("setting up framebuffer of %ux%u failed - error=%d\n",
-			       mode_preferred.hdisplay, mode_preferred.vdisplay, err);
+			       mode_real.hdisplay, mode_real.vdisplay, err);
 
-			if (err == -ENOMEM) {
-				width_smaller_as  = mode_preferred.hdisplay;
-				height_smaller_as = mode_preferred.vdisplay;
-
-				retry = true;
-				return retry;
-			}
-		} else {
-			width_smaller_as  = 100000;
-			height_smaller_as = 100000;
+			return true;
 		}
 	}
 
-	if (!i915_fb()->fb)
+	/* without fb handle created by check_resize_fb we can't proceed */
+	if (!dumb_fb.fb_id)
 		return retry;
 
-	/* data is adjusted if virtual resolution is not same size as physical fb */
-	report_fb_info = *i915_fb()->fbdev;
-	if (mode_preferred.hdisplay && mode_preferred.vdisplay) {
-		report_fb_info.var.xres_virtual = mode_preferred.hdisplay;
-		report_fb_info.var.yres_virtual = mode_preferred.vdisplay;
-	}
+	/* prepare fb info for register_framebuffer() evaluated by Genode side */
+	report_fb_info.var.xres         = mode_real.hdisplay;
+	report_fb_info.var.yres         = mode_real.vdisplay;
+	report_fb_info.var.xres_virtual = mode_preferred.hdisplay;
+	report_fb_info.var.yres_virtual = mode_preferred.vdisplay;
 
-	drm_client_for_each_modeset(mode_set, &(i915_fb()->client)) {
+	drm_client_for_each_modeset(mode_set, dev) {
 		struct drm_display_mode *mode_match = NULL;
 		unsigned                 mode_id    = 0;
 		struct drm_connector    *connector  = NULL;
@@ -242,8 +305,7 @@ static bool reconfigure(void * data)
 				continue;
 
 			/* allocated framebuffer smaller than mode can't be used */
-			if (report_fb_info.var.xres * report_fb_info.var.yres <
-			    mode->vdisplay * mode->hdisplay)
+			if (fb_smaller_mode(&report_fb_info, mode))
 				continue;
 
 			/* use mode id if configured and matches exactly */
@@ -280,9 +342,8 @@ static bool reconfigure(void * data)
 		/* apply new mode */
 		mode_id = 0;
 		list_for_each_entry(mode, &connector->modes, head) {
-			struct drm_mode_set set;
-			int                 err      = -1;
-			bool                no_match = false;
+			int  err      = -1;
+			bool no_match = false;
 
 			mode_id ++;
 
@@ -292,9 +353,8 @@ static bool reconfigure(void * data)
 			/* no matching mode ? */
 			if (!mode_match) {
 
-				/* allocated framebuffer smaller than mode can't be used */
-				if (report_fb_info.var.xres * report_fb_info.var.yres <
-				    mode->vdisplay * mode->hdisplay)
+				/* fb smaller than mode is denied by drm_mode_setcrtc */
+				if (fb_smaller_mode(&report_fb_info, mode))
 					continue;
 
 				/* use first smaller mode */
@@ -307,36 +367,28 @@ static bool reconfigure(void * data)
 			if (mode_match != mode)
 				continue;
 
-			set.crtc           = mode_set->crtc;
-			set.x              = 0;
-			set.y              = 0;
-			set.mode           = conf_mode.enabled ? mode : NULL;
-			set.connectors     = &connector;
-			set.num_connectors = conf_mode.enabled ? 1 : 0;
-			set.fb             = conf_mode.enabled ? i915_fb()->fb : NULL;
+			/* convert kernel internal mode to user mode expectecd via ioctl */
+			drm_mode_convert_to_umode(&user_mode, mode);
 
-			if (set.crtc->funcs && set.crtc->funcs->set_config &&
-			    drm_drv_uses_atomic_modeset(i915_fb()->dev)) {
+			/* assign fb & connector to crtc with specified mode */
+			err = user_attach_fb_to_crtc(dev, connector, mode_set->crtc,
+			                             &user_mode, dumb_fb.fb_id,
+			                             conf_mode.enabled);
 
-				struct drm_modeset_acquire_ctx ctx;
+			if (err)
+				retry = true;
+			else
+				report_fb = true;
 
-				DRM_MODESET_LOCK_ALL_BEGIN(i915_fb()->dev, ctx,
-				                           DRM_MODESET_ACQUIRE_INTERRUPTIBLE,
-				                           err);
-				err = set.crtc->funcs->set_config(&set, &ctx);
-
-				if (!err && conf_mode.enabled && conf_mode.brightness <= MAX_BRIGHTNESS)
-					set_brightness(conf_mode.brightness, connector);
-
-				DRM_MODESET_LOCK_ALL_END(i915_fb()->dev, ctx, err);
-
-				if (err)
-					retry = true;
-				else {
-					report_fb = true;
-				}
+			/* set brightness */
+			if (!err && conf_mode.enabled && conf_mode.brightness <= MAX_BRIGHTNESS) {
+				drm_modeset_lock(&dev->dev->mode_config.connection_mutex, NULL);
+				set_brightness(conf_mode.enabled ? conf_mode.brightness : 0,
+				               connector);
+				drm_modeset_unlock(&dev->dev->mode_config.connection_mutex);
 			}
 
+			/* diagnostics */
 			printk("%s: %s name='%s' id=%u %ux%u@%u%s",
 			       connector->name ? connector->name : "unnamed",
 			       conf_mode.enabled ? " enable" : "disable",
@@ -357,7 +409,7 @@ static bool reconfigure(void * data)
 	}
 
 	if (report_fb)
-		register_framebuffer(&report_fb_info);
+		user_register_fb(dev, &report_fb_info, &dumb_fb);
 
 	return retry;
 }
@@ -368,7 +420,7 @@ static int configure_connectors(void * data)
 	unsigned retry_count = 0;
 
 	while (true) {
-		bool retry = reconfigure(data);
+		bool retry = reconfigure(dev_client);
 
 		if (retry && retry_count < 3) {
 			retry_count ++;
@@ -392,23 +444,6 @@ void lx_user_init(void)
 {
 	int pid = kernel_thread(configure_connectors, NULL, CLONE_FS | CLONE_FILES);
 	lx_user_task = find_task_by_pid_ns(pid, NULL);;
-}
-
-
-static int genode_fb_client_hotplug(struct drm_client_dev *client)
-{
-	/*
-	 * Set deferred_setup to execute codepath of drm_fb_helper_hotplug_event()
-	 * on next connector state change that does not drop modes, which are
-	 * above the current framebuffer resolution. It is required if the
-	 * connected display at runtime is larger than the ones attached already
-	 * during boot. Without this quirk, not all modes are reported on displays
-	 * connected after boot.
-	 */
-	i915_fb()->deferred_setup = true;
-
-	lx_emul_i915_hotplug_connector(client);
-	return 0;
 }
 
 
@@ -439,6 +474,11 @@ void lx_emul_i915_iterate_modes(void * lx_data, void * genode_data)
 	struct drm_display_mode *prev_mode = NULL;
 	unsigned                 mode_id   = 0;
 
+	/* mark modes as unavailable due to max_resolution enforcement */
+	struct genode_mode conf_max_mode = { };
+	lx_emul_i915_connector_config("dummy", &conf_max_mode);
+
+
 	list_for_each_entry(mode, &connector->modes, head) {
 		bool skip = false;
 
@@ -456,12 +496,16 @@ void lx_emul_i915_iterate_modes(void * lx_data, void * genode_data)
 		}
 
 		if (!skip) {
-			struct genode_mode conf_mode = { .width = mode->hdisplay,
-			                                 .height = mode->vdisplay,
-			                                 .preferred = mode->type & (DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DEFAULT),
-			                                 .hz = drm_mode_vrefresh(mode),
-			                                 .id = mode_id
-			                               };
+			bool const max_mode = conf_max_mode.max_width && conf_max_mode.max_height;
+
+			struct genode_mode conf_mode = {
+				.width = mode->hdisplay,
+				.height = mode->vdisplay,
+				.preferred = mode->type & (DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DEFAULT),
+				.hz = drm_mode_vrefresh(mode),
+				.id = mode_id,
+				.enabled = !max_mode || !conf_smaller_mode(&conf_max_mode, mode)
+			};
 
 			static_assert(sizeof(conf_mode.name) == DRM_DISPLAY_MODE_LEN);
 			memcpy(conf_mode.name, mode->name, sizeof(conf_mode.name));
@@ -474,56 +518,283 @@ void lx_emul_i915_iterate_modes(void * lx_data, void * genode_data)
 }
 
 
-static const struct drm_client_funcs drm_fbdev_client_funcs = {
-	.owner		= THIS_MODULE,
-	.hotplug	= genode_fb_client_hotplug,
-};
-
-
-static void hotplug_setup(struct drm_device *dev)
-{
-	struct drm_fb_helper *hotplug_helper;
-	int ret;
-
-	hotplug_helper = kzalloc(sizeof(*hotplug_helper), GFP_KERNEL);
-	if (!hotplug_helper) {
-		drm_err(dev, "Failed to allocate fb_helper\n");
-		return;
-	}
-
-	ret = drm_client_init(dev, &hotplug_helper->client, "fbdev",
-	                      &drm_fbdev_client_funcs);
-	if (ret) {
-		kfree(hotplug_helper);
-		drm_err(dev, "Failed to register client: %d\n", ret);
-		return;
-	}
-
-	hotplug_helper->preferred_bpp = 32;
-
-	ret = genode_fb_client_hotplug(&hotplug_helper->client);
-	if (ret)
-		drm_dbg_kms(dev, "client hotplug ret=%d\n", ret);
-
-	drm_client_register(&hotplug_helper->client);
-
-	hotplug_helper->dev = dev;
-}
-
-
 int i915_switcheroo_register(struct drm_i915_private *i915_private)
 {
-	/* get hold of the function pointers we need for mode setting */
-	i915 = i915_private;
-
-	/* register dummy fb_helper to get notifications about hotplug events */
-	hotplug_setup(&i915_private->drm);
-
 	return 0;
 }
 
 
 void i915_switcheroo_unregister(struct drm_i915_private *i915)
 {
-	lx_emul_trace_and_stop(__func__);
+	return;
+}
+
+
+static int fb_client_hotplug(struct drm_client_dev *client)
+{
+	/*
+	 * Triggers set up of display pipelines for enabled connectors and
+	 * stores the config in the client's modeset array.
+	 */
+	int const result = drm_client_modeset_probe(client,
+	                                            0 /* auto width */,
+	                                            0 /* auto height */);
+	if (result)
+		printk("%s: error on modeset probe %d\n", __func__, result);
+
+	lx_emul_i915_hotplug_connector(client);
+
+	return 0;
+}
+
+
+static const struct drm_client_funcs drm_client_funcs = {
+	.owner		= THIS_MODULE,
+	.hotplug	= fb_client_hotplug,
+/*
+	.unregister	=
+	.restore	=
+*/
+};
+
+
+static int register_drm_client(struct drm_device * const dev)
+{
+	int result = -EINVAL;
+
+	dev_client = kzalloc(sizeof(*dev_client), GFP_KERNEL);
+	if (!dev_client) {
+		drm_err(dev, "Failed to allocate drm_client_dev\n");
+		return -ENOMEM;
+	}
+
+	result = drm_client_init(dev, dev_client, "genode_client",
+	                         &drm_client_funcs);
+
+	/* dev_client->file contains drm_file */
+	if (result) {
+		kfree(dev_client);
+		drm_err(dev, "Failed to register client: %d\n", result);
+		return -ENODEV;
+	}
+
+	drm_client_register(dev_client);
+
+	/*
+	 * Normally set via drm_ioctl() calling 'static int drm_setclientcap()'
+	 *
+	 * Without this feature bit set, drm_mode_setcrtc() denies usage of
+	 * some modes we report as available.
+	 */
+	dev_client->file->aspect_ratio_allowed = 1;
+
+	return 0;
+}
+
+
+int user_attach_fb_to_crtc(struct drm_client_dev          * const dev,
+                           struct drm_connector     const * const connector,
+                           struct drm_crtc          const * const crtc,
+                           struct drm_mode_modeinfo const * const mode,
+                           unsigned                         const fb_id,
+                           bool                             const enable)
+{
+	int                  result         = -EINVAL;
+	uint32_t             connectors [1] = { connector->base.id };
+	struct drm_mode_crtc crtc_req       = {
+		.set_connectors_ptr = (uintptr_t)(&connectors),
+		.count_connectors   = enable ? 1 : 0,
+		.crtc_id            = crtc->base.id,
+		.fb_id              = fb_id,
+		.x                  = 0,
+		.y                  = 0, /* position on the framebuffer */
+		.gamma_size         = 0,
+		.mode_valid         = enable,
+		.mode               = *mode,
+	};
+
+	result = drm_mode_setcrtc(dev->dev, &crtc_req, dev->file);
+	if (result)
+		drm_err(dev->dev, "%s: failed to set crtc %d\n", __func__, result);
+
+	return result;
+}
+
+
+static int user_register_fb(struct drm_client_dev   const * const dev,
+                            struct fb_info                * const info,
+                            struct drm_mode_fb_cmd2 const * const dumb_fb)
+{
+	intel_wakeref_t wakeref;
+
+	int                        result   = -EINVAL;
+	struct i915_gtt_view const view     = { .type = I915_GTT_VIEW_NORMAL };
+	unsigned long              flags    = 0;
+	struct i915_vma           *vma      = NULL;
+	void   __iomem            *vaddr    = NULL;
+	struct drm_i915_private   *dev_priv = to_i915(dev->dev);
+	struct drm_framebuffer    *fb       = drm_framebuffer_lookup(dev->dev,
+	                                                             dev->file,
+	                                                             dumb_fb->fb_id);
+
+	if (!info || !fb) {
+		printk("%s:%u error setting up info and fb\n", __func__, __LINE__);
+		return -ENODEV;
+	}
+
+	wakeref = intel_runtime_pm_get(&dev_priv->runtime_pm);
+
+	/* Pin the GGTT vma for our access via info->screen_base.
+	 * This also validates that any existing fb inherited from the
+	 * BIOS is suitable for own access.
+	 */
+	vma = intel_pin_and_fence_fb_obj(fb, false /* phys_cursor */,
+	                                 &view, false /* use fences */,
+	                                 &flags);
+
+	if (IS_ERR(vma)) {
+		intel_runtime_pm_put(&dev_priv->runtime_pm, wakeref);
+
+		result = PTR_ERR(vma);
+			printk("%s:%u error setting vma %d\n", __func__, __LINE__, result);
+		return result;
+	}
+
+	vaddr = i915_vma_pin_iomap(vma);
+	if (IS_ERR(vaddr)) {
+		intel_runtime_pm_put(&dev_priv->runtime_pm, wakeref);
+
+		result = PTR_ERR(vaddr);
+		printk("%s:%u error pin iomap %d\n", __func__, __LINE__, result);
+		return result;
+	}
+
+	/* fill framebuffer info for register_framebuffer */
+	info->screen_base        = vaddr;
+	info->screen_size        = vma->size;
+	info->fix.line_length    = fb->pitches[0];
+	info->var.bits_per_pixel = drm_format_info_bpp(fb->format, 0);
+
+	intel_runtime_pm_put(&dev_priv->runtime_pm, wakeref);
+
+	register_framebuffer(info);
+
+	return 0;
+}
+
+
+static int check_resize_fb(struct drm_client_dev       * const dev,
+                           struct drm_mode_create_dumb * const gem_dumb,
+                           struct drm_mode_fb_cmd2     * const dumb_fb,
+                           unsigned                      const width,
+                           unsigned                      const height)
+{
+	int result = -EINVAL;
+
+	/* paranoia */
+	if (!dev || !dev->dev || !dev->file || !gem_dumb || !dumb_fb)
+		return -ENODEV;
+
+	/* if requested size is smaller, free up current dumb buffer */
+	if (gem_dumb->width && gem_dumb->height &&
+	    gem_dumb->width * gem_dumb->height < width * height) {
+
+		result = drm_mode_destroy_dumb(dev->dev, gem_dumb->handle, dev->file);
+		if (result) {
+			drm_err(dev->dev, "%s: failed to destroy framebuffer %d\n",
+			        __func__, result);
+			return result;
+		}
+
+		memset(gem_dumb, 0, sizeof(*gem_dumb));
+		memset(dumb_fb,  0, sizeof(*dumb_fb));
+	}
+
+	/* allocate dumb framebuffer, on success a GEM object handle is returned */
+	if (!gem_dumb->width && !gem_dumb->height) {
+		gem_dumb->height = height;
+		gem_dumb->width  = width;
+		gem_dumb->bpp    = 32;
+		gem_dumb->flags  = 0;
+		/* .handle, .pitch, .size written by kernel in gem_dumb */
+
+		result = drm_mode_create_dumb_ioctl(dev->dev, gem_dumb, dev->file);
+		if (result) {
+			drm_err(dev->dev, "%s: failed to create framebuffer %d\n",
+			        __func__, result);
+			memset(gem_dumb, 0, sizeof(*gem_dumb));
+			return -ENODEV;
+		}
+	}
+
+	/* bind framwbuffer(GEM object) to drm client */
+	if (!dumb_fb->width && !dumb_fb->height) {
+		/* .fb_id <- written by kernel */
+		dumb_fb->width        = gem_dumb->width,
+		dumb_fb->height       = gem_dumb->height,
+		dumb_fb->pixel_format = DRM_FORMAT_XRGB8888,
+		/* .flags */
+		/* up to 4 planes with handle/pitch/offset/modifier can be set */
+		dumb_fb->handles[0] = gem_dumb->handle;
+		dumb_fb->pitches[0] = gem_dumb->pitch;
+		/* .offsets[4]  */
+		/* .modifier[4] */
+
+		result = drm_mode_addfb2_ioctl(dev->dev, dumb_fb, dev->file);
+		if (result) {
+			drm_err(dev->dev, "%s: failed to add framebuffer to drm client %d\n",
+			        __func__, result);
+			memset(dumb_fb, 0, sizeof(*dumb_fb));
+			return -ENODEV;
+		}
+	}
+
+	return 0;
+}
+
+
+int intel_fbdev_init(struct drm_device *dev)
+{
+	struct drm_i915_private *dev_priv = to_i915(dev);
+
+	if (drm_WARN_ON(dev, !HAS_DISPLAY(dev_priv)))
+		return -ENODEV;
+
+	return register_drm_client(dev);
+}
+
+
+void intel_fbdev_fini(struct drm_i915_private *dev_priv)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_fbdev_initial_config_async(struct drm_device *dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_fbdev_unregister(struct drm_i915_private *dev_priv)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_fbdev_set_suspend(struct drm_device *dev, int state, bool synchronous)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_fbdev_restore_mode(struct drm_device *dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_fbdev_output_poll_changed(struct drm_device *dev)
+{
+	lx_emul_trace(__func__);
 }

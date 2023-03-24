@@ -138,6 +138,26 @@ struct Framebuffer::Driver
 		if (apply_config)
 			Genode::Signal_transmitter(config_handler).submit();
 	}
+
+	template <typename T>
+	void with_max_enforcement(T const &fn) const
+	{
+		unsigned max_width  = config.xml().attribute_value("max_width", 0u);
+		unsigned max_height = config.xml().attribute_value("max_height",0u);
+
+		if (max_width && max_height)
+			fn(max_width, max_height);
+	}
+
+	template <typename T>
+	void with_force(T const &fn) const
+	{
+		unsigned force_width  = config.xml().attribute_value("force_width",  0u);
+		unsigned force_height = config.xml().attribute_value("force_height", 0u);
+
+		if (force_width && force_height)
+			fn(force_width, force_height);
+	}
 };
 
 
@@ -184,6 +204,17 @@ void Framebuffer::Driver::generate_report(void *lx_data)
 	try {
 		Genode::Reporter::Xml_generator xml(reporter, [&] ()
 		{
+			/* reflect force/max enforcement in report for user clarity */
+			with_max_enforcement([&](unsigned width, unsigned height) {
+				xml.attribute("max_width",  width);
+				xml.attribute("max_height", height);
+			});
+
+			with_force([&](unsigned width, unsigned height) {
+				xml.attribute("force_width",  width);
+				xml.attribute("force_height", height);
+			});
+
 			lx_emul_i915_report(lx_data, &xml);
 		});
 
@@ -203,11 +234,6 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 
 	if (!config.valid())
 		return;
-
-	unsigned force_width  = config.xml().attribute_value("force_width",  0u);
-	unsigned force_height = config.xml().attribute_value("force_height", 0u);
-	unsigned max_width    = config.xml().attribute_value("max_width",    0u);
-	unsigned max_height   = config.xml().attribute_value("max_height",   0u);
 
 	/* iterate independently of force* ever to get brightness and hz */
 	config.xml().for_each_sub_node("connector", [&] (Xml_node &node) {
@@ -229,18 +255,18 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 		mode.id     = node.attribute_value("mode_id", 0U);
 	});
 
-	/* enforce forced width/height if configured */
-	mode.preferred = force_width && force_height;
-	if (mode.preferred) {
-		mode.width  = force_width;
-		mode.height = force_height;
-		mode.id     = 0;
-	}
+	mode.preferred = false;
+	with_force([&](unsigned const width, unsigned const height) {
+		mode.preferred = true;
+		mode.width     = width;
+		mode.height    = height;
+		mode.id        = 0;
+	});
 
-	if (max_width && max_height) {
-		mode.max_width  = max_width;
-		mode.max_height = max_height;
-	}
+	with_max_enforcement([&](unsigned const width, unsigned const height) {
+		mode.max_width  = width;
+		mode.max_height = height;
+	});
 }
 
 
@@ -319,6 +345,8 @@ void lx_emul_i915_report_modes(void * genode_xml, struct genode_mode *mode)
 		xml.attribute("hz",        mode->hz);
 		xml.attribute("mode_id",   mode->id);
 		xml.attribute("mode_name", mode->name);
+		if (!mode->enabled)
+			xml.attribute("unavailable", true);
 		if (mode->preferred)
 			xml.attribute("preferred", true);
 	});

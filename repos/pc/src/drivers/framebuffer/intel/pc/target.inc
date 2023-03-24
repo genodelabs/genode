@@ -36,6 +36,7 @@ fail
 endif
 
 INC_DIR    += $(LX_SRC_DIR)/drivers/gpu/drm/i915
+INC_DIR    += $(LX_SRC_DIR)/drivers/gpu/drm
 
 #
 # The generated dummies file pulls in functions without header

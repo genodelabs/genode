@@ -115,22 +115,6 @@ void * __vmalloc_node_range(unsigned long size,unsigned long align,unsigned long
 }
 
 
-#include <linux/uaccess.h>
-
-unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <drm/drm_lease.h>
-
-bool _drm_lease_held(struct drm_file * file_priv,int id)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/printk.h>
 
 int _printk_deferred(const char * fmt,...)
@@ -484,30 +468,6 @@ long drm_ioctl(struct file * filp,unsigned int cmd,unsigned long arg)
 }
 
 
-#include <drm/drm_lease.h>
-
-void drm_lease_destroy(struct drm_master * master)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <drm/drm_lease.h>
-
-struct drm_master * drm_lease_owner(struct drm_master * master)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <drm/drm_lease.h>
-
-void drm_lease_revoke(struct drm_master * top)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <drm/drm_ioctl.h>
 
 int drm_noop(struct drm_device * dev,void * data,struct drm_file * file_priv)
@@ -798,20 +758,6 @@ int i915_gem_context_setparam_ioctl(struct drm_device * dev,void * data,struct d
 }
 
 
-extern int i915_gem_create_ext_ioctl(struct drm_device * dev,void * data,struct drm_file * file);
-int i915_gem_create_ext_ioctl(struct drm_device * dev,void * data,struct drm_file * file)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int i915_gem_create_ioctl(struct drm_device * dev,void * data,struct drm_file * file);
-int i915_gem_create_ioctl(struct drm_device * dev,void * data,struct drm_file * file)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern void i915_gem_drain_freed_objects(struct drm_i915_private * i915);
 void i915_gem_drain_freed_objects(struct drm_i915_private * i915)
 {
@@ -842,13 +788,6 @@ void i915_gem_driver_remove(struct drm_i915_private * dev_priv)
 
 extern void i915_gem_driver_unregister(struct drm_i915_private * i915);
 void i915_gem_driver_unregister(struct drm_i915_private * i915)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int i915_gem_dumb_create(struct drm_file * file,struct drm_device * dev,struct drm_mode_create_dumb * args);
-int i915_gem_dumb_create(struct drm_file * file,struct drm_device * dev,struct drm_mode_create_dumb * args)
 {
 	lx_emul_trace_and_stop(__func__);
 }

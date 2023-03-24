@@ -5,9 +5,9 @@
  */
 
 /*
- * Copyright © 2008-2015 Intel Corporation
+ * Copyright © 2008-2023 Intel Corporation
  *
- * Copyright (C) 2022 Genode Labs GmbH
+ * Copyright (C) 2022-2023 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -241,16 +241,6 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 	struct intel_gt *gt;
 	unsigned int i;
 	int ret;
-
-	/* request & enforce max resolution if smaller than hardware limits */
-	struct genode_mode dummy_mode = { };
-	lx_emul_i915_connector_config("dummy", &dummy_mode);
-	if (dummy_mode.max_width && dummy_mode.max_height) {
-		if (dev_priv->drm.mode_config.max_width > dummy_mode.max_width)
-			dev_priv->drm.mode_config.max_width  = dummy_mode.max_width;
-		if (dev_priv->drm.mode_config.max_height > dummy_mode.max_height)
-			dev_priv->drm.mode_config.max_height = dummy_mode.max_height;
-	}
 
 	/* We need to fallback to 4K pages if host doesn't support huge gtt. */
 /*

@@ -247,6 +247,7 @@ drivers/gpu/drm/i915/i915_sysfs.h
 drivers/gpu/drm/i915/i915_tasklet.h
 drivers/gpu/drm/i915/i915_trace.h
 drivers/gpu/drm/i915/i915_ttm_buddy_manager.h
+drivers/gpu/drm/i915/i915_user_extensions.h
 drivers/gpu/drm/i915/i915_utils.h
 drivers/gpu/drm/i915/i915_vgpu.h
 drivers/gpu/drm/i915/i915_vma.h
