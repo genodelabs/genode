@@ -157,12 +157,13 @@ class Sculpt::Runtime_state : public Runtime_info
 			 */
 			Launched_child(Allocator &alloc, Start_name const &name,
 			               Component::Path const &pkg_path,
+			               Verify          const  verify,
 			               Component::Info const &info,
 			               Affinity::Space const space)
 			:
 				name(name), launcher(), launched(false)
 			{
-				construction.construct(alloc, name, pkg_path, info, space);
+				construction.construct(alloc, name, pkg_path, verify, info, space);
 			}
 
 			void gen_deploy_start_node(Xml_generator &xml, Runtime_state const &state) const
@@ -436,9 +437,10 @@ class Sculpt::Runtime_state : public Runtime_info
 			new (_alloc) Registered<Launched_child>(_launched_children, name, launcher);
 		}
 
-		Start_name new_construction(Component::Path const pkg,
+		Start_name new_construction(Component::Path const  pkg,
+		                            Verify          const  verify,
 		                            Component::Info const &info,
-		                            Affinity::Space const space)
+		                            Affinity::Space const  space)
 		{
 			/* allow only one construction at a time */
 			discard_construction();
@@ -452,7 +454,7 @@ class Sculpt::Runtime_state : public Runtime_info
 
 			_currently_constructed = new (_alloc)
 				Registered<Launched_child>(_launched_children, _alloc,
-				                           unique_name, pkg, info, space);
+				                           unique_name, pkg, verify, info, space);
 			return unique_name;
 		}
 

@@ -60,6 +60,11 @@ namespace Sculpt {
 		DRIVER       = 0,
 		LEITZENTRALE = 0         /* only for latency-critical drivers */
 	};
+
+	/**
+	 * Argument type for controlling the verification of downloads
+	 */
+	struct Verify { bool value; };
 }
 
 #endif /* _TYPES_H_ */

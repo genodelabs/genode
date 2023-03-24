@@ -1106,10 +1106,10 @@ struct Sculpt::Main : Input_event_handler,
 		_deploy.update_managed_deploy_config();
 	}
 
-	Start_name new_construction(Component::Path const &pkg,
+	Start_name new_construction(Component::Path const &pkg, Verify verify,
 	                            Component::Info const &info) override
 	{
-		return _runtime_state.new_construction(pkg, info, _affinity_space);
+		return _runtime_state.new_construction(pkg, verify, info, _affinity_space);
 	}
 
 	void _apply_to_construction(Popup_dialog::Action::Apply_to &fn) override
@@ -1129,9 +1129,9 @@ struct Sculpt::Main : Input_event_handler,
 		_deploy.update_managed_deploy_config();
 	}
 
-	void trigger_download(Path const &path) override
+	void trigger_download(Path const &path, Verify verify) override
 	{
-		_download_queue.add(path);
+		_download_queue.add(path, verify);
 
 		/* incorporate new download-queue content into update */
 		_deploy.update_installation();

@@ -26,30 +26,42 @@ struct Sculpt::Download_queue : Noncopyable
 	{
 		Path const path;
 
+		bool const verify;
+
 		enum class State { DOWNLOADING, FAILED, DONE } state;
 
 		unsigned percent = 0;
 
-		Download(Path const &path) : path(path), state(State::DOWNLOADING) { }
+		Download(Path const &path, Verify verify)
+		:
+			path(path), verify(verify.value), state(State::DOWNLOADING)
+		{ }
 
 		void gen_installation_entry(Xml_generator &xml) const
 		{
 			if (state != State::DOWNLOADING)
 				return;
 
-			auto gen_install_node = [&] (auto type, auto path) {
-				xml.node(type, [&] () { xml.attribute("path", path); }); };
+			auto gen_verify_attr = [&] {
+				if (!verify)
+					xml.attribute("verify", "no"); };
+
+			auto gen_install_node = [&] (auto type) {
+				xml.node(type, [&] () {
+					xml.attribute("path", path);
+					gen_verify_attr(); }); };
 
 			if (Depot::Archive::index(path))
-				gen_install_node("index", path);
+				gen_install_node("index");
 			else if (Depot::Archive::image_index(path))
-				gen_install_node("image_index", path);
+				gen_install_node("image_index");
 			else if (Depot::Archive::image(path))
-				gen_install_node("image", path);
+				gen_install_node("image");
 			else
 				xml.node("archive", [&] () {
 					xml.attribute("path", path);
-					xml.attribute("source", "no"); });
+					xml.attribute("source", "no");
+					gen_verify_attr(); });
 		}
 	};
 
@@ -59,7 +71,7 @@ struct Sculpt::Download_queue : Noncopyable
 
 	Download_queue(Allocator &alloc) : _alloc(alloc) { }
 
-	void add(Path const &path)
+	void add(Path const &path, Verify const verify)
 	{
 		log("add to download queue: ", path);
 		bool already_exists = false;
@@ -70,7 +82,7 @@ struct Sculpt::Download_queue : Noncopyable
 		if (already_exists)
 			return;
 
-		new (_alloc) Registered<Download>(_downloads, path);
+		new (_alloc) Registered<Download>(_downloads, path, verify);
 	}
 
 	template <typename FN>

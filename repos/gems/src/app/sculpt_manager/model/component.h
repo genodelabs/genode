@@ -32,9 +32,11 @@ struct Sculpt::Component : Noncopyable
 	Allocator &_alloc;
 
 	/* defined at construction time */
-	Name const name;
-	Path const path;
-	Info const info;
+	Name   const name;
+	Path   const path;
+	Verify const verify;
+	Info   const info;
+
 
 	/* defined when blueprint arrives */
 	uint64_t ram  { };
@@ -98,7 +100,7 @@ struct Sculpt::Component : Noncopyable
 
 	struct Construction_action : Interface
 	{
-		virtual void new_construction(Path const &pkg, Info const &info) = 0;
+		virtual void new_construction(Path const &pkg, Verify, Info const &) = 0;
 
 		struct Apply_to : Interface { virtual void apply_to(Component &) = 0; };
 
@@ -122,9 +124,10 @@ struct Sculpt::Component : Noncopyable
 	};
 
 	Component(Allocator &alloc, Name const &name, Path const &path,
-	          Info const &info, Affinity::Space const space)
+	          Verify verify, Info const &info, Affinity::Space const space)
 	:
-		_alloc(alloc), name(name), path(path), info(info), affinity_space(space)
+		_alloc(alloc), name(name), path(path), verify(verify), info(info),
+		affinity_space(space)
 	{ }
 
 	~Component()

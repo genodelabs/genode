@@ -353,7 +353,7 @@ void Popup_dialog::click(Action &action)
 		} else {
 
 			if (!_index_avail(clicked))
-				action.trigger_download(_index_path(clicked));
+				action.trigger_download(_index_path(clicked), Verify{true});
 			else
 				action.remove_index(clicked);
 		}
@@ -395,7 +395,8 @@ void Popup_dialog::click(Action &action)
 								auto path = item.attribute_value("path", Component::Path());
 								auto info = item.attribute_value("info", Component::Info());
 
-								_construction_name = action.new_construction(path, info);
+								_construction_name =
+									action.new_construction(path, Verify{true}, info);
 
 								_state = PKG_REQUESTED;
 								_depot_query.trigger_depot_query();

@@ -88,7 +88,7 @@ struct Sculpt::Popup_dialog : Dialog
 	{
 		virtual void launch_global(Path const &launcher) = 0;
 
-		virtual Start_name new_construction(Component::Path const &pkg,
+		virtual Start_name new_construction(Component::Path const &pkg, Verify,
 		                                    Component::Info const &info) = 0;
 
 		struct Apply_to : Interface { virtual void apply_to(Component &) = 0; };
@@ -110,7 +110,7 @@ struct Sculpt::Popup_dialog : Dialog
 		virtual void discard_construction() = 0;
 		virtual void launch_construction() = 0;
 
-		virtual void trigger_download(Path const &) = 0;
+		virtual void trigger_download(Path const &, Verify) = 0;
 		virtual void remove_index(Depot::Archive::User const &) = 0;
 	};
 
@@ -340,7 +340,7 @@ struct Sculpt::Popup_dialog : Dialog
 
 		if (!_blueprint_info.pkg_avail && _install_item.activated("install")) {
 			_construction_info.with_construction([&] (Component const &component) {
-				action.trigger_download(component.path);
+				action.trigger_download(component.path, component.verify);
 				_install_item.reset();
 				_refresh.refresh_popup_dialog();
 			});
