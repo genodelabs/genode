@@ -89,7 +89,7 @@ namespace Depot_download_manager {
 	                                   List_model<Job> const &);
 
 	void gen_fetchurl_start_content(Xml_generator &, Import const &, Url const &,
-	                                Fetchurl_version);
+	                                Pubkey_known, Fetchurl_version);
 
 	void gen_verify_start_content(Xml_generator &, Import const &, Path const &);
 

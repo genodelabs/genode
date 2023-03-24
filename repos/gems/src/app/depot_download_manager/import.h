@@ -63,12 +63,15 @@ class Depot_download_manager::Import
 
 			Archive::Path const path;
 
+			bool const require_verify;
+
 			enum State { DOWNLOAD_IN_PROGRESS,
 			             DOWNLOAD_COMPLETE,
 			             DOWNLOAD_UNAVAILABLE,
 			             VERIFICATION_IN_PROGRESS,
 			             VERIFIED,
 			             VERIFICATION_FAILED,
+			             BLESSED, /* verification deliberately skipped */
 			             UNPACKED };
 
 			State state = DOWNLOAD_IN_PROGRESS;
@@ -78,12 +81,15 @@ class Depot_download_manager::Import
 				return state == DOWNLOAD_IN_PROGRESS
 				    || state == DOWNLOAD_COMPLETE
 				    || state == VERIFICATION_IN_PROGRESS
-				    || state == VERIFIED;
+				    || state == VERIFIED
+				    || state == BLESSED;
 			}
 
-			Item(Registry<Item> &registry, Archive::Path const &path)
+			Item(Registry<Item> &registry, Archive::Path const &path,
+			     Require_verify require_verify)
 			:
-				_element(registry, *this), path(path)
+				_element(registry, *this), path(path),
+				require_verify(require_verify.value)
 			{ }
 
 			char const *state_text() const
@@ -95,6 +101,7 @@ class Depot_download_manager::Import
 				case VERIFICATION_IN_PROGRESS: return "verify";
 				case VERIFIED:                 return "extract";
 				case VERIFICATION_FAILED:      return "corrupted";
+				case BLESSED:                  return "extract";
 				case UNPACKED:                 return "done";
 				};
 				return "";
@@ -102,6 +109,8 @@ class Depot_download_manager::Import
 		};
 
 		Allocator &_alloc;
+
+		bool const _pubkey_known;
 
 		Registry<Item> _items { };
 
@@ -155,16 +164,16 @@ class Depot_download_manager::Import
 		                                         FN const &fn)
 		{
 			dependencies.for_each_sub_node("missing", [&] (Xml_node const &item) {
-				fn(_depdendency_path(item)); });
+				fn(_depdendency_path(item), Require_verify::from_xml(item)); });
 
 			index.for_each_sub_node("missing", [&] (Xml_node const &item) {
-				fn(_index_path(item)); });
+				fn(_index_path(item), Require_verify::from_xml(item)); });
 
 			image.for_each_sub_node("missing", [&] (Xml_node const &item) {
-				fn(_image_path(item)); });
+				fn(_image_path(item), Require_verify::from_xml(item)); });
 
 			image_index.for_each_sub_node("missing", [&] (Xml_node const &item) {
-				fn(_image_index_path(item)); });
+				fn(_image_index_path(item), Require_verify::from_xml(item)); });
 		}
 
 	public:
@@ -200,18 +209,20 @@ class Depot_download_manager::Import
 		 * items that match the 'user'. The remaining sub nodes are imported in
 		 * a future iteration.
 		 */
-		Import(Allocator &alloc, Archive::User const &user,
-		       Xml_node const &dependencies,
-		       Xml_node const &index,
-		       Xml_node const &image,
-		       Xml_node const &image_index)
+		Import(Allocator           &alloc,
+		       Archive::User const &user,
+		       Pubkey_known  const pubkey_known,
+		       Xml_node      const &dependencies,
+		       Xml_node      const &index,
+		       Xml_node      const &image,
+		       Xml_node      const &image_index)
 		:
-			_alloc(alloc)
+			_alloc(alloc), _pubkey_known(pubkey_known.value)
 		{
 			_for_each_missing_depot_path(dependencies, index, image, image_index,
-				[&] (Archive::Path const &path) {
+				[&] (Archive::Path const &path, Require_verify require_verify) {
 					if (Archive::user(path) == user)
-						new (alloc) Item(_items, path); });
+						new (alloc) Item(_items, path, require_verify); });
 		}
 
 		~Import()
@@ -234,9 +245,10 @@ class Depot_download_manager::Import
 			return _item_state_exists(Item::VERIFICATION_IN_PROGRESS);
 		}
 
-		bool verified_archives_available() const
+		bool verified_or_blessed_archives_available() const
 		{
-			return _item_state_exists(Item::VERIFIED);
+			return _item_state_exists(Item::VERIFIED)
+			    || _item_state_exists(Item::BLESSED);
 		}
 
 		template <typename FN>
@@ -252,9 +264,10 @@ class Depot_download_manager::Import
 		}
 
 		template <typename FN>
-		void for_each_verified_archive(FN const &fn) const
+		void for_each_verified_or_blessed_archive(FN const &fn) const
 		{
 			_for_each_item(Item::VERIFIED, fn);
+			_for_each_item(Item::BLESSED,  fn);
 		}
 
 		template <typename FN>
@@ -277,11 +290,23 @@ class Depot_download_manager::Import
 					item.state =  Item::DOWNLOAD_COMPLETE; });
 		}
 
-		void verify_all_downloaded_archives()
+		void verify_or_bless_all_downloaded_archives()
 		{
 			_items.for_each([&] (Item &item) {
-				if (item.state == Item::DOWNLOAD_COMPLETE)
-					item.state =  Item::VERIFICATION_IN_PROGRESS; });
+				if (item.state == Item::DOWNLOAD_COMPLETE) {
+
+					/*
+					 * If verification is not required, still verify whenever
+					 * a depot user's public key exists. This way, verifiable
+					 * archives referred to by non-verified archives end up in
+					 * verified form in the depot.
+					 */
+					if (item.require_verify || _pubkey_known)
+						item.state = Item::VERIFICATION_IN_PROGRESS;
+					else
+						item.state = Item::BLESSED;
+				}
+			});
 		}
 
 		void apply_download_progress(Download_progress const &progress)
@@ -319,10 +344,10 @@ class Depot_download_manager::Import
 						item.state = Item::VERIFICATION_FAILED; });
 		}
 
-		void all_verified_archives_extracted()
+		void all_verified_or_blessed_archives_extracted()
 		{
 			_items.for_each([&] (Item &item) {
-				if (item.state == Item::VERIFIED)
+				if (item.state == Item::VERIFIED || item.state == Item::BLESSED)
 					item.state = Item::UNPACKED; });
 		}
 

@@ -87,6 +87,11 @@ struct Depot_download_manager::Main : Import::Download_progress
 		return _current_user.xml().attribute_value("name", Archive::User());
 	}
 
+	Pubkey_known _current_user_has_pubkey() const
+	{
+		return Pubkey_known { _current_user.xml().has_sub_node("pubkey") };
+	}
+
 	Path _current_user_path() const
 	{
 		return Path("/depot/", _current_user_name());
@@ -326,7 +331,9 @@ void Depot_download_manager::Main::_generate_init_config(Xml_generator &xml)
 	if (fetchurl_running) {
 		try {
 			xml.node("start", [&] () {
-				gen_fetchurl_start_content(xml, *_import, _current_user_url(),
+				gen_fetchurl_start_content(xml, *_import,
+				                           _current_user_url(),
+				                           _current_user_has_pubkey(),
 				                           _fetchurl_count); });
 		}
 		catch (Invalid_download_url) {
@@ -338,7 +345,7 @@ void Depot_download_manager::Main::_generate_init_config(Xml_generator &xml)
 		xml.node("start", [&] () {
 			gen_verify_start_content(xml, *_import, _current_user_path()); });
 
-	if (_import.constructed() && _import->verified_archives_available()) {
+	if (_import.constructed() && _import->verified_or_blessed_archives_available()) {
 
 		xml.node("start", [&] () {
 			gen_chroot_start_content(xml, _current_user_name());  });
@@ -370,8 +377,7 @@ void Depot_download_manager::Main::_handle_query_result()
 
 		Archive::User const name = user.attribute_value("name", Archive::User());
 
-		bool const user_info_complete = user.has_sub_node("url")
-		                             && user.has_sub_node("pubkey");
+		bool const user_info_complete = user.has_sub_node("url");
 
 		if (name.valid() && !user_info_complete) {
 
@@ -396,6 +402,8 @@ void Depot_download_manager::Main::_handle_query_result()
 	Xml_node const index        = _index.xml();
 	Xml_node const image        = _image.xml();
 	Xml_node const image_index  = _image_index.xml();
+
+	log("query result index: ", index);
 
 	/* mark jobs referring to existing depot content as unneccessary */
 	Import::for_each_present_depot_path(dependencies, index, image, image_index,
@@ -458,7 +466,7 @@ void Depot_download_manager::Main::_handle_query_result()
 	}
 
 	/* start new import */
-	_import.construct(_heap, _current_user_name(),
+	_import.construct(_heap, _current_user_name(), _current_user_has_pubkey(),
 	                  dependencies, index, image, image_index);
 
 	/* mark imported jobs as started */
@@ -514,7 +522,7 @@ void Depot_download_manager::Main::_handle_init_state()
 	}
 
 	if (!import.downloads_in_progress() && import.completed_downloads_available()) {
-		import.verify_all_downloaded_archives();
+		import.verify_or_bless_all_downloaded_archives();
 		reconfigure_init = true;
 	}
 
@@ -545,7 +553,7 @@ void Depot_download_manager::Main::_handle_init_state()
 		});
 	}
 
-	if (import.verified_archives_available()) {
+	if (import.verified_or_blessed_archives_available()) {
 
 		Child_exit_state const extract_state(_init_state.xml(), "extract");
 
@@ -553,7 +561,7 @@ void Depot_download_manager::Main::_handle_init_state()
 			error("extract failed with exit code ", extract_state.code);
 
 		if (extract_state.exited && extract_state.code == 0)
-			import.all_verified_archives_extracted();
+			import.all_verified_or_blessed_archives_extracted();
 	}
 
 	/* flag failed jobs to prevent re-attempts in subsequent import iterations */

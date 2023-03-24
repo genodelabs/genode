@@ -58,11 +58,18 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 					fn(node); });
 		};
 
+		auto propagate_verify_attr = [&] (Xml_generator &xml, Xml_node const &node)
+		{
+			if (node.attribute_value("verify", true) == false)
+				xml.attribute("require_verify", "no");
+		};
+
 		for_each_install_sub_node("archive", [&] (Xml_node const &archive) {
 			xml.node("dependencies", [&] () {
 				xml.attribute("path", archive.attribute_value("path", Archive::Path()));
 				xml.attribute("source", archive.attribute_value("source", true));
 				xml.attribute("binary", archive.attribute_value("binary", true));
+				propagate_verify_attr(xml, archive);
 			});
 		});
 
@@ -75,6 +82,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 			xml.node("index", [&] () {
 				xml.attribute("user",    Archive::user(path));
 				xml.attribute("version", Archive::_path_element<Archive::Version>(path, 2));
+				propagate_verify_attr(xml, index);
 			});
 		});
 
@@ -87,6 +95,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 			xml.node("image", [&] () {
 				xml.attribute("user", Archive::user(path));
 				xml.attribute("name", Archive::name(path));
+				propagate_verify_attr(xml, image);
 			});
 		});
 
@@ -97,7 +106,9 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 				return;
 			}
 			xml.node("image_index", [&] () {
-				xml.attribute("user", Archive::user(path)); });
+				xml.attribute("user", Archive::user(path));
+				propagate_verify_attr(xml, image_index);
+			});
 		});
 
 		if (next_user.valid())

@@ -55,7 +55,7 @@ void Depot_download_manager::gen_extract_start_content(Xml_generator       &xml,
 			});
 		});
 
-		import.for_each_verified_archive([&] (Archive::Path const &path) {
+		import.for_each_verified_or_blessed_archive([&] (Archive::Path const &path) {
 
 			typedef String<160> Path;
 

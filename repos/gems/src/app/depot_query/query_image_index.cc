@@ -19,6 +19,7 @@
 
 
 void Depot_query::Main::_query_image_index(Xml_node const &index_query,
+                                           Require_verify require_verify,
                                            Xml_generator &xml)
 {
 	using User    = Archive::User;
@@ -150,7 +151,9 @@ void Depot_query::Main::_query_image_index(Xml_node const &index_query,
 	 * file.
 	 */
 	xml.node(index_exists ? "present" : "missing", [&] () {
-		xml.attribute("user", user); });
+		xml.attribute("user", user);
+		require_verify.gen_attr(xml);
+	});
 
 	/*
 	 * Report aggregated image information with the newest version first.

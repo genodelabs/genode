@@ -32,11 +32,32 @@ namespace Depot_query {
 
 	typedef String<64> Rom_label;
 
+	struct Require_verify;
 	struct Directory_cache;
 	struct Recursion_limit;
 	struct Dependencies;
 	struct Main;
 }
+
+
+/**
+ * Argument type for propagating 'require_verify' query attributes to results
+ */
+struct Depot_query::Require_verify
+{
+	bool value;
+
+	static Require_verify from_xml(Xml_node const &node)
+	{
+		return Require_verify { node.attribute_value("require_verify", true) };
+	}
+
+	void gen_attr(Xml_generator &xml) const
+	{
+		if (!value)
+			xml.attribute("require_verify", "no");
+	}
+};
 
 
 struct Depot_query::Directory_cache : Noncopyable
@@ -165,11 +186,28 @@ class Depot_query::Dependencies
 {
 	private:
 
+		using Path = Archive::Path;
+
 		struct Collection : Noncopyable
 		{
 			Allocator &_alloc;
 
-			typedef Registered_no_delete<Archive::Path> Entry;
+			struct Dependency
+			{
+				Path           path;
+				Require_verify require_verify;
+
+				Dependency(Path const &path, Require_verify require_verify)
+				: path(path), require_verify(require_verify) { }
+
+				void gen_attr(Xml_generator &xml) const
+				{
+					xml.attribute("path", path);
+					require_verify.gen_attr(xml);
+				}
+			};
+
+			using Entry = Registered_no_delete<Dependency>;
 
 			Registry<Entry> _entries { };
 
@@ -180,20 +218,20 @@ class Depot_query::Dependencies
 				_entries.for_each([&] (Entry &e) { destroy(_alloc, &e); });
 			}
 
-			bool known(Archive::Path const &path) const
+			bool known(Path const &path) const
 			{
 				bool result = false;
 				_entries.for_each([&] (Entry const &entry) {
-					if (path == entry)
+					if (path == entry.path)
 						result = true; });
 
 				return result;
 			}
 
-			void insert(Archive::Path const &path)
+			void insert(Path const &path, Require_verify require_verify)
 			{
 				if (!known(path))
-					new (_alloc) Entry(_entries, path);
+					new (_alloc) Entry(_entries, path, require_verify);
 			}
 
 			template <typename FN>
@@ -212,26 +250,26 @@ class Depot_query::Dependencies
 			_depot(depot), _present(alloc), _missing(alloc)
 		{ }
 
-		bool known(Archive::Path const &path) const
+		bool known(Path const &path) const
 		{
 			return _present.known(path) || _missing.known(path);
 		}
 
-		void record(Archive::Path const &path)
+		void record(Path const &path, Require_verify require_verify)
 		{
 			if (_depot.directory_exists(path))
-				_present.insert(path);
+				_present.insert(path, require_verify);
 			else
-				_missing.insert(path);
+				_missing.insert(path, require_verify);
 		}
 
 		void xml(Xml_generator &xml) const
 		{
-			_present.for_each([&] (Archive::Path const &path) {
-				xml.node("present", [&] () { xml.attribute("path", path); }); });
+			_present.for_each([&] (Collection::Entry const &entry) {
+				xml.node("present", [&] () { entry.gen_attr(xml); }); });
 
-			_missing.for_each([&] (Archive::Path const &path) {
-				xml.node("missing", [&] () { xml.attribute("path", path); }); });
+			_missing.for_each([&] (Collection::Entry const &entry) {
+				xml.node("missing", [&] () { entry.gen_attr(xml); }); });
 		}
 };
 
@@ -336,15 +374,15 @@ struct Depot_query::Main
 	void _gen_inherited_rom_path_nodes(Xml_generator &, Xml_node const &,
 	                                   Archive::Path const &, Recursion_limit);
 	void _query_blueprint(Directory::Path const &, Xml_generator &);
-	void _collect_source_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
-	void _collect_binary_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
+	void _collect_source_dependencies(Archive::Path const &, Dependencies &, Require_verify, Recursion_limit);
+	void _collect_binary_dependencies(Archive::Path const &, Dependencies &, Require_verify, Recursion_limit);
 	void _scan_user(Archive::User const &, Xml_generator &);
 	void _query_user(Archive::User const &, Xml_generator &);
 	void _gen_index_node_rec(Xml_generator &, Xml_node const &, unsigned) const;
 	void _gen_index_for_arch(Xml_generator &, Xml_node const &) const;
-	void _query_index(Archive::User const &, Archive::Version const &, bool, Xml_generator &);
-	void _query_image(Archive::User const &, Archive::Name const &, Xml_generator &);
-	void _query_image_index(Xml_node const &, Xml_generator &);
+	void _query_index(Archive::User const &, Archive::Version const &, bool, Require_verify, Xml_generator &);
+	void _query_image(Archive::User const &, Archive::Name const &, Require_verify, Xml_generator &);
+	void _query_image_index(Xml_node const &, Require_verify, Xml_generator &);
 
 	void _handle_config()
 	{
@@ -431,13 +469,16 @@ struct Depot_query::Main
 			Dependencies dependencies(_heap, _depot_dir);
 			query.for_each_sub_node("dependencies", [&] (Xml_node node) {
 
-				Archive::Path const path = node.attribute_value("path", Archive::Path());
+				Archive::Path  const path = node.attribute_value("path", Archive::Path());
+				Require_verify const require_verify = Require_verify::from_xml(node);
 
 				if (node.attribute_value("source", false))
-					_collect_source_dependencies(path, dependencies, Recursion_limit{8});
+					_collect_source_dependencies(path, dependencies, require_verify,
+					                             Recursion_limit{8});
 
 				if (node.attribute_value("binary", false))
-					_collect_binary_dependencies(path, dependencies, Recursion_limit{8});
+					_collect_binary_dependencies(path, dependencies, require_verify,
+					                             Recursion_limit{8});
 			});
 			dependencies.xml(xml);
 		});
@@ -457,17 +498,19 @@ struct Depot_query::Main
 				_query_index(node.attribute_value("user",    Archive::User()),
 				             node.attribute_value("version", Archive::Version()),
 				             node.attribute_value("content", false),
+				             Require_verify::from_xml(node),
 				             xml); }); });
 
 		_gen_versioned_report(_image_reporter, version, [&] (Xml_generator &xml) {
 			query.for_each_sub_node("image", [&] (Xml_node node) {
 				_query_image(node.attribute_value("user", Archive::User()),
 				             node.attribute_value("name", Archive::Name()),
+				             Require_verify::from_xml(node),
 				             xml); }); });
 
 		_gen_versioned_report(_image_index_reporter, version, [&] (Xml_generator &xml) {
 			query.for_each_sub_node("image_index", [&] (Xml_node node) {
-				_query_image_index(node, xml); }); });
+				_query_image_index(node, Require_verify::from_xml(node), xml); }); });
 	}
 
 	Main(Env &env) : _env(env)

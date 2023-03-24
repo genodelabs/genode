@@ -191,6 +191,7 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 
 void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
                                                      Dependencies &dependencies,
+                                                     Require_verify require_verify,
                                                      Recursion_limit recursion_limit)
 {
 	try { Archive::type(path); }
@@ -199,14 +200,15 @@ void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
 		return;
 	}
 
-	dependencies.record(path);
+	dependencies.record(path, require_verify);
 
 	switch (Archive::type(path)) {
 
 	case Archive::PKG: {
 		_with_file_content(path, "archives", [&] (File_content const &archives) {
 			archives.for_each_line<Archive::Path>([&] (Archive::Path const &path) {
-				_collect_source_dependencies(path, dependencies, recursion_limit); }); });
+				_collect_source_dependencies(path, dependencies, require_verify,
+				                             recursion_limit); }); });
 		break;
 	}
 
@@ -214,7 +216,8 @@ void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
 		typedef String<160> Api;
 		_with_file_content(path, "used_apis", [&] (File_content const &used_apis) {
 			used_apis.for_each_line<Archive::Path>([&] (Api const &api) {
-				dependencies.record(Archive::Path(Archive::user(path), "/api/", api)); }); });
+				dependencies.record(Archive::Path(Archive::user(path), "/api/", api),
+				                    require_verify); }); });
 		break;
 	}
 
@@ -227,6 +230,7 @@ void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
 
 void Depot_query::Main::_collect_binary_dependencies(Archive::Path const &path,
                                                      Dependencies &dependencies,
+                                                     Require_verify require_verify,
                                                      Recursion_limit recursion_limit)
 {
 	try { Archive::type(path); }
@@ -238,22 +242,23 @@ void Depot_query::Main::_collect_binary_dependencies(Archive::Path const &path,
 	switch (Archive::type(path)) {
 
 	case Archive::PKG:
-		dependencies.record(path);
+		dependencies.record(path, require_verify);
 
 		_with_file_content(path, "archives", [&] (File_content const &archives) {
 			archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
-				_collect_binary_dependencies(archive_path, dependencies, recursion_limit); }); });
+				_collect_binary_dependencies(archive_path, dependencies,
+				                             require_verify, recursion_limit); }); });
 		break;
 
 	case Archive::SRC:
 		dependencies.record(Archive::Path(Archive::user(path), "/bin/",
 		                                  _architecture,       "/",
 		                                  Archive::name(path), "/",
-		                                  Archive::version(path)));
+		                                  Archive::version(path)), require_verify);
 		break;
 
 	case Archive::RAW:
-		dependencies.record(path);
+		dependencies.record(path, require_verify);
 		break;
 
 	case Archive::IMAGE:
@@ -363,13 +368,16 @@ void Depot_query::Main::_gen_index_for_arch(Xml_generator &xml,
 
 void Depot_query::Main::_query_index(Archive::User    const &user,
                                      Archive::Version const &version,
-                                     bool const content, Xml_generator &xml)
+                                     bool             const  content,
+                                     Require_verify   const  require_verify,
+                                     Xml_generator          &xml)
 {
 	Directory::Path const index_path("depot/", user, "/index/", version);
 	if (!_root.file_exists(index_path)) {
 		xml.node("missing", [&] () {
 			xml.attribute("user",    user);
 			xml.attribute("version", version);
+			require_verify.gen_attr(xml);
 		});
 		return;
 	}
@@ -377,6 +385,7 @@ void Depot_query::Main::_query_index(Archive::User    const &user,
 	xml.node("index", [&] () {
 		xml.attribute("user",    user);
 		xml.attribute("version", version);
+		require_verify.gen_attr(xml);
 
 		if (content) {
 			try {
@@ -392,9 +401,10 @@ void Depot_query::Main::_query_index(Archive::User    const &user,
 }
 
 
-void Depot_query::Main::_query_image(Archive::User const &user,
-                                     Archive::Name const &name,
-                                     Xml_generator &xml)
+void Depot_query::Main::_query_image(Archive::User  const &user,
+                                     Archive::Name  const &name,
+                                     Require_verify const require_verify,
+                                     Xml_generator       &xml)
 {
 	Directory::Path const image_path("depot/", user, "/image/", name);
 	char const *node_type = _root.directory_exists(image_path)
@@ -402,6 +412,7 @@ void Depot_query::Main::_query_image(Archive::User const &user,
 	xml.node(node_type, [&] () {
 		xml.attribute("user", user);
 		xml.attribute("name", name);
+		require_verify.gen_attr(xml);
 	});
 }
 

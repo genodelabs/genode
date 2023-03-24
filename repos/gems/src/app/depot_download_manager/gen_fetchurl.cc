@@ -16,6 +16,7 @@
 void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
                                                         Import const &import,
                                                         Url const &current_user_url,
+                                                        Pubkey_known pubkey_known,
                                                         Fetchurl_version version)
 {
 	xml.attribute("version", version.value);
@@ -23,40 +24,40 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 	gen_common_start_content(xml, "fetchurl",
 	                         Cap_quota{500}, Ram_quota{8*1024*1024});
 
-	xml.node("config", [&] () {
-		xml.node("libc", [&] () {
+	xml.node("config", [&] {
+		xml.node("libc", [&] {
 			xml.attribute("stdout", "/dev/log");
 			xml.attribute("stderr", "/dev/log");
 			xml.attribute("rtc",    "/dev/rtc");
 			xml.attribute("socket", "/socket");
 		});
-		xml.node("report", [&] () {
+		xml.node("report", [&] {
 			xml.attribute("progress", "yes");
 			xml.attribute("delay_ms", 250);
 		});
-		xml.node("vfs", [&] () {
-			xml.node("dir", [&] () {
+		xml.node("vfs", [&] {
+			xml.node("dir", [&] {
 				xml.attribute("name", "download");
-				xml.node("fs", [&] () {
+				xml.node("fs", [&] {
 					xml.attribute("buffer_size", 144u << 10);
 					xml.attribute("label", "download"); });
 			});
-			xml.node("dir", [&] () {
+			xml.node("dir", [&] {
 				xml.attribute("name", "dev");
-				xml.node("log",  [&] () { });
-				xml.node("null", [&] () { });
-				xml.node("inline",  [&] () {
+				xml.node("log",  [&] { });
+				xml.node("null", [&] { });
+				xml.node("inline", [&] {
 					xml.attribute("name", "rtc");
 					String<64> date("2000-01-01 00:00");
 					xml.append(date.string());
 				});
-				xml.node("inline",  [&] () {
+				xml.node("inline", [&] {
 					xml.attribute("name", "random");
 					String<64> entropy("01234567890123456789");
 					xml.append(entropy.string());
 				});
 			});
-			xml.node("fs", [&] () {
+			xml.node("fs", [&] {
 				xml.attribute("label", "tcpip"); });
 		});
 
@@ -69,29 +70,31 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 			Remote    const remote (current_user_url, "/", file_path);
 			Local     const local  ("/download/", file_path);
 
-			xml.node("fetch", [&] () {
+			xml.node("fetch", [&] {
 				xml.attribute("url", remote);
 				xml.attribute("path", local);
 			});
 
-			xml.node("fetch", [&] () {
-				xml.attribute("url",  Remote(remote, ".sig"));
-				xml.attribute("path", Local (local,  ".sig"));
-			});
+			if (pubkey_known.value) {
+				xml.node("fetch", [&] {
+					xml.attribute("url",  Remote(remote, ".sig"));
+					xml.attribute("path", Local (local,  ".sig"));
+				});
+			}
 		});
 	});
 
-	xml.node("route", [&] () {
-		xml.node("service", [&] () {
+	xml.node("route", [&] {
+		xml.node("service", [&] {
 			xml.attribute("name", File_system::Session::service_name());
 			xml.attribute("label", "download");
-			xml.node("parent", [&] () {
+			xml.node("parent", [&] {
 				xml.attribute("label", "public_rw"); });
 		});
-		xml.node("service", [&] () {
+		xml.node("service", [&] {
 			xml.attribute("name", File_system::Session::service_name());
 			xml.attribute("label", "tcpip");
-			xml.node("parent", [&] () {
+			xml.node("parent", [&] {
 				xml.attribute("label", "tcpip"); });
 		});
 		gen_parent_unscoped_rom_route(xml, "fetchurl");
