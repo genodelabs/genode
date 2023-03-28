@@ -73,11 +73,6 @@ int _printk_deferred(const char * fmt,...)
 }
 
 
-#include <clocksource/arm_arch_timer.h>
-
-u64 (*arch_timer_read_counter)(void);
-
-
 #include <linux/context_tracking_irq.h>
 
 noinstr void ct_irq_enter(void)
