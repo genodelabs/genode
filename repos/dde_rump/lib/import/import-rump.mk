@@ -19,7 +19,11 @@ endif
 ifeq ($(filter-out $(SPECS),arm_64),)
 	INC_DIR := $(RUMP_PORT_DIR)/src/sys/rump/include $(INC_DIR)
 	INC_DIR += $(REP_DIR)/src/lib/rump/spec/arm_64
-	INC_DIR += $(RUMP_PORT_DIR)/../dde_rump_aarch64_backport/aarch64/include
+	INC_DIR += $(RUMP_PORT_DIR)/../dde_rump_backport/aarch64/include
+endif
+
+ifeq ($(filter-out $(SPECS),riscv),)
+	INC_DIR += $(RUMP_PORT_DIR)/../dde_rump_backport/riscv/include
 endif
 
 INC_DIR += $(LIBGCC_INC_DIR) \

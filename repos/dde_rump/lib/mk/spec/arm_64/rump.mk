@@ -14,10 +14,10 @@ INC_DIR += $(REP_DIR)/src/lib/rump/spec/arm_64
 
 include $(REP_DIR)/lib/mk/rump.inc
 
-vpath %.S $(RUMP_PORT_DIR)/../libc
+vpath %.S $(RUMP_PORT_DIR)/../libc/aarch64/atomic
 vpath %.c $(RUMP_PORT_DIR)/src/common/lib/libc/gen
-vpath %.c $(RUMP_PORT_DIR)/../dde_rump_aarch64_backport/aarch64/aarch64
-vpath %.c $(RUMP_PORT_DIR)/../dde_rump_aarch64_backport/arm/arm32
+vpath %.c $(RUMP_PORT_DIR)/../dde_rump_backport/aarch64/aarch64
+vpath %.c $(RUMP_PORT_DIR)/../dde_rump_backport/arm/arm32
 vpath %.c $(RUMP_PORT_DIR)/src/sys/rump/librump/rumpkern/arch/generic
 
 CC_CXX_WARN_STRICT =

@@ -1,17 +1,21 @@
 LICENSE   := BSD
 VERSION   := git
-DOWNLOADS := rump.git aarch64.svn libc.svn
+DOWNLOADS := rump.git backport.svn libc_aarch64.svn libc_riscv.svn
 
 URL(rump) := https://github.com/ssumpf/rump.git
 DIR(rump) := src/lib/dde_rump
-REV(rump) := 206ffa06cedd0779af0043997fd182b00ff4688c
+REV(rump) := 28945d1af5f66c98a3884453adf84ede4ca1b702
 
-URL(aarch64) := https://github.com/justincormack/netbsd-src/trunk/src/sys/arch
-REV(aarch64) := HEAD
-DIR(aarch64) := src/lib/dde_rump_aarch64_backport
+URL(backport) := https://github.com/justincormack/netbsd-src/trunk/src/sys/arch
+REV(backport) := HEAD
+DIR(backport) := src/lib/dde_rump_backport
 
-URL(libc) := https://github.com/justincormack/netbsd-src/trunk/src/common/lib/libc/arch/aarch64/atomic
-REV(libc) := HEAD
-DIR(libc) := src/lib/libc
+URL(libc_aarch64) := https://github.com/justincormack/netbsd-src/trunk/src/common/lib/libc/arch/aarch64/atomic
+REV(libc_aarch64) := HEAD
+DIR(libc_aarch64) := src/lib/libc/aarch64/atomic
 
-PATCHES := patches/rump.patch patches/aarch64.patch patches/sync.patch
+URL(libc_riscv) := https://github.com/justincormack/netbsd-src/trunk/src/common/lib/libc/arch/riscv/atomic
+REV(libc_riscv) := HEAD
+DIR(libc_riscv) := src/lib/libc/riscv/atomic
+
+PATCHES := patches/rump.patch patches/aarch64.patch patches/riscv.patch patches/sync.patch

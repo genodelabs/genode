@@ -18,7 +18,7 @@ MIRROR_FROM_REP_DIR := $(LIB_MK) \
 
 MIRROR_FROM_PORT_DIR := src/lib/dde_rump/src \
                         src/lib/libc \
-                        src/lib/dde_rump_aarch64_backport
+                        src/lib/dde_rump_backport
 
 content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_PORT_DIR)
 
