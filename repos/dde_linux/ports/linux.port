@@ -11,6 +11,7 @@ DIR(linux) := src/linux
 #
 PATCH_FILES := i915_irq.patch i915_fb_resize.patch \
                iwlwifi_enable_irq_before_pnvm.patch \
+               iwlwifi_limit_rx_bufs.patch \
                usb_message.patch \
                workqueue_deadlock.patch
 PATCHES += $(addprefix patches/,$(PATCH_FILES))

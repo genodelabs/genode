@@ -1,0 +1,13 @@
+--- src/linux/drivers/net/wireless/intel/iwlwifi/pcie/drv.c
++++ src/linux/drivers/net/wireless/intel/iwlwifi/pcie/drv.c
+@@ -1656,6 +1656,10 @@
+ 		trans_pcie->num_rx_bufs = RX_QUEUE_SIZE;
+ 	}
+ 
++	/* limit some recent cards that use 4096 */
++	if (trans_pcie->num_rx_bufs > 2048)
++		trans_pcie->num_rx_bufs = 2048;
++
+ 	ret = iwl_trans_init(iwl_trans);
+ 	if (ret)
+ 		goto out_free_trans;
