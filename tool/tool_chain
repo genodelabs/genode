@@ -56,7 +56,7 @@ GENODE_DIR ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 # version numbers
 #
 
-TOOL_CHAIN_VERSION = 21.05
+TOOL_CHAIN_VERSION = 23.05
 GCC_VERSION        = 10.3.0
 BINUTILS_VERSION   = 2.32
 
