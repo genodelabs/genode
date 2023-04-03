@@ -8,18 +8,18 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/bfd/bfd-in2.h b/bfd/bfd-in2.h
-index 7eff85b7..4d24be86 100644
+index eddfb31b..b3fc8a94 100644
 --- a/bfd/bfd-in2.h
 +++ b/bfd/bfd-in2.h
-@@ -44,6 +44,7 @@ extern "C" {
- #include "bfd_stdint.h"
+@@ -45,6 +45,7 @@ extern "C" {
+ #include <stdbool.h>
  #include "diagnostics.h"
  #include <stdarg.h>
 +#include <stdio.h>
+ #include <string.h>
  #include <sys/stat.h>
  
- #if defined (__STDC__) || defined (ALMOST_STDC) || defined (HAVE_STRINGIZE)
-@@ -6513,7 +6514,7 @@ struct bfd
+@@ -6512,7 +6513,7 @@ struct bfd
  
    /* The IOSTREAM, and corresponding IO vector that provide access
       to the file backing the BFD.  */
