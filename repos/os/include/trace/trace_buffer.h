@@ -82,7 +82,7 @@ class Trace_buffer
 
 		void * address() const { return &_buffer; }
 
-		bool empty() const { return _curr.head(); }
+		bool empty() const { return !_buffer.initialized() || _curr.head(); }
 };
 
 #endif /* _TRACE__TRACE_BUFFER_H_ */
