@@ -103,12 +103,25 @@ void dma_unmap_sg_attrs(struct device         * dev,
 {
 	int i;
 	struct scatterlist *sg;
+	unsigned long virt_addr;
 
 	if (dir != DMA_FROM_DEVICE)
 		return;
 
 	for_each_sg(sgl, sg, nents, i) {
-		lx_emul_mem_cache_invalidate(page_address(sg_page(sg)) + sg->offset,
+		/*
+		 * Since calling 'dma_unmap_sg_attrs' should be inverse to
+		 * 'dma_map_sg_attrs' we use the formerly acquired 'dma_address'
+		 * to look up the corresponding virtual address to invalidate the
+		 * the cache.
+		 */
+		if (!sg->dma_address)
+			continue;
+
+		virt_addr =
+			lx_emul_mem_virt_addr((void*)(sg->dma_address - sg->offset));
+		lx_emul_mem_cache_invalidate((void*)(virt_addr + sg->offset),
 		                             sg->length);
+		sg->dma_address = 0;
 	}
 }
