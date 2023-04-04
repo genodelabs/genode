@@ -1,12 +1,3 @@
 <runtime ram="4M" caps="200" binary="nano3d">
-
 	<requires> <gui/> <timer/> </requires>
-
-	<config/>
-
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="nano3d"/>
-	</content>
-
 </runtime>

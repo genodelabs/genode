@@ -1,0 +1,5 @@
+
+   Simple software-rendering demo application w/o config
+
+This variant is useful for controlling the configuration dynamically using
+the dynamic-rom service.
