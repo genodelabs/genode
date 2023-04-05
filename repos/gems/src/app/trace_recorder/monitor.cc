@@ -182,13 +182,13 @@ void Trace_recorder::Monitor::stop()
 			destroy(_alloc, &writer);
 		});
 
-		/* destroy buffer */
-		destroy(_alloc, &buf);
-
 		try {
 			/* detach buffer */
 			_trace.free(buf.subject_id());
 		} catch (Trace::Nonexistent_subject) { }
+
+		/* destroy buffer */
+		destroy(_alloc, &buf);
 	});
 
 	_trace_directory.destruct();
