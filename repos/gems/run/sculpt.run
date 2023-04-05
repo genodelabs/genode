@@ -150,22 +150,35 @@ proc log_route { } {
 }
 
 
-proc nic_drv { } {
+##
+# ROM routes that relabel generic NIC driver names to platform-specific binaries
+#
+proc nic_driver_routes { } {
 
-	if {[have_board pc]}          { return ipxe_nic_drv }
-	if {[have_board imx8q_evk]}   { return fec_nic_drv  }
-	if {[have_board mnt_reform2]} { return fec_nic_drv  }
+	set result(pc) {
+		<service name="ROM" label="nic_drv">  <parent label="ipxe_nic_drv"/> </service>
+		<service name="ROM" label="wifi_drv"> <parent label="pc_wifi_drv"/>  </service>
+	}
 
-	return nic_unavailable
-}
+	set result(mnt_reform2) {
+		<service name="ROM" label="nic_drv">     <parent label="fec_nic_drv"/> </service>
+		<service name="ROM" label="nic_drv.dtb"> <parent label="fec_nic_drv-mnt_reform2.dtb"/> </service>
+	}
 
+	set result(imx8q_evk) {
+		<service name="ROM" label="nic_drv">     <parent label="fec_nic_drv"/> </service>
+		<service name="ROM" label="nic_drv.dtb"> <parent label="fec_nic_drv-imx8q_evk.dtb"/> </service>
+	}
 
-proc nic_drv_dtb { } {
+	set result(pinephone) {
+		<service name="ROM" label="wifi_drv">        <parent label="a64_wifi_drv"/> </service>
+		<service name="ROM" label="wifi_drv.dtb">    <parent label="wifi-pinephone.dtb"/> </service>
+	}
 
-	if {[have_board imx8q_evk]}   { return fec_nic_drv-imx8q_evk.dtb  }
-	if {[have_board mnt_reform2]} { return fec_nic_drv-mnt_reform2.dtb  }
+	if {[info exists result([board])]} {
+		return $result([board]); }
 
-	return nic_unavailable
+	return "";
 }
 
 
@@ -627,9 +640,7 @@ install_config {
 				<child name="leitzentrale" label="fonts"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="LOG" label="unlogged"> <parent/> </service>
-			} [log_route] {
-			<service name="ROM" label="nic_drv">     <parent label="} [nic_drv] {"/> </service>
-			<service name="ROM" label="nic_drv.dtb"> <parent label="} [nic_drv_dtb] {"/> </service>
+			} [log_route] [nic_driver_routes] {
 			<service name="Event"   label="global">       <child name="nitpicker"/>    </service>
 			<service name="Event"   label="leitzentrale"> <child name="leitzentrale"/> </service>
 			<service name="Capture" label="global">       <child name="nitpicker"/>    </service>
