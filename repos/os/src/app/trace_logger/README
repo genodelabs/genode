@@ -33,8 +33,14 @@ policy.label:
 This is a short description of the tags and attributes:
 
 :config.verbose:
-  Optional. Toggles wether the trace_logger shall log debugging information.
+  Optional. Toggles whether the trace_logger shall log debugging information.
   If enabled, even inactive trace subjects appear in the log.
+
+:config.sc_time:
+  Optionally log scheduling-context execution time in addition to the
+  thread-context. This may be relevant on kernel platforms that do not
+  schedule threads on their own CPU share only but implement some kind of
+  donation scheme, for example, NOVA.
 
 :config.session_ram:
   Optional. Amount of RAM donated to the trace session.

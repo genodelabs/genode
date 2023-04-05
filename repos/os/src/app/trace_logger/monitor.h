@@ -57,14 +57,14 @@ class Monitor : public Monitor_base,
 		Trace_buffer                     _buffer;
 		unsigned long                    _report_id        { 0 };
 		Genode::Trace::Subject_info      _info             {   };
-		unsigned long long               _recent_exec_time { 0 };
+		Genode::Trace::Execution_time    _recent_exec_time {   };
 		char                             _curr_entry_data[MAX_ENTRY_LENGTH];
 
 	public:
 
 		struct Formatting
 		{
-			unsigned thread_name, affinity, state, total_cpu, recent_cpu;
+			unsigned thread_name, affinity, state, total_tc, recent_tc, total_sc, recent_sc;
 		};
 
 		Monitor(Genode::Trace::Connection &trace,
@@ -76,7 +76,7 @@ class Monitor : public Monitor_base,
 		 */
 		void apply_formatting(Formatting &) const;
 
-		struct Level_of_detail { bool state, active_only; };
+		struct Level_of_detail { bool state, active_only, sc_time; };
 
 		void print(Formatting, Level_of_detail);
 
@@ -101,7 +101,9 @@ class Monitor : public Monitor_base,
 
 		bool recently_active() const
 		{
-			return (_recent_exec_time != 0) || !_buffer.empty();
+			return _recent_exec_time.thread_context
+			    || _recent_exec_time.scheduling_context
+			    || !_buffer.empty();
 		}
 };
 

@@ -12,11 +12,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* local includes */
-#include <policy.h>
-#include <monitor.h>
-#include <xml_node.h>
-
 /* Genode includes */
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
@@ -26,6 +21,11 @@
 #include <timer_session/connection.h>
 #include <util/construct_at.h>
 #include <util/formatted_output.h>
+#include <util/xml_node.h>
+
+/* local includes */
+#include <policy.h>
+#include <monitor.h>
 
 using namespace Genode;
 using Thread_name = String<40>;
@@ -45,6 +45,7 @@ class Main
 			size_t       session_arg_buffer;
 			unsigned     session_parent_levels;
 			bool         verbose;
+			bool         sc_time;
 			Microseconds period_us;
 			size_t       default_buf_sz;
 			Policy_name  default_policy_name;
@@ -208,7 +209,8 @@ class Main
 
 			log("\nReport ", _report_id++, "\n");
 			Monitor::Level_of_detail const detail { .state       =  _config.verbose,
-			                                        .active_only = !_config.verbose };
+			                                        .active_only = !_config.verbose,
+			                                        .sc_time     =  _config.sc_time };
 			_print_monitors(_heap, monitors, detail);
 		}
 
@@ -216,7 +218,10 @@ class Main
 
 		Main(Env &env) : _env(env)
 		{
-			_update_monitors();
+			/*
+			 * We skip the initial monitor update as the periodic timeout triggers
+			 * the update immediately for the first time.
+			 */
 		}
 };
 
@@ -230,7 +235,9 @@ Main::Config Main::Config::from_xml(Xml_node const &config)
 		                                                Number_of_bytes(1024*4)),
 		.session_parent_levels = config.attribute_value("session_parent_levels", 0u),
 		.verbose               = config.attribute_value("verbose",  false),
-		.period_us             = read_sec_attr(config, "period_sec", 5),
+		.sc_time               = config.attribute_value("sc_time",  false),
+		.period_us             = Microseconds(config.attribute_value("period_sec", 5)
+		                                     * 1'000'000),
 		.default_buf_sz        = config.attribute_value("default_buffer",
 		                                                Number_of_bytes(4*1024)),
 		.default_policy_name   = config.attribute_value("default_policy",
@@ -293,11 +300,14 @@ void Main::_print_monitors(Allocator &alloc, Monitor_tree const &monitors,
 	pds.for_each([&] (Pd const &pd) {
 
 		unsigned const state_width  = detail.state ? fmt.state + 1 : 0;
+		unsigned const sc_width     = detail.sc_time
+		                            ? fmt.total_sc + fmt.total_tc + 21 : 0;
 		unsigned const table_width  = fmt.thread_name
 		                            + fmt.affinity
 		                            + state_width
-		                            + fmt.total_cpu
-		                            + fmt.recent_cpu
+		                            + fmt.total_tc
+		                            + fmt.recent_tc
+		                            + sc_width
 		                            + 26;
 		unsigned const pd_width     = (unsigned)pd.label.length() + 6;
 		unsigned const excess_width = table_width - min(table_width, pd_width);

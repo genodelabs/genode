@@ -112,17 +112,12 @@ Monitor::Monitor(Trace::Connection      &trace,
 
 void Monitor::update_info(Trace::Subject_info const &info)
 {
-	try {
-		uint64_t const last_execution_time =
-			_info.execution_time().thread_context;
+	_recent_exec_time = {
+		info.execution_time().thread_context     - _info.execution_time().thread_context,
+		info.execution_time().scheduling_context - _info.execution_time().scheduling_context
+	};
 
-		_info = info;
-
-		_recent_exec_time =
-			_info.execution_time().thread_context - last_execution_time;
-	}
-	catch (Trace::Nonexistent_subject) {
-		warning("Cannot update subject info: Nonexistent_subject"); }
+	_info = info;
 }
 
 
@@ -138,8 +133,10 @@ void Monitor::apply_formatting(Formatting &formatting) const
 	expand(formatting.thread_name, Quoted_name{_info.thread_name()});
 	expand(formatting.affinity,    Formatted_affinity{_info.affinity()});
 	expand(formatting.state,       Subject_info::state_name(_info.state()));
-	expand(formatting.total_cpu,   _info.execution_time().thread_context);
-	expand(formatting.recent_cpu,  _recent_exec_time);
+	expand(formatting.total_tc,    _info.execution_time().thread_context);
+	expand(formatting.recent_tc,   _recent_exec_time.thread_context);
+	expand(formatting.total_sc,    _info.execution_time().scheduling_context);
+	expand(formatting.recent_sc,   _recent_exec_time.scheduling_context);
 }
 
 
@@ -152,12 +149,16 @@ void Monitor::print(Formatting fmt, Level_of_detail detail)
 	/* print general subject information */
 	typedef Trace::Subject_info Subject_info;
 	Subject_info::State const state = _info.state();
+
 	log(" Thread ", Left_aligned(fmt.thread_name, Quoted_name{_info.thread_name()}),
 	    " ",        Left_aligned(fmt.affinity, Formatted_affinity{_info.affinity()}),
 	    "  ",       Conditional(detail.state,
 	                            Left_aligned(fmt.state + 1, Subject_info::state_name(state))),
-	    "total:",   Left_aligned(fmt.total_cpu, _info.execution_time().thread_context), " "
-	    "recent:",  _recent_exec_time);
+	    "total:",   Left_aligned(fmt.total_tc, _info.execution_time().thread_context), " "
+	    "recent:",  Left_aligned(fmt.recent_tc, _recent_exec_time.thread_context),
+	    Conditional(detail.sc_time, String<80>(
+	      " total_sc:",  Left_aligned(fmt.total_sc, _info.execution_time().scheduling_context),
+	      " recent_sc:", _recent_exec_time.scheduling_context)));
 
 	/* print all buffer entries that we haven't yet printed */
 	_buffer.for_each_new_entry([&] (Trace::Buffer::Entry entry) {

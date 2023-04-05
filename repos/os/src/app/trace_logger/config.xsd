@@ -37,8 +37,7 @@
 
 			</xs:choice>
 			<xs:attribute name="verbose"               type="Boolean" />
-			<xs:attribute name="activity"              type="Boolean" />
-			<xs:attribute name="affinity"              type="Boolean" />
+			<xs:attribute name="sc_time"               type="Boolean" />
 			<xs:attribute name="session_arg_buffer"    type="Number_of_bytes" />
 			<xs:attribute name="session_ram"           type="Number_of_bytes" />
 			<xs:attribute name="session_parent_levels" type="xs:nonNegativeInteger" />
