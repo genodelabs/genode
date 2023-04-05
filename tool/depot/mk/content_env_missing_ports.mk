@@ -26,6 +26,18 @@ disable_shell = $(eval SHELL:=true)
 $(disable_shell)
 
 #
+# Check for the existance of a port's hash file
+#
+# \param $1  path to hash file
+#
+# This check may fail whenever a 'port_dir' call in a content.mk file refers to
+# a wrong repository.
+#
+_assert_hash_exists = $(if $(wildcard $1).hash,,\
+                         $(error missing hash file for port '$(notdir $1)'\
+                         (expected at $1)))
+
+#
 # If a port is missing, append its name to the missing ports file
 #
 _assert = $(if $1,$1,$(shell echo $2 >> $(MISSING_PORTS_FILE)))
@@ -37,7 +49,7 @@ _assert = $(if $1,$1,$(shell echo $2 >> $(MISSING_PORTS_FILE)))
 #
 #   $(call port_dir,$(GENODE_DIR)/repos/libports/ports/libpng)
 #
-_port_hash = $(shell cat $(call _assert,$(wildcard $1.hash),$(notdir $1)))
+_port_hash = $(_assert_hash_exists)$(shell cat $(call _assert,$(wildcard $1.hash),$(notdir $1)))
 _port_dir  = $(wildcard $(CONTRIB_DIR)/$(notdir $1)-$(call _port_hash,$1))
 port_dir   = $(call enable_shell)$(call _assert,$(call _port_dir,$1),$(notdir $1))$(call disable_shell)
 
