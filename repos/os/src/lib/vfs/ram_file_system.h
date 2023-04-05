@@ -753,11 +753,11 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			Vfs_ram::Node &node = ram_handle->node;
 			bool node_modified = ram_handle->modifying;
 
-			ram_handle->node.close(*ram_handle);
+			node.close(*ram_handle);
 			destroy(vfs_handle->alloc(), ram_handle);
 
-			if (ram_handle->node.unlinked() && !ram_handle->node.opened()) {
-				destroy(_env.alloc(), &ram_handle->node);
+			if (node.unlinked() && !node.opened()) {
+				destroy(_env.alloc(), &node);
 			} else if (node_modified) {
 				node.notify();
 			}
