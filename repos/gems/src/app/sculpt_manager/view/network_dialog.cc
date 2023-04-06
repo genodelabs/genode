@@ -22,27 +22,29 @@ using namespace Sculpt;
 void Network_dialog::_gen_access_point(Xml_generator &xml,
                                        Access_point const &ap) const
 {
-	gen_named_node(xml, "hbox", ap.bssid, [&] () {
+	gen_named_node(xml, "hbox", ap.bssid, [&] {
 
-		gen_named_node(xml, "float", "left", [&] () {
+		gen_named_node(xml, "float", "left", [&] {
 			xml.attribute("west", "yes");
 
-			xml.node("hbox", [&] () {
-				gen_named_node(xml, "button", "button", [&] () {
-					xml.attribute("style", "radio");
+			xml.node("hbox", [&] {
+				gen_named_node(xml, "float", "left", [&] {
+					gen_named_node(xml, "button", "button", [&] {
+						xml.attribute("style", "radio");
 
-					if (_wifi_connection.connected())
-						xml.attribute("selected", "yes");
-					else
-						_ap_item.gen_button_attr(xml, ap.bssid);
+						if (_wifi_connection.connected())
+							xml.attribute("selected", "yes");
+						else
+							_ap_item.gen_button_attr(xml, ap.bssid);
 
-					xml.node("hbox", [&] () { });
+						xml.node("hbox", [&] { });
+					});
 				});
 
-				gen_named_node(xml, "label", "ssid", [&] () {
+				gen_named_node(xml, "label", "ssid", [&] {
 					xml.attribute("text", String<20>(" ", ap.ssid)); });
 
-				gen_named_node(xml, "label", "protection", [&] () {
+				gen_named_node(xml, "label", "protection", [&] {
 					xml.attribute("font", "annotation/regular");
 					if (ap.protection == Access_point::WPA_PSK)
 						xml.attribute("text", " (WPA) ");
@@ -52,9 +54,9 @@ void Network_dialog::_gen_access_point(Xml_generator &xml,
 			});
 		});
 
-		gen_named_node(xml, "float", "right", [&] () {
+		gen_named_node(xml, "float", "right", [&] {
 			xml.attribute("east", "yes");
-			xml.node("label", [&] () {
+			xml.node("label", [&] {
 				xml.attribute("text", String<8>(ap.quality, "%")); });
 		});
 	});
