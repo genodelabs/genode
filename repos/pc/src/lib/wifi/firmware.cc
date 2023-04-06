@@ -37,23 +37,24 @@ Firmware_list fw_list[] = {
 	{ "iwlwifi-7260-17.ucode",   1049340, nullptr },
 	{ "iwlwifi-7265-16.ucode",   1180412, nullptr },
 	{ "iwlwifi-7265D-29.ucode",  1036772, nullptr },
-	{ "iwlwifi-8000C-22.ucode",  2120860, nullptr },
 	{ "iwlwifi-8000C-36.ucode",  2428004, nullptr },
-	{ "iwlwifi-8265-22.ucode",   1811984, nullptr },
 	{ "iwlwifi-8265-36.ucode",   2436632, nullptr },
 
-	{ "iwlwifi-9000-pu-b0-jf-b0-34.ucode", 2678284, nullptr },
-	{ "iwlwifi-9000-pu-b0-jf-b0-36.ucode", 2678284, "iwlwifi-9000-pu-b0-jf-b0-34.ucode" },
 	{ "iwlwifi-9000-pu-b0-jf-b0-46.ucode", 1514876, nullptr },
+	{ "iwlwifi-9260-th-b0-jf-b0-46.ucode", 1490376, nullptr },
 
-	{ "iwlwifi-QuZ-a0-hr-b0-63.ucode", 1334804, nullptr },
-	{ "iwlwifi-QuZ-a0-hr-b0-64.ucode", 1334804, "iwlwifi-QuZ-a0-hr-b0-63.ucode" },
-	{ "iwlwifi-so-a0-hr-b0-64.ucode",  1427384, nullptr },
-	{ "iwlwifi-so-a0-gf-a0-64.ucode",  1515812, nullptr },
-	{ "iwlwifi-so-a0-gf-a0.pnvm", 41808, nullptr },
-	{ "iwlwifi-ty-a0-gf-a0-63.ucode",  1460012, nullptr },
-	{ "iwlwifi-ty-a0-gf-a0-64.ucode",  1460012, "iwlwifi-ty-a0-gf-a0-63.ucode" },
-	{ "iwlwifi-ty-a0-gf-a0-72.ucode",  1460012, "iwlwifi-ty-a0-gf-a0-63.ucode" },
+	{ "iwlwifi-QuZ-a0-hr-b0-68.ucode", 1355800, nullptr },
+	{ "iwlwifi-QuZ-a0-hr-b0-72.ucode", 1355800, "iwlwifi-QuZ-a0-hr-b0-68.ucode" },
+
+	{ "iwlwifi-so-a0-hr-b0-68.ucode",  1429192, nullptr },
+	{ "iwlwifi-so-a0-hr-b0-72.ucode",  1429192, "iwlwifi-so-a0-hr-b0-68.ucode" },
+
+	{ "iwlwifi-so-a0-gf-a0-68.ucode",  1533812, nullptr },
+	{ "iwlwifi-so-a0-gf-a0-72.ucode",  1533812, "iwlwifi-so-a0-gf-a0-68.ucode" },
+	{ "iwlwifi-so-a0-gf-a0.pnvm",        41808, nullptr },
+
+	{ "iwlwifi-ty-a0-gf-a0-68.ucode",  1494304, nullptr },
+	{ "iwlwifi-ty-a0-gf-a0-72.ucode",  1494304, "iwlwifi-ty-a0-gf-a0-68.ucode" },
 	{ "iwlwifi-ty-a0-gf-a0.pnvm",        41588, nullptr },
 
 	{ "rtl8192eu_nic.bin",       31818, nullptr },

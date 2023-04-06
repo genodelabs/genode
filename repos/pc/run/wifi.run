@@ -306,15 +306,20 @@ set firmware_modules {
 	iwlwifi-3168-29.ucode
 	iwlwifi-5000-5.ucode
 	iwlwifi-6000-4.ucode
+	iwlwifi-6000g2a-6.ucode
+	iwlwifi-6000g2b-6.ucode
 	iwlwifi-7260-17.ucode
 	iwlwifi-7265-17.ucode
 	iwlwifi-7265D-29.ucode
 	iwlwifi-8000C-36.ucode
 	iwlwifi-8265-36.ucode
-	iwlwifi-9000-pu-b0-jf-b0-34.ucode
 	iwlwifi-9000-pu-b0-jf-b0-46.ucode
-	iwlwifi-QuZ-a0-hr-b0-63.ucode
-	iwlwifi-ty-a0-gf-a0-63.ucode
+	iwlwifi-9260-th-b0-jf-b0-46.ucode
+	iwlwifi-QuZ-a0-hr-b0-68.ucode
+	iwlwifi-so-a0-gf-a0-68.ucode
+	iwlwifi-so-a0-gf-a0.pnvm
+	iwlwifi-so-a0-hr-b0-68.ucode
+	iwlwifi-ty-a0-gf-a0-68.ucode
 	iwlwifi-ty-a0-gf-a0.pnvm
 	rtl8192eu_nic.bin
 	rtl8188efw.bin

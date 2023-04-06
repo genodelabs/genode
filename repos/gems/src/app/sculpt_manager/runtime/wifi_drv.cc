@@ -84,12 +84,14 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 		gen_parent_rom_route(xml, "iwlwifi-7265D-29.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-8000C-36.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-8265-36.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-9000-pu-b0-jf-b0-34.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-9000-pu-b0-jf-b0-46.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-QuZ-a0-hr-b0-63.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-so-a0-hr-b0-64.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-so-a0-gf-a0-64.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-9260-th-b0-jf-b0-46.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-QuZ-a0-hr-b0-68.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-so-a0-hr-b0-68.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-so-a0-gf-a0-68.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-so-a0-gf-a0.pnvm");
+		gen_parent_rom_route(xml, "iwlwifi-ty-a0-gf-a0-68.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-ty-a0-gf-a0.pnvm");
 		gen_parent_rom_route(xml, "rtl8192eu_nic.bin");
 		gen_parent_rom_route(xml, "rtl8188efw.bin");
 		gen_parent_rom_route(xml, "regulatory.db");
