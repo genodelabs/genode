@@ -179,7 +179,7 @@ class Core::Initial_untyped_pool
 		template <typename FUNC>
 		void turn_into_untyped_object(addr_t  const node_index,
 		                              FUNC    const & func,
-		                              uint8_t const size_log2 = get_page_size_log2(),
+		                              size_t  const size_log2 = get_page_size_log2(),
 		                              addr_t  max_memory = 0UL - 0x1000UL)
 		{
 			for_each_range([&] (Range &range) {
@@ -193,7 +193,7 @@ class Core::Initial_untyped_pool
 				for (;;) {
 
 					addr_t const page_aligned_free_offset =
-						align_addr(range.free_offset, size_log2);
+						align_addr(range.free_offset, (int)size_log2);
 
 					/* back out if no further page can be allocated */
 					if (page_aligned_free_offset + (1UL << size_log2) > range.size)
