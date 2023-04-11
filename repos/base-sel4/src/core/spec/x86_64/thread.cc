@@ -15,6 +15,7 @@
  */
 
 /* base includes */
+#include <base/internal/native_utcb.h>
 #include <base/thread_state.h>
 
 /* core includes */
@@ -24,7 +25,8 @@
 using namespace Core;
 
 
-void Core::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp, unsigned cpu)
+void Core::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp,
+                             unsigned cpu, addr_t const virt_utcb)
 {
 	/* set register values for the instruction pointer and stack pointer */
 	seL4_UserContext regs;
@@ -39,6 +41,14 @@ void Core::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp, unsigned cpu
 	ASSERT(ret == 0);
 
 	affinity_sel4_thread(tcb_sel, cpu);
+
+	/*
+	 * Set tls pointer to location, where ipcbuffer address is stored, so
+	 * that it can be used by register fs (seL4_GetIPCBuffer())
+	 */
+	auto error = seL4_TCB_SetTLSBase(tcb_sel.value(),
+	                                 virt_utcb + Native_utcb::tls_ipcbuffer_offset);
+	ASSERT(not error);
 
 	seL4_TCB_Resume(tcb_sel.value());
 }

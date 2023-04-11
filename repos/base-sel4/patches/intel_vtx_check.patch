@@ -36,15 +36,14 @@
      case seL4_X86_EPTPML4Object:
 --- src/kernel/sel4/src/arch/x86/object/vcpu.c
 +++ src/kernel/sel4/src/arch/x86/object/vcpu.c
-@@ -409,9 +416,14 @@ applyFixedBits(uint32_t original, uint32_t high, uint32_t low)
+@@ -401,8 +401,13 @@
      return original;
  }
  
--void
+-void vcpu_init(vcpu_t *vcpu)
 +static bool_t vcpu_support_available = false;
 +
-+bool_t
- vcpu_init(vcpu_t *vcpu)
++bool_t vcpu_init(vcpu_t *vcpu)
  {
 +    if (!vcpu_support_available)
 +        return false;
@@ -61,6 +60,14 @@
  }
  
  static void
+@@ -937,6 +937,7 @@
+ 
+     buffer = lookupIPCBuffer(true, tcb);
+     vcpu = tcb->tcbArch.tcbVCPU;
++    (void)buffer;
+ 
+     assert(vcpu);
+ 
 @@ -1067,6 +1081,12 @@ vtx_init(void)
              printf("vt-x: lack of required features\n");
              return false;

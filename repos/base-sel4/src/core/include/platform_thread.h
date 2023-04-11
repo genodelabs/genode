@@ -50,8 +50,8 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 		/**
 		 * Virtual address of the IPC buffer within the PDs address space
 		 *
-		 * The value is 0 for the PD's main thread. For all other threads,
-		 * the value is somewhere within the stack area.
+		 * The value for the PD's main thread is INITIAL_IPC_BUFFER_VIRT.
+		 * For all other threads, the value is somewhere within the stack area.
 		 */
 		addr_t const _utcb;
 
@@ -78,6 +78,8 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 
 		Affinity::Location _location;
 		uint16_t           _priority;
+
+		bool main_thread() const { return _utcb == INITIAL_IPC_BUFFER_VIRT; }
 
 	public:
 

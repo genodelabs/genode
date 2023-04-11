@@ -15,7 +15,7 @@
 #define _CORE__INCLUDE__SEL4_BOOT_INFO_H_
 
 /* seL4 includes */
-#include <sel4/bootinfo.h>
+#include <base/internal/sel4.h>
 
 /* core includes */
 #include <types.h>

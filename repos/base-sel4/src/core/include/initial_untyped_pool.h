@@ -206,9 +206,6 @@ class Core::Initial_untyped_pool
 					size_t const retype_size_limit = get_page_size()*256;
 					size_t const batch_size        = min(min(remaining_size, retype_size_limit), max_memory);
 
-					/* mark consumed untyped memory range as allocated */
-					range.free_offset += batch_size;
-
 					addr_t const phys_addr = range.phys + page_aligned_free_offset;
 					size_t const num_pages = batch_size / (1UL << size_log2);
 
@@ -228,6 +225,13 @@ class Core::Initial_untyped_pool
 						return;
 					}
 
+					/* invoke callback about the range */
+					bool const used = func(phys_addr, num_pages << size_log2,
+					                       range.device);
+
+					if (!used)
+						return;
+
 					long const ret = seL4_Untyped_Retype(service,
 					                                     type,
 					                                     size_bits,
@@ -243,6 +247,9 @@ class Core::Initial_untyped_pool
 						return;
 					}
 
+					/* mark consumed untyped memory range as allocated */
+					range.free_offset += batch_size;
+
 					/* track memory left to be converted */
 					max_memory -= batch_size;
 
@@ -251,9 +258,6 @@ class Core::Initial_untyped_pool
 						size_t const num_pages = batch_size >> get_page_size_log2();
 						Untyped_memory::convert_to_page_frames(phys_addr, num_pages);
 					}
-
-					/* invoke callback about the range */
-					func(phys_addr, num_pages << size_log2, range.device);
 				}
 			});
 		}

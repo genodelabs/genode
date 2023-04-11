@@ -94,8 +94,10 @@ bool Core::install_mapping(Mapping const &mapping, unsigned long pager_object_ba
  ** Utilities to support the Platform_thread interface **
  ********************************************************/
 
-static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel,
-                                   Cap_sel lock_sel)
+static void prepopulate_ipc_buffer(addr_t  const ipc_buffer_phys,
+                                   Cap_sel const ep_sel,
+                                   Cap_sel const lock_sel,
+                                   addr_t  const utcb_virt)
 {
 	/* IPC buffer is one page */
 	size_t const page_rounded_size = get_page_size();
@@ -112,6 +114,7 @@ static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel,
 			Native_utcb &utcb = *(Native_utcb *)virt_ptr;
 			utcb.ep_sel  (ep_sel  .value());
 			utcb.lock_sel(lock_sel.value());
+			utcb.ipcbuffer(utcb_virt);
 
 			/* unmap IPC buffer from core */
 			if (!unmap_local((addr_t)virt_ptr, 1)) {
@@ -161,7 +164,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int)
 	 * thread. Once started, the thread picks up this information in the
 	 * 'Thread::_thread_bootstrap' method.
 	 */
-	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel, _lock_sel);
+	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel, _lock_sel, _utcb);
 
 	/* bind thread to PD and CSpace */
 	seL4_CNode_CapData const guard_cap_data =
@@ -177,7 +180,8 @@ int Platform_thread::start(void *ip, void *sp, unsigned int)
 	                                  no_cap_data.words[0]);
 	ASSERT(ret == 0);
 
-	start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp), _location.xpos());
+	start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp), _location.xpos(),
+	                  _utcb);
 	return 0;
 }
 
@@ -215,7 +219,7 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
                                  Affinity::Location location, addr_t utcb)
 :
 	_name(name),
-	_utcb(utcb),
+	_utcb(utcb ? utcb : addr_t(INITIAL_IPC_BUFFER_VIRT)),
 	_pager_obj_sel(platform_specific().core_sel_alloc().alloc()),
 	_location(location),
 	_priority((uint16_t)(Cpu_session::scale_priority(CONFIG_NUM_PRIORITIES, priority)))
@@ -226,7 +230,7 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
 	if (_priority > 0)
 		_priority -= 1;
 
-	_info.init(_utcb ? _utcb : (addr_t)INITIAL_IPC_BUFFER_VIRT, _priority);
+	_info.init(_utcb, _priority);
 	platform_thread_registry().insert(*this);
 }
 
@@ -284,5 +288,6 @@ void Platform_thread::setup_vcpu(Cap_sel ept, Cap_sel notification)
 	_pd->cspace_cnode(_vcpu_notify_sel).copy(platform_specific().core_cnode(),
 	                                         notification, _vcpu_notify_sel);
 
-	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _vcpu_sel, _vcpu_notify_sel);
+	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _vcpu_sel, _vcpu_notify_sel,
+	                       _utcb);
 }

@@ -103,18 +103,20 @@ void Platform::_init_allocators()
 
 	/* turn remaining untyped memory ranges into untyped pages */
 	_initial_untyped_pool.turn_into_untyped_object(Core_cspace::TOP_CNODE_UNTYPED_4K,
-		[&] (addr_t const phys, addr_t const size, bool const device) {
+		[&] (addr_t const phys, addr_t const size, bool const device_memory) {
 			/* register to physical or iomem memory allocator */
 
 			addr_t const phys_addr = trunc_page(phys);
 			size_t const phys_size = round_page(phys - phys_addr + size);
 
-			if (device)
+			if (device_memory)
 				_io_mem_alloc.add_range(phys_addr, phys_size);
 			else
 				_core_mem_alloc.phys_alloc().add_range(phys_addr, phys_size);
 
 			_unused_phys_alloc.remove_range(phys_addr, phys_size);
+
+			return true; /* range used by this functor */
 		});
 
 	/*
@@ -174,7 +176,7 @@ void Platform::_switch_to_core_cspace()
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapASIDControl));
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadASIDPool));
 	/* XXX io port not available on ARM, causes just a kernel warning XXX */
-	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapIOPort));
+	_core_cnode.move(initial_cspace, Cnode_index(seL4_CapIOPortControl));
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapBootInfoFrame));
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadIPCBuffer));
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapDomain));
@@ -648,8 +650,8 @@ Platform::Platform()
 			                                     affinity_space().height()));
 	}
 
-	/* I/O port allocator (only meaningful for x86) */
-	_io_port_alloc.add_range(0, 0x10000);
+	/* solely meaningful for x86 */
+	_init_io_ports();
 
 	_init_rom_modules();
 

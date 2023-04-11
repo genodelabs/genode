@@ -1,0 +1,15 @@
+--- src/kernel/sel4/src/arch/arm/kernel/boot.c
++++ src/kernel/sel4/src/arch/arm/kernel/boot.c
+@@ -582,6 +582,12 @@
+         dtb_end_p = dtb_addr_p + dtb_size;
+     }
+ 
++    /*
++     * no DTB support on Genode/seL4 - avoids assertion in
++     * src/kernel/boot.c: assert(r->start >= reserved[i - 1].end);
++     */
++    dtb_addr_p = dtb_end_p = 0;
++
+ #ifdef ENABLE_SMP_SUPPORT
+     /* we assume there exists a cpu with id 0 and will use it for bootstrapping */
+     if (getCurrentCPUIndex() == 0) {

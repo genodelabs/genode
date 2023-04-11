@@ -15,7 +15,6 @@
 #include <core_log.h>
 
 /* seL4 includes */
-#include <sel4/arch/functions.h>
-#include <sel4/arch/syscalls.h>
+#include <base/internal/sel4.h>
 
 void Core::Core_log::out(char const c) { seL4_DebugPutChar(c); }

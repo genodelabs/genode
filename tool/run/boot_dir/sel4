@@ -12,7 +12,7 @@ proc kernel_files          { } { return sel4 }
 
 proc boot_output { } { return "serial" }
 
-proc run_boot_string   { } { return "\n\rBooting all finished, dropped to user space" }
+proc run_boot_string   { } { return "\nBooting all finished, dropped to user space" }
 proc core_link_address { } { return "0x02000000" }
 
 proc sel4_elfloader_dir { } {

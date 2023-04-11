@@ -122,8 +122,10 @@ struct Core::Untyped_memory
 			                                     num_objects);
 
 			if (ret != seL4_NoError) {
-				error(__FUNCTION__, ": seL4_Untyped_RetypeAtOffset (IA32_4K) "
-				      "returned ", ret);
+				error(__FUNCTION__, ": seL4_Untyped_RetypeAtOffset "
+				      "returned ", ret, " - physical_range=",
+				      Hex_range(node_offset << get_page_size_log2(),
+				                (num_pages - i) * get_page_size()));
 				return;
 			}
 		}

@@ -25,7 +25,7 @@ unsigned char Io_port_session_component::inb(unsigned short address)
 	/* check boundaries */
 	if (!_in_bounds(address, sizeof(unsigned char))) return 0;
 
-	seL4_X86_IOPort_In8_t v = seL4_X86_IOPort_In8(seL4_CapIOPort, address);
+	auto const v = seL4_X86_IOPort_In8(Core_cspace::io_port_sel(), address);
 	if (v.error == seL4_NoError)
 		return v.result;
 
@@ -39,7 +39,7 @@ unsigned short Io_port_session_component::inw(unsigned short address)
 	/* check boundaries */
 	if (!_in_bounds(address, sizeof(unsigned short))) return 0;
 
-	seL4_X86_IOPort_In16_t v = seL4_X86_IOPort_In16(seL4_CapIOPort, address);
+	auto const v = seL4_X86_IOPort_In16(Core_cspace::io_port_sel(), address);
 	if (v.error == seL4_NoError)
 		return v.result;
 
@@ -53,7 +53,7 @@ unsigned Io_port_session_component::inl(unsigned short address)
 	/* check boundaries */
 	if (!_in_bounds(address, sizeof(unsigned))) return 0;
 
-	seL4_X86_IOPort_In32_t v = seL4_X86_IOPort_In32(seL4_CapIOPort, address);
+	auto const v = seL4_X86_IOPort_In32(Core_cspace::io_port_sel(), address);
 	if (v.error == seL4_NoError)
 		return v.result;
 
@@ -67,7 +67,7 @@ void Io_port_session_component::outb(unsigned short address, unsigned char value
 	/* check boundaries */
 	if (!_in_bounds(address, sizeof(unsigned char))) return;
 
-	int result = seL4_X86_IOPort_Out8(seL4_CapIOPort, address, value);
+	int result = seL4_X86_IOPort_Out8(Core_cspace::io_port_sel(), address, value);
 
 	if (result != seL4_NoError)
 		error(__PRETTY_FUNCTION__, " failed ", result);
@@ -79,7 +79,7 @@ void Io_port_session_component::outw(unsigned short address, unsigned short valu
 	/* check boundaries */
 	if (!_in_bounds(address, sizeof(unsigned short))) return;
 
-	int result = seL4_X86_IOPort_Out16(seL4_CapIOPort, address, value);
+	int result = seL4_X86_IOPort_Out16(Core_cspace::io_port_sel(), address, value);
 
 	if (result != seL4_NoError)
 		error(__PRETTY_FUNCTION__, " failed ", result);
@@ -91,7 +91,7 @@ void Io_port_session_component::outl(unsigned short address, unsigned value)
 	/* check boundaries */
 	if (!_in_bounds(address, sizeof(unsigned))) return;
 
-	int result = seL4_X86_IOPort_Out32(seL4_CapIOPort, address, value);
+	int result = seL4_X86_IOPort_Out32(Core_cspace::io_port_sel(), address, value);
 
 	if (result != seL4_NoError)
 		error(__PRETTY_FUNCTION__, " failed ", result);

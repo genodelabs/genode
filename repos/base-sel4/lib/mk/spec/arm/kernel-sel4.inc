@@ -18,14 +18,36 @@ else
 SEL4_CCACHE=
 endif
 
-elfloader/elfloader.o:
+configured_kernel:
+	$(VERBOSE) cmake -DCROSS_COMPILER_PREFIX=$(CROSS_DEV_PREFIX) \
+	                 -DCMAKE_TOOLCHAIN_FILE=$(SEL4_DIR)/gcc.cmake \
+	                 -DKernelARMPlatform=sabre \
+	                 -G Ninja \
+	                 -C $(SEL4_DIR)/configs/ARM_verified.cmake \
+	                 $(SEL4_DIR) \
+	&& echo -e "\n#define CONFIG_PRINTING 1"                        >>gen_config/kernel/gen_config.h \
+	&& echo -e "#define CONFIG_DEBUG_BUILD 1"                        >>gen_config/kernel/gen_config.h \
+	&& echo -e "#define CONFIG_ENABLE_BENCHMARKS 1"                  >>gen_config/kernel/gen_config.h \
+	&& echo -e "#define CONFIG_BENCHMARK_TRACK_UTILISATION 1"        >>gen_config/kernel/gen_config.h \
+	&& echo -e "#define CONFIG_SET_TLS_BASE_SELF 1"                  >>gen_config/kernel/gen_config.h \
+	&& echo -e "#define CONFIG_HAVE_FPU 1"                           >>gen_config/kernel/gen_config.h \
+	&& echo -e "#define CONFIG_AARCH32_FPU_ENABLE_CONTEXT_SWITCH  1" >>gen_config/kernel/gen_config.h \
+	&& echo -e "#define CONFIG_FPU_MAX_RESTORES_SINCE_SWITCH  64"    >>gen_config/kernel/gen_config.h \
+	\
+	&& sed -e "s/CONFIG_NUM_DOMAINS 16/CONFIG_NUM_DOMAINS 1/"                    \
+	       -e "s/CONFIG_ROOT_CNODE_SIZE_BITS 12/CONFIG_ROOT_CNODE_SIZE_BITS 15/" \
+	          gen_config/kernel/gen_config.h   >gen_config/kernel/gen_config.tmp \
+	&& mv     gen_config/kernel/gen_config.tmp  gen_config/kernel/gen_config.h   \
+	&& touch configured_kernel
+
+elfloader/elfloader.o: configured_kernel
 	$(VERBOSE)cp -r $(TOOLS_DIR)/elfloader-tool $(LIB_CACHE_DIR)/$(LIB)/elfloader
 	$(VERBOSE)mkdir -p $(LIB_CACHE_DIR)/$(LIB)/elfloader/tools/kbuild
 	$(VERBOSE)mkdir -p $(LIB_CACHE_DIR)/$(LIB)/elfloader/include/generated
 	$(VERBOSE)ln -s $(TOOLS_DIR)/common-tool/common.mk $(LIB_CACHE_DIR)/$(LIB)/elfloader/
 	$(VERBOSE)ln -s $(TOOLS_DIR)/common-tool/files_to_obj.sh $(LIB_CACHE_DIR)/$(LIB)/elfloader/
 	$(VERBOSE)ln -s $(TOOLS_DIR)/kbuild-tool/Kbuild.include $(LIB_CACHE_DIR)/$(LIB)/elfloader/tools/kbuild/
-	$(VERBOSE)ln -s $(SEL4_DIR)/configs/$(PLAT)/$(BOARD)/autoconf.h $(LIB_CACHE_DIR)/$(LIB)/elfloader/include/generated/
+	$(VERBOSE)ln -s $(LIB_CACHE_DIR)/$(LIB)/gen_config/kernel/gen_config.h $(LIB_CACHE_DIR)/$(LIB)/elfloader/include/generated/autoconf.h
 	$(VERBOSE)$(MAKE) -C $(LIB_CACHE_DIR)/$(LIB)/elfloader \
 	          TOOLPREFIX=$(CROSS_DEV_PREFIX) \
 	          ARCH=arm PLAT=$(PLAT) ARMV=armv7-a __ARM_32__="y" \
@@ -35,7 +57,5 @@ elfloader/elfloader.o:
 	          srctree=.
 
 build_kernel: elfloader/elfloader.o
-	$(VERBOSE)$(MAKE) \
-	          TOOLPREFIX=$(CROSS_DEV_PREFIX) \
-	          BOARD=$(BOARD) ARCH=arm PLAT=$(PLAT) CPU=$(CPU) ARMV=armv7-a DEBUG=1 \
-	          SOURCE_ROOT=$(SEL4_DIR) -f$(SEL4_DIR)/Makefile
+	$(VERBOSE) ninja kernel.elf && \
+	$(CUSTOM_STRIP) -o kernel.elf.strip kernel.elf

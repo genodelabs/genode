@@ -101,8 +101,11 @@ void Thread::_thread_start()
 
 void Thread::start()
 {
+	/* write ipcbuffer address to utcb*/
+	utcb()->ipcbuffer(addr_t(utcb()));
+
 	start_sel4_thread(Cap_sel(native_thread().tcb_sel), (addr_t)&_thread_start,
-	                  (addr_t)stack_top(), _affinity.xpos());
+	                  (addr_t)stack_top(), _affinity.xpos(), addr_t(utcb()));
 
 	struct Core_trace_source : public  Core::Trace::Source::Info_accessor,
 	                           private Core::Trace::Control,

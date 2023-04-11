@@ -225,6 +225,11 @@ class Core::Platform : public Platform_generic
 		 */
 		long _unmap_page_frame(Cap_sel const &);
 
+		/**
+		 * Initialize I/O ports on x86
+		 */
+		void _init_io_ports();
+
 	public:
 
 		/**

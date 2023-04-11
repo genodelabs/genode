@@ -33,7 +33,8 @@ namespace Core {
 	 * Set register values for the instruction pointer and stack pointer and
 	 * start the seL4 thread
 	 */
-	void start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp, unsigned cpu);
+	void start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp, unsigned cpu,
+	                       addr_t tls_ipcbuffer);
 	void affinity_sel4_thread(Cap_sel const &tcb_sel, unsigned cpu);
 }
 

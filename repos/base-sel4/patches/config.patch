@@ -1,53 +1,22 @@
---- src/kernel/sel4/Makefile
-+++ src/kernel/sel4/Makefile
-@@ -287,8 +287,8 @@
- # Only set CFLAGS if we're building standalone.
- # common/Makefile.Flags sets NK_CFLAGS  in Kbuild environments.
- ifndef NK_CFLAGS
--STATICHEADERS += ${SOURCE_ROOT}/configs/$(PLAT)/autoconf.h
--INCLUDES += "-I${SOURCE_ROOT}/configs/$(PLAT)"
-+STATICHEADERS += ${SOURCE_ROOT}/configs/$(PLAT)/$(BOARD)/autoconf.h
-+INCLUDES += "-I${SOURCE_ROOT}/configs/$(PLAT)/$(BOARD)"
- DEFINES += -DHAVE_AUTOCONF
- ifdef DEBUG
- DEFINES += -DCONFIG_DEBUG_BUILD
---- src/kernel/sel4/src/plat/pc99/linker.lds
-+++ src/kernel/sel4/src/plat/pc99/linker.lds
-@@ -16,13 +16,13 @@
- #if defined(CONFIG_ARCH_IA32)
- #undef i386
- PADDR_BASE = 0x00000000;
--PADDR_LOAD = 0x00100000;
-+PADDR_LOAD = 0x00200000;
- KERNEL_BASE  = 0xe0000000;
- OUTPUT_ARCH(i386)
- OUTPUT_FORMAT(elf32-i386)
- #elif defined(CONFIG_ARCH_X86_64)
- PADDR_BASE = 0x00000000;
--PADDR_LOAD = 0x00100000;
-+PADDR_LOAD = 0x00200000;
- KERNEL_BASE = 0xffffffff80000000;
- OUTPUT_FORMAT(elf64-x86-64)
- #endif
 --- src/kernel/sel4/include/plat/pc99/plat/64/plat_mode/machine/hardware.h
 +++ src/kernel/sel4/include/plat/pc99/plat/64/plat_mode/machine/hardware.h
-@@ -19,7 +19,7 @@
-  * because they need to defined like this in linker.lds
-  */
- #define PADDR_BASE  UL_CONST(0x00000000)
--#define PADDR_LOAD  UL_CONST(0x00100000)
-+#define PADDR_LOAD  UL_CONST(0x00200000)
- /* our kernel window is 2^39 bits (2^9 * 1gb) and the virtual address
-  * range is 48 bits. Therefore our base is 2^48 - 2^39
-  */
+@@ -87,7 +87,7 @@
+ #define PPTR_TOP UL_CONST(0xffffffff80000000)
+ 
+ /* The physical memory address to use for mapping the kernel ELF */
+-#define KERNEL_ELF_PADDR_BASE UL_CONST(0x00100000)
++#define KERNEL_ELF_PADDR_BASE UL_CONST(0x00200000)
+ 
+ /* Kernel mapping starts directly after the physical memory window */
+ #define KERNEL_ELF_BASE (PPTR_TOP + KERNEL_ELF_PADDR_BASE)
 --- src/kernel/sel4/include/plat/pc99/plat/32/plat_mode/machine/hardware.h
 +++ src/kernel/sel4/include/plat/pc99/plat/32/plat_mode/machine/hardware.h
-@@ -15,7 +15,7 @@
+@@ -74,7 +74,7 @@
+ #define PPTR_TOP KS_LOG_PPTR
  
- /* WARNING: some of these constants are also defined in linker.lds */
- #define PADDR_BASE  0x00000000
--#define PADDR_LOAD  0x00100000
-+#define PADDR_LOAD  0x00200000
- #define PPTR_BASE   0xe0000000
+ /* The physical memory address to use for mapping the kernel ELF */
+-#define KERNEL_ELF_PADDR_BASE UL_CONST(0x00100000)
++#define KERNEL_ELF_PADDR_BASE UL_CONST(0x00200000)
  
- #define PPTR_USER_TOP (PPTR_BASE & (~MASK(seL4_LargePageBits)))
+ /* The base address in virtual memory to use for the kernel ELF mapping */
+ #define KERNEL_ELF_BASE (PPTR_BASE + KERNEL_ELF_PADDR_BASE)

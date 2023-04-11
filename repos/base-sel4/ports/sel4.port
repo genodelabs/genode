@@ -3,31 +3,19 @@ VERSION   := git
 DOWNLOADS := sel4.git
 
 URL(sel4) := https://github.com/seL4/seL4.git
-# master branch, version 9.0.1
-REV(sel4) := 0dd40b6c43a290173ea7782b97afbbbddfa23b36
+# master branch, version 12.1.0
+REV(sel4) := 21c1a2ca7a9786d1297e1ff0a132bc57eeb55530
 DIR(sel4) := src/kernel/sel4
 
+$(call check_tool,cmake)
+$(call check_tool,ninja)
 $(call check_tool,python)
 $(call check_python_module,future)
-$(call check_python_module,tempita)
+$(call check_python_module,jinja2)
 $(call check_python_module,ply)
 $(call check_python_module,six)
+# required for ARM
+$(call check_python_module,pyfdt)
+$(call check_python_module,jsonschema)
 
 PATCHES   := $(sort $(wildcard $(REP_DIR)/patches/*.patch))
-
-HASH_INPUT += $(REP_DIR)/patches/imx6q_sabrelite.config
-HASH_INPUT += $(REP_DIR)/patches/imx7d_sabre.config
-
-# adjust kernel config usable on qemu and on native hw, and add a 32bit version
-default: $(DOWNLOADS)
-	$(VERBOSE)mkdir -p src/kernel/sel4/configs/pc99/x86_64
-	$(VERBOSE)mkdir -p src/kernel/sel4/configs/pc99/ia32
-	$(VERBOSE)cp src/kernel/sel4/configs/pc99/autoconf.h src/kernel/sel4/configs/pc99/x86_64/autoconf.h
-	$(VERBOSE)mv src/kernel/sel4/configs/pc99/autoconf.h src/kernel/sel4/configs/pc99/ia32/autoconf.h
-	$(VERBOSE)sed -i "s.^ \*/. \*/\n#ifndef ARCH_IA32\n#define ARCH_IA32\n#endif\n." src/kernel/sel4/configs/pc99/ia32/autoconf.h
-	$(VERBOSE)mkdir -p src/kernel/sel4/configs/imx6/imx6q_sabrelite
-	$(VERBOSE)mv src/kernel/sel4/configs/imx6/autoconf.h src/kernel/sel4/configs/imx6/imx6q_sabrelite/autoconf.h
-	$(VERBOSE)patch -p0 <$(REP_DIR)/patches/imx6q_sabrelite.config
-	$(VERBOSE)mkdir -p src/kernel/sel4/configs/imx7/imx7d_sabre
-	$(VERBOSE)mv src/kernel/sel4/configs/imx7/autoconf.h src/kernel/sel4/configs/imx7/imx7d_sabre/autoconf.h
-	$(VERBOSE)patch -p0 <$(REP_DIR)/patches/imx7d_sabre.config

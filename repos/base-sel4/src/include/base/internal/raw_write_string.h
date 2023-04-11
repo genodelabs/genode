@@ -15,8 +15,7 @@
 #define _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
 
 /* seL4 includes */
-#include <sel4/arch/functions.h>
-#include <sel4/arch/syscalls.h>
+#include <base/internal/sel4.h>
 
 namespace Genode {
 

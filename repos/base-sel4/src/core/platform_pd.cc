@@ -58,7 +58,8 @@ bool Platform_pd::bind_thread(Platform_thread &thread)
 		thread._ep_sel = alloc_sel();
 		thread._vcpu_sel = alloc_sel();
 		/* allocate asynchronous selector used for locks in the PD's CSpace */
-		thread._lock_sel = thread._utcb ? alloc_sel() : Cap_sel(INITIAL_SEL_LOCK);
+		thread._lock_sel = thread.main_thread() ? Cap_sel(INITIAL_SEL_LOCK)
+		                                        : alloc_sel();
 		thread._vcpu_notify_sel = alloc_sel();
 	} catch (Platform_pd::Sel_bit_alloc::Out_of_indices) {
 		if (thread._fault_handler_sel.value()) {
@@ -92,24 +93,21 @@ bool Platform_pd::bind_thread(Platform_thread &thread)
 	 *     to attach the UTCB as a dataspace to the stack area to make the RM
 	 *     session aware to the mapping. This code is missing.
 	 */
-	addr_t const utcb = (thread._utcb) ? thread._utcb
-	                                    : (addr_t)thread.INITIAL_IPC_BUFFER_VIRT;
-
 	Vm_space::Map_attr const attr { .cached         = true,
 	                                .write_combined = false,
 	                                .writeable      = true,
 	                                .executable     = false,
 	                                .flush_support  = true };
 	enum { ONE_PAGE = 1 };
-	_vm_space.alloc_page_tables(utcb, get_page_size());
-	_vm_space.map(thread._info.ipc_buffer_phys, utcb, ONE_PAGE, attr);
+	_vm_space.alloc_page_tables(thread._utcb, get_page_size());
+	_vm_space.map(thread._info.ipc_buffer_phys, thread._utcb, ONE_PAGE, attr);
 	return true;
 }
 
 
 void Platform_pd::unbind_thread(Platform_thread &thread)
 {
-	if (thread._utcb)
+	if (not thread.main_thread())
 		free_sel(thread._lock_sel);
 
 	free_sel(thread._fault_handler_sel);
@@ -117,10 +115,7 @@ void Platform_pd::unbind_thread(Platform_thread &thread)
 	free_sel(thread._vcpu_sel);
 	free_sel(thread._vcpu_notify_sel);
 
-	if (thread._utcb)
-		_vm_space.unmap(thread._utcb, 1);
-	else
-		_vm_space.unmap(thread.INITIAL_IPC_BUFFER_VIRT, 1);
+	_vm_space.unmap(thread._utcb, 1);
 }
 
 
