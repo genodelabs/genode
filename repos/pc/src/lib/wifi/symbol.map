@@ -17,12 +17,6 @@
 		/* interface for libnl/wpa_driver_nl82011 */
 		wifi_if*;
 
-		/* used by libnl's time() */
-		jiffies;
-
-		/* for general debugging purposes */
-		lx_emul_backtrace;
-
 	local:
 
 		*;
