@@ -2,7 +2,7 @@
 # Driver portions
 #
 
-LIB_MK := $(addprefix lib/mk/,wifi_firmware.mk wifi.inc vfs_wifi.mk) \
+LIB_MK := $(addprefix lib/mk/,wifi.inc vfs_wifi.mk) \
           $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/wifi.mk) \
 
 MIRROR_FROM_REP_DIR := src/drivers/wifi/pc \
