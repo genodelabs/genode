@@ -48,7 +48,7 @@ void Libc::Component::construct(Libc::Env &env)
 
 		plugin_widget_interface->env(env);
 
-		QString plugin_args("ram_quota=4M, caps=500");
+		QString plugin_args("ram_quota=6M, caps=500");
 
 		QPluginWidget *plugin_widget = static_cast<QPluginWidget*>(
 			plugin_widget_interface->createWidget(&w,
@@ -64,4 +64,12 @@ void Libc::Component::construct(Libc::Env &env)
 
 		return app.exec();
 	});
+}
+
+
+/* dummy will not be called */
+int main(int argc, char *argv[])
+{
+	qFatal("Error: '", __func__, "' should not be called.");
+	return -1;
 }
