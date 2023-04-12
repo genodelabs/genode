@@ -9,6 +9,7 @@ MIRROR_FROM_REP_DIR := src/drivers/wifi/pc \
                        src/lib/pc/lx_emul \
                        src/include \
                        $(LIB_MK) \
+                       lib/symbols/wifi \
                        $(shell cd $(REP_DIR); find src/drivers/wifi -type f) \
                        $(shell cd $(REP_DIR); find src/lib/wifi -type f) \
                        $(shell cd $(REP_DIR); find src/lib/vfs/wifi -type f)
