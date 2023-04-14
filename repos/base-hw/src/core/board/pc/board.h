@@ -31,7 +31,8 @@ namespace Board { using namespace Hw::Pc_board; };
 #include <spec/x86_64/cpu.h>
 
 namespace Board {
-	class Pic : public Local_interrupt_controller { };
+	class Pic : public Local_interrupt_controller
+	{ using Local_interrupt_controller::Local_interrupt_controller; };
 
 	enum {
 		VECTOR_REMAP_BASE   = 48,
