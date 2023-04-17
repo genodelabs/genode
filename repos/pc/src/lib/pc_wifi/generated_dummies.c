@@ -20,14 +20,6 @@ int ___ratelimit(struct ratelimit_state * rs,const char * func)
 struct cpumask __cpu_active_mask;
 
 
-#include <crypto/algapi.h>
-
-void __crypto_xor(u8 * dst,const u8 * src1,const u8 * src2,unsigned int len)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/ethtool.h>
 
 int __ethtool_get_link_ksettings(struct net_device * dev,struct ethtool_link_ksettings * link_ksettings)

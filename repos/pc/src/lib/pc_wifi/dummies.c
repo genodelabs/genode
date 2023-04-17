@@ -538,3 +538,17 @@ void cdev_init(struct cdev * cdev,const struct file_operations * fops)
 {
 	lx_emul_trace(__func__);
 }
+
+
+#include <crypto/algapi.h>
+
+/*
+ * For the moment implement here as the it will otherwise clash with
+ * older kernel versions, 5.14.x on the PinePhone, where it is implmented
+ * in 'crypto/algapi.c.
+ */
+void __crypto_xor(u8 *dst, const u8 *src1, const u8 *src2, unsigned int len)
+{
+	while (len--)
+		*dst++ = *src1++ ^ *src2++;
+}
