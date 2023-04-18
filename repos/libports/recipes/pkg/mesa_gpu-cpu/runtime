@@ -1,4 +1,4 @@
-<runtime ram="4M" caps="300" binary="init">
+<runtime ram="16M" caps="300" binary="init">
 
 	<provides>
 		<rom/>
@@ -46,7 +46,7 @@
 		</start>
 
 		<start name="cached_fs_rom" caps="100">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="8M"/>
 			<provides> <service name="ROM"/> </provides>
 			<config/>
 		</start>
