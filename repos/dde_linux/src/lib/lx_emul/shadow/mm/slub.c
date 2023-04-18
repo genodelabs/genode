@@ -33,6 +33,8 @@ void kfree(const void * x)
 
 void * __kmalloc(size_t size, gfp_t flags)
 {
+	unsigned long align = (unsigned long)ARCH_KMALLOC_MINALIGN;
+
 	/* Linux expects a non-NULL return value for size 0 */
 	if (size == 0)
 		size = 1;
@@ -41,7 +43,10 @@ void * __kmalloc(size_t size, gfp_t flags)
 	if (flags & GFP_DMA)
 		lx_emul_trace_and_stop(__func__);
 
-	return lx_emul_mem_alloc_aligned(size, ARCH_KMALLOC_MINALIGN);
+	/* for page-rounded sizes use page-alignment */
+	if ((size % PAGE_SIZE) == 0) align = PAGE_SIZE;
+
+	return lx_emul_mem_alloc_aligned(size, align);
 }
 
 
