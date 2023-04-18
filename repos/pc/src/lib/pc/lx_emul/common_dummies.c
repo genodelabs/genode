@@ -194,14 +194,6 @@ void register_irq_proc(unsigned int irq,struct irq_desc * desc)
 }
 
 
-#include <linux/cdev.h>
-
-void cdev_init(struct cdev * cdev,const struct file_operations * fops)
-{
-	lx_emul_trace(__func__);
-}
-
-
 int cdev_add(struct cdev * p,dev_t dev,unsigned count)
 {
 	lx_emul_trace(__func__);

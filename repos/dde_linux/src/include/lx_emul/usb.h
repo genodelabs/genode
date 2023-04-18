@@ -20,6 +20,9 @@ extern "C" {
 
 extern struct genode_usb_rpc_callbacks lx_emul_usb_rpc_callbacks;
 
+struct file_operations;
+void lx_emul_usb_register_devio(const struct file_operations * fops);
+
 #ifdef __cplusplus
 }
 #endif

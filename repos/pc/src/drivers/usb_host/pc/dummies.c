@@ -214,3 +214,30 @@ void net_ns_init(void)
 {
 	lx_emul_trace(__func__);
 }
+
+
+#include <linux/fs.h>
+
+struct timespec64 current_time(struct inode * inode)
+{
+	struct timespec64 ret = { 0 };
+	lx_emul_trace(__func__);
+	return ret;
+}
+
+
+#include <linux/pid.h>
+
+void put_pid(struct pid * pid)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/cred.h>
+
+void __put_cred(struct cred * cred)
+{
+	lx_emul_trace(__func__);
+}
+

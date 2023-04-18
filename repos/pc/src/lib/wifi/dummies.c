@@ -530,3 +530,11 @@ int pcie_capability_clear_and_set_word(struct pci_dev *dev, int pos,
 	lx_emul_trace_and_stop(__func__);
 	return 0;
 }
+
+
+#include <linux/cdev.h>
+
+void cdev_init(struct cdev * cdev,const struct file_operations * fops)
+{
+	lx_emul_trace(__func__);
+}

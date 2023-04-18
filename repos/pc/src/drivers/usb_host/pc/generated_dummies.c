@@ -36,14 +36,6 @@ void __printk_safe_exit(void)
 }
 
 
-#include <linux/cred.h>
-
-void __put_cred(struct cred * cred)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/sched/task.h>
 
 void __put_task_struct(struct task_struct * tsk)
@@ -63,22 +55,6 @@ void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
 #include <linux/fs.h>
 
 void __unregister_chrdev(unsigned int major,unsigned int baseminor,unsigned int count,const char * name)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/uaccess.h>
-
-unsigned long _copy_from_user(void * to,const void __user * from,unsigned long n)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/uaccess.h>
-
-unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -126,14 +102,6 @@ void async_synchronize_full(void)
 #include <linux/arch_topology.h>
 
 const struct cpumask * cpu_clustergroup_mask(int cpu)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/fs.h>
-
-struct timespec64 current_time(struct inode * inode)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -303,14 +271,6 @@ void kill_anon_super(struct super_block * sb)
 }
 
 
-#include <linux/sched/signal.h>
-
-int kill_pid_usb_asyncio(int sig,int errno,sigval_t addr,struct pid * pid,const struct cred * cred)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/slab.h>
 
 void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
@@ -423,14 +383,6 @@ int proc_dointvec_minmax(struct ctl_table * table,int write,void * buffer,size_t
 #include <linux/sysctl.h>
 
 int proc_douintvec(struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/pid.h>
-
-void put_pid(struct pid * pid)
 {
 	lx_emul_trace_and_stop(__func__);
 }

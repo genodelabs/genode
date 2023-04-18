@@ -63,11 +63,11 @@ extern "C" void lx_emul_start_kernel(void * dtb)
 }
 
 
-extern "C" void lx_emul_execute_kernel_until(int (*condition)(void))
+extern "C" void lx_emul_execute_kernel_until(int (*condition)(void*), void * args)
 {
 	Lx_kit::env().scheduler.schedule();
 
-	while (!condition()) {
+	while (!condition(args)) {
 		Lx_kit::env().env.ep().wait_and_dispatch_one_io_signal();
 	}
 }
