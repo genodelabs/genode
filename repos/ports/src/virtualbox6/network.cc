@@ -72,8 +72,8 @@ typedef struct DRVNIC
 	PPDMINETWORKCONFIG      pIAboveConfig;
 	/** Pointer to the driver instance. */
 	PPDMDRVINS              pDrvIns;
-	/** Receiver thread that handles all signals. */
-	PPDMTHREAD              pThread;
+	/** Transmit lock used by pfnBeginXmit/pfnEndXmit. */
+	RTCRITSECT              XmitLock;
 	/** Nic::Session client wrapper. */
 	Nic_client             *nic_client;
 } DRVNIC, *PDRVNIC;
@@ -214,7 +214,7 @@ class Nic_client
 			_down_rx(drvtap->pIAboveNet),
 			_down_rx_config(drvtap->pIAboveConfig)
 		{
-			Genode::Signal_transmitter(_pthread_reg_sigh).submit();
+			_pthread_reg_sigh.local_submit();
 		}
 
 		~Nic_client()
@@ -285,7 +285,21 @@ class Nic_client
  */
 static DECLCALLBACK(int) drvNicNetworkUp_BeginXmit(PPDMINETWORKUP pInterface, bool fOnWorkerThread)
 {
-	return VINF_SUCCESS;
+	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
+	int rc = RTCritSectTryEnter(&pThis->XmitLock);
+	if (RT_FAILURE(rc))
+		rc = VERR_TRY_AGAIN;
+	return rc;
+}
+
+
+/**
+ * @interface_method_impl{PDMINETWORKUP,pfnEndXmit}
+ */
+static DECLCALLBACK(void) drvNicNetworkUp_EndXmit(PPDMINETWORKUP pInterface)
+{
+	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
+	RTCritSectLeave(&pThis->XmitLock);
 }
 
 
@@ -373,6 +387,7 @@ static DECLCALLBACK(int) drvNicNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDM
 
 	AssertPtr(pSgBuf);
 	Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
+	Assert(RTCritSectIsOwner(&pThis->XmitLock));
 
 	if (!pSgBuf->pvAllocator) {
 		RTLogPrintf("%s: error in packet allocation\n", __func__);
@@ -418,14 +433,6 @@ static DECLCALLBACK(int) drvNicNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDM
 	if (RT_FAILURE(rc))
 		rc = rc == VERR_NO_MEMORY ? VERR_NET_NO_BUFFER_SPACE : VERR_NET_DOWN;
 	return rc;
-}
-
-
-/**
- * @interface_method_impl{PDMINETWORKUP,pfnEndXmit}
- */
-static DECLCALLBACK(void) drvNicNetworkUp_EndXmit(PPDMINETWORKUP pInterface)
-{
 }
 
 
@@ -498,6 +505,9 @@ static DECLCALLBACK(void) drvNicDestruct(PPDMDRVINS pDrvIns)
 
 	if (nic_client)
 		destroy(net_alloc(), nic_client);
+
+	if (RTCritSectIsInitialized(&pThis->XmitLock))
+		RTCritSectDelete(&pThis->XmitLock);
 }
 
 
@@ -528,6 +538,8 @@ static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 	pThis->INetworkUp.pfnNotifyLinkChanged  = drvNicNetworkUp_NotifyLinkChanged;
 	/* INetworkConfig - used on Genode to request Mac address of nic_session */
 	pThis->INetworkConfig.pfnGetMac         = drvGetMac;
+
+	RTCritSectInit(&pThis->XmitLock);
 
 	/*
 	 * Check that no-one is attached to us.
