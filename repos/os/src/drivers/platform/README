@@ -67,6 +67,12 @@ operate with global names of physical resources.
 Policy for PCI devices
 ----------------------
 
+PCI devices are named according to their bus-device-function triple as
+hexadecimal BB:DD.F (see example below). Thus, dedicated devices can easily
+be selected by name in policies.
+
+! <device name="00:03.0" type="pci"...>
+
 Policies for PCI devices do not necessarily need to state the name of
 the device, but can either state a class of devices, or a vendor/device
 pair of identifiers inside a pci sub-node:
