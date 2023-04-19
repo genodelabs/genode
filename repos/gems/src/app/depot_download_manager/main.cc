@@ -409,8 +409,6 @@ void Depot_download_manager::Main::_handle_query_result()
 	Xml_node const image        = _image.xml();
 	Xml_node const image_index  = _image_index.xml();
 
-	log("query result index: ", index);
-
 	/* mark jobs referring to existing depot content as unneccessary */
 	Import::for_each_present_depot_path(dependencies, index, image, image_index,
 		[&] (Archive::Path const &path) {
