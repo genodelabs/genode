@@ -134,7 +134,7 @@ void Sculpt::Deploy::handle_deploy()
 		error("spurious exception during deploy update (apply_blueprint)"); }
 
 	/* update query for blueprints of all unconfigured start nodes */
-	if (_children.any_blueprint_needed())
+	if (_children.any_blueprint_needed() && !_download_queue.any_active_download())
 		_depot_query.trigger_depot_query();
 
 	/* feed missing packages to installation queue */

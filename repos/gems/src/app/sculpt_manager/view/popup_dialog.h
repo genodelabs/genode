@@ -419,7 +419,7 @@ struct Sculpt::Popup_dialog : Dialog
 
 		_blueprint_info = construction.blueprint_info;
 
-		if (_blueprint_info.ready_to_deploy())
+		if (_blueprint_info.ready_to_deploy() && _state == PKG_REQUESTED)
 			_state = PKG_SHOWN;
 
 		_refresh.refresh_popup_dialog();

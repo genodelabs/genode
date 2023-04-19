@@ -186,6 +186,24 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			if (pkg.attribute_value("path", Archive::Path()) != _blueprint_pkg_path)
 				return;
 
+			/* check for the completeness of all ROM ingredients */
+			bool any_rom_missing = false;
+			pkg.for_each_sub_node("missing_rom", [&] (Xml_node const &missing_rom) {
+				Name const name = missing_rom.attribute_value("label", Name());
+
+				/* ld.lib.so is special because it is provided by the base system */
+				if (name == "ld.lib.so")
+					return;
+
+				warning("missing ROM module '", name, "' needed by ", _blueprint_pkg_path);
+				any_rom_missing = true;
+			});
+
+			if (any_rom_missing) {
+				_pkg_incomplete = true;
+				return;
+			}
+
 			/* package was missing but is installed now */
 			_pkg_incomplete = false;
 
@@ -276,7 +294,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		bool blueprint_needed() const
 		{
-			if (_configured() || _pkg_incomplete)
+			if (_configured())
 				return false;
 
 			if (_defined_by_launcher() && !_launcher_xml.constructed())
