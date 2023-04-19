@@ -338,7 +338,10 @@ struct Sculpt::Popup_dialog : Dialog
 			reset();
 		}
 
-		if (!_blueprint_info.pkg_avail && _install_item.activated("install")) {
+		bool const pkg_need_install = !_blueprint_info.pkg_avail
+		                            || _blueprint_info.incomplete();
+
+		if (pkg_need_install && _install_item.activated("install")) {
 			_construction_info.with_construction([&] (Component const &component) {
 				action.trigger_download(component.path, component.verify);
 				_install_item.reset();

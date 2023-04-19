@@ -249,6 +249,19 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 									_gen_info_label(xml, "pad3", "");
 									xml.node("label", [&] () {
 										xml.attribute("text", "installed but incomplete"); });
+
+									if (_nic_ready()) {
+										_gen_info_label(xml, "pad4", "");
+
+										gen_named_node(xml, "float", "install", [&] () {
+											xml.node("button", [&] () {
+												_install_item.gen_button_attr(xml, "install");
+												xml.node("label", [&] () {
+													xml.attribute("text", "Reattempt Install");
+												});
+											});
+										});
+									}
 								}
 
 								/*
