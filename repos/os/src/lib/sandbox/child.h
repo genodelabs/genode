@@ -715,7 +715,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 			_child.close_all_sessions();
 
-			_report_update_trigger.trigger_report_update();
+			_report_update_trigger.trigger_immediate_report_update();
 
 			/*
 			 * Print a message as the exit is not handled otherwise. There are
