@@ -991,6 +991,26 @@ class Genode::Xml_node
 		}
 
 		/**
+		 * Execute functor 'fn' for each attribute
+		 */
+		template <typename FN>
+		void for_each_attribute(FN const &fn) const
+		{
+			if (!_tags.start.has_attribute())
+				return;
+
+			for (Xml_attribute attr = _tags.start.attribute(); ; ) {
+				fn(attr);
+
+				Token const next = attr._next_token();
+				if (!Xml_attribute::_valid(next))
+					return;
+
+				attr = Xml_attribute(next);
+			}
+		}
+
+		/**
 		 * Return true if sub node of specified type exists
 		 */
 		bool has_sub_node(char const *type) const
