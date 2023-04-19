@@ -136,6 +136,13 @@ class Depot_deploy::Children
 				child.gen_installation_entry(xml); });
 		}
 
+		template <typename FN>
+		void for_each_missing_pkg_path(FN const &fn) const
+		{
+			_children.for_each([&] (Child const &child) {
+				child.with_missing_pkg_path(fn); });
+		}
+
 		size_t count() const
 		{
 			size_t count = 0;

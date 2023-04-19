@@ -312,17 +312,22 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		                           Depot_rom_server const &cached_depot_rom,
 		                           Depot_rom_server const &uncached_depot_rom) const;
 
+		template <typename FN>
+		void with_missing_pkg_path(FN const &fn) const
+		{
+			if (_pkg_incomplete)
+				fn(_config_pkg_path());
+		}
+
 		/**
 		 * Generate installation entry needed for the completion of the child
 		 */
 		void gen_installation_entry(Xml_generator &xml) const
 		{
-			if (!_pkg_incomplete) return;
-
-			xml.node("archive", [&] () {
-				xml.attribute("path", _config_pkg_path());
-				xml.attribute("source", "no");
-			});
+			with_missing_pkg_path([&] (Archive::Path const &path) {
+				xml.node("archive", [&] () {
+					xml.attribute("path", path);
+					xml.attribute("source", "no"); }); });
 		}
 
 		bool incomplete() const { return _pkg_incomplete; }
