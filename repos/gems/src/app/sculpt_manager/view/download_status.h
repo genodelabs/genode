@@ -16,11 +16,16 @@
 
 /* local includes */
 #include <xml.h>
+#include <model/download_queue.h>
 
-namespace Sculpt { static void gen_download_status(Xml_generator &, Xml_node); }
+namespace Sculpt {
+
+	static void gen_download_status(Xml_generator &, Xml_node const &, Download_queue const &);
+}
 
 
-void Sculpt::gen_download_status(Xml_generator &xml, Xml_node state)
+void Sculpt::gen_download_status(Xml_generator &xml, Xml_node const &state,
+                                 Download_queue const &download_queue)
 {
 	gen_named_node(xml, "frame", "downloads", [&] () {
 		xml.node("vbox", [&] () {
@@ -28,20 +33,37 @@ void Sculpt::gen_download_status(Xml_generator &xml, Xml_node state)
 			xml.node("label", [&] () {
 				xml.attribute("text", "Download"); });
 
+			using Path = String<40>;
+			using Info = String<16>;
+
 			unsigned count = 0;
-			state.for_each_sub_node("archive", [&] (Xml_node archive) {
+
+			auto gen_message = [&] (auto const &path, auto const &info)
+			{
 				gen_named_node(xml, "hbox", String<10>(count++), [&] () {
 					gen_named_node(xml, "float", "left", [&] () {
 						xml.attribute("west", "yes");
-						typedef String<40> Path;
 						xml.node("label", [&] () {
-							xml.attribute("text", archive.attribute_value("path", Path()));
+							xml.attribute("text", path);
 							xml.attribute("font", "annotation/regular");
 						});
 					});
+					gen_named_node(xml, "float", "right", [&] () {
+						xml.attribute("east", "yes");
+						xml.node("label", [&] () {
+							xml.attribute("text", Info(" ", info));
+							xml.attribute("font", "annotation/regular");
+						});
+					});
+				});
+			};
 
-					typedef String<16> Info;
+			bool const download_in_progress = state.attribute_value("progress", false);
 
+			if (download_in_progress) {
+				state.for_each_sub_node("archive", [&] (Xml_node archive) {
+
+					Path   const path  = archive.attribute_value("path",  Path());
 					Info         info  = archive.attribute_value("state", Info());
 					double const total = archive.attribute_value("total", 0.0d);
 					double const now   = archive.attribute_value("now",   0.0d);
@@ -53,15 +75,12 @@ void Sculpt::gen_download_status(Xml_generator &xml, Xml_node state)
 							info = Info("fetch");
 					}
 
-					gen_named_node(xml, "float", "right", [&] () {
-						xml.attribute("east", "yes");
-						xml.node("label", [&] () {
-							xml.attribute("text", info);
-							xml.attribute("font", "annotation/regular");
-						});
-					});
+					gen_message(path, info);
 				});
-			});
+			} else {
+				download_queue.for_each_failed_download([&] (Path const &path) {
+					gen_message(path, "failed"); });
+			}
 		});
 	});
 }

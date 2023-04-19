@@ -223,6 +223,7 @@ struct Sculpt::Main : Input_event_handler,
 		/* trigger loading of the configuration from the sculpt partition */
 		_prepare_version.value++;
 
+		_download_queue.remove_inactive_downloads();
 		_deploy.restart();
 
 		generate_runtime_config();
@@ -482,8 +483,8 @@ struct Sculpt::Main : Input_event_handler,
 
 			bool const network_missing = _deploy.update_needed()
 			                         && !_network._nic_state.ready();
-			bool const show_diagnostics =
-				_deploy.any_unsatisfied_child() || network_missing;
+			bool const show_diagnostics = _deploy.any_unsatisfied_child()
+			                           || network_missing;
 
 			auto gen_network_diagnostics = [&] (Xml_generator &xml)
 			{
@@ -519,8 +520,12 @@ struct Sculpt::Main : Input_event_handler,
 			}
 
 			Xml_node const state = _update_state_rom.xml();
-			if (_update_running() && state.attribute_value("progress", false))
-				gen_download_status(xml, state);
+
+			bool const download_in_progress =
+				(_update_running() && state.attribute_value("progress", false));
+
+			if (download_in_progress || _download_queue.any_failed_download())
+				gen_download_status(xml, state, _download_queue);
 		});
 	}
 
@@ -1103,6 +1108,7 @@ struct Sculpt::Main : Input_event_handler,
 		_close_popup_dialog();
 
 		/* trigger change of the deployment */
+		_download_queue.remove_inactive_downloads();
 		_deploy.update_managed_deploy_config();
 	}
 
@@ -1131,6 +1137,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void trigger_download(Path const &path, Verify verify) override
 	{
+		_download_queue.remove_inactive_downloads();
 		_download_queue.add(path, verify);
 
 		/* incorporate new download-queue content into update */
@@ -1618,7 +1625,6 @@ void Sculpt::Main::_handle_update_state()
 		_popup_dialog.interested_in_download();
 
 	_download_queue.apply_update_state(update_state);
-	_download_queue.remove_inactive_downloads();
 
 	bool const installation_complete =
 		!update_state.attribute_value("progress", false);

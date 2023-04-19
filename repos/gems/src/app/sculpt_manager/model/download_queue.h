@@ -71,9 +71,18 @@ struct Sculpt::Download_queue : Noncopyable
 
 	Download_queue(Allocator &alloc) : _alloc(alloc) { }
 
+	bool _state_present(Download::State const state) const
+	{
+		bool result = false;
+		_downloads.for_each([&] (Download const &download) {
+			if (!result && download.state == state)
+				result = true; });
+
+		return result;
+	}
+
 	void add(Path const &path, Verify const verify)
 	{
-		log("add to download queue: ", path);
 		bool already_exists = false;
 		_downloads.for_each([&] (Download const &download) {
 			if (download.path == path)
@@ -102,7 +111,7 @@ struct Sculpt::Download_queue : Noncopyable
 		return result;
 	}
 
-	void apply_update_state(Xml_node state)
+	void apply_update_state(Xml_node const &state)
 	{
 		/* 'elem' may be of type 'index' or 'archive' */
 		state.for_each_sub_node([&] (Xml_node elem) {
@@ -150,24 +159,16 @@ struct Sculpt::Download_queue : Noncopyable
 			download.gen_installation_entry(xml); });
 	}
 
-	bool any_active_download() const
+	bool any_active_download()    const { return _state_present(Download::State::DOWNLOADING); }
+	bool any_completed_download() const { return _state_present(Download::State::DONE); }
+	bool any_failed_download()    const { return _state_present(Download::State::FAILED); }
+
+	template <typename FN>
+	void for_each_failed_download(FN const &fn) const
 	{
-		bool result = false;
 		_downloads.for_each([&] (Download const &download) {
-			if (!result && download.state == Download::State::DOWNLOADING)
-				result = true; });
-
-		return result;
-	}
-
-	bool any_completed_download() const
-	{
-		bool result = false;
-		_downloads.for_each([&] (Download const &download) {
-			if (!result && download.state == Download::State::DONE)
-				result = true; });
-
-		return result;
+			if (download.state == Download::State::FAILED)
+				fn(download.path); });
 	}
 };
 
