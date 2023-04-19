@@ -240,21 +240,27 @@ struct Depot_download_manager::Main : Import::Download_progress
 
 		uint64_t _observed_downloaded_bytes = _main._downloaded_bytes;
 
+		uint64_t _started_ms = _timer.elapsed_ms();
+
+		enum { PERIOD_SECONDS = 5UL };
+
 		void _handle()
 		{
-			if (_main._downloaded_bytes != _observed_downloaded_bytes) {
-				_observed_downloaded_bytes = _main._downloaded_bytes;
+			uint64_t const now_ms = _timer.elapsed_ms();
+
+			bool starting_up   = (now_ms - _started_ms < PERIOD_SECONDS*1000);
+			bool made_progress = (_main._downloaded_bytes != _observed_downloaded_bytes);
+
+			if (starting_up || made_progress)
 				return;
-			}
 
 			warning("fetchurl got stuck, respawning");
 
 			/* downloads got stuck, try replacing fetchurl with new instance */
 			_main._fetchurl_count.value++;
 			_main._generate_init_config();
+			_started_ms = now_ms;
 		}
-
-		enum { PERIOD_SECONDS = 5UL };
 
 		Fetchurl_watchdog(Main &main) : _main(main)
 		{
