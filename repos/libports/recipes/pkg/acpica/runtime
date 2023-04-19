@@ -3,7 +3,6 @@
 	<requires>
 		<io_mem/>
 		<io_port/>
-		<irq/>
 		<platform/>
 		<rom label="platform_info"/>
 		<rom label="system"/>
