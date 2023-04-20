@@ -221,8 +221,7 @@ static bool reconfigure(void * data)
 		unsigned                 mode_id    = 0;
 		struct drm_connector    *connector  = NULL;
 
-		struct genode_mode conf_mode = { .enabled = 1,
-		                                 .brightness = INVALID_BRIGHTNESS };
+		struct genode_mode conf_mode = { };
 
 		if (!mode_set->connectors || !*mode_set->connectors)
 			continue;

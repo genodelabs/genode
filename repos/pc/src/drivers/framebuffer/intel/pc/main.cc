@@ -197,6 +197,10 @@ void Framebuffer::Driver::generate_report(void *lx_data)
 void Framebuffer::Driver::lookup_config(char const * const name,
                                         struct genode_mode &mode)
 {
+	/* default settings, possibly overridden by explicit configuration below */
+	mode.enabled    = true;
+	mode.brightness = 70 /* percent */;
+
 	if (!config.valid())
 		return;
 
