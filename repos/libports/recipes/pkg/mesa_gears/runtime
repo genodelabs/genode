@@ -1,4 +1,4 @@
-<runtime ram="34M" caps="400" binary="gears">
+<runtime ram="40M" caps="400" binary="gears">
 
 	<requires>
 		<gui/>
