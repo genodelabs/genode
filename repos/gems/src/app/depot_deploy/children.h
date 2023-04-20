@@ -38,16 +38,27 @@ class Depot_deploy::Children
 		{
 			Allocator &_alloc;
 
+			unsigned num_changes = 0;
+
 			Model_update_policy(Allocator &alloc) : _alloc(alloc) { }
 
-			void destroy_element(Child &c) { destroy(_alloc, &c); }
+			void destroy_element(Child &c)
+			{
+				num_changes++;
+				destroy(_alloc, &c);
+			}
 
 			Child &create_element(Xml_node node)
 			{
+				num_changes++;
 				return *new (_alloc) Child(_alloc, node);
 			}
 
-			void update_element(Child &c, Xml_node node) { c.apply_config(node); }
+			void update_element(Child &child, Xml_node node)
+			{
+				if (child.apply_config(node))
+					num_changes++;
+			}
 
 			static bool element_matches_xml_node(Child const &child, Xml_node node)
 			{
@@ -62,26 +73,50 @@ class Depot_deploy::Children
 
 		Children(Allocator &alloc) : _alloc(alloc) { }
 
-		void apply_config(Xml_node config)
+		/*
+		 * \return true if config had any effect
+		 */
+		bool apply_config(Xml_node config)
 		{
+			unsigned const orig_num_changes = _model_update_policy.num_changes;
+
 			_children.update_from_xml(_model_update_policy, config);
+
+			return (orig_num_changes != _model_update_policy.num_changes);
 		}
 
-		void apply_launcher(Child::Launcher_name const &name, Xml_node launcher)
+		/*
+		 * \return true if launcher had any effect
+		 */
+		bool apply_launcher(Child::Launcher_name const &name, Xml_node launcher)
 		{
+			bool any_child_changed = false;
+
 			_children.for_each([&] (Child &child) {
-				child.apply_launcher(name, launcher); });
+				if (child.apply_launcher(name, launcher))
+					any_child_changed = true; });
+
+			return any_child_changed;
 		}
 
-		void apply_blueprint(Xml_node blueprint)
+		/*
+		 * \return true if blueprint had an effect on any child
+		 */
+		bool apply_blueprint(Xml_node const &blueprint)
 		{
+			bool any_child_changed = false;
+
 			blueprint.for_each_sub_node("pkg", [&] (Xml_node pkg) {
 				_children.for_each([&] (Child &child) {
-					child.apply_blueprint(pkg); }); });
+					if (child.apply_blueprint(pkg))
+						any_child_changed = true; }); });
 
 			blueprint.for_each_sub_node("missing", [&] (Xml_node missing) {
 				_children.for_each([&] (Child &child) {
-					child.mark_as_incomplete(missing); }); });
+					if (child.mark_as_incomplete(missing))
+						any_child_changed = true; }); });
+
+			return any_child_changed;
 		}
 
 		/*
