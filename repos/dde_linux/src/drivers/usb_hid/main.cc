@@ -155,6 +155,11 @@ Driver::Device::Device(Driver & driver, Label label)
 Driver::Device::~Device()
 {
 	driver.devices.remove(&le);
+
+	while (usb.source()->ack_avail()) {
+		Usb::Packet_descriptor p = usb.source()->get_acked_packet();
+		usb.source()->release_packet(p);
+	}
 }
 
 
