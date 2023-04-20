@@ -2,7 +2,16 @@ network.patch
 
 --- a/src/virtualbox6/src/VBox/Devices/Network/DevE1000.cpp
 +++ b/src/virtualbox6/src/VBox/Devices/Network/DevE1000.cpp
-@@ -7992,6 +7992,33 @@ static DECLCALLBACK(int) e1kR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
+@@ -8001,7 +8001,7 @@
+         return PDMDEV_SET_ERROR(pDevIns, rc,
+                                 N_("Configuration error: Failed to get the value of 'EthernetCRC'"));
+ 
+-    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "GSOEnabled", &pThis->fGSOEnabled, true);
++    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "GSOEnabled", &pThis->fGSOEnabled, false);
+     if (RT_FAILURE(rc))
+         return PDMDEV_SET_ERROR(pDevIns, rc,
+                                 N_("Configuration error: Failed to get the value of 'GSOEnabled'"));
+@@ -8046,6 +8046,33 @@
              pDevIns->fR0Enabled ? "enabled" : "disabled",
              pDevIns->fRCEnabled ? "enabled" : "disabled"));
  
@@ -36,7 +45,7 @@ network.patch
      /*
       * Initialize sub-components and register everything with the VMM.
       */
-@@ -8131,27 +8158,6 @@ static DECLCALLBACK(int) e1kR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
+@@ -8185,27 +8212,6 @@
          return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the status LUN"));
      pThisCC->pLedsConnector = PDMIBASE_QUERY_INTERFACE(pBase, PDMILEDCONNECTORS);
  
