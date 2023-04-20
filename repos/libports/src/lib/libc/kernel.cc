@@ -419,6 +419,7 @@ void Libc::execute_in_application_context(Application_code &app_code)
 	 */
 	if (!Kernel::kernel().main_context()) {
 		app_code.execute();
+		Kernel::kernel().wakeup_remote_peers();
 		return;
 	}
 
@@ -437,6 +438,8 @@ void Libc::execute_in_application_context(Application_code &app_code)
 	nested = true;
 	Kernel::kernel().run(app_code);
 	nested = false;
+
+	Kernel::kernel().wakeup_remote_peers();
 }
 
 
