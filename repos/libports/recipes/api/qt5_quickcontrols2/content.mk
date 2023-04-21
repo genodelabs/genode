@@ -1,8 +1,7 @@
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt5)
 
-MIRROR_SYMBOLS := src/lib/qt5/genode/api/lib/symbols/libQt5WebEngine \
-                  src/lib/qt5/genode/api/lib/symbols/libQt5WebEngineCore \
-                  src/lib/qt5/genode/api/lib/symbols/libQt5WebEngineWidgets \
+MIRROR_SYMBOLS := src/lib/qt5/genode/api/lib/symbols/libQt5QuickControls2 \
+                  src/lib/qt5/genode/api/lib/symbols/libQt5QuickTemplates2
 
 content: $(MIRROR_SYMBOLS)
 

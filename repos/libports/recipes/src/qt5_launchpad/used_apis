@@ -2,7 +2,7 @@ base
 libc
 mesa
 os
-qt5
+qt5_base
 qt5_component
 stdcxx
 timer_session

@@ -1,4 +1,5 @@
 base
 libc
 mesa
+qt5_base
 stdcxx

@@ -8,7 +8,7 @@ loader_session
 mesa
 os
 qoost
-qt5
+qt5_base
 stdcxx
 vfs
 zlib

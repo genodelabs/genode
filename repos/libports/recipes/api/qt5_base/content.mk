@@ -18,7 +18,6 @@ MIRROR_SYMBOLS := lib/symbols/libQt5Core \
                   lib/symbols/libQt5Network \
                   lib/symbols/libQt5PrintSupport \
                   lib/symbols/libQt5Sql \
-                  lib/symbols/libQt5Svg \
                   lib/symbols/libQt5Test \
                   lib/symbols/libQt5Widgets \
                   lib/symbols/libQt5Xml \

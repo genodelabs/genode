@@ -1,6 +1,7 @@
 libc
 mesa
 qt5_component
-qt5
-qt5_qml
+qt5_base
+qt5_declarative
+qt5_virtualkeyboard
 stdcxx

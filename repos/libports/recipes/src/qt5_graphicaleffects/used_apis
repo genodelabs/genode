@@ -1,5 +1,6 @@
 libc
 mesa
+qt5_base
+qt5_declarative
 so
 stdcxx
-qt5_qml

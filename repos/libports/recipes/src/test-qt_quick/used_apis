@@ -1,6 +1,6 @@
 libc
 mesa
-qt5
+qt5_base
 qt5_component
-qt5_qml
+qt5_declarative
 stdcxx
