@@ -72,6 +72,7 @@ proc qt5_parent_provides { } {
 # 
 proc language_chargen { } { return "en_us" }
 
+exec mkdir -p bin
 exec cp -f [genode_dir]/repos/os/src/server/event_filter/[language_chargen].chargen bin/
 exec cp -f [genode_dir]/repos/os/src/server/event_filter/special.chargen bin/
 
