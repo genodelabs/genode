@@ -4,11 +4,12 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- gcc/tsystem.h |    6 ++++++
- 1 file changed, 6 insertions(+)
+ gcc/tsystem.h    |    6 ++++++
+ libgcc/libgcov.h |    2 ++
+ 2 files changed, 8 insertions(+)
 
 diff --git a/gcc/tsystem.h b/gcc/tsystem.h
-index 7be251313..dd85a677e 100644
+index dfaf9e8..d7cac00 100644
 --- a/gcc/tsystem.h
 +++ b/gcc/tsystem.h
 @@ -90,7 +90,9 @@ extern void *memset (void *, int, size_t);
@@ -36,3 +37,16 @@ index 7be251313..dd85a677e 100644
  
  #endif /* inhibit_libc */
  
+diff --git a/libgcc/libgcov.h b/libgcc/libgcov.h
+index c77a74a..f3ba7ce 100644
+--- a/libgcc/libgcov.h
++++ b/libgcc/libgcov.h
+@@ -49,6 +49,8 @@
+ #include <sys/mman.h>
+ #endif
+ 
++#include <stdint.h>
++
+ #if __CHAR_BIT__ == 8
+ typedef unsigned gcov_unsigned_t __attribute__ ((mode (SI)));
+ typedef unsigned gcov_position_t __attribute__ ((mode (SI)));

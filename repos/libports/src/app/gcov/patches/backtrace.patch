@@ -4,14 +4,14 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- gcc/diagnostic-show-locus.c |    2 ++
- gcc/diagnostic.c            |   11 ++++++++---
- 2 files changed, 10 insertions(+), 3 deletions(-)
+ gcc/diagnostic-show-locus.cc |    2 ++
+ gcc/diagnostic.cc            |   15 ++++++++++-----
+ 2 files changed, 12 insertions(+), 5 deletions(-)
 
-diff --git a/gcc/diagnostic-show-locus.c b/gcc/diagnostic-show-locus.c
-index 4618b4edb..6b15b0740 100644
---- a/gcc/diagnostic-show-locus.c
-+++ b/gcc/diagnostic-show-locus.c
+diff --git a/gcc/diagnostic-show-locus.cc b/gcc/diagnostic-show-locus.cc
+index 6eafe19..7490241 100644
+--- a/gcc/diagnostic-show-locus.cc
++++ b/gcc/diagnostic-show-locus.cc
 @@ -24,7 +24,9 @@ along with GCC; see the file COPYING3.  If not see
  #include "version.h"
  #include "demangle.h"
@@ -22,10 +22,10 @@ index 4618b4edb..6b15b0740 100644
  #include "diagnostic.h"
  #include "diagnostic-color.h"
  #include "gcc-rich-location.h"
-diff --git a/gcc/diagnostic.c b/gcc/diagnostic.c
-index ed52bc03d..a5d949d14 100644
---- a/gcc/diagnostic.c
-+++ b/gcc/diagnostic.c
+diff --git a/gcc/diagnostic.cc b/gcc/diagnostic.cc
+index 73324a7..ce14cac 100644
+--- a/gcc/diagnostic.cc
++++ b/gcc/diagnostic.cc
 @@ -28,7 +28,9 @@ along with GCC; see the file COPYING3.  If not see
  #include "version.h"
  #include "demangle.h"
@@ -36,7 +36,7 @@ index ed52bc03d..a5d949d14 100644
  #include "diagnostic.h"
  #include "diagnostic-color.h"
  #include "diagnostic-url.h"
-@@ -438,7 +440,7 @@ static const char * const bt_stop[] =
+@@ -521,7 +523,7 @@ static const char * const bt_stop[] =
  };
  
  /* A callback function passed to the backtrace_full function.  */
@@ -45,7 +45,7 @@ index ed52bc03d..a5d949d14 100644
  static int
  bt_callback (void *data, uintptr_t pc, const char *filename, int lineno,
  	     const char *function)
-@@ -518,7 +520,7 @@ bt_err_callback (void *data ATTRIBUTE_UNUSED, const char *msg, int errnum)
+@@ -601,7 +603,7 @@ bt_err_callback (void *data ATTRIBUTE_UNUSED, const char *msg, int errnum)
    fprintf (stderr, "%s%s%s\n", msg, errnum == 0 ? "" : ": ",
  	   errnum == 0 ? "" : xstrerror (errnum));
  }
@@ -54,7 +54,7 @@ index ed52bc03d..a5d949d14 100644
  /* Check if we've met the maximum error limit, and if so fatally exit
     with a message.  CONTEXT is the context to check, and FLUSH
     indicates whether a diagnostic_finish call is needed.  */
-@@ -573,14 +575,17 @@ diagnostic_action_after_output (diagnostic_context *context,
+@@ -656,14 +658,17 @@ diagnostic_action_after_output (diagnostic_context *context,
      case DK_ICE:
      case DK_ICE_NOBT:
        {
@@ -73,3 +73,21 @@ index ed52bc03d..a5d949d14 100644
  	if (context->abort_on_error)
  	  real_abort ();
  
+@@ -2027,7 +2032,7 @@ fancy_abort (const char *file, int line, const char *function)
+       fnotice (stderr, diagnostic_kind_text[DK_ICE]);
+       fnotice (stderr, "in %s, at %s:%d", function, trim_filename (file), line);
+       fputc ('\n', stderr);
+-
++#if 0
+       /* Attempt to print a backtrace.  */
+       struct backtrace_state *state
+ 	= backtrace_create_state (NULL, 0, bt_err_callback, NULL);
+@@ -2035,7 +2040,7 @@ fancy_abort (const char *file, int line, const char *function)
+       if (state != NULL)
+ 	backtrace_full (state, 2, bt_callback, bt_err_callback,
+ 			(void *) &count);
+-
++#endif
+       /* We can't call warn_if_plugins or emergency_dump_function as these
+ 	 rely on GCC state that might not be initialized, or might be in
+ 	 use by another thread.  */

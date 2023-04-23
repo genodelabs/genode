@@ -1,58 +1,59 @@
 LICENSE   := GPLv2
-VERSION   := 10.3.0
+VERSION   := 12.2.0
 DOWNLOADS := gcov.archive generated.git
 
 URL(gcov) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
-SHA(gcov) := 64f404c1a650f27fc33da242e1f2df54952e3963a49e06e73f6940f3223ac344
+SHA(gcov) := e549cf9cf3594a00e27b6589d4322d70e0720cdd213f39beb4181e06926230ff
 DIR(gcov) := src/gcov
 SIG(gcov) := ${URL(gcov)}
 KEY(gcov) := GNU
 
 URL(generated) := https://github.com/cproc/genode-generated.git
-REV(generated) := de10bc1a61aed36a0c8ed923bbeb2777d1e3b844
+REV(generated) := fed75b0ff503c1860df423c22a6980c65e1be01c
 DIR(generated) := include
 
 TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/color-macros.h \
                  gcc-$(VERSION)/gcc/coretypes.h \
                  gcc-$(VERSION)/gcc/defaults.h \
-                 gcc-$(VERSION)/gcc/diagnostic.c \
-                 gcc-$(VERSION)/gcc/diagnostic-color.c \
+                 gcc-$(VERSION)/gcc/diagnostic.cc \
+                 gcc-$(VERSION)/gcc/diagnostic-color.cc \
                  gcc-$(VERSION)/gcc/diagnostic-color.h \
                  gcc-$(VERSION)/gcc/diagnostic-core.h \
                  gcc-$(VERSION)/gcc/diagnostic-event-id.h \
                  gcc-$(VERSION)/gcc/diagnostic-metadata.h \
                  gcc-$(VERSION)/gcc/diagnostic-path.h \
-                 gcc-$(VERSION)/gcc/diagnostic-show-locus.c \
+                 gcc-$(VERSION)/gcc/diagnostic-show-locus.cc \
                  gcc-$(VERSION)/gcc/diagnostic-url.h \
                  gcc-$(VERSION)/gcc/diagnostic.def \
                  gcc-$(VERSION)/gcc/diagnostic.h \
                  gcc-$(VERSION)/gcc/double-int.h \
                  gcc-$(VERSION)/gcc/dumpfile.h \
                  gcc-$(VERSION)/gcc/edit-context.h \
-                 gcc-$(VERSION)/gcc/edit-context.c \
+                 gcc-$(VERSION)/gcc/edit-context.cc \
                  gcc-$(VERSION)/gcc/fixed-value.h \
                  gcc-$(VERSION)/gcc/flag-types.h \
                  gcc-$(VERSION)/gcc/gcc-rich-location.h \
-                 gcc-$(VERSION)/gcc/gcov.c \
+                 gcc-$(VERSION)/gcc/gcov.cc \
                  gcc-$(VERSION)/gcc/gcov-counter.def \
-                 gcc-$(VERSION)/gcc/gcov-io.c \
+                 gcc-$(VERSION)/gcc/gcov-io.cc \
                  gcc-$(VERSION)/gcc/gcov-io.h \
                  gcc-$(VERSION)/gcc/ggc.h \
-                 gcc-$(VERSION)/gcc/ggc-none.c \
+                 gcc-$(VERSION)/gcc/ggc-none.cc \
                  gcc-$(VERSION)/gcc/hash-map.h \
                  gcc-$(VERSION)/gcc/hash-map-traits.h \
                  gcc-$(VERSION)/gcc/hash-set.h \
-                 gcc-$(VERSION)/gcc/hash-table.c \
+                 gcc-$(VERSION)/gcc/hash-table.cc \
                  gcc-$(VERSION)/gcc/hash-table.h \
                  gcc-$(VERSION)/gcc/hash-traits.h \
                  gcc-$(VERSION)/gcc/hwint.h \
                  gcc-$(VERSION)/gcc/inchash.h \
-                 gcc-$(VERSION)/gcc/input.c \
+                 gcc-$(VERSION)/gcc/input.cc \
                  gcc-$(VERSION)/gcc/input.h \
-                 gcc-$(VERSION)/gcc/intl.c \
+                 gcc-$(VERSION)/gcc/intl.cc \
                  gcc-$(VERSION)/gcc/intl.h \
                  gcc-$(VERSION)/gcc/is-a.h \
+                 gcc-$(VERSION)/gcc/iterator-utils.h \
                  gcc-$(VERSION)/gcc/json.cc \
                  gcc-$(VERSION)/gcc/json.h \
                  gcc-$(VERSION)/gcc/machmode.h \
@@ -64,7 +65,7 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/opts.h \
                  gcc-$(VERSION)/gcc/poly-int.h \
                  gcc-$(VERSION)/gcc/poly-int-types.h \
-                 gcc-$(VERSION)/gcc/pretty-print.c \
+                 gcc-$(VERSION)/gcc/pretty-print.cc \
                  gcc-$(VERSION)/gcc/pretty-print.h \
                  gcc-$(VERSION)/gcc/profile-count.h \
                  gcc-$(VERSION)/gcc/real.h \
@@ -76,10 +77,8 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/system.h \
                  gcc-$(VERSION)/gcc/tsystem.h \
                  gcc-$(VERSION)/gcc/typed-splay-tree.h \
-                 gcc-$(VERSION)/gcc/vec.c \
+                 gcc-$(VERSION)/gcc/vec.cc \
                  gcc-$(VERSION)/gcc/vec.h \
-                 gcc-$(VERSION)/gcc/version.c \
-                 gcc-$(VERSION)/gcc/version.h \
                  gcc-$(VERSION)/gcc/wide-int.h \
                  gcc-$(VERSION)/gcc/wide-int-bitmask.h \
                  gcc-$(VERSION)/gcc/wide-int-print.h \
@@ -88,6 +87,14 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/config/initfini-array.h \
                  gcc-$(VERSION)/gcc/config/newlib-stdint.h \
                  gcc-$(VERSION)/gcc/config/vxworks-dummy.h \
+                 gcc-$(VERSION)/gcc/config/aarch64/aarch64-arches.def \
+                 gcc-$(VERSION)/gcc/config/aarch64/aarch64-cores.def \
+                 gcc-$(VERSION)/gcc/config/aarch64/aarch64-elf-raw.h \
+                 gcc-$(VERSION)/gcc/config/aarch64/aarch64-elf.h \
+                 gcc-$(VERSION)/gcc/config/aarch64/aarch64-errata.h \
+                 gcc-$(VERSION)/gcc/config/aarch64/aarch64-opts.h \
+                 gcc-$(VERSION)/gcc/config/aarch64/aarch64.h \
+                 gcc-$(VERSION)/gcc/config/aarch64/biarchlp64.h \
                  gcc-$(VERSION)/gcc/config/arm/aout.h \
                  gcc-$(VERSION)/gcc/config/arm/arm.h \
                  gcc-$(VERSION)/gcc/config/arm/arm-flags.h \
@@ -99,6 +106,7 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/config/i386/biarch64.h \
                  gcc-$(VERSION)/gcc/config/i386/i386elf.h \
                  gcc-$(VERSION)/gcc/config/i386/i386.h \
+                 gcc-$(VERSION)/gcc/config/i386/i386-isa.def \
                  gcc-$(VERSION)/gcc/config/i386/i386-opts.h \
                  gcc-$(VERSION)/gcc/config/i386/stringop.def \
                  gcc-$(VERSION)/gcc/config/i386/unix.h \
@@ -114,14 +122,16 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/include/obstack.h \
                  gcc-$(VERSION)/include/safe-ctype.h \
                  gcc-$(VERSION)/include/splay-tree.h \
-                 gcc-$(VERSION)/libcpp/charset.c \
-                 gcc-$(VERSION)/libcpp/errors.c \
+                 gcc-$(VERSION)/libcpp/charset.cc \
+                 gcc-$(VERSION)/libcpp/errors.cc \
+                 gcc-$(VERSION)/libcpp/files.cc \
                  gcc-$(VERSION)/libcpp/internal.h \
-                 gcc-$(VERSION)/libcpp/line-map.c \
+                 gcc-$(VERSION)/libcpp/line-map.cc \
                  gcc-$(VERSION)/libcpp/system.h \
                  gcc-$(VERSION)/libcpp/ucnid.h \
                  gcc-$(VERSION)/libcpp/include/cpplib.h \
                  gcc-$(VERSION)/libcpp/include/line-map.h \
+                 gcc-$(VERSION)/libcpp/include/mkdeps.h \
                  gcc-$(VERSION)/libcpp/include/symtab.h \
                  gcc-$(VERSION)/libgcc/gthr.h \
                  gcc-$(VERSION)/libgcc/libgcov-driver.c \
@@ -162,25 +172,3 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
 PATCHES   := src/app/gcov/patches/*.patch \
              src/lib/gcov/patches/*.patch
 PATCH_OPT := -p1 -d src/gcov
-
-default: symlinks
-
-#
-# These .c files need to be compiled with g++
-#
-symlinks: $(DOWNLOADS)
-	$(VERBOSE)ln -s diagnostic-color.c       ${DIR(gcov)}/gcc/diagnostic-color.cc
-	$(VERBOSE)ln -s diagnostic-show-locus.c  ${DIR(gcov)}/gcc/diagnostic-show-locus.cc
-	$(VERBOSE)ln -s diagnostic.c             ${DIR(gcov)}/gcc/diagnostic.cc
-	$(VERBOSE)ln -s edit-context.c           ${DIR(gcov)}/gcc/edit-context.cc
-	$(VERBOSE)ln -s gcov.c                   ${DIR(gcov)}/gcc/gcov.cc
-	$(VERBOSE)ln -s ggc-none.c               ${DIR(gcov)}/gcc/ggc-none.cc
-	$(VERBOSE)ln -s hash-table.c             ${DIR(gcov)}/gcc/hash-table.cc
-	$(VERBOSE)ln -s input.c                  ${DIR(gcov)}/gcc/input.cc
-	$(VERBOSE)ln -s intl.c                   ${DIR(gcov)}/gcc/intl.cc
-	$(VERBOSE)ln -s pretty-print.c           ${DIR(gcov)}/gcc/pretty-print.cc
-	$(VERBOSE)ln -s vec.c                    ${DIR(gcov)}/gcc/vec.cc
-	$(VERBOSE)ln -s version.c                ${DIR(gcov)}/gcc/version.cc
-	$(VERBOSE)ln -s charset.c                ${DIR(gcov)}/libcpp/charset.cc
-	$(VERBOSE)ln -s errors.c                 ${DIR(gcov)}/libcpp/errors.cc
-	$(VERBOSE)ln -s line-map.c               ${DIR(gcov)}/libcpp/line-map.cc

@@ -8,26 +8,26 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 4 insertions(+)
 
 diff --git a/gcc/config/i386/i386.h b/gcc/config/i386/i386.h
-index 4ff8b5e65..96409d759 100644
+index 363082b..dc3e19d 100644
 --- a/gcc/config/i386/i386.h
 +++ b/gcc/config/i386/i386.h
-@@ -2482,6 +2482,7 @@ const wide_int_bitmask PTA_TREMONT = PTA_GOLDMONT_PLUS | PTA_CLWB
- const wide_int_bitmask PTA_KNM = PTA_KNL | PTA_AVX5124VNNIW
+@@ -2351,6 +2351,7 @@ constexpr wide_int_bitmask PTA_ALDERLAKE = PTA_TREMONT | PTA_ADX | PTA_AVX
+ constexpr wide_int_bitmask PTA_KNM = PTA_KNL | PTA_AVX5124VNNIW
    | PTA_AVX5124FMAPS | PTA_AVX512VPOPCNTDQ;
  
 +#if 0
  #ifndef GENERATOR_FILE
  
  #include "insn-attr-common.h"
-@@ -2499,6 +2500,7 @@ extern const pta processor_alias_table[];
- extern int const pta_size;
+@@ -2373,6 +2374,7 @@ extern unsigned int const pta_size;
+ extern unsigned int const num_arch_names;
  #endif
  
 +#endif
  #endif
  
  extern enum processor_type ix86_tune;
-@@ -2955,11 +2957,13 @@ extern void debug_dispatch_window (int);
+@@ -2847,11 +2849,13 @@ extern void debug_dispatch_window (int);
  
  #define TARGET_SUPPORTS_WIDE_INT 1
  
@@ -39,5 +39,5 @@ index 4ff8b5e65..96409d759 100644
  #endif
 +#endif
  
- /*
- Local variables:
+ /* __builtin_eh_return can't handle stack realignment, so disable MMX/SSE
+    in 32-bit libgcc functions that call it.  */

@@ -14,12 +14,11 @@ SRC_CC = diagnostic.cc \
          memory-block.cc \
          pretty-print.cc \
          sort.cc \
-         vec.cc \
-         version.cc
+         vec.cc
 
 CC_OPT += -DIN_GCC
 
-CC_OPT_version += -DBASEVER="\"10.3.0\"" \
+CC_OPT_version += -DBASEVER="\"12.2.0\"" \
                   -DDATESTAMP="\"\"" \
                   -DREVISION="\"\"" \
                   -DDEVPHASE="\"\"" \

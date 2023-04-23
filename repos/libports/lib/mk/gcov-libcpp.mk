@@ -4,6 +4,7 @@ GCOV_DIR := $(GCOV_PORT_DIR)/src/gcov
 
 SRC_CC = charset.cc \
          errors.cc \
+         files.cc \
          line-map.cc
 
 LIBS += libc stdcxx
