@@ -153,6 +153,12 @@ struct Sculpt::Download_queue : Noncopyable
 				destroy(_alloc, &download); });
 	}
 
+	void reset()
+	{
+		_downloads.for_each([&] (Download &download) {
+			destroy(_alloc, &download); });
+	}
+
 	void gen_installation_entries(Xml_generator &xml) const
 	{
 		_downloads.for_each([&] (Download const &download) {

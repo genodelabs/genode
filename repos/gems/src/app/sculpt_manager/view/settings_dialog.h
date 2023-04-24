@@ -135,4 +135,4 @@ struct Sculpt::Settings_dialog : Noncopyable, Dialog
 	Settings_dialog(Settings const &settings) : _settings(settings) { }
 };
 
-#endif /* _VIEW__RAM_FS_DIALOG_H_ */
+#endif /* _VIEW__SETTINGS_DIALOG_H_ */

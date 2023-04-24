@@ -33,6 +33,7 @@ struct Sculpt::Panel_dialog : Dialog
 	{
 		virtual Tab  selected_tab()        const = 0;
 		virtual bool log_visible()         const = 0;
+		virtual bool system_visible()      const = 0;
 		virtual bool settings_visible()    const = 0;
 		virtual bool network_visible()     const = 0;
 		virtual bool inspect_tab_visible() const = 0;
@@ -45,6 +46,7 @@ struct Sculpt::Panel_dialog : Dialog
 	{
 		virtual void select_tab(Tab) = 0;
 		virtual void toggle_log_visibility() = 0;
+		virtual void toggle_system_visibility() = 0;
 		virtual void toggle_settings_visibility() = 0;
 		virtual void toggle_network_visibility() = 0;
 	};
@@ -66,6 +68,7 @@ struct Sculpt::Panel_dialog : Dialog
 		if (_item.hovered("files"))      action.select_tab(Tab::FILES);
 		if (_item.hovered("inspect"))    action.select_tab(Tab::INSPECT);
 		if (_item.hovered("log"))        action.toggle_log_visibility();
+		if (_item.hovered("system"))     action.toggle_system_visibility();
 		if (_item.hovered("settings"))   action.toggle_settings_visibility();
 		if (_item.hovered("network"))    action.toggle_network_visibility();
 	}

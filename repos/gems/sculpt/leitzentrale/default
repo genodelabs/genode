@@ -127,6 +127,8 @@
 					        report="manager -> network_dialog"/>
 					<policy label="runtime -> leitzentrale -> settings_view -> dialog"
 					        report="manager -> settings_dialog"/>
+					<policy label="runtime -> leitzentrale -> system_view -> dialog"
+					        report="manager -> system_dialog"/>
 					<policy label="runtime -> leitzentrale -> file_browser_view -> dialog"
 					        report="manager -> file_browser_dialog"/>
 					<policy label="runtime -> leitzentrale -> popup_view -> dialog"
@@ -141,6 +143,8 @@
 					        report="runtime -> leitzentrale -> network_view -> hover"/>
 					<policy label="manager -> settings_view_hover"
 					        report="runtime -> leitzentrale -> settings_view -> hover"/>
+					<policy label="manager -> system_view_hover"
+					        report="runtime -> leitzentrale -> system_view -> hover"/>
 					<policy label="manager -> file_browser_view_hover"
 					        report="runtime -> leitzentrale -> file_browser_view -> hover"/>
 					<policy label="manager -> runtime_view_hover"
@@ -190,6 +194,7 @@
 					</vfs>
 					<policy label="log" decoration="yes" motion="20"/>
 					<policy label="runtime -> leitzentrale -> settings_view"     decoration="no" motion="20"/>
+					<policy label="runtime -> leitzentrale -> system_view"       decoration="no" motion="20"/>
 					<policy label="runtime -> leitzentrale -> file_browser_view" decoration="no" motion="30"/>
 					<policy label="runtime -> leitzentrale -> network_view"      decoration="no" motion="20"/>
 					<policy label="runtime -> leitzentrale -> runtime_view"      decoration="no" motion="30"/>

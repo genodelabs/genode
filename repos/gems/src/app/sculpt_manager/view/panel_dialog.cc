@@ -26,6 +26,14 @@ void Panel_dialog::generate(Xml_generator &xml) const
 				xml.attribute("west",  true);
 				xml.node("hbox", [&] () {
 					xml.node("button", [&] () {
+						_item.gen_button_attr(xml, "system");
+						if (_state.system_visible())
+							xml.attribute("selected", true);
+						xml.node("label", [&] () {
+							xml.attribute("text", "System");
+						});
+					});
+					xml.node("button", [&] () {
 						_item.gen_button_attr(xml, "settings");
 						if (_state.settings_visible())
 							xml.attribute("selected", true);
