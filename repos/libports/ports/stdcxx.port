@@ -1,9 +1,9 @@
 LICENSE   := LGPL
-VERSION   := 10.3.0
+VERSION   := 12.2.0
 DOWNLOADS := gcc.archive
 
 URL(gcc) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
-SHA(gcc) := 64f404c1a650f27fc33da242e1f2df54952e3963a49e06e73f6940f3223ac344
+SHA(gcc) := e549cf9cf3594a00e27b6589d4322d70e0720cdd213f39beb4181e06926230ff
 DIR(gcc) := src/lib/stdcxx
 SIG(gcc) := ${URL(gcc)}
 KEY(gcc) := GNU
@@ -23,6 +23,7 @@ DIR_CONTENT(include/stdcxx) := \
     src/lib/stdcxx/include/c_compatibility/fenv.h \
     src/lib/stdcxx/include/c_compatibility/tgmath.h \
     src/lib/stdcxx/libsupc++/cxxabi.h \
+    src/lib/stdcxx/libsupc++/compare \
     src/lib/stdcxx/libsupc++/exception \
     src/lib/stdcxx/libsupc++/initializer_list \
     src/lib/stdcxx/libsupc++/new \

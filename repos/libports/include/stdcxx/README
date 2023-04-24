@@ -2,6 +2,7 @@ file origins
 ------------
 
 - bits/gstdint.h: manually created
+- bits/largefile-config.h: manually created
 - ../spec/<arch>/stdcxx/bits/c++config.h:
   - gathered from Noux-gcc built with the previous stdcxx version
   - apply https://raw.githubusercontent.com/cproc/genode_stuff/stdcxx/stdcxx_update_genode.patch

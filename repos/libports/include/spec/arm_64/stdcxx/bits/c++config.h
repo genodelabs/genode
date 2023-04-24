@@ -1,6 +1,6 @@
 // Predefined symbols and macros -*- C++ -*-
 
-// Copyright (C) 1997-2020 Free Software Foundation, Inc.
+// Copyright (C) 1997-2022 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -31,10 +31,10 @@
 #define _GLIBCXX_CXX_CONFIG_H 1
 
 // The major release number for the GCC release the C++ library belongs to.
-#define _GLIBCXX_RELEASE 10
+#define _GLIBCXX_RELEASE 12
 
 // The datestamp of the C++ library in compressed ISO date format.
-#define __GLIBCXX__ 20210408
+#define __GLIBCXX__ 20220819
 
 // Macros for various attributes.
 //   _GLIBCXX_PURE
@@ -77,14 +77,20 @@
 // Macros for deprecated attributes.
 //   _GLIBCXX_USE_DEPRECATED
 //   _GLIBCXX_DEPRECATED
-//   _GLIBCXX_DEPRECATED_SUGGEST
+//   _GLIBCXX_DEPRECATED_SUGGEST( string-literal )
+//   _GLIBCXX11_DEPRECATED
+//   _GLIBCXX11_DEPRECATED_SUGGEST( string-literal )
+//   _GLIBCXX14_DEPRECATED
+//   _GLIBCXX14_DEPRECATED_SUGGEST( string-literal )
 //   _GLIBCXX17_DEPRECATED
+//   _GLIBCXX17_DEPRECATED_SUGGEST( string-literal )
 //   _GLIBCXX20_DEPRECATED( string-literal )
+//   _GLIBCXX20_DEPRECATED_SUGGEST( string-literal )
 #ifndef _GLIBCXX_USE_DEPRECATED
 # define _GLIBCXX_USE_DEPRECATED 1
 #endif
 
-#if defined(__DEPRECATED) && (__cplusplus >= 201103L)
+#if defined(__DEPRECATED)
 # define _GLIBCXX_DEPRECATED __attribute__ ((__deprecated__))
 # define _GLIBCXX_DEPRECATED_SUGGEST(ALT) \
   __attribute__ ((__deprecated__ ("use '" ALT "' instead")))
@@ -93,16 +99,36 @@
 # define _GLIBCXX_DEPRECATED_SUGGEST(ALT)
 #endif
 
-#if defined(__DEPRECATED) && (__cplusplus >= 201703L)
-# define _GLIBCXX17_DEPRECATED [[__deprecated__]]
+#if defined(__DEPRECATED) && (__cplusplus >= 201103L)
+# define _GLIBCXX11_DEPRECATED _GLIBCXX_DEPRECATED
+# define _GLIBCXX11_DEPRECATED_SUGGEST(ALT) _GLIBCXX_DEPRECATED_SUGGEST(ALT)
 #else
-# define _GLIBCXX17_DEPRECATED
+# define _GLIBCXX11_DEPRECATED
+# define _GLIBCXX11_DEPRECATED_SUGGEST(ALT)
 #endif
 
-#if defined(__DEPRECATED) && (__cplusplus > 201703L)
+#if defined(__DEPRECATED) && (__cplusplus >= 201402L)
+# define _GLIBCXX14_DEPRECATED _GLIBCXX_DEPRECATED
+# define _GLIBCXX14_DEPRECATED_SUGGEST(ALT) _GLIBCXX_DEPRECATED_SUGGEST(ALT)
+#else
+# define _GLIBCXX14_DEPRECATED
+# define _GLIBCXX14_DEPRECATED_SUGGEST(ALT)
+#endif
+
+#if defined(__DEPRECATED) && (__cplusplus >= 201703L)
+# define _GLIBCXX17_DEPRECATED [[__deprecated__]]
+# define _GLIBCXX17_DEPRECATED_SUGGEST(ALT) _GLIBCXX_DEPRECATED_SUGGEST(ALT)
+#else
+# define _GLIBCXX17_DEPRECATED
+# define _GLIBCXX17_DEPRECATED_SUGGEST(ALT)
+#endif
+
+#if defined(__DEPRECATED) && (__cplusplus >= 202002L)
 # define _GLIBCXX20_DEPRECATED(MSG) [[deprecated(MSG)]]
+# define _GLIBCXX20_DEPRECATED_SUGGEST(ALT) _GLIBCXX_DEPRECATED_SUGGEST(ALT)
 #else
 # define _GLIBCXX20_DEPRECATED(MSG)
+# define _GLIBCXX20_DEPRECATED_SUGGEST(ALT)
 #endif
 
 // Macros for ABI tag attributes.
@@ -149,10 +175,18 @@
 #endif
 
 #ifndef _GLIBCXX20_CONSTEXPR
-# if __cplusplus > 201703L
+# if __cplusplus >= 202002L
 #  define _GLIBCXX20_CONSTEXPR constexpr
 # else
 #  define _GLIBCXX20_CONSTEXPR
+# endif
+#endif
+
+#ifndef _GLIBCXX23_CONSTEXPR
+# if __cplusplus >= 202100L
+#  define _GLIBCXX23_CONSTEXPR constexpr
+# else
+#  define _GLIBCXX23_CONSTEXPR
 # endif
 #endif
 
@@ -267,6 +301,17 @@ namespace std
 #if __cplusplus >= 201103L
   typedef decltype(nullptr)	nullptr_t;
 #endif
+
+#pragma GCC visibility push(default)
+  // This allows the library to terminate without including all of <exception>
+  // and without making the declaration of std::terminate visible to users.
+  extern "C++" __attribute__ ((__noreturn__, __always_inline__))
+  inline void __terminate() _GLIBCXX_USE_NOEXCEPT
+  {
+    void terminate() _GLIBCXX_USE_NOEXCEPT __attribute__ ((__noreturn__));
+    terminate();
+  }
+#pragma GCC visibility pop
 }
 
 # define _GLIBCXX_USE_DUAL_ABI 1
@@ -410,7 +455,30 @@ _GLIBCXX_END_NAMESPACE_VERSION
 // Define if compatibility should be provided for -mlong-double-64.
 #undef _GLIBCXX_LONG_DOUBLE_COMPAT
 
-// Inline namespace for long double 128 mode.
+// Define if compatibility should be provided for alternative 128-bit long
+// double formats. Not possible for Clang until __ibm128 is supported.
+#ifndef __clang__
+#undef _GLIBCXX_LONG_DOUBLE_ALT128_COMPAT
+#endif
+
+// Inline namespaces for long double 128 modes.
+#if defined _GLIBCXX_LONG_DOUBLE_ALT128_COMPAT \
+  && defined __LONG_DOUBLE_IEEE128__
+namespace std
+{
+  // Namespaces for 128-bit IEEE long double format on 64-bit POWER LE.
+  inline namespace __gnu_cxx_ieee128 { }
+  inline namespace __gnu_cxx11_ieee128 { }
+}
+# define _GLIBCXX_NAMESPACE_LDBL __gnu_cxx_ieee128::
+# define _GLIBCXX_BEGIN_NAMESPACE_LDBL namespace __gnu_cxx_ieee128 {
+# define _GLIBCXX_END_NAMESPACE_LDBL }
+# define _GLIBCXX_NAMESPACE_LDBL_OR_CXX11 __gnu_cxx11_ieee128::
+# define _GLIBCXX_BEGIN_NAMESPACE_LDBL_OR_CXX11 namespace __gnu_cxx11_ieee128 {
+# define _GLIBCXX_END_NAMESPACE_LDBL_OR_CXX11 }
+
+#else // _GLIBCXX_LONG_DOUBLE_ALT128_COMPAT && IEEE128
+
 #if defined _GLIBCXX_LONG_DOUBLE_COMPAT && defined __LONG_DOUBLE_128__
 namespace std
 {
@@ -424,6 +492,7 @@ namespace std
 # define _GLIBCXX_BEGIN_NAMESPACE_LDBL
 # define _GLIBCXX_END_NAMESPACE_LDBL
 #endif
+
 #if _GLIBCXX_USE_CXX11_ABI
 # define _GLIBCXX_NAMESPACE_LDBL_OR_CXX11 _GLIBCXX_NAMESPACE_CXX11
 # define _GLIBCXX_BEGIN_NAMESPACE_LDBL_OR_CXX11 _GLIBCXX_BEGIN_NAMESPACE_CXX11
@@ -433,6 +502,31 @@ namespace std
 # define _GLIBCXX_BEGIN_NAMESPACE_LDBL_OR_CXX11 _GLIBCXX_BEGIN_NAMESPACE_LDBL
 # define _GLIBCXX_END_NAMESPACE_LDBL_OR_CXX11 _GLIBCXX_END_NAMESPACE_LDBL
 #endif
+
+#endif // _GLIBCXX_LONG_DOUBLE_ALT128_COMPAT && IEEE128
+
+namespace std
+{
+#pragma GCC visibility push(default)
+  // Internal version of std::is_constant_evaluated().
+  // This can be used without checking if the compiler supports the feature.
+  // The macro _GLIBCXX_HAVE_IS_CONSTANT_EVALUATED can be used to check if
+  // the compiler support is present to make this function work as expected.
+  _GLIBCXX_CONSTEXPR inline bool
+  __is_constant_evaluated() _GLIBCXX_NOEXCEPT
+  {
+#if __cpp_if_consteval >= 202106L
+# define _GLIBCXX_HAVE_IS_CONSTANT_EVALUATED 1
+    if consteval { return true; } else { return false; }
+#elif __cplusplus >= 201103L && __has_builtin(__builtin_is_constant_evaluated)
+# define _GLIBCXX_HAVE_IS_CONSTANT_EVALUATED 1
+    return __builtin_is_constant_evaluated();
+#else
+    return false;
+#endif
+  }
+#pragma GCC visibility pop
+}
 
 // Debug Mode implies checking assertions.
 #if defined(_GLIBCXX_DEBUG) && !defined(_GLIBCXX_ASSERTIONS)
@@ -445,35 +539,65 @@ namespace std
 # define _GLIBCXX_EXTERN_TEMPLATE -1
 #endif
 
+
+#if _GLIBCXX_HAVE_IS_CONSTANT_EVALUATED
+# define __glibcxx_constexpr_assert(cond) \
+  if (std::__is_constant_evaluated() && !bool(cond))	\
+    __builtin_unreachable() /* precondition violation detected! */
+#else
+# define __glibcxx_constexpr_assert(unevaluated)
+#endif
+
+#define _GLIBCXX_VERBOSE_ASSERT 1
+
 // Assert.
 #if defined(_GLIBCXX_ASSERTIONS) \
   || defined(_GLIBCXX_PARALLEL) || defined(_GLIBCXX_PARALLEL_ASSERTIONS)
+# ifdef _GLIBCXX_VERBOSE_ASSERT
 namespace std
 {
+#pragma GCC visibility push(default)
   // Avoid the use of assert, because we're trying to keep the <cassert>
   // include out of the mix.
-  extern "C++" inline void
-  __replacement_assert(const char* __file, int __line,
-		       const char* __function, const char* __condition)
-  {
-    __builtin_printf("%s:%d: %s: Assertion '%s' failed.\n", __file, __line,
-		     __function, __condition);
-    __builtin_abort();
-  }
+  extern "C++" _GLIBCXX_NORETURN
+  void
+  __glibcxx_assert_fail(const char* __file, int __line,
+			const char* __function, const char* __condition)
+  _GLIBCXX_NOEXCEPT;
+#pragma GCC visibility pop
 }
-#define __glibcxx_assert_impl(_Condition)				 \
-  do 									 \
-  {							      		 \
-    if (! (_Condition))                                                  \
-      std::__replacement_assert(__FILE__, __LINE__, __PRETTY_FUNCTION__, \
-				#_Condition);				 \
-  } while (false)
+#define __glibcxx_assert_impl(_Condition)				\
+  if (__builtin_expect(!bool(_Condition), false))			\
+  {									\
+    __glibcxx_constexpr_assert(false);					\
+    std::__glibcxx_assert_fail(__FILE__, __LINE__, __PRETTY_FUNCTION__,	\
+			       #_Condition);				\
+  }
+# else // ! VERBOSE_ASSERT
+# define __glibcxx_assert_impl(_Condition)		\
+  if (__builtin_expect(!bool(_Condition), false))	\
+  {							\
+    __glibcxx_constexpr_assert(false);			\
+    __builtin_abort();					\
+  }
+# endif
 #endif
 
 #if defined(_GLIBCXX_ASSERTIONS)
-# define __glibcxx_assert(_Condition) __glibcxx_assert_impl(_Condition)
+# define __glibcxx_assert(cond) \
+  do { __glibcxx_assert_impl(cond); } while (false)
 #else
-# define __glibcxx_assert(_Condition)
+# define __glibcxx_assert(cond) \
+  do { __glibcxx_constexpr_assert(cond); } while (false)
+#endif
+
+// Macro indicating that TSAN is in use.
+#if __SANITIZE_THREAD__
+#  define _GLIBCXX_TSAN 1
+#elif defined __has_feature
+# if __has_feature(thread_sanitizer)
+#  define _GLIBCXX_TSAN 1
+# endif
 #endif
 
 // Macros for race detectors.
@@ -509,6 +633,15 @@ namespace std
 # define _GLIBCXX_END_EXTERN_C }
 
 # define _GLIBCXX_USE_ALLOCATOR_NEW 1
+
+#ifdef __SIZEOF_INT128__
+#if ! defined __GLIBCXX_TYPE_INT_N_0 && ! defined __STRICT_ANSI__
+// If __int128 is supported, we expect __GLIBCXX_TYPE_INT_N_0 to be defined
+// unless the compiler is in strict mode. If it's not defined and the strict
+// macro is not defined, something is wrong.
+#warning "__STRICT_ANSI__ seems to have been undefined; this is not supported"
+#endif
+#endif
 
 #else // !__cplusplus
 # define _GLIBCXX_BEGIN_EXTERN_C
@@ -634,38 +767,54 @@ namespace std
 # define __cpp_lib_char8_t 201907L
 #endif
 
-/* Define if __float128 is supported on this host. */
+/* Define if __float128 is supported on this host.  */
 #if defined(__FLOAT128__) || defined(__SIZEOF_FLOAT128__)
-#undef _GLIBCXX_USE_FLOAT128
+/* For powerpc64 don't use __float128 when it's the same type as long double. */
+# if !(defined(_GLIBCXX_LONG_DOUBLE_ALT128_COMPAT) && defined(__LONG_DOUBLE_IEEE128__))
+#  undef _GLIBCXX_USE_FLOAT128
+# endif
 #endif
 
-#if __GNUC__ >= 7
-// Assume these are available if the compiler claims to be a recent GCC:
+// Define if float has the IEEE binary32 format.
+#if __FLT_MANT_DIG__ == 24 \
+  && __FLT_MIN_EXP__ == -125 \
+  && __FLT_MAX_EXP__ == 128
+# define _GLIBCXX_FLOAT_IS_IEEE_BINARY32 1
+#endif
+
+// Define if double has the IEEE binary64 format.
+#if __DBL_MANT_DIG__ == 53 \
+  && __DBL_MIN_EXP__ == -1021 \
+  && __DBL_MAX_EXP__ == 1024
+# define _GLIBCXX_DOUBLE_IS_IEEE_BINARY64 1
+#endif
+
+#ifdef __has_builtin
+# ifdef __is_identifier
+// Intel and older Clang require !__is_identifier for some built-ins:
+#  define _GLIBCXX_HAS_BUILTIN(B) __has_builtin(B) || ! __is_identifier(B)
+# else
+#  define _GLIBCXX_HAS_BUILTIN(B) __has_builtin(B)
+# endif
+#endif
+
+#if _GLIBCXX_HAS_BUILTIN(__has_unique_object_representations)
 # define _GLIBCXX_HAVE_BUILTIN_HAS_UNIQ_OBJ_REP 1
+#endif
+
+#if _GLIBCXX_HAS_BUILTIN(__is_aggregate)
 # define _GLIBCXX_HAVE_BUILTIN_IS_AGGREGATE 1
+#endif
+
+#if _GLIBCXX_HAS_BUILTIN(__is_same)
+#  define _GLIBCXX_HAVE_BUILTIN_IS_SAME 1
+#endif
+
+#if _GLIBCXX_HAS_BUILTIN(__builtin_launder)
 # define _GLIBCXX_HAVE_BUILTIN_LAUNDER 1
-# define _GLIBCXX_BUILTIN_IS_SAME_AS(T, U) __is_same_as(T, U)
-# if __GNUC__ >= 9
-#  define _GLIBCXX_HAVE_BUILTIN_IS_CONSTANT_EVALUATED 1
-# endif
-#elif defined(__is_identifier) && defined(__has_builtin)
-// For non-GNU compilers:
-# if ! __is_identifier(__has_unique_object_representations)
-#  define _GLIBCXX_HAVE_BUILTIN_HAS_UNIQ_OBJ_REP 1
-# endif
-# if ! __is_identifier(__is_aggregate)
-#  define _GLIBCXX_HAVE_BUILTIN_IS_AGGREGATE 1
-# endif
-# if __has_builtin(__builtin_launder)
-#  define _GLIBCXX_HAVE_BUILTIN_LAUNDER 1
-# endif
-# if __has_builtin(__builtin_is_constant_evaluated)
-#  define _GLIBCXX_HAVE_BUILTIN_IS_CONSTANT_EVALUATED 1
-# endif
-# if ! __is_identifier(__is_same)
-#  define _GLIBCXX_BUILTIN_IS_SAME_AS(T, U) __is_same(T, U)
-# endif
-#endif // GCC
+#endif
+
+#undef _GLIBCXX_HAS_BUILTIN
 
 // PSTL configuration
 
@@ -705,6 +854,9 @@ namespace std
 
 /* Define to 1 if you have the `aligned_alloc' function. */
 /* #undef _GLIBCXX_HAVE_ALIGNED_ALLOC */
+
+/* Define if arc4random is available in <stdlib.h>. */
+#define _GLIBCXX_HAVE_ARC4RANDOM 1
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define _GLIBCXX_HAVE_ARPA_INET_H 1
@@ -760,8 +912,15 @@ namespace std
 /* Define to 1 if you have the `cosl' function. */
 /* #undef _GLIBCXX_HAVE_COSL */
 
+/* Define to 1 if you have the declaration of `strnlen', and to 0 if you
+   don't. */
+#define _GLIBCXX_HAVE_DECL_STRNLEN 1
+
 /* Define to 1 if you have the <dirent.h> header file. */
 #define _GLIBCXX_HAVE_DIRENT_H 1
+
+/* Define if dirfd is available in <dirent.h>. */
+#define _GLIBCXX_HAVE_DIRFD 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define _GLIBCXX_HAVE_DLFCN_H 1
@@ -789,6 +948,9 @@ namespace std
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #define _GLIBCXX_HAVE_FCNTL_H 1
+
+/* Define if fdopendir is available in <dirent.h>. */
+#define _GLIBCXX_HAVE_FDOPENDIR 1
 
 /* Define to 1 if you have the <fenv.h> header file. */
 #define _GLIBCXX_HAVE_FENV_H 1
@@ -829,6 +991,9 @@ namespace std
 /* Define to 1 if you have the `frexpl' function. */
 /* #undef _GLIBCXX_HAVE_FREXPL */
 
+/* Define if getentropy is available in <unistd.h>. */
+#define _GLIBCXX_HAVE_GETENTROPY 1
+
 /* Define if _Unwind_GetIPInfo is available. */
 #define _GLIBCXX_HAVE_GETIPINFO 1
 
@@ -849,15 +1014,6 @@ namespace std
 
 /* Define to 1 if you have the <ieeefp.h> header file. */
 #define _GLIBCXX_HAVE_IEEEFP_H 1
-
-/* Define if int64_t is available in <stdint.h>. */
-#define _GLIBCXX_HAVE_INT64_T 1
-
-/* Define if int64_t is a long. */
-#define _GLIBCXX_HAVE_INT64_T_LONG 1
-
-/* Define if int64_t is a long long. */
-/* #undef _GLIBCXX_HAVE_INT64_T_LONG_LONG */
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define _GLIBCXX_HAVE_INTTYPES_H 1
@@ -912,6 +1068,9 @@ namespace std
 
 /* Define if link is available in <unistd.h>. */
 #define _GLIBCXX_HAVE_LINK 1
+
+/* Define to 1 if you have the <link.h> header file. */
+#define _GLIBCXX_HAVE_LINK_H 1
 
 /* Define if futex syscall is available. */
 /* #undef _GLIBCXX_HAVE_LINUX_FUTEX */
@@ -979,6 +1138,9 @@ namespace std
 /* Define if <math.h> defines obsolete isnan function. */
 /* #undef _GLIBCXX_HAVE_OBSOLETE_ISNAN */
 
+/* Define if openat is available in <fcntl.h>. */
+#define _GLIBCXX_HAVE_OPENAT 1
+
 /* Define if poll is available in <poll.h>. */
 #define _GLIBCXX_HAVE_POLL 1
 
@@ -987,6 +1149,10 @@ namespace std
 
 /* Define to 1 if you have the `posix_memalign' function. */
 /* #undef _GLIBCXX_HAVE_POSIX_MEMALIGN */
+
+/* Define to 1 if POSIX Semaphores with sem_timedwait are available in
+   <semaphore.h>. */
+#define _GLIBCXX_HAVE_POSIX_SEMAPHORE 1
 
 /* Define to 1 if you have the `powf' function. */
 /* #undef _GLIBCXX_HAVE_POWF */
@@ -1002,6 +1168,9 @@ namespace std
 
 /* Define if readlink is available in <unistd.h>. */
 #define _GLIBCXX_HAVE_READLINK 1
+
+/* Define to 1 if you have the `secure_getenv' function. */
+/* #undef _GLIBCXX_HAVE_SECURE_GETENV */
 
 /* Define to 1 if you have the `setenv' function. */
 /* #undef _GLIBCXX_HAVE_SETENV */
@@ -1038,6 +1207,9 @@ namespace std
 
 /* Define to 1 if you have the `sqrtl' function. */
 /* #undef _GLIBCXX_HAVE_SQRTL */
+
+/* Define if the <stacktrace> header is supported. */
+/* #undef _GLIBCXX_HAVE_STACKTRACE */
 
 /* Define to 1 if you have the <stdalign.h> header file. */
 #define _GLIBCXX_HAVE_STDALIGN_H 1
@@ -1096,6 +1268,9 @@ namespace std
 
 /* Define to 1 if you have the <sys/machine.h> header file. */
 /* #undef _GLIBCXX_HAVE_SYS_MACHINE_H */
+
+/* Define to 1 if you have the <sys/mman.h> header file. */
+/* #undef _GLIBCXX_HAVE_SYS_MMAN_H */
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 #define _GLIBCXX_HAVE_SYS_PARAM_H 1
@@ -1166,6 +1341,12 @@ namespace std
 /* Define to 1 if you have the <unistd.h> header file. */
 #define _GLIBCXX_HAVE_UNISTD_H 1
 
+/* Define if unlinkat is available in <fcntl.h>. */
+#define _GLIBCXX_HAVE_UNLINKAT 1
+
+/* Define to 1 if you have the `uselocale' function. */
+/* #undef _GLIBCXX_HAVE_USELOCALE */
+
 /* Defined if usleep exists. */
 #define _GLIBCXX_HAVE_USLEEP 1
 
@@ -1195,6 +1376,9 @@ namespace std
 
 /* Define if writev is available in <sys/uio.h>. */
 #define _GLIBCXX_HAVE_WRITEV 1
+
+/* Define to 1 if you have the <xlocale.h> header file. */
+#define _GLIBCXX_HAVE_XLOCALE_H 1
 
 /* Define to 1 if you have the `_acosf' function. */
 /* #undef _GLIBCXX_HAVE__ACOSF */
@@ -1399,7 +1583,7 @@ namespace std
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
-#define LT_OBJDIR ".libs/"
+#define _GLIBCXX_LT_OBJDIR ".libs/"
 
 /* Name of package */
 /* #undef _GLIBCXX_PACKAGE */
@@ -1438,7 +1622,7 @@ namespace std
 /* #undef SIZEOF_VOID_P */
 
 /* Define to 1 if you have the ANSI C header files. */
-#define STDC_HEADERS 1
+#define _GLIBCXX_STDC_HEADERS 1
 
 /* Version number of package */
 /* #undef _GLIBCXX_VERSION */
@@ -1509,6 +1693,9 @@ namespace std
 /* Define to 1 if a full hosted library is built, or 0 if freestanding. */
 #define _GLIBCXX_HOSTED 1
 
+/* Define if compatibility should be provided for alternative 128-bit long
+   double formats. */
+
 /* Define if compatibility should be provided for -mlong-double-64. */
 
 /* Define to the letter to which size_t is mangled. */
@@ -1516,6 +1703,9 @@ namespace std
 
 /* Define if C99 llrint and llround functions are missing from <math.h>. */
 /* #undef _GLIBCXX_NO_C99_ROUNDING_FUNCS */
+
+/* Defined if no way to sleep is available. */
+/* #undef _GLIBCXX_NO_SLEEP */
 
 /* Define if ptrdiff_t is int. */
 /* #undef _GLIBCXX_PTRDIFF_T_IS_INT */
@@ -1603,7 +1793,7 @@ namespace std
 
 /* Define if /dev/random and /dev/urandom are available for
    std::random_device. */
-#define _GLIBCXX_USE_DEV_RANDOM 1
+/* #undef _GLIBCXX_USE_DEV_RANDOM */
 
 /* Define if fchmod is available in <sys/stat.h>. */
 #define _GLIBCXX_USE_FCHMOD 1
@@ -1616,9 +1806,6 @@ namespace std
 
 /* Define if get_nprocs is available in <sys/sysinfo.h>. */
 /* #undef _GLIBCXX_USE_GET_NPROCS */
-
-/* Define if __int128 is supported on this host. */
-#define _GLIBCXX_USE_INT128 1
 
 /* Define if LFS support is available. */
 /* #undef _GLIBCXX_USE_LFS */
@@ -1670,6 +1857,9 @@ namespace std
 /* Define if sendfile is available in <sys/sendfile.h>. */
 /* #undef _GLIBCXX_USE_SENDFILE */
 
+/* Define to restrict std::__basic_file<> to stdio APIs. */
+/* #undef _GLIBCXX_USE_STDIO_PURE */
+
 /* Define if struct stat has timespec members. */
 #define _GLIBCXX_USE_ST_MTIM 1
 
@@ -1678,6 +1868,14 @@ namespace std
 
 /* Define if obsolescent tmpnam is available in <stdio.h>. */
 #define _GLIBCXX_USE_TMPNAM 1
+
+/* Define if c8rtomb and mbrtoc8 functions in <uchar.h> should be imported
+   into namespace std in <cuchar> for C++20. */
+/* #undef _GLIBCXX_USE_UCHAR_C8RTOMB_MBRTOC8_CXX20 */
+
+/* Define if c8rtomb and mbrtoc8 functions in <uchar.h> should be imported
+   into namespace std in <cuchar> for -fchar8_t. */
+/* #undef _GLIBCXX_USE_UCHAR_C8RTOMB_MBRTOC8_FCHAR8_T */
 
 /* Define if utime is available in <utime.h>. */
 #define _GLIBCXX_USE_UTIME 1

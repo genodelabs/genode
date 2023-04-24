@@ -1,4 +1,7 @@
 MIRROR_FROM_REP_DIR := lib/mk/stdcxx-c++98.mk \
+                       lib/mk/stdcxx-c++11.mk \
+                       lib/mk/stdcxx-c++17.mk \
+                       lib/mk/stdcxx-c++20.mk \
                        lib/mk/stdcxx.mk \
                        lib/import/import-stdcxx.mk
 
