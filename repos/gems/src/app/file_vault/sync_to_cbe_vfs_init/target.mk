@@ -1,3 +1,3 @@
 TARGET = file_vault-sync_to_cbe_vfs_init
-LIBS   = posix
+LIBS   = base vfs
 SRC_CC = main.cc

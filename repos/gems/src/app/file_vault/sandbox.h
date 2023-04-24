@@ -364,7 +364,7 @@ namespace File_vault {
 				xml.node("policy", [&] () {
 					xml.attribute("label", "sync_to_cbe_vfs_init -> ");
 					xml.attribute("root", "/dev");
-					xml.attribute("writeable", "no");
+					xml.attribute("writeable", "yes");
 				});
 			});
 			xml.node("route", [&] () {
