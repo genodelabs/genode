@@ -11,7 +11,6 @@ SRC_CC = sanitizer_allocator.cpp \
          sanitizer_flags.cpp \
          sanitizer_genode.cc \
          sanitizer_libc.cpp \
-         sanitizer_persistent_allocator.cpp \
          sanitizer_printf.cpp \
          sanitizer_stackdepot.cpp \
          sanitizer_stacktrace.cpp \
@@ -26,6 +25,9 @@ SRC_CC = sanitizer_allocator.cpp \
          sanitizer_termination.cpp
 
 INC_DIR += $(SANITIZER_DIR)
+
+# Prevent generation of 'strlen()' call by GCC 12
+CC_OPT += -fno-tree-loop-distribute-patterns
 
 vpath %.cc  $(SANITIZER_DIR)/sanitizer_common
 vpath %.cpp $(SANITIZER_DIR)/sanitizer_common

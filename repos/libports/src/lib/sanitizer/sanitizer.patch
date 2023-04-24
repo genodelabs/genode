@@ -4,26 +4,27 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- sanitizer_common/sanitizer_genode.cc               |  331 ++++++++++++++++++++
+ sanitizer_common/sanitizer_genode.cc               |  313 ++++++++++++++++++++
  sanitizer_common/sanitizer_internal_defs.h         |    6 
  sanitizer_common/sanitizer_platform.h              |    4 
  sanitizer_common/sanitizer_posix.h                 |    2 
  sanitizer_common/sanitizer_printf.cpp              |    2 
+ sanitizer_common/sanitizer_stackdepotbase.h        |    2 
  sanitizer_common/sanitizer_stacktrace.h            |    2 
- sanitizer_common/sanitizer_symbolizer_libcdep.cpp  |   10 -
+ sanitizer_common/sanitizer_symbolizer_libcdep.cpp  |   10 +
  .../sanitizer_symbolizer_posix_libcdep.cpp         |   29 +-
  sanitizer_common/sanitizer_symbolizer_report.cpp   |    4 
  ubsan/ubsan_diag.cpp                               |    4 
  ubsan/ubsan_flags.cpp                              |    6 
- 11 files changed, 385 insertions(+), 15 deletions(-)
+ 12 files changed, 369 insertions(+), 15 deletions(-)
  create mode 100644 sanitizer_common/sanitizer_genode.cc
 
 diff --git a/sanitizer_common/sanitizer_genode.cc b/sanitizer_common/sanitizer_genode.cc
 new file mode 100644
-index 0000000..03b1740
+index 0000000..78ee830
 --- /dev/null
 +++ b/sanitizer_common/sanitizer_genode.cc
-@@ -0,0 +1,335 @@
+@@ -0,0 +1,313 @@
 +/*
 + * \brief  Genode-specific functions from sanitizer_common.h
 + *         and sanitizer_libc.h
@@ -140,31 +141,6 @@ index 0000000..03b1740
 +		Genode::log("sanitizer: ", __func__,
 +		            ": ", Genode::Cstring(name));
 +	return nullptr;
-+}
-+
-+
-+__sanitizer::BlockingMutex::BlockingMutex()
-+{
-+	Genode::error("sanitizer: ", __func__, " called");
-+	internal_memset(this, 0, sizeof(*this));
-+}
-+
-+
-+void __sanitizer::BlockingMutex::Lock()
-+{
-+	Genode::error("sanitizer: ", __func__, " called");
-+}
-+
-+
-+void __sanitizer::BlockingMutex::Unlock()
-+{
-+	Genode::error("sanitizer: ", __func__, " called");
-+}
-+
-+
-+void __sanitizer::BlockingMutex::CheckLocked()
-+{
-+	Genode::error("sanitizer: ", __func__, " called");
 +}
 +
 +
@@ -324,10 +300,13 @@ index 0000000..03b1740
 +}
 +
 +
-+void __sanitizer::SleepForMillis(int millis)
-+{
-+	Genode::error("sanitizer: ", __func__, " called");
-+}
++void __sanitizer::InitializePlatformEarly() { }
++
++
++/* sanitizer-flags.h */
++
++
++void __sanitizer::InitializePlatformCommonFlags(CommonFlags *cf) {}
 +
 +
 +/* sanitizer_libc.h */
@@ -360,7 +339,7 @@ index 0000000..03b1740
 +	return false;
 +}
 diff --git a/sanitizer_common/sanitizer_internal_defs.h b/sanitizer_common/sanitizer_internal_defs.h
-index 0022630..3ca8b9f 100644
+index e97cc9a..b1514c6 100644
 --- a/sanitizer_common/sanitizer_internal_defs.h
 +++ b/sanitizer_common/sanitizer_internal_defs.h
 @@ -14,6 +14,8 @@
@@ -372,14 +351,14 @@ index 0022630..3ca8b9f 100644
  #ifndef SANITIZER_DEBUG
  # define SANITIZER_DEBUG 0
  #endif
-@@ -180,13 +182,13 @@ typedef uptr OFF_T;
+@@ -187,13 +189,13 @@ typedef uptr OFF_T;
  typedef u64  OFF64_T;
  
  #if (SANITIZER_WORDSIZE == 64) || SANITIZER_MAC
 -typedef uptr operator_new_size_type;
 +typedef size_t operator_new_size_type;
  #else
- # if SANITIZER_OPENBSD || defined(__s390__) && !defined(__s390x__)
+ # if defined(__s390__) && !defined(__s390x__)
  // Special case: 31-bit s390 has unsigned long as size_t.
  typedef unsigned long operator_new_size_type;
  # else
@@ -389,38 +368,39 @@ index 0022630..3ca8b9f 100644
  #endif
  
 diff --git a/sanitizer_common/sanitizer_platform.h b/sanitizer_common/sanitizer_platform.h
-index c68bfa2..b13d28a 100644
+index 3153de3..790189e 100644
 --- a/sanitizer_common/sanitizer_platform.h
 +++ b/sanitizer_common/sanitizer_platform.h
-@@ -12,12 +12,14 @@
+@@ -12,6 +12,7 @@
  #ifndef SANITIZER_PLATFORM_H
  #define SANITIZER_PLATFORM_H
  
 +#if 0
  #if !defined(__linux__) && !defined(__FreeBSD__) && !defined(__NetBSD__) && \
-   !defined(__OpenBSD__) && !defined(__APPLE__) && !defined(_WIN32) && \
-   !defined(__Fuchsia__) && !defined(__rtems__) && \
-   !(defined(__sun__) && defined(__svr4__))
- # error "This operating system is not supported"
+     !defined(__APPLE__) && !defined(_WIN32) && !defined(__Fuchsia__) &&     \
+     !(defined(__sun__) && defined(__svr4__))
+@@ -24,6 +25,7 @@
+ #if __has_include(<features.h>) && !defined(__ANDROID__)
+ #include <features.h>
  #endif
 +#endif
  
  #if defined(__linux__)
  # define SANITIZER_LINUX   1
-@@ -112,7 +114,7 @@
+@@ -118,7 +120,7 @@
  
  #define SANITIZER_POSIX \
    (SANITIZER_FREEBSD || SANITIZER_LINUX || SANITIZER_MAC || \
--    SANITIZER_NETBSD || SANITIZER_OPENBSD || SANITIZER_SOLARIS)
-+    SANITIZER_NETBSD || SANITIZER_OPENBSD || SANITIZER_SOLARIS || 1)
+-    SANITIZER_NETBSD || SANITIZER_SOLARIS)
++    SANITIZER_NETBSD || SANITIZER_SOLARIS || 1)
  
  #if __LP64__ || defined(_WIN64)
  #  define SANITIZER_WORDSIZE 64
 diff --git a/sanitizer_common/sanitizer_posix.h b/sanitizer_common/sanitizer_posix.h
-index 05fb0f6..ff76f33 100644
+index f91e26e..3effa89 100644
 --- a/sanitizer_common/sanitizer_posix.h
 +++ b/sanitizer_common/sanitizer_posix.h
-@@ -94,9 +94,11 @@ int my_pthread_attr_getstack(void *attr, void **addr, uptr *size);
+@@ -95,9 +95,11 @@ int my_pthread_attr_getstack(void *attr, void **addr, uptr *size);
  // A routine named real_sigaction() must be implemented by each sanitizer in
  // order for internal_sigaction() to bypass interceptors.
  int internal_sigaction(int signum, const void *act, void *oldact);
@@ -433,7 +413,7 @@ index 05fb0f6..ff76f33 100644
  uptr internal_execve(const char *filename, char *const argv[],
                       char *const envp[]);
 diff --git a/sanitizer_common/sanitizer_printf.cpp b/sanitizer_common/sanitizer_printf.cpp
-index a032787..fdf21c9 100644
+index 79aee8b..b81ba31 100644
 --- a/sanitizer_common/sanitizer_printf.cpp
 +++ b/sanitizer_common/sanitizer_printf.cpp
 @@ -17,7 +17,9 @@
@@ -446,13 +426,27 @@ index a032787..fdf21c9 100644
  #include <stdarg.h>
  
  #if SANITIZER_WINDOWS && defined(_MSC_VER) && _MSC_VER < 1800 &&               \
+diff --git a/sanitizer_common/sanitizer_stackdepotbase.h b/sanitizer_common/sanitizer_stackdepotbase.h
+index 96d1ddc..b79a773 100644
+--- a/sanitizer_common/sanitizer_stackdepotbase.h
++++ b/sanitizer_common/sanitizer_stackdepotbase.h
+@@ -13,7 +13,9 @@
+ #ifndef SANITIZER_STACKDEPOTBASE_H
+ #define SANITIZER_STACKDEPOTBASE_H
+ 
++#if 0
+ #include <stdio.h>
++#endif
+ 
+ #include "sanitizer_atomic.h"
+ #include "sanitizer_flat_map.h"
 diff --git a/sanitizer_common/sanitizer_stacktrace.h b/sanitizer_common/sanitizer_stacktrace.h
-index f1f29e9..fe310f7 100644
+index 11c6154..eb43232 100644
 --- a/sanitizer_common/sanitizer_stacktrace.h
 +++ b/sanitizer_common/sanitizer_stacktrace.h
 @@ -36,7 +36,7 @@ static const u32 kStackTraceMax = 256;
- #if SANITIZER_MAC || SANITIZER_OPENBSD || SANITIZER_RTEMS
- # define SANITIZER_CAN_SLOW_UNWIND 0
+ #if SANITIZER_MAC
+ #  define SANITIZER_CAN_SLOW_UNWIND 0
  #else
 -# define SANITIZER_CAN_SLOW_UNWIND 1
 +# define SANITIZER_CAN_SLOW_UNWIND 0
@@ -460,7 +454,7 @@ index f1f29e9..fe310f7 100644
  
  struct StackTrace {
 diff --git a/sanitizer_common/sanitizer_symbolizer_libcdep.cpp b/sanitizer_common/sanitizer_symbolizer_libcdep.cpp
-index 3b19a68..3f0f40e 100644
+index 3fc994f..0b4ffc8 100644
 --- a/sanitizer_common/sanitizer_symbolizer_libcdep.cpp
 +++ b/sanitizer_common/sanitizer_symbolizer_libcdep.cpp
 @@ -10,6 +10,8 @@
@@ -471,8 +465,8 @@ index 3b19a68..3f0f40e 100644
 +
  #include "sanitizer_allocator_internal.h"
  #include "sanitizer_internal_defs.h"
- #include "sanitizer_symbolizer_internal.h"
-@@ -189,7 +191,7 @@ void Symbolizer::RefreshModules() {
+ #include "sanitizer_platform.h"
+@@ -190,7 +192,7 @@ void Symbolizer::RefreshModules() {
    RAW_CHECK(modules_.size() > 0);
    modules_fresh_ = true;
  }
@@ -481,7 +475,7 @@ index 3b19a68..3f0f40e 100644
  static const LoadedModule *SearchForModule(const ListOfModules &modules,
                                             uptr address) {
    for (uptr i = 0; i < modules.size(); i++) {
-@@ -199,8 +201,11 @@ static const LoadedModule *SearchForModule(const ListOfModules &modules,
+@@ -200,8 +202,11 @@ static const LoadedModule *SearchForModule(const ListOfModules &modules,
    }
    return nullptr;
  }
@@ -494,7 +488,7 @@ index 3b19a68..3f0f40e 100644
    bool modules_were_reloaded = false;
    if (!modules_fresh_) {
      RefreshModules();
-@@ -224,6 +229,7 @@ const LoadedModule *Symbolizer::FindModuleForAddress(uptr address) {
+@@ -225,6 +230,7 @@ const LoadedModule *Symbolizer::FindModuleForAddress(uptr address) {
      module = SearchForModule(fallback_modules_, address);
    }
    return module;
@@ -503,7 +497,7 @@ index 3b19a68..3f0f40e 100644
  
  // For now we assume the following protocol:
 diff --git a/sanitizer_common/sanitizer_symbolizer_posix_libcdep.cpp b/sanitizer_common/sanitizer_symbolizer_posix_libcdep.cpp
-index c123ecb..be6873c 100644
+index 4cd4b46..ffcc55e 100644
 --- a/sanitizer_common/sanitizer_symbolizer_posix_libcdep.cpp
 +++ b/sanitizer_common/sanitizer_symbolizer_posix_libcdep.cpp
 @@ -11,6 +11,9 @@
@@ -540,7 +534,7 @@ index c123ecb..be6873c 100644
  // As of now, there are no headers for the Swift runtime. Once they are
  // present, we will weakly link since we do not require Swift runtime to be
  // linked.
-@@ -90,14 +95,16 @@ const char *DemangleSwift(const char *name) {
+@@ -83,14 +88,16 @@ const char *DemangleSwift(const char *name) {
  
    return nullptr;
  }
@@ -559,7 +553,7 @@ index c123ecb..be6873c 100644
  static bool CreateTwoHighNumberedPipes(int *infd_, int *outfd_) {
    int *infd = NULL;
    int *outfd = NULL;
-@@ -137,8 +144,12 @@ static bool CreateTwoHighNumberedPipes(int *infd_, int *outfd_) {
+@@ -130,8 +137,12 @@ static bool CreateTwoHighNumberedPipes(int *infd_, int *outfd_) {
    outfd_[1] = outfd[1];
    return true;
  }
@@ -573,23 +567,23 @@ index c123ecb..be6873c 100644
    if (!FileExists(path_)) {
      if (!reported_invalid_path_) {
        Report("WARNING: invalid path to external symbolizer!\n");
-@@ -196,6 +207,7 @@ bool SymbolizerProcess::StartSymbolizerSubprocess() {
+@@ -199,6 +210,7 @@ bool SymbolizerProcess::StartSymbolizerSubprocess() {
    }
  
    return true;
 +#endif
  }
  
- class Addr2LineProcess : public SymbolizerProcess {
-@@ -393,6 +405,7 @@ const char *Symbolizer::PlatformDemangle(const char *name) {
+ class Addr2LineProcess final : public SymbolizerProcess {
+@@ -398,6 +410,7 @@ const char *Symbolizer::PlatformDemangle(const char *name) {
    return DemangleSwiftAndCXX(name);
  }
  
 +#if 0
  static SymbolizerTool *ChooseExternalSymbolizer(LowLevelAllocator *allocator) {
    const char *path = common_flags()->external_symbolizer_path;
-   const char *binary_name = path ? StripModuleName(path) : "";
-@@ -440,7 +453,7 @@ static SymbolizerTool *ChooseExternalSymbolizer(LowLevelAllocator *allocator) {
+ 
+@@ -454,7 +467,7 @@ static SymbolizerTool *ChooseExternalSymbolizer(LowLevelAllocator *allocator) {
    }
    return nullptr;
  }
@@ -598,7 +592,7 @@ index c123ecb..be6873c 100644
  static void ChooseSymbolizerTools(IntrusiveList<SymbolizerTool> *list,
                                    LowLevelAllocator *allocator) {
    if (!common_flags()->symbolize) {
-@@ -459,11 +472,11 @@ static void ChooseSymbolizerTools(IntrusiveList<SymbolizerTool> *list,
+@@ -473,11 +486,11 @@ static void ChooseSymbolizerTools(IntrusiveList<SymbolizerTool> *list,
      list->push_back(tool);
      return;
    }
@@ -612,10 +606,10 @@ index c123ecb..be6873c 100644
  #if SANITIZER_MAC
    VReport(2, "Using dladdr symbolizer.\n");
    list->push_back(new(*allocator) DlAddrSymbolizer());
-@@ -479,7 +492,9 @@ Symbolizer *Symbolizer::PlatformInit() {
+@@ -493,7 +506,9 @@ Symbolizer *Symbolizer::PlatformInit() {
  
  void Symbolizer::LateInitialize() {
-   Symbolizer::GetOrInit();
+   Symbolizer::GetOrInit()->LateInitializeTools();
 +#if 0
    InitializeSwiftDemangler();
 +#endif
@@ -623,7 +617,7 @@ index c123ecb..be6873c 100644
  
  }  // namespace __sanitizer
 diff --git a/sanitizer_common/sanitizer_symbolizer_report.cpp b/sanitizer_common/sanitizer_symbolizer_report.cpp
-index c26724c..fb91e96 100644
+index 869c893..8ff354b 100644
 --- a/sanitizer_common/sanitizer_symbolizer_report.cpp
 +++ b/sanitizer_common/sanitizer_symbolizer_report.cpp
 @@ -20,7 +20,7 @@
@@ -635,17 +629,17 @@ index c26724c..fb91e96 100644
  # include "sanitizer_posix.h"
  # include <sys/mman.h>
  #endif
-@@ -88,7 +88,7 @@ void ReportErrorSummary(const char *error_type, const StackTrace *stack,
+@@ -89,7 +89,7 @@ void ReportErrorSummary(const char *error_type, const StackTrace *stack,
  }
  
- void ReportMmapWriteExec(int prot) {
+ void ReportMmapWriteExec(int prot, int flags) {
 -#if SANITIZER_POSIX && (!SANITIZER_GO && !SANITIZER_ANDROID)
 +#if SANITIZER_POSIX && (!SANITIZER_GO && !SANITIZER_ANDROID) && 0
-   if ((prot & (PROT_WRITE | PROT_EXEC)) != (PROT_WRITE | PROT_EXEC))
+   int pflags = (PROT_WRITE | PROT_EXEC);
+   if ((prot & pflags) != pflags)
      return;
- 
 diff --git a/ubsan/ubsan_diag.cpp b/ubsan/ubsan_diag.cpp
-index 1b2828d..8605700 100644
+index 8de51bc..f34fed2 100644
 --- a/ubsan/ubsan_diag.cpp
 +++ b/ubsan/ubsan_diag.cpp
 @@ -22,7 +22,9 @@
@@ -669,7 +663,7 @@ index 1b2828d..8605700 100644
        Buffer->append("%s", FloatBuffer);
        break;
 diff --git a/ubsan/ubsan_flags.cpp b/ubsan/ubsan_flags.cpp
-index 80de2a6..913fd4b 100644
+index 9a66bd3..330b0cc 100644
 --- a/ubsan/ubsan_flags.cpp
 +++ b/ubsan/ubsan_flags.cpp
 @@ -17,7 +17,9 @@
@@ -682,7 +676,7 @@ index 80de2a6..913fd4b 100644
  
  namespace __ubsan {
  
-@@ -30,7 +32,11 @@ static const char *GetFlag(const char *flag) {
+@@ -26,7 +28,11 @@ static const char *GetFlag(const char *flag) {
    if (SANITIZER_CAN_USE_PREINIT_ARRAY) {
      return GetEnv(flag);
    } else {
