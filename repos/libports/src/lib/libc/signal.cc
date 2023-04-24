@@ -131,6 +131,19 @@ extern "C" int sigaction(int signum, const struct sigaction *act, struct sigacti
 }
 
 
+extern "C" __sighandler_t * signal(int sig, __sighandler_t * func)
+{
+	struct sigaction oact { }, act { };
+	act.sa_handler = func;
+
+	if (sigaction(sig, &act, &oact) == 0)
+		return oact.sa_handler;
+
+	errno = EINVAL;
+	return SIG_ERR;
+}
+
+
 extern "C" int       _sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((weak, alias("sigaction")));
 extern "C" int  __sys_sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((weak, alias("sigaction")));
 extern "C" int __libc_sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((weak, alias("sigaction")));
