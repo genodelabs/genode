@@ -238,8 +238,12 @@ void Genode::binary_ready_hook_for_platform()
 		uint64_t *blks;
 	};
 
+	size_t _binary_seccomp_bpf_policy_bin_size =
+		_binary_seccomp_bpf_policy_bin_end - _binary_seccomp_bpf_policy_bin_start;
+
 	for (char* i = _binary_seccomp_bpf_policy_bin_start;
-	     i < _binary_seccomp_bpf_policy_bin_end - sizeof(uint32_t); i++) {
+	     i < &_binary_seccomp_bpf_policy_bin_start[_binary_seccomp_bpf_policy_bin_size -
+	                                               sizeof(uint32_t)]; i++) {
 
 		uint32_t *v = reinterpret_cast<uint32_t *>(i);
 		if (*v == 0xCAFEAFFE) {
@@ -248,9 +252,8 @@ void Genode::binary_ready_hook_for_platform()
 	}
 
 	Bpf_program program {
-		.blk_cnt = (uint16_t)((_binary_seccomp_bpf_policy_bin_end -
-		                       _binary_seccomp_bpf_policy_bin_start) /
-		                       sizeof(uint64_t)),
+		.blk_cnt = (uint16_t)(_binary_seccomp_bpf_policy_bin_size /
+		                      sizeof(uint64_t)),
 		.blks = (uint64_t *)_binary_seccomp_bpf_policy_bin_start
 	};
 
