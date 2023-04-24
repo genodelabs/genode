@@ -917,10 +917,19 @@ struct Igd::Device
 
 		int const port = _mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_write_pointer>();
 
-		if (_mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_0_valid>() ||
-		    _mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_1_valid>())
-			return;
+		bool empty = false;
+		for (unsigned i = 0; i < 100; i++) {
 
+			if (_mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_0_valid>() == 0 &&
+			    _mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_1_valid>() == 0) {
+				empty = true;
+				break;
+			}
+		}
+
+		/* write list anyway, it will preempt something in the worst case */
+		if (!empty)
+			warning("exec list is not empty");
 
 		el.schedule(port);
 
