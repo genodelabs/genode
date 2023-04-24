@@ -130,6 +130,7 @@ DUMMY(int   , -1, sched_setscheduler, (pid_t, int, const sched_param *))
 DUMMY(int   , -1, sched_yield, (void))
 DUMMY(int   , -1, __semctl, (void))
 DUMMY_SILENT(sig_t, SIG_ERR, signal, (int, sig_t));
+DUMMY_SILENT(int   , -1, sigaltstack, (const stack_t *, stack_t *))
 DUMMY(int   , -1, setegid, (uid_t))
 DUMMY(int   , -1, seteuid, (uid_t))
 DUMMY(int   , -1, setgid, (gid_t))
@@ -147,6 +148,7 @@ DUMMY_SILENT(mode_t,  0, umask, (mode_t))
 DUMMY(int   ,  0, utimes, (const char *, const timeval *))
 DUMMY(int, -1, semget, (key_t, int, int))
 DUMMY(int, -1, semop, (key_t, int, int))
+DUMMY(int   , -1, _umtx_op, (void *, int , u_long, void *, void *))
 __SYS_DUMMY(int,    -1, aio_suspend, (const struct aiocb * const[], int, const struct timespec *));
 __SYS_DUMMY(int   , -1, getfsstat, (struct statfs *, long, int))
 __SYS_DUMMY(int, -1, kevent, (int, const struct kevent*, int, struct kevent *, int, const struct timespec*));

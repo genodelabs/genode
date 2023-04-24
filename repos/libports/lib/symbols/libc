@@ -43,6 +43,7 @@ _Exit T
 _exit T
 _getlong T
 _getshort T
+_umtx_op T
 a64l T
 abort T
 abs T
@@ -703,6 +704,7 @@ setvbuf T
 shutdown T
 sigaction W
 sigaddset T
+sigaltstack T
 sigblock T
 sigdelset T
 sigemptyset T
