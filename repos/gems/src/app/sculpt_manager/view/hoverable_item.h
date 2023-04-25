@@ -14,6 +14,7 @@
 #ifndef _VIEW__HOVERABLE_ITEM_H_
 #define _VIEW__HOVERABLE_ITEM_H_
 
+#include <feature.h>
 #include "types.h"
 #include "xml.h"
 
@@ -51,7 +52,8 @@ struct Sculpt::Hoverable_item
 	 */
 	void gen_hovered_attr(Xml_generator &xml, Id const &id) const
 	{
-		if (hovered(id))  xml.attribute("hovered", "yes");
+		if (Feature::VISUAL_HOVER && hovered(id))
+			xml.attribute("hovered", "yes");
 	}
 
 	/**
