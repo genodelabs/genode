@@ -227,8 +227,8 @@ void Dialog::_delete_selection()
 			_text.apply(first_y, [&] (Line &first) {
 
 				if (cursor_at_deleted_line)
-					_cursor = { .x = first.upper_bound(),
-					            .y = first_y };
+					_cursor = { { first.upper_bound() },
+					            { first_y } };
 
 				_text.apply(next_y, [&] (Line &next) {
 					_move_characters(next, first); });
