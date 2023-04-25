@@ -3,6 +3,7 @@
 	<report hover="yes" focus="yes" clicked="yes" keystate="no"/>
 	<background color="#000000"/>
 
+	<domain name="overlay"        layer="0" label="no" hover="always" focus="transient" content="client"/>
 	<domain name="pointer"        layer="1" content="client" label="no" origin="pointer" />
 	<domain name="lock"           layer="2" content="client" label="no" hover="always" focus="click"/>
 	<domain name="leitzentrale"   layer="3" content="client" label="no" hover="always" focus="click" />
@@ -11,19 +12,21 @@
 	<domain name="default"        layer="6" color="#052944" hover="always" focus="click" />
 	<domain name="decorator"      layer="6" content="client" label="no" hover="always" focus="transient" />
 	<domain name="desktop"        layer="6" content="client" label="no" hover="always" focus="click" />
+	<domain name="follow_touch"   layer="6" origin="pointer" label="no" hover="always" content="client" focus="transient" width="720" height="960"/>
 	<domain name="background"     layer="7" content="client" label="no" hover="always" focus="transient" />
 
 	<policy label_suffix="-> decorator"              domain="decorator"/>
 	<policy label_prefix="runtime -> wm"             domain="desktop"/>
 	<policy label_prefix="runtime -> themed_wm"      domain="desktop"/>
 	<policy label_prefix="runtime -> touch_keyboard" domain="touch_keyboard"/>
-
-	<policy label="lock_screen"             domain="lock"/>
-	<policy label_prefix="pointer"          domain="pointer"/>
-	<policy label_prefix="leitzentrale -> " domain="leitzentrale"/>
-	<policy label="slides"                  domain="slides"/>
-	<policy label="backdrop"                domain="background"/>
-	<default-policy                         domain="default"/>
+	<policy label_prefix="runtime -> follow_touch"   domain="follow_touch"/>
+	<policy label_prefix="runtime -> overlay"        domain="overlay"/>
+	<policy label="lock_screen"                      domain="lock"/>
+	<policy label_prefix="pointer"                   domain="pointer"/>
+	<policy label_prefix="leitzentrale -> "          domain="leitzentrale"/>
+	<policy label="slides"                           domain="slides"/>
+	<policy label="backdrop"                         domain="background"/>
+	<default-policy                                  domain="default"/>
 
 	<global-key name="KEY_RESTART"   label="global_keys_handler -> input" />
 	<global-key name="KEY_DASHBOARD" label="global_keys_handler -> input" />

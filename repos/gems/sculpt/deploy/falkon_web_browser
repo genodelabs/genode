@@ -1,0 +1,93 @@
+<config arch="" info="disposable web browser">
+
+	<common_routes>
+		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+		<service name="CPU">   <parent/> </service>
+		<service name="PD">    <parent/> </service>
+		<service name="LOG">   <parent/> </service>
+		<service name="Timer"> <parent/> </service>
+	</common_routes>
+
+	<start name="window_layouter" priority="-1" pkg="window_layouter">
+		<route>
+			<service name="Gui">                           <child name="wm"/> </service>
+			<service name="ROM" label="window_list">       <child name="wm"/> </service>
+			<service name="ROM" label="focus_request">     <child name="wm"/> </service>
+			<service name="ROM" label="hover">             <child name="wm"/> </service>
+			<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
+			<service name="Report">                        <child name="wm"/> </service>
+			<service name="File_system" label="recall">    <child name="recall_fs"/> </service>
+		</route>
+	</start>
+
+	<start name="motif_decorator" priority="-1" pkg="motif_decorator">
+		<route>
+			<service name="ROM" label="window_layout"> <child name="wm"/> </service>
+			<service name="ROM" label="pointer">       <child name="wm"/> </service>
+			<service name="Report">                    <child name="wm"/> </service>
+			<service name="Gui">                       <child name="wm"/> </service>
+		</route>
+	</start>
+
+	<start name="wm" priority="-1" pkg="wm">
+		<route>
+			<service name="Gui" label="focus"> <parent label="focus"/> </service>
+			<service name="Gui">                           <parent/> </service>
+			<service name="Report" label_last="shape">     <parent/> </service>
+			<service name="Report" label_last="clipboard"> <parent/> </service>
+			<service name="ROM"    label_last="clipboard"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="recall_fs" priority="-2" pkg="recall_fs">
+		<route>
+			<service name="File_system"> <child name="default_fs_rw"/> </service>
+		</route>
+	</start>
+
+	<start name="falkon_backdrop" priority="-2" pkg="sticks_blue_backdrop">
+		<route>
+			<service name="Gui"> <parent label="backdrop"/> </service>
+		</route>
+		<config>
+			<libc/>
+			<vfs>
+				<rom name="genode_logo.png"/>
+				<rom name="grid.png"/>
+			</vfs>
+			<fill color="#0e1624" />
+			<image png="grid.png"        tiled="yes" alpha="100" />
+			<image png="genode_logo.png" anchor="bottom_right" alpha="50"
+			                             xpos="-20" ypos="-20" />
+		</config>
+	</start>
+
+	<start name="black_hole" priority="-2" pkg="black_hole">
+		<route/>
+	</start>
+
+	<start name="system_clock-pc" priority="-2" pkg="system_clock-pc">
+		<route>
+			<service name="IRQ">     <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="falkon-jemalloc" priority="-2" pkg="cproc/pkg/falkon-jemalloc/2023-04-21-a">
+		<route>
+			<service name="Nic">       <child name="nic_router"/>      </service>
+			<service name="Rtc">       <child name="system_clock-pc"/> </service>
+			<service name="Audio_out"> <child name="black_hole"/>      </service>
+			<service name="Audio_in">  <child name="black_hole"/>      </service>
+			<service name="Capture">   <child name="black_hole"/>      </service>
+			<service name="File_system" label="config">     <child name="ram_fs"/> </service>
+			<service name="File_system" label="downloads">  <child name="ram_fs"/> </service>
+			<service name="Gui">                            <child name="wm"/> </service>
+			<service name="Report" label="falkon -> shape"> <child name="wm"/> </service>
+			<service name="Report" label="clipboard">       <child name="wm"/> </service>
+			<service name="ROM"    label="clipboard">       <child name="wm"/> </service>
+		</route>
+	</start>
+
+</config>
+

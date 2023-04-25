@@ -1,0 +1,63 @@
+<config arch="" info="software-rendering example">
+
+	<common_routes>
+		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+		<service name="ROM" label_last="init">      <parent/> </service>
+		<service name="CPU">   <parent/> </service>
+		<service name="PD">    <parent/> </service>
+		<service name="LOG">   <parent/> </service>
+		<service name="Timer"> <parent/> </service>
+	</common_routes>
+
+	<start name="backdrop" pkg="sticks_blue_backdrop">
+		<config>
+			<libc/>
+			<vfs>
+				<rom name="genode_logo.png"/>
+				<rom name="grid.png"/>
+			</vfs>
+			<fill color="#122334" />
+			<image png="grid.png"        tiled="yes" alpha="200" />
+			<image png="genode_logo.png" anchor="bottom_right" alpha="150"
+			                             xpos="-20" ypos="-20" />
+		</config>
+		<route>
+			<service name="Gui"> <parent label="backdrop" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="dynamic_rom" ram="4M" pkg="dynamic_rom">
+		<config verbose="yes">
+			<rom name="nano3d.config">
+				<inline description="initial state">
+					<config painter="textures"/>
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="RGBA shading">
+					<config painter="shaded"/>
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="switch to cube">
+					<config painter="shaded" shape="cube" />
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="texturing">
+					<config painter="textured" shape="cube" />
+				</inline>
+				<sleep milliseconds="1000" />
+			</rom>
+		</config>
+	</start>
+
+	<start name="nano3d" pkg="unconfigured_nano3d">
+		<affinity xpos="1" width="1"/>
+		<route>
+			<service name="Gui"> <parent label="follow_touch"/> </service>
+			<service name="ROM" label="config">
+				<child name="dynamic_rom" label="nano3d.config"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+</config>

@@ -1,0 +1,95 @@
+<config arch="" info="simple desktop environment">
+
+	<common_routes>
+		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+		<service name="CPU">   <parent/> </service>
+		<service name="PD">    <parent/> </service>
+		<service name="LOG">   <parent/> </service>
+		<service name="Timer"> <parent/> </service>
+	</common_routes>
+
+	<start name="system_shell" priority="-2" pkg="system_shell">
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="File_system" label="config"> <parent label="config"/> </service>
+			<service name="File_system" label="report"> <parent label="report"/> </service>
+			<service name="File_system" label="target"> <child name="default_fs_rw"/> </service>
+			<service name="File_system" label="fonts">  <child name="fonts_fs"/> </service>
+			<service name="ROM" label="vimrc"> <parent label="config -> vimrc"/> </service>
+			<service name="ROM" label="clipboard"> <child name="wm"/> </service>
+			<service name="Report" label="clipboard"> <child name="wm"/> </service>
+			<service name="RM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="window_layouter" priority="-1" pkg="window_layouter">
+		<route>
+			<service name="Gui">                           <child name="wm"/> </service>
+			<service name="ROM" label="window_list">       <child name="wm"/> </service>
+			<service name="ROM" label="focus_request">     <child name="wm"/> </service>
+			<service name="ROM" label="hover">             <child name="wm"/> </service>
+			<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
+			<service name="Report">                        <child name="wm"/> </service>
+			<service name="File_system" label="recall">
+				<child name="recall_fs"/>
+			</service>
+		</route>
+	</start>
+
+	<start name="themed_decorator" priority="-1" pkg="themed_decorator">
+		<route>
+			<service name="ROM" label="window_layout"> <child name="wm"/> </service>
+			<service name="ROM" label="pointer">       <child name="wm"/> </service>
+			<service name="Report">                    <child name="wm"/> </service>
+			<service name="Gui">                       <child name="wm"/> </service>
+		</route>
+	</start>
+
+	<start name="wm" priority="-1" pkg="wm">
+		<route>
+			<service name="Gui" label="focus"> <parent label="focus"/> </service>
+			<service name="Gui">                           <parent/> </service>
+			<service name="Report" label_last="shape">     <parent/> </service>
+			<service name="Report" label_last="clipboard"> <parent/> </service>
+			<service name="ROM"    label_last="clipboard"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="fonts_fs" priority="-2" pkg="fonts_fs">
+		<route>
+			<service name="ROM" label="config">
+				<parent label="config -> managed/fonts"/>
+			</service>
+		</route>
+	</start>
+
+	<start name="recall_fs" priority="-2" pkg="recall_fs">
+		<route>
+			<service name="File_system"> <child name="default_fs_rw"/> </service>
+		</route>
+	</start>
+
+	<start name="wm_backdrop" priority="-2" pkg="sticks_blue_backdrop">
+		<route>
+			<service name="Gui"> <parent label="backdrop"/> </service>
+		</route>
+		<config>
+			<libc/>
+			<vfs>
+				<rom name="genode_logo.png"/>
+				<rom name="grid.png"/>
+				<rom name="sticks_blue.png"/>
+			</vfs>
+			<fill color="#223344" />
+			<image png="sticks_blue.png" scale="zoom" anchor="bottom_left" alpha="200"/>
+			<image png="grid.png"        tiled="yes" alpha="200" />
+			<image png="genode_logo.png" anchor="bottom_right" alpha="150"
+			                             xpos="-20" ypos="-20" />
+		</config>
+	</start>
+
+	<start name="black_hole" priority="-2" pkg="black_hole">
+		<route/>
+	</start>
+
+</config>
