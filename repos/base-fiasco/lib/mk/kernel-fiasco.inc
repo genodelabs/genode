@@ -6,8 +6,15 @@ FIASCO_SRC       = $(L4_SRC_DIR)/kernel/fiasco
 
 KERNEL_BUILD_OUTPUT_FILTER = 2>&1 | sed "s/^/      [fiasco]  /"
 
-KERNEL_CXXFLAGS = -std=gnu++98 -fno-delete-null-pointer-checks $(CXXWARN) \
-                  -Wno-address-of-packed-member
+KERNEL_CFLAGS = -std=gnu89 \
+                -fno-tree-loop-distribute-patterns \
+                $(CWARN)
+
+KERNEL_CXXFLAGS = -std=gnu++98 \
+                  -fno-delete-null-pointer-checks \
+                  -fno-tree-loop-distribute-patterns \
+                  -Wno-address-of-packed-member \
+                  $(CXXWARN)
 
 $(FIASCO_BUILD_DIR):
 	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
@@ -20,7 +27,8 @@ $(FIASCO_BUILD_DIR):
 	$(VERBOSE)cp $(KERNEL_CONFIG) $@/globalconfig.out
 
 $(FIASCO): $(FIASCO_BUILD_DIR)
-	$(VERBOSE_MK) MAKEFLAGS= CFLAGS="-std=gnu89 $(CWARN)" \
+	$(VERBOSE_MK) MAKEFLAGS= \
+	              CFLAGS="$(KERNEL_CFLAGS)" \
 	              CXXFLAGS="$(KERNEL_CXXFLAGS)" \
 	              $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                                 $(VERBOSE_DIR) -C $(FIASCO_BUILD_DIR) \

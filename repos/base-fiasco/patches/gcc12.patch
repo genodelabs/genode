@@ -1,0 +1,15 @@
+gcc12.patch
+
+diff --git fiasco/snapshot/l4/pkg/sigma0/server/src/region.h fiasco/snapshot/l4/pkg/sigma0/server/src/region.h
+index ad7cf95..c323bae 100644
+--- fiasco/snapshot/l4/pkg/sigma0/server/src/region.h
++++ fiasco/snapshot/l4/pkg/sigma0/server/src/region.h
+@@ -1,6 +1,8 @@
+ #ifndef SIGMA0_REGION_H__
+ #define SIGMA0_REGION_H__
+ 
++#include <l4/cxx/iostream.h>
++
+ class Region
+ {
+ private:
