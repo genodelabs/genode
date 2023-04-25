@@ -132,7 +132,8 @@ void Trust_anchor::_execute_write_read_operation(Vfs_handle        &file,
 void Trust_anchor::_execute_write_operation(Vfs_handle        &file,
                                             String<128> const &file_path,
                                             char        const *write_buf,
-                                            bool              &progress)
+                                            bool              &progress,
+                                            bool               result_via_read)
 {
 	switch (_job.state) {
 	case Job_state::WRITE_PENDING:
@@ -168,7 +169,12 @@ void Trust_anchor::_execute_write_operation(Vfs_handle        &file,
 			}
 			_job.state = Job_state::READ_PENDING;
 			_job.fl_offset = 0;
-			_job.fl_size = 0;
+
+			if (result_via_read)
+				_job.fl_size = sizeof(_read_buf);
+			else
+				_job.fl_size = 0;
+
 			progress = true;
 			return;
 
@@ -210,7 +216,6 @@ void Trust_anchor::_execute_write_operation(Vfs_handle        &file,
 
 			_job.fl_offset += read_bytes;
 			_job.fl_size   -= read_bytes;
-			_job.request.success(true);
 
 			if (_job.fl_size > 0) {
 
@@ -218,6 +223,11 @@ void Trust_anchor::_execute_write_operation(Vfs_handle        &file,
 				progress = true;
 				return;
 			}
+			if (result_via_read) {
+				_job.request.success(!strcmp(_read_buf, "ok", 3));
+			} else
+				_job.request.success(true);
+
 			_job.state = Job_state::COMPLETE;
 			progress = true;
 			return;
@@ -440,7 +450,7 @@ void Trust_anchor::execute(bool &progress)
 
 		_execute_write_operation(
 			_initialize_file, _initialize_path,
-			_job.passphrase.string(), progress);
+			_job.passphrase.string(), progress, true);
 
 		break;
 
@@ -448,7 +458,7 @@ void Trust_anchor::execute(bool &progress)
 
 		_execute_write_operation(
 			_hashsum_file, _hashsum_path,
-			_job.hash.values, progress);
+			_job.hash.values, progress, false);
 
 		break;
 

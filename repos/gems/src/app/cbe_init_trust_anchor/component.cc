@@ -44,7 +44,7 @@ class Main : Vfs::Env::User
 
 		Vfs::File_system &_vfs { _vfs_env.root_dir() };
 
-		using Passphrase = Genode::String<32 + 1>;
+		using Initialize_file_buf = Genode::String<32 + 1>;
 
 		using String_path = Genode::String<256>;
 
@@ -82,7 +82,7 @@ class Main : Vfs::Env::User
 			Genode::Constructible<Util::Io_job> _io_job { };
 			Util::Io_job::Buffer                _io_buffer { };
 
-			Passphrase _passphrase { };
+			Initialize_file_buf _initialize_file_buf { };
 
 			File(char          const *base_path,
 				 char          const *name,
@@ -112,14 +112,14 @@ class Main : Vfs::Env::User
 				_vfs.close(_vfs_handle);
 			}
 
-			void write_passphrase(Passphrase const &passphrase)
+			void write_passphrase(Initialize_file_buf const &passphrase)
 			{
 				/* copy */
-				_passphrase = passphrase;
+				_initialize_file_buf = passphrase;
 
 				_io_buffer = {
-					.base = const_cast<char *>(_passphrase.string()),
-					.size = _passphrase.length()
+					.base = const_cast<char *>(_initialize_file_buf.string()),
+					.size = _initialize_file_buf.length()
 				};
 
 				_io_job.construct(*_vfs_handle, Util::Io_job::Operation::WRITE,
@@ -129,8 +129,8 @@ class Main : Vfs::Env::User
 			void queue_read()
 			{
 				_io_buffer = {
-					.base = nullptr,
-					.size = 0,
+					.base = (char *)(_initialize_file_buf.string()),
+					.size = _initialize_file_buf.length()
 				};
 
 				_io_job.construct(*_vfs_handle, Util::Io_job::Operation::READ,
@@ -153,7 +153,9 @@ class Main : Vfs::Env::User
 
 			Completed read_complete()
 			{
-				return { _io_job->completed(), _io_job->succeeded() };
+				return {
+					_io_job->completed(),
+					_io_job->succeeded() && _initialize_file_buf == "ok"};
 			}
 
 			void drop_io_job()
@@ -210,8 +212,9 @@ class Main : Vfs::Env::User
 		{
 			Xml_node const &config { _config_rom.xml() };
 
-			Passphrase const passphrase =
-				config.attribute_value("passphrase", Passphrase());
+			Initialize_file_buf const passphrase =
+				config.attribute_value("passphrase", Initialize_file_buf());
+
 			if (!passphrase.valid()) {
 				error("mandatory 'passphrase' attribute missing");
 				throw Missing_config_attribute();

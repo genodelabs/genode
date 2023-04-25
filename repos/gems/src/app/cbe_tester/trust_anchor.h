@@ -74,7 +74,8 @@ class Trust_anchor
 		void _execute_write_operation(Vfs::Vfs_handle           &file,
 		                              Genode::String<128> const &file_path,
 		                              char                const *write_buf,
-		                              bool                      &progress);
+		                              bool                      &progress,
+		                              bool                       result_via_read);
 
 		void _execute_read_operation(Vfs::Vfs_handle           &file,
 		                             Genode::String<128> const &file_path,

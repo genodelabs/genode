@@ -1781,7 +1781,8 @@ class Vfs_cbe_trust_anchor::Initialize_file_system : public Vfs::Single_file_sys
 				_trust_anchor     { ta }
 			{ }
 
-			Read_result read(Byte_range_ptr const &, size_t &) override
+			Read_result read(Byte_range_ptr const &buf,
+			                 size_t               &nr_of_read_bytes) override
 			{
 				if (_state != State::PENDING) {
 					return READ_ERR_INVALID;
@@ -1799,7 +1800,27 @@ class Vfs_cbe_trust_anchor::Initialize_file_system : public Vfs::Single_file_sys
 				_state        = State::NONE;
 				_init_pending = false;
 
-				return cr.success ? READ_OK : READ_ERR_IO;
+				if (cr.success) {
+
+					char const *str { "ok" };
+					if (buf.num_bytes < 3) {
+						Genode::error("read buffer too small ", buf.num_bytes);
+						return READ_ERR_IO;
+					}
+					memcpy(buf.start, str, 3);
+					nr_of_read_bytes = buf.num_bytes;
+
+				} else {
+
+					char const *str { "failed" };
+					if (buf.num_bytes < 7) {
+						Genode::error("read buffer too small ", buf.num_bytes);
+						return READ_ERR_IO;
+					}
+					memcpy(buf.start, str, 7);
+					nr_of_read_bytes = buf.num_bytes;
+				}
+				return READ_OK;
 			}
 
 			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
