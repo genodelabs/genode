@@ -272,7 +272,7 @@ struct Fetchurl::Main
 			.timer        = _timer,
 			.last_ms      = _timer.curr_time().trunc_to_plain_ms(),
 			.max_timeout  = _progress_timeout,
-			.curr_timeout = Genode::Milliseconds { .value = 0 },
+			.curr_timeout = Genode::Milliseconds { 0 },
 			.fetch        = _fetch,
 		};
 		curl_easy_setopt(_curl, CURLOPT_PROGRESSDATA, &ud);
@@ -362,7 +362,7 @@ static int progress_callback(void *userdata,
 	Fetch             &fetch = ud.fetch;
 
 	Milliseconds curr { timer.curr_time().trunc_to_plain_ms() };
-	Milliseconds diff { .value = curr.value - ud.last_ms.value };
+	Milliseconds diff { curr.value - ud.last_ms.value };
 	ud.last_ms = curr;
 
 	/*
