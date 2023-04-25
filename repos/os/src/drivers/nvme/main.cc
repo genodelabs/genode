@@ -578,6 +578,8 @@ class Nvme::Controller : Platform::Device,
                          Platform::Device::Mmio,
                          Platform::Device::Irq
 {
+	using Mmio = Genode::Mmio;
+
 	public:
 
 	/**********
