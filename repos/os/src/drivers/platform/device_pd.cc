@@ -94,7 +94,14 @@ addr_t Device_pd::_dma_addr(addr_t const phys_addr,
 			});
 	}
 
-	return _dma_alloc.alloc_aligned(size, 12).convert<addr_t>(
+	/* natural size align (to some limit) for better IOMMU TLB usage */
+	unsigned size_align_log2 = unsigned(log2(size));
+	if (size_align_log2 < 12) /* 4 kB */
+		size_align_log2 = 12;
+	if (size_align_log2 > 24) /* 16 MB */
+		size_align_log2 = 24;
+
+	return _dma_alloc.alloc_aligned(size, size_align_log2).convert<addr_t>(
 		[&] (void *ptr) { return (addr_t)ptr; },
 		[&] (Alloc_error err) -> addr_t {
 			switch (err) {
@@ -102,6 +109,7 @@ addr_t Device_pd::_dma_addr(addr_t const phys_addr,
 			case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
 			case Alloc_error::DENIED:
 				error("Could not allocate DMA area of size: ", size,
+				      " alignment: ", size_align_log2,
 				      " total avail: ", _dma_alloc.avail(),
 				     " (error: ", err, ")");
 				break;
