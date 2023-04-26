@@ -917,6 +917,12 @@ struct Igd::Device
 
 		int const port = _mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_write_pointer>();
 
+
+		/*
+		 * Exec list might still be executing, check multiple times, in the normal
+		 * case first iteration should succeed. If still running loop should end
+		 * after 2 or three retries. Everything else needs to be inspected.
+		 */
 		bool empty = false;
 		for (unsigned i = 0; i < 100; i++) {
 
@@ -927,7 +933,11 @@ struct Igd::Device
 			}
 		}
 
-		/* write list anyway, it will preempt something in the worst case */
+		/*
+		 * In case exec list is still running write list anyway, it will preempt
+		 * something in the worst case.  Nonetheless if you see the warning below,
+		 * something is not right and should be investigated.
+		 */
 		if (!empty)
 			warning("exec list is not empty");
 
