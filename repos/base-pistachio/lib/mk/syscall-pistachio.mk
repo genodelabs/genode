@@ -15,7 +15,7 @@ unexport .SHELLFLAGS
 user_build.tag:
 	LIBGCCFLAGS="$(CC_MARCH)" \
 	LDFLAGS="$(addprefix $(LD_PREFIX),$(LD_MARCH)) -nostdlib" \
-	CFLAGS="$(CC_MARCH) $(CC_WARN)" \
+	CFLAGS="$(CC_MARCH) $(CC_WARN) -fno-tree-loop-distribute-patterns" \
 	$(PISTACHIO_CONTRIB_DIR)/user/configure --build=ia32 --host i686 \
 	                                        CC=$(CROSS_DEV_PREFIX)gcc
 	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) -s $(VERBOSE_DIR)

@@ -1,0 +1,22 @@
+gcc12.patch
+
+diff --git a/kernel/src/api/v4/tcb.h b/kernel/src/api/v4/tcb.h
+index 21b10df..779aad5 100644
+--- a/kernel/src/api/v4/tcb.h
++++ b/kernel/src/api/v4/tcb.h
+@@ -763,13 +763,13 @@ INLINE arch_ktcb_t *tcb_t::get_arch()
+ 
+ INLINE tcb_t * get_idle_tcb()
+ {
+-    extern tcb_t *__idle_tcb;
++    extern const tcb_t *__idle_tcb;
+     return (tcb_t*)__idle_tcb;
+ }
+ 
+ INLINE tcb_t * get_dummy_tcb()
+ {
+-    extern tcb_t *__dummy_tcb;
++    extern const tcb_t *__dummy_tcb;
+     return (tcb_t*)__dummy_tcb;
+ }
+ 
