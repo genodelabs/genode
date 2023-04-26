@@ -197,5 +197,14 @@ Device_pd::Device_pd(Env             & env,
 	enum { DMA_SIZE = 0xffffe000 };
 	_dma_alloc.add_range(0x1000, DMA_SIZE);
 
+	/*
+	 * Interrupt address range is special handled and in general not
+	 * usable for normal DMA translations, see chapter 3.15
+	 * of "Intel Virtualization Technology for Directed I/O"
+	 * (March 2023, Revision 4.1)
+	 */
+	enum { IRQ_RANGE_BASE = 0xfee00000u, IRQ_RANGE_SIZE = 0x100000 };
+	_dma_alloc.remove_range(IRQ_RANGE_BASE, IRQ_RANGE_SIZE);
+
 	_pd.ref_account(env.pd_session_cap());
 }
