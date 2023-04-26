@@ -721,7 +721,7 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 {
 	Reporter::Xml_generator xml(usb_drv_config, [&] () {
 
-		xml.attribute("bios_handoff", true);
+		xml.attribute("bios_handoff", false);
 
 		xml.node("report", [&] () {
 			xml.attribute("config",  true);
