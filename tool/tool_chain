@@ -472,9 +472,9 @@ $(GDB_INSTALLED_BINARIES): $(GDB_BINARIES)
 
 $(BUILD_LOCATION)/bootstrap/gprbuild/Makefile:
 	$(ECHO) "$(BRIGHT_COL)preparing bootstrap gprbuild...$(DEFAULT_COL)"
-	$(VERBOSE)git clone -b v21.0.0 https://github.com/AdaCore/gprbuild.git $(dir $@)
-	$(VERBOSE)git clone -b v21.0.0 https://github.com/AdaCore/xmlada.git $(dir $@)/xmlada
-	$(VERBOSE)git clone -b v21.0.0 https://github.com/AdaCore/gprconfig_kb.git $(dir $@)/gprconfig_kb
+	$(VERBOSE)git clone -b v23.0.0 https://github.com/AdaCore/gprbuild.git $(dir $@)
+	$(VERBOSE)git clone -b v23.0.0 https://github.com/AdaCore/xmlada.git $(dir $@)/xmlada
+	$(VERBOSE)git clone -b v23.0.0 https://github.com/AdaCore/gprconfig_kb.git $(dir $@)/gprconfig_kb
 	$(VERBOSE)sed -i -e '/\<target name="\^\.\*-gnueabihf$$" \/>/d' $(dir $@)/gprconfig_kb/db/linker.xml
 	$(VERBOSE)sed -i -e '/\<target name="\^\.\*-linux\.\*" \/>/d' $(dir $@)/gprconfig_kb/db/linker.xml
 
