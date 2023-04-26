@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 22.10
+                      Sculpt Operating System 23.04
                       =============================
 
 
@@ -58,7 +58,7 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at the
-[https://genode.org/documentation/sculpt-22-10.pdf - Genode website].
+[https://genode.org/documentation/sculpt-23-04.pdf - Genode website].
 
 
 Hardware requirements and preparations
@@ -141,9 +141,24 @@ indicated by the IP address displayed at the bottom of the network dialog
 
 [image sculpt_20_08_network 40%]
 
-With a storage location selected and established network connectivity, it is
-time to *install and start* additional components by clicking on the '+'
-button of the components view. Select "Depot ..." from the menu
+With a storage location selected and established network connectivity,
+it is time to give a preconfigured example sculpt scenario a *quick try*.
+The system menu at the upper-left screen corner reveals a couple of presets
+to play with. As a first test, let's load the nano3d preset.
+
+[image sculpt_23_04_presets 40%]
+
+When loading the preset, Sculpt will automatically download all the needed
+ingredients into the selected RAM file system and start the components of the
+demo scenario, which presents a simple spinning object that follows the mouse.
+If curious, you may give the other presets a try as well. But more
+interestingly, let's discover how to sculpt a custom scenario by starting
+with the *empty* preset that takes us back to the initial system state. In the
+following, we will build up a custom system by integrating one component
+after another.
+
+The gateway for *installing and starting* individual components is the
+unassuming "+" button of the components view. Select "Depot ..." from the menu
 (Figure [sculpt_21_10_menu]).
 
 [image sculpt_21_10_menu 40%]
@@ -487,13 +502,13 @@ connectivity. Most importantly, however, it allows the user to access the
 _config_ and _report_ file systems. Both file systems are readily accessible
 under the "Files" tab of the panel. The file browser allows you to traverse
 directory hierarchies, inspect individual files, and edit files.
-Alternatively to the "Files" tab, Sculpt 22.10 features a command-line
+Alternatively to the "Files" tab, Sculpt 23.04 features a command-line
 interface. To spawn this command-line interface, click on the "ram fs"
 component in the graph and select "Inspect". In the panel, a third tab named
 "Inspect" appears, which hosts the command-line interface
-(Figure [sculpt_20_08_inspect_tab]).
+(Figure [sculpt_23_04_inspect_tab]).
 
-[image sculpt_20_08_inspect_tab 60%]
+[image sculpt_23_04_inspect_tab 100%]
 
 The inspect tab hosts a small Unix-like runtime as user interface. Don't let
 the presence of a Unix shell mislead you. Sculpt is not a Unix system. It
@@ -1346,6 +1361,61 @@ non-default using this button.
 Advanced usage
 ##############
 
+On-target system update
+=======================
+
+The system image of Sculpt OS resides at the _/boot/_ directory of the
+"Genode" partition of the boot medium. E.g., when using a USB stick as boot
+medium on the PC, the boot directory resides on the 3rd partition of the
+USB stick. To update the Sculpt system image, make sure to have selected
+your boot partition for "use" by Sculpt. Should your boot medium differ from
+your regular Sculpt partition, e.g., when using an entire hard disk as one Sculpt
+partition, you may need to "un-use" your regular Sculpt partition and
+temporarily "use" your boot USB stick instead.
+
+With having your boot medium selected for the use by Sculpt, the system menu
+at the upper-left screen corner provides you with a convenient user interface
+for discovering and downloading new versions, and for switching between the
+installed system images.
+
+[image sculpt_23_04_check_updates 50%]
+
+The upper part of the dialog allows you to select the system-image provider.
+By default, the provider is set to the one of your currently running system
+image. But you have to option to obtain images from alternative providers,
+or even add a new custom provider by using the "Edit" button. Under the
+hood, each listed provider corresponds a directory in your _depot/_ at the
+sculpt partition.
+When adding a custom provider, it will show up as a new directory there.
+The lower part of the dialog presents the information about the currently
+running system image for reference.
+
+The check-for-updates button downloads the information about available
+images from the selected provider. This information is the presented along
+with the already downloaded images as exemplified in the following screenshot.
+
+[image sculpt_23_04_update 50%]
+
+The little "..." dots indicate that change-log information is available when
+clicking on the entry. The download button fetches the image. Once fetched,
+the download button turns into an install button. You can select any present
+image for your next boot via the corresponding install button. Under the hood,
+this operation copies the content of the
+_depot/<provider>/image/sculpt-<board>-<version>/_ directory to your _/boot/_
+directory.
+Note that you can switch back and forth between different versions this way.
+For example, should a new version not behave to your full satisfaction, you
+can easily switch back the previous one by using the install button of the
+original version. As a precaution, it is good to have downloaded the initial
+Sculpt version you are using. In the worst case, should a new version fail to
+boot, you can still manually copy this downloaded original version from your
+local _depot/_ to your boot directory using a live USB system.
+
+Once an image is installed, the dialog tells you "reboot to activate".
+One way to do that is by changing the system state in _/config/system_ to
+"reset".
+
+
 Manual configuration
 ====================
 
@@ -1400,6 +1470,20 @@ customizations can be made permanent by following the steps explained in
 Section [Making customizations permanent].
 
 
+Custom presets
+==============
+
+The presets available in the system menu at the upper-left screen corner
+correspond to the files present at _/config/presets/_. Each file is a
+_deploy_ configuration. You can turn the currently running system into
+a preset by copying _/config/managed/deploy_ as new file to
+_/config/presets/_.
+
+To keep your custom presem available after reboot, follow the pattern
+described in Section [Making customizations permanent] by copying the file to
+_/config/23.04/presets/_ at your Sculpt partition.
+
+
 Building the boot image
 =======================
 
@@ -1413,11 +1497,11 @@ a free download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-22.10 sculpt-22.10
+  ! git checkout -b sculpt-23.04 sculpt-23.04
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2022-10-11
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2023-04-25
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
@@ -1425,10 +1509,10 @@ a free download at [https://genode.org].
 # Download all ingredients for the Sculpt boot image
 
   ! ./tool/depot/download \
-  !    genodelabs/pkg/x86_64/sculpt/2022-10-13 \
-  !    genodelabs/pkg/x86_64/drivers_managed-pc/2022-10-11 \
-  !    genodelabs/pkg/x86_64/wifi/2022-10-13 \
-  !    genodelabs/bin/x86_64/ipxe_nic_drv/2022-10-11
+  !    genodelabs/pkg/x86_64/sculpt/2023-04-28 \
+  !    genodelabs/pkg/x86_64/drivers_managed-pc/2023-04-28 \
+  !    genodelabs/pkg/x86_64/wifi/2023-04-27 \
+  !    genodelabs/bin/x86_64/ipxe_nic_drv/2023-04-25
 
 # Create a build directory
 
@@ -1437,7 +1521,7 @@ a free download at [https://genode.org].
 # Configure the build directory by editing _build/x86_64/etc/build.conf_.
   Most importantly, enable the 'gems' source-code repository where the Sculpt
   scenario resides. In addition, the 'libports', 'ports', 'pc', 'dde_linux',
-  'dde_rump', and 'dde_ipxe' repositories are needed as well.
+  'dde_rump', 'dde_bsd', and 'dde_ipxe' repositories are needed as well.
   Second, change the default configuration of the 'QEMU_RUN_OPT' variable to
   'image/disk' instead of 'image/iso'. This way, the build process will
   produce a valid disk image with a GPT partition table instead of a legacy
@@ -1450,7 +1534,7 @@ a free download at [https://genode.org].
 # Create the Sculpt boot image (defined by the run script at
   _repos/gems/run/sculpt.run_)
 
-  ! make -C build/x86_64 run/sculpt KERNEL=nova BOARD=pc
+  ! make -C build/x86_64 run/sculpt KERNEL=nova BOARD=pc DEPOT=omit
 
   The boot image is created at _build/x86_64/var/run/sculpt.img_.
 
