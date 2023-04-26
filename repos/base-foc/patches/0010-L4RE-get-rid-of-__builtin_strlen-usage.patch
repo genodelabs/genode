@@ -11,10 +11,11 @@ diff --git a/l4/pkg/l4re-core/l4sys/include/kdebug.h b/l4/pkg/l4re-core/l4sys/in
 index cfb17464..64ee9900 100644
 --- a/l4/pkg/l4re-core/l4sys/include/kdebug.h
 +++ b/l4/pkg/l4re-core/l4sys/include/kdebug.h
-@@ -133,6 +133,13 @@ __kdebug_op_1(unsigned op, l4_mword_t val) L4_NOTHROW
+@@ -133,6 +133,14 @@ __kdebug_op_1(unsigned op, l4_mword_t val) L4_NOTHROW
    return res;
  }
  
++__attribute__((optimize("no-tree-loop-distribute-patterns")))
 +L4_INLINE unsigned __kdebug_strlen(char const * s)
 +{
 +	unsigned r = 0;

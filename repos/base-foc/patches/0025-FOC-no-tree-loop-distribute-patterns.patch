@@ -1,0 +1,17 @@
+Fix reboot loop when built with GCC 12.
+
+diff --git a/src/Makeconf b/src/Makeconf
+index bb7ad16c..2fe11226 100644
+--- a/src/Makeconf
++++ b/src/Makeconf
+@@ -167,8 +167,8 @@ NOOPT_SHARED_FLAGS += $(NOOPT_SHARED_FLAGS-$(CC_TYPE))
+ # Standard compile flags
+ ASFLAGS		+= $(SHARED_FLAGS) -DASSEMBLER
+ ASFLAGS-clang	+= -no-integrated-as
+-CFLAGS		+= $(SHARED_FLAGS) -Wbad-function-cast -Wstrict-prototypes
+-CXXFLAGS	+= $(SHARED_FLAGS) -fno-rtti -fno-exceptions
++CFLAGS		+= $(SHARED_FLAGS) -Wbad-function-cast -Wstrict-prototypes -fno-tree-loop-distribute-patterns
++CXXFLAGS	+= $(SHARED_FLAGS) -fno-rtti -fno-exceptions -fno-tree-loop-distribute-patterns
+ OPT_CFLAGS	+= $(OPT_SHARED_FLAGS)
+ OPT_CXXFLAGS	+= $(OPT_SHARED_FLAGS)
+ NOOPT_CFLAGS	+= $(NOOPT_SHARED_FLAGS)

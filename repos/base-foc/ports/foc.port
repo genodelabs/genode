@@ -37,11 +37,13 @@ PATCH_OPT(patches/0014-Always-enable-user-mode-access-for-performance-monit.patc
 PATCH_OPT(patches/0015-VMX-disable-event-injection-if-requested-by-VMM.patch)     := -p3 -d${DIR(foc)}
 PATCH_OPT(patches/0016-svm-provide-cr0-to-guest-if-np-enabled.patch)              := -p3 -d${DIR(foc)}
 PATCH_OPT(patches/0017-svm-avoid-forceful-exit-on-task-switch.patch)              := -p3 -d${DIR(foc)}
-PATCH_OPT(patches/0018-L4-enable-gcc_10.patch)                                    := -p2 -d${DIR(mk)}
+PATCH_OPT(patches/0018-L4-enable-gcc_12.patch)                                    := -p2 -d${DIR(mk)}
 PATCH_OPT(patches/0019-Bootstrap-do-not-depend-on-any-libstdcxx-feature.patch)    := -p1 -d${DIR(bootstrap)}
 PATCH_OPT(patches/0020-Bootstrap-fix-amd64-build-with-binutils-2_32.patch)        := -p1 -d${DIR(bootstrap)}
-PATCH_OPT(patches/0021-FOC-enable-gcc_10.patch)                                   := -p1 -d${DIR(foc)}
+PATCH_OPT(patches/0021-FOC-enable-gcc_12.patch)                                   := -p1 -d${DIR(foc)}
 PATCH_OPT(patches/0022-FOC-amd64-split-_syscall_entry-into-code-and-data.patch)   := -p1 -d${DIR(foc)}
 PATCH_OPT(patches/0023-FOC-arm-link-bootstrap-as-et_rel.patch)                    := -p1 -d${DIR(foc)}
+PATCH_OPT(patches/0024-FOC-ia32-add-implementation-for-__udivmoddi4.patch)        := -p1 -d${DIR(foc)}
+PATCH_OPT(patches/0025-FOC-no-tree-loop-distribute-patterns.patch)                := -p1 -d${DIR(foc)}
 
 $(call check_tool,gawk)

@@ -1,4 +1,4 @@
-L4: enable GCC 10
+L4: enable GCC 12
 
 diff --git a/l4/mk/Makeconf b/l4/mk/Makeconf
 index eb59b51..a7b5955 100644
@@ -9,7 +9,7 @@ index eb59b51..a7b5955 100644
  L4_STACK_SIZE           ?= $(if $(L4_STACK_SIZE_MAIN_THREAD),$(L4_STACK_SIZE_MAIN_THREAD),0x8000)
  
 -CC_WHITELIST-gcc     := 4.7 4.8 4.9 5 6 7 8 9
-+CC_WHITELIST-gcc     := 4.7 4.8 4.9 5 6 7 8 9 10
++CC_WHITELIST-gcc     := 4.7 4.8 4.9 5 6 7 8 9 10 11 12
  CC_WHITELIST-clang   := 3.5 3.6 3.7 3.8 3.9
  
  # This is quite bad: There is no other chance to disable the page-alignedment

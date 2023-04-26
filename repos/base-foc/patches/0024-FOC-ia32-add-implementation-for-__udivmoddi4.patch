@@ -1,0 +1,94 @@
+From 8d55cdc73b07dd56ae59a42bcc11cde82614334a Mon Sep 17 00:00:00 2001
+From: Frank Mehnert <frank.mehnert@kernkonzept.com>
+Date: Mon, 10 May 2021 00:00:00 +0000
+Subject: [PATCH] ia32: add implementation for '__udivmoddi4()'
+
+This function is implicitly required by code in jdb.cpp performing a
+64-bit integer division on 32-bit systems. This function is required
+by code generated with gcc-11. Code generated with older versions of
+gcc was satisfied with the existing implementation for '__udivdi3'.
+
+Also fix cosmetic issues in gcc_lib.c and add Doxygen documentation.
+
+Change-Id: If5b44a9e98429c4fc3eacdd5af8bdaf33c9c2a8f
+---
+ src/lib/libk/gcc_lib.c | 49 +++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 41 insertions(+), 8 deletions(-)
+
+diff --git a/src/lib/libk/gcc_lib.c b/src/lib/libk/gcc_lib.c
+index e5626145..b121cb63 100644
+--- a/src/lib/libk/gcc_lib.c
++++ b/src/lib/libk/gcc_lib.c
+@@ -1,6 +1,8 @@
+ 
+ unsigned long long __umoddi3(unsigned long long, unsigned long long);
+ unsigned long long __udivdi3(unsigned long long, unsigned long long);
++unsigned long long __udivmoddi4(unsigned long long, unsigned long long,
++                                unsigned long long *);
+ 
+ struct llmoddiv_t
+ {
+@@ -31,15 +33,15 @@ static struct llmoddiv_t llmoddiv(unsigned long long div, unsigned long long s)
+   while (1)
+     {
+       if (div >= s)
+-	{
+-	  div -= s;
+-	  i |= tmp;
+-	}
++        {
++          div -= s;
++          i |= tmp;
++        }
+       if (div == 0)
+-	break;
++        break;
+       tmp >>= 1;
+       if (!tmp)
+-	break;
++        break;
+       s >>= 1;
+     }
+ 
+@@ -47,8 +49,39 @@ static struct llmoddiv_t llmoddiv(unsigned long long div, unsigned long long s)
+ }
+ 
+ 
++/**
++ * 64-bit unsigned modulo for 32-bit machines.
++ *
++ * \param div  Dividend.
++ * \param s    Divisor.
++ * \return div / s.
++ */
+ unsigned long long __umoddi3(unsigned long long div, unsigned long long s)
+-{ return llmoddiv(div,s).mod; }
++{ return llmoddiv(div, s).mod; }
+ 
++/**
++ * 64-bit unsigned division for 32-bit machines.
++ *
++ * \param div  Dividend.
++ * \param s    Divisor.
++ * \return div / s.
++ */
+ unsigned long long __udivdi3(unsigned long long div, unsigned long long s)
+-{ return llmoddiv(div,s).div; }
++{ return llmoddiv(div, s).div; }
++
++/**
++ * 64-bit unsigned division + modulo for 32-bit machines.
++ *
++ * \param n       Dividend.
++ * \param d       Divisor.
++ * \param[out] r  Pointer to the result holding div % s.
++ * \return div / s.
++ */
++unsigned long long __udivmoddi4(unsigned long long div, unsigned long long s,
++                                unsigned long long *r)
++{
++  struct llmoddiv_t md = llmoddiv(div, s);
++  if (r)
++    *r = md.mod;
++  return md.div;
++}
