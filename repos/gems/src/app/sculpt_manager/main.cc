@@ -865,11 +865,13 @@ struct Sculpt::Main : Input_event_handler,
 
 	void use(Storage_target const &target) override
 	{
+		_system_dialog.reset_update_dialog();
 		_download_queue.reset();
 		_storage.use(target);
 
 		/* hide system panel button and system dialog when "un-using" */
 		_panel_menu_view.generate();
+		_system_menu_view.generate();
 		_handle_window_layout();
 	}
 

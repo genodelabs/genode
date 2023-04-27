@@ -358,6 +358,12 @@ struct Sculpt::Software_update_dialog
 	void handle_key(Codepoint c) { _users.handle_key(c); }
 
 	void sanitize_user_selection() { _users.sanitize_unfold_state(); }
+
+	void reset()
+	{
+		_last_installed = { };
+		_last_selected  = { };
+	}
 };
 
 #endif /* _VIEW__SOFTWARE_UPDATE_DIALOG_H_ */

@@ -139,6 +139,8 @@ struct Sculpt::System_dialog : Noncopyable, Dialog
 	void handle_key(Codepoint c) { _update_dialog.handle_key(c); }
 
 	void sanitize_user_selection() { _update_dialog.sanitize_user_selection(); }
+
+	void reset_update_dialog() { _update_dialog.reset(); }
 };
 
 #endif /* _VIEW__SYSTEM_DIALOG_H_ */
