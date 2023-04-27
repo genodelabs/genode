@@ -332,7 +332,12 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 					_tx_source->release_packet(p);
 
 					if (!p.succeeded()) {
-						Genode::error("vfs_block: syncing blocks failed");
+						/* only warn once if sync is not supported */
+						static bool print_sync_failed = true;
+						if (print_sync_failed) {
+							Genode::warning("vfs_block: syncing blocks failed");
+							print_sync_failed = false;
+						}
 						return SYNC_ERR_INVALID;
 					}
 

@@ -194,6 +194,8 @@ class Test::Block_device
 
 			return result;
 		}
+
+		void sync() { fsync(_fd.value); }
 };
 
 
@@ -252,6 +254,12 @@ void Test::Main::_exec_step(Genode::Xml_node step, Block_device &block_device)
 
 		Genode::error("step '", step, "' failed");
 		throw Step_failed();
+	}
+
+	if (step.has_type("sync")) {
+		Genode::log("sync");
+		block_device.sync();
+		return;
 	}
 }
 

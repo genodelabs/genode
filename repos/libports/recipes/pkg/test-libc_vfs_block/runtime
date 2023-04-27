@@ -68,6 +68,16 @@
 					<write  at="15" content="123"/>
 					<expect content="abcdefghIJKLMNO123stuvwxYZABCDEF"/>
 				</sequence>
+
+				<!-- Test write-sync-write-sync-read -->
+					 write operation by reading back the content. -->
+				<sequence>
+					<write  content="................................"/>
+					<sync/>
+					<write  content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
+					<sync/>
+					<expect content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
+				</sequence>
 			</config>
 		</start>
 	</config>
