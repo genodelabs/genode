@@ -425,14 +425,6 @@ struct Sculpt::Popup_dialog : Dialog
 		_refresh.refresh_popup_dialog();
 	}
 
-	bool interested_in_download() const
-	{
-		if (_state == DEPOT_SELECTION)
-			return true;
-
-		return _state >= PKG_REQUESTED && !_blueprint_info.ready_to_deploy();
-	}
-
 	bool interested_in_file_operations() const
 	{
 		return _state == DEPOT_SELECTION;

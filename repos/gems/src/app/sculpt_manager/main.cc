@@ -1819,21 +1819,14 @@ void Sculpt::Main::_handle_update_state()
 	bool const installation_complete =
 		!update_state.attribute_value("progress", false);
 
-	bool const popup_watches_downloads =
-		_popup_dialog.interested_in_download();
-
 	if (installation_complete) {
 
 		Xml_node const blueprint = _blueprint_rom.xml();
-		bool const new_depot_query_needed = popup_watches_downloads
-		                                 || blueprint_any_missing(blueprint)
+		bool const new_depot_query_needed = blueprint_any_missing(blueprint)
 		                                 || blueprint_any_rom_missing(blueprint)
 		                                 || any_completed_download;
 		if (new_depot_query_needed)
 			trigger_depot_query();
-
-		if (popup_watches_downloads)
-			_deploy.update_installation();
 
 		_deploy.reattempt_after_installation();
 	}
