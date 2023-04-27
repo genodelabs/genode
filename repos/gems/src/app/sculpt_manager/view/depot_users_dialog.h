@@ -120,7 +120,7 @@ struct Sculpt::Depot_users_dialog
 			});
 		}
 
-		void _gen_entry(Xml_generator &xml, Xml_node const user, bool last) const
+		void _gen_entry(Xml_generator &xml, Xml_node const user, bool /* last */) const
 		{
 			User const name     = user.attribute_value("name", User());
 			bool const selected = (name == _selected);
@@ -135,9 +135,6 @@ struct Sculpt::Depot_users_dialog
 				[&] /* label */ { xml.attribute("text", Path(" ", label)); },
 				[&] /* right */ { }
 			);
-
-			if (show_all && !last)
-				_gen_vspacer(xml, String<64>("below ", name).string());
 		}
 
 		Depot_url _depot_url(Xml_node const &depot_users) const
