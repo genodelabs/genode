@@ -217,7 +217,6 @@ struct Sculpt::Main : Input_event_handler,
 		return _prepare_version.value != _prepare_completed.value;
 	}
 
-
 	Storage _storage { _env, _heap, _child_states, *this, *this, *this };
 
 	/**
@@ -250,6 +249,7 @@ struct Sculpt::Main : Input_event_handler,
 	void update_network_dialog() override
 	{
 		_network_menu_view.generate();
+		_system_menu_view.generate();
 	}
 
 
