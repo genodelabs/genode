@@ -37,6 +37,7 @@ struct Sculpt::Panel_dialog : Dialog
 		virtual bool settings_visible()    const = 0;
 		virtual bool network_visible()     const = 0;
 		virtual bool inspect_tab_visible() const = 0;
+		virtual bool system_available()    const = 0;
 		virtual bool settings_available()  const = 0;
 	};
 

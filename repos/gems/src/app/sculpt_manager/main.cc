@@ -507,6 +507,11 @@ struct Sculpt::Main : Input_event_handler,
 
 	bool settings_available() const override { return _settings.interactive_settings_available(); }
 
+	bool system_available() const override
+	{
+		return _storage._sculpt_partition.valid() && !_prepare_in_progress();
+	}
+
 	/**
 	 * Dialog interface
 	 */
@@ -838,6 +843,10 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_download_queue.reset();
 		_storage.use(target);
+
+		/* hide system panel button and system dialog when "un-using" */
+		_panel_menu_view.generate();
+		_handle_window_layout();
 	}
 
 	void _reset_storage_dialog_operation()
@@ -1590,16 +1599,18 @@ void Sculpt::Main::_handle_window_layout()
 			gen_window(win, Rect(log_p1, log_p2)); });
 
 		int system_right_xpos = 0;
-		_with_window(window_list, system_view_label, [&] (Xml_node win) {
-			Area  const size = win_size(win);
-			Point const pos  = _system_visible
-			                 ? Point(0, avail.y1())
-			                 : Point(-size.w(), avail.y1());
-			gen_window(win, Rect(pos, size));
+		if (system_available()) {
+			_with_window(window_list, system_view_label, [&] (Xml_node win) {
+				Area  const size = win_size(win);
+				Point const pos  = _system_visible
+				                 ? Point(0, avail.y1())
+				                 : Point(-size.w(), avail.y1());
+				gen_window(win, Rect(pos, size));
 
-			if (_system_visible)
-				system_right_xpos = size.w();
-		});
+				if (_system_visible)
+					system_right_xpos = size.w();
+			});
+		}
 
 		_with_window(window_list, settings_view_label, [&] (Xml_node win) {
 			Area  const size = win_size(win);
@@ -1958,6 +1969,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 			/* trigger update and deploy */
 			reconfigure_runtime = true;
+			_panel_menu_view.generate(); /* show "System" button */
 		}
 	}
 
