@@ -137,6 +137,8 @@ struct Sculpt::System_dialog : Noncopyable, Dialog
 	bool keyboard_needed() const { return _update_dialog.keyboard_needed(); }
 
 	void handle_key(Codepoint c) { _update_dialog.handle_key(c); }
+
+	void sanitize_user_selection() { _update_dialog.sanitize_user_selection(); }
 };
 
 #endif /* _VIEW__SYSTEM_DIALOG_H_ */

@@ -39,6 +39,8 @@ struct Sculpt::Depot_users_dialog
 
 		using Url_edit_field = Text_entry_field<50>;
 
+		User const _default_user;
+
 		Depot_users const &_depot_users;
 
 		Action &_action;
@@ -227,7 +229,8 @@ struct Sculpt::Depot_users_dialog
 		                   User        const &default_user,
 		                   Action            &action)
 		:
-			_depot_users(depot_users), _action(action), _selected(default_user)
+			_default_user(default_user), _depot_users(depot_users),
+			_action(action), _selected(default_user)
 		{ }
 
 		User selected() const
@@ -325,6 +328,24 @@ struct Sculpt::Depot_users_dialog
 		}
 
 		bool one_selected() const { return !_unfolded && _selected.length() > 1; }
+
+		void sanitize_unfold_state()
+		{
+			/*
+			 * If the selected depot user does not exist in the depot, show
+			 * list of available users.
+			 */
+			bool selected_user_exists = false;
+
+			_depot_users.xml().for_each_sub_node([&] (Xml_node const &user) {
+				if (_selected == user.attribute_value("name", User()))
+					selected_user_exists = true; });
+
+			if (!selected_user_exists) {
+				_selected = _default_user;
+				_unfolded = true;
+			}
+		}
 };
 
 #endif /* _VIEW__DEPOT_USERS_DIALOG_H_ */

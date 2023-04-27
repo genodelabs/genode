@@ -356,6 +356,8 @@ struct Sculpt::Software_update_dialog
 	bool keyboard_needed() const { return _users.keyboard_needed(); }
 
 	void handle_key(Codepoint c) { _users.handle_key(c); }
+
+	void sanitize_user_selection() { _users.sanitize_unfold_state(); }
 };
 
 #endif /* _VIEW__SOFTWARE_UPDATE_DIALOG_H_ */

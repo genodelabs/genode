@@ -407,6 +407,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_scan_rom.update();
 		_popup_dialog.depot_users_scan_updated();
+		_system_dialog.sanitize_user_selection();
 	}
 
 	Attached_rom_dataspace _image_index_rom { _env, "report -> runtime/depot_query/image_index" };
