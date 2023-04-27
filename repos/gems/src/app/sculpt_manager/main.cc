@@ -672,7 +672,8 @@ struct Sculpt::Main : Input_event_handler,
 		_try_handle_click();
 	}
 
-	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase, *this };
+	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase,
+	                                 *this, _system_dialog, _system_visible };
 
 	Constructible<Input::Seq_number> _clicked_seq_number { };
 	Constructible<Input::Seq_number> _clacked_seq_number { };
@@ -784,11 +785,34 @@ struct Sculpt::Main : Input_event_handler,
 		}
 	}
 
+	bool _keyboard_input_consumed_by_sculpt_manager() const
+	{
+		return (_keyboard_focus.target == Keyboard_focus::WPA_PASSPHRASE)
+		    || (_system_visible && _system_dialog.keyboard_needed());
+	}
+
+	struct Keyboard_focus_guard
+	{
+		Main &_main;
+
+		bool const _orig = _main._keyboard_input_consumed_by_sculpt_manager();
+
+		Keyboard_focus_guard(Main &main) : _main(main) { }
+
+		~Keyboard_focus_guard()
+		{
+			if (_orig != _main._keyboard_input_consumed_by_sculpt_manager())
+				_main._keyboard_focus.update();
+		}
+	};
+
 	/**
 	 * Menu_view::Hover_update_handler interface
 	 */
 	void menu_view_hover_updated() override
 	{
+		Keyboard_focus_guard focus_guard { *this };
+
 		if (_clicked_seq_number.constructed())
 			_try_handle_click();
 
@@ -802,6 +826,8 @@ struct Sculpt::Main : Input_event_handler,
 	void handle_input_event(Input::Event const &ev) override
 	{
 		bool need_generate_dialog = false;
+
+		Keyboard_focus_guard focus_guard { *this };
 
 		if (ev.key_press(Input::BTN_LEFT) || ev.touch()) {
 			_clicked_seq_number.construct(_global_input_seq_number);
@@ -821,9 +847,6 @@ struct Sculpt::Main : Input_event_handler,
 
 			need_generate_dialog = true;
 		});
-
-		if (ev.press())
-			_keyboard_focus.update();
 
 		if (need_generate_dialog)
 			generate_dialog();
@@ -1710,6 +1733,7 @@ void Sculpt::Main::_handle_window_layout()
 
 	/* define window-manager focus */
 	_wm_focus.generate([&] (Xml_generator &xml) {
+
 		_window_list.xml().for_each_sub_node("window", [&] (Xml_node win) {
 			Label const label = win.attribute_value("label", Label());
 
@@ -1987,6 +2011,10 @@ void Sculpt::Main::_handle_runtime_state()
 				_index_update_queue.try_schedule_downloads();
 				if (_index_update_queue.download_count != orig_download_count)
 					_deploy.update_installation();
+
+				/* update depot-user selection after adding new depot URL */
+				if (_system_visible)
+					trigger_depot_query();
 
 				/*
 				 * The removal of an index file may have completed, re-query index

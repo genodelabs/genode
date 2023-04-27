@@ -49,6 +49,8 @@ struct Sculpt::Depot_users_dialog
 
 		bool _unfolded = false;
 
+		bool _selected_user_exists = false;
+
 		Hoverable_item _user   { };
 		Hoverable_item _button { };
 
@@ -124,8 +126,9 @@ struct Sculpt::Depot_users_dialog
 			bool const selected = (name == _selected);
 			Url  const url      = _url(user);
 			Url  const label    = Depot_url::from_string(url).valid() ? url : Url(name);
+			bool const show_all = _unfolded || !_selected_user_exists;
 
-			if (!selected && !_unfolded)
+			if (!selected && !show_all)
 				return;
 
 			_gen_item(xml, name,
@@ -133,7 +136,7 @@ struct Sculpt::Depot_users_dialog
 				[&] /* right */ { }
 			);
 
-			if (_unfolded && !last)
+			if (show_all && !last)
 				_gen_vspacer(xml, String<64>("below ", name).string());
 		}
 
@@ -173,6 +176,9 @@ struct Sculpt::Depot_users_dialog
 							gen_named_node(xml, "button", "add", [&] {
 								if (!url_valid)
 									xml.attribute("style", "unimportant");
+								else
+									_button.gen_hovered_attr(xml, "add");
+
 								xml.node("label", [&] {
 									if (!url_valid)
 										xml.attribute("style", "unimportant");
@@ -180,6 +186,7 @@ struct Sculpt::Depot_users_dialog
 							});
 						} else {
 							gen_named_node(xml, "button", "edit", [&] {
+								_button.gen_hovered_attr(xml, "edit");
 								xml.node("label", [&] {
 									xml.attribute("text", "Edit"); }); });
 						}
@@ -208,12 +215,12 @@ struct Sculpt::Depot_users_dialog
 						bool const last = (--remain_count == 0);
 						_gen_entry(xml, user, last); });
 
-					if (_unfolded)
+					if (_unfolded || !_selected_user_exists)
 						_gen_add_entry(xml, depot_users);
 				});
 			});
 
-			if (!_unfolded && !known_pubkey) {
+			if (!_unfolded && !known_pubkey && _selected_user_exists) {
 				gen_named_node(xml, "button", "pubkey warning", [&] {
 					xml.attribute("style", "invisible");
 					xml.node("label", [&] {
@@ -240,7 +247,7 @@ struct Sculpt::Depot_users_dialog
 
 		void generate(Xml_generator &xml) const { _gen_selection(xml); }
 
-		bool unfolded() const { return _unfolded; }
+		bool unfolded() const { return _unfolded || !_selected_user_exists; }
 
 		struct User_properties
 		{
@@ -280,6 +287,7 @@ struct Sculpt::Depot_users_dialog
 				_selected = user;
 				select_fn(user);
 				_unfolded = false;
+				_selected_user_exists = true;
 				_url_edit_field = _orig_edit_url;
 			};
 
@@ -324,6 +332,19 @@ struct Sculpt::Depot_users_dialog
 			if (c.value == ' ' || c.value == '"')
 				return;
 
+			/* respond to enter key */
+			if (c.value == 10) {
+				Depot_url const depot_url = _depot_url(_depot_users.xml());
+				if (depot_url.valid()) {
+					_action.add_depot_url(depot_url);
+					_selected = depot_url.user;
+					_selected_user_exists = true;
+					_unfolded = false;
+					_url_edit_field = _orig_edit_url;
+				}
+				return;
+			}
+
 			_url_edit_field.apply(c);
 		}
 
@@ -335,16 +356,11 @@ struct Sculpt::Depot_users_dialog
 			 * If the selected depot user does not exist in the depot, show
 			 * list of available users.
 			 */
-			bool selected_user_exists = false;
+			_selected_user_exists = false;
 
 			_depot_users.xml().for_each_sub_node([&] (Xml_node const &user) {
 				if (_selected == user.attribute_value("name", User()))
-					selected_user_exists = true; });
-
-			if (!selected_user_exists) {
-				_selected = _default_user;
-				_unfolded = true;
-			}
+					_selected_user_exists = true; });
 		}
 };
 

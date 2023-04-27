@@ -14,6 +14,7 @@
 #ifndef _MODEL__DOWNLOAD_QUEUE_H_
 #define _MODEL__DOWNLOAD_QUEUE_H_
 
+#include <depot/archive.h>
 #include <base/registry.h>
 #include <types.h>
 

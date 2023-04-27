@@ -19,6 +19,7 @@
 #define _MODEL__INDEX_UPDATE_QUEUE_H_
 
 #include <model/download_queue.h>
+#include <model/file_operation_queue.h>
 #include <types.h>
 
 namespace Sculpt { struct Index_update_queue; }
