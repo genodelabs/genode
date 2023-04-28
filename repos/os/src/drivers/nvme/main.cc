@@ -1116,7 +1116,7 @@ class Nvme::Controller : Platform::Device,
 		}
 
 		Identify_ns_data nsdata((addr_t)_nvme_query_ns[id]->local_addr<void>());
-		uint32_t const flbas = nsdata.read<Nvme::Identify_ns_data::Flbas>();
+		uint32_t const flbas = nsdata.read<Nvme::Identify_ns_data::Flbas::Formats>();
 
 		/* use array subscription, omit first entry */
 		uint16_t const ns_id = id + 1;
