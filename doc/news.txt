@@ -4,6 +4,37 @@
                                ===========
 
 
+Sculpt OS release 23.04 | 2023-04-28
+####################################
+
+| Sculpt OS 23.04 marks the first-time PinePhone support in addition to the PC
+| version. With this release, the system supports live upgrades of the boot
+| image, rendering Sculpt updates and switching between versions a matter some
+| easy steps. The new preset feature brings entire application scenarios to
+| your screen after just one click/tap.
+
+With the fresh release 23.04, the Sculpt operating system boards the PinePhone
+to explore the mobile world and, thereby, adds a second platform to its
+year-long support for Intel PCs. In preparation, we added two key features to
+Genode during the past months, which are the phone-oriented Sculpt
+user-interface variant and the system-update functionality. Now, Sculpt
+versions can be switched by three easy steps directly in the integrated user
+interface: downloading system images to the software depot, install the
+desired version on the boot medium, and reboot the device.
+
+Further, the release supports so-called presets in the system menu UI, which
+are entire runtime scenarios. The user can load and switch between presets by
+just one click. Presets currently available in Sculpt are a simple GUI demo
+(nano3d), a simple desktop including background picture and window manager,
+and a ready to use Falkon web browser. Still, components can be integrated
+into the system (or the currently running preset) by the + menu of the
+component graph.
+
+Sculpt OS 23.04 for PC and PinePhone is available as ready-to-use system image
+at the [https://genode.org/download/sculpt - Sculpt download page] accompanied
+with updated [https://genode.org/documentation/articles/sculpt-23-04 - documentation].
+
+
 Genode OS Framework release 23.02 | 2023-02-28
 ##############################################
 
