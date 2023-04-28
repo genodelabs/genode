@@ -211,6 +211,7 @@ void Graph::generate(Xml_generator &xml) const
 			                  || name == "depot_rom"
 			                  || name == "dynamic_depot_rom"
 			                  || name == "depot_query"
+			                  || name == "system_view"
 			                  || name == "manager_keyboard");
 			if (hidden)
 				return;
