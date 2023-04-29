@@ -38,6 +38,7 @@ CC_OPT          += -Wno-write-strings -Wredundant-decls -Wundef \
                    -fno-builtin -fomit-frame-pointer \
                    -fno-exceptions -fno-unwind-tables \
                    -fno-asynchronous-unwind-tables \
+                   -fno-tree-dse \
                    -finline-limit=99999999 $(addprefix -D,$(CONFIG)) \
                    "-D__USER__=\"Genode Labs\""
 CC_OPT          += -DCONFIG_MAX_THREAD_BITS=10
