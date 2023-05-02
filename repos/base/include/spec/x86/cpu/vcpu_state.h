@@ -2,11 +2,12 @@
  * \brief   Virtual CPU context for x86
  * \author  Alexander Boettcher
  * \author  Christian Helmuth
+ * \author  Benjamin Lamowski
  * \date    2018-10-09
  */
 
 /*
- * Copyright (C) 2018-2021 Genode Labs GmbH
+ * Copyright (C) 2018-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -80,6 +81,26 @@ class Genode::Vcpu_state
 				{
 					_charged = true;
 					_value   = value;
+				}
+
+				/*
+				 * Charge without changing value
+				 *
+				 * \noapi
+				 */
+				void set_charged() { _charged = true; }
+
+				/*
+				 * Update value if not yet charged
+				 *
+				 * \noapi
+				 */
+				void update(T const &value)
+				{
+					if (!_charged) {
+						_value   = value;
+						_charged = true;
+					}
 				}
 		};
 
