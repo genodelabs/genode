@@ -81,8 +81,6 @@ class Core::Core_env : public Env_deprecated, Noncopyable
 			_pd_session.init_cap_and_ram_accounts();
 		}
 
-		~Core_env() { parent()->exit(0); }
-
 		Rpc_entrypoint &entrypoint()    { return _entrypoint; }
 		Ram_allocator  &ram_allocator() { return _synced_ram_allocator; }
 		Region_map     &local_rm()      { return _region_map; }

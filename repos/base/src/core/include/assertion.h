@@ -21,7 +21,7 @@
 	do { \
 		Genode::error("Unexpected call of '", __FUNCTION__, "' " \
 		              "(", __FILE__, ":", __LINE__, ")"); \
-		for (;;); throw 0UL; \
+		for (;;); \
 	} while (false)
 
 #endif /* _CORE__INCLUDE__ASSERTION_H_ */
