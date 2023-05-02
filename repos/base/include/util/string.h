@@ -111,6 +111,7 @@ namespace Genode {
 	/**
 	 * Return length of null-terminated string in bytes
 	 */
+	 __attribute((optimize("no-tree-loop-distribute-patterns")))
 	inline size_t strlen(const char *s)
 	{
 		size_t res = 0;

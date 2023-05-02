@@ -30,7 +30,7 @@ namespace Genode {
 
 	static inline Parent_capability parent_cap()
 	{
-		Cap_index::id_t const local_name = (Cap_index::id_t)_parent_cap;
+		Cap_index::id_t const local_name = (Cap_index::id_t)_parent_cap[0];
 
 		static Cap_index *i = cap_map().insert(local_name, Foc::PARENT_CAP);
 		/*

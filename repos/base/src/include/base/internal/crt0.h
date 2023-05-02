@@ -41,6 +41,6 @@ extern unsigned char _initial_stack_base[];
  * capability prior the execution of the main thread. It corresponds to the
  * '_parent_cap' symbol defined in 'src/ld/genode.ld'.
  */
-extern unsigned long _parent_cap;
+extern unsigned long _parent_cap[];
 
 #endif /* _INCLUDE__BASE__CRT0_H_ */
