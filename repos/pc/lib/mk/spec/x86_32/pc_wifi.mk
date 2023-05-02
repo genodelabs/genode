@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/mk/wifi.inc
+include $(REP_DIR)/lib/mk/pc_wifi.inc
 
 REQUIRES += 32bit
 

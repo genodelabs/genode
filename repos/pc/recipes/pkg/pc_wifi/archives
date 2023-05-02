@@ -3,4 +3,4 @@ _/src/openssl
 _/src/vfs
 _/src/vfs_jitterentropy
 _/src/libc
-_/raw/wifi_firmware
+_/raw/pc_wifi_firmware

@@ -33,6 +33,12 @@ library named 'lxip.lib.so'. The IP stack can be interfaced using Genode's
 version of 'libc' by linking your application to 'lxip_libc' plugin in your
 'target.mk' file.
 
+Wifi
+####
+
+The 'wifi_drv' consists of a port of the mac802.11 stack, platform-specific
+drivers and the 'wpa_supplicant' to Genode.
+
 
 lx_kit
 ######

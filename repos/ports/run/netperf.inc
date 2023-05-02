@@ -156,7 +156,7 @@ append_if $use_usb_driver   packages " [depot_user]/pkg/test_usb_host_drv-[board
 append_if $use_usb_driver   packages " [depot_user]/src/usb_net_drv               "
 append_if $use_wifi_driver  packages " [depot_user]/src/fs_rom                    "
 append_if $use_wifi_driver  packages " [depot_user]/src/vfs_import                "
-append_if $use_wifi_driver  packages " [depot_user]/pkg/wifi                      "
+append_if $use_wifi_driver  packages " [depot_user]/pkg/pc_wifi                   "
 append_if $use_wifi_driver  packages " [depot_user]/src/acpi_drv                  "
 append_if $use_wifi_driver  packages " [depot_user]/src/pci_decode                "
 append_if $use_wifi_driver  packages " [depot_user]/src/platform_drv              "
@@ -278,6 +278,7 @@ append  config { </wifi_config>
 			<service name="Rtc"> <any-child/> </service>
 			<service name="File_system"> <child name="config_fs"/> </service>
 			<service name="ROM" label="wifi_config"> <child name="config_rom" /> </service>
+			<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>

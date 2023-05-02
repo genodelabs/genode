@@ -21,7 +21,7 @@ proc router_verbose_domain_state {} {
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/pkg/wifi \
+                  [depot_user]/pkg/pc_wifi \
                   [depot_user]/src/acpi_drv \
                   [depot_user]/src/dynamic_rom \
                   [depot_user]/src/init \
@@ -111,7 +111,6 @@ install_config {
 	</start>
 
 	<start name="wifi_drv" caps="300" priority="-1">
-		<binary name="pc_wifi_drv"/>
 		<resource name="RAM" quantum="32M"/>
 		<config ld_verbose="no">
 			<vfs>
@@ -128,6 +127,7 @@ install_config {
 			<service name="Rtc"> <any-child/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
+			<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

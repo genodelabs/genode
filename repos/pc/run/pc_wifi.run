@@ -64,7 +64,7 @@ assert_spec x86
 #
 
 create_boot_directory
-import_from_depot [depot_user]/raw/wifi_firmware
+import_from_depot [depot_user]/pkg/pc_wifi
 
 set build_components {
 	core init timer
@@ -72,13 +72,11 @@ set build_components {
 	drivers/acpi
 	drivers/platform
 	drivers/rtc
-	drivers/wifi/pc
 	server/report_rom
 	server/dynamic_rom
 	server/nic_router
 	test/lwip/http_srv
 	lib/vfs_wifi
-	lib/vfs_jitterentropy
 	lib/vfs_lwip
 }
 
@@ -128,7 +126,7 @@ append config {
 	</start>
 
 	<start name="acpi_drv" caps="250">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="6M"/>
 		<route>
 			<service name="IO_MEM"> <parent/> </service>
 			<service name="LOG">    <parent/> </service>
@@ -273,7 +271,6 @@ append config {
 	</start>
 
 	<start name="wifi_drv" caps="250" priority="-1">
-		<binary name="pc_wifi_drv"/>
 		<resource name="RAM" quantum="32M"/>
 		<config ld_verbose="yes">
 			<report mac_address="true"/>
@@ -293,6 +290,7 @@ append config {
 			<service name="Report" label="state"> <child name="state_report_rom"/> </service>
 			<service name="Report" label="devices"> <child name="devices_report_rom"/> </service>
 			<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
+			<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

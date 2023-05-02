@@ -1,9 +1,19 @@
-The pc_wifi_drv component is a port of the Linux mac802.11 stack, including
-the iwlwifi driver as well as libnl and wpa_supplicant, to Genode.
+The wifi_drv component is a port of the Linux mac802.11 stack as well as
+libnl and wpa_supplicant to Genode. Depending on the used platform it
+features a selection of drivers for wireless devices. For example on the
+PC platform it contains the ath9k, iwlwifi and rtlwifi drivers for PCI(e)
+devices.
 
-To start the component the following configuration snippet can be used:
+In contrast to other DDE Linux based drivers the actual driver portion is
+confined to its own library to better isolate the various parts of the driver.
+The 'wifi_drv' binary is the generic management part that includes the Wifi
+configuration interface and the 'wpa_supplicant'. A suitable driver library
+is loaded at run-time (see section [Debugging]).
 
-!<start name="pc_wifi_drv" caps="250">
+To start the component on the PC platform the following configuration snippet
+can be used:
+
+!<start name="wifi_drv" caps="250">
 !  <resource name="RAM" quantum="32M"/>
 !  <provides><service name="Nic"/></provides>
 !  <config>
@@ -16,10 +26,44 @@ To start the component the following configuration snippet can be used:
 !    </vfs>
 !  </config>
 !  <route>
+!    <service name="ROM" label="wifi.lib.so">
+!      <parent label="pc_wifi.lib.so"/>
+!    </service>
 !    <service name="Rtc"> <any-child /> </service>
 !    <any-service> <parent/> <any-child /> </any-service>
 !  </route>
-!</start
+!</start>
+
+On other platforms the wifi library will be different. The following
+snippet illustrates the use of the driver on the PinePhone:
+
+!<start name="wifi_drv" caps="250">
+!  <resource name="RAM" quantum="32M"/>
+!  <provides><service name="Nic"/></provides>
+!  <config>
+!    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
+!    <vfs>
+!      <dir name="dev"> <log/> <null/> <rtc/> <wifi/>
+!      <jitterentropy name="random"/>
+!      <jitterentropy name="urandom"/>
+!      </dir>
+!    </vfs>
+!  </config>
+!  <route>
+!    <service name="ROM" label="wifi.lib.so">
+!      <parent label="a64_wifi.lib.so"/>
+!    </service>
+!    <service name="ROM" label="dtb">
+!      <parent label="wifi-pinephone.dtb"/>
+!    </service>
+!    <service name="Rtc"> <any-child /> </service>
+!    <any-service> <parent/> <any-child /> </any-service>
+!  </route>
+!</start>
+
+Note the ROM route for the device-tree binary that is essential on
+ARM-based platforms. The name of the request DTB can by changed
+by setting the 'dtb' attribute in the config node.
 
 The driver will request access to the ROM module 'wifi_config' to
 connect to a network:
@@ -102,3 +146,19 @@ label "devices" if requested in the config as depicted.
 ! <config> <report mac_address="true"/> </config>
 
 ! <devices> <nic mac_address="02:00:00:00:00:01"/> </devices>
+
+
+Debugging
+~~~~~~~~~
+
+As mentioned in the introduction the 'wifi_drv' component is special in the
+regard that the actual driver is provided as a shared-object to better isolate
+it from the the driver binary that is a Libc::Component managing the
+'wpa_supplicant'. Since this code and in return the binary is the same for each
+platform it is linked against an artifical 'wifi' library that only exists as
+an ABI stub created via 'lib/symbols/wifi'. In case the driver is integrated
+via depot archives this is, besides setting the proper ROM routes, of no
+concern. However, when the driver is built without the depot, the boot image
+assemble-mechanism tries to include the non-existent 'wifi.lib.so' library. To
+prevent that from failing one way is adding a dummy file - the
+'repos/pc/run/pc_wifi.run' illustrates how to do that.

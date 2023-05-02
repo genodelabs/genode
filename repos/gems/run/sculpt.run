@@ -157,7 +157,7 @@ proc nic_driver_routes { } {
 
 	set result(pc) {
 		<service name="ROM" label="nic_drv">  <parent label="ipxe_nic_drv"/> </service>
-		<service name="ROM" label="wifi_drv"> <parent label="pc_wifi_drv"/>  </service>
+		<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
 	}
 
 	set result(mnt_reform2) {
@@ -171,7 +171,7 @@ proc nic_driver_routes { } {
 	}
 
 	set result(pinephone) {
-		<service name="ROM" label="wifi_drv">        <parent label="a64_wifi_drv"/> </service>
+		<service name="ROM" label="wifi.lib.so">     <parent label="a64_wifi.lib.so"/> </service>
 		<service name="ROM" label="wifi_drv.dtb">    <parent label="wifi-pinephone.dtb"/> </service>
 	}
 

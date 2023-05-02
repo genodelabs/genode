@@ -1,4 +1,4 @@
-TARGET  := pc_wifi_drv
+TARGET  := wifi_drv
 SRC_CC  := main.cc wpa.cc
 LIBS    := base wifi
 LIBS    += libc
