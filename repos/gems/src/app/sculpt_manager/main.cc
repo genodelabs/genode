@@ -785,25 +785,13 @@ struct Sculpt::Main : Input_event_handler,
 		}
 	}
 
-	bool _keyboard_input_consumed_by_sculpt_manager() const
-	{
-		return (_keyboard_focus.target == Keyboard_focus::WPA_PASSPHRASE)
-		    || (_system_visible && _system_dialog.keyboard_needed());
-	}
-
 	struct Keyboard_focus_guard
 	{
 		Main &_main;
 
-		bool const _orig = _main._keyboard_input_consumed_by_sculpt_manager();
-
 		Keyboard_focus_guard(Main &main) : _main(main) { }
 
-		~Keyboard_focus_guard()
-		{
-			if (_orig != _main._keyboard_input_consumed_by_sculpt_manager())
-				_main._keyboard_focus.update();
-		}
+		~Keyboard_focus_guard() { _main._keyboard_focus.update(); }
 	};
 
 	/**
