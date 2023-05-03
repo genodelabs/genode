@@ -38,8 +38,10 @@ void Sculpt::Network::handle_key_press(Codepoint code)
 	enum { BACKSPACE = 8, ENTER = 10 };
 	if (code.value == BACKSPACE)
 		wpa_passphrase.remove_last_character();
-	else if (code.value == ENTER)
-		wifi_connect(dialog.selected_ap());
+	else if (code.value == ENTER) {
+		if (wpa_passphrase.suitable_for_connect())
+			wifi_connect(dialog.selected_ap());
+	}
 	else if (code.valid())
 		wpa_passphrase.append_character(code);
 
