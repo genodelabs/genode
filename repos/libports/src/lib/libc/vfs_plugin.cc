@@ -239,26 +239,19 @@ namespace Libc {
 template <typename FN>
 void Libc::Vfs_plugin::_with_info(File_descriptor &fd, FN const &fn)
 {
-	if (!_root_dir.constructed())
-		return;
-
 	Absolute_path path = ioctl_dir(fd);
 	path.append_element("info");
 
-	try {
-		/*
-		 * Opening the info file repeatedly could be too expensive if
-		 * file system servers are part of the VFS, because the directory
-		 * status of the path would be checked at each VFS plugin every
-		 * time. So, we open the file only once.
-		 */
-		static Readonly_file file { *_root_dir, path.string() };
-		static char buffer[4096];
+	_cached_ioctl_info.with_file(path, [&] (Readonly_file const &file) {
+
+		char buffer[4096] { };
+
 		Byte_range_ptr range(buffer,
 		                     min((size_t)(_root_dir->file_size(path.string())),
 		                         sizeof(buffer)));
+
 		with_xml_file_content(file, range, [&] (Xml_node node) { fn(node); });
-	} catch (...) { }
+	});
 }
 
 

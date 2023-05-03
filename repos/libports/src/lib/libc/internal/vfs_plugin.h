@@ -93,6 +93,39 @@ class Libc::Vfs_plugin final : public Plugin
 		bool                        const _pipe_configured;
 		Registry<Mmap_entry>              _mmap_registry;
 
+		/*
+		 * Cache the latest info file to accomodate highly frequent 'ioctl'
+		 * calls as observed by the OSS plugin.
+		 */
+		struct Cached_ioctl_info : Noncopyable
+		{
+			Vfs_plugin                  &_vfs_plugin;
+			Constructible<Readonly_file> _file { };
+			Absolute_path                _path { };
+
+			template <typename FN>
+			void with_file(Absolute_path const &path, FN const &fn)
+			{
+				if (!_vfs_plugin._root_dir.constructed()) {
+					warning("Vfs_plugin::_root_dir unexpectedly not constructed");
+					return;
+				}
+
+				Directory &root_dir = *_vfs_plugin._root_dir;
+
+				if (path != _path && root_dir.file_exists(path.string())) {
+					_file.construct(root_dir, path);
+					_path = path;
+				}
+
+				if (path == _path && _file.constructed())
+					fn(*_file);
+			}
+
+			Cached_ioctl_info(Vfs_plugin &vfs_plugin) : _vfs_plugin(vfs_plugin) { }
+
+		} _cached_ioctl_info { *this };
+
 		/**
 		 * Sync a handle
 		 */
