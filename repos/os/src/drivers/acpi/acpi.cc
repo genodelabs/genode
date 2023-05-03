@@ -1238,7 +1238,7 @@ class Element : private List<Element>::Element
 					continue;
 				}
 
-				freed_up += sizeof(*element) + element->_name ? element->_name_len : 0;
+				freed_up += sizeof(*element);
 
 				Element * next = element->next();
 				Element::list()->remove(element);
