@@ -2,7 +2,6 @@
  * \brief  file descriptor allocator interface
  * \author Christian Prochaska 
  * \date   2010-01-21
- *
  */
 
 /*
@@ -28,7 +27,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <libc-plugin/plugin.h>
+/* libc-internal includes */
+#include <internal/plugin.h>
 
 enum { MAX_NUM_FDS = 1024 };
 

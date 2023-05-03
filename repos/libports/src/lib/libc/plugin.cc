@@ -14,12 +14,10 @@
 /* Genode includes */
 #include <base/log.h>
 
-/* libc plugin interface */
-#include <libc-plugin/fd_alloc.h>
-#include <libc-plugin/plugin_registry.h>
-#include <libc-plugin/plugin.h>
-
 /* local includes */
+#include <internal/fd_alloc.h>
+#include <internal/plugin_registry.h>
+#include <internal/plugin.h>
 #include <internal/init.h>
 #include <internal/resume.h>
 

@@ -15,13 +15,11 @@
 /* Genode includes */
 #include <base/component.h>
 
-/* libc includes */
-#include <libc-plugin/plugin_registry.h>
-
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
 
 /* libc-internal includes */
+#include <internal/plugin_registry.h>
 #include <internal/kernel.h>
 
 

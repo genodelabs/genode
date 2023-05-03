@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/mutex.h>
-#include <libc-plugin/fd_alloc.h>
 
 /* libc includes */
 #include <sys/types.h>
@@ -21,6 +20,7 @@
 #include <unistd.h>
 
 /* libc-internal includes */
+#include <internal/fd_alloc.h>
 #include <internal/types.h>
 
 

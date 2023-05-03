@@ -36,10 +36,8 @@
 #include <net/if.h>
 #include <net/if_tap.h>
 
-/* libc plugin interface */
-#include <libc-plugin/plugin.h>
-
 /* libc-internal includes */
+#include <internal/plugin.h>
 #include <internal/kernel.h>
 #include <internal/vfs_plugin.h>
 #include <internal/mem_alloc.h>

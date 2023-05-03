@@ -20,14 +20,12 @@
 /* Genode-internal includes */
 #include <base/internal/unmanaged_singleton.h>
 
-/* libc plugin interface */
-#include <libc-plugin/fd_alloc.h>
-
 /* libc includes */
 #include <fcntl.h>
 #include <unistd.h>
 
 /* libc-internal includes */
+#include <internal/fd_alloc.h>
 #include <internal/init.h>
 
 using namespace Libc;

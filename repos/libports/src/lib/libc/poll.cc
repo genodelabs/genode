@@ -14,11 +14,11 @@
  */
 
 /* Libc includes */
-#include <libc-plugin/plugin_registry.h>
-#include <libc-plugin/plugin.h>
 #include <sys/poll.h>
 
 /* internal includes */
+#include <internal/plugin_registry.h>
+#include <internal/plugin.h>
 #include <internal/errno.h>
 #include <internal/file.h>
 #include <internal/init.h>

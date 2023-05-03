@@ -13,13 +13,16 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <libc-plugin/fd_alloc.h>
 
 /* libc includes */
 #include <sys/limits.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <stdio.h>
+
+/* libc-internal includes */
+#include <internal/fd_alloc.h>
+
 
 extern "C" int __attribute__((weak)) getrlimit(int resource, struct rlimit *rlim)
 {

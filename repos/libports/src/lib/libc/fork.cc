@@ -28,9 +28,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <libc-plugin/fd_alloc.h>
 
 /* libc-internal includes */
+#include <internal/fd_alloc.h>
 #include <internal/init.h>
 #include <internal/clone_session.h>
 #include <internal/monitor.h>

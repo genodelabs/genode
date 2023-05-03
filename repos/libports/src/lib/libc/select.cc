@@ -27,14 +27,14 @@
 #include <util/reconstructible.h>
 
 /* Libc includes */
-#include <libc-plugin/plugin_registry.h>
-#include <libc-plugin/plugin.h>
 #include <libc/select.h>
 #include <stdlib.h>
 #include <sys/select.h>
 #include <signal.h>
 
 /* libc-internal includes */
+#include <internal/plugin_registry.h>
+#include <internal/plugin.h>
 #include <internal/kernel.h>
 #include <internal/init.h>
 #include <internal/signal.h>

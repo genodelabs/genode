@@ -22,9 +22,9 @@
 
 /* libc includes */
 #include <errno.h>
-#include <libc-plugin/plugin.h>
 
 /* libc-internal includes */
+#include <internal/plugin.h>
 #include <internal/types.h>
 
 namespace Libc {

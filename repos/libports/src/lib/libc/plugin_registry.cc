@@ -11,7 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <libc-plugin/plugin_registry.h>
+/* libc-internal includes */
+#include <internal/plugin_registry.h>
 
 namespace Libc {
 

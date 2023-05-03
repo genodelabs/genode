@@ -19,9 +19,9 @@
 
 /* libc includes */
 #include <limits.h>   /* for 'PATH_MAX' */
-#include <libc-plugin/plugin.h>
 
 /* libc-internal includes */
+#include <internal/plugin.h>
 #include <internal/types.h>
 
 namespace Libc {

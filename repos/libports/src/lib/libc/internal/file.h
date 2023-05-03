@@ -18,9 +18,9 @@
 /* Genode includes */
 #include <base/log.h>
 
-/* Genode-specific libc interfaces */
-#include <libc-plugin/fd_alloc.h>
-#include <libc-plugin/plugin_registry.h>
+/* libc-internal includes */
+#include <internal/fd_alloc.h>
+#include <internal/plugin_registry.h>
 
 
 enum { INVALID_FD = -1 };

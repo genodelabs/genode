@@ -16,7 +16,7 @@
 
 /* libc-internal includes */
 #include <internal/types.h>
-#include <libc-plugin/plugin.h>
+#include <internal/plugin.h>
 
 namespace Libc {
 

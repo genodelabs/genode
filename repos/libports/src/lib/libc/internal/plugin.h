@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _LIBC_PLUGIN__PLUGIN_H_
-#define _LIBC_PLUGIN__PLUGIN_H_
+#ifndef _LIBC__INTERNAL__PLUGIN_H_
+#define _LIBC__INTERNAL__PLUGIN_H_
 
 #include <os/path.h>
 #include <base/exception.h>
@@ -148,4 +148,4 @@ namespace Libc {
 	};
 }
 
-#endif /* _LIBC_PLUGIN__PLUGIN_H_ */
+#endif /* _LIBC__INTERNAL__PLUGIN_H_ */

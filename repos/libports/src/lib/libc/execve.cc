@@ -23,9 +23,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <libc/allocator.h>
-#include <libc-plugin/fd_alloc.h>
 
 /* libc-internal includes */
+#include <internal/fd_alloc.h>
 #include <internal/call_func.h>
 #include <internal/init.h>
 #include <internal/errno.h>

@@ -1,4 +1,4 @@
-content: include/libc-plugin src/lib/libc lib/mk LICENSE
+content: src/lib/libc lib/mk LICENSE
 
 LIBC_PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libc)
 LIBM_PORT_DIR := $(LIBC_PORT_DIR)
@@ -7,9 +7,6 @@ src/lib/libc:
 	mkdir -p $@
 	cp -r $(LIBC_PORT_DIR)/src/lib/libc/* $@
 	cp -r $(REP_DIR)/src/lib/libc/* $@
-
-include/libc-plugin:
-	$(mirror_from_rep_dir)
 
 lib/mk:
 	mkdir -p $@

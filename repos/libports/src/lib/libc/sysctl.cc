@@ -15,11 +15,8 @@
 #include <util/string.h>
 #include <base/env.h>
 
-/* Genode-specific libc interfaces */
-#include <libc-plugin/plugin.h>
-#include <libc-plugin/fd_alloc.h>
-
 /* libc includes */
+#include <sys/types.h>
 #include <sys/sysctl.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -27,6 +24,8 @@
 #include <unistd.h>
 
 /* libc-internal includes */
+#include <internal/plugin.h>
+#include <internal/fd_alloc.h>
 #include <internal/errno.h>
 #include <internal/init.h>
 

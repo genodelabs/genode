@@ -25,13 +25,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-/* libc plugin interface */
-#include <libc-plugin/plugin.h>
-#include <libc-plugin/fd_alloc.h>
-
 /* libc-internal includes */
+#include <internal/plugin.h>
+#include <internal/fd_alloc.h>
 #include <internal/errno.h>
-
 
 namespace Libc { class Vfs_plugin; }
 

@@ -2,7 +2,6 @@
  * \brief  plugin registry interface
  * \author Christian Prochaska 
  * \date   2010-01-21
- *
  */
 
 /*
@@ -12,12 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _LIBC_PLUGIN__PLUGIN_REGISTRY_H_
-#define _LIBC_PLUGIN__PLUGIN_REGISTRY_H_
+#ifndef _LIBC__INTERNAL__PLUGIN_REGISTRY_H_
+#define _LIBC__INTERNAL__PLUGIN_REGISTRY_H_
 
+/* Genode includes */
 #include <util/list.h>
 
-#include <libc-plugin/plugin.h>
+/* libc-internal includes */
+#include <internal/plugin.h>
 
 namespace Libc {
 
@@ -51,4 +52,4 @@ struct Libc::Plugin_registry : List<Plugin>
 	}
 };
 
-#endif /* _LIBC_PLUGIN__PLUGIN_REGISTRY_H_ */
+#endif /* _LIBC__INTERNAL__PLUGIN_REGISTRY_H_ */

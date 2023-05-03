@@ -19,10 +19,6 @@
 #include <os/path.h>
 #include <util/token.h>
 
-/* Genode-specific libc interfaces */
-#include <libc-plugin/plugin_registry.h>
-#include <libc-plugin/plugin.h>
-
 /* compiler includes */
 #include <stdarg.h>
 
@@ -42,6 +38,8 @@ extern "C" {
 }
 
 /* libc-internal includes */
+#include <internal/plugin_registry.h>
+#include <internal/plugin.h>
 #include <internal/file.h>
 #include <internal/mem_alloc.h>
 #include <internal/mmap_registry.h>
