@@ -126,8 +126,8 @@ MISSING_PUBKEY_FILES := $(sort \
                               $(if $(call pubkey_path,$A),,\
                                  $(call pubkey_filename,$A))))
 
-_gpg_sign_target = gpg --detach-sign --digest-algo SHA256 --no-tty --use-agent \
-                       --local-user $(call pubkey_id,$*) - < $< > $@ || \
+_gpg_sign_target = $(GPG) --detach-sign --digest-algo SHA256 --no-tty --use-agent \
+                          --local-user $(call pubkey_id,$*) --output $@ < $< || \
                    ( rm -f $@; false )
 
 $(PUBLIC_DIR)/%.xz.sig : $(PUBLIC_DIR)/%.xz
