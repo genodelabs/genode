@@ -72,6 +72,18 @@ void Libc::Kernel::_init_file_descriptors()
 {
 	typedef Genode::Token<Vfs::Scanner_policy_path_element> Path_element_token;
 
+	/* guard used to print an offending libc config when leaving the scope */
+	struct Diag_guard
+	{
+		Kernel &kernel;
+		bool show = false;
+
+		Diag_guard(Kernel &kernel) : kernel(kernel) { }
+
+		~Diag_guard() { if (show) log(kernel._libc_env.libc_config()); }
+
+	} diag_guard { *this };
+
 	auto resolve_symlinks = [&] (Absolute_path next_iteration_working_path, Absolute_path &resolved_path)
 	{
 		char path_element[PATH_MAX];
@@ -183,6 +195,7 @@ void Libc::Kernel::_init_file_descriptors()
 			struct stat out_stat { };
 			if (_vfs.stat_from_kernel(path.string(), &out_stat) != 0) {
 				warning("failed to call 'stat' on ", path);
+				diag_guard.show = true;
 				return;
 			}
 
@@ -194,8 +207,9 @@ void Libc::Kernel::_init_file_descriptors()
 
 			if (fd->libc_fd != libc_fd) {
 				error("could not allocate fd ",libc_fd," for ",path,", "
-					  "got fd ",fd->libc_fd);
+			          "got fd ",fd->libc_fd);
 				_vfs.close_from_kernel(fd);
+				diag_guard.show = true;
 				return;
 			}
 
@@ -221,6 +235,7 @@ void Libc::Kernel::_init_file_descriptors()
 
 		} catch (Symlink_resolve_error) {
 			warning("failed to resolve path for ", attr_value);
+			diag_guard.show = true;
 			return;
 		}
 	};
@@ -229,7 +244,7 @@ void Libc::Kernel::_init_file_descriptors()
 
 		Xml_node const node = _libc_env.libc_config();
 
-		typedef String<Vfs::MAX_PATH_LEN> Path;
+		using Path = String<Vfs::MAX_PATH_LEN>;
 
 		if (node.has_attribute("cwd"))
 			_cwd.import(node.attribute_value("cwd", Path()).string(), _cwd.base());
@@ -248,8 +263,10 @@ void Libc::Kernel::_init_file_descriptors()
 			unsigned const flags = rd ? (wr ? O_RDWR : O_RDONLY)
 			                          : (wr ? O_WRONLY : 0);
 
-			if (!fd.has_attribute("path"))
-				warning("Invalid <fd> node, 'path' attribute is missing");
+			if (!fd.has_attribute("path")) {
+				warning("unknown path for file descriptor ", id);
+				diag_guard.show = true;
+			}
 
 			init_fd(fd, "path", id, flags);
 		});
