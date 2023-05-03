@@ -27,7 +27,7 @@ class Log
 		Genode::Attached_rom_dataspace _rom_ds;
 		Genode::Log_connection         _log;
 
-		char           _buffer [Genode::Log_session::MAX_STRING_LEN + 1];
+		char           _buffer [Genode::Log_session::MAX_STRING_LEN];
 		unsigned short _buf_pos { 0 };
 		unsigned       _rom_pos { 0 };
 
