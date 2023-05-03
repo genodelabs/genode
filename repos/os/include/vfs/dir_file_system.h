@@ -659,9 +659,15 @@ class Vfs::Dir_file_system : public File_system
 						continue;
 					}
 
-					new (dir_vfs_handle.alloc())
-						Dir_vfs_handle::Subdir_handle_element(
-							dir_vfs_handle.subdir_handle_registry, *sub_dir_handle);
+					try {
+						new (dir_vfs_handle.alloc())
+							Dir_vfs_handle::Subdir_handle_element(
+								dir_vfs_handle.subdir_handle_registry, *sub_dir_handle);
+					}
+					catch (...) {
+						sub_dir_handle->close();
+						throw;
+					}
 					/* return OK because at least one directory has been opened */
 					res = OPENDIR_OK;
 				}
