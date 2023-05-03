@@ -20,11 +20,14 @@
 #include <timer_session/connection.h>
 #include <util/xml_node.h>
 
-/* local includes */
-#include <util.h>
-#include <wpa.h>
-#include <frontend.h>
+/* wifi library includes */
+#include <wifi/firmware.h>
 
+/* local includes */
+#include "util.h"
+#include "wpa.h"
+#include "frontend.h"
+#include "access_firmware.h"
 
 using namespace Genode;
 
@@ -98,11 +101,77 @@ struct Main
 
 	Blockade _wpa_startup_blockade { };
 
+	struct Request_handler : Wifi::Firmware_request_handler
+	{
+		Signal_handler<Request_handler> _handler;
+
+		void _handle_request()
+		{
+			using Fw_path = Genode::String<128>;
+			using namespace Wifi;
+
+			Firmware_request *request_ptr = firmware_get_request();
+			if (!request_ptr)
+				return;
+
+			Firmware_request &request = *request_ptr;
+
+			request.success = false;
+
+			switch (request.state) {
+			case Firmware_request::State::PROBING:
+				{
+					Fw_path const path { "/firmware/", request.name };
+
+					Stat_firmware_result const result = access_firmware(path.string());
+
+					request.fw_len = result.success ? result.length : 0;
+					request.success = result.success;
+
+					request.submit_response();
+					break;
+				}
+			case Firmware_request::State::REQUESTING:
+				{
+					Fw_path const path { "/firmware/", request.name };
+
+					Read_firmware_result const result =
+						read_firmware(path.string(), request.dst, request.dst_len);
+
+					request.success = result.success;
+
+					request.submit_response();
+					break;
+				}
+			case Firmware_request::State::INVALID:
+				break;
+			case Firmware_request::State::PROBING_COMPLETE:
+				break;
+			case Firmware_request::State::REQUESTING_COMPLETE:
+				break;
+			}
+		}
+
+		Request_handler(Genode::Entrypoint &ep)
+		:
+			_handler { ep, *this, &Request_handler::_handle_request }
+		{ }
+
+		void submit_request() override
+		{
+			_handler.local_submit();
+		}
+	};
+
+	Request_handler _request_handler { env.ep() };
+
 	Main(Genode::Env &env) : env(env)
 	{
 		_frontend.construct(env, _wifi_msg_buffer);
 		_wifi_frontend = &*_frontend;
 		wifi_set_rfkill_sigh(_wifi_frontend->rfkill_sigh());
+
+		Wifi::firmware_establish_handler(_request_handler);
 
 		_wpa.construct(env, _wpa_startup_blockade);
 

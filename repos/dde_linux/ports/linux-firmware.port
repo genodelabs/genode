@@ -2,7 +2,7 @@ LICENSE   := mixed
 VERSION   := 1
 DOWNLOADS := fw.archive
 
-FW_REV  := a3216b6e5f31996f791577ba019a58419122ace6
+FW_REV  := b7b5865b749f5a321259d95e0959929789a94959
 URL(fw) := https://github.com/cnuke/dde_linux_firmware/archive/$(FW_REV).tar.gz
-SHA(fw) := 310be6f8fd5ba65caa92187a4c1c9c6c8ab05ba4ef4df869e8a486594286fdc7
+SHA(fw) := 0fd10961cae2582a9a3e9efca7a8d761427f215562626a221062abd001e36772
 DIR(fw) := firmware

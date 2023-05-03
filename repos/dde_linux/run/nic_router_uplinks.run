@@ -119,6 +119,9 @@ install_config {
 					<jitterentropy name="urandom"/>
 				</dir>
 				<dir name="config"> <ram/> </dir>
+				<dir name="firmware">
+					<tar name="wifi_firmware.tar"/>
+				</dir>
 			</vfs>
 			<libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 		</config>
@@ -128,6 +131,7 @@ install_config {
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
 			<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
+			<service name="ROM" label="wifi_firmware.tar"> <parent label="pc_wifi_firmware.tar"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

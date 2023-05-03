@@ -35,6 +35,11 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 				gen_named_node(xml, "inline", "rtc", [&] () {
 					xml.append("2018-01-01 00:01");
 				});
+			gen_named_node(xml, "dir", "firmware", [&] () {
+				xml.node("tar", [&] () {
+					xml.attribute("name", "wifi_firmware.tar");
+				});
+			});
 		});
 
 		xml.node("libc", [&] () {
@@ -69,32 +74,9 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 		gen_parent_rom_route(xml, "vfs_wifi.lib.so");
 		gen_parent_rom_route(xml, "libssl.lib.so");
 		gen_parent_rom_route(xml, "wifi.lib.so");
+		gen_parent_rom_route(xml, "wifi_firmware.tar");
 		gen_parent_rom_route(xml, "wpa_driver_nl80211.lib.so");
 		gen_parent_rom_route(xml, "wpa_supplicant.lib.so");
-		gen_parent_rom_route(xml, "iwlwifi-1000-5.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-3160-17.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-3168-17.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-5000-5.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-6000-4.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-6000g2a-6.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-6000g2b-6.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-7260-17.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-7265-17.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-7265D-29.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-8000C-36.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-8265-36.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-9000-pu-b0-jf-b0-46.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-9260-th-b0-jf-b0-46.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-QuZ-a0-hr-b0-68.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-so-a0-hr-b0-68.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-so-a0-gf-a0-68.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-so-a0-gf-a0.pnvm");
-		gen_parent_rom_route(xml, "iwlwifi-ty-a0-gf-a0-68.ucode");
-		gen_parent_rom_route(xml, "iwlwifi-ty-a0-gf-a0.pnvm");
-		gen_parent_rom_route(xml, "rtl8192eu_nic.bin");
-		gen_parent_rom_route(xml, "rtl8188efw.bin");
-		gen_parent_rom_route(xml, "regulatory.db");
-		gen_parent_rom_route(xml, "regulatory.db.p7s");
 		gen_parent_route<Cpu_session>      (xml);
 		gen_parent_route<Pd_session>       (xml);
 		gen_parent_route<Rm_session>       (xml);

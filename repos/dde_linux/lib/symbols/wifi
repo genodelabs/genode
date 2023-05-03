@@ -19,3 +19,5 @@ jiffies_64 D 0
 socket_call B 1
 wifi_ifindex T
 wifi_ifname T
+_ZN4Wifi20firmware_get_requestEv T
+_ZN4Wifi26firmware_establish_handlerERNS_24Firmware_request_handlerE T

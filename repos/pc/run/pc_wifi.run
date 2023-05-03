@@ -1,4 +1,11 @@
 #
+# Set to true in case the driver needs to be debugged to
+# pull in the locally build binaries rather than the ones
+# from the depot.
+#
+set debug_driver false
+
+#
 # Configure wireless lan
 #
 
@@ -78,6 +85,11 @@ set build_components {
 	test/lwip/http_srv
 	lib/vfs_wifi
 	lib/vfs_lwip
+}
+
+append_if $debug_driver build_components {
+	drivers/wifi
+	lib/pc_wifi
 }
 
 build $build_components
@@ -270,7 +282,7 @@ append config {
 		<config verbose="yes"/>
 	</start>
 
-	<start name="wifi_drv" caps="250" priority="-1">
+	<start name="wifi_drv" caps="260" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<config ld_verbose="yes">
 			<report mac_address="true"/>
@@ -280,6 +292,9 @@ append config {
 					<jitterentropy name="random"/>
 					<jitterentropy name="urandom"/>
 					<wifi/>
+				</dir>
+				<dir name="firmware">
+					<tar name="wifi_firmware.tar"/>
 				</dir>
 			</vfs>
 		</config>
@@ -291,6 +306,7 @@ append config {
 			<service name="Report" label="devices"> <child name="devices_report_rom"/> </service>
 			<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
 			<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
+			<service name="ROM" label="wifi_firmware.tar"> <parent label="pc_wifi_firmware.tar"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -298,6 +314,16 @@ append config {
 }
 
 install_config $config
+
+#
+# Provide dummy 'wifi.lib.so' shared-object for
+# boot-module assembly
+#
+if {$debug_driver} {
+exec rm bin/wifi.lib.so
+exec echo dummy > bin/wifi.lib.so
+}
+
 
 #
 # Boot modules

@@ -14,6 +14,8 @@
 		_*wifi_*_rfkill*;
 		_*wifi_kick_*;
 
+		_*Wifi*firmware*;
+
 		/* interface for libnl/wpa_driver_nl82011 */
 		wifi_if*;
 

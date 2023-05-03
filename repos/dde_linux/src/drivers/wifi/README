@@ -20,14 +20,18 @@ can be used:
 !    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 !    <vfs>
 !      <dir name="dev"> <log/> <null/> <rtc/> <wifi/>
-!      <jitterentropy name="random"/>
-!      <jitterentropy name="urandom"/>
+!          <jitterentropy name="random"/>
+!          <jitterentropy name="urandom"/>
 !      </dir>
+!      <dir name="firmware"> <tar name="wifi_firmware.tar"/> </dir>
 !    </vfs>
 !  </config>
 !  <route>
 !    <service name="ROM" label="wifi.lib.so">
 !      <parent label="pc_wifi.lib.so"/>
+!    </service>
+!    <service name="ROM" label="wifi_firmware.tar">
+!      <parent label="pc_wifi_firmware.tar"/>
 !    </service>
 !    <service name="Rtc"> <any-child /> </service>
 !    <any-service> <parent/> <any-child /> </any-service>
@@ -44,14 +48,18 @@ snippet illustrates the use of the driver on the PinePhone:
 !    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 !    <vfs>
 !      <dir name="dev"> <log/> <null/> <rtc/> <wifi/>
-!      <jitterentropy name="random"/>
-!      <jitterentropy name="urandom"/>
+!        <jitterentropy name="random"/>
+!        <jitterentropy name="urandom"/>
 !      </dir>
+!      <dir name="firmware"> <tar name="wifi_firmware.tar"/> </dir>
 !    </vfs>
 !  </config>
 !  <route>
 !    <service name="ROM" label="wifi.lib.so">
 !      <parent label="a64_wifi.lib.so"/>
+!    </service>
+!    <service name="ROM" label="wifi_firmware.tar">
+!      <parent label="a64_wifi_firmware.tar"/>
 !    </service>
 !    <service name="ROM" label="dtb">
 !      <parent label="wifi-pinephone.dtb"/>
@@ -64,6 +72,12 @@ snippet illustrates the use of the driver on the PinePhone:
 Note the ROM route for the device-tree binary that is essential on
 ARM-based platforms. The name of the request DTB can by changed
 by setting the 'dtb' attribute in the config node.
+
+Depending on the used device additional firmware images might be
+required. The driver will request them by accessing the '/firmware'
+directory in the driver's local VFS. It is up to the configuration
+how those files are made available. In these examples they are
+contained in an '.tar' archive that is request as a ROM module.
 
 The driver will request access to the ROM module 'wifi_config' to
 connect to a network:

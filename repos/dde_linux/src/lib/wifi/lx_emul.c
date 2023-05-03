@@ -136,33 +136,40 @@ void iput(struct inode * inode)
 
 #include <linux/firmware.h>
 
-#if 0
 struct firmware_work {
 	struct work_struct work;
-	struct firmware const *firmware;
+	struct firmware *firmware;
+	char const *name;
 	void *context;
 	void (*cont)(struct firmware const *, void *);
 };
 
+extern int lx_emul_request_firmware_nowait(const char *name, void *dest,
+                                           size_t *result, bool warn);
 
 static void request_firmware_work_func(struct work_struct *work)
 {
 	struct firmware_work *fw_work =
 		container_of(work, struct firmware_work, work);
+	struct firmware *fw = fw_work->firmware;
 
-	fw_work->cont(fw_work->firmware, fw_work->context);
+	if (lx_emul_request_firmware_nowait(fw_work->name,
+	                                    &fw->data, &fw->size, true)) {
+		/*
+		 * Free and set to NULL here as passing NULL to
+		 * 'cont()' triggers requesting next possible ucode
+		 * version.
+		 */
+		kfree(fw);
+		fw = NULL;
+	}
+
+	fw_work->cont(fw, fw_work->context);
 
 	kfree(fw_work);
+	kfree(fw);
 }
-#endif
 
-
-extern int lx_emul_request_firmware_nowait(const char *name, void *dest,
-                                           size_t *result, bool warn);
-extern void lx_emul_release_firmware(void const *data, size_t size);
-
-extern void rtnl_lock(void);
-extern void rtnl_unlock(void);
 
 int request_firmware_nowait(struct module * module,
                             bool uevent, const char * name,
@@ -172,41 +179,15 @@ int request_firmware_nowait(struct module * module,
                                           void * context))
 {
 	struct firmware *fw = kzalloc(sizeof (struct firmware), GFP_KERNEL);
-#if 0
 	struct firmware_work *fw_work;
-#endif
-	bool reg_db;
 
-	if (lx_emul_request_firmware_nowait(name, &fw->data, &fw->size, true)) {
-		kfree(fw);
-		return -1;
-	}
-
-	/*
-	 * Normally we would schedule fw_work but for reasons not
-	 * yet understood doing so will lead to a page-fault. So
-	 * for the time being we will execute the callback directly
-	 * and we have to make sure to manage the RTNL lock as the
-	 * callback will grab it while we already hold it.
-	 */
-	reg_db = strcmp(name, "regulatory.db") == 0;
-
-	if (reg_db)
-		rtnl_unlock();
-
-	cont(fw, context);
-
-	if (reg_db)
-		rtnl_lock();
-	return 0;
-
-#if 0
 	fw_work = kzalloc(sizeof (struct firmware_work), GFP_KERNEL);
 	if (!fw_work) {
 		kfree(fw);
 		return -1;
 	}
 
+	fw_work->name     = name;
 	fw_work->firmware = fw;
 	fw_work->context  = context;
 	fw_work->cont     = cont;
@@ -215,7 +196,6 @@ int request_firmware_nowait(struct module * module,
 	schedule_work(&fw_work->work);
 
 	return 0;
-#endif
 }
 
 
@@ -246,8 +226,14 @@ int request_firmware(const struct firmware ** firmware_p,
 }
 
 
+extern void lx_emul_release_firmware(void const *data, size_t size);
+
+
 void release_firmware(const struct firmware * fw)
 {
+	if (!fw)
+		return;
+
 	lx_emul_release_firmware(fw->data, fw->size);
 	kfree(fw);
 }

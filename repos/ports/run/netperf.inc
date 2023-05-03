@@ -261,7 +261,7 @@ append  config { </wifi_config>
 	</start>
 
 	<start name="nic_drv" caps="300">
-		<binary name="pc_wifi_drv"/>
+		<binary name="wifi_drv"/>
 		<resource name="RAM" quantum="32M"/>
 		<config>
 			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
@@ -272,6 +272,9 @@ append  config { </wifi_config>
 					<jitterentropy name="urandom"/>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
+				<dir name="firmware">
+					<tar name="wifi_firmware.tar"/>
+				</dir>
 			</vfs>
 		</config>
 		<route>
@@ -279,6 +282,7 @@ append  config { </wifi_config>
 			<service name="File_system"> <child name="config_fs"/> </service>
 			<service name="ROM" label="wifi_config"> <child name="config_rom" /> </service>
 			<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
+			<service name="ROM" label="wifi_firmware.tar"> <parent label="pc_wifi_firmware.tar"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
