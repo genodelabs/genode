@@ -279,3 +279,6 @@ int idle_cpu(int cpu)
 {
 	return 1;
 }
+
+
+void sched_set_fifo(struct task_struct * p) { }

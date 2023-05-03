@@ -80,6 +80,7 @@ static struct page * lx_alloc_pages(unsigned const nr_pages)
 	return page;
 }
 
+
 /*
  * In earlier kernel versions, '__alloc_pages' was an inline function.
  */
@@ -95,4 +96,22 @@ struct page * __alloc_pages(gfp_t gfp, unsigned int order, int preferred_nid,
 void *alloc_pages_exact(size_t size, gfp_t gfp_mask)
 {
 	return lx_alloc_pages(PAGE_ALIGN(size) / PAGE_SIZE)->virtual;
+}
+
+
+void free_pages(unsigned long addr,unsigned int order)
+{
+	if (addr != 0ul)
+		__free_pages(virt_to_page((void *)addr), order);
+}
+
+
+unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
+{
+	struct page *page = lx_alloc_pages(1u << order);
+
+	if (!page)
+		return 0;
+
+	return (unsigned long)page_address(page);
 }
