@@ -29,6 +29,8 @@ class Sd_card::Driver : public  Driver_base,
                         private Platform::Device,
                         private Platform::Device::Mmio
 {
+	using Mmio = Genode::Mmio;
+
 	private:
 
 		enum Bus_width { BUS_WIDTH_1, BUS_WIDTH_4 };
