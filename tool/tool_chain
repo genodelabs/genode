@@ -485,7 +485,7 @@ cleanall: clean
 #
 
 install: build_all
-	$(ECHO) "$(BRIGHT_COL)installing tool chain to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
+	$(ECHO) "$(BRIGHT_COL)installing $(PLATFORM) tool chain to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
 	$(VERBOSE)$(SUDO) mkdir -p $(INSTALL_LOCATION)
 	$(VERBOSE)$(SUDO) cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
 	$(VERBOSE)$(LIB_GCC)
