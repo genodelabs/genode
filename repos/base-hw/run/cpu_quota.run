@@ -1,19 +1,4 @@
-#
-# Check platform
-#
-# HW is the only kernel that provides appliance of quota to the scheduling.
-#
-assert_spec hw
-
-#
-# Build
-#
-
-build "core init timer test/cpu_quota"
-
-#
-# Boot image
-#
+build { core init timer lib/ld test/cpu_quota }
 
 create_boot_directory
 
@@ -118,19 +103,12 @@ install_config {
 </config>
 }
 
-build_boot_image "core ld.lib.so init timer test-cpu_quota test-sync"
-
-#
-# Execution
-#
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 
 run_genode_until ".*done.*\n.*done.*\n.*done.*\n" 110
 
-#
-# Conclusion
-#
 set err_cnt 0
 
 proc check_counter { name opt cnt total_cnt } {
