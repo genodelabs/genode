@@ -1,7 +1,7 @@
-
-SRC_C = main.cc
+SRC_C      = main.cc
 C_WARNINGS = -Wall -Werror
-BUILD_DIR = /tmp/bin
+BUILD_DIR  = /tmp/bin
+SHELL      = bash
 
 all:
 	mkdir -p $(BUILD_DIR)

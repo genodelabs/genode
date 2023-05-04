@@ -1,16 +1,7 @@
-#
-# \brief  Test CPU-scheduler implementation of core
-# \author Martin Stein
-# \date   2014-09-30
-#
+build { core init lib/ld test/cpu_scheduler }
 
-# build program images
-build "core init test/cpu_scheduler"
-
-# create directory where the boot files are written to
 create_boot_directory
 
-# the init config is not used but the build system needs it
 install_config {
 	<config>
 		<parent-provides>
@@ -28,15 +19,12 @@ install_config {
 		</start>
 	</config>}
 
-# create single boot image from the compiled program images
-build_boot_image "core ld.lib.so init test-cpu_scheduler"
+build_boot_image [build_artifacts]
 
-# configure qemu to use 64 MB RAM and avoid GUI mode
-append qemu_args "  -nographic"
+append qemu_args " -nographic"
 
-# execute the test in qemu if the targeted platform is supported
 run_genode_until "child .test-cpu_scheduler. exited with exit value .*\n" 10
 
-# check the output
 grep_output {child .test-cpu_scheduler. exited with exit value}
+
 compare_output_to { [init] child "test-cpu_scheduler" exited with exit value 0 }

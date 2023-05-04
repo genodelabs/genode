@@ -1,4 +1,4 @@
-build "core init test/migrate timer"
+build { core init lib/ld test/migrate timer }
 
 if {![have_include "power_on/qemu"]} {
 	puts "Run script is not supported on this platform"
@@ -45,7 +45,7 @@ append config {
 
 install_config $config
 
-build_boot_image "core ld.lib.so init test-migrate timer"
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 append qemu_args "-smp 4,cores=4,threads=1"

@@ -1,20 +1,6 @@
-#
-# \brief  Test IPC from pthread created outside of Genode
-# \author Norman Feske
-# \date   2011-12-20
-#
-
-#
-# Build
-#
-
-build { core init test/lx_hybrid_pthread_ipc }
+build { core init lib/ld test/lx_hybrid_pthread_ipc }
 
 create_boot_directory
-
-#
-# Generate config
-#
 
 install_config {
 	<config>
@@ -34,17 +20,6 @@ install_config {
 	</config>
 }
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules { core ld.lib.so init test-lx_hybrid_pthread_ipc }
-
-build_boot_image $boot_modules
-
-#
-# Execute test case
-#
+build_boot_image [build_artifacts]
 
 run_genode_until "--- finished pthread IPC test ---.*\n" 10

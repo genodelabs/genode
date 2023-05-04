@@ -1,4 +1,4 @@
-build "core init test/thread"
+build { core init lib/ld test/thread }
 
 create_boot_directory
 
@@ -45,7 +45,7 @@ append config {
 
 install_config $config
 
-build_boot_image "core ld.lib.so init test-thread"
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 

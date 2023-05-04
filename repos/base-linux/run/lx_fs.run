@@ -11,7 +11,7 @@ assert_spec linux
 # Build
 #
 
-build { core init server/lx_fs test/libc_vfs }
+build { core init lib/ld lib/libc lib/vfs server/lx_fs test/libc_vfs }
 
 create_boot_directory
 
@@ -61,10 +61,7 @@ exec mkdir -p bin/libc_vfs
 # Boot modules
 #
 
-build_boot_image {
-	core init ld.lib.so libc.lib.so vfs.lib.so lx_fs test-libc_vfs
-	libc_vfs
-}
+build_boot_image [list {*}[build_artifacts] libc_vfs]
 
 #
 # Execute test case

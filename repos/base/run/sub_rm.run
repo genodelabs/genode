@@ -1,4 +1,4 @@
-build "core init test/sub_rm"
+build { core init lib/ld test/sub_rm }
 
 create_boot_directory
 
@@ -30,7 +30,7 @@ append config {
 
 install_config $config
 
-build_boot_image "core ld.lib.so init test-sub_rm"
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 

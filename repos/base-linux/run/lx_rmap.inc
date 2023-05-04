@@ -6,24 +6,11 @@
 
 assert_spec linux
 
-#
-# Build
-#
-
-set build_components { core init }
-
-lappend_if [expr {$test_type eq "static"}]  build_components test/lx_rmap/static
-lappend_if [expr {$test_type eq "dynamic"}] build_components test/lx_rmap/dynamic
-
-build $build_components
+build  [list core init lib/ld [test_build_target]]
 
 create_boot_directory
 
-#
-# Config
-#
-
-set config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -34,40 +21,17 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
-
-append_if [expr {$test_type eq "static"}] config {
-	<start name="test-lx_rmap_static">}
-append_if [expr {$test_type eq "dynamic"}] config {
-	<start name="test-lx_rmap_dynamic">}
-append config {
+	<default caps="100"/>
+	<start name="} [test_program_name] {">
 		<resource name="RAM" quantum="8M"/>
 	</start>
 </config>}
 
-install_config $config
 
-#
-# Boot modules
-#
+build_boot_image [build_artifacts]
 
-set boot_modules { core ld.lib.so init }
+run_genode_until "child \"[test_program_name]\" exited with exit value 0.*\n" 10
 
-lappend_if [expr {$test_type eq "static"}]  boot_modules test-lx_rmap_static
-lappend_if [expr {$test_type eq "dynamic"}] boot_modules test-lx_rmap_dynamic
-lappend_if [expr {$test_type eq "dynamic"}] boot_modules ld.lib.so
-
-build_boot_image $boot_modules
-
-#
-# Execute test
-#
-
-if {$test_type eq "static"} {
-	run_genode_until {child "test-lx_rmap_static" exited with exit value 0.*\n} 10
-} else {
-	run_genode_until {child "test-lx_rmap_dynamic" exited with exit value 0.*\n} 10
-}
 puts "Test succeeded"
 
 # vi: set ft=tcl :

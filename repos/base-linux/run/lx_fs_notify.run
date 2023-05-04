@@ -283,7 +283,7 @@ exec mkdir -p bin/lx_fs_notify/mnt
 #
 # Boot modules
 #
-build_boot_image { lx_fs test-rom_log test-file_writer lx_fs_notify }
+build_boot_image [list {*}[build_artifacts] lx_fs_notify]
 
 #
 # build the test program for Linux

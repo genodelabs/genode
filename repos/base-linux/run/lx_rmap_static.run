@@ -1,10 +1,5 @@
-#
-# \brief  Test for Linux-specific region map (static binary)
-# \author Christian Helmuth
-# \date   2013-09-06
-#
-
-set test_type "static"
+proc test_build_target { } { return "test/lx_rmap/dynamic" }
+proc test_program_name { } { return "test-lx_rmap_dynamic" }
 
 source ${genode_dir}/repos/base-linux/run/lx_rmap.inc
 

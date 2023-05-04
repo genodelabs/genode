@@ -1,10 +1,7 @@
-# build program images
-build { core init timer test/timer_accuracy }
+build { core init timer lib/ld test/timer_accuracy }
 
-# create directory where boot files are written to
 create_boot_directory
 
-# define XML configuration for init
 install_config {
 <config prio_levels="2">
 	<parent-provides>
@@ -31,10 +28,9 @@ install_config {
 	</start>
 </config>
 }
-# build boot files from source binaries
-build_boot_image { core ld.lib.so init timer test-timer_accuracy }
 
-# configure Qemu
+build_boot_image [build_artifacts]
+
 append qemu_args "  -nographic"
 
 set err_cnt      0

@@ -1,23 +1,6 @@
-#
-# \brief  Test if the exception mechanism works in hybrid applications
-# \author Christian Prochaska
-# \date   2011-11-22
-#
-
-#
-# Build
-#
-
-build {
-	core init
-	test/lx_hybrid_exception
-}
+build { core init lib/ld test/lx_hybrid_exception }
 
 create_boot_directory
-
-#
-# Generate config
-#
 
 install_config {
 	<config>
@@ -37,21 +20,7 @@ install_config {
 	</config>
 }
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init
-	test-lx_hybrid_exception
-}
-
-build_boot_image $boot_modules
-
-#
-# Execute test case
-#
+build_boot_image [build_artifacts]
 
 run_genode_until {child "test-lx_hybrid_exception" exited with exit value 0.*\n} 10
 
