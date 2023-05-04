@@ -42,7 +42,7 @@ struct cdevsw cdevsw[] = {
 		audioioctl,
 		(int (*)(struct tty*, int)) enodev,
 		0,
-		audiopoll,
+		0,
 		0,
 		0,
 		0,
@@ -59,8 +59,8 @@ struct device *config_found_sm(struct device *parent, void *aux, cfprint_t print
                                cfmatch_t submatch)
 {
 	struct cfdata *cf = &cfdata[0];
-	struct cfattach *ca = cf->cf_attach;
-	struct cfdriver *cd = cf->cf_driver;
+	struct cfattach const *ca = cf->cf_attach;
+	struct cfdriver const *cd = cf->cf_driver;
 
 	int rv = ca->ca_match(parent, NULL, aux);
 	if (rv) {

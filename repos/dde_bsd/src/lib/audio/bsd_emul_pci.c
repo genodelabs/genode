@@ -61,12 +61,12 @@ int probe_cfdata(struct pci_attach_args *pa)
 	size_t i;
 	for (i = 0; i < ncd; i++) {
 		struct cfdata *cf = &cfdata[i];
-		struct cfdriver *cd = cf->cf_driver;
+		struct cfdriver const *cd = cf->cf_driver;
 
 		if (*cf->cf_parents != PCI_BUS_PARENT)
 			continue;
 
-		struct cfattach *ca = cf->cf_attach;
+		struct cfattach const *ca = cf->cf_attach;
 		if (!ca->ca_match)
 			continue;
 

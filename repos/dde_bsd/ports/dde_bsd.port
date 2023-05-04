@@ -3,13 +3,13 @@ VERSION   := 1
 DOWNLOADS := audio.archive
 
 #
-# Audio drivers from OpenBSD 7.1
+# Audio drivers from OpenBSD 7.3
 #
 SRC_DIR_AUDIO  := src/lib/audio
-VERSION_AUDIO  := 7.1
+VERSION_AUDIO  := 7.3
 BASE_URL       := https://cdn.openbsd.org/pub/OpenBSD
 URL(audio)     := $(BASE_URL)/$(VERSION_AUDIO)/sys.tar.gz
-SHA(audio)     := 890cb97c01052f26cefe5430d635e0fdf6047ca701a99992968e16801e2a6565
+SHA(audio)     := bb0dfa11584d68464b3f788e43655f6454bb3ecba8ad5500377630bcf23570ec
 DIR(audio)     := $(SRC_DIR_AUDIO)
 TAR_OPT(audio) := --strip-components=1 --files-from $(REP_DIR)/audio.list
 HASH_INPUT     += $(REP_DIR)/audio.list

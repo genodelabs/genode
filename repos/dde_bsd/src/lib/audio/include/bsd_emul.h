@@ -247,6 +247,12 @@ struct kevent
 	short filter;
 };
 
+
+struct klist;
+
+void knote_locked(struct klist *list, long hint);
+
+
 #include <sys/queue.h>
 
 struct knote;

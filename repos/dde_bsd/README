@@ -3,7 +3,7 @@ This repository contains device drivers ported from OpenBSD.
 Audio
 #####
 
-The audio driver is ported from OpenBSD 6.6 and includes support for
+The audio driver is ported from OpenBSD 7.3 and includes support for
 Intel HD Audio devices. The HDA driver works on real hardware and
 supposedly in VirtualBox.
 
