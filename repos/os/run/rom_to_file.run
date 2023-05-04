@@ -1,20 +1,8 @@
 assert_spec linux
 
-#
-# Build
-#
-
-build { core init timer
-	server/dynamic_rom
-	app/rom_to_file
-	server/lx_fs
-}
+build { core init timer lib/ld server/dynamic_rom app/rom_to_file server/lx_fs }
 
 create_boot_directory
-
-#
-# Generate config
-#
 
 install_config {
 <config>
@@ -65,19 +53,9 @@ install_config {
 	</start>
 </config>}
 
-#
-# Boot image
-#
-
 exec mkdir -p bin/fs_test
 
-build_boot_image { core ld.lib.so init timer
-	dynamic_rom
-	rom_to_file
-	lx_fs
-	fs_test
-	vfs.lib.so
-}
+build_boot_image [list {*}[build_artifacts] fs_test]
 
 append qemu_args " -nographic "
 

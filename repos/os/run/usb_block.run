@@ -19,7 +19,7 @@ import_from_depot [depot_user]/src/[base_src] \
 
 build { app/block_tester }
 
-append config {
+install_config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -91,14 +91,13 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
 #
 # Define USB host controller config
 #
 set fd [open [run_dir]/genode/usb_host_drv.config w]
 puts $fd { <config> <default-policy class="0x8"/> </config> }
 close $fd
+
 build_boot_image [build_artifacts]
 
 #

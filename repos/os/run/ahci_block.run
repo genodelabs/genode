@@ -2,7 +2,7 @@ assert_spec x86
 
 create_boot_directory
 build {
-	core init timer
+	core init timer lib/ld
 	drivers/platform
 	drivers/acpi
 	drivers/ahci
@@ -154,10 +154,7 @@ install_config {
 #
 # Boot modules
 #
-build_boot_image {
-	core ld.lib.so init timer
-	pci_decode platform_drv report_rom acpi_drv
-	ahci_drv report_rom block_tester }
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic -device ahci,id=ahci -boot d "
 append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none             -device ide-hd,drive=disk,bus=ahci.0 "

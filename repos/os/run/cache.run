@@ -1,16 +1,8 @@
-#
-# \brief  Simple cache benchmark
-# \author Johannes Schlatow
-#
-
-
-set build_components { core init test/cache }
-
-build $build_components
+build { core init lib/ld test/cache }
 
 create_boot_directory
 
-set config {
+install_config {
 	<config>
 		<parent-provides>
 			<service name="LOG"/>
@@ -29,10 +21,6 @@ set config {
 		</start>
 	</config> }
 
-install_config $config
-
-set boot_modules { core ld.lib.so init test-cache }
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 run_genode_until "done.*\n" 300

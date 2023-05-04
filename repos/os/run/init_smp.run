@@ -1,4 +1,4 @@
-build "core init test/bomb timer"
+build { core init lib/ld test/bomb timer }
 
 set timeout     60
 set rounds      10
@@ -28,40 +28,14 @@ if { [get_cmd_switch --autopilot] } {
 
 create_boot_directory
 
-set config {
-<config verbose="yes">}
+proc per_cpu_start_node { i } {
 
-append config "
-	<affinity-space width=\"$cpus\" height=\"1\"/>"
+	global init_ram rounds generations children sleep demand
 
-append config {
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route><any-service><parent/><any-child/></any-service></default-route>
-	<default caps="100"/>
-
-	<resource name="RAM" preserve="2M"/>
-	<resource name="CAP" preserve="100"/>
-
-	<start name="timer">
-		<resource name="CPU" quantum="10"/>
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Timer"/></provides>
-	</start>}
-
-
-for { set i 0} { $i < ${cpus} } { incr i} {
-
-	append config "
-			<start name=\"init_$i\" caps=\"1100\">
-				<affinity xpos=\"$i\" width=\"1\"/>
-				<resource name=\"RAM\" quantum=\"${init_ram}M\"/>"
-	append config {
+	return [join [list {
+			<start name="init_} $i {" caps="1100">
+				<affinity xpos="} $i {" width="1"/>
+				<resource name="RAM" quantum="} ${init_ram}M {"/>
 				<binary name="init"/>
 				<config verbose="yes">
 					<parent-provides>
@@ -80,30 +54,58 @@ for { set i 0} { $i < ${cpus} } { incr i} {
 					<resource name="RAM" preserve="2M"/>
 					<resource name="CAP" preserve="100"/>
 
-					<start name="bomb-master">
+					<start name="bomb-master" priority="-1" caps="100000">
 						<binary name="bomb"/>
 						<resource name="CPU" quantum="90"/>
-						<resource name="RAM" quantum="2G"/>}
-
-append config "
-		<config rounds=\"$rounds\" generations=\"$generations\"
-		        children=\"$children\" sleep=\"$sleep\" demand=\"$demand\"/>"
-
-append config {
+						<resource name="RAM" quantum="2G"/>
+						<config rounds="} $rounds {" generations="} $generations {"
+						        children="} $children {" sleep="} $sleep {" demand="} $demand {"/>
 					</start>
 				</config>
-			</start>}
+			</start>}] ""]
 }
 
-append config {
+proc cpu_start_nodes { cpus } {
+
+	set result { }
+	for { set i 0} { $i < $cpus } { incr i } {
+		append result [per_cpu_start_node $i] }
+
+	return $result
+}
+
+
+install_config {
+<config verbose="yes">
+
+	<affinity-space width="} $cpus {" height="1"/>
+
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route><any-service><parent/><any-child/></any-service></default-route>
+	<default caps="100"/>
+
+	<resource name="RAM" preserve="2M"/>
+	<resource name="CAP" preserve="100"/>
+
+	<start name="timer">
+		<resource name="CPU" quantum="10"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	} [cpu_start_nodes $cpus] {
+
 </config>}
 
-install_config $config
-
-build_boot_image "core ld.lib.so init bomb timer"
+build_boot_image [build_artifacts]
 
 append qemu_args " -m [expr 128 + $init_ram*$cpus]M -nographic -smp $cpus"
-
 
 if { [get_cmd_switch --autopilot] } {
 

@@ -1,5 +1,5 @@
 append build_components {
-	core init timer
+	core init timer lib/ld
 	server/nic_router
 	test/nic_stress
 }
@@ -157,16 +157,7 @@ append config {
 
 install_config $config
 
-append boot_modules {
-	core init timer
-	nic_router
-	test-nic_stress
-	ld.lib.so
-}
-
-append_if [string equal $type "nic_bridge"] boot_modules { nic_bridge }
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 

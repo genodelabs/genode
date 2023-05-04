@@ -2,25 +2,72 @@
 
 create_boot_directory
 
-set depot_pkgs "[depot_user]/src/[base_src] [depot_user]/src/init [depot_user]/src/report_rom"
+proc rtc_src { } {
 
-if [have_board linux] {
-	lappend depot_pkgs [depot_user]/src/linux_rtc_drv
-} else {
-	if [have_board pc] {
-		lappend depot_pkgs [depot_user]/src/rtc_drv
-	} else  {
-		lappend depot_pkgs [depot_user]/src/dummy_rtc_drv
+	if {[have_board linux]} { return "linux_rtc_drv" }
+	if {[have_board pc]}    { return "rtc_drv" }
+
+	return "dummy_rtc_drv"
+}
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/[rtc_src]
+
+proc rtc_driver_start_attributes { } {
+
+	if {[have_board linux]} { return { name="linux_rtc_drv" ld="no" } }
+	if {[have_board pc]}    { return { name="rtc_drv" } }
+
+	return { name="dummy_rtc_drv" }
+}
+
+# RTC setting tested on Qemu only
+proc test_update { } { return [have_include power_on/qemu] }
+
+proc test_rtc_config { } {
+
+	if {![test_update]} {
+		return { <config/> } }
+
+	return {
+		<config set_rtc="yes" year="2069" month="12" day="31"
+		        hour="23" minute="55" second="0"/>
 	}
 }
 
-puts $depot_pkgs
-import_from_depot $depot_pkgs
+proc additional_start_nodes_for_update_test { } {
 
-# RTC setting tested on Qemu only
-set test_update [have_include power_on/qemu]
+	if {![test_update]} {
+		return { } }
 
-set config {
+	return {
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<policy label_suffix="set_rtc" report="test-rtc -> set_rtc"/>
+		</config>
+	</start>}
+}
+
+proc rtc_driver_config_and_route { } {
+
+	if {![test_update]} {
+		return { <config/> } }
+
+	return {
+		<config allow_setting_rtc="true" verbose="yes"/>
+		<route>
+			<service name="ROM" label="set_rtc">
+				<child name="report_rom"/>
+			</service>
+			<any-service> <parent/> </any-service>
+		</route> }
+}
+
+install_config {
 <config prio_levels="2" verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -36,53 +83,31 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
-	</start>}
-append_if $test_update config {
-	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes">
-			<policy label_suffix="set_rtc" report="test-rtc -> set_rtc"/>
-		</config>
-	</start>}
-append_if [have_board linux] config {
-		<start name="linux_rtc_drv" priority="-1" ld="no">}
-append_if [have_board pc] config {
-		<start name="rtc_drv" priority="-1">}
-append_if [expr ![have_board pc] && ![have_board linux]] config {
-		<start name="dummy_rtc_drv" priority="-1">}
-append config {
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Rtc"/></provides>}
-append_if $test_update config {
-		<config allow_setting_rtc="true" verbose="yes"/>
-		<route>
-			<service name="ROM" label="set_rtc">
-				<child name="report_rom"/>
-			</service>
-			<any-service> <parent/> </any-service>
-		</route>}
-append config {
 	</start>
+
+	<start } [rtc_driver_start_attributes] { priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Rtc"/></provides>
+		} [rtc_driver_config_and_route] {
+	</start>
+
 	<start name="test-rtc" priority="-1">
-		<resource name="RAM" quantum="1M"/>}
-append_if $test_update config {
-		<config set_rtc="yes" year="2069" month="12" day="31" hour="23" minute="55" second="0"/>}
-append config {
+		<resource name="RAM" quantum="1M"/>
+		} [test_rtc_config] {
 	</start>
+
+	} [additional_start_nodes_for_update_test] {
+
 </config>
 }
 
-install_config $config
+build { test/rtc }
 
-set build_components { test/rtc }
-set boot_modules     { test-rtc }
-
-build $build_components
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic  "
 

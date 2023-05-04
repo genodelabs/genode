@@ -51,7 +51,7 @@ install_config {
 			<service name="PD">  <parent/> </service>
 			<service name="RM">  <parent/> </service>
 			<service name="CPU"> <parent/> </service>
-			<service name="LOG"> <parent/> </service>
+			service name="LOG"> <parent/> </service>
 			<any-service> <any-child/> </any-service>
 		</route>
 	</start>
@@ -68,7 +68,7 @@ install_config {
 	</start>
 </config> }
 
-build_boot_image { pl180_sd_card_drv block_tester }
+build_boot_image [build_artifacts]
 
 set disk_image "bin/sd_card.img"
 if { [file exists $disk_image] == 0 } then {

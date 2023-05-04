@@ -78,11 +78,7 @@ install_config {
 }
 
 file copy [select_from_repositories board/[board]/devices] [run_dir]/genode/devices
-build_boot_image {
-	core
-	timer
-	imx8q_evk_i2c_drv
-	i2c_mcp9808
-}
+
+build_boot_image [build_artifacts]
 
 run_genode_until forever

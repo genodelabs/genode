@@ -1,4 +1,7 @@
-build "core init timer server/cpu_balancer app/cpu_burner app/top server/dynamic_rom"
+build {
+	core init timer lib/ld
+	server/cpu_balancer app/cpu_burner app/top server/dynamic_rom
+}
 
 if {![have_include "power_on/qemu"]} {
 	puts "Run script is not supported on this platform"
@@ -15,12 +18,32 @@ set cpu_height 1
 set report_config "yes"
 set use_trace "yes"
 
+proc report_rom_start_node { } {
+
+	global report_config
+
+	if {$report_config != "yes"} {
+		return { } }
+
+	return {
+		<start name="report_rom">
+			<binary name="report_rom"/>
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> <service name="ROM"/> </provides>
+			<config verbose="yes"/>
+			<route>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+	}
+}
+
 create_boot_directory
 
 import_from_depot [depot_user]/src/report_rom \
                   [depot_user]/src/shim
 
-append config {
+install_config {
 <config prio_levels="2" verbose="yes">
 	<affinity-space width="} $cpu_width {" height="} $cpu_height {"/>
 	<parent-provides>
@@ -46,20 +69,10 @@ append config {
 		<route>
 			<any-service> <parent/> </any-service>
 		</route>
-	</start>}
+	</start>
 
-append_if [expr $report_config eq "yes"] config {
-	<start name="report_rom">
-		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes"/>
-		<route>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>}
+	} [report_rom_start_node] {
 
-append config {
 	<start name="dynamic_rom">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="ROM"/> </provides>
@@ -104,9 +117,8 @@ append config {
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
-	</start>}
+	</start>
 
-append config {
 	<start name="cpu_balancer" caps="120">
 		<resource name="RAM" quantum="2M"/>
 		<provides>
@@ -157,9 +169,7 @@ append config {
 -->
 </config>}
 
-install_config $config
-
-build_boot_image { core ld.lib.so init timer cpu_balancer cpu_burner top dynamic_rom }
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic"
 append qemu_args " -smp [expr $cpu_width * $cpu_height],cores=$cpu_width,threads=$cpu_height"

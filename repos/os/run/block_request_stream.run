@@ -1,4 +1,4 @@
-build { core init timer test/block_request_stream app/block_tester }
+build { core init timer lib/ld test/block_request_stream app/block_tester }
 
 create_boot_directory
 
@@ -57,9 +57,7 @@ install_config {
 	</start>
 </config>}
 
-
-build_boot_image { core init timer block_tester test-block_request_stream ld.lib.so }
-
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 

@@ -69,5 +69,5 @@ install_config {
 	</start>
 </config>}
 
-build_boot_image { testnit loader test-loader }
+build_boot_image [build_artifacts]
 run_genode_until forever

@@ -243,7 +243,7 @@ foreach rom [content_rom_modules] {
 # Build
 #
 
-lappend build_targets core init timer
+lappend build_targets core init timer lib/ld
 
 # strip duplications
 set sorted_build_targets [lsort -unique $build_targets]
@@ -305,9 +305,7 @@ install_config {
 	</config>
 }
 
-lappend boot_modules core ld.lib.so init timer
-
-build_boot_image [lsort -unique $boot_modules]
+build_boot_image [build_artifacts]
 
 
 ##

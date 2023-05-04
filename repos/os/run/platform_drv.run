@@ -113,7 +113,7 @@ install_config {
 </config>}
 
 
-build_boot_image { test-platform_drv }
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 

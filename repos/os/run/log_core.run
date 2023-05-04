@@ -16,11 +16,36 @@ if {[have_spec nova]} {
 	proc kernel_output { } { return "novga logmem" }
 }
 
-build { core init timer server/file_terminal server/terminal_log app/log_core }
+build {
+	core init timer lib/ld
+	server/file_terminal server/terminal_log app/log_core
+}
 
 create_boot_directory
 
-append config {
+proc kernel_start_node { } {
+
+	if {![have_spec nova]} {
+		return { } }
+
+	return {
+	<start name="log_kernel">
+		<binary name="log_core"/>
+		<resource name="RAM" quantum="10M"/>
+		<config period_ms="2000"/>
+		<route>
+			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
+			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
+			<service name="ROM" label="log"> <parent label="kernel_log"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="PD"> <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
+	</start>}
+}
+
+install_config {
 <config>
 	<parent-provides>
 		<service name="CPU"/>
@@ -77,33 +102,13 @@ append config {
 			<service name="CPU"> <parent/> </service>
 			<service name="LOG"> <parent/> </service>
 		</route>
-	</start>}
+	</start>
 
-append_if [have_spec nova] config {
-	<start name="log_kernel">
-		<binary name="log_core"/>
-		<resource name="RAM" quantum="10M"/>
-		<config period_ms="2000"/>
-		<route>
-			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
-			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
-			<service name="ROM" label="log"> <parent label="kernel_log"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="PD"> <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-		</route>
-	</start>}
+	} [kernel_start_node] {
 
-append config {
 </config>}
 
-install_config $config
-
-build_boot_image {
-	core init timer ld.lib.so vfs.lib.so libc.lib.so
-	file_terminal terminal_log log_core
-}
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 

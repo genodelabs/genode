@@ -94,7 +94,7 @@ set fd [open [run_dir]/genode/focus w]
 puts $fd "<focus label=\"gui_fb -> \" domain=\"default\"/>"
 close $fd
 
-build_boot_image { test-fb_bench }
+build_boot_image [build_artifacts]
 
 # disable QEMU graphic to enable testing on our machines without SDL and X
 append qemu_args "-nographic "

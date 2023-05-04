@@ -214,7 +214,7 @@ puts $launchpad_config_fd {<config>
 </config>}
 close $launchpad_config_fd
 
-build_boot_image { status_bar testnit launchpad.config }
+build_boot_image [list {*}[build_artifacts] launchpad.config]
 
 if {[get_cmd_switch --autopilot]} {
 	run_genode_until {\[init -> scout\] png is.*\n} 40

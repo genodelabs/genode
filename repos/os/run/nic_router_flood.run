@@ -205,7 +205,7 @@ install_config {
 
 </config>}
 
-build_boot_image { test-net_flood ping nic_router dynamic_rom }
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 append_qemu_nic_args

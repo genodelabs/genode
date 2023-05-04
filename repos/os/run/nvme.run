@@ -47,7 +47,7 @@ proc writeable { } {
 # Build
 #
 set build_components {
-	core init timer
+	core init timer lib/ld
 	server/report_rom
 	app/pci_decode
 	drivers/acpi
@@ -243,17 +243,7 @@ append config {
 
 install_config $config
 
-#
-# Boot modules
-#
-
-set boot_modules {
-	core init timer nvme_drv
-	pci_decode platform_drv report_rom acpi_drv
-	ld.lib.so block_tester
-}
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 append qemu_args " -drive id=nvme0,file=bin/nvme.raw,format=raw,if=none "

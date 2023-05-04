@@ -13,7 +13,7 @@ if {![have_board imx53_qsb_tz]} {
 	exit 0
 }
 
-build { core init server/tz_vmm }
+build { core init lib/ld server/tz_vmm }
 
 create_boot_directory
 
@@ -63,7 +63,7 @@ exec >& /dev/null wget -O initrd.gz.md5 $initrd_uri.md5
 exec md5sum -c initrd.gz.md5
 cd ..
 
-build_boot_image { core ld.lib.so init linux imx53_qsb_tz_vmm initrd.gz }
+build_boot_image [list {*}[build_artifacts] linux initrd.gz]
 
 # execute and wait for console
 run_genode_until {.*\/ #.*} 220

@@ -1,13 +1,7 @@
-#
-# Build
-#
-# for ldso debugging: <config ld_verbose="yes"/>
-#
-
 assert_spec linux
 
-set build_components {
-	core init timer
+build {
+	core init timer lib/ld
 	drivers/framebuffer
 	server/report_rom
 	server/dynamic_rom
@@ -17,15 +11,9 @@ set build_components {
 	test/nitpicker
 }
 
-build $build_components
-
 create_boot_directory
 
-#
-# Generate config
-#
-
-set config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -274,25 +262,7 @@ set config {
 	</start>
 </config>}
 
-install_config $config
-
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	init ld.lib.so timer
-	fb_sdl
-	report_rom dynamic_rom
-	nitpicker
-	pointer
-	test-pointer
-	testnit
-}
-
-# "lsort -unique" removes duplicates but core must be first
-build_boot_image "core [lsort -unique $boot_modules]"
+build_boot_image [build_artifacts]
 
 run_genode_until forever
 

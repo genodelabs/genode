@@ -1,22 +1,21 @@
 assert_spec linux
 
-set depot_archives { }
-set build_components { }
-set boot_modules { }
-
 lappend depot_archives [depot_user]/src/[base_src]
 lappend depot_archives [depot_user]/src/init
 lappend depot_archives [depot_user]/src/vfs
 lappend depot_archives [depot_user]/src/vfs_import
 
+set build_components { }
+
 if { [get_cmd_switch --autopilot] } {
 	lappend depot_archives [depot_user]/src/lx_fs
 } else {
 	lappend build_components server/lx_fs
-	lappend boot_modules lx_fs
 }
 
-set config {
+create_boot_directory
+
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -42,7 +41,6 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-
 
 	<start name="import_lx_fs" caps="220" ld="no">
 		<binary name="lx_fs"/>
@@ -88,16 +86,13 @@ set config {
 </config>
 }
 
-create_boot_directory
-install_config $config
-
 import_from_depot $depot_archives
 
 if { [llength $build_components] > 0 } {
 	build $build_components
 }
 
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 ## Create files before genode is run
 exec mkdir -p [run_dir]/genode/test-existing-file

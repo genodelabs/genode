@@ -78,7 +78,7 @@ proc precise_ref_time { } {
 	return true
 }
 
-build "core init drivers/platform timer test/timeout"
+build { core init lib/ld drivers/platform timer test/timeout }
 
 #
 # Boot image
@@ -86,7 +86,7 @@ build "core init drivers/platform timer test/timeout"
 
 create_boot_directory
 
-append config {
+install_config {
 	<config prio_levels="2">
 		<parent-provides>
 			<service name="ROM"/>
@@ -117,9 +117,7 @@ append config {
 	</config>
 }
 
-install_config $config
-
-build_boot_image "core ld.lib.so init timer test-timeout"
+build_boot_image [build_artifacts]
 
 #
 # Execution

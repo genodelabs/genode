@@ -1,6 +1,7 @@
 create_boot_directory
+
 build {
-	core init timer
+	core init timer lib/ld
 	server/vfs
 	server/vfs_block
 	app/block_tester
@@ -105,9 +106,6 @@ install_config {
 	</start>
 </config>}
 
-build_boot_image {
-	core init timer vfs vfs_block block_tester
-	ld.lib.so vfs.lib.so vfs_import.lib.so
-}
+build_boot_image [build_artifacts]
 
 run_genode_until {.*child "block_tester" exited with exit value 0.*\n} 60

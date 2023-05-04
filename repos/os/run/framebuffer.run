@@ -1,4 +1,5 @@
 create_boot_directory
+
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/src/init
@@ -53,6 +54,6 @@ install_config {
 
 </config>}
 
-build_boot_image { event_dump test-framebuffer }
+build_boot_image [build_artifacts]
 
 run_genode_until forever

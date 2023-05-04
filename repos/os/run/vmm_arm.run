@@ -229,12 +229,7 @@ if { [have_spec arm_64] } {
 catch { exec [installed_command dd] if=/dev/zero of=bin/block.img bs=1M count=0 seek=64 }
 exec [installed_command mkfs.vfat] bin/block.img
 
-build_boot_image {
-	test-terminal_expect_send
-	linux
-	initrd
-	block.img
-}
+build_boot_image [list {*}[build_artifacts] linux initrd block.img]
 
 #
 # Execute test case

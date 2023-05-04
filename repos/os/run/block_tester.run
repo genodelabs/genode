@@ -9,7 +9,7 @@ set sgdisk [installed_command sgdisk]
 
 create_boot_directory
 build {
-	core init timer
+	core init timer lib/ld
 	server/lx_block
 	server/report_rom
 	app/block_tester
@@ -276,11 +276,7 @@ install_config {
 create_disk_image 0
 create_disk_image 1
 
-build_boot_image {
-	core init timer block_tester report_rom
-	ld.lib.so part_block
-	block0.raw block1.raw lx_block
-}
+build_boot_image [list {*}[build_artifacts] block0.raw block1.raw]
 
 run_genode_until {.*--- all tests finished ---.*\n} 360
 set serial_id [output_spawn_id]

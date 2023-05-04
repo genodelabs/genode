@@ -5,7 +5,8 @@ if {![have_board pc] || [expr ![have_spec nova] && ![have_spec hw]] } {
 	exit 0
 }
 
-build { app/smbios_decoder core init timer drivers/acpi server/report_rom }
+build { core init timer lib/ld drivers/acpi server/report_rom app/smbios_decoder }
+
 create_boot_directory
 
 install_config {
@@ -72,11 +73,7 @@ install_config {
 </config>
 }
 
-build_boot_image {
-	report_rom acpi_drv
-	core init timer ld.lib.so
-	smbios_decoder
-}
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic"
 

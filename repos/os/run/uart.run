@@ -1,25 +1,13 @@
-#
-# Build
-#
-
-assert_spec pbxa9
-
-# generic components
-set build_components {
-	core init timer
-	drivers/uart
-	test/uart
+if { ![have_board pbxa9] } {
+	puts "Platform is unsupported."
+	exit 0
 }
 
-build $build_components
+build { core init timer lib/ld drivers/uart test/uart }
+
 create_boot_directory
 
-
-#
-# Config
-#
-
-set config  {
+install_config {
 	<config>
 		<parent-provides>
 			<service name="ROM"/>
@@ -35,7 +23,6 @@ set config  {
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
@@ -62,20 +49,8 @@ set config  {
 	</config>
 }
 
-install_config $config
+build_boot_image [build_artifacts]
 
-
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init
-	timer pbxa9_uart_drv test-uart
-}
-
-build_boot_image $boot_modules
 append qemu_args " -display none -serial stdio"
 append qemu_args " -serial file:/tmp/serial1"
 append qemu_args " -serial file:/tmp/serial2"

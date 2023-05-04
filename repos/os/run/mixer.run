@@ -1,17 +1,13 @@
-#
-# Build
-#
-
 if {[have_include "power_on/qemu"]} {
 	puts "\nTest running on Qemu is not supported.\n"
 	exit 0
 }
 
-# generic components
-set build_components {
-	core init timer
+build {
+	core init timer lib/ld
 	drivers/audio
 	drivers/platform
+	drivers/acpi
 	server/mixer
 	server/dynamic_rom
 	server/report_rom
@@ -19,15 +15,9 @@ set build_components {
 	test/audio_out
 }
 
-build $build_components
 create_boot_directory
 
-
-#
-# Config
-#
-
-set config  {
+install_config {
 	<config>
 		<parent-provides>
 			<service name="ROM"/>
@@ -121,7 +111,6 @@ set config  {
 			</config>
 		</start>
 
-
 		<start name="dynamic_rom">
 			<resource name="RAM" quantum="4M"/>
 			<provides><service name="ROM"/></provides>
@@ -208,9 +197,8 @@ set config  {
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
-	</config>}
-
-install_config $config
+	</config>
+}
 
 if {[expr ![file exists bin/client1.f32] || ![file exists bin/client2.f32]]} {
 	puts ""
@@ -220,20 +208,8 @@ if {[expr ![file exists bin/client1.f32] || ![file exists bin/client2.f32]]} {
 	exit 1
 }
 
+build_boot_image [list {*}[build_artifacts] client1.f32 client2.f32]
 
-#
-# Boot modules
-#
-
-# generic modules
-append boot_modules {
-	core ld.lib.so init timer
-	report_rom dynamic_rom
-	platform_drv acpi_drv pci_decode
-	pci_audio_drv test-audio_out
-	mixer client1.f32 client2.f32
-}
-
-build_boot_image $boot_modules
 append qemu_args " -nographic"
+
 run_genode_until forever
