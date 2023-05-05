@@ -1,0 +1,22 @@
+isl.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ isl-0.24/configure.ac |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/isl-0.24/configure.ac b/isl-0.24/configure.ac
+index 3f5c7b3df..bfd1664e3 100644
+--- a/isl-0.24/configure.ac
++++ b/isl-0.24/configure.ac
+@@ -20,7 +20,7 @@ fi
+ 
+ AC_PROG_CC
+ AC_PROG_CXX
+-AX_PROG_CC_FOR_BUILD
++#AX_PROG_CC_FOR_BUILD
+ 
+ AX_CC_MAXOPT
+ AX_GCC_WARN_UNUSED_RESULT

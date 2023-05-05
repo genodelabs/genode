@@ -8,10 +8,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/gcc/configure.ac b/gcc/configure.ac
-index 1d58d9c07..545a6367e 100644
+index 2fe9ed3f2..31e4373a0 100644
 --- a/gcc/configure.ac
 +++ b/gcc/configure.ac
-@@ -2054,7 +2054,7 @@ linux* | gnu* | darwin[[8912]]* | cygwin* | mingw*)
+@@ -2243,7 +2243,7 @@ linux* | gnu* | darwin[[8912]]* | cygwin* | mingw*)
    enable_frame_pointer=no
    ;;
  *)

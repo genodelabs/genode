@@ -1,9 +1,9 @@
 LICENSE   := GPLv3
-VERSION   := 10.3.0
+VERSION   := 12.2.0
 DOWNLOADS := gcc.archive
 
 URL(gcc)  := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
-SHA(gcc)  := 64f404c1a650f27fc33da242e1f2df54952e3963a49e06e73f6940f3223ac344
+SHA(gcc)  := e549cf9cf3594a00e27b6589d4322d70e0720cdd213f39beb4181e06926230ff
 SIG(gcc)  := ${URL(gcc)}.sig
 KEY(gcc)  := GNU
 DIR(gcc)  := src/noux-pkg/gcc
@@ -33,15 +33,21 @@ endif
 
 $(call check_tool,autogen)
 
-default: _patch
-	@#
-	@# Download prerequisites
-	@#
+# for 'aclocal' command
+$(call check_tool,automake)
+
+download_prerequisites: _dirs
 	$(VERBOSE)cd ${DIR(gcc)}; contrib/download_prerequisites
+
+# The 'isl' prerequisite needs a patch too
+_patch: download_prerequisites
+
+default: _patch
 	@#
 	@# Re-generate configure scripts
 	@#
 	$(VERBOSE)cd ${DIR(gcc)}; autogen Makefile.def
+	$(VERBOSE)cd ${DIR(gcc)}/isl; aclocal; $(AUTOCONF)
 	$(VERBOSE)cd ${DIR(gcc)}/libgcc; $(AUTOCONF)
 	$(VERBOSE)cd ${DIR(gcc)}/libstdc++-v3; $(AUTOCONF)
 	$(VERBOSE)cd ${DIR(gcc)}/gcc; $(AUTOCONF)

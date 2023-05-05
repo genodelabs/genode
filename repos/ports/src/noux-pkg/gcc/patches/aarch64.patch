@@ -1,4 +1,4 @@
-
+aarch64.patch
 
 From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
@@ -11,23 +11,23 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  4 files changed, 16 insertions(+), 3 deletions(-)
 
 diff --git a/gcc/config.host b/gcc/config.host
-index a14d7086e..3f5a781e1 100644
+index 17dfcb984..19b340dfd 100644
 --- a/gcc/config.host
 +++ b/gcc/config.host
-@@ -99,7 +99,7 @@ case ${host} in
- esac
+@@ -100,7 +100,7 @@ esac
  
  case ${host} in
--  aarch64*-*-freebsd* | aarch64*-*-linux* | aarch64*-*-fuchsia*)
-+  aarch64*-*-* | aarch64*-*-linux* | aarch64*-*-fuchsia*)
+   aarch64*-*-freebsd* | aarch64*-*-linux* | aarch64*-*-fuchsia* |\
+-  aarch64*-*-darwin*)
++  aarch64*-*-darwin* | aarch64*-*-*)
      case ${target} in
        aarch64*-*-*)
  	host_extra_gcc_objs="driver-aarch64.o"
 diff --git a/gcc/config/aarch64/aarch64.h b/gcc/config/aarch64/aarch64.h
-index 1ce23c687..f9d1f5c89 100644
+index 359b6e856..9d6984fa1 100644
 --- a/gcc/config/aarch64/aarch64.h
 +++ b/gcc/config/aarch64/aarch64.h
-@@ -1257,4 +1257,16 @@ extern poly_uint16 aarch64_sve_vg;
+@@ -1370,4 +1370,16 @@ extern poly_uint16 aarch64_sve_vg;
  		STACK_BOUNDARY / BITS_PER_UNIT)		   \
      : (crtl->outgoing_args_size + STACK_POINTER_OFFSET))
  
@@ -45,10 +45,10 @@ index 1ce23c687..f9d1f5c89 100644
 +
  #endif /* GCC_AARCH64_H */
 diff --git a/gcc/config/aarch64/t-aarch64 b/gcc/config/aarch64/t-aarch64
-index 11d20b7be..2568aa887 100644
+index ba74abc0a..31f38d13d 100644
 --- a/gcc/config/aarch64/t-aarch64
 +++ b/gcc/config/aarch64/t-aarch64
-@@ -136,7 +136,7 @@ aarch64-speculation.o: $(srcdir)/config/aarch64/aarch64-speculation.cc \
+@@ -148,7 +148,7 @@ aarch64-speculation.o: $(srcdir)/config/aarch64/aarch64-speculation.cc \
      $(TARGET_H) \
      $(RTL_BASE_H) \
      $(TREE_PASS_H)
@@ -58,10 +58,10 @@ index 11d20b7be..2568aa887 100644
  
  falkor-tag-collision-avoidance.o: \
 diff --git a/libgcc/config.host b/libgcc/config.host
-index 1907fb871..c2cfdb151 100644
+index 574ef77bd..94e711cec 100644
 --- a/libgcc/config.host
 +++ b/libgcc/config.host
-@@ -360,8 +360,9 @@ esac
+@@ -377,8 +377,9 @@ esac
  
  case ${host} in
  aarch64*-*-elf | aarch64*-*-rtems*)

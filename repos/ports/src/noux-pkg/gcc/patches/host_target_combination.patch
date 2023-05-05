@@ -14,10 +14,10 @@ compiler as much as possible.
  1 file changed, 1 deletion(-)
 
 diff --git a/libstdc++-v3/crossconfig.m4 b/libstdc++-v3/crossconfig.m4
-index fe1828835..3c7bdb87d 100644
+index ae5283b7a..0ba50b3d8 100644
 --- a/libstdc++-v3/crossconfig.m4
 +++ b/libstdc++-v3/crossconfig.m4
-@@ -306,7 +306,6 @@ dnl # long_double_math_on_this_cpu in configure.ac, right after
+@@ -314,7 +314,6 @@ dnl # long_double_math_on_this_cpu in configure.ac, right after
  dnl # the expansion of the present macro.
      ;;
    *)

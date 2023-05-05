@@ -1,3 +1,4 @@
+isl.patch
 config.patch
 misc.patch
 no_short_enums.patch
@@ -14,4 +15,5 @@ new_opa.patch
 aarch64.patch
 emutls.patch
 frame_pointer.patch
-revert_gcov_path_mangling.patch
+gcov.patch
+libcody.patch

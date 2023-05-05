@@ -1,0 +1,29 @@
+gcov.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gcc/coverage.cc |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/gcc/coverage.cc b/gcc/coverage.cc
+index 8ece5db68..5ce8f4e3d 100644
+--- a/gcc/coverage.cc
++++ b/gcc/coverage.cc
+@@ -1275,6 +1275,7 @@ coverage_init (const char *filename)
+ 	 of filename in order to prevent file path clashing.  */
+       if (profile_data_prefix)
+ 	{
++#if 0
+ 	  filename = concat (getpwd (), separator, filename, NULL);
+ 	  if (profile_prefix_path)
+ 	    {
+@@ -1290,6 +1291,7 @@ coverage_init (const char *filename)
+ 	    }
+ 	  filename = mangle_path (filename);
+ 	  len = strlen (filename);
++#endif
+ 	}
+       else
+ 	profile_data_prefix = getpwd ();

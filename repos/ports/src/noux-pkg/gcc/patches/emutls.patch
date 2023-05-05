@@ -9,7 +9,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  2 files changed, 9 insertions(+), 3 deletions(-)
 
 diff --git a/libgcc/Makefile.in b/libgcc/Makefile.in
-index 5417143b5..9dce2966c 100644
+index e559cb8ac..863031b6a 100644
 --- a/libgcc/Makefile.in
 +++ b/libgcc/Makefile.in
 @@ -433,9 +433,12 @@ LIB2ADD += enable-execute-stack.c
@@ -29,10 +29,10 @@ index 5417143b5..9dce2966c 100644
  # Library members defined in libgcc2.c.
  lib2funcs = _muldi3 _negdi2 _lshrdi3 _ashldi3 _ashrdi3 _cmpdi2 _ucmpdi2	   \
 diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
-index 9217e7390..5bf179de9 100644
+index cd7ee3fac..08427e107 100644
 --- a/libstdc++-v3/configure.ac
 +++ b/libstdc++-v3/configure.ac
-@@ -385,6 +385,9 @@ else
+@@ -389,6 +389,9 @@ else
      AC_DEFINE(HAVE_TANL)
      AC_DEFINE(HAVE_TANHL)
    fi

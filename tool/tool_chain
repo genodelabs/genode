@@ -57,7 +57,7 @@ GENODE_DIR ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 #
 
 TOOL_CHAIN_VERSION = 23.05
-GCC_VERSION        = 10.3.0
+GCC_VERSION        = 12.2.0
 BINUTILS_VERSION   = 2.32
 
 #
@@ -173,7 +173,7 @@ TARGET_NAME_arm        = arm-none-eabi
 TARGET_NAME_riscv      = riscv64-unknown-elf
 TARGET_NAME_aarch64    = aarch64-none-elf
 
-GCC_CONFIG_riscv       = --with-arch=rv64imac --with-abi=lp64
+GCC_CONFIG_riscv       = --with-arch=rv64imac_zicsr_zifencei --with-abi=lp64
 INSTALL_riscv          = cd $(INSTALL_LOCATION)/lib/gcc/riscv64-unknown-elf/$(GCC_VERSION)/rv64imac/lp64 && \
                          $(SUDO) ln -sf ../../include include
 
@@ -244,8 +244,23 @@ BINUTILS_CONFIG += $(BINUTILS_CONFIG_$(PLATFORM))
 #
 # GDB configure arguments
 #
-GDB_CONFIG += $(COMMON_CONFIG) --disable-werror --disable-sim
+# --with-static-standard-libraries is needed because the bootstrap libstdc++
+#   used for building might be incompatible with the host libstdc++ used at
+#   runtime
+#
+# --disable-source-highlight is needed because the feature is incompatible
+#   with --with-static-standard-libraries
+#
+GDB_CONFIG += $(COMMON_CONFIG) \
+              --disable-werror \
+              --disable-sim \
+              --with-static-standard-libraries \
+              --disable-source-highlight
 
+#
+# -fno-tree-vectorize is needed to prevent vectorization in libgcc,
+#  which caused startup problems with the Fiasco.OC bootstrap component.
+#
 GCC_CONFIG += $(COMMON_CONFIG) \
               --enable-languages=$(LANGUAGES) \
               --disable-libgo \
@@ -263,8 +278,13 @@ GCC_CONFIG += $(COMMON_CONFIG) \
               --enable-shared \
               --enable-multiarch \
               --disable-sjlj-exceptions \
-              CFLAGS_FOR_TARGET="-I$(GENODE_DIR)/tool -DUSE_PT_GNU_EH_FRAME -Dinhibit_libc -fPIC" \
-              CXXFLAGS_FOR_TARGET="-fPIC"
+              CFLAGS_FOR_TARGET="-I$(GENODE_DIR)/tool \
+                                 -DUSE_PT_GNU_EH_FRAME \
+                                 -Dinhibit_libc \
+                                 -fPIC \
+                                 -fno-tree-vectorize" \
+              CXXFLAGS_FOR_TARGET="-fPIC \
+                                   -fno-tree-vectorize"
 
 GCC_CONFIG += $(GCC_CONFIG_$(PLATFORM))
 

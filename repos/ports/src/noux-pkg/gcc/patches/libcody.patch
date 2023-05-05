@@ -1,0 +1,22 @@
+libcody.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ libcody/Makefile.in |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libcody/Makefile.in b/libcody/Makefile.in
+index 7eaf8ace8..1ed028f71 100644
+--- a/libcody/Makefile.in
++++ b/libcody/Makefile.in
+@@ -20,7 +20,7 @@ INSTALL := $(srcdir)/build-aux/install-sh
+ 
+ # C++ compiler options
+ CXXFLAGS := @CXXFLAGS@
+-CXXINC := $(filter -I%,@CXX@)
++CXXINC := $(filter -I%,@CPPFLAGS@)
+ CXXOPTS := $(CXXFLAGS) @PICFLAG@
+ 
+ ifneq (@EXCEPTIONS@,yes)

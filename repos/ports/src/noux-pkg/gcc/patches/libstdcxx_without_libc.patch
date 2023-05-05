@@ -4,26 +4,28 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- libstdc++-v3/configure.ac |    6 ++++++
- 1 file changed, 6 insertions(+)
+ libstdc++-v3/configure.ac |    4 ++++
+ 1 file changed, 4 insertions(+)
 
 diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
-index 18659a216..9217e7390 100644
+index ff4e5f776..cd7ee3fac 100644
 --- a/libstdc++-v3/configure.ac
 +++ b/libstdc++-v3/configure.ac
-@@ -90,9 +90,11 @@ AC_SYS_LARGEFILE
+@@ -90,11 +90,13 @@ AC_SYS_LARGEFILE
  GLIBCXX_CONFIGURE
  
  # Libtool setup.
 +if test "$is_hosted" = yes; then
- if test "x${with_newlib}" != "xyes"; then
+ if test "x${with_newlib}" != "xyes" &&
+     test "x${with_avrlibc}" != "xyes" &&
+     test "x$with_headers" != "xno"; then
    AC_LIBTOOL_DLOPEN
  fi
 +fi
  AM_PROG_LIBTOOL
  ACX_LT_HOST_FLAGS
  AC_SUBST(enable_shared)
-@@ -211,7 +213,9 @@ AC_CHECK_HEADERS(fenv.h complex.h)
+@@ -209,7 +211,9 @@ AC_CHECK_HEADERS(fenv.h complex.h)
  GLIBCXX_CHECK_C99_TR1
  
  # For the EOF, SEEK_CUR, and SEEK_END integer constants.
@@ -33,13 +35,3 @@ index 18659a216..9217e7390 100644
  
  # For gettimeofday support.
  GLIBCXX_CHECK_GETTIMEOFDAY
-@@ -388,7 +392,9 @@ GCC_CHECK_UNWIND_GETIPINFO
- 
- GCC_LINUX_FUTEX([AC_DEFINE(HAVE_LINUX_FUTEX, 1, [Define if futex syscall is available.])])
- 
-+if test "$is_hosted" = yes; then
- GCC_HEADER_STDINT(include/gstdint.h)
-+fi
- 
- GLIBCXX_ENABLE_SYMVERS([yes])
- AC_SUBST(libtool_VERSION)

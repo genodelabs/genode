@@ -9,14 +9,14 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  fixincludes/Makefile.in |    5 +++--
  gcc/Makefile.in         |    6 +++---
  gcc/config.host         |    2 +-
- gcc/configure.ac        |    4 ++--
- 6 files changed, 17 insertions(+), 8 deletions(-)
+ gcc/configure.ac        |    2 +-
+ 6 files changed, 16 insertions(+), 7 deletions(-)
 
 diff --git a/Makefile.def b/Makefile.def
-index 36fd26b03..04797e3af 100644
+index 72d585496..5aa53856c 100644
 --- a/Makefile.def
 +++ b/Makefile.def
-@@ -292,6 +292,7 @@ flags_to_pass = { flag= GDCFLAGS_FOR_TARGET ; };
+@@ -314,6 +314,7 @@ flags_to_pass = { flag= GDCFLAGS_FOR_TARGET ; };
  flags_to_pass = { flag= LD_FOR_TARGET ; };
  flags_to_pass = { flag= LIPO_FOR_TARGET ; };
  flags_to_pass = { flag= LDFLAGS_FOR_TARGET ; };
@@ -25,11 +25,11 @@ index 36fd26b03..04797e3af 100644
  flags_to_pass = { flag= LIBCXXFLAGS_FOR_TARGET ; };
  flags_to_pass = { flag= NM_FOR_TARGET ; };
 diff --git a/Makefile.tpl b/Makefile.tpl
-index efed15117..6ba0228c5 100644
+index ef58fac2b..66c012371 100644
 --- a/Makefile.tpl
 +++ b/Makefile.tpl
-@@ -156,6 +156,8 @@ BUILD_EXPORTS = \
- 	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
+@@ -161,6 +161,8 @@ BUILD_EXPORTS = \
+ 	CPPFLAGS="$(CPPFLAGS_FOR_BUILD)"; export CPPFLAGS; \
  	CXX="$(CXX_FOR_BUILD)"; export CXX; \
  	CXXFLAGS="$(CXXFLAGS_FOR_BUILD)"; export CXXFLAGS; \
 +	CPPFLAGS="$(CPPFLAGS_FOR_BUILD)"; export CPPFLAGS; \
@@ -37,7 +37,7 @@ index efed15117..6ba0228c5 100644
  	GFORTRAN="$(GFORTRAN_FOR_BUILD)"; export GFORTRAN; \
  	GOC="$(GOC_FOR_BUILD)"; export GOC; \
  	GOCFLAGS="$(GOCFLAGS_FOR_BUILD)"; export GOCFLAGS; \
-@@ -173,6 +175,7 @@ BUILD_EXPORTS = \
+@@ -179,6 +181,7 @@ BUILD_EXPORTS = \
  # built for the build system to override those in BASE_FLAGS_TO_PASS.
  EXTRA_BUILD_FLAGS = \
  	CFLAGS="$(CFLAGS_FOR_BUILD)" \
@@ -45,7 +45,7 @@ index efed15117..6ba0228c5 100644
  	LDFLAGS="$(LDFLAGS_FOR_BUILD)"
  
  # This is the list of directories to built for the host system.
-@@ -195,6 +198,8 @@ HOST_EXPORTS = \
+@@ -201,6 +204,8 @@ HOST_EXPORTS = \
  	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
  	CXX="$(CXX)"; export CXX; \
  	CXXFLAGS="$(CXXFLAGS)"; export CXXFLAGS; \
@@ -54,7 +54,7 @@ index efed15117..6ba0228c5 100644
  	GFORTRAN="$(GFORTRAN)"; export GFORTRAN; \
  	GOC="$(GOC)"; export GOC; \
  	GDC="$(GDC)"; export GDC; \
-@@ -292,6 +297,7 @@ BASE_TARGET_EXPORTS = \
+@@ -305,6 +310,7 @@ BASE_TARGET_EXPORTS = \
  	CFLAGS="$(CFLAGS_FOR_TARGET)"; export CFLAGS; \
  	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
  	CPPFLAGS="$(CPPFLAGS_FOR_TARGET)"; export CPPFLAGS; \
@@ -62,14 +62,14 @@ index efed15117..6ba0228c5 100644
  	CXXFLAGS="$(CXXFLAGS_FOR_TARGET)"; export CXXFLAGS; \
  	GFORTRAN="$(GFORTRAN_FOR_TARGET) $(XGCC_FLAGS_FOR_TARGET) $$TFLAGS"; export GFORTRAN; \
  	GOC="$(GOC_FOR_TARGET) $(XGCC_FLAGS_FOR_TARGET) $$TFLAGS"; export GOC; \
-@@ -701,6 +707,7 @@ EXTRA_TARGET_FLAGS = \
+@@ -769,6 +775,7 @@ EXTRA_TARGET_FLAGS = \
  	 -B$$r/$$(TARGET_SUBDIR)/libstdc++-v3/libsupc++/.libs \
  	 $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
  	'CXXFLAGS=$$(CXXFLAGS_FOR_TARGET)' \
 +	'CPPFLAGS=$$(CPPFLAGS_FOR_TARGET)' \
  	'DLLTOOL=$$(DLLTOOL_FOR_TARGET)' \
+ 	'DSYMUTIL=$$(DSYMUTIL_FOR_TARGET)' \
  	'GFORTRAN=$$(GFORTRAN_FOR_TARGET) $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
- 	'GOC=$$(GOC_FOR_TARGET) $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
 diff --git a/fixincludes/Makefile.in b/fixincludes/Makefile.in
 index 1937dcaa3..60e2b2793 100644
 --- a/fixincludes/Makefile.in
@@ -97,19 +97,19 @@ index 1937dcaa3..60e2b2793 100644
  
  $(AF): $(FIXOBJ) $(LIBIBERTY)
 diff --git a/gcc/Makefile.in b/gcc/Makefile.in
-index 5d05e8e0d..0919e579a 100644
+index 31ff95500..33c2e4521 100644
 --- a/gcc/Makefile.in
 +++ b/gcc/Makefile.in
-@@ -804,7 +804,7 @@ BUILD_LDFLAGS=@BUILD_LDFLAGS@
- BUILD_NO_PIE_FLAG = @BUILD_NO_PIE_FLAG@
- BUILD_LDFLAGS += $(BUILD_NO_PIE_FLAG)
+@@ -816,7 +816,7 @@ BUILD_LINKERFLAGS = $(BUILD_CXXFLAGS)
+ # Native linker and preprocessor flags.  For x-fragment overrides.
+ BUILD_LDFLAGS=@BUILD_LDFLAGS@
  BUILD_CPPFLAGS= -I. -I$(@D) -I$(srcdir) -I$(srcdir)/$(@D) \
 -		-I$(srcdir)/../include @INCINTL@ $(CPPINC) $(CPPFLAGS)
 +		-I$(srcdir)/../include @INCINTL@ $(CPPINC) $(INCLUDES) $(CPPFLAGS_FOR_BUILD)
  
  # Actual name to use when installing a native compiler.
  GCC_INSTALL_NAME := $(shell echo gcc|sed '$(program_transform_name)')
-@@ -1061,8 +1061,8 @@ BUILD_LIBDEPS= $(BUILD_LIBIBERTY)
+@@ -1082,8 +1082,8 @@ BUILD_LIBDEPS= $(BUILD_LIBIBERTY)
  
  # How to link with both our special library facilities
  # and the system's installed libraries.
@@ -121,10 +121,10 @@ index 5d05e8e0d..0919e579a 100644
  	$(ZLIB) $(ZSTD_LIB)
  # Any system libraries needed just for GNAT.
 diff --git a/gcc/config.host b/gcc/config.host
-index 84f0433e2..a14d7086e 100644
+index 4ca300f11..17dfcb984 100644
 --- a/gcc/config.host
 +++ b/gcc/config.host
-@@ -107,7 +107,7 @@ case ${host} in
+@@ -108,7 +108,7 @@ case ${host} in
  	;;
      esac
      ;;
@@ -134,17 +134,15 @@ index 84f0433e2..a14d7086e 100644
        arm*-*-*)
  	host_extra_gcc_objs="driver-arm.o"
 diff --git a/gcc/configure.ac b/gcc/configure.ac
-index 715fcba04..d57e6aea1 100644
+index 23bee7010..2fe9ed3f2 100644
 --- a/gcc/configure.ac
 +++ b/gcc/configure.ac
-@@ -1897,8 +1897,8 @@ else
+@@ -2091,7 +2091,7 @@ else
  	# system.h from including gmp.h.
  	CC="${CC_FOR_BUILD}" CFLAGS="${CFLAGS_FOR_BUILD}" \
  	CXX="${CXX_FOR_BUILD}" CXXFLAGS="${CXXFLAGS_FOR_BUILD}" \
 -	LD="${LD_FOR_BUILD}" LDFLAGS="${LDFLAGS_FOR_BUILD}" \
--	GMPINC="" CPPFLAGS="${CPPFLAGS} -DGENERATOR_FILE" \
 +	LD="${LD_FOR_BUILD}" LDFLAGS="${LDFLAGS_FOR_BUILD}" LIBS="${LIBS_FOR_BUILD}" \
-+	GMPINC="" CPPFLAGS="${CPPFLAGS_FOR_BUILD} -DGENERATOR_FILE" \
+ 	GMPINC="" CPPFLAGS="${CPPFLAGS_FOR_BUILD} -DGENERATOR_FILE" \
  	${realsrcdir}/configure \
  		--enable-languages=${enable_languages-all} \
- 		${enable_obsolete+--enable-obsolete="$enable_obsolete"} \

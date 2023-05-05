@@ -17,6 +17,7 @@ CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
                  --disable-tls \
                  --disable-threads \
                  --disable-hosted-libstdcxx \
+                 --disable-c++-tools \
                  --enable-shared \
                  --enable-multiarch \
                  --disable-sjlj-exceptions \
