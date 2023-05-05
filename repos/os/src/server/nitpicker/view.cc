@@ -114,7 +114,8 @@ void Nitpicker::View::draw(Canvas_base &canvas, Font const &font, Focus const &f
 	 * If the clipping area shrinked to zero, we do not process drawing
 	 * operations.
 	 */
-	if (!canvas.clip().valid() || !&_owner) return;
+	if (!canvas.clip().valid())
+		return;
 
 	/* allow alpha blending only if the raw client content is enabled */
 	bool allow_alpha = _owner.content_client();
