@@ -42,7 +42,7 @@ namespace Gdb_monitor {
 
 		public:
 
-			class Region : public Avl_node<Region>
+			class Region : public Genode::Avl_node<Region>
 			{
 				private:
 				  void *_start;
