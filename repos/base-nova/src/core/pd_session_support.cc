@@ -99,7 +99,7 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 		while (size) {
 			addr_t mapped = _address_space.apply_to_dataspace(virt, lambda);
 			virt         += mapped;
-			size          = size < mapped ? size : size - mapped;
+			size          = size < mapped ? 0 : size - mapped;
 		}
 	} catch (...) {
 		error(__func__, " failed ", Hex(virt), "+", Hex(size));
