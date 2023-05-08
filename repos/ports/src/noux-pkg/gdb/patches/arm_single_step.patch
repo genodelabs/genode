@@ -8,11 +8,11 @@ Enable software single-stepping on ARM.
  1 file changed, 2 insertions(+)
 
 diff --git a/gdb/arm-tdep.c b/gdb/arm-tdep.c
-index be342117..8c87f098 100644
+index 2fcf104..ddff370 100644
 --- a/gdb/arm-tdep.c
 +++ b/gdb/arm-tdep.c
-@@ -9339,6 +9339,8 @@ arm_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
-   tdep = XCNEW (struct gdbarch_tdep);
+@@ -10572,6 +10572,8 @@ arm_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
+   arm_gdbarch_tdep *tdep = new arm_gdbarch_tdep;
    gdbarch = gdbarch_alloc (&info, tdep);
  
 +  set_gdbarch_software_single_step(gdbarch, arm_software_single_step);

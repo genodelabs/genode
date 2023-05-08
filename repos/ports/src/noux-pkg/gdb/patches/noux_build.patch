@@ -4,33 +4,18 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- gdb/configure             |   10 +++++-----
- gdb/dwarf2/index-write.c  |    2 +-
- gnulib/config.in          |    2 ++
- sim/common/Make-common.in |    2 +-
- 4 files changed, 9 insertions(+), 7 deletions(-)
+ gdb/configure                     |    2 +-
+ gdb/dwarf2/index-write.c          |    2 +-
+ gdbsupport/scoped_ignore_signal.h |    2 ++
+ gnulib/config.in                  |    2 ++
+ sim/common/Make-common.in         |    2 +-
+ 5 files changed, 7 insertions(+), 3 deletions(-)
 
 diff --git a/gdb/configure b/gdb/configure
-index 03464ae5..6f705fc7 100755
+index bdc84be..5122989 100755
 --- a/gdb/configure
 +++ b/gdb/configure
-@@ -6699,11 +6699,11 @@ fi
- # configuration.
- gdb_host_obs=posix-hdep.o
- 
--if test "${target}" = "${host}"; then
--  gdb_native=yes
--else
-+#if test "${target}" = "${host}"; then
-+#  gdb_native=yes
-+#else
-   gdb_native=no
--fi
-+#fi
- 
- . $srcdir/configure.host
- 
-@@ -14353,7 +14353,7 @@ sigjmp_buf env; while (! sigsetjmp (env, 1)) siglongjmp (env, 1);
+@@ -26053,7 +26053,7 @@ sigjmp_buf env;
    return 0;
  }
  _ACEOF
@@ -40,10 +25,10 @@ index 03464ae5..6f705fc7 100755
  else
    gdb_cv_func_sigsetjmp=no
 diff --git a/gdb/dwarf2/index-write.c b/gdb/dwarf2/index-write.c
-index 0079c0fe..376a9151 100644
+index ced58ea..ef0bf35 100644
 --- a/gdb/dwarf2/index-write.c
 +++ b/gdb/dwarf2/index-write.c
-@@ -777,7 +777,7 @@ class debug_names
+@@ -618,7 +618,7 @@ class debug_names
      gdb_assert (m_abbrev_table.empty ());
      const size_t name_count = m_name_to_value_set.size ();
      m_bucket_table.resize
@@ -52,36 +37,49 @@ index 0079c0fe..376a9151 100644
      m_hash_table.reserve (name_count);
      m_name_table_string_offs.reserve (name_count);
      m_name_table_entry_offs.reserve (name_count);
+diff --git a/gdbsupport/scoped_ignore_signal.h b/gdbsupport/scoped_ignore_signal.h
+index 1c015a9..5105a94 100644
+--- a/gdbsupport/scoped_ignore_signal.h
++++ b/gdbsupport/scoped_ignore_signal.h
+@@ -22,6 +22,8 @@
+ 
+ #include <signal.h>
+ 
++#undef HAVE_SIGPROCMASK
++
+ /* RAII class used to ignore a signal in a scope.  If sigprocmask is
+    supported, then the signal is only ignored by the calling thread.
+    Otherwise, the signal disposition is set to SIG_IGN, which affects
 diff --git a/gnulib/config.in b/gnulib/config.in
-index d8a5e8be..cc1cc9fc 100644
+index f70c6a5..09675d9 100644
 --- a/gnulib/config.in
 +++ b/gnulib/config.in
-@@ -1192,6 +1192,7 @@
- /* Define to 1 to make NetBSD features available. MINIX 3 needs this. */
- #undef _NETBSD_SOURCE
+@@ -1492,6 +1492,7 @@
+ /* Define to 1 on Solaris. */
+ #undef _LCONV_C99
  
 +#if 0
  /* The _Noreturn keyword of C11.  */
  #ifndef _Noreturn
  # if (defined __cplusplus \
-@@ -1220,6 +1221,7 @@
+@@ -1521,6 +1522,7 @@
  #  define _Noreturn
  # endif
  #endif
 +#endif
  
  
- /* Define to 2 if the system does not provide POSIX.1 features except with
+ /* Define to 1 in order to get the POSIX compatible declarations of socket
 diff --git a/sim/common/Make-common.in b/sim/common/Make-common.in
-index 21e1d991..2ea1ab60 100644
+index 88c66b3..645bf41 100644
 --- a/sim/common/Make-common.in
 +++ b/sim/common/Make-common.in
-@@ -236,7 +236,7 @@ CSEARCH = -I. -I$(srcdir) -I../common -I$(srccom) \
+@@ -175,7 +175,7 @@ CSEARCH = -I. -I$(srcdir) -I$(srccom) \
    -I../../bfd -I$(srcroot)/bfd \
-   -I../../opcodes -I$(srcroot)/opcodes \
-   @INCINTL@
--ALL_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH) $(CFLAGS)
-+ALL_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH) $(CPPFLAGS) $(CFLAGS)
- BUILD_CFLAGS = -g -O $(CSEARCH)
+   -I$(srcroot)/opcodes \
+   -I../..
+-ALL_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH) $(INCGNU) $(SIM_EXTRA_CFLAGS) $(CFLAGS)
++ALL_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH) $(INCGNU) $(SIM_EXTRA_CFLAGS) $(CPPFLAGS) $(CFLAGS)
+ BUILD_CFLAGS = $(CFLAGS_FOR_BUILD) $(CSEARCH)
  
- COMMON_DEP_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH)
+ COMMON_DEP_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH) $(SIM_EXTRA_CFLAGS)

@@ -139,6 +139,13 @@ EXPAT_OK = $(call check_equal_f,\
              Need to have 'libexpat' installed.)
 
 #
+# Check if 'libgmp' is installed
+#
+GMP_OK = $(call check_equal_f,\
+           $(shell pkg-config --exists gmp && echo ok),ok,\
+           Need to have 'libgmp' installed.)
+
+#
 # Check if 'GNAT' is installed
 #
 # The '-dumpfullversion' option is used by GCC version 7, the '-dumpversion' option
@@ -153,6 +160,10 @@ TOOLS_OK = $(FLEX_OK) $(BISON_OK) $(GXX_OK) $(PKG_CONFIG_OK) $(CURSES_OK) \
 
 ifneq ($(filter ada,$(ENABLE_FEATURES)),)
 TOOLS_OK += $(GNAT_OK) $(GPRBUILD_OK)
+endif
+
+ifneq ($(filter gdb,$(ENABLE_FEATURES)),)
+TOOLS_OK += $(GMP_OK)
 endif
 
 ifneq ($(strip $(TOOLS_OK)),)

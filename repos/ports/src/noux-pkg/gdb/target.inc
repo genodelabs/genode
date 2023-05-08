@@ -11,11 +11,19 @@ CFLAGS += -Wno-error=sizeof-pointer-memaccess \
           -Wno-error=unused-value \
           -Wno-error=overflow
 
-LIBS += stdcxx ncurses expat
+LIBS += stdcxx ncurses expat gmp
 
 # workaround for problems with makeinfo version 5
 MAKE_ENV += "MAKEINFO=true"
 
 INSTALL_TARGET = install
+
+.SECONDARY: dummy_libs
+dummy_libs: libgmp.a
+
+libgmp.a:
+	$(VERBOSE)$(AR) -rc $@
+
+Makefile: dummy_libs
 
 include $(call select_from_repositories,mk/noux.mk)
