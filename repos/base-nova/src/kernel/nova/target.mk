@@ -45,7 +45,8 @@ endif
 CC_CXX_WARN_STRICT = -Wextra -Weffc++ -Werror
 
 git_version      = $(shell cd $(NOVA_SRC_DIR) && (git rev-parse HEAD 2>/dev/null || echo 0) | cut -c1-7)
-CXX_LINK_OPT     = -Wl,--gc-sections -Wl,--warn-common -Wl,-static -Wl,-n -Wl,--defsym=GIT_VER=0x$(call git_version)
+CXX_LINK_OPT     = -Wl,--gc-sections -Wl,--warn-common -Wl,-static -Wl,-n -Wl,--defsym=GIT_VER=0x$(call git_version) \
+                   -Wl,--no-warn-rwx-segments
 LD_TEXT_ADDR     = # 0xc000000000 - when setting this 64bit compile fails because of relocation issues!! 
 LD_SCRIPT_STATIC = hypervisor.o
 
