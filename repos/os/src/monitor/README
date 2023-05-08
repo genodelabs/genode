@@ -1,0 +1,75 @@
+The monitor component is a drop-in replacement for init that allows for the
+inspection and debugging of child components. Its configuration mirrors the
+configuration of init.
+
+In contrast to init, the monitor requests the 'platform_info' ROM to detect
+the used kernel at runtime. This is needed because low-level mechanisms for
+interacting with threads differ between the various kernels supported by
+Genode. Note that Linux is not supported by the monitor.
+
+A component can be selected for monitoring by routing its PD and CPU sessions
+to the monitor's local PD and CPU services instead of the routing those
+sessions to the parent. For example, the following start node selects the
+'test-log' component to be monitored.
+
+! <start name="first-test-log">
+!   <resource name="RAM" quantum="2M"/>
+!   <binary name="test-log"/>
+!   <route>
+!     <service name="PD">  <local/> </service>
+!     <service name="CPU"> <local/> </service>
+!     <any-service> <parent/> </any-service>
+!   </route>
+! </start>
+
+If monitor's configuration features a <monitor> sub node, the monitor creates
+a terminal session that offers access to the monitored components via the GDB
+protocol. Each component appears as a distinct GDB inferior. The following
+GDB commands are useful:
+
+* List all monitored components:
+  ! (gdb) info inferiors
+
+* List all threads:
+  ! (gdb) info threads
+
+* Select a component for inspection, specifying the component's inferior ID:
+  ! (gdb) inferior 2
+
+* Show 10 words of the component's memory at virtual address 0x100000:
+  ! x/10x 0x100000
+
+The <monitor> configuration can host optional <policy> nodes referring to
+inferiors by their respective labels. For example:
+
+! <monitor>
+!  <policy label="first-test-log" wait="no" stop="yes" wx="no"/>
+! </monitor>
+
+;;; XXX not implemented, uncomment once completed
+;
+; By setting the 'wait' attribute to "yes", the execution of the inferior is
+; delayed until the monitor receives the GDB command for continuing execution.
+; This is useful for inspecting the startup phase of a component. By default,
+; inferiors don't wait.
+;
+; The 'stop' attribute defines the behavior of an inferior when GDB connects
+; to the monitor. By default, all inferiors are stopped. By setting the
+; attribute to "no", a GDB connection does not interfere with the execution of
+; the inferiors while memory can be inspected.
+
+The enabling of the 'wx' attribute prompts the monitor to map the executable
+code of the monitored component as writeable memory, allowing the patching of
+text segment by GDB, which is needed for using breakpoints.
+
+
+RAM wiping
+----------
+
+As a secondary functionality, the monitor wipes all RAM dataspaces allocated
+by the monitored components when the RAM is freed. This is useful as a possible
+defense against cold-boot attacks. Note however that only RAM allocated by
+monitored components is subjected to the wiping. Shared-memory buffers
+obtained from a service - think of a GUI server - are freed by the service,
+not the client. If the service is not monitored, client information could
+prevail in such a shared-memory buffer.

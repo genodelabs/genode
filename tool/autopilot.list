@@ -32,6 +32,7 @@ lx_hybrid_exception
 lx_hybrid_pthread_ipc
 microcode
 migrate
+monitor
 netperf_lwip
 netperf_lwip_bridge
 netperf_lwip_usb
