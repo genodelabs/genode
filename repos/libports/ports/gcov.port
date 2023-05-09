@@ -1,15 +1,15 @@
 LICENSE   := GPLv2
-VERSION   := 12.2.0
+VERSION   := 12.3.0
 DOWNLOADS := gcov.archive generated.git
 
 URL(gcov) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
-SHA(gcov) := e549cf9cf3594a00e27b6589d4322d70e0720cdd213f39beb4181e06926230ff
+SHA(gcov) := 949a5d4f99e786421a93b532b22ffab5578de7321369975b91aec97adfda8c3b
 DIR(gcov) := src/gcov
 SIG(gcov) := ${URL(gcov)}
 KEY(gcov) := GNU
 
 URL(generated) := https://github.com/cproc/genode-generated.git
-REV(generated) := fed75b0ff503c1860df423c22a6980c65e1be01c
+REV(generated) := fa7211312ffe0a7ab4055245bffcea38a3f2fc40
 DIR(generated) := include
 
 TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \

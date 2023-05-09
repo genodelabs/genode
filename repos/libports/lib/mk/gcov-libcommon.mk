@@ -18,7 +18,7 @@ SRC_CC = diagnostic.cc \
 
 CC_OPT += -DIN_GCC
 
-CC_OPT_version += -DBASEVER="\"12.2.0\"" \
+CC_OPT_version += -DBASEVER="\"12.3.0\"" \
                   -DDATESTAMP="\"\"" \
                   -DREVISION="\"\"" \
                   -DDEVPHASE="\"\"" \
