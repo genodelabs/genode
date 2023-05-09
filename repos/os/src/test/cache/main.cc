@@ -50,8 +50,10 @@ Main::Main(Genode::Env &env) : env(env)
 
 	enum { MAX_KB = 4*1024 };
 
-	char * buf1 = new (heap) char[MAX_KB*1024];
-	char * buf2 = new (heap) char[MAX_KB*1024];
+	struct Buffer { char buf[MAX_KB*1024]; };
+
+	Buffer * buf1 = new (heap) Buffer;
+	Buffer * buf2 = new (heap) Buffer;
 
 	memset(buf1, 0, MAX_KB*1024);
 	memset(buf2, 0, MAX_KB*1024);
