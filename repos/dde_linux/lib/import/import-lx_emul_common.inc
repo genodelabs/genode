@@ -64,6 +64,7 @@ LX_ARCH   := x86
 GEN_ARCH  := x86
 SPEC_ARCH := x86_64
 
+
 SRC_C += lx_emul/shadow/arch/x86/kernel/irq.c
 SRC_C += lx_emul/shadow/arch/x86/kernel/setup_percpu.c
 endif
@@ -100,7 +101,6 @@ INC_DIR += $(SPEC_SHADOW_INC_DIR)
 INC_DIR += $(SHADOW_INC_DIR)
 
 vpath % $(DDE_LINUX_DIR)/src/lib
-
 
 #
 # Linux kernel definitions

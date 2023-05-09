@@ -31,6 +31,11 @@ SRC_CC += lx_kit/memory_non_dma.cc
 
 ifeq ($(filter-out $(SPECS),x86),)
 	SRC_C += lx_emul/virt/spec/x86/dummies_arch.c
+
+	#
+	# Align memory allocations to 16 byte (because we allow FPU use in drivers)
+	#
+	CC_DEF += -DARCH_DMA_MINALIGN=16 -DARCH_SLAB_MINALIGN=1
 endif
 ifeq ($(filter-out $(SPECS),arm_64),)
 	SRC_C += lx_emul/virt/spec/arm_64/dummies_arch.c

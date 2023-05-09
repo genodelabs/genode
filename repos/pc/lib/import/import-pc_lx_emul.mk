@@ -9,6 +9,11 @@ LX_GEN_DIR := $(LIB_CACHE_DIR)/pc_linux_generated
 
 include $(call select_from_repositories,lib/import/import-lx_emul_common.inc)
 
+#
+# Align memory allocations to 16 byte (because we allow FPU use in drivers)
+#
+CC_DEF += -DARCH_DMA_MINALIGN=16 -DARCH_SLAB_MINALIGN=16
+
 INC_DIR += $(REP_DIR)/src/include
 
 # Handle specific source requirements
