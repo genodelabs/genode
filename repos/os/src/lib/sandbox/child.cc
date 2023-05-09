@@ -443,8 +443,6 @@ Sandbox::Child::Sample_state_result Sandbox::Child::sample_state()
 
 void Sandbox::Child::init(Pd_session &session, Pd_session_capability cap)
 {
-	session.ref_account(_env.pd_session_cap());
-
 	size_t const initial_session_costs =
 		session_alloc_batch_size()*_child.session_factory().session_costs();
 
@@ -472,13 +470,20 @@ void Sandbox::Child::init(Pd_session &session, Pd_session_capability cap)
 		cap_quota = avail_caps;
 	}
 
-	try { _env.pd().transfer_quota(cap, cap_quota); }
-	catch (Out_of_caps) {
-		error(name(), ": unable to initialize cap quota of PD"); }
+	_with_pd_intrinsics([&] (Pd_intrinsics::Intrinsics &intrinsics) {
 
-	try { _env.pd().transfer_quota(cap, ram_quota); }
-	catch (Out_of_ram) {
-		error(name(), ": unable to initialize RAM quota of PD"); }
+		_ref_pd_cap = intrinsics.ref_pd_cap;
+
+		session.ref_account(intrinsics.ref_pd_cap);
+
+		try { intrinsics.ref_pd.transfer_quota(cap, cap_quota); }
+		catch (Out_of_caps) {
+			error(name(), ": unable to initialize cap quota of PD"); }
+
+		try { intrinsics.ref_pd.transfer_quota(cap, ram_quota); }
+		catch (Out_of_ram) {
+			error(name(), ": unable to initialize RAM quota of PD"); }
+	});
 }
 
 
@@ -491,9 +496,11 @@ void Sandbox::Child::init(Cpu_session &session, Cpu_session_capability cap)
 		warning(name(), ": configured CPU quota of ", assigned, " exceeds "
 		        "available quota, proceeding with a quota of ", effective);
 
-	session.ref_account(_env.cpu_session_cap());
+	_with_pd_intrinsics([&] (Pd_intrinsics::Intrinsics &intrinsics) {
+		session.ref_account(intrinsics.ref_cpu_cap); });
 
-	_cpu_quota_transfer.transfer_cpu_quota(cap, effective);
+	_cpu_quota_transfer.transfer_cpu_quota(_child.pd_session_cap(), _child.pd(),
+	                                       cap, effective);
 }
 
 
@@ -745,7 +752,8 @@ Sandbox::Child::Child(Env                      &env,
                       Affinity::Space const    &affinity_space,
                       Registry<Parent_service> &parent_services,
                       Registry<Routed_service> &child_services,
-                      Registry<Local_service>  &local_services)
+                      Registry<Local_service>  &local_services,
+                      Pd_intrinsics            &pd_intrinsics)
 :
 	_env(env), _alloc(alloc), _verbose(verbose), _id(id),
 	_report_update_trigger(report_update_trigger),
@@ -761,6 +769,7 @@ Sandbox::Child::Child(Env                      &env,
 	_heartbeat_enabled(start_node.has_sub_node("heartbeat")),
 	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space,
 	                                      default_caps_accessor.default_caps())),
+	_pd_intrinsics(pd_intrinsics),
 	_parent_services(parent_services),
 	_child_services(child_services),
 	_local_services(local_services),
