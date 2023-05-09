@@ -110,7 +110,7 @@ file_url = '${URL($(call archive_user,$1))}/$1'
 $(PUBLIC_DIR)/%:
 	@$(ECHO) "$(DARK_COL)download$(DEFAULT_COL) $*"
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)curl --silent $(call file_url,$*) -o $@ ||\
+	$(VERBOSE)curl --fail --silent $(call file_url,$*) -o $@ ||\
 		(echo "Error: failed to download $(call file_url,$*)"; rm -f $@; false)
 
 $(MAKECMDGOALS): $(TARGETS)
