@@ -194,7 +194,7 @@ check_tool = $(if $(shell command -v $(1)),,$(error Need to have '$(1)' installe
 # Empty DST_DIRS is interpreted as a tool-chain agnostic target, e.g., clean.
 #
 ifneq ($(DST_DIRS),)
-REQUIRED_GCC_VERSION ?= 12.2.0
+REQUIRED_GCC_VERSION ?= 12.3.0
 GCC_VERSION := $(filter $(REQUIRED_GCC_VERSION) ,$(shell $(CUSTOM_CXX) --version))
 ifneq ($(GCC_VERSION), $(REQUIRED_GCC_VERSION))
 $(error "$(CUSTOM_CXX) version $(REQUIRED_GCC_VERSION) is required")

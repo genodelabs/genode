@@ -1,9 +1,9 @@
 LICENSE   := GPLv3
-VERSION   := 12.2.0
+VERSION   := 12.3.0
 DOWNLOADS := gcc.archive
 
 URL(gcc)  := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
-SHA(gcc)  := e549cf9cf3594a00e27b6589d4322d70e0720cdd213f39beb4181e06926230ff
+SHA(gcc)  := 949a5d4f99e786421a93b532b22ffab5578de7321369975b91aec97adfda8c3b
 SIG(gcc)  := ${URL(gcc)}.sig
 KEY(gcc)  := GNU
 DIR(gcc)  := src/noux-pkg/gcc
