@@ -1,0 +1,51 @@
+gcc12.patch
+
+diff --git src/kernel/sel4/src/arch/x86/kernel/cmdline.c src/kernel/sel4/src/arch/x86/kernel/cmdline.c
+index 6ba5d8668..0459297fa 100644
+--- src/kernel/sel4/src/arch/x86/kernel/cmdline.c
++++ src/kernel/sel4/src/arch/x86/kernel/cmdline.c
+@@ -112,14 +112,20 @@ void cmdline_parse(const char *cmdline, cmdline_opt_t* cmdline_opt)
+     /* use BIOS data area to read serial configuration. The BDA is not
+      * fully standardized and parts are absolete. See http://wiki.osdev.org/Memory_Map_(x86)#BIOS_Data_Area_.28BDA.29
+      * for an explanation */
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Warray-bounds"
+     const unsigned short * bda_port = (unsigned short *)0x400;
+     const unsigned short * bda_equi = (unsigned short *)0x410;
+     int const bda_ports_count       = (*bda_equi >> 9) & 0x7;
++#pragma GCC diagnostic pop
+ #endif
+ 
+ #ifdef CONFIG_PRINTING
+     /* initialise to default or use BDA if available */
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Warray-bounds"
+     cmdline_opt->console_port = bda_ports_count && *bda_port ? *bda_port : 0x3f8;
++#pragma GCC diagnostic pop
+ 
+     if (parse_opt(cmdline, "console_port", cmdline_val, MAX_CMDLINE_VAL_LEN) != -1) {
+         parse_uint16_array(cmdline_val, &cmdline_opt->console_port, 1);
+@@ -141,7 +147,10 @@ void cmdline_parse(const char *cmdline, cmdline_opt_t* cmdline_opt)
+ 
+ #ifdef CONFIG_DEBUG_BUILD
+     /* initialise to default or use BDA if available */
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Warray-bounds"
+     cmdline_opt->debug_port = bda_ports_count && *bda_port ? *bda_port : 0x3f8;
++#pragma GCC diagnostic pop
+     if (parse_opt(cmdline, "debug_port", cmdline_val, MAX_CMDLINE_VAL_LEN) != -1) {
+         parse_uint16_array(cmdline_val, &cmdline_opt->debug_port, 1);
+     }
+diff --git src/kernel/sel4/tools/circular_includes.py src/kernel/sel4/tools/circular_includes.py
+index 825a44a5e..dc4904939 100755
+--- src/kernel/sel4/tools/circular_includes.py
++++ src/kernel/sel4/tools/circular_includes.py
+@@ -26,7 +26,7 @@ def main():
+     resulting in the loop is printed out.
+     """
+ 
+-    kernel_all_re = re.compile(r'^# 1 ".*kernel_all\.c"')
++    kernel_all_re = re.compile(r'^# [01] ".*kernel_all\.c"')
+     header_re = re.compile(r'^# (\d+) "(.*\..)"')
+ 
+     file_stack = []
