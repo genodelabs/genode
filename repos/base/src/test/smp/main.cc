@@ -113,7 +113,8 @@ namespace Mp_server_test {
 
 		log("RPC: --- test started ---");
 
-		Cpu_compound ** compounds = new (heap) Cpu_compound*[cpus.total()];
+		Cpu_compound * compounds[cpus.total()] { };
+
 		for (unsigned i = 0; i < cpus.total(); i++)
 			compounds[i] = new (heap) Cpu_compound(cpus.location_of_index(i), env);
 
@@ -141,7 +142,6 @@ namespace Mp_server_test {
 		/* clean up */
 		for (unsigned i = 0; i < cpus.total(); i++)
 			destroy(heap, compounds[i]);
-		destroy(heap, compounds);
 
 		log("RPC: --- test finished ---");
 	}
@@ -183,9 +183,8 @@ namespace Affinity_test {
 
 		log("Affinity: --- test started ---");
 
-		/* get some memory for the thread objects */
-		Spinning_thread ** threads = new (heap) Spinning_thread*[cpus.total()];
-		uint64_t * thread_cnt = new (heap) uint64_t[cpus.total()];
+		Spinning_thread * threads[cpus.total()] { };
+		uint64_t thread_cnt[cpus.total()] { };
 
 		/* construct the thread objects */
 		for (unsigned i = 0; i < cpus.total(); i++)
@@ -259,8 +258,7 @@ namespace Affinity_test {
 
 		for (unsigned i = 0; i < cpus.total(); i++)
 			destroy(heap, threads[i]);
-		destroy(heap, threads);
-		destroy(heap, thread_cnt);
+
 		log("Affinity: --- test finished ---");
 	}
 }
@@ -312,8 +310,7 @@ namespace Tlb_shootdown_test {
 			new (heap) Genode::Attached_ram_dataspace(env.ram(), env.rm(),
 			                                          DS_SIZE);
 
-		/* get some memory for the thread objects */
-		Thread ** threads = new (heap) Thread*[cpus.total()];
+		Thread * threads[cpus.total()] { };
 
 		/* construct the thread objects */
 		for (unsigned i = 1; i < cpus.total(); i++)
@@ -337,7 +334,6 @@ namespace Tlb_shootdown_test {
 		for (volatile unsigned i = 0; i < (0x2000000 * cpus.total()); i++) ;
 
 		for (unsigned i = 1; i < cpus.total(); i++) destroy(heap, threads[i]);
-		destroy(heap, threads);
 
 		log("TLB: --- test finished ---");
 	}
@@ -423,7 +419,7 @@ namespace Tsc_test {
 		log("TSC: --- test started ---");
 
 		/* get some memory for the thread objects */
-		Tsc_thread ** threads = new (heap) Tsc_thread*[cpus.total()];
+		Tsc_thread * threads[cpus.total()] { };
 
 		/* construct the thread objects */
 		for (unsigned i = 0; i < cpus.total(); i++) {
@@ -518,7 +514,6 @@ namespace Tsc_test {
 
 		/* cleanup */
 		for (unsigned i = 0; i < cpus.total(); i++) destroy(heap, threads[i]);
-		destroy(heap, threads);
 
 		log("TSC: --- test finished ---");
 	}
