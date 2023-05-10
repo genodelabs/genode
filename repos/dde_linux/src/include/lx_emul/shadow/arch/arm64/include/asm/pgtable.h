@@ -84,6 +84,9 @@ pte_t mk_pte(struct page * page, pgprot_t prot);
 
 static inline bool pud_sect_supported(void) { return 1; }
 
+#define VMALLOC_START 0UL
+#define VMALLOC_END   0xffffffffUL
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ASM_PGTABLE_H */
