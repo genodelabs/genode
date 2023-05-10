@@ -96,7 +96,7 @@ proc create_ipxe_config { } {
 	close $fh
 
 	global lighttpd_spawn_id
-	spawn lighttpd -f $conf_file -D
+	spawn [installed_command lighttpd] -f $conf_file -D
 	set lighttpd_spawn_id $spawn_id
 }
 
