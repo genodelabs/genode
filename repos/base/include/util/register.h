@@ -263,7 +263,7 @@ struct Genode::Bitset_2
 		Bits_1::clear(reg);
 		Bits_0::set(reg, value);
 		Bits_1::set(reg, value >> Bits_0::WIDTH);
-	};
+	}
 
 	/**
 	 * Read bitset from a given register value
@@ -334,7 +334,7 @@ struct Genode::Bitset_3
 		Bits_2::clear(reg);
 		Bits_0_1::set(reg, value);
 		Bits_2::set(reg, value >> Bits_0_1::WIDTH);
-	};
+	}
 
 	/**
 	 * Read bitset from a given register value
