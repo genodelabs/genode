@@ -107,7 +107,7 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 		Constructible<Elf_file> _elf_file { };
 
 
-		bool _object_init(Object::Name const &name, Elf::Addr reloc_base)
+		bool _object_init(char const *name, Elf::Addr reloc_base)
 		{
 			Object::init(name, reloc_base);
 			return true;
@@ -126,7 +126,7 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 
 	public:
 
-		Elf_object(Dependency const &dep, Object::Name const &name,
+		Elf_object(Dependency const &dep, char const *name,
 		           Elf::Addr reloc_base) SELF_RELOC
 		:
 			_elf_object_initialized(_object_init(name, reloc_base)),
@@ -261,9 +261,9 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
  */
 struct Linker::Ld : private Dependency, Elf_object
 {
-	Ld() SELF_RELOC :
+	Ld(bool use_name = true) SELF_RELOC :
 		Dependency(*this, nullptr),
-		Elf_object(*this, linker_name(), relocation_address())
+		Elf_object(*this, use_name ? linker_name() : nullptr, relocation_address())
 	{ }
 
 	void setup_link_map()
@@ -656,7 +656,7 @@ extern "C" void init_rtld()
 	 * type relocation might produce a wrong vtable pointer (at least on ARM), do
 	 * not call any virtual funtions of this object.
 	 */
-	Ld linker_on_stack;
+	Ld linker_on_stack { false };
 	linker_on_stack.relocate(BIND_LAZY);
 
 	/* init cxa guard mechanism before any local static variables are used */

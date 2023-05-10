@@ -162,10 +162,11 @@ class Linker::Object : private Fifo<Object>::Element,
 
 	public:
 
-		void init(Name const &name, Elf::Addr reloc_base)
+		void init(char const *name, Elf::Addr reloc_base)
 		{
-			_name       = name;
 			_reloc_base = reloc_base;
+
+			if (name) _name = name;
 		}
 
 		void init(Name const &name, File const &file)
