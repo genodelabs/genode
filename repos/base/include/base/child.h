@@ -126,6 +126,11 @@ struct Genode::Child_policy
 	virtual Pd_session_capability ref_pd_cap() const = 0;
 
 	/**
+	 * RAM allocator used as backing store for '_session_md_alloc'
+	 */
+	virtual Ram_allocator &session_md_ram() { return ref_pd(); }
+
+	/**
 	 * Respond to the release of resources by the child
 	 *
 	 * This method is called when the child confirms the release of
@@ -188,22 +193,38 @@ struct Genode::Child_policy
 	 */
 	virtual bool initiate_env_sessions() const { return true; }
 
+	struct With_address_space_fn : Interface
+	{
+		virtual void call(Region_map &) const = 0;
+	};
+
+	virtual void _with_address_space(Pd_session &pd, With_address_space_fn const &fn)
+	{
+		Region_map_client region_map(pd.address_space());
+		fn.call(region_map);
+	}
+
 	/**
-	 * Return region map for the child's address space
+	 * Call functor 'fn' with the child's address-space region map as argument
 	 *
-	 * \param pd  the child's PD session capability
-	 *
-	 * By default, the function returns a 'nullptr'. In this case, the 'Child'
-	 * interacts with the address space of the child's PD session via RPC calls
-	 * to the 'Pd_session::address_space'.
-	 *
-	 * By overriding the default, those RPC calls can be omitted, which is
-	 * useful if the child's PD session (including the PD's address space) is
-	 * virtualized by the parent. If the virtual PD session is served by the
-	 * same entrypoint as the child's parent interface, an RPC call to 'pd'
-	 * would otherwise produce a deadlock.
+	 * In the common case where the child's PD is provided by core, the address
+	 * space is accessed via the 'Region_map' RPC interface. However, in cases
+	 * where the child's PD session interface is locally implemented - as is
+	 * the case for a debug monitor - the address space must be accessed by
+	 * component-local method calls instead.
 	 */
-	virtual Region_map *address_space(Pd_session &) { return nullptr; }
+	template <typename FN>
+	void with_address_space(Pd_session &pd, FN const &fn)
+	{
+		struct Impl : With_address_space_fn
+		{
+			FN const &_fn;
+			Impl(FN const &fn) : _fn(fn) { };
+			void call(Region_map &rm) const override { _fn(rm); }
+		};
+
+		_with_address_space(pd, Impl(fn));
+	}
 
 	/**
 	 * Return true if ELF loading should be inhibited
@@ -307,7 +328,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		Id_space<Client> _id_space { };
 
 		/* allocator used for dynamically created session state objects */
-		Sliced_heap _session_md_alloc { _policy.ref_pd(), _local_rm };
+		Sliced_heap _session_md_alloc { _policy.session_md_ram(), _local_rm };
 
 		Session_state::Factory::Batch_size const
 			_session_batch_size { _policy.session_alloc_batch_size() };

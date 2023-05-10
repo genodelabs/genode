@@ -731,30 +731,6 @@ void Child::heartbeat_sigh(Signal_context_capability sigh)
 void Child::heartbeat_response() { _outstanding_heartbeats = 0; }
 
 
-namespace {
-
-	/**
-	 * Return interface for interacting with the child's address space
-	 *
-	 * Depending on the return value of 'Child_policy::address_space', we
-	 * either interact with a local object of via an RPC client stub.
-	 */
-	struct Child_address_space
-	{
-		Region_map_client _rm_client;
-		Region_map       &_rm;
-
-		Child_address_space(Pd_session &pd, Child_policy &policy)
-		:
-			_rm_client(pd.address_space()),
-			_rm(policy.address_space(pd) ? *policy.address_space(pd) : _rm_client)
-		{ }
-
-		Region_map &region_map() { return _rm; }
-	};
-}
-
-
 void Child::_try_construct_env_dependent_members()
 {
 	/* check if the environment sessions are complete */
@@ -788,10 +764,9 @@ void Child::_try_construct_env_dependent_members()
 	                         ? Process::TYPE_FORKED : Process::TYPE_LOADED;
 	try {
 		_initial_thread.construct(_cpu.session(), _pd.cap(), _policy.name());
-		_process.construct(type, _linker_dataspace(), _pd.session(),
-		                   *_initial_thread, _local_rm,
-		                   Child_address_space(_pd.session(), _policy).region_map(),
-		                   cap());
+		_policy.with_address_space(_pd.session(), [&] (Region_map &address_space) {
+			_process.construct(type, _linker_dataspace(), _pd.session(),
+			                   *_initial_thread, _local_rm, address_space, cap()); });
 	}
 	catch (Out_of_ram)                          { _error("out of RAM during ELF loading"); }
 	catch (Out_of_caps)                         { _error("out of caps during ELF loading"); }
