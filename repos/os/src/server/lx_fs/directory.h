@@ -193,12 +193,12 @@ class Lx_fs::Directory : public Node
 
 			seek_off_t index = seek_offset / sizeof(Directory_entry);
 
-			/* seek to index and read entry */
-			struct dirent *dent;
+			/* seek to index */
 			rewinddir(_fd);
-			for (unsigned i = 0; i <= index; ++i) {
-				dent = readdir(_fd);
-			}
+			for (unsigned i = 0; i < index; ++i)
+				readdir(_fd);
+
+			struct dirent *dent = readdir(_fd);
 
 			if (!dent)
 				return 0;
