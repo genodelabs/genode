@@ -1,0 +1,129 @@
+Build fixes for GCC 12
+
+diff -ur a/src/virtualbox6/include/iprt/string.h b/src/virtualbox6/include/iprt/string.h
+--- a/src/virtualbox6/include/iprt/string.h	2023-05-11 15:11:18.126829715 +0200
++++ b/src/virtualbox6/include/iprt/string.h	2023-05-11 16:20:57.408769851 +0200
+@@ -2639,17 +2639,15 @@
+ #if defined(__cplusplus) && !defined(DOXYGEN_RUNNING)
+ DECLINLINE(char const *) RTStrEnd(char const *pszString, size_t cchMax)
+ {
+-    /* Avoid potential issues with memchr seen in glibc.
+-     * See sysdeps/x86_64/memchr.S in glibc versions older than 2.11 */
+-    while (cchMax > RTSTR_MEMCHR_MAX)
++    while (cchMax-- > 0)
+     {
+-        char const *pszRet = (char const *)memchr(pszString, '\0', RTSTR_MEMCHR_MAX);
+-        if (RT_LIKELY(pszRet))
+-            return pszRet;
+-        pszString += RTSTR_MEMCHR_MAX;
+-        cchMax    -= RTSTR_MEMCHR_MAX;
++        if (*pszString)
++            { }
++        else
++            return pszString;
++        pszString++;
+     }
+-    return (char const *)memchr(pszString, '\0', cchMax);
++    return NULL;
+ }
+ 
+ DECLINLINE(char *) RTStrEnd(char *pszString, size_t cchMax)
+@@ -2657,17 +2655,15 @@
+ DECLINLINE(char *) RTStrEnd(const char *pszString, size_t cchMax)
+ #endif
+ {
+-    /* Avoid potential issues with memchr seen in glibc.
+-     * See sysdeps/x86_64/memchr.S in glibc versions older than 2.11 */
+-    while (cchMax > RTSTR_MEMCHR_MAX)
++    while (cchMax-- > 0)
+     {
+-        char *pszRet = (char *)memchr(pszString, '\0', RTSTR_MEMCHR_MAX);
+-        if (RT_LIKELY(pszRet))
+-            return pszRet;
+-        pszString += RTSTR_MEMCHR_MAX;
+-        cchMax    -= RTSTR_MEMCHR_MAX;
++        if (*pszString)
++            { }
++        else
++            return pszString;
++        pszString++;
+     }
+-    return (char *)memchr(pszString, '\0', cchMax);
++    return NULL;
+ }
+ 
+ RT_C_DECLS_BEGIN
+Only in b/src/virtualbox6/include/iprt: string.h~
+diff -ur a/src/virtualbox6/src/VBox/Devices/PC/DevFwCommon.cpp b/src/virtualbox6/src/VBox/Devices/PC/DevFwCommon.cpp
+--- a/src/virtualbox6/src/VBox/Devices/PC/DevFwCommon.cpp	2023-05-11 15:11:18.066827479 +0200
++++ b/src/virtualbox6/src/VBox/Devices/PC/DevFwCommon.cpp	2023-05-11 16:05:19.081789735 +0200
+@@ -485,7 +485,7 @@
+                 return PDMDevHlpVMSetError(pDevIns, rc, RT_SRC_POS, \
+                                            N_("Configuration error: Querying \"" name "\" as a string failed")); \
+             } \
+-            else if (!strcmp(szBuf, "<EMPTY>")) \
++            if (!strcmp(szBuf, "<EMPTY>")) \
+                 pszTmp = ""; \
+             else \
+                 pszTmp = szBuf; \
+@@ -529,12 +529,10 @@
+         pszStr                       = (char *)(tbl + 1); \
+         iStrNr                       = 1;
+ 
+-#define DMI_TERM_STRUCT \
+-    { \
+-        *pszStr++                    = '\0'; /* terminate set of text strings */ \
+-        if (iStrNr == 1) \
+-            *pszStr++                = '\0'; /* terminate a structure without strings */ \
+-    }
++#define DMI_TERM_STRUCT do { \
++        size_t const cbToZero = iStrNr == 1 ? 2 : 1; \
++        pszStr = (char *)memset(pszStr, 0, cbToZero) + cbToZero; \
++    } while (0)
+ 
+     bool fForceDefault = false;
+ #ifdef VBOX_BIOS_DMI_FALLBACK
+diff -ur a/src/virtualbox6/src/VBox/Main/src-server/MediumImpl.cpp b/src/virtualbox6/src/VBox/Main/src-server/MediumImpl.cpp
+--- a/src/virtualbox6/src/VBox/Main/src-server/MediumImpl.cpp	2023-05-11 15:11:17.622810926 +0200
++++ b/src/virtualbox6/src/VBox/Main/src-server/MediumImpl.cpp	2023-05-11 16:19:31.669573557 +0200
+@@ -64,6 +64,9 @@
+ //
+ ////////////////////////////////////////////////////////////////////////////////
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
++
+ struct SnapshotRef
+ {
+     /** Equality predicate for stdc++. */
+@@ -134,6 +137,9 @@
+ 
+ typedef std::list<BackRef> BackRefList;
+ 
++#pragma GCC diagnostic pop
++
++
+ struct Medium::Data
+ {
+     Data()
+diff -ur a/src/virtualbox6/src/VBox/Main/src-server/PerformanceImpl.cpp b/src/virtualbox6/src/VBox/Main/src-server/PerformanceImpl.cpp
+--- a/src/virtualbox6/src/VBox/Main/src-server/PerformanceImpl.cpp	2023-05-11 15:11:17.622810926 +0200
++++ b/src/virtualbox6/src/VBox/Main/src-server/PerformanceImpl.cpp	2023-05-11 16:12:30.989890953 +0200
+@@ -644,6 +644,8 @@
+     NOREF(hTimerLR);
+ }
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+ /*
+  * Metrics collection is a three stage process:
+  * 1) Pre-collection (hinting)
+@@ -723,6 +725,8 @@
+     Log4Func(("{%p}: LEAVE\n", this));
+ }
+ 
++#pragma GCC diagnostic pop
++
+ ////////////////////////////////////////////////////////////////////////////////
+ // PerformanceMetric class
+ ////////////////////////////////////////////////////////////////////////////////
