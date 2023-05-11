@@ -225,6 +225,5 @@ build_boot_image { }
 
 append qemu_args " -nographic "
 append_qemu_nic_args "hostfwd=tcp::5555-:80,hostfwd=tcp::5556-:443"
-append xen_args  { sdl=0\; vif=\["model=e1000,mac=02:00:00:00:01:01,bridge=xenbr0"\] }
 
 run_genode_until forever

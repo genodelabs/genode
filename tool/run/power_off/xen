@@ -1,3 +1,0 @@
-proc run_power_off { } {
-	catch { exec sudo xl destroy "genode-hvm" }
-}
