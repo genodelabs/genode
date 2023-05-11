@@ -147,7 +147,7 @@ CC_C_OPT += -Werror=incompatible-pointer-types -Werror=designated-init
 CC_C_OPT += -Wno-packed-not-aligned -Wno-unused-but-set-variable
 CC_C_OPT += -Wno-discarded-qualifiers
 
-# avoid link errors whenever the build config's CC_OLEVEL is set to -O0
+# avoid build errors because with CC_OLEVEL = -O0/-Og - not supported by Linux
 override CC_OLEVEL := -O2
 
 LX_SRC   = $(shell grep ".*\.c" $(TARGET_SOURCE_LIST))
