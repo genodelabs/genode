@@ -1405,7 +1405,7 @@ _depot/<provider>/image/sculpt-<board>-<version>/_ directory to your _/boot/_
 directory.
 Note that you can switch back and forth between different versions this way.
 For example, should a new version not behave to your full satisfaction, you
-can easily switch back the previous one by using the install button of the
+can easily switch back to the previous one by using the install button of the
 original version. As a precaution, it is good to have downloaded the initial
 Sculpt version you are using. In the worst case, should a new version fail to
 boot, you can still manually copy this downloaded original version from your
