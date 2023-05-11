@@ -64,8 +64,7 @@ $(MIRROR_FROM_LIBNL_PORT_DIR):
 	cp -r $(LIBNL_PORT_DIR)/$@ $@
 
 cleanup-wpa: $(MIRROR_FROM_WS_PORT_DIR)
-	@for dir in .git doc eap_example hs20 mac80211_hwsim radius_example \
-		hostapd tests wlantest wpadebug wpaspy; do \
+	@for dir in hs20; do \
 		rm -rf src/app/wpa_supplicant/$$dir; done
 
 content: LICENSE

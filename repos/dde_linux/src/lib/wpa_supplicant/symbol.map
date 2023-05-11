@@ -21,6 +21,7 @@
 		sha1_vector*;
 		get_ie*;
 		fc2str*;
+		is_6ghz_freq;
 
 	local:
 

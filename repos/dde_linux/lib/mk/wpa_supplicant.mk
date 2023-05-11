@@ -15,7 +15,7 @@ INC_DIR += $(REP_DIR)/include
 
 
 # wpa_supplicant
-SRC_C_wpa_supplicant = blacklist.c      \
+SRC_C_wpa_supplicant = bssid_ignore.c   \
                        bgscan.c         \
                        bgscan_simple.c  \
                        bss.c            \
@@ -26,17 +26,25 @@ SRC_C_wpa_supplicant = blacklist.c      \
                        events.c         \
                        notify.c         \
                        op_classes.c     \
+                       robust_av.c      \
                        rrm.c            \
                        scan.c           \
                        sme.c            \
                        wmm_ac.c         \
                        wpa_supplicant.c \
                        wpas_glue.c
+#
+# Disable warning as the pointer in question is only used as
+# token to check against a stored pointer.
+#
+CC_OPT_wpa_supplicant/bss += -Wno-use-after-free
+
 SRC_C   += $(addprefix wpa_supplicant/, $(SRC_C_wpa_supplicant))
 INC_DIR += $(WS_CONTRIB_DIR)/wpa_supplicant
 CC_OPT  += -DCONFIG_BACKEND_FILE -DCONFIG_NO_CONFIG_WRITE \
            -DCONFIG_SME -DCONFIG_CTRL_IFACE \
-           -DCONFIG_BGSCAN -DCONFIG_BGSCAN_SIMPLE
+           -DCONFIG_BGSCAN -DCONFIG_BGSCAN_SIMPLE \
+           -DCONFIG_OPENSSL_CMAC -DCONFIG_SHA256
 
 CC_OPT  += -DTLS_DEFAULT_CIPHERS=\"DEFAULT:!EXP:!LOW\"
 
@@ -54,6 +62,7 @@ SRC_C_crypto = crypto_openssl.c \
                random.c         \
                sha1-prf.c       \
                sha1-tlsprf.c    \
+               sha256-prf.c     \
                tls_openssl.c
 SRC_C += $(addprefix src/crypto/, $(SRC_C_crypto))
 INC_DIR += $(WS_CONTRIB_DIR)/src/crypto
@@ -103,6 +112,7 @@ CC_OPT  += -DCONFIG_PEERKEY
 SRC_C_utils = base64.c    \
               bitfield.c  \
               common.c    \
+              config.c    \
               eloop.c     \
               os_unix.c   \
               radiotap.c  \

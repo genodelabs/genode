@@ -222,8 +222,11 @@ wpa_supplicant_ctrl_iface_init(struct wpa_supplicant *wpa_s)
 }
 
 
-void wpa_supplicant_ctrl_iface_deinit(struct ctrl_iface_priv *priv)
+void wpa_supplicant_ctrl_iface_deinit(struct wpa_supplicant *wpa_s,
+                                      struct ctrl_iface_priv *priv)
 {
+	(void)wpa_s;
+
 	os_free(priv);
 }
 

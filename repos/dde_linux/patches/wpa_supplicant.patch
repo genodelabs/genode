@@ -1,8 +1,8 @@
 diff --git a/src/drivers/driver_nl80211.c b/src/drivers/driver_nl80211.c
-index 5cff47fab..af08177b2 100644
+index aec179a..6c07c73 100644
 --- a/src/drivers/driver_nl80211.c
 +++ b/src/drivers/driver_nl80211.c
-@@ -1682,13 +1682,13 @@ static void wpa_driver_nl80211_rfkill_blocked(void *ctx)
+@@ -1985,13 +1985,13 @@ static void wpa_driver_nl80211_rfkill_blocked(void *ctx)
  {
  	struct wpa_driver_nl80211_data *drv = ctx;
  
@@ -18,7 +18,7 @@ index 5cff47fab..af08177b2 100644
  		wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_DISABLED, NULL);
  }
  
-@@ -1696,7 +1696,7 @@ static void wpa_driver_nl80211_rfkill_blocked(void *ctx)
+@@ -1999,7 +1999,7 @@ static void wpa_driver_nl80211_rfkill_blocked(void *ctx)
  static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
  {
  	struct wpa_driver_nl80211_data *drv = ctx;
@@ -27,7 +27,7 @@ index 5cff47fab..af08177b2 100644
  	if (i802_set_iface_flags(drv->first_bss, 1)) {
  		wpa_printf(MSG_DEBUG, "nl80211: Could not set interface UP "
  			   "after rfkill unblock");
-@@ -1710,7 +1710,7 @@ static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
+@@ -2013,7 +2013,7 @@ static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
  	 * rtnetlink ifup handler will report interfaces other than the P2P
  	 * Device interface as enabled.
  	 */
@@ -36,7 +36,7 @@ index 5cff47fab..af08177b2 100644
  		wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_ENABLED, NULL);
  }
  
-@@ -7645,7 +7645,7 @@ static void * nl80211_global_init(void *ctx)
+@@ -8709,7 +8709,7 @@ static void * nl80211_global_init(void *ctx)
  	if (wpa_driver_nl80211_init_nl_global(global) < 0)
  		goto err;
  
@@ -46,7 +46,7 @@ index 5cff47fab..af08177b2 100644
  		wpa_printf(MSG_ERROR, "nl80211: socket(PF_INET,SOCK_DGRAM) failed: %s",
  			   strerror(errno));
 diff --git a/src/drivers/netlink.c b/src/drivers/netlink.c
-index 0e960f48c..38fb26c18 100644
+index 0e960f4..38fb26c 100644
 --- a/src/drivers/netlink.c
 +++ b/src/drivers/netlink.c
 @@ -13,6 +13,8 @@
@@ -59,10 +59,10 @@ index 0e960f48c..38fb26c18 100644
  struct netlink_data {
  	struct netlink_config *cfg;
 diff --git a/src/utils/common.c b/src/utils/common.c
-index 1eb33705b..e4447306a 100644
+index 2c12751..e9047d5 100644
 --- a/src/utils/common.c
 +++ b/src/utils/common.c
-@@ -498,12 +498,12 @@ void printf_encode(char *txt, size_t maxlen, const u8 *data, size_t len)
+@@ -509,12 +509,12 @@ void printf_encode(char *txt, size_t maxlen, const u8 *data, size_t len)
  			*txt++ = 't';
  			break;
  		default:
@@ -80,24 +80,11 @@ index 1eb33705b..e4447306a 100644
  			break;
  		}
  	}
-diff --git a/src/utils/eloop.c b/src/utils/eloop.c
-index 436bc8c99..f5ff4facb 100644
---- a/src/utils/eloop.c
-+++ b/src/utils/eloop.c
-@@ -28,7 +28,7 @@
- #endif
- 
- #ifdef CONFIG_ELOOP_POLL
--#include <poll.h>
-+#include <sys/poll.h>
- #endif /* CONFIG_ELOOP_POLL */
- 
- #ifdef CONFIG_ELOOP_EPOLL
 diff --git a/wpa_supplicant/ctrl_iface.c b/wpa_supplicant/ctrl_iface.c
-index fe39c25b7..3a682785e 100644
+index bcd67fc..025ec8d 100644
 --- a/wpa_supplicant/ctrl_iface.c
 +++ b/wpa_supplicant/ctrl_iface.c
-@@ -9778,7 +9778,7 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
+@@ -11447,7 +11447,7 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
  					 char *buf, size_t *resp_len)
  {
  	char *reply;
