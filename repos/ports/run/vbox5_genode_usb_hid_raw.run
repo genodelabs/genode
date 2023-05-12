@@ -298,6 +298,7 @@ unify_output {(?n)^.*Failed to submit URB.*$} ""
 unify_output {(?n)^.*dev_warn.*$} ""
 unify_output {(?n)^.*dangling allocation.*$} ""
 unify_output {(?n)^.*Warning:.*$} ""
+unify_output {(?n)^.*usbfs: process .* did not claim interface.*$} ""
 unify_output { [0-9][0-9][0-9][0-9]:[0-9][0-9][0-9][0-9] } " "
 filter_out_color_escape_sequences
 trim_lines
