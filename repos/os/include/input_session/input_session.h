@@ -34,7 +34,7 @@ struct Input::Session : Genode::Session
 	 * session-object allocation, a dataspace capability for the input
 	 * buffer, and its session capability.
 	 */
-	enum { CAP_QUOTA = 3 };
+	static constexpr unsigned CAP_QUOTA = 3;
 
 	virtual ~Session() { }
 

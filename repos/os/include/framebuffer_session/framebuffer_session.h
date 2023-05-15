@@ -55,7 +55,7 @@ struct Framebuffer::Session : Genode::Session
 	 * session-object allocation, a dataspace capability for the framebuffer
 	 * dataspace, and its session capability.
 	 */
-	enum { CAP_QUOTA = 3 };
+	static constexpr unsigned CAP_QUOTA = 3;
 
 	typedef Session_client Client;
 

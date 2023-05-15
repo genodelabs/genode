@@ -81,6 +81,8 @@ class Genode::Handle_registry
 				HANDLE(id), Weak_ptr<OBJ>(weak_ptr)
 			{ }
 
+			using Weak_ptr<OBJ>::operator ==;
+
 			/**
 			 * Avl_node interface
 			 */

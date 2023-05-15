@@ -52,8 +52,8 @@ struct Gui::Session : Genode::Session
 	 * for the command buffer, and the capabilities needed for the aggregated
 	 * 'Framebuffer' and 'Input' sessions.
 	 */
-	enum { CAP_QUOTA = Framebuffer::Session::CAP_QUOTA
-	                 + Input::Session::CAP_QUOTA + 3 };
+	static constexpr unsigned CAP_QUOTA = Framebuffer::Session::CAP_QUOTA
+	                                    + Input::Session::CAP_QUOTA + 3;
 
 	typedef Session_client Client;
 
