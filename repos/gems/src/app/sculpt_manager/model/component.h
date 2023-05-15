@@ -154,8 +154,8 @@ struct Sculpt::Component : Noncopyable
 				ram  = runtime.attribute_value("ram", Number_of_bytes());
 				caps = runtime.attribute_value("caps", 0UL);
 
-				runtime.with_optional_sub_node("requires", [&] (Xml_node requires) {
-					_update_routes_from_xml(requires); });
+				runtime.with_optional_sub_node("requires", [&] (Xml_node const &req) {
+					_update_routes_from_xml(req); });
 			});
 
 			blueprint_info = {
