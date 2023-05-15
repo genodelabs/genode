@@ -46,7 +46,8 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 * Furthermore, we account for the dataspace capabilities allocated during
 	 * the component bootstrapping.
 	 */
-	enum { CAP_QUOTA = 6 + 7, RAM_QUOTA = 24*1024*sizeof(long) };
+	static constexpr unsigned CAP_QUOTA = 6 + 7;
+	static constexpr size_t   RAM_QUOTA = 24*1024*sizeof(long);
 
 	typedef Pd_session_client Client;
 

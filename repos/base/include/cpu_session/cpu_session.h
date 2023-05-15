@@ -43,7 +43,8 @@ struct Genode::Cpu_session : Session
 	 * allocation, its session capability, the capability of the 'Native_cpu'
 	 * RPC interface, and a capability for the trace-control dataspace.
 	 */
-	enum { CAP_QUOTA = 6, RAM_QUOTA = 36*1024 };
+	static constexpr unsigned CAP_QUOTA = 6;
+	static constexpr size_t   RAM_QUOTA = 36*1024;
 
 	typedef Cpu_session_client Client;
 

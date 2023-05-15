@@ -37,7 +37,8 @@ struct Genode::Log_session : Session
 	 * A LOG connection consumes a dataspace capability for the session-object
 	 * allocation and its session capability.
 	 */
-	enum { CAP_QUOTA = 2, RAM_QUOTA = 8*1024 };
+	static constexpr unsigned CAP_QUOTA = 2;
+	static constexpr size_t   RAM_QUOTA = 8*1024;
 
 	typedef Log_session_client Client;
 

@@ -167,29 +167,27 @@ namespace Genode {
 	{
 		long value;
 
-		enum {
-			SUCCESS = 0,
+		static constexpr long SUCCESS = 0;
 
-			/**
-			 * Server-side object does not exist
-			 *
-			 * This exception code is not meant to be reflected from the server
-			 * to the client. On kernels with capability support, the condition
-			 * can never occur. On kernels without capability protection, the
-			 * code is merely used for diagnostic purposes at the server side.
-			 */
-			INVALID_OBJECT = -1,
+		/**
+		 * Server-side object does not exist
+		 *
+		 * This exception code is not meant to be reflected from the server
+		 * to the client. On kernels with capability support, the condition
+		 * can never occur. On kernels without capability protection, the
+		 * code is merely used for diagnostic purposes at the server side.
+		 */
+		static constexpr long INVALID_OBJECT = -1;
 
-			/**
-			 * Special exception code used to respond to illegal opcodes
-			 */
-			INVALID_OPCODE = -2,
+		/**
+		 * Special exception code used to respond to illegal opcodes
+		 */
+		static constexpr long INVALID_OPCODE = -2;
 
-			/**
-			 * Opcode base used for passing exception information
-			 */
-			EXCEPTION_BASE = -1000
-		};
+		/**
+		 * Opcode base used for passing exception information
+		 */
+		static constexpr long EXCEPTION_BASE = -1000;
 
 		explicit Rpc_exception_code(int value) : value(value) { }
 	};
@@ -268,14 +266,16 @@ namespace Genode {
 
 	template <typename RPC_FUNCTION>
 	struct Rpc_function_msg_size<RPC_FUNCTION, RPC_CALL> {
-		enum { Value = Rpc_msg_payload_size<RPC_FUNCTION, true, false>::Value
-		             + sizeof(Rpc_opcode) }; };
+		static constexpr unsigned
+			Value = Rpc_msg_payload_size<RPC_FUNCTION, true, false>::Value
+			      + sizeof(Rpc_opcode); };
 
 	template <typename RPC_FUNCTION>
 	struct Rpc_function_msg_size<RPC_FUNCTION, RPC_REPLY> {
-		enum { Value = Rpc_msg_payload_size<RPC_FUNCTION, false, true>::Value
-		             + Rpc_retval_size<typename RPC_FUNCTION::Ret_type>::Value
-		             + sizeof(Rpc_exception_code) }; };
+		static constexpr unsigned
+			Value = Rpc_msg_payload_size<RPC_FUNCTION, false, true>::Value
+			      + Rpc_retval_size<typename RPC_FUNCTION::Ret_type>::Value
+			      + sizeof(Rpc_exception_code); };
 
 
 	/**

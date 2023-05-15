@@ -120,8 +120,9 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		_do_serve(typename RPC_FUNCTION::Server_args &args,
 		           Meta::Overload_selector<RPC_FUNCTION, EXC_TL>)
 		{
-			enum { EXCEPTION_CODE = Rpc_exception_code::EXCEPTION_BASE
-			                      - Meta::Length<EXC_TL>::Value };
+			static constexpr unsigned
+				EXCEPTION_CODE = Rpc_exception_code::EXCEPTION_BASE
+				               - Meta::Length<EXC_TL>::Value;
 			try {
 				typedef typename EXC_TL::Tail Exc_tail;
 				return _do_serve(args,

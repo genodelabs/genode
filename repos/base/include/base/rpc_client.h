@@ -49,16 +49,18 @@ namespace Genode {
 
 	template <typename ARGS>
 	struct Rpc_caps_out {
-		enum { Value = Cap_para_out<typename ARGS::Head>::Value
-		             + Rpc_caps_out<typename ARGS::Tail>::Value }; };
+		static constexpr unsigned
+			Value = Cap_para_out<typename ARGS::Head>::Value
+			      + Rpc_caps_out<typename ARGS::Tail>::Value; };
 
 	template <>
-	struct Rpc_caps_out<Meta::Empty> { enum { Value = 0 }; };
+	struct Rpc_caps_out<Meta::Empty> { static constexpr unsigned Value = 0; };
 
 	template <typename RPC_FUNCTION>
 	struct Rpc_function_caps_out {
-		enum { Value = Rpc_caps_out<typename RPC_FUNCTION::Server_args>::Value +
-		               Cap_return  <typename RPC_FUNCTION::Ret_type>::Value}; };
+		static constexpr unsigned
+			Value = Rpc_caps_out<typename RPC_FUNCTION::Server_args>::Value +
+			        Cap_return  <typename RPC_FUNCTION::Ret_type>::Value; };
 
 
 	/***************************************************

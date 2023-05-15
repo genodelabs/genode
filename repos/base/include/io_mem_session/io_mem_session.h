@@ -41,7 +41,8 @@ struct Genode::Io_mem_session : Session
 	 * session-object allocation, its session capability, and a dataspace
 	 * capability for the handed-out memory-mapped I/O dataspace.
 	 */
-	enum { CAP_QUOTA = 3, RAM_QUOTA = 6*1024 };
+	static constexpr unsigned CAP_QUOTA = 3;
+	static constexpr size_t   RAM_QUOTA = 6*1024;
 
 	virtual ~Io_mem_session() { }
 
