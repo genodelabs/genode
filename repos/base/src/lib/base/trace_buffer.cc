@@ -81,7 +81,7 @@ Trace::Simple_buffer &Trace::Partitioned_buffer::_switch_producer()
 			 * consumer may still switch partitions at this point but not continue
 			 * reading until we set the new head entry
 			 */
-			_lost_entries += _producer()._num_entries;
+			_lost_entries = _lost_entries + _producer()._num_entries;
 			switched = true;
 		}
 	}
@@ -92,7 +92,7 @@ Trace::Simple_buffer &Trace::Partitioned_buffer::_switch_producer()
 
 	/* XXX _wrapped only needed for testing */
 	if (State::Producer::get(_state) == PRIMARY)
-		_wrapped++;
+		_wrapped = _wrapped + 1;
 
 	Genode::memory_barrier();
 	_consumer_lock = SPINLOCK_UNLOCKED;

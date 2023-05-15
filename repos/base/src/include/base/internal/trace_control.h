@@ -145,7 +145,7 @@ class Genode::Trace::Control
 
 		void trace()
 		{
-			_policy_version++;
+			_policy_version = _policy_version + 1;
 			enable();
 		}
 

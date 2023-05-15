@@ -185,7 +185,7 @@ class Genode::Trace::Simple_buffer
 			 * the new head
 			 */
 			size_t *old_head_len = &_head_entry()->len;
-			_num_entries++;
+			_num_entries = _num_entries + 1;
 
 			/* advance head offset, wrap when next entry does not fit into buffer */
 			_head_offset += sizeof(_Entry) + len;
