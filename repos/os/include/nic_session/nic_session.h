@@ -52,7 +52,7 @@ namespace Nic {
  */
 struct Nic::Session : Genode::Session
 {
-	enum { QUEUE_SIZE = 1024 };
+	static constexpr Genode::size_t QUEUE_SIZE = 1024;
 
 	/*
 	 * Types used by the client stub code and server implementation
