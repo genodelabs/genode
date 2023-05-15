@@ -36,7 +36,7 @@ struct Pin_state::Session : Genode::Session
 	 * A pin-state session consumes a dataspace capability for the server's
 	 * session-object allocation and its session capability.
 	 */
-	enum { CAP_QUOTA = 2 };
+	static constexpr unsigned CAP_QUOTA = 2;
 
 	virtual bool state() const = 0;
 

@@ -72,7 +72,7 @@ struct Uplink::Session : Genode::Session
 	 * rx and tx, and four signal context capabilities for the data-flow
 	 * signals.
 	 */
-	enum { CAP_QUOTA = 8 };
+	static constexpr unsigned CAP_QUOTA = 8;
 
 	virtual ~Session() { }
 

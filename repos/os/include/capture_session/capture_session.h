@@ -47,7 +47,7 @@ struct Capture::Session : Genode::Session
 	 * session-object allocation, a session capability, and a dataspace
 	 * capability for the pixel buffer.
 	 */
-	enum { CAP_QUOTA = 3 };
+	static constexpr unsigned CAP_QUOTA = 3;
 
 	/**
 	 * Return number of bytes needed for pixel buffer of specified size

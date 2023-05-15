@@ -62,7 +62,7 @@ struct Loader::Session : Genode::Session
 	 */
 	static const char *service_name() { return "Loader"; }
 
-	enum { CAP_QUOTA = 2 };
+	static constexpr unsigned CAP_QUOTA = 2;
 
 	virtual ~Session() { }
 

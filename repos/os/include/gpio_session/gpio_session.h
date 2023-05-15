@@ -31,7 +31,7 @@ struct Gpio::Session : Genode::Session
 	 */
 	static const char *service_name() { return "Gpio"; }
 
-	enum { CAP_QUOTA = 2 };
+	static constexpr unsigned CAP_QUOTA = 2;
 
 	enum Direction { IN, OUT };
 

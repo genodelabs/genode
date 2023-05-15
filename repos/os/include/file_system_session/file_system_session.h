@@ -330,7 +330,7 @@ struct File_system::Session : public Genode::Session
 	 */
 	static const char *service_name() { return "File_system"; }
 
-	enum { CAP_QUOTA = 12 };
+	static constexpr unsigned CAP_QUOTA = 12;
 
 	virtual ~Session() { }
 

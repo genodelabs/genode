@@ -112,7 +112,6 @@ struct Gpu::Virtual_address
 };
 
 
-
 /*
  * Gpu session interface
  */
@@ -124,11 +123,14 @@ struct Gpu::Session : public Genode::Session
 	struct Conflicting_id       : Genode::Exception { };
 	struct Mapping_vram_failed  : Genode::Exception { };
 
-	enum { REQUIRED_QUOTA = 1024 * 1024, CAP_QUOTA = 32, };
+	static constexpr Genode::size_t REQUIRED_QUOTA = 1024*1024;
+
+	static constexpr unsigned CAP_QUOTA = 32;
 
 	static const char *service_name() { return "Gpu"; }
 
 	virtual ~Session() { }
+
 
 	/***********************
 	 ** Session interface **

@@ -293,7 +293,7 @@ class Audio_in::Session : public Genode::Session
 		 */
 		static const char *service_name() { return "Audio_in"; }
 
-		enum { CAP_QUOTA = 4 };
+		static constexpr unsigned CAP_QUOTA = 4;
 
 		/**
 		 * Return stream of this session, see 'Stream' above
