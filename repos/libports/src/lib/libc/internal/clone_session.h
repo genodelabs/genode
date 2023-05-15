@@ -33,9 +33,9 @@ struct Libc::Clone_session : Session
 {
 	static const char *service_name() { return "Clone"; }
 
-	enum { BUFFER_SIZE = 512*1024UL,
-	       RAM_QUOTA   = BUFFER_SIZE + 4096,
-	       CAP_QUOTA   = 2 };
+	static constexpr size_t   BUFFER_SIZE = 512*1024;
+	static constexpr size_t   RAM_QUOTA   = BUFFER_SIZE + 4096;
+	static constexpr unsigned CAP_QUOTA   = 2;
 
 	struct Memory_range
 	{
