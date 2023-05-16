@@ -21,6 +21,7 @@
 #include <base/rpc_client.h>
 #include <util/formatted_output.h>
 #include <trace/timestamp.h>
+#include <cpu/memory_barrier.h>
 
 
 namespace Genode {
@@ -166,7 +167,7 @@ namespace Affinity_test {
 			Genode::log("Affinity: thread started on CPU ",
 			            location, " spinning...");
 
-			for (;;) cnt++;
+			for (;;) cnt = cnt + 1;
 		}
 
 		Spinning_thread(Genode::Env &env, Location location)
@@ -206,7 +207,7 @@ namespace Affinity_test {
 		static char const text_cpu[] = "Affinity:      CPU: ";
 
 		for (; round < 11;) {
-			cnt++;
+			cnt = cnt + 1;
 
 			/* try to get a life sign by the main thread from the remote threads */
 			if (cnt % COUNT_VALUE == 0) {
@@ -331,7 +332,8 @@ namespace Tlb_shootdown_test {
 		 * We have to wait here, for some time so that all fault
 		 * messages are received before the test finishes.
 		 */
-		for (volatile unsigned i = 0; i < (0x2000000 * cpus.total()); i++) ;
+		for (unsigned i = 0; i < (0x2000000 * cpus.total()); ++i)
+			memory_barrier();
 
 		for (unsigned i = 1; i < cpus.total(); i++) destroy(heap, threads[i]);
 
@@ -363,7 +365,7 @@ namespace Tsc_test {
 			barrier.wakeup();
 
 			while (loop) {
-				while (spin && loop) cnt++;
+				while (spin && loop) cnt = cnt + 1;
 
 				measure();
 				spin = true;
