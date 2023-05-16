@@ -6,6 +6,6 @@ URL(ada-runtime) := https://github.com/m-stein/ada-runtime.git
 REV(ada-runtime) := c3e46dbb46a088cc305addee4556062c7624eb90
 DIR(ada-runtime) := ada-runtime
 
-URL(ada-runtime-alis) := https://github.com/m-stein/ada-runtime-alis.git
-REV(ada-runtime-alis) := de89be3a0eba9ee46ef870b234d1234b84c0beb0
+URL(ada-runtime-alis) := https://github.com/cnuke/ada-runtime-alis.git
+REV(ada-runtime-alis) := 7af7f59cccb52ed472895f4ec095260716233c13
 DIR(ada-runtime-alis) := ada-runtime-alis
