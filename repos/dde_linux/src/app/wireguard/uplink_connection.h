@@ -37,8 +37,8 @@ class Wireguard::Uplink_connection
 		using Packet_source     =
 			::Uplink::Packet_stream_source<::Uplink::Session::Policy>;
 
-		enum { PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE };
-		enum { BUF_SIZE    = Uplink::Connection::Session::QUEUE_SIZE * PACKET_SIZE };
+		static constexpr Genode::size_t PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE;
+		static constexpr Genode::size_t BUF_SIZE    = Uplink::Connection::Session::QUEUE_SIZE * PACKET_SIZE;
 
 		enum class Send_pkt_result { SUCCEEDED, FAILED };
 
