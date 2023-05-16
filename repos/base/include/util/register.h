@@ -134,15 +134,12 @@ struct Genode::Register
 	template <unsigned long _SHIFT, unsigned long _WIDTH>
 	struct Bitfield
 	{
-		enum {
-
-			/**
-			 * Fetch template parameters
-			 */
-			SHIFT          = _SHIFT,
-			WIDTH          = _WIDTH,
-			BITFIELD_WIDTH = WIDTH,
-		};
+		/**
+		 * Fetch template parameters
+		 */
+		static constexpr size_t SHIFT          = _SHIFT;
+		static constexpr size_t WIDTH          = _WIDTH;
+		static constexpr size_t BITFIELD_WIDTH = WIDTH;
 
 		/**
 		 * Get an unshifted mask of this field
