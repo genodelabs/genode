@@ -38,7 +38,7 @@ class Measurement
 
 		void _handle()
 		{
-			_count++;
+			_count = _count + 1;
 			if (_count % _nr_of_periods != 1) {
 				return;
 			}
