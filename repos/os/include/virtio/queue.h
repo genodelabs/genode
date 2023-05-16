@@ -423,7 +423,7 @@ class Virtio::Queue
 			 * Only the first descritor in the chain needs to be pushed to the available ring.
 			 */
 			_avail->ring[_avail->idx % _queue_size] = write_result.first_descriptor_idx;
-			_avail->idx += 1;
+			_avail->idx = _avail->idx + 1;
 			_avail->flags = Avail::Flags::NO_INTERRUPT;
 
 			return true;
