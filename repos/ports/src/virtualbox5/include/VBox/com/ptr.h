@@ -14,24 +14,24 @@ class ComPtr {
 
 	public:
 
-		ComPtr<T> () : _obj(nullptr) { }
+		ComPtr() : _obj(nullptr) { }
 
 		/* copy constructor */
-		ComPtr<T> (T *obj) : _obj(obj) { }
+		ComPtr(T *obj) : _obj(obj) { }
 
 		template<typename X>
-		ComPtr<T> (X *obj) : _obj(dynamic_cast<T*>(obj))
+		ComPtr(X *obj) : _obj(dynamic_cast<T*>(obj))
 		{
 			if (!_obj)
 				Genode::log(__func__, ": dynamic cast failed");
 		}
 
 		template <class T2>
-		ComPtr<T>(const ComPtr<T2> &that) : ComPtr<T>((T2*)that) { }
+		ComPtr(const ComPtr<T2> &that) : ComPtr<T>((T2*)that) { }
 
 		/* operators */
 		T * operator->() const  { return _obj; }
-        operator T*() const     { return _obj; }
+                operator T*()    const  { return _obj; }
 
 		template <class T2>
 		ComPtr& operator=(const ComPtr<T2> &that)
@@ -80,10 +80,10 @@ class ComObjPtr : public ComPtr<T> {
 
 	public:
 
-		ComObjPtr<T> () : ComPtr<T>() { }
+		ComObjPtr() : ComPtr<T>() { }
 
 		/* copy constructor */
-		ComObjPtr<T> (T *obj) : ComPtr<T>(obj) { }
+		ComObjPtr(T *obj) : ComPtr<T>(obj) { }
 
 		HRESULT createObject()
 		{

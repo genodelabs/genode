@@ -164,7 +164,7 @@ class Shareable
 
 	public:
 
-		Shareable<T> () : _verbose(false), _obj(nullptr) { }
+		Shareable() : _verbose(false), _obj(nullptr) { }
 
 		/* operators */
 		T * operator->() const  { if (_verbose) Genode::log(__PRETTY_FUNCTION__, " called"); return _obj; }
