@@ -35,8 +35,9 @@ namespace Board {
 		VT_TIMER_IRQ        = 27,
 		VT_MAINTAINANCE_IRQ = 25,
 		VCPU_MAX            = 16,
-		NR_OF_CPUS          = 2,
 	};
+
+	static constexpr Genode::size_t NR_OF_CPUS = 2;
 };
 
 #endif /* _SRC__CORE__SPEC__VIRT__QEMU_H_ */

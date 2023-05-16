@@ -77,7 +77,7 @@ class Counter : public Thread
 				_start_measurement.receive();
 				_stage = MEASUREMENT;
 				_synchronizer.synchronize();
-				while (_stage == MEASUREMENT) { value++; }
+				while (_stage == MEASUREMENT) { value = value + 1; }
 			}
 			_value = value;
 			_start_destruction.submit();

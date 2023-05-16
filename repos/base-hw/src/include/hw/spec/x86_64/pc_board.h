@@ -24,7 +24,7 @@ namespace Hw::Pc_board {
 	struct Serial;
 	enum Dummies { UART_BASE, UART_CLOCK };
 
-	enum { NR_OF_CPUS = 32 };
+	static constexpr Genode::size_t NR_OF_CPUS = 32;
 }
 
 

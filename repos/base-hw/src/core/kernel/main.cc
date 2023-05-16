@@ -138,7 +138,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 				Main::_instance->_global_irq_ctrl.init();
 			}
 
-			nr_of_initialized_cpus ++;
+			nr_of_initialized_cpus = nr_of_initialized_cpus + 1;
 
 			Main::_instance->_cpu_pool.cpu(Cpu::executing_id()).reinit_cpu();
 
@@ -168,7 +168,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 			Main::_instance->_core_platform_pd.kernel_pd(),
 			Main::_instance->_global_irq_ctrl);
 
-		nr_of_initialized_cpus++;
+		nr_of_initialized_cpus = nr_of_initialized_cpus + 1;
 	};
 
 	/**

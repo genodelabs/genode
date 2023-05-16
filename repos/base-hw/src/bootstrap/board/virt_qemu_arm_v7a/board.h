@@ -28,7 +28,7 @@ namespace Board {
 	using Pic = Hw::Gicv2;
 	static constexpr bool NON_SECURE = true;
 
-	enum { NR_OF_CPUS = 2 };
+	static constexpr Genode::size_t NR_OF_CPUS = 2;
 };
 
 #endif /* _SRC__BOOTSTRAP__SPEC__VIRT__QEMU_H_ */

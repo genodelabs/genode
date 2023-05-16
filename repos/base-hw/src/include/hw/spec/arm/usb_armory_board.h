@@ -27,8 +27,9 @@ namespace Hw::Usb_armory_board {
 	enum {
 		UART_BASE  = UART_1_MMIO_BASE,
 		UART_CLOCK = 0, /* ignored value */
-		NR_OF_CPUS = 1,
 	};
+
+	static constexpr Genode::size_t NR_OF_CPUS = 1;
 }
 
 #endif /* _SRC__INCLUDE__HW__SPEC__ARM__USB_ARMORY_BOARD_H_ */

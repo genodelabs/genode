@@ -31,8 +31,9 @@ namespace Hw::Pbxa9_board {
 	enum {
 		UART_BASE  = PL011_0_MMIO_BASE,
 		UART_CLOCK = PL011_0_CLOCK,
-		NR_OF_CPUS = 1,
 	};
+
+	static constexpr Genode::size_t NR_OF_CPUS = 1;
 }
 
 #endif /* _SRC__INCLUDE__HW__SPEC__ARM__PBXA9_BOARD_H_ */

@@ -29,8 +29,9 @@ namespace Hw::Imx7d_sabre_board {
 	enum {
 		UART_BASE  = UART_1_MMIO_BASE,
 		UART_CLOCK = 0, /* unsued value */
-		NR_OF_CPUS = 2
 	};
+
+	static constexpr Genode::size_t NR_OF_CPUS = 2;
 }
 
 #endif /* _SRC__INCLUDE__HW__SPEC__ARM__IMX7_SABRELITE_BOARD_H_ */

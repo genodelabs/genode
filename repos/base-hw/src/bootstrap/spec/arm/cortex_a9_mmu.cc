@@ -42,7 +42,7 @@ class Cpu_counter
 		{
 			while (!Genode::cmpxchg((volatile int*)&_locked, UNLOCKED, LOCKED))
 				;
-			_counter++;
+			_counter = _counter + 1;
 			Genode::memory_barrier();
 			_locked = UNLOCKED;
 		}

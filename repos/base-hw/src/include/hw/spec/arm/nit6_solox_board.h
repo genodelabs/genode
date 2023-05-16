@@ -31,8 +31,9 @@ namespace Hw::Nit6_solox_board {
 		UART_BASE  = UART_1_MMIO_BASE,
 		UART_SIZE  = UART_1_MMIO_SIZE,
 		UART_CLOCK = 0, /* dummy value, not used */
-		NR_OF_CPUS = 1
 	};
+
+	static constexpr Genode::size_t NR_OF_CPUS = 1;
 }
 
 #endif /* _SRC__INCLUDE__HW__SPEC__ARM__NIT6_SOLOX_BOARD_H_ */
