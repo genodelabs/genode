@@ -18,6 +18,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <io_port_session/connection.h>
+#include <cpu/memory_barrier.h>
 
 enum { UARTS_NUM = 4 }; /* needed by base class definitions */
 
@@ -87,7 +88,7 @@ class Uart::Driver : public Uart::Driver_base
 		void _init_comport(size_t baud)
 		{
 			_outb<LCR>(0x80u);  /* select bank 1 */
-			for (volatile int i = 10000000; i--; );
+			for (int i = 10000000; i; i--) memory_barrier();
 			_outb<DLLO>(((115200/baud) >> 0) && 0xff);
 			_outb<DLHI>(((115200/baud) >> 8) && 0xff);
 			_outb<LCR>(0x03u);  /* set 8,N,1 */

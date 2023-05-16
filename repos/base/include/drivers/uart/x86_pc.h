@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <base/stdint.h>
+#include <cpu/memory_barrier.h>
 
 namespace Genode { class X86_uart; }
 
@@ -87,7 +88,7 @@ class Genode::X86_uart
 				DLHI = (uint16_t)(_port + 1);
 
 			_outb(LCR, 0x80);  /* select bank 1 */
-			for (volatile int i = 10000000; i--; );
+			for (int i = 10000000; i; --i) memory_barrier();
 			_outb(DLLO, (uint8_t)((115200/_baud_rate) >> 0));
 			_outb(DLHI, (uint8_t)((115200/_baud_rate) >> 8));
 			_outb(LCR, 0x03);  /* set 8,N,1 */
