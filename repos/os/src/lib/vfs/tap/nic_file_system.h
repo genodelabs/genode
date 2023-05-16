@@ -53,8 +53,8 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 		using Read_result  = File_io_service::Read_result;
 		using Write_result = File_io_service::Write_result;
 
-		enum { PKT_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE };
-		enum { BUF_SIZE = Uplink::Session::QUEUE_SIZE * PKT_SIZE };
+		static constexpr size_t PKT_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE;
+		static constexpr size_t BUF_SIZE = Uplink::Session::QUEUE_SIZE * PKT_SIZE;
 
 		Genode::Env          &_env;
 		Vfs::Env::User       &_vfs_user;
