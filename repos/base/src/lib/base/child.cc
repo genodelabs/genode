@@ -766,7 +766,8 @@ void Child::_try_construct_env_dependent_members()
 		_initial_thread.construct(_cpu.session(), _pd.cap(), _policy.name());
 		_policy.with_address_space(_pd.session(), [&] (Region_map &address_space) {
 			_process.construct(type, _linker_dataspace(), _pd.session(),
-			                   *_initial_thread, _local_rm, address_space, cap()); });
+			                   *_initial_thread, _initial_thread_start,
+			                   _local_rm, address_space, cap()); });
 	}
 	catch (Out_of_ram)                          { _error("out of RAM during ELF loading"); }
 	catch (Out_of_caps)                         { _error("out of caps during ELF loading"); }

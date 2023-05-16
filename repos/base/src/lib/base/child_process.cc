@@ -170,19 +170,20 @@ Child::Initial_thread::~Initial_thread()
 }
 
 
-void Child::Initial_thread::start(addr_t ip)
+void Child::Initial_thread::start(addr_t ip, Start &start)
 {
-	Cpu_thread_client(_cap).start(ip, 0);
+	start.start_initial_thread(_cap, ip);
 }
 
 
-Child::Process::Process(Type                  type,
-                        Dataspace_capability  ldso_ds,
-                        Pd_session           &pd,
-                        Initial_thread_base  &initial_thread,
-                        Region_map           &local_rm,
-                        Region_map           &remote_rm,
-                        Parent_capability     parent_cap)
+Child::Process::Process(Type                   type,
+                        Dataspace_capability   ldso_ds,
+                        Pd_session            &pd,
+                        Initial_thread_base   &initial_thread,
+                        Initial_thread::Start &start,
+                        Region_map            &local_rm,
+                        Region_map            &remote_rm,
+                        Parent_capability      parent_cap)
 :
 	loaded_executable(type, ldso_ds, pd, local_rm, remote_rm, parent_cap)
 {
@@ -198,7 +199,7 @@ Child::Process::Process(Type                  type,
 		return;
 
 	/* start main thread */
-	initial_thread.start(loaded_executable.entry);
+	initial_thread.start(loaded_executable.entry, start);
 }
 
 

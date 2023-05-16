@@ -26,6 +26,7 @@
 #include <cpu_session/connection.h>
 #include <log_session/connection.h>
 #include <rom_session/connection.h>
+#include <cpu_thread/client.h>
 #include <parent/capability.h>
 
 namespace Genode {
@@ -227,6 +228,14 @@ struct Genode::Child_policy
 	}
 
 	/**
+	 * Start initial thread of the child at instruction pointer 'ip'
+	 */
+	virtual void start_initial_thread(Capability<Cpu_thread> thread, addr_t ip)
+	{
+		Cpu_thread_client(thread).start(ip, 0);
+	}
+
+	/**
 	 * Return true if ELF loading should be inhibited
 	 */
 	virtual bool forked() const { return false; }
@@ -263,10 +272,18 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		struct Initial_thread_base : Interface
 		{
+			struct Start : Interface
+			{
+				virtual void start_initial_thread(Capability<Cpu_thread>, addr_t ip) = 0;
+			};
+
 			/**
 			 * Start execution at specified instruction pointer
+			 *
+			 * The 'Child_policy' allows for the overriding of the default
+			 * RPC-based implementation of 'start_initial_thread'.
 			 */
-			virtual void start(addr_t ip) = 0;
+			virtual void start(addr_t ip, Start &) = 0;
 
 			/**
 			 * Return capability of the initial thread
@@ -283,6 +300,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 			public:
 
+				using Initial_thread_base::Start;
+
 				typedef Cpu_session::Name Name;
 
 				/**
@@ -295,7 +314,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 				Initial_thread(Cpu_session &, Pd_session_capability, Name const &);
 				~Initial_thread();
 
-				void start(addr_t) override;
+				void start(addr_t, Start &) override;
 
 				Capability<Cpu_thread> cap() const override { return _cap; }
 		};
@@ -347,6 +366,19 @@ class Genode::Child : protected Rpc_object<Parent>,
 		void _try_construct_env_dependent_members();
 
 		Constructible<Initial_thread> _initial_thread { };
+
+		struct Initial_thread_start : Initial_thread::Start
+		{
+			Child_policy &_policy;
+
+			void start_initial_thread(Capability<Cpu_thread> cap, addr_t ip) override
+			{
+				_policy.start_initial_thread(cap, ip);
+			}
+
+			Initial_thread_start(Child_policy &policy) : _policy(policy) { }
+
+		} _initial_thread_start { _policy };
 
 		struct Process
 		{
@@ -405,13 +437,14 @@ class Genode::Child : protected Rpc_object<Parent>,
 			 * initial thread must be done manually, i.e., as done for
 			 * implementing fork.
 			 */
-			Process(Type                 type,
-			        Dataspace_capability ldso_ds,
-			        Pd_session          &pd,
-			        Initial_thread_base &initial_thread,
-			        Region_map          &local_rm,
-			        Region_map          &remote_rm,
-			        Parent_capability    parent);
+			Process(Type                   type,
+			        Dataspace_capability   ldso_ds,
+			        Pd_session            &pd,
+			        Initial_thread_base   &,
+			        Initial_thread::Start &,
+			        Region_map            &local_rm,
+			        Region_map            &remote_rm,
+			        Parent_capability      parent);
 
 			~Process();
 		};

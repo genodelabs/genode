@@ -43,7 +43,7 @@ Child::Initial_thread::Initial_thread(Cpu_session          &cpu,
 Child::Initial_thread::~Initial_thread() { }
 
 
-void Child::Initial_thread::start(addr_t) { }
+void Child::Initial_thread::start(addr_t, Start &) { }
 
 
 /*
@@ -57,13 +57,14 @@ Child::Process::Loaded_executable::Loaded_executable(Type,
                                                      Parent_capability) { }
 
 
-Child::Process::Process(Type                  type,
-                        Dataspace_capability  ldso_ds,
-                        Pd_session           &pd,
-                        Initial_thread_base  &,
-                        Region_map           &local_rm,
-                        Region_map           &remote_rm,
-                        Parent_capability     parent_cap)
+Child::Process::Process(Type                   type,
+                        Dataspace_capability   ldso_ds,
+                        Pd_session            &pd,
+                        Initial_thread_base   &,
+                        Initial_thread::Start &,
+                        Region_map            &local_rm,
+                        Region_map            &remote_rm,
+                        Parent_capability      parent_cap)
 :
 	loaded_executable(type, ldso_ds, pd, local_rm, remote_rm, parent_cap)
 {
