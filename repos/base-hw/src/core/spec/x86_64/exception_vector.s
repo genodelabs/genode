@@ -93,6 +93,7 @@
 	.set vec, vec + 1
 	.endr
 
+	.global _kernel_entry
 	_kernel_entry:
 
 	pushq %rbp

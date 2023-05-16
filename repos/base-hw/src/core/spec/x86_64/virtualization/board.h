@@ -31,11 +31,23 @@ namespace Board {
 
 	struct Vcpu_context;
 
-	using Vm_state = Genode::Vm_state;
 	using Vm_data = Genode::Vm_data;
+	using Vm_state = Genode::Vm_state;
 
 	enum {
-		VCPU_MAX            = 16
+		VCPU_MAX = 16
+	};
+
+	/* FIXME move into Vcpu_context as 'enum class' when we have C++20 */
+	enum Platform_exitcodes : Genode::uint64_t {
+		EXIT_NPF     = 0xfc,
+		EXIT_STARTUP = 0xfe,
+		EXIT_PAUSED  = 0xff,
+	};
+
+	enum Custom_trapnos {
+		TRAP_VMEXIT = 256,
+		TRAP_VMSKIP = 257,
 	};
 };
 
@@ -48,11 +60,16 @@ namespace Kernel {
 
 struct Board::Vcpu_context
 {
-	Vcpu_context(Kernel::Cpu & cpu);
+	Vcpu_context(unsigned id, void *vcpu_data_ptr,
+                       Genode::addr_t context_phys_addr);
 	void initialize_svm(Kernel::Cpu &cpu, void *table);
+	void read_vcpu_state(Genode::Vcpu_state &state);
+	void write_vcpu_state(Genode::Vcpu_state &state, unsigned exit_reason);
 
-	Vmcb              vmcb;
+	Vmcb &vmcb;
 	Genode::Align_at<Core::Cpu::Context> regs;
+	Genode::uint64_t tsc_aux_host = 0U;
+	Genode::uint64_t tsc_aux_guest = 0U;
 };
 
 #endif /* _CORE__SPEC__PC__VIRTUALIZATION__BOARD_H_ */

@@ -15,18 +15,23 @@
 #define _INCLUDE__SPEC__PC__VM_STATE_H_
 
 /* x86 CPU state */
-#include <cpu/vcpu_state.h>
+#include <virtualization/extended_vcpu_state.h>
+#include <virtualization/svm.h>
 
 namespace Genode {
 
 	/**
 	 * CPU context of a virtual machine
 	 */
-	struct Vm_state;
-	using Vm_data = Vm_state;
+	struct Vm_data;
 }
 
-struct Genode::Vm_state : Genode::Vcpu_state
-{};
+
+struct Genode::Vm_data
+{
+	Board::Vmcb        vmcb;
+	Genode::addr_t     vmcb_phys_addr;
+	Genode::Vm_state * vm_state;
+};
 
 #endif /* _INCLUDE__SPEC__PC__VM_STATE_H_ */
