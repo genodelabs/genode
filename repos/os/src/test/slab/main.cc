@@ -85,7 +85,8 @@ void Component::construct(Genode::Env & env)
 
 	static Timer::Connection timer(env);
 
-	enum { SLAB_SIZE = 16, BLOCK_SIZE = 256 };
+	static constexpr size_t SLAB_SIZE = 16;
+	static constexpr size_t BLOCK_SIZE = 256;
 
 	struct Tracked_alloc : Genode::Allocator
 	{
@@ -138,7 +139,7 @@ void Component::construct(Genode::Env & env)
 		 * take the overhead of the two block allocations at the heap into
 		 * account.
 		 */
-		enum { HEAP_OVERHEAD = 9*sizeof(long) };
+		static constexpr size_t HEAP_OVERHEAD = 9*sizeof(long);
 		if (alloc.consumed() > 2*(BLOCK_SIZE + HEAP_OVERHEAD)) {
 			error("slab failed to release empty slab blocks");
 			return;
