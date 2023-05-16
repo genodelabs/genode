@@ -2,8 +2,7 @@ REQUIRES = x86_64
 
 TARGET = virtualbox6
 
-# fake build pass for lib .inc
-called_from_lib_mk := yes
+included_from_target_mk := yes
 include $(REP_DIR)/lib/mk/virtualbox6-common.inc
 
 CC_WARN += -Wall
