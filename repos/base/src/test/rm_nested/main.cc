@@ -48,7 +48,7 @@ class Local_fault_handler : public Entrypoint
 		{
 			Region_map::State state = _region_map.state();
 
-			_fault_cnt ++;
+			_fault_cnt = _fault_cnt + 1;
 
 			log("region-map state is ",
 			       state.type == Region_map::State::READ_FAULT  ? "READ_FAULT"  :
