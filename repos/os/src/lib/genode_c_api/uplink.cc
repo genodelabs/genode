@@ -35,8 +35,9 @@ struct genode_uplink : private Noncopyable, private Interface
 
 		Nic::Packet_allocator _packet_alloc { &_alloc };
 
-		enum { PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE };
-		enum { BUF_SIZE    = Uplink::Session::QUEUE_SIZE * PACKET_SIZE };
+		static constexpr size_t
+			PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
+			BUF_SIZE    = Uplink::Session::QUEUE_SIZE * PACKET_SIZE;
 
 		Net::Mac_address const _mac_address;
 
