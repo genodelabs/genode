@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__NOVA_NATIVE_CPU__FOC_NATIVE_CPU_H_
-#define _INCLUDE__NOVA_NATIVE_CPU__FOC_NATIVE_CPU_H_
+#ifndef _INCLUDE__NOVA_NATIVE_CPU__NOVA_NATIVE_CPU_H_
+#define _INCLUDE__NOVA_NATIVE_CPU__NOVA_NATIVE_CPU_H_
 
 #include <base/rpc.h>
 #include <cpu_session/cpu_session.h>
@@ -40,4 +40,4 @@ struct Genode::Cpu_session::Native_cpu : Interface
 	GENODE_RPC_INTERFACE(Rpc_thread_type);
 };
 
-#endif /* _INCLUDE__NOVA_NATIVE_CPU__FOC_NATIVE_CPU_H_ */
+#endif /* _INCLUDE__NOVA_NATIVE_CPU__NOVA_NATIVE_CPU_H_ */
