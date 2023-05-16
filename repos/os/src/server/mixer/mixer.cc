@@ -42,12 +42,10 @@
 typedef Mixer::Channel Channel;
 
 
-enum {
-	LEFT         = Channel::Number::LEFT,
-	RIGHT        = Channel::Number::RIGHT,
-	MAX_CHANNELS = Channel::Number::MAX_CHANNELS,
-	MAX_VOLUME   = Channel::Volume_level::MAX,
-};
+static constexpr int LEFT         = Channel::Number::LEFT;
+static constexpr int RIGHT        = Channel::Number::RIGHT;
+static constexpr int MAX_CHANNELS = Channel::Number::MAX_CHANNELS;
+static constexpr int MAX_VOLUME   = Channel::Volume_level::MAX;
 
 
 static struct Names {
