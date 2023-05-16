@@ -248,11 +248,11 @@ struct Pause_helper : Thread
 			 * other threads of this task trying to print log messages will
 			 * block - looks like a deadlock.
 			 */
-			loop ++;
+			loop = loop + 1;
 			if (beep) {
 				log("beep");
 				beep = false;
-				loop ++;
+				loop = loop + 1;
 				return;
 			}
 		}
@@ -417,9 +417,9 @@ static void test_locks(Genode::Env &env)
 	l5.start();
 
 	log(" spin for some time");
-	for (unsigned volatile i = 0; i < 8000000; ++i) memory_barrier();
+	for (unsigned i = 0; i < 8000000; ++i) memory_barrier();
 	log(" still spinning");
-	for (unsigned volatile i = 0; i < 8000000; ++i) memory_barrier();
+	for (unsigned i = 0; i < 8000000; ++i) memory_barrier();
 	log(" spinning done");
 
 	lock.block();
