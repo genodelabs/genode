@@ -91,12 +91,12 @@ struct Stress_test
 
 	struct Slave
 	{
-		enum { DURATION_US         = DURATION_SEC * 1000 * 1000 };
-		enum { MIN_TIMER_PERIOD_US = 1000 };
-		enum { MAX_CNT_BASE        = DURATION_US / MIN_TIMER_PERIOD_US };
-		enum { MAX_CNT_TOLERANCE   = MAX_CNT_BASE / 9 };
-		enum { MAX_CNT             = MAX_CNT_BASE + MAX_CNT_TOLERANCE };
-		enum { MIN_CNT             = DURATION_US / MAX_SLV_PERIOD_US / 2 };
+		static constexpr int DURATION_US         = DURATION_SEC * 1000 * 1000;
+		static constexpr int MIN_TIMER_PERIOD_US = 1000;
+		static constexpr int MAX_CNT_BASE        = DURATION_US / MIN_TIMER_PERIOD_US;
+		static constexpr int MAX_CNT_TOLERANCE   = MAX_CNT_BASE / 9;
+		static constexpr int MAX_CNT             = MAX_CNT_BASE + MAX_CNT_TOLERANCE;
+		static constexpr int MIN_CNT             = DURATION_US / MAX_SLV_PERIOD_US / 2;
 
 		Signal_handler<Slave> timer_handler;
 		Timer::Connection     timer;
