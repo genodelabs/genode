@@ -11,6 +11,12 @@ INC_DIR += $(LIB_DIR)/include \
 
 CC_OPT += -D__GENODE__ -DGALLIUM_SOFTPIPE
 
+#
+# C++20 warnings disable on update
+#
+CC_CXX_OPT += -Wno-deprecated-enum-enum-conversion
+CC_OPT     += -Wno-nonnull-compare
+
 #CC_OPT += -DENABLE_SHADER_CACHE
 CC_OPT += -DENABLE_ST_OMX_BELLAGIO=0  \
           -DENABLE_ST_OMX_TIZONIA=0  \
