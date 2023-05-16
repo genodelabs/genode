@@ -633,18 +633,28 @@ struct Controller : public Qemu::Controller
 		MemoryRegionOps const *ops;
 	} mmio_regions [max_numports() + 4 /* number of HC MMIO regions */];
 
+
 	uint64_t _mmio_size;
 
 	typedef Genode::Hex Hex;
+
+	/*
+	 * The device model does not implement the whole _mmio_size, add read/write
+	 * for the gaps.
+	 */
+	static uint64_t _read_unsued(void *, hwaddr, unsigned) { return 0ul; }
+	static void     _write_unsused(void *, hwaddr, uint64_t, unsigned) { }
+	MemoryRegionOps _ops { _read_unsued, _write_unsused };
+	Mmio            _unused_region { 0, 0, 0, &_ops };
 
 	Controller()
 	{
 		Genode::memset(mmio_regions, 0, sizeof(mmio_regions));
 	}
 
-	void   mmio_add_region(uint64_t size) { _mmio_size = size; }
+	void mmio_add_region(uint64_t size) { _mmio_size = size; }
 
-	void   mmio_add_region_io(Genode::addr_t id, uint64_t size, MemoryRegionOps const *ops)
+	void mmio_add_region_io(Genode::addr_t id, uint64_t size, MemoryRegionOps const *ops)
 	{
 		for (Mmio &mmio : mmio_regions) {
 			if (mmio.id != 0) continue;
@@ -664,12 +674,10 @@ struct Controller : public Qemu::Controller
 				return mmio;
 		}
 
-		Genode::error("could not find MMIO region for offset: ",
-		              Genode::Hex(offset));
-		throw -1;
+		return _unused_region;
 	}
 
-	void   mmio_add_sub_region(Genode::addr_t id, Genode::off_t offset)
+	void mmio_add_sub_region(Genode::addr_t id, Genode::off_t offset)
 	{
 		for (Mmio &mmio : mmio_regions) {
 			if (mmio.id != id) continue;
