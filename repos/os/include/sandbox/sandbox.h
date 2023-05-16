@@ -66,6 +66,11 @@ class Genode::Sandbox : Noncopyable
 			 * Call 'Fn' with the 'Intrinsics' that apply for the specified PD
 			 */
 			virtual void with_intrinsics(Capability<Pd_session>, Pd_session &, Fn const &) = 0;
+
+			/**
+			 * Start the initial thread of new PD at the given instruction pointer
+			 */
+			virtual void start_initial_thread(Capability<Cpu_thread>, addr_t ip) = 0;
 		};
 
 	private:

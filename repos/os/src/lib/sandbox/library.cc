@@ -268,6 +268,11 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 			fn.call(intrinsics);
 		}
 
+		void start_initial_thread(Capability<Cpu_thread> cap, addr_t ip) override
+		{
+			Cpu_thread_client(cap).start(ip, 0);
+		}
+
 		Default_pd_intrinsics(Env &env) : _env(env) { }
 
 	} _default_pd_intrinsics { _env };

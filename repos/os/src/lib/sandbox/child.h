@@ -782,6 +782,11 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 				fn.call(intrinsics.address_space); });
 		}
 
+		void start_initial_thread(Capability<Cpu_thread> cap, addr_t ip) override
+		{
+			_pd_intrinsics.start_initial_thread(cap, ip);
+		}
+
 		void yield_response() override
 		{
 			apply_downgrade();
