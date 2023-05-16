@@ -63,7 +63,9 @@ bool modify_at(addr_t addr)
 		return false;
 
 	if (value != READ_TEST + 1) {
-		addr_t value_mod = ++(*(addr_t volatile *)(addr));
+
+		(*(addr_t volatile *)(addr)) = (*(addr_t volatile *)(addr)) + 1;
+		addr_t value_mod = (*(addr_t volatile *)(addr));
 
 		/* if we are get told to stop, do so */
 		if (*(addr_t volatile *)(addr + sizeof(addr)) == STOP_TEST)
