@@ -132,3 +132,4 @@ genode-low.o sandbox/server.o: $(SANDBOX_HEADERS)
 	ln -sf $< $@
 
 CC_CXX_WARN_STRICT =
+CC_CXX_OPT_STD = -std=gnu++17

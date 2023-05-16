@@ -20,6 +20,8 @@ CC_OPT_gdbserver_platform_helper += -fpermissive
 CC_OPT += -DGDBSERVER
 CC_OPT += -DHAVE_DECL_PTRACE -DHAVE_SYS_PTRACE_H
 
+CC_CXX_OPT_STD = -std=gnu++17
+
 LIBS += stdcxx libc
 
 vpath %.cc $(REP_DIR)/src/lib/gdbserver_platform
