@@ -143,7 +143,7 @@ class Lan9118_base
 		 */
 		uint32_t _mac_csr_read(Mac_register reg)
 		{
-			_reg_write(MAC_CSR_CMD, reg | MAC_CSR_CMD_READ | MAC_CSR_CMD_BUSY);
+			_reg_write(MAC_CSR_CMD, uint32_t(reg) | MAC_CSR_CMD_READ | MAC_CSR_CMD_BUSY);
 			_mac_csr_wait_ready();
 			return _reg_read(MAC_CSR_DATA);
 		}
@@ -154,7 +154,7 @@ class Lan9118_base
 		void _mac_csr_write(Mac_register reg, uint32_t value)
 		{
 			_reg_write(MAC_CSR_DATA, value);
-			_reg_write(MAC_CSR_CMD, reg | MAC_CSR_CMD_WRITE | MAC_CSR_CMD_BUSY);
+			_reg_write(MAC_CSR_CMD, uint32_t(reg) | MAC_CSR_CMD_WRITE | MAC_CSR_CMD_BUSY);
 			_mac_csr_wait_ready();
 		}
 
