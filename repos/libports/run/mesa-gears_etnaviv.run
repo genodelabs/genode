@@ -1,3 +1,0 @@
-set use_iris    0
-set use_etnaviv 1
-source ${genode_dir}/repos/libports/run/mesa-gears.inc
