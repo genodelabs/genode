@@ -76,8 +76,8 @@ class Block::Gpt : public Block::Partition_table
 
 			unsigned time_low() const { return read<Time_low>(); }
 
-			template<typename T> struct Uuid_hex : Genode::Hex {
-				Uuid_hex<T>(T value) : Genode::Hex(value, OMIT_PREFIX, PAD) { } };
+			template <typename T> struct Uuid_hex : Genode::Hex {
+				Uuid_hex(T value) : Genode::Hex(value, OMIT_PREFIX, PAD) { } };
 
 			void print(Output &out) const
 			{
