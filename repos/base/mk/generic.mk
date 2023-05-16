@@ -87,7 +87,7 @@ endif
 # We need to override these to build the ada runtime
 #
 CUSTOM_ADA_FLAGS   ?= --RTS=$(ADA_RTS)
-CUSTOM_ADA_OPT     ?= $(CC_ADA_OPT) -gnatef
+CUSTOM_ADA_OPT     ?= $(CC_ADA_OPT) -gnatef -gnatwG
 CUSTOM_ADA_INCLUDE ?= -I- $(INCLUDES)
 
 #
