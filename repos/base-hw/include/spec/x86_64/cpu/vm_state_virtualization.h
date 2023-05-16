@@ -23,6 +23,7 @@ namespace Genode {
 	 * CPU context of a virtual machine
 	 */
 	struct Vm_state;
+	using Vm_data = Vm_state;
 }
 
 struct Genode::Vm_state : Genode::Vcpu_state

@@ -101,6 +101,12 @@ static Vmid_allocator &alloc()
 }
 
 
+Genode::addr_t Vm_session_component::_alloc_vm_data(Genode::addr_t ds_addr)
+{
+	return ds_addr;
+}
+
+
 Vm_session_component::Vm_session_component(Rpc_entrypoint &ds_ep,
                                            Resources resources,
                                            Label const &,

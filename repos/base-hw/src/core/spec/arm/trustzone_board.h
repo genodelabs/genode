@@ -25,6 +25,7 @@ namespace Kernel { class Cpu; }
 namespace Board {
 
 	using Core::Vm_state;
+	using Vm_data = Core::Vm_state;
 
 	enum { VCPU_MAX = 1 };
 

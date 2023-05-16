@@ -43,6 +43,7 @@ namespace Board {
 	struct Vcpu_context;
 
 	using Vm_state = Genode::Vm_state;
+	using Vm_data = Vm_state;
 };
 
 

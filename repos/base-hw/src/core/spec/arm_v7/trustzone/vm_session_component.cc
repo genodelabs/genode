@@ -52,6 +52,12 @@ void * Vm_session_component::_alloc_table()
 static unsigned id_alloc = 0;
 
 
+Genode::addr_t Vm_session_component::_alloc_vm_data(Genode::addr_t ds_addr)
+{
+	return ds_addr;
+}
+
+
 Vm_session_component::Vm_session_component(Rpc_entrypoint  &ep,
                                            Resources resources,
                                            Label const &,

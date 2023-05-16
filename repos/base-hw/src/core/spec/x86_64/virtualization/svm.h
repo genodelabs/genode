@@ -18,6 +18,7 @@
 #include <base/stdint.h>
 #include <cpu/vcpu_state.h>
 #include <util/mmio.h>
+#include <util/string.h>
 
 namespace Board
 {

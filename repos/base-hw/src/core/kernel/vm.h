@@ -73,7 +73,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		 */
 		Vm(Irq::Pool              & user_irq_pool,
 		   Cpu                    & cpu,
-		   Genode::Vm_state       & state,
+		   Genode::Vm_data        & data,
 		   Kernel::Signal_context & context,
 		   Identity               & id);
 
@@ -91,7 +91,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		 * Create a virtual machine that is stopped initially
 		 *
 		 * \param dst                memory donation for the VM object
-		 * \param state              location of the CPU state of the VM
+		 * \param data               location of the CPU data of the VM
 		 * \param signal_context_id  kernel name of the signal context for VM events
 		 * \param id                 VM identity
 		 *
@@ -99,12 +99,12 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		 */
 		static capid_t syscall_create(Core::Kernel_object<Vm> &vm,
 		                              unsigned                 cpu,
-		                              void * const             state,
+		                              void * const             data,
 		                              capid_t const            signal_context_id,
 		                              Identity                &id)
 		{
 			return (capid_t)call(call_id_new_vm(), (Call_arg)&vm, (Call_arg)cpu,
-			                     (Call_arg)state, (Call_arg)&id, signal_context_id);
+			                     (Call_arg)data, (Call_arg)&id, signal_context_id);
 		}
 
 		/**

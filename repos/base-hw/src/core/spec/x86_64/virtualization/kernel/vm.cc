@@ -36,14 +36,14 @@ using Board::Vmcb;
 
 Vm::Vm(Irq::Pool              & user_irq_pool,
        Cpu                    & cpu,
-       Genode::Vm_state       & state,
+       Genode::Vm_data        & data,
        Kernel::Signal_context & context,
        Identity               & id)
 :
 	Kernel::Object { *this },
 	Cpu_job(Cpu_priority::min(), 0),
 	_user_irq_pool(user_irq_pool),
-	_state(state),
+	_state(data),
 	_context(context),
 	_id(id),
 	_vcpu_context(cpu)
