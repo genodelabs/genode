@@ -41,7 +41,7 @@ QTDECLARATIVE_DIR         = $(CONTRIB_DIR)/src/lib/qtdeclarative
 QTTOOLS_DIR               = $(CONTRIB_DIR)/src/lib/qttools
 TOOL_VERSION              = 23.05
 BUILD_DIR                 = $(GENODE_DIR)/build/tool/qt5/$(TOOL_VERSION)
-DEFAULT_INSTALL_LOCATION  = /usr/local/genode/qt5/$(TOOL_VERSION)
+DEFAULT_INSTALL_LOCATION  = /usr/local/genode/tool/$(TOOL_VERSION)
 INSTALL_LOCATION         ?= $(DEFAULT_INSTALL_LOCATION)
 SUDO                     ?= sudo
 
