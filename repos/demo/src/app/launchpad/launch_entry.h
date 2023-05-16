@@ -29,9 +29,9 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 		Scout::Launcher        _launcher;
 		int                    _lh = 0;        /* launch entry height */
 
-		enum { _PTW = 100 };  /* program text width */
-		enum { _PADX = 10 };  /* program text width */
-		enum { _PADR = 16 };  /* right padding      */
+		static constexpr int _PTW = 100;  /* program text width */
+		static constexpr int _PADX = 10;  /* program text width */
+		static constexpr int _PADR = 16;  /* right padding      */
 
 	public:
 

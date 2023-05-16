@@ -30,8 +30,8 @@ class Section : public Scout::Parent_element
 		Section(Section const &);
 		Section &operator = (Section const &);
 
-		enum { _SH  = 8 };   /* shadow height */
-		enum { _STH = 20 };  /* shadow height */
+		static constexpr int _SH  = 8;   /* shadow height */
+		static constexpr int _STH = 20;  /* shadow height */
 
 		Scout::Horizontal_shadow<PT, 40>  _bg;
 		Scout::Horizontal_shadow<PT, 160> _shadow;

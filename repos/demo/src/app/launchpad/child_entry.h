@@ -67,11 +67,11 @@ class Child_entry : public  Scout::Parent_element,
 
 		friend class Genode::List<Child_entry<PT> >;
 
-		enum { _IW       = 16 };      /* icon width               */
-		enum { _IH       = 16 };      /* icon height              */
-		enum { _PTW      = 100 };     /* program text width       */
-		enum { _PADX     = 10 };      /* horizontal padding       */
-		enum { _NAME_LEN = 64 };      /* max length of child name */
+		static constexpr int _IW       = 16;   /* icon width               */
+		static constexpr int _IH       = 16;   /* icon height              */
+		static constexpr int _PTW      = 100;  /* program text width       */
+		static constexpr int _PADX     = 10;   /* horizontal padding       */
+		static constexpr int _NAME_LEN = 64;   /* max length of child name */
 
 		Scout::Block      _block;
 		Kbyte_loadbar<PT> _loadbar;
