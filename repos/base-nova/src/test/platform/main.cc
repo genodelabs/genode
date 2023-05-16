@@ -529,7 +529,7 @@ class Cause_mapping : public Genode::Thread {
 			Nova::Utcb * nova_utcb = reinterpret_cast<Nova::Utcb *>(utcb());
 
 			while (true) {
-				called ++;
+				called = called + 1;
 //				log("mapper: request mapping ", Hex(_mem_nd), " ", called);
 
 				Nova::Crd old = nova_utcb->crd_rcv;
