@@ -472,10 +472,8 @@ struct Igd::Device
 	template <typename CONTEXT>
 	struct Engine
 	{
-		enum {
-			CONTEXT_PAGES = CONTEXT::CONTEXT_PAGES,
-			RING_PAGES    = CONTEXT::RING_PAGES,
-		};
+		static constexpr size_t CONTEXT_PAGES = CONTEXT::CONTEXT_PAGES;
+		static constexpr size_t RING_PAGES    = CONTEXT::RING_PAGES;
 
 		Ggtt_map_memory ctx;  /* context memory */
 		Ggtt_map_memory ring; /* ring memory */

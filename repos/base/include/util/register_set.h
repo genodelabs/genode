@@ -637,11 +637,11 @@ class Genode::Register_set : Noncopyable
 			typedef typename T::Bitset_3_base::Bits_1 Bits_1;
 			typedef typename T::Bitset_3_base::Bits_2 Bits_2;
 			typedef typename T::Bitset_3_base::access_t access_t;
-			enum {
-				BITS_0_WIDTH = Bits_0::BITFIELD_WIDTH,
-				BITS_1_WIDTH = Bits_1::BITFIELD_WIDTH,
-				V1_SHIFT     = BITS_0_WIDTH + BITS_1_WIDTH,
-			};
+
+			static constexpr size_t BITS_0_WIDTH = Bits_0::BITFIELD_WIDTH;
+			static constexpr size_t BITS_1_WIDTH = Bits_1::BITFIELD_WIDTH;
+			static constexpr size_t V1_SHIFT     = BITS_0_WIDTH + BITS_1_WIDTH;
+
 			access_t const v0 = read<Bitset_2<Bits_0, Bits_1> >();
 			access_t const v1 = read<Bits_2>();
 			return v0 | (v1 << V1_SHIFT);

@@ -115,11 +115,9 @@ namespace Genode { namespace Trait {
 template <unsigned long _ACCESS_WIDTH>
 struct Genode::Register
 {
-	enum {
-		ACCESS_WIDTH      = _ACCESS_WIDTH,
-		ACCESS_WIDTH_LOG2 = Trait::Uint_width<ACCESS_WIDTH>::WIDTH_LOG2,
-		BITFIELD_WIDTH    = ACCESS_WIDTH,
-	};
+	static constexpr size_t ACCESS_WIDTH      = _ACCESS_WIDTH;
+	static constexpr size_t ACCESS_WIDTH_LOG2 = Trait::Uint_width<ACCESS_WIDTH>::WIDTH_LOG2;
+	static constexpr size_t BITFIELD_WIDTH    = ACCESS_WIDTH;
 
 	typedef typename Trait::Uint_width<ACCESS_WIDTH>::Type access_t;
 
@@ -228,12 +226,12 @@ struct Genode::Bitset_2
 {
 	typedef _BITS_0 Bits_0;
 	typedef _BITS_1 Bits_1;
-	enum {
-		WIDTH          = Bits_0::BITFIELD_WIDTH +
-		                 Bits_1::BITFIELD_WIDTH,
-		BITFIELD_WIDTH = WIDTH,
-		ACCESS_WIDTH   = Trait::Raise_to_uint_width<WIDTH>::WIDTH,
-	};
+
+	static constexpr size_t WIDTH          = Bits_0::BITFIELD_WIDTH +
+	                                         Bits_1::BITFIELD_WIDTH;
+	static constexpr size_t BITFIELD_WIDTH = WIDTH;
+	static constexpr size_t ACCESS_WIDTH   = Trait::Raise_to_uint_width<WIDTH>::WIDTH;
+
 	typedef typename Trait::Uint_width<ACCESS_WIDTH>::Type access_t;
 	typedef Bitset_2<Bits_0, Bits_1> Bitset_2_base;
 
@@ -297,13 +295,13 @@ struct Genode::Bitset_3
 	typedef _BITS_1 Bits_1;
 	typedef _BITS_2 Bits_2;
 	typedef Bitset_2<Bits_0, Bits_1> Bits_0_1;
-	enum {
-		WIDTH          = Bits_0::BITFIELD_WIDTH +
-		                 Bits_1::BITFIELD_WIDTH +
-		                 Bits_2::BITFIELD_WIDTH,
-		BITFIELD_WIDTH = WIDTH,
-		ACCESS_WIDTH   = Trait::Raise_to_uint_width<WIDTH>::WIDTH,
-	};
+
+	static constexpr size_t WIDTH          = Bits_0::BITFIELD_WIDTH +
+	                                         Bits_1::BITFIELD_WIDTH +
+	                                         Bits_2::BITFIELD_WIDTH;
+	static constexpr size_t BITFIELD_WIDTH = WIDTH;
+	static constexpr size_t ACCESS_WIDTH   = Trait::Raise_to_uint_width<WIDTH>::WIDTH;
+
 	typedef typename Trait::Uint_width<ACCESS_WIDTH>::Type access_t;
 	typedef Bitset_3<Bits_0, Bits_1, Bits_2> Bitset_3_base;
 
