@@ -221,6 +221,10 @@ class Libc::Malloc
 
 			void *alloc_addr = (void *)((addr_t)ptr - md->offset);
 
+			if (md->offset == 0)
+				error("libc free: meta-data offset is 0 for address: ", ptr,
+				      " - corrupted allocation");
+
 			if (msb > SLAB_STOP) {
 				_backing_store.free(alloc_addr, real_size);
 			} else {
