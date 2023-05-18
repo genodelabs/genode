@@ -1,0 +1,17 @@
+index fa26845..c7377e8 100644
+--- a/src/virtualbox6/src/VBox/HostDrivers/Support/SUPDrvIOC.h
++++ b/src/virtualbox6/src/VBox/HostDrivers/Support/SUPDrvIOC.h
+@@ -267,7 +267,12 @@ typedef struct SUPCOOKIE
+  * @{
+  */
+ #define SUP_IOCTL_QUERY_FUNCS(cFuncs)                   SUP_CTL_CODE_BIG(2)
+-#define SUP_IOCTL_QUERY_FUNCS_SIZE(cFuncs)              RT_UOFFSETOF_DYN(SUPQUERYFUNCS, u.Out.aFunctions[(cFuncs)])
++/*
++ * Ensure to return offset of at least 'aFunctions[1]' because the array in
++ * SUPQUERYFUNC has one element. Anyone using 'sizeof(SUPQUERYFUNCS)' (e.g.,
++ * constructor) will still access aFunctions[0] in case 'cFuncs' is 0.
++ */
++#define SUP_IOCTL_QUERY_FUNCS_SIZE(cFuncs)              RT_UOFFSETOF_DYN(SUPQUERYFUNCS, u.Out.aFunctions[(cFuncs ? cFuncs : 1)])
+ #define SUP_IOCTL_QUERY_FUNCS_SIZE_IN                   sizeof(SUPREQHDR)
+ #define SUP_IOCTL_QUERY_FUNCS_SIZE_OUT(cFuncs)          SUP_IOCTL_QUERY_FUNCS_SIZE(cFuncs)
+ 

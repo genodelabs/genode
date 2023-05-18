@@ -11,3 +11,4 @@ svga.patch
 audio.patch
 gcc-12.patch
 pgmphys.patch
+sup_ioctl_query_func_size.patch
