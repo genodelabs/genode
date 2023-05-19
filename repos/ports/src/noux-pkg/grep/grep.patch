@@ -1,0 +1,16 @@
+grep.patch
+
+diff --git a/src/pcresearch.c b/src/pcresearch.c
+index 43f91d0..cfe8839 100644
+--- a/src/pcresearch.c
++++ b/src/pcresearch.c
+@@ -29,6 +29,9 @@
+    in pcre_exec.  */
+ enum { NSUB = 300 };
+ 
++/* JIT compilation is currently not supported by Genode's pcre port */
++#undef PCRE_STUDY_JIT_COMPILE
++
+ # ifndef PCRE_STUDY_JIT_COMPILE
+ #  define PCRE_STUDY_JIT_COMPILE 0
+ # endif
