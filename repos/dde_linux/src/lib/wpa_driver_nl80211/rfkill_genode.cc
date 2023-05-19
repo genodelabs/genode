@@ -44,7 +44,7 @@ struct rfkill_data {
 static void rfkill_receive(int sock, void *eloop_ctx, void *sock_ctx)
 {
 	struct rfkill_data * const rfkill = (rfkill_data*)eloop_ctx;
-	bool const new_blocked = wifi_get_rfkill();
+	bool const new_blocked = Wifi::rfkill_blocked();
 
 	if (new_blocked != rfkill->blocked) {
 		rfkill->blocked = new_blocked;

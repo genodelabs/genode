@@ -11,7 +11,7 @@
 		/* Wifi::Socket_call instance */
 		socket_call;
 		/* rfkill interface */
-		_*wifi_*_rfkill*;
+		_*Wifi*rfkill*;
 		_*wifi_kick_*;
 
 		_*Wifi*firmware*;

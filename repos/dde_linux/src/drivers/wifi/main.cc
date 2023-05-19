@@ -169,8 +169,8 @@ struct Main
 	{
 		_frontend.construct(env, _wifi_msg_buffer);
 		_wifi_frontend = &*_frontend;
-		wifi_set_rfkill_sigh(_wifi_frontend->rfkill_sigh());
 
+		Wifi::rfkill_establish_handler(*_wifi_frontend);
 		Wifi::firmware_establish_handler(_request_handler);
 
 		_wpa.construct(env, _wpa_startup_blockade);

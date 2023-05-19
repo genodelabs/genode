@@ -29,6 +29,7 @@
 
 /* wifi includes */
 #include <wifi/firmware.h>
+#include <wifi/rfkill.h>
 
 /* local includes */
 #include "lx_user.h"
@@ -36,11 +37,10 @@
 
 using namespace Genode;
 
+/* RFKILL handling */
 
 extern "C" int  lx_emul_rfkill_get_any(void);
 extern "C" void lx_emul_rfkill_switch_all(int blocked);
-
-static Signal_context_capability _rfkill_sigh_cap;
 
 
 bool _wifi_get_rfkill(void)
@@ -53,7 +53,25 @@ bool _wifi_get_rfkill(void)
 }
 
 
-void _wifi_set_rfkill(bool blocked)
+struct Rfkill_helper
+{
+	Wifi::Rfkill_notification_handler &_handler;
+
+	Rfkill_helper(Wifi::Rfkill_notification_handler &handler)
+	:
+		_handler { handler }
+	{ }
+
+	void submit_notification()
+	{
+		_handler.rfkill_notify();
+	}
+};
+
+Constructible<Rfkill_helper> rfkill_helper { };
+
+
+void Wifi::set_rfkill(bool blocked)
 {
 	if (!rfkill_task_struct_ptr)
 		return;
@@ -72,11 +90,12 @@ void _wifi_set_rfkill(bool blocked)
 	lx_emul_task_unblock(uplink_task_struct_ptr);
 	Lx_kit::env().scheduler.schedule();
 
-	Signal_transmitter(_rfkill_sigh_cap).submit();
+	if (rfkill_helper.constructed())
+		rfkill_helper->submit_notification();
 }
 
 
-bool wifi_get_rfkill(void)
+bool Wifi::rfkill_blocked(void)
 {
 	return _wifi_get_rfkill();
 }
@@ -370,9 +389,9 @@ void wifi_init(Env &env, Blockade &blockade)
 }
 
 
-void wifi_set_rfkill_sigh(Signal_context_capability cap)
+void Wifi::rfkill_establish_handler(Wifi::Rfkill_notification_handler &handler)
 {
-	_rfkill_sigh_cap = cap;
+	rfkill_helper.construct(handler);
 }
 
 
