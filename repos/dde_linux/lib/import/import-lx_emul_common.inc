@@ -160,9 +160,16 @@ vpath %.S $(LX_GEN_DIR)
 
 CUSTOM_TARGET_DEPS += $(TARGET_SOURCE_LIST)
 
+# Define helper to generate unique KBUILD_MODNAME from filename and the
+# last path element as using the file name is not enough for certain
+# drivers (e.g., rtlwifi)
+define GEN_KBUILD_MODNAME =
+$(lastword $(subst /, ,$(dir $(1))))-$(notdir $(1))
+endef
+
 # Define per-compilation-unit CC_OPT defines needed by MODULE* macros in Linux
 define CC_OPT_LX_RULES =
-CC_OPT_$(1) += -DKBUILD_MODFILE='"$(1)"' -DKBUILD_BASENAME='"$(notdir $(1))"' -DKBUILD_MODNAME='"$(notdir $(1))"'
+CC_OPT_$(1) += -DKBUILD_MODFILE='"$(1)"' -DKBUILD_BASENAME='"$(notdir $(1))"' -DKBUILD_MODNAME='"$(call GEN_KBUILD_MODNAME,$(1))"'
 endef
 
 $(foreach file,$(LX_SRC),$(eval $(call CC_OPT_LX_RULES,$(file:%.c=%))))
