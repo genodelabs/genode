@@ -89,8 +89,9 @@ connect to a network:
 To temporarily prevent any radio activity, the 'rfkill' attribute
 can be set to 'true'.
 
-If the network is protected by, e.g., WPA/WPA2, the protection type, either
-'WPA' or 'WPA2' as well as the the passphrase have to be specified.
+If the network is protected by, e.g., WPA/WPA2/WPA3, the protection type,
+either 'WPA', 'WPA2' or 'WPA3' as well as the the passphrase have to be
+specified.
 The 'bssid' attribute can be used to select a specifc accesspoint within a
 network. Of all attributes only the 'ssid' attribute is mandatory, all others
 are optional and should only be used when needed.
@@ -150,9 +151,9 @@ the 'rfkill' attribute.
 By subscribing to both reports and providing the required 'wifi_config' ROM
 module, a component is able control the wireless driver.
 
-Currently only WPA/WPA2 protection using a passphrase is supported and the the
-SSID is copied verbatim. At the moment, there is no way to express or escape
-non alphanumeric characters.
+Currently only WPA/WPA2/WPA3 protection using a passphrase is supported and
+the SSID is copied verbatim. At the moment, there is no way to express or
+escape non alphanumeric characters.
 
 The driver optionally reports the following information under the
 label "devices" if requested in the config as depicted.

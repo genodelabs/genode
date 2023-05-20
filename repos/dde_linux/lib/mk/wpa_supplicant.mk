@@ -44,7 +44,8 @@ INC_DIR += $(WS_CONTRIB_DIR)/wpa_supplicant
 CC_OPT  += -DCONFIG_BACKEND_FILE -DCONFIG_NO_CONFIG_WRITE \
            -DCONFIG_SME -DCONFIG_CTRL_IFACE \
            -DCONFIG_BGSCAN -DCONFIG_BGSCAN_SIMPLE \
-           -DCONFIG_OPENSSL_CMAC -DCONFIG_SHA256
+           -DCONFIG_OPENSSL_CMAC -DCONFIG_SHA256 \
+           -DCONFIG_SAE -DCONFIG_ECC
 
 CC_OPT  += -DTLS_DEFAULT_CIPHERS=\"DEFAULT:!EXP:!LOW\"
 
@@ -52,17 +53,19 @@ INC_DIR += $(WS_CONTRIB_DIR)/src/
 
 # common
 SRC_C_common = ieee802_11_common.c wpa_common.c hw_features_common.c \
-               ctrl_iface_common.c
+               ctrl_iface_common.c sae.c dragonfly.c
 SRC_C += $(addprefix src/common/, $(SRC_C_common))
 INC_DIR += $(WS_CONTRIB_DIR)/src/common
 
 # crypto
 SRC_C_crypto = crypto_openssl.c \
+               dh_groups.c      \
                ms_funcs.c       \
                random.c         \
                sha1-prf.c       \
                sha1-tlsprf.c    \
                sha256-prf.c     \
+               sha256-kdf.c     \
                tls_openssl.c
 SRC_C += $(addprefix src/crypto/, $(SRC_C_crypto))
 INC_DIR += $(WS_CONTRIB_DIR)/src/crypto

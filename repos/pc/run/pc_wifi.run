@@ -17,6 +17,13 @@ proc wifi_psk { } {
 	return $::env(GENODE_WIFI_PSK)
 }
 
+proc wifi_wpa { } {
+	if {![info exists ::env(GENODE_WIFI_WPA)]} {
+		return WPA2
+	}
+	return $::env(GENODE_WIFI_WPA)
+}
+
 #
 # widi_drv config generator (supporting a network list)
 #
@@ -232,15 +239,15 @@ append config {
 				</inline>
 				<sleep milliseconds="15000"/>
 				<inline description="connect">
-} [wifi_config 30 5 no [list "[wifi_ssid] WPA2 [wifi_psk] yes"]] {
+} [wifi_config 30 5 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes"]] {
 				</inline>
 				<sleep milliseconds="60000"/>
 				<inline description="rfkill block">
-} [wifi_config 30 5 yes [list "[wifi_ssid] WPA2 [wifi_psk] yes"]] {
+} [wifi_config 30 5 yes [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes"]] {
 				</inline>
 				<sleep milliseconds="30000"/>
 				<inline description="rfkill unblock">
-} [wifi_config 30 5 no [list "[wifi_ssid] WPA2 [wifi_psk] yes"]] {
+} [wifi_config 30 5 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes"]] {
 				</inline>
 				<sleep milliseconds="30000"/>
 			</rom>

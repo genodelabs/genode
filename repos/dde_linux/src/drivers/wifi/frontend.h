@@ -185,6 +185,7 @@ struct Accesspoint : Genode::Interface
 	bool valid()       const { return ssid.length() > 1; }
 	bool bssid_valid() const { return bssid.length() > 1; }
 	bool wpa()         const { return prot != "NONE"; }
+	bool wpa3()        const { return prot == "WPA3"; }
 	bool stored()      const { return id != -1; }
 };
 
@@ -233,11 +234,13 @@ static void for_each_result_line(char const *msg, FUNC const &func)
 
 		bool const is_wpa1 = Util::string_contains((char const*)s[3], "WPA");
 		bool const is_wpa2 = Util::string_contains((char const*)s[3], "WPA2");
+		bool const is_wpa3 = Util::string_contains((char const*)s[3], "SAE");
 
 		unsigned signal = Util::approximate_quality(s[2]);
 
 		char const *prot = is_wpa1 ? "WPA" : "NONE";
 		            prot = is_wpa2 ? "WPA2" : prot;
+		            prot = is_wpa3 ? "WPA3" : prot;
 
 		Accesspoint ap(s[0], s[1], prot, s[4], signal);
 
@@ -556,14 +559,16 @@ struct Wifi::Frontend : Wifi::Rfkill_notification_handler
 		INITIATE_SCAN   = 0x00|SCAN,
 		PENDING_RESULTS = 0x10|SCAN,
 
-		ADD_NETWORK        = 0x00|NETWORK,
-		FILL_NETWORK_SSID  = 0x10|NETWORK,
-		FILL_NETWORK_BSSID = 0x20|NETWORK,
-		FILL_NETWORK_PSK   = 0x30|NETWORK,
-		REMOVE_NETWORK     = 0x40|NETWORK,
-		ENABLE_NETWORK     = 0x50|NETWORK,
-		DISABLE_NETWORK    = 0x60|NETWORK,
-		LIST_NETWORKS      = 0x80|NETWORK,
+		ADD_NETWORK           = 0x00|NETWORK,
+		FILL_NETWORK_SSID     = 0x10|NETWORK,
+		FILL_NETWORK_BSSID    = 0x20|NETWORK,
+		FILL_NETWORK_KEY_MGMT = 0x30|NETWORK,
+		FILL_NETWORK_PSK      = 0x40|NETWORK,
+		REMOVE_NETWORK        = 0x50|NETWORK,
+		ENABLE_NETWORK        = 0x60|NETWORK,
+		DISABLE_NETWORK       = 0x70|NETWORK,
+		LIST_NETWORKS         = 0x90|NETWORK,
+		SET_NETWORK_PMF       = 0xA0|NETWORK,
 
 		CONNECTING   = 0x00|CONNECT,
 		CONNECTED    = 0x10|CONNECT,
@@ -581,6 +586,7 @@ struct Wifi::Frontend : Wifi::Rfkill_notification_handler
 		case ADD_NETWORK:        return "add network";
 		case FILL_NETWORK_SSID:  return "fill network ssid";
 		case FILL_NETWORK_BSSID: return "fill network bssid";
+		case FILL_NETWORK_KEY_MGMT: return "fill network key_mgmt";
 		case FILL_NETWORK_PSK:   return "fill network pass";
 		case REMOVE_NETWORK:     return "remove network";
 		case ENABLE_NETWORK:     return "enable network";
@@ -591,6 +597,7 @@ struct Wifi::Frontend : Wifi::Rfkill_notification_handler
 		case STATUS:             return "status";
 		case LIST_NETWORKS:      return "list networks";
 		case INFO:               return "info";
+		case SET_NETWORK_PMF:    return "set network pmf";
 		default:                 return "unknown";
 		};
 	}
@@ -922,6 +929,18 @@ struct Wifi::Frontend : Wifi::Rfkill_notification_handler
 		                     " bssid ", bssid));
 	}
 
+	void _network_set_key_mgmt_sae()
+	{
+		_submit_cmd(Cmd_str("SET_NETWORK ", _processed_ap->id,
+		                     " key_mgmt SAE"));
+	}
+
+	void _network_set_pmf()
+	{
+		_submit_cmd(Cmd_str("SET_NETWORK ", _processed_ap->id,
+		                     " ieee80211w 2"));
+	}
+
 	void _network_set_psk()
 	{
 		if (_processed_ap->wpa()) {
@@ -1018,6 +1037,41 @@ struct Wifi::Frontend : Wifi::Rfkill_notification_handler
 				_state_transition(_state, State::IDLE);
 			} else {
 
+				/*
+				 * For the moment branch here to handle WPA3-personal-only
+				 * explicitly.
+				 */
+				if (_processed_ap->wpa3()) {
+					_state_transition(_state, State::FILL_NETWORK_KEY_MGMT);
+					_network_set_key_mgmt_sae();
+				} else {
+					_state_transition(_state, State::FILL_NETWORK_PSK);
+					_network_set_psk();
+				}
+
+				successfully = true;
+			}
+			break;
+		case State::FILL_NETWORK_KEY_MGMT:
+			_state_transition(_state, State::IDLE);
+
+			if (!cmd_successful(msg)) {
+				Genode::error("could not set key_mgmt for network: ", msg);
+				_state_transition(_state, State::IDLE);
+			} else {
+				_state_transition(_state, State::SET_NETWORK_PMF);
+				_network_set_pmf();
+
+				successfully = true;
+			}
+			break;
+		case State::SET_NETWORK_PMF:
+			_state_transition(_state, State::IDLE);
+
+			if (!cmd_successful(msg)) {
+				Genode::error("could not set PMF for network: ", msg);
+				_state_transition(_state, State::IDLE);
+			} else {
 				_state_transition(_state, State::FILL_NETWORK_PSK);
 				_network_set_psk();
 
