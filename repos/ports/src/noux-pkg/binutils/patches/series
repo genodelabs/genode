@@ -2,3 +2,4 @@ bfd.patch
 merge_sections.patch
 arm.patch
 riscv.patch
+lib_name_patterns.patch

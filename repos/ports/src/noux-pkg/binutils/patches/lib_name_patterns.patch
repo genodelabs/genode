@@ -1,0 +1,99 @@
+lib_name_patterns.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ ld/ldelf.c  |   15 ++++++++++++++-
+ ld/ldfile.c |   24 ++++++++++++++++++++----
+ 2 files changed, 34 insertions(+), 5 deletions(-)
+
+diff --git a/ld/ldelf.c b/ld/ldelf.c
+index eff6693e..cfc2a32a 100644
+--- a/ld/ldelf.c
++++ b/ld/ldelf.c
+@@ -1942,7 +1942,7 @@ ldelf_open_dynamic_archive (const char *arch, search_dirs_type *search,
+     {
+       size_t xlen = 0;
+ 
+-      len += strlen (arch) + sizeof "/lib.so";
++      len += strlen (arch) + sizeof "/lib.lib.so";
+ #ifdef EXTRA_SHLIB_EXTENSION
+       xlen = (strlen (EXTRA_SHLIB_EXTENSION) > 3
+ 	      ? strlen (EXTRA_SHLIB_EXTENSION) - 3
+@@ -1950,6 +1950,19 @@ ldelf_open_dynamic_archive (const char *arch, search_dirs_type *search,
+ #endif
+       string = (char *) xmalloc (len + xlen);
+       sprintf (string, "%s/lib%s%s.so", search->name, filename, arch);
++
++      opened = ldfile_try_open_bfd (string, entry);
++
++      /* search for Genode libraries */
++
++      if (!opened) {
++        sprintf (string, "%s/%s.lib.so", search->name, filename);
++        opened = ldfile_try_open_bfd (string, entry);
++      }
++
++      if (!opened)
++        sprintf (string, "%s/lib%s.lib.so", search->name, filename);
++
+ #ifdef EXTRA_SHLIB_EXTENSION
+       /* Try the .so extension first.  If that fails build a new filename
+ 	 using EXTRA_SHLIB_EXTENSION.  */
+diff --git a/ld/ldfile.c b/ld/ldfile.c
+index b8fd4e5d..0dfc3944 100644
+--- a/ld/ldfile.c
++++ b/ld/ldfile.c
+@@ -369,8 +369,19 @@ ldfile_open_file_search (const char *arch,
+ 	}
+ 
+       if (entry->flags.maybe_archive && !entry->flags.full_name_provided)
+-	string = concat (search->name, slash, lib, entry->filename,
+-			 arch, suffix, (const char *) NULL);
++	{
++		string = concat (search->name, slash, "", entry->filename,
++				 arch, suffix, (const char *) NULL);
++
++	      if (ldfile_try_open_bfd (string, entry))
++		{
++		  entry->filename = string;
++		  return true;
++		}
++
++		string = concat (search->name, slash, lib, entry->filename,
++				 arch, suffix, (const char *) NULL);
++	}
+       else
+ 	string = concat (search->name, slash, entry->filename,
+ 			 (const char *) 0);
+@@ -437,6 +448,11 @@ ldfile_open_file (lang_input_statement_type *entry)
+       /* Try to open <filename><suffix> or lib<filename><suffix>.a.  */
+       for (arch = search_arch_head; arch != NULL; arch = arch->next)
+ 	{
++	  /* try to open Genode library */
++	  found = ldfile_open_file_search (arch->name, entry, "lib", ".lib.a");
++	  if (found)
++	    break;
++	  /* original code */
+ 	  found = ldfile_open_file_search (arch->name, entry, "lib", ".a");
+ 	  if (found)
+ 	    break;
+@@ -496,7 +512,7 @@ ldfile_open_file (lang_input_statement_type *entry)
+ #endif
+ 	  else
+ 	    einfo (_("%P: cannot find %s: %E\n"), entry->local_sym_name);
+-
++#if 0
+ 	  /* PR 25747: Be kind to users who forgot to add the
+ 	     "lib" prefix to their library when it was created.  */
+ 	  for (arch = search_arch_head; arch != NULL; arch = arch->next)
+@@ -512,7 +528,7 @@ ldfile_open_file (lang_input_statement_type *entry)
+ 		  break;
+ 		}
+ 	    }
+-
++#endif
+ 	  entry->flags.missing_file = true;
+ 	  input_flags.missing_file = true;
+ 	}
