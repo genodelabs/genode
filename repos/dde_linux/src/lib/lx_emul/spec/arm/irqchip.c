@@ -171,9 +171,6 @@ int lx_emul_irq_task_function(void * data)
 	for (;;) {
 		lx_emul_task_schedule(true);
 
-		if (!dde_irq_domain)
-			continue;
-
 		local_irq_save(flags);
 		irq_enter();
 
