@@ -45,17 +45,3 @@ mirror_vim_src.tag:
 flush_config_cache.tag:
 	$(VERBOSE)rm -f $(PWD)/src/auto/config.cache
 	@touch $@
-
-#
-# Make the ncurses linking test succeed
-#
-Makefile: dummy_libs
-
-LDFLAGS += -L$(PWD)
-
-.SECONDARY: dummy_libs
-dummy_libs: libncurses.a
-
-libncurses.a:
-	$(VERBOSE)$(AR) -rc $@
-

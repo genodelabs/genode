@@ -48,14 +48,6 @@ CXXFLAGS += -fpermissive
 
 LDFLAGS += -L$(PWD)
 
-.SECONDARY: dummy_libs
-dummy_libs: libc.a
-
-libc.a:
-	$(VERBOSE)$(AR) -rc $@
-
-Makefile: dummy_libs
-
 LIBS  += libc libm posix stdcxx
 
 include $(call select_from_repositories,mk/noux.mk)

@@ -9,12 +9,4 @@ GDB_TARGET     = arm-none-eabi
 
 LDFLAGS += -L$(PWD)
 
-.SECONDARY: dummy_libs
-dummy_libs: libm.a
-
-libm.a:
-	$(VERBOSE)$(AR) -rc $@
-
-Makefile: dummy_libs
-
 include $(PRG_DIR)/../gdb/target.inc
