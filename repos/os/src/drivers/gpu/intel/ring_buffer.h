@@ -99,6 +99,15 @@ class Igd::Ring_buffer
 		}
 
 		/**
+		 * Update head and set tail to head
+		 */
+		void reset_to_head(Index head)
+		{
+			update_head(head);
+			_tail = _head;
+		}
+
+		/**
 		 * Insert new command at given index
 		 *
 		 * \param cmmd   new command

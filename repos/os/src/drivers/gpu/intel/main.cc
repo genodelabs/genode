@@ -41,11 +41,12 @@
 #include <context.h>
 #include <context_descriptor.h>
 #include <platform_session.h>
+#include <reset.h>
 #include <ring_buffer.h>
-#include <workarounds.h>
 
 using namespace Genode;
 
+static constexpr bool DEBUG = false;
 
 namespace Igd {
 
@@ -74,13 +75,15 @@ struct Igd::Device
 	struct Out_of_ram            : Genode::Exception { };
 	struct Could_not_map_vram    : Genode::Exception { };
 
-	enum { WATCHDOG_TIMEOUT = 1*1000*1000, };
+	/* 200 ms */
+	enum { WATCHDOG_TIMEOUT = 200*1000 };
 
 	Env                    & _env;
 	Allocator              & _md_alloc;
 	Platform::Connection   & _platform;
 	Rm_connection          & _rm;
 	Igd::Mmio              & _mmio;
+	Igd::Reset               _reset { _mmio };
 	Platform::Device::Mmio & _gmadr;
 	uint8_t                  _gmch_ctl;
 	Timer::Connection        _timer { _env };
@@ -198,10 +201,13 @@ struct Igd::Device
 			if (info.platform == Igd::Device_info::Platform::UNKNOWN)
 				return;
 
+			/* set generation for device IO as early as possible */
+			_mmio.generation(generation);
+
 			if (info.id == dev_id) {
 				_info = info;
 				_revision.value        = rev_id;
-				_clock_frequency.value = _mmio.clock_frequency(generation);
+				_clock_frequency.value = _mmio.clock_frequency();
 
 				found = true;
 				return;
@@ -392,6 +398,7 @@ struct Igd::Device
 		Ring_buffer::Index ring_max()   const { return _ring.max(); }
 		void ring_reset_and_fill_zero() { _ring.reset_and_fill_zero(); }
 		void ring_update_head(Ring_buffer::Index head) { _ring.update_head(head); }
+		void ring_reset_to_head(Ring_buffer::Index head) { _ring.reset_to_head(head); }
 
 		void ring_flush(Ring_buffer::Index from, Ring_buffer::Index to)
 		{
@@ -650,9 +657,15 @@ struct Igd::Device
 				Gpu::Sequence_number { .value = _device.seqno() };
 		}
 
+		void mark_completed() {
+			_info.last_completed = Gpu::Sequence_number { .value = current_seqno() };
+		}
+
 		bool setup_ring_vram(Gpu::addr_t const vram_addr)
 		{
 			_current_seqno++;
+
+			unsigned generation = _device.generation().value;
 
 			Execlist &el = *rcs.execlist;
 
@@ -663,8 +676,8 @@ struct Igd::Device
 			                                 Device_info::Stepping::B0);
 
 			size_t const need = 4 /* batchvram cmd */ + 6 /* prolog */
-			                  + ((_device.generation().value == 9) ? 6 : 0)
-			                  + ((_device.generation().value == 8) ? 20 : 22) /* epilog + w/a */
+			                  + ((generation == 9) ? 6 : 0)
+			                  + ((generation == 8) ? 20 : 22) /* epilog + w/a */
 			                  + (dc_flush_wa ? 12 : 0);
 
 			if (!el.ring_avail(need))
@@ -683,7 +696,7 @@ struct Igd::Device
 			 * on GEN9: emit empty pipe control before VF_CACHE_INVALIDATE
 			 * - Linux 5.13 gen8_emit_flush_rcs()
 			 */
-			if (_device.generation().value == 9) {
+			if (generation == 9) {
 				enum { CMD_NUM = 6 };
 				Genode::uint32_t cmd[CMD_NUM] = {};
 				Igd::Pipe_control pc(CMD_NUM);
@@ -709,7 +722,7 @@ struct Igd::Device
 			/* prolog */
 			if (1)
 			{
-				enum { CMD_NUM = 6, HWS_DATA = 0xc0, };
+				enum { CMD_NUM = 6 };
 				Genode::uint32_t cmd[CMD_NUM] = {};
 				Igd::Pipe_control pc(CMD_NUM);
 				cmd[0] = pc.value;
@@ -753,7 +766,7 @@ struct Igd::Device
 			 *
 			 * batch-vram commands
 			 */
-			if (_device.generation().value == 8)
+			if (generation == 8)
 			{
 				enum { CMD_NUM = 4 };
 				Genode::uint32_t cmd[CMD_NUM] = {};
@@ -774,7 +787,7 @@ struct Igd::Device
 			 *
 			 * batch-vram commands
 			 */
-			if (_device.generation().value >= 9)
+			if (generation >= 9)
 			{
 				enum { CMD_NUM = 6 };
 				Genode::uint32_t cmd[CMD_NUM] = {};
@@ -813,7 +826,8 @@ struct Igd::Device
 			/* epilog 2/3 - gen8_emit_fini_breadcrumb_rcs, gen8_emit_ggtt_write_rcs */
 			if (1)
 			{
-				enum { CMD_NUM = 6, HWS_DATA = 0xc0, };
+				using HWS_DATA = Hardware_status_page::Sequence_number;
+				enum { CMD_NUM = 6 };
 				Genode::uint32_t cmd[CMD_NUM] = {};
 				Igd::Pipe_control pc(CMD_NUM);
 				cmd[0] = pc.value;
@@ -825,10 +839,50 @@ struct Igd::Device
 				tmp |= Igd::Pipe_control::STORE_DATA_INDEX;
 
 				cmd[1] = tmp;
-				cmd[2] = HWS_DATA;
+				cmd[2] = HWS_DATA::OFFSET;
 				cmd[3] = 0; /* upper addr 0 */
 				cmd[4] = _current_seqno & 0xffffffff;
 				cmd[5] = _current_seqno >> 32;
+
+				for (size_t i = 0; i < CMD_NUM; i++) {
+					advance += el.ring_append(cmd[i]);
+				}
+			}
+
+
+			/*
+			 * emit semaphore we can later block on in order to stop ring
+			 *
+			 * 'emit_preempt_busywait' and 'gen12_emit_preempt_busywait'
+			 */
+			if (1)
+			{
+				enum { CMD_NUM = 6 };
+				Genode::uint32_t cmd[CMD_NUM] = { };
+
+				Igd::Mi_semaphore_wait sw;
+				/* number of dwords after [1] */
+				sw.dword_length(generation < 12 ? 2 : 3);
+
+				cmd[0] = Mi_arb_check().value;
+				cmd[1] = sw.value;
+				cmd[2] = 0;                                  /* data word zero */
+				cmd[3] = _device.hw_status_page_semaphore(); /* semaphore address low  */
+				cmd[4] = 0;                                  /* semaphore address high */
+				cmd[5] = generation < 12 ? Mi_noop().value : 0;
+
+				for (size_t i = 0; i < CMD_NUM; i++) {
+					advance += el.ring_append(cmd[i]);
+				}
+			}
+
+			if (1)
+			{
+				enum { CMD_NUM = 2 };
+				Genode::uint32_t cmd[2] = {};
+				Igd::Mi_user_interrupt ui;
+				cmd[0] = Mi_arb_on_off(true).value;
+				cmd[1] = ui.value;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
 					advance += el.ring_append(cmd[i]);
@@ -842,20 +896,6 @@ struct Igd::Device
 			 *
 			 * HWS page layout dword 48 - 1023 for driver usage
 			 */
-
-			if (1)
-			{
-				enum { CMD_NUM = 2 };
-				Genode::uint32_t cmd[2] = {};
-				Igd::Mi_user_interrupt ui;
-				cmd[0] = ui.value;
-				cmd[1] = Mi_arb_on_off(true).value;
-
-				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
-				}
-			}
-
 			if (1)
 			{
 				/* gen8_emit_fini_breadcrumb_tail -> gen8_emit_wa_tail */
@@ -1038,7 +1078,6 @@ struct Igd::Device
 	}
 
 
-
 	/************
 	 ** FENCES **
 	 ************/
@@ -1069,34 +1108,51 @@ struct Igd::Device
 	 ** watchdog timeout **
 	 **********************/
 
+	void _handle_vgpu_after_reset(Vgpu &vgpu)
+	{
+		 /* signal completion of last job to vgpu */
+		vgpu.mark_completed();
+		_notify_complete(&vgpu);
+
+		/* offset of head in ring context */
+		size_t head_offset = vgpu.rcs.context->head_offset();
+		/* set head = tail in ring and ring context */
+		Execlist &el = *vgpu.rcs.execlist;
+		el.ring_reset_to_head(head_offset);
+		/* set tail in context in qwords */
+		vgpu.rcs.context->tail_offset((head_offset % (vgpu.rcs.ring_size())) / 8);
+	}
+
 	void _handle_watchdog_timeout()
 	{
 		if (!_active_vgpu) { return; }
 
 		Genode::error("watchdog triggered: engine stuck,"
 		              " vGPU=", _active_vgpu->id(), " IRQ: ",
-		              Hex(_mmio.read_irq_vector(_info.generation)));
-		_mmio.dump();
-		_mmio.error_dump();
-		_mmio.fault_dump();
-		_mmio.execlist_status_dump();
+		              Hex(_mmio.read_irq_vector()));
 
-		_active_vgpu->rcs.context->dump();
-		_hw_status_page->dump();
-		Execlist &el = *_active_vgpu->rcs.execlist;
-		el.ring_update_head(_active_vgpu->rcs.context->head_offset());
-		el.ring_dump(4096, _active_vgpu->rcs.context->tail_offset() * 2,
-		                   _active_vgpu->rcs.context->head_offset());
+		if (DEBUG) {
+			_mmio.dump();
+			_mmio.error_dump();
+			_mmio.fault_dump();
+			_mmio.execlist_status_dump();
 
-		_device_reset_and_init();
-
-		if (_active_vgpu == _current_vgpu()) {
-			_unschedule_current_vgpu();
+			_active_vgpu->rcs.context->dump();
+			_hw_status_page->dump();
+			Execlist &el = *_active_vgpu->rcs.execlist;
+			el.ring_update_head(_active_vgpu->rcs.context->head_offset());
+			el.ring_dump(4096, _active_vgpu->rcs.context->tail_offset() * 2,
+			                   _active_vgpu->rcs.context->head_offset());
 		}
 
-		if (_current_vgpu()) {
-			_schedule_current_vgpu();
-		}
+
+		Vgpu *vgpu = reset();
+
+		if (!vgpu)
+			error("reset vgpu is null");
+
+		/* the stuck vgpu */
+		_handle_vgpu_after_reset(*vgpu);
 	}
 
 	Genode::Signal_handler<Device> _watchdog_timeout_sigh {
@@ -1104,10 +1160,10 @@ struct Igd::Device
 
 	void _device_reset_and_init()
 	{
-		_mmio.reset(_info.generation);
+		_mmio.reset();
 		_mmio.clear_errors();
 		_mmio.init();
-		_mmio.enable_intr(_info.generation);
+		_mmio.enable_intr();
 	}
 
 	/**
@@ -1131,6 +1187,7 @@ struct Igd::Device
 
 		if (!_supported(supported, device_id, revision))
 			throw Unsupported_device();
+
 
 		_ggtt.dump();
 
@@ -1277,7 +1334,52 @@ struct Igd::Device
 	/**
 	 * Reset the physical device
 	 */
-	void reset() { _device_reset_and_init(); }
+	Vgpu *reset()
+	{
+		/* Stop render engine
+		 *
+		 * WaKBLVECSSemaphoreWaitPoll:kbl (on ALL_ENGINES):
+		 * KabyLake suffers from system hangs when batchbuffer is progressing during
+		 * reset
+		 */
+		hw_status_page_pause_ring(true);
+
+		Vgpu *vgpu { nullptr };
+
+		/* unschedule current vgpu */
+		if (_active_vgpu) {
+			vgpu = _active_vgpu;
+			vgpu_unschedule(*_active_vgpu);
+		}
+
+		/* reset */
+		_reset.execute();
+
+		/* set address of global hardware status page */
+		if (_hw_status_ctx.constructed()) {
+			Mmio::HWS_PGA_RCSUNIT::access_t const addr = _hw_status_ctx->gmaddr();
+			_mmio.write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
+		}
+
+		_mmio.clear_errors();
+
+		/* clear pending irqs */
+		_mmio.clear_render_irq();
+
+		/*
+		 * Restore "Hardware Status Mask Register", this register controls which
+		 * IRQs are even written to the PCI bus (should be same as unmasked in IMR)
+		 */
+		_mmio.restore_hwstam();
+
+		hw_status_page_pause_ring(false);
+
+		if (_current_vgpu()) {
+			_schedule_current_vgpu();
+		}
+
+		return vgpu;
+	}
 
 	/**
 	 * Get chip id of the physical device
@@ -1332,12 +1434,25 @@ struct Igd::Device
 	 ** Hardware status page **
 	 **************************/
 
-	addr_t hw_status_page() const { return _hw_status_ctx->gmaddr(); }
+	addr_t hw_status_page_gmaddr() const { return _hw_status_ctx->gmaddr(); }
 
-	uint64_t seqno() const
+	addr_t hw_status_page_semaphore() const
 	{
-		Utils::clflush((uint32_t*)(_hw_status_ctx->vaddr() + 0xc0));
-		return *(uint32_t*)(_hw_status_ctx->vaddr() + 0xc0);
+		return hw_status_page_gmaddr() + Hardware_status_page::Semaphore::OFFSET;
+	}
+
+	/*
+	 * Pause the physical ring by setting semaphore value programmed by
+	 * 'setup_ring_vram' to 1, causing GPU to spin.
+	 */
+	void hw_status_page_pause_ring(bool pause)
+	{
+		_hw_status_page->semaphore(pause ? 1 : 0);
+	}
+
+	uint64_t seqno()
+	{
+		return _hw_status_page->sequence_number();
 	}
 
 
@@ -1397,7 +1512,6 @@ struct Igd::Device
 
 		if (vgpu.enqueued())
 			_vgpu_list.remove(vgpu);
-
 	}
 
 	/*******************
@@ -1521,21 +1635,21 @@ struct Igd::Device
 
 	bool handle_irq()
 	{
-		bool display_irq = _mmio.display_irq(_info.generation);
+		bool display_irq = _mmio.display_irq();
 
 		/* handle render interrupts only */
-		if (_mmio.render_irq(_info.generation) == false)
+		if (_mmio.render_irq() == false)
 			return display_irq;
 
-		_mmio.disable_master_irq(_info.generation);
+		_mmio.disable_master_irq();
 
-		Mmio::GEN12_RENDER_INTR_VEC::access_t const v = _mmio.read_irq_vector(_info.generation);
+		unsigned const v = _mmio.read_irq_vector();
 
-		bool const ctx_switch    = Mmio::GEN12_RENDER_INTR_VEC::Cs_ctx_switch_interrupt::get(v);
-		bool const user_complete = Mmio::GEN12_RENDER_INTR_VEC::Cs_mi_user_interrupt::get(v);
+		bool ctx_switch = _mmio.context_switch(v);
+		bool user_complete = _mmio.user_complete(v);
 
 		if (v) {
-			_mmio.clear_render_irq(_info.generation, v);
+			_mmio.clear_render_irq(v);
 	}
 
 		Vgpu *notify_gpu = nullptr;
@@ -1569,7 +1683,7 @@ struct Igd::Device
 		return display_irq;
 	}
 
-	void enable_master_irq() { _mmio.enable_master_irq(_info.generation); }
+	void enable_master_irq() { _mmio.enable_master_irq(); }
 
 	private:
 
@@ -1886,7 +2000,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 		void vgpu_unschedule()
 		{
-			return _device.vgpu_unschedule(_vgpu);
+			_device.vgpu_unschedule(_vgpu);
 		}
 
 		/***************************
@@ -2225,10 +2339,11 @@ class Gpu::Root : public Gpu::Root_component
 			if (s->vgpu_active()) {
 				Genode::warning("vGPU active, reset device and hope for the best");
 				_device->reset();
+			} else {
+				/* remove from scheduled list */
+				s->vgpu_unschedule();
 			}
 
-			/* remove from scheduled list */
-			s->vgpu_unschedule();
 			Genode::destroy(md_alloc(), s);
 		}
 

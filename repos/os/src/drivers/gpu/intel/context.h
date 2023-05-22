@@ -21,7 +21,7 @@
 /* local includes */
 #include <types.h>
 #include <commands.h>
-
+#include <utils.h>
 
 namespace Igd {
 
@@ -694,6 +694,12 @@ class Igd::Hardware_status_page : public Igd::Common_context_regs
 		struct Ring_head_ptr_storage : Common_register<4> { };
 
 		/*
+		 * dword 0x30 to 0x3ff is available for driver usage
+		 */
+		struct Sequence_number : Register<0x30*4, 64> { };
+		struct Semaphore       : Register<0x32*4, 32> { };
+
+		/*
 		 * See CTXT_ST_BUF
 		 */
 		enum {
@@ -704,7 +710,23 @@ class Igd::Hardware_status_page : public Igd::Common_context_regs
 		struct Last_written_status_offset : Common_register<31> { };
 
 		Hardware_status_page(addr_t base)
-		: Common_context_regs(base) { }
+		: Common_context_regs(base)
+		{
+			semaphore(0);
+		}
+
+		void semaphore(uint32_t value)
+		{
+			write<Semaphore>(value);
+			Igd::wmb();
+		}
+
+		uint64_t sequence_number()
+		{
+			/* invalidates cache before reading */
+			Utils::clflush((void *)(base() + Sequence_number::OFFSET));
+			return read<Sequence_number>();
+		}
 
 		void dump(bool raw = false)
 		{

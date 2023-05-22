@@ -52,7 +52,7 @@ void Igd::Mmio::dump()
 	log("0x20E0 - MI_DISP_PWR_DWN ", Hex(read<MI_DISP_PWR_DWN>()));
 	log("0x20E4 - MI_ARB_STATE    ", Hex(read<MI_ARB_STATE>()));
 	log("0x20FC - MI_RDRET_STATE  ", Hex(read<MI_RDRET_STATE>()));
-	log("0x209C - MI_MODE         ", Hex(read<MI_MODE>()));
+	log("0x209C - MI_MODE         ", Hex(read<CS_MI_MODE_CTRL>()));
 	log("0x21D0 - ECOSKPD         ", Hex(read<ECOSKPD>()));
 }
 

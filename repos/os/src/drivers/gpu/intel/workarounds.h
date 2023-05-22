@@ -13,7 +13,7 @@
 #include <mmio.h>
 
 namespace Igd {
-	void apply_workarounds(Mmio &mmio, unsigned generation);
+	static void apply_workarounds(Mmio &mmio, unsigned generation);
 }
 
 void Igd::apply_workarounds(Mmio &mmio, unsigned generation)

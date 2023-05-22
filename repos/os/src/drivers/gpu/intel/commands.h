@@ -31,6 +31,7 @@ namespace Igd {
 	struct Mi_arb_on_off;
 	struct Mi_user_interrupt;
 	struct Mi_batch_buffer_start;
+	struct Mi_semaphore_wait;
 	struct Pipe_control;
 
 	void cmd_dump(uint32_t cmd, uint32_t index = 0);
@@ -183,6 +184,48 @@ struct Igd::Mi_batch_buffer_start : Mi_cmd
 	}
 };
 
+
+/*
+ * IHD-OS-BDW-Vol 2a-11.15 p. 888 ff.
+ *
+ * Note: Legnth 2 on GEN8+ and 3 on GEN12+
+ */
+struct Igd::Mi_semaphore_wait : Mi_cmd
+{
+
+	struct Compare_operation : Bitfield<12, 3>
+	{
+		enum { SAD_EQUAL_SDD = 0x4 };
+	};
+
+	struct Wait_mode : Bitfield<15, 1>
+	{
+		enum { SIGNAL = 0b0, POLL = 0b1};
+	};
+
+	struct Memory_type : Bitfield<22, 1>
+	{
+		enum { PPGTT = 0b0, GGTT = 0b1};
+	};
+
+	/* number of words - 2 */
+	struct Dword_length : Bitfield<0, 8> { };
+
+	Mi_semaphore_wait()
+	:
+	  Mi_cmd(Mi_cmd_opcode::MI_SEMAPHORE_WAIT)
+	{
+		Memory_type::set(Cmd_header::value, Memory_type::GGTT);
+		Wait_mode::set(Cmd_header::value, Wait_mode::POLL);
+		/* wait for address data equal data word */
+		Compare_operation::set(Cmd_header::value, Compare_operation::SAD_EQUAL_SDD);
+	}
+
+	void dword_length(unsigned const value)
+	{
+		Dword_length::set(Cmd_header::value, value);
+	}
+};
 
 /*
  * IHD-OS-BDW-Vol 2a-11.15 p. 983 ff.
