@@ -1,5 +1,5 @@
 /*
- * \brief  Helps synchronizing the CBE manager to the CBE-driver initialization
+ * \brief  Small utility for truncating a given file
  * \author Martin Stein
  * \date   2021-03-19
  */

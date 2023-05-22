@@ -4,9 +4,7 @@ _/src/libpng
 _/src/zlib
 _/src/fs_query
 _/src/menu_view
-_/src/cbe
-_/src/spark
-_/src/libsparkcrypto
+_/src/tresor
 _/src/vfs_block
 _/src/vfs_jitterentropy
 _/src/vfs

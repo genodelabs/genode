@@ -1,3 +1,3 @@
-CBE_DIR := $(call select_from_ports,cbe)
+TRESOR_DIR := $(call select_from_ports,tresor)
 
-INC_DIR += $(CBE_DIR)/src/lib/sha256_4k
+INC_DIR += $(TRESOR_DIR)/src/lib/sha256_4k

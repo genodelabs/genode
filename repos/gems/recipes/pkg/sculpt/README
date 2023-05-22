@@ -359,7 +359,7 @@ For inspiration, please follow the postings at
 :Encrypted file store:
 
   The file-vault package provides Sculpt users with an easy way to set
-  up and use an encrypted file store using Genode's custom CBE block
+  up and use an encrypted file store using Genode's custom Tresor block
   encrypter.
 
   [https://genodians.org/m-stein/2021-05-17-introducing-the-file-vault]
@@ -1557,7 +1557,7 @@ Before building the packages, various ports of 3rd-party software need to
 be prepared. The following command prepares all of them at once:
 
 ! <GENODE-DIR>/tool/ports/prepare_port \
-!      acpica ada-runtime bash cbe coreutils curl \
+!      acpica ada-runtime bash tresor coreutils curl \
 !      dde_bsd dde_ipxe dde_linux dde_rump e2fsprogs-lib \
 !      expat freetype gnupg grub2 jitterentropy jpeg \
 !      libarchive libc libdrm libgcrypt libiconv libnl libpng \

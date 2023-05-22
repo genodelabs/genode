@@ -26,26 +26,22 @@
 		<rom label="vfs.lib.so"/>
 		<rom label="vfs_block"/>
 		<rom label="vfs_jitterentropy.lib.so"/>
-		<rom label="vfs_cbe.lib.so"/>
-		<rom label="vfs_cbe_crypto_aes_cbc.lib.so"/>
-		<rom label="vfs_cbe_trust_anchor.lib.so"/>
-		<rom label="cbe_cxx.lib.so"/>
-		<rom label="cbe_init_cxx.lib.so"/>
-		<rom label="cbe_init"/>
-		<rom label="cbe_init_trust_anchor"/>
+		<rom label="vfs_tresor.lib.so"/>
+		<rom label="vfs_tresor_crypto_aes_cbc.lib.so"/>
+		<rom label="vfs_tresor_trust_anchor.lib.so"/>
+		<rom label="tresor_init"/>
+		<rom label="tresor_init_trust_anchor"/>
 		<rom label="libcrypto.lib.so"/>
 		<rom label="rump.lib.so"/>
 		<rom label="vfs_rump.lib.so"/>
 		<rom label="rump_fs.lib.so"/>
 		<rom label="sandbox.lib.so"/>
-		<rom label="libsparkcrypto.lib.so"/>
-		<rom label="spark.lib.so"/>
 		<rom label="fs_tool"/>
 		<rom label="mke2fs"/>
 		<rom label="resize2fs"/>
 		<rom label="posix.lib.so"/>
 		<rom label="file_vault"/>
-		<rom label="file_vault-sync_to_cbe_vfs_init"/>
+		<rom label="file_vault-sync_to_tresor_vfs_init"/>
 		<rom label="file_vault-truncate_file"/>
 		<rom label="menu_view_styles.tar"/>
 	</content>
@@ -74,21 +70,21 @@
 			<provides>
 				<service name="File_system"/>
 			</provides>
-			<config>
+			<config user_interface="menu_view">
 				<vfs>
-					<dir name="cbe">
-						<fs label="cbe"/>
+					<dir name="tresor">
+						<fs label="tresor"/>
 					</dir>
 				</vfs>
 			</config>
 			<route>
-				<service name="File_system" label="cbe_trust_anchor_vfs -> storage_dir"> <parent label="trust_anchor"/> </service>
+				<service name="File_system" label="tresor_trust_anchor_vfs -> storage_dir"> <parent label="trust_anchor"/> </service>
 				<service name="File_system" label="vfs_block -> ">                       <parent label="data"/> </service>
-				<service name="File_system" label="cbe">                                 <parent label="data"/> </service>
+				<service name="File_system" label="tresor">                                 <parent label="data"/> </service>
 				<service name="File_system" label="fs_query -> ">                        <parent label="data"/> </service>
 				<service name="File_system" label="image_fs_query -> ">                  <parent label="data"/> </service>
-				<service name="File_system" label="cbe_vfs -> cbe_fs">                   <parent label="data"/> </service>
-				<service name="File_system" label="truncate_file -> cbe">                <parent label="data"/> </service>
+				<service name="File_system" label="tresor_vfs -> tresor_fs">                   <parent label="data"/> </service>
+				<service name="File_system" label="truncate_file -> tresor">                <parent label="data"/> </service>
 				<service name="File_system" label="menu_view -> fonts">                  <parent label="fonts"/> </service>
 				<service name="Timer">                                                   <parent/> </service>
 				<service name="Gui">                                                     <parent/> </service>

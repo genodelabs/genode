@@ -267,7 +267,7 @@ namespace File_vault {
 		});
 	}
 
-	void gen_cbe_vfs_start_node(Xml_generator     &xml,
+	void gen_tresor_vfs_start_node(Xml_generator     &xml,
 	                            Child_state const &child)
 	{
 		child.gen_start_node(xml, [&] () {
@@ -279,9 +279,9 @@ namespace File_vault {
 
 					xml.node("fs", [&] () {
 						xml.attribute("buffer_size", "1M");
-						xml.attribute("label", "cbe_fs");
+						xml.attribute("label", "tresor_fs");
 					});
-					xml.node("cbe_crypto_aes_cbc", [&] () {
+					xml.node("tresor_crypto_aes_cbc", [&] () {
 						xml.attribute("name", "crypto");
 					});
 					xml.node("dir", [&] () {
@@ -295,11 +295,11 @@ namespace File_vault {
 					xml.node("dir", [&] () {
 						xml.attribute("name", "dev");
 
-						xml.node("cbe", [&] () {
-							xml.attribute("name", "cbe");
+						xml.node("tresor", [&] () {
+							xml.attribute("name", "tresor");
 							xml.attribute("verbose", "no");
 							xml.attribute("debug", "no");
-							xml.attribute("block", "/cbe.img");
+							xml.attribute("block", "/tresor.img");
 							xml.attribute("crypto", "/crypto");
 							xml.attribute("trust_anchor", "/trust_anchor");
 						});
@@ -317,7 +317,7 @@ namespace File_vault {
 					xml.attribute("writeable", "yes");
 				});
 				xml.node("policy", [&] () {
-					xml.attribute("label", "shut_down_fs_tool -> ");
+					xml.attribute("label", "lock_fs_tool -> ");
 					xml.attribute("root", "/dev");
 					xml.attribute("writeable", "yes");
 				});
@@ -347,35 +347,35 @@ namespace File_vault {
 					xml.attribute("writeable", "yes");
 				});
 				xml.node("policy", [&] () {
-					xml.attribute("label", "shut_down_fs_query -> ");
+					xml.attribute("label", "lock_fs_query -> ");
 					xml.attribute("root", "/dev");
 					xml.attribute("writeable", "yes");
 				});
 				xml.node("policy", [&] () {
 					xml.attribute("label", "vfs_block -> ");
-					xml.attribute("root", "/dev/cbe/current");
+					xml.attribute("root", "/dev/tresor/current");
 					xml.attribute("writeable", "yes");
 				});
 				xml.node("policy", [&] () {
 					xml.attribute("label", "client_fs_fs_query -> ");
-					xml.attribute("root", "/dev/cbe/current");
+					xml.attribute("root", "/dev/tresor/current");
 					xml.attribute("writeable", "no");
 				});
 				xml.node("policy", [&] () {
-					xml.attribute("label", "sync_to_cbe_vfs_init -> ");
+					xml.attribute("label", "sync_to_tresor_vfs_init -> ");
 					xml.attribute("root", "/dev");
 					xml.attribute("writeable", "yes");
 				});
 			});
 			xml.node("route", [&] () {
-				route_to_child_service(xml, "cbe_trust_anchor_vfs", "File_system", "trust_anchor");
-				route_to_parent_service(xml, "File_system", "cbe_fs");
+				route_to_child_service(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor");
+				route_to_parent_service(xml, "File_system", "tresor_fs");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
 	}
 
-	void gen_cbe_trust_anchor_vfs_start_node(Xml_generator     &xml,
+	void gen_tresor_trust_anchor_vfs_start_node(Xml_generator     &xml,
 	                                         Child_state const &child)
 	{
 		child.gen_start_node(xml, [&] () {
@@ -396,8 +396,8 @@ namespace File_vault {
 					xml.node("dir", [&] () {
 						xml.attribute("name", "dev");
 
-						xml.node("cbe_trust_anchor", [&] () {
-							xml.attribute("name", "cbe_trust_anchor");
+						xml.node("tresor_trust_anchor", [&] () {
+							xml.attribute("name", "tresor_trust_anchor");
 							xml.attribute("storage_dir", "/storage_dir");
 						});
 
@@ -407,18 +407,18 @@ namespace File_vault {
 					});
 				});
 				xml.node("policy", [&] () {
-					xml.attribute("label", "cbe_init_trust_anchor -> trust_anchor");
-					xml.attribute("root", "/dev/cbe_trust_anchor");
+					xml.attribute("label", "tresor_init_trust_anchor -> trust_anchor");
+					xml.attribute("root", "/dev/tresor_trust_anchor");
 					xml.attribute("writeable", "yes");
 				});
 				xml.node("policy", [&] () {
-					xml.attribute("label", "cbe_init -> trust_anchor");
-					xml.attribute("root", "/dev/cbe_trust_anchor");
+					xml.attribute("label", "tresor_init -> trust_anchor");
+					xml.attribute("root", "/dev/tresor_trust_anchor");
 					xml.attribute("writeable", "yes");
 				});
 				xml.node("policy", [&] () {
-					xml.attribute("label", "cbe_vfs -> trust_anchor");
-					xml.attribute("root", "/dev/cbe_trust_anchor");
+					xml.attribute("label", "tresor_vfs -> trust_anchor");
+					xml.attribute("root", "/dev/tresor_trust_anchor");
 					xml.attribute("writeable", "yes");
 				});
 			});
@@ -440,7 +440,7 @@ namespace File_vault {
 				xml.node("vfs", [&] () {
 					xml.node("rump", [&] () {
 						xml.attribute("fs", "ext2fs");
-						xml.attribute("ram", "10M");
+						xml.attribute("ram", "20M");
 					});
 				});
 
@@ -471,10 +471,10 @@ namespace File_vault {
 
 				xml.node("vfs", [&] () {
 					xml.node("dir", [&] () {
-						xml.attribute("name", "cbe");
+						xml.attribute("name", "tresor");
 
 						xml.node("fs", [&] () {
-							xml.attribute("label", "cbe");
+							xml.attribute("label", "tresor");
 						});
 					});
 				});
@@ -486,7 +486,7 @@ namespace File_vault {
 		});
 	}
 
-	void gen_sync_to_cbe_vfs_init_start_node(Xml_generator     &xml,
+	void gen_sync_to_tresor_vfs_init_start_node(Xml_generator     &xml,
 	                                         Child_state const &child)
 	{
 		child.gen_start_node(xml, [&] () {
@@ -505,7 +505,7 @@ namespace File_vault {
 						xml.node("log", [&] () { });
 					});
 					xml.node("dir", [&] () {
-						xml.attribute("name", "cbe");
+						xml.attribute("name", "tresor");
 
 						xml.node("fs",  [&] () {
 							xml.attribute("writeable", "yes");
@@ -514,13 +514,13 @@ namespace File_vault {
 				});
 			});
 			xml.node("route", [&] () {
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
 	}
 
-	void gen_cbe_vfs_block_start_node(Xml_generator     &xml,
+	void gen_tresor_vfs_block_start_node(Xml_generator     &xml,
 	                                  Child_state const &child)
 	{
 		child.gen_start_node(xml, [&] () {
@@ -552,7 +552,7 @@ namespace File_vault {
 				});
 			});
 			xml.node("route", [&] () {
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
@@ -602,7 +602,7 @@ namespace File_vault {
 			});
 			xml.node("route", [&] () {
 				route_to_local_service(xml, "Report");
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
@@ -632,15 +632,15 @@ namespace File_vault {
 		});
 	}
 
-	void gen_cbe_init_trust_anchor_start_node(Xml_generator          &xml,
-	                                          Child_state      const &child,
-	                                          Input_passphrase const &passphrase)
+	void gen_tresor_init_trust_anchor_start_node(Xml_generator           &xml,
+	                                          Child_state       const &child,
+	                                          Passphrase_string const &passphrase)
 	{
 		child.gen_start_node(xml, [&] () {
 
 			xml.node("config", [&] () {
 
-				xml.attribute("passphrase", passphrase.plaintext().string());
+				xml.attribute("passphrase", passphrase);
 				xml.attribute("trust_anchor_dir", "/trust_anchor");
 				xml.node("vfs", [&] () {
 					xml.node("dir", [&] () {
@@ -652,39 +652,13 @@ namespace File_vault {
 				});
 			});
 			xml.node("route", [&] () {
-				route_to_child_service(xml, "cbe_trust_anchor_vfs", "File_system", "trust_anchor");
+				route_to_child_service(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
 	}
 
-	void gen_cbe_image_vfs_block_start_node(Xml_generator     &xml,
-	                                        Child_state const &child)
-	{
-		child.gen_start_node(xml, [&] () {
-
-			gen_provides_service(xml, "Block");
-			xml.node("config", [&] () {
-				xml.node("vfs", [&] () {
-					xml.node("fs", [&] () {
-						xml.attribute("buffer_size", "1M");
-					});
-				});
-				xml.node("policy", [&] () {
-					xml.attribute("label", "cbe_init -> ");
-					xml.attribute("block_size", "512");
-					xml.attribute("file", "/cbe.img");
-					xml.attribute("writeable", "yes");
-				});
-			});
-			xml.node("route", [&] () {
-				route_to_parent_service(xml, "File_system");
-				gen_parent_routes_for_pd_rom_cpu_log(xml);
-			});
-		});
-	}
-
-	void gen_cbe_init_start_node(Xml_generator       &xml,
+	void gen_tresor_init_start_node(Xml_generator       &xml,
 	                             Child_state   const &child,
 	                             Tree_geometry const &vbd_geom,
 	                             Tree_geometry const &ft_geom)
@@ -692,18 +666,30 @@ namespace File_vault {
 		child.gen_start_node(xml, [&] () {
 
 			xml.node("config", [&] () {
-				xml.attribute("trust_anchor_dir", "/trust_anchor");
 
+				xml.node("trust-anchor", [&] () {
+					xml.attribute("path", "/trust_anchor");
+				});
+				xml.node("block-io", [&] () {
+					xml.attribute("type", "vfs");
+					xml.attribute("path", "/tresor.img");
+				});
+				xml.node("crypto", [&] () {
+					xml.attribute("path", "/crypto");
+				});
 				xml.node("vfs", [&] () {
+					xml.node("fs", [&] () {
+						xml.attribute("buffer_size", "1M");
+					});
+					xml.node("tresor_crypto_aes_cbc", [&] () {
+						xml.attribute("name", "crypto");
+					});
 					xml.node("dir", [&] () {
 						xml.attribute("name", "trust_anchor");
 						xml.node("fs", [&] () {
 							xml.attribute("label", "trust_anchor");
 						});
 					});
-				});
-				xml.node("key", [&] () {
-					xml.attribute("id", "12");
 				});
 				xml.node("virtual-block-device", [&] () {
 					xml.attribute("nr_of_levels",   vbd_geom.nr_of_levels());
@@ -717,8 +703,8 @@ namespace File_vault {
 				});
 			});
 			xml.node("route", [&] () {
-				route_to_child_service(xml, "cbe_trust_anchor_vfs", "File_system", "trust_anchor");
-				route_to_child_service(xml, "vfs_block", "Block");
+				route_to_child_service(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor");
+				route_to_parent_service(xml, "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
@@ -750,13 +736,13 @@ namespace File_vault {
 					});
 				});
 				xml.node("query", [&] () {
-					xml.attribute("path", "/cbe/snapshots");
+					xml.attribute("path", "/tresor/snapshots");
 					xml.attribute("content", "yes");
 				});
 			});
 			xml.node("route", [&] () {
 				route_to_local_service(xml, "Report");
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
@@ -775,7 +761,7 @@ namespace File_vault {
 
 				xml.node("vfs", [&] () {
 					xml.node("dir", [&] () {
-						xml.attribute("name", "cbe");
+						xml.attribute("name", "tresor");
 
 						xml.node("fs",  [&] () {
 							xml.attribute("writeable", "yes");
@@ -783,13 +769,13 @@ namespace File_vault {
 					});
 				});
 				xml.node("new-file", [&] () {
-					xml.attribute("path", "/cbe/cbe/control/extend");
+					xml.attribute("path", "/tresor/tresor/control/extend");
 					xml.append_content("tree=", tree, ",blocks=", nr_of_blocks);
 				});
 			});
 			xml.node("route", [&] () {
 
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
@@ -807,19 +793,19 @@ namespace File_vault {
 					});
 				});
 				xml.node("query", [&] () {
-					xml.attribute("path", "/cbe/control");
+					xml.attribute("path", "/tresor/control");
 					xml.attribute("content", "yes");
 				});
 			});
 			xml.node("route", [&] () {
 				route_to_local_service(xml, "Report");
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
 	}
 
-	void gen_shut_down_fs_tool_start_node(Xml_generator     &xml,
+	void gen_lock_fs_tool_start_node(Xml_generator     &xml,
 	                                      Child_state const &child)
 	{
 		child.gen_start_node(xml, [&] () {
@@ -830,7 +816,7 @@ namespace File_vault {
 
 				xml.node("vfs", [&] () {
 					xml.node("dir", [&] () {
-						xml.attribute("name", "cbe");
+						xml.attribute("name", "tresor");
 
 						xml.node("fs",  [&] () {
 							xml.attribute("writeable", "yes");
@@ -838,13 +824,13 @@ namespace File_vault {
 					});
 				});
 				xml.node("new-file", [&] () {
-					xml.attribute("path", "/cbe/cbe/control/deinitialize");
+					xml.attribute("path", "/tresor/tresor/control/deinitialize");
 					xml.append_content("true");
 				});
 			});
 			xml.node("route", [&] () {
 
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
@@ -861,7 +847,7 @@ namespace File_vault {
 
 				xml.node("vfs", [&] () {
 					xml.node("dir", [&] () {
-						xml.attribute("name", "cbe");
+						xml.attribute("name", "tresor");
 
 						xml.node("fs",  [&] () {
 							xml.attribute("writeable", "yes");
@@ -869,20 +855,20 @@ namespace File_vault {
 					});
 				});
 				xml.node("new-file", [&] () {
-					xml.attribute("path", "/cbe/cbe/control/rekey");
+					xml.attribute("path", "/tresor/tresor/control/rekey");
 					xml.append_content("true");
 				});
 			});
 			xml.node("route", [&] () {
 
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
 	}
 
-	void gen_shut_down_fs_query_start_node(Xml_generator     &xml,
-	                                       Child_state const &child)
+	void gen_lock_fs_query_start_node(Xml_generator     &xml,
+	                                  Child_state const &child)
 	{
 		child.gen_start_node(xml, [&] () {
 
@@ -893,13 +879,13 @@ namespace File_vault {
 					});
 				});
 				xml.node("query", [&] () {
-					xml.attribute("path", "/cbe/control");
+					xml.attribute("path", "/tresor/control");
 					xml.attribute("content", "yes");
 				});
 			});
 			xml.node("route", [&] () {
 				route_to_local_service(xml, "Report");
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
@@ -917,13 +903,13 @@ namespace File_vault {
 					});
 				});
 				xml.node("query", [&] () {
-					xml.attribute("path", "/cbe/control");
+					xml.attribute("path", "/tresor/control");
 					xml.attribute("content", "yes");
 				});
 			});
 			xml.node("route", [&] () {
 				route_to_local_service(xml, "Report");
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
@@ -940,7 +926,7 @@ namespace File_vault {
 
 				xml.node("vfs", [&] () {
 					xml.node("dir", [&] () {
-						xml.attribute("name", "cbe");
+						xml.attribute("name", "tresor");
 
 						xml.node("fs",  [&] () {
 							xml.attribute("writeable", "yes");
@@ -948,13 +934,13 @@ namespace File_vault {
 					});
 				});
 				xml.node("new-file", [&] () {
-					xml.attribute("path", "/cbe/cbe/control/create_snapshot");
+					xml.attribute("path", "/tresor/tresor/control/create_snapshot");
 					xml.append_content("true");
 				});
 			});
 			xml.node("route", [&] () {
 
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});
@@ -972,7 +958,7 @@ namespace File_vault {
 
 				xml.node("vfs", [&] () {
 					xml.node("dir", [&] () {
-						xml.attribute("name", "cbe");
+						xml.attribute("name", "tresor");
 
 						xml.node("fs",  [&] () {
 							xml.attribute("writeable", "yes");
@@ -980,13 +966,13 @@ namespace File_vault {
 					});
 				});
 				xml.node("new-file", [&] () {
-					xml.attribute("path", "/cbe/cbe/control/discard_snapshot");
+					xml.attribute("path", "/tresor/tresor/control/discard_snapshot");
 					xml.append_content(Generation_string(generation));
 				});
 			});
 			xml.node("route", [&] () {
 
-				route_to_child_service(xml, "cbe_vfs", "File_system");
+				route_to_child_service(xml, "tresor_vfs", "File_system");
 				gen_parent_routes_for_pd_rom_cpu_log(xml);
 			});
 		});

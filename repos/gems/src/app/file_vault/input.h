@@ -135,16 +135,6 @@ class File_vault::Input_passphrase : public Input_single_line
 
 	public:
 
-		bool suitable() const
-		{
-			return _length >= 8;
-		}
-
-		char const *not_suitable_text() const
-		{
-			return "Must have at least 8 characters!";
-		}
-
 		void print(Output &out) const
 		{
 			if (_hide) {

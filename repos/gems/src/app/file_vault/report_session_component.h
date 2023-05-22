@@ -1,5 +1,5 @@
 /*
- * \brief  Report session provided by the CBE manager
+ * \brief  Report session provided by the Tresor manager
  * \author Martin Stein
  * \author Norman Feske
  * \date   2021-02-25
