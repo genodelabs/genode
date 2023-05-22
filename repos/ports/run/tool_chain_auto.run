@@ -213,6 +213,15 @@ install_config {
 	<start name="/bin/bash" caps="2000">
 		<resource name="RAM" quantum="300M" />
 		<config ld_verbose="yes">
+			<ld>
+				<!--
+				     Make sure that the essential POSIX libraries are
+				     always loaded first and in the same order to avoid
+				     fork/execve problems if the 'DT_NEEDED' order in
+				     binaries differs.
+				-->
+				<library rom="posix.lib.so"/>
+			</ld>
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
 			      rtc="/dev/rtc" pipe="/pipe"/>
 			<vfs>
