@@ -311,7 +311,7 @@ if {[have_include "power_on/qemu"]} {
 		append qemu_args " -m 1024 "
 	}
 
-	append qemu_args " -cpu phenom "
+	append qemu_args " -cpu EPYC "
 	if {[expr $use_usb_qemu]} {
 		append qemu_args " -usbdevice mouse -usbdevice keyboard"
 	}

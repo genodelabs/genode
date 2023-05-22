@@ -86,7 +86,7 @@ if {[have_spec linux]} {
 
 build_boot_image [build_artifacts]
 
-append qemu_args " -cpu phenom -smp 2"
+append qemu_args " -cpu EPYC -smp 2"
 append qemu_args " -nographic "
 
 #run_genode_until {.*vcpu 1 : 7\. vm exit -.*\n} 20
