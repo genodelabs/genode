@@ -1,0 +1,861 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 23.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+Besides our annual documentation update, our major tool-chain update as
+scheduled every two years, and the switch to C++20, version 23.05 puts the
+spotlight on the Goa tool, which allows us to leverage existing SDKs like
+Lomiri and Rust's cargo for Genode applications. In line with the previous
+versions, DDE-Linux is prominently featured as enabler of our cross-platform
+Wifi stack and the updated (6.1.20) drivers for Intel graphics and USB.
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org/documentation/genode-foundations-23-05.pdf">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-foundations-title.png">
+:   </a>
+:   <a class="internal-link" href="https://genode.org/documentation/genode-platforms-23-05.pdf">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-platforms-title.png">
+:   </a>
+:  </div>
+: </p>
+
+Before getting to the technical achievements, we'd like to draw your attention
+to the books "Genode Foundations" and "Genode Platforms", which have been
+updated to reflect the most recent state of the framework. Whereas the
+"Foundations" cover Genode's architecture, developer work flows, and reference
+material, the "Platforms" document is focused on low-level hardware topics and
+provides plenty of practical guidance.
+
+: <div class="visualClear"><!-- --></div>
+
+Every two years, we update Genode's tool chain to the latest stable releases
+of GCC and binutils. This time, we took the update as opportunity to switch
+Genode's default from C++17 to C++20 so that modern C++ niceties can be used
+for regular Genode components. The new tool chain is covered by
+Section [New tool chain based on GCC 12.3, C++20 enabled by default].
+
+For application developers, the evolving Goa tool is certainly the most
+interesting feature of the current release. As detailed in
+Section [Goa tool updated to Sculpt OS 23.04, initial support for Rust],
+this tool enables us to reuse existing SDKs to target Genode. In particular,
+we enabled the use of the Lomiri mobile UI toolkit (formerly known as Ubuntu
+Touch UI toolkit) for targeting the PinePhone, and Rust's cargo.
+
+System integrators may appreciate our continued development of the Linux
+device-driver environment, which received an update to Linux 6.1.20
+(Section [Device drivers]) and ultimately enabled us to use the same Wifi
+stack across PC and ARM platforms
+(Section [Uniform Wifi stack across PC and ARM platforms]).
+
+Even though not end-user facing yet, two noteworthy development milestones of
+the current release are the new use of our custom base-hw microkernel as x86
+hypervisor (Section [Base-HW microkernel]) and the profound work on storage
+encryption covered in
+Section [Revision of Genode's custom block-encryption infrastructure].
+Further topics making an appearance in version 23.05 range from RISC-V, over
+WireGuard, VirtualBox, to seL4.
+
+
+Goa tool updated to Sculpt OS 23.04, initial support for Rust
+#############################################################
+
+Last month, we [https://genode.org/news/sculpt-os-release-23.04 - released]
+Sculpt OS 23.04 for PC and PinePhone. The new release comes with various
+[https://genodians.org/nfeske/2023-05-11-sculpt-os - usability improvements]
+such as presets and on-target system updates.
+
+[image mobile_sculpt_23_04]
+  Interactive software management on the mobile variant of Sculpt OS
+
+In particular, with Sculpt OS 23.04 running on the PinePhone, we have carved
+out the base for hosting mobile apps on a Genode-based system. Yet, there are
+only very few apps available right now. Since an OS is of no practical use
+without apps, this urgently called for an SDK to simplify (mobile) app
+development. After careful investigation, we opted for porting the
+Ubuntu-Touch-UI toolkit to Genode and integrate it into Goa (Section
+[Using Goa for bringing apps based on the Ubuntu-Touch-UI toolkit to Genode]),
+our streamlined workflow tool for application development. In addition, we
+integrated initial support for Rust's _cargo_ to make Goa palatable to a
+broader developer audience (Section [Initial Rust support]).
+
+The growing attention of the Goa tool prompted us to move it under the
+[https://genodians.org/nfeske/2023-05-02-goa-genode-labs - umbrella of Genode Labs]
+as we are increasing our development and maintenance efforts for the tool.
+Aligned with the Sculpt release, the Goa tool has been updated with the
+corresponding depot archive versions. With this Genode release, we put a
+cherry on top and added bash completion to improve the user experience even
+further. Having Goa installed, bash completion is enabled by the following
+commands:
+
+! goa update-goa master
+! GOA_DIR=$(realpath $(which goa) | sed s#bin/goa##)
+! echo "source ${GOA_DIR}/share/bash-completion/goa" >> ~/.bashrc
+
+:Goa tool:
+
+  [https://github.com/genodelabs/goa/]
+
+
+Using Goa for bringing apps based on the Ubuntu-Touch-UI toolkit to Genode
+==========================================================================
+
+While writing mobile apps might be fun, it is outside our core expertise.
+Therefore, we have looked into ways of supporting established open-source SDKs
+for app development on Genode. We investigated two possible options in depth,
+namely Ubuntu Touch's UI toolkit now called [https://lomiri.com - Lomiri] and
+the [https://docs.sailfishos.org/Tools/Sailfish_SDK - Sailfish SDK]. We have
+tried to port applications for both stacks and after many iterations settled
+with the Ubuntu UI toolkit. The full story can be read
+[https://genodians.org/ssumpf/2023-05-06-ubunutu_ui - here]. Therefore, a port
+of the Ubuntu UI toolkit is available on Genode right now and support for it
+has been added to the Goa tool.
+
+The workflow for crafting an app for the PinePhone using the Goa tool is a
+fairly streamlined experience now:
+
+# Since the UI toolkit depends on Qt5, add "genodelabs/api/qt5" to your
+  [https://genodians.org/nfeske/2019-11-25-goa - _used_apis_ file]
+
+# Add "ssumpf/pkg/ubuntu_ui_toolkit" to your _archives_
+  [https://genodians.org/nfeske/2019-11-25-goa - file] to have the UI toolkit
+  available within your package
+
+# In order to have your QML code within your packet installed, add
+  "<packet-name>.tar: install/" to your
+  [https://genodians.org/nfeske/2019-11-25-goa - _artifacts_ file]
+
+# Configure your
+  [https://genodians.org/nfeske/2019-12-19-goa-unix-terminal - _runtime_ file]
+
+# Execute your scenario on Linux for development
+  ! goa run
+
+# Build for the PinePhone
+  ! goa build --arch arm_v8a
+
+# [https://genodians.org/nfeske/2020-01-16-goa-publish - Publish] your package
+  ! goa publish --depot-user john --depot-overwrite
+
+Examples using QML, Qt5, and C++ can be found
+[https://github.com/ssumpf/goa-projects - here]
+
+
+Initial Rust support
+====================
+
+The Rust programming language has grown in popularity in the recent years.
+The Genode OS Framework had support for the Rust programming language
+before, contributed to Genode release 16.05 by Waylon Cude. However, as an
+on-off contribution it never got traction and the support was eventually
+removed with release 20.05.
+While the original support focused on some low-level runtime libraries and
+integration into the Genode build system, our new attempt has a somewhat
+different objective, which is to facilitate the use of the existing Rust
+ecosystem on the Genode OS Framework. The removal note already envisioned a
+possible comeback using the Goa tool and Rust's cargo build system, for which
+we have added initial support with this release.
+
+Our objective led to the following guidelines for Rust integration:
+
+# Make use of the native build system, cargo, to make the existing ecosystem
+  accessible.
+# Aim for a seamless integration into the Genode OS Framework using the Goa
+  build tool.
+# Instead of introducing our own Genode
+  [https://doc.rust-lang.org/nightly/rustc/platform-support.html - target triples],
+  leverage Genode's FreeBSD-based C library interface to use existing
+  supported standard library targets like 'x86_64-unknown-freebsd'.
+# Strive to use the upstream tool chain, or at least stay as close to upstream
+  as possible.
+
+While we largely succeeded in following these guidelines, our initial
+proof-of-concept implementation relies on a marginally adapted tool chain to
+work around missing support for versioned library symbols in our linker.
+We are exploring avenues to overcome these limitations and expand the support
+to cover more complex use cases in the next release.
+
+To learn more about our Rust support, head over to the
+[https://genodians.org/atopia/2023-05-30-bringing-rust-back-to-genode - article on Genodians.org].
+
+
+Uniform Wifi stack across PC and ARM platforms
+##############################################
+
+Support for wireless LAN was mostly focused on the
+[https://genode.org/documentation/release-notes/14.11#Intel_wireless_stack - PC platform]
+as it was the platform predominately used for using Genode and, in extension,
+Sculpt on a daily basis. In the last couple of years, however, we started to
+embrace ARM-based platforms like the MNT Reform 2 and the PinePhone as well,
+longing for thorough support of Sculpt OS on such systems. Thanks to our Linux
+device-driver environment, we have now taken the opportunity to reuse the
+existing wireless stack on vastly different platforms.
+
+
+Making the wireless stack globally accessible
+---------------------------------------------
+
+The
+[https://genode.org/documentation/release-notes/23.02#Realtek_Wifi - previous release]
+already featured additional support for a different wireless LAN device driver -
+the rtlwifi driver that supports Realtek-based devices - giving us a good
+intuition on how easy it has become to extend even a complex Linux-based
+driver component stack such as our wifi-driver component ('wifi_drv').
+
+The first step was making it less x86-centric. We started by making the various
+ingredients of the driver available on the ARM platforms.
+
+On the one hand, that includes the WPA supplicant and its dependencies like
+the 'nl80211' driver that in turn depends on 'libnl'. Enabling them was
+straight-forward because they are already pretty platform independent and
+the platform-dependent portions, e.g. libcrypto, are readily available for ARM.
+
+On the other hand, the wireless stack was slightly more complicated because
+the hardware integration of wireless networking devices on ARM platforms
+varies from platform to platform. In case of the MNT Reform 2 and PC, the
+integrated wireless devices are normally connected via PCIe. In contrast, the
+PinePhone relies on SDIO. We separated the code to allow for a "mix-and-match"
+way of selecting the necessary compilation units as the used Linux
+configuration might differ between each target and could result in compilation
+issues otherwise.
+
+The next step was to make the wireless stack globally accessible by moving it
+from the _pc_ to the _dde_linux_ repository. This move was motivated by the
+fact that the _dde_linux_ repository is already available in all platform or
+rather board-specific repositories while the _pc_ repository is not. It is
+in itself a board-specific repository and therefore having it appear as
+dependency for other such repositories feels unnatural.
+
+So the bulk of the driver code now lives in the _dde_linux_ repository from
+where it can be referenced by other repositories.
+
+While moving the code, we noticed that in contrast to all other Linux-based
+drivers the 'wifi_drv' is special. Since the binary itself is a libc component,
+care was taken to isolate the application code, the 'wpa_supplicant', from
+the driver code, the library containing the Linux wireless stack and drivers.
+On all platforms, the binary stays the same while the driver library contains
+all the platform-specific code. For this reason, the 'wifi_drv' binary is now
+delegated to be a generic harness that includes all configuration and
+management functionality shared by all wireless device driver components,
+e.g., the WPA supplicant. The code of the device driver emulation environment
+is located in _repos/dde_linux/src/lib/wifi_. It is referenced by the
+platform-specific driver library that resides in the corresponding platform
+repository. The runtime configuration needs to point the driver to a proper
+driver library.
+
+The platform-specific library is in charge of orchestrating the 3rd-party
+sources utilized by the driver as well as providing the _source.list_ and
+_dep.list_ files. It must include the generic library snippet
+_repos/dde_linux/lib/wifi.inc_ that deals with managing the emulation
+environment code. The amount of code added by the platform-specific libraries
+is unimposing as it mostly consists of the dummy implementations needed by
+the Linux configuration.
+
+[image wifi_drv_architecture]
+  Composition of the wireless LAN driver component
+
+All recipes for the depot archives are prefixed to the specific driver, for
+example 'pkg/pc_wifi' contains a reference to 'src/pc_wifi_drv' as well as to
+'raw/pc_wifi_firmware'.
+
+Thanks to the steps outlined above, we now have three different wireless LAN
+drivers, one for the PinePhone, one for the MNT Reform 2, and one for the PC
+that nicely follow the same approach.
+
+
+New firmware loading mechanism
+------------------------------
+
+Additionally to making it easier to enable and use the driver for new
+platforms, we also refined how the driver loads its firmware images. In the
+past, the driver contained a list of well-known working firmware images that
+needed to be updated every now and then when new devices where enabled or the
+firmware version changed due to a Linux update. In particular using the driver
+with new devices was cumbersome as the driver itself already supported the
+device most of the time, but it solely missed the corresponding entry in the
+firmware list and adding that required recompiling the driver.
+
+[image wifi_firmware_loading]
+  Firmware image loading sequence
+
+So instead, the driver now loads the firmware images via its local VFS rather
+than requesting a predetermined ROM module. Since the platform-specific driver
+library has no direct access to the VFS - after all both worlds are
+intentionally isolated from each other - a request/response interface was
+added. The library submits a request to the _wifi_drv_ binary and will suspend
+its execution waiting for the completion of the request. The binary will
+acquire the firmware image and notify the driver library in return.
+Streamlining the firmware acquisition in such a manner allows for using the
+original probing mechanism available in Linux. Rather than following the
+firmware list the actual driver code is now free to probe as it sees fit,
+exactly pointing to the required uAPI revision in case the firmware is
+missing.
+
+The following snippet illustrates the configuration of the driver on the
+PinePhone (omitting any integration-related routes for the config ROM as well
+as state and scan reports):
+
+!<start name="wifi_drv" caps="250" priority="-1">
+!  <resource name="RAM" quantum="32M"/>
+!  <config ld_verbose="yes">
+!    <report mac_address="true"/>
+!    <libc stdout="/dev/log" stderr="/dev/log"
+!          rtc="/dev/rtc" rng="/dev/urandom"/>
+!    <vfs>
+!      <dir name="dev"> <log/> <null/> <rtc/>
+!        <jitterentropy name="random"/>
+!        <jitterentropy name="urandom"/>
+!        <wifi/>
+!      </dir>
+!      <dir name="firmware">
+!        <tar name="wifi_firmware.tar"/>
+!      </dir>
+!    </vfs>
+!  </config>
+!  <route>
+!    <service name="ROM" label="wifi.lib.so">
+!      <parent label="a64_wifi.lib.so"/>
+!    </service>
+!    <service name="ROM" label="wifi_firmware.tar">
+!      <parent label="a64_wifi_firmware.tar"/>
+!    </service>
+!    <service name="ROM" label="dtb">
+!      <parent label="wifi-pinephone.dtb"/>
+!    </service>
+!    […]
+!    <any-services> <parent/> <any->child/> </service>
+!  </route>
+!</start>
+
+In this configuration, the firmware images are provided as a _.tar_ archive
+that itself is requested via a ROM connection. The driver will always look
+into the _/firmware_ directory to access any firmware related files. How the
+directory is populated is up to the integrator of the driver.
+
+As a further simplification step, we removed the need for the firmware library
+used to contain firmware images. It is superseded by the use of a plain data
+depot archive, e.g., _raw/pc_wifi_firmware_.
+
+
+Additional device support and updates
+-------------------------------------
+
+We updated the firmware images to the most recent ones supported by
+Linux version 6.1.20.
+
+We enabled the ath9k PCIe driver that can be used on the MNT Reform 2 and the
+PC. As the ath9k device (168c:0034) used to test the driver on the PC exhibited
+problems when using MSIs, we disable their usage in the 'pci_decoder'. Similar
+treatment might be necessary if other ath9k-based devices are used.
+
+The device support in the 'rtlwifi' driver got extended by additionally
+enabling support for RTL8192CE devices.
+
+Furthermore, we updated the WPA supplicant to its latest v2.10 release and
+introduce preliminary support for joining networks secured by WPA3.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+New tool chain based on GCC 12.3, C++20 enabled by default
+==========================================================
+
+Following a regular cycle of two years, we updated our tool chain to recent
+versions again, this time in particular to GCC 12.3.0, binutils 2.40, and GDB
+13.1 while taking the opportunity to enable C++20 by default.
+
+A noticeable change with GCC 12 is that auto-vectorization with the
+'-ftree-vectorize' option is now enabled by default when building with the
+'-O2' optimization level. This has the effect that more SIMD instructions are
+generated, which required adaptations throughout our code base, for example by
+making sure that memory allocations in ported Linux drivers adhere a suitable
+address alignment and by saving and restoring ARMv8 FPU registers in the
+dynamic linker.
+
+In addition to that, GCC 12 reports new warnings and errors, which we had to
+rectify at various places, the most common ones being:
+
+* Deprecated arithmetics between different enumeration types,
+
+* Deprecated use of '++' and '--' operators with volatile variables, and
+
+* Undefined references to 'strlen' inside custom implementations
+  of 'strlen'-like functions, related to the
+  '-ftree-loop-distribute-patterns' option.
+
+As an extra feature, we added Genode's library name patterns to the linker so
+that the '-l' option has become able to find the corresponding libraries.
+This is useful while porting 3rd-party software based on Autoconf, whenever a
+'configure' script checks for a library dependency by linking a test program
+with this option. This change thereby removes the need for dummy libraries
+that were formerly used to satisfy the probing.
+
+
+API changes
+===========
+
+As part of Genode's
+[https://genode.org/documentation/release-notes/16.08#Cultivation_of_the_new_text-output_API - great API revision]
+in 2016, we largely *abolished* the use of *format strings* throughout the
+framework. This is desirable because a code base without format strings cannot
+have format-string vulnerabilities. Still, a few occurrences, specifically the
+interface for passing session-construction arguments, remained untouched since
+then. With version 23.05, we finally attained our initial goal by wrapping up
+the transition.
+
+In particular, we revised 'Genode::Connection', which now accepts the session
+label, affinity, and session-specific parameters as constructor arguments,
+whereas the parameters are passed as a 'Genode::String'. This eliminates the
+need for rendering a format string. Given this new interface, we were able to
+remove format strings from all connection types, updated all components that
+still happened to rely on format strings, and ultimately removed format
+strings from Genode's base API.
+
+Format strings still play a role to accommodate 3rd-party code ported
+to Genode. Whenever the 3rd-party code targets the C runtime, format
+strings are readily available via the libc. For free-standing ports that
+avoid the dependency from the full C runtime, e.g., ported device drivers,
+a new 'format' library based on Genode's former _base/snprintf.h_ and
+_base/console.h_ provides rudimentary format-string support. The library
+is hosted in the libports repository.
+
+As another matter of housekeeping, we removed the _util/avl_string.h_ utility.
+The use case of organizing objects by using strings as keys is covered by the
+_util/dictionary.h_ now.
+
+
+Towards kernel-agnostic DMA protection
+======================================
+
+As sketched in our [https://genode.org/about/road-map - road map], we plan
+having a feature-complete PC version of Sculpt OS based on base-hw by the end
+of this year. One of the reasons why we are still sticking to base-nova for
+the PC version is the fact that we are relying on NOVA's IOMMU support. One
+necessary step to decouple Sculpt OS from base-nova is to integrate the IOMMU
+handling into the platform driver.
+
+Motivated by our
+[https://genode.org/documentation/release-notes/23.02#Custom_IP_block_for_DMA_protection_on_AMD_Xilinx_Zynq - custom IP block for DMA protection on AMD/Xilinx Zynq],
+we integrated the notion of IOMMU-like devices into the platform driver with
+this release as a preparatory step. The platform driver automatically acquires
+known IOMMU-like devices for itself by looking at the device types. Other
+devices can then reference these devices by using '<io_mmu>' nodes. This is
+best illustrated by looking at the devices ROM for the Zynq's dma_guard IP
+block:
+
+! <devices>
+!
+!   <device type="dma_guard" name="dma_guard_0">
+!     <!-- [...] -->
+!   </device>
+!
+!   <device type="axi_dma" name="axi_dma_0">
+!     <io_mmu name="dma_guard_0"/>
+!     <!-- [...] -->
+!   </device>
+!
+! </devices>
+
+This tells the platform driver that, whenever a DMA buffer is allocated/freed
+for the session owning the 'axi_dma_0' device, the 'dma_guard_0' must be
+configured accordingly in order to allow/deny access to the corresponding
+memory ranges. With the structural changes to the platform driver, the support
+for dma_guard devices is simply added by implementing specific 'Io_mmu' and
+'Io_mmu_factory' objects. You can find the code in the _dma_guard.h_ within
+the
+[https://github.com/genodelabs/genode-zynq/blob/master/src/drivers/platform/zynq/dma_guard.h - genode-zynq repo].
+
+For the PC version of the platform driver, we implemented a _kernel_iommu_
+device that still uses device PDs to pass IOMMU configuration to the NOVA
+kernel. The _kernel_iommu_ is automatically instantiated and used as a default
+for each device until we replaced this by a kernel-agnostic implementation in
+a future release.
+
+With these preparations, we paved the way for implementing configuration logic
+for arbitrary IOMMU-like devices within the platform driver. In particular,
+the platform driver has been made capable of managing multiple IOMMU-like
+devices at the same time. However, there is one limitation that comes from the
+fact that DMA buffers are not device-specific but allocated per session: All
+IOMMU-like devices must either operate as MMU (virtual addressing) or as MPU
+(physical addressing).
+
+
+Revision of Genode's custom block-encryption infrastructure
+===========================================================
+
+Tresor library
+~~~~~~~~~~~~~~
+
+For about two years, our Ada/SPARK-based CBE block encryption and its GUI
+front-end, the file vault, served us well with rather manageable workloads
+such as configuration and credential files in Sculpt OS on the PC. However,
+with the rise of mobile Sculpt on the PinePhone, the CBE ecosystem was
+suddenly confronted with new challenges and requirements.
+
+First, mobile platforms are usually less forgiving when it comes to
+performance and the CBE still exhibited a lot of potential for optimization.
+Second, we envision encrypted storage to become an integral part of the base
+system - the "appliance role" of mobile Sculpt OS - which shifts the role of
+the component from an optional feature to a foundational mechanism. With this
+role shift, however, maintainability becomes increasingly important. Third,
+now that we decided to settle on this block-encryption approach and to
+increasingly expose it to real workloads, we can expect new requirements to
+pop up more frequently and with higher priority. Last but not least, our
+Ada/SPARK runtime, so far, lacks ARM support.
+
+This prospect forced us to carefully reconsider our relation to the existing
+CBE approach, and especially to the fact that its core logic and crypto
+back-end were entirely written in Ada/SPARK. When we started developing the
+CBE in Ada/SPARK, we were positive that the language might become popular
+among the core developers of Genode and that, eventually, other, especially
+critical parts of the framework could benefit from it as well. But this idea
+didn't come to fruition. Only a few of us came in touch with the new language
+and, of those, even fewer acquired profound experience with it. We ultimately
+realized that the friction caused by the added language boundary that emerged
+with the CBE approach became a bottleneck, inhibiting the further evolution of
+our block-encryption stack with a strong sense of collective code ownership.
+
+This observation in mind, and the above-mentioned challenges in sight, we
+decided to drop the CBE library and create a new implementation strongly
+inspired by the CBE design but in C++, our "mother tongue". The new library is
+called tresor, brings the same feature set as the CBE and is compatible with
+containers created with the CBE. The file vault has been adapted to run with
+the tresor library. So file-vault users can continue using their containers as
+usual without further ado. The entire tresor-based ecosystem is
+architecture-agnostic, which lifts the former restriction to x86.
+
+
+File Vault
+~~~~~~~~~~
+
+Some new features have been added to the file vault. For instance, the
+component can now be driven with one of two available user interfaces: The
+usual graphical front-end or the new non-interactive interface that is driven
+by a textual configuration and provides feedback through a report. This allows
+for the integration of the file vault with automated controls respectively
+lower or higher-level UIs. The interactive interface remains the default, but
+one can replace it with the text-based variant using the new "user_interface"
+configuration attribute. An example of operating the text-based interface is
+provided by the new _file_vault_config_report.run_ script.
+
+As another rather small but handy feature, a file vault can now be locked and
+unlocked without having to restart the component. In the locked state, all key
+material is removed from the cryptographic back end and the block-encryption
+driver is shut down. The user is then prompted to provide the correct
+credentials in order to re-establish access to the container.
+
+
+Custom virtual machine monitor on ARM
+=====================================
+
+The
+[https://genode.org/documentation/release-notes/23.02#Interactive_graphical_VMs_on_ARM - previous release], introduced interactive graphical VMs on ARM systems.
+Genode's custom virtual machine monitor was enhanced by VirtIO device models
+for input events and GPU. However, dynamic changes of the virtual GPU's
+framebuffer resolution weren't yet handled by the initial version. With the
+current release, these restrictions got removed. Now, the user is able to
+resize the window of a virtual machine as expected.
+
+
+NetBSD rump kernel on RISC-V
+============================
+
+We have added RISC-V to our port of the
+[https://wiki.netbsd.org/rumpkernel - rump kernel].
+This enables Genode to access commodity file-systems on RISC-V based devices.
+
+
+Strengthened fault tolerance of on-target package management
+============================================================
+
+Genode's way of safely installing and deploying packages on-target - as
+introduced in
+[https://genode.org/documentation/release-notes/18.02#On-target_package_installation_and_deployment - version 18.02] -
+is a corner stone of Sculpt OS. The recent move of Sculpt OS to mobile
+devices, however, revealed a couple of limitations that we address with the
+current release.
+
+First, in contrast to the PC version of Sculpt OS that allows for the
+straight-forward management and editing of files using a regular command-line
+interface, a touch-based user interface as present on the phone is far more
+constrained. Problems that can be solved by manual intervention on the PC
+without second thought can become insurmountable showstoppers on the phone.
+The most prominent problem is recovery from the situation where package
+dependencies remain incomplete due to an interruption of the installation
+process or due to packaging mistakes. On the PC, such a situation can be
+resolved by simply clearing the depot using a single terminal command,
+followed by a reinstall of the package. On the phone, the user was left out in
+the cold with the message "package installed but incomplete" but with no
+obvious or non-obvious way of recovery. The new version gracefully handles
+this failure state by offering the retry of the package installation.
+
+Second, network connectivity is far more fluctuating on mobile devices, which
+increases the likelihood for download errors. The previous version that
+regarded download errors as rare and sporadic issues, responded to such errors
+by repeated and silent retries. We found that a mobile phone demands a more
+graceful way to reflect such failure situations to the user, and to limit the
+rate of futile download attempts. The new version preserves information about
+download failures for user inspection and re-issues new downloads only if not
+already flagged as unavailable.
+
+Finally, we encountered the manual addition of software providers to the
+system as a hurdle on the phone. On the PC, a new software provider can be
+added by manually placing the provider's _download_ and _pubkey_ files in a
+local depot directory, which is straight-forward when using a shell. However,
+on a touch-screen device, there is no obvious and simple way to supplement the
+system with such information. To still accommodate the user's desire to
+download and install software from arbitrary providers, we added the option to
+explicitly skip the signature verification for downloads. This is useful in
+scenarios where the lack of integrity of downloaded content does not pose a
+risk, e.g., for untrusted applications that are rigidly sandboxed, or during
+development.
+
+Whenever the depot-download subsystem encounters the attribute 'verify="no"'
+for an '<installation>' item, it accepts the installation even if no key is
+available. It still applies verification for dependencies whenever possible.
+E.g., if a package of the provider "john" gets installed via 'verify="no"' and
+the package depends on an archive by "genodelabs", for which the public key is
+known, the integrity of the content originating from "genodelabs" is verified.
+
+
+Libraries and applications
+##########################
+
+Qt5 reorganization
+==================
+
+When the Goa tool is used to build an application, all libraries of the used
+API packages get linked to the application and the single Qt5 API package with
+big libraries like QtWebEngine was a bit too much for simple Qt applications.
+For this reason, we split the Qt5 API into smaller packages according to the
+corresponding Qt modules.
+
+As preparation for the release of a binary version of the Qt5 host tools, we
+also reduced the external dependencies of these tools for improved
+compatibility with different host systems and changed their install location
+to the location of the other Genode host tools.
+
+And finally, we added a 'ubuntu-ui-toolkit' meta package in the genode-world
+repository which pulls in all dependencies for the Ubuntu UI toolkit,
+including a runtime with the required ROMs.
+
+
+WireGuard improvements
+======================
+
+There are two smaller changes related to Genode's port of WireGuard. First,
+peers can now be removed from WireGuard at runtime by removing the
+corresponding '<peer>' tags from the component's configuration. This operation
+enforces the same assurances as removing a peer from a native WireGuard driver
+in Linux.
+
+The second change has to do with the nature of the port. The WireGuard port is
+one of the rare examples where we use our Linux device driver environment
+(dde_linux) for porting software that is not exactly a driver. The component
+does not depend on a specific hardware configuration and therefore, the
+emulated Linux kernel can be platform-agnostic. Consequently, while porting,
+we created such a variant of the Linux emulation specifically for WireGuard.
+
+However, we realized that this variant can come in handy for ports of other
+hardware-agnostic kernel parts (for instance, lxip) as well. Therefore, we now
+cut it out of the WireGuard port in order to make it a self-contained version
+of the 'lx_emul' library. The new library is called 'virt_lx_emul' and is
+accompanied by the 'virt_linux' target that can be used to build the
+corresponding Linux kernel and run it in Qemu.
+
+
+Updated or removed 3rd-party software
+=====================================
+
+VirtualBox updated to version 6.1.44
+------------------------------------
+
+Our port of VirtualBox underwent some maintenance work published in this
+release. With the tool chain updated to GCC 12, it became necessary to update
+VirtualBox to version 6.1.44 to keep up with the tool-chain changes and fix
+many upstream bugs alongside. Also, we improved several aspects of the port to
+improve robustness of networking, USB, multi-threading, and VM reboot. After
+thorough testing in every-day scenarios, we finally adopted the handling of
+the x86 time-stamp counter from version 5 and disabled the VM exit for the
+RDTSC instruction, which improves the performance of selected scenarios
+significantly. For Windows guests, it has become crucial to configure the
+paravirtualization provider like follows in the _machine.vbox6_ file.
+Otherwise, the guest's TSC calibration fails resulting in a bogus CPU
+frequency assumption.
+
+! <Paravirt provider="HyperV"/>
+
+
+Removed ports of pcre16 and icu libraries
+-----------------------------------------
+
+The pcre16 and icu libraries had been used by Qt5 in the past but were not
+used anymore since the last Qt updates. So we removed them from the _libports_
+repository.
+
+
+Device drivers
+##############
+
+Linux device driver environment updated to Linux 6.1.20
+=======================================================
+
+According to [https://genode.org/about/road-map - our roadmap], the update of
+Genode's Linux device driver environment (DDE) to a more recent 6.x Linux
+version was planned for release 23.08. Now, we decided to tackle this update
+with this version already.
+
+Besides the Wireguard port to Genode, the following ported drivers use the
+latest Linux kernel 6.1.20 version now:
+
+* Zynq SD-card driver
+* PCI Wifi driver for i.MX 8MQ
+* all PC drivers (USB host, Wifi, Intel display)
+
+Note that a few drivers are not listed above. The existing drivers for the
+Allwinner and i.MX 8MQ SoC still use older 5.x Linux kernel versions as base.
+However, the Linux device driver environment has been tweaked carefully to
+support a range of Linux kernel versions from 5.11 till 6.1.20.
+
+While doing the update work, we investigated a more sustainable link between
+the Linux kernel drivers for USB and display drivers (DRM/KMS) on the one
+hand, and the Genode API on the other. The outcome is explained in the next
+two sections.
+
+
+Intel display driver
+====================
+
+During the update of DDE Linux to the Linux 6.1.20 version, the dependency on
+internal structures of the Intel framebuffer driver (intel_fbdev) became a
+hassle. Although the update was successful finally, we decided to remove the
+direct usage of intel_fbdev in our ported Intel display driver, in order to
+ease future updates. Nevertheless, the functionality of intel_fbdev is
+required to manage the framebuffer memory to provide a working Genode GUI
+interface by the driver. For that, we investigated the use of the
+[https://www.kernel.org/doc/html/v5.0/gpu/drm-kms.html - Linux DRM/KMS]
+interface, specifically to allocate and manage so called
+[https://www.kernel.org/doc/html/v5.0/gpu/drm-kms.html#dumb-buffer-objects - dumb buffer objects].
+As described in the linked article, the dumb buffers are a standardized and
+streamlined way to make early boot graphics possible driven by user-land
+tools. We adjusted our port along the ioctl's of the dumb buffer functionality
+to manage the framebuffer in our ported display driver.
+
+
+USB
+===
+
+Connecting different USB clients to a USB host controller driver is a delicate
+task. When using a port of a Linux kernel driver, it can quickly become
+brittle because the USB driver API in the Linux kernel is complex and contains
+some semantic dependencies, for instance regarding synchronization, which are
+not always obvious. However, the Linux kernel offers a USB device I/O API to
+the user-land that is used for instance by libusb. This API has to guard the
+USB subsystem against wrong usage, and implements the necessary semantics
+regarding synchronization and dynamic changes of clients and devices. In the
+past, we repeatedly encountered corner-case issues, if clients or devices
+vanished and appeared at a high rate. For the sake of robustness, we decided
+to redesign our internal linking in between the Genode USB API and Linux to
+use the user-level device I/O API of the latter. Moreover, we extended the
+capacity of USB packets in-flight that can be handled by the controller in
+parallel to 32, to enhance the throughput for some USB devices.
+
+
+NVMe storage
+============
+
+Our custom NVMe driver received the following improvements. First we added
+'host-memory-buffer' (HMB) support to the driver, which is a performance
+optimization for NVMe devices that do not make use of a DRAM cache for its
+operational data.
+
+The amount of memory used for the HMB can be set by adding the 'max_hmb_size'
+attribute in the '<config>' node of the driver. This value is checked against
+the constraints imposed by the device. Should the value be less than the
+minimal required amount of memory, it will not be used and a warning is
+issued. On the other hand, if the specified value is larger than the preferred
+amount of memory as favored by the device, it will be capped to the useful
+amount instead.
+
+Naturally, when using the HMB, the required RAM quota of the driver component
+increases by that amount.
+
+Second, we fixed a problem detecting the block size (LBA format) of a given
+namespace. The lower 4 bits of the 'FLABS' register indicate which of the (up
+to) 16 supported LBA formats is used by the namespace. However, instead of
+only making use of those bits, the driver looked at the whole register that
+also includes other information. This led to using the wrong index for reading
+the LBA format and, on certain devices, rendered the driver unusable as the
+assumed block size was detected wrong.
+
+
+Audio-driver update
+===================
+
+We updated the audio driver for HDA devices ported from OpenBSD to version 7.3.
+The functional changes are minimal, but the new version supports more recent
+PC platforms and recognizes more codecs.
+
+
+Platforms
+#########
+
+Base-HW microkernel
+===================
+
+Principle x86 virtualization support (on Qemu)
+----------------------------------------------
+
+This release brings limited support for AMD's Secure Virtual Machine (SVM)
+vCPUs to Genode's custom base-hw microkernel. Supporting SVM is meant as an
+intermediate step towards enabling advanced virtualization workloads using
+VirtualBox on Intel VMX later this year. The approach allows us to craft the
+kernel's virtualization infrastructure using Qemu - which is able to emulate
+SVM in software - and cross-test our implementation against other hypervisors
+in a tightly controlled setting. For reference, we used the time-tested Qemu
+version 4.2 for this line of work.
+
+Implementing principle vCPU support revealed a few points of friction between
+base-hw's kernel interface, which had been designed for the needs of our
+custom ARM VMM, and our kernel-agnostic VM interface on x86 that has been
+carefully crafted to support a range of 3rd party hypervisors, but relies on
+more logic in the kernel-specific VMM library to manage the vCPU state.
+
+The current implementation is able to run several test VM workloads like the
+artificial 'vmm_x86' test, our seoul VMM run scripts with Linux, and - of
+course - Genode VMs on one vCPU. It has thereby reached an important stepping
+stone towards our actual goal of hosting VirtualBox on Intel hardware.
+
+Having shown that base-hw can support the generic x86 VM interface, we will
+mature our implementation and may adapt our interface to make it a better fit
+to base-hw's vCPU execution model in the future.
+
+
+Boot-time RAM detection on the PinePhone
+----------------------------------------
+
+For the PinePhone, we implemented dynamic detection of the system RAM size by
+parsing the values of the DRAM controller as programmed by U-Boot. This way, 2
+and 3 GB models of the PinePhone are supported by Genode.
+
+
+Updated seL4 microkernel
+========================
+
+With this release, we updated the support of the seL4 kernel from 9.0.1 to
+12.1.0 for i.MX6 Sabrelite board and x86_64 PC. The support for 32-bit PC got
+removed since it is unused, and the i.MX7 Sabrelite support got removed since
+it is not supported by the new seL4 kernel anymore.
+
+The updated seL4 kernel requires additional host tools installed, namely
+CMake, Ninja and additional Python3 modules, jinja2, jschonschema, and pyfdt.
+Depending on the distribution, the modules are available as distribution
+package or need to be installed with the python pip3 tool.
