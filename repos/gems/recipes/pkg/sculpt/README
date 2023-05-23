@@ -1561,7 +1561,7 @@ be prepared. The following command prepares all of them at once:
 !      dde_bsd dde_ipxe dde_linux dde_rump e2fsprogs-lib \
 !      expat freetype gnupg grub2 jitterentropy jpeg \
 !      libarchive libc libdrm libgcrypt libiconv libnl libpng \
-!      libsparkcrypto libssh libusb libyuv libuvc linux \
+!      libssh libusb libyuv libuvc linux \
 !      linux-firmware mesa ncurses nova openssl qemu-usb \
 !      qoost qt5 stb stdcxx ttf-bitstream-vera vim \
 !      virtualbox6 wpa_supplicant x86emu xz zlib
