@@ -1,5 +1,4 @@
 MIRROR_FROM_REP_DIR := lib/mk/libusb.mk lib/import/import-libusb.mk \
-                       include/libc-plugin/plugin.h \
                        src/lib/libc/internal/thread_create.h \
                        src/lib/libc/internal/types.h \
 

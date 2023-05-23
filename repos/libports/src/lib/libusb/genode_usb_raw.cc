@@ -20,22 +20,11 @@
 #include <fcntl.h>
 #include <time.h>
 #include <libc/allocator.h>
-#include <libc-plugin/plugin.h>
 
 #include <internal/thread_create.h>
 
 #include "libusbi.h"
 
-static Genode::Env *_env_ptr = nullptr;
-
-static Genode::Env &genode_env()
-{
-	if (_env_ptr)
-		return *_env_ptr;
-
-	Genode::error("libusb: missing libc plugin initialization");
-	abort();
-}
 
 static Libc::Allocator libc_alloc { };
 
@@ -62,6 +51,7 @@ struct Usb_device
 		struct Device_has_vanished {};
 
 		Usb::Connection *usb_connection;
+		int              vfs_libusb_fd;
 
 		Usb::Device_descriptor  device_descriptor;
 		Usb::Config_descriptor  config_descriptor;
@@ -82,8 +72,21 @@ struct Usb_device
 
 			usb_connection->source()->submit_packet(p);
 
-			while (!usb_connection->source()->ack_avail())
-				genode_env().ep().wait_and_dispatch_one_io_signal();
+			/* wait for ack */
+
+			struct pollfd pollfds {
+				.fd = vfs_libusb_fd,
+				.events = POLLIN,
+				.revents = 0
+			};
+
+			int poll_result = poll(&pollfds, 1, -1);
+
+			if ((poll_result != 1) || !(pollfds.revents & POLLIN)) {
+				Genode::error(__PRETTY_FUNCTION__,
+				              ": could not read raw configuration descriptor");
+				return false;
+			}
 
 			p = usb_connection->source()->get_acked_packet();
 
@@ -105,14 +108,9 @@ struct Usb_device
 			return ret;
 		}
 
-		Usb_device(Usb::Connection *usb)
-		: usb_connection(usb)
+		Usb_device(Usb::Connection *usb, int vfs_libusb_fd)
+		: usb_connection(usb), vfs_libusb_fd(vfs_libusb_fd)
 		{
-			Genode::log("libusb: waiting until device is plugged...");
-			while (!usb_connection->plugged())
-				genode_env().ep().wait_and_dispatch_one_io_signal();
-			Genode::log("libusb: device is plugged");
-
 			usb_connection->config_descriptor(&device_descriptor, &config_descriptor);
 
 			raw_config_descriptor = (char*)malloc(config_descriptor.total_length);
@@ -294,7 +292,8 @@ static int genode_init(struct libusb_context* ctx)
 			Genode::error("could not open /dev/libusb");
 			return LIBUSB_ERROR_OTHER;
 		}
-		device_instance = new (libc_alloc) Usb_device(usb_connection);
+		device_instance = new (libc_alloc) Usb_device(usb_connection,
+		                                              vfs_libusb_fd);
 	} else {
 		Genode::error("tried to init genode usb context twice");
 		return LIBUSB_ERROR_OTHER;
@@ -748,31 +747,3 @@ const struct usbi_os_backend genode_usb_raw_backend = {
 	/*.device_handle_priv_size =*/ 0,
 	/*.transfer_priv_size =*/ 0,
 };
-
-
-/*****************
- ** Libc plugin **
- *****************/
-
-/*
- * Even though libusb is not an actual libc plugin, it uses the plugin
- * interface to get hold of the 'Genode::Env'.
- */
-
-namespace {
-
-	struct Plugin : Libc::Plugin
-	{
-		enum { PLUGIN_PRIORITY = 1 };
-
-		Plugin() : Libc::Plugin(PLUGIN_PRIORITY) { }
-
-		void init(Genode::Env &env) override { _env_ptr = &env; }
-	};
-}
-
-void __attribute__((constructor)) init_libc_libusb(void)
-{
-	static Plugin plugin;
-}
-

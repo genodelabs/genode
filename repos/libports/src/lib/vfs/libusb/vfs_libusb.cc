@@ -75,6 +75,12 @@ class Libusb_file_system : public Vfs::Single_file_system
 					_env(env), _vfs_user(vfs_user), _alloc_avl(&alloc)
 				{
 					_usb_connection.tx_channel()->sigh_ack_avail(_ack_avail_handler);
+
+					Genode::log("libusb: waiting until device is plugged...");
+					while (!_usb_connection.plugged())
+						_env.ep().wait_and_dispatch_one_io_signal();
+					Genode::log("libusb: device is plugged");
+
 					libusb_genode_usb_connection(&_usb_connection);
 				}
 
