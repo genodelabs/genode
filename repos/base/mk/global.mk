@@ -211,8 +211,9 @@ CC_CXX_OPT += $(lastword $(CC_CXX_OPT_STD) $(CC_CXX_OPT_STD_$(subst .,_,$*)))
 #
 LD_OPT_GC_SECTIONS ?= -gc-sections
 LD_OPT_ALIGN_SANE   = -z max-page-size=0x1000
+LD_OPT_NX_STACK     = -z noexecstack
 LD_OPT_PREFIX      := -Wl,
-LD_OPT             += $(LD_MARCH) $(LD_OPT_GC_SECTIONS) $(LD_OPT_ALIGN_SANE)
+LD_OPT             += $(LD_MARCH) $(LD_OPT_GC_SECTIONS) $(LD_OPT_ALIGN_SANE) $(LD_OPT_NX_STACK)
 CXX_LINK_OPT       += $(addprefix $(LD_OPT_PREFIX),$(LD_OPT))
 CXX_LINK_OPT       += $(LD_OPT_NOSTDLIB)
 
