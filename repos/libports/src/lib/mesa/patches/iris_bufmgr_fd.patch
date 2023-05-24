@@ -1,6 +1,8 @@
+diff --git a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
+index 3928f57..1849e33 100644
 --- a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
 +++ b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
-@@ -1297,6 +1297,8 @@
+@@ -1302,6 +1302,8 @@ iris_bo_wait(struct iris_bo *bo, int64_t timeout_ns)
     return ret;
  }
  
@@ -9,26 +11,20 @@
  static void
  iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
  {
-@@ -1814,10 +1816,13 @@
+@@ -1819,7 +1821,8 @@ gem_param(int fd, int name)
  static struct iris_bufmgr *
  iris_bufmgr_create(struct gen_device_info *devinfo, int fd, bool bo_reuse)
  {
 -   uint64_t gtt_size = iris_gtt_size(fd);
-+printf("%s:%u\n", __func__, __LINE__);
 +//   uint64_t gtt_size = iris_gtt_size(fd);
 +   uint64_t gtt_size = 2 * IRIS_MEMZONE_OTHER_START;
     if (gtt_size <= IRIS_MEMZONE_OTHER_START)
        return NULL;
  
-+printf("%s:%u\n", __func__, __LINE__);
-    struct iris_bufmgr *bufmgr = calloc(1, sizeof(*bufmgr));
-    if (bufmgr == NULL)
-       return NULL;
-@@ -1920,14 +1925,18 @@
+@@ -1925,14 +1928,17 @@ iris_bufmgr_unref(struct iris_bufmgr *bufmgr)
  struct iris_bufmgr *
  iris_bufmgr_get_for_fd(struct gen_device_info *devinfo, int fd, bool bo_reuse)
  {
-+printf("%s:%u\n", __func__, __LINE__);
 +#if 0
     struct stat st;
  
@@ -43,7 +39,7 @@
     list_for_each_entry(struct iris_bufmgr, iter_bufmgr, &global_bufmgr_list, link) {
        struct stat iter_st;
        if (fstat(iter_bufmgr->fd, &iter_st))
-@@ -1939,7 +1948,13 @@
+@@ -1944,7 +1950,13 @@ iris_bufmgr_get_for_fd(struct gen_device_info *devinfo, int fd, bool bo_reuse)
           goto unlock;
        }
     }

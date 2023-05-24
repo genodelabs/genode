@@ -16,7 +16,7 @@ HASH_INPUT    += $(REP_DIR)/src/lib/mesa/files.list
 PATCHES       := src/lib/mesa/patches/bitset_redefined.patch \
                  src/lib/mesa/patches/etnaviv.patch \
                  src/lib/mesa/patches/iris.patch \
-                 src/lib/mesa/patches/iris_bufmgr_tmp.patch \
+                 src/lib/mesa/patches/iris_bufmgr_fd.patch \
                  src/lib/mesa/patches/iris_bufmgr_unmap.patch \
                  src/lib/mesa/patches/iris_disable_compute.patch \
                  src/lib/mesa/patches/lseek.patch \
