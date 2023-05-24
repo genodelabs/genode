@@ -115,12 +115,7 @@ static inline void cache_maintainance(addr_t const base,
                                       size_t const cache_line_size,
                                       FUNC & func)
 {
-	/**
-	 * Although, the ARMv7 reference manual states that addresses does not
-	 * need to be cacheline aligned, we observed problems when not doing so
-	 * on i.MX6 Quad Sabrelite (maybe Cortex A9 generic issue?).
-	 * Therefore, we align it here.
-	 */
+	/* align the start address to catch all related cache lines */
 	addr_t start     = base & ~(cache_line_size-1);
 	addr_t const end = base + size;
 

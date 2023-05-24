@@ -45,7 +45,8 @@ static inline void for_each_cache_line(Genode::addr_t addr,
 
 	static size_t cache_line_size = Kernel::cache_line_size();
 
-	addr_t start     = addr;
+	/* align the start address to catch all related cache lines */
+	addr_t start     = addr & ~(cache_line_size-1);
 	addr_t const end = addr + size;
 	for (; start < end; start += cache_line_size)
 		fn(start);

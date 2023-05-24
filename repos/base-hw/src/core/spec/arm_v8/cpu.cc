@@ -95,7 +95,8 @@ static inline void cache_maintainance(addr_t const base,
                                       size_t const size,
                                       FUNC & func)
 {
-	addr_t start     = (addr_t) base;
+	/* align the start address to catch all related cache lines */
+	addr_t start     = (addr_t)base & ~(Cpu::cache_line_size()-1UL);
 	addr_t const end = base + size;
 	for (; start < end; start += Cpu::cache_line_size()) func(start);
 }
