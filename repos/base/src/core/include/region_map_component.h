@@ -321,7 +321,8 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 			Mutex::Guard lock_guard(_mutex);
 
 			/* skip further lookup when reaching the recursion limit */
-			if (!level) return f(this, nullptr, 0, 0, dst_region_size);
+			if (!level)
+				return f(this, nullptr, 0, 0, dst_region_size);
 
 			/* lookup region and dataspace */
 			Rm_region *region        = _map.metadata((void*)addr);
@@ -331,7 +332,6 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 			if (region && dst_region_size > region->size())
 				dst_region_size = region->size();
 
-
 			/* calculate offset in dataspace */
 			addr_t ds_offset = region ? (addr - region->base()
 			                             + region->offset()) : 0;
@@ -340,16 +340,19 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 			Native_capability cap = dsc ? dsc->sub_rm()
 			                            : Native_capability();
 
-			if (!cap.valid()) return f(this, region, ds_offset, offset, dst_region_size);
+			if (!cap.valid())
+				return f(this, region, ds_offset, offset, dst_region_size);
 
 			/* in case of a nested dataspace perform a recursive lookup */
 			auto lambda = [&] (Region_map_component *rmc) -> Return_type
 			{
-				return (!rmc) ? f(nullptr, nullptr, ds_offset, offset, dst_region_size)
-				              : rmc->_apply_to_dataspace(ds_offset, f,
-				                                         offset+region->base(),
-				                                         --level,
-				                                         dst_region_size);
+				if (rmc)
+					return rmc->_apply_to_dataspace(ds_offset, f,
+					                                offset + region->base() - region->offset(),
+					                                --level,
+					                                dst_region_size);
+
+				return f(nullptr, nullptr, ds_offset, offset, dst_region_size);
 			};
 			return _session_ep.apply(cap, lambda);
 		}
