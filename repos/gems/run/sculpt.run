@@ -164,6 +164,8 @@ proc nic_driver_routes { } {
 	set result(mnt_reform2) {
 		<service name="ROM" label="nic_drv">     <parent label="fec_nic_drv"/> </service>
 		<service name="ROM" label="nic_drv.dtb"> <parent label="fec_nic_drv-mnt_reform2.dtb"/> </service>
+		<service name="ROM" label="wifi.lib.so">     <parent label="imx8mq_wifi.lib.so"/> </service>
+		<service name="ROM" label="wifi_firmware.tar"> <parent label="imx8mq_wifi_firmware.tar"/> </service>
 	}
 
 	set result(imx8q_evk) {
