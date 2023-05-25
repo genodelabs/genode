@@ -38,10 +38,10 @@ info:
 	@$(ECHO) "VERSION:  $(VERSION)"
 
 %.file:
-	@$(ECHO) "SOURCE:   $(URL($*)) ($*)"
+	@$(ECHO) "SOURCE:   $(URL($*))$(if $(VERSION($*)), VERSION $(VERSION($*)),) ($*)"
 
 %.archive:
-	@$(ECHO) "SOURCE:   $(URL($*)) ($*)"
+	@$(ECHO) "SOURCE:   $(URL($*))$(if $(VERSION($*)), VERSION $(VERSION($*)),) ($*)"
 
 %.git:
 	@$(ECHO) "SOURCE:   $(URL($*)) git $(REV($*)) ($*)"
