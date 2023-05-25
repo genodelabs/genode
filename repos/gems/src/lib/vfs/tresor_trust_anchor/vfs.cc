@@ -21,7 +21,7 @@
 /* OpenSSL includes */
 #include <openssl/sha.h>
 
-/* resor includes */
+/* tresor includes */
 #include <tresor/vfs/io_job.h>
 
 /* local includes */

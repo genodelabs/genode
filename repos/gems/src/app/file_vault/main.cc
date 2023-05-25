@@ -42,6 +42,7 @@ namespace File_vault {
 	enum { SHOW_CONTROLS_SECURITY_MASTER_KEY = 0 };
 	enum { SHOW_CONTROLS_SECURITY_USER_PASSPHRASE = 0 };
 	enum { RENAME_SNAPSHOT_BUFFER_JOURNALING_BUFFER = 1 };
+	enum { PASSPHRASE_MIN_NR_OF_CHARS = 8 };
 
 	class Ui_config;
 	class Main;
@@ -73,7 +74,7 @@ struct File_vault::Ui_config
 			    " journaling_buf_size ", journaling_buf_size);
 	}
 
-	bool passphrase_suitable() const { return passphrase.length() >= 8; }
+	bool passphrase_suitable() const { return passphrase.length() >= PASSPHRASE_MIN_NR_OF_CHARS + 1; }
 };
 
 class File_vault::Main
@@ -96,6 +97,8 @@ class File_vault::Main
 			TRESOR_FREE_TREE_NR_OF_CHILDREN = 64,
 			TRESOR_NR_OF_SUPERBLOCKS = 8,
 		};
+
+		enum Version { INVALID, VERSION_21_05, VERSION_23_05 };
 
 		enum class State
 		{
@@ -442,7 +445,8 @@ class File_vault::Main
 		bool                                   _snapshots_expanded                 { false };
 		bool                                   _dimensions_expanded                { false };
 		Timer::One_shot_timeout<Main>          _unlock_retry_delay                 { _timer, *this, &Main::_handle_unlock_retry_delay };
-		size_t                                 _tresor_image_size                     { 0 };
+		size_t                                 _tresor_image_size                  { 0 };
+		File_path                              _tresor_image_file_name             { "tresor.img" };
 		size_t                                 _client_fs_size                     { 0 };
 		bool                                   _nr_of_clients                      { 0 };
 		Constructible<Attached_rom_dataspace>  _ui_config_rom                      { };
@@ -517,7 +521,7 @@ class File_vault::Main
 
 		bool _ui_setup_obtain_params_passphrase_suitable() const
 		{
-			return _ui_setup_obtain_params_passphrase().length() >= 8;
+			return _ui_setup_obtain_params_passphrase().length() >= PASSPHRASE_MIN_NR_OF_CHARS + 1;
 		}
 
 		bool _ui_setup_obtain_params_suitable() const
@@ -554,11 +558,15 @@ class File_vault::Main
 
 		void _handle_unlock_retry_delay(Duration);
 
-		static State _state_from_string(State_string const &str);
+		static State
+		_state_and_version_from_string(State_string const &state_str,
+		                               Version            &version);
 
 		static State_string _state_to_string(State state);
 
-		static State _state_from_fs_query_listing(Xml_node const &node);
+		static State
+		_state_and_version_from_fs_query_listing(Xml_node const &node,
+		                                         Version        &version);
 
 		void _write_to_state_file(State state);
 
@@ -589,6 +597,8 @@ class File_vault::Main
 		void _handle_state();
 
 		void _update_sandbox_config();
+
+		void _adapt_to_version(Version version);
 
 		Reported_state _reported_state() const;
 
@@ -720,8 +730,30 @@ void Main::_update_sandbox_config()
 }
 
 
-Main::State Main::_state_from_string(State_string const &str)
+void Main::_adapt_to_version(Version version)
 {
+	switch (version) {
+	case VERSION_21_05:
+
+		_tresor_image_file_name = "cbe.img";
+		break;
+
+	case VERSION_23_05:
+
+		break;
+
+	default:
+
+		class Invalid_version { };
+		throw Invalid_version { };
+	}
+}
+
+
+Main::State Main::_state_and_version_from_string(State_string const &str,
+                                                 Version            &version)
+{
+	version = VERSION_23_05;
 	if (str == "invalid") { return State::INVALID; }
 	if (str == "setup_obtain_parameters") { return State::SETUP_OBTAIN_PARAMETERS; }
 	if (str == "setup_run_tresor_init_trust_anchor") { return State::SETUP_RUN_TRESOR_INIT_TRUST_ANCHOR; }
@@ -745,6 +777,10 @@ Main::State Main::_state_from_string(State_string const &str)
 	if (str == "unlock_determine_client_fs_size") { return State::UNLOCK_DETERMINE_CLIENT_FS_SIZE; }
 	if (str == "lock_issue_deinit_request_at_tresor") { return State::LOCK_ISSUE_DEINIT_REQUEST_AT_TRESOR; }
 	if (str == "lock_wait_till_deinit_request_is_done") { return State::LOCK_WAIT_TILL_DEINIT_REQUEST_IS_DONE; }
+
+	version = VERSION_21_05;
+	if (str == "startup_obtain_parameters") { return State::UNLOCK_OBTAIN_PARAMETERS; }
+
 	class Invalid_state_string { };
 	throw Invalid_state_string { };
 }
@@ -830,17 +866,25 @@ Main::Reported_state Main::_reported_state() const
 }
 
 
-Main::State Main::_state_from_fs_query_listing(Xml_node const &node)
+Main::State
+Main::_state_and_version_from_fs_query_listing(Xml_node const &node,
+                                               Version        &version)
 {
 	State state { State::INVALID };
+	bool state_file_found { false };
 	node.with_optional_sub_node("dir", [&] (Xml_node const &node_0) {
 		node_0.with_optional_sub_node("file", [&] (Xml_node const &node_1) {
 			if (_has_name(node_1, "state")) {
-				state = _state_from_string(
-					node_1.decoded_content<State_string>());
+				state_file_found = true;
+				state =_state_and_version_from_string(
+					node_1.decoded_content<State_string>(), version);
+				
 			}
 		});
 	});
+	if (!state_file_found)
+		version = VERSION_23_05;
+
 	return state;
 }
 
@@ -1103,7 +1147,10 @@ void Main::_handle_fs_query_listing(Xml_node const &node)
 	switch (_state) {
 	case State::INVALID:
 	{
-		State const state { _state_from_fs_query_listing(node) };
+		Version version { INVALID };
+		State const state { _state_and_version_from_fs_query_listing(node, version) };
+		_adapt_to_version(version);
+
 		switch (state) {
 		case State::INVALID:
 
@@ -1218,7 +1265,7 @@ void Main::_handle_image_fs_query_listing(Xml_node const &node)
 		size_t size { 0 };
 		node.with_optional_sub_node("dir", [&] (Xml_node const &node_0) {
 			node_0.with_optional_sub_node("file", [&] (Xml_node const &node_1) {
-				if (_has_name(node_1, "tresor.img")) {
+				if (_has_name(node_1, _tresor_image_file_name)) {
 					size = node_1.attribute_value("size", (size_t)0);
 				}
 			});
@@ -2353,7 +2400,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
 		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
-		gen_tresor_vfs_start_node(xml, _tresor_vfs);
+		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_sync_to_tresor_vfs_init_start_node(xml, _sync_to_tresor_vfs_init);
 		break;
 
@@ -2363,7 +2410,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
 		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
-		gen_tresor_vfs_start_node(xml, _tresor_vfs);
+		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_client_fs_fs_query_start_node(xml, _client_fs_fs_query);
 		break;
 
@@ -2373,7 +2420,8 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 		_gen_menu_view_start_node_if_required(xml);
 		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
 		gen_truncate_file_start_node(
-			xml, _truncate_file, "/tresor/tresor.img",
+			xml, _truncate_file,
+			File_path { "/tresor/", _tresor_image_file_name }.string(),
 			TRESOR_BLOCK_SIZE *
 				_tresor_nr_of_blocks(
 					TRESOR_NR_OF_SUPERBLOCKS,
@@ -2409,7 +2457,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
 		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
-		gen_tresor_vfs_start_node(xml, _tresor_vfs);
+		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_sync_to_tresor_vfs_init_start_node(xml, _sync_to_tresor_vfs_init);
 		break;
 
@@ -2418,7 +2466,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
 		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
-		gen_tresor_vfs_start_node(xml, _tresor_vfs);
+		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_tresor_vfs_block_start_node(xml, _tresor_vfs_block);
 		gen_mke2fs_start_node(xml, _mke2fs);
 		break;
@@ -2436,7 +2484,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
 		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
-		gen_tresor_vfs_start_node(xml, _tresor_vfs);
+		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_tresor_vfs_block_start_node(xml, _tresor_vfs_block);
 		gen_snapshots_fs_query_start_node(xml, _snapshots_fs_query);
 		gen_image_fs_query_start_node(xml, _image_fs_query);
@@ -2458,7 +2506,8 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 					bytes - (bytes % TRESOR_BLOCK_SIZE) };
 
 				gen_truncate_file_start_node(
-					xml, _truncate_file, "/tresor/tresor.img",
+					xml, _truncate_file,
+					File_path { "/tresor/", _tresor_image_file_name }.string(),
 					_tresor_image_size + effective_bytes);
 
 				break;
@@ -2472,7 +2521,8 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 					bytes - (bytes % TRESOR_BLOCK_SIZE) };
 
 				gen_truncate_file_start_node(
-					xml, _truncate_file, "/tresor/tresor.img",
+					xml, _truncate_file,
+					File_path { "/tresor/", _tresor_image_file_name }.string(),
 					_tresor_image_size + effective_bytes);
 
 				break;
@@ -2590,7 +2640,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 		gen_policy_for_child_service(xml, "File_system", _rump_vfs);
 		_gen_menu_view_start_node_if_required(xml);
 		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
-		gen_tresor_vfs_start_node(xml, _tresor_vfs);
+		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_tresor_vfs_block_start_node(xml, _tresor_vfs_block);
 		gen_snapshots_fs_query_start_node(xml, _snapshots_fs_query);
 		gen_lock_fs_tool_start_node(xml, _lock_fs_tool);
@@ -2602,7 +2652,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 		gen_policy_for_child_service(xml, "File_system", _rump_vfs);
 		_gen_menu_view_start_node_if_required(xml);
 		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
-		gen_tresor_vfs_start_node(xml, _tresor_vfs);
+		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_tresor_vfs_block_start_node(xml, _tresor_vfs_block);
 		gen_snapshots_fs_query_start_node(xml, _snapshots_fs_query);
 		gen_lock_fs_query_start_node(xml, _lock_fs_query);

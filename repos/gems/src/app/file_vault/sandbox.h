@@ -268,7 +268,8 @@ namespace File_vault {
 	}
 
 	void gen_tresor_vfs_start_node(Xml_generator     &xml,
-	                            Child_state const &child)
+	                               Child_state const &child,
+	                               File_path   const &tresor_img_file_name)
 	{
 		child.gen_start_node(xml, [&] () {
 
@@ -299,7 +300,7 @@ namespace File_vault {
 							xml.attribute("name", "tresor");
 							xml.attribute("verbose", "no");
 							xml.attribute("debug", "no");
-							xml.attribute("block", "/tresor.img");
+							xml.attribute("block", File_path { "/", tresor_img_file_name });
 							xml.attribute("crypto", "/crypto");
 							xml.attribute("trust_anchor", "/trust_anchor");
 						});
