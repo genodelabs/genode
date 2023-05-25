@@ -27,16 +27,17 @@ class Genode::Vcpu_handler_base : public Signal_dispatcher_base
 {
 	protected:
 
-		Rpc_entrypoint            &_rpc_ep;
+		Entrypoint                &_ep;
 		Signal_context_capability  _signal_cap { };
 		Genode::Semaphore          _ready_semaphore { 0 };
 
 	public:
 
-		Vcpu_handler_base(Rpc_entrypoint &rpc)
-		: _rpc_ep(rpc) { }
+		Vcpu_handler_base(Entrypoint &ep)
+		: _ep(ep) { }
 
-		Rpc_entrypoint &          rpc_ep()          { return _rpc_ep; }
+		Rpc_entrypoint &          rpc_ep()          { return _ep.rpc_ep(); }
+		Entrypoint &              ep()              { return _ep; }
 		Signal_context_capability signal_cap()      { return _signal_cap; }
 		Genode::Semaphore &       ready_semaphore() { return _ready_semaphore; }
 };
@@ -66,7 +67,7 @@ class Genode::Vcpu_handler : public Vcpu_handler_base
 		 */
 		Vcpu_handler(EP &ep, T &obj, void (T::*member)())
 		:
-			Vcpu_handler_base(ep.rpc_ep()),
+			Vcpu_handler_base(ep),
 			_ep(ep),
 			_obj(obj),
 			_member(member)
