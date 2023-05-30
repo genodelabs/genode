@@ -67,23 +67,31 @@ class Driver::Shared_interrupt_session :
 {
 	private:
 
+		Rpc_entrypoint          & _ep;
 		Shared_interrupt        & _sirq;
 		Signal_context_capability _cap {};
 		bool                      _outstanding { true };
 
 	public:
 
-		Shared_interrupt_session(Shared_interrupt    & sirq,
+		Shared_interrupt_session(Rpc_entrypoint       &ep,
+		                         Shared_interrupt     &sirq,
 		                         Irq_session::Trigger  mode,
 		                         Irq_session::Polarity polarity)
 		:
 			Registry<Shared_interrupt_session>::Element(sirq._sessions, *this),
+			_ep(ep),
 			_sirq(sirq)
 		{
 			sirq.enable(mode, polarity);
+			_ep.manage(this);
 		}
 
-		~Shared_interrupt_session() { _sirq.disable(); }
+		~Shared_interrupt_session()
+		{
+			_ep.dissolve(this);
+			_sirq.disable();
+		}
 
 		bool outstanding() { return _outstanding; }
 		void signal();

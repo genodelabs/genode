@@ -119,8 +119,8 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 		if (irq.shared && !irq.sirq.constructed())
 			_device_model.with_shared_irq(irq.number,
 			                              [&] (Shared_interrupt & sirq) {
-				irq.sirq.construct(sirq, irq.mode, irq.polarity);
-				_env.ep().rpc_ep().manage(&*irq.sirq);
+				irq.sirq.construct(_env.ep().rpc_ep(), sirq,
+				                   irq.mode, irq.polarity);
 			});
 
 		cap = irq.shared ? irq.sirq->cap() : irq.irq->cap();
