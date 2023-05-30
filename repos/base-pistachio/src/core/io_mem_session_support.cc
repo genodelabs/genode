@@ -46,7 +46,7 @@ static bool is_conventional_memory(addr_t base)
 }
 
 
-void Io_mem_session_component::_unmap_local(addr_t, size_t) { }
+void Io_mem_session_component::_unmap_local(addr_t, size_t, addr_t) { }
 
 
 static inline bool can_use_super_page(addr_t base, size_t size)

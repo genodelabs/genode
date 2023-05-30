@@ -112,7 +112,7 @@ class Core::Io_mem_session_component : public Rpc_object<Io_mem_session>
 		 *
 		 * Both parameters - base and size - must be page-aligned.
 		 */
-		void _unmap_local(addr_t base, size_t size);
+		void _unmap_local(addr_t virt_base, size_t size, addr_t phys_base);
 
 	public:
 

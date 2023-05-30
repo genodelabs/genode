@@ -252,12 +252,6 @@ class Core::Initial_untyped_pool
 
 					/* track memory left to be converted */
 					max_memory -= batch_size;
-
-					/* convert device memory directly into page frames */
-					if (range.device) {
-						size_t const num_pages = batch_size >> get_page_size_log2();
-						Untyped_memory::convert_to_page_frames(phys_addr, num_pages);
-					}
 				}
 			});
 		}

@@ -87,7 +87,7 @@ Io_mem_session_component::~Io_mem_session_component()
 	_ds_ep.dissolve(&_ds);
 
 	/* flush local mapping of IO_MEM */
-	_unmap_local(_ds.core_local_addr(), _ds.size());
+	_unmap_local(_ds.core_local_addr(), _ds.size(), _ds.phys_addr());
 
 	/*
 	 * The Dataspace will remove itself from all RM sessions when its
