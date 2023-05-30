@@ -32,6 +32,8 @@ $(INSTALL_DIR)/$(TARGET_POLICY): $(TARGET_POLICY).elf
 
 $(TARGET): $(INSTALL_DIR)/$(TARGET_POLICY)
 
+BUILD_ARTIFACTS := $(TARGET_POLICY)
+
 clean cleanall: clean_policy
 
 clean_policy:
