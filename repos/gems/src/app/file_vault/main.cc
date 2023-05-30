@@ -623,15 +623,15 @@ class File_vault::Main
 		size_t _tresor_size() const;
 
 		static size_t _tresor_nr_of_blocks(size_t nr_of_superblocks,
-		                                size_t nr_of_vbd_lvls,
-		                                size_t nr_of_vbd_children,
-		                                size_t nr_of_vbd_leafs,
-		                                size_t nr_of_ft_lvls,
-		                                size_t nr_of_ft_children,
-		                                size_t nr_of_ft_leafs);
+		                                   size_t nr_of_vbd_lvls,
+		                                   size_t nr_of_vbd_children,
+		                                   size_t nr_of_vbd_leafs,
+		                                   size_t nr_of_ft_lvls,
+		                                   size_t nr_of_ft_children,
+		                                   size_t nr_of_ft_leafs);
 
 		static bool tresor_control_file_yields_state_idle(Xml_node const &fs_query_listing,
-		                                               char     const *file_name);
+		                                                  char     const *file_name);
 
 
 		/***************************************************
@@ -689,7 +689,7 @@ void Main::_handle_ui_config()
 
 
 bool Main::tresor_control_file_yields_state_idle(Xml_node const &fs_query_listing,
-                                              char     const *file_name)
+                                                 char     const *file_name)
 {
 	bool result { false };
 	bool done   { false };
@@ -755,11 +755,11 @@ Main::State_string Main::_state_to_string(State state)
 	switch (state) {
 	case State::INVALID:                                return "invalid";
 	case State::SETUP_OBTAIN_PARAMETERS:                return "setup_obtain_parameters";
-	case State::SETUP_RUN_TRESOR_INIT_TRUST_ANCHOR:        return "setup_run_tresor_init_trust_anchor";
-	case State::SETUP_CREATE_TRESOR_IMAGE_FILE:            return "setup_create_tresor_image_file";
-	case State::SETUP_RUN_TRESOR_INIT:                     return "setup_run_tresor_init";
-	case State::SETUP_START_TRESOR_VFS:                    return "setup_start_tresor_vfs";
-	case State::SETUP_FORMAT_TRESOR:                       return "setup_format_tresor";
+	case State::SETUP_RUN_TRESOR_INIT_TRUST_ANCHOR:     return "setup_run_tresor_init_trust_anchor";
+	case State::SETUP_CREATE_TRESOR_IMAGE_FILE:         return "setup_create_tresor_image_file";
+	case State::SETUP_RUN_TRESOR_INIT:                  return "setup_run_tresor_init";
+	case State::SETUP_START_TRESOR_VFS:                 return "setup_start_tresor_vfs";
+	case State::SETUP_FORMAT_TRESOR:                    return "setup_format_tresor";
 	case State::SETUP_DETERMINE_CLIENT_FS_SIZE:         return "setup_determine_client_fs_size";
 	case State::CONTROLS_ROOT:                          return "controls_root";
 	case State::CONTROLS_SNAPSHOTS:                     return "controls_snapshots";
@@ -771,10 +771,10 @@ Main::State_string Main::_state_to_string(State state)
 	case State::CONTROLS_SECURITY_MASTER_KEY:           return "controls_security_master_key";
 	case State::CONTROLS_SECURITY_USER_PASSPHRASE:      return "controls_security_user_passphrase";
 	case State::UNLOCK_OBTAIN_PARAMETERS:               return "unlock_obtain_parameters";
-	case State::UNLOCK_RUN_TRESOR_INIT_TRUST_ANCHOR:       return "unlock_run_tresor_init_trust_anchor";
-	case State::UNLOCK_START_TRESOR_VFS:                   return "unlock_start_tresor_vfs";
+	case State::UNLOCK_RUN_TRESOR_INIT_TRUST_ANCHOR:    return "unlock_run_tresor_init_trust_anchor";
+	case State::UNLOCK_START_TRESOR_VFS:                return "unlock_start_tresor_vfs";
 	case State::UNLOCK_DETERMINE_CLIENT_FS_SIZE:        return "unlock_determine_client_fs_size";
-	case State::LOCK_ISSUE_DEINIT_REQUEST_AT_TRESOR:       return "lock_issue_deinit_request_at_tresor";
+	case State::LOCK_ISSUE_DEINIT_REQUEST_AT_TRESOR:    return "lock_issue_deinit_request_at_tresor";
 	case State::LOCK_WAIT_TILL_DEINIT_REQUEST_IS_DONE:  return "lock_wait_till_deinit_request_is_done";
 	}
 	class Invalid_state { };
@@ -803,11 +803,11 @@ Main::Reported_state Main::_reported_state() const
 	switch (_state) {
 	case State::INVALID:                                return Reported_state::INVALID;
 	case State::SETUP_OBTAIN_PARAMETERS:                return Reported_state::UNINITIALIZED;
-	case State::SETUP_CREATE_TRESOR_IMAGE_FILE:            return Reported_state::INITIALIZING;
-	case State::SETUP_RUN_TRESOR_INIT_TRUST_ANCHOR:        return Reported_state::INITIALIZING;
-	case State::SETUP_RUN_TRESOR_INIT:                     return Reported_state::INITIALIZING;
-	case State::SETUP_START_TRESOR_VFS:                    return Reported_state::INITIALIZING;
-	case State::SETUP_FORMAT_TRESOR:                       return Reported_state::INITIALIZING;
+	case State::SETUP_CREATE_TRESOR_IMAGE_FILE:         return Reported_state::INITIALIZING;
+	case State::SETUP_RUN_TRESOR_INIT_TRUST_ANCHOR:     return Reported_state::INITIALIZING;
+	case State::SETUP_RUN_TRESOR_INIT:                  return Reported_state::INITIALIZING;
+	case State::SETUP_START_TRESOR_VFS:                 return Reported_state::INITIALIZING;
+	case State::SETUP_FORMAT_TRESOR:                    return Reported_state::INITIALIZING;
 	case State::SETUP_DETERMINE_CLIENT_FS_SIZE:         return Reported_state::INITIALIZING;
 	case State::CONTROLS_ROOT:                          return Reported_state::UNLOCKED;
 	case State::CONTROLS_SNAPSHOTS:                     return Reported_state::UNLOCKED;
@@ -819,10 +819,10 @@ Main::Reported_state Main::_reported_state() const
 	case State::CONTROLS_SECURITY_MASTER_KEY:           return Reported_state::UNLOCKED;
 	case State::CONTROLS_SECURITY_USER_PASSPHRASE:      return Reported_state::UNLOCKED;
 	case State::UNLOCK_OBTAIN_PARAMETERS:               return Reported_state::LOCKED;
-	case State::UNLOCK_RUN_TRESOR_INIT_TRUST_ANCHOR:       return Reported_state::UNLOCKING;
-	case State::UNLOCK_START_TRESOR_VFS:                   return Reported_state::UNLOCKING;
+	case State::UNLOCK_RUN_TRESOR_INIT_TRUST_ANCHOR:    return Reported_state::UNLOCKING;
+	case State::UNLOCK_START_TRESOR_VFS:                return Reported_state::UNLOCKING;
 	case State::UNLOCK_DETERMINE_CLIENT_FS_SIZE:        return Reported_state::UNLOCKING;
-	case State::LOCK_ISSUE_DEINIT_REQUEST_AT_TRESOR:       return Reported_state::LOCKING;
+	case State::LOCK_ISSUE_DEINIT_REQUEST_AT_TRESOR:    return Reported_state::LOCKING;
 	case State::LOCK_WAIT_TILL_DEINIT_REQUEST_IS_DONE:  return Reported_state::LOCKING;
 	}
 	class Invalid_state { };

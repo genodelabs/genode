@@ -2340,11 +2340,21 @@ class Vfs_tresor::Deinitialize_file_system : public Vfs::Single_file_system
 					out_count = 0;
 					return READ_OK;
 				}
+				_w.handle_frontend_request();
+
+				Wrapper::Deinitialize const & deinitialize_progress {
+					_w.deinitialize_progress() };
+
+				bool const in_progress {
+					deinitialize_progress.state ==
+						Wrapper::Deinitialize::State::IN_PROGRESS };
+
+				if (in_progress)
+					return READ_QUEUED;
+
 				Content_string const result { content_string(_w) };
 				copy_cstring(dst.start, result.string(), dst.num_bytes);
-				size_t const length_without_nul = result.length() - 1;
-				out_count = dst.num_bytes > length_without_nul - 1 ?
-				            length_without_nul : dst.num_bytes;
+				out_count = dst.num_bytes;
 
 				return READ_OK;
 			}
