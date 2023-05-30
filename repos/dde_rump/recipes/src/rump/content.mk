@@ -6,7 +6,7 @@ LIB_MK := $(addprefix lib/mk/, \
             rump_prefix.inc \
             rump_tools.mk \
             vfs_rump.mk) \
-          $(foreach SPEC,x86_32 x86_64 arm arm_64, \
+          $(foreach SPEC,x86_32 x86_64 arm arm_64 riscv, \
             lib/mk/spec/$(SPEC)/rump.mk \
             lib/mk/spec/$(SPEC)/rump_include.mk)
 
