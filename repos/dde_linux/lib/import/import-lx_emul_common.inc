@@ -133,7 +133,7 @@ CC_DEF   += -include $(LX_SRC_DIR)/include/linux/kconfig.h
 CC_DEF   += -include $(LX_SRC_DIR)/include/linux/compiler_types.h
 CC_DEF   += -D__KERNEL__ -DCONFIG_CC_HAS_K_CONSTRAINT=1
 CC_DEF   += -DKASAN_SHADOW_SCALE_SHIFT=3
-CC_C_OPT += -std=gnu89
+CC_C_OPT += -std=gnu11
 CC_C_OPT += -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs
 CC_C_OPT += -Werror=implicit-function-declaration -Werror=implicit-int
 CC_C_OPT += -Werror=return-type -Wno-format-security -Wno-psabi -Wno-sign-compare
