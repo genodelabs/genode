@@ -83,6 +83,9 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator &io_mem_alloc
 
 Io_mem_session_component::~Io_mem_session_component()
 {
+	/* remove all users of the to be destroyed io mem dataspace */
+	_ds.detach_from_rm_sessions();
+
 	/* dissolve IO_MEM dataspace from service entry point */
 	_ds_ep.dissolve(&_ds);
 
