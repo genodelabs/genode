@@ -32,10 +32,13 @@ void rcu_read_unlock_strict(void) { }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
 int rcu_needs_cpu(u64 basemono, u64 *nextevt)
+{
+	if (nextevt)
+		*nextevt = KTIME_MAX;
 #else
 int rcu_needs_cpu(void)
-#endif
 {
+#endif
 	return 0;
 }
 
