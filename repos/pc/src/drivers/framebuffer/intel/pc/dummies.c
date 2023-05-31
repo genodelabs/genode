@@ -422,14 +422,6 @@ void pci_disable_msi(struct pci_dev *dev)
 }
 
 
-#include <linux/random.h>
-
-u32 __get_random_u32_below(u32 ceil)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <asm/smp.h>
 
 DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);

@@ -39,18 +39,6 @@ int wait_for_random_bytes(void)
 
 #include <linux/prandom.h>
 
-u32 prandom_u32(void)
-{
-	return lx_emul_random_gen_u32();
-}
-
-
-u32 __get_random_u32_below(u32 ceil)
-{
-	return lx_emul_random_gen_u32();
-}
-
-
 u8 get_random_u8(void)
 {
 	u8 ret;

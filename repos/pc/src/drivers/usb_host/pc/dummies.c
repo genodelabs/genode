@@ -85,27 +85,11 @@ int __printk_ratelimit(const char * func)
 }
 
 
-#include <linux/prandom.h>
-
-u32 prandom_u32(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/pci.h>
 
 void pci_disable_device(struct pci_dev * dev)
 {
 	lx_emul_trace(__func__);
-}
-
-
-#include <linux/random.h>
-
-u32 __get_random_u32_below(u32 ceil)
-{
-	lx_emul_trace_and_stop(__func__);
 }
 
 

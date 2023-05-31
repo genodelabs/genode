@@ -386,14 +386,6 @@ void ieee80211_free_led_names(struct ieee80211_local * local)
 pteval_t __default_kernel_pte_mask __read_mostly = ~0;
 
 
-#include <linux/random.h>
-
-u32 __get_random_u32_below(u32 ceil)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 u16 get_random_u16(void)
 {
 	lx_emul_trace_and_stop(__func__);
