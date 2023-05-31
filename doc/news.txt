@@ -4,6 +4,45 @@
                                ===========
 
 
+Genode OS Framework release 23.05 | 2023-05-31
+##############################################
+
+| Besides the annual documentation update, the scheduled tool-chain update,
+| and the switch to C++20, the release puts the spotlight on the Goa tool,
+| which enables the use of existing SDKs like Lomiri or Rust's cargo for
+| targeting Genode.
+
+By now, the dedication of Genode's May releases to housekeeping tasks has
+become a fine tradition, and this year is no different. With version 23.05,
+the framework consistently switches from the C++ standard C++17 to C++20,
+thanks to our new tool chain based on GCC 12.3, which will serve us for the
+next two years. Speaking of consistency, both Genode books "Foundations" and
+"Platforms" have been updated to the most recent version of the framework. You
+can find the PDFs at the [https://genode.org - genode.org front page].
+
+Following the recent release of Sculpt OS 23.04 targeting both PC and mobile
+platforms, Genode 23.05 brings good news for application developers interested
+in targeting Genode and Sculpt OS in particular. The release introduces the
+ability to use existing SDKs, in particular the Lomiri UI toolkit as well as
+Rust's cargo for crafting Genode applications.
+
+A prominent topic among the previous releases is our Linux device-driver
+environment (DDE), which allows for the use of Linux drivers as Genode
+components. The current release continues this line of work by upgrading DDE
+to Linux 6.1.20 and by using DDE as enabler of our cross-platform Wifi stack
+that works for the PC and ARM platforms like the PinePhone. This way, Genode
+users can benefit from the enormous efforts of the Linux kernel community
+targeting modern hardware.
+
+Further highlights of the new version are the initial use of our custom
+base-hw microkernel as x86 hypervisor, a profoundly reworked block-encryption
+stack, and updates of supported 3rd-party software like the seL4 kernel and
+VirtualBox.
+
+All changes are covered in detail by the official
+[https:/documentation/release-notes/23.05 - release documentation of version 23.05...]
+
+
 Sculpt OS release 23.04 | 2023-04-28
 ####################################
 
