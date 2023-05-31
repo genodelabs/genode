@@ -1,6 +1,5 @@
 aes_cbc_4k
 bomb
-cbe_tester
 cpu_balancer
 cpu_bench
 cpu_quota
@@ -73,6 +72,7 @@ timeout
 timeout_smp
 timer_accuracy
 tool_chain_auto
+tresor_tester
 tz_vmm
 usb_block
 usb_hid_raw

@@ -1,3 +1,9 @@
+# riscv lacks jitterentropy support currently
+if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
+
 set dd [installed_command dd]
 
 proc tresor_image_name { } {
@@ -1064,7 +1070,7 @@ append_if [have_board linux] boot_modules [tresor_image_name]
 
 build_boot_image $boot_modules
 
-append qemu_args " -nographic -m 512 "
+append qemu_args " -nographic "
 
 run_genode_until "child \"test\" exited with exit value.*\n" 500
 
