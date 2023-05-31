@@ -225,7 +225,7 @@ $(LIB_SO): $(SHARED_LIBS)
 
 $(LIB_SO): $(STATIC_LIBS) $(OBJECTS) $(wildcard $(LD_SCRIPT_SO)) $(LIB_SO_DEPS)
 	$(MSG_MERGE)$(LIB_SO)
-	$(VERBOSE)libs=$(LIB_CACHE_DIR); $(LD) -o $(LIB_SO) -shared --eh-frame-hdr \
+	$(VERBOSE)libs=$(LIB_CACHE_DIR); $(LD) -o $(LIB_SO) -soname=$(LIB_SO) -shared --eh-frame-hdr \
 	                $(LD_OPT) -T $(LD_SCRIPT_SO) --entry=$(ENTRY_POINT) \
 	                --whole-archive --start-group \
 	                $(SHARED_LIBS) $(STATIC_LIBS_BRIEF) $(OBJECTS) \
