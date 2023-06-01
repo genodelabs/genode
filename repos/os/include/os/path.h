@@ -86,7 +86,7 @@ class Genode::Path_base
 			for (; *path; path++) {
 				if (path[0] != '/') continue;
 
-				/* strip superfluous dots, e.g., "/abs/./path/" -> "/abs/path" */
+				/* strip superfluous dots, e.g., "/abs/./path/" -> "/abs/path/" */
 				while (path[1] == '.' && path[2] == '/') {
 					remove_char(path);
 					remove_char(path);
@@ -99,7 +99,7 @@ class Genode::Path_base
 			for (; *path; path++) {
 				if (path[0] != '/') continue;
 
-				/* strip superfluous slashes, e.g., "//path/" -> "/path" */
+				/* strip superfluous slashes, e.g., "//path/" -> "/path/" */
 				while (path[1] == '/')
 					remove_char(path);
 			}
