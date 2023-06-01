@@ -68,6 +68,9 @@ static Shared_object *to_object(void *handle)
 
 void *dlopen(const char *name, int mode)
 {
+	if (mode & RTLD_GLOBAL)
+		warning("ignoring unsupported RTLD_GLOBAL in dlopen()");
+
 	int supported = RTLD_LAZY | RTLD_NOW | RTLD_LOCAL | RTLD_GLOBAL | RTLD_NODELETE;
 
 	/* error on unsupported mode values */
