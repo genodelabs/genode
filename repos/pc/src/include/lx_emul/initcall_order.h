@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2023-05-19
+ * \date   2023-06-20
  */
 
 #pragma once
@@ -26,18 +26,14 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_init_mmap_min_addr0",
 	"__initcall_pci_realloc_setup_params0",
 	"__initcall_e820__register_nvs_regions1",
-	"__initcall_cpufreq_register_tsc_scaling1",
 	"__initcall_reboot_init1",
 	"__initcall_wq_sysfs_init1",
 	"__initcall_ksysfs_init1",
-	"__initcall_schedutil_gov_init1",
 	"__initcall_rcu_set_runtime_mode1",
 	"__initcall_init_jiffies_clocksource1",
 	"__initcall_init_script_binfmt1",
 	"__initcall_init_elf_binfmt1",
 	"__initcall_iommu_init1",
-	"__initcall_cpufreq_core_init1",
-	"__initcall_cpufreq_gov_performance_init1",
 	"__initcall_cpuidle_init1",
 	"__initcall_sock_init1",
 	"__initcall_net_inuse_init1",
@@ -62,7 +58,6 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_i2c_init2",
 	"__initcall_thermal_init2",
 	"__initcall_init_menu2",
-	"__initcall_pcc_init2",
 	"__initcall_amd_postcore_init2",
 	"__initcall_kobject_uevent_init2",
 	"__initcall_bts_init3",
@@ -227,6 +222,9 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_phylink_init6",
 	"__initcall_phy_module_init6",
 	"__initcall_fixed_mdio_bus_init6",
+	"__initcall_pcnet32_init_module6",
+	"__initcall_e1000_init_module6",
+	"__initcall_e1000_init_module6",
 	"__initcall_ath9k_init6",
 	"__initcall_ath9k_cmn_init6",
 	"__initcall_iwl_drv_init6",
@@ -257,7 +255,6 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_psmouse_init6",
 	"__initcall_pkg_temp_thermal_init6",
 	"__initcall_thermal_throttle_init_device6",
-	"__initcall_intel_pstate_init6",
 	"__initcall_wmi_bmof_driver_init6",
 	"__initcall_sock_diag_init6",
 	"__initcall_packet_init6",
