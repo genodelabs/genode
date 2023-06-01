@@ -40,6 +40,9 @@ LX_ENABLE += ATH9K_DEBUGFS
 #LX_ENABLE += ATH9K_RFKILL ATH9K_PCI_NO_EEPROM
 #LX_ENABLE += ATH9K_HTC
 
+# Ethernet NIC support
+LX_ENABLE += E1000 E1000E PCNET32
+
 # USB host-controller support
 LX_ENABLE += USB_SUPPORT USB USB_ARCH_HAS_HCD USB_XHCI_HCD USB_EHCI_HCD USB_OHCI_HCD
 LX_ENABLE += USB_PCI USB_UHCI_HCD USB_USBNET
@@ -52,6 +55,13 @@ LX_ENABLE += FB
 
 # mandatory fs support
 LX_ENABLE += PROC_FS SYSFS
+
+# Options for testing pc_linux images
+#
+# - EFI support for tests on EFI-only devices
+#LX_ENABLE += EFI EFI_STUB
+# - network support for NFS root
+#LX_ENABLE += INET IP_PNP IP_PNP_DHCP NFS_FS FILE_LOCKING MULTIUSER ROOT_NFS
 
 # disable cpu frequency scaling
 LX_DISABLE += SCHED_MC CPU_FREQ
