@@ -4,6 +4,19 @@ proc ui_is { arg } {
 	return [string equal $arg $ui ]
 }
 
+proc jent_avail { } {
+
+	if {[have_board pbxa9]} { return 0 }
+	if {[have_board zynq_qemu]} { return 0 }
+	return 1
+}
+
+proc jent_avail_attr { } {
+
+	if {[jent_avail]} { return "yes" }
+	return "no"
+}
+
 build { app/file_vault }
 
 create_boot_directory
@@ -16,7 +29,6 @@ append archives "
 	[depot_user]/src/fs_query
 	[depot_user]/src/tresor
 	[depot_user]/src/vfs_block
-	[depot_user]/src/vfs_jitterentropy
 	[depot_user]/src/vfs
 	[depot_user]/src/openssl
 	[depot_user]/src/fs_tool
@@ -25,6 +37,8 @@ append archives "
 	[depot_user]/src/rump
 	[depot_user]/src/sandbox
 "
+
+append_if [jent_avail] archives " [depot_user]/src/vfs_jitterentropy "
 
 lappend_if [ui_is menu_view] archives [depot_user]/src/nitpicker
 lappend_if [ui_is menu_view] archives [depot_user]/src/menu_view
@@ -328,7 +342,7 @@ append config {
 
 		<start name="file_vault" caps="2000">
 			<resource name="RAM" quantum="200M"/>
-			<config user_interface="} $ui {">
+			<config user_interface="} $ui {" jitterentropy_available="} [jent_avail_attr] {">
 				<vfs>
 					<dir name="tresor">
 						<fs label="tresor"/>

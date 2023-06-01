@@ -27,10 +27,12 @@ namespace File_vault {
 
 	void gen_frame_title(Xml_generator &xml,
 	                     char    const *name,
-	                     unsigned long  min_width);
+	                     unsigned long  min_width,
+	                     bool           jent_avail);
 
 	template <typename GEN_FRAME_CONTENT>
 	void gen_main_frame(Xml_generator           &xml,
+	                    bool                     jent_avail,
 	                    char              const *name,
 	                    unsigned long            min_width,
 	                    GEN_FRAME_CONTENT const &gen_frame_content)
@@ -40,7 +42,7 @@ namespace File_vault {
 
 			xml.node("vbox", [&] () {
 
-				gen_frame_title(xml, "title", min_width);
+				gen_frame_title(xml, "title", min_width, jent_avail);
 				gen_frame_content(xml);
 			});
 		});
@@ -48,6 +50,7 @@ namespace File_vault {
 
 	template <typename GEN_FRAME_CONTENT>
 	void gen_controls_frame(Xml_generator           &xml,
+	                        bool                     jent_avail,
 	                        char              const *name,
 	                        GEN_FRAME_CONTENT const &gen_frame_content)
 	{
@@ -55,6 +58,9 @@ namespace File_vault {
 			xml.attribute("name", name);
 
 			xml.node("vbox", [&] () {
+
+				if (!jent_avail)
+					gen_frame_title(xml, "title", 0, jent_avail);
 
 				gen_frame_content(xml);
 			});
@@ -84,6 +90,7 @@ namespace File_vault {
 	}
 
 	void gen_info_frame(Xml_generator &xml,
+	                    bool           jent_avail,
 	                    char const    *name,
 	                    char const    *info,
 	                    unsigned long  min_width);

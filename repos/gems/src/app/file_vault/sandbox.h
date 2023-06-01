@@ -377,7 +377,8 @@ namespace File_vault {
 	}
 
 	void gen_tresor_trust_anchor_vfs_start_node(Xml_generator     &xml,
-	                                         Child_state const &child)
+	                                            Child_state const &child,
+	                                            bool               jent_avail)
 	{
 		child.gen_start_node(xml, [&] () {
 
@@ -402,9 +403,17 @@ namespace File_vault {
 							xml.attribute("storage_dir", "/storage_dir");
 						});
 
-						xml.node("jitterentropy", [&] () {
-							xml.attribute("name", "jitterentropy");
-						});
+						if (jent_avail) {
+							xml.node("jitterentropy", [&] () {
+								xml.attribute("name", "jitterentropy");
+							});
+						} else {
+							xml.node("inline", [&] () {
+								xml.attribute("name", "jitterentropy");
+								xml.append_content(String<33> { "0123456789abcdefghijklmnopqrstuv" });
+							});
+							warning("Insecure mode, no entropy source!");
+						}
 					});
 				});
 				xml.node("policy", [&] () {

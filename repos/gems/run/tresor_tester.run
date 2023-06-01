@@ -4,45 +4,84 @@ if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 	exit 0
 }
 
+#
+# The following platforms trigger alignment faults that come from a not yet
+# solved deficiency of the tresor lib: The lib uses the on-disc datastructures
+# directly in code without translating them to naturally aligned structs
+# beforehand.
+#
+if {[get_cmd_switch --autopilot] && [have_board rpi]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
+if {[get_cmd_switch --autopilot] && [have_board imx6q_sabrelite]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
+if {[get_cmd_switch --autopilot] && [have_board imx53_qsb]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
+if {[get_cmd_switch --autopilot] && [have_board imx53_qsb_tz]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
+if {[get_cmd_switch --autopilot] && [have_board imx7d_sabre]} {
+	puts "Autopilot mode is not supported on this platform."
+	exit 0
+}
+
 set dd [installed_command dd]
 
 proc tresor_image_name { } {
 	return "tresor_block.img"
 }
 
-proc local_tresor_image { } {
+proc lx_local_tresor_image { } {
 	return bin/[tresor_image_name]
 }
 
-proc autopilot_tresor_image { } {
+proc lx_autopilot_tresor_image { } {
 	return /tmp/[tresor_image_name].[exec id -un]
 }
 
-set image_size 1024
-if {[info exists ::env(tresor_IMAGE_SIZE)]} {
-	set image_size $::env(tresor_IMAGE_SIZE)
+proc lx_tresor_image_size_mb { } {
+	return 400
 }
 
-proc tresor_image_size_mb { } {
-	global image_size
-	return $image_size
-}
+proc benchmark_blk_count { } {
 
-proc tresor_vbd_size_mb { } {
-	return [expr [tresor_image_size_mb] / 2]
-}
+	if {[have_board linux]} {
 
-proc tresor_ft_size_mb { } {
-	return [expr [tresor_image_size_mb] / 8]
-}
-
-proc benchmark_blk_count_base { } {
-
-	if {[have_board virt_qemu_arm_v8a]} {
-		return 6400;
-	} else {
-		return 12800;
+		 # benchmarks over 50 mebibyte
+		return 12800
 	}
+	if {[have_board virt_qemu_arm_v8a]} {
+
+		# benchmarks over 25 mebibyte
+		return 6400
+	}
+	# benchmarks turned off
+	return 0
+}
+
+proc block_io_vfs_ram_mb { } {
+
+	if {[benchmark_blk_count] > 0} {
+
+		# when benchmarks turned on
+		set bench_mb [expr (([benchmark_blk_count] * 4096) / 1024 / 1024)]
+		return [expr 8 * $bench_mb]
+	}
+	# when benchmarks turned off
+	return 10
+}
+
+proc jent_avail { } {
+
+	if {[have_board pbxa9]} { return 0 }
+	if {[have_board zynq_qemu]} { return 0 }
+	return 1
 }
 
 append build_components {
@@ -56,8 +95,9 @@ append build_components {
 	lib/vfs_tresor_crypto_aes_cbc
 	lib/vfs_tresor_trust_anchor
 	lib/vfs_import
-	lib/vfs_jitterentropy
 }
+
+append_if [jent_avail] build_components { lib/vfs_jitterentropy }
 
 append_if [have_board linux] build_components { server/lx_fs }
 append_if [have_board linux] build_components { server/lx_block }
@@ -69,6 +109,7 @@ create_boot_directory
 append config {
 
 	<config verbose="yes">
+
 		<parent-provides>
 			<service name="ROM"/>
 			<service name="IRQ"/>
@@ -80,47 +121,69 @@ append config {
 			<service name="LOG"/>
 		</parent-provides>
 
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-
-		<default caps="100"/>
-		<start name="timer">
+		<start name="timer" caps="100">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
+			<route>
+				<service name="PD">      <parent/> </service>
+				<service name="ROM">     <parent/> </service>
+				<service name="LOG">     <parent/> </service>
+				<service name="CPU">     <parent/> </service>
+				<service name="IO_PORT"> <parent/> </service>
+				<service name="IRQ">     <parent/> </service>
+			</route>
 		</start>
 
-		<start name="report_rom">
-			<resource name="RAM" quantum="32M"/>
+		<start name="report_rom" caps="100">
+			<resource name="RAM" quantum="4M"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="yes"/>
+			<route>
+				<service name="LOG"> <parent/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+			</route>
 		</start>
 
-		<start name="log_terminal">
+		<start name="log_terminal" caps="100">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Terminal"/></provides>
+			<route>
+				<service name="LOG"> <parent/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+			</route>
 		</start>
 }
 if {[have_board linux]} {
 
 	append config {
 
-		<start name="block_io_fs" ld="no">
+		<start name="block_io_fs" caps="100" ld="no">
 			<binary name="lx_fs"/>
 			<resource name="RAM" quantum="4M"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<default-policy root="/" writeable="yes"/>
 			</config>
+			<route>
+				<service name="LOG"> <parent/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+			</route>
 		</start>
 	}
+
 } else {
 
 	append config {
 
-		<start name="block_io_fs" caps="2000">
+		<start name="block_io_fs" caps="100">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="200M"/>
+			<resource name="RAM" quantum="} [block_io_vfs_ram_mb] {M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -146,9 +209,9 @@ if {[have_board linux]} {
 }
 append config {
 
-		<start name="trust_anchor_fs" caps="120">
+		<start name="trust_anchor_fs" caps="200">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="16M"/>
+			<resource name="RAM" quantum="10M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -156,8 +219,17 @@ append config {
 						<ram/>
 					</dir>
 
-					<dir name="dev">
-						<jitterentropy name="jitterentropy"/>
+					<dir name="dev"> }
+
+append_if [jent_avail] config {
+
+						<jitterentropy name="jitterentropy"/> }
+
+append_if [expr ![jent_avail]] config {
+
+						<inline name="jitterentropy">0123456789abcdefghijklmnopqrstuv</inline> }
+
+append config {
 						<tresor_trust_anchor name="tresor_trust_anchor" storage_dir="/storage"/>
 					</dir>
 				</vfs>
@@ -165,14 +237,17 @@ append config {
 				<default-policy root="/dev/tresor_trust_anchor" writeable="yes"/>
 			</config>
 			<route>
-				<any-service> <parent/> </any-service>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
 			</route>
 		</start>
 
 		<start name="test" caps="200">
 
 			<binary name="tresor_tester"/>
-			<resource name="RAM" quantum="80M"/>
+			<resource name="RAM" quantum="10M"/>
 			<config ld_verbose="yes">
 
 				<verbose
@@ -351,12 +426,12 @@ append config {
 						<virtual-block-device
 							nr_of_levels="4"
 							nr_of_children="8"
-							nr_of_leafs="344" />
+							nr_of_leafs="100" />
 
 						<free-tree
 							nr_of_levels="4"
 							nr_of_children="8"
-							nr_of_leafs="344" />
+							nr_of_leafs="100" />
 
 					</initialize>
 					<construct/>
@@ -551,7 +626,7 @@ append config {
 					<request op="sync"  vba="0"  count="256" sync="yes"/>
 					<check/>
 
-					<log string="Step 16: reinitialize Tresor device, do read/write benchmarks"/>
+					<log string="Step 16: reinitialize Tresor device"/>
 
 					<request op="deinitialize" sync="no"/>
 					<destruct/>
@@ -569,21 +644,27 @@ append config {
 
 					</initialize>
 					<construct/>
+}
+if {[benchmark_blk_count] > 0} {
+
+	append config {
+
+					<log string="Step 17: do read/write benchmarks"/>
 
 					<benchmark op="start" label="read initial data in one request"/>
-					<request op="read" vba="0" count="} [benchmark_blk_count_base] {" sync="no"/>
+					<request op="read" vba="0" count="} [benchmark_blk_count] {" sync="no"/>
 					<benchmark op="stop"/>
 
 					<benchmark op="start" label="overwrite initial data in one request"/>
-					<request op="write" vba="0" count="} [expr 2*[benchmark_blk_count_base]] {" sync="no"/>
+					<request op="write" vba="0" count="} [benchmark_blk_count] {" sync="no"/>
 					<benchmark op="stop"/>
 
 					<benchmark op="start" label="overwrite written data in one request"/>
-					<request op="write" vba="0" count="} [benchmark_blk_count_base] {" sync="no"/>
+					<request op="write" vba="0" count="} [benchmark_blk_count] {" sync="no"/>
 					<benchmark op="stop"/>
 
 					<benchmark op="start" label="read written data in one request"/>
-					<request op="read" vba="0" count="} [benchmark_blk_count_base] {" sync="no"/>
+					<request op="read" vba="0" count="} [benchmark_blk_count] {" sync="no"/>
 					<benchmark op="stop"/>
 
 					<benchmark op="start" label="read written data randomized"/>
@@ -1002,8 +1083,18 @@ append config {
 
 					<benchmark op="stop"/>
 					<check/>
+	}
 
-					<log string="Step 17: test list-snapshots command"/>
+} else {
+
+	append config {
+
+					<log string="Step 17: skip because benchmarks are disabled for this platform"/>
+	}
+}
+append config {
+
+					<log string="Step 18: test list-snapshots command"/>
 
 					<request op="create_snapshot" sync="no"/>
 					<request op="write" vba="17737" count="70" sync="no" salt="8924"/>
@@ -1018,11 +1109,14 @@ append config {
 			</config>
 
 			<route>
-				<service name="File_system" label_last="trust_anchor"><child name="trust_anchor_fs"/></service>
+				<service name="File_system" label_last="trust_anchor"> <child name="trust_anchor_fs"/> </service>
 				<service name="File_system"> <child name="block_io_fs"/> </service>
 				<service name="Terminal"> <child name="log_terminal"/> </service>
 				<service name="Timer"> <child name="timer"/> </service>
-				<any-service> <parent/> </any-service>
+				<service name="LOG"> <parent/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
 			</route>
 
 		</start>
@@ -1034,16 +1128,16 @@ install_config $config
 
 if {[have_board linux]} {
 
-	exec rm -rf [local_tresor_image]
+	exec rm -rf [lx_local_tresor_image]
 	if { [get_cmd_switch --autopilot] } {
 
-		exec rm -rf [autopilot_tresor_image]
-		catch { exec $dd if=/dev/urandom of=[autopilot_tresor_image] bs=1M count=[tresor_image_size_mb] }
-		exec ln -sf -T [autopilot_tresor_image] [local_tresor_image]
+		exec rm -rf [lx_autopilot_tresor_image]
+		catch { exec $dd if=/dev/urandom of=[lx_autopilot_tresor_image] bs=1M count=[lx_tresor_image_size_mb] }
+		exec ln -sf -T [lx_autopilot_tresor_image] [lx_local_tresor_image]
 
 	} else {
 
-		catch { exec $dd if=/dev/urandom of=[local_tresor_image] bs=1M count=[tresor_image_size_mb] }
+		catch { exec $dd if=/dev/urandom of=[lx_local_tresor_image] bs=1M count=[lx_tresor_image_size_mb] }
 	}
 }
 
@@ -1062,8 +1156,9 @@ append boot_modules {
 	vfs_tresor_trust_anchor.lib.so
 	vfs_tresor_crypto_aes_cbc.lib.so
 	vfs_import.lib.so
-	vfs_jitterentropy.lib.so
 }
+
+append_if [jent_avail] boot_modules { vfs_jitterentropy.lib.so }
 
 append_if [have_board linux] boot_modules { lx_fs }
 append_if [have_board linux] boot_modules [tresor_image_name]
@@ -1072,12 +1167,19 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic "
 
-run_genode_until "child \"test\" exited with exit value.*\n" 500
+set test_timeout 100
+if {[benchmark_blk_count] > 0} {
+	set test_timeout 300
+}
+run_genode_until "child \"test\" exited with exit value.*\n" $test_timeout
 
-if { [get_cmd_switch --autopilot] } {
+if {[have_board linux]} {
 
-	exec rm -rf [local_tresor_image]
-	exec rm -rf [autopilot_tresor_image]
+	if { [get_cmd_switch --autopilot] } {
+
+		exec rm -rf [lx_local_tresor_image]
+		exec rm -rf [lx_autopilot_tresor_image]
+	}
 }
 
 grep_output {\[init\] child "test" exited with exit value}

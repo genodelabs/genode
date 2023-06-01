@@ -362,6 +362,7 @@ class File_vault::Main
 		User_interface                         _user_interface                     { _user_interface_from_config(_config_rom.xml()) };
 		bool                                   _verbose_state                      { _config_rom.xml().attribute_value("verbose_state", false) };
 		bool                                   _verbose_ui_config                  { _config_rom.xml().attribute_value("verbose_ui_config", false) };
+		bool                                   _jent_avail                         { _config_rom.xml().attribute_value("jitterentropy_available", true) };
 		Root_directory                         _vfs                                { _env, _heap, _config_rom.xml().sub_node("vfs") };
 		Registry<Child_state>                  _children                           { };
 		Child_state                            _menu_view                          { _children, "menu_view", Ram_quota { 4 * 1024 * 1024 }, Cap_quota { 200 } };
@@ -1659,12 +1660,12 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 	switch (_state) {
 	case State::INVALID:
 
-		gen_info_frame(xml, "1", "Please wait...", MAIN_FRAME_WIDTH);
+		gen_info_frame(xml, _jent_avail, "1", "Please wait...", MAIN_FRAME_WIDTH);
 		break;
 
 	case State::SETUP_OBTAIN_PARAMETERS:
 
-		gen_main_frame(xml, "1", MAIN_FRAME_WIDTH, [&] (Xml_generator &xml) {
+		gen_main_frame(xml, _jent_avail, "1", MAIN_FRAME_WIDTH, [&] (Xml_generator &xml) {
 
 			bool gen_start_button { true };
 			bool gen_image_size_info { true };
@@ -1734,7 +1735,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 
 	case State::UNLOCK_OBTAIN_PARAMETERS:
 
-		gen_main_frame(xml, "1", MAIN_FRAME_WIDTH, [&] (Xml_generator &xml) {
+		gen_main_frame(xml, _jent_avail, "1", MAIN_FRAME_WIDTH, [&] (Xml_generator &xml) {
 
 			bool gen_start_button { true };
 			gen_input_passphrase(
@@ -1769,12 +1770,12 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 	case State::UNLOCK_START_TRESOR_VFS:
 	case State::UNLOCK_DETERMINE_CLIENT_FS_SIZE:
 
-		gen_info_frame(xml, "1", "Please wait...", MAIN_FRAME_WIDTH);
+		gen_info_frame(xml, _jent_avail, "1", "Please wait...", MAIN_FRAME_WIDTH);
 		break;
 
 	case State::CONTROLS_ROOT:
 
-		gen_controls_frame(xml, "app", [&] (Xml_generator &xml) {
+		gen_controls_frame(xml, _jent_avail, "app", [&] (Xml_generator &xml) {
 
 			xml.node("frame", [&] () {
 
@@ -1804,7 +1805,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 
 	case State::CONTROLS_SNAPSHOTS:
 
-		gen_controls_frame(xml, "app", [&] (Xml_generator &xml) {
+		gen_controls_frame(xml, _jent_avail, "app", [&] (Xml_generator &xml) {
 
 			xml.node("frame", [&] () {
 
@@ -1896,7 +1897,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 
 	case State::CONTROLS_DIMENSIONS:
 
-		gen_controls_frame(xml, "app", [&] (Xml_generator &xml) {
+		gen_controls_frame(xml, _jent_avail, "app", [&] (Xml_generator &xml) {
 
 			xml.node("frame", [&] () {
 
@@ -1927,7 +1928,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 
 	case State::CONTROLS_EXPAND_CLIENT_FS:
 
-		gen_controls_frame(xml, "app", [&] (Xml_generator &xml) {
+		gen_controls_frame(xml, _jent_avail, "app", [&] (Xml_generator &xml) {
 
 			xml.node("frame", [&] () {
 
@@ -2013,7 +2014,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 
 	case State::CONTROLS_EXPAND_SNAPSHOT_BUF:
 
-		gen_controls_frame(xml, "app", [&] (Xml_generator &xml) {
+		gen_controls_frame(xml, _jent_avail, "app", [&] (Xml_generator &xml) {
 
 			xml.node("frame", [&] () {
 
@@ -2094,7 +2095,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 
 	case State::CONTROLS_SECURITY:
 
-		gen_controls_frame(xml, "app", [&] (Xml_generator &xml) {
+		gen_controls_frame(xml, _jent_avail, "app", [&] (Xml_generator &xml) {
 
 			xml.node("frame", [&] () {
 
@@ -2130,7 +2131,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 
 	case State::CONTROLS_SECURITY_BLOCK_ENCRYPTION_KEY:
 
-		gen_controls_frame(xml, "app", [&] (Xml_generator &xml) {
+		gen_controls_frame(xml, _jent_avail, "app", [&] (Xml_generator &xml) {
 
 			xml.node("frame", [&] () {
 
@@ -2169,7 +2170,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 
 	case State::CONTROLS_SECURITY_MASTER_KEY:
 
-		gen_controls_frame(xml, "app", [&] (Xml_generator &xml) {
+		gen_controls_frame(xml, _jent_avail, "app", [&] (Xml_generator &xml) {
 
 			xml.node("frame", [&] () {
 
@@ -2192,7 +2193,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 
 	case State::CONTROLS_SECURITY_USER_PASSPHRASE:
 
-		gen_controls_frame(xml, "app", [&] (Xml_generator &xml) {
+		gen_controls_frame(xml, _jent_avail, "app", [&] (Xml_generator &xml) {
 
 			xml.node("frame", [&] () {
 
@@ -2216,7 +2217,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 	case State::LOCK_ISSUE_DEINIT_REQUEST_AT_TRESOR:
 	case State::LOCK_WAIT_TILL_DEINIT_REQUEST_IS_DONE:
 
-		gen_info_frame(xml, "1", "Please wait...", MAIN_FRAME_WIDTH);
+		gen_info_frame(xml, _jent_avail, "1", "Please wait...", MAIN_FRAME_WIDTH);
 		break;
 	}
 }
@@ -2379,7 +2380,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_tresor_init_trust_anchor_start_node(
 			xml, _tresor_init_trust_anchor, _ui_setup_obtain_params_passphrase());
 
@@ -2389,7 +2390,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_tresor_init_trust_anchor_start_node(
 			xml, _tresor_init_trust_anchor, _ui_setup_obtain_params_passphrase());
 
@@ -2399,7 +2400,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_sync_to_tresor_vfs_init_start_node(xml, _sync_to_tresor_vfs_init);
 		break;
@@ -2409,7 +2410,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_client_fs_fs_query_start_node(xml, _client_fs_fs_query);
 		break;
@@ -2418,7 +2419,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_truncate_file_start_node(
 			xml, _truncate_file,
 			File_path { "/tresor/", _tresor_image_file_name }.string(),
@@ -2448,7 +2449,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_tresor_init_start_node(xml, _tresor_init, vbd_tree_geom, free_tree_geom);
 		break;
 	}
@@ -2456,7 +2457,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_sync_to_tresor_vfs_init_start_node(xml, _sync_to_tresor_vfs_init);
 		break;
@@ -2465,7 +2466,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_tresor_vfs_block_start_node(xml, _tresor_vfs_block);
 		gen_mke2fs_start_node(xml, _mke2fs);
@@ -2483,7 +2484,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 	{
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_tresor_vfs_block_start_node(xml, _tresor_vfs_block);
 		gen_snapshots_fs_query_start_node(xml, _snapshots_fs_query);
@@ -2639,7 +2640,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 		gen_parent_provides_and_report_nodes(xml);
 		gen_policy_for_child_service(xml, "File_system", _rump_vfs);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_tresor_vfs_block_start_node(xml, _tresor_vfs_block);
 		gen_snapshots_fs_query_start_node(xml, _snapshots_fs_query);
@@ -2651,7 +2652,7 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 		gen_parent_provides_and_report_nodes(xml);
 		gen_policy_for_child_service(xml, "File_system", _rump_vfs);
 		_gen_menu_view_start_node_if_required(xml);
-		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs);
+		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
 		gen_tresor_vfs_start_node(xml, _tresor_vfs, _tresor_image_file_name);
 		gen_tresor_vfs_block_start_node(xml, _tresor_vfs_block);
 		gen_snapshots_fs_query_start_node(xml, _snapshots_fs_query);

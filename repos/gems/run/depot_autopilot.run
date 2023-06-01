@@ -659,6 +659,7 @@ set default_test_pkgs {
 	test-expat
 	test-fault_detection
 	test-file_vault_config_report
+	test-file_vault_config_report_no_entropy
 	test-fs_packet
 	test-fs_report
 	test-fs_rom_update
@@ -754,11 +755,31 @@ proc non_executable_supported { } {
 	return false
 }
 
+proc skip_test_if { condition test } {
+
+	global skip_test
+	if {$condition} {
+		set skip_test($test) true
+	}
+}
+
 #
 # Whether to skip a test - if undefined for a test, the test is not skipped
 #
+
+#
+# pbxa9 and zynq_qemu don't support jitterentropy
+#
+skip_test_if [expr  ([have_board pbxa9] || [have_board zynq_qemu])] test-file_vault_config_report
+skip_test_if [expr !([have_board pbxa9] || [have_board zynq_qemu])] test-file_vault_config_report_no_entropy
+
+#
+# rpi, imx6q_sabrelite, imx53_qsb(_tz), imx7d_sabre have problems with the yet unfixed unaligned-access issue in tresor
+#
+skip_test_if [expr ([have_board rpi] || [have_board imx6q_sabrelite] || [have_board imx53_qsb] || [have_board imx53_qsb_tz] || [have_board imx7d_sabre])] test-file_vault_config_report
+skip_test_if [expr ([have_board rpi] || [have_board imx6q_sabrelite] || [have_board imx53_qsb] || [have_board imx53_qsb_tz] || [have_board imx7d_sabre])] test-file_vault_config_report_no_entropy
+
 set skip_test(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
-set skip_test(test-file_vault_config_report) [expr [have_board rpi]]
 set skip_test(test-fs_packet)       [expr ![interactive] && [have_include "power_on/qemu"]]
 set skip_test(test-libc)            [expr [have_spec sel4] || [have_board rpi] || [have_board imx53_qsb_tz]]
 set skip_test(test-lx_block)        [expr ![have_board linux]]

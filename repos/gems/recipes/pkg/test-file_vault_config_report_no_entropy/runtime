@@ -1,0 +1,180 @@
+<runtime ram="250M" caps="3000" binary="init">
+
+	<requires>
+		<timer/>
+	</requires>
+
+	<events>
+		<timeout meaning="failed" sec="70" />
+		<log meaning="succeeded">
+			&lt;ui_report version="step_*" state="uninitialized"/>*
+			&lt;ui_report version="step_*" state="initializing"/>*
+			&lt;ui_report version="step_*" state="unlocked"/>*
+			&lt;ui_report version="step_*" state="locked"/>*
+			&lt;ui_report version="step_*" state="unlocked"/>*
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="report_rom"/>
+		<rom label="dynamic_rom"/>
+		<rom label="file_vault"/>
+		<rom label="vfs"/>
+	</content>
+
+	<config>
+
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<start name="dynamic_rom" caps="100">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/> </provides>
+			<config verbose="no">
+				<rom name="file_vault_ui_config">
+					<inline>
+
+						<ui_config version="step_1_wait"/>
+
+					</inline>
+					<sleep milliseconds="6000"/>
+					<inline>
+
+						<ui_config version="step_2_init" passphrase="abcdefgh"
+						                                 client_fs_size="1M"
+						                                 journaling_buf_size="1M"/>
+
+					</inline>
+					<sleep milliseconds="10000"/>
+					<inline>
+
+						<ui_config version="step_3_lock"/>
+
+					</inline>
+					<sleep milliseconds="6000"/>
+					<inline>
+
+						<ui_config version="step_4_bad_unlock" passphrase="00000001"/>
+
+					</inline>
+					<sleep milliseconds="6000"/>
+					<inline>
+
+						<ui_config version="step_5_wait"/>
+
+					</inline>
+					<sleep milliseconds="6000"/>
+					<inline>
+
+						<ui_config version="step_6_unlock" passphrase="abcdefgh"/>
+
+					</inline>
+					<sleep milliseconds="600000"/>
+
+				</rom>
+			</config>
+			<route>
+				<service name="Timer"> <parent/> </service>
+				<service name="PD">    <parent/> </service>
+				<service name="ROM">   <parent/> </service>
+				<service name="LOG">   <parent/> </service>
+				<service name="CPU">   <parent/> </service>
+			</route>
+		</start>
+
+		<start name="report_rom" caps="70">
+			<resource name="RAM" quantum="1M"/>
+			<provides>
+				<service name="ROM" />
+				<service name="Report" />
+			</provides>
+			<config verbose="yes"/>
+			<route>
+				<service name="LOG"> <parent/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="data_fs" caps="500">
+			<binary name="vfs"/>
+			<resource name="RAM" quantum="50M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs>
+					<dir name="data">
+						<ram/>
+					</dir>
+				</vfs>
+				<policy label="file_vault -> data" root="/data" writeable="yes"/>
+			</config>
+			<route>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="trust_anchor_fs" caps="100">
+			<binary name="vfs"/>
+			<resource name="RAM" quantum="5M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs>
+					<dir name="trust_anchor">
+						<ram/>
+					</dir>
+				</vfs>
+				<policy label="file_vault -> trust_anchor" root="/trust_anchor" writeable="yes"/>
+			</config>
+			<route>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="file_vault" caps="1500">
+			<resource name="RAM" quantum="180M"/>
+			<config user_interface="config_and_report" jitterentropy_available="no">
+				<vfs>
+					<dir name="tresor">
+						<fs label="tresor"/>
+					</dir>
+				</vfs>
+			</config>
+			<route>
+				<service name="ROM"         label="ui_config">                              <child name="dynamic_rom"     label="file_vault_ui_config"/>       </service>
+				<service name="Report">     label="ui_report"                               <child name="report_rom"/>                                         </service>
+				<service name="File_system" label="tresor_trust_anchor_vfs -> storage_dir"> <child name="trust_anchor_fs" label="file_vault -> trust_anchor"/> </service>
+				<service name="File_system" label="tresor_init -> ">                        <child name="data_fs"         label="file_vault -> data"/>         </service>
+				<service name="File_system" label="tresor">                                 <child name="data_fs"         label="file_vault -> data"/>         </service>
+				<service name="File_system" label="fs_query -> ">                           <child name="data_fs"         label="file_vault -> data"/>         </service>
+				<service name="File_system" label="image_fs_query -> ">                     <child name="data_fs"         label="file_vault -> data"/>         </service>
+				<service name="File_system" label="tresor_vfs -> tresor_fs">                <child name="data_fs"         label="file_vault -> data"/>         </service>
+				<service name="File_system" label="truncate_file -> tresor">                <child name="data_fs"         label="file_vault -> data"/>         </service>
+				<service name="Timer">                                                      <parent/> </service>
+				<service name="PD">                                                         <parent/> </service>
+				<service name="ROM">                                                        <parent/> </service>
+				<service name="CPU">                                                        <parent/> </service>
+				<service name="LOG">                                                        <parent/> </service>
+				<service name="RM">                                                         <parent/> </service>
+			</route>
+		</start>
+
+	</config>
+
+</runtime>
