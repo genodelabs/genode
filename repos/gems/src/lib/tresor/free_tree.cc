@@ -684,6 +684,26 @@ void Free_tree::_execute_update(Channel         &chan,
 }
 
 
+void Free_tree::_mark_req_failed(Channel    &chan,
+                                 bool       &progress,
+                                 char const *str)
+{
+	error(chan._request.type_name(), " request failed, reason: \"", str, "\"");
+	chan._request._success = false;
+	chan._state = Channel::COMPLETE;
+	progress = true;
+}
+
+
+void Free_tree::_mark_req_successful(Channel &channel,
+                                     bool    &progress)
+{
+	channel._request._success = true;
+	channel._state = Channel::COMPLETE;
+	progress = true;
+}
+
+
 void Free_tree::_execute(Channel         &chan,
                          Snapshots const &active_snaps,
                          Generation       last_secured_gen,
@@ -711,19 +731,16 @@ void Free_tree::_execute(Channel         &chan,
 		_execute_update(chan, active_snaps, last_secured_gen, progress);
 		break;
 	case Channel::UPDATE_COMPLETE:
-		chan._request._success = true;
-		chan._state = Channel::COMPLETE;
+		_mark_req_successful(chan, progress);
 		break;
 	case Channel::COMPLETE:
 		break;
 	case Channel::NOT_ENOUGH_FREE_BLOCKS:
-		chan._request._success = false;
-		chan._state = Channel::COMPLETE;
-		progress = true;
+		_mark_req_failed(chan, progress, "not enough free blocks");
 		break;
 	case Channel::TREE_HASH_MISMATCH:
-		class Exception_1 { };
-		throw Exception_1 { };
+		_mark_req_failed(chan, progress, "node hash mismatch");
+		break;
 	}
 }
 

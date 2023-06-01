@@ -78,6 +78,8 @@ class Tresor::Meta_tree_request : public Module_request
 
 		static char const *type_to_string(Type type);
 
+		char const *type_name() const { return type_to_string(_type); }
+
 
 		/********************
 		 ** Module_request **

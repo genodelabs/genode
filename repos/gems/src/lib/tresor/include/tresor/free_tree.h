@@ -110,6 +110,8 @@ class Tresor::Free_tree_request : public Module_request
 
 		static char const *type_to_string(Type type);
 
+		char const *type_name() const { return type_to_string(_type); }
+
 
 		/********************
 		 ** Module_request **
@@ -394,6 +396,13 @@ class Tresor::Free_tree : public Module
 		                           Generation         gen,
 		                           Block       const &block_data,
 		                           Type_1_node_block &entries);
+
+		void _mark_req_failed(Channel    &chan,
+		                      bool       &progress,
+		                      char const *str);
+
+		void _mark_req_successful(Channel &chan,
+		                          bool    &progress);
 
 		void
 		_exchange_type_2_leaves(Generation              free_gen,

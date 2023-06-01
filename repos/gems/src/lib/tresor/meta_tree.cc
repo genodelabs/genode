@@ -225,13 +225,13 @@ void Meta_tree::generated_request_complete(Module_request &mod_req)
 }
 
 
-void Meta_tree::_mark_req_failed(Channel    &channel,
+void Meta_tree::_mark_req_failed(Channel    &chan,
                                  bool       &progress,
                                  char const *str)
 {
-	error("request failed: failed to ", str);
-	channel._request._success = false;
-	channel._state = Channel::COMPLETE;
+	error(chan._request.type_name(), " request failed, reason: \"", str, "\"");
+	chan._request._success = false;
+	chan._state = Channel::COMPLETE;
 	progress = true;
 }
 
@@ -464,8 +464,8 @@ void Meta_tree::execute(bool &progress)
 		case Channel::COMPLETE:
 			break;
 		case Channel::TREE_HASH_MISMATCH:
-			class Exception_1 { };
-			throw Exception_1 { };
+			_mark_req_failed(channel, progress, "node hash mismatch");
+			break;
 		}
 	}
 }
