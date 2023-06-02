@@ -12,6 +12,7 @@ QEMU_RUN_OPT := --include power_on/qemu  --include log/qemu
 # local variable for run-tool arguments that depend on the used board
 BOARD_RUN_OPT(pbxa9)             = $(QEMU_RUN_OPT)
 BOARD_RUN_OPT(virt_qemu_arm_v7a) = $(QEMU_RUN_OPT)
+BOARD_RUN_OPT(zynq_qemu)         = $(QEMU_RUN_OPT)
 
 ##
 ## Qemu arguments, effective when using the run tool's 'power_on/qemu' back end
