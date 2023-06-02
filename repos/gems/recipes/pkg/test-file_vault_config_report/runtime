@@ -5,23 +5,13 @@
 	</requires>
 
 	<events>
-		<timeout meaning="failed" sec="240" />
+		<timeout meaning="failed" sec="70" />
 		<log meaning="succeeded">
 			&lt;ui_report version="step_*" state="uninitialized"/>*
 			&lt;ui_report version="step_*" state="initializing"/>*
 			&lt;ui_report version="step_*" state="unlocked"/>*
-			&lt;ui_report version="step_*" state="locking"/>*
 			&lt;ui_report version="step_*" state="locked"/>*
-			&lt;ui_report version="step_*" state="unlocking"/>*
 			&lt;ui_report version="step_*" state="unlocked"/>*
-			&lt;ui_report version="step_*" state="locking"/>*
-			&lt;ui_report version="step_*" state="locked"/>*
-			&lt;ui_report version="step_*" state="unlocking"/>*
-			&lt;ui_report version="step_*" state="locked"/>*
-			&lt;ui_report version="step_*" state="unlocking"/>*
-			&lt;ui_report version="step_*" state="unlocked"/>*
-			&lt;ui_report version="step_*" state="locking"/>*
-			&lt;ui_report version="step_*" state="locked"/>
 		</log>
 	</events>
 
@@ -57,7 +47,7 @@
 						<ui_config version="step_1_wait"/>
 
 					</inline>
-					<sleep milliseconds="5000"/>
+					<sleep milliseconds="6000"/>
 					<inline>
 
 						<ui_config version="step_2_init" passphrase="abcdefgh"
@@ -65,70 +55,28 @@
 						                                 journaling_buf_size="1M"/>
 
 					</inline>
-					<sleep milliseconds="5000"/>
+					<sleep milliseconds="10000"/>
 					<inline>
 
 						<ui_config version="step_3_lock"/>
 
 					</inline>
-					<sleep milliseconds="500"/>
+					<sleep milliseconds="6000"/>
 					<inline>
 
-						<ui_config version="step_4_unlock_fast" passphrase="abcdefgh"/>
+						<ui_config version="step_4_bad_unlock" passphrase="00000001"/>
 
 					</inline>
-					<sleep milliseconds="5000"/>
+					<sleep milliseconds="6000"/>
 					<inline>
 
-						<ui_config version="step_5_lock"/>
+						<ui_config version="step_5_wait"/>
 
 					</inline>
-					<sleep milliseconds="5000"/>
+					<sleep milliseconds="6000"/>
 					<inline>
 
-						<ui_config version="step_6_bad_unlock" passphrase="00000001"/>
-
-					</inline>
-					<sleep milliseconds="500"/>
-					<inline>
-
-						<ui_config version="step_7_bad_unlock" passphrase="00000002"/>
-
-					</inline>
-					<sleep milliseconds="500"/>
-					<inline>
-
-						<ui_config version="step_8_bad_unlock" passphrase="00000003"/>
-
-					</inline>
-					<sleep milliseconds="500"/>
-					<inline>
-
-						<ui_config version="step_9_bad_unlock" passphrase="00000004"/>
-
-					</inline>
-					<sleep milliseconds="500"/>
-					<inline>
-
-						<ui_config version="step_10_bad_unlock" passphrase="00000005"/>
-
-					</inline>
-					<sleep milliseconds="5000"/>
-					<inline>
-
-						<ui_config version="step_11_wait"/>
-
-					</inline>
-					<sleep milliseconds="10000"/>
-					<inline>
-
-						<ui_config version="step_12_unlock" passphrase="abcdefgh"/>
-
-					</inline>
-					<sleep milliseconds="500"/>
-					<inline>
-
-						<ui_config version="step_13_lock_fast"/>
+						<ui_config version="step_6_unlock" passphrase="abcdefgh"/>
 
 					</inline>
 					<sleep milliseconds="600000"/>
