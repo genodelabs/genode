@@ -41,3 +41,11 @@ void net_ns_init(void)
 {
 	lx_emul_trace(__func__);
 }
+
+
+#include <linux/skbuff.h>
+
+void skb_init()
+{
+	lx_emul_trace(__func__);
+}

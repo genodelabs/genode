@@ -241,3 +241,10 @@ void __put_cred(struct cred * cred)
 	lx_emul_trace(__func__);
 }
 
+
+#include <linux/skbuff.h>
+
+void skb_init()
+{
+	lx_emul_trace(__func__);
+}

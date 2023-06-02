@@ -489,8 +489,6 @@ void lx_user_init(void)
 
 	genode_wg_arch_lx_user_init();
 
-	skb_init();
-
 	/* trigger execution of 'wg_setup' */
 	_genode_wg_rtnl_link_ops->setup(genode_wg_net_device());
 

@@ -134,6 +134,8 @@ int lx_emul_init_task_function(void * dtb)
 	radix_tree_init();
 	workqueue_init_early();
 
+	skb_init();
+
 	early_irq_init();
 	irqchip_init();
 
