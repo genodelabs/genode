@@ -150,6 +150,13 @@ proc run_power_on { } {
 	if {[regexp -- {-netdev\s+user,id=(\w+)} $qemu_args dummy netdev]} {
 		regsub -all "\\-netdev\\s+user,id=$netdev\\S*" $board_qemu_args "" board_qemu_args }
 
+	##
+	# If -cpu is specified by qemu_args, remove -cpu from board_qemu_args to
+	# support overwriting it, e.g. used for virtualization scenarios
+	#
+	if {[regexp -- {-cpu\s+} $qemu_args dummy]} {
+		regsub -all {\-cpu\s+\S*} $board_qemu_args "" board_qemu_args }
+
 	# append custom board-specific qemu_args
 	append qemu_args " $board_qemu_args"
 

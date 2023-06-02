@@ -1,2 +1,3 @@
 -machine q35
+-cpu Nehalem-v2
 -net nic,model=e1000,netdev=net0 -netdev user,id=net0

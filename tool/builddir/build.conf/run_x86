@@ -24,9 +24,6 @@ QEMU_OPT += -no-kvm
 # use time-tested graphics backend
 QEMU_OPT += -display sdl
 
-# use machine model that supports nested virtualization
-QEMU_OPT(nova) += -cpu core2duo
-
 # add kernel-specific Qemu arguments
 QEMU_OPT += $(QEMU_OPT(${KERNEL}))
 
