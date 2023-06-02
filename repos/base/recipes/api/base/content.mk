@@ -13,7 +13,6 @@ lib:
 	mkdir -p lib/mk lib/symbols
 	cp $(addprefix $(REP_DIR)/lib/mk/,$(LIB_MK_FILES)) lib/mk/
 	cp $(REP_DIR)/lib/symbols/ld lib/symbols/
-	touch lib/mk/config.mk
 	sed -i "/KERNEL/d" lib/mk/ld.mk
 
 SPECS := x86_32 x86_64 32bit 64bit
