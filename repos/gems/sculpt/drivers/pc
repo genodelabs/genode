@@ -145,7 +145,7 @@
 				<pci class="ISABRIDGE"/>
 			</policy>
 			<policy label_suffix="-> wifi" msix="false" info="yes"> <pci class="WIFI"/> </policy>
-			<policy label_suffix="-> nic">   <pci class="ETHERNET"/> </policy>
+			<policy label_suffix="-> nic" info="yes">   <pci class="ETHERNET"/> </policy>
 			<policy label_suffix="-> audio"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
 			<policy label="acpica"> <device name="acpi"/> </policy>
 		</config>

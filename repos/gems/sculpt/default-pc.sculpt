@@ -4,7 +4,7 @@ system:  pc
 gpu_drv: intel
 
 # supplemental depot content added to the system image
-import: pkg/drivers_managed-pc pkg/pc_wifi src/ipxe_nic_drv
+import: pkg/drivers_managed-pc pkg/pc_wifi src/pc_nic_drv
 
 # selection of launcher-menu entries
 launcher: vm_fs shared_fs usb_devices_rom
