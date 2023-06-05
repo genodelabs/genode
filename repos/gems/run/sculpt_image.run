@@ -3,8 +3,9 @@
 #
 
 proc board_supported { } {
-	if {[have_board pinephone]} { return true }
-	if {[have_board pc]}        { return true }
+	if {[have_board pinephone]}   { return true }
+	if {[have_board pc]}          { return true }
+	if {[have_board mnt_reform2]} { return true }
 	return false
 }
 
@@ -36,6 +37,12 @@ if {[have_board pinephone]} {
 
 if {[have_board pc]} {
 	assert_include image/disk
+}
+
+if {[have_board mnt_reform2]} {
+	assert_include image/uboot
+	assert_include image/imx8mq_mmc
+	assert_run_arg "--image-uboot-gzip-best"
 }
 
 source ${genode_dir}/repos/gems/run/sculpt.run
