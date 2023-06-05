@@ -42,3 +42,9 @@ s64 arch_atomic64_inc_return(atomic64_t *v)
 {
 	return arch_atomic64_add(1, v);
 }
+
+
+s64 arch_atomic64_add_return(s64 i, atomic64_t *v)
+{
+	return arch_atomic64_add(i, v);
+}
