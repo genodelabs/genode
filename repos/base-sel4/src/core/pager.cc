@@ -219,6 +219,7 @@ void Pager_entrypoint::entry()
 				        " ip=", Hex(_pager.fault_ip()));
 				reply_pending = false;
 				obj->submit_exception_signal();
+				return;
 			}
 
 			/* send reply if page-fault handling succeeded */
