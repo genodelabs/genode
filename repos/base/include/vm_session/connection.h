@@ -2,6 +2,7 @@
  * \brief  Connection to a VM service
  * \author Stefan Kalkowski
  * \author Christian Helmuth
+ * \author Benjamin Lamowski
  * \date   2012-10-02
  *
  * The VM connection is the API for VM and vCPU handling and implemented
@@ -22,6 +23,7 @@
 #include <base/rpc_client.h>
 #include <vm_session/vm_session.h>
 #include <cpu_session/cpu_session.h>
+#include <util/interface.h>
 #include <util/retry.h>
 #include <util/noncopyable.h>
 
@@ -47,6 +49,12 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 		/* for example OMIT_FPU_ON_IRQ */
 	};
 
+
+	struct Call_with_state : Genode::Interface
+	{
+		virtual bool call_with_state(Vcpu_state &) = 0;
+	};
+
 	/**
 	 * Virtual CPU
 	 *
@@ -55,13 +63,28 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 	 */
 	struct Vcpu : Genode::Noncopyable
 	{
+		void _with_state(Call_with_state &);
+
 		Native_vcpu &_native_vcpu;
 
 		Vcpu(Vm_connection &, Allocator &, Vcpu_handler_base &, Exit_config const &);
 
-		void run();
-		void pause();
-		Vcpu_state & state();
+		template <typename FN>
+		void with_state(FN const &fn)
+		{
+			struct Untyped_fn : Call_with_state
+			{
+				FN const &_fn;
+				Untyped_fn(FN const &fn) : _fn(fn) {}
+
+				bool call_with_state(Vcpu_state &state) override
+				{
+					return _fn(state);
+				}
+			} untyped_fn(fn);
+
+			_with_state(untyped_fn);
+		}
 	};
 
 	friend class Vcpu;
