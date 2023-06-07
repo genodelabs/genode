@@ -51,7 +51,7 @@ install_config {
 			<service name="PD">  <parent/> </service>
 			<service name="RM">  <parent/> </service>
 			<service name="CPU"> <parent/> </service>
-			service name="LOG"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
 			<any-service> <any-child/> </any-service>
 		</route>
 	</start>
@@ -76,7 +76,7 @@ if { [file exists $disk_image] == 0 } then {
 	catch { exec dd if=/dev/zero of=$disk_image bs=1M count=512 }
 }
 append qemu_args "-drive file=$disk_image,format=raw,if=sd,cache=writeback -nographic "
-run_genode_until forever
+run_genode_until {.*child "block_tester" exited with exit value 0.*\n} 30
 
 exec rm $disk_image
 
