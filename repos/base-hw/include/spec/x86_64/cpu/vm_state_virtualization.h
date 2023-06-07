@@ -15,7 +15,7 @@
 #define _INCLUDE__SPEC__PC__VM_STATE_H_
 
 /* x86 CPU state */
-#include <virtualization/extended_vcpu_state.h>
+#include <cpu/vcpu_state.h>
 #include <virtualization/svm.h>
 
 namespace Genode {
@@ -24,8 +24,13 @@ namespace Genode {
 	 * CPU context of a virtual machine
 	 */
 	struct Vm_data;
+
+	struct Vm_state;
 }
 
+struct Genode::Vm_state : Genode::Vcpu_state
+{
+};
 
 struct Genode::Vm_data
 {

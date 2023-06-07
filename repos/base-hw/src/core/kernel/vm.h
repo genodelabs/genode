@@ -1,11 +1,12 @@
 /*
  * \brief   Kernel backend for virtual machines
  * \author  Martin Stein
+ * \author Benjamin Lamowski
  * \date    2013-10-30
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -61,6 +62,16 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		Identity const              _id;
 		Scheduler_state             _scheduled = INACTIVE;
 		Board::Vcpu_context         _vcpu_context;
+
+		void _sync_to_vmm();
+		void _sync_from_vmm();
+		void _pause_vcpu()
+		{
+			if (_scheduled != INACTIVE)
+				Cpu_job::_deactivate_own_share();
+
+			_scheduled = INACTIVE;
+		}
 
 	public:
 
@@ -125,16 +136,15 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 
 		void run()
 		{
+			_sync_from_vmm();
 			if (_scheduled != ACTIVE) Cpu_job::_activate_own_share();
 			_scheduled = ACTIVE;
 		}
 
 		void pause()
 		{
-			if (_scheduled != INACTIVE)
-				Cpu_job::_deactivate_own_share();
-
-			_scheduled = INACTIVE;
+			_pause_vcpu();
+			_sync_to_vmm();
 		}
 
 

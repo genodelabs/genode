@@ -1,11 +1,11 @@
 /*
- * \brief   Kernel backend for x86 virtual machines
- * \author  Benjamin Lamowski
- * \date    2022-10-14
+ * \brief  Kernel backend for x86 virtual machines
+ * \author Benjamin Lamowski
+ * \date   2022-10-14
  */
 
 /*
- * Copyright (C) 2022 Genode Labs GmbH
+ * Copyright (C) 2022-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -33,7 +33,6 @@ using Genode::addr_t;
 using Kernel::Cpu;
 using Kernel::Vm;
 using Board::Vmcb;
-using Vcpu_run_state = Genode::Vcpu_run_state;
 
 
 Vm::Vm(Irq::Pool              & user_irq_pool,
@@ -51,7 +50,6 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 	_vcpu_context(id.id, &data.vmcb, data.vmcb_phys_addr)
 {
 	affinity(cpu);
-	_state.run_state.set(Vcpu_run_state::STARTUP);
 }
 
 
@@ -65,52 +63,30 @@ void Vm::proceed(Cpu & cpu)
 	using namespace Board;
 	cpu.switch_to(*_vcpu_context.regs);
 
-	bool do_world_switch = false;
-
-	switch (_state.run_state.value()) {
-		case Vcpu_run_state::STARTUP: break;
-		case Vcpu_run_state::SYNC_FROM_VCPU: break;
-		case Vcpu_run_state::PAUSING: break;
-		case Vcpu_run_state::INTERRUPTIBLE:
-			if (_state.run_state.cas(Vcpu_run_state::INTERRUPTIBLE,
-			                         Vcpu_run_state::RUNNING))
-				do_world_switch = true;
-			break;
-		case Vcpu_run_state::RUNNABLE:
-			_state.run_state.cas(Vcpu_run_state::RUNNABLE,
-			                        Vcpu_run_state::RUNNING);
-			[[fallthrough]];
-		case Vcpu_run_state::RUN_ONCE:
-			_vcpu_context.read_vcpu_state(_state);
-			do_world_switch = true;
-			break;
-		default:
-			Genode::error("proceed: illegal state ",
-			              Genode::Hex(_state.run_state.value()));
-	}
-
-	if (do_world_switch) {
-		Cpu::Ia32_tsc_aux::write((Cpu::Ia32_tsc_aux::access_t) _vcpu_context.tsc_aux_guest);
-
-		/*
-		 * We push the host context's physical address to trapno so that
-		 * we can pop it later
-		 * */
-		_vcpu_context.regs->trapno = _vcpu_context.vmcb.root_vmcb_phys;
-		Hypervisor::switch_world(_vcpu_context.vmcb.phys_addr,
-		                          (addr_t)&_vcpu_context.regs->r8,
-		                          _vcpu_context.regs->fpu_context());
-		/*
-		 * This will fall into an interrupt or otherwise jump into
-		 * _kernel_entry
-		 * */
-	} else {
+	if (_vcpu_context.exitcode == EXIT_INIT) {
 		_vcpu_context.regs->trapno = TRAP_VMSKIP;
 		Hypervisor::restore_state_for_entry((addr_t)&_vcpu_context.regs->r8,
 		                                    _vcpu_context.regs->fpu_context());
 		/* jumps to _kernel_entry */
 	}
+
+	Cpu::Ia32_tsc_aux::write(
+	    (Cpu::Ia32_tsc_aux::access_t)_vcpu_context.tsc_aux_guest);
+
+	/*
+	 * We push the host context's physical address to trapno so that
+	 * we can pop it later
+	 */
+	_vcpu_context.regs->trapno = _vcpu_context.vmcb.root_vmcb_phys;
+	Hypervisor::switch_world(_vcpu_context.vmcb.phys_addr,
+	                         (addr_t) &_vcpu_context.regs->r8,
+	                         _vcpu_context.regs->fpu_context());
+	/*
+	 * This will fall into an interrupt or otherwise jump into
+	 * _kernel_entry
+	 */
 }
+
 
 void Vm::exception(Cpu & cpu)
 {
@@ -134,7 +110,7 @@ void Vm::exception(Cpu & cpu)
 			              " at ip=",
 			              (void *)_vcpu_context.regs->ip, " sp=",
 			              (void *)_vcpu_context.regs->sp);
-			pause();
+			_pause_vcpu();
 			return;
 	};
 
@@ -144,73 +120,58 @@ void Vm::exception(Cpu & cpu)
 		VMEXIT_NPF = 0x400,
 	};
 
-	switch (_state.run_state.value()) {
-		case Vcpu_run_state::STARTUP:
+	if (_vcpu_context.exitcode == EXIT_INIT) {
 			_vcpu_context.initialize_svm(cpu, _id.table);
 			_vcpu_context.tsc_aux_host = cpu.id();
-			_vcpu_context.write_vcpu_state(_state, EXIT_STARTUP);
-			_state.run_state.set(Vcpu_run_state::DISPATCHING);
-			pause();
+			_vcpu_context.exitcode     = EXIT_STARTUP;
+			_pause_vcpu();
 			_context.submit(1);
 			return;
-		case Vcpu_run_state::SYNC_FROM_VCPU:
-			_vcpu_context.write_vcpu_state(_state, EXIT_PAUSED);
-			_state.run_state.set(Vcpu_run_state::PAUSED);
-			pause();
-			_context.submit(1);
-			return;
-		case Vcpu_run_state::EXITING: break;
-		case Vcpu_run_state::RUNNING: break;
-		case Vcpu_run_state::RUN_ONCE: break;
-		case Vcpu_run_state::PAUSING: return;
-		default:
-			Genode::error("exception: illegal state ",
-			              Genode::Hex(_state.run_state.value()));
 	}
 
-	Genode::uint64_t exitcode = _vcpu_context.vmcb.read<Vmcb::Exitcode>();
+	_vcpu_context.exitcode = _vcpu_context.vmcb.read<Vmcb::Exitcode>();
 
-	switch (exitcode) {
+	switch (_vcpu_context.exitcode) {
 		case VMEXIT_INVALID:
 			Genode::error("Vm::exception: invalid SVM state!");
 			return;
 		case 0x40 ... 0x5f:
 			Genode::error("Vm::exception: unhandled SVM exception ",
-			              Genode::Hex(exitcode));
+			              Genode::Hex(_vcpu_context.exitcode));
 			return;
 		case VMEXIT_INTR:
-			if (!_state.run_state.cas(Vcpu_run_state::RUNNING,
-			                          Vcpu_run_state::INTERRUPTIBLE))
-			{
-				_vcpu_context.write_vcpu_state(_state, EXIT_PAUSED);
-
-				/*
-				 * If the interruptible state couldn't be set, the state might
-				 * be EXITING and a pause() signal might have already been send
-				 * (to cause the vCPU exit in the first place).
-				 */
-				bool submit = false;
-				/* In the RUN_ONCE case, first we will need to send a signal. */
-				if (_state.run_state.value() == Vcpu_run_state::RUN_ONCE)
-					submit = true;
-
-				_state.run_state.set(Vcpu_run_state::PAUSED);
-				pause();
-
-				if (submit)
-					_context.submit(1);
-			}
+			_vcpu_context.exitcode = EXIT_PAUSED;
 			return;
 		case VMEXIT_NPF:
-			exitcode = EXIT_NPF;
+			_vcpu_context.exitcode = EXIT_NPF;
 			[[fallthrough]];
 		default:
-			_vcpu_context.write_vcpu_state(_state, (unsigned) exitcode);
-			_state.run_state.set(Vcpu_run_state::DISPATCHING);
-			pause();
+			_pause_vcpu();
 			_context.submit(1);
 			return;
-	};
+	}
+}
+
+
+void Vm::_sync_to_vmm()
+{
+	_vcpu_context.write_vcpu_state(_state);
+
+	/*
+	 * Set exit code so that if _run() was not called after an exit, the
+	 * next exit due to a signal will be interpreted as PAUSE request.
+	 */
+	_vcpu_context.exitcode = Board::EXIT_PAUSED;
+}
+
+
+void Vm::_sync_from_vmm()
+{
+	/* first run() will skip through to issue startup exit */
+	if (_vcpu_context.exitcode == Board::EXIT_INIT)
+		return;
+
+	_vcpu_context.read_vcpu_state(_state);
 }
 
 

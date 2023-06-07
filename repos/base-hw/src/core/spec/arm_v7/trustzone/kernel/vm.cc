@@ -1,12 +1,13 @@
 /*
- * \brief   Kernel backend for virtual machines
- * \author  Martin Stein
- * \author  Stefan Kalkowski
- * \date    2013-10-30
+ * \brief  Kernel backend for virtual machines
+ * \author Martin Stein
+ * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
+ * \date   2013-10-30
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -35,6 +36,10 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 	_vcpu_context(cpu)
 {
 	affinity(cpu);
+	/* once constructed, exit with a startup exception */
+	pause();
+	_state.cpu_exception = Genode::VCPU_EXCEPTION_STARTUP;
+	_context.submit(1);
 }
 
 
@@ -79,3 +84,11 @@ void Vm::proceed(Cpu & cpu)
 
 	monitor_mode_enter_normal_world(_state, (void*) cpu.stack_start());
 }
+
+
+void Vm::_sync_to_vmm()
+{}
+
+
+void Vm::_sync_from_vmm()
+{}

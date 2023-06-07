@@ -1,11 +1,12 @@
 /*
- * \brief   CPU, PIC, and timer context of a virtual machine
- * \author  Stefan Kalkowski
- * \date    2015-02-10
+ * \brief  CPU, PIC, and timer context of a virtual machine
+ * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
+ * \date   2015-02-10
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,6 +19,8 @@
 #include <cpu/cpu_state.h>
 
 namespace Genode {
+
+	enum { VCPU_EXCEPTION_STARTUP = 0xfe };
 
 	/**
 	 * CPU context of a virtual machine

@@ -1,12 +1,13 @@
 /*
- * \brief   CPU context of a virtual machine for TrustZone
- * \author  Stefan Kalkowski
- * \author  Martin Stein
- * \date    2013-10-30
+ * \brief  CPU context of a virtual machine for TrustZone
+ * \author Stefan Kalkowski
+ * \author Martin Stein
+ * \author Benjamin Lamowski
+ * \date   2013-10-30
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,6 +20,8 @@
 #include <cpu/cpu_state.h>
 
 namespace Genode {
+
+	enum { VCPU_EXCEPTION_STARTUP = 0xfe };
 
 	/**
 	 * CPU context of a virtual machine

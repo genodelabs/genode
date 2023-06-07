@@ -1,11 +1,12 @@
 /*
- * \brief   Kernel backend for virtual machines
- * \author  Stefan Kalkowski
- * \date    2015-02-10
+ * \brief  Kernel backend for virtual machines
+ * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
+ * \date   2015-02-10
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -149,6 +150,11 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 			_state.ccsidr_data_el1[level] = Cpu::Ccsidr_el1::read();
 		}
 	}
+
+	/* once constructed, exit with a startup exception */
+	pause();
+	_state.exception_type = Genode::VCPU_EXCEPTION_STARTUP;
+	_context.submit(1);
 }
 
 
@@ -206,6 +212,14 @@ void Vm::proceed(Cpu & cpu)
 
 	Hypervisor::switch_world(guest, host, pic, vttbr_el2);
 }
+
+
+void Vm::_sync_to_vmm()
+{}
+
+
+void Vm::_sync_from_vmm()
+{}
 
 
 void Vm::inject_irq(unsigned irq)
