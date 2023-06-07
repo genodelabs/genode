@@ -37,8 +37,6 @@ configured_kernel:
 	       -e "/CONFIG_SUPPORT_PCID/d"                                                              \
 	       -e "/CONFIG_XSAVE 1/d"                                                                   \
 	       -e "/CONFIG_XSAVE_XSAVEOPT 1/d"                                                          \
-	       -e "/CONFIG_ARCH_X86_NEHALEM 1/d"                                                        \
-	       -e "/CONFIG_KERNEL_X86_MICRO_ARCH nehalem/d"                                             \
 	       gen_config/kernel/gen_config.h   >gen_config/kernel/gen_config.tmp \
 	&& mv  gen_config/kernel/gen_config.tmp  gen_config/kernel/gen_config.h \
 	&& touch configured_kernel
