@@ -33,8 +33,7 @@ namespace Genode { namespace Trait {
 		template <unsigned _WIDTH>
 		struct Raise_to_uint_width
 		{
-			enum { WIDTH = _WIDTH < 2  ? 1  :
-			               _WIDTH < 9  ? 8  :
+			enum { WIDTH = _WIDTH < 9  ? 8  :
 			               _WIDTH < 17 ? 16 :
 			               _WIDTH < 33 ? 32 :
 			               _WIDTH < 65 ? 64 : 0, };
@@ -45,21 +44,15 @@ namespace Genode { namespace Trait {
 		 */
 		template <unsigned long _WIDTH> struct Uint_width;
 
-		template <> struct Uint_width<1>
+		template <> struct Uint_width<8>
 		{
-			typedef bool Type;
-			enum { WIDTH_LOG2 = 0 };
+			typedef uint8_t Type;
+			enum { WIDTH_LOG2 = 3 };
 
 			/**
 			 * Access widths wich are dividers to the compound type width
 			 */
 			template <unsigned long _DIVISOR_WIDTH> struct Divisor;
-		};
-
-		template <> struct Uint_width<8> : Uint_width<1>
-		{
-			typedef uint8_t Type;
-			enum { WIDTH_LOG2 = 3 };
 		};
 
 		template <> struct Uint_width<16> : Uint_width<8>
@@ -80,7 +73,7 @@ namespace Genode { namespace Trait {
 			enum { WIDTH_LOG2 = 6 };
 		};
 
-		template <> struct Uint_width<1>::Divisor<1>   { enum { WIDTH_LOG2 = 0 }; };
+		template <> struct Uint_width<8>::Divisor<1>   { enum { WIDTH_LOG2 = 0 }; };
 		template <> struct Uint_width<8>::Divisor<2>   { enum { WIDTH_LOG2 = 1 }; };
 		template <> struct Uint_width<8>::Divisor<4>   { enum { WIDTH_LOG2 = 2 }; };
 		template <> struct Uint_width<8>::Divisor<8>   { enum { WIDTH_LOG2 = 3 }; };
@@ -93,7 +86,6 @@ namespace Genode { namespace Trait {
 		 */
 		template <typename _TYPE> struct Uint_type;
 
-		template <> struct Uint_type<bool>     : Uint_width<1> { };
 		template <> struct Uint_type<uint8_t>  : Uint_width<8> { };
 		template <> struct Uint_type<uint16_t> : Uint_width<16> { };
 		template <> struct Uint_type<uint32_t> : Uint_width<32> { };
@@ -140,6 +132,10 @@ struct Genode::Register
 		static constexpr size_t SHIFT          = _SHIFT;
 		static constexpr size_t WIDTH          = _WIDTH;
 		static constexpr size_t BITFIELD_WIDTH = WIDTH;
+
+		typedef typename
+			Trait::Uint_width<Trait::Raise_to_uint_width<WIDTH>::WIDTH>::Type
+			bitfield_t;
 
 		/**
 		 * Get an unshifted mask of this field
@@ -190,8 +186,8 @@ struct Genode::Register
 		/**
 		 * Get value of this bitfield from 'reg'
 		 */
-		static inline access_t get(access_t const reg)
-		{ return (reg >> SHIFT) & mask(); }
+		static inline bitfield_t get(access_t const reg)
+		{ return (bitfield_t)((reg >> SHIFT) & mask()); }
 
 		/**
 		 * Get register value 'reg' with this bitfield set to zero

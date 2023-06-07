@@ -71,8 +71,8 @@ struct Test_mmio : public Mmio
 		struct Bits_4 : Bitfield<60,4> { };
 		struct Bits_5 : Bitfield<0,64> { };
 		struct Bits_6 : Bitfield<16,64> { };
-		struct Bits_7 : Bitfield<12,90> { };
-		struct Bits_8 : Bitfield<0,72> { };
+		struct Bits_7 : Bitfield<12,64> { };
+		struct Bits_8 : Bitfield<0,64> { };
 	};
 	struct Bitset_64_0 : Bitset_2<Reg_64::Bits_0, Reg_64::Bits_1> { };
 	struct Bitset_64_1 : Bitset_3<Reg_64::Bits_4, Reg_64::Bits_3, Reg_64::Bits_2> { };

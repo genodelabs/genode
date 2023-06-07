@@ -418,7 +418,7 @@ class Genode::Register_set : Noncopyable
 		 * Read the bitfield 'T' of a register
 		 */
 		template <typename T>
-		inline typename T::Bitfield_base::Compound_reg::access_t
+		inline typename T::Bitfield_base::bitfield_t
 		read() const
 		{
 			typedef typename T::Bitfield_base Bitfield;
@@ -553,7 +553,7 @@ class Genode::Register_set : Noncopyable
 		 * \param index  index of the targeted item
 		 */
 		template <typename T>
-		inline typename T::Array_bitfield_base::Compound_array::access_t
+		inline typename T::Array_bitfield_base::bitfield_t
 		read(unsigned long const index) const
 		{
 			typedef typename T::Array_bitfield_base Bitfield;
