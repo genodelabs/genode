@@ -889,7 +889,6 @@ void Child::close_all_sessions()
 	_binary.close();
 	if (_linker.constructed())
 		_linker->close();
-	_pd.close();
 
 	/*
 	 * Remove statically created env sessions from the child's ID space.
@@ -914,6 +913,8 @@ void Child::close_all_sessions()
 	};
 
 	while (_id_space.apply_any<Session_state>(close_fn));
+
+	_pd.close();
 
 	if (!KERNEL_SUPPORTS_EAGER_CHILD_DESTRUCTION)
 		_cpu._connection.destruct();
