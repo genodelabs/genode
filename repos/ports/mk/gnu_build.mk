@@ -216,6 +216,7 @@ $(TARGET): installed.tag
 # Trigger creation of symlinks to the build results at '<build-dir>/bin/'
 #
 ifneq ($(INSTALL_TAR_ARCHIVE),)
+BUILD_ARTIFACTS := $(addsuffix .tar,$(TARGET))
 $(TARGET): installed_tar.tag
 endif
 
