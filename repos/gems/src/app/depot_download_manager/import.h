@@ -44,6 +44,10 @@ class Depot_download_manager::Import
 
 				bool complete() const
 				{
+					/* fetchurl did not return valid download info */
+					if (total == "")
+						return false;
+
 					/* fetchurl has not yet determined the file size */
 					if (total == "0.0")
 						return false;
