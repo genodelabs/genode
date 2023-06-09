@@ -39,7 +39,7 @@ class Sub_rm_connection : private Genode::Rm_connection,
 		:
 			Rm_connection(env),
 			Genode::Region_map_client(Rm_connection::create(size)),
-			_offset(env.rm().attach(dataspace())),
+			_offset(env.rm().attach(dataspace(), 0, 0, false, nullptr, true, true)),
 			_size(size)
 		{ }
 

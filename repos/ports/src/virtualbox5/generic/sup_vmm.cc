@@ -135,9 +135,8 @@ static Sub_rm_connection &vm_memory(Genode::uint64_t vm_size = 0)
 		while (allocated < memory_size) {
 			Ram_dataspace_capability ds = genode_env().ram().alloc(alloc_size);
 
-			addr_t to = vm_memory.attach_executable(ds, memory.addr +
-			                                            allocated - vmm_local,
-			                                        alloc_size);
+			addr_t to = vm_memory.attach_rwx(ds, memory.addr + allocated - vmm_local,
+			                                 alloc_size);
 			Assert(to == vm_memory.local_addr(memory.addr + allocated - vmm_local));
 			allocated += alloc_size;
 

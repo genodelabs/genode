@@ -57,7 +57,7 @@ class Linker::Region_map
 		Region_map(Env &env, Allocator &md_alloc, addr_t base)
 		:
 			_env(env), _range(&md_alloc),
-			_base((addr_t)_env.rm().attach_at(_rm.dataspace(), base))
+			_base((addr_t)_env.rm().attach_rwx(_rm.dataspace(), base))
 		{
 			_range.add_range(base, Pd_session::LINKER_AREA_SIZE);
 

@@ -35,7 +35,7 @@ void Sup::Gmm::_add_one_slice()
 	Ram_dataspace_capability ds = _env.ram().alloc(slice_size);
 
 	_map.connection.retry_with_upgrade(Ram_quota{8192}, Cap_quota{2}, [&] () {
-		_map.rm.attach_executable(ds, attach_base, slice_size); });
+		_map.rm.attach_rwx(ds, attach_base, slice_size); });
 
 	_slices[_slice_index(Offset{attach_base})] = ds;
 

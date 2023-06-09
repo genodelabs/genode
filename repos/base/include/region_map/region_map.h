@@ -127,11 +127,18 @@ struct Genode::Region_map : Interface
 		return attach(ds, size, offset, true, local_addr); }
 
 	/**
-	 * Shortcut for attaching a dataspace executable at a predefined local address
+	 * Shortcut for attaching a dataspace executable at local address
 	 */
 	Local_addr attach_executable(Dataspace_capability ds, addr_t local_addr,
 	                             size_t size = 0, off_t offset = 0) {
-		return attach(ds, size, offset, true, local_addr, true); }
+		return attach(ds, size, offset, true, local_addr, true, false ); }
+
+	/**
+	 * Shortcut for attaching a dataspace will full rights at local address
+	 */
+	Local_addr attach_rwx(Dataspace_capability ds, addr_t local_addr,
+	                      size_t size = 0, off_t offset = 0) {
+		return attach(ds, size, offset, true, local_addr, true, true ); }
 
 	/**
 	 * Remove region from local address space
