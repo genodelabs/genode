@@ -72,6 +72,8 @@ if {[have_spec x86]} {
 	set arch         "x86_64"
 }
 
+set build_components { core lib/ld lib/vfs lib/vfs_pipe lib/libc server/vfs }
+
 #
 # Build packages only once
 #
@@ -79,9 +81,6 @@ set pkgs "$binutils $gcc"
 
 foreach pkg $pkgs {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
-
-lappend build_components "lib/vfs_pipe"
-lappend build_components "server/vfs"
 
 build $build_components
 
@@ -251,17 +250,7 @@ install_config {
 
 </config>}
 
-
-#
-# Boot modules
-#
-
-append  boot_modules { bash_profile genode.tar }
-lappend boot_modules "$binutils.tar" "$gcc.tar"
-lappend boot_modules libc.lib.so vfs.lib.so vfs_pipe.lib.so vfs
-
-build_boot_image $boot_modules
-
+build_boot_image [list {*}[build_artifacts] bash_profile genode.tar $binutils.tar $gcc.tar]
 
 append qemu_args " -nographic -m 800 "
 
