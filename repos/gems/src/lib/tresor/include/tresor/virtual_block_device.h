@@ -243,6 +243,7 @@ class Tresor::Virtual_block_device_channel
 		Number_of_blocks             _nr_of_blks       { 0 };
 		Generation                   _last_secured_gen { 0 };
 		Generation                   _free_gen         { 0 };
+		Block                        _encoded_blk      { };
 		Block                        _data_blk         { };
 		Physical_block_address       _data_blk_old_pba { 0 };
 		bool                         _first_snapshot   { false };
@@ -326,7 +327,8 @@ class Tresor::Virtual_block_device : public Module
 
 		void _add_new_root_lvl_to_snap_using_pba_contingent(Channel &chan);
 
-		void _check_hash_of_read_type_1_node(Snapshot const &snapshot,
+		void _check_hash_of_read_type_1_node(Channel &chan,
+		                                     Snapshot const &snapshot,
 		                                     uint64_t const snapshots_degree,
 		                                     uint64_t const t1_blk_idx,
 		                                     Channel::Type_1_node_blocks const &t1_blks,

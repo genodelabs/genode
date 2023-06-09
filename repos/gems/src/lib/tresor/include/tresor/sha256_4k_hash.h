@@ -16,12 +16,15 @@
 
 namespace Tresor {
 
-	void calc_sha256_4k_hash(void const *data_ptr,
-	                         void       *hash_ptr);
+	class Block;
+	class Hash;
+
+	void calc_sha256_4k_hash(Block const &blk,
+	                         Hash        &hash);
 
 
-	bool check_sha256_4k_hash(void const *data_ptr,
-	                          void const *exp_hash_ptr);
+	bool check_sha256_4k_hash(Block const &blk,
+	                          Hash  const &expected_hash);
 }
 
 #endif /* _TRESOR__SHAE256_4K_HASH_ */

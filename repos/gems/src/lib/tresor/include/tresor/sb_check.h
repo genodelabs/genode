@@ -102,6 +102,7 @@ class Tresor::Sb_check_channel
 		Type_1_node            _mt               { };
 		Physical_block_address _gen_prim_blk_nr  { 0 };
 		bool                   _gen_prim_success { false };
+		Block                  _encoded_blk      { };
 };
 
 

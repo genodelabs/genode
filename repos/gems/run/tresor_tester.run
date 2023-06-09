@@ -4,33 +4,6 @@ if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 	exit 0
 }
 
-#
-# The following platforms trigger alignment faults that come from a not yet
-# solved deficiency of the tresor lib: The lib uses the on-disc datastructures
-# directly in code without translating them to naturally aligned structs
-# beforehand.
-#
-if {[get_cmd_switch --autopilot] && [have_board rpi]} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
-}
-if {[get_cmd_switch --autopilot] && [have_board imx6q_sabrelite]} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
-}
-if {[get_cmd_switch --autopilot] && [have_board imx53_qsb]} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
-}
-if {[get_cmd_switch --autopilot] && [have_board imx53_qsb_tz]} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
-}
-if {[get_cmd_switch --autopilot] && [have_board imx7d_sabre]} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
-}
-
 set dd [installed_command dd]
 
 proc tresor_image_name { } {
@@ -130,6 +103,7 @@ append config {
 				<service name="LOG">     <parent/> </service>
 				<service name="CPU">     <parent/> </service>
 				<service name="IO_PORT"> <parent/> </service>
+				<service name="IO_MEM">  <parent/> </service>
 				<service name="IRQ">     <parent/> </service>
 			</route>
 		</start>

@@ -325,7 +325,7 @@ bool Sb_check::_peek_generated_request(uint8_t *buf_ptr,
 			construct_in_buf<Block_io_request>(
 				buf_ptr, buf_size, SB_CHECK, id,
 				Block_io_request::READ, 0, 0, 0,
-				chan._gen_prim_blk_nr, 0, 1, &chan._sb_slot,
+				chan._gen_prim_blk_nr, 0, 1, &chan._encoded_blk,
 				nullptr);
 
 			return true;
@@ -416,7 +416,10 @@ void Sb_check::generated_request_complete(Module_request &mod_req)
 		Block_io_request &gen_req { *static_cast<Block_io_request*>(&mod_req) };
 		chan._gen_prim_success = gen_req.success();
 		switch (chan._sb_slot_state) {
-		case Channel::READ_DROPPED: chan._sb_slot_state = Channel::READ_DONE; break;
+		case Channel::READ_DROPPED:
+			chan._sb_slot.decode_from_blk(chan._encoded_blk);
+			chan._sb_slot_state = Channel::READ_DONE;
+			break;
 		default:
 			class Exception_2 { };
 			throw Exception_2 { };

@@ -175,6 +175,7 @@ class Tresor::Ft_resizing_channel
 		Tree_walk_pbas        _old_pbas        { };
 		Generations           _old_generations { };
 		Tree_walk_pbas        _new_pbas        { };
+		Block                 _encoded_blk     { };
 };
 
 class Tresor::Ft_resizing : public Module

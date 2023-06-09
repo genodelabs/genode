@@ -125,6 +125,7 @@ class Tresor::Ft_initializer_channel
 		uint64_t               _blk_nr                    { 0 };
 		uint64_t               _child_pba                 { 0 };
 		bool                   _generated_req_success     { false };
+		Block                  _encoded_blk               { };
 
 		static void reset_node(Tresor::Type_1_node &node)
 		{

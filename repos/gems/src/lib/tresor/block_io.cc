@@ -99,7 +99,7 @@ bool Block_io::_peek_generated_request(uint8_t *buf_ptr,
 				buf_ptr, buf_size, BLOCK_IO, id, crypto_req_type,
 				req._client_req_offset, req._client_req_tag,
 				req._key_id, nullptr, req._pba, req._vba, nullptr,
-				(void *)channel._blk_buf);
+				(void *)&channel._blk_buf);
 
 			return true;
 		}
@@ -299,7 +299,7 @@ void Block_io::_execute_read_client_data(Channel &channel,
 		size_t nr_of_read_bytes { 0 };
 
 		Byte_range_ptr dst {
-			(char *)channel._blk_buf + channel._nr_of_processed_bytes,
+			(char *)&channel._blk_buf + channel._nr_of_processed_bytes,
 			channel._nr_of_remaining_bytes };
 
 		Result const result {
@@ -377,7 +377,7 @@ void Block_io::_execute_write_client_data(Channel &channel,
 			_mark_req_failed(channel, progress, "encrypt client data");
 			return;
 		}
-		calc_sha256_4k_hash((void *)channel._blk_buf, (void *)req._hash_ptr);
+		calc_sha256_4k_hash(channel._blk_buf, *(Hash *)req._hash_ptr);
 		_vfs_handle.seek(req._pba * BLOCK_SIZE +
 		                 channel._nr_of_processed_bytes);
 
@@ -390,7 +390,7 @@ void Block_io::_execute_write_client_data(Channel &channel,
 		size_t nr_of_written_bytes { 0 };
 
 		Const_byte_range_ptr src {
-			(char const *)channel._blk_buf + channel._nr_of_processed_bytes,
+			(char const *)&channel._blk_buf + channel._nr_of_processed_bytes,
 			channel._nr_of_remaining_bytes };
 
 		Result const result =
@@ -619,7 +619,7 @@ bool Block_io::_peek_completed_request(uint8_t *buf_ptr,
 				case Request::WRITE:
 				{
 					Hash hash;
-					calc_sha256_4k_hash((void *)req._blk_ptr, &hash);
+					calc_sha256_4k_hash(*(Block *)req._blk_ptr, hash);
 					log("block_io: ", req.type_name(), " pba ", req._pba,
 					    " data ", *(Block *)req._blk_ptr, " hash ", hash);
 
@@ -629,9 +629,9 @@ bool Block_io::_peek_completed_request(uint8_t *buf_ptr,
 				case Request::WRITE_CLIENT_DATA:
 				{
 					Hash hash;
-					calc_sha256_4k_hash((void *)channel._blk_buf, &hash);
+					calc_sha256_4k_hash(channel._blk_buf, hash);
 					log("block_io: ", req.type_name(), " pba ", req._pba,
-					    " data ", *(Block *)channel._blk_buf,
+					    " data ", channel._blk_buf,
 					    " hash ", hash);
 
 					break;

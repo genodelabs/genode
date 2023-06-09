@@ -143,8 +143,7 @@ void Sb_initializer::_execute(Channel &channel,
 		if (channel._sb_slot_index == 0) {
 			channel._state = CS::VBD_REQUEST_PENDING;
 		} else {
-			memset(&channel._sb_slot, 0, sizeof(channel._sb_slot));
-			memcpy(&channel._sb_slot, &channel._sb, sizeof(channel._sb));
+			channel._sb.encode_to_blk(channel._encoded_blk);
 			channel._state = CS::WRITE_REQUEST_PENDING;
 		}
 		progress = true;
@@ -179,8 +178,9 @@ void Sb_initializer::_execute(Channel &channel,
 		_populate_sb_slot(channel,
 		                  Physical_block_address { block_allocator_first_block() } - NR_OF_SUPERBLOCK_SLOTS,
 		                  Number_of_blocks       { (uint32_t)block_allocator_nr_of_blks() + NR_OF_SUPERBLOCK_SLOTS });
-		memcpy(&channel._sb_slot, &channel._sb, sizeof(channel._sb));
-		calc_sha256_4k_hash(&channel._sb_slot, (void*)&channel._sb_hash);
+
+		channel._sb.encode_to_blk(channel._encoded_blk);
+		calc_sha256_4k_hash(channel._encoded_blk, channel._sb_hash);
 
 		channel._state = CS::WRITE_REQUEST_PENDING;
 		progress = true;
@@ -429,7 +429,7 @@ bool Sb_initializer::_peek_generated_request(uint8_t *buf_ptr,
 
 			construct_in_buf<Block_io_request>(
 				buf_ptr, buf_size, SB_INITIALIZER, id, block_io_req_type, 0, 0,
-				0, channel._sb_slot_index, 0, 1, (void*)&channel._sb_slot,
+				0, channel._sb_slot_index, 0, 1, (void *)&channel._encoded_blk,
 				nullptr);
 
 			return true;

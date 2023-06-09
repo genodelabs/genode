@@ -110,7 +110,7 @@ bool Meta_tree::_peek_generated_request(uint8_t *buf_ptr,
 			construct_in_buf<Block_io_request>(
 				buf_ptr, buf_size, META_TREE, id, blk_io_req_type,
 				0, 0, 0, local_req.pba, 0, 1,
-				channel._cache_request.block_data, nullptr);
+				(void *)&channel._cache_request.block_data, nullptr);
 
 			return true;
 		}
@@ -174,25 +174,25 @@ void Meta_tree::generated_request_complete(Module_request &mod_req)
 
 		if (local_req.level > T2_NODE_LVL) {
 
-			if (!check_sha256_4k_hash(channel._cache_request.block_data, &t1_info.node.hash)) {
+			if (!check_sha256_4k_hash(channel._cache_request.block_data, t1_info.node.hash)) {
 
 				channel._state = Channel::TREE_HASH_MISMATCH;
 
 			} else {
 
-				memcpy(&t1_info.entries, channel._cache_request.block_data, BLOCK_SIZE);
+				t1_info.entries.decode_from_blk(channel._cache_request.block_data);
 				t1_info.index = 0;
 				t1_info.state = Type_1_info::READ_COMPLETE;
 			}
 		} else if (local_req.level == T2_NODE_LVL) {
 
-			if (!check_sha256_4k_hash(channel._cache_request.block_data, &t2_info.node.hash)) {
+			if (!check_sha256_4k_hash(channel._cache_request.block_data, t2_info.node.hash)) {
 
 				channel._state = Channel::TREE_HASH_MISMATCH;
 
 			} else {
 
-				memcpy(&t2_info.entries, channel._cache_request.block_data, BLOCK_SIZE);
+				t2_info.entries.decode_from_blk(channel._cache_request.block_data);
 				t2_info.index = 0;
 				t2_info.state = Type_2_info::READ_COMPLETE;
 			}
@@ -245,12 +245,12 @@ void Meta_tree::_mark_req_successful(Channel &channel,
 }
 
 
-void Meta_tree::_update_parent(Type_1_node   &node,
-                               uint8_t const *blk_ptr,
-                               uint64_t       gen,
-                               uint64_t       pba)
+void Meta_tree::_update_parent(Type_1_node &node,
+                               Block const &blk,
+                               uint64_t     gen,
+                               uint64_t     pba)
 {
-	calc_sha256_4k_hash(blk_ptr, &node.hash);
+	calc_sha256_4k_hash(blk, node.hash);
 	node.gen = gen;
 	node.pba = pba;
 }
@@ -401,16 +401,16 @@ void Meta_tree::_handle_level_1_node(Channel &channel,
 
 	case Type_2_info::WRITE:
 	{
-		uint8_t block_data[BLOCK_SIZE];
-		memcpy(block_data, &t2_info.entries, BLOCK_SIZE);
+		Block block_data { };
+		t2_info.entries.encode_to_blk(block_data);
 
 		_update_parent(
-			t1_info.entries.nodes[t1_info.index], block_data, req._current_gen,
-			t2_info.node.pba);
+			t1_info.entries.nodes[t1_info.index], block_data,
+			req._current_gen, t2_info.node.pba);
 
 		channel._cache_request = Local_cache_request {
 			Local_cache_request::PENDING, Local_cache_request::WRITE, false,
-			t2_info.node.pba, 1, block_data };
+			t2_info.node.pba, 1, &block_data };
 
 		t1_info.dirty = true;
 		handled = true;
@@ -615,8 +615,8 @@ void Meta_tree::_handle_level_n_nodes(Channel &channel,
 
 		case Type_1_info::WRITE:
 		{
-			uint8_t block_data[BLOCK_SIZE];
-			memcpy(&block_data, &t1_info.entries, BLOCK_SIZE);
+			Block block_data;
+			t1_info.entries.encode_to_blk(block_data);
 
 			if (lvl == req._mt_max_lvl) {
 
@@ -648,7 +648,7 @@ void Meta_tree::_handle_level_n_nodes(Channel &channel,
 			}
 			channel._cache_request = Local_cache_request {
 				Local_cache_request::PENDING, Local_cache_request::WRITE,
-				false, t1_info.node.pba, lvl, block_data };
+				false, t1_info.node.pba, lvl, &block_data };
 
 			handled = true;
 			return;

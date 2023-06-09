@@ -124,8 +124,11 @@ void Vbd_check::_execute_inner_t1_child(Channel           &chan,
 
 	} else if (child_state == Channel::CHECK_HASH) {
 
+		Block blk { };
+		child_lvl.children.encode_to_blk(blk);
+
 		if (child.gen == INITIAL_GENERATION ||
-		    check_sha256_4k_hash(&child_lvl.children, &child.hash)) {
+		    check_sha256_4k_hash(blk, child.hash)) {
 
 			child_state = Channel::DONE;
 			if (&child_state == &chan._root_state) {
@@ -142,7 +145,7 @@ void Vbd_check::_execute_inner_t1_child(Channel           &chan,
 			if (VERBOSE_CHECK) {
 
 				Hash hash;
-				calc_sha256_4k_hash(&child_lvl.children, &hash);
+				calc_sha256_4k_hash(blk, hash);
 				log(Level_indent { lvl, req._max_lvl },
 				    "    lvl ", lvl, " child ", child_idx, " (", child, "): bad hash ", hash);
 			}
@@ -226,7 +229,7 @@ void Vbd_check::_execute_leaf_child(Channel           &chan,
 
 	} else if (child_state == Channel::CHECK_HASH) {
 
-		if (check_sha256_4k_hash(&child_lvl, &child.hash)) {
+		if (check_sha256_4k_hash(child_lvl, child.hash)) {
 
 			req._nr_of_leaves--;
 			child_state = Channel::DONE;
@@ -241,7 +244,7 @@ void Vbd_check::_execute_leaf_child(Channel           &chan,
 			if (VERBOSE_CHECK) {
 
 				Hash hash;
-				calc_sha256_4k_hash(&child_lvl, &hash);
+				calc_sha256_4k_hash(child_lvl, hash);
 				log(Level_indent { lvl, req._max_lvl },
 				    "    lvl ", lvl, " child ", child_idx, " (", child, "): bad hash ", hash);
 			}
@@ -364,7 +367,7 @@ bool Vbd_check::_peek_generated_request(uint8_t *buf_ptr,
 				chan._gen_prim.blk_nr, 0, 1,
 				chan._lvl_to_read == 0 ?
 					(void *)&chan._leaf_lvl :
-					(void *)&chan._t1_lvls[chan._lvl_to_read].children,
+					(void *)&chan._encoded_blk,
 				nullptr);
 
 			return true;
@@ -404,6 +407,8 @@ void Vbd_check::generated_request_complete(Module_request &mod_req)
 	{
 		Block_io_request &gen_req { *static_cast<Block_io_request*>(&mod_req) };
 		chan._gen_prim.success = gen_req.success();
+		if (chan._lvl_to_read > 0)
+			chan._t1_lvls[chan._lvl_to_read].children.decode_from_blk(chan._encoded_blk);
 		break;
 	}
 	default:

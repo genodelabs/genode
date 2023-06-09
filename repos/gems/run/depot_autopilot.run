@@ -773,11 +773,9 @@ proc skip_test_if { condition test } {
 skip_test_if [expr  ([have_board pbxa9] || [have_board zynq_qemu])] test-file_vault_config_report
 skip_test_if [expr !([have_board pbxa9] || [have_board zynq_qemu])] test-file_vault_config_report_no_entropy
 
-#
-# rpi, imx6q_sabrelite, imx53_qsb(_tz), imx7d_sabre have problems with the yet unfixed unaligned-access issue in tresor
-#
-skip_test_if [expr ([have_board rpi] || [have_board imx6q_sabrelite] || [have_board imx53_qsb] || [have_board imx53_qsb_tz] || [have_board imx7d_sabre])] test-file_vault_config_report
-skip_test_if [expr ([have_board rpi] || [have_board imx6q_sabrelite] || [have_board imx53_qsb] || [have_board imx53_qsb_tz] || [have_board imx7d_sabre])] test-file_vault_config_report_no_entropy
+# rpi has a quite limited amount of RAM
+skip_test_if [have_board rpi] test-file_vault_config_report
+skip_test_if [have_board rpi] test-file_vault_config_report_no_entropy
 
 set skip_test(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
 set skip_test(test-fs_packet)       [expr ![interactive] && [have_include "power_on/qemu"]]

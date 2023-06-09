@@ -90,8 +90,8 @@ void Ft_resizing::_execute_ft_ext_step_read_inner_node_completed(Channel        
 
 		if (channel._lvl_idx == req._ft_max_lvl) {
 
-			if (not check_sha256_4k_hash(&channel._t1_blks.items[channel._lvl_idx],
-                                         &req._ft_root.hash)) {
+			if (not check_sha256_4k_hash(channel._encoded_blk,
+                                         req._ft_root.hash)) {
 				class Program_error_ft_resizing_hash_mismatch { };
 				throw Program_error_ft_resizing_hash_mismatch { };
 			}
@@ -102,8 +102,8 @@ void Ft_resizing::_execute_ft_ext_step_read_inner_node_completed(Channel        
 			Tree_node_index const child_idx = t1_child_idx_for_vba(channel._vba, parent_lvl_idx, req._ft_degree);
 			Type_1_node const &child = channel._t1_blks.items[parent_lvl_idx].nodes[child_idx];
 
-			if (not check_sha256_4k_hash(&channel._t1_blks.items[channel._lvl_idx],
-			                             &child.hash)) {
+			if (not check_sha256_4k_hash(channel._encoded_blk,
+			                             child.hash)) {
 				class Program_error_ft_resizing_hash_mismatch_2 { };
 				throw Program_error_ft_resizing_hash_mismatch_2 { };
 			}
@@ -181,8 +181,8 @@ void Ft_resizing::_execute_ft_ext_step_read_inner_node_completed(Channel        
 			Tree_level_index const parent_lvl_idx = channel._lvl_idx + 1;
 			Tree_node_index const child_idx = t1_child_idx_for_vba(channel._vba, parent_lvl_idx, req._ft_degree);
 
-			if (not check_sha256_4k_hash(&channel._t2_blk,
-			                             &channel._t1_blks.items[parent_lvl_idx].nodes[child_idx].hash)) {
+			if (not check_sha256_4k_hash(channel._encoded_blk,
+			                             channel._t1_blks.items[parent_lvl_idx].nodes[child_idx].hash)) {
 				class Program_error_ft_resizing_hash_mismatch_3 { };
 				throw Program_error_ft_resizing_hash_mismatch_3 { };
 			}
@@ -502,23 +502,6 @@ void Ft_resizing::_execute_ft_extension_step(Channel        &chan,
 
 			if (VERBOSE_FT_EXTENSION)
 				log("  pbas allocated: curr gen ", req._curr_gen);
-/*
-log("YYY ",
-chan._alloc_lvl_idx, " ",
-req._ft_max_lvl, " ",
-req._ft_degree, " ",
-req._pba, " ",
-req._nr_of_pbas, " ",
-(uint64_t)chan._new_pbas.pbas[0], " ",
- (uint64_t)chan._new_pbas.pbas[1], " ",
- (uint64_t)chan._new_pbas.pbas[2], " ",
- (uint64_t)chan._new_pbas.pbas[3], " ",
- (uint64_t)chan._new_pbas.pbas[4], " ",
- (uint64_t)chan._new_pbas.pbas[5], " ",
- (uint64_t)chan._new_pbas.pbas[6], " ",
-chan._lvl_idx, " ",
-req._nr_of_leaves);
-*/
 
 			_set_args_for_write_back_of_inner_lvl(req._ft_max_lvl,
 			                                      chan._lvl_idx,
@@ -550,11 +533,9 @@ req._nr_of_leaves);
 				.pba     = chan._new_pbas.pbas[child_lvl_idx],
 				.gen     = req._curr_gen,
 				.hash    = { },
-				.padding = { }
 			};
 
-			calc_sha256_4k_hash(&chan._t1_blks.items[child_lvl_idx],
-			                    &child.hash);
+			calc_sha256_4k_hash(chan._encoded_blk, child.hash);
 
 			if (VERBOSE_FT_EXTENSION)
 				log("  set lvl a ", parent_lvl_idx, " child ", child_idx,
@@ -579,10 +560,9 @@ req._nr_of_leaves);
 			child = {
 				.pba = chan._new_pbas.pbas[child_lvl_idx],
 				.gen = req._curr_gen,
-				.padding = {}
 			};
 
-			calc_sha256_4k_hash(&chan._t2_blk, &child.hash);
+			calc_sha256_4k_hash(chan._encoded_blk, child.hash);
 
 			if (VERBOSE_FT_EXTENSION)
 				log("  set lvl b ", parent_lvl_idx, " child ", child_idx,
@@ -613,10 +593,9 @@ req._nr_of_leaves);
 		req._ft_root = {
 			.pba = child_pba,
 			.gen = req._curr_gen,
-			.padding = {}
 		};
 
-		calc_sha256_4k_hash(&chan._t1_blks.items[child_lvl_idx], &req._ft_root.hash);
+		calc_sha256_4k_hash(chan._encoded_blk, req._ft_root.hash);
 
 		req._ft_nr_of_leaves += req._nr_of_leaves;
 
@@ -703,14 +682,15 @@ bool Ft_resizing::_peek_generated_request(uint8_t *buf_ptr,
 		case Channel::WRITE_ROOT_NODE_PENDING:
 		case Channel::WRITE_INNER_NODE_PENDING:
 
+			if (chan._lvl_idx > 1)
+				chan._t1_blks.items[chan._lvl_idx].encode_to_blk(chan._encoded_blk);
+			else
+				chan._t2_blk.encode_to_blk(chan._encoded_blk);
 			construct_in_buf<Block_io_request>(
 				buf_ptr, buf_size, FT_RESIZING, id,
 				Block_io_request::WRITE, 0, 0, 0,
 				chan._generated_prim.blk_nr, 0, 1,
-				chan._lvl_idx > 1 ?
-					(void *)&chan._t1_blks.items[chan._lvl_idx] :
-					(void *)&chan._t2_blk,
-				nullptr);
+				(void *)&chan._encoded_blk, nullptr);
 
 			return true;
 
@@ -720,8 +700,7 @@ bool Ft_resizing::_peek_generated_request(uint8_t *buf_ptr,
 				buf_ptr, buf_size, FT_RESIZING, id,
 				Block_io_request::READ, 0, 0, 0,
 				chan._generated_prim.blk_nr, 0, 1,
-				(void *)&chan._t1_blks.items[chan._lvl_idx],
-				nullptr);
+				(void *)&chan._encoded_blk, nullptr);
 
 			return true;
 
@@ -730,10 +709,7 @@ bool Ft_resizing::_peek_generated_request(uint8_t *buf_ptr,
 			construct_in_buf<Block_io_request>(
 				buf_ptr, buf_size, FT_RESIZING, id,
 				Block_io_request::READ, 0, 0, 0,
-				chan._generated_prim.blk_nr, 0, 1,
-				chan._lvl_idx > 1 ?
-					(void *)&chan._t1_blks.items[chan._lvl_idx] :
-					(void *)&chan._t2_blk,
+				chan._generated_prim.blk_nr, 0, 1, (void *)&chan._encoded_blk,
 				nullptr);
 
 			return true;
@@ -800,8 +776,17 @@ void Ft_resizing::generated_request_complete(Module_request &mod_req)
 		Block_io_request &blk_io_req { *static_cast<Block_io_request *>(&mod_req) };
 		chan._generated_prim.succ = blk_io_req.success();
 		switch (chan._state) {
-		case Channel::READ_ROOT_NODE_IN_PROGRESS: chan._state = Channel::READ_ROOT_NODE_COMPLETED; break;
-		case Channel::READ_INNER_NODE_IN_PROGRESS: chan._state = Channel::READ_INNER_NODE_COMPLETED; break;
+		case Channel::READ_ROOT_NODE_IN_PROGRESS:
+			chan._t1_blks.items[chan._lvl_idx].decode_from_blk(chan._encoded_blk);
+			chan._state = Channel::READ_ROOT_NODE_COMPLETED;
+			break;
+		case Channel::READ_INNER_NODE_IN_PROGRESS:
+			if (chan._lvl_idx > 1)
+				chan._t1_blks.items[chan._lvl_idx].decode_from_blk(chan._encoded_blk);
+			else
+				chan._t2_blk.decode_from_blk(chan._encoded_blk);
+			chan._state = Channel::READ_INNER_NODE_COMPLETED;
+			break;
 		case Channel::WRITE_ROOT_NODE_IN_PROGRESS: chan._state = Channel::WRITE_ROOT_NODE_COMPLETED; break;
 		case Channel::WRITE_INNER_NODE_IN_PROGRESS: chan._state = Channel::WRITE_INNER_NODE_COMPLETED; break;
 		default:

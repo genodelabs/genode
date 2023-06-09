@@ -124,8 +124,11 @@ void Ft_check::_execute_inner_t2_child(Channel          &chan,
 
 	} else if (child_state == Channel::CHECK_HASH) {
 
+		Block blk { };
+		child_lvl.children.encode_to_blk(blk);
+
 		if (child.gen == INITIAL_GENERATION ||
-		    check_sha256_4k_hash(&child_lvl.children, &child.hash)) {
+		    check_sha256_4k_hash(blk, child.hash)) {
 
 			child_state = Channel::DONE;
 			progress = true;
@@ -212,8 +215,11 @@ void Ft_check::_execute_inner_t1_child(Channel           &chan,
 
 	} else if (child_state == Channel::CHECK_HASH) {
 
+		Block blk { };
+		child_lvl.children.encode_to_blk(blk);
+
 		if (child.gen == INITIAL_GENERATION ||
-		    check_sha256_4k_hash(&child_lvl.children, &child.hash)) {
+		    check_sha256_4k_hash(blk, child.hash)) {
 
 			child_state = Channel::DONE;
 			if (&child_state == &chan._root_state) {
@@ -399,10 +405,7 @@ bool Ft_check::_peek_generated_request(uint8_t *buf_ptr,
 				buf_ptr, buf_size, FT_CHECK, id,
 				Block_io_request::READ, 0, 0, 0,
 				chan._gen_prim.blk_nr, 0, 1,
-				chan._lvl_to_read == 1 ?
-					(void *)&chan._t2_lvl.children :
-					(void *)&chan._t1_lvls[chan._lvl_to_read].children,
-				nullptr);
+				(void *)&chan._encoded_blk, nullptr);
 
 			return true;
 
@@ -441,6 +444,10 @@ void Ft_check::generated_request_complete(Module_request &mod_req)
 	{
 		Block_io_request &gen_req { *static_cast<Block_io_request*>(&mod_req) };
 		chan._gen_prim.success = gen_req.success();
+		if (chan._lvl_to_read == 1)
+			chan._t2_lvl.children.decode_from_blk(chan._encoded_blk);
+		else
+			chan._t1_lvls[chan._lvl_to_read].children.decode_from_blk(chan._encoded_blk);
 		break;
 	}
 	default:

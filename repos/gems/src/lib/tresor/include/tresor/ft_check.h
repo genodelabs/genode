@@ -131,6 +131,7 @@ class Tresor::Ft_check_channel
 		Type_1_level          _t1_lvls[TREE_MAX_LEVEL] { };
 		Number_of_leaves      _nr_of_leaves            { 0 };
 		Request               _request                 { };
+		Block                 _encoded_blk             { };
 };
 
 

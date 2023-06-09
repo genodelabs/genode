@@ -22,6 +22,7 @@
 /* tresor includes */
 #include <tresor/verbosity.h>
 #include <tresor/math.h>
+#include <tresor/assertion.h>
 
 namespace Tresor {
 
@@ -41,6 +42,7 @@ namespace Tresor {
 	using Snapshot_id            = uint32_t;
 	using Snapshot_index         = uint32_t;
 	using Superblock_index       = uint8_t;
+	using On_disc_bool           = uint8_t;
 
 	enum { BLOCK_SIZE = 4096 };
 	enum { INVALID_KEY_ID = 0 };
@@ -81,6 +83,8 @@ namespace Tresor {
 	struct Key;
 	struct Hash;
 	struct Block;
+	struct Block_scanner;
+	struct Block_generator;
 	struct Superblock;
 	struct Superblock_info;
 	struct Snapshot;
@@ -206,21 +210,12 @@ struct Tresor::Key_value
 	{
 		Genode::print(out, Byte_range { bytes, KEY_SIZE });
 	}
-}
-__attribute__((packed));
-
-
-struct Tresor::Key
-{
-	Key_value value;
-	Key_id    id;
-}
-__attribute__((packed));
+};
 
 
 struct Tresor::Hash
 {
-	uint8_t bytes[HASH_SIZE] { };
+	uint8_t bytes[HASH_SIZE] { 0 };
 
 	void print(Output &out) const
 	{
@@ -236,57 +231,283 @@ struct Tresor::Hash
 	{
 		return !(*this == other);
 	}
-}
-__attribute__((packed));
+};
+
+
+struct Tresor::Block
+{
+	uint8_t bytes[BLOCK_SIZE] { 0 };
+
+	void print(Output &out) const
+	{
+		Genode::print(out, Byte_range { bytes, 16 }, "…");
+	}
+};
+
+
+class Tresor::Block_scanner
+{
+	private:
+
+		Block const &_blk;
+		size_t       _offset { 0 };
+
+		void const *_current_position() const
+		{
+			return (void const *)((addr_t)&_blk + _offset);
+		}
+
+		void _advance_position(size_t num_bytes)
+		{
+			ASSERT(_offset <= sizeof(_blk) - num_bytes);
+			_offset += num_bytes;
+		}
+
+		template<typename T>
+		void _fetch_copy(T &dst)
+		{
+			void const *blk_pos { _current_position() };
+			_advance_position(sizeof(dst));
+			memcpy(&dst, blk_pos, sizeof(dst));
+		}
+
+		static bool _decode_bool(On_disc_bool val)
+		{
+			switch (val) {
+			case 0: return false;
+			case 1: return true;
+			default: break;
+			}
+			ASSERT_NEVER_REACHED;
+		}
+
+	public:
+
+		Block_scanner(Block const &blk)
+		:
+			_blk { blk }
+		{ }
+
+		template<typename T>
+		void fetch(T &dst);
+
+		template<typename T>
+		T fetch_value()
+		{
+			T dst;
+			fetch(dst);
+			return dst;
+		}
+
+		void skip_bytes(size_t num_bytes)
+		{
+			_advance_position(num_bytes);
+		}
+
+		~Block_scanner()
+		{
+			ASSERT(_offset == sizeof(_blk));
+		}
+};
+
+
+template <> inline void Tresor::Block_scanner::fetch<bool>(bool &dst) { dst = _decode_bool(fetch_value<On_disc_bool>()); }
+template <> inline void Tresor::Block_scanner::fetch<Genode::uint8_t>(uint8_t &dst) { _fetch_copy(dst); }
+template <> inline void Tresor::Block_scanner::fetch<Genode::uint16_t>(uint16_t &dst) { _fetch_copy(dst); }
+template <> inline void Tresor::Block_scanner::fetch<Genode::uint32_t>(uint32_t &dst) { _fetch_copy(dst); }
+template <> inline void Tresor::Block_scanner::fetch<Genode::uint64_t>(uint64_t &dst) { _fetch_copy(dst); }
+template <> inline void Tresor::Block_scanner::fetch<Tresor::Hash>(Hash &dst) { _fetch_copy(dst); }
+template <> inline void Tresor::Block_scanner::fetch<Tresor::Key_value>(Key_value &dst) { _fetch_copy(dst); }
+
+
+class Tresor::Block_generator
+{
+	private:
+
+		Block  &_blk;
+		size_t  _offset { 0 };
+
+		void *_current_position() const
+		{
+			return (void *)((addr_t)&_blk + _offset);
+		}
+
+		void _advance_position(size_t num_bytes)
+		{
+			ASSERT(_offset <= sizeof(_blk) - num_bytes);
+			_offset += num_bytes;
+		}
+
+		template<typename T>
+		void _append_copy(T const &src)
+		{
+			void *blk_pos { _current_position() };
+			_advance_position(sizeof(src));
+			memcpy(blk_pos, &src, sizeof(src));
+		}
+
+		static On_disc_bool _encode_bool(bool val)
+		{
+			return val ? 1 : 0;
+		}
+
+	public:
+
+		Block_generator(Block &blk)
+		:
+			_blk { blk }
+		{ }
+
+		template<typename T>
+		void append(T const &src);
+
+		template<typename T>
+		void append_value(T src)
+		{
+			append(src);
+		}
+
+		void append_zero_bytes(size_t num_bytes)
+		{
+			void *blk_pos { _current_position() };
+			_advance_position(num_bytes);
+			memset(blk_pos, 0, num_bytes);
+		}
+
+		~Block_generator()
+		{
+			ASSERT(_offset == sizeof(_blk));
+		}
+};
+
+
+template <> inline void Tresor::Block_generator::append<bool>(bool const &src) { append_value(_encode_bool(src)); }
+template <> inline void Tresor::Block_generator::append<Genode::uint8_t>(uint8_t const &src) { _append_copy(src); }
+template <> inline void Tresor::Block_generator::append<Genode::uint16_t>(uint16_t const &src) { _append_copy(src); }
+template <> inline void Tresor::Block_generator::append<Genode::uint32_t>(uint32_t const &src) { _append_copy(src); }
+template <> inline void Tresor::Block_generator::append<Genode::uint64_t>(uint64_t const &src) { _append_copy(src); }
+template <> inline void Tresor::Block_generator::append<Tresor::Hash>(Hash const &src) { _append_copy(src); }
+template <> inline void Tresor::Block_generator::append<Tresor::Key_value>(Key_value const &src) { _append_copy(src); }
+
+
+struct Tresor::Key
+{
+	Key_value value { };
+	Key_id    id    { INVALID_KEY_ID };
+
+	void decode_from_blk(Block_scanner &scanner)
+	{
+		scanner.fetch(value);
+		scanner.fetch(id);
+	}
+
+	void encode_to_blk(Block_generator &generator) const
+	{
+		generator.append(value);
+		generator.append(id);
+	}
+};
 
 
 struct Tresor::Type_1_node
 {
-	Physical_block_address pba         { 0 };
-	Generation             gen         { 0 };
-	Hash                   hash        { };
-	uint8_t                padding[16] { 0 };
+	Physical_block_address pba  { 0 };
+	Generation             gen  { 0 };
+	Hash                   hash { };
+
+	void decode_from_blk(Block_scanner &scanner)
+	{
+		scanner.fetch(pba);
+		scanner.fetch(gen);
+		scanner.fetch(hash);
+		scanner.skip_bytes(16);
+	}
+
+	void encode_to_blk(Block_generator &generator) const
+	{
+		generator.append(pba);
+		generator.append(gen);
+		generator.append(hash);
+		generator.append_zero_bytes(16);
+	}
 
 	bool valid() const
 	{
-		Type_1_node node { };
+		Type_1_node const node { };
 		return
-			pba != node.pba || gen != node.gen || hash != node.hash;
+			pba  != node.pba ||
+			gen  != node.gen ||
+			hash != node.hash;
 	}
 
 	void print(Output &out) const
 	{
 		Genode::print(out, "pba ", pba, " gen ", gen, " hash ", hash);
 	}
-}
-__attribute__((packed));
-
-static_assert(sizeof(Tresor::Type_1_node) == Tresor::T1_NODE_STORAGE_SIZE);
+};
 
 
 struct Tresor::Type_1_node_block
 {
 	Type_1_node nodes[NR_OF_T1_NODES_PER_BLK] { };
-}
-__attribute__((packed));
 
-static_assert(sizeof(Tresor::Type_1_node_block) == Tresor::BLOCK_SIZE);
+	void decode_from_blk(Block const &blk)
+	{
+		Block_scanner scanner { blk };
+		for (Type_1_node &node : nodes)
+			node.decode_from_blk(scanner);
+	}
+
+	void encode_to_blk(Block &blk) const
+	{
+		Block_generator generator { blk };
+		for (Type_1_node const &node : nodes)
+			node.encode_to_blk(generator);
+	}
+};
 
 
 struct Tresor::Type_2_node
 {
-	uint64_t pba         { 0 };
-	uint64_t last_vba    { 0 };
-	uint64_t alloc_gen   { 0 };
-	uint64_t free_gen    { 0 };
-	uint32_t last_key_id { 0 };
-	uint8_t  reserved    { 0 };
-	uint8_t  padding[27] { 0 };
+	Physical_block_address pba         { 0 };
+	Virtual_block_address  last_vba    { 0 };
+	Generation             alloc_gen   { 0 };
+	Generation             free_gen    { 0 };
+	Key_id                 last_key_id { 0 };
+	bool                   reserved    { false };
+
+	void decode_from_blk(Block_scanner &scanner)
+	{
+		scanner.fetch(pba);
+		scanner.fetch(last_vba);
+		scanner.fetch(alloc_gen);
+		scanner.fetch(free_gen);
+		scanner.fetch(last_key_id);
+		scanner.fetch(reserved);
+		scanner.skip_bytes(27);
+	}
+
+	void encode_to_blk(Block_generator &generator) const
+	{
+		generator.append(pba);
+		generator.append(last_vba);
+		generator.append(alloc_gen);
+		generator.append(free_gen);
+		generator.append(last_key_id);
+		generator.append(reserved);
+		generator.append_zero_bytes(27);
+	}
 
 	bool valid() const
 	{
-		Type_2_node node { };
-		return memcmp(this, &node, sizeof(node)) != 0;
+		Type_2_node const node { };
+		return
+			pba         != node.pba ||
+			last_vba    != node.last_vba ||
+			alloc_gen   != node.alloc_gen ||
+			free_gen    != node.free_gen ||
+			last_key_id != node.last_key_id ||
+			reserved    != node.reserved;
 	}
 
 	void print(Output &out) const
@@ -295,32 +516,27 @@ struct Tresor::Type_2_node
 			out, "pba ", pba, " last_vba ", last_vba, " alloc_gen ",
 			alloc_gen, " free_gen ", free_gen, " last_key ", last_key_id);
 	}
-
-}
-__attribute__((packed));
-
-static_assert(sizeof(Tresor::Type_2_node) == Tresor::T2_NODE_STORAGE_SIZE);
+};
 
 
 struct Tresor::Type_2_node_block
 {
 	Type_2_node nodes[NR_OF_T2_NODES_PER_BLK] { };
-}
-__attribute__((packed));
 
-static_assert(sizeof(Tresor::Type_2_node_block) == Tresor::BLOCK_SIZE);
-
-
-struct Tresor::Block
-{
-	uint8_t bytes[BLOCK_SIZE] { };
-
-	void print(Output &out) const
+	void decode_from_blk(Block const &blk)
 	{
-		Genode::print(out, Byte_range { bytes, 16 }, "…");
+		Block_scanner scanner { blk };
+		for (Type_2_node &node : nodes)
+			node.decode_from_blk(scanner);
 	}
-}
-__attribute__((packed));
+
+	void encode_to_blk(Block &blk) const
+	{
+		Block_generator generator { blk };
+		for (Type_2_node const &node : nodes)
+			node.encode_to_blk(generator);
+	}
+};
 
 
 struct Tresor::Snapshot
@@ -333,7 +549,32 @@ struct Tresor::Snapshot
 	bool                   valid        { false };
 	Snapshot_id            id           { MAX_SNAP_ID };
 	bool                   keep         { false };
-	uint8_t                padding[6]   { 0 };
+
+	void decode_from_blk(Block_scanner &scanner)
+	{
+		scanner.fetch(hash);
+		scanner.fetch(pba);
+		scanner.fetch(gen);
+		scanner.fetch(nr_of_leaves);
+		scanner.fetch(max_level);
+		scanner.fetch(valid);
+		scanner.fetch(id);
+		scanner.fetch(keep);
+		scanner.skip_bytes(6);
+	}
+
+	void encode_to_blk(Block_generator &generator) const
+	{
+		generator.append(hash);
+		generator.append(pba);
+		generator.append(gen);
+		generator.append(nr_of_leaves);
+		generator.append(max_level);
+		generator.append(valid);
+		generator.append(id);
+		generator.append(keep);
+		generator.append_zero_bytes(6);
+	}
 
 	void print(Output &out) const
 	{
@@ -350,15 +591,24 @@ struct Tresor::Snapshot
 	{
 		return vba <= nr_of_leaves - 1;
 	}
-}
-__attribute__((packed));
-
-static_assert(sizeof(Tresor::Snapshot) == Tresor::SNAPSHOT_STORAGE_SIZE);
+};
 
 
 struct Tresor::Snapshots
 {
 	Snapshot items[MAX_NR_OF_SNAPSHOTS];
+
+	void decode_from_blk(Block_scanner &scanner)
+	{
+		for (Snapshot &snap : items)
+			snap.decode_from_blk(scanner);
+	}
+
+	void encode_to_blk(Block_generator &generator) const
+	{
+		for (Snapshot const &snap : items)
+			snap.encode_to_blk(generator);
+	}
 
 	void discard_disposable_snapshots(Generation curr_gen,
 	                                  Generation last_secured_gen)
@@ -424,20 +674,15 @@ struct Tresor::Snapshots
 		class Exception_1 { };
 		throw Exception_1 { };
 	}
-}
-__attribute__((packed));
+};
 
 
 struct Tresor::Superblock
 {
-	enum State : uint8_t
-	{
-		INVALID       = 0,
-		NORMAL        = 1,
-		REKEYING      = 2,
-		EXTENDING_VBD = 3,
-		EXTENDING_FT  = 4,
-	};
+	using On_disc_state = uint8_t;
+
+	enum State {
+		INVALID, NORMAL, REKEYING, EXTENDING_VBD, EXTENDING_FT };
 
 	State                  state                   { INVALID };         // offset 0
 	Virtual_block_address  rekeying_vba            { 0 };               // offset 1
@@ -463,7 +708,93 @@ struct Tresor::Superblock
 	Tree_level_index       meta_max_level          { 0 };               // offset 3697
 	Tree_degree            meta_degree             { TREE_MIN_DEGREE }; // offset 3701
 	Number_of_leaves       meta_leaves             { 0 };               // offset 3705
-	uint8_t                padding[383]            { 0 };               // offset 3713
+	                                                                    // offset 3713
+
+	static State decode_state(On_disc_state val)
+	{
+		switch (val) {
+		case 0: return INVALID;
+		case 1: return NORMAL;
+		case 2: return REKEYING;
+		case 3: return EXTENDING_VBD;
+		case 4: return EXTENDING_FT;
+		default: break;
+		}
+		ASSERT_NEVER_REACHED;
+	}
+
+	static On_disc_state encode_state(State val)
+	{
+		switch (val) {
+		case INVALID      : return 0;
+		case NORMAL       : return 1;
+		case REKEYING     : return 2;
+		case EXTENDING_VBD: return 3;
+		case EXTENDING_FT : return 4;
+		default: break;
+		}
+		ASSERT_NEVER_REACHED;
+	}
+
+	void decode_from_blk(Block const &blk)
+	{
+		Block_scanner scanner { blk };
+		state = decode_state(scanner.fetch_value<On_disc_state>());
+		scanner.fetch(rekeying_vba);
+		scanner.fetch(resizing_nr_of_pbas);
+		scanner.fetch(resizing_nr_of_leaves);
+		previous_key.decode_from_blk(scanner);
+		current_key.decode_from_blk(scanner);
+		snapshots.decode_from_blk(scanner);
+		scanner.fetch(last_secured_generation);
+		scanner.fetch(curr_snap);
+		scanner.fetch(degree);
+		scanner.fetch(first_pba);
+		scanner.fetch(nr_of_pbas);
+		scanner.fetch(free_gen);
+		scanner.fetch(free_number);
+		scanner.fetch(free_hash);
+		scanner.fetch(free_max_level);
+		scanner.fetch(free_degree);
+		scanner.fetch(free_leaves);
+		scanner.fetch(meta_gen);
+		scanner.fetch(meta_number);
+		scanner.fetch(meta_hash);
+		scanner.fetch(meta_max_level);
+		scanner.fetch(meta_degree);
+		scanner.fetch(meta_leaves);
+		scanner.skip_bytes(383);
+	}
+
+	void encode_to_blk(Block &blk) const
+	{
+		Block_generator generator { blk };
+		generator.append_value(encode_state(state));
+		generator.append(rekeying_vba);
+		generator.append(resizing_nr_of_pbas);
+		generator.append(resizing_nr_of_leaves);
+		previous_key.encode_to_blk(generator);
+		current_key.encode_to_blk(generator);
+		snapshots.encode_to_blk(generator);
+		generator.append(last_secured_generation);
+		generator.append(curr_snap);
+		generator.append(degree);
+		generator.append(first_pba);
+		generator.append(nr_of_pbas);
+		generator.append(free_gen);
+		generator.append(free_number);
+		generator.append(free_hash);
+		generator.append(free_max_level);
+		generator.append(free_degree);
+		generator.append(free_leaves);
+		generator.append(meta_gen);
+		generator.append(meta_number);
+		generator.append(meta_hash);
+		generator.append(meta_max_level);
+		generator.append(meta_degree);
+		generator.append(meta_leaves);
+		generator.append_zero_bytes(383);
+	}
 
 	bool valid() const { return state != INVALID; }
 
@@ -489,10 +820,7 @@ struct Tresor::Superblock
 			if (snap.valid)
 				Genode::print(out, " ", snap);
 	}
-}
-__attribute__((packed));
-
-static_assert(sizeof(Tresor::Superblock) == Tresor::BLOCK_SIZE);
+};
 
 
 struct Tresor::Type_1_node_walk
@@ -524,5 +852,6 @@ struct Tresor::Level_indent
 			Genode::print(out, "  ");
 	}
 };
+
 
 #endif /* _TRESOR__TYPES_H_ */

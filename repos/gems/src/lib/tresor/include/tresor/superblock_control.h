@@ -49,7 +49,7 @@ class Tresor::Superblock_control_request : public Module_request
 		uint64_t              _client_req_offset { 0 };
 		uint64_t              _client_req_tag    { 0 };
 		Virtual_block_address _vba               { 0 };
-		Superblock::State     _sb_state          { INVALID };
+		Superblock::State     _sb_state          { Superblock::INVALID };
 		Number_of_blocks      _nr_of_blks        { 0 };
 		bool                  _success           { false };
 		bool                  _request_finished  { false };
@@ -211,7 +211,8 @@ class Tresor::Superblock_control_channel
 		Superblock_control_request _request            { };
 		Generated_prim             _generated_prim     { };
 		Key                        _key_plaintext      { };
-		Block                      _sb_ciphertext_blk  { };
+		Superblock                 _sb_ciphertext      { };
+		Block                      _encoded_blk        { };
 		Superblock_index           _sb_idx             { 0 };
 		bool                       _sb_found           { false };
 		Superblock_index           _read_sb_idx        { 0 };
@@ -225,8 +226,6 @@ class Tresor::Superblock_control_channel
 		Type_1_node                _ft_root            { };
 		Tree_level_index           _ft_max_lvl         { 0 };
 		Number_of_leaves           _ft_nr_of_leaves    { 0 };
-
-		Superblock &_sb_ciphertext() { return *(Superblock *)&_sb_ciphertext_blk; }
 
 	public:
 

@@ -210,7 +210,7 @@ void Virtual_block_device::_execute_read_vba_read_inner_node_completed (Channel 
 
 	auto &snapshot = channel.snapshots(channel._snapshot_idx);
 
-	_check_hash_of_read_type_1_node(snapshot,
+	_check_hash_of_read_type_1_node(channel, snapshot,
 	                                channel._request._snapshots_degree,
 	                                channel._t1_blk_idx, channel._t1_blks,
 	                                channel._vba);
@@ -351,13 +351,19 @@ void Virtual_block_device::_update_nodes_of_branch_of_written_vba(Snapshot &snap
 
 			node.pba   = new_pbas.pbas[lvl];
 			node.gen   = curr_gen;
-			calc_sha256_4k_hash(&t1_blks.items[lvl], &node.hash);
+
+			Block blk { };
+			t1_blks.items[lvl].encode_to_blk(blk);
+			calc_sha256_4k_hash(blk, node.hash);
 
 		} else {
 
 			snapshot.pba   = new_pbas.pbas[lvl];
 			snapshot.gen   = curr_gen;
-			calc_sha256_4k_hash(&t1_blks.items[lvl], &snapshot.hash);
+
+			Block blk { };
+			t1_blks.items[lvl].encode_to_blk(blk);
+			calc_sha256_4k_hash(blk, snapshot.hash);
 		}
 	}
 }
@@ -394,21 +400,22 @@ _check_that_primitive_was_successful(Channel::Generated_prim const &prim)
 }
 
 
-void Virtual_block_device::_check_hash_of_read_type_1_node(Snapshot const &snapshot,
+void Virtual_block_device::_check_hash_of_read_type_1_node(Channel &chan,
+                                                           Snapshot const &snapshot,
                                                            uint64_t const snapshots_degree,
                                                            uint64_t const t1_blk_idx,
                                                            Channel::Type_1_node_blocks const &t1_blks,
                                                            uint64_t const vba)
 {
 	if (t1_blk_idx == snapshot.max_level) {
-		if (!check_sha256_4k_hash(&t1_blks.items[t1_blk_idx], &snapshot.hash)) {
+		if (!check_sha256_4k_hash(chan._encoded_blk, snapshot.hash)) {
 			class Program_error_hash_of_read_type_1 { };
 			throw Program_error_hash_of_read_type_1 { };
 		}
 	} else {
 		uint64_t    const  child_idx = t1_child_idx_for_vba(vba, t1_blk_idx + 1, snapshots_degree);
 		Type_1_node const &child     = t1_blks.items[t1_blk_idx + 1].nodes[child_idx];
-		if (!check_sha256_4k_hash(&t1_blks.items[t1_blk_idx], &child.hash)) {
+		if (!check_sha256_4k_hash(chan._encoded_blk, child.hash)) {
 			class Program_error_hash_of_read_type_1_B { };
 			throw Program_error_hash_of_read_type_1_B { };
 		}
@@ -593,7 +600,7 @@ void Virtual_block_device::_execute_write_vba(Channel        &chan,
 	case Channel::State::READ_INNER_NODE_COMPLETED:
 
 		_check_that_primitive_was_successful(chan._generated_prim);
-		_check_hash_of_read_type_1_node(chan.snapshots(chan._snapshot_idx),
+		_check_hash_of_read_type_1_node(chan, chan.snapshots(chan._snapshot_idx),
 		                                chan._request._snapshots_degree,
 		                                chan._t1_blk_idx, chan._t1_blks,
 		                                chan._vba);
@@ -965,7 +972,7 @@ void Virtual_block_device::_execute_rekey_vba(Channel  &chan,
 		Snapshot const &snap { req._snapshots.items[chan._snapshot_idx] };
 		if (chan._t1_blk_idx == snap.max_level) {
 
-			if (!check_sha256_4k_hash(&chan._t1_blks.items[chan._t1_blk_idx], &snap.hash)) {
+			if (!check_sha256_4k_hash(chan._encoded_blk, snap.hash)) {
 
 				_mark_req_failed(chan, progress, "check root node hash");
 				break;
@@ -977,8 +984,8 @@ void Virtual_block_device::_execute_rekey_vba(Channel  &chan,
 			Tree_node_index  const child_idx  {
 				t1_child_idx_for_vba(req._vba, parent_lvl, req._snapshots_degree) };
 
-			if (!check_sha256_4k_hash(&chan._t1_blks.items[chan._t1_blk_idx],
-			                          &chan._t1_blks.items[parent_lvl].nodes[child_idx].hash)) {
+			if (!check_sha256_4k_hash(chan._encoded_blk,
+			                          chan._t1_blks.items[parent_lvl].nodes[child_idx].hash)) {
 
 				_mark_req_failed(chan, progress, "check inner node hash");
 				break;
@@ -1090,7 +1097,7 @@ void Virtual_block_device::_execute_rekey_vba(Channel  &chan,
 		Type_1_node &node {
 			chan._t1_blks.items[parent_lvl].nodes[child_idx] };
 
-		if (!check_sha256_4k_hash(&chan._data_blk, &node.hash)) {
+		if (!check_sha256_4k_hash(chan._data_blk, node.hash)) {
 
 			_mark_req_failed(chan, progress, "check leaf node hash");
 			break;
@@ -1190,7 +1197,7 @@ void Virtual_block_device::_execute_rekey_vba(Channel  &chan,
 
 		Type_1_node &node { chan._t1_blks.items[parent_lvl].nodes[child_idx] };
 		node.pba = child_pba;
-		calc_sha256_4k_hash(&chan._data_blk, &node.hash);
+		calc_sha256_4k_hash(chan._data_blk, node.hash);
 
 		if (VERBOSE_REKEYING)
 			log("      lvl ", parent_lvl,
@@ -1222,7 +1229,7 @@ void Virtual_block_device::_execute_rekey_vba(Channel  &chan,
 
 		Type_1_node &node { chan._t1_blks.items[parent_lvl].nodes[child_idx] };
 		node.pba = child_pba;
-		calc_sha256_4k_hash(&chan._t1_blks.items[child_lvl], &node.hash);
+		calc_sha256_4k_hash(chan._encoded_blk, node.hash);
 
 		if (VERBOSE_REKEYING)
 			log("      lvl ", parent_lvl,
@@ -1254,7 +1261,7 @@ void Virtual_block_device::_execute_rekey_vba(Channel  &chan,
 		Physical_block_address const  child_pba { chan._new_pbas.pbas[child_lvl] };
 
 		snap.pba = child_pba;
-		calc_sha256_4k_hash(&chan._t1_blks.items[child_lvl], &snap.hash);
+		calc_sha256_4k_hash(chan._encoded_blk, snap.hash);
 
 		if (VERBOSE_REKEYING)
 			log("      lvl ", (Tree_level_index)snap.max_level + 1,
@@ -1604,7 +1611,7 @@ void Virtual_block_device::_execute_vbd_extension_step(Channel  &chan,
 
 		if (chan._t1_blk_idx == chan.snap().max_level) {
 
-			if (!check_sha256_4k_hash(&chan._t1_blks.items[chan._t1_blk_idx], &chan.snap().hash)) {
+			if (!check_sha256_4k_hash(chan._encoded_blk, chan.snap().hash)) {
 
 				_mark_req_failed(chan, progress, "check root node hash");
 				break;
@@ -1616,8 +1623,8 @@ void Virtual_block_device::_execute_vbd_extension_step(Channel  &chan,
 			Tree_node_index  const child_idx  {
 				t1_child_idx_for_vba(chan._vba, parent_lvl, req._snapshots_degree) };
 
-			if (!check_sha256_4k_hash(&chan._t1_blks.items[chan._t1_blk_idx],
-			                          &chan._t1_blks.items[parent_lvl].nodes[child_idx].hash)) {
+			if (!check_sha256_4k_hash(chan._encoded_blk,
+			                          chan._t1_blks.items[parent_lvl].nodes[child_idx].hash)) {
 
 				_mark_req_failed(chan, progress, "check inner node hash");
 				break;
@@ -1712,7 +1719,7 @@ void Virtual_block_device::_execute_vbd_extension_step(Channel  &chan,
 		Physical_block_address const  parent_pba { chan._new_pbas.pbas[parent_lvl] };
 		Type_1_node                  &child      { chan._t1_blks.items[parent_lvl].nodes[child_idx] };
 
-		calc_sha256_4k_hash(&chan._t1_blks.items[child_lvl], &child.hash);
+		calc_sha256_4k_hash(chan._encoded_blk, child.hash);
 		child.pba = child_pba;
 
 		if (VERBOSE_VBD_EXTENSION) {
@@ -1760,7 +1767,7 @@ void Virtual_block_device::_execute_vbd_extension_step(Channel  &chan,
 			old_snap.nr_of_leaves + req._nr_of_leaves, old_snap.max_level,
 			true, 0, false };
 
-		calc_sha256_4k_hash(&chan._t1_blks.items[child_lvl], &new_snap.hash);
+		calc_sha256_4k_hash(chan._encoded_blk, new_snap.hash);
 
 		if (VERBOSE_VBD_EXTENSION)
 			log("  update snap ", chan._snapshot_idx, " ", new_snap);
@@ -1816,11 +1823,12 @@ bool Virtual_block_device::_peek_generated_request(uint8_t *buf_ptr,
 		case Channel::WRITE_ROOT_NODE_PENDING:
 		case Channel::WRITE_INNER_NODE_PENDING:
 
+			chan._t1_blks.items[chan._t1_blk_idx].encode_to_blk(chan._encoded_blk);
 			construct_in_buf<Block_io_request>(
 				buf_ptr, buf_size, VIRTUAL_BLOCK_DEVICE, id,
 				Block_io_request::WRITE, 0, 0, 0,
 				chan._generated_prim.blk_nr, 0, 1,
-				&chan._t1_blks.items[chan._t1_blk_idx], nullptr);
+				&chan._encoded_blk, nullptr);
 
 			return true;
 
@@ -1852,7 +1860,7 @@ bool Virtual_block_device::_peek_generated_request(uint8_t *buf_ptr,
 				buf_ptr, buf_size, VIRTUAL_BLOCK_DEVICE, id,
 				Block_io_request::READ, 0, 0, 0,
 				chan._generated_prim.blk_nr, 0, 1,
-				&chan._t1_blks.items[chan._t1_blk_idx], nullptr);
+				&chan._encoded_blk, nullptr);
 
 			return true;
 
@@ -1991,8 +1999,14 @@ void Virtual_block_device::generated_request_complete(Module_request &mod_req)
 		Block_io_request &blk_io_req { *static_cast<Block_io_request *>(&mod_req) };
 		chan._generated_prim.succ = blk_io_req.success();
 		switch (chan._state) {
-		case Channel::READ_ROOT_NODE_IN_PROGRESS: chan._state = Channel::READ_ROOT_NODE_COMPLETED; break;
-		case Channel::READ_INNER_NODE_IN_PROGRESS: chan._state = Channel::READ_INNER_NODE_COMPLETED; break;
+		case Channel::READ_ROOT_NODE_IN_PROGRESS:
+			chan._t1_blks.items[chan._t1_blk_idx].decode_from_blk(chan._encoded_blk);
+			chan._state = Channel::READ_ROOT_NODE_COMPLETED;
+			break;
+		case Channel::READ_INNER_NODE_IN_PROGRESS:
+			chan._t1_blks.items[chan._t1_blk_idx].decode_from_blk(chan._encoded_blk);
+			chan._state = Channel::READ_INNER_NODE_COMPLETED;
+			break;
 		case Channel::WRITE_ROOT_NODE_IN_PROGRESS: chan._state = Channel::WRITE_ROOT_NODE_COMPLETED; break;
 		case Channel::WRITE_INNER_NODE_IN_PROGRESS: chan._state = Channel::WRITE_INNER_NODE_COMPLETED; break;
 		case Channel::READ_LEAF_NODE_IN_PROGRESS: chan._state = Channel::READ_LEAF_NODE_COMPLETED; break;

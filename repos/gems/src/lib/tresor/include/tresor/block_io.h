@@ -102,7 +102,7 @@ class Tresor::Block_io_channel
 		Block_io_request _request               { };
 		Vfs::file_offset _nr_of_processed_bytes { 0 };
 		size_t           _nr_of_remaining_bytes { 0 };
-		char             _blk_buf[BLOCK_SIZE]   { 0 };
+		Block            _blk_buf               { };
 		bool             _generated_req_success { false };
 };
 

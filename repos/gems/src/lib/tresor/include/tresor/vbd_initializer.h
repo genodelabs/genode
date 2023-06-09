@@ -110,14 +110,15 @@ class Tresor::Vbd_initializer_channel
 			Child_state state { DONE };
 		};
 
-		State                   _state                    { INACTIVE };
-		Vbd_initializer_request _request                  { };
-		Root_node               _root_node                { };
-		Type_1_level           _t1_levels[TREE_MAX_LEVEL] { };
-		uint64_t               _level_to_write            { 0 };
-		uint64_t               _blk_nr                    { 0 };
-		uint64_t               _child_pba                 { 0 };
-		bool                   _generated_req_success     { false };
+		State                   _state                     { INACTIVE };
+		Vbd_initializer_request _request                   { };
+		Root_node               _root_node                 { };
+		Type_1_level            _t1_levels[TREE_MAX_LEVEL] { };
+		uint64_t                _level_to_write            { 0 };
+		uint64_t                _blk_nr                    { 0 };
+		uint64_t                _child_pba                 { 0 };
+		bool                    _generated_req_success     { false };
+		Block                   _encoded_blk               { };
 
 		static void reset_node(Type_1_node &node)
 		{

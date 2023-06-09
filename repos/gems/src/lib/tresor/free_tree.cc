@@ -192,7 +192,8 @@ void Free_tree::_populate_lower_n_stack(Type_1_info_stack &stack,
                                         Generation         current_gen)
 {
 	stack.reset();
-	memcpy(&entries, &block_data, BLOCK_SIZE);
+	entries.decode_from_blk(block_data);
+
 	for (Tree_node_index idx = 0; idx < NR_OF_T1_NODES_PER_BLK; idx++) {
 
 		if (entries.nodes[idx].pba != 0) {
@@ -246,7 +247,8 @@ void Free_tree::_populate_level_0_stack(Type_2_info_stack     &stack,
                                         Virtual_block_address  rekeying_vba)
 {
 	stack.reset();
-	memcpy(&entries, &block_data, BLOCK_SIZE);
+	entries.decode_from_blk(block_data);
+
 	for (Tree_node_index idx = 0; idx < NR_OF_T1_NODES_PER_BLK; idx++) {
 		if (_check_type_2_leaf_usable(active_snaps, secured_gen,
 		                              entries.nodes[idx], rekeying,
@@ -505,7 +507,7 @@ void Free_tree::_update_upper_n_stack(Type_1_info const &t,
 {
 	entries.nodes[t.index].pba = t.node.pba;
 	entries.nodes[t.index].gen = gen;
-	calc_sha256_4k_hash(&block_data, &entries.nodes[t.index].hash);
+	calc_sha256_4k_hash(block_data, entries.nodes[t.index].hash);
 }
 
 
@@ -629,24 +631,23 @@ void Free_tree::_execute_update(Channel         &chan,
 					}
 				}
 				if (l >= 2) {
-					memcpy(&chan._cache_block_data,
-					       &chan._level_n_nodes[l - 1], BLOCK_SIZE);
+
+					chan._level_n_nodes[l - 1].encode_to_blk(chan._cache_block_data);
 
 					if (l < req._ft_max_level) {
 						_update_upper_n_stack(
 							n, req._current_gen, chan._cache_block_data,
 							chan._level_n_nodes[l]);
 					} else {
-						calc_sha256_4k_hash(&chan._cache_block_data,
-						                    (void *)req._ft_root_hash_ptr);
+						calc_sha256_4k_hash(chan._cache_block_data,
+						                    *(Hash *)req._ft_root_hash_ptr);
 
 						*(Generation *)req._ft_root_gen_ptr = req._current_gen;
 						*(Physical_block_address *)req._ft_root_pba_ptr =
 							n.node.pba;
 					}
 				} else {
-					memcpy(&chan._cache_block_data,
-					       &chan._level_0_node, BLOCK_SIZE);
+					chan._level_0_node.encode_to_blk(chan._cache_block_data);
 
 					_update_upper_n_stack(
 						n, req._current_gen, chan._cache_block_data,
@@ -934,7 +935,7 @@ void Free_tree::generated_request_complete(Module_request &mod_req)
 
 		case Local_cache_request::READ:
 
-			if (check_sha256_4k_hash(&channel._cache_block_data, &n.node.hash)) {
+			if (check_sha256_4k_hash(channel._cache_block_data, n.node.hash)) {
 
 				n.state = Type_1_info::AVAILABLE;
 				channel._level_n_stacks[local_req.level].update_top(n);

@@ -191,6 +191,7 @@ void Ft_initializer::_execute_inner_t2_child(Channel                            
 			break;
 
 		case Channel::BLOCK_ALLOC_COMPLETE:
+		{
 			/* bail early in case the allocator failed */
 			if (!channel._generated_req_success) {
 				_mark_req_failed(channel, progress,
@@ -201,7 +202,11 @@ void Ft_initializer::_execute_inner_t2_child(Channel                            
 
 			Ft_initializer_channel::reset_node(child);
 			child.pba = channel._blk_nr;
-			calc_sha256_4k_hash(&child_level.children, &child.hash);
+
+			Block blk { };
+			child_level.children.encode_to_blk(blk);
+			calc_sha256_4k_hash(blk, child.hash);
+
 			child_state = CS::WRITE_BLOCK;
 			progress = true;
 
@@ -209,7 +214,7 @@ void Ft_initializer::_execute_inner_t2_child(Channel                            
 				log("[ft_init] node: ", level_index, " ", child_index,
 				    " assign pba: ", channel._blk_nr);
 			break;
-
+		}
 		default:
 			break;
 		}
@@ -316,6 +321,7 @@ void Ft_initializer::_execute_inner_t1_child(Channel                            
 			break;
 
 		case Channel::BLOCK_ALLOC_COMPLETE:
+		{
 			/* bail early in case the allocator failed */
 			if (!channel._generated_req_success) {
 				_mark_req_failed(channel, progress,
@@ -326,7 +332,11 @@ void Ft_initializer::_execute_inner_t1_child(Channel                            
 
 			Ft_initializer_channel::reset_node(child);
 			child.pba = channel._blk_nr;
-			calc_sha256_4k_hash(&child_level.children, &child.hash);
+
+			Block blk { };
+			child_level.children.encode_to_blk(blk);
+			calc_sha256_4k_hash(blk, child.hash);
+
 			child_state = CS::WRITE_BLOCK;
 			progress = true;
 
@@ -334,7 +344,7 @@ void Ft_initializer::_execute_inner_t1_child(Channel                            
 				log("[ft_init] node: ", level_index, " ", child_index,
 				    " assign pba: ", channel._blk_nr);
 			break;
-
+		}
 		default:
 			break;
 		}
@@ -591,7 +601,7 @@ bool Ft_initializer::_peek_generated_request(uint8_t *buf_ptr,
 {
 	for (Module_request_id id { 0 }; id < NR_OF_CHANNELS; id++) {
 
-		Channel const &channel { _channels[id] };
+		Channel &channel { _channels[id] };
 
 		if (channel._state != Ft_initializer_channel::State::INACTIVE)
 
@@ -612,13 +622,15 @@ bool Ft_initializer::_peek_generated_request(uint8_t *buf_ptr,
 			Block_io_request::Type const block_io_req_type {
 				Block_io_request::WRITE };
 
-			void *data = (channel._level_to_write == 1)
-			           ? (void *)&channel._t2_level.children
-			           : (void *)&channel._t1_levels[channel._level_to_write].children;
+			if (channel._level_to_write == 1)
+				channel._t2_level.children.encode_to_blk(channel._encoded_blk);
+			else
+				channel._t1_levels[channel._level_to_write].children.encode_to_blk(channel._encoded_blk);
 
 			construct_in_buf<Block_io_request>(
 				buf_ptr, buf_size, FT_INITIALIZER, id, block_io_req_type, 0,
-				0, 0, channel._child_pba, 0, 1, data, nullptr);
+				0, 0, channel._child_pba, 0, 1,
+				(void *)&channel._encoded_blk, nullptr);
 
 			if (DEBUG) {
 				log("BLOCK_IO_PENDING write ", channel._child_pba);

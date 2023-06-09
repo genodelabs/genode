@@ -1,10 +1,5 @@
 SRC_DIR := src/app/file_vault
 
-MIRROR_FROM_REP_DIR := \
-	src/lib/tresor/include/tresor/types.h \
-	src/lib/tresor/include/tresor/math.h \
-	src/lib/tresor/include/tresor/verbosity.h
-
 content: $(MIRROR_FROM_REP_DIR)
 
 $(MIRROR_FROM_REP_DIR):

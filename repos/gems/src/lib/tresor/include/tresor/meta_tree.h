@@ -132,19 +132,19 @@ class Tresor::Meta_tree_channel
 			enum State { INVALID, PENDING, IN_PROGRESS };
 			enum Op { READ, WRITE, SYNC };
 
-			State    state                  { INVALID };
-			Op       op                     { READ };
-			bool     success                { false };
-			uint64_t pba                    { 0 };
-			uint64_t level                  { 0 };
-			uint8_t  block_data[BLOCK_SIZE] { 0 };
+			State    state      { INVALID };
+			Op       op         { READ };
+			bool     success    { false };
+			uint64_t pba        { 0 };
+			uint64_t level      { 0 };
+			Block    block_data { };
 
-			Local_cache_request(State     state,
-			                    Op        op,
-			                    bool      success,
-			                    uint64_t  pba,
-			                    uint64_t  level,
-			                    uint8_t  *blk_ptr)
+			Local_cache_request(State        state,
+			                    Op           op,
+			                    bool         success,
+			                    uint64_t     pba,
+			                    uint64_t     level,
+			                    Block const *blk_ptr)
 			:
 				state   { state },
 				op      { op },
@@ -153,7 +153,7 @@ class Tresor::Meta_tree_channel
 				level   { level }
 			{
 				if (blk_ptr != nullptr) {
-					memcpy(&block_data, blk_ptr, BLOCK_SIZE);
+					block_data = *blk_ptr;
 				}
 			}
 
@@ -207,7 +207,7 @@ class Tresor::Meta_tree : public Module
 		                           bool    &handled);
 
 		void _update_parent(Type_1_node   &node,
-		                    uint8_t const *blk_ptr,
+		                    Block   const &blk,
 		                    uint64_t       gen,
 		                    uint64_t       pba);
 

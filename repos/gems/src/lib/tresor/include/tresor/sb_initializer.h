@@ -127,8 +127,7 @@ class Tresor::Sb_initializer_channel
 		Sb_initializer_request _request               { };
 		Superblock_index       _sb_slot_index         { 0 };
 		Superblock             _sb                    { };
-		Block                  _sb_slot               { };
-		Block                  _blk_io_data           { };
+		Block                  _encoded_blk           { };
 		Key                    _key_plain             { };
 		Key                    _key_cipher            { };
 		Hash                   _sb_hash               { };
@@ -140,9 +139,7 @@ class Tresor::Sb_initializer_channel
 		void clean_data()
 		{
 			_sb = Superblock { };
-			memset(&_sb_slot, 0, sizeof(_sb_slot));
 
-			memset(&_blk_io_data, 0, sizeof(_blk_io_data));
 			memset(&_key_plain,   0, sizeof(_key_plain));
 			memset(&_key_cipher,  0, sizeof(_key_cipher));
 			memset(&_sb_hash,     0, sizeof(_sb_hash));
