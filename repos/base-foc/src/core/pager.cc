@@ -60,12 +60,7 @@ void Pager_entrypoint::entry()
 					}
 
 					/* handle request */
-					if (obj->pager(_pager)) {
-						/* could not resolv - leave thread in pagefault */
-						warning("page-fault, ", *obj,
-						        " ip=", Hex(_pager.fault_ip()),
-						        " pf-addr=", Hex(_pager.fault_addr()));
-					} else {
+					if (obj->pager(_pager) == Pager_object::Pager_result::CONTINUE) {
 						_pager.set_reply_dst(Native_thread(obj->badge()));
 						reply_pending = true;
 						return;

@@ -151,6 +151,8 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 		 ** Pure virtual **
 		 ******************/
 
+		enum class Pager_result { STOP, CONTINUE };
+
 		/**
 		 * Request a mapping that resolves a fault directly
 		 *
@@ -159,7 +161,7 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 		 * \retval   0  succeeded
 		 * \retval !=0  fault can't be received directly
 		 */
-		virtual int pager(Ipc_pager & p) = 0;
+		virtual Pager_result pager(Ipc_pager & p) = 0;
 
 
 		/***************

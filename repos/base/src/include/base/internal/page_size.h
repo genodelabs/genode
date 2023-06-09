@@ -18,8 +18,8 @@
 
 namespace Genode
 {
-	constexpr size_t get_page_size_log2() { return 12; }
-	constexpr size_t get_page_size()      { return 1 << get_page_size_log2(); }
+	constexpr uint8_t get_page_size_log2() { return 12; }
+	constexpr size_t  get_page_size()      { return 1 << get_page_size_log2(); }
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__PAGE_SIZE_H_ */

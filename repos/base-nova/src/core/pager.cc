@@ -150,7 +150,7 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 	obj._state.block_pause_sm();
 
 	/* lookup fault address and decide what to do */
-	int error = obj.pager(ipc_pager);
+	unsigned error = (obj.pager(ipc_pager) == Pager_object::Pager_result::STOP);
 
 	/* don't open receive window for pager threads */
 	if (utcb.crd_rcv.value())
@@ -194,10 +194,6 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 	                                 ipc_pager.fault_addr(),
 	                                 ipc_pager.sp(),
 	                                 (uint8_t)ipc_pager.fault_type());
-
-	/* region manager fault - to be handled */
-	log("page fault, ", fault_info, " reason=", error);
-
 	obj._state_lock.release();
 
 	/* block the faulting thread until region manager is done */

@@ -37,6 +37,10 @@ namespace Core {
 
 class Core::Dataspace_component : public Rpc_object<Dataspace>
 {
+	public:
+
+		struct Attr { addr_t base; size_t size; bool writeable; };
+
 	private:
 
 		addr_t const _phys_addr       = 0;  /* address of dataspace in physical memory */
@@ -137,6 +141,10 @@ class Core::Dataspace_component : public Rpc_object<Dataspace>
 			return Core::map_src_addr(_core_local_addr, _phys_addr);
 		}
 
+		Attr attr() const { return { .base      = map_src_addr(),
+		                             .size      = _size,
+		                             .writeable = _writeable }; }
+
 		void assign_core_local_addr(void *addr) { _core_local_addr = (addr_t)addr; }
 
 		void attached_to(Rm_region &region);
@@ -161,6 +169,13 @@ class Core::Dataspace_component : public Rpc_object<Dataspace>
 
 		size_t size()      override { return _size; }
 		bool   writeable() override { return _writeable; }
+
+
+		void print(Output &out) const
+		{
+			addr_t const base = map_src_addr();
+			Genode::print(out, "[", Hex(base), ",", Hex(base + _size - 1), "]");
+		}
 };
 
 #endif /* _CORE__INCLUDE__DATASPACE_COMPONENT_H_ */

@@ -33,20 +33,22 @@
 #include <platform.h>
 #include <dataspace_component.h>
 #include <util.h>
+#include <log2_range.h>
 #include <address_space.h>
 
 /* base-internal includes */
 #include <base/internal/stack_area.h>
 
 namespace Core {
-	class Cpu_thread_component;
-	class Dataspace_component;
-	class Region_map_component;
-	class Region_map_detach;
-	class Rm_client;
-	class Rm_region;
-	class Rm_faulter;
-	class Rm_session_component;
+	class  Region_map_detach;
+	class  Rm_region;
+	struct Fault;
+	class  Cpu_thread_component;
+	class  Dataspace_component;
+	class  Region_map_component;
+	class  Rm_client;
+	class  Rm_faulter;
+	class  Rm_session_component;
 }
 
 
@@ -56,8 +58,8 @@ class Core::Region_map_detach : Interface
 
 		virtual void detach(Region_map::Local_addr) = 0;
 		virtual void unmap_region(addr_t base, size_t size) = 0;
-
 };
+
 
 /**
  * Representation of a single entry of a region map
@@ -80,6 +82,13 @@ class Core::Rm_region : public List<Rm_region>::Element
 			bool   exec;
 			off_t  off;
 			bool   dma;
+
+			void print(Output &out) const
+			{
+				Genode::print(out, "[", Hex(base), ",", Hex(base + size - 1), " "
+				              "(r", write ? "w" : "-", exec ? "x" : "-", ") "
+				              "offset: ",    Hex(off), dma ? " DMA" : "");
+			}
 		};
 
 	private:
@@ -104,6 +113,71 @@ class Core::Rm_region : public List<Rm_region>::Element
 		bool                       dma() const { return _attr.dma;   }
 		Dataspace_component &dataspace() const { return _dsc; }
 		Region_map_detach          &rm() const { return _rm;  }
+
+		Addr_range range() const { return { .start = _attr.base,
+		                                    .end   = _attr.base + _attr.size - 1 }; }
+
+		void print(Output &out) const { Genode::print(out, _attr); }
+};
+
+
+struct Core::Fault
+{
+	Addr       hotspot; /* page-fault address */
+	Access     access;  /* reason for the fault, used to detect violations */
+	Rwx        rwx;     /* mapping rights, downgraded by 'within_' methods */
+	Addr_range bounds;  /* limits of the fault's coordinate system */
+
+	bool write_access() const { return access == Access::WRITE; }
+	bool exec_access()  const { return access == Access::EXEC;  }
+
+	/**
+	 * Translate fault information to region-relative coordinates
+	 */
+	Fault within_region(Rm_region const &region) const
+	{
+		return Fault {
+			.hotspot = hotspot.reduced_by(region.base()),
+			.access  = access,
+			.rwx     = { .w = rwx.w && region.write(),
+			             .x = rwx.x && region.executable() },
+			.bounds  = bounds.intersected(region.range())
+			                 .reduced_by(region.base())
+		};
+	}
+
+	/**
+	 * Translate fault information to coordinates within a sub region map
+	 */
+	Fault within_sub_region_map(addr_t offset, size_t region_map_size) const
+	{
+		return {
+			.hotspot = hotspot.increased_by(offset),
+			.access  = access,
+			.rwx     = rwx,
+			.bounds  = bounds.intersected({ 0, region_map_size })
+			                 .increased_by(offset)
+		};
+	};
+
+	/**
+	 * Translate fault information to physical coordinates for memory mapping
+	 */
+	Fault within_ram(addr_t offset, Dataspace_component::Attr dataspace) const
+	{
+		return {
+			.hotspot = hotspot.increased_by(offset)
+			                  .increased_by(dataspace.base),
+			.access  = access,
+			.rwx     = { .w = rwx.w && dataspace.writeable,
+			             .x = rwx.x },
+			.bounds  = bounds.increased_by(offset)
+			                 .intersected({ 0, dataspace.size })
+			                 .increased_by(dataspace.base)
+		};
+	};
+
+	void print(Output &out) const { Genode::print(out, access, " at address ", hotspot); }
 };
 
 
@@ -209,7 +283,7 @@ class Core::Rm_client : public Pager_object, public Rm_faulter,
 			Rm_faulter(static_cast<Pager_object &>(*this)), _region_map(rm)
 		{ }
 
-		int pager(Ipc_pager &pager) override;
+		Pager_result pager(Ipc_pager &pager) override;
 
 		/**
 		 * Return region map that the RM client is member of
@@ -223,6 +297,11 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
                                    private List<Region_map_component>::Element,
                                    public  Region_map_detach
 {
+	public:
+
+		enum class With_mapping_result { RESOLVED, RECURSION_LIMIT, NO_REGION,
+		                                 REFLECTED, WRITE_VIOLATION, EXEC_VIOLATION };
+
 	private:
 
 		friend class List<Region_map_component>;
@@ -235,8 +314,7 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 
 		Allocator &_md_alloc;
 
-		Signal_transmitter _fault_notifier { };  /* notification mechanism for
-		                                            region-manager faults */
+		Signal_context_capability _fault_sigh { };
 
 		Address_space  *_address_space { nullptr };
 
@@ -305,56 +383,87 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		                                                the region map and wait
 		                                                for fault resolution */
 		List<Rm_client>               _clients  { }; /* list of RM clients using this region map */
-		Mutex                         _mutex    { }; /* mutex for map and list */
+		Mutex mutable                 _mutex    { }; /* mutex for map and list */
 		Pager_entrypoint             &_pager_ep;
 		Rm_dataspace_component        _ds;           /* dataspace representation of region map */
 		Dataspace_capability          _ds_cap;
 
-		template <typename F>
-		auto _apply_to_dataspace(addr_t addr, F const &f, addr_t offset,
-		                         unsigned level, addr_t dst_region_size)
-		-> typename Trait::Functor<decltype(&F::operator())>::Return_type
+		struct Recursion_limit { unsigned value; };
+
+		/**
+		 * Resolve region at a given fault address
+		 *
+		 * /param resolved_fn   functor called with the resolved region and the
+		 *                      region-relative fault information
+		 *
+		 * Called recursively when resolving a page fault in nested region maps.
+		 */
+		With_mapping_result _with_region_at_fault(Recursion_limit const  recursion_limit,
+		                                          Fault           const &fault,
+		                                          auto            const &resolved_fn,
+		                                          auto            const &reflect_fn)
 		{
-			using Functor = Trait::Functor<decltype(&F::operator())>;
-			using Return_type = typename Functor::Return_type;
+			using Result = With_mapping_result;
+
+			if (recursion_limit.value == 0)
+				return Result::RECURSION_LIMIT;
 
 			Mutex::Guard lock_guard(_mutex);
 
-			/* skip further lookup when reaching the recursion limit */
-			if (!level)
-				return f(this, nullptr, 0, 0, dst_region_size);
-
 			/* lookup region and dataspace */
-			Rm_region *region        = _map.metadata((void*)addr);
-			Dataspace_component *dsc = region ? &region->dataspace()
-			                                  : nullptr;
+			Rm_region const * const region_ptr = _map.metadata((void*)fault.hotspot.value);
 
-			if (region && dst_region_size > region->size())
-				dst_region_size = region->size();
-
-			/* calculate offset in dataspace */
-			addr_t ds_offset = region ? (addr - region->base()
-			                             + region->offset()) : 0;
-
-			/* check for nested dataspace */
-			Native_capability cap = dsc ? dsc->sub_rm()
-			                            : Native_capability();
-
-			if (!cap.valid())
-				return f(this, region, ds_offset, offset, dst_region_size);
-
-			/* in case of a nested dataspace perform a recursive lookup */
-			auto lambda = [&] (Region_map_component *rmc) -> Return_type
+			auto reflect_fault = [&] (Result result)
 			{
-				if (rmc)
-					return rmc->_apply_to_dataspace(ds_offset, f,
-					                                offset + region->base() - region->offset(),
-					                                --level,
-					                                dst_region_size);
+				if (!_fault_sigh.valid())
+					return result;   /* not reflected to user land */
 
-				return f(nullptr, nullptr, ds_offset, offset, dst_region_size);
+				reflect_fn(*this, fault);
+				return Result::REFLECTED;  /* omit diagnostics */
 			};
-			return _session_ep.apply(cap, lambda);
+
+			if (!region_ptr)
+				return reflect_fault(Result::NO_REGION);
+
+			Rm_region const &region = *region_ptr;
+
+			/* fault information relative to 'region' */
+			Fault const relative_fault = fault.within_region(region);
+
+			Dataspace_component &dataspace = region.dataspace();
+
+			Native_capability managed_ds_cap = dataspace.sub_rm();
+
+			/* region refers to a regular dataspace */
+			if (!managed_ds_cap.valid()) {
+
+				bool const writeable = relative_fault.rwx.w
+				                    && dataspace.writeable();
+
+				bool const write_violation = relative_fault.write_access()
+				                         && !writeable;
+
+				bool const exec_violation  = relative_fault.exec_access()
+				                         && !relative_fault.rwx.x;
+
+				if (write_violation) return reflect_fault(Result::WRITE_VIOLATION);
+				if (exec_violation)  return reflect_fault(Result::EXEC_VIOLATION);
+
+				return resolved_fn(region, relative_fault);
+			}
+
+			/* traverse into managed dataspace */
+			Fault const sub_region_map_relative_fault =
+				relative_fault.within_sub_region_map(region.offset(),
+				                                     dataspace.size());
+
+			Result result = Result::NO_REGION;
+			_session_ep.apply(managed_ds_cap, [&] (Region_map_component *rmc_ptr) {
+				if (rmc_ptr)
+					result = rmc_ptr->_with_region_at_fault({ recursion_limit.value - 1 },
+					                                        sub_region_map_relative_fault,
+					                                        resolved_fn, reflect_fn); });
+			return result;
 		}
 
 		/*
@@ -410,8 +519,6 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		void address_space(Address_space *space) { _address_space = space; }
 		Address_space *address_space() { return _address_space; }
 
-		class Fault_area;
-
 		/**
 		 * Register fault
 		 *
@@ -436,18 +543,60 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		Rm_dataspace_component &dataspace_component() { return _ds; }
 
 		/**
-		 * Apply a function to dataspace attached at a given address
+		 * Call 'apply_fn' with resolved mapping information for given fault
 		 *
-		 * /param addr   address where the dataspace is attached
-		 * /param f      functor or lambda to apply
+		 * /param apply_fn    functor called with a 'Mapping' that is suitable
+		 *                    for resolving given the 'fault'
+		 * /param reflect_fn  functor called to reflect a missing mapping
+		 *                    to user space if a fault handler is registered
 		 */
-		template <typename F>
-		auto apply_to_dataspace(addr_t addr, F f)
-		-> typename Trait::Functor<decltype(&F::operator())>::Return_type
+		With_mapping_result with_mapping_for_fault(Fault const &fault,
+		                                           auto  const &apply_fn,
+		                                           auto  const &reflect_fn)
 		{
-			enum { RECURSION_LIMIT = 5 };
+			return _with_region_at_fault(Recursion_limit { 5 }, fault,
+				[&] (Rm_region const &region, Fault const &region_relative_fault)
+				{
+					Dataspace_component &dataspace = region.dataspace();
 
-			return _apply_to_dataspace(addr, f, 0, RECURSION_LIMIT, ~0UL);
+					Fault const ram_relative_fault =
+						region_relative_fault.within_ram(region.offset(), dataspace.attr());
+
+					Log2_range src_range { ram_relative_fault.hotspot };
+					Log2_range dst_range { fault.hotspot };
+
+					src_range = src_range.constrained(ram_relative_fault.bounds);
+
+					Log2 const common_size = Log2_range::common_log2(dst_range,
+					                                                 src_range);
+					Log2 const map_size = kernel_constrained_map_size(common_size);
+
+					src_range = src_range.constrained(map_size);
+					dst_range = dst_range.constrained(map_size);
+
+					if (!src_range.valid() || !dst_range.valid()) {
+						error("invalid mapping");
+						return With_mapping_result::NO_REGION;
+					}
+
+					Mapping const mapping {
+						.dst_addr       = dst_range.base.value,
+						.src_addr       = src_range.base.value,
+						.size_log2      = map_size.log2,
+						.cached         = dataspace.cacheability() == CACHED,
+						.io_mem         = dataspace.io_mem(),
+						.dma_buffer     = region.dma(),
+						.write_combined = dataspace.cacheability() == WRITE_COMBINED,
+						.writeable      = ram_relative_fault.rwx.w,
+						.executable     = ram_relative_fault.rwx.x
+					};
+
+					apply_fn(mapping);
+
+					return With_mapping_result::RESOLVED;
+				},
+				reflect_fn
+			);
 		}
 
 		/**
@@ -457,16 +606,6 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		 */
 		void add_client(Rm_client &);
 		void remove_client(Rm_client &);
-
-		/**
-		 * Create mapping item to be placed into the page table
-		 */
-		static Mapping create_map_item(Region_map_component *region_map,
-		                               Rm_region            &region,
-		                               addr_t                ds_offset,
-		                               addr_t                region_offset,
-		                               Dataspace_component  &dsc,
-		                               addr_t, addr_t);
 
 		using Attach_dma_result = Pd_session::Attach_dma_result;
 

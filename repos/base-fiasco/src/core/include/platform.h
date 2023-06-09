@@ -112,7 +112,8 @@ class Core::Platform : public Platform_generic
 			 */
 			Sigma0();
 
-			int pager(Ipc_pager &) override { /* never called */ return -1; }
+			/* never called */
+			Pager_result pager(Ipc_pager &) override { return Pager_result::STOP; }
 		};
 
 		/**
@@ -130,7 +131,8 @@ class Core::Platform : public Platform_generic
 			 */
 			Core_pager(Platform_pd &core_pd);
 
-			int pager(Ipc_pager &) override { /* never called */ return -1; }
+			/* never called */
+			Pager_result pager(Ipc_pager &) override { return Pager_result::STOP; }
 		};
 
 		/**

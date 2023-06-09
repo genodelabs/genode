@@ -185,7 +185,9 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 		const char * client_thread() const;
 		const char * client_pd() const;
 
-		virtual int pager(Ipc_pager &ps) = 0;
+		enum class Pager_result { STOP, CONTINUE };
+
+		virtual Pager_result pager(Ipc_pager &ps) = 0;
 
 		/**
 		 * Assign user-level exception handler for the pager object

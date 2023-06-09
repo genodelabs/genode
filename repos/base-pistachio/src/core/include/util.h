@@ -105,8 +105,7 @@ namespace Core {
 	inline addr_t map_src_addr(addr_t core_local_addr, addr_t) {
 		return core_local_addr; }
 
-	inline size_t constrain_map_size_log2(size_t size_log2) {
-		return size_log2; }
+	inline Log2 kernel_constrained_map_size(Log2 size) { return size; }
 }
 
 #endif /* _CORE__INCLUDE__UTIL_H_ */

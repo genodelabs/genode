@@ -94,6 +94,8 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 
 		unsigned long reply_cap_sel() const { return _reply_cap.value(); }
 
+		enum class Pager_result { STOP, CONTINUE };
+
 		/**
 		 * Interface to be implemented by a derived class
 		 *
@@ -101,7 +103,7 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 		 *
 		 * Returns !0 on error and pagefault will not be answered.
 		 */
-		virtual int pager(Ipc_pager &ps) = 0;
+		virtual Pager_result pager(Ipc_pager &ps) = 0;
 
 		/**
 		 * Wake up the faulter

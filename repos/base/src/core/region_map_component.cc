@@ -23,240 +23,93 @@
 #include <region_map_component.h>
 #include <dataspace_component.h>
 
-static const bool verbose_page_faults = false;
-
-
-struct Core::Region_map_component::Fault_area
-{
-	addr_t _fault_addr = 0;
-	addr_t _base       = 0;
-	size_t _size_log2  = 0;
-
-	addr_t _upper_bound() const {
-		return (_size_log2 == ~0UL) ? ~0UL : (_base + (1UL << _size_log2) - 1); }
-
-	/**
-	 * Default constructor, constructs invalid fault area
-	 */
-	Fault_area() { }
-
-	/**
-	 * Constructor, fault area spans the maximum address-space size
-	 */
-	Fault_area(addr_t fault_addr) :
-		_fault_addr(fault_addr), _size_log2(~0UL) { }
-
-	/**
-	 * Constrain fault area to specified region
-	 */
-	void constrain(addr_t region_base, size_t region_size)
-	{
-		/*
-		 * Find flexpage around _fault_addr that lies within the
-		 * specified region.
-		 *
-		 * Start with a 'size_log2' of one less than the minimal
-		 * page size. If the specified constraint conflicts with
-		 * the existing fault area, the loop breaks at the first
-		 * iteration and we can check for this condition after the
-		 * loop.
-		 */
-		size_t size_log2 = get_page_size_log2() - 1;
-		addr_t base = 0;
-		for (size_t try_size_log2 = get_page_size_log2();
-		     try_size_log2 < sizeof(addr_t)*8 ; try_size_log2++) {
-			addr_t fpage_mask = ~((1UL << try_size_log2) - 1);
-			addr_t try_base = _fault_addr & fpage_mask;
-
-			/* check lower bound of existing fault area */
-			if (try_base < _base)
-				break;
-
-			/* check against upper bound of existing fault area */
-			if (try_base + (1UL << try_size_log2) - 1 > _upper_bound())
-				break;
-
-			/* check against lower bound of region */
-			if (try_base < region_base)
-				break;
-
-			/* check against upper bound of region */
-			if (try_base + (1UL << try_size_log2) - 1 > region_base + region_size - 1)
-				break;
-
-			/* flexpage is compatible with fault area, use it */
-			size_log2 = try_size_log2;
-			base      = try_base;
-		}
-
-		/* if constraint is compatible with the fault area, invalidate */
-		if (size_log2 < get_page_size_log2()) {
-			_size_log2 = 0;
-			_base      = 0;
-		} else {
-			_size_log2 = size_log2;
-			_base      = base;
-		}
-	}
-
-	/**
-	 * Constrain fault area to specified flexpage size
-	 */
-	void constrain(size_t size_log2)
-	{
-		if (size_log2 >= _size_log2)
-			return;
-
-		_base = _fault_addr & ~((1UL << size_log2) - 1);
-		_size_log2 = size_log2;
-	}
-
-	/**
-	 * Determine common flexpage size compatible with specified fault areas
-	 */
-	static size_t common_size_log2(Fault_area const &a1, Fault_area const &a2)
-	{
-		/*
-		 * We have to make sure that the offset of page-fault address
-		 * relative to the flexpage base is the same for both fault areas.
-		 * This condition is met by the flexpage size equal to the number
-		 * of common least-significant bits of both offsets.
-		 */
-		size_t const diff = (a1.fault_addr() - a1.base())
-		                  ^ (a2.fault_addr() - a2.base());
-
-		/*
-		 * Find highest clear bit in 'diff', starting from the least
-		 * significant candidate. We can skip all bits lower then
-		 * 'get_page_size_log2()' because they are not relevant as
-		 * flexpage size (and are always zero).
-		 */
-		size_t n = get_page_size_log2();
-		size_t const min_size_log2 = min(a1._size_log2, a2._size_log2);
-		for (; n < min_size_log2 && !(diff & (1UL << n)); n++);
-
-		return n;
-	}
-
-	addr_t fault_addr() const { return _fault_addr; }
-	addr_t base()       const { return _base; }
-	bool   valid()      const { return _size_log2 > 0; }
-};
-
-
 using namespace Core;
 
-static void print_page_fault(char const *msg,
-                             addr_t pf_addr,
-                             addr_t pf_ip,
-                             Region_map::State::Fault_type pf_type,
-                             Pager_object const &obj)
-{
-	log(msg, " (",
-	    pf_type == Region_map::State::WRITE_FAULT ? "WRITE" :
-	    pf_type == Region_map::State::READ_FAULT ? "READ" : "EXEC",
-	    " pf_addr=", Hex(pf_addr), " pf_ip=", Hex(pf_ip), " from ", obj, ") ");
-}
-
-
-/***********************
- ** Region-map client **
- ***********************/
 
 /*
  * This code is executed by the page-fault handler thread.
  */
 
-int Rm_client::pager(Ipc_pager &pager)
+Pager_object::Pager_result Rm_client::pager(Ipc_pager &pager)
 {
-	Region_map::State::Fault_type pf_type = pager.write_fault() ? Region_map::State::WRITE_FAULT
-	                                                            : Region_map::State::READ_FAULT;
-	if (pager.exec_fault())
-		pf_type = Region_map::State::EXEC_FAULT;
-
-	addr_t pf_addr = pager.fault_addr();
-	addr_t pf_ip   = pager.fault_ip();
-
-	if (verbose_page_faults)
-		print_page_fault("page fault", pf_addr, pf_ip, pf_type, *this);
-
-	auto lambda = [&] (Region_map_component *region_map,
-	                   Rm_region            *region,
-	                   addr_t const          ds_offset,
-	                   addr_t const          region_offset,
-	                   addr_t const          dst_region_size) -> int
-	{
-		Dataspace_component * dsc = region ? &region->dataspace() : nullptr;
-		if (!dsc) {
-
-			/*
-			 * We found no attachment at the page-fault address and therefore have
-			 * to reflect the page fault as region-manager fault. The signal
-			 * handler is then expected to request the state of the region map.
-			 */
-
-			/* print a warning if it's no managed-dataspace */
-			if (region_map == &member_rm())
-				print_page_fault("no RM attachment", pf_addr, pf_ip,
-				                 pf_type, *this);
-
-			/* register fault at responsible region map */
-			if (region_map)
-				region_map->fault(*this, pf_addr - region_offset, pf_type);
-
-			/* there is no attachment return an error condition */
-			return 1;
-		}
-
-		/*
-		 * Check if dataspace is compatible with page-fault type
-		 */
-		if (pf_type == Region_map::State::WRITE_FAULT &&
-		    (!region->write() || !dsc->writeable())) {
-
-			print_page_fault("attempted write at read-only memory",
-			                 pf_addr, pf_ip, pf_type, *this);
-
-			/* register fault at responsible region map */
-			if (region_map)
-				region_map->fault(*this, pf_addr - region_offset, pf_type);
-			return 2;
-		}
-
-		if (pf_type == Region_map::State::EXEC_FAULT) {
-
-			print_page_fault("attempted exec at non-executable memory",
-			                 pf_addr, pf_ip, pf_type, *this);
-
-			/* register fault at responsible region map */
-			if (region_map)
-				region_map->fault(*this, pf_addr - region_offset, pf_type);
-			return 3;
-		}
-
-		Mapping mapping = Region_map_component::create_map_item(region_map,
-		                                                        *region,
-		                                                        ds_offset,
-		                                                        region_offset,
-		                                                        *dsc, pf_addr,
-		                                                        dst_region_size);
-
-		/*
-		 * On kernels with a mapping database, the 'dsc' dataspace is a leaf
-		 * dataspace that corresponds to a virtual address range within core. To
-		 * prepare the answer for the page fault, we make sure that this range is
-		 * locally mapped in core. On platforms that support map operations of
-		 * pages that are not locally mapped, the 'map_core_local' function may be
-		 * empty.
-		 */
-		if (!dsc->io_mem())
-			mapping.prepare_map_operation();
-
-		/* answer page fault with a flex-page mapping */
-		pager.set_reply_mapping(mapping);
-		return 0;
+	Fault const fault {
+		.hotspot = { pager.fault_addr() },
+		.access  = pager.write_fault() ? Access::WRITE
+		         : pager.exec_fault()  ? Access::EXEC
+		         :                       Access::READ,
+		.rwx     = Rwx::rwx(),
+		.bounds  = { .start = 0, .end  = ~0UL },
 	};
-	return member_rm().apply_to_dataspace(pf_addr, lambda);
+
+	using Result = Region_map_component::With_mapping_result;
+
+	Result const result = member_rm().with_mapping_for_fault(fault,
+
+		[&] (Mapping const &mapping)
+		{
+			/*
+			 * On kernels with a mapping database, the leaf dataspace
+			 * corresponds to a virtual address range within core. To prepare
+			 * the answer for the page fault, we make sure that this range is
+			 * locally mapped in core.
+			 */
+			if (!mapping.io_mem)
+				mapping.prepare_map_operation();
+
+			/* answer page fault with a flex-page mapping */
+			pager.set_reply_mapping(mapping);
+		},
+
+		[&] (Region_map_component &rm, Fault const &fault) /* reflect to user space */
+		{
+			using Type = Region_map::State::Fault_type;
+			Type const type = (fault.access == Access::READ)  ? Type::READ_FAULT
+			                : (fault.access == Access::WRITE) ? Type::WRITE_FAULT
+			                :                                   Type::EXEC_FAULT;
+			/* deliver fault info to responsible region map */
+			rm.fault(*this, fault.hotspot.value, type);
+		}
+	);
+
+	if (result == Result::RESOLVED)
+		return Pager_result::CONTINUE;
+
+	/*
+	 * Error diagnostics
+	 */
+
+	struct Origin
+	{
+		addr_t ip;
+		Pager_object &obj;
+
+		void print(Output &out) const
+		{
+			Genode::print(out, "by ", obj, " ip=", Hex(ip));
+		}
+	} origin { pager.fault_ip(), *this };
+
+	switch (result) {
+	case Result::RESOLVED:
+	case Result::REFLECTED:
+		break;
+
+	case Result::RECURSION_LIMIT:
+		error("giving up on unexpectedly deep memory-mapping structure");
+		error(fault, " ", origin);
+		break;
+
+	case Result::NO_REGION:
+		error("illegal ", fault, " ", origin);
+		break;
+
+	case Result::WRITE_VIOLATION:
+	case Result::EXEC_VIOLATION:
+		error(fault.access, " violation at address ",
+		      fault.hotspot, " ", origin);
+		break;
+	}
+	return Pager_result::STOP;
 }
 
 
@@ -308,47 +161,6 @@ void Rm_faulter::continue_after_resolved_fault()
 /**************************
  ** Region-map component **
  **************************/
-
-Mapping Region_map_component::create_map_item(Region_map_component *,
-                                              Rm_region            &region,
-                                              addr_t const          ds_offset,
-                                              addr_t const          region_offset,
-                                              Dataspace_component  &dataspace,
-                                              addr_t const          page_addr,
-                                              addr_t const          dst_region_size)
-{
-	addr_t const ds_base = dataspace.map_src_addr();
-
-	Fault_area src_fault_area(ds_base + ds_offset);
-	Fault_area dst_fault_area(page_addr);
-
-	src_fault_area.constrain(ds_base, dataspace.size());
-	dst_fault_area.constrain(region_offset + region.base(), dst_region_size);
-
-	/*
-	 * Determine mapping size compatible with source and destination,
-	 * and apply platform-specific constraint of mapping sizes.
-	 */
-	size_t map_size_log2 = dst_fault_area.common_size_log2(dst_fault_area,
-	                                                       src_fault_area);
-	map_size_log2 = constrain_map_size_log2(map_size_log2);
-
-	src_fault_area.constrain(map_size_log2);
-	dst_fault_area.constrain(map_size_log2);
-	if (!src_fault_area.valid() || !dst_fault_area.valid())
-		error("invalid mapping");
-
-	return Mapping { .dst_addr       = dst_fault_area.base(),
-	                 .src_addr       = src_fault_area.base(),
-	                 .size_log2      = map_size_log2,
-	                 .cached         = dataspace.cacheability() == CACHED,
-	                 .io_mem         = dataspace.io_mem(),
-	                 .dma_buffer     = region.dma(),
-	                 .write_combined = dataspace.cacheability() == WRITE_COMBINED,
-	                 .writeable      = region.write() && dataspace.writeable(),
-	                 .executable     = region.executable() };
-}
-
 
 Region_map::Local_addr
 Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const attr)
@@ -548,7 +360,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 		.dma            = false,
 	};
 
-	return _attach(ds_cap, attr);
+	return  _attach(ds_cap, attr);
 }
 
 
@@ -665,7 +477,7 @@ void Region_map_component::fault(Rm_faulter &faulter, addr_t pf_addr,
 	_faulters.enqueue(faulter);
 
 	/* issue fault signal */
-	_fault_notifier.submit();
+	Signal_transmitter(_fault_sigh).submit();
 }
 
 
@@ -679,9 +491,9 @@ void Region_map_component::discard_faulter(Rm_faulter &faulter, bool do_lock)
 }
 
 
-void Region_map_component::fault_handler(Signal_context_capability handler)
+void Region_map_component::fault_handler(Signal_context_capability sigh)
 {
-	_fault_notifier.context(handler);
+	_fault_sigh = sigh;
 }
 
 

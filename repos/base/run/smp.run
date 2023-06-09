@@ -112,12 +112,12 @@ compare_output_to $good_string
 puts "Affinity test: passed"
 
 set output $original_output
-grep_output {no RM attachment }
-unify_output {pf_addr=0x[a-f0-9]+} "ADDR"
-unify_output {pf_ip=0x[a-f0-9]+} "IP"
+grep_output {Error:}
+unify_output {address 0x[a-f0-9]+} "address ADDR"
+unify_output {ip=0x[a-f0-9]+} "ip=IP"
 set good_string ""
 for {set r 1} {$r < $cpus} {incr r} {
-	append good_string {no RM attachment (READ ADDR IP from pager_object: pd='init -> test-smp' thread='tlb_thread')}
+	append good_string {Error: illegal READ at address ADDR by pager_object: pd='init -> test-smp' thread='tlb_thread' ip=IP}
 	append good_string "\n"
 }
 compare_output_to $good_string

@@ -222,20 +222,12 @@ void Pager_entrypoint::entry()
 				return;
 			}
 
-			/* send reply if page-fault handling succeeded */
-			reply_pending = !obj->pager(_pager);
-			if (!reply_pending) {
-				warning("page-fault, ", *obj,
-				        " ip=", Hex(_pager.fault_ip()),
-				        " pf-addr=", Hex(_pager.fault_addr()));
-				_pager.reply_save_caller(obj->reply_cap_sel());
-				return;
-			}
+			reply_pending = obj->pager(_pager) == Pager_object::Pager_result::CONTINUE;
 
-			/* install memory mappings */
-			if (_pager.install_mapping()) {
-				return;
-			}
+			if (reply_pending)
+				(void)_pager.install_mapping();
+			else
+				_pager.reply_save_caller(obj->reply_cap_sel());
 		});
 	}
 }

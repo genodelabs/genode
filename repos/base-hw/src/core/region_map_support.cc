@@ -46,7 +46,8 @@ void Pager_entrypoint::entry()
 		_fault = pt->fault_info();
 
 		/* try to resolve fault directly via local region managers */
-		if (po->pager(*this)) continue;
+		if (po->pager(*this) == Pager_object::Pager_result::STOP)
+			continue;
 
 		/* apply mapping that was determined by the local region managers */
 		{

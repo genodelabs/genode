@@ -19,6 +19,56 @@
 #include <util/interface.h>
 #include <base/log.h>
 
-namespace Core { using namespace Genode; }
+namespace Core {
+
+	using namespace Genode;
+
+	struct Log2 { uint8_t log2; };
+
+	enum class Access { READ, WRITE, EXEC };
+
+	struct Addr
+	{
+		addr_t value;
+
+		Addr reduced_by(addr_t offset) const
+		{
+			return { (value >= offset) ? (value - offset) : 0 };
+		}
+
+		Addr increased_by(addr_t offset) const
+		{
+			return { (value + offset >= offset) ? (value + offset) : 0 };
+		}
+
+		void print(Output &out) const { Genode::print(out, Hex(value)); }
+	};
+
+	struct Rwx
+	{
+		bool w, x;
+
+		static constexpr bool r = true;
+
+		static constexpr Rwx rwx() { return { true, true }; }
+
+		void print(Output &out) const
+		{
+			Genode::print(out, "(r", w ? "w" : "-", x ? "x" : "-", ")");
+		}
+	};
+}
+
+namespace Genode {
+
+	static inline void print(Output &out, Core::Access access)
+	{
+		switch (access) {
+		case Core::Access::READ:  print(out, "READ");  break;
+		case Core::Access::WRITE: print(out, "WRITE"); break;
+		case Core::Access::EXEC:  print(out, "EXEC");  break;
+		}
+	}
+}
 
 #endif /* _CORE__INCLUDE__TYPES_H_ */
