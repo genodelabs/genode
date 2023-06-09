@@ -1,10 +1,10 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="16M" caps="150" binary="test-sanitizer">
 
 	<events>
 		<timeout meaning="failed" sec="10" />
 		<log meaning="succeeded">
-			[init -> test-sanitizer]*runtime error: *index 2 out of bounds*
-			[init -> test-sanitizer]*runtime error: *store to null pointer
+			[init]*runtime error: *index 2 out of bounds*
+			[init]*runtime error: *store to null pointer
 		</log>
 	</events>
 
@@ -15,19 +15,6 @@
 		<rom label="test-sanitizer"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <any-child/> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-sanitizer">
-			<resource name="RAM" quantum="16M"/>
-		</start>
-	</config>
+	<config/>
+
 </runtime>
