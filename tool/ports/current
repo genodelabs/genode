@@ -1,4 +1,4 @@
-#!/usr/bin/make -f
+#!/usr/bin/make -sf
 
 #
 # \brief  Tool for printing current contrib directory of port
