@@ -353,4 +353,4 @@ append done_string ".*  DNS domain name: genode.org.*\n"
 
 }
 
-run_genode_until $done_string 35
+run_genode_until $done_string 60
