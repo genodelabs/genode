@@ -222,7 +222,9 @@ install_config {
 				<library rom="posix.lib.so"/>
 			</ld>
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-			      rtc="/dev/rtc" pipe="/pipe"/>
+			      rtc="/dev/rtc" pipe="/pipe">
+				<stack size="256K"/>
+			</libc>
 			<vfs>
 				<fs buffer_size="2M"/>
 				<dir name="dev"> <null/> </dir>
