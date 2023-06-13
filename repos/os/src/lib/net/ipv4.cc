@@ -68,10 +68,10 @@ uint32_t Ipv4_address::to_uint32_big_endian() const
 Ipv4_address Ipv4_address::from_uint32_big_endian(uint32_t ip_raw)
 {
 	Ipv4_address ip;
-	ip.addr[0] = ip_raw;
-	ip.addr[1] = ip_raw >> 8;
-	ip.addr[2] = ip_raw >> 16;
-	ip.addr[3] = ip_raw >> 24;
+	ip.addr[0] = (uint8_t)(ip_raw);
+	ip.addr[1] = (uint8_t)(ip_raw >> 8);
+	ip.addr[2] = (uint8_t)(ip_raw >> 16);
+	ip.addr[3] = (uint8_t)(ip_raw >> 24);
 	return ip;
 }
 
@@ -88,10 +88,10 @@ uint32_t Ipv4_address::to_uint32_little_endian() const
 Ipv4_address Ipv4_address::from_uint32_little_endian(uint32_t ip_raw)
 {
 	Ipv4_address ip;
-	ip.addr[3] = ip_raw;
-	ip.addr[2] = ip_raw >> 8;
-	ip.addr[1] = ip_raw >> 16;
-	ip.addr[0] = ip_raw >> 24;
+	ip.addr[3] = (uint8_t)(ip_raw);
+	ip.addr[2] = (uint8_t)(ip_raw >> 8);
+	ip.addr[1] = (uint8_t)(ip_raw >> 16);
+	ip.addr[0] = (uint8_t)(ip_raw >> 24);
 	return ip;
 }
 
