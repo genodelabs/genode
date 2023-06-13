@@ -48,8 +48,8 @@ Sculpt OS release 23.04 | 2023-04-28
 
 | Sculpt OS 23.04 marks the first-time PinePhone support in addition to the PC
 | version. With this release, the system supports live upgrades of the boot
-| image, rendering Sculpt updates and switching between versions a matter some
-| easy steps. The new preset feature brings entire application scenarios to
+| image, rendering Sculpt updates and the switching between versions a matter of
+| some easy steps. The new preset feature brings entire application scenarios to
 | your screen after just one click/tap.
 
 With the fresh release 23.04, the Sculpt operating system boards the PinePhone
