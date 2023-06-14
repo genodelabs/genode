@@ -26,7 +26,7 @@ using namespace Net;
 
 void Net::Ipv4_packet::print(Genode::Output &output) const
 {
-	Genode::print(output, "\033[32mIPV4\033[0m ", src(), " > ", dst(), " ");
+	Genode::print(output, "IPV4 ", src(), " > ", dst(), " ");
 	switch (protocol()) {
 	case Protocol::TCP:
 		Genode::print(output, *reinterpret_cast<Tcp_packet const *>(_data));

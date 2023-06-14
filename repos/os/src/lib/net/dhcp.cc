@@ -60,14 +60,14 @@ void Net::Dhcp_packet::print(Genode::Output &output) const
 			Message_type_option const &msg_type {
 				*reinterpret_cast<Message_type_option const *>(&opt) };
 
-			Genode::print(output, "\033[32mDHCP ",
-			              msg_type_to_string(msg_type.value()), "\033[0m ",
+			Genode::print(output, "DHCP ",
+			              msg_type_to_string(msg_type.value()), " ",
 			              client_mac(), " > ", siaddr());
 		}
 	});
 	if (!msg_type_found) {
 
-		Genode::print(output, "\033[32mDHCP ", opcode_to_string(op()),
-		              "\033[0m ", client_mac(), " > ", siaddr());
+		Genode::print(output, "DHCP ", opcode_to_string(op()),
+		              " ", client_mac(), " > ", siaddr());
 	}
 }

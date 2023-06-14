@@ -22,8 +22,7 @@ using namespace Genode;
 
 void Net::Tcp_packet::print(Genode::Output &output) const
 {
-	Genode::print(output, "\033[32mTCP\033[0m ", src_port(),
-	              " > ", dst_port(), " flags '");
+	Genode::print(output, "TCP ", src_port(), " > ", dst_port(), " flags '");
 
 	if (fin()) { Genode::print(output, "f"); }
 	if (syn()) { Genode::print(output, "s"); }

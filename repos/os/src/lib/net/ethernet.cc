@@ -20,7 +20,7 @@
 
 void Net::Ethernet_frame::print(Genode::Output &output) const
 {
-	Genode::print(output, "\033[32mETH\033[0m ", src(), " > ", dst(), " ");
+	Genode::print(output, "ETH ", src(), " > ", dst(), " ");
 	switch (type()) {
 	case Ethernet_frame::Type::ARP:
 		Genode::print(output, *reinterpret_cast<Arp_packet const *>(_data));

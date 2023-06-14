@@ -175,10 +175,10 @@ append qemu_args "  -nographic "
 append_qemu_nic_args
 
 append done_string {.*?\[init -> client_3] .\[31mError: Nic-session creation failed}
-append done_string {.*?\[client_1 -> lwip] rcv .\[32mETH.\[0m 02:02:02:02:42:0.}
-append done_string {.*?\[client_2 -> lwip] rcv .\[32mETH.\[0m 02:02:02:02:79:00}
-append done_string {.*?\[server_1 -> lwip] rcv .\[32mETH.\[0m 02:02:02:02:42:0.}
-append done_string {.*?\[server_2 -> lwip] rcv .\[32mETH.\[0m 02:02:02:02:23:00}
+append done_string {.*?\[client_1 -> lwip] rcv ETH 02:02:02:02:42:0.}
+append done_string {.*?\[client_2 -> lwip] rcv ETH 02:02:02:02:79:00}
+append done_string {.*?\[server_1 -> lwip] rcv ETH 02:02:02:02:42:0.}
+append done_string {.*?\[server_2 -> lwip] rcv ETH 02:02:02:02:23:00}
 append done_string {.*?"client_." exited with exit value 0}
 append done_string {.*?"client_." exited with exit value 0}
 append done_string {.*?\n}

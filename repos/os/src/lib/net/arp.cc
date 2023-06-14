@@ -22,6 +22,6 @@
 void Net::Arp_packet::print(Genode::Output &output) const
 {
 		if (!ethernet_ipv4()) { return; }
-		Genode::print(output, "\033[32mARP\033[0m ", src_mac(), " ", src_ip(),
+		Genode::print(output, "ARP ", src_mac(), " ", src_ip(),
 		              " > ", dst_mac(), " ", dst_ip(), " cmd ", opcode());
 }

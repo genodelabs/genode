@@ -22,8 +22,7 @@ using namespace Genode;
 
 void Net::Icmp_packet::print(Output &output) const
 {
-	Genode::print(output, "\033[32mICMP\033[0m ", (unsigned)type(), " ",
-	                      (unsigned)code());
+	Genode::print(output, "ICMP ", (unsigned)type(), " ", (unsigned)code());
 }
 
 
