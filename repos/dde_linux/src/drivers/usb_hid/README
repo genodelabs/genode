@@ -1,0 +1,29 @@
+USB HID driver
+##############
+
+Supports keyboard and mouse connected via USB. It connects to one or multiple
+USB sessions and reports input events to an event session. A run script can be
+found under 'run/usb_hid_raw.run'.
+
+Configuration snippet:
+
+!<start name="usb_hid_drv">
+!  <resource name="RAM" quantum="10M"/>
+!  <config use_report="yes"/>
+!</start>
+
+When the use_report attribute is set, the HID driver will request a ROM called
+"report" that is used to iterate over all devices provided by the USB host
+controller driver (resp. a rom filter). In that mode the driver tries to
+claim all HID devices (class 0x3) via dedicated USB sessions.
+
+
+Keyboard LED handling
+~~~~~~~~~~~~~~~~~~~~~
+
+The state of the keyboard LEDs like capslock can be controlled by providing
+a corresponding ROM to the driver and configure it appropriately:
+
+!...
+!<config capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
+!...
