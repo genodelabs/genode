@@ -29,11 +29,6 @@ bool cpu_have_feature(unsigned int num)
 
 u64 vabits_actual;
 
-unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
 
 #include <linux/of_fdt.h>
 
