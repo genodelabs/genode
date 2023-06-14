@@ -197,4 +197,9 @@ append_qemu_nic_args
 set done_string ".*\"ping_1\" exited with exit value 0.*\n"
 append_if $second_ping_via_udp done_string ".*ping_2\] From [dst_ip] Destination Unreachable.*\n"
 
-run_genode_until $done_string 30
+proc test_timeout { } {
+	if {[have_spec sel4] && [have_board pc]} { return 60 }
+	return 30
+}
+
+run_genode_until $done_string [test_timeout]

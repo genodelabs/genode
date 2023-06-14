@@ -239,4 +239,10 @@ append done_string ".*ping_22\] From 10.0.4.1 icmp_seq=.* Destination Unreachabl
 
 append_if $on_hardware done_string ".*ping_23\] From [good_dst_ip] Destination Unreachable.*\n"
 
-run_genode_until $done_string 30
+proc test_timeout { } {
+	if {[have_spec sel4] && [have_board pc]} { return 60 }
+	if {[have_spec pistachio] && [have_board pc]} { return 60 }
+	return 30
+}
+
+run_genode_until $done_string [test_timeout]
