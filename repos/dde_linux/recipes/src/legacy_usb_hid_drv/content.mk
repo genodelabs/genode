@@ -9,7 +9,7 @@ MIRROR_FROM_REP_DIR := $(LIB_MK) \
                        src/include/legacy src/lib/legacy/lx_kit \
                        src/lib/lx_kit/spec \
                        $(foreach SPEC,arm arm_64 arm_v6 arm_v7 x86 x86_32 x86_64,src/include/spec/$(SPEC)) \
-                       $(shell cd $(REP_DIR); find src/drivers/usb_hid -type f)
+                       $(shell cd $(REP_DIR); find src/drivers/usb_hid_legacy -type f)
 
 MIRROR_FROM_PORT_DIR := $(shell cd $(PORT_DIR); find src/drivers/usb_hid -type f | grep -v ".git")
 MIRROR_FROM_PORT_DIR := $(filter-out $(MIRROR_FROM_REP_DIR),$(MIRROR_FROM_PORT_DIR))
