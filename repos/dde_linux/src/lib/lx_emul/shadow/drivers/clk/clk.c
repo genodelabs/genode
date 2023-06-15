@@ -52,3 +52,8 @@ struct of_device_id;
 
 void of_clk_init(const struct of_device_id *matches) { }
 
+
+const char *__clk_get_name(const struct clk *clk)
+{
+	return "unknown-clk";
+}
