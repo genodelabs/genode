@@ -14,7 +14,6 @@ set build_components {
 	server/event_dump
 	app/pci_decode
 	app/acpica
-	app/acpi_event
 }
 
 build $build_components
@@ -26,7 +25,8 @@ import_from_depot [depot_user]/src/dynamic_rom \
                   [depot_user]/src/pc_usb_host_drv \
                   [depot_user]/src/ps2_drv \
                   [depot_user]/src/report_rom \
-                  [depot_user]/src/usb_hid_drv
+                  [depot_user]/src/usb_hid_drv \
+                  [depot_user]/src/acpi_event
 
 set config {
 	<config>
@@ -252,15 +252,7 @@ install_config $config
 # non PCI devices for platform_drv, e.g. ps2/pit
 file copy [select_from_repositories board/[board]/devices] [run_dir]/genode/devices
 
-set boot_modules {
-	core init ld.lib.so
-	timer platform_drv pci_decode acpi_drv
-	acpica
-	acpi_event
-	event_dump
-}
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 
