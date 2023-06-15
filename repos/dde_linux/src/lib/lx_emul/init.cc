@@ -65,9 +65,16 @@ extern "C" void lx_emul_start_kernel(void * dtb)
 
 extern "C" void lx_emul_execute_kernel_until(int (*condition)(void*), void * args)
 {
-	Lx_kit::env().scheduler.schedule();
+	do {
+		/*
+		 * Assume we have to execute all scheduled tasks once before
+		 * it makes sense to check the condition.
+		 */
+		Lx_kit::env().scheduler.execute();
 
-	while (!condition(args)) {
+		if (condition(args))
+			break;
+
 		Lx_kit::env().env.ep().wait_and_dispatch_one_io_signal();
-	}
+	} while (true);
 }

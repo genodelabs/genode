@@ -415,7 +415,7 @@ class Lx::Socket
 		void _handle()
 		{
 			lx_emul_task_unblock(socketcall_task_struct_ptr);
-			Lx_kit::env().scheduler.schedule();
+			Lx_kit::env().scheduler.execute();
 		}
 
 		void _handle_blockade()
@@ -511,7 +511,7 @@ void wifi_kick_socketcall()
 	if (!_socket) { return; }
 
 	lx_emul_task_unblock(socketcall_task_struct_ptr);
-	Lx_kit::env().scheduler.schedule();
+	Lx_kit::env().scheduler.execute();
 }
 
 

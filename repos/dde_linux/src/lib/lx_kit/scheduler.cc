@@ -101,11 +101,11 @@ Task & Scheduler::task(void * lx_task)
 }
 
 
-void Scheduler::schedule()
+void Scheduler::execute()
 {
 	/* sanity check that right thread & stack is in use */
 	auto const thread = Genode::Thread::myself();
-	if (!ep.rpc_ep().myself(addr_t(&thread))) {
+	if (!_ep.rpc_ep().myself(addr_t(&thread))) {
 		Genode::error("Lx_kit::Scheduler called by invalid thread/stack ",
 		              thread->name(), " ",
 		              Genode::Hex(thread->mystack().base), "-",
@@ -114,6 +114,16 @@ void Scheduler::schedule()
 		Genode::sleep_forever();
 	}
 
+	_schedule();
+}
+
+
+/*
+ * This signal handler function must only be called from within an EP
+ * context, see check in 'execute()'.
+ */
+void Scheduler::_schedule()
+{
 	_idle_pre_post_process();
 
 	/*

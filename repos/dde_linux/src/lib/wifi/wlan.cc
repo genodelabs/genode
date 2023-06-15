@@ -79,7 +79,7 @@ void Wifi::set_rfkill(bool blocked)
 	lx_emul_rfkill_switch_all(blocked);
 
 	lx_emul_task_unblock(rfkill_task_struct_ptr);
-	Lx_kit::env().scheduler.schedule();
+	Lx_kit::env().scheduler.execute();
 
 	/*
 	 * We have to open the device again after unblocking
@@ -88,7 +88,7 @@ void Wifi::set_rfkill(bool blocked)
 	 * unconditionally and that will bring the netdevice UP again.
 	 */
 	lx_emul_task_unblock(uplink_task_struct_ptr);
-	Lx_kit::env().scheduler.schedule();
+	Lx_kit::env().scheduler.execute();
 
 	if (rfkill_helper.constructed())
 		rfkill_helper->submit_notification();
@@ -120,7 +120,7 @@ struct Firmware_helper
 		if (_calling_task)
 			lx_emul_task_unblock((struct task_struct*)_calling_task);
 
-		Lx_kit::env().scheduler.schedule();
+		Lx_kit::env().scheduler.execute();
 	}
 
 	Wifi::Firmware_request_handler &_request_handler;

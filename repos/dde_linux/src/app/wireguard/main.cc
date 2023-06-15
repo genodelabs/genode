@@ -59,7 +59,7 @@ class Wireguard::Main : private Entrypoint::Io_progress_handler,
 		void _handle_signal()
 		{
 			lx_user_handle_io();
-			Lx_kit::env().scheduler.schedule();
+			Lx_kit::env().scheduler.execute();
 		}
 
 		void _handle_config() { _config_rom.update(); }

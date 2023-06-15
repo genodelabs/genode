@@ -177,7 +177,7 @@ void Framebuffer::Driver::config_update()
 		update_in_progress = true;
 
 	lx_emul_task_unblock(lx_user_task);
-	Lx_kit::env().scheduler.schedule();
+	Lx_kit::env().scheduler.execute();
 }
 
 

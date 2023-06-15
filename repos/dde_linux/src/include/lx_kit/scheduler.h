@@ -14,6 +14,7 @@
  * version 2.
  */
 
+#include <base/entrypoint.h>
 #include <util/list.h>
 #include <lx_kit/task.h>
 
@@ -29,13 +30,20 @@ class Lx_kit::Scheduler
 {
 	private:
 
+		Scheduler(Scheduler const &) = delete;
+		Scheduler& operator=(const Scheduler&) = delete;
+
 		List<Task> _present_list { };
 		Task     * _current      { nullptr };
 		Task     * _idle         { nullptr };
 
-		Genode::Entrypoint &ep;
+		Genode::Entrypoint &_ep;
 
 		void _idle_pre_post_process();
+
+		void _schedule();
+
+		Signal_handler<Scheduler> _execute_schedule;
 
 	public:
 
@@ -48,7 +56,10 @@ class Lx_kit::Scheduler
 		void add(Task & task);
 		void remove(Task & task);
 
-		void schedule();
+		void schedule() { _execute_schedule.local_submit(); }
+
+		void execute();
+
 		void unblock_irq_handler();
 		void unblock_time_handler();
 
@@ -57,7 +68,12 @@ class Lx_kit::Scheduler
 		template <typename FN>
 		void for_each_task(FN const & fn);
 
-		Scheduler(Genode::Entrypoint &ep) : ep(ep) { }
+		Scheduler(Genode::Entrypoint &ep)
+		:
+			_ep { ep },
+			_execute_schedule { _ep, *this,
+			                    &Scheduler::_schedule }
+		{ }
 };
 
 
