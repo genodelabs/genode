@@ -1,5 +1,4 @@
 assert_spec linux
-assert_spec x86_64
 
 create_boot_directory
 
@@ -169,7 +168,7 @@ proc check_depot_state { context } {
 		regexp [_depot_archive_versioned_path_pattern] $archive dummy archive_user archive_type archive_name
 
 		if { $archive_type == "src" } {
-			set archive $archive_user/bin/x86_64/$archive_name/[_current_depot_archive_version src $archive_name]
+			set archive $archive_user/bin/[depot_spec]/$archive_name/[_current_depot_archive_version src $archive_name]
 		}
 
 		if { [file isdirectory [run_dir]/genode/depot/$archive] } {
@@ -183,7 +182,7 @@ proc check_depot_state { context } {
 		regexp [_depot_archive_versioned_path_pattern] $archive dummy archive_user archive_type archive_name
 
 		if { $archive_type == "src" } {
-			set archive $archive_user/bin/x86_64/$archive_name/[_current_depot_archive_version src $archive_name]
+			set archive $archive_user/bin/[depot_spec]/$archive_name/[_current_depot_archive_version src $archive_name]
 		}
 
 		if { ![file isdirectory [run_dir]/genode/depot/$archive] } {
@@ -205,7 +204,7 @@ proc check_depot_state { context } {
 set context [depot_state_for_pkg "nano3d"]
 
 install_test_config {
-<config arch="x86_64" report="yes">
+<config arch="} [depot_spec] {" report="yes">
 	<remove user="} [depot_user] {" pkg="nano3d"/>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
 </config>
@@ -225,7 +224,7 @@ puts " TEST 1 --- Delete nano3d -- SUCCESS"
 set context [depot_state]
 
 install_test_config {
-<config arch="x86_64" report="yes">
+<config arch="} [depot_spec] {" report="yes">
 	<remove user="} [depot_user] {" pkg="nano3d"/>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
 </config>
@@ -245,7 +244,7 @@ puts " TEST 2 --- Delete non existing archive -- SUCCESS"
 set context [depot_state_for_pkg "fonts_fs"]
 
 install_test_config {
-<config arch="x86_64" report="yes">
+<config arch="} [depot_spec] {" report="yes">
 	<remove user="} [depot_user] {" pkg="fonts_fs"/>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
 </config>
@@ -265,7 +264,7 @@ puts " TEST 3 --- Delete a PKG archive with deps to keep --- SUCCESS"
 set context [depot_state_for_pkg "themed_decorator"]
 
 install_test_config {
-<config arch="x86_64" report="yes">
+<config arch="} [depot_spec] {" report="yes">
 	<remove-all>
 		<keep user="} [depot_user] {" pkg="themed_decorator"/>
 	</remove-all>
