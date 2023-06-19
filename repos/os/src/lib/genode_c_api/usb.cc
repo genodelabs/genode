@@ -170,7 +170,7 @@ class Root : public Root_component<genode_usb_session>
 		Signal_context_capability _sigh_cap;
 		Attached_rom_dataspace    _config   { _env, "config"  };
 		Signal_handler<Root>      _config_handler { _env.ep(), *this,
-		                                            &Root::_announce_service };
+		                                            &Root::_config_update };
 		Reporter                  _config_reporter { _env, "config"  };
 		Constructible<Session_id> _session_ids[MAX_SESSIONS];
 		Constructible<Device>     _devices[MAX_DEVICES];
@@ -213,6 +213,7 @@ class Root : public Root_component<genode_usb_session>
 		 */
 		bool _matches(Device & d, genode_usb_session & s);
 
+		void _config_update();
 		void _announce_service();
 
 	public:
@@ -718,7 +719,7 @@ void ::Root::_report()
 }
 
 
-void ::Root::_announce_service()
+void ::Root::_config_update()
 {
 	/*
 	 * Defer the startup of the USB driver until the first configuration
@@ -749,6 +750,12 @@ void ::Root::_announce_service()
 			xml.append(start, len); });
 	});
 
+	_announce_service();
+}
+
+
+void ::Root::_announce_service()
+{
 	if (_announced)
 		return;
 
@@ -884,6 +891,7 @@ void ::Root::decrement_session_id(genode_usb_session_handle_t id)
 		_session_ids[i].construct((genode_usb_session_handle_t)(i+1));
 
 	_config.sigh(_config_handler);
+	_config_update();
 }
 
 
