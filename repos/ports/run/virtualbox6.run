@@ -28,7 +28,7 @@ lappend depot_archives [depot_user]/src/libdrm
 lappend depot_archives [depot_user]/src/libyuv
 lappend depot_archives [depot_user]/src/vfs_gpu
 
-lappend_if [expr $use_net] depot_archives [depot_user]/src/ipxe_nic_drv
+lappend_if [expr $use_net] depot_archives [depot_user]/src/pc_nic_drv
 lappend_if [expr $use_net] depot_archives [depot_user]/src/nic_router
 
 import_from_depot $depot_archives
@@ -129,7 +129,7 @@ append_if [expr $use_net] config {
 	</start>
 
 	<start name="nic_drv" priority="-1">
-		<binary name="ipxe_nic_drv"/>
+		<binary name="pc_nic_drv"/>
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Platform"> <child name="drivers"/> </service>
@@ -295,7 +295,7 @@ set boot_modules {
 # platform-specific modules
 lappend_if [expr $use_top] boot_modules top
 
-append_if [expr $use_net]     boot_modules { ipxe_nic_drv }
+append_if [expr $use_net]     boot_modules { pc_nic_drv }
 append_if [expr $use_net]     boot_modules { nic_router }
 append_if [expr $use_serial]  boot_modules { log_terminal }
 append_if [expr $use_overlay] boot_modules { overlay.vdi }

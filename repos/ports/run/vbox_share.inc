@@ -118,7 +118,7 @@ set boot_modules {
 	vfs fs_rom nic_router
 	posix.lib.so bash.tar coreutils.tar
 	tcp_terminal vfs_lwip.lib.so vfs_pipe.lib.so vfs_import.lib.so
-	ipxe_nic_drv report_rom event_filter
+	pc_nic_drv report_rom event_filter
 	test.bin template.bat
 }
 
@@ -127,7 +127,7 @@ append boot_modules $vbox_file
 set config_of_app {
 
 	<start name="nic_drv" priority="-1">
-		<binary name="ipxe_nic_drv"/>
+		<binary name="pc_nic_drv"/>
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Uplink"><child name="nic_router"/></service>

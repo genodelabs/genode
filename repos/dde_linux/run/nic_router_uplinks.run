@@ -25,7 +25,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/acpi_drv \
                   [depot_user]/src/dynamic_rom \
                   [depot_user]/src/init \
-                  [depot_user]/src/ipxe_nic_drv \
+                  [depot_user]/src/pc_nic_drv \
                   [depot_user]/src/nic_router \
                   [depot_user]/src/pci_decode \
                   [depot_user]/src/platform_drv \
@@ -85,7 +85,7 @@ install_config {
 		</route>
 		<config>
 			<policy label_prefix="wifi_drv" info="yes"> <pci class="WIFI"/> </policy>
-			<policy label_prefix="nic_drv"> <pci class="ETHERNET"/> </policy>
+			<policy label_prefix="nic_drv" info="yes"> <pci class="ETHERNET"/> </policy>
 		</config>
 	</start>
 
@@ -102,7 +102,7 @@ install_config {
 	</start>
 
 	<start name="nic_drv" priority="-1" caps="120">
-		<binary name="ipxe_nic_drv"/>
+		<binary name="pc_nic_drv"/>
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Uplink"> <child name="router"/> </service>

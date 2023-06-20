@@ -38,7 +38,7 @@ if {![info exists webcam_vflip]} {
 set build_components {
 	server/nic_router
 	server/event_filter
-	drivers/nic
+	drivers/nic/pc
 	drivers/audio
 	server/report_rom
 	server/dynamic_rom
@@ -47,7 +47,7 @@ set build_components {
 set boot_modules {
 	nic_router
 	event_filter
-	ipxe_nic_drv
+	pc_nic_drv
 	pci_audio_drv
 	report_rom
 	dynamic_rom
@@ -84,7 +84,7 @@ set config_of_app {
 		      needs to be enabled in the .vbox file (disabled by default)
 	-->
 	<start name="nic_drv" priority="-1">
-		<binary name="ipxe_nic_drv"/>
+		<binary name="pc_nic_drv"/>
 		<resource name="RAM" quantum="8M" />
 		<route>
 			<service name="Uplink"> <child name="nic_router"/> </service>

@@ -148,7 +148,7 @@ append config {
 		<config>
 			<policy label_prefix="ps2_drv">  <device name="ps2"/>    </policy>
 			<policy label_prefix="ahci_drv"> <pci class="AHCI"/>     </policy>
-			<policy label_prefix="nic_drv">  <pci class="ETHERNET"/> </policy>
+			<policy label_prefix="nic_drv" info="yes"> <pci class="ETHERNET"/> </policy>
 			<policy label_prefix="audio_drv">
 				<pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
 			<policy label_prefix="fb_drv"  info="yes"> <pci class="VGA"/> </policy>

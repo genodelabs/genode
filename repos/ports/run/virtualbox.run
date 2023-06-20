@@ -98,7 +98,7 @@ append config {
 
 append_if [expr $use_net] config {
 	<start name="nic_drv" priority="-1">
-		<binary name="ipxe_nic_drv"/>
+		<binary name="pc_nic_drv"/>
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Uplink"> <child name="nic_router"/> </service>
@@ -298,7 +298,7 @@ append boot_modules {
 	libyuv.lib.so
 }
 
-append_if [expr $use_net]          boot_modules { ipxe_nic_drv }
+append_if [expr $use_net]          boot_modules { pc_nic_drv }
 append_if [expr $use_net]          boot_modules { nic_router }
 append_if [expr $use_serial]       boot_modules { log_terminal }
 

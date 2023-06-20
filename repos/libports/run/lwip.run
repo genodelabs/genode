@@ -11,9 +11,6 @@
 # host's port 5555. Consequently, it cannot be executed on non-qemu test
 # environments (i.e., the test won't work with the Linux version of Genode).
 #
-# Please make sure to include a nic driver in your build configuration. E.g.,
-# on the x86 platform, you may enable the 'dde_ipxe' repository.
-#
 
 #
 # TODO: Add support for Linux via user-level networking (using the
