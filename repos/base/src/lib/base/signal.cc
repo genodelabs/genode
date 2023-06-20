@@ -19,7 +19,6 @@
 #include <base/sleep.h>
 #include <base/trace/events.h>
 #include <util/reconstructible.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -28,9 +27,13 @@
 
 using namespace Genode;
 
+
 class Signal_handler_thread : Thread, Blockade
 {
 	private:
+
+		Pd_session  &_pd;
+		Cpu_session &_cpu;
 
 		/**
 		 * Actual signal source
@@ -43,7 +46,7 @@ class Signal_handler_thread : Thread, Blockade
 
 		void entry() override
 		{
-			_signal_source.construct(env_deprecated()->pd_session()->alloc_signal_source());
+			_signal_source.construct(_cpu, _pd.alloc_signal_source());
 			wakeup();
 			Signal_receiver::dispatch_signals(&(*_signal_source));
 		}
@@ -56,7 +59,8 @@ class Signal_handler_thread : Thread, Blockade
 		 * Constructor
 		 */
 		Signal_handler_thread(Env &env)
-		: Thread(env, "signal handler", STACK_SIZE)
+		:
+			Thread(env, "signal handler", STACK_SIZE), _pd(env.pd()), _cpu(env.cpu())
 		{
 			start();
 
@@ -70,7 +74,7 @@ class Signal_handler_thread : Thread, Blockade
 
 		~Signal_handler_thread()
 		{
-			env_deprecated()->pd_session()->free_signal_source(_signal_source->rpc_cap());
+			_pd.free_signal_source(_signal_source->rpc_cap());
 		}
 };
 
@@ -202,7 +206,17 @@ Genode::Signal_context_registry *signal_context_registry()
  ** Signal receiver **
  *********************/
 
-Signal_receiver::Signal_receiver() { }
+static Pd_session *_pd_ptr;
+static Parent     *_parent_ptr;
+
+
+Signal_receiver::Signal_receiver() : _pd(*_pd_ptr)
+{
+	if (!_pd_ptr) {
+		struct Missing_call_of_init_signal_receiver { };
+		throw  Missing_call_of_init_signal_receiver();
+	}
+}
 
 
 Signal_context_capability Signal_receiver::manage(Signal_context *context)
@@ -227,7 +241,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 
 		try {
 			/* use signal context as imprint */
-			context->_cap = env_deprecated()->pd_session()->alloc_context(_cap, (long)context);
+			context->_cap = _pd.alloc_context(_cap, (long)context);
 			break;
 		}
 		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 1024*sizeof(long) }; }
@@ -236,9 +250,9 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 		log("upgrading quota donation for PD session "
 		    "(", ram_upgrade, " bytes, ", cap_upgrade, " caps)");
 
-		env_deprecated()->parent()->upgrade(Parent::Env::pd(),
-		                                    String<100>("ram_quota=", ram_upgrade, ", "
-		                                                "cap_quota=", cap_upgrade).string());
+		_parent_ptr->upgrade(Parent::Env::pd(),
+		                     String<100>("ram_quota=", ram_upgrade, ", "
+		                                 "cap_quota=", cap_upgrade).string());
 	}
 
 	return context->_cap;
@@ -360,3 +374,10 @@ void Signal_receiver::_platform_finish_dissolve(Signal_context *) { }
 
 
 void Signal_receiver::_platform_destructor() { }
+
+
+void Genode::init_signal_receiver(Pd_session &pd, Parent &parent)
+{
+	_pd_ptr     = &pd;
+	_parent_ptr = &parent;
+}

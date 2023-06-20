@@ -16,13 +16,14 @@
 
 #include <base/rpc_client.h>
 #include <pd_session/pd_session.h>
+#include <cpu_session/cpu_session.h>
 #include <signal_source/signal_source.h>
 
 namespace Genode { class Signal_source_client; }
 
 struct Genode::Signal_source_client : Rpc_client<Signal_source>
 {
-	Signal_source_client(Capability<Signal_source> signal_source)
+	Signal_source_client(Cpu_session &, Capability<Signal_source> signal_source)
 	: Rpc_client<Signal_source>(signal_source) { }
 
 	Signal wait_for_signal() override { return call<Rpc_wait_for_signal>(); }

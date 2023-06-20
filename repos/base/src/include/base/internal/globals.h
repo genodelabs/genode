@@ -30,6 +30,7 @@ namespace Genode {
 	void init_stack_area();
 	void init_exception_handling(Env &);
 	void init_signal_transmitter(Env &);
+	void init_signal_receiver(Pd_session &, Parent &);
 	void init_cxx_heap(Env &);
 	void init_cxx_guard();
 	void init_ldso_phdr(Env &);

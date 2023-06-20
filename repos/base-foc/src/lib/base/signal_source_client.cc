@@ -15,9 +15,6 @@
 /* Genode includes */
 #include <signal_source/client.h>
 #include <base/thread.h>
-#include <base/env.h>
-#include <base/log.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/capability_data.h>
@@ -30,7 +27,7 @@
 using namespace Genode;
 
 
-Signal_source_client::Signal_source_client(Capability<Signal_source> cap)
+Signal_source_client::Signal_source_client(Cpu_session &cpu, Capability<Signal_source> cap)
 :
 	Rpc_client<Foc_signal_source>(static_cap_cast<Foc_signal_source>(cap)),
 
@@ -39,7 +36,7 @@ Signal_source_client::Signal_source_client(Capability<Signal_source> cap)
 {
 	using namespace Foc;
 
-	Foc_native_cpu_client cpu_client(env_deprecated()->cpu_session()->native_cpu());
+	Foc_native_cpu_client cpu_client(cpu.native_cpu());
 	Native_capability thread_cap = cpu_client.native_cap(Thread::myself()->cap());
 	l4_msgtag_t tag = l4_rcv_ep_bind_thread(_sem.data()->kcap(), thread_cap.data()->kcap(), 0);
 	if (l4_error(tag))

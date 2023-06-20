@@ -243,6 +243,7 @@ struct Genode::Startup
 	::Env env { ep };
 
 	bool const exception_handling = (init_exception_handling(env), true);
+	bool const signal_receiver    = (init_signal_receiver(env.pd(), env.parent()), true);
 
 	/*
 	 * The construction of the main entrypoint does never return.

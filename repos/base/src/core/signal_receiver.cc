@@ -28,17 +28,32 @@
 using namespace Core;
 
 
-Signal_receiver::Signal_receiver() { }
+static Pd_session *_pd_ptr;
+
+
+Signal_receiver::Signal_receiver() : _pd(*_pd_ptr)
+{
+	if (!_pd_ptr) {
+		struct Missing_call_of_init_signal_receiver { };
+		for(;;);
+		throw  Missing_call_of_init_signal_receiver();
+	}
+}
+
 
 void Signal_receiver::_platform_destructor()                      { }
 void Signal_receiver::_platform_begin_dissolve (Signal_context *) { }
 void Signal_receiver::_platform_finish_dissolve(Signal_context *) { }
 
+
 void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &) { ASSERT_NEVER_CALLED; }
+
 
 typedef Signal_context_capability Sigh_cap;
 
+
 Sigh_cap Signal_receiver::manage(Signal_context *) { ASSERT_NEVER_CALLED; }
+
 
 void Signal_receiver::block_for_signal()
 {
@@ -51,7 +66,12 @@ void Signal_receiver::block_for_signal()
 	sleep_forever();
 }
 
+
 Signal Signal_receiver::pending_signal() {
 	return Signal(); }
 
+
 void Signal_receiver::local_submit(Signal::Data) { ASSERT_NEVER_CALLED; }
+
+
+void Genode::init_signal_receiver(Pd_session &pd, Parent &) { _pd_ptr = &pd; }

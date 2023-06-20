@@ -23,6 +23,7 @@
 
 /* Genode includes */
 #include <base/rpc_client.h>
+#include <cpu_session/cpu_session.h>
 #include <signal_source/nova_signal_source.h>
 
 /* base-internal includes */
@@ -49,7 +50,7 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Signal_source_client(Capability<Signal_source> cap)
+			Signal_source_client(Cpu_session &, Capability<Signal_source> cap)
 			: Rpc_client<Nova_signal_source>(static_cap_cast<Nova_signal_source>(cap))
 			{
 				/* request mapping of semaphore capability selector */

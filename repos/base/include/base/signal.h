@@ -30,6 +30,7 @@ namespace Genode {
 
 	class Entrypoint;
 	class Rpc_entrypoint;
+	class Pd_session;
 	class Signal_source;
 
 	class Signal_receiver;
@@ -313,6 +314,8 @@ class Genode::Signal_receiver : Noncopyable
 					} while (context != _head);
 				}
 		};
+
+		Pd_session &_pd;
 
 		/**
 		 * Semaphore used to indicate that signal(s) are ready to be picked

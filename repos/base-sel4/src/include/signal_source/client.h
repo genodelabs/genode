@@ -18,6 +18,7 @@
 #include <base/internal/capability_space_sel4.h>
 #include <base/log.h>
 #include <signal_source/sel4_signal_source.h>
+#include <cpu_session/cpu_session.h>
 
 namespace Genode { class Signal_source_client; }
 
@@ -38,9 +39,12 @@ class Genode::Signal_source_client : public Rpc_client<SeL4_signal_source>
 		/**
 		 * Constructor
 		 */
-		Signal_source_client(Capability<Signal_source> cap)
-		: Rpc_client<SeL4_signal_source>(static_cap_cast<SeL4_signal_source>(cap))
-		{ _init_notify(); }
+		Signal_source_client(Cpu_session &, Capability<Signal_source> cap)
+		:
+			Rpc_client<SeL4_signal_source>(static_cap_cast<SeL4_signal_source>(cap))
+		{
+			_init_notify();
+		}
 
 
 		/*****************************

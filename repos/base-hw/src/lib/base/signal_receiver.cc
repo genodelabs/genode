@@ -47,7 +47,10 @@ void Genode::init_signal_thread(Env &env) { _pd_ptr = &env.pd(); }
 void Genode::destroy_signal_thread() { }
 
 
-Signal_receiver::Signal_receiver()
+void Genode::init_signal_receiver(Pd_session &, Parent &) { }
+
+
+Signal_receiver::Signal_receiver() : _pd(pd())
 {
 	for (;;) {
 

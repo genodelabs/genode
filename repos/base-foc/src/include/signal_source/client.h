@@ -25,6 +25,7 @@
 
 #include <base/rpc_client.h>
 #include <base/thread.h>
+#include <cpu_session/cpu_session.h>
 #include <signal_source/foc_signal_source.h>
 
 namespace Genode { class Signal_source_client; }
@@ -44,7 +45,7 @@ class Genode::Signal_source_client : public Rpc_client<Foc_signal_source>
 		/**
 		 * Constructor
 		 */
-		Signal_source_client(Capability<Signal_source> cap);
+		Signal_source_client(Cpu_session &, Capability<Signal_source> cap);
 
 		/**
 		 * Destructor

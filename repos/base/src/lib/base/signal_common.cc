@@ -17,7 +17,6 @@
 #include <base/env.h>
 #include <base/signal.h>
 #include <base/trace/events.h>
-#include <deprecated/env.h>
 
 using namespace Genode;
 
@@ -178,7 +177,7 @@ Signal_receiver::~Signal_receiver()
 void Signal_receiver::_unsynchronized_dissolve(Signal_context * const context)
 {
 	/* tell core to stop sending signals referring to the context */
-	env_deprecated()->pd_session()->free_context(context->_cap);
+	_pd.free_context(context->_cap);
 
 	/* restore default initialization of signal context */
 	context->_receiver = nullptr;
