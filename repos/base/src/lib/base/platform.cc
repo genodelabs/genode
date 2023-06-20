@@ -67,6 +67,7 @@ void Genode::init_platform()
 
 	init_log(platform.parent);
 	init_rpc_cap_alloc(platform.parent);
+	init_cap_slab(platform.pd, platform.parent);
 	init_thread(platform.cpu, platform.rm);
 	init_thread_start(platform.pd.rpc_cap());
 	init_thread_bootstrap(platform.parent.main_thread_cap());

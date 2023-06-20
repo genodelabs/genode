@@ -6,5 +6,6 @@
 include $(BASE_DIR)/lib/mk/base.inc
 
 SRC_CC += platform.cc
+SRC_CC += capability_slab.cc
 
 LIBS += syscall-linux
