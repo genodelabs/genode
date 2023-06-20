@@ -22,7 +22,6 @@
 #include <session/session.h>
 #include <cpu_thread/client.h>
 #include <nova_native_cpu/client.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -35,6 +34,20 @@
 #include <nova/capability_space.h>
 
 using namespace Genode;
+
+
+static Capability<Pd_session> pd_session_cap(Capability<Pd_session> pd_cap = { })
+{
+	static Capability<Pd_session> cap = pd_cap; /* defined once by 'init_thread_start' */
+	return cap;
+}
+
+
+static Thread_capability main_thread_cap(Thread_capability main_cap = { })
+{
+	static Thread_capability cap = main_cap;
+	return cap;
+}
 
 
 /**
@@ -112,7 +125,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	_init_cpu_session_and_trace_control();
 
 	/* create thread at core */
-	_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(), name(),
+	_thread_cap = _cpu_session->create_thread(pd_session_cap(), name(),
 	                                          _affinity, Weight(weight));
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
@@ -190,4 +203,16 @@ void Thread::start()
 	if (global)
 		/* request creation of SC to let thread run*/
 		cpu_thread.resume();
+}
+
+
+void Genode::init_thread_start(Capability<Pd_session> pd_cap)
+{
+	pd_session_cap(pd_cap);
+}
+
+
+void Genode::init_thread_bootstrap(Thread_capability main_cap)
+{
+	main_thread_cap(main_cap);
 }

@@ -19,7 +19,6 @@
 #include <base/log.h>
 #include <linux_native_cpu/client.h>
 #include <cpu_thread/client.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -30,9 +29,25 @@
 
 using namespace Genode;
 
+
 extern int main_thread_futex_counter;
 
+
 static void empty_signal_handler(int) { }
+
+
+static Capability<Pd_session> pd_session_cap(Capability<Pd_session> pd_cap = { })
+{
+	static Capability<Pd_session> cap = pd_cap; /* defined once by 'init_thread_start' */
+	return cap;
+}
+
+
+static Thread_capability main_thread_cap(Thread_capability main_cap = { })
+{
+	static Thread_capability cap = main_cap; /* defined once by 'init_thread_bootstrap' */
+	return cap;
+}
 
 
 static Blockade &startup_lock()
@@ -88,12 +103,14 @@ void Thread::_thread_start()
 void Thread::_init_platform_thread(size_t /* weight */, Type type)
 {
 	/* if no cpu session is given, use it from the environment */
-	if (!_cpu_session)
-		_cpu_session = env_deprecated()->cpu_session();
+	if (!_cpu_session) {
+		error("Thread::_init_platform_thread: _cpu_session not initialized");
+		return;
+	}
 
 	/* for normal threads create an object at the CPU session */
 	if (type == NORMAL) {
-		_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(),
+		_thread_cap = _cpu_session->create_thread(pd_session_cap(),
 		                                          _stack->name().string(),
 		                                          Affinity::Location(),
 		                                          Weight());
@@ -164,4 +181,16 @@ void Thread::start()
 
 	/* wait until the 'thread_start' function got entered */
 	startup_lock().block();
+}
+
+
+void Genode::init_thread_start(Capability<Pd_session> pd_cap)
+{
+	pd_session_cap(pd_cap);
+}
+
+
+void Genode::init_thread_bootstrap(Thread_capability main_cap)
+{
+	main_thread_cap(main_cap);
 }

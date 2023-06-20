@@ -402,6 +402,11 @@ static void *thread_start(void *arg)
 }
 
 
+void Genode::init_thread(Cpu_session &, Region_map &)  { }
+void Genode::init_thread_start(Capability<Pd_session>) { }
+void Genode::init_thread_bootstrap(Thread_capability)  { }
+
+
 extern "C" void *malloc(::size_t size);
 extern "C" void free(void *);
 

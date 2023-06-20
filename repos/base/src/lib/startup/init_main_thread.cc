@@ -17,7 +17,6 @@
 #include <util/construct_at.h>
 #include <base/env.h>
 #include <base/thread.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>

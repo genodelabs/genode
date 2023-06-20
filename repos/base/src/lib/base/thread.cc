@@ -18,13 +18,16 @@
 #include <base/thread.h>
 #include <base/env.h>
 #include <base/sleep.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack_allocator.h>
 #include <base/internal/globals.h>
 
 using namespace Genode;
+
+
+static Region_map  *local_rm_ptr;
+static Cpu_session *cpu_session_ptr;
 
 
 void Stack::size(size_t const size)
@@ -211,31 +214,40 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 
 void Thread::_init_cpu_session_and_trace_control()
 {
+	if (!cpu_session_ptr || !local_rm_ptr) {
+		error("missing call of init_thread");
+		return;
+	}
+
 	/* if no CPU session is given, use it from the environment */
 	if (!_cpu_session) {
-		_cpu_session = env_deprecated()->cpu_session(); }
+		_cpu_session = cpu_session_ptr; }
 
 	/* initialize trace control now that the CPU session must be valid */
 	Dataspace_capability ds = _cpu_session->trace_control();
 	if (ds.valid()) {
-		_trace_control = env_deprecated()->rm_session()->attach(ds); }
+		_trace_control = local_rm_ptr->attach(ds); }
 }
 
 
 Thread::Thread(size_t weight, const char *name, size_t stack_size,
                Type type, Affinity::Location affinity)
-: Thread(weight, name, stack_size, type, nullptr, affinity) { }
+:
+	Thread(weight, name, stack_size, type, cpu_session_ptr, affinity)
+{ }
 
 
-Thread::Thread(Env &env, Name const &name, size_t stack_size, Location location,
+Thread::Thread(Env &, Name const &name, size_t stack_size, Location location,
                Weight weight, Cpu_session &cpu)
-: Thread(weight.value, name.string(), stack_size, NORMAL,
-         &cpu == &env.cpu() ? nullptr : &cpu, location)
+:
+	Thread(weight.value, name.string(), stack_size, NORMAL, &cpu, location)
 { }
 
 
 Thread::Thread(Env &env, Name const &name, size_t stack_size)
-: Thread(env, name, stack_size, Location(), Weight(), env.cpu()) { }
+:
+	Thread(env, name, stack_size, Location(), Weight(), env.cpu())
+{ }
 
 
 Thread::~Thread()
@@ -257,6 +269,13 @@ Thread::~Thread()
 	 * from here and any following RPC call will stumple upon the
 	 * detached trace control dataspace.
 	 */
-	if (_trace_control)
-		env_deprecated()->rm_session()->detach(_trace_control);
+	if (_trace_control && local_rm_ptr)
+		local_rm_ptr->detach(_trace_control);
+}
+
+
+void Genode::init_thread(Cpu_session &cpu_session, Region_map &local_rm)
+{
+	local_rm_ptr    = &local_rm;
+	cpu_session_ptr = &cpu_session;
 }

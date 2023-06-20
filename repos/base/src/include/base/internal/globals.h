@@ -26,8 +26,6 @@ namespace Genode {
 	extern Region_map    *env_stack_area_region_map;
 	extern Ram_allocator *env_stack_area_ram_allocator;
 
-	Thread_capability main_thread_cap();
-
 	void init_platform();
 	void init_stack_area();
 	void init_exception_handling(Env &);
@@ -42,6 +40,9 @@ namespace Genode {
 	void init_rpc_cap_alloc(Parent &);
 	void init_parent_resource_requests(Env &);
 	void init_heartbeat_monitoring(Env &);
+	void init_thread(Cpu_session &, Region_map &);
+	void init_thread_start(Capability<Pd_session>);
+	void init_thread_bootstrap(Thread_capability);
 	void deinit_heartbeat_monitoring();
 	void exec_static_constructors();
 

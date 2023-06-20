@@ -1,5 +1,5 @@
 SRC_CC += default_log.cc
-SRC_CC += platform.cc stack_area.cc main_thread_cap.cc
+SRC_CC += platform.cc stack_area.cc
 SRC_CC += rpc_cap_alloc.cc heartbeat.cc
 SRC_CC += vm.cc
 

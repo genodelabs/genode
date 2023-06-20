@@ -17,6 +17,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack.h>
+#include <base/internal/globals.h>
 
 
 /*****************************
@@ -37,3 +38,6 @@ void Genode::Thread::_thread_bootstrap()
 		native_thread().lock_sel = (unsigned)_stack->utcb().lock_sel();
 	}
 }
+
+
+void Genode::init_thread_bootstrap(Thread_capability) { }

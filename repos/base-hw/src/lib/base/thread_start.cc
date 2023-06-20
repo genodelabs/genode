@@ -18,7 +18,6 @@
 #include <base/sleep.h>
 #include <base/env.h>
 #include <cpu_thread/client.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack_allocator.h>
@@ -30,6 +29,20 @@ using namespace Genode;
 namespace Hw {
 	extern Ram_dataspace_capability _main_thread_utcb_ds;
 	extern Untyped_capability       _main_thread_cap;
+}
+
+
+static Capability<Pd_session> pd_session_cap(Capability<Pd_session> pd_cap = { })
+{
+	static Capability<Pd_session> cap = pd_cap; /* defined once by 'init_thread_start' */
+	return cap;
+}
+
+
+static Thread_capability main_thread_cap(Thread_capability main_cap = { })
+{
+	static Thread_capability cap = main_cap;
+	return cap;
 }
 
 
@@ -45,7 +58,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 
 		/* create server object */
 		addr_t const utcb = (addr_t)&_stack->utcb();
-		_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(),
+		_thread_cap = _cpu_session->create_thread(pd_session_cap(),
 		                                          name(), _affinity,
 		                                          Weight(weight), utcb);
 		return;
@@ -70,8 +83,10 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 
 void Thread::_deinit_platform_thread()
 {
-	if (!_cpu_session)
-		_cpu_session = env_deprecated()->cpu_session();
+	if (!_cpu_session) {
+		error("Thread::_cpu_session unexpectedly not defined");
+		return;
+	}
 
 	_cpu_session->kill_thread(_thread_cap);
 
@@ -98,4 +113,16 @@ void Thread::start()
 	}
 	/* start thread with its initial IP and aligned SP */
 	Cpu_thread_client(_thread_cap).start((addr_t)_thread_start, _stack->top());
+}
+
+
+void Genode::init_thread_start(Capability<Pd_session> pd_cap)
+{
+	pd_session_cap(pd_cap);
+}
+
+
+void Genode::init_thread_bootstrap(Thread_capability main_cap)
+{
+	main_thread_cap(main_cap);
 }

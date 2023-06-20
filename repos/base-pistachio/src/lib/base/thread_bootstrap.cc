@@ -20,7 +20,17 @@
 #include <base/internal/globals.h>
 #include <base/internal/pistachio.h>
 
+using namespace Genode;
+
+
 Pistachio::L4_ThreadId_t main_thread_tid;
+
+
+static Thread_capability main_thread_cap(Thread_capability main_cap = { })
+{
+	static Thread_capability cap = main_cap;
+	return cap;
+}
 
 
 /*****************************
@@ -51,4 +61,10 @@ void Genode::Thread::_init_platform_thread(size_t, Type type)
 	native_thread().l4id = main_thread_tid;
 
 	_thread_cap = main_thread_cap();
+}
+
+
+void Genode::init_thread_bootstrap(Thread_capability main_cap)
+{
+	main_thread_cap(main_cap);
 }

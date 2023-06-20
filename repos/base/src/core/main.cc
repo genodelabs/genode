@@ -90,9 +90,6 @@ Platform_generic &Core::platform() { return platform_specific(); }
 void Genode::init_platform() { core_env(); }
 
 
-Thread_capability Genode::main_thread_cap() { return Thread_capability(); }
-
-
 /**
  * Dummy implementation for core that has no parent to ask for resources
  */

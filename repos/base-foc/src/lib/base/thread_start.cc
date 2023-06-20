@@ -20,7 +20,6 @@
 #include <cpu_thread/client.h>
 #include <foc/native_capability.h>
 #include <foc_native_cpu/client.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -31,6 +30,20 @@
 #include <foc/syscall.h>
 
 using namespace Genode;
+
+
+static Capability<Pd_session> pd_session_cap(Capability<Pd_session> pd_cap = { })
+{
+	static Capability<Pd_session> cap = pd_cap; /* defined once by 'init_thread_start' */
+	return cap;
+}
+
+
+static Thread_capability main_thread_cap(Thread_capability main_cap = { })
+{
+	static Thread_capability cap = main_cap; /* defined once by 'init_thread_bootstrap' */
+	return cap;
+}
 
 
 void Thread::_deinit_platform_thread()
@@ -52,7 +65,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	if (type == NORMAL) {
 
 		/* create thread at core */
-		_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(),
+		_thread_cap = _cpu_session->create_thread(pd_session_cap(),
 		                                          name(), _affinity,
 		                                          Weight(weight));
 
@@ -100,4 +113,16 @@ void Thread::start()
 	/* register initial IP and SP at core */
 	Cpu_thread_client cpu_thread(_thread_cap);
 	cpu_thread.start((addr_t)_thread_start, _stack->top());
+}
+
+
+void Genode::init_thread_start(Capability<Pd_session> pd_cap)
+{
+	pd_session_cap(pd_cap);
+}
+
+
+void Genode::init_thread_bootstrap(Thread_capability main_cap)
+{
+	main_thread_cap(main_cap);
 }
