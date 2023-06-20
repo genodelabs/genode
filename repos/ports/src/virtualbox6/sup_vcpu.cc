@@ -3,10 +3,11 @@
  * \author Alexander Boettcher
  * \author Norman Feske
  * \author Christian Helmuth
+ * \author Benjamin Lamowski
  */
 
 /*
- * Copyright (C) 2013-2021 Genode Labs GmbH
+ * Copyright (C) 2013-2023 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -90,6 +91,10 @@ namespace Sup {
 template <typename VIRT>
 class Sup::Vcpu_impl : public Sup::Vcpu, Genode::Noncopyable
 {
+	public:
+
+		struct State_container { Vcpu_state &ref; };
+
 	private:
 
 		Pthread::Emt    &_emt;
@@ -97,6 +102,8 @@ class Sup::Vcpu_impl : public Sup::Vcpu, Genode::Noncopyable
 		VM              &_vm;
 		VMCPU           &_vmcpu;
 		Libc::Allocator  _alloc;
+
+		Genode::Constructible<State_container> _state;
 
 		/* exit handler run in vCPU mode - switches to EMT */
 		void _handle_exit();
@@ -160,15 +167,18 @@ class Sup::Vcpu_impl : public Sup::Vcpu, Genode::Noncopyable
 
 template <typename T> void Sup::Vcpu_impl<T>::_handle_exit()
 {
-	_emt.switch_to_emt();
-
-	_vcpu.run();
+	_vcpu.with_state([this](Genode::Vcpu_state &state) {
+		_state.construct(state);
+		_emt.switch_to_emt();
+		_state.destruct();
+		return true;
+	});
 }
 
 
 template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vcpu(CPUMCTX const &ctx)
 {
-	Vcpu_state &state { _vcpu.state() };
+	Vcpu_state &state { _state->ref };
 
 	/* transfer defaults and cached state */
 	state.ctrl_primary.charge(_cached_state.ctrl_primary); /* XXX always updates ctrls */
@@ -257,7 +267,8 @@ template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vcpu(CPUM
 
 	/* export FPU state */
 	AssertCompile(sizeof(Vcpu_state::Fpu::State) >= sizeof(X86FXSTATE));
-	_vcpu.state().fpu.charge([&] (Vcpu_state::Fpu::State &fpu) {
+
+		_state->ref.fpu.charge([&](Vcpu_state::Fpu::State &fpu) {
 		::memcpy(fpu._buffer, ctx.pXStateR3, sizeof(fpu));
 	});
 
@@ -311,7 +322,7 @@ static void handle_intr_state(PVMCPUCC pVCpu, CPUMCTX &ctx, Vcpu_state &state)
 
 template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vbox(CPUMCTX &ctx)
 {
-	Vcpu_state const &state { _vcpu.state() };
+	Vcpu_state const &state { _state->ref };
 
 	ctx.rip = state.ip.value();
 	ctx.rsp = state.sp.value();
@@ -394,7 +405,7 @@ template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vbox(CPUM
 	_cached_state.ctrl_secondary = state.ctrl_secondary.value();
 
 	/* handle guest interrupt state */
-	handle_intr_state(pVCpu, ctx, _vcpu.state());
+	handle_intr_state(pVCpu, ctx, _state->ref);
 
 	VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_TO_R3);
 
@@ -403,8 +414,9 @@ template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vbox(CPUM
 	APICSetTpr(pVCpu, tpr);
 
 	/* import FPU state */
-	_vcpu.state().fpu.with_state([&] (Vcpu_state::Fpu::State const &fpu) {
+	_state->ref.fpu.with_state([&](Vcpu_state::Fpu::State const &fpu) {
 		::memcpy(ctx.pXStateR3, fpu._buffer, sizeof(X86FXSTATE));
+		return true;
 	});
 
 	/* do SVM/VMX-specific transfers */
@@ -427,7 +439,7 @@ template <typename T> bool Sup::Vcpu_impl<T>::_check_and_request_irq_window()
 		                             VMCPU_FF_INTERRUPT_PIC)))
 		return false;
 
-	_vcpu.state().inj_info.charge(REQ_IRQ_WINDOW_EXIT);
+	_state->ref.inj_info.charge(REQ_IRQ_WINDOW_EXIT);
 
 	return true;
 }
@@ -491,7 +503,7 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_npt_ept(VBO
 {
 	rc = VINF_EM_RAW_EMULATE_INSTR;
 
-	RTGCPHYS const GCPhys = PAGE_ADDRESS(_vcpu.state().qual_secondary.value());
+	RTGCPHYS const GCPhys = PAGE_ADDRESS(_state->ref.qual_secondary.value());
 
 	PPGMRAMRANGE const pRam = pgmPhysGetRangeAtOrAbove(&_vm, GCPhys);
 	if (!pRam)
@@ -515,7 +527,7 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_npt_ept(VBO
 template <typename T>
 typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_paused()
 {
-	Vcpu_state &state { _vcpu.state() };
+	Vcpu_state &state { _state->ref };
 
 	Assert(state.actv_state.value() == VMX_VMCS_GUEST_ACTIVITY_ACTIVE);
 
@@ -557,7 +569,7 @@ typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_startup()
 template <typename T>
 typename Sup::Vcpu_impl<T>::Current_state Sup::Vcpu_impl<T>::_handle_irq_window()
 {
-	Vcpu_state &state { _vcpu.state() };
+	Vcpu_state &state { _state->ref };
 
 	PVMCPU pVCpu = &_vmcpu;
 
@@ -680,10 +692,10 @@ template <typename VIRT> VBOXSTRICTRC Sup::Vcpu_impl<VIRT>::_switch_to_hw()
 		/* run vCPU until next exit */
 		_emt.switch_to_vcpu();
 
-		result = VIRT::handle_exit(_vcpu.state());
+		result = VIRT::handle_exit(_state->ref);
 
 		/* discharge by default */
-		_vcpu.state().discharge();
+		_state->ref.discharge();
 
 		switch (result.state) {
 
@@ -743,7 +755,7 @@ template <typename T> void Sup::Vcpu_impl<T>::pause()
 	VMCPUSTATE enmState = pVCpu->enmState;
 
 	if (enmState == VMCPUSTATE_STARTED_EXEC_NEM)
-		_vcpu.pause();
+		_handler.local_submit();
 	else
 		_check_force_flags = true;
 }
@@ -777,7 +789,7 @@ template <typename T> VBOXSTRICTRC Sup::Vcpu_impl<T>::run()
 
 	_transfer_state_to_vbox(ctx);
 
-	Assert(_vcpu.state().actv_state.value() == VMX_VMCS_GUEST_ACTIVITY_ACTIVE);
+	Assert(_state->ref.actv_state.value() == VMX_VMCS_GUEST_ACTIVITY_ACTIVE);
 
 	/* see hmR0VmxExitToRing3 - sync recompiler state */
 	CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_SYSENTER_MSR |
@@ -821,7 +833,6 @@ Sup::Vcpu_impl<VIRT>::Vcpu_impl(Env &env, VM &vm, Vm_connection &vm_con,
 	RTSemEventMultiCreate(&_halt_semevent);
 
 	/* run vCPU until initial startup exception */
-	_vcpu.run();
 	_switch_to_hw();
 }
 
