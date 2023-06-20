@@ -22,6 +22,7 @@
 #include <lx_kit/memory.h>
 #include <lx_kit/scheduler.h>
 #include <lx_kit/timeout.h>
+#include <lx_kit/pending_irq.h>
 
 namespace Lx_kit {
 
@@ -50,7 +51,6 @@ struct Lx_kit::Env
 	Scheduler            scheduler       { env.ep() };
 	Device_list          devices         { env.ep(), heap, platform };
 	Lx_kit::Timeout      timeout         { timer, scheduler };
-	unsigned int         last_irq        { 0 };
 
 	Env(Genode::Env & env) : env(env) { }
 };

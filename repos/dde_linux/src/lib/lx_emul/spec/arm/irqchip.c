@@ -171,22 +171,28 @@ int lx_emul_irq_task_function(void * data)
 	for (;;) {
 		lx_emul_task_schedule(true);
 
-		local_irq_save(flags);
-		irq_enter();
+		for (;;) {
+			irq = lx_emul_pending_irq();
+			if (irq == -1)
+				break;
 
-		irq = dde_irq_domain ? irq_find_mapping(dde_irq_domain,
-		                                        lx_emul_irq_last())
-		                     : lx_emul_irq_last();
+			local_irq_save(flags);
+			irq_enter();
 
-		if (!irq) {
-			ack_bad_irq(irq);
-			WARN_ONCE(true, "Unexpected interrupt %d received!\n", lx_emul_irq_last());
-		} else {
-			generic_handle_irq(irq);
+			irq = dde_irq_domain ? irq_find_mapping(dde_irq_domain,
+			                                        irq)
+			                     : irq;
+
+			if (!irq) {
+				ack_bad_irq(irq);
+				WARN_ONCE(true, "Unexpected interrupt %d received!\n", irq);
+			} else {
+				generic_handle_irq(irq);
+			}
+
+			irq_exit();
+			local_irq_restore(flags);
 		}
-
-		irq_exit();
-		local_irq_restore(flags);
 	}
 
 	return 0;

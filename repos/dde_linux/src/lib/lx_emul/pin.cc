@@ -30,6 +30,8 @@ namespace {
 
 			Lx_kit::Env &_env;
 
+			Lx_kit::Pending_irq _pending_irq { 0 };
+
 		public:
 
 			struct Number { unsigned value; };
@@ -38,11 +40,9 @@ namespace {
 
 			void trigger_irq(Number number)
 			{
-				/*
-				 * Mirrored from 'Lx_kit::Device::Irq::handle'
-				 */
-				_env.last_irq = number.value;
-				_env.scheduler.unblock_irq_handler();
+				_pending_irq.value = number.value;
+
+				_env.scheduler.unblock_irq_handler(_pending_irq);
 				_env.scheduler.schedule();
 			}
 	};

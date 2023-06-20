@@ -23,6 +23,8 @@
 #include <util/list.h>
 #include <util/xml_node.h>
 
+#include <lx_kit/pending_irq.h>
+
 namespace Lx_kit {
 	using namespace Genode;
 
@@ -63,7 +65,7 @@ class Lx_kit::Device : List<Device>::Element
 			using Index = Platform::Device::Irq::Index;
 
 			Index                  idx;
-			unsigned               number;
+			Pending_irq            number;
 			Io_signal_handler<Irq> handler;
 			bool                   masked  { true  };
 			bool                   occured { false };

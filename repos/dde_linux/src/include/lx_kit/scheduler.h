@@ -15,8 +15,10 @@
  */
 
 #include <base/entrypoint.h>
+#include <util/fifo.h>
 #include <util/list.h>
 #include <lx_kit/task.h>
+#include <lx_kit/pending_irq.h>
 
 namespace Lx_kit {
 	class Scheduler;
@@ -45,6 +47,8 @@ class Lx_kit::Scheduler
 
 		Signal_handler<Scheduler> _execute_schedule;
 
+		Genode::Fifo<Lx_kit::Pending_irq> _pending_irqs { };
+
 	public:
 
 		Task & current();
@@ -60,7 +64,13 @@ class Lx_kit::Scheduler
 
 		void execute();
 
-		void unblock_irq_handler();
+		void unblock_irq_handler(Pending_irq &);
+		template <typename FN> void pending_irq(FN const &fn)
+		{
+			_pending_irqs.dequeue([&] (Pending_irq const &pirq) {
+				fn(pirq.value); });
+		}
+
 		void unblock_time_handler();
 
 		Task & task(void * t);

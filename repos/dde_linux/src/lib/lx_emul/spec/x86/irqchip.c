@@ -53,22 +53,27 @@ int lx_emul_irq_task_function(void * data)
 	for (;;) {
 		lx_emul_task_schedule(true);
 
-		local_irq_save(flags);
-		irq_enter();
+		for (;;) {
 
-		irq = lx_emul_irq_last();
+			irq = lx_emul_pending_irq();
+			if (irq == -1)
+				break;
 
-		if (!irq) {
-			ack_bad_irq(irq);
-			WARN_ONCE(true, "Unexpected interrupt %d received!\n",
-			          lx_emul_irq_last());
-		} else {
-			generic_handle_irq(irq);
-			lx_emul_irq_eoi(irq);
+			local_irq_save(flags);
+			irq_enter();
+
+			if (!irq) {
+				ack_bad_irq(irq);
+				WARN_ONCE(true, "Unexpected interrupt %d received!\n",
+				          irq);
+			} else {
+				generic_handle_irq(irq);
+				lx_emul_irq_eoi(irq);
+			}
+
+			irq_exit();
+			local_irq_restore(flags);
 		}
-
-		irq_exit();
-		local_irq_restore(flags);
 	}
 
 	return 0;
