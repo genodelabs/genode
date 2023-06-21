@@ -19,6 +19,7 @@
 #include <base/heap.h>
 
 /* base-internal includes */
+#include <base/internal/globals.h>
 #include <base/internal/expanding_cpu_session_client.h>
 #include <base/internal/expanding_region_map_client.h>
 #include <base/internal/expanding_pd_session_client.h>
@@ -35,7 +36,9 @@ struct Genode::Platform
 {
 	Region_map_mmap rm { false };
 
-	Local_parent parent;
+	static Capability<Parent> _obtain_parent_cap();
+
+	Local_parent parent { _obtain_parent_cap(), rm, heap };
 
 	Pd_session_capability pd_cap =
 		static_cap_cast<Pd_session>(parent.session_cap(Parent::Env::pd()));
@@ -49,15 +52,7 @@ struct Genode::Platform
 
 	Heap heap { pd, rm };
 
-	Platform(Parent_capability cap) : parent(cap, rm, heap)
-	{
-		_attach_stack_area();
-	}
-
-	~Platform()
-	{
-		parent.exit(0);
-	}
+	Platform() { _attach_stack_area(); }
 
 	/**
 	 * Attach stack area to local address space (for non-hybrid components)

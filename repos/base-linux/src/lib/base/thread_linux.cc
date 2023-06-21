@@ -190,7 +190,11 @@ void Genode::init_thread_start(Capability<Pd_session> pd_cap)
 }
 
 
-void Genode::init_thread_bootstrap(Thread_capability main_cap)
+void Genode::init_thread_bootstrap(Cpu_session &cpu, Thread_capability main_cap)
 {
 	main_thread_cap(main_cap);
+
+	/* register TID and PID of the main thread at core */
+	Linux_native_cpu_client native_cpu(cpu.native_cpu());
+	native_cpu.thread_id(main_cap, lx_getpid(), lx_gettid());
 }

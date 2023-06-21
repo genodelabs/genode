@@ -21,7 +21,6 @@
 /* base-internal includes */
 #include <base/internal/platform.h>
 #include <base/internal/native_thread.h>
-#include <base/internal/globals.h>
 #include <base/internal/parent_socket_handle.h>
 #include <base/internal/capability_space_tpl.h>
 
@@ -153,10 +152,10 @@ Env_deprecated *Genode::env_deprecated()
 
 		Parent                *parent()          override { return &_pf.parent; }
 		Cpu_session           *cpu_session()     override { return &_pf.cpu; }
-		Cpu_session_capability cpu_session_cap() override { return  _pf.cpu_cap; }
+		Cpu_session_capability cpu_session_cap() override { return  _pf.cpu.rpc_cap(); }
 		Region_map            *rm_session()      override { return &_pf.rm; }
 		Pd_session            *pd_session()      override { return &_pf.pd; }
-		Pd_session_capability  pd_session_cap()  override { return  _pf.pd_cap; }
+		Pd_session_capability  pd_session_cap()  override { return  _pf.pd.rpc_cap(); }
 	};
 
 	static Impl impl { *_platform_ptr };
@@ -165,7 +164,7 @@ Env_deprecated *Genode::env_deprecated()
 }
 
 
-static Parent_capability obtain_parent_cap()
+Capability<Parent> Platform::_obtain_parent_cap()
 {
 	long const local_name = get_env_ulong("parent_local_name");
 
@@ -190,27 +189,16 @@ void Genode::init_parent_resource_requests(Genode::Env & env)
 
 void Genode::init_platform()
 {
-	static Platform platform { obtain_parent_cap() };
-
-	/* allow use of deprecated_env */
-	_platform_ptr = &platform;
+	static Genode::Platform platform;
 
 	init_log(platform.parent);
 	init_rpc_cap_alloc(platform.parent);
+	init_cap_slab(platform.pd, platform.parent);
 	init_thread(platform.cpu, platform.rm);
-	init_thread_start(platform.pd_cap);
-	init_thread_bootstrap(platform.parent.main_thread_cap());
+	init_thread_start(platform.pd.rpc_cap());
+	init_thread_bootstrap(platform.cpu, platform.parent.main_thread_cap());
 
-	env_stack_area_region_map    = &platform.pd._stack_area;
-	env_stack_area_ram_allocator = &platform.pd;
-
-	/* register TID and PID of the main thread at core */
-	Linux_native_cpu_client native_cpu(platform.cpu.native_cpu());
-
-	native_cpu.thread_id(platform.parent.main_thread_cap(),
-	                     lx_getpid(), lx_gettid());
-
-	init_rpc_cap_alloc(platform.parent);
+	_platform_ptr = &platform;
 }
 
 

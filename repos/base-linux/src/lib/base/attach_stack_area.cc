@@ -26,4 +26,7 @@ void Platform::_attach_stack_area()
 	pd._address_space.attach_at(pd._stack_area.dataspace(),
 	                            stack_area_virtual_base(),
 	                            stack_area_virtual_size());
+
+	env_stack_area_region_map    = &pd._stack_area;
+	env_stack_area_ram_allocator = &pd;
 }

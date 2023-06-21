@@ -14,7 +14,6 @@
 
 #include <deprecated/env.h>
 #include <base/internal/platform.h>
-#include <base/internal/globals.h>
 #include <base/connection.h>
 #include <base/service.h>
 
@@ -70,10 +69,7 @@ void Genode::init_platform()
 	init_cap_slab(platform.pd, platform.parent);
 	init_thread(platform.cpu, platform.rm);
 	init_thread_start(platform.pd.rpc_cap());
-	init_thread_bootstrap(platform.parent.main_thread_cap());
-
-	env_stack_area_ram_allocator = &platform.pd;
-	env_stack_area_region_map    = &platform.stack_area;
+	init_thread_bootstrap(platform.cpu, platform.parent.main_thread_cap());
 
 	_platform_ptr = &platform;
 }

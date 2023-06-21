@@ -17,6 +17,7 @@
 
 /* base-internal includes */
 #include <base/internal/parent_cap.h>
+#include <base/internal/globals.h>
 #include <base/internal/attached_stack_area.h>
 #include <base/internal/expanding_cpu_session_client.h>
 #include <base/internal/expanding_pd_session_client.h>
@@ -45,6 +46,12 @@ struct Genode::Platform : Noncopyable
 		parent, pd.rpc_cap(), pd.address_space(), Parent::Env::pd() };
 
 	Attached_stack_area stack_area { parent, pd.rpc_cap() };
+
+	Platform()
+	{
+		env_stack_area_ram_allocator = &pd;
+		env_stack_area_region_map    = &stack_area;
+	}
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__PLATFORM_H_ */

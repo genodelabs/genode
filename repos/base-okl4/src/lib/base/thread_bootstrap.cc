@@ -95,7 +95,7 @@ void Thread::_init_platform_thread(size_t, Type type)
 }
 
 
-void Genode::init_thread_bootstrap(Thread_capability main_cap)
+void Genode::init_thread_bootstrap(Cpu_session &, Thread_capability main_cap)
 {
 	main_thread_cap(main_cap);
 }

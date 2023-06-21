@@ -44,7 +44,7 @@ namespace Genode {
 	void init_heartbeat_monitoring(Env &);
 	void init_thread(Cpu_session &, Region_map &);
 	void init_thread_start(Capability<Pd_session>);
-	void init_thread_bootstrap(Thread_capability);
+	void init_thread_bootstrap(Cpu_session &, Thread_capability);
 	void deinit_heartbeat_monitoring();
 	void exec_static_constructors();
 

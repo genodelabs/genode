@@ -212,7 +212,7 @@ void Genode::init_thread_start(Capability<Pd_session> pd_cap)
 }
 
 
-void Genode::init_thread_bootstrap(Thread_capability main_cap)
+void Genode::init_thread_bootstrap(Cpu_session &, Thread_capability main_cap)
 {
 	main_thread_cap(main_cap);
 }

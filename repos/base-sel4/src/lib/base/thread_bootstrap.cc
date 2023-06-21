@@ -40,4 +40,4 @@ void Genode::Thread::_thread_bootstrap()
 }
 
 
-void Genode::init_thread_bootstrap(Thread_capability) { }
+void Genode::init_thread_bootstrap(Cpu_session &, Thread_capability) { }
