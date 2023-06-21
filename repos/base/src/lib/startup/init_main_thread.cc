@@ -26,8 +26,6 @@ using namespace Genode;
 
 addr_t init_main_thread_result;
 
-extern void init_exception_handling();
-
 namespace Genode { extern Region_map * env_stack_area_region_map; }
 
 void prepare_init_main_thread();

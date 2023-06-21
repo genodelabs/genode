@@ -89,14 +89,20 @@ namespace Genode {
 
 
 /*
- * This function is normally provided by the cxx library, which is not
- * used for lx_hybrid programs. For lx_hybrid programs, the exception
- * handling is initialized by the host system's regular startup code.
- *
- * However, we conveniently use this function to get hold of the
- * component's environment and initialize the default log output.
+ * For lx_hybrid programs, C++ support is initialized by the startup code
+ * provided by the host toolchain.
  */
-void Genode::init_exception_handling(Env &env)
+void Genode::init_exception_handling(Ram_allocator &, Region_map &) { }
+
+
+/*
+ * This function is normally provided by the dynamic linker, which is not used
+ * for lx_hybrid programs. For lx_hybrid programs.
+ *
+ * However, we conveniently use this function to get hold of the component's
+ * environment and initialize the default log output.
+ */
+void Genode::init_ldso_phdr(Env &env)
 {
 	_env_ptr = &env;
 

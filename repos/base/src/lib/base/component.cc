@@ -234,6 +234,18 @@ Genode::size_t Component::stack_size() __attribute__((weak));
 Genode::size_t Component::stack_size() { return 64*1024; }
 
 
+/**
+ * Init program headers of the dynamic linker
+ *
+ * The weak function is used for statically linked binaries. The
+ * dynamic linker provides an implementation that loads the program
+ * headers of the linker. This must be done before the first exception
+ * is thrown.
+ */
+void Genode::init_ldso_phdr(Env &) __attribute__((weak));
+void Genode::init_ldso_phdr(Env &) { }
+
+
 /*
  * We need to execute the constructor of the main entrypoint from a
  * class called 'Startup' as 'Startup' is a friend of 'Entrypoint'.
@@ -242,7 +254,8 @@ struct Genode::Startup
 {
 	::Env env { ep };
 
-	bool const exception_handling = (init_exception_handling(env), true);
+	bool const ldso_phdr          = (init_ldso_phdr(env), true);
+	bool const exception_handling = (init_exception_handling(env.pd(), env.rm()), true);
 	bool const signal_receiver    = (init_signal_receiver(env.pd(), env.parent()), true);
 
 	/*

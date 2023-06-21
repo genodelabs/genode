@@ -51,11 +51,7 @@ extern "C" int dl_iterate_phdr(int (*) (void *, unsigned long, void *), void *) 
 	return -1; }
 
 
-/*
- * Terminate handler
- */
-
-void terminate_handler()
+static void terminate_handler()
 {
 	std::type_info *t = __cxxabiv1::__cxa_current_exception_type();
 
@@ -74,25 +70,9 @@ void terminate_handler()
 }
 
 
-/**
- * Init program headers of the dynamic linker
- *
- * The weak function is used for statically linked binaries. The
- * dynamic linker provides an implementation that loads the program
- * headers of the linker. This must be done before the first exception
- * is thrown.
- */
-void Genode::init_ldso_phdr(Env &) __attribute__((weak));
-void Genode::init_ldso_phdr(Env &) { }
-
-
-/*
- * Initialization
- */
-void Genode::init_exception_handling(Env &env)
+void Genode::init_exception_handling(Ram_allocator &ram, Region_map &rm)
 {
-	init_ldso_phdr(env);
-	init_cxx_heap(env);
+	init_cxx_heap(ram, rm);
 
 	__register_frame(__eh_frame_start__);
 

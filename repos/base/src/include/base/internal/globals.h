@@ -28,11 +28,11 @@ namespace Genode {
 
 	void init_platform();
 	void init_stack_area();
-	void init_exception_handling(Env &);
+	void init_exception_handling(Ram_allocator &, Region_map &);
 	void init_signal_transmitter(Env &);
 	void init_signal_receiver(Pd_session &, Parent &);
 	void init_cap_slab(Pd_session &, Parent &);
-	void init_cxx_heap(Env &);
+	void init_cxx_heap(Ram_allocator &, Region_map &);
 	void init_cxx_guard();
 	void init_ldso_phdr(Env &);
 	void init_signal_thread(Env &);
