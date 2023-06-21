@@ -43,11 +43,11 @@ struct Main
 
 	Constructible<Attached_io_mem_dataspace> pci_config_ds {};
 
-	void parse_pci_function(Bdf bdf, Config & cfg,
-	                        addr_t cfg_phys_base,
-	                        Xml_generator & generator, unsigned & msi);
-	void parse_pci_bus(bus_t bus, addr_t base, addr_t phys_base,
-	                   Xml_generator & generator, unsigned & msi);
+	bus_t parse_pci_function(Bdf bdf, Config & cfg,
+	                         addr_t cfg_phys_base,
+	                         Xml_generator & generator, unsigned & msi);
+	bus_t parse_pci_bus(bus_t bus, addr_t base, addr_t phys_base,
+	                    Xml_generator & generator, unsigned & msi);
 
 	void parse_irq_override_rules(Xml_node & xml);
 	void parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator);
@@ -64,13 +64,21 @@ struct Main
 };
 
 
-void Main::parse_pci_function(Bdf             bdf,
-                              Config        & cfg,
-                              addr_t          cfg_phys_base,
-                              Xml_generator & gen,
-                              unsigned      & msi_number)
+/*
+ * The bus and function parsers return either the current bus number or the
+ * subordinate bus number (highest bus number of all of the busses that can be
+ * reached downstream of a bridge).
+ */
+
+bus_t Main::parse_pci_function(Bdf             bdf,
+                               Config        & cfg,
+                               addr_t          cfg_phys_base,
+                               Xml_generator & gen,
+                               unsigned      & msi_number)
 {
 	cfg.scan();
+
+	bus_t subordinate_bus = bdf.bus;
 
 	/* check for bridges */
 	if (cfg.read<Config::Header_type::Type>()) {
@@ -79,6 +87,8 @@ void Main::parse_pci_function(Bdf             bdf,
 			new (heap) Bridge(parent.sub_bridges, bdf,
 			                  bcfg.secondary_bus_number(),
 			                  bcfg.subordinate_bus_number());
+
+			subordinate_bus = bcfg.subordinate_bus_number();
 
 			/* enable I/O spaces and DMA in bridges if not done already */
 			using Command = Pci::Config::Command;
@@ -231,23 +241,30 @@ void Main::parse_pci_function(Bdf             bdf,
 				});
 		});
 	});
+
+	return subordinate_bus;
 }
 
 
-void Main::parse_pci_bus(bus_t           bus,
-                         addr_t          base,
-                         addr_t          phys_base,
-                         Xml_generator & generator,
-                         unsigned      & msi_number)
+bus_t Main::parse_pci_bus(bus_t           bus,
+                          addr_t          base,
+                          addr_t          phys_base,
+                          Xml_generator & generator,
+                          unsigned      & msi_number)
 {
+	bus_t max_subordinate_bus = bus;
+
 	auto per_function = [&] (addr_t config_base, addr_t config_phys_base,
 	                         dev_t dev, func_t fn) {
 		Config cfg(config_base);
 		if (!cfg.valid())
 			return true;
 
-		parse_pci_function({(bus_t)bus, dev, fn}, cfg,
-		                   config_phys_base, generator, msi_number);
+		bus_t const subordinate_bus =
+			parse_pci_function({(bus_t)bus, dev, fn}, cfg,
+			                   config_phys_base, generator, msi_number);
+
+		max_subordinate_bus = max(max_subordinate_bus, subordinate_bus);
 
 		return !(fn == 0 && !cfg.read<Config::Header_type::Multi_function>());
 	};
@@ -262,6 +279,8 @@ void Main::parse_pci_bus(bus_t           bus,
 				break;
 		}
 	}
+
+	return max_subordinate_bus;
 }
 
 
@@ -359,15 +378,19 @@ void Main::parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator)
 		                  bus_off, last_bus);
 
 		bus_t bus = 0;
+		bus_t max_subordinate_bus = bus;
 		do {
 			enum { BUS_SIZE = DEVICES_PER_BUS_MAX * FUNCTION_PER_DEVICE_MAX
 			                  * FUNCTION_CONFIG_SPACE_SIZE };
 			addr_t offset = base + bus * BUS_SIZE;
 			pci_config_ds.construct(env, offset, BUS_SIZE);
-			parse_pci_bus((bus_t)bus + bus_off,
-			              (addr_t)pci_config_ds->local_addr<void>(),
-			              offset, generator, msi_number);
-		} while (bus++ < last_bus);
+			bus_t const subordinate_bus =
+				parse_pci_bus((bus_t)bus + bus_off,
+				              (addr_t)pci_config_ds->local_addr<void>(),
+				              offset, generator, msi_number);
+
+			max_subordinate_bus = max(max_subordinate_bus, subordinate_bus);
+		} while (bus++ < max_subordinate_bus);
 
 		pci_config_ds.destruct();
 	});

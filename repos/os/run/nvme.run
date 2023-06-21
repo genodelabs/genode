@@ -246,8 +246,9 @@ install_config $config
 build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
+append qemu_args " -device pcie-root-port,id=root_port1 "
 append qemu_args " -drive id=nvme0,file=bin/nvme.raw,format=raw,if=none "
-append qemu_args " -device nvme,drive=nvme0,serial=fnord,id=nvme0n1 "
+append qemu_args " -device nvme,drive=nvme0,serial=fnord,id=nvme0n1,bus=root_port1 "
 
 run_genode_until {.*child "block_tester" exited with exit value 0.*\n} 300
 
