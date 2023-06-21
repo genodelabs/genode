@@ -32,7 +32,7 @@ static Thread_capability main_thread_cap(Thread_capability main_cap = { })
  ** Startup library support **
  *****************************/
 
-void prepare_init_main_thread() { }
+void Genode::prepare_init_main_thread() { }
 
 
 /************

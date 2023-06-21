@@ -22,6 +22,7 @@
 #include <base/thread.h>
 
 /* base-internal includes */
+#include <base/internal/globals.h>
 #include <base/internal/stack.h>
 #include <base/internal/stack_area.h>
 #include <base/internal/native_utcb.h>
@@ -72,10 +73,8 @@ Initial_cap_range &initial_cap_range()
  ** Startup library support **
  *****************************/
 
-void prepare_init_main_thread()
+void Genode::prepare_init_main_thread()
 {
-	using namespace Genode;
-
 	cap_map().insert(initial_cap_range());
 
 	/* for Core we can't perform the following code so early */

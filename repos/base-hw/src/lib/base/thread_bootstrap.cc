@@ -18,6 +18,7 @@
 #include <base/sleep.h>
 
 /* base-internal includes */
+#include <base/internal/globals.h>
 #include <base/internal/stack.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/capability_space.h>
@@ -35,9 +36,8 @@ namespace Hw {
  ** Startup library support **
  *****************************/
 
-void prepare_init_main_thread()
+void Genode::prepare_init_main_thread()
 {
-	using namespace Genode;
 	using namespace Hw;
 
 	/*

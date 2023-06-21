@@ -19,6 +19,7 @@
 #include <foc/native_capability.h>
 
 /* base-internal includes */
+#include <base/internal/globals.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/cap_map.h>
 
@@ -29,7 +30,7 @@ using namespace Genode;
  ** Startup library support **
  *****************************/
 
-void prepare_init_main_thread()
+void Genode::prepare_init_main_thread()
 {
 	enum { THREAD_CAP_ID = 1 };
 	Cap_index * ci(cap_map().insert(THREAD_CAP_ID, Foc::MAIN_THREAD_CAP));

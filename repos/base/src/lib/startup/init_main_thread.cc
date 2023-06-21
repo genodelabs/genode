@@ -28,8 +28,6 @@ addr_t init_main_thread_result;
 
 namespace Genode { extern Region_map * env_stack_area_region_map; }
 
-void prepare_init_main_thread();
-
 enum { MAIN_THREAD_STACK_SIZE = 16*1024 };
 
 
@@ -87,7 +85,6 @@ Main_thread * main_thread()
  */
 extern "C" void init_main_thread()
 {
-	/* do platform specific preparation */
 	prepare_init_main_thread();
 
 	init_platform();

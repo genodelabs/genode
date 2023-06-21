@@ -63,7 +63,7 @@ using namespace Genode;
  ** Startup library support **
  *****************************/
 
-void prepare_init_main_thread()
+void Genode::prepare_init_main_thread()
 {
 	/* copy thread ID to utcb */
 	main_thread_tid.raw = Okl4::copy_uregister_to_utcb();

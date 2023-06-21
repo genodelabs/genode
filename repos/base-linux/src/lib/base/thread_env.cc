@@ -18,7 +18,11 @@
 
 #include <linux_syscalls.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+
 using namespace Genode;
+
 
 extern addr_t * __initial_sp;
 
@@ -73,7 +77,7 @@ void lx_exception_signal_handlers()
  ** Startup library support **
  *****************************/
 
-void prepare_init_main_thread()
+void Genode::prepare_init_main_thread()
 {
 	/*
 	 * Initialize the 'lx_environ' pointer

@@ -24,7 +24,7 @@
  ** Startup library support **
  *****************************/
 
-void prepare_init_main_thread() { }
+void Genode::prepare_init_main_thread() { }
 
 
 /************
