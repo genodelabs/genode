@@ -58,7 +58,6 @@ SRC_CC += kernel/object.cc
 SRC_CC += kernel/signal_receiver.cc
 SRC_CC += kernel/thread.cc
 SRC_CC += kernel/timer.cc
-SRC_CC += init_main_thread.cc
 SRC_CC += capability.cc
 SRC_CC += stack_area_addr.cc
 SRC_CC += heartbeat.cc

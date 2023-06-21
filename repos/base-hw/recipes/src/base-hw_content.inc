@@ -121,7 +121,7 @@ SRC_LIB_TIMEOUT += duration.cc \
                    timer_connection.cc \
                    timer_connection_time.cc
 
-SRC_LIB_STARTUP += init_main_thread.cc _main.cc \
+SRC_LIB_STARTUP += _main.cc \
                    $(addprefix spec/,${call selected_content,SRC_LIB_STARTUP_SPECS})
 
 SRC_CORE += $(notdir $(wildcard $(BASE_HW_DIR)/src/core/*.cc)) \
