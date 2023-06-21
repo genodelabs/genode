@@ -88,7 +88,7 @@ void Genode::Thread_info::init(addr_t const utcb_virt_addr, unsigned const prio)
 {
 	using namespace Core;
 
-	Platform        &platform   = platform_specific();
+	Core::Platform  &platform   = platform_specific();
 	Range_allocator &phys_alloc = platform.ram_alloc();
 
 	/* create IPC buffer of one page */
@@ -151,7 +151,7 @@ void Genode::Thread_info::destruct()
 	}
 
 	if (ipc_buffer_phys) {
-		Platform        &platform   = platform_specific();
+		Core::Platform  &platform   = platform_specific();
 		Range_allocator &phys_alloc = platform.ram_alloc();
 		Untyped_memory::convert_to_untyped_frames(ipc_buffer_phys, 4096);
 		Untyped_memory::free_page(phys_alloc, ipc_buffer_phys);

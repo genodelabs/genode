@@ -51,9 +51,9 @@ bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t, size_t size) {
  ** Boot-info parser **
  **********************/
 
-int Platform::bi_init_mem(Okl4::uintptr_t virt_base, Okl4::uintptr_t virt_end,
-                          Okl4::uintptr_t phys_base, Okl4::uintptr_t phys_end,
-                          const Okl4::bi_user_data_t *data)
+int Core::Platform::bi_init_mem(Okl4::uintptr_t virt_base, Okl4::uintptr_t virt_end,
+                                Okl4::uintptr_t phys_base, Okl4::uintptr_t phys_end,
+                                const Okl4::bi_user_data_t *data)
 {
 	Platform &p = *(Platform *)data->user_data;
 	p._core_mem_alloc.phys_alloc().add_range(phys_base, phys_end - phys_base + 1);
@@ -62,8 +62,8 @@ int Platform::bi_init_mem(Okl4::uintptr_t virt_base, Okl4::uintptr_t virt_end,
 }
 
 
-int Platform::bi_add_virt_mem(Okl4::bi_name_t, Okl4::uintptr_t base,
-                              Okl4::uintptr_t end, const Okl4::bi_user_data_t *data)
+int Core::Platform::bi_add_virt_mem(Okl4::bi_name_t, Okl4::uintptr_t base,
+                                    Okl4::uintptr_t end, const Okl4::bi_user_data_t *data)
 {
 	/* prevent first page from being added to core memory */
 	if (base < get_page_size() || end < get_page_size())
@@ -75,8 +75,8 @@ int Platform::bi_add_virt_mem(Okl4::bi_name_t, Okl4::uintptr_t base,
 }
 
 
-int Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
-                              Okl4::uintptr_t end, const Okl4::bi_user_data_t *data)
+int Core::Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
+                                    Okl4::uintptr_t end, const Okl4::bi_user_data_t *data)
 {
 	if (pool == 2) {
 		Platform &p = *(Platform *)data->user_data;
@@ -90,7 +90,7 @@ static char init_slab_block_rom[get_page_size()];
 static char init_slab_block_thread[get_page_size()];
 
 
-Platform::Platform()
+Core::Platform::Platform()
 :
 	_io_mem_alloc(&core_mem_alloc()), _io_port_alloc(&core_mem_alloc()),
 	_irq_alloc(&core_mem_alloc()),
@@ -142,9 +142,9 @@ Platform::Platform()
 	 * type.
 	 */
 	static Okl4::bi_callbacks_t callbacks;
-	callbacks.init_mem      = Platform::bi_init_mem;
-	callbacks.add_virt_mem  = Platform::bi_add_virt_mem;
-	callbacks.add_phys_mem  = Platform::bi_add_phys_mem;
+	callbacks.init_mem      = bi_init_mem;
+	callbacks.add_virt_mem  = bi_add_virt_mem;
+	callbacks.add_phys_mem  = bi_add_phys_mem;
 
 	Okl4::bootinfo_parse((void *)boot_info_addr, &callbacks, this);
 
@@ -254,7 +254,7 @@ Platform::Platform()
  ** Generic platform interface **
  ********************************/
 
-void Platform::wait_for_exit()
+void Core::Platform::wait_for_exit()
 {
 	/*
 	 * On OKL4, core never exits. So let us sleep forever.

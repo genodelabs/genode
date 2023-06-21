@@ -43,7 +43,7 @@ static bool const verbose_boot_info = true;
  * platform_specific(). May happen if meta data allocator of phys_alloc runs
  * out of memory.
  */
-static Platform * platform_in_construction = nullptr;
+static Core::Platform * platform_in_construction = nullptr;
 
 /*
  * Memory-layout information provided by the linker script
@@ -85,14 +85,14 @@ bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr, size
  ** Platform interface **
  ************************/
 
-void Platform::_init_unused_phys_alloc()
+void Core::Platform::_init_unused_phys_alloc()
 {
 	/* the lower physical ram is kept by the kernel and not usable to us */
 	_unused_phys_alloc.add_range(0x100000, 0UL - 0x100000);
 }
 
 
-void Platform::_init_allocators()
+void Core::Platform::_init_allocators()
 {
 	/* interrupt allocator */
 	_irq_alloc.add_range(0, 256);
@@ -164,7 +164,7 @@ void Platform::_init_allocators()
 }
 
 
-void Platform::_switch_to_core_cspace()
+void Core::Platform::_switch_to_core_cspace()
 {
 	Cnode_base const initial_cspace(Cap_sel(seL4_CapInitThreadCNode),
 	                                CONFIG_WORD_SIZE);
@@ -267,13 +267,13 @@ void Platform::_switch_to_core_cspace()
 }
 
 
-Cap_sel Platform::_init_asid_pool()
+Cap_sel Core::Platform::_init_asid_pool()
 {
 	return Cap_sel(seL4_CapInitThreadASIDPool);
 }
 
 
-void Platform::_init_rom_modules()
+void Core::Platform::_init_rom_modules()
 {
 	seL4_BootInfo const &bi = sel4_boot_info();
 
@@ -528,9 +528,8 @@ void Platform::_init_rom_modules()
 }
 
 
-Platform::Platform()
+Core::Platform::Platform()
 :
-
 	_io_mem_alloc(&core_mem_alloc()), _io_port_alloc(&core_mem_alloc()),
 	_irq_alloc(&core_mem_alloc()),
 	_unused_phys_alloc(&core_mem_alloc()),
@@ -631,7 +630,7 @@ Platform::Platform()
 			}
 
 			Idle_trace_source(Trace::Source_registry &registry,
-			                  Platform &platform, Range_allocator &phys_alloc,
+			                  Core::Platform &platform, Range_allocator &phys_alloc,
 			                  Affinity::Location affinity)
 			:
 				Trace::Control(),
@@ -659,7 +658,7 @@ Platform::Platform()
 }
 
 
-unsigned Platform::alloc_core_rcv_sel()
+unsigned Core::Platform::alloc_core_rcv_sel()
 {
 	Cap_sel rcv_sel = _core_sel_alloc.alloc();
 
@@ -670,13 +669,13 @@ unsigned Platform::alloc_core_rcv_sel()
 }
 
 
-void Platform::reset_sel(unsigned sel)
+void Core::Platform::reset_sel(unsigned sel)
 {
 	_core_cnode.remove(Cap_sel(sel));
 }
 
 
-void Platform::wait_for_exit()
+void Core::Platform::wait_for_exit()
 {
 	sleep_forever();
 }

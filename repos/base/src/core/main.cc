@@ -78,7 +78,7 @@ Env_deprecated *Genode::env_deprecated() {
 	return &core_env(); }
 
 
-Platform &Core::platform_specific()
+Core::Platform &Core::platform_specific()
 {
 	static Platform _platform;
 	return _platform;
@@ -88,7 +88,15 @@ Platform &Core::platform_specific()
 Platform_generic &Core::platform() { return platform_specific(); }
 
 
-void Genode::init_platform() { core_env(); }
+struct Genode::Platform { };
+
+
+Genode::Platform &Genode::init_platform()
+{
+	core_env();
+	static Genode::Platform platform { };
+	return platform;
+}
 
 
 /**
@@ -221,7 +229,7 @@ namespace Genode {
 Genode::size_t Component::stack_size() { return 64*1024; }
 
 
-void Genode::bootstrap_component()
+void Genode::bootstrap_component(Genode::Platform &)
 {
 	init_exception_handling(*core_env().pd_session(), core_env().local_rm());
 

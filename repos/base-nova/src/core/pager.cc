@@ -66,11 +66,11 @@ struct Pager_thread: public Thread
 	void entry() override { }
 };
 
-enum { PAGER_CPUS = Platform::MAX_SUPPORTED_CPUS };
+enum { PAGER_CPUS = Core::Platform::MAX_SUPPORTED_CPUS };
 static Constructible<Pager_thread> pager_threads[PAGER_CPUS];
 
 static Pager_thread &pager_thread(Affinity::Location location,
-                                  Platform &platform)
+                                  Core::Platform &platform)
 {
 	unsigned const pager_index = platform.pager_index(location);
 	unsigned const kernel_cpu_id = platform.kernel_cpu_id(location);

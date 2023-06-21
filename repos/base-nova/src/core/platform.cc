@@ -74,8 +74,8 @@ extern unsigned _prog_img_beg, _prog_img_end;
  * This function uses the virtual-memory region allocator to find a region
  * fitting the desired mapping. Other allocators are left alone.
  */
-addr_t Platform::_map_pages(addr_t const phys_addr, addr_t const pages,
-                            bool guard_page)
+addr_t Core::Platform::_map_pages(addr_t const phys_addr, addr_t const pages,
+                                  bool guard_page)
 {
 	addr_t const size = pages << get_page_size_log2();
 
@@ -301,7 +301,7 @@ static Affinity::Space setup_affinity_space(Hip const &hip)
  ** Platform **
  **************/
 
-Platform::Platform()
+Core::Platform::Platform()
 :
 	_io_mem_alloc(&core_mem_alloc()), _io_port_alloc(&core_mem_alloc()),
 	_irq_alloc(&core_mem_alloc()),
@@ -977,13 +977,13 @@ Platform::Platform()
 }
 
 
-addr_t Platform::_rom_module_phys(addr_t virt)
+addr_t Core::Platform::_rom_module_phys(addr_t virt)
 {
 	return virt - (addr_t)&_prog_img_beg + _core_phys_start;
 }
 
 
-unsigned Platform::kernel_cpu_id(Affinity::Location location) const
+unsigned Core::Platform::kernel_cpu_id(Affinity::Location location) const
 {
 	unsigned const cpu_id = pager_index(location);
 
@@ -996,7 +996,7 @@ unsigned Platform::kernel_cpu_id(Affinity::Location location) const
 }
 
 
-unsigned Platform::pager_index(Affinity::Location location) const
+unsigned Core::Platform::pager_index(Affinity::Location location) const
 {
 	return (location.xpos() * _cpus.height() + location.ypos())
 	       % (_cpus.width() * _cpus.height());
@@ -1033,5 +1033,5 @@ bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t, size_t size)
  ** Generic platform interface **
  ********************************/
 
-void Platform::wait_for_exit() { sleep_forever(); }
+void Core::Platform::wait_for_exit() { sleep_forever(); }
 

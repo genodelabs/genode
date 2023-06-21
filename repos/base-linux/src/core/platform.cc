@@ -86,7 +86,7 @@ static void sigchld_handler(int)
 }
 
 
-Platform::Platform()
+Core::Platform::Platform()
 :
 	_core_mem_alloc(nullptr)
 {
@@ -118,7 +118,7 @@ Platform::Platform()
 }
 
 
-void Platform::wait_for_exit()
+void Core::Platform::wait_for_exit()
 {
 	for (;;) {
 

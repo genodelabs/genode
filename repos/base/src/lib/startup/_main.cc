@@ -27,6 +27,8 @@ using namespace Genode;
 
 addr_t init_main_thread_result;
 
+static Platform *platform_ptr;
+
 enum { MAIN_THREAD_STACK_SIZE = 16*1024 };
 
 
@@ -86,7 +88,7 @@ extern "C" void init_main_thread()
 {
 	prepare_init_main_thread();
 
-	init_platform();
+	platform_ptr = &init_platform();
 
 	/* create a thread object for the main thread */
 	main_thread();
@@ -152,15 +154,12 @@ namespace Genode {
 		void (**func)();
 		for (func = &_ctors_end; func != &_ctors_start; (*--func)());
 	}
-
-	/* XXX move to base-internal header */
-	extern void bootstrap_component();
 }
 
 
 extern "C" int _main()
 {
-	Genode::bootstrap_component();
+	Genode::bootstrap_component(*platform_ptr);
 
 	/* never reached */
 	return 0;

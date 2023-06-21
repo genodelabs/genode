@@ -80,7 +80,6 @@ static Genode::Env *_env_ptr;
 
 namespace Genode {
 
-	extern void bootstrap_component();
 	extern void call_global_static_constructors();
 
 	struct Thread_meta_data_created;
@@ -131,8 +130,9 @@ Genode::size_t Component::stack_size()
 
 int main()
 {
-	Genode::init_platform();
-	Genode::bootstrap_component();
+	using namespace Genode;
+
+	bootstrap_component(init_platform());
 
 	/* never reached */
 }

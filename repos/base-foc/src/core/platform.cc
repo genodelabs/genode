@@ -120,7 +120,7 @@ static void _core_pager_loop()
 }
 
 
-Platform::Sigma0::Sigma0(Cap_index* i)
+Core::Platform::Sigma0::Sigma0(Cap_index* i)
 :
 	Pager_object(Cpu_session_capability(), Thread_capability(),
 	             0, Affinity::Location(), Session_label(),
@@ -134,7 +134,7 @@ Platform::Sigma0::Sigma0(Cap_index* i)
 }
 
 
-Platform::Core_pager::Core_pager(Platform_pd &core_pd, Sigma0 &sigma0)
+Core::Platform::Core_pager::Core_pager(Platform_pd &core_pd, Sigma0 &sigma0)
 :
 	Platform_thread("core.pager"),
 	Pager_object(Cpu_session_capability(), Thread_capability(),
@@ -161,7 +161,7 @@ Platform::Core_pager::Core_pager(Platform_pd &core_pd, Sigma0 &sigma0)
 }
 
 
-Platform::Core_pager &Platform::core_pager()
+Core::Platform::Core_pager &Core::Platform::core_pager()
 {
 	static Core_pager _core_pager(core_pd(), _sigma0);
 	return _core_pager;
@@ -280,7 +280,7 @@ static Foc::l4_kernel_info_t &sigma0_map_kip()
 }
 
 
-void Platform::_setup_mem_alloc()
+void Core::Platform::_setup_mem_alloc()
 {
 	/*
 	 * Completely map program image by touching all pages read-only to
@@ -329,7 +329,7 @@ void Platform::_setup_mem_alloc()
 }
 
 
-void Platform::_setup_irq_alloc()
+void Core::Platform::_setup_irq_alloc()
 {
 	using namespace Foc;
 
@@ -342,7 +342,7 @@ void Platform::_setup_irq_alloc()
 }
 
 
-void Platform::_setup_basics()
+void Core::Platform::_setup_basics()
 {
 	using namespace Foc;
 
@@ -415,7 +415,7 @@ void Platform::_setup_basics()
 }
 
 
-Platform::Platform()
+Core::Platform::Platform()
 :
 	_ram_alloc(nullptr), _io_mem_alloc(&core_mem_alloc()),
 	_io_port_alloc(&core_mem_alloc()), _irq_alloc(&core_mem_alloc()),
@@ -581,7 +581,7 @@ Platform::Platform()
  ** Generic platform interface **
  ********************************/
 
-void Platform::wait_for_exit()
+void Core::Platform::wait_for_exit()
 {
 	/*
 	 * On Fiasco.OC, core never exits. So let us sleep forever.
@@ -590,7 +590,7 @@ void Platform::wait_for_exit()
 }
 
 
-Affinity::Space Platform::affinity_space() const
+Affinity::Space Core::Platform::affinity_space() const
 {
 	using namespace Foc;
 

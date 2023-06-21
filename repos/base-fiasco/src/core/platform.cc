@@ -123,7 +123,7 @@ static void _core_pager_loop()
 }
 
 
-Platform::Sigma0::Sigma0()
+Core::Platform::Sigma0::Sigma0()
 :
 	Pager_object(Cpu_session_capability(), Thread_capability(),
 	             0, Affinity::Location(), Session_label(),
@@ -133,14 +133,14 @@ Platform::Sigma0::Sigma0()
 }
 
 
-Platform::Sigma0 &Platform::sigma0()
+Core::Platform::Sigma0 &Core::Platform::sigma0()
 {
 	static Sigma0 _sigma0;
 	return _sigma0;
 }
 
 
-Platform::Core_pager::Core_pager(Platform_pd &core_pd)
+Core::Platform::Core_pager::Core_pager(Platform_pd &core_pd)
 :
 	Platform_thread("core.pager"),
 	Pager_object(Cpu_session_capability(), Thread_capability(),
@@ -167,7 +167,7 @@ Platform::Core_pager::Core_pager(Platform_pd &core_pd)
 }
 
 
-Platform::Core_pager &Platform::core_pager()
+Core::Platform::Core_pager &Core::Platform::core_pager()
 {
 	static Core_pager _core_pager(core_pd());
 	return _core_pager;
@@ -249,7 +249,7 @@ static inline int sigma0_req_region(addr_t *addr, unsigned log2size)
 }
 
 
-void Platform::_setup_mem_alloc()
+void Core::Platform::_setup_mem_alloc()
 {
 	/*
 	 * Completely map program image by touching all pages read-only to
@@ -296,7 +296,7 @@ void Platform::_setup_mem_alloc()
 }
 
 
-void Platform::_setup_irq_alloc()
+void Core::Platform::_setup_irq_alloc()
 {
 	_irq_alloc.add_range(0, 0x10);
 }
@@ -347,7 +347,7 @@ static l4_kernel_info_t *get_kip()
 }
 
 
-void Platform::_setup_basics()
+void Core::Platform::_setup_basics()
 {
 	l4_kernel_info_t * kip = get_kip();
 
@@ -397,7 +397,7 @@ void Platform::_setup_basics()
 }
 
 
-Platform::Platform()
+Core::Platform::Platform()
 :
 	_ram_alloc(nullptr), _io_mem_alloc(&core_mem_alloc()),
 	_io_port_alloc(&core_mem_alloc()), _irq_alloc(&core_mem_alloc()),
@@ -484,7 +484,7 @@ Platform::Platform()
  ** Generic platform interface **
  ********************************/
 
-void Platform::wait_for_exit()
+void Core::Platform::wait_for_exit()
 {
 	/*
 	 * On Fiasco, Core never exits. So let us sleep forever.

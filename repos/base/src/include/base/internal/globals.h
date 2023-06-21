@@ -21,12 +21,14 @@ namespace Genode {
 	class Region_map;
 	class Ram_allocator;
 	class Env;
+	class Platform;
 	class Local_session_id_space;
 
 	extern Region_map    *env_stack_area_region_map;
 	extern Ram_allocator *env_stack_area_ram_allocator;
 
-	void init_platform();
+	Platform &init_platform();
+
 	void init_stack_area();
 	void init_exception_handling(Ram_allocator &, Region_map &);
 	void init_signal_transmitter(Env &);
@@ -58,7 +60,7 @@ namespace Genode {
 	Env &internal_env();
 
 	void prepare_init_main_thread();
-	void bootstrap_component();
+	void bootstrap_component(Platform &);
 	void binary_ready_hook_for_platform();
 }
 

@@ -178,16 +178,12 @@ Capability<Parent> Platform::_obtain_parent_cap()
 
 void Genode::init_parent_resource_requests(Genode::Env & env)
 {
-	/**
-	 * Catch up asynchronous resource request and notification
-	 * mechanism construction of the expanding parent environment
-	 */
 	using Parent = Expanding_parent_client;
 	static_cast<Parent*>(&env.parent())->init_fallback_signal_handling();
 }
 
 
-void Genode::init_platform()
+Platform &Genode::init_platform()
 {
 	static Genode::Platform platform;
 
@@ -197,8 +193,12 @@ void Genode::init_platform()
 	init_thread(platform.cpu, platform.rm);
 	init_thread_start(platform.pd.rpc_cap());
 	init_thread_bootstrap(platform.cpu, platform.parent.main_thread_cap());
+	init_exception_handling(platform.pd, platform.rm);
+	init_signal_receiver(platform.pd, platform.parent);
 
 	_platform_ptr = &platform;
+
+	return platform;
 }
 
 

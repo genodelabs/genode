@@ -195,7 +195,7 @@ static void _core_pager_loop()
 }
 
 
-Platform::Sigma0::Sigma0()
+Core::Platform::Sigma0::Sigma0()
 :
 	Pager_object(Cpu_session_capability(), Thread_capability(),
 	             0, Affinity::Location(),
@@ -205,14 +205,14 @@ Platform::Sigma0::Sigma0()
 }
 
 
-Platform::Sigma0 &Platform::sigma0()
+Core::Platform::Sigma0 &Core::Platform::sigma0()
 {
 	static Sigma0 _sigma0;
 	return _sigma0;
 }
 
 
-Platform::Core_pager::Core_pager(Platform_pd &core_pd)
+Core::Platform::Core_pager::Core_pager(Platform_pd &core_pd)
 :
 	Platform_thread("core.pager"),
 	Pager_object(Cpu_session_capability(), Thread_capability(),
@@ -233,7 +233,7 @@ Platform::Core_pager::Core_pager(Platform_pd &core_pd)
 }
 
 
-Platform::Core_pager &Platform::core_pager()
+Core::Platform::Core_pager &Core::Platform::core_pager()
 {
 	static Core_pager _core_pager(core_pd());
 	return _core_pager;
@@ -370,7 +370,7 @@ bool sigma0_req_region(addr_t *addr, unsigned log2size)
 }
 
 
-void Platform::_setup_mem_alloc()
+void Core::Platform::_setup_mem_alloc()
 {
 	Pistachio::L4_KernelInterfacePage_t *kip = Pistachio::get_kip();
 
@@ -452,10 +452,10 @@ void Platform::_setup_mem_alloc()
 }
 
 
-void Platform::_setup_irq_alloc() { _irq_alloc.add_range(0, 0x10); }
+void Core::Platform::_setup_irq_alloc() { _irq_alloc.add_range(0, 0x10); }
 
 
-void Platform::_setup_preemption()
+void Core::Platform::_setup_preemption()
 {
 	/*
 	 * The roottask has the maximum priority
@@ -465,7 +465,7 @@ void Platform::_setup_preemption()
 }
 
 
-void Platform::_setup_basics()
+void Core::Platform::_setup_basics()
 {
 	using namespace Pistachio;
 
@@ -555,7 +555,7 @@ void Platform::_setup_basics()
 }
 
 
-Platform_pd &Platform::core_pd()
+Platform_pd &Core::Platform::core_pd()
 {
 	/* on first call, setup task object for core task */
 	static Platform_pd _core_pd(true);
@@ -563,7 +563,7 @@ Platform_pd &Platform::core_pd()
 }
 
 
-Platform::Platform()
+Core::Platform::Platform()
 :
 	_ram_alloc(nullptr), _io_mem_alloc(&core_mem_alloc()),
 	_io_port_alloc(&core_mem_alloc()), _irq_alloc(&core_mem_alloc()),
@@ -644,7 +644,7 @@ Platform::Platform()
  ** Generic platform interface **
  ********************************/
 
-void Platform::wait_for_exit()
+void Core::Platform::wait_for_exit()
 {
 	/*
 	 * On Pistachio, core never exits. So let us sleep forever.
