@@ -28,11 +28,11 @@
 
 using namespace Genode;
 
-static Pd_session *_pd_ptr;
-static Pd_session &pd()
+static Env *_env_ptr;
+static Env &env()
 {
-	if (_pd_ptr)
-		return *_pd_ptr;
+	if (_env_ptr)
+		return *_env_ptr;
 
 	class Missing_init_signal_thread { };
 	throw Missing_init_signal_thread();
@@ -43,14 +43,16 @@ static Pd_session &pd()
  * On base-hw, we don't use a signal thread. We mereely save the PD session
  * pointer of the passed 'env' argument.
  */
-void Genode::init_signal_thread(Env &env) { _pd_ptr = &env.pd(); }
+void Genode::init_signal_thread(Env &env) { _env_ptr = &env; }
+
+
 void Genode::destroy_signal_thread() { }
 
 
 void Genode::init_signal_receiver(Pd_session &, Parent &) { }
 
 
-Signal_receiver::Signal_receiver() : _pd(pd())
+Signal_receiver::Signal_receiver() : _pd(env().pd())
 {
 	for (;;) {
 
@@ -58,15 +60,15 @@ Signal_receiver::Signal_receiver() : _pd(pd())
 		Cap_quota cap_upgrade { 0 };
 
 		try {
-			_cap = pd().alloc_signal_source();
+			_cap = env().pd().alloc_signal_source();
 			break;
 		}
 		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 2*1024*sizeof(long) }; }
 		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
 
-		internal_env().upgrade(Parent::Env::pd(),
-		                       String<100>("ram_quota=", ram_upgrade, ", "
-		                                   "cap_quota=", cap_upgrade).string());
+		env().upgrade(Parent::Env::pd(),
+		              String<100>("ram_quota=", ram_upgrade, ", "
+		                          "cap_quota=", cap_upgrade).string());
 	}
 }
 
@@ -74,7 +76,7 @@ Signal_receiver::Signal_receiver() : _pd(pd())
 void Signal_receiver::_platform_destructor()
 {
 	/* release server resources of receiver */
-	pd().free_signal_source(_cap);
+	env().pd().free_signal_source(_cap);
 }
 
 
@@ -112,7 +114,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 
 		try {
 			/* use signal context as imprint */
-			c->_cap = pd().alloc_context(_cap, (unsigned long)c);
+			c->_cap = env().pd().alloc_context(_cap, (unsigned long)c);
 			c->_receiver = this;
 			_contexts.insert_as_tail(c);
 			return c->_cap;
@@ -120,9 +122,9 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 1024*sizeof(long) }; }
 		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
 
-		internal_env().upgrade(Parent::Env::pd(),
-		                       String<100>("ram_quota=", ram_upgrade, ", "
-		                                   "cap_quota=", cap_upgrade).string());
+		env().upgrade(Parent::Env::pd(),
+		              String<100>("ram_quota=", ram_upgrade, ", "
+		                          "cap_quota=", cap_upgrade).string());
 	}
 }
 

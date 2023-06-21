@@ -74,10 +74,6 @@ Core_env &Core::core_env()
 }
 
 
-Env_deprecated *Genode::env_deprecated() {
-	return &core_env(); }
-
-
 Core::Platform &Core::platform_specific()
 {
 	static Platform _platform;

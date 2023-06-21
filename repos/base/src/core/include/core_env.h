@@ -17,7 +17,6 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -36,7 +35,7 @@ namespace Core {
 }
 
 
-class Core::Core_env : public Env_deprecated, Noncopyable
+class Core::Core_env : public Noncopyable
 {
 	private:
 
@@ -87,16 +86,12 @@ class Core::Core_env : public Env_deprecated, Noncopyable
 
 		Rpc_entrypoint &signal_ep();
 
-		/******************************
-		 ** Env_deprecated interface **
-		 ******************************/
-
-		Parent                 *parent()          override { return nullptr; }
-		Region_map             *rm_session()      override { return &_region_map; }
-		Pd_session             *pd_session()      override { return &_pd_session; }
-		Cpu_session            *cpu_session()     override { ASSERT_NEVER_CALLED; }
-		Cpu_session_capability  cpu_session_cap() override { ASSERT_NEVER_CALLED; }
-		Pd_session_capability   pd_session_cap()  override { return _pd_session.cap(); }
+		Parent                 *parent()          { return nullptr; }
+		Region_map             *rm_session()      { return &_region_map; }
+		Pd_session             *pd_session()      { return &_pd_session; }
+		Cpu_session            *cpu_session()     { ASSERT_NEVER_CALLED; }
+		Cpu_session_capability  cpu_session_cap() { ASSERT_NEVER_CALLED; }
+		Pd_session_capability   pd_session_cap()  { return _pd_session.cap(); }
 };
 
 #endif /* _CORE__INCLUDE__CORE_ENV_H_ */

@@ -24,8 +24,6 @@
 #include <base/internal/parent_socket_handle.h>
 #include <base/internal/capability_space_tpl.h>
 
-#include <deprecated/env.h>
-
 using namespace Genode;
 
 
@@ -134,36 +132,6 @@ static unsigned long get_env_ulong(const char *key)
 }
 
 
-static Platform *_platform_ptr;
-
-
-Env_deprecated *Genode::env_deprecated()
-{
-	if (!_platform_ptr) {
-		error("missing call of init_platform");
-		for (;;);
-	}
-
-	struct Impl : Env_deprecated, Noncopyable
-	{
-		Platform &_pf;
-
-		Impl(Platform &pf) : _pf(pf) { }
-
-		Parent                *parent()          override { return &_pf.parent; }
-		Cpu_session           *cpu_session()     override { return &_pf.cpu; }
-		Cpu_session_capability cpu_session_cap() override { return  _pf.cpu.rpc_cap(); }
-		Region_map            *rm_session()      override { return &_pf.rm; }
-		Pd_session            *pd_session()      override { return &_pf.pd; }
-		Pd_session_capability  pd_session_cap()  override { return  _pf.pd.rpc_cap(); }
-	};
-
-	static Impl impl { *_platform_ptr };
-
-	return &impl;
-}
-
-
 Capability<Parent> Platform::_obtain_parent_cap()
 {
 	long const local_name = get_env_ulong("parent_local_name");
@@ -195,8 +163,6 @@ Platform &Genode::init_platform()
 	init_thread_bootstrap(platform.cpu, platform.parent.main_thread_cap());
 	init_exception_handling(platform.pd, platform.rm);
 	init_signal_receiver(platform.pd, platform.parent);
-
-	_platform_ptr = &platform;
 
 	return platform;
 }

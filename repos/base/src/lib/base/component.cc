@@ -18,17 +18,10 @@
 #include <base/connection.h>
 #include <base/service.h>
 #include <base/env.h>
-#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
 #include <base/internal/platform.h>
-
-
-/*
- * XXX remove this pointer once 'Env_deprecated' is removed
- */
-static Genode::Env *env_ptr = nullptr;
 
 namespace Genode { struct Component_env; }
 
@@ -86,9 +79,7 @@ struct Genode::Component_env : Env
 	Component_env(Platform &platform, Entrypoint &ep)
 	:
 		_platform(platform), _ep(ep)
-	{
-		env_ptr = this;
-	}
+	{ }
 
 	Parent      &parent() override { return _parent; }
 	Cpu_session &cpu()    override { return _cpu; }
@@ -222,23 +213,6 @@ struct Genode::Component_env : Env
 };
 
 
-namespace Genode {
-
-	struct Startup;
-
-	extern void bootstrap_component();
-
-	Env &internal_env()
-	{
-		class Env_ptr_not_initialized { };
-		if (!env_ptr)
-			throw Env_ptr_not_initialized();
-
-		return *env_ptr;
-	}
-}
-
-
 size_t Component::stack_size() __attribute__((weak));
 size_t Component::stack_size() { return 64*1024; }
 
@@ -259,6 +233,9 @@ void Genode::init_ldso_phdr(Env &) { }
  * We need to execute the constructor of the main entrypoint from a
  * class called 'Startup' as 'Startup' is a friend of 'Entrypoint'.
  */
+namespace Genode { struct Startup; }
+
+
 struct Genode::Startup
 {
 	Component_env env;

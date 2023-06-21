@@ -57,7 +57,6 @@ namespace Genode {
 	void cxx_free_tls(void *thread);
 
 	Id_space<Parent::Client> &env_session_id_space();
-	Env &internal_env();
 
 	void prepare_init_main_thread();
 	void bootstrap_component(Platform &);
