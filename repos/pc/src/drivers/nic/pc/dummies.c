@@ -35,6 +35,14 @@ int sysfs_add_file_to_group(struct kobject * kobj,const struct attribute * attr,
 	return 0;
 }
 
+#include <linux/sysfs.h>
+
+int sysfs_create_link_nowarn(struct kobject * kobj,struct kobject * target,const char * name)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
 #include <linux/proc_ns.h>
 
 int proc_alloc_inum(unsigned int * inum)
@@ -249,14 +257,6 @@ int pci_enable_device_mem(struct pci_dev *dev)
 
 #include <linux/pci.h>
 
-int pci_select_bars(struct pci_dev *dev, unsigned long flags)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-#include <linux/pci.h>
-
 int pci_request_selected_regions(struct pci_dev *dev, int, const char *res_name)
 {
 	lx_emul_trace(__func__);
@@ -344,4 +344,49 @@ int pci_enable_wake(struct pci_dev *pci_dev, pci_power_t state, bool enable)
 void pci_clear_master(struct pci_dev *dev)
 {
 	lx_emul_trace(__func__);
+}
+
+
+#include <linux/pci.h>
+
+int pcim_set_mwi(struct pci_dev * dev)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/iommu.h>
+
+void iommu_device_unuse_default_domain(struct device * dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/pci.h>
+
+int pcim_iomap_regions(struct pci_dev * pdev,int mask,const char * name)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/firmware.h>
+
+int request_firmware(const struct firmware ** firmware_p,const char * name,struct device * device)
+{
+	lx_emul_trace(__func__);
+	return -1;
+}
+
+
+#include <linux/net.h>
+
+int net_ratelimit(void)
+{
+	lx_emul_trace(__func__);
+	/* suppress */
+	return 0;
 }

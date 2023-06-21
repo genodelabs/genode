@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-06-05
+ * \date   2023-06-22
  */
 
 #include <lx_emul.h>
@@ -171,6 +171,11 @@ void bust_spinlocks(int yes)
 }
 
 
+#include <linux/bitrev.h>
+
+u8 const byte_rev_table[256] = {};
+
+
 #include <linux/console.h>
 
 void console_flush_on_panic(enum con_flush_mode mode)
@@ -211,6 +216,14 @@ void cpu_latency_qos_remove_request(struct pm_qos_request * req)
 }
 
 
+#include <linux/property.h>
+
+int device_create_managed_software_node(struct device * dev,const struct property_entry * properties,const struct software_node * parent)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/netlink.h>
 
 void do_trace_netlink_extack(const char * msg)
@@ -238,6 +251,30 @@ asmlinkage __visible void dump_stack(void)
 #include <linux/reboot.h>
 
 void emergency_restart(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/ethtool_netlink.h>
+
+int ethnl_cable_test_alloc(struct phy_device * phydev,u8 cmd)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/ethtool_netlink.h>
+
+void ethnl_cable_test_finished(struct phy_device * phydev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/ethtool_netlink.h>
+
+void ethnl_cable_test_free(struct phy_device * phydev)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -410,14 +447,6 @@ long __sched io_schedule_timeout(long timeout)
 struct io_tlb_mem io_tlb_default_mem;
 
 
-#include <linux/iommu.h>
-
-void iommu_device_unuse_default_domain(struct device * dev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/irq_work.h>
 
 void irq_work_tick(void)
@@ -540,14 +569,6 @@ int mii_nway_restart(struct mii_if_info * mii)
 }
 
 
-#include <linux/net.h>
-
-int net_ratelimit(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/netlink.h>
 
 bool netlink_strict_get_check(struct sk_buff * skb)
@@ -621,7 +642,23 @@ int pci_set_power_state(struct pci_dev * dev,pci_power_t state)
 
 #include <linux/pci.h>
 
+int pci_status_get_and_clear_errors(struct pci_dev * pdev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
 int pci_wake_from_d3(struct pci_dev * dev,bool enable)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
+int pci_write_config_byte(const struct pci_dev * dev,int where,u8 val)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -638,6 +675,14 @@ int pcie_capability_clear_and_set_word(struct pci_dev * dev,int pos,u16 clear,u1
 #include <linux/pci.h>
 
 int pcie_capability_write_word(struct pci_dev * dev,int pos,u16 val)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
+int pcie_set_readrq(struct pci_dev * dev,int rq)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -702,6 +747,14 @@ void proc_free_inum(unsigned int inum)
 #include <linux/reboot.h>
 
 enum reboot_mode reboot_mode;
+
+
+#include <linux/firmware.h>
+
+void release_firmware(const struct firmware * fw)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/rhashtable.h>

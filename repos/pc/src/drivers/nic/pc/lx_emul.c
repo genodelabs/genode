@@ -12,6 +12,7 @@
  */
 
 #include <lx_emul.h>
+#include <lx_emul/io_mem.h>
 
 
 unsigned long __FIXADDR_TOP = 0xfffff000;
@@ -157,4 +158,82 @@ int pcie_capability_read_word(struct pci_dev *dev, int pos, u16 *val)
 {
 	printk("%s: unexpected read at %x\n", __func__, pos);
 	return -1;
+}
+
+
+static unsigned long *_pci_iomap_table;
+
+void __iomem * const * pcim_iomap_table(struct pci_dev * pdev)
+{
+	unsigned i;
+
+	if (!_pci_iomap_table)
+		_pci_iomap_table = kzalloc(sizeof (unsigned long*) * 6, GFP_KERNEL);
+
+	if (!_pci_iomap_table)
+		return NULL;
+
+	for (i = 0; i < 6; i++) {
+		struct resource *r = &pdev->resource[i];
+		unsigned long phys_addr = r->start;
+		unsigned long size      = r->end - r->start;
+
+		if (!(r->flags & IORESOURCE_MEM))
+			continue;
+
+		if (!phys_addr || !size)
+			continue;
+
+		_pci_iomap_table[i] =
+			(unsigned long)lx_emul_io_mem_map(phys_addr, size);
+	}
+
+	return (void const *)_pci_iomap_table;
+}
+
+
+int pci_select_bars(struct pci_dev *dev, unsigned long flags)
+{
+	int bars = 0;
+	unsigned long const *table;
+	unsigned i;
+
+	if (!(flags & IORESOURCE_MEM))
+		return 0;
+
+	/* misuse 'pcim_iomap_table()' for querying I/O mem */
+	table = (unsigned long const *)pcim_iomap_table(dev);
+
+	for (i = 0; i < 6; i++)
+		if (table[i])
+			bars |= (1 << i);
+
+	return bars;
+}
+
+
+int pci_alloc_irq_vectors_affinity(struct pci_dev *dev, unsigned int min_vecs,
+                                   unsigned int max_vecs, unsigned int flags,
+                                   struct irq_affinity *aff_desc)
+{
+	if ((flags & PCI_IRQ_LEGACY) && min_vecs == 1 && dev->irq)
+		return 1;
+	return -ENOSPC;
+}
+
+
+int pci_irq_vector(struct pci_dev *dev, unsigned int nr)
+{
+	if (WARN_ON_ONCE(nr > 0))
+		return -EINVAL;
+	return dev->irq;
+}
+
+
+#include <linux/dma-mapping.h>
+
+void *dmam_alloc_attrs(struct device *dev, size_t size, dma_addr_t *dma_handle,
+                       gfp_t gfp, unsigned long attrs)
+{
+	return dma_alloc_attrs(dev, size, dma_handle, gfp, attrs);
 }
