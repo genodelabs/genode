@@ -23,7 +23,6 @@ SRC_CC += rpc_entrypoint.cc
 SRC_CC += signal_common.cc
 SRC_CC += sleep.cc
 SRC_CC += entrypoint.cc
-SRC_CC += component.cc
 SRC_CC += region_map_client.cc
 SRC_CC += rm_session_client.cc
 SRC_CC += stack_allocator.cc

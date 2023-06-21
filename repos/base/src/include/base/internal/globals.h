@@ -57,6 +57,7 @@ namespace Genode {
 	Id_space<Parent::Client> &env_session_id_space();
 	Env &internal_env();
 
+	void bootstrap_component();
 	void binary_ready_hook_for_platform();
 }
 

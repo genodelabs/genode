@@ -15,6 +15,7 @@
 #include <base/sleep.h>
 #include <base/service.h>
 #include <base/child.h>
+#include <base/component.h>
 #include <rm_session/connection.h>
 #include <pd_session/connection.h>
 #include <rom_session/connection.h>
@@ -216,11 +217,15 @@ namespace Genode {
 }
 
 
-int main()
+/* expected by entrypoint.cc */
+Genode::size_t Component::stack_size() { return 64*1024; }
+
+
+void Genode::bootstrap_component()
 {
-	/**
-	 * Disable tracing within core because it is currently not fully implemented.
-	 */
+	init_exception_handling(*core_env().pd_session(), core_env().local_rm());
+
+	/* disable tracing within core because it is not fully implemented */
 	inhibit_tracing = true;
 
 	log("Genode ", Genode::version_string);
@@ -287,12 +292,12 @@ int main()
 
 	if (avail_ram_quota < preserved_ram_quota) {
 		error("core preservation exceeds platform RAM limit");
-		return -1;
+		return;
 	}
 
 	if (avail_cap_quota < preserved_cap_quota) {
 		error("core preservation exceeds platform cap quota limit");
-		return -1;
+		return;
 	}
 
 	Ram_quota const init_ram_quota { avail_ram_quota - preserved_ram_quota };
@@ -319,5 +324,4 @@ int main()
 	platform().wait_for_exit();
 
 	init.destruct();
-	return 0;
 }
