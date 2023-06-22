@@ -99,9 +99,9 @@ install_config {
 		</config>
 	</start>
 
-	<start name="audio_drv" caps="150">
+	<start name="audio_drv">
 		<binary name="pci_audio_drv"/>
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Audio_out"/> </provides>
 		<config/>
 	</start>

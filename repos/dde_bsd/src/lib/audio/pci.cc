@@ -42,7 +42,7 @@ class Pci_driver
 {
 	private:
 
-		enum { DMA_SIZE = 1024 * 1024 };
+		enum { DMA_SIZE = 256 * 1024 };
 
 		Genode::Env          & _env;
 		Platform::Connection   _pci    { _env };

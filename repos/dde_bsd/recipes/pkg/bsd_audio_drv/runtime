@@ -1,4 +1,4 @@
-<runtime ram="16M" caps="256" binary="pci_audio_drv">
+<runtime ram="2M" caps="100" binary="pci_audio_drv">
 
 	<requires> <platform/> <rm/> <timer/> </requires>
 
