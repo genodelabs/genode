@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2023-03-27
+ * \date   2023-07-17
  */
 
 #pragma once
@@ -68,7 +68,11 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_aes_init4",
 	"__initcall_prng_mod_init4",
 	"__initcall_misc_init4",
+	"__initcall_phy_init4",
+	"__initcall_usb_common_init4",
+	"__initcall_usb_init4",
 	"__initcall_input_init4",
+	"__initcall_leds_init4",
 	"__initcall_net_dev_init4",
 	"__initcall_neigh_init4",
 	"__initcall_fib_notifier_init4",
@@ -135,8 +139,29 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_cacheinfo_sysfs_init6",
 	"__initcall_wg_mod_init6",
 	"__initcall_blackhole_netdev_init6",
+	"__initcall_phylink_init6",
+	"__initcall_phy_module_init6",
 	"__initcall_virtio_net_driver_init6",
+	"__initcall_asix_driver_init6",
+	"__initcall_ax88179_178a_driver_init6",
+	"__initcall_cdc_driver_init6",
+	"__initcall_usbnet_init6",
+	"__initcall_cdc_ncm_driver_init6",
+	"__initcall_cdc_mbim_driver_init6",
+	"__initcall_r8153_ecm_driver_init6",
 	"__initcall_net_failover_init6",
+	"__initcall_wdm_driver_init6",
+	"__initcall_input_leds_init6",
+	"__initcall_evdev_init6",
+	"__initcall_hid_init6",
+	"__initcall_hid_generic_init6",
+	"__initcall_apple_driver_init6",
+	"__initcall_ch_driver_init6",
+	"__initcall_holtek_kbd_driver_init6",
+	"__initcall_holtek_mouse_driver_init6",
+	"__initcall_holtek_driver_init6",
+	"__initcall_ms_driver_init6",
+	"__initcall_hid_init6",
 	"__initcall_sock_diag_init6",
 	"__initcall_failover_init6",
 	"__initcall_gre_offload_init6",
