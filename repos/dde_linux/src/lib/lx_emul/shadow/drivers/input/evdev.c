@@ -36,8 +36,15 @@ static void submit_rel_motion(struct genode_event_submit *submit,
                               unsigned code, int value)
 {
 	switch (code) {
-	case REL_X: submit->rel_motion(submit, value, 0); break;
-	case REL_Y: submit->rel_motion(submit, 0, value); break;
+	case REL_X:      submit->rel_motion(submit, value, 0); break;
+	case REL_Y:      submit->rel_motion(submit, 0, value); break;
+
+	case REL_HWHEEL: submit->wheel(submit, value, 0);      break;
+	case REL_WHEEL:  submit->wheel(submit, 0, value);      break;
+
+	/* skip for now because of large values */
+	case REL_HWHEEL_HI_RES: break;
+	case REL_WHEEL_HI_RES:  break;
 
 	default:
 		printk("Unsupported relative motion event code=%d dropped\n", code);
@@ -70,6 +77,7 @@ static void evdev_event_generator(struct genode_event_generator_ctx *ctx,
                                   struct genode_event_submit *submit)
 {
 	int i;
+
 	for (i = 0; i < ctx->count; i++) {
 		unsigned const type  = ctx->values[i].type;
 		unsigned const code  = ctx->values[i].code;
