@@ -287,15 +287,17 @@ if { [check_depot_state $context] } {
 
 puts " TEST 3 --- Delete a PKG archive with deps to keep --- SUCCESS"
 
-puts "\n--------------- TEST 4 --- Remove all, keep themed_decorator PKG"
+puts "\n--------------- TEST 4 --- Remove all, keep themed_decorator and chroot PKGS"
 
 set context [mark_all_for_deletion [build_depot_context]]
 set context [mark_pkg_to_keep $context "themed_decorator"]
+set context [mark_pkg_to_keep $context "chroot"]
 
 install_test_config {
 <config arch="} [depot_spec] {" report="yes">
 	<remove-all>
 		<keep user="} [depot_user] {" pkg="themed_decorator"/>
+		<keep user="} [depot_user] {" pkg="chroot"/>
 	</remove-all>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
 </config>}
@@ -303,9 +305,27 @@ install_test_config {
 run_genode_until ".*</removed_archives>" 10
 
 if { [check_depot_state $context] } {
-	puts " TEST 4 --- Remove all, keep themed_decorator PKG --- ERROR"
+	puts " TEST 4 --- Remove all, keep themed_decorator and chroot PKGS --- ERROR"
 	exit 1
 }
 
-puts " TEST 4 --- Remove all, keep themed_decorator PKG --- SUCCESS"
+puts " TEST 4 --- Remove all, keep themed_decorator and chroot PKGS --- SUCCESS"
 
+puts "\n--------------- TEST 5 --- Remove all --- SUCCESS"
+
+set context [mark_all_for_deletion [build_depot_context]]
+
+install_test_config {
+<config arch="} [depot_spec] {" report="yes">
+	<remove-all/>
+	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
+</config>}
+
+run_genode_until ".*</removed_archives>" 10
+
+if { [check_depot_state $context] } {
+	puts " TEST 5 --- Remove all --- ERROR"
+	exit 1
+}
+
+puts " TEST 5 --- Remove all --- SUCCESS"
