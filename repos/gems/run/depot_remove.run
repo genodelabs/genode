@@ -90,74 +90,111 @@ proc install_test_config { args } {
 	close $fd
 }
 
-proc depot_state { } {
+proc pkg_path { name } {
+	return [depot_user]/pkg/$name/[_current_depot_archive_version pkg $name] }
 
-	set archives_to_keep {}
+proc collect_pkg_dependencies { path } {
 
-	foreach dir [glob -type d [run_dir]/genode/depot/[depot_user]/pkg/*] {
-		set pkg_path [depot_user]/pkg/[file tail $dir]/[_current_depot_archive_version pkg [file tail $dir]]
+	set fd [open [run_dir]/genode/depot/$path/archives r]
+	set pkg_deps [split [string trim [read $fd]]]
+	close $fd
 
-		set fd [open [run_dir]/genode/depot/$pkg_path/archives r]
-		set pkg_deps [split [string trim [read $fd]]]
-		close $fd
+	return $pkg_deps
+}
 
-		foreach dependency $pkg_deps {
-			set idx [lsearch -exact $archives_to_keep $dependency]
-			if { $idx == -1 } {
-				lappend archives_to_keep $dependency
-			}
-		}
-		lappend archives_to_keep $pkg_path
-	}
-
+proc build_depot_context { } {
 	set context [dict create]
-	dict set context pkg ""
-	dict set context archives_to_delete {}
-	dict set context archives_to_keep $archives_to_keep
+	dict set context archives_to_delete { }
+	dict set context archives_to_keep   { }
+
+	# collect every PKGs and dependencies in the keep list
+	foreach dir [glob -type d [run_dir]/genode/depot/[depot_user]/pkg/*] {
+		dict with context {
+			set path [pkg_path [file tail $dir]]
+			set dependencies [collect_pkg_dependencies $path]
+
+			foreach dependency $dependencies {
+				set idx [lsearch -exact $archives_to_keep $dependency]
+				if { $idx == -1 } {
+					lappend archives_to_keep $dependency
+				}
+			}
+			lappend archives_to_keep $path
+		}
+	}
 
 	return $context
 }
 
-proc depot_state_for_pkg { archive } {
-	set archive_path [depot_user]/pkg/$archive/[_current_depot_archive_version pkg $archive]
+proc mark_pkg_for_deletion { context name } {
 
-	# Dependencies of $archive are archives to delete
-	set fd [open [run_dir]/genode/depot/$archive_path/archives r]
-	set archives_to_delete [split [string trim [read $fd]]]
-	close $fd
+	# collect pkg versioned path and its dependencies
+	set path [pkg_path $name]
+	set archives [collect_pkg_dependencies $path]
+	lappend archives $path
 
-	set archives_to_keep {}
-
+	# compute archive(s) still referenced by another PKG that must be kept
 	foreach dir [glob -type d [run_dir]/genode/depot/[depot_user]/pkg/*] {
+		if { [file tail $dir] == $name } continue
 
-		if { [file tail $dir] != $archive } {
+		set pkg_path [pkg_path [file tail $dir]]
+		set pkg_dependencies [collect_pkg_dependencies $pkg_path]
 
-			set pkg_path [depot_user]/pkg/[file tail $dir]/[_current_depot_archive_version pkg [file tail $dir]]
-
-			set fd [open [run_dir]/genode/depot/$pkg_path/archives r]
-			set pkg_deps [split [string trim [read $fd]]]
-			close $fd
-
-			foreach dependency $archives_to_delete {
-				set idx [lsearch -exact $pkg_deps $dependency]
-				if { $idx != -1 } {
-					lappend archives_to_keep $dependency
-				}
+		foreach archive $archives {
+			set idx [lsearch -exact $pkg_dependencies $archive]
+			# remove the archive from deletion list if listed in other PKG dependencies
+			if { $idx != -1 } {
+				set archives [lreplace $archives $idx $idx]
 			}
 		}
 	}
 
-	# Remove archive to keep from archive to delete
-	foreach dependency $archives_to_keep {
-		set idx [lsearch -exact $archives_to_delete $dependency]
-		set archives_to_delete [lreplace $archives_to_delete $idx $idx]
+	# remove archives to delete from keep list and put them into deletion list
+	foreach archive $archives {
+		dict with context {
+			set idx [lsearch -exact $archives_to_keep $archive]
+			if { $idx != -1 } {
+				set archives_to_keep [lreplace $archives_to_keep $idx $idx]
+			}
+			set idx [lsearch -exact $archives_to_delete $archive]
+			if { $idx == -1 } {
+					lappend archives_to_delete $archive
+			}
+		}
 	}
 
-	set context [dict create]
-	dict set context pkg "$archive_path"
-	dict set context archives_to_delete $archives_to_delete
-	dict set context archives_to_keep $archives_to_keep
+	return $context
+}
 
+proc mark_pkg_to_keep { context name } {
+
+	# collect pkg versioned path and its dependencies
+	set path [pkg_path $name]
+	set dependencies [collect_pkg_dependencies $path]
+	lappend dependencies $path
+
+	# ensure archives are not into deletion list but in keep list
+	foreach archive $dependencies {
+		dict with context {
+			set idx [lsearch -exact $archives_to_delete $archive]
+			if { $idx != -1 } {
+				set archives_to_delete [lreplace $archives_to_delete $idx $idx]
+			}
+			set idx [lsearch -exact $archives_to_keep $archive]
+			if { $idx == -1 } {
+				lappend archives_to_keep $archive
+			}
+		}
+	}
+
+	return $context
+}
+
+proc mark_all_for_deletion { context } {
+	dict with context {
+		set archives_to_delete [concat $archives_to_delete $archives_to_keep]
+		set archives_to_keep { }
+	}
 	return $context
 }
 
@@ -191,24 +228,18 @@ proc check_depot_state { context } {
 		}
 	}
 
-	if { [dict get $context pkg] != "" && [file isdirectory [run_dir]/genode/depot/[dict get $context pkg]] } {
-		puts "ERROR: [dict get $context pkg] is present but shoud have been deleted."
-		return 1
-	}
-
 	return 0
 }
 
-## TEST 1 --- Delete nano3d ---------------------------------------------------
+puts "\n--------------- TEST 1 --- Delete nano3d"
 
-set context [depot_state_for_pkg "nano3d"]
+set context [mark_pkg_for_deletion [build_depot_context] "nano3d"]
 
 install_test_config {
 <config arch="} [depot_spec] {" report="yes">
 	<remove user="} [depot_user] {" pkg="nano3d"/>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
-</config>
-}
+</config>}
 
 run_genode_until ".*</removed_archives>" 10
 
@@ -218,17 +249,15 @@ if { [check_depot_state $context] } {
 }
 
 puts " TEST 1 --- Delete nano3d -- SUCCESS"
+puts "\n--------------- TEST 2 --- Delete non existing archive"
 
-## TEST 2 --- Delete non existing archive -------------------------------------
-
-set context [depot_state]
+set context [build_depot_context]
 
 install_test_config {
 <config arch="} [depot_spec] {" report="yes">
 	<remove user="} [depot_user] {" pkg="nano3d"/>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
-</config>
-}
+</config>}
 
 run_genode_until ".*<removed_archives/>" 10
 
@@ -239,16 +268,15 @@ if { [check_depot_state $context] } {
 
 puts " TEST 2 --- Delete non existing archive -- SUCCESS"
 
-## TEST 3 --- Delete a PKG archive with deps to keep --------------------------
+puts "\n--------------- TEST 3 --- Delete a PKG archive with deps to keep"
 
-set context [depot_state_for_pkg "fonts_fs"]
+set context [mark_pkg_for_deletion [build_depot_context] "fonts_fs"]
 
 install_test_config {
 <config arch="} [depot_spec] {" report="yes">
 	<remove user="} [depot_user] {" pkg="fonts_fs"/>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
-</config>
-}
+</config>}
 
 run_genode_until ".*</removed_archives>" 10
 
@@ -259,9 +287,10 @@ if { [check_depot_state $context] } {
 
 puts " TEST 3 --- Delete a PKG archive with deps to keep --- SUCCESS"
 
-## TEST 4 --- Remove all, keep themed_decorator PKG --------------------------
+puts "\n--------------- TEST 4 --- Remove all, keep themed_decorator PKG"
 
-set context [depot_state_for_pkg "themed_decorator"]
+set context [mark_all_for_deletion [build_depot_context]]
+set context [mark_pkg_to_keep $context "themed_decorator"]
 
 install_test_config {
 <config arch="} [depot_spec] {" report="yes">
@@ -269,12 +298,11 @@ install_test_config {
 		<keep user="} [depot_user] {" pkg="themed_decorator"/>
 	</remove-all>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
-</config>
-}
+</config>}
 
 run_genode_until ".*</removed_archives>" 10
 
-if { ![check_depot_state $context] } {
+if { [check_depot_state $context] } {
 	puts " TEST 4 --- Remove all, keep themed_decorator PKG --- ERROR"
 	exit 1
 }
