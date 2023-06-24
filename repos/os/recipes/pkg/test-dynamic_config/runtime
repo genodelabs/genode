@@ -2,12 +2,10 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> test-dynamic_config] obtained counter value 11 from config
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -32,7 +30,7 @@
 		<default caps="100"/>
 		<start name="test-dynamic_config_server">
 			<resource name="RAM" quantum="1M"/>
-			<provides> <service name="ROM" /> </provides>
+			<provides> <service name="ROM"/> </provides>
 		</start>
 		<start name="test-dynamic_config" caps="500">
 			<resource name="RAM" quantum="1M"/>
@@ -40,7 +38,7 @@
 				<service name="ROM" label="config">
 					<child name="test-dynamic_config_server" label="config.dynamic"/>
 				</service>
-				<any-service> <parent /> </any-service>
+				<any-service> <parent/> </any-service>
 			</route>
 		</start>
 	</config>

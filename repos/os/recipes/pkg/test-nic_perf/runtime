@@ -2,12 +2,10 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="60" />
-		<log meaning="succeeded">
+	<fail after_seconds="60"/>
+	<succeed>
 			[init] child "nic_perf_tx" exited with exit value 0
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

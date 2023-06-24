@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log     meaning="succeeded">--- RTC test finished ---</log>
-		<log     meaning="failed"   >Error: </log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>--- RTC test finished ---</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

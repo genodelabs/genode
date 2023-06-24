@@ -337,20 +337,65 @@ void Child::gen_start_node(Xml_generator          &xml,
 
 	uint64_t max_timeout_sec = 0;
 	try {
-		Xml_node const events = _pkg_xml->xml().sub_node("runtime").sub_node("events");
-		events.for_each_sub_node("timeout", [&] (Xml_node const &event) {
-			try {
-				Timeout_event &timeout = *new (_alloc) Timeout_event(_timer, *this, event);
-				if (timeout.sec() > max_timeout_sec) {
-					max_timeout_sec = timeout.sec();
+		Xml_node const runtime = _pkg_xml->xml().sub_node("runtime");
+
+		/*
+		 * The check for the <events> node is made only for compatibility with
+		 * the old (< Genode 23.08) success-criterion syntax and can be removed
+		 * after an appropriate transition period.
+		 */
+		if (runtime.has_sub_node("events")) {
+
+			Xml_node const events = runtime.sub_node("events");
+			events.for_each_sub_node("timeout", [&] (Xml_node const &event) {
+				try {
+					Timeout_event &timeout = *new (_alloc) Timeout_event(_timer, *this, event);
+					if (timeout.sec() > max_timeout_sec) {
+						max_timeout_sec = timeout.sec();
+					}
+					_timeout_events.insert(&timeout);
 				}
-				_timeout_events.insert(&timeout);
-			}
-			catch (Timeout_event::Invalid) { warning("Invalid timeout event"); }
-		});
-		events.for_each_sub_node("log", [&] (Xml_node const &event) {
-			_log_events.insert(new (_alloc) Log_event(_alloc, event));
-		});
+				catch (Timeout_event::Invalid) { warning("Invalid timeout event"); }
+			});
+			events.for_each_sub_node("log", [&] (Xml_node const &event) {
+				_log_events.insert(new (_alloc) Log_event(_alloc, event));
+			});
+
+		} else {
+
+			runtime.for_each_sub_node("succeed", [&] (Xml_node const &event) {
+
+				if (event.has_attribute("after_seconds")) {
+					try {
+						Timeout_event &timeout = *new (_alloc) Timeout_event(_timer, *this, event);
+						if (timeout.sec() > max_timeout_sec) {
+							max_timeout_sec = timeout.sec();
+						}
+						_timeout_events.insert(&timeout);
+					}
+					catch (Timeout_event::Invalid) { warning("Invalid timeout event"); }
+				}
+				event.with_raw_content([&] (char const *, size_t) {
+					_log_events.insert(new (_alloc) Log_event(_alloc, event));
+				});
+			});
+			runtime.for_each_sub_node("fail", [&] (Xml_node const &event) {
+
+				if (event.has_attribute("after_seconds")) {
+					try {
+						Timeout_event &timeout = *new (_alloc) Timeout_event(_timer, *this, event);
+						if (timeout.sec() > max_timeout_sec) {
+							max_timeout_sec = timeout.sec();
+						}
+						_timeout_events.insert(&timeout);
+					}
+					catch (Timeout_event::Invalid) { warning("Invalid timeout event"); }
+				}
+				event.with_raw_content([&] (char const *, size_t) {
+					_log_events.insert(new (_alloc) Log_event(_alloc, event));
+				});
+			});
+		}
 	}
 	catch (...) { }
 	log("");
@@ -861,7 +906,17 @@ Timeout_event::Timeout_event(Timer::Connection &timer,
 	Event    { event, Type::TIMEOUT },
 	_child   { child },
 	_timer   { timer },
-	_sec     { event.attribute_value("sec", (uint64_t)0) },
+
+	/*
+	 * The check for the type "timeout" is made only for
+	 * compatibility with the old (< Genode 23.08) success-criterion syntax
+	 * and can be removed after an appropriate transition period.
+	 */
+	_sec     { event.type() == "fail" || event.type() == "succeed" ?
+	               event.attribute_value("after_seconds", (uint64_t)0) :
+	           event.type() == "timeout" ?
+	               event.attribute_value("sec", (uint64_t)0) : 0 },
+
 	_timeout { timer, *this, &Timeout_event::_handle_timeout }
 {
 	if (!_sec) {
@@ -1043,7 +1098,16 @@ Log_event::Log_event(Allocator      &alloc,
 Event::Event(Xml_node const &node,
              Type            type)
 :
-	_meaning { node.attribute_value("meaning", Meaning_string()) },
+	/*
+	 * The check for the types "timeout" and "log" is made only for
+	 * compatibility with the old (< Genode 23.08) success-criterion syntax
+	 * and can be removed after an appropriate transition period.
+	 */
+	_meaning { node.type() == "succeed" ? "succeeded" :
+	           node.type() == "fail" ? "failed" :
+	           node.type() == "timeout" || node.type() == "log" ?
+	               node.attribute_value("meaning", Meaning_string()) : "" },
+
 	_type    { type }
 {
 	if (_meaning != Meaning_string("failed") &&

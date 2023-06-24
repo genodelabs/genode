@@ -2,10 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="30" />
-		<log meaning="succeeded">[init -> select] 3</log>
-	</events>
+	<fail after_seconds="30"/>
+	<succeed>[init -> select] 3</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

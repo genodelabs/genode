@@ -1,9 +1,8 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
+	<fail after_seconds="20"/>
 
-		<log meaning="succeeded">
+	<succeed>
 			[init -> test-new_delete] Allocator::alloc()
 			[init -> test-new_delete]   A
 			[init -> test-new_delete]   C
@@ -55,9 +54,8 @@
 			[init -> test-new_delete] Allocator::free()
 			[init -> test-new_delete] exception caught
 			[init -> test-new_delete] Test done
-		</log>
+	</succeed>
 
-	</events>
 
 	<content>
 		<rom label="ld.lib.so"/>

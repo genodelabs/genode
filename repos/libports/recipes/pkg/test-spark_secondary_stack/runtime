@@ -1,12 +1,10 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> test-spark_secondary_stack] secondary stack test successful
 			[init] child "test-spark_secondary_stack" exited with exit value 0
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

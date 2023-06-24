@@ -2,18 +2,16 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="10" />
-		<log meaning="succeeded">
+	<fail after_seconds="10"/>
+	<succeed>
 			[init -> test-expat]  start of element: config*
 			[init -> test-expat]  start of element: test_tag*
 			[init -> test-expat]  attribute: name='test_attribute', value='test_value'*
 			[init -> test-expat]  end of element: test_tag*
 			[init -> test-expat]  end of element: config*
 			[init] child "test-expat" exited with exit value 0
-		</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -45,7 +43,7 @@
 			<config>
 				<vfs>
 					<inline name="config"><config>
-							<test_tag test_attribute="test_value" />
+							<test_tag test_attribute="test_value"/>
 						</config>
 					</inline>
 					<dir name="dev"> <log/> </dir>

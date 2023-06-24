@@ -2,10 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="30" />
-		<log     meaning="failed">exited with exit value -1</log>
-		<log     meaning="succeeded">
+	<fail after_seconds="30"/>
+	<fail>exited with exit value -1</fail>
+	<succeed>
 			[init -> test-report_rom] --- test-report_rom started ---
 			[init -> test-report_rom] Reporter: open session
 			[init -> test-report_rom] Reporter: brightness 10
@@ -30,8 +29,7 @@
 			[init -> test-report_rom] ROM client: caught Service_denied - OK
 			[init -> test-report_rom] --- test-report_rom finished ---
 			[init] child "test-report_rom" exited with exit value 0
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -59,8 +57,7 @@
 			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="ROM"/> <service name="Report"/> </provides>
 			<config>
-				<policy label_prefix="test-report_rom ->" label_suffix="brightness"
-				       report="test-report_rom -> brightness"/>
+				<policy label_prefix="test-report_rom ->" label_suffix="brightness" report="test-report_rom -> brightness"/>
 			</config>
 		</start>
 		<start name="test-report_rom">

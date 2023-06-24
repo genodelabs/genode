@@ -1,9 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="60" />
-		<log     meaning="succeeded">--- finished fault_detection test ---</log>
-	</events>
+	<fail after_seconds="60"/>
+	<succeed>--- finished fault_detection test ---</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

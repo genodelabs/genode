@@ -1,16 +1,14 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> test-tls] main     initial: x: -1, y: 0
 			[init -> test-tls] thread 0 initial: x: -1, y: 0
 			[init -> test-tls] thread 0        : x:  1, y: 2
 			[init -> test-tls] thread 1 initial: x: -1, y: 0
 			[init -> test-tls] thread 1        : x:  3, y: 4
 			[init -> test-tls] main            : x:  5, y: 6
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

@@ -1,16 +1,14 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> test-synced_interface] --- Synced interface test ---
 			[init -> test-synced_interface] acquire
 			[init -> test-synced_interface] adding 13 + 14
 			[init -> test-synced_interface] release
 			[init -> test-synced_interface] result is 27
 			[init -> test-synced_interface] --- Synced interface test finished ---
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

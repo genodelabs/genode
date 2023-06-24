@@ -1,8 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log     meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> test-ram_fs_chunk] --- RAM filesystem chunk test ---
 			[init -> test-ram_fs_chunk] chunk sizes
 			[init -> test-ram_fs_chunk]   level 0: payload=120 *
@@ -45,8 +44,7 @@
 			[init -> test-ram_fs_chunk] trunc(1) -> content (size=1): "f"
 			[init -> test-ram_fs_chunk] allocator: sum=0
 			[init -> test-ram_fs_chunk] --- RAM filesystem chunk test finished ---
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

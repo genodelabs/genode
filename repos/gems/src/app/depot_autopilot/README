@@ -166,14 +166,12 @@ Besides the mandatory package content, a test package is expected to provide a
 !
 ! 	<requires> <timer/> <nic/> </requires>
 !
-! 	<events>
-! 		<timeout meaning="failed" sec="20" />
-! 		<log meaning="succeeded">Ignores		tabs	
-! 			and newlines but      no whitespaces      !
-! 			Some XML: &lt;my-node my_attr="123"/>
-! 			[init -> test-example] Wildcarded *text *literal star &#42; ampersand &amp;
-! 		</log>
-! 	</events>
+! 	<fail after_seconds="20"/>
+! 	<succeed>Ignores		tabs	
+! 		and newlines but      no whitespaces      !
+! 		Some XML: &lt;my-node my_attr="123"/>
+! 		[init -> test-example] Wildcarded *text *literal star &#42; ampersand &amp;
+! 	</succeed>
 !
 ! 	<content>
 ! 		<rom label="ld.lib.so"/> <rom label="test-example"/>
@@ -213,31 +211,19 @@ Besides the mandatory package content, a test package is expected to provide a
   should not be part of a test sub-tree as we don't want to get into the
   situation of restarting them.
 
-:<events>:
+:<fail after_seconds="33"/>:
+:<succeed after_seconds="100"/>:
 
-  Lists events that may occur during the test and that shall imply a reaction
-  by the Autopilot.
+  Let the test fail or succeed after a timeout given in seconds.
 
-:<events><timeout sec>:
+:<fail>Error!</fail>:
+:<succeed>Done!</succeed>:
 
-  This event occurs when the test execution lasts the given time in seconds.
-
-:<events><timeout meaning>:
-
-  One of "succeeded", "failed". Both imply the test to be treated as finished
-  (gets terminated) with the test result set to the given value.
-
-:<events><log>:
-
-  Contains a string pattern. The event occurs as soon as the pattern could be
+  Let the test fail or succeed as soon as the pattern could be
   completely matched against the LOG-session output of the test. Tabs and
   newlines are ignored in the pattern as well as in the test output. Literal
   characters '<', '&', '*' in the pattern must be escaped as "&lt;", "&amp;",
   "&#42;". A character '*' in the pattern is treated as non-greedy wildcard.
-
-:<events><log meaning>:
-
-  See <events><timeout meaning>.
 
 :<content>:
 

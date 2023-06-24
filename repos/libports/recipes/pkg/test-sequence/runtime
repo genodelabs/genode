@@ -1,8 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="30" />
-		<log meaning="succeeded">
+	<fail after_seconds="30"/>
+	<succeed>
 			[init -> sequence -> test_1] foo="bar1"*
 			[init -> sequence -> test_1] bar1="(null)"*
 			[init -> sequence -> test_1] baz="(null)"*
@@ -13,9 +12,8 @@
 			[init -> sequence -> test_3] bar3="(null)"*
 			[init -> sequence -> test_3] baz="(null)"*
 			[init] child "sequence" exited with exit value 0
-		</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

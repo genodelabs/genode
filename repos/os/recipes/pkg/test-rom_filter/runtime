@@ -2,9 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> rom_logger] ROM 'generated':
 			[init -> rom_logger]   &lt;config color="transparent">&lt;!-- ... fallback ... -->&lt;/config>*
 			[init -> rom_logger] ROM 'generated':
@@ -14,9 +13,8 @@
 			[init -> rom_logger] ROM 'generated':
 			[init -> rom_logger]   &lt;config message="system locked" color="transparent">&lt;!-- ... fallback ... -->&lt;/config>*
 			[init -> dynamic_rom] xray: change (finished)
-		</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -48,17 +46,17 @@
 			<provides><service name="ROM"/></provides>
 			<config verbose="yes">
 				<rom name="xray">
-					<sleep milliseconds="1000" />
+					<sleep milliseconds="1000"/>
 					<inline description="disable X-ray mode">
 						<xray enabled="no"/>
 					</inline>
-					<sleep milliseconds="1000" />
+					<sleep milliseconds="1000"/>
 					<inline description="enable X-ray mode">
 						<xray enabled="yes">
 							<style color="yellow"/>
 						</xray>
 					</inline>
-					<sleep milliseconds="1000" />
+					<sleep milliseconds="1000"/>
 					<inline description="leave X-ray mode undefined">
 						<xray> <!-- undefined -->
 							<details>
@@ -67,7 +65,7 @@
 							</details>
 						</xray>
 					</inline>
-					<sleep milliseconds="1000" />
+					<sleep milliseconds="1000"/>
 					<inline description="finished"/>
 				</rom>
 			</config>
@@ -79,29 +77,29 @@
 			<config verbose="no">
 
 				<input name="xray_enabled" rom="xray" node="xray">
-					<attribute name="enabled" />
+					<attribute name="enabled"/>
 				</input>
 
 				<!-- test fallback to default value -->
 				<input name="color" rom="xray" node="xray" default="transparent">
 					<node type="style">
-						<attribute name="color" />
+						<attribute name="color"/>
 					</node>
 				</input>
 
 				<input name="diagnostic_message" rom="xray" node="xray">
 					<node type="details">
 						<node type="message" attribute="reason" value="no access">
-							<attribute name="text" />
+							<attribute name="text"/>
 						</node>
 					</node>
 				</input>
 
 				<output node="config">
 					<attribute name="message" input="diagnostic_message"/>
-					<attribute name="color"   input="color"/>
+					<attribute name="color" input="color"/>
 					<if>
-						<has_value input="xray_enabled" value="yes" />
+						<has_value input="xray_enabled" value="yes"/>
 						<then>
 							<inline><!-- xray enabled --></inline>
 						</then>
@@ -120,7 +118,7 @@
 
 		<start name="rom_logger">
 			<resource name="RAM" quantum="1M"/>
-			<config rom="generated" />
+			<config rom="generated"/>
 			<route>
 				<service name="ROM" label="generated"> <child name="rom_filter"/> </service>
 				<any-service> <parent/> </any-service>

@@ -1,9 +1,7 @@
 <runtime ram="16M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">Error: stack protector check failed</log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>Error: stack protector check failed</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

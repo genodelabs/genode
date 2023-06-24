@@ -1,14 +1,12 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> test-spark_exception] Ada exception test*
 			[init -> test-spark_exception]*Error: Exception raised: explicit raise in except.adb:6*
 			[init -> test-spark_exception] Caught Ada::Exception::Program_Error*
 			[init] child "test-spark_exception" exited with exit value 0
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

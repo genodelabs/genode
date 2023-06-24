@@ -4,16 +4,14 @@
 		<timer/>
 	</requires>
 
-	<events>
-		<timeout meaning="failed" sec="70" />
-		<log meaning="succeeded">
+	<fail after_seconds="70"/>
+	<succeed>
 			&lt;ui_report version="step_*" state="uninitialized"/>*
 			&lt;ui_report version="step_*" state="initializing"/>*
 			&lt;ui_report version="step_*" state="unlocked"/>*
 			&lt;ui_report version="step_*" state="locked"/>*
 			&lt;ui_report version="step_*" state="unlocked"/>*
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -50,9 +48,7 @@
 					<sleep milliseconds="6000"/>
 					<inline>
 
-						<ui_config version="step_2_init" passphrase="abcdefgh"
-						                                 client_fs_size="1M"
-						                                 journaling_buf_size="1M"/>
+						<ui_config version="step_2_init" passphrase="abcdefgh" client_fs_size="1M" journaling_buf_size="1M"/>
 
 					</inline>
 					<sleep milliseconds="10000"/>
@@ -95,8 +91,8 @@
 		<start name="report_rom" caps="70">
 			<resource name="RAM" quantum="1M"/>
 			<provides>
-				<service name="ROM" />
-				<service name="Report" />
+				<service name="ROM"/>
+				<service name="Report"/>
 			</provides>
 			<config verbose="yes"/>
 			<route>
@@ -157,15 +153,15 @@
 				</vfs>
 			</config>
 			<route>
-				<service name="ROM"         label="ui_config">                              <child name="dynamic_rom"     label="file_vault_ui_config"/>       </service>
+				<service name="ROM" label="ui_config">                              <child name="dynamic_rom" label="file_vault_ui_config"/>       </service>
 				<service name="Report">     label="ui_report"                               <child name="report_rom"/>                                         </service>
 				<service name="File_system" label="tresor_trust_anchor_vfs -> storage_dir"> <child name="trust_anchor_fs" label="file_vault -> trust_anchor"/> </service>
-				<service name="File_system" label="tresor_init -> ">                        <child name="data_fs"         label="file_vault -> data"/>         </service>
-				<service name="File_system" label="tresor">                                 <child name="data_fs"         label="file_vault -> data"/>         </service>
-				<service name="File_system" label="fs_query -> ">                           <child name="data_fs"         label="file_vault -> data"/>         </service>
-				<service name="File_system" label="image_fs_query -> ">                     <child name="data_fs"         label="file_vault -> data"/>         </service>
-				<service name="File_system" label="tresor_vfs -> tresor_fs">                <child name="data_fs"         label="file_vault -> data"/>         </service>
-				<service name="File_system" label="truncate_file -> tresor">                <child name="data_fs"         label="file_vault -> data"/>         </service>
+				<service name="File_system" label="tresor_init -> ">                        <child name="data_fs" label="file_vault -> data"/>         </service>
+				<service name="File_system" label="tresor">                                 <child name="data_fs" label="file_vault -> data"/>         </service>
+				<service name="File_system" label="fs_query -> ">                           <child name="data_fs" label="file_vault -> data"/>         </service>
+				<service name="File_system" label="image_fs_query -> ">                     <child name="data_fs" label="file_vault -> data"/>         </service>
+				<service name="File_system" label="tresor_vfs -> tresor_fs">                <child name="data_fs" label="file_vault -> data"/>         </service>
+				<service name="File_system" label="truncate_file -> tresor">                <child name="data_fs" label="file_vault -> data"/>         </service>
 				<service name="Timer">                                                      <parent/> </service>
 				<service name="PD">                                                         <parent/> </service>
 				<service name="ROM">                                                        <parent/> </service>

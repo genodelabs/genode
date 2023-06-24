@@ -1,9 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">child "test-spark" exited with exit value 0</log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>child "test-spark" exited with exit value 0</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

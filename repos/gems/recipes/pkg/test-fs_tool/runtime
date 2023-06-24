@@ -1,8 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> test -> remove] *file /items cannot be removed because it is a directory*
 			[init -> test -> remove] remove file /items/2*
 			[init -> test -> remove] *file /3 cannot be removed because there is no such file*
@@ -17,8 +16,7 @@
 			[init -> report_rom]   		&lt;file name="content" writeable="yes">new file&lt;/file>
 			[init -> report_rom]   	&lt;/dir>
 			[init -> report_rom]   &lt;/listing>
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

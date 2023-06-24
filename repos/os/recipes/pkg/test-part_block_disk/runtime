@@ -2,13 +2,11 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="70" />
-		<log meaning="succeeded">
+	<fail after_seconds="70"/>
+	<succeed>
 			child "test-part*" exited with exit value 0
-		</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -47,8 +45,8 @@
 			</config>
 		</start>
 		<start name="part_block">
-			<resource name="RAM" quantum="10M" />
-			<provides><service name="Block" /></provides>
+			<resource name="RAM" quantum="10M"/>
+			<provides><service name="Block"/></provides>
 			<route>
 				<any-service><child name="vfs_block"/> <parent/><any-child/></any-service>
 			</route>
@@ -62,19 +60,19 @@
 				<service name="Report"/>
 				<service name="ROM"/>
 			</provides>
-			<resource name="RAM" quantum="5M" />
+			<resource name="RAM" quantum="5M"/>
 			<config verbose="yes"/>
 		</start>
 		<start name="test-part0">
 			<binary name="block_tester"/>
-			<resource name="RAM" quantum="5M" />
+			<resource name="RAM" quantum="5M"/>
 			<config verbose="no" log="yes" stop_on_error="no">
 				<tests>
 					<sequential length="1M" size="1K" io_buffer="128K" batch="4"/>
 				</tests>
 			</config>
 			<route>
-				<any-service> <child name="part_block" /> <parent/> <any-child/> </any-service>
+				<any-service> <child name="part_block"/> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
 	</config>

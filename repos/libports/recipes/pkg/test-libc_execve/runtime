@@ -2,10 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="90" />
-		<log meaning="succeeded">child "test-execve" exited with exit value 0</log>
-	</events>
+	<fail after_seconds="90"/>
+	<succeed>child "test-execve" exited with exit value 0</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

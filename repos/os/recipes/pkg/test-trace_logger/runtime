@@ -2,9 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> trace_logger] Report *
 			[init -> trace_logger] PD "init -> dynamic -> test-trace_logger -> cpu_burner.*"*
 			[init -> trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
@@ -15,8 +14,7 @@
 			[init -> trace_logger]   100 *
 			[init -> trace_logger]   trigger_once
 			[init -> trace_logger]   trigger_once
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -47,28 +45,15 @@
 		</default-route>
 		<default caps="100"/>
 
-		<start name="trace_logger" >
+		<start name="trace_logger">
 			<resource name="RAM" quantum="80M"/>
-			<config verbose="yes"
-					session_ram="10M"
-					session_parent_levels="1"
-					session_arg_buffer="64K"
-					period_sec="3"
-					default_policy="null"
-					default_buffer="1K">
+			<config verbose="yes" session_ram="10M" session_parent_levels="1" session_arg_buffer="64K" period_sec="3" default_policy="null" default_buffer="1K">
 
-				<policy label_prefix="init -> dynamic -> test-trace_logger -> cpu_burner"
-				        thread="ep"/>
+				<policy label_prefix="init -> dynamic -> test-trace_logger -> cpu_burner" thread="ep"/>
 
-				<policy label="init -> dynamic -> test-trace_logger -> test-trace_logger"
-				        thread="ep"
-				        buffer="4K"
-				        policy="rpc_name"/>
+				<policy label="init -> dynamic -> test-trace_logger -> test-trace_logger" thread="ep" buffer="4K" policy="rpc_name"/>
 
-				<policy label="init -> dynamic -> test-trace_logger -> dynamic_rom"
-				        thread="ep"
-				        buffer="8K"
-				        policy="log_output"/>
+				<policy label="init -> dynamic -> test-trace_logger -> dynamic_rom" thread="ep" buffer="8K" policy="log_output"/>
 			</config>
 		</start>
 
@@ -80,26 +65,26 @@
 					<inline description="initial state">
 						<config percent="5"/>
 					</inline>
-					<sleep milliseconds="5000" />
+					<sleep milliseconds="5000"/>
 					<inline description="50%">
-						<config percent="50" />
+						<config percent="50"/>
 					</inline>
-					<sleep milliseconds="5000" />
+					<sleep milliseconds="5000"/>
 				</rom>
 				<rom name="cpu_burner2.config">
 					<inline description="initial state">
 						<config percent="5"/>
 					</inline>
-					<sleep milliseconds="4800" />
+					<sleep milliseconds="4800"/>
 					<inline description="100%">
-						<config percent="70" />
+						<config percent="70"/>
 					</inline>
-					<sleep milliseconds="2700" />
+					<sleep milliseconds="2700"/>
 				</rom>
 			</config>
 		</start>
 
-		<start name="test-trace_logger" >
+		<start name="test-trace_logger">
 			<resource name="RAM" quantum="1M"/>
 		</start>
 

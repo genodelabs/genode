@@ -2,10 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">child "vfs_stress" exited with exit value 0</log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>child "vfs_stress" exited with exit value 0</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -14,7 +12,7 @@
 	</content>
 
 	<config>
-		<affinity-space width="3" height="2" />
+		<affinity-space width="3" height="2"/>
 		<parent-provides>
 			<service name="CPU"/>
 			<service name="IO_PORT"/>

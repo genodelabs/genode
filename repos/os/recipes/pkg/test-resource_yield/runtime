@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="30" />
-		<log meaning="succeeded">--- test-resource_yield finished ---</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	<fail after_seconds="30"/>
+	<succeed>--- test-resource_yield finished ---</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

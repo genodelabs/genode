@@ -2,10 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log     meaning="succeeded">-- state WAIT_FOR_SUCCESS --</log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>-- state WAIT_FOR_SUCCESS --</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -48,13 +46,13 @@
 			</provides>
 			<config verbose="yes">
 
-				<flow from="hobby" to="work"  />
-				<flow from="hobby" to="admin" />
-				<flow from="work"  to="admin" />
+				<flow from="hobby" to="work"/>
+				<flow from="hobby" to="admin"/>
+				<flow from="work" to="admin"/>
 
-				<policy label_prefix="test-clipboard -> win7"  domain="work"  />
-				<policy label_prefix="test-clipboard -> linux" domain="hobby" />
-				<policy label_prefix="test-clipboard -> noux"  domain="admin" />
+				<policy label_prefix="test-clipboard -> win7" domain="work"/>
+				<policy label_prefix="test-clipboard -> linux" domain="hobby"/>
+				<policy label_prefix="test-clipboard -> noux" domain="admin"/>
 
 			</config>
 			<route>

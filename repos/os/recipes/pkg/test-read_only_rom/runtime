@@ -1,9 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="succeeded" sec="20" />
-		<log meaning="failed">ROM dataspace modified</log>
-	</events>
+	<succeed after_seconds="20"/>
+	<fail>ROM dataspace modified</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

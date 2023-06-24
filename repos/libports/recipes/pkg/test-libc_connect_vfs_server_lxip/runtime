@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="100" />
-		<log meaning="failed">exited with exit value -1</log>
-		<log meaning="succeeded">child "test-libc_connect" exited with exit value 0</log>
-	</events>
+	<fail after_seconds="100"/>
+	<fail>exited with exit value -1</fail>
+	<succeed>child "test-libc_connect" exited with exit value 0</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -95,7 +93,7 @@
 					<dir name="dev"> <log/> </dir>
 					<dir name="socket"> <fs/> </dir>
 				</vfs>
-				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket" />
+				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 			</config>
 			<route>
 				<service name="File_system"> <child name="socket_fs_client"/> </service>

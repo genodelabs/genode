@@ -1,8 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> test-reconstructible] --- Reconstructible utility test ---
 			[init -> test-reconstructible] construct Object 1
 			[init -> test-reconstructible] construct Object 2
@@ -36,8 +35,7 @@
 			[init -> test-reconstructible] construct Throwing -> throw exception
 			[init -> test-reconstructible] got exception, as expected
 			[init -> test-reconstructible] --- Reconstructible utility test finished ---
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

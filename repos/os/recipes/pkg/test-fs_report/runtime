@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="15" />
-		<log     meaning="succeeded">child "test-fs_report" exited with exit value 0</log>
-		<log     meaning="failed"   >child "test-fs_report" exited with exit value -1</log>
-	</events>
+	<fail after_seconds="15"/>
+	<succeed>child "test-fs_report" exited with exit value 0</succeed>
+	<fail>child "test-fs_report" exited with exit value -1</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -49,7 +47,7 @@
 					</import>
 				</vfs>
 				<policy label_prefix="fs_report -> " root="/" writeable="yes"/>
-				<policy label_prefix="fs_rom -> "    root="/test-fs_report"/>
+				<policy label_prefix="fs_rom -> " root="/test-fs_report"/>
 				<policy label_prefix="test-fs_report -> " root="/test-fs_report" writeable="yes"/>
 			</config>
 		</start>
@@ -71,8 +69,8 @@
 			<resource name="RAM" quantum="4M"/>
 			<config> <vfs> <fs/> </vfs> </config>
 			<route>
-				<service name="ROM"    label="devices"> <child name="fs_rom"/> </service>
-				<service name="ROM"    label="focus">   <child name="fs_rom"/> </service>
+				<service name="ROM" label="devices"> <child name="fs_rom"/> </service>
+				<service name="ROM" label="focus">   <child name="fs_rom"/> </service>
 				<service name="Report" label="devices"> <child name="fs_report"/> </service>
 				<service name="Report" label="focus">   <child name="fs_report"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>

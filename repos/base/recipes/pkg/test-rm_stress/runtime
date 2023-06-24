@@ -1,10 +1,8 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="45"/>
-		<log meaning="succeeded">child "test-rm_stress" exited with exit value 0</log>
-		<log meaning="failed">child "test-rm_stress" exited with exit value -1</log>
-	</events>
+	<fail after_seconds="45"/>
+	<succeed>child "test-rm_stress" exited with exit value 0</succeed>
+	<fail>child "test-rm_stress" exited with exit value -1</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

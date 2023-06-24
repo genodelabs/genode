@@ -1,10 +1,8 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">test succeeded</log>
-		<log meaning="failed"   >test failed</log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>test succeeded</succeed>
+	<fail>test failed</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

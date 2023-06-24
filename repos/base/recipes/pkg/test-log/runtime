@@ -1,8 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> test-log] hex range:          [0e00,1680)
 			[init -> test-log] empty hex range:    [0abc0000,0abc0000) (empty!)
 			[init -> test-log] hex range to limit: [f8,ff]
@@ -18,8 +17,7 @@
 			[init -> test-log] 5.....................................................................................................................................................................................................................................6
 			[init -> test-log] 
 			[init -> test-log] Test done.
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

@@ -2,10 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="30" />
-		<log meaning="succeeded">--- parent done ---*child*exited*</log>
-	</events>
+	<fail after_seconds="30"/>
+	<succeed>--- parent done ---*child*exited*</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

@@ -1,10 +1,8 @@
 <runtime ram="64M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="120" />
-		<log meaning="succeeded">--- test succeeded ---</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	<fail after_seconds="120"/>
+	<succeed>--- test succeeded ---</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="fs_rom"/>
@@ -43,8 +41,8 @@
 						<fifo name="downstream"/>
 					</pipe>
 				</vfs>
-				<policy label="fifo-pipe-test -> in" root="/.upstream/in" writeable="yes" />
-				<policy label="fifo-pipe-test -> out" root="/.downstream/out" writeable="no" />
+				<policy label="fifo-pipe-test -> in" root="/.upstream/in" writeable="yes"/>
+				<policy label="fifo-pipe-test -> out" root="/.downstream/out" writeable="no"/>
 				<default-policy root="/" writeable="yes"/>
 			</config>
 		</start>
@@ -140,8 +138,8 @@
 			<route>
 				<service name="File_system">                   <child name="vfs"/> </service>
 				<service name="Report" label="init.config">    <child name="report_rom" label="init.config"/> </service>
-				<service name="ROM"    label="init_template">  <child name="fs_rom"     label="init_template"/> </service>
-				<service name="ROM"    label="test-data.bin">  <parent label="init"/> </service>
+				<service name="ROM" label="init_template">  <child name="fs_rom" label="init_template"/> </service>
+				<service name="ROM" label="test-data.bin">  <parent label="init"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>

@@ -2,10 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="200" />
-		<log meaning="succeeded">child "sequence" exited with exit value 0</log>
-	</events>
+	<fail after_seconds="200"/>
+	<succeed>child "sequence" exited with exit value 0</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -42,10 +40,10 @@
 			<resource name="RAM" quantum="10M"/>
 			<provides><service name="Nic"/></provides>
 			<config verbose="no">
-				<policy label_prefix="sequence -> local -> recv"     ip_addr="192.168.1.1" />
-				<policy label_prefix="sequence -> local -> send"     ip_addr="192.168.1.2" />
-				<policy label_prefix="sequence -> remote -> recv_fs" ip_addr="192.168.1.1" />
-				<policy label_prefix="sequence -> remote -> send_fs" ip_addr="192.168.1.2" />
+				<policy label_prefix="sequence -> local -> recv" ip_addr="192.168.1.1"/>
+				<policy label_prefix="sequence -> local -> send" ip_addr="192.168.1.2"/>
+				<policy label_prefix="sequence -> remote -> recv_fs" ip_addr="192.168.1.1"/>
+				<policy label_prefix="sequence -> remote -> send_fs" ip_addr="192.168.1.2"/>
 			</config>
 			<route>
 				<service name="Nic"> <child name="nic_loopback"/> </service>

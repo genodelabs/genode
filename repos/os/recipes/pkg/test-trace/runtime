@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="30" />
-		<log meaning="succeeded">child "sequence" exited with exit value 0</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	<fail after_seconds="30"/>
+	<succeed>child "sequence" exited with exit value 0</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -39,21 +37,21 @@
 				<start name="test-trace">
 					<resource name="RAM" quantum="10M"/>
 					<config>
-						<trace_policy label="init -> dynamic -> test-trace -> sequence -> test-trace" thread="test-thread" module="null" />
+						<trace_policy label="init -> dynamic -> test-trace -> sequence -> test-trace" thread="test-thread" module="null"/>
 					</config>
 				</start>
 
 				<start name="test-trace">
 					<resource name="RAM" quantum="10M"/>
 					<config>
-						<trace_policy label="init -> dynamic -> test-trace -> top" thread="ep" module="null" />
+						<trace_policy label="init -> dynamic -> test-trace -> top" thread="ep" module="null"/>
 					</config>
 				</start>
 
 				<start name="test-trace">
 					<resource name="RAM" quantum="10M"/>
 					<config>
-						<trace_policy label="init -> dynamic -> test-trace -> top" thread="ep" module="null" />
+						<trace_policy label="init -> dynamic -> test-trace -> top" thread="ep" module="null"/>
 					</config>
 				</start>
 			</config>

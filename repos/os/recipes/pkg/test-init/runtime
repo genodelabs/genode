@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="330" />
-		<log meaning="succeeded">child "test-init" exited with exit value 0</log>
-		<log meaning="failed">list model not empty at destruction time</log>
-	</events>
+	<fail after_seconds="330"/>
+	<succeed>child "test-init" exited with exit value 0</succeed>
+	<fail>list model not empty at destruction time</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -39,7 +37,7 @@
 			<provides> <service name="ROM"/> <service name="Report"/> </provides>
 			<config verbose="no">
 				<policy label="init -> config" report="test-init -> init.config"/>
-				<policy label="test-init -> state"  report="init -> state"/>
+				<policy label="test-init -> state" report="init -> state"/>
 			</config>
 		</start>
 

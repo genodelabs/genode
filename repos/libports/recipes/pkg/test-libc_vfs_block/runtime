@@ -1,10 +1,8 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="30" />
-		<log meaning="succeeded">child "test-libc_vfs_block" exited with exit value 0</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	<fail after_seconds="30"/>
+	<succeed>child "test-libc_vfs_block" exited with exit value 0</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -37,8 +35,7 @@
 						<zero name="block_file" size="16K"/>
 					</import>
 				</vfs>
-				<default-policy file="/block_file" block_size="4096"
-				                writeable="yes"/>
+				<default-policy file="/block_file" block_size="4096" writeable="yes"/>
 			</config>
 		</start>
 		<start name="test-libc_vfs_block">
@@ -50,31 +47,31 @@
 				<!-- Populate the block device with a pattern and validate the
 					 write operation by reading back the content. -->
 				<sequence>
-					<write  content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
+					<write content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
 					<expect content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
 				</sequence>
 
 				<!-- Write single 512 block. This requires the successive reading,
 					 modification, and writing of the compound 4096 block. -->
 				<sequence>
-					<write  at="9" content="%"/>
+					<write at="9" content="%"/>
 					<expect content="abcdefghI%KLMNOPqrstuvwxYZABCDEF"/>
 				</sequence>
 
 				<!-- Reset the pattern and write multiple 512 blocks that cross
 					 a 4096 boundary. -->
 				<sequence>
-					<write  content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
-					<write  at="15" content="123"/>
+					<write content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
+					<write at="15" content="123"/>
 					<expect content="abcdefghIJKLMNO123stuvwxYZABCDEF"/>
 				</sequence>
 
 				<!-- Test write-sync-write-sync-read -->
 					 write operation by reading back the content. -->
 				<sequence>
-					<write  content="................................"/>
+					<write content="................................"/>
 					<sync/>
-					<write  content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
+					<write content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
 					<sync/>
 					<expect content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
 				</sequence>

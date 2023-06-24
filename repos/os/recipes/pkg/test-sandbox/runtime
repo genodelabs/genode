@@ -2,10 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<log meaning="succeeded">version="5"</log>
-		<timeout meaning="failed" sec="10" />
-	</events>
+	<succeed>version="5"</succeed>
+	<fail after_seconds="10"/>
 
 	<content>
 		<rom label="ld.lib.so"/>

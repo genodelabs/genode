@@ -1,10 +1,8 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">--- finished nested region map test ---</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>--- finished nested region map test ---</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

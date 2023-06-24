@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="80" />
-		<log meaning="failed">exited with exit value -1</log>
-		<log meaning="succeeded">child "test-libc_connect" exited with exit value 0</log>
-	</events>
+	<fail after_seconds="80"/>
+	<fail>exited with exit value -1</fail>
+	<succeed>child "test-libc_connect" exited with exit value 0</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -73,7 +71,7 @@
 						<lwip ip_addr="10.0.1.3" netmask="255.255.255.0" gateway="10.0.1.1"/>
 					</dir>
 				</vfs>
-				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket" />
+				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 			</config>
 		</start>
 

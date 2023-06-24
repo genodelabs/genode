@@ -1,8 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="10" />
-		<log meaning="succeeded">
+	<fail after_seconds="10"/>
+	<succeed>
 			[init -> report_rom] report 'depot_query -> index'
 			[init -> report_rom] *&lt;index>
 			[init -> report_rom]   	&lt;index user="genodelabs" version="19.02">
@@ -12,8 +11,7 @@
 			[init -> report_rom]   	&lt;/index>
 			[init -> report_rom]   	&lt;missing user="genodelabs" version="19.03"/>
 			[init -> report_rom]   &lt;/index>
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -56,7 +54,7 @@
 							<index>
 								<supports arch="x86_64"/>
 								<index name="Demos">
-									<pkg path="nano3d"  info="simple software-rendering demo"/>
+									<pkg path="nano3d" info="simple software-rendering demo"/>
 									<pkg path="armored" info="ARM demo" arch="arm_v8a"/>
 								</index>
 							</index>

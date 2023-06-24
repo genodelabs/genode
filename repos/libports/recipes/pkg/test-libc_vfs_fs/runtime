@@ -1,10 +1,8 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="30" />
-		<log meaning="succeeded">child "test-libc_vfs" exited with exit value 0</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	<fail after_seconds="30"/>
+	<succeed>child "test-libc_vfs" exited with exit value 0</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

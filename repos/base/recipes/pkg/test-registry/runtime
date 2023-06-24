@@ -1,10 +1,8 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">child "test-registry" exited with exit value 0</log>
-		<log meaning="failed"   >Uncaught exception</log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>child "test-registry" exited with exit value 0</succeed>
+	<fail>Uncaught exception</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

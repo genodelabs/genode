@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="60" />
-		<log     meaning="succeeded">--- Signalling test finished ---</log>
-		<log     meaning="failed"   >Error: </log>
-	</events>
+	<fail after_seconds="60"/>
+	<succeed>--- Signalling test finished ---</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

@@ -2,10 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">Finished</log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>Finished</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -72,7 +70,7 @@
 				<service name="Capture">               <child name="black_hole"/> </service>
 				<service name="Audio_in">              <child name="black_hole"/> </service>
 				<service name="Audio_out">             <child name="black_hole"/> </service>
-				<service name="ROM" >                  <parent/> </service>
+				<service name="ROM">                  <parent/> </service>
 				<service name="PD">                    <parent/> </service>
 				<service name="LOG">                   <parent/> </service>
 				<service name="CPU">                   <parent/> </service>

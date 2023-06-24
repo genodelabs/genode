@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="120" />
-		<log     meaning="succeeded">child "test-init_loop" exited with exit value 0</log>
-		<log     meaning="failed"   >test-init_loop] Error: </log>
-	</events>
+	<fail after_seconds="120"/>
+	<succeed>child "test-init_loop" exited with exit value 0</succeed>
+	<fail>test-init_loop] Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -33,7 +31,7 @@
 			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="ROM"/> <service name="Report"/> </provides>
 			<config verbose="no">
-				<policy label="init -> config"          report="test-init_loop -> init.config"/>
+				<policy label="init -> config" report="test-init_loop -> init.config"/>
 				<policy label="test-init_loop -> state" report="init -> state"/>
 			</config>
 			<route> <any-service> <parent/> </any-service> </route>

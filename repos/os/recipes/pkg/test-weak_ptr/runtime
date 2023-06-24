@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">--- finished test-weak_ptr ---</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>--- finished test-weak_ptr ---</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="30" />
-		<log meaning="succeeded">child "block_tester" exited with exit value 0</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	<fail after_seconds="30"/>
+	<succeed>child "block_tester" exited with exit value 0</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -39,7 +37,7 @@
 		</start>
 		<start name="block_tester">
 			<binary name="block_tester"/>
-			<resource name="RAM" quantum="5M" />
+			<resource name="RAM" quantum="5M"/>
 			<config verbose="no" log="yes" stop_on_error="no">
 				<tests>
 					<sequential length="256K" size="4K" io_buffer="128K" batch="4"/>
@@ -47,7 +45,7 @@
 				</tests>
 			</config>
 			<route>
-				<any-service> <child name="lx_block" /> <parent/> <any-child/> </any-service>
+				<any-service> <child name="lx_block"/> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
 	</config>

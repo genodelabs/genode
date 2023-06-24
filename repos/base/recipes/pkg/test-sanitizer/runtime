@@ -1,12 +1,10 @@
 <runtime ram="16M" caps="150" binary="test-sanitizer">
 
-	<events>
-		<timeout meaning="failed" sec="10" />
-		<log meaning="succeeded">
+	<fail after_seconds="10"/>
+	<succeed>
 			[init]*runtime error: *index 2 out of bounds*
 			[init]*runtime error: *store to null pointer
-		</log>
-	</events>
+	</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

@@ -1,9 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">finished token test</log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>finished token test</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

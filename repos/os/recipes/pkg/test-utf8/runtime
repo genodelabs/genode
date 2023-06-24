@@ -2,11 +2,9 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="30" />
-		<log     meaning="succeeded">child "test-utf8" exited with exit value 0</log>
-		<log     meaning="failed"   >Error: </log>
-	</events>
+	<fail after_seconds="30"/>
+	<succeed>child "test-utf8" exited with exit value 0</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

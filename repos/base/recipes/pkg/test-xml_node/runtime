@@ -1,8 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log meaning="succeeded">
+	<fail after_seconds="20"/>
+	<succeed>
 			[init -> test-xml_node] --- XML-token test ---
 			[init -> test-xml_node] token type="SINGLECHAR", len=1, content="&lt;"
 			[init -> test-xml_node] token type="IDENT", len=6, content="config"
@@ -113,9 +112,8 @@
 			[init -> test-xml_node] 
 			[init -> test-xml_node] --- End of XML-parser test ---*
 			[init] child "test-xml_node" exited with exit value 0
-		</log>
-		<log meaning="failed">Error: </log>
-	</events>
+	</succeed>
+	<fail>Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

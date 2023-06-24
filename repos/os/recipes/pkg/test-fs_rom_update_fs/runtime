@@ -2,10 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<events>
-		<timeout meaning="failed" sec="20" />
-		<log     meaning="succeeded">&lt;config iteration="4"/></log>
-	</events>
+	<fail after_seconds="20"/>
+	<succeed>&lt;config iteration="4"/></succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -88,7 +86,7 @@
 			</config>
 			<route>
 				<service name="ROM" label="dynamic_rom"> <child name="dynamic_rom"/> </service>
-				<service name="File_system" > <child name="vfs_1"/> </service>
+				<service name="File_system"> <child name="vfs_1"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
@@ -97,7 +95,7 @@
 			<resource name="RAM" quantum="2M"/>
 			<provides><service name="ROM"/></provides>
 			<route>
-				<service name="File_system" > <child name="vfs_2"/> </service>
+				<service name="File_system"> <child name="vfs_2"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>
