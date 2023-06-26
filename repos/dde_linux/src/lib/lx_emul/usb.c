@@ -800,6 +800,9 @@ static int raw_notify(struct notifier_block *nb, unsigned long action, void *dat
 			if (data) {
 				data->dev = NULL;
 				lx_emul_task_unblock(data->task);
+			} else {
+				/* discontinue unclaimed device */
+				genode_usb_discontinue_device(udev->bus->busnum, udev->devnum);
 			}
 			break;
 		}
