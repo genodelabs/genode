@@ -73,8 +73,16 @@ struct Monitor::Inferior_cpu : Monitored_cpu_session
 		return result;
 	}
 
-	void kill_thread(Thread_capability thread) override {
-		_real.call<Rpc_kill_thread>(thread); }
+	void kill_thread(Thread_capability thread) override
+	{
+		Monitored_thread::with_thread(_ep, thread,
+			[&] (Monitored_thread &monitored_thread) {
+				_real.call<Rpc_kill_thread>(monitored_thread._real);
+				destroy(_alloc, &monitored_thread); },
+			[&] {
+				_real.call<Rpc_kill_thread>(thread); }
+		);
+	}
 
 	void exception_sigh(Signal_context_capability sigh) override {
 		_real.call<Rpc_exception_sigh>(sigh); }
