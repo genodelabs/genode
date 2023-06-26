@@ -35,56 +35,63 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 
 	withdraw(Ram_quota{_utcb_quota_size()});
 
-	Cpu_thread_component *thread = 0;
+	try {
 
-	if (weight.value == 0) {
-		warning("Thread ", name, ": Bad weight 0, using default weight instead.");
-		weight = Weight();
-	}
-	if (weight.value > QUOTA_LIMIT) {
-		warning("Thread ", name, ": Oversized weight ", weight.value, ", using limit instead.");
-		weight = Weight(QUOTA_LIMIT);
-	}
+		Cpu_thread_component *thread = 0;
 
-	Mutex::Guard thread_list_lock_guard(_thread_list_lock);
-
-	/*
-	 * Create thread associated with its protection domain
-	 */
-	auto create_thread_lambda = [&] (Pd_session_component *pd) {
-		if (!pd) {
-			error("create_thread: invalid PD argument");
-			throw Thread_creation_failed();
+		if (weight.value == 0) {
+			warning("Thread ", name, ": Bad weight 0, using default weight instead.");
+			weight = Weight();
+		}
+		if (weight.value > QUOTA_LIMIT) {
+			warning("Thread ", name, ": Oversized weight ", weight.value, ", using limit instead.");
+			weight = Weight(QUOTA_LIMIT);
 		}
 
-		Mutex::Guard slab_lock_guard(_thread_alloc_lock);
-		thread = new (&_thread_alloc)
-			Cpu_thread_component(
-				cap(), _thread_ep, _pager_ep, *pd, _trace_control_area,
-				_trace_sources, weight, _weight_to_quota(weight.value),
-				_thread_affinity(affinity), _label, thread_name,
-				_priority, utcb);
-	};
+		Mutex::Guard thread_list_lock_guard(_thread_list_lock);
 
-	try {
-		_incr_weight(weight.value);
-		_thread_ep.apply(pd_cap, create_thread_lambda);
-	} catch (Allocator::Out_of_memory) {
-		_decr_weight(weight.value);
-		throw Out_of_ram();
-	} catch (Native_capability::Reference_count_overflow) {
-		_decr_weight(weight.value);
-		throw Thread_creation_failed();
+		/*
+		 * Create thread associated with its protection domain
+		 */
+		auto create_thread_lambda = [&] (Pd_session_component *pd) {
+			if (!pd) {
+				error("create_thread: invalid PD argument");
+				throw Thread_creation_failed();
+			}
+
+			Mutex::Guard slab_lock_guard(_thread_alloc_lock);
+			thread = new (&_thread_alloc)
+				Cpu_thread_component(
+					cap(), _thread_ep, _pager_ep, *pd, _trace_control_area,
+					_trace_sources, weight, _weight_to_quota(weight.value),
+					_thread_affinity(affinity), _label, thread_name,
+					_priority, utcb);
+		};
+
+		try {
+			_incr_weight(weight.value);
+			_thread_ep.apply(pd_cap, create_thread_lambda);
+		} catch (Allocator::Out_of_memory) {
+			_decr_weight(weight.value);
+			throw Out_of_ram();
+		} catch (Native_capability::Reference_count_overflow) {
+			_decr_weight(weight.value);
+			throw Thread_creation_failed();
+		} catch (...) {
+			_decr_weight(weight.value);
+			throw;
+		}
+
+		thread->session_exception_sigh(_exception_sigh);
+
+		_thread_list.insert(thread);
+
+		return thread->cap();
+
 	} catch (...) {
-		_decr_weight(weight.value);
+		replenish(Ram_quota{_utcb_quota_size()});
 		throw;
 	}
-
-	thread->session_exception_sigh(_exception_sigh);
-
-	_thread_list.insert(thread);
-
-	return thread->cap();
 }
 
 
