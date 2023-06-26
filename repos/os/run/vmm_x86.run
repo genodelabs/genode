@@ -1,8 +1,8 @@
 #
 # \brief  rudimentary x86 virtual-machine monitor interface test
 # \author Alexander Boettcher
+# \author Benjamin Lamowski
 # \date   2018-08-26
-#
 
 assert_spec x86
 
@@ -91,7 +91,7 @@ append qemu_args " -nographic "
 
 #run_genode_until {.*vcpu 1 : 7\. vm exit -.*\n} 20
 #run_genode_until forever
-run_genode_until "vmm test finished" 25
+run_genode_until "vmm test finished" 40
 
 set output_saved $output
 grep_output {^\[init -> vmm\] vcpu 0 :.*}
@@ -231,10 +231,12 @@ vcpu 2 : XX. vm exit - reason 0x78 handled by 'second ep'
 vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xff81
 vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'
 vcpu 2 : XX. vm exit -  due to pause() request - ip=0xff81
+vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'
 vcpu 2 : XX. vm exit - reason 0x78 handled by 'second ep'
 vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xff81
 vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'
 vcpu 2 : XX. vm exit -  due to pause() request - ip=0xff81
+vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'
 vcpu 2 : XX. vm exit - reason 0x78 handled by 'second ep'
 vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xff82
 vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'

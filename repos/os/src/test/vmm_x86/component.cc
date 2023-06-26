@@ -2,12 +2,13 @@
  * \brief  VM session interface test for x86
  * \author Alexander Boettcher
  * \author Christian Helmuth
+ * \author Benjamin Lamowski
  * \date   2018-09-26
  *
  */
 
 /*
- * Copyright (C) 2018-2021 Genode Labs GmbH
+ * Copyright (C) 2018-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -94,61 +95,7 @@ class Vmm::Vcpu
 		unsigned _pause_at_timer { 0 };
 
 		void _handle_vcpu_exit();
-
-		void _cpu_init()
-		{
-			enum { INTEL_CTRL_PRIMARY_HLT = 1 << 7 };
-			enum {
-				INTEL_CTRL_SECOND_UG = 1 << 7,
-				INTEL_CTRL_SECOND_RDTSCP_ENABLE = 1 << 3,
-			};
-			enum {
-				AMD_CTRL_PRIMARY_HLT  = 1 << 24,
-				AMD_CTRL_SECOND_VMRUN = 1 << 0
-			};
-
-			/* http://www.sandpile.org/x86/initial.htm */
-
-			typedef Vcpu_state::Segment Segment;
-			typedef Vcpu_state::Range   Range;
-
-			Vcpu_state &state { _vcpu.state() };
-
-			state.flags.charge(2);
-			state.ip.   charge(0xfff0);
-			state.cr0.  charge(0x10);
-			state.cs.   charge(Segment{0xf000, 0x93, 0xffff, 0xffff0000});
-			state.ss.   charge(Segment{0, 0x93, state.cs.value().limit, 0});
-			state.dx.   charge(0x600);
-			state.es.   charge(Segment{0, state.ss.value().ar,
-			                            state.cs.value().limit, 0});
-			state.ds.   charge(Segment{0, state.ss.value().ar,
-			                            state.cs.value().limit, 0});
-			state.fs.   charge(Segment{0, state.ss.value().ar,
-			                            state.cs.value().limit, 0});
-			state.gs.   charge(Segment{0, state.ss.value().ar,
-			                            state.cs.value().limit, 0});
-			state.tr.   charge(Segment{0, 0x8b, 0xffff, 0});
-			state.ldtr. charge(Segment{0, 0x1000, state.tr.value().limit, 0});
-			state.gdtr. charge(Range  {0, 0xffff});
-			state.idtr. charge(Range  {0, state.gdtr.value().limit});
-			state.dr7.  charge(0x400);
-
-			if (_vmx) {
-				state.ctrl_primary.charge(INTEL_CTRL_PRIMARY_HLT);
-				state.ctrl_secondary.charge(INTEL_CTRL_SECOND_UG | /* required for seL4 */
-				                            INTEL_CTRL_SECOND_RDTSCP_ENABLE);
-			}
-			if (_svm) {
-				state.ctrl_primary.charge(AMD_CTRL_PRIMARY_HLT);
-				state.ctrl_secondary.charge(AMD_CTRL_SECOND_VMRUN);
-			}
-
-			/* Store id of CPU for rdtscp, similar as some OS do and some
-			 * magic number to check for testing purpuse
-			 */
-			state.tsc_aux.charge((0xaffeU << 16) | _id);
-		}
+		void _cpu_init(Vcpu_state & state);
 
 	public:
 
@@ -165,18 +112,15 @@ class Vmm::Vcpu
 
 		unsigned id() const { return _id; }
 
-		void run()   { _vcpu.run(); }
-		void pause() { _vcpu.pause(); }
-
-		void skip_instruction(unsigned bytes)
+		void skip_instruction(Vcpu_state & state, unsigned bytes)
 		{
-			_vcpu.state().ip.charge(_vcpu.state().ip.value() + bytes);
+			state.ip.charge(state.ip.value() + bytes);
 		}
 
-		void force_fpu_state_transfer()
+		void force_fpu_state_transfer(Vcpu_state & state)
 		{
 			/* force FPU-state transfer on next entry */
-			_vcpu.state().fpu.charge([] (Vcpu_state::Fpu::State &) {
+			state.fpu.charge([] (Vcpu_state::Fpu::State &) {
 				/* don't change state */ });
 		}
 
@@ -210,6 +154,17 @@ class Vmm::Vcpu
 			return true;
 		}
 
+		template<typename FN>
+		void with_state(FN const & fn)
+		{
+			_vcpu.with_state(fn);
+		}
+
+		void request_intercept()
+		{
+			_handler.local_submit();
+		}
+
 		void claim_state_unknown() { _test_state = State::UNKNOWN; }
 
 		void timer_triggered() { _timer_count++; }
@@ -240,6 +195,7 @@ class Vmm::Vm
 		/* just to trigger some events after some time */
 		Timer::Connection    _timer;
 		Signal_handler<Vm>   _timer_handler;
+		Semaphore            _vmm_ready { 0 };
 
 		/* trigger destruction of _vm session to test this case also */
 		Signal_context_capability _signal_destruction;
@@ -303,13 +259,11 @@ class Vmm::Vm
 
 			env.rm().detach(guest);
 
-			log ("let vCPUs run - first EP");
-			_vcpu0.run();
-			_vcpu1.run();
-
-			log ("let vCPUs run - second EP");
-			_vcpu2.run();
-			_vcpu3.run();
+			/* VMM ready for all the vCPUs */
+			_vmm_ready.up();
+			_vmm_ready.up();
+			_vmm_ready.up();
+			_vmm_ready.up();
 
 			_timer.sigh(_timer_handler);
 			_timer.trigger_periodic(1000 * 1000 /* in us */);
@@ -323,6 +277,10 @@ class Vmm::Vm
 			 * supported region ...
 			 */
 			return _memory;
+		}
+
+		void wait_until_ready() {
+			_vmm_ready.down();
 		}
 };
 
@@ -344,26 +302,14 @@ void Vmm::Vm::_handle_timer()
 	 */
 	if (_vcpu2.halted()) {
 		/* test to trigger a Genode signal even if we're already blocked */
-		_vcpu2.pause();
+		_vcpu2.request_intercept();
 	}
 
-	if (_vcpu2.paused_1st()) {
-		log(Thread::myself()->name(), "     : request resume of vcpu ", _vcpu2.id());
+	if (_vcpu2.paused_1st())
+		_vcpu2.request_intercept();
 
-		/* continue after first paused state */
-		_vcpu2.run();
-	} else if (_vcpu2.paused_2nd()) {
-		log(Thread::myself()->name(), "     : request resume of vcpu ", _vcpu2.id());
-
-		/* skip over next hlt instructions after second paused state */
-		_vcpu2.skip_instruction(1*1 /* 1x hlt instruction size */);
-
-		/* reset state to unknown, otherwise we may enter this a second time */
-		_vcpu2.claim_state_unknown();
-
-		/* the next instruction is again a hlt */
-		_vcpu2.run();
-	}
+	if (_vcpu2.paused_2nd())
+		_vcpu2.request_intercept();
 
 	/*
 	 * pause/run for vCPU0 in context of right _ep_first - meaning both
@@ -372,42 +318,51 @@ void Vmm::Vm::_handle_timer()
 	if (_vcpu1.pause_endless_loop()) {
 		log("pause endless loop");
 		/* guest in endless jmp loop - request to stop it asap */
-		_vcpu1.pause();
+		_vcpu1.request_intercept();
 		return;
 	}
 
 	if (_vcpu1.halted()) {
 		log(Thread::myself()->name(), "     : request pause of vcpu ", _vcpu1.id());
 		/* test to trigger a Genode signal even if we're already blocked */
-		_vcpu1.pause();
+		_vcpu1.request_intercept();
 	}
 
 	if (_vcpu1.paused_1st()) {
 		log(Thread::myself()->name(), "     : request resume (A) of vcpu ", _vcpu1.id());
 
-		_vcpu1.force_fpu_state_transfer();
+		_vcpu1.with_state([this](Vcpu_state & state) {
+			state.discharge();
+			_vcpu1.force_fpu_state_transfer(state);
 
-		/* continue after first paused state */
-		_vcpu1.run();
+			/* continue after first paused state */
+			return true;
+		});
 	} else if (_vcpu1.paused_2nd()) {
 		log(Thread::myself()->name(), "     : request resume (B) of vcpu ", _vcpu1.id());
 
-		/* skip over next 2 hlt instructions after second paused state */
-		_vcpu1.skip_instruction(2*1 /* 2x hlt instruction size */);
+		_vcpu1.with_state([this](Vcpu_state & state) {
+			state.discharge();
+			/* skip over next 2 hlt instructions after second paused state */
+			_vcpu1.skip_instruction(state, 2*1 /* 2x hlt instruction size */);
 
-		/* reset state to unknown, otherwise we may enter this a second time */
-		_vcpu1.claim_state_unknown();
+			/* reset state to unknown, otherwise we may enter this a second time */
+			_vcpu1.claim_state_unknown();
 
-		/* the next instruction is actually a jmp endless loop */
-		_vcpu1.run();
+			/* the next instruction is actually a jmp endless loop */
+			return true;
+		});
 
 		/* request on the next timeout to stop the jmp endless loop */
 		_vcpu1.break_endless_loop();
 	} else if (_vcpu1.paused_3rd()) {
 		log(Thread::myself()->name(), "     : request resume (C) of vcpu ", _vcpu1.id());
 
-		_vcpu1.skip_instruction(1*2 /* 1x jmp endless loop size */);
-		_vcpu1.run();
+		_vcpu1.with_state([this](Vcpu_state & state) {
+			state.discharge();
+			_vcpu1.skip_instruction(state, 1*2 /* 1x jmp endless loop size */);
+			return true;
+		});
 	} else if (_vcpu1.paused_4th()) {
 		log("vcpu test finished - de-arm timer");
 		_timer.trigger_periodic(0);
@@ -425,13 +380,20 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 {
 	using namespace Genode;
 
-	Vcpu_state &state { _vcpu.state() };
+	_vcpu.with_state([this](Vcpu_state & state) {
 
 	Exit const exit { state.exit_reason };
 
 	state.discharge();
 
 	_exit_count++;
+
+	/*
+	 * Needed so that the "vcpu X: created" output
+	 * comes first on foc.
+	 */
+	if (exit == Exit::STARTUP)
+		_vm.wait_until_ready();
 
 	log("vcpu ", _id, " : ", _exit_count, ". vm exit - ",
 	    "reason ", Hex((unsigned)exit), " handled by '",
@@ -440,27 +402,47 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 	switch (exit) {
 
 	case Exit::STARTUP:
-		_cpu_init();
+		_cpu_init(state);
 		break;
 
 	case Exit::INTEL_INVALID_STATE:
 		error("vcpu ", _id, " : ", _exit_count, ". vm exit - "
 		      " halting vCPU - invalid guest state");
 		_test_state = State::UNKNOWN;
-		return;
+		return false;
 
 	case Exit::AMD_TRIPLE_FAULT:
 		error("vcpu ", _id, " : ", _exit_count, ". vm exit - "
 		      " halting vCPU - triple fault");
 		_test_state = State::UNKNOWN;
-		return;
+		return false;
 
 	case Exit::PAUSED:
+		/* FIXME handle remote resume */
+		if (id() == 2) {
+			if (paused_1st()) {
+				log(Thread::myself()->name(), "     : request resume of vcpu ", id());
+				return true;
+			}
+			if (paused_2nd()) {
+				log(Thread::myself()->name(), "     : request resume of vcpu ", id());
+
+					/* skip over next hlt instructions after second paused state */
+					skip_instruction(state, 1*1 /* 1x hlt instruction size */);
+
+					/* reset state to unknown, otherwise we may enter this a second time */
+					claim_state_unknown();
+
+					/* the next instruction is again a hlt */
+					return true;
+			}
+		}
+
 		log("vcpu ", _id, " : ", _exit_count, ". vm exit - "
 		    " due to pause() request - ip=", Hex(state.ip.value()));
 		_pause_count++;
 		_test_state = State::PAUSED;
-		return;
+		return false;
 
 	case Exit::INTEL_HLT:
 	case Exit::AMD_HLT:
@@ -476,7 +458,7 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 
 		_test_state = State::HALTED;
 		_hlt_count ++;
-		return;
+		return false;
 
 	case Exit::INTEL_EPT:
 	case Exit::AMD_NPT:
@@ -493,12 +475,12 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 				      " halting vCPU - guest memory lookup failed");
 				_test_state = State::UNKNOWN;
 				/* no memory - we halt the vcpu */
-				return;
+				return false;
 			}
 			if (guest_fault_addr != 0xfffffff0UL) {
 				error("vcpu ", _id, " : ", _exit_count, ". vm exit - "
 				      " unknown guest fault address");
-				return;
+				return false;
 			}
 
 			_vm_con.attach(cap, guest_map_addr, { 0, 0, true, true });
@@ -511,14 +493,69 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 		error("vcpu ", _id, " : ", _exit_count, ". vm exit - "
 		      " halting vCPU - unknown state");
 		_test_state = State::UNKNOWN;
-		return;
+		return false;
 	}
 
 	log("vcpu ", _id, " : ", _exit_count, ". vm exit - resume vcpu");
 
 	_test_state = State::RUNNING;
-	_vcpu.run();
+	return true;
+	});
 }
+
+void Vmm::Vcpu::_cpu_init(Vcpu_state & state)
+{
+	enum { INTEL_CTRL_PRIMARY_HLT = 1 << 7 };
+	enum {
+		INTEL_CTRL_SECOND_UG = 1 << 7,
+		INTEL_CTRL_SECOND_RDTSCP_ENABLE = 1 << 3,
+	};
+	enum {
+		AMD_CTRL_PRIMARY_HLT  = 1 << 24,
+		AMD_CTRL_SECOND_VMRUN = 1 << 0
+	};
+
+	/* http://www.sandpile.org/x86/initial.htm */
+
+	typedef Vcpu_state::Segment Segment;
+	typedef Vcpu_state::Range   Range;
+
+	state.flags.charge(2);
+	state.ip.   charge(0xfff0);
+	state.cr0.  charge(0x10);
+	state.cs.   charge(Segment{0xf000, 0x93, 0xffff, 0xffff0000});
+	state.ss.   charge(Segment{0, 0x93, state.cs.value().limit, 0});
+	state.dx.   charge(0x600);
+	state.es.   charge(Segment{0, state.ss.value().ar,
+			                    state.cs.value().limit, 0});
+	state.ds.   charge(Segment{0, state.ss.value().ar,
+			                    state.cs.value().limit, 0});
+	state.fs.   charge(Segment{0, state.ss.value().ar,
+			                    state.cs.value().limit, 0});
+	state.gs.   charge(Segment{0, state.ss.value().ar,
+			                    state.cs.value().limit, 0});
+	state.tr.   charge(Segment{0, 0x8b, 0xffff, 0});
+	state.ldtr. charge(Segment{0, 0x1000, state.tr.value().limit, 0});
+	state.gdtr. charge(Range  {0, 0xffff});
+	state.idtr. charge(Range  {0, state.gdtr.value().limit});
+	state.dr7.  charge(0x400);
+
+	if (_vmx) {
+		state.ctrl_primary.charge(INTEL_CTRL_PRIMARY_HLT);
+		state.ctrl_secondary.charge(INTEL_CTRL_SECOND_UG | /* required for seL4 */
+				                    INTEL_CTRL_SECOND_RDTSCP_ENABLE);
+	}
+	if (_svm) {
+		state.ctrl_primary.charge(AMD_CTRL_PRIMARY_HLT);
+		state.ctrl_secondary.charge(AMD_CTRL_SECOND_VMRUN);
+	}
+
+	/* Store id of CPU for rdtscp, similar as some OS do and some
+	 * magic number to check for testing purpuse
+	 */
+	state.tsc_aux.charge((0xaffeU << 16) | _id);
+}
+
 
 
 class Vmm::Main
