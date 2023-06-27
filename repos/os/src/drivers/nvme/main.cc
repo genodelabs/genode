@@ -435,15 +435,15 @@ struct Nvme::Set_hmb : Nvme::Sqe_set_feature
 	};
 
 	Set_hmb(addr_t const base, uint64_t const hmdl,
-	        size_t const units, uint32_t const entries)
+	        uint32_t const units, uint32_t const entries)
 	:
 		Sqe_set_feature(base)
 	{
 		write<Sqe_set_feature::Cdw10::Fid>(Feature_fid::HMB);
 		write<Cdw11::Ehm>(1);
 		write<Cdw12::Hsize>(units);
-		write<Cdw13::Hmdlla>(hmdl);
-		write<Cdw14::Hmdlua>(hmdl >> 32u);
+		write<Cdw13::Hmdlla>(uint32_t(hmdl));
+		write<Cdw14::Hmdlua>(uint32_t(hmdl >> 32u));
 		write<Cdw15::Hmdlec>(entries);
 	}
 };
@@ -500,7 +500,6 @@ struct Nvme::Sqe_io : Nvme::Sqe
 {
 	struct Slba_lower : Register<0x28, 32> { };
 	struct Slba_upper : Register<0x2c, 32> { };
-	struct Slba       : Genode::Bitset_2<Slba_lower, Slba_upper> { };
 
 	struct Cdw12 : Register<0x30, 32>
 	{
@@ -787,9 +786,9 @@ class Nvme::Controller : Platform::Device,
 
 	struct Nsinfo
 	{
-		Block::sector_t count { 0 };
-		size_t          size  { 0 };
-		Block::sector_t max_request_count { 0 };
+		uint64_t count { 0 };
+		size_t   size  { 0 };
+		uint64_t max_request_count { 0 };
 		bool valid() const { return count && size; }
 	};
 
@@ -822,8 +821,8 @@ class Nvme::Controller : Platform::Device,
 
 	size_t _mdts_bytes { 0 };
 
-	size_t _max_io_entries      { MAX_IO_ENTRIES };
-	size_t _max_io_entries_mask { _max_io_entries - 1 };
+	uint16_t _max_io_entries      { MAX_IO_ENTRIES };
+	uint16_t _max_io_entries_mask { uint16_t(_max_io_entries - 1) };
 
 	enum Cns {
 		IDENTIFY_NS = 0x00,
@@ -1215,11 +1214,11 @@ class Nvme::Controller : Platform::Device,
 	 */
 	void _setup_hmb(size_t size)
 	{
-		uint32_t units = _check_hmb_units(size / Nvme::MPS);
+		uint32_t units = _check_hmb_units(uint32_t(size / Nvme::MPS));
 		if (!units)
 			return;
 
-		size_t  const  bytes       = units * Nvme::MPS;
+		uint32_t const bytes       = units * Nvme::MPS;
 		uint32_t const num_entries = bytes / HMB_CHUNK_SIZE;
 
 		try {
@@ -1523,7 +1522,14 @@ class Nvme::Controller : Platform::Device,
 	 *
 	 * \return  returns maximal count of blocks in one request
 	 */
-	Block::sector_t max_count(uint16_t nsid) const { return _nsinfo[nsid].max_request_count; }
+	Block::block_count_t max_count(uint16_t nsid) const
+	{
+		/*
+		 * Limit to block_count_t which differs between 32 and 64 bit
+		 * systems.
+		 */
+		return (Block::block_count_t)_nsinfo[nsid].max_request_count;
+	}
 
 	/**
 	 * Get number of slots in the I/O queue
@@ -1695,7 +1701,7 @@ class Nvme::Driver : Genode::Noncopyable
 			uint32_t       id            { 0 };
 		};
 
-		template <unsigned ENTRIES>
+		template <uint16_t ENTRIES>
 		struct Command_id
 		{
 			using Bitmap = Genode::Bit_array<ENTRIES>;
@@ -1703,7 +1709,7 @@ class Nvme::Driver : Genode::Noncopyable
 
 			uint16_t _bitmap_find_free() const
 			{
-				for (size_t i = 0; i < ENTRIES; i++) {
+				for (uint16_t i = 0; i < ENTRIES; i++) {
 					if (_bitmap.get(i, 1)) { continue; }
 					return i;
 				}
@@ -1955,7 +1961,7 @@ class Nvme::Driver : Genode::Noncopyable
 				request.operation.count = _nvme_ctrlr.max_count(Nvme::IO_NSID);
 			}
 
-			size_t          const count = request.operation.count;
+			uint32_t        const count = (uint32_t)request.operation.count;
 			Block::sector_t const lba   = request.operation.block_number;
 
 			size_t const len        = request.operation.count * _info.block_size;
@@ -2016,7 +2022,8 @@ class Nvme::Driver : Genode::Noncopyable
 				b.write<Nvme::Sqe::Prp2>(pa);
 			}
 
-			b.write<Nvme::Sqe_io::Slba>(lba);
+			b.write<Nvme::Sqe_io::Slba_lower>(uint32_t(lba));
+			b.write<Nvme::Sqe_io::Slba_upper>(uint32_t(lba >> 32u));
 			b.write<Nvme::Sqe_io::Cdw12::Nlb>(count - 1); /* 0-base value */
 		}
 
@@ -2040,12 +2047,13 @@ class Nvme::Driver : Genode::Noncopyable
 			r = Request { .block_request = request,
 			              .id            = id };
 
-			size_t          const count = request.operation.count;
+			uint32_t        const count = (uint32_t)request.operation.count;
 			Block::sector_t const lba   = request.operation.block_number;
 
 			Nvme::Sqe_io b(_nvme_ctrlr.io_command(Nvme::IO_NSID, cid));
 			b.write<Nvme::Sqe::Cdw0::Opc>(Nvme::Opcode::WRITE_ZEROS);
-			b.write<Nvme::Sqe_io::Slba>(lba);
+			b.write<Nvme::Sqe_io::Slba_lower>(uint32_t(lba));
+			b.write<Nvme::Sqe_io::Slba_upper>(uint32_t(lba >> 32u));
 
 			/*
 			 * XXX For now let the device decide if it wants to deallocate
