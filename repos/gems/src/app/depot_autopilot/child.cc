@@ -78,14 +78,15 @@ static Filter const *filter_to_apply(FILTERS const &filters,
 static size_t sanitize_pattern(char *const base,
                                size_t      size)
 {
-	static Filters<5> pattern_filters
+	static Filters<6> pattern_filters
 	{
 		{
 			{ "\x9", "" },
 			{ "\xa", "" },
 			{ "&lt;", "<" },
 			{ "&amp;", "&" },
-			{ "&#42;", "*" }
+			{ "&#42;", "*" },
+			{ "&quot;", "\"" }
 		}
 	};
 	struct Bad_filter : Exception { };
@@ -984,7 +985,11 @@ bool Log_event::handle_log_update(Expanding_string const &log_str)
 {
 	while (true) {
 
-		/* determine current pattern chunk */
+		/*
+		 * Determine the log pattern chunk that covers the point defined
+		 * by the current value of _pattern_offset. I.e., the first chunk of
+		 * the pattern that could not be fully matched against the log yet.
+		 */
 		Plain_string const *pattern_chunk        { nullptr };
 		size_t              pattern_chunk_offset { _pattern_offset };
 		_plain_strings.for_each([&] (Plain_string const &chunk) {
@@ -997,13 +1002,21 @@ bool Log_event::handle_log_update(Expanding_string const &log_str)
 				pattern_chunk = &chunk;
 			}
 		});
+		/*
+		 * If there is nothing left to match, stop and return that the event
+		 * was just triggered.
+		 */
 		if (!pattern_chunk) {
 			return true;
 		}
+		/* get the range of yet unmatched bytes inside the pattern chunk */
 		char   const *pattern_chunk_curr { pattern_chunk->base() + pattern_chunk_offset };
 		size_t const  pattern_chunk_left { pattern_chunk->size() - pattern_chunk_offset };
 
-		/* determine current log chunk */
+		/*
+		 * Determine the buffered log chunk that covers the point
+		 * defined by the current value of _log_offset.
+		 */
 		Expanding_string::Chunk const *log_chunk        { nullptr };
 		size_t                         log_chunk_offset { _log_offset };
 		log_str.for_each_chunk([&] (Expanding_string::Chunk const &chunk) {
@@ -1016,19 +1029,53 @@ bool Log_event::handle_log_update(Expanding_string const &log_str)
 				log_chunk = &chunk;
 			}
 		});
+		/*
+		 * If there is no log left to process, stop and return that the event
+		 * was not yet triggered.
+		 */
 		if (!log_chunk) {
 			return false;
 		}
+		if (_log_prefix_valid) {
+
+			/*
+			 * If the log chunk doesn't start with the log prefix configured
+			 * for this event, completely ignore the chunk.
+			 */
+			if (memcmp(log_chunk->base(), _log_prefix.string(), _log_prefix.length() - 1)) {
+
+				_log_offset += log_chunk->size();
+				continue;
+			}
+		}
+		/* get the range of yet unprocessed bytes inside the log chunk */
 		char   const *log_chunk_curr { log_chunk->base() + log_chunk_offset };
 		size_t const  log_chunk_left { log_chunk->size() - log_chunk_offset };
 
-		/* compare log with pattern */
+		/*
+		 * Compare the yet unmatched pattern bytes to the yet unprocessed log
+		 * bytes advance .
+		 */
 		size_t const cmp_size { min(log_chunk_left, pattern_chunk_left) };
 		if (memcmp(pattern_chunk_curr, log_chunk_curr, cmp_size)) {
+
+			/*
+			 * If the offset into the pattern chunk is > 0, this means that
+			 * the chunk could be matched partially against the less advanced
+			 * log buffer during the last update. If the remaining bytes now
+			 * fail to match against the just arrived subsequent log bytes,
+			 * we must discard the partial match and try to match the whole
+			 * chunk again. Note that it is correct to then increase the log
+			 * offset in any case because continuing with the partial match
+			 * would not have failed if (_log_offset - pattern_chunk_offset)
+			 * would point to a match for the whole pattern chunk.
+			 */
 			_pattern_offset -= pattern_chunk_offset;
 			_log_offset     -= pattern_chunk_offset;
 			_log_offset     += 1;
+
 		} else {
+
 			_pattern_offset += cmp_size;
 			_log_offset     += cmp_size;
 		}
@@ -1064,11 +1111,31 @@ Log_event::~Log_event()
 }
 
 
+Log_prefix Log_event::_init_log_prefix(Xml_node const &xml)
+{
+	if (!xml.has_attribute("log_prefix"))
+		return Log_prefix { };
+
+	char buf[Log_prefix::size()];
+	size_t buf_str_size { 0 };
+	xml.attribute("log_prefix").with_raw_value([&] (char const *src_ptr, size_t src_size) {
+
+		size_t const cpy_size = min(src_size, sizeof(buf) - 1);
+		memcpy(buf, src_ptr, cpy_size);
+		buf[cpy_size] = 0;
+		buf_str_size = sanitize_pattern(buf, cpy_size + 1);
+	});
+	return Cstring { buf, buf_str_size };
+}
+
+
 Log_event::Log_event(Allocator      &alloc,
                      Xml_node const &xml)
 :
-	Event  { xml, Type::LOG },
-	_alloc { alloc }
+	Event             { xml, Type::LOG },
+	_alloc            { alloc },
+	_log_prefix       { _init_log_prefix(xml) },
+	_log_prefix_valid { _log_prefix != Log_prefix { } }
 {
 	char const *const base   { xml_content_base(xml) };
 	size_t      const size   { xml_content_size(xml) };

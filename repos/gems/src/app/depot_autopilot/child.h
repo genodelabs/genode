@@ -45,6 +45,8 @@ namespace Depot_deploy {
 		void print(Genode::Output &output) const;
 	};
 
+	using Log_prefix = String<256>;
+
 	class Child;
 	class Event;
 	class Timeout_event;
@@ -169,16 +171,31 @@ class Depot_deploy::Log_event : public Event,
 				}
 		};
 
-		Genode::Allocator          &_alloc;
-		size_t                      _log_offset     { 0 };
-		size_t                      _pattern_offset { 0 };
-		Genode::Fifo<Plain_string>  _plain_strings  { };
+		Genode::Allocator &_alloc;
 
-		void _replace_wildcards_with_0();
+		/*
+		 * Defines a point inside the concatenation of all chunks of the
+		 * buffered log. Up to that point the buffered log has been processed
+		 * by this log event already.
+		 */
+		size_t _log_offset { 0 };
+
+		/*
+		 * Defines a point inside the concatenation of all chunks of the log
+		 * pattern of this event. Up to that point the pattern could be
+		 * successfully matched against the log so far.
+		 */
+		size_t _pattern_offset { 0 };
+
+		Genode::Fifo<Plain_string> _plain_strings  { };
+		Log_prefix const _log_prefix;
+		bool const _log_prefix_valid;
 
 		Log_event(Log_event const &);
 
 		Log_event const & operator=(const Log_event&);
+
+		Log_prefix _init_log_prefix(Xml_node const &xml);
 
 	public:
 
