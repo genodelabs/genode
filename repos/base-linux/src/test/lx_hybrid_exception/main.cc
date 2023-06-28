@@ -23,13 +23,7 @@ using namespace Genode;
 
 class Test_exception { };
 
-static int exit_status;
-static void exit_on_suspended() { exit(exit_status); }
 
-
-/*
- * Component implements classical main function in construct.
- */
 void Component::construct(Genode::Env &env)
 {
 	log("--- lx_hybrid exception test ---");
@@ -42,6 +36,5 @@ void Component::construct(Genode::Env &env)
 	}
 
 	log("--- returning from main ---");
-	exit_status = 0;
-	env.ep().schedule_suspend(exit_on_suspended, nullptr);
+	env.parent().exit(0);
 }

@@ -50,13 +50,6 @@ static void *pthread_entry(void *)
 }
 
 
-static int exit_status;
-static void exit_on_suspended() { exit(exit_status); }
-
-
-/*
- * Component implements classical main function in construct.
- */
 void Component::construct(Genode::Env &env)
 {
 	Genode::log("--- pthread IPC test ---");
@@ -69,6 +62,5 @@ void Component::construct(Genode::Env &env)
 	main_wait_lock()->block();
 
 	Genode::log("--- finished pthread IPC test ---");
-	exit_status = 0;
-	env.ep().schedule_suspend(exit_on_suspended, nullptr);
+	env.parent().exit(0);
 }

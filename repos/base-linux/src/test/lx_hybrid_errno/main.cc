@@ -42,15 +42,9 @@ struct Thread : Genode::Thread
 };
 
 
-static int exit_status;
-static void exit_on_suspended() { exit(exit_status); }
-
-
 struct Unexpected_errno_change { };
 
-/*
- * Component implements classical main function in construct.
- */
+
 void Component::construct(Genode::Env &env)
 {
 	Genode::log("--- thread-local errno test ---");
@@ -75,6 +69,5 @@ void Component::construct(Genode::Env &env)
 	}
 
 	Genode::log("--- finished thread-local errno test ---");
-	exit_status = 0;
-	env.ep().schedule_suspend(exit_on_suspended, nullptr);
+	env.parent().exit(0);
 }

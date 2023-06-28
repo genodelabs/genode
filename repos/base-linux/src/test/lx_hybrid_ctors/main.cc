@@ -44,10 +44,6 @@ extern Testlib_testclass testlib_testobject;
 Testapp_testclass testapp_testobject;
 
 
-static int exit_status;
-static void exit_on_suspended() { exit(exit_status); }
-
-
 /*
  * Component implements classical main function in construct.
  */
@@ -63,6 +59,5 @@ void Component::construct(Genode::Env &env)
 	testapp_testobject.dummy();
 
 	log("--- returning from main ---");
-	exit_status = 0;
-	env.ep().schedule_suspend(exit_on_suspended, nullptr);
+	env.parent().exit(0);
 }
