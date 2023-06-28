@@ -71,4 +71,7 @@ static inline struct page *virt_to_page(void const *v) { return lx_emul_virt_to_
 #include <asm/memory_model.h>
 #include <asm-generic/getorder.h>
 
+/* referenced in pgtable_64_types.h by VMALLOC_START */
+extern unsigned long vmalloc_base;
+
 #endif /* __ASM_GENERIC_PAGE_H */

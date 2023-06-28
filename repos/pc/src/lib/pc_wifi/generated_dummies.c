@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-03-23
+ * \date   2023-06-30
  */
 
 #include <lx_emul.h>
@@ -442,22 +442,6 @@ ssize_t generic_file_splice_read(struct file * in,loff_t * ppos,struct pipe_inod
 #include <linux/fs.h>
 
 ssize_t generic_splice_sendpage(struct pipe_inode_info * pipe,struct file * out,loff_t * ppos,size_t len,unsigned int flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/kernel.h>
-
-int get_option(char ** str,int * pint)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/kernel.h>
-
-char * get_options(const char * str,int nints,int * ints)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1086,14 +1070,6 @@ int stream_open(struct inode * inode,struct file * filp)
 #include <linux/string_helpers.h>
 
 int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned int flags,const char * only)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/string.h>
-
-char * strreplace(char * s,char old,char new)
 {
 	lx_emul_trace_and_stop(__func__);
 }

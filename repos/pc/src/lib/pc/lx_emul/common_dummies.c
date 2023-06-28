@@ -13,6 +13,10 @@
 
 #include <lx_emul.h>
 
+
+/* arch/x86/kernel/head64.c */
+unsigned long vmalloc_base;
+
 #include <asm-generic/sections.h>
 
 char __start_rodata[] = {};
@@ -193,6 +197,8 @@ void register_irq_proc(unsigned int irq,struct irq_desc * desc)
 	lx_emul_trace(__func__);
 }
 
+
+struct cdev;
 
 int cdev_add(struct cdev * p,dev_t dev,unsigned count)
 {
@@ -392,5 +398,3 @@ DEFINE_PER_CPU(bool, hardirq_stack_inuse);
 
 DEFINE_PER_CPU_READ_MOSTLY(struct cpuinfo_x86, cpu_info);
 EXPORT_PER_CPU_SYMBOL(cpu_info);
-
-

@@ -544,3 +544,40 @@ void __crypto_xor(u8 *dst, const u8 *src1, const u8 *src2, unsigned int len)
 	while (len--)
 		*dst++ = *src1++ ^ *src2++;
 }
+
+
+#include <../drivers/net/wireless/intel/iwlwifi/iwl-trans.h>
+#include <../drivers/net/wireless/intel/iwlwifi/fw/uefi.h>
+
+void *iwl_uefi_get_pnvm(struct iwl_trans *trans, size_t *len)
+{
+	lx_emul_trace(__func__);
+	return ERR_PTR(-EOPNOTSUPP);
+}
+
+
+void *iwl_uefi_get_reduced_power(struct iwl_trans *trans, size_t *len)
+{
+	lx_emul_trace(__func__);
+	return ERR_PTR(-EOPNOTSUPP);
+}
+
+
+void iwl_uefi_get_sgom_table(struct iwl_trans *trans, struct iwl_fw_runtime *fwrt)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/kernel.h>
+
+int get_option(char ** str,int * pint)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+char * strreplace(char * s,char old,char new)
+{
+	lx_emul_trace_and_stop(__func__);
+}
