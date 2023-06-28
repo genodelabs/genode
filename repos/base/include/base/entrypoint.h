@@ -35,11 +35,9 @@ class Genode::Entrypoint : Noncopyable
 		/**
 		 * Functor for post I/O signal progress handling
 		 *
-		 * This mechanism is for processing I/O events
-		 * deferred during signal dispatch. This is the
-		 * case when the application is blocked by I/O
-		 * but should not be resumed during signal
-		 * dispatch.
+		 * This mechanism is for processing I/O events deferred during signal
+		 * dispatch. This is the case when the application is blocked by I/O
+		 * but should not be resumed during signal dispatch.
 		 */
 		struct Io_progress_handler : Interface
 		{
@@ -98,10 +96,6 @@ class Genode::Entrypoint : Noncopyable
 		void _handle_deferred_signals() { }
 		Constructible<Signal_handler<Entrypoint> > _deferred_signal_handler { };
 
-		bool _suspended                = false;
-		void (*_suspended_callback) () = nullptr;
-		void (*_resumed_callback)   () = nullptr;
-
 		bool          _signal_proxy_delivers_signal { false };
 		Genode::Mutex _block_for_signal_mutex       { };
 
@@ -112,15 +106,6 @@ class Genode::Entrypoint : Noncopyable
 			if (_io_progress_handler != nullptr)
 				_io_progress_handler->handle_io_progress();
 		}
-
-		/*
-		 * This signal handler is solely used to force an iteration of the
-		 * signal-dispatch loop. It is triggered by 'schedule_suspend' to
-		 * let the signal-dispatching thread execute the actual suspend-
-		 * resume mechanism.
-		 */
-		void _handle_suspend() { _suspended = true; }
-		Constructible<Genode::Signal_handler<Entrypoint> > _suspend_dispatcher { };
 
 		void _dispatch_signal(Signal &sig);
 		void _defer_signal(Signal &sig);
@@ -216,16 +201,6 @@ class Genode::Entrypoint : Noncopyable
 		 * Return RPC entrypoint
 		 */
 		Rpc_entrypoint &rpc_ep() { return *_rpc_ep; }
-
-		/**
-		 * Trigger a suspend-resume cycle in the entrypoint
-		 *
-		 * The 'suspended' callback is called after the entrypoint entered the
-		 * safe suspend state.
-		 * The 'resumed' callback is called when the entrypoint is fully
-		 * functional again.
-		 */
-		void schedule_suspend(void (*suspended)(), void (*resumed)());
 
 		/**
 		 * Register hook functor to be called after I/O signals are dispatched
