@@ -128,8 +128,10 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 			[&] (Xml_node const policy) { _policy = Policy::from_xml(policy); },
 			[&]                         { _policy = Policy::default_policy(); });
 
-		_address_space.writeable_text_segments(_alloc, _wx_ram, _local_rm);
-		_linker_area  .writeable_text_segments(_alloc, _wx_ram, _local_rm);
+		if (_policy.wx) {
+			_address_space.writeable_text_segments(_alloc, _wx_ram, _local_rm);
+			_linker_area  .writeable_text_segments(_alloc, _wx_ram, _local_rm);
+		}
 	}
 
 	long unsigned id() const { return _inferiors_elem.id().value; }
