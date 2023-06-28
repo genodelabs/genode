@@ -400,9 +400,6 @@ _ZnwjPN6Genode9AllocatorE T
 _ZnwjRN6Genode9AllocatorE T
 _ZnwmPN6Genode9AllocatorE T
 _ZnwmRN6Genode9AllocatorE T
-genode_argc D 4
-genode_argv D 8
-genode_envp B 8
 lx_environ B 8
 memcpy W
 memmove W

@@ -14,9 +14,7 @@
  */
 
 /* Genode includes */
-#include <base/sleep.h>
 #include <base/thread.h>
-#include <base/component.h>
 
 /* platform-specific local helper functions */
 #include <base/internal/globals.h>
@@ -29,8 +27,6 @@ addr_t init_main_thread_result;
 
 static Platform *platform_ptr;
 
-enum { MAIN_THREAD_STACK_SIZE = 16*1024 };
-
 
 /**
  * Satisfy crt0.s in static programs, LDSO overrides this symbol
@@ -42,36 +38,13 @@ void init_rtld()
 	init_cxx_guard();
 }
 
+void * __dso_handle = 0;
+
 
 /**
  * Lower bound of the stack, solely used for sanity checking
  */
 extern unsigned char __initial_stack_base[];
-
-
-/**
- * The first thread in a program
- */
-struct Main_thread : Thread
-{
-	Main_thread()
-	:
-		Thread(Weight::DEFAULT_WEIGHT, "main", MAIN_THREAD_STACK_SIZE, Type::MAIN)
-	{ }
-
-	/**********************
-	 ** Thread interface **
-	 **********************/
-
-	void entry() override { }
-};
-
-
-Main_thread * main_thread()
-{
-	static Main_thread s { };
-	return &s;
-}
 
 
 /**
@@ -90,14 +63,28 @@ extern "C" void init_main_thread()
 
 	platform_ptr = &init_platform();
 
-	/* create a thread object for the main thread */
-	main_thread();
+	/*
+	 * Create a 'Thread' object for the main thread
+	 */
+	static constexpr size_t STACK_SIZE = 16*1024;
 
-	/**
+	struct Main_thread : Thread
+	{
+		Main_thread()
+		:
+			Thread(Weight::DEFAULT_WEIGHT, "main", STACK_SIZE, Type::MAIN)
+		{ }
+
+		void entry() override { /* never executed */ }
+	};
+
+	static Main_thread main_thread { };
+
+	/*
 	 * The new stack pointer enables the caller to switch from its current
 	 * environment to the those that the thread object provides.
 	 */
-	addr_t const sp = reinterpret_cast<addr_t>(main_thread()->stack_top());
+	addr_t const sp = reinterpret_cast<addr_t>(main_thread.stack_top());
 	init_main_thread_result = sp;
 
 	/*
@@ -116,26 +103,6 @@ extern "C" void init_main_thread()
 		for (;;);
 	}
 }
-
-void * __dso_handle = 0;
-
-
-/**
- * Dummy default arguments for main function
- */
-static char  argv0[] = { '_', 'm', 'a', 'i', 'n', 0};
-static char *argv[1] = { argv0 };
-
-
-/**
- * Arguments for main function
- *
- * These global variables may be initialized by a constructor provided by an
- * external library.
- */
-char **genode_argv = argv;
-int    genode_argc = 1;
-char **genode_envp = 0;
 
 
 namespace Genode {
@@ -157,22 +124,10 @@ namespace Genode {
 }
 
 
-extern "C" int _main()
+extern "C" int _main() /* executed with the stack within the stack area */
 {
-	Genode::bootstrap_component(*platform_ptr);
+	bootstrap_component(*platform_ptr);
 
 	/* never reached */
 	return 0;
 }
-
-
-extern int main(int argc, char **argv, char **envp);
-
-
-void Component::construct(Genode::Env &env) __attribute__((weak));
-void Component::construct(Genode::Env &)
-{
-	/* call real main function */
-	main(genode_argc, genode_argv, genode_envp);
-}
-

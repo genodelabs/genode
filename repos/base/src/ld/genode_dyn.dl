@@ -15,5 +15,4 @@
 	_dtors_end;
 	_ZN9Component9constructERN6Genode3EnvE;
 	_ZN9Component10stack_sizeEv;
-	main;
 };

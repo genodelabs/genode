@@ -34,16 +34,15 @@ SECTIONS
 
     /*
      * The ELF entry point is unused for dynamically linked components. The
-     * dynamic linker determined the entry point by looking up the symbol of
-     * the 'Component::construct' function or - if it does not exist - the
-     * 'main' function (for legacy components).
+     * dynamic linker determines the entry point by looking up the symbol of
+     * the 'Component::construct' function.
      *
      * \deprecated  The support for legacy main functions will be removed.
      *
      * The 'KEEP' directive prevents text that is reachable from one of the
      * possible entry points from being garbage collected.
      */
-    KEEP(*(.text._ZN9Component9constructERN6Genode3EnvE .text.main))
+    KEEP(*(.text._ZN9Component9constructERN6Genode3EnvE))
 
     *(.text
       .stub .text.* .gnu.linkonce.t.*)

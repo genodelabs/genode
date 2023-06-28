@@ -337,18 +337,6 @@ Linker::Ld &Linker::Ld::linker()
 }
 
 
-/*
- * Defined in the startup library, passed to legacy main functions.
- */
-extern char **genode_argv;
-extern int    genode_argc;
-extern char **genode_envp;
-
-static int exit_status;
-
-static void exit_on_suspended() { genode_exit(exit_status); }
-
-
 /**
  * The dynamic binary to load
  */
@@ -449,29 +437,6 @@ struct Linker::Binary : private Root_object, public Elf_object
 			}
 
 			stage = STAGE_SO;
-			return;
-		}
-
-		/*
-		 * The 'Component::construct' function is missing. This may be the
-		 * case for legacy components that still implement a 'main' function.
-		 *
-		 * \deprecated  the handling of legacy 'main' functions will be removed
-		 */
-		if (Elf::Addr addr = lookup_symbol("main")) {
-			warning("using legacy main function, please convert to 'Component::construct'");
-
-			/* execute static constructors before calling legacy 'main' */
-			finish_static_construction();
-
-			exit_status = ((int (*)(int, char **, char **))addr)(genode_argc,
-			                                                     genode_argv,
-			                                                     genode_envp);
-
-			/* trigger suspend in the entry point */
-			env.ep().schedule_suspend(exit_on_suspended, nullptr);
-
-			/* return to entrypoint and exit via exit_on_suspended() */
 			return;
 		}
 
