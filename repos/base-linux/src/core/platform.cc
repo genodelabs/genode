@@ -69,20 +69,26 @@ class Pipe_semaphore
 };
 
 
-static Pipe_semaphore _wait_for_exit_sem;  /* wakeup of '_wait_for_exit' */
-static bool           _do_exit = false;    /* exit condition */
+static Pipe_semaphore &_wait_for_exit_sem()
+{
+	static Pipe_semaphore inst { };
+	return inst;
+}
+
+
+static bool _do_exit = false;    /* exit condition */
 
 
 static void sigint_handler(int)
 {
 	_do_exit = true;
-	_wait_for_exit_sem.up();
+	_wait_for_exit_sem().up();
 }
 
 
 static void sigchld_handler(int)
 {
-	_wait_for_exit_sem.up();
+	_wait_for_exit_sem().up();
 }
 
 
@@ -125,7 +131,7 @@ void Core::Platform::wait_for_exit()
 		/*
 		 * Block until a signal occurs.
 		 */
-		_wait_for_exit_sem.down();
+		_wait_for_exit_sem().down();
 
 		/*
 		 * Each time, the '_wait_for_exit_sem' gets unlocked, we could have
