@@ -199,13 +199,13 @@ static int __init pci_subsys_init(void)
 }
 
 
+#ifdef CONFIG_X86
+subsys_initcall(pci_subsys_init);
+#else
 static int __init pci_proc_init(void)
 {
 	return pci_subsys_init();
 }
 
-#ifdef CONFIG_X86
-subsys_initcall(pci_subsys_init);
-#else
 device_initcall(pci_proc_init);
 #endif
