@@ -17,10 +17,13 @@
 
 struct clk *clk_get(struct device *dev, const char *con_id)
 {
+	struct clk * ret;
+
 	if (!dev || !dev->of_node)
 		return NULL;
 
-	return lx_emul_clock_get(dev->of_node, con_id);
+	ret = lx_emul_clock_get(dev->of_node, con_id);
+	return ret ? ret : ERR_PTR(-ENOENT);
 }
 
 
