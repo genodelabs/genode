@@ -45,12 +45,12 @@ namespace Aes_256_key_wrap
 	 * key-encryption-key (KEK) size of 256 bits and a key (key data) size of
 	 * 256 bits.
 	 */
-	void wrap_key(unsigned char       *ciphertext_uint8,
-	              Genode::size_t       ciphertext_size,
-	              unsigned char const *key_plaintext_uint8,
-	              Genode::size_t       key_plaintext_size,
-	              unsigned char const *key_encryption_key_uint8,
-	              Genode::size_t       key_encryption_key_size);
+	void wrap_key(Genode::uint64_t       *ciphertext_u64_ptr,
+	              Genode::size_t          ciphertext_size,
+	              Genode::uint64_t const *key_plaintext_u64_ptr,
+	              Genode::size_t          key_plaintext_size,
+	              Genode::uint64_t const *key_encryption_key_u64_ptr,
+	              Genode::size_t          key_encryption_key_size);
 
 	/**
 	 * Implementation of the "Key Unwrap" algorithm (alternative indexing-based
@@ -59,13 +59,13 @@ namespace Aes_256_key_wrap
 	 * key-encryption-key (KEK) size of 256 bits and a key (key data) size of
 	 * 256 bits.
 	 */
-	void unwrap_key(unsigned char       *key_plaintext_uint8,
-	                Genode::size_t       key_plaintext_size,
-	                bool                &key_plaintext_corrupt,
-	                unsigned char const *ciphertext_uint8,
-	                Genode::size_t       ciphertext_size,
-	                unsigned char const *key_encryption_key_uint8,
-	                Genode::size_t       key_encryption_key_size);
+	void unwrap_key(Genode::uint64_t       *key_plaintext_u64_ptr,
+	                Genode::size_t          key_plaintext_size,
+	                bool                   &key_plaintext_corrupt,
+	                Genode::uint64_t const *ciphertext_u64_ptr,
+	                Genode::size_t          ciphertext_size,
+	                Genode::uint64_t const *key_encryption_key_u64_ptr,
+	                Genode::size_t          key_encryption_key_size);
 }
 
 #endif /* _AES_256_H_ */

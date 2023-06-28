@@ -68,6 +68,7 @@ class Trust_anchor
 		Trust_anchor(Trust_anchor const &) = delete;
 		Trust_anchor &operator=(Trust_anchor const&) = delete;
 
+		using uint64_t             = Genode::uint64_t;
 		using size_t               = Genode::size_t;
 		using Byte_range_ptr       = Genode::Byte_range_ptr;
 		using Const_byte_range_ptr = Genode::Const_byte_range_ptr;
@@ -113,8 +114,12 @@ class Trust_anchor
 
 		struct Private_key
 		{
-			unsigned char value[PRIVATE_KEY_SIZE] { };
+			unsigned char value[PRIVATE_KEY_SIZE] __attribute__((aligned(sizeof(uint64_t)))) { };
+
+			uint64_t const *u64_ptr() const { return (uint64_t const *)value; }
+			uint64_t *u64_ptr() { return (uint64_t *)value; }
 		};
+
 		Private_key _private_key { };
 
 		struct Last_hash
@@ -128,9 +133,13 @@ class Trust_anchor
 		struct Key
 		{
 			enum { KEY_LEN = 32 };
-			unsigned char value[KEY_LEN] { };
+			unsigned char value[KEY_LEN] __attribute__((aligned(sizeof(uint64_t)))) { };
 			static constexpr size_t length = KEY_LEN;
+
+			uint64_t const *u64_ptr() const { return (uint64_t const *)value; }
+			uint64_t *u64_ptr() { return (uint64_t *)value; }
 		};
+
 		Key _decrypt_key   { };
 		Key _encrypt_key   { };
 		Key _generated_key { };
@@ -269,12 +278,12 @@ class Trust_anchor
 
 					bool private_key_corrupt;
 					Aes_256_key_wrap::unwrap_key(
-						_private_key.value,
+						_private_key.u64_ptr(),
 						sizeof(_private_key.value),
 						private_key_corrupt,
-						(unsigned char *)_key_io_job_buffer.base,
+						_key_io_job_buffer.u64_ptr(),
 						_key_io_job_buffer.size,
-						(unsigned char *)_passphrase_hash_buffer.base,
+						_passphrase_hash_buffer.u64_ptr(),
 						_passphrase_hash_buffer.size);
 
 					if (private_key_corrupt) {
@@ -342,11 +351,11 @@ class Trust_anchor
 
 				_key_io_job_buffer.size = Aes_256_key_wrap::CIPHERTEXT_SIZE;
 				Aes_256_key_wrap::wrap_key(
-					(unsigned char *)_key_io_job_buffer.base,
+					_key_io_job_buffer.u64_ptr(),
 					_key_io_job_buffer.size,
-					(unsigned char *)_private_key_io_job_buffer.base,
+					_private_key_io_job_buffer.u64_ptr(),
 					_private_key_io_job_buffer.size,
-					(unsigned char *)_passphrase_hash_buffer.base,
+					_passphrase_hash_buffer.u64_ptr(),
 					_passphrase_hash_buffer.size);
 
 				_job_state = Job_state::PENDING;
@@ -543,13 +552,16 @@ class Trust_anchor
 
 		struct Private_key_io_job_buffer : Util::Io_job::Buffer
 		{
-			char buffer[PRIVATE_KEY_SIZE] { };
+			char buffer[PRIVATE_KEY_SIZE] __attribute__((aligned(sizeof(uint64_t)))) { };
 
 			Private_key_io_job_buffer()
 			{
 				Buffer::base = buffer;
 				Buffer::size = sizeof (buffer);
 			}
+
+			uint64_t const *u64_ptr() const { return (uint64_t const *)buffer; }
+			uint64_t *u64_ptr() { return (uint64_t *)buffer; }
 		};
 
 		Vfs::Vfs_handle *_private_key_handle { nullptr };
@@ -563,24 +575,30 @@ class Trust_anchor
 
 		struct Key_io_job_buffer : Util::Io_job::Buffer
 		{
-			char buffer[Aes_256_key_wrap::CIPHERTEXT_SIZE] { };
+			char buffer[Aes_256_key_wrap::CIPHERTEXT_SIZE] __attribute__((aligned(sizeof(uint64_t)))) { };
 
 			Key_io_job_buffer()
 			{
 				Buffer::base = buffer;
 				Buffer::size = sizeof (buffer);
 			}
+
+			uint64_t const *u64_ptr() const { return (uint64_t const *)buffer; }
+			uint64_t *u64_ptr() { return (uint64_t *)buffer; }
 		};
 
 		struct Passphrase_hash_buffer : Util::Io_job::Buffer
 		{
-			char buffer[PASSPHRASE_HASH_SIZE] { };
+			char buffer[PASSPHRASE_HASH_SIZE] __attribute__((aligned(sizeof(uint64_t)))) { };
 
 			Passphrase_hash_buffer()
 			{
 				Buffer::base = buffer;
 				Buffer::size = sizeof (buffer);
 			}
+
+			uint64_t const *u64_ptr() const { return (uint64_t const *)buffer; }
+			uint64_t *u64_ptr() { return (uint64_t *)buffer; }
 		};
 
 		Key_io_job_buffer      _key_io_job_buffer      { };
