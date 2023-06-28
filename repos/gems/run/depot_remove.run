@@ -108,7 +108,7 @@ proc build_depot_context { } {
 	dict set context archives_to_keep   { }
 
 	# collect every PKGs and dependencies in the keep list
-	foreach dir [glob -type d [run_dir]/genode/depot/[depot_user]/pkg/*] {
+	foreach dir [glob -type d "[run_dir]/genode/depot/[depot_user]/pkg/*"] {
 		dict with context {
 			set path [pkg_path [file tail $dir]]
 			set dependencies [collect_pkg_dependencies $path]
@@ -134,7 +134,7 @@ proc mark_pkg_for_deletion { context name } {
 	lappend archives $path
 
 	# compute archive(s) still referenced by another PKG that must be kept
-	foreach dir [glob -type d [run_dir]/genode/depot/[depot_user]/pkg/*] {
+	foreach dir [glob -type d "[run_dir]/genode/depot/[depot_user]/pkg/*"] {
 		if { [file tail $dir] == $name } continue
 
 		set pkg_path [pkg_path [file tail $dir]]
