@@ -221,10 +221,6 @@ namespace Genode {
 }
 
 
-/* expected by entrypoint.cc */
-Genode::size_t Component::stack_size() { return 64*1024; }
-
-
 void Genode::bootstrap_component(Genode::Platform &)
 {
 	init_exception_handling(*core_env().pd_session(), core_env().local_rm());

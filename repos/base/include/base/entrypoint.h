@@ -76,7 +76,7 @@ class Genode::Entrypoint : Noncopyable
 				ep(ep)
 			{ start(); }
 
-			void entry() override { ep._process_incoming_signals(); }
+			void entry() override;
 		};
 
 		Env &_env;

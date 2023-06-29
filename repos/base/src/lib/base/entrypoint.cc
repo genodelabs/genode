@@ -72,6 +72,12 @@ void Entrypoint::Signal_proxy_component::signal()
 }
 
 
+void Entrypoint::Signal_proxy_thread::entry()
+{
+	ep._process_incoming_signals();
+}
+
+
 void Entrypoint::_dispatch_signal(Signal &sig)
 {
 	Signal_dispatcher_base *dispatcher = 0;
