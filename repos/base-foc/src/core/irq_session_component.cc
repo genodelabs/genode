@@ -61,7 +61,7 @@ class Core::Interrupt_handler : public Thread
 enum { MAX_MSIS = 256 };
 
 
-static struct Msi_allocator : Bit_array<MAX_MSIS>
+struct Msi_allocator : Bit_array<MAX_MSIS>
 {
 	Msi_allocator()
 	{
@@ -78,7 +78,14 @@ static struct Msi_allocator : Bit_array<MAX_MSIS>
 				set(info.nr_msis, MAX_MSIS - info.nr_msis);
 	}
 
-} msi_alloc;
+};
+
+
+static Msi_allocator & msi_alloc()
+{
+	static Msi_allocator instance;
+	return instance;
+}
 
 
 bool Irq_object::associate(unsigned irq, bool msi,
@@ -189,11 +196,11 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 	long const msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 
 	if (msi) {
-		if (msi_alloc.get(_irq_number, 1)) {
+		if (msi_alloc().get(_irq_number, 1)) {
 			error("unavailable MSI ", _irq_number, " requested");
 			throw Service_denied();
 		}
-		msi_alloc.set(_irq_number, 1);
+		msi_alloc().set(_irq_number, 1);
 	} else {
 		if (irq_alloc.alloc_addr(1, _irq_number).failed()) {
 			error("unavailable IRQ ", _irq_number, " requested");
@@ -209,7 +216,7 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 
 	/* cleanup */
 	if (msi)
-		msi_alloc.clear(_irq_number, 1);
+		msi_alloc().clear(_irq_number, 1);
 	else {
 		addr_t const free_irq = _irq_number;
 		_irq_alloc.free((void *)free_irq);
@@ -224,7 +231,7 @@ Irq_session_component::~Irq_session_component()
 		return;
 
 	if (_irq_object.msi_address()) {
-		msi_alloc.clear(_irq_number, 1);
+		msi_alloc().clear(_irq_number, 1);
 	} else {
 		addr_t const free_irq = _irq_number;
 		_irq_alloc.free((void *)free_irq);
