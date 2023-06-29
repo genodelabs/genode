@@ -254,6 +254,8 @@
 						<child name="config_fs_report" label="managed -> depot_query"/> </service>
 					<service name="Report"> <child name="report_rom"/> </service>
 					<service name="ROM" label_prefix="report ->"> <parent/> </service>
+					<service name="ROM" label="nitpicker_focus">  <parent/> </service>
+					<service name="ROM" label="nitpicker_hover">  <parent/> </service>
 					<service name="ROM" label_suffix="_hover">     <child name="report_rom"/> </service>
 					<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
 					<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>

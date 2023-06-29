@@ -273,6 +273,8 @@ install_config {
 			<policy label="runtime -> capslock" report="global_keys_handler -> capslock"/>
 			<policy label="drivers -> numlock"  report="global_keys_handler -> numlock"/>
 			<policy label="runtime -> clicked"  report="nitpicker -> clicked"/>
+			<policy label="leitzentrale -> manager -> nitpicker_focus" report="nitpicker -> focus"/>
+			<policy label="leitzentrale -> manager -> nitpicker_hover" report="nitpicker -> hover"/>
 			<policy label="nit_focus -> leitzentrale"
 			        report="global_keys_handler -> leitzentrale"/>
 			<policy label="nit_focus -> slides"
@@ -577,6 +579,8 @@ install_config {
 				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label_prefix="config -> ">
 				<child name="config_fs_rom"/> </service>
+			<service name="ROM" label="manager -> nitpicker_focus">
+				<child name="report_rom"/> </service>
 			<service name="ROM" label="manager -> nitpicker_hover">
 				<child name="report_rom"/> </service>
 			<service name="ROM" label="manager -> leitzentrale">

@@ -36,6 +36,7 @@
 #include <model/file_operation_queue.h>
 #include <model/settings.h>
 #include <model/presets.h>
+#include <model/screensaver.h>
 #include <view/download_status.h>
 #include <view/popup_dialog.h>
 #include <view/panel_dialog.h>
@@ -71,7 +72,8 @@ struct Sculpt::Main : Input_event_handler,
                       Panel_dialog::State,
                       Dialog,
                       Popup_dialog::Refresh,
-                      Menu_view::Hover_update_handler
+                      Menu_view::Hover_update_handler,
+                      Screensaver::Action
 {
 	Env &_env;
 
@@ -113,6 +115,16 @@ struct Sculpt::Main : Input_event_handler,
 		_env.ep(), *this, &Main::_handle_gui_mode };
 
 	void _handle_gui_mode();
+
+	Screensaver _screensaver { _env, *this };
+
+	/**
+	 * Screensaver::Action interface
+	 */
+	void screensaver_changed() override
+	{
+		/* hook for driving the lifetime of the display driver */
+	}
 
 	Managed_config<Main> _fonts_config {
 		_env, "config", "fonts", *this, &Main::_handle_fonts_config };
