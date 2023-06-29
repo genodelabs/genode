@@ -1070,7 +1070,7 @@ class Genode::Xml_unquoted : Noncopyable
 
 		template <size_t N>
 		Xml_unquoted(String<N> const &string)
-		: _content_ptr({ string.string(), string.length() - 1})
+		: _content_ptr({ string.string(), string.length() ? string.length() - 1 : 0 })
 		{ }
 
 		void print(Output &out) const
