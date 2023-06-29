@@ -185,6 +185,27 @@ struct Test::Main
 		       "unexpected content at patched address");
 	}
 
+	void test_write_memory()
+	{
+		log("-- test_write_memory --");
+		char const * const s     = "Trying to modify this pattern   ";
+		char const * const s_new = "Trying to read back this pattern";
+		size_t const num_bytes = strlen(s);
+		char buffer[num_bytes] { };
+
+		assert(_monitor.write_memory((addr_t)s,
+		                             Const_byte_range_ptr(s_new, num_bytes)),
+		       "unable to write string of ", num_bytes, " bytes");
+
+		size_t const read_bytes =
+			_monitor.read_memory((addr_t)s, Byte_range_ptr(buffer, sizeof(buffer)));
+
+		assert(read_bytes == num_bytes,
+		       "unable to read string of ", num_bytes, " bytes");
+		assert(equal(Const_byte_range_ptr(buffer, read_bytes), s_new),
+		       "read bytes don't match expected pattern");
+	}
+
 	Main(Env &env) : _env(env)
 	{
 		test_query_threads();
@@ -192,6 +213,7 @@ struct Test::Main
 		test_read_memory();
 		test_truncated_mapping();
 		test_writeable_text_segment();
+		test_write_memory();
 		test_bench();
 
 		_env.parent().exit(0);

@@ -88,6 +88,15 @@ struct Monitor::Gdb::State : Noncopyable
 		return 0;
 	}
 
+	size_t write_memory(Memory_accessor::Virt_addr at, Const_byte_range_ptr const &src)
+	{
+		if (_current.constructed())
+			return _memory_accessor.write(_current->pd, at, src);
+
+		warning("attempt to write memory without a current target");
+		return 0;
+	}
+
 	bool current_defined() const { return _current.constructed(); }
 
 	void current(Inferiors::Id pid, Threads::Id tid)
@@ -455,6 +464,43 @@ struct m : Command_without_separator
 
 
 /**
+ * Write memory (binary data)
+ */
+struct X : Command_without_separator
+{
+	X(Commands &c) : Command_without_separator(c, "X") { }
+
+	void execute(State &state, Const_byte_range_ptr const &args, Output &out) const override
+	{
+		addr_t const addr = comma_separated_hex_value(args, 0, addr_t(0));
+		size_t const len  = comma_separated_hex_value(args, 1, 0UL);
+
+		if (len == 0) {
+			/* packet support probing */
+			gdb_ok(out);
+			return;
+		}
+
+		size_t written_num_bytes { 0 };
+
+		with_argument(args, Sep {':'}, 1, [&] (Const_byte_range_ptr const &arg) {
+
+			if (arg.num_bytes != len)
+				return;
+
+			written_num_bytes =
+				state.write_memory(Memory_accessor::Virt_addr { addr }, arg);
+		});
+
+		if (written_num_bytes == len)
+			gdb_ok(out);
+		else
+			gdb_error(out, 1);
+	}
+};
+
+
+/**
  * Query liveliness of thread ID
  */
 struct T : Command_without_separator
@@ -528,7 +574,8 @@ struct Monitor::Gdb::Supported_commands : Commands
 		Cmd::m,
 		Cmd::D,
 		Cmd::T,
-		Cmd::ask
+		Cmd::ask,
+		Cmd::X
 		> _instances { *this };
 };
 

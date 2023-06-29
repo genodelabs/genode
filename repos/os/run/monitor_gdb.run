@@ -21,3 +21,17 @@ run_genode_until {\(gdb\)} 20 $gdb_id
 if {![regexp {0x1003e8b:\t0x6f636e6f} $output]} {
 	puts stderr "*** Error: Dumped memory is not as expected"
 }
+
+puts ""
+puts "----- test: write memory -----"
+puts ""
+
+send "set {int} 0x1003e8b = 0x12345678\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "x/x 0x1003e8b\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {0x1003e8b:\t0x12345678} $output]} {
+	puts stderr "*** Error: Modified memory is not as expected"
+}

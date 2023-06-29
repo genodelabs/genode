@@ -50,7 +50,7 @@ class Monitor::Memory_accessor : Noncopyable
 			Inferior_pd &_pd;
 			addr_t const _offset;
 
-			struct { uint8_t const *_local_ptr; };
+			struct { uint8_t * const _local_ptr; };
 
 			Curr_view(Region_map &local_rm, Inferior_pd &pd, addr_t offset)
 			:
@@ -119,7 +119,40 @@ class Monitor::Memory_accessor : Noncopyable
 				}
 			};
 
-			Constructible<Read_job> _read_job { };
+			/* exists only temporary during a 'Memory_accessor::write' call */
+			struct Write_job
+			{
+				Curr_view                  &curr_view;
+				Virt_addr                   at;
+				Const_byte_range_ptr const &src;
+
+				size_t pos  = 0; /* number of completed bytes */
+				bool   done = 0; /* true if 'execute_may_fault' survived */
+
+				Write_job(Curr_view &curr_view, Virt_addr at, Const_byte_range_ptr const &src)
+				:
+					curr_view(curr_view), at(at), src(src)
+				{ }
+
+				/* called only once */
+				void execute_may_fault()
+				{
+					/* offset from the start of the window */
+					addr_t const window_pos = at.value - curr_view._offset;
+					addr_t const num_bytes_at_window_pos = WINDOW_SIZE - window_pos;
+					size_t const len = min(src.num_bytes, num_bytes_at_window_pos);
+
+					uint8_t * const dst_ptr = curr_view._local_ptr;
+
+					for (pos = 0; pos < len; pos++)
+						dst_ptr[window_pos + pos] = src.start[pos];
+
+					done = true;
+				}
+			};
+
+			Constructible<Read_job>  _read_job { };
+			Constructible<Write_job> _write_job { };
 
 			/**
 			 * Thread interface
@@ -133,6 +166,11 @@ class Monitor::Memory_accessor : Noncopyable
 						_read_job->execute_may_fault();
 
 						/* wakeup 'Memory_accessor::read' via I/O signal */
+						_probe_response_handler.local_submit();
+					} else if (_write_job.constructed()) {
+						_write_job->execute_may_fault();
+
+						/* wakeup 'Memory_accessor::write' via I/O signal */
 						_probe_response_handler.local_submit();
 					}
 				}
@@ -161,6 +199,22 @@ class Monitor::Memory_accessor : Noncopyable
 
 				return result;
 			}
+
+			size_t write(Curr_view &curr_view,
+			             Virt_addr at, Const_byte_range_ptr const &src, auto const &block_fn)
+			{
+				_write_job.construct(curr_view, at, src);
+				_blockade.wakeup();
+
+				/* block until write is done or a page fault occurred */
+				while (!_write_job->done && block_fn());
+
+				size_t const result = _write_job->pos;
+
+				_write_job.destruct();
+
+				return result;
+			}
 		};
 
 		Constructible<Probe> _probe { };
@@ -173,6 +227,60 @@ class Monitor::Memory_accessor : Noncopyable
 		unsigned _timeout_count = 0;
 
 		void _handle_timeout() { _timeout_count++; }
+
+		size_t _with_watched_page_faults(Inferior_pd &pd, auto const &fn)
+		{
+			/* give up after 100 milliseconds */
+			_watchdog_timer.trigger_once(1000*100);
+
+			/* drain pending signals to avoid spurious watchdog timeouts */
+			while (_env.ep().dispatch_pending_io_signal());
+
+			unsigned const orig_page_fault_count = pd.page_fault_count();
+			unsigned const orig_timeout_count    = _timeout_count;
+
+			if (!_probe.constructed())
+				_probe.construct(_env, _probe_response_handler);
+
+			auto fault_or_timeout_occurred = [&] {
+				return (orig_page_fault_count != pd.page_fault_count())
+				    || (orig_timeout_count != _timeout_count); };
+
+			auto block_fn = [&]
+			{
+				if (fault_or_timeout_occurred())
+					return false; /* cancel operation */
+
+				_env.ep().wait_and_dispatch_one_io_signal();
+				return true; /* keep trying */
+			};
+
+			size_t const result = fn(block_fn);
+
+			/* wind down the faulted probe thread, spawn a fresh one on next call */
+			if (fault_or_timeout_occurred())
+				_probe.destruct();
+
+			return result;
+		}
+
+		size_t _with_curr_view_at(Inferior_pd &pd, Virt_addr at, auto const &fn)
+		{
+			if (_curr_view.constructed() && !_curr_view->contains(pd, at))
+				_curr_view.destruct();
+
+			if (!_curr_view.constructed()) {
+				addr_t const offset = at.value & ~(WINDOW_SIZE - 1);
+				try { _curr_view.construct(_env.rm(), pd, offset); }
+				catch (Region_map::Region_conflict) {
+					warning("attempt to access memory outside the virtual address space: ",
+					        Hex(at.value));
+					return 0;
+				}
+			}
+
+			return fn(*_curr_view);
+		}
 
 	public:
 
@@ -194,52 +302,33 @@ class Monitor::Memory_accessor : Noncopyable
 		 */
 		size_t read(Inferior_pd &pd, Virt_addr at, Byte_range_ptr const &dst)
 		{
-			if (_curr_view.constructed() && !_curr_view->contains(pd, at))
-				_curr_view.destruct();
+			return _with_curr_view_at(pd, at,
+			                          [&] (Curr_view &curr_view) -> size_t {
+				return _with_watched_page_faults(pd,
+				                                 [&] (auto const &block_fn) -> size_t {
+					return _probe->read(curr_view, at, dst, block_fn);
+				});
+			});
+		}
 
-			if (!_curr_view.constructed()) {
-				addr_t const offset = at.value & ~(WINDOW_SIZE - 1);
-				try { _curr_view.construct(_env.rm(), pd, offset); }
-				catch (Region_map::Region_conflict) {
-					warning("attempt to read outside the virtual address space: ",
-					        Hex(at.value));
-					return 0;
-				}
-			}
-
-			/* give up after 100 milliseconds */
-			_watchdog_timer.trigger_once(1000*100);
-
-			/* drain pending signals to avoid spurious watchdog timeouts */
-			while (_env.ep().dispatch_pending_io_signal());
-
-			unsigned const orig_page_fault_count = pd.page_fault_count();
-			unsigned const orig_timeout_count    = _timeout_count;
-
-			if (!_probe.constructed())
-				_probe.construct(_env, _probe_response_handler);
-
-			auto fault_or_timeout_occurred = [&] {
-				return (orig_page_fault_count != pd.page_fault_count())
-				    || (orig_timeout_count != _timeout_count); };
-
-			auto block_fn = [&]
-			{
-				if (fault_or_timeout_occurred())
-					return false; /* cancel read */
-
-				_env.ep().wait_and_dispatch_one_io_signal();
-				return true; /* keep trying */
-			};
-
-			size_t const read_num_bytes =
-				_probe->read(*_curr_view, at, dst, block_fn);
-
-			/* wind down the faulted probe thread, spawn a fresh one on next call */
-			if (fault_or_timeout_occurred())
-				_probe.destruct();
-
-			return read_num_bytes;
+		/**
+		 * Write memory from buffer 'src' into inferior 'pd' at address 'at'
+		 *
+		 * The 'src.num_bytes' value denotes the number of bytes to write.
+		 *
+		 * \return  number of successfully written bytes, which can be smaller
+		 *          than 'src.num_bytes' when encountering the bounds of
+		 *          mapped memory in the inferior's address space.
+		 */
+		size_t write(Inferior_pd &pd, Virt_addr at, Const_byte_range_ptr const &src)
+		{
+			return _with_curr_view_at(pd, at,
+			                          [&] (Curr_view &curr_view) -> size_t {
+				return _with_watched_page_faults(pd,
+				                                 [&] (auto const &block_fn) -> size_t {
+					return _probe->write(curr_view, at, src, block_fn);
+				});
+			});
 		}
 };
 

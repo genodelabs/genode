@@ -109,6 +109,32 @@ class Monitor::Controller : Noncopyable
 			}
 		}
 
+		bool _response_ok()
+		{
+			bool ok = false;
+			_with_response([&] (Const_byte_range_ptr const &response) {
+				if ((response.num_bytes == 2) &&
+				    (response.start[0] == 'O') &&
+				    (response.start[1] == 'K'))
+				    ok = true;
+			});
+			return ok;
+		}
+
+		struct Gdb_binary_buffer
+		{
+			Const_byte_range_ptr const &src;
+
+			Gdb_binary_buffer(Const_byte_range_ptr const &src)
+			: src(src) { }
+
+			void print(Output &output) const
+			{
+				for (size_t i = 0; i < src.num_bytes; i++)
+					Genode::print(output, Char(src.start[i]));
+			}
+		};
+
 	public:
 
 		Controller(Env &env) : _env(env)
@@ -186,6 +212,17 @@ class Monitor::Controller : Noncopyable
 				}
 			});
 			return read_bytes;
+		}
+
+		/**
+		 * Write memory 'at' of current inferior
+		 */
+		bool write_memory(addr_t at, Const_byte_range_ptr const &src)
+		{
+			_request("X", Gdb_hex(at), ",", Gdb_hex(src.num_bytes), ":",
+			         Gdb_binary_buffer(src));
+
+			return _response_ok();
 		}
 };
 

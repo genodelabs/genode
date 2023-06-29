@@ -59,7 +59,7 @@ install_config {
 			<default caps="100"/>
 
 			<monitor>
-				<policy label="first-test-log"/>
+				<policy label="first-test-log" wx="yes"/>
 			</monitor>
 
 			<start name="first-test-log">
