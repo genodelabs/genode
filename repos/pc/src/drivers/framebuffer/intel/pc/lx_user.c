@@ -224,11 +224,11 @@ static unsigned get_brightness(struct drm_connector * const connector,
 	return ret * MAX_BRIGHTNESS / panel->backlight.device->props.max_brightness;
 }
 
+static struct drm_mode_fb_cmd2     dumb_fb  = {};
 
 static bool reconfigure(struct drm_client_dev * const dev)
 {
 	static struct drm_mode_create_dumb gem_dumb = {};
-	static struct drm_mode_fb_cmd2     dumb_fb  = {};
 
 	struct drm_display_mode  mode_preferred = {};
 	struct drm_display_mode  mode_minimum   = {};
@@ -532,19 +532,49 @@ void i915_switcheroo_unregister(struct drm_i915_private *i915)
 
 static int fb_client_hotplug(struct drm_client_dev *client)
 {
+	struct drm_mode_set    *modeset = NULL;
+	struct drm_framebuffer *fb      = NULL;
+	int    result                   = -EINVAL;
+
+	if (dumb_fb.fb_id)
+		fb = drm_framebuffer_lookup(client->dev, client->file, dumb_fb.fb_id);
+
 	/*
-	 * Triggers set up of display pipelines for enabled connectors and
+	 * Triggers set up of display pipelines for connectors and
 	 * stores the config in the client's modeset array.
 	 */
-	int const result = drm_client_modeset_probe(client,
-	                                            0 /* auto width */,
-	                                            0 /* auto height */);
-	if (result)
+	result = drm_client_modeset_probe(client, 0 /* auto width */,
+	                                          0 /* auto height */);
+	if (result) {
 		printk("%s: error on modeset probe %d\n", __func__, result);
+		return result;
+	}
 
+	/*
+	 * (Re-)assign framebuffer to modeset (lost due to modeset_probe) and
+	 * commit the change.
+	 */
+	if (fb) {
+		mutex_lock(&client->modeset_mutex);
+		drm_client_for_each_modeset(modeset, client) {
+			if (!modeset || !modeset->num_connectors)
+				continue;
+
+			modeset->fb = fb;
+		}
+		mutex_unlock(&client->modeset_mutex);
+
+		/* triggers disablement of encoders attached to disconnected ports */
+		result = drm_client_modeset_commit(client);
+
+		if (result)
+			printk("%s: error on modeset commit %d\n", __func__, result);
+	}
+
+	/* notify Genode side */
 	lx_emul_i915_hotplug_connector(client);
 
-	return 0;
+	return result;
 }
 
 
