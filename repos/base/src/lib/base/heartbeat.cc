@@ -59,13 +59,3 @@ void Genode::init_heartbeat_monitoring(Env &env)
 	_heartbeat_handler_ptr = unmanaged_singleton<Constructible<Heartbeat_handler>>();
 	_heartbeat_handler_ptr->construct(env);
 }
-
-
-void Genode::deinit_heartbeat_monitoring()
-{
-	if (!_heartbeat_handler_ptr)
-		return;
-
-	_heartbeat_handler_ptr->destruct();
-	_heartbeat_handler_ptr = nullptr;
-}

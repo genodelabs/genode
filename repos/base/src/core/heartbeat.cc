@@ -19,5 +19,4 @@
 
 
 void Genode::init_heartbeat_monitoring(Env &) { }
-void Genode::deinit_heartbeat_monitoring() { }
 
