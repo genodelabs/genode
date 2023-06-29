@@ -17,7 +17,6 @@ SRC_CC  += lib/base/raw_output.cc
 SRC_CC  += lib/base/slab.cc
 SRC_CC  += lib/base/sleep.cc
 SRC_CC  += lib/base/sliced_heap.cc
-SRC_CC  += lib/startup/_main.cc
 
 REP_INC_DIR += src/bootstrap
 REP_INC_DIR += src/include
@@ -31,4 +30,3 @@ vpath bootstrap/%   $(BASE_HW_DIR)/src
 vpath hw/%          $(BASE_HW_DIR)/src/lib
 vpath lib/base/%    $(BASE_HW_DIR)/src
 vpath lib/base/%    $(BASE_DIR)/src
-vpath lib/startup/% $(BASE_DIR)/src

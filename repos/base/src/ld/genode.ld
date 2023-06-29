@@ -88,6 +88,9 @@ SECTIONS
 
 		*(.data .gnu.linkonce.d.*)
 
+		__dso_handle = .;
+		LONG(0x0);
+
 		/* include all data subsections except those of the boot modules */
 		*(EXCLUDE_FILE (*boot_modules.o) .data.*)
 	} : rw

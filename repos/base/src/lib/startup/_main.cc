@@ -38,9 +38,6 @@ void init_rtld()
 	init_cxx_guard();
 }
 
-void * __dso_handle = 0;
-
-
 /**
  * Lower bound of the stack, solely used for sanity checking
  */
