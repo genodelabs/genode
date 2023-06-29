@@ -31,7 +31,6 @@ namespace Genode {
 
 	extern bool inhibit_tracing;
 	void call_global_static_constructors();
-	void destroy_signal_thread();
 }
 
 

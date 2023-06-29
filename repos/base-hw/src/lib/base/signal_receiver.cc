@@ -46,9 +46,6 @@ static Env &env()
 void Genode::init_signal_thread(Env &env) { _env_ptr = &env; }
 
 
-void Genode::destroy_signal_thread() { }
-
-
 void Genode::init_signal_receiver(Pd_session &, Parent &) { }
 
 

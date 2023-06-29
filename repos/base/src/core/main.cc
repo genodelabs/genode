@@ -197,7 +197,6 @@ class Core_child : public Child_policy
  */
 
 void Genode::init_signal_thread(Env &) { }
-void Genode::destroy_signal_thread()   { }
 
 
 /*******************

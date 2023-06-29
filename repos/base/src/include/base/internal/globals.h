@@ -50,8 +50,6 @@ namespace Genode {
 	void deinit_heartbeat_monitoring();
 	void exec_static_constructors();
 
-	void destroy_signal_thread();
-
 	void cxx_demangle(char const*, char*, size_t);
 	void cxx_current_exception(char *out, size_t size);
 	void cxx_free_tls(void *thread);

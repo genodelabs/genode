@@ -106,11 +106,6 @@ namespace Genode {
 	{
 		signal_handler_thread().construct(env);
 	}
-
-	void destroy_signal_thread()
-	{
-		signal_handler_thread().destruct();
-	}
 }
 
 
