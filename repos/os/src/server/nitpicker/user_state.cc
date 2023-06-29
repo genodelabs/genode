@@ -365,9 +365,12 @@ User_state::handle_input_events(Input_batch batch)
 	 */
 	button_activity |= _key_pressed();
 
+	bool touch_occurred = false;
 	bool key_state_affected = false;
-	for (unsigned i = 0; i < batch.count; i++)
+	for (unsigned i = 0; i < batch.count; i++) {
 		key_state_affected |= (batch.events[i].press() || batch.events[i].release());
+		touch_occurred     |= batch.events[i].touch();
+	}
 
 	_apply_pending_focus_change();
 
@@ -392,7 +395,7 @@ User_state::handle_input_events(Input_batch batch)
 		                        (_input_receiver != old_input_receiver),
 		.key_state_affected   = key_state_affected,
 		.button_activity      = button_activity,
-		.motion_activity      = (_pointer_pos != old_pointer_pos),
+		.motion_activity      = (_pointer_pos != old_pointer_pos) || touch_occurred,
 		.key_pressed          = _key_pressed(),
 		.last_clicked_changed = last_clicked_changed
 	};

@@ -576,6 +576,17 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	 */
 	void handle_input_events(User_state::Input_batch) override;
 
+	bool _reported_button_activity = false;
+	bool _reported_motion_activity = false;
+
+	unsigned _reported_focus_count = 0;
+	unsigned _reported_hover_count = 0;
+
+	unsigned _focus_count = 0;
+	unsigned _hover_count = 0;
+
+	void _update_motion_and_focus_activity_reports();
+
 	/**
 	 * Signal handler periodically invoked for the reception of user input and redraw
 	 */
@@ -598,7 +609,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	 * Number of periods after the last user activity when we regard the user
 	 * as becoming inactive
 	 */
-	unsigned _activity_threshold = 50;
+	unsigned const _activity_threshold = 50;
 
 	/**
 	 * True if the user has recently interacted with buttons or keys
@@ -654,9 +665,6 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 {
-	bool const old_button_activity = _button_activity;
-	bool const old_motion_activity = _motion_activity;
-
 	User_state::Handle_input_result const result =
 		_user_state.handle_input_events(batch);
 
@@ -688,15 +696,13 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 			_user_state.report_last_clicked_view_owner(xml); });
 	}
 
-	if (result.focus_changed)
+	if (result.focus_changed) {
+		_focus_count++;
 		_view_stack.update_all_views();
+	}
 
-	/* flag user as inactive after activity threshold is reached */
-	if (_period_cnt == _last_button_activity_period + _activity_threshold)
-		_button_activity = false;
-
-	if (_period_cnt == _last_motion_activity_period + _activity_threshold)
-		_motion_activity = false;
+	if (result.hover_changed)
+		_hover_count++;
 
 	/* report mouse-position updates */
 	if (_pointer_reporter.enabled() && result.motion_activity) {
@@ -704,22 +710,37 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 			_user_state.report_pointer_position(xml); });
 	}
 
-	/* report hover changes */
-	if (_hover_reporter.enabled()
-	 && (result.hover_changed || (old_motion_activity != _motion_activity))) {
+	/* update pointer position */
+	if (result.motion_activity)
+		_update_pointer_position();
+}
+
+
+void Nitpicker::Main::_update_motion_and_focus_activity_reports()
+{
+	/* flag user as inactive after activity threshold is reached */
+	if (_period_cnt == _last_button_activity_period + _activity_threshold)
+		_button_activity = false;
+
+	if (_period_cnt == _last_motion_activity_period + _activity_threshold)
+		_motion_activity = false;
+
+	bool const hover_changed = (_reported_hover_count != _hover_count);
+	if (hover_changed || (_reported_motion_activity != _motion_activity)) {
 		Reporter::Xml_generator xml(_hover_reporter, [&] () {
 			_user_state.report_hovered_view_owner(xml, _motion_activity); });
 	}
 
-	/* report focus changes */
-	if (result.focus_changed || (old_button_activity != _button_activity)) {
+	bool const focus_changed = (_reported_focus_count != _focus_count);
+	if (focus_changed || (_reported_button_activity != _button_activity)) {
 		Reporter::Xml_generator xml(_focus_reporter, [&] () {
 			_user_state.report_focused_view_owner(xml, _button_activity); });
 	}
 
-	/* update pointer position */
-	if (result.motion_activity)
-		_update_pointer_position();
+	_reported_motion_activity = _motion_activity;
+	_reported_button_activity = _button_activity;
+	_reported_hover_count     = _hover_count;
+	_reported_focus_count     = _focus_count;
 }
 
 
@@ -738,6 +759,8 @@ void Nitpicker::Main::_handle_period()
 
 		handle_input_events(batch);
 	}
+
+	_update_motion_and_focus_activity_reports();
 
 	/* perform redraw */
 	if (_framebuffer.constructed() && _fb_screen.constructed()) {
