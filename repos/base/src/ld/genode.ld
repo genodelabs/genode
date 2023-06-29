@@ -33,14 +33,18 @@ SECTIONS
 		*(.text .text.* .gnu.linkonce.t.*)
 		*(.fini)
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
+	} : ro = 0x0
 
-		. = ALIGN(0x08);
+	. = ALIGN(0x08);
 
+	.ctors : {
 		_ctors_start = .;
 		KEEP (*(.ctors))
 		KEEP (*(SORT(.ctors.*)))
 		KEEP (*(.init_array)) /* list of constructors specific for ARM eabi */
 		_ctors_end = .;
+	} : ro = 0x0
+	.dtors : {
 		_dtors_start = .;
 		KEEP (*(SORT(.dtors.*)))
 		KEEP (*(.dtors))
