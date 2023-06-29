@@ -142,10 +142,17 @@ struct Pci::Config : Genode::Mmio
 		bool prefetchable() {
 			return Bar_32bit::Memory_prefetchable::get(_conf()); }
 
-		Genode::size_t size()
+		Genode::uint64_t size()
 		{
-			return 1 + (memory() ? ~Bar_32bit::Memory_base::masked(_conf())
-			                     : ~Bar_32bit::Io_base::masked(_conf()));
+			if (memory()) {
+				Genode::uint64_t size = 1 + ~Bar_32bit::Memory_base::masked(_conf());
+				if (bit64())
+					size += ((Genode::uint64_t)~_get_and_set<Upper_bits>(read<Upper_bits>()))<<32;
+
+				return size;
+			}
+			else
+				return 1 + ~Bar_32bit::Io_base::masked(_conf());
 		}
 
 		Genode::uint64_t addr()
