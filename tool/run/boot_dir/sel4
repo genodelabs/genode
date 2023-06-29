@@ -155,7 +155,6 @@ proc base_src { } {
 
 	if {[have_spec x86]}              { return base-sel4-x86 }
 	if {[have_board imx6q_sabrelite]} { return base-sel4-imx6q_sabrelite }
-	if {[have_board imx7d_sabre]}     { return base-sel4-imx7d_sabre }
 
 	global specs
 
