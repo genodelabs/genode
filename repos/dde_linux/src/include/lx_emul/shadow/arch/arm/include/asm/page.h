@@ -43,6 +43,8 @@
 
 int pud_none(pud_t pud);
 
+typedef unsigned pteval_t;
+
 typedef struct page *pgtable_t;
 
 #define page_to_phys(p) __pa((p)->virtual)
