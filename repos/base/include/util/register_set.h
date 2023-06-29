@@ -198,7 +198,6 @@ class Genode::Register_set : Noncopyable
 		 */
 		template <off_t _OFFSET, unsigned long _ACCESS_WIDTH,
 		          bool _STRICT_WRITE = false>
-
 		struct Register
 		:
 			public Genode::Register<_ACCESS_WIDTH>,
@@ -286,7 +285,6 @@ class Genode::Register_set : Noncopyable
 		template <off_t _OFFSET, unsigned long _ACCESS_WIDTH,
 		          unsigned long _ITEMS, unsigned long _ITEM_WIDTH,
 		          bool _STRICT_WRITE = false>
-
 		struct Register_array : public Register<_OFFSET, _ACCESS_WIDTH,
 		                                        _STRICT_WRITE>
 		{
