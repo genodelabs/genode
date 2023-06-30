@@ -53,65 +53,76 @@ template <size_t NR_OF_FILTERS>
 struct Filters
 {
 	Filter array[NR_OF_FILTERS];
+
+	Filter const *filter_to_apply(char const *curr,
+	                              char const *end)
+	{
+		for (Filter const &flt : array) {
+			char const *keyword_end { curr + flt.keyword_size() };
+			if (keyword_end < curr || keyword_end > end) {
+				continue;
+			}
+			if (memcmp(curr, flt.keyword(), flt.keyword_size()) != 0) {
+				continue;
+			}
+			return &flt;
+		}
+		return nullptr;
+	}
+
+	size_t apply_to(char *const base,
+	                size_t size)
+	{
+		struct Bad_filter : Exception { };
+		char const *end { base + size };
+		for (char *curr { base }; curr < end; ) {
+			Filter const *flt { filter_to_apply(curr, end) };
+			if (!flt) {
+				curr++;
+				continue;
+			}
+			if (flt->replacement_size() > flt->keyword_size()) {
+				throw Bad_filter();
+			}
+			memcpy(curr, flt->replacement(), flt->replacement_size());
+			if (flt->replacement_size() < flt->keyword_size()) {
+				char       *const replacement_end { curr + flt->replacement_size() };
+				char const *const keyword_end     { curr + flt->keyword_size() };
+				memmove(replacement_end, keyword_end, (size_t)(end - keyword_end));
+			}
+			curr += flt->replacement_size();
+			size -= flt->keyword_size() - flt->replacement_size();
+			end   = base + size;
+		}
+		return size;
+	}
 };
 
 
-template <typename FILTERS>
-static Filter const *filter_to_apply(FILTERS const &filters,
-                                     char    const *curr,
-                                     char    const *end)
+static Filters<6> pattern_filters
 {
-	for (Filter const &flt : filters.array) {
-		char const *keyword_end { curr + flt.keyword_size() };
-		if (keyword_end < curr || keyword_end > end) {
-			continue;
-		}
-		if (memcmp(curr, flt.keyword(), flt.keyword_size()) != 0) {
-			continue;
-		}
-		return &flt;
-	}
-	return 0;
-}
-
-
-static size_t sanitize_pattern(char *const base,
-                               size_t      size)
-{
-	static Filters<6> pattern_filters
 	{
-		{
-			{ "\x9", "" },
-			{ "\xa", "" },
-			{ "&lt;", "<" },
-			{ "&amp;", "&" },
-			{ "&#42;", "*" },
-			{ "&quot;", "\"" }
-		}
-	};
-	struct Bad_filter : Exception { };
-	char const *end { base + size };
-	for (char *curr { base }; curr < end; ) {
-		Filter const *flt { filter_to_apply(pattern_filters, curr, end) };
-		if (!flt) {
-			curr++;
-			continue;
-		}
-		if (flt->replacement_size() > flt->keyword_size()) {
-			throw Bad_filter();
-		}
-		memcpy(curr, flt->replacement(), flt->replacement_size());
-		if (flt->replacement_size() < flt->keyword_size()) {
-			char       *const replacement_end { curr + flt->replacement_size() };
-			char const *const keyword_end     { curr + flt->keyword_size() };
-			memmove(replacement_end, keyword_end, (size_t)(end - keyword_end));
-		}
-		curr += flt->replacement_size();
-		size -= flt->keyword_size() - flt->replacement_size();
-		end   = base + size;
+		{ "\x9", "" },
+		{ "\xa", "" },
+		{ "&lt;", "<" },
+		{ "&amp;", "&" },
+		{ "&#42;", "*" },
+		{ "&quot;", "\"" }
 	}
-	return size;
-}
+};
+
+
+static Filters<6> log_matching_filters
+{
+	{
+		{ "\x9", "" },
+		{ "\x1b[0m", "" },
+		{ "\x1b[31m", "" },
+		{ "\x1b[32m", "" },
+		{ "\x1b[33m", "" },
+		{ "\x1b[34m", "" }
+	}
+};
 
 
 static void forward_to_log(uint64_t    const sec,
@@ -157,21 +168,15 @@ static void c_string_append(char       * &dst,
 }
 
 
-static size_t sanitize_log(char                      *dst,
-                           size_t              const  dst_sz,
-                           Log_session::String const &str,
-                           Session_label       const &label)
+static size_t sanitize_log_for_output(char                      *dst,
+                                      size_t              const  dst_sz,
+                                      Log_session::String const &str,
+                                      Session_label       const &label)
 {
-	static Filters<7> log_filters
+	static Filters<1> filters
 	{
 		{
-			{ "\x9", "" },
-			{ "\xa", "" },
-			{ "\x1b[0m", "" },
-			{ "\x1b[31m", "" },
-			{ "\x1b[32m", "" },
-			{ "\x1b[33m", "" },
-			{ "\x1b[34m", "" }
+			{ "\xa", "" }
 		}
 	};
 	/* first, write the label prefix to the buffer */
@@ -186,7 +191,7 @@ static size_t sanitize_log(char                      *dst,
 	char const *src_copied { str.string() };
 	char const *src_end    { str.string() + str.size() };
 	for (; src_curr < src_end; ) {
-		Filter const *const flt { filter_to_apply(log_filters, src_curr, src_end) };
+		Filter const *const flt { filters.filter_to_apply(src_curr, src_end) };
 		if (!flt) {
 			src_curr++;
 			continue;
@@ -630,9 +635,20 @@ size_t Child::log_session_write(Log_session::String const &str,
 	/* max log string size + max label size + size of label framing "[ ]" */
 	enum { LOG_BUF_SZ = Log_session::MAX_STRING_LEN + 160 + 3 };
 
-	char               log_buf[LOG_BUF_SZ];
-	size_t      const  log_len { sanitize_log(log_buf, LOG_BUF_SZ, str, label) };
-	Log_event   const *matching_event { nullptr };
+	char log_buf[LOG_BUF_SZ];
+	size_t log_len { sanitize_log_for_output(log_buf, LOG_BUF_SZ, str, label) };
+
+	/* calculate timestamp */
+	uint64_t const time_us  { _timer.curr_time().trunc_to_plain_us().value - init_time_us };
+	uint64_t       time_ms  { time_us / 1000UL };
+	uint64_t const time_sec { time_ms / 1000UL };
+	time_ms = time_ms - time_sec * 1000UL;
+
+	/* forward timestamp and sanitized string to back-end log session */
+	forward_to_log(time_sec, time_ms, log_buf, log_buf + log_len);
+
+	log_len = log_matching_filters.apply_to(log_buf, log_len);
+	Log_event const *matching_event { nullptr };
 
 	_log.append(log_buf, log_len);
 	_log_events.for_each([&] (Log_event &log_event) {
@@ -643,14 +659,6 @@ size_t Child::log_session_write(Log_session::String const &str,
 			matching_event = &log_event;
 		}
 	});
-	/* calculate timestamp */
-	uint64_t const time_us  { _timer.curr_time().trunc_to_plain_us().value - init_time_us };
-	uint64_t       time_ms  { time_us / 1000UL };
-	uint64_t const time_sec { time_ms / 1000UL };
-	time_ms = time_ms - time_sec * 1000UL;
-
-	/* forward timestamp and sanitized string to back-end log session */
-	forward_to_log(time_sec, time_ms, log_buf, log_buf + log_len);
 
 	/* handle a matching log event */
 	if (matching_event) {
@@ -1093,7 +1101,7 @@ Log_event::Plain_string::Plain_string(Allocator         &alloc,
 	_size       { size }
 {
 	memcpy(_base, base, size);
-	_size = sanitize_pattern(_base, _size);
+	_size = pattern_filters.apply_to(_base, _size);
 }
 
 
@@ -1123,7 +1131,7 @@ Log_prefix Log_event::_init_log_prefix(Xml_node const &xml)
 		size_t const cpy_size = min(src_size, sizeof(buf) - 1);
 		memcpy(buf, src_ptr, cpy_size);
 		buf[cpy_size] = 0;
-		buf_str_size = sanitize_pattern(buf, cpy_size + 1);
+		buf_str_size = pattern_filters.apply_to(buf, cpy_size + 1);
 	});
 	return Cstring { buf, buf_str_size };
 }

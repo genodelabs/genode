@@ -242,6 +242,8 @@ struct Depot_deploy::Main
 
 void Component::construct(Genode::Env &env)
 {
+	/* see log_*_filters and pattern_filters in child.cc */
+	env.exec_static_constructors();
 	static Depot_deploy::Main main(env);
 }
 
