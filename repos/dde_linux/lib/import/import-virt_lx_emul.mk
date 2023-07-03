@@ -7,19 +7,21 @@ endif
 
 LX_GEN_DIR := $(LIB_CACHE_DIR)/virt_linux_generated
 
-INC_DIR += $(REP_DIR)/src/include/virt_linux
+VIRT_LINUX_INCLUDE_DIR := $(call select_from_repositories,src/include/virt_linux)
+
+INC_DIR  += $(VIRT_LINUX_INCLUDE_DIR)
 
 ifeq ($(filter-out $(SPECS),x86_32),)
-	INC_DIR += $(REP_DIR)/src/include/virt_linux/spec/x86_32
+	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/x86_32
 endif
 ifeq ($(filter-out $(SPECS),x86_64),)
-	INC_DIR += $(REP_DIR)/src/include/virt_linux/spec/x86_64
+	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/x86_64
 endif
 ifeq ($(filter-out $(SPECS),arm),)
-	INC_DIR += $(REP_DIR)/src/include/virt_linux/spec/arm
+	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm
 endif
 ifeq ($(filter-out $(SPECS),arm_64),)
-	INC_DIR += $(REP_DIR)/src/include/virt_linux/spec/arm_64
+	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm_64
 endif
 
 -include $(call select_from_repositories,lib/import/import-lx_emul_common.inc)

@@ -1,0 +1,6 @@
+This file was generated using
+
+! MAKE = strace -f --trace=/open make
+
+in 'dde_linux/lib/mk/virt_linux_generated.inc' and parsing all 'openat' calls to
+Linux source code for each architecure.
