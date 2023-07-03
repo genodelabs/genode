@@ -60,26 +60,35 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 
 		bool _is_attached() const { return _base > 0; }
 
-		void _add_to_rmap(Region const &);
+		/*
+		 * \return true on success
+		 */
+		bool _add_to_rmap(Region const &);
+
+		enum class Reserve_local_error { REGION_CONFLICT };
+		using Reserve_local_result = Attempt<addr_t, Reserve_local_error>;
 
 		/**
 		 * Reserve VM region for sub-rm dataspace
 		 */
-		addr_t _reserve_local(bool   use_local_addr,
-		                      addr_t local_addr,
-		                      size_t size);
+		Reserve_local_result _reserve_local(bool   use_local_addr,
+		                                    addr_t local_addr,
+		                                    size_t size);
+
+		enum class Map_local_error { REGION_CONFLICT };
+		using Map_local_result = Attempt<void *, Map_local_error>;
 
 		/**
 		 * Map dataspace into local address space
 		 */
-		void *_map_local(Dataspace_capability ds,
-		                 size_t               size,
-		                 addr_t               offset,
-		                 bool                 use_local_addr,
-		                 addr_t               local_addr,
-		                 bool                 executable,
-		                 bool                 overmap,
-		                 bool                 writeable);
+		Map_local_result _map_local(Dataspace_capability ds,
+		                            size_t               size,
+		                            addr_t               offset,
+		                            bool                 use_local_addr,
+		                            addr_t               local_addr,
+		                            bool                 executable,
+		                            bool                 overmap,
+		                            bool                 writeable);
 
 		/**
 		 * Determine size of dataspace
@@ -117,8 +126,48 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 		 ** Region map interface **
 		 **************************/
 
-		Local_addr attach(Dataspace_capability, size_t size, off_t, bool,
-		                  Local_addr, bool, bool) override;
+		struct Attach_attr
+		{
+			size_t size;
+			off_t  offset;
+			bool   use_local_addr;
+			void  *local_addr;
+			bool   executable;
+			bool   writeable;
+		};
+
+		enum class Attach_error
+		{
+			INVALID_DATASPACE, REGION_CONFLICT, OUT_OF_RAM, OUT_OF_CAPS
+		};
+
+		using Attach_result = Attempt<Local_addr, Attach_error>;
+
+		Attach_result attach(Dataspace_capability, Attach_attr const &);
+
+		Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
+		                  bool use_local_addr, Local_addr local_addr,
+		                  bool executable, bool writeable) override
+		{
+			Attach_attr const attr { .size           = size,
+			                         .offset         = offset,
+			                         .use_local_addr = use_local_addr,
+			                         .local_addr     = local_addr,
+			                         .executable     = executable,
+			                         .writeable      = writeable };
+
+			return attach(ds, attr).convert<Local_addr>(
+				[&] (Local_addr local_addr) { return local_addr; },
+				[&] (Attach_error e) -> Local_addr {
+					switch (e) {
+					case Attach_error::INVALID_DATASPACE: throw Invalid_dataspace();
+					case Attach_error::REGION_CONFLICT:   throw Region_conflict();
+					case Attach_error::OUT_OF_RAM:        throw Out_of_ram();
+					case Attach_error::OUT_OF_CAPS:       throw Out_of_caps();
+					}
+					throw Region_conflict();
+				});
+		}
 
 		void detach(Local_addr) override;
 
