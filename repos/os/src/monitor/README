@@ -22,6 +22,9 @@ sessions to the parent. For example, the following start node selects the
 !   </route>
 ! </start>
 
+In case a monitored component uses VM sessions (e.g. VirtualBox), the VM
+service has to be routed to '<local/>' too.
+
 If monitor's configuration features a <monitor> sub node, the monitor creates
 a terminal session that offers access to the monitored components via the GDB
 protocol. Each component appears as a distinct GDB inferior. The following

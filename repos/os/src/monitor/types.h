@@ -24,7 +24,7 @@ namespace Monitor {
 
 	using namespace Genode;
 
-	template <typename> struct Monitored_rpc_object;
+	template <typename, typename> struct Monitored_rpc_object;
 
 	constexpr static uint16_t GDB_PACKET_MAX_SIZE = 16*1024;
 
@@ -64,8 +64,8 @@ namespace Monitor {
 }
 
 
-template <typename IF>
-struct Monitor::Monitored_rpc_object : Rpc_object<IF>
+template <typename IF, typename OBJ = IF>
+struct Monitor::Monitored_rpc_object : Rpc_object<IF, OBJ>
 {
 	Entrypoint &_ep;
 

@@ -23,6 +23,7 @@
 #include <pd_intrinsics.h>
 #include <gdb_stub.h>
 #include <gdb_packet_handler.h>
+#include <monitored_vm.h>
 
 namespace Monitor {
 
@@ -64,9 +65,11 @@ struct Monitor::Main : Sandbox::State_handler
 {
 	using Local_pd_session  = Local_session<Pd_connection,  Inferior_pd>;
 	using Local_cpu_session = Local_session<Cpu_connection, Inferior_cpu>;
+	using Local_vm_session  = Local_session<Vm_connection,  Monitored_vm_session>;
 
 	using Pd_service  = Sandbox::Local_service<Local_pd_session>;
 	using Cpu_service = Sandbox::Local_service<Local_cpu_session>;
+	using Vm_service  = Sandbox::Local_service<Local_vm_session>;
 
 	Env &_env;
 
@@ -180,6 +183,7 @@ struct Monitor::Main : Sandbox::State_handler
 
 	void _handle_pd_service()  { _handle_service<Pd_service> (_pd_service);  }
 	void _handle_cpu_service() { _handle_service<Cpu_service>(_cpu_service); }
+	void _handle_vm_service()  { _handle_service<Vm_service> (_vm_service);  }
 
 	struct Service_handler : Sandbox::Local_service_base::Wakeup
 	{
@@ -194,11 +198,13 @@ struct Monitor::Main : Sandbox::State_handler
 		: _main(main), _member(member) { }
 	};
 
-	Service_handler _pd_handler  { *this, &Main::_handle_pd_service };
+	Service_handler _pd_handler  { *this, &Main::_handle_pd_service  };
 	Service_handler _cpu_handler { *this, &Main::_handle_cpu_service };
+	Service_handler _vm_handler  { *this, &Main::_handle_vm_service  };
 
-	Pd_service  _pd_service  { _sandbox, _pd_handler };
+	Pd_service  _pd_service  { _sandbox, _pd_handler  };
 	Cpu_service _cpu_service { _sandbox, _cpu_handler };
+	Vm_service  _vm_service  { _sandbox, _vm_handler  };
 
 	Local_pd_session &_create_session(Pd_service &, Session::Label const &label)
 	{
@@ -227,6 +233,11 @@ struct Monitor::Main : Sandbox::State_handler
 		return session;
 	}
 
+	Local_vm_session &_create_session(Vm_service &, Session::Label const &label)
+	{
+		return *new (_heap) Local_vm_session(_env, label);
+	}
+
 	void _destroy_session(Local_pd_session &session)
 	{
 		if (_gdb_stub.constructed())
@@ -236,6 +247,11 @@ struct Monitor::Main : Sandbox::State_handler
 	}
 
 	void _destroy_session(Local_cpu_session &session)
+	{
+		destroy(_heap, &session);
+	}
+
+	void _destroy_session(Local_vm_session &session)
 	{
 		destroy(_heap, &session);
 	}
