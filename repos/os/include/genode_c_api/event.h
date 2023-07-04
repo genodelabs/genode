@@ -77,6 +77,8 @@ struct genode_event_submit
 	               struct genode_event_touch_args const *);
 
 	void (*touch_release) (struct genode_event_submit *, unsigned finger);
+
+	void (*wheel) (struct genode_event_submit *, int x, int y);
 };
 
 

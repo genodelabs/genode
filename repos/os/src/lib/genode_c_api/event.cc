@@ -109,6 +109,12 @@ namespace {
 				batch.submit(Input::Touch_release { id }); });
 		}
 
+		static void _wheel(struct genode_event_submit *myself, int x, int y)
+		{
+			_with_batch(myself, [&] (Event::Session_client::Batch &batch) {
+				batch.submit(Input::Wheel { x, y }); });
+		}
+
 		Submit(Event::Session_client::Batch &batch)
 		:
 			batch(batch)
@@ -118,6 +124,7 @@ namespace {
 			rel_motion    = _rel_motion;
 			touch         = _touch;
 			touch_release = _touch_release;
+			wheel         = _wheel;
 		};
 
 	};
