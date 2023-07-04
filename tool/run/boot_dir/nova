@@ -103,7 +103,7 @@ proc run_boot_dir {binaries} {
 		#
 		# Compress Genode image, to be uncompressed by GRUB
 		#
-		exec gzip [run_dir]/boot/image.elf
+		exec gzip -n [run_dir]/boot/image.elf
 
 		if {[have_include "image/disk"]} {
 			install_disk_bootloader_to_run_dir
