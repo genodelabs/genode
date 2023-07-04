@@ -5,3 +5,4 @@ uplink_session
 timer_session
 jitterentropy
 net
+virt_linux
