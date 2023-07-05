@@ -90,7 +90,7 @@ install_config {
 	</start>
 
 	<start name="test-lwip_httpsrv" caps="120">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="6M"/>
 		<config>
 			<vfs>
 				<dir name="dev">    <log/>             </dir>
@@ -121,7 +121,17 @@ close $fd
 
 build_boot_image { test-lwip_httpsrv }
 
+proc usb_bus {} {
+	return "$::env(BUS)" }
+
+proc usb_device {} {
+	return "$::env(DEVICE)" }
+
+
 append qemu_args "  -nographic"
+append qemu_args { -usb -device nec-usb-xhci,id=xhci \
+                   -device usb-host,hostbus=[usb_bus],hostaddr=[usb_device],bus=xhci.0 }
+
 
 run_genode_until forever
 
