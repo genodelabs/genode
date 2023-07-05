@@ -1,0 +1,70 @@
+                               USB NIC driver
+
+
+Driver for network-interface cards and LTE modems with MBIM support connected via USB.
+
+
+Current supported devices
+=========================
+
+* NICs containing an AX88179A chip
+* NICs that support the NCM profile (e.g., RTL8156)
+* NICs that the ECM profile
+* LTE modems that support the MBIM configuration
+
+
+NIC configuration
+=================
+
+Configuration snippet:
+
+!<start name="usb_net_drv">
+!  <resource name="RAM" quantum="10M"/>
+!  <config mac="2e:60:90:0c:4e:01 configuration="2" />
+!  <route>
+!    <service name="Uplink"><child name="nic_router"/></service/>
+!    ....
+!  </route>
+!</start>
+
+The driver connects as an Uplink client to Genode's network infrastructure.
+
+The 'mac' can be used to configure the hardware address on devices that support
+setting it and for devices that do not offer a hardware address (a random
+address will be used otherwise).
+
+The 'configuration' attribute allows for setting the desired configuration
+profile of the USB device in case there is more than one profile. In case it is
+omitted or 0, the driver will choose a profile (first non-vendor specific).
+
+
+LTE modem configuration
+========================
+
+Currently there is support for MBIM (Mobile Broadband Interface Model) devices.
+
+Tested devices:
+Huawai ME906s      (P/V: 12d1:15c1) - "configuration=3" for 'usb_net_drv'
+Fibocom L830-EB-00 (P/V: 2cb7:0210) - automatically detected
+
+
+!<start name="usb_nic_drv">
+!  <resource name="RAM" quantum="10M"/>
+!  <provides>
+!    <service name="Terminal"/>
+!  </provides>
+!  <config mac="02:00:00:00:01:01" configuration="3"/>
+!  <route>
+!    <service name="Uplink"><child name="nic_router"/></service/>
+!    ....
+!  </route>
+!</start>
+
+
+In case the driver finds a MBIM capable device it will announce a terminal
+session which is used as the control channel (wireless communication device
+class - CDC WDM).
+
+An example scenario can be found in Genode World
+(_src/app/mbimcli_). Once a data connection is established via the Terminal
+session, the Uplink session is used to transfer Ethernet frames.
