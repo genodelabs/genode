@@ -46,7 +46,7 @@ struct Framebuffer::Driver
 	Env                    &env;
 	Timer::Connection       timer    { env };
 	Attached_rom_dataspace  config   { env, "config" };
-	Reporter                reporter { env, "connectors" };
+	Expanding_reporter      reporter { env, "connectors", "connectors" };
 
 	Signal_handler<Driver>  config_handler { env.ep(), *this,
 	                                        &Driver::config_update };
@@ -190,20 +190,16 @@ static Framebuffer::Driver & driver(Genode::Env & env)
 
 void Framebuffer::Driver::generate_report(void *lx_data)
 {
+	if (!config.valid())
+		return;
+
 	/* check for report configuration option */
-	try {
-		reporter.enabled(config.xml().sub_node("report")
-		                 .attribute_value(reporter.name().string(), false));
-	} catch (...) {
-		Genode::warning("Failed to enable report");
-		reporter.enabled(false);
-	}
+	config.xml().with_optional_sub_node("report", [&](auto const &node) {
 
-	if (!reporter.enabled()) return;
+		if (!node.attribute_value("connectors", false))
+			return;
 
-	try {
-		Genode::Reporter::Xml_generator xml(reporter, [&] ()
-		{
+		reporter.generate([&] (Genode::Xml_generator &xml) {
 			/* reflect force/max enforcement in report for user clarity */
 			with_max_enforcement([&](unsigned width, unsigned height) {
 				xml.attribute("max_width",  width);
@@ -219,9 +215,7 @@ void Framebuffer::Driver::generate_report(void *lx_data)
 		});
 
 		driver(Lx_kit::env().env).report_updated();
-	} catch (...) {
-		Genode::warning("Failed to generate report");
-	}
+	});
 }
 
 
@@ -315,7 +309,7 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
                                    char const *name, char const connected,
                                    unsigned brightness)
 {
-	auto &xml = *reinterpret_cast<Genode::Reporter::Xml_generator *>(genode_xml);
+	auto &xml = *reinterpret_cast<Genode::Xml_generator *>(genode_xml);
 
 	xml.node("connector", [&] ()
 	{
@@ -336,7 +330,7 @@ void lx_emul_i915_report_modes(void * genode_xml, struct genode_mode *mode)
 	if (!genode_xml || !mode)
 		return;
 
-	auto &xml = *reinterpret_cast<Genode::Reporter::Xml_generator *>(genode_xml);
+	auto &xml = *reinterpret_cast<Genode::Xml_generator *>(genode_xml);
 
 	xml.node("mode", [&] ()
 	{
