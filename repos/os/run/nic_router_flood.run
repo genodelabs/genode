@@ -9,6 +9,7 @@ if {![have_include power_on/qemu] ||
 
 if {[get_cmd_switch --autopilot] && ([have_board virt_qemu_riscv] ||
                                      [have_board zynq_qemu])} {
+
 	puts "Autopilot mode is not supported on this platform."
 	exit 0
 }
@@ -30,184 +31,230 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_nic_pkg] \
-                  [depot_user]/src/init
+                  [depot_user]/src/init \
+                  [depot_user]/src/report_rom
 
 build { app/ping test/net_flood server/nic_router server/dynamic_rom }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>
 
-	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Timer"/></provides>
-	</start>
+	<config prio_levels="4">
 
-	<start name="drivers" caps="1200" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
 
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="ROM"/> </provides>
-		<config verbose="yes">
-			<rom name="nic_router.config">
-				<inline>
+		<start name="timer" caps="100" priority="0">
+			<resource name="CPU" quantum="10"/>
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+			<route>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="IO_PORT"> <parent/> </service>
+				<service name="IO_MEM"> <parent/> </service>
+				<service name="IRQ"> <parent/> </service>
+			</route>
+		</start>
 
-<config verbose="no"
-        verbose_packets="no"
-        verbose_packet_drop="yes"
-        verbose_domain_state="yes"
-        dhcp_discover_timeout_sec="1"
-        tcp_idle_timeout_sec="3600"
-        udp_idle_timeout_sec="3600"
-        icmp_idle_timeout_sec="3600">
+		<start name="drivers" caps="1200" managing_system="yes" priority="0">
+			<binary name="init"/>
+			<resource name="CPU" quantum="10"/>
+			<resource name="RAM" quantum="32M"/>
+			<route>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="Uplink"> <child name="nic_router"/> </service>
+				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="RM"> <parent/> </service>
+				<service name="IO_PORT"> <parent/> </service>
+				<service name="IO_MEM"> <parent/> </service>
+				<service name="IRQ"> <parent/> </service>
+			</route>
+		</start>
 
-	<policy label_prefix="flood_links" domain="flood_links"/>
-	<policy label_prefix="ping"        domain="flood_links"/>
-	<policy label_prefix="drivers"     domain="uplink"/>
+		<start name="nic_router" caps="200" priority="-1">
+			<resource name="CPU" quantum="10"/>
+			<resource name="RAM" quantum="10M"/>
+			<provides>
+				<service name="Nic"/>
+				<service name="Uplink"/>
+			</provides>
+			<config verbose="no"
+					verbose_packets="no"
+					verbose_packet_drop="yes"
+					verbose_domain_state="yes"
+					dhcp_discover_timeout_sec="1"
+					tcp_idle_timeout_sec="3600"
+					udp_idle_timeout_sec="3600"
+					icmp_idle_timeout_sec="3600">
 
-	<domain name="uplink" interface="10.0.2.15/24" gateway="10.0.2.2" verbose_packets="no">
-		<nat domain="flood_links" udp-ports="16384"
-		                          tcp-ports="16384"
-		                          icmp-ids="16384"/>
-	</domain>
+				<policy label_prefix="net_clients" domain="net_clients"/>
+				<policy label_prefix="drivers" domain="uplink"/>
 
-	<domain name="flood_links" interface="10.0.1.1/24">
-		<dhcp-server ip_first="10.0.1.100"
-		             ip_last="10.0.1.200"/>
-		
-		<icmp dst="0.0.0.0/0" domain="uplink"/>
-		<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
-		<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
-	</domain>
+				<domain name="uplink" interface="10.0.2.15/24" gateway="10.0.2.2" verbose_packets="no">
+					<nat domain="net_clients" udp-ports="16384" tcp-ports="16384" icmp-ids="16384"/>
+				</domain>
 
-</config>
+				<domain name="net_clients" interface="10.0.1.1/24">
+					<dhcp-server ip_first="10.0.1.100" ip_last="10.0.1.200"/>
+					<icmp dst="0.0.0.0/0" domain="uplink"/>
+					<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
+					<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
+				</domain>
 
-				</inline>
-				<sleep milliseconds="10000"/>
-				<inline>
+			</config>
+			<route>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="Report"> <child name="report_rom"/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
 
-<config verbose="no"
-        verbose_packets="no"
-        verbose_packet_drop="no"
-        verbose_domain_state="yes"
-        dhcp_discover_timeout_sec="1"
-        tcp_idle_timeout_sec="3600"
-        udp_idle_timeout_sec="3600"
-        icmp_idle_timeout_sec="3600">
+		<start name="report_rom" caps="100" priority="-1">
+			<resource name="CPU" quantum="10"/>
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> <service name="ROM"/> </provides>
+			<config verbose="yes"/>
+			<route>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
 
-	<policy label_prefix="flood_links" domain="flood_links"/>
-	<policy label_prefix="ping"        domain="flood_links"/>
-	<policy label_prefix="drivers"     domain="uplink"/>
+		<start name="dynamic_rom" caps="100" priority="-1">
+			<resource name="CPU" quantum="10"/>
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/> </provides>
+			<config>
+				<rom name="net_clients.config">
 
-	<domain name="uplink" verbose_packets="no">
-		<nat domain="flood_links" udp-ports="16384"
-		                          tcp-ports="16384"
-		                          icmp-ids="16384"/>
-	</domain>
+					<!-- give the drivers time to come up -->
+					<inline> <config/> </inline>
 
-	<domain name="flood_links" interface="10.0.1.1/24">
-		<dhcp-server ip_first="10.0.1.100"
-		             ip_last="10.0.1.200"/>
-		
-		<icmp dst="0.0.0.0/0" domain="uplink"/>
-		<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
-		<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
-	</domain>
+					<sleep milliseconds="5000"/>
 
-</config>
+					<inline>
 
-				</inline>
-				<sleep milliseconds="10000"/>
+						<config>
 
-			</rom>
-		</config>
-	</start>
+							<parent-provides>
+								<service name="ROM"/>
+								<service name="PD"/>
+								<service name="CPU"/>
+								<service name="LOG"/>
+								<service name="Nic"/>
+								<service name="Timer"/>
+							</parent-provides>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<route>
-			<service name="ROM" label="config"> <child name="dynamic_rom" label="nic_router.config"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
+							<start name="tcp_flood" caps="100">
+								<binary name="test-net_flood"/>
+								<resource name="RAM" quantum="8M"/>
+								<config dst_ip="} [bad_dst_ip] {" protocol="tcp" verbose="no"/>
+								<route>
+									<service name="Nic"> <parent/> </service>
+									<service name="Timer"> <parent/> </service>
+									<service name="PD"> <parent/> </service>
+									<service name="ROM"> <parent/> </service>
+									<service name="LOG"> <parent/> </service>
+									<service name="CPU"> <parent/> </service>
+								</route>
+							</start>
 
-	<start name="flood_links_tcp">
-		<binary name="test-net_flood"/>
-		<resource name="RAM" quantum="8M"/>
-		<config dst_ip="} [bad_dst_ip] {"
-		        protocol="tcp"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-	<start name="flood_links_udp">
-		<binary name="test-net_flood"/>
-		<resource name="RAM" quantum="8M"/>
-		<config dst_ip="} [bad_dst_ip] {"
-		        protocol="udp"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-	<start name="flood_links_icmp">
-		<binary name="test-net_flood"/>
-		<resource name="RAM" quantum="8M"/>
-		<config dst_ip="} [bad_dst_ip] {"
-		        protocol="icmp"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
+							<start name="udp_flood" caps="100">
+								<binary name="test-net_flood"/>
+								<resource name="RAM" quantum="8M"/>
+								<config dst_ip="} [bad_dst_ip] {" protocol="udp" verbose="no"/>
+								<route>
+									<service name="Nic"> <parent/> </service>
+									<service name="Timer"> <parent/> </service>
+									<service name="PD"> <parent/> </service>
+									<service name="ROM"> <parent/> </service>
+									<service name="LOG"> <parent/> </service>
+									<service name="CPU"> <parent/> </service>
+								</route>
+							</start>
 
+							<start name="icmp_flood" caps="100">
+								<binary name="test-net_flood"/>
+								<resource name="RAM" quantum="8M"/>
+								<config dst_ip="} [bad_dst_ip] {" protocol="icmp" verbose="no"/>
+								<route>
+									<service name="Nic"> <parent/> </service>
+									<service name="Timer"> <parent/> </service>
+									<service name="PD"> <parent/> </service>
+									<service name="ROM"> <parent/> </service>
+									<service name="LOG"> <parent/> </service>
+									<service name="CPU"> <parent/> </service>
+								</route>
+							</start>
 
-	<start name="ping">
-		<resource name="RAM" quantum="8M"/>
-		<config dst_ip="} [good_dst_ip] {"
-		        period_sec="2"
-		        count="999"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
+							<start name="ping" caps="100">
+								<resource name="RAM" quantum="8M"/>
+								<config dst_ip="} [good_dst_ip] {" period_sec="2" count="999"/>
+								<route>
+									<service name="Nic"> <parent/> </service>
+									<service name="Timer"> <parent/> </service>
+									<service name="PD"> <parent/> </service>
+									<service name="ROM"> <parent/> </service>
+									<service name="LOG"> <parent/> </service>
+									<service name="CPU"> <parent/> </service>
+								</route>
+							</start>
 
-</config>}
+						</config>
+
+					</inline>
+					<sleep milliseconds="3600000"/>
+				</rom>
+			</config>
+			<route>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="net_clients" caps="1000" priority="-2">
+			<binary name="init"/>
+			<resource name="CPU" quantum="0"/>
+			<resource name="RAM" quantum="200M"/>
+			<route>
+				<service name="ROM" label="config"> <child name="dynamic_rom" label="net_clients.config"/> </service>
+				<service name="Nic"> <child name="nic_router"/> </service>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+	</config>
+}
 
 build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 append_qemu_nic_args
 
-run_genode_until ".*ping\] 64 bytes from 10\.0\.2\.2: icmp_seq=[num_ping_rounds] .*\n" 120
+run_genode_until ".*ping\] 64 bytes from 10\.0\.2\.2: icmp_seq=[num_ping_rounds] .*\n" 125
