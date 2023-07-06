@@ -15,9 +15,10 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/env.h>
-#include <os/reporter.h>
 #include <net/mac_address.h>
 #include <genode_c_api/uplink.h>
+#include <genode_c_api/mac_address_reporter.h>
+
 
 /* DDE Linux includes */
 #include <lx_emul/init.h>
@@ -277,60 +278,13 @@ extern "C" char const *wifi_ifname(void)
 }
 
 
-struct Mac_address_reporter
-{
-	bool _enabled = false;
- 
-	Net::Mac_address _mac_address { };
-
-	Constructible<Reporter> _reporter { };
-
-	Env &_env;
-
-	Signal_context_capability _sigh;
-
-	Mac_address_reporter(Env &env, Signal_context_capability sigh)
-	: _env(env), _sigh(sigh)
-	{
-		Attached_rom_dataspace config { _env, "config" };
-
-		config.xml().with_optional_sub_node("report", [&] (Xml_node const &xml) {
-			_enabled = xml.attribute_value("mac_address", false); });
-	}
-
-	void mac_address(Net::Mac_address const &mac_address)
-	{
-		_mac_address = mac_address;
-
-		Signal_transmitter(_sigh).submit();
-	}
-
-	void report()
-	{
-		if (!_enabled)
-			return;
-
-		_reporter.construct(_env, "devices");
-		_reporter->enabled(true);
-
-		Reporter::Xml_generator report(*_reporter, [&] () {
-			report.node("nic", [&] () {
-				report.attribute("mac_address", String<32>(_mac_address));
-			});
-		});
-
-		/* report only once */
-		_enabled = false;
-	}
-};
-
-Constructible<Mac_address_reporter> mac_address_reporter;
-
-
 /* used from socket_call.cc */
 void _wifi_report_mac_address(Net::Mac_address const &mac_address)
 {
-	mac_address_reporter->mac_address(mac_address);
+	struct genode_mac_address address;
+
+	mac_address.copy(&address);
+	genode_mac_address_register("wlan0", address);
 }
 
 
@@ -350,13 +304,21 @@ struct Wlan
 		}
 
 		genode_uplink_notify_peers();
-
-		mac_address_reporter->report();
 	}
 
 	Wlan(Env &env) : _env { env }
 	{
-		mac_address_reporter.construct(_env, _signal_handler);
+		genode_mac_address_reporter_init(env, Lx_kit::env().heap);
+
+		{
+			/*
+			 * Query the configuration once at start-up to enable
+			 * the reporter. The actual reporting will be done
+			 * once by 'genode_mac_address_register()'.
+			 */
+			Attached_rom_dataspace _config_rom { _env, "config" };
+			genode_mac_address_reporter_config(_config_rom.xml());
+		}
 
 		genode_uplink_init(genode_env_ptr(_env),
 		                   genode_allocator_ptr(Lx_kit::env().heap),

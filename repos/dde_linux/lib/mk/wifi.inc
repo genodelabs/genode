@@ -51,5 +51,7 @@ CC_C_OPT += -DCONFIG_RFKILL_INPUT
 #
 
 SRC_CC  += genode_c_api/uplink.cc
-
 vpath genode_c_api/uplink.cc $(subst /genode_c_api,,$(call select_from_repositories,src/lib/genode_c_api))
+
+SRC_CC += genode_c_api/mac_address_reporter.cc
+vpath genode_c_api/mac_address_reporter.cc $(dir $(call select_from_repositories,src/lib/genode_c_api))

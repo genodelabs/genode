@@ -14,7 +14,8 @@ MIRROR_FROM_REP_DIR := src/lib/pc/lx_emul \
 # Generic driver poritions from dde_linux and os
 #
 #
-MIRROR_FROM_OS_DIR  := src/lib/genode_c_api/uplink.cc
+MIRROR_FROM_OS_DIR  := src/lib/genode_c_api/uplink.cc \
+                       src/lib/genode_c_api/mac_address_reporter.cc
 
 DDE_LINUX_REP_DIR  := $(GENODE_DIR)/repos/dde_linux
 
