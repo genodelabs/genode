@@ -94,8 +94,23 @@ time_t Timer::_max_value() const {
 time_t Timer::_duration() const
 {
 	using Device = Board::Timer;
-	Device::Cnt::access_t const last = (Device::Cnt::access_t) _last_timeout_duration;
-	Device::Cnt::access_t const cnt  = _device.read<Device::Cnt>();
-	return (_device.read<Device::Sr::Ocif>()) ? _max_value() - _device.read<Device::Cnt>() + last
-	                                          : last - cnt;
+	Device::Cnt::access_t const initial_cnt {
+		(Device::Cnt::access_t)_last_timeout_duration };
+
+	/*
+	 * There are two situations here:
+	 *
+	 * 1. SR.OCIF reads as 1, meaning, the timer IRQ has triggered. In
+	 *    this case we read CNT after having read SR.OCIF in order to
+	 *    ensure that we use a post-IRQ (wrapped) counter value.
+	 *
+	 * 2. SR.OCIF reads as 0, meaning, the timer IRQ hasn't triggered yet. In
+	 *    this case we read CNT before having read SR.OCIF in order to
+	 *    ensure that we use a pre-IRQ (non-wrapped) counter value.
+	 */
+	Device::Cnt::access_t const curr_cnt { _device.read<Device::Cnt>() };
+	if (_device.read<Device::Sr::Ocif>())
+		return _max_value() - _device.read<Device::Cnt>() + initial_cnt;
+	else
+		return initial_cnt - curr_cnt;
 }
