@@ -1,0 +1,354 @@
+# client restart tests for wireguard
+#
+# The run script sets up the following scenario:
+#
+#		             | 10.10.10.2/24 (DHCP)             10.10.10.1/24  (server_home)
+#		             | ************                     +++++++++++++++++++++++
+#		             | * lighttpd *        -----        + nic_router (server) +
+#		             | ************                     +++++++++++++++++++++++
+#		             |                                  10.10.20.1/24  (vpn_inner) (no_arp)
+#		             |                                             |
+#		server init  |                                             |
+#		             |                                       10.10.20.2/24 (DHCP)
+#		             |                                       %%%%%%%%%%%%%
+#		             |                                       % wg_server %
+#		             |                                       %%%%%%%%%%%%%
+#		             |                                       10.10.0.2/24  (DHCP?)
+#		                                                           |
+#		                                                           |
+#		                                                10.10.0.1/24 (vpn_server)
+#		                                                +++++++++++++++++++++++
+#		                                                + nic_router (global) +
+#		                                                +++++++++++++++++++++++
+#		                                                10.20.0.1/24 (vpn_client)
+#		                                                           |
+#		                                                           |
+#		             |                                       10.20.0.2/24  (DHCP?)
+#		             |                                       %%%%%%%%%%%%%
+#		             |                                       % wg_client %
+#		             |                                       %%%%%%%%%%%%%
+#		             |                                       10.20.20.2/24 (DHCP)
+#		             |                                             |
+#		client init  |                                             |
+#		             |                                  10.20.20.1/24  (vpn_inner) (no_arp)
+#		             | ************                     +++++++++++++++++++++++
+#		             | * fetchurl *        -----        + nic_router (client) +
+#		             | ************                     +++++++++++++++++++++++
+#		             | 10.20.10.2/24 (DHCP)             10.20.10.1/24  (client_home)
+#
+#		The client side will be restarted two times to test reconnecting.
+
+if { ![expr [have_board linux] || [have_board pc]] } {
+	puts "Run script is not supported on this platform."
+	exit 0
+}
+
+
+proc rtc_drv_binary_name { } {
+	switch [board] {
+		linux { return "linux_rtc_drv" }
+		pc    { return "rtc_drv" }
+	}
+}
+
+
+proc rtc_drv_use_ld { } {
+	return [expr [have_board linux] ? "no" : "yes"]
+}
+
+
+create_boot_directory
+
+
+set depot_archives { }
+lappend depot_archives [depot_user]/raw/test-wg_reconnect
+lappend depot_archives [depot_user]/src/[base_src]
+lappend depot_archives [depot_user]/src/curl
+lappend depot_archives [depot_user]/src/dynamic_rom
+lappend depot_archives [depot_user]/src/fetchurl
+lappend depot_archives [depot_user]/src/init
+lappend depot_archives [depot_user]/src/libc
+lappend depot_archives [depot_user]/src/libssh
+lappend depot_archives [depot_user]/src/openssl
+lappend depot_archives [depot_user]/src/lighttpd
+lappend depot_archives [depot_user]/src/nic_router
+lappend depot_archives [depot_user]/src/openssl
+lappend depot_archives [depot_user]/src/posix
+lappend depot_archives [depot_user]/src/report_rom
+lappend depot_archives [depot_user]/src/[rtc_drv_binary_name]
+lappend depot_archives [depot_user]/src/vfs
+lappend depot_archives [depot_user]/src/vfs_jitterentropy
+lappend depot_archives [depot_user]/src/vfs_lwip
+lappend depot_archives [depot_user]/src/wireguard
+lappend depot_archives [depot_user]/src/zlib
+
+import_from_depot $depot_archives
+
+
+set server_init_config {
+		<config>
+			<parent-provides>
+				<service name="CPU"/>
+				<service name="LOG"/>
+				<service name="Nic"/>
+				<service name="PD"/>
+				<service name="ROM"/>
+				<service name="Rtc"/>
+				<service name="Timer"/>
+			</parent-provides>
+
+			<start name="nic_router" caps="100">
+				<resource name="RAM" quantum="10M"/>
+				<provides>
+					<service name="Nic"/>
+					<service name="Uplink"/>
+				</provides>
+				<config verbose_domain_state="yes"
+				        verbose_packets="no">
+					<domain name="vpn_inner" interface="10.10.20.1/24" use_arp="no">
+						<tcp  dst="10.10.10.0/24"> <permit-any domain="server_home"/> </tcp>
+						<udp  dst="10.10.10.0/24"> <permit-any domain="server_home"/> </udp>
+						<icmp dst="10.10.10.0/24" domain="server_home"/>
+					</domain>
+
+					<domain name="server_home" interface="10.10.10.1/24">
+						<dhcp-server ip_first="10.10.10.2" ip_last="10.10.10.2"/>
+						<tcp  dst="0.0.0.0/0"> <permit-any domain="vpn_inner"/> </tcp>
+						<udp  dst="0.0.0.0/0"> <permit-any domain="vpn_inner"/> </udp>
+						<icmp dst="0.0.0.0/0" domain="vpn_inner"/>
+					</domain>
+
+					<policy label="vpn_inner" domain="vpn_inner"/>
+					<default-policy domain="server_home"/>
+				</config>
+				<route>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+
+			<!--
+			  - the wireguard server doesn't need a Rtc session, which is only
+			  - used to initiate handshakes by the client.
+			-->
+			<start name="wg_server" caps="100">
+				<binary name="wireguard"/>
+				<resource name="RAM" quantum="10M"/>
+				<config private_key="8GRSQZMgG1uuvz4APIBqrDmiLj8L886r++hzixjjHFc="
+				        listen_port="49002" use_rtc="no">
+					<peer public_key="r1Gslnm82X8NaijsWzPoSFzDZGl2tTJoPa+EJL4gYQw="
+					      allowed_ip="10.20.10.0/24"/>
+				</config>
+				<route>
+					<service name="Uplink"> <child name="nic_router" label="vpn_inner"/> </service>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+
+			<start name="lighttpd" caps="200">
+				<resource name="RAM" quantum="50M" />
+				<config>
+					<arg value="lighttpd" />
+					<arg value="-f" />
+					<arg value="/etc/lighttpd/lighttpd.conf" />
+					<arg value="-D" />
+					<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+					      rtc="/dev/rtc" rng="/dev/random" socket="/socket"/>
+					<vfs>
+						<dir name="dev">
+							<log/>
+							<null/>
+							<rtc/>
+							<jitterentropy name="random"/>
+						</dir>
+						<dir name="socket">
+							<lwip dhcp="yes"/>
+						</dir>
+						<dir name="etc">
+							<dir name="lighttpd">
+								<rom name="lighttpd.conf"/>
+								<rom name="example.pem"/>
+							</dir>
+						</dir>
+						<dir name="website">
+							<rom name="index.html"/>
+						</dir>
+						<dir name="tmp"> <ram/> </dir>
+					</vfs>
+				</config>
+				<route>
+					<service name="Nic"> <child name="nic_router"/> </service>
+					<service name="Rtc"> <parent/> </service>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+		</config> }
+
+
+set client_init_config {
+		<config>
+			<parent-provides>
+				<service name="CPU"/>
+				<service name="LOG"/>
+				<service name="Nic"/>
+				<service name="PD"/>
+				<service name="ROM"/>
+				<service name="Rtc"/>
+				<service name="Timer"/>
+			</parent-provides>
+
+			<start name="nic_router" caps="100">
+				<resource name="RAM" quantum="10M"/>
+				<provides>
+					<service name="Nic"/>
+					<service name="Uplink"/>
+				</provides>
+				<config verbose_domain_state="yes"
+				        verbose_packets="no">
+					<domain name="vpn_inner" interface="10.20.20.1/24" use_arp="no">
+						<tcp  dst="10.20.10.0/24"> <permit-any domain="client_home"/> </tcp>
+						<udp  dst="10.20.10.0/24"> <permit-any domain="client_home"/> </udp>
+						<icmp dst="10.20.10.0/24" domain="client_home"/>
+					</domain>
+
+					<domain name="client_home" interface="10.20.10.1/24">
+						<dhcp-server ip_first="10.20.10.2" ip_last="10.20.10.2"/>
+						<tcp  dst="0.0.0.0/0"> <permit-any domain="vpn_inner"/> </tcp>
+						<udp  dst="0.0.0.0/0"> <permit-any domain="vpn_inner"/> </udp>
+						<icmp dst="0.0.0.0/0" domain="vpn_inner"/>
+					</domain>
+
+					<policy label="vpn_inner" domain="vpn_inner"/>
+					<default-policy domain="client_home"/>
+				</config>
+				<route>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+
+			<start name="dynamic_rom" caps="100">
+				<resource name="RAM" quantum="2M"/>
+				<provides>
+					<service name="ROM"/>
+				</provides>
+				<route>
+					<service name="ROM" label="config"> <parent label="dynamic.config"/> </service>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+
+			<start name="init" caps="700">
+				<resource name="RAM" quantum="25M"/>
+				<route>
+					<service name="Nic" label="fetchurl -> lwip"> <child name="nic_router"/> </service>
+					<service name="Nic"> <parent/> </service>
+					<service name="ROM" label="config"> <child name="dynamic_rom"/> </service>
+					<service name="Rtc"> <parent/> </service>
+					<service name="Uplink"> <child name="nic_router" label="vpn_inner"/> </service>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+		</config> }
+
+
+append config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_PORT"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="ROM"/>
+		<service name="Timer"/>
+	</parent-provides>
+
+	<start name="timer" caps="100">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Timer"/>
+		</provides>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="rtc_drv" caps="100" ld="} [rtc_drv_use_ld] {">
+		<binary name="} [rtc_drv_binary_name] {"/>
+		<resource name="RAM" quantum="1M" />
+		<provides>
+			<service name="Rtc"/>
+		</provides>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="nic_router" caps="100">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose_domain_state="yes"
+		        verbose_packets="no">
+			<domain name="vpn_server" interface="10.10.0.1/24">
+				<dhcp-server ip_first="10.10.0.2" ip_last="10.10.0.2"/>
+				<tcp  dst="10.20.0.0/24"> <permit-any domain="vpn_client"/> </tcp>
+				<udp  dst="10.20.0.0/24"> <permit-any domain="vpn_client"/> </udp>
+				<icmp dst="10.20.0.0/24" domain="vpn_client"/>
+			</domain>
+			<domain name="vpn_client" interface="10.20.0.1/24">
+				<dhcp-server ip_first="10.20.0.2" ip_last="10.20.0.2"/>
+				<tcp  dst="10.10.0.0/24"> <permit-any domain="vpn_server"/> </tcp>
+				<udp  dst="10.10.0.0/24"> <permit-any domain="vpn_server"/> </udp>
+				<icmp dst="10.10.0.0/24" domain="vpn_server"/>
+			</domain>
+			<policy label="client" domain="vpn_client"/>
+			<policy label="server" domain="vpn_server"/>
+		</config>
+		<route>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="server" caps="1000">
+		<binary name="init"/>
+		<resource name="RAM" quantum="112M"/>
+} $server_init_config {
+		<route>
+			<service name="Nic"> <child name="nic_router" label="server"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Rtc"> <child name="rtc_drv"/> </service>
+			<service name="Uplink"> <child name="nic_router" label="server"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="client" caps="1000">
+		<binary name="init"/>
+		<resource name="RAM" quantum="40M"/>
+} $client_init_config {
+		<route>
+			<service name="Nic"> <child name="nic_router" label="client"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Rtc"> <child name="rtc_drv"/> </service>
+			<service name="Uplink"> <child name="nic_router" label="client"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config> }
+
+
+install_config $config
+
+build_boot_image [build_artifacts]
+
+append qemu_args "-nographic "
+
+run_genode_until "fetchurl. exited with exit value 0.*\n" 12
+
+for {set i 1 } { $i <= 2 } { incr i } {
+	puts "Wireguard reconnect $i"
+	run_genode_until "fetchurl. exited with exit value 0.*\n" 12 [output_spawn_id]
+}
