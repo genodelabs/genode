@@ -244,17 +244,17 @@ void _wifi_report_mac_address(Net::Mac_address const &mac_address)
 struct Wlan
 {
 	Env                    &_env;
-	Io_signal_handler<Wlan> _signal_handler { _env.ep(), *this,
-	                                          &Wlan::_handle_signal };
+	Signal_handler<Wlan> _signal_handler { _env.ep(), *this,
+	                                       &Wlan::_handle_signal };
 
 	Dtb_helper _dtb_helper { _env };
 
 	void _handle_signal()
 	{
-		if (uplink_task_struct_ptr) {
+		if (uplink_task_struct_ptr)
 			lx_emul_task_unblock(uplink_task_struct_ptr);
-			Lx_kit::env().scheduler.schedule();
-		}
+
+		Lx_kit::env().scheduler.execute();
 
 		genode_uplink_notify_peers();
 	}
@@ -265,7 +265,7 @@ struct Wlan
 
 	Wlan(Env &env) : _env { env }
 	{
-		Lx_kit::initialize(env);
+		Lx_kit::initialize(env, _signal_handler);
 
 		genode_mac_address_reporter_init(env, Lx_kit::env().heap);
 

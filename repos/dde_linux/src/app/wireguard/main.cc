@@ -50,7 +50,7 @@ class Wireguard::Main : private Entrypoint::Io_progress_handler,
 		Heap                              _heap                  { _env.ram(), _env.rm() };
 		Attached_rom_dataspace            _config_rom            { _env, "config" };
 		Signal_handler<Main>              _config_handler        { _env.ep(), *this, &Main::_handle_config };
-		Io_signal_handler<Main>           _signal_handler        { _env.ep(), *this, &Main::_handle_signal };
+		Signal_handler<Main>              _signal_handler        { _env.ep(), *this, &Main::_handle_signal };
 		Config_model                      _config_model          { _heap };
 		Signal_handler<Main>              _nic_ip_config_handler { _env.ep(), *this, &Main::_handle_nic_ip_config };
 		Nic_connection                    _nic_connection        { _env, _heap, _signal_handler, _config_rom.xml(), _timer, *this };
@@ -82,7 +82,7 @@ class Wireguard::Main : private Entrypoint::Io_progress_handler,
 		:
 			_env(env)
 		{
-			Lx_kit::initialize(_env);
+			Lx_kit::initialize(_env, _signal_handler);
 
 			/*
 			 * We have to call the static constructors because otherwise the

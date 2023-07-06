@@ -52,6 +52,8 @@ struct Framebuffer::Driver
 	                                        &Driver::config_update };
 	Signal_handler<Driver>  timer_handler  { env.ep(), *this,
 	                                        &Driver::handle_timer };
+	Signal_handler<Driver>  scheduler_handler { env.ep(), *this,
+	                                           &Driver::handle_scheduler };
 
 	bool                    update_in_progress { false };
 	bool                    new_config_rom     { false };
@@ -109,9 +111,14 @@ struct Framebuffer::Driver
 		if (fb.constructed()) { fb->paint(); }
 	}
 
+	void handle_scheduler()
+	{
+		Lx_kit::env().scheduler.execute();
+	}
+
 	Driver(Env &env) : env(env)
 	{
-		Lx_kit::initialize(env);
+		Lx_kit::initialize(env, scheduler_handler);
 		env.exec_static_constructors();
 
 		config.sigh(config_handler);

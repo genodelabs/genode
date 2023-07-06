@@ -116,7 +116,7 @@ void Scheduler::execute()
 		Genode::sleep_forever();
 	}
 
-	_schedule();
+	_execute();
 }
 
 
@@ -124,7 +124,7 @@ void Scheduler::execute()
  * This signal handler function must only be called from within an EP
  * context, see check in 'execute()'.
  */
-void Scheduler::_schedule()
+void Scheduler::_execute()
 {
 	_idle_pre_post_process();
 
@@ -173,4 +173,10 @@ void Scheduler::_schedule()
 
 	/* clear current as no task is running */
 	_current = nullptr;
+}
+
+
+void Scheduler::schedule()
+{
+	Lx_kit::env().submit_signal();
 }

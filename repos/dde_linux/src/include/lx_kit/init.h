@@ -16,11 +16,12 @@
 
 #include <base/env.h>
 #include <base/heap.h>
+#include <base/signal.h>
 
 namespace Lx_kit {
 	using namespace Genode;
 
-	void initialize(Env & env);
+	void initialize(Env & env, Genode::Signal_context & sig_ctx);
 	class Initcalls;
 
 	class Pci_fixup_calls;

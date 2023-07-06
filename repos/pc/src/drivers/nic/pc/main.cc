@@ -28,19 +28,11 @@ namespace Pc {
 
 extern task_struct *user_task_struct_ptr;
 
-struct Pc::Main : private Entrypoint::Io_progress_handler
+struct Pc::Main
 {
 	Env &_env;
 
 	Attached_rom_dataspace _config { _env, "config" };
-
-	/**
-	 * Entrypoint::Io_progress_handler
-	 */
-	void handle_io_progress() override
-	{
-		genode_uplink_notify_peers();
-	}
 
 	/**
 	 * Config update signal handler
@@ -56,36 +48,21 @@ struct Pc::Main : private Entrypoint::Io_progress_handler
 	/**
 	 * Signal handler triggered by activity of the uplink connection
 	 */
-	Io_signal_handler<Main> _signal_handler { _env.ep(), *this, &Main::_handle_signal };
-
-	unsigned _signal_handler_nesting_level = 0;
+	Signal_handler<Main> _signal_handler { _env.ep(), *this, &Main::_handle_signal };
 
 	void _handle_signal()
 	{
-		_signal_handler_nesting_level++;
-
-		{
-			if (!user_task_struct_ptr)
-				return;
-
+		if (user_task_struct_ptr)
 			lx_emul_task_unblock(user_task_struct_ptr);
-			Lx_kit::env().scheduler.schedule();
-		}
 
-		/*
-		 * Process currently pending I/O signals before leaving the signal
-		 * handler to limit the rate of 'handle_io_progress' calls.
-		 */
-		if (_signal_handler_nesting_level == 1) {
-			while (_env.ep().dispatch_pending_io_signal());
-		}
+		Lx_kit::env().scheduler.execute();
 
-		_signal_handler_nesting_level--;
+		genode_uplink_notify_peers();
 	}
 
 	Main(Env &env) : _env(env)
 	{
-		Lx_kit::initialize(env);
+		Lx_kit::initialize(env, _signal_handler);
 
 		env.exec_static_constructors();
 
@@ -100,8 +77,6 @@ struct Pc::Main : private Entrypoint::Io_progress_handler
 		_handle_config();
 
 		lx_emul_start_kernel(nullptr);
-
-		env.ep().register_io_progress_handler(*this);
 	}
 };
 

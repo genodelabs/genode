@@ -43,9 +43,7 @@ class Lx_kit::Scheduler
 
 		void _idle_pre_post_process();
 
-		void _schedule();
-
-		Signal_handler<Scheduler> _execute_schedule;
+		void _execute();
 
 		Genode::Fifo<Lx_kit::Pending_irq> _pending_irqs { };
 
@@ -60,7 +58,7 @@ class Lx_kit::Scheduler
 		void add(Task & task);
 		void remove(Task & task);
 
-		void schedule() { _execute_schedule.local_submit(); }
+		void schedule();
 
 		void execute();
 
@@ -78,12 +76,7 @@ class Lx_kit::Scheduler
 		template <typename FN>
 		void for_each_task(FN const & fn);
 
-		Scheduler(Genode::Entrypoint &ep)
-		:
-			_ep { ep },
-			_execute_schedule { _ep, *this,
-			                    &Scheduler::_schedule }
-		{ }
+		Scheduler(Genode::Entrypoint &ep) : _ep { ep } { }
 };
 
 
