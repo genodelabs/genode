@@ -172,19 +172,9 @@ proc run_boot_dir {binaries} {
 	}
 
 	if {[have_spec x86] && [have_include "load/ipxe"]} {
-		#
-		# Generate iPXE config file
-		#
-		set fh [open "[run_dir]/boot.cfg" "WRONLY CREAT TRUNC"]
-		puts $fh "#!ipxe"
-
-		install_pxe_bootloader_to_run_dir
-		puts $fh "kernel boot/bender $options_bender"
-		puts $fh "module boot/image.elf"
-		puts $fh "boot"
-		close $fh
-
+		create_ipxe_config
 		update_ipxe_boot_dir
+		create_symlink_for_iso
 	}
 }
 
