@@ -793,6 +793,9 @@ if {[have_spec foc]} {
 	set skip_test(test-entrypoint)    [have_board pbxa9]
 	set skip_test(test-libc)          [have_board pbxa9]
 	set skip_test(test-tcp_bulk_lxip) [have_board pbxa9]
+	# foc on pbxa9 caps RAM at 256 MiB - skip tests with excessive RAM demand
+	skip_test_if [have_board pbxa9] test-file_vault_config_report
+	skip_test_if [have_board pbxa9] test-file_vault_config_report_no_entropy
 }
 if {[have_spec riscv]} {
 	set skip_test(gcov)                              true
