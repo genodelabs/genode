@@ -691,6 +691,15 @@ static int poll_usb_device(void * args)
 		handle_rpc(data);
 		while (check_for_urb(data->dev)) ;
 		while (check_for_urb_done(&data->file)) ;
+
+		/*
+		 * we have to check for RPC handling once again,
+		 * during asynchronous URB handling the Linux task might
+		 * have been blocked and a new RPC entered the entrypoint
+		 */
+		handle_rpc(data);
+
+		/* check if device got removed */
 		if (!data->dev) {
 			struct usb_device * udev = find_usb_device(bus, dev);
 			release_device(data, udev ? 1 : 0);
