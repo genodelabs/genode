@@ -41,11 +41,6 @@ struct Board::Timer : Genode::Mmio
 
 		struct Oci_en : Bitfield<2, 1> { };   /* interrupt on compare */
 
-		struct Rld : Bitfield<3, 1>           /* reload or roll-over */
-		{
-			enum { RELOAD_FROM_LR = 1 };
-		};
-
 		struct Prescaler : Bitfield<4, 12>    /* clock input divisor */
 		{
 			enum { DIVIDE_BY_1 = 0 };

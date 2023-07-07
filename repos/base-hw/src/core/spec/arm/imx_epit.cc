@@ -36,6 +36,19 @@ Board::Timer::Timer(unsigned)
 
 void Board::Timer::init()
 {
+	/*
+	 * Used timer mode:
+	 *
+	 * - Set CNT to 0xffffffff whenever CR.EN goes from 0 to 1 (CR.EN_MOD = 1).
+	 *   This happens only once: at construction time.
+	 * - CNT is counting downwards with timer frequency.
+	 * - When CNT reaches 0 it rolls over to 0xffffffff (CR.RLD = 0).
+	 * - When writing LR, also set CNT to new LR value (CR.IOVW = 1). This
+	 *   happens whenever a timeout is programmed.
+	 * - Trigger IRQ when CNT == CMPR (CR.OCI_EN = 1). CMPR is always set to
+	 *   0xffffffff.
+	 */
+
 	reset();
 
 	Cr::access_t cr = read<Cr>();
@@ -81,8 +94,8 @@ time_t Timer::_max_value() const {
 time_t Timer::_duration() const
 {
 	using Device = Board::Timer;
-	Device::Cnt::access_t last = (Device::Cnt::access_t) _last_timeout_duration;
-	Device::Cnt::access_t cnt  = _device.read<Device::Cnt>();
-	return (_device.read<Device::Sr::Ocif>()) ? _max_value() - cnt + last
+	Device::Cnt::access_t const last = (Device::Cnt::access_t) _last_timeout_duration;
+	Device::Cnt::access_t const cnt  = _device.read<Device::Cnt>();
+	return (_device.read<Device::Sr::Ocif>()) ? _max_value() - _device.read<Device::Cnt>() + last
 	                                          : last - cnt;
 }
