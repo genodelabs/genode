@@ -30,6 +30,8 @@ void lx_emul_time_handle(void);
 
 void lx_emul_time_update_jiffies(void);
 
+void lx_emul_time_initial(unsigned long long);
+
 #ifdef __cplusplus
 }
 #endif

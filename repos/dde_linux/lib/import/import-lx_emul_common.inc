@@ -40,6 +40,7 @@ SRC_C   += lx_emul/shadow/mm/slab_common.c
 SRC_C   += lx_emul/shadow/mm/slub.c
 SRC_C   += lx_emul/shadow/mm/vmstat.c
 SRC_C   += lx_emul/start.c
+SRC_C   += lx_emul/time_initial.c
 SRC_C   += lx_emul/virt_to_page.c
 
 SRC_CC  += lx_kit/console.cc
