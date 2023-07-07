@@ -267,7 +267,7 @@ append  config { </wifi_config>
 			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
-					<log/> <null/> <wifi/>
+					<log/> <null/>
 					<jitterentropy name="random"/>
 					<jitterentropy name="urandom"/>
 					<inline name="rtc">2018-01-01 00:01</inline>

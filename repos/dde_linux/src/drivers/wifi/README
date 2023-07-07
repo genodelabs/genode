@@ -19,7 +19,7 @@ can be used:
 !  <config>
 !    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 !    <vfs>
-!      <dir name="dev"> <log/> <null/> <rtc/> <wifi/>
+!      <dir name="dev"> <log/> <null/> <rtc/>
 !          <jitterentropy name="random"/>
 !          <jitterentropy name="urandom"/>
 !      </dir>
@@ -47,7 +47,7 @@ snippet illustrates the use of the driver on the PinePhone:
 !  <config>
 !    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 !    <vfs>
-!      <dir name="dev"> <log/> <null/> <rtc/> <wifi/>
+!      <dir name="dev"> <log/> <null/> <rtc/>
 !        <jitterentropy name="random"/>
 !        <jitterentropy name="urandom"/>
 !      </dir>
@@ -177,3 +177,24 @@ concern. However, when the driver is built without the depot, the boot image
 assemble-mechanism tries to include the non-existent 'wifi.lib.so' library. To
 prevent that from failing one way is adding a dummy file - the
 'repos/pc/run/pc_wifi.run' illustrates how to do that.
+
+During development it might be necessary to automatically generate certain
+dummy functions as is normally the case with drivers ported over from Linux.
+To make the existing tooling (tool/dde_linux) work with the wifi driver it
+is necessary to link the driver binary directly against the driver library
+rather then stub ABI library. This is achieved by adapting the driver's
+'target.mk' file. In
+
+!TARGET  := wifi_drv
+!SRC_CC  := main.cc wpa.cc access_firmware.cc
+!LIBS    := base wifi
+![…]
+
+'LIBS' must be changed as follows in case the PC wifi driver library is
+used:
+
+!LIBS    := base pc_wifi
+
+Afterwards the driver library is built by the 'drivers/wifi' target and
+since it is now a direct dependency 'tool/dde_linux/create_dummies' can
+by used to created the 'generated_dummies.c' file.

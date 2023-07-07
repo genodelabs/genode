@@ -23,7 +23,7 @@ WS_PORT_DIR    := $(call port_dir,$(DDE_LINUX_REP_DIR)/ports/wpa_supplicant)
 LIBNL_PORT_DIR := $(call port_dir,$(DDE_LINUX_REP_DIR)/ports/libnl)
 
 DDE_LINUX_LIB_MK := \
-          $(addprefix lib/mk/,libnl.inc libnl_include.mk wifi.inc vfs_wifi.mk) \
+          $(addprefix lib/mk/,libnl.inc libnl_include.mk wifi.inc) \
           $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/libnl.mk) \
           $(addprefix lib/mk/,wpa_driver_nl80211.mk wpa_supplicant.mk)
 
@@ -34,7 +34,6 @@ MIRROR_FROM_DDE_LINUX_DIR := $(DDE_LINUX_LIB_MK) \
                              lib/symbols/wifi \
                              include/wifi \
                              $(shell cd $(DDE_LINUX_REP_DIR); find src/lib/libnl -type f) \
-                             $(shell cd $(DDE_LINUX_REP_DIR); find src/lib/vfs/wifi -type f) \
                              $(shell cd $(DDE_LINUX_REP_DIR); find src/lib/wifi -type f) \
                              $(shell cd $(DDE_LINUX_REP_DIR); find src/lib/wpa_driver_nl80211 -type f) \
                              $(shell cd $(DDE_LINUX_REP_DIR); find src/lib/wpa_supplicant -type f)

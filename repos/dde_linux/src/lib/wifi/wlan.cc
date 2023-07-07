@@ -69,32 +69,6 @@ struct Rfkill_helper
 	}
 };
 
-Constructible<Rfkill_helper> rfkill_helper { };
-
-
-void Wifi::set_rfkill(bool blocked)
-{
-	if (!rfkill_task_struct_ptr)
-		return;
-
-	lx_emul_rfkill_switch_all(blocked);
-
-	lx_emul_task_unblock(rfkill_task_struct_ptr);
-	Lx_kit::env().scheduler.execute();
-
-	/*
-	 * We have to open the device again after unblocking
-	 * as otherwise we will get ENETDOWN. So unblock the uplink
-	 * task _afterwards_ because there we call * 'dev_open()'
-	 * unconditionally and that will bring the netdevice UP again.
-	 */
-	lx_emul_task_unblock(uplink_task_struct_ptr);
-	Lx_kit::env().scheduler.execute();
-
-	if (rfkill_helper.constructed())
-		rfkill_helper->submit_notification();
-}
-
 
 bool Wifi::rfkill_blocked(void)
 {
@@ -194,7 +168,7 @@ struct Firmware_helper
 	}
 
 	Firmware_helper(Genode::Entrypoint &ep,
-	                       Wifi::Firmware_request_handler &request_handler)
+	                Wifi::Firmware_request_handler &request_handler)
 	:
 		_response_handler { ep, *this, &Firmware_helper::_handle_response },
 		_request_handler  { request_handler }
@@ -243,27 +217,6 @@ struct Firmware_helper
 };
 
 
-Constructible<Firmware_helper> firmware_helper { };
-
-
-size_t _wifi_probe_firmware(char const *name)
-{
-	if (firmware_helper.constructed())
-		return firmware_helper->perform_probing(name);
-
-	return 0;
-}
-
-
-int _wifi_request_firmware(char const *name, char *dst, size_t dst_len)
-{
-	if (firmware_helper.constructed())
-		return firmware_helper->perform_requesting(name, dst, dst_len);
-
-	return -1;
-}
-
-
 extern "C" unsigned int wifi_ifindex(void)
 {
 	/* TODO replace with actual qyery */
@@ -306,8 +259,14 @@ struct Wlan
 		genode_uplink_notify_peers();
 	}
 
+	Constructible<Rfkill_helper>   rfkill_helper { };
+
+	Constructible<Firmware_helper> firmware_helper { };
+
 	Wlan(Env &env) : _env { env }
 	{
+		Lx_kit::initialize(env);
+
 		genode_mac_address_reporter_init(env, Lx_kit::env().heap);
 
 		{
@@ -343,30 +302,84 @@ extern "C" void wakeup_wpa()
 }
 
 
+static Wlan *_wlan_ptr;
+
+
 void wifi_init(Env &env, Blockade &blockade)
 {
 	wpa_blockade = &blockade;
 
 	static Wlan wlan(env);
+	_wlan_ptr = &wlan;
 }
 
+
+/*
+ * Rfkill handling
+ */
 
 void Wifi::rfkill_establish_handler(Wifi::Rfkill_notification_handler &handler)
 {
-	rfkill_helper.construct(handler);
+	_wlan_ptr->rfkill_helper.construct(handler);
 }
 
 
+void Wifi::set_rfkill(bool blocked)
+{
+	if (!rfkill_task_struct_ptr)
+		return;
+
+	lx_emul_rfkill_switch_all(blocked);
+
+	lx_emul_task_unblock(rfkill_task_struct_ptr);
+	Lx_kit::env().scheduler.execute();
+
+	/*
+	 * We have to open the device again after unblocking
+	 * as otherwise we will get ENETDOWN. So unblock the uplink
+	 * task _afterwards_ because there we call * 'dev_open()'
+	 * unconditionally and that will bring the netdevice UP again.
+	 */
+	lx_emul_task_unblock(uplink_task_struct_ptr);
+	Lx_kit::env().scheduler.execute();
+
+	if (_wlan_ptr->rfkill_helper.constructed())
+		_wlan_ptr->rfkill_helper->submit_notification();
+}
+
+
+/*
+ * Firmware handling
+ */
+
 void Wifi::firmware_establish_handler(Wifi::Firmware_request_handler &request_handler)
 {
-	firmware_helper.construct(Lx_kit::env().env.ep(), request_handler);
+	_wlan_ptr->firmware_helper.construct(Lx_kit::env().env.ep(), request_handler);
 }
 
 
 Wifi::Firmware_request *Wifi::firmware_get_request()
 {
-	if (firmware_helper.constructed())
-		return firmware_helper->request();
+	if (_wlan_ptr->firmware_helper.constructed())
+		return _wlan_ptr->firmware_helper->request();
 
 	return nullptr;
+}
+
+
+size_t _wifi_probe_firmware(char const *name)
+{
+	if (_wlan_ptr->firmware_helper.constructed())
+		return _wlan_ptr->firmware_helper->perform_probing(name);
+
+	return 0;
+}
+
+
+int _wifi_request_firmware(char const *name, char *dst, size_t dst_len)
+{
+	if (_wlan_ptr->firmware_helper.constructed())
+		return _wlan_ptr->firmware_helper->perform_requesting(name, dst, dst_len);
+
+	return -1;
 }
