@@ -18,7 +18,6 @@
 #include <util/fifo.h>
 #include <util/misc_math.h>
 #include <base/attached_rom_dataspace.h>
-#include <cpu/memory_barrier.h>
 
 using namespace Genode;
 
@@ -51,17 +50,15 @@ static bool precise_time(Xml_node config)
 	return false;
 }
 
-struct A1 {
-A1() {
-log(__func__,__LINE__);
-}
-};
 
-struct A2 {
-A2() {
-log(__func__,__LINE__);
+#pragma GCC push_options
+#pragma GCC optimize("O0")
+void delay_loop(unsigned long num_iterations)
+{
+	for (unsigned long idx = 0; idx < num_iterations; idx++) { }
 }
-};
+#pragma GCC pop_options
+
 
 struct Test
 {
@@ -522,7 +519,7 @@ struct Fast_polling : Test
 
 			/* measure consumed time of a limited busy loop */
 			uint64_t volatile start_ms = timer_2.elapsed_ms();
-			for (unsigned long cnt = 0; cnt < max_cnt; cnt++) memory_barrier();
+			delay_loop(max_cnt);
 			uint64_t volatile end_ms = timer_2.elapsed_ms();
 
 			/*
@@ -569,8 +566,7 @@ struct Fast_polling : Test
 			for (unsigned poll = 0; poll < nr_of_polls; poll++) {
 
 				/* create delay between two polls */
-				for (unsigned long i = 0; i < delay_loops_per_poll_; i++)
-					memory_barrier();
+				delay_loop(delay_loops_per_poll_);
 
 				/* count delay loops to limit frequency of remote time reading */
 				delay_loops = delay_loops + delay_loops_per_poll_;
