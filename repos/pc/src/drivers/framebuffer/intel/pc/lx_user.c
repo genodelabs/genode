@@ -153,7 +153,7 @@ static void preferred_mode(struct drm_device const * const dev,
 	}
 	drm_connector_list_iter_end(&conn_iter);
 
-	/* no modes on any connector, happens during early bootup */
+	/* no mode due to early bootup or all connectors are disabled by config */
 	if (!min_mode->hdisplay || !min_mode->vdisplay)
 		return;
 
@@ -245,9 +245,17 @@ static bool reconfigure(struct drm_client_dev * const dev)
 
 	preferred_mode(dev->dev, &mode_preferred, &mode_minimum);
 
-	/* no valid modes on any connector on early boot */
-	if (!mode_minimum.hdisplay || !mode_minimum.vdisplay)
-		return false;
+	if (!mode_minimum.hdisplay || !mode_minimum.vdisplay) {
+		/* no valid modes on any connector on early boot */
+		if (!dumb_fb.fb_id)
+			return false;
+
+		/* valid connectors but all are disabled by config */
+		mode_minimum.hdisplay = dumb_fb.width;
+		mode_minimum.vdisplay = dumb_fb.height;
+		mode_preferred        = mode_minimum;
+	}
+
 
 	if (mode_larger(&mode_preferred, &mode_minimum))
 		mode_real = mode_preferred;

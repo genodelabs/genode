@@ -262,7 +262,7 @@ append config {
 				</route>
 			</start>}
 
-append_if $use_fb_controller {
+append_if $use_fb_controller config {
 			<start name="intel_fb_controller" priority="-1">
 				<resource name="RAM" quantum="1M"/>
 				<config>
