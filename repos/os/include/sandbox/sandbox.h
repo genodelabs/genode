@@ -139,7 +139,8 @@ class Genode::Sandbox::Local_service_base : public Service
 				:
 					resources(session_resources_from_args(session.args().string())),
 					label(session.label()),
-					diag(session_diag_from_args(session.args().string()))
+					diag(session_diag_from_args(session.args().string())),
+					args(session.args())
 				{ }
 
 				/*
@@ -150,9 +151,12 @@ class Genode::Sandbox::Local_service_base : public Service
 
 			public:
 
+				using Args = Session_state::Args;
+
 				Session::Resources const resources;
 				Session::Label     const label;
 				Session::Diag      const diag;
+				Args               const args;
 
 				template <typename ST>
 				void deliver_session(ST &session)
