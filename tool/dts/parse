@@ -128,7 +128,7 @@ extract node     {(/omit-if-no-ref/)?\s*(§labeldef\d+°\s*)?\s*[\w_][\w\d_\-,.+@]
 extract nodename {[\w_][\w\d_\-,.+@]*(?=\s*§block)} {node}
 
 # supplemental node content provided via '&label { ... }' at the top level
-extract nodesupplement {§reflabel\d+°\s*§block\d+°;\n?} {content}
+extract nodesupplement {(§labeldef\d+°\s*)?§reflabel\d+°\s*§block\d+°;\n?} {content}
 
 
 ###############################
