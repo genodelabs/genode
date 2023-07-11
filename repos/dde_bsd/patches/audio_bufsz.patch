@@ -1,0 +1,13 @@
+Decrease the initial audio buffer size that implicitly limits the number
+of records blocks.
+--- a/dev/audio.c
++++ b/dev/audio.c
+@@ -55,7 +55,7 @@
+ #define AUDIO_DEV(n)		(minor(n) & 0xf0)
+ #define AUDIO_DEV_AUDIO		0	/* minor of /dev/audio0 */
+ #define AUDIO_DEV_AUDIOCTL	0xc0	/* minor of /dev/audioctl */
+-#define AUDIO_BUFSZ		65536	/* buffer size in bytes */
++#define AUDIO_BUFSZ		4096	/* buffer size in bytes */
+ 
+ /*
+  * mixer entries added by the audio(4) layer
