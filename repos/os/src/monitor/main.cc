@@ -28,28 +28,12 @@
 namespace Monitor {
 
 	template <typename CONNECTION>
-	struct Local_session_base : Noncopyable
+	struct Connection : Interface
 	{
 		CONNECTION _connection;
 
-		Local_session_base(Env &env, Session::Label const &label)
-		:
-			_connection(env, label)
-		{ };
-	};
-
-	template <typename CONNECTION, typename MONITORED_SESSION>
-	struct Local_session : private Local_session_base<CONNECTION>,
-	                       public  MONITORED_SESSION
-	{
-		using Local_session_base<CONNECTION>::_connection;
-
 		template <typename... ARGS>
-		Local_session(Env &env, Session::Label const &label, ARGS &&... args)
-		:
-			Local_session_base<CONNECTION>(env, label),
-			MONITORED_SESSION(env.ep(), _connection.cap(), label, args...)
-		{ }
+		Connection(ARGS &&... args) : _connection(args...) { }
 
 		void upgrade(Session::Resources const &resources)
 		{
@@ -63,9 +47,32 @@ namespace Monitor { struct Main; }
 
 struct Monitor::Main : Sandbox::State_handler
 {
-	using Local_pd_session  = Local_session<Pd_connection,  Inferior_pd>;
-	using Local_cpu_session = Local_session<Cpu_connection, Inferior_cpu>;
-	using Local_vm_session  = Local_session<Vm_connection,  Monitored_vm_session>;
+	struct Local_pd_session : Connection<Pd_connection>, Inferior_pd
+	{
+		Local_pd_session(Env &env, Session::Label const &label, auto &&... args)
+		:
+			Connection<Pd_connection>(env, label),
+			Inferior_pd(env.ep(), _connection.cap(), label, args...)
+		{ }
+	};
+
+	struct Local_cpu_session : Connection<Cpu_connection>, Inferior_cpu
+	{
+		Local_cpu_session(Env &env, Session::Label const &label, Priority priority, Allocator &alloc)
+		:
+			Connection<Cpu_connection>(env, label, priority.value),
+			Inferior_cpu(env.ep(), _connection.cap(), label, alloc)
+		{ }
+	};
+
+	struct Local_vm_session : Connection<Vm_connection>, Monitored_vm_session
+	{
+		Local_vm_session(Env &env, Session::Label const &label, Priority priority)
+		:
+			Connection<Vm_connection>(env, label, priority.value),
+			Monitored_vm_session(env.ep(), _connection.cap(), label)
+		{ }
+	};
 
 	using Pd_service  = Sandbox::Local_service<Local_pd_session>;
 	using Cpu_service = Sandbox::Local_service<Local_cpu_session>;
@@ -206,14 +213,23 @@ struct Monitor::Main : Sandbox::State_handler
 	Cpu_service _cpu_service { _sandbox, _cpu_handler };
 	Vm_service  _vm_service  { _sandbox, _vm_handler  };
 
-	Local_pd_session &_create_session(Pd_service &, Session::Label const &label)
+	using Session_request = Sandbox::Local_service_base::Request;
+
+	Priority _priority_from_args(Session_request::Args const &args)
+	{
+		return Priority {
+			(long)Arg_string::find_arg(args.string(), "priority")
+			                 .ulong_value(Cpu_session::DEFAULT_PRIORITY) };
+	}
+
+	Local_pd_session &_create_session(Pd_service &, Session_request const &request)
 	{
 		_last_inferior_id.value++;
 
 		Inferiors::Id const id = _last_inferior_id;
 
 		Local_pd_session &session = *new (_heap)
-			Local_pd_session(_env, label, _inferiors, id, _env.rm(), _heap, _env.ram());
+			Local_pd_session(_env, request.label, _inferiors, id, _env.rm(), _heap, _env.ram());
 
 		_apply_monitor_config_to_inferiors();
 
@@ -224,18 +240,20 @@ struct Monitor::Main : Sandbox::State_handler
 		return session;
 	}
 
-	Local_cpu_session &_create_session(Cpu_service &, Session::Label const &label)
+	Local_cpu_session &_create_session(Cpu_service &, Session_request const &request)
 	{
-		Local_cpu_session &session = *new (_heap) Local_cpu_session(_env, label, _heap);
+		Local_cpu_session &session = *new (_heap)
+			Local_cpu_session(_env, request.label, _priority_from_args(request.args), _heap);
 
 		session.init_native_cpu(_kernel);
 
 		return session;
 	}
 
-	Local_vm_session &_create_session(Vm_service &, Session::Label const &label)
+	Local_vm_session &_create_session(Vm_service &, Session_request const &request)
 	{
-		return *new (_heap) Local_vm_session(_env, label);
+		return *new (_heap)
+			Local_vm_session(_env, request.label, _priority_from_args(request.args));
 	}
 
 	void _destroy_session(Local_pd_session &session)
@@ -341,7 +359,7 @@ void Monitor::Main::_handle_service(SERVICE &service)
 	using Local_session = typename SERVICE::Local_session;
 
 	service.for_each_requested_session([&] (typename SERVICE::Request &request) {
-		request.deliver_session(_create_session(service, request.label));
+		request.deliver_session(_create_session(service, request));
 	});
 
 	service.for_each_upgraded_session([&] (Local_session &session,

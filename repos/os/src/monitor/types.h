@@ -43,6 +43,8 @@ namespace Monitor {
 		sleep_forever();
 	}
 
+	struct Priority { long value; };
+
 	/**
 	 * Call 'monitored_fn' with local RPC object that belongs to 'cap', or
 	 * 'direct_fn' if 'cap' does not belong to any local RPC object of type
