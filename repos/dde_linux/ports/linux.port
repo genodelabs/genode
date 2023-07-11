@@ -12,6 +12,7 @@ DIR(linux) := src/linux
 PATCH_FILES := i915_irq.patch \
                iwlwifi_enable_irq_before_pnvm.patch \
                iwlwifi_limit_rx_bufs.patch \
+               usb_host_devio_sg.patch \
                usb_net_pinephone.patch \
                usb_net_cdc_ncm.patch \
                workqueue_deadlock.patch

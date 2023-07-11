@@ -1,0 +1,15 @@
+USB devio splits large transaction into 16 KiB buffers in scatter-gather
+lists. Unfortunately, this mechanism seems unreliable most certainly because
+of issue #4809 "DDE Linux struct page object aliasing".
+
+--- src/linux/drivers/usb/core/devio.c
++++ src/linux/drivers/usb/core/devio.c
+@@ -53,7 +53,7 @@
+ 
+ #define USB_MAXBUS			64
+ #define USB_DEVICE_MAX			(USB_MAXBUS * 128)
+-#define USB_SG_SIZE			16384 /* split-size for large txs */
++#define USB_SG_SIZE			(1024 * 1024) /* split-size for large txs */
+ 
+ /* Mutual exclusion for ps->list in resume vs. release and remove */
+ static DEFINE_MUTEX(usbfs_mutex);
