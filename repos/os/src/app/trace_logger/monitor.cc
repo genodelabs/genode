@@ -31,7 +31,24 @@ struct Formatted_affinity
 
 	void print(Genode::Output &out) const
 	{
-		Genode::print(out, "at (", affinity.xpos(),",", affinity.ypos(), ")");
+		Genode::print(out, " at (", affinity.xpos(),",", affinity.ypos(), ")");
+	}
+};
+
+
+template<typename T>
+struct Formatted
+{
+	char const *type = "";
+
+	T const &value;
+
+	Formatted(T const &value) : value(value) { }
+	Formatted(char const *type, T const &value) : type(type), value(value) { }
+
+	void print(Genode::Output &out) const
+	{
+		Genode::print(out, " ", type, value);
 	}
 };
 
@@ -130,13 +147,14 @@ void Monitor::apply_formatting(Formatting &formatting) const
 
 	typedef Trace::Subject_info Subject_info;
 
-	expand(formatting.thread_name, Quoted_name{_info.thread_name()});
+	expand(formatting.thread_name, Formatted("Thread ", Quoted_name{_info.thread_name()}));
 	expand(formatting.affinity,    Formatted_affinity{_info.affinity()});
-	expand(formatting.state,       Subject_info::state_name(_info.state()));
-	expand(formatting.total_tc,    _info.execution_time().thread_context);
-	expand(formatting.recent_tc,   _recent_exec_time.thread_context);
-	expand(formatting.total_sc,    _info.execution_time().scheduling_context);
-	expand(formatting.recent_sc,   _recent_exec_time.scheduling_context);
+	expand(formatting.state,       Formatted(Subject_info::state_name(_info.state())));
+	expand(formatting.prio,        Formatted("prio:", _info.execution_time().priority));
+	expand(formatting.total_tc,    Formatted("total:", _info.execution_time().thread_context));
+	expand(formatting.recent_tc,   Formatted("recent:", _recent_exec_time.thread_context));
+	expand(formatting.total_sc,    Formatted("total_sc:", _info.execution_time().scheduling_context));
+	expand(formatting.recent_sc,   Formatted("recent_sc:", _recent_exec_time.scheduling_context));
 }
 
 
@@ -150,15 +168,15 @@ void Monitor::print(Formatting fmt, Level_of_detail detail)
 	typedef Trace::Subject_info Subject_info;
 	Subject_info::State const state = _info.state();
 
-	log(" Thread ", Left_aligned(fmt.thread_name, Quoted_name{_info.thread_name()}),
-	    " ",        Left_aligned(fmt.affinity, Formatted_affinity{_info.affinity()}),
-	    "  ",       Conditional(detail.state,
-	                            Left_aligned(fmt.state + 1, Subject_info::state_name(state))),
-	    "total:",   Left_aligned(fmt.total_tc, _info.execution_time().thread_context), " "
-	    "recent:",  Left_aligned(fmt.recent_tc, _recent_exec_time.thread_context),
-	    Conditional(detail.sc_time, String<80>(
-	      " total_sc:",  Left_aligned(fmt.total_sc, _info.execution_time().scheduling_context),
-	      " recent_sc:", _recent_exec_time.scheduling_context)));
+	log(Left_aligned(fmt.thread_name, Formatted("Thread ", Quoted_name{_info.thread_name()})),
+	    Left_aligned(fmt.affinity, Formatted_affinity{_info.affinity()}),
+	    " ",
+	    Conditional(detail.state, Left_aligned(fmt.state, Formatted("", Subject_info::state_name(state)))),
+	    Conditional(detail.prio, Left_aligned(fmt.prio, Formatted("prio:", _info.execution_time().priority))),
+	    Left_aligned(fmt.total_tc,  Formatted("total:",  _info.execution_time().thread_context)),
+	    Left_aligned(fmt.recent_tc, Formatted("recent:", _recent_exec_time.thread_context)),
+	    Conditional(detail.sc_time, Left_aligned(fmt.total_sc,  Formatted("total_sc:",  _info.execution_time().scheduling_context))),
+	    Conditional(detail.sc_time, Left_aligned(fmt.recent_sc, Formatted("recent_sc:", _recent_exec_time.scheduling_context))));
 
 	/* print all buffer entries that we haven't yet printed */
 	_buffer.for_each_new_entry([&] (Trace::Buffer::Entry entry) {

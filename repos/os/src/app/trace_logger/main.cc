@@ -45,6 +45,7 @@ class Main
 			size_t       session_arg_buffer;
 			unsigned     session_parent_levels;
 			bool         verbose;
+			bool         prio;
 			bool         sc_time;
 			Microseconds period_us;
 			size_t       default_buf_sz;
@@ -210,6 +211,7 @@ class Main
 			log("\nReport ", _report_id++, "\n");
 			Monitor::Level_of_detail const detail { .state       =  _config.verbose,
 			                                        .active_only = !_config.verbose,
+			                                        .prio        =  _config.prio,
 			                                        .sc_time     =  _config.sc_time };
 			_print_monitors(_heap, monitors, detail);
 		}
@@ -235,6 +237,7 @@ Main::Config Main::Config::from_xml(Xml_node const &config)
 		                                                Number_of_bytes(1024*4)),
 		.session_parent_levels = config.attribute_value("session_parent_levels", 0u),
 		.verbose               = config.attribute_value("verbose",  false),
+		.prio                  = config.attribute_value("priority", false),
 		.sc_time               = config.attribute_value("sc_time",  false),
 		.period_us             = Microseconds(config.attribute_value("period_sec", 5)
 		                                     * 1'000'000),
@@ -299,18 +302,19 @@ void Main::_print_monitors(Allocator &alloc, Monitor_tree const &monitors,
 
 	pds.for_each([&] (Pd const &pd) {
 
-		unsigned const state_width  = detail.state ? fmt.state + 1 : 0;
-		unsigned const sc_width     = detail.sc_time
-		                            ? fmt.total_sc + fmt.total_tc + 21 : 0;
+		auto opt = [] (bool cond, unsigned value) { return cond ? value : 0; };
+
 		unsigned const table_width  = fmt.thread_name
 		                            + fmt.affinity
-		                            + state_width
+		                            + 1 /* additional space */
+		                            + opt(detail.state,   fmt.state)
+		                            + opt(detail.prio,    fmt.prio)
 		                            + fmt.total_tc
 		                            + fmt.recent_tc
-		                            + sc_width
-		                            + 26;
-		unsigned const pd_width     = (unsigned)pd.label.length() + 6;
-		unsigned const excess_width = table_width - min(table_width, pd_width);
+		                            + opt(detail.sc_time, fmt.total_sc)
+		                            + opt(detail.sc_time, fmt.recent_sc);
+		unsigned const pd_width     = 4 + (unsigned)(pd.label.length() - 1) + 1;
+		unsigned const excess_width = table_width - min(table_width, pd_width + 1);
 
 		if (detail.active_only && !pd.recently_active())
 			return;

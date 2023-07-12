@@ -47,7 +47,7 @@
 
 		<start name="trace_logger">
 			<resource name="RAM" quantum="80M"/>
-			<config verbose="yes" session_ram="10M" session_parent_levels="1" session_arg_buffer="64K" period_sec="3" default_policy="null" default_buffer="1K">
+			<config verbose="yes" priority="no" sc_time="no" session_ram="10M" session_parent_levels="1" session_arg_buffer="64K" period_sec="3" default_policy="null" default_buffer="1K">
 
 				<policy label_prefix="init -> dynamic -> test-trace_logger -> cpu_burner" thread="ep"/>
 

@@ -64,7 +64,7 @@ class Monitor : public Monitor_base,
 
 		struct Formatting
 		{
-			unsigned thread_name, affinity, state, total_tc, recent_tc, total_sc, recent_sc;
+			unsigned thread_name, affinity, prio, state, total_tc, recent_tc, total_sc, recent_sc;
 		};
 
 		Monitor(Genode::Trace::Connection &trace,
@@ -76,7 +76,7 @@ class Monitor : public Monitor_base,
 		 */
 		void apply_formatting(Formatting &) const;
 
-		struct Level_of_detail { bool state, active_only, sc_time; };
+		struct Level_of_detail { bool state, active_only, prio, sc_time; };
 
 		void print(Formatting, Level_of_detail);
 
