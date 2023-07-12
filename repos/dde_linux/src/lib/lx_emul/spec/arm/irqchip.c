@@ -63,6 +63,7 @@ struct irq_chip dde_irqchip_data_chip = {
 };
 
 
+#ifdef CONFIG_IRQ_DOMAIN_HIERARCHY
 static int dde_domain_translate(struct irq_domain * d,
                                   struct irq_fwspec * fwspec,
                                   unsigned long     * hwirq,
@@ -111,16 +112,19 @@ static int dde_domain_alloc(struct irq_domain * domain,
 
 	return 0;
 }
+#endif /* CONFIG_IRQ_DOMAIN_HIERARCHY */
 
 
 static const struct irq_domain_ops dde_irqchip_data_domain_ops = {
+#ifdef CONFIG_IRQ_DOMAIN_HIERARCHY
 	.translate	= dde_domain_translate,
 	.alloc		= dde_domain_alloc,
 	.free		= irq_domain_free_irqs_common,
+#endif
 };
 
 
-static struct irq_domain *dde_irq_domain;
+struct irq_domain *dde_irq_domain;
 
 int lx_emul_irq_init(struct device_node *node, struct device_node *parent)
 {
