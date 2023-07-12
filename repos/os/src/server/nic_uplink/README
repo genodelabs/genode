@@ -1,0 +1,28 @@
+Component for forwarding network packets between a NIC session and an Uplink
+session.
+
+On startup, the component announces only an Uplink service and waits for an
+Uplink session to be created. Once the component hosts its first Uplink
+session, it also announces a NIC service. The component takes the MAC address
+of the first Uplink session and uses it as MAC address for all NIC sessions to
+come throughout the entire component lifetime. Later Uplink session requests
+must have the same MAC address as the first one or they will be denied.
+This implies that switching between two network devices is not possible without
+restarting the component.
+
+The component supports only one Uplink session but multiple NIC session at a
+time. A packet received at the Uplink session is forwarded unmodified to all
+NIC sessions that exist at that time. A packet received at a NIC session is
+forwarded to the one Uplink session if it exists. The link state of each NIC
+session is equal to the existence of an Uplink session.
+
+This is an exemplary configuration of the component:
+
+! <config verbose="no"/>
+
+The verbose flag is optional, disabled by default, and toggles whether the
+component provides diagnostic output on its LOG session. The diagnostic output
+consists of a full packet trace as well as component errors and warnings.
+
+The component is accompanied by the os/run/nic_uplink.run test that is suitable
+for hardware and Qemu.
