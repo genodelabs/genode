@@ -124,7 +124,7 @@ void Storage_dialog::gen_usb_storage_devices(Xml_generator &xml) const
 }
 
 
-Dialog::Hover_result Storage_dialog::hover(Xml_node hover)
+Deprecated_dialog::Hover_result Storage_dialog::hover(Xml_node hover)
 {
 	Hover_result result = Hover_result::UNMODIFIED;
 
@@ -136,7 +136,7 @@ Dialog::Hover_result Storage_dialog::hover(Xml_node hover)
 }
 
 
-Dialog::Click_result Storage_dialog::click(Action &action)
+Deprecated_dialog::Click_result Storage_dialog::click(Action &action)
 {
 	Selectable_item::Id const old_selected_device = _device_item._selected;
 
@@ -161,7 +161,7 @@ Dialog::Click_result Storage_dialog::click(Action &action)
 }
 
 
-Dialog::Clack_result Storage_dialog::clack(Action &action)
+Deprecated_dialog::Clack_result Storage_dialog::clack(Action &action)
 {
 	if (_storage_device_dialog.constructed()
 	 && _storage_device_dialog->clack(action) == Clack_result::CONSUMED)

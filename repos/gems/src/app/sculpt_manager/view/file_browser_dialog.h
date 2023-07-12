@@ -21,7 +21,7 @@
 namespace Sculpt { struct File_browser_dialog; }
 
 
-struct Sculpt::File_browser_dialog : Noncopyable, Dialog
+struct Sculpt::File_browser_dialog : Noncopyable, Deprecated_dialog
 {
 	Runtime_config     const &_runtime_config;
 	File_browser_state const &_state;

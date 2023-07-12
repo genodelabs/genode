@@ -24,7 +24,7 @@
 namespace Sculpt { struct System_dialog; }
 
 
-struct Sculpt::System_dialog : Noncopyable, Dialog
+struct Sculpt::System_dialog : Noncopyable, Deprecated_dialog
 {
 	using Depot_users = Depot_users_dialog::Depot_users;
 	using Image_index = Attached_rom_dataspace;

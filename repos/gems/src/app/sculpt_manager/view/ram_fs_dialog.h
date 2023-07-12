@@ -21,7 +21,7 @@
 namespace Sculpt { struct Ram_fs_dialog; }
 
 
-struct Sculpt::Ram_fs_dialog : Noncopyable, Dialog
+struct Sculpt::Ram_fs_dialog : Noncopyable, Deprecated_dialog
 {
 	Storage_target const &_used_target;
 

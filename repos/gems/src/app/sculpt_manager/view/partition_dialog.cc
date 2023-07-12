@@ -161,7 +161,7 @@ void Partition_dialog::gen_operations(Xml_generator        &xml,
 }
 
 
-Dialog::Hover_result Partition_dialog::hover(Xml_node hover)
+Deprecated_dialog::Hover_result Partition_dialog::hover(Xml_node hover)
 {
 	Hover_result const hover_result = any_hover_changed(
 		_fs_dialog.hover(hover),
@@ -173,7 +173,7 @@ Dialog::Hover_result Partition_dialog::hover(Xml_node hover)
 }
 
 
-Dialog::Click_result Partition_dialog::click(Action &action)
+Deprecated_dialog::Click_result Partition_dialog::click(Action &action)
 {
 	if (_fs_dialog.click(action) == Click_result::CONSUMED)
 		return Click_result::CONSUMED;
@@ -213,7 +213,7 @@ Dialog::Click_result Partition_dialog::click(Action &action)
 }
 
 
-Dialog::Clack_result Partition_dialog::clack(Action &action)
+Deprecated_dialog::Clack_result Partition_dialog::clack(Action &action)
 {
 	if (_confirm_item.hovered("confirm")) {
 

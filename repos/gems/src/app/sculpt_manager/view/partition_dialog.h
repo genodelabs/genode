@@ -24,7 +24,7 @@
 namespace Sculpt { struct Partition_dialog; }
 
 
-struct Sculpt::Partition_dialog : Dialog
+struct Sculpt::Partition_dialog : Deprecated_dialog
 {
 	Storage_target  const  _partition;
 	Storage_devices const &_storage_devices;

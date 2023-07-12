@@ -18,7 +18,7 @@ using namespace Sculpt;
 
 void Menu_view::_handle_hover()
 {
-	using Hover_result = Dialog::Hover_result;
+	using Hover_result = Deprecated_dialog::Hover_result;
 
 	_hover_rom.update();
 
@@ -55,7 +55,7 @@ void Menu_view::_handle_hover()
 
 
 Menu_view::Menu_view(Env &env, Registry<Child_state> &registry,
-                     Dialog &dialog, Start_name const &name,
+                     Deprecated_dialog &dialog, Start_name const &name,
                      Ram_quota ram_quota, Cap_quota cap_quota,
                      Session_label const &dialog_report_name,
                      Session_label const &hover_rom_name,

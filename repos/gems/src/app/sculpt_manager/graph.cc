@@ -290,12 +290,12 @@ void Graph::generate(Xml_generator &xml) const
 }
 
 
-Dialog::Hover_result Graph::hover(Xml_node hover)
+Deprecated_dialog::Hover_result Graph::hover(Xml_node hover)
 {
 	Hover_result const storage_dialog_hover_result =
 		_storage_dialog->match_sub_dialog(hover, "depgraph", "frame", "vbox", "frame", "vbox");
 
-	Dialog::Hover_result const hover_result = Dialog::any_hover_changed(
+	Deprecated_dialog::Hover_result const hover_result = Deprecated_dialog::any_hover_changed(
 		storage_dialog_hover_result,
 		_ram_fs_dialog.match_sub_dialog(hover, "depgraph", "frame", "vbox", "frame", "vbox"),
 		_node_button_item.match(hover, "depgraph", "frame", "vbox", "button", "name"),

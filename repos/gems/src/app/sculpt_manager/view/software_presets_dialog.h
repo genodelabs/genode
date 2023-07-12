@@ -126,7 +126,7 @@ struct Sculpt::Software_presets_dialog
 
 	Hover_result hover(Xml_node hover)
 	{
-		return Dialog::any_hover_changed(
+		return Deprecated_dialog::any_hover_changed(
 			_item.match     (hover, "float", "frame", "vbox", "vbox", "hbox", "name"),
 			_operation.match(hover, "float", "frame", "vbox", "vbox", "float", "button", "name")
 		);

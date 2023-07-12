@@ -19,7 +19,7 @@
 namespace Sculpt { struct Radio_choice_dialog; }
 
 
-struct Sculpt::Radio_choice_dialog : Noncopyable, Dialog
+struct Sculpt::Radio_choice_dialog : Noncopyable, Deprecated_dialog
 {
 	typedef Hoverable_item::Id Id;
 

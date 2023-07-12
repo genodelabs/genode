@@ -45,7 +45,7 @@ struct Sculpt::Deploy
 
 	Runtime_info const &_runtime_info;
 
-	Dialog::Generator &_dialog_generator;
+	Deprecated_dialog::Generator &_dialog_generator;
 
 	Runtime_config_generator &_runtime_config_generator;
 
@@ -291,7 +291,7 @@ struct Sculpt::Deploy
 
 	Deploy(Env &env, Allocator &alloc, Registry<Child_state> &child_states,
 	       Runtime_info const &runtime_info,
-	       Dialog::Generator &dialog_generator,
+	       Deprecated_dialog::Generator &dialog_generator,
 	       Runtime_config_generator &runtime_config_generator,
 	       Depot_query &depot_query,
 	       Attached_rom_dataspace const &launcher_listing_rom,

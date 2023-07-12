@@ -318,7 +318,7 @@ struct Sculpt::Software_update_dialog
 	{
 		_users.reset_hover();
 
-		return Dialog::any_hover_changed(
+		return Deprecated_dialog::any_hover_changed(
 			match_sub_dialog(hover, _users, "vbox", "frame", "vbox"),
 			_check    .match(hover, "vbox", "frame", "vbox", "float", "button", "name"),
 			_version  .match(hover, "vbox", "frame", "name"),

@@ -37,7 +37,7 @@
 namespace Sculpt { struct Popup_dialog; }
 
 
-struct Sculpt::Popup_dialog : Dialog
+struct Sculpt::Popup_dialog : Deprecated_dialog
 {
 	using Depot_users    = Attached_rom_dataspace;
 	using Blueprint_info = Component::Blueprint_info;
@@ -163,7 +163,7 @@ struct Sculpt::Popup_dialog : Dialog
 
 	Hover_result hover(Xml_node hover) override
 	{
-		Dialog::Hover_result const hover_result = Dialog::any_hover_changed(
+		Deprecated_dialog::Hover_result const hover_result = Deprecated_dialog::any_hover_changed(
 			_item        .match(hover, "frame", "vbox", "hbox", "name"),
 			_action_item .match(hover, "frame", "vbox", "button", "name"),
 			_install_item.match(hover, "frame", "vbox", "float", "vbox", "float", "button", "name"),
@@ -172,7 +172,7 @@ struct Sculpt::Popup_dialog : Dialog
 		_pd_route.hover(hover, "frame", "vbox", "frame", "vbox", "hbox", "name");
 
 		if (_resources.constructed() &&
-		    hover_result == Dialog::Hover_result::UNMODIFIED)
+		    hover_result == Deprecated_dialog::Hover_result::UNMODIFIED)
 			return _resources->match_sub_dialog(hover, "frame", "vbox", "frame", "vbox");
 
 		return hover_result;

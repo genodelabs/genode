@@ -27,7 +27,7 @@
 namespace Sculpt { struct Pd_route_dialog; }
 
 
-struct Sculpt::Pd_route_dialog : Noncopyable, Dialog
+struct Sculpt::Pd_route_dialog : Noncopyable, Deprecated_dialog
 {
 	Route          _route         { "<pd/>" };
 	Hoverable_item _route_item    { };
@@ -42,14 +42,14 @@ struct Sculpt::Pd_route_dialog : Noncopyable, Dialog
 
 	Hover_result hover(Xml_node hover_node) override
 	{
-		Dialog::Hover_result const hover_result = hover(hover_node);
+		Deprecated_dialog::Hover_result const hover_result = hover(hover_node);
 		return hover_result;
 	}
 
 	template <typename... ARGS>
 	Hover_result hover(Xml_node hover, ARGS &&... args)
 	{
-		Dialog::Hover_result const hover_result = Dialog::any_hover_changed(
+		Deprecated_dialog::Hover_result const hover_result = Deprecated_dialog::any_hover_changed(
 			_route_item.match(hover, args...));
 
 		return hover_result;

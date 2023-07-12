@@ -25,7 +25,7 @@
 namespace Sculpt { struct Panel_dialog; }
 
 
-struct Sculpt::Panel_dialog : Dialog
+struct Sculpt::Panel_dialog : Deprecated_dialog
 {
 	enum class Tab { FILES, COMPONENTS, INSPECT };
 

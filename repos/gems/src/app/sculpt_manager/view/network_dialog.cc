@@ -279,9 +279,9 @@ void Network_dialog::generate(Xml_generator &xml) const
 }
 
 
-Dialog::Hover_result Network_dialog::hover(Xml_node hover)
+Deprecated_dialog::Hover_result Network_dialog::hover(Xml_node hover)
 {
-	Dialog::Hover_result const hover_result = Dialog::any_hover_changed(
+	Deprecated_dialog::Hover_result const hover_result = Deprecated_dialog::any_hover_changed(
 		_nic_item    .match(hover, "frame", "vbox", "hbox", "button", "name"),
 		_ap_item     .match(hover, "frame", "vbox", "frame", "vbox", "hbox", "name"),
 		_connect_item.match(hover, "frame", "vbox", "frame", "vbox", "button", "name"));

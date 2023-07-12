@@ -24,7 +24,7 @@
 namespace Sculpt { struct Storage_device_dialog; }
 
 
-struct Sculpt::Storage_device_dialog : Dialog
+struct Sculpt::Storage_device_dialog : Deprecated_dialog
 {
 	Storage_device::Label const  _device;
 	Storage_devices       const &_storage_devices;

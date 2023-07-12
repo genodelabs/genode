@@ -33,7 +33,7 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 
 	Allocator &_alloc;
 
-	Dialog::Generator &_dialog_generator;
+	Deprecated_dialog::Generator &_dialog_generator;
 
 	Runtime_config_generator &_runtime_config_generator;
 
@@ -185,10 +185,10 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 
 
 	Storage(Env &env, Allocator &alloc,
-	        Registry<Child_state>    &child_states,
-	        Dialog::Generator        &dialog_generator,
-	        Runtime_config_generator &runtime_config_generator,
-	        Target_user              &target_user)
+	        Registry<Child_state>        &child_states,
+	        Deprecated_dialog::Generator &dialog_generator,
+	        Runtime_config_generator     &runtime_config_generator,
+	        Target_user                  &target_user)
 	:
 		_env(env), _alloc(alloc),
 		_dialog_generator(dialog_generator),

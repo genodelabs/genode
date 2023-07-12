@@ -21,7 +21,7 @@
 namespace Sculpt { struct Settings_dialog; }
 
 
-struct Sculpt::Settings_dialog : Noncopyable, Dialog
+struct Sculpt::Settings_dialog : Noncopyable, Deprecated_dialog
 {
 	Settings const &_settings;
 

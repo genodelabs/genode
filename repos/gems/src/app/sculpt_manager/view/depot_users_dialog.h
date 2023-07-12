@@ -308,7 +308,7 @@ struct Sculpt::Depot_users_dialog
 
 		Hover_result hover(Xml_node const &hover)
 		{
-			return Dialog::any_hover_changed(
+			return Deprecated_dialog::any_hover_changed(
 				_user  .match(hover, "frame", "vbox", "hbox", "name"),
 				_button.match(hover, "frame", "vbox", "hbox", "hbox", "float", "button", "name")
 			);

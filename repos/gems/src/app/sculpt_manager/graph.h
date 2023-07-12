@@ -37,7 +37,7 @@
 namespace Sculpt { struct Graph; }
 
 
-struct Sculpt::Graph : Dialog
+struct Sculpt::Graph : Deprecated_dialog
 {
 	Runtime_state        &_runtime_state;
 	Runtime_config const &_runtime_config;

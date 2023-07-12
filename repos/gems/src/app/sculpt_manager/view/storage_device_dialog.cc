@@ -79,7 +79,7 @@ void Storage_device_dialog::generate(Xml_generator &xml, Storage_device const &d
 }
 
 
-Dialog::Hover_result Storage_device_dialog::hover(Xml_node hover)
+Deprecated_dialog::Hover_result Storage_device_dialog::hover(Xml_node hover)
 {
 	Hover_result result = Hover_result::UNMODIFIED;
 
@@ -93,7 +93,7 @@ Dialog::Hover_result Storage_device_dialog::hover(Xml_node hover)
 }
 
 
-Dialog::Click_result Storage_device_dialog::click(Action &action)
+Deprecated_dialog::Click_result Storage_device_dialog::click(Action &action)
 {
 	Storage_target const orig_selected_target = _selected_storage_target();
 
@@ -112,7 +112,7 @@ Dialog::Click_result Storage_device_dialog::click(Action &action)
 }
 
 
-Dialog::Clack_result Storage_device_dialog::clack(Action &action)
+Deprecated_dialog::Clack_result Storage_device_dialog::clack(Action &action)
 {
 	if (_partition_dialog.constructed())
 		return _partition_dialog->clack(action);

@@ -27,7 +27,7 @@
 namespace Sculpt { struct Network_dialog; }
 
 
-struct Sculpt::Network_dialog : Dialog
+struct Sculpt::Network_dialog : Deprecated_dialog
 {
 	enum Wlan_config_policy { WLAN_CONFIG_MANAGED, WLAN_CONFIG_MANUAL };
 

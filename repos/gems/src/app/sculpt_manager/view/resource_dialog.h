@@ -28,7 +28,7 @@
 namespace Sculpt { struct Resource_dialog; }
 
 
-struct Sculpt::Resource_dialog : Noncopyable, Dialog
+struct Sculpt::Resource_dialog : Noncopyable, Deprecated_dialog
 {
 	Affinity::Space const _space;
 	Affinity::Location    _location;
@@ -64,7 +64,7 @@ struct Sculpt::Resource_dialog : Noncopyable, Dialog
 
 	Hover_result hover(Xml_node hover) override
 	{
-		return Dialog::any_hover_changed(
+		return Deprecated_dialog::any_hover_changed(
 			_space_item.match(hover,
 			                  "vbox", "float", "hbox",        /* _gen_dialog_section */
 			                  "vbox", "hbox", "vbox", "hbox", /* _gen_affinity_section */

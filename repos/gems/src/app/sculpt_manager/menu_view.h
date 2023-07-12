@@ -34,7 +34,7 @@ struct Sculpt::Menu_view : Noncopyable
 		virtual void menu_view_hover_updated() = 0;
 	};
 
-	Dialog &_dialog;
+	Deprecated_dialog &_dialog;
 
 	Hover_update_handler &_hover_update_handler;
 
@@ -64,7 +64,7 @@ struct Sculpt::Menu_view : Noncopyable
 	enum class Alpha { OPAQUE, ALPHA };
 
 	Menu_view(Env &, Registry<Child_state> &registry,
-	          Dialog &, Start_name const &, Ram_quota, Cap_quota,
+	          Deprecated_dialog &, Start_name const &, Ram_quota, Cap_quota,
 	          Session_label const &dialog_report_name,
 	          Session_label const &hover_rom_name,
 	          Hover_update_handler &,
