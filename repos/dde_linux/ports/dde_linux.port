@@ -1,9 +1,6 @@
 LICENSE     := GPLv2
 VERSION     := individual (see sources)
-DOWNLOADS   := lxip.archive \
-               fec.archive \
-               usb_host.archive dwc_otg_host.git usb_hid.archive \
-               usb_modem.archive usb_net.archive
+DOWNLOADS   := lxip.archive usb_hid.archive usb_modem.archive usb_net.archive
 
 #
 # Tools
@@ -14,23 +11,6 @@ $(call check_tool,bison)
 FLEX = flex
 YACC = bison
 
-#
-# The git checkout checks for the existence of SRC_DIR, which is created by the
-# Linux extraction, therefore make sure to checkout the GIT sources first.
-#
-usb_host.archive: dwc_otg_host.git
-
-
-#
-# USB host controller
-#
-SRC_DIR_USB_HOST  := src/drivers/usb_host
-VERSION(usb_host) := 4.16.3
-URL(usb_host)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-${VERSION(usb_host)}.tar.xz
-SHA(usb_host)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
-DIR(usb_host)     := $(SRC_DIR_USB_HOST)
-TAR_OPT(usb_host) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-${VERSION(usb_host)}/g' $(REP_DIR)/usb_host.list)
-HASH_INPUT        += $(REP_DIR)/usb_host.list
 
 SRC_DIR_USB_HID  := src/drivers/usb_hid
 VERSION(usb_hid) := 4.16.3
@@ -57,14 +37,6 @@ TAR_OPT(usb_modem) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-${V
 HASH_INPUT         += $(REP_DIR)/usb_modem.list
 
 #
-# Raspberry Pi USB controller
-#
-URL(dwc_otg_host) := https://github.com/cproc/dwc_otg.git
-REV(dwc_otg_host) := r5
-DIR(dwc_otg_host) := $(SRC_DIR_USB_HOST)/drivers/usb/host
-
-
-#
 # IP stack sources
 #
 SRC_DIR_LXIP  := src/lib/lxip
@@ -76,23 +48,8 @@ TAR_OPT(lxip) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-${VERSI
 HASH_INPUT    += $(REP_DIR)/lxip.list
 
 #
-# Freescale Ethernet controller
-#
-SRC_DIR_FEC  := src/drivers/nic/fec
-VERSION(fec) := 4.16.3
-URL(fec)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-${VERSION(fec)}.tar.xz
-SHA(fec)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
-DIR(fec)     := $(SRC_DIR_FEC)
-TAR_OPT(fec) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-${VERSION(fec)}/g'     $(REP_DIR)/fec.list)
-HASH_INPUT   += $(REP_DIR)/fec.list
-
-#
 # Patches
 #
-PATCHES += patches/fec_ndev_owner.patch
-PATCHES += patches/fec_skbuff_cast.patch
-PATCHES += patches/fec_tx_bounce_dma.patch
-PATCHES += patches/fec_tx_sync_dma_write.patch
 PATCHES += patches/lxip_icmp.patch
 PATCHES += patches/lxip_ip_config.patch
 PATCHES += patches/lxip_log2.patch
@@ -105,11 +62,6 @@ PATCHES += patches/usb_hid_hid.patch
 PATCHES += patches/usb_hid_input.patch
 PATCHES += patches/usb_hid_usbhid.patch
 PATCHES += patches/usb_hid_wacom_sys.patch
-PATCHES += patches/usb_host_dwc_otg.patch
-PATCHES += patches/usb_host_isoc_bei.patch
-PATCHES += patches/usb_host_mem.patch
-PATCHES += patches/usb_host_omap.patch
-PATCHES += patches/usb_host_update_event_ring.patch
 PATCHES += patches/usb_modem_skbuff_cast.patch
 PATCHES += patches/usb_net_skbuff_cast.patch
 
@@ -123,14 +75,6 @@ PATCH_OPT(patches/lxip_netlink.patch)      := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_request_sock.patch) := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_sk_wq.patch)        := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
-
-# USB HOST
-USB_HOST_OPT = -p1 -d$(SRC_DIR_USB_HOST)
-PATCH_OPT(patches/usb_host_mem.patch)               := $(USB_HOST_OPT)
-PATCH_OPT(patches/usb_host_omap.patch)              := $(USB_HOST_OPT)
-PATCH_OPT(patches/usb_host_dwc_otg.patch)           := $(USB_HOST_OPT)
-PATCH_OPT(patches/usb_host_isoc_bei.patch)          := $(USB_HOST_OPT)
-PATCH_OPT(patches/usb_host_update_event_ring.patch) := $(USB_HOST_OPT)
 
 # USB HID
 USB_HID_OPT = -p1 -d$(SRC_DIR_USB_HID)
@@ -147,11 +91,5 @@ PATCH_OPT(patches/usb_net_skbuff_cast.patch) := $(USB_NET_OPT)
 # USB MODEM
 USB_MODEM_OPT = -p1 -d$(SRC_DIR_USB_MODEM)
 PATCH_OPT(patches/usb_modem_skbuff_cast.patch) := $(USB_MODEM_OPT)
-
-# Freescale NIC
-PATCH_OPT(patches/fec_skbuff_cast.patch) := -p1 -d$(SRC_DIR_FEC)
-PATCH_OPT(patches/fec_tx_bounce_dma.patch) := -p1 -d$(SRC_DIR_FEC)
-PATCH_OPT(patches/fec_tx_sync_dma_write.patch) := -p1 -d$(SRC_DIR_FEC)
-PATCH_OPT(patches/fec_ndev_owner.patch) := -p1 -d$(SRC_DIR_FEC)
 
 # vi: set ft=make :
