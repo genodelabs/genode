@@ -15,4 +15,6 @@
 #include <linux/vmstat.h>
 
 
+#ifdef CONFIG_SMP
 void quiet_vmstat(void) { }
+#endif

@@ -13,6 +13,8 @@
 
 #include <linux/cpumask.h>
 
+#if (NR_CPUS != 1)
 unsigned int nr_cpu_ids = 1;
+#endif
 
 unsigned long irq_err_count = 0;

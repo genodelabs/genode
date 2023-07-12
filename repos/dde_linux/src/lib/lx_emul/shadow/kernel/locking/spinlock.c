@@ -16,6 +16,9 @@
  */
 
 #include <linux/spinlock.h>
+
+#ifdef CONFIG_SMP
+
 #include <linux/rwlock_api_smp.h>
 #include <asm/spinlock.h>
 
@@ -212,3 +215,5 @@ void __lockfunc _raw_write_unlock_irqrestore(rwlock_t *lock, unsigned long flags
 	local_irq_restore(flags);
 }
 #endif
+
+#endif /* CONFIG_SMP */

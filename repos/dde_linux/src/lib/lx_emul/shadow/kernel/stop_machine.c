@@ -13,7 +13,9 @@
 
 #include <linux/stop_machine.h>
 
+#ifdef CONFIG_SMP
 int stop_machine(cpu_stop_fn_t fn,void * data,const struct cpumask * cpus)
 {
 	return (*fn)(data);
 }
+#endif
