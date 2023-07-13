@@ -128,6 +128,7 @@ void Dialog::produce_xml(Xml_generator &xml)
 				xml.node("label", [&] () {
 					xml.attribute("font", "monospace/regular");
 					xml.attribute("text", String<512>(line));
+					xml.attribute("hover", "yes");
 
 					if (_cursor.y.value == at.value)
 						xml.node("cursor", [&] () {

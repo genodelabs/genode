@@ -32,6 +32,8 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 
 	Animated_color _color;
 
+	bool _hover = false;  /* report hover details */
+
 	int _min_width  = 0;
 	int _min_height = 0;
 
@@ -61,6 +63,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		_text       = Text("");
 		_min_width  = 0;
 		_min_height = 0;
+		_hover      = node.attribute_value("hover", false);
 
 		_factory.styles.with_label_style(node, [&] (Label_style style) {
 			_color.fade_to(style.color, Animated_color::Steps{80}); });
@@ -139,6 +142,9 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 
 	Hovered hovered(Point at) const override
 	{
+		if (!_hover)
+			return Hovered { .unique_id = { }, .detail = { } };
+
 		Unique_id const hovered_id = Widget::hovered(at).unique_id;
 
 		if (!hovered_id.valid())
