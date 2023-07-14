@@ -80,7 +80,7 @@ ifneq ($(DEP_MISSING_PORTS),)
 	@(echo "MISSING_PORTS += $(DEP_MISSING_PORTS)"; \
 	  echo "") >> $(LIB_DEP_FILE)
 endif
-	@(echo "$(TARGET).prg: check_ports $(addsuffix .lib,$(LIBS))"; \
+	@(echo "$(TARGET).prg: check_ports $(addsuffix .lib,$(call uniqL,$(LIBS),$(LIB)))"; \
 	  echo "	@\$$(MKDIR) -p $(PRG_REL_DIR)"; \
 	  echo "	\$$(VERBOSE_MK)\$$(MAKE) $(VERBOSE_DIR) -C $(PRG_REL_DIR) -f \$$(BASE_DIR)/mk/prg.mk \\"; \
 	  echo "	     REP_DIR=$(REP_DIR) \\"; \
