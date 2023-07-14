@@ -33,14 +33,15 @@ class Sculpt::Screensaver : Noncopyable
 		Env    &_env;
 		Action &_action;
 
-		/* config */
-		unsigned _max_seconds_of_inactivity = 10;
-		bool     _blank_after_some_time = true;
+		/* config from outside */
+		unsigned _max_seconds_of_inactivity = 60;
+		bool     _blank_after_some_time     = true;
+		bool     _display_driver_ready      = false;
 
-		/* state */
-		uint64_t _last_activity_ms = 0;
+		/* internally driven state */
+		uint64_t _last_activity_ms     = 0;
 		bool     _recent_user_activity = true;
-		bool     _forced_blanked = false;
+		bool     _forced_blanked       = false;
 
 		Timer::Connection _timer { _env };
 
@@ -59,14 +60,14 @@ class Sculpt::Screensaver : Noncopyable
 			}
 		}
 
-		void _wake_up()
+		void _keep_display_enabled_for_some_time()
 		{
+			if (!display_enabled())
+				return;
+
 			_last_activity_ms = _timer.elapsed_ms();
 			_timer.trigger_once(_max_seconds_of_inactivity*1024*1024);
-			if (!_recent_user_activity) {
-				_recent_user_activity = true;
-				_action.screensaver_changed();
-			}
+			_recent_user_activity = true;
 		}
 
 		/**
@@ -92,7 +93,7 @@ class Sculpt::Screensaver : Noncopyable
 			{
 				_rom.update();
 				if (_rom.xml().attribute_value("active", false))
-					_screensaver._wake_up();
+					_screensaver._keep_display_enabled_for_some_time();
 			}
 		};
 
@@ -104,8 +105,12 @@ class Sculpt::Screensaver : Noncopyable
 		Screensaver(Env &env, Action &action) : _env(env), _action(action)
 		{
 			_timer.sigh(_timer_handler);
+			_keep_display_enabled_for_some_time();
 		}
 
+		/**
+		 * Controls the lifetime of the display driver
+		 */
 		bool display_enabled() const
 		{
 			if (_forced_blanked)
@@ -117,10 +122,22 @@ class Sculpt::Screensaver : Noncopyable
 			return true;
 		}
 
+		/**
+		 * Used for enabling screensaver only when the Leitzentrale is visible
+		 */
 		void blank_after_some_time(bool blank_after_some_time)
 		{
-			_blank_after_some_time = blank_after_some_time;
-			_wake_up();
+			_recent_user_activity = true;
+
+			if (blank_after_some_time != _blank_after_some_time) {
+				_blank_after_some_time = blank_after_some_time;
+				_keep_display_enabled_for_some_time();
+			}
+		}
+
+		void display_driver_ready(bool display_driver_ready)
+		{
+			_display_driver_ready = display_driver_ready;
 		}
 
 		/**
@@ -128,10 +145,14 @@ class Sculpt::Screensaver : Noncopyable
 		 */
 		void force_toggle()
 		{
-			if (display_enabled())
+			_recent_user_activity = true;
+
+			if (display_enabled() && _display_driver_ready)
 				_forced_blanked = true;
-			else
+			else {
 				_forced_blanked = false;
+				_keep_display_enabled_for_some_time();
+			}
 
 			_action.screensaver_changed();
 		}
