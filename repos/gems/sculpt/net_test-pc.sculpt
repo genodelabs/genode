@@ -1,0 +1,9 @@
+# configuration decisions
+drivers: pc
+ram_fs: depot
+
+# selection of launcher-menu entries
+launcher: ping pc_nic
+
+# supplemental depot content added to the system image
+import: pkg/drivers_managed-pc src/pc_nic_drv pkg/pc_nic pkg/ping
