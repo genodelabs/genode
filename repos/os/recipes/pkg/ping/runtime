@@ -1,0 +1,12 @@
+<runtime ram="8M" caps="100" binary="ping">
+
+	<requires> <nic/> </requires>
+
+	<config dst_ip="1.1.1.1" period_sec="1"/>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="ping"/>
+	</content>
+
+</runtime>
