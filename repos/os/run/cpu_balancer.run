@@ -86,8 +86,8 @@ install_config {
 						<component label="cpu_burner -> " default_policy="none">
 <!--
 							<thread name="signal handler" policy="pin" xpos="1" ypos="0"/>
--->
 							<thread name="signal handler" policy="max-utilize"/>
+-->
 							<thread name="burn_0x0"       policy="round-robin"/>
 							<thread name="burn_1x0"       policy="round-robin"/>
 						</component>
@@ -100,10 +100,10 @@ install_config {
 					        trace="} $use_trace {"
 					        verbose="no">
 						<component label="cpu_burner -> " default_policy="none">
-<!--
 							<thread name="signal handler" policy="pin" xpos="1" ypos="0"/>
--->
+<!--
 							<thread name="signal handler" policy="max-utilize"/>
+-->
 							<thread name="burn_0x0"       policy="round-robin"/>
 							<thread name="burn_1x0"       policy="round-robin"/>
 							<thread name="not_existent"   policy="round-robin"/>
@@ -174,4 +174,4 @@ build_boot_image [build_artifacts]
 append qemu_args " -nographic"
 append qemu_args " -smp [expr $cpu_width * $cpu_height],cores=$cpu_width,threads=$cpu_height"
 
-run_genode_until {.*thread xpos="[1-9]" ypos="0" name="signal handler" policy="max-utilize".*\n} 60
+run_genode_until {.*thread xpos="[1-9]" ypos="0" name="signal handler" policy="pin".*\n} 60
