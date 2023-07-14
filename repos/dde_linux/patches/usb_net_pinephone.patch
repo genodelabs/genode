@@ -1,0 +1,23 @@
+The PinePhone Modems' CDC Ethernet Interface does not respond if RX/TX queue size
+is greater 12 (experimentally determined), the default would be 60, meaning 60
+RX Bulk URBs are sent at once to the device.
+
+diff --git a/drivers/net/usb/usbnet.c b/drivers/net/usb/usbnet.c
+index 64a9a80..0a119ba 100644
+--- a/drivers/net/usb/usbnet.c
++++ b/drivers/net/usb/usbnet.c
+@@ -356,6 +356,14 @@ EXPORT_SYMBOL_GPL(usbnet_skb_return);
+ void usbnet_update_max_qlen(struct usbnet *dev)
+ {
+ 	enum usb_device_speed speed = dev->udev->speed;
++	struct usb_device_descriptor *descr = &dev->udev->descriptor;
++
++	/* Quectel EG25-G does not respond on queue size > 12 */
++	if (descr->idVendor == 0x2c7c && descr->idProduct == 0x0125) {
++		printk("Quectel EG25-G detected limiting TX/RX queue size to 12 (from 60)\n");
++		dev->rx_qlen = dev->tx_qlen = 12;
++		return;
++	}
+ 
+ 	if (!dev->rx_urb_size || !dev->hard_mtu)
+ 		goto insanity;
