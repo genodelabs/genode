@@ -225,7 +225,6 @@ handle_return_code(struct genode_usb_request_urb req,
 
 
 typedef enum usb_rpc_call_type {
-	NOTHING,
 	CLAIM,
 	RELEASE_IF,
 	RELEASE_ALL
@@ -241,12 +240,12 @@ struct usb_rpc_call_args {
 
 struct usb_per_dev_data
 {
-	struct inode             inode;
-	struct file              file;
-	struct usb_rpc_call_args rpc;
-	struct usb_device       *dev;
-	struct task_struct      *task;
-	struct list_head         urblist;
+	struct inode              inode;
+	struct file               file;
+	struct usb_rpc_call_args *rpc;
+	struct usb_device        *dev;
+	struct task_struct       *task;
+	struct list_head          urblist;
 };
 
 
@@ -280,7 +279,7 @@ static struct file * open_usb_dev(struct usb_device * udev)
 }
 
 
-static void release_device(struct usb_per_dev_data * data, int reset)
+static void release_device(struct usb_per_dev_data * data)
 {
 	genode_usb_session_handle_t session;
 	genode_usb_request_handle_t request;
@@ -297,9 +296,15 @@ static void release_device(struct usb_per_dev_data * data, int reset)
 		list_del(&iter->le);
 		kfree(iter);
 	}
-	usbdev_file_operations->release(&data->inode, &data->file);
-	if (reset)
+
+	/**
+	 * If the device gets released although it is still available,
+	 * reset the device to be sane for new sessions aquiring it
+	 */
+	if (data->dev)
 		usbdev_file_operations->unlocked_ioctl(&data->file, USBDEVFS_RESET, 0);
+
+	usbdev_file_operations->release(&data->inode, &data->file);
 }
 
 
@@ -328,8 +333,8 @@ static int release_iface(struct usb_device *udev, unsigned int ifnum)
 
 static int usb_rpc_finished(void *d)
 {
-	struct usb_per_dev_data * data = (struct usb_per_dev_data*)d;
-	return (data->rpc.ret <= 0);
+	struct usb_rpc_call_args * rpc = (struct usb_rpc_call_args*)d;
+	return (rpc->ret <= 0);
 }
 
 
@@ -349,13 +354,16 @@ static int claim(genode_usb_bus_num_t bus,
 	if (!data)
 		return 0;
 
-	data                = dev_get_drvdata(&udev->dev);
-	data->rpc.ret       = 1;
-	data->rpc.call      = CLAIM;
-	data->rpc.iface_num = iface_num;
+	struct usb_rpc_call_args rpc = {
+		.ret       = 1,
+		.call      = CLAIM,
+		.iface_num = iface_num
+	};
+
+	data->rpc = &rpc;
 	lx_emul_task_unblock(data->task);
-	lx_emul_execute_kernel_until(&usb_rpc_finished, data);
-	return data->rpc.ret;
+	lx_emul_execute_kernel_until(&usb_rpc_finished, &rpc);
+	return rpc.ret;
 }
 
 
@@ -369,12 +377,16 @@ static int release(genode_usb_bus_num_t bus,
 	if (!data)
 		return -1;
 
-	data->rpc.ret       = 1;
-	data->rpc.call      = RELEASE_IF;
-	data->rpc.iface_num = iface_num;
+	struct usb_rpc_call_args rpc = {
+		.ret       = 1,
+		.call      = RELEASE_IF,
+		.iface_num = iface_num
+	};
+
+	data->rpc = &rpc;
 	lx_emul_task_unblock(data->task);
-	lx_emul_execute_kernel_until(&usb_rpc_finished, data);
-	return data->rpc.ret;
+	lx_emul_execute_kernel_until(&usb_rpc_finished, &rpc);
+	return rpc.ret;
 }
 
 
@@ -387,10 +399,15 @@ static void release_all(genode_usb_bus_num_t bus,
 	if (!data)
 		return;
 
-	data->rpc.ret  = 1;
-	data->rpc.call = RELEASE_ALL;
+
+	struct usb_rpc_call_args rpc = {
+		.ret  = 1,
+		.call = RELEASE_ALL,
+	};
+
+	data->rpc = &rpc;
 	lx_emul_task_unblock(data->task);
-	lx_emul_execute_kernel_until(&usb_rpc_finished, data);
+	lx_emul_execute_kernel_until(&usb_rpc_finished, &rpc);
 }
 
 
@@ -634,23 +651,36 @@ static struct genode_usb_request_callbacks request_callbacks = {
 };
 
 
+static inline void exit_usb_task(struct usb_per_dev_data * data)
+{
+	struct usb_device * udev = (struct usb_device *) data->dev;
+	release_device(data);
+	if (udev) dev_set_drvdata(&udev->dev, NULL);
+	kfree(data);
+}
+
+
 static inline void handle_rpc(struct usb_per_dev_data * data)
 {
-	switch(data->rpc.call) {
-	case CLAIM:
-		if (data->dev) claim_iface(data->dev, data->rpc.iface_num);
-		break;
-	case RELEASE_IF:
-		if (data->dev) release_iface(data->dev, data->rpc.iface_num);
-		break;
-	case RELEASE_ALL:
-		data->dev = NULL;
-		break;
-	case NOTHING: ;
-	};
+	struct usb_rpc_call_args * rpc = data->rpc;
+	if (!rpc)
+		return;
 
-	data->rpc.call = NOTHING;
-	data->rpc.ret = 0;
+	data->rpc = NULL;
+	switch(rpc->call) {
+	case CLAIM:
+		if (data->dev) claim_iface(data->dev, rpc->iface_num);
+		rpc->ret = 0;
+		return;
+	case RELEASE_IF:
+		if (data->dev) release_iface(data->dev, rpc->iface_num);
+		rpc->ret = 0;
+		return;
+	case RELEASE_ALL:
+		exit_usb_task(data);
+		rpc->ret = 0;
+		do_exit(0);
+	};
 }
 
 
@@ -701,7 +731,6 @@ static int poll_usb_device(void * args)
 	genode_usb_dev_num_t      dev  = data->dev->devnum;
 
 	for (;;) {
-		handle_rpc(data);
 		while (check_for_urb(data->dev)) ;
 		while (check_for_urb_done(&data->file)) ;
 
@@ -713,12 +742,9 @@ static int poll_usb_device(void * args)
 		handle_rpc(data);
 
 		/* check if device got removed */
-		if (!data->dev) {
-			struct usb_device * udev = find_usb_device(bus, dev);
-			release_device(data, udev ? 1 : 0);
-			if (!udev) genode_usb_discontinue_device(bus, dev);
-			else       dev_set_drvdata(&udev->dev, NULL);
-			kfree(data);
+		if (!find_usb_device(bus, dev)) {
+			exit_usb_task(data);
+			genode_usb_discontinue_device(bus, dev);
 			do_exit(0);
 		}
 		lx_emul_task_schedule(true);
