@@ -334,29 +334,32 @@ append config {
 					<check/>
 					<construct/>
 
-					<log string="Step 7: test synchronous snapshot creation"/>
+					<log string="Step 7: test synchronous snapshot management"/>
 
 					<request op="write" vba="20" count="3"   sync="yes" salt="7304"/>
-					<request op="create_snapshot"            sync="yes"/>
+					<request op="create_snapshot"            sync="yes" id="1"/>
 					<request op="read"  vba="21" count="1"   sync="yes" salt="7304"/>
 					<request op="write" vba="15" count="10"  sync="yes" salt="9612"/>
 					<request op="write" vba="15" count="4"   sync="yes" salt="6111"/>
 					<request op="read"  vba="21" count="3"   sync="yes" salt="9612"/>
 					<request op="read"  vba="19" count="3"   sync="yes" salt="9612"/>
 					<request op="write" vba="17" count="5"   sync="yes" salt="5353"/>
-					<request op="create_snapshot"            sync="yes"/>
-					<request op="create_snapshot"            sync="yes"/>
+					<request op="create_snapshot"            sync="yes" id="2"/>
+					<request op="create_snapshot"            sync="yes" id="3"/>
 					<request op="read"  vba="22" count="3"   sync="yes" salt="9612"/>
 					<request op="read"  vba="15" count="2"   sync="yes" salt="6111"/>
 					<request op="write" vba="11" count="6"   sync="yes" salt="5436"/>
+					<request op="discard_snapshot"           sync="yes" id="1"/>
+					<request op="discard_snapshot"           sync="yes" id="2"/>
+					<request op="discard_snapshot"           sync="yes" id="3"/>
 					<request op="sync"  vba="0"  count="256" sync="yes"/>
 					<check/>
 
-					<log string="Step 8: test asynchronous snapshot creation"/>
+					<log string="Step 8: test asynchronous snapshot management"/>
 
 					<request op="write" vba="20" count="3"   sync="no" salt="7384"/>
-					<request op="create_snapshot"            sync="no"/>
-					<request op="create_snapshot"            sync="no"/>
+					<request op="create_snapshot"            sync="no" id="4"/>
+					<request op="create_snapshot"            sync="no" id="5"/>
 					<request op="read"  vba="21" count="1"   sync="no" salt="7384"/>
 					<request op="write" vba="15" count="10"  sync="no" salt="9602"/>
 					<request op="write" vba="15" count="4"   sync="no" salt="6100"/>
@@ -365,23 +368,24 @@ append config {
 					<request op="write" vba="17" count="5"   sync="no" salt="5555"/>
 					<request op="read"  vba="22" count="3"   sync="no" salt="9602"/>
 					<request op="read"  vba="15" count="2"   sync="no" salt="6100"/>
-					<request op="create_snapshot"            sync="no"/>
+					<request op="create_snapshot"            sync="no" id="6"/>
 					<request op="write" vba="11" count="6"   sync="no" salt="1436"/>
 					<request op="read"  vba="17" count="5"   sync="no" salt="5555"/>
 					<request op="write" vba="22" count="2"   sync="no" salt="7463"/>
 					<request op="write" vba="25" count="11"  sync="no" salt="4323"/>
 					<request op="read"  vba="24" count="1"   sync="no" salt="9602"/>
 					<request op="write" vba="10" count="5"   sync="no" salt="3758"/>
-					<request op="create_snapshot"            sync="no"/>
-					<request op="create_snapshot"            sync="no"/>
+					<request op="create_snapshot"            sync="no" id="7"/>
+					<request op="create_snapshot"            sync="no" id="8"/>
 					<request op="write" vba="21" count="2"   sync="no" salt="8094"/>
 					<request op="write" vba="12" count="10"  sync="no" salt="4455"/>
 					<request op="write" vba="26" count="4"   sync="no" salt="7574"/>
+					<request op="discard_snapshot"           sync="no" id="4"/>
 					<request op="write" vba="15" count="7"   sync="no" salt="1931"/>
 					<request op="read"  vba="23" count="1"   sync="no" salt="7463"/>
 					<request op="read"  vba="25" count="1"   sync="no" salt="4323"/>
 					<request op="read"  vba="28" count="2"   sync="no" salt="7574"/>
-					<request op="create_snapshot"            sync="no"/>
+					<request op="create_snapshot"            sync="no" id="9"/>
 					<request op="read"  vba="24" count="1"   sync="no" salt="9602"/>
 					<request op="read"  vba="12" count="3"   sync="no" salt="4455"/>
 					<request op="read"  vba="19" count="3"   sync="no" salt="1931"/>
@@ -415,14 +419,14 @@ append config {
 					<request op="read"  vba="0"  count="1"   sync="yes" salt="4359"/>
 					<request op="write" vba="15" count="7"   sync="yes" salt="1742"/>
 					<request op="write" vba="20" count="13"  sync="yes" salt="8471"/>
-					<request op="create_snapshot"            sync="yes"/>
+					<request op="create_snapshot"            sync="yes" id="10"/>
 					<request op="write" vba="33" count="5"   sync="yes" salt="7831"/>
 					<request op="rekey"                      sync="yes"/>
 					<request op="read"  vba="17" count="3"   sync="yes" salt="1742"/>
 					<request op="write" vba="51" count="8"   sync="yes" salt="8384"/>
 					<request op="read"  vba="25" count="1"   sync="yes" salt="8471"/>
 					<request op="write" vba="30" count="5"   sync="yes" salt="2837"/>
-					<request op="create_snapshot"            sync="yes"/>
+					<request op="create_snapshot"            sync="yes" id="11"/>
 					<request op="rekey"                      sync="yes"/>
 					<request op="read"  vba="35" count="2"   sync="yes" salt="7831"/>
 					<request op="read"  vba="31" count="4"   sync="yes" salt="2837"/>
@@ -446,7 +450,7 @@ append config {
 					<request op="read"  vba="22" count="3"   sync="no" salt="9602"/>
 					<request op="read"  vba="15" count="2"   sync="no" salt="6100"/>
 					<request op="write" vba="11" count="6"   sync="no" salt="1436"/>
-					<request op="create_snapshot"            sync="yes"/>
+					<request op="create_snapshot"            sync="yes" id="12"/>
 					<request op="read"  vba="17" count="5"   sync="no" salt="5555"/>
 					<request op="write" vba="22" count="2"   sync="no" salt="7463"/>
 					<request op="rekey"                      sync="no"/>
@@ -1068,11 +1072,11 @@ append config {
 
 					<log string="Step 18: test list-snapshots command"/>
 
-					<request op="create_snapshot" sync="no"/>
+					<request op="create_snapshot" sync="no" id="13"/>
 					<request op="write" vba="17737" count="70" sync="no" salt="8924"/>
-					<request op="create_snapshot" sync="no"/>
+					<request op="create_snapshot" sync="no" id="14"/>
 					<request op="write" vba="00129" count="30" sync="no" salt="9471"/>
-					<request op="create_snapshot" sync="no"/>
+					<request op="create_snapshot" sync="no" id="15"/>
 
 					<list-snapshots/>
 

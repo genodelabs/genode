@@ -174,8 +174,8 @@ class Vfs_tresor::Wrapper
 		{
 			if (_helper_read_request.pending()) {
 				if (_request_pool->ready_to_submit_request()) {
-					_helper_read_request.tresor_request.snap_id(
-						_frontend_request.tresor_request.snap_id());
+					_helper_read_request.tresor_request.gen(
+						_frontend_request.tresor_request.gen());
 					_request_pool->submit_request(_helper_read_request.tresor_request);
 					_helper_read_request.state = Helper_request::State::IN_PROGRESS;
 				}
@@ -183,8 +183,8 @@ class Vfs_tresor::Wrapper
 
 			if (_helper_write_request.pending()) {
 				if (_request_pool->ready_to_submit_request()) {
-					_helper_write_request.tresor_request.snap_id(
-						_frontend_request.tresor_request.snap_id());
+					_helper_write_request.tresor_request.gen(
+						_frontend_request.tresor_request.gen());
 					_request_pool->submit_request(_helper_write_request.tresor_request);
 					_helper_write_request.state = Helper_request::State::IN_PROGRESS;
 				}
@@ -577,7 +577,7 @@ class Vfs_tresor::Wrapper
 							_helper_read_request.tresor_request.count(),
 							_helper_read_request.tresor_request.key_id(),
 							_helper_read_request.tresor_request.tag(),
-							_helper_read_request.tresor_request.snap_id(),
+							_helper_read_request.tresor_request.gen(),
 							COMMAND_POOL, 0);
 
 						_helper_write_request.state = Helper_request::State::PENDING;
@@ -934,10 +934,10 @@ class Vfs_tresor::Wrapper
 			_frontend_request.tresor_request = Tresor::Request { };
 		}
 
-		bool submit_frontend_request(Vfs_handle              &handle,
-		                             Byte_range_ptr    const &data,
-		                             Tresor::Request::Operation  op,
-		                             uint32_t                 snap_id)
+		bool submit_frontend_request(Vfs_handle &handle,
+		                             Byte_range_ptr const &data,
+		                             Tresor::Request::Operation op,
+		                             Generation gen)
 		{
 			if (_frontend_request.state != Frontend_request::State::NONE) {
 				return false;
@@ -1020,15 +1020,9 @@ class Vfs_tresor::Wrapper
 			_frontend_request.data   = data.start;
 			_frontend_request.offset = offset;
 			_frontend_request.tresor_request = Tresor::Request(
-				op,
-				false,
-				offset / Tresor::BLOCK_SIZE,
-				(uint64_t)data.start,
-				(uint32_t)(count / Tresor::BLOCK_SIZE),
-				0,
-				(Genode::uint32_t)tag,
-				snap_id,
-				COMMAND_POOL, 0);
+				op, false, offset / Tresor::BLOCK_SIZE, (uint64_t)data.start,
+				(uint32_t)(count / Tresor::BLOCK_SIZE), 0,
+				(Genode::uint32_t)tag, gen, COMMAND_POOL, 0);
 
 			if (_verbose) {
 				if (unaligned_request) {
@@ -1307,7 +1301,7 @@ class Vfs_tresor::Wrapper
 
 		Frontend_request _discard_snapshot_request { };
 
-		bool discard_snapshot(Tresor::Generation id)
+		bool discard_snapshot(Generation snap_gen)
 		{
 			if (!_request_pool.constructed()) {
 				_initialize_tresor();
@@ -1325,8 +1319,7 @@ class Vfs_tresor::Wrapper
 				Tresor::Request::Operation::DISCARD_SNAPSHOT;
 
 			_discard_snapshot_request.tresor_request =
-				Tresor::Request(op, false, 0, 0, 1, 0, 0, (uint32_t)id,
-				             COMMAND_POOL, 0);
+				Tresor::Request(op, false, 0, 0, 1, 0, 0, snap_gen, COMMAND_POOL, 0);
 
 			if (_verbose) {
 				Genode::log("Req: (req: ", _discard_snapshot_request.tresor_request, ")");
@@ -1353,23 +1346,23 @@ class Vfs_tresor::Data_file_system : public Single_file_system
 	private:
 
 		Wrapper &_w;
-		uint32_t _snap_id;
+		Generation _snap_gen;
 
 	public:
 
 		struct Vfs_handle : Single_vfs_handle
 		{
 			Wrapper &_w;
-			uint32_t _snap_id { 0 };
+			Generation _snap_gen { INVALID_GENERATION };
 
 			Vfs_handle(Directory_service &ds,
-			           File_io_service   &fs,
+			           File_io_service &fs,
 			           Genode::Allocator &alloc,
-			           Wrapper       &w,
-			           uint32_t snap_id)
+			           Wrapper &w,
+			           Generation snap_gen)
 			:
 				Single_vfs_handle(ds, fs, alloc, 0),
-				_w(w), _snap_id(snap_id)
+				_w(w), _snap_gen(snap_gen)
 			{ }
 
 			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
@@ -1387,7 +1380,7 @@ class Vfs_tresor::Data_file_system : public Single_file_system
 					using Op = Tresor::Request::Operation;
 
 					bool const accepted =
-						_w.submit_frontend_request(*this, dst, Op::READ, _snap_id);
+						_w.submit_frontend_request(*this, dst, Op::READ, _snap_gen);
 					if (!accepted) { return READ_ERR_IO; }
 				}
 
@@ -1436,11 +1429,9 @@ class Vfs_tresor::Data_file_system : public Single_file_system
 					using Op = Tresor::Request::Operation;
 
 					bool const accepted =
-						_w.submit_frontend_request(*this,
-						                           Byte_range_ptr(
-						                               const_cast<char*>(src.start),
-						                               src.num_bytes),
-						                           Op::WRITE, _snap_id);
+						_w.submit_frontend_request(
+							*this, Byte_range_ptr(const_cast<char*>(src.start), src.num_bytes),
+							Op::WRITE, _snap_gen);
 					if (!accepted) { return WRITE_ERR_IO; }
 				}
 
@@ -1518,11 +1509,11 @@ class Vfs_tresor::Data_file_system : public Single_file_system
 			bool write_ready() const override { return true; }
 		};
 
-		Data_file_system(Wrapper &w, uint32_t snap_id)
+		Data_file_system(Wrapper &w, Generation snap_gen)
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, type_name(),
 			                   Node_rwx::rw(), Xml_node("<data/>")),
-			_w(w), _snap_id(snap_id)
+			_w(w), _snap_gen(snap_gen)
 		{ }
 
 		~Data_file_system() { /* XXX sync on close */ }
@@ -1576,7 +1567,7 @@ class Vfs_tresor::Data_file_system : public Single_file_system
 			}
 
 			*out_handle =
-				new (alloc) Vfs_handle(*this, *this, alloc, _w, _snap_id);
+				new (alloc) Vfs_handle(*this, *this, alloc, _w, _snap_gen);
 
 			return OPEN_OK;
 		}
@@ -2498,16 +2489,13 @@ class Vfs_tresor::Create_snapshot_file_system : public Vfs::Single_file_system
 				bool create_snapshot { false };
 				Genode::ascii_to(src.start, create_snapshot);
 				Genode::String<64> str(Genode::Cstring(src.start, src.num_bytes));
-
-				if (!create_snapshot) {
+				if (!create_snapshot)
 					return WRITE_ERR_IO;
-				}
 
 				if (!_w.create_snapshot()) {
 					out_count = 0;
 					return WRITE_OK;
 				}
-
 				out_count = src.num_bytes;
 				return WRITE_OK;
 			}
@@ -2596,18 +2584,15 @@ class Vfs_tresor::Discard_snapshot_file_system : public Vfs::Single_file_system
 			                   size_t &out_count) override
 			{
 				out_count = 0;
-
-				Genode::uint64_t id { 0 };
-				Genode::ascii_to(src.start, id);
-				if (id == 0) {
+				Generation snap_gen { INVALID_GENERATION };
+				Genode::ascii_to(src.start, snap_gen);
+				if (snap_gen == INVALID_GENERATION)
 					return WRITE_ERR_IO;
-				}
 
-				if (!_w.discard_snapshot(Tresor::Generation { id })) {
+				if (!_w.discard_snapshot(snap_gen)) {
 					out_count = 0;
 					return WRITE_OK;
 				}
-
 				return WRITE_ERR_IO;
 			}
 
@@ -2672,8 +2657,8 @@ struct Vfs_tresor::Snapshot_local_factory : File_system_factory
 
 	Snapshot_local_factory(Vfs::Env & /* env */,
 	                       Wrapper &tresor,
-	                       uint32_t snap_id)
-	: _block_fs(tresor, snap_id) { }
+	                       Generation snap_gen)
+	: _block_fs(tresor, snap_gen) { }
 
 	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
 	{
@@ -2690,20 +2675,17 @@ class Vfs_tresor::Snapshot_file_system : private Snapshot_local_factory,
 {
 	private:
 
-		Genode::uint32_t _snap_id;
+		Generation _snap_gen;
 
 		typedef String<128> Config;
 
-		static Config _config(Genode::uint32_t snap_id, bool readonly)
+		static Config _config(Generation snap_gen, bool readonly)
 		{
 			char buf[Config::capacity()] { };
 
 			Xml_generator xml(buf, sizeof(buf), "dir", [&] () {
 
-				xml.attribute("name",
-				              !readonly ? String<16>("current")
-				                        : String<16>(snap_id));
-
+				xml.attribute("name", !readonly ? String<16>("current") : String<16>(snap_gen));
 				xml.node("data", [&] () {
 					xml.attribute("readonly", readonly);
 				});
@@ -2714,26 +2696,21 @@ class Vfs_tresor::Snapshot_file_system : private Snapshot_local_factory,
 
 	public:
 
-		Snapshot_file_system(Vfs::Env        &vfs_env,
-		                    Wrapper          &tresor,
-		                    Genode::uint32_t  snap_id,
-		                    bool              readonly = false)
+		Snapshot_file_system(Vfs::Env &vfs_env,
+		                    Wrapper &tresor,
+		                    Generation snap_gen,
+		                    bool readonly = false)
 		:
-			Snapshot_local_factory(vfs_env, tresor, snap_id),
-			Vfs::Dir_file_system(vfs_env,
-			                     Xml_node(_config(snap_id, readonly).string()),
-			                     *this),
-			_snap_id(snap_id)
+			Snapshot_local_factory(vfs_env, tresor, snap_gen),
+			Vfs::Dir_file_system(vfs_env, Xml_node(_config(snap_gen, readonly).string()), *this),
+			_snap_gen(snap_gen)
 		{ }
 
 		static char const *type_name() { return "snapshot"; }
 
 		char const *type() override { return type_name(); }
 
-		Genode::uint32_t snapshot_id() const
-		{
-			return _snap_id;
-		}
+		Generation snap_gen() const { return _snap_gen; }
 };
 
 
@@ -2794,34 +2771,32 @@ class Vfs_tresor::Snapshots_file_system : public Vfs::File_system
 				return *fsp;
 			}
 
-			Snapshot_file_system &_by_id(uint32_t id)
+			Snapshot_file_system &_by_gen(Generation snap_gen)
 			{
 				Snapshot_file_system *fsp { nullptr };
 				auto lookup = [&] (Snapshot_file_system &fs) {
-					if (fs.snapshot_id() == id) {
+					if (fs.snap_gen() == snap_gen) {
 						fsp = &fs;
 					}
 				};
 				_registry.for_each(lookup);
-				if (fsp == nullptr) {
+				if (fsp == nullptr)
 					throw Invalid_path();
-				}
+
 				return *fsp;
 			}
 
 			Snapshot_file_system &by_path(char const *path)
 			{
-				if (!path) {
+				if (!path)
 					throw Invalid_path();
-				}
 
-				if (path[0] == '/') {
+				if (path[0] == '/')
 					path++;
-				}
 
-				uint32_t id { 0 };
-				Genode::ascii_to(path, id);
-				return _by_id(id);
+				Generation snap_gen { INVALID_GENERATION };
+				Genode::ascii_to(path, snap_gen);
+				return _by_gen(snap_gen);
 			}
 		};
 
@@ -2896,7 +2871,7 @@ class Vfs_tresor::Snapshots_file_system : public Vfs::File_system
 
 				try {
 					Snapshot_file_system const &fs = _snap_reg.by_index(index);
-					Genode::String<32> name { fs.snapshot_id() };
+					Genode::String<32> name { fs.snap_gen() };
 
 					out = {
 						.fileno = (Genode::addr_t)this | index,
@@ -3572,13 +3547,13 @@ void Vfs_tresor::Snapshots_file_system::Snapshot_registry::update(Vfs::Env &vfs_
 	/* alloc new */
 	for (size_t i = 0; i < MAX_NR_OF_SNAPSHOTS; i++) {
 
-		uint32_t const id = (uint32_t)generations.items[i];
-		if (!id) {
+		Generation const snap_gen = generations.items[i];
+		if (snap_gen == INVALID_GENERATION)
 			continue;
-		}
+
 		bool is_old = false;
 		auto find_old = [&] (Snapshot_file_system const &fs) {
-			is_old |= (fs.snapshot_id() == id);
+			is_old |= (fs.snap_gen() == snap_gen);
 		};
 		_registry.for_each(find_old);
 
@@ -3586,7 +3561,7 @@ void Vfs_tresor::Snapshots_file_system::Snapshot_registry::update(Vfs::Env &vfs_
 
 			new (_alloc)
 				Genode::Registered<Snapshot_file_system> {
-					_registry, vfs_env, _wrapper, id, true };
+					_registry, vfs_env, _wrapper, snap_gen, true };
 
 			++_number_of_snapshots;
 			trigger_watch_response = true;
@@ -3598,10 +3573,11 @@ void Vfs_tresor::Snapshots_file_system::Snapshot_registry::update(Vfs::Env &vfs_
 	{
 		bool is_stale = true;
 		for (size_t i = 0; i < MAX_NR_OF_SNAPSHOTS; i++) {
-			uint32_t const id = (uint32_t)generations.items[i];
-			if (!id) { continue; }
+			Generation const snap_gen = generations.items[i];
+			if (snap_gen == INVALID_GENERATION)
+				continue;
 
-			if (fs.snapshot_id() == id) {
+			if (fs.snap_gen() == snap_gen) {
 				is_stale = false;
 				break;
 			}

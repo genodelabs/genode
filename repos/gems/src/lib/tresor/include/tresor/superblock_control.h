@@ -53,6 +53,7 @@ class Tresor::Superblock_control_request : public Module_request
 		Number_of_blocks      _nr_of_blks        { 0 };
 		bool                  _success           { false };
 		bool                  _request_finished  { false };
+		addr_t                _generation_ptr    { 0 };
 
 	public:
 
@@ -71,9 +72,14 @@ class Tresor::Superblock_control_request : public Module_request
 		                   uint64_t          client_req_offset,
 		                   uint64_t          client_req_tag,
 		                   Number_of_blocks  nr_of_blks,
-		                   uint64_t          vba);
+		                   uint64_t          vba,
+		                   Generation       &gen);
 
 		Superblock::State sb_state() { return _sb_state; }
+
+		Generation gen() const { return *(Generation const *)_generation_ptr; }
+
+		void gen(Generation g) { *(Generation *)_generation_ptr = g; }
 
 		bool success() const { return _success; }
 
@@ -284,10 +290,17 @@ class Tresor::Superblock_control : public Module
 		                                  uint64_t  chan_idx,
 		                                  bool     &progress);
 
+		bool _secure_sb_finish(Channel &chan,
+		                       bool    &progress);
+
 		void _init_sb_without_key_values(Superblock const &, Superblock &);
 
 		void _execute_sync(Channel &, uint64_t const job_idx, Superblock &,
-                           Superblock_index &, Generation &, bool &progress);
+		                   Superblock_index &, Generation &, bool &progress);
+
+		void _execute_create_snap(Channel &, uint64_t, bool &progress);
+
+		void _execute_discard_snap(Channel &, uint64_t, bool &progress);
 
 		void _execute_tree_ext_step(Channel           &chan,
 		                            uint64_t           chan_idx,
@@ -310,7 +323,7 @@ class Tresor::Superblock_control : public Module
 		                       Superblock const &, bool &progress);
 
 		void _execute_write_vba(Channel &, uint64_t const job_idx,
-                              Superblock &, Generation const &, bool &progress);
+		                        Superblock &, Generation const &, bool &progress);
 
 		void _execute_initialize(Channel &, uint64_t const job_idx,
 		                         Superblock &, Superblock_index &,

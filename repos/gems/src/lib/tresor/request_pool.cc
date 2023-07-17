@@ -141,6 +141,84 @@ void Request_pool::_execute_write(Channel &channel, Index_queue &indices,
 }
 
 
+void Request_pool::_execute_create_snap(Channel &channel,
+                                        Index_queue &indices,
+                                        Slots_index const idx,
+                                        bool &progress)
+{
+	switch (channel._state) {
+	case Channel::State::SUBMITTED:
+
+		channel._prim = {
+			.op     = Channel::Generated_prim::Type::READ,
+			.succ   = false,
+			.tg     = Channel::Tag_type::TAG_POOL_SB_CTRL_CREATE_SNAP,
+			.pl_idx = idx,
+			.blk_nr = 0,
+			.idx    = 0
+		};
+		channel._state = Channel::State::CREATE_SNAP_AT_SB_CTRL_PENDING;
+		progress = true;
+		break;
+
+	case Channel::State::CREATE_SNAP_AT_SB_CTRL_COMPLETE:
+
+		if (channel._prim.succ) {
+			channel._request.success(true);
+		} else
+			channel._request.success(false);
+
+		channel._state = Channel::State::COMPLETE;
+		indices.dequeue(idx);
+		progress = true;
+		break;
+
+	default:
+
+		break;
+	}
+}
+
+
+void Request_pool::_execute_discard_snap(Channel &channel,
+                                         Index_queue &indices,
+                                         Slots_index const idx,
+                                         bool &progress)
+{
+	switch (channel._state) {
+	case Channel::State::SUBMITTED:
+
+		channel._prim = {
+			.op     = Channel::Generated_prim::Type::READ,
+			.succ   = false,
+			.tg     = Channel::Tag_type::TAG_POOL_SB_CTRL_DISCARD_SNAP,
+			.pl_idx = idx,
+			.blk_nr = 0,
+			.idx    = 0
+		};
+		channel._state = Channel::State::DISCARD_SNAP_AT_SB_CTRL_PENDING;
+		progress = true;
+		break;
+
+	case Channel::State::DISCARD_SNAP_AT_SB_CTRL_COMPLETE:
+
+		if (channel._prim.succ) {
+			channel._request.success(true);
+		} else
+			channel._request.success(false);
+
+		channel._state = Channel::State::COMPLETE;
+		indices.dequeue(idx);
+		progress = true;
+		break;
+
+	default:
+
+		break;
+	}
+}
+
+
 void Request_pool::_execute_sync(Channel &channel, Index_queue &indices,
                                  Slots_index const idx, bool &progress)
 {
@@ -164,7 +242,6 @@ void Request_pool::_execute_sync(Channel &channel, Index_queue &indices,
 
 		if (channel._prim.succ) {
 			channel._request.success(true);
-			channel._request.offset(channel._gen);
 		} else
 			channel._request.success(false);
 
@@ -597,8 +674,8 @@ void Request_pool::execute(bool &progress)
 	case Tresor::Request::Operation::EXTEND_FT:        _execute_extend_tree(channel, idx, Channel::FT_EXTENSION_STEP_PENDING, progress); break;
 	case Tresor::Request::Operation::INITIALIZE:       _execute_initialize(channel, _indices, idx, progress); break;
 	case Tresor::Request::Operation::DEINITIALIZE:     _execute_deinitialize(channel, _indices, idx, progress); break;
-	case Tresor::Request::Operation::CREATE_SNAPSHOT:  throw Not_implemented { };
-	case Tresor::Request::Operation::DISCARD_SNAPSHOT: throw Not_implemented { };
+	case Tresor::Request::Operation::CREATE_SNAPSHOT:  _execute_create_snap(channel, _indices, idx, progress); break;
+	case Tresor::Request::Operation::DISCARD_SNAPSHOT: _execute_discard_snap(channel, _indices, idx, progress); break;
 	default:                                           break;
 	}
 }
@@ -622,6 +699,8 @@ void Request_pool::submit_request(Module_request &mod_req)
 			case Request::REKEY:
 			case Request::EXTEND_VBD:
 			case Request::EXTEND_FT:
+			case Request::CREATE_SNAPSHOT:
+			case Request::DISCARD_SNAPSHOT:
 
 				mod_req.dst_request_id(idx);
 				_channels[idx]._state = Channel::SUBMITTED;
@@ -648,25 +727,27 @@ bool Request_pool::_peek_generated_request(uint8_t *buf_ptr,
 		return false;
 
 	Slots_index const idx { _indices.head() };
-	Channel const &chan { _channels[idx] };
+	Channel &chan { _channels[idx] };
 	Superblock_control_request::Type scr_type;
 
 	switch (chan._state) {
-	case Channel::READ_VBA_AT_SB_CTRL_PENDING:  scr_type = Superblock_control_request::READ_VBA; break;
+	case Channel::READ_VBA_AT_SB_CTRL_PENDING: scr_type = Superblock_control_request::READ_VBA; break;
 	case Channel::WRITE_VBA_AT_SB_CTRL_PENDING: scr_type = Superblock_control_request::WRITE_VBA; break;
-	case Channel::SYNC_AT_SB_CTRL_PENDING:      scr_type = Superblock_control_request::SYNC; break;
-	case Channel::INITIALIZE_SB_CTRL_PENDING:   scr_type = Superblock_control_request::INITIALIZE; break;
+	case Channel::SYNC_AT_SB_CTRL_PENDING: scr_type = Superblock_control_request::SYNC; break;
+	case Channel::CREATE_SNAP_AT_SB_CTRL_PENDING: scr_type = Superblock_control_request::CREATE_SNAPSHOT; break;
+	case Channel::DISCARD_SNAP_AT_SB_CTRL_PENDING: scr_type = Superblock_control_request::DISCARD_SNAPSHOT; break;
+	case Channel::INITIALIZE_SB_CTRL_PENDING: scr_type = Superblock_control_request::INITIALIZE; break;
 	case Channel::DEINITIALIZE_SB_CTRL_PENDING: scr_type = Superblock_control_request::DEINITIALIZE; break;
-	case Channel::REKEY_INIT_PENDING:           scr_type = Superblock_control_request::INITIALIZE_REKEYING; break;
-	case Channel::REKEY_VBA_PENDING:            scr_type = Superblock_control_request::REKEY_VBA; break;
-	case Channel::VBD_EXTENSION_STEP_PENDING:   scr_type = Superblock_control_request::VBD_EXTENSION_STEP; break;
-	case Channel::FT_EXTENSION_STEP_PENDING:    scr_type = Superblock_control_request::FT_EXTENSION_STEP; break;
+	case Channel::REKEY_INIT_PENDING: scr_type = Superblock_control_request::INITIALIZE_REKEYING; break;
+	case Channel::REKEY_VBA_PENDING: scr_type = Superblock_control_request::REKEY_VBA; break;
+	case Channel::VBD_EXTENSION_STEP_PENDING: scr_type = Superblock_control_request::VBD_EXTENSION_STEP; break;
+	case Channel::FT_EXTENSION_STEP_PENDING: scr_type = Superblock_control_request::FT_EXTENSION_STEP; break;
 	default: return false;
 	}
 	Superblock_control_request::create(
 		buf_ptr, buf_size, REQUEST_POOL, idx, scr_type,
 		chan._request.offset(), chan._request.tag(),
-		chan._request.count(), chan._prim.blk_nr);
+		chan._request.count(), chan._prim.blk_nr, chan._request._gen);
 
 	return true;
 }
@@ -722,13 +803,9 @@ void Request_pool::generated_request_complete(Module_request &mod_req)
 			break;
 		case Channel::CREATE_SNAP_AT_SB_CTRL_IN_PROGRESS:
 			chan._state = Channel::CREATE_SNAP_AT_SB_CTRL_COMPLETE;
-			class Exception_6 { };
-			throw Exception_6 { };
 			break;
 		case Channel::DISCARD_SNAP_AT_SB_CTRL_IN_PROGRESS:
 			chan._state = Channel::DISCARD_SNAP_AT_SB_CTRL_COMPLETE;
-			class Exception_4 { };
-			throw Exception_4 { };
 			break;
 		case Channel::INITIALIZE_SB_CTRL_IN_PROGRESS:
 			chan._sb_state = gen_req.sb_state();

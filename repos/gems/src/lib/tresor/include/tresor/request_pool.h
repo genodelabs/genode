@@ -28,6 +28,8 @@ namespace Tresor {
 
 	class Request : public Module_request
 	{
+		friend class Request_pool;
+
 		public:
 
 			enum Operation : uint32_t {
@@ -54,7 +56,7 @@ namespace Tresor {
 			Number_of_blocks _count;
 			uint32_t         _key_id;
 			uint32_t         _tag;
-			uint32_t         _snap_id;
+			Generation       _gen;
 
 		public:
 
@@ -65,7 +67,7 @@ namespace Tresor {
 			        Number_of_blocks count,
 			        uint32_t         key_id,
 			        uint32_t         tag,
-			        uint32_t         snap_id,
+			        Generation       gen,
 			        Module_id            src_module_id,
 			        Module_request_id    src_request_id)
 			:
@@ -77,7 +79,7 @@ namespace Tresor {
 				_count         { count        },
 				_key_id        { key_id       },
 				_tag           { tag          },
-				_snap_id       { snap_id      }
+				_gen           { gen          }
 			{ }
 
 			Request()
@@ -90,7 +92,7 @@ namespace Tresor {
 				_count         { 0 },
 				_key_id        { 0 },
 				_tag           { 0 },
-				_snap_id       { 0 }
+				_gen           { 0 }
 			{ }
 
 			bool valid() const
@@ -122,12 +124,12 @@ namespace Tresor {
 			Number_of_blocks count()        const { return _count; }
 			uint32_t         key_id()       const { return _key_id; }
 			uint32_t         tag()          const { return _tag; }
-			uint32_t         snap_id()      const { return _snap_id; }
+			Generation       gen()          const { return _gen; }
 
 			void offset(uint64_t arg)  { _offset = arg; }
 			void success(bool arg)     { _success = arg; }
 			void tag(uint32_t arg)     { _tag = arg; }
-			void snap_id(uint32_t arg) { _snap_id = arg; }
+			void gen(Generation arg)   { _gen = arg; }
 
 			static char const *op_to_string(Operation op);
 
@@ -152,9 +154,7 @@ namespace Tresor {
 					break;
 				}
 			}
-
-	} __attribute__((packed));
-
+	};
 }
 
 class Tresor::Request_pool_channel
@@ -212,6 +212,8 @@ class Tresor::Request_pool_channel
 			TAG_POOL_SB_CTRL_DEINITIALIZE,
 			TAG_POOL_SB_CTRL_INIT_REKEY,
 			TAG_POOL_SB_CTRL_REKEY_VBA,
+			TAG_POOL_SB_CTRL_CREATE_SNAP,
+			TAG_POOL_SB_CTRL_DISCARD_SNAP
 		};
 
 		using Pool_index = uint32_t;
@@ -231,7 +233,6 @@ class Tresor::Request_pool_channel
 		State             _state                   { INVALID };
 		Generated_prim    _prim                    { };
 		uint64_t          _nr_of_blks              { 0 };
-		Generation        _gen                     { };
 		Superblock::State _sb_state                { Superblock::INVALID };
 		uint32_t          _nr_of_requests_preponed { 0 };
 		bool              _request_finished        { false };
@@ -242,7 +243,6 @@ class Tresor::Request_pool_channel
 			_state      = { INVALID };
 			_prim       = { };
 			_nr_of_blks =  0;
-			_gen        = { };
 			_sb_state   = { Superblock::INVALID };
 		}
 };
@@ -405,6 +405,16 @@ class Tresor::Request_pool : public Module
 		void _execute_write(Channel &, Index_queue &, Slots_index const, bool &);
 
 		void _execute_sync (Channel &, Index_queue &, Slots_index const, bool &);
+
+		void _execute_create_snap(Channel &channel,
+		                          Index_queue &indices,
+		                          Slots_index const idx,
+		                          bool &progress);
+
+		void _execute_discard_snap(Channel &channel,
+		                           Index_queue &indices,
+		                           Slots_index const idx,
+		                           bool &progress);
 
 		void _execute_rekey(Channel     &chan,
 		                    Index_queue &indices,
