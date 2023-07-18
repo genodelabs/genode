@@ -320,7 +320,7 @@ append  config { </wifi_config>
 
 	append config {
 
-	<start name="nic_drv" caps="1000" managing_system="yes">
+	<start name="nic_drv" caps="1200" managing_system="yes">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>

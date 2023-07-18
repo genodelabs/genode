@@ -101,7 +101,7 @@ install_config {
 		</provides>
 	</start>
 
-	<start name="nic_drv" priority="-1" caps="120">
+	<start name="nic_drv" priority="-1" caps="250">
 		<binary name="pc_nic_drv"/>
 		<resource name="RAM" quantum="8M"/>
 		<route>

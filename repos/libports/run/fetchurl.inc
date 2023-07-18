@@ -78,7 +78,7 @@ install_config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="drivers" caps="1000" managing_system="yes">
+	<start name="drivers" caps="1200" managing_system="yes">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>
