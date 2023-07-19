@@ -20,7 +20,7 @@
 namespace Sculpt { struct Software_version_dialog; }
 
 
-struct Sculpt::Software_version_dialog
+struct Sculpt::Software_version_dialog : Widget<Frame>
 {
 	Build_info const _build_info;
 

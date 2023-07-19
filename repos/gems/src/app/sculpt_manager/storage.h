@@ -27,22 +27,21 @@
 namespace Sculpt { struct Storage; }
 
 
-struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
+struct Sculpt::Storage : Storage_device_dialog::Action, Ram_fs_dialog::Action
 {
 	Env &_env;
 
 	Allocator &_alloc;
 
-	Deprecated_dialog::Generator &_dialog_generator;
-
-	Runtime_config_generator &_runtime_config_generator;
-
-	struct Target_user : Interface
+	struct Action : Interface
 	{
 		virtual void use_storage_target(Storage_target const &) = 0;
+		virtual void refresh_storage_dialog() = 0;
 	};
 
-	Target_user &_target_user;
+	Action &_action;
+
+	Runtime_config_generator &_runtime;
 
 	Attached_rom_dataspace _block_devices_rom { _env, "report -> drivers/block_devices" };
 
@@ -95,7 +94,7 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 
 				if (whole_device || partition_matches) {
 					fn(partition);
-					_runtime_config_generator.generate_runtime_config();
+					_runtime.generate_runtime_config();
 				}
 			});
 		});
@@ -162,7 +161,7 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 		if (orig_version.value == _inspect_view_version.value)
 			return;
 
-		_runtime_config_generator.generate_runtime_config();
+		_runtime.generate_runtime_config();
 	}
 
 	void toggle_default_storage_target(Storage_target const &target) override
@@ -173,27 +172,21 @@ struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 
 	void use(Storage_target const &target) override
 	{
-		_target_user.use_storage_target(target);
+		_action.use_storage_target(target);
 	}
 
 	void reset_ram_fs() override
 	{
 		_ram_fs_state.trigger_restart();
 
-		_runtime_config_generator.generate_runtime_config();
+		_runtime.generate_runtime_config();
 	}
 
 
-	Storage(Env &env, Allocator &alloc,
-	        Registry<Child_state>        &child_states,
-	        Deprecated_dialog::Generator &dialog_generator,
-	        Runtime_config_generator     &runtime_config_generator,
-	        Target_user                  &target_user)
+	Storage(Env &env, Allocator &alloc, Registry<Child_state> &child_states,
+	        Action &action, Runtime_config_generator &runtime)
 	:
-		_env(env), _alloc(alloc),
-		_dialog_generator(dialog_generator),
-		_runtime_config_generator(runtime_config_generator),
-		_target_user(target_user),
+		_env(env), _alloc(alloc), _action(action), _runtime(runtime),
 		_ram_fs_state(child_states, "ram_fs")
 	{
 		_block_devices_rom    .sigh(_storage_device_update_handler);

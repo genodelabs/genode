@@ -90,10 +90,10 @@ void Sculpt::Storage::handle_storage_devices_update()
 		}
 	}
 
-	_dialog_generator.generate_dialog();
+	_action.refresh_storage_dialog();
 
 	if (reconfigure_runtime)
-		_runtime_config_generator.generate_runtime_config();
+		_runtime.generate_runtime_config();
 }
 
 

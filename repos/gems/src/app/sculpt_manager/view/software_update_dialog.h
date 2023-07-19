@@ -23,7 +23,7 @@
 namespace Sculpt { struct Software_update_dialog; }
 
 
-struct Sculpt::Software_update_dialog
+struct Sculpt::Software_update_dialog : Widget<Vbox>
 {
 	using Depot_users     = Depot_users_dialog::Depot_users;
 	using User            = Depot_users_dialog::User;

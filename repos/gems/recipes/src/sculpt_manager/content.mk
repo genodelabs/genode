@@ -2,7 +2,7 @@ SRC_DIR := src/app/sculpt_manager
 
 include $(GENODE_DIR)/repos/base/recipes/src/content.inc
 
-MIRROR_FROM_REP_DIR := include/depot src/app/depot_deploy
+MIRROR_FROM_REP_DIR := include/depot src/app/depot_deploy include/dialog
 
 content: $(MIRROR_FROM_REP_DIR)
 

@@ -95,7 +95,6 @@
 					<default-policy domain="default"/>
 					<capture/>
 					<event/>
-					<report clicked="yes"/>
 				</config>
 				<route>
 					<service name="Input">             <child name="gui_fb"/> </service>
@@ -119,10 +118,9 @@
 					<policy label="decorator -> pointer"         report="wm -> pointer"/>
 					<policy label="manager -> window_list"       report="wm -> window_list"/>
 					<policy label="manager -> decorator_margins" report="decorator -> decorator_margins"/>
-					<policy label="manager -> clicked"           report="nitpicker -> clicked"/>
 					<policy label="nitpicker -> focus"           report="manager -> focus"/>
-					<policy label="runtime -> leitzentrale -> menu_view -> dialog"
-					        report="manager -> menu_dialog"/>
+					<policy label="runtime -> leitzentrale -> diag_view -> dialog"
+					        report="manager -> diag_dialog"/>
 					<policy label="runtime -> leitzentrale -> network_view -> dialog"
 					        report="manager -> network_dialog"/>
 					<policy label="runtime -> leitzentrale -> settings_view -> dialog"
@@ -137,8 +135,8 @@
 					        report="manager -> panel_dialog"/>
 					<policy label="runtime -> leitzentrale -> runtime_view -> dialog"
 					        report="manager -> runtime_dialog"/>
-					<policy label="manager -> menu_view_hover"
-					        report="runtime -> leitzentrale -> menu_view -> hover"/>
+					<policy label="manager -> diag_view_hover"
+					        report="runtime -> leitzentrale -> diag_view -> hover"/>
 					<policy label="manager -> network_view_hover"
 					        report="runtime -> leitzentrale -> network_view -> hover"/>
 					<policy label="manager -> settings_view_hover"
@@ -198,7 +196,7 @@
 					<policy label="runtime -> leitzentrale -> file_browser_view" decoration="no" motion="30"/>
 					<policy label="runtime -> leitzentrale -> network_view"      decoration="no" motion="20"/>
 					<policy label="runtime -> leitzentrale -> runtime_view"      decoration="no" motion="30"/>
-					<policy label="runtime -> leitzentrale -> menu_view"         decoration="no" motion="30"/>
+					<policy label="runtime -> leitzentrale -> diag_view"         decoration="no" motion="30"/>
 					<policy label="runtime -> leitzentrale -> popup_view"        decoration="no" motion="20"/>
 					<policy label="runtime -> leitzentrale -> panel_view"        decoration="no" motion="20"/>
 					<policy label_prefix="logo" decoration="no"/>
@@ -259,7 +257,6 @@
 					<service name="ROM" label_suffix="_hover">     <child name="report_rom"/> </service>
 					<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
 					<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
-					<service name="ROM" label="clicked">           <child name="report_rom"/> </service>
 					<service name="Gui"> <parent/> </service>
 					<any-service> <parent/> </any-service>
 				</route>

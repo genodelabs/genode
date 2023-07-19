@@ -37,55 +37,42 @@
 namespace Sculpt { struct Graph; }
 
 
-struct Sculpt::Graph : Deprecated_dialog
+struct Sculpt::Graph : Widget<Depgraph>
 {
-	Runtime_state        &_runtime_state;
-	Runtime_config const &_runtime_config;
-
-	Storage_devices const &_storage_devices;
-	Storage_target  const &_sculpt_partition;
-	Ram_fs_state    const &_ram_fs_state;
-
-	Popup::State const &_popup_state;
-
+	Runtime_state                &_runtime_state;
+	Runtime_config         const &_runtime_config;
+	Storage_devices        const &_storage_devices;
+	Storage_target         const &_sculpt_partition;
+	Ram_fs_state           const &_ram_fs_state;
+	Popup::State           const &_popup_state;
 	Depot_deploy::Children const &_deploy_children;
 
-	Hoverable_item   _node_button_item { };
-	Hoverable_item   _add_button_item  { };
-	Activatable_item _action_item      { };
+	Hosted<Depgraph, Toggle_button> _plus { Id { "+" } };
 
-	/*
-	 * Defined when '+' button is hovered
-	 */
-	Rect _popup_anchor { };
+	Hosted<Depgraph, Frame, Vbox, Ram_fs_dialog>
+		_ram_fs_dialog { Id { "ram_fs_dialog" } };
 
-	Ram_fs_dialog _ram_fs_dialog;
+	Hosted<Depgraph, Frame, Vbox, Frame, Hbox, Deferred_action_button>
+		_remove  { Id { "Remove"  } },
+		_restart { Id { "Restart" } };
+
+	Hosted<Depgraph, Frame, Vbox, Frame, Block_devices_dialog>
+		_block_devices_dialog { Id { "block_devices" },
+		                        _storage_devices, _sculpt_partition };
+
+	Hosted<Depgraph, Frame, Vbox, Frame, Usb_devices_dialog>
+		_usb_devices_dialog { Id { "usb_devices" },
+		                        _storage_devices, _sculpt_partition };
 
 	bool _storage_selected = false;
 	bool _usb_selected     = false;
 
-	bool _storage_dialog_visible() const { return _storage_selected || _usb_selected; }
+	void _view_selected_node_content(Scope<Depgraph, Frame, Vbox> &,
+	                                 Start_name const &,
+	                                 Runtime_state::Info const &) const;
 
-	Reconstructible<Storage_dialog> _storage_dialog { _storage_devices, _sculpt_partition };
-
-	void _gen_selected_node_content(Xml_generator &, Start_name const &,
-	                                Runtime_state::Info const &) const;
-
-	void _gen_parent_node(Xml_generator &, Start_name const &, Label const &) const;
-	void _gen_storage_node(Xml_generator &) const;
-	void _gen_usb_node(Xml_generator &) const;
-
-	void generate(Xml_generator &) const override;
-
-	Hover_result hover(Xml_node) override;
-
-	void reset() override { }
-
-	void reset_storage_operation()
-	{
-		if (_storage_dialog.constructed())
-			_storage_dialog->reset_operation();
-	}
+	void _view_storage_node(Scope<Depgraph> &) const;
+	void _view_usb_node(Scope<Depgraph> &) const;
 
 	Graph(Runtime_state                &runtime_state,
 	      Runtime_config         const &runtime_config,
@@ -98,20 +85,26 @@ struct Sculpt::Graph : Deprecated_dialog
 		_runtime_state(runtime_state), _runtime_config(runtime_config),
 		_storage_devices(storage_devices), _sculpt_partition(sculpt_partition),
 		_ram_fs_state(ram_fs_state), _popup_state(popup_state),
-		_deploy_children(deploy_children), _ram_fs_dialog(sculpt_partition)
+		_deploy_children(deploy_children)
 	{ }
 
-	bool add_button_hovered() const { return _add_button_item._hovered.valid(); }
+	void view(Scope<Depgraph> &) const;
 
-	struct Action : Storage_dialog::Action
+	struct Action : Storage_device_dialog::Action
 	{
 		virtual void remove_deployed_component(Start_name const &) = 0;
 		virtual void restart_deployed_component(Start_name const &) = 0;
-		virtual void toggle_launcher_selector(Rect) = 0;
+		virtual void open_popup_dialog(Rect) = 0;
 	};
 
-	void click(Action &action);
-	void clack(Action &action, Ram_fs_dialog::Action &);
+	void click(Clicked_at const &, Action &);
+	void clack(Clacked_at const &, Action &, Ram_fs_dialog::Action &);
+
+	void reset_storage_operation()
+	{
+		_block_devices_dialog.reset_operation();
+		_usb_devices_dialog.reset_operation();
+	}
 };
 
 #endif /* _GRAPH_H_ */

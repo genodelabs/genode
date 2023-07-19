@@ -26,8 +26,6 @@ struct Sculpt::Popup : Noncopyable
 	Popup() { }
 
 	Rect anchor { };
-
-	void toggle() { state = (state == OFF) ? VISIBLE : OFF; }
 };
 
 #endif /* _MODEL__POPUP_H_ */

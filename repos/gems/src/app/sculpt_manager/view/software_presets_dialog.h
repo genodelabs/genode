@@ -21,7 +21,7 @@
 namespace Sculpt { struct Software_presets_dialog; }
 
 
-struct Sculpt::Software_presets_dialog
+struct Sculpt::Software_presets_dialog : Widget<Float>
 {
 	Presets const &_presets;
 

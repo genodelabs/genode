@@ -16,84 +16,42 @@
 using namespace Sculpt;
 
 
-void Panel_dialog::generate(Xml_generator &xml) const
+void Panel_dialog::view(Scope<> &s) const
 {
-	xml.node("frame", [&] () {
-		xml.attribute("style", "unimportant");
+	s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+		s.attribute("style", "unimportant");
 
-		gen_named_node(xml, "float", "left", [&] () {
-			xml.attribute("west",  true);
-			xml.node("hbox", [&] () {
-				if (_state.system_available()) {
-					xml.node("button", [&] () {
-						_item.gen_button_attr(xml, "system");
-						if (_state.system_visible())
-							xml.attribute("selected", true);
-						xml.node("label", [&] () {
-							xml.attribute("text", "System");
-						});
-					});
-				}
-				if (_state.settings_available()) {
-					xml.node("button", [&] () {
-						_item.gen_button_attr(xml, "settings");
-						if (_state.settings_visible())
-							xml.attribute("selected", true);
-						xml.node("label", [&] () {
-							xml.attribute("text", "Settings");
-						});
-					});
-				}
+		s.sub_scope<Float>([&] (Scope<Frame, Float> &s) {
+			s.attribute("west", true);
+			s.sub_scope<Hbox>([&] (Scope<Frame, Float, Hbox> &s) {
+
+				if (_state.system_available())
+					s.widget(_system_button, _state.system_visible());
+
+				if (_state.settings_available())
+					s.widget(_settings_button, _state.settings_visible());
 			});
 		});
 
-		gen_named_node(xml, "float", "center", [&] () {
-			xml.node("hbox", [&] () {
+		s.sub_scope<Float>([&] (Scope<Frame, Float> &s) {
+			s.sub_scope<Hbox>([&] (Scope<Frame, Float, Hbox> &s) {
 
-				auto gen_tab = [&] (auto name, auto text, Tab tab) {
+				Tab const tab = _state.selected_tab();
 
-					gen_named_node(xml, "button", name, [&] () {
-
-						if (_state.selected_tab() == tab)
-							xml.attribute("selected", true);
-						else
-							_item.gen_hovered_attr(xml, name);
-
-						xml.node("label", [&] () {
-							xml.attribute("text", text);
-						});
-					});
-				};
-
-				gen_tab("files",      "Files",      Tab::FILES);
-				gen_tab("components", "Components", Tab::COMPONENTS);
+				s.widget(_files_tab,      tab);
+				s.widget(_components_tab, tab);
 
 				if (_state.inspect_tab_visible())
-					gen_tab("inspect", "Inspect", Tab::INSPECT);
+					s.widget(_inspect_tab, tab);
 			});
 		});
 
-		gen_named_node(xml, "float", "right", [&] () {
-			xml.attribute("east",  true);
-			xml.node("hbox", [&] () {
-				xml.node("button", [&] () {
-					_item.gen_button_attr(xml, "network");
-					if (_state.network_visible())
-						xml.attribute("selected", true);
-					xml.node("label", [&] () {
-						xml.attribute("text", "Network");
-					});
-				});
-				xml.node("button", [&] () {
-					_item.gen_button_attr(xml, "log");
-					if (_state.log_visible())
-						xml.attribute("selected", true);
-					xml.node("label", [&] () {
-						xml.attribute("text", "Log");
-					});
-				});
+		s.sub_scope<Float>([&] (Scope<Frame, Float> &s) {
+			s.attribute("east", true);
+			s.sub_scope<Hbox>([&] (Scope<Frame, Float, Hbox> &s) {
+				s.widget(_network_button, _state.network_visible());
+				s.widget(_log_button,     _state.log_visible());
 			});
 		});
 	});
 }
-

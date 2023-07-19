@@ -25,7 +25,7 @@
 namespace Sculpt { struct Panel_dialog; }
 
 
-struct Sculpt::Panel_dialog : Deprecated_dialog
+struct Sculpt::Panel_dialog : Top_level_dialog
 {
 	enum class Tab { FILES, COMPONENTS, INSPECT };
 
@@ -52,35 +52,36 @@ struct Sculpt::Panel_dialog : Deprecated_dialog
 		virtual void toggle_network_visibility() = 0;
 	};
 
-	Hoverable_item   _item        { };
-	Activatable_item _action_item { };
+	Action &_action;
 
-	Hover_result hover(Xml_node hover) override
+	Hosted<Frame, Float, Hbox, Toggle_button>
+		_system_button   { Id { "System"   } },
+		_settings_button { Id { "Settings" } },
+		_network_button  { Id { "Network"  } },
+		_log_button      { Id { "Log"      } };
+
+	using Tab_button = Select_button<Tab>;
+
+	Hosted<Frame, Float, Hbox, Tab_button>
+		_files_tab      { Id { "Files"      }, Tab::FILES      },
+		_components_tab { Id { "Components" }, Tab::COMPONENTS },
+		_inspect_tab    { Id { "Inspect"    }, Tab::INSPECT    };
+
+	void view(Scope<> &) const override;
+
+	void click(Clicked_at const &at) override
 	{
-		return any_hover_changed(
-			_item.match(hover, "frame", "float", "hbox", "button", "name"));
+		_system_button  .propagate(at, [&] { _action.toggle_system_visibility(); });
+		_settings_button.propagate(at, [&] { _action.toggle_settings_visibility(); });
+		_network_button .propagate(at, [&] { _action.toggle_network_visibility(); });
+		_log_button     .propagate(at, [&] { _action.toggle_log_visibility(); });
+		_files_tab      .propagate(at, [&] { _action.select_tab(Tab::FILES); });
+		_components_tab .propagate(at, [&] { _action.select_tab(Tab::COMPONENTS); });
+		_inspect_tab    .propagate(at, [&] { _action.select_tab(Tab::INSPECT); });
 	}
 
-	void generate(Xml_generator &) const override;
-
-	void click(Action &action)
-	{
-		if (_item.hovered("components")) action.select_tab(Tab::COMPONENTS);
-		if (_item.hovered("files"))      action.select_tab(Tab::FILES);
-		if (_item.hovered("inspect"))    action.select_tab(Tab::INSPECT);
-		if (_item.hovered("log"))        action.toggle_log_visibility();
-		if (_item.hovered("system"))     action.toggle_system_visibility();
-		if (_item.hovered("settings"))   action.toggle_settings_visibility();
-		if (_item.hovered("network"))    action.toggle_network_visibility();
-	}
-
-	void reset() override
-	{
-		_item._hovered = Hoverable_item::Id();
-		_action_item.reset();
-	}
-
-	Panel_dialog(State const &state) : _state(state) { }
+	Panel_dialog(State const &state, Action &action)
+	: Top_level_dialog("panel"), _state(state), _action(action) { }
 };
 
 #endif /* _VIEW__PANEL_DIALOG_H_ */

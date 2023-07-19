@@ -27,14 +27,6 @@ namespace Sculpt { struct Deprecated_dialog; }
 
 struct Sculpt::Deprecated_dialog : Interface
 {
-	/**
-	 * Interface for triggering the (re-)generation of a menu-view dialog
-	 *
-	 * This interface ls implemented by a top-level dialog and called by a sub
-	 * dialog.
-	 */
-	struct Generator : Interface { virtual void generate_dialog() = 0; };
-
 	bool hovered = false;
 
 	enum class Click_result { CONSUMED, IGNORED };
