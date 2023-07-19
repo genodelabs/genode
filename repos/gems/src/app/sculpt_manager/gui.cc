@@ -18,6 +18,37 @@
 #include <gui_session/connection.h>
 #include <base/heap.h>
 
+
+static bool click(Input::Event const &event)
+{
+	bool result = false;
+
+	if (event.key_press(Input::BTN_LEFT))
+		result = true;
+
+	event.handle_touch([&] (Input::Touch_id id, float, float) {
+		if (id.value == 0)
+			result = true; });
+
+	return result;
+}
+
+
+static bool clack(Input::Event const &event)
+{
+	bool result = false;
+
+	if (event.key_release(Input::BTN_LEFT))
+		result = true;
+
+	event.handle_touch_release([&] (Input::Touch_id id) {
+		if (id.value == 0)
+			result = true; });
+
+	return result;
+}
+
+
 struct Gui::Session_component : Rpc_object<Gui::Session>
 {
 	Env &_env;
@@ -33,20 +64,23 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 	Signal_handler<Session_component> _input_handler {
 		_env.ep(), *this, &Session_component::_handle_input };
 
+	bool _clicked = false;
+
 	void _handle_input()
 	{
 		_connection.input()->for_each_event([&] (Input::Event ev) {
 
 			/*
-			 * Augment input stream with sequence numbers to correlate
-			 * clicks with hover reports.
+			 * Assign new event sequence number, pass seq event to menu view
+			 * to ensure freshness of hover information.
 			 */
-			bool const advance_seq_number = ev.key_press(Input::BTN_LEFT)
-			                             || ev.key_release(Input::BTN_LEFT)
-			                             || ev.touch() || ev.touch_release();
-			if (advance_seq_number) {
-				_global_input_seq_number.value++;
+			bool const orig_clicked = _clicked;
 
+			if (click(ev)) _clicked = true;
+			if (clack(ev)) _clicked = false;
+
+			if (orig_clicked != _clicked) {
+				_global_input_seq_number.value++;
 				_input_component.submit(_global_input_seq_number);
 			}
 
