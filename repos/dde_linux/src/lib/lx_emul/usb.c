@@ -287,7 +287,8 @@ static void release_device(struct usb_per_dev_data * data, int reset)
 	struct usb_urb_in_flight   *iter, *next;
 	int ret = -ENODEV;
 
-	list_for_each_entry_safe(iter, next, &data->urblist, le) {
+	/* discard URBs in reverse order like libusb is doing it */
+	list_for_each_entry_safe_reverse(iter, next, &data->urblist, le) {
 		usbdev_file_operations->unlocked_ioctl(&data->file,
 		                                       USBDEVFS_DISCARDURB,
 		                                       (unsigned long)&iter->urb);
@@ -515,9 +516,21 @@ handle_flush_request(unsigned char               ep,
 {
 	struct usb_device * udev = (struct usb_device *) data;
 	struct file       * file = open_usb_dev(udev);
+	struct usb_per_dev_data * d = dev_get_drvdata(&udev->dev);
+	struct usb_urb_in_flight *iter, *next;
 	unsigned int e = ep;
-	int ret =
-		usbdev_file_operations->unlocked_ioctl(file,
+	int ret = -ENODEV;
+
+	/* discard URBs of the related EP in reverse order, like libusb is doing */
+	list_for_each_entry_safe_reverse(iter, next, &d->urblist, le) {
+		if (iter->urb.endpoint == ep) {
+			usbdev_file_operations->unlocked_ioctl(file,
+			                                       USBDEVFS_DISCARDURB,
+			                                       (unsigned long)&iter->urb);
+		}
+	}
+
+	ret = usbdev_file_operations->unlocked_ioctl(file,
 		                                       USBDEVFS_RESETEP,
 		                                       (unsigned long)&e);
 	genode_usb_ack_request(session, request, handle_return_code, &ret);
