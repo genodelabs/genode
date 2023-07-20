@@ -271,14 +271,6 @@ void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp
 }
 
 
-#include <linux/slab.h>
-
-void kmem_cache_destroy(struct kmem_cache * s)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kobject.h>
 
 int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)

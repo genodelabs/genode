@@ -635,14 +635,6 @@ void kill_fasync(struct fasync_struct ** fp,int sig,int band)
 }
 
 
-#include <linux/slab.h>
-
-void kmem_cache_destroy(struct kmem_cache * s)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kmsg_dump.h>
 
 void kmsg_dump(enum kmsg_dump_reason reason)

@@ -457,14 +457,6 @@ void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp
 }
 
 
-#include <linux/slab.h>
-
-void kmem_cache_destroy(struct kmem_cache * s)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kstrtox.h>
 
 noinline int kstrtoint(const char * s,unsigned int base,int * res)
