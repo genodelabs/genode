@@ -117,6 +117,8 @@ class Net::Nic
 				Genode::warning("failed to allocate packet"); }
 		}
 
+		void wakeup_source() { _source().wakeup(); }
+
 
 		/***************
 		 ** Accessors **

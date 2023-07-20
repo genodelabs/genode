@@ -19,8 +19,6 @@
 /* Genode includes */
 #include <util/xml_node.h>
 
-enum { PKT_SIZE = 1024 };
-
 struct Send_buffer_too_small : Genode::Exception { };
 struct Bad_send_dhcp_args    : Genode::Exception { };
 
@@ -41,6 +39,7 @@ void append_param_req_list(Dhcp_options &dhcp_opts)
 		data.append_param_req<Dhcp_packet::Server_ipv4>();
 		data.append_param_req<Dhcp_packet::Ip_lease_time>();
 		data.append_param_req<Dhcp_packet::Dns_server_ipv4>();
+		data.append_param_req<Dhcp_packet::Domain_name>();
 		data.append_param_req<Dhcp_packet::Subnet_mask>();
 		data.append_param_req<Dhcp_packet::Router_ipv4>();
 	});
@@ -65,17 +64,20 @@ Dhcp_client::Dhcp_client(Timer::Connection   &timer,
 
 void Dhcp_client::_discover()
 {
+	enum { DISCOVER_PKT_SIZE = 309 };
 	_set_state(State::SELECT, _discover_timeout);
 	_send(Message_type::DISCOVER, Ipv4_address(), Ipv4_address(),
-	      Ipv4_address());
+	      Ipv4_address(), DISCOVER_PKT_SIZE);
 }
 
 
 void Dhcp_client::_rerequest(State next_state)
 {
+	enum { REREQUEST_PKT_SIZE = 309 };
 	_set_state(next_state, _rerequest_timeout(2));
 	Ipv4_address const client_ip = _handler.ip_config().interface.address;
-	_send(Message_type::REQUEST, client_ip, Ipv4_address(), client_ip);
+	_send(Message_type::REQUEST, client_ip, Ipv4_address(), client_ip,
+	      REREQUEST_PKT_SIZE);
 }
 
 
@@ -103,9 +105,10 @@ Microseconds Dhcp_client::_rerequest_timeout(unsigned lease_time_div_log2)
 void Dhcp_client::_handle_timeout(Duration)
 {
 	switch (_state) {
-	case State::BOUND: _rerequest(State::RENEW);  break;
-	case State::RENEW: _rerequest(State::REBIND); break;
-	default:           _discover();
+	case State::BOUND:  _rerequest(State::RENEW);     break;
+	case State::RENEW:  _rerequest(State::REBIND);    break;
+	case State::REBIND: _handler.discard_ip_config(); [[fallthrough]];
+	default:            _discover();
 	}
 }
 
@@ -150,9 +153,10 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 			throw Drop_packet_inform("DHCP client expects an offer");
 		}
 		_set_state(State::REQUEST, _request_timeout);
+		enum { REQUEST_PKT_SIZE = 321 };
 		_send(Message_type::REQUEST, Ipv4_address(),
 		      dhcp.option<Dhcp_packet::Server_ipv4>().value(),
-		      dhcp.yiaddr());
+		      dhcp.yiaddr(), REQUEST_PKT_SIZE);
 		break;
 
 	case State::REQUEST:
@@ -194,14 +198,16 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 void Dhcp_client::_send(Message_type msg_type,
                         Ipv4_address client_ip,
                         Ipv4_address server_ip,
-                        Ipv4_address requested_ip)
+                        Ipv4_address requested_ip,
+                        size_t       pkt_size)
 {
-	_nic.send(PKT_SIZE, [&] (void *pkt_base, Size_guard &size_guard) {
+	Mac_address client_mac = _nic.mac();
+	_nic.send(pkt_size, [&] (void *pkt_base, Size_guard &size_guard) {
 
 		/* create ETH header of the request */
 		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
 		eth.dst(Mac_address(0xff));
-		eth.src(_nic.mac());
+		eth.src(client_mac);
 		eth.type(Ethernet_frame::Type::IPV4);
 
 		/* create IP header of the request */
@@ -228,23 +234,24 @@ void Dhcp_client::_send(Message_type msg_type,
 		dhcp.htype(Dhcp_packet::Htype::ETH);
 		dhcp.hlen(sizeof(Mac_address));
 		dhcp.ciaddr(client_ip);
-		dhcp.client_mac(_nic.mac());
+		dhcp.client_mac(client_mac);
 		dhcp.default_magic_cookie();
 
 		/* append DHCP option fields to the request */
+		enum { MAX_PKT_SIZE = 1024 };
 		Dhcp_options dhcp_opts(dhcp, size_guard);
 		dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
 		switch (msg_type) {
 		case Message_type::DISCOVER:
 			append_param_req_list(dhcp_opts);
-			dhcp_opts.append_option<Dhcp_packet::Client_id>(_nic.mac());
-			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
+			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
+			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(MAX_PKT_SIZE - dhcp_off);
 			break;
 
 		case Message_type::REQUEST:
 			append_param_req_list(dhcp_opts);
-			dhcp_opts.append_option<Dhcp_packet::Client_id>(_nic.mac());
-			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
+			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
+			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(MAX_PKT_SIZE - dhcp_off);
 			if (_state == State::REQUEST) {
 				dhcp_opts.append_option<Dhcp_packet::Requested_addr>(requested_ip);
 				dhcp_opts.append_option<Dhcp_packet::Server_ipv4>(server_ip);
@@ -262,4 +269,6 @@ void Dhcp_client::_send(Message_type msg_type,
 		ip.total_length(size_guard.head_size() - ip_off);
 		ip.update_checksum();
 	});
+
+	_nic.wakeup_source();
 }

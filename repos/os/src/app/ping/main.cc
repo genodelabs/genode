@@ -125,6 +125,8 @@ class Main : public Nic_handler,
 		 ** Dhcp_client_handler **
 		 *************************/
 
+		void discard_ip_config() override { ip_config(Ipv4_config { }); }
+
 		void ip_config(Ipv4_config const &ip_config) override;
 
 		Ipv4_config const &ip_config() const override { return *_ip_config; }

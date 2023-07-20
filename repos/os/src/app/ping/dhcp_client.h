@@ -44,6 +44,8 @@ class Net::Dhcp_client_handler
 {
 	public:
 
+		virtual void discard_ip_config() = 0;
+
 		virtual void ip_config(Ipv4_config const &ip_config) = 0;
 
 		virtual Ipv4_config const &ip_config() const = 0;
@@ -85,7 +87,8 @@ class Net::Dhcp_client
 		void _send(Dhcp_packet::Message_type msg_type,
 		           Ipv4_address              client_ip,
 		           Ipv4_address              server_ip,
-		           Ipv4_address              requested_ip);
+		           Ipv4_address              requested_ip,
+		           Genode::size_t            pkt_size);
 
 		void _discover();
 
