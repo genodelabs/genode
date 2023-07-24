@@ -1,20 +1,4 @@
-#
-# there are no nic driver packages for rpi3 and imx53 tz
-#
-if {[have_board rpi3] || [have_board imx53_qsb_tz]} {
-	puts "Run script is not supported on this platform."
-	exit 0
-}
-
-#
-# lx & riscv would require extra setup on the test machine which is not desired
-#
-if {[get_cmd_switch --autopilot] && ([have_spec linux] ||
-                                     [have_board virt_qemu_riscv])} {
-
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
-}
+source ${genode_dir}/repos/os/run/assert_nic.inc
 
 proc test_timeout { } {
 	if {[have_spec sel4] && [have_board pc]} { return 60 }
