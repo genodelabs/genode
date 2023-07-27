@@ -136,6 +136,8 @@ void Superblock_control::_execute_read_vba(Channel          &channel,
 {
 	switch (channel._state) {
 	case Channel::State::SUBMITTED:
+
+		_sb.snapshots.discard_disposable_snapshots(_sb.last_secured_generation, _curr_gen);
 		switch (sb.state) {
 		case Superblock::REKEYING: {
 			Virtual_block_address const vba = channel._request._vba;
@@ -207,6 +209,8 @@ void Superblock_control::_execute_write_vba(Channel         &channel,
 {
 	switch (channel._state) {
 	case Channel::State::SUBMITTED:
+
+		sb.snapshots.discard_disposable_snapshots(sb.last_secured_generation, curr_gen);
 		switch (sb.state) {
 		case Superblock::REKEYING: {
 			Virtual_block_address const vba = channel._request._vba;
@@ -354,6 +358,7 @@ void Superblock_control::_execute_tree_ext_step(Channel          &chan,
 	switch (chan._state) {
 	case Channel::SUBMITTED:
 	{
+		_sb.snapshots.discard_disposable_snapshots(_sb.last_secured_generation, _curr_gen);
 		Physical_block_address const last_used_pba     { _sb.first_pba + (_sb.nr_of_pbas - 1) };
 		Number_of_blocks       const nr_of_unused_pbas { MAX_PBA - last_used_pba };
 
@@ -481,6 +486,7 @@ void Superblock_control::_execute_rekey_vba(Channel  &chan,
 	switch (chan._state) {
 	case Channel::SUBMITTED:
 
+		_sb.snapshots.discard_disposable_snapshots(_sb.last_secured_generation, _curr_gen);
 		if (_sb.state != Superblock::REKEYING) {
 			_mark_req_failed(chan, progress, "check superblock state");
 			break;
@@ -739,6 +745,7 @@ Superblock_control::_execute_initialize_rekeying(Channel           &chan,
 	switch (chan._state) {
 	case Channel::SUBMITTED:
 
+		_sb.snapshots.discard_disposable_snapshots(_sb.last_secured_generation, _curr_gen);
 		chan._generated_prim = {
 			.op     = Generated_prim::READ,
 			.succ   = false,
@@ -992,6 +999,7 @@ void Superblock_control::_execute_initialize(Channel           &channel,
 	switch (channel._state) {
 	case Channel::State::SUBMITTED:
 
+		_sb.snapshots.discard_disposable_snapshots(_sb.last_secured_generation, _curr_gen);
 		channel._sb_found = false;
 		channel._generated_prim = {
 			.op     = Channel::Generated_prim::Type::READ,

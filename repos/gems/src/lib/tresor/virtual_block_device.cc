@@ -895,9 +895,6 @@ void Virtual_block_device::_execute_rekey_vba(Channel  &chan,
 	switch (chan._state) {
 	case Channel::State::SUBMITTED:
 	{
-		req._snapshots.discard_disposable_snapshots(
-			req._curr_gen, req._last_secured_generation);
-
 		Snapshot_index first_snap_idx { 0 };
 		bool first_snap_idx_found { false };
 		for (Snapshot_index snap_idx { 0 };
@@ -1558,9 +1555,6 @@ void Virtual_block_device::_execute_vbd_extension_step(Channel  &chan,
 	switch (chan._state) {
 	case Channel::State::SUBMITTED:
 	{
-		req._snapshots.discard_disposable_snapshots(
-			req._curr_gen, req._last_secured_generation);
-
 		req._nr_of_leaves = 0;
 		chan._snapshot_idx = req._snapshots.newest_snapshot_idx();
 
