@@ -65,7 +65,7 @@ void Virtual_block_device_request::create(void                  *buf_ptr,
                                           uint64_t               vbd_highest_vba,
                                           bool                   rekeying,
                                           Virtual_block_address  vba,
-                                          Snapshot  const       *snapshot_ptr,
+                                          Snapshot_index         curr_snap_idx,
                                           Snapshots const       *snapshots_ptr,
                                           Tree_degree            snapshots_degree,
                                           Key_id                 old_key_id,
@@ -95,20 +95,19 @@ void Virtual_block_device_request::create(void                  *buf_ptr,
 	req._vbd_highest_vba         = vbd_highest_vba;
 	req._rekeying                = rekeying;
 	req._vba                     = vba;
+	req._curr_snap_idx           = curr_snap_idx;
+	req._snapshots               = *snapshots_ptr;
 
 	switch (req_type) {
 	case READ_VBA:
 	case WRITE_VBA:
-		req._snapshots.items[0] = *snapshot_ptr;
 		req._new_key_id         = key_id;
 		break;
 	case REKEY_VBA:
-		req._snapshots = *snapshots_ptr;
 		req._old_key_id = old_key_id;
 		req._new_key_id = new_key_id;
 		break;
 	case VBD_EXTENSION_STEP:
-		req._snapshots  = *snapshots_ptr;
 		req._pba        = first_pba;
 		req._nr_of_pbas = nr_of_pbas;
 		break;
@@ -193,6 +192,7 @@ void Virtual_block_device::submit_request(Module_request &mod_req)
 		if (chan._request._type == Request::INVALID) {
 			mod_req.dst_request_id(id);
 			chan._request = *static_cast<Request *>(&mod_req);
+			chan._vba = chan._request._vba;
 			chan._state = Channel::SUBMITTED;
 			return;
 		}
@@ -274,7 +274,7 @@ void Virtual_block_device::_execute_read_vba(Channel &channel,
 	{
 		Request &request  = channel._request;
 
-		channel._snapshot_idx = 0;
+		channel._snapshot_idx = request._curr_snap_idx;
 		channel._vba          = request._vba;
 
 		Snapshot &snapshot = channel.snapshots(channel._snapshot_idx);
@@ -578,7 +578,7 @@ void Virtual_block_device::_execute_write_vba(Channel        &chan,
 	case Channel::State::SUBMITTED: {
 		Request &request { chan._request };
 
-		chan._snapshot_idx = 0;
+		chan._snapshot_idx = request._curr_snap_idx;
 		chan._vba = request._vba;
 		chan._t1_blk_idx = chan.snapshots(chan._snapshot_idx).max_level;
 
