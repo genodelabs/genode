@@ -139,6 +139,8 @@ class Tresor::Virtual_block_device_channel
 
 		friend class Virtual_block_device;
 
+		using Request = Virtual_block_device_request;
+
 		enum State {
 			SUBMITTED,
 			READ_ROOT_NODE_PENDING,
@@ -228,6 +230,8 @@ class Tresor::Virtual_block_device_channel
 		}
 
 		Snapshot &snap();
+
+		void _log_rekeying_pba_alloc() const;
 
 		Virtual_block_device_request _request          { };
 		State                        _state            { SUBMITTED };

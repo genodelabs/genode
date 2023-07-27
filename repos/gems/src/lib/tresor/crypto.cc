@@ -18,6 +18,7 @@
 /* tresor includes */
 #include <tresor/crypto.h>
 #include <tresor/client_data.h>
+#include <tresor/sha256_4k_hash.h>
 
 using namespace Tresor;
 
@@ -652,20 +653,20 @@ bool Crypto::_peek_completed_request(uint8_t *buf_ptr,
 			memcpy(buf_ptr, &channel._request, sizeof(channel._request));
 
 			Request &req { channel._request };
-			if (VERBOSE_VBA_ACCESS) {
+			if (VERBOSE_WRITE_VBA && req._type == Request::ENCRYPT_CLIENT_DATA) {
 
-				switch (req._type) {
-				case Request::DECRYPT_CLIENT_DATA:
-				case Request::ENCRYPT_CLIENT_DATA:
-				{
-					log("    plain  ", *(Block *)channel._blk_buf);
-					log("    cipher ", *(Block *)req._ciphertext_blk_ptr);
+				Hash hash { };
+				calc_sha256_4k_hash(*(Block *)channel._blk_buf, hash);
+				log("  encrypt leaf data: plaintext ", *(Block *)channel._blk_buf, " hash ", hash);
+				log("  update branch:");
+				log("    ", Branch_lvl_prefix("leaf data: "), *(Block *)req._ciphertext_blk_ptr);
+			}
+			if (VERBOSE_READ_VBA && req._type == Request::DECRYPT_CLIENT_DATA) {
 
-					break;
-				}
-				default:
-					break;
-				}
+				Hash hash { };
+				calc_sha256_4k_hash(*(Block *)channel._blk_buf, hash);
+				log("    ", Branch_lvl_prefix("leaf data: "), *(Block *)req._ciphertext_blk_ptr);
+				log("  decrypt leaf data: plaintext ", *(Block *)channel._blk_buf, " hash ", hash);
 			}
 			if (VERBOSE_CRYPTO) {
 

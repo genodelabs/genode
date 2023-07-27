@@ -181,7 +181,7 @@ void Superblock_control::_execute_read_vba(Channel          &channel,
 		channel._state = Channel::State::READ_VBA_AT_VBD_PENDING;
 		progress = true;
 
-		if (VERBOSE_VBA_ACCESS)
+		if (VERBOSE_READ_VBA)
 			log("read vba ", channel._request._vba,
 			    ": snap ", (Snapshot_index)_sb.curr_snap,
 			    " key ", (Key_id)channel._curr_key_plaintext.id);
@@ -253,10 +253,11 @@ void Superblock_control::_execute_write_vba(Channel         &channel,
 		channel._state = Channel::State::WRITE_VBA_AT_VBD_PENDING;
 		progress = true;
 
-		if (VERBOSE_VBA_ACCESS)
+		if (VERBOSE_WRITE_VBA)
 			log("write vba ", channel._request._vba,
 			    ": snap ", (Snapshot_index)_sb.curr_snap,
-			    " key ", (Key_id)channel._curr_key_plaintext.id);
+			    " key ", (Key_id)channel._curr_key_plaintext.id,
+			    " gen ", curr_gen);
 
 		break;
 	case Channel::State::WRITE_VBA_AT_VBD_COMPLETED:

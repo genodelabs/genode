@@ -19,6 +19,9 @@
 #include <base/output.h>
 #include <util/string.h>
 
+/* os includes */
+#include <util/formatted_output.h>
+
 /* tresor includes */
 #include <tresor/verbosity.h>
 #include <tresor/math.h>
@@ -97,6 +100,13 @@ namespace Tresor {
 	struct Type_2_node_block;
 	struct Tree_walk_pbas;
 	struct Level_indent;
+
+	template <size_t LEN>
+	class Fixed_length;
+
+	class Pba_allocation;
+
+	using Branch_lvl_prefix = Fixed_length<15>;
 
 	constexpr Virtual_block_address tree_max_max_vba(Tree_degree      degree,
 	                                                 Tree_level_index max_lvl)
@@ -581,8 +591,8 @@ struct Tresor::Snapshot
 		if (valid)
 			Genode::print(
 				out, "pba ", (Physical_block_address)pba, " gen ",
-				(Generation)gen, " hash ", hash, " leaves ", nr_of_leaves,
-				" max_lvl ", max_level);
+				(Generation)gen, " hash ", hash, " maxlvl ", max_level, " leaves ",
+				nr_of_leaves, " keep ", keep, " id ", id);
 		else
 			Genode::print(out, "<invalid>");
 	}
@@ -597,6 +607,19 @@ struct Tresor::Snapshot
 struct Tresor::Snapshots
 {
 	Snapshot items[MAX_NR_OF_SNAPSHOTS];
+
+	void print(Output &out) const
+	{
+		bool first { false };
+		for (Snapshot_index idx { 0 }; idx < MAX_NR_OF_SNAPSHOTS; idx++) {
+
+			if (!items[idx].valid)
+				continue;
+
+			Genode::print(out, first ? "" : "\n", idx, ": ", items[idx]);
+			first = false;
+		}
+	}
 
 	void decode_from_blk(Block_scanner &scanner)
 	{
@@ -826,12 +849,38 @@ struct Tresor::Superblock
 struct Tresor::Type_1_node_walk
 {
 	Type_1_node nodes[TREE_MAX_NR_OF_LEVELS] { };
+
+	void print(Output &out) const
+	{
+		bool first { true };
+		for (unsigned idx { 0 }; idx < TREE_MAX_NR_OF_LEVELS; idx++) {
+
+			if (!nodes[idx].valid())
+				continue;
+
+			Genode::print(out, first ? "" : "\n", idx, ": ", nodes[idx]);
+			first = false;
+		}
+	}
 };
 
 
 struct Tresor::Tree_walk_pbas
 {
 	Physical_block_address pbas[TREE_MAX_NR_OF_LEVELS] { 0 };
+
+	void print(Output &out) const
+	{
+		bool first { true };
+		for (unsigned idx { 0 }; idx < TREE_MAX_NR_OF_LEVELS; idx++) {
+
+			if (!pbas[idx])
+				continue;
+
+			Genode::print(out, first ? "" : "\n", idx, ": ", pbas[idx]);
+			first = false;
+		}
+	}
 };
 
 
@@ -851,6 +900,56 @@ struct Tresor::Level_indent
 		for (Tree_level_index i { 0 }; i < max_lvl + 1 - lvl; i++)
 			Genode::print(out, "  ");
 	}
+};
+
+
+template <Genode::size_t LEN>
+class Tresor::Fixed_length
+{
+	private:
+
+		String<LEN> const _str;
+
+	public:
+
+		template <typename... ARGS>
+		Fixed_length(ARGS &&... args) : _str(args...) { }
+
+		void print(Output &out) const
+		{
+			Genode::print(out, Left_aligned(LEN, _str));
+		}
+};
+
+
+class Tresor::Pba_allocation {
+
+	private:
+
+		Type_1_node_walk const &_t1_node_walk;
+		Tree_walk_pbas const &_new_pbas;
+
+	public:
+
+		Pba_allocation(Type_1_node_walk const &t1_node_walk,
+		               Tree_walk_pbas const &new_pbas)
+		:
+			_t1_node_walk { t1_node_walk },
+			_new_pbas { new_pbas }
+		{ }
+
+		void print(Output &out) const
+		{
+			bool first { true };
+			for (unsigned lvl { 0 }; lvl < TREE_MAX_NR_OF_LEVELS; lvl++) {
+
+				if (_t1_node_walk.nodes[lvl].pba == _new_pbas.pbas[lvl])
+					continue;
+
+				Genode::print(out, first ? "" : ", ", _t1_node_walk.nodes[lvl].pba, " -> ", _new_pbas.pbas[lvl]);
+				first = false;
+			}
+		}
 };
 
 
