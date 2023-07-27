@@ -287,19 +287,6 @@ void Superblock_control::_execute_write_vba(Channel         &channel,
 }
 
 
-void Superblock_control::_discard_disposable_snapshots(Snapshots &snapshots,
-                                                       Generation const curr_gen,
-                                                       Generation const last_secured_gen)
-{
-	for (auto &snapshot : snapshots.items)
-	{
-		if (snapshot.valid && !snapshot.keep &&
-		    snapshot.gen != curr_gen && snapshot.gen != last_secured_gen)
-			snapshot.valid = false;
-	}
-}
-
-
 void Superblock_control::_init_sb_without_key_values(Superblock const &sb_in,
                                                      Superblock       &sb_out)
 {
@@ -843,9 +830,7 @@ void Superblock_control::_execute_sync(Channel           &channel,
 	switch (channel._state) {
 	case Channel::State::SUBMITTED:
 
-		_discard_disposable_snapshots(
-			sb.snapshots, sb.last_secured_generation, curr_gen);
-
+		sb.snapshots.discard_disposable_snapshots(sb.last_secured_generation, curr_gen);
 		sb.last_secured_generation = curr_gen;
 		sb.snapshots.items[sb.curr_snap].gen = curr_gen;
 		_init_sb_without_key_values(sb, channel._sb_ciphertext);
@@ -1232,9 +1217,7 @@ void Superblock_control::_execute_deinitialize(Channel           &channel,
 	switch (channel._state) {
 	case Channel::State::SUBMITTED:
 
-		_discard_disposable_snapshots(sb.snapshots, sb.last_secured_generation,
-		                              curr_gen);
-
+		sb.snapshots.discard_disposable_snapshots(sb.last_secured_generation, curr_gen);
 		sb.last_secured_generation           = curr_gen;
 		sb.snapshots.items[sb.curr_snap].gen = curr_gen;
 

@@ -312,9 +312,6 @@ class Tresor::Superblock_control : public Module
 		void _execute_write_vba(Channel &, uint64_t const job_idx,
                               Superblock &, Generation const &, bool &progress);
 
-		void _discard_disposable_snapshots(Snapshots &, Generation const,
-                                           Generation const);
-
 		void _execute_initialize(Channel &, uint64_t const job_idx,
 		                         Superblock &, Superblock_index &,
 		                         Generation &, bool &progress);
