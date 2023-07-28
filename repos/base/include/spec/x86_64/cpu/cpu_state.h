@@ -26,8 +26,12 @@ namespace Genode { struct Cpu_state; }
 struct Genode::Cpu_state
 {
 	enum Cpu_exception {
+		DIVIDE_ERROR          = 0x00,
+		DEBUG                 = 0x01,
+		BREAKPOINT            = 0x03,
 		UNDEFINED_INSTRUCTION = 0x06,
 		NO_MATH_COPROC        = 0x07,
+		GENERAL_PROTECTION    = 0x0d,
 		PAGE_FAULT            = 0x0e,
 		SUPERVISOR_CALL       = 0x80,
 		INTERRUPTS_START      = 0x20,
