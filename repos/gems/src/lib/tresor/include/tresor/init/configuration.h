@@ -18,9 +18,13 @@
 /* base includes */
 #include <util/xml_node.h>
 
+/* tresor includes */
+#include <tresor/types.h>
+
 namespace Tresor_init {
 
 	using namespace Genode;
+	using namespace Tresor;
 
 	class Configuration;
 }
@@ -35,6 +39,12 @@ class Tresor_init::Configuration
 		uint64_t _ft_nr_of_lvls      { 0 };
 		uint64_t _ft_nr_of_children  { 0 };
 		uint64_t _ft_nr_of_leafs     { 0 };
+
+		static bool _is_power_of_2(uint64_t val)
+		{
+			for (; val && (val & 1) == 0; val >>= 1);
+			return val == 1;
+		}
 
 	public:
 
@@ -62,15 +72,17 @@ class Tresor_init::Configuration
 				_ft_nr_of_leafs =
 					ft.attribute_value("nr_of_leafs", (uint64_t)0);
 			});
-			if (_vbd_nr_of_lvls     == 0 ||
-				 _vbd_nr_of_children == 0 ||
-				 _vbd_nr_of_leafs    == 0 ||
-				 _ft_nr_of_lvls      == 0 ||
-				 _ft_nr_of_children  == 0 ||
-				 _ft_nr_of_leafs     == 0)
-			{
-				throw Invalid();
-			}
+			ASSERT(_vbd_nr_of_lvls);
+			ASSERT(_vbd_nr_of_lvls <= TREE_MAX_NR_OF_LEVELS);
+			ASSERT(_vbd_nr_of_leafs);
+			ASSERT(_is_power_of_2(_vbd_nr_of_children));
+			ASSERT(_vbd_nr_of_children <= NR_OF_T1_NODES_PER_BLK);
+			ASSERT(_ft_nr_of_lvls);
+			ASSERT(_ft_nr_of_lvls <= TREE_MAX_NR_OF_LEVELS);
+			ASSERT(_ft_nr_of_leafs);
+			ASSERT(_is_power_of_2(_ft_nr_of_children));
+			ASSERT(_ft_nr_of_children <= NR_OF_T1_NODES_PER_BLK);
+			ASSERT(_ft_nr_of_children <= NR_OF_T2_NODES_PER_BLK);
 		}
 
 		Configuration (Configuration const &other)
