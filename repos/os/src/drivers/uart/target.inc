@@ -1,6 +1,8 @@
 SRC_CC   = main.cc
 LIBS     = base
 
-INC_DIR += $(PRG_DIR) $(REP_DIR)/src/drivers/uart
+GENERIC_DRV_DIR = $(dir $(call select_from_repositories,src/drivers/uart/target.inc))
 
-vpath main.cc $(REP_DIR)/src/drivers/uart
+INC_DIR += $(PRG_DIR) $(GENERIC_DRV_DIR)
+
+vpath main.cc $(GENERIC_DRV_DIR)
