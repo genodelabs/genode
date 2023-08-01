@@ -1284,7 +1284,7 @@ class Igd::Mmio : public Platform::Device::Mmio
 			_fw_disable<FORCEWAKE_MEDIA_GEN9, FORCEWAKE_GEN9_MEDIA_ACK>(); }
 
 		void _fw_disable_gt() {
-			_fw_enable<FORCEWAKE_GT_GEN9, FORCEWAKE_GEN9_GT_ACK>(); }
+			_fw_disable<FORCEWAKE_GT_GEN9, FORCEWAKE_GEN9_GT_ACK>(); }
 
 		void _fw_disable_render() {
 			_fw_disable<FORCEWAKE_RENDER_GEN9, FORCEWAKE_GEN9_RENDER_ACK>(); }
