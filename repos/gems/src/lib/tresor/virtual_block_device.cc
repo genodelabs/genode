@@ -1299,6 +1299,7 @@ void Virtual_block_device::_execute_rekey_vba(Channel  &chan,
 			break;
 
 		chan._log_rekeying_pba_alloc();
+		chan._t1_blks.items[chan._t1_blk_idx].encode_to_blk(chan._encoded_blk);
 		chan._state = Channel::WRITE_INNER_NODE_COMPLETED;
 
 		if (VERBOSE_REKEYING)
