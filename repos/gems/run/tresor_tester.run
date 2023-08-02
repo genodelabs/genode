@@ -258,9 +258,9 @@ append config {
 							nr_of_leafs="64" />
 
 						<free-tree
-							nr_of_levels="3"
+							nr_of_levels="4"
 							nr_of_children="8"
-							nr_of_leafs="64" />
+							nr_of_leafs="100" />
 
 					</initialize>
 					<check/>
@@ -349,8 +349,10 @@ append config {
 					<request op="read"  vba="22" count="3"   sync="yes" salt="9612"/>
 					<request op="read"  vba="15" count="2"   sync="yes" salt="6111"/>
 					<request op="write" vba="11" count="6"   sync="yes" salt="5436"/>
+					<list-snapshots/>
 					<request op="discard_snapshot"           sync="yes" id="1"/>
 					<request op="discard_snapshot"           sync="yes" id="2"/>
+					<list-snapshots/>
 					<request op="discard_snapshot"           sync="yes" id="3"/>
 					<request op="sync"  vba="0"  count="256" sync="yes"/>
 					<check/>
@@ -390,6 +392,7 @@ append config {
 					<request op="read"  vba="12" count="3"   sync="no" salt="4455"/>
 					<request op="read"  vba="19" count="3"   sync="no" salt="1931"/>
 					<request op="read"  vba="10" count="2"   sync="no" salt="3758"/>
+					<list-snapshots/>
 					<request op="sync"  vba="0"  count="256" sync="yes"/>
 					<check/>
 
