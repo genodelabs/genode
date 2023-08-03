@@ -144,7 +144,8 @@ proc mark_pkg_for_deletion { context name } {
 			set idx [lsearch -exact $pkg_dependencies $archive]
 			# remove the archive from deletion list if listed in other PKG dependencies
 			if { $idx != -1 } {
-				set archives [lreplace $archives $idx $idx]
+				set archive_idx [lsearch -exact $archives $archive]
+				set archives [lreplace $archives $archive_idx $archive_idx]
 			}
 		}
 	}
