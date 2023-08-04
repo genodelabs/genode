@@ -222,17 +222,6 @@ append config {
 			<resource name="RAM" quantum="10M"/>
 			<config ld_verbose="yes">
 
-				<verbose
-					cmd_pool_cmd_pending="no"
-					cmd_pool_cmd_in_progress="no"
-					cmd_pool_cmd_completed="no"
-					blk_io_req_in_progress="no"
-					blk_io_req_completed="no"
-					ta_req_in_progress="no"
-					ta_req_completed="no"
-					client_data_mismatch="yes"
-					client_data_transferred="no"/>
-
 				<block-io type="vfs" path="/} [tresor_image_name] {"/>
 				<crypto path="/crypto"/>
 				<trust-anchor path="/trust_anchor"/>
@@ -349,11 +338,10 @@ append config {
 					<request op="read"  vba="22" count="3"   sync="yes" salt="9612"/>
 					<request op="read"  vba="15" count="2"   sync="yes" salt="6111"/>
 					<request op="write" vba="11" count="6"   sync="yes" salt="5436"/>
-					<list-snapshots/>
+					<check-snapshots/>
 					<request op="discard_snapshot"           sync="yes" id="1"/>
 					<request op="discard_snapshot"           sync="yes" id="2"/>
-					<list-snapshots/>
-					<request op="discard_snapshot"           sync="yes" id="3"/>
+					<check-snapshots/>
 					<request op="sync"  vba="0"  count="256" sync="yes"/>
 					<check/>
 
@@ -382,7 +370,6 @@ append config {
 					<request op="write" vba="21" count="2"   sync="no" salt="8094"/>
 					<request op="write" vba="12" count="10"  sync="no" salt="4455"/>
 					<request op="write" vba="26" count="4"   sync="no" salt="7574"/>
-					<request op="discard_snapshot"           sync="no" id="4"/>
 					<request op="write" vba="15" count="7"   sync="no" salt="1931"/>
 					<request op="read"  vba="23" count="1"   sync="no" salt="7463"/>
 					<request op="read"  vba="25" count="1"   sync="no" salt="4323"/>
@@ -392,7 +379,8 @@ append config {
 					<request op="read"  vba="12" count="3"   sync="no" salt="4455"/>
 					<request op="read"  vba="19" count="3"   sync="no" salt="1931"/>
 					<request op="read"  vba="10" count="2"   sync="no" salt="3758"/>
-					<list-snapshots/>
+					<check-snapshots/>
+					<request op="discard_snapshot"           sync="no" id="4"/>
 					<request op="sync"  vba="0"  count="256" sync="yes"/>
 					<check/>
 
@@ -1073,15 +1061,14 @@ if {[benchmark_blk_count] > 0} {
 }
 append config {
 
-					<log string="Step 18: test list-snapshots command"/>
+					<log string="Step 18: test check-snapshots command"/>
 
 					<request op="create_snapshot" sync="no" id="13"/>
 					<request op="write" vba="17737" count="70" sync="no" salt="8924"/>
 					<request op="create_snapshot" sync="no" id="14"/>
 					<request op="write" vba="00129" count="30" sync="no" salt="9471"/>
 					<request op="create_snapshot" sync="no" id="15"/>
-
-					<list-snapshots/>
+					<check-snapshots/>
 
 				</commands>
 

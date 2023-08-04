@@ -12,12 +12,12 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
+/* base includes */
 #include <base/log.h>
 #include <util/string.h>
 
-/* tresor_crypto includes */
-#include <tresor/crypto/interface.h>
+/* vfs tresor crypt includes */
+#include <interface.h>
 
 namespace {
 

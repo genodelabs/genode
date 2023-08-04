@@ -25,7 +25,6 @@ namespace File_vault {
 	using namespace Genode;
 
 	using Node_name = String<32>;
-	using Passphrase_string = String<64>;
 	using File_path = String<32>;
 
 	class Tree_geometry

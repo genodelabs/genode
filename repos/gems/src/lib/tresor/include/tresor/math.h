@@ -14,15 +14,15 @@
 #ifndef _TRESOR__MATH_H_
 #define _TRESOR__MATH_H_
 
+/* tresor includes */
+#include <tresor/assertion.h>
+
 namespace Tresor {
 
 	template <typename T>
 	constexpr T to_the_power_of(T base, T exponent)
 	{
-		if (exponent < 0) {
-			class Negative_exponent { };
-			throw Negative_exponent { };
-		}
+		ASSERT(exponent >= 0);
 		if (exponent == 0)
 			return 1;
 
@@ -31,6 +31,13 @@ namespace Tresor {
 			result *= base;
 
 		return result;
+	}
+
+	template <typename T>
+	bool is_power_of_2(T val)
+	{
+		for (; val && (val & 1) == 0; val >>= 1);
+		return val == 1;
 	}
 }
 

@@ -16,8 +16,6 @@
 
 /* tresor includes */
 #include <tresor/types.h>
-#include <tresor/module.h>
-#include <tresor/sha256_4k_hash.h>
 
 namespace Tresor {
 
@@ -28,470 +26,150 @@ namespace Tresor {
 
 class Tresor::Free_tree_request : public Module_request
 {
+	friend class Free_tree_channel;
+
 	public:
 
-		enum Type {
-			INVALID = 0, ALLOC_FOR_NON_RKG = 1, ALLOC_FOR_RKG_CURR_GEN_BLKS = 2,
-			ALLOC_FOR_RKG_OLD_GEN_BLKS = 3 };
+		enum Type { ALLOC_FOR_NON_RKG, ALLOC_FOR_RKG_CURR_GEN_BLKS, ALLOC_FOR_RKG_OLD_GEN_BLKS, EXTENSION_STEP };
 
 	private:
 
-		friend class Free_tree;
-		friend class Free_tree_channel;
+		Type const _type;
+		Tree_root &_ft;
+		Tree_root &_mt;
+		Generation const _curr_gen;
+		Generation const _free_gen;
+		Number_of_blocks const _num_required_pbas;
+		Tree_walk_pbas &_new_blocks;
+		Type_1_node_walk const &_old_blocks;
+		Tree_level_index const _max_lvl;
+		Virtual_block_address const _vba;
+		Tree_degree const _vbd_degree;
+		Virtual_block_address const _vbd_max_vba;
+		bool const _rekeying;
+		Key_id const _prev_key_id;
+		Key_id const _curr_key_id;
+		Virtual_block_address const _rekeying_vba;
+		bool &_success;
+		Snapshots const &_snapshots;
+		Generation const _last_secured_gen;
+		Physical_block_address &_pba;
+		Number_of_blocks &_num_pbas;
 
-		Type       _type                    { INVALID };
-		addr_t     _ft_root_pba_ptr         { 0 };
-		addr_t     _ft_root_gen_ptr         { 0 };
-		addr_t     _ft_root_hash_ptr        { 0 };
-		uint64_t   _ft_max_level            { 0 };
-		uint64_t   _ft_degree               { 0 };
-		uint64_t   _ft_leaves               { 0 };
-		addr_t     _mt_root_pba_ptr         { 0 };
-		addr_t     _mt_root_gen_ptr         { 0 };
-		addr_t     _mt_root_hash_ptr        { 0 };
-		uint64_t   _mt_max_level            { 0 };
-		uint64_t   _mt_degree               { 0 };
-		uint64_t   _mt_leaves               { 0 };
-		uint64_t   _current_gen             { 0 };
-		uint64_t   _free_gen                { 0 };
-		uint64_t   _requested_blocks        { 0 };
-		addr_t     _new_blocks_ptr          { 0 };
-		addr_t     _old_blocks_ptr          { 0 };
-		uint64_t   _max_level               { 0 };
-		uint64_t   _vba                     { INVALID_VBA };
-		uint64_t   _vbd_degree              { 0 };
-		uint64_t   _vbd_highest_vba         { 0 };
-		bool       _rekeying                { 0 };
-		uint32_t   _previous_key_id         { 0 };
-		uint32_t   _current_key_id          { 0 };
-		uint64_t   _rekeying_vba            { 0 };
-		bool       _success                 { false };
-		addr_t     _snapshots_ptr           { 0 };
-		Generation _last_secured_generation { INVALID_GENERATION };
+		NONCOPYABLE(Free_tree_request);
 
 	public:
 
-		Free_tree_request() { }
+		Free_tree_request(Module_id, Module_channel_id, Type, Tree_root &, Tree_root &, Snapshots const &,
+		                  Generation, Generation, Generation, Number_of_blocks, Tree_walk_pbas &, Type_1_node_walk const &,
+		                  Tree_level_index, Virtual_block_address, Tree_degree, Virtual_block_address,
+		                  bool, Key_id, Key_id, Virtual_block_address, Physical_block_address &, Number_of_blocks &, bool &);
 
-		Free_tree_request(uint64_t         src_module_id,
-		                  uint64_t         src_request_id,
-		                  size_t           req_type,
-		                  addr_t           ft_root_pba_ptr,
-		                  addr_t           ft_root_gen_ptr,
-		                  addr_t           ft_root_hash_ptr,
-		                  uint64_t         ft_max_level,
-		                  uint64_t         ft_degree,
-		                  uint64_t         ft_leaves,
-		                  addr_t           mt_root_pba_ptr,
-		                  addr_t           mt_root_gen_ptr,
-		                  addr_t           mt_root_hash_ptr,
-		                  uint64_t         mt_max_level,
-		                  uint64_t         mt_degree,
-		                  uint64_t         mt_leaves,
-		                  Snapshots const *snapshots,
-		                  Generation       last_secured_generation,
-		                  uint64_t         current_gen,
-		                  uint64_t         free_gen,
-		                  uint64_t         requested_blocks,
-		                  addr_t           new_blocks_ptr,
-		                  addr_t           old_blocks_ptr,
-		                  uint64_t         max_level,
-		                  uint64_t         vba,
-		                  uint64_t         vbd_degree,
-		                  uint64_t         vbd_highest_vba,
-		                  bool             rekeying,
-		                  uint32_t         previous_key_id,
-		                  uint32_t         current_key_id,
-		                  uint64_t         rekeying_vba);
-
-		Type type() const { return _type; }
-
-		bool success() const { return _success; }
-
-		static char const *type_to_string(Type type);
-
-		char const *type_name() const { return type_to_string(_type); }
-
-
-		/********************
-		 ** Module_request **
-		 ********************/
+		static char const *type_to_string(Type);
 
 		void print(Output &out) const override { Genode::print(out, type_to_string(_type)); }
 };
 
 
-class Tresor::Free_tree_channel
+class Tresor::Free_tree_channel : public Module_channel
 {
 	private:
-
-		friend class Free_tree;
 
 		using Request = Free_tree_request;
 
 		enum State {
-			INVALID,
-			SCAN,
-			SCAN_COMPLETE,
-			UPDATE,
-			UPDATE_COMPLETE,
-			COMPLETE,
-			NOT_ENOUGH_FREE_BLOCKS,
-			TREE_HASH_MISMATCH
-		};
+			REQ_SUBMITTED, REQ_GENERATED, SEEK_DOWN, SEEK_LEFT_OR_UP, WRITE_BLK, READ_BLK_SUCCEEDED,
+			ALLOC_PBA_SUCCEEDED, WRITE_BLK_SUCCEEDED, REQ_COMPLETE };
 
-		struct Type_1_info
+		Request *_req_ptr { nullptr };
+		State _state { REQ_COMPLETE };
+		Virtual_block_address _vba { };
+		Tree_walk_pbas _old_pbas { };
+		Tree_walk_pbas _new_pbas { };
+		Tree_walk_generations _old_generations { };
+		Number_of_leaves _num_leaves { 0 };
+		Physical_block_address _alloc_pba { 0 };
+		Tree_level_index _alloc_lvl { 0 };
+		Number_of_blocks _num_pbas { 0 };
+		Block _blk { };
+		Tree_node_index _node_idx[TREE_MAX_NR_OF_LEVELS] { };
+		bool _apply_allocation { false };
+		Type_1_node_block _t1_blks[TREE_MAX_NR_OF_LEVELS] { };
+		Type_2_node_block _t2_blk { };
+		Tree_degree_log_2 _vbd_degree_log_2 { 0 };
+		Tree_level_index _lvl { 0 };
+		bool _generated_req_success { false };
+
+		NONCOPYABLE(Free_tree_channel);
+
+		void _generated_req_completed(State_uint) override;
+
+		template <typename REQUEST, typename... ARGS>
+		void _generate_req(State_uint state, bool &progress, ARGS &&... args)
 		{
-			enum State {
-				INVALID, AVAILABLE, READ, WRITE, COMPLETE };
-
-			State           state   { INVALID };
-			Type_1_node     node    { };
-			Tree_node_index index   { INVALID_NODE_INDEX };
-			bool            volatil { false };
-		};
-
-		struct Type_2_info
-		{
-			enum State {
-				INVALID, AVAILABLE, READ, WRITE, COMPLETE };
-
-			State           state { INVALID };
-			Type_2_node     node  { };
-			Tree_node_index index { INVALID_NODE_INDEX };
-		};
-
-		struct Local_cache_request
-		{
-			enum State { INVALID, PENDING, IN_PROGRESS, COMPLETE };
-			enum Op { READ, WRITE, SYNC };
-
-			State    state   { INVALID };
-			Op       op      { READ };
-			bool     success { false };
-			uint64_t pba     { 0 };
-			uint64_t level   { 0 };
-		};
-
-		struct Local_meta_tree_request
-		{
-			enum State { INVALID, PENDING, IN_PROGRESS, COMPLETE };
-			enum Op { READ, WRITE, SYNC };
-
-			State    state { INVALID };
-			Op       op    { READ };
-			uint64_t pba   { 0 };
-		};
-
-		class Type_1_info_stack {
-
-			private:
-
-				enum { MIN = 1, MAX = TREE_MAX_DEGREE,  };
-
-				Type_1_info _container[MAX + 1] { };
-				uint64_t    _top                { MIN - 1 };
-
-			public:
-
-				bool empty() const { return _top < MIN; }
-
-				bool full() const { return _top >= MAX; }
-
-				Type_1_info peek_top() const
-				{
-					if (empty()) {
-						class Exception_1 { };
-						throw Exception_1 { };
-					}
-					return _container[_top];
-				}
-
-				void reset() { _top = MIN - 1; }
-
-				void pop()
-				{
-					if (empty()) {
-						class Exception_1 { };
-						throw Exception_1 { };
-					}
-					_top--;
-				}
-
-				void push(Type_1_info val)
-				{
-					if (full()) {
-						class Exception_1 { };
-						throw Exception_1 { };
-					}
-					_top++;
-					_container[_top] = val;
-				}
-
-				void update_top(Type_1_info val)
-				{
-					if (empty()) {
-						class Exception_1 { };
-						throw Exception_1 { };
-					}
-					_container[_top] = val;
-				}
-		};
-
-		class Type_2_info_stack {
-
-			private:
-
-				enum { MIN = 1, MAX = TREE_MAX_DEGREE,  };
-
-				Type_2_info _container[MAX + 1] { };
-				uint64_t    _top                { MIN - 1 };
-
-			public:
-
-				bool empty() const { return _top < MIN; }
-
-				bool full() const { return _top >= MAX; }
-
-				Type_2_info peek_top() const
-				{
-					if (empty()) {
-						class Exception_1 { };
-						throw Exception_1 { };
-					}
-					return _container[_top];
-				}
-
-				void reset() { _top = MIN - 1; }
-
-				void pop()
-				{
-					if (empty()) {
-						class Exception_1 { };
-						throw Exception_1 { };
-					}
-					_top--;
-				}
-
-				void push(Type_2_info val)
-				{
-					if (full()) {
-						class Exception_1 { };
-						throw Exception_1 { };
-					}
-					_top++;
-					_container[_top] = val;
-				}
-
-				void update_top(Type_2_info val)
-				{
-					if (empty()) {
-						class Exception_1 { };
-						throw Exception_1 { };
-					}
-					_container[_top] = val;
-				}
-		};
-
-		class Node_queue
-		{
-			private:
-
-				enum {
-					FIRST_CONTAINER_IDX = 1,
-					MAX_CONTAINER_IDX = TREE_MAX_DEGREE,
-					MAX_USED_VALUE = TREE_MAX_DEGREE - 1,
-					FIRST_USED_VALUE = 0,
-				};
-
-				uint64_t    _head                             { FIRST_CONTAINER_IDX };
-				uint64_t    _tail                             { FIRST_CONTAINER_IDX };
-				Type_2_info _container[MAX_CONTAINER_IDX + 1] { };
-				uint64_t    _used                             { FIRST_USED_VALUE };
-
-			public:
-
-				void enqueue(Type_2_info const &node)
-				{
-					_container[_tail] = node;
-					if (_tail < MAX_CONTAINER_IDX)
-						_tail++;
-					else
-						_tail = FIRST_CONTAINER_IDX;
-
-					_used++;
-				}
-
-				void dequeue_head()
-				{
-					if (_head < MAX_CONTAINER_IDX)
-						_head++;
-					else
-						_head = FIRST_CONTAINER_IDX;
-
-					_used--;
-				}
-
-				Type_2_info const &head() const { return _container[_head]; }
-
-				bool empty() const { return _used == FIRST_USED_VALUE; };
-
-				bool full() const { return _used == MAX_USED_VALUE; };
-		};
-
-		State                   _state                                 { INVALID };
-		Request                 _request                               { };
-		uint64_t                _needed_blocks                         { 0 };
-		uint64_t                _found_blocks                          { 0 };
-		uint64_t                _exchanged_blocks                      { 0 };
-		Local_meta_tree_request _meta_tree_request                     { };
-		Local_cache_request     _cache_request                         { };
-		Block                   _cache_block_data                      { };
-		Type_1_info_stack       _level_n_stacks[TREE_MAX_NR_OF_LEVELS] { };
-		Type_2_info_stack       _level_0_stack                         { };
-		Type_1_node_block       _level_n_nodes[TREE_MAX_NR_OF_LEVELS]  { };
-		Type_1_node_block       _level_n_node                          { };
-		Type_2_node_block       _level_0_node                          { };
-		Node_queue              _type_2_leafs                          { };
-		uint64_t                _vbd_degree_log_2                      { 0 };
-		bool                    _wb_data_prim_success                  { false };
-
-		Type_1_node _root_node() const
-		{
-			Type_1_node node { };
-			node.pba = *(Physical_block_address *)_request._ft_root_pba_ptr;
-			node.gen = *(Generation *)_request._ft_root_gen_ptr;
-			memcpy(&node.hash, (void *)_request._ft_root_hash_ptr, HASH_SIZE);
-			return node;
+			_state = REQ_GENERATED;
+			generate_req<REQUEST>(state, progress, args..., _generated_req_success);
 		}
+
+		void _request_submitted(Module_request &) override;
+
+		bool _request_complete() override { return _state == REQ_COMPLETE; }
+
+		void _mark_req_failed(bool &, char const *);
+
+		bool _can_alloc_pba_of(Type_2_node &);
+
+		void _alloc_pba_of(Type_2_node &);
+
+		void _traverse_curr_node(bool &);
+
+		void _mark_req_successful(bool &);
+
+		void _start_tree_traversal(bool &);
+
+		void _advance_to_next_node();
+
+		void _add_new_branch_at(Tree_level_index, Tree_node_index);
+
+		void _add_new_root_lvl();
+
+		void _generate_write_blk_req(bool &);
+
+		void _extension_step(bool &);
+
+		void _alloc_pbas(bool &);
+
+	public:
+
+		Free_tree_channel(Module_channel_id id) : Module_channel { FREE_TREE, id } { }
+
+		void execute(bool &);
 };
 
 class Tresor::Free_tree : public Module
 {
 	private:
 
-		using Request = Free_tree_request;
 		using Channel = Free_tree_channel;
-		using Local_cache_request = Channel::Local_cache_request;
-		using Local_meta_tree_request = Channel::Local_meta_tree_request;
-		using Type_1_info = Channel::Type_1_info;
-		using Type_2_info = Channel::Type_2_info;
-		using Type_1_info_stack = Channel::Type_1_info_stack;
-		using Type_2_info_stack = Channel::Type_2_info_stack;
-		using Node_queue = Channel::Node_queue;
+		using Request = Free_tree_request;
 
-		enum { FIRST_LVL_N_STACKS_IDX = 1 };
-		enum { MAX_LVL_N_STACKS_IDX = TREE_MAX_LEVEL };
-		enum { FIRST_LVL_N_NODES_IDX = 1 };
-		enum { NR_OF_CHANNELS = 1 };
+		Constructible<Channel> _channels[1] { };
 
-		Channel _channels[NR_OF_CHANNELS] { };
-
-		void _reset_block_state(Channel &chan);
-
-		static Local_meta_tree_request
-		_new_meta_tree_request(Physical_block_address pba);
-
-		void _update_upper_n_stack(Type_1_info const &t,
-		                           Generation         gen,
-		                           Block       const &block_data,
-		                           Type_1_node_block &entries);
-
-		void _mark_req_failed(Channel    &chan,
-		                      bool       &progress,
-		                      char const *str);
-
-		void _mark_req_successful(Channel &chan,
-		                          bool    &progress);
-
-		void
-		_exchange_type_2_leaves(Generation              free_gen,
-		                        Tree_level_index        max_level,
-		                        Type_1_node_walk const &old_blocks,
-		                        Tree_walk_pbas         &new_blocks,
-		                        Virtual_block_address   vba,
-		                        Tree_degree_log_2       vbd_degree_log_2,
-		                        Request::Type           req_type,
-		                        Type_2_info_stack      &stack,
-		                        Type_2_node_block      &entries,
-		                        Number_of_blocks       &exchanged,
-		                        bool                   &handled,
-		                        Virtual_block_address   vbd_highest_vba,
-		                        bool                    rekeying,
-		                        Key_id                  previous_key_id,
-		                        Key_id                  current_key_id,
-		                        Virtual_block_address   rekeying_vba);
-
-		void _populate_lower_n_stack(Type_1_info_stack &stack,
-		                             Type_1_node_block &entries,
-		                             Block      const  &block_data,
-		                             Generation         current_gen);
-
-		bool
-		_check_type_2_leaf_usable(Snapshots       const &snapshots,
-		                          Generation             last_secured_gen,
-		                          Type_2_node     const &node,
-		                          bool                   rekeying,
-		                          Key_id                 previous_key_id,
-		                          Virtual_block_address  rekeying_vba);
-
-		void _populate_level_0_stack(Type_2_info_stack     &stack,
-		                             Type_2_node_block     &entries,
-		                             Block           const &block_data,
-		                             Snapshots       const &active_snaps,
-		                             Generation             secured_gen,
-		                             bool                   rekeying,
-		                             Key_id                 previous_key_id,
-		                             Virtual_block_address  rekeying_vba);
-
-		void _execute_update(Channel         &chan,
-		                     Snapshots const &active_snaps,
-		                     Generation       last_secured_gen,
-		                     bool            &progress);
-
-		bool _node_volatile(Type_1_node const &node,
-		                    uint64_t           gen);
-
-		void _execute_scan(Channel         &chan,
-		                   Snapshots const &active_snaps,
-		                   Generation       last_secured_gen,
-		                   bool            &progress);
-
-		void _execute(Channel         &chan,
-		              Snapshots const &active_snaps,
-		              Generation       last_secured_gen,
-		              bool            &progress);
-
-		void _check_type_2_stack(Type_2_info_stack &stack,
-		                         Type_1_info_stack &stack_next,
-		                         Node_queue        &leaves,
-		                         Number_of_blocks  &found);
-
-		Local_cache_request _new_cache_request(Physical_block_address  pba,
-		                                       Local_cache_request::Op op,
-		                                       Tree_level_index        lvl);
-
-		/************
-		 ** Module **
-		 ************/
-
-		bool ready_to_submit_request() override;
-
-		void submit_request(Module_request &req) override;
-
-		bool _peek_completed_request(uint8_t *buf_ptr,
-		                             size_t   buf_size) override;
-
-		void _drop_completed_request(Module_request &req) override;
+		NONCOPYABLE(Free_tree);
 
 		void execute(bool &) override;
 
-		bool _peek_generated_request(uint8_t *buf_ptr,
-		                             size_t   buf_size) override;
+	public:
 
-		void _drop_generated_request(Module_request &mod_req) override;
+		struct Extension_step : Request
+		{
+			Extension_step(Module_id mod_id, Module_channel_id chan_id, Generation curr_gen, Tree_root &ft, Tree_root &mt,
+			               Physical_block_address &pba, Number_of_blocks &num_pbas, bool &succ)
+			: Request(mod_id, chan_id, Request::EXTENSION_STEP, ft, mt, *(Snapshots *)0, 0, curr_gen, 0, 0, *(Tree_walk_pbas*)0,
+			                    *(Type_1_node_walk*)0, 0, 0, 0, 0, 0, 0, 0, 0, pba, num_pbas, succ) { }
+		};
 
-		void generated_request_complete(Module_request &req) override;
+		Free_tree();
 };
 
 #endif /* _TRESOR__FREE_TREE_H_ */

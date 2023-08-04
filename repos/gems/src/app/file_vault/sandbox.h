@@ -642,9 +642,9 @@ namespace File_vault {
 		});
 	}
 
-	void gen_tresor_init_trust_anchor_start_node(Xml_generator           &xml,
-	                                          Child_state       const &child,
-	                                          Passphrase_string const &passphrase)
+	void gen_tresor_init_trust_anchor_start_node(Xml_generator &xml,
+	                                             Child_state const &child,
+	                                             Passphrase const &passphrase)
 	{
 		child.gen_start_node(xml, [&] () {
 

@@ -1,6 +1,6 @@
 LIB_DIR := $(REP_DIR)/src/lib/vfs/tresor
 
-SRC_CC := vfs.cc
+SRC_CC := vfs.cc splitter.cc
 
 INC_DIR += $(LIB_DIR)
 

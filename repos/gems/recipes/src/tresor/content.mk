@@ -7,9 +7,7 @@ MIRROR_FROM_REP_DIR := \
 	lib/mk/vfs_tresor_crypto_memcopy.mk \
 	lib/mk/vfs_tresor_trust_anchor.mk \
 	src/lib/vfs/tresor \
-	src/lib/vfs/tresor_crypto/vfs.cc \
-	src/lib/vfs/tresor_crypto/aes_cbc \
-	src/lib/vfs/tresor_crypto/memcopy \
+	src/lib/vfs/tresor_crypto \
 	src/lib/vfs/tresor_trust_anchor \
 	src/app/tresor_init \
 	src/app/tresor_init_trust_anchor \

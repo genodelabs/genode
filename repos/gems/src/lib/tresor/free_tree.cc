@@ -15,997 +15,502 @@
 #include <tresor/free_tree.h>
 #include <tresor/meta_tree.h>
 #include <tresor/block_io.h>
-#include <tresor/sha256_4k_hash.h>
+#include <tresor/hash.h>
 
 using namespace Tresor;
-
-
-/***************
- ** Utilities **
- ***************/
-
-static Virtual_block_address
-vbd_node_lowest_vba(Tree_degree_log_2     vbd_degree_log_2,
-                    Tree_level_index      vbd_level,
-                    Virtual_block_address vbd_leaf_vba)
-{
-	return vbd_leaf_vba &
-		(0xffff'ffff'ffff'ffff <<
-			((uint32_t)vbd_degree_log_2 * (uint32_t)vbd_level));
-}
-
-
-static Number_of_blocks vbd_node_nr_of_vbas(Tree_degree_log_2 vbd_degree_log_2,
-                                            Tree_level_index  vbd_level)
-{
-	return (Number_of_blocks)1 << (vbd_level * vbd_degree_log_2);
-}
-
-
-static Virtual_block_address
-vbd_node_highest_vba(Tree_degree_log_2     vbd_degree_log_2,
-                     Tree_level_index      vbd_level,
-                     Virtual_block_address vbd_leaf_vba)
-{
-	return
-		vbd_node_lowest_vba(vbd_degree_log_2, vbd_level, vbd_leaf_vba) +
-		(vbd_node_nr_of_vbas(vbd_degree_log_2, vbd_level) - 1);
-}
-
-
-/***********************
- ** Free_tree_request **
- ***********************/
 
 char const *Free_tree_request::type_to_string(Type type)
 {
 	switch (type) {
-	case INVALID: return "invalid";
 	case ALLOC_FOR_NON_RKG: return "alloc_for_non_rkg";
 	case ALLOC_FOR_RKG_CURR_GEN_BLKS: return "alloc_for_rkg_curr_gen_blks";
 	case ALLOC_FOR_RKG_OLD_GEN_BLKS: return "alloc_for_rkg_old_gen_blks";
+	case EXTENSION_STEP: return "extension_step";
 	}
-	return "?";
+	ASSERT_NEVER_REACHED;
 }
 
 
-Free_tree_request::Free_tree_request(uint64_t         src_module_id,
-                                     uint64_t         src_request_id,
-                                     size_t           req_type,
-                                     addr_t           ft_root_pba_ptr,
-                                     addr_t           ft_root_gen_ptr,
-                                     addr_t           ft_root_hash_ptr,
-                                     uint64_t         ft_max_level,
-                                     uint64_t         ft_degree,
-                                     uint64_t         ft_leaves,
-                                     addr_t           mt_root_pba_ptr,
-                                     addr_t           mt_root_gen_ptr,
-                                     addr_t           mt_root_hash_ptr,
-                                     uint64_t         mt_max_level,
-                                     uint64_t         mt_degree,
-                                     uint64_t         mt_leaves,
-                                     Snapshots const *snapshots_ptr,
-                                     Generation       last_secured_generation,
-                                     uint64_t         current_gen,
-                                     uint64_t         free_gen,
-                                     uint64_t         requested_blocks,
-                                     addr_t           new_blocks_ptr,
-                                     addr_t           old_blocks_ptr,
-                                     uint64_t         max_level,
-                                     uint64_t         vba,
-                                     uint64_t         vbd_degree,
-                                     uint64_t         vbd_highest_vba,
-                                     bool             rekeying,
-                                     uint32_t         previous_key_id,
-                                     uint32_t         current_key_id,
-                                     uint64_t         rekeying_vba)
+Free_tree_request::Free_tree_request(Module_id src_module_id, Module_channel_id src_chan_id, Type type,
+                                     Tree_root &ft, Tree_root &mt, Snapshots const &snapshots, Generation last_secured_gen,
+                                     Generation curr_gen, Generation free_gen, Number_of_blocks num_required_pbas,
+                                     Tree_walk_pbas &new_blocks, Type_1_node_walk const &old_blocks,
+                                     Tree_level_index max_lvl, Virtual_block_address vba, Tree_degree vbd_degree,
+                                     Virtual_block_address vbd_max_vba, bool rekeying, Key_id prev_key_id,
+                                     Key_id curr_key_id, Virtual_block_address rekeying_vba, Physical_block_address &pba,
+                                     Number_of_blocks &num_pbas, bool &success)
+
 :
-	Module_request           { src_module_id, src_request_id, FREE_TREE },
-	_type                    { (Type)req_type },
-	_ft_root_pba_ptr         { (addr_t)ft_root_pba_ptr },
-	_ft_root_gen_ptr         { (addr_t)ft_root_gen_ptr },
-	_ft_root_hash_ptr        { (addr_t)ft_root_hash_ptr },
-	_ft_max_level            { ft_max_level },
-	_ft_degree               { ft_degree },
-	_ft_leaves               { ft_leaves },
-	_mt_root_pba_ptr         { (addr_t)mt_root_pba_ptr },
-	_mt_root_gen_ptr         { (addr_t)mt_root_gen_ptr },
-	_mt_root_hash_ptr        { (addr_t)mt_root_hash_ptr },
-	_mt_max_level            { mt_max_level },
-	_mt_degree               { mt_degree },
-	_mt_leaves               { mt_leaves },
-	_current_gen             { current_gen },
-	_free_gen                { free_gen },
-	_requested_blocks        { requested_blocks },
-	_new_blocks_ptr          { (addr_t)new_blocks_ptr },
-	_old_blocks_ptr          { (addr_t)old_blocks_ptr },
-	_max_level               { max_level },
-	_vba                     { vba },
-	_vbd_degree              { vbd_degree },
-	_vbd_highest_vba         { vbd_highest_vba },
-	_rekeying                { rekeying },
-	_previous_key_id         { previous_key_id },
-	_current_key_id          { current_key_id },
-	_rekeying_vba            { rekeying_vba },
-	_snapshots_ptr           { (addr_t)snapshots_ptr },
-	_last_secured_generation { last_secured_generation }
+	Module_request { src_module_id, src_chan_id, FREE_TREE }, _type { type }, _ft { ft }, _mt { mt },
+	_curr_gen { curr_gen }, _free_gen { free_gen }, _num_required_pbas { num_required_pbas }, _new_blocks { new_blocks },
+	_old_blocks { old_blocks }, _max_lvl { max_lvl }, _vba { vba }, _vbd_degree { vbd_degree }, _vbd_max_vba { vbd_max_vba },
+	_rekeying { rekeying }, _prev_key_id { prev_key_id }, _curr_key_id { curr_key_id }, _rekeying_vba { rekeying_vba },
+	_success { success }, _snapshots { snapshots }, _last_secured_gen { last_secured_gen }, _pba { pba }, _num_pbas { num_pbas }
 { }
 
 
-/***************
- ** Free_tree **
- ***************/
-
 void Free_tree::execute(bool &progress)
 {
-	for (Channel &channel : _channels) {
-		_execute(
-			channel, *(Snapshots *)channel._request._snapshots_ptr,
-			channel._request._last_secured_generation, progress);
-	}
+	for_each_channel<Channel>([&] (Channel &chan) {
+		chan.execute(progress); });
 }
 
 
-Free_tree::Local_cache_request Free_tree::_new_cache_request(Physical_block_address  pba,
-                                                             Local_cache_request::Op op,
-                                                             Tree_level_index        lvl)
+bool Free_tree_channel::_can_alloc_pba_of(Type_2_node &node)
 {
-	return Local_cache_request {
-		Local_cache_request::PENDING, op, false,
-		pba, lvl };
-}
-
-
-void Free_tree::_check_type_2_stack(Type_2_info_stack &stack,
-                                    Type_1_info_stack &stack_next,
-                                    Node_queue        &leaves,
-                                    Number_of_blocks  &found)
-{
-	if (!stack.empty()) {
-		while (!stack.empty()) {
-			Type_2_info const info { stack.peek_top() };
-			if (!leaves.full()) {
-				leaves.enqueue(info);
-			}
-			found++;
-			stack.pop();
-		}
-	}
-	if (!stack_next.empty()) {
-		Type_1_info n { stack_next.peek_top() };
-
-		/*
-		 * Only when the node is in read state we actually have to acknowledge
-		 * checking the leaf nodes.
-		 */
-		if (n.state == Type_1_info::READ) {
-			n.state = Type_1_info::COMPLETE;
-			stack_next.update_top(n);
-		}
-	}
-}
-
-
-void Free_tree::_populate_lower_n_stack(Type_1_info_stack &stack,
-                                        Type_1_node_block &entries,
-                                        Block      const  &block_data,
-                                        Generation         current_gen)
-{
-	stack.reset();
-	entries.decode_from_blk(block_data);
-
-	for (Tree_node_index idx = 0; idx < NR_OF_T1_NODES_PER_BLK; idx++) {
-
-		if (entries.nodes[idx].pba != 0) {
-
-			stack.push({
-				Type_1_info::INVALID, entries.nodes[idx], idx,
-				_node_volatile(entries.nodes[idx], current_gen) });
-		}
-	}
-}
-
-
-bool
-Free_tree::_check_type_2_leaf_usable(Snapshots       const &snapshots,
-                                     Generation             last_secured_gen,
-                                     Type_2_node     const &node,
-                                     bool                   rekeying,
-                                     Key_id                 previous_key_id,
-                                     Virtual_block_address  rekeying_vba)
-{
-	if (node.pba == 0 ||
-	    node.pba == INVALID_PBA ||
-	    node.free_gen > last_secured_gen)
+	Request &req { *_req_ptr };
+	if (node.pba == 0 || node.pba == INVALID_PBA || node.free_gen > req._last_secured_gen)
 		return false;
 
 	if (!node.reserved)
 		return true;
 
-	if (rekeying &&
-	    node.last_key_id == previous_key_id &&
-	    node.last_vba < rekeying_vba)
+	if (req._rekeying && node.last_key_id == req._prev_key_id && node.last_vba < req._rekeying_vba)
 		return true;
 
-	for (Snapshot const &snap : snapshots.items) {
-		if (snap.valid &&
-		    node.free_gen > snap.gen &&
-		    node.alloc_gen < snap.gen + 1)
+	for (Snapshot const &snap : req._snapshots.items)
+		if (snap.valid && node.free_gen > snap.gen && node.alloc_gen < snap.gen + 1)
 			return false;
-	}
+
 	return true;
 }
 
 
-void Free_tree::_populate_level_0_stack(Type_2_info_stack     &stack,
-                                        Type_2_node_block     &entries,
-                                        Block           const &block_data,
-                                        Snapshots       const &active_snaps,
-                                        Generation             secured_gen,
-                                        bool                   rekeying,
-                                        Key_id                 previous_key_id,
-                                        Virtual_block_address  rekeying_vba)
+void Free_tree_channel::_generated_req_completed(State_uint state_uint)
 {
-	stack.reset();
-	entries.decode_from_blk(block_data);
-
-	for (Tree_node_index idx = 0; idx < NR_OF_T1_NODES_PER_BLK; idx++) {
-		if (_check_type_2_leaf_usable(active_snaps, secured_gen,
-		                              entries.nodes[idx], rekeying,
-		                              previous_key_id, rekeying_vba)) {
-
-			stack.push({ Type_2_info::INVALID, entries.nodes[idx], idx });
-		}
-	}
-}
-
-
-void Free_tree::_execute_scan(Channel         &chan,
-                              Snapshots const &active_snaps,
-                              Generation       last_secured_gen,
-                              bool            &progress)
-{
-	Request &req { chan._request };
-	bool end_of_tree  = false;
-	bool enough_found = false;
-
-	// handle level 0
-	{
-		Number_of_blocks     found_blocks = 0;
-		_check_type_2_stack(
-			chan._level_0_stack, chan._level_n_stacks[FIRST_LVL_N_STACKS_IDX],
-			chan._type_2_leafs, found_blocks);
-
-		chan._found_blocks += found_blocks;
-	}
-
-	// handle level 1 - n
-	for (Tree_level_index lvl = FIRST_LVL_N_STACKS_IDX; lvl <= MAX_LVL_N_STACKS_IDX; lvl++) {
-
-		if (!chan._level_n_stacks[lvl].empty()) {
-
-			Type_1_info t1_info = chan._level_n_stacks[lvl].peek_top();
-			switch (t1_info.state) {
-			case Type_1_info::INVALID:
-
-				if (chan._cache_request.state != Local_cache_request::INVALID) {
-					class Exception_1 { };
-					throw Exception_1 { };
-				}
-				chan._cache_request = _new_cache_request(
-					t1_info.node.pba, Local_cache_request::READ, lvl);
-
-				progress = true;
-				break;
-
-			case Type_1_info::AVAILABLE:
-
-				chan._cache_request.state = Local_cache_request::INVALID;
-				if (lvl >= 2) {
-					_populate_lower_n_stack(
-						chan._level_n_stacks[lvl - 1],
-						chan._level_n_node, chan._cache_block_data,
-						req._current_gen);
-				} else {
-					_populate_level_0_stack(
-						chan._level_0_stack,
-						chan._level_0_node, chan._cache_block_data,
-						active_snaps, last_secured_gen,
-						req._rekeying, req._previous_key_id,
-						req._rekeying_vba);
-				}
-				t1_info.state = Type_1_info::READ;
-				chan._level_n_stacks[lvl].update_top(t1_info);
-				progress = true;
-				break;
-
-			case Type_1_info::READ:
-
-				t1_info.state = Type_1_info::COMPLETE;
-				chan._level_n_stacks[lvl].update_top(t1_info);
-				progress = true;
-				break;
-
-			case Type_1_info::WRITE:
-
-				class Exception_1 { };
-				throw Exception_1 { };
-
-			case Type_1_info::COMPLETE:
-
-				if (lvl == req._ft_max_level)
-					end_of_tree = true;
-
-				if (chan._found_blocks >= chan._needed_blocks)
-					enough_found = true;
-
-				chan._level_n_stacks[lvl].pop();
-				progress = true;
-				break;
-			}
-			break;
-		}
-	}
-
-	if (chan._state != Channel::SCAN)
+	if (!_generated_req_success) {
+		error("free tree: request (", *_req_ptr, ") failed because generated request failed)");
+		_req_ptr->_success = false;
+		_state = REQ_COMPLETE;
+		_req_ptr = nullptr;
 		return;
-
-	if (enough_found) {
-		chan._state = Channel::SCAN_COMPLETE;
-
-		for (Type_1_info_stack &stack : chan._level_n_stacks)
-			stack = { };
-
-		for (Type_1_node_block &blk : chan._level_n_nodes)
-			blk = { };
-
-		chan._level_n_stacks[req._ft_max_level].push(
-			Type_1_info {
-				Type_1_info::INVALID, chan._root_node(), 0,
-				_node_volatile(chan._root_node(), req._current_gen) });
 	}
-
-	if (end_of_tree && !enough_found)
-		chan._state = Channel::NOT_ENOUGH_FREE_BLOCKS;
+	_state = (State)state_uint;
 }
 
 
-void
-Free_tree::_exchange_type_2_leaves(Generation              free_gen,
-                                   Tree_level_index        max_level,
-                                   Type_1_node_walk const &old_blocks,
-                                   Tree_walk_pbas         &new_blocks,
-                                   Virtual_block_address   vba,
-                                   Tree_degree_log_2       vbd_degree_log_2,
-                                   Request::Type           req_type,
-                                   Type_2_info_stack      &stack,
-                                   Type_2_node_block      &entries,
-                                   Number_of_blocks       &exchanged,
-                                   bool                   &handled,
-                                   Virtual_block_address   vbd_highest_vba,
-                                   bool                    rekeying,
-                                   Key_id                  previous_key_id,
-                                   Key_id                  current_key_id,
-                                   Virtual_block_address   rekeying_vba)
+void Free_tree_channel::_alloc_pba_of(Type_2_node &t2_node)
 {
-	Number_of_blocks local_exchanged { 0 };
-	handled = false;
+	Request &req { *_req_ptr };
+	Tree_level_index vbd_lvl { 0 };
+	for (; vbd_lvl <= req._max_lvl && req._new_blocks.pbas[vbd_lvl]; vbd_lvl++);
 
-	for (Tree_level_index i = 0; i <= max_level; i++) {
+	Virtual_block_address node_min_vba { vbd_node_min_vba(_vbd_degree_log_2, vbd_lvl, req._vba) };
+	req._new_blocks.pbas[vbd_lvl] = t2_node.pba;
+	t2_node.alloc_gen = req._old_blocks.nodes[vbd_lvl].gen;
+	t2_node.free_gen = req._free_gen;
+	Virtual_block_address rkg_vba { req._rekeying_vba };
+	switch (req._type) {
+	case Request::ALLOC_FOR_NON_RKG:
 
-		if (new_blocks.pbas[i] == 0) {
+		t2_node.reserved = true;
+		t2_node.pba = req._old_blocks.nodes[vbd_lvl].pba;
+		t2_node.last_vba = node_min_vba;
+		if (req._rekeying) {
+			if (req._vba < rkg_vba)
+				t2_node.last_key_id = req._curr_key_id;
+			else
+				t2_node.last_key_id = req._prev_key_id;
+		} else
+			t2_node.last_key_id = req._curr_key_id;
+		break;
 
-			if (!stack.empty()) {
+	case Request::ALLOC_FOR_RKG_CURR_GEN_BLKS:
 
-				Type_2_info const info { stack.peek_top() };
-				Type_2_node &t2_node { entries.nodes[info.index] };
-				if (t2_node.pba != info.node.pba) {
-					class Exception_1 { };
-					throw Exception_1 { };
-				}
-				switch (req_type) {
-				case Request::ALLOC_FOR_NON_RKG:
+		t2_node.reserved = false;
+		t2_node.pba = req._old_blocks.nodes[vbd_lvl].pba;
+		t2_node.last_vba = node_min_vba;
+		t2_node.last_key_id = req._prev_key_id;
+		break;
 
-					new_blocks.pbas[i] = t2_node.pba;
-					t2_node.pba       = old_blocks.nodes[i].pba;
-					t2_node.alloc_gen = old_blocks.nodes[i].gen;
-					t2_node.free_gen  = free_gen;
-					t2_node.last_vba  =
-						vbd_node_lowest_vba(vbd_degree_log_2, i, vba);
-
-					if (rekeying) {
-
-						if (vba < rekeying_vba)
-							t2_node.last_key_id = current_key_id;
-						else
-							t2_node.last_key_id = previous_key_id;
-
-					} else {
-
-						t2_node.last_key_id = current_key_id;
-					}
-					t2_node.reserved = true;
-					break;
-
-				case Request::ALLOC_FOR_RKG_CURR_GEN_BLKS:
-
-					new_blocks.pbas[i] = t2_node.pba;
-
-					t2_node.pba       = old_blocks.nodes[i].pba;
-					t2_node.alloc_gen = old_blocks.nodes[i].gen;
-					t2_node.free_gen  = free_gen;
-					t2_node.last_vba  =
-						vbd_node_lowest_vba (vbd_degree_log_2, i, vba);
-
-					t2_node.last_key_id = previous_key_id;
-					t2_node.reserved = false;
-					break;
-
-				case Request::ALLOC_FOR_RKG_OLD_GEN_BLKS:
-				{
-					new_blocks.pbas[i] = t2_node.pba;
-
-					t2_node.alloc_gen = old_blocks.nodes[i].gen;
-					t2_node.free_gen  = free_gen;
-
-					Virtual_block_address const node_highest_vba {
-						vbd_node_highest_vba(vbd_degree_log_2, i, vba) };
-
-					if (rekeying_vba < node_highest_vba &&
-					    rekeying_vba < vbd_highest_vba)
-					{
-						t2_node.last_key_id = previous_key_id;
-						t2_node.last_vba    = rekeying_vba + 1;
-
-					} else if (rekeying_vba == node_highest_vba ||
-					           rekeying_vba == vbd_highest_vba) {
-
-						t2_node.last_key_id = current_key_id;
-						t2_node.last_vba    =
-							vbd_node_lowest_vba (vbd_degree_log_2, i, vba);
-
-					} else {
-
-						class Exception_1 { };
-						throw Exception_1 { };
-					}
-					t2_node.reserved = true;
-					break;
-				}
-				default:
-
-					class Exception_2 { };
-					throw Exception_2 { };
-				}
-
-				local_exchanged = local_exchanged + 1;
-				stack.pop();
-				handled = true;
-
-			} else {
-
-				break;
-			}
-		}
-	}
-	exchanged = local_exchanged;
-}
-
-
-Free_tree::Local_meta_tree_request
-Free_tree::_new_meta_tree_request(Physical_block_address pba)
-{
-	return {
-		Local_meta_tree_request::PENDING, Local_meta_tree_request::READ, pba };
-}
-
-
-void Free_tree::_update_upper_n_stack(Type_1_info const &t,
-                                      Generation         gen,
-                                      Block       const &block_data,
-                                      Type_1_node_block &entries)
-{
-	entries.nodes[t.index].pba = t.node.pba;
-	entries.nodes[t.index].gen = gen;
-	calc_sha256_4k_hash(block_data, entries.nodes[t.index].hash);
-}
-
-
-void Free_tree::_execute_update(Channel         &chan,
-                                Snapshots const &active_snaps,
-                                Generation       last_secured_gen,
-                                bool            &progress)
-{
-	Request &req { chan._request };
-	bool exchange_finished { false };
-	bool update_finished { false };
-	Number_of_blocks exchanged;
-
-	/* handle level 0 */
+	case Request::ALLOC_FOR_RKG_OLD_GEN_BLKS:
 	{
-		bool handled;
-
-		_exchange_type_2_leaves(
-			req._free_gen, (Tree_level_index)req._max_level,
-			*(Type_1_node_walk *)req._old_blocks_ptr,
-			*(Tree_walk_pbas *)req._new_blocks_ptr,
-			req._vba, (Tree_degree_log_2)chan._vbd_degree_log_2, req._type, chan._level_0_stack,
-			chan._level_0_node, exchanged, handled, req._vbd_highest_vba,
-			req._rekeying, req._previous_key_id, req._current_key_id,
-			req._rekeying_vba);
-
-		if (handled) {
-			if (exchanged > 0) {
-				chan._exchanged_blocks += exchanged;
-			} else {
-				Type_1_info n { chan._level_n_stacks[FIRST_LVL_N_STACKS_IDX].peek_top() };
-				n.state = Type_1_info::COMPLETE;
-				chan._level_n_stacks[FIRST_LVL_N_STACKS_IDX].update_top(n);
-			}
-		}
+		t2_node.reserved = true;
+		Virtual_block_address node_max_vba { vbd_node_max_vba(_vbd_degree_log_2, vbd_lvl, req._vba) };
+		if (rkg_vba < node_max_vba && rkg_vba < req._vbd_max_vba) {
+			t2_node.last_key_id = req._prev_key_id;
+			t2_node.last_vba = rkg_vba + 1;
+		} else if (rkg_vba == node_max_vba || rkg_vba == req._vbd_max_vba) {
+			t2_node.last_key_id = req._curr_key_id;
+			t2_node.last_vba = node_min_vba;
+		} else
+			ASSERT_NEVER_REACHED;
+		break;
 	}
-	if (chan._exchanged_blocks == chan._needed_blocks) {
-		exchange_finished = true;
+	default: ASSERT_NEVER_REACHED;
 	}
-	/* handle level 1..N */
-	for (Tree_level_index l { FIRST_LVL_N_STACKS_IDX }; l <= MAX_LVL_N_STACKS_IDX; l++) {
-
-		Type_1_info_stack &stack { chan._level_n_stacks[l] };
-
-		if (!stack.empty()) {
-
-			Type_1_info n { stack.peek_top() };
-			switch (n.state) {
-			case Type_1_info::INVALID:
-
-				if (chan._cache_request.state != Local_cache_request::INVALID) {
-					class Exception_1 { };
-					throw Exception_1 { };
-				}
-				chan._cache_request =
-					_new_cache_request(
-						n.node.pba, Local_cache_request::READ, l);
-
-				progress = true;
-				break;
-
-			case Type_1_info::AVAILABLE:
-
-				chan._cache_request.state = Local_cache_request::INVALID;
-				if (l >= 2) {
-
-					_populate_lower_n_stack(
-						chan._level_n_stacks[l - 1],
-						chan._level_n_nodes[l - 1], chan._cache_block_data,
-						req._current_gen);
-
-					if (!chan._level_n_stacks[l - 1].empty())
-						n.state = Type_1_info::WRITE;
-					else
-						n.state = Type_1_info::COMPLETE;
-
-				} else {
-
-					_populate_level_0_stack(
-						chan._level_0_stack, chan._level_0_node,
-						chan._cache_block_data, active_snaps, last_secured_gen,
-						req._rekeying, req._previous_key_id,
-						req._rekeying_vba);
-
-					if (!chan._level_0_stack.empty())
-						n.state = Type_1_info::WRITE;
-					else
-						n.state = Type_1_info::COMPLETE;
-				}
-				stack.update_top(n);
-				progress = true;
-				break;
-
-			case Type_1_info::READ:
-
-				class Exception_2 { };
-				throw Exception_2 { };
-
-			case Type_1_info::WRITE:
-
-				if (!n.volatil) {
-
-					Local_meta_tree_request &mtr { chan._meta_tree_request };
-					if (mtr.state == Local_meta_tree_request::INVALID) {
-
-						mtr = _new_meta_tree_request(n.node.pba);
-						progress = true;
-						break;
-
-					} else if (mtr.state == Local_meta_tree_request::COMPLETE) {
-
-						mtr.state = Local_meta_tree_request::INVALID;
-						n.volatil = true;
-						n.node.pba = mtr.pba;
-						stack.update_top(n);
-
-					} else {
-
-						class Exception_3 { };
-						throw Exception_3 { };
-					}
-				}
-				if (l >= 2) {
-
-					chan._level_n_nodes[l - 1].encode_to_blk(chan._cache_block_data);
-
-					if (l < req._ft_max_level) {
-						_update_upper_n_stack(
-							n, req._current_gen, chan._cache_block_data,
-							chan._level_n_nodes[l]);
-					} else {
-						calc_sha256_4k_hash(chan._cache_block_data,
-						                    *(Hash *)req._ft_root_hash_ptr);
-
-						*(Generation *)req._ft_root_gen_ptr = req._current_gen;
-						*(Physical_block_address *)req._ft_root_pba_ptr =
-							n.node.pba;
-					}
-				} else {
-					chan._level_0_node.encode_to_blk(chan._cache_block_data);
-
-					_update_upper_n_stack(
-						n, req._current_gen, chan._cache_block_data,
-						chan._level_n_nodes[l]);
-				}
-				chan._cache_request = _new_cache_request(
-					n.node.pba, Local_cache_request::WRITE, l);
-
-				progress = true;
-				break;
-
-			case Type_1_info::COMPLETE:
-
-				chan._cache_request.state = Local_cache_request::INVALID;
-				stack.pop();
-
-				if (exchange_finished)
-					while (!stack.empty())
-						stack.pop();
-
-				if (l == req._ft_max_level)
-					update_finished = true;
-
-				progress = true;
-				break;
-			}
-			break;
-		}
-	}
-	if (chan._state != Channel::UPDATE)
-		return;
-
-	if (exchange_finished && update_finished)
-		chan._state = Channel::UPDATE_COMPLETE;
 }
 
 
-void Free_tree::_mark_req_failed(Channel    &chan,
-                                 bool       &progress,
-                                 char const *str)
+void Free_tree_channel::_mark_req_failed(bool &progress, char const *str)
 {
-	error(chan._request.type_name(), " request failed, reason: \"", str, "\"");
-	chan._request._success = false;
-	chan._state = Channel::COMPLETE;
+	error(Request::type_to_string(_req_ptr->_type), " request failed, reason: \"", str, "\"");
+	_req_ptr->_success = false;
+	_state = REQ_COMPLETE;
+	_req_ptr = nullptr;
 	progress = true;
 }
 
 
-void Free_tree::_mark_req_successful(Channel &channel,
-                                     bool    &progress)
+void Free_tree_channel::_mark_req_successful(bool &progress)
 {
-	channel._request._success = true;
-	channel._state = Channel::COMPLETE;
+	_req_ptr->_success = true;
+	_state = REQ_COMPLETE;
+	_req_ptr = nullptr;
 	progress = true;
 }
 
 
-void Free_tree::_execute(Channel         &chan,
-                         Snapshots const &active_snaps,
-                         Generation       last_secured_gen,
-                         bool            &progress)
+void Free_tree_channel::_start_tree_traversal(bool &progress)
 {
-	if (chan._meta_tree_request.state == Local_meta_tree_request::PENDING ||
-	    chan._meta_tree_request.state == Local_meta_tree_request::IN_PROGRESS)
-		return;
+	Request &req { *_req_ptr };
+	_num_pbas = 0;
+	_lvl = req._ft.max_lvl;
+	_node_idx[_lvl] = 0;
+	_t1_blks[_lvl].nodes[_node_idx[_lvl]] = req._ft.t1_node();
+	_generate_req<Block_io::Read>(SEEK_DOWN, progress, req._ft.pba, _blk);
+}
 
-	if (chan._cache_request.state == Local_cache_request::PENDING ||
-	    chan._cache_request.state == Local_cache_request::IN_PROGRESS)
-		return;
 
-	switch (chan._state) {
-	case Channel::INVALID:
-		break;
-	case Channel::SCAN:
-		_execute_scan(chan, active_snaps, last_secured_gen, progress);
-		break;
-	case Channel::SCAN_COMPLETE:
-		chan._state = Channel::UPDATE;
+void Free_tree_channel::_traverse_curr_node(bool &progress)
+{
+	if (_lvl) {
+		Type_1_node &t1_node { _t1_blks[_lvl].nodes[_node_idx[_lvl]] };
+		if (t1_node.pba)
+			_generate_req<Block_io::Read>(SEEK_DOWN, progress, t1_node.pba, _blk);
+		else {
+			_state = SEEK_LEFT_OR_UP;
+			progress = true;
+		}
+	} else {
+		Type_2_node &t2_node { _t2_blk.nodes[_node_idx[_lvl]] };
+		if (_num_pbas < _req_ptr->_num_required_pbas && _can_alloc_pba_of(t2_node)) {
+			if (_apply_allocation)
+				_alloc_pba_of(t2_node);
+			_num_pbas++;
+		}
+		_state = SEEK_LEFT_OR_UP;
 		progress = true;
-		break;
-	case Channel::UPDATE:
-		_execute_update(chan, active_snaps, last_secured_gen, progress);
-		break;
-	case Channel::UPDATE_COMPLETE:
-		_mark_req_successful(chan, progress);
-		break;
-	case Channel::COMPLETE:
-		break;
-	case Channel::NOT_ENOUGH_FREE_BLOCKS:
-		_mark_req_failed(chan, progress, "not enough free blocks");
-		break;
-	case Channel::TREE_HASH_MISMATCH:
-		_mark_req_failed(chan, progress, "node hash mismatch");
-		break;
 	}
 }
 
 
-bool Free_tree::ready_to_submit_request()
+void Free_tree_channel::_alloc_pbas(bool &progress)
 {
-	for (Channel &channel : _channels) {
-		if (channel._state == Channel::INVALID)
-			return true;
-	}
-	return false;
-}
+	Request &req { *_req_ptr };
+	switch (_state) {
+	case REQ_SUBMITTED:
 
+		_vbd_degree_log_2 = log2<Tree_degree_log_2>(req._vbd_degree);
+		_apply_allocation = false;
+		_start_tree_traversal(progress);
+		break;
 
-void Free_tree::_reset_block_state(Channel &chan)
-{
-	Request &req { chan._request };
-	chan._needed_blocks = req._requested_blocks;
-	chan._found_blocks = 0;
-	for (Type_1_info_stack &stack : chan._level_n_stacks)
-		stack = { };
-
-	for (Type_1_node_block &blk : chan._level_n_nodes)
-		blk = { };
-
-	chan._level_0_stack = { };
-	chan._level_n_node = { };
-	chan._level_0_node = { };
-}
-
-
-bool Free_tree::_node_volatile(Type_1_node const &node,
-                               uint64_t           gen)
-{
-   return node.gen == 0 || node.gen == gen;
-}
-
-
-void Free_tree::submit_request(Module_request &mod_req)
-{
-	for (Module_request_id id { 0 }; id < NR_OF_CHANNELS; id++) {
-		Channel &chan { _channels[id] };
-		if (chan._state == Channel::INVALID) {
-
-			mod_req.dst_request_id(id);
-
-			chan._request = *static_cast<Request *>(&mod_req);
-			chan._exchanged_blocks = 0;
-			_reset_block_state(chan);
-
-			Request &req { chan._request };
-			Type_1_node root_node { };
-			root_node.pba = *(uint64_t *)req._ft_root_pba_ptr;
-			root_node.gen = *(uint64_t *)req._ft_root_gen_ptr;
-			memcpy(&root_node.hash, (void *)req._ft_root_hash_ptr,
-			       HASH_SIZE);
-
-			chan._level_n_stacks[req._ft_max_level].push(
-				{ Type_1_info::INVALID, root_node, 0,
-				  _node_volatile(root_node, req._current_gen) });
-
-			chan._state = Channel::SCAN;
-			chan._vbd_degree_log_2 = log2<uint64_t>(req._vbd_degree);
-			return;
-		}
-	}
-	class Exception_1 { };
-	throw Exception_1 { };
-}
-
-bool Free_tree::_peek_generated_request(uint8_t *buf_ptr,
-                                        size_t   buf_size)
-{
-	for (uint32_t id { 0 }; id < NR_OF_CHANNELS; id++) {
-
-		Channel &channel { _channels[id] };
-		Local_cache_request const &local_crq { channel._cache_request };
-		if (local_crq.state == Local_cache_request::PENDING) {
-
-			Block_io_request::Type blk_io_req_type {
-				local_crq.op == Local_cache_request::READ ?
-				                   Block_io_request::READ :
-				                Local_cache_request::WRITE ?
-				                   Block_io_request::WRITE :
-				                   Block_io_request::INVALID };
-
-			if (blk_io_req_type == Block_io_request::INVALID) {
-				class Exception_1 { };
-				throw Exception_1 { };
-			}
-			construct_in_buf<Block_io_request>(
-				buf_ptr, buf_size, FREE_TREE, id, blk_io_req_type, 0, 0, 0,
-				local_crq.pba, 0, 1, &channel._cache_block_data, nullptr);
-
-			return true;
-		}
-
-		Local_meta_tree_request const &local_mtr { channel._meta_tree_request };
-		if (local_mtr.state == Local_meta_tree_request::PENDING) {
-
-			Meta_tree_request::Type mt_req_type {
-				local_mtr.op == Local_meta_tree_request::READ ?
-				                      Meta_tree_request::UPDATE :
-				                      Meta_tree_request::INVALID };
-
-			if (mt_req_type == Meta_tree_request::INVALID) {
-				class Exception_1 { };
-				throw Exception_1 { };
-			}
-			Meta_tree_request::create(
-				buf_ptr, buf_size, FREE_TREE, id, mt_req_type,
-				(void*)channel._request._mt_root_pba_ptr,
-				(void*)channel._request._mt_root_gen_ptr,
-				(void*)channel._request._mt_root_hash_ptr,
-				channel._request._mt_max_level,
-				channel._request._mt_degree,
-				channel._request._mt_leaves,
-				channel._request._current_gen,
-				local_mtr.pba);
-
-			return true;
-		}
-	}
-	return false;
-}
-
-void Free_tree::_drop_generated_request(Module_request &mod_req)
-{
-	Module_request_id const id { mod_req.src_request_id() };
-	if (id >= NR_OF_CHANNELS) {
-		class Exception_1 { };
-		throw Exception_1 { };
-	}
-	switch (mod_req.dst_module_id()) {
-	case BLOCK_IO:
+	case SEEK_DOWN:
 	{
-		Local_cache_request &local_req { _channels[id]._cache_request };
-		if (local_req.state != Local_cache_request::PENDING) {
-			class Exception_2 { };
-			throw Exception_2 { };
+		if (!check_hash(_blk, _t1_blks[_lvl].nodes[_node_idx[_lvl]].hash)) {
+			_mark_req_failed(progress, "hash mismatch");
+			break;
 		}
-		local_req.state = Local_cache_request::IN_PROGRESS;
+		_lvl--;
+		_node_idx[_lvl] = req._ft.degree - 1;
+		if (_lvl)
+			_t1_blks[_lvl].decode_from_blk(_blk);
+		else
+			_t2_blk.decode_from_blk(_blk);
+		_traverse_curr_node(progress);
 		break;
 	}
-	case META_TREE:
-	{
-		Local_meta_tree_request &local_req { _channels[id]._meta_tree_request };
-		if (local_req.state != Local_meta_tree_request::PENDING) {
-			class Exception_3 { };
-			throw Exception_3 { };
-		}
-		local_req.state = Local_meta_tree_request::IN_PROGRESS;
-		break;
-	}
-	default:
+	case SEEK_LEFT_OR_UP:
 
-		class Exception_4 { };
-		throw Exception_4 { };
-	}
-}
-
-void Free_tree::generated_request_complete(Module_request &mod_req)
-{
-	Module_request_id const id { mod_req.src_request_id() };
-	if (id >= NR_OF_CHANNELS) {
-		class Exception_1 { };
-		throw Exception_1 { };
-	}
-	switch (mod_req.dst_module_id()) {
-	case BLOCK_IO:
-	{
-		Local_cache_request &local_req { _channels[id]._cache_request };
-		if (local_req.state != Local_cache_request::IN_PROGRESS) {
-			class Exception_2 { };
-			throw Exception_2 { };
-		}
-		Block_io_request &blk_io_req { *static_cast<Block_io_request *>(&mod_req) };
-		Channel &channel { _channels[id] };
-		if (!blk_io_req.success()) {
-			class Exception_3 { };
-			throw Exception_3 { };
-		}
-		Type_1_info n { channel._level_n_stacks[local_req.level].peek_top() };
-		local_req.state = Local_cache_request::COMPLETE;
-
-		switch (local_req.op) {
-		case Local_cache_request::SYNC:
-
-			class Exception_4 { };
-			throw Exception_4 { };
-
-		case Local_cache_request::READ:
-
-			if (check_sha256_4k_hash(channel._cache_block_data, n.node.hash)) {
-
-				n.state = Type_1_info::AVAILABLE;
-				channel._level_n_stacks[local_req.level].update_top(n);
-
+		if (_lvl < req._ft.max_lvl) {
+			if (_node_idx[_lvl] && _num_pbas < _req_ptr->_num_required_pbas) {
+				_node_idx[_lvl]--;
+				_traverse_curr_node(progress);
 			} else {
-
-				channel._state = Channel::TREE_HASH_MISMATCH;
+				_lvl++;
+				Type_1_node &t1_node { _t1_blks[_lvl].nodes[_node_idx[_lvl]] };
+				if (_apply_allocation)
+					if (t1_node.is_volatile(req._curr_gen)) {
+						_state = WRITE_BLK;
+						progress = true;
+					} else
+						_generate_req<Meta_tree::Alloc_pba>(WRITE_BLK, progress, req._mt, req._curr_gen, t1_node.pba);
+				else {
+					_state = SEEK_LEFT_OR_UP;
+					progress = true;
+				}
 			}
-			break;
-
-		case Local_cache_request::WRITE:
-
-			n.state = Type_1_info::COMPLETE;
-			channel._level_n_stacks[local_req.level].update_top(n);
-			break;
+		} else {
+			if (_apply_allocation) {
+				req._ft.t1_node(_t1_blks[_lvl].nodes[_node_idx[_lvl]]);
+				_mark_req_successful(progress);
+			} else {
+				if (_num_pbas < req._num_required_pbas)
+					_mark_req_failed(progress, "not enough free pbas");
+				else {
+					_apply_allocation = true;
+					_start_tree_traversal(progress);
+				}
+			}
 		}
 		break;
-	}
-	case META_TREE:
+
+	case WRITE_BLK:
 	{
-		Local_meta_tree_request &local_req { _channels[id]._meta_tree_request };
-		if (local_req.state != Local_meta_tree_request::IN_PROGRESS) {
-			class Exception_5 { };
-			throw Exception_5 { };
-		}
-		Meta_tree_request &mt_req { *static_cast<Meta_tree_request *>(&mod_req) };
-		if (!mt_req.success()) {
-			class Exception_6 { };
-			throw Exception_6 { };
-		}
-		local_req.pba = mt_req.new_pba();
-		local_req.state = Local_meta_tree_request::COMPLETE;
+		if (_lvl > 1)
+			_t1_blks[_lvl - 1].encode_to_blk(_blk);
+		else
+			_t2_blk.encode_to_blk(_blk);
+		Type_1_node &t1_node { _t1_blks[_lvl].nodes[_node_idx[_lvl]] };
+		t1_node.gen = req._curr_gen;
+		calc_hash(_blk, t1_node.hash);
+		_generate_req<Block_io::Write>(SEEK_LEFT_OR_UP, progress, t1_node.pba, _blk);
 		break;
 	}
-	default:
-
-		class Exception_7 { };
-		throw Exception_7 { };
+	default: break;
 	}
 }
 
 
-bool Free_tree::_peek_completed_request(uint8_t *buf_ptr,
-                                        size_t   buf_size)
+void Free_tree_channel::execute(bool &progress)
 {
-	for (Channel &channel : _channels) {
-		if (channel._state == Channel::COMPLETE) {
-			if (sizeof(channel._request) > buf_size) {
-				class Exception_1 { };
-				throw Exception_1 { };
-			}
-			memcpy(buf_ptr, &channel._request, sizeof(channel._request));
-			return true;
+	if (!_req_ptr)
+		return;
+
+	switch(_req_ptr->_type) {
+	case Request::ALLOC_FOR_NON_RKG:
+	case Request::ALLOC_FOR_RKG_CURR_GEN_BLKS:
+	case Request::ALLOC_FOR_RKG_OLD_GEN_BLKS: _alloc_pbas(progress); break;
+	case Request::EXTENSION_STEP: _extension_step(progress); break;
+	}
+}
+
+
+void Free_tree_channel::_generate_write_blk_req(bool &progress)
+{
+	if (_lvl > 1)
+		_t1_blks[_lvl].encode_to_blk(_blk);
+	else
+		_t2_blk.encode_to_blk(_blk);
+
+	_generate_req<Block_io::Write>(WRITE_BLK_SUCCEEDED, progress, _new_pbas.pbas[_lvl], _blk);
+	if (VERBOSE_FT_EXTENSION)
+		log("  lvl ", _lvl, " write to pba ", _new_pbas.pbas[_lvl]);
+}
+
+
+void Free_tree_channel::_add_new_root_lvl()
+{
+	Request &req { *_req_ptr };
+	ASSERT(req._ft.max_lvl < TREE_MAX_LEVEL);
+	req._ft.max_lvl++;
+	_t1_blks[req._ft.max_lvl] = { };
+	_t1_blks[req._ft.max_lvl].nodes[0] = req._ft.t1_node();
+	_new_pbas.pbas[req._ft.max_lvl] = alloc_pba_from_range(req._pba, req._num_pbas);
+	req._ft.t1_node({ _new_pbas.pbas[req._ft.max_lvl], req._curr_gen });
+	if (VERBOSE_FT_EXTENSION)
+		log("  set root: ", req._ft, "\n  set lvl ", req._ft.max_lvl, " node 0: ",
+		    _t1_blks[req._ft.max_lvl].nodes[0]);
+}
+
+
+void Free_tree_channel::_add_new_branch_at(Tree_level_index dst_lvl, Tree_node_index dst_node_idx)
+{
+	Request &req { *_req_ptr };
+	_num_leaves = 0;
+	_lvl = dst_lvl;
+	if (dst_lvl > 1) {
+		for (Tree_level_index lvl = 1; lvl < dst_lvl; lvl++) {
+			if (lvl > 1)
+				_t1_blks[lvl] = Type_1_node_block { };
+			else
+				_t2_blk = Type_2_node_block { };
+
+			if (VERBOSE_FT_EXTENSION)
+				log("  reset lvl ", lvl);
 		}
 	}
-	return false;
+	for (; _lvl && req._num_pbas; _lvl--) {
+		Tree_node_index node_idx = (_lvl == dst_lvl) ? dst_node_idx : 0;
+		if (_lvl > 1) {
+			_new_pbas.pbas[_lvl - 1] = alloc_pba_from_range(req._pba, req._num_pbas);
+			_t1_blks[_lvl].nodes[node_idx] = { _new_pbas.pbas[_lvl - 1], req._curr_gen };
+			if (VERBOSE_FT_EXTENSION)
+				log("  set _lvl d ", _lvl, " node ", node_idx, ": ", _t1_blks[_lvl].nodes[node_idx]);
+
+		} else {
+			for (; node_idx < req._ft.degree && req._num_pbas; node_idx++) {
+				_t2_blk.nodes[node_idx] = { alloc_pba_from_range(req._pba, req._num_pbas) };
+				_num_leaves++;
+				if (VERBOSE_FT_EXTENSION)
+					log("  set _lvl e ", _lvl, " node ", node_idx, ": ", _t2_blk.nodes[node_idx]);
+			}
+		}
+	}
+	if (!_lvl)
+		_lvl = 1;
 }
 
 
-void Free_tree::_drop_completed_request(Module_request &req)
+void Free_tree_channel::_extension_step(bool &progress)
 {
-	Module_request_id id { 0 };
-	id = req.dst_request_id();
-	if (id >= NR_OF_CHANNELS) {
-		class Exception_1 { };
-		throw Exception_1 { };
+	Request &req { *_req_ptr };
+	switch (_state) {
+	case REQ_SUBMITTED:
+
+		_num_leaves = 0;
+		_vba = req._ft.num_leaves;
+		_old_pbas = { };
+		_old_generations = { };
+		_new_pbas = { };
+		_lvl = req._ft.max_lvl;
+		_old_pbas.pbas[_lvl] = req._ft.pba;
+		_old_generations.items[_lvl] = req._ft.gen;
+		if (_vba <= tree_max_max_vba(req._ft.degree, req._ft.max_lvl)) {
+
+			_generate_req<Block_io::Read>(READ_BLK_SUCCEEDED, progress, req._ft.pba, _blk);
+			if (VERBOSE_FT_EXTENSION)
+				log("  root (", req._ft, "): load to lvl ", _lvl);
+		} else {
+			_add_new_root_lvl();
+			_add_new_branch_at(req._ft.max_lvl, 1);
+			_generate_write_blk_req(progress);
+			if (VERBOSE_FT_EXTENSION)
+				log("  pbas allocated: curr gen ", req._curr_gen);
+		}
+		break;
+
+	case READ_BLK_SUCCEEDED:
+
+		if (_lvl > 1) {
+
+			_t1_blks[_lvl].decode_from_blk(_blk);
+			if (_lvl < req._ft.max_lvl) {
+				Tree_node_index node_idx = t1_node_idx_for_vba(_vba, _lvl + 1, req._ft.degree);
+				if (!check_hash(_blk, _t1_blks[_lvl + 1].nodes[node_idx].hash))
+					_mark_req_failed(progress, "hash mismatch");
+			} else
+				if (!check_hash(_blk, req._ft.hash))
+					_mark_req_failed(progress, "hash mismatch");
+
+			Tree_node_index node_idx = t1_node_idx_for_vba(_vba, _lvl, req._ft.degree);
+			Type_1_node &t1_node = _t1_blks[_lvl].nodes[node_idx];
+			if (t1_node.valid()) {
+
+				_lvl--;
+				_old_pbas.pbas [_lvl] = t1_node.pba;
+				_old_generations.items[_lvl] = t1_node.gen;
+				_generate_req<Block_io::Read>(READ_BLK_SUCCEEDED, progress, t1_node.pba, _blk);
+				if (VERBOSE_FT_EXTENSION)
+					log("  lvl ", _lvl + 1, " node ", node_idx, " (", t1_node, "): load to lvl ", _lvl);
+			} else {
+				_alloc_lvl = _lvl;
+				_add_new_branch_at(_lvl, node_idx);
+				if (_old_generations.items[_alloc_lvl] == req._curr_gen) {
+
+					_alloc_pba = _old_pbas.pbas[_alloc_lvl];
+					_state = ALLOC_PBA_SUCCEEDED;
+					progress = true;
+				} else {
+					_alloc_pba = _old_pbas.pbas[_alloc_lvl];
+					_generate_req<Meta_tree_request>(
+						ALLOC_PBA_SUCCEEDED, progress, Meta_tree_request::ALLOC_PBA, req._mt, req._curr_gen, _alloc_pba);
+				}
+			}
+		} else {
+			_t2_blk.decode_from_blk(_blk);
+			Tree_node_index t1_node_idx = t1_node_idx_for_vba(_vba, _lvl + 1, req._ft.degree);
+			if (!check_hash(_blk, _t1_blks[_lvl + 1].nodes[t1_node_idx].hash))
+				_mark_req_failed(progress, "hash mismatch");
+
+			Tree_node_index t2_node_idx = t2_node_idx_for_vba(_vba, req._ft.degree);
+			if (_t2_blk.nodes[t2_node_idx].valid())
+				_mark_req_failed(progress, "t2 node valid");
+
+			_add_new_branch_at(_lvl, t2_node_idx);
+			_alloc_lvl = _lvl;
+			if (VERBOSE_FT_EXTENSION)
+				log("  alloc lvl ", _alloc_lvl);
+
+			_alloc_pba = _old_pbas.pbas[_alloc_lvl];
+			_generate_req<Meta_tree_request>(
+				ALLOC_PBA_SUCCEEDED, progress, Meta_tree_request::ALLOC_PBA, req._mt, req._curr_gen, _alloc_pba);
+		}
+		break;
+
+	case ALLOC_PBA_SUCCEEDED:
+
+		_new_pbas.pbas[_alloc_lvl] = _alloc_pba;
+		if (_alloc_lvl < req._ft.max_lvl) {
+
+			_alloc_lvl++;
+			if (_old_generations.items[_alloc_lvl] == req._curr_gen) {
+
+				_alloc_pba = _old_pbas.pbas[_alloc_lvl];
+				_state = ALLOC_PBA_SUCCEEDED;
+				progress = true;
+			} else {
+				_alloc_pba = _old_pbas.pbas[_alloc_lvl];
+				_generate_req<Meta_tree_request>(
+					ALLOC_PBA_SUCCEEDED, progress, Meta_tree_request::ALLOC_PBA, req._mt, req._curr_gen, _alloc_pba);
+			}
+		} else {
+			_generate_write_blk_req(progress);
+			if (VERBOSE_FT_EXTENSION)
+				log("  pbas allocated: curr gen ", req._curr_gen);
+		}
+		break;
+
+	case WRITE_BLK_SUCCEEDED:
+
+		if (_lvl < req._ft.max_lvl) {
+			if (_lvl > 1) {
+				Tree_node_index node_idx = t1_node_idx_for_vba(_vba, _lvl + 1, req._ft.degree);
+				Type_1_node &t1_node { _t1_blks[_lvl + 1].nodes[node_idx] };
+				t1_node = { _new_pbas.pbas[_lvl], req._curr_gen };
+				calc_hash(_blk, t1_node.hash);
+				if (VERBOSE_FT_EXTENSION)
+					log("  set lvl ", _lvl + 1, " node ", node_idx, ": ", t1_node);
+
+				_lvl++;
+				_generate_write_blk_req(progress);
+			} else {
+				Tree_node_index node_idx = t1_node_idx_for_vba(_vba, _lvl + 1, req._ft.degree);
+				Type_1_node &t1_node = _t1_blks[_lvl + 1].nodes[node_idx];
+				t1_node = { _new_pbas.pbas[_lvl], req._curr_gen };
+				calc_hash(_blk, t1_node.hash);
+				if (VERBOSE_FT_EXTENSION)
+					log("  set lvl ", _lvl + 1, " t1_node ", node_idx, ": ", t1_node);
+
+				_lvl++;
+				_generate_write_blk_req(progress);
+			}
+		} else {
+			req._ft.t1_node({ _new_pbas.pbas[_lvl], req._curr_gen });
+			calc_hash(_blk, req._ft.hash);
+			req._ft.num_leaves += _num_leaves;
+			_mark_req_successful(progress);
+		}
+		break;
+
+	default: break;
 	}
-	if (_channels[id]._state != Channel::COMPLETE) {
-		class Exception_2 { };
-		throw Exception_2 { };
+}
+
+
+void Free_tree_channel::_request_submitted(Module_request &mod_req)
+{
+	_req_ptr = static_cast<Request *>(&mod_req);
+	_state = REQ_SUBMITTED;
+}
+
+
+Free_tree::Free_tree()
+{
+	Module_channel_id id { 0 };
+	for (Constructible<Channel> &chan : _channels) {
+		chan.construct(id++);
+		add_channel(*chan);
 	}
-	_channels[id]._state = Channel::INVALID;
 }

@@ -52,10 +52,10 @@ struct File_vault::Ui_config
 {
 	using Version_string = String<80>;
 
-	Version_string    const version             { };
-	Passphrase_string const passphrase          { };
-	Number_of_bytes   const client_fs_size      { 0 };
-	Number_of_bytes   const journaling_buf_size { 0 };
+	Version_string const version { };
+	Passphrase const passphrase { };
+	Number_of_bytes const client_fs_size { 0 };
+	Number_of_bytes const journaling_buf_size { 0 };
 
 	Ui_config() { }
 
@@ -63,7 +63,7 @@ struct File_vault::Ui_config
 	          bool            verbose)
 	:
 		version             { node.attribute_value("version",             Version_string { }) },
-		passphrase          { node.attribute_value("passphrase",          Passphrase_string { }) },
+		passphrase          { node.attribute_value("passphrase",          Passphrase { }) },
 		client_fs_size      { node.attribute_value("client_fs_size",      Number_of_bytes { 0 }) },
 		journaling_buf_size { node.attribute_value("journaling_buf_size", Number_of_bytes { 0 }) }
 	{
@@ -495,7 +495,7 @@ class File_vault::Main
 			throw Exception_1 { };
 		}
 
-		Passphrase_string _ui_setup_obtain_params_passphrase() const
+		Passphrase _ui_setup_obtain_params_passphrase() const
 		{
 			switch (_user_interface) {
 			case MENU_VIEW:         return _setup_obtain_params_passphrase.plaintext().string();

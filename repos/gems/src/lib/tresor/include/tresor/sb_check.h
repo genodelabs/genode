@@ -14,12 +14,8 @@
 #ifndef _TRESOR__SB_CHECK_H_
 #define _TRESOR__SB_CHECK_H_
 
-/* base includes */
-#include <base/output.h>
-
 /* tresor includes */
 #include <tresor/types.h>
-#include <tresor/module.h>
 
 namespace Tresor {
 
@@ -31,78 +27,66 @@ namespace Tresor {
 
 class Tresor::Sb_check_request : public Module_request
 {
-	public:
-
-		enum Type { INVALID = 0, CHECK = 1, };
+	friend class Sb_check_channel;
 
 	private:
 
-		friend class Sb_check;
-		friend class Sb_check_channel;
+		bool &_success;
 
-		Type _type    { INVALID };
-		bool _success { false };
-
+		NONCOPYABLE(Sb_check_request);
 
 	public:
 
-		Sb_check_request() { }
+		Sb_check_request(Module_id, Module_channel_id, bool &);
 
-		Sb_check_request(Module_id         src_module_id,
-		                        Module_request_id src_request_id);
-
-		static void create(void     *buf_ptr,
-		                   size_t    buf_size,
-		                   uint64_t  src_module_id,
-		                   uint64_t  src_request_id,
-		                   size_t    req_type);
-
-		Type type() const { return _type; }
-
-		bool success() const { return _success; }
-
-		static char const *type_to_string(Type type);
-
-
-		/********************
-		 ** Module_request **
-		 ********************/
-
-		void print(Output &out) const override { Genode::print(out, type_to_string(_type)); }
+		void print(Output &out) const override { Genode::print(out, "check"); }
 };
 
 
-class Tresor::Sb_check_channel
+class Tresor::Sb_check_channel : public Module_channel
 {
 	private:
 
-		friend class Sb_check;
-
 		using Request = Sb_check_request;
 
-		enum State { INSPECT_SBS, CHECK_SB };
+		enum State { REQ_SUBMITTED, REQ_COMPLETE, READ_BLK_SUCCESSFUL, REQ_GENERATED, CHECK_VBD_SUCCESSFUL, CHECK_FT_SUCCESSFUL, CHECK_MT_SUCCESSFUL};
 
-		enum Sb_slot_state {
-			INACTIVE, INIT, DONE,
-			READ_STARTED, READ_DROPPED, READ_DONE,
-			VBD_CHECK_STARTED, VBD_CHECK_DROPPED, VBD_CHECK_DONE,
-			FT_CHECK_STARTED, FT_CHECK_DROPPED, FT_CHECK_DONE,
-			MT_CHECK_STARTED, MT_CHECK_DROPPED, MT_CHECK_DONE };
+		State _state { REQ_COMPLETE };
+		Request *_req_ptr { };
+		Generation _highest_gen { 0 };
+		Superblock_index _highest_gen_sb_idx { 0 };
+		bool _scan_for_highest_gen_sb_done { false };
+		Superblock_index _sb_idx { 0 };
+		Superblock _sb { };
+		Snapshot_index _snap_idx { 0 };
+		Constructible<Tree_root> _tree_root { };
+		Block _blk { };
+		bool _generated_req_success { false };
 
-		State                  _state            { INSPECT_SBS };
-		Request                _request          { };
-		Generation             _highest_gen      { 0 };
-		Superblock_index       _last_sb_slot_idx { 0 };
-		Sb_slot_state          _sb_slot_state    { INACTIVE };
-		Superblock_index       _sb_slot_idx      { 0 };
-		Superblock             _sb_slot          { };
-		Snapshot_index         _snap_idx         { 0 };
-		Type_1_node            _vbd              { };
-		Type_1_node            _ft               { };
-		Type_1_node            _mt               { };
-		Physical_block_address _gen_prim_blk_nr  { 0 };
-		bool                   _gen_prim_success { false };
-		Block                  _encoded_blk      { };
+		NONCOPYABLE(Sb_check_channel);
+
+		void _generated_req_completed(State_uint) override;
+
+		void _request_submitted(Module_request &) override;
+
+		bool _request_complete() override { return _state == REQ_COMPLETE; }
+
+		template <typename REQUEST, typename... ARGS>
+		void _generate_req(State_uint state, bool &progress, ARGS &&... args)
+		{
+			_state = REQ_GENERATED;
+			generate_req<REQUEST>(state, progress, args..., _generated_req_success);
+		}
+
+		void _mark_req_failed(bool &, char const *);
+
+		void _mark_req_successful(bool &);
+
+	public:
+
+		Sb_check_channel(Module_channel_id id) : Module_channel { SB_CHECK, id } { }
+
+		void execute(bool &);
 };
 
 
@@ -110,58 +94,17 @@ class Tresor::Sb_check : public Module
 {
 	private:
 
-		using Request = Sb_check_request;
 		using Channel = Sb_check_channel;
 
-		enum { NR_OF_CHANNELS = 1 };
+		Constructible<Channel> _channels[1] { };
 
-		Channel _channels[NR_OF_CHANNELS] { };
-
-		static char const *_state_to_step_label(Channel::Sb_slot_state state);
-
-		bool _handle_failed_generated_req(Channel &chan,
-		                                  bool    &progress);
-
-		void _execute_check(Channel &channel,
-		                    bool    &progress);
-
-		void _mark_req_failed(Channel    &channel,
-		                      bool       &progress,
-		                      char const *str);
-
-		void _mark_req_successful(Channel &channel,
-		                          bool    &progress);
-
-
-		/************
-		 ** Module **
-		 ************/
-
-		bool _peek_completed_request(uint8_t *buf_ptr,
-		                             size_t   buf_size) override;
-
-		void _drop_completed_request(Module_request &req) override;
-
-		bool _peek_generated_request(uint8_t *buf_ptr,
-		                             size_t   buf_size) override;
-
-		void _drop_generated_request(Module_request &mod_req) override;
-
-		void generated_request_complete(Module_request &req) override;
-
+		NONCOPYABLE(Sb_check);
 
 	public:
 
-		/************
-		 ** Module **
-		 ************/
-
-		bool ready_to_submit_request() override;
-
-		void submit_request(Module_request &req) override;
+		Sb_check();
 
 		void execute(bool &) override;
-
 };
 
 #endif /* _TRESOR__SB_CHECK_H_ */

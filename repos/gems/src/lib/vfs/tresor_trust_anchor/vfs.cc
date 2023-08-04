@@ -21,10 +21,8 @@
 /* OpenSSL includes */
 #include <openssl/sha.h>
 
-/* tresor includes */
-#include <tresor/vfs/io_job.h>
-
-/* local includes */
+/* vfs tresor trust anchor includes */
+#include <io_job.h>
 #include <aes_256.h>
 
 enum { PRIVATE_KEY_SIZE = 32 };

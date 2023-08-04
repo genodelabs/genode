@@ -1,5 +1,5 @@
 /*
- * \brief  Integration of the Tresor block encryption
+ * \brief  Verify the dimensions and hashes of a tresor container
  * \author Martin Stein
  * \author Josef Soentgen
  * \date   2020-11-10

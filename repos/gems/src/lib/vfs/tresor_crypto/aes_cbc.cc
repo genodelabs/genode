@@ -12,13 +12,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* base includes */
 #include <base/log.h>
 #include <util/string.h>
 
-#include <aes_cbc_4k/aes_cbc_4k.h>
-
+/* tresor includes */
 #include <tresor/types.h>
-#include <tresor/crypto/interface.h>
+
+/* vfs tresor crypt includes */
+#include <aes_cbc_4k/aes_cbc_4k.h>
+#include <interface.h>
 
 namespace {
 

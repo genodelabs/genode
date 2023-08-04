@@ -14,12 +14,8 @@
 #ifndef _TRESOR__FT_CHECK_H_
 #define _TRESOR__FT_CHECK_H_
 
-/* base includes */
-#include <base/output.h>
-
 /* tresor includes */
 #include <tresor/types.h>
-#include <tresor/module.h>
 
 namespace Tresor {
 
@@ -31,107 +27,66 @@ namespace Tresor {
 
 class Tresor::Ft_check_request : public Module_request
 {
-	public:
-
-		enum Type { INVALID = 0, CHECK = 1, };
+	friend class Ft_check_channel;
 
 	private:
 
-		friend class Ft_check;
-		friend class Ft_check_channel;
+		Tree_root const &_ft;
+		bool &_success;
 
-		Type              _type          { INVALID };
-		Tree_level_index  _max_lvl       { 0 };
-		Tree_node_index   _max_child_idx { 0 };
-		Number_of_leaves  _nr_of_leaves  { 0 };
-		Type_1_node       _root          { };
-		bool              _success       { false };
+		NONCOPYABLE(Ft_check_request);
 
 	public:
 
-		Ft_check_request() { }
+		Ft_check_request(Module_id, Module_channel_id, Tree_root const &, bool &);
 
-		Ft_check_request(uint64_t          src_module_id,
-		                 uint64_t          src_request_id,
-		                 Type              type,
-		                 Tree_level_index  max_lvl,
-		                 Tree_node_index   max_child_idx,
-		                 Number_of_leaves  nr_of_leaves,
-		                 Type_1_node       root);
-
-		Type type() const { return _type; }
-
-		bool success() const { return _success; }
-
-		static char const *type_to_string(Type type);
-
-
-		/********************
-		 ** Module_request **
-		 ********************/
-
-		void print(Output &out) const override
-		{
-			Genode::print(out, type_to_string(_type), " root ", _root);
-		}
+		void print(Output &out) const override { Genode::print(out, "check ", _ft); }
 };
 
 
-class Tresor::Ft_check_channel
+class Tresor::Ft_check_channel : public Module_channel
 {
 	private:
 
-		friend class Ft_check;
-
 		using Request = Ft_check_request;
 
-		enum Child_state {
-			READ_BLOCK = 0, CHECK_HASH = 1, DONE = 2 };
+		enum State : State_uint { REQ_SUBMITTED, REQ_IN_PROGRESS, REQ_COMPLETE, REQ_GENERATED, READ_BLK_SUCCEEDED };
 
-		struct Type_1_level
+		State _state { REQ_COMPLETE };
+		Type_1_node_block_walk _t1_blks { };
+		Type_2_node_block _t2_blk { };
+		bool _check_node[TREE_MAX_NR_OF_LEVELS + 1][NUM_NODES_PER_BLK] { };
+		Number_of_leaves _num_remaining_leaves { 0 };
+		Request *_req_ptr { };
+		Block _blk { };
+		bool _generated_req_success { false };
+
+		NONCOPYABLE(Ft_check_channel);
+
+		void _generated_req_completed(State_uint) override;
+
+		void _request_submitted(Module_request &) override;
+
+		bool _request_complete() override { return _state == REQ_COMPLETE; }
+
+		void _mark_req_failed(bool &, Error_string);
+
+		void _mark_req_successful(bool &);
+
+		bool _execute_node(Tree_level_index, Tree_node_index, bool &);
+
+		template <typename REQUEST, typename... ARGS>
+		void _generate_req(State_uint state, bool &progress, ARGS &&... args)
 		{
-			Child_state       children_state[NR_OF_T1_NODES_PER_BLK] { };
-			Type_1_node_block children                                   { };
+			_state = REQ_GENERATED;
+			generate_req<REQUEST>(state, progress, args..., _generated_req_success);
+		}
 
-			Type_1_level()
-			{
-				for (Child_state &state : children_state)
-					state = DONE;
-			}
-		};
+	public:
 
-		struct Type_2_level
-		{
-			Child_state       children_state[NR_OF_T1_NODES_PER_BLK] { };
-			Type_2_node_block children                                   { };
+		Ft_check_channel(Module_channel_id id) : Module_channel { FT_CHECK, id } { }
 
-			Type_2_level()
-			{
-				for (Child_state &state : children_state)
-					state = DONE;
-			}
-		};
-
-		enum Primitive_tag { INVALID, BLOCK_IO };
-
-		struct Generated_primitive
-		{
-			bool                   success { false };
-			Primitive_tag          tag     { INVALID };
-			Physical_block_address blk_nr  { 0 };
-			bool                   dropped { false };
-
-			bool valid() const { return tag != INVALID; }
-		};
-
-		Generated_primitive   _gen_prim                { };
-		Tree_level_index      _lvl_to_read             { 0 };
-		Child_state           _root_state              { DONE };
-		Type_2_level          _t2_lvl                  { };
-		Type_1_level          _t1_lvls[TREE_MAX_LEVEL] { };
-		Number_of_leaves      _nr_of_leaves            { 0 };
-		Request               _request                 { };
-		Block                 _encoded_blk             { };
+		void execute(bool &);
 };
 
 
@@ -139,74 +94,17 @@ class Tresor::Ft_check : public Module
 {
 	private:
 
-		using Request = Ft_check_request;
 		using Channel = Ft_check_channel;
-		using Child_state = Ft_check_channel::Child_state;
-		using Type_1_level = Ft_check_channel::Type_1_level;
-		using Type_2_level = Ft_check_channel::Type_2_level;
 
-		enum { NR_OF_CHANNELS = 1 };
+		Constructible<Channel> _channels[1] { };
 
-		Channel _channels[NR_OF_CHANNELS] { };
-
-		void _execute_inner_t2_child(Channel          &chan,
-		                             Tree_level_index  lvl,
-		                             Tree_node_index   child_idx,
-		                             bool             &progress);
-
-		void _execute_check(Channel &channel,
-		                    bool    &progress);
-
-		void _mark_req_failed(Channel    &channel,
-		                      bool       &progress,
-		                      char const *str);
-
-		void _mark_req_successful(Channel &channel,
-		                          bool    &progress);
-
-		void _execute_inner_t1_child(Channel           &chan,
-		                             Type_1_node const &child,
-		                             Type_1_level      &child_lvl,
-		                             Child_state       &child_state,
-		                             Tree_level_index   lvl,
-		                             Tree_node_index    child_idx,
-		                             bool              &progress);
-
-
-		void _execute_leaf_child(Channel           &chan,
-		                         Tree_node_index    child_idx,
-		                         bool              &progress);
-
-
-		/************
-		 ** Module **
-		 ************/
-
-		bool _peek_completed_request(uint8_t *buf_ptr,
-		                             size_t   buf_size) override;
-
-		void _drop_completed_request(Module_request &req) override;
-
-		bool _peek_generated_request(uint8_t *buf_ptr,
-		                             size_t   buf_size) override;
-
-		void _drop_generated_request(Module_request &mod_req) override;
-
-		void generated_request_complete(Module_request &req) override;
-
+		NONCOPYABLE(Ft_check);
 
 	public:
 
-		/************
-		 ** Module **
-		 ************/
-
-		bool ready_to_submit_request() override;
-
-		void submit_request(Module_request &req) override;
+		Ft_check();
 
 		void execute(bool &) override;
-
 };
 
 #endif /* _TRESOR__FT_CHECK_H_ */

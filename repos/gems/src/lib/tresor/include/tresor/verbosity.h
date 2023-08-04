@@ -19,6 +19,8 @@ namespace Tresor {
 	enum { VERBOSE_MODULE_COMMUNICATION = 0 };
 	enum { VERBOSE_VBD_EXTENSION        = 0 };
 	enum { VERBOSE_FT_EXTENSION         = 0 };
+	enum { VERBOSE_VBD_INIT             = 0 };
+	enum { VERBOSE_FT_INIT              = 0 };
 	enum { VERBOSE_REKEYING             = 0 };
 	enum { VERBOSE_READ_VBA             = 0 };
 	enum { VERBOSE_WRITE_VBA            = 0 };

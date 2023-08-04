@@ -22,8 +22,11 @@
 #include <vfs/file_system_factory.h>
 #include <vfs/simple_env.h>
 
-/* Tresor includes */
-#include <tresor/vfs/io_job.h>
+/* tresor includes */
+#include <tresor/types.h>
+
+/* vfs tresor trust anchor includes */
+#include <io_job.h>
 
 using namespace Genode;
 
@@ -43,8 +46,6 @@ class Main : Vfs::Env::User
 		Vfs::Simple_env _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs"), *this };
 
 		Vfs::File_system &_vfs { _vfs_env.root_dir() };
-
-		using Initialize_file_buf = Genode::String<32 + 1>;
 
 		using String_path = Genode::String<256>;
 
@@ -82,7 +83,7 @@ class Main : Vfs::Env::User
 			Genode::Constructible<Util::Io_job> _io_job { };
 			Util::Io_job::Buffer                _io_buffer { };
 
-			Initialize_file_buf _initialize_file_buf { };
+			Tresor::Passphrase _initialize_file_buf { };
 
 			File(char          const *base_path,
 				 char          const *name,
@@ -112,7 +113,7 @@ class Main : Vfs::Env::User
 				_vfs.close(_vfs_handle);
 			}
 
-			void write_passphrase(Initialize_file_buf const &passphrase)
+			void write_passphrase(Tresor::Passphrase const &passphrase)
 			{
 				/* copy */
 				_initialize_file_buf = passphrase;
@@ -212,8 +213,8 @@ class Main : Vfs::Env::User
 		{
 			Xml_node const &config { _config_rom.xml() };
 
-			Initialize_file_buf const passphrase =
-				config.attribute_value("passphrase", Initialize_file_buf());
+			Tresor::Passphrase const passphrase =
+				config.attribute_value("passphrase", Tresor::Passphrase());
 
 			if (!passphrase.valid()) {
 				error("mandatory 'passphrase' attribute missing");

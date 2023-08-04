@@ -18,8 +18,8 @@
 #include <util/arg_string.h>
 #include <util/xml_generator.h>
 
-/* Tresor includes */
-#include <tresor/crypto/interface.h>
+/* vfs tresor crypto includes */
+#include <interface.h>
 
 
 namespace Vfs_tresor_crypto {

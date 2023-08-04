@@ -16,16 +16,14 @@
 #define _TRESOR__TYPES_H_
 
 /* base includes */
-#include <base/output.h>
-#include <util/string.h>
+#include <util/reconstructible.h>
 
 /* os includes */
 #include <util/formatted_output.h>
 
 /* tresor includes */
-#include <tresor/verbosity.h>
 #include <tresor/math.h>
-#include <tresor/assertion.h>
+#include <tresor/module.h>
 
 namespace Tresor {
 
@@ -46,9 +44,15 @@ namespace Tresor {
 	using Snapshot_index         = uint32_t;
 	using Superblock_index       = uint8_t;
 	using On_disc_bool           = uint8_t;
+	using Request_offset         = uint64_t;
+	using Request_tag            = uint64_t;
+	using Passphrase             = String<64>;
+	using Error_string           = String<128>;
 
 	enum { BLOCK_SIZE = 4096 };
 	enum { INVALID_KEY_ID = 0 };
+	enum { INVALID_REQ_TAG = 0xffff'ffff };
+	enum { INVALID_SB_IDX = 0xff };
 	enum { INVALID_GENERATION = 0 };
 	enum { INITIAL_GENERATION = 0 };
 	enum { MAX_PBA = 0xffff'ffff'ffff'ffff };
@@ -57,18 +61,12 @@ namespace Tresor {
 	enum { MAX_GENERATION = 0xffff'ffff'ffff'ffff };
 	enum { MAX_SNAP_ID = 0xffff'ffff };
 	enum { HASH_SIZE = 32 };
-	enum { T1_NODE_STORAGE_SIZE = 64 };
-	enum { T2_NODE_STORAGE_SIZE = 64 };
-	enum { NR_OF_T2_NODES_PER_BLK = (size_t)BLOCK_SIZE / (size_t)T2_NODE_STORAGE_SIZE };
-	enum { NR_OF_T1_NODES_PER_BLK = (size_t)BLOCK_SIZE / (size_t)T1_NODE_STORAGE_SIZE };
+	enum { ON_DISC_NODE_SIZE = 64 };
+	enum { NUM_NODES_PER_BLK = (size_t)BLOCK_SIZE / (size_t)ON_DISC_NODE_SIZE };
 	enum { TREE_MAX_DEGREE_LOG_2 = 6 };
 	enum { TREE_MAX_DEGREE = 1 << TREE_MAX_DEGREE_LOG_2 };
 	enum { TREE_MAX_LEVEL = 6 };
 	enum { TREE_MAX_NR_OF_LEVELS = TREE_MAX_LEVEL + 1 };
-	enum { T2_NODE_LVL = 1 };
-	enum { VBD_LOWEST_T1_LVL = 1 };
-	enum { FT_LOWEST_T1_LVL = 2 };
-	enum { MT_LOWEST_T1_LVL = 2 };
 	enum { KEY_SIZE = 32 };
 	enum { MAX_NR_OF_SNAPSHOTS = 48 };
 	enum { MAX_SNAP_IDX = MAX_NR_OF_SNAPSHOTS - 1 };
@@ -91,15 +89,19 @@ namespace Tresor {
 	struct Superblock;
 	struct Superblock_info;
 	struct Snapshot;
-	struct Snapshot_generations;
+	struct Snapshots_info;
 	struct Snapshots;
 	struct Type_1_node;
 	struct Type_1_node_block;
 	struct Type_1_node_walk;
+	struct Type_1_node_block_walk;
 	struct Type_2_node;
 	struct Type_2_node_block;
 	struct Tree_walk_pbas;
+	struct Tree_walk_generations;
 	struct Level_indent;
+	struct Tree_root;
+	class Pba_allocator;
 
 	template <size_t LEN>
 	class Fixed_length;
@@ -114,24 +116,16 @@ namespace Tresor {
 		return to_the_power_of<Virtual_block_address>(degree, max_lvl) - 1;
 	}
 
-	inline Physical_block_address
-	alloc_pba_from_resizing_contingent(Physical_block_address &first_pba,
-	                                   Number_of_blocks       &nr_of_pbas)
+	inline Physical_block_address alloc_pba_from_range(Physical_block_address &first_pba, Number_of_blocks &num_pbas)
 	{
-		if (nr_of_pbas == 0) {
-			class Exception_1 { };
-			throw Exception_1 { };
-		}
-		Physical_block_address const allocated_pba { first_pba };
-		first_pba  = first_pba  + 1;
-		nr_of_pbas = nr_of_pbas - 1;
-		return allocated_pba;
+		ASSERT(num_pbas);
+		first_pba++;
+		num_pbas--;
+		return first_pba - 1;
 	}
 
 	inline Tree_node_index
-	t1_child_idx_for_vba_typed(Virtual_block_address vba,
-	                           Tree_level_index      lvl,
-	                           Tree_degree           degr)
+	t1_node_idx_for_vba_typed(Virtual_block_address vba, Tree_level_index lvl, Tree_degree degr)
 	{
 		uint64_t const degr_log_2 { log2(degr) };
 		uint64_t const degr_mask  { ((uint64_t)1 << degr_log_2) - 1 };
@@ -140,59 +134,89 @@ namespace Tresor {
 	}
 
 	template <typename T1, typename T2, typename T3>
-	inline Tree_node_index t1_child_idx_for_vba(T1 vba,
-	                                       T2 lvl,
-	                                       T3 degr)
+	inline Tree_node_index t1_node_idx_for_vba(T1 vba, T2 lvl, T3 degr)
 	{
-		return t1_child_idx_for_vba_typed((Virtual_block_address)vba,
-		                                  (Tree_level_index)lvl,
-		                                  (Tree_degree)degr);
+		return t1_node_idx_for_vba_typed((Virtual_block_address)vba, (Tree_level_index)lvl, (Tree_degree)degr);
 	}
 
-	inline Tree_node_index t2_child_idx_for_vba(Virtual_block_address vba,
-	                                       Tree_degree           degr)
+	inline Tree_node_index t2_node_idx_for_vba(Virtual_block_address vba, Tree_degree degr)
 	{
 		uint64_t const degr_log_2 { log2(degr) };
 		uint64_t const degr_mask  { ((uint64_t)1 << degr_log_2) - 1 };
 		return (Tree_node_index)((uint64_t)vba & degr_mask);
 	}
+
+	inline Virtual_block_address vbd_node_min_vba(Tree_degree_log_2 vbd_degr_log_2,
+	                                              Tree_level_index vbd_lvl,
+	                                              Virtual_block_address vbd_leaf_vba)
+	{
+		return vbd_leaf_vba & (~(Physical_block_address)0 << ((Physical_block_address)vbd_degr_log_2 * vbd_lvl));
+	}
+
+	inline Number_of_blocks vbd_node_num_vbas(Tree_degree_log_2 vbd_degr_log_2, Tree_level_index vbd_lvl)
+	{
+		return (Number_of_blocks)1 << ((Number_of_blocks)vbd_degr_log_2 * vbd_lvl);
+	}
+
+	inline Virtual_block_address vbd_node_max_vba(Tree_degree_log_2 vbd_degr_log_2,
+	                                              Tree_level_index vbd_lvl,
+	                                              Virtual_block_address vbd_leaf_vba)
+	{
+		return vbd_node_num_vbas(vbd_degr_log_2, vbd_lvl) - 1 + vbd_node_min_vba(vbd_degr_log_2, vbd_lvl, vbd_leaf_vba);
+	}
 }
+
+
+class Tresor::Pba_allocator
+{
+	private:
+
+		Physical_block_address const _first_pba;
+		Number_of_blocks _num_used_pbas { 0 };
+
+	public:
+
+		Pba_allocator(Physical_block_address const first_pba) : _first_pba { first_pba } { }
+
+		Number_of_blocks num_used_pbas() { return _num_used_pbas; }
+
+		Physical_block_address first_pba() { return _first_pba; }
+
+		bool alloc(Physical_block_address &pba)
+		{
+			if (_num_used_pbas > MAX_PBA - _first_pba)
+				return false;
+
+			pba = _first_pba + _num_used_pbas;
+			_num_used_pbas++;
+			return true;
+		}
+};
 
 
 struct Tresor::Byte_range
 {
 	uint8_t const *ptr;
-	size_t         size;
+	size_t size;
 
 	void print(Output &out) const
 	{
 		using Genode::print;
-
 		enum { MAX_BYTES_PER_LINE = 64 };
 		enum { MAX_BYTES_PER_WORD = 4 };
-
-		if (size > 0xffff) {
-			class Exception_1 { };
-			throw Exception_1 { };
-		}
+		ASSERT(size <= 0xffff);
 		if (size > MAX_BYTES_PER_LINE) {
-
 			for (size_t idx { 0 }; idx < size; idx++) {
-
 				if (idx % MAX_BYTES_PER_LINE == 0)
-					print(out, "\n  ",
-					      Hex((uint16_t)idx, Hex::PREFIX, Hex::PAD), ": ");
+					print(out, "\n  ", Hex((uint16_t)idx, Hex::PREFIX, Hex::PAD), ": ");
 
 				else if (idx % MAX_BYTES_PER_WORD == 0)
 					print(out, " ");
 
 				print(out, Hex(ptr[idx], Hex::OMIT_PREFIX, Hex::PAD));
 			}
-
 		} else {
-
 			for (size_t idx { 0 }; idx < size; idx++) {
-
 				if (idx % MAX_BYTES_PER_WORD == 0 && idx != 0)
 					print(out, " ");
 
@@ -450,6 +474,11 @@ struct Tresor::Type_1_node
 			hash != node.hash;
 	}
 
+	bool is_volatile(Generation curr_gen) const
+	{
+	   return gen == INITIAL_GENERATION || gen == curr_gen;
+	}
+
 	void print(Output &out) const
 	{
 		Genode::print(out, "pba ", pba, " gen ", gen, " hash ", hash);
@@ -457,9 +486,26 @@ struct Tresor::Type_1_node
 };
 
 
+struct Tresor::Tree_root
+{
+	Physical_block_address &pba;
+	Generation &gen;
+	Hash &hash;
+	Tree_level_index &max_lvl;
+	Tree_degree &degree;
+	Number_of_leaves &num_leaves;
+
+	Type_1_node t1_node() const { return { pba, gen, hash }; }
+
+	void t1_node(Type_1_node const &node) { pba = node.pba; gen = node.gen; hash = node.hash; }
+
+	void print(Output &out) const { Genode::print(out, t1_node(), " maxlvl ", max_lvl, " degr ", degree, " leaves ", num_leaves); }
+};
+
+
 struct Tresor::Type_1_node_block
 {
-	Type_1_node nodes[NR_OF_T1_NODES_PER_BLK] { };
+	Type_1_node nodes[NUM_NODES_PER_BLK] { };
 
 	void decode_from_blk(Block const &blk)
 	{
@@ -474,6 +520,12 @@ struct Tresor::Type_1_node_block
 		for (Type_1_node const &node : nodes)
 			node.encode_to_blk(generator);
 	}
+};
+
+
+struct Tresor::Type_1_node_block_walk
+{
+	Type_1_node_block items[TREE_MAX_NR_OF_LEVELS] { };
 };
 
 
@@ -531,7 +583,7 @@ struct Tresor::Type_2_node
 
 struct Tresor::Type_2_node_block
 {
-	Type_2_node nodes[NR_OF_T2_NODES_PER_BLK] { };
+	Type_2_node nodes[NUM_NODES_PER_BLK] { };
 
 	void decode_from_blk(Block const &blk)
 	{
@@ -610,7 +662,7 @@ struct Tresor::Snapshots
 
 	void print(Output &out) const
 	{
-		bool first { false };
+		bool first { true };
 		for (Snapshot_index idx { 0 }; idx < MAX_NR_OF_SNAPSHOTS; idx++) {
 
 			if (!items[idx].valid)
@@ -647,31 +699,27 @@ struct Tresor::Snapshots
 		}
 	}
 
-	Snapshot_index newest_snapshot_idx() const
+	Snapshot_index newest_snap_idx() const
 	{
 		Snapshot_index result { INVALID_SNAP_IDX };
 		for (Snapshot_index idx { 0 }; idx < MAX_NR_OF_SNAPSHOTS; idx ++) {
-
-			Snapshot const &snap { items[idx] };
-			if (!snap.valid)
+			if (!items[idx].valid)
 				continue;
 
-			if (result != INVALID_SNAP_IDX &&
-			    snap.gen <= items[result].gen)
+			if (result != INVALID_SNAP_IDX && items[idx].gen <= items[result].gen)
 				continue;
 
 			result = idx;
 		}
-		if (result != INVALID_SNAP_IDX)
-			return result;
-
-		class Exception_1 { };
-		throw Exception_1 { };
+		ASSERT(result != INVALID_SNAP_IDX);
+		return result;
 	}
 
-	Snapshot_index
-	idx_of_invalid_or_lowest_gen_evictable_snap(Generation curr_gen,
-	                                            Generation last_secured_gen) const
+	/**
+	 * Returns the index of an unused slot or, if all are used, of the slot
+	 * that contains the lowest-generation evictable snapshot (no "keep" flag).
+	 */
+	Snapshot_index alloc_idx(Generation curr_gen, Generation last_secured_gen) const
 	{
 		Snapshot_index result { INVALID_SNAP_IDX };
 		for (Snapshot_index idx { 0 }; idx < MAX_NR_OF_SNAPSHOTS; idx ++) {
@@ -691,11 +739,8 @@ struct Tresor::Snapshots
 
 			result = idx;
 		}
-		if (result != INVALID_SNAP_IDX)
-			return result;
-
-		class Exception_1 { };
-		throw Exception_1 { };
+		ASSERT(result != INVALID_SNAP_IDX);
+		return result;
 	}
 };
 
@@ -714,20 +759,20 @@ struct Tresor::Superblock
 	Key                    previous_key            { };                 // offset 25
 	Key                    current_key             { };                 // offset 61
 	Snapshots              snapshots               { };                 // offset 97
-	Generation             last_secured_generation { };                 // offset 3553
-	Snapshot_index         curr_snap               { };                 // offset 3561
+	Generation             last_secured_generation { 0 };               // offset 3553
+	Snapshot_index         curr_snap_idx           { 0 };               // offset 3561
 	Tree_degree            degree                  { TREE_MIN_DEGREE }; // offset 3565
 	Physical_block_address first_pba               { 0 };               // offset 3569
 	Number_of_blocks       nr_of_pbas              { 0 };               // offset 3577
 	Generation             free_gen                { 0 };               // offset 3585
 	Physical_block_address free_number             { 0 };               // offset 3593
-	Hash                   free_hash               { 0 };               // offset 3601
+	Hash                   free_hash               { };                 // offset 3601
 	Tree_level_index       free_max_level          { 0 };               // offset 3633
 	Tree_degree            free_degree             { TREE_MIN_DEGREE }; // offset 3637
 	Number_of_leaves       free_leaves             { 0 };               // offset 3641
 	Generation             meta_gen                { 0 };               // offset 3649
 	Physical_block_address meta_number             { 0 };               // offset 3657
-	Hash                   meta_hash               { 0 };               // offset 3665
+	Hash                   meta_hash               { };                 // offset 3665
 	Tree_level_index       meta_max_level          { 0 };               // offset 3697
 	Tree_degree            meta_degree             { TREE_MIN_DEGREE }; // offset 3701
 	Number_of_leaves       meta_leaves             { 0 };               // offset 3705
@@ -770,7 +815,7 @@ struct Tresor::Superblock
 		current_key.decode_from_blk(scanner);
 		snapshots.decode_from_blk(scanner);
 		scanner.fetch(last_secured_generation);
-		scanner.fetch(curr_snap);
+		scanner.fetch(curr_snap_idx);
 		scanner.fetch(degree);
 		scanner.fetch(first_pba);
 		scanner.fetch(nr_of_pbas);
@@ -800,7 +845,7 @@ struct Tresor::Superblock
 		current_key.encode_to_blk(generator);
 		snapshots.encode_to_blk(generator);
 		generator.append(last_secured_generation);
-		generator.append(curr_snap);
+		generator.append(curr_snap_idx);
 		generator.append(degree);
 		generator.append(first_pba);
 		generator.append(nr_of_pbas);
@@ -835,13 +880,50 @@ struct Tresor::Superblock
 	{
 		Genode::print(
 			out, "state ", state_to_str(state), " last_secured_gen ",
-			last_secured_generation, " curr_snap ", curr_snap, " degr ",
+			last_secured_generation, " curr_snap ", curr_snap_idx, " degr ",
 			degree, " first_pba ", first_pba, " pbas ", nr_of_pbas,
 			" snapshots");
 
 		for (Snapshot const &snap : snapshots.items)
 			if (snap.valid)
 				Genode::print(out, " ", snap);
+	}
+
+	Snapshot &curr_snap() { return snapshots.items[curr_snap_idx]; }
+	Snapshot const &curr_snap() const { return snapshots.items[curr_snap_idx]; }
+
+	Virtual_block_address max_vba() const
+	{
+		ASSERT(valid());
+		return curr_snap().nr_of_leaves - 1;
+	}
+
+	void copy_all_but_key_values_from(Superblock const &sb)
+	{
+		state = sb.state;
+		rekeying_vba = sb.rekeying_vba;
+		resizing_nr_of_pbas = sb.resizing_nr_of_pbas;
+		resizing_nr_of_leaves = sb.resizing_nr_of_leaves;
+		first_pba = sb.first_pba;
+		nr_of_pbas = sb.nr_of_pbas;
+		previous_key.id = sb.previous_key.id;
+		current_key.id = sb.current_key.id;
+		snapshots = sb.snapshots;
+		last_secured_generation = sb.last_secured_generation;
+		curr_snap_idx = sb.curr_snap_idx;
+		degree = sb.degree;
+		free_gen = sb.free_gen;
+		free_number = sb.free_number;
+		free_hash = sb.free_hash;
+		free_max_level = sb.free_max_level;
+		free_degree = sb.free_degree;
+		free_leaves = sb.free_leaves;
+		meta_gen = sb.meta_gen;
+		meta_number = sb.meta_number;
+		meta_hash = sb.meta_hash;
+		meta_max_level = sb.meta_max_level;
+		meta_degree = sb.meta_degree;
+		meta_leaves = sb.meta_leaves;
 	}
 };
 
@@ -884,9 +966,21 @@ struct Tresor::Tree_walk_pbas
 };
 
 
-struct Tresor::Snapshot_generations
+struct Tresor::Tree_walk_generations
 {
-	Generation items[MAX_NR_OF_SNAPSHOTS] { 0 };
+	Generation items[TREE_MAX_NR_OF_LEVELS] { };
+};
+
+
+struct Tresor::Snapshots_info
+{
+	Generation generations[MAX_NR_OF_SNAPSHOTS] { };
+
+	Snapshots_info()
+	{
+		for (Generation &gen : generations)
+			gen = INVALID_GENERATION;
+	}
 };
 
 

@@ -16,8 +16,7 @@
 
 /* tresor includes */
 #include <tresor/types.h>
-#include <tresor/module.h>
-#include <tresor/vfs_utilities.h>
+#include <tresor/file.h>
 
 namespace Tresor {
 
@@ -28,82 +27,88 @@ namespace Tresor {
 
 class Tresor::Block_io_request : public Module_request
 {
+	friend class Block_io_channel;
+
 	public:
 
-		enum Type {
-			INVALID = 0, READ = 1, WRITE = 2, SYNC = 3, READ_CLIENT_DATA = 4,
-			WRITE_CLIENT_DATA = 5 };
+		enum Type { READ, WRITE, SYNC, READ_CLIENT_DATA, WRITE_CLIENT_DATA };
 
 	private:
 
-		friend class Block_io;
-		friend class Block_io_channel;
+		Type const _type;
+		Request_offset const _client_req_offset;
+		Request_tag const _client_req_tag;
+		Key_id const _key_id;
+		Physical_block_address const _pba;
+		Virtual_block_address const _vba;
+		Block &_blk;
+		Hash &_hash;
+		bool &_success;
 
-		Type     _type              { INVALID };
-		uint64_t _client_req_offset { 0 };
-		uint64_t _client_req_tag    { 0 };
-		uint32_t _key_id            { 0 };
-		uint64_t _pba               { 0 };
-		uint64_t _vba               { 0 };
-		uint64_t _blk_count         { 0 };
-		addr_t   _blk_ptr           { 0 };
-		addr_t   _hash_ptr          { 0 };
-		bool     _success           { false };
+		NONCOPYABLE(Block_io_request);
 
 	public:
 
-		Block_io_request() { }
+		Block_io_request(Module_id, Module_channel_id, Type, Request_offset, Request_tag, Key_id,
+		                 Physical_block_address, Virtual_block_address, Block &, Hash &, bool &);
 
-		Block_io_request(uint64_t  src_module_id,
-		                 uint64_t  src_request_id,
-		                 size_t    req_type,
-		                 uint64_t  client_req_offset,
-		                 uint64_t  client_req_tag,
-		                 uint32_t  key_id,
-		                 uint64_t  pba,
-		                 uint64_t  vba,
-		                 uint64_t  blk_count,
-		                 void     *blk_ptr,
-		                 void     *hash_ptr);
+		static char const *type_to_string(Type);
 
-		Type type() const { return _type; }
-
-		bool success() const { return _success; }
-
-		static char const *type_to_string(Type type);
-
-		char const *type_name() const { return type_to_string(_type); }
-
-
-		/********************
-		 ** Module_request **
-		 ********************/
-
-		void print(Output &out) const override;
+		void print(Output &out) const override { Genode::print(out, type_to_string(_type), " pba ", _pba); }
 };
 
-class Tresor::Block_io_channel
+class Tresor::Block_io_channel : public Module_channel
 {
 	private:
 
-		friend class Block_io;
+		using Request = Block_io_request;
 
 		enum State {
-			INACTIVE, SUBMITTED, PENDING, IN_PROGRESS, COMPLETE,
-			ENCRYPT_CLIENT_DATA_PENDING,
-			ENCRYPT_CLIENT_DATA_IN_PROGRESS,
-			ENCRYPT_CLIENT_DATA_COMPLETE,
-			DECRYPT_CLIENT_DATA_PENDING,
-			DECRYPT_CLIENT_DATA_IN_PROGRESS,
-			DECRYPT_CLIENT_DATA_COMPLETE
-		};
+			REQ_SUBMITTED, REQ_COMPLETE, CIPHERTEXT_BLK_OBTAINED, PLAINTEXT_BLK_SUPPLIED, REQ_GENERATED,
+			READ_OK, WRITE_OK, SYNC_OK, FILE_ERR };
 
-		State            _state                 { INACTIVE };
-		Block_io_request _request               { };
-		Vfs::file_offset _nr_of_processed_bytes { 0 };
-		size_t           _nr_of_remaining_bytes { 0 };
-		Block            _blk_buf               { };
-		bool             _generated_req_success { false };
+		State _state { REQ_COMPLETE };
+		Block _blk { };
+		bool _generated_req_success { false };
+		Block_io_request *_req_ptr { };
+		Vfs::Env &_vfs_env;
+		Tresor::Path const _path;
+		Read_write_file<State> _file { _state, _vfs_env, _path };
+
+		NONCOPYABLE(Block_io_channel);
+
+		void _generated_req_completed(State_uint) override;
+
+		template <typename REQUEST, typename... ARGS>
+		void _generate_req(State_uint state, bool &progress, ARGS &&... args)
+		{
+			_state = REQ_GENERATED;
+			generate_req<REQUEST>(state, progress, args..., _generated_req_success);
+		}
+
+		void _request_submitted(Module_request &) override;
+
+		bool _request_complete() override { return _state == REQ_COMPLETE; }
+
+		void _read(bool &);
+
+		void _write(bool &);
+
+		void _read_client_data(bool &);
+
+		void _write_client_data(bool &);
+
+		void _sync(bool &);
+
+		void _mark_req_failed(bool &, Error_string);
+
+		void _mark_req_successful(bool &);
+
+	public:
+
+		Block_io_channel(Module_channel_id, Vfs::Env &, Xml_node const &);
+
+		void execute(bool &);
 };
 
 class Tresor::Block_io : public Module
@@ -112,67 +117,48 @@ class Tresor::Block_io : public Module
 
 		using Request = Block_io_request;
 		using Channel = Block_io_channel;
-		using Read_result = Vfs::File_io_service::Read_result;
-		using Write_result = Vfs::File_io_service::Write_result;
-		using file_size = Vfs::file_size;
-		using file_offset = Vfs::file_offset;
 
-		enum { NR_OF_CHANNELS = 1 };
+		Constructible<Channel> _channels[1] { };
 
-		String<32> const  _path;
-		Vfs::Env         &_vfs_env;
-		Vfs::Vfs_handle  &_vfs_handle               { vfs_open_rw(_vfs_env, _path) };
-		Channel           _channels[NR_OF_CHANNELS] { };
-
-		void _execute_read(Channel &channel,
-		                   bool    &progress);
-
-		void _execute_write(Channel &channel,
-		                    bool    &progress);
-
-		void _execute_read_client_data(Channel &channel,
-		                               bool    &progress);
-
-		void _execute_write_client_data(Channel &channel,
-		                                bool    &progress);
-
-		void _execute_sync(Channel &channel,
-		                   bool    &progress);
-
-		void _mark_req_failed(Channel    &channel,
-		                      bool       &progress,
-		                      char const *str);
-
-		void _mark_req_successful(Channel &channel,
-		                          bool    &progress);
-
-
-		/************
-		 ** Module **
-		 ************/
-
-		bool ready_to_submit_request() override;
-
-		void submit_request(Module_request &req) override;
-
-		bool _peek_completed_request(uint8_t *buf_ptr,
-		                             size_t   buf_size) override;
-
-		void _drop_completed_request(Module_request &req) override;
-
-		void execute(bool &) override;
-
-		bool _peek_generated_request(uint8_t *buf_ptr,
-		                             size_t   buf_size) override;
-
-		void _drop_generated_request(Module_request &mod_req) override;
-
-		void generated_request_complete(Module_request &req) override;
+		NONCOPYABLE(Block_io);
 
 	public:
 
-		Block_io(Vfs::Env       &vfs_env,
-		         Xml_node const &xml_node);
+		struct Read : Request
+		{
+			Read(Module_id m, Module_channel_id c, Physical_block_address a, Block &b, bool &s)
+			: Request(m, c, Request::READ, 0, 0, 0, a, 0, b, *(Hash*)0, s) { }
+		};
+
+		struct Write : Request
+		{
+			Write(Module_id m, Module_channel_id c, Physical_block_address a, Block const &b, bool &s)
+			: Request(m, c, Request::WRITE, 0, 0, 0, a, 0, *const_cast<Block*>(&b), *(Hash*)0, s) { }
+		};
+
+		struct Sync : Request
+		{
+			Sync(Module_id m, Module_channel_id c, bool &s)
+			: Request(m, c, Request::SYNC, 0, 0, 0, 0, 0, *(Block*)0, *(Hash*)0, s) { }
+		};
+
+		struct Write_client_data : Request
+		{
+			Write_client_data(Module_id m, Module_channel_id c, Physical_block_address p, Virtual_block_address v,
+			                  Key_id k, Request_tag t, Request_offset o, Block const &b, Hash &h, bool &s)
+			: Request(m, c, Request::WRITE_CLIENT_DATA, o, t, k, p, v, *const_cast<Block*>(&b), h, s) { }
+		};
+
+		struct Read_client_data : Request
+		{
+			Read_client_data(Module_id m, Module_channel_id c, Physical_block_address p, Virtual_block_address v,
+			                  Key_id k, Request_tag t, Request_offset o, Block &b, bool &s)
+			: Request(m, c, Request::READ_CLIENT_DATA, o, t, k, p, v, b, *(Hash*)0, s) { }
+		};
+
+		Block_io(Vfs::Env &, Xml_node const &);
+
+		void execute(bool &) override;
 };
 
 #endif /* _TRESOR__BLOCK_IO_H_ */
