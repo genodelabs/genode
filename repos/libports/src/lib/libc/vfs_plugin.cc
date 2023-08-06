@@ -110,7 +110,7 @@ static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src
 		switch (type) {
 		case Vfs::Node_type::DIRECTORY:          return S_IFDIR;
 		case Vfs::Node_type::CONTINUOUS_FILE:    return S_IFREG;
-		case Vfs::Node_type::TRANSACTIONAL_FILE: return S_IFSOCK;
+		case Vfs::Node_type::TRANSACTIONAL_FILE: return S_IFCHR;
 		case Vfs::Node_type::SYMLINK:            return S_IFLNK;
 		}
 		return 0;
@@ -1059,7 +1059,7 @@ ssize_t Libc::Vfs_plugin::getdirentries(File_descriptor *fd, char *buf,
 		switch (type) {
 		case Dirent_type::DIRECTORY:          return DT_DIR;
 		case Dirent_type::CONTINUOUS_FILE:    return DT_REG;
-		case Dirent_type::TRANSACTIONAL_FILE: return DT_SOCK;
+		case Dirent_type::TRANSACTIONAL_FILE: return DT_CHR;
 		case Dirent_type::SYMLINK:            return DT_LNK;
 		case Dirent_type::END:                return DT_UNKNOWN;
 		}
