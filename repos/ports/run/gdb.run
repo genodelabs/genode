@@ -1,0 +1,7 @@
+source ${genode_dir}/repos/ports/run/gdb.inc
+
+# run socat for interaction with GDB
+eval spawn socat - TCP:$host:$port
+set gdb_id [list $spawn_id $genode_id]
+
+source ${genode_dir}/repos/os/run/monitor_gdb_tests.inc
