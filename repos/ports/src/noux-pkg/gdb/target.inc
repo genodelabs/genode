@@ -16,6 +16,4 @@ LIBS += stdcxx ncurses expat gmp
 # workaround for problems with makeinfo version 5
 MAKE_ENV += "MAKEINFO=true"
 
-INSTALL_TARGET = install
-
 include $(call select_from_repositories,mk/noux.mk)
