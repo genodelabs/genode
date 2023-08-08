@@ -1,0 +1,23 @@
+--- a/src/virtualbox6/src/VBox/Devices/PC/DevPcBios.cpp.orig
++++ b/src/virtualbox6/src/VBox/Devices/PC/DevPcBios.cpp
+@@ -604,6 +604,7 @@
+     RT_NOREF1(pBase);
+ 
+     PDMMEDIAGEOMETRY LCHSGeometry;
++#if 0 /* Genode */
+     int rc = pHardDisk->pfnBiosGetLCHSGeometry(pHardDisk, &LCHSGeometry);
+     if (   rc == VERR_PDM_GEOMETRY_NOT_SET
+         || LCHSGeometry.cCylinders == 0
+@@ -627,6 +628,12 @@
+             || LCHSGeometry.cSectors == 0
+             || LCHSGeometry.cSectors > 63)
+         {
++#else
++    /* always calculate geometry */
++    int rc = VINF_SUCCESS;
++    {
++        {
++#endif /* Genode */
+             uint64_t cSectors = pHardDisk->pfnGetSize(pHardDisk) / 512;
+             if (cSectors / 16 / 63 <= 1024)
+             {
