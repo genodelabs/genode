@@ -75,6 +75,7 @@ struct Core::Cpu : Hw::Arm_64_cpu
 	struct alignas(16) Context : Cpu_state
 	{
 		uint64_t  pstate { };
+		uint64_t  mdscr_el1 { };
 		uint64_t  exception_type { RESET };
 		Fpu_state fpu_state { };
 
@@ -103,6 +104,12 @@ struct Core::Cpu : Hw::Arm_64_cpu
 	void switch_to(Mmu_context &);
 
 	static void mmu_fault(Context &, Kernel::Thread_fault &);
+
+	static void single_step(Context &regs, bool on)
+	{
+		Cpu::Spsr::Ss::set(regs.pstate, on ? 1 : 0);
+		Cpu::Mdscr::Ss::set(regs.mdscr_el1, on ? 1 : 0);
+	};
 
 	/**
 	 * Return kernel name of the executing CPU

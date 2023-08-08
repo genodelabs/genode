@@ -105,6 +105,12 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 		Cpu_session_capability _cpu_session_cap;
 		Thread_capability      _thread_cap;
 
+		/**
+		 * User-level signal handler registered for this pager object via
+		 * 'Cpu_session::exception_handler()'.
+		 */
+		Signal_context_capability _exception_sigh { };
+
 	public:
 
 		/**
@@ -128,9 +134,24 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 		void wake_up();
 
 		/**
-		 * Unnecessary as base-hw doesn't use exception handlers
+		 * Assign user-level exception handler for the pager object
 		 */
-		void exception_handler(Signal_context_capability);
+		void exception_handler(Signal_context_capability sigh)
+		{
+			_exception_sigh = sigh;
+		}
+
+		/**
+		 * Notify exception handler about the occurrence of an exception
+		 */
+		bool submit_exception_signal()
+		{
+			if (!_exception_sigh.valid()) return false;
+
+			Signal_transmitter transmitter(_exception_sigh);
+			transmitter.submit();
+			return true;
+		}
 
 		/**
 		 * Install information that is necessary to handle page faults

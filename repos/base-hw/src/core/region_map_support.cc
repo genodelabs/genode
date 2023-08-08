@@ -43,6 +43,16 @@ void Pager_entrypoint::entry()
 			continue;
 		}
 
+		if (pt->exception_state() ==
+		    Kernel::Thread::Exception_state::EXCEPTION) {
+			if (!po->submit_exception_signal())
+				warning("unresolvable exception: "
+				        "pd='",     pt->pd()->label(), "', "
+				        "thread='", pt->label(),       "', "
+				        "ip=",      Hex(pt->state().ip));
+			continue;
+		}
+
 		_fault = pt->fault_info();
 
 		/* try to resolve fault directly via local region managers */

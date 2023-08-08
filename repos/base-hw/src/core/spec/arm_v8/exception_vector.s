@@ -35,10 +35,12 @@
 	mrs  x1, sp_el0
 	mrs  x2, elr_el1
 	mrs  x3, spsr_el1
-	adr  x4, .
-	and  x4, x4, #0xf80
+	mrs  x4, mdscr_el1
+	adr  x5, .
+	and  x5, x5, #0xf80
 	stp  x1, x2, [x0], #16
-	stp  x3, x4, [x0], #16
+	stp  xzr, x3, [x0], #16   /* ec will be updated later if needed */
+	stp  x4, x5, [x0], #16
 	b _kernel_entry
 	.balign 128
 	.endr
@@ -91,11 +93,12 @@ _kernel_entry:
 	mov  sp, x1               /* reset stack */
 	str  x0, [sp, #-16]       /* store cpu state pointer */
 	add  x1, x0, #8*31
-	ldp  x2, x3, [x1], #16    /* load sp, ip */
-	ldr  x4, [x1], #16        /* load pstate */
+	ldp  x2, x3, [x1], #16+8  /* load sp, ip, skip ec */
+	ldp  x4, x5, [x1], #16+8  /* load pstate, mdscr_el1, skip exception_type */
 	msr  sp_el0,   x2
 	msr  elr_el1,  x3
 	msr  spsr_el1, x4
+	msr  mdscr_el1, x5
 	ldp  q0,  q1,  [x1], #32
 	ldp  q2,  q3,  [x1], #32
 	ldp  q4,  q5,  [x1], #32

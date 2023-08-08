@@ -125,6 +125,22 @@ class Core::Platform_thread : Noncopyable
 		~Platform_thread();
 
 		/**
+		 * Return information about current exception state
+		 *
+		 * This syscall wrapper is located here and not in
+		 * 'core_interface.h' because the 'Thread::Exception_state'
+		 * type is not known there.
+		 */
+		Kernel::Thread::Exception_state exception_state()
+		{
+			Kernel::Thread::Exception_state exception_state;
+			using namespace Kernel;
+			call(call_id_exception_state(), (Call_arg)&*_kobj,
+			                                (Call_arg)&exception_state);
+			return exception_state;
+		}
+
+		/**
 		 * Return information about current fault
 		 */
 		Kernel::Thread_fault fault_info() { return _kobj->fault(); }
@@ -158,12 +174,19 @@ class Core::Platform_thread : Noncopyable
 		/**
 		 * Enable/disable single stepping
 		 */
-		void single_step(bool) { }
+		void single_step(bool on) { Kernel::single_step(*_kobj, on); }
 
 		/**
 		 * Resume this thread
 		 */
-		void resume() { Kernel::resume_thread(*_kobj); }
+		void resume()
+		{
+			if (exception_state() !=
+			    Kernel::Thread::Exception_state::NO_EXCEPTION)
+				restart();
+
+			Kernel::resume_thread(*_kobj);
+		}
 
 		/**
 		 * Set CPU quota of the thread to 'quota'

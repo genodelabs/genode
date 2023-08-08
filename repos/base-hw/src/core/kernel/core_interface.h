@@ -14,6 +14,9 @@
 #ifndef _CORE__KERNEL__CORE_INTERFACE_H_
 #define _CORE__KERNEL__CORE_INTERFACE_H_
 
+/* base includes */
+#include <cpu/cpu_state.h>
+
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
 
@@ -31,6 +34,7 @@ namespace Kernel {
 	class Vm;
 	class User_irq;
 	using Native_utcb = Genode::Native_utcb;
+	using Cpu_state   = Genode::Cpu_state;
 	template <typename T> class Core_object_identity;
 
 	/**
@@ -58,6 +62,10 @@ namespace Kernel {
 	constexpr Call_arg call_id_new_obj()                { return 121; }
 	constexpr Call_arg call_id_delete_obj()             { return 122; }
 	constexpr Call_arg call_id_new_core_thread()        { return 123; }
+	constexpr Call_arg call_id_get_cpu_state()          { return 124; }
+	constexpr Call_arg call_id_set_cpu_state()          { return 125; }
+	constexpr Call_arg call_id_exception_state()        { return 126; }
+	constexpr Call_arg call_id_single_step()            { return 127; }
 
 	/**
 	 * Invalidate TLB entries for the `pd` in region `addr`, `sz`
@@ -158,6 +166,42 @@ namespace Kernel {
 	inline void ack_irq(User_irq & irq)
 	{
 		call(call_id_ack_irq(), (Call_arg) &irq);
+	}
+
+
+	/**
+	 * Get CPU state
+	 *
+	 * \param thread        pointer to thread kernel object
+	 * \param thread_state  pointer to result CPU state object
+	 */
+	inline void get_cpu_state(Thread & thread, Cpu_state & cpu_state)
+	{
+		call(call_id_get_cpu_state(), (Call_arg)&thread, (Call_arg)&cpu_state);
+	}
+
+
+	/**
+	 * Set CPU state
+	 *
+	 * \param thread        pointer to thread kernel object
+	 * \param thread_state  pointer to CPU state object
+	 */
+	inline void set_cpu_state(Thread & thread, Cpu_state & cpu_state)
+	{
+		call(call_id_set_cpu_state(), (Call_arg)&thread, (Call_arg)&cpu_state);
+	}
+
+
+	/**
+	 * Enable/disable single-stepping
+	 *
+	 * \param thread  pointer to thread kernel object
+	 * \param on      enable or disable
+	 */
+	inline void single_step(Thread & thread, bool & on)
+	{
+		call(call_id_single_step(), (Call_arg)&thread, (Call_arg)&on);
 	}
 }
 

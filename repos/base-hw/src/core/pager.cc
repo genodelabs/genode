@@ -61,9 +61,6 @@ void Pager_object::start_paging(Kernel_object<Kernel::Signal_receiver> & receive
 }
 
 
-void Pager_object::exception_handler(Signal_context_capability) { }
-
-
 void Pager_object::unresolved_page_fault_occurred() { }
 
 

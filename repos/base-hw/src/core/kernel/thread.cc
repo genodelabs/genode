@@ -403,6 +403,7 @@ bool Thread::_restart()
 {
 	assert(_state == ACTIVE || _state == AWAITS_RESTART);
 	if (_state != AWAITS_RESTART) { return false; }
+	_exception_state = NO_EXCEPTION;
 	_become_active();
 	return true;
 }
@@ -793,6 +794,34 @@ void Kernel::Thread::_call_invalidate_tlb()
 }
 
 
+void Thread::_call_get_cpu_state() {
+	Thread &thread = *(Thread*)user_arg_1();
+	Cpu_state &cpu_state = *(Cpu_state*)user_arg_2();
+	cpu_state = *thread.regs;
+}
+
+
+void Thread::_call_set_cpu_state() {
+	Thread &thread = *(Thread*)user_arg_1();
+	Cpu_state &cpu_state = *(Cpu_state*)user_arg_2();
+	static_cast<Cpu_state&>(*thread.regs) = cpu_state;
+}
+
+
+void Thread::_call_exception_state() {
+	Thread &thread = *(Thread*)user_arg_1();
+	Exception_state &exception_state = *(Exception_state*)user_arg_2();
+	exception_state = thread.exception_state();
+}
+
+
+void Thread::_call_single_step() {
+	Thread &thread = *(Thread*)user_arg_1();
+	bool on = *(bool*)user_arg_2();
+	Cpu::single_step(*thread.regs, on);
+}
+
+
 void Thread::_call()
 {
 	try {
@@ -871,6 +900,10 @@ void Thread::_call()
 	case call_id_new_obj():                _call_new_obj(); return;
 	case call_id_delete_obj():             _call_delete_obj(); return;
 	case call_id_suspend():                _call_suspend(); return;
+	case call_id_get_cpu_state():          _call_get_cpu_state(); return;
+	case call_id_set_cpu_state():          _call_set_cpu_state(); return;
+	case call_id_exception_state():        _call_exception_state(); return;
+	case call_id_single_step():            _call_single_step(); return;
 	default:
 		Genode::raw(*this, ": unknown kernel call");
 		_die();
@@ -883,6 +916,7 @@ void Thread::_call()
 void Thread::_mmu_exception()
 {
 	_become_inactive(AWAITS_RESTART);
+	_exception_state = MMU_FAULT;
 	Cpu::mmu_fault(*regs, _fault);
 	_fault.ip = regs->ip;
 
@@ -897,6 +931,25 @@ void Thread::_mmu_exception()
 
 	if (_pager && _pager->can_submit(1)) {
 		_pager->submit(1);
+	}
+}
+
+
+void Thread::_exception()
+{
+	_become_inactive(AWAITS_RESTART);
+	_exception_state = EXCEPTION;
+
+	if (_type != USER) {
+		Genode::raw(*this, " raised an exception, which should never happen");
+		_die();
+	}
+
+	if (_pager && _pager->can_submit(1)) {
+		_pager->submit(1);
+	} else {
+		Genode::raw(*this, " could not send signal to pager on exception");
+		_die();
 	}
 }
 

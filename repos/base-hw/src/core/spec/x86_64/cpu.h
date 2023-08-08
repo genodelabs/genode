@@ -101,6 +101,7 @@ class Core::Cpu : public Hw::X86_64_cpu
 		struct alignas(16) Context : Cpu_state, Kernel_stack, Fpu_context
 		{
 			enum Eflags {
+				EFLAGS_TF     = 1 << 8,
 				EFLAGS_IF_SET = 1 << 9,
 				EFLAGS_IOPL_3 = 3 << 12,
 			};
@@ -133,6 +134,8 @@ class Core::Cpu : public Hw::X86_64_cpu
 		void switch_to(Mmu_context &mmu_context);
 
 		static void mmu_fault(Context & regs, Kernel::Thread_fault & fault);
+
+		static void single_step(Context &regs, bool on);
 
 		/**
 		 * Invalidate the whole TLB

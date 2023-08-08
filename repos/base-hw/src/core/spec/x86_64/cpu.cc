@@ -158,3 +158,12 @@ void Cpu::clear_memory_region(addr_t const addr, size_t const size, bool)
 		memset((void*)addr, 0, size);
 	}
 }
+
+
+void Cpu::single_step(Context &regs, bool on)
+{
+	if (on)
+		regs.eflags |= Context::Eflags::EFLAGS_TF;
+	else
+		regs.eflags &= ~Context::Eflags::EFLAGS_TF;
+}

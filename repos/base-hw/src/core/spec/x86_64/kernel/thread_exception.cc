@@ -30,9 +30,12 @@ void Thread::exception(Cpu & cpu)
 		_mmu_exception();
 		return;
 
+	case Cpu_state::DIVIDE_ERROR:
+	case Cpu_state::DEBUG:
+	case Cpu_state::BREAKPOINT:
 	case Cpu_state::UNDEFINED_INSTRUCTION:
-		Genode::raw(*this, ": undefined instruction at ip=", (void*)regs->ip);
-		_die();
+	case Cpu_state::GENERAL_PROTECTION:
+		_exception();
 		return;
 
 	case Cpu_state::SUPERVISOR_CALL:

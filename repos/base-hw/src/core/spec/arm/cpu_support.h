@@ -120,6 +120,8 @@ struct Core::Arm_cpu : public Hw::Arm_cpu
 	 * Return kernel name of the executing CPU
 	 */
 	static unsigned executing_id() { return 0; }
+
+	static void single_step(Context &, bool) { };
 };
 
 #endif /* _CORE__SPEC__ARM__CPU_SUPPORT_H_ */

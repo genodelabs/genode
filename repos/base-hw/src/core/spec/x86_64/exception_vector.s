@@ -147,9 +147,19 @@
 	.align 8
 	__idt:
 
-	/* first 128 entries */
+	/* first 3 entries */
 	.set isr_addr, ISR
-	.rept 0x80
+	.rept 3
+	_idt_entry isr_addr IDT_FLAGS_PRIVILEGED
+	.set isr_addr, isr_addr + ISR_ENTRY_SIZE
+	.endr
+
+	/* int3 */
+	_idt_entry isr_addr IDT_FLAGS_UNPRIVILEGED
+	.set isr_addr, isr_addr + ISR_ENTRY_SIZE
+
+	/* entries 4-127 */
+	.rept 124
 	_idt_entry isr_addr IDT_FLAGS_PRIVILEGED
 	.set isr_addr, isr_addr + ISR_ENTRY_SIZE
 	.endr

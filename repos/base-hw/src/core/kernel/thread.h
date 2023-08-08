@@ -59,6 +59,8 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 
 		enum Type { USER, CORE, IDLE };
 
+		enum Exception_state { NO_EXCEPTION, MMU_FAULT, EXCEPTION };
+
 	private:
 
 		/*
@@ -181,6 +183,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		bool                               _paused                   { false };
 		bool                               _cancel_next_await_signal { false };
 		Type const                         _type;
+		Exception_state                    _exception_state          { NO_EXCEPTION };
 
 		Genode::Constructible<Tlb_invalidation>   _tlb_invalidation {};
 		Genode::Constructible<Destroy>            _destroy {};
@@ -232,6 +235,11 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		 * Handle an exception thrown by the memory management unit
 		 */
 		void _mmu_exception();
+
+		/**
+		 * Handle a non-mmu exception
+		 */
+		void _exception();
 
 		/**
 		 * Handle kernel-call request of the thread
@@ -294,6 +302,10 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		void _call_timeout_max_us();
 		void _call_time();
 		void _call_suspend();
+		void _call_get_cpu_state();
+		void _call_set_cpu_state();
+		void _call_exception_state();
+		void _call_single_step();
 
 		template <typename T, typename... ARGS>
 		void _call_new(ARGS &&... args)
@@ -468,6 +480,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		Thread_fault fault() const { return _fault; }
 		Genode::Native_utcb *utcb() { return _utcb; }
 		Type type() const { return _type; }
+		Exception_state exception_state() const { return _exception_state; }
 
 		Pd &pd() const
 		{

@@ -101,6 +101,8 @@ class Core::Cpu : public Hw::Riscv_cpu
 		void switch_to(Mmu_context & context);
 		static void mmu_fault(Context & c, Kernel::Thread_fault & f);
 
+		static void single_step(Context &, bool) { };
+
 		static unsigned executing_id() { return 0; }
 
 		static void clear_memory_region(addr_t const addr,
