@@ -4,12 +4,52 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 Enable shared library support.
 ---
- gdb/amd64-tdep.c  |    4 ++++
- gdb/arm-tdep.c    |    4 ++++
- gdb/configure.tgt |    7 +++++--
- gdb/i386-tdep.c   |    4 ++++
- 4 files changed, 17 insertions(+), 2 deletions(-)
+ gdb/aarch64-tdep.c |   14 ++++++++++++++
+ gdb/amd64-tdep.c   |    4 ++++
+ gdb/arm-tdep.c     |    4 ++++
+ gdb/configure.tgt  |    9 ++++++---
+ gdb/i386-tdep.c    |    4 ++++
+ 5 files changed, 32 insertions(+), 3 deletions(-)
 
+diff --git a/gdb/aarch64-tdep.c b/gdb/aarch64-tdep.c
+index 3cc0d3b..d07dd6e 100644
+--- a/gdb/aarch64-tdep.c
++++ b/gdb/aarch64-tdep.c
+@@ -29,6 +29,7 @@
+ #include "value.h"
+ #include "arch-utils.h"
+ #include "osabi.h"
++#include "solib-svr4.h"
+ #include "frame-unwind.h"
+ #include "frame-base.h"
+ #include "trad-frame.h"
+@@ -3852,6 +3853,14 @@ static void aarch64_process_record_test (void);
+ }
+ #endif
+ 
++/* Implement the 'init_osabi' method of struct gdb_osabi_handler.  */
++
++static void aarch64_genode_init_abi (struct gdbarch_info info, struct gdbarch *gdbarch)
++{
++  set_solib_svr4_fetch_link_map_offsets (gdbarch,
++					 svr4_lp64_fetch_link_map_offsets);
++}
++
+ void _initialize_aarch64_tdep ();
+ void
+ _initialize_aarch64_tdep ()
+@@ -3859,6 +3868,11 @@ _initialize_aarch64_tdep ()
+   gdbarch_register (bfd_arch_aarch64, aarch64_gdbarch_init,
+ 		    aarch64_dump_tdep);
+ 
++  /* Genode */
++  gdbarch_register_osabi(bfd_arch_aarch64, bfd_mach_aarch64,
++                         GDB_OSABI_GENODE, aarch64_genode_init_abi);
++  /* /Genode */
++
+   /* Debug this file's internals.  */
+   add_setshow_boolean_cmd ("aarch64", class_maintenance, &aarch64_debug, _("\
+ Set AArch64 debugging."), _("\
 diff --git a/gdb/amd64-tdep.c b/gdb/amd64-tdep.c
 index b8cd818..74cb9cf 100644
 --- a/gdb/amd64-tdep.c
@@ -55,9 +95,18 @@ index 58b9c5f..2fcf104 100644
       These are gdbarch discriminators, like the OSABI.  */
    tdep->arm_abi = arm_abi;
 diff --git a/gdb/configure.tgt b/gdb/configure.tgt
-index e84e222..d7d8e29 100644
+index e84e222..5d59879 100644
 --- a/gdb/configure.tgt
 +++ b/gdb/configure.tgt
+@@ -127,7 +127,7 @@ esac
+ case "${targ}" in
+ aarch64*-*-elf | aarch64*-*-rtems*)
+ 	# Target: AArch64 embedded system
+-	gdb_target_obs="aarch64-newlib-tdep.o"
++	gdb_target_obs="solib-svr4.o"
+ 	;;
+ 
+ aarch64*-*-freebsd*)
 @@ -200,7 +200,7 @@ arm*-*-openbsd*)
  	;;
  arm*-*-*)

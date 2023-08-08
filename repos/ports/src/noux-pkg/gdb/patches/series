@@ -1,6 +1,8 @@
+gdb_ac_check_bfd.patch
 shared_library.patch
 arm_single_step.patch
 gdb_x86_64.patch
 noux_build.patch
 gdbserver_genode.patch
 call_dummy_location.patch
+non_stop.patch

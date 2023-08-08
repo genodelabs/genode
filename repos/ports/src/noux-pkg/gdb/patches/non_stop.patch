@@ -1,0 +1,23 @@
+non_stop.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Fix a failed assertion in non-stop mode if more than
+one thread is initially stopped.
+---
+ gdb/remote.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gdb/remote.c b/gdb/remote.c
+index 218bca3..b5db0c0 100644
+--- a/gdb/remote.c
++++ b/gdb/remote.c
+@@ -7458,7 +7458,7 @@ remote_target::queued_stop_reply (ptid_t ptid)
+   remote_state *rs = get_remote_state ();
+   struct stop_reply *r = remote_notif_remove_queued_reply (ptid);
+ 
+-  if (!rs->stop_reply_queue.empty () && target_can_async_p ())
++  if (!rs->stop_reply_queue.empty () && target_is_async_p ())
+     {
+       /* There's still at least an event left.  */
+       mark_async_event_handler (rs->remote_async_inferior_event_token);

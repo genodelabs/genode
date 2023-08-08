@@ -1,0 +1,58 @@
+From 5fc6b6d44cd63651c2902cbfc5b9734a55aaa617 Mon Sep 17 00:00:00 2001
+From: Richard Purdie <richard.purdie@linuxfoundation.org>
+Date: Tue, 7 Mar 2023 14:21:50 +0000
+Subject: [PATCH] gdb: Fix GDB_AC_CHECK_BFD macro regression
+
+Commit 5218fa9e8937b007d554f1e01c2e4ecdb9b7e271, "gdb: use libtool in
+GDB_AC_CHECK_BFD" dropped passing in existing LDFLAGS. In our environment,
+this caused the configure check "checking for ELF support in BFD" to stop
+working causing build failures as we need our LDFLAGS to be used for
+correct linking.
+
+That change also meant the code failed to match the comments. Add back the
+missing LDFLAGS preservation, fix our builds and match the comment.
+
+Signed-off-by: Richard Purdie <richard.purdie@linuxfoundation.org>
+Change-Id: Ie91509116fab29f95b9db1ff0b6ddc280d460112
+Approved-By: Simon Marchi <simon.marchi@efficios.com>
+Reviewed-By: Jose E. Marchesi <jose.marchesi@oracle.com>
+---
+ gdb/acinclude.m4 | 2 +-
+ gdb/configure    | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/gdb/acinclude.m4 b/gdb/acinclude.m4
+index 05106df8ee62..173e40b440af 100644
+--- a/gdb/acinclude.m4
++++ b/gdb/acinclude.m4
+@@ -234,7 +234,7 @@ AC_DEFUN([GDB_AC_CHECK_BFD], [
+   # points somewhere with bfd, with -I/foo/lib and -L/foo/lib.  We
+   # always want our bfd.
+   CFLAGS="-I${srcdir}/../include -I../bfd -I${srcdir}/../bfd $CFLAGS"
+-  LDFLAGS="-L../bfd -L../libiberty"
++  LDFLAGS="-L../bfd -L../libiberty $LDFLAGS"
+   intl=`echo $LIBINTL | sed 's,${top_builddir}/,,g'`
+   LIBS="-lbfd -liberty $intl $LIBS"
+   CC="./libtool --quiet --mode=link $CC"
+diff --git a/gdb/configure b/gdb/configure
+index 017ec05e4b71..5bb2a0795e59 100755
+--- a/gdb/configure
++++ b/gdb/configure
+@@ -28206,7 +28206,7 @@ WIN32LIBS="$WIN32LIBS $WIN32APILIBS"
+   # points somewhere with bfd, with -I/foo/lib and -L/foo/lib.  We
+   # always want our bfd.
+   CFLAGS="-I${srcdir}/../include -I../bfd -I${srcdir}/../bfd $CFLAGS"
+-  LDFLAGS="-L../bfd -L../libiberty"
++  LDFLAGS="-L../bfd -L../libiberty $LDFLAGS"
+   intl=`echo $LIBINTL | sed 's,${top_builddir}/,,g'`
+   LIBS="-lbfd -liberty $intl $LIBS"
+   CC="./libtool --quiet --mode=link $CC"
+@@ -28323,7 +28323,7 @@ fi
+   # points somewhere with bfd, with -I/foo/lib and -L/foo/lib.  We
+   # always want our bfd.
+   CFLAGS="-I${srcdir}/../include -I../bfd -I${srcdir}/../bfd $CFLAGS"
+-  LDFLAGS="-L../bfd -L../libiberty"
++  LDFLAGS="-L../bfd -L../libiberty $LDFLAGS"
+   intl=`echo $LIBINTL | sed 's,${top_builddir}/,,g'`
+   LIBS="-lbfd -liberty $intl $LIBS"
+   CC="./libtool --quiet --mode=link $CC"
