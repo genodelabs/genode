@@ -2,36 +2,219 @@ source ${genode_dir}/repos/os/run/monitor_gdb.inc
 
 # sequence of GDB commands to execute at startup
 set gdb_cmds ""
-append gdb_cmds {-ex "target remote localhost:$local_port" }
+append gdb_cmds {-ex "set non-stop on" }
+append gdb_cmds {-ex "target extended-remote $host:$port" }
+
+# avoid pagination prompts in autopilot test
+append gdb_cmds {-ex "set pagination off" }
+
+# avoid color escape sequences in autopilot test
 append gdb_cmds {-ex "set style enabled off" }
+
+# don't ask for y/n when loading a new symbol file
+append gdb_cmds {-ex "set interactive-mode off" }
+# set search path for shared libraries
+append gdb_cmds {-ex "set solib-search-path debug" }
+# set a breakpoint in the 'binary_ready_hook_for_gdb' function
+append gdb_cmds {-ex "b binary_ready_hook_for_gdb" }
+# continue execution until the breakpoint triggers
+append gdb_cmds {-ex "c" }
+# delete the 'binary_ready_hook_for_gdb' breakpoint
+append gdb_cmds {-ex "delete 1" }
+# switch to the 'ep' thread
+append gdb_cmds {-ex "thread 2" }
+# load the symbols of the test application
+append gdb_cmds "-ex \"file debug/test-monitor_gdb\" "
 
 # run GDB
 eval spawn [gdb] debug/ld.lib.so -n $gdb_cmds
 set gdb_id [list $spawn_id $genode_id]
 
 puts ""
-puts "----- test: dump memory -----"
+puts "----- test: breakpoint in 'Main::Main()' -----"
 puts ""
 
 run_genode_until {\(gdb\)} 60 $gdb_id
 
-send "x/x 0x1003e8b\n"
+send "b Main::Main\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+send "c\n"
 run_genode_until {\(gdb\)} 20 $gdb_id
 
-if {![regexp {0x1003e8b:\t0x6f636e6f} $output]} {
-	puts stderr "*** Error: Dumped memory is not as expected"
+if {![regexp {Thread 1.2 "ep" hit Breakpoint 2, Main::Main} $output]} {
+	puts stderr "*** Error: Breakpoint in Main::Main() did not trigger"
+	exit -1
+}
+
+send "delete 2\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+puts "\n"
+puts "----- test: breakpoint in shared library -----"
+puts ""
+
+send "b Genode::cache_coherent(unsigned long, unsigned long)\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+send "c\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {Breakpoint 3, Genode::cache_coherent ()} $output]} {
+	puts "*** Error: Breakpoint in shared library did not trigger"
+	exit -1
+}
+
+puts "\n"
+puts "----- test: stack trace when not in syscall -----"
+puts ""
+
+send "bt\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {#0  Genode::cache_coherent ()} $output] ||
+    ![regexp {in func2 ()} $output] ||
+    ![regexp {in func1 ()} $output] ||
+    ![regexp {in Main::Main} $output]} {
+
+	puts stderr "*** Error: Stack trace when not in syscall is not as expected"
+	exit -1
+}
+
+puts "\n"
+puts "----- test: modification of a variable value -----"
+puts ""
+
+send "print test_var\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {\$1 = 1} $output]} {
+	puts stderr "*** Error: first 'print test_var' command didn't result in the expected output"
+	exit -1
+}
+
+send "set var test_var=2\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "print test_var\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {\$2 = 2} $output]} {
+	puts stderr "*** Error: second 'print test_var' command didn't result in the expected output"
+	exit -1
+}
+
+puts "\n"
+puts "----- test: 'call' command -----"
+puts ""
+
+send "call test_var_func()\n"
+run_genode_until {\(gdb\)} 60 $gdb_id
+
+if {![regexp {\$3 = 3} $output]} {
+	puts stderr "*** Error: 'call' command didn't result in the expected output"
+	exit -1
+}
+
+puts "\n"
+puts "----- test: thread info -----"
+puts ""
+
+send "b Test_thread::entry\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "c\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {Breakpoint 4, Test_thread::entry} $output]} {
+	puts stderr "*** Error: Breakpoint in test thread did not trigger"
+	exit -1
+}
+
+send "thread 4\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+if {[regexp {Unknown thread 1.4} $output]} {
+	# probably on a platform without signal handler thread
+	send "thread 3\n"
+	run_genode_until {\(gdb\)} 20 $gdb_id
+}
+
+send "info threads\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {  1.1  Thread 1.1 "test-monitor_gdb" \(running\)} $output] ||
+    ![regexp {  1.2  Thread 1.2 "ep"               \(running\)} $output] ||
+    ![regexp {"thread"           Test_thread::entry} $output] ||
+    ![regexp {  2.1  Thread 2.1 "test-log"         \(running\)} $output] ||
+    ![regexp {  2.2  Thread 2.2 "ep"               \(running\)} $output]} {
+	puts stderr "*** Error: Thread info is not as expected"
+	exit -1
+}
+
+puts "\n"
+puts "----- test: step into function -----"
+puts ""
+
+send "step\n"
+run_genode_until {\(gdb\)} 30 $gdb_id
+
+if {![regexp {Test_thread::test_step} $output]} {
+	puts stderr "*** Error: Step into function didn't result in the expected output"
+	exit -1
+}
+
+puts "\n"
+puts "----- test: catching a segmentation fault -----"
+puts ""
+
+send "c\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {"thread" received signal SIGSEGV, Segmentation fault.} $output]} {
+	puts stderr "*** Error: Segmentation fault exception was not caught"
+	exit -1
+}
+
+puts "\n"
+puts "----- test: stack trace when in syscall -----"
+puts ""
+
+send "thread 2\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "interrupt &\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "bt\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {Genode::Lock::lock} $output] ||
+	![regexp {Main::Main} $output] } {
+
+	puts stderr "*** Error: Stack trace when in syscall is not as expected"
+	exit -1
+}
+
+puts "\n"
+puts "----- test: stack trace of second inferior -----"
+puts ""
+
+send "inferior 2\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "thread 1\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "interrupt\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "file debug/test-log\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+send "bt\n"
+run_genode_until {\(gdb\)} 20 $gdb_id
+
+if {![regexp {Genode::Signal_receiver::block_for_signal} $output] } {
+	puts stderr "*** Error: Stack trace of second inferior is not as expected"
+	exit -1
 }
 
 puts ""
-puts "----- test: write memory -----"
-puts ""
-
-send "set {int} 0x1003e8b = 0x12345678\n"
-run_genode_until {\(gdb\)} 20 $gdb_id
-
-send "x/x 0x1003e8b\n"
-run_genode_until {\(gdb\)} 20 $gdb_id
-
-if {![regexp {0x1003e8b:\t0x12345678} $output]} {
-	puts stderr "*** Error: Modified memory is not as expected"
-}

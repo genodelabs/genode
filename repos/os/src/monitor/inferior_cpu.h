@@ -22,7 +22,8 @@ namespace Monitor { struct Inferior_cpu; }
 
 struct Monitor::Inferior_cpu : Monitored_cpu_session
 {
-	Allocator &_alloc;
+	Allocator      &_alloc;
+	Thread_monitor &_thread_monitor;
 
 	Constructible<Monitored_native_cpu_nova> _native_cpu_nova { };
 
@@ -38,9 +39,11 @@ struct Monitor::Inferior_cpu : Monitored_cpu_session
 	}
 
 	Inferior_cpu(Entrypoint &ep, Capability<Cpu_session> real,
-	             Name const &name, Allocator &alloc)
+	             Name const &name, Allocator &alloc,
+	             Thread_monitor &thread_monitor)
 	:
-		Monitored_cpu_session(ep, real, name), _alloc(alloc)
+		Monitored_cpu_session(ep, real, name), _alloc(alloc),
+		_thread_monitor(thread_monitor)
 	{ }
 
 
@@ -61,9 +64,14 @@ struct Monitor::Inferior_cpu : Monitored_cpu_session
 					_real.call<Rpc_create_thread>(inferior_pd._real,
 					                              name, affinity, weight, utcb);
 
+				Threads::Id thread_id { inferior_pd.alloc_thread_id() };
+				bool wait = inferior_pd._policy.wait &&
+				            (thread_id == Threads::Id { 1 });
+
 				Monitored_thread &monitored_thread = *new (_alloc)
-					Monitored_thread(_ep, real_thread, name, inferior_pd._threads,
-					                 inferior_pd.alloc_thread_id());
+					Monitored_thread(_ep, real_thread, name,
+					                 inferior_pd._threads, thread_id,
+					                 pd, _thread_monitor, wait);
 
 				result = monitored_thread.cap();
 			},

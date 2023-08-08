@@ -20,6 +20,7 @@
 namespace Genode {
 
 	void gdb_response(Output &, auto const &fn);
+	void gdb_notification(Output &, auto const &fn);
 
 	static inline void gdb_ok   (Output &);
 	static inline void gdb_error(Output &, uint8_t);
@@ -27,11 +28,24 @@ namespace Genode {
 
 
 /**
- * Calls 'fn' with an output interface that wraps the date into a GDB packet
+ * Calls 'fn' with an output interface that wraps the data into a GDB response
+ * packet.
  */
 void Genode::gdb_response(Output &output, auto const &fn)
 {
-	Gdb_checksummed_output checksummed_output { output };
+	Gdb_checksummed_output checksummed_output { output, false};
+
+	fn(checksummed_output);
+};
+
+
+/**
+ * Calls 'fn' with an output interface that wraps the data into a GDB
+ * notification packet.
+ */
+void Genode::gdb_notification(Output &output, auto const &fn)
+{
+	Gdb_checksummed_output checksummed_output { output, true};
 
 	fn(checksummed_output);
 };

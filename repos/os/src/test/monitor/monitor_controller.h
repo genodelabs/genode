@@ -66,7 +66,7 @@ class Monitor::Controller : Noncopyable
 
 			Terminal_output output { ._write_fn { _terminal } };
 
-			Gdb_checksummed_output checksummed_output { output.buffered };
+			Gdb_checksummed_output checksummed_output { output.buffered, false };
 
 			print(checksummed_output, args...);
 		};
@@ -121,17 +121,18 @@ class Monitor::Controller : Noncopyable
 			return ok;
 		}
 
-		struct Gdb_binary_buffer
+		/* convert binary buffer to ASCII hex characters */
+		struct Gdb_hex_buffer
 		{
 			Const_byte_range_ptr const &src;
 
-			Gdb_binary_buffer(Const_byte_range_ptr const &src)
+			Gdb_hex_buffer(Const_byte_range_ptr const &src)
 			: src(src) { }
 
 			void print(Output &output) const
 			{
 				for (size_t i = 0; i < src.num_bytes; i++)
-					Genode::print(output, Char(src.start[i]));
+					Genode::print(output, Gdb_hex(src.start[i]));
 			}
 		};
 
@@ -219,8 +220,8 @@ class Monitor::Controller : Noncopyable
 		 */
 		bool write_memory(addr_t at, Const_byte_range_ptr const &src)
 		{
-			_request("X", Gdb_hex(at), ",", Gdb_hex(src.num_bytes), ":",
-			         Gdb_binary_buffer(src));
+			_request("M", Gdb_hex(at), ",", Gdb_hex(src.num_bytes), ":",
+			         Gdb_hex_buffer(src));
 
 			return _response_ok();
 		}

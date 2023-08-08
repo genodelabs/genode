@@ -2,7 +2,8 @@ source ${genode_dir}/repos/os/run/monitor_gdb.inc
 
 # sequence of GDB commands to execute at startup
 set gdb_cmds ""
-append gdb_cmds "-ex \"target remote localhost:$local_port\" "
+append gdb_cmds {-ex "set non-stop on" }
+append gdb_cmds "-ex \"target extended-remote $host:$port\" "
 
 # run GDB
 exec [terminal] -e "bash -lc \'[gdb] debug/ld.lib.so $gdb_cmds\'" &

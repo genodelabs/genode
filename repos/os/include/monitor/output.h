@@ -35,9 +35,12 @@ struct Genode::Gdb_checksummed_output : Output
 	Output &_output;
 	uint8_t _accumulated = 0;
 
-	Gdb_checksummed_output(Output &output) : _output(output)
+	Gdb_checksummed_output(Output &output, bool notification) : _output(output)
 	{
-		print(_output, "$");
+		if (notification)
+			print(_output, "%");
+		else
+			print(_output, "$");
 	}
 
 	~Gdb_checksummed_output()

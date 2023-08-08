@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<!DOCTYPE target SYSTEM "gdb-target.dtd">
+<target>
+  <architecture>aarch64</architecture>
+  <feature name="org.gnu.gdb.aarch64.core">
+    <flags id="cpsr_flags" size="4">
+      <field name="SP" start="0" end="0" type="bool"/>
+      <field name="EL" start="2" end="3" type="uint32"/>
+      <field name="nRW" start="4" end="4" type="bool"/>
+      <field name="F" start="6" end="6" type="bool"/>
+      <field name="I" start="7" end="7" type="bool"/>
+      <field name="A" start="8" end="8" type="bool"/>
+      <field name="D" start="9" end="9" type="bool"/>
+      <field name="BTYPE" start="10" end="11" type="uint32"/>
+      <field name="SSBS" start="12" end="12" type="bool"/>
+      <field name="IL" start="20" end="20" type="bool"/>
+      <field name="SS" start="21" end="21" type="bool"/>
+      <field name="PAN" start="22" end="22" type="bool"/>
+      <field name="UAO" start="23" end="23" type="bool"/>
+      <field name="DIT" start="24" end="24" type="bool"/>
+      <field name="TCO" start="25" end="25" type="bool"/>
+      <field name="V" start="28" end="28" type="bool"/>
+      <field name="C" start="29" end="29" type="bool"/>
+      <field name="Z" start="30" end="30" type="bool"/>
+      <field name="N" start="31" end="31" type="bool"/>
+    </flags>
+    <reg name="x0" bitsize="64" type="int" regnum="0"/>
+    <reg name="x1" bitsize="64" type="int" regnum="1"/>
+    <reg name="x2" bitsize="64" type="int" regnum="2"/>
+    <reg name="x3" bitsize="64" type="int" regnum="3"/>
+    <reg name="x4" bitsize="64" type="int" regnum="4"/>
+    <reg name="x5" bitsize="64" type="int" regnum="5"/>
+    <reg name="x6" bitsize="64" type="int" regnum="6"/>
+    <reg name="x7" bitsize="64" type="int" regnum="7"/>
+    <reg name="x8" bitsize="64" type="int" regnum="8"/>
+    <reg name="x9" bitsize="64" type="int" regnum="9"/>
+    <reg name="x10" bitsize="64" type="int" regnum="10"/>
+    <reg name="x11" bitsize="64" type="int" regnum="11"/>
+    <reg name="x12" bitsize="64" type="int" regnum="12"/>
+    <reg name="x13" bitsize="64" type="int" regnum="13"/>
+    <reg name="x14" bitsize="64" type="int" regnum="14"/>
+    <reg name="x15" bitsize="64" type="int" regnum="15"/>
+    <reg name="x16" bitsize="64" type="int" regnum="16"/>
+    <reg name="x17" bitsize="64" type="int" regnum="17"/>
+    <reg name="x18" bitsize="64" type="int" regnum="18"/>
+    <reg name="x19" bitsize="64" type="int" regnum="19"/>
+    <reg name="x20" bitsize="64" type="int" regnum="20"/>
+    <reg name="x21" bitsize="64" type="int" regnum="21"/>
+    <reg name="x22" bitsize="64" type="int" regnum="22"/>
+    <reg name="x23" bitsize="64" type="int" regnum="23"/>
+    <reg name="x24" bitsize="64" type="int" regnum="24"/>
+    <reg name="x25" bitsize="64" type="int" regnum="25"/>
+    <reg name="x26" bitsize="64" type="int" regnum="26"/>
+    <reg name="x27" bitsize="64" type="int" regnum="27"/>
+    <reg name="x28" bitsize="64" type="int" regnum="28"/>
+    <reg name="x29" bitsize="64" type="int" regnum="29"/>
+    <reg name="x30" bitsize="64" type="int" regnum="30"/>
+    <reg name="sp" bitsize="64" type="data_ptr" regnum="31"/>
+    <reg name="pc" bitsize="64" type="code_ptr" regnum="32"/>
+    <reg name="cpsr" bitsize="32" type="cpsr_flags" regnum="33"/>
+  </feature>
+  <feature name="org.gnu.gdb.aarch64.fpu">
+    <vector id="v2d" type="ieee_double" count="2"/>
+    <vector id="v2u" type="uint64" count="2"/>
+    <vector id="v2i" type="int64" count="2"/>
+    <vector id="v4f" type="ieee_single" count="4"/>
+    <vector id="v4u" type="uint32" count="4"/>
+    <vector id="v4i" type="int32" count="4"/>
+    <vector id="v8f" type="ieee_half" count="8"/>
+    <vector id="v8u" type="uint16" count="8"/>
+    <vector id="v8i" type="int16" count="8"/>
+    <vector id="v8bf16" type="bfloat16" count="8"/>
+    <vector id="v16u" type="uint8" count="16"/>
+    <vector id="v16i" type="int8" count="16"/>
+    <vector id="v1u" type="uint128" count="1"/>
+    <vector id="v1i" type="int128" count="1"/>
+    <union id="vnd">
+      <field name="f" type="v2d"/>
+      <field name="u" type="v2u"/>
+      <field name="s" type="v2i"/>
+    </union>
+    <union id="vns">
+      <field name="f" type="v4f"/>
+      <field name="u" type="v4u"/>
+      <field name="s" type="v4i"/>
+    </union>
+    <union id="vnh">
+      <field name="bf" type="v8bf16"/>
+      <field name="f" type="v8f"/>
+      <field name="u" type="v8u"/>
+      <field name="s" type="v8i"/>
+    </union>
+    <union id="vnb">
+      <field name="u" type="v16u"/>
+      <field name="s" type="v16i"/>
+    </union>
+    <union id="vnq">
+      <field name="u" type="v1u"/>
+      <field name="s" type="v1i"/>
+    </union>
+    <union id="aarch64v">
+      <field name="d" type="vnd"/>
+      <field name="s" type="vns"/>
+      <field name="h" type="vnh"/>
+      <field name="b" type="vnb"/>
+      <field name="q" type="vnq"/>
+    </union>
+    <flags id="fpsr_flags" size="4">
+      <field name="IOC" start="0" end="0" type="bool"/>
+      <field name="DZC" start="1" end="1" type="bool"/>
+      <field name="OFC" start="2" end="2" type="bool"/>
+      <field name="UFC" start="3" end="3" type="bool"/>
+      <field name="IXC" start="4" end="4" type="bool"/>
+      <field name="IDC" start="7" end="7" type="bool"/>
+      <field name="QC" start="27" end="27" type="bool"/>
+      <field name="V" start="28" end="28" type="bool"/>
+      <field name="C" start="29" end="29" type="bool"/>
+      <field name="Z" start="30" end="30" type="bool"/>
+      <field name="N" start="31" end="31" type="bool"/>
+    </flags>
+    <flags id="fpcr_flags" size="4">
+      <field name="FIZ" start="0" end="0" type="bool"/>
+      <field name="AH" start="1" end="1" type="bool"/>
+      <field name="NEP" start="2" end="2" type="bool"/>
+      <field name="IOE" start="8" end="8" type="bool"/>
+      <field name="DZE" start="9" end="9" type="bool"/>
+      <field name="OFE" start="10" end="10" type="bool"/>
+      <field name="UFE" start="11" end="11" type="bool"/>
+      <field name="IXE" start="12" end="12" type="bool"/>
+      <field name="EBF" start="13" end="13" type="bool"/>
+      <field name="IDE" start="15" end="15" type="bool"/>
+      <field name="Len" start="16" end="18" type="uint32"/>
+      <field name="FZ16" start="19" end="19" type="bool"/>
+      <field name="Stride" start="20" end="21" type="uint32"/>
+      <field name="RMode" start="22" end="23" type="uint32"/>
+      <field name="FZ" start="24" end="24" type="bool"/>
+      <field name="DN" start="25" end="25" type="bool"/>
+      <field name="AHP" start="26" end="26" type="bool"/>
+    </flags>
+    <reg name="v0" bitsize="128" type="aarch64v" regnum="34"/>
+    <reg name="v1" bitsize="128" type="aarch64v" regnum="35"/>
+    <reg name="v2" bitsize="128" type="aarch64v" regnum="36"/>
+    <reg name="v3" bitsize="128" type="aarch64v" regnum="37"/>
+    <reg name="v4" bitsize="128" type="aarch64v" regnum="38"/>
+    <reg name="v5" bitsize="128" type="aarch64v" regnum="39"/>
+    <reg name="v6" bitsize="128" type="aarch64v" regnum="40"/>
+    <reg name="v7" bitsize="128" type="aarch64v" regnum="41"/>
+    <reg name="v8" bitsize="128" type="aarch64v" regnum="42"/>
+    <reg name="v9" bitsize="128" type="aarch64v" regnum="43"/>
+    <reg name="v10" bitsize="128" type="aarch64v" regnum="44"/>
+    <reg name="v11" bitsize="128" type="aarch64v" regnum="45"/>
+    <reg name="v12" bitsize="128" type="aarch64v" regnum="46"/>
+    <reg name="v13" bitsize="128" type="aarch64v" regnum="47"/>
+    <reg name="v14" bitsize="128" type="aarch64v" regnum="48"/>
+    <reg name="v15" bitsize="128" type="aarch64v" regnum="49"/>
+    <reg name="v16" bitsize="128" type="aarch64v" regnum="50"/>
+    <reg name="v17" bitsize="128" type="aarch64v" regnum="51"/>
+    <reg name="v18" bitsize="128" type="aarch64v" regnum="52"/>
+    <reg name="v19" bitsize="128" type="aarch64v" regnum="53"/>
+    <reg name="v20" bitsize="128" type="aarch64v" regnum="54"/>
+    <reg name="v21" bitsize="128" type="aarch64v" regnum="55"/>
+    <reg name="v22" bitsize="128" type="aarch64v" regnum="56"/>
+    <reg name="v23" bitsize="128" type="aarch64v" regnum="57"/>
+    <reg name="v24" bitsize="128" type="aarch64v" regnum="58"/>
+    <reg name="v25" bitsize="128" type="aarch64v" regnum="59"/>
+    <reg name="v26" bitsize="128" type="aarch64v" regnum="60"/>
+    <reg name="v27" bitsize="128" type="aarch64v" regnum="61"/>
+    <reg name="v28" bitsize="128" type="aarch64v" regnum="62"/>
+    <reg name="v29" bitsize="128" type="aarch64v" regnum="63"/>
+    <reg name="v30" bitsize="128" type="aarch64v" regnum="64"/>
+    <reg name="v31" bitsize="128" type="aarch64v" regnum="65"/>
+    <reg name="fpsr" bitsize="32" type="fpsr_flags" regnum="66"/>
+    <reg name="fpcr" bitsize="32" type="fpcr_flags" regnum="67"/>
+  </feature>
+  <feature name="org.gnu.gdb.aarch64.pauth">
+    <reg name="pauth_dmask" bitsize="64" type="int" regnum="68"/>
+    <reg name="pauth_cmask" bitsize="64" type="int" regnum="69"/>
+  </feature>
+  <feature name="org.gnu.gdb.aarch64.tls">
+    <reg name="tpidr" bitsize="64" type="data_ptr" regnum="70"/>
+    <reg name="tpidr2" bitsize="64" type="data_ptr" regnum="71"/>
+  </feature>
+</target>

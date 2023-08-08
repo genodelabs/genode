@@ -49,12 +49,14 @@ inferiors by their respective labels. For example:
 !  <policy label="first-test-log" wait="no" stop="yes" wx="no"/>
 ! </monitor>
 
+By setting the 'wait' attribute to "yes", the execution of the inferior is
+delayed until the monitor receives the GDB command for continuing execution.
+This is useful for inspecting the startup phase of a component. By default,
+inferiors don't wait. If this attribute is set, the 'wx' attribute needs to
+be set as well because a software breakpoint is used to stop the inferior
+at the first instruction.
+
 ;;; XXX not implemented, uncomment once completed
-;
-; By setting the 'wait' attribute to "yes", the execution of the inferior is
-; delayed until the monitor receives the GDB command for continuing execution.
-; This is useful for inspecting the startup phase of a component. By default,
-; inferiors don't wait.
 ;
 ; The 'stop' attribute defines the behavior of an inferior when GDB connects
 ; to the monitor. By default, all inferiors are stopped. By setting the
