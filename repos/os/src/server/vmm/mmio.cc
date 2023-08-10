@@ -1,11 +1,12 @@
 /*
  * \brief  VMM mmio abstractions
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-07-18
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -79,11 +80,9 @@ void Mmio_device::write(Address_range & access, Cpu & cpu, Register value)
 void Mmio_device::add(Mmio_register & reg) { _registers.add(reg); }
 
 
-void Vmm::Mmio_bus::handle_memory_access(Vmm::Cpu & cpu)
+void Vmm::Mmio_bus::handle_memory_access(State &state, Vmm::Cpu &cpu)
 {
 	using namespace Genode;
-
-	Cpu::State & state = cpu.state();
 
 	struct Iss : Cpu::Esr
 	{

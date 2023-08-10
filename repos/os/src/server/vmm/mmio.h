@@ -1,11 +1,12 @@
 /*
  * \brief  VMM mmio abstractions
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-07-18
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -15,6 +16,7 @@
 #define _SRC__SERVER__VMM__MMIO_H_
 
 #include <address_space.h>
+#include <state.h>
 
 namespace Vmm {
 	class Cpu;
@@ -98,7 +100,7 @@ class Vmm::Mmio_device : public Vmm::Address_range
 
 struct Vmm::Mmio_bus : Vmm::Address_space
 {
-	void handle_memory_access(Cpu & cpu);
+	void handle_memory_access(State &state, Cpu &cpu);
 };
 
 #endif /* _SRC__SERVER__VMM__MMIO_H_ */

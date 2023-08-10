@@ -1,11 +1,12 @@
 /*
  * \brief  VMM cpu object
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-07-18
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -13,13 +14,14 @@
 #include <cpu.h>
 #include <vm.h>
 #include <psci.h>
+#include <state.h>
 
 using Vmm::Cpu_base;
 using Vmm::Cpu;
 using Vmm::Gic;
 using namespace Genode;
 
-addr_t Cpu_base::State::reg(addr_t idx) const
+addr_t Vmm::State::reg(addr_t idx) const
 {
 	if (idx > 15) return 0;
 
@@ -29,7 +31,7 @@ addr_t Cpu_base::State::reg(addr_t idx) const
 }
 
 
-void Cpu_base::State::reg(addr_t idx, addr_t v)
+void Vmm::State::reg(addr_t idx, addr_t v)
 {
 	if (idx > 15) return;
 
@@ -62,29 +64,30 @@ Cpu_base::System_register::Iss::mask_encoding(access_t v)
 }
 
 
-void Cpu_base::_handle_brk()
+void Cpu_base::_handle_brk(State &)
 {
 	error(__func__, " not implemented yet");
 }
 
 
-void Cpu_base::handle_exception()
+void Cpu_base::handle_exception(State & state)
 {
 	/* check exception reason */
-	switch (_state.cpu_exception) {
+	switch (state.cpu_exception) {
 	case Cpu::NO_EXCEPTION:                 break;
 	case Cpu::FIQ:          [[fallthrough]];
-	case Cpu::IRQ:          _handle_irq();  break;
-	case Cpu::TRAP:         _handle_sync(); break;
+	case Cpu::IRQ:          _handle_irq(state);  break;
+	case Cpu::TRAP:         _handle_sync(state); break;
+	case VCPU_EXCEPTION_STARTUP: _handle_startup(state); break;
 	default:
 		throw Exception("Curious exception ",
-		                _state.cpu_exception, " occured");
+		                state.cpu_exception, " occured");
 	}
-	_state.cpu_exception = Cpu::NO_EXCEPTION;
+	state.cpu_exception = Cpu::NO_EXCEPTION;
 }
 
 
-void Cpu_base::dump()
+void Cpu_base::dump(State &state)
 {
 	auto lambda = [] (unsigned i) {
 		switch (i) {
@@ -100,37 +103,37 @@ void Cpu_base::dump()
 	log("VM state (", _active ? "active" : "inactive", ") :");
 	for (unsigned i = 0; i < 13; i++) {
 		log("  r", i, "         = ",
-		    Hex(_state.reg(i), Hex::PREFIX, Hex::PAD));
+		    Hex(state.reg(i), Hex::PREFIX, Hex::PAD));
 	}
-	log("  sp         = ", Hex(_state.sp,      Hex::PREFIX, Hex::PAD));
-	log("  lr         = ", Hex(_state.lr,      Hex::PREFIX, Hex::PAD));
-	log("  ip         = ", Hex(_state.ip,      Hex::PREFIX, Hex::PAD));
-	log("  cpsr       = ", Hex(_state.cpsr,    Hex::PREFIX, Hex::PAD));
+	log("  sp         = ", Hex(state.sp,      Hex::PREFIX, Hex::PAD));
+	log("  lr         = ", Hex(state.lr,      Hex::PREFIX, Hex::PAD));
+	log("  ip         = ", Hex(state.ip,      Hex::PREFIX, Hex::PAD));
+	log("  cpsr       = ", Hex(state.cpsr,    Hex::PREFIX, Hex::PAD));
 	for (unsigned i = 0; i < State::Mode_state::MAX; i++) {
 		log("  sp_", lambda(i), "     = ",
-			Hex(_state.mode[i].sp, Hex::PREFIX, Hex::PAD));
+			Hex(state.mode[i].sp, Hex::PREFIX, Hex::PAD));
 		log("  lr_", lambda(i), "     = ",
-			Hex(_state.mode[i].lr, Hex::PREFIX, Hex::PAD));
+			Hex(state.mode[i].lr, Hex::PREFIX, Hex::PAD));
 		log("  spsr_", lambda(i), "   = ",
-			Hex(_state.mode[i].spsr, Hex::PREFIX, Hex::PAD));
+			Hex(state.mode[i].spsr, Hex::PREFIX, Hex::PAD));
 	}
-	log("  exception  = ", _state.cpu_exception);
-	log("  esr_el2    = ", Hex(_state.esr_el2,   Hex::PREFIX, Hex::PAD));
-	log("  hpfar_el2  = ", Hex(_state.hpfar_el2, Hex::PREFIX, Hex::PAD));
-	log("  far_el2    = ", Hex(_state.far_el2,   Hex::PREFIX, Hex::PAD));
-	log("  hifar      = ", Hex(_state.hifar,     Hex::PREFIX, Hex::PAD));
-	log("  dfsr       = ", Hex(_state.dfsr,      Hex::PREFIX, Hex::PAD));
-	log("  ifsr       = ", Hex(_state.ifsr,      Hex::PREFIX, Hex::PAD));
-	log("  sctrl      = ", Hex(_state.sctrl,     Hex::PREFIX, Hex::PAD));
-	_timer.dump();
+	log("  exception  = ", state.cpu_exception);
+	log("  esr_el2    = ", Hex(state.esr_el2,   Hex::PREFIX, Hex::PAD));
+	log("  hpfar_el2  = ", Hex(state.hpfar_el2, Hex::PREFIX, Hex::PAD));
+	log("  far_el2    = ", Hex(state.far_el2,   Hex::PREFIX, Hex::PAD));
+	log("  hifar      = ", Hex(state.hifar,     Hex::PREFIX, Hex::PAD));
+	log("  dfsr       = ", Hex(state.dfsr,      Hex::PREFIX, Hex::PAD));
+	log("  ifsr       = ", Hex(state.ifsr,      Hex::PREFIX, Hex::PAD));
+	log("  sctrl      = ", Hex(state.sctrl,     Hex::PREFIX, Hex::PAD));
+	_timer.dump(state);
 }
 
 
-void Cpu_base::initialize_boot(addr_t ip, addr_t dtb)
+void Cpu_base::initialize_boot(State &state, addr_t ip, addr_t dtb)
 {
-	state().reg(1, 0xffffffff); /* invalid machine type */
-	state().reg(2, dtb);
-	state().ip = ip;
+	state.reg(1, 0xffffffff); /* invalid machine type */
+	state.reg(2, dtb);
+	state.ip = ip;
 }
 
 
@@ -151,6 +154,13 @@ addr_t Cpu::Ccsidr::read() const
 	}
 
 	return 0;
+}
+
+void Cpu::setup_state(State &state)
+{
+	state.cpsr   = 0x93; /* el1 mode and IRQs disabled */
+	state.sctrl  = 0xc50078;
+	state.vmpidr = (1UL << 31) | cpu_id();
 }
 
 
@@ -184,7 +194,4 @@ Cpu::Cpu(Vm              & vm,
   _sr_ccsidr (_sr_csselr, _reg_tree),
   _sr_actlr  (1, 0, 0, 1, "ACTLR",  true,  0x0,            _reg_tree)
 {
-	_state.cpsr  = 0x93; /* el1 mode and IRQs disabled */
-	_state.sctrl = 0xc50078;
-	_state.vmpidr = (1UL << 31) | cpu_id();
 }

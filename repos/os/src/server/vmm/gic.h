@@ -1,11 +1,12 @@
 /*
  * \brief  VMM ARM Generic Interrupt Controller device model
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-08-05
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -15,6 +16,7 @@
 #define _SRC__SERVER__VMM__GIC_H_
 
 #include <mmio.h>
+#include <state.h>
 
 #include <base/env.h>
 #include <drivers/defs/arm_v7.h>
@@ -134,9 +136,10 @@ class Vmm::Gic : public Vmm::Mmio_device
 		{
 			public:
 
-				Irq & irq(unsigned num);
-				void handle_irq();
-				bool pending_irq();
+				Irq &       irq(unsigned num);
+				void        handle_irq(State &state);
+				bool        pending_irq(State &state);
+				static void setup_state(State &state);
 
 				Gicd_banked(Cpu_base & cpu, Gic & gic, Mmio_bus & bus);
 

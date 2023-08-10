@@ -1,11 +1,12 @@
 /*
  * \brief  VMM example for ARMv8 virtualization
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-07-18
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -161,10 +162,7 @@ Vm::Vm(Genode::Env & env, Heap & heap, Config & config)
 
 	Genode::log("Start virtual machine ...");
 
-	Cpu & cpu = boot_cpu();
-	cpu.initialize_boot(_ram.base() + KERNEL_OFFSET,
-	                    _ram.base() + _dtb_offset());
-	cpu.run();
+	boot_cpu();
 };
 
 

@@ -1,11 +1,12 @@
 /*
  * \brief  VMM cpu object
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-07-18
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,6 +17,7 @@
 
 #include <exception.h>
 #include <generic_timer.h>
+#include <state.h>
 
 #include <base/env.h>
 #include <base/heap.h>
@@ -32,12 +34,6 @@ namespace Vmm {
 class Vmm::Cpu_base
 {
 	public:
-
-		struct State : Genode::Vm_state
-		{
-			addr_t reg(addr_t idx) const;
-			void reg(addr_t idx, addr_t v);
-		};
 
 		struct Esr : Genode::Register<sizeof(addr_t)*8>
 		{
@@ -65,28 +61,55 @@ class Vmm::Cpu_base
 		         unsigned                  cpu_id);
 
 		unsigned           cpu_id() const;
-		void               run();
-		void               pause();
 		bool               active() const;
-		State &            state()  const;
 		Gic::Gicd_banked & gic();
-		void               dump();
-		void               handle_exception();
+		void               dump(State & state);
+		void               handle_exception(State &state);
 		void               recall();
-		void               initialize_boot(Genode::addr_t ip,
+		void               initialize_boot(State &state,
+		                                   Genode::addr_t ip,
 		                                   Genode::addr_t dtb);
+		virtual void setup_state(State &) { };
+
+		virtual ~Cpu_base() = default;
+
+		State & state() {
+			return _state->ref;
+		}
+
+		template<typename FN>
+		void with_state(FN const & fn)
+		{
+			_vm_vcpu.with_state(fn);
+		}
+
+		void set_ready() {
+			_cpu_ready.up();
+		}
 
 		template <typename FUNC>
 		void handle_signal(FUNC handler)
 		{
-			if (active()) {
-				pause();
-				handle_exception();
-			}
+			_vm_vcpu.with_state([this, handler](Vm_state &vmstate) {
+				State & state = static_cast<State &>(vmstate);
+				_state.construct(state);
 
-			handler();
-			_update_state();
-			if (active()) run();
+				try {
+					if (active()) {
+						handle_exception(state);
+					}
+
+					handler(state);
+					_update_state(state);
+				} catch(Exception &e) {
+					Genode::error(e);
+					dump(state);
+					return false;
+				}
+
+				_state.destruct();
+				return active();
+			});
 		}
 
 		template <typename T>
@@ -100,12 +123,7 @@ class Vmm::Cpu_base
 
 			void handle()
 			{
-				try {
-					cpu.handle_signal([this] () { (obj.*member)(); });
-				} catch(Exception &e) {
-					Genode::error(e);
-					cpu.dump();
-				}
+				cpu.handle_signal([this] (Vm_state &) { (obj.*member)(); });
 			}
 
 			Signal_handler(Cpu_base           & cpu,
@@ -207,16 +225,20 @@ class Vmm::Cpu_base
 					return (r->_encoding > _encoding); }
 		};
 
-		unsigned                           _vcpu_id;
-		bool                               _active { true };
-		Vm                               & _vm;
-		Genode::Vm_connection            & _vm_session;
-		Genode::Heap                     & _heap;
-		Signal_handler<Cpu_base>           _vm_handler;
-		Genode::Vm_connection::Exit_config _exit_config { };
-		Genode::Vm_connection::Vcpu        _vm_vcpu;
-		State                            & _state;
-		Genode::Avl_tree<System_register>  _reg_tree {};
+		struct State_container { State &ref; };
+
+		unsigned                               _vcpu_id;
+		bool                                   _active { true };
+		Vm                                   & _vm;
+		Genode::Vm_connection                & _vm_session;
+		Genode::Heap                         & _heap;
+		Signal_handler<Cpu_base>               _vm_handler;
+		Genode::Vm_connection::Exit_config     _exit_config { };
+		Genode::Vm_connection::Vcpu            _vm_vcpu;
+		Genode::Avl_tree<System_register>      _reg_tree {};
+		Genode::Constructible<State_container> _state {};
+		Semaphore                              _cpu_ready {};
+
 
 
 		/***********************
@@ -227,14 +249,15 @@ class Vmm::Cpu_base
 		Generic_timer                     _timer;
 
 		void _handle_nothing() {}
-		bool _handle_sys_reg();
-		void _handle_brk();
-		void _handle_wfi();
-		void _handle_sync();
-		void _handle_irq();
-		void _handle_data_abort();
-		void _handle_hyper_call();
-		void _update_state();
+		void _handle_startup(State &state);
+		bool _handle_sys_reg(State &state);
+		void _handle_brk(State &state);
+		void _handle_wfi(State &state);
+		void _handle_sync(State &state);
+		void _handle_irq(State &state);
+		void _handle_data_abort(State &state);
+		void _handle_hyper_call(State &state);
+		void _update_state(State &state);
 
 	public:
 

@@ -1,11 +1,12 @@
 /*
  * \brief  VMM cpu object
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-07-18
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -40,8 +41,10 @@ class Vmm::Cpu : public Vmm::Cpu_base
 			DATA_ABORT,
 			IRQ,
 			FIQ,
-			TRAP
+			TRAP,
 		};
+
+		void setup_state(State & state) override;
 
 	private:
 

@@ -1,11 +1,12 @@
 /*
  * \brief  VMM cpu object
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-07-18
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -37,16 +38,16 @@ Cpu_base::System_register::System_register(unsigned         op0,
 }
 
 
-bool Cpu_base::_handle_sys_reg()
+bool Cpu_base::_handle_sys_reg(State & state)
 {
 	using Iss = System_register::Iss;
 
-	Iss::access_t v = _state.esr_el2;
+	Iss::access_t v = state.esr_el2;
 	System_register * reg = _reg_tree.first();
 	if (reg) reg = reg->find_by_encoding(Iss::mask_encoding(v));
 
 	if (!reg) {
-		Genode::error("ignore unknown system register access @ ip=", (void*)_state.ip, ":");
+		Genode::error("ignore unknown system register access @ ip=", (void*)state.ip, ":");
 		Genode::error(Iss::Direction::get(v) ? "read" : "write",
 		              ": "
 		              "op0=",  Iss::Opcode0::get(v), " "
@@ -55,125 +56,138 @@ bool Cpu_base::_handle_sys_reg()
 		              "crn=",  Iss::Crn::get(v),        " "
 		              "crm=",  Iss::Crm::get(v), " ",
 		              "op2=",  Iss::Opcode2::get(v));
-		if (Iss::Direction::get(v)) _state.reg(Iss::Register::get(v), 0);
-		_state.ip += sizeof(Genode::uint32_t);
+		if (Iss::Direction::get(v)) state.reg(Iss::Register::get(v), 0);
+		state.ip += sizeof(Genode::uint32_t);
 		return false;
 	}
 
 	if (Iss::Direction::get(v)) { /* read access  */
-		_state.reg(Iss::Register::get(v), reg->read());
+		state.reg(Iss::Register::get(v), reg->read());
 	} else {                      /* write access */
 		if (!reg->writeable()) {
 			Genode::error("writing to system register ",
 			              reg->name(), " not allowed!");
 			return false;
 		}
-		reg->write(_state.reg(Iss::Register::get(v)));
+		reg->write(state.reg(Iss::Register::get(v)));
 	}
-	_state.ip += sizeof(Genode::uint32_t);
+	state.ip += sizeof(Genode::uint32_t);
 	return true;
 }
 
 
-void Cpu_base::_handle_wfi()
+void Cpu_base::_handle_wfi(State &state)
 {
-	_state.ip += sizeof(Genode::uint32_t);
+	state.ip += sizeof(Genode::uint32_t);
 
-	if (_state.esr_el2 & 1) return; /* WFE */
+	if (state.esr_el2 & 1) return; /* WFE */
 
 	_active = false;
-	_timer.schedule_timeout();
+	_timer.schedule_timeout(state);
 }
 
 
-void Cpu_base::_handle_sync()
+void Cpu_base::_handle_startup(State &state)
+{
+	Generic_timer::setup_state(state);
+	Gic::Gicd_banked::setup_state(state);
+
+	setup_state(state);
+
+	if (cpu_id() == 0) {
+		initialize_boot(state, _vm.kernel_addr(), _vm.dtb_addr());
+	} else {
+		_cpu_ready.down();
+	}
+	_active = true;
+}
+
+
+void Cpu_base::_handle_sync(State &state)
 {
 	/* check device number*/
-	switch (Esr::Ec::get(_state.esr_el2)) {
+	switch (Esr::Ec::get(state.esr_el2)) {
 	case Esr::Ec::HVC_32: [[fallthrough]];
 	case Esr::Ec::HVC:
-		_handle_hyper_call();
+		_handle_hyper_call(state);
 		break;
 	case Esr::Ec::MRC_MCR: [[fallthrough]];
 	case Esr::Ec::MRS_MSR:
-		_handle_sys_reg();
+		_handle_sys_reg(state);
 		break;
 	case Esr::Ec::DA:
-		_handle_data_abort();
+		_handle_data_abort(state);
 		break;
 	case Esr::Ec::WFI:
-		_handle_wfi();
+		_handle_wfi(state);
 		return;
 	case Esr::Ec::BRK:
-		_handle_brk();
+		_handle_brk(state);
 		return;
 	default:
 		throw Exception("Unknown trap: ",
-		                Esr::Ec::get(_state.esr_el2));
+		                Esr::Ec::get(state.esr_el2));
 	};
 }
 
 
-void Cpu_base::_handle_irq()
+void Cpu_base::_handle_irq(State &state)
 {
-	switch (_state.irqs.last_irq) {
+	switch (state.irqs.last_irq) {
 	case VTIMER_IRQ:
-		_timer.handle_irq();
+		_timer.handle_irq(state);
 		break;
 	default:
-		_gic.handle_irq();
+		_gic.handle_irq(state);
 	};
 }
 
 
-void Cpu_base::_handle_hyper_call()
+void Cpu_base::_handle_hyper_call(State &state)
 {
-	switch(_state.reg(0)) {
+	switch(state.reg(0)) {
 		case Psci::PSCI_VERSION:
-			_state.reg(0, Psci::VERSION);
+			state.reg(0, Psci::VERSION);
 			return;
 		case Psci::MIGRATE_INFO_TYPE:
-			_state.reg(0, Psci::NOT_SUPPORTED);
+			state.reg(0, Psci::NOT_SUPPORTED);
 			return;
 		case Psci::PSCI_FEATURES:
-			_state.reg(0, Psci::NOT_SUPPORTED);
+			state.reg(0, Psci::NOT_SUPPORTED);
 			return;
 		case Psci::CPU_ON_32: [[fallthrough]];
 		case Psci::CPU_ON:
-			_vm.cpu((unsigned)_state.reg(1), [&] (Cpu & cpu) {
-				cpu.state().ip   = _state.reg(2);
-				cpu.state().reg(0, _state.reg(3));
-				cpu.run();
+			_vm.cpu((unsigned)state.reg(1), [&] (Cpu & cpu) {
+				State & local_state = cpu.state();
+				cpu.initialize_boot(local_state, state.reg(2), state.reg(3));
+				cpu.set_ready();
 			});
-			_state.reg(0, Psci::SUCCESS);
+			state.reg(0, Psci::SUCCESS);
 			return;
 		default:
 			Genode::warning("unknown hypercall! ", cpu_id());
-			dump();
+			dump(state);
 	};
 }
 
 
-void Cpu_base::_handle_data_abort()
+void Cpu_base::_handle_data_abort(State &state)
 {
-	_vm.bus().handle_memory_access(*static_cast<Cpu*>(this));
-	_state.ip += sizeof(Genode::uint32_t);
+	_vm.bus().handle_memory_access(state, *static_cast<Cpu *>(this));
+	state.ip += sizeof(Genode::uint32_t);
 }
 
 
-void Cpu_base::_update_state()
+void Cpu_base::_update_state(State &state)
 {
-	if (!_gic.pending_irq()) return;
+	if (!_gic.pending_irq(state)) return;
 
 	_active = true;
 	_timer.cancel_timeout();
 }
 
 unsigned Cpu_base::cpu_id() const         { return _vcpu_id;  }
-void Cpu_base::run()                      { _vm_vcpu.run();   }
-void Cpu_base::pause()                    { _vm_vcpu.pause(); }
 bool Cpu_base::active() const             { return _active;   }
-Cpu_base::State & Cpu_base::state() const { return _state;    }
 Gic::Gicd_banked & Cpu_base::gic()        { return _gic;      }
 
 
@@ -197,6 +211,5 @@ Cpu_base::Cpu_base(Vm                      & vm,
   _heap(heap),
   _vm_handler(*this, ep, *this, &Cpu_base::_handle_nothing),
   _vm_vcpu(_vm_session, heap, _vm_handler, _exit_config),
-  _state(*((State*)(&_vm_vcpu.state()))),
   _gic(*this, gic, bus),
   _timer(env, ep, _gic.irq(VTIMER_IRQ), *this) { }

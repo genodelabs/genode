@@ -1,11 +1,12 @@
 /*
  * \brief  VMM example for ARMv8 virtualization
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-07-18
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -95,6 +96,14 @@ class Vmm::Vm
 		{
 			for (Cpu_entry * ce = _cpu_list.first(); ce; ce = ce->next())
 				func(ce->cpu);
+		}
+
+		addr_t dtb_addr() {
+			return _ram.base() + _dtb_offset();
+		}
+
+		addr_t kernel_addr() {
+			return _ram.base() + KERNEL_OFFSET;
 		}
 };
 

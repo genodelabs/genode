@@ -1,16 +1,18 @@
 /*
  * \brief  VMM cpu object
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-07-18
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 #include <cpu.h>
+#include <state.h>
 #include <vm.h>
 #include <psci.h>
 
@@ -19,14 +21,14 @@ using Vmm::Cpu;
 using Vmm::Gic;
 using namespace Genode;
 
-addr_t Cpu_base::State::reg(addr_t idx) const
+addr_t Vmm::State::reg(addr_t idx) const
 {
 	if (idx > 30) return 0;
 	return r[idx];
 }
 
 
-void Cpu_base::State::reg(addr_t idx, addr_t v)
+void Vmm::State::reg(addr_t idx, addr_t v)
 {
 	if (idx > 30) return;
 	r[idx] = v;
@@ -58,40 +60,41 @@ Cpu_base::System_register::Iss::mask_encoding(access_t v)
 }
 
 
-void Cpu_base::_handle_brk()
+void Cpu_base::_handle_brk(State & state)
 {
 	addr_t offset = 0x0;
-	if (!(_state.pstate & 0b100)) {
+	if (!(state.pstate & 0b100)) {
 		offset = 0x400;
-	} else if (_state.pstate & 0b1) {
+	} else if (state.pstate & 0b1) {
 		offset = 0x200;
 	}
 
 	/* only the below 32-bit of system register ESR_EL2 and PSTATE are used */
-	_state.esr_el1  = (uint32_t)_state.esr_el2;
-	_state.spsr_el1 = (uint32_t)_state.pstate;
-	_state.elr_el1  = _state.ip;
-	_state.ip       = _state.vbar_el1 + offset;
-	_state.pstate   = 0b1111000101;
+	state.esr_el1  = (uint32_t)state.esr_el2;
+	state.spsr_el1 = (uint32_t)state.pstate;
+	state.elr_el1  = state.ip;
+	state.ip       = state.vbar_el1 + offset;
+	state.pstate   = 0b1111000101;
 }
 
 
-void Cpu_base::handle_exception()
+void Cpu_base::handle_exception(State &state)
 {
 	/* check exception reason */
-	switch (_state.exception_type) {
+	switch (state.exception_type) {
 	case Cpu::NO_EXCEPTION:                 break;
-	case Cpu::AARCH64_IRQ:  _handle_irq();  break;
-	case Cpu::AARCH64_SYNC: _handle_sync(); break;
+	case Cpu::AARCH64_IRQ:  _handle_irq(state);  break;
+	case Cpu::AARCH64_SYNC: _handle_sync(state); break;
+	case VCPU_EXCEPTION_STARTUP: _handle_startup(state); break;
 	default:
 		throw Exception("Curious exception ",
-		                _state.exception_type, " occured");
+		                state.exception_type, " occured");
 	}
-	_state.exception_type = Cpu::NO_EXCEPTION;
+	state.exception_type = Cpu::NO_EXCEPTION;
 }
 
 
-void Cpu_base::dump()
+void Cpu_base::dump(State &state)
 {
 	auto lambda = [] (addr_t exc) {
 		switch (exc) {
@@ -110,22 +113,24 @@ void Cpu_base::dump()
 	log("VM state (", _active ? "active" : "inactive", ") :");
 	for (unsigned i = 0; i < 31; i++) {
 		log("  r", i, "         = ",
-		    Hex(_state.r[i], Hex::PREFIX, Hex::PAD));
+		    Hex(state.r[i], Hex::PREFIX, Hex::PAD));
 	}
-	log("  sp         = ", Hex(_state.sp,      Hex::PREFIX, Hex::PAD));
-	log("  ip         = ", Hex(_state.ip,      Hex::PREFIX, Hex::PAD));
-	log("  sp_el1     = ", Hex(_state.sp_el1,  Hex::PREFIX, Hex::PAD));
-	log("  elr_el1    = ", Hex(_state.elr_el1, Hex::PREFIX, Hex::PAD));
-	log("  pstate     = ", Hex(_state.pstate,  Hex::PREFIX, Hex::PAD));
-	log("  exception  = ", _state.exception_type, " (",
-	                       lambda(_state.exception_type), ")");
-	log("  esr_el2    = ", Hex(_state.esr_el2, Hex::PREFIX, Hex::PAD));
-	_timer.dump();
+	log("  sp         = ", Hex(state.sp,      Hex::PREFIX, Hex::PAD));
+	log("  ip         = ", Hex(state.ip,      Hex::PREFIX, Hex::PAD));
+	log("  sp_el1     = ", Hex(state.sp_el1,  Hex::PREFIX, Hex::PAD));
+	log("  elr_el1    = ", Hex(state.elr_el1, Hex::PREFIX, Hex::PAD));
+	log("  pstate     = ", Hex(state.pstate,  Hex::PREFIX, Hex::PAD));
+	log("  exception  = ", state.exception_type, " (",
+	                       lambda(state.exception_type), ")");
+	log("  esr_el2    = ", Hex(state.esr_el2, Hex::PREFIX, Hex::PAD));
+	_timer.dump(state);
 }
 
 
 addr_t Cpu::Ccsidr::read() const
 {
+	State & state = cpu.state();
+
 	struct Clidr : Genode::Register<32>
 	{
 		enum Cache_entry {
@@ -198,10 +203,25 @@ void Cpu::Icc_sgi1r_el1::write(addr_t v)
 };
 
 
-void Cpu_base::initialize_boot(addr_t ip, addr_t dtb)
+void Cpu_base::initialize_boot(State &state, addr_t ip, addr_t dtb)
 {
-	state().reg(0, dtb);
-	state().ip = ip;
+	state.reg(0, dtb);
+	state.ip = ip;
+}
+
+
+void Cpu::setup_state(State &state)
+{
+	_sr_id_aa64isar0_el1.write(state.id_aa64isar0_el1);
+	_sr_id_aa64isar1_el1.write(state.id_aa64isar1_el1);
+	_sr_id_aa64mmfr0_el1.write(state.id_aa64mmfr0_el1);
+	_sr_id_aa64mmfr1_el1.write(state.id_aa64mmfr1_el1);
+	_sr_id_aa64mmfr2_el1.write(state.id_aa64mmfr2_el1);
+	_sr_id_aa64pfr0_el1.write( _sr_id_aa64pfr0_el1.reset_value(
+	                          state.id_aa64pfr0_el1));
+	_sr_clidr_el1.write(state.clidr_el1);
+	state.pstate     = 0b1111000101; /* el1 mode and IRQs disabled */
+	state.vmpidr_el2 = cpu_id();
 }
 
 
@@ -218,20 +238,20 @@ Cpu::Cpu(Vm              & vm,
   _sr_id_aa64afr1_el1 (3, 0, 0, 5, 5, "ID_AA64AFR1_EL1",  false, 0x0, _reg_tree),
   _sr_id_aa64dfr0_el1 (3, 0, 0, 5, 0, "ID_AA64DFR0_EL1",  false, 0x6, _reg_tree),
   _sr_id_aa64dfr1_el1 (3, 0, 0, 5, 1, "ID_AA64DFR1_EL1",  false, 0x0, _reg_tree),
-  _sr_id_aa64isar0_el1(3, 0, 0, 6, 0, "ID_AA64ISAR0_EL1", false, _state.id_aa64isar0_el1, _reg_tree),
-  _sr_id_aa64isar1_el1(3, 0, 0, 6, 1, "ID_AA64ISAR1_EL1", false, _state.id_aa64isar1_el1, _reg_tree),
-  _sr_id_aa64mmfr0_el1(3, 0, 0, 7, 0, "ID_AA64MMFR0_EL1", false, _state.id_aa64mmfr0_el1, _reg_tree),
-  _sr_id_aa64mmfr1_el1(3, 0, 0, 7, 1, "ID_AA64MMFR1_EL1", false, _state.id_aa64mmfr1_el1, _reg_tree),
-  _sr_id_aa64mmfr2_el1(3, 0, 0, 7, 2, "ID_AA64MMFR2_EL1", false, _state.id_aa64mmfr2_el1, _reg_tree),
-  _sr_id_aa64pfr0_el1 (_state.id_aa64pfr0_el1, _reg_tree),
+  _sr_id_aa64isar0_el1(3, 0, 0, 6, 0, "ID_AA64ISAR0_EL1", false, 0x0, _reg_tree),
+  _sr_id_aa64isar1_el1(3, 0, 0, 6, 1, "ID_AA64ISAR1_EL1", false, 0x0, _reg_tree),
+  _sr_id_aa64mmfr0_el1(3, 0, 0, 7, 0, "ID_AA64MMFR0_EL1", false, 0x0, _reg_tree),
+  _sr_id_aa64mmfr1_el1(3, 0, 0, 7, 1, "ID_AA64MMFR1_EL1", false, 0x0, _reg_tree),
+  _sr_id_aa64mmfr2_el1(3, 0, 0, 7, 2, "ID_AA64MMFR2_EL1", false, 0x0, _reg_tree),
+  _sr_id_aa64pfr0_el1 (0x0, _reg_tree),
   _sr_id_aa64pfr1_el1 (3, 0, 0, 4, 1, "ID_AA64PFR1_EL1",  false, 0x0, _reg_tree),
   _sr_id_aa64zfr0_el1 (3, 0, 0, 4, 4, "ID_AA64ZFR0_EL1",  false, 0x0, _reg_tree),
   _sr_aidr_el1        (3, 0, 1, 0, 7, "AIDR_EL1",         false, 0x0, _reg_tree),
   _sr_revidr_el1      (3, 0, 0, 0, 6, "REVIDR_EL1",       false, 0x0, _reg_tree),
-  _sr_clidr_el1       (3, 0, 1, 0, 1, "CLIDR_EL1",        false, _state.clidr_el1,        _reg_tree),
+  _sr_clidr_el1       (3, 0, 1, 0, 1, "CLIDR_EL1",        false, 0x0, _reg_tree),
   _sr_csselr_el1      (3, 0, 2, 0, 0, "CSSELR_EL1",       true,  0x0, _reg_tree),
   _sr_ctr_el0         (_reg_tree),
-  _sr_ccsidr_el1      (_sr_csselr_el1, _state, _reg_tree),
+  _sr_ccsidr_el1      (_sr_csselr_el1, *this, _reg_tree),
   _sr_pmuserenr_el0   (3, 9, 3, 14, 0, "PMUSEREN_EL0",    true,  0x0, _reg_tree),
   _sr_dbgbcr0         (2, 0, 0, 0, 5, "DBGBCR_EL1",       true,  0x0, _reg_tree),
   _sr_dbgbvr0         (2, 0, 0, 0, 4, "DBGBVR_EL1",       true,  0x0, _reg_tree),
@@ -241,7 +261,4 @@ Cpu::Cpu(Vm              & vm,
   _sr_osdlr           (2, 1, 0, 3, 4, "OSDLR_EL1",        true,  0x0, _reg_tree),
   _sr_oslar           (2, 1, 0, 0, 4, "OSLAR_EL1",        true,  0x0, _reg_tree),
   _sr_sgi1r_el1       (_reg_tree, vm)
-{
-	_state.pstate     = 0b1111000101; /* el1 mode and IRQs disabled */
-	_state.vmpidr_el2 = cpu_id();
-}
+{ }

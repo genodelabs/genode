@@ -1,11 +1,12 @@
 /*
  * \brief  VMM ARM Generic Interrupt Controller v2 device model
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2019-08-05
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -163,29 +164,30 @@ Gic::Irq & Gic::Gicd_banked::irq(unsigned i)
 }
 
 
-void Gic::Gicd_banked::handle_irq()
+void Gic::Gicd_banked::handle_irq(State &state)
 {
-	unsigned i = _cpu.state().irqs.virtual_irq;
+	unsigned i = state.irqs.virtual_irq;
 	if (i > MAX_IRQ) return;
 
 	irq(i).deassert();
 
-	_cpu.state().irqs.virtual_irq = SPURIOUS;
+	state.irqs.virtual_irq = SPURIOUS;
 }
 
 
-bool Gic::Gicd_banked::pending_irq()
+bool Gic::Gicd_banked::pending_irq(State &state)
 {
 	Genode::Mutex::Guard guard(big_gic_lock());
 
-	if (_cpu.state().irqs.virtual_irq != SPURIOUS) return true;
+	if (state.irqs.virtual_irq != SPURIOUS)
+		return true;
 
 	Irq * i = _gic._pending_list.highest_enabled();
 	Irq * j = _pending_list.highest_enabled();
 	Irq * n = j;
 	if (i && ((j && j->priority() > i->priority()) || !j)) n = i;
 	if (!n) return false;
-	_cpu.state().irqs.virtual_irq = n->number();
+	state.irqs.virtual_irq = n->number();
 	n->activate();
 	return true;
 }
@@ -200,8 +202,6 @@ Gic::Gicd_banked::Gicd_banked(Cpu_base & cpu, Gic & gic, Mmio_bus & bus)
 	for (unsigned i = 0; i < MAX_PPI; i++)
 		_ppi[i].construct(i+MAX_SGI, Irq::PPI, _pending_list);
 
-	_cpu.state().irqs.last_irq    = SPURIOUS;
-	_cpu.state().irqs.virtual_irq = SPURIOUS;
 
 	if (gic.version() >= 3) {
 		_rdist.construct(GICR_MMIO_START +
@@ -209,6 +209,12 @@ Gic::Gicd_banked::Gicd_banked(Cpu_base & cpu, Gic & gic, Mmio_bus & bus)
 		                 cpu.cpu_id(),
 		                 (_gic._cpu_cnt-1) == cpu.cpu_id());
 	}
+}
+
+void Gic::Gicd_banked::setup_state(State &state)
+{
+	state.irqs.last_irq    = SPURIOUS;
+	state.irqs.virtual_irq = SPURIOUS;
 }
 
 
