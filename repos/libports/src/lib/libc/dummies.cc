@@ -28,6 +28,9 @@ extern "C" {
 #include <sys/ucontext.h>
 #include <sys/wait.h>
 
+#include <sys/param.h>
+#include <sys/cpuset.h>
+
 #include <db.h>
 #include <netdb.h>
 #include <unistd.h>
@@ -36,6 +39,7 @@ extern "C" {
 #include <netinet/in.h>
 #include <resolv.h>
 #include <spinlock.h>
+#include <spawn.h>
 #include <ucontext.h>
 
 
@@ -93,6 +97,7 @@ ret_type name args \
 
 
 DUMMY(int   , -1, chroot, (const char *))
+DUMMY(int   , -1, cpuset_getaffinity, (cpulevel_t, cpuwhich_t, id_t, size_t, cpuset_t *))
 DUMMY(char *,  0, crypt, (const char *, const char *))
 DUMMY(DB *  ,  0, dbopen, (const char *, int, int, DBTYPE, const void *))
 DUMMY(u_int32_t, 0, __default_hash, (const void *, size_t));
@@ -123,6 +128,8 @@ DUMMY(void *,  0, ___mtctxres, (void))
 DUMMY(void *,  0, __nsdefaultsrc, (void))
 DUMMY(int   , -1, _nsdispatch, (void))
 DUMMY(long  , -1, pathconf, (const char *, int))
+DUMMY(void  ,   , pthread_set_name_np, (pthread_t, const char *))
+DUMMY(int   , -1, posix_spawn_file_actions_addchdir_np, (posix_spawn_file_actions_t *, const char *))
 DUMMY(int   , -1, rmdir, (const char *))
 DUMMY(void *,  0, sbrk, (intptr_t))
 DUMMY(int   , -1, sched_setparam, (pid_t, const sched_param *))
