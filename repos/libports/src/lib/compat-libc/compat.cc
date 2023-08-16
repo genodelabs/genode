@@ -15,8 +15,10 @@
 #define _WANT_FREEBSD11_STAT /* enable freebsd11_stat */
 #define _KERNEL              /* disable 'stat' */
 #include <sys/stat.h>
-#include "libc.h"
+#include <dlfcn.h>
 
+extern "C" int libc_stat(const char *, struct stat*);
+extern "C" int libc_fstat(int, struct stat *);
 
 static void _to_freebsd11(struct stat *libc_buf, struct freebsd11_stat *buf)
 {
@@ -36,8 +38,35 @@ static void _to_freebsd11(struct stat *libc_buf, struct freebsd11_stat *buf)
 	buf->st_birthtim = libc_buf->st_birthtim;
 }
 
+static void* libc_handle(void)
+{
+	static void *handle = NULL;
+	if (!handle) handle = dlopen("libc.lib.so", RTLD_LAZY);
+	return handle;
+}
 
-extern "C" int stat(const char *path, struct freebsd11_stat *buf)
+
+int (*_stat)(char const*, struct stat*);
+int (*_fstat)(int, struct stat *);
+
+int libc_stat(const char *path, struct stat *buf)
+{
+	if (!_stat)
+		_stat = (int (*)(const char*, struct stat*)) dlsym(libc_handle(), "stat");
+
+	return _stat(path, buf);
+}
+
+
+int libc_fstat(int fd, struct stat *buf)
+{
+	if (!_fstat)
+		_fstat = (int (*)(int, struct stat*)) dlsym(libc_handle(), "fstat");
+
+	return _fstat(fd, buf);
+}
+
+extern "C" int freebsd11_stat(const char *path, struct freebsd11_stat *buf)
 {
 	struct stat libc_buf { };
 
@@ -50,7 +79,7 @@ extern "C" int stat(const char *path, struct freebsd11_stat *buf)
 }
 
 
-extern "C" int fstat(int fd, struct freebsd11_stat *buf)
+extern "C" int freebsd11_fstat(int fd, struct freebsd11_stat *buf)
 {
 	struct stat libc_buf { };
 
@@ -61,3 +90,6 @@ extern "C" int fstat(int fd, struct freebsd11_stat *buf)
 
 	return 0;
 }
+
+__sym_compat(fstat, freebsd11_fstat, FBSD_1.0);
+__sym_compat(stat, freebsd11_stat, FBSD_1.0);

@@ -1,8 +1,0 @@
-# compatible old version implemeted in this library
-FBSD_1.0 {
-	global:
-		stat;
-		fstat;
-	local:
-		*;
-};
