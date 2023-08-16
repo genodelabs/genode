@@ -390,3 +390,10 @@ int net_ratelimit(void)
 	/* suppress */
 	return 0;
 }
+
+#include <net/dst.h>
+
+void dst_release(struct dst_entry * dst)
+{
+	lx_emul_trace(__func__);
+}

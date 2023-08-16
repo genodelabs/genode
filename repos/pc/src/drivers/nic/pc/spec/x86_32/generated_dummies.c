@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-06-22
+ * \date   2023-08-09
  */
 
 #include <lx_emul.h>
@@ -227,14 +227,6 @@ int device_create_managed_software_node(struct device * dev,const struct propert
 #include <linux/netlink.h>
 
 void do_trace_netlink_extack(const char * msg)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <net/dst.h>
-
-void dst_release(struct dst_entry * dst)
 {
 	lx_emul_trace_and_stop(__func__);
 }
