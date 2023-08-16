@@ -63,9 +63,13 @@ static rx_handler_result_t handle_rx(struct sk_buff **pskb)
 	struct sk_buff *skb = *pskb;
 	struct net_device *dev = skb->dev;
 	struct genode_uplink_tx_packet_context ctx = { .skb = skb };
+	struct genode_uplink *uplink = dev_genode_uplink(dev);
+
+	if (!uplink)
+		return RX_HANDLER_PASS;
 
 	{
-		bool progress = genode_uplink_tx_packet(dev_genode_uplink(dev),
+		bool progress = genode_uplink_tx_packet(uplink,
 		                                        uplink_tx_packet_content,
 		                                        &ctx);
 		if (!progress)
