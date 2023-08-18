@@ -1,0 +1,25 @@
+NCM tries to batch TX packets using timeouts (500us) and does not send packets
+before 3 packets are in the submit queue. Timeouts take milliseconds on
+dde_linux which leads to delayed ACKs and poor performance for the RX case.
+Therefore, we send small packets (<100 Bytes) immediately without batching (it
+might be an ACK or last packet of a larger transfer).
+
+diff --git a/drivers/net/usb/cdc_ncm.c b/drivers/net/usb/cdc_ncm.c
+index 0897fdb..4dd6047 100644
+--- a/drivers/net/usb/cdc_ncm.c
++++ b/drivers/net/usb/cdc_ncm.c
+@@ -1354,6 +1354,14 @@ cdc_ncm_fill_tx_frame(struct usbnet *dev, struct sk_buff *skb, __le32 sign)
+ 		}
+ 		skb_put_data(skb_out, skb->data, skb->len);
+ 		ctx->tx_curr_frame_payload += skb->len;	/* count real tx payload data */
++
++		/*
++		 * send small packets immediately (e.g., TCP ACKS), just batch with large
++		 * payloads
++		 */
++		if (skb->len < 100)
++			ready2send = 1;
++
+ 		dev_kfree_skb_any(skb);
+ 		skb = NULL;
+ 
