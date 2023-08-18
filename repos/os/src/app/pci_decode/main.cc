@@ -21,6 +21,7 @@
 
 #include <irq.h>
 #include <rmrr.h>
+#include <drhd.h>
 #include <pci/config.h>
 
 using namespace Genode;
@@ -41,6 +42,7 @@ struct Main
 	List_model<Irq_routing>  irq_routing_list  {};
 	List_model<Irq_override> irq_override_list {};
 	List_model<Rmrr>         reserved_memory_list {};
+	List_model<Drhd>         drhd_list {};
 
 	Constructible<Attached_io_mem_dataspace> pci_config_ds {};
 
@@ -412,6 +414,20 @@ void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 	 */
 	if (xml.has_sub_node("sci_int"))
 		parse_acpica_info(xml, gen);
+
+	/* Intel DMA-remapping hardware units */
+	drhd_list.for_each([&] (Drhd const & drhd) {
+		gen.node("device", [&]
+		{
+			gen.attribute("name", drhd.name());
+			gen.attribute("type", "intel_iommu");
+			gen.node("io_mem", [&]
+			{
+				gen.attribute("address", String<20>(Hex(drhd.addr)));
+				gen.attribute("size",    String<20>(Hex(drhd.size)));
+			});
+		});
+	});
 }
 
 
@@ -557,6 +573,56 @@ Main::Main(Env & env) : env(env)
 
 		/* update */
 		[&] (Rmrr &, Xml_node const &) { }
+	);
+
+	unsigned nbr { 0 };
+	drhd_list.update_from_xml(xml,
+
+		/* create */
+		[&] (Xml_node const &node) -> Drhd &
+		{
+			addr_t   addr  = node.attribute_value("phys", 0UL);
+			size_t   size  = node.attribute_value("size", 0UL);
+			unsigned seg   = node.attribute_value("segment", 0U);
+			unsigned flags = node.attribute_value("flags", 0U);
+
+			Drhd * drhd;
+			if (flags & 0x1)
+				drhd = new (heap) Drhd(addr, size, seg,
+				                       Drhd::Scope::INCLUDE_PCI_ALL, nbr++);
+			else
+				drhd = new (heap) Drhd(addr, size, seg,
+				                       Drhd::Scope::EXPLICIT, nbr++);
+
+			/* parse device scopes which define the explicitly assigned devices */
+			bus_t bus = 0;
+			dev_t dev = 0;
+			func_t fn = 0;
+
+			node.for_each_sub_node("scope", [&] (Xml_node node) {
+				bus = node.attribute_value<uint8_t>("bus_start", 0U);
+				node.with_optional_sub_node("path", [&] (Xml_node node) {
+					dev = node.attribute_value<uint8_t>("dev", 0);
+					fn  = node.attribute_value<uint8_t>("func", 0);
+				});
+
+				new (heap) Drhd::Device(drhd->devices, {bus, dev, fn});
+			});
+
+			return *drhd;
+		},
+
+		/* destroy */
+		[&] (Drhd &drhd)
+		{
+			drhd.devices.for_each([&] (Drhd::Device & device) {
+				destroy(heap, &device); });
+			destroy(heap, &drhd);
+		},
+
+		/* update */
+		[&] (Drhd &, Xml_node const &) { }
+
 	);
 
 	pci_reporter.generate([&] (Xml_generator & generator)
