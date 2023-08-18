@@ -1,40 +1,6 @@
 LICENSE     := GPLv2
 VERSION     := individual (see sources)
-DOWNLOADS   := lxip.archive usb_hid.archive usb_modem.archive usb_net.archive
-
-#
-# Tools
-#
-$(call check_tool,flex)
-$(call check_tool,bison)
-
-FLEX = flex
-YACC = bison
-
-
-SRC_DIR_USB_HID  := src/drivers/usb_hid
-VERSION(usb_hid) := 4.16.3
-URL(usb_hid)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-${VERSION(usb_hid)}.tar.xz
-SHA(usb_hid)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
-DIR(usb_hid)     := $(SRC_DIR_USB_HID)
-TAR_OPT(usb_hid) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-${VERSION(usb_hid)}/g' $(REP_DIR)/usb_hid.list)
-HASH_INPUT       += $(REP_DIR)/usb_hid.list
-
-SRC_DIR_USB_NET  := src/drivers/usb_net
-VERSION(usb_net) := 4.16.3
-URL(usb_net)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-${VERSION(usb_net)}.tar.xz
-SHA(usb_net)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
-DIR(usb_net)     := $(SRC_DIR_USB_NET)
-TAR_OPT(usb_net) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-${VERSION(usb_net)}/g' $(REP_DIR)/usb_net.list)
-HASH_INPUT       += $(REP_DIR)/usb_net.list
-
-SRC_DIR_USB_MODEM  := src/drivers/usb_modem
-VERSION(usb_modem) := 4.16.3
-URL(usb_modem)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-${VERSION(usb_modem)}.tar.xz
-SHA(usb_modem)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
-DIR(usb_modem)     := $(SRC_DIR_USB_MODEM)
-TAR_OPT(usb_modem) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-${VERSION(usb_modem)}/g' $(REP_DIR)/usb_modem.list)
-HASH_INPUT         += $(REP_DIR)/usb_modem.list
+DOWNLOADS   := lxip.archive
 
 #
 # IP stack sources
@@ -57,14 +23,6 @@ PATCHES += patches/lxip_netlink.patch
 PATCHES += patches/lxip_request_sock.patch
 PATCHES += patches/lxip_sk_wq.patch
 PATCHES += patches/lxip_skbuff_cast.patch
-PATCHES += patches/usb_hid_evdev.patch
-PATCHES += patches/usb_hid_hid.patch
-PATCHES += patches/usb_hid_input.patch
-PATCHES += patches/usb_hid_usbhid.patch
-PATCHES += patches/usb_hid_wacom_sys.patch
-PATCHES += patches/usb_modem_skbuff_cast.patch
-PATCHES += patches/usb_net_skbuff_cast.patch
-
 
 #IP stack
 LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
@@ -75,21 +33,5 @@ PATCH_OPT(patches/lxip_netlink.patch)      := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_request_sock.patch) := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_sk_wq.patch)        := $(LXIP_OPT)
 PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
-
-# USB HID
-USB_HID_OPT = -p1 -d$(SRC_DIR_USB_HID)
-PATCH_OPT(patches/usb_hid_usbhid.patch)    := $(USB_HID_OPT)
-PATCH_OPT(patches/usb_hid_wacom_sys.patch) := $(USB_HID_OPT)
-PATCH_OPT(patches/usb_hid_evdev.patch)     := $(USB_HID_OPT)
-PATCH_OPT(patches/usb_hid_hid.patch)       := $(USB_HID_OPT)
-PATCH_OPT(patches/usb_hid_input.patch)     := $(USB_HID_OPT)
-
-# USB NET
-USB_NET_OPT = -p1 -d$(SRC_DIR_USB_NET)
-PATCH_OPT(patches/usb_net_skbuff_cast.patch) := $(USB_NET_OPT)
-
-# USB MODEM
-USB_MODEM_OPT = -p1 -d$(SRC_DIR_USB_MODEM)
-PATCH_OPT(patches/usb_modem_skbuff_cast.patch) := $(USB_MODEM_OPT)
 
 # vi: set ft=make :
