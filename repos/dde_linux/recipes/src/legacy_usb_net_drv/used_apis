@@ -1,8 +1,0 @@
-base
-os
-format
-nic_session
-uplink_session
-usb_session
-timer_session
-nic_driver

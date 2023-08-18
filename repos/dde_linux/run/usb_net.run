@@ -10,7 +10,7 @@
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/test_usb_host_drv-[board] \
-                  [depot_user]/src/legacy_usb_net_drv \
+                  [depot_user]/src/usb_net_drv \
                   [depot_user]/src/nic_router \
                   [depot_user]/src/libc \
                   [depot_user]/src/vfs \
