@@ -198,6 +198,8 @@ struct Dmar_drhd : Genode::Mmio
 {
 	struct Length  : Register<0x2, 16> { };
 	struct Flags   : Register<0x4,  8> { };
+	struct Size    : Register<0x5,  8> {
+		struct Num_pages : Bitfield<0,4> { }; };
 	struct Segment : Register<0x6, 16> { };
 	struct Phys    : Register<0x8, 64> { };
 
@@ -1672,10 +1674,13 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 				if (dmar.read<Dmar_common::Type>() == Dmar_common::Type::DRHD) {
 					Dmar_drhd drhd(dmar.base());
 
+					size_t size_log2 = drhd.read<Dmar_drhd::Size::Num_pages>() + 12;
+
 					xml.node("drhd", [&] () {
 						attribute_hex(xml, "phys", drhd.read<Dmar_drhd::Phys>());
 						attribute_hex(xml, "flags", drhd.read<Dmar_drhd::Flags>());
 						attribute_hex(xml, "segment", drhd.read<Dmar_drhd::Segment>());
+						attribute_hex(xml, "size", 1 << size_log2);
 						drhd.apply(func_scope);
 					});
 				}
