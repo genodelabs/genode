@@ -164,7 +164,7 @@ struct genode_usb_isoc_transfer
 	char     data[];
 };
 
-enum Urb_type { CTRL, BULK, IRQ, ISOC, NONE };
+enum Urb_type { CTRL, BULK, IRQ, ISOC, ALT_SETTING, CONFIG, NONE };
 typedef enum Urb_type genode_usb_urb_t;
 
 struct genode_usb_request_urb
