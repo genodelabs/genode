@@ -46,6 +46,9 @@ void * __kmalloc(size_t size, gfp_t flags)
 	/* for page-rounded sizes use page-alignment */
 	if ((size % PAGE_SIZE) == 0) align = PAGE_SIZE;
 
+	/* guarantee natural alignment for power-of-two kmalloc (see mm/slab_common.c) */
+	if (is_power_of_2(size)) align = max_t(unsigned long, align, size);
+
 	return lx_emul_mem_alloc_aligned(size, align);
 }
 
