@@ -1,6 +1,7 @@
 /*
  * \brief  Lx_emul backend for shared dma buffers
  * \author Stefan Kalkowski
+ * \author Christian Helmuth
  * \date   2022-03-02
  */
 
@@ -24,11 +25,8 @@ lx_emul_shared_dma_buffer_allocate(unsigned long size)
 {
 	Lx_kit::Mem_allocator::Buffer & b = Lx_kit::env().memory.alloc_buffer(size);
 
-	/*
-	 * We have to call virt_to_pages eagerly here,
-	 * to get contingous page objects registered
-	 */
-	lx_emul_virt_to_pages((void*)b.virt_addr(), size >> 12);
+	lx_emul_add_page_range((void *)b.virt_addr(), b.size());
+
 	return static_cast<genode_shared_dataspace*>(&b);
 }
 
@@ -36,8 +34,14 @@ lx_emul_shared_dma_buffer_allocate(unsigned long size)
 extern "C" void
 lx_emul_shared_dma_buffer_free(struct genode_shared_dataspace * ds)
 {
-	lx_emul_forget_pages((void*)ds->virt_addr(), ds->size());
+	lx_emul_remove_page_range((void *)ds->virt_addr(), ds->size());
 	Lx_kit::env().memory.free_buffer((void*)ds->virt_addr());
+}
+
+extern "C" void *
+lx_emul_shared_dma_buffer_virt_addr(struct genode_shared_dataspace * ds)
+{
+	return (void *)ds->virt_addr();
 }
 
 

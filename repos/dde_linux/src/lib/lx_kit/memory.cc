@@ -1,6 +1,7 @@
 /*
  * \brief  Lx_kit memory allocation backend
  * \author Stefan Kalkowski
+ * \author Christian Helmuth
  * \date   2021-03-25
  */
 
@@ -57,7 +58,8 @@ Genode::Dataspace_capability Lx_kit::Mem_allocator::attached_dataspace_cap(void 
 }
 
 
-void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align)
+void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align,
+                                    void (*new_range_cb)(void const *, unsigned long))
 {
 	if (!size)
 		return nullptr;
@@ -93,7 +95,7 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align)
 			_mem.add_range(buffer.virt_addr(), buffer.size() - 1);
 
 			/* re-try allocation */
-			return _mem.alloc_aligned(size, (unsigned)log2(align)).convert<void *>(
+			void * const virt_addr = _mem.alloc_aligned(size, (unsigned)log2(align)).convert<void *>(
 
 				[&] (void *ptr) { return cleared_allocation(ptr, size); },
 
@@ -101,6 +103,11 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align)
 					error("memory allocation failed for ", size, " align ", align);
 					return nullptr; }
 			);
+
+			if (virt_addr)
+				new_range_cb((void *)buffer.virt_addr(), buffer.size() - 1);
+
+			return virt_addr;
 		}
 	);
 }

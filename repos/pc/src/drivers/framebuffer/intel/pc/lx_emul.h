@@ -26,9 +26,6 @@ extern "C" {
 struct dma_fence_work;
 struct dma_fence_work_ops;
 
-void *emul_alloc_shmem_file_buffer(unsigned long);
-void  emul_free_shmem_file_buffer(void *);
-
 void * intel_io_mem_map(unsigned long offset, unsigned long size);
 
 #include "lx_i915.h"

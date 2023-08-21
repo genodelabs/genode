@@ -27,7 +27,9 @@ class Non_dma_buffer : Attached_ram_dataspace,
 
 		using Attached_ram_dataspace::Attached_ram_dataspace;
 
-		size_t dma_addr() const override { return 0UL; }
+		/* emulate idempotent virt-dma mapping */
+		size_t dma_addr() const override {
+			return (size_t) Attached_ram_dataspace::local_addr<void>(); }
 
 		size_t size() const override {
 			return Attached_ram_dataspace::size(); }

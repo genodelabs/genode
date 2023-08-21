@@ -63,7 +63,7 @@ void * page_frag_alloc_align(struct page_frag_cache *nc,
 
 void page_frag_free(void * addr)
 {
-	struct page *page = lx_emul_virt_to_pages(addr, 1ul);
+	struct page *page = lx_emul_virt_to_page(addr);
 	if (!page) {
 		printk("BUG %s: page for addr: %p not found\n", __func__, addr);
 		lx_emul_backtrace();

@@ -18,22 +18,6 @@
 #include "lx_emul.h"
 
 
-void *emul_alloc_shmem_file_buffer(unsigned long size)
-{
-	if (!size)
-		return nullptr;
-
-	auto &buffer = Lx_kit::env().memory.alloc_buffer(size);
-	return reinterpret_cast<void *>(buffer.virt_addr());
-}
-
-
-void emul_free_shmem_file_buffer(void *addr)
-{
-	Lx_kit::env().memory.free_buffer(addr);
-}
-
-
 unsigned short emul_intel_gmch_control_reg()
 {
 	using namespace Genode;

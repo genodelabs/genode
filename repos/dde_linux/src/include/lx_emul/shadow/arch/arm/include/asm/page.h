@@ -50,7 +50,7 @@ typedef struct page *pgtable_t;
 #define page_to_phys(p) __pa((p)->virtual)
 #define page_to_virt(p)     ((p)->virtual)
 
-static inline struct page *virt_to_page(void const *v) { return lx_emul_virt_to_pages(v, 1U); }
+static inline struct page *virt_to_page(void const *v) { return lx_emul_virt_to_page(v); }
 
 /* needed by mm/internal.h */
 #define pfn_valid(pfn) (pfn != 0UL)

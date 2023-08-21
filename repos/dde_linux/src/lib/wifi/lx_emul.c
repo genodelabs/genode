@@ -382,25 +382,6 @@ asmlinkage __visible void dump_stack(void)
 }
 
 
-#include <linux/mm.h>
-
-void __put_page(struct page * page)
-{
-	__free_pages(page, 0);
-}
-
-
-#if LINUX_VERSION_CODE > KERNEL_VERSION(6,1,0)
-#include <linux/mm.h>
-
-void __folio_put(struct folio * folio)
-{
-	__free_pages(&folio->page, 0);
-	kfree(folio);
-}
-#endif
-
-
 #include <linux/prandom.h>
 
 void prandom_bytes(void *buf, size_t bytes)
@@ -437,7 +418,7 @@ void *page_frag_alloc_align(struct page_frag_cache *nc,
 		printk("%s: alloc might leak memory: fragsz: %u PAGE_SIZE: %lu "
 		       "order: %u page: %p addr: %p\n", __func__, fragsz, PAGE_SIZE, order, page, page->virtual);
 
-	return page->virtual;
+	return page_address(page);
 }
 
 
@@ -445,7 +426,7 @@ void *page_frag_alloc_align(struct page_frag_cache *nc,
 
 void page_frag_free(void * addr)
 {
-	struct page *page = lx_emul_virt_to_pages(addr, 1ul);
+	struct page *page = virt_to_page(addr);
 	if (!page) {
 		printk("BUG %s: page for addr: %p not found\n", __func__, addr);
 		lx_emul_backtrace();

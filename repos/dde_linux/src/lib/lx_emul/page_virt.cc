@@ -1,6 +1,7 @@
 /*
  * \brief  Lx_emul backend for page-struct management
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2021-07-01
  */
 
@@ -35,27 +36,21 @@ struct Lx_emul::Page_info
 		return key.virt > other_key.virt;
 	}
 
-	struct Query_virt_range
+	struct Query_virt_addr
 	{
 		addr_t virt;
-		size_t size;
 
 		bool matches(Page_info const &page_info) const
 		{
 			size_t const page_size = 4096;
 
 			Lx_kit::Byte_range page_range { page_info.key.virt, page_size };
-			Lx_kit::Byte_range virt_range { virt, size };
+			Lx_kit::Byte_range virt_range { virt, 1 };
 
 			return page_range.intersects(virt_range);
 		}
 
 		Key key() const { return Key { virt }; }
-	};
-
-	struct Query_virt_addr : Query_virt_range
-	{
-		Query_virt_addr(void const *virt) : Query_virt_range{(addr_t)virt, 1} { }
 	};
 };
 
@@ -75,13 +70,13 @@ extern "C" void lx_emul_associate_page_with_virt_addr(struct page *page, void co
 
 void lx_emul_disassociate_page_from_virt_addr(void const *virt)
 {
-	page_registry().remove(Lx_emul::Page_info::Query_virt_addr(virt));
+	page_registry().remove(Lx_emul::Page_info::Query_virt_addr { (addr_t)virt });
 }
 
 
-struct page *lx_emul_associated_page(void const *virt, unsigned long size)
+struct page *lx_emul_associated_page(void const *virt)
 {
-	Lx_emul::Page_info::Query_virt_range query { .virt = (addr_t)virt, .size = size };
+	Lx_emul::Page_info::Query_virt_addr query { (addr_t)virt };
 
 	struct page *page_ptr = nullptr;
 	page_registry().apply(query, [&] (Lx_emul::Page_info const &page_info) {

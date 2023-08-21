@@ -1,6 +1,7 @@
 /*
  * \brief  Linux DDE virt-to-page implementation
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2021-07-02
  */
 
@@ -17,78 +18,49 @@
 #include <lx_emul/page_virt.h>
 
 
-struct page *lx_emul_virt_to_pages(void const *virt, unsigned long count)
+struct page *lx_emul_virt_to_page(void const *virt)
 {
 	/* sanitize argument */
 	void * const page_aligned_virt = (void *)((uintptr_t)virt & PAGE_MASK);
 
-	struct page *page = lx_emul_associated_page(page_aligned_virt, 1);
-
-	if (!page) {
-		unsigned long i;
-		struct page * p = kzalloc(sizeof(struct page)*count, 0);
-		page = p;
-		for (i = 0; i < count; i++, p++) {
-			p->virtual = (void*)((uintptr_t)page_aligned_virt + i*PAGE_SIZE);
-			init_page_count(p);
-			lx_emul_associate_page_with_virt_addr(p, p->virtual);
-		}
-
-	}
-
-	/* consistency check */
-	if (page_aligned_virt != page->virtual)
-		BUG();
+	struct page * const page = lx_emul_associated_page(page_aligned_virt);
 
 	return page;
 }
 
 
-void lx_emul_forget_pages(void const *virt, unsigned long size)
+void lx_emul_remove_page_range(void const *virt_addr, unsigned long size)
 {
-	for (;;) {
-		struct page *page = lx_emul_associated_page(virt, size);
-		if (!page)
-			return;
+	unsigned i;
+	struct page *p;
 
-		lx_emul_disassociate_page_from_virt_addr(page->virtual);
-		kfree(page);
-	}
+	unsigned const nr_pages = DIV_ROUND_UP(size, PAGE_SIZE);
+
+	/* sanitize argument */
+	void * const page_aligned_virt = (void *)((uintptr_t)virt_addr & PAGE_MASK);
+
+	struct page * const page = lx_emul_associated_page(page_aligned_virt);
+
+	for (i = 0, p = page; i < nr_pages; i++, p++)
+		lx_emul_disassociate_page_from_virt_addr(p->virtual);
+	lx_emul_heap_free(page);
 }
 
 
-#define LX_EMUL_ASSERT(cond) { if (!(cond)) {\
-	printk("assertion failed at line %d: %s\n", __LINE__, #cond); \
-	lx_emul_trace_and_stop("abort"); } }
-
-
-void lx_emul_associate_page_selftest()
+void lx_emul_add_page_range(void const *virt_addr, unsigned long size)
 {
-	struct page *p1 = (struct page *)1;
-	struct page *p2 = (struct page *)2;
-	struct page *p3 = (struct page *)3;
+	unsigned i;
+	struct page *p;
 
-	void *v1 = (void *)0x11000;
-	void *v2 = (void *)0x12000;
-	void *v3 = (void *)0x13000;
+	/* range may comprise a partial page at the end that needs a page struct too */
+	unsigned const nr_pages = DIV_ROUND_UP(size, PAGE_SIZE);
+	unsigned const space    = sizeof(struct page)*nr_pages;
 
-	lx_emul_associate_page_with_virt_addr(p1, v1);
-	lx_emul_associate_page_with_virt_addr(p2, v2);
-	lx_emul_associate_page_with_virt_addr(p3, v3);
+	struct page * const page = lx_emul_heap_alloc(space);
 
-	LX_EMUL_ASSERT(lx_emul_associated_page(v1, 1) == p1);
-	LX_EMUL_ASSERT(lx_emul_associated_page(v2, 1) == p2);
-	LX_EMUL_ASSERT(lx_emul_associated_page(v3, 1) == p3);
-
-	LX_EMUL_ASSERT(lx_emul_associated_page((void *)((uintptr_t)v1 + 4095), 1) == p1);
-	LX_EMUL_ASSERT(lx_emul_associated_page((void *)((uintptr_t)v1 - 1), 1) == NULL);
-	LX_EMUL_ASSERT(lx_emul_associated_page((void *)((uintptr_t)v2 & PAGE_MASK), 1) == p2);
-
-	LX_EMUL_ASSERT(lx_emul_associated_page((void *)0x10000, 0x10000) == p2);
-	lx_emul_disassociate_page_from_virt_addr(v2);
-	LX_EMUL_ASSERT(lx_emul_associated_page((void *)0x10000, 0x10000) == p3);
-	lx_emul_disassociate_page_from_virt_addr(v3);
-	LX_EMUL_ASSERT(lx_emul_associated_page((void *)0x10000, 0x10000) == p1);
-	lx_emul_disassociate_page_from_virt_addr(v1);
-	LX_EMUL_ASSERT(lx_emul_associated_page((void *)0x10000, 0x10000) == NULL);
+	for (i = 0, p = page; i < nr_pages; i++, p++) {
+		p->virtual = (void *)((uintptr_t)virt_addr + i*PAGE_SIZE);
+		set_page_count(p, 0);
+		lx_emul_associate_page_with_virt_addr(p, p->virtual);
+	}
 }

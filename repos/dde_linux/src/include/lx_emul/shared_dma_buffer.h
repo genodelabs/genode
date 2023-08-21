@@ -25,6 +25,8 @@ lx_emul_shared_dma_buffer_allocate(unsigned long size);
 
 void lx_emul_shared_dma_buffer_free(struct genode_shared_dataspace * ds);
 
+void * lx_emul_shared_dma_buffer_virt_addr(struct genode_shared_dataspace * ds);
+
 #ifdef __cplusplus
 }
 #endif

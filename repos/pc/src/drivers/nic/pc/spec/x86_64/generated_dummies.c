@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-11-02
+ * \date   2023-11-21
  */
 
 #include <lx_emul.h>
@@ -23,14 +23,6 @@ struct cpumask __cpu_active_mask;
 #include <linux/ethtool.h>
 
 int __ethtool_get_link_ksettings(struct net_device * dev,struct ethtool_link_ksettings * link_ksettings)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
-
-void __folio_put(struct folio * folio)
 {
 	lx_emul_trace_and_stop(__func__);
 }

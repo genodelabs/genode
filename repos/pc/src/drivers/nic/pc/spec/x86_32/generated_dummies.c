@@ -28,14 +28,6 @@ int __ethtool_get_link_ksettings(struct net_device * dev,struct ethtool_link_kse
 }
 
 
-#include <linux/mm.h>
-
-void __folio_put(struct folio * folio)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/netlink.h>
 
 int __nla_parse(struct nlattr ** tb,int maxtype,const struct nlattr * head,int len,const struct nla_policy * policy,unsigned int validate,struct netlink_ext_ack * extack)

@@ -1,6 +1,7 @@
 /*
  * \brief  Replaces mm/page_alloc.c
  * \author Stefan Kalkowski
+ * \author Christian Helmuth
  * \date   2021-06-03
  */
 
@@ -27,7 +28,7 @@ unsigned long __alloc_pages_bulk(gfp_t gfp,int preferred_nid,
 
 	{
 		void const  *ptr  = lx_emul_mem_alloc_aligned(PAGE_SIZE*nr_pages, PAGE_SIZE);
-		struct page *page = lx_emul_virt_to_pages(ptr, nr_pages);
+		struct page *page = lx_emul_virt_to_page(ptr);
 		int i;
 
 		for (i = 0; i < nr_pages; i++) {
@@ -42,40 +43,38 @@ unsigned long __alloc_pages_bulk(gfp_t gfp,int preferred_nid,
 	return nr_pages;
 }
 
-static void lx_free_pages(struct page *page, unsigned const num_pages)
+static void lx_free_pages(struct page *page, bool force)
 {
-	unsigned i;
-	void *   const virt_addr = page->virtual;
+	void * const virt_addr = page_address(page);
 
-	if (atomic_read(&page->_refcount) && !atomic_dec_and_test(&page->_refcount))
+	if (force)
+		set_page_count(page, 0);
+	else if (!put_page_testzero(page))
 		return;
 
-	for (i = 0; i < num_pages; i++)
-		lx_emul_disassociate_page_from_virt_addr(page[i].virtual);
-
 	lx_emul_mem_free(virt_addr);
-	lx_emul_mem_free(page);
 }
 
 
 void __free_pages(struct page * page, unsigned int order)
 {
-	lx_free_pages(page, (1u << order));
+	lx_free_pages(page, false);
 }
 
 
-void free_pages_exact(void *virt_addr, size_t size)
+void free_pages(unsigned long addr,unsigned int order)
 {
-	lx_free_pages(virt_to_page(virt_addr), PAGE_ALIGN(size) / PAGE_SIZE);
+	if (addr != 0ul)
+		__free_pages(virt_to_page((void *)addr), order);
 }
 
 
 static struct page * lx_alloc_pages(unsigned const nr_pages)
 {
 	void const  *ptr  = lx_emul_mem_alloc_aligned(PAGE_SIZE*nr_pages, PAGE_SIZE);
-	struct page *page = lx_emul_virt_to_pages(ptr, nr_pages);
+	struct page *page = lx_emul_virt_to_page(ptr);
 
-	atomic_set(&page->_refcount, 1);
+	init_page_count(page);
 
 	return page;
 }
@@ -84,25 +83,15 @@ static struct page * lx_alloc_pages(unsigned const nr_pages)
 /*
  * In earlier kernel versions, '__alloc_pages' was an inline function.
  */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(5,12,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,13,0)
+struct page * __alloc_pages_nodemask(gfp_t gfp, unsigned int order, int preferred_nid,
+                                     nodemask_t * nodemask)
+#else
 struct page * __alloc_pages(gfp_t gfp, unsigned int order, int preferred_nid,
                             nodemask_t * nodemask)
+#endif
 {
 	return lx_alloc_pages(1u << order);
-}
-#endif
-
-
-void *alloc_pages_exact(size_t size, gfp_t gfp_mask)
-{
-	return lx_alloc_pages(PAGE_ALIGN(size) / PAGE_SIZE)->virtual;
-}
-
-
-void free_pages(unsigned long addr,unsigned int order)
-{
-	if (addr != 0ul)
-		__free_pages(virt_to_page((void *)addr), order);
 }
 
 
@@ -115,3 +104,49 @@ unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
 
 	return (unsigned long)page_address(page);
 }
+
+
+/*
+ * Exact page allocation
+ *
+ * This implementation does only support alloc-free pairs that use the same
+ * size and does not set the page_count of pages beyond the head page. It is
+ * currently not possible to allocate individual but contiguous pages, which is
+ * required to satisfy Linux semantics.
+ */
+
+void free_pages_exact(void *virt_addr, size_t size)
+{
+	struct page *page = lx_emul_virt_to_page(virt_addr);
+
+	if (!page)
+		return;
+
+	lx_free_pages(page, false);
+}
+
+
+void *alloc_pages_exact(size_t size, gfp_t gfp_mask)
+{
+	size_t const nr_pages = DIV_ROUND_UP(size, PAGE_SIZE);
+	struct page *page = lx_alloc_pages(nr_pages);
+
+	if (!page)
+		return NULL;
+
+	return page_address(page);
+}
+
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,0,0)
+void __folio_put(struct folio * folio)
+{
+	struct page *page = folio_page(folio, 0);
+
+	/* should only be called if refcount is 0 */
+	if (page_count(page) != 0)
+		printk("%s: page refocunt not 0 for page=%px\n", __func__, page);
+
+	lx_free_pages(&folio->page, true);
+}
+#endif

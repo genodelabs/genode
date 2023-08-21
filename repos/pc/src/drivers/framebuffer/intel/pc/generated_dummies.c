@@ -28,14 +28,6 @@ int __cond_resched_lock(spinlock_t * lock)
 struct cpumask __cpu_active_mask;
 
 
-#include <linux/mm.h>
-
-void __folio_put(struct folio * folio)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern void __i915_gpu_coredump_free(struct kref * error_ref);
 void __i915_gpu_coredump_free(struct kref * error_ref)
 {
@@ -46,14 +38,6 @@ void __i915_gpu_coredump_free(struct kref * error_ref)
 #include <linux/netlink.h>
 
 struct sock * __netlink_kernel_create(struct net * net,int unit,struct module * module,struct netlink_kernel_cfg * cfg)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/pagevec.h>
-
-void __pagevec_release(struct pagevec * pvec)
 {
 	lx_emul_trace_and_stop(__func__);
 }

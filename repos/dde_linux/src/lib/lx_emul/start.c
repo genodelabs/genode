@@ -50,6 +50,9 @@ static int kernel_init(void * args)
 	struct task_struct *tsk = current;
 	set_task_comm(tsk, "init");
 
+	/* setup page struct for zero page in BSS */
+	lx_emul_add_page_range(empty_zero_page, PAGE_SIZE);
+
 	wait_for_completion(&kthreadd_done);
 
 	workqueue_init();
@@ -118,9 +121,6 @@ int lx_emul_init_task_function(void * dtb)
 	/* Set dummy task registers used in IRQ and time handling */
 	static struct pt_regs regs;
 	set_irq_regs(&regs);
-
-	/* Run emulation library self-tests before starting kernel */
-	lx_emul_associate_page_selftest();
 
 	/**
 	 * Here we do the minimum normally done start_kernel() of init/main.c

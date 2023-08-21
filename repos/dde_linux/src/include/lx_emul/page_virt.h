@@ -1,6 +1,7 @@
 /*
  * \brief  Lx_emul support for page-struct management
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2021-07-01
  */
 
@@ -27,29 +28,27 @@ struct page;
 
 void lx_emul_associate_page_with_virt_addr(struct page *, void const *virt);
 void lx_emul_disassociate_page_from_virt_addr(void const *virt);
-struct page *lx_emul_associated_page(void const *virt, unsigned long size);
+struct page *lx_emul_associated_page(void const *virt);
 
 
 /**
- * Return page struct for the page at a given virtual address
+ * Return page struct for the page at a given virtual address (virt_to_page.cc)
  *
- * If no page struct exists for the virtual address, it is created.
+ * As in Linux page structs of contiguous pages of attached DMA/RAM buffers
+ * (i.e., page ranges) are contiguous too.
  */
-struct page *lx_emul_virt_to_pages(void const *virt, unsigned long num);
+struct page *lx_emul_virt_to_page(void const *virt);
 
 
 /**
- * Release page structs for specified virtual-address range
- *
- * \param size  size of range in bytes
+ * Release page structs for specified virtual-address range (virt_to_page.c)
  */
-void lx_emul_forget_pages(void const *virt, unsigned long size);
-
+void lx_emul_remove_page_range(void const *virt_addr, unsigned long size);
 
 /**
- * Perform unit test
+ * Initialize page structs for specified virtual-address range (virt_to_page.c)
  */
-void lx_emul_associate_page_selftest(void);
+void lx_emul_add_page_range(void const *virt_addr, unsigned long size);
 
 
 #ifdef __cplusplus

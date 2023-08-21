@@ -14,6 +14,7 @@
 #include <lx_emul.h>
 #include <lx_emul/io_mem.h>
 #include <lx_emul/page_virt.h>
+#include <lx_emul/shmem_file.h>
 
 #include <linux/dma-fence.h>
 #include <linux/fs.h>
@@ -74,132 +75,6 @@ pgprot_t pgprot_writecombine(pgprot_t prot)
 	pgprot_t p = { .pgprot = 0 };
 	lx_emul_trace(__func__);
 	return p;
-}
-
-
-/*
- * shmem handling as done by Josef etnaviv
- */
-#include <linux/shmem_fs.h>
-
-struct shmem_file_buffer
-{
-	void        *addr;
-	struct page *pages;
-};
-
-
-struct file *shmem_file_setup(char const *name, loff_t size,
-                              unsigned long flags)
-{
-	struct file *f;
-	struct inode *inode;
-	struct address_space *mapping;
-	struct shmem_file_buffer *private_data;
-	loff_t const nrpages = (size / PAGE_SIZE) + ((size % (PAGE_SIZE)) ? 1 : 0);
-
-	if (!size)
-		return (struct file*)ERR_PTR(-EINVAL);
-
-	f = kzalloc(sizeof (struct file), 0);
-	if (!f) {
-		return (struct file*)ERR_PTR(-ENOMEM);
-	}
-
-	inode = kzalloc(sizeof (struct inode), 0);
-	if (!inode) {
-		goto err_inode;
-	}
-
-	mapping = kzalloc(sizeof (struct address_space), 0);
-	if (!mapping) {
-		goto err_mapping;
-	}
-
-	private_data = kzalloc(sizeof (struct shmem_file_buffer), 0);
-	if (!private_data) {
-		goto err_private_data;
-	}
-
-	private_data->addr = emul_alloc_shmem_file_buffer(nrpages * PAGE_SIZE);
-	if (!private_data->addr)
-		goto err_private_data_addr;
-
-	/*
-	 * We call virt_to_pages eagerly here, to get continuous page
-	 * objects registered in case one wants to use them immediately.
-	 */
-	private_data->pages =
-		lx_emul_virt_to_pages(private_data->addr, nrpages);
-
-	mapping->private_data = private_data;
-	mapping->nrpages = nrpages;
-
-	inode->i_mapping = mapping;
-
-	atomic_long_set(&f->f_count, 1);
-	f->f_inode    = inode;
-	f->f_mapping  = mapping;
-	f->f_flags    = flags;
-	f->f_mode     = OPEN_FMODE(flags);
-	f->f_mode    |= FMODE_OPENED;
-
-	return f;
-
-err_private_data_addr:
-	kfree(private_data);
-err_private_data:
-	kfree(mapping);
-err_mapping:
-	kfree(inode);
-err_inode:
-	kfree(f);
-	return (struct file*)ERR_PTR(-ENOMEM);
-}
-
-
-static void _free_file(struct file *file)
-{
-	struct inode *inode;
-	struct address_space *mapping;
-	struct shmem_file_buffer *private_data;
-
-	mapping      = file->f_mapping;
-	inode        = file->f_inode;
-	private_data = mapping->private_data;
-
-	lx_emul_forget_pages(private_data->addr, mapping->nrpages << 12);
-	emul_free_shmem_file_buffer(private_data->addr);
-
-	kfree(private_data);
-	kfree(mapping);
-	kfree(inode);
-	kfree(file->f_path.dentry);
-	kfree(file);
-}
-
-
-void fput(struct file *file)
-{
-	if (atomic_long_sub_and_test(1, &file->f_count)) {
-		_free_file(file);
-	}
-}
-
-
-struct page *shmem_read_mapping_page_gfp(struct address_space *mapping,
-                                         pgoff_t index, gfp_t gfp)
-{
-	struct page *p;
-	struct shmem_file_buffer *private_data;
-
-	if (index > mapping->nrpages)
-		return NULL;
-
-	private_data = mapping->private_data;
-
-	p = private_data->pages;
-	return (p + index);
 }
 
 

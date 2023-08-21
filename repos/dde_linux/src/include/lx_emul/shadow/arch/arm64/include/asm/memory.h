@@ -53,7 +53,7 @@ extern u64 vabits_actual;
 #define page_to_phys(p) __pa((p)->virtual)
 #define page_to_virt(p)     ((p)->virtual)
 
-static inline struct page *virt_to_page(void const *v) { return lx_emul_virt_to_pages(v, 1U); }
+static inline struct page *virt_to_page(void const *v) { return lx_emul_virt_to_page(v); }
 
 #define pfn_to_page(pfn) ( (struct page *)(__va(pfn << PAGE_SHIFT)) )
 #define page_to_pfn(page) ( page_to_phys(page) >> PAGE_SHIFT )

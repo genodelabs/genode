@@ -21,8 +21,7 @@
 
 extern "C" void * lx_emul_mem_alloc_aligned(unsigned long size, unsigned long align)
 {
-	void * const ptr = Lx_kit::env().memory.alloc(size, align);
-	lx_emul_forget_pages(ptr, size);
+	void * const ptr = Lx_kit::env().memory.alloc(size, align, &lx_emul_add_page_range);
 	return ptr;
 };
 
@@ -30,8 +29,7 @@ extern "C" void * lx_emul_mem_alloc_aligned(unsigned long size, unsigned long al
 extern "C" void * lx_emul_mem_alloc_aligned_uncached(unsigned long size,
                                                      unsigned long align)
 {
-	void * const ptr = Lx_kit::env().uncached_memory.alloc(size, align);
-	lx_emul_forget_pages(ptr, size);
+	void * const ptr = Lx_kit::env().uncached_memory.alloc(size, align, &lx_emul_add_page_range);
 	return ptr;
 };
 
@@ -53,7 +51,7 @@ extern "C" unsigned long lx_emul_mem_virt_addr(void * dma_addr)
 	if (ret)
 		return ret;
 	if (!(ret = Lx_kit::env().uncached_memory.virt_addr(dma_addr)))
-		Genode::error(__func__, " called with invalid addr ", dma_addr);
+		Genode::error(__func__, " called with invalid dma_addr ", dma_addr);
 	return ret;
 }
 
