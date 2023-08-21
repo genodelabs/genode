@@ -1,0 +1,786 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 23.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+The headline features of Genode 23.08 are concerned with developer tooling.
+First, we re-approached Genode's GDB debugging support with the grand vision
+of easy on-target debugging directly on Sculpt OS. Our new debug monitor
+introduced in Section [Multi-component debug monitor] combines the GDB
+protocol with Genode's init component. Thereby, the monitor can transparently
+be integrated in Genode subsystems and can be used to debug multiple
+components simultaneously.
+
+Second, the Goa tool, which started as an experiment in 2019, has been shaped
+into an all-encompassing alternative to Genode's traditional work flows for
+developing, porting, and publishing applications. The tool got vastly more
+flexible with respect to runtime testing, and even became able to handle
+dependencies between Goa projects. The massive improvements are covered in
+Section [Goa tool gets usability improvements and depot-index publishing support].
+
+Besides the headline features of the release, we admittedly deviated from the
+original plans laid out on our [http:/about/road-map - road map]. Early-on in
+the release cycle, we found ourselves drawn to code modernization, the
+retiring of legacies, and quality assurance. E.g., we finally updated some of
+the most veteran internals of the framework to our modern-day coding
+practices, we urged to continue the success story of our new Linux
+device-driver environment (DDE) by replacing old USB drivers by new components
+leveraging the modern approach, and created a new DDE-Linux-based NIC driver
+for PC hardware while retiring the aged iPXE-based traditional driver. The
+outcome of this tireless work may hardly be visible from a feature perspective.
+But it greatly improves the velocity and quality of the code to maintain down
+the road.
+
+It goes without saying that the other topics of the road map haven't been
+disregarded. In fact we celebrated a break-through with x86 virtualization
+on our base-hw kernel, are diving deep into the latest Intel platforms, and
+working on the user-visible side of the mobile version of Sculpt OS. But since
+those topics are not wrapped up yet, we all have to stay tuned for the next
+release.
+
+
+Multi-component debug monitor
+#############################
+
+The debugging of Genode components using the GNU debugger (GDB) was already
+an anticipated feature when we introduced the first version of the GDB monitor
+component in version
+[https://genode.org/documentation/release-notes/11.05#GDB_monitor_experiment - 11.05]
+and refined it in the subsequent releases
+[https://genode.org/documentation/release-notes/12.02#GDB_monitor_refinements_and_automated_test - 12.02],
+[https://genode.org/documentation/release-notes/13.11#GNU_Debugger - 13.11] (on-target GDB), and
+[https://genode.org/documentation/release-notes/16.05#Enhanced_GDB_support_on_NOVA - 16.05] (supporting NOVA).
+Despite these efforts, the feature remained rarely used in practice.
+In most situations, manual instrumentation with debug messages or the use
+of GDB with the Linux version of Genode remain to be the instruments of choice.
+Driven by the vision of easy on-target debugging on Sculpt OS, we identified
+the following limitations of the existing GDB monitor that stand in the way.
+
+# The GDB monitor supports only one component as debugging target, which makes
+  the debugging of scenarios where components closely interact difficult.
+
+# The existing implementation re-uses the gdbserver code and thereby inherits
+  many POSIX peculiarities that must be stubbed for Genode, yet make the
+  overall implementation complex. Genode is not POSIX after all.
+
+# The integration of the GDB monitor into an existing scenario is a fairly
+  invasive change that requires too much work.
+
+Given these limitations as a backdrop, two key ideas motivated a new approach
+for the revision of Genode's GDB support for this release:
+
+First, by using Genode's sandbox API as foundation for a new debug monitor,
+we would become able to use the monitor as drop-in replacement for 'init',
+potentially going as far as using the monitor for Sculpt's runtime subsystem.
+Wouldn't that approach vastly simplify the integration issue (3)?
+Second, GDB supports the debugging of multiple processes (called inferiors)
+within one session, which would in principle allow us to inspect and debug
+component compositions, addressing the first limitation.
+And third, the casual review of the documentation of the GDB protocol left
+the impression that a Genode-tailored implementation shouldn't be that
+complicated.
+
+The result of these ideas is the new *monitor* component at _os/src/monitor_
+as the designated successor of the traditional gdb_monitor. By leveraging the
+sandbox API, it can be used as a drop-in replacement for the init component
+and monitor multiple components. In real-world scenarios like Sculpt's
+runtime, we deliberately want/need to restrict the debugging to a few selected
+components, however, which calls for the support of a mix of monitored and
+regular components hosted side by side. Given this requirement, the sandbox
+API had to be enhanced to support the selective interception of PD and CPU
+sessions.
+
+Like the original gdb_monitor, the new monitor speaks the GDB remote serial
+protocol over Genode's terminal session. But the protocol implementation does
+not re-use any gdbserver code, sidestepping the complexities of POSIX.
+The monitor supports the essential GDB remote protocol commands for reading
+and writing of memory and registers, for stopping and resuming of threads
+including single-stepping, and it reports the occurrence of page faults and
+exceptions to GDB. Breakpoints are managed by GDB using software breakpoint
+instructions. The GDB protocol is operated in GDB's 'non-stop' mode, which
+means that threads of multiple inferiors can be stopped and resumed
+individually or in groups, depending on the GDB commands issued by the user.
+
+As of now, the monitor supports NOVA on 64-bit x86 as well as Genode's custom
+base-hw kernel on 64-bit ARM and x86. The 64-bit ARM support required a change
+in Genode's customized GDB port to enable shared-library support for this
+architecture. So in order to use Genode's host GDB with the monitor on 64-bit
+ARM, the Genode tool chain needs to be rebuilt with the _tool/tool_chain_
+script.
+
+There exist three run scripts illustrating the new component. The
+_os/run/monitor.run_ script exercises memory inspection via the 'm' command
+and memory modification via the 'M' command by letting a test program monitor
+itself. The _os/run/monitor_gdb.run_ script performs automated tests of various
+GDB commands and the _os/run/monitor_gdb_interactive.run_ script allows for the
+interactive use of GDB to interact with monitored components.
+
+Details about the configuration of the monitor component are given by the
+README file at the _os/src/monitor/_ directory.
+
+
+Goa tool gets usability improvements and depot-index publishing support
+#######################################################################
+
+Moving the Goa tool under the umbrella of Genode Labs in the previous release
+unleashed a wave of substantial improvements.
+
+Most significantly, we were able to integrate support for depot-index projects
+into Goa (Section [Support of index projects]). This greatly simplifies the
+publishing of user-specific Goa projects for the upcoming Sculpt release.
+
+One of the game-changing features of Goa is its ability to easily test-run
+applications on the host system leveraging Genode's ABI compatibility between
+different kernels. However, in various instances, we still required customized
+runtime scenarios in order to render an application runnable by Goa. With this
+release, we further streamlined Goa's base-linux runtime with Sculpt OS
+(Section [Run-stage generalization]).
+
+Apart from these major changes, the lately added shared-library support and
+Rust support have seen practical improvements.
+
+
+Support of index projects
+=========================
+
+With an increasing number of Genode applications being developed with Goa,
+being able to manage and publish a personal depot index with Goa became due.
+In the past, we needed to build, export, and publish each individual Goa
+project and manually add it to the depot index in order to make it available
+for a particular Sculpt release.
+
+For this purpose, we added support for index projects to Goa. An index project
+is defined by an 'index' file. This file follows the structure of a depot index
+but only names the archive names (lacking depot user and version). The
+'goa export' command augments these names with the current depot user and
+version information. By running 'goa publish', the result is published as a
+depot index for the current Sculpt version.
+
+As Goa supports a hierarchical project structure, an index project may
+contain subdirectories with other Goa projects that provide the corresponding
+pkg archives. The 'goa export' command issued within such an index project
+recursively scans the working directory for any Goa project providing the
+required depot archives or any of their dependencies, and exports these
+subprojects as well.
+
+To make working with index projects an even more joyful experience, we changed
+the way Goa looks up version information. Goa used to expect the current
+version of each required depot archive to be specified in a goarc file. For
+each Goa project, however, a 'version' file may be used to specify the current
+version. This file was only evaluated on export of the particular project.
+With this release, Goa now scans the working directory for Goa subprojects in
+order to look up their 'version' file. This spares us keeping the 'version'
+files and goarc files in sync. The new 'bump-version' command adds another
+level of convenience as it automatically updates the 'version' file of a Goa
+project. In combination with the '-r' switch, we are now able to update the
+version information of all subprojects with a single command.
+
+An example of an index project is found at _examples/index_ in the Goa
+repository.
+
+:Goa tool:
+
+  [https://github.com/genodelabs/goa/]
+
+
+Run-stage generalization
+========================
+
+In addition to building, exporting, and publishing of depot archives, Goa
+supports test-running an application project directly on the development
+system by utilizing base-linux. Similarly to how Goa modularized the build
+stage to support various build systems, we generalized the run stage to pave
+the way for other targets than base-linux. The interface of the generalized
+run stage and the current feature set of the linux target is documented by
+'goa help targets'.
+
+In the course of generalizing the run stage, we introduced various plausibility
+checks to further accelerate application development. For instance, we check
+for typos in required and provided services of a runtime, and verify the
+availability of required ROM modules.
+
+Furthermore, the linux target underwent a major revision to streamline the
+application development for Sculpt OS.
+
+* Scenarios using a terminal component require a fonts file system.
+  In Sculpt OS, this is typically provided by instantiating a fonts_fs
+  component. Doing the same in Goa lifts the need to wrap Goa-managed
+  Sculpt packages in a separate test project.
+
+* A route for the mesa_gpu_drv.lib.so ROM module was implicitly added when
+  a Gpu was required. For consistency with existing packages, we now require
+  the runtime file to mention the mesa_gpu_drv.lib.so ROM explicitly.
+
+* For NIC requirements, we used to take the label as the tap-device name to
+  which the NIC driver was bound. Since the 'label' attribute might be
+  evaluated differently by Sculpt OS, we introduced the 'tap_name' attribute
+  instead. For each distinct tap device, we now instantiate a pair of NIC
+  driver and NIC router. Each router uses a distinct subnet for its default
+  domain, starting at 10.0.10.0/24 and ending at 10.0.255.0/24.
+
+* The clipboard ROM and Report requirements are now routed to a report_rom
+  component.
+
+* Arbitrary ROM requirements are routed to an lx_fs component that provides
+  the files found in the project's _var/rom_ directory as individual ROM
+  modules. An example resides in _examples/external_rom_. Thanks to Pirmin
+  Duss for this useful contribution.
+
+* Remaining service requirements that are not handled otherwise will be routed
+  to a black-hole component.
+
+
+Improved support for building shared libraries
+==============================================
+
+Since release 23.02, we are able to
+[https://genode.org/documentation/release-notes/23.02#Building_and_packaging_CMake-based_shared_libraries__via_Goa_ - build CMake-based shared libraries in Goa].
+In this release, this feature has seen a few improvements:
+
+* If available, Goa now calls 'make install' during build in order to install
+  artifacts into _<build_dir>/install_. For libraries, this typically also
+  installs include files into this directory. Having all include files in the
+  build directory is a prerequisite for extracting these as api artifacts
+  (see 'goa help api').
+
+* We added support for publishing api archives.
+
+* 'goa export' now respects the 'common_var_dir' configuration variable and
+  '--common-var-dir' command-line option when exporting api archives.
+
+* We fixed an issue that resulted in large binaries when building shared
+  libraries with Goa.
+
+
+Quality assurance and usability tweaks
+======================================
+
+Increasing our development efforts for the Goa tool demands means to catch
+regressions early on. For this purpose, we added a basic testing facility,
+which validates that our examples still work as expected. Note that we are
+going to address automated testing for arbitrary Goa projects at some point in
+the future.
+
+With this release, we changed the name of the '.goarc' files to 'goarc'. The
+original intention of these files was to allow user-specific settings
+analogously to, e.g., '.bashrc'. However, these files may contain arbitrary Tcl
+code, thus having various '.goarc' files checked into git repositories, made
+things a little bit too obscure because those files are hidden. When a user
+clones a Git repo and invokes Goa commands, this code gets executed. Hence, it
+is only fair to bring this code to the user's attention by not hiding it.
+
+In addition to all the aforementioned major changes, we added a couple of minor
+usability tweaks:
+
+* We added 'goa help import' in order to document the syntax of the 'import'
+  file.
+
+* We added the 'goa depot-dir' command that allows initializing a custom depot
+  directory with the default depot users.
+
+* We added a 'goa run-dir' command that prepares the run directory without
+  actually running the scenario. This is helpful when the run time of 'goa run'
+  is automatically evaluated by external scripts since 'goa run-dir' may take a
+  while downloading the required depot archives.
+
+* We added the 'run_as' configuration variable and '--run-as' command-line
+  option. This allows changing the depot user from which 'goa run' downloads
+  the required archives. See 'goa help config' for more details.
+
+
+Support for the mainline Rust toolchain
+=======================================
+
+When we reintroduced Rust on Genode in the
+[https://genode.org/documentation/release-notes/23.05#Initial_Rust_support - previous]
+release, our implementation relied on a slightly adapted Rust toolchain to
+work around missing support for versioned library symbols in our linker. With
+this release, we are now able to use the mainline 'x86_64-unknown-freebsd'
+target provided by Rust project, eliminating the need for a custom toolchain.
+
+On top of the streamlined Rust support, we created a Goa package for a popular
+Rust command-line application, which will be published along with updated
+system packages in the upcoming Sculpt release.
+
+For details on the mainline Rust toolchain support and the ported package,
+take a look at the dedicated
+[https://genodians.org/atopia/2023-08-24-enabling-the-upstream-rust-toolchain - blog post on Genodians.org].
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Internal core and base-framework modernization
+==============================================
+
+Genode's API received multiple rounds of modernization in the past years. But
+some of the framework's deepest internals remained largely unchanged over that
+time. Even though one can argue that mature and battle-tested code should
+better not be disrupted, our programming practices are not carved in stone.
+To make Genode's internal code a delight for reviewers, auditors, and future
+maintainers, we revisited the following areas.
+
+Core's page-fault resolution code got reworked for improved clarity and
+safety, by introducing dedicated result types, reducing the use of basic
+types, choosing expressive names, and fostering constness. Along the way, we
+introduced a number of 'print' hooks that greatly ease manual instrumentation
+and streamlines diagnostic messages printed by core. Those messages no longer
+appear when a user-level page-fault handler is registered for the faulted-at
+region map. So the monitor component produces less noise on the attempt to
+dump non-existing memory.
+
+Closely related to the page-fault handling, we tightened the distinction
+between rx and rwx inside core by restricting 'Region_map::attach_executable'
+to create read-only mappings, while offering the option to map the full rights
+using a new 'attach_rwx' method. The 'attach_rwx' method is now used by the
+dynamic linker to explicitly attach the linker area with full rwx rights. With
+the old page-fault handling code, the execute flag was evaluated only for leaf
+dataspaces, not for managed dataspaces while traversing region-map
+hierarchies. With the new page-fault handling code, the execute bit is
+downgraded to no-execute when passing a managed dataspace that is not attached
+as executable.
+
+We ultimately removed the last traces of the global 'env_deprecated()'
+interface that was still relied-on within core and parts of the base library.
+Nowadays, we no longer use global accessors but generally employ
+dependency-injection patterns. Since the 'env_deprecated()' interface is
+closely related to initialization code, the startup code of core and regular
+components got largely refactored, eliminating the reliance on global side
+effects. As a collateral change, the legacy 'main' support for native Genode
+component as well as the now-obsolete 'Entrypoint::schedule_suspend' mechanism
+got removed.
+
+
+API changes
+===========
+
+Register framework update
+-------------------------
+
+The register framework has been updated to ease its use with '-Wconversion'
+warnings enabled, which is the default for Genode components.
+When reading from a bitfield, the new version returns the value in the
+smallest possible integer type, not the register-access type. This way,
+the user of the bitfield value can use appropriate types without the need for
+casting. The update also replaces 'bool' access types with 'uint8_t' access
+types.
+
+Thanks to this change, the net lib - used by Genode's low-level network
+routing components for parsing protocol headers via the register API - has
+been made compliant to strict conversion warnings.
+
+
+Hex-dump utility
+----------------
+
+To aid the monitoring, implementation, and debugging of binary protocols, a
+handy hex-dump utility got added to _util/formatted_output.h_. The new
+'Genode::Hex_dump' class can be used to print a hexadecimal dump of a byte
+range. The data is printed in a format similar to that used by the 'xxd'
+utility. In addition to the 'xxd' format, consecutive duplicate lines are
+replaced with a single "*\n".
+
+
+Libraries and applications
+##########################
+
+New NIC server for raw uplink connectivity
+==========================================
+
+With Genode
+[https://genode.org/documentation/release-notes/21.02#Pluggable_network_device_drivers - 21.02],
+we transitioned all network device drivers to act as session clients in order
+to make them pluggable. We achieved this by introducing a new _uplink_ service
+interface that is very similar to the NIC service but with the peer roles
+switched. Up to now, the only uplink server and uplink-to-NIC adapter was the
+NIC router. This is reasonable as it is the standard network multiplexer in
+Genode and therefore normally sits in front of each network device driver
+anyway. However, there is one major issue with this approach: It binds
+physical network access to layer 3 and 4 routing respectively layer 2
+multiplexing, which, in our case, means that NIC clients can talk to the
+physical network only with what is protocol-wise supported by the NIC router.
+
+That's why Genode 23.08 introduces the new NIC-uplink adapter component. It
+re-enables raw access to physical networks in Genode by forwarding packets
+unmodified and unfiltered between multiple NIC sessions and one uplink
+session. The new component is accompanied by a test script _nic_uplink.run_
+that demonstrates the low-level integration and a Sculpt package _pkg/pc_nic_
+that can be used for deployment in more sophisticated systems together with
+the PC NIC-driver as back end.
+
+One constellation, in which the NIC-uplink server will be especially useful for
+us is the planned enablement of IPv6 on different layers of Genode's network
+stack. More specifically, the tool will allow us to work at IPv6 support in
+both Genode's ported TCP/IP stacks and the NIC router at the same time.
+
+
+New depot-remove component
+==========================
+
+_The work described in this section was contributed by Alice Domage._
+_Thanks for this welcome addition._
+
+Genode's on-target package management allows for the installation of multiple
+versions of the same package side by side, which is useful to roll back the
+system to an earlier state, or to accommodate software depending on an older
+library version. Software is installed into the so-called _depot_ stored on
+the target and populated with downloads on demand. Until now, however, the
+on-target depot could only grow, not shrink. Even though this limitation
+hasn't been a pressing concern for Sculpt OS on the PC, it impeded embedded
+use cases.
+
+The new depot-remove component lifts this limitation by providing an orderly
+way to remove depot content and orphaned dependencies. It operates by reading
+its configuration and processes delete operations based on the provided rules.
+A typical configuration looks as follows.
+
+! <config arch="x86_64" report="yes">
+!     <remove user="alice" pkg="nano3d"/>
+!     <remove user="bob"   pkg="wm" version="2042-42-42"/>
+!     <remove-all>
+!         <keep user="alice" pkg="fonts_fs"/>
+!     </remove-all>
+! </config>
+
+For more details about the configuration options, please refer to the README
+file at _/gems/src/app/depot_remove/_. Furthermore, the
+_gems/run/depot_remove.run_ script illustrates the component by exercising
+several practical use cases.
+
+
+DDE-Linux changes
+=================
+
+With this release, we changed how external events are treated within the
+Linux emulation environment.
+
+Whenever an external event occurred, for example timer or interrupt, the
+corresponding I/O signal handler was triggered. This handler unblocked the
+task waiting for the event and also initiated the immediate execution of all
+unblocked tasks. This, however, could lead to nested execution because these
+tasks might hit serialization points, e.g., synchronously waiting for packet
+stream operations, that under the hood also require handling of other I/O
+signals. Such an execution model is not supported and confusing as it mixes
+application and I/O level signal handling.
+
+So the flagging of the scheduling intent is now decoupled from its execution by
+using an application-level signal handler that is run in the context of the
+component's main entrypoint. The I/O signal handler now triggers the scheduling
+execution by sending a local signal to the EP and only flags the occurrence
+of the external event by unblocking the corresponding task.
+In this context, we reworked the interrupt handling itself. Previously all
+interrupts were immediately processed in the I/O signal handler and only the
+currently pending one was handled. Due to the decoupling change the occurrence
+of interrupts becomes merely flagging a state and requires recording all
+interrupts and dispatch them consecutively in one go.
+
+To facilitate this convention, the Lx_kit initialization function got extended,
+and it is now necessary to pass in a signal handler that is used to perform the
+normally occurring scheduler execution. As this signal handler is part of
+the main object of the DDE-Linux based component it is the natural place to
+perform any additional steps that are required by the component before or after
+executing the scheduler.
+
+As it is sometimes necessary to execute a pending schedule from the EP directly,
+in case the scheduler is called from within an RPC function, the scheduler is
+extended with the 'execute' member function that performs the check that the
+scheduler is called from within the EP and triggers the execution afterwards.
+
+
+Tresor block encryptor
+======================
+
+Following the introduction of the tresor library in the
+[https://genode.org/documentation/release-notes/23.05#Revision_of_Genode_s_custom_block-encryption_infrastructure - previous]
+release, we further polished the tresor tester in order to make it run on a
+broad spectrum of target platforms. For instance, the test can now be run
+without entropy input (permanently warning the user about the security risk)
+because some of our test hardware lacks support for it. Besides that, we
+mainly worked at the resource consumption of the test - made it more adaptable
+or reduced it through improvements. This pleased not only less powerful
+hardware but our test management as well.
+
+Furthermore, we fixed a significant former deficiency with the tresor library.
+The library used to work on the raw on-disc data without decoding first. This
+worked fine for some platforms but caused alignment faults on others. That
+said, the tresor library now always decodes into naturally typed and aligned
+C++ structs before accessing the data.
+
+
+Device drivers
+##############
+
+Intel GPU
+=========
+
+The handling of GPUs is somewhat special within the driver world. A GPU is a
+standalone execution unit that can be programmed much like a CPU. In the past,
+there were fixed function GPUs, which have been gradually replaced by
+dynamically programmable units that execute compiled machine code (think
+shader compilers like GLSL or general purpose computing like CUDA or OpenCL).
+This leads to a situation where a GPU driver cannot trust the client that
+sends its machine code to be executed by the GPU. There exists no sufficient
+way of inspecting the compiled machine code for malicious behavior by the GPU
+driver. Therefore, the only reasonable solution for a GPU driver is to send
+the code to the GPU and hope for the best. In case the code execution is not
+successful, GPUs tend to just hang and the only thing a driver can do is to
+make sure via an IOMMU that the code does not access arbitrary memory and
+program a watchdog timer and reset the GPU to a graceful state in case there
+is no proper response. With the current Genode release, we have implemented
+this behavior for GEN9 (HD graphics) and GEN12 (Intel Iris Xe).
+
+
+Intel display
+=============
+
+The ported Linux Intel display driver now supports USB Type-C connectors as
+used with modern notebooks.
+
+
+New PC network driver based on DDE-Linux
+========================================
+
+Since 2010, we use Ethernet drivers ported from the iPXE project in a tiny
+emulation layer on Genode. While those drivers did a good job for the common
+cases, they always had some rough edges that may not hurt in the original
+network-booting use case but had become a nuisance in Sculpt OS and Genode
+in general. Most prominently the dropped link speed with Intel E1000e cards
+on cable unplug/plug and the moderate throughput on GBit links had to be
+addressed.
+
+Our new DDE Linux approach introduced this year makes the porting of drivers
+from the Linux kernel much easier and less labour-intensive as in the past.
+Also, Linux is a very tempting Ethernet driver donor because of the variety
+of supported devices and the well known excellent performance (especially on
+Intel devices). Moreover, the Intel E1000e driver addresses all issues we
+had with the iPXE implementation and promises a smooth interplay with Intel
+AMT/ME. Note, Intel AMT Serial-over-LAN is still an important debug console
+while deploying Genode on Intel-based notebooks.
+
+Hence, the current release brings the new _pc_nic_drv_ for Intel e1000/e1000e,
+Realtek 8169, and AMD PCnet32 (Qemu) devices on PC and is fully integrated
+into Sculpt OS. Performance-wise the driver easily saturates 1 GBit links in
+our throughput tests.
+
+
+USB host controller
+===================
+
+The USB host controller driver ports for Raspberry Pi 1 and i.MX 6 Quad got
+updated to Linux kernel version 6.1.37 resp. 6.1.20. Both driver ports share
+the renewed device-driver environment approach for Linux introduced in release
+[https://genode.org/documentation/release-notes/21.08#Linux-device-driver_environment_re-imagined - 21.08].
+
+Besides the update of the last remaining outdated USB host controller drivers,
+we have reworked the common C/C++ Linux-to-Genode USB back end used by all USB
+host controller driver incarnations. The internal changes were necessary to
+address issues regarding races during USB session close attempts, resets of
+USB endpoints, and potential stalls during synchronous USB RPC calls.
+
+
+PC audio refinements
+====================
+
+In this release, we simplified the memory allocator in the OpenBSD-based
+audio-driver component and thereby decreased its memory usage. The memory
+subsystem implementation was initially brought over from DDE Linux and is
+geared towards use cases where a high-performing allocator is desired. For the
+audio driver with its clear memory usage pattern, such an allocator is not
+necessary and since no other driver that could benefit from it was ported in
+the meantime, we opted for replacing the implementation with a simpler one
+with less overhead.
+
+We also adapted the mixer state report mechanism to always generate a new
+report on head-phone jack sense events.
+
+Furthermore, we decreased the internal buffer size to implicitly limit the
+number of blocks provisioned for recording that brings them in line with the
+number of blocks used for playback (2).
+
+
+Wifi
+====
+
+With the [DDE-Linux changes] in place, we had to adapt the initialization
+procedure in the wireless LAN driver since it behaves differently to all other
+DDE-Linux-based driver components. The driver is actually a 'Libc::Component'
+due to its incorporation of the 'wpa_spplicant' application and the driver
+itself is confined to its own shared-object to better separate the Linux code.
+
+Since we implement the Linux initcalls as static constructors, we have to
+initialize the Lx_kit before those are executed. This is normally not a
+problem because they are executed manually from within the drivers main object
+on construction. However, in a 'Libc::Component' this happens before our main
+object is constructed. In the past, we used a VFS plugin to perform the
+initialization - as the VFS is also constructed beforehand - but this is no
+longer possible as the driver's main signal handler that now dispatches the
+Lx_kit event signals is not available at this point.
+
+We decided therefore to perform a multi-staged boot-up process where the
+component is now implemented as regular 'Genode::Component' that triggers the
+'Libc::Component' construction manually after performing the Lx_kit
+initialization. This change enabled us to remove the VFS 'wifi' plugin that no
+longer has to be specified in the VFS configuration.
+
+Furthermore, we removed the handcrafted MAC address reporter in favor of the
+Genode C API utility that was recently made available.
+
+
+PinePhone support for buttons and screensaver
+=============================================
+
+To equip the mobile version of Sculpt OS on the PinePhone with a proper
+screensaver, we added drivers for detecting user interactions with the
+PinePhone's physical buttons, namely the volume buttons and the power button.
+
+The volume buttons are connected via cascaded resistors to a single ADC of the
+A64 SoC. The corresponding driver has been added to the genode-allwinner
+repository at _src/drivers/button/pinephone/_ and is accompanied by the
+_button_pinephone.run_ script. It reports KEY_VOLUMEUP and KEY_VOLUMEDOWN
+input events to an event session.
+
+Sensing the power button has been a slightly more delicate issue because the
+power button is connected to the power-management IC (PMIC), which shall only
+be accessed via the system-control processor (SCP). To detect state changes,
+the PMIC's IRQ (routed through the R_INTC to the GIC) is now handled by the
+power driver. This has the added benefit that also other interesting PMIC
+events (like connecting AC) get immediately reported.
+
+With the button drivers in place, we finally equipped Sculpt OS with a
+screensaver as a crucial battery-conserving feature. The screensaver kicks in
+after the user remained inactive in the administrative user interface for some
+time. It also can be manually activated by pressing the power button. While
+the screen is blanked, a press of the power button enables the display again.
+
+Under the hood, Sculpt completely removes the drivers for the display and the
+touchscreen while the screen is blanked, which considerably reduces the power
+draw. The system also switches the CPU to economic mode while the screen is
+blanked. Here are some illustrative data points:
+
+!    Max brightness in performance mode: 2.8 W
+!    Max brightness in economic mode:    2.6 W
+!    Low brightness in economic mode:    1.7 W
+!    Screensaver:                        1.1 W
+
+You can find the screensaver feature integrated in the latest mobile Sculpt OS
+images published by _nfeske_.
+
+
+Platforms
+#########
+
+NXP i.MX SoC family
+===================
+
+Certain parts of i.MX specific code, like the base support for the hw kernel,
+and the GPIO driver for i.MX got moved from Genode's main repository to the
+corresponding genode-imx repository.
+
+Sculpt OS image creation for MNT Reform2
+----------------------------------------
+
+With this release, we introduce mainline support for Sculpt OS on the MNT
+Reform2. To build a Sculpt OS image for this board you can use the common
+_gems/run/sculpt_image.run_ script, like the following:
+
+! make run/sculpt_image KERNEL=hw BOARD=mnt_reform2 DEPOT=omit
+
+To be effective, you need to extend your RUN_OPT variable accordingly:
+
+! RUN_OPT += --include image/imx8mq_mmc
+
+
+seL4 microkernel
+================
+
+With the update of the seL4 kernel in the
+[https://genode.org/documentation/release-notes/23.05#Updated_seL4_microkernel - previous]
+release we now added several improvements, which reduce the boot-up time of
+Genode's 'core' roottask on seL4 by converting untyped memory to I/O memory on
+demand.
+
+
+Build system and tools
+######################
+
+Depot autopilot on-target test orchestrator
+===========================================
+
+As the rough plan to support automated testing in Goa is shaping up, it makes
+sense to share one convention about expressing the success criteria for a
+package under test between the depot autopilot and Goa. This prospect motivated
+us to review the convention that was used with the depot autopilot up until
+now. The old syntax looked as follows:
+
+! <runtime ...>
+!   <events>
+!     <timeout meaning="failed" sec="20"/>
+!     <log meaning="succeeded">
+!       [init -> rom_logger] ROM 'generated':*
+!       [init -> dynamic_rom] xray: change (finished)
+!     </log>
+!     <log meaning="succeeded">child exited</log>
+!     <log meaning="failed">Error: </log>
+!   </events>
+!   ...
+! </runtime>
+
+We applied the following simplifications to this syntax:
+* Dropped the intermediate '<events>' tag,
+* Replaced '<log meaning="succeeded">' by '<succeed>',
+* Replaced '<log meaning="failed">' by '<fail>',
+* Replaced '<timeout meaning="failed" sec="20"/>' by an 'after_seconds'
+  attribute of the '<succeed>' or '<fail>' tags.
+
+So, the above example becomes the following:
+! <runtime ...>
+!   <fail after_seconds="20"/>
+!   <succeed>
+!     [init -> rom_logger] ROM 'generated':*
+!     [init -> dynamic_rom] xray: change (finished)
+!   </succeed>
+!   <succeed>child exited</succeed>
+!   <fail>Error: </fail>
+!   ...
+! </runtime>
+
+For now, the depot autopilot maintains backwards-compatibility to allow Genode
+users to adapt to the change progressively. The old scheme is used whenever
+the package runtime contains an '<event>' tag. Note that backwards
+compatibility will be removed after a short transition period.
+All test packages of the official Genode repositories have been updated
+to the new convention.
+
+Furthermore, we took the opportunity to also add a new feature. The optional
+'log_prefix' attribute in the '<succeed>' and '<fail>' tags is a simple but
+handy white-list filter when it comes to typical Genode logs. When matching
+the test log against the pattern given in the affected '<succeed>' or '<fail>'
+tag, the depot autopilot considers only those log lines that start with the
+given prefix. This is an easy way to watch only specific Genode components and
+solve problems with the log order of simultaneously running components.
+
+Last but not least, the transition prompted us to fix a minor issue with the
+depot autopilot log-processing. Color sequences will now be forwarded correctly
+from the test runtime to the log output of the depot autopilot, making the
+analysis of test batteries a more pleasant experience.
+
+
+Updated run-tool defaults for x86_64
+====================================
+
+With the update of the seL4 kernel and the update of the toolchain to GNU GCC
+12 in the previous release, certain x86 assembly instructions like POPCNT are
+generated, which are not supported by the Qemu CPU models we used.
+Previously, the used CPU model was either the default model, or
+'-cpu core2duo' for NOVA, or '-cpu phenom' for SVM virtualization.
+The current release changes the default model to '-cpu Nehalem-v2', and
+selects '-cpu EPYC' for SVM virtualization.
+
+Note that the _build.conf_ file in the x86 build directory must be
+re-generated by you, which otherwise may contain an older Qemu "-cpu " model,
+which can collide with the new default Qemu CPU settings.
