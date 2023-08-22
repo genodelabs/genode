@@ -67,17 +67,16 @@ void Genode::print_lines(char const *string, size_t len, FUNC const &func)
 			string += num_indent_chars;
 
 		size_t line_len  = 0;
-		size_t skip_char = 1;
+		size_t skip_char = 0;
 
 		for (; line_len < len; line_len++) {
 			if (string[line_len] == '\0' || string[line_len] == '\n') {
 				line_len++;
+				skip_char = 1;
 				break;
 			}
-			if (line_len == MAX_LINE_LEN) {
-				skip_char = 0;
+			if (line_len == MAX_LINE_LEN)
 				break;
-			}
 		}
 
 		if (!line_len)
