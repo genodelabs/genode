@@ -250,6 +250,10 @@ defined at _os/include/nic_session/_.
   Device drivers ported from the iPXE project. Supported devices are Intel
   E1000 and pcnet32.
 
+:_pc/src/drivers/nic/pc/_:
+  The PC NIC-driver component uses network driver code of the Linux kernel
+  to drive common network cards as found in commodity PC hardware.
+
 :_pc/src/drivers/wifi/_:
   The wifi driver component is a port of the Linux mac802.11 stack, including the
   iwlwifi driver. It enables the use of Intel Wireless 6xxx and 7xxx cards.
@@ -286,6 +290,9 @@ subdirectory of a source repository.
   The NIC router located at _os/src/server/nic_router/_ multiplexes one NIC
   session to multiple virtual NIC sessions by applying network address
   translation (NAT).
+
+  The NIC-uplink component located at _os/src/server/nic_uplink/_ connects
+  a NIC client directly to a network driver (as uplink client) without routing.
 
 :Block: The block-device partition server at _os/src/server/part_block/_ reads
   the partition table of a block session and exports each partition found as
@@ -581,6 +588,9 @@ Package-management components
 
 :_gems/src/app/depot_deploy/_:
   Subsystem init configuration generator based on blueprints.
+
+:_gems/src/app/depot_remove/_:
+  Tool for the orderly removal of depot content.
 
 :_libports/src/app/fetchurl/_:
   A runtime-configurable frontend to the libcURL library for
