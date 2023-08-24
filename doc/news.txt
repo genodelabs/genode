@@ -3,6 +3,34 @@
                                Genode News
                                ===========
 
+Genode OS Framework release 23.08 | 2023-08-24
+##############################################
+
+| The main theme of the current release is tooling for developing, debugging,
+| porting, and publishing Genode components. Beyond that, the release improves
+| driver support and the internals of core and the base-framework.
+
+The headline features of this release introduce a new multi-component debug
+monitor and extend the Goa tool with support for working with multiple
+projects.
+
+The new debug monitor reapproaches Genode's GDB debugging support and sets
+smooth on-target debugging in Sculpt OS as its final goal. The monitor can
+transparently replace the Init component and is equipped with support for
+multi-component debugging by GDB inferiors. The Goa tool evolves into an
+all-encompassing alternative to Genode's traditional work flows for developing,
+porting, and publishing applications. With this release, runtime testing with
+Goa gets extremely flexible and handling of multiple Goa projects becomes a no
+brainer.
+
+Beside the tooling topics, we round out the release with a new PC NIC driver
+based on Linux, new RaspberryPi/i.MX6 USB host-controller drivers,
+hardware-button and screensaver support on the PinePhone, improved Intel
+GPU/display, WiFi, and audio drivers.
+
+Find all details of changes and improvements in the
+[https:/documentation/release-notes/23.08 - release documentation of version 23.08...]
+
 
 Genode OS Framework release 23.05 | 2023-05-31
 ##############################################
