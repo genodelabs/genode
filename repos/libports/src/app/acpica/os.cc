@@ -188,7 +188,7 @@ struct Acpica::Main
 
 	Expanding_reporter report_sleep_states { env, "sleep_states", "sleep_states" };
 
-	void init_acpica();
+	void init_acpica(bool const);
 
 	Main(Env &env)
 	:
@@ -205,7 +205,7 @@ struct Acpica::Main
 		if (enable_report)
 			report = new (heap) Acpica::Reportstate(env);
 
-		init_acpica();
+		init_acpica(config.xml().attribute_value("use_gpe", true));
 
 		if (enable_report)
 			report->enable();
@@ -298,7 +298,7 @@ ACPI_STATUS init_pic_mode()
 }
 
 
-void Acpica::Main::init_acpica()
+void Acpica::Main::init_acpica(bool const use_gpe)
 {
 	Acpica::init(env, heap);
 
@@ -343,8 +343,7 @@ void Acpica::Main::init_acpica()
 	/* set APIC mode */
 	status = init_pic_mode();
 	if (status != AE_OK) {
-		error("Setting PIC mode failed, status=", status);
-		return;
+		warning("Setting PIC mode failed, status=", status);
 	}
 
 	/* Embedded controller */
@@ -360,16 +359,18 @@ void Acpica::Main::init_acpica()
 		return;
 	}
 
-	status = AcpiUpdateAllGpes();
-	if (status != AE_OK) {
-		error("AcpiUpdateAllGpes failed, status=", status);
-		return;
-	}
+	if (use_gpe) {
+		status = AcpiUpdateAllGpes();
+		if (status != AE_OK) {
+			error("AcpiUpdateAllGpes failed, status=", status);
+			return;
+		}
 
-	status = AcpiEnableAllRuntimeGpes();
-	if (status != AE_OK) {
-		error("AcpiEnableAllRuntimeGpes failed, status=", status);
-		return;
+		status = AcpiEnableAllRuntimeGpes();
+		if (status != AE_OK) {
+			error("AcpiEnableAllRuntimeGpes failed, status=", status);
+			return;
+		}
 	}
 
 	Fixed * acpi_fixed = new (heap) Fixed(report);
