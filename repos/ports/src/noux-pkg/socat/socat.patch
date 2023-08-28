@@ -1,0 +1,326 @@
+socat.patch
+
+diff --git a/configure b/configure
+index a52ae13..3ce708a 100755
+--- a/configure
++++ b/configure
+@@ -6285,7 +6285,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ 
+ int
+ main ()
+@@ -6321,7 +6321,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ 
+ int
+ main ()
+@@ -6357,7 +6357,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ 
+ int
+ main ()
+@@ -6393,7 +6393,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ 
+ int
+ main ()
+@@ -6429,7 +6429,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ 
+ int
+ main ()
+@@ -6465,7 +6465,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ 
+ int
+ main ()
+@@ -6501,7 +6501,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ 
+ int
+ main ()
+@@ -6537,7 +6537,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ 
+ int
+ main ()
+@@ -6573,7 +6573,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ 
+ int
+ main ()
+@@ -6632,7 +6632,7 @@ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $sc_cv_type_longlong" >&5
+ $as_echo "$sc_cv_type_longlong" >&6; }
+ 
+-ac_fn_c_check_type "$LINENO" "sig_atomic_t" "ac_cv_type_sig_atomic_t" "#include \"sysincludes.h\"
++ac_fn_c_check_type "$LINENO" "sig_atomic_t" "ac_cv_type_sig_atomic_t" "#include \"${srcdir}/sysincludes.h\"
+ "
+ if test "x$ac_cv_type_sig_atomic_t" = xyes; then :
+   $as_echo "#define HAVE_TYPE_SIG_ATOMIC_T 1" >>confdefs.h
+@@ -8109,7 +8109,7 @@ if ${sc_cv_struct_in6_pktinfo+:} false; then :
+ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int
+ main ()
+ {
+@@ -8352,7 +8352,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ 
+ int
+ main ()
+@@ -20735,7 +20735,7 @@ else
+   CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN $(echo "$CFLAGS1" | sed -e 's@-Wall@@g')"
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int
+ main ()
+ {
+@@ -20749,7 +20749,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
+ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int
+ main ()
+ {
+@@ -20763,7 +20763,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
+ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int
+ main ()
+ {
+@@ -20777,7 +20777,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
+ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int
+ main ()
+ {
+@@ -20791,7 +20791,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
+ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int
+ main ()
+ {
+@@ -20805,7 +20805,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
+ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int
+ main ()
+ {
+@@ -20819,7 +20819,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
+ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int
+ main ()
+ {
+@@ -20833,7 +20833,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
+ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int
+ main ()
+ {
+@@ -20888,7 +20888,7 @@ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int main() { struct cmsghdr x; return!(sizeof(x.cmsg_len)==sizeof(short));}
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+@@ -20902,7 +20902,7 @@ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int main() { struct cmsghdr x; x.cmsg_len=-1; return !(x.cmsg_len<0);}
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+@@ -20925,7 +20925,7 @@ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int main() { struct cmsghdr x; return!(sizeof(x.cmsg_len)==sizeof(int));}
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+@@ -20939,7 +20939,7 @@ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int main() { struct cmsghdr x; x.cmsg_len=-1; return !(x.cmsg_len<0);}
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+@@ -20962,7 +20962,7 @@ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int main() { struct cmsghdr x; return !(sizeof(x.cmsg_len)==sizeof(long));}
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+@@ -20976,7 +20976,7 @@ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int main() { struct cmsghdr x; x.cmsg_len=-1; return !(x.cmsg_len<0);}
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+@@ -20999,7 +20999,7 @@ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int main() { struct cmsghdr x; return !(sizeof(x.cmsg_len)==sizeof(long long));}
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+@@ -21013,7 +21013,7 @@ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+-#include "sysincludes.h"
++#include "${srcdir}/sysincludes.h"
+ int main() { x struct cmsghdr; x.cmsg_len=-1; return !(x.cmsg_len<0);}
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+diff --git a/configure.ac b/configure.ac
+index 9d60473..86c3bd6 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -109,7 +109,7 @@ define(AC_CHECK_PROTOTYPE_LIB,[
+ AC_MSG_CHECKING(for $1 prototype)
+ AC_CACHE_VAL(sc_cv_have_prototype_lib_$1,
+ [CFLAGS1="$CFLAGS"; CFLAGS="$ERRONWARN -Wall $CFLAGS1";
+- AC_TRY_LINK([#include "sysincludes.h"
++ AC_TRY_LINK([#include "${srcdir}/sysincludes.h"
+ $2],[return(&$1==(void *)&$1);],
+  [sc_cv_have_prototype_lib_$1=yes],
+  [sc_cv_have_prototype_lib_$1=no]);
+@@ -868,7 +868,7 @@ if test $sc_cv_type_longlong = yes; then
+ fi
+ AC_MSG_RESULT($sc_cv_type_longlong)
+ 
+-AC_CHECK_TYPE(sig_atomic_t,AC_DEFINE(HAVE_TYPE_SIG_ATOMIC_T),,[#include "sysincludes.h"])
++AC_CHECK_TYPE(sig_atomic_t,AC_DEFINE(HAVE_TYPE_SIG_ATOMIC_T),,[#include "${srcdir}/sysincludes.h"])
+ 
+ AC_MSG_CHECKING(for bool)
+ AC_CACHE_VAL(sc_cv_type_bool,
+@@ -1443,7 +1443,7 @@ fi
+ dnl check for struct in6_pktinfo
+ AC_MSG_CHECKING(for struct in6_pktinfo)
+ AC_CACHE_VAL(sc_cv_struct_in6_pktinfo,
+-[AC_TRY_COMPILE([#include "sysincludes.h"],
++[AC_TRY_COMPILE([#include "${srcdir}/sysincludes.h"],
+ [struct in6_pktinfo s;],
+ [sc_cv_struct_in6_pktinfo=yes],
+ [sc_cv_struct_in6_pktinfo=no])])
+@@ -1950,7 +1950,7 @@ AC_TYPEOF_COMPONENT([#include <sys/types.h>
+ struct rlimit, rlim_max, HAVE_TYPEOF_RLIM_MAX, sc_cv_type_rlimit_rlimmax_basic)
+ 
+ # Fedora-19 doc says it is socklen_t which is equivalent to unsigned int, but it is equivalent to size_t (x86_64)
+-AC_TYPEOF_COMPONENT([#include "sysincludes.h"], struct cmsghdr, cmsg_len, HAVE_TYPEOF_STRUCT_CMSGHDR_CMSG_LEN, sc_cv_typeof_struct_cmsghdr_cmsg_len)
++AC_TYPEOF_COMPONENT([#include "${srcdir}/sysincludes.h"], struct cmsghdr, cmsg_len, HAVE_TYPEOF_STRUCT_CMSGHDR_CMSG_LEN, sc_cv_typeof_struct_cmsghdr_cmsg_len)
+ ### snprintf, vsnprintf
+ 
+ AC_MSG_CHECKING(for /dev/ptmx)
+diff --git a/error.c b/error.c
+index 2fad6c2..e34f426 100644
+--- a/error.c
++++ b/error.c
+@@ -420,6 +420,9 @@ void diag_flush(void) {
+       return;
+    }
+ 
++   if (diag_sock_recv == -1)
++      return;
++
+    while (recv(diag_sock_recv, &recv_dgram, sizeof(recv_dgram)-1,
+ 	       0 	/* for canonical reasons */
+ #ifdef MSG_DONTWAIT
+@@ -520,10 +523,11 @@ int diag_select(int nfds, fd_set *readfds, fd_set *writefds,
+    if (exceptfds) { memcpy(&save_exceptfds, exceptfds, sizeof(*exceptfds)); }
+ 
+    while (1) {
+-      FD_SET(diag_sock_recv, readfds);
++      if (diag_sock_recv >= 0)
++          FD_SET(diag_sock_recv, readfds);
+       result = Select(nfds, readfds, writefds,
+ 		       exceptfds, timeout);
+-     if (!FD_ISSET(diag_sock_recv, readfds)) {
++     if ((diag_sock_recv == -1) || !FD_ISSET(diag_sock_recv, readfds)) {
+ 	 /* select terminated not due to diag_sock_recv, normalt continuation */
+ 	 break;
+       }

@@ -68,6 +68,7 @@ smartcard
 smbios_decoder
 smp
 sntp_client
+socat
 ssh_exec_channel
 sub_rm
 tar_rom

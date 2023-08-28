@@ -1,0 +1,10 @@
+LICENSE   := GPLv2
+VERSION   := 1.7.4.4
+DOWNLOADS := socat.archive
+
+URL(socat) := http://www.dest-unreach.org/socat/download/socat-$(VERSION).tar.gz
+SHA(socat) := 0f8f4b9d5c60b8c53d17b60d79ababc4a0f51b3bb6d2bd3ae8a6a4b9d68f195e
+DIR(socat) := src/noux-pkg/socat
+
+PATCHES   := src/noux-pkg/socat/socat.patch
+PATCH_OPT := -p1 -d src/noux-pkg/socat
