@@ -162,7 +162,9 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 
 					Write_result res = handle->fs().write(handle, src, n);
 
-					if (res != Write_result::WRITE_OK) {
+					if (res == Write_result::WRITE_ERR_WOULD_BLOCK)
+						_io.commit_and_wait();
+					else if (res != Write_result::WRITE_OK) {
 						/* do not spam the log */
 						if (_success)
 							error("failed to write report to '", _path, "'");
