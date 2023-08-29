@@ -124,6 +124,7 @@
 			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
 			<service name="ROM" label="acpi">    <child name="report_rom"/> </service>
 			<service name="Report" label="devices"> <child name="report_rom"/> </service>
+			<service name="Report" label="iommu">   <parent label="iommu"/> </service>
 			<service name="IRQ">     <parent/> </service>
 			<service name="IO_MEM">  <parent/> </service>
 			<service name="IO_PORT"> <parent/> </service>
@@ -134,7 +135,7 @@
 			<service name="Timer">   <parent/> </service>
 		</route>
 		<config>
-			<report devices="yes"/>
+			<report devices="yes" iommu="yes"/>
 			<policy label_prefix="ps2_drv"> <device name="ps2"/> </policy>
 			<policy label_prefix="dynamic -> vesa_fb_drv" info="yes"> <pci class="VGA"/> </policy>
 			<policy label_prefix="dynamic -> ahci_drv">    <pci class="AHCI"/>  </policy>
