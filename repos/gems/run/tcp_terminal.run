@@ -20,9 +20,10 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/nic_router \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_lwip \
-                  [depot_user]/src/vfs_pipe
+                  [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/test-terminal_echo
 
-build { server/tcp_terminal test/terminal_echo }
+build { server/tcp_terminal }
 
 install_config {
 <config verbose="yes">
@@ -114,7 +115,7 @@ install_config {
 </config>
 }
 
-build_boot_image { tcp_terminal test-terminal_echo }
+build_boot_image { tcp_terminal }
 
 
 # qemu config

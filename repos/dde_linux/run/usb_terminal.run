@@ -16,9 +16,10 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/test_usb_host_drv-[board] \
                   [depot_user]/src/report_rom \
-                  [depot_user]/src/init
+                  [depot_user]/src/init \
+                  [depot_user]/src/test-terminal_echo
 
-build { server/usb_terminal test/terminal_echo }
+build { server/usb_terminal }
 
 install_config {
 <config>
@@ -83,7 +84,7 @@ puts $fd {
 </config>}
 close $fd
 
-build_boot_image { test-terminal_echo usb_terminal }
+build_boot_image { usb_terminal }
 
 append qemu_args " -chardev socket,path=$usb_raw_device,id=ser "
 append qemu_args " -device nec-usb-xhci,id=xhci -device usb-serial,bus=xhci.0,chardev=ser -nographic"

@@ -4,7 +4,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/pkg/terminal \
                   [depot_user]/src/nitpicker \
-                  [depot_user]/src/init
+                  [depot_user]/src/init \
+                  [depot_user]/src/test-terminal_echo
 
 install_config {
 	<config>
@@ -74,9 +75,9 @@ set fd [open [run_dir]/genode/focus w]
 puts $fd "<focus label=\"terminal\" domain=\"default\"/>"
 close $fd
 
-build { server/terminal test/terminal_echo }
+build { server/terminal }
 
-build_boot_image { terminal test-terminal_echo }
+build_boot_image { terminal }
 
 run_genode_until forever
 
