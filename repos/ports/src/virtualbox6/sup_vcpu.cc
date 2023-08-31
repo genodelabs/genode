@@ -721,7 +721,10 @@ template <typename VIRT> VBOXSTRICTRC Sup::Vcpu_impl<VIRT>::_switch_to_hw()
 
 template <typename T> void Sup::Vcpu_impl<T>::halt(Genode::uint64_t const wait_ns)
 {
-	RTSemEventMultiWait(_halt_semevent, wait_ns/RT_NS_1MS);
+	/* always wait for at least 1 ms */
+	Genode::uint64_t const v = wait_ns / RT_NS_1MS ? : 1;
+
+	RTSemEventMultiWait(_halt_semevent, v);
 	RTSemEventMultiReset(_halt_semevent);
 }
 
