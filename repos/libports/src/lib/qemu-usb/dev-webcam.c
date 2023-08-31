@@ -527,8 +527,8 @@ static void webcam_timeout(void *opague)
 
 	if (!state->delayed_packet) {
 		unsigned const fps = 10000000u / formats[active_format()].interval;
-		/* capture off detection - after 1s or if in delay_packet state */
-		if (state->delay_packet || (state->watchdog && state->watchdog >= fps)) {
+		/* capture off detection - after 1s */
+		if (state->watchdog >= fps) {
 			state->capture      = false;
 			state->delay_packet = false;
 			capture_state_changed(state->capture);
