@@ -16,22 +16,22 @@ HASH_INPUT    += $(REP_DIR)/lxip.list
 #
 # Patches
 #
-PATCHES += patches/lxip_icmp.patch
-PATCHES += patches/lxip_ip_config.patch
-PATCHES += patches/lxip_log2.patch
-PATCHES += patches/lxip_netlink.patch
-PATCHES += patches/lxip_request_sock.patch
-PATCHES += patches/lxip_sk_wq.patch
-PATCHES += patches/lxip_skbuff_cast.patch
+PATCHES += patches/legacy_lxip_icmp.patch
+PATCHES += patches/legacy_lxip_ip_config.patch
+PATCHES += patches/legacy_lxip_log2.patch
+PATCHES += patches/legacy_lxip_netlink.patch
+PATCHES += patches/legacy_lxip_request_sock.patch
+PATCHES += patches/legacy_lxip_sk_wq.patch
+PATCHES += patches/legacy_lxip_skbuff_cast.patch
 
 #IP stack
 LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
-PATCH_OPT(patches/lxip_icmp.patch)         := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_ip_config.patch)    := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_log2.patch)         := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_netlink.patch)      := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_request_sock.patch) := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_sk_wq.patch)        := $(LXIP_OPT)
-PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
+PATCH_OPT(patches/legacy_lxip_icmp.patch)         := $(LXIP_OPT)
+PATCH_OPT(patches/legacy_lxip_ip_config.patch)    := $(LXIP_OPT)
+PATCH_OPT(patches/legacy_lxip_log2.patch)         := $(LXIP_OPT)
+PATCH_OPT(patches/legacy_lxip_netlink.patch)      := $(LXIP_OPT)
+PATCH_OPT(patches/legacy_lxip_request_sock.patch) := $(LXIP_OPT)
+PATCH_OPT(patches/legacy_lxip_sk_wq.patch)        := $(LXIP_OPT)
+PATCH_OPT(patches/legacy_lxip_skbuff_cast.patch)  := $(LXIP_OPT)
 
 # vi: set ft=make :

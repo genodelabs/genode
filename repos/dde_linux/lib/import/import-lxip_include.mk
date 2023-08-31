@@ -1,5 +1,5 @@
 LXIP_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/lxip
-SRC_DIR          := $(REP_DIR)/src/lib/lxip
+SRC_DIR          := $(REP_DIR)/src/lib/legacy_lxip
 
 # architecture-dependent includes
 ifeq ($(filter-out $(SPECS),x86),)
@@ -21,9 +21,9 @@ ifeq ($(filter-out $(SPECS),arm),)
     ARCH_SRC_INC_DIR += $(REP_DIR)/src/include/spec/arm_v7
   endif # arm_v7
 endif # arm
-ifeq ($(filter-out $(SPECS),arm_64),)
-  ARCH_SRC_INC_DIR += $(REP_DIR)/src/include/spec/arm_64
-endif # arm_v7
+ifeq ($(filter-out $(SPECS),arm_v8),)
+  ARCH_SRC_INC_DIR += $(REP_DIR)/src/include/spec/arm_v8
+endif # arm_v8
 
 #
 # The order of include-search directories is important, we need to look into

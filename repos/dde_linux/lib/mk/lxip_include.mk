@@ -1,7 +1,7 @@
 ifeq ($(called_from_lib_mk),yes)
 
 LXIP_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/lxip
-LX_EMUL_H        := $(REP_DIR)/src/lib/lxip/include/lx_emul.h
+LX_EMUL_H        := $(REP_DIR)/src/lib/legacy_lxip/include/lx_emul.h
 
 #
 # Determine the header files included by the contrib code. For each
