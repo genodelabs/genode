@@ -105,7 +105,7 @@ const struct trace_print_flags vmaflag_names[]  = { {0,NULL}};
 
 void rcu_barrier(void)
 {
-	lx_emul_trace_and_stop(__func__);
+	lx_emul_trace(__func__);
 }
 
 
