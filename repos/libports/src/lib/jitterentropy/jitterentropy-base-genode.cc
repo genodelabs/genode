@@ -31,7 +31,12 @@ void jitterentropy_init(Genode::Allocator &alloc)
 void *jent_zalloc(size_t len)
 {
 	if (!_alloc) { return 0; }
-	return _alloc->alloc(len);
+
+	void *p = _alloc->alloc(len);
+	if (p)
+		Genode::memset(p, 0, len);
+
+	return p;
 }
 
 
