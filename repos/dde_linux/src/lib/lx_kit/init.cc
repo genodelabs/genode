@@ -23,8 +23,9 @@ namespace Lx_kit {
 }
 
 
-void Lx_kit::Initcalls::add(int (*initcall)(void), unsigned int prio) {
-	_call_list.insert(new (_heap) E(prio, initcall)); }
+void Lx_kit::Initcalls::add(int (*initcall)(void), unsigned int prio,
+                            char const *name) {
+	_call_list.insert(new (_heap) E(prio, initcall, name)); }
 
 
 void Lx_kit::Initcalls::execute_in_order()
@@ -40,6 +41,15 @@ void Lx_kit::Initcalls::execute_in_order()
 		for (E * entry = _call_list.first(); entry; entry = entry->next()) {
 			if (entry->prio == i) entry->call();
 		}
+	}
+}
+
+
+void Lx_kit::Initcalls::execute(char const *name)
+{
+	for (E * entry = _call_list.first(); entry; entry = entry->next()) {
+		if (Genode::strcmp(entry->name, name) == 0)
+			entry->call();
 	}
 }
 
