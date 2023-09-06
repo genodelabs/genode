@@ -228,7 +228,7 @@ subdirectory. Within this directory, there is a 'pubkey' file with the
 user's public key that is used to verify the integrity of archives downloaded
 from the user. The file 'download' specifies the download location as an URL.
 
-Subsuming archives in a subdirectory that correspond to their the origin
+Subsuming archives in a subdirectory that correspond to their origin
 (user) serves two purposes. First, it provides a user-local name space for
 versioning archives. E.g., there might be two versions of a
 'nitpicker/2017-04-15' source archive, one by "genodelabs" and one by
