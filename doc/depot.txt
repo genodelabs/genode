@@ -290,7 +290,7 @@ archive is downloaded as well. All archive types are accepted as arguments
 including binary and package archives. Furthermore, it is possible to download
 all binary archives referenced by a package archive. For example, the
 following command downloads the window-manager (wm) package archive including
-all binary archives for the 32-bit x86 architecture. Downloaded binary
+all binary archives for the 64-bit x86 architecture. Downloaded binary
 archives are always accompanied with their corresponding source and used API
 archives.
 
