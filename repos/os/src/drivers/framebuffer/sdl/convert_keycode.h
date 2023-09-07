@@ -114,12 +114,12 @@ static inline Input::Keycode convert_keycode(int sdl_keycode)
 	case SDLK_F15:          return KEY_F15;
 
 	/* special keys */
-	case SDLK_PRINT:        return KEY_PRINT;
-	case SDLK_SCROLLOCK:    return KEY_SCROLLLOCK;
+	case SDLK_PRINTSCREEN:  return KEY_PRINT;
+	case SDLK_SCROLLLOCK:   return KEY_SCROLLLOCK;
 	case SDLK_MENU:         return KEY_MENU;
 
 	/* key state modifier keys */
-	case SDLK_NUMLOCK:      return KEY_NUMLOCK;
+	case SDLK_NUMLOCKCLEAR: return KEY_NUMLOCK;
 	case SDLK_CAPSLOCK:     return KEY_CAPSLOCK;
 	case SDLK_RSHIFT:       return KEY_RIGHTSHIFT;
 	case SDLK_LSHIFT:       return KEY_LEFTSHIFT;
@@ -127,8 +127,8 @@ static inline Input::Keycode convert_keycode(int sdl_keycode)
 	case SDLK_LCTRL:        return KEY_LEFTCTRL;
 	case SDLK_RALT:         return KEY_RIGHTALT;
 	case SDLK_LALT:         return KEY_LEFTALT;
-	case SDLK_RMETA:        return KEY_RIGHTMETA;
-	case SDLK_LMETA:        return KEY_LEFTMETA;
+	case SDLK_RGUI:         return KEY_RIGHTMETA;
+	case SDLK_LGUI:         return KEY_LEFTMETA;
 
 	default:                return KEY_UNKNOWN;
 	}
