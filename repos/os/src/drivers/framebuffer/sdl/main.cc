@@ -22,7 +22,8 @@
 /* Linux includes */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#include <SDL/SDL.h>
+#pragma GCC diagnostic ignored "-Wtype-limits"
+#include <SDL2/SDL.h>
 #pragma GCC diagnostic pop
 
 /* local includes */
@@ -37,7 +38,10 @@ namespace Fb_sdl {
 /* fatal exceptions */
 struct Sdl_init_failed               : Genode::Exception { };
 struct Sdl_videodriver_not_supported : Genode::Exception { };
-struct Sdl_setvideomode_failed       : Genode::Exception { };
+struct Sdl_createwindow_failed       : Genode::Exception { };
+struct Sdl_createrenderer_failed     : Genode::Exception { };
+struct Sdl_creatergbsurface_failed   : Genode::Exception { };
+struct Sdl_createtexture_failed      : Genode::Exception { };
 
 
 struct Fb_sdl::Main
@@ -65,17 +69,6 @@ struct Fb_sdl::Main
 			throw Sdl_init_failed();
 		}
 
-		/*
-		 * We're testing only X11.
-		 */
-		char driver[16] = { 0 };
-		SDL_VideoDriverName(driver, sizeof(driver));
-		if (::strcmp(driver, "x11") != 0) {
-			error("fb_sdl works on X11 only. "
-			      "Your SDL backend is ", Genode::Cstring(driver), ".");
-			throw Sdl_videodriver_not_supported();
-		}
-
 		SDL_ShowCursor(0);
 	}
 
@@ -85,23 +78,60 @@ struct Fb_sdl::Main
 	{
 		Area const size;
 
+		SDL_Renderer &_sdl_renderer = _init_sdl_renderer();
 		SDL_Surface &_sdl_surface = _init_sdl_surface();
+		SDL_Texture &_sdl_texture = _init_sdl_texture();
+
+		SDL_Renderer &_init_sdl_renderer()
+		{
+			unsigned const window_flags = 0;
+
+			SDL_Window *window_ptr = SDL_CreateWindow("fb_sdl", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, size.w(), size.h(), window_flags);
+			if (!window_ptr) {
+				error("SDL_CreateWindow failed (", Genode::Cstring(SDL_GetError()), ")");
+				throw Sdl_createwindow_failed();
+			}
+
+			SDL_SetWindowResizable(window_ptr, SDL_TRUE);
+
+			int const index = -1;
+			unsigned const renderer_flags = SDL_RENDERER_SOFTWARE;
+			SDL_Renderer *renderer_ptr = SDL_CreateRenderer(window_ptr, index, renderer_flags);
+			if (!renderer_ptr) {
+				error("SDL_CreateRenderer failed (", Genode::Cstring(SDL_GetError()), ")");
+				throw Sdl_createrenderer_failed();
+			}
+
+			return *renderer_ptr;
+		}
 
 		SDL_Surface &_init_sdl_surface()
 		{
-			unsigned const bpp   = 32;
-			unsigned const flags = SDL_SWSURFACE | SDL_RESIZABLE;
+			unsigned const flags      = 0;
+			unsigned const bpp        = 32;
+			unsigned const red_mask   = 0x00FF0000;
+			unsigned const green_mask = 0x0000FF00;
+			unsigned const blue_mask  = 0x000000FF;
+			unsigned const alpha_mask = 0xFF000000;
 
-			SDL_Surface *surface_ptr = nullptr;
-
-			if (SDL_VideoModeOK(size.w(), size.h(), bpp, flags))
-				surface_ptr = SDL_SetVideoMode(size.w(), size.h(), bpp, flags);
-
+			SDL_Surface *surface_ptr = SDL_CreateRGBSurface(flags, size.w(), size.h(), bpp, red_mask, green_mask, blue_mask, alpha_mask);
 			if (!surface_ptr) {
-				error("SDL_SetVideoMode failed (", Genode::Cstring(SDL_GetError()), ")");
-				throw Sdl_setvideomode_failed();
+				error("SDL_CreateRGBSurface failed (", Genode::Cstring(SDL_GetError()), ")");
+				throw Sdl_creatergbsurface_failed();
 			}
+
 			return *surface_ptr;
+		}
+
+		SDL_Texture &_init_sdl_texture()
+		{
+			SDL_Texture *texture_ptr = SDL_CreateTexture(&_sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, size.w(), size.h());
+			if (!texture_ptr) {
+				error("SDL_CreateTexture failed (", Genode::Cstring(SDL_GetError()), ")");
+				throw Sdl_createtexture_failed();
+			}
+
+			return *texture_ptr;
 		}
 
 		Sdl_screen(Area size) : size(size) { }
@@ -113,9 +143,12 @@ struct Fb_sdl::Main
 			fn(surface);
 		}
 
-		void flush(Capture::Rect rect)
+		void flush()
 		{
-			SDL_UpdateRect(&_sdl_surface, rect.x1(), rect.y1(), rect.w(), rect.h());
+			SDL_UpdateTexture(&_sdl_texture, nullptr, _sdl_surface.pixels, _sdl_surface.pitch);
+			SDL_RenderClear(&_sdl_renderer);
+			SDL_RenderCopy(&_sdl_renderer, &_sdl_texture, nullptr, nullptr);
+			SDL_RenderPresent(&_sdl_renderer);
 		}
 	};
 
@@ -151,8 +184,7 @@ struct Fb_sdl::Main
 		});
 
 		/* flush pixels in SDL window */
-		affected.for_each_rect([&] (Capture::Rect const rect) {
-			_sdl_screen->flush(rect); });
+		_sdl_screen->flush();
 	}
 
 	void _handle_timer()
@@ -185,14 +217,16 @@ void Fb_sdl::Main::_handle_sdl_event(Event_batch &batch, SDL_Event const &event)
 {
 	using namespace Input;
 
-	if (event.type == SDL_VIDEORESIZE) {
+	if (event.type == SDL_WINDOWEVENT_RESIZED) {
 
-		if (event.resize.w < 0 || event.resize.h < 0) {
+		int w = event.window.data1;
+		int h = event.window.data2;
+		if (w < 0 || h < 0) {
 			warning("attempt to resize to negative size");
 			return;
 		}
 
-		_resize(Area((unsigned)event.resize.w, (unsigned)event.resize.h));
+		_resize(Area((unsigned)w, (unsigned)h));
 		return;
 	}
 
@@ -234,10 +268,6 @@ void Fb_sdl::Main::_handle_sdl_event(Event_batch &batch, SDL_Event const &event)
 
 	case SDL_KEYUP:
 	case SDL_MOUSEBUTTONUP:
-		if (event.button.button == SDL_BUTTON_WHEELUP
-		 || event.button.button == SDL_BUTTON_WHEELDOWN)
-			/* ignore */
-			return;
 
 		batch.submit(Release{keycode});
 		return;
@@ -245,12 +275,15 @@ void Fb_sdl::Main::_handle_sdl_event(Event_batch &batch, SDL_Event const &event)
 	case SDL_KEYDOWN:
 	case SDL_MOUSEBUTTONDOWN:
 
-		if (event.button.button == SDL_BUTTON_WHEELUP)
+		batch.submit(Press{keycode});
+		return;
+
+	case SDL_MOUSEWHEEL:
+
+		if (event.wheel.y > 0)
 			batch.submit(Wheel{0, 1});
-		else if (event.button.button == SDL_BUTTON_WHEELDOWN)
+		else if (event.wheel.y < 0)
 			batch.submit(Wheel{0, -1});
-		else
-			batch.submit(Press{keycode});
 		return;
 
 	default:
