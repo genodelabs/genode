@@ -154,4 +154,7 @@ Device_pd::Device_pd(Env                        & env,
 	_address_space(env, _pd, ram_guard, cap_guard)
 {
 	_pd.ref_account(env.pd_session_cap());
+
+	buffer_registry.for_each([&] (Dma_buffer const & buf) {
+		add_range({ buf.dma_addr, buf.size }, buf.cap); });
 }
