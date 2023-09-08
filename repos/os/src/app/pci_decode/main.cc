@@ -244,6 +244,35 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 					gen.attribute("size",    rmrr.size);
 				});
 		});
+
+		/* XXX We currently only support unsegmented platforms with a single
+		 *     pci config space. Yet as soon as we do support those, we
+		 *     must assign the DMA-remapping hardware unit to the different pci
+		 *     segments resp. their devices.
+		 */
+
+		bool drhd_device_found = false;
+		drhd_list.for_each([&] (Drhd const & drhd) {
+			if (drhd_device_found) return;
+
+			bool device_match = false;
+			drhd.devices.for_each([&] (Drhd::Device const & device) {
+				if (device.bdf == bdf)
+					device_match = true;
+			});
+
+			if (device_match) {
+				drhd_device_found = true;
+				gen.node("io_mmu", [&] { gen.attribute("name", drhd.name()); });
+			}
+		});
+
+		if (!drhd_device_found) {
+			drhd_list.for_each([&] (Drhd const & drhd) {
+				if (drhd.scope == Drhd::Scope::INCLUDE_PCI_ALL)
+					gen.node("io_mmu", [&] { gen.attribute("name", drhd.name()); });
+			});
+		}
 	});
 
 	return subordinate_bus;
