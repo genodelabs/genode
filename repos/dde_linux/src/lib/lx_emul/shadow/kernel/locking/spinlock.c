@@ -136,6 +136,7 @@ unsigned long __lockfunc _raw_read_lock_irqsave(rwlock_t * lock)
 void __lockfunc _raw_write_unlock_bh(rwlock_t * lock)
 {
 	arch_write_unlock(&(lock)->raw_lock);
+	__local_bh_enable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
 }
 #endif
 
@@ -144,6 +145,7 @@ void __lockfunc _raw_write_unlock_bh(rwlock_t * lock)
 void __lockfunc _raw_read_unlock_bh(rwlock_t * lock)
 {
 	arch_read_unlock(&(lock)->raw_lock);
+	__local_bh_enable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
 }
 #endif
 
@@ -176,6 +178,7 @@ void __lockfunc _raw_read_unlock_irqrestore(rwlock_t * lock,unsigned long flags)
 #ifndef CONFIG_INLINE_WRITE_LOCK_BH
 void __lockfunc _raw_write_lock_bh(rwlock_t * lock)
 {
+	__local_bh_disable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
 	arch_write_lock(&(lock)->raw_lock);
 }
 #endif
@@ -192,6 +195,7 @@ void __lockfunc _raw_write_lock_irq(rwlock_t * lock)
 #ifndef CONFIG_INLINE_READ_LOCK_BH
 void __lockfunc _raw_read_lock_bh(rwlock_t * lock)
 {
+	__local_bh_disable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
 	arch_read_lock(&(lock)->raw_lock);
 }
 #endif
