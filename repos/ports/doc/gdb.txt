@@ -39,7 +39,7 @@ and address spaces. This way, we get a global view on the system from the
 kernel's perspective. For example, the mapping of virtual memory to
 physical pages can be revealed, the communication relationships between
 threads become visible, and the ready queue of the scheduler can be
-observed. To a certain extend, kernel debuggers had been complemented with
+observed. To a certain extent, kernel debuggers had been complemented with
 useful facilities for debugging user-level programs. For example, the Fiasco
 kernel debugger comes with a convenient backtrace function that parses the
 call stack of a given thread. Using the addresses printed in the backtrace,
