@@ -412,6 +412,13 @@ static unsigned max_frame_size(unsigned const format)
 	       formats[format].bpp / 8;
 }
 
+static void set_video_and_payload_size(unsigned const index,
+                                       struct vs_probe_control * const control)
+{
+	control->dwMaxVideoFrameSize      = max_frame_size(index);
+	control->dwMaxPayLoadTransferSize = max_frame_size(index) + sizeof(struct payload_header);
+}
+
 static void usb_webcam_init_state(USBWebcamState *state)
 {
 	state->delayed_packet   = 0;
@@ -666,9 +673,10 @@ static void usb_webcam_handle_control(USBDevice * const dev,
 		    (req->bFormatIndex != DEVICE_VS_FORMAT_YUV))
 			break;
 
-		vs_probe_state.bFormatIndex             = req->bFormatIndex;
-		vs_probe_state.dwMaxVideoFrameSize      = max_frame_size(vs_probe_state.bFormatIndex - 1);
-		vs_probe_state.dwMaxPayLoadTransferSize = max_frame_size(vs_probe_state.bFormatIndex - 1) / 2;
+		vs_probe_state.bFormatIndex = req->bFormatIndex;
+
+		set_video_and_payload_size(vs_probe_state.bFormatIndex - 1,
+		                           &vs_probe_state);
 
 		if (cs == VS_COMMIT_CONTROL) {
 			bool const notify = vs_commit_state.bFormatIndex != vs_probe_state.bFormatIndex;
@@ -800,10 +808,10 @@ static void usb_webcam_register_types(void)
 		yuv_desc.dwMaxVideoFrameBufferSize = max_frame_size(DEVICE_VS_FORMAT_YUV - 1);
 	}
 
-	vs_commit_state.dwFrameInterval          = frame_interval;
-	vs_commit_state.dwMaxVideoFrameSize      = max_frame_size(active_format());
-	vs_commit_state.dwMaxPayLoadTransferSize = max_frame_size(active_format()) / 2;
-	vs_commit_state.dwClockFrequency         = config.fps;
+	vs_commit_state.dwFrameInterval  = frame_interval;
+	vs_commit_state.dwClockFrequency = config.fps;
+
+	set_video_and_payload_size(active_format(), &vs_commit_state);
 
 	vs_probe_state = vs_commit_state;
 
