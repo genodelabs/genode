@@ -26,7 +26,7 @@
 # state.
 #
 # Connect the Pro Micro to the host PC
-# 
+#
 # Check the device file name with 'dmesg'. If it is not 'ttyACM0', change
 # 'AVRDUDE_PORT' in 'makefile' accordingly.
 #
@@ -198,9 +198,14 @@ run_genode_until {\[init -\> event_dump\] Input event #11.*\n} 40 [output_spawn_
 # pay only attention to the output of init and its children
 grep_output {^\[init }
 
-unify_output {(?n)on usb-usbbus.*$} ""
+unify_output {(?n) on usb-usbbus.*$} ""
+unify_output {(?n) at usb-usbbus.*\)} ")"
+unify_output {(?n)hid-generic.*input:} "hid-generic: input:"
+unify_output {(?n)usb-[0-9]-[0-9]:} "usb-X-X:"
+unify_output {(?n)device number [0-9]+} "device number X"
+unify_output {(?n)input[0-9]} "inputX"
+unify_output {(?n) as /devices/.*} ""
 unify_output {(?n)^\[init -\> usb_drv.*} ""
-filter_out_color_escape_sequences
 trim_lines
 
 compare_output_to {
@@ -210,8 +215,15 @@ compare_output_to {
 [init -> event_dump] Input event #3	REL_MOTION -1+0	key count: 1
 [init -> event_dump] Input event #4	REL_MOTION +0+1	key count: 1
 [init -> event_dump] Input event #5	RELEASE BTN_LEFT	key count: 0
-[init -> usb_hid_drv] dev_info: input: USB HID v1.11 Keyboard [HID 03eb:204d]
-[init -> usb_hid_drv] dev_info: input: USB HID v1.11 Mouse [HID 03eb:204d]
+[init -> usb_hid_drv] usb usb-X-X: USB disconnect, device number X
+[init -> usb_hid_drv] Disconnected device: inputX
+[init -> usb_hid_drv] Disconnected device: inputX
+[init -> usb_hid_drv] input: HID 03eb:204d
+[init -> usb_hid_drv] Connected device: inputX (HID 03eb:204d)
+[init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Keyboard [HID 03eb:204d]
+[init -> usb_hid_drv] input: HID 03eb:204d
+[init -> usb_hid_drv] Connected device: inputX (HID 03eb:204d)
+[init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Mouse [HID 03eb:204d]
 [init -> event_dump] Input event #6	PRESS KEY_X 65534	key count: 1
 [init -> event_dump] Input event #7	RELEASE KEY_X	key count: 0
 [init -> event_dump] Input event #8	PRESS BTN_LEFT 65534	key count: 1
