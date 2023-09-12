@@ -55,12 +55,14 @@ install_config {
 				<service name="Terminal"/>
 			</parent-provides>
 			<default caps="100"/>
+			<affinity-space width="2" height="1"/>
 
 			<monitor>
 				<policy label="test-monitor" stop="no" wx="yes" />
 			</monitor>
 
 			<start name="test-monitor">
+				<affinity xpos="1" width="1"/>
 				<resource name="RAM" quantum="32M"/>
 				<route>
 					<service name="PD">  <local/> </service>
@@ -75,6 +77,6 @@ install_config {
 
 build_boot_image [build_artifacts]
 
-append qemu_args "-nographic "
+append qemu_args "-nographic -smp 4,cores=4 "
 
 run_genode_until {\[init -> monitor\] child "test-monitor" exited with exit value 0.*\n} 30
