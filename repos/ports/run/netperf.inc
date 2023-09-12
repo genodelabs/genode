@@ -32,7 +32,7 @@ if {[have_include "power_on/qemu"]} {
 	exit 0
 }
 
-if {[have_board imx53_qsb_tz]} {
+if {[have_board imx53_qsb_tz] || [have_board rpi]} {
 	puts "Run script is not supported on this platform."
 	exit 0
 }

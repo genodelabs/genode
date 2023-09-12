@@ -4,7 +4,7 @@
 # \date   2016-06-05
 #
 
-if {[have_board rpi3] || [have_board imx53_qsb_tz]} {
+if {[have_board rpi3] || [have_board imx53_qsb_tz] || [have_board rpi]} {
 	puts "Run script does not support this platform."
 	exit 0
 }

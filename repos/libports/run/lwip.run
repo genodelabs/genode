@@ -19,7 +19,8 @@
 
 if {[have_board linux] ||
     [have_board imx53_qsb_tz] ||
-    [have_board rpi3]} {
+    [have_board rpi3] ||
+    [have_board rpi]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
 if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
