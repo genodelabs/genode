@@ -13,6 +13,7 @@ PATCH_FILES := i915_irq.patch \
                iwlwifi_enable_irq_before_pnvm.patch \
                iwlwifi_limit_rx_bufs.patch \
                usb_host_devio_sg.patch \
+               lxip_checksum_32.patch \
                usb_net_pinephone.patch \
                usb_net_cdc_ncm.patch \
                usb_net_smsc95xx.patch \
@@ -20,6 +21,7 @@ PATCH_FILES := i915_irq.patch \
 PATCHES += $(addprefix patches/,$(PATCH_FILES))
 
 PATCH_OPT(patches/i915_irq.patch)           := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/lxip_checksum_32.patch)   := -p1 -d${DIR(linux)}
 PATCH_OPT(patches/usb_net_pinephone.patch)  := -p1 -d${DIR(linux)}
 PATCH_OPT(patches/usb_net_cdc_ncm.patch)    := -p1 -d${DIR(linux)}
 PATCH_OPT(patches/usb_net_smsc95xx.patch)   := -p1 -d${DIR(linux)}
