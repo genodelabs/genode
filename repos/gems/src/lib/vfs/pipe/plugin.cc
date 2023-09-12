@@ -49,8 +49,7 @@ struct Vfs_pipe::Pipe_handle : Vfs::Vfs_handle, private Pipe_handle_registry_ele
 {
 	Pipe &pipe;
 
-	Handle_element io_progress_elem { *this };
-	Handle_element  read_ready_elem { *this };
+	Handle_element read_ready_elem { *this };
 
 	bool const writer;
 
@@ -217,7 +216,7 @@ struct Vfs_pipe::Pipe
 		return Write_result::WRITE_OK;
 	}
 
-	Read_result read(Pipe_handle &handle, Byte_range_ptr const &dst, size_t &out_count)
+	Read_result read(Pipe_handle &, Byte_range_ptr const &dst, size_t &out_count)
 	{
 		size_t out = 0;
 
@@ -235,7 +234,6 @@ struct Vfs_pipe::Pipe
 			if ((num_writers == 0) && !waiting_for_writers)
 				return Read_result::READ_OK; /* EOF */
 
-			read_ready_waiters.enqueue(handle.io_progress_elem);
 			return Read_result::READ_QUEUED;
 		}
 
