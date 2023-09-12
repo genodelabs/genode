@@ -130,7 +130,7 @@ install_config {
 
 build { test/lwip/http_srv }
 
-build_boot_image { test-lwip_httpsrv }
+build_boot_image [build_artifacts]
 
 #
 # Qemu config

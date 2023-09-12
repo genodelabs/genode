@@ -3,7 +3,6 @@ set mkfs_opts  "-F32 -nlibc_vfs"
 
 set test_build_components lib/vfs_fatfs
 set test_vfs_config "<fatfs/>"
-set test_boot_modules vfs_fatfs.lib.so
 
 set use_vfs_server 0
 

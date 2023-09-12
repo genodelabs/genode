@@ -1,11 +1,4 @@
-#
-# \brief  Test of the PCG32 library
-# \author Emery Hemingway
-# \date   2017-08-23
-#
-
-
-build "core init test/pcg32"
+build { core init lib/ld lib/libc lib/vfs lib/posix test/pcg32 }
 
 create_boot_directory
 
@@ -37,10 +30,7 @@ install_config {
 </config>
 }
 
-build_boot_image {
-	core init test-pcg32
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
-}
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic  "
 

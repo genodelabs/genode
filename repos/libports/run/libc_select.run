@@ -1,14 +1,11 @@
-set build_components {
-	core init timer server/terminal_crosslink
-	test/libc_select test/libc_counter
-	lib/vfs_pipe
+build {
+	core init timer lib/ld lib/libc lib/vfs lib/posix lib/stdcxx lib/vfs_pipe
+	server/terminal_crosslink test/libc_select test/libc_counter
 }
-
-build $build_components
 
 create_boot_directory
 
-set config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -65,16 +62,12 @@ set config {
 </config>
 }
 
-install_config $config
-
-set boot_modules {
+build_boot_image {
 	core init timer terminal_crosslink
 	test-libc_counter-source test-libc_select
 	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so stdcxx.lib.so
 	vfs_pipe.lib.so posix.lib.so
 }
-
-build_boot_image $boot_modules
 
 append qemu_args "  -nographic "
 

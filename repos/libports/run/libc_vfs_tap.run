@@ -1,26 +1,14 @@
-#
-# Build
-#
-#
-
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs_tap
 
-set build_components {
-	core init timer
-	server/nic_router
-	test/libc_vfs_tap
+build {
+	core init timer lib/libc lib/vfs lib/posix
+	server/nic_router test/libc_vfs_tap
 }
 
-build $build_components
-
-#
-# Generate config
-#
-
-append config {
+install_config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -87,19 +75,7 @@ append config {
 </config>
 }
 
-install_config $config
-
-#
-# Boot modules
-#
-
-
-set boot_modules {
-	core init timer test-libc_vfs_tap nic_router
-	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
-}
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 

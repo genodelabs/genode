@@ -1,4 +1,7 @@
-build "core init app/sequence server/vfs test/libc_getpwent"
+build {
+	core init lib/ld lib/libc lib/vfs lib/posix
+	app/sequence server/vfs test/libc_getpwent
+}
 
 create_boot_directory
 
@@ -66,12 +69,9 @@ install_config {
 </config>
 }
 
-build_boot_image {
-	core init vfs sequence test-libc_getpwent
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
-}
+build_boot_image [build_artifacts]
 
-append qemu_args " -nographic  "
+append qemu_args " -nographic "
 
 run_genode_until "child .* exited with exit value 0.*\n" 20
 

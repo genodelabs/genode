@@ -11,7 +11,6 @@
 # \arg use_vfs_server
 # \arg test_build_components
 # \arg test_vfs_config
-# \arg test_boot_modules
 #
 
 if {[catch { exec which $mkfs_cmd } ]} {
@@ -26,7 +25,7 @@ if {[expr ![have_include "power_on/qemu"] && ![have_spec linux]]} {
 # Build
 #
 
-set build_components { test/libc_vfs }
+set build_components { test/libc_vfs lib/libc lib/vfs test/libc_vfs }
 
 lappend build_components {*}$test_build_components
 
@@ -138,16 +137,7 @@ catch { exec sh -c $cmd }
 # Boot modules
 #
 
-# generic modules
-append boot_modules {
-	libc.lib.so vfs.lib.so test-libc_vfs test.hda
-}
-
-lappend boot_modules {*}$test_boot_modules
-
-build_boot_image $boot_modules
-
-puts "#### boot_modules: $boot_modules"
+build_boot_image [list {*}[build_artifacts] test.hda]
 
 #
 # Qemu

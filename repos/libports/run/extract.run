@@ -42,13 +42,9 @@ install_config {
 exec tar cJf [run_dir]/genode/test.tar.xz -C [genode_dir] tool/depot
 exec xz < [genode_dir]/LICENSE > [run_dir]/genode/LICENSE.xz
 
-build { app/extract }
+build { app/extract lib/libc lib/vfs lib/libarchive lib/liblzma lib/zlib }
 
-build_boot_image {
-	extract
-	libc.lib.so vfs.lib.so
-	libarchive.lib.so liblzma.lib.so zlib.lib.so
-}
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 

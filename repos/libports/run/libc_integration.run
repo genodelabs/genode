@@ -46,14 +46,6 @@ if { [get_cmd_switch --autopilot] } {
 
 create_boot_directory
 
-set build_components {
-	test/libc_integration
-}
-
-set boot_modules {
-	test-libc_integration
-}
-
 import_from_depot [depot_user]/src/[base_src]
 import_from_depot [depot_user]/src/init
 import_from_depot [depot_user]/src/libc
@@ -63,10 +55,9 @@ import_from_depot [depot_user]/src/vfs
 import_from_depot [depot_user]/src/vfs_pipe \
                   [depot_user]/src/vfs_jitterentropy
 
-build $build_components
+build { test/libc_integration }
 
-set config {}
-append config {
+install_config {
 <config prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
@@ -111,9 +102,7 @@ append config {
 </config>
 }
 
-install_config $config
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic -smp 10 "
 

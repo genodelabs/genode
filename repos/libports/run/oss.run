@@ -1,23 +1,19 @@
 assert_spec x86
 
 if {[have_board linux]} {
-        puts "Run script does not support Linux."
-        exit 0
+	puts "Run script does not support Linux."
+	exit 0
 }
 
 if {[have_include "power_on/qemu"]} {
-        puts "Run script does not support Qemu"
-        exit 0
+	puts "Run script does not support Qemu"
+	exit 0
 }
 
 build {
-	core init timer
-	drivers/acpi
-	drivers/audio
-	drivers/platform
-	app/pci_decode
-	server/report_rom
-	lib/vfs_oss test/oss
+	core init timer lib/ld lib/libc lib/vfs lib/posix lib/vfs_oss
+	drivers/acpi drivers/audio drivers/platform app/pci_decode
+	server/report_rom test/oss
 }
 
 create_boot_directory
@@ -121,11 +117,6 @@ install_config {
 </config>
 }
 
-build_boot_image {
-	core init timer test-oss
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so
-	posix.lib.so vfs_oss.lib.so
-	pci_audio_drv platform_drv pci_decode acpi_drv report_rom
-}
+build_boot_image [build_artifacts]
 
 run_genode_until forever

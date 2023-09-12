@@ -1,10 +1,8 @@
-#
-# Build
-#
-set build_components {
-	core init timer
+build {
+	core init timer lib/ld
 	app/rom_logger
 	app/rom_to_file
+	lib/vfs
 	lib/vfs_fatfs
 	lib/vfs_import
 	server/dynamic_rom
@@ -13,18 +11,13 @@ set build_components {
 	server/vfs
 }
 
-build $build_components
-
 create_boot_directory
 
 set mkfs_cmd [installed_command mkfs.vfat]
 
 catch { exec $mkfs_cmd -C bin/fat.img -n "ROM_UPDATE" 64 }
 
-#
-# Generate config
-#
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="CPU"/>
@@ -121,31 +114,9 @@ append config {
 	</start>
 </config>}
 
-install_config $config
+build_boot_image [list {*}[build_artifacts] fat.img]
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init
-	dynamic_rom
-	fat.img
-	fs_rom
-	vfs_block
-	rom_logger
-	rom_to_file
-	timer
-	vfs
-	vfs.lib.so
-	vfs_fatfs.lib.so
-	vfs_import.lib.so
-}
-
-build_boot_image $boot_modules
-
-append qemu_args "  -nographic"
+append qemu_args " -nographic "
 
 run_genode_until {.*<config iteration="4" />.*} 60
 

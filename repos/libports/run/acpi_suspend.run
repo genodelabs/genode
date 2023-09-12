@@ -89,9 +89,8 @@ proc gpu_config { } {
 		</start>}
 }
 
-
-set build_components {
-	core timer init
+build {
+	core timer init lib/ld
 	server/report_rom
 	server/dynamic_rom
 	server/rom_filter
@@ -106,8 +105,6 @@ set build_components {
 	test/framebuffer
 	test/suspend
 }
-
-build $build_components
 
 create_boot_directory
 
@@ -330,16 +327,7 @@ install_config $config
 # non PCI devices for platform_drv, e.g. ps2/pit
 file copy [select_from_repositories board/[board]/devices] [run_dir]/genode/devices
 
-set boot_modules {
-	core ld.lib.so init timer
-	report_rom dynamic_rom rom_filter
-	acpi_drv pc_platform_drv pci_decode
-	pc_intel_fb_drv test-framebuffer vesa_fb_drv intel_gpu_drv boot_fb_drv
-	acpica
-	test-suspend
-}
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 # qemu machine model q35 and multiple CPUs don't work with NOVA kernel
 #

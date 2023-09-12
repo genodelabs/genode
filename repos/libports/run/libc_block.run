@@ -6,9 +6,8 @@ if {[expr ![have_include "power_on/qemu"] && ![have_spec linux]]} {
 create_boot_directory
 
 build {
-	core init timer
+	core init timer lib/ld lib/libc lib/posix lib/vfs_import
 	server/vfs_block
-	lib/vfs_import
 	test/libc_block
 }
 
@@ -70,13 +69,7 @@ set cmd "dd if=/dev/zero of=$disk_image bs=1024 count=65536"
 puts "creating disk image: $cmd"
 catch { exec sh -c $cmd }
 
-# generic modules
-build_boot_image {
-	core init timer
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
-	vfs_block vfs_import.lib.so
-	test-libc_block test.hda
-}
+build_boot_image [list {*}[build_artifacts] test.hda]
 
 append qemu_args " -nographic "
 

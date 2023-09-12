@@ -5,7 +5,7 @@ if { [get_cmd_switch --autopilot] } {
 	}
 }
 
-build "core init test/memcpy"
+build { core init lib/ld lib/libc lib/vfs test/memcpy }
 
 create_boot_directory
 
@@ -35,10 +35,7 @@ install_config {
 </config>
 }
 
-build_boot_image {
-	core init test-memcpy
-	ld.lib.so libc.lib.so vfs.lib.so
-}
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic  "
 

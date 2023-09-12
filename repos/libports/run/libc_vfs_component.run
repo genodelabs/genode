@@ -1,21 +1,11 @@
-#
-# Build
-#
-
-set build_components {
-	core init timer server/terminal_crosslink server/vfs
-	test/libc_counter test/libc_component
+build {
+	core init timer lib/ld lib/libc lib/vfs lib/posix
+	server/terminal_crosslink server/vfs test/libc_counter test/libc_component
 }
-
-build $build_components
 
 create_boot_directory
 
-#
-# Generate config
-#
-
-append config {
+install_config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -87,26 +77,9 @@ append config {
 </config>
 }
 
-install_config $config
-
-#
-# Boot modules
-#
-
-
-set boot_modules {
-	core init timer terminal_crosslink vfs
-	test-libc_counter-source test-libc_component
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
-}
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
-
-#
-# Execute test case
-#
 
 run_genode_until forever
 run_genode_until "child \"test-libc_counter-sink\" exited with exit value 0.*\n" 30

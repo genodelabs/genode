@@ -7,7 +7,7 @@ if {[have_board rpi]} {
 	exit 0
 }
 
-build "core init test/ieee754"
+build { core init lib/ld test/ieee754 lib/posix lib/libc lib/vfs }
 create_boot_directory
 
 install_config {
@@ -58,7 +58,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core ld.lib.so init test-ieee754 posix.lib.so libc.lib.so libm.lib.so vfs.lib.so"
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 

@@ -1,4 +1,4 @@
-build { core init timer test/libc_with_libc }
+build { core init timer lib/ld lib/libc lib/vfs test/libc_with_libc }
 
 create_boot_directory
 
@@ -32,11 +32,7 @@ install_config {
 	</start>
 </config>}
 
-build_boot_image {
-	core init timer
-	ld.lib.so libc.lib.so vfs.lib.so
-	test-libc_with_libc
-}
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic  "
 

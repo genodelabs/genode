@@ -22,26 +22,14 @@
 
 assert_spec linux
 
-#
-# Build
-#
-
 build {
-	core init timer
-	drivers/nic
-	test/lwip/http_srv
-	lib/vfs_lwip
-	server/nic_router
-	server/report_rom
+	core init timer lib/ld lib/libc lib/vfs lib/vfs_lwip
+	drivers/nic test/lwip/http_srv server/nic_router server/report_rom
 }
 
 create_boot_directory
 
-#
-# Generate config
-#
-
-set config {
+install_config {
 <config verbose="yes">
 
 	<parent-provides>
@@ -127,23 +115,7 @@ set config {
 </config>
 }
 
-install_config $config
-
-#
-# Boot modules
-#
-
-set boot_modules {
-	core init timer linux_nic_drv
-	ld.lib.so libc.lib.so vfs.lib.so vfs_lwip.lib.so test-lwip_httpsrv
-	nic_router report_rom
-}
-
-build_boot_image $boot_modules
-
-#
-# Execute test case
-#
+build_boot_image [build_artifacts]
 
 run_genode_until forever
 

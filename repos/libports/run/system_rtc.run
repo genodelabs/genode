@@ -1,5 +1,3 @@
-# RTC test
-
 assert_spec x86
 
 if {[expr ![have_include power_on/qemu] && ![have_spec linux]]} {
@@ -16,8 +14,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/posix \
                   [depot_user]/pkg/system_rtc-[board]
 
-
-set config {
+install_config {
 <config prio_levels="2" verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -86,11 +83,8 @@ set config {
 </config>
 }
 
-install_config $config
+build { test/system_rtc test/libc_rtc }
 
-set build_components { test/system_rtc test/libc_rtc }
-
-build            $build_components
 build_boot_image [build_artifacts]
 
 append qemu_args " -nographic  "

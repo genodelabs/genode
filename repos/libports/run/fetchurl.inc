@@ -148,7 +148,7 @@ install_config {
 }
 
 #build            { }
-build_boot_image { }
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 append_qemu_nic_args
