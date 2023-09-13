@@ -343,7 +343,7 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 	try {
 		Dma_buffer & buf = _dma_allocator.alloc_buffer(ram_cap,
 		                                               _env.pd().dma_addr(ram_cap),
-		                                               size);
+		                                               _env_ram.dataspace_size(ram_cap));
 
 		_domain_registry.for_each_domain([&] (Io_mmu::Domain & domain) {
 			domain.add_range({ buf.dma_addr, buf.size }, buf.cap);
