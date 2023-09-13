@@ -3,11 +3,12 @@
  * \author Norman Feske
  * \author Sebastian Sumpf
  * \author Alexander Boettcher
+ * \author Benjamin Lamowski
  * \date   2012-06-06
  */
 
 /*
- * Copyright (c) 2012 Genode Labs
+ * Copyright (c) 2012-2023 Genode Labs
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -361,7 +362,6 @@ namespace Nova {
 	{
 		return syscall_2(NOVA_MISC, 2, sm_auth_acpi, sleep_state_a, sleep_state_b);
 	}
-
 
 	ALWAYS_INLINE
 	inline uint8_t sm_ctrl(mword_t sm, Sem_op op, unsigned long long timeout = 0)
