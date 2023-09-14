@@ -13,6 +13,7 @@
  */
 
 /* Genode includes */
+#include <base/allocator_avl.h>
 #include <base/log.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/registry.h>
@@ -298,35 +299,99 @@ struct Timer_queue : public Qemu::Timer_queue
 
 struct Pci_device : public Qemu::Pci_device
 {
-	Genode::Allocator &_alloc;
+	Genode::Allocator     &_alloc;
+	Genode::Allocator_avl  _dma_alloc;
 
 	PPDMDEVINS pci_dev;
 
-	struct Dma_bounce_buffer
+	struct Bounce_buffer
 	{
-		Genode::Allocator &_alloc;
+		Genode::Allocator     &_alloc;
+		Genode::Allocator_avl &_range_alloc;
 
-		Qemu::addr_t   const base;
-		Qemu::size_t   const size;
-		void         * const addr { _alloc.alloc(size) };
-
-		Dma_bounce_buffer(Genode::Allocator &alloc,
-		                  Qemu::addr_t       base,
-		                  Qemu::size_t       size)
-		: _alloc { alloc }, base { base }, size { size }
-		{ }
-
-		virtual ~Dma_bounce_buffer()
+		struct Dma
 		{
-			_alloc.free(addr, size);
+			void * addr;
+
+			Qemu::addr_t base;
+			Qemu::size_t size;
+		};
+
+		Dma _dma { 0, 0 };
+
+		enum : uint32_t { DMA_BUFFER_CHUNK = 4u << 20, };
+
+		static bool _increase_dma_alloc(Genode::Allocator     &alloc,
+		                                Genode::Allocator_avl &range_alloc)
+		{
+			void const * const result =
+				alloc.try_alloc(DMA_BUFFER_CHUNK).convert<void*>(
+					[&] (void *ptr) {
+						range_alloc.add_range((Genode::addr_t)ptr, DMA_BUFFER_CHUNK);
+						return ptr;
+					},
+					[&] (Genode::Allocator::Alloc_error) -> void * {
+						return nullptr; });
+			return !!result;
 		}
+
+		Bounce_buffer(Genode::Allocator     &alloc,
+		              Genode::Allocator_avl &range_alloc)
+		: _alloc { alloc }, _range_alloc { range_alloc } { }
+
+		bool alloc_dma(Qemu::addr_t base, Qemu::size_t size)
+		{
+			/* treat too large allocations as error for now */
+			if (size > DMA_BUFFER_CHUNK) {
+				Genode::error(__func__, ": denying allocation, size: ",
+				              size, " larger than chunk: ", (unsigned)DMA_BUFFER_CHUNK);
+				return false;
+			}
+
+			void *dma_buffer = nullptr;
+			for (int retry = 0; retry < 1; retry++) {
+				dma_buffer = _range_alloc.alloc_aligned(size, 12).convert<void*>(
+					[&] (void *ptr) { return ptr; },
+					[&] (Genode::Allocator::Alloc_error) -> void *{
+						(void)_increase_dma_alloc(_alloc, _range_alloc);
+						return nullptr;
+					});
+
+				if (dma_buffer)
+					break;
+			}
+			if (!dma_buffer)
+				return false;
+
+			_dma = Dma { dma_buffer, base, size };
+			return true;
+		}
+
+		void free_dma()
+		{
+			_range_alloc.free(_dma.addr, _dma.size);
+			_dma = Dma { nullptr, 0, 0 };
+		}
+
+		bool used() const
+		{
+			return _dma.base != 0;
+		}
+
+		virtual ~Bounce_buffer() { }
 	};
 
-	using Reg_dma_buffer = Genode::Registered<Dma_bounce_buffer>;
-	Genode::Registry<Reg_dma_buffer> _dma_buffers { };
+	using Reg_bounce_buffer = Genode::Registered<Bounce_buffer>;
+	Genode::Registry<Reg_bounce_buffer> _bounce_buffers { };
 
 	Pci_device(Genode::Allocator &alloc, PPDMDEVINS pDevIns)
-	: _alloc(alloc), pci_dev(pDevIns) { }
+	:
+		_alloc { alloc }, _dma_alloc { &_alloc }, pci_dev { pDevIns }
+	{
+		/* show problem early */
+		if (!Bounce_buffer::_increase_dma_alloc(_alloc, _dma_alloc))
+			Genode::error("could not allocate USB DMA buffer memory");
+	}
 
 	void raise_interrupt(int level) override {
 		PDMDevHlpPCISetIrqNoWait(pci_dev, 0, level); }
@@ -340,38 +405,53 @@ struct Pci_device : public Qemu::Pci_device
 	void *map_dma(Qemu::addr_t base, Qemu::size_t size,
 	              Qemu::Pci_device::Dma_direction dir) override
 	{
-		Reg_dma_buffer *dma = nullptr;
+		Reg_bounce_buffer *bb = nullptr;
+		_bounce_buffers.for_each([&] (Reg_bounce_buffer &reg_bb) {
+			if (bb)
+				return;
 
-		try {
-			dma = new (_alloc) Reg_dma_buffer(_dma_buffers,
-			                                  _alloc, base, size);
-		} catch (...) {
+			if (!reg_bb.used())
+				bb = &reg_bb;
+		});
+
+		if (!bb)
+			try {
+				bb = new (_alloc) Reg_bounce_buffer(_bounce_buffers,
+				                                    _alloc,
+				                                    _dma_alloc);
+			} catch (...) {
+				return nullptr;
+			}
+
+		if (!bb->alloc_dma(base, size))
 			return nullptr;
-		}
 
 		/* copy data for write request to bounce buffer */
 		if (dir == Qemu::Pci_device::Dma_direction::OUT) {
-			(void)PDMDevHlpPhysRead(pci_dev, base, dma->addr, size);
+			(void)PDMDevHlpPhysRead(pci_dev, bb->_dma.base,
+			                        bb->_dma.addr, bb->_dma.size);
 		}
 
-		return dma->addr;
+		return bb->_dma.addr;
 	}
 
 	void unmap_dma(void *addr, Qemu::size_t size,
 	               Qemu::Pci_device::Dma_direction dir) override
 	{
-		_dma_buffers.for_each([&] (Reg_dma_buffer &dma) {
-			if (dma.addr != addr) {
+		_bounce_buffers.for_each([&] (Reg_bounce_buffer &reg_bb) {
+			if (reg_bb._dma.addr != addr) {
 				return;
 			}
 
 			/* copy data for read request from bounce buffer */
 			if (dir == Qemu::Pci_device::Dma_direction::IN) {
 				(void)PDMDevHlpPhysWrite(pci_dev,
-				                         dma.base, dma.addr, dma.size);
+				                         reg_bb._dma.base,
+				                         reg_bb._dma.addr,
+				                         reg_bb._dma.size);
 			}
 
-			Genode::destroy(_alloc, &dma);
+			reg_bb.free_dma();
 		});
 	}
 };
