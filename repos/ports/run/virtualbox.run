@@ -1,9 +1,9 @@
+assert_spec nova
+
 set use_net 0
 set use_usb_qemu 0
 set use_serial 1
 set use_top 1
-
-set use_vbox5_nova 0
 
 # use_gui starts two VMs
 set use_gui 0
@@ -15,11 +15,7 @@ set build_components {
 
 append build_components virtualbox5
 
-set virtualbox_binary "virtualbox5"
-
-if {$use_vbox5_nova} {
-	set virtualbox_binary "virtualbox5-nova"
-}
+set virtualbox_binary "virtualbox5-nova"
 
 create_boot_directory
 

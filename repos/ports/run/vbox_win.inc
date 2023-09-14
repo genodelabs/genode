@@ -53,8 +53,7 @@ set boot_modules {
 	dynamic_rom
 }
 
-set virtualbox5_binary "virtualbox5"
-if {$use_vbox5_nova} { set virtualbox5_binary "virtualbox5-nova" }
+set virtualbox5_binary "virtualbox5-nova"
 
 set config_of_app {
 
@@ -83,7 +82,7 @@ set config_of_app {
 		Note: to get network access in the VM, the virtual network adapter
 		      needs to be enabled in the .vbox file (disabled by default)
 	-->
-	<start name="nic_drv" priority="-1">
+	<start name="nic_drv" caps="150" priority="-1">
 		<binary name="pc_nic_drv"/>
 		<resource name="RAM" quantum="8M" />
 		<route>

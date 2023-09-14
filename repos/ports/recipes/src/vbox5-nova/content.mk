@@ -12,11 +12,8 @@ content: $(MIRROR_FROM_REP_DIR)
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
 
-# omit virtualbox5-rem binary (12 MiB) from binary archive
-content: disable_virtualbox_rem disable_assertions
-
-disable_virtualbox_rem: $(MIRROR_FROM_REP_DIR)
-	rm src/virtualbox5/target.mk
+# disable debug assertions
+content: disable_assertions
 
 disable_assertions: $(MIRROR_FROM_REP_DIR)
 	rm lib/mk/virtualbox5-debug.inc

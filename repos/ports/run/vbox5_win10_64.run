@@ -25,9 +25,6 @@ set use_ps2 1
 set use_vms 1
 set use_cpu_load 0
 
-# use non-generic vbox5 VMM version
-set use_vbox5_nova 1
-
 set use_webcam 1
 
 source ${genode_dir}/repos/ports/run/vbox_win.inc

@@ -84,11 +84,6 @@ usb_hid_reconnect
 vbox5_genode_usb_hid_raw
 vbox5_ubuntu_16_04_32
 vbox5_ubuntu_16_04_64
-vbox5_vm_ubuntu_16_04_32
-vbox5_vm_ubuntu_16_04_64
-vbox5_vm_win10_64
-vbox5_vm_win7_32
-vbox5_vm_win7_64
 vbox5_win10_64
 vbox5_win7_32
 vbox5_win7_64

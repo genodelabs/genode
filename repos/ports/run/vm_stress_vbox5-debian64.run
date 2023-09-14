@@ -31,27 +31,6 @@ set match_guest_log "\[init -\> log_terminal\]"
 set match_boot_string "\[init -\> vbox.*\].*Using VMX virtualization extension"
 #set match_guest_down
 
-# use generic vbox5 VMM version
-set use_vbox5_nova 0
-set vmm_name "vbox5_gen"
-
-set use_vcpus 1
-lappend results_expected 1 2 25 78
-lappend boottime_expected 24
-source ${genode_dir}/repos/ports/run/vbox_win.inc
-source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
-kill_spawned [output_spawn_id]
-
-# set use_vcpus 2
-# lappend results_expected 0 0 0 0
-# lappend boottime_expected 35
-# source ${genode_dir}/repos/ports/run/vbox_win.inc
-# source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
-# kill_spawned [output_spawn_id]
-
-if {[have_spec nova]} {
-	# use non-generic vbox5 VMM version
-	set use_vbox5_nova 1
 	set vmm_name "vbox5_nova"
 
 	set use_vcpus 1
@@ -81,7 +60,6 @@ if {[have_spec nova]} {
 	source ${genode_dir}/repos/ports/run/vbox_win.inc
 	source ${genode_dir}/repos/ports/run/vmm_vm_stress.inc
 	kill_spawned [output_spawn_id]
-}
 
 #
 # Dump aggregated output of the several runs above

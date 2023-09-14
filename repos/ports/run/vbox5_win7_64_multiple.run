@@ -37,7 +37,4 @@ set use_vms 6
 set affinity_space_width 8
 set use_cpu_load 0
 
-# use non-generic vbox5 VMM version
-set use_vbox5_nova 1
-
 source ${genode_dir}/repos/ports/run/vbox_win.inc
