@@ -115,7 +115,7 @@ install_config {
 
 	<start name="usb_hid_drv" caps="180">
 		<resource name="RAM" quantum="11M"/>
-		<config use_report="yes" capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
+		<config capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
 		<route>
 			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>
@@ -192,7 +192,7 @@ set fd [open [run_dir]/genode/usb_host_drv.config w]
 puts $fd {
 <config bios_handoff="no">
 	<report devices="yes"/>
-	<policy label_prefix="usb_hid_drv" class="0x3"/>
+	<policy label_prefix="usb_hid_drv"> <device class="0x3"/> </policy>
 </config>}
 close $fd
 
@@ -222,8 +222,7 @@ unify_output {(?n).*0557:2213.*} ""
 unify_output {(?n) on usb-usbbus.*$} ""
 unify_output {(?n) at usb-usbbus.*\)} ")"
 unify_output {(?n)hid-generic.*input:} "hid-generic: input:"
-unify_output {(?n)usb-[0-9]-[0-9]} "usb-X-X"
-unify_output {(?n)device number [0-9]+} "device number X"
+unify_output {(?n)usb-[0-9]-[0-9]: USB disconnect, device number [0-9]} "usb-X-X: USB disconnect, device number X"
 unify_output {(?n)input[0-9]} "inputX"
 unify_output {(?n) as /devices/.*} ""
 unify_output {(?n)^\[init -\> usb_drv.*} ""
@@ -238,12 +237,12 @@ compare_output_to {
 [init -> usb_hid_drv] usb usb-X-X: USB disconnect, device number X
 [init -> usb_hid_drv] Disconnected device: inputX
 [init -> usb_hid_drv] Disconnected device: inputX
-[init -> usb_hid_drv] input: HID 03eb:204d
-[init -> usb_hid_drv] Connected device: inputX (HID 03eb:204d)
-[init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Keyboard [HID 03eb:204d]
-[init -> usb_hid_drv] input: HID 03eb:204d
-[init -> usb_hid_drv] Connected device: inputX (HID 03eb:204d) MOUSE
-[init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Mouse [HID 03eb:204d]
+[init -> usb_hid_drv] input: Dean Camera LUFA Mouse and Keyboard Demo
+[init -> usb_hid_drv] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo)
+[init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Keyboard [Dean Camera LUFA Mouse and Keyboard Demo]
+[init -> usb_hid_drv] input: Dean Camera LUFA Mouse and Keyboard Demo
+[init -> usb_hid_drv] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo) MOUSE
+[init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Mouse [Dean Camera LUFA Mouse and Keyboard Demo]
 [init -> event_dump] Input event #5	PRESS KEY_X 65534	key count: 1
 [init -> event_dump] Input event #6	RELEASE KEY_X	key count: 0
 [init -> event_dump] Input event #7	REL_MOTION -1+1	key count: 0

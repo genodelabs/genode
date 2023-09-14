@@ -1,9 +1,10 @@
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
+#include <../drivers/usb/core/usb.h>
 
 #include <lx_emul/usb_client.h>
+#include <genode_c_api/usb_client.h>
 
-static struct hc_driver _hc_driver = { };
 
 struct meta_data
 {
@@ -12,128 +13,208 @@ struct meta_data
 	struct usb_device *udev;
 };
 
-
-void *lx_emul_usb_client_register_device(genode_usb_client_handle_t handle, char const *label)
+static struct usb_hcd * dummy_hc_device(void)
 {
-	struct meta_data  *meta;
+	static int initialized = 0;
+	static struct hc_driver _hc_driver = { };
+	static struct usb_hcd hcd;
+	static struct device  sysdev;
+	static struct mutex   address0_mutex;
+	static struct mutex   bandwidth_mutex;
+
+	if (!initialized) {
+		device_initialize(&sysdev);
+		mutex_init(&address0_mutex);
+		mutex_init(&bandwidth_mutex);
+		kref_init(&hcd.kref);
+		hcd.driver          = &_hc_driver;
+		hcd.self.bus_name   = "usbbus";
+		hcd.self.sysdev     = &sysdev;
+		hcd.dev_policy      = USB_DEVICE_AUTHORIZE_ALL;
+		hcd.address0_mutex  = &address0_mutex;
+		hcd.bandwidth_mutex = &bandwidth_mutex;
+		set_bit(HCD_FLAG_HW_ACCESSIBLE,   &hcd.flags);
+		set_bit(HCD_FLAG_INTF_AUTHORIZED, &hcd.flags);
+		initialized = 1;
+	}
+	return &hcd;
+}
+
+static void * register_device(genode_usb_client_dev_handle_t handle,
+                              char const *label, genode_usb_speed_t speed)
+{
 	int err;
-	struct genode_usb_device_descriptor dev_descr;
-	struct genode_usb_config_descriptor conf_descr;
+	static int num = 0;
+	struct usb_device * udev;
 
-	err = genode_usb_client_config_descriptor(handle, &dev_descr, &conf_descr);
-	if (err) {
-		printk("error: failed to read config descriptor\n");
-		return NULL;;
-	}
-
-	meta = (struct meta_data *)kmalloc(sizeof(struct meta_data), GFP_KERNEL);
-	if (!meta) return NULL;
-
-	meta->sysdev = (struct device*)kzalloc(sizeof(struct device), GFP_KERNEL);
-	if (!meta->sysdev) goto sysdev;
-
-	device_initialize(meta->sysdev);
-
-	meta->hcd = (struct usb_hcd *)kzalloc(sizeof(struct usb_hcd), GFP_KERNEL);
-	if (!meta->hcd) goto hcd;
-
-	/* hcd->self is usb_bus */
-	meta->hcd->driver        = &_hc_driver;
-	meta->hcd->self.bus_name = "usbbus";
-	meta->hcd->self.sysdev   = meta->sysdev;
-
-	meta->udev = usb_alloc_dev(NULL, &meta->hcd->self, 0);
-	if (!meta->udev) {
+	udev = usb_alloc_dev(NULL, &dummy_hc_device()->self, 0);
+	if (!udev) {
 		printk("error: could not allocate udev for %s\n", label);
-		goto udev;
-	}
-
-	/* usb_alloc_dev sets parent to bus->controller if first argument is NULL */
-	meta->hcd->self.controller = (struct device *)handle;
-
-	memcpy(&meta->udev->descriptor, &dev_descr, sizeof(struct usb_device_descriptor));
-	meta->udev->devnum     = dev_descr.num;
-	meta->udev->speed      = (enum usb_device_speed)dev_descr.speed;
-	meta->udev->authorized = 1;
-	meta->udev->bus_mA     = 900; /* set to maximum USB3.0 */
-	meta->udev->state      = USB_STATE_NOTATTACHED;
-
-	dev_set_name(&meta->udev->dev, "%s", label);
-
-	err = usb_new_device(meta->udev);
-
-	if (err) {
-		printk("error: usb_new_device failed %d\n", err);
-		goto new_device;
-	}
-	return meta;
-
-new_device:
-	usb_put_dev(meta->udev);
-udev:
-	kfree(meta->hcd);
-hcd:
-	kfree(meta->sysdev);
-sysdev:
-	kfree(meta);
-
-	return NULL;
-}
-
-
-void lx_emul_usb_client_unregister_device(genode_usb_client_handle_t handle, void *data)
-{
-	struct meta_data *meta = (struct meta_data *)data;
-
-	usb_disconnect(&meta->udev);
-	usb_put_dev(meta->udev);
-	kfree(meta->hcd);
-	kobject_put(&meta->sysdev->kobj);
-	kfree(meta->sysdev);
-	kfree(meta);
-}
-
-
-#define for_each_claimed_interface(udev, num, intf) \
-	for (num = 0, intf = udev->actconfig->interface[num]; \
-	     num < udev->actconfig->desc.bNumInterfaces; \
-	     intf = udev->actconfig->interface[++num]) \
-		if (!usb_interface_claimed(intf)) continue; else
-
-
-int lx_emul_usb_client_set_configuration(genode_usb_client_handle_t handle, void *data, unsigned long config)
-{
-	struct meta_data *meta  = (struct meta_data *)data;
-	struct usb_device *udev = meta->udev;
-	unsigned i = 0;
-	struct usb_interface *intf;
-
-	/* release claimed interfaces at session */
-	for_each_claimed_interface(udev, i, intf) {
-		genode_usb_client_release_interface(handle, i);
+		return NULL;
 	}
 
 	/*
-	 * Release claimed interfaces at driver, 'usb_driver_release_interface' may
-	 * release more than one interface
+	 * We store handle in filelist list head to be used in hcd urb submission
+	 * before sending any URB. The filelist member is referenced in devio.c
+	 * only which is not used here.
 	 */
-	for_each_claimed_interface(udev, i, intf) {
-		usb_driver_release_interface(to_usb_driver(intf->dev.driver), intf);
+	udev->filelist.prev = (struct list_head *) handle;
+
+	udev->devnum = num++;
+
+	switch (speed) {
+	case GENODE_USB_SPEED_LOW:   udev->speed = USB_SPEED_LOW;   break;
+	case GENODE_USB_SPEED_FULL:  udev->speed = USB_SPEED_FULL;  break;
+	case GENODE_USB_SPEED_HIGH:  udev->speed = USB_SPEED_HIGH;  break;
+	case GENODE_USB_SPEED_SUPER: udev->speed = USB_SPEED_SUPER; break;
+	case GENODE_USB_SPEED_SUPER_PLUS:
+		udev->speed = USB_SPEED_SUPER_PLUS;
+		udev->ssp_rate = USB_SSP_GEN_2x1;
+		break;
+	case GENODE_USB_SPEED_SUPER_PLUS_2X2:
+		udev->speed = USB_SPEED_SUPER_PLUS;
+		udev->ssp_rate = USB_SSP_GEN_2x2;
+		break;
+	default:
+		udev->speed = USB_SPEED_FULL;
+		break;
+	};
+
+	udev->authorized = 1;
+	udev->bus_mA     = 900; /* set to maximum USB3.0 */
+	usb_set_device_state(udev, USB_STATE_ADDRESS);
+
+	dev_set_name(&udev->dev, "%s", label);
+	device_set_wakeup_capable(&udev->dev, 1);
+	udev->ep0.desc.wMaxPacketSize = cpu_to_le16(64);
+	err = usb_get_device_descriptor(udev, USB_DT_DEVICE_SIZE);
+	if (err < 0) {
+		dev_err(&udev->dev, "can't read device descriptor: %d\n", err);
+		usb_put_dev(udev);
+		return NULL;
 	}
 
-	/* set unconfigured (internal reset in host driver) first */
-	usb_set_configuration(meta->udev, 0);
-	return usb_set_configuration(meta->udev, config);
+	err = usb_new_device(udev);
+	if (err) {
+		printk("error: usb_new_device failed %d\n", err);
+		usb_put_dev(udev);
+		return NULL;
+	}
+
+	return udev;
 }
 
 
-void * hcd_buffer_alloc(struct usb_bus * bus, size_t size, gfp_t mem_flags, dma_addr_t * dma)
+static void urb_out(void * data, genode_buffer_t buf)
 {
-	return kmalloc(size, GFP_KERNEL);
+	struct urb *urb = (struct urb *) data;
+	memcpy(buf.addr, urb->transfer_buffer,
+	       urb->transfer_buffer_length);
 }
 
 
-void hcd_buffer_free(struct usb_bus * bus, size_t size, void * addr, dma_addr_t dma)
+static void urb_in(void * data, genode_buffer_t buf)
 {
-	kfree(addr);
+	struct urb *urb = (struct urb *) data;
+	memcpy(urb->transfer_buffer, buf.addr, buf.size);
+	urb->actual_length = buf.size;
+}
+
+
+static genode_uint32_t isoc_urb_out(void * data, genode_uint32_t idx,
+                                    genode_buffer_t buf)
+{
+	printk("%s: not implemented yet, we had no isochronous Linux driver yet",
+	       __func__);
+	return 0;
+}
+
+
+static void isoc_urb_in(void * data, genode_uint32_t idx, genode_buffer_t buf)
+{
+	printk("%s: not implemented yet, we had no isochronous Linux driver yet",
+	       __func__);
+}
+
+
+static void urb_complete(void * data, genode_usb_client_ret_val_t result)
+{
+	struct urb *urb = (struct urb *) data;
+	switch (result) {
+	case OK:        urb->status = 0;          break;
+	case NO_DEVICE: urb->status = -ENOENT;    break;
+	case NO_MEMORY: urb->status = -ENOMEM;    break;
+	case HALT:      urb->status = -EPIPE;     break;
+	case INVALID:   urb->status = -EINVAL;    break;
+	case TIMEOUT:   urb->status = -ETIMEDOUT;
+	};
+	if (urb->complete) urb->complete(urb);
+
+	atomic_dec(&urb->use_count);
+	usb_put_urb(urb);
+}
+
+
+static void unregister_device(genode_usb_client_dev_handle_t handle, void *data)
+{
+	struct usb_device *udev = (struct usb_device *)data;
+	genode_usb_client_device_update(urb_out, urb_in, isoc_urb_out,
+	                                isoc_urb_in, urb_complete);
+	udev->filelist.prev = NULL;
+	usb_disconnect(&udev);
+	usb_put_dev(udev);
+}
+
+
+static int usb_loop(void *arg)
+{
+	for (;;) {
+		genode_usb_client_device_update(urb_out, urb_in, isoc_urb_out,
+		                                isoc_urb_in, urb_complete);
+		lx_emul_task_schedule(true);
+	}
+	return -1;
+}
+
+
+static struct task_struct * usb_task = NULL;
+
+
+static int usb_rom_loop(void *arg)
+{
+	for (;;) {
+
+		genode_usb_client_update(register_device, unregister_device);
+
+		/* block until lx_emul_task_unblock */
+		lx_emul_task_schedule(true);
+	}
+	return 0;
+}
+
+
+static struct task_struct *usb_rom_task = NULL;
+
+
+void lx_emul_usb_client_init(void)
+{
+	pid_t pid;
+
+	pid = kernel_thread(usb_rom_loop, NULL, CLONE_FS | CLONE_FILES);
+	usb_rom_task = find_task_by_pid_ns(pid, NULL);
+
+	pid = kernel_thread(usb_loop, NULL, CLONE_FS | CLONE_FILES);
+	usb_task = find_task_by_pid_ns(pid, NULL);
+}
+
+
+void lx_emul_usb_client_rom_update(void)
+{
+	if (usb_rom_task) lx_emul_task_unblock(usb_rom_task);
+}
+
+
+void lx_emul_usb_client_ticker(void)
+{
+	if (usb_task) lx_emul_task_unblock(usb_task);
 }

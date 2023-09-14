@@ -75,14 +75,6 @@ void ack_bad_irq(unsigned int irq)
 }
 
 
-#include <linux/random.h>
-
-void add_device_randomness(const void * buf,size_t len)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kobject.h>
 
 int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
@@ -367,6 +359,14 @@ int power_supply_powers(struct power_supply * psy,struct device * dev)
 }
 
 
+#include <linux/scatterlist.h>
+
+struct scatterlist * sg_next(struct scatterlist * sg)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/smp.h>
 
 void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
@@ -412,23 +412,8 @@ struct timerqueue_node * timerqueue_iterate_next(struct timerqueue_node * node)
 }
 
 
-#include <linux/usb.h>
-
-void usb_block_urb(struct urb * urb)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern void usb_devio_cleanup(void);
 void usb_devio_cleanup(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void usb_disable_endpoint(struct usb_device * dev,unsigned int epaddr,bool reset_hardware);
-void usb_disable_endpoint(struct usb_device * dev,unsigned int epaddr,bool reset_hardware)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -437,29 +422,6 @@ void usb_disable_endpoint(struct usb_device * dev,unsigned int epaddr,bool reset
 #include <linux/usb.h>
 
 int usb_free_streams(struct usb_interface * interface,struct usb_host_endpoint ** eps,unsigned int num_eps,gfp_t mem_flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int usb_get_device_descriptor(struct usb_device * dev,unsigned int size);
-int usb_get_device_descriptor(struct usb_device * dev,unsigned int size)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/usb.h>
-
-int usb_get_status(struct usb_device * dev,int recip,int type,int target,void * data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/usb/hcd.h>
-
-int usb_hcd_alloc_bandwidth(struct usb_device * udev,struct usb_host_config * new_config,struct usb_host_interface * cur_alt,struct usb_host_interface * new_alt)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -487,23 +449,8 @@ void usb_hub_remove_port_device(struct usb_hub * hub,int port1)
 }
 
 
-#include <linux/usb.h>
-
-int usb_interrupt_msg(struct usb_device * usb_dev,unsigned int pipe,void * data,int len,int * actual_length,int timeout)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern void usb_major_cleanup(void);
 void usb_major_cleanup(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int usb_set_isoch_delay(struct usb_device * dev);
-int usb_set_isoch_delay(struct usb_device * dev)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -512,22 +459,6 @@ int usb_set_isoch_delay(struct usb_device * dev)
 #include <linux/usb/ch9.h>
 
 const char * usb_speed_string(enum usb_device_speed speed)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/usb.h>
-
-int usb_unlink_urb(struct urb * urb)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/usb.h>
-
-void usb_unpoison_urb(struct urb * urb)
 {
 	lx_emul_trace_and_stop(__func__);
 }

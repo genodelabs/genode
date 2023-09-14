@@ -166,29 +166,6 @@ int __init usb_devio_init(void)
 }
 
 
-#include <linux/usb.h>
-
-int usb_string(struct usb_device * dev,int index,char * buf,size_t size)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-
-extern char * usb_cache_string(struct usb_device * udev,int index);
-char * usb_cache_string(struct usb_device * udev,int index)
-{
-	lx_emul_trace(__func__);
-	return NULL;
-}
-
-
-void usb_kill_urb(struct urb * urb)
-{
-	lx_emul_trace(__func__);
-}
-
-
 #include <linux/usb/hcd.h>
 
 struct usb_hcd * usb_get_hcd(struct usb_hcd * hcd)
@@ -336,8 +313,53 @@ void usb_remove_sysfs_intf_files(struct usb_interface * intf)
 }
 
 
-extern void usb_disable_interface(struct usb_device * dev,struct usb_interface * intf,bool reset_hardware);
-void usb_disable_interface(struct usb_device * dev,struct usb_interface * intf,bool reset_hardware)
+const struct attribute_group *usb_interface_groups[] = { NULL };
+
+
+#include <linux/random.h>
+
+void add_device_randomness(const void * buf,size_t len)
 {
 	lx_emul_trace(__func__);
 }
+
+
+#include <linux/usb/hcd.h>
+
+int usb_hcd_alloc_bandwidth(struct usb_device * udev,struct usb_host_config * new_config,struct usb_host_interface * cur_alt,struct usb_host_interface * new_alt)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void usb_hcd_flush_endpoint(struct usb_device *udev,
+		struct usb_host_endpoint *ep)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void usb_hcd_disable_endpoint(struct usb_device *udev,
+		struct usb_host_endpoint *ep)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void usb_hcd_reset_endpoint(struct usb_device *udev,
+			    struct usb_host_endpoint *ep)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#if defined(CONFIG_OF)
+#include <linux/usb/of.h>
+
+bool usb_of_has_combined_node(struct usb_device * udev)
+{
+	lx_emul_trace(__func__);
+	return true;
+}
+#endif

@@ -16,7 +16,8 @@
 
 #include <base/stdint.h>
 #include <util/endian.h>
-#include <util/mmio.h>
+
+#include <mmio.h>
 
 namespace Scsi {
 
@@ -84,7 +85,7 @@ namespace Scsi {
  * SCSI command responses **
  ***************************/
 
-struct Scsi::Inquiry_response : Genode::Mmio<0x24>
+struct Scsi::Inquiry_response : Genode::Const_mmio<0x24>
 {
 	/*
 	 * Minimum response length is 36 bytes.
@@ -105,7 +106,8 @@ struct Scsi::Inquiry_response : Genode::Mmio<0x24>
 	struct Pid : Register_array<0x10, 8, 16, 8> { }; /* product identification */
 	struct Rev : Register_array<0x20, 8, 4, 8> { }; /* product revision level */
 
-	Inquiry_response(Byte_range_ptr const &range) : Mmio(range) { }
+	Inquiry_response(Const_byte_range_ptr const &range, bool verbose)
+	: Const_mmio(range) { if (verbose) dump(); }
 
 	bool       sbc() const { return read<Dt>() == 0x00; }
 	bool removable() const { return read<Rm::Rmb>();    }
@@ -132,7 +134,7 @@ struct Scsi::Inquiry_response : Genode::Mmio<0x24>
 };
 
 
-struct Scsi::Request_sense_response : Genode::Mmio<0x13>
+struct Scsi::Request_sense_response : Genode::Const_mmio<0x13>
 {
 	enum { LENGTH = 18 };
 
@@ -153,7 +155,8 @@ struct Scsi::Request_sense_response : Genode::Mmio<0x13>
 	struct Fru : Register<0xe,  8> { }; /* field replaceable unit code */
 	struct Sks : Register<0xf, 32> { }; /* sense key specific (3 byte) */
 
-	Request_sense_response(Byte_range_ptr const &range) : Mmio(range) { }
+	Request_sense_response(Const_byte_range_ptr const &range, bool verbose)
+	: Const_mmio(range) { if (verbose) dump(); }
 
 	void dump()
 	{
@@ -167,14 +170,15 @@ struct Scsi::Request_sense_response : Genode::Mmio<0x13>
 };
 
 
-struct Scsi::Capacity_response_10 : Genode::Mmio<0x8>
+struct Scsi::Capacity_response_10 : Genode::Const_mmio<0x8>
 {
 	enum { LENGTH = 8 };
 
 	struct Lba : Register<0x0, 32> { };
 	struct Bs  : Register<0x4, 32> { };
 
-	Capacity_response_10(Byte_range_ptr const &range) : Mmio(range) { }
+	Capacity_response_10(Const_byte_range_ptr const &range, bool verbose)
+	: Const_mmio(range) { if (verbose) dump(); }
 
 	uint32_t last_block() const { return be(read<Lba>()); }
 	uint32_t block_size() const { return be(read<Bs>()); }
@@ -188,14 +192,15 @@ struct Scsi::Capacity_response_10 : Genode::Mmio<0x8>
 };
 
 
-struct Scsi::Capacity_response_16 : Genode::Mmio<0xc>
+struct Scsi::Capacity_response_16 : Genode::Const_mmio<0xc>
 {
 	enum { LENGTH = 32 };
 
 	struct Lba : Register<0x0, 64> { };
 	struct Bs  : Register<0x8, 32> { };
 
-	Capacity_response_16(Byte_range_ptr const &range) : Mmio(range) { }
+	Capacity_response_16(Const_byte_range_ptr const &range, bool verbose)
+	: Const_mmio(range) { if (verbose) dump(); }
 
 	uint64_t last_block() const { return be(read<Lba>()); }
 	uint32_t block_size() const { return be(read<Bs>()); }

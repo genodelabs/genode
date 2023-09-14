@@ -4,9 +4,10 @@
 extern "C" {
 #endif
 
-void *lx_emul_usb_client_register_device(genode_usb_client_handle_t handle, char const *label);
-void  lx_emul_usb_client_unregister_device(genode_usb_client_handle_t handle, void *data);
-int   lx_emul_usb_client_set_configuration(genode_usb_client_handle_t, void *data, unsigned long config);
+int   lx_emul_usb_client_set_configuration(genode_usb_client_dev_handle_t, void *data, unsigned long config);
+void  lx_emul_usb_client_init(void);
+void  lx_emul_usb_client_rom_update(void);
+void  lx_emul_usb_client_ticker(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -18,14 +18,7 @@
 extern "C" {
 #endif
 
-struct task_struct;
-
-int                 lx_user_main_task(void *);
-struct task_struct *lx_user_new_usb_task(int (*func)(void*), void *args);
-void                lx_user_destroy_usb_task(struct task_struct*);
-
-void lx_led_state_update(bool capslock, bool numlock, bool scrlock);
-
+void lx_emul_led_state_update(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

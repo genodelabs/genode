@@ -18,7 +18,8 @@
 #include <root/component.h>
 
 /* os includes */
-#include <usb_session/rpc_object.h>
+#include <usb_session/usb_session.h>
+#include <os/dynamic_rom_session.h>
 
 namespace Black_hole {
 
@@ -30,42 +31,44 @@ namespace Black_hole {
 }
 
 
-class Black_hole::Usb_session : public Usb::Session_rpc_object
+class Black_hole::Usb_session : public Session_object<Usb::Session>,
+                                private Dynamic_rom_session::Xml_producer
 {
+	private:
+
+		Env                &_env;
+		Dynamic_rom_session _rom_session { _env.ep(), _env.ram(),
+		                                   _env.rm(), *this };
+
 	public:
 
-		Usb_session(Ram_dataspace_capability  tx_ds,
-		            Entrypoint               &ep,
-		            Region_map               &rm)
+		Usb_session(Env             &env,
+		            Label     const &label,
+		            Resources const &resources,
+		            Diag      const &diag)
+
 		:
-			Session_rpc_object { tx_ds, ep.rpc_ep(), rm }
-		{ }
+			Session_object<Usb::Session>(env.ep(), resources, label, diag),
+			Dynamic_rom_session::Xml_producer("devices"),
+			_env(env) { }
 
-		void sigh_state_change(Signal_context_capability /* sigh */) override { }
+		Rom_session_capability devices_rom() override {
+			return _rom_session.cap(); }
 
-		bool plugged() override { return false; }
+		Device_capability acquire_device(Device_name const &) override {
+			return Device_capability(); }
 
-		void config_descriptor(Device_descriptor * /* device_descr */,
-		                       Config_descriptor * /* config_descr */) override { }
+		Device_capability acquire_single_device() override {
+			return Device_capability(); }
 
-		unsigned alt_settings(unsigned /* index */) override { return 0; }
+		void release_device(Device_capability) override {}
 
-		void interface_descriptor(unsigned               /* index */,
-		                          unsigned               /* alt_setting */,
-		                          Interface_descriptor * /* interface_descr */) override { }
 
-		bool interface_extra(unsigned          /* index */,
-		                     unsigned          /* alt_setting */,
-		                     Interface_extra * /* interface_data */) override { return false; }
+		/*******************************************
+		 ** Dynamic_rom_session::Xml_producer API **
+		 *******************************************/
 
-		void endpoint_descriptor(unsigned               /* interface_num */,
-		                         unsigned               /* alt_setting */,
-		                         unsigned               /* endpoint_num */,
-		                         Endpoint_descriptor  * /* endpoint_descr */) override { }
-
-		void claim_interface(unsigned /* interface_num */) override { }
-
-		void release_interface(unsigned /* interface_num */) override { }
+		void produce_xml(Xml_generator &) override {}
 };
 
 
@@ -79,18 +82,11 @@ class Black_hole::Usb_root : public Root_component<Usb_session>
 
 		Usb_session *_create_session(char const *args) override
 		{
-			size_t const ram_quota {
-				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0) };
-
-			size_t const tx_buf_size {
-				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0) };
-
-			if (ram_quota < tx_buf_size) {
-				throw Insufficient_ram_quota { };
-			}
-			Ram_dataspace_capability tx_ds { _env.ram().alloc(tx_buf_size) };
 			return new (md_alloc())
-				Usb_session { tx_ds, _env.ep(), _env.rm() };
+				Usb_session { _env,
+				              session_label_from_args(args),
+				              session_resources_from_args(args),
+				              session_diag_from_args(args) };
 		}
 
 	public:

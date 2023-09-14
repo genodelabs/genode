@@ -20,6 +20,7 @@
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
 #include <linux/mutex.h>
+#include <linux/version.h>
 #include <uapi/linux/usbdevice_fs.h>
 
 #include <lx_emul/shared_dma_buffer.h>
@@ -31,13 +32,6 @@
 #include <genode_c_api/usb.h>
 
 struct usb_interface;
-
-struct usb_find_request {
-	genode_usb_bus_num_t bus;
-	genode_usb_dev_num_t dev;
-	struct usb_device  * ret;
-};
-
 
 static int usb_drv_probe(struct usb_interface *interface,
                          const struct usb_device_id *id) {
@@ -55,219 +49,54 @@ static struct usb_driver usb_drv = {
 };
 
 
-static int check_usb_device(struct usb_device *usb_dev, void * data)
+static genode_usb_request_ret_t handle_return_code(int err)
 {
-	struct usb_find_request * req = (struct usb_find_request *) data;
-	if (usb_dev->devnum == req->dev && usb_dev->bus->busnum == req->bus)
-		req->ret = usb_dev;
-	return 0;
-}
-
-static struct usb_device * find_usb_device(genode_usb_bus_num_t bus,
-                                           genode_usb_dev_num_t dev)
-{
-	struct usb_find_request req = { bus, dev, NULL };
-	usb_for_each_dev(&req, check_usb_device);
-	return req.ret;
-}
-
-
-static struct usb_interface * interface(genode_usb_bus_num_t bus,
-                                        genode_usb_dev_num_t dev,
-                                        unsigned index)
-{
-	struct usb_device * udev = find_usb_device(bus, dev);
-
-	if (!udev)
-		return NULL;
-
-	if (!udev->actconfig)
-		return NULL;
-
-	if (index >= udev->actconfig->desc.bNumInterfaces)
-		return NULL;
-
-	return udev->actconfig->interface[index];
-}
-
-
-static unsigned config_descriptor(genode_usb_bus_num_t bus,
-                                  genode_usb_dev_num_t dev,
-                                  void * dev_desc, void *conf_desc)
-{
-	struct usb_device * udev = find_usb_device(bus, dev);
-	if (!udev)
-		return 0;
-
-	memcpy(dev_desc, &udev->descriptor, sizeof(struct usb_device_descriptor));
-	if (udev->actconfig)
-		memcpy(conf_desc, &udev->actconfig->desc,
-		       sizeof(struct usb_config_descriptor));
-	else
-		memset(conf_desc, 0, sizeof(struct usb_config_descriptor));
-
-	return udev->speed;
-}
-
-
-static int alt_settings(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev,
-                        unsigned index)
-{
-	struct usb_interface * iface = interface(bus, dev, index);
-	return (iface) ? iface->num_altsetting : -1;
-}
-
-
-static int interface_descriptor(genode_usb_bus_num_t bus,
-                                genode_usb_dev_num_t dev,
-                                unsigned index, unsigned setting,
-                                void * buf, unsigned long size, int * active)
-{
-	struct usb_interface * iface = interface(bus, dev, index);
-
-	if (!iface || setting >= iface->num_altsetting)
-		return -1;
-
-	memcpy(buf, &iface->altsetting[setting].desc,
-	       min(sizeof(struct usb_interface_descriptor), size));
-
-	*active = &iface->altsetting[setting] == iface->cur_altsetting;
-	return 0;
-}
-
-
-static int interface_extra(genode_usb_bus_num_t bus,
-                           genode_usb_dev_num_t dev,
-                           unsigned index, unsigned setting,
-                           void * buf, unsigned long size)
-{
-	struct usb_interface * iface = interface(bus, dev, index);
-	unsigned long len;
-
-	if (!iface || setting >= iface->num_altsetting)
-		return -1;
-
-	len = min((unsigned long)iface->altsetting[setting].extralen, size);
-	memcpy(buf, iface->altsetting[setting].extra, len);
-	return len;
-}
-
-
-static int endpoint_descriptor(genode_usb_bus_num_t bus,
-                               genode_usb_dev_num_t dev,
-                               unsigned iface_num, unsigned setting,
-                               unsigned endp, void * buf, unsigned long size)
-{
-	struct usb_device * udev = find_usb_device(bus, dev);
-	struct usb_interface * iface;
-	struct usb_host_endpoint * ep;
-
-	if (!udev)
-		return -1;
-	iface = usb_ifnum_to_if(udev, iface_num);
-
-	if (!iface)
-		return -2;
-
-	if (setting >= iface->num_altsetting ||
-	    endp    >= iface->altsetting[setting].desc.bNumEndpoints)
-		return -3;
-
-	ep = &iface->altsetting[setting].endpoint[endp];
-	if (!ep)
-		return -4;
-
-	memcpy(buf, &ep->desc,
-	       min(sizeof(struct usb_endpoint_descriptor), size));
-
-	return 0;
-}
-
-
-static inline void *
-usercontext_from_handle(genode_usb_session_handle_t session_handle,
-                        genode_usb_request_handle_t request_handle)
-{
-	return (void*)(((unsigned long)session_handle << 16) | request_handle);
-}
-
-
-static inline void
-handle_from_usercontext(void * usercontext,
-                        genode_usb_session_handle_t * session_handle,
-                        genode_usb_request_handle_t * request_handle)
-{
-	*session_handle = (genode_usb_session_handle_t)((unsigned long)usercontext >> 16);
-	*request_handle = (genode_usb_request_handle_t)((unsigned long)usercontext & 0xffff);
-}
-
-
-static genode_usb_request_ret_t
-handle_return_code(struct genode_usb_request_urb req,
-                   struct genode_usb_buffer      payload,
-                   void                         *data)
-{
-	switch (*(int*)data) {
-	case 0:          return NO_ERROR;
-	case -ENOENT:    return INTERFACE_OR_ENDPOINT_ERROR;
-	case -ENOMEM:    return MEMORY_ERROR;
-	case -ENODEV:    return NO_DEVICE_ERROR;
-	case -ESHUTDOWN: return NO_DEVICE_ERROR;
-	case -ENOSPC:    return STALL_ERROR;
-	case -EPROTO:    return PROTOCOL_ERROR;
-	case -EILSEQ:    return PROTOCOL_ERROR;
-	case -EPIPE:     return STALL_ERROR;
-	case -ETIMEDOUT: return TIMEOUT_ERROR;
-	case -EINVAL:    return PACKET_INVALID_ERROR;
-	default:         return UNKNOWN_ERROR;
+	/*
+	 * USB error codes are documented in kernel sources
+	 *
+	 * Documentation/driver-api/usb/error-codes.rst
+	 */
+	switch (err) {
+	case 0:          return OK;
+	case -ENOENT:    return NO_DEVICE;
+	case -ENODEV:    return NO_DEVICE;
+	case -ESHUTDOWN: return NO_DEVICE;
+	case -EILSEQ:    return NO_DEVICE; /* xHCI ret val when HID vanishs */
+	case -EPROTO:    return NO_DEVICE;
+	case -ETIMEDOUT: return TIMEOUT;
+	case -ENOSPC:    return HALT;
+	case -EPIPE:     return HALT;
+	case -ENOMEM:    return INVALID;
+	case -EINVAL:    return INVALID;
+	default:         return INVALID;
 	};
-};
-
-
-typedef enum usb_rpc_call_type {
-	CLAIM,
-	RELEASE_IF,
-	RELEASE_ALL
-} usb_rpc_call_type_t;
-
-
-struct usb_rpc_call_args {
-	unsigned             iface_num;
-	usb_rpc_call_type_t  call;
-	int                  ret;
 };
 
 
 struct usb_per_dev_data
 {
-	struct inode              inode;
-	struct file               file;
-	struct usb_rpc_call_args *rpc;
-	struct usb_device        *dev;
-	struct task_struct       *task;
-	struct usb_anchor         submitted;
+	struct usb_device  * dev;
+	struct task_struct * task;
+	struct usb_anchor    submitted;
+	bool                 kill_task;
 };
 
 
 static int poll_usb_device(void * args);
-static struct file * open_usb_dev(struct usb_device * udev)
+static void open_usb_dev(struct usb_device * udev)
 {
 	struct usb_per_dev_data * data = dev_get_drvdata(&udev->dev);
 
 	if (!data) {
 		int pid;
 		data = kmalloc(sizeof(struct usb_per_dev_data), GFP_KERNEL);
-		data->inode.i_rdev = udev->dev.devt;
-		data->file.f_inode = &data->inode;
-		data->file.f_mode  = FMODE_WRITE;
 		data->dev = udev;
+		data->kill_task = false;
 		pid = kernel_thread(poll_usb_device, data, CLONE_FS | CLONE_FILES);
 		data->task = find_task_by_pid_ns(pid, NULL);
 		init_usb_anchor(&data->submitted);
 		dev_set_drvdata(&udev->dev, data);
 	}
-
-	return &data->file;
 }
 
 
@@ -282,456 +111,262 @@ static void release_device(struct usb_per_dev_data * data)
 
 	/**
 	 * If the device gets released although it is still available,
-	 * reset the device to be sane for new sessions aquiring it
+	 * reset the device to be sane for new sessions aquiring it.
+	 * Moreover, release each interface as part of reset, therefore
+	 * they have to be claimed before.
 	 */
 	for (ifnum = 0; ifnum < 8; ifnum++) {
 		struct usb_interface * iface = usb_ifnum_to_if(data->dev, ifnum);
-		if (iface) usb_driver_release_interface(&usb_drv, iface);
+		if (iface) {
+			usb_driver_claim_interface(&usb_drv, iface, NULL);
+			usb_driver_release_interface(&usb_drv, iface);
+		}
 	}
 	usb_reset_device(data->dev);
 }
 
 
-static int claim_iface(struct usb_device *udev, unsigned int ifnum)
+static void
+handle_control_request(genode_usb_request_handle_t handle,
+                       unsigned char               ctrl_request,
+                       unsigned char               ctrl_request_type,
+                       unsigned short              ctrl_value,
+                       unsigned short              ctrl_index,
+                       unsigned long               ctrl_timeout,
+                       genode_buffer_t             payload,
+                       void                       *opaque_callback_data)
 {
-	struct usb_interface * iface;
-	int ret = -ENODEV;
+	struct usb_device *udev = (struct usb_device *) opaque_callback_data;
+	int ret = 0;
+	u32 size;
+	bool send_msg = true;
 
-	iface = usb_ifnum_to_if(udev, ifnum);
-	if (iface) ret = usb_driver_claim_interface(&usb_drv, iface, NULL);
-	return ret;
+	/* check for set alternate interface request */
+	if (ctrl_request == USB_REQ_SET_INTERFACE &&
+	    (ctrl_request_type & 0x7f) == (USB_TYPE_STANDARD|USB_RECIP_INTERFACE)) {
+		struct usb_interface *iface = usb_ifnum_to_if(udev, ctrl_index);
+		struct usb_host_interface *alt =
+			iface ? usb_altnum_to_altsetting(iface, ctrl_value) : NULL;
+
+		if (iface && iface->cur_altsetting != alt)
+			ret = usb_set_interface(udev, ctrl_index, ctrl_value);
+
+		send_msg = false;
+	}
+
+	/* check for set device configuration request */
+	if (ctrl_request == USB_REQ_SET_CONFIGURATION &&
+	    ctrl_request_type == USB_RECIP_DEVICE) {
+		if (!(udev->actconfig &&
+		      udev->actconfig->desc.bConfigurationValue == ctrl_value))
+			ret = usb_set_configuration(udev, ctrl_value);
+		send_msg = false;
+	}
+
+	/* otherwise send control message */
+	if (send_msg) {
+		int pipe = (ctrl_request_type & 0x80)
+			? usb_rcvctrlpipe(udev, 0) : usb_sndctrlpipe(udev, 0);
+
+			usb_unlock_device(udev);
+			ret = usb_control_msg(udev, pipe, ctrl_request, ctrl_request_type,
+			                      ctrl_value, ctrl_index, payload.addr,
+			                      payload.size, ctrl_timeout);
+			usb_lock_device(udev);
+	}
+
+	size = ret < 0 ? 0 : ret;
+	genode_usb_ack_request(handle, handle_return_code(ret < 0 ? ret : 0),
+	                       &size);
 }
 
 
-static int release_iface(struct usb_device *udev, unsigned int ifnum)
+static void anchor_and_submit_urb(genode_usb_request_handle_t handle,
+                                  struct urb                 *urb,
+                                  struct usb_anchor          *anchor)
 {
-	struct usb_interface * iface = usb_ifnum_to_if(udev, ifnum);
-	if (iface) usb_driver_release_interface(&usb_drv, iface);
-	return 0;
-}
+	int ret;
+	usb_anchor_urb(urb, anchor);
+	ret = usb_submit_urb(urb, GFP_KERNEL);
 
-
-static int usb_rpc_finished(void *d)
-{
-	struct usb_rpc_call_args * rpc = (struct usb_rpc_call_args*)d;
-	return (rpc->ret <= 0);
-}
-
-
-static int claim(genode_usb_bus_num_t bus,
-                 genode_usb_dev_num_t dev,
-                 unsigned             iface_num)
-{
-	struct usb_device       * udev = find_usb_device(bus, dev);
-	struct usb_per_dev_data * data = udev ? dev_get_drvdata(&udev->dev) : NULL;
-
-	struct usb_rpc_call_args rpc = {
-		.ret       = 1,
-		.call      = CLAIM,
-		.iface_num = iface_num
-	};
-
-	/*
-	 * As long as 'claim' is a rpc-call, and the usb device wasn't opened yet,
-	 * we cannot open the device here, this has to be done from a Linux task.
-	 * So just ignore it here.
-	 */
-	if (!data)
-		return 0;
-
-	data->rpc = &rpc;
-	lx_emul_task_unblock(data->task);
-	lx_emul_execute_kernel_until(&usb_rpc_finished, &rpc);
-	return rpc.ret;
-}
-
-
-static int release(genode_usb_bus_num_t bus,
-                   genode_usb_dev_num_t dev,
-                   unsigned             iface_num)
-{
-	struct usb_device       * udev = find_usb_device(bus, dev);
-	struct usb_per_dev_data * data = udev ? dev_get_drvdata(&udev->dev) : NULL;
-
-	struct usb_rpc_call_args rpc = {
-		.ret       = 1,
-		.call      = RELEASE_IF,
-		.iface_num = iface_num
-	};
-
-	if (!data)
-		return -1;
-
-	data->rpc = &rpc;
-	lx_emul_task_unblock(data->task);
-	lx_emul_execute_kernel_until(&usb_rpc_finished, &rpc);
-	return rpc.ret;
-}
-
-
-static void release_all(genode_usb_bus_num_t bus,
-                        genode_usb_dev_num_t dev)
-{
-	struct usb_device       * udev = find_usb_device(bus, dev);
-	struct usb_per_dev_data * data = udev ? dev_get_drvdata(&udev->dev) : NULL;
-
-	struct usb_rpc_call_args rpc = {
-		.ret  = 1,
-		.call = RELEASE_ALL,
-	};
-
-	if (!data)
+	if (!ret)
 		return;
 
-	data->rpc = &rpc;
-	lx_emul_task_unblock(data->task);
-	lx_emul_execute_kernel_until(&usb_rpc_finished, &rpc);
-}
-
-
-struct genode_usb_rpc_callbacks lx_emul_usb_rpc_callbacks = {
-	.alloc_fn        = lx_emul_shared_dma_buffer_allocate,
-	.free_fn         = lx_emul_shared_dma_buffer_free,
-	.cfg_desc_fn     = config_descriptor,
-	.alt_settings_fn = alt_settings,
-	.iface_desc_fn   = interface_descriptor,
-	.iface_extra_fn  = interface_extra,
-	.endp_desc_fn    = endpoint_descriptor,
-	.claim_fn        = claim,
-	.release_fn      = release,
-	.release_all_fn  = release_all,
-};
-
-
-static genode_usb_request_ret_t
-handle_transfer_response(struct genode_usb_request_urb req,
-                         struct genode_usb_buffer payload,
-                         void * data)
-{
-	struct urb * urb = (struct urb *) data;
-	struct genode_usb_request_transfer * transfer =
-		genode_usb_get_request_transfer(&req);
-
-	if (urb->status < 0)
-		return handle_return_code(req, payload, &urb->status);
-
-	if (transfer) transfer->actual_size = urb->actual_length;
-
-	if (req.type == ISOC) {
-		int i;
-		struct genode_usb_isoc_transfer *isoc =
-			(struct genode_usb_isoc_transfer *)payload.addr;
-		if (!isoc)
-			return PACKET_INVALID_ERROR;
-
-		for (i = 0; i < urb->number_of_packets; i++) {
-			isoc->actual_packet_size[i] =
-				urb->iso_frame_desc[i].actual_length;
-		}
-	}
-
-	return NO_ERROR;
-}
-
-
-static void
-handle_string_request(struct genode_usb_request_string * req,
-                      genode_usb_session_handle_t        session,
-                      genode_usb_request_handle_t        request,
-                      struct genode_usb_buffer           payload,
-                      void                             * data)
-{
-	struct usb_device * udev = (struct usb_device *) data;
-	int i, ret = -ENODEV;
-
-	if (udev) {
-		for (i = 0; i < 3; ++i) {
-			/* retry on length 0 or error; some devices are flakey */
-			ret = usb_control_msg(udev, usb_rcvctrlpipe(udev, 0),
-					USB_REQ_GET_DESCRIPTOR, USB_DIR_IN,
-					(USB_DT_STRING << 8) + req->index, udev->string_langid,
-					payload.addr, payload.size,
-					USB_CTRL_GET_TIMEOUT);
-			if (ret <= 0 && ret != -ETIMEDOUT)
-				continue;
-			break;
-		}
-	}
-
-	if (ret > 0) ret = 0;
-	genode_usb_ack_request(session, request, handle_return_code, &ret);
-}
-
-
-static void
-handle_altsetting_request(unsigned                    iface,
-                          unsigned                    alt_setting,
-                          genode_usb_session_handle_t session,
-                          genode_usb_request_handle_t request,
-                          void                      * data)
-{
-	int ret = -ENODEV;
-	struct usb_device * udev = (struct usb_device *) data;
-
-	if (udev)
-		ret = usb_set_interface(udev, iface, alt_setting);
-
-	if (ret)
-		printk("Alt setting request (iface=%u alt_setting=%u) failed\n",
-		       iface, alt_setting);
-
-	genode_usb_ack_request(session, request, handle_return_code, &ret);
-}
-
-
-static void
-handle_config_request(unsigned                    cfg_idx,
-                      genode_usb_session_handle_t session,
-                      genode_usb_request_handle_t request,
-                      void                      * data)
-{
-	struct usb_device * udev = (struct usb_device *) data;
-	int ret = udev ? 0 : -ENODEV;
-
-	/*
-	 * Skip SET_CONFIGURATION requests if the device already has the
-	 * selected config as active config. This workaround prevents issues
-	 * with Linux guests in vbox and SDC-reader passthrough.
-	 */
-	if (udev && !(udev->actconfig &&
-	      udev->actconfig->desc.bConfigurationValue == cfg_idx)) {
-		ret = usb_set_configuration(udev, cfg_idx);
-	}
-
-	genode_usb_ack_request(session, request, handle_return_code, &ret);
-}
-
-
-static void
-handle_flush_request(unsigned char               ep,
-                     genode_usb_session_handle_t session,
-                     genode_usb_request_handle_t request,
-                     void                      * data)
-{
-	struct usb_device * udev = (struct usb_device *) data;
-	int ret = udev ? 0 : -ENODEV;
-	struct usb_host_endpoint * endpoint;
-
-	if (udev) {
-		endpoint = ep & USB_DIR_IN ? udev->ep_in[ep & 0xf]
-		              : udev->ep_out[ep & 0xf];
-		if (endpoint)
-			usb_hcd_flush_endpoint(udev, endpoint);
-	}
-
-	genode_usb_ack_request(session, request, handle_return_code, &ret);
-}
-
-
-static genode_usb_request_ret_t
-handle_ctrl_response(struct genode_usb_request_urb req,
-                         struct genode_usb_buffer payload,
-                         void * data)
-{
-	int status = *(int*)data;
-	struct genode_usb_request_control * ctrl =
-		genode_usb_get_request_control(&req);
-
-	if (status < 0)
-		return handle_return_code(req, payload, &status);
-
-	ctrl->actual_size = status;
-	return NO_ERROR;
+	usb_unanchor_urb(urb);
+	usb_free_urb(urb);
+	genode_usb_ack_request(handle, handle_return_code(ret), NULL);
 }
 
 
 static void async_complete(struct urb *urb)
 {
-	genode_usb_session_handle_t session_handle;
-	genode_usb_request_handle_t request_handle;
-	handle_from_usercontext(urb->context, &session_handle, &request_handle);
-	genode_usb_ack_request(session_handle, request_handle,
-	                       handle_transfer_response, (void*)urb);
-	usb_free_urb(urb);
-	lx_user_handle_io();
-}
+	/* Linux kernel's devio layer limits ISOC packets to 128 */
+	u32 sizes[128 + 1];
 
-
-static int fill_bulk_urb(struct usb_device                  * udev,
-                         struct genode_usb_request_transfer * req,
-                         void                               * handle,
-                         struct genode_usb_buffer             buf,
-                         int                                  read,
-                         struct urb                        ** urb)
-{
-	int pipe = (read)
-		? usb_rcvbulkpipe(udev, req->ep) : usb_sndbulkpipe(udev, req->ep);
-
-	if (!buf.addr)
-		return -EINVAL;
-
-	*urb = usb_alloc_urb(0, GFP_KERNEL);
-	if (!*urb)
-		return -ENOMEM;
-
-	usb_fill_bulk_urb(*urb, udev, pipe, buf.addr, buf.size, async_complete, handle);
-	return 0;
-}
-
-
-static int fill_irq_urb(struct usb_device                  * udev,
-                        struct genode_usb_request_transfer * req,
-                        void                               * handle,
-                        struct genode_usb_buffer             buf,
-                        int                                  read,
-                        struct urb                        ** urb)
-{
-	int polling_interval;
-	int pipe = (read)
-		? usb_rcvintpipe(udev, req->ep) : usb_sndintpipe(udev, req->ep);
-
-	if (buf.size && !buf.addr)
-		return -EINVAL;
-
-	*urb = usb_alloc_urb(0, GFP_KERNEL);
-	if (!*urb)
-		return -ENOMEM;
-
-	if (req->polling_interval == -1) {
-
-		struct usb_host_endpoint *ep = (req->ep & USB_DIR_IN) ?
-			udev->ep_in[req->ep & 0xf] : udev->ep_out[req->ep & 0xf];
-
-		if (!ep)
-			return -ENOENT;
-
-		polling_interval = ep->desc.bInterval;
-	} else
-		polling_interval = req->polling_interval;
-
-	usb_fill_int_urb(*urb, udev, pipe, buf.addr, buf.size,
-	                 async_complete, handle, polling_interval);
-	return 0;
-}
-
-
-static int fill_isoc_urb(struct usb_device                  * udev,
-                         struct genode_usb_request_transfer * req,
-                         void                               * handle,
-                         struct genode_usb_buffer             buf,
-                         int                                  read,
-                         struct urb                        ** urb)
-{
-	int i;
-	unsigned offset = 0;
-	int pipe = (read)
-		? usb_rcvisocpipe(udev, req->ep) : usb_sndisocpipe(udev, req->ep);
-	struct usb_host_endpoint * ep =
-		req->ep & USB_DIR_IN ? udev->ep_in[req->ep & 0xf]
-		                     : udev->ep_out[req->ep & 0xf];
-
-	struct genode_usb_isoc_transfer *isoc = (struct genode_usb_isoc_transfer *)buf.addr;
-
-	if (!buf.addr || isoc->number_of_packets > MAX_PACKETS)
-		return -EINVAL;
-	if (!ep)
-		return -ENOENT;
-
-	*urb = usb_alloc_urb(isoc->number_of_packets, GFP_KERNEL);
-	if (!*urb)
-		return -ENOMEM;
-
-	(*urb)->dev                    = udev;
-	(*urb)->pipe                   = pipe;
-	(*urb)->start_frame            = -1;
-	(*urb)->stream_id              = 0;
-	(*urb)->transfer_buffer        = isoc->data;
-	(*urb)->transfer_buffer_length = buf.size - sizeof(*isoc);
-	(*urb)->number_of_packets      = isoc->number_of_packets;
-	(*urb)->interval               = 1 << min(15, ep->desc.bInterval - 1);
-	(*urb)->context                = handle;
-	(*urb)->transfer_flags         = URB_ISO_ASAP | (read ? URB_DIR_IN : URB_DIR_OUT);
-	(*urb)->complete               = async_complete;
-
-	for (i = 0; i < isoc->number_of_packets; i++) {
-		(*urb)->iso_frame_desc[i].offset = offset;
-		(*urb)->iso_frame_desc[i].length = isoc->packet_size[i];
-		offset += isoc->packet_size[i];
+	genode_usb_request_handle_t handle =
+		(genode_usb_request_handle_t) urb->context;
+	sizes[0] = urb->actual_length;
+	if (urb->status >= 0 && urb->number_of_packets > 0) {
+		unsigned int i;
+		for (i = 0; i < urb->number_of_packets; i++)
+			sizes[i+1] = urb->iso_frame_desc[i].actual_length;
 	}
 
-	return 0;
+	genode_usb_ack_request(handle, handle_return_code(urb->status), sizes);
+
+	/* unblock device's task, it may process further URBs now */
+	if (urb->dev) {
+		struct usb_per_dev_data  *data = dev_get_drvdata(&urb->dev->dev);
+		lx_emul_task_unblock(data->task);
+	}
+
+	usb_free_urb(urb);
+}
+
+
+
+
+static void
+handle_irq_request(genode_usb_request_handle_t handle,
+                   unsigned char               ep_addr,
+                   genode_buffer_t             payload,
+                   void                       *opaque_callback_data)
+{
+	struct usb_device        *udev = (struct usb_device *) opaque_callback_data;
+	struct usb_per_dev_data  *data = dev_get_drvdata(&udev->dev);
+	int pipe = (ep_addr & USB_DIR_IN) ? usb_rcvintpipe(udev, ep_addr & 0x7f)
+	                                  : usb_sndintpipe(udev, ep_addr & 0x7f);
+	struct usb_host_endpoint *ep = usb_pipe_endpoint(udev, pipe);
+	struct urb *urb;
+
+	if ((payload.size && !payload.addr) ||
+	    !ep || !usb_endpoint_maxp(&ep->desc)) {
+		int ret = ep ? -EINVAL : -ENODEV;
+		genode_usb_ack_request(handle, handle_return_code(ret), NULL);
+		return;
+	}
+
+	urb = usb_alloc_urb(0, GFP_KERNEL);
+	if (!urb) {
+		genode_usb_ack_request(handle, handle_return_code(-ENOMEM), NULL);
+		return;
+	}
+
+	usb_fill_int_urb(urb, udev, pipe, payload.addr, payload.size,
+	                 async_complete, handle, ep->desc.bInterval);
+	anchor_and_submit_urb(handle, urb, &data->submitted);
 }
 
 
 static void
-handle_urb_request(struct genode_usb_request_urb req,
-                   genode_usb_session_handle_t   session_handle,
-                   genode_usb_request_handle_t   request_handle,
-                   struct genode_usb_buffer payload, void * data)
+handle_bulk_request(genode_usb_request_handle_t handle,
+                   unsigned char                ep_addr,
+                   genode_buffer_t              payload,
+                   void                        *opaque_callback_data)
+{
+	struct usb_device       * udev = (struct usb_device *) opaque_callback_data;
+	struct usb_per_dev_data * data = dev_get_drvdata(&udev->dev);
+	struct urb *urb;
+
+	int pipe = (ep_addr & USB_DIR_IN) ? usb_rcvbulkpipe(udev, ep_addr & 0x7f)
+	                                  : usb_sndbulkpipe(udev, ep_addr & 0x7f);
+
+	if (!payload.addr || payload.size >= (INT_MAX - sizeof(struct urb))) {
+		genode_usb_ack_request(handle, handle_return_code(-EINVAL), NULL);
+		return;
+	}
+
+	urb = usb_alloc_urb(0, GFP_KERNEL);
+	if (!urb) {
+		genode_usb_ack_request(handle, handle_return_code(-ENOMEM), NULL);
+		return;
+	}
+
+	usb_fill_bulk_urb(urb, udev, pipe, payload.addr, payload.size,
+	                  async_complete, handle);
+	anchor_and_submit_urb(handle, urb, &data->submitted);
+}
+
+
+static void
+handle_isoc_request(genode_usb_request_handle_t        handle,
+                    unsigned char                      ep_addr,
+                    u32                                number_of_packets,
+                    struct genode_usb_isoc_descriptor *packets,
+                    genode_buffer_t                    payload,
+                    void                              *opaque_callback_data)
+{
+	struct usb_device        *udev = (struct usb_device *) opaque_callback_data;
+	struct usb_per_dev_data  *data = dev_get_drvdata(&udev->dev);
+	int pipe = (ep_addr & USB_DIR_IN) ? usb_rcvisocpipe(udev, ep_addr & 0x7f)
+	                                  : usb_sndisocpipe(udev, ep_addr & 0x7f);
+	struct usb_host_endpoint *ep = usb_pipe_endpoint(udev, pipe);
+	struct urb *urb;
+	unsigned int i;
+	unsigned offset = 0;
+
+	if (!payload.addr           ||
+	    number_of_packets > 128 ||
+	    number_of_packets < 1   ||
+	    !ep) {
+		int ret = ep ? -EINVAL : -EINVAL;
+		genode_usb_ack_request(handle, handle_return_code(ret), NULL);
+		return;
+	}
+
+	urb = usb_alloc_urb(number_of_packets, GFP_KERNEL);
+	if (!urb) {
+		genode_usb_ack_request(handle, handle_return_code(-ENOMEM), NULL);
+		return;
+	}
+
+	urb->dev                    = udev;
+	urb->pipe                   = pipe;
+	urb->start_frame            = -1;
+	urb->stream_id              = 0;
+	urb->transfer_buffer        = payload.addr;
+	urb->transfer_buffer_length = payload.size;
+	urb->number_of_packets      = number_of_packets;
+	urb->interval               = 1 << min(15, ep->desc.bInterval - 1);
+	urb->context                = handle;
+	urb->transfer_flags         = URB_ISO_ASAP | (ep_addr & USB_ENDPOINT_DIR_MASK);
+	urb->complete               = async_complete;
+
+	for (i = 0; i < number_of_packets; i++) {
+		urb->iso_frame_desc[i].offset = offset;
+		urb->iso_frame_desc[i].length = packets[i].size;
+		offset += packets[i].size;
+	}
+	anchor_and_submit_urb(handle, urb, &data->submitted);
+}
+
+
+static void
+handle_flush_request(unsigned char               ep_addr,
+                     genode_usb_request_handle_t handle,
+                     void                       *data)
 {
 	struct usb_device * udev = (struct usb_device *) data;
-	struct usb_per_dev_data * urbs = dev_get_drvdata(&udev->dev);
-	struct genode_usb_request_control * ctrl =
-		genode_usb_get_request_control(&req);
-	struct genode_usb_request_transfer * transfer =
-		genode_usb_get_request_transfer(&req);
-	int ret  = 0;
-	int read = transfer ? (transfer->ep & 0x80) : 0;
-	struct urb * urb = NULL;
-	void *handle = usercontext_from_handle(session_handle, request_handle);
+	u32 size = 0;
+	int ret = udev ? 0 : -ENODEV;
 
-	switch (req.type) {
-	case CTRL:
-		{
-			int pipe = (ctrl->request_type & 0x80)
-				? usb_rcvctrlpipe(udev, 0) : usb_sndctrlpipe(udev, 0);
-			usb_unlock_device(udev);
-			ret = usb_control_msg(udev, pipe, ctrl->request, ctrl->request_type,
-								  ctrl->value, ctrl->index, payload.addr,
-								  payload.size, ctrl->timeout);
-			usb_lock_device(udev);
-			genode_usb_ack_request(session_handle, request_handle,
-			                       handle_ctrl_response, &ret);
-			return;
-		}
-	case BULK:
-		ret = fill_bulk_urb(udev, transfer, handle, payload, read, &urb);
-		break;
-	case IRQ:
-		ret = fill_irq_urb(udev, transfer, handle, payload, read, &urb);
-		break;
-	case ISOC:
-		ret = fill_isoc_urb(udev, transfer, handle, payload, read, &urb);
-		break;
-	default:
-		printk("Unknown USB transfer request!\n");
-		ret = -EINVAL;
-	};
-
-	if (!ret) {
-		usb_anchor_urb(urb, &urbs->submitted);
-		ret = usb_submit_urb(urb, GFP_KERNEL);
+	if (udev) {
+		struct usb_host_endpoint * endpoint =
+			ep_addr & USB_DIR_IN ? udev->ep_in[ep_addr  & 0xf]
+			                     : udev->ep_out[ep_addr & 0xf];
+		if (endpoint) usb_hcd_flush_endpoint(udev, endpoint);
 	}
 
-	if (!ret)
-		return;
-
-	if (urb) {
-		usb_unanchor_urb(urb);
-		usb_free_urb(urb);
-	}
-
-	genode_usb_ack_request(session_handle, request_handle,
-	                       handle_return_code, &ret);
+	genode_usb_ack_request(handle, handle_return_code(ret), &size);
 }
 
 
 static struct genode_usb_request_callbacks request_callbacks = {
-	.urb_fn        = handle_urb_request,
-	.string_fn     = handle_string_request,
-	.altsetting_fn = handle_altsetting_request,
-	.config_fn     = handle_config_request,
-	.flush_fn      = handle_flush_request,
+	.ctrl_fn  = handle_control_request,
+	.irq_fn   = handle_irq_request,
+	.bulk_fn  = handle_bulk_request,
+	.isoc_fn  = handle_isoc_request,
+	.flush_fn = handle_flush_request,
 };
 
 
@@ -744,46 +379,10 @@ static inline void exit_usb_task(struct usb_per_dev_data * data)
 }
 
 
-static inline void handle_rpc(struct usb_per_dev_data * data)
+static inline bool check_for_urbs(struct usb_device * udev)
 {
-	struct usb_rpc_call_args * rpc = data->rpc;
-	if (!rpc)
-		return;
-
-	data->rpc = NULL;
-	switch(rpc->call) {
-	case CLAIM:
-		if (data->dev) claim_iface(data->dev, rpc->iface_num);
-		rpc->ret = 0;
-		return;
-	case RELEASE_IF:
-		if (data->dev) release_iface(data->dev, rpc->iface_num);
-		rpc->ret = 0;
-		return;
-	case RELEASE_ALL:
-		usb_unlock_device(data->dev);
-		exit_usb_task(data);
-		rpc->ret = 0;
-		do_exit(0);
-	};
-}
-
-
-static inline int check_for_urb(struct usb_device * udev)
-{
-	genode_usb_session_handle_t session;
-
-	if (!udev)
-		return 0;
-
-	session = genode_usb_session_by_bus_dev(udev->bus->busnum,
-	                                        udev->devnum);
-
-	if (!session)
-		return 0;
-
-	return genode_usb_request_by_session(session, &request_callbacks,
-	                                     (void*)udev);
+	return genode_usb_request_by_bus_dev(udev->bus->busnum, udev->devnum,
+	                                     &request_callbacks, (void*)udev);
 }
 
 
@@ -795,20 +394,15 @@ static int poll_usb_device(void * args)
 
 	for (;;) {
 		if (data->dev) usb_lock_device(data->dev);
-		while (check_for_urb(data->dev)) ;
-
-		/*
-		 * we have to check for RPC handling here, during
-		 * asynchronous URB handling above the Linux task might
-		 * have been blocked and a new RPC entered the entrypoint
-		 */
-		handle_rpc(data);
+		while (data->dev && check_for_urbs(data->dev)) ;
 		if (data->dev) usb_unlock_device(data->dev);
 
 		/* check if device got removed */
-		if (!find_usb_device(bus, dev)) {
-			exit_usb_task(data);
+		if (!data->dev)
 			genode_usb_discontinue_device(bus, dev);
+
+		if (data->kill_task) {
+			exit_usb_task(data);
 			do_exit(0);
 		}
 		lx_emul_task_schedule(true);
@@ -822,13 +416,18 @@ static int wake_up_udev_task(struct usb_device *udev, void * args)
 {
 	struct usb_per_dev_data * data = dev_get_drvdata(&udev->dev);
 
-	if (!genode_usb_session_by_bus_dev(udev->bus->busnum, udev->devnum))
+	bool acquired = genode_usb_device_acquired(udev->bus->busnum,
+	                                           udev->devnum);
+	if (!acquired && !data)
 		return 0;
 
 	if (!data) {
 		open_usb_dev(udev);
 		data = dev_get_drvdata(&udev->dev);
 	}
+
+	if (!acquired && data)
+		data->kill_task = true;
 
 	lx_emul_task_unblock(data->task);
 	return 0;
@@ -840,7 +439,7 @@ static int usb_poll_empty_sessions(void * data)
 	for (;;) {
 		usb_for_each_dev(NULL, wake_up_udev_task);
 		lx_emul_task_schedule(false);
-		genode_usb_handle_empty_sessions();
+		genode_usb_handle_disconnected_sessions();
 		lx_emul_task_schedule(true);
 	}
 
@@ -865,7 +464,129 @@ void lx_user_init(void)
 }
 
 
-static int raw_notify(struct notifier_block *nb, unsigned long action, void *data)
+struct usb_find_request {
+	genode_usb_bus_num_t bus;
+	genode_usb_dev_num_t dev;
+	struct usb_device  * ret;
+};
+
+
+static int check_usb_device(struct usb_device *usb_dev, void * data)
+{
+	struct usb_find_request * req = (struct usb_find_request *) data;
+	if (usb_dev->devnum == req->dev && usb_dev->bus->busnum == req->bus)
+		req->ret = usb_dev;
+	return 0;
+}
+
+static struct usb_device * find_usb_device(genode_usb_bus_num_t bus,
+                                           genode_usb_dev_num_t dev)
+{
+	struct usb_find_request req = { bus, dev, NULL };
+	usb_for_each_dev(&req, check_usb_device);
+	return req.ret;
+}
+
+
+static int device_released(void *d)
+{
+	struct usb_device *udev = (struct usb_device*)d;
+	struct usb_per_dev_data * data = udev ? dev_get_drvdata(&udev->dev) : NULL;
+	return !data;
+}
+
+
+void lx_emul_usb_release_device(genode_usb_bus_num_t bus,
+                                genode_usb_dev_num_t dev)
+{
+	struct usb_device * udev = find_usb_device(bus, dev);
+	struct usb_per_dev_data * data = udev ? dev_get_drvdata(&udev->dev) : NULL;
+	bool acquired = genode_usb_device_acquired(bus, dev);
+
+	if (acquired || !data)
+		return;
+
+	data->kill_task = true;
+	lx_emul_task_unblock(data->task);
+	lx_emul_execute_kernel_until(&device_released, udev);
+}
+
+
+static void add_endpoint_callback(struct genode_usb_interface * iface,
+                                  unsigned idx, void * data)
+{
+	struct usb_host_interface *uiface = (struct usb_host_interface*) data;
+	struct genode_usb_endpoint_descriptor *desc =
+		(struct genode_usb_endpoint_descriptor*) &uiface->endpoint[idx].desc;
+	genode_usb_device_add_endpoint(iface, *desc);
+}
+
+
+static void interface_string(genode_buffer_t string, void * data)
+{
+	struct usb_host_interface *uiface = (struct usb_host_interface*) data;
+	if (uiface->string)
+		strlcpy(string.addr, uiface->string, string.size);
+	else
+		*(char *)string.addr = 0;
+}
+
+
+static void add_interface_callback(struct genode_usb_configuration * cfg,
+                                   unsigned idx, void * data)
+{
+	struct usb_host_config     *ucfg        = (struct usb_host_config*) data;
+	struct usb_interface_cache *iface_cache = ucfg->intf_cache[idx];
+	struct usb_interface       *iface       = ucfg->interface[idx];
+	unsigned i;
+
+	for (i = 0; i < iface_cache->num_altsetting; i++) {
+		struct genode_usb_interface_descriptor *desc =
+			(struct genode_usb_interface_descriptor*)
+				&iface_cache->altsetting[i].desc;
+		bool set = iface ? &iface->altsetting[i] == iface->cur_altsetting
+		                 : false;
+		genode_usb_device_add_interface(cfg, interface_string, *desc,
+		                                add_endpoint_callback,
+		                                &iface_cache->altsetting[i], set);
+	}
+}
+
+
+static void add_configuration_callback(struct genode_usb_device * dev,
+                                       unsigned idx, void * data)
+{
+	struct usb_device *udev = (struct usb_device*) data;
+	struct genode_usb_config_descriptor *desc =
+		(struct genode_usb_config_descriptor*) &udev->config[idx].desc;
+	genode_usb_device_add_configuration(dev, *desc, add_interface_callback,
+	                                    &udev->config[idx],
+	                                    &udev->config[idx] == udev->actconfig);
+}
+
+
+static void manufacturer_string(genode_buffer_t string, void * data)
+{
+	struct usb_device *udev = (struct usb_device*) data;
+	if (udev->manufacturer)
+		strlcpy(string.addr, udev->manufacturer, string.size);
+	else
+		*(char *)string.addr = 0;
+}
+
+
+static void product_string(genode_buffer_t string, void * data)
+{
+	struct usb_device *udev = (struct usb_device*) data;
+	if (udev->product)
+		strlcpy(string.addr, udev->product, string.size);
+	else
+		*(char *)string.addr = 0;
+}
+
+
+static int raw_notify(struct notifier_block *nb, unsigned long action,
+                      void *data)
 {
 	struct usb_device *udev = (struct usb_device*) data;
 
@@ -873,36 +594,29 @@ static int raw_notify(struct notifier_block *nb, unsigned long action, void *dat
 
 		case USB_DEVICE_ADD:
 		{
-			/**
-			 * Register pseudo device class of USB device
-			 *
-			 * The registered value expresses the type of USB device.
-			 * If the device has at least one HID interface, the value
-			 * is USB_CLASS_HID. Otherwise, the class of the first interface
-			 * is interpreted as device type.
-			 *
-			 * Note this classification of USB devices is meant as an interim
-			 * solution only to assist the implementation of access-control
-			 * policies.
-			 */
-			unsigned long class = 0;
-			unsigned i, num = (udev->actconfig) ?
-				udev->actconfig->desc.bNumInterfaces : 0;
-			for (i = 0; i < num; i++) {
-				struct usb_interface * iface =
-					(udev->actconfig) ? udev->actconfig->interface[i] : NULL;
-				if (!iface || !iface->cur_altsetting) continue;
-				if (i == 0 ||
-				    iface->cur_altsetting->desc.bInterfaceClass ==
-				    USB_CLASS_HID)
-					class = iface->cur_altsetting->desc.bInterfaceClass;
+			struct genode_usb_device_descriptor *desc =
+				(struct genode_usb_device_descriptor*) &udev->descriptor;
+			genode_usb_speed_t speed;
+			switch (udev->speed) {
+			case USB_SPEED_LOW:      speed = GENODE_USB_SPEED_LOW; break;
+			case USB_SPEED_UNKNOWN:
+			case USB_SPEED_FULL:     speed = GENODE_USB_SPEED_FULL; break;
+			case USB_SPEED_HIGH:
+			case USB_SPEED_WIRELESS: speed = GENODE_USB_SPEED_HIGH; break;
+			case USB_SPEED_SUPER:    speed = GENODE_USB_SPEED_SUPER; break;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,13,0)
+			case USB_SPEED_SUPER_PLUS:
+				if (udev->ssp_rate == USB_SSP_GEN_2x2)
+					speed = GENODE_USB_SPEED_SUPER_PLUS_2X2;
+				else
+					speed = GENODE_USB_SPEED_SUPER_PLUS;
+				break;
+#endif
+			default: speed = GENODE_USB_SPEED_FULL;
 			}
-
-			genode_usb_announce_device(udev->descriptor.idVendor,
-			                           udev->descriptor.idProduct,
-			                           class,
-			                           udev->bus->busnum,
-			                           udev->devnum);
+			genode_usb_announce_device(udev->bus->busnum, udev->devnum, speed,
+			                           manufacturer_string, product_string,
+			                           *desc, add_configuration_callback, udev);
 			break;
 		}
 
@@ -910,7 +624,8 @@ static int raw_notify(struct notifier_block *nb, unsigned long action, void *dat
 		{
 			struct usb_per_dev_data * data = dev_get_drvdata(&udev->dev);
 			if (data) {
-				data->dev = NULL;
+				data->dev       = NULL;
+				data->kill_task = true;
 				lx_emul_task_unblock(data->task);
 			} else {
 				/* discontinue unclaimed device */

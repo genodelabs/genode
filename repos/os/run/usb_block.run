@@ -8,8 +8,6 @@ if {[get_cmd_switch --autopilot] && ![have_include "power_on/qemu"]} {
 	exit 0
 }
 
-proc usb_device_label {} { return "usb-1-2" }
-
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/test_usb_host_drv-[board] \
@@ -68,7 +66,7 @@ install_config {
 		<provides> <service name="Block"/> </provides>
 		<config report="yes" writeable="no"/>
 		<route>
-			<service name="Usb"> <child name="usb_drv" label="} [usb_device_label] {"/> </service>
+			<service name="Usb">    <child name="usb_drv"/>    </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -95,7 +93,11 @@ install_config {
 # Define USB host controller config
 #
 set fd [open [run_dir]/genode/usb_host_drv.config w]
-puts $fd { <config> <default-policy class="0x8"/> </config> }
+puts $fd { <config>
+	<policy label="usb_block_drv -> ">
+		<device name="usb-1-2"/>
+	</policy>
+</config> }
 close $fd
 
 build_boot_image [build_artifacts]

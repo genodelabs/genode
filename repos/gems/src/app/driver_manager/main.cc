@@ -735,39 +735,41 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 		/* usb hid drv gets all hid devices */
 		xml.node("policy", [&] () {
 			xml.attribute("label_prefix", "usb_hid_drv");
-			xml.attribute("class", "0x3");
+			xml.node("device", [&] () {
+				xml.attribute("class", "0x3");
+			});
 		});
 
+		/* produce policy nodes for all storage devices */
 		devices.for_each_sub_node("device", [&] (Xml_node device) {
 
-			typedef String<64> Label;
-			typedef String<32> Id;
+			bool usb_storage = false;
+			device.for_each_sub_node("config", [&] (Xml_node cfg) {
 
-			Label const label      = device.attribute_value("label", Label());
-			Id    const vendor_id  = device.attribute_value("vendor_id",  Id());
-			Id    const product_id = device.attribute_value("product_id", Id());
+				cfg.for_each_sub_node("interface", [&] (Xml_node iface) {
 
-			/*
-			 * Limit USB sessions to storage and vendor specific in order to avoid
-			 * conflicts with the USB driver's built-in HID drivers.
-			 */
-			unsigned long const class_code = device.attribute_value("class", 0UL);
+					enum { USB_CLASS_MASS_STORAGE = 8 };
 
-			enum { USB_CLASS_MASS_STORAGE = 8, USB_CLASS_VENDOR_SPECIFIC = 0xff };
+					if (iface.attribute_value("class", 0UL) ==
+					    USB_CLASS_MASS_STORAGE)
+						usb_storage = true;
+					});
+			});
 
-			bool const expose_as_usb_raw = (class_code == USB_CLASS_MASS_STORAGE) ||
-			                               (class_code == USB_CLASS_VENDOR_SPECIFIC);
-			if (!expose_as_usb_raw)
+			if (!usb_storage)
 				return;
 
-			xml.node("policy", [&] () {
-				xml.attribute("label_suffix", label);
-				xml.attribute("vendor_id",  vendor_id);
-				xml.attribute("product_id", product_id);
+			using Name = String<64>;
 
-				/* annotate policy to make storage devices easy to spot */
-				if (class_code == USB_CLASS_MASS_STORAGE)
-					xml.attribute("class", "storage");
+			Name const name = device.attribute_value("name", Name());
+
+			xml.node("policy", [&] () {
+
+				xml.attribute("label_suffix", name);
+				xml.attribute("class", "storage");
+				xml.node("device", [&] () {
+					xml.attribute("name", name);
+				});
 			});
 		});
 	});

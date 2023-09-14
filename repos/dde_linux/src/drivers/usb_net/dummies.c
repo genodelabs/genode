@@ -157,42 +157,6 @@ void usb_hcd_synchronize_unlinks(struct usb_device * udev)
 }
 
 
-#include <linux/usb.h>
-
-struct urb * usb_get_from_anchor(struct usb_anchor * anchor)
-{
-	lx_emul_trace(__func__);
-	return NULL;
-}
-
-
-extern char * usb_cache_string(struct usb_device * udev,int index);
-char * usb_cache_string(struct usb_device * udev,int index)
-{
-	lx_emul_trace(__func__);
-	return NULL;
-}
-
-
-void usb_kill_urb(struct urb * urb)
-{
-	lx_emul_trace(__func__);
-}
-
-
-int usb_unlink_urb(struct urb * urb)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-
-void usb_poison_urb(struct urb * urb)
-{
-	lx_emul_trace(__func__);
-}
-
-
 #include <linux/usb/hcd.h>
 
 struct usb_hcd * usb_get_hcd(struct usb_hcd * hcd)
@@ -484,15 +448,51 @@ void usb_remove_ep_devs(struct usb_host_endpoint * endpoint)
 }
 
 
-extern void usb_disable_interface(struct usb_device * dev,struct usb_interface * intf,bool reset_hardware);
-void usb_disable_interface(struct usb_device * dev,struct usb_interface * intf,bool reset_hardware)
-{
-	lx_emul_trace(__func__);
-}
-
-
 extern void netdev_unregister_kobject(struct net_device * ndev);
 void netdev_unregister_kobject(struct net_device * ndev)
 {
 	lx_emul_trace(__func__);
 }
+
+
+void usb_hcd_flush_endpoint(struct usb_device *udev,
+		struct usb_host_endpoint *ep)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void usb_hcd_disable_endpoint(struct usb_device *udev,
+		struct usb_host_endpoint *ep)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void usb_hcd_reset_endpoint(struct usb_device *udev,
+			    struct usb_host_endpoint *ep)
+{
+	lx_emul_trace(__func__);
+}
+
+const struct attribute_group *usb_interface_groups[] = { NULL };
+
+
+#include <linux/usb/hcd.h>
+
+int usb_hcd_alloc_bandwidth(struct usb_device * udev,struct usb_host_config * new_config,struct usb_host_interface * cur_alt,struct usb_host_interface * new_alt)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#if defined(CONFIG_OF)
+#include <linux/usb/of.h>
+
+bool usb_of_has_combined_node(struct usb_device * udev)
+{
+	lx_emul_trace(__func__);
+	return true;
+}
+#endif

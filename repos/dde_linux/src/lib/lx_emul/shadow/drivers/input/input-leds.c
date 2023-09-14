@@ -52,25 +52,49 @@ static void update_leds(struct led_handler *handler)
 }
 
 
+static int led_task_loop(void *arg)
+{
+	for (;;) {
+
+		struct led_handler *handler;
+
+		list_for_each_entry(handler, &led_handlers, list) {
+			update_leds(handler);
+		}
+
+		if (led_update.state == BLOCKED)
+			complete(&led_update.update);
+
+		led_update.state = NONE;
+
+		lx_emul_task_schedule(true);
+	}
+
+	return 0;
+}
+
+
+static struct task_struct *led_task = NULL;
+
+
+void lx_emul_input_leds_init(void)
+{
+	int pid = kernel_thread(led_task_loop, &led_task, CLONE_FS | CLONE_FILES);
+	led_task = find_task_by_pid_ns(pid, NULL);
+}
+
+
 void lx_emul_input_leds_update(bool capslock, bool numlock, bool scrolllock)
 {
-
-	struct led_handler *handler;
-
-	led_update.state = UPDATE;
-
+	led_update.state   = UPDATE;
 	led_update.capsl   = capslock;
 	led_update.numl    = numlock;
 	led_update.scrolll = scrolllock;
 
-	list_for_each_entry(handler, &led_handlers, list) {
-		update_leds(handler);
-	}
+	if (!led_task)
+		return;
 
-	if (led_update.state == BLOCKED)
-		complete(&led_update.update);
-
-	led_update.state = NONE;
+	lx_emul_task_unblock(led_task);
 }
 
 

@@ -165,7 +165,7 @@ static genode_uplink_rx_result_t uplink_rx_one_packet(struct genode_uplink_rx_co
 }
 
 
-static int user_task_function(void *arg)
+static int network_loop(void *arg)
 {
 	for (;;) {
 
@@ -206,18 +206,23 @@ static int user_task_function(void *arg)
 }
 
 
-struct task_struct *user_task_struct_ptr;  /* used by 'Device' for lx_emul_task_unblock */
+static struct task_struct *net_task;
 
 void lx_user_init(void)
 {
 	pid_t pid;
 
-	lx_user_main_task(NULL);
+	lx_emul_usb_client_init();
 
-	pid = kernel_thread(user_task_function, NULL, CLONE_FS | CLONE_FILES);
+	pid = kernel_thread(network_loop, NULL, CLONE_FS | CLONE_FILES);
+	net_task = find_task_by_pid_ns(pid, NULL);
+}
 
-	user_task_struct_ptr = find_task_by_pid_ns(pid, NULL);
 
+void lx_user_handle_io(void)
+{
+	lx_emul_usb_client_ticker();
+	if (net_task) lx_emul_task_unblock(net_task);
 }
 
 
@@ -232,8 +237,7 @@ bool force_uplink_destroy = false;
 void rtmsg_ifinfo(int type, struct net_device * dev, unsigned int change, gfp_t flags)
 {
 	/* trigger handle_create_uplink / handle_destroy_uplink */
-	if (user_task_struct_ptr)
-		lx_emul_task_unblock(user_task_struct_ptr);
+	if (net_task) lx_emul_task_unblock(net_task);
 
 	if (force_uplink_destroy) {
 		struct genode_uplink *uplink = dev_genode_uplink(dev);

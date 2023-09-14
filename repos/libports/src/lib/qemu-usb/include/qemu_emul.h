@@ -886,7 +886,7 @@ typedef struct USBHostDevice
 } USBHostDevice;
 
 
-USBHostDevice *create_usbdevice(void *data);
+USBHostDevice *create_usbdevice(void *data, int speed);
 void remove_usbdevice(USBHostDevice *device);
 
 void usb_host_destroy();

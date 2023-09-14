@@ -1,6 +1,7 @@
 /*
  * \brief  C-API Genode USB-client backend
  * \author Sebastian Sumpf
+ * \author Stefan Kalkowski
  * \date   2023-06-29
  */
 
@@ -15,133 +16,136 @@
 #define __GENODE_C_API__USB_CLIENT_H_
 
 #include <base/fixed_stdint.h>
-#include <genode_c_api/usb.h>
+#include <genode_c_api/base.h>
+#include <usb_session/types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef unsigned long genode_usb_client_handle_t;
+/*************************
+ ** Lifetime management **
+ *************************/
 
-struct genode_range_allocator;
+typedef unsigned long genode_usb_client_dev_handle_t;
 
-struct genode_usb_device_descriptor
-{
-	genode_uint8_t  length;
-	genode_uint8_t  type;
-	genode_uint16_t usb;
-	genode_uint8_t  dclass;
-	genode_uint8_t  dsubclass;
-	genode_uint8_t  dprotocol;
-	genode_uint8_t  max_packet_size;
-	genode_uint16_t vendor_id;
-	genode_uint16_t product_id;
-	genode_uint16_t device_release;
-	genode_uint8_t  manufactorer_index;
-	genode_uint8_t  product_index;
-	genode_uint8_t  serial_number_index;
-	genode_uint8_t  num_configs;
+/**
+ * Callback to announce a device
+ */
+typedef void* (*genode_usb_client_dev_add_t)
+	(genode_usb_client_dev_handle_t handle, char const *name,
+	 genode_usb_speed_t speed);
 
-	/*
-	 * Genode extensions (POD only)
-	 */
-	unsigned         bus;
-	unsigned         num ;
-	unsigned         speed;
-} __attribute__((packed));
+/**
+ * Callback to delete a device
+ */
+typedef void (*genode_usb_client_dev_del_t)
+	(genode_usb_client_dev_handle_t handle, void *opaque_data);
+
+void genode_usb_client_update(genode_usb_client_dev_add_t add,
+                              genode_usb_client_dev_del_t del);
+
+/******************************************
+ ** USB device and interface interaction **
+ ******************************************/
+
+typedef enum {
+	INVALID,
+	HALT,
+	NO_DEVICE,
+	NO_MEMORY,
+	TIMEOUT,
+	OK
+} genode_usb_client_ret_val_t;
+
+/**
+ * Callback to produce out content of an USB request
+ */
+typedef void (*genode_usb_client_produce_out_t)
+	(void *opaque_data, genode_buffer_t buffer);
+
+/**
+ * Callback to consume in result of an USB request
+ */
+typedef void (*genode_usb_client_consume_in_t)
+	(void *opaque_data, genode_buffer_t buffer);
+
+/**
+ * Callback to produce out content of isochronous packet i
+ */
+typedef genode_uint32_t (*genode_usb_client_produce_out_isoc_t)
+	(void *opaque_data, genode_uint32_t i, genode_buffer_t buffer);
+
+/**
+ * Callback to consume in result of isochronous packet i
+ */
+typedef void (*genode_usb_client_consume_in_isoc_t)
+	(void *opaque_data, genode_uint32_t i, genode_buffer_t buffer);
+
+/**
+ * Callback to complete an USB request
+ */
+typedef void (*genode_usb_client_complete_t)
+	(void *opaque_data, genode_usb_client_ret_val_t result);
+
+genode_usb_client_ret_val_t
+genode_usb_client_device_control(genode_usb_client_dev_handle_t handle,
+                                 genode_uint8_t                 request,
+                                 genode_uint8_t                 request_type,
+                                 genode_uint16_t                value,
+                                 genode_uint16_t                index,
+                                 unsigned long                  size,
+                                 void                          *opaque_data);
+
+void
+genode_usb_client_device_update(genode_usb_client_produce_out_t      out,
+                                genode_usb_client_consume_in_t       in,
+                                genode_usb_client_produce_out_isoc_t out_isoc,
+                                genode_usb_client_consume_in_isoc_t  in_isoc,
+                                genode_usb_client_complete_t         complete);
 
 
-struct genode_usb_config_descriptor
-{
-	genode_uint8_t  length;
-	genode_uint8_t  type;
-	genode_uint16_t total_length;
-	genode_uint8_t  num_interfaces;
-	genode_uint8_t  config_value;
-	genode_uint8_t  config_index;
-	genode_uint8_t  attributes;
-	genode_uint8_t  max_power;
-} __attribute__((packed));
+typedef enum { BULK, IRQ, ISOC, FLUSH } genode_usb_client_iface_type_t;
 
+void
+genode_usb_client_claim_interface(genode_usb_client_dev_handle_t handle,
+                                  unsigned interface_num);
 
-genode_usb_client_handle_t
-genode_usb_client_create(struct genode_env             *env,
-                         struct genode_allocator       *md_alloc,
-                         struct genode_range_allocator *alloc,
-                         char const                    *label,
-                         struct genode_signal_handler  *handler);
+void
+genode_usb_client_release_interface(genode_usb_client_dev_handle_t handle,
+                                    unsigned interface_num);
 
-void genode_usb_client_destroy(genode_usb_client_handle_t handle,
-                               struct genode_allocator *md_alloc);
-
-void genode_usb_client_sigh_ack_avail(genode_usb_client_handle_t handle,
-                                      struct genode_signal_handler *handler);
-
-int genode_usb_client_config_descriptor(genode_usb_client_handle_t handle,
-                                        struct genode_usb_device_descriptor *device_descr,
-                                        struct genode_usb_config_descriptor *config_descr);
-
-bool genode_usb_client_plugged(genode_usb_client_handle_t handle);
-
-void genode_usb_client_claim_interface(genode_usb_client_handle_t handle,
-                                       unsigned interface_num);
-
-void genode_usb_client_release_interface(genode_usb_client_handle_t handle,
-                                         unsigned interface_num);
-
-struct genode_usb_altsetting
-{
-	unsigned char interface_number;
-	unsigned char alt_setting;
-};
-
-struct genode_usb_config
-{
-	unsigned char value;
-};
-
-struct genode_usb_request_packet
-{
-	unsigned type;
-	void   * req;
-};
-
-typedef struct genode_usb_request_packet genode_request_packet_t;
-
-struct genode_usb_client_request_packet
-{
-	genode_request_packet_t  request;
-	struct genode_usb_buffer buffer;
-	int                      actual_length;
-	int                      error;
-	void (*complete_callback)(struct genode_usb_client_request_packet *);
-	void (*free_callback) (struct genode_usb_client_request_packet *);
-	void *completion;
-	void *opaque_data;
-};
-
-bool genode_usb_client_request(genode_usb_client_handle_t               handle,
-                               struct genode_usb_client_request_packet *request);
-
-void genode_usb_client_request_submit(genode_usb_client_handle_t               handle,
-                                      struct genode_usb_client_request_packet *request);
-
-void genode_usb_client_request_finish(genode_usb_client_handle_t               handle,
-                                      struct genode_usb_client_request_packet *request);
-
-void genode_usb_client_execute_completions(genode_usb_client_handle_t handle);
+genode_usb_client_ret_val_t
+genode_usb_client_iface_transfer(genode_usb_client_dev_handle_t handle,
+                                 genode_usb_client_iface_type_t type,
+                                 genode_uint8_t                 index,
+                                 unsigned long                  size,
+                                 void                          *opaque_data);
 
 #ifdef __cplusplus
 } /* extern "C" */
+#endif /* __cplusplus */
+
+
+#ifdef __cplusplus
 
 #include <base/allocator.h>
+#include <base/env.h>
+#include <base/signal.h>
 
-struct genode_range_allocator : Genode::Range_allocator { };
+namespace Genode_c_api {
 
-static inline auto genode_range_allocator_ptr(Genode::Range_allocator &alloc)
-{
-	return static_cast<genode_range_allocator *>(&alloc);
+	using namespace Genode;
+
+	/**
+	 * Initialize USB client c++ backend
+	 */
+	void initialize_usb_client(Env                       &env,
+	                           Allocator                 &alloc,
+	                           Signal_context_capability  io_handler,
+	                           Signal_context_capability  rom_handler);
 }
+
 #endif /* __cplusplus */
 
 #endif /* __GENODE_C_API__USB_CLIENT_H_ */

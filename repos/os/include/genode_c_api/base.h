@@ -94,4 +94,11 @@ typedef struct genode_shared_dataspace *
 typedef void
 	(*genode_shared_dataspace_free_t) (struct genode_shared_dataspace * ds);
 
+struct genode_buffer
+{
+	void        * addr;
+	unsigned long size;
+};
+typedef struct genode_buffer genode_buffer_t;
+
 #endif /* _INCLUDE__GENODE_C_API__BASE_H_ */

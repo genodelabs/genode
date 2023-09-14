@@ -445,9 +445,13 @@ if { $use_usb_driver } {
 	set fd [open [run_dir]/genode/usb_host_drv.config w]
 	append usb_config {<config bios_handoff="yes">}
 	append_if [have_board rpi] usb_config {
-		<policy label_prefix="nic_drv" vendor_id="0x0424" product_id="0xec00"/> }
+		<policy label_prefix="nic_drv">
+			<device vendor_id="0x0424" product_id="0xec00"/>
+		</policy> }
 	append_if [have_spec x86] usb_config {
-		<policy label_prefix="nic_drv" vendor_id="0x0b95" product_id="0x1790"/> }
+		<policy label_prefix="nic_drv">
+			<device vendor_id="0x0b95" product_id="0x1790"/>
+		</policy> }
 	append usb_config {</config>}
 	puts $fd $usb_config
 	close $fd

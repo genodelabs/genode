@@ -2,867 +2,877 @@
  * \brief  USB session back end
  * \author Josef Soentgen
  * \author Sebastian Sumpf
+ * \author Stefan Kalkowski
  * \date   2015-12-18
  */
 
 #include <base/allocator_avl.h>
 #include <base/log.h>
 #include <base/attached_rom_dataspace.h>
-#include <usb_session/connection.h>
-#include <usb/usb.h>
+#include <base/registry.h>
+#include <usb_session/device.h>
+#include <util/list_model.h>
 #include <util/xml_node.h>
-#include <os/ring_buffer.h>
 
 #include <extern_c_begin.h>
 #include <qemu_emul.h>
 #include <hw/usb.h>
+#include <desc.h>
 #include <extern_c_end.h>
-
 
 using namespace Genode;
 
-static bool const verbose_devices  = false;
-static bool const verbose_host     = false;
-static bool const verbose_warnings = false;
 Mutex _mutex;
 
-static void update_ep(USBDevice *, uint8_t, uint8_t);
-static bool claim_interfaces(USBDevice *);
-static void reset_alt_settings(USBDevice *);
+using handle_t = unsigned long;
 
-using Packet_alloc_failed = Usb::Session::Tx::Source::Packet_alloc_failed;
-using Packet_type         = Usb::Packet_descriptor::Type;
-using Packet_error        = Usb::Packet_descriptor::Error;
+class Device;
+class Interface;
+class Endpoint;
 
-static unsigned endpoint_number(USBEndpoint const *usb_ep)
+
+class Urb : Usb::Endpoint, public Usb::Interface::Urb,
+            Registry<Urb>::Element
 {
-		bool in = usb_ep->pid == USB_TOKEN_IN;
-		return usb_ep->nr | (in ? USB_DIR_IN : 0);
-
-}
-
-class Isoc_packet : Fifo<Isoc_packet>::Element
-{
-	friend class Fifo<Isoc_packet>;
-	friend class Usb_host_device;
-
 	private:
 
-		Usb::Packet_descriptor _packet;
-		int                    _offset { 0 };
-		char                  *_content;
-		int                    _size;
+		friend class ::Interface;
+		using Pdesc = Usb::Interface::Packet_descriptor;
 
-		int _packet_index { 0 };
-		unsigned _packet_in_offset { 0 };
-		Usb::Isoc_transfer *_isoc { (Usb::Isoc_transfer *)_content };
+		static Pdesc::Type _type(uint8_t t)
+		{
+			switch(t) {
+				case USB_ENDPOINT_XFER_BULK:  return Pdesc::BULK;
+				case USB_ENDPOINT_XFER_INT:   return Pdesc::IRQ;
+				case USB_ENDPOINT_XFER_ISOC:  return Pdesc::ISOC;
+				default:                      return Pdesc::FLUSH;
+			};
+			return Pdesc::FLUSH;
+		}
+
+		::Endpoint       &_endpoint;
+		USBPacket * const _packet   { nullptr };
+		bool              _canceled { false   };
 
 	public:
 
-		Isoc_packet(Usb::Packet_descriptor packet, char *content)
+		Urb(Registry<Urb> &registry,
+		    ::Interface   &iface,
+		    ::Endpoint    &endp,
+		    uint8_t        type,
+		    size_t         size,
+		    USBPacket     *packet);
+
+		Urb(Registry<Urb> &registry,
+		    ::Interface   &iface,
+		    ::Endpoint    &endp,
+		    uint8_t        type,
+		    size_t         size,
+		    uint32_t       isoc_packets);
+
+		bool isoc() const { return Usb::Interface::Urb::_type == Pdesc::ISOC; }
+		void cancel() { _canceled = true; }
+		bool canceled() const { return _canceled; }
+		USBPacket *packet() const { return _packet; }
+
+		size_t read_cache(Byte_range_ptr &dst);
+		void   write_cache(Const_byte_range_ptr const &src);
+		void   destroy();
+};
+
+
+class Isoc_cache
+{
+	public:
+
+		enum {
+			PACKETS_PER_URB = 32,
+			URBS            = 4,
+			MAX_PACKETS     = 256,
+		};
+
+	private:
+
+		::Interface   &_iface;
+		Endpoint      &_ep;
+		Allocator     &_alloc;
+		uint8_t        _read  { 0 };
+		uint8_t        _wrote { 0 };
+		unsigned char *_buffer;
+
+		Constructible<Urb> _urbs[URBS];
+
+		void _new_urb();
+
+		uint8_t _level() const;
+
+		void _copy_to_host(USBPacket *p);
+		void _copy_to_guest(USBPacket *p);
+
+	public:
+
+		Isoc_cache(::Interface &iface, Endpoint &ep, Allocator &alloc);
+
+		void   handle(USBPacket *p);
+		size_t read(Byte_range_ptr &dst);
+		void   write(Const_byte_range_ptr const &src);
+		void   destroy(Urb * urb);
+		void   flush();
+};
+
+
+class Endpoint : public List_model<Endpoint>::Element
+{
+	private:
+
+		uint8_t const             _address;
+		uint8_t const             _attributes;
+		uint8_t const             _max_packet_size;
+		Constructible<Isoc_cache> _isoc_cache { };
+
+	public:
+
+		Endpoint(Xml_node const &n, Allocator &alloc, ::Interface &iface)
 		:
-			_packet(packet), _content(content),
-			_size (_packet.read_transfer() ? _packet.transfer.actual_size : _packet.size())
-		{ }
-
-		Isoc_packet()
-		: _packet { Usb::Packet_descriptor() }, _content { nullptr }, _size { 0 }
-		{ }
-
-		bool copy(USBPacket *usb_packet)
+			_address(n.attribute_value<uint8_t>("address", 0xff)),
+			_attributes(n.attribute_value<uint8_t>("attributes", 0xff)),
+			_max_packet_size(n.attribute_value<uint8_t>("max_packet_size", 0))
 		{
-			if (!valid()) return false;
-
-			unsigned remaining = _size - _offset;
-			int copy_size = min(usb_packet->iov.size, remaining);
-
-			usb_packet_copy(usb_packet, _isoc->data() + _offset, copy_size);
-
-			_offset += copy_size;
-
-			if (!_packet.read_transfer()) {
-				_isoc->packet_size[_isoc->number_of_packets] = copy_size;
-				_isoc->number_of_packets++;
-			}
-
-			return remaining <= usb_packet->iov.size;
+			if ((_attributes&0x3) == Usb::Endpoint::ISOC)
+				_isoc_cache.construct(iface, *this, alloc);
 		}
 
-		bool copy_read(USBPacket *usb_packet)
-		{
-			if (!valid()) return false;
+		uint8_t address()         const { return _address; }
+		uint8_t attributes()      const { return _attributes; }
+		uint8_t max_packet_size() const { return _max_packet_size; }
 
-			unsigned remaining = _isoc->actual_packet_size[_packet_index];
-			/* this should not happen as there asserts in the qemu code */
-			if (remaining > usb_packet->iov.size) {
-				Genode::error("iov too small, ignoring packet content");
-			}
-			int copy_size = min(usb_packet->iov.size, remaining);
+		bool matches(Xml_node const &node) const {
+			return address() == node.attribute_value<uint8_t>("address", 0xff); }
 
-			char *src = _isoc->data() + _packet_in_offset;
-			usb_packet_copy(usb_packet, src, copy_size);
+		static bool type_matches(Xml_node const &node) {
+			return node.has_type("endpoint"); }
 
-			_packet_in_offset += _isoc->packet_size[_packet_index];
-			++_packet_index;
+		bool in() const { return address() & (1<<7); }
 
-			return _packet_index == _isoc->number_of_packets;
-		}
+		void handle_isoc_packet(USBPacket *p) {
+			if (_isoc_cache.constructed()) _isoc_cache->handle(p); }
 
-		bool valid() const { return _content != nullptr; }
+		size_t read_cache(Byte_range_ptr &dst) {
+			return (_isoc_cache.constructed()) ? _isoc_cache->read(dst) : 0; }
 
-		unsigned packet_count() const
-		{
-			if (!valid()) return 0;
+		void write_cache(Const_byte_range_ptr const &src) {
+			if (_isoc_cache.constructed()) _isoc_cache->write(src); }
 
-			return _isoc->number_of_packets;
-		}
+		void destroy_urb(Urb * urb) {
+			if (_isoc_cache.constructed()) _isoc_cache->destroy(urb); }
 
-		Usb::Packet_descriptor& packet() { return _packet; }
+		void flush() {
+			if (_isoc_cache.constructed()) _isoc_cache->flush(); }
 };
 
 
-struct Completion : Usb::Completion
+class Interface : public List_model<::Interface>::Element
 {
-	USBPacket *p        = nullptr;
-	USBDevice *dev      = nullptr;
-	uint8_t   *data     = nullptr;
-	unsigned   endpoint = 0;
+	private:
 
-	enum State { VALID, FREE, CANCELED };
-	State     state = FREE;
+		friend class Urb;
 
-	void complete(Usb::Packet_descriptor &p) override  { }
+		Device                       &_device;
+		Constructible<Usb::Interface> _iface {};
+		List_model<Endpoint>          _endpoints {};
+		uint8_t const                 _number;
+		uint8_t const                 _alt_setting;
+		bool                          _active;
+		size_t                        _buf_size { 2 * 1024 * 1024 };
 
-	void complete(Usb::Packet_descriptor &packet, char *content)
-	{
-		if (state != VALID) {
-			return;
+		Usb::Interface &_session();
+
+	public:
+
+		Interface(Device &device, Xml_node const &n)
+		:
+			_device(device),
+			_number(n.attribute_value<uint8_t>("number", 0xff)),
+			_alt_setting(n.attribute_value<uint8_t>("alt_setting", 0xff)),
+			_active(n.attribute_value("active", false)) {}
+
+		void destroy_all_urbs();
+
+		uint8_t number()      const { return _number; };
+		uint8_t alt_setting() const { return _alt_setting; };
+		bool    active()      const { return _active; }
+
+		bool matches(Xml_node const &n) const
+		{
+			uint8_t nr  = n.attribute_value<uint8_t>("number", 0xff);
+			uint8_t alt = n.attribute_value<uint8_t>("alt_setting", 0xff);
+			return _number == nr && _alt_setting == alt;
 		}
 
-		int actual_size = 0;
+		static bool type_matches(Xml_node const &node) {
+			return node.has_type("interface"); }
 
-		switch (packet.type) {
-		case Packet_type::CTRL:
-			actual_size = packet.control.actual_size;
+		void update(Allocator &alloc, Xml_node const &node)
+		{
+			_active = node.attribute_value("active", false);
+			_endpoints.update_from_xml(node,
 
-			/*
-			 * Disable remote wakeup (bit 5) in 'bmAttributes' (content[7]) in reported
-			 * configuration descriptor. On some systems (e.g., Windows) this will
-			 * cause devices to stop working.
-			 */
-			if (packet.control.request == USB_REQ_GET_DESCRIPTOR
-			    && actual_size >= 8 && content[1] == USB_DT_CONFIG)
-				content[7] &= ~USB_CFG_ATT_WAKEUP;
+				/* create */
+				[&] (Xml_node const &node) -> Endpoint & {
+					return *new (alloc) Endpoint(node, alloc, *this); },
 
-			break;
-		case Packet_type::BULK:
-		case Packet_type::IRQ:
-			actual_size = packet.transfer.actual_size;
-		default:
-			break;
+				/* destroy */
+				[&] (Endpoint &endp) {
+					destroy(alloc, &endp); },
+
+				/* update */
+				[&] (Endpoint &, Xml_node const &) { }
+			);
 		}
 
-		if (actual_size < 0) actual_size = 0;
+		void update_urbs();
 
-		if (verbose_host)
-			log(__func__, ": packet: ", p, " packet.type: ", (int)packet.type, " "
-			    "actual_size: ", Hex(actual_size));
-
-		p->actual_length = 0;
-
-		if (packet.succeded) {
-
-			if (p->pid == USB_TOKEN_IN && actual_size > 0) {
-				if (data) Genode::memcpy(data, content, actual_size);
-				else      usb_packet_copy(p, content, actual_size);
-			}
-
-			p->actual_length = actual_size;
-			p->status = USB_RET_SUCCESS;
-		}
-		else {
-			if (packet.error == Packet_error::STALL_ERROR)
-				p->status = USB_RET_STALL;
-			else
-				p->status = USB_RET_IOERROR;
+		template <typename FN>
+		void with_endpoint(uint8_t index, FN const &fn)
+		{
+			_endpoints.for_each([&] (Endpoint &endp) {
+				if (endp.address() == index) fn(endp);
+			});
 		}
 
-		switch (packet.type) {
-		case Packet_type::CONFIG:
-			if (!claim_interfaces(dev))
-				p->status = USB_RET_IOERROR;
-			else
-				reset_alt_settings(dev);
-
-			usb_generic_async_ctrl_complete(dev, p);
-			break;
-		case Packet_type::ALT_SETTING:
-			update_ep(dev, packet.interface.number, packet.interface.alt_setting);
-			usb_generic_async_ctrl_complete(dev, p);
-			break;
-		case Packet_type::CTRL:
-			usb_generic_async_ctrl_complete(dev, p);
-			break;
-		case Packet_type::BULK:
-		case Packet_type::IRQ:
-			usb_packet_complete(dev, p);
-			break;
-		default:
-			break;
-		}
-	}
-
-	bool     valid() const { return state == VALID; }
-	void     cancel()      { state = CANCELED; }
-	void     free()        { state = FREE; }
-	unsigned ep() const    { return p ? endpoint_number(p->ep) : endpoint; }
+		template <typename FN>
+		void for_each_endpoint(FN const &fn) {
+			_endpoints.for_each([&] (Endpoint &endp) { fn(endp); }); }
 };
 
 
-/**
- * Helper for the formatted output and device info
- */
-struct Dev_info
+class Device : public List_model<Device>::Element
 {
-	Session_label const label;
+	public:
 
-	Dev_info(Session_label &label) : label(label) { }
+		using Name  = String<64>;
+		using Speed = String<32>;
 
-	void print(Output &out) const
-	{
-		Genode::print(out, label);
-	}
+	private:
 
-	bool operator != (Dev_info const &other) const
-	{
-		if (label.length() && other.label.length())
-			return label != other.label;
+		Name                      const _name;
+		Speed                     const _speed;
+		Id_space<Device>::Element const _elem;
+		Usb::Device                     _device;
+		Signal_context_capability       _sigh_cap;
+		USBHostDevice                  *_qemu_device { nullptr };
+		List_model<::Interface>         _ifaces {};
 
-		return true;
-	}
+		/**
+		 * Noncopyable
+		 */
+		Device(Device const &);
+		Device &operator = (Device const &);
+
+	public:
+
+		struct Urb : Usb::Device::Urb
+		{
+			using Request_type =
+				Usb::Device::Packet_descriptor::Request_type::access_t;
+
+			USBPacket * const _packet;
+
+			Urb(Device    &device,
+			    uint8_t    request,
+			    uint8_t    request_type,
+			    uint16_t   value,
+			    uint16_t   index,
+			    size_t     size,
+			    USBPacket *packet)
+			:
+				Usb::Device::Urb(device._device, request,
+				                 (Request_type)request_type,
+				                 value, index, size),
+				_packet(packet) { }
+		};
+
+		Device(Name                     &name,
+		       Speed                    &speed,
+		       Usb::Connection          &usb,
+		       Allocator                &alloc,
+		       Region_map               &rm,
+		       Id_space<Device>         &space,
+		       Signal_context_capability cap)
+		:
+			_name(name),
+			_speed(speed),
+			_elem(*this, space),
+			_device(usb, alloc, rm, name),
+			_sigh_cap(cap)
+		{
+			_device.sigh(_sigh_cap);
+		}
+
+		~Device();
+
+		Usb::Device &session() { return _device; }
+
+		Name name() { return _name; }
+
+		int speed()
+		{
+			if (_speed == "low")            return USB_SPEED_LOW;
+			if (_speed == "full")           return USB_SPEED_FULL;
+			if (_speed == "high")           return USB_SPEED_HIGH;
+			if (_speed == "super")          return USB_SPEED_SUPER;
+			if (_speed == "super_plus")     return USB_SPEED_SUPER;
+			if (_speed == "super_plus_2x2") return USB_SPEED_SUPER;
+			return USB_SPEED_FULL;
+		}
+
+		Signal_context_capability sigh_cap() { return _sigh_cap; }
+
+		handle_t handle() const { return _elem.id().value; }
+
+		void  qemu_device(USBHostDevice *dev) { _qemu_device = dev;  }
+		USBHostDevice* qemu_device() { return _qemu_device; }
+
+		bool matches(Xml_node const &node) const {
+			return _name == node.attribute_value("name", Name()); }
+
+		static bool type_matches(Xml_node const &node) {
+			return node.has_type("device"); }
+
+		void update(Allocator &alloc, Xml_node const &node)
+		{
+			Xml_node active_config = node;
+
+			node.for_each_sub_node("config", [&] (Xml_node const &node) {
+				if (node.attribute_value("active", false))
+					active_config = node;
+			});
+
+			_ifaces.update_from_xml(active_config,
+
+				/* create */
+				[&] (Xml_node const &node) -> ::Interface & {
+					return *new (alloc) ::Interface(*this, node); },
+
+				/* destroy */
+				[&] (::Interface &iface) {
+					/* first clean up urbs before isoc-caches get destroyed */
+					iface.destroy_all_urbs();
+					iface.update(alloc, Xml_node("<empty/>"));
+					destroy(alloc, &iface); },
+
+				/* update */
+				[&] (::Interface &iface, Xml_node const &node) {
+					iface.update(alloc, node); }
+			);
+		}
+
+		void update_urbs();
+
+		template <typename FN>
+		void with_active_interfaces(FN const &fn)
+		{
+			_ifaces.for_each([&] (::Interface &iface) {
+				if (iface.active()) fn(iface); });
+		}
 };
 
 
-struct Usb_host_device : List<Usb_host_device>::Element
+struct Session
 {
-	Usb_host_device(const Usb_host_device&);
-	const Usb_host_device& operator=(const Usb_host_device&);
+	Env                      &_env;
+	Allocator                &_alloc;
+	Signal_context_capability _handler_cap;
+	Usb::Connection           _usb { _env };
+	List_model<Device>        _model {};
+	Id_space<Device>          _space {};
+	Registry<Urb>             _urb_registry {};
 
-	struct Could_not_create_device : Exception { };
-
-	bool           deleted = false;
-	char const    *label   = nullptr;
-	Dev_info const info;
-
-	USBHostDevice  *qemu_dev { nullptr };
-
-	/* submit queue + ack queue + 1 -> max nr of packets in flight */
-	enum { NUM_COMPLETIONS = Usb::Session::TX_QUEUE_SIZE * 2 + 1 };
-	Completion  completion[NUM_COMPLETIONS];
-
-	Fifo<Isoc_packet>             isoc_read_queue { };
-	Reconstructible<Isoc_packet>  isoc_write_packet { };
-
-	Genode::Ring_buffer<Isoc_packet, 5, Genode::Ring_buffer_unsynchronized> _isoch_out_queue { };
-	unsigned _isoch_out_pending { 0 };
-
-	Entrypoint  &_ep;
-	Signal_handler<Usb_host_device> state_dispatcher { _ep, *this, &Usb_host_device::state_change };
-
-	Allocator       &_alloc;
-	Allocator_avl    _usb_alloc { &_alloc };
-	Usb::Connection   usb_raw; //{ &_usb_alloc, label, 1024*1024, state_dispatcher };
-
-	Signal_handler<Usb_host_device> ack_avail_dispatcher { _ep, *this, &Usb_host_device::ack_avail };
-
-	void _release_interfaces()
-	{
-		Usb::Config_descriptor cdescr;
-		Usb::Device_descriptor ddescr;
-
-		try { usb_raw.config_descriptor(&ddescr, &cdescr); }
-		catch (Usb::Session::Device_not_found) { return; }
-
-		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
-			try { usb_raw.release_interface(i); }
-			catch (Usb::Session::Device_not_found)    { return; }
-			catch (Usb::Session::Interface_not_found) { return; }
-		}
-	}
-
-	bool _claim_interfaces()
-	{
-		Usb::Config_descriptor cdescr;
-		Usb::Device_descriptor ddescr;
-
-		try { usb_raw.config_descriptor(&ddescr, &cdescr); }
-		catch (Usb::Session::Device_not_found) { return false; }
-
-		bool result = true;
-		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
-			try {
-				usb_raw.claim_interface(i);
-			} catch (Usb::Session::Interface_already_claimed) {
-				result = false;
-			} catch (Usb::Session::Interface_not_found) { }
-		}
-
-		if (!result) error("device already claimed");
-
-		return result;
-	}
-
-	Usb_host_device(Entrypoint &ep, Allocator &alloc, Env &env, Dev_info info)
+	Session(Env &env, Allocator &alloc,
+	        Signal_context_capability io_handler_cap,
+	        Signal_context_capability rom_handler_cap)
 	:
-		_alloc(alloc),
-		usb_raw(env, &_usb_alloc, info.label.string(), 6*1024*1024, state_dispatcher),
-		info(info), _ep(ep)
+		_env(env), _alloc(alloc), _handler_cap(io_handler_cap)
 	{
-		usb_raw.tx_channel()->sigh_ack_avail(ack_avail_dispatcher);
-
-		if (!_claim_interfaces())
-			throw Could_not_create_device();
-
-		qemu_dev = create_usbdevice(this);
-
-		if (!qemu_dev)
-			throw Could_not_create_device();
+		_usb.sigh(rom_handler_cap);
 	}
 
-	~Usb_host_device()
+	~Session() {
+		_model.for_each([&] (Device &dev) { destroy(_alloc, &dev); }); }
+
+	void update()
 	{
-		isoc_in_flush(0, true);
-	}
-
-	static int to_qemu_speed(unsigned speed)
-	{
-		switch (speed) {
-		case Usb::Device::SPEED_LOW:   return USB_SPEED_LOW;
-		case Usb::Device::SPEED_FULL:  return USB_SPEED_FULL;
-		case Usb::Device::SPEED_HIGH:  return USB_SPEED_HIGH;
-		case Usb::Device::SPEED_SUPER: return USB_SPEED_SUPER;
-		default: return 0;
-		}
-	}
-
-	void ack_avail()
-	{
-		Mutex::Guard guard(_mutex);
-
-		/* we are already dead, do nothing */
-		if (deleted == true) return;
-
-		while (usb_raw.source()->ack_avail()) {
-			Usb::Packet_descriptor packet = usb_raw.source()->get_acked_packet();
-			Completion *c = dynamic_cast<Completion *>(packet.completion);
-
-			if ((packet.type == Packet_type::ISOC && !packet.read_transfer()) ||
-			    (c && c->state == Completion::CANCELED)) {
-				free_packet(packet);
-				continue;
-			}
-
-			char *content = usb_raw.source()->packet_content(packet);
-
-			if (packet.type != Packet_type::ISOC) {
-				if (c) c->complete(packet, content);
-				free_packet(packet);
-			} else {
-				/* isochronous in */
-				free_completion(packet);
-				Isoc_packet *new_packet = new (_alloc)
-					Isoc_packet(packet, content);
-				isoc_read_queue.enqueue(*new_packet);
-			}
-		}
-	}
-
-
-	/**********************************
-	 ** Isochronous packet handling **
-	 **********************************/
-
-	bool isoc_read(USBPacket *packet)
-	{
-		if (isoc_read_queue.empty())
-			return false;
-
-		isoc_read_queue.head([&] (Isoc_packet &head) {
-			if (head.copy_read(packet)) {
-				isoc_read_queue.remove(head);
-				free_packet(&head);
-			}
-		});
-
-		return true;
-	}
-
-	unsigned _isoc_in_pending = 0;
-
-	bool isoc_new_packet()
-	{
-		return _isoc_in_pending < 32 ? true : false;
-	}
-
-	void isoc_in_packet(USBPacket *usb_packet)
-	{
-		enum { NUMBER_OF_PACKETS = 1 };
-		isoc_read(usb_packet);
-
-		if (!isoc_new_packet()) {
-			return;
-		}
-
-		size_t const payload_size = usb_packet->ep->max_packet_size * NUMBER_OF_PACKETS;
-		size_t const packet_size  = Usb::Isoc_transfer::size(payload_size);
-		try {
-			Usb::Packet_descriptor packet     = alloc_packet(packet_size, true);
-			packet.type                       = Packet_type::ISOC;
-			packet.transfer.ep                = usb_packet->ep->nr | USB_DIR_IN;
-			packet.transfer.polling_interval  = Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
-
-			Usb::Isoc_transfer &isoc =
-				*(Usb::Isoc_transfer *)usb_raw.source()->packet_content(packet);
-			isoc.number_of_packets = NUMBER_OF_PACKETS;
-			for (unsigned i = 0; i < NUMBER_OF_PACKETS; i++)
-				isoc.packet_size[i] = usb_packet->ep->max_packet_size;
-
-			Completion *c = dynamic_cast<Completion *>(packet.completion);
-			c->p          = nullptr;
-			c->dev        = usb_packet->ep->dev;
-			c->data       = nullptr;
-			c->endpoint   = endpoint_number(usb_packet->ep);
-
-			_isoc_in_pending++;
-			submit(packet);
-		} catch (Packet_alloc_failed) {
-			if (verbose_warnings)
-				warning("xHCI: packet allocation failed (size ", Hex(packet_size), "in ", __func__, ")");
-		}
-	}
-
-	void isoc_in_flush(unsigned ep, bool all = false)
-	{
-		/* flush finished and stored data */
-		isoc_read_queue.for_each([&] (Isoc_packet &packet) {
-			if (!all && (!packet.valid() || packet.packet().transfer.ep != ep)) {
-				return;
-			}
-
-			isoc_read_queue.remove(packet);
-			free_packet(&packet);
-		});
-
-		/* flush in flight packets */
-		flush_completion(ep);
-	}
-
-	void isoc_out_packet(USBPacket *usb_packet)
-	{
-		enum { NUMBER_OF_PACKETS = 32 };
-
-		bool const valid = isoc_write_packet->valid();
-		if (valid) {
-			isoc_write_packet->copy(usb_packet);
-
-			if (isoc_write_packet->packet_count() < NUMBER_OF_PACKETS)
-				return;
-
-			_isoch_out_queue.add(*isoc_write_packet);
-		}
-
-		size_t const payload_size = usb_packet->ep->max_packet_size * NUMBER_OF_PACKETS;
-		size_t const packet_size  = Usb::Isoc_transfer::size(payload_size);
-		try {
-			Usb::Packet_descriptor packet     = alloc_packet(packet_size, false);
-			packet.type                       = Packet_type::ISOC;
-			packet.transfer.ep                = usb_packet->ep->nr;
-			packet.transfer.polling_interval  = Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
-
-			char *packet_content = usb_raw.source()->packet_content(packet);
-
-			Usb::Isoc_transfer &isoc = *(Usb::Isoc_transfer *)packet_content;
-			isoc.number_of_packets = 0;
-
-			isoc_write_packet.construct(packet, packet_content);
-			if (!valid) isoc_write_packet->copy(usb_packet);
-
-		} catch (Packet_alloc_failed) {
-			if (verbose_warnings)
-				warning("xHCI: packet allocation failed (size ", Hex(packet_size), "in ", __func__, ")");
-			isoc_write_packet.construct();
-			return;
-		}
-
-		if (_isoch_out_pending == 0 && _isoch_out_queue.avail_capacity() > 1)
-			return;
-
-		while (!_isoch_out_queue.empty()) {
-			Isoc_packet i = _isoch_out_queue.get();
-			submit(i.packet());
-			_isoch_out_pending++;
-		}
-	}
-
-
-	/***********************
-	 ** Device disconnect **
-	 ***********************/
-
-	void _destroy()
-	{
-		/* mark delete before removing */
-		deleted = true;
-
-		/* remove from USB bus */
-		remove_usbdevice(qemu_dev);
-		qemu_dev = nullptr;
-	}
-
-	void state_change()
-	{
-		Mutex::Guard guard(_mutex);
-		if (usb_raw.plugged())
-			return;
-
-		_destroy();
-	}
-
-	void destroy()
-	{
-		Mutex::Guard guard(_mutex);
-
-		_release_interfaces();
-
-		_destroy();
-	}
-
-
-	/*******************
-	 ** Packet stream **
-	 *******************/
-
-	Usb::Packet_descriptor alloc_packet(int length, bool completion)
-	{
-		if (!usb_raw.source()->ready_to_submit()) {
-			throw Packet_alloc_failed();
-		}
-
-		Usb::Packet_descriptor packet = usb_raw.alloc_packet(length);
-
-		if (!completion) {
-			packet.completion = nullptr;
-			return packet;
-		}
-
-		packet.completion = alloc_completion();
-		if (!packet.completion) {
-			usb_raw.source()->release_packet(packet);
-			throw Packet_alloc_failed();
-		}
-
-		return packet;
-	}
-
-	void free_packet(Usb::Packet_descriptor &packet)
-	{
-		if (packet.type == Packet_type::ISOC) {
-			if (packet.read_transfer()) _isoc_in_pending--;
-			else _isoch_out_pending--;
-		}
-
-		free_completion(packet);
-		usb_raw.source()->release_packet(packet);
-	}
-
-	void free_packet(Isoc_packet *packet)
-	{
-		free_packet(packet->packet());
-		Genode::destroy(_alloc, packet);
-	}
-
-	Completion *alloc_completion()
-	{
-		for (unsigned i = 0; i < NUM_COMPLETIONS; i++)
-			if (completion[i].state == Completion::FREE) {
-				completion[i].state = Completion::VALID;
-				return &completion[i];
-			}
-
-		return nullptr;
-	}
-
-	void free_completion(Usb::Packet_descriptor &packet)
-	{
-		if (packet.completion) {
-			dynamic_cast<Completion *>(packet.completion)->free();
-		}
-		/* make sure we free the completion only once! */
-		packet.completion = nullptr;
-	}
-
-	Completion *find_valid_completion(USBPacket *p)
-	{
-		for (unsigned i = 0; i < NUM_COMPLETIONS; i++)
-			if (completion[i].p == p && completion[i].valid())
-				return &completion[i];
-
-		return nullptr;
-	}
-
-	void flush_completion(unsigned ep)
-	{
-		for (unsigned i = 0; i < NUM_COMPLETIONS; i++)
-		{
-			if (!completion[i].valid())
-				continue;
-
-			if (completion[i].ep() == ep) {
-				completion[i].cancel();
-			}
-		}
-	}
-
-	void submit(Usb::Packet_descriptor p)
-	{
-		usb_raw.source()->submit_packet(p);
-	}
-
-	bool claim_interfaces() { return _claim_interfaces(); }
-
-	void set_configuration(uint8_t value, USBPacket *p)
-	{
-		_release_interfaces();
-
-		try {
-			Usb::Packet_descriptor packet = alloc_packet(0, true);
-			packet.type   =  Usb::Packet_descriptor::CONFIG;
-			packet.number = value;
-
-			Completion *c = dynamic_cast<Completion *>(packet.completion);
-			c->p = p;
-			c->dev = cast_USBDevice(qemu_dev);
-			submit(packet);
-			p->status = USB_RET_ASYNC;
-		} catch (...) {
-			if (verbose_warnings)
-				warning(__func__, " packet allocation failed");
-			p->status = USB_RET_NAK;
-		}
-
-	}
-
-	void set_interface(int index, uint8_t value, USBPacket *p)
-	{
-		try {
-			Usb::Packet_descriptor packet = alloc_packet(0, true);
-			packet.type                  = Usb::Packet_descriptor::ALT_SETTING;
-			packet.interface.number      = index;
-			packet.interface.alt_setting = value;
-
-			Completion *c = dynamic_cast<Completion *>(packet.completion);
-			c->p = p;
-			c->dev = cast_USBDevice(qemu_dev);
-			submit(packet);
-			p->status = USB_RET_ASYNC;
-		} catch (...) {
-			if (verbose_warnings)
-				warning(__func__, " packet allocation failed");
-			p->status = USB_RET_NAK;
-		}
-	}
-
-
-	void flush_transfers(uint8_t ep)
-	{
-		try {
-			Usb::Packet_descriptor packet = alloc_packet(0, false);
-			packet.type                   = Usb::Packet_descriptor::FLUSH_TRANSFERS;
-			packet.number                 = ep;
-			submit(packet);
-		} catch (...) {
-			if (verbose_warnings)
-				warning(__func__, " packet allocation failed");
-		}
-	}
-
-
-	void reset_alt_settings(USBDevice *udev)
-	{
-		/* retrieve device speed */
-		Usb::Config_descriptor cdescr;
-		Usb::Device_descriptor ddescr;
-
-		try { usb_raw.config_descriptor(&ddescr, &cdescr); }
-		catch (Usb::Session::Device_not_found) { return; }
-
-		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
-			udev->altsetting[i] = usb_raw.alt_settings(i);
-		}
-	}
-
-
-	void update_ep(USBDevice *udev)
-	{
-		usb_ep_reset(udev);
-
-		/* retrieve device speed */
-		Usb::Config_descriptor cdescr;
-		Usb::Device_descriptor ddescr;
-
-		try { usb_raw.config_descriptor(&ddescr, &cdescr); }
-		catch (Usb::Session::Device_not_found) { return; }
-
-		for (unsigned i = 0; i < cdescr.num_interfaces; i++) {
-			try {
-				Usb::Interface_descriptor iface;
-				uint8_t const altsetting = udev->altsetting[i];
-				usb_raw.interface_descriptor(i, altsetting, &iface);
-				for (unsigned k = 0; k < iface.num_endpoints; k++) {
-					Usb::Endpoint_descriptor endp;
-					usb_raw.endpoint_descriptor(i, altsetting, k, &endp);
-
-					int const pid      = (endp.address & USB_DIR_IN) ? USB_TOKEN_IN : USB_TOKEN_OUT;
-					int const ep       = (endp.address & 0xf);
-					uint8_t const type = (endp.attributes & 0x3);
-
-					usb_ep_set_max_packet_size(udev, pid, ep, endp.max_packet_size);
-					usb_ep_set_type(udev, pid, ep, type);
-					usb_ep_set_ifnum(udev, pid, ep, i);
-					usb_ep_set_halted(udev, pid, ep, 0);
+		_usb.with_xml([&] (Xml_node node) {
+			_model.update_from_xml(node,
+
+				/* create */
+				[&] (Xml_node const &node) -> Device &
+				{
+					Device::Name name =
+						node.attribute_value("name", Device::Name());
+					Device::Speed speed =
+						node.attribute_value("speed", Device::Speed());
+					Device &dev = *new (_alloc)
+						Device(name, speed, _usb, _alloc, _env.rm(),
+						       _space, _handler_cap);
+					return dev;
+				},
+
+				/* destroy */
+				[&] (Device &dev)
+				{
+					if (dev.qemu_device())
+						remove_usbdevice(dev.qemu_device());
+					dev.update(_alloc, Xml_node("<empty/>"));
+					destroy(_alloc, &dev);
+				},
+
+				/* update */
+				[&] (Device &dev, Xml_node const &node)
+				{
+					dev.update(_alloc, node);
 				}
-			} catch (Usb::Session::Interface_not_found) { }
-		}
+			);
+		});
+		/* add new devices for C-API client after it got successfully added */
+		_model.for_each([&] (Device &dev) {
+			if (!dev.qemu_device())
+				dev.qemu_device(create_usbdevice((void*)dev.handle(),
+				                                 dev.speed()));
+		});
 	}
 };
 
 
-/********************
- ** Qemu interface **
- ********************/
+static Constructible<::Session>& _usb_session()
+{
+	static Constructible<::Session> session {};
+	return session;
+}
 
-#define TRACE_AND_STOP do { warning(__func__, " not implemented"); } while(false)
+
+Urb::Urb(Registry<Urb> &registry,
+         ::Interface   &iface,
+         ::Endpoint    &endp,
+         uint8_t        type,
+         size_t         size,
+         USBPacket     *packet)
+:
+	Registry<Urb>::Element(registry, *this),
+	Usb::Endpoint(endp.address(), endp.attributes()),
+	Usb::Interface::Urb(iface._session(), *this,
+	                    _type(type), size),
+	_endpoint(endp), _packet(packet) { }
+
+
+Urb::Urb(Registry<Urb> &registry,
+         ::Interface   &iface,
+         ::Endpoint    &endp,
+         uint8_t        type,
+         size_t         size,
+         uint32_t       isoc_packets)
+:
+	Registry<Urb>::Element(registry, *this),
+	Usb::Endpoint(endp.address(), endp.attributes()),
+	Usb::Interface::Urb(iface._session(), *this,
+	                    _type(type), size, isoc_packets),
+	_endpoint(endp) {}
+
+
+size_t Urb::read_cache(Byte_range_ptr &dst)
+{
+	return _canceled ? 0 : _endpoint.read_cache(dst);
+}
+
+
+void Urb::write_cache(Const_byte_range_ptr const &src)
+{
+	if (!_canceled) _endpoint.write_cache(src);
+}
+
+
+void Urb::destroy()
+{
+	_endpoint.destroy_urb(this);
+}
+
+
+
+uint8_t Isoc_cache::_level() const {
+	return (_ep.in()) ? _read-_wrote : _wrote-_read; }
+
+
+void Isoc_cache::_new_urb()
+{
+	uint8_t urbs = (_ep.in()) ? URBS : _level() / PACKETS_PER_URB;
+
+	bool sent = false;
+
+	for (unsigned i = 0; urbs && i < URBS; i++) {
+		if (_urbs[i].constructed())
+			continue;
+		_urbs[i].construct(_usb_session()->_urb_registry,
+		                   _iface, _ep,
+		                   USB_ENDPOINT_XFER_ISOC,
+		                   _ep.max_packet_size()*PACKETS_PER_URB,
+		                   PACKETS_PER_URB);
+		--urbs;
+		sent = true;
+	}
+
+	if (sent) _iface.update_urbs();
+}
+
+
+void Isoc_cache::_copy_to_host(USBPacket *p)
+{
+	size_t size = p->iov.size;
+
+	if (!size || _level() >= MAX_PACKETS-1)
+		return;
+
+	size_t offset = _wrote++ * _ep.max_packet_size();
+
+	if (size != _ep.max_packet_size()) {
+		error("Assumption about QEmu Isochronous out packets wrong!");
+		size = _ep.max_packet_size();
+	}
+
+	usb_packet_copy(p, _buffer+offset, size);
+}
+
+
+void Isoc_cache::_copy_to_guest(USBPacket *p)
+{
+	size_t count = p->iov.size / _ep.max_packet_size();
+
+	if (!count || !_level())
+		return;
+
+	size_t offset = _read * _ep.max_packet_size();
+	_read += count;
+
+	usb_packet_copy(p, _buffer+offset, count * _ep.max_packet_size());
+}
+
+
+void Isoc_cache::handle(USBPacket *p)
+{
+	if (_ep.in()) _copy_to_guest(p);
+	else          _copy_to_host(p);
+	_new_urb();
+}
+
+
+size_t Isoc_cache::read(Byte_range_ptr &dst)
+{
+	if (_ep.in())
+		return _ep.max_packet_size();
+
+	size_t offset = _read++ * _ep.max_packet_size();
+	Genode::memcpy(dst.start, (void*)(_buffer+offset), _ep.max_packet_size());
+	return _ep.max_packet_size();
+}
+
+
+void Isoc_cache::write(Const_byte_range_ptr const &src)
+{
+	size_t offset = _wrote * _ep.max_packet_size();
+	_wrote       += src.num_bytes / _ep.max_packet_size();
+	Genode::memcpy((void*)(_buffer+offset), src.start, src.num_bytes);
+}
+
+
+void Isoc_cache::destroy(Urb * urb)
+{
+	for (unsigned i = 0; i < URBS; i++)
+		if (_urbs[i].constructed() && &*_urbs[i] == urb) {
+			_urbs[i].destruct();
+			return;
+		}
+	_new_urb();
+}
+
+
+void Isoc_cache::flush()
+{
+	_read  = 0;
+	_wrote = 0;
+	for (unsigned i = 0; i < URBS; i++)
+		if (_urbs[i].constructed())
+			_urbs[i]->cancel();
+}
+
+
+Isoc_cache::Isoc_cache(::Interface &iface, Endpoint &ep, Allocator &alloc)
+:
+	_iface(iface), _ep(ep), _alloc(alloc),
+	_buffer((unsigned char*)_alloc.alloc(MAX_PACKETS*ep.max_packet_size())) {}
+
+
+Usb::Interface &::Interface::_session()
+{
+	if (!_iface.constructed()) {
+		_iface.construct(_device.session(),
+		                 Usb::Interface::Index{_number, _alt_setting},
+		                 _buf_size);
+		_iface->sigh(_device.sigh_cap());
+	}
+	return *_iface;
+};
+
 
 #define USB_HOST_DEVICE(obj) \
         OBJECT_CHECK(USBHostDevice, (obj), TYPE_USB_HOST_DEVICE)
 
 
-static void reset_alt_settings(USBDevice *udev)
+static void usb_host_update_ep(USBDevice *udev)
 {
-	USBHostDevice     *d = USB_HOST_DEVICE(udev);
-	Usb_host_device *dev = (Usb_host_device *)d->data;
+	USBHostDevice *d = USB_HOST_DEVICE(udev);
+	handle_t handle = (handle_t)d->data;
 
-	dev->reset_alt_settings(udev);
+	usb_ep_reset(udev);
+	_usb_session()->_space.apply<Device>({ handle },
+	                                     [&] (Device & device) {
+		device.with_active_interfaces([&] (::Interface &iface) {
+			iface.for_each_endpoint([&] (Endpoint &endp) {
+				int     const pid   = (endp.address() & USB_DIR_IN)
+					? USB_TOKEN_IN : USB_TOKEN_OUT;
+				int     const ep    = (endp.address() & 0xf);
+				uint8_t const type  = (endp.attributes() & 0x3);
+				usb_ep_set_max_packet_size(udev, pid, ep, endp.max_packet_size());
+				usb_ep_set_type(udev, pid, ep, type);
+				usb_ep_set_ifnum(udev, pid, ep, iface.number());
+				usb_ep_set_halted(udev, pid, ep, 0);
+			});
+		});
+	});
 }
 
 
-static void update_ep(USBDevice *udev, uint8_t interface, uint8_t altsetting)
+void produce_out_data(USBPacket * const p, Byte_range_ptr &dst)
 {
-	USBHostDevice     *d = USB_HOST_DEVICE(udev);
-	Usb_host_device *dev = (Usb_host_device *)d->data;
+	USBEndpoint *ep   = p  ? p->ep   : nullptr;
+	USBDevice   *udev = ep ? ep->dev : nullptr;
 
-	udev->altsetting[interface] = altsetting;
-	dev->update_ep(udev);
+	if (!udev)
+		return;
+
+	switch (usb_ep_get_type(udev, p->pid, p->ep->nr)) {
+	case USB_ENDPOINT_XFER_CONTROL:
+		Genode::memcpy(dst.start, udev->data_buf, dst.num_bytes);
+		return;
+	case USB_ENDPOINT_XFER_BULK:
+	case USB_ENDPOINT_XFER_INT:
+		usb_packet_copy(p, dst.start, dst.num_bytes);
+		break;
+	default:
+		error("cannot produce data for unknown packet");
+	}
 }
 
 
-static bool claim_interfaces(USBDevice *udev)
+void consume_in_data(USBPacket * const p, Const_byte_range_ptr const &src)
 {
-	USBHostDevice     *d = USB_HOST_DEVICE(udev);
-	Usb_host_device *dev = (Usb_host_device *)d->data;
+	USBEndpoint *ep   = p  ? p->ep   : nullptr;
+	USBDevice   *udev = ep ? ep->dev : nullptr;
 
-	return dev->claim_interfaces();
+	if (!udev)
+		return;
+
+	switch (usb_ep_get_type(udev, p->pid, p->ep->nr)) {
+	case USB_ENDPOINT_XFER_CONTROL:
+		p->actual_length = src.num_bytes;
+		Genode::memcpy(udev->data_buf, src.start, src.num_bytes);
+
+		/*
+		 * Disable remote wakeup (bit 5) in 'bmAttributes' (byte 7) in reported
+		 * configuration descriptor. On some systems (e.g., Windows) this will
+		 * cause devices to stop working.
+		 */
+		if ((udev->setup_buf[1] == USB_REQ_GET_DESCRIPTOR) &&
+		    (udev->setup_buf[3] == USB_DT_CONFIG))
+			udev->data_buf[7] &= ~USB_CFG_ATT_WAKEUP;
+		return;
+	case USB_ENDPOINT_XFER_BULK:
+	case USB_ENDPOINT_XFER_INT:
+		/*
+		 * unfortunately usb_packet_copy does not provide a signature
+		 * for const-access of the source
+		 */
+		usb_packet_copy(p, const_cast<char*>(src.start), src.num_bytes);
+		break;
+	default:
+		error("cannot consume data of unknown packet");
+	}
+}
+
+
+void complete_packet(USBPacket * const p, Usb::Tagged_packet::Return_value v)
+{
+	USBEndpoint *ep   = p  ? p->ep   : nullptr;
+	USBDevice   *udev = ep ? ep->dev : nullptr;
+
+	if (!udev)
+		return;
+
+	bool ok = v == Usb::Tagged_packet::OK;
+
+	switch (v) {
+	case Usb::Tagged_packet::OK:   p->status = USB_RET_SUCCESS; break;
+	case Usb::Tagged_packet::HALT: p->status = USB_RET_STALL;   break;
+	default:                       p->status = USB_RET_IOERROR;
+	};
+
+	switch (usb_ep_get_type(udev, p->pid, p->ep->nr)) {
+	case USB_ENDPOINT_XFER_CONTROL:
+		if (ok && udev->setup_buf[1] == USB_REQ_SET_INTERFACE) {
+			usb_host_update_devices();
+			usb_host_update_ep(udev);
+		}
+		usb_generic_async_ctrl_complete(udev, p);
+		return;
+	case USB_ENDPOINT_XFER_BULK:
+	case USB_ENDPOINT_XFER_INT:
+		usb_packet_complete(udev, p);
+		break;
+	default:
+		error("cannot produce data for unknown packet");
+	}
+}
+
+
+void ::Interface::update_urbs()
+{
+	if (!_iface.constructed())
+		return;
+
+	_iface->update_urbs<Urb>(
+		[&] (Urb &urb, Byte_range_ptr &dst) {
+			if (!urb.canceled()) produce_out_data(urb._packet, dst); },
+		[&] (Urb &urb, Const_byte_range_ptr const &src) {
+			if (!urb.canceled()) consume_in_data(urb._packet, src); },
+		[&] (Urb &urb, uint32_t, Byte_range_ptr &dst) {
+			return urb.read_cache(dst); },
+		[&] (Urb &urb, uint32_t, Const_byte_range_ptr const &src) {
+			urb.write_cache(src); },
+		[&] (Urb &urb, Usb::Tagged_packet::Return_value v)
+		{
+			if (!urb.isoc() && !urb.canceled()) {
+				complete_packet(urb._packet, v);
+				if (_usb_session().constructed())
+					destroy(_usb_session()->_alloc, &urb);
+			} else
+				urb.destroy();
+		}
+	);
+}
+
+
+void ::Interface::destroy_all_urbs()
+{
+	if (_iface.constructed())
+		_iface->dissolve_all_urbs<Urb>([] (Urb &urb)
+		{
+			if (!urb.isoc() && !urb.canceled()) {
+				complete_packet(urb._packet, Usb::Tagged_packet::NO_DEVICE);
+				if (_usb_session().constructed())
+					destroy(_usb_session()->_alloc, &urb);
+			} else
+				urb.destroy();
+		});
+}
+
+
+void Device::update_urbs()
+{
+	_device.update_urbs<Urb>(
+		[&] (Urb &urb, Byte_range_ptr &dst) {
+			produce_out_data(urb._packet, dst); },
+		[&] (Urb &urb, Const_byte_range_ptr const &src) {
+			consume_in_data(urb._packet, src); },
+		[&] (Urb &urb, Usb::Tagged_packet::Return_value v) {
+			complete_packet(urb._packet, v);
+			if (_usb_session().constructed())
+				destroy(_usb_session()->_alloc, &urb);
+		}
+	);
+
+	_ifaces.for_each([&] (::Interface &iface) {
+		iface.update_urbs(); });
+}
+
+
+Device::~Device()
+{
+	_device.dissolve_all_urbs<Urb>([] (Urb &urb)
+	{
+		complete_packet(urb._packet, Usb::Tagged_packet::NO_DEVICE);
+		if (_usb_session().constructed())
+			destroy(_usb_session()->_alloc, &urb);
+	});
+}
+
+
+extern "C" void usb_host_update_device_transfers()
+{
+	if (!_usb_session().constructed())
+		return;
+
+	_usb_session()->_model.for_each([&] (Device & device) {
+		device.update_urbs(); });
 }
 
 
 static void usb_host_realize(USBDevice *udev, Error **errp)
 {
-	USBHostDevice     *d = USB_HOST_DEVICE(udev);
-	Usb_host_device *dev = (Usb_host_device *)d->data;
-
-	/* retrieve device speed */
-	Usb::Config_descriptor cdescr;
-	Usb::Device_descriptor ddescr;
-
-	try { dev->usb_raw.config_descriptor(&ddescr, &cdescr); }
-	catch (Usb::Session::Device_not_found) { return; }
-
-	if (verbose_host)
-		log("set udev->speed to %d", Usb_host_device::to_qemu_speed(ddescr.speed));
-
-	udev->speed     = Usb_host_device::to_qemu_speed(ddescr.speed);
-	udev->speedmask = (1 << udev->speed);
+	USBHostDevice *d = USB_HOST_DEVICE(udev);
+	handle_t handle = (handle_t)d->data;
 
 	udev->flags |= (1 << USB_DEV_FLAG_IS_HOST);
-
-	dev->update_ep(udev);
+	usb_host_update_ep(udev);
 }
 
 
 static void usb_host_cancel_packet(USBDevice *udev, USBPacket *p)
 {
-	USBHostDevice     *d = USB_HOST_DEVICE(udev);
-	Usb_host_device *dev = (Usb_host_device *)d->data;
-	Completion        *c = dev->find_valid_completion(p);
-
-	if (c)
-		c->cancel();
+	_usb_session()->_urb_registry.for_each([&] (::Urb &urb) {
+		if (urb.packet() == p) urb.cancel(); });
 }
 
 
 static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 {
-	USBHostDevice               *d    = USB_HOST_DEVICE(udev);
-	Usb_host_device             *dev  = (Usb_host_device *)d->data;
-	Genode::size_t               size = 0;
-	Usb::Packet_descriptor::Type type = Usb::Packet_descriptor::BULK;
-	bool const                   in   = p->pid == USB_TOKEN_IN;
+	USBHostDevice *d = USB_HOST_DEVICE(udev);
+	handle_t handle = (handle_t)d->data;
+	uint8_t type = usb_ep_get_type(udev, p->pid, p->ep->nr);
+	uint8_t ep   = p->ep->nr | ((p->pid == USB_TOKEN_IN) ? USB_DIR_IN : 0);
 
-	switch (usb_ep_get_type(udev, p->pid, p->ep->nr)) {
-	case USB_ENDPOINT_XFER_BULK:
-		type      = Usb::Packet_descriptor::BULK;
-		size      = usb_packet_size(p);
-		p->status = USB_RET_ASYNC;
-		break;
-	case USB_ENDPOINT_XFER_INT:
-		type      = Usb::Packet_descriptor::IRQ;
-		size      = p->iov.size;
-		p->status = USB_RET_ASYNC;
-		break;
-	case USB_ENDPOINT_XFER_ISOC:
-		if (in)
-			dev->isoc_in_packet(p);
-		else
-			dev->isoc_out_packet(p);
-		return;
-	default:
-		error("not supported data request");
-		p->status = USB_RET_NAK;
-		return;
-	}
+	_usb_session()->_space.apply<Device>({ handle }, [&] (Device & device) {
+		device.with_active_interfaces([&] (::Interface &iface) {
+			iface.with_endpoint(ep, [&] (Endpoint &endp) {
 
-	try {
-		Usb::Packet_descriptor packet     = dev->alloc_packet(size, true);
-		packet.type                       = type;
-		packet.transfer.ep                = p->ep->nr | (in ? USB_DIR_IN : 0);
-		packet.transfer.polling_interval  = Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
-
-		if (!in) {
-			char * const content = dev->usb_raw.source()->packet_content(packet);
-			usb_packet_copy(p, content, size);
-		}
-
-		Completion *c = dynamic_cast<Completion *>(packet.completion);
-		c->p          = p;
-		c->dev        = udev;
-		c->data       = nullptr;
-
-		dev->submit(packet);
-	} catch (Packet_alloc_failed) {
-		if (verbose_warnings)
-			warning("xHCI: packet allocation failed (size ", Hex(size), "in ", __func__, ")");
-		p->status = USB_RET_NAK;
-	}
+				switch (type) {
+				case USB_ENDPOINT_XFER_BULK: [[fallthrough]];
+				case USB_ENDPOINT_XFER_INT:
+					p->status = USB_RET_ASYNC;
+					new (_usb_session()->_alloc)
+						::Urb(_usb_session()->_urb_registry,
+						      iface, endp, type, usb_packet_size(p), p);
+					iface.update_urbs();
+					return;
+				case USB_ENDPOINT_XFER_ISOC:
+					p->status = USB_RET_SUCCESS;
+					endp.handle_isoc_packet(p);
+					return;
+				default:
+					error("not supported data request ", (int)type);
+					p->status = USB_RET_NAK;
+					return;
+				}
+			});
+		});
+	});
 }
 
 
@@ -870,22 +880,13 @@ static void usb_host_handle_control(USBDevice *udev, USBPacket *p,
                                     int request, int value, int index,
                                     int length, uint8_t *data)
 {
-	USBHostDevice     *d = USB_HOST_DEVICE(udev);
-	Usb_host_device *dev = (Usb_host_device *)d->data;
-
-	if (verbose_host)
-		log("r: ", Hex(request), " v: ", Hex(value), " "
-		    "i: ", Hex(index), " length: ", length);
+	USBHostDevice *d = USB_HOST_DEVICE(udev);
+	handle_t handle = (handle_t)d->data;
 
 	switch (request) {
 	case DeviceOutRequest | USB_REQ_SET_ADDRESS:
 		udev->addr = value;
-		return;
-	case DeviceOutRequest | USB_REQ_SET_CONFIGURATION:
-		dev->set_configuration(value & 0xff, p);
-		return;
-	case InterfaceOutRequest | USB_REQ_SET_INTERFACE:
-		dev->set_interface(index, value, p);
+		p->status = USB_RET_SUCCESS;
 		return;
 	}
 
@@ -895,61 +896,34 @@ static void usb_host_handle_control(USBDevice *udev, USBPacket *p,
 		error("r->usb3ep0quirk = true");
 	}
 
-	Usb::Packet_descriptor packet;
-	try {
-		packet = dev->alloc_packet(length, true);
-	} catch (...) {
-		if (verbose_warnings)
-			warning("Packet allocation failed");
-		return;
-	}
+	_usb_session()->_space.apply<Device>({ handle },
+	                                     [&] (Device & device) {
+		new (_usb_session()->_alloc)
+			Device::Urb(device, request & 0xff, (request >> 8) & 0xff,
+			            value, index, length, p);
+		device.update_urbs();
+	});
 
-	packet.type = Usb::Packet_descriptor::CTRL;
-	packet.control.request_type = request >> 8;
-	packet.control.request      = request & 0xff;
-	packet.control.index        = index;
-	packet.control.value        = value;
-
-	/*
-	 * Send usb ctrl transfers with one second timeout as some devices (e.g.,
-	 * smartcard readers) do not response to certain control transfers.
-	 */
-	packet.control.timeout = 1000; /* ms */
-
-	Completion *c = dynamic_cast<Completion *>(packet.completion);
-	c->p        = p;
-	c->dev      = udev;
-	c->data     = data;
-
-	if (!(packet.control.request_type & USB_DIR_IN) && length) {
-		char *packet_content = dev->usb_raw.source()->packet_content(packet);
-		Genode::memcpy(packet_content, data, length);
-	}
-
-	dev->submit(packet);
 	p->status = USB_RET_ASYNC;
 }
 
 
 static void usb_host_ep_stopped(USBDevice *udev, USBEndpoint *usb_ep)
 {
-	USBHostDevice               *d    = USB_HOST_DEVICE(udev);
-	Usb_host_device             *dev  = (Usb_host_device *)d->data;
+	USBHostDevice *d = USB_HOST_DEVICE(udev);
+	handle_t handle = (handle_t)d->data;
+	uint8_t ep = usb_ep->nr | ((usb_ep->pid == USB_TOKEN_IN) ? USB_DIR_IN : 0);
 
-	bool     in = usb_ep->pid == USB_TOKEN_IN;
-	unsigned ep = endpoint_number(usb_ep);
-
-	/* flush pending transfers */
-	dev->flush_transfers(ep);
-
-	switch (usb_ep->type) {
-	case USB_ENDPOINT_XFER_ISOC:
-		if (in) {
-			dev->isoc_in_flush(ep, true);
-		}
-	default:
-		return;
-	}
+	_usb_session()->_space.apply<Device>({ handle }, [&] (Device & device) {
+		device.with_active_interfaces([&] (::Interface &iface) {
+			iface.with_endpoint(ep, [&] (Endpoint &endp) {
+				endp.flush();
+				new (_usb_session()->_alloc)
+					::Urb(_usb_session()->_urb_registry, iface, endp,
+					      USB_ENDPOINT_XFER_INVALID, 0, nullptr);
+			});
+		});
+	});
 }
 
 
@@ -987,133 +961,13 @@ static void usb_host_register_types(void)
 }
 
 
-struct Usb_devices : List<Usb_host_device>
-{
-	Entrypoint                    &_ep;
-	Env                           &_env;
-	Allocator                     &_alloc;
-	Signal_handler<Usb_devices>    _device_dispatcher { _ep, *this, &Usb_devices::_devices_update };
-	Attached_rom_dataspace         _devices_rom = { _env, "usb_devices" };
-
-	void _garbage_collect()
-	{
-		for (Usb_host_device *next = first(); next;) {
-			Usb_host_device *current = next;
-			next = current->next();
-
-			if (current->deleted == false)
-				continue;
-
-			remove(current);
-			Genode::destroy(_alloc, current);
-		}
-	}
-
-	template <typename FUNC>
-	void for_each(FUNC  const &fn)
-	{
-		for (Usb_host_device *d = first(); d; d = d->next())
-			fn(*d);
-	}
-
-	void _devices_update()
-	{
-		Mutex::Guard guard(_mutex);
-
-		_garbage_collect();
-
-		_devices_rom.update();
-		if (!_devices_rom.valid())
-			return;
-
-		for_each([] (Usb_host_device &device) {
-			device.deleted = true;
-		});
-
-		if (verbose_devices)
-			log(_devices_rom.local_addr<char const>());
-
-		Xml_node devices_node(_devices_rom.local_addr<char>(), _devices_rom.size());
-		devices_node.for_each_sub_node("device", [&] (Xml_node const &node) {
-
-			Session_label label = node.attribute_value("label", String<160>());
-
-			Dev_info const dev_info(label);
-
-			if (!node.has_attribute("label")) {
-				error("no label found for device ", dev_info);
-				return;
-			}
-
-			/* ignore if already created */
-			bool exists = false;
-			for_each([&] (Usb_host_device &device) {
-				if (device.info != dev_info)
-					return;
-
-				exists         = true;
-				device.deleted = false;
-			});
-
-			if (exists)
-				return;
-
-			try {
-				Usb_host_device *new_device = new (_alloc)
-					Usb_host_device(_ep, _alloc, _env, dev_info);
-
-				insert(new_device);
-
-				log("Attach USB device ", dev_info);
-			} catch (...) {
-				error("could not attach USB device ", dev_info);
-			}
-		});
-
-		/* remove devices deleted by update */
-		for_each([] (Usb_host_device &device) {
-			if (device.deleted == false) return;
-
-			device._release_interfaces();
-			device._destroy();
-		});
-		_garbage_collect();
-	}
-
-	Usb_devices(Entrypoint &ep, Allocator &alloc, Env &env)
-	: _ep(ep), _env(env), _alloc(alloc)
-	{
-		_devices_rom.sigh(_device_dispatcher);
-		_devices_update();
-	}
-
-	void destroy()
-	{
-		for (Usb_host_device *d = first(); d; d = d->next())
-			d->destroy();
-
-		_garbage_collect();
-	}
-};
-
-
-static Usb_devices *_devices;
-
-
-extern "C" void usb_host_destroy()
-{
-	if (_devices == nullptr) return;
-
-	_devices->destroy();
-}
-
-
 extern "C" void usb_host_update_devices()
 {
-	if (_devices == nullptr) return;
-
-	_devices->_devices_update();
+	if (_usb_session().constructed()) _usb_session()->update();
 }
+
+
+extern "C" void usb_host_destroy() { }
 
 
 /*
@@ -1123,8 +977,33 @@ extern "C" void _type_init_usb_host_register_types(Entrypoint *ep,
                                                    Allocator *alloc,
                                                    Env *env)
 {
-	usb_host_register_types();
+	struct Helper
+	{
+		Signal_handler<Helper> io_handler;
+		Signal_handler<Helper> rom_handler;
 
-	static Usb_devices devices(*ep, *alloc, *env);
-	_devices = &devices;
+		Helper(Entrypoint &ep)
+		:
+			io_handler(ep, *this, &Helper::io),
+			rom_handler(ep, *this, &Helper::rom_update) {}
+
+		void io()
+		{
+			Mutex::Guard guard(::_mutex);
+			usb_host_update_device_transfers();
+		}
+
+		void rom_update()
+		{
+			Mutex::Guard guard(::_mutex);
+			usb_host_update_devices();
+		}
+	};
+	static Helper helper(*ep);
+
+	Mutex::Guard guard(::_mutex);
+	usb_host_register_types();
+	_usb_session().construct(*env, *alloc, helper.io_handler,
+	                         helper.rom_handler);
+	usb_host_update_devices();
 }

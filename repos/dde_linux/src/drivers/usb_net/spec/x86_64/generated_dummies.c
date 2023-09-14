@@ -680,14 +680,6 @@ void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags)
 }
 
 
-#include <linux/scatterlist.h>
-
-void sg_init_table(struct scatterlist * sgl,unsigned int nents)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/sock.h>
 
 void sk_error_report(struct sock * sk)
@@ -746,23 +738,8 @@ struct sk_buff * tcp_get_timestamping_opt_stats(const struct sock * sk,const str
 }
 
 
-#include <linux/usb.h>
-
-int usb_clear_halt(struct usb_device * dev,int pipe)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern void usb_devio_cleanup(void);
 void usb_devio_cleanup(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void usb_disable_endpoint(struct usb_device * dev,unsigned int epaddr,bool reset_hardware);
-void usb_disable_endpoint(struct usb_device * dev,unsigned int epaddr,bool reset_hardware)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -771,29 +748,6 @@ void usb_disable_endpoint(struct usb_device * dev,unsigned int epaddr,bool reset
 #include <linux/usb.h>
 
 int usb_free_streams(struct usb_interface * interface,struct usb_host_endpoint ** eps,unsigned int num_eps,gfp_t mem_flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int usb_get_device_descriptor(struct usb_device * dev,unsigned int size);
-int usb_get_device_descriptor(struct usb_device * dev,unsigned int size)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/usb.h>
-
-int usb_get_status(struct usb_device * dev,int recip,int type,int target,void * data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/usb/hcd.h>
-
-int usb_hcd_alloc_bandwidth(struct usb_device * udev,struct usb_host_config * new_config,struct usb_host_interface * cur_alt,struct usb_host_interface * new_alt)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -828,24 +782,9 @@ void usb_major_cleanup(void)
 }
 
 
-extern int usb_set_isoch_delay(struct usb_device * dev);
-int usb_set_isoch_delay(struct usb_device * dev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/usb/ch9.h>
 
 const char * usb_speed_string(enum usb_device_speed speed)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/usb.h>
-
-void usb_unpoison_urb(struct urb * urb)
 {
 	lx_emul_trace_and_stop(__func__);
 }

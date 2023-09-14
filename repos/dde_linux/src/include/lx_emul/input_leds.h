@@ -18,6 +18,7 @@
 extern "C" {
 #endif
 
+extern void lx_emul_input_leds_init(void);
 extern void lx_emul_input_leds_update(bool capslock, bool numlock, bool scrolllock);
 
 #ifdef __cplusplus

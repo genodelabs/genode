@@ -79,7 +79,7 @@ install_config {
 	</start>
 
 	<start name="test-smartcard" caps="150">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="5M"/>
 		<config>
 			<vfs>
 				<dir name="dev">
@@ -106,7 +106,7 @@ install_config {
 append usb_config {
 <config bios_handoff="yes">
 	<report devices="yes"/>
-	<policy label="test-smartcard -> usb_device" vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/>
+	<policy label="test-smartcard -> "><device vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/></policy>
 </config>}
 set fd [open [run_dir]/genode/usb_host_drv.config w]
 puts $fd $usb_config

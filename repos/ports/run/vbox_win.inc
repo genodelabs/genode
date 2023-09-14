@@ -144,9 +144,7 @@ set config_of_app {
 			<policy label="pointer -> xray"                     report="nitpicker -> xray"/>}
 append config_of_app {
 			<policy label="usb_hid_drv -> report"               report="usb_drv -> devices"/>
-			<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
-			<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
-			<policy label="vbox1 -> usb_devices"                report="usb_report_filter -> usb_devices"/>}
+}
 append_if [expr $use_cpu_load] config_of_app {
 			<policy label="cpu_load_display -> trace_subjects"
 			        report="trace_subject_reporter -> trace_subjects"/>}

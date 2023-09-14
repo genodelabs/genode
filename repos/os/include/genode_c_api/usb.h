@@ -15,110 +15,77 @@
 #define _GENODE_C_API__USB_H_
 
 #include <genode_c_api/base.h>
+#include <usb_session/types.h>
 
 
-struct genode_usb_session; /* definition is private to the implementation */
+struct genode_usb_device;
+struct genode_usb_configuration;
+struct genode_usb_interface;
 
-typedef unsigned short genode_usb_vendor_id_t;
-typedef unsigned short genode_usb_product_id_t;
-typedef unsigned int   genode_usb_bus_num_t;
-typedef unsigned int   genode_usb_dev_num_t;
-typedef unsigned char  genode_usb_class_num_t;
+typedef unsigned int genode_usb_bus_num_t;
+typedef unsigned int genode_usb_dev_num_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-/********************
- ** Initialization **
- ********************/
-
-/**
- * Callback to copy over config descriptor for given device
- */
-typedef unsigned (*genode_usb_rpc_config_desc_t)
-	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev,
-	 void * dev_desc, void * conf_desc);
-
-/**
- * Callback that returns number of alt-settings of an interface for given device
- */
-typedef int (*genode_usb_rpc_alt_settings_t)
-	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned idx);
-
-/**
- * Callback to copy over interface descriptor for given device/interface
- */
-typedef int (*genode_usb_rpc_iface_desc_t)
-	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned idx,
-	 unsigned alt, void * buf, unsigned long buf_size, int * active);
-
-/**
- * Callback to copy over additional vendor specific data of an interface
- */
-typedef int (*genode_usb_rpc_iface_extra_t)
-	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned idx,
-	 unsigned alt, void * buf, unsigned long buf_size);
-
-/**
- * Callback to copy over endpoint descriptor for given device/iface/endpoint
- */
-typedef int (*genode_usb_rpc_endp_desc_t)
-	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned idx,
-	 unsigned alt, unsigned endp, void * buf, unsigned long buf_size);
-
-/**
- * Callback to claim a given interface
- */
-typedef int (*genode_usb_rpc_claim_t)
-	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned iface);
-
-/**
- * Callback to release a given interface
- */
-typedef int (*genode_usb_rpc_release_t)
-	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev, unsigned iface);
-
-/**
- * Callback to release all interfaces
- */
-typedef void (*genode_usb_rpc_release_all_t)
-	(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev);
-
-struct genode_usb_rpc_callbacks {
-	genode_shared_dataspace_alloc_attach_t alloc_fn;
-	genode_shared_dataspace_free_t         free_fn;
-	genode_usb_rpc_config_desc_t           cfg_desc_fn;
-	genode_usb_rpc_alt_settings_t          alt_settings_fn;
-	genode_usb_rpc_iface_desc_t            iface_desc_fn;
-	genode_usb_rpc_iface_extra_t           iface_extra_fn;
-	genode_usb_rpc_endp_desc_t             endp_desc_fn;
-	genode_usb_rpc_claim_t                 claim_fn;
-	genode_usb_rpc_release_t               release_fn;
-	genode_usb_rpc_release_all_t           release_all_fn;
-};
-
-/**
- * Initialize USB root component
- *
- * \param handler  signal handler to be installed at each USB session
- */
-void genode_usb_init(struct genode_env               * env,
-                     struct genode_allocator         * alloc,
-                     struct genode_signal_handler    * handler,
-                     struct genode_usb_rpc_callbacks * callbacks);
-
-
 /************************************
  ** USB device lifetime management **
  ************************************/
 
-void genode_usb_announce_device(genode_usb_vendor_id_t  vendor,
-                                genode_usb_product_id_t product,
-                                genode_usb_class_num_t  cla,
-                                genode_usb_bus_num_t    bus,
-                                genode_usb_dev_num_t    dev);
+
+/**
+ * Callback to announce configuration of a device
+ */
+typedef void (*genode_usb_dev_add_config_t)
+	(struct genode_usb_device *dev, unsigned idx, void *opaque_data);
+
+/**
+ * Callback to announce interface of a device configuration
+ */
+typedef void (*genode_usb_dev_add_iface_t)
+	(struct genode_usb_configuration *cfg, unsigned idx, void *opaque_data);
+
+/**
+ * Callback to announce endpoint of an interface
+ */
+typedef void (*genode_usb_dev_add_endp_t)
+	(struct genode_usb_interface *cfg, unsigned idx, void *opaque_data);
+
+/**
+ * Callback to request string item of a device
+ */
+typedef void (*genode_usb_dev_string_item_t)
+	(genode_buffer_t string, void *opaque_data);
+
+void
+genode_usb_device_add_endpoint(struct genode_usb_interface          *iface,
+                               struct genode_usb_endpoint_descriptor desc);
+
+void
+genode_usb_device_add_interface(struct genode_usb_configuration       *cfg,
+                                genode_usb_dev_string_item_t           info_string,
+                                struct genode_usb_interface_descriptor desc,
+                                genode_usb_dev_add_endp_t              callback,
+                                void                                  *opaque_data,
+                                bool                                   active);
+
+void
+genode_usb_device_add_configuration(struct genode_usb_device           *dev,
+                                    struct genode_usb_config_descriptor desc,
+                                    genode_usb_dev_add_iface_t          callback,
+                                    void                               *opaque_data,
+                                    bool                                active);
+
+void genode_usb_announce_device(genode_usb_bus_num_t                bus,
+                                genode_usb_dev_num_t                dev,
+                                genode_usb_speed_t                  speed,
+                                genode_usb_dev_string_item_t        manufacturer_string,
+                                genode_usb_dev_string_item_t        product_string,
+                                struct genode_usb_device_descriptor desc,
+                                genode_usb_dev_add_config_t         callback,
+                                void                               *opaque_data);
 
 void genode_usb_discontinue_device(genode_usb_bus_num_t bus,
                                    genode_usb_dev_num_t dev);
@@ -128,145 +95,104 @@ void genode_usb_discontinue_device(genode_usb_bus_num_t bus,
  ** USB session request handling **
  **********************************/
 
-typedef unsigned short genode_usb_session_handle_t;
-typedef unsigned short genode_usb_request_handle_t;
+typedef void* genode_usb_request_handle_t;
 
-struct genode_usb_request_string
-{
-	unsigned char index;
-	unsigned      length;
-};
+enum Request_return { OK, NO_DEVICE, INVALID, TIMEOUT, HALT, };
+typedef enum Request_return genode_usb_request_ret_t;
 
-struct genode_usb_request_control
-{
-	unsigned char  request;
-	unsigned char  request_type;
-	unsigned short value;
-	unsigned short index;
-	int            actual_size;
-	int            timeout;
-};
 
-struct genode_usb_request_transfer
-{
-	unsigned char ep;
-	int           actual_size;
-	int           polling_interval;
-};
+typedef void (*genode_usb_req_control_t)
+	(genode_usb_request_handle_t handle,
+	 unsigned char               ctrl_request,
+	 unsigned char               ctrl_request_type,
+	 unsigned short              ctrl_value,
+	 unsigned short              ctrl_index,
+	 unsigned long               ctrl_timeout,
+	 genode_buffer_t             payload,
+	 void                       *opaque_data);
 
-enum Isoc { MAX_PACKETS = 32 };
+typedef void (*genode_usb_req_irq_t)
+	(genode_usb_request_handle_t handle,
+	 unsigned char               ep,
+	 genode_buffer_t             payload,
+	 void                       *opaque_data);
 
-struct genode_usb_isoc_transfer
-{
-	unsigned number_of_packets;
-	unsigned packet_size[MAX_PACKETS];
-	unsigned actual_packet_size[MAX_PACKETS];
-	char     data[];
-};
+typedef void (*genode_usb_req_bulk_t)
+	(genode_usb_request_handle_t handle,
+	 unsigned char               ep,
+	 genode_buffer_t             payload,
+	 void                       *opaque_data);
 
-enum Urb_type { CTRL, BULK, IRQ, ISOC, ALT_SETTING, CONFIG, NONE };
-typedef enum Urb_type genode_usb_urb_t;
-
-struct genode_usb_request_urb
-{
-	genode_usb_urb_t type;
-	void           * req;
-};
-
-struct genode_usb_buffer
-{
-	void        * addr;
-	unsigned long size;
-};
-
-static inline struct genode_usb_request_control *
-genode_usb_get_request_control(struct genode_usb_request_urb * urb)
-{
-	return (urb->type == CTRL) ? (struct genode_usb_request_control*)urb->req : 0;
-}
-
-static inline struct genode_usb_request_transfer *
-genode_usb_get_request_transfer(struct genode_usb_request_urb * urb)
-{
-	return (urb->type != CTRL) ? (struct genode_usb_request_transfer*)urb->req : 0;
-}
-
-enum Request_return_error {
-	NO_ERROR,
-	INTERFACE_OR_ENDPOINT_ERROR,
-	MEMORY_ERROR,
-	NO_DEVICE_ERROR,
-	PACKET_INVALID_ERROR,
-	PROTOCOL_ERROR,
-	STALL_ERROR,
-	TIMEOUT_ERROR,
-	UNKNOWN_ERROR
-};
-typedef enum Request_return_error genode_usb_request_ret_t;
-
-typedef void (*genode_usb_req_urb_t)
-	(struct genode_usb_request_urb req,
-	 genode_usb_session_handle_t   session_handle,
-	 genode_usb_request_handle_t   request_handle,
-	 struct genode_usb_buffer      payload,
-	 void                        * opaque_data);
-
-typedef void (*genode_usb_req_string_t)
-	(struct genode_usb_request_string * req,
-	 genode_usb_session_handle_t        session_handle,
-	 genode_usb_request_handle_t        request_handle,
-	 struct genode_usb_buffer           payload,
-	 void                             * opaque_data);
-
-typedef void (*genode_usb_req_altsetting_t)
-	(unsigned iface, unsigned alt_setting,
-	 genode_usb_session_handle_t session_handle,
-	 genode_usb_request_handle_t request_handle,
-	 void * opaque_data);
-
-typedef void (*genode_usb_req_config_t)
-	(unsigned config_idx,
-	 genode_usb_session_handle_t session_handle,
-	 genode_usb_request_handle_t request_handle,
-	 void * opaque_data);
+typedef void (*genode_usb_req_isoc_t)
+	(genode_usb_request_handle_t        handle,
+	 unsigned char                      ep,
+	 genode_uint32_t                    number_of_packets,
+	 struct genode_usb_isoc_descriptor *packets,
+	 genode_buffer_t                    payload,
+	 void                              *opaque_data);
 
 typedef void (*genode_usb_req_flush_t)
-	(unsigned char ep,
-	 genode_usb_session_handle_t session_handle,
-	 genode_usb_request_handle_t request_handle,
-	 void * opaque_data);
-
-typedef genode_usb_request_ret_t (*genode_usb_response_t)
-	(struct genode_usb_request_urb req,
-	 struct genode_usb_buffer      payload,
-	 void                        * opaque_data);
+	(unsigned char               ep,
+	 genode_usb_request_handle_t handle,
+	 void                       *opaque_data);
 
 struct genode_usb_request_callbacks {
-	genode_usb_req_urb_t        urb_fn;
-	genode_usb_req_string_t     string_fn;
-	genode_usb_req_altsetting_t altsetting_fn;
-	genode_usb_req_config_t     config_fn;
-	genode_usb_req_flush_t      flush_fn;
+	genode_usb_req_control_t ctrl_fn;
+	genode_usb_req_irq_t     irq_fn;
+	genode_usb_req_bulk_t    bulk_fn;
+	genode_usb_req_isoc_t    isoc_fn;
+	genode_usb_req_flush_t   flush_fn;
 };
 
-genode_usb_session_handle_t genode_usb_session_by_bus_dev(genode_usb_bus_num_t bus,
-                                                          genode_usb_dev_num_t dev);
+typedef struct genode_usb_request_callbacks * genode_usb_req_callback_t;
 
-int genode_usb_request_by_session(genode_usb_session_handle_t session_handle,
-                                  struct genode_usb_request_callbacks * const c,
-                                  void * callback_data);
+bool genode_usb_device_acquired(genode_usb_bus_num_t bus,
+                                genode_usb_dev_num_t dev);
 
-void genode_usb_ack_request(genode_usb_session_handle_t session_handle,
-                            genode_usb_request_handle_t request_handle,
-                            genode_usb_response_t       callback,
-                            void *                      callback_data);
+bool
+genode_usb_request_by_bus_dev(genode_usb_bus_num_t            bus,
+                              genode_usb_dev_num_t            dev,
+                              genode_usb_req_callback_t const callback,
+                              void                           *opaque_data);
+
+void genode_usb_ack_request(genode_usb_request_handle_t request_handle,
+                            genode_usb_request_ret_t    ret,
+                            genode_uint32_t            *actual_sizes);
 
 void genode_usb_notify_peers(void);
 
-void genode_usb_handle_empty_sessions(void);
+void genode_usb_handle_disconnected_sessions(void);
 
 #ifdef __cplusplus
 }
 #endif
+
+
+#ifdef __cplusplus
+
+#include <base/env.h>
+#include <base/signal.h>
+
+/**
+ * Callback to signal release of device(s)
+ */
+typedef void (*genode_usb_dev_release_t) (genode_usb_bus_num_t bus,
+                                          genode_usb_dev_num_t dev);
+
+namespace Genode_c_api {
+
+	using namespace Genode;
+
+	/**
+	 * Initialize USB root component
+	 */
+	void initialize_usb_service(Env                                   &env,
+	                            Signal_context_capability              sigh_cap,
+	                            genode_shared_dataspace_alloc_attach_t alloc_fn,
+	                            genode_shared_dataspace_free_t         free_fn,
+	                            genode_usb_dev_release_t               release_fn);
+}
+
+#endif /* __cplusplus */
 
 #endif /* _GENODE_C_API__USB_H_ */

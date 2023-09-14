@@ -26,7 +26,9 @@ drivers/usb/core/config.c
 drivers/usb/core/driver.c
 drivers/usb/core/generic.c
 drivers/usb/core/hub.c
+drivers/usb/core/message.c
 drivers/usb/core/quirks.c
+drivers/usb/core/urb.c
 drivers/usb/core/usb.c
 fs/nls/nls_base.c
 kernel/kthread.c
@@ -70,6 +72,7 @@ lib/radix-tree.c
 lib/rhashtable.c
 lib/rbtree.c
 lib/xarray.c
+lib/scatterlist.c
 lib/siphash.c
 lib/string.c
 lib/string_helpers.c

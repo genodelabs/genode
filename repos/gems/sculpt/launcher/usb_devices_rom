@@ -1,8 +1,0 @@
-<launcher pkg="rom_filter">
-	<config>
-		<output node="devices">
-			<inline>
-			</inline>
-		</output>
-	</config>
-</launcher>

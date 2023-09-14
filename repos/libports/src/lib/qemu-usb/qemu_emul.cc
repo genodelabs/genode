@@ -448,12 +448,14 @@ static USBHostDevice *_create_usbdevice(int const type, FUNC const &fn_init)
 }
 
 
-USBHostDevice *create_usbdevice(void *data)
+USBHostDevice *create_usbdevice(void *data, int speed)
 {
 	return _create_usbdevice(Object_pool::USB_HOST_DEVICE,
 	                         [&](Wrapper &obj) {
 		/* set data pointer */
 		obj._usb_host_device.data = data;
+		obj._usb_device.speed     = speed;
+		obj._usb_device.speedmask = (1 << speed);
 	});
 }
 

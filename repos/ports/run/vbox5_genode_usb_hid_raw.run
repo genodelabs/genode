@@ -13,8 +13,6 @@ if { [have_include "power_on/qemu"] || ![have_spec nova] || ![have_spec x86_64]}
 	exit 0
 }
 
-build { app/usb_report_filter }
-
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/acpi_drv \
@@ -61,13 +59,10 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="pci_decode -> system"                report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> devices"             report="pci_decode -> devices"/>
-			<policy label="pointer -> hover"                    report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"                     report="nitpicker -> xray"/>
-			<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
-			<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
-			<policy label="virtualbox -> usb_devices"           report="usb_report_filter -> usb_devices"/>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+			<policy label="pointer -> hover"        report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"         report="nitpicker -> xray"/>
 		</config>
 	</start>
 
@@ -108,75 +103,17 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="usb_config_fs" priority="-1">
-		<binary name="vfs"/>
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="File_system"/></provides>
-		<config verbose="yes">
-			<vfs>
-				<ram/>
-				<import>
-					<inline name="usb_drv.config">
-<config>
-	<report devices="yes" config="yes"/>
-	<policy label_prefix="virtualbox" class="0x3"/>
-</config>
-					</inline>
-					<inline name="usb_report_filter.config">
-<config>
-	<vfs> <fs/> </vfs>
-
-	<!-- USB device whitelist -->
-	<client label="virtualbox"/>
-	<device vendor_id="0x03eb" product_id="0x204d"/> <!-- 'Pro Micro' test device -->
-</config>
-					</inline>
-				</import>
-			</vfs>
-			<policy label_prefix="usb_report_filter" root="/" writeable="yes" />
-			<policy label_prefix="usb_config_rom" root="/"/>
-		</config>
-	</start>
-
-	<start name="usb_config_rom" priority="-1">
-		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="1200K"/>
-		<provides><service name="ROM"/></provides>
-		<route>
-			<service name="File_system"><child name="usb_config_fs"/></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-
-	<start name="usb_report_filter" priority="-1">
-		<resource name="RAM" quantum="1200K"/>
-		<route>
-			<service name="Report"><child name="report_rom" /></service>
-			<service name="ROM" label="config">
-				<child name="usb_config_rom" label="usb_report_filter.config"/>
-			</service>
-			<service name="ROM" label="devices">
-				<child name="report_rom"/>
-			</service>
-			<service name="ROM" label="usb_drv_config">
-				<child name="report_rom"/>
-			</service>
-			<service name="File_system" label="usb_drv.config">
-				<child name="usb_config_fs"/>
-			</service>
-			<any-service><parent/><any-child /></any-service>
-		</route>
-	</start>
-
 	<start name="usb_drv" priority="-1">
 		<binary name="pc_usb_host_drv"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="Usb"/> </provides>
+		<config>
+			<report devices="yes" config="yes"/>
+			<policy label_prefix="virtualbox"><device class="0x3"/></policy>
+		</config>
 		<route>
 			<service name="IRQ"><child name="acpi_drv" /></service>
 			<service name="Report"> <child name="report_rom" /> </service>
-			<service name="ROM" label="config">
-				<child name="usb_config_rom" label="usb_drv.config"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -240,7 +177,6 @@ install_config {
 		</config>
 		<route>
 			<service name="Report"><child name="report_rom" /></service>
-			<service name="ROM" label="usb_devices"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
@@ -275,7 +211,7 @@ exec -ignorestderr \
 exec ln -sf ${genode_dir}/repos/ports/run/vm_genode_usb_hid_raw.vbox bin/
 exec ln -sf ../../usb_hid_raw.iso bin/
 
-build_boot_image { usb_report_filter usb_hid_raw.iso vm_genode_usb_hid_raw.vbox }
+build_boot_image { usb_hid_raw.iso vm_genode_usb_hid_raw.vbox }
 
 if { ![get_cmd_switch --autopilot] } { run_genode_until forever }
 
@@ -291,10 +227,11 @@ run_genode_until {.*\[init -\> event_dump\] Input event #11.*\n} 60 [output_spaw
 # pay only attention to the output of init and its children
 grep_output {^\[init }
 
+unify_output {(?n)^\[init -\> log_terminal\] \[init -\> usb_hid_drv\] usb usb-[0-9]-[0-9]: input irq status -19 received} ""
 unify_output {(?n) on usb-usbbus.*$} ""
 unify_output {(?n) at usb-usbbus.*\)} ")"
 unify_output {(?n)hid-generic.*input:} "hid-generic: input:"
-unify_output {(?n)usb-[0-9]-[0-9]} "usb-X-X"
+unify_output {(?n)usb-[0-9]-[0-9]: USB disconnect, device number [0-9]} "usb-X-X: USB disconnect, device number X"
 unify_output {(?n)device number [0-9]+} "device number X"
 unify_output {(?n)input[0-9]} "inputX"
 unify_output {(?n) as /devices/.*} ""
@@ -313,13 +250,12 @@ compare_output_to {
 [init -> log_terminal] [init -> usb_hid_drv] usb usb-X-X: USB disconnect, device number X
 [init -> log_terminal] [init -> usb_hid_drv] Disconnected device: inputX
 [init -> log_terminal] [init -> usb_hid_drv] Disconnected device: inputX
-[init -> virtualbox] Attach USB device usb-X-X
-[init -> log_terminal] [init -> usb_hid_drv] input: HID 03eb:204d
-[init -> log_terminal] [init -> usb_hid_drv] Connected device: inputX (HID 03eb:204d)
-[init -> log_terminal] [init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Keyboard [HID 03eb:204d]
-[init -> log_terminal] [init -> usb_hid_drv] input: HID 03eb:204d
-[init -> log_terminal] [init -> usb_hid_drv] Connected device: inputX (HID 03eb:204d) MOUSE
-[init -> log_terminal] [init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Mouse [HID 03eb:204d]
+[init -> log_terminal] [init -> usb_hid_drv] input: Dean Camera LUFA Mouse and Keyboard Demo
+[init -> log_terminal] [init -> usb_hid_drv] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo)
+[init -> log_terminal] [init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Keyboard [Dean Camera LUFA Mouse and Keyboard Demo]
+[init -> log_terminal] [init -> usb_hid_drv] input: Dean Camera LUFA Mouse and Keyboard Demo
+[init -> log_terminal] [init -> usb_hid_drv] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo) MOUSE
+[init -> log_terminal] [init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Mouse [Dean Camera LUFA Mouse and Keyboard Demo]
 [init -> log_terminal] [init -> event_dump] Input event #5	PRESS KEY_X 65534	key count: 1
 [init -> log_terminal] [init -> event_dump] Input event #6	RELEASE KEY_X	key count: 0
 [init -> log_terminal] [init -> event_dump] Input event #7	REL_MOTION -1+1	key count: 0

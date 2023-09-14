@@ -19,6 +19,7 @@
 namespace Usb {
 	struct Cbw;
 	struct Csw;
+	enum { ENDPOINT_IN = 0x80, ENDPOINT_OUT = 0 };
 }
 
 
@@ -28,6 +29,7 @@ using Genode::uint32_t;
 using Genode::uint64_t;
 using Genode::size_t;
 using Genode::addr_t;
+using Genode::Byte_range_ptr;
 
 
 /*****************************************************
@@ -72,12 +74,15 @@ struct Usb::Cbw : Genode::Mmio<0xf>
 struct Test_unit_ready : Usb::Cbw,
                          Scsi::Test_unit_ready
 {
-	Test_unit_ready(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
+	Test_unit_ready(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+	                bool verbose)
 	:
 		Cbw(range, tag, 0, Usb::ENDPOINT_IN, lun,
 		    Scsi::Test_unit_ready::LENGTH),
 		Scsi::Test_unit_ready(Cbw::range_at(15))
-	{ if (verbose_scsi) dump(); }
+	{
+		if (verbose) dump();
+	}
 
 	void dump()
 	{
@@ -90,12 +95,15 @@ struct Test_unit_ready : Usb::Cbw,
 
 struct Request_sense : Usb::Cbw, Scsi::Request_sense
 {
-	Request_sense(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
+	Request_sense(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+	              bool verbose)
 	:
 		Cbw(range, tag, Scsi::Request_sense_response::LENGTH,
 		    Usb::ENDPOINT_IN, lun, Scsi::Request_sense::LENGTH),
 		Scsi::Request_sense(Cbw::range_at(15))
-	{ if (verbose_scsi) dump(); }
+	{
+		if (verbose) dump();
+	}
 
 	void dump()
 	{
@@ -108,11 +116,14 @@ struct Request_sense : Usb::Cbw, Scsi::Request_sense
 
 struct Start_stop : Usb::Cbw, Scsi::Start_stop
 {
-	Start_stop(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
+	Start_stop(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+	           bool verbose)
 	:
 		Cbw(range, tag, 0, Usb::ENDPOINT_IN, lun, Scsi::Start_stop::LENGTH),
 		Scsi::Start_stop(Cbw::range_at(15))
-	{ if (verbose_scsi) dump(); }
+	{
+		if (verbose) dump();
+	}
 
 	void dump()
 	{
@@ -125,12 +136,15 @@ struct Start_stop : Usb::Cbw, Scsi::Start_stop
 
 struct Inquiry : Usb::Cbw, Scsi::Inquiry
 {
-	Inquiry(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
+	Inquiry(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+	        bool verbose)
 	:
 		Cbw(range, tag, Scsi::Inquiry_response::LENGTH,
 		    Usb::ENDPOINT_IN, lun, Scsi::Inquiry::LENGTH),
 		Scsi::Inquiry(Cbw::range_at(15))
-	{ if (verbose_scsi) dump(); }
+	{
+		if (verbose) dump();
+	}
 
 	void dump()
 	{
@@ -143,12 +157,15 @@ struct Inquiry : Usb::Cbw, Scsi::Inquiry
 
 struct Read_capacity_10 : Usb::Cbw, Scsi::Read_capacity_10
 {
-	Read_capacity_10(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
+	Read_capacity_10(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+	                 bool verbose)
 	:
 		Cbw(range, tag, Scsi::Capacity_response_10::LENGTH,
 		    Usb::ENDPOINT_IN, lun, Scsi::Read_capacity_10::LENGTH),
 		Scsi::Read_capacity_10(Cbw::range_at(15))
-	{ if (verbose_scsi) dump(); }
+	{
+		if (verbose) dump();
+	}
 
 	void dump()
 	{
@@ -161,13 +178,15 @@ struct Read_capacity_10 : Usb::Cbw, Scsi::Read_capacity_10
 
 struct Read_10 : Usb::Cbw, Scsi::Read_10
 {
-	Read_10(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
-	        uint32_t lba, uint16_t len, uint32_t block_size)
+	Read_10(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+	        uint32_t lba, uint16_t len, uint32_t block_size, bool verbose)
 	:
 		Cbw(range, tag, len * block_size,
 		    Usb::ENDPOINT_IN, lun, Scsi::Read_10::LENGTH),
 		Scsi::Read_10(Cbw::range_at(15), lba, len)
-	{ if (verbose_scsi) dump(); }
+	{
+		if (verbose) dump();
+	}
 
 	void dump()
 	{
@@ -180,13 +199,15 @@ struct Read_10 : Usb::Cbw, Scsi::Read_10
 
 struct Write_10 : Usb::Cbw, Scsi::Write_10
 {
-	Write_10(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
-             uint32_t lba, uint16_t len, uint32_t block_size)
+	Write_10(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+             uint32_t lba, uint16_t len, uint32_t block_size, bool verbose)
 	:
 		Cbw(range, tag, len * block_size,
 		    Usb::ENDPOINT_OUT, lun, Scsi::Write_10::LENGTH),
 		Scsi::Write_10(Cbw::range_at(15), lba, len)
-	{ if (verbose_scsi) dump(); }
+	{
+		if (verbose) dump();
+	}
 
 	void dump()
 	{
@@ -199,12 +220,15 @@ struct Write_10 : Usb::Cbw, Scsi::Write_10
 
 struct Read_capacity_16 : Usb::Cbw, Scsi::Read_capacity_16
 {
-	Read_capacity_16(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
+	Read_capacity_16(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+	                 bool verbose)
 	:
 		Cbw(range, tag, Scsi::Capacity_response_16::LENGTH,
 		    Usb::ENDPOINT_IN, lun, Scsi::Read_capacity_16::LENGTH),
 		Scsi::Read_capacity_16(Cbw::range_at(15))
-	{ if (verbose_scsi) dump(); }
+	{
+		if (verbose) dump();
+	}
 
 	void dump()
 	{
@@ -217,13 +241,15 @@ struct Read_capacity_16 : Usb::Cbw, Scsi::Read_capacity_16
 
 struct Read_16 : Usb::Cbw, Scsi::Read_16
 {
-	Read_16(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
-	        uint64_t lba, uint32_t len, uint32_t block_size)
+	Read_16(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+	        uint64_t lba, uint32_t len, uint32_t block_size, bool verbose)
 	:
 		Cbw(range, tag, len * block_size,
 		    Usb::ENDPOINT_IN, lun, Scsi::Read_16::LENGTH),
 		Scsi::Read_16(Cbw::range_at(15), (uint32_t)lba, (uint16_t)len)
-	{ if (verbose_scsi) dump(); }
+	{
+		if (verbose) dump();
+	}
 
 	void dump()
 	{
@@ -236,13 +262,15 @@ struct Read_16 : Usb::Cbw, Scsi::Read_16
 
 struct Write_16 : Usb::Cbw, Scsi::Write_16
 {
-	Write_16(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
-             uint64_t lba, uint32_t len, uint32_t block_size)
+	Write_16(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+             uint64_t lba, uint32_t len, uint32_t block_size, bool verbose)
 	:
 		Cbw(range, tag, len * block_size,
 		    Usb::ENDPOINT_OUT, lun, Scsi::Write_16::LENGTH),
 		Scsi::Write_16(Cbw::range_at(15), (uint32_t)lba, (uint16_t)len)
-	{ if (verbose_scsi) dump(); }
+	{
+		if (verbose) dump();
+	}
 
 	void dump()
 	{
@@ -253,7 +281,7 @@ struct Write_16 : Usb::Cbw, Scsi::Write_16
 };
 
 
-struct Usb::Csw : Genode::Mmio<0xd>
+struct Usb::Csw : Genode::Const_mmio<0xd>
 {
 	enum { LENGTH = 13 };
 
@@ -264,7 +292,7 @@ struct Usb::Csw : Genode::Mmio<0xd>
 	enum { PASSED = 0, FAILED = 1, PHASE_ERROR = 2 };
 	struct Sts : Register<0xc, 8> { }; /* status */
 
-	Csw(Genode::Byte_range_ptr const &range) : Mmio(range) { }
+	Csw(Genode::Const_byte_range_ptr const &range) : Const_mmio(range) { }
 
 	uint32_t sig() const { return read<Sig>(); }
 	uint32_t tag() const { return read<Tag>(); }

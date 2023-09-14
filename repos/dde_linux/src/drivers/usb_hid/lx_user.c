@@ -1,6 +1,7 @@
 /*
  * \brief  Post kernel activity
  * \author Sebastian Sumpf
+ * \author Stefan Kalkowski
  * \date   2023-06-29
  */
 
@@ -11,36 +12,20 @@
  * version 2.
  */
 
-#include <linux/sched/task.h>
-#include <usb_hid.h>
-
-static struct task_struct *main_task = NULL;
-
-
-struct task_struct *lx_user_new_usb_task(int (*func)(void*), void *args)
-{
-	int pid = kernel_thread(func, args, CLONE_FS | CLONE_FILES);
-	return find_task_by_pid_ns(pid, NULL);
-}
-
-
-void lx_user_destroy_usb_task(struct task_struct *task)
-{
-	if (task != current) {
-		printk("%s: task: %px is not current: %px\n", __func__,
-		       task, current);
-		return;
-	}
-
-	/* unblock main task which initiated destruction */
-	lx_emul_task_unblock(main_task);
-
-	do_exit(0);
-}
-
+#include <linux/types.h>
+#include <lx_emul/input_leds.h>
+#include <lx_emul/usb_client.h>
+#include <lx_user/init.h>
+#include <lx_user/io.h>
 
 void lx_user_init(void)
 {
-	int pid = kernel_thread(lx_user_main_task, &main_task, CLONE_FS | CLONE_FILES);
-	main_task = find_task_by_pid_ns(pid, NULL);
+	lx_emul_usb_client_init();
+	lx_emul_input_leds_init();
+}
+
+
+void lx_user_handle_io(void)
+{
+	lx_emul_usb_client_ticker();
 }

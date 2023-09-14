@@ -87,7 +87,7 @@ append config {
 	</start>
 
 	<start name="platform_drv" caps="100" managing_system="yes">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="Platform"/>
 		</provides>
@@ -108,8 +108,9 @@ append config {
 		<!-- <resource name="CPU" quantum="10"/> -->
 		<provides><service name="Usb"/></provides>
 		<config bios_handoff="no">
-			<policy label_suffix="usb_webcam -> usb_device"
-			        vendor_id="} [libuvc_vendor_id] {" product_id="} [libuvc_product_id] {"/>
+			<policy label_suffix="usb_webcam -> ">
+				<device vendor_id="} [libuvc_vendor_id] {" product_id="} [libuvc_product_id] {"/>
+			</policy>
 		</config>
 		<route>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -161,7 +162,7 @@ append config {
 							<service name="Capture"/>
 						</parent-provides>
 						<start name="} $test_binary {" caps="100">
-							<resource name="RAM" quantum="8M"/>
+							<resource name="RAM" quantum="15M"/>
 							<config period_ms="20" width="640" height="480"> }
 append config $test_vfs_config
 append config {
@@ -200,7 +201,7 @@ append config {
 
 	<start name="webcam" priority="-1" caps="800">
 		<binary name="init"/>
-		<resource name="RAM" quantum="64MB"/>
+		<resource name="RAM" quantum="64M"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="usb_webcam.config"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>

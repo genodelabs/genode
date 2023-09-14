@@ -1,11 +1,12 @@
 /**
- * \brief  USB session for raw device connection
+ * \brief  USB session for USB clients (mainly device drivers)
+ * \author Stefan Kalkowski
  * \author Sebastian Sumpf
  * \date   2014-12-08
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -13,244 +14,218 @@
 #ifndef _INCLUDE__USB_SESSION__USB_SESSION_H_
 #define _INCLUDE__USB_SESSION__USB_SESSION_H_
 
+#include <base/rpc_args.h>
 #include <os/packet_stream.h>
 #include <packet_stream_tx/packet_stream_tx.h>
+#include <rom_session/capability.h>
 #include <session/session.h>
-#include <usb/types.h>
-
+#include <usb_session/capability.h>
 
 namespace Usb {
-
 	using namespace Genode;
-	class Session;
-	struct Packet_descriptor;
-	struct Isoc_transfer;
-	struct Completion;
+
+	struct Tagged_packet;
+	struct Interface_session;
+	struct Device_session;
+	class  Session;
 }
 
 
-/**
- * USB packet type
- */
-struct Usb::Packet_descriptor : Genode::Packet_descriptor
+struct Usb::Tagged_packet : Genode::Packet_descriptor
 {
-	enum Type { STRING, CTRL, BULK, IRQ, ISOC, ALT_SETTING, CONFIG, RELEASE_IF, FLUSH_TRANSFERS };
 
-	/* use the polling interval stated in the endpoint descriptor */
-	enum { DEFAULT_POLLING_INTERVAL = -1 };
-
-	Type        type       { STRING };
-	bool        succeded   { false };
-	Completion *completion { nullptr };
-
-	union
-	{
-		struct
-		{
-			uint8_t  index;
-			unsigned length;
-		} string;
-
-		struct
-		{
-			uint8_t  request;
-			uint8_t  request_type;
-			uint16_t value;
-			uint16_t index;
-			int      actual_size; /* returned */
-			int      timeout;
-		} control;
-
-		struct
-		{
-			uint8_t ep;
-			int     actual_size; /* returned */
-			int     polling_interval; /* for interrupt transfers */
-		} transfer;
-
-		struct
-		{
-			uint8_t number;
-			uint8_t alt_setting;
-		} interface;
-
-		struct
-		{
-			uint8_t number;
-		};
-	};
-
-	enum Error {
-		NO_ERROR,
-		INTERFACE_OR_ENDPOINT_ERROR,
-		MEMORY_ERROR,
-		NO_DEVICE_ERROR,
-		PACKET_INVALID_ERROR,
-		PROTOCOL_ERROR,
-		STALL_ERROR,
-		TIMEOUT_ERROR,
-		UNKNOWN_ERROR
-	};
-
-	Error error = NO_ERROR;
+	/*
+	 * At least on ARM the minimal alignment for distinct
+	 * DMA-capable USB URBs shall meet a maximum cache-line
+	 * size of 128 bytes
+	 */
+	enum Alignment { PACKET_ALIGNMENT = 7 };
 
 	/**
-	 * Return true if packet is a read transfer
+	 * Payload location within the packet stream
 	 */
-	bool read_transfer() { return transfer.ep & ENDPOINT_IN; }
-
-	Packet_descriptor(off_t offset = 0, size_t size = 0)
-	: Genode::Packet_descriptor(offset, size) { }
-
-	Packet_descriptor(Genode::Packet_descriptor p, Type type, Completion *completion = nullptr)
-	: Genode::Packet_descriptor(p.offset(), p.size()), type(type), completion(completion) { }
-};
-
-
-/**
- * Isochronous transfer metadata (located at start of stream packet)
- */
-struct Usb::Isoc_transfer
-{
-	enum { MAX_PACKETS = 32 };
-
-	unsigned number_of_packets;
-	unsigned packet_size[MAX_PACKETS];
-	unsigned actual_packet_size[MAX_PACKETS];
-
-	char *data() { return (char *)(this + 1); }
-
-	static size_t size(unsigned data_size)
+	struct Payload
 	{
-		return sizeof(Isoc_transfer) + data_size;
-	}
+		off_t  offset;
+		size_t bytes;
+	};
+
+	struct Tag {
+		unsigned long value;
+	} tag { ~0UL };
+
+	enum Return_value {
+		UNHANDLED, NO_DEVICE, INVALID, TIMEOUT, HALT, OK
+	} return_value { UNHANDLED };
+
+
+	Tagged_packet(off_t offset = 0, size_t size = 0)
+	: Genode::Packet_descriptor(offset, size) {}
+
+	Tagged_packet(Payload p, Tag tag)
+	:
+		Genode::Packet_descriptor(p.offset, p.bytes),
+		tag(tag) {}
 };
 
 
-/**
- * Completion for asynchronous communication
- */
-struct Usb::Completion : Genode::Interface
+struct Usb::Interface_session : Interface
 {
-	virtual void complete(Usb::Packet_descriptor &p) = 0;
+	struct Packet_descriptor : Tagged_packet
+	{
+		enum Type {
+			BULK, IRQ, ISOC, FLUSH
+		} type { FLUSH };
+
+		uint8_t index { 0 };
+		size_t  payload_return_size { 0 };
+
+		using Tagged_packet::Tagged_packet;
+	};
+
+	enum { TX_QUEUE_SIZE = 64 };
+
+	using Tx_policy = Packet_stream_policy<Packet_descriptor,
+	                                       TX_QUEUE_SIZE, TX_QUEUE_SIZE, char>;
+	using Tx = Packet_stream_tx::Channel<Tx_policy>;
+
+
+	/*********************
+	 ** RPC declaration **
+	 *********************/
+
+	GENODE_RPC(Rpc_tx_cap, Capability<Tx>, tx_cap);
+	GENODE_RPC_INTERFACE(Rpc_tx_cap);
+};
+
+
+struct Usb::Device_session : Interface
+{
+	struct Packet_descriptor : Tagged_packet
+	{
+		enum Request : uint8_t {
+			GET_STATUS        = 0x00,
+			CLEAR_FEATURE     = 0x01,
+			SET_FEATURE       = 0x03,
+			SET_ADDRESS       = 0x05,
+			GET_DESCRIPTOR    = 0x06,
+			SET_DESCRIPTOR    = 0x07,
+			GET_CONFIGURATION = 0x08,
+			SET_CONFIGURATION = 0x09,
+			GET_INTERFACE     = 0x0a,
+			SET_INTERFACE     = 0x0b,
+			SYNCH_FRAME       = 0x0c,
+			SET_SEL           = 0x30,
+			SET_ISOCH_DELAY   = 0x31,
+		};
+
+		uint8_t request { GET_STATUS };
+
+		enum Recipient { DEVICE, IFACE, ENDP, OTHER };
+		enum Type      { STANDARD, CLASS, VENDOR, RESERVED };
+		enum Direction { OUT, IN };
+
+		struct Request_type : Register<8>
+		{
+			struct R : Bitfield<0, 5> { };
+			struct T : Bitfield<5, 2> { };
+			struct D : Bitfield<7, 1> { };
+
+			static access_t value(Recipient r, Type t, Direction d)
+			{
+				access_t ret = 0;
+				R::set(ret, r);
+				T::set(ret, t);
+				D::set(ret, d);
+				return ret;
+			}
+		};
+
+		Request_type::access_t request_type { 0 };
+
+		uint16_t value { 0 };
+		uint16_t index { 0 };
+
+		size_t payload_return_size { 0 };
+		size_t timeout             { 0 };
+
+		using Tagged_packet::Tagged_packet;
+	};
+
+	enum { TX_QUEUE_SIZE = 8, TX_BUFFER_SIZE = 4096 };
+
+	using Tx_policy = Packet_stream_policy<Packet_descriptor,
+	                                       TX_QUEUE_SIZE, TX_QUEUE_SIZE, char>;
+	using Tx = Packet_stream_tx::Channel<Tx_policy>;
+
+
+	/*********************
+	 ** RPC declaration **
+	 *********************/
+
+	GENODE_RPC_THROW(Rpc_acquire_interface, Interface_capability,
+	                 acquire_interface,
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
+	                 uint8_t, size_t);
+	GENODE_RPC(Rpc_release_interface, void, release_interface,
+	           Interface_capability);
+	GENODE_RPC(Rpc_tx_cap, Capability<Tx>, tx_cap);
+	GENODE_RPC_INTERFACE(Rpc_acquire_interface, Rpc_release_interface,
+	                     Rpc_tx_cap);
 };
 
 
 struct Usb::Session : public Genode::Session
 {
-	/****************
-	 ** Exceptions **
-	 ****************/
-
-	class Device_not_found          : public Exception { };
-	class Interface_not_found       : public Exception { };
-	class Interface_already_claimed : public Exception { };
-	class Interface_not_claimed     : public Exception { };
-	class Invalid_endpoint          : public Exception { };
-
-
-	/*******************
-	 ** Packet stream **
-	 *******************/
-
-	enum { TX_QUEUE_SIZE = 64 };
-
-	typedef Packet_stream_policy<Usb::Packet_descriptor,
-	                             TX_QUEUE_SIZE, TX_QUEUE_SIZE,
-	                             char> Tx_policy;
-
-	typedef Packet_stream_tx::Channel<Tx_policy> Tx;
-
-	/**
-	 * Request packet-transmission channel
-	 */
-	virtual Tx *tx_channel() { return 0; }
-
-	/**
-	 * Request client-side packet-stream interface of tx channel
-	 */
-	virtual Tx::Source *source() { return 0; }
-
-
-	/***********************
-	 ** Session interface **
-	 ***********************/
-
 	/**
 	 * \noapi
 	 */
 	static const char *service_name() { return "Usb"; }
 
-	static constexpr unsigned CAP_QUOTA = 5;
+	static constexpr unsigned CAP_QUOTA = 8;
+	static constexpr unsigned RAM_QUOTA = 512 * 1024;
+
+	virtual ~Session() {}
+
+	using Device_name = String<64>;
 
 	/**
-	 * Send from the server to the client upon device state change
+	 * Request ROM session containing information about available devices.
+	 *
+	 * \return  capability to ROM dataspace
 	 */
-	virtual void sigh_state_change(Signal_context_capability sigh) = 0;
+	virtual Rom_session_capability devices_rom() = 0;
 
 	/**
-	 * Is the device present
+	 * Acquire device known by unique 'name'
 	 */
-	virtual bool plugged() = 0;
+	virtual Device_capability acquire_device(Device_name const &name) = 0;
 
 	/**
-	 * Retrieve device and current configurations despcriptors
+	 * Acquire the first resp. single device of this session
 	 */
-	virtual void config_descriptor(Device_descriptor *device_descr,
-	                               Config_descriptor *config_descr) = 0;
+	virtual Device_capability acquire_single_device() = 0;
 
 	/**
-	 * Return number of alt settings for iterface
+	 * Release all resources regarding the given 'device' session
 	 */
-	virtual unsigned alt_settings(unsigned index) = 0;
+	virtual void release_device(Device_capability device) = 0;
 
-	/**
-	 * Return interface descriptor for interface index/alternate setting tuple
-	 */
-	virtual void interface_descriptor(unsigned index, unsigned alt_setting,
-	                                  Interface_descriptor *interface_descr) = 0;
 
-	virtual bool interface_extra(unsigned index, unsigned alt_setting,
-	                             Interface_extra *interface_data) = 0;
+	/*********************
+	 ** RPC declaration **
+	 *********************/
 
-	/**
-	 * Return endpoint for interface index/alternate setting tuple
-	 */
-	virtual void endpoint_descriptor(unsigned              interface_num,
-	                                 unsigned              alt_setting,
-	                                 unsigned              endpoint_num,
-	                                 Endpoint_descriptor  *endpoint_descr) = 0;
-
-	/**
-	 * Claim an interface number
-	 */
-	virtual void claim_interface(unsigned interface_num) = 0;
-
-	/**
-	 * Release an interface number
-	 */
-	virtual void release_interface(unsigned interface_num) = 0;
-
-	GENODE_RPC(Rpc_plugged, bool, plugged);
-	GENODE_RPC(Rpc_sigh_state_change, void, sigh_state_change, Signal_context_capability);
-	GENODE_RPC(Rpc_tx_cap, Capability<Tx>, _tx_cap);
-	GENODE_RPC_THROW(Rpc_config_descr, void, config_descriptor, GENODE_TYPE_LIST(Device_not_found),
-	                 Device_descriptor *, Config_descriptor *);
-	GENODE_RPC_THROW(Rpc_alt_settings, unsigned, alt_settings, GENODE_TYPE_LIST(Device_not_found,
-	                 Interface_not_found), unsigned);
-	GENODE_RPC_THROW(Rpc_iface_descr, void, interface_descriptor, GENODE_TYPE_LIST(Device_not_found,
-	                 Interface_not_found), unsigned, unsigned, Interface_descriptor *);
-	GENODE_RPC_THROW(Rpc_iface_extra, bool, interface_extra, GENODE_TYPE_LIST(Device_not_found,
-	                 Interface_not_found), unsigned, unsigned, Interface_extra *);
-	GENODE_RPC_THROW(Rpc_ep_descr, void, endpoint_descriptor, GENODE_TYPE_LIST(Device_not_found,
-	                 Interface_not_found), unsigned, unsigned, unsigned, Endpoint_descriptor *);
-	GENODE_RPC_THROW(Rpc_claim_interface, void, claim_interface, GENODE_TYPE_LIST(Device_not_found,
-	                 Interface_not_found, Interface_already_claimed), unsigned);
-	GENODE_RPC_THROW(Rpc_release_interface, void, release_interface, GENODE_TYPE_LIST(Device_not_found,
-	                 Interface_not_found), unsigned);
-	GENODE_RPC_INTERFACE(Rpc_plugged, Rpc_sigh_state_change, Rpc_tx_cap, Rpc_config_descr,
-	                     Rpc_iface_descr, Rpc_iface_extra, Rpc_ep_descr, Rpc_alt_settings,
-	                     Rpc_claim_interface, Rpc_release_interface);
+	GENODE_RPC(Rpc_devices_rom, Rom_session_capability, devices_rom);
+	GENODE_RPC_THROW(Rpc_acquire_device, Device_capability, acquire_device,
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
+	                 Device_name const &);
+	GENODE_RPC_THROW(Rpc_acquire_single_device, Device_capability,
+	                 acquire_single_device,
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps));
+	GENODE_RPC(Rpc_release_device, void, release_device, Device_capability);
+	GENODE_RPC_INTERFACE(Rpc_devices_rom, Rpc_acquire_device,
+	                     Rpc_acquire_single_device, Rpc_release_device);
 };
 
 #endif /* _INCLUDE__USB_SESSION__USB_SESSION_H_ */

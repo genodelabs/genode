@@ -47,6 +47,10 @@ if {$use_usb} {
 	                  [depot_user]/src/usb_hid_drv
 }
 
+if {!$use_usb} {
+	import_from_depot [depot_user]/src/black_hole
+}
+
 if {$use_rumpfs} {
 	import_from_depot [depot_user]/src/rump
 }
@@ -61,7 +65,6 @@ append build_components {
 }
 
 lappend_if [expr $use_serial]   build_components server/log_terminal
-lappend_if [expr $use_usb]      build_components app/usb_report_filter
 lappend_if [expr $use_ram_fs || $use_usb] build_components lib/vfs_import
 lappend_if [expr $use_cpu_load] build_components app/trace_subject_reporter
 lappend_if [expr $use_cpu_load] build_components app/cpu_load_display
@@ -332,99 +335,43 @@ append_if [expr $use_cpu_load] config {
 	</start>}
 
 append_if [expr $use_usb] config {
-	<start name="usb_config_fs" priority="-1">
-		<binary name="vfs"/>
-		<resource name="RAM" quantum="2M"/>
-		<provides><service name="File_system"/></provides>
-		<config verbose="yes">
-			<vfs>
-				<ram/>
-				<import>
-					<inline name="usb_drv.config">
-<config>
-	<report devices="yes"/>
-	<policy label_prefix="usb_hid_drv" class="0x3"/>
-</config>
-					</inline>
-					<inline name="usb_report_filter.config">
-<config>
-	<vfs> <fs/> </vfs>
-
-	<!-- USB device whitelist -->
-	<client label="vbox1"/>
-	<device vendor_id="0x13fe" product_id="0x5200"/> <!-- platinum stick -->
-	<device vendor_id="0x148f" product_id="0x2573"/> <!-- ralink wifi -->
-	<device vendor_id="0x1f75" product_id="0x0917"/> <!-- intenso stick -->
-	<device vendor_id="0x04f9" product_id="0x0051"/> <!-- brother printer -->
-	<device vendor_id="0x090c" product_id="0x6000"/> <!-- hama sd/hc reader -->
-	<device vendor_id="0x1b1c" product_id="0x1a09"/> <!-- voyager gt stick -->
-	<device vendor_id="0x1b1c" product_id="0x1a03"/> <!-- voyager stick -->
-	<device vendor_id="0x04b3" product_id="0x310d"/> <!-- lenovo mouse -->
-	<device vendor_id="0x04b3" product_id="0x310c"/> <!-- lenovo mouse -->
-	<device vendor_id="0x04b3" product_id="0x3025"/> <!-- lenovo keyboard -->
-	<device vendor_id="0x046a" product_id="0x0001"/> <!-- cherry keyboard -->
-	<device vendor_id="0x0482" product_id="0x0015"/> <!-- kyo printer -->
-	<device vendor_id="0x04a9" product_id="0x2220"/> <!-- canon scanner -->
-	<device vendor_id="0x067b" product_id="0x2303"/> <!-- prolific serial -->
-	<device vendor_id="0x0583" product_id="0x2060"/> <!-- snes controller -->
-	<device vendor_id="0x045e" product_id="0x028e"/> <!-- x360 controller -->
-	<device vendor_id="0x046d" product_id="0xc00e"/> <!-- logitech mouse -->
-	<device vendor_id="0x0984" product_id="0x0066"/> <!-- lenovo DVDRW -->
-	<device vendor_id="0x174c" product_id="0x5106"/> <!-- delock SATA -->
-</config>
-					</inline>
-				</import>
-			</vfs>
-			<policy label_prefix="usb_report_filter" root="/" writeable="yes"/>
-			<policy label_prefix="usb_config_rom" root="/"/>
-		</config>
-	</start>
-
-	<start name="usb_config_rom" priority="-1">
-		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="1200K"/>
-		<provides><service name="ROM"/></provides>
-		<route>
-			<service name="File_system"><child name="usb_config_fs"/></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-
-	<start name="usb_report_filter" priority="-1">
-		<resource name="RAM" quantum="1200K"/>
-		<route>
-			<service name="Report"><child name="report_rom"/></service>
-			<service name="ROM" label="config">
-				<child name="usb_config_rom" label="usb_report_filter.config"/>
-			</service>
-			<service name="ROM" label="devices">
-				<child name="report_rom"/>
-			</service>
-			<service name="ROM" label="usb_drv_config">
-				<child name="report_rom"/>
-			</service>
-			<service name="File_system" label="usb_drv.config">
-				<child name="usb_config_fs"/>
-			</service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-
 	<start name="usb_drv" caps="200">
 		<binary name="pc_usb_host_drv"/>
 		<resource name="RAM" quantum="20M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="ROM" label="config">
-				<child name="usb_config_rom" label="usb_drv.config"/> </service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
+		<config>
+			<report devices="yes"/>
+			<policy label_prefix="usb_hid_drv"><device class="0x3"/></policy>
+			<policy label_prefix="vbox1">
+				<device vendor_id="0x13fe" product_id="0x5200"/> <!-- platinum stick -->
+				<device vendor_id="0x148f" product_id="0x2573"/> <!-- ralink wifi -->
+				<device vendor_id="0x1f75" product_id="0x0917"/> <!-- intenso stick -->
+				<device vendor_id="0x04f9" product_id="0x0051"/> <!-- brother printer -->
+				<device vendor_id="0x090c" product_id="0x6000"/> <!-- hama sd/hc reader -->
+				<device vendor_id="0x1b1c" product_id="0x1a09"/> <!-- voyager gt stick -->
+				<device vendor_id="0x1b1c" product_id="0x1a03"/> <!-- voyager stick -->
+				<device vendor_id="0x04b3" product_id="0x310d"/> <!-- lenovo mouse -->
+				<device vendor_id="0x04b3" product_id="0x310c"/> <!-- lenovo mouse -->
+				<device vendor_id="0x04b3" product_id="0x3025"/> <!-- lenovo keyboard -->
+				<device vendor_id="0x046a" product_id="0x0001"/> <!-- cherry keyboard -->
+				<device vendor_id="0x0482" product_id="0x0015"/> <!-- kyo printer -->
+				<device vendor_id="0x04a9" product_id="0x2220"/> <!-- canon scanner -->
+				<device vendor_id="0x067b" product_id="0x2303"/> <!-- prolific serial -->
+				<device vendor_id="0x0583" product_id="0x2060"/> <!-- snes controller -->
+				<device vendor_id="0x045e" product_id="0x028e"/> <!-- x360 controller -->
+				<device vendor_id="0x046d" product_id="0xc00e"/> <!-- logitech mouse -->
+				<device vendor_id="0x0984" product_id="0x0066"/> <!-- lenovo DVDRW -->
+				<device vendor_id="0x174c" product_id="0x5106"/> <!-- delock SATA -->
+			</policy>
+		</config>
 	</start>
 
 	<start name="usb_hid_drv" priority="-1" caps="140">
 		<resource name="RAM" quantum="11M"/>
-		<config use_report="yes"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Event"> <child name="event_filter" label="usb_hid"/> </service>
@@ -433,6 +380,15 @@ append_if [expr $use_usb] config {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>}
+
+append_if [expr !$use_usb] config {
+	<start name="usb_drv" caps="200">
+		<binary name="black_hole"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Usb"/> </provides>
+		<config> <usb/> </config>
+	</start>
+}
 
 append_if [expr $use_serial] config {
 	<start name="log_terminal" priority="-1">
@@ -453,6 +409,3 @@ install_config $config
 lappend boot_modules {*}[build_artifacts]
 
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules $overlay_image
-
-# platform-specific modules
-lappend_if [expr $use_usb] boot_modules usb_report_filter

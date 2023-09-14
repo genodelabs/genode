@@ -70,7 +70,7 @@ install_config {
 
 	<start name="usb_hid_drv" caps="180">
 		<resource name="RAM" quantum="11M"/>
-		<config use_report="yes" capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
+		<config capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
 		<route>
 			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>
@@ -127,7 +127,7 @@ set fd [open [run_dir]/genode/usb_host_drv.config w]
 puts $fd {
 <config bios_handoff="yes">
 	<report devices="yes"/>
-	<policy label_prefix="usb_hid_drv" class="0x3"/>
+	<policy label_prefix="usb_hid_drv"> <device class="0x3"/> </policy>
 </config>}
 close $fd
 
@@ -136,7 +136,7 @@ build_boot_image [build_artifacts]
 append qemu_args " -device nec-usb-xhci,id=xhci -device usb-kbd,bus=xhci.0 -nographic"
 
 # wait for keyboard
-run_genode_until {.*USB HID.*Keyboard.*} 60
+run_genode_until {.*USB HID v1.11 Keyboard.*} 60
 
 set spawn_id $qemu_spawn_id
 

@@ -345,7 +345,7 @@ class Black_hole_test::Usb_test
 
 		Env             &_env;
 		Allocator_avl    _alloc;
-		Usb::Connection  _connection { _env, &_alloc };
+		Usb::Connection  _connection { _env  };
 		bool             _finished   { false };
 
 	public:

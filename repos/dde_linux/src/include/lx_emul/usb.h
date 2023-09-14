@@ -14,11 +14,14 @@
 #ifndef _LX_EMUL__USB_H_
 #define _LX_EMUL__USB_H_
 
+#include <genode_c_api/usb.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern struct genode_usb_rpc_callbacks lx_emul_usb_rpc_callbacks;
+extern void lx_emul_usb_release_device(genode_usb_bus_num_t bus,
+                                       genode_usb_dev_num_t dev);
 
 #ifdef __cplusplus
 }

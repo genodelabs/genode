@@ -13,7 +13,6 @@
 		<rm/>
 		<rtc/>
 		<timer/>
-		<rom label="usb_devices"/>
 		<usb/>
 	</requires>
 

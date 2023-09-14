@@ -113,7 +113,7 @@ set config {
 			<provides> <service name="Usb"/> </provides>
 			<config bios_handoff="no">
 				<report devices="yes"/>
-				<policy label_prefix="usb_hid_drv" class="0x3"/>
+				<policy label_prefix="usb_hid_drv"><device class="0x3"/></policy>
 			</config>
 			<route>
 				<service name="Report"> <child name="drivers_reports"/> </service>
@@ -123,7 +123,6 @@ set config {
 
 		<start name="usb_hid_drv" caps="140">
 			<resource name="RAM" quantum="10M"/>
-			<config use_report="yes"/>
 			<route>
 				<service name="ROM" label="report"> <child name="drivers_reports"/> </service>
 				<service name="Event"> <child name="event_filter" label="usb"/> </service>

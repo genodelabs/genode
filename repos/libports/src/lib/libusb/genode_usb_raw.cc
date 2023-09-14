@@ -1,6 +1,7 @@
 /*
  * \brief  Genode backend for libusb
  * \author Christian Prochaska
+ * \author Stefan Kalkowski
  * \date   2016-09-19
  */
 
@@ -12,10 +13,11 @@
  */
 
 #include <base/log.h>
+#include <base/registry.h>
 #include <base/allocator_avl.h>
 #include <base/signal.h>
-#include <usb/usb.h>
-#include <usb_session/connection.h>
+#include <base/tslab.h>
+#include <usb_session/device.h>
 
 #include <fcntl.h>
 #include <time.h>
@@ -25,275 +27,244 @@
 
 #include "libusbi.h"
 
+using namespace Genode;
 
-static Libc::Allocator libc_alloc { };
-
-
-struct Completion : Usb::Completion
-{
-	struct usbi_transfer *itransfer;
-
-	Completion(struct usbi_transfer *itransfer)
-	: itransfer(itransfer) { }
-
-	void complete(Usb::Packet_descriptor &p) override { }
-};
+bool libusb_genode_backend_signaling = false;
+static int vfs_libusb_fd { -1 };
 
 
 struct Usb_device
 {
-	private:
+	template <typename URB>
+	struct Urb_tpl : URB
+	{
+		void          * const buf;
+		size_t          const size;
+		usbi_transfer * const itransfer { nullptr };
 
-		unsigned _open { 0 };
+		template <typename... ARGS>
+		Urb_tpl(void *buf, size_t size, usbi_transfer *itransfer,
+		        ARGS &&... args)
+		: URB(args...), buf(buf), size(size), itransfer(itransfer) {}
 
-	public:
+		template <typename... ARGS>
+		Urb_tpl(void *buf, size_t size, ARGS &&... args)
+		: URB(args...), buf(buf), size(size) {}
+	};
 
-		struct Device_has_vanished {};
+	struct Interface : Usb::Interface, Registry<Usb_device::Interface>::Element
+	{
+		using Urb = Urb_tpl<Usb::Interface::Urb>;
 
-		Usb::Connection *usb_connection;
-		int              vfs_libusb_fd;
+		Usb_device &_device;
 
-		Usb::Device_descriptor  device_descriptor;
-		Usb::Config_descriptor  config_descriptor;
-		char                   *raw_config_descriptor = nullptr;
+		Interface(Usb_device &device, uint8_t idx);
 
-		bool _retrieve_raw_config_descriptor()
-		{
-			Genode::log("libusb: retrieve configuration descriptor");
+		void handle_events();
+	};
 
-			Usb::Packet_descriptor p =
-				usb_connection->alloc_packet(config_descriptor.total_length);
 
-			p.type                 = Usb::Packet_descriptor::CTRL;
-			p.control.request      = LIBUSB_REQUEST_GET_DESCRIPTOR;
-			p.control.request_type = LIBUSB_ENDPOINT_IN;
-			p.control.value        = (LIBUSB_DT_CONFIG << 8) | 0;
-			p.control.index        = 0;
+	using Urb = Urb_tpl<Usb::Device::Urb>;
 
-			usb_connection->source()->submit_packet(p);
+	Env                        &_env;
+	Allocator                  &_alloc;
+	Tslab<Interface::Urb, 4096> _iface_slab { _alloc };
+	Signal_context_capability   _handler_cap;
+	Usb::Connection             _session { _env };
+	Usb::Device                 _device  { _session, _alloc, _env.rm() };
+	libusb_speed                _speed { LIBUSB_SPEED_UNKNOWN };
+	unsigned                    _open { 0 };
+	Registry<Interface>         _interfaces {};
 
-			/* wait for ack */
 
-			struct pollfd pollfds {
-				.fd = vfs_libusb_fd,
-				.events = POLLIN,
-				.revents = 0
-			};
+	void _wait_for_urb(Urb &urb);
 
-			int poll_result = poll(&pollfds, 1, -1);
+	Usb_device(Env &env, Allocator &alloc, Signal_context_capability cap)
+	:
+		_env(env), _alloc(alloc), _handler_cap(cap)
+	{
+		String<32> speed;
+		_session.with_xml([&] (Xml_node xml) {
+			xml.with_optional_sub_node("device", [&] (Xml_node node) {
+				speed = node.attribute_value("speed", String<32>()); });
+		});
 
-			if ((poll_result != 1) || !(pollfds.revents & POLLIN)) {
-				Genode::error(__PRETTY_FUNCTION__,
-				              ": could not read raw configuration descriptor");
-				return false;
-			}
+		if      (speed == "low")            _speed = LIBUSB_SPEED_LOW;
+		else if (speed == "full")           _speed = LIBUSB_SPEED_FULL;
+		else if (speed == "high")           _speed = LIBUSB_SPEED_HIGH;
+		else if (speed == "super" ||
+				 speed == "super_plus" ||
+		         speed == "super_plus_2x2") _speed = LIBUSB_SPEED_SUPER;
 
-			p = usb_connection->source()->get_acked_packet();
+		_device.sigh(_handler_cap);
+	}
 
-			bool ret = false;
-			if (!p.succeded) {
-				Genode::error(__PRETTY_FUNCTION__,
-				              ": could not read raw configuration descriptor");
-			} else if (p.control.actual_size != config_descriptor.total_length) {
-				Genode::error(__PRETTY_FUNCTION__,
-				              ": received configuration descriptor of unexpected size");
-			} else {
-				char *packet_content = usb_connection->source()->packet_content(p);
-				Genode::memcpy(raw_config_descriptor, packet_content,
-				               config_descriptor.total_length);
-				ret = true;
-			}
+	void close() { _open--; }
+	void open()  { _open++; }
 
-			usb_connection->source()->release_packet(p);
-			return ret;
-		}
+	void handle_events();
 
-		Usb_device(Usb::Connection *usb, int vfs_libusb_fd)
-		: usb_connection(usb), vfs_libusb_fd(vfs_libusb_fd)
-		{
-			usb_connection->config_descriptor(&device_descriptor, &config_descriptor);
-
-			raw_config_descriptor = (char*)malloc(config_descriptor.total_length);
-
-			for (unsigned attempt = 0; attempt < 10; ++attempt)
-				if (_retrieve_raw_config_descriptor())
-					break;
-		}
-
-		~Usb_device()
-		{
-			free(raw_config_descriptor);
-		}
-
-		bool altsetting(int number, int alt_setting)
-		{
-			if (!usb_connection->source()->ready_to_submit())
-				return false;
-
-			Usb::Packet_descriptor p =
-				usb_connection->alloc_packet(0);
-
-			p.type                  = Usb::Packet_descriptor::ALT_SETTING;
-			p.interface.number      = number;
-			p.interface.alt_setting = alt_setting;
-
-			usb_connection->source()->submit_packet(p);
-
-			return true;
-		}
-
-		void close() { _open--; }
-		void open()  { _open++; }
-
-		void handle_events()
-		{
-			struct libusb_context *ctx = nullptr;
-
-			while (usb_connection->source()->ack_avail()) {
-
-				Usb::Packet_descriptor p =
-					usb_connection->source()->get_acked_packet();
-
-				if (p.type == Usb::Packet_descriptor::ALT_SETTING) {
-					usb_connection->source()->release_packet(p);
-					continue;
-				}
-
-				Completion *completion = static_cast<Completion*>(p.completion);
-				struct usbi_transfer *itransfer = completion->itransfer;
-
-				if (_open)
-					ctx = ITRANSFER_CTX(itransfer);
-
-				destroy(libc_alloc, completion);
-
-				if (_open == 0) {
-					usb_connection->source()->release_packet(p);
-					continue;
-				}
-
-				if (!p.succeded || itransfer->flags & USBI_TRANSFER_CANCELLING) {
-					if (!p.succeded) {
-						if (p.error == Usb::Packet_descriptor::NO_DEVICE_ERROR)
-							throw Device_has_vanished();
-					}
-					itransfer->transferred = 0;
-					usb_connection->source()->release_packet(p);
-					usbi_signal_transfer_completion(itransfer);
-					continue;
-				}
-
-				char *packet_content = usb_connection->source()->packet_content(p);
-
-				struct libusb_transfer *transfer =
-					USBI_TRANSFER_TO_LIBUSB_TRANSFER(itransfer);
-
-				switch (transfer->type) {
-
-					case LIBUSB_TRANSFER_TYPE_CONTROL: {
-
-						itransfer->transferred = p.control.actual_size;
-
-						struct libusb_control_setup *setup =
-							(struct libusb_control_setup*)transfer->buffer;
-
-						if ((setup->bmRequestType & LIBUSB_ENDPOINT_DIR_MASK) ==
-						    LIBUSB_ENDPOINT_IN) {
-							Genode::memcpy(transfer->buffer + LIBUSB_CONTROL_SETUP_SIZE,
-							               packet_content, p.control.actual_size);
-						}
-
-						break;
-					}
-
-					case LIBUSB_TRANSFER_TYPE_BULK:
-					case LIBUSB_TRANSFER_TYPE_BULK_STREAM:
-					case LIBUSB_TRANSFER_TYPE_INTERRUPT: {
-
-						itransfer->transferred = p.transfer.actual_size;
-
-						if (IS_XFERIN(transfer))
-							Genode::memcpy(transfer->buffer, packet_content,
-							               p.transfer.actual_size);
-
-						break;
-					}
-
-					case LIBUSB_TRANSFER_TYPE_ISOCHRONOUS: {
-
-						itransfer->transferred = p.transfer.actual_size;
-
-						if (IS_XFERIN(transfer)) {
-
-							Usb::Isoc_transfer &isoc = *(Usb::Isoc_transfer *)packet_content;
-
-							unsigned out_offset = 0;
-							for (unsigned i = 0; i < isoc.number_of_packets; i++) {
-								size_t const actual_length = isoc.actual_packet_size[i];
-
-								/*
-								 * Copy the data from the proper offsets within the buffer as
-								 * a short read is still stored at this location.
-								 */
-								unsigned char       * dst = transfer->buffer + out_offset;
-								         char const * src = isoc.data() + out_offset;
-
-								Genode::memcpy(dst, src, actual_length);
-								out_offset += transfer->iso_packet_desc[i].length;
-
-								transfer->iso_packet_desc[i].actual_length = actual_length;
-								transfer->iso_packet_desc[i].status = LIBUSB_TRANSFER_COMPLETED;
-							}
-							transfer->num_iso_packets = isoc.number_of_packets;
-
-						}
-
-						break;
-					}
-
-					default:
-						Genode::error(__PRETTY_FUNCTION__,
-						              ": unsupported transfer type");
-						usb_connection->source()->release_packet(p);
-						continue;
-				}
-
-				usb_connection->source()->release_packet(p);
-
-				usbi_signal_transfer_completion(itransfer);
-			}
-
-			if (ctx != nullptr)
-				usbi_signal_event(ctx);
-		}
+	static Constructible<Usb_device>& singleton();
 };
 
 
-static int vfs_libusb_fd { -1 };
-static Usb::Connection *usb_connection { nullptr };
-static Usb_device *device_instance { nullptr };
-
-
-/*
- * This function is called by the VFS plugin on 'open()'
- * to pass a pointer to the USB connection.
- */
-void libusb_genode_usb_connection(Usb::Connection *usb)
+Usb_device::Interface::Interface(Usb_device &device, uint8_t idx)
+:
+	Usb::Interface(device._device, Usb::Interface::Index{idx, 0}, (1UL << 20)),
+	Registry<Usb_device::Interface>::Element(device._interfaces, *this),
+	_device(device)
 {
-	usb_connection = usb;
+	sigh(device._handler_cap);
+}
+
+
+static inline addr_t isoc_packet_offset(uint32_t idx,
+                                        struct libusb_transfer *transfer)
+{
+	addr_t offset = 0;
+	for (uint32_t i = 0; i < idx; i++)
+		offset += transfer->iso_packet_desc[i].length;
+	return offset;
+}
+
+
+void Usb_device::Interface::handle_events()
+{
+	update_urbs<Urb>(
+
+		/* produce out content */
+		[] (Urb &urb, Byte_range_ptr &dst) {
+			memcpy(dst.start, urb.buf, min(dst.num_bytes, urb.size)); },
+
+		/* consume in results */
+		[] (Urb &urb, Const_byte_range_ptr const &src) {
+			memcpy(urb.buf, src.start, min(src.num_bytes, urb.size));
+			if (urb.itransfer) urb.itransfer->transferred = src.num_bytes;
+		},
+
+		/* produce out content of isochronous packet i */
+		[] (Urb &urb, uint32_t i, Byte_range_ptr &dst) {
+			struct libusb_transfer *transfer =
+				USBI_TRANSFER_TO_LIBUSB_TRANSFER(urb.itransfer);
+			if (IS_XFEROUT(transfer)) {
+				addr_t src = (addr_t)urb.buf+isoc_packet_offset(i, transfer);
+				memcpy(dst.start, (void*)src, min(transfer->iso_packet_desc[i].length,
+				                                  dst.num_bytes));
+			}
+			return transfer->iso_packet_desc[i].length;
+		},
+
+		/* consume in results of isochronous packet i */
+		[] (Urb &urb, uint32_t i, Const_byte_range_ptr const &src) {
+			struct libusb_transfer *transfer =
+				USBI_TRANSFER_TO_LIBUSB_TRANSFER(urb.itransfer);
+			addr_t dst = (addr_t)urb.buf+isoc_packet_offset(i, transfer);
+			memcpy((void*)dst, src.start, src.num_bytes);
+			transfer->iso_packet_desc[i].actual_length = src.num_bytes;
+			transfer->iso_packet_desc[i].status = LIBUSB_TRANSFER_COMPLETED;
+		},
+
+		/* complete USB request */
+		[this] (Urb &urb, Usb::Tagged_packet::Return_value v)
+		{
+			if (v != Usb::Tagged_packet::OK)
+				error("transfer failed, return value ", (int)v);
+
+			if (!urb.itransfer)
+				return;
+
+			libusb_context *ctx = _device._open ? ITRANSFER_CTX(urb.itransfer)
+			                                    : nullptr;
+			usbi_signal_transfer_completion(urb.itransfer);
+			if (ctx) usbi_signal_event(ctx);
+			destroy(_device._iface_slab, &urb);
+		});
+}
+
+
+void Usb_device::_wait_for_urb(Urb &urb)
+{
+	while (!urb.completed()) {
+		handle_events();
+
+		struct pollfd pollfds {
+			.fd      = vfs_libusb_fd,
+			.events  = POLLIN,
+			.revents = 0
+		};
+
+		int poll_result = poll(&pollfds, 1, -1);
+		if ((poll_result != 1) || !(pollfds.revents & POLLIN))
+			error("could not complete request");
+	}
+}
+
+
+void Usb_device::handle_events()
+{
+	_device.update_urbs<Urb>(
+
+		/* produce out content */
+		[] (Urb &urb, Byte_range_ptr &dst) {
+			memcpy(dst.start, urb.buf, min(dst.num_bytes, urb.size)); },
+
+		/* consume in results */
+		[] (Urb &urb, Const_byte_range_ptr const &src) {
+			memcpy(urb.buf, src.start, min(src.num_bytes, urb.size));
+			if (urb.itransfer) urb.itransfer->transferred = src.num_bytes;
+		},
+
+		/* complete USB request */
+		[this] (Urb &urb, Usb::Tagged_packet::Return_value v)
+		{
+			if (v != Usb::Tagged_packet::OK)
+				error("control transfer failed, return value ", (int)v);
+
+			if (!urb.itransfer)
+				return;
+
+			libusb_context *ctx = _open ? ITRANSFER_CTX(urb.itransfer)
+			                            : nullptr;
+			usbi_signal_transfer_completion(urb.itransfer);
+			if (ctx) usbi_signal_event(ctx);
+			destroy(_alloc, &urb);
+		});
+}
+
+
+Constructible<Usb_device>& Usb_device::singleton()
+{
+	static Constructible<Usb_device> dev {};
+	return dev;
+}
+
+
+static Usb_device& device()
+{
+	struct Libusb_not_initialized {};
+
+	if (!Usb_device::singleton().constructed())
+		throw Libusb_not_initialized();
+
+	return *Usb_device::singleton();
+}
+
+
+void libusb_genode_backend_init(Env &env, Allocator &alloc,
+                                Signal_context_capability handler)
+{
+	Usb_device::singleton().construct(env, alloc, handler);
 }
 
 
 static int genode_init(struct libusb_context* ctx)
 {
-	if (!device_instance) {
+	if (vfs_libusb_fd == -1) {
 		vfs_libusb_fd = open("/dev/libusb", O_RDONLY);
 		if (vfs_libusb_fd == -1) {
 			Genode::error("could not open /dev/libusb");
 			return LIBUSB_ERROR_OTHER;
 		}
-		device_instance = new (libc_alloc) Usb_device(usb_connection,
-		                                              vfs_libusb_fd);
 	} else {
 		Genode::error("tried to init genode usb context twice");
 		return LIBUSB_ERROR_OTHER;
@@ -305,11 +276,11 @@ static int genode_init(struct libusb_context* ctx)
 
 static void genode_exit(void)
 {
-	if (device_instance) {
-		destroy(libc_alloc, device_instance);
-		device_instance = nullptr;
+	Usb_device::singleton().constructed();
+		Usb_device::singleton().destruct();
+
+	if (vfs_libusb_fd != -1) {
 		close(vfs_libusb_fd);
-		usb_connection = nullptr;
 		vfs_libusb_fd = -1;
 	}
 }
@@ -341,27 +312,7 @@ int genode_get_device_list(struct libusb_context *ctx,
 		/* initialize device structure */
 		dev->bus_number = busnum;
 		dev->device_address = devaddr;
-
-		Usb_device *usb_device = device_instance;
-		*(Usb_device**)dev->os_priv = usb_device;
-
-		switch (usb_device->device_descriptor.speed) {
-			case Usb::Device::SPEED_LOW:
-				dev->speed = LIBUSB_SPEED_LOW;
-				break;
-			case Usb::Device::SPEED_FULL:
-				dev->speed = LIBUSB_SPEED_FULL;
-				break;
-			case Usb::Device::SPEED_HIGH:
-				dev->speed = LIBUSB_SPEED_HIGH;
-				break;
-			case Usb::Device::SPEED_SUPER:
-				dev->speed = LIBUSB_SPEED_SUPER;
-				break;
-			default:
-				Genode::warning(__PRETTY_FUNCTION__, ": unknown device speed");
-				dev->speed = LIBUSB_SPEED_UNKNOWN;
-		}
+		dev->speed = device()._speed;
 
 		int result = usbi_sanitize_device(dev);
 		if (result < 0) {
@@ -386,9 +337,7 @@ int genode_get_device_list(struct libusb_context *ctx,
 
 static int genode_open(struct libusb_device_handle *dev_handle)
 {
-	if (device_instance)
-		device_instance->open();
-
+	device().open();
 	return usbi_add_pollfd(HANDLE_CTX(dev_handle), vfs_libusb_fd,
 	                       POLLIN);
 }
@@ -396,47 +345,47 @@ static int genode_open(struct libusb_device_handle *dev_handle)
 
 static void genode_close(struct libusb_device_handle *dev_handle)
 {
-	if (device_instance)
-		device_instance->close();
-
+	device().close();
 	usbi_remove_pollfd(HANDLE_CTX(dev_handle), vfs_libusb_fd);
 }
 
 
-static int genode_get_device_descriptor(struct libusb_device *device,
+static int genode_get_device_descriptor(struct libusb_device *,
                                         unsigned char* buffer,
                                         int *host_endian)
 {
-	Usb_device *usb_device = *(Usb_device**)device->os_priv;
-
-	Genode::memcpy(buffer, &usb_device->device_descriptor,
-	               sizeof(libusb_device_descriptor));
-
+	Usb_device::Urb urb(buffer, sizeof(libusb_device_descriptor),
+	                    device()._device, LIBUSB_REQUEST_GET_DESCRIPTOR,
+	                    LIBUSB_ENDPOINT_IN, (LIBUSB_DT_DEVICE << 8) | 0, 0,
+	                    LIBUSB_DT_DEVICE_SIZE);
+	device()._wait_for_urb(urb);
 	*host_endian = 0;
-
 	return LIBUSB_SUCCESS;
 }
 
 
-static int genode_get_config_descriptor(struct libusb_device *device,
-                                        uint8_t config_index,
+static int genode_get_config_descriptor(struct libusb_device *,
+                                        uint8_t idx,
                                         unsigned char *buffer,
                                         size_t len,
                                         int *host_endian)
 {
-	if (config_index != 0) {
-		Genode::error(__PRETTY_FUNCTION__,
-		              ": only the first configuration is supported");
-		return LIBUSB_ERROR_NOT_SUPPORTED;
-	}
+	/* read minimal config descriptor */
+	genode_usb_config_descriptor desc;
+	Usb_device::Urb cfg(&desc, sizeof(desc), device()._device,
+	                    LIBUSB_REQUEST_GET_DESCRIPTOR, LIBUSB_ENDPOINT_IN,
+	                    (LIBUSB_DT_CONFIG << 8) | idx, 0, sizeof(desc));
+	device()._wait_for_urb(cfg);
 
-	Usb_device *usb_device = *(Usb_device**)device->os_priv;
-
-	Genode::memcpy(buffer, usb_device->raw_config_descriptor, len);
+	/* read again whole configuration */
+	Usb_device::Urb all(buffer, len, device()._device,
+	                    LIBUSB_REQUEST_GET_DESCRIPTOR, LIBUSB_ENDPOINT_IN,
+	                    (LIBUSB_DT_CONFIG << 8) | idx, 0,
+	                    (size_t)desc.total_length);
+	device()._wait_for_urb(all);
 
 	*host_endian = 0;
-
-	return len;
+	return desc.total_length;
 }
 
 
@@ -445,7 +394,6 @@ static int genode_get_active_config_descriptor(struct libusb_device *device,
                                                size_t len,
                                                int *host_endian)
 {
-	/* only configuration 0 is currently supported */
 	return genode_get_config_descriptor(device, 0, buffer, len, host_endian);
 }
 
@@ -464,21 +412,24 @@ static int genode_set_configuration(struct libusb_device_handle *dev_handle,
 static int genode_claim_interface(struct libusb_device_handle *dev_handle,
                                   int interface_number)
 {
-	Usb_device *usb_device = *(Usb_device**)dev_handle->dev->os_priv;
+	bool found = false;
 
-	try {
-		usb_device->usb_connection->claim_interface(interface_number);
-	} catch (Usb::Session::Interface_not_found) {
-		Genode::error(__PRETTY_FUNCTION__, ": interface not found");
-		return LIBUSB_ERROR_NOT_FOUND;
-	} catch (Usb::Session::Interface_already_claimed) {
-		Genode::error(__PRETTY_FUNCTION__, ": interface already claimed");
+	device()._interfaces.for_each([&] (Usb_device::Interface const &iface) {
+		if (iface.index().number == interface_number) found = true; });
+
+	if (found) {
+		error(__PRETTY_FUNCTION__, ": interface already claimed");
 		return LIBUSB_ERROR_BUSY;
-	} catch (...) {
-		Genode::error(__PRETTY_FUNCTION__, ": unknown exception");
+	}
+
+	if (interface_number > 0xff || interface_number < 0) {
+		error(__PRETTY_FUNCTION__, ": invalid interface number ",
+		      interface_number);
 		return LIBUSB_ERROR_OTHER;
 	}
 
+	new (device()._alloc)
+		Usb_device::Interface(device(), (uint8_t) interface_number);
 	return LIBUSB_SUCCESS;
 }
 
@@ -486,19 +437,16 @@ static int genode_claim_interface(struct libusb_device_handle *dev_handle,
 static int genode_release_interface(struct libusb_device_handle *dev_handle,
                                     int interface_number)
 {
-	Usb_device *usb_device = *(Usb_device**)dev_handle->dev->os_priv;
+	int ret = LIBUSB_ERROR_NOT_FOUND;
 
-	try {
-		usb_device->usb_connection->release_interface(interface_number);
-	} catch (Usb::Session::Interface_not_found) {
-		Genode::error(__PRETTY_FUNCTION__, ": interface not found");
-		return LIBUSB_ERROR_NOT_FOUND;
-	} catch (...) {
-		Genode::error(__PRETTY_FUNCTION__, ": unknown exception");
-		return LIBUSB_ERROR_OTHER;
-	}
+	device()._interfaces.for_each([&] (Usb_device::Interface &iface) {
+		if (iface.index().number != interface_number)
+			return;
+		destroy(device()._alloc, &iface);
+		ret = LIBUSB_SUCCESS;
+	});
 
-	return LIBUSB_SUCCESS;
+	return ret;
 }
 
 
@@ -506,10 +454,19 @@ static int genode_set_interface_altsetting(struct libusb_device_handle* dev_hand
                                            int interface_number,
                                            int altsetting)
 {
-	Usb_device *usb_device = *(Usb_device**)dev_handle->dev->os_priv;
+	using P  = Usb::Device::Packet_descriptor;
+	using Rt = P::Request_type;
 
-	return usb_device->altsetting(interface_number, altsetting) ? LIBUSB_SUCCESS
-	                                                            : LIBUSB_ERROR_BUSY;
+	if (interface_number < 0 || interface_number > 0xff ||
+	    altsetting < 0 || altsetting > 0xff)
+		return LIBUSB_ERROR_INVALID_PARAM;
+
+	Usb_device::Urb urb(nullptr, 0, device()._device, P::Request::SET_INTERFACE,
+	                    Rt::value(P::Recipient::IFACE, P::Type::STANDARD,
+	                              P::Direction::OUT),
+	                    (uint8_t)altsetting, (uint8_t)interface_number, 0);
+	device()._wait_for_urb(urb);
+	return LIBUSB_SUCCESS;
 }
 
 
@@ -517,11 +474,8 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 {
 	struct libusb_transfer *transfer =
 		USBI_TRANSFER_TO_LIBUSB_TRANSFER(itransfer);
-
-	Usb_device *usb_device = *(Usb_device**)transfer->dev_handle->dev->os_priv;
-
-	if (!usb_device->usb_connection->source()->ready_to_submit())
-		return LIBUSB_ERROR_BUSY;
+	Usb::Interface::Packet_descriptor::Type type =
+		Usb::Interface::Packet_descriptor::FLUSH;
 
 	switch (transfer->type) {
 
@@ -530,123 +484,49 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			struct libusb_control_setup *setup =
 				(struct libusb_control_setup*)transfer->buffer;
 
-			Usb::Packet_descriptor p;
-
-			try {
-				p = usb_device->usb_connection->alloc_packet(setup->wLength);
-			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
-				return LIBUSB_ERROR_BUSY;
-			}
-
-			p.completion           = new (libc_alloc) Completion(itransfer);
-
-			p.type                 = Usb::Packet_descriptor::CTRL;
-			p.control.request      = setup->bRequest;
-			p.control.request_type = setup->bmRequestType;
-			p.control.value        = setup->wValue;
-			p.control.index        = setup->wIndex;
-			p.control.timeout      = transfer->timeout;
-
-			if ((setup->bmRequestType & LIBUSB_ENDPOINT_DIR_MASK) ==
-			    LIBUSB_ENDPOINT_OUT) {
-
-				char *packet_content =
-					usb_device->usb_connection->source()->packet_content(p);
-
-				Genode::memcpy(packet_content,
-				               transfer->buffer + LIBUSB_CONTROL_SETUP_SIZE,
-				               setup->wLength);
-			}
-
-			usb_device->usb_connection->source()->submit_packet(p);
-
+			void * addr = transfer->buffer + LIBUSB_CONTROL_SETUP_SIZE;
+			new (device()._alloc)
+				Usb_device::Urb(addr, setup->wLength, itransfer,
+				                device()._device, setup->bRequest,
+				                setup->bmRequestType, setup->wValue,
+				                setup->wIndex, setup->wLength);
+			device().handle_events();
 			return LIBUSB_SUCCESS;
 		}
 
 		case LIBUSB_TRANSFER_TYPE_BULK:
 		case LIBUSB_TRANSFER_TYPE_BULK_STREAM:
-		case LIBUSB_TRANSFER_TYPE_INTERRUPT: {
-		
-			if (IS_XFEROUT(transfer) &&
-				transfer->flags & LIBUSB_TRANSFER_ADD_ZERO_PACKET) {
-				Genode::error(__PRETTY_FUNCTION__,
-				              ": zero packet not supported");
-				return LIBUSB_ERROR_NOT_SUPPORTED;
-			}
-
-			Usb::Packet_descriptor p;
-			
-			try {
-				p = usb_device->usb_connection->alloc_packet(transfer->length);
-			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
-				return LIBUSB_ERROR_BUSY;
-			}
-
-			if (transfer->type == LIBUSB_TRANSFER_TYPE_INTERRUPT) {
-				p.type = Usb::Packet_descriptor::IRQ;
-				p.transfer.polling_interval =
-					Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
-			} else
-				p.type = Usb::Packet_descriptor::BULK;
-
-			p.completion  = new (libc_alloc) Completion(itransfer);
-			p.transfer.ep = transfer->endpoint;
-
-			if (IS_XFEROUT(transfer)) {
-				char *packet_content =
-					usb_device->usb_connection->source()->packet_content(p);
-				Genode::memcpy(packet_content, transfer->buffer,
-				               transfer->length);
-			}
-
-			usb_device->usb_connection->source()->submit_packet(p);
-
-			return LIBUSB_SUCCESS;
-		}
-
-		case LIBUSB_TRANSFER_TYPE_ISOCHRONOUS: {
-
-			size_t total_length = 0;
-			for (int i = 0; i < transfer->num_iso_packets; i++) {
-				total_length += transfer->iso_packet_desc[i].length;
-			}
-
-			Usb::Packet_descriptor p;
-			size_t p_size = Usb::Isoc_transfer::size(total_length);
-			try {
-				p = usb_device->usb_connection->alloc_packet(p_size);
-			} catch (Usb::Session::Tx::Source::Packet_alloc_failed) {
-				return LIBUSB_ERROR_BUSY;
-			}
-
-			p.type = Usb::Packet_descriptor::ISOC;
-				p.transfer.polling_interval =
-					Usb::Packet_descriptor::DEFAULT_POLLING_INTERVAL;
-
-			p.completion  = new (libc_alloc) Completion(itransfer);
-			p.transfer.ep = transfer->endpoint;
-
-			Usb::Isoc_transfer &isoc =
-				*(Usb::Isoc_transfer *) usb_device->usb_connection->source()->packet_content(p);
-			isoc.number_of_packets = transfer->num_iso_packets;
-			for (int i = 0; i < transfer->num_iso_packets; i++) {
-				isoc.packet_size[i]        = transfer->iso_packet_desc[i].length;
-				isoc.actual_packet_size[i] = 0;
-			}
-
-			if (IS_XFEROUT(transfer))
-				Genode::memcpy(isoc.data(), transfer->buffer, transfer->length);
-
-			usb_device->usb_connection->source()->submit_packet(p);
-
-			return LIBUSB_SUCCESS;
-		}
+			type = Usb::Interface::Packet_descriptor::BULK;
+			break;
+		case LIBUSB_TRANSFER_TYPE_INTERRUPT:
+			type = Usb::Interface::Packet_descriptor::IRQ;
+			break;
+		case LIBUSB_TRANSFER_TYPE_ISOCHRONOUS:
+			type  = Usb::Interface::Packet_descriptor::ISOC;
+			break;
 
 		default:
 			usbi_err(TRANSFER_CTX(transfer),
 				"unknown endpoint type %d", transfer->type);
 			return LIBUSB_ERROR_INVALID_PARAM;
 	}
+
+	bool found = false;
+	device()._interfaces.for_each([&] (Usb_device::Interface &iface) {
+		iface.for_each_endpoint([&] (Usb::Endpoint &ep) {
+			if (found || transfer->endpoint != ep.address())
+				return;
+			found = true;
+			new (device()._iface_slab)
+				Usb_device::Interface::Urb(transfer->buffer, transfer->length,
+				                           itransfer, iface, ep, type,
+				                           transfer->length,
+				                           transfer->num_iso_packets);
+			iface.handle_events();
+		});
+	});
+
+	return found ? LIBUSB_SUCCESS : LIBUSB_ERROR_NOT_FOUND;
 }
 
 
@@ -659,16 +539,14 @@ static int genode_cancel_transfer(struct usbi_transfer * itransfer)
 static void genode_clear_transfer_priv(struct usbi_transfer * itransfer) { }
 
 
-static int genode_handle_events(struct libusb_context *,
-                            struct pollfd *,
-                            POLL_NFDS_TYPE, int)
+static int genode_handle_events(struct libusb_context *, struct pollfd *,
+                                POLL_NFDS_TYPE, int)
 {
-	if (device_instance) {
-		device_instance->handle_events();
-		return LIBUSB_SUCCESS;
-	}
-
-	return LIBUSB_ERROR_NO_DEVICE;
+	libusb_genode_backend_signaling = false;
+	device().handle_events();
+	device()._interfaces.for_each([&] (Usb_device::Interface &iface) {
+		iface.handle_events(); });
+	return LIBUSB_SUCCESS;
 }
 
 
@@ -679,8 +557,7 @@ static int genode_handle_transfer_completion(struct usbi_transfer * itransfer)
 	if (itransfer->flags & USBI_TRANSFER_CANCELLING)
 		status = LIBUSB_TRANSFER_CANCELLED;
 
-	return usbi_handle_transfer_completion(itransfer,
-	                                       status);
+	return usbi_handle_transfer_completion(itransfer, status);
 }
 
 
@@ -743,7 +620,7 @@ const struct usbi_os_backend genode_usb_raw_backend = {
 	/*.get_timerfd_clockid =*/ NULL,
 #endif
 
-	/*.device_priv_size =*/ sizeof(Usb_device*),
+	/*.device_priv_size =*/ 0,
 	/*.device_handle_priv_size =*/ 0,
 	/*.transfer_priv_size =*/ 0,
 };
