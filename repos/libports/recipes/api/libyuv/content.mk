@@ -5,6 +5,7 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libyuv)
 include:
 	mkdir $@
 	cp -r $(PORT_DIR)/include/* $@/
+	cp -r $(REP_DIR)/include/libyuv $@/
 
 lib/symbols/libyuv:
 	$(mirror_from_rep_dir)

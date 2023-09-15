@@ -1,0 +1,128 @@
+--- libyuv/include/libyuv/row.h
++++ libyuv/include/libyuv/row.h
+@@ -20,6 +20,9 @@
+ extern "C" {
+ #endif
+ 
++extern void *libyuv_malloc(unsigned long size);
++extern void  libyuv_free(void *ptr);
++
+ // TODO: Fix Win32 build
+ // https://bugs.chromium.org/p/libyuv/issues/detail?id=900
+ #if defined(__pnacl__) || defined(__CLR_VER) || defined(_M_IX86) || \
+@@ -785,11 +788,11 @@
+ #define IS_ALIGNED(p, a) (!((uintptr_t)(p) & ((a)-1)))
+ 
+ #define align_buffer_64(var, size)                                           \
+-  uint8_t* var##_mem = (uint8_t*)(malloc((size) + 63));         /* NOLINT */ \
++  uint8_t* var##_mem = (uint8_t*)(libyuv_malloc((size) + 63));         /* NOLINT */ \
+   uint8_t* var = (uint8_t*)(((intptr_t)(var##_mem) + 63) & ~63) /* NOLINT */
+ 
+ #define free_aligned_buffer_64(var) \
+-  free(var##_mem);                  \
++  libyuv_free(var##_mem);           \
+   var = 0
+ 
+ #if defined(__APPLE__) || defined(__x86_64__) || defined(__llvm__)
+--- libyuv/source/convert_jpeg.cc
++++ libyuv/source/convert_jpeg.cc
+@@ -32,6 +32,10 @@
+   int h;
+ };
+ 
++extern void *libyuv_malloc(unsigned long size);
++extern void  libyuv_free(void *ptr);
++
++
+ static void JpegCopyI420(void* opaque,
+                          const uint8_t* const* data,
+                          const int* strides,
+--- libyuv/source/convert_to_argb.cc
++++ libyuv/source/convert_to_argb.cc
+@@ -23,6 +23,9 @@
+ extern "C" {
+ #endif
+ 
++extern void *libyuv_malloc(unsigned long size);
++extern void  libyuv_free(void *ptr);
++
+ // Convert camera sample to ARGB with cropping, rotation and vertical flip.
+ // src_width is used for source stride computation
+ // src_height is used to compute location of planes, and indicate inversion
+@@ -76,7 +79,7 @@
+ 
+   if (need_buf) {
+     int argb_size = crop_width * 4 * abs_crop_height;
+-    rotate_buffer = (uint8_t*)malloc(argb_size); /* NOLINT */
++    rotate_buffer = (uint8_t*)libyuv_malloc(argb_size); /* NOLINT */
+     if (!rotate_buffer) {
+       return 1;  // Out of memory runtime error.
+     }
+@@ -366,7 +369,7 @@
+       r = ARGBRotate(dst_argb, dst_stride_argb, dest_argb, dest_dst_stride_argb,
+                      crop_width, abs_crop_height, rotation);
+     }
+-    free(rotate_buffer);
++    libyuv_free(rotate_buffer);
+   } else if (rotation) {
+     src = sample + (src_width * crop_y + crop_x) * 4;
+     r = ARGBRotate(src, src_width * 4, dst_argb, dst_stride_argb, crop_width,
+--- libyuv/source/convert_to_i420.cc
++++ libyuv/source/convert_to_i420.cc
+@@ -19,6 +19,9 @@
+ extern "C" {
+ #endif
+ 
++extern void *libyuv_malloc(unsigned long size);
++extern void  libyuv_free(void *ptr);
++
+ // Convert camera sample to I420 with cropping, rotation and vertical flip.
+ // src_width is used for source stride computation
+ // src_height is used to compute location of planes, and indicate inversion
+@@ -76,7 +79,7 @@
+   if (need_buf) {
+     int y_size = crop_width * abs_crop_height;
+     int uv_size = ((crop_width + 1) / 2) * ((abs_crop_height + 1) / 2);
+-    rotate_buffer = (uint8_t*)malloc(y_size + uv_size * 2); /* NOLINT */
++    rotate_buffer = (uint8_t*)libyuv_malloc(y_size + uv_size * 2); /* NOLINT */
+     if (!rotate_buffer) {
+       return 1;  // Out of memory runtime error.
+     }
+@@ -260,7 +263,7 @@
+                      tmp_v, tmp_v_stride, crop_width, abs_crop_height,
+                      rotation);
+     }
+-    free(rotate_buffer);
++    libyuv_free(rotate_buffer);
+   }
+ 
+   return r;
+--- libyuv/source/scale_argb.cc
++++ libyuv/source/scale_argb.cc
+@@ -23,6 +23,9 @@
+ extern "C" {
+ #endif
+ 
++extern void *libyuv_malloc(unsigned long size);
++extern void  libyuv_free(void *ptr);
++
+ static __inline int Abs(int v) {
+   return v >= 0 ? v : -v;
+ }
+@@ -1071,7 +1074,7 @@
+                        int clip_width,
+                        int clip_height,
+                        enum FilterMode filtering) {
+-  uint8_t* argb_buffer = (uint8_t*)malloc(src_width * src_height * 4);
++  uint8_t* argb_buffer = (uint8_t*)libyuv_malloc(src_width * src_height * 4);
+   int r;
+   (void)src_fourcc;  // TODO(fbarchard): implement and/or assert.
+   (void)dst_fourcc;
+@@ -1081,7 +1084,7 @@
+   r = ARGBScaleClip(argb_buffer, src_width * 4, src_width, src_height, dst_argb,
+                     dst_stride_argb, dst_width, dst_height, clip_x, clip_y,
+                     clip_width, clip_height, filtering);
+-  free(argb_buffer);
++  libyuv_free(argb_buffer);
+   return r;
+ }

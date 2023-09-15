@@ -2,7 +2,8 @@ MIRROR_FROM_REP_DIR := lib/mk/libyuv.inc \
                        lib/mk/spec/arm_v8/libyuv.mk \
                        lib/mk/spec/x86_32/libyuv.mk \
                        lib/mk/spec/x86_64/libyuv.mk \
-                       lib/import/import-libyuv.mk
+                       lib/import/import-libyuv.mk \
+                       include/libyuv
 
 content: src/lib/libyuv include LICENSE $(MIRROR_FROM_REP_DIR)
 
@@ -11,6 +12,7 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libyuv)
 src/lib/libyuv:
 	mkdir -p $@
 	cp -r $(PORT_DIR)/src/lib/libyuv/source $@
+	cp -r $(REP_DIR)/src/lib/libyuv/* $@
 
 include:
 	mkdir -p $@
