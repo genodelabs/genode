@@ -1,0 +1,41 @@
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init
+
+build { test/dns }
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	<start name="dns_test">
+		<resource name="RAM" quantum="1M"/>
+		<config>
+		</config>
+	</start>
+
+</config>}
+
+install_config $config
+build_boot_image { dns_test }
+
+append qemu_args "  -nographic "
+append_qemu_nic_args
+
+run_genode_until ".*child \"dns_test\" exited with exit value 0" 30
+
+
