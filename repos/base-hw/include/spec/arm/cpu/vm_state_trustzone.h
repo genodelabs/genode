@@ -28,6 +28,7 @@ namespace Genode {
 	 */
 	struct Vm_state;
 	using Vm_data = Vm_state;
+	struct Vcpu_state;
 }
 
 
@@ -45,5 +46,7 @@ struct Genode::Vm_state : Genode::Cpu_state_modes
 
 	Genode::addr_t irq_injection;
 };
+
+struct Genode::Vcpu_state : Genode::Vm_state { };
 
 #endif /* _INCLUDE__SPEC__IMX53__VM_STATE_H_ */

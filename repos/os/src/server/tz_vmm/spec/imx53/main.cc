@@ -2,11 +2,12 @@
  * \brief  Virtual Machine Monitor
  * \author Stefan Kalkowski
  * \author Martin Stein
+ * \author Benjamin Lamowski
  * \date   2012-06-25
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -58,7 +59,7 @@ class Main
 		Serial_driver _serial  { _env.ram(), _env.rm() };
 		Block_driver  _block   { _env, _config.xml(), _heap, _vm };
 
-		void _handle_smc()
+		void _handle_smc(Vcpu_state &state)
 		{
 			enum {
 				FRAMEBUFFER = 0,
@@ -66,13 +67,13 @@ class Main
 				SERIAL      = 2,
 				BLOCK       = 3,
 			};
-			switch (_vm.smc_arg_0()) {
+			switch (state.r0) {
 			case FRAMEBUFFER:                          break;
 			case INPUT:                                break;
-			case SERIAL:      _serial.handle_smc(_vm); break;
-			case BLOCK:       _block.handle_smc(_vm);  break;
+			case SERIAL:      _serial.handle_smc(_vm, state); break;
+			case BLOCK:       _block.handle_smc(_vm, state);  break;
 			default:
-				error("unknown hypervisor call ", _vm.smc_arg_0());
+				error("unknown hypervisor call ", state.r0);
 				throw Vm::Exception_handling_failed();
 			};
 		}
@@ -85,19 +86,22 @@ class Main
 
 		void _handle_exception()
 		{
-			_vm.on_vmm_entry();
-			try {
-				switch (_vm.state().cpu_exception) {
-				case Cpu_state::DATA_ABORT:      _handle_data_abort(); break;
-				case Cpu_state::SUPERVISOR_CALL: _handle_smc();        break;
-				default:
-					error("unknown exception ", _vm.state().cpu_exception);
-					throw Vm::Exception_handling_failed();
+			_vm.with_state([this](Vcpu_state &state) {
+				_vm.on_vmm_entry();
+				try {
+					switch (state.cpu_exception) {
+					case Cpu_state::DATA_ABORT:      _handle_data_abort(); break;
+					case Cpu_state::SUPERVISOR_CALL: _handle_smc(state);   break;
+					case VCPU_EXCEPTION_STARTUP:     _vm.start(state);     break;
+					default:
+						error("unknown exception ", state.cpu_exception);
+						throw Vm::Exception_handling_failed();
+					}
 				}
-				_vm.run();
-			}
-			catch (Vm::Exception_handling_failed) { _vm.dump(); }
-			_vm.on_vmm_exit();
+				catch (Vm::Exception_handling_failed) { _vm.dump(state); }
+				_vm.on_vmm_exit();
+				return true;
+			});
 		};
 
 	public:
@@ -107,8 +111,6 @@ class Main
 			log("Start virtual machine ...");
 			_m4if.set_region0(Trustzone::SECURE_RAM_BASE,
 			                  Trustzone::SECURE_RAM_SIZE);
-			_vm.start();
-			_vm.run();
 		}
 };
 

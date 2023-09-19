@@ -2,11 +2,12 @@
  * \brief  Virtual Machine Monitor VM definition
  * \author Stefan Kalkowski
  * \author Martin Stein
+ * \author Benjamin Lamowski
  * \date   2012-06-25
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -74,9 +75,8 @@ class Genode::Vm_base : Noncopyable, Interface
 		Vm_connection               _vm          { _env };
 		Vm_connection::Exit_config  _exit_config { };
 		Vm_connection::Vcpu         _vcpu;
-		Vm_state                   &_state       { *(Vm_state *)&_vcpu.state() };
 
-		void _load_kernel();
+		void _load_kernel(Vcpu_state &);
 
 		virtual void   _load_kernel_surroundings() = 0;
 		virtual addr_t _board_info_offset() const  = 0;
@@ -97,30 +97,18 @@ class Genode::Vm_base : Noncopyable, Interface
 		        Allocator          &alloc,
 		        Vcpu_handler_base  &handler);
 
-		void run()   { _vcpu.run(); }
-		void pause() { _vcpu.pause(); }
-
-		void   start();
-		void   dump();
+		void   start(Vcpu_state &);
+		void   dump(Vcpu_state &);
 		void   inject_irq(unsigned irq);
-		addr_t va_to_pa(addr_t va);
+		addr_t va_to_pa(Vcpu_state &state, addr_t va);
 
-		Vm_state const &state() const { return _state; }
 		Ram      const &ram()   const { return _ram;   }
 
-		addr_t smc_arg_0() { return _state.r0; }
-		addr_t smc_arg_1() { return _state.r1; }
-		addr_t smc_arg_2() { return _state.r2; }
-		addr_t smc_arg_3() { return _state.r3; }
-		addr_t smc_arg_4() { return _state.r4; }
-		addr_t smc_arg_5() { return _state.r5; }
-		addr_t smc_arg_6() { return _state.r6; }
-		addr_t smc_arg_7() { return _state.r7; }
-		addr_t smc_arg_8() { return _state.r8; }
-		addr_t smc_arg_9() { return _state.r9; }
-
-		void smc_ret(addr_t const ret_0) { _state.r0 = ret_0; }
-		void smc_ret(addr_t const ret_0, addr_t const ret_1);
+		template<typename FN>
+		void with_state(FN const & fn)
+		{
+			_vcpu.with_state(fn);
+		}
 };
 
 #endif /* _VM_BASE_H_ */

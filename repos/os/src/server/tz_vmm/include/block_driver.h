@@ -1,11 +1,12 @@
 /*
  * \brief  Paravirtualized access to block devices for VMs
  * \author Martin Stein
+ * \author Benjamin Lamowski
  * \date   2015-10-23
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -119,17 +120,17 @@ class Genode::Block_driver
 		Allocator_avl     _dev_alloc;
 
 		void _buf_to_pkt(void *dst, size_t sz);
-		void _name(Vm_base &vm);
-		void _block_count(Vm_base &vm);
-		void _block_size(Vm_base &vm);
-		void _queue_size(Vm_base &vm);
-		void _writeable(Vm_base &vm);
-		void _irq(Vm_base &vm);
-		void _buffer(Vm_base &vm);
-		void _device_count(Vm_base &vm);
-		void _new_request(Vm_base &vm);
-		void _submit_request(Vm_base &vm);
-		void _collect_reply(Vm_base &vm);
+		void _name(Vm_base &vm, Vcpu_state &state);
+		void _block_count(Vm_base &vm, Vcpu_state &state);
+		void _block_size(Vm_base &vm, Vcpu_state &state);
+		void _queue_size(Vm_base &vm, Vcpu_state &state);
+		void _writeable(Vm_base &vm, Vcpu_state &state);
+		void _irq(Vm_base &vm, Vcpu_state &state);
+		void _buffer(Vm_base &vm, Vcpu_state &state);
+		void _device_count(Vm_base &vm, Vcpu_state &state);
+		void _new_request(Vm_base &vm, Vcpu_state &state);
+		void _submit_request(Vm_base &vm, Vcpu_state &state);
+		void _collect_reply(Vm_base &vm, Vcpu_state &state);
 
 		template <typename DEV_FUNC, typename ERR_FUNC>
 		void _dev_apply(Device::Id      id,
@@ -146,7 +147,7 @@ class Genode::Block_driver
 
 	public:
 
-		void handle_smc(Vm_base &vm);
+		void handle_smc(Vm_base &vm, Vcpu_state &state);
 
 		Block_driver(Env       &env,
 		             Xml_node   config,

@@ -1,11 +1,12 @@
 /*
  * \brief  Paravirtualized access to block devices for VMs
  * \author Martin Stein
+ * \author Benjamin Lamowski
  * \date   2015-10-23
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -99,58 +100,58 @@ Block_driver::Block_driver(Env       &env,
 }
 
 
-void Block_driver::_name(Vm_base &vm)
+void Block_driver::_name(Vm_base &vm, Vcpu_state &state)
 {
-	_dev_apply(Device::Id { vm.smc_arg_2() },
+	_dev_apply(Device::Id { state.r2 },
 		[&] (Device &dev) { copy_cstring((char *)_buf, dev.name().string(), _buf_size); },
 		[&] ()            { ((char *)_buf)[0] = 0; });
 }
 
 
-void Block_driver::_block_count(Vm_base &vm)
+void Block_driver::_block_count(Vm_base &vm, Vcpu_state &state)
 {
-	_dev_apply(Device::Id { vm.smc_arg_2() },
-		[&] (Device &dev) { vm.smc_ret(dev.block_count()); },
-		[&] ()            { vm.smc_ret(0); });
+	_dev_apply(Device::Id { state.r2 },
+		[&] (Device &dev) { state.r0 = dev.block_count(); },
+		[&] ()            { state.r0 = 0; });
 }
 
 
-void Block_driver::_block_size(Vm_base &vm)
+void Block_driver::_block_size(Vm_base &vm, Vcpu_state &state)
 {
-	_dev_apply(Device::Id { vm.smc_arg_2() },
-		[&] (Device &dev) { vm.smc_ret(dev.block_size()); },
-		[&] ()            { vm.smc_ret(0); });
+	_dev_apply(Device::Id { state.r2 },
+		[&] (Device &dev) { state.r0 = dev.block_size(); },
+		[&] ()            { state.r0 = 0; });
 }
 
 
-void Block_driver::_queue_size(Vm_base &vm)
+void Block_driver::_queue_size(Vm_base &vm, Vcpu_state &state)
 {
-	_dev_apply(Device::Id { vm.smc_arg_2() },
-		[&] (Device &dev) { vm.smc_ret(dev.session().tx()->bulk_buffer_size()); },
-		[&] ()            { vm.smc_ret(0); });
+	_dev_apply(Device::Id { state.r2 },
+		[&] (Device &dev) { state.r0 = dev.session().tx()->bulk_buffer_size(); },
+		[&] ()            { state.r0 = 0; });
 }
 
 
-void Block_driver::_writeable(Vm_base &vm)
+void Block_driver::_writeable(Vm_base &vm, Vcpu_state &state)
 {
-	_dev_apply(Device::Id { vm.smc_arg_2() },
-		[&] (Device &dev) { vm.smc_ret(dev.writeable()); },
-		[&] ()            { vm.smc_ret(false); });
+	_dev_apply(Device::Id { state.r2 },
+		[&] (Device &dev) { state.r0 = dev.writeable(); },
+		[&] ()            { state.r0 = false; });
 }
 
 
-void Block_driver::_irq(Vm_base &vm)
+void Block_driver::_irq(Vm_base &vm, Vcpu_state &state)
 {
-	_dev_apply(Device::Id { vm.smc_arg_2() },
-		[&] (Device &dev) { vm.smc_ret(dev.irq()); },
-		[&] ()            { vm.smc_ret(~(unsigned)0); });
+	_dev_apply(Device::Id { state.r2 },
+		[&] (Device &dev) { state.r0 = dev.irq(); },
+		[&] ()            { state.r0 = ~(unsigned)0; });
 }
 
 
-void Block_driver::_buffer(Vm_base &vm)
+void Block_driver::_buffer(Vm_base &vm, Vcpu_state &state)
 {
-	addr_t  const  buf_base = vm.smc_arg_2();
-	              _buf_size = vm.smc_arg_3();
+	addr_t  const  buf_base = state.r2;
+	              _buf_size = state.r3;
 	addr_t  const  buf_top  = buf_base + _buf_size;
 	Ram     const &ram      = vm.ram();
 	addr_t  const  ram_top  = ram.base() + ram.size();
@@ -168,17 +169,18 @@ void Block_driver::_buffer(Vm_base &vm)
 }
 
 
-void Block_driver::_new_request(Vm_base &vm)
+void Block_driver::_new_request(Vm_base &vm, Vcpu_state &state)
 {
 	auto dev_func = [&] (Device &dev) {
 		try {
-			size_t  const size = vm.smc_arg_3();
-			void   *const req  = (void*)vm.smc_arg_4();
+			size_t  const size = state.r3;
+			void   *const req  = (void*)state.r4;
 
 			Packet_descriptor pkt  = dev.session().alloc_packet(size);
 			void             *addr = dev.session().tx()->packet_content(pkt);
 			dev.cache().insert(addr, req);
-			vm.smc_ret((long)addr, pkt.offset());
+			state.r0 = (long)addr;
+			state.r1 = pkt.offset();
 		}
 		catch (Request_cache::Full) {
 			error("block request cache full");
@@ -189,20 +191,23 @@ void Block_driver::_new_request(Vm_base &vm)
 			throw Device_function_failed();
 		}
 	};
-	_dev_apply(Device::Id { vm.smc_arg_2() }, dev_func, [&] () { vm.smc_ret(0, 0); });
+	_dev_apply(Device::Id { state.r2 }, dev_func, [&] () {
+			state.r0 = 0;
+			state.r1 = 0;
+		});
 }
 
 
-void Block_driver::_submit_request(Vm_base &vm)
+void Block_driver::_submit_request(Vm_base &vm, Vcpu_state &state)
 {
 	auto dev_func = [&] (Device &dev) {
 
-		off_t               const queue_offset = vm.smc_arg_3();
-		size_t              const size         = vm.smc_arg_4();
-		bool                const write        = vm.smc_arg_7();
-		void               *const dst          = (void *)vm.smc_arg_8();
+		off_t               const queue_offset = state.r3;
+		size_t              const size         = state.r4;
+		bool                const write        = state.r7;
+		void               *const dst          = (void *)state.r8;
 		unsigned long long  const disc_offset  =
-			(unsigned long long)vm.smc_arg_5() << 32 | vm.smc_arg_6();
+			(unsigned long long)state.r5 << 32 | state.r6;
 
 		if (write) {
 			if (size > _buf_size) {
@@ -220,11 +225,11 @@ void Block_driver::_submit_request(Vm_base &vm)
 
 		dev.session().tx()->submit_packet(pkt);
 	};
-	_dev_apply(Device::Id { vm.smc_arg_2() }, dev_func, [] () { });
+	_dev_apply(Device::Id { state.r2 }, dev_func, [] () { });
 }
 
 
-void Block_driver::_collect_reply(Vm_base &vm)
+void Block_driver::_collect_reply(Vm_base &vm, Vcpu_state &state)
 {
 	auto dev_func = [&] (Device &dev) {
 
@@ -250,7 +255,7 @@ void Block_driver::_collect_reply(Vm_base &vm)
 
 			/* check for packets and tell VM to stop if none available */
 			if (!dev.session().tx()->ack_avail()) {
-				vm.smc_ret(0);
+				state.r0 = 0;
 				return;
 			}
 			/* lookup request of next packet and free cache slot */
@@ -269,13 +274,13 @@ void Block_driver::_collect_reply(Vm_base &vm)
 		}
 		construct_at<Reply>(_buf, req, write, dat_size, dat);
 		dev.session().tx()->release_packet(pkt);
-		vm.smc_ret(1);
+		state.r0 = 1;
 	};
-	_dev_apply(Device::Id { vm.smc_arg_2() }, dev_func, [&] () { vm.smc_ret(-1); });
+	_dev_apply(Device::Id { state.r2 }, dev_func, [&] () { state.r0 = -1; });
 }
 
 
-void Block_driver::handle_smc(Vm_base &vm)
+void Block_driver::handle_smc(Vm_base &vm, Vcpu_state &state)
 {
 	enum {
 		DEVICE_COUNT   = 0,
@@ -291,22 +296,22 @@ void Block_driver::handle_smc(Vm_base &vm)
 		BUFFER         = 10,
 		NAME           = 11,
 	};
-	switch (vm.smc_arg_1()) {
-	case DEVICE_COUNT:   vm.smc_ret(_dev_count);                  break;
-	case BLOCK_COUNT:    _block_count(vm);                        break;
-	case BLOCK_SIZE:     _block_size(vm);                         break;
-	case WRITEABLE:      _writeable(vm);                          break;
-	case QUEUE_SIZE:     _queue_size(vm);                         break;
-	case IRQ:            _irq(vm);                                break;
+	switch (state.r1) {
+	case DEVICE_COUNT:   state.r0 = _dev_count;                  break;
+	case BLOCK_COUNT:    _block_count(vm, state);                 break;
+	case BLOCK_SIZE:     _block_size(vm, state);                  break;
+	case WRITEABLE:      _writeable(vm, state);                   break;
+	case QUEUE_SIZE:     _queue_size(vm, state);                  break;
+	case IRQ:            _irq(vm, state);                         break;
 	case START_CALLBACK: _devs.for_each<Device>([&] (Device &dev)
 	                           { dev.start_irq_handling(); });    break;
-	case NEW_REQUEST:    _new_request(vm);                        break;
-	case SUBMIT_REQUEST: _submit_request(vm);                     break;
-	case COLLECT_REPLY:  _collect_reply(vm);                      break;
-	case BUFFER:         _buffer(vm);                             break;
-	case NAME:           _name(vm);                               break;
+	case NEW_REQUEST:    _new_request(vm, state);                 break;
+	case SUBMIT_REQUEST: _submit_request(vm, state);              break;
+	case COLLECT_REPLY:  _collect_reply(vm, state);               break;
+	case BUFFER:         _buffer(vm, state);                      break;
+	case NAME:           _name(vm, state);                        break;
 	default:
-		error("unknown block-driver function ", vm.smc_arg_1());
+		error("unknown block-driver function ", state.r1);
 		throw Vm_base::Exception_handling_failed();
 	}
 }
