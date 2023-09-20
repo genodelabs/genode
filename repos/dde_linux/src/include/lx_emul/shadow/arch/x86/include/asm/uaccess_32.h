@@ -10,4 +10,6 @@
 unsigned long raw_copy_from_user(void *to, const void * from, unsigned long n);
 unsigned long raw_copy_to_user(void *to, const void *from, unsigned long n);
 
+int __copy_from_user_inatomic_nocache(void *dst, const void __user *src,
+                                      unsigned size);
 #endif /* _ASM__UACCESS_32_H_ */
