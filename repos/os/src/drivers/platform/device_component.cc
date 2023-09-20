@@ -238,7 +238,8 @@ Device_component::Device_component(Registry<Device_component> & registry,
 
 		auto add_range_fn = [&] (Driver::Io_mmu::Domain & domain) {
 			_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
-				domain.add_range(iomem.range, iomem.io_mem->dataspace());
+				domain.add_range(iomem.range, iomem.range.start,
+				                 iomem.io_mem->dataspace());
 			});
 		};
 

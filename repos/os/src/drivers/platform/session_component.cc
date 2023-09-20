@@ -346,7 +346,7 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 		                                               _env_ram.dataspace_size(ram_cap));
 
 		_domain_registry.for_each_domain([&] (Io_mmu::Domain & domain) {
-			domain.add_range({ buf.dma_addr, buf.size }, buf.cap);
+			domain.add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap);
 		});
 	} catch (Out_of_ram)  {
 		_env_ram.free(ram_cap);

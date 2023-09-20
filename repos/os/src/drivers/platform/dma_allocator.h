@@ -30,6 +30,7 @@ struct Driver::Dma_buffer : Registry<Dma_buffer>::Element
 {
 	Ram_dataspace_capability const cap;
 	addr_t                         dma_addr;
+	addr_t                         phys_addr;
 	size_t                         size;
 	Dma_allocator                & dma_alloc;
 
@@ -37,9 +38,11 @@ struct Driver::Dma_buffer : Registry<Dma_buffer>::Element
 	           Dma_allocator                & dma_alloc,
 	           Ram_dataspace_capability const cap,
 	           addr_t                         dma_addr,
-	           size_t                         size)
+	           size_t                         size,
+	           addr_t                         phys_addr)
 	: Registry<Dma_buffer>::Element(registry, *this),
-	  cap(cap), dma_addr(dma_addr), size(size), dma_alloc(dma_alloc)
+	  cap(cap), dma_addr(dma_addr), phys_addr(phys_addr),
+	  size(size), dma_alloc(dma_alloc)
 	{ }
 
 	~Dma_buffer();

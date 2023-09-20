@@ -87,7 +87,8 @@ Dma_buffer & Dma_allocator::alloc_buffer(Ram_dataspace_capability cap,
 	addr_t dma_addr = _alloc_dma_addr(phys_addr, size, false);
 
 	try {
-		return * new (_md_alloc) Dma_buffer(_registry, *this, cap, dma_addr, size);
+		return * new (_md_alloc) Dma_buffer(_registry, *this, cap, dma_addr, size,
+		                                    phys_addr);
 	} catch (Out_of_ram)  {
 		_free_dma_addr(dma_addr);
 		throw;

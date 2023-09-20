@@ -70,6 +70,7 @@ void Device_pd::Region_map_client::upgrade_caps()
 
 
 void Device_pd::add_range(Io_mmu::Range        const & range,
+                          addr_t               const,
                           Dataspace_capability const   cap)
 {
 	using namespace Genode;
@@ -156,5 +157,5 @@ Device_pd::Device_pd(Env                        & env,
 	_pd.ref_account(env.pd_session_cap());
 
 	buffer_registry.for_each([&] (Dma_buffer const & buf) {
-		add_range({ buf.dma_addr, buf.size }, buf.cap); });
+		add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap); });
 }

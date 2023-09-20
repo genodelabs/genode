@@ -84,7 +84,9 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 				                                Pci::Bdf const) = 0;
 
 				/* interface for adding/removing DMA buffers */
-				virtual void add_range(Range const &, Dataspace_capability const) = 0;
+				virtual void add_range(Range const &,
+				                       addr_t const,
+				                       Dataspace_capability const) = 0;
 				virtual void remove_range(Range const &) = 0;
 
 				Domain(Io_mmu                     & io_mmu,

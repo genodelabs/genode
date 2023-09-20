@@ -87,7 +87,9 @@ class Driver::Device_pd : public Io_mmu::Domain
 		          Allocator                  & md_alloc,
 		          Registry<Dma_buffer> const & buffer_registry);
 
-		void add_range(Io_mmu::Range const &, Dataspace_capability const) override;
+		void add_range(Io_mmu::Range const &,
+		               addr_t const,
+		               Dataspace_capability const) override;
 		void remove_range(Io_mmu::Range const &) override;
 
 		void enable_pci_device(Io_mem_dataspace_capability const,
