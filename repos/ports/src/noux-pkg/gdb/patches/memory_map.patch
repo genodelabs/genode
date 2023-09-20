@@ -1,0 +1,20 @@
+memory_map.patch
+
+Always request the current memory map instead of
+caching the first received map, so 'info mem'
+can be used to get the memory maps of different
+inferiors.
+
+diff --git a/gdb/memattr.c b/gdb/memattr.c
+index fafd909..258aca3 100644
+--- a/gdb/memattr.c
++++ b/gdb/memattr.c
+@@ -105,7 +105,7 @@ require_user_regions (int from_tty)
+ static void
+ require_target_regions (void)
+ {
+-  if (mem_use_target () && !target_mem_regions_valid)
++  if (mem_use_target () /*&& !target_mem_regions_valid*/)
+     {
+       target_mem_regions_valid = true;
+       target_mem_region_list = target_memory_map ();

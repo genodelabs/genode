@@ -6,3 +6,4 @@ noux_build.patch
 gdbserver_genode.patch
 call_dummy_location.patch
 non_stop.patch
+memory_map.patch
