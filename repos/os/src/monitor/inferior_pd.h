@@ -28,15 +28,6 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 {
 	Inferiors::Element _inferiors_elem;
 
-	Monitored_region_map _address_space {
-		_ep, _real.call<Pd_session::Rpc_address_space>(), "address space" };
-
-	Monitored_region_map _stack_area {
-		_ep, _real.call<Pd_session::Rpc_stack_area>(), "stack area" };
-
-	Monitored_region_map _linker_area {
-		_ep, _real.call<Pd_session::Rpc_linker_area>(), "linker area" };
-
 	Threads _threads { };
 
 	Threads::Id _last_thread_id { };
@@ -46,6 +37,16 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 	Region_map    &_local_rm;  /* for wiping RAM dataspaces on free */
 	Allocator     &_alloc;     /* used for allocating 'Ram_ds' objects */
 	Ram_allocator &_wx_ram;    /* RAM used for writeable text segments */
+
+	Monitored_region_map _address_space {
+		_ep, _real.call<Pd_session::Rpc_address_space>(), "address space",
+		_alloc };
+
+	Monitored_region_map _stack_area {
+		_ep, _real.call<Pd_session::Rpc_stack_area>(), "stack area", _alloc };
+
+	Monitored_region_map _linker_area {
+		_ep, _real.call<Pd_session::Rpc_linker_area>(), "linker area", _alloc };
 
 	struct Policy
 	{

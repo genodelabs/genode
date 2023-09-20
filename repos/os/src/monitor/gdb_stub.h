@@ -53,6 +53,78 @@ struct Monitor::Gdb::State : Noncopyable
 		}
 	};
 
+	struct Memory_map
+	{
+		char   _buf[1024*16] { };
+		size_t _len = 0;
+
+		Memory_map(Inferior_pd &inferior)
+		{
+			typedef String<16> Value;
+
+			Xml_generator xml(_buf, sizeof(_buf), "memory-map", [&] {
+
+				inferior._address_space.for_each_region(
+				    [&] (Monitored_region_map::Region const &region) {
+
+					if (region.cap == inferior._linker_area.dataspace()) {
+
+						inferior._linker_area.for_each_region(
+						    [&] (Monitored_region_map::Region const
+						         &linker_area_region) {
+							xml.node("memory", [&] {
+								xml.attribute("type",
+								              linker_area_region.writeable ?
+								              "ram" : "rom");
+								xml.attribute("start",
+								              Value(Hex(region.addr +
+								                        linker_area_region.addr)));
+								xml.attribute("length",
+								              Value(Hex(linker_area_region.size)));
+							});
+						});
+
+						return;
+					}
+
+					if (region.cap == inferior._stack_area.dataspace()) {
+
+						inferior._stack_area.for_each_region(
+						    [&] (Monitored_region_map::Region const
+						         &stack_area_region) {
+							xml.node("memory", [&] {
+								xml.attribute("type",
+								              stack_area_region.writeable ?
+								              "ram" : "rom");
+								xml.attribute("start",
+								              Value(Hex(region.addr +
+								                        stack_area_region.addr)));
+								xml.attribute("length",
+								              Value(Hex(stack_area_region.size)));
+							});
+						});
+
+						return;
+					}
+
+					xml.node("memory", [&] {
+						xml.attribute("type", region.writeable ? "ram" : "rom");
+						xml.attribute("start", Value(Hex(region.addr)));
+						xml.attribute("length", Value(Hex(region.size)));
+					});
+				});
+			});
+
+			_len = strlen(_buf);
+		}
+
+		void with_bytes(auto const &fn) const
+		{
+			Const_byte_range_ptr const ptr { _buf, _len };
+			fn(ptr);
+		}
+	};
+
 	Memory_accessor &_memory_accessor;
 
 	struct Current : Noncopyable
@@ -239,6 +311,7 @@ struct qSupported : Command_with_separator
 			print(out, "vContSupported+;");
 			print(out, "qXfer:features:read+;");  /* XML target descriptions */
 			print(out, "qXfer:threads:read+;");
+			print(out, "qXfer:memory-map:read+;");
 			print(out, "multiprocess+;");
 			print(out, "QNonStop+;");
 			print(out, "swbreak+;");
@@ -301,6 +374,15 @@ struct qXfer : Command_with_separator
 			State::Thread_list const thread_list(state.inferiors);
 			thread_list.with_bytes([&] (Const_byte_range_ptr const &bytes) {
 				_send_window(out, bytes, Window::from_args(args)); });
+			handled = true;
+		});
+
+		with_skipped_prefix(args, "memory-map:read::", [&] (Const_byte_range_ptr const &args) {
+			if (state.current_defined()) {
+				State::Memory_map const memory_map(state._current->pd);
+				memory_map.with_bytes([&] (Const_byte_range_ptr const &bytes) {
+					_send_window(out, bytes, Window::from_args(args)); });
+			}
 			handled = true;
 		});
 

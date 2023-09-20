@@ -27,8 +27,6 @@ namespace Monitor { struct Monitored_region_map; }
 
 struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 {
-	using Monitored_rpc_object::Monitored_rpc_object;
-
 	/* see the comment in base/include/region_map/client.h */
 	Dataspace_capability _rm_ds_cap { };
 
@@ -97,6 +95,40 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 			_writeable_text_segments.construct(alloc, ram, local_rm);
 	}
 
+	struct Region : List<Region>::Element
+	{
+		Dataspace_capability cap;
+		addr_t               addr;
+		size_t               size;
+		bool                 writeable;
+
+		Region(Dataspace_capability cap, addr_t addr, size_t size,
+		       bool writeable)
+		: cap(cap), addr(addr), size(size), writeable(writeable) { }
+	};
+
+	List<Region> _regions { };
+
+	void for_each_region(auto const &fn) const
+	{
+		for (Region const *region = _regions.first(); region; region = region->next())
+			fn(*region);
+	}
+
+	Allocator &_alloc;
+
+	Monitored_region_map(Entrypoint &ep, Capability<Region_map> real,
+	                     Name const &name, Allocator &alloc)
+	: Monitored_rpc_object(ep, real, name),
+	  _alloc(alloc) { }
+
+	~Monitored_region_map()
+	{
+		while (Region *region = _regions.first()) {
+			_regions.remove(region);
+			destroy(_alloc, region);
+		}
+	}
 
 	/**************************
 	 ** Region_map interface **
@@ -114,13 +146,35 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 			writeable = true;
 		}
 
-		return _real.call<Rpc_attach>(ds, size, offset, use_local_addr, local_addr,
-		                              executable, writeable);
+		Local_addr attached_addr = _real.call<Rpc_attach>(ds, size, offset,
+		                                                  use_local_addr,
+		                                                  local_addr,
+		                                                  executable,
+		                                                  writeable);
+		size_t region_size = size ? size :
+		                     (Dataspace_client(ds).size() - offset);
+		enum { PAGE_SIZE_LOG2 = 12 };
+		region_size = align_addr(region_size, PAGE_SIZE_LOG2);
+
+		_regions.insert(new (_alloc) Region(ds, (addr_t)attached_addr,
+		                                    region_size, writeable));
+		return attached_addr;
 	}
 
 	void detach(Local_addr local_addr) override
 	{
 		_real.call<Rpc_detach>(local_addr);
+
+		addr_t addr = (addr_t)local_addr;
+
+		for (Region *region = _regions.first(); region; region = region->next()) {
+			if ((addr >= region->addr) &&
+			    (addr <= (region->addr + region->size - 1))) {
+				_regions.remove(region);
+				destroy(_alloc, region);
+				break;
+			}
+		}
 	}
 
 	void fault_handler(Signal_context_capability) override
