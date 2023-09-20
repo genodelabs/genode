@@ -31,6 +31,7 @@ endif
 
 SRC_C  += lx_emul/shadow/drivers/char/random.c
 SRC_C  += lx_emul/shadow/kernel/rcu/srcutree.c
+SRC_C  += lx_emul/shadow/mm/page_alloc.c
 SRC_C  += lx_emul/shadow/mm/vmalloc.c
 SRC_C  += lx_emul/virt/common_dummies.c
 SRC_CC += lx_emul/virt/irq.cc
