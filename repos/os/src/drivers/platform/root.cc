@@ -48,7 +48,7 @@ Driver::Session_component * Driver::Root::_create_session(const char *args)
 			                  session_diag_from_args(args),
 			                  policy.attribute_value("info", false),
 			                  policy.attribute_value("version", Version()),
-			                  _iommu);
+			                  _io_mmu_present || _kernel_iommu, _kernel_iommu);
 	} catch (Session_policy::No_policy_defined) {
 		error("Invalid session request, no matching policy for ",
 		      "'", label_from_args(args).string(), "'");
@@ -74,8 +74,8 @@ Driver::Root::Root(Env                          & env,
                    Attached_rom_dataspace const & config,
                    Device_model                 & devices,
                    Io_mmu_devices               & io_mmu_devices,
-                   bool const                     iommu)
+                   bool const                     kernel_iommu)
 : Root_component<Session_component>(env.ep(), sliced_heap),
   _env(env), _config(config), _devices(devices),
-  _io_mmu_devices(io_mmu_devices), _iommu(iommu)
+  _io_mmu_devices(io_mmu_devices), _kernel_iommu(kernel_iommu)
 { }

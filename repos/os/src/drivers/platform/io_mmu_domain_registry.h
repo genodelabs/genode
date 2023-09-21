@@ -38,10 +38,11 @@ struct Driver::Io_mmu_domain_wrapper
 
 	Io_mmu_domain_wrapper(Io_mmu                                & io_mmu,
 	                      Allocator                             & md_alloc,
+	                      Ram_allocator                         & ram_alloc,
 	                      Registry<Dma_buffer>            const & dma_buffers,
 	                      Ram_quota_guard                       & ram_guard,
 	                      Cap_quota_guard                       & cap_guard)
-	: domain(io_mmu.create_domain(md_alloc, dma_buffers, ram_guard, cap_guard))
+	: domain(io_mmu.create_domain(md_alloc, ram_alloc, dma_buffers, ram_guard, cap_guard))
 	{ }
 
 	~Io_mmu_domain_wrapper() { destroy(domain.md_alloc(), &domain); }
@@ -54,11 +55,12 @@ struct Driver::Io_mmu_domain : private Registry<Io_mmu_domain>::Element,
 	Io_mmu_domain(Registry<Io_mmu_domain>       & registry,
 	              Io_mmu                        & io_mmu,
 	              Allocator                     & md_alloc,
+	              Ram_allocator                 & ram_alloc,
 	              Registry<Dma_buffer>    const & dma_buffers,
 	              Ram_quota_guard               & ram_guard,
 	              Cap_quota_guard               & cap_guard)
 	: Registry<Io_mmu_domain>::Element(registry, *this),
-	  Io_mmu_domain_wrapper(io_mmu, md_alloc, dma_buffers, ram_guard, cap_guard)
+	  Io_mmu_domain_wrapper(io_mmu, md_alloc, ram_alloc, dma_buffers, ram_guard, cap_guard)
 	{ }
 };
 
@@ -73,11 +75,12 @@ class Driver::Io_mmu_domain_registry : public Registry<Io_mmu_domain>
 
 		void default_domain(Io_mmu                     & io_mmu,
 		                    Allocator                  & md_alloc,
+		                    Ram_allocator              & ram_alloc,
 		                    Registry<Dma_buffer> const & dma_buffers,
 		                    Ram_quota_guard            & ram_quota_guard,
 		                    Cap_quota_guard            & cap_quota_guard)
 		{
-			_default_domain.construct(io_mmu, md_alloc, dma_buffers,
+			_default_domain.construct(io_mmu, md_alloc, ram_alloc, dma_buffers,
 			                          ram_quota_guard, cap_quota_guard);
 		}
 

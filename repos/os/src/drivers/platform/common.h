@@ -47,6 +47,7 @@ class Driver::Common : Device_reporter,
 
 		Constructible<Expanding_reporter> _cfg_reporter { };
 		Constructible<Expanding_reporter> _dev_reporter { };
+		Constructible<Expanding_reporter> _iommu_reporter { };
 
 		void _handle_devices();
 		bool _iommu();
@@ -97,8 +98,27 @@ void Driver::Common::acquire_io_mmu_devices()
 
 	});
 
+	/* iterate devices and determine address translation mode */
+	bool mpu_present    { false };
+	bool device_present { false };
+	_io_mmu_devices.for_each([&] (Io_mmu const & io_mmu) {
+		if (io_mmu.mpu())
+			mpu_present = true;
+		else
+			device_present = true;
+	});
+
+	if (device_present && !mpu_present)
+		_root.enable_dma_remapping();
+
+	bool kernel_iommu_present { false };
+	_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+		if (io_mmu_dev.name() == "kernel_iommu")
+			kernel_iommu_present = true;
+	});
+
 	/* if kernel implements iommu, instantiate Kernel_iommu */
-	if (_iommu())
+	if (_iommu() && !kernel_iommu_present)
 		new (_heap) Kernel_iommu(_env, _io_mmu_devices, "kernel_iommu");
 }
 
@@ -128,6 +148,10 @@ void Driver::Common::update_report()
 	if (_dev_reporter.constructed())
 		_dev_reporter->generate([&] (Xml_generator & xml) {
 			_devices.generate(xml); });
+	if (_iommu_reporter.constructed())
+		_iommu_reporter->generate([&] (Xml_generator & xml) {
+			_io_mmu_devices.for_each([&] (Io_mmu & io_mmu) {
+				io_mmu.generate(xml); }); });
 }
 
 
@@ -147,6 +171,8 @@ void Driver::Common::handle_config(Xml_node config)
 		                          _env, "devices", "devices");
 		_cfg_reporter.conditional(node.attribute_value("config", false),
 		                          _env, "config", "config");
+		_iommu_reporter.conditional(node.attribute_value("iommu", false),
+		                            _env, "iommu", "iommu");
 	});
 
 	_root.update_policy();

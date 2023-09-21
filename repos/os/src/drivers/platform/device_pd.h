@@ -94,8 +94,7 @@ class Driver::Device_pd : public Io_mmu::Domain
 
 		void enable_pci_device(Io_mem_dataspace_capability const,
 		                       Pci::Bdf const) override;
-		void disable_pci_device(Io_mem_dataspace_capability const,
-		                        Pci::Bdf const) override;
+		void disable_pci_device(Pci::Bdf const) override;
 };
 
 
@@ -113,6 +112,7 @@ class Driver::Kernel_iommu : public Io_mmu
 
 		Driver::Io_mmu::Domain & create_domain(
 			Allocator                  & md_alloc,
+			Ram_allocator              &,
 			Registry<Dma_buffer> const & buffer_registry,
 			Ram_quota_guard            & ram_guard,
 			Cap_quota_guard            & cap_guard) override

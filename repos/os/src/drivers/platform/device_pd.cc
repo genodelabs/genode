@@ -134,8 +134,7 @@ void Device_pd::enable_pci_device(Io_mem_dataspace_capability const io_mem_cap,
 }
 
 
-void Device_pd::disable_pci_device(Io_mem_dataspace_capability const,
-                                   Pci::Bdf                    const)
+void Device_pd::disable_pci_device(Pci::Bdf const)
 {
 	warning("Cannot unassign PCI device from device PD (not implemented by kernel).");
 }
@@ -150,7 +149,7 @@ Device_pd::Device_pd(Env                        & env,
                      Registry<Dma_buffer> const & buffer_registry)
 
 :
-	Io_mmu::Domain(io_mmu, md_alloc, buffer_registry),
+	Io_mmu::Domain(io_mmu, md_alloc),
 	_pd(env, Pd_connection::Device_pd()),
 	_address_space(env, _pd, ram_guard, cap_guard)
 {

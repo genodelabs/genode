@@ -57,13 +57,16 @@ class Driver::Session_component
 		                  Diag             const       & diag,
 		                  bool             const         info,
 		                  Policy_version   const         version,
-		                  bool             const         iommu);
+		                  bool             const         dma_remapping,
+		                  bool             const         kernel_iommu);
 
 		~Session_component();
 
 		Heap                   & heap();
 		Io_mmu_domain_registry & domain_registry();
 		Dma_allocator          & dma_allocator();
+
+		void enable_dma_remapping() { _dma_allocator.enable_remapping(); }
 
 		bool matches(Device const &) const;
 
@@ -116,8 +119,7 @@ class Driver::Session_component
 		                                              _env.rm(), *this    };
 		bool                           _info;
 		Policy_version                 _version;
-		bool const                     _iommu;
-		Dma_allocator                  _dma_allocator { _md_alloc, _iommu };
+		Dma_allocator                  _dma_allocator;
 
 		Device_capability _acquire(Device & device);
 		void              _release_device(Device_component & dc);

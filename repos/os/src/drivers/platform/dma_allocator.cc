@@ -25,12 +25,10 @@ addr_t Dma_allocator::_alloc_dma_addr(addr_t const phys_addr,
 {
 	using Alloc_error = Allocator::Alloc_error;
 
-	if (!_iommu) return phys_addr;
-
 	/*
 	 * 1:1 mapping (allocate at specified range from DMA memory allocator)
 	 */
-	if (force_phys_addr) {
+	if (force_phys_addr || !_remapping) {
 		return _dma_alloc.alloc_addr(size, phys_addr).convert<addr_t>(
 			[&] (void *) -> addr_t { return phys_addr; },
 			[&] (Alloc_error err) -> addr_t {
@@ -86,6 +84,9 @@ Dma_buffer & Dma_allocator::alloc_buffer(Ram_dataspace_capability cap,
 {
 	addr_t dma_addr = _alloc_dma_addr(phys_addr, size, false);
 
+	if (!dma_addr)
+		throw Out_of_virtual_memory();
+
 	try {
 		return * new (_md_alloc) Dma_buffer(_registry, *this, cap, dma_addr, size,
 		                                    phys_addr);
@@ -101,15 +102,14 @@ Dma_buffer & Dma_allocator::alloc_buffer(Ram_dataspace_capability cap,
 
 void Dma_allocator::_free_dma_addr(addr_t dma_addr)
 {
-	if (_iommu)
-		_dma_alloc.free((void *)dma_addr);
+	_dma_alloc.free((void *)dma_addr);
 }
 
 
 Dma_allocator::Dma_allocator(Allocator       & md_alloc,
-                             bool        const iommu)
+                             bool        const remapping)
 :
-	_md_alloc(md_alloc), _iommu(iommu)
+	_md_alloc(md_alloc), _remapping(remapping)
 {
 	/* 0x1000 - 4GB */
 	enum { DMA_SIZE = 0xffffe000 };
