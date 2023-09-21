@@ -217,7 +217,7 @@ void Fb_sdl::Main::_handle_sdl_event(Event_batch &batch, SDL_Event const &event)
 {
 	using namespace Input;
 
-	if (event.type == SDL_WINDOWEVENT_RESIZED) {
+	if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
 
 		int w = event.window.data1;
 		int h = event.window.data2;
