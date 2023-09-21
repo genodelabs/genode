@@ -665,6 +665,7 @@ namespace Nova {
 #endif
 				} gdtr, idtr;
 				unsigned long long tsc_val, tsc_off, tsc_aux;
+				uint8_t fpu[512];
 			} __attribute__((packed));
 			mword_t mr[(4096 - 4 * sizeof(mword_t)) / sizeof(mword_t)];
 		};

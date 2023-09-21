@@ -26,7 +26,6 @@ class Vcpu_handler_svm : public Vcpu_handler
 
 		__attribute__((noreturn)) void _svm_vintr()
 		{
-			_fpu_save();
 			_irq_window();
 		}
 
@@ -103,7 +102,6 @@ class Vcpu_handler_svm : public Vcpu_handler
 
 		__attribute__((noreturn)) void _svm_recall()
 		{
-			_fpu_save();
 			Vcpu_handler::_recall_handler();
 		}
 

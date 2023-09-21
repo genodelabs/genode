@@ -60,7 +60,6 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 		void                   *_ep_handler    { nullptr };
 		void                   *_dispatching   { nullptr };
 		bool                    _block         { true };
-		bool                    _use_guest_fpu { false };
 
 		Vcpu_state              _vcpu_state __attribute__((aligned(0x10))) { };
 
@@ -70,8 +69,7 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 			RUN = 2
 		} _remote { NONE };
 
-		inline void _read_nova_state(Nova::Utcb &, unsigned exit_reason,
-		                             uint8_t const &);
+		inline void _read_nova_state(Nova::Utcb &, unsigned exit_reason);
 
 		inline void _write_nova_state(Nova::Utcb &);
 
@@ -81,8 +79,7 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 		addr_t _ec_sel() const { return _sm_sel() + 1; }
 
 		/**
-		 * NOVA badge with 15-bit exit reason, 1-bit fpu usage and
-		 * 16-bit artificial vCPU I
+		 * NOVA badge with 16-bit exit reason and 16-bit artificial vCPU ID
 		 */
 		struct Badge
 		{
@@ -91,19 +88,15 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 			Badge(unsigned long value)
 			: _value((uint32_t)value) { }
 
-			Badge(uint16_t vcpu_id, uint16_t exit_reason, bool fpu_usage)
-			: _value((uint32_t)(vcpu_id << 16) |
-			         (exit_reason & 0x7fffu)   |
-			         (fpu_usage ? 0x8000u : 0u)
-			        ) { }
+			Badge(uint16_t vcpu_id, uint16_t exit_reason)
+			: _value((uint32_t)(vcpu_id << 16) | (exit_reason & 0xffffu)) { }
 
-			uint16_t exit_reason() const { return (uint16_t)( _value        & 0x7fff); }
+			uint16_t exit_reason() const { return (uint16_t)( _value        & 0xffff); }
 			uint16_t vcpu_id()     const { return (uint16_t)((_value >> 16) & 0xffff); }
-			bool     fpu_usage()   const { return _value & 0x8000; }
 			uint32_t value()       const { return _value; }
 		};
 
-		bool _handle_exit(Nova::Utcb &, uint16_t exit_reason, uint8_t const &);
+		bool _handle_exit(Nova::Utcb &, uint16_t exit_reason);
 
 		__attribute__((regparm(1))) static void _exit_entry(addr_t badge);
 
@@ -141,8 +134,6 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 			mtd |= Nova::Mtd::SYSCALL_SWAPGS;
 			mtd |= Nova::Mtd::TPR;
 			mtd |= Nova::Mtd::QUAL;
-
-			_use_guest_fpu = true;
 			mtd |= Nova::Mtd::FPU;
 
 			return Nova::Mtd(mtd);
@@ -175,8 +166,7 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 };
 
 
-void Nova_vcpu::_read_nova_state(Nova::Utcb &utcb, unsigned exit_reason,
-                                 uint8_t const &fpu_at_exit)
+void Nova_vcpu::_read_nova_state(Nova::Utcb &utcb, unsigned exit_reason)
 {
 	typedef Genode::Vcpu_state::Segment Segment;
 	typedef Genode::Vcpu_state::Range Range;
@@ -186,7 +176,7 @@ void Nova_vcpu::_read_nova_state(Nova::Utcb &utcb, unsigned exit_reason,
 
 	if (utcb.mtd & Nova::Mtd::FPU) {
 		state().fpu.charge([&] (Vcpu_state::Fpu::State &fpu) {
-			memcpy(&fpu, &fpu_at_exit, sizeof(fpu));
+			memcpy(&fpu, utcb.fpu, sizeof(fpu));
 		});
 	}
 
@@ -553,8 +543,8 @@ void Nova_vcpu::_write_nova_state(Nova::Utcb &utcb)
 
 	if (state().fpu.charged()) {
 		utcb.mtd |= Nova::Mtd::FPU;
-		state().fpu.with_state([] (Vcpu_state::Fpu::State const &fpu) {
-			asm volatile ("fxrstor %0" : : "m" (fpu) : "memory");
+		state().fpu.with_state([&] (Vcpu_state::Fpu::State const &fpu) {
+			memcpy(utcb.fpu, &fpu, sizeof(fpu));
 		});
 	}
 }
@@ -590,7 +580,7 @@ void Nova_vcpu::run()
  * Do not touch the UTCB before _read_nova_state() and after
  * _write_nova_state(), particularly not by logging diagnostics.
  */
-bool Nova_vcpu::_handle_exit(Nova::Utcb &utcb, uint16_t exit_reason, uint8_t const &fpu)
+bool Nova_vcpu::_handle_exit(Nova::Utcb &utcb, uint16_t exit_reason)
 {
 	/* reset blocking state */
 	bool const previous_blocked = _block;
@@ -604,7 +594,7 @@ bool Nova_vcpu::_handle_exit(Nova::Utcb &utcb, uint16_t exit_reason, uint8_t con
 
 	/* transform state from NOVA to Genode */
 	if (exit_reason != VM_EXIT_RECALL || !previous_blocked)
-		_read_nova_state(utcb, exit_reason, fpu);
+		_read_nova_state(utcb, exit_reason);
 
 	if (exit_reason == VM_EXIT_RECALL) {
 		if (previous_blocked)
@@ -662,10 +652,6 @@ bool Nova_vcpu::_handle_exit(Nova::Utcb &utcb, uint16_t exit_reason, uint8_t con
 
 void Nova_vcpu::_exit_entry(addr_t badge)
 {
-	uint8_t _fpu_at_exit[512] __attribute__((aligned(0x10)));
-	if (Badge(badge).fpu_usage())
-		asm volatile ("fxsave %0" : "=m" (*_fpu_at_exit) :: "memory");
-
 	Thread     &myself = *Thread::myself();
 	Nova::Utcb &utcb   = *reinterpret_cast<Nova::Utcb *>(myself.utcb());
 
@@ -675,8 +661,7 @@ void Nova_vcpu::_exit_entry(addr_t badge)
 	try {
 		_vcpu_space().apply<Nova_vcpu>(vcpu_id, [&] (Nova_vcpu &vcpu)
 		{
-			bool const block = vcpu._handle_exit(utcb, exit_reason,
-			                                     *_fpu_at_exit);
+			bool const block = vcpu._handle_exit(utcb, exit_reason);
 
 			if (block) {
 				Nova::reply(myself.stack_top(), vcpu._sm_sel());
@@ -743,7 +728,7 @@ Signal_context_capability Nova_vcpu::_create_exit_handler(Pd_session        &pd,
 	Native_capability vm_exit_cap =
 		native_pd.alloc_rpc_cap(thread_cap, (addr_t)Nova_vcpu::_exit_entry, mtd.value());
 
-	Badge const badge { vcpu_id, exit_reason, !!(mtd.value() & Nova::Mtd::FPU) };
+	Badge const badge { vcpu_id, exit_reason };
 	native_pd.imprint_rpc_cap(vm_exit_cap, badge.value());
 
 	return reinterpret_cap_cast<Signal_context>(vm_exit_cap);
