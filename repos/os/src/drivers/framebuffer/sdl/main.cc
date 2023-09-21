@@ -74,19 +74,17 @@ struct Fb_sdl::Main
 
 	bool const _sdl_initialized = ( _init_sdl(), true );
 
-	struct Sdl_screen
+	struct Sdl_window
 	{
-		Area const size;
+		Area const _initial_size;
 
 		SDL_Renderer &_sdl_renderer = _init_sdl_renderer();
-		SDL_Surface &_sdl_surface = _init_sdl_surface();
-		SDL_Texture &_sdl_texture = _init_sdl_texture();
 
 		SDL_Renderer &_init_sdl_renderer()
 		{
 			unsigned const window_flags = 0;
 
-			SDL_Window *window_ptr = SDL_CreateWindow("fb_sdl", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, size.w(), size.h(), window_flags);
+			SDL_Window *window_ptr = SDL_CreateWindow("fb_sdl", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, _initial_size.w(), _initial_size.h(), window_flags);
 			if (!window_ptr) {
 				error("SDL_CreateWindow failed (", Genode::Cstring(SDL_GetError()), ")");
 				throw Sdl_createwindow_failed();
@@ -104,6 +102,27 @@ struct Fb_sdl::Main
 
 			return *renderer_ptr;
 		}
+
+		Sdl_window(Area size) : _initial_size(size) { }
+
+		~Sdl_window()
+		{
+			SDL_DestroyRenderer(&_sdl_renderer);
+		}
+
+		SDL_Renderer &renderer()
+		{
+			return _sdl_renderer;
+		}
+	};
+
+	struct Sdl_screen
+	{
+		Area const size;
+		SDL_Renderer &renderer;
+
+		SDL_Surface &_sdl_surface = _init_sdl_surface();
+		SDL_Texture &_sdl_texture = _init_sdl_texture();
 
 		SDL_Surface &_init_sdl_surface()
 		{
@@ -125,7 +144,7 @@ struct Fb_sdl::Main
 
 		SDL_Texture &_init_sdl_texture()
 		{
-			SDL_Texture *texture_ptr = SDL_CreateTexture(&_sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, size.w(), size.h());
+			SDL_Texture *texture_ptr = SDL_CreateTexture(&renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, size.w(), size.h());
 			if (!texture_ptr) {
 				error("SDL_CreateTexture failed (", Genode::Cstring(SDL_GetError()), ")");
 				throw Sdl_createtexture_failed();
@@ -134,7 +153,13 @@ struct Fb_sdl::Main
 			return *texture_ptr;
 		}
 
-		Sdl_screen(Area size) : size(size) { }
+		Sdl_screen(Area size, SDL_Renderer &renderer) : size(size), renderer(renderer) { }
+
+		~Sdl_screen()
+		{
+			SDL_FreeSurface(&_sdl_surface);
+			SDL_DestroyTexture(&_sdl_texture);
+		}
 
 		template <typename FN>
 		void with_surface(FN const &fn)
@@ -146,12 +171,13 @@ struct Fb_sdl::Main
 		void flush()
 		{
 			SDL_UpdateTexture(&_sdl_texture, nullptr, _sdl_surface.pixels, _sdl_surface.pitch);
-			SDL_RenderClear(&_sdl_renderer);
-			SDL_RenderCopy(&_sdl_renderer, &_sdl_texture, nullptr, nullptr);
-			SDL_RenderPresent(&_sdl_renderer);
+			SDL_RenderClear(&renderer);
+			SDL_RenderCopy(&renderer, &_sdl_texture, nullptr, nullptr);
+			SDL_RenderPresent(&renderer);
 		}
 	};
 
+	Constructible<Sdl_window> _sdl_window { };
 	Constructible<Sdl_screen> _sdl_screen { };
 
 	Capture::Connection _capture { _env };
@@ -196,16 +222,17 @@ struct Fb_sdl::Main
 
 	void _resize(Area size)
 	{
-
-		_sdl_screen.construct(size);
+		_sdl_screen.construct(size, _sdl_window->renderer());
 		_captured_screen.construct(_capture, _env.rm(), size);
 		_update_sdl_screen_from_capture();
 	}
 
 	Main(Env &env) : _env(env)
 	{
-		_resize(Area(_config.xml().attribute_value("width", 1024U),
-		             _config.xml().attribute_value("height", 768U)));
+		Area size = Area(_config.xml().attribute_value("width", 1024U),
+		                 _config.xml().attribute_value("height", 768U));
+		_sdl_window.construct(size);
+		_resize(size);
 
 		_timer.sigh(_timer_handler);
 		_timer.trigger_periodic(100000000 / 5994); /* 59.94Hz */
