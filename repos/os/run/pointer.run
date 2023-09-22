@@ -39,7 +39,7 @@ install_config {
 	</start>
 
 	<start name="fb_sdl" ld="no">
-		<resource name="RAM" quantum="6M"/>
+		<resource name="RAM" quantum="32M"/>
 		<config buffered="yes" width="1280" height="720" depth="16"/>
 		<route>
 			<service name="ROM">     <parent/>             </service>
