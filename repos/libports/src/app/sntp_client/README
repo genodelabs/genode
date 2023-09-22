@@ -11,14 +11,14 @@ an individual request interval, and debugging output enabled:
 
 ! <config interface="10.0.0.72/24"
 !         gateway="10.0.0.1"
-!         dst_ip="10.0.0.24"
+!         dst_addr="10.0.0.24"
 !         period_min="10"
 !         verbose="yes" />
 
 
 This is an example configuration of the component with DHCP:
 
-! <config dst_ip="10.0.0.24" />
+! <config dst_addr="10.0.0.24" />
 
 
 This is a short description of the tags and attributes:
@@ -32,8 +32,8 @@ This is a short description of the tags and attributes:
   Optional. Determined via DHCP if not configured. IP address of the gateway
   of the IP subnet.
 
-:config.dst_ip:
-  Mandatory. IP address of the SNTP server.
+:config.dst_addr:
+  Mandatory. IP address or domain name of a SNTP server.
 
 :config.period_min:
   Optional. Default is 60. Length of request interval in minutes.
@@ -74,4 +74,4 @@ Examples
 ~~~~~~~~
 
 An example of how to use the component can be found in the test script
-'libports/run/sntp_client.run' and 'os/run/ping_nic_router.run'.
+'libports/run/sntp_client.run'.

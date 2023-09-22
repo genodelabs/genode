@@ -8,6 +8,7 @@
 	<xs:element name="config">
 		<xs:complexType>
 			<xs:attribute name="verbose"    type="Boolean" />
+			<xs:attribute name="dst_addr"   type="Net_address" />
 			<xs:attribute name="dst_ip"     type="Ipv4_address" />
 			<xs:attribute name="interface"  type="Ipv4_address_prefix" />
 			<xs:attribute name="gateway"    type="Ipv4_address" />

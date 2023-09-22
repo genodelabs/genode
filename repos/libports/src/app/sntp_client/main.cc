@@ -22,6 +22,7 @@
 #include <net/ethernet.h>
 #include <net/arp.h>
 #include <net/sntp.h>
+#include <net/dns.h>
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
@@ -70,12 +71,14 @@ class Main : public Nic_handler,
 		Heap                            _heap          { &_env.ram(), &_env.rm() };
 		bool                     const  _verbose       { _config.attribute_value("verbose", false) };
 		Net::Nic                        _nic           { _env, _heap, *this, _verbose };
-		Ipv4_address             const  _dst_ip        { _config.attribute_value("dst_ip", Ipv4_address()) };
+		Ipv4_address                    _dst_ip        { _config.attribute_value("dst_addr", Ipv4_address()) };
+		Domain_name              const  _dst_ns        { _config.attribute_value("dst_addr", Domain_name())  };
+		unsigned short                  _dns_req_id    { 0 };
 		Mac_address                     _dst_mac       { };
 		Constructible<Dhcp_client>      _dhcp_client   { };
 		Reconstructible<Ipv4_config>    _ip_config     { _config.attribute_value("interface", Ipv4_address_prefix()),
 		                                                 _config.attribute_value("gateway",   Ipv4_address()),
-		                                                 Ipv4_address() };
+		                                                 _config.attribute_value("dns-server",   Ipv4_address()) };
 		Reporter reporter                              { _env, "set_rtc" };
 
 		Sntp_timestamp _rtc_ts_to_sntp_ts(Rtc::Timestamp const rtc_ts)
@@ -109,6 +112,11 @@ class Main : public Nic_handler,
 
 		void _handle_arp(Ethernet_frame &eth,
 		                 Size_guard     &size_guard);
+
+		void _handle_dns(Udp_packet &udp,
+		                 Size_guard &size_guard);
+
+		void _send_dns_request();
 
 		void _broadcast_arp_request(Ipv4_address const &ip);
 
@@ -154,9 +162,17 @@ void Main::ip_config(Ipv4_config const &ip_config)
 
 Main::Main(Env &env) : _env(env)
 {
+	/* deprecated dst_ip configuration option */
+	if (_config.has_attribute("dst_ip")) {
+		warning("\"dst_ip\" configuration attribute is deprecated, please use \"dst_addr\"");
+		_dst_ip = _config.attribute_value("dst_ip", Ipv4_address());
+		if (_dst_ip == Ipv4_address()) {
+			throw Invalid_arguments(); } }
+
 	/* exit unsuccessful if parameters are invalid */
-	if (_dst_ip == Ipv4_address()) {
-		throw Invalid_arguments(); }
+	if (_dst_ns == Domain_name()) {
+		if (_dst_ip == Ipv4_address()) {
+			throw Invalid_arguments(); } }
 
 	/* if there is a static IP config, start sending pings periodically */
 	if (ip_config().valid) {
@@ -237,6 +253,12 @@ void Main::_handle_udp(Ipv4_packet &ip,
 			log("bad UDP checksum"); }
 		return;
 	}
+
+	if (udp.src_port().value == Dns_packet::UDP_PORT) {
+		_handle_dns(udp, size_guard);
+		return;
+	}
+
 	/* drop packet if UDP source port is invalid */
 	if (udp.src_port().value != Sntp_packet::UDP_PORT) {
 		if (_verbose) {
@@ -261,6 +283,7 @@ void Main::_handle_udp(Ipv4_packet &ip,
 			log("bad SNTP mode"); }
 		return;
 	}
+
 	Rtc::Timestamp rtc_ts { _sntp_ts_to_rtc_ts(sntp.transmit_timestamp()) };
 	Reporter::Xml_generator xml(reporter, [&] () {
 		xml.attribute("year",   rtc_ts.year);
@@ -270,6 +293,9 @@ void Main::_handle_udp(Ipv4_packet &ip,
 		xml.attribute("minute", rtc_ts.minute);
 		xml.attribute("second", rtc_ts.second);
 	});
+	if (_dst_ns != Domain_name()) {
+		_dst_ip = Ipv4_address();
+	}
 }
 
 
@@ -298,7 +324,11 @@ void Main::_handle_arp(Ethernet_frame &eth,
 		}
 		/* set destination MAC address and retry to ping */
 		_dst_mac = arp.src_mac();
-		_send_sntp_request();
+		if (_dst_ip == Ipv4_address() && _dst_ns != Domain_name()) {
+			_send_dns_request();
+		} else {
+			_send_sntp_request();
+		}
 		return;
 
 	case Arp_packet::REQUEST:
@@ -310,6 +340,43 @@ void Main::_handle_arp(Ethernet_frame &eth,
 		_send_arp_reply(eth, arp);
 
 	default: ; }
+}
+
+
+void Main::_handle_dns(Udp_packet &udp,
+                       Size_guard &size_guard)
+{
+	Dns_packet &dns = udp.data<Dns_packet>(size_guard);
+
+	if (!dns.response()) {
+		error("DNS message is not a response");
+		return; }
+
+	if (dns.id() != _dns_req_id) {
+		if (_verbose) {
+			log("unexpeted DNS request id in response"); }
+		return; }
+
+	try {
+
+		dns.for_each_entry(size_guard, [&] (Dns_packet::Dns_entry const &entry) {
+			if (_dst_ip == Ipv4_address()) {
+				_dst_ip = entry.addr;
+				if (_verbose) {
+					Genode::log(entry.name, " resolved to ", entry.addr); } } });
+
+	} catch (Size_guard::Exceeded const &) {
+		error("Malformated DNS response");
+		_dst_ip = Ipv4_address();
+		return;
+	}
+
+	if (_dst_ip == Ipv4_address()) {
+		if (_verbose) {
+			Genode::log(_dst_ns, " could not be resolved."); }
+	} else {
+		_send_sntp_request();
+	}
 }
 
 
@@ -366,8 +433,78 @@ void Main::_broadcast_arp_request(Ipv4_address const &dst_ip)
 }
 
 
+void Main::_send_dns_request()
+{
+	if (_ip_config->dns_server == Ipv4_address()) {
+		throw Invalid_arguments(); } 
+
+	if (_verbose) {
+		Genode::log("Sending dns query for ", _dst_ns ," to ", ip_config().dns_server); }
+
+	/* if we do not yet know the Ethernet destination, request it via ARP */
+	if (_dst_mac == Mac_address()) {
+		if (ip_config().interface.prefix_matches(ip_config().dns_server)) {
+			_broadcast_arp_request(ip_config().dns_server); }
+		else {
+			_broadcast_arp_request(ip_config().gateway); }
+		return;
+	}
+
+	++_dns_req_id;
+
+	_nic.send(sizeof(Ethernet_frame) + sizeof(Ipv4_packet) +
+	          sizeof(Udp_packet) + sizeof(Dns_packet) +
+	          Dns_packet::sizeof_question(_dst_ns),
+	          [&] (void *pkt_base, Size_guard &size_guard)
+	{
+		/* create ETH header */
+		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
+		eth.dst(_dst_mac);
+		eth.src(_nic.mac());
+		eth.type(Ethernet_frame::Type::IPV4);
+
+		/* create IP header */
+		size_t const ip_off = size_guard.head_size();
+		Ipv4_packet &ip = eth.construct_at_data<Ipv4_packet>(size_guard);
+		ip.header_length(sizeof(Ipv4_packet) / 4);
+		ip.version(4);
+		ip.time_to_live(IPV4_TIME_TO_LIVE);
+		ip.src(ip_config().interface.address);
+		ip.dst(ip_config().dns_server);
+
+		/* adapt IP header to UDP */
+		ip.protocol(Ipv4_packet::Protocol::UDP);
+
+		/* create UDP header */
+		size_t const udp_off = size_guard.head_size();
+		Udp_packet &udp = ip.construct_at_data<Udp_packet>(size_guard);
+		udp.src_port(Port(SRC_PORT));
+		udp.dst_port(Port(Dns_packet::UDP_PORT));
+
+		/* create DNS header */
+		Dns_packet &dns = udp.construct_at_data<Dns_packet>(size_guard);
+		dns.id(_dns_req_id);
+		dns.recursion_desired(true);
+		dns.question(size_guard, _dst_ns);
+
+		/* finish UDP header */
+		udp.length(size_guard.head_size() - udp_off);
+		udp.update_checksum(ip.src(), ip.dst());
+
+		/* finish IP header */
+		ip.total_length(size_guard.head_size() - ip_off);
+		ip.update_checksum();
+	});
+
+}
+
 void Main::_send_sntp_request(Duration)
 {
+	/* if we do not yet know the IP destination, resolve it */
+	if (_dst_ip == Ipv4_address() && _dst_ns != Domain_name()) {
+		_send_dns_request();
+		return;
+	}
 	/* if we do not yet know the Ethernet destination, request it via ARP */
 	if (_dst_mac == Mac_address()) {
 		if (ip_config().interface.prefix_matches(_dst_ip)) {

@@ -7,6 +7,14 @@
 		</xs:restriction>
 	</xs:simpleType><!-- Mac_address -->
 
+	<xs:simpleType name="Net_address">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="([0-9A-Za-z\-]+(.[0-9A-Za-z\-]+)*.[0-9A-Za-z\-]+)|([0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3})"/>
+			<xs:minLength value="1"/>
+			<xs:maxLength value="160"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Net_address -->
+
 	<xs:simpleType name="Ipv4_address">
 		<xs:restriction base="xs:string">
 			<xs:pattern value="[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}"/>
