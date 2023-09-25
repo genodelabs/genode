@@ -73,7 +73,12 @@ extern "C" int __sysctl(const int *name, u_int namelen,
 	if (!oldp) /* check for write attempt */
 		return Errno(newp ? EPERM : EINVAL);
 
-	if (namelen != 2) return Errno(ENOENT);
+	if (namelen != 2)
+		return Errno(ENOENT);
+
+	/* reject special interface for sysctlnametomib() */
+	if (name[0] == 0 && name[1] == 3)
+		return Errno(ENOENT);
 
 	char *buf = (char*)oldp;
 	int index_a = name[0];
