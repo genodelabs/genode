@@ -326,8 +326,6 @@ static int vmmr0_gmm_free_pages(GMMFREEPAGESREQ &request)
 
 		GMMFREEPAGEDESC &page = request.aPages[i];
 
-		Sup::Gmm::Pages one_page { 1 };
-
 		using Vmm_addr = Sup::Gmm::Vmm_addr;
 		using Page_id  = Sup::Gmm::Page_id;
 
@@ -335,7 +333,7 @@ static int vmmr0_gmm_free_pages(GMMFREEPAGESREQ &request)
 
 		Vmm_addr const vmm_addr = sup_drv->gmm().vmm_addr(page_id);
 
-		sup_drv->gmm().free(vmm_addr, one_page);
+		sup_drv->gmm().free(vmm_addr);
 	}
 
 	return VINF_SUCCESS;
@@ -700,7 +698,12 @@ static void ioctl(SUPGETPAGINGMODE &request)
 
 static void ioctl(SUPPAGEFREE &request)
 {
-	warning("SUPPAGEFREE called");
+	using Vmm_addr = Sup::Gmm::Vmm_addr;
+
+	Vmm_addr const vmm_addr { (addr_t)request.u.In.pvR3 };
+
+	sup_drv->gmm().free(vmm_addr);
+
 	request.Hdr.rc = VINF_SUCCESS;
 }
 

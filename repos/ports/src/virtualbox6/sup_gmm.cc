@@ -121,9 +121,9 @@ Sup::Gmm::Vmm_addr Sup::Gmm::alloc_from_reservation(Pages pages)
 }
 
 
-void Sup::Gmm::free(Vmm_addr addr, Pages pages)
+void Sup::Gmm::free(Vmm_addr addr)
 {
-	_alloc.free((void *)(addr.value - _map.base.value), 1);
+	_alloc.free((void *)(addr.value - _map.base.value));
 }
 
 

@@ -176,7 +176,7 @@ class Sup::Gmm
 		/**
 		 * Free pages in pool
 		 */
-		void free(Vmm_addr, Pages);
+		void free(Vmm_addr);
 
 		/**
 		 * Get page ID for VMM address inside linear area
