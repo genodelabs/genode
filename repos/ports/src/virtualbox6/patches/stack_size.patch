@@ -1,0 +1,13 @@
+Limit EMT stack size to prevent warning.
+
+--- a/src/virtualbox6/src/VBox/VMM/VMMR3/VM.cpp
++++ b/src/virtualbox6/src/VBox/VMM/VMMR3/VM.cpp
+@@ -492,7 +492,7 @@
+                                 for (i = 0; i < cCpus; i++)
+                                 {
+                                     rc = RTThreadCreateF(&pUVM->aCpus[i].vm.s.ThreadEMT, vmR3EmulationThread, &pUVM->aCpus[i],
+-                                                         _1M, RTTHREADTYPE_EMULATION,
++                                                         _1M - _16K, RTTHREADTYPE_EMULATION,
+                                                          RTTHREADFLAGS_WAITABLE | RTTHREADFLAGS_COM_MTA,
+                                                          cCpus > 1 ? "EMT-%u" : "EMT", i);
+                                     if (RT_FAILURE(rc))
