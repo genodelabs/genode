@@ -87,13 +87,16 @@ int main(int argc, char **argv)
 
 	printf("Malloc: check realloc\n");
 	{
+		static char realloc_data[32];
+		memset(realloc_data, 13, 32);
+
 		void *addr = malloc(32);
-		memset(addr, 13, 32);
+		memcpy(addr, realloc_data, 32);
 
 		for (unsigned i = 0; i < ROUNDS; ++i) {
 			size_t const size = 32 + 11*i;
 			char *a = (char *)realloc(addr, size);
-			if (memcmp(addr, a, 32) || a[32] != 0) {
+			if (memcmp(realloc_data, a, 32) || a[32] != 0) {
 				printf("realloc data error");
 				++error_count;
 			}
@@ -108,7 +111,7 @@ int main(int argc, char **argv)
 		for (int i = ROUNDS - 1; i >= 0; --i) {
 			size_t const size = 32 + 11*i;
 			char *a = (char *)realloc(addr, size);
-			if (memcmp(addr, a, 32) || a[32] != 0) {
+			if (memcmp(realloc_data, a, 32) || a[32] != 0) {
 				printf("realloc data error");
 				++error_count;
 			}
@@ -126,12 +129,12 @@ int main(int argc, char **argv)
 	for (unsigned i = 0; i < 4; ++i) {
 		size_t const size = 250*1024*1024;
 		void *addr = malloc(size);
-		free(addr);
-
 		if ((unsigned long)addr & 0xf) {
 			printf("large malloc(%zu) returned addr = %p - ERROR\n", size, addr);
 			++error_count;
 		}
+
+		free(addr);
 	}
 
 	{
