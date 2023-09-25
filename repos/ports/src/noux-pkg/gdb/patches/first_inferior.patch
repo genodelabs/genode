@@ -1,0 +1,41 @@
+first_inferior.patch
+
+Detect the creation of the first inferior if it doesn't exist yet
+when GDB connects to the debug monitor and make sure that its pid
+is sent in 'Hg' commands even if no thread is selected, to get
+the memory map of the correct inferior with the 'info mem'
+command.
+
+diff --git a/gdb/remote.c b/gdb/remote.c
+index b5db0c0..f36d4a9 100644
+--- a/gdb/remote.c
++++ b/gdb/remote.c
+@@ -2908,6 +2908,9 @@ remote_target::set_thread (ptid_t ptid, int gen)
+     xsnprintf (buf, endbuf - buf, "0");
+   else if (ptid == minus_one_ptid)
+     xsnprintf (buf, endbuf - buf, "-1");
++  else if (ptid == null_ptid)
++    write_ptid (buf, endbuf, ptid_t (current_inferior()->pid,
++                                     ptid.lwp(), ptid.tid()));
+   else
+     write_ptid (buf, endbuf, ptid);
+   putpkt (rs->buf);
+@@ -5007,9 +5010,16 @@ remote_target::start_remote_1 (int from_tty, int extended_p)
+ 
+       if (thread_count (this) == 0)
+ 	{
+-	  if (!extended_p)
++	  if (!extended_p) {
+ 	    error (_("The target is not running (try extended-remote?)"));
+-	  return false;
++	    return false;
++	  }
++
++	  /* Accept remote events to be able to detect the first thread. */
++	  if (target_can_async_p ())
++	    target_async (true);
++
++	  return true;
+ 	}
+ 
+       /* Report all signals during attach/startup.  */
