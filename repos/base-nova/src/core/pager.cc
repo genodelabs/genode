@@ -38,17 +38,6 @@ using namespace Core;
 using namespace Nova;
 
 
-static Nova::Hip const &kernel_hip()
-{
-	/**
-	 * Initial value of esp register, saved by the crt0 startup code.
-	 * This value contains the address of the hypervisor information page.
-	 */
-	extern addr_t __initial_sp;
-	return *reinterpret_cast<Hip const *>(__initial_sp);
-}
-
-
 /**
  * Pager threads - one thread per CPU
  */

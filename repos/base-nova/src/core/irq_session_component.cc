@@ -209,17 +209,6 @@ Irq_object::~Irq_object()
  ***************************/
 
 
-static Nova::Hip const &kernel_hip()
-{
-	/**
-	 * Initial value of esp register, saved by the crt0 startup code.
-	 * This value contains the address of the hypervisor information page.
-	 */
-	extern addr_t __initial_sp;
-	return *reinterpret_cast<Nova::Hip const *>(__initial_sp);
-}
-
-
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :

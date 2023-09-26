@@ -284,4 +284,14 @@ inline Nova::uint8_t map_pagefault_portal(Core::Pager_object &pager,
 	                 source_initial_caps, target_initial_caps, utcb);
 }
 
+inline Nova::Hip const &kernel_hip()
+{
+	/**
+	 * Initial value of esp register, saved by the crt0 startup code.
+	 * This value contains the address of the hypervisor information page.
+	 */
+	extern Genode::addr_t __initial_sp;
+	return *reinterpret_cast<Nova::Hip const *>(__initial_sp);
+}
+
 #endif /* _CORE__INCLUDE__NOVA_UTIL_H_ */

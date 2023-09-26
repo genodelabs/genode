@@ -15,6 +15,8 @@
 #include <pd_session_component.h>
 #include <assertion.h>
 
+#include <nova_util.h> /* kernel_hip */
+
 using namespace Core;
 
 
@@ -102,34 +104,90 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 using State = Genode::Pd_session::Managing_system_state;
 
 
-class System_control_component : public Genode::Rpc_object<Pd_session::System_control>,
-                                 public Core::System_control
+class System_control_component : public Genode::Rpc_object<Pd_session::System_control>
 {
 	public:
 
 		State system_control(State const &) override;
-
-		Capability<Pd_session::System_control> control_cap(Affinity::Location const) const override;
 };
 
 
-static System_control_component &system_instance()
+class System_control_impl : public Core::System_control
 {
-	static System_control_component system_component { };
-	return system_component;
+	private:
+
+		System_control_component objects [Core::Platform::MAX_SUPPORTED_CPUS] { };
+
+		template <typename T>
+		auto with_location(auto const &location, T const &fn)
+		{
+			unsigned const index = platform_specific().pager_index(location);
+
+			if (index < Core::Platform::MAX_SUPPORTED_CPUS)
+				return fn (objects[index]);
+
+			return Capability<Pd_session::System_control> { };
+		}
+
+		template <typename T>
+		auto with_location(auto const &location, T const &fn) const
+		{
+			unsigned const index = platform_specific().pager_index(location);
+
+			if (index < Core::Platform::MAX_SUPPORTED_CPUS)
+				return fn (objects[index]);
+
+			return Capability<Pd_session::System_control> { };
+		}
+
+	public:
+
+		Capability<Pd_session::System_control> control_cap(Affinity::Location const) const override;
+
+		void manage(Rpc_entrypoint &ep, Affinity::Location const &location)
+		{
+			with_location(location, [&](auto &object) {
+				ep.manage(&object);
+				return object.cap();
+			});
+		}
+
+};
+
+
+static System_control_impl &system_instance()
+{
+	static System_control_impl system_control { };
+	return system_control;
 }
 
 
-System_control & Core::init_system_control(Allocator &, Rpc_entrypoint &ep)
+System_control & Core::init_system_control(Allocator &alloc, Rpc_entrypoint &)
 {
-	ep.manage(&system_instance());
+	enum { ENTRYPOINT_STACK_SIZE = 20 * 1024 };
+
+	platform_specific().for_each_location([&](Affinity::Location const &location) {
+
+		unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(location);
+
+		if (!kernel_hip().is_cpu_enabled(kernel_cpu_id))
+			return;
+
+		auto ep = new (alloc) Rpc_entrypoint (nullptr, ENTRYPOINT_STACK_SIZE,
+		                                      "system_control", location);
+
+		system_instance().manage(*ep, location);
+	});
+
 	return system_instance();
-}
+};
 
 
-Capability<Pd_session::System_control> System_control_component::control_cap(Affinity::Location const) const
+Capability<Pd_session::System_control> System_control_impl::control_cap(Affinity::Location const location) const
 {
-	return system_instance().cap();
+	return with_location(location, [&](auto &object) {
+		return object.cap();
+	});
 }
 
 
