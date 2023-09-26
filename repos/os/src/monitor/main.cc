@@ -133,14 +133,11 @@ struct Monitor::Main : Sandbox::State_handler,
 				Terminal::Connection &_terminal;
 				void operator () (char const *str)
 				{
-					for (;;) {
-						size_t const num_bytes = strlen(str);
-						size_t const written_bytes = _terminal.write(str, num_bytes);
-						if (written_bytes == num_bytes)
-							break;
-
-						str = str + written_bytes;
-					}
+					size_t const num_bytes = strlen(str);
+					size_t const written_bytes = _terminal.write(str, num_bytes);
+					if (written_bytes != num_bytes)
+						Genode::warning("Could not send the debug response "
+						                "message completely.");
 				}
 			} _write_fn;
 

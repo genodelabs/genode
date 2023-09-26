@@ -346,7 +346,9 @@ struct qXfer : Command_with_separator
 		static Window from_args(Const_byte_range_ptr const &args)
 		{
 			return { .offset = comma_separated_hex_value(args, 0, 0UL),
-			         .len    = comma_separated_hex_value(args, 1, 0UL) };
+			         /* terminal_crosslink currently buffers 4096 bytes */
+			         .len    = min(comma_separated_hex_value(args, 1, 0UL),
+			                       2048UL) };
 		}
 	};
 
