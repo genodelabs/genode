@@ -30,6 +30,7 @@
 #include <constrained_core_ram.h>
 #include <platform_pd.h>
 #include <signal_broker.h>
+#include <system_control.h>
 #include <rpc_cap_factory.h>
 #include <ram_dataspace_factory.h>
 #include <native_pd_component.h>
@@ -52,6 +53,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		Constructible<Account<Ram_quota> > _ram_account { };
 
 		Rpc_entrypoint            &_ep;
+		Core::System_control      &_system_control;
 		Constrained_ram_allocator  _constrained_md_ram_alloc;
 		Constrained_core_ram       _constrained_core_ram_alloc;
 		Sliced_heap                _sliced_heap;
@@ -131,10 +133,12 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		                     Region_map       &local_rm,
 		                     Pager_entrypoint &pager_ep,
 		                     char const       *args,
-		                     Range_allocator  &core_mem)
+		                     Range_allocator  &core_mem,
+		                     Core::System_control &system_control)
 		:
 			Session_object(ep, resources, label, diag),
 			_ep(ep),
+			_system_control(system_control),
 			_constrained_md_ram_alloc(*this, _ram_quota_guard(), _cap_quota_guard()),
 			_constrained_core_ram_alloc(_ram_quota_guard(), _cap_quota_guard(), core_mem),
 			_sliced_heap(_constrained_md_ram_alloc, local_rm),
@@ -329,11 +333,17 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		Capability<Native_pd> native_pd() override { return _native_pd.cap(); }
 
 
-		/*******************************
-		 ** Managing system interface **
-		 *******************************/
+		/******************************
+		 ** System control interface **
+		 ******************************/
 
-		Managing_system_state managing_system(Managing_system_state const &) override;
+		Capability<System_control> system_control_cap(Affinity::Location const location) override
+		{
+			if (_managing_system == Managing_system::PERMITTED)
+				return _system_control.control_cap(location);
+
+			return { };
+		}
 
 
 		/*******************************************

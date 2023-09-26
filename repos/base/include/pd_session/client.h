@@ -93,8 +93,8 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 
 	Capability<Native_pd> native_pd() override { return call<Rpc_native_pd>(); }
 
-	Managing_system_state managing_system(Managing_system_state const & state) override {
-		return call<Rpc_managing_system>(state); }
+	Capability<System_control> system_control_cap(Affinity::Location const location) override {
+		return call<Rpc_system_control_cap>(location); }
 
 	addr_t dma_addr(Ram_dataspace_capability ds) override { return call<Rpc_dma_addr>(ds); }
 

@@ -29,6 +29,7 @@
 #include <core_env.h>
 #include <core_service.h>
 #include <signal_transmitter.h>
+#include <system_control.h>
 #include <rom_root.h>
 #include <rm_root.h>
 #include <cpu_root.h>
@@ -255,6 +256,8 @@ void Genode::bootstrap_component(Genode::Platform &)
 	using Trace_root              = Core::Trace::Root;
 	using Trace_session_component = Core::Trace::Session_component;
 
+	static Core::System_control &system_control = init_system_control(sliced_heap, ep);
+
 	static Rom_root    rom_root    (ep, ep, platform().rom_fs(), sliced_heap);
 	static Rm_root     rm_root     (ep, sliced_heap, core_ram_alloc, local_rm, pager_ep);
 	static Cpu_root    cpu_root    (core_ram_alloc, local_rm, ep, ep, pager_ep,
@@ -262,7 +265,8 @@ void Genode::bootstrap_component(Genode::Platform &)
 	static Pd_root     pd_root     (ep, core_env().signal_ep(), pager_ep,
 	                                platform().ram_alloc(),
 	                                local_rm, sliced_heap,
-	                                platform_specific().core_mem_alloc());
+	                                platform_specific().core_mem_alloc(),
+	                                system_control);
 	static Log_root    log_root    (ep, sliced_heap);
 	static Io_mem_root io_mem_root (ep, ep, platform().io_mem_alloc(),
 	                                platform().ram_alloc(), sliced_heap);

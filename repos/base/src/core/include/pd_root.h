@@ -33,6 +33,7 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 		Range_allocator  &_phys_alloc;
 		Region_map       &_local_rm;
 		Range_allocator  &_core_mem;
+		System_control   &_system_control;
 
 		/**
 		 * The RAM allocations of system management components are getting
@@ -91,7 +92,7 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 				                     _virt_range_from_args(args),
 				                     _managing_system(args),
 				                     _local_rm, _pager_ep, args,
-				                     _core_mem);
+				                     _core_mem, _system_control);
 		}
 
 		void _upgrade_session(Pd_session_component *pd, const char *args) override
@@ -111,11 +112,13 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 		        Range_allocator  &phys_alloc,
 		        Region_map       &local_rm,
 		        Allocator        &md_alloc,
-		        Range_allocator  &core_mem)
+		        Range_allocator  &core_mem,
+		        System_control   &system_control)
 		:
 			Root_component<Pd_session_component>(&ep, &md_alloc),
 			_ep(ep), _signal_ep(signal_ep), _pager_ep(pager_ep),
-			_phys_alloc(phys_alloc), _local_rm(local_rm), _core_mem(core_mem)
+			_phys_alloc(phys_alloc), _local_rm(local_rm), _core_mem(core_mem),
+			_system_control(system_control)
 		{ }
 };
 

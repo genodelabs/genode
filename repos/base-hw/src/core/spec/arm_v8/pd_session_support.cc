@@ -19,17 +19,44 @@ using namespace Core;
 using State = Genode::Pd_session::Managing_system_state;
 
 
-State Pd_session_component::managing_system(State const & s)
+class System_control_component : public Genode::Rpc_object<Pd_session::System_control>,
+                                 public Core::System_control
 {
-	static constexpr addr_t SMCCC_NOT_SUPPORTED = 0xffffffffUL;
+	public:
 
+		State system_control(State const &) override;
+
+		Capability<Pd_session::System_control> control_cap(Affinity::Location const) const override;
+};
+
+
+State System_control_component::system_control(State const &s)
+{
 	State ret;
 
-	ret.r[0] = (_managing_system == Managing_system::DENIED)
-		? SMCCC_NOT_SUPPORTED
-		: Hw::Psci_smc_functor::call(s.r[0], s.r[1], s.r[2], s.r[3]);
+	ret.r[0] = Hw::Psci_smc_functor::call(s.r[0], s.r[1], s.r[2], s.r[3]);
 
 	return ret;
+}
+
+
+static System_control_component &system_instance()
+{
+	static System_control_component system_component { };
+	return system_component;
+}
+
+
+System_control & Core::init_system_control(Allocator &, Rpc_entrypoint &ep)
+{
+	ep.manage(&system_instance());
+	return system_instance();
+}
+
+
+Capability<Pd_session::System_control> System_control_component::control_cap(Affinity::Location const) const
+{
+	return system_instance().cap();
 }
 
 

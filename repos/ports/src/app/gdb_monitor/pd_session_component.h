@@ -145,9 +145,8 @@ class Gdb_monitor::Pd_session_component : public Rpc_object<Pd_session>
 		Capability<Native_pd> native_pd() override {
 			return _pd.native_pd(); }
 
-		Managing_system_state
-		managing_system(Managing_system_state const & state) override {
-			return _pd.managing_system(state); }
+		Capability<System_control> system_control_cap(Affinity::Location const location) override {
+			return _pd.system_control_cap(location); }
 
 		addr_t dma_addr(Ram_dataspace_capability ds) override {
 			return _pd.dma_addr(ds); }

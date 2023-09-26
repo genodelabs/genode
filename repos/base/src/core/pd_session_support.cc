@@ -22,6 +22,20 @@ bool Pd_session_component::assign_pci(addr_t, uint16_t) { return true; }
 
 void Pd_session_component::map(addr_t, addr_t) { }
 
-using State = Genode::Pd_session::Managing_system_state;
 
-State Pd_session_component::managing_system(State const &) { return State(); }
+class System_control_dummy : public System_control
+{
+	public:
+
+		Capability<Pd_session::System_control> control_cap(Affinity::Location) const override
+		{
+			return { };
+		}
+};
+
+
+System_control & Core::init_system_control(Allocator &, Rpc_entrypoint &)
+{
+	static System_control_dummy dummy { };
+	return dummy;
+}

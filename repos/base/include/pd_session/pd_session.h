@@ -16,6 +16,7 @@
 #define _INCLUDE__PD_SESSION__PD_SESSION_H_
 
 #include <util/attempt.h>
+#include <base/affinity.h>
 #include <base/exception.h>
 #include <cpu/cpu_state.h>
 #include <session/session.h>
@@ -305,12 +306,26 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 ** Access to system management interface **
 	 *******************************************/
 
+	struct System_control : Interface
+	{
+		using System_control_state = Cpu_state;
+
+		virtual System_control_state system_control(System_control_state const &) = 0;
+
+		GENODE_RPC(Rpc_system_control, System_control_state, system_control,
+		           System_control_state const &);
+
+		GENODE_RPC_INTERFACE(Rpc_system_control);
+	};
+
+
 	using Managing_system_state = Cpu_state;
 
 	/**
-	 * Call privileged system management functionality of kernel or firmware
+	 * Call privileged system control functionality of kernel or firmware
 	 */
-	virtual Managing_system_state managing_system(Managing_system_state const &) = 0;
+
+	virtual Capability<System_control> system_control_cap(Affinity::Location const) = 0;
 
 
 	/*******************************************
@@ -391,8 +406,9 @@ struct Genode::Pd_session : Session, Ram_allocator
 
 	GENODE_RPC(Rpc_native_pd, Capability<Native_pd>, native_pd);
 
-	GENODE_RPC(Rpc_managing_system, Managing_system_state, managing_system,
-	           Managing_system_state const &);
+	GENODE_RPC(Rpc_system_control_cap, Capability<System_control>,
+	           system_control_cap, Affinity::Location);
+
 	GENODE_RPC(Rpc_dma_addr, addr_t, dma_addr, Ram_dataspace_capability);
 	GENODE_RPC(Rpc_attach_dma, Attach_dma_result, attach_dma,
 	           Dataspace_capability, addr_t);
@@ -405,7 +421,7 @@ struct Genode::Pd_session : Session, Ram_allocator
 	                     Rpc_transfer_cap_quota, Rpc_cap_quota, Rpc_used_caps,
 	                     Rpc_try_alloc, Rpc_free,
 	                     Rpc_transfer_ram_quota, Rpc_ram_quota, Rpc_used_ram,
-	                     Rpc_native_pd, Rpc_managing_system,
+	                     Rpc_native_pd, Rpc_system_control_cap,
 	                     Rpc_dma_addr, Rpc_attach_dma);
 };
 

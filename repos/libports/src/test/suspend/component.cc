@@ -34,6 +34,17 @@ class Suspend
 		uint8_t s3_sleep_typeb { };
 		bool    s3_sleep_valid { };
 
+		Capability<Pd_session::System_control> _control_cap { _env.pd().system_control_cap(Affinity::Location()) };
+
+		struct Client: Genode::Rpc_client<Pd_session::System_control>
+		{
+			explicit Client(Genode::Capability<Pd_session::System_control> cap)
+			: Rpc_client<Pd_session::System_control>(cap) { }
+
+			Pd_session::Managing_system_state system_control(Pd_session::Managing_system_state const &state) override {
+				return call<Rpc_system_control>(state); }
+		} _system_control { _control_cap };
+
 		void suspend()
 		{
 			/*
@@ -58,7 +69,7 @@ class Suspend
 			in.ip = s3_sleep_typea;
 			in.sp = s3_sleep_typeb;
 
-			out = _env.pd().managing_system (in);
+			out = _system_control.system_control (in);
 
 			if (!out.trapno)
 				log("suspend failed");

@@ -39,6 +39,7 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 		using Sig_ctx_cap   = Signal_context_capability;
 		using Ram_ds_cap    = Ram_dataspace_capability;
 		using Mng_sys_state = Managing_system_state;
+		using Control_cap   = Capability<System_control>;
 
 		void                   assign_parent(Capability<Parent>)         override { never_called(__func__); };
 		bool                   assign_pci(addr_t, uint16_t)              override { never_called(__func__); };
@@ -61,7 +62,7 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 		Ram_quota              ram_quota() const                         override { never_called(__func__); };
 		Ram_quota              used_ram()  const                         override { never_called(__func__); };
 		Capability<Native_pd>  native_pd()                               override { never_called(__func__); };
-		Mng_sys_state          managing_system(Mng_sys_state const &)    override { never_called(__func__); };
+		Control_cap            system_control_cap(Affinity::Location)    override { never_called(__func__); };
 		addr_t                 dma_addr(Ram_ds_cap)                      override { never_called(__func__); };
 		Attach_dma_result      attach_dma(Dataspace_capability, addr_t)  override { never_called(__func__); };
 

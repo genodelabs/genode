@@ -75,7 +75,8 @@ class Core::Core_env : public Noncopyable
 			            _region_map,
 			            *((Pager_entrypoint *)nullptr),
 			            "" /* args to native PD */,
-			            platform_specific().core_mem_alloc())
+			            platform_specific().core_mem_alloc(),
+			            *((Core::System_control *)nullptr))
 		{
 			_pd_session.init_cap_and_ram_accounts();
 		}
