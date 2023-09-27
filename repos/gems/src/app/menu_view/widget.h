@@ -102,9 +102,14 @@ class Menu_view::Widget : List_model<Widget>::Element
 			}
 		};
 
-		static Name node_name(Xml_node node)
+		static Name node_name(Xml_node const &node)
 		{
 			return node.attribute_value("name", Name(node.type()));
+		}
+
+		static Version node_version(Xml_node const &node)
+		{
+			return node.attribute_value("version", Version());
 		}
 
 		static Animated_rect::Steps motion_steps() { return { 60 }; };
@@ -113,7 +118,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		Type_name const _type_name;
 		Name      const _name;
-		Version   const _version { };
+		Version   const _version;
 
 		Unique_id const _unique_id;
 
@@ -143,7 +148,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 			{
 				return node.has_type(w._type_name.string())
 				    && Widget::node_name(node) == w._name
-				    && node.attribute_value("version", Version()) == w._version;
+				    && node_version(node) == w._version;
 			}
 
 		} _model_update_policy { _factory };
@@ -218,6 +223,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 		:
 			_type_name(node.type()),
 			_name(node_name(node)),
+			_version(node_version(node)),
 			_unique_id(unique_id),
 			_factory(factory)
 		{ }
