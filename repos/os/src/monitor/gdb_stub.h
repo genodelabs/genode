@@ -839,6 +839,9 @@ struct vCont : Command_without_separator
 			handled = true;
 		});
 
+		if (handled)
+			return;
+
 		with_skipped_prefix(args, ";", [&] (Const_byte_range_ptr const &args) {
 
 			for_each_argument(args, Sep { ';' }, [&] (Const_byte_range_ptr const &arg) {
