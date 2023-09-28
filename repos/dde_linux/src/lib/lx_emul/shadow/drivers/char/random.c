@@ -64,6 +64,7 @@ bool rng_is_initialized(void)
 
 u32 __get_random_u32_below(u32 ceil)
 {
+	u32 div, result;
 	/**
 	 * Returns a random number from the half-open interval [0, ceil)
 	 * with uniform distribution.
@@ -72,18 +73,20 @@ u32 __get_random_u32_below(u32 ceil)
 	 * number from the 32-bit interval, we can determine into which bin the number
 	 * fell.
 	 */
+	if (ceil <= 1) return 0; /* see 'get_random_u32_below' */
 
 	/* determine divisor to determine bin number by dividing 2^32 by ceil */
-	u32 div = 0x100000000ULL / ceil;
+	div = 0x100000000ULL / ceil;
 
 	/**
 	 * In case the above division has a remainder, we will end up with an
 	 * additional (but smaller) bin at the end of the 32-bit interval. We'll
 	 * discard the result if the number fell into this bin and repeat.
 	 */
-	u32 result = ceil;
-	while (result >= ceil)
+	result = ceil;
+	while (result >= ceil) {
 		result = lx_emul_random_gen_u32() / div;
+	}
 
 	return result;
 }
