@@ -167,6 +167,7 @@ struct Sculpt::Deploy
 					copy_attribute("cpu");
 					copy_attribute("priority");
 					copy_attribute("pkg");
+					copy_attribute("managing_system");
 
 					/* copy start-node content */
 					node.with_raw_content([&] (char const *start, size_t length) {

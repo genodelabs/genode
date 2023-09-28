@@ -598,7 +598,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="runtime" caps="50000" priority="-1">
+	<start name="runtime" caps="50000" priority="-1" managing_system="yes">
 		<binary name="init"/>
 		<resource name="RAM" quantum="32G"/>
 		<resource name="CPU" quantum="40"/>

@@ -426,6 +426,20 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 				xml.attribute("priority", priority);
 		}
 
+		auto permit_managing_system = [&]
+		{
+			if (start_xml.attribute_value("managing_system", false))
+				return true;
+
+			if (_defined_by_launcher())
+				if (launcher_xml.attribute_value("managing_system", false))
+					return true;
+
+			return false;
+		};
+		if (permit_managing_system())
+			xml.attribute("managing_system", "yes");
+
 		bool shim_reroute = false;
 
 		/* lookup if PD/CPU service is configured and use shim in such cases */
