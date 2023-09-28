@@ -18,7 +18,7 @@
 #include <hw/spec/arm/virt_qemu_board.h>
 #include <spec/arm/generic_timer.h>
 #include <spec/arm/virtualization/gicv3.h>
-#include <spec/arm_64/cpu/vm_state_virtualization.h>
+#include <spec/arm_64/cpu/vcpu_state_virtualization.h>
 #include <kernel/configuration.h>
 #include <kernel/irq.h>
 #include <spec/arm_v8/cpu.h>
@@ -42,8 +42,8 @@ namespace Board {
 
 	struct Vcpu_context;
 
-	using Vm_state = Genode::Vm_state;
-	using Vm_data = Vm_state;
+	using Vcpu_state = Genode::Vcpu_state;
+	using Vm_data = Vcpu_state;
 };
 
 

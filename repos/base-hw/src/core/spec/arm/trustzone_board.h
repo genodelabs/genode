@@ -15,7 +15,7 @@
 #define _CORE__SPEC__ARM_TRUSTZONE_BOARD_H_
 
 /* Genode includes */
-#include <spec/arm/cpu/vm_state_trustzone.h>
+#include <spec/arm/cpu/vcpu_state_trustzone.h>
 
 /* core includes */
 #include <types.h>
@@ -24,8 +24,8 @@ namespace Kernel { class Cpu; }
 
 namespace Board {
 
-	using Core::Vm_state;
-	using Vm_data = Core::Vm_state;
+	using Core::Vcpu_state;
+	using Vm_data = Core::Vcpu_state;
 
 	enum { VCPU_MAX = 1 };
 

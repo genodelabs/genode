@@ -12,7 +12,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <cpu/vm_state_virtualization.h>
+#include <cpu/vcpu_state_virtualization.h>
 #include <util/mmio.h>
 
 #include <hw/assert.h>
@@ -30,14 +30,14 @@ using Kernel::Cpu;
 using Kernel::Vm;
 
 
-static Genode::Vm_state & host_context(Cpu & cpu)
+static Genode::Vcpu_state & host_context(Cpu & cpu)
 {
-	static Genode::Constructible<Genode::Vm_state>
+	static Genode::Constructible<Genode::Vcpu_state>
 		host_context[Board::NR_OF_CPUS];
 
 	if (!host_context[cpu.id()].constructed()) {
 		host_context[cpu.id()].construct();
-		Genode::Vm_state & c = *host_context[cpu.id()];
+		Genode::Vcpu_state & c = *host_context[cpu.id()];
 		c.sp_el1    = cpu.stack_start();
 		c.ip        = (addr_t)&Kernel::main_handle_kernel_entry;
 		c.pstate    = 0;

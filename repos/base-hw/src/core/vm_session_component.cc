@@ -25,7 +25,7 @@ using namespace Core;
 
 
 size_t Vm_session_component::_ds_size() {
-	return align_addr(sizeof(Board::Vm_state), get_page_size_log2()); }
+	return align_addr(sizeof(Board::Vcpu_state), get_page_size_log2()); }
 
 
 void Vm_session_component::Vcpu::exception_handler(Signal_context_capability handler)

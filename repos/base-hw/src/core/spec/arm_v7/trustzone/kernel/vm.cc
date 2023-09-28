@@ -16,7 +16,7 @@
 /* core includes */
 #include <kernel/cpu.h>
 #include <kernel/vm.h>
-#include <cpu/vm_state_trustzone.h>
+#include <cpu/vcpu_state_trustzone.h>
 
 using namespace Kernel;
 
@@ -66,7 +66,7 @@ void Vm::exception(Cpu & cpu)
 bool secure_irq(unsigned const i);
 
 
-extern "C" void monitor_mode_enter_normal_world(Genode::Vm_state&, void*);
+extern "C" void monitor_mode_enter_normal_world(Genode::Vcpu_state&, void*);
 extern void * kernel_stack;
 
 

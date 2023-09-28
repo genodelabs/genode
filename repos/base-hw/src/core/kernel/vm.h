@@ -15,8 +15,6 @@
 #ifndef _CORE__KERNEL__VM_H_
 #define _CORE__KERNEL__VM_H_
 
-namespace Genode { class Vm_state; }
-
 /* core includes */
 #include <kernel/cpu_context.h>
 #include <kernel/pd.h>
@@ -45,7 +43,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 
 	private:
 
-		using State = Board::Vm_state;
+		using Vcpu_state = Genode::Vcpu_state;
 
 		/*
 		 * Noncopyable
@@ -57,7 +55,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 
 		Irq::Pool                 & _user_irq_pool;
 		Object                      _kernel_object { *this };
-		State                     & _state;
+		Vcpu_state                & _state;
 		Signal_context            & _context;
 		Identity const              _id;
 		Scheduler_state             _scheduled = INACTIVE;

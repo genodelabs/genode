@@ -14,12 +14,10 @@
 #ifndef _SRC__SERVER__VMM__STATE_H_
 #define _SRC__SERVER__VMM__STATE_H_
 
-#include <cpu/vm_state_virtualization.h>
+#include <cpu/vcpu_state_virtualization.h>
 
 using Genode::addr_t;
-using Genode::Vm_state;
-
-namespace Genode { struct Vcpu_state : Vm_state { }; };
+using Genode::Vcpu_state;
 
 namespace Vmm {
 	struct State : Genode::Vcpu_state

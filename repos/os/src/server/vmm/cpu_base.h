@@ -21,7 +21,7 @@
 
 #include <base/env.h>
 #include <base/heap.h>
-#include <cpu/vm_state_virtualization.h>
+#include <cpu/vcpu_state_virtualization.h>
 #include <util/mmio.h>
 #include <vm_session/connection.h>
 #include <vm_session/handler.h>
@@ -90,7 +90,7 @@ class Vmm::Cpu_base
 		template <typename FUNC>
 		void handle_signal(FUNC handler)
 		{
-			_vm_vcpu.with_state([this, handler](Vm_state &vmstate) {
+			_vm_vcpu.with_state([this, handler](Vcpu_state &vmstate) {
 				State & state = static_cast<State &>(vmstate);
 				_state.construct(state);
 
@@ -123,7 +123,7 @@ class Vmm::Cpu_base
 
 			void handle()
 			{
-				cpu.handle_signal([this] (Vm_state &) { (obj.*member)(); });
+				cpu.handle_signal([this] (Vcpu_state &) { (obj.*member)(); });
 			}
 
 			Signal_handler(Cpu_base           & cpu,

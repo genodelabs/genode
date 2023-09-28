@@ -50,7 +50,7 @@ Vm_base::Vm_base(Env                &env,
 
 void Vm_base::start(Vcpu_state &state)
 {
-	memset((void*)&state, 0, sizeof(Vm_state));
+	memset((void*)&state, 0, sizeof(Vcpu_state));
 	_load_kernel(state);
 	_load_kernel_surroundings();
 	state.cpsr          = 0x93; /* SVC mode and IRQs disabled */
@@ -106,7 +106,7 @@ void Vm_base::dump(Vcpu_state &state)
 	log_adr_reg("lr   ", state.lr);
 	log_adr_reg("ip   ", state.ip);
 	log_adr_reg("cpsr ", state.cpsr);
-	for (unsigned i = 0; i < Vm_state::Mode_state::MAX; i++) {
+	for (unsigned i = 0; i < Vcpu_state::Mode_state::MAX; i++) {
 		log_mod_reg("sp   ", state.mode[i].sp,   mod[i]);
 		log_mod_reg("lr   ", state.mode[i].lr,   mod[i]);
 		log_mod_reg("spsr ", state.mode[i].spsr, mod[i]);

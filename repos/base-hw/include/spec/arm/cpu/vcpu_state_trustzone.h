@@ -26,13 +26,13 @@ namespace Genode {
 	/**
 	 * CPU context of a virtual machine
 	 */
-	struct Vm_state;
-	using Vm_data = Vm_state;
+	struct Vcpu_state;
+	using Vm_data = Vcpu_state;
 	struct Vcpu_state;
 }
 
 
-struct Genode::Vm_state : Genode::Cpu_state_modes
+struct Genode::Vcpu_state : Genode::Cpu_state_modes
 {
 	Genode::addr_t dfar;
 	Genode::addr_t ttbr[2];
@@ -46,7 +46,5 @@ struct Genode::Vm_state : Genode::Cpu_state_modes
 
 	Genode::addr_t irq_injection;
 };
-
-struct Genode::Vcpu_state : Genode::Vm_state { };
 
 #endif /* _INCLUDE__SPEC__IMX53__VM_STATE_H_ */

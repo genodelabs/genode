@@ -25,12 +25,12 @@ namespace Genode {
 	/**
 	 * CPU context of a virtual machine
 	 */
-	struct Vm_state;
-	using Vm_data = Vm_state;
+	struct Vcpu_state;
+	using Vm_data = Vcpu_state;
 }
 
 
-struct Genode::Vm_state : Genode::Cpu_state_modes
+struct Genode::Vcpu_state : Genode::Cpu_state_modes
 {
 	Genode::uint64_t vttbr     { 0 };
 	Genode::uint32_t sctrl     { 0 };

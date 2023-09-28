@@ -13,7 +13,7 @@
  */
 
 #include <hw/assert.h>
-#include <cpu/vm_state_virtualization.h>
+#include <cpu/vcpu_state_virtualization.h>
 
 #include <platform_pd.h>
 #include <kernel/cpu.h>

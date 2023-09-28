@@ -16,7 +16,7 @@
 
 /* core includes */
 #include <types.h>
-#include <cpu/vm_state_virtualization.h>
+#include <cpu/vcpu_state_virtualization.h>
 
 namespace Hypervisor {
 
@@ -44,11 +44,11 @@ namespace Hypervisor {
 	}
 
 
-	inline void switch_world(Core::Vm_state & vm_state,
+	inline void switch_world(Core::Vcpu_state & vcpu_state,
 	                         Host_context     & host_state)
 	{
 		hypervisor_call(WORLD_SWITCH,
-		                (Call_arg)&vm_state,
+		                (Call_arg)&vcpu_state,
 		                (Call_arg)&host_state);
 	}
 }

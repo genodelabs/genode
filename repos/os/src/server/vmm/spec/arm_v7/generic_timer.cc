@@ -29,7 +29,7 @@ Genode::uint64_t Generic_timer::_ticks_per_ms()
 }
 
 
-Genode::uint64_t Generic_timer::_usecs_left(Vm_state &state)
+Genode::uint64_t Generic_timer::_usecs_left(Vcpu_state &state)
 {
 	Genode::uint64_t count;
 	Genode::uint32_t low, high;

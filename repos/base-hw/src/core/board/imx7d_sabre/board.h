@@ -20,7 +20,7 @@
 /* base-hw core includes */
 #include <spec/arm/virtualization/gicv2.h>
 #include <spec/arm/generic_timer.h>
-#include <spec/arm/cpu/vm_state_virtualization.h>
+#include <spec/arm/cpu/vcpu_state_virtualization.h>
 #include <spec/arm/virtualization/board.h>
 #include <spec/cortex_a15/cpu.h>
 

@@ -22,7 +22,7 @@
 #include <vm_session/connection.h>
 #include <vm_session/handler.h>
 #include <util/noncopyable.h>
-#include <cpu/vm_state_trustzone.h>
+#include <cpu/vcpu_state_trustzone.h>
 
 /* local includes */
 #include <ram.h>

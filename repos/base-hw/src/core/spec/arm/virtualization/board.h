@@ -21,7 +21,7 @@
 /* base-hw internal includes */
 #include <hw/spec/arm/lpae.h>
 
-namespace Genode { struct Vm_state; }
+namespace Genode { struct Vcpu_state; }
 
 namespace Board {
 
@@ -31,8 +31,8 @@ namespace Board {
 
 	struct Vcpu_context;
 
-	using Vm_state = Genode::Vm_state;
-	using Vm_data = Genode::Vm_state;
+	using Vcpu_state = Genode::Vcpu_state;
+	using Vm_data = Genode::Vcpu_state;
 };
 
 

@@ -12,7 +12,7 @@
  */
 
 #include <base/log.h>
-#include <cpu/vm_state_virtualization.h>
+#include <cpu/vcpu_state_virtualization.h>
 #include <util/construct_at.h>
 #include <util/mmio.h>
 #include <cpu/string.h>
@@ -44,7 +44,7 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 	Kernel::Object { *this },
 	Cpu_job(Cpu_priority::min(), 0),
 	_user_irq_pool(user_irq_pool),
-	_state(*data.vm_state),
+	_state(*data.vcpu_state),
 	_context(context),
 	_id(id),
 	_vcpu_context(id.id, &data.vmcb, data.vmcb_phys_addr)

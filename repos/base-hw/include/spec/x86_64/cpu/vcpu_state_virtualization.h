@@ -24,19 +24,13 @@ namespace Genode {
 	 * CPU context of a virtual machine
 	 */
 	struct Vm_data;
-
-	struct Vm_state;
 }
-
-struct Genode::Vm_state : Genode::Vcpu_state
-{
-};
 
 struct Genode::Vm_data
 {
 	Board::Vmcb        vmcb;
 	Genode::addr_t     vmcb_phys_addr;
-	Genode::Vm_state * vm_state;
+	Genode::Vcpu_state * vcpu_state;
 };
 
 #endif /* _INCLUDE__SPEC__PC__VM_STATE_H_ */

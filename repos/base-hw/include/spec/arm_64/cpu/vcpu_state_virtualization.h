@@ -25,14 +25,14 @@ namespace Genode {
 	/**
 	 * CPU context of a virtual machine
 	 */
-	struct Vm_state;
-	using Vm_data = Vm_state;
+	struct Vcpu_state;
+	using Vm_data = Vcpu_state;
 
 	using uint128_t = __uint128_t;
 }
 
 
-struct Genode::Vm_state : Genode::Cpu_state
+struct Genode::Vcpu_state : Genode::Cpu_state
 {
 	Genode::uint64_t pstate         { 0 };
 	Genode::uint64_t exception_type { 0 };

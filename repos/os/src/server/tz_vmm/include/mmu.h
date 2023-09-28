@@ -15,7 +15,7 @@
 #define _SRC__SERVER__VMM__INCLUDE__MMU_H_
 
 /* base includes */
-#include <cpu/vm_state_trustzone.h>
+#include <cpu/vcpu_state_trustzone.h>
 
 /* local includes */
 #include <ram.h>
@@ -24,7 +24,7 @@ class Mmu
 {
 	private:
 
-		Genode::Vm_state &_state;
+		Genode::Vcpu_state &_state;
 		Ram const        &_ram;
 
 		unsigned _n_bits() { return _state.ttbrc & 0x7; }
@@ -70,7 +70,7 @@ class Mmu
 
 	public:
 
-		Mmu(Genode::Vm_state &state, Ram const &ram)
+		Mmu(Genode::Vcpu_state &state, Ram const &ram)
 		: _state(state), _ram(ram) {}
 
 

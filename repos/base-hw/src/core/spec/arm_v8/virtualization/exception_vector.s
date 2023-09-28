@@ -27,7 +27,7 @@ hypervisor_exception_vector:
 	mrs x30, hcr_el2   /* read HCR register */
 	tst x30, #1        /* check VM bit */
 	beq _from_host     /* if VM bit is not set, its a host call */
-	ldr x29, [sp, #32] /* otherwise, load vm_state pointer */
+	ldr x29, [sp, #32] /* otherwise, load vcpu_state pointer */
 	adr x30, .         /* hold exception vector offset in x30 */
 	and x30, x30, #0xf80
 	b   _from_vm
@@ -167,7 +167,7 @@ _to_vm:
 	orr  x0, x0, x1
 	msr  hcr_el2, x0
 
-	ldr  x30, [sp, #16]  /* load head of Vm_state again */
+	ldr  x30, [sp, #16]  /* load head of Vcpu_state again */
 
 	/** general-purpose registers **/
 	ldp   x0,  x1, [x30], #2*8

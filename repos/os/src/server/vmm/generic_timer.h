@@ -17,7 +17,7 @@
 
 #include <gic.h>
 
-#include <cpu/vm_state_virtualization.h>
+#include <cpu/vcpu_state_virtualization.h>
 #include <drivers/timer/util.h>
 #include <timer_session/connection.h>
 #include <util/register.h>
@@ -27,7 +27,7 @@ namespace Vmm {
 	class Generic_timer;
 }
 
-using Genode::Vm_state;
+using Genode::Vcpu_state;
 
 class Vmm::Generic_timer : Gic::Irq::Irq_handler
 {
@@ -47,12 +47,12 @@ class Vmm::Generic_timer : Gic::Irq::Irq_handler
 
 		Genode::uint64_t _ticks_per_ms();
 
-		bool _enabled(Vm_state &state);
-		bool _masked(Vm_state &state);
-		bool _pending(Vm_state &state);
+		bool _enabled(Vcpu_state &state);
+		bool _masked(Vcpu_state &state);
+		bool _pending(Vcpu_state &state);
 
 		void _handle_timeout(Genode::Duration);
-		Genode::uint64_t _usecs_left(Vm_state &state);
+		Genode::uint64_t _usecs_left(Vcpu_state &state);
 
 	public:
 
@@ -61,11 +61,11 @@ class Vmm::Generic_timer : Gic::Irq::Irq_handler
 		              Gic::Irq           & irq,
 		              Cpu_base           & cpu);
 
-		void schedule_timeout(Vm_state &state);
+		void schedule_timeout(Vcpu_state &state);
 		void cancel_timeout();
-		void handle_irq(Vm_state &state);
-		void dump(Vm_state &state);
-		static void setup_state(Vm_state &state);
+		void handle_irq(Vcpu_state &state);
+		void dump(Vcpu_state &state);
+		static void setup_state(Vcpu_state &state);
 
 
 		/*****************

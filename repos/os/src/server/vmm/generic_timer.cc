@@ -17,18 +17,18 @@
 
 using Vmm::Generic_timer;
 
-bool Generic_timer::_enabled(Vm_state &state)
+bool Generic_timer::_enabled(Vcpu_state &state)
 {
 	return Ctrl::Enabled::get(state.timer.control);
 }
 
-bool Generic_timer::_masked(Vm_state &state)
+bool Generic_timer::_masked(Vcpu_state &state)
 {
 	return Ctrl::Imask::get(state.timer.control);
 }
 
 
-bool Generic_timer::_pending(Vm_state &state)
+bool Generic_timer::_pending(Vcpu_state &state)
 {
 	return Ctrl::Istatus::get(state.timer.control);
 }
@@ -36,7 +36,7 @@ bool Generic_timer::_pending(Vm_state &state)
 
 void Generic_timer::_handle_timeout(Genode::Duration)
 {
-	_cpu.handle_signal([this](Vm_state &state) {
+	_cpu.handle_signal([this](Vcpu_state &state) {
 		if (_enabled(state) && !_masked(state))
 			handle_irq(state);
 	});
@@ -56,7 +56,7 @@ Generic_timer::Generic_timer(Genode::Env        & env,
 }
 
 
-void Generic_timer::schedule_timeout(Vm_state &state)
+void Generic_timer::schedule_timeout(Vcpu_state &state)
 {
 	if (_pending(state)) {
 		handle_irq(state);
@@ -78,7 +78,7 @@ void Generic_timer::cancel_timeout()
 }
 
 
-void Generic_timer::handle_irq(Vm_state &state)
+void Generic_timer::handle_irq(Vcpu_state &state)
 {
 	_irq.assert();
 	state.timer.irq = false;
@@ -87,12 +87,12 @@ void Generic_timer::handle_irq(Vm_state &state)
 
 void Generic_timer::eoi()
 {
-	Genode::Vm_state &state = _cpu.state();
+	Genode::Vcpu_state &state = _cpu.state();
 	state.timer.irq         = false;
 };
 
 
-void Generic_timer::dump(Vm_state &state)
+void Generic_timer::dump(Vcpu_state &state)
 {
 	using namespace Genode;
 
@@ -100,7 +100,7 @@ void Generic_timer::dump(Vm_state &state)
 	log("  timer.cmp  = ", Hex(state.timer.compare, Hex::PREFIX, Hex::PAD));
 }
 
-void Generic_timer::setup_state(Vm_state &state)
+void Generic_timer::setup_state(Vcpu_state &state)
 {
 	state.timer.irq = true;
 }
