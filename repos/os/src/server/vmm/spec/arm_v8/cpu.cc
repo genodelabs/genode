@@ -21,14 +21,14 @@ using Vmm::Cpu;
 using Vmm::Gic;
 using namespace Genode;
 
-addr_t Vmm::State::reg(addr_t idx) const
+addr_t Vmm::Vcpu_state::reg(addr_t idx) const
 {
 	if (idx > 30) return 0;
 	return r[idx];
 }
 
 
-void Vmm::State::reg(addr_t idx, addr_t v)
+void Vmm::Vcpu_state::reg(addr_t idx, addr_t v)
 {
 	if (idx > 30) return;
 	r[idx] = v;
@@ -60,7 +60,7 @@ Cpu_base::System_register::Iss::mask_encoding(access_t v)
 }
 
 
-void Cpu_base::_handle_brk(State & state)
+void Cpu_base::_handle_brk(Vcpu_state & state)
 {
 	addr_t offset = 0x0;
 	if (!(state.pstate & 0b100)) {
@@ -78,7 +78,7 @@ void Cpu_base::_handle_brk(State & state)
 }
 
 
-void Cpu_base::handle_exception(State &state)
+void Cpu_base::handle_exception(Vcpu_state &state)
 {
 	/* check exception reason */
 	switch (state.exception_type) {
@@ -94,7 +94,7 @@ void Cpu_base::handle_exception(State &state)
 }
 
 
-void Cpu_base::dump(State &state)
+void Cpu_base::dump(Vcpu_state &state)
 {
 	auto lambda = [] (addr_t exc) {
 		switch (exc) {
@@ -129,7 +129,7 @@ void Cpu_base::dump(State &state)
 
 addr_t Cpu::Ccsidr::read() const
 {
-	State & state = cpu.state();
+	Vcpu_state & state = cpu.state();
 
 	struct Clidr : Genode::Register<32>
 	{
@@ -203,14 +203,14 @@ void Cpu::Icc_sgi1r_el1::write(addr_t v)
 };
 
 
-void Cpu_base::initialize_boot(State &state, addr_t ip, addr_t dtb)
+void Cpu_base::initialize_boot(Vcpu_state &state, addr_t ip, addr_t dtb)
 {
 	state.reg(0, dtb);
 	state.ip = ip;
 }
 
 
-void Cpu::setup_state(State &state)
+void Cpu::setup_state(Vcpu_state &state)
 {
 	_sr_id_aa64isar0_el1.write(state.id_aa64isar0_el1);
 	_sr_id_aa64isar1_el1.write(state.id_aa64isar1_el1);

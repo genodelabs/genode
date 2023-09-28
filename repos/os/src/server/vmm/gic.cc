@@ -164,7 +164,7 @@ Gic::Irq & Gic::Gicd_banked::irq(unsigned i)
 }
 
 
-void Gic::Gicd_banked::handle_irq(State &state)
+void Gic::Gicd_banked::handle_irq(Vcpu_state &state)
 {
 	unsigned i = state.irqs.virtual_irq;
 	if (i > MAX_IRQ) return;
@@ -175,7 +175,7 @@ void Gic::Gicd_banked::handle_irq(State &state)
 }
 
 
-bool Gic::Gicd_banked::pending_irq(State &state)
+bool Gic::Gicd_banked::pending_irq(Vcpu_state &state)
 {
 	Genode::Mutex::Guard guard(big_gic_lock());
 
@@ -211,7 +211,7 @@ Gic::Gicd_banked::Gicd_banked(Cpu_base & cpu, Gic & gic, Mmio_bus & bus)
 	}
 }
 
-void Gic::Gicd_banked::setup_state(State &state)
+void Gic::Gicd_banked::setup_state(Vcpu_state &state)
 {
 	state.irqs.last_irq    = SPURIOUS;
 	state.irqs.virtual_irq = SPURIOUS;

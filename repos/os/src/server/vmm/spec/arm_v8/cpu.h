@@ -44,7 +44,7 @@ class Vmm::Cpu : public Vmm::Cpu_base
 			NO_EXCEPTION   = 0xffff,
 		};
 
-		void setup_state(State & state) override;
+		void setup_state(Vcpu_state & state) override;
 
 	private:
 

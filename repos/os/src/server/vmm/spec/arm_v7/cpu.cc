@@ -21,7 +21,7 @@ using Vmm::Cpu;
 using Vmm::Gic;
 using namespace Genode;
 
-addr_t Vmm::State::reg(addr_t idx) const
+addr_t Vmm::Vcpu_state::reg(addr_t idx) const
 {
 	if (idx > 15) return 0;
 
@@ -31,7 +31,7 @@ addr_t Vmm::State::reg(addr_t idx) const
 }
 
 
-void Vmm::State::reg(addr_t idx, addr_t v)
+void Vmm::Vcpu_state::reg(addr_t idx, addr_t v)
 {
 	if (idx > 15) return;
 
@@ -64,13 +64,13 @@ Cpu_base::System_register::Iss::mask_encoding(access_t v)
 }
 
 
-void Cpu_base::_handle_brk(State &)
+void Cpu_base::_handle_brk(Vcpu_state &)
 {
 	error(__func__, " not implemented yet");
 }
 
 
-void Cpu_base::handle_exception(State & state)
+void Cpu_base::handle_exception(Vcpu_state & state)
 {
 	/* check exception reason */
 	switch (state.cpu_exception) {
@@ -87,7 +87,7 @@ void Cpu_base::handle_exception(State & state)
 }
 
 
-void Cpu_base::dump(State &state)
+void Cpu_base::dump(Vcpu_state &state)
 {
 	auto lambda = [] (unsigned i) {
 		switch (i) {
@@ -109,7 +109,7 @@ void Cpu_base::dump(State &state)
 	log("  lr         = ", Hex(state.lr,      Hex::PREFIX, Hex::PAD));
 	log("  ip         = ", Hex(state.ip,      Hex::PREFIX, Hex::PAD));
 	log("  cpsr       = ", Hex(state.cpsr,    Hex::PREFIX, Hex::PAD));
-	for (unsigned i = 0; i < State::Mode_state::MAX; i++) {
+	for (unsigned i = 0; i < Vcpu_state::Mode_state::MAX; i++) {
 		log("  sp_", lambda(i), "     = ",
 			Hex(state.mode[i].sp, Hex::PREFIX, Hex::PAD));
 		log("  lr_", lambda(i), "     = ",
@@ -129,7 +129,7 @@ void Cpu_base::dump(State &state)
 }
 
 
-void Cpu_base::initialize_boot(State &state, addr_t ip, addr_t dtb)
+void Cpu_base::initialize_boot(Vcpu_state &state, addr_t ip, addr_t dtb)
 {
 	state.reg(1, 0xffffffff); /* invalid machine type */
 	state.reg(2, dtb);
@@ -156,7 +156,7 @@ addr_t Cpu::Ccsidr::read() const
 	return 0;
 }
 
-void Cpu::setup_state(State &state)
+void Cpu::setup_state(Vcpu_state &state)
 {
 	state.cpsr   = 0x93; /* el1 mode and IRQs disabled */
 	state.sctrl  = 0xc50078;

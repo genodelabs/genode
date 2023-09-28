@@ -63,17 +63,17 @@ class Vmm::Cpu_base
 		unsigned           cpu_id() const;
 		bool               active() const;
 		Gic::Gicd_banked & gic();
-		void               dump(State & state);
-		void               handle_exception(State &state);
+		void               dump(Vcpu_state & state);
+		void               handle_exception(Vcpu_state &state);
 		void               recall();
-		void               initialize_boot(State &state,
+		void               initialize_boot(Vcpu_state &state,
 		                                   Genode::addr_t ip,
 		                                   Genode::addr_t dtb);
-		virtual void setup_state(State &) { };
+		virtual void setup_state(Vcpu_state &) { };
 
 		virtual ~Cpu_base() = default;
 
-		State & state() {
+		Vcpu_state & state() {
 			return _state->ref;
 		}
 
@@ -90,8 +90,8 @@ class Vmm::Cpu_base
 		template <typename FUNC>
 		void handle_signal(FUNC handler)
 		{
-			_vm_vcpu.with_state([this, handler](Vcpu_state &vmstate) {
-				State & state = static_cast<State &>(vmstate);
+			_vm_vcpu.with_state([this, handler](Genode::Vcpu_state &vmstate) {
+				Vmm::Vcpu_state & state = static_cast<Vmm::Vcpu_state &>(vmstate);
 				_state.construct(state);
 
 				try {
@@ -225,7 +225,7 @@ class Vmm::Cpu_base
 					return (r->_encoding > _encoding); }
 		};
 
-		struct State_container { State &ref; };
+		struct Vcpu_state_container { Vcpu_state &ref; };
 
 		unsigned                               _vcpu_id;
 		bool                                   _active { true };
@@ -236,7 +236,7 @@ class Vmm::Cpu_base
 		Genode::Vm_connection::Exit_config     _exit_config { };
 		Genode::Vm_connection::Vcpu            _vm_vcpu;
 		Genode::Avl_tree<System_register>      _reg_tree {};
-		Genode::Constructible<State_container> _state {};
+		Genode::Constructible<Vcpu_state_container> _state {};
 		Semaphore                              _cpu_ready {};
 
 
@@ -249,15 +249,15 @@ class Vmm::Cpu_base
 		Generic_timer                     _timer;
 
 		void _handle_nothing() {}
-		void _handle_startup(State &state);
-		bool _handle_sys_reg(State &state);
-		void _handle_brk(State &state);
-		void _handle_wfi(State &state);
-		void _handle_sync(State &state);
-		void _handle_irq(State &state);
-		void _handle_data_abort(State &state);
-		void _handle_hyper_call(State &state);
-		void _update_state(State &state);
+		void _handle_startup(Vcpu_state &state);
+		bool _handle_sys_reg(Vcpu_state &state);
+		void _handle_brk(Vcpu_state &state);
+		void _handle_wfi(Vcpu_state &state);
+		void _handle_sync(Vcpu_state &state);
+		void _handle_irq(Vcpu_state &state);
+		void _handle_data_abort(Vcpu_state &state);
+		void _handle_hyper_call(Vcpu_state &state);
+		void _update_state(Vcpu_state &state);
 
 	public:
 

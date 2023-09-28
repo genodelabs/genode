@@ -137,9 +137,9 @@ class Vmm::Gic : public Vmm::Mmio_device
 			public:
 
 				Irq &       irq(unsigned num);
-				void        handle_irq(State &state);
-				bool        pending_irq(State &state);
-				static void setup_state(State &state);
+				void        handle_irq(Vcpu_state &state);
+				bool        pending_irq(Vcpu_state &state);
+				static void setup_state(Vcpu_state &state);
 
 				Gicd_banked(Cpu_base & cpu, Gic & gic, Mmio_bus & bus);
 

@@ -38,7 +38,7 @@ Cpu_base::System_register::System_register(unsigned         op0,
 }
 
 
-bool Cpu_base::_handle_sys_reg(State & state)
+bool Cpu_base::_handle_sys_reg(Vcpu_state & state)
 {
 	using Iss = System_register::Iss;
 
@@ -76,7 +76,7 @@ bool Cpu_base::_handle_sys_reg(State & state)
 }
 
 
-void Cpu_base::_handle_wfi(State &state)
+void Cpu_base::_handle_wfi(Vcpu_state &state)
 {
 	state.ip += sizeof(Genode::uint32_t);
 
@@ -87,7 +87,7 @@ void Cpu_base::_handle_wfi(State &state)
 }
 
 
-void Cpu_base::_handle_startup(State &state)
+void Cpu_base::_handle_startup(Vcpu_state &state)
 {
 	Generic_timer::setup_state(state);
 	Gic::Gicd_banked::setup_state(state);
@@ -103,7 +103,7 @@ void Cpu_base::_handle_startup(State &state)
 }
 
 
-void Cpu_base::_handle_sync(State &state)
+void Cpu_base::_handle_sync(Vcpu_state &state)
 {
 	/* check device number*/
 	switch (Esr::Ec::get(state.esr_el2)) {
@@ -131,7 +131,7 @@ void Cpu_base::_handle_sync(State &state)
 }
 
 
-void Cpu_base::_handle_irq(State &state)
+void Cpu_base::_handle_irq(Vcpu_state &state)
 {
 	switch (state.irqs.last_irq) {
 	case VTIMER_IRQ:
@@ -143,7 +143,7 @@ void Cpu_base::_handle_irq(State &state)
 }
 
 
-void Cpu_base::_handle_hyper_call(State &state)
+void Cpu_base::_handle_hyper_call(Vcpu_state &state)
 {
 	switch(state.reg(0)) {
 		case Psci::PSCI_VERSION:
@@ -158,7 +158,7 @@ void Cpu_base::_handle_hyper_call(State &state)
 		case Psci::CPU_ON_32: [[fallthrough]];
 		case Psci::CPU_ON:
 			_vm.cpu((unsigned)state.reg(1), [&] (Cpu & cpu) {
-				State & local_state = cpu.state();
+				Vcpu_state & local_state = cpu.state();
 				cpu.initialize_boot(local_state, state.reg(2), state.reg(3));
 				cpu.set_ready();
 			});
@@ -171,14 +171,14 @@ void Cpu_base::_handle_hyper_call(State &state)
 }
 
 
-void Cpu_base::_handle_data_abort(State &state)
+void Cpu_base::_handle_data_abort(Vcpu_state &state)
 {
 	_vm.bus().handle_memory_access(state, *static_cast<Cpu *>(this));
 	state.ip += sizeof(Genode::uint32_t);
 }
 
 
-void Cpu_base::_update_state(State &state)
+void Cpu_base::_update_state(Vcpu_state &state)
 {
 	if (!_gic.pending_irq(state)) return;
 

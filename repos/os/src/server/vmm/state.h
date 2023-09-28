@@ -17,10 +17,9 @@
 #include <cpu/vcpu_state_virtualization.h>
 
 using Genode::addr_t;
-using Genode::Vcpu_state;
 
 namespace Vmm {
-	struct State : Genode::Vcpu_state
+	struct Vcpu_state : Genode::Vcpu_state
 	{
 		addr_t reg(addr_t idx) const;
 		void reg(addr_t idx, addr_t v);
