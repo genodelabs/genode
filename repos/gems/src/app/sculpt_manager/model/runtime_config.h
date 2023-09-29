@@ -320,7 +320,8 @@ class Sculpt::Runtime_config
 				_pin_ctrl  { _r, Type::PIN_CONTROL, "GPIO pin control" },
 				_trace     { _r, Type::TRACE,       "system-global tracing" },
 				_vm        { _r, Type::VM,          "virtualization hardware" },
-				_pd        { _r, Type::PD,          "system PD service" };
+				_pd        { _r, Type::PD,          "system PD service" },
+				_monitor   { _r, Type::TERMINAL,    "debug monitor" };
 
 			template <typename FN>
 			void for_each(FN const &fn) const { _r.for_each(fn); }

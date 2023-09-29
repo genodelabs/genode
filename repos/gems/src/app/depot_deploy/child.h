@@ -353,6 +353,8 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		                           Depot_rom_server const &cached_depot_rom,
 		                           Depot_rom_server const &uncached_depot_rom) const;
 
+		inline void gen_monitor_policy_node(Xml_generator&) const;
+
 		template <typename FN>
 		void with_missing_pkg_path(FN const &fn) const
 		{
@@ -562,8 +564,46 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 		}
 
 		xml.node("route", [&] () {
-			_gen_routes(xml, common, cached_depot_rom, uncached_depot_rom); });
+
+			if (start_xml.has_sub_node("monitor")) {
+				xml.node("service", [&] () {
+					xml.attribute("name", "PD");
+					xml.node("local");
+				});
+				xml.node("service", [&] () {
+					xml.attribute("name", "CPU");
+					xml.node("local");
+				});
+			}
+
+			_gen_routes(xml, common, cached_depot_rom, uncached_depot_rom);
+		});
 	});
+}
+
+
+void Depot_deploy::Child::gen_monitor_policy_node(Xml_generator &xml) const
+{
+	if (!_configured() || _condition == UNSATISFIED)
+		return;
+
+	if (_defined_by_launcher() && !_launcher_xml.constructed())
+		return;
+
+	if (!_pkg_xml->xml().has_sub_node("runtime")) {
+		return;
+	}
+
+	Xml_node const start_xml = _start_xml->xml();
+
+	if (start_xml.has_sub_node("monitor")) {
+		Xml_node const monitor = start_xml.sub_node("monitor");
+		xml.node("policy", [&] () {
+			xml.attribute("label", _name);
+			xml.attribute("wait", monitor.attribute_value("wait", false));
+			xml.attribute("wx", monitor.attribute_value("wx", false));
+		});
+	}
 }
 
 

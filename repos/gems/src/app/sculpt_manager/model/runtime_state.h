@@ -185,6 +185,8 @@ class Sculpt::Runtime_state : public Runtime_info
 						construction->gen_priority(xml);
 						construction->gen_affinity(xml);
 
+						construction->gen_monitor(xml);
+
 						xml.node("route", [&] () {
 							construction->gen_pd_cpu_route(xml);
 

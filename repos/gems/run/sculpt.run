@@ -598,8 +598,16 @@ install_config {
 		</route>
 	</start>
 
+	<start name="terminal_monitor">
+		<binary name="terminal_crosslink"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Terminal"/>
+		</provides>
+	</start>
+
 	<start name="runtime" caps="50000" priority="-1" managing_system="yes">
-		<binary name="init"/>
+		<binary name="monitor"/>
 		<resource name="RAM" quantum="32G"/>
 		<resource name="CPU" quantum="40"/>
 		<route>
@@ -655,6 +663,7 @@ install_config {
 			<service name="Capture" label="leitzentrale"> <child name="leitzentrale"/> </service>
 			<service name="Pin_state">   <child name="drivers"/> </service>
 			<service name="Pin_control"> <child name="drivers"/> </service>
+			<service name="Terminal"> <child name="terminal_monitor"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>

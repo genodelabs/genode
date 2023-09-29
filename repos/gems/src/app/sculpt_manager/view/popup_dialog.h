@@ -33,6 +33,7 @@
 
 #include <view/pd_route_dialog.h>
 #include <view/resource_dialog.h>
+#include <view/debug_dialog.h>
 
 namespace Sculpt { struct Popup_dialog; }
 
@@ -123,6 +124,7 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 	Pd_route_dialog  _pd_route     { _runtime_config };
 
 	Constructible<Resource_dialog> _resources { };
+	Constructible<Debug_dialog>    _debug { };
 
 	enum State { TOP_LEVEL, DEPOT_REQUESTED, DEPOT_SHOWN, DEPOT_SELECTION,
 	             INDEX_REQUESTED, INDEX_SHOWN,
@@ -149,6 +151,11 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 		return _route_selected("resources");
 	}
 
+	bool _debug_dialog_selected() const
+	{
+		return _route_selected("debug");
+	}
+
 	template <typename FN>
 	void _apply_to_selected_route(Action &action, FN const &fn)
 	{
@@ -163,7 +170,7 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 
 	Hover_result hover(Xml_node hover) override
 	{
-		Deprecated_dialog::Hover_result const hover_result = Deprecated_dialog::any_hover_changed(
+		Deprecated_dialog::Hover_result hover_result = Deprecated_dialog::any_hover_changed(
 			_item        .match(hover, "frame", "vbox", "hbox", "name"),
 			_action_item .match(hover, "frame", "vbox", "button", "name"),
 			_install_item.match(hover, "frame", "vbox", "float", "vbox", "float", "button", "name"),
@@ -173,7 +180,11 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 
 		if (_resources.constructed() &&
 		    hover_result == Deprecated_dialog::Hover_result::UNMODIFIED)
-			return _resources->match_sub_dialog(hover, "frame", "vbox", "frame", "vbox");
+			hover_result = _resources->match_sub_dialog(hover, "frame", "vbox", "frame", "vbox");
+
+		if (_debug.constructed() &&
+		    hover_result == Deprecated_dialog::Hover_result::UNMODIFIED)
+			hover_result = _debug->match_sub_dialog(hover, "frame", "vbox", "frame", "vbox");
 
 		return hover_result;
 	}
@@ -361,6 +372,7 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 		_selected_route.destruct();
 		_menu._level = 0;
 		_resources.destruct();
+		_debug.destruct();
 		_pd_route.reset();
 	}
 
@@ -414,6 +426,10 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 		_resources.construct(construction.affinity_space,
 		                     construction.affinity_location,
 		                     construction.priority);
+
+		_debug.construct(construction.monitor,
+		                 construction.wait,
+		                 construction.wx);
 
 		construction.try_apply_blueprint(blueprint);
 

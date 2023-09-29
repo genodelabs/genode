@@ -4,6 +4,8 @@ _/pkg/backdrop
 _/src/report_rom
 _/src/clipboard
 _/src/init
+_/src/monitor
+_/src/terminal_crosslink
 _/src/fs_rom
 _/src/cached_fs_rom
 _/src/fs_report

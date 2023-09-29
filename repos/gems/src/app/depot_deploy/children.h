@@ -159,6 +159,12 @@ class Depot_deploy::Children
 				                     cached_depot_rom, uncached_depot_rom); });
 		}
 
+		void gen_monitor_policy_nodes(Xml_generator &xml) const
+		{
+			_children.for_each([&] (Child const &child) {
+				child.gen_monitor_policy_node(xml); });
+		}
+
 		void gen_queries(Xml_generator &xml) const
 		{
 			_children.for_each([&] (Child const &child) {

@@ -48,6 +48,10 @@ struct Sculpt::Component : Noncopyable
 	                                          affinity_space.height() };
 	Priority priority = Priority::DEFAULT;
 
+	bool monitor { false };
+	bool wait    { false };
+	bool wx      { false };
+
 	struct Blueprint_info
 	{
 		bool known;
@@ -186,6 +190,15 @@ struct Sculpt::Component : Noncopyable
 			xml.attribute("width",  affinity_location.width());
 			xml.attribute("height", affinity_location.height());
 		});
+	}
+
+	void gen_monitor(Xml_generator &xml) const
+	{
+		if (monitor)
+			xml.node("monitor", [&] () {
+				xml.attribute("wait", wait ? "yes" : "no");
+				xml.attribute("wx", wx ? "yes" : "no");
+			});
 	}
 
 	void gen_pd_cpu_route(Xml_generator &xml) const

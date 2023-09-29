@@ -88,8 +88,7 @@ void Popup_dialog::_gen_pkg_elements(Xml_generator &xml,
 	_pd_route.generate(xml);
 
 	if (_resources.constructed()) {
-
-		xml.node("frame", [&] {
+		gen_named_node(xml, "frame", "resources", [&] {
 			xml.node("vbox", [&] () {
 
 				bool const selected = _route_selected("resources");
@@ -103,6 +102,26 @@ void Popup_dialog::_gen_pkg_elements(Xml_generator &xml,
 					                 true, "back");
 
 					_resources->generate(xml);
+				}
+			});
+		});
+	}
+
+	if (_debug.constructed()) {
+		gen_named_node(xml, "frame", "debug", [&] {
+			xml.node("vbox", [&] () {
+
+				bool const selected = _route_selected("debug");
+
+				if (!selected)
+					_gen_route_entry(xml, "debug",
+					                 "Debug options ...", false, "enter");
+
+				if (selected) {
+					_gen_route_entry(xml, "back", "Debug options ...",
+					                 true, "back");
+
+					_debug->generate(xml);
 				}
 			});
 		});
@@ -474,6 +493,22 @@ void Popup_dialog::click(Action &action)
 					if (_resources.constructed())
 						action.apply_to_construction([&] (Component &component) {
 							_resources->click(component); });
+				}
+
+			} else if (_debug_dialog_selected()) {
+
+				bool const clicked_on_different_route = clicked_route.valid()
+				                                     && (clicked_route != "");
+				if (clicked_on_different_route) {
+
+					/* close debug options dialog */
+					_selected_route.construct(clicked_route);
+
+				} else {
+
+					if (_debug.constructed())
+						action.apply_to_construction([&] (Component &component) {
+							_debug->click(component); });
 				}
 
 			} else {

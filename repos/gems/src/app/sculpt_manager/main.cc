@@ -2086,6 +2086,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		gen_parent_service<Gpu::Session>(xml);
 		gen_parent_service<Pin_state::Session>(xml);
 		gen_parent_service<Pin_control::Session>(xml);
+		gen_parent_service<Terminal::Session>(xml);
 	});
 
 	xml.node("affinity-space", [&] () {
