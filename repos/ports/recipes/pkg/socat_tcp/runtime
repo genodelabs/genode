@@ -1,0 +1,23 @@
+<runtime ram="76M" caps="1000" binary="init" config="socat_tcp.config">
+
+	<requires>
+		<timer/>
+		<nic/>
+		<terminal/>
+		<rm/>
+	</requires>
+
+	<content>
+		<rom label="socat_tcp.config"/>
+		<rom label="init"/>
+		<rom label="vfs"/>
+		<rom label="cached_fs_rom"/>
+		<rom label="socat.tar"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_lwip.lib.so"/>
+	</content>
+
+</runtime>
