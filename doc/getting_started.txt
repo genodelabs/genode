@@ -22,7 +22,8 @@ The best starting point for exploring Genode is to run it on Linux. Make sure
 that your system satisfies the following requirements:
 
 * GNU Make version 3.81 or newer
-* 'libSDL-dev'
+* 'libsdl2-dev', 'libdrm-dev', and 'libgbm-dev' (needed to run interactive
+  system scenarios directly on Linux)
 * 'tclsh' and 'expect'
 * 'byacc' (only needed for the L4/Fiasco kernel)
 * 'qemu' and 'xorriso' (for testing non-Linux platforms via Qemu)
