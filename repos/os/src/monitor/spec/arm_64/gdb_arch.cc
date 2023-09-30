@@ -72,11 +72,11 @@ void Monitor::Monitored_thread::_handle_exception()
 			                                      _original_first_instruction);
 		stop_reply_signal = Stop_reply_signal::STOP;
 	} else {
-		switch(thread_state.ec) {
-		case Cpu_state::Cpu_exception::SOFTWARE_STEP:
+		switch(Cpu_state::Esr::Ec::get(thread_state.esr_el1)) {
+		case Cpu_state::Esr::Ec::SOFTWARE_STEP:
 			stop_reply_signal = Stop_reply_signal::TRAP;
 			break;
-		case Cpu_state::Cpu_exception::BREAKPOINT:
+		case Cpu_state::Esr::Ec::BREAKPOINT:
 			stop_reply_signal = Stop_reply_signal::TRAP;
 			break;
 		default:

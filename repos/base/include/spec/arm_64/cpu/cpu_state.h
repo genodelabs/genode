@@ -16,21 +16,28 @@
 
 /* Genode includes */
 #include <base/stdint.h>
+#include <util/register.h>
 
 namespace Genode { struct Cpu_state; }
 
 
 struct Genode::Cpu_state
 {
-	enum Cpu_exception {
-		SOFTWARE_STEP = 0x32,
-		BREAKPOINT    = 0x3c,
+	struct Esr : Genode::Register<64>
+	{
+		struct Ec : Bitfield<26, 6>
+		{
+			enum Exception {
+				SOFTWARE_STEP = 0b110010,
+				BREAKPOINT    = 0b111100,
+			};
+		};
 	};
 
-	addr_t r[31] { 0 }; /* general purpose register 0...30 */
-	addr_t sp    { 0 }; /* stack pointer                   */
-	addr_t ip    { 0 }; /* instruction pointer             */
-	addr_t ec    { 0 }; /* exception class                 */
+	addr_t r[31]   { 0 }; /* general purpose register 0...30 */
+	addr_t sp      { 0 }; /* stack pointer                   */
+	addr_t ip      { 0 }; /* instruction pointer             */
+	addr_t esr_el1 { 0 }; /* exception syndrome              */
 };
 
 #endif /* _INCLUDE__SPEC__ARM_64__CPU__CPU_STATE_H_ */

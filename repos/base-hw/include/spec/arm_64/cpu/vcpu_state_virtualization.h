@@ -38,15 +38,14 @@ struct Genode::Vcpu_state : Genode::Cpu_state
 	Genode::uint64_t exception_type { 0 };
 	Genode::uint64_t esr_el2        { 0 };
 
-	/** Fpu registers **/
-	Genode::uint128_t q[32]         { 0 };
+	/** Fpu registers - q must start at 16-byte aligned offset **/
 	Genode::uint32_t fpcr           { 0 };
 	Genode::uint32_t fpsr           { 0 };
+	Genode::uint128_t q[32]         { 0 };
 
 	Genode::uint64_t elr_el1        { 0 };
 	Genode::uint64_t sp_el1         { 0 };
-	Genode::uint32_t spsr_el1       { 0 };
-	Genode::uint32_t esr_el1        { 0 };
+	Genode::uint64_t spsr_el1       { 0 };
 
 	Genode::uint64_t sctlr_el1      { 0 };
 	Genode::uint64_t actlr_el1      { 0 };
