@@ -1,0 +1,12 @@
+<runtime ram="2M" caps="100" binary="terminal_crosslink">
+
+	<provides> <terminal/> </provides>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="terminal_crosslink"/>
+	</content>
+
+	<config/>
+
+</runtime>
