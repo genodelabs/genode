@@ -39,6 +39,13 @@ struct Main
 	bool apic_capable { false };
 	bool msi_capable  { false };
 
+	/*
+	 * We count beginning from 1 not 0, because some clients (Linux drivers)
+	 * do not ignore the pseudo MSI number announced, but interpret zero as
+	 * invalid.
+	 */
+	unsigned msi_start { 1 };
+
 	List_model<Irq_routing>  irq_routing_list  {};
 	List_model<Irq_override> irq_override_list {};
 	List_model<Rmrr>         reserved_memory_list {};
@@ -455,6 +462,11 @@ void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 				gen.attribute("address", String<20>(Hex(drhd.addr)));
 				gen.attribute("size",    String<20>(Hex(drhd.size)));
 			});
+			gen.node("irq", [&]
+			{
+				gen.attribute("type", "msi");
+				gen.attribute("number", msi_start++);
+			});
 		});
 	});
 }
@@ -462,12 +474,7 @@ void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 
 void Main::parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator)
 {
-	/*
-	 * We count beginning from 1 not 0, because some clients (Linux drivers)
-	 * do not ignore the pseudo MSI number announced, but interpret zero as
-	 * invalid.
-	 */
-	unsigned msi_number      = 1;
+	unsigned msi_number      = msi_start;
 	unsigned host_bridge_num = 0;
 
 	xml.for_each_sub_node("bdf", [&] (Xml_node & xml)
