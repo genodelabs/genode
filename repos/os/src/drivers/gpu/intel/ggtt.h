@@ -154,7 +154,7 @@ class Igd::Ggtt
 			/* make the last entry/page unavailable */
 			_num_entries((_size / 8) - 1),
 			_entries((uint64_t*)_base),
-			_scratch_page(platform, PAGE_SIZE, Genode::UNCACHED),
+			_scratch_page(platform, PAGE_SIZE, Genode::CACHED),
 			_aperture_size(aperture_size),
 			_aperture_entries(_aperture_size / PAGE_SIZE)
 		{
