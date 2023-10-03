@@ -104,15 +104,17 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 
 		if (!irq.shared && !irq.irq.constructed()) {
 			addr_t pci_cfg_addr = 0;
-			if (irq.type != Device::Irq::LEGACY) {
+			if (irq.type != Irq_session::TYPE_LEGACY) {
 				if (_pci_config.constructed()) pci_cfg_addr = _pci_config->addr;
 				else
 					error("MSI(-x) detected for device without pci-config!");
-			}
-			irq.irq.construct(_env, irq.number, irq.mode, irq.polarity,
-			                  pci_cfg_addr);
+
+				irq.irq.construct(_env, irq.number, pci_cfg_addr, irq.type);
+			} else
+				irq.irq.construct(_env, irq.number, irq.mode, irq.polarity);
+
 			Irq_session::Info info = irq.irq->info();
-			if (info.type == Irq_session::Info::MSI)
+			if (pci_cfg_addr && info.type == Irq_session::Info::MSI)
 				pci_msi_enable(_env, *this, pci_cfg_addr, info, irq.type);
 		}
 
@@ -179,7 +181,7 @@ Device_component::Device_component(Registry<Device_component> & registry,
 	try {
 		device.for_each_irq([&] (unsigned              idx,
 		                         unsigned              nr,
-		                         Device::Irq::Type     type,
+		                         Irq_session::Type     type,
 		                         Irq_session::Polarity polarity,
 		                         Irq_session::Trigger  mode,
 		                         bool                  shared)

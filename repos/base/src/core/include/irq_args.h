@@ -29,6 +29,7 @@ class Core::Irq_args
 
 		Irq_session::Trigger  _irq_trigger  { Irq_session::TRIGGER_UNCHANGED };
 		Irq_session::Polarity _irq_polarity { Irq_session::POLARITY_UNCHANGED };
+		Irq_session::Type     _irq_type     { Irq_session::TYPE_LEGACY };
 
 		long const _irq_number;
 
@@ -38,8 +39,9 @@ class Core::Irq_args
 		:
 			_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1))
 		{
-			long irq_trg = Arg_string::find_arg(args, "irq_trigger").long_value(-1);
-			long irq_pol = Arg_string::find_arg(args, "irq_polarity").long_value(-1);
+			long irq_trg  = Arg_string::find_arg(args, "irq_trigger").long_value(-1);
+			long irq_pol  = Arg_string::find_arg(args, "irq_polarity").long_value(-1);
+			long irq_type = Arg_string::find_arg(args, "irq_type").long_value(-1);
 
 			switch (irq_trg) {
 			case -1:
@@ -74,11 +76,29 @@ class Core::Irq_args
 				      _irq_number);
 				throw Service_denied();
 			}
+
+			switch (irq_type) {
+			case -1:
+			case Irq_session::TYPE_LEGACY:
+				_irq_type = Irq_session::TYPE_LEGACY;
+				break;
+			case Irq_session::TYPE_MSI:
+				_irq_type = Irq_session::TYPE_MSI;
+				break;
+			case Irq_session::TYPE_MSIX:
+				_irq_type = Irq_session::TYPE_MSIX;
+				break;
+			default:
+				error("invalid type ", irq_type, " specified for IRQ ",
+				      _irq_number);
+				throw Service_denied();
+			}
 		}
 
 		long                  irq_number() const { return _irq_number; }
 		Irq_session::Trigger  trigger()    const { return _irq_trigger; }
 		Irq_session::Polarity polarity()   const { return _irq_polarity; }
+		Irq_session::Type     type()       const { return _irq_type; }
 };
 
 #endif /* _CORE__INCLUDE__IRQ_ARGS_H_ */

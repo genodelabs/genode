@@ -16,6 +16,7 @@
 
 /* core includes */
 #include <irq_root.h>
+#include <irq_args.h>
 #include <util.h>
 
 using namespace Core;
@@ -126,7 +127,8 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 	_irq_alloc(irq_alloc),
 	_irq_object(_irq_number)
 {
-	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
+	Irq_args irq_args(args);
+	bool msi { irq_args.type() != Irq_session::TYPE_LEGACY };
 	if (msi)
 		throw Service_denied();
 

@@ -193,7 +193,8 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 	_irq_number((unsigned)Arg_string::find_arg(args, "irq_number").long_value(-1)),
 	_irq_alloc(irq_alloc), _irq_object()
 {
-	long const msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
+	Irq_args const irq_args(args);
+	bool msi { irq_args.type() != TYPE_LEGACY };
 
 	if (msi) {
 		if (msi_alloc().get(_irq_number, 1)) {
@@ -207,8 +208,6 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 			throw Service_denied();
 		}
 	}
-
-	Irq_args const irq_args(args);
 
 	if (_irq_object.associate(_irq_number, msi, irq_args.trigger(),
 	                          irq_args.polarity()))

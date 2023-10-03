@@ -32,14 +32,32 @@ struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 	Irq_connection(Env         &env,
 	               Label const &label,
 	               Trigger      trigger  = Irq_session::TRIGGER_UNCHANGED,
-	               Polarity     polarity = Irq_session::POLARITY_UNCHANGED,
-	               addr_t       device_config_phys = 0)
+	               Polarity     polarity = Irq_session::POLARITY_UNCHANGED)
 	:
 		Connection<Irq_session>(env, label, Ram_quota { RAM_QUOTA },
 		                        Args("irq_number=",         label, ", "
 		                             "irq_trigger=",        unsigned(trigger),  ", "
 		                             "irq_polarity=",       unsigned(polarity), ", "
-		                             "device_config_phys=", Hex(device_config_phys))),
+		                             "irq_type=",           unsigned(TYPE_LEGACY))),
+		Irq_session_client(cap())
+	{ }
+
+	/**
+	 * Constructor
+	 *
+	 * \param label              (virtual) interrupt number
+	 * \param device_config_phys config-space physical address
+	 * \param type               interrupt type (e.g., msi/msi-x)
+	 */
+	Irq_connection(Env         &env,
+	               Label const &label,
+	               addr_t       device_config_phys,
+	               Type         type     = Irq_session::TYPE_MSI)
+	:
+		Connection<Irq_session>(env, label, Ram_quota { RAM_QUOTA },
+		                        Args("irq_number=",         label, ", "
+		                             "device_config_phys=", Hex(device_config_phys), ", "
+		                             "irq_type=",           unsigned(type))),
 		Irq_session_client(cap())
 	{ }
 };

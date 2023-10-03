@@ -49,6 +49,11 @@ struct Genode::Irq_session : Session
 	enum Polarity { POLARITY_UNCHANGED = 0, POLARITY_HIGH, POLARITY_LOW };
 
 	/**
+	 * Interrupt type
+	 */
+	enum Type { TYPE_LEGACY = 0, TYPE_MSI, TYPE_MSIX };
+
+	/**
 	 * Destructor
 	 */
 	virtual ~Irq_session() { }

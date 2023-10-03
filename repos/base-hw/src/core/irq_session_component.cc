@@ -69,10 +69,7 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 	_irq_number((unsigned)Platform::irq(_irq_args.irq_number())),
 	_irq_alloc(irq_alloc), _kobj(), _is_msi(false), _address(0), _value(0)
 {
-	long const mmconf =
-		Arg_string::find_arg(args, "device_config_phys").long_value(0);
-
-	if (mmconf) {
+	if (_irq_args.type() != Irq_session::TYPE_LEGACY) {
 		_is_msi = Platform::alloc_msi_vector(_address, _value);
 		if (!_is_msi)
 			throw Service_denied();

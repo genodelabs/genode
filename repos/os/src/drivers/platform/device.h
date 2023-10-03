@@ -97,10 +97,8 @@ class Driver::Device : private List_model<Device>::Element
 
 		struct Irq : List_model<Irq>::Element
 		{
-			enum Type { LEGACY, MSI, MSIX };
-
 			unsigned              number;
-			Type                  type     { LEGACY                          };
+			Irq_session::Type     type     { Irq_session::TYPE_LEGACY        };
 			Irq_session::Polarity polarity { Irq_session::POLARITY_UNCHANGED };
 			Irq_session::Trigger  mode     { Irq_session::TRIGGER_UNCHANGED  };
 			bool                  shared   { false                           };

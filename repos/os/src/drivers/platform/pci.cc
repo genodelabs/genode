@@ -193,13 +193,13 @@ void Driver::pci_msi_enable(Env                   & env,
                             Device_component      & dc,
                             addr_t                  cfg_space,
                             Irq_session::Info const info,
-                            Device::Irq::Type       type)
+                            Irq_session::Type       type)
 {
 	Attached_io_mem_dataspace io_mem { env, cfg_space, 0x1000 };
 	Config config { (addr_t)io_mem.local_addr<void>() };
 	config.scan();
 
-	if (type == Device::Irq::Type::MSIX && config.msi_x_cap.constructed()) {
+	if (type == Irq_session::TYPE_MSIX && config.msi_x_cap.constructed()) {
 		try {
 			/* find the MSI-x table from the device's memory bars */
 			Platform::Device_interface::Range range;
@@ -231,7 +231,7 @@ void Driver::pci_msi_enable(Env                   & env,
 		return;
 	}
 
-	if (type == Device::Irq::Type::MSI &&  config.msi_cap.constructed()) {
+	if (type == Irq_session::TYPE_MSI &&  config.msi_cap.constructed()) {
 		config.msi_cap->enable(info.address, (uint16_t)info.value);
 		return;
 	}

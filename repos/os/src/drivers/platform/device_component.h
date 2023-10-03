@@ -40,7 +40,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		{
 			unsigned                                idx;
 			unsigned                                number;
-			Device::Irq::Type                       type;
+			Irq_session::Type                       type;
 			Irq_session::Polarity                   polarity;
 			Irq_session::Trigger                    mode;
 			bool                                    shared;
@@ -50,7 +50,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 			Irq(Registry<Irq>       & registry,
 			    unsigned              idx,
 			    unsigned              number,
-			    Device::Irq::Type     type,
+			    Irq_session::Type     type,
 			    Irq_session::Polarity polarity,
 			    Irq_session::Trigger  mode,
 			    bool                  shared)
