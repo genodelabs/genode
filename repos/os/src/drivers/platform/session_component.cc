@@ -436,11 +436,11 @@ Session_component::Session_component(Env                          & env,
 
 Session_component::~Session_component()
 {
-	_domain_registry.for_each([&] (Io_mmu_domain & wrapper) {
-		destroy(heap(), &wrapper); });
-
 	_device_registry.for_each([&] (Device_component & dc) {
 		_release_device(dc); });
+
+	_domain_registry.for_each([&] (Io_mmu_domain & wrapper) {
+		destroy(heap(), &wrapper); });
 
 	/* free up dma buffers */
 	_dma_allocator.buffer_registry().for_each([&] (Dma_buffer & buf) {
