@@ -287,6 +287,7 @@ namespace Nova {
 		EC_TIME = 5U,
 		EC_GET_VCPU_STATE = 6U,
 		EC_SET_VCPU_STATE = 7U,
+		EC_MSR_ACCESS = 8U
 	};
 
 	enum Sc_op {
@@ -759,7 +760,7 @@ namespace Nova {
 		 * Calling this function has the side effect of removing all typed
 		 * message items from the message buffer.
 		 */
-		void set_msg_word(unsigned num) { items = num; }
+		void set_msg_word(mword_t const num) { items = num; }
 
 		/**
 		 * Return current number of message word in UTCB

@@ -38,7 +38,8 @@ struct Genode::Cpu_state
 	addr_t trapno = 0;
 
 	enum {
-		ACPI_SUSPEND_REQUEST = 0x100, /* convention for managing_system() */
+		ACPI_SUSPEND_REQUEST = 0x100, /* convention for system_control() */
+		MSR_ACCESS           = 0x101, /* convention for system_control() */
 	};
 };
 
