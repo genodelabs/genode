@@ -24,8 +24,13 @@ struct dma_pool
 
 void * dma_pool_alloc(struct dma_pool * pool, gfp_t mem_flags, dma_addr_t * handle)
 {
+#ifdef CONFIG_X86
+	void * ret =
+		lx_emul_mem_alloc_aligned(pool->size, pool->align);
+#else
 	void * ret =
 		lx_emul_mem_alloc_aligned_uncached(pool->size, pool->align);
+#endif
 	*handle = lx_emul_mem_dma_addr(ret);
 	return ret;
 }

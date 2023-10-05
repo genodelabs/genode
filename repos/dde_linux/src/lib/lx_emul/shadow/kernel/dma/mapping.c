@@ -32,7 +32,11 @@ void * dma_alloc_attrs(struct device * dev,
 	}
 #endif
 
+#ifdef CONFIG_X86
+	addr = lx_emul_mem_alloc_aligned(size, PAGE_SIZE);
+#else
 	addr = lx_emul_mem_alloc_aligned_uncached(size, PAGE_SIZE);
+#endif
 	*dma_handle = lx_emul_mem_dma_addr(addr);
 	return addr;
 }
