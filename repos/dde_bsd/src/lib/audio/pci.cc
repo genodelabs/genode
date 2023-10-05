@@ -46,7 +46,7 @@ class Pci_driver
 
 		Genode::Env          & _env;
 		Platform::Connection   _pci    { _env };
-		Platform::Dma_buffer   _buffer { _pci, DMA_SIZE, Genode::UNCACHED };
+		Platform::Dma_buffer   _buffer { _pci, DMA_SIZE, Genode::CACHED };
 		Genode::Allocator_avl  _alloc;
 
 		struct Device
