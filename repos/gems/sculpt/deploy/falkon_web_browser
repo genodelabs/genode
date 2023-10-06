@@ -73,7 +73,7 @@
 		</route>
 	</start>
 
-	<start name="falkon-jemalloc" priority="-2" pkg="cproc/pkg/falkon-jemalloc/2023-04-21-a">
+	<start name="falkon-jemalloc" priority="-2" pkg="cproc/pkg/falkon-jemalloc/2023-10-05">
 		<route>
 			<service name="Nic">       <child name="nic_router"/>      </service>
 			<service name="Rtc">       <child name="system_clock-pc"/> </service>
