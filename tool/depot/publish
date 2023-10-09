@@ -126,7 +126,8 @@ MISSING_PUBKEY_FILES := $(sort \
                               $(if $(call pubkey_path,$A),,\
                                  $(call pubkey_filename,$A))))
 
-_gpg_sign_target = $(GPG) --detach-sign --digest-algo SHA256 --no-tty --use-agent \
+_gpg_sign_target = $(GPG) --detach-sign --digest-algo SHA256 \
+                          --batch --yes --no-tty --use-agent \
                           --local-user $(call pubkey_id,$*) --output $@ < $< || \
                    ( rm -f $@; false )
 
