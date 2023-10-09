@@ -27,7 +27,6 @@
 #include <os/reporter.h>
 #include <os/session_policy.h>
 #include <platform_session/device.h>
-#include <platform_session/dma_buffer.h>
 #include <root/root.h>
 #include <timer_session/connection.h>
 #include <util/bit_array.h>
@@ -36,6 +35,7 @@
 
 /* local includes */
 #include <util.h>
+#include <dma_buffer.h>
 
 
 namespace {
@@ -514,7 +514,7 @@ struct Nvme::Sqe_io : Nvme::Sqe
 /*
  * Queue base structure
  */
-struct Nvme::Queue : Platform::Dma_buffer
+struct Nvme::Queue : Util::Dma_buffer
 {
 	size_t   len;
 	uint32_t max_entries;
@@ -523,7 +523,7 @@ struct Nvme::Queue : Platform::Dma_buffer
 	      uint32_t               max_entries,
 	      size_t                 len)
 	:
-		Dma_buffer(platform, len * max_entries, UNCACHED),
+		Dma_buffer(platform, len * max_entries),
 		len(len), max_entries(max_entries) {};
 };
 
@@ -812,11 +812,11 @@ class Nvme::Controller : Platform::Device,
 	Constructible<Nvme::Cq> &_admin_cq = _cq[0];
 	Constructible<Nvme::Sq> &_admin_sq = _sq[0];
 
-	Platform::Dma_buffer _nvme_identify { _platform, IDENTIFY_LEN, UNCACHED };
+	Util::Dma_buffer _nvme_identify { _platform, IDENTIFY_LEN };
 
 	Genode::Constructible<Identify_data> _identify_data { };
 
-	Platform::Dma_buffer _nvme_nslist { _platform, IDENTIFY_LEN, UNCACHED };
+	Util::Dma_buffer _nvme_nslist { _platform, IDENTIFY_LEN };
 	uint32_t   _nvme_nslist_count { 0 };
 
 	size_t _mdts_bytes { 0 };
@@ -841,19 +841,19 @@ class Nvme::Controller : Platform::Device,
 		SET_HMB_CID,
 	};
 
-	Constructible<Platform::Dma_buffer> _nvme_query_ns[MAX_NS] { };
+	Constructible<Util::Dma_buffer> _nvme_query_ns[MAX_NS] { };
 
 	struct Hmb_chunk
 	{
 		Registry<Hmb_chunk>::Element _elem;
 
-		Platform::Dma_buffer dma_buffer;
+		Util::Dma_buffer dma_buffer;
 
 		Hmb_chunk(Registry<Hmb_chunk> &registry,
 		          Platform::Connection &platform, size_t size)
 		:
 			_elem { registry, *this },
-			dma_buffer { platform, size, UNCACHED }
+			dma_buffer { platform, size }
 		{ }
 
 		virtual ~Hmb_chunk() { }
@@ -875,7 +875,7 @@ class Nvme::Controller : Platform::Device,
 
 	Heap                                 _hmb_alloc { _env.ram(), _env.rm() };
 	Constructible<Hmb_chunk_registry>    _hmb_chunk_registry { };
-	Constructible<Platform::Dma_buffer>  _hmb_descr_list_buffer { };
+	Constructible<Util::Dma_buffer>      _hmb_descr_list_buffer { };
 
 	Info _info { };
 
@@ -1103,7 +1103,7 @@ class Nvme::Controller : Platform::Device,
 		uint16_t const  id = 0;
 
 		if (!_nvme_query_ns[id].constructed())
-			_nvme_query_ns[id].construct(_platform, IDENTIFY_LEN, UNCACHED);
+			_nvme_query_ns[id].construct(_platform, IDENTIFY_LEN);
 
 		Sqe_identify b(_admin_command(Opcode::IDENTIFY, ns[id], QUERYNS_CID));
 		b.write<Nvme::Sqe::Prp1>(_nvme_query_ns[id]->dma_addr());
@@ -1222,7 +1222,7 @@ class Nvme::Controller : Platform::Device,
 		uint32_t const num_entries = bytes / HMB_CHUNK_SIZE;
 
 		try {
-			_hmb_descr_list_buffer.construct(_platform, HMB_LIST_SIZE, UNCACHED);
+			_hmb_descr_list_buffer.construct(_platform, HMB_LIST_SIZE);
 		} catch (... /* intentional catch-all */) {
 			warning("could not allocate HMB descriptor list page");
 			return;
@@ -1771,14 +1771,13 @@ class Nvme::Driver : Genode::Noncopyable
 		 ** DMA **
 		 *********/
 
-		Constructible<Platform::Dma_buffer> _dma_buffer { };
+		Constructible<Util::Dma_buffer> _dma_buffer { };
 
 		/*
 		 * The PRP (Physical Region Pages) page is used to setup
 		 * large requests.
 		 */
-		Platform::Dma_buffer _prp_list_helper { _platform, Nvme::PRP_DS_SIZE,
-		                                        UNCACHED };
+		Util::Dma_buffer _prp_list_helper { _platform, Nvme::PRP_DS_SIZE };
 
 		/***********
 		 ** Block **
@@ -2162,7 +2161,7 @@ class Nvme::Driver : Genode::Noncopyable
 
 		Dataspace_capability dma_buffer_construct(size_t size)
 		{
-			_dma_buffer.construct(_platform, size, UNCACHED);
+			_dma_buffer.construct(_platform, size);
 			return _dma_buffer->cap();
 		}
 
