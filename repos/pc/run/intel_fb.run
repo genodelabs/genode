@@ -304,7 +304,7 @@ append_if $use_top boot_modules { top }
 build_boot_image $boot_modules
 
 if { [get_cmd_switch --autopilot] } {
-	run_genode_until {\[init -\> init_dynamic -\> intel_fb_drv\] HDMI-A-2:  enable.*} 30
+	run_genode_until {\[init -\> init_dynamic -\> intel_fb_drv\]   HDMI-A-2:  enable.*} 30
 } else {
 	run_genode_until forever
 }

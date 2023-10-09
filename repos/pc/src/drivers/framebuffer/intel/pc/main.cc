@@ -256,12 +256,9 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 		mode.id     = node.attribute_value("mode_id", 0U);
 	});
 
-	mode.preferred = false;
 	with_force([&](unsigned const width, unsigned const height) {
-		mode.preferred = true;
-		mode.width     = width;
-		mode.height    = height;
-		mode.id        = 0;
+		mode.force_width  = width;
+		mode.force_height = height;
 	});
 
 	with_max_enforcement([&](unsigned const width, unsigned const height) {

@@ -59,11 +59,19 @@ static inline bool mode_larger(struct drm_display_mode const * const x,
 }
 
 
-static inline bool conf_smaller_mode(struct genode_mode      const * const g,
-                                     struct drm_display_mode const * const p)
+static inline bool conf_smaller_max_mode(struct genode_mode      const * const g,
+                                         struct drm_display_mode const * const p)
 {
 	return (uint64_t)g->max_width * (uint64_t)g->max_height <
 	       (uint64_t)p->hdisplay  * (uint64_t)p->vdisplay;
+}
+
+
+static inline bool conf_larger_mode(struct genode_mode      const * const g,
+                                    struct drm_display_mode const * const p)
+{
+	return (uint64_t)g->width    * (uint64_t)g->height >
+	       (uint64_t)p->hdisplay * (uint64_t)p->vdisplay;
 }
 
 
@@ -135,18 +143,34 @@ static void preferred_mode(struct drm_device const * const dev,
 		if (mode_id && mode_larger(&smallest, min_mode))
 			*min_mode = smallest;
 
+		if (conf_mode.force_width && conf_mode.force_height) {
+			/*
+			 * Even so the force_* mode is selected, a configured mode for
+			 * a connector is considered, effectively the framebuffer content
+			 * will be shown smaller in the upper corner of the monitor
+			 */
+			if (conf_larger_mode(&conf_mode, min_mode)) {
+				min_mode->hdisplay = conf_mode.width;
+				min_mode->vdisplay = conf_mode.height;
+			}
+
+			/* enforce the force mode */
+			conf_mode.width  = conf_mode.force_width;
+			conf_mode.height = conf_mode.force_height;
+		}
+
 		/* maximal resolution enforcement */
 		if (conf_mode.max_width && conf_mode.max_height) {
 			max_enforcement.hdisplay = conf_mode.max_width;
 			max_enforcement.vdisplay = conf_mode.max_height;
-			if (conf_smaller_mode(&conf_mode, prefer))
+			if (conf_smaller_max_mode(&conf_mode, prefer))
 				continue;
 		}
 
 		if (!conf_mode.width || !conf_mode.height)
 			continue;
 
-		if (!conf_smaller_mode(&conf_mode, prefer)) {
+		if (conf_larger_mode(&conf_mode, prefer)) {
 			prefer->hdisplay = conf_mode.width;
 			prefer->vdisplay = conf_mode.height;
 		}
@@ -232,7 +256,7 @@ static bool reconfigure(struct drm_client_dev * const dev)
 
 	struct drm_display_mode  mode_preferred = {};
 	struct drm_display_mode  mode_minimum   = {};
-	struct drm_display_mode  mode_real      = {};
+	struct drm_display_mode  framebuffer    = {};
 	struct drm_mode_modeinfo user_mode      = {};
 	struct drm_display_mode *mode           = NULL;
 	struct drm_mode_set     *mode_set       = NULL;
@@ -256,22 +280,21 @@ static bool reconfigure(struct drm_client_dev * const dev)
 		mode_preferred        = mode_minimum;
 	}
 
-
 	if (mode_larger(&mode_preferred, &mode_minimum))
-		mode_real = mode_preferred;
+		framebuffer = mode_preferred;
 	else
-		mode_real = mode_minimum;
+		framebuffer = mode_minimum;
 
 	{
 		int const err = check_resize_fb(dev,
 		                                &gem_dumb,
 		                                &dumb_fb,
-		                                mode_real.hdisplay,
-		                                mode_real.vdisplay);
+		                                framebuffer.hdisplay,
+		                                framebuffer.vdisplay);
 
 		if (err) {
 			printk("setting up framebuffer of %ux%u failed - error=%d\n",
-			       mode_real.hdisplay, mode_real.vdisplay, err);
+			       framebuffer.hdisplay, framebuffer.vdisplay, err);
 
 			return true;
 		}
@@ -282,8 +305,8 @@ static bool reconfigure(struct drm_client_dev * const dev)
 		return retry;
 
 	/* prepare fb info for register_framebuffer() evaluated by Genode side */
-	report_fb_info.var.xres         = mode_real.hdisplay;
-	report_fb_info.var.yres         = mode_real.vdisplay;
+	report_fb_info.var.xres         = framebuffer.hdisplay;
+	report_fb_info.var.yres         = framebuffer.vdisplay;
 	report_fb_info.var.xres_virtual = mode_preferred.hdisplay;
 	report_fb_info.var.yres_virtual = mode_preferred.vdisplay;
 
@@ -397,12 +420,14 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			}
 
 			/* diagnostics */
-			printk("%s: %s name='%s' id=%u %ux%u@%u%s",
+			printk("%10s: %s name='%9s' id=%u%s mode=%4ux%4u@%u%s fb=%4ux%4u%s",
 			       connector->name ? connector->name : "unnamed",
 			       conf_mode.enabled ? " enable" : "disable",
 			       mode->name ? mode->name : "noname",
-			       mode_id, mode->hdisplay,
+			       mode_id, mode_id < 10 ? " " : "", mode->hdisplay,
 			       mode->vdisplay, drm_mode_vrefresh(mode),
+			       drm_mode_vrefresh(mode) < 100 ? " ": "",
+			       framebuffer.hdisplay, framebuffer.vdisplay,
 			       (err || no_match) ? "" : "\n");
 
 			if (no_match)
@@ -512,7 +537,7 @@ void lx_emul_i915_iterate_modes(void * lx_data, void * genode_data)
 				.preferred = mode->type & (DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DEFAULT),
 				.hz = drm_mode_vrefresh(mode),
 				.id = mode_id,
-				.enabled = !max_mode || !conf_smaller_mode(&conf_max_mode, mode)
+				.enabled = !max_mode || !conf_smaller_max_mode(&conf_max_mode, mode)
 			};
 
 			static_assert(sizeof(conf_mode.name) == DRM_DISPLAY_MODE_LEN);
