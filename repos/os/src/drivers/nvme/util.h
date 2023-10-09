@@ -21,16 +21,6 @@ namespace Util {
 
 	using namespace Genode;
 
-	/*
-	 * DMA allocator helper
-	 */
-	struct Dma_allocator : Genode::Interface
-	{
-		virtual Ram_dataspace_capability alloc(size_t) = 0;
-		virtual void free(Ram_dataspace_capability) = 0;
-		virtual addr_t dma_addr(Ram_dataspace_capability) = 0;
-	};
-
 	/**
 	 * Extract string from memory
 	 *
