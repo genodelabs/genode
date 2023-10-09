@@ -38,7 +38,7 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 	Expanding_pd_session_client(Parent &parent, Pd_session_capability cap)
 	: Pd_session_client(cap), _parent(parent) { }
 
-	Alloc_result try_alloc(size_t size, Cache cache = UNCACHED) override
+	Alloc_result try_alloc(size_t size, Cache cache) override
 	{
 		/*
 		 * If the PD session runs out of quota, issue a resource request
