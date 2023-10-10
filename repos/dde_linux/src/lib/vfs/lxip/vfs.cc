@@ -95,8 +95,22 @@ unsigned get_addr(char const *p)
 	return (to[0]<<0)|(to[1]<<8)|(to[2]<<16)|(to[3]<<24);
 }
 
+
+long get_family(char const *p)
+{
+	long tmp = -1;
+
+	while (*p) {
+		if (*p == ';') {
+			Genode::ascii_to_unsigned(++p, tmp, 1);
+			break;
+		}
+		p++;
+	}
+	return tmp;
 }
 
+} /* unnamed namespace */
 
 namespace Lxip {
 
@@ -704,16 +718,24 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 			if (!handle.write_content_line(src)) return -1;
 
 			long const port = get_port(handle.content_buffer);
-			if (port == -1) return -1;
+			long const family = get_family(handle.content_buffer);
+			if (port == -1 && family) return -1;
 
 			sockaddr_storage addr_storage;
 
 			sockaddr_in *addr     = (sockaddr_in *)&addr_storage;
 			addr->sin_port        = htons(port);
 			addr->sin_addr.s_addr = get_addr(handle.content_buffer);
-			addr->sin_family      = AF_INET;
+			addr->sin_family      = family == 0 ? AF_UNSPEC : AF_INET;
 
 			_write_err = _sock.ops->connect(&_sock, (sockaddr *)addr, sizeof(addr_storage), O_NONBLOCK);
+
+			if (family == AF_UNSPEC) {
+				_is_connected = false;
+				_connecting   = false;
+				_parent.connect(false);
+				return src.num_bytes;
+			}
 
 			switch (_write_err) {
 			case Lxip::Io_result::LINUX_EINPROGRESS:
@@ -769,6 +791,8 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 				return Format::snprintf(dst.start, dst.num_bytes, "connected");
 			case Linux::ECONNREFUSED:
 				return Format::snprintf(dst.start, dst.num_bytes, "connection refused");
+			case 65: /* Linux::ENOPKG  */
+				return Format::snprintf(dst.start, dst.num_bytes, "package not installed");
 			default:
 				return Format::snprintf(dst.start, dst.num_bytes, "unknown error");
 			}
