@@ -122,7 +122,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 
 		enum Proto { TCP, UDP };
 
-		enum State { UNCONNECTED, ACCEPT_ONLY, CONNECTING, CONNECTED, CONNECT_ABORTED };
+		enum State { UNCONNECTED, ACCEPT_ONLY, CONNECTING, CONNECTED, CONNECT_ABORTED, UNSPEC };
 
 		/* TODO remove */
 		struct Inaccessible { }; /* exception */
@@ -300,6 +300,9 @@ struct Libc::Socket_fs::Context : Plugin_context
 			if (strcmp(connect_status, "not connected") == 0)
 				return Errno(ENOTCONN);
 
+			if (strcmp(connect_status, "package not installed") == 0)
+				return Errno(ENOTSUP);
+
 			error("socket_fs: unhandled connection state");
 			return Errno(ECONNREFUSED);
 		}
@@ -386,7 +389,7 @@ template <int CAPACITY> class Libc::Socket_fs::String
  */
 struct Libc::Socket_fs::Sockaddr_string : String<NI_MAXHOST + NI_MAXSERV>
 {
-	Sockaddr_string() { }
+	Sockaddr_string() {	stpcpy(base(), ";0"); }
 
 	Sockaddr_string(Host_string const &host, Port_string const &port)
 	{
@@ -677,6 +680,10 @@ extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t ad
 
 	switch (addr->sa_family) {
 	case AF_UNSPEC:
+		if (context->state() != Context::CONNECTED)
+			return 0;
+		context->state(Context::UNSPEC); /* reset */
+		break;
 	case AF_INET:
 		break;
 	default:
@@ -684,6 +691,18 @@ extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t ad
 	}
 
 	switch (context->state()) {
+	case Context::UNSPEC:
+		{
+			Sockaddr_string addr_string { };
+			int const len = ::strlen(addr_string.base());
+			int const n   = write(context->connect_fd(), addr_string.base(), len);
+
+			if (n != len) return Errno(ECONNREFUSED);
+			context->state(Context::UNCONNECTED);
+
+			return 0;
+		}
+
 	case Context::UNCONNECTED:
 		{
 			Sockaddr_string addr_string;
