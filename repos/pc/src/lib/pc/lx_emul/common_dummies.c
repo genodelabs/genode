@@ -246,15 +246,6 @@ void seq_vprintf(struct seq_file * m,const char * f,va_list args)
 }
 
 
-#include <linux/property.h>
-
-int software_node_notify(struct device * dev,unsigned long action)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-
 extern void pci_allocate_vc_save_buffers(struct pci_dev * dev);
 void pci_allocate_vc_save_buffers(struct pci_dev * dev)
 {

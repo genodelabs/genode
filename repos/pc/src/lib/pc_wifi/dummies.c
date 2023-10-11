@@ -581,3 +581,12 @@ char * strreplace(char * s,char old,char new)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/property.h>
+
+int software_node_notify(struct device * dev,unsigned long action)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}

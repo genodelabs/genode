@@ -397,3 +397,11 @@ void dst_release(struct dst_entry * dst)
 {
 	lx_emul_trace(__func__);
 }
+
+#include <linux/property.h>
+
+int software_node_notify(struct device * dev,unsigned long action)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}

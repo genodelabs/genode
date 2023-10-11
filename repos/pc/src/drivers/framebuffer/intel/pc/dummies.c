@@ -776,3 +776,12 @@ int __register_chrdev(unsigned int major,unsigned int baseminor,unsigned int cou
 	lx_emul_trace(__func__);
 	return 0;
 }
+
+
+#include <linux/property.h>
+
+int software_node_notify(struct device * dev,unsigned long action)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
