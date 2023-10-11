@@ -1,0 +1,122 @@
+assert_spec x86
+
+set build_components {
+	drivers/nic/pc
+}
+
+build $build_components
+
+create_boot_directory
+
+import_from_depot \
+	[depot_user]/src/[base_src] \
+	[depot_user]/src/report_rom \
+	[depot_user]/src/init \
+	[depot_user]/src/acpi_drv \
+	[depot_user]/src/pci_decode \
+	[depot_user]/src/platform_drv \
+	[depot_user]/src/nic_router \
+	[depot_user]/src/pc_nic_drv
+
+append config {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="CPU"/>
+		<service name="ROM"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="RM"/>
+	</parent-provides>
+
+	<default caps="100"/>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer" priority="0">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="drivers_reports" caps="100">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Report"/>
+			<service name="ROM"/>
+		</provides>
+		<config verbose="no">
+			<policy label="pci_decode -> system" report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+	</start>
+
+	<start name="acpi_drv" caps="350">
+		<resource name="RAM" quantum="6M"/>
+		<route>
+			<service name="Report"> <child name="drivers_reports"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="ROM" label="system"> <child name="drivers_reports"/> </service>
+			<service name="Report"> <child name="drivers_reports"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="400" managing_system="yes">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Platform"/>
+		</provides>
+		<config>
+			<report devices="yes"/>
+			<policy label_prefix="pc_nic_drv" info="yes"> <pci class="ETHERNET"/> </policy>
+		</config>
+		<route>
+			<service name="ROM" label="devices"> <child name="drivers_reports"/> </service>
+			<service name="Report"> <child name="drivers_reports"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="pc_nic_drv" priority="-1" caps="120">
+		<resource name="RAM" quantum="16M"/>
+		<config ld_verbose="yes"/>
+	</start>
+
+	<start name="nic_router" caps="150">
+		<resource name="RAM" quantum="8M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Uplink"/>
+		</provides>
+		<config verbose="no" verbose_domain_state="yes" dhcp_discover_timeout_sec="10" dhcp_request_timeout_sec="6">
+
+			<policy label_prefix="pc_nic_drv" domain="uplink"/>
+
+			<domain name="uplink" verbose_packets="no" verbose_packet_drop="no" icmp_echo_server="yes">
+
+			</domain>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -nographic "
+
+run_genode_until forever
+
+# vi: set ft=tcl :
