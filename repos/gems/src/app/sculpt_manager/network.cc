@@ -133,7 +133,9 @@ void Sculpt::Network::_handle_wlan_accesspoints()
 		[&] (Xml_node const &node) -> Access_point &
 		{
 			auto const protection = node.attribute_value("protection", String<16>());
-			bool const use_protection = protection == "WPA" || protection == "WPA2";
+			bool const use_protection = protection == "WPA"  ||
+			                            protection == "WPA2" ||
+			                            protection == "WPA3";
 
 			return *new (_alloc)
 				Access_point(node.attribute_value("bssid", Access_point::Bssid()),
