@@ -797,6 +797,22 @@ class Lima::Call
 
 				_gpu_context_space.apply<Gpu_context>(ctx_id, [&] (Gpu_context &gc) {
 
+					/* XXX always map buffer id 1 to prevent GP MMU faults */
+					{
+						uint32_t const handle = 1;
+						Buffer_space::Id const id = { .value = handle };
+						if (!gc.buffer_space_contains(id)) {
+
+							(void)_apply_handle(handle, [&] (Gpu::Vram const &v) {
+								Gpu::Vram_capability cap = _main_ctx->export_vram(v.id());
+								if (gc.import_vram(cap, v) == nullptr) {
+									Genode::error("could force mapping of buffer ", handle);
+									return;
+								}
+							});
+						}
+					}
+
 					/*
 					 * Check if we have access to all needed buffer objects and
 					 * if not import them from the main context that normaly performs
