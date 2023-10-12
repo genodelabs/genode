@@ -151,13 +151,36 @@ int pci_read_config_word(const struct pci_dev *dev, int where, u16 *val)
 	};
 
 	printk("%s: unexpected read at %x\n", __func__, where);
-	return -1;
+	PCI_SET_ERROR_RESPONSE(val);;
+	return PCIBIOS_FUNC_NOT_SUPPORTED;
 }
 
 int pcie_capability_read_word(struct pci_dev *dev, int pos, u16 *val)
 {
-	printk("%s: unexpected read at %x\n", __func__, pos);
-	return -1;
+	printk("%s: unsupported pos=%x\n", __func__, pos);
+	PCI_SET_ERROR_RESPONSE(val);;
+	return PCIBIOS_FUNC_NOT_SUPPORTED;
+}
+
+
+int pcie_capability_write_word(struct pci_dev * dev, int pos, u16 val)
+{
+	printk("%s: unsupported pos=%x\n", __func__, pos);
+	return PCIBIOS_FUNC_NOT_SUPPORTED;
+}
+
+
+int pcie_capability_clear_and_set_word(struct pci_dev *dev, int pos, u16 clear, u16 set)
+{
+	printk("%s: unsupported pos=%x\n", __func__, pos);
+	return PCIBIOS_FUNC_NOT_SUPPORTED;
+}
+
+
+int pcie_set_readrq(struct pci_dev * dev, int rq)
+{
+	printk("%s: unsupported rq=%d\n", __func__, rq);
+	return pcibios_err_to_errno(PCIBIOS_FUNC_NOT_SUPPORTED);
 }
 
 

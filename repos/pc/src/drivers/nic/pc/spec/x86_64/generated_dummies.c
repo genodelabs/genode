@@ -661,30 +661,6 @@ int pci_write_config_byte(const struct pci_dev * dev,int where,u8 val)
 
 #include <linux/pci.h>
 
-int pcie_capability_clear_and_set_word(struct pci_dev * dev,int pos,u16 clear,u16 set)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/pci.h>
-
-int pcie_capability_write_word(struct pci_dev * dev,int pos,u16 val)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/pci.h>
-
-int pcie_set_readrq(struct pci_dev * dev,int rq)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/pci.h>
-
 int pcix_get_mmrbc(struct pci_dev * dev)
 {
 	lx_emul_trace_and_stop(__func__);
