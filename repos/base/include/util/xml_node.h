@@ -1041,10 +1041,14 @@ class Genode::Xml_node
 		/**
 		 * Return true if this node differs from 'another'
 		 */
-		bool differs_from(Xml_node const &another) const
+		bool differs_from(Xml_node const &other) const
 		{
-			return size() != another.size() ||
-			       memcmp(_addr, another._addr, size()) != 0;
+			bool result = false;
+			other.with_raw_node([&] (char const * const other_start, size_t other_len) {
+				with_raw_node([&] (char const * const start, size_t len) {
+					result = (len != other_len)
+					      || (memcmp(start, other_start, len) != 0); }); });
+			return result;
 		}
 };
 
