@@ -709,15 +709,8 @@ struct Sculpt::Main : Input_event_handler,
 		/* remove popup dialog when clicking somewhere outside */
 		if (!popup_dialog_clicked && !_popup_menu_view._hovered && !popup_opened) {
 			if (_popup.state == Popup::VISIBLE) {
-				_popup.state = Popup::OFF;
-				_popup_dialog.reset();
+				_close_popup_dialog();
 				discard_construction();
-
-				/* de-select '+' button */
-				_graph_view.refresh();
-
-				/* remove popup window from window layout */
-				_handle_window_layout();
 			}
 		}
 
@@ -1243,6 +1236,9 @@ struct Sculpt::Main : Input_event_handler,
 		/* close popup menu */
 		_popup.state = Popup::OFF;
 		_popup_dialog.reset();
+		_popup_menu_view.generate();
+
+		/* remove popup window from window layout */
 		_handle_window_layout();
 
 		/* reset state of the '+' button */
