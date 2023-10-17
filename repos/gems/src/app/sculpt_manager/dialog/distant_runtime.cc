@@ -93,7 +93,10 @@ void Distant_runtime::route_input_event(Event::Seq_number seq_number, Input::Eve
 	if (event.absolute_motion()) _hover_observable_without_click = true;
 	if (event.touch())           _hover_observable_without_click = false;
 
-	if (click(event) && !_click_seq_number.constructed()) {
+	bool const new_click_seq = !_click_seq_number.constructed()
+	                         || _click_seq_number->value != _global_seq_number.value;
+
+	if (click(event) && new_click_seq) {
 		_click_seq_number.construct(_global_seq_number);
 		_click_delivered = false;
 	}
@@ -101,7 +104,8 @@ void Distant_runtime::route_input_event(Event::Seq_number seq_number, Input::Eve
 	if (clack(event))
 		_clack_seq_number.construct(_global_seq_number);
 
-	_try_handle_click_and_clack();
+	if (click(event) || clack(event))
+		_try_handle_click_and_clack();
 }
 
 

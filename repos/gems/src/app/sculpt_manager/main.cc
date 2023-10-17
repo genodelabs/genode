@@ -677,47 +677,52 @@ struct Sculpt::Main : Input_event_handler,
 		/* used to detect clicks outside the popup dialog (for closing it) */
 		bool       popup_dialog_clicked = false;
 		bool const popup_opened = (_popup_opened_seq_number.value == seq.value);
+		bool       click_consumed = false;
 
 		if (_popup_menu_view.hovered(seq)) {
 			_popup_dialog.click(*this);
+			click_consumed = true;
 			_popup_menu_view.generate();
-			_clicked_seq_number.destruct();
 			popup_dialog_clicked = true;
 		}
 		else if (_settings_menu_view.hovered(seq)) {
 			_settings_dialog.click(*this);
+			click_consumed = true;
 			_settings_menu_view.generate();
-			_clicked_seq_number.destruct();
 		}
 		else if (_system_menu_view.hovered(seq)) {
 			_system_dialog.click();
+			click_consumed = true;
 			_system_menu_view.generate();
-			_clicked_seq_number.destruct();
 		}
 		else if (_network_menu_view.hovered(seq)) {
 			_network.dialog.click(_network);
+			click_consumed = true;
 			_network_menu_view.generate();
-			_clicked_seq_number.destruct();
 		}
 		else if (_file_browser_menu_view.hovered(seq)) {
 			_file_browser_dialog.click(*this);
+			click_consumed = true;
 			_file_browser_menu_view.generate();
-			_clicked_seq_number.destruct();
 		}
 
 		/* remove popup dialog when clicking somewhere outside */
 		if (!popup_dialog_clicked && !_popup_menu_view._hovered && !popup_opened) {
-			_popup.state = Popup::OFF;
-			_popup_dialog.reset();
-			discard_construction();
+			if (_popup.state == Popup::VISIBLE) {
+				_popup.state = Popup::OFF;
+				_popup_dialog.reset();
+				discard_construction();
 
-			/* de-select '+' button */
-			_graph_view.refresh();
+				/* de-select '+' button */
+				_graph_view.refresh();
 
-			/* remove popup window from window layout */
-			_handle_window_layout();
-			_clicked_seq_number.destruct();
+				/* remove popup window from window layout */
+				_handle_window_layout();
+			}
 		}
+
+		if (click_consumed)
+			_clicked_seq_number.destruct();
 	}
 
 	void _try_handle_clack()
@@ -911,7 +916,9 @@ struct Sculpt::Main : Input_event_handler,
 		if (_popup.state == Popup::VISIBLE)
 			return;
 
-		_popup_opened_seq_number = _global_input_seq_number;
+		if (_clicked_seq_number.constructed())
+			_popup_opened_seq_number = *_clicked_seq_number;
+
 		_popup_menu_view.generate();
 		_popup.anchor = anchor;
 		_popup.state = Popup::VISIBLE;
