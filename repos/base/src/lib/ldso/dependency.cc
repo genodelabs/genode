@@ -84,6 +84,16 @@ void Linker::Dependency::preload(Env &env, Allocator &alloc,
 void Linker::Dependency::load_needed(Env &env, Allocator &md_alloc,
                                      Fifo<Dependency> &deps, Keep keep)
 {
+	/*
+	 * Load 'posix.lib.so' first, if it is a dependency, to satisfy
+	 * the invariant of the libc fork/execve mechanism that this
+	 * library and its dependencies are always loaded in the same
+	 * order.
+	 */
+	_obj.dynamic().for_each_dependency([&] (char const *path) {
+		if (strcmp(path, "posix.lib.so") == 0)
+			_load(env, md_alloc, path, deps, keep); });
+
 	_obj.dynamic().for_each_dependency([&] (char const *path) {
 		_load(env, md_alloc, path, deps, keep); });
 }
