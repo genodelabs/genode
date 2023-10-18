@@ -173,19 +173,23 @@ void Resource_dialog::_gen_priority_section(Xml_generator &xml) const
 
 void Resource_dialog::click(Component &component)
 {
-	if (component.affinity_space.total() <= 1)
-		return;
-
-	Hoverable_item::Id const clicked_space = _space_item._hovered;
-	if (clicked_space.valid()) {
-		_click_space(component, clicked_space);
-		return;
+	if (component.affinity_space.total() > 1) {
+		Hoverable_item::Id const clicked_space = _space_item._hovered;
+		if (clicked_space.valid()) {
+			_click_space(component, clicked_space);
+			return;
+		}
 	}
 
 	Hoverable_item::Id const clicked_priority = _priority_item._hovered;
 	if (clicked_priority.valid()) {
 		_click_priority(component, clicked_priority);
 		return;
+	}
+
+	if (_option_item.hovered("system_control")) {
+		_system_control = !_system_control;
+		component.system_control = _system_control;
 	}
 }
 

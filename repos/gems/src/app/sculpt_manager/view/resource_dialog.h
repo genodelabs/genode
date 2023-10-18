@@ -34,6 +34,9 @@ struct Sculpt::Resource_dialog : Noncopyable, Deprecated_dialog
 	Affinity::Location    _location;
 	Hoverable_item        _space_item { };
 	Selectable_item       _priority_item { };
+	Hoverable_item        _option_item { };
+
+	bool _system_control = false;
 
 	static char const *_priority_id(Priority priority)
 	{
@@ -72,7 +75,9 @@ struct Sculpt::Resource_dialog : Noncopyable, Deprecated_dialog
 			),
 			_priority_item.match(hover,
 			                     "vbox", "float", "hbox",     /* _gen_dialog_section */
-			                     "vbox", "hbox", "float", "hbox", "name"));
+			                     "vbox", "hbox", "float", "hbox", "name"),
+			_option_item.match(hover, "vbox", "hbox", "name")
+		);
 	}
 
 	void click(Component &);
@@ -122,6 +127,38 @@ struct Sculpt::Resource_dialog : Noncopyable, Deprecated_dialog
 		});
 	}
 
+	void _gen_option(Xml_generator &xml, auto const &name, auto const &text, bool selected) const
+	{
+		gen_named_node(xml, "hbox", name, [&] () {
+
+			gen_named_node(xml, "float", "left", [&] () {
+				xml.attribute("west", "yes");
+
+				xml.node("hbox", [&] () {
+
+					/* align with the "Resource assignment ..." dialog */
+					gen_named_node(xml, "button", "left", [&] () {
+						xml.attribute("style", "invisible");
+						xml.node("hbox", [&] () { }); });
+
+					gen_named_node(xml, "button", "button", [&] () {
+
+						if (selected)
+							xml.attribute("selected", "yes");
+
+						xml.attribute("style", "checkbox");
+						_option_item.gen_hovered_attr(xml, name);
+						xml.node("hbox", [&] () { });
+					});
+					gen_named_node(xml, "label", "name", [&] () {
+						xml.attribute("text", Path(" ", text)); });
+				});
+			});
+
+			gen_named_node(xml, "hbox", "right", [&] () { });
+		});
+	}
+
 	void generate(Xml_generator &xml) const override
 	{
 		auto gen_vspacer = [&] (auto id) {
@@ -135,6 +172,8 @@ struct Sculpt::Resource_dialog : Noncopyable, Deprecated_dialog
 			gen_vspacer("spacer2");
 			_gen_priority_section(xml);
 			gen_vspacer("spacer3");
+			_gen_option(xml, "system_control", "System control", _system_control);
+			gen_vspacer("spacer4");
 		});
 	}
 
@@ -143,6 +182,8 @@ struct Sculpt::Resource_dialog : Noncopyable, Deprecated_dialog
 		_space_item._hovered = Hoverable_item::Id();
 		_priority_item.reset();
 		_location = Affinity::Location();
+		_system_control = false;
+		_option_item._hovered = Hoverable_item::Id();
 	}
 };
 

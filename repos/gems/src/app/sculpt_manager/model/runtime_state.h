@@ -183,8 +183,8 @@ class Sculpt::Runtime_state : public Runtime_info
 						xml.attribute("pkg", construction->path);
 
 						construction->gen_priority(xml);
+						construction->gen_system_control(xml);
 						construction->gen_affinity(xml);
-
 						construction->gen_monitor(xml);
 
 						xml.node("route", [&] () {

@@ -48,9 +48,10 @@ struct Sculpt::Component : Noncopyable
 	                                          affinity_space.height() };
 	Priority priority = Priority::DEFAULT;
 
-	bool monitor { false };
-	bool wait    { false };
-	bool wx      { false };
+	bool monitor        { false };
+	bool wait           { false };
+	bool wx             { false };
+	bool system_control { false };
 
 	struct Blueprint_info
 	{
@@ -173,6 +174,12 @@ struct Sculpt::Component : Noncopyable
 	void gen_priority(Xml_generator &xml) const
 	{
 		xml.attribute("priority", (int)priority);
+	}
+
+	void gen_system_control(Xml_generator &xml) const
+	{
+		if (system_control)
+			xml.attribute("managing_system", "yes");
 	}
 
 	void gen_affinity(Xml_generator &xml) const
