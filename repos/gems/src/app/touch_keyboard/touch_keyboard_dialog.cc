@@ -53,11 +53,6 @@ void Dialog::produce_xml(Xml_generator &xml)
 					});
 				});
 			});
-			xml.node("label", [&] () {
-				xml.attribute("name", "spacer");
-				xml.attribute("font", "annotation/regular");
-				xml.attribute("text", "");
-			});
 		});
 	};
 

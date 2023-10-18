@@ -313,7 +313,6 @@ struct Touch_keyboard::Main : Sandbox::Local_service_base::Wakeup,
 		_layout.sigh(_config_handler);
 		_handle_config();
 		_update_sandbox_config();
-		log("Customized touch_keyboard_dialog opaque=", _opaque);
 	}
 };
 
