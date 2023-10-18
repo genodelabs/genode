@@ -5,6 +5,17 @@ QT5_PORT_LIBS += libQt5Qml libQt5QmlModels libQt5Quick
 
 LIBS = libc libm mesa stdcxx $(QT5_PORT_LIBS)
 
+INSTALL_LIBS = lib/libQt5QuickControls2.lib.so \
+               lib/libQt5QuickTemplates2.lib.so \
+               qml/Qt/labs/calendar/libqtlabscalendarplugin.lib.so \
+               qml/Qt/labs/platform/libqtlabsplatformplugin.lib.so \
+               qml/QtQuick/Controls.2/libqtquickcontrols2plugin.lib.so \
+               qml/QtQuick/Controls.2/Fusion/libqtquickcontrols2fusionstyleplugin.lib.so \
+               qml/QtQuick/Controls.2/Imagine/libqtquickcontrols2imaginestyleplugin.lib.so \
+               qml/QtQuick/Controls.2/Material/libqtquickcontrols2materialstyleplugin.lib.so \
+               qml/QtQuick/Controls.2/Universal/libqtquickcontrols2universalstyleplugin.lib.so \
+               qml/QtQuick/Templates.2/libqtquicktemplates2plugin.lib.so
+
 built.tag: qmake_prepared.tag
 
 	@#
@@ -31,68 +42,18 @@ built.tag: qmake_prepared.tag
 	$(VERBOSE)ln -sf .$(CURDIR)/qmake_root install/qt
 
 	@#
-	@# create stripped versions
+	@# strip libs and create symlinks in 'bin' and 'debug' directories
 	@#
 
-	$(VERBOSE)cd $(CURDIR)/install/qt/lib && \
-		$(STRIP) libQt5QuickControls2.lib.so -o libQt5QuickControls2.lib.so.stripped && \
-		$(STRIP) libQt5QuickTemplates2.lib.so -o libQt5QuickTemplates2.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/Qt/labs/calendar && \
-		$(STRIP) libqtlabscalendarplugin.lib.so -o libqtlabscalendarplugin.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/Qt/labs/platform && \
-		$(STRIP) libqtlabsplatformplugin.lib.so -o libqtlabsplatformplugin.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Controls.2 && \
-		$(STRIP) libqtquickcontrols2plugin.lib.so -o libqtquickcontrols2plugin.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Fusion && \
-		$(STRIP) libqtquickcontrols2fusionstyleplugin.lib.so -o libqtquickcontrols2fusionstyleplugin.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Imagine && \
-		$(STRIP) libqtquickcontrols2imaginestyleplugin.lib.so -o libqtquickcontrols2imaginestyleplugin.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Material && \
-		$(STRIP) libqtquickcontrols2materialstyleplugin.lib.so -o libqtquickcontrols2materialstyleplugin.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Universal && \
-		$(STRIP) libqtquickcontrols2universalstyleplugin.lib.so -o libqtquickcontrols2universalstyleplugin.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/qml/QtQuick/Templates.2 && \
-		$(STRIP) libqtquicktemplates2plugin.lib.so -o libqtquicktemplates2plugin.lib.so.stripped
-
-	@#
-	@# create symlinks in 'bin' directory
-	@#
-
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5QuickControls2.lib.so.stripped $(PWD)/bin/libQt5QuickControls2.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5QuickTemplates2.lib.so.stripped $(PWD)/bin/libQt5QuickTemplates2.lib.so
-
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/Qt/labs/calendar/libqtlabscalendarplugin.lib.so.stripped $(PWD)/bin/libqtlabscalendarplugin.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/Qt/labs/platform/libqtlabsplatformplugin.lib.so.stripped $(PWD)/bin/libqtlabsplatformplugin.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/libqtquickcontrols2plugin.lib.so.stripped $(PWD)/bin/libqtquickcontrols2plugin.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Fusion/libqtquickcontrols2fusionstyleplugin.lib.so.stripped $(PWD)/bin/libqtquickcontrols2fusionstyleplugin.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Imagine/libqtquickcontrols2imaginestyleplugin.lib.so.stripped $(PWD)/bin/libqtquickcontrols2imaginestyleplugin.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Material/libqtquickcontrols2materialstyleplugin.lib.so.stripped $(PWD)/bin/libqtquickcontrols2materialstyleplugin.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Universal/libqtquickcontrols2universalstyleplugin.lib.so.stripped $(PWD)/bin/libqtquickcontrols2universalstyleplugin.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Templates.2/libqtquicktemplates2plugin.lib.so.stripped $(PWD)/bin/libqtquicktemplates2plugin.lib.so
-
-	@#
-	@# create symlinks in 'debug' directory
-	@#
-
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5QuickControls2.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5QuickTemplates2.lib.so $(PWD)/debug/
-
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/Qt/labs/calendar/libqtlabscalendarplugin.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/Qt/labs/platform/libqtlabsplatformplugin.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/libqtquickcontrols2plugin.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Fusion/libqtquickcontrols2fusionstyleplugin.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Imagine/libqtquickcontrols2imaginestyleplugin.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Material/libqtquickcontrols2materialstyleplugin.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Controls.2/Universal/libqtquickcontrols2universalstyleplugin.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/qml/QtQuick/Templates.2/libqtquicktemplates2plugin.lib.so $(PWD)/debug/
+	for LIB in $(INSTALL_LIBS); do \
+		cd $(CURDIR)/install/qt/$$(dirname $${LIB}) && \
+			$(OBJCOPY) --only-keep-debug $$(basename $${LIB}) $$(basename $${LIB}).debug && \
+			$(STRIP) $$(basename $${LIB}) -o $$(basename $${LIB}).stripped && \
+			$(OBJCOPY) --add-gnu-debuglink=$$(basename $${LIB}).debug $$(basename $${LIB}); \
+		ln -sf $(CURDIR)/install/qt/$${LIB}.stripped $(PWD)/bin/$$(basename $${LIB}); \
+		ln -sf $(CURDIR)/install/qt/$${LIB}.stripped $(PWD)/debug/$$(basename $${LIB}); \
+		ln -sf $(CURDIR)/install/qt/$${LIB}.debug $(PWD)/debug/; \
+	done
 
 	@#
 	@# create tar archives

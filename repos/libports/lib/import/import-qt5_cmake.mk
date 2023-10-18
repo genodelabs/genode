@@ -197,9 +197,12 @@ ifneq ($(findstring install/,$(CMAKE_TARGET_BINARIES)),)
 endif
 
 	$(VERBOSE)for cmake_target_binary in $(CMAKE_TARGET_BINARIES); do \
+		$(OBJCOPY) --only-keep-debug  $${cmake_target_binary} $${cmake_target_binary}.debug; \
 		$(STRIP) $${cmake_target_binary} -o $${cmake_target_binary}.stripped; \
+		$(OBJCOPY) --add-gnu-debuglink=$${cmake_target_binary}.debug $${cmake_target_binary}.stripped; \
 		ln -sf $(CURDIR)/$${cmake_target_binary}.stripped $(PWD)/bin/`basename $${cmake_target_binary}`; \
-		ln -sf $(CURDIR)/$${cmake_target_binary} $(PWD)/debug/; \
+		ln -sf $(CURDIR)/$${cmake_target_binary}.stripped $(PWD)/debug/`basename $${cmake_target_binary}`; \
+		ln -sf $(CURDIR)/$${cmake_target_binary}.debug $(PWD)/debug/; \
 	done
 
 #

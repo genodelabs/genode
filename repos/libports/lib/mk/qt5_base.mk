@@ -2,6 +2,18 @@ include $(call select_from_repositories,lib/import/import-qt5_qmake.mk)
 
 LIBS = base libc libm stdcxx qt5_component egl mesa qoost
 
+INSTALL_LIBS = lib/libQt5Core.lib.so \
+               lib/libQt5Gui.lib.so \
+               lib/libQt5Network.lib.so \
+               lib/libQt5PrintSupport.lib.so \
+               lib/libQt5Sql.lib.so \
+               lib/libQt5Test.lib.so \
+               lib/libQt5Widgets.lib.so \
+               lib/libQt5Xml.lib.so \
+               plugins/platforms/libqgenode.lib.so \
+               plugins/imageformats/libqjpeg.lib.so \
+               plugins/sqldrivers/libqsqlite.lib.so
+
 built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 
 	@#
@@ -44,59 +56,18 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 	$(VERBOSE) ln -sf .$(CURDIR)/qmake_root install/qt
 
 	@#
-	@# create stripped versions
+	@# strip libs and create symlinks in 'bin' and 'debug' directories
 	@#
 
-	$(VERBOSE)cd $(CURDIR)/install/qt/lib && \
-		$(STRIP) libQt5Core.lib.so -o libQt5Core.lib.so.stripped && \
-		$(STRIP) libQt5Gui.lib.so -o libQt5Gui.lib.so.stripped && \
-		$(STRIP) libQt5Network.lib.so -o libQt5Network.lib.so.stripped && \
-		$(STRIP) libQt5PrintSupport.lib.so -o libQt5PrintSupport.lib.so.stripped && \
-		$(STRIP) libQt5Sql.lib.so -o libQt5Sql.lib.so.stripped && \
-		$(STRIP) libQt5Test.lib.so -o libQt5Test.lib.so.stripped && \
-		$(STRIP) libQt5Widgets.lib.so -o libQt5Widgets.lib.so.stripped && \
-		$(STRIP) libQt5Xml.lib.so -o libQt5Xml.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/plugins/platforms && \
-		$(STRIP) libqgenode.lib.so -o libqgenode.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/plugins/imageformats && \
-		$(STRIP) libqjpeg.lib.so -o libqjpeg.lib.so.stripped
-
-	$(VERBOSE)cd $(CURDIR)/install/qt/plugins/sqldrivers && \
-		$(STRIP) libqsqlite.lib.so -o libqsqlite.lib.so.stripped
-
-	@#
-	@# create symlinks in 'bin' directory
-	@#
-
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Core.lib.so.stripped $(PWD)/bin/libQt5Core.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Gui.lib.so.stripped $(PWD)/bin/libQt5Gui.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Network.lib.so.stripped $(PWD)/bin/libQt5Network.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5PrintSupport.lib.so.stripped $(PWD)/bin/libQt5PrintSupport.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Sql.lib.so.stripped $(PWD)/bin/libQt5Sql.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Test.lib.so.stripped $(PWD)/bin/libQt5Test.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Widgets.lib.so.stripped $(PWD)/bin/libQt5Widgets.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Xml.lib.so.stripped $(PWD)/bin/libQt5Xml.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/platforms/libqgenode.lib.so.stripped $(PWD)/bin/libqgenode.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/imageformats/libqjpeg.lib.so.stripped $(PWD)/bin/libqjpeg.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/sqldrivers/libqsqlite.lib.so.stripped $(PWD)/bin/libqsqlite.lib.so
-
-	@#
-	@# create symlinks in 'debug' directory
-	@#
-
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Core.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Gui.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Network.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5PrintSupport.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Sql.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Test.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Widgets.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/lib/libQt5Xml.lib.so $(PWD)/debug/
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/platforms/libqgenode.lib.so $(PWD)/debug/libqgenode.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/imageformats/libqjpeg.lib.so $(PWD)/debug/libqjpeg.lib.so
-	$(VERBOSE)ln -sf $(CURDIR)/install/qt/plugins/sqldrivers/libqsqlite.lib.so $(PWD)/debug/libqsqlite.lib.so
+	for LIB in $(INSTALL_LIBS); do \
+		cd $(CURDIR)/install/qt/$$(dirname $${LIB}) && \
+			$(OBJCOPY) --only-keep-debug $$(basename $${LIB}) $$(basename $${LIB}).debug && \
+			$(STRIP) $$(basename $${LIB}) -o $$(basename $${LIB}).stripped && \
+			$(OBJCOPY) --add-gnu-debuglink=$$(basename $${LIB}).debug $$(basename $${LIB}); \
+		ln -sf $(CURDIR)/install/qt/$${LIB}.stripped $(PWD)/bin/$$(basename $${LIB}); \
+		ln -sf $(CURDIR)/install/qt/$${LIB}.stripped $(PWD)/debug/$$(basename $${LIB}); \
+		ln -sf $(CURDIR)/install/qt/$${LIB}.debug $(PWD)/debug/; \
+	done
 
 	@#
 	@# create tar archives

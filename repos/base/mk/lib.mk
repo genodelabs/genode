@@ -131,9 +131,11 @@ include $(BASE_DIR)/mk/generic.mk
 #
 ifdef SHARED_LIB
  ifneq ($(sort $(OBJECTS) $(LIBS)),)
-  LIB_SO     := $(addsuffix .lib.so,$(LIB))
-  INSTALL_SO := $(INSTALL_DIR)/$(LIB_SO)
-  DEBUG_SO   := $(DEBUG_DIR)/$(LIB_SO)
+  LIB_SO         := $(addsuffix .lib.so,$(LIB))
+  INSTALL_SO     := $(INSTALL_DIR)/$(LIB_SO)
+  DEBUG_SO       := $(DEBUG_DIR)/$(LIB_SO)
+  LIB_SO_DEBUG   := $(LIB_SO).debug
+  DEBUG_SO_DEBUG := $(DEBUG_SO).debug
  endif
 else
 LIB_A := $(addsuffix .lib.a,$(LIB))
@@ -170,7 +172,7 @@ $(LIB_TAG) $(OBJECTS): $(HOST_TOOLS)
 #
 $(LIB_TAG): $(CUSTOM_TARGET_DEPS)
 
-$(LIB_TAG): $(LIB_A) $(LIB_SO) $(LIB_CHECKED) $(ABI_SO) $(INSTALL_SO) $(DEBUG_SO)
+$(LIB_TAG): $(LIB_A) $(LIB_SO) $(LIB_CHECKED) $(ABI_SO) $(INSTALL_SO) $(DEBUG_SO) $(DEBUG_SO_DEBUG)
 	@touch $@
 
 #
@@ -243,11 +245,18 @@ $(ABI_SO): $(LIB).symbols.o
 $(LIB_CHECKED): $(LIB_SO) $(SYMBOLS)
 	$(VERBOSE)$(BASE_DIR)/../../tool/check_abi $(LIB_SO) $(SYMBOLS) && touch $@
 
-$(LIB_SO).stripped: $(LIB_SO)
-	$(VERBOSE)$(STRIP) -o $@ $<
+$(LIB_SO_DEBUG): $(LIB_SO)
+	$(VERBOSE)$(OBJCOPY) --only-keep-debug $< $@
 
-$(DEBUG_SO): $(LIB_SO)
-	$(VERBOSE)ln -sf $(CURDIR)/$< $@
+$(LIB_SO).stripped: $(LIB_SO) $(LIB_SO_DEBUG)
+	$(VERBOSE)$(STRIP) -o $@ $<
+	$(VERBOSE)$(OBJCOPY) --add-gnu-debuglink=$(LIB_SO_DEBUG) $@
 
 $(INSTALL_SO): $(LIB_SO).stripped
+	$(VERBOSE)ln -sf $(CURDIR)/$< $@
+
+$(DEBUG_SO): $(LIB_SO).stripped
+	$(VERBOSE)ln -sf $(CURDIR)/$< $@
+
+$(DEBUG_SO_DEBUG): $(LIB_SO_DEBUG)
 	$(VERBOSE)ln -sf $(CURDIR)/$< $@

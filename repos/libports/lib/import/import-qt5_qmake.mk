@@ -202,9 +202,12 @@ build_with_qmake: qmake_prepared.tag
 	$(VERBOSE)source env.sh && $(MAKE) $(QT5_OUTPUT_FILTER)
 
 	$(VERBOSE)for qmake_target_binary in $(QMAKE_TARGET_BINARIES); do \
+		$(OBJCOPY) --only-keep-debug $${qmake_target_binary} $${qmake_target_binary}.debug; \
 		$(STRIP) $${qmake_target_binary} -o $${qmake_target_binary}.stripped; \
+		$(OBJCOPY) --add-gnu-debuglink=$${qmake_target_binary}.debug $${qmake_target_binary}.stripped; \
 		ln -sf $(CURDIR)/$${qmake_target_binary}.stripped $(PWD)/bin/$${qmake_target_binary}; \
-		ln -sf $(CURDIR)/$${qmake_target_binary} $(PWD)/debug/; \
+		ln -sf $(CURDIR)/$${qmake_target_binary}.stripped $(PWD)/debug/$${qmake_target_binary}; \
+		ln -sf $(CURDIR)/$${qmake_target_binary}.debug $(PWD)/debug/; \
 	done
 
 #
