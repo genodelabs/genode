@@ -57,7 +57,7 @@ struct Menu_view::Box_layout_widget : Widget
 			w.position(position);
 
 			/* don't account space for zero-sized child widgets */
-			if (child_min_size.count() == 0)
+			if ((child_min_size.w() == 0) && (child_min_size.h() == 0))
 				return;
 
 			if (_direction == VERTICAL) {
