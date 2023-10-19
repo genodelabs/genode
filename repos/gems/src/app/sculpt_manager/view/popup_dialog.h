@@ -121,10 +121,12 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 	Activatable_item _action_item  { };
 	Activatable_item _install_item { };
 	Hoverable_item   _route_item   { };
+	Hoverable_item   _dialog_item  { }; /* for detecting clicks into debug dialog */
 	Pd_route_dialog  _pd_route     { _runtime_config };
 
 	Constructible<Resource_dialog> _resources { };
-	Constructible<Debug_dialog>    _debug { };
+
+	Debug_dialog _debug { };
 
 	enum State { TOP_LEVEL, DEPOT_REQUESTED, DEPOT_SHOWN, DEPOT_SELECTION,
 	             INDEX_REQUESTED, INDEX_SHOWN,
@@ -151,11 +153,6 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 		return _route_selected("resources");
 	}
 
-	bool _debug_dialog_selected() const
-	{
-		return _route_selected("debug");
-	}
-
 	template <typename FN>
 	void _apply_to_selected_route(Action &action, FN const &fn)
 	{
@@ -174,17 +171,19 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 			_item        .match(hover, "frame", "vbox", "hbox", "name"),
 			_action_item .match(hover, "frame", "vbox", "button", "name"),
 			_install_item.match(hover, "frame", "vbox", "float", "vbox", "float", "button", "name"),
-			_route_item  .match(hover, "frame", "vbox", "frame", "vbox", "hbox", "name"));
+			_route_item  .match(hover, "frame", "vbox", "frame", "vbox", "hbox", "name"),
+			_dialog_item .match(hover, "frame", "vbox", "frame", "name"));
 
 		_pd_route.hover(hover, "frame", "vbox", "frame", "vbox", "hbox", "name");
 
-		if (_resources.constructed() &&
-		    hover_result == Deprecated_dialog::Hover_result::UNMODIFIED)
-			hover_result = _resources->match_sub_dialog(hover, "frame", "vbox", "frame", "vbox");
+		if (_resources.constructed())
+			hover_result = Deprecated_dialog::any_hover_changed(
+				hover_result,
+				_resources->match_sub_dialog(hover, "frame", "vbox", "frame", "vbox"));
 
-		if (_debug.constructed() &&
-		    hover_result == Deprecated_dialog::Hover_result::UNMODIFIED)
-			hover_result = _debug->match_sub_dialog(hover, "frame", "vbox", "frame", "vbox");
+		hover_result = Deprecated_dialog::any_hover_changed(
+			hover_result,
+			_debug.match_sub_dialog(hover, "frame", "vbox", "frame", "vbox"));
 
 		return hover_result;
 	}
@@ -365,6 +364,7 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 	{
 		_item._hovered = Hoverable_item::Id();
 		_route_item._hovered = Hoverable_item::Id();
+		_dialog_item._hovered = Hoverable_item::Id();
 		_action_item.reset();
 		_install_item.reset();
 		_state = TOP_LEVEL;
@@ -372,7 +372,7 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 		_selected_route.destruct();
 		_menu._level = 0;
 		_resources.destruct();
-		_debug.destruct();
+		_debug.reset();
 		_pd_route.reset();
 	}
 
@@ -427,9 +427,7 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 		                     construction.affinity_location,
 		                     construction.priority);
 
-		_debug.construct(construction.monitor,
-		                 construction.wait,
-		                 construction.wx);
+		_debug.reset();
 
 		construction.try_apply_blueprint(blueprint);
 

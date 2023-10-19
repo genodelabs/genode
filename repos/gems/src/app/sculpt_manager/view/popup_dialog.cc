@@ -107,25 +107,9 @@ void Popup_dialog::_gen_pkg_elements(Xml_generator &xml,
 		});
 	}
 
-	if (_debug.constructed()) {
-		gen_named_node(xml, "frame", "debug", [&] {
-			xml.node("vbox", [&] () {
-
-				bool const selected = _route_selected("debug");
-
-				if (!selected)
-					_gen_route_entry(xml, "debug",
-					                 "Debug options ...", false, "enter");
-
-				if (selected) {
-					_gen_route_entry(xml, "back", "Debug options ...",
-					                 true, "back");
-
-					_debug->generate(xml);
-				}
-			});
-		});
-	}
+	gen_named_node(xml, "frame", "debug", [&] {
+		xml.node("vbox", [&] {
+			_debug.generate(xml); }); });
 
 	/*
 	 * Display "Add component" button once all routes are defined
@@ -457,7 +441,7 @@ void Popup_dialog::click(Action &action)
 		}
 	}
 
-	else if (_state == ROUTE_SELECTED) {
+	else if (_state == ROUTE_SELECTED || _dialog_item.hovered("debug")) {
 
 		/*
 		 * Keep the routing selection open when clicking on the "Add component"
@@ -493,22 +477,6 @@ void Popup_dialog::click(Action &action)
 					if (_resources.constructed())
 						action.apply_to_construction([&] (Component &component) {
 							_resources->click(component); });
-				}
-
-			} else if (_debug_dialog_selected()) {
-
-				bool const clicked_on_different_route = clicked_route.valid()
-				                                     && (clicked_route != "");
-				if (clicked_on_different_route) {
-
-					/* close debug options dialog */
-					_selected_route.construct(clicked_route);
-
-				} else {
-
-					if (_debug.constructed())
-						action.apply_to_construction([&] (Component &component) {
-							_debug->click(component); });
 				}
 
 			} else {
@@ -560,5 +528,11 @@ void Popup_dialog::click(Action &action)
 				});
 			}
 		}
+	}
+
+	if (_state == PKG_SHOWN || _state == ROUTE_SELECTED) {
+		if (_dialog_item.hovered("debug"))
+			action.apply_to_construction([&] (Component &component) {
+				_debug.click(component); });
 	}
 }
