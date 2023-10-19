@@ -43,7 +43,7 @@ struct Dialog::Selectable_node
 	{
 		bool selected;
 		bool important;
-		Start_name primary_dep;
+		Dialog::Id primary_dep;
 		Start_name pretty_name;
 	};
 
@@ -57,7 +57,7 @@ struct Dialog::Selectable_node
 				s.attribute("style", "unimportant");
 
 			if (attr.primary_dep.valid()) {
-				s.attribute("dep", attr.primary_dep);
+				s.attribute("dep", attr.primary_dep.value);
 				if (!attr.important)
 					s.attribute("dep_visible", false);
 			}
@@ -217,12 +217,17 @@ void Graph::view(Scope<Depgraph> &s) const
 
 		bool const unimportant = any_selected && !info.tcb;
 
-		Start_name primary_dep = component.primary_dependency;
+		/* basic categories, like GUI */
+		Dialog::Id primary_dep = Id { component.primary_dependency };
 
-		if (primary_dep == "default_fs_rw")
-			primary_dep = _sculpt_partition.fs();
+		if (primary_dep.value == "default_fs_rw")
+			primary_dep = Dialog::Id { _sculpt_partition.fs() };
 
-		Selectable_node::view(s, Id { name },
+		/* primary dependency is another component */
+		_runtime_config.with_graph_id(primary_dep,
+			[&] (Dialog::Id const &id) { primary_dep = id; });
+
+		Selectable_node::view(s, component.graph_id,
 			{
 				.selected    = info.selected,
 				.important   = !unimportant,
@@ -247,17 +252,22 @@ void Graph::view(Scope<Depgraph> &s) const
 		bool const show_details = info.tcb;
 
 		if (show_details) {
-			component.for_each_secondary_dep([&] (Start_name dep) {
+			component.for_each_secondary_dep([&] (Start_name dep_name) {
 
-				if (Runtime_state::blacklisted_from_graph(dep))
+				if (Runtime_state::blacklisted_from_graph(dep_name))
 					return;
 
-				if (dep == "default_fs_rw")
-					dep = _sculpt_partition.fs();
+				if (dep_name == "default_fs_rw")
+					dep_name = _sculpt_partition.fs();
+
+				Dialog::Id dep_id { dep_name };
+
+				_runtime_config.with_graph_id(dep_name, [&] (Dialog::Id const &id) {
+					dep_id = id; });
 
 				s.node("dep", [&] () {
-					s.attribute("node", name);
-					s.attribute("on",   dep);
+					s.attribute("node", component.graph_id.value);
+					s.attribute("on",   dep_id.value);
 				});
 			});
 		}
@@ -276,7 +286,8 @@ void Graph::click(Clicked_at const &at, Action &action)
 		if (_usb_selected)     _usb_devices_dialog  .reset();
 		if (_storage_selected) _block_devices_dialog.reset();
 
-		_runtime_state.toggle_selection(id.value, _runtime_config);
+		_runtime_config.with_start_name(id, [&] (Start_name const &name) {
+			_runtime_state.toggle_selection(name, _runtime_config); });
 	}
 
 	_plus.propagate(at, [&] {

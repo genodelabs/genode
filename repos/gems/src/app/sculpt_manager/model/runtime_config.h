@@ -17,7 +17,9 @@
 /* Genode includes */
 #include <util/xml_node.h>
 #include <util/list_model.h>
+#include <util/dictionary.h>
 #include <base/registry.h>
+#include <dialog/types.h>
 
 /* local includes */
 #include <types.h>
@@ -178,11 +180,32 @@ class Sculpt::Runtime_config
 			}
 		};
 
+		/*
+		 * Data structure to associate dialog widget IDs with component names.
+		 */
+		struct Graph_id;
+
+		using Graph_ids = Dictionary<Graph_id, Start_name>;
+
+		struct Graph_id : Graph_ids::Element, Dialog::Id
+		{
+			Graph_id(Graph_ids &dict, Start_name const &name, Dialog::Id const &id)
+			:
+				Graph_ids::Element(dict, name), Dialog::Id(id)
+			{ }
+		};
+
+		Graph_ids _graph_ids { };
+
+		unsigned _graph_id_count = 0;
+
 	public:
 
 		struct Component : List_model<Component>::Element
 		{
 			Start_name const name;
+
+			Graph_id const graph_id;
 
 			Start_name primary_dependency { };
 
@@ -216,7 +239,10 @@ class Sculpt::Runtime_config
 
 			List_model<Child_service> _child_services { };
 
-			Component(Start_name const &name) : name(name) { }
+			Component(Start_name const &name, Graph_ids &graph_ids, Dialog::Id const &id)
+			:
+				name(name), graph_id(graph_ids, name, id)
+			{ }
 
 			template <typename FN>
 			void for_each_service(FN const &fn) const
@@ -343,7 +369,10 @@ class Sculpt::Runtime_config
 				/* create */
 				[&] (Xml_node const &node) -> Component & {
 					return *new (_alloc)
-						Component(node.attribute_value("name", Start_name())); },
+						Component(node.attribute_value("name", Start_name()),
+						          _graph_ids,
+						          Dialog::Id { _graph_id_count++ });
+				},
 
 				/* destroy */
 				[&] (Component &e) {
@@ -358,6 +387,20 @@ class Sculpt::Runtime_config
 				[&] (Component &e, Xml_node const &node) {
 					e.update_from_xml(_alloc, node); }
 			);
+		}
+
+		void with_start_name(Dialog::Id const &id, auto const &fn) const
+		{
+			_components.for_each([&] (Component const &component) {
+				if (component.graph_id == id)
+					fn(component.name); });
+		}
+
+		void with_graph_id(Start_name const &name, auto const &fn) const
+		{
+			_graph_ids.with_element(name,
+				[&] (Graph_id const &id) { fn(id); },
+				[&] { });
 		}
 
 		template <typename FN>
