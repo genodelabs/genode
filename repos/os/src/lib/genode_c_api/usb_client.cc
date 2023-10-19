@@ -127,14 +127,20 @@ struct Usb_client : Usb::Connection
 };
 
 
-static Usb_id_space _usb_space { };
+static Usb_id_space & usb_space()
+{
+	static Usb_id_space instance { };
+
+	return instance;
+}
+
 
 template <typename FUNC>
 int usb_client_apply(genode_usb_client_handle_t handle, FUNC const &fn)
 {
 	Usb_id_space::Id id { .value = handle };
 	try {
-		_usb_space.apply<Usb_client>(id, fn);
+		usb_space().apply<Usb_client>(id, fn);
 	} catch (Usb_id_space::Id_space::Unknown_id) {
 		error("Invalid handle: ", handle);
 		return -1;
@@ -154,7 +160,7 @@ genode_usb_client_create(struct genode_env             *env,
 	Range_allocator *_alloc    = static_cast<Range_allocator*>(alloc);
 	Allocator       *_md_alloc = static_cast<Allocator *>(md_alloc);
 
-	Usb_client *client = new (_md_alloc) Usb_client(_env, _usb_space, label,
+	Usb_client *client = new (_md_alloc) Usb_client(_env, usb_space(), label,
 	                                                _alloc, cap(handler));
 	return client->handle();
 }

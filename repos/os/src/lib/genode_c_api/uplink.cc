@@ -20,10 +20,21 @@
 
 using namespace Genode;
 
-static Env                                *_env_ptr;
-static Allocator                          *_alloc_ptr;
-static Signal_context_capability           _sigh { };
-static Registry<Registered<genode_uplink>> _uplinks { };
+struct Statics
+{
+	Env                                *env_ptr;
+	Allocator                          *alloc_ptr;
+	Signal_context_capability           sigh { };
+	Registry<Registered<genode_uplink>> uplinks { };
+};
+
+
+static Statics & statics()
+{
+	static Statics instance { };
+
+	return instance;
+};
 
 
 struct genode_uplink : private Noncopyable, private Interface
@@ -177,15 +188,15 @@ void genode_uplink_init(genode_env            *env_ptr,
                         genode_allocator      *alloc_ptr,
                         genode_signal_handler *sigh_ptr)
 {
-	_env_ptr   = env_ptr;
-	_alloc_ptr = alloc_ptr;
-	_sigh      = cap(sigh_ptr);
+	statics().env_ptr   = env_ptr;
+	statics().alloc_ptr = alloc_ptr;
+	statics().sigh      = cap(sigh_ptr);
 }
 
 
 void genode_uplink_notify_peers()
 {
-	_uplinks.for_each([&] (genode_uplink &uplink) {
+	statics().uplinks.for_each([&] (genode_uplink &uplink) {
 		uplink.notify_peer(); });
 }
 
@@ -210,7 +221,7 @@ bool genode_uplink_rx(struct genode_uplink *uplink_ptr,
 
 struct genode_uplink *genode_uplink_create(struct genode_uplink_args const *args)
 {
-	if (!_env_ptr || !_alloc_ptr) {
+	if (!statics().env_ptr || !statics().alloc_ptr) {
 		error("genode_uplink_create: missing call of genode_uplink_init");
 		return nullptr;
 	}
@@ -219,13 +230,14 @@ struct genode_uplink *genode_uplink_create(struct genode_uplink_args const *args
 	for (unsigned i = 0; i < sizeof(args->mac_address); i++)
 		mac.addr[i] = args->mac_address[i];
 
-	return new (*_alloc_ptr)
-		Registered<genode_uplink>(_uplinks, *_env_ptr, *_alloc_ptr, _sigh,
+	return new (*statics().alloc_ptr)
+		Registered<genode_uplink>(statics().uplinks, *statics().env_ptr,
+		                          *statics().alloc_ptr, statics().sigh,
 		                          mac, Session_label(args->label));
 }
 
 
 void genode_uplink_destroy(struct genode_uplink *uplink_ptr)
 {
-	destroy(*_alloc_ptr, uplink_ptr);
+	destroy(*statics().alloc_ptr, uplink_ptr);
 }
