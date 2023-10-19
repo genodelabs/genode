@@ -420,6 +420,9 @@ void Acpica::Main::init_acpica(bool const use_gpe)
 	report_sleep_states.generate([&] (auto &xml) {
 		Acpica::generate_suspend_report(xml);
 	});
+
+	/* use dbg level to steer error reporting in pci.cc */
+	AcpiDbgLevel &= ~ACPI_LV_INIT;
 }
 
 

@@ -54,7 +54,9 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 
 	Bdf bdf(pcidev->Bus, pcidev->Device, pcidev->Function);
 
-	error(__func__, " ", bdf, " ", Hex(reg), " width=", width);
+	/* during startup suppress errors */
+	if (!(AcpiDbgLevel & ACPI_LV_INIT))
+		error(__func__, " ", bdf, " ", Hex(reg), " width=", width);
 
 	*value = ~0U;
 	return AE_OK;
@@ -67,7 +69,9 @@ ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 
 	Bdf bdf(pcidev->Bus, pcidev->Device, pcidev->Function);
 
-	error(__func__, " ", bdf, " ", Hex(reg), "=", Hex(value), " width=", width);
+	/* during startup suppress errors */
+	if (!(AcpiDbgLevel & ACPI_LV_INIT))
+		error(__func__, " ", bdf, " ", Hex(reg), "=", Hex(value), " width=", width);
 
 	return AE_OK;
 }
