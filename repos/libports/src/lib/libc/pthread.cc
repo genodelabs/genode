@@ -890,11 +890,17 @@ extern "C" {
 
 	}
 
+	typeof(__pthread_cleanup_push_imp) ___pthread_cleanup_push_imp
+		__attribute__((alias("__pthread_cleanup_push_imp")));
+
 
 	void __pthread_cleanup_pop_imp(int execute)
 	{
 		pthread_self()->cleanup_pop(execute);
 	}
+
+	typeof(__pthread_cleanup_pop_imp) ___pthread_cleanup_pop_imp
+		__attribute__((alias("__pthread_cleanup_pop_imp")));
 
 
 	/* Mutex */
