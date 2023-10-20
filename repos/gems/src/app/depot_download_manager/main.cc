@@ -51,7 +51,7 @@ struct Depot_download_manager::Child_exit_state
 };
 
 
-struct Depot_download_manager::Main : Import::Download_progress
+struct Depot_download_manager::Main
 {
 	Env &_env;
 
@@ -117,25 +117,6 @@ struct Depot_download_manager::Main : Import::Download_progress
 
 	Constructible<Import> _import { };
 
-	/**
-	 * Download_progress interface
-	 */
-	Info download_progress(Archive::Path const &path) const override
-	{
-		Info result { Info::Bytes(), Info::Bytes() };
-		try {
-			Url const url_path(_current_user_url(), "/", Archive::download_file_path(path));
-
-			/* search fetchurl progress report for matching 'url_path' */
-			_fetchurl_progress.xml().for_each_sub_node("fetch", [&] (Xml_node fetch) {
-				if (fetch.attribute_value("url", Url()) == url_path)
-					result = { .total = fetch.attribute_value("total", Info::Bytes()),
-					           .now   = fetch.attribute_value("now",   Info::Bytes()) }; });
-
-		} catch (Invalid_download_url) { }
-		return result;
-	}
-
 	void _update_state_report()
 	{
 		_state_reporter.generate([&] (Xml_generator &xml) {
@@ -143,7 +124,7 @@ struct Depot_download_manager::Main : Import::Download_progress
 			/* produce detailed reports while the installation is in progress */
 			if (_import.constructed()) {
 				xml.attribute("progress", "yes");
-				_import->report(xml, *this);
+				_import->report(xml);
 			}
 
 			/* once all imports have settled, present the final results */
@@ -209,22 +190,67 @@ struct Depot_download_manager::Main : Import::Download_progress
 	/* number of bytes downloaded by current fetchurl instance */
 	uint64_t _downloaded_bytes { };
 
+	using Download = Import::Download;
+
+	List_model<Download> _fetchurl_downloads { };
+
 	void _handle_fetchurl_progress()
 	{
 		_fetchurl_progress.update();
 
+		bool visible_progress = false;
+
+		update_list_model_from_xml(_fetchurl_downloads, _fetchurl_progress.xml(),
+
+			/* create */
+			[&] (Xml_node const &node) -> Download & {
+				visible_progress = true;
+				return *new (_heap) Download(Download::url_from_xml(node));
+			},
+
+			/* destroy */
+			[&] (Download &e) {
+				visible_progress = true;
+				destroy(_heap, &e);
+			},
+
+			/* update */
+			[&] (Download &download, Xml_node const &node)
+			{
+				unsigned const orig_percent  = download.progress.percent();
+				bool     const orig_complete = download.complete;
+
+				download.update(node);
+
+				bool const progress = (orig_percent  != download.progress.percent())
+				                   || (orig_complete != download.complete);
+
+				visible_progress |= progress;
+
+				if (_import.constructed()) {
+					try {
+						if (progress)
+							_import->download_progress(_current_user_url(),
+							                          download.url, download.progress);
+						if (download.complete)
+							_import->download_complete(_current_user_url(), download.url);
+
+					} catch (Invalid_download_url) { }
+				}
+			}
+		);
+
 		/* count sum of bytes downloaded by current fetchurl instance */
 		_downloaded_bytes = 0;
-		_fetchurl_progress.xml().for_each_sub_node("fetch", [&] (Xml_node fetch) {
-			_downloaded_bytes += fetch.attribute_value("now", 0ULL); });
+		_fetchurl_downloads.for_each([&] (Download const &download) {
+			_downloaded_bytes += download.progress.downloaded_bytes; });
 
-		if (_import.constructed()) {
-			_import->apply_download_progress(*this);
+		if (!visible_progress)
+			return;
 
-			/* proceed with next import step if all downloads are done or failed */
-			if (!_import->downloads_in_progress())
-				_generate_init_config();
-		}
+		/* proceed with next import step if all downloads are done or failed */
+		if (_import.constructed() && !_import->downloads_in_progress())
+			_generate_init_config();
 
 		_update_state_report();
 	}

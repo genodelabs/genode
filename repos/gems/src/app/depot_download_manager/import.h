@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/xml_node.h>
 #include <util/xml_generator.h>
+#include <util/list_model.h>
 #include <base/registry.h>
 #include <base/allocator.h>
 
@@ -32,18 +33,55 @@ class Depot_download_manager::Import
 {
 	public:
 
-		/**
-		 * Interface for obtaining the download progress for a given archive
-		 */
-		struct Download_progress : Interface
+		struct Download : List_model<Download>::Element
 		{
-			struct Info
+			struct Progress
 			{
-				typedef String<32> Bytes;
-				Bytes total, now;
+				uint64_t total_bytes;
+				uint64_t downloaded_bytes;
 
-				bool complete() const
+				static Progress from_xml(Xml_node const &node)
 				{
+					return { .total_bytes      = node.attribute_value("total", 0ULL),
+					         .downloaded_bytes = node.attribute_value("now",   0ULL) };
+				}
+
+				void gen_attr(Xml_generator &xml) const
+				{
+					xml.attribute("total", total_bytes);
+					xml.attribute("now",   downloaded_bytes);
+				}
+
+				unsigned percent() const
+				{
+					if (total_bytes == 0)
+						return 0;
+
+					return unsigned((downloaded_bytes*100)/total_bytes);
+				}
+			};
+
+			Url const url;
+
+			Progress progress { };
+
+			bool complete = false;
+
+			Download(Url const &url) : url(url) { };
+
+			static Url url_from_xml(Xml_node const &node)
+			{
+				return node.attribute_value("url", Url());
+			}
+
+			void update(Xml_node const &node)
+			{
+				auto complete_from_xml = [&]
+				{
+					using Bytes = String<32>;
+					Bytes const total = node.attribute_value("total", Bytes()),
+					            now   = node.attribute_value("now",   Bytes());
+
 					/* fetchurl did not return valid download info */
 					if (total == "")
 						return false;
@@ -53,10 +91,21 @@ class Depot_download_manager::Import
 						return false;
 
 					return now == total;
-				}
-			};
+				};
 
-			virtual Info download_progress(Archive::Path const &) const = 0;
+				progress = Progress::from_xml(node);
+				complete = complete_from_xml();
+			}
+
+			bool matches(Xml_node const &node) const
+			{
+				return url_from_xml(node) == url;
+			}
+
+			static bool type_matches(Xml_node const &node)
+			{
+				return node.has_type("fetch") && url_from_xml(node).valid();
+			}
 		};
 
 	private:
@@ -79,6 +128,8 @@ class Depot_download_manager::Import
 			             UNPACKED };
 
 			State state = DOWNLOAD_IN_PROGRESS;
+
+			Download::Progress progress { };
 
 			bool in_progress() const
 			{
@@ -313,16 +364,28 @@ class Depot_download_manager::Import
 			});
 		}
 
-		void apply_download_progress(Download_progress const &progress)
+		void _with_downloading_item(Url const &current_user_url, Url const &url, auto const &fn)
 		{
 			_items.for_each([&] (Item &item) {
+				if (item.state != Item::DOWNLOAD_IN_PROGRESS)
+					return;
 
-				if (item.state == Item::DOWNLOAD_IN_PROGRESS
-				 && progress.download_progress(item.path).complete()) {
-
-					item.state = Item::DOWNLOAD_COMPLETE;
-				}
+				Url const item_url(current_user_url, "/", Archive::download_file_path(item.path));
+				if (url == item_url)
+					fn(item);
 			});
+		}
+
+		void download_complete(Url const &current_user_url, Url const &url)
+		{
+			_with_downloading_item(current_user_url, url, [&] (Item &item) {
+				item.state = Item::DOWNLOAD_COMPLETE; });
+		}
+
+		void download_progress(Url const &current_user_url, Url const &url, Download::Progress progress)
+		{
+			_with_downloading_item(current_user_url, url, [&] (Item &item) {
+				item.progress = progress; });
 		}
 
 		void all_remaining_downloads_unavailable()
@@ -355,19 +418,15 @@ class Depot_download_manager::Import
 					item.state = Item::UNPACKED; });
 		}
 
-		void report(Xml_generator &xml, Download_progress const &progress) const
+		void report(Xml_generator &xml) const
 		{
 			_items.for_each([&] (Item const &item) {
 				xml.node("archive", [&] () {
 					xml.attribute("path",  item.path);
 					xml.attribute("state", item.state_text());
 
-					if (item.state == Item::DOWNLOAD_IN_PROGRESS) {
-						Download_progress::Info const info =
-							progress.download_progress(item.path);
-						xml.attribute("total", info.total);
-						xml.attribute("now",   info.now);
-					}
+					if (item.state == Item::DOWNLOAD_IN_PROGRESS)
+						item.progress.gen_attr(xml);
 				});
 			});
 		}
