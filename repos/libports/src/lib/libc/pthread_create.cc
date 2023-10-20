@@ -22,6 +22,7 @@
 /* libc includes */
 #include <libc/allocator.h>
 #include <errno.h>
+#include <stdio.h> /* __isthreaded */
 
 /* libc-internal includes */
 #include <internal/init.h>
@@ -172,6 +173,10 @@ int Libc::pthread_create_from_thread(pthread_t *thread, Thread &t, void *stack_a
 		return EAGAIN;
 
 	*thread = thread_obj;
+
+	/* use threaded mode in FreeBSD libc code */
+	__isthreaded = 1;
+
 	return 0;
 }
 
