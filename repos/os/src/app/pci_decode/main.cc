@@ -17,6 +17,7 @@
 #include <base/env.h>
 #include <base/heap.h>
 #include <os/reporter.h>
+#include <base/attached_io_mem_dataspace.h>
 
 #include <irq.h>
 #include <rmrr.h>
@@ -52,6 +53,7 @@ struct Main
 	void parse_irq_override_rules(Xml_node & xml);
 	void parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator);
 	void parse_acpi_device_info(Xml_node const &xml, Xml_generator & generator);
+	void parse_tpm2_table(Xml_node const &xml, Xml_generator & gen);
 
 	template <typename FN>
 	void for_bridge(Pci::bus_t bus, FN const & fn)
@@ -298,6 +300,60 @@ static void parse_acpica_info(Xml_node const &xml, Xml_generator &gen)
 	});
 }
 
+/*
+ * Parse the TPM2 ACPI table and report the device if available.
+ * Only CRB devices are supported at this time.
+ *
+ * See the following document for further information:
+ * https://trustedcomputinggroup.org/wp-content/uploads/TCG_ACPIGeneralSpec_v1p3_r8_pub.pdf
+ */
+void Main::parse_tpm2_table(Xml_node const &xml, Xml_generator & gen)
+{
+	enum {
+		TPM2_TABLE_CRB_ADDRESS_OFFSET = 40,
+		TPM2_TABLE_CRB_ADDRESS_MASK = (~0xfff),
+		TPM2_TABLE_START_METHOD_OFFSET = 48,
+		TPM2_TABLE_START_METHOD_CRB = 7,
+		TPM2_TABLE_MIN_SIZE = 52UL,
+		TPM2_DEVICE_IO_MEM_SIZE = 0x1000U,
+	};
+
+	addr_t const addr = xml.attribute_value("addr",   0UL);
+	size_t const size = xml.attribute_value("size",  0UL);
+
+	if ((addr < 1UL) || (size < TPM2_TABLE_MIN_SIZE)) {
+		error("TPM2 table info invalid");
+		return;
+	}
+
+	Attached_io_mem_dataspace io_mem { env, addr, size };
+	char* ptr = io_mem.local_addr<char>();
+
+	if (memcmp(ptr, "TPM2", 4) != 0) {
+		error("TPM2 table parse error");
+		return;
+	}
+
+	uint32_t start_method =
+		*(reinterpret_cast<uint32_t*>(ptr + TPM2_TABLE_START_METHOD_OFFSET));
+	if (start_method != TPM2_TABLE_START_METHOD_CRB) {
+		warning("Unsupported TPM2 device found");
+		return;
+	}
+
+	addr_t crb_address =
+		*(reinterpret_cast<addr_t*>(ptr + TPM2_TABLE_CRB_ADDRESS_OFFSET)) &
+		TPM2_TABLE_CRB_ADDRESS_MASK;
+
+	gen.node("device", [&]
+	{
+		gen.attribute("name", "tpm2");
+		gen.node("io_mem", [&] {
+			gen.attribute("address", crb_address);
+			gen.attribute("size", TPM2_DEVICE_IO_MEM_SIZE);
+		});
+	});
+}
 
 /*
  * By now, we do not have the necessary information about non-PCI devices
@@ -307,6 +363,16 @@ static void parse_acpica_info(Xml_node const &xml, Xml_generator &gen)
  */
 void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 {
+	using Table_name = String<5>;
+
+	xml.for_each_sub_node("table", [&] (Xml_node &table) {
+		Table_name name = table.attribute_value("name", Table_name());
+		/* only the TPM2 table is supported at this time */
+		if (name == "TPM2") {
+			parse_tpm2_table(table, gen);
+		}
+	});
+
 	/*
 	 * PS/2 device
 	 */
