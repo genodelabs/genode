@@ -66,6 +66,7 @@ void Timer::Connection::_update_real_time()
 		if (new_latency_us < latency_us) {
 			us = new_us;
 			ts = new_ts;
+			latency_us = new_latency_us;
 
 			/* take the results if the latency fulfills the given maximum */
 			if (latency_us < MAX_REMOTE_TIME_LATENCY_US) {
