@@ -139,18 +139,18 @@ proc run_boot_dir {binaries} {
 
 	# install image.elf file in TFTP directory for PXE boot
 	if {[expr [have_spec arm] || [have_spec arm_64]] && [have_include "load/tftp"]} {
-		exec {*}[load_tftp_inst_cmd] [pwd]/[run_dir]/boot/image.elf [load_tftp_base_dir][load_tftp_offset_dir]
-
 		if {[have_include "image/uboot"]} {
-			exec {*}[load_tftp_inst_cmd] \
-				[file join [pwd] [run_dir] boot uImage] \
-				[load_tftp_base_dir][load_tftp_offset_dir]
-		}
-
-		if {[have_include "image/uboot_fit"]} {
-			exec {*}[load_tftp_inst_cmd] \
-				[file join [pwd] [run_dir] boot image.itb] \
-				[load_tftp_base_dir][load_tftp_offset_dir]
+			if {[image_uboot_use_fit]} {
+				exec {*}[load_tftp_inst_cmd] \
+					[file join [pwd] [run_dir] boot image.itb] \
+					[load_tftp_base_dir][load_tftp_offset_dir]
+			} else {
+				exec {*}[load_tftp_inst_cmd] \
+					[file join [pwd] [run_dir] boot uImage] \
+					[load_tftp_base_dir][load_tftp_offset_dir]
+			}
+		} else {
+			exec {*}[load_tftp_inst_cmd] [pwd]/[run_dir]/boot/image.elf [load_tftp_base_dir][load_tftp_offset_dir]
 		}
 	}
 
