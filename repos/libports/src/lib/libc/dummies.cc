@@ -163,8 +163,6 @@ __SYS_DUMMY(int   , -1, ptrace, (int, pid_t, caddr_t, int));
 __SYS_DUMMY(ssize_t, -1, sendmsg, (int s, const struct msghdr*, int));
 __SYS_DUMMY(int   , -1, setcontext, (const ucontext_t *ucp));
 __SYS_DUMMY(void	,   , spinlock_stub,   (spinlock_t *));
-__SYS_DUMMY(void	,   , spinlock,   (spinlock_t *));
-__SYS_DUMMY(void	,   , spinunlock, (spinlock_t *));
 __SYS_DUMMY(void	,   , spinunlock_stub, (spinlock_t *));
 __SYS_DUMMY(int, -1, swapcontext, (ucontext_t *, const ucontext_t *));
 __SYS_DUMMY(int, -1, system, (const char *string));
