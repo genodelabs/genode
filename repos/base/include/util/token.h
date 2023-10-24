@@ -123,7 +123,7 @@ class Genode::Token
 		/**
 		 * Return next token after delimiter
 		 */
-		Token next_after(char const *delim)
+		Token next_after(char const *delim) const
 		{
 			size_t const len = strlen(delim);
 
@@ -141,7 +141,7 @@ class Genode::Token
 		/**
 		 * Return true if token starts with pattern
 		 */
-		bool matches(char const *pattern)
+		bool matches(char const *pattern) const
 		{
 			size_t const len = strlen(pattern);
 
