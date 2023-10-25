@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 23.04
+                      Sculpt Operating System 23.10
                       =============================
 
 
@@ -58,7 +58,7 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at the
-[https://genode.org/documentation/sculpt-23-04.pdf - Genode website].
+[https://genode.org/documentation/sculpt-23-10.pdf - Genode website].
 
 
 Hardware requirements and preparations
@@ -185,15 +185,15 @@ In the "GUI ..." sub menu, a click on the first item named "sticks blue
 backdrop" reveals the option to install the package
 (Figure [sculpt_20_08_install_backdrop]).
 
-[image sculpt_20_08_install_backdrop 48%]
+[image sculpt_20_08_install_backdrop 42%]
 
 A click on the "Install" button triggers the download of the package and its
 dependencies. Once the download is complete, the menu presents a configuration
 dialog that allows you to define the interplay of the new component with the
 system. In this particular case, you have to decide for a GUI service to be
-used by the backdrop (Figure [sculpt_20_08_backdrop_routes]).
+used by the backdrop (Figure [sculpt_23_10_backdrop_routes]).
 
-[image sculpt_20_08_backdrop_routes 40%]
+[image sculpt_23_10_backdrop_routes 42%]
 
 The first option "system GUI server" would grant direct access to the system's
 low-level GUI server, which is normally not used by applications but by
@@ -204,9 +204,9 @@ appears as a layer behind all other applications. The fourth option "keyboard
 focus" is preserved for a single component that controls the keyboard focus.
 In our case, "desktop background" is the correct choice.
 Once the configuration is complete, a new button for adding the component to
-the system appears (Figure [sculpt_20_08_add_backdrop]).
+the system appears (Figure [sculpt_23_10_add_backdrop]).
 
-[image sculpt_20_08_add_backdrop 40%]
+[image sculpt_23_10_add_backdrop 42%]
 
 After pressing the button, you should notice a slight visual change. *Press*
 *F12* to toggle between the Leitzentrale and the desktop. Now, the backdrop
@@ -371,6 +371,16 @@ For inspiration, please follow the postings at
 
   [https://genodians.org/jschlatow/2021-07-21-mobile-network]
 
+:Interactive CPU frequency and power steering:
+
+  Modern PCs provide plenty of metering and power-management options.
+  The component described in the following article makes these features
+  available via an interactive user interface. One can watch the temperature
+  of each CPU core, monitor the individual CPU frequencies, switch between
+  power profiles, and reveal details about power draw.
+
+  [https://genodians.org/alex-ab/2023-10-23-msr]
+
 
 Base system
 ###########
@@ -502,7 +512,7 @@ connectivity. Most importantly, however, it allows the user to access the
 _config_ and _report_ file systems. Both file systems are readily accessible
 under the "Files" tab of the panel. The file browser allows you to traverse
 directory hierarchies, inspect individual files, and edit files.
-Alternatively to the "Files" tab, Sculpt 23.04 features a command-line
+Alternatively to the "Files" tab, Sculpt 23.10 features a command-line
 interface. To spawn this command-line interface, click on the "ram fs"
 component in the graph and select "Inspect". In the panel, a third tab named
 "Inspect" appears, which hosts the command-line interface
@@ -692,7 +702,7 @@ Whenever adding a new component via the '+' menu, one has to define how to
 connect the component with the rest of the system. It is important to know
 what the presented options mean to take educated decisions.
 
-[image sculpt_20_08_system_shell_routing 40%]
+[image sculpt_23_10_system_shell_routing 40%]
 
 Each choice represents a connection to a system resource of a particular type.
 Initially, the presented options are resources that are built-in into Sculpt's
@@ -777,7 +787,7 @@ as options.
   ----------------------------------------------------------------------------
                             |                | global clipboard
   ----------------------------------------------------------------------------
-   Terminal                 | 'Terminal'     |
+   Terminal                 | 'Terminal'     | debug monitor
   ----------------------------------------------------------------------------
    Tracing                  | 'TRACE'        | system-global tracing
   ----------------------------------------------------------------------------
@@ -1045,6 +1055,18 @@ except you know exactly what you are doing and you completely trust the
 provider of the component.
 
 
+Terminal
+~~~~~~~~
+
+In general, a terminal service provides a bi-directional input/output stream.
+Sculpt's built-in debug-monitor speaks the GDB protocol as a terminal service.
+The resource-assignment dialog for adding a new component offers a debug
+option as checkbox. If enabled, the new component is exposed as a debugging
+target (inferior) via the GDB protocol. A debugger can be connected as a
+client to the debug monitor to inspect and control all the inferiors present
+in Sculpt's runtime.
+
+
 Tracing
 ~~~~~~~
 
@@ -1127,10 +1149,10 @@ GUI server, or specifically to the management GUI.
 CPU-resource assignment
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-[image sculpt_21_03_affinity 40%]
+[image sculpt_23_10_affinity 40%]
 
 You may already have noticed the additional item "Resource assignment ..."
-in the component-configuration dialog (Figure [sculpt_21_03_affinity]).
+in the component-configuration dialog (Figure [sculpt_23_10_affinity]).
 It leads to a sub menu for restricting the CPU usage of the new component. The
 configuration dialog shows a matrix of CPU cores where the x-axis denotes the
 physical cores and the y-axis the hyperthreads. By default, all available CPU
@@ -1172,6 +1194,11 @@ components. The dialog presents four options:
   such as long-running computations. By assigning the background priority to
   such components, they won't impede the user's perception of the
   responsiveness of the system.
+
+The "System control" option allows the new component to monitor or manipulate
+physical parameters like CPU frequencies, power consumption, and temperatures.
+Given the broad potential side effects of those parameters, this option should
+only be enabled in rare special cases. Grant it only to components you trust.
 
 
 Service-level sandboxing
@@ -1481,7 +1508,7 @@ _/config/presets/_.
 
 To keep your custom presem available after reboot, follow the pattern
 described in Section [Making customizations permanent] by copying the file to
-_/config/23.04/presets/_ at your Sculpt partition.
+_/config/23.10/presets/_ at your Sculpt partition.
 
 
 Building the boot image
@@ -1497,11 +1524,11 @@ a free download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-23.04 sculpt-23.04
+  ! git checkout -b sculpt-23.10 sculpt-23.10
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2023-04-25
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2023-10-25
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
@@ -1509,10 +1536,10 @@ a free download at [https://genode.org].
 # Download all ingredients for the Sculpt boot image
 
   ! ./tool/depot/download \
-  !    genodelabs/pkg/x86_64/sculpt/2023-04-28 \
-  !    genodelabs/pkg/x86_64/drivers_managed-pc/2023-04-28 \
-  !    genodelabs/pkg/x86_64/pc_wifi/2023-04-27 \
-  !    genodelabs/bin/x86_64/ipxe_nic_drv/2023-04-25
+  !    genodelabs/pkg/x86_64/sculpt/2023-10-25 \
+  !    genodelabs/pkg/x86_64/drivers_managed-pc/2023-10-25 \
+  !    genodelabs/pkg/x86_64/pc_wifi/2023-10-25 \
+  !    genodelabs/bin/x86_64/pc_nic_drv/2023-10-25
 
 # Create a build directory
 
@@ -1521,7 +1548,7 @@ a free download at [https://genode.org].
 # Configure the build directory by editing _build/x86_64/etc/build.conf_.
   Most importantly, enable the 'gems' source-code repository where the Sculpt
   scenario resides. In addition, the 'libports', 'ports', 'pc', 'dde_linux',
-  'dde_rump', 'dde_bsd', and 'dde_ipxe' repositories are needed as well.
+  'dde_rump', and 'dde_bsd' repositories are needed as well.
   Second, change the default configuration of the 'QEMU_RUN_OPT' variable to
   'image/disk' instead of 'image/iso'. This way, the build process will
   produce a valid disk image with a GPT partition table instead of a legacy
@@ -1557,14 +1584,14 @@ Before building the packages, various ports of 3rd-party software need to
 be prepared. The following command prepares all of them at once:
 
 ! <GENODE-DIR>/tool/ports/prepare_port \
-!      acpica ada-runtime bash tresor coreutils curl \
-!      dde_bsd dde_ipxe dde_linux dde_rump e2fsprogs-lib \
-!      expat freetype gnupg grub2 jitterentropy jpeg \
-!      libarchive libc libdrm libgcrypt libiconv libnl libpng \
-!      libssh libusb libyuv libuvc linux \
-!      linux-firmware mesa ncurses nova openssl qemu-usb \
-!      qoost qt5 stb stdcxx ttf-bitstream-vera vim \
-!      virtualbox6 wpa_supplicant x86emu xz zlib
+!      acpica bash coreutils curl dde_bsd dde_linux \
+!      dde_rump e2fsprogs-lib expat freetype gnupg grub2 \
+!      jitterentropy jpeg libarchive libc libdrm \
+!      libgcrypt libiconv libnl libpng libssh libusb \
+!      libuvc libyuv linux linux-firmware mesa ncurses \
+!      nova openssl qemu-usb qoost qt5 stb stdcxx \
+!      ttf-bitstream-vera vim virtualbox6 wpa_supplicant \
+!      x86emu xz zlib
 
 To be able to compile components that are dependent on the Qt5-library, the
 corresponding toolchain needs to be installed in addition to the base Genode
@@ -1703,10 +1730,6 @@ Device drivers
 :WPA supplicant:
   [https://w1.fi/wpa_supplicant/]
   _(used by the wireless driver)_
-
-:iPXE:
-  [https://ipxe.org]
-  _(basis of the wired network driver)_
 
 :xf86emu:
   [https://xorg.freedesktop.org/]
