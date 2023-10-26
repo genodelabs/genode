@@ -57,7 +57,7 @@ struct Platform::Session : Genode::Session
 	 */
 	static const char *service_name() { return "Platform"; }
 
-	static constexpr unsigned CAP_QUOTA = 6;
+	static constexpr unsigned CAP_QUOTA = 18;
 
 	virtual ~Session() { }
 

@@ -72,7 +72,7 @@ class Platform::Connection : public Genode::Connection<Session>,
 
 		Connection(Env &env)
 		:
-			Genode::Connection<Session>(env, Label(), Ram_quota { 56*1024 }, Args()),
+			Genode::Connection<Session>(env, Label(), Ram_quota { 84*1024 }, Args()),
 			Client(cap()),
 			_env(env)
 		{
@@ -98,7 +98,7 @@ class Platform::Connection : public Genode::Connection<Session>,
 		Capability<Device_interface> acquire_device(Device_name const &name) override
 		{
 			return _wait_for_device([&] () {
-				return retry_with_upgrade(Ram_quota{6*1024}, Cap_quota{6}, [&] () {
+				return retry_with_upgrade(Ram_quota{20*1024}, Cap_quota{6}, [&] () {
 					return Client::acquire_device(name); });
 			});
 		}
@@ -106,7 +106,7 @@ class Platform::Connection : public Genode::Connection<Session>,
 		Capability<Device_interface> acquire_device()
 		{
 			return _wait_for_device([&] () {
-				return retry_with_upgrade(Ram_quota{6*1024}, Cap_quota{6}, [&] () {
+				return retry_with_upgrade(Ram_quota{20*1024}, Cap_quota{6}, [&] () {
 					return Client::acquire_single_device(); });
 			});
 		}
