@@ -61,6 +61,25 @@ void Vmm::Config::update(Xml_node node)
 		_cpu_count = 1;
 	}
 
-	Virtio_device_update_policy policy(*this);
-	_model.update_from_xml(policy, node);
+	update_list_model_from_xml(_model, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Virtio_device &
+		{
+			Config::Name name = node.attribute_value("name", Config::Name());
+			Virtio_device::Type t = Virtio_device::type_from_xml(node);
+
+			if (t == Virtio_device::INVALID || !name.valid()) {
+				error("Invalid type or missing name in Virtio device node");
+				throw Invalid_configuration();
+			}
+			return *new (_heap) Virtio_device(name, t, *this);
+		},
+
+		/* destroy */
+		[&] (Virtio_device &dev) { destroy(_heap, &dev); },
+
+		/* update */
+		[&] (Virtio_device &, Xml_node const &) { }
+	);
 }

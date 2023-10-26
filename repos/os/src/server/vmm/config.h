@@ -62,6 +62,30 @@ class Vmm::Config
 				void   * const mmio_start;
 				size_t   const mmio_size;
 				unsigned const irq;
+
+				static Type type_from_xml(Xml_node const &node)
+				{
+					Config::Name const type = node.attribute_value("type", Config::Name());
+
+					if (type == "console") return CONSOLE;
+					if (type == "net")     return NET;
+					if (type == "block")   return BLOCK;
+					if (type == "gpu")     return GPU;
+					if (type == "input")   return INPUT;
+
+					return INVALID;
+				}
+
+				bool matches(Xml_node const &node) const
+				{
+					return (name == node.attribute_value("name", Config::Name()))
+					    && (type == type_from_xml(node));
+				}
+
+				static bool type_matches(Xml_node const &node)
+				{
+					return node.has_type("virtio_device");
+				}
 		};
 
 	private:
@@ -93,52 +117,6 @@ class Vmm::Config
 		Arguments     _bootargs    {   };
 
 		List_model<Virtio_device> _model {};
-
-		struct Virtio_device_update_policy
-			: List_model<Config::Virtio_device>::Update_policy
-		{
-			Config & config;
-
-			Virtio_device_update_policy(Config & config)
-			: config(config) {}
-
-			static Virtio_device::Type type(Xml_node node)
-			{
-				Virtio_device::Type t = Virtio_device::INVALID;
-				Config::Name type = node.attribute_value("type", Config::Name());
-				if (type == "console") t = Virtio_device::CONSOLE;
-				if (type == "net")     t = Virtio_device::NET;
-				if (type == "block")   t = Virtio_device::BLOCK;
-				if (type == "gpu")     t = Virtio_device::GPU;
-				if (type == "input")   t = Virtio_device::INPUT;
-				return t;
-			}
-
-			void destroy_element(Element & dev) { destroy(config._heap, &dev); }
-
-			Element & create_element(Genode::Xml_node node)
-			{
-				Config::Name name = node.attribute_value("name", Config::Name());
-				Virtio_device::Type t = type(node);
-				if (t == Virtio_device::INVALID || !name.valid()) {
-					error("Invalid type or missing name in Virtio device node");
-					throw Invalid_configuration();
-				}
-				return *(new (config._heap) Element(name, t, config));
-			}
-
-			void update_element(Element &, Genode::Xml_node) {}
-
-			static bool element_matches_xml_node(Element const & dev, Xml_node node)
-			{
-				Config::Name name = node.attribute_value("name", Config::Name());
-				Virtio_device::Type t = type(node);
-				return name == dev.name && t == dev.type;
-			}
-
-			static bool node_is_element(Xml_node node) {
-				return node.has_type("virtio_device"); }
-		};
 
 	public:
 
