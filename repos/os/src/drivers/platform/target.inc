@@ -1,6 +1,5 @@
 SRC_CC  += device.cc
 SRC_CC  += device_component.cc
-SRC_CC  += device_model_policy.cc
 SRC_CC  += device_pd.cc
 SRC_CC  += main.cc
 SRC_CC  += pci.cc

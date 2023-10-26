@@ -184,6 +184,222 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 }
 
 
+void Driver::Device::update(Allocator &alloc, Xml_node const &node)
+{
+	using Bar = Device::Pci_bar;
+
+	update_list_model_from_xml(_irq_list, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Irq &
+		{
+			unsigned number = node.attribute_value<unsigned>("number", 0);
+
+			Irq &irq = *(new (alloc) Irq(number));
+
+			String<16> polarity = node.attribute_value("polarity", String<16>());
+			String<16> mode     = node.attribute_value("mode",     String<16>());
+			String<16> type     = node.attribute_value("type",     String<16>());
+			if (polarity.valid())
+				irq.polarity = (polarity == "high") ? Irq_session::POLARITY_HIGH
+				                                    : Irq_session::POLARITY_LOW;
+			if (mode.valid())
+				irq.mode = (mode == "edge") ? Irq_session::TRIGGER_EDGE
+				                            : Irq_session::TRIGGER_LEVEL;
+			if (type.valid())
+				irq.type = (type == "msi-x") ? Irq::MSIX : Irq::MSI;
+
+			return irq;
+		},
+
+		/* destroy */
+		[&] (Irq &irq) { destroy(alloc, &irq); },
+
+		/* update */
+		[&] (Irq &, Xml_node const &) { }
+	);
+
+	update_list_model_from_xml(_io_mem_list, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Io_mem &
+		{
+			using Range = Io_mem::Range;
+
+			Bar   bar   { node.attribute_value<uint8_t>("pci_bar", Bar::INVALID) };
+			Range range { node.attribute_value<addr_t>("address", 0),
+			              node.attribute_value<size_t>("size",    0) };
+			bool  pf    { node.attribute_value("prefetchable", false) };
+
+			return *new (alloc) Io_mem(bar, range, pf);
+		},
+
+		/* destroy */
+		[&] (Io_mem &io_mem) { destroy(alloc, &io_mem); },
+
+		/* update */
+		[&] (Io_mem &, Xml_node const &) { }
+	);
+
+	update_list_model_from_xml(_io_port_range_list, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Io_port_range &
+		{
+			using Range = Io_port_range::Range;
+
+			Bar   bar   { node.attribute_value<uint8_t>("pci_bar", Bar::INVALID) };
+			Range range { node.attribute_value<uint16_t>("address", 0),
+			              node.attribute_value<uint16_t>("size",    0) };
+
+			return *new (alloc) Io_port_range(bar, range);
+		},
+
+		/* destroy */
+		[&] (Io_port_range &ipr) { destroy(alloc, &ipr); },
+
+		/* update */
+		[&] (Io_port_range &, Xml_node const &) { }
+	);
+
+	update_list_model_from_xml(_property_list, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Property &
+		{
+			return *new (alloc)
+				Property(node.attribute_value("name",  Property::Name()),
+				         node.attribute_value("value", Property::Value()));
+		},
+
+		/* destroy */
+		[&] (Property &property) { destroy(alloc, &property); },
+
+		/* update */
+		[&] (Property &, Xml_node const &) { }
+	);
+
+	update_list_model_from_xml(_clock_list, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Clock &
+		{
+			return *new (alloc)
+				Clock(node.attribute_value("name",        Clock::Name()),
+				      node.attribute_value("parent",      Clock::Name()),
+				      node.attribute_value("driver_name", Clock::Name()),
+				      node.attribute_value("rate", 0UL));
+		},
+
+		/* destroy */
+		[&] (Clock &clock) { destroy(alloc, &clock); },
+
+		/* update */
+		[&] (Clock &, Xml_node const &) { }
+	);
+
+	update_list_model_from_xml(_power_domain_list, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Power_domain &
+		{
+			return *new (alloc)
+				Power_domain(node.attribute_value("name", Power_domain::Name()));
+		},
+
+		/* destroy */
+		[&] (Power_domain &power) { destroy(alloc, &power); },
+
+		/* update */
+		[&] (Power_domain &, Xml_node const &) { }
+	);
+
+	update_list_model_from_xml(_reset_domain_list, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Reset_domain &
+		{
+			return *new (alloc)
+				Reset_domain(node.attribute_value("name", Reset_domain::Name()));
+		},
+
+		/* destroy */
+		[&] (Reset_domain &reset) { destroy(alloc, &reset); },
+
+		/* update */
+		[&] (Reset_domain &, Xml_node const &) { }
+	);
+
+	update_list_model_from_xml(_pci_config_list, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Pci_config &
+		{
+			using namespace Pci;
+
+			addr_t   addr       = node.attribute_value("address", ~0UL);
+			bus_t    bus_num    = node.attribute_value<bus_t>("bus", 0);
+			dev_t    dev_num    = node.attribute_value<dev_t>("device", 0);
+			func_t   func_num   = node.attribute_value<func_t>("function", 0);
+			vendor_t vendor_id  = node.attribute_value<vendor_t>("vendor_id",
+			                                                     0xffff);
+			device_t device_id  = node.attribute_value<device_t>("device_id",
+			                                                     0xffff);
+			class_t  class_code = node.attribute_value<class_t>("class", 0xff);
+			rev_t    rev        = node.attribute_value<rev_t>("revision", 0xff);
+			vendor_t sub_v_id   = node.attribute_value<vendor_t>("sub_vendor_id",
+			                                                     0xffff);
+			device_t sub_d_id   = node.attribute_value<device_t>("sub_device_id",
+			                                                     0xffff);
+			bool     bridge     = node.attribute_value("bridge", false);
+
+			return *(new (alloc) Pci_config(addr, bus_num, dev_num, func_num,
+			                                vendor_id, device_id, class_code,
+			                                rev, sub_v_id, sub_d_id, bridge));
+		},
+
+		/* destroy */
+		[&] (Pci_config &pci) { destroy(alloc, &pci); },
+
+		/* update */
+		[&] (Pci_config &, Xml_node const &) { }
+	);
+
+	update_list_model_from_xml(_reserved_mem_list, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Reserved_memory &
+		{
+			addr_t addr = node.attribute_value("address", 0UL);
+			size_t size = node.attribute_value("size",    0UL);
+			return *(new (alloc) Reserved_memory({addr, size}));
+		},
+
+		/* destroy */
+		[&] (Reserved_memory &reserved) { destroy(alloc, &reserved); },
+
+		/* update */
+		[&] (Reserved_memory &, Xml_node const &) { }
+	);
+
+	update_list_model_from_xml(_io_mmu_list, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Io_mmu &
+		{
+			return *new (alloc)
+				Io_mmu(node.attribute_value("name", Io_mmu::Name()));
+		},
+
+		/* destroy */
+		[&] (Io_mmu &io_mmu) { destroy(alloc, &io_mmu); },
+
+		/* update */
+		[&] (Io_mmu &, Xml_node const &) { }
+	);
+}
+
+
 Driver::Device::Device(Env & env, Device_model & model, Name name, Type type,
                        bool leave_operational)
 :
@@ -213,7 +429,31 @@ void Driver::Device_model::generate(Xml_generator & xml) const
 
 void Driver::Device_model::update(Xml_node const & node)
 {
-	_model.update_from_xml(*this, node);
+	update_list_model_from_xml(_model, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Device &
+		{
+			Device::Name name = node.attribute_value("name", Device::Name());
+			Device::Type type = node.attribute_value("type", Device::Type());
+			bool leave_operational = node.attribute_value("leave_operational", false);
+			return *(new (_heap) Device(_env, *this, name, type, leave_operational));
+		},
+
+		/* destroy */
+		[&] (Device &device)
+		{
+			device.update(_heap, Xml_node("<empty/>"));
+			device.release(_owner);
+			destroy(_heap, &device);
+		},
+
+		/* update */
+		[&] (Device &device, Xml_node const &node)
+		{
+			device.update(_heap, node);
+		}
+	);
 
 	/*
 	 * Detect all shared interrupts
