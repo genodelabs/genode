@@ -3,6 +3,62 @@
                                Genode News
                                ===========
 
+
+Sculpt OS release 23.10 | 2023-10-26
+####################################
+
+| Modern PCs provide plenty of metering and power-management options.
+| Version 23.10 of the Genode-based Sculpt operating system makes these features
+| available via an interactive user interface. One can watch the temperature
+| of each CPU core, monitor the individual CPU frequencies, switch between
+| power profiles, and reveal details about power draw.
+
+Our official
+[https://genode.org/documentation/articles/sculpt-23-10 - documentation]
+introduces Sculpt as an operating system that puts the user in the position
+of full control. With the new release, this promise is taken to the precise
+control and monitoring of physical CPU parameters.
+
+Besides restricting workloads to specific CPU cores, each individual core can
+be interactively parametrized, e.g., by balancing performance against power
+efficiency. The effects of changing these parameters become immediately
+visible by the monitored frequencies, temperature, and power draw. The new
+knobs add plenty of play value and an entirely new sense of control to the
+user experience. You can find the new power-control feature described in a
+[https://genodians.org/alex-ab/2023-10-23-msr - dedicated article].
+
+The advanced power-control abilities are accompanied with generally improved
+support for modern laptops. E.g., on the Framework Gen 12 laptop,
+features like battery monitoring, keyboard backlight control, and external
+displays just work now.
+
+Like the previous release, Sculpt OS is available for both PCs and the
+PinePhone. The PinePhone version received several usability improvements
+motivated by the feedback we got from the Pine64 community. Most importantly,
+a new screensaver reduces the power draw to less than 40%, making the device
+more viable in practice.
+Under the hood, Sculpt completely removes the drivers for the display and the
+touchscreen while the screen is blanked. Those drivers are restarted when
+pressing the power button. Furthermore, the volume buttons have become
+functional, and the dial pad has become more flexible.
+
+Beside the user-visible improvements, the underpinnings of Sculpt OS
+received a number of improvements. The entire software is now consistently
+built with GCC 12.3. The former iPXE-based network driver has been replaced
+by driver code of the Linux kernel 6.1.20, which works nicely on modern
+machines. The new version also introduces the principle mechanisms needed
+for on-target debugging, switches to a much revised virtualization interface,
+and replaces the block-encryption engine of the file vault. Users of the latter
+should follow the documented
+[https://genodians.org/m-stein/2023-10-25-file-vault-migration-1 - migration steps].
+
+Sculpt OS 23.10 for PC and PinePhone is available as ready-to-use system image
+at the [https://genode.org/download/sculpt - Sculpt download page] accompanied
+with updated [https://genode.org/documentation/articles/sculpt-23-10 - documentation].
+Seasoned Sculpt users can conveniently switch to the new version via the
+system-update dialog.
+
+
 Genode OS Framework release 23.08 | 2023-08-24
 ##############################################
 
