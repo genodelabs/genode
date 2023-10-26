@@ -64,8 +64,55 @@ void Config_model::update(genode_wg_config_callbacks &callbacks,
 		_config.construct(private_key_b64, listen_port, interface);
 		callbacks.add_device(_config->listen_port(), private_key);
 	}
-	Peer_update_policy policy { _alloc, callbacks, _config->listen_port() };
-	_peers.update_from_xml(policy, node);
+
+	update_list_model_from_xml(_peers, node,
+
+		/* create */
+		[&] (Xml_node const &node) -> Peer &
+		{
+			Ipv4_address        endpoint_ip    { node.attribute_value("endpoint_ip", Ipv4_address { }) };
+			uint16_t            endpoint_port  { node.attribute_value("endpoint_port", (uint16_t)0U ) };
+			Key_base64          public_key_b64 { node.attribute_value("public_key", Key_base64 { }) };
+			Ipv4_address_prefix allowed_ip     { node.attribute_value("allowed_ip", Ipv4_address_prefix { }) };
+
+			uint8_t public_key[WG_KEY_LEN];
+			if (!public_key_b64.valid() ||
+			    !key_from_base64(public_key, public_key_b64.string())) {
+
+				class Invalid_public_key { };
+				throw Invalid_public_key { };
+			}
+			if (!allowed_ip.valid()) {
+
+				class Invalid_allowed_ip { };
+				throw Invalid_allowed_ip { };
+			}
+			callbacks.add_peer(
+				listen_port, endpoint_ip.addr, endpoint_port, public_key,
+				allowed_ip.address.addr, allowed_ip.prefix);
+
+			return *(
+				new (_alloc)
+					Peer(public_key_b64, endpoint_ip, endpoint_port, allowed_ip));
+		},
+
+		/* destroy */
+		[&] (Peer &peer)
+		{
+			uint8_t public_key[WG_KEY_LEN];
+			if (!key_from_base64(public_key, peer.public_key_b64().string())) {
+
+				class Invalid_public_key { };
+				throw Invalid_public_key { };
+			}
+			callbacks.remove_peer(public_key);
+
+			destroy(_alloc, &peer);
+		},
+
+		/* update */
+		[&] (Peer &, Xml_node const &) { }
+	);
 }
 
 
@@ -83,95 +130,22 @@ Config_model::Config::Config(Key_base64          private_key_b64,
 { }
 
 
-/**************************************
- ** Config_model::Peer_update_policy **
- **************************************/
+/************************
+ ** Config_model::Peer **
+ ************************/
 
-void Config_model::Peer_update_policy::update_element(Element  &,
-                                                      Xml_node  )
-{ }
-
-
-Config_model::
-Peer_update_policy::Peer_update_policy(Allocator                  &alloc,
-                                       genode_wg_config_callbacks &callbacks,
-                                       uint16_t                    listen_port)
-:
-	_alloc       { alloc },
-	_callbacks   { callbacks },
-	_listen_port { listen_port }
-{ }
-
-
-void Config_model::Peer_update_policy::destroy_element(Element &peer)
-{
-	uint8_t public_key[WG_KEY_LEN];
-	if (!key_from_base64(public_key, peer._public_key_b64.string())) {
-
-		class Invalid_public_key { };
-		throw Invalid_public_key { };
-	}
-	_callbacks.remove_peer(public_key);
-
-	destroy(_alloc, &peer);
-}
-
-
-Config_model::Peer_update_policy::Element &
-Config_model::Peer_update_policy::create_element(Xml_node node)
-{
-	Ipv4_address        endpoint_ip    { node.attribute_value("endpoint_ip", Ipv4_address { }) };
-	uint16_t            endpoint_port  { node.attribute_value("endpoint_port", (uint16_t)0U ) };
-	Key_base64          public_key_b64 { node.attribute_value("public_key", Key_base64 { }) };
-	Ipv4_address_prefix allowed_ip     { node.attribute_value("allowed_ip", Ipv4_address_prefix { }) };
-
-	uint8_t public_key[WG_KEY_LEN];
-	if (!public_key_b64.valid() ||
-	    !key_from_base64(public_key, public_key_b64.string())) {
-
-		class Invalid_public_key { };
-		throw Invalid_public_key { };
-	}
-	if (!allowed_ip.valid()) {
-
-		class Invalid_allowed_ip { };
-		throw Invalid_allowed_ip { };
-	}
-	_callbacks.add_peer(
-		_listen_port, endpoint_ip.addr, endpoint_port, public_key,
-		allowed_ip.address.addr, allowed_ip.prefix);
-
-	return *(
-		new (_alloc)
-			Element(public_key_b64, endpoint_ip, endpoint_port, allowed_ip));
-}
-
-
-bool
-Config_model::
-Peer_update_policy::element_matches_xml_node(Element const &peer,
-                                             Xml_node       node)
+bool Config_model::Peer::matches(Xml_node const &node) const
 {
 	Ipv4_address  endpoint_ip    { node.attribute_value("endpoint_ip", Ipv4_address { }) };
 	uint16_t      endpoint_port  { node.attribute_value("endpoint_port", (uint16_t)0U ) };
 	Key_base64    public_key_b64 { node.attribute_value("public_key", Key_base64 { }) };
 
 	return
-		(endpoint_ip    == peer._endpoint_ip) &&
-		(endpoint_port  == peer._endpoint_port) &&
-		(public_key_b64 == peer._public_key_b64);
+		(endpoint_ip    == _endpoint_ip) &&
+		(endpoint_port  == _endpoint_port) &&
+		(public_key_b64 == _public_key_b64);
 }
 
-
-bool Config_model::Peer_update_policy::node_is_element(Xml_node node)
-{
-	return node.has_type("peer");
-}
-
-
-/************************
- ** Config_model::Peer **
- ************************/
 
 Config_model::Peer::Peer(Key_base64          public_key_b64,
                          Ipv4_address        endpoint_ip,

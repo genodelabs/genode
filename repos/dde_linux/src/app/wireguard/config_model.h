@@ -38,7 +38,6 @@ class Wireguard::Config_model
 		using Key_base64 = Genode::String<WG_KEY_LEN_BASE64>;
 
 		class Peer;
-		class Peer_update_policy;
 
 		class Config
 		{
@@ -75,8 +74,6 @@ class Wireguard::Config_model
 
 class Wireguard::Config_model::Peer : public Genode::List_model<Peer>::Element
 {
-	friend class Peer_update_policy;
-
 	private:
 
 		Key_base64               _public_key_b64;
@@ -90,36 +87,15 @@ class Wireguard::Config_model::Peer : public Genode::List_model<Peer>::Element
 		     Net::Ipv4_address        endpoint_ip,
 		     Genode::uint16_t         endpoint_port,
 		     Net::Ipv4_address_prefix allowed_ip);
-};
 
+		Key_base64 public_key_b64() const { return _public_key_b64; }
 
-class Wireguard::Config_model::Peer_update_policy
-:
-	public Genode::List_model<Peer>::Update_policy
-{
-	private:
+		bool matches(Genode::Xml_node const &) const;
 
-		Genode::Allocator          &_alloc;
-		genode_wg_config_callbacks &_callbacks;
-		Genode::uint16_t            _listen_port;
-
-	public:
-
-		Peer_update_policy(Genode::Allocator          &alloc,
-		                   genode_wg_config_callbacks &callbacks,
-		                   Genode::uint16_t            listen_port);
-
-		void destroy_element(Element &peer);
-
-		Element & create_element(Genode::Xml_node node);
-
-		void update_element(Element          &peer,
-		                    Genode::Xml_node  node);
-
-		static bool element_matches_xml_node(Element const    &peer,
-		                                     Genode::Xml_node  node);
-
-		static bool node_is_element(Genode::Xml_node node);
+		static bool type_matches(Genode::Xml_node const &node)
+		{
+			return node.has_type("peer");
+		}
 };
 
 #endif /* _CONFIG_MODEL_H_ */
