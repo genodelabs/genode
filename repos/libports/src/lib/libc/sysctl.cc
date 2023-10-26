@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pwd.h>
 
 /* libc-internal includes */
 #include <internal/plugin.h>
@@ -58,6 +59,8 @@ extern "C" long sysconf(int name)
 		Affinity::Space space = _global_env->cpu().affinity_space();
 		return space.total() ? : 1;
 	}
+	case _SC_GETPW_R_SIZE_MAX:
+		return -1;
 	default:
 		warning(__func__, "(", name, ") not implemented");
 		return Errno(EINVAL);
