@@ -71,34 +71,16 @@ struct Irq_override : List_model<Irq_override>::Element
 		if (mode == Mode::LEVEL)
 			generator.attribute("mode", "level");
 	}
-};
 
-
-struct Irq_override_policy : List_model<Irq_override>::Update_policy
-{
-	Heap & heap;
-
-	void destroy_element(Irq_override & irq) {
-		destroy(heap, &irq); }
-
-	Irq_override & create_element(Xml_node node)
+	bool matches(Xml_node const &node) const
 	{
-		return *(new (heap)
-			Irq_override(node.attribute_value<uint8_t>("irq",   0xff),
-			             node.attribute_value<uint8_t>("gsi",   0xff),
-			             node.attribute_value<uint8_t>("flags", 0)));
+		return (from == node.attribute_value("irq", ~0U));
 	}
 
-	void update_element(Irq_override &, Xml_node) {}
-
-	static bool element_matches_xml_node(Irq_override const & irq,
-	                                     Genode::Xml_node     node) {
-		return irq.from == node.attribute_value("irq", ~0U); }
-
-	static bool node_is_element(Genode::Xml_node node) {
-		return node.has_type("irq_override"); }
-
-	Irq_override_policy(Heap & heap) : heap(heap) {}
+	static bool type_matches(Xml_node const &node)
+	{
+		return node.has_type("irq_override");
+	}
 };
 
 
@@ -127,39 +109,17 @@ struct Irq_routing : List_model<Irq_routing>::Element
 
 		irq = to;
 	}
-};
 
-
-struct Irq_routing_policy : List_model<Irq_routing>::Update_policy
-{
-	Heap & heap;
-
-	void destroy_element(Irq_routing & irq) {
-		destroy(heap, &irq); }
-
-	Irq_routing & create_element(Xml_node node)
+	bool matches(Xml_node const &node) const
 	{
-		rid_t bridge_bdf = node.attribute_value<rid_t>("bridge_bdf", 0xff);
-		return *(new (heap)
-			Irq_routing(Bdf::bdf(bridge_bdf),
-			            node.attribute_value<uint8_t>("device",     0xff),
-			            node.attribute_value<uint8_t>("device_pin", 0xff),
-			            node.attribute_value<uint8_t>("gsi",        0xff)));
+		rid_t const bdf = node.attribute_value<rid_t>("bridge_bdf", 0xff);
+		return bridge_bdf == Bdf::bdf(bdf) &&
+		       dev == node.attribute_value<uint8_t>("device",     0xff) &&
+		       pin == node.attribute_value<uint8_t>("device_pin", 0xff);
 	}
 
-	void update_element(Irq_routing &, Xml_node) {}
-
-	static bool element_matches_xml_node(Irq_routing const & ir,
-	                                     Genode::Xml_node    node)
+	static bool type_matches(Xml_node const &node)
 	{
-		rid_t bridge_bdf = node.attribute_value<rid_t>("bridge_bdf", 0xff);
-		return ir.bridge_bdf == Bdf::bdf(bridge_bdf) &&
-		       ir.dev == node.attribute_value<uint8_t>("device",     0xff) &&
-		       ir.pin == node.attribute_value<uint8_t>("device_pin", 0xff);
+		return node.has_type("routing");
 	}
-
-	static bool node_is_element(Genode::Xml_node node) {
-		return node.has_type("routing"); }
-
-	Irq_routing_policy(Heap & heap) : heap(heap) {}
 };

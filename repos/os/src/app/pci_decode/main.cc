@@ -490,19 +490,74 @@ Main::Main(Env & env) : env(env)
 	Xml_node xml = sys_rom.xml();
 
 	if (apic_capable) {
-		Irq_override_policy policy(heap);
-		irq_override_list.update_from_xml(policy, xml);
+
+		update_list_model_from_xml(irq_override_list, xml,
+
+			/* create */
+			[&] (Xml_node const &node) -> Irq_override &
+			{
+				return *new (heap)
+					Irq_override(node.attribute_value<uint8_t>("irq",   0xff),
+					             node.attribute_value<uint8_t>("gsi",   0xff),
+					             node.attribute_value<uint8_t>("flags", 0));
+			},
+
+			/* destroy */
+			[&] (Irq_override &irq_override) { destroy(heap, &irq_override); },
+
+			/* update */
+			[&] (Irq_override &, Xml_node const &) { }
+		);
+
+		update_list_model_from_xml(irq_routing_list, xml,
+
+			/* create */
+			[&] (Xml_node const &node) -> Irq_routing &
+			{
+				rid_t bridge_bdf = node.attribute_value<rid_t>("bridge_bdf", 0xff);
+				return *new (heap)
+					Irq_routing(Bdf::bdf(bridge_bdf),
+					            node.attribute_value<uint8_t>("device",     0xff),
+					            node.attribute_value<uint8_t>("device_pin", 0xff),
+					            node.attribute_value<uint8_t>("gsi",        0xff));
+			},
+
+			/* destroy */
+			[&] (Irq_routing &irq_routing) { destroy(heap, &irq_routing); },
+
+			/* update */
+			[&] (Irq_routing &, Xml_node const &) { }
+		);
 	}
 
-	if (apic_capable) {
-		Irq_routing_policy policy(heap);
-		irq_routing_list.update_from_xml(policy, xml);
-	}
+	update_list_model_from_xml(reserved_memory_list, xml,
 
-	{
-		Rmrr_policy policy(heap);
-		reserved_memory_list.update_from_xml(policy, xml);
-	}
+		/* create */
+		[&] (Xml_node const &node) -> Rmrr &
+		{
+			bus_t  bus = 0;
+			dev_t  dev = 0;
+			func_t fn  = 0;
+			addr_t start = node.attribute_value("start", 0UL);
+			addr_t end   = node.attribute_value("end", 0UL);
+
+			node.with_optional_sub_node("scope", [&] (Xml_node node) {
+				bus = node.attribute_value<uint8_t>("bus_start", 0U);
+				node.with_optional_sub_node("path", [&] (Xml_node node) {
+					dev = node.attribute_value<uint8_t>("dev", 0);
+					fn  = node.attribute_value<uint8_t>("func", 0);
+				});
+			});
+
+			return *new (heap) Rmrr({bus, dev, fn}, start, (end-start+1));
+		},
+
+		/* destroy */
+		[&] (Rmrr &rmrr) { destroy(heap, &rmrr); },
+
+		/* update */
+		[&] (Rmrr &, Xml_node const &) { }
+	);
 
 	pci_reporter.generate([&] (Xml_generator & generator)
 	{
