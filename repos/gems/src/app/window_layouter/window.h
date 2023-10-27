@@ -502,6 +502,19 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 			_assign_member.construct(registry, *this);
 		}
+
+		/**
+		 * List_model::Element
+		 */
+		bool matches(Xml_node const &node) const
+		{
+			return node.attribute_value("id", 0U) == _id;
+		}
+
+		/**
+		 * List_model::Element
+		 */
+		static bool type_matches(Xml_node const &) { return true; }
 };
 
 #endif /* _WINDOW_H_ */

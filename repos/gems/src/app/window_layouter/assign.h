@@ -85,14 +85,22 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 			_size         = Area::from_xml(assign);
 		}
 
-		/*
-		 * Used by 'Assign_list::update_from_xml'
+		/**
+		 * List_model::Element
 		 */
 		bool matches(Xml_node node) const
 		{
 			return node.attribute_value("label",        Label()) == _label
 			    && node.attribute_value("label_prefix", Label()) == _label_prefix
 			    && node.attribute_value("label_suffix", Label()) == _label_suffix;
+		}
+
+		/**
+		 * List_model::Element
+		 */
+		static bool type_matches(Xml_node const &node)
+		{
+			return node.has_type("assign");
 		}
 
 		/**

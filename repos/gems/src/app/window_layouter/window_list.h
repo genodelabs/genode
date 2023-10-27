@@ -50,53 +50,36 @@ class Window_layouter::Window_list
 			_rom.update();
 
 			/* import window-list changes */
-			Update_policy policy(*this);
-			_list.update_from_xml(policy, _rom.xml());
+			update_list_model_from_xml(_list, _rom.xml(),
+
+				[&] (Xml_node const &node) -> Window &
+				{
+					unsigned const id           = node.attribute_value("id", 0U);
+					Area     const initial_size = Area::from_xml(node);
+
+					Window::Label const label =
+						node.attribute_value("label",Window::Label());
+
+					return *new (_alloc)
+						Window(id, label, initial_size,
+						       _focus_history, _decorator_margins);
+				},
+
+				[&] (Window &window) { destroy(_alloc, &window); },
+
+				[&] (Window &w, Xml_node const &node)
+				{
+					w.client_size(Area::from_xml(node));
+					w.title      (node.attribute_value("title", Window::Title("")));
+					w.has_alpha  (node.attribute_value("has_alpha",  false));
+					w.hidden     (node.attribute_value("hidden",     false));
+					w.resizeable (node.attribute_value("resizeable", false));
+				}
+			);
 
 			/* notify main program */
 			_change_handler.window_list_changed();
 		}
-
-		struct Update_policy : List_model<Window>::Update_policy
-		{
-			Window_list &_window_list;
-
-			Update_policy(Window_list &window_list)
-			: _window_list(window_list) { }
-
-			void destroy_element(Window &elem)
-			{
-				destroy(_window_list._alloc, &elem);
-			}
-
-			Window &create_element(Xml_node node)
-			{
-				unsigned const id           = node.attribute_value("id", 0U);
-				Area     const initial_size = Area::from_xml(node);
-
-				Window::Label const label =
-					node.attribute_value("label",Window::Label());
-
-				return *new (_window_list._alloc)
-					Window(id, label, initial_size,
-					       _window_list._focus_history,
-					       _window_list._decorator_margins);
-			}
-
-			void update_element(Window &win, Xml_node node)
-			{
-				win.client_size(Area::from_xml(node));
-				win.title      (node.attribute_value("title", Window::Title("")));
-				win.has_alpha  (node.attribute_value("has_alpha",  false));
-				win.hidden     (node.attribute_value("hidden",     false));
-				win.resizeable (node.attribute_value("resizeable", false));
-			}
-
-			static bool element_matches_xml_node(Window const &elem, Xml_node node)
-			{
-				return elem.has_id(node.attribute_value("id", 0U));
-			}
-		};
 
 	public:
 

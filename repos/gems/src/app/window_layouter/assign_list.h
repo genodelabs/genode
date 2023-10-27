@@ -29,43 +29,21 @@ class Window_layouter::Assign_list : Noncopyable
 
 		List_model<Assign> _assignments { };
 
-		struct Update_policy : List_model<Assign>::Update_policy
-		{
-			Allocator &_alloc;
-
-			Update_policy(Allocator &alloc) : _alloc(alloc) { }
-
-			void destroy_element(Assign &elem) { destroy(_alloc, &elem); }
-
-			Assign &create_element(Xml_node node)
-			{
-				return *new (_alloc) Assign(node);
-			}
-
-			void update_element(Assign &assign, Xml_node node)
-			{
-				assign.update(node);
-			}
-
-			static bool element_matches_xml_node(Assign const &elem, Xml_node node)
-			{
-				return elem.matches(node);
-			}
-
-			bool node_is_element(Xml_node node)
-			{
-				return node.has_type("assign");
-			}
-		};
-
 	public:
 
 		Assign_list(Allocator &alloc) : _alloc(alloc) { }
 
 		void update_from_xml(Xml_node node)
 		{
-			Update_policy policy(_alloc);
-			_assignments.update_from_xml(policy, node);
+			update_list_model_from_xml(_assignments, node,
+
+				[&] (Xml_node const &node) -> Assign & {
+					return *new (_alloc) Assign(node); },
+
+				[&] (Assign &assign) { destroy(_alloc, &assign); },
+
+				[&] (Assign &assign, Xml_node const &node) { assign.update(node); }
+			);
 		}
 
 		void assign_windows(Window_list &windows)
