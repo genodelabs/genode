@@ -34,41 +34,6 @@ class Depot_deploy::Children
 
 		List_model<Child> _children { };
 
-		struct Model_update_policy : List_model<Child>::Update_policy
-		{
-			Allocator &_alloc;
-
-			unsigned num_changes = 0;
-
-			Model_update_policy(Allocator &alloc) : _alloc(alloc) { }
-
-			void destroy_element(Child &c)
-			{
-				num_changes++;
-				destroy(_alloc, &c);
-			}
-
-			Child &create_element(Xml_node node)
-			{
-				num_changes++;
-				return *new (_alloc) Child(_alloc, node);
-			}
-
-			void update_element(Child &child, Xml_node node)
-			{
-				if (child.apply_config(node))
-					num_changes++;
-			}
-
-			static bool element_matches_xml_node(Child const &child, Xml_node node)
-			{
-				return node.attribute_value("name", Child::Name()) == child.name();
-			}
-
-			static bool node_is_element(Xml_node node) { return node.has_type("start"); }
-
-		} _model_update_policy { _alloc };
-
 	public:
 
 		Children(Allocator &alloc) : _alloc(alloc) { }
@@ -76,13 +41,29 @@ class Depot_deploy::Children
 		/*
 		 * \return true if config had any effect
 		 */
-		bool apply_config(Xml_node config)
+		bool apply_config(Xml_node const &config)
 		{
-			unsigned const orig_num_changes = _model_update_policy.num_changes;
+			bool progress = false;
 
-			_children.update_from_xml(_model_update_policy, config);
+			update_list_model_from_xml(_children, config,
 
-			return (orig_num_changes != _model_update_policy.num_changes);
+				/* create */
+				[&] (Xml_node const &node) -> Child & {
+					progress = true;
+					return *new (_alloc) Child(_alloc, node); },
+
+				/* destroy */
+				[&] (Child &child) {
+					progress = true;
+					destroy(_alloc, &child); },
+
+				/* update */
+				[&] (Child &child, Xml_node const &node) {
+					if (child.apply_config(node))
+						progress = true; }
+			);
+
+			return progress;
 		}
 
 		/*
