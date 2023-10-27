@@ -405,6 +405,19 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			return _condition != orig_condition;
 		}
 
+		/**
+		 * List_model::Element
+		 */
+		bool matches(Xml_node const &node) const
+		{
+			return node.attribute_value("name", Child::Name()) == _name;
+		}
+
+		/**
+		 * List_model::Element
+		 */
+		static bool type_matches(Xml_node const &node) { return node.has_type("start"); }
+
 
 		/***************
 		 ** Accessors **

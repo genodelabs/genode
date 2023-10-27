@@ -38,40 +38,6 @@ class Depot_deploy::Children
 
 		List_model<Child> _children { };
 
-		struct Model_update_policy : List_model<Child>::Update_policy
-		{
-			Genode::Allocator                       &_alloc;
-			Timer::Connection                       &_timer;
-			Genode::Signal_context_capability const &_config_handler;
-
-			Model_update_policy(Genode::Allocator                       &alloc,
-			                    Timer::Connection                       &timer,
-			                    Genode::Signal_context_capability const &config_handler)
-			:
-				_alloc          { alloc },
-				_timer          { timer },
-				_config_handler { config_handler }
-			{ }
-
-			void destroy_element(Child &c) { destroy(_alloc, &c); }
-
-			Child &create_element(Xml_node node)
-			{
-				return *new (_alloc)
-					Child { _alloc, node, _timer, _config_handler };
-			}
-
-			void update_element(Child &c, Xml_node node) { c.apply_config(node); }
-
-			static bool element_matches_xml_node(Child const &child, Xml_node node)
-			{
-				return node.attribute_value("name", Child::Name()) == child.name();
-			}
-
-			static bool node_is_element(Xml_node node) { return node.has_type("start"); }
-
-		} _model_update_policy { _alloc, _timer, _config_handler };
-
 	public:
 
 		struct No_match : Exception { };
@@ -88,7 +54,16 @@ class Depot_deploy::Children
 
 		void apply_config(Xml_node config)
 		{
-			_children.update_from_xml(_model_update_policy, config);
+			update_list_model_from_xml(_children, config,
+
+				[&] (Xml_node const &node) -> Child & {
+					return *new (_alloc)
+						Child { _alloc, node, _timer, _config_handler }; },
+
+				[&] (Child &child) { destroy(_alloc, &child); },
+
+				[&] (Child &c, Xml_node const &node) { c.apply_config(node); }
+			);
 		}
 
 		void apply_launcher(Child::Launcher_name const &name, Xml_node launcher)
