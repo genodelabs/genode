@@ -4,13 +4,51 @@
  * \date   2017-08-09
  *
  * The 'List_model' stores a component-internal representation of XML-node
- * content. The XML information is imported according to an 'Update_policy',
- * which specifies how the elements of the data model are created, destroyed,
- * and updated. The elements are ordered according to the order of XML nodes.
+ * content. The internal representation 'ELEM' carries two methods 'matches'
+ * and 'type_matches' that define the relation of the elements to XML nodes.
+ * E.g.,
+ *
+ * ! struct Item : List_model<Item>::Element
+ * ! {
+ * !   static bool type_matches(Xml_node const &);
+ * !
+ * !   bool matches(Xml_node const &) const;
+ * !   ...
+ * ! };
+ *
+ * The class function 'type_matches' returns true if the specified XML node
+ * matches the 'Item' type. It can thereby be used to control the creation
+ * of 'ELEM' nodes by responding to specific XML tags while ignoring unrelated
+ * XML tags.
+ *
+ * The 'matches' method returns true if the concrete element instance matches
+ * the given XML node. It is used to correlate existing 'ELEM' objects with
+ * new versions of XML nodes to update the 'ELEM' objects.
+ *
+ * The functor arguments 'create_fn', 'destroy_fn', and 'update_fn' for the
+ * 'update_from_xml' method define how objects are created, destructed, and
+ * updated. E.g.,
+ *
+ * ! _list_model.update_from_xml(node,
+ * !
+ * !   [&] (Xml_node const &node) -> Item & {
+ * !     return *new (alloc) Item(node); },
+ * !
+ * !   [&] (Item &item) { destroy(alloc, &item); },
+ * !
+ * !   [&] (Item &item, Xml_node const &node) { item.update(node); }
+ * ! );
+ *
+ * The elements are ordered according to the order of XML nodes.
+ *
+ * The list model is a container owning the elements. Before destructing a
+ * list model, its elements must be removed by calling 'update_from_xml'
+ * with an 'Xml_node("<empty/>")' as argument, which results in the call
+ * of 'destroy_fn' for each element.
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -20,27 +58,16 @@
 #define _INCLUDE__UTIL__LIST_MODEL_H_
 
 /* Genode includes */
+#include <util/noncopyable.h>
 #include <util/xml_node.h>
 #include <util/list.h>
 #include <base/log.h>
-#include <base/exception.h>
 
-namespace Genode {
-
-	template <typename> class List_model;
-
-	template <typename CREATE_FN, typename DESTROY_FN, typename UPDATE_FN,
-              typename NODE = decltype(CREATE_FN())>
-	static inline void update_list_model_from_xml(List_model<NODE> &,
-	                                              Xml_node   const &,
-	                                              CREATE_FN  const &,
-	                                              DESTROY_FN const &,
-	                                              UPDATE_FN  const &);
-}
+namespace Genode { template <typename> class List_model; }
 
 
 template <typename ELEM>
-class Genode::List_model
+class Genode::List_model : Noncopyable
 {
 	private:
 
@@ -60,7 +87,15 @@ class Genode::List_model
 
 				ELEM *_next() const { return List<ELEM>::Element::next(); }
 
+				/**
+				 * Noncopyable
+				 */
+				Element(Element const &) = delete;
+				Element & operator = (Element const &) = delete;
+
 			public:
+
+				Element() { };
 
 				/**
 				 * Return the element's neighbor if present, otherwise nullptr
@@ -77,12 +112,12 @@ class Genode::List_model
 		}
 
 		/**
-		 * Update data model according to XML structure 'node'
-		 *
-		 * \throw Unknown_element_type
+		 * Update data model according to the given XML node
 		 */
-		template <typename POLICY>
-		inline void update_from_xml(POLICY &policy, Xml_node node);
+		inline void update_from_xml(Xml_node const &,
+		                            auto const &create_fn,
+		                            auto const &destroy_fn,
+		                            auto const &update_fn);
 
 		/**
 		 * Call functor 'fn' for each const element
@@ -121,83 +156,58 @@ class Genode::List_model
 			if (Element const *e = _elements.first())
 				fn(static_cast<ELEM const &>(*e));
 		}
-
-		/**
-		 * Remove all elements from the data model
-		 *
-		 * This method should be called at the destruction time of the
-		 * 'List_model'.
-		 *
-		 * List-model elements are not implicitly destroyed by the destructor
-		 * because the 'policy' needed to destruct elements is not kept as
-		 * member of the list model (multiple policies may applied to the same
-		 * list model).
-		 */
-		template <typename POLICY>
-		void destroy_all_elements(POLICY &policy)
-		{
-			Element *next = nullptr;
-			for (Element *e = _elements.first(); e; e = next) {
-				next = e->_next();
-				ELEM &elem = static_cast<ELEM &>(*e);
-				_elements.remove(&elem);
-				policy.destroy_element(elem);
-			}
-		}
 };
 
 
 template <typename ELEM>
-template <typename POLICY>
-void Genode::List_model<ELEM>::update_from_xml(POLICY &policy, Xml_node node)
+void Genode::List_model<ELEM>::update_from_xml(Xml_node const &node,
+                                               auto const &create_fn,
+                                               auto const &destroy_fn,
+                                               auto const &update_fn)
 {
-	typedef typename POLICY::Element Element;
+	List<ELEM> updated_list;
 
-	List<Element> updated_list;
-
-	Element *last_updated = nullptr; /* used for appending to 'updated_list' */
+	ELEM *last_updated = nullptr; /* used for appending to 'updated_list' */
 
 	node.for_each_sub_node([&] (Xml_node sub_node) {
 
 		/* skip XML nodes that are unrelated to the data model */
-		if (!policy.node_is_element(sub_node))
+		if (!ELEM::type_matches(sub_node))
 			return;
 
 		/* check for duplicates, which must not exist in the list model */
-		for (Element *dup = updated_list.first(); dup; dup = dup->_next()) {
+		for (ELEM *dup = updated_list.first(); dup; dup = dup->_next()) {
 
 			/* update existing element with information from later node */
-			if (policy.element_matches_xml_node(*dup, sub_node)) {
-				policy.update_element(*dup, sub_node);
+			if (dup->matches(sub_node)) {
+				update_fn(*dup, sub_node);
 				return;
 			}
 		}
 
 		/* look up corresponding element in original list */
-		Element *curr = _elements.first();
-		while (curr && !policy.element_matches_xml_node(*curr, sub_node))
+		ELEM *curr = _elements.first();
+		while (curr && !curr->matches(sub_node))
 			curr = curr->_next();
 
 		/* consume existing element or create new one */
-		if (curr) {
+		if (curr)
 			_elements.remove(curr);
-		} else {
-			/* \throw Unknown_element_type */
-			curr = &policy.create_element(sub_node);
-		}
+		else
+			curr = &create_fn(sub_node);
 
 		/* append current element to 'updated_list' */
 		updated_list.insert(curr, last_updated);
 		last_updated = curr;
 
-		policy.update_element(*curr, sub_node);
+		update_fn(*curr, sub_node);
 	});
 
 	/* remove stale elements */
-	Element *next = nullptr;
-	for (Element *e = _elements.first(); e; e = next) {
+	ELEM *next = nullptr;
+	for (ELEM *e = _elements.first(); e; e = next) {
 		next = e->_next();
-		policy.destroy_element(*e);
+		destroy_fn(*e);
 	}
 
 	/* use 'updated_list' list new data model */
@@ -205,98 +215,18 @@ void Genode::List_model<ELEM>::update_from_xml(POLICY &policy, Xml_node node)
 }
 
 
-/**
- * Policy interface to be supplied to 'List_model::update_from_xml'
- *
- * \param ELEM  element type, must be a list element
- *
- * This class template is merely a blue print of a policy to document the
- * interface.
- */
-template <typename ELEM>
-struct Genode::List_model<ELEM>::Update_policy
-{
-	typedef List_model<ELEM>::Unknown_element_type Unknown_element_type;
+namespace Genode {
 
-	/*
-	 * Type that needs to be supplied by the policy implementation
-	 */
-	typedef ELEM Element;
-
-	/**
-	 * Destroy element
-	 *
-	 * When this function is called, the element is no longer contained
-	 * in the model's list.
-	 */
-	void destroy_element(ELEM &elem);
-
-	/**
-	 * Create element of the type given in the 'elem_node'
-	 *
-	 * \throw List_model::Unknown_element_type
-	 */
-	ELEM &create_element(Xml_node elem_node);
-
-	/**
-	 * Import element properties from XML node
-	 */
-	void update_element(ELEM &elem, Xml_node elem_node);
-
-	/**
-	 * Return true if element corresponds to XML node
-	 */
-	static bool element_matches_xml_node(Element const &, Xml_node);
-
-	/**
-	 * Return true if XML node should be imported
-	 *
-	 * This method allows the policy to disregard certain XML node types from
-	 * building the data model.
-	 */
-	static bool node_is_element(Xml_node) { return true; }
-};
-
-
-template <typename CREATE_FN, typename DESTROY_FN, typename UPDATE_FN, typename NODE>
-void Genode::update_list_model_from_xml(List_model<NODE> &model,
-                                        Xml_node   const &xml,
-                                        CREATE_FN  const &create,
-                                        DESTROY_FN const &destroy,
-                                        UPDATE_FN  const &update)
-{
-	struct Model_update_policy : List_model<NODE>::Update_policy
+	template <typename CREATE_FN, typename DESTROY_FN, typename UPDATE_FN,
+              typename NODE = decltype(CREATE_FN())>
+	static inline void update_list_model_from_xml(List_model<NODE> &model,
+	                                              Xml_node   const &node,
+	                                              CREATE_FN  const &create_fn,
+	                                              DESTROY_FN const &destroy_fn,
+	                                              UPDATE_FN  const &update_fn)
 	{
-		CREATE_FN  const &_create_fn;
-		DESTROY_FN const &_destroy_fn;
-		UPDATE_FN  const &_update_fn;
-
-		Model_update_policy(CREATE_FN  const &create_fn,
-		                    DESTROY_FN const &destroy_fn,
-		                    UPDATE_FN  const &update_fn)
-		:
-			_create_fn(create_fn), _destroy_fn(destroy_fn), _update_fn(update_fn)
-		{ }
-
-		void destroy_element(NODE &node) { _destroy_fn(node); }
-
-		NODE &create_element(Xml_node xml) { return _create_fn(xml); }
-
-		void update_element(NODE &node, Xml_node xml) { _update_fn(node, xml); }
-
-		static bool element_matches_xml_node(NODE const &node, Xml_node xml)
-		{
-			return node.matches(xml);
-		}
-
-		static bool node_is_element(Xml_node node)
-		{
-			return NODE::type_matches(node);
-		}
-
-	} policy(create, destroy, update);
-
-	model.update_from_xml(policy, xml);
+		model.update_from_xml(node, create_fn, destroy_fn, update_fn);
+	}
 }
 
 #endif /* _INCLUDE__UTIL__LIST_MODEL_H_ */
