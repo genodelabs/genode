@@ -195,6 +195,19 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		 * model has not changed
 		 */
 		virtual bool animated() const { return false; }
+
+		/**
+		 * List_model::Element
+		 */
+		bool matches(Xml_node const &node) const
+		{
+			return _id == node.attribute_value("id", ~0UL);
+		}
+
+		/**
+		 * List_model::Element
+		 */
+		static bool type_matches(Xml_node const &) { return true; }
 };
 
 #endif /* _INCLUDE__DECORATOR__WINDOW_H_ */

@@ -192,32 +192,14 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node,
 {
 	Abandoned_windows _abandoned_windows { };
 
-	struct Update_policy : List_model<Window_base>::Update_policy
-	{
-		Abandoned_windows   &_abandoned_windows;
-		Window_factory_base &_window_factory;
-		Dirty_rect          &_dirty_rect;
+	update_list_model_from_xml(_windows, root_node,
 
-		Update_policy(Abandoned_windows   &abandoned_windows,
-		              Window_factory_base &window_factory,
-		              Dirty_rect          &dirty_rect)
-		:
-			_abandoned_windows(abandoned_windows),
-			_window_factory(window_factory),
-			_dirty_rect(dirty_rect)
-		{ }
+		[&] (Xml_node const &node) -> Window_base & {
+			return *_window_factory.create(node); },
 
-		void destroy_element(Window_base &window)
-		{
-			window.abandon(_abandoned_windows);
-		}
+		[&] (Window_base &window) { window.abandon(_abandoned_windows); },
 
-		Window_base &create_element(Xml_node node)
-		{
-			return *_window_factory.create(node);
-		}
-
-		void update_element(Window_base &window, Xml_node node)
+		[&] (Window_base &window, Xml_node const &node)
 		{
 			Rect const orig_geometry = window.outer_geometry();
 
@@ -226,18 +208,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node,
 				_dirty_rect.mark_as_dirty(window.outer_geometry());
 			}
 		}
-
-		static bool element_matches_xml_node(Window_base const &elem, Xml_node node)
-		{
-			return elem.id() == node.attribute_value("id", ~0UL);
-		}
-
-		static bool node_is_element(Xml_node) { return true; }
-	};
-
-	Update_policy policy { _abandoned_windows, _window_factory, _dirty_rect };
-
-	_windows.update_from_xml(policy, root_node);
+	);
 
 	unsigned long new_front_most_id = ~0UL;
 	if (root_node.has_sub_node("window"))
