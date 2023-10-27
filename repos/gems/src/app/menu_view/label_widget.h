@@ -37,24 +37,47 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 	int _min_width  = 0;
 	int _min_height = 0;
 
-	Cursor::Model_update_policy         _cursor_update_policy;
-	Text_selection::Model_update_policy _selection_update_policy;
-
 	List_model<Cursor>         _cursors    { };
 	List_model<Text_selection> _selections { };
 
 	Label_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 	:
-		Widget(factory, node, unique_id),
-		_color(factory.animator),
-		_cursor_update_policy(factory, *this),
-		_selection_update_policy(factory.alloc, *this)
+		Widget(factory, node, unique_id), _color(factory.animator)
 	{ }
 
-	~Label_widget()
+	~Label_widget() { _update_children(Xml_node("<empty/>")); }
+
+	void _update_children(Xml_node const &node)
 	{
-		_cursors   .destroy_all_elements(_cursor_update_policy);
-		_selections.destroy_all_elements(_selection_update_policy);
+		update_list_model_from_xml(_cursors, node,
+
+			/* create */
+			[&] (Xml_node const &node) -> Cursor & {
+				return *new (_factory.alloc)
+					Cursor(node, _factory.animator, *this, _factory.styles); },
+
+			/* destroy */
+			[&] (Cursor &cursor) { destroy(_factory.alloc, &cursor); },
+
+			/* update */
+			[&] (Cursor &cursor, Xml_node const &node) {
+				cursor.update(node); }
+		);
+
+		update_list_model_from_xml(_selections, node,
+
+			/* create */
+			[&] (Xml_node const &node) -> Text_selection & {
+				return *new (_factory.alloc)
+					Text_selection(node, *this); },
+
+			/* destroy */
+			[&] (Text_selection &t) { destroy(_factory.alloc, &t); },
+
+			/* update */
+			[&] (Text_selection &t, Xml_node const &node) {
+				t.update(node); }
+		);
 	}
 
 	void update(Xml_node node) override
@@ -81,8 +104,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 			_min_width = min_w_px.decimal();
 		}
 
-		_cursors   .update_from_xml(_cursor_update_policy,    node);
-		_selections.update_from_xml(_selection_update_policy, node);
+		_update_children(node);
 	}
 
 	Area min_size() const override

@@ -87,39 +87,20 @@ class Menu_view::Text_selection : List_model<Text_selection>::Element
 			                   color);
 		}
 
-		struct Model_update_policy : List_model<Text_selection>::Update_policy
+		bool matches(Xml_node const &node) const
 		{
-			Allocator      &_alloc;
-			Glyph_position &_glyph_position;
+			return _node_name(node) == _name;
+		}
 
-			Model_update_policy(Allocator &alloc, Glyph_position &glyph_position)
-			:
-				_alloc(alloc), _glyph_position(glyph_position)
-			{ }
+		static bool type_matches(Xml_node const &node)
+		{
+			return node.has_type("selection");
+		}
 
-			void destroy_element(Text_selection &t) { destroy(_alloc, &t); }
-
-			Text_selection &create_element(Xml_node node)
-			{
-				return *new (_alloc)
-					Text_selection(node, _glyph_position);
-			}
-
-			void update_element(Text_selection &t, Xml_node node)
-			{
-				t._range = t._range_from_xml_node(node);
-			}
-
-			static bool element_matches_xml_node(Text_selection const &t, Xml_node node)
-			{
-				return node.has_type("selection") && _node_name(node) == t._name;
-			}
-
-			static bool node_is_element(Xml_node node)
-			{
-				return node.has_type("selection");
-			}
-		};
+		void update(Xml_node const &node)
+		{
+			_range = _range_from_xml_node(node);
+		}
 };
 
 #endif /* _TEXT_SELECTION_ */

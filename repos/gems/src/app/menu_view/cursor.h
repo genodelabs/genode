@@ -92,7 +92,6 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 			_move_to(_position_from_xml_node(node), Steps{0});
 		}
 
-
 		void draw(Surface<Pixel_rgb888> &pixel_surface,
 		          Surface<Pixel_alpha8> &alpha_surface,
 		          Point at, unsigned height) const
@@ -111,36 +110,20 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 			}
 		}
 
-		struct Model_update_policy : List_model<Cursor>::Update_policy
+		bool matches(Xml_node const &node) const
 		{
-			Widget_factory &_factory;
-			Glyph_position &_glyph_position;
+			return _node_name(node) == _name;
+		}
 
-			Model_update_policy(Widget_factory &factory, Glyph_position &glyph_position)
-			:
-				_factory(factory), _glyph_position(glyph_position)
-			{ }
+		static bool type_matches(Xml_node const &node)
+		{
+			return node.has_type("cursor");
+		}
 
-			void destroy_element(Cursor &c) { destroy(_factory.alloc, &c); }
-
-			Cursor &create_element(Xml_node node)
-			{
-				return *new (_factory.alloc)
-					Cursor(node, _factory.animator, _glyph_position, _factory.styles);
-			}
-
-			void update_element(Cursor &c, Xml_node node)
-			{
-				c._move_to(c._position_from_xml_node(node), Steps{12});
-			}
-
-			static bool element_matches_xml_node(Cursor const &c, Xml_node node)
-			{
-				return node.has_type("cursor") && _node_name(node) == c._name;
-			}
-
-			static bool node_is_element(Xml_node node) { return node.has_type("cursor"); }
-		};
+		void update(Xml_node const &node)
+		{
+			_move_to(_position_from_xml_node(node), Steps{12});
+		}
 };
 
 #endif /* _CURSOR_H_ */

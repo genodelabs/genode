@@ -44,9 +44,11 @@ class Menu_view::Widget_factory
 			alloc(alloc), styles(styles), animator(animator)
 		{ }
 
-		Widget *create(Xml_node node);
+		Widget &create(Xml_node const &);
 
 		void destroy(Widget *widget) { Genode::destroy(alloc, widget); }
+
+		static bool node_type_known(Xml_node const &);
 };
 
 #endif /* _WIDGET_FACTORY_H_ */

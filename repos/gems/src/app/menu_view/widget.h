@@ -126,36 +126,22 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		List_model<Widget> _children { };
 
-		struct Model_update_policy : List_model<Widget>::Update_policy
-		{
-			Widget_factory &_factory;
-
-			Model_update_policy(Widget_factory &factory) : _factory(factory) { }
-
-			void destroy_element(Widget &w) { _factory.destroy(&w); }
-
-			Widget &create_element(Xml_node elem_node)
-			{
-				if (Widget *w = _factory.create(elem_node))
-					return *w;
-
-				throw Unknown_element_type();
-			}
-
-			void update_element(Widget &w, Xml_node node) { w.update(node); }
-
-			static bool element_matches_xml_node(Widget const &w, Xml_node node)
-			{
-				return node.has_type(w._type_name.string())
-				    && Widget::node_name(node) == w._name
-				    && node_version(node) == w._version;
-			}
-
-		} _model_update_policy { _factory };
-
 		inline void _update_children(Xml_node node)
 		{
-			_children.update_from_xml(_model_update_policy, node);
+			update_list_model_from_xml(_children, node,
+
+				/* create */
+				[&] (Xml_node const &node) -> Widget & {
+					return _factory.create(node); },
+
+				/* destroy */
+				[&] (Widget &w) {
+					_factory.destroy(&w); },
+
+				/* update */
+				[&] (Widget &w, Xml_node const &node) {
+					w.update(node); }
+			);
 		}
 
 		void _draw_children(Surface<Pixel_rgb888> &pixel_surface,
@@ -230,7 +216,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		virtual ~Widget()
 		{
-			_children.destroy_all_elements(_model_update_policy);
+			_update_children(Xml_node("<empty/>"));
 		}
 
 		bool has_name(Name const &name) const { return name == _name; }
@@ -319,6 +305,24 @@ class Menu_view::Widget : List_model<Widget>::Element
 		void print(Output &out) const
 		{
 			Genode::print(out, _name);
+		}
+
+		/**
+		 * List_model::Element
+		 */
+		bool matches(Xml_node const &node) const
+		{
+			return node.has_type(_type_name.string())
+			    && Widget::node_name(node) == _name
+			    && node_version(node) == _version;
+		}
+
+		/**
+		 * List_model::Element
+		 */
+		static bool type_matches(Xml_node const &node)
+		{
+			return Widget_factory::node_type_known(node);
 		}
 };
 

@@ -442,79 +442,12 @@ struct Menu_view::Depgraph_widget : Widget
 		fn(_root_node);
 	}
 
-	/**
-	 * Customized model-update policy that augments the list of child widgets
-	 * with their graph-node topology
-	 */
-	struct Model_update_policy : List_model<Widget>::Update_policy
-	{
-		Widget::Model_update_policy &_generic_model_update_policy;
-		Allocator                   &_alloc;
-		Animator                    &_animator;
-		Node_registry               &_nodes;
-
-		Model_update_policy(Widget::Model_update_policy &policy,
-		                    Allocator &alloc, Animator &animator,
-		                    Node_registry &nodes)
-		:
-			_generic_model_update_policy(policy),
-			_alloc(alloc), _animator(animator), _nodes(nodes)
-		{ }
-
-		void _destroy_node(Registered_node &node)
-		{
-			/*
-			 * If a server node vanishes, disconnect all client nodes. The
-			 * nodes will be reconnected - if possible - after the model
-			 * update.
-			 */
-			node.for_each_dependent_node([&] (Node &dependent) {
-				dependent.cut_dependencies(); });
-
-			Widget &w = node._widget;
-			destroy(_alloc, &node);
-			_generic_model_update_policy.destroy_element(w);
-		}
-
-		void destroy_element(Widget &w)
-		{
-			_nodes.for_each([&] (Registered_node &node) {
-				if (node.belongs_to(w))
-					_destroy_node(node); });
-		}
-
-		/* do not import <dep> nodes as widgets */
-		bool node_is_element(Xml_node node) { return !node.has_type("dep"); }
-
-		Widget &create_element(Xml_node elem_node)
-		{
-			Widget &w = _generic_model_update_policy.create_element(elem_node);
-			new (_alloc) Registered_node(_nodes, _alloc, w, _animator);
-			return w;
-		}
-
-		void update_element(Widget &w, Xml_node elem_node)
-		{
-			_generic_model_update_policy.update_element(w, elem_node);
-		}
-
-		static bool element_matches_xml_node(Widget const &w, Xml_node node)
-		{
-			return Widget::Model_update_policy::element_matches_xml_node(w, node);
-		}
-
-	} _model_update_policy { Widget::_model_update_policy,
-	                         _factory.alloc, _factory.animator, _nodes };
-
 	Depgraph_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 	:
 		Widget(factory, node, unique_id)
 	{ }
 
-	~Depgraph_widget()
-	{
-		_children.destroy_all_elements(_model_update_policy);
-	}
+	~Depgraph_widget() { _update_children(Xml_node("<empty/>")); }
 
 	void update(Xml_node node) override
 	{
@@ -529,7 +462,49 @@ struct Menu_view::Depgraph_widget : Widget
 			if (dir_name == "west")  _depth_direction = { Depth_direction::WEST  };
 		}
 
-		_children.update_from_xml(_model_update_policy, node);
+		_update_children(node);
+	}
+
+	void _update_children(Xml_node const &node)
+	{
+		Allocator &alloc = _factory.alloc;
+
+		update_list_model_from_xml(_children, node,
+
+			/* create */
+			[&] (Xml_node const &node) -> Widget &
+			{
+				Widget &w = _factory.create(node);
+				new (alloc) Registered_node(_nodes, alloc, w, _factory.animator);
+				return w;
+			},
+
+			/* destroy */
+			[&] (Widget &w)
+			{
+				auto destroy_node = [&] (Registered_node &node)
+				{
+					/*
+					 * If a server node vanishes, disconnect all client nodes. The
+					 * nodes will be reconnected - if possible - after the model
+					 * update.
+					 */
+					node.for_each_dependent_node([&] (Node &dependent) {
+						dependent.cut_dependencies(); });
+
+					Widget &w = node._widget;
+					destroy(alloc, &node);
+					_factory.destroy(&w);
+				};
+
+				_nodes.for_each([&] (Registered_node &node) {
+					if (node.belongs_to(w))
+						destroy_node(node); });
+			},
+
+			/* update */
+			[&] (Widget &w, Xml_node const &node) { w.update(node); }
+		);
 
 		/*
 		 * Import dependencies
