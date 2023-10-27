@@ -36,31 +36,12 @@ struct Depot_download_manager::Job : List_model<Job>::Element
 
 	Job(Archive::Path const &path) : path(path) { }
 
-	struct Update_policy
+	bool matches(Xml_node const &node) const
 	{
-		typedef Job Element;
+		return node.attribute_value("path", Archive::Path()) == path;
+	}
 
-		Allocator &_alloc;
-
-		Update_policy(Allocator &alloc) : _alloc(alloc) { }
-
-		void destroy_element(Job &elem) { destroy(_alloc, &elem); }
-
-		Job &create_element(Xml_node elem_node)
-		{
-			return *new (_alloc)
-				Job(elem_node.attribute_value("path", Archive::Path()));
-		}
-
-		void update_element(Job &, Xml_node) { }
-
-		static bool element_matches_xml_node(Job const &job, Xml_node node)
-		{
-			return node.attribute_value("path", Archive::Path()) == job.path;
-		}
-
-		static bool node_is_element(Xml_node) { return true; }
-	};
+	static bool type_matches(Xml_node const &) { return true; }
 };
 
 #endif /* _JOB_H_ */

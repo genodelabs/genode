@@ -163,8 +163,19 @@ struct Depot_download_manager::Main
 	{
 		_installation.update();
 
-		Job::Update_policy policy(_heap);
-		_jobs.update_from_xml(policy, _installation.xml());
+		update_list_model_from_xml(_jobs, _installation.xml(),
+
+			/* create */
+			[&] (Xml_node const &node) -> Job & {
+				return *new (_heap)
+					Job(node.attribute_value("path", Archive::Path())); },
+
+			/* destroy */
+			[&] (Job &job) { destroy(_heap, &job); },
+
+			/* update */
+			[&] (Job &, Xml_node const &) { }
+		);
 
 		_depot_query_count.value++;
 
