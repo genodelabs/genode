@@ -69,8 +69,8 @@ typedef struct DRVNIC
 	PPDMINETWORKCONFIG      pIAboveConfig;
 	/** Pointer to the driver instance. */
 	PPDMDRVINS              pDrvIns;
-	/** Receiver thread that handles all signals. */
-	PPDMTHREAD              pThread;
+	/** Transmit lock used by pfnBeginXmit/pfnEndXmit. */
+	RTCRITSECT              XmitLock;
 	/** Nic::Session client wrapper. */
 	Nic_client             *nic_client;
 } DRVNIC, *PDRVNIC;
@@ -106,13 +106,17 @@ class Nic_client
 		Genode::Signal_handler<Nic_client> _link_state_dispatcher;
 		Genode::Signal_handler<Nic_client> _rx_packet_avail_dispatcher;
 		Genode::Signal_handler<Nic_client> _rx_ready_to_ack_dispatcher;
+		Genode::Signal_handler<Nic_client> _tx_ack_avail_dispatcher;
+		Genode::Signal_handler<Nic_client> _tx_ready_to_submit;
 		Genode::Signal_handler<Nic_client> _destruct_dispatcher;
 
 		bool _link_up = false;
+		bool _retry   = false;
 
 		/* VM <-> device driver (down) <-> nic_client (up) <-> nic session */
-		PPDMINETWORKDOWN   _down_rx;
-		PPDMINETWORKCONFIG _down_rx_config;
+		PPDMINETWORKDOWN   _down_net;
+		PPDMINETWORKCONFIG _down_net_config;
+		PDRVNIC            _drvnic;
 
 		void _handle_rx_packet_avail()
 		{
@@ -122,10 +126,10 @@ class Nic_client
 				char *rx_content = _nic.rx()->packet_content(rx_packet);
 
 				Libc::with_libc([&] () {
-					int rc = _down_rx->pfnWaitReceiveAvail(_down_rx, RT_INDEFINITE_WAIT);
+					int rc = _down_net->pfnWaitReceiveAvail(_down_net, RT_INDEFINITE_WAIT);
 					if (RT_FAILURE(rc)) return;
 
-					rc = _down_rx->pfnReceive(_down_rx, rx_content, rx_packet.size());
+					rc = _down_net->pfnReceive(_down_net, rx_content, rx_packet.size());
 					AssertRC(rc);
 				});
 
@@ -135,12 +139,48 @@ class Nic_client
 
 		void _handle_rx_ready_to_ack() { _handle_rx_packet_avail(); }
 
+		template <typename F>
+		void _guard_with_xmit_lock(F const &fn)
+		{
+			int const rc = RTCritSectEnter(&_drvnic->XmitLock);
+
+			if (RT_FAILURE(rc)) {
+				RTLogPrintf("entering XmitLock failed %d\n", rc);
+				return;
+			}
+
+			bool const progress = fn();
+
+			RTCritSectLeave(&_drvnic->XmitLock);
+
+			/* pfnXmitPending takes the XmitLock again */
+			if (progress && _down_net->pfnXmitPending)
+				_down_net->pfnXmitPending(_down_net);
+		}
+
+		void _handle_tx_ack_avail()
+		{
+			_guard_with_xmit_lock([&](void){ return _tx_ack(); });
+		}
+
+		void _handle_tx_ready_to_submit()
+		{
+			_guard_with_xmit_lock([&](void){
+
+				bool const notify_network_model = _retry;
+				if (_retry)
+					_retry = false;
+
+				return notify_network_model;
+			});
+		}
+
 		void _handle_link_state()
 		{
 			_link_up = _nic.link_state();
 
 			Libc::with_libc([&] () {
-				_down_rx_config->pfnSetLinkState(_down_rx_config,
+				_down_net_config->pfnSetLinkState(_down_net_config,
 				                                 _link_up ? PDMNETWORKLINKSTATE_UP
 				                                          : PDMNETWORKLINKSTATE_DOWN);
 			});
@@ -151,19 +191,31 @@ class Nic_client
 			_nic.link_state_sigh(Genode::Signal_context_capability());
 			_nic.rx_channel()->sigh_packet_avail(Genode::Signal_context_capability());
 			_nic.rx_channel()->sigh_ready_to_ack(Genode::Signal_context_capability());
+			_nic.tx_channel()->sigh_ack_avail(Genode::Signal_context_capability());
+			_nic.tx_channel()->sigh_ready_to_submit(Genode::Signal_context_capability());
 
 			destruct_blockade().wakeup();
 		}
 
-		void _tx_ack()
+		bool _tx_ack()
 		{
+			bool progress = false;
+
 			/* check for acknowledgements */
 			while (_nic.tx()->ack_avail()) {
 				Nic::Packet_descriptor acked_packet = _nic.tx()->get_acked_packet();
 				auto packet_allocated_len = Nic::Packet_descriptor(acked_packet.offset(),
 				                                                   Nic::Packet_allocator::OFFSET_PACKET_SIZE);
+
 				_nic.tx()->release_packet(packet_allocated_len);
+
+				if (_retry) {
+					progress = true;
+					_retry = false;
+				}
 			}
+
+			return progress;
 		}
 
 		static Nic::Packet_allocator* _packet_allocator()
@@ -186,7 +238,7 @@ class Nic_client
 
 	public:
 
-		Nic_client(Genode::Env &env, PDRVNIC drvtap,
+		Nic_client(Genode::Env &env, PDRVNIC drv,
 		           Genode::Session::Label const &label)
 		:
 			_tx_block_alloc(_packet_allocator()),
@@ -195,11 +247,14 @@ class Nic_client
 			_link_state_dispatcher(_ep, *this, &Nic_client::_handle_link_state),
 			_rx_packet_avail_dispatcher(_ep, *this, &Nic_client::_handle_rx_packet_avail),
 			_rx_ready_to_ack_dispatcher(_ep, *this, &Nic_client::_handle_rx_ready_to_ack),
+			_tx_ack_avail_dispatcher(_ep, *this, &Nic_client::_handle_tx_ack_avail),
+			_tx_ready_to_submit(_ep, *this, &Nic_client::_handle_tx_ready_to_submit),
 			_destruct_dispatcher(_ep, *this, &Nic_client::_handle_destruct),
-			_down_rx(drvtap->pIAboveNet),
-			_down_rx_config(drvtap->pIAboveConfig)
+			_down_net(drv->pIAboveNet),
+			_down_net_config(drv->pIAboveConfig),
+			_drvnic(drv)
 		{
-			Genode::Signal_transmitter(_pthread_reg_sigh).submit();
+			_pthread_reg_sigh.local_submit();
 		}
 
 		~Nic_client()
@@ -213,6 +268,8 @@ class Nic_client
 			_nic.link_state_sigh(_link_state_dispatcher);
 			_nic.rx_channel()->sigh_packet_avail(_rx_packet_avail_dispatcher);
 			_nic.rx_channel()->sigh_ready_to_ack(_rx_ready_to_ack_dispatcher);
+			_nic.tx_channel()->sigh_ack_avail(_tx_ack_avail_dispatcher);
+			_nic.tx_channel()->sigh_ready_to_submit(_tx_ready_to_submit);
 
 			/* inform signal handler ep */
 			_link_state_dispatcher.local_submit();
@@ -223,12 +280,16 @@ class Nic_client
 
 		bool alloc_packet(Nic::Packet_descriptor &pkg, uint32_t packet_len)
 		{
+			/* check for acknowledgments */
+			_tx_ack();
+
 			auto const result = _nic.tx()->alloc_packet_attempt(packet_len);
 
 			return result.convert<bool>([&](auto &p) {
 				pkg = p;
 				return true;
 			}, [&] (auto &) {
+				_retry = true;
 				return false;
 			});
 		}
@@ -236,9 +297,6 @@ class Nic_client
 		int send_packet(Nic::Packet_descriptor const &tx_packet, void *packet, uint32_t packet_len)
 		{
 			if (!_link_up) { return VERR_NET_DOWN; }
-
-			/* check for acknowledgements */
-			_tx_ack();
 
 			if (tx_packet.size() < packet_len) {
 				RTLogPrintf("%s: packet too large\n", __func__);
@@ -252,6 +310,13 @@ class Nic_client
 			auto tx_packet_actual_len = Nic::Packet_descriptor(tx_packet.offset(), packet_len);
 			_nic.tx()->submit_packet(tx_packet_actual_len);
 			return VINF_SUCCESS;
+		}
+
+		void release_not_sent_packet(Nic::Packet_descriptor const &tx_not_sent)
+		{
+			auto const len = Nic::Packet_descriptor(tx_not_sent.offset(),
+			                                        Nic::Packet_allocator::OFFSET_PACKET_SIZE);
+			_nic.tx()->release_packet(len);
 		}
 };
 
@@ -270,7 +335,21 @@ class Nic_client
  */
 static DECLCALLBACK(int) drvNicNetworkUp_BeginXmit(PPDMINETWORKUP pInterface, bool fOnWorkerThread)
 {
-	return VINF_SUCCESS;
+	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
+	int rc = RTCritSectTryEnter(&pThis->XmitLock);
+	if (RT_FAILURE(rc))
+		rc = VERR_TRY_AGAIN;
+	return rc;
+}
+
+
+/**
+ * @interface_method_impl{PDMINETWORKUP,pfnEndXmit}
+ */
+static DECLCALLBACK(void) drvNicNetworkUp_EndXmit(PPDMINETWORKUP pInterface)
+{
+	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
+	RTCritSectLeave(&pThis->XmitLock);
 }
 
 
@@ -336,13 +415,20 @@ static DECLCALLBACK(int) drvNicNetworkUp_AllocBuf(PPDMINETWORKUP pInterface, siz
  */
 static DECLCALLBACK(int) drvNicNetworkUp_FreeBuf(PPDMINETWORKUP pInterface, PPDMSCATTERGATHER pSgBuf)
 {
-	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
 	if (pSgBuf)
 	{
 		Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
+
 		pSgBuf->fFlags = 0;
-		if (pSgBuf->pvAllocator)
+		if (pSgBuf->pvAllocator) {
+			PDRVNIC     pThis      = PDMINETWORKUP_2_DRVNIC(pInterface);
+			Nic_client *nic_client = pThis->nic_client;
+			auto const &packet     = *(Nic::Packet_descriptor *)pSgBuf->pvAllocator;
+
+			nic_client->release_not_sent_packet(packet);
+
 			RTMemFree(pSgBuf->pvAllocator);
+		}
 		RTMemFree(pSgBuf);
 	}
 	return VINF_SUCCESS;
@@ -359,6 +445,7 @@ static DECLCALLBACK(int) drvNicNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDM
 
 	AssertPtr(pSgBuf);
 	Assert((pSgBuf->fFlags & PDMSCATTERGATHER_FLAGS_MAGIC_MASK) == PDMSCATTERGATHER_FLAGS_MAGIC);
+	Assert(RTCritSectIsOwner(&pThis->XmitLock));
 
 	if (!pSgBuf->pvAllocator) {
 		RTLogPrintf("%s: error in packet allocation\n", __func__);
@@ -407,15 +494,6 @@ static DECLCALLBACK(int) drvNicNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDM
 	if (RT_FAILURE(rc))
 		rc = rc == VERR_NO_MEMORY ? VERR_NET_NO_BUFFER_SPACE : VERR_NET_DOWN;
 	return rc;
-}
-
-
-/**
- * @interface_method_impl{PDMINETWORKUP,pfnEndXmit}
- */
-static DECLCALLBACK(void) drvNicNetworkUp_EndXmit(PPDMINETWORKUP pInterface)
-{
-	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
 }
 
 
@@ -477,17 +555,20 @@ static DECLCALLBACK(void) drvNicDestruct(PPDMDRVINS pDrvIns)
 	PDRVNIC pThis = PDMINS_2_DATA(pDrvIns, PDRVNIC);
 	Nic_client *nic_client = pThis->nic_client;
 
-	if (!nic_client)
+	if (!nic_client) {
 		Genode::error("nic_client not valid at destruction time");
+		return;
+	}
 
-	if (nic_client)
-		Genode::Signal_transmitter(nic_client->dispatcher()).submit();
+	Genode::Signal_transmitter(nic_client->dispatcher()).submit();
 
 	/* wait until the recv thread exits */
 	destruct_blockade().block();
 
-	if (nic_client)
-		destroy(vmm_heap(), nic_client);
+	if (RTCritSectIsInitialized(&pThis->XmitLock))
+		RTCritSectDelete(&pThis->XmitLock);
+
+	destroy(vmm_heap(), nic_client);
 }
 
 
@@ -518,6 +599,8 @@ static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 	pThis->INetworkUp.pfnNotifyLinkChanged  = drvNicNetworkUp_NotifyLinkChanged;
 	/* INetworkConfig - used on Genode to request Mac address of nic_session */
 	pThis->INetworkConfig.pfnGetMac         = drvGetMac;
+
+	RTCritSectInit(&pThis->XmitLock);
 
 	/*
 	 * Check that no-one is attached to us.

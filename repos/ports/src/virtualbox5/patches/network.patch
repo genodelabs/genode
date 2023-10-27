@@ -4,6 +4,15 @@ diff --git a/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp b/src/app/
 index aa3eb87..fc2660a 100644
 --- a/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
+@@ -7629,7 +7629,7 @@
+         return PDMDEV_SET_ERROR(pDevIns, rc,
+                                 N_("Configuration error: Failed to get the value of 'EthernetCRC'"));
+ 
+-    rc = CFGMR3QueryBoolDef(pCfg, "GSOEnabled", &pThis->fGSOEnabled, true);
++    rc = CFGMR3QueryBoolDef(pCfg, "GSOEnabled", &pThis->fGSOEnabled, false);
+     if (RT_FAILURE(rc))
+         return PDMDEV_SET_ERROR(pDevIns, rc,
+                                 N_("Configuration error: Failed to get the value of 'GSOEnabled'"));
 @@ -7519,6 +7519,35 @@ static DECLCALLBACK(int) e1kR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
              pThis->fR0Enabled ? "enabled" : "disabled",
              pThis->fRCEnabled ? "enabled" : "disabled"));
