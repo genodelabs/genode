@@ -16,10 +16,10 @@
 #include <device.h>
 
 namespace Driver {
-	void pci_intel_graphics_info(Device::Pci_config cfg,
-	                             Env              & env,
-	                             Device_model     & model,
-	                             Xml_generator    & xml);
+	void pci_intel_graphics_info(Device::Pci_config const & cfg,
+	                             Env                      & env,
+	                             Device_model             & model,
+	                             Xml_generator            & xml);
 }
 
 
@@ -75,10 +75,10 @@ static inline unsigned pci_intel_graphics_generation(Pci::device_t id)
 };
 
 
-void Driver::pci_intel_graphics_info(Device::Pci_config cfg,
-                                     Env              & env,
-                                     Device_model     & model,
-                                     Xml_generator    & xml)
+void Driver::pci_intel_graphics_info(Device::Pci_config const & cfg,
+                                     Env                      & env,
+                                     Device_model             & model,
+                                     Xml_generator            & xml)
 {
 	enum {
 		GPU_CLASS_MASK = 0xff0000,
@@ -101,7 +101,7 @@ void Driver::pci_intel_graphics_info(Device::Pci_config cfg,
 
 	/* find host bridge */
 	model.for_each([&] (Device const & dev) {
-		dev.for_pci_config([&] (Device::Pci_config const cfg) {
+		dev.for_pci_config([&] (Device::Pci_config const &cfg) {
 			if (cfg.bus_num || cfg.dev_num || cfg.func_num)
 				return;
 

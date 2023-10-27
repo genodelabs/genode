@@ -17,14 +17,14 @@
 
 namespace Driver {
 	static void pci_uhci_quirks(Env &, Device const &,
-	                            Device::Pci_config, addr_t);
+	                            Device::Pci_config const &, addr_t);
 }
 
 
-void Driver::pci_uhci_quirks(Env              & env,
-                             Device const     & dev,
-                             Device::Pci_config cfg,
-                             addr_t             base)
+void Driver::pci_uhci_quirks(Env                      & env,
+                             Device             const & dev,
+                             Device::Pci_config const & cfg,
+                             addr_t                     base)
 {
 	enum { UHCI_CLASS_CODE = 0xc0300 };
 

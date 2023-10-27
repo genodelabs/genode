@@ -16,17 +16,15 @@
 #include <device.h>
 
 namespace Driver {
-	void pci_virtio_info(Device const     & dev,
-	                     Device::Pci_config cfg,
-	                     Env              & env,
-	                     Xml_generator    & xml);
+	void pci_virtio_info(Device const &, Device::Pci_config const &, Env &,
+	                     Xml_generator &);
 }
 
 
-void Driver::pci_virtio_info(Device const     & dev,
-                             Device::Pci_config cfg,
-                             Env              & env,
-                             Xml_generator    & xml)
+void Driver::pci_virtio_info(Device             const & dev,
+                             Device::Pci_config const & cfg,
+                             Env                      & env,
+                             Xml_generator            & xml)
 {
 	enum { VENDOR_RED_HAT = 0x1af4 };
 

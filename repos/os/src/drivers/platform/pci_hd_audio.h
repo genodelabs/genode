@@ -15,13 +15,11 @@
 #include <device.h>
 
 namespace Driver {
-	static void pci_hd_audio_quirks(Device::Pci_config cfg,
-	                                Pci::Config      & config);
+	static void pci_hd_audio_quirks(Device::Pci_config const &, Pci::Config &);
 }
 
 
-void Driver::pci_hd_audio_quirks(Device::Pci_config cfg,
-                                 Pci::Config      & config)
+void Driver::pci_hd_audio_quirks(Device::Pci_config const & cfg, Pci::Config & config)
 {
 	enum { HDAUDIO_CLASS_CODE = 0x40300 };
 

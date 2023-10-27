@@ -300,7 +300,7 @@ bool Driver::pci_device_matches(Session_policy const & policy,
 		vendor_t   vendor_id  = node.attribute_value<vendor_t>("vendor_id", 0);
 		device_t   device_id  = node.attribute_value<device_t>("device_id", 0);
 
-		dev.for_pci_config([&] (Device::Pci_config const cfg)
+		dev.for_pci_config([&] (Device::Pci_config const & cfg)
 		{
 			if ((pci_class_code_alias(cfg.class_code) == class_code) ||
 			    (vendor_id == cfg.vendor_id && device_id == cfg.device_id))
@@ -317,7 +317,7 @@ void Driver::pci_device_specific_info(Device const  & dev,
                                       Device_model  & model,
                                       Xml_generator & xml)
 {
-	dev.for_pci_config([&] (Device::Pci_config const cfg)
+	dev.for_pci_config([&] (Device::Pci_config const & cfg)
 	{
 		Driver::pci_intel_graphics_info(cfg, env, model, xml);
 		Driver::pci_virtio_info(dev, cfg, env, xml);
