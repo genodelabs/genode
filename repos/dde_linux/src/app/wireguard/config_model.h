@@ -35,28 +35,34 @@ class Wireguard::Config_model
 {
 	private:
 
-		using Key_base64 = Genode::String<WG_KEY_LEN_BASE64>;
+		using Key_base64          = Genode::String<WG_KEY_LEN_BASE64>;
+		using Ipv4_address        = Net::Ipv4_address;
+		using Ipv4_address_prefix = Net::Ipv4_address_prefix;
+		using uint16_t            = Genode::uint16_t;
 
 		class Peer;
 
-		class Config
+		struct Config
 		{
-			private:
+			Key_base64          private_key_b64;
+			uint16_t            listen_port;
+			Ipv4_address_prefix interface;
 
-				Key_base64 const               _private_key_b64;
-				Genode::uint16_t const         _listen_port;
-				Net::Ipv4_address_prefix const _interface;
+			static Config from_xml(Genode::Xml_node const &node)
+			{
+				return {
+					.private_key_b64 = node.attribute_value("private_key", Key_base64 { }),
+					.listen_port     = node.attribute_value("listen_port", (uint16_t)0U),
+					.interface       = node.attribute_value("interface",   Ipv4_address_prefix { })
+				};
+			}
 
-			public:
-
-				Config(Key_base64               private_key_b64,
-				       Genode::uint16_t         listen_port,
-				       Net::Ipv4_address_prefix interface);
-
-
-				Key_base64               const &private_key_b64() const { return _private_key_b64; }
-				Genode::uint16_t                listen_port()     const { return _listen_port; }
-				Net::Ipv4_address_prefix const &interface()       const { return _interface; }
+			bool operator != (Config const &other) const
+			{
+				return (private_key_b64 != other.private_key_b64)
+				    || (listen_port     != other.listen_port)
+				    || (interface       != other.interface);
+			}
 		};
 
 		Genode::Allocator             &_alloc;
@@ -65,32 +71,35 @@ class Wireguard::Config_model
 
 	public:
 
-		Config_model(Genode::Allocator &alloc);
+		Config_model(Genode::Allocator &alloc) : _alloc(alloc) { }
 
 		void update(genode_wg_config_callbacks &callbacks,
-		            Genode::Xml_node            config_node);
+		            Genode::Xml_node     const &config_node);
 };
 
 
-class Wireguard::Config_model::Peer : public Genode::List_model<Peer>::Element
+struct Wireguard::Config_model::Peer : Genode::List_model<Peer>::Element
 {
-	private:
+		Key_base64          const public_key_b64;
+		Ipv4_address        const endpoint_ip;
+		uint16_t            const endpoint_port;
+		Ipv4_address_prefix const allowed_ip;
 
-		Key_base64               _public_key_b64;
-		Net::Ipv4_address        _endpoint_ip;
-		Genode::uint16_t         _endpoint_port;
-		Net::Ipv4_address_prefix _allowed_ip;
+		Peer(Key_base64          public_key_b64,
+		     Ipv4_address        endpoint_ip,
+		     uint16_t            endpoint_port,
+		     Ipv4_address_prefix allowed_ip)
+		:
+			public_key_b64(public_key_b64), endpoint_ip(endpoint_ip),
+			endpoint_port(endpoint_port), allowed_ip(allowed_ip)
+		{ }
 
-	public:
-
-		Peer(Key_base64               public_key_b64,
-		     Net::Ipv4_address        endpoint_ip,
-		     Genode::uint16_t         endpoint_port,
-		     Net::Ipv4_address_prefix allowed_ip);
-
-		Key_base64 public_key_b64() const { return _public_key_b64; }
-
-		bool matches(Genode::Xml_node const &) const;
+		bool matches(Genode::Xml_node const &node) const
+		{
+			return (endpoint_ip    == node.attribute_value("endpoint_ip",   Ipv4_address { }))
+			    && (endpoint_port  == node.attribute_value("endpoint_port", (uint16_t)0U ))
+			    && (public_key_b64 == node.attribute_value("public_key",    Key_base64 { }));
+		}
 
 		static bool type_matches(Genode::Xml_node const &node)
 		{
