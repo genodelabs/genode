@@ -79,7 +79,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 			Dirty_rect result = _dirty_rect;
 
 			_dirty_rect.flush([&] (Rect const &rect) {
-				_windows.apply_first([&] (Window_base const &first) {
+				_windows.with_first([&] (Window_base const &first) {
 					_draw_rec(canvas, &first, rect); }); });
 
 			return result;

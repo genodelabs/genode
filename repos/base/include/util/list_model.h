@@ -143,15 +143,15 @@ class Genode::List_model : Noncopyable
 		}
 
 		/**
-		 * Apply functor 'fn' to the first element of the list model
+		 * Call functor 'fn' with the first element of the list model
 		 *
-		 * Using this method combined with the 'Element::next' method, the list
-		 * model can be traversed manually. This is handy in situations where
-		 * the list-model elements are visited via recursive function calls
+		 * Using this method combined with 'Element::next', the list model
+		 * can be traversed manually. This is handy in situations where the
+		 * list-model elements are visited via recursive function calls
 		 * instead of a 'for_each' loop.
 		 */
 		template <typename FN>
-		void apply_first(FN const &fn) const
+		void with_first(FN const &fn) const
 		{
 			if (Element const *e = _elements.first())
 				fn(static_cast<ELEM const &>(*e));
