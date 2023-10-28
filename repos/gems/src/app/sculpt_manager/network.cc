@@ -127,7 +127,7 @@ void Sculpt::Network::_handle_wlan_accesspoints()
 	if (!initial_scan && dialog.ap_list_hovered())
 		return;
 
-	update_list_model_from_xml(_access_points, _wlan_accesspoints_rom.xml(),
+	_access_points.update_from_xml(_wlan_accesspoints_rom.xml(),
 
 		/* create */
 		[&] (Xml_node const &node) -> Access_point &

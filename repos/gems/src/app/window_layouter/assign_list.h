@@ -35,7 +35,7 @@ class Window_layouter::Assign_list : Noncopyable
 
 		void update_from_xml(Xml_node node)
 		{
-			update_list_model_from_xml(_assignments, node,
+			_assignments.update_from_xml(node,
 
 				[&] (Xml_node const &node) -> Assign & {
 					return *new (_alloc) Assign(node); },

@@ -192,7 +192,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node,
 {
 	Abandoned_windows _abandoned_windows { };
 
-	update_list_model_from_xml(_windows, root_node,
+	_windows.update_from_xml(root_node,
 
 		[&] (Xml_node const &node) -> Window_base & {
 			return *_window_factory.create(node); },

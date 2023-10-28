@@ -385,7 +385,7 @@ void Config_model::update_from_xml(Xml_node                 const &xml,
 	auto update = [&] (Node &node, Xml_node const &xml) { node.update(xml); };
 
 	try {
-		update_list_model_from_xml(_model, xml, create, destroy, update);
+		_model.update_from_xml(xml, create, destroy, update);
 	}
 	catch (Unknown_element_type) {
 		error("unable to apply complete configuration"); }
@@ -405,7 +405,7 @@ void Config_model::apply_children_restart(Xml_node const &xml)
 	};
 
 	try {
-		update_list_model_from_xml(_model, xml, create, destroy, update);
+		_model.update_from_xml(xml, create, destroy, update);
 	}
 	catch (...) { };
 }

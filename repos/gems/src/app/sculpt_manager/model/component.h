@@ -71,7 +71,7 @@ struct Sculpt::Component : Noncopyable
 
 	void _update_routes_from_xml(Xml_node const &node)
 	{
-		update_list_model_from_xml(routes, node,
+		routes.update_from_xml(node,
 
 			/* create */
 			[&] (Xml_node const &route) -> Route & {

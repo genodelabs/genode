@@ -163,7 +163,7 @@ struct Depot_download_manager::Main
 	{
 		_installation.update();
 
-		update_list_model_from_xml(_jobs, _installation.xml(),
+		_jobs.update_from_xml(_installation.xml(),
 
 			/* create */
 			[&] (Xml_node const &node) -> Job & {
@@ -211,7 +211,7 @@ struct Depot_download_manager::Main
 
 		bool visible_progress = false;
 
-		update_list_model_from_xml(_fetchurl_downloads, _fetchurl_progress.xml(),
+		_fetchurl_downloads.update_from_xml(_fetchurl_progress.xml(),
 
 			/* create */
 			[&] (Xml_node const &node) -> Download & {

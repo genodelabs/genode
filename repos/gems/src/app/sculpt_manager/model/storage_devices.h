@@ -37,7 +37,7 @@ struct Sculpt::Storage_devices
 	void update_block_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
 	                                   Signal_context_capability sigh)
 	{
-		update_list_model_from_xml(block_devices, node,
+		block_devices.update_from_xml(node,
 
 			/* create */
 			[&] (Xml_node const &node) -> Block_device & {
@@ -72,7 +72,7 @@ struct Sculpt::Storage_devices
 
 		bool device_added_or_vanished = false;
 
-		update_list_model_from_xml(usb_storage_devices, node,
+		usb_storage_devices.update_from_xml(node,
 
 			/* create */
 			[&] (Xml_node const &node) -> Usb_storage_device &

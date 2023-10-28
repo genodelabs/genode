@@ -188,7 +188,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 {
 	using Bar = Device::Pci_bar;
 
-	update_list_model_from_xml(_irq_list, node,
+	_irq_list.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Irq &
@@ -219,7 +219,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 		[&] (Irq &, Xml_node const &) { }
 	);
 
-	update_list_model_from_xml(_io_mem_list, node,
+	_io_mem_list.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Io_mem &
@@ -241,7 +241,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 		[&] (Io_mem &, Xml_node const &) { }
 	);
 
-	update_list_model_from_xml(_io_port_range_list, node,
+	_io_port_range_list.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Io_port_range &
@@ -262,7 +262,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 		[&] (Io_port_range &, Xml_node const &) { }
 	);
 
-	update_list_model_from_xml(_property_list, node,
+	_property_list.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Property &
@@ -279,7 +279,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 		[&] (Property &, Xml_node const &) { }
 	);
 
-	update_list_model_from_xml(_clock_list, node,
+	_clock_list.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Clock &
@@ -298,7 +298,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 		[&] (Clock &, Xml_node const &) { }
 	);
 
-	update_list_model_from_xml(_power_domain_list, node,
+	_power_domain_list.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Power_domain &
@@ -314,7 +314,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 		[&] (Power_domain &, Xml_node const &) { }
 	);
 
-	update_list_model_from_xml(_reset_domain_list, node,
+	_reset_domain_list.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Reset_domain &
@@ -330,7 +330,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 		[&] (Reset_domain &, Xml_node const &) { }
 	);
 
-	update_list_model_from_xml(_pci_config_list, node,
+	_pci_config_list.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Pci_config &
@@ -365,7 +365,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 		[&] (Pci_config &, Xml_node const &) { }
 	);
 
-	update_list_model_from_xml(_reserved_mem_list, node,
+	_reserved_mem_list.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Reserved_memory &
@@ -382,7 +382,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 		[&] (Reserved_memory &, Xml_node const &) { }
 	);
 
-	update_list_model_from_xml(_io_mmu_list, node,
+	_io_mmu_list.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Io_mmu &
@@ -429,7 +429,7 @@ void Driver::Device_model::generate(Xml_generator & xml) const
 
 void Driver::Device_model::update(Xml_node const & node)
 {
-	update_list_model_from_xml(_model, node,
+	_model.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Device &

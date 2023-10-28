@@ -214,19 +214,4 @@ void Genode::List_model<ELEM>::update_from_xml(Xml_node const &node,
 	_elements = updated_list;
 }
 
-
-namespace Genode {
-
-	template <typename CREATE_FN, typename DESTROY_FN, typename UPDATE_FN,
-              typename NODE = decltype(CREATE_FN())>
-	static inline void update_list_model_from_xml(List_model<NODE> &model,
-	                                              Xml_node   const &node,
-	                                              CREATE_FN  const &create_fn,
-	                                              DESTROY_FN const &destroy_fn,
-	                                              UPDATE_FN  const &update_fn)
-	{
-		model.update_from_xml(node, create_fn, destroy_fn, update_fn);
-	}
-}
-
 #endif /* _INCLUDE__UTIL__LIST_MODEL_H_ */

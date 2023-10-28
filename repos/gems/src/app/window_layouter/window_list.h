@@ -50,7 +50,7 @@ class Window_layouter::Window_list
 			_rom.update();
 
 			/* import window-list changes */
-			update_list_model_from_xml(_list, _rom.xml(),
+			_list.update_from_xml(_rom.xml(),
 
 				[&] (Xml_node const &node) -> Window &
 				{

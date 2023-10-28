@@ -54,7 +54,7 @@ struct Sculpt::Storage_device
 
 	void _update_partitions_from_xml(Xml_node const &node)
 	{
-		update_list_model_from_xml(partitions, node,
+		partitions.update_from_xml(node,
 
 			/* create */
 			[&] (Xml_node const &node) -> Partition & {

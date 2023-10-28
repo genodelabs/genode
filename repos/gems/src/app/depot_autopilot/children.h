@@ -54,7 +54,7 @@ class Depot_deploy::Children
 
 		void apply_config(Xml_node config)
 		{
-			update_list_model_from_xml(_children, config,
+			_children.update_from_xml(config,
 
 				[&] (Xml_node const &node) -> Child & {
 					return *new (_alloc)

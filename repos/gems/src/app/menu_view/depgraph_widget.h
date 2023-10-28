@@ -469,7 +469,7 @@ struct Menu_view::Depgraph_widget : Widget
 	{
 		Allocator &alloc = _factory.alloc;
 
-		update_list_model_from_xml(_children, node,
+		_children.update_from_xml(node,
 
 			/* create */
 			[&] (Xml_node const &node) -> Widget &

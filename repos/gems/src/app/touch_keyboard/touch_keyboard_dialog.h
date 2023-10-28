@@ -120,7 +120,7 @@ struct Touch_keyboard::Dialog : private Dynamic_rom_session::Xml_producer
 
 			void update(Xml_node const &row)
 			{
-				update_list_model_from_xml(keys, row,
+				keys.update_from_xml(row,
 
 					/* create */
 					[&] (Xml_node const &node) -> Key & {
@@ -154,7 +154,7 @@ struct Touch_keyboard::Dialog : private Dynamic_rom_session::Xml_producer
 
 			void update(Xml_node const &map)
 			{
-				update_list_model_from_xml(rows, map,
+				rows.update_from_xml(map,
 
 					/* create */
 					[&] (Xml_node const &node) -> Row & {
@@ -187,7 +187,7 @@ struct Touch_keyboard::Dialog : private Dynamic_rom_session::Xml_producer
 		{
 			_default_key_min_ex = config.attribute_value("key_min_ex", 0U);
 
-			update_list_model_from_xml(_maps, config,
+			_maps.update_from_xml(config,
 
 				/* create */
 				[&] (Xml_node const &node) -> Map & {

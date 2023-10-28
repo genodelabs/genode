@@ -92,7 +92,7 @@ class Sculpt::Presets : public Noncopyable
 
 		void update_from_xml(Xml_node const &presets)
 		{
-			update_list_model_from_xml(_presets, presets,
+			_presets.update_from_xml(presets,
 
 				/* create */
 				[&] (Xml_node const &node) -> Preset & {

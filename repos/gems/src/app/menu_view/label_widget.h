@@ -49,7 +49,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 
 	void _update_children(Xml_node const &node)
 	{
-		update_list_model_from_xml(_cursors, node,
+		_cursors.update_from_xml(node,
 
 			/* create */
 			[&] (Xml_node const &node) -> Cursor & {
@@ -64,7 +64,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 				cursor.update(node); }
 		);
 
-		update_list_model_from_xml(_selections, node,
+		_selections.update_from_xml(node,
 
 			/* create */
 			[&] (Xml_node const &node) -> Text_selection & {

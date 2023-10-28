@@ -102,7 +102,7 @@ struct Sandbox::Parent_provides_model : Noncopyable
 		auto update = [&] (Node &, Xml_node const &) { };
 
 		try {
-			update_list_model_from_xml(_model, xml, create, destroy, update);
+			_model.update_from_xml(xml, create, destroy, update);
 		} catch (...) {
 			error("unable to apply complete configuration");
 		}

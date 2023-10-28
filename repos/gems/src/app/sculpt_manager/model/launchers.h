@@ -68,7 +68,7 @@ class Sculpt::Launchers : public Noncopyable
 
 		void update_from_xml(Xml_node const &launchers)
 		{
-			update_list_model_from_xml(_launchers, launchers,
+			_launchers.update_from_xml(launchers,
 
 				/* create */
 				[&] (Xml_node const &node) -> Launcher & {

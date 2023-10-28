@@ -491,7 +491,7 @@ Main::Main(Env & env) : env(env)
 
 	if (apic_capable) {
 
-		update_list_model_from_xml(irq_override_list, xml,
+		irq_override_list.update_from_xml(xml,
 
 			/* create */
 			[&] (Xml_node const &node) -> Irq_override &
@@ -509,7 +509,7 @@ Main::Main(Env & env) : env(env)
 			[&] (Irq_override &, Xml_node const &) { }
 		);
 
-		update_list_model_from_xml(irq_routing_list, xml,
+		irq_routing_list.update_from_xml(xml,
 
 			/* create */
 			[&] (Xml_node const &node) -> Irq_routing &
@@ -530,7 +530,7 @@ Main::Main(Env & env) : env(env)
 		);
 	}
 
-	update_list_model_from_xml(reserved_memory_list, xml,
+	reserved_memory_list.update_from_xml(xml,
 
 		/* create */
 		[&] (Xml_node const &node) -> Rmrr &

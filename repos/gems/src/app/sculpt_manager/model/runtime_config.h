@@ -256,7 +256,7 @@ class Sculpt::Runtime_config
 
 				node.with_optional_sub_node("route", [&] (Xml_node route) {
 
-					update_list_model_from_xml(deps, route,
+					deps.update_from_xml(route,
 
 						/* create */
 						[&] (Xml_node const &node) -> Dep & {
@@ -272,7 +272,7 @@ class Sculpt::Runtime_config
 
 				node.with_optional_sub_node("provides", [&] (Xml_node provides) {
 
-					update_list_model_from_xml(_child_services, provides,
+					_child_services.update_from_xml(provides,
 
 						/* create */
 						[&] (Xml_node const &node) -> Child_service & {
@@ -364,7 +364,7 @@ class Sculpt::Runtime_config
 
 		void update_from_xml(Xml_node config)
 		{
-			update_list_model_from_xml(_components, config,
+			_components.update_from_xml(config,
 
 				/* create */
 				[&] (Xml_node const &node) -> Component & {

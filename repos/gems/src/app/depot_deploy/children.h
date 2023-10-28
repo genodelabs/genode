@@ -45,7 +45,7 @@ class Depot_deploy::Children
 		{
 			bool progress = false;
 
-			update_list_model_from_xml(_children, config,
+			_children.update_from_xml(config,
 
 				/* create */
 				[&] (Xml_node const &node) -> Child & {

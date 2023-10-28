@@ -228,7 +228,7 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		void update_from_state_report(Xml_node state)
 		{
-			update_list_model_from_xml(_children, state,
+			_children.update_from_xml(state,
 
 				/* create */
 				[&] (Xml_node const &node) -> Child & {

@@ -61,7 +61,7 @@ void Vmm::Config::update(Xml_node node)
 		_cpu_count = 1;
 	}
 
-	update_list_model_from_xml(_model, node,
+	_model.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Virtio_device &

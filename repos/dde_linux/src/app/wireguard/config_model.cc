@@ -46,7 +46,7 @@ void Config_model::update(genode_wg_config_callbacks &callbacks,
 		callbacks.add_device(_config->listen_port, private_key);
 	}
 
-	update_list_model_from_xml(_peers, node,
+	_peers.update_from_xml(node,
 
 		/* create */
 		[&] (Xml_node const &node) -> Peer &

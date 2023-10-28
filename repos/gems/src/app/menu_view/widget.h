@@ -128,7 +128,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		inline void _update_children(Xml_node node)
 		{
-			update_list_model_from_xml(_children, node,
+			_children.update_from_xml(node,
 
 				/* create */
 				[&] (Xml_node const &node) -> Widget & {
