@@ -323,12 +323,12 @@ append config {
 			      pipe="/pipe" rtc="/dev/rtc"/>
 			<arg value="gdb"/>
 			<arg value="debug/ld.lib.so"/>
-			<arg value="-ex"/> <arg value="set non-stop on"/>
-			<arg value="-ex"/> <arg value="target extended-remote /dev/monitor"/>
 			<arg value="-ex"/> <arg value="set pagination off"/>
 			<arg value="-ex"/> <arg value="set style enabled off"/>
 			<arg value="-ex"/> <arg value="set interactive-mode off"/>
 			<arg value="-ex"/> <arg value="set solib-search-path debug"/>
+			<arg value="-ex"/> <arg value="set non-stop on"/>
+			<arg value="-ex"/> <arg value="target extended-remote /dev/monitor"/>
 			<arg value="-ex"/> <arg value="b binary_ready_hook_for_gdb"/>
 			<arg value="-ex"/> <arg value="c"/>
 			<arg value="-ex"/> <arg value="delete 1"/>
@@ -357,11 +357,18 @@ install_config $config
 # GDB loads symbols from 'debug/ld.lib.so'
 if { [have_spec nova] } {
 	exec ln -sf ld-nova.lib.so debug/ld.lib.so
+	exec tar cf bin/gdb_run_debug.tar -h debug/ld-nova.lib.so.debug
 } elseif { [have_spec hw] } {
 	exec ln -sf ld-hw.lib.so debug/ld.lib.so
+	exec tar cf bin/gdb_run_debug.tar -h debug/ld-hw.lib.so.debug
 }
 
-exec tar cf bin/gdb_run_debug.tar -h debug/ld.lib.so debug/test-monitor_gdb debug/test-log
+exec tar uf bin/gdb_run_debug.tar -h \
+	debug/ld.lib.so \
+	debug/test-monitor_gdb \
+	debug/test-monitor_gdb.debug \
+	debug/test-log \
+	debug/test-log.debug
 
 build_boot_image "[build_artifacts] gdb_run_debug.tar"
 
