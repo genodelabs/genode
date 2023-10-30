@@ -125,8 +125,7 @@ class Dialog::Distant_runtime::View : private Views::Element
 
 		Event::Seq_number _hover_seq_number { };
 
-		template <typename FN>
-		void _with_dialog_hover(FN const &fn) const
+		void _with_dialog_hover(auto const &fn) const
 		{
 			bool done = false;
 
@@ -254,6 +253,15 @@ class Dialog::Distant_runtime::View : private Views::Element
 		{ }
 
 		void refresh() { _refresh_handler.local_submit(); }
+
+		bool if_hovered(auto const &fn) const
+		{
+			bool result = false;
+			if (_dialog_hovered)
+				_with_dialog_hover([&] (Xml_node const &location) {
+					result = fn(Hovered_at { Event::Seq_number { }, location }); });
+			return result;
+		}
 };
 
 #endif /* _DIALOG__DISTANT_RUNTIME_H_ */

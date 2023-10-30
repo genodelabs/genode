@@ -60,8 +60,8 @@ class Sculpt::Runtime_config
 				Service::Type_name const service =
 					node.attribute_value("name", Service::Type_name());
 
-				Label const dst_label =
-					parent.attribute_value("label", Label());
+					Service::Label const dst_label =
+					parent.attribute_value("label", Service::Label());
 
 				bool const ignored_service = (service == "CPU")
 				                          || (service == "PD")
@@ -167,7 +167,7 @@ class Sculpt::Runtime_config
 			}
 
 			Child_service(Start_name server, Xml_node provides)
-			: Service(server, type_from_xml(provides), Label()) { }
+			: Service(server, type_from_xml(provides), { }) { }
 
 			static bool type_matches(Xml_node const &node)
 			{
@@ -356,7 +356,7 @@ class Sculpt::Runtime_config
 
 		Service const _used_fs_service { "default_fs_rw",
 		                                 Service::Type::FILE_SYSTEM,
-		                                 Label(), "used file system" };
+		                                 { }, "used file system" };
 
 	public:
 
@@ -427,6 +427,15 @@ class Sculpt::Runtime_config
 
 			_components.for_each([&] (Component const &component) {
 				component.for_each_service(fn); });
+		}
+
+		unsigned num_service_options(Service::Type const type) const
+		{
+			unsigned count = 0;
+			for_each_service([&] (Service const &service) {
+				if (service.type == type)
+					count++; });
+			return count;
 		}
 };
 

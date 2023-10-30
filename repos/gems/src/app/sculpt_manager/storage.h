@@ -20,14 +20,14 @@
 
 /* local includes */
 #include <model/discovery_state.h>
-#include <view/storage_dialog.h>
-#include <view/ram_fs_dialog.h>
+#include <view/storage_widget.h>
+#include <view/ram_fs_widget.h>
 #include <runtime.h>
 
 namespace Sculpt { struct Storage; }
 
 
-struct Sculpt::Storage : Storage_device_dialog::Action, Ram_fs_dialog::Action
+struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 {
 	Env &_env;
 
@@ -101,7 +101,7 @@ struct Sculpt::Storage : Storage_device_dialog::Action, Ram_fs_dialog::Action
 	}
 
 	/**
-	 * Storage_dialog::Action interface
+	 * Storage_widget::Action interface
 	 */
 	void format(Storage_target const &target) override
 	{

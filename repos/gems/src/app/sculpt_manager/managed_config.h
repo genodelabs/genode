@@ -29,8 +29,9 @@ struct Sculpt::Managed_config
 {
 	Env &_env;
 
-	typedef String<20> Xml_node_name;
-	typedef String<32> Rom_name;
+	using Xml_node_name = String<20>;
+	using Rom_name      = String<32>;
+	using Label         = Session_label;
 
 	enum Mode { MANAGED, MANUAL } _mode { MANAGED };
 

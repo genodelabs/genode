@@ -1,5 +1,5 @@
 /*
- * \brief  Storage-device management dialog
+ * \brief  Storage-device management widget
  * \author Norman Feske
  * \date   2020-01-29
  */
@@ -11,16 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _VIEW__STORAGE_DEVICE_DIALOG_H_
-#define _VIEW__STORAGE_DEVICE_DIALOG_H_
+#ifndef _VIEW__STORAGE_DEVICE_WIDGET_H_
+#define _VIEW__STORAGE_DEVICE_WIDGET_H_
 
 #include <types.h>
 #include <view/partition_operations.h>
 
-namespace Sculpt { struct Storage_device_dialog; }
+namespace Sculpt { struct Storage_device_widget; }
 
 
-struct Sculpt::Storage_device_dialog : Widget<Vbox>
+struct Sculpt::Storage_device_widget : Widget<Vbox>
 {
 	Partition::Number _selected_partition { };
 
@@ -63,4 +63,4 @@ struct Sculpt::Storage_device_dialog : Widget<Vbox>
 	}
 };
 
-#endif /* _VIEW__STORAGE_DEVICE_DIALOG_H_ */
+#endif /* _VIEW__STORAGE_DEVICE_WIDGET_H_ */

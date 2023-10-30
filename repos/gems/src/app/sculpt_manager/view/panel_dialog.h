@@ -14,13 +14,9 @@
 #ifndef _VIEW__PANEL_DIALOG_H_
 #define _VIEW__PANEL_DIALOG_H_
 
-/* Genode includes */
-#include <os/reporter.h>
-
 /* local includes */
 #include <types.h>
 #include <view/dialog.h>
-#include <view/activatable_item.h>
 
 namespace Sculpt { struct Panel_dialog; }
 

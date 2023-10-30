@@ -17,153 +17,160 @@
 using namespace Sculpt;
 
 
-void Popup_dialog::_gen_pkg_info(Xml_generator &xml,
-                                 Component const &component) const
+static Dialog::Id launcher_id(unsigned n) { return { Dialog::Id::Value("launcher ", n) }; }
+static Dialog::Id user_id    (unsigned n) { return { Dialog::Id::Value("user ",     n) }; }
+
+
+static void view_component_info(auto &s, Component const &component)
 {
 	if (component.info.length() > 1) {
-		gen_named_node(xml, "label", "info", [&] () {
-			xml.attribute("text", Component::Info(" ", component.info, " ")); });
+		s.named_sub_node("label", "info", [&] {
+			s.attribute("text", Component::Info(" ", component.info, " ")); });
 
-		_gen_info_label(xml, "pad1", "");
+		s.template sub_scope<Annotation>("");
 	}
-	_gen_info_label(xml, "path", component.path);
+	s.template sub_scope<Annotation>(component.path);
 }
 
 
-void Popup_dialog::_gen_pkg_elements(Xml_generator &xml,
-                                     Component const &component) const
+void Popup_dialog::_view_pkg_elements(Scope<Frame, Vbox> &s,
+                                      Component const &component) const
 {
-	typedef Component::Info Info;
+	using Info = Component::Info;
 
-	_gen_sub_menu_title(xml, "back", Index_menu::Name("Add ", Pretty(_construction_name)));
+	s.widget(_back, Index_menu::Name("Add ", Pretty(_construction_name)));
 
-	_gen_pkg_info(xml, component);
+	view_component_info(s, component);
 
-	_gen_info_label(xml, "resources", Info(Capacity{component.ram}, " ",
-	                                       component.caps, " caps"));
-	_gen_info_label(xml, "pad2", "");
+	s.sub_scope<Annotation>(Info(Capacity{component.ram}, " ",
+	                                      component.caps, " caps"));
+	s.sub_scope<Vgap>();
 
-	unsigned cnt = 0;
+	unsigned count = 0;
 	component.routes.for_each([&] (Route const &route) {
 
-		Route::Id const id(cnt++);
+		Id const id { Id::Value { count++ } };
 
-		gen_named_node(xml, "frame", id, [&] () {
+		s.sub_scope<Frame>([&] (Scope<Frame, Vbox, Frame> &s) {
+			s.sub_scope<Vbox>([&] (Scope<Frame, Vbox, Frame, Vbox> &s) {
 
-			xml.node("vbox", [&] () {
-
-				bool const selected = _route_selected(id);
+				bool const selected = _route_selected(id.value);
 				bool const defined  = route.selected_service.constructed();
 
 				if (!selected) {
-					_gen_route_entry(xml, id,
-					                 defined ? Info(route.selected_service->info)
-					                         : Info(route),
-					                 defined);
+					Route_entry entry { id };
+					s.widget(entry, defined,
+					         defined ? Info(route.selected_service->info)
+					                 : Info(route));
 				}
 
 				/*
 				 * List of routing options
 				 */
 				if (selected) {
-					_gen_route_entry(xml, "back", Info(route), true, "back");
+					Route_entry back { Id { "back" } };
+					s.widget(back, true, Info(route), "back");
 
-					unsigned cnt = 0;
+					unsigned count = 0;
 					_runtime_config.for_each_service([&] (Service const &service) {
 
-						Hoverable_item::Id const id("service.", cnt++);
+						Id const service_id { Id::Value("service.", count++) };
 
 						bool const service_selected =
 							route.selected_service.constructed() &&
-							id == route.selected_service_id;
+							service_id.value == route.selected_service_id;
 
-						if (service.type == route.required)
-							_gen_route_entry(xml, id, service.info, service_selected);
+						if (service.type == route.required) {
+							Service_entry entry { service_id };
+							s.widget(entry, service_selected, service.info);
+						}
 					});
 				}
 			});
 		});
 	});
 
-	_pd_route.generate(xml);
+	/* don't show the PD menu if only the system PD service is available */
+	if (_runtime_config.num_service_options(Service::Type::PD) > 1)
+		s.sub_scope<Frame>([&] (Scope<Frame, Vbox, Frame> &s) {
+			s.widget(_pd_route, _selected_route, component); });
 
-	if (_resources.constructed()) {
-		gen_named_node(xml, "frame", "resources", [&] {
-			xml.node("vbox", [&] () {
+	s.sub_scope<Frame>(Id { "resources" }, [&] (Scope<Frame, Vbox, Frame> &s) {
+		s.sub_scope<Vbox>([&] (Scope<Frame, Vbox, Frame, Vbox> &s) {
 
-				bool const selected = _route_selected("resources");
+			bool const selected = _route_selected("resources");
 
-				if (!selected)
-					_gen_route_entry(xml, "resources",
-					                 "Resource assignment ...", false, "enter");
+			if (!selected) {
+				Route_entry entry { Id { "resources" } };
+				s.widget(entry, false, "Resource assignment ...", "enter");
+			}
 
-				if (selected) {
-					_gen_route_entry(xml, "back", "Resource assignment ...",
-					                 true, "back");
+			if (selected) {
+				Route_entry entry { Id { "back" } };
+				s.widget(entry, true, "Resource assignment ...", "back");
 
-					_resources->generate(xml);
-				}
-			});
+				s.widget(_resources, component);
+			}
 		});
-	}
+	});
 
-	gen_named_node(xml, "frame", "debug", [&] {
-		xml.node("vbox", [&] {
-			_debug.generate(xml); }); });
+	s.sub_scope<Frame>([&] (Scope<Frame, Vbox, Frame> &s) {
+		s.widget(_debug, component); });
 
 	/*
 	 * Display "Add component" button once all routes are defined
 	 */
-	if (component.all_routes_defined()) {
-		gen_named_node(xml, "button", "launch", [&] () {
-			_action_item.gen_button_attr(xml, "launch");
-			xml.node("label", [&] () {
-				xml.attribute("text", "Add component"); });
-		});
-	}
+	if (component.all_routes_defined())
+		s.widget(_launch);
 }
 
 
-void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_users) const
+void Popup_dialog::_view_menu_elements(Scope<Frame, Vbox> &s, Xml_node const &depot_users) const
 {
 	/*
 	 * Lauchers
 	 */
 	if (_state == TOP_LEVEL || _state < DEPOT_SHOWN) {
+		unsigned count = 0;
 		_launchers.for_each([&] (Launchers::Info const &info) {
 
 			/* allow each launcher to be used only once */
 			if (_runtime_info.present_in_runtime(info.path))
 				return;
 
-			_gen_menu_entry(xml, info.path, Pretty(info.path), false);
+			Hosted<Frame, Vbox, Menu_entry> menu_entry { launcher_id(count++) };
+			s.widget(menu_entry, false, String<100>(Pretty(info.path)));
 		});
 
-		_gen_menu_entry(xml, "depot", "Depot ...", false);
+		Hosted<Frame, Vbox, Menu_entry> depot_menu_entry { Id { "depot" } };
+		s.widget(depot_menu_entry, false, "Depot ...");
 	}
 
 	/*
 	 * Depot users with an available index
 	 */
 	if (_state == DEPOT_SHOWN || _state == INDEX_REQUESTED) {
-		_gen_sub_menu_title(xml, "back", "Depot");
+		s.widget(_back, "Depot");
 
+		unsigned count = 0;
 		depot_users.for_each_sub_node("user", [&] (Xml_node user) {
 
-			User const name = user.attribute_value("name", User());
+			User const name     = user.attribute_value("name", User());
 			bool const selected = (_selected_user == name);
+			Id   const id       = user_id(count++);
 
-			if (_index_avail(name))
-				_gen_menu_entry(xml, name, User(name, " ..."), selected);
+			if (_index_avail(name)) {
+				Hosted<Frame, Vbox, Menu_entry> menu_entry { id };
+				s.widget(menu_entry, selected, User(name, " ..."));
+			}
 		});
 
 		/*
 		 * Depot selection menu item
 		 */
-		if (_state == DEPOT_SHOWN || _state == INDEX_REQUESTED) {
-
-			if (_nic_ready())
-				_gen_menu_entry(xml, "selection", "Selection ...", false);
+		if (_nic_ready()) {
+			Hosted<Frame, Vbox, Menu_entry> menu_entry { Id { "selection" } };
+			s.widget(menu_entry, false, "Selection ...");
 		}
 	}
 
@@ -171,17 +178,20 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 	 * List of depot users for removing/adding indices
 	 */
 	if (_state == DEPOT_SELECTION) {
-		_gen_sub_menu_title(xml, "back", "Selection");
+		s.widget(_back, "Selection");
 
+		unsigned count = 0;
 		depot_users.for_each_sub_node("user", [&] (Xml_node user) {
 
 			User const name = user.attribute_value("name", User());
 			bool const selected = _index_avail(name);
+			Id   const id       = user_id(count++);
 
 			String<32> const suffix = _download_queue.in_progress(_index_path(name))
 			                        ? " fetch... " : " ";
 
-			_gen_menu_entry(xml, name, User(name, suffix), selected, "checkbox");
+			Hosted<Frame, Vbox, Menu_entry> user_entry { id };
+			s.widget(user_entry, selected, User(name, suffix), "checkbox");
 		});
 	}
 
@@ -193,7 +203,7 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 		if (_menu._level)
 			title = Index_menu::Name(title, "  ", _menu, " ");
 
-		_gen_sub_menu_title(xml, "back", title);
+		s.widget(_back, title);
 	}
 
 	/*
@@ -201,14 +211,15 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 	 */
 	if (_state >= INDEX_SHOWN && _state < PKG_SHOWN) {
 
-		unsigned cnt = 0;
+		unsigned count = 0;
 		_for_each_menu_item([&] (Xml_node item) {
 
-			Hoverable_item::Id const id(cnt);
+			Id const id { Id::Value(count) };
 
 			if (item.has_type("index")) {
 				auto const name = item.attribute_value("name", Index_menu::Name());
-				_gen_menu_entry(xml, id, Index_menu::Name(name, " ..."), false);
+				Hosted<Frame, Vbox, Menu_entry> entry { id };
+				s.widget(entry, false, Index_menu::Name(name, " ..."));
 			}
 
 			if (item.has_type("pkg")) {
@@ -229,15 +240,15 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 				String<100> const text(Pretty(name), " " "(", version, ")",
 				                       installing ? " installing... " : "... ");
 
-				_gen_menu_entry(xml, id, text, selected);
+				Hosted<Frame, Vbox, Menu_entry> entry { id };
+				s.widget(entry, selected, text);
 
 				if (selected && !installing) {
 
 					_construction_info.with_construction([&] (Component const &component) {
 
-						gen_named_node(xml, "float", "install", [&] () {
-
-							gen_named_node(xml, "vbox", "vbox", [&] () {
+						s.sub_scope<Float>(Id { "install" }, [&] (Scope<Frame, Vbox, Float> &s) {
+							s.sub_scope<Vbox>([&] (Scope<Frame, Vbox, Float, Vbox> &s) {
 
 								/*
 								 * Package is installed but content is missing
@@ -247,24 +258,18 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 								 * the pkg's archives.
 								 */
 								if (_blueprint_info.incomplete()) {
-									_gen_info_label(xml, "pad2", "");
-									_gen_info_label(xml, "path", component.path);
-									_gen_info_label(xml, "pad3", "");
-									xml.node("label", [&] () {
-										xml.attribute("text", "installed but incomplete"); });
+									s.sub_scope<Vgap>();
+									s.sub_scope<Annotation>(component.path);
+									s.sub_scope<Vgap>();
+									s.sub_scope<Label>("installed but incomplete");
 
 									if (_nic_ready()) {
-										_gen_info_label(xml, "pad4", "");
-
-										gen_named_node(xml, "float", "install", [&] () {
-											xml.node("button", [&] () {
-												_install_item.gen_button_attr(xml, "install");
-												xml.node("label", [&] () {
-													xml.attribute("text", "Reattempt Install");
-												});
-											});
-										});
+										s.sub_scope<Vgap>();
+										s.sub_scope<Float>([&] (Scope<Frame, Vbox, Float, Vbox, Float> &s) {
+											s.widget(_install, [&] (Scope<Button> &s) {
+												s.sub_scope<Label>("Reattempt Install"); }); });
 									}
+									s.sub_scope<Vgap>();
 								}
 
 								/*
@@ -272,17 +277,13 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 								 */
 								else if (_blueprint_info.uninstalled() && _nic_ready()) {
 
-									_gen_pkg_info(xml, component);
-									_gen_info_label(xml, "pad2", "");
+									view_component_info(s, component);
 
-									gen_named_node(xml, "float", "install", [&] () {
-										xml.node("button", [&] () {
-											_install_item.gen_button_attr(xml, "install");
-											xml.node("label", [&] () {
-												xml.attribute("text", "Install");
-											});
-										});
-									});
+									s.sub_scope<Vgap>();
+									s.sub_scope<Float>([&] (Scope<Frame, Vbox, Float, Vbox, Float> &s) {
+										s.widget(_install, [&] (Scope<Button> &s) {
+											s.sub_scope<Label>("Install"); }); });
+									s.sub_scope<Vgap>();
 								}
 
 								/*
@@ -290,20 +291,18 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 								 * about it
 								 */
 								else if (_blueprint_info.uninstalled()) {
-									_gen_info_label(xml, "pad2", "");
-									_gen_info_label(xml, "path", component.path);
-									_gen_info_label(xml, "pad3", "");
-									xml.node("label", [&] () {
-										xml.attribute("text", "not installed"); });
+									s.sub_scope<Vgap>();
+									s.sub_scope<Annotation>(component.path);
+									s.sub_scope<Vgap>();
+									s.sub_scope<Label>("not installed");
+									s.sub_scope<Vgap>();
 								}
-
-								_gen_info_label(xml, "pad4", "");
 							});
 						});
 					});
 				}
 			}
-			cnt++;
+			count++;
 		});
 	}
 
@@ -312,227 +311,225 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml, Xml_node const &depot_
 	 */
 	if (_state >= PKG_SHOWN)
 		_construction_info.with_construction([&] (Component const &component) {
-			_gen_pkg_elements(xml, component); });
+			_view_pkg_elements(s, component); });
 }
 
 
-void Popup_dialog::click(Action &action)
+void Popup_dialog::click(Clicked_at const &at)
 {
-	Hoverable_item::Id const clicked = _item._hovered;
+	bool clicked_on_back_button = false;
 
-	_action_item .propose_activation_on_click();
-	_install_item.propose_activation_on_click();
-	_pd_route.click();
+	_back.propagate(at, [&] {
+		clicked_on_back_button = true;
 
-	Route::Id const clicked_route = _route_item._hovered;
+		switch (_state) {
+		case TOP_LEVEL:                             break;
+		case DEPOT_REQUESTED:                       break;
+		case DEPOT_SHOWN:     _state = TOP_LEVEL;   break;
+		case DEPOT_SELECTION: _state = DEPOT_SHOWN; break;
+		case INDEX_REQUESTED:                       break;
 
-	auto back_to_index = [&] ()
-	{
-		_state = INDEX_SHOWN;
-		action.discard_construction();
-		_selected_route.destruct();
-	};
-
-	if (_state == TOP_LEVEL) {
-
-		if (clicked == "depot") {
-			_state = DEPOT_REQUESTED;
-			_depot_query.trigger_depot_query();
-		} else {
-			action.launch_global(clicked);
-		}
-	}
-
-	else if (_state == DEPOT_SHOWN) {
-
-		/* back to top-level menu */
-		if (clicked == "back") {
-			_state = TOP_LEVEL;
-
-		} else if (clicked == "selection") {
-			_state = DEPOT_SELECTION;
-
-		} else {
-
-			/* enter depot users menu */
-			_selected_user = clicked;
-			_state = INDEX_REQUESTED;
-			_depot_query.trigger_depot_query();
-		}
-	}
-
-	else if (_state == DEPOT_SELECTION) {
-
-		/* back to depot users */
-		if (clicked == "back") {
-			_state = DEPOT_SHOWN;
-		} else {
-
-			if (!_index_avail(clicked))
-				action.trigger_download(_index_path(clicked), Verify{true});
-			else
-				action.remove_index(clicked);
-		}
-	}
-
-	else if (_state >= INDEX_SHOWN && _state < PKG_SHOWN) {
-
-		/* back to depot users */
-		if (_menu._level == 0 && clicked == "back") {
-			_state = DEPOT_SHOWN;
-			_selected_user = User();
-		} else {
-
-			/* go one menu up */
-			if (clicked == "back") {
+		case INDEX_SHOWN:
+		case PKG_REQUESTED:
+			if (_menu._level > 0) {
+				/* go one menu up */
 				_menu._selected[_menu._level] = Index_menu::Name();
 				_menu._level--;
-				action.discard_construction();
+				_action.discard_construction();
 			} else {
-
-				/* enter sub menu of index */
-				if (_menu._level < Index_menu::MAX_LEVELS - 1) {
-
-					unsigned cnt = 0;
-					_for_each_menu_item([&] (Xml_node item) {
-
-						if (clicked == Hoverable_item::Id(cnt)) {
-
-							if (item.has_type("index")) {
-
-								Index_menu::Name const name =
-									item.attribute_value("name", Index_menu::Name());
-
-								_menu._selected[_menu._level] = name;
-								_menu._level++;
-
-							} else if (item.has_type("pkg")) {
-
-								auto path = item.attribute_value("path", Component::Path());
-								auto info = item.attribute_value("info", Component::Info());
-
-								_construction_name =
-									action.new_construction(path, Verify{true}, info);
-
-								_state = PKG_REQUESTED;
-								_depot_query.trigger_depot_query();
-							}
-						}
-						cnt++;
-					});
-				}
+				_state = DEPOT_SHOWN;
+				_selected_user = User();
 			}
+			break;
+
+		case PKG_SHOWN:
+		case ROUTE_SELECTED:
+			_state = INDEX_SHOWN;
+			_action.discard_construction();
+			_selected_route = { };
+			break;
 		}
-	}
+	});
 
-	else if (_state == PKG_SHOWN) {
+	if (clicked_on_back_button)
+		return;
 
-		/* back to index */
-		if (clicked == "back") {
-			back_to_index();
+	_launch.propagate(at);
+	_install.propagate(at);
+
+	Id const route_id = at.matching_id<Frame, Vbox, Frame, Vbox, Menu_entry>();
+
+	auto with_matching_user = [&] (Id const &id, auto const &fn)
+	{
+		unsigned count = 0;
+		_depot_users.xml().for_each_sub_node("user", [&] (Xml_node const &user) {
+			if (id == user_id(count++))
+				fn(user.attribute_value("name", User())); });
+	};
+
+	State const orig_state = _state;
+
+	if (orig_state == TOP_LEVEL) {
+
+		Id const id = at.matching_id<Frame, Vbox, Menu_entry>();
+
+		if (id.value == "depot") {
+			_state = DEPOT_REQUESTED;
+			_depot_query.trigger_depot_query();
 
 		} else {
 
-			/* select route to present routing options */
-			if (clicked_route.valid()) {
-				_state = ROUTE_SELECTED;
-				_selected_route.construct(clicked_route);
-			}
+			unsigned count = 0;
+			_launchers.for_each([&] (Launchers::Info const &info) {
+				if (id == launcher_id(count++))
+					_action.launch_global(info.path); });
 		}
 	}
 
-	else if (_state == ROUTE_SELECTED || _dialog_item.hovered("debug")) {
+	else if (orig_state == DEPOT_SHOWN) {
 
-		/*
-		 * Keep the routing selection open when clicking on the "Add component"
-		 * button. Otherwise, the change of the dialog size (while folding the
-		 * route selection) would result in the unhovering of the operaton
-		 * button. So the clack would go elsewhere.
-		 */
-		bool const click_on_operation = _action_item.hovered("launch");
+		Id const id = at.matching_id<Frame, Vbox, Menu_entry>();
 
-		/* back to index */
-		if (clicked == "back") {
-			back_to_index();
+		if (id.value == "selection")
+			_state = DEPOT_SELECTION;
 
-		} else if (!click_on_operation) {
+		/* enter depot users menu */
+		with_matching_user(id, [&] (User const &user) {
+			_selected_user = user;
+			_state         = INDEX_REQUESTED;
+			_depot_query.trigger_depot_query();
+		});
+	}
 
-			/* close selected route */
-			if (clicked_route == "back") {
-				_state = PKG_SHOWN;
-				_selected_route.destruct();
-				_pd_route.reset();
+	else if (orig_state == DEPOT_SELECTION) {
 
-			} else if (_resource_dialog_selected()) {
+		Id const id = at.matching_id<Frame, Vbox, Menu_entry>();
 
-				bool const clicked_on_different_route = clicked_route.valid()
-				                                     && (clicked_route != "");
-				if (clicked_on_different_route) {
+		with_matching_user(id, [&] (User const &user) {
 
-					/* close resource dialog */
-					_selected_route.construct(clicked_route);
+			if (!_index_avail(user))
+				_action.trigger_download(_index_path(user), Verify{true});
+			else
+				_action.remove_index(user);
+		});
+	}
 
-				} else {
+	else if (orig_state >= INDEX_SHOWN && orig_state < PKG_SHOWN) {
 
-					if (_resources.constructed())
-						action.apply_to_construction([&] (Component &component) {
-							_resources->click(component); });
+		Id const id = at.matching_id<Frame, Vbox, Menu_entry>();
+
+		/* enter sub menu of index */
+		if (_menu._level < Index_menu::MAX_LEVELS - 1) {
+
+			unsigned count = 0;
+			_for_each_menu_item([&] (Xml_node item) {
+
+				if (id.value == Id::Value(count)) {
+
+					if (item.has_type("index")) {
+
+						Index_menu::Name const name =
+							item.attribute_value("name", Index_menu::Name());
+
+						_menu._selected[_menu._level] = name;
+						_menu._level++;
+
+					} else if (item.has_type("pkg")) {
+
+						auto path = item.attribute_value("path", Component::Path());
+						auto info = item.attribute_value("info", Component::Info());
+
+						_construction_name =
+							_action.new_construction(path, Verify{true}, info);
+
+						_state = PKG_REQUESTED;
+						_depot_query.trigger_depot_query();
+					}
 				}
+				count++;
+			});
+		}
+	}
+
+	else if (orig_state == PKG_SHOWN) {
+
+		/* select route to present routing options */
+		if (route_id.valid()) {
+			_state = ROUTE_SELECTED;
+			_selected_route = route_id;
+		}
+	}
+
+	else if (orig_state == ROUTE_SELECTED) {
+
+		/* close selected route */
+		if (route_id.value == "back") {
+			_state = PKG_SHOWN;
+			_selected_route = { };
+
+		} else if (_resource_dialog_selected()) {
+
+			bool const clicked_on_different_route = route_id.valid();
+			if (clicked_on_different_route) {
+				_selected_route = route_id;
 
 			} else {
 
-				bool clicked_on_selected_route = false;
+				_action.apply_to_construction([&] (Component &component) {
+					_resources.propagate(at, component); });
+			}
 
-				_apply_to_selected_route(action, [&] (Route &route) {
+		} else {
 
-					unsigned cnt = 0;
-					_runtime_config.for_each_service([&] (Service const &service) {
+			bool clicked_on_selected_route = false;
 
-						Hoverable_item::Id const id("service.", cnt++);
+			_apply_to_selected_route(_action, [&] (Route &route) {
 
-						if (clicked_route == id) {
+				unsigned count = 0;
+				_runtime_config.for_each_service([&] (Service const &service) {
 
-							bool const clicked_service_already_selected =
-								route.selected_service.constructed() &&
-								id == route.selected_service_id;
+					Id const id { Id::Value("service.", count++) };
 
-							if (clicked_service_already_selected) {
+					if (route_id == id) {
 
-								/* clear selection */
-								route.selected_service.destruct();
-								route.selected_service_id = Hoverable_item::Id();
+						bool const clicked_service_already_selected =
+							route.selected_service.constructed() &&
+							id.value == route.selected_service_id;
 
-							} else {
+						if (clicked_service_already_selected) {
 
-								/* select different service */
-								route.selected_service.construct(service);
-								route.selected_service_id = id;
-							}
+							/* clear selection */
+							route.selected_service.destruct();
+							route.selected_service_id = { };
 
-							_state = PKG_SHOWN;
-							_selected_route.destruct();
+						} else {
 
-							clicked_on_selected_route = true;
+							/* select different service */
+							route.selected_service.construct(service);
+							route.selected_service_id = id.value;
 						}
-					});
-				});
 
-				/* select different route */
-				if (!clicked_on_selected_route && clicked_route.valid()) {
-					_state = ROUTE_SELECTED;
-					_selected_route.construct(clicked_route);
-				}
+						_state = PKG_SHOWN;
+						_selected_route = { };
 
-				action.apply_to_construction([&] (Component &component) {
-					_pd_route.click(component);
+						clicked_on_selected_route = true;
+					}
 				});
+			});
+
+			if (_selected_route == _pd_route.id)
+				_action.apply_to_construction([&] (Component &component) {
+					_pd_route.propagate(at, component); });
+
+			/* select different route */
+			if (!clicked_on_selected_route && route_id.valid()) {
+				_state = ROUTE_SELECTED;
+				_selected_route = route_id;
 			}
 		}
 	}
 
-	if (_state == PKG_SHOWN || _state == ROUTE_SELECTED) {
-		if (_dialog_item.hovered("debug"))
-			action.apply_to_construction([&] (Component &component) {
-				_debug.click(component); });
-	}
+	if (orig_state == PKG_SHOWN || orig_state == ROUTE_SELECTED)
+		_action.apply_to_construction([&] (Component &component) {
+			_debug.propagate(at, component); });
 }

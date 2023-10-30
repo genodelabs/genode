@@ -21,8 +21,7 @@
 /* local includes */
 #include <model/child_exit_state.h>
 #include <model/pci_info.h>
-#include <view/network_dialog.h>
-#include <menu_view.h>
+#include <view/network_widget.h>
 #include <runtime.h>
 #include <keyboard_focus.h>
 #include <managed_config.h>
@@ -30,7 +29,7 @@
 namespace Sculpt { struct Network; }
 
 
-struct Sculpt::Network : Network_dialog::Action
+struct Sculpt::Network : Network_widget::Action
 {
 	Env &_env;
 
@@ -41,7 +40,13 @@ struct Sculpt::Network : Network_dialog::Action
 		virtual void update_network_dialog() = 0;
 	};
 
-	Action &_action;
+	struct Info : Interface
+	{
+		virtual bool ap_list_hovered() const = 0;
+	};
+
+	Action     &_action;
+	Info const &_info;
 
 	Registry<Child_state> &_child_states;
 
@@ -50,8 +55,12 @@ struct Sculpt::Network : Network_dialog::Action
 	Runtime_info const &_runtime_info;
 	Pci_info     const &_pci_info;
 
+	using Wlan_config_policy = Network_widget::Wlan_config_policy;
+
 	Nic_target _nic_target { };
 	Nic_state  _nic_state  { };
+
+	Access_point::Bssid _selected_ap { };
 
 	Wpa_passphrase wpa_passphrase { };
 
@@ -100,10 +109,9 @@ struct Sculpt::Network : Network_dialog::Action
 	Signal_handler<Network> _nic_router_state_handler {
 		_env.ep(), *this, &Network::_handle_nic_router_state };
 
-	Network_dialog::Wlan_config_policy _wlan_config_policy =
-		Network_dialog::WLAN_CONFIG_MANAGED;
+	Wlan_config_policy _wlan_config_policy = Wlan_config_policy::MANAGED;
 
-	Network_dialog dialog {
+	Network_widget dialog {
 		_nic_target, _access_points,
 		_wifi_connection, _nic_state, wpa_passphrase, _wlan_config_policy,
 		_pci_info };
@@ -114,12 +122,12 @@ struct Sculpt::Network : Network_dialog::Action
 	void _handle_wlan_config(Xml_node)
 	{
 		if (_wlan_config.try_generate_manually_managed()) {
-			_wlan_config_policy = Network_dialog::WLAN_CONFIG_MANUAL;
+			_wlan_config_policy = Wlan_config_policy::MANUAL;
 			_action.update_network_dialog();
 			return;
 		}
 
-		_wlan_config_policy = Network_dialog::WLAN_CONFIG_MANAGED;;
+		_wlan_config_policy = Wlan_config_policy::MANAGED;;
 
 		if (_wifi_connection.connected())
 			wifi_connect(_wifi_connection.bssid);
@@ -130,7 +138,7 @@ struct Sculpt::Network : Network_dialog::Action
 	void _update_nic_target_from_config(Xml_node const &);
 
 	/**
-	 * Network_dialog::Action interface
+	 * Network_widget::Action interface
 	 */
 	void nic_target(Nic_target::Type const type) override
 	{
@@ -207,12 +215,13 @@ struct Sculpt::Network : Network_dialog::Action
 		_runtime_config_generator.generate_runtime_config();
 	}
 
-	Network(Env &env, Allocator &alloc, Action &action,
+	Network(Env &env, Allocator &alloc, Action &action, Info const &info,
 	        Registry<Child_state> &child_states,
 	        Runtime_config_generator &runtime_config_generator,
 	        Runtime_info const &runtime_info, Pci_info const &pci_info)
 	:
-		_env(env), _alloc(alloc), _action(action), _child_states(child_states),
+		_env(env), _alloc(alloc), _action(action), _info(info),
+		_child_states(child_states),
 		_runtime_config_generator(runtime_config_generator),
 		_runtime_info(runtime_info), _pci_info(pci_info)
 	{

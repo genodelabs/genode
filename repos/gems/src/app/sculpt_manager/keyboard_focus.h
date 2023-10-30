@@ -20,7 +20,7 @@
 /* local includes */
 #include <model/wpa_passphrase.h>
 #include <types.h>
-#include <view/network_dialog.h>
+#include <view/network_widget.h>
 #include <view/panel_dialog.h>
 #include <view/system_dialog.h>
 
@@ -32,7 +32,7 @@ struct Sculpt::Keyboard_focus
 
 	Expanding_reporter _focus_reporter;
 
-	Network_dialog      const &_network_dialog;
+	Network_widget      const &_network_widget;
 	Wpa_passphrase            &_wpa_passphrase;
 	Panel_dialog::State const &_panel;
 	System_dialog       const &_system_dialog;
@@ -44,7 +44,7 @@ struct Sculpt::Keyboard_focus
 
 		target = WM;
 
-		if (_panel.network_visible() && _network_dialog.need_keyboard_focus_for_passphrase())
+		if (_panel.network_visible() && _network_widget.need_keyboard_focus_for_passphrase())
 			target = WPA_PASSPHRASE;
 
 		if (_system_dialog.keyboard_needed() && _system_visible)
@@ -73,14 +73,14 @@ struct Sculpt::Keyboard_focus
 	}
 
 	Keyboard_focus(Env &env,
-	               Network_dialog      const &network_dialog,
+	               Network_widget      const &network_widget,
 	               Wpa_passphrase            &wpa_passphrase,
 	               Panel_dialog::State const &panel,
 	               System_dialog       const &system_dialog,
 	               bool                const &system_visible)
 	:
 		_focus_reporter(env, "focus", "focus"),
-		_network_dialog(network_dialog),
+		_network_widget(network_widget),
 		_wpa_passphrase(wpa_passphrase),
 		_panel(panel),
 		_system_dialog(system_dialog),

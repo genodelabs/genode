@@ -20,6 +20,7 @@
 
 /* local includes */
 #include "types.h"
+#include <xml.h>
 
 namespace Sculpt { struct Child_state; }
 

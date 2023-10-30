@@ -1,5 +1,5 @@
 /*
- * \brief  Storage management dialog
+ * \brief  Storage management widget
  * \author Norman Feske
  * \date   2018-04-30
  */
@@ -11,25 +11,26 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _VIEW__STORAGE_DIALOG_H_
-#define _VIEW__STORAGE_DIALOG_H_
+#ifndef _VIEW__STORAGE_WIDGET_H_
+#define _VIEW__STORAGE_WIDGET_H_
 
 #include <types.h>
 #include <model/storage_devices.h>
-#include <view/storage_device_dialog.h>
+#include <view/storage_device_widget.h>
 
-namespace Sculpt { struct Storage_devices_dialog_base; }
+namespace Sculpt { struct Storage_devices_widget_base; }
 
-struct Sculpt::Storage_devices_dialog_base : Widget<Vbox>
+
+struct Sculpt::Storage_devices_widget_base : Widget<Vbox>
 {
 	Storage_devices const &_storage_devices;
 	Storage_target  const &_used_target;
 
-	Constructible<Hosted<Vbox, Frame, Storage_device_dialog>> _storage_device_dialog { };
+	Constructible<Hosted<Vbox, Frame, Storage_device_widget>> _storage_device_widget { };
 
 	Block_device::Label _selected_device { };
 
-	Storage_devices_dialog_base(Storage_devices const &storage_devices,
+	Storage_devices_widget_base(Storage_devices const &storage_devices,
 	                            Storage_target  const &used_target)
 	:
 		_storage_devices(storage_devices), _used_target(used_target)
@@ -42,48 +43,48 @@ struct Sculpt::Storage_devices_dialog_base : Widget<Vbox>
 
 		s.widget(button, dev, selected, _used_target);
 
-		if (_storage_device_dialog.constructed() && selected) {
+		if (_storage_device_widget.constructed() && selected) {
 			s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
 				s.attribute("style", "invisible");
-				s.widget(*_storage_device_dialog, dev, _used_target);
+				s.widget(*_storage_device_widget, dev, _used_target);
 			});
 		}
 	}
 
 	template <typename BUTTON>
-	void _click_device(Clicked_at const &at, Storage_device_dialog::Action &action)
+	void _click_device(Clicked_at const &at, Storage_device_widget::Action &action)
 	{
 		/* select device */
 		Id const id = at.matching_id<Vbox, BUTTON>();
 		if (id.valid()) {
 			if (id.value == _selected_device) {
 				_selected_device = { };
-				_storage_device_dialog.destruct();
+				_storage_device_widget.destruct();
 			} else {
 				_selected_device = id.value;
-				_storage_device_dialog.construct(Id { id });
+				_storage_device_widget.construct(Id { id });
 			}
 		}
 
-		if (_selected_device.valid() && _storage_device_dialog.constructed())
-			_storage_device_dialog->propagate(at, _used_target, action);
+		if (_selected_device.valid() && _storage_device_widget.constructed())
+			_storage_device_widget->propagate(at, _used_target, action);
 	}
 
-	void _clack_device(Clacked_at const &at, Storage_device_dialog::Action &action)
+	void _clack_device(Clacked_at const &at, Storage_device_widget::Action &action)
 	{
-		if (_selected_device.valid() && _storage_device_dialog.constructed())
-			_storage_device_dialog->propagate(at, action);
+		if (_selected_device.valid() && _storage_device_widget.constructed())
+			_storage_device_widget->propagate(at, action);
 	}
 
 	void reset_operation()
 	{
-		if (_storage_device_dialog.constructed())
-			_storage_device_dialog->reset_operation();
+		if (_storage_device_widget.constructed())
+			_storage_device_widget->reset_operation();
 	}
 
 	void reset()
 	{
-		_storage_device_dialog.destruct();
+		_storage_device_widget.destruct();
 		_selected_device = { };
 	}
 };
@@ -98,8 +99,6 @@ struct Sculpt::Block_device_button : Widget<Button>
 	{
 		if (s.hovered()) s.attribute("hovered",  "yes");
 		if (selected)    s.attribute("selected", "yes");
-
-		using Label = Dialog::Label;
 
 		s.sub_scope<Hbox>([&] (Scope<Button, Hbox> &s) {
 			s.sub_scope<Left_floating_hbox>(
@@ -118,11 +117,11 @@ struct Sculpt::Block_device_button : Widget<Button>
 };
 
 
-namespace Sculpt { struct Block_devices_dialog; }
+namespace Sculpt { struct Block_devices_widget; }
 
-struct Sculpt::Block_devices_dialog : Storage_devices_dialog_base
+struct Sculpt::Block_devices_widget : Storage_devices_widget_base
 {
-	using Storage_devices_dialog_base::Storage_devices_dialog_base;
+	using Storage_devices_widget_base::Storage_devices_widget_base;
 
 	void view(Scope<Vbox> &s) const
 	{
@@ -133,12 +132,12 @@ struct Sculpt::Block_devices_dialog : Storage_devices_dialog_base
 		});
 	}
 
-	void click(Clicked_at const &at, Storage_device_dialog::Action &action)
+	void click(Clicked_at const &at, Storage_device_widget::Action &action)
 	{
 		_click_device<Block_device_button>(at, action);
 	}
 
-	void clack(Clacked_at const &at, Storage_device_dialog::Action &action)
+	void clack(Clacked_at const &at, Storage_device_widget::Action &action)
 	{
 		_clack_device(at, action);
 	}
@@ -156,8 +155,6 @@ struct Sculpt::Usb_storage_device_button : Widget<Button>
 
 		if (s.hovered() && !discarded) s.attribute("hovered",  "yes");
 		if (selected)                  s.attribute("selected", "yes");
-
-		using Label = Dialog::Label;
 
 		s.sub_scope<Hbox>([&] (Scope<Button, Hbox> &s) {
 			s.sub_scope<Left_floating_hbox>(
@@ -183,11 +180,11 @@ struct Sculpt::Usb_storage_device_button : Widget<Button>
 };
 
 
-namespace Sculpt { struct Usb_devices_dialog; }
+namespace Sculpt { struct Usb_devices_widget; }
 
-struct Sculpt::Usb_devices_dialog : Storage_devices_dialog_base
+struct Sculpt::Usb_devices_widget : Storage_devices_widget_base
 {
-	using Storage_devices_dialog_base::Storage_devices_dialog_base;
+	using Storage_devices_widget_base::Storage_devices_widget_base;
 
 	void view(Scope<Vbox> &s) const
 	{
@@ -198,15 +195,15 @@ struct Sculpt::Usb_devices_dialog : Storage_devices_dialog_base
 		});
 	}
 
-	void click(Clicked_at const &at, Storage_device_dialog::Action &action)
+	void click(Clicked_at const &at, Storage_device_widget::Action &action)
 	{
 		_click_device<Usb_storage_device_button>(at, action);
 	}
 
-	void clack(Clacked_at const &at, Storage_device_dialog::Action &action)
+	void clack(Clacked_at const &at, Storage_device_widget::Action &action)
 	{
 		_clack_device(at, action);
 	}
 };
 
-#endif /* _VIEW__STORAGE_DIALOG_H_ */
+#endif /* _VIEW__STORAGE_WIDGET_H_ */

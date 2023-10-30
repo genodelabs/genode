@@ -70,7 +70,7 @@ struct Dialog::Selectable_node
 					if (s.hovered())     s.attribute("hovered",  "yes");
 					if (attr.selected)   s.attribute("selected", "yes");
 
-					s.sub_scope<Dialog::Label>(attr.pretty_name);
+					s.sub_scope<Label>(attr.pretty_name);
 				});
 
 				if (attr.selected)
@@ -101,7 +101,7 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 	}
 
 	if (name == "ram_fs")
-		s.widget(_ram_fs_dialog, _sculpt_partition, _ram_fs_state);
+		s.widget(_ram_fs_widget, _sculpt_partition, _ram_fs_state);
 
 	String<100> const
 		ram (Capacity{info.assigned_ram - info.avail_ram}, " / ",
@@ -110,8 +110,8 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 		     info.assigned_caps, " caps");
 
 	s.sub_scope<Min_ex>(25);
-	s.sub_scope<Dialog::Label>(ram);
-	s.sub_scope<Dialog::Label>(caps);
+	s.sub_scope<Label>(ram);
+	s.sub_scope<Label>(caps);
 }
 
 
@@ -128,7 +128,7 @@ void Graph::_view_storage_node(Scope<Depgraph> &s) const
 		},
 		[&] (Scope<Depgraph, Frame, Vbox> &s) {
 			s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-				s.widget(_block_devices_dialog); });
+				s.widget(_block_devices_widget); });
 		}
 	);
 }
@@ -147,7 +147,7 @@ void Graph::_view_usb_node(Scope<Depgraph> &s) const
 		},
 		[&] (Scope<Depgraph, Frame, Vbox> &s) {
 			s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-				s.widget(_usb_devices_dialog); });
+				s.widget(_usb_devices_widget); });
 		}
 	);
 }
@@ -283,8 +283,8 @@ void Graph::click(Clicked_at const &at, Action &action)
 		_storage_selected = !_storage_selected && (id.value == "storage");
 		_usb_selected     = !_usb_selected     && (id.value == "usb");
 
-		if (_usb_selected)     _usb_devices_dialog  .reset();
-		if (_storage_selected) _block_devices_dialog.reset();
+		if (_usb_selected)     _usb_devices_widget  .reset();
+		if (_storage_selected) _block_devices_widget.reset();
 
 		_runtime_config.with_start_name(id, [&] (Start_name const &name) {
 			_runtime_state.toggle_selection(name, _runtime_config); });
@@ -307,20 +307,20 @@ void Graph::click(Clicked_at const &at, Action &action)
 		action.open_popup_dialog(popup_anchor(at._location));
 	});
 
-	_ram_fs_dialog       .propagate(at, _sculpt_partition, action);
-	_block_devices_dialog.propagate(at, action);
-	_usb_devices_dialog  .propagate(at, action);
+	_ram_fs_widget       .propagate(at, _sculpt_partition, action);
+	_block_devices_widget.propagate(at, action);
+	_usb_devices_widget  .propagate(at, action);
 
 	_remove .propagate(at);
 	_restart.propagate(at);
 }
 
 
-void Graph::clack(Clacked_at const &at, Action &action, Ram_fs_dialog::Action &ram_fs_action)
+void Graph::clack(Clacked_at const &at, Action &action, Ram_fs_widget::Action &ram_fs_action)
 {
-	_ram_fs_dialog       .propagate(at, ram_fs_action);
-	_block_devices_dialog.propagate(at, action);
-	_usb_devices_dialog  .propagate(at, action);
+	_ram_fs_widget       .propagate(at, ram_fs_action);
+	_block_devices_widget.propagate(at, action);
+	_usb_devices_widget  .propagate(at, action);
 
 	_remove.propagate(at, [&] {
 		action.remove_deployed_component(_runtime_state.selected());

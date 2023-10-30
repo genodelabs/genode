@@ -1,21 +1,18 @@
 /*
- * \brief  Storage-device management dialog
+ * \brief  Storage-device management widget
  * \author Norman Feske
  * \date   2018-04-30
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
-
 /* local includes */
-#include "storage_device_dialog.h"
+#include <view/storage_device_widget.h>
 
 using namespace Sculpt;
 
@@ -27,8 +24,6 @@ struct Dialog::Partition_button : Widget<Hbox>
 	void view(Scope<Hbox> &s, bool selected, Storage_target const &used_target,
 	          Storage_device const &device, Partition const &partition) const
 	{
-		using Label = Dialog::Label;
-
 		bool const hovered = s.hovered();
 
 		s.sub_scope<Left_floating_hbox>([&] (Scope<Hbox, Left_floating_hbox> &s) {
@@ -53,7 +48,7 @@ struct Dialog::Partition_button : Widget<Hbox>
 };
 
 
-void Storage_device_dialog::view(Scope<Vbox> &s, Storage_device const &dev,
+void Storage_device_widget::view(Scope<Vbox> &s, Storage_device const &dev,
                                  Storage_target const &used_target) const
 {
 	dev.partitions.for_each([&] (Partition const &partition) {

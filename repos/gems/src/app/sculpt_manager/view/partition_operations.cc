@@ -25,8 +25,6 @@ void Partition_operations::view(Scope<Vbox> &s,
                                 Partition      const &partition,
                                 Storage_target const &used_target) const
 {
-	using Label = Dialog::Label;
-
 	String<16> const version(device.label, ".", partition.number);
 
 	bool const whole_device = !partition.number.valid();

@@ -38,13 +38,12 @@
 #include <model/settings.h>
 #include <model/presets.h>
 #include <model/screensaver.h>
-#include <view/download_status_dialog.h>
+#include <view/download_status_widget.h>
 #include <view/popup_dialog.h>
 #include <view/panel_dialog.h>
-#include <view/settings_dialog.h>
+#include <view/settings_widget.h>
 #include <view/system_dialog.h>
 #include <view/file_browser_dialog.h>
-#include <menu_view.h>
 #include <gui.h>
 #include <keyboard_focus.h>
 #include <network.h>
@@ -60,19 +59,18 @@ struct Sculpt::Main : Input_event_handler,
                       Deploy::Action,
                       Storage::Action,
                       Network::Action,
+                      Network::Info,
                       Graph::Action,
                       Panel_dialog::Action,
                       Popup_dialog::Action,
-                      Settings_dialog::Action,
-                      Software_presets_dialog::Action,
-                      Depot_users_dialog::Action,
-                      Software_update_dialog::Action,
+                      Settings_widget::Action,
+                      Software_presets_widget::Action,
+                      Software_update_widget::Action,
                       File_browser_dialog::Action,
                       Popup_dialog::Construction_info,
                       Depot_query,
                       Panel_dialog::State,
                       Popup_dialog::Refresh,
-                      Menu_view::Hover_update_handler,
                       Screensaver::Action
 {
 	Env &_env;
@@ -150,7 +148,7 @@ struct Sculpt::Main : Input_event_handler,
 		_handle_gui_mode();
 
 		/* visibility of fonts section of settings dialog may have changed */
-		_settings_menu_view.generate();
+		_settings_dialog.refresh();
 
 		/* visibility of settings button may have changed */
 		_refresh_panel_and_window_layout();
@@ -177,7 +175,7 @@ struct Sculpt::Main : Input_event_handler,
 			_event_filter_config.generate([&] (Xml_generator &xml) {
 				_generate_event_filter_config(xml); });
 
-		_settings_menu_view.generate();
+		_settings_dialog.refresh();
 
 		/* visibility of the settings dialog may have changed */
 		if (orig_settings_available != _settings.interactive_settings_available()) {
@@ -185,6 +183,20 @@ struct Sculpt::Main : Input_event_handler,
 			_handle_gui_mode();
 		}
 	}
+
+	Dialog::Distant_runtime _dialog_runtime { _env };
+
+	template <typename TOP_LEVEL_DIALOG>
+	struct Dialog_view : TOP_LEVEL_DIALOG, private Distant_runtime::View
+	{
+		template <typename... ARGS>
+		Dialog_view(Distant_runtime &runtime, ARGS &&... args)
+		: TOP_LEVEL_DIALOG(args...), Distant_runtime::View(runtime, *this) { }
+
+		using Distant_runtime::View::refresh;
+		using Distant_runtime::View::min_width;
+		using Distant_runtime::View::if_hovered;
+	};
 
 
 	/**********************
@@ -229,6 +241,11 @@ struct Sculpt::Main : Input_event_handler,
 		return _prepare_version.value != _prepare_completed.value;
 	}
 
+
+	/*************
+	 ** Storage **
+	 *************/
+
 	Storage _storage { _env, _heap, _child_states, *this, *this };
 
 	/**
@@ -253,20 +270,53 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void refresh_storage_dialog() override { _generate_dialog(); }
 
-	Network _network { _env, _heap, *this, _child_states, *this, _runtime_state, _pci_info };
 
-	Menu_view _network_menu_view { _env, _child_states, _network.dialog, "network_view",
-	                               Ram_quota{4*1024*1024}, Cap_quota{150},
-	                               "network_dialog", "network_view_hover",
-	                               *this };
+	/*************
+	 ** Network **
+	 *************/
+
+	Network _network { _env, _heap, *this, *this, _child_states, *this, _runtime_state, _pci_info };
+
+	struct Network_top_level_dialog : Top_level_dialog
+	{
+		Main &_main;
+
+		Network_top_level_dialog(Main &main)
+		: Top_level_dialog("network"), _main(main) { }
+
+		void view(Scope<> &s) const override
+		{
+			s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+				_main._network.dialog.view(s); });
+		}
+
+		void click(Clicked_at const &at) override
+		{
+			_main._network.dialog.click(at, _main._network);
+		}
+
+		void clack(Clacked_at const &) override { }
+		void drag (Dragged_at const &) override { }
+	};
+
+	Dialog_view<Network_top_level_dialog> _network_dialog { _dialog_runtime, *this };
 
 	/**
 	 * Network::Action interface
 	 */
 	void update_network_dialog() override
 	{
-		_network_menu_view.generate();
-		_system_menu_view.generate();
+		_network_dialog.refresh();
+		_system_dialog.refresh();
+	}
+
+	/**
+	 * Network::Info interface
+	 */
+	bool ap_list_hovered() const override
+	{
+		return _network_dialog.if_hovered([&] (Hovered_at const &at) {
+			return _network.dialog.ap_list_hovered(at); });
 	}
 
 
@@ -434,7 +484,7 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_image_index()
 	{
 		_image_index_rom.update();
-		_system_menu_view.generate();
+		_system_dialog.refresh();
 	}
 
 	Attached_rom_dataspace _launcher_listing_rom {
@@ -462,7 +512,7 @@ struct Sculpt::Main : Input_event_handler,
 				_presets.update_from_xml(dir);   /* iterate over <file> nodes */
 		});
 
-		_popup_menu_view.generate();
+		_popup_dialog.refresh();
 		_deploy._handle_managed_deploy();
 	}
 
@@ -516,14 +566,10 @@ struct Sculpt::Main : Input_event_handler,
 	/**
 	 * Panel_dialog::State interface
 	 */
-	bool log_visible() const override { return _log_visible; }
-
-	bool network_visible() const override { return _network_visible; }
-
-	bool settings_visible() const override { return _settings_visible; }
-
-	bool system_visible() const override { return _system_visible; }
-
+	bool log_visible()         const override { return _log_visible; }
+	bool network_visible()     const override { return _network_visible; }
+	bool settings_visible()    const override { return _settings_visible; }
+	bool system_visible()      const override { return _system_visible; }
 	bool inspect_tab_visible() const override { return _storage.any_file_system_inspected(); }
 
 	Panel_dialog::Tab selected_tab() const override { return _selected_tab; }
@@ -575,7 +621,7 @@ struct Sculpt::Main : Input_event_handler,
 
 				if (download_in_progress || _main._download_queue.any_failed_download()) {
 
-					Hosted<Vbox, Download_status_dialog> download_status { Id { "Download" } };
+					Hosted<Vbox, Download_status_widget> download_status { Id { "Download" } };
 
 					s.widget(download_status, state, _main._download_queue);
 				}
@@ -589,7 +635,7 @@ struct Sculpt::Main : Input_event_handler,
 		_graph_view.refresh();
 
 		if (_system_visible)
-			_system_menu_view.generate();
+			_system_dialog.refresh();
 	}
 
 	Attached_rom_dataspace _runtime_state_rom { _env, "report -> runtime/state" };
@@ -651,7 +697,7 @@ struct Sculpt::Main : Input_event_handler,
 		_graph_view.refresh();
 
 		if (_selected_tab == Panel_dialog::Tab::FILES)
-			_file_browser_menu_view.generate();
+			_file_browser_dialog.refresh();
 	}
 
 
@@ -659,82 +705,8 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Interactive operations **
 	 ****************************/
 
-	Dialog::Distant_runtime _dialog_runtime { _env };
-
 	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase,
 	                                 *this, _system_dialog, _system_visible };
-
-	Constructible<Input::Seq_number> _clicked_seq_number { };
-	Constructible<Input::Seq_number> _clacked_seq_number { };
-
-	void _try_handle_click()
-	{
-		if (!_clicked_seq_number.constructed())
-			return;
-
-		Input::Seq_number const seq = *_clicked_seq_number;
-
-		/* used to detect clicks outside the popup dialog (for closing it) */
-		bool       popup_dialog_clicked = false;
-		bool const popup_opened = (_popup_opened_seq_number.value == seq.value);
-		bool       click_consumed = false;
-
-		if (_popup_menu_view.hovered(seq)) {
-			_popup_dialog.click(*this);
-			click_consumed = true;
-			_popup_menu_view.generate();
-			popup_dialog_clicked = true;
-		}
-		else if (_settings_menu_view.hovered(seq)) {
-			_settings_dialog.click(*this);
-			click_consumed = true;
-			_settings_menu_view.generate();
-		}
-		else if (_system_menu_view.hovered(seq)) {
-			_system_dialog.click();
-			click_consumed = true;
-			_system_menu_view.generate();
-		}
-		else if (_network_menu_view.hovered(seq)) {
-			_network.dialog.click(_network);
-			click_consumed = true;
-			_network_menu_view.generate();
-		}
-		else if (_file_browser_menu_view.hovered(seq)) {
-			_file_browser_dialog.click(*this);
-			click_consumed = true;
-			_file_browser_menu_view.generate();
-		}
-
-		/* remove popup dialog when clicking somewhere outside */
-		if (!popup_dialog_clicked && !_popup_menu_view._hovered && !popup_opened) {
-			if (_popup.state == Popup::VISIBLE) {
-				_close_popup_dialog();
-				discard_construction();
-			}
-		}
-
-		if (click_consumed)
-			_clicked_seq_number.destruct();
-	}
-
-	void _try_handle_clack()
-	{
-		if (!_clacked_seq_number.constructed())
-			return;
-
-		Input::Seq_number const seq = *_clacked_seq_number;
-
-		if (_system_menu_view.hovered(seq)) {
-			_system_dialog.clack();
-			_system_menu_view.generate();
-			_clacked_seq_number.destruct();
-		}
-		else if (_popup_menu_view.hovered(seq)) {
-			_popup_dialog.clack(*this);
-			_clacked_seq_number.destruct();
-		}
-	}
 
 	struct Keyboard_focus_guard
 	{
@@ -745,19 +717,9 @@ struct Sculpt::Main : Input_event_handler,
 		~Keyboard_focus_guard() { _main._keyboard_focus.update(); }
 	};
 
-	/**
-	 * Menu_view::Hover_update_handler interface
-	 */
-	void menu_view_hover_updated() override
-	{
-		Keyboard_focus_guard focus_guard { *this };
-
-		if (_clicked_seq_number.constructed())
-			_try_handle_click();
-
-		if (_clacked_seq_number.constructed())
-			_try_handle_clack();
-	}
+	/* used to prevent closing the popup immediatedly after opened */
+	Input::Seq_number _popup_opened_seq_number { };
+	Input::Seq_number _clicked_seq_number      { };
 
 	/**
 	 * Input_event_handler interface
@@ -770,14 +732,25 @@ struct Sculpt::Main : Input_event_handler,
 
 		_dialog_runtime.route_input_event(seq_number, ev);
 
+		/*
+		 * Detect clicks outside the popup dialog (for closing it)
+		 */
 		if (ev.key_press(Input::BTN_LEFT) || ev.touch()) {
-			_clicked_seq_number.construct(_global_input_seq_number);
-			_try_handle_click();
-		}
 
-		if (ev.key_release(Input::BTN_LEFT)) {
-			_clacked_seq_number.construct(_global_input_seq_number);
-			_try_handle_clack();
+			_clicked_seq_number = _global_input_seq_number;
+
+			bool const popup_opened =
+				(_popup_opened_seq_number.value == _clicked_seq_number.value);
+
+			bool const popup_hovered =
+				_popup_dialog.if_hovered([&] (Hovered_at const &) { return true; });
+
+			if (!popup_hovered && !popup_opened) {
+				if (_popup.state == Popup::VISIBLE) {
+					_close_popup_dialog();
+					discard_construction();
+				}
+			}
 		}
 
 		bool need_generate_dialog = false;
@@ -786,7 +759,7 @@ struct Sculpt::Main : Input_event_handler,
 			if (_keyboard_focus.target == Keyboard_focus::WPA_PASSPHRASE)
 				_network.handle_key_press(code);
 			else if (_system_visible && _system_dialog.keyboard_needed())
-				_system_dialog.handle_key(code);
+				_system_dialog.handle_key(code, *this);
 
 			need_generate_dialog = true;
 		});
@@ -808,13 +781,13 @@ struct Sculpt::Main : Input_event_handler,
 
 	void use(Storage_target const &target) override
 	{
-		_system_dialog.reset_update_dialog();
+		_system_dialog.reset_update_widget();
 		_download_queue.reset();
 		_storage.use(target);
 
 		/* hide system panel button and system dialog when "un-using" */
 		_panel_dialog.refresh();
-		_system_menu_view.generate();
+		_system_dialog.refresh();
 		_handle_window_layout();
 	}
 
@@ -824,7 +797,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	/*
-	 * Storage_dialog::Action interface
+	 * Storage_widget::Action interface
 	 */
 	void format(Storage_target const &target) override
 	{
@@ -898,9 +871,6 @@ struct Sculpt::Main : Input_event_handler,
 		}
 	}
 
-	/* used to prevent closing the popup immediatedly after opened */
-	Input::Seq_number _popup_opened_seq_number { };
-
 	/*
 	 * Graph::Action interface
 	 */
@@ -909,10 +879,9 @@ struct Sculpt::Main : Input_event_handler,
 		if (_popup.state == Popup::VISIBLE)
 			return;
 
-		if (_clicked_seq_number.constructed())
-			_popup_opened_seq_number = *_clicked_seq_number;
+		_popup_opened_seq_number = _clicked_seq_number;
 
-		_popup_menu_view.generate();
+		_popup_dialog.refresh();
 		_popup.anchor = anchor;
 		_popup.state = Popup::VISIBLE;
 		_graph_view.refresh();
@@ -942,7 +911,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	/**
-	 * Software_update_dialog::Action interface
+	 * Software_update_widget::Action interface
 	 */
 	void query_image_index(Depot::Archive::User const &user) override
 	{
@@ -951,7 +920,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	/**
-	 * Software_update_dialog::Action interface
+	 * Software_update_widget::Action interface
 	 */
 	void trigger_image_download(Path const &path, Verify verify) override
 	{
@@ -962,7 +931,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	/**
-	 * Software_update_dialog::Action interface
+	 * Software_update_widget::Action interface
 	 */
 	void update_image_index(Depot::Archive::User const &user, Verify verify) override
 	{
@@ -973,7 +942,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	/**
-	 * Software_update_dialog::Action interface
+	 * Software_update_widget::Action interface
 	 */
 	void install_boot_image(Path const &path) override
 	{
@@ -993,7 +962,7 @@ struct Sculpt::Main : Input_event_handler,
 		_selected_tab = tab;
 
 		if (_selected_tab == Panel_dialog::Tab::FILES)
-			_file_browser_menu_view.generate();
+			_file_browser_dialog.refresh();
 
 		_refresh_panel_and_window_layout();
 	}
@@ -1050,13 +1019,29 @@ struct Sculpt::Main : Input_event_handler,
 						file.with_optional_sub_node("config", [&] (Xml_node const &config) {
 							_runtime_state.reset_abandoned_and_launched_children();
 							_deploy.use_as_deploy_template(config);
-							_deploy.update_managed_deploy_config();
-						});
-					}
-				});
-			}
-		});
+							_deploy.update_managed_deploy_config(); }); } }); } });
 	}
+
+	struct Settings_top_level_dialog : Top_level_dialog
+	{
+		Main &_main;
+
+		Hosted<Frame, Settings_widget> _hosted { Id { "hosted" }, _main._settings };
+
+		Settings_top_level_dialog(Main &main)
+		: Top_level_dialog("settings"), _main(main) { }
+
+		void view(Scope<> &s) const override
+		{
+			s.sub_scope<Frame>([&] (Scope<Frame> &s) { s.widget(_hosted); });
+		}
+
+		void click(Clicked_at const &at) override { _hosted.propagate(at, _main); }
+		void clack(Clacked_at const &)   override { }
+		void drag (Dragged_at const &)   override { }
+	};
+
+	Dialog_view<Settings_top_level_dialog> _settings_dialog { _dialog_runtime, *this };
 
 	/*
 	 * Settings_dialog::Action interface
@@ -1089,7 +1074,7 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_fs_query_result()
 	{
 		_file_browser_state.update_query_results();
-		_file_browser_menu_view.generate();
+		_file_browser_dialog.refresh();
 	}
 
 	Signal_handler<Main> _editor_saved_handler {
@@ -1107,7 +1092,7 @@ struct Sculpt::Main : Input_event_handler,
 		_file_browser_state.last_saved_version = saved.attribute_value("version", 0U);
 
 		if (orig_modified != _file_browser_state.modified)
-			_file_browser_menu_view.generate();
+			_file_browser_dialog.refresh();
 	}
 
 	void _close_edited_file()
@@ -1139,7 +1124,7 @@ struct Sculpt::Main : Input_event_handler,
 			                                       Priority::LEITZENTRALE,
 			                                       Ram_quota{8*1024*1024}, Cap_quota{200});
 
-			Label const rom_label("report -> /runtime/", start_name, "/listing");
+			Service::Label const rom_label("report -> /runtime/", start_name, "/listing");
 
 			_file_browser_state.query_result.construct(_env, rom_label.string());
 			_file_browser_state.query_result->sigh(_fs_query_result_handler);
@@ -1148,7 +1133,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		generate_runtime_config();
 
-		_file_browser_menu_view.generate();
+		_file_browser_dialog.refresh();
 	}
 
 	void browse_sub_directory(File_browser_state::Sub_dir const &sub_dir) override
@@ -1236,7 +1221,7 @@ struct Sculpt::Main : Input_event_handler,
 		/* close popup menu */
 		_popup.state = Popup::OFF;
 		_popup_dialog.reset();
-		_popup_menu_view.generate();
+		_popup_dialog.refresh();
 
 		/* remove popup window from window layout */
 		_handle_window_layout();
@@ -1317,55 +1302,30 @@ struct Sculpt::Main : Input_event_handler,
 		_runtime_state.with_construction([&] (Component const &c) { fn.with(c); });
 	}
 
-	template <typename TOP_LEVEL_DIALOG>
-	struct Dialog_view : TOP_LEVEL_DIALOG, private Distant_runtime::View
-	{
-		template <typename... ARGS>
-		Dialog_view(Distant_runtime &runtime, ARGS &&... args)
-		: TOP_LEVEL_DIALOG(args...), Distant_runtime::View(runtime, *this) { }
-
-		using Distant_runtime::View::refresh;
-		using Distant_runtime::View::min_width;
-	};
-
 	Dialog_view<Panel_dialog> _panel_dialog { _dialog_runtime, *this, *this };
 
-	Settings_dialog _settings_dialog { _settings };
-
-	Menu_view _settings_menu_view { _env, _child_states, _settings_dialog, "settings_view",
-	                                Ram_quota{4*1024*1024}, Cap_quota{150},
-	                                "settings_dialog", "settings_view_hover", *this };
-
-	System_dialog _system_dialog { _presets, _build_info, _network._nic_state,
-	                               _download_queue, _index_update_queue,
-	                               _file_operation_queue, _scan_rom,
-	                               _image_index_rom, *this, *this, *this };
-
-	Menu_view _system_menu_view { _env, _child_states, _system_dialog, "system_view",
-	                              Ram_quota{4*1024*1024}, Cap_quota{150},
-	                              "system_dialog", "system_view_hover", *this };
+	Dialog_view<System_dialog> _system_dialog { _dialog_runtime,
+	                                            _presets, _build_info, _network._nic_state,
+	                                            _download_queue, _index_update_queue,
+	                                            _file_operation_queue, _scan_rom,
+	                                            _image_index_rom, *this, *this };
 
 	Dialog_view<Diag_dialog> _diag_dialog { _dialog_runtime, *this, _heap };
 
-	Popup_dialog _popup_dialog { _env, *this, _launchers,
-	                             _network._nic_state, _network._nic_target,
-	                             _runtime_state, _cached_runtime_config,
-	                             _download_queue, _scan_rom, *this, *this };
+	Dialog_view<Popup_dialog> _popup_dialog { _dialog_runtime, _env, *this, *this,
+	                                          _launchers, _network._nic_state,
+	                                          _network._nic_target, _runtime_state,
+	                                          _cached_runtime_config, _download_queue,
+	                                          _scan_rom, *this, *this };
 
-	Menu_view _popup_menu_view { _env, _child_states, _popup_dialog, "popup_view",
-	                             Ram_quota{4*1024*1024}, Cap_quota{150},
-	                             "popup_dialog", "popup_view_hover", *this };
-
-	File_browser_dialog _file_browser_dialog { _cached_runtime_config, _file_browser_state };
-
-	Menu_view _file_browser_menu_view { _env, _child_states, _file_browser_dialog, "file_browser_view",
-	                                    Ram_quota{8*1024*1024}, Cap_quota{150},
-	                                    "file_browser_dialog", "file_browser_view_hover", *this };
+	Dialog_view<File_browser_dialog> _file_browser_dialog { _dialog_runtime,
+	                                                        _cached_runtime_config,
+	                                                        _file_browser_state, *this };
 
 	/**
 	 * Popup_dialog::Refresh interface
 	 */
-	void refresh_popup_dialog() override { _popup_menu_view.generate(); }
+	void refresh_popup_dialog() override { _popup_dialog.refresh(); }
 
 	Managed_config<Main> _fb_drv_config {
 		_env, "config", "fb_drv", *this, &Main::_handle_fb_drv_config };
@@ -1412,27 +1372,21 @@ struct Sculpt::Main : Input_event_handler,
 
 	struct Graph_dialog : Dialog::Top_level_dialog
 	{
-		Graph                 &_graph;
-		Graph::Action         &_action;
-		Ram_fs_dialog::Action &_ram_fs_action;
+		Main &_main;
 
-		Graph_dialog(Graph &graph, Graph::Action &action, Ram_fs_dialog::Action &ram_fs_action)
-		:
-			Top_level_dialog("runtime"),
-			_graph(graph), _action(action), _ram_fs_action(ram_fs_action)
-		{ }
+		Graph_dialog(Main &main) : Top_level_dialog("runtime"), _main(main) { }
 
 		void view(Scope<> &s) const override
 		{
 			s.sub_scope<Depgraph>([&] (Scope<Depgraph> &s) {
-				_graph.view(s); });
+				_main._graph.view(s); });
 		}
 
-		void click(Clicked_at const &at) override { _graph.click(at, _action); }
-		void clack(Clacked_at const &at) override { _graph.clack(at, _action, _ram_fs_action); }
+		void click(Clicked_at const &at) override { _main._graph.click(at, _main); }
+		void clack(Clacked_at const &at) override { _main._graph.clack(at, _main, _main._storage); }
 		void drag (Dragged_at const &)   override { }
 
-	} _graph_dialog { _graph, *this, _storage };
+	} _graph_dialog { *this };
 
 	Dialog::Distant_runtime::View
 		_graph_view { _dialog_runtime, _graph_dialog,
@@ -1808,7 +1762,7 @@ void Sculpt::Main::_handle_gui_mode()
 	_panel_dialog.min_width = _screen_size.w();
 	unsigned const menu_width = max((unsigned)(_font_size_px*21.0), 320u);
 	_diag_dialog.min_width = menu_width;
-	_network_menu_view.min_width = menu_width;
+	_network_dialog.min_width = menu_width;
 
 	/* font size may has changed, propagate fonts config of runtime view */
 	generate_runtime_config();
@@ -2098,11 +2052,6 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	});
 
 	_dialog_runtime.gen_start_nodes(xml);
-	_settings_menu_view.gen_start_node(xml);
-	_system_menu_view.gen_start_node(xml);
-	_network_menu_view.gen_start_node(xml);
-	_popup_menu_view.gen_start_node(xml);
-	_file_browser_menu_view.gen_start_node(xml);
 
 	_storage.gen_runtime_start_nodes(xml);
 	_file_browser_state.gen_start_nodes(xml);

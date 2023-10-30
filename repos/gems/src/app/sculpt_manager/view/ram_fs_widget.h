@@ -1,5 +1,5 @@
 /*
- * \brief  RAM file-system management dialog
+ * \brief  RAM file-system management widget
  * \author Norman Feske
  * \date   2020-01-28
  */
@@ -11,16 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _VIEW__RAM_FS_DIALOG_H_
-#define _VIEW__RAM_FS_DIALOG_H_
+#ifndef _VIEW__RAM_FS_WIDGET_H_
+#define _VIEW__RAM_FS_WIDGET_H_
 
 #include <view/fs_operations.h>
 #include <model/ram_fs_state.h>
 
-namespace Sculpt { struct Ram_fs_dialog; }
+namespace Sculpt { struct Ram_fs_widget; }
 
 
-struct Sculpt::Ram_fs_dialog : Widget<Vbox>
+struct Sculpt::Ram_fs_widget : Widget<Vbox>
 {
 	Storage_target const _target { "ram_fs", Partition::Number() };
 
@@ -59,4 +59,4 @@ struct Sculpt::Ram_fs_dialog : Widget<Vbox>
 	}
 };
 
-#endif /* _VIEW__RAM_FS_DIALOG_H_ */
+#endif /* _VIEW__RAM_FS_WIDGET_H_ */

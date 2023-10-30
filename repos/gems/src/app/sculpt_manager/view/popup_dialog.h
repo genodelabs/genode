@@ -14,10 +14,6 @@
 #ifndef _VIEW__POPUP_DIALOG_H_
 #define _VIEW__POPUP_DIALOG_H_
 
-/* Genode includes */
-#include <os/reporter.h>
-#include <depot/archive.h>
-
 /* local includes */
 #include <types.h>
 #include <model/launchers.h>
@@ -28,17 +24,15 @@
 #include <model/nic_state.h>
 #include <model/index_menu.h>
 #include <view/dialog.h>
-#include <view/activatable_item.h>
+#include <view/pd_route_widget.h>
+#include <view/resource_widget.h>
+#include <view/debug_widget.h>
 #include <depot_query.h>
-
-#include <view/pd_route_dialog.h>
-#include <view/resource_dialog.h>
-#include <view/debug_dialog.h>
 
 namespace Sculpt { struct Popup_dialog; }
 
 
-struct Sculpt::Popup_dialog : Deprecated_dialog
+struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 {
 	using Depot_users    = Attached_rom_dataspace;
 	using Blueprint_info = Component::Blueprint_info;
@@ -115,18 +109,40 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 		virtual void remove_index(Depot::Archive::User const &) = 0;
 	};
 
+	Action &_action;
+
 	Construction_info const &_construction_info;
 
-	Hoverable_item   _item         { };
-	Activatable_item _action_item  { };
-	Activatable_item _install_item { };
-	Hoverable_item   _route_item   { };
-	Hoverable_item   _dialog_item  { }; /* for detecting clicks into debug dialog */
-	Pd_route_dialog  _pd_route     { _runtime_config };
+	using Route_entry   = Hosted<Frame, Vbox, Frame, Vbox, Menu_entry>;
+	using Service_entry = Hosted<Frame, Vbox, Frame, Vbox, Menu_entry>;
 
-	Constructible<Resource_dialog> _resources { };
+	struct Sub_menu_title : Widget<Left_floating_hbox>
+	{
+		void view(Scope<Left_floating_hbox> &s, auto const &text) const
+		{
+			bool const hovered = (s.hovered() && !s.dragged());
 
-	Debug_dialog _debug { };
+			s.sub_scope<Icon>("back", Icon::Attr { .hovered  = hovered,
+			                                       .selected = true });
+			s.sub_scope<Label>(" ");
+			s.sub_scope<Label>(text, [&] (auto &s) {
+				s.attribute("font", "title/regular"); });
+
+			/* inflate vertical space to button size */
+			s.sub_scope<Button>([&] (Scope<Left_floating_hbox, Button> &s) {
+				s.attribute("style", "invisible");
+				s.sub_scope<Label>(""); });
+		}
+
+		void click(Clicked_at const &, auto const &fn) { fn(); }
+	};
+
+	Hosted<Frame, Vbox, Sub_menu_title>               _back      { Id { "back" } };
+	Hosted<Frame, Vbox, Deferred_action_button>       _launch    { Id { "Add component" } };
+	Hosted<Frame, Vbox, Float, Vbox, Float, Deferred_action_button> _install { Id { "install" } };
+	Hosted<Frame, Vbox, Frame, Vbox, Resource_widget> _resources { Id { "resources" } };
+	Hosted<Frame, Vbox, Frame, Pd_route_widget>       _pd_route  { Id { "pd_route" }, _runtime_config };
+	Hosted<Frame, Vbox, Frame, Debug_widget>          _debug     { Id { "debug" } };
 
 	enum State { TOP_LEVEL, DEPOT_REQUESTED, DEPOT_SHOWN, DEPOT_SELECTION,
 	             INDEX_REQUESTED, INDEX_SHOWN,
@@ -141,11 +157,11 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 
 	Component::Name _construction_name { };
 
-	Constructible<Route::Id> _selected_route { };
+	Id _selected_route { };
 
 	bool _route_selected(Route::Id const &id) const
 	{
-		return _selected_route.constructed() && id == _selected_route->string();
+		return _selected_route.valid() && id == _selected_route.value;
 	}
 
 	bool _resource_dialog_selected() const
@@ -153,8 +169,7 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 		return _route_selected("resources");
 	}
 
-	template <typename FN>
-	void _apply_to_selected_route(Action &action, FN const &fn)
+	void _apply_to_selected_route(Action &action, auto const &fn)
 	{
 		unsigned cnt = 0;
 		action.apply_to_construction([&] (Component &component) {
@@ -164,29 +179,6 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 	}
 
 	Index_menu _menu { };
-
-	Hover_result hover(Xml_node hover) override
-	{
-		Deprecated_dialog::Hover_result hover_result = Deprecated_dialog::any_hover_changed(
-			_item        .match(hover, "frame", "vbox", "hbox", "name"),
-			_action_item .match(hover, "frame", "vbox", "button", "name"),
-			_install_item.match(hover, "frame", "vbox", "float", "vbox", "float", "button", "name"),
-			_route_item  .match(hover, "frame", "vbox", "frame", "vbox", "hbox", "name"),
-			_dialog_item .match(hover, "frame", "vbox", "frame", "name"));
-
-		_pd_route.hover(hover, "frame", "vbox", "frame", "vbox", "hbox", "name");
-
-		if (_resources.constructed())
-			hover_result = Deprecated_dialog::any_hover_changed(
-				hover_result,
-				_resources->match_sub_dialog(hover, "frame", "vbox", "frame", "vbox"));
-
-		hover_result = Deprecated_dialog::any_hover_changed(
-			hover_result,
-			_debug.match_sub_dialog(hover, "frame", "vbox", "frame", "vbox"));
-
-		return hover_result;
-	}
 
 	void depot_users_scan_updated()
 	{
@@ -230,153 +222,54 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 		return Path(user, "/index/", _sculpt_version);
 	}
 
-	void _gen_sub_menu_title(Xml_generator &xml,
-	                         Start_name const &name,
-	                         Start_name const &text) const
-	{
-		gen_named_node(xml, "hbox", name, [&] () {
-			gen_named_node(xml, "float", "left", [&] () {
-				xml.attribute("west", "yes");
-				xml.node("hbox", [&] () {
-					gen_named_node(xml, "button", "back", [&] () {
-						xml.attribute("selected", "yes");
-						xml.attribute("style", "back");
-						_item.gen_hovered_attr(xml, name);
-						xml.node("hbox", [&] () { });
-					});
-					gen_named_node(xml, "label", "label", [&] () {
-						xml.attribute("font", "title/regular");
-						xml.attribute("text", Path(" ", text));
-					});
-				});
-			});
-			gen_named_node(xml, "hbox", "right", [&] () { });
-		});
-	}
-
-	void _gen_menu_entry(Xml_generator &xml, Start_name const &name,
-	                     Component::Info const &text, bool selected,
-	                     char const *style = "radio") const
-	{
-		gen_named_node(xml, "hbox", name, [&] () {
-
-			gen_named_node(xml, "float", "left", [&] () {
-				xml.attribute("west", "yes");
-
-				xml.node("hbox", [&] () {
-					gen_named_node(xml, "button", "button", [&] () {
-
-						if (selected)
-							xml.attribute("selected", "yes");
-
-						xml.attribute("style", style);
-						_item.gen_hovered_attr(xml, name);
-						xml.node("hbox", [&] () { });
-					});
-					gen_named_node(xml, "label", "name", [&] () {
-						xml.attribute("text", Path(" ", text)); });
-				});
-			});
-
-			gen_named_node(xml, "hbox", "right", [&] () { });
-		});
-	}
-
-	void _gen_route_entry(Xml_generator &xml,
-	                      Start_name const &name,
-	                      Start_name const &text,
-	                      bool selected, char const *style = "radio") const
-	{
-		gen_named_node(xml, "hbox", name, [&] () {
-
-			gen_named_node(xml, "float", "left", [&] () {
-				xml.attribute("west", "yes");
-
-				xml.node("hbox", [&] () {
-					gen_named_node(xml, "button", "button", [&] () {
-
-						if (selected)
-							xml.attribute("selected", "yes");
-
-						xml.attribute("style", style);
-						_route_item.gen_hovered_attr(xml, name);
-						xml.node("hbox", [&] () { });
-					});
-					gen_named_node(xml, "label", "name", [&] () {
-						xml.attribute("text", Path(" ", text)); });
-				});
-			});
-
-			gen_named_node(xml, "hbox", "right", [&] () { });
-		});
-	}
-
 	template <typename FN>
 	void _for_each_menu_item(FN const &fn) const
 	{
 		_menu.for_each_item(_index_rom.xml(), _selected_user, fn);
 	}
 
-	static void _gen_info_label(Xml_generator &xml, char const *name,
-	                            Component::Info const &info)
+	void _view_pkg_elements (Scope<Frame, Vbox> &, Component const &) const;
+	void _view_menu_elements(Scope<Frame, Vbox> &, Xml_node const &depot_users) const;
+
+	void view(Scope<> &s) const override
 	{
-		gen_named_node(xml, "label", name, [&] () {
-			xml.attribute("font", "annotation/regular");
-			xml.attribute("text", Component::Info(" ", info, " ")); });
+		s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+			s.sub_scope<Vbox>([&] (Scope<Frame, Vbox> &s) {
+				_view_menu_elements(s, _depot_users.xml()); }); });
 	}
 
-	void _gen_pkg_info     (Xml_generator &, Component const &) const;
-	void _gen_pkg_elements (Xml_generator &, Component const &) const;
-	void _gen_menu_elements(Xml_generator &, Xml_node const &depot_users) const;
+	void click(Clicked_at const &) override;
 
-	void generate(Xml_generator &xml) const override
+	void clack(Clacked_at const &at) override
 	{
-		xml.node("frame", [&] () {
-			xml.node("vbox", [&] () {
-				_gen_menu_elements(xml, _depot_users.xml()); }); });
-	}
-
-	void click(Action &action);
-
-	void clack(Action &action)
-	{
-		_action_item.confirm_activation_on_clack();
-		_install_item.confirm_activation_on_clack();
-
-		if (_action_item.activated("launch")) {
-			action.launch_construction();
+		_launch.propagate(at, [&] {
+			_action.launch_construction();
 			reset();
-		}
+		});
 
-		bool const pkg_need_install = !_blueprint_info.pkg_avail
-		                            || _blueprint_info.incomplete();
-
-		if (pkg_need_install && _install_item.activated("install")) {
-			_construction_info.with_construction([&] (Component const &component) {
-				action.trigger_download(component.path, component.verify);
-				_install_item.reset();
-				_refresh.refresh_popup_dialog();
-			});
-		}
+		_install.propagate(at, [&] {
+			bool const pkg_need_install = !_blueprint_info.pkg_avail
+			                            || _blueprint_info.incomplete();
+			if (pkg_need_install) {
+				_construction_info.with_construction([&] (Component const &component) {
+					_action.trigger_download(component.path, component.verify);
+					_refresh.refresh_popup_dialog();
+				});
+			}
+		});
 	}
 
-	void reset() override
+	void drag(Dragged_at const &) override { }
+
+	void reset()
 	{
-		_item._hovered = Hoverable_item::Id();
-		_route_item._hovered = Hoverable_item::Id();
-		_dialog_item._hovered = Hoverable_item::Id();
-		_action_item.reset();
-		_install_item.reset();
 		_state = TOP_LEVEL;
 		_selected_user = User();
-		_selected_route.destruct();
+		_selected_route = { };
 		_menu._level = 0;
-		_resources.destruct();
-		_debug.reset();
-		_pd_route.reset();
 	}
 
-	Popup_dialog(Env &env, Refresh &refresh,
+	Popup_dialog(Env &env, Refresh &refresh, Action &action,
 	             Launchers         const &launchers,
 	             Nic_state         const &nic_state,
 	             Nic_target        const &nic_target,
@@ -387,12 +280,13 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 	             Depot_query             &depot_query,
 	             Construction_info const &construction_info)
 	:
+		Top_level_dialog("popup"),
 		_env(env), _launchers(launchers),
 		_nic_state(nic_state), _nic_target(nic_target),
 		_runtime_info(runtime_info), _runtime_config(runtime_config),
 		_download_queue(download_queue), _depot_users(depot_users),
-		_depot_query(depot_query),
-		_refresh(refresh), _construction_info(construction_info)
+		_depot_query(depot_query), _refresh(refresh), _action(action),
+		_construction_info(construction_info)
 	{
 		_index_rom.sigh(_index_handler);
 	}
@@ -422,12 +316,6 @@ struct Sculpt::Popup_dialog : Deprecated_dialog
 	{
 		if (_state < PKG_REQUESTED)
 			return;
-
-		_resources.construct(construction.affinity_space,
-		                     construction.affinity_location,
-		                     construction.priority);
-
-		_debug.reset();
 
 		construction.try_apply_blueprint(blueprint);
 

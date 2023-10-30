@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2020 Genode Labs GmbH
+ * Copyright (C) 2020-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -21,49 +21,35 @@
 namespace Sculpt { struct File_browser_dialog; }
 
 
-struct Sculpt::File_browser_dialog : Noncopyable, Deprecated_dialog
+struct Sculpt::File_browser_dialog : Top_level_dialog
 {
 	Runtime_config     const &_runtime_config;
 	File_browser_state const &_state;
 
-	Hoverable_item _fs_button     { };
-	Hoverable_item _entry         { };
-	Hoverable_item _path_elem     { };
-	Hoverable_item _action_button { };
-
-	void reset() override { }
-
 	using Fs_name = File_browser_state::Fs_name;
-	using Index   = File_browser_state::Index;
 	using Sub_dir = File_browser_state::Path;
 	using Path    = File_browser_state::Path;
 	using File    = File_browser_state::Path;
+	using Name    = String<128>;
 
 	struct Action : Interface, Noncopyable
 	{
 		virtual void browse_file_system(Fs_name const &) = 0;
-
 		virtual void browse_sub_directory(Sub_dir const &) = 0;
-
 		virtual void browse_abs_directory(Path const &) = 0;
-
 		virtual void browse_parent_directory() = 0;
-
 		virtual void view_file(File const &) = 0;
-
 		virtual void edit_file(File const &) = 0;
-
 		virtual void revert_edited_file() = 0;
-
 		virtual void save_edited_file() = 0;
 	};
 
-	using Name = String<128>;
+	Action &_action;
 
 	template <typename FN>
-	void _for_each_path_elem(FN const &fn) const
+	static void _for_each_path_elem(Path const path, FN const &fn)
 	{
-		char const *curr = _state.path.string();
+		char const *curr = path.string();
 
 		fn(Path("/"));
 
@@ -84,213 +70,246 @@ struct Sculpt::File_browser_dialog : Noncopyable, Deprecated_dialog
 		}
 	}
 
-	Path _path_elem_at_index(unsigned index) const
+	static Path _path_elem_at_index(Path const path, unsigned index)
 	{
 		Path result { };
 		unsigned i = 0;
 
-		_for_each_path_elem([&] (Path const &elem) {
+		_for_each_path_elem(path, [&] (Path const &elem) {
 			if (i++ == index)
 				result = elem; });
 
 		return result;
 	}
 
-	void _gen_path_elements(Xml_generator &xml) const
+	static void _with_matching_entry(At const &at, auto const fn)
 	{
-		gen_named_node(xml, "hbox", "back", [&] () {
+		Id const entry_id = at.matching_id<Vbox, Frame, Vbox, Entry>();
+		unsigned index = ~0U;
+		if (ascii_to(entry_id.value.string(), index)) {
+			Hosted_entry entry { entry_id, index };
+			fn(entry);
+		}
+	}
+
+	struct Navigation_entry : Widget<Left_floating_hbox>
+	{
+		struct Back : Widget<Float>
+		{
+			void view(Scope<Float> &s) const
+			{
+				s.sub_scope<Button>([&] (Scope<Float, Button> &s) {
+					if (s.hovered()) s.attribute("hovered", "yes");
+					s.attribute("style", "back");
+					s.sub_scope<Hbox>();
+				});
+			}
+
+			void click(Clicked_at const &, auto const &fn) { fn(); }
+		};
+
+		Hosted<Left_floating_hbox, Back> _back { Id { "back" } };
+
+		void view(Scope<Left_floating_hbox> &s, Path const &path, bool allow_back) const
+		{
+			if (allow_back)
+				s.widget(_back);
+
+			/* don't hover last path element */
+			unsigned count = 0;
+			_for_each_path_elem(path, [&] (Path const &) { count++; });
+
 			unsigned i = 0;
-			_for_each_path_elem([&] (Path const elem) {
+			_for_each_path_elem(path, [&] (Path const elem) {
+				Id const id { { i++ } };
+				bool const last = (i == count);
+				s.sub_scope<Button>(id, [&] (Scope<Left_floating_hbox, Button> &s) {
 
-				gen_named_node(xml, "button", Index(i), [&] () {
-					if (!_state.modified)
-						_path_elem.gen_hovered_attr(xml, Index(i));
-					xml.node("label", [&] () {
-						xml.attribute("text", elem);
-					});
+					if (allow_back && s.hovered() && !last)
+						s.attribute("hovered", "yes");
+
+					if (last)
+						s.attribute("style", "unimportant");
+
+					s.sub_scope<Label>(elem);
 				});
-				i++;
 			});
-		});
-	}
+		}
 
-	void _gen_back_entry(Xml_generator &xml) const
+		void click(Clicked_at const &at, Path const &path, Action &action)
+		{
+			Id const elem_id = at.matching_id<Left_floating_hbox, Button>();
+			if (elem_id.valid()) {
+				Genode::Path<256> abs_path { "/" };
+				for (unsigned i = 0; i < 20; i++) {
+					abs_path.append_element(_path_elem_at_index(path, i).string());
+					if (Id { { i } } == elem_id)
+						break;
+				}
+				action.browse_abs_directory(Path(abs_path));
+			}
+
+			_back.propagate(at, [&] { action.browse_parent_directory(); });
+		}
+	};
+
+	struct Conditional_button : Widget<Button>
 	{
-		gen_named_node(xml, "hbox", "back", [&] () {
+		void view(Scope<Button> &s, bool condition, bool selected) const
+		{
+			if (s.hovered()) s.attribute("hovered",  "yes");
+			if (selected)    s.attribute("selected", "yes");
 
-			gen_named_node(xml, "float", "left", [&] () {
-				xml.attribute("west", "yes");
+			if (!condition)
+				s.attribute("style", "invisible");
 
-				xml.node("hbox", [&] () {
-					if (!_state.modified) {
-						gen_named_node(xml, "float", "button", [&] () {
-							gen_named_node(xml, "button", "button", [&] () {
-								xml.attribute("style", "back");
-								_entry.gen_hovered_attr(xml, "back");
-								xml.node("hbox", [&] () { });
-							});
-						});
-					}
+			s.sub_scope<Label>(s.id.value, [&] (auto &s) {
+				if (!condition) s.attribute("style", "invisible"); });
+		}
 
-					_gen_path_elements(xml);
-				});
-			});
+		void click(Clicked_at const &, auto const &fn) { fn(); }
+	};
 
-			gen_named_node(xml, "hbox", "right", [&] () { });
-		});
-	}
-
-	void _gen_entry(Xml_generator &xml, Xml_node node, Index const &index,
-	                char const *style) const
+	/*
+	 * Use button instances accross entries to keep their internal state
+	 * independent from the lifetime of 'Entry' objects, which exist only
+	 * temporarily.
+	 */
+	struct Entry_buttons
 	{
-		Name const name = node.attribute_value("name", Name());
+		/* scope hierarchy relative to 'Entry' */
+		Hosted<Hbox, Float, Hbox, Conditional_button>
+			edit   { Id { "Edit"   } },
+			view   { Id { "View"   } };
 
-		bool const entry_edited = (name == _state.edited_file);
+		Hosted<Hbox, Float, Hbox, Deferred_action_button>
+			revert { Id { "Revert" } },
+			save   { Id { "Save"   } };
 
-		/* while editing one file, hide all others */
-		if (!entry_edited && _state.modified)
-			return;
+	} _entry_buttons { };
 
-		gen_named_node(xml, "hbox", index, [&] () {
+	struct Entry : Widget<Hbox>
+	{
+		unsigned const index;
 
-			gen_named_node(xml, "float", "left", [&] () {
-				xml.attribute("west", "yes");
+		Entry(unsigned index) : index(index) { }
 
-				xml.node("hbox", [&] () {
-					gen_named_node(xml, "button", "button", [&] () {
+		void view(Scope<Hbox> &s, File_browser_state const &state,
+		          Xml_node const &node, auto const &style,
+		          Entry_buttons const &buttons) const
+		{
+			Name const name     = node.attribute_value("name", Name());
+			bool const hovered  = (s.hovered() && !state.modified);
+			bool const selected = (name == state.edited_file);
 
-						bool const selected = (name == _state.edited_file);
-						if (selected)
-							xml.attribute("selected", "yes");
+			/* while editing one file, hide all others */
+			if (!selected && state.modified)
+				return;
 
-						xml.attribute("style", style);
+			s.sub_scope<Float>([&] (Scope<Hbox, Float> &s) {
+				s.attribute("west", "yes");
+				s.sub_scope<Hbox>([&] (Scope<Hbox, Float, Hbox> &s) {
+					s.sub_scope<Icon>(style, Icon::Attr { .hovered  = hovered,
+					                                      .selected = selected });
+					s.sub_scope<Label>(Path(" ", name)); }); });
 
-						if (!_state.modified)
-							_entry.gen_hovered_attr(xml, index);
-
-						xml.node("hbox", [&] () { });
-					});
-					gen_named_node(xml, "label", "name", [&] () {
-						xml.attribute("text", Path(" ", name)); });
-				});
-			});
-
-			gen_named_node(xml, "hbox", "middle", [&] () { });
-
-			gen_named_node(xml, "float", "right", [&] () {
-				xml.attribute("east", "yes");
+			s.sub_scope<Float>([&] (Scope<Hbox, Float> &s) {
+				s.attribute("east", "yes");
 
 				/* show no operation buttons for directories */
 				if (node.type() == "dir")
 					return;
 
-				gen_named_node(xml, "hbox", "right", [&] () {
+				s.sub_scope<Hbox>([&] (Scope<Hbox, Float, Hbox> &s) {
 
-					bool const entry_hovered = _entry.hovered(index);
-					bool const interesting   = entry_hovered || entry_edited;
-					bool const writeable     = node.attribute_value("writeable", false);
+					bool const interesting = hovered || selected;
+					bool const writeable   = node.attribute_value("writeable", false);
 
 					if (writeable) {
+						if (!state.modified)
+							s.widget(buttons.edit, interesting, selected);
 
-						if (!_state.modified) {
-							gen_named_node(xml, "button", "edit", [&] () {
-								if (interesting) {
-									_action_button.gen_hovered_attr(xml, "edit");
-									if (entry_edited)
-										xml.attribute("selected", "yes");
-								} else {
-									xml.attribute("style", "invisible");
-								}
-
-								gen_named_node(xml, "label", "name", [&] () {
-									xml.attribute("text", "Edit");
-									if (!interesting)
-										xml.attribute("style", "invisible");
-								});
-							});
+						if (selected && state.modified) {
+							s.widget(buttons.revert);
+							s.widget(buttons.save);
 						}
-
-						if (entry_edited && _state.modified) {
-
-							auto gen_action_button = [&] (auto id, auto text)
-							{
-								gen_named_node(xml, "button", id, [&] () {
-									_action_button.gen_hovered_attr(xml, id);
-									gen_named_node(xml, "label", "name", [&] () {
-										xml.attribute("text", text); }); });
-							};
-
-							gen_action_button("revert", "Revert");
-							gen_action_button("save",   "Save");
-						}
-
 					} else {
-						gen_named_node(xml, "button", "view", [&] () {
-
-							if (interesting) {
-								 _action_button.gen_hovered_attr(xml, "view");
-								if (entry_edited)
-									xml.attribute("selected", "yes");
-							} else {
-								xml.attribute("style", "invisible");
-							}
-
-							gen_named_node(xml, "label", "name", [&] () {
-								xml.attribute("text", "View");
-								if (!interesting)
-									xml.attribute("style", "invisible");
-							});
-						});
+						s.widget(buttons.view, interesting, selected);
 					}
 				});
 			});
-		});
-	}
+		}
 
-	void _gen_file_system(Xml_generator &xml, Service const &service) const
+		void click(Clicked_at const &at, Xml_node const &node,
+		           Entry_buttons &buttons, Action &action)
+		{
+			Name const name = node.attribute_value("name", Name());
+
+			if (node.has_type("dir")) {
+				action.browse_sub_directory(name);
+				return;
+			}
+
+			buttons.edit  .propagate(at, [&] { action.edit_file(name); });
+			buttons.view  .propagate(at, [&] { action.view_file(name); });
+			buttons.revert.propagate(at);
+			buttons.save  .propagate(at);
+		}
+
+		void clack(Clacked_at const &at, Entry_buttons &buttons, Action &action)
+		{
+			buttons.revert.propagate(at, [&] { action.revert_edited_file(); });
+			buttons.save  .propagate(at, [&] { action.save_edited_file();   });
+		}
+	};
+
+	Hosted<Vbox, Frame, Vbox, Navigation_entry> _nav_entry { Id { "nav" } };
+
+	using Hosted_entry = Hosted<Vbox, Frame, Vbox, Entry>;
+
+	void _view_file_system(Scope<Vbox> &s, Service const &service) const
 	{
-		bool  const parent = !service.server.valid();
-		Label const name   = parent ? Start_name(service.label) : service.server;
-
+		bool       const parent = !service.server.valid();
+		Start_name const name   = parent ? Start_name(service.label) : service.server;
 		Start_name const pretty_name { Pretty(name) };
-
-		bool const selected = (_state.browsed_fs == name);
+		bool       const selected = (_state.browsed_fs == name);
 
 		if (_state.text_area.constructed() && _state.modified && !selected)
 			return;
 
-		gen_named_node(xml, "frame", name, [&] () {
-			xml.node("vbox", [&] () {
-				xml.node("label", [&] () {
-					xml.attribute("min_ex", "50"); });
+		s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
+			s.sub_scope<Vbox>([&] (Scope<Vbox, Frame, Vbox> &s) {
+				s.sub_scope<Min_ex>(50);
+				s.sub_scope<Button>(Id { name }, [&] (Scope<Vbox, Frame, Vbox, Button> &s) {
 
-				gen_named_node(xml, "button", name, [&] () {
-					if (!_state.modified)
-						_fs_button.gen_hovered_attr(xml, name);
+					if (!_state.modified && s.hovered())
+						s.attribute("hovered", "yes");
 
 					if (selected)
-						xml.attribute("selected", true);
+						s.attribute("selected", true);
 
-					xml.node("label", [&] () {
-						xml.attribute("text", pretty_name);
-						xml.attribute("style", "title");
-					});
+					s.sub_scope<Label>(pretty_name, [&] (auto &s) {
+						s.attribute("style", "title"); });
 				});
 
 				if (selected) {
-					unsigned cnt = 0;
+					unsigned count = 0;
 
-					_state.with_query_result([&] (Xml_node node) {
-						node.with_optional_sub_node("dir", [&] (Xml_node listing) {
+					_state.with_query_result([&] (Xml_node const &node) {
+						node.with_optional_sub_node("dir", [&] (Xml_node const &listing) {
 
 							if (_state.path != "/")
-								_gen_back_entry(xml);
+								s.widget(_nav_entry, _state.path, !_state.modified);
 
-							listing.for_each_sub_node("dir", [&] (Xml_node dir) {
-								_gen_entry(xml, dir, Index(cnt++), "enter"); });
+							listing.for_each_sub_node("dir", [&] (Xml_node const &dir) {
+								unsigned const index = count++;
+								Hosted_entry entry { Id { { index } }, index };
+								s.widget(entry, _state, dir, "enter", _entry_buttons); });
 
-							listing.for_each_sub_node("file", [&] (Xml_node file) {
-								_gen_entry(xml, file, Index(cnt++), "radio"); });
+							listing.for_each_sub_node("file", [&] (Xml_node const &file) {
+								unsigned const index = count++;
+								Hosted_entry entry { Id { { index } }, index };
+								s.widget(entry, _state, file, "radio", _entry_buttons); });
 						});
 					});
 				}
@@ -298,86 +317,46 @@ struct Sculpt::File_browser_dialog : Noncopyable, Deprecated_dialog
 		});
 	}
 
-	void generate(Xml_generator &xml) const override
+	void view(Scope<> &s) const override
 	{
-		xml.node("vbox", [&] () {
+		s.sub_scope<Vbox>([&] (Scope<Vbox> &s) {
 			_runtime_config.for_each_service([&] (Service const &service) {
 				if (service.type == Service::Type::FILE_SYSTEM)
-					_gen_file_system(xml, service); }); });
-	}
-
-	Hover_result hover(Xml_node hover) override
-	{
-		return any_hover_changed(
-			_entry.match(hover, "vbox", "frame", "vbox", "hbox", "name"),
-			_path_elem.match(hover, "vbox", "frame", "vbox", "hbox", "float", "hbox", "hbox", "button", "name"),
-			_fs_button.match(hover, "vbox", "frame", "vbox", "button", "name"),
-			_action_button.match(hover, "vbox", "frame", "vbox", "hbox", "float", "hbox", "button", "name"));
-	}
-
-	Click_result click(Action &action)
-	{
-		Click_result result = Click_result::IGNORED;
-
-		Fs_name const fs_name = _fs_button._hovered;
-		if (fs_name.length() > 1) {
-			if (!_state.modified)
-				action.browse_file_system(fs_name);
-			return Click_result::CONSUMED;
-		}
-
-		Index const path_elem_idx = _path_elem._hovered;
-		if (path_elem_idx.length() > 1) {
-
-			Genode::Path<256> abs_path { "/" };
-			for (unsigned i = 0; i < 20; i++) {
-				abs_path.append_element(_path_elem_at_index(i).string());
-				if (Index(i) == path_elem_idx)
-					break;
-			}
-			if (!_state.modified)
-				action.browse_abs_directory(Path(abs_path));
-
-			return Click_result::CONSUMED;
-		}
-
-		Index const index = _entry._hovered;
-		if (index == "back") {
-			if (!_state.modified)
-				action.browse_parent_directory();
-		}
-		else if (index.length() > 1) {
-			_state.with_entry_at_index(index, [&] (Xml_node entry) {
-
-				if (entry.has_type("dir"))
-					action.browse_sub_directory(entry.attribute_value("name", Sub_dir()));
-
-				if (entry.has_type("file")) {
-					if (_action_button.hovered("edit"))
-						action.edit_file(entry.attribute_value("name", Name()));
-
-					if (_action_button.hovered("view"))
-						action.view_file(entry.attribute_value("name", Name()));
-
-					if (_action_button.hovered("revert"))
-						action.revert_edited_file();
-
-					if (_action_button.hovered("save"))
-						action.save_edited_file();
-				}
-			});
-
-			return Click_result::CONSUMED;
-		}
-
-		return result;
+					_view_file_system(s, service); }); });
 	}
 
 	File_browser_dialog(Runtime_config     const &runtime_config,
-	                    File_browser_state const &state)
+	                    File_browser_state const &state,
+	                    Action                   &action)
 	:
-		_runtime_config(runtime_config), _state(state)
+		Top_level_dialog("file_browser"),
+		_runtime_config(runtime_config), _state(state), _action(action)
 	{ }
+
+	void click(Clicked_at const &at) override
+	{
+		Id const fs_id = at.matching_id<Vbox, Frame, Vbox, Button>();
+		if (fs_id.valid()) {
+			if (!_state.modified)
+				_action.browse_file_system(fs_id.value);
+			return;
+		}
+
+		if (!_state.modified)
+			_nav_entry.propagate(at, _state.path, _action);
+
+		_with_matching_entry(at, [&] (Hosted_entry &entry) {
+			_state.with_entry_at_index(entry.index, [&] (Xml_node const &node) {
+				entry.propagate(at, node, _entry_buttons, _action); }); });
+	}
+
+	void clack(Clacked_at const &at) override
+	{
+		_with_matching_entry(at, [&] (Hosted_entry &entry) {
+			entry.propagate(at, _entry_buttons, _action); });
+	}
+
+	void drag(Dragged_at const &) override { }
 };
 
 #endif /* _VIEW__FILE_BROWSER_H_ */

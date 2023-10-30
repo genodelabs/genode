@@ -21,8 +21,9 @@ namespace Sculpt { struct Service; }
 
 struct Sculpt::Service
 {
-	typedef String<16> Type_name;
-	typedef String<32> Info;
+	using Type_name = String<16>;
+	using Info      = String<32>;
+	using Label     = String<64>;
 
 	enum class Type {
 		AUDIO_IN, AUDIO_OUT, BLOCK, EVENT, CAPTURE, FILE_SYSTEM, NIC, GUI, GPU,

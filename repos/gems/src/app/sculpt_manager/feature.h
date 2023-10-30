@@ -29,9 +29,6 @@ struct Sculpt::Feature
 
 	/* allow the browsing of file systems via the inspect view */
 	static constexpr bool INSPECT_VIEW = true;
-
-	/* highlight hovered buttons, not possible on touch-screen devices */
-	static constexpr bool VISUAL_HOVER = true;
 };
 
 #endif /* _FEATURE_H_ */

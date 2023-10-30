@@ -14,6 +14,7 @@
 #ifndef _MODEL__ROUTE_H_
 #define _MODEL__ROUTE_H_
 
+#include <xml.h>
 #include <types.h>
 #include <model/service.h>
 
@@ -22,8 +23,9 @@ namespace Sculpt { struct Route; }
 
 struct Sculpt::Route : List_model<Route>::Element
 {
-	typedef String<32> Id;
-	typedef String<80> Info;
+	using Id    = String<32>;
+	using Info  = String<80>;
+	using Label = Service::Label;
 
 	static char const *xml_type(Service::Type type)
 	{

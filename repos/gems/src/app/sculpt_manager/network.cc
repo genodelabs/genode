@@ -40,7 +40,7 @@ void Sculpt::Network::handle_key_press(Codepoint code)
 		wpa_passphrase.remove_last_character();
 	else if (code.value == ENTER) {
 		if (wpa_passphrase.suitable_for_connect())
-			wifi_connect(dialog.selected_ap());
+			wifi_connect(dialog._ap_selector._selected);
 	}
 	else if (code.valid())
 		wpa_passphrase.append_character(code);
@@ -124,7 +124,7 @@ void Sculpt::Network::_handle_wlan_accesspoints()
 	_wlan_accesspoints_rom.update();
 
 	/* suppress updating the list while the access-point list is hovered */
-	if (!initial_scan && dialog.ap_list_hovered())
+	if (!initial_scan && _info.ap_list_hovered())
 		return;
 
 	_access_points.update_from_xml(_wlan_accesspoints_rom.xml(),

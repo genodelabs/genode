@@ -1,5 +1,5 @@
 /*
- * \brief  Generate download-status view
+ * \brief  Generate download-status widget
  * \author Norman Feske
  * \date   2018-05-18
  */
@@ -11,17 +11,17 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _VIEW__DOWNLOAD_STATUS_DIALOG_H_
-#define _VIEW__DOWNLOAD_STATUS_DIALOG_H_
+#ifndef _VIEW__DOWNLOAD_STATUS_WIDGET_H_
+#define _VIEW__DOWNLOAD_STATUS_WIDGET_H_
 
 /* local includes */
 #include <model/download_queue.h>
 #include <view/dialog.h>
 
-namespace Sculpt { struct Download_status_dialog; }
+namespace Sculpt { struct Download_status_widget; }
 
 
-struct Sculpt::Download_status_dialog : Titled_frame
+struct Sculpt::Download_status_widget : Titled_frame
 {
 	void view(Scope<Frame> &s, Xml_node const &state, Download_queue const &download_queue) const
 	{
@@ -62,4 +62,4 @@ struct Sculpt::Download_status_dialog : Titled_frame
 	}
 };
 
-#endif /* _VIEW__DOWNLOAD_STATUS_DIALOG_H_ */
+#endif /* _VIEW__DOWNLOAD_STATUS_WIDGET_H_ */

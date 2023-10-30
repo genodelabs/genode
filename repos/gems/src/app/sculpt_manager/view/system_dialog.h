@@ -14,104 +14,82 @@
 #ifndef _VIEW__SYSTEM_DIALOG_H_
 #define _VIEW__SYSTEM_DIALOG_H_
 
-#include <view/layout_helper.h>
 #include <view/dialog.h>
-#include <view/software_presets_dialog.h>
-#include <view/software_update_dialog.h>
-#include <view/software_version_dialog.h>
+#include <view/software_presets_widget.h>
+#include <view/software_update_widget.h>
+#include <view/software_version_widget.h>
 #include <model/settings.h>
 
 namespace Sculpt { struct System_dialog; }
 
 
-struct Sculpt::System_dialog : Noncopyable, Deprecated_dialog
+struct Sculpt::System_dialog : Top_level_dialog
 {
-	using Depot_users = Depot_users_dialog::Depot_users;
+	using Depot_users = Depot_users_widget::Depot_users;
 	using Image_index = Attached_rom_dataspace;
 
-	Hoverable_item _tab_item { };
+	Presets     const &_presets;
+	Image_index const &_image_index;
+	Build_info  const &_build_info;
 
-	enum Tab { PRESETS, UPDATE } _selected_tab = Tab::PRESETS;
+	Software_presets_widget::Action &_presets_action;
+	Software_update_widget::Action  &_update_action;
 
-	Software_presets_dialog _presets_dialog;
-	Software_update_dialog  _update_dialog;
-	Software_version_dialog _version_dialog;
+	enum Tab { PRESET, UPDATE } _selected_tab = Tab::PRESET;
 
-	Hover_result hover(Xml_node hover) override
+	Hosted<Frame, Vbox, Software_presets_widget> _presets_widget { Id { "presets" } };
+	Hosted<Frame, Vbox, Software_update_widget>  _update_widget;
+	Hosted<Frame, Vbox, Software_version_widget> _version_widget { Id { "version" } };
+
+	Hosted<Frame, Vbox, Hbox, Select_button<Tab>>
+		_preset_tab { Id { " Presets " }, Tab::PRESET },
+		_update_tab { Id { " Update "  }, Tab::UPDATE };
+
+	void view(Scope<> &s) const override
 	{
-		Hover_result dialog_hover_result = Hover_result::UNMODIFIED;
+		s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+			s.sub_scope<Vbox>([&] (Scope<Frame, Vbox> &s) {
 
-		hover.with_optional_sub_node("frame", [&] (Xml_node const &frame) {
-			frame.with_optional_sub_node("vbox", [&] (Xml_node const &vbox) {
-				switch (_selected_tab) {
-				case Tab::PRESETS: dialog_hover_result = _presets_dialog.hover(vbox); break;
-				case Tab::UPDATE:  dialog_hover_result = _update_dialog.hover(vbox);  break;
-				}
-			});
-		});
-
-		return any_hover_changed(
-			dialog_hover_result,
-			_tab_item.match(hover, "frame", "vbox", "hbox", "button", "name"));
-	}
-
-	void reset() override { }
-
-	void generate(Xml_generator &xml) const override
-	{
-		gen_named_node(xml, "frame", "system", [&] {
-			xml.node("vbox", [&] {
-				gen_named_node(xml, "hbox", "tabs", [&] {
-					auto gen_tab = [&] (auto const &id, auto tab, auto const &text)
-					{
-						gen_named_node(xml, "button", id, [&] {
-							_tab_item.gen_hovered_attr(xml, id);
-							if (_selected_tab == tab)
-								xml.attribute("selected", "yes");
-							xml.node("label", [&] {
-								xml.attribute("text", text);
-							});
-						});
-					};
-					gen_tab("presets", Tab::PRESETS, " Presets ");
-					gen_tab("update",  Tab::UPDATE,  " Update ");
+				/* tabs */
+				s.sub_scope<Hbox>([&] (Scope<Frame, Vbox, Hbox> &s) {
+					s.widget(_preset_tab, _selected_tab, [&] (auto &s) {
+						if (!_presets.available())
+							s.attribute("style", "unimportant");
+						s.template sub_scope<Label>(_preset_tab.id.value);
+					});
+					s.widget(_update_tab, _selected_tab);
 				});
+
 				switch (_selected_tab) {
-				case Tab::PRESETS:
-					_presets_dialog.generate(xml);
+				case Tab::PRESET:
+					s.widget(_presets_widget, _presets);
 					break;
-				case Tab::UPDATE: 
-					_update_dialog .generate(xml);
-					_version_dialog.generate(xml);
+				case Tab::UPDATE:
+					s.widget(_update_widget, _image_index.xml());
+					s.widget(_version_widget, _build_info);
 					break;
 				};
 			});
 		});
 	}
 
-	Click_result click()
+	void click(Clicked_at const &at) override
 	{
-		if (_tab_item._hovered.valid()) {
-			if (_tab_item._hovered == "presets") _selected_tab = Tab::PRESETS;
-			if (_tab_item._hovered == "update")  _selected_tab = Tab::UPDATE;
-			return Click_result::CONSUMED;
-		};
+		_preset_tab.propagate(at, [&] (Tab t) { _selected_tab = t; });
+		_update_tab.propagate(at, [&] (Tab t) { _selected_tab = t; });
 
-		switch (_selected_tab) {
-		case Tab::PRESETS: _presets_dialog.click(); break;
-		case Tab::UPDATE:  _update_dialog .click(); break;
-		}
-		return Click_result::CONSUMED;
+		_presets_widget.propagate(at, _presets);
+
+		if (_selected_tab == Tab::UPDATE)
+			_update_widget.propagate(at, _update_action);
 	}
 
-	Click_result clack()
+	void clack(Clacked_at const &at) override
 	{
-		switch (_selected_tab) {
-		case Tab::PRESETS: _presets_dialog.clack(); break;
-		case Tab::UPDATE:  _update_dialog .clack(); break;
-		};
-		return Click_result::CONSUMED;
+		_presets_widget.propagate(at, _presets, _presets_action);
 	}
+
+	void drag(Dragged_at const &) override { }
 
 	System_dialog(Presets                   const &presets,
 	              Build_info                const &build_info,
@@ -121,26 +99,30 @@ struct Sculpt::System_dialog : Noncopyable, Deprecated_dialog
 	              File_operation_queue      const &file_operation_queue,
 	              Depot_users               const &depot_users,
 	              Image_index               const &image_index,
-	              Software_presets_dialog::Action &presets_action,
-	              Depot_users_dialog::Action      &depot_users_action,
-	              Software_update_dialog::Action  &update_action)
+	              Software_presets_widget::Action &presets_action,
+	              Software_update_widget::Action  &update_action)
 	:
-		_presets_dialog(presets, presets_action),
-		_update_dialog(build_info, nic_state, download_queue,
+		Top_level_dialog("system"),
+		_presets(presets), _image_index(image_index), _build_info(build_info),
+		_presets_action(presets_action), _update_action(update_action),
+		_update_widget(Id { "update" },
+		               build_info, nic_state, download_queue,
 		               index_update_queue, file_operation_queue, depot_users,
-		               image_index, depot_users_action, update_action),
-		_version_dialog(build_info)
+		               image_index)
 	{ }
 
 	bool update_tab_selected() const { return _selected_tab == Tab::UPDATE; }
 
-	bool keyboard_needed() const { return _update_dialog.keyboard_needed(); }
+	bool keyboard_needed() const { return _update_widget.keyboard_needed(); }
 
-	void handle_key(Codepoint c) { _update_dialog.handle_key(c); }
+	void handle_key(Codepoint c, Software_update_widget::Action &action)
+	{
+		_update_widget.handle_key(c, action);
+	}
 
-	void sanitize_user_selection() { _update_dialog.sanitize_user_selection(); }
+	void sanitize_user_selection() { _update_widget.sanitize_user_selection(); }
 
-	void reset_update_dialog() { _update_dialog.reset(); }
+	void reset_update_widget() { _update_widget.reset(); }
 };
 
 #endif /* _VIEW__SYSTEM_DIALOG_H_ */
