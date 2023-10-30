@@ -332,7 +332,32 @@ void Session_component::release_device(Capability<Platform::Device_interface> de
 Genode::Ram_dataspace_capability
 Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 {
-	Ram_dataspace_capability ram_cap { };
+	struct Guard {
+
+		Constrained_ram_allocator & _env_ram;
+		Heap                      & _heap;
+		bool                        _cleanup { true };
+
+		Ram_dataspace_capability   ram_cap { };
+		struct {
+			Dma_buffer * buf     { nullptr };
+		};
+
+		void disarm() { _cleanup = false; }
+
+		Guard(Constrained_ram_allocator & env_ram, Heap & heap)
+		: _env_ram(env_ram), _heap(heap)
+		{ }
+
+		~Guard()
+		{
+			if (_cleanup && buf)
+				destroy(_heap, buf);
+
+			if (_cleanup && ram_cap.valid())
+				_env_ram.free(ram_cap);
+		}
+	} guard { _env_ram, heap() };
 
 	/*
 	 * Check available quota beforehand and reflect the state back
@@ -348,28 +373,25 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 		throw Out_of_ram();
 
 	try {
-		ram_cap = _env_ram.alloc(size, cache);
+		guard.ram_cap = _env_ram.alloc(size, cache);
 	} catch (Ram_allocator::Denied) { }
 
-	if (!ram_cap.valid()) return ram_cap;
+	if (!guard.ram_cap.valid()) return guard.ram_cap;
+
 
 	try {
-		Dma_buffer & buf = _dma_allocator.alloc_buffer(ram_cap,
-		                                               _env.pd().dma_addr(ram_cap),
-		                                               _env_ram.dataspace_size(ram_cap));
+		Dma_buffer & buf = _dma_allocator.alloc_buffer(guard.ram_cap,
+		                                               _env.pd().dma_addr(guard.ram_cap),
+		                                               _env_ram.dataspace_size(guard.ram_cap));
+		guard.buf = &buf;
 
 		_domain_registry.for_each_domain([&] (Io_mmu::Domain & domain) {
 			domain.add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap);
 		});
-	} catch (Out_of_ram)  {
-		_env_ram.free(ram_cap);
-		throw;
-	} catch (Out_of_caps) {
-		_env_ram.free(ram_cap);
-		throw;
 	} catch (Dma_allocator::Out_of_virtual_memory) { }
 
-	return ram_cap;
+	guard.disarm();
+	return guard.ram_cap;
 }
 
 
