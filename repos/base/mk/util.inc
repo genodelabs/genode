@@ -69,3 +69,10 @@ select_from_ports = $(call _checked_port_dir,$1)
 else
 select_from_ports = $(REP_DIR)
 endif
+
+#
+# uniq:  remove dublicates from string keeping order
+# uniqL: remove dublicates and one additional word (2-d parameter) from string keeping order
+#
+uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
+uniqL = $(filter-out $2,$(call uniq,$1))

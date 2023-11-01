@@ -135,14 +135,12 @@ ifneq ($(DEP_MISSING_PORTS),)
 	@(echo "MISSING_PORTS += $(DEP_MISSING_PORTS)"; \
 	  echo "") >> $(LIB_DEP_FILE)
 endif
-	@for i in $(LIBS_TO_VISIT); do \
-	  $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk REP_DIR=$(REP_DIR) LIB=$$i; done
 ifneq ($(LIBS),)
-	@(echo "$(DEP_A_VAR_NAME)  = $(foreach l,$(LIBS),\$${ARCHIVE_NAME($l)} \$$(DEP_A_$l))"; \
-	  echo "$(DEP_SO_VAR_NAME) = $(foreach l,$(LIBS),\$${SO_NAME($l)} \$$(DEP_SO_$l))"; \
+	@(echo "$(DEP_A_VAR_NAME)  = $(foreach l,$(call uniqL,$(LIBS),$(LIB)),\$${ARCHIVE_NAME($l)} \$$(DEP_A_$l))"; \
+	  echo "$(DEP_SO_VAR_NAME) = $(foreach l,$(call uniqL,$(LIBS),$(LIB)),\$${SO_NAME($l)} \$$(DEP_SO_$l))"; \
 	  echo "") >> $(LIB_DEP_FILE)
 endif
-	@(echo "$(LIB).lib: check_ports $(addsuffix .lib,$(LIBS))"; \
+	@(echo "$(LIB).lib: check_ports $(addsuffix .lib,$(call uniqL,$(LIBS),$(LIB)))"; \
 	  echo "	@\$$(MKDIR) -p \$$(LIB_CACHE_DIR)/$(LIB)"; \
 	  echo "	\$$(VERBOSE_MK)\$$(MAKE) $(VERBOSE_DIR) -C \$$(LIB_CACHE_DIR)/$(LIB) -f \$$(BASE_DIR)/mk/lib.mk \\"; \
 	  echo "	     REP_DIR=$(REP_DIR) \\"; \
@@ -163,4 +161,5 @@ else
 	@(echo "ARCHIVE_NAME($(LIB)) := $(LIB).lib.a"; \
 	  echo "") >> $(LIB_DEP_FILE)
 endif
-
+	@for i in $(call uniq,$(LIBS_TO_VISIT)); do \
+	  $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk REP_DIR=$(REP_DIR) LIB=$$i; done
