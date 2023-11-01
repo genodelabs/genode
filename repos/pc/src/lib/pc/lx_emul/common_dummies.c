@@ -277,6 +277,12 @@ bool parse_option_str(const char * str,const char * option)
 }
 
 
+int get_option(char ** str,int * pint)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/pci.h>
 
 void pci_fixup_device(enum pci_fixup_pass pass,struct pci_dev * dev)

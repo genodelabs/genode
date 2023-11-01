@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-03-17
+ * \date   2023-11-02
  */
 
 #include <lx_emul.h>
@@ -174,14 +174,6 @@ void * gen_pool_dma_zalloc_align(struct gen_pool * pool,size_t size,dma_addr_t *
 #include <linux/genalloc.h>
 
 void gen_pool_free_owner(struct gen_pool * pool,unsigned long addr,size_t size,void ** owner)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/kernel.h>
-
-int get_option(char ** str,int * pint)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -412,14 +404,6 @@ void seq_printf(struct seq_file * m,const char * f,...)
 }
 
 
-#include <linux/string.h>
-
-char * skip_spaces(const char * str)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/smp.h>
 
 void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
@@ -441,33 +425,9 @@ int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 bool static_key_initialized;
 
 
-#include <linux/string_helpers.h>
-
-int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned int flags,const char * only)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/string.h>
-
-char * strreplace(char * s,char old,char new)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/sysctl.h>
 
 const int sysctl_vals[] = {};
-
-
-#include <linux/string.h>
-
-bool sysfs_streq(const char * s1,const char * s2)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/task_work.h>

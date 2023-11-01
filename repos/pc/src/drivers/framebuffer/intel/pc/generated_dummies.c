@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-03-22
+ * \date   2023-11-02
  */
 
 #include <lx_emul.h>
@@ -244,30 +244,6 @@ void bust_spinlocks(int yes)
 }
 
 
-#include <linux/fb.h>
-
-void cfb_copyarea(struct fb_info * p,const struct fb_copyarea * area)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/fb.h>
-
-void cfb_fillrect(struct fb_info * p,const struct fb_fillrect * rect)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/fb.h>
-
-void cfb_imageblit(struct fb_info * p,const struct fb_image * image)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/swap.h>
 
 void check_move_unevictable_pages(struct pagevec * pvec)
@@ -294,31 +270,7 @@ void console_flush_on_panic(enum con_flush_mode mode)
 
 #include <linux/console.h>
 
-void console_lock(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/console.h>
-
-int console_trylock(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/console.h>
-
 void console_unblank(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/console.h>
-
-void console_unlock(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -513,14 +465,6 @@ void emergency_restart(void)
 }
 
 
-#include <linux/fb.h>
-
-void fb_set_suspend(struct fb_info * info,int state)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/capability.h>
 
 bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap)
@@ -532,14 +476,6 @@ bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap
 #include <linux/rcuwait.h>
 
 void finish_rcuwait(struct rcuwait * w)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/fb.h>
-
-void framebuffer_release(struct fb_info * info)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -575,14 +511,6 @@ void gen6_gt_irq_handler(struct intel_gt * gt,u32 gt_iir)
 
 extern void gen6_rps_irq_handler(struct intel_rps * rps,u32 pm_iir);
 void gen6_rps_irq_handler(struct intel_rps * rps,u32 pm_iir)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/kernel.h>
-
-int get_option(char ** str,int * pint)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -2037,14 +1965,6 @@ void unmap_mapping_range(struct address_space * mapping,loff_t const holebegin,l
 #include <acpi/acpi_bus.h>
 
 int unregister_acpi_bus_type(struct acpi_bus_type * type)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/fb.h>
-
-void unregister_framebuffer(struct fb_info * fb_info)
 {
 	lx_emul_trace_and_stop(__func__);
 }

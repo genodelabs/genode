@@ -210,6 +210,7 @@ lib/scatterlist.c
 lib/siphash.c
 lib/sort.c
 lib/string.c
+lib/string_helpers.c
 lib/timerqueue.c
 lib/vsprintf.c
 lib/xarray.c

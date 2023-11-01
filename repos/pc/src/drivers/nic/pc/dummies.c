@@ -73,13 +73,6 @@ void register_syscore_ops(struct syscore_ops * ops)
 	lx_emul_trace(__func__);
 }
 
-#include <linux/kernel.h>
-
-int get_option(char ** str,int * pint)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
 #include <linux/rcutree.h>
 
 void synchronize_rcu_expedited(void)

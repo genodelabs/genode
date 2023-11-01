@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-06-30
+ * \date   2023-11-02
  */
 
 #include <lx_emul.h>
@@ -1007,14 +1007,6 @@ int sk_reuseport_attach_filter(struct sock_fprog * fprog,struct sock * sk)
 }
 
 
-#include <linux/string.h>
-
-char * skip_spaces(const char * str)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/smp.h>
 
 void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
@@ -1067,14 +1059,6 @@ int stream_open(struct inode * inode,struct file * filp)
 }
 
 
-#include <linux/string_helpers.h>
-
-int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned int flags,const char * only)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/printk.h>
 
 int suppress_printk;
@@ -1096,14 +1080,6 @@ int sysfs_rename_dir_ns(struct kobject * kobj,const char * new_name,const void *
 #include <linux/sysfs.h>
 
 int sysfs_rename_link_ns(struct kobject * kobj,struct kobject * targ,const char * old,const char * new,const void * new_ns)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/string.h>
-
-bool sysfs_streq(const char * s1,const char * s2)
 {
 	lx_emul_trace_and_stop(__func__);
 }
