@@ -2,19 +2,18 @@ source ${genode_dir}/repos/os/run/monitor_gdb.inc
 
 # sequence of GDB commands to execute at startup
 set gdb_cmds ""
-append gdb_cmds {-ex "set non-stop on" }
-append gdb_cmds {-ex "target extended-remote $host:$port" }
-
 # avoid pagination prompts in autopilot test
 append gdb_cmds {-ex "set pagination off" }
-
 # avoid color escape sequences in autopilot test
 append gdb_cmds {-ex "set style enabled off" }
-
 # don't ask for y/n when loading a new symbol file
 append gdb_cmds {-ex "set interactive-mode off" }
 # set search path for shared libraries
 append gdb_cmds {-ex "set solib-search-path debug" }
+# use non-stop mode
+append gdb_cmds {-ex "set non-stop on" }
+# connect to the debug monitor
+append gdb_cmds {-ex "target extended-remote $host:$port" }
 # set a breakpoint in the 'binary_ready_hook_for_gdb' function
 append gdb_cmds {-ex "b binary_ready_hook_for_gdb" }
 # continue execution until the breakpoint triggers
