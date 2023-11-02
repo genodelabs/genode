@@ -61,6 +61,7 @@ class Driver::Dma_allocator
 
 		Allocator          & _md_alloc;
 		bool                 _remapping;
+		bool const           _use_guard_page { true };
 		Allocator_avl        _dma_alloc { &_md_alloc };
 		Registry<Dma_buffer> _registry  { };
 

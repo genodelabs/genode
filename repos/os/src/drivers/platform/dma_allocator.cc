@@ -51,7 +51,12 @@ addr_t Dma_allocator::_alloc_dma_addr(addr_t const phys_addr,
 	if (size_align_log2 > 24) /* 16 MB */
 		size_align_log2 = 24;
 
-	return _dma_alloc.alloc_aligned(size, size_align_log2).convert<addr_t>(
+	/* add guard page */
+	size_t guarded_size = size;
+	if (_use_guard_page)
+		guarded_size += 0x1000; /* 4 kB */
+
+	return _dma_alloc.alloc_aligned(guarded_size, size_align_log2).convert<addr_t>(
 		[&] (void *ptr) { return (addr_t)ptr; },
 		[&] (Alloc_error err) -> addr_t {
 			switch (err) {
@@ -60,6 +65,7 @@ addr_t Dma_allocator::_alloc_dma_addr(addr_t const phys_addr,
 			case Alloc_error::DENIED:
 				error("Could not allocate DMA area of size: ", size,
 				      " alignment: ", size_align_log2,
+				      " size with guard page: ", guarded_size,
 				      " total avail: ", _dma_alloc.avail(),
 				     " (error: ", err, ")");
 				break;
