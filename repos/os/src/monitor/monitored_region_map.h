@@ -156,6 +156,32 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 		enum { PAGE_SIZE_LOG2 = 12 };
 		region_size = align_addr(region_size, PAGE_SIZE_LOG2);
 
+		/*
+		 * It can happen that previous attachments got implicitly
+		 * removed by destruction of the dataspace without knowledge
+		 * of the monitor. The newly obtained region could then
+		 * overlap with outdated region list entries which must
+		 * be removed before inserting the new region.
+		 */
+
+		addr_t start_addr = (addr_t)attached_addr;
+		addr_t end_addr = start_addr + region_size - 1;
+
+		for (Region *region = _regions.first(); region; ) {
+
+			if ((region->addr <= end_addr) &&
+			    ((region->addr + region->size - 1) >= start_addr)) {
+
+				Region *next_region = region->next();
+				_regions.remove(region);
+				destroy(_alloc, region);
+				region = next_region;
+				continue;
+			}
+
+			region = region->next();
+		}
+
 		_regions.insert(new (_alloc) Region(ds, (addr_t)attached_addr,
 		                                    region_size, writeable));
 		return attached_addr;
