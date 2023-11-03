@@ -87,32 +87,46 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 	Constructible<Writeable_text_segments> _writeable_text_segments { };
 
 
-	void writeable_text_segments(Allocator    &alloc,
-	                            Ram_allocator &ram,
-	                             Region_map   &local_rm)
+	void writeable_text_segments(Allocator     &alloc,
+	                             Ram_allocator &ram,
+	                             Region_map    &local_rm)
 	{
 		if (!_writeable_text_segments.constructed())
 			_writeable_text_segments.construct(alloc, ram, local_rm);
 	}
 
-	struct Region : List<Region>::Element
+	struct Region : Registry<Region>::Element
 	{
+		struct Range
+		{
+			addr_t addr;
+			size_t size;
+
+			bool intersects(Range const &other) const
+			{
+				addr_t end = addr + size - 1;
+				addr_t other_end = other.addr + other.size - 1;
+				return ((other.addr <= end) && (other_end >= addr));
+			}
+		};
+
 		Dataspace_capability cap;
-		addr_t               addr;
-		size_t               size;
+		Range                range;
 		bool                 writeable;
 
-		Region(Dataspace_capability cap, addr_t addr, size_t size,
-		       bool writeable)
-		: cap(cap), addr(addr), size(size), writeable(writeable) { }
+		Region(Registry<Region> &registry, Dataspace_capability cap,
+		       addr_t addr, size_t size, bool writeable)
+		: Registry<Region>::Element(registry, *this),
+		  cap(cap), range(addr, size), writeable(writeable) { }
 	};
 
-	List<Region> _regions { };
+	Registry<Region> _regions { };
 
 	void for_each_region(auto const &fn) const
 	{
-		for (Region const *region = _regions.first(); region; region = region->next())
-			fn(*region);
+		_regions.for_each([&] (Region const &region) {
+			fn(region);
+		});
 	}
 
 	Allocator &_alloc;
@@ -124,10 +138,9 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 
 	~Monitored_region_map()
 	{
-		while (Region *region = _regions.first()) {
-			_regions.remove(region);
-			destroy(_alloc, region);
-		}
+		_regions.for_each([&] (Region &region) {
+			destroy(_alloc, &region);
+		});
 	}
 
 	/**************************
@@ -160,30 +173,20 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 		 * It can happen that previous attachments got implicitly
 		 * removed by destruction of the dataspace without knowledge
 		 * of the monitor. The newly obtained region could then
-		 * overlap with outdated region list entries which must
+		 * overlap with outdated region registry entries which must
 		 * be removed before inserting the new region.
 		 */
 
-		addr_t start_addr = (addr_t)attached_addr;
-		addr_t end_addr = start_addr + region_size - 1;
+		Region::Range range { attached_addr, region_size };
 
-		for (Region *region = _regions.first(); region; ) {
+		_regions.for_each([&] (Region &region) {
+			if (region.range.intersects(range))
+				destroy(_alloc, &region);
+		});
 
-			if ((region->addr <= end_addr) &&
-			    ((region->addr + region->size - 1) >= start_addr)) {
+		new (_alloc) Region(_regions, ds, (addr_t)attached_addr,
+		                    region_size, writeable);
 
-				Region *next_region = region->next();
-				_regions.remove(region);
-				destroy(_alloc, region);
-				region = next_region;
-				continue;
-			}
-
-			region = region->next();
-		}
-
-		_regions.insert(new (_alloc) Region(ds, (addr_t)attached_addr,
-		                                    region_size, writeable));
 		return attached_addr;
 	}
 
@@ -191,16 +194,10 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 	{
 		_real.call<Rpc_detach>(local_addr);
 
-		addr_t addr = (addr_t)local_addr;
-
-		for (Region *region = _regions.first(); region; region = region->next()) {
-			if ((addr >= region->addr) &&
-			    (addr <= (region->addr + region->size - 1))) {
-				_regions.remove(region);
-				destroy(_alloc, region);
-				break;
-			}
-		}
+		_regions.for_each([&] (Region &region) {
+			if (region.range.intersects(Region::Range { local_addr, 1 }))
+				destroy(_alloc, &region);
+		});
 	}
 
 	void fault_handler(Signal_context_capability) override

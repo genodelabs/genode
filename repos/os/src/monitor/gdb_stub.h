@@ -77,10 +77,10 @@ struct Monitor::Gdb::State : Noncopyable
 								              linker_area_region.writeable ?
 								              "ram" : "rom");
 								xml.attribute("start",
-								              Value(Hex(region.addr +
-								                        linker_area_region.addr)));
+								              Value(Hex(region.range.addr +
+								                        linker_area_region.range.addr)));
 								xml.attribute("length",
-								              Value(Hex(linker_area_region.size)));
+								              Value(Hex(linker_area_region.range.size)));
 							});
 						});
 
@@ -97,10 +97,10 @@ struct Monitor::Gdb::State : Noncopyable
 								              stack_area_region.writeable ?
 								              "ram" : "rom");
 								xml.attribute("start",
-								              Value(Hex(region.addr +
-								                        stack_area_region.addr)));
+								              Value(Hex(region.range.addr +
+								                        stack_area_region.range.addr)));
 								xml.attribute("length",
-								              Value(Hex(stack_area_region.size)));
+								              Value(Hex(stack_area_region.range.size)));
 							});
 						});
 
@@ -109,8 +109,8 @@ struct Monitor::Gdb::State : Noncopyable
 
 					xml.node("memory", [&] {
 						xml.attribute("type", region.writeable ? "ram" : "rom");
-						xml.attribute("start", Value(Hex(region.addr)));
-						xml.attribute("length", Value(Hex(region.size)));
+						xml.attribute("start", Value(Hex(region.range.addr)));
+						xml.attribute("length", Value(Hex(region.range.size)));
 					});
 				});
 			});
