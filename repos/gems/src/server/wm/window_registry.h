@@ -237,6 +237,8 @@ class Wm::Window_registry
 
 			_windows.remove(win);
 
+			_window_ids.free(win->id().value);
+
 			Genode::destroy(&_alloc, win);
 
 			_report_updated_window_list_model();
