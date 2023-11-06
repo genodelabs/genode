@@ -260,7 +260,7 @@ struct Dialog::Scope : Noncopyable
 	}
 
 	template <typename HOSTED, typename... ARGS>
-	void widget(HOSTED &hosted, ARGS &&... args)
+	void widget(HOSTED const &hosted, ARGS &&... args)
 	{
 		hosted._view_hosted(*this, args...);
 	}
