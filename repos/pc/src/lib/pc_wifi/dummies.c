@@ -109,15 +109,6 @@ struct key * keyring_alloc(const char * description,kuid_t uid,kgid_t gid,const 
 }
 
 
-#include <linux/kobject.h>
-
-int kobject_uevent_env(struct kobject * kobj,enum kobject_action action,char * envp_ext[])
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-
 #include <linux/moduleparam.h>
 
 void kernel_param_lock(struct module * mod)

@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-11-02
+ * \date   2023-11-06
  */
 
 #include <lx_emul.h>
@@ -274,14 +274,6 @@ void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp
 #include <linux/kobject.h>
 
 int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/kobject.h>
-
-int kobject_uevent_env(struct kobject * kobj,enum kobject_action action,char * envp_ext[])
 {
 	lx_emul_trace_and_stop(__func__);
 }

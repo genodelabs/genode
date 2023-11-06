@@ -18,3 +18,9 @@ int kobject_uevent(struct kobject * kobj,enum kobject_action action)
 {
 	return 0;
 }
+
+
+int kobject_uevent_env(struct kobject * kobj,enum kobject_action action,char * envp_ext[])
+{
+	return 0;
+}
