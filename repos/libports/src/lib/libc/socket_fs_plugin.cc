@@ -122,7 +122,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 
 		enum Proto { TCP, UDP };
 
-		enum State { UNCONNECTED, ACCEPT_ONLY, CONNECTING, CONNECTED, CONNECT_ABORTED, UNSPEC };
+		enum State { UNCONNECTED, ACCEPT_ONLY, CONNECTING, CONNECTED, CONNECT_ABORTED };
 
 		/* TODO remove */
 		struct Inaccessible { }; /* exception */
@@ -680,10 +680,21 @@ extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t ad
 
 	switch (addr->sa_family) {
 	case AF_UNSPEC:
-		if (context->state() != Context::CONNECTED)
+		{
+			if (context->state() != Context::CONNECTED)
+				return 0;
+
+			Sockaddr_string addr_string { };
+			int const len = ::strlen(addr_string.base());
+			int const n   = write(context->connect_fd(), addr_string.base(), len);
+
+			if (n != len)
+				return (context->proto() == Context::UDP) ? Errno(EIO) : Errno(EAFNOSUPPORT);
+
+			context->state(Context::UNCONNECTED);
+
 			return 0;
-		context->state(Context::UNSPEC); /* reset */
-		break;
+		}
 	case AF_INET:
 		break;
 	default:
@@ -691,18 +702,6 @@ extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t ad
 	}
 
 	switch (context->state()) {
-	case Context::UNSPEC:
-		{
-			Sockaddr_string addr_string { };
-			int const len = ::strlen(addr_string.base());
-			int const n   = write(context->connect_fd(), addr_string.base(), len);
-
-			if (n != len) return Errno(ECONNREFUSED);
-			context->state(Context::UNCONNECTED);
-
-			return 0;
-		}
-
 	case Context::UNCONNECTED:
 		{
 			Sockaddr_string addr_string;
