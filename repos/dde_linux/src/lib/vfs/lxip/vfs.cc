@@ -791,8 +791,8 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 				return Format::snprintf(dst.start, dst.num_bytes, "connected");
 			case Linux::ECONNREFUSED:
 				return Format::snprintf(dst.start, dst.num_bytes, "connection refused");
-			case 65: /* Linux::ENOPKG  */
-				return Format::snprintf(dst.start, dst.num_bytes, "package not installed");
+			case Linux::EHOSTUNREACH:
+				return Format::snprintf(dst.start, dst.num_bytes, "no route to host");
 			default:
 				return Format::snprintf(dst.start, dst.num_bytes, "unknown error");
 			}

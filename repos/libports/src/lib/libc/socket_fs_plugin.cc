@@ -300,8 +300,8 @@ struct Libc::Socket_fs::Context : Plugin_context
 			if (strcmp(connect_status, "not connected") == 0)
 				return Errno(ENOTCONN);
 
-			if (strcmp(connect_status, "package not installed") == 0)
-				return Errno(ENOTSUP);
+			if (strcmp(connect_status, "no route to host") == 0)
+				return Errno(EHOSTUNREACH);
 
 			error("socket_fs: unhandled connection state");
 			return Errno(ECONNREFUSED);
