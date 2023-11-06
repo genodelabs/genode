@@ -75,9 +75,9 @@ struct Sculpt::Panel_dialog : Top_level_dialog
 		_settings_button.propagate(at, [&] { _action.toggle_settings_visibility(); });
 		_network_button .propagate(at, [&] { _action.toggle_network_visibility(); });
 		_log_button     .propagate(at, [&] { _action.toggle_log_visibility(); });
-		_files_tab      .propagate(at, [&] { _action.select_tab(Tab::FILES); });
-		_components_tab .propagate(at, [&] { _action.select_tab(Tab::COMPONENTS); });
-		_inspect_tab    .propagate(at, [&] { _action.select_tab(Tab::INSPECT); });
+		_files_tab      .propagate(at, [&] (Tab t) { _action.select_tab(t); });
+		_components_tab .propagate(at, [&] (Tab t) { _action.select_tab(t); });
+		_inspect_tab    .propagate(at, [&] (Tab t) { _action.select_tab(t); });
 	}
 
 	Panel_dialog(State const &state, Action &action)

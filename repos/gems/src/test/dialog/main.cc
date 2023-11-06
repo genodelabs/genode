@@ -101,8 +101,8 @@ struct Dialog_test::Main
 			_inspect.propagate(at, [&] { log("inspect activated!"); });
 			_confirm.propagate(at);
 			_cancel .propagate(at);
-			_cash   .propagate(at, [&] { _payment = Payment::CASH; });
-			_card   .propagate(at, [&] { _payment = Payment::CARD; });
+			_cash   .propagate(at, [&] (Payment p) { _payment = p; });
+			_card   .propagate(at, [&] (Payment p) { _payment = p; });
 		}
 
 		void clack(Clacked_at const &at) override

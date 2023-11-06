@@ -68,7 +68,7 @@ struct Dialog::Select_button : Widget<Button>
 	}
 
 	template <typename FN>
-	void click(Clicked_at const &, FN const &select_fn) { select_fn(); }
+	void click(Clicked_at const &, FN const &select_fn) { select_fn(_value); }
 };
 
 
