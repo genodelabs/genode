@@ -2,17 +2,30 @@ non_stop.patch
 
 From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
-Fix a failed assertion in non-stop mode if more than
+Fix failed assertions in non-stop mode if more than
 one thread is initially stopped.
 ---
- gdb/remote.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ gdb/remote.c |    8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
 
 diff --git a/gdb/remote.c b/gdb/remote.c
-index 218bca3..b5db0c0 100644
+index 218bca3..5fccf69 100644
 --- a/gdb/remote.c
 +++ b/gdb/remote.c
-@@ -7458,7 +7458,7 @@ remote_target::queued_stop_reply (ptid_t ptid)
+@@ -7252,8 +7252,10 @@ remote_notif_stop_can_get_pending_events (remote_target *remote,
+      instead.  If we fetch all queued events from stub, remote stub
+      may exit and we have no chance to process them back in
+      remote_wait_ns.  */
+-  remote_state *rs = remote->get_remote_state ();
+-  mark_async_event_handler (rs->remote_async_inferior_event_token);
++  if (target_is_async_p()) {
++    remote_state *rs = remote->get_remote_state ();
++    mark_async_event_handler (rs->remote_async_inferior_event_token);
++  }
+   return 0;
+ }
+ 
+@@ -7458,7 +7460,7 @@ remote_target::queued_stop_reply (ptid_t ptid)
    remote_state *rs = get_remote_state ();
    struct stop_reply *r = remote_notif_remove_queued_reply (ptid);
  
