@@ -198,6 +198,9 @@ run_genode_until {\[init -\> event_dump\] Input event #11.*\n} 40 [output_spawn_
 # pay only attention to the output of init and its children
 grep_output {^\[init }
 
+# filter out KVM switch messages during the nightly test
+unify_output {(?n).*0557:2213.*} ""
+
 unify_output {(?n) on usb-usbbus.*$} ""
 unify_output {(?n) at usb-usbbus.*\)} ")"
 unify_output {(?n)hid-generic.*input:} "hid-generic: input:"
