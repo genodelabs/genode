@@ -354,23 +354,23 @@ struct Dialog::Hosted : Meta::Last<HIERARCHY...>::Type
 				fn(narrowed); });
 	}
 
-	template <typename... ARGS>
-	void propagate(Clicked_at const &at, ARGS &&... args)
-	{
-		_with_narrowed_at(at, [&] (auto const &at) { this->click(at, args...); });
-	}
+	void propagate(Clicked_at const &at, auto &&... args) {
+		_with_narrowed_at(at, [&] (auto const &at) { this->click(at, args...); }); }
 
-	template <typename... ARGS>
-	void propagate(Clacked_at const &at, ARGS &&... args)
-	{
-		_with_narrowed_at(at, [&] (auto const &at) { this->clack(at, args...); });
-	}
+	void propagate(Clicked_at const &at, auto &&... args) const {
+		_with_narrowed_at(at, [&] (auto const &at) { this->click(at, args...); }); }
 
-	template <typename... ARGS>
-	void propagate(Dragged_at const &at, ARGS &&... args)
-	{
-		_with_narrowed_at(at, [&] (auto const &at) { this->drag(at, args...); });
-	}
+	void propagate(Clacked_at const &at, auto &&... args) {
+		_with_narrowed_at(at, [&] (auto const &at) { this->clack(at, args...); }); }
+
+	void propagate(Clacked_at const &at, auto &&... args) const {
+		_with_narrowed_at(at, [&] (auto const &at) { this->clack(at, args...); }); }
+
+	void propagate(Dragged_at const &at, auto &&... args) {
+		_with_narrowed_at(at, [&] (auto const &at) { this->drag(at, args...); }); }
+
+	void propagate(Dragged_at const &at, auto &&... args) const {
+		_with_narrowed_at(at, [&] (auto const &at) { this->drag(at, args...); }); }
 
 	/*
 	 * \noapi used internally by 'Scope::widget'

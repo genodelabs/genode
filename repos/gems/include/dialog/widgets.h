@@ -45,7 +45,7 @@ struct Dialog::Toggle_button : Widget<Button>
 	}
 
 	template <typename FN>
-	void click(Clicked_at const &, FN const &toggle_fn) { toggle_fn(); }
+	void click(Clicked_at const &, FN const &toggle_fn) const { toggle_fn(); }
 };
 
 
@@ -68,7 +68,7 @@ struct Dialog::Select_button : Widget<Button>
 	}
 
 	template <typename FN>
-	void click(Clicked_at const &, FN const &select_fn) { select_fn(_value); }
+	void click(Clicked_at const &, FN const &select_fn) const { select_fn(_value); }
 };
 
 
