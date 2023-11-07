@@ -56,7 +56,7 @@ struct Dialog::Select_button : Widget<Button>
 
 	Select_button(ENUM value) : _value(value) { }
 
-	void view(Scope<Button> &s, ENUM selected_value) const
+	void view(Scope<Button> &s, ENUM selected_value, auto const &fn) const
 	{
 		bool const selected = (selected_value == _value),
 		           hovered  = (s.hovered() && !s.dragged() && !selected);
@@ -64,7 +64,13 @@ struct Dialog::Select_button : Widget<Button>
 		if (selected) s.attribute("selected", "yes");
 		if (hovered)  s.attribute("hovered",  "yes");
 
-		s.sub_scope<Dialog::Label>(s.id.value);
+		fn(s);
+	}
+
+	void view(Scope<Button> &s, ENUM selected_value) const
+	{
+		view(s, selected_value, [&] (auto &s) {
+			s.template sub_scope<Dialog::Label>(s.id.value); });
 	}
 
 	template <typename FN>
