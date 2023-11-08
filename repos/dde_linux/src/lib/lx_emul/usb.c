@@ -535,8 +535,7 @@ handle_flush_request(unsigned char               ep,
 	struct file       * file = open_usb_dev(udev);
 	struct usb_per_dev_data * d = dev_get_drvdata(&udev->dev);
 	struct usb_urb_in_flight *iter, *next;
-	unsigned int e = ep;
-	int ret = -ENODEV;
+	int ret = 0;
 
 	/* discard URBs of the related EP in reverse order, like libusb is doing */
 	list_for_each_entry_safe_reverse(iter, next, &d->urblist, le) {
@@ -547,9 +546,6 @@ handle_flush_request(unsigned char               ep,
 		}
 	}
 
-	ret = usbdev_file_operations->unlocked_ioctl(file,
-		                                       USBDEVFS_RESETEP,
-		                                       (unsigned long)&e);
 	genode_usb_ack_request(session, request, handle_return_code, &ret);
 }
 
