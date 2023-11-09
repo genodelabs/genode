@@ -345,6 +345,12 @@ static int claim(genode_usb_bus_num_t bus,
 	struct usb_device       * udev = find_usb_device(bus, dev);
 	struct usb_per_dev_data * data = udev ? dev_get_drvdata(&udev->dev) : NULL;
 
+	struct usb_rpc_call_args rpc = {
+		.ret       = 1,
+		.call      = CLAIM,
+		.iface_num = iface_num
+	};
+
 	/*
 	 * As long as 'claim' is a rpc-call, and the usb device wasn't opened yet,
 	 * we cannot open the device here, this has to be done from a Linux task.
@@ -353,12 +359,6 @@ static int claim(genode_usb_bus_num_t bus,
 	 */
 	if (!data)
 		return 0;
-
-	struct usb_rpc_call_args rpc = {
-		.ret       = 1,
-		.call      = CLAIM,
-		.iface_num = iface_num
-	};
 
 	data->rpc = &rpc;
 	lx_emul_task_unblock(data->task);
@@ -374,14 +374,14 @@ static int release(genode_usb_bus_num_t bus,
 	struct usb_device       * udev = find_usb_device(bus, dev);
 	struct usb_per_dev_data * data = udev ? dev_get_drvdata(&udev->dev) : NULL;
 
-	if (!data)
-		return -1;
-
 	struct usb_rpc_call_args rpc = {
 		.ret       = 1,
 		.call      = RELEASE_IF,
 		.iface_num = iface_num
 	};
+
+	if (!data)
+		return -1;
 
 	data->rpc = &rpc;
 	lx_emul_task_unblock(data->task);
@@ -396,14 +396,13 @@ static void release_all(genode_usb_bus_num_t bus,
 	struct usb_device       * udev = find_usb_device(bus, dev);
 	struct usb_per_dev_data * data = udev ? dev_get_drvdata(&udev->dev) : NULL;
 
-	if (!data)
-		return;
-
-
 	struct usb_rpc_call_args rpc = {
 		.ret  = 1,
 		.call = RELEASE_ALL,
 	};
+
+	if (!data)
+		return;
 
 	data->rpc = &rpc;
 	lx_emul_task_unblock(data->task);
@@ -633,7 +632,10 @@ handle_urb_request(struct genode_usb_request_urb req,
 			                                       (unsigned long)&u->urb);
 			break;
 		}
-	case NONE: ;
+	case NONE:
+	case ALT_SETTING:
+	case CONFIG:
+		break;
 	};
 }
 
