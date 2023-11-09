@@ -91,9 +91,10 @@ class Acpi::Memory
 		Env       &_env;
 		Allocator &_heap;
 
-		Rm_connection     _rm          { _env };
-		Region_map_client _acpi_window { _rm.create(ACPI_REGION_SIZE) };
-		addr_t      const _acpi_base   { _env.rm().attach(_acpi_window.dataspace()) };
+		Rm_connection      _rm             { _env };
+		Region_map_client  _acpi_window    { _rm.create(ACPI_REGION_SIZE) };
+		Attached_dataspace _acpi_window_ds { _env.rm(), _acpi_window.dataspace() };
+		addr_t       const _acpi_base      { (addr_t)_acpi_window_ds.local_addr<void>()};
 
 		Constructible<Io_mem::Region> _io_region { };
 
@@ -162,6 +163,7 @@ class Acpi::Memory
 					addr_t const compound_end  = max(loop_region.base() + loop_region.size(),
 					                                 region_base + region_size);
 
+					_acpi_window.detach(region_base - _io_region->base());
 					m->~Io_mem();
 					_range.free((void *)region_base);
 
@@ -194,6 +196,7 @@ class Acpi::Memory
 		{
 			addr_t out_addr = 0;
 			while (_range.any_block_addr(&out_addr)) {
+				_acpi_window.detach(out_addr - _io_region->base());
 				_range.metadata((void *)out_addr)->~Io_mem();
 				_range.free((void *)out_addr);
 			}
