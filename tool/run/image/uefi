@@ -35,7 +35,7 @@ proc run_image { } {
 
 	exec cat [run_dir].header [run_dir].partition > [run_dir].img
 
-	exec [installed_command sgdisk] --set-alignment=1 --largest-new=1 --typecode=1:EF00 [run_dir].img
+	exec [installed_command sgdisk] --set-alignment=1 --largest-new=1 --typecode=1:EF00 [run_dir].img 2> /dev/null
 
 	exec rm -f [run_dir].header [run_dir].partition
 }
