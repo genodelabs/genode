@@ -39,6 +39,7 @@
   *
   */
 
+#include "namespace.h"
 #include <sys/cdefs.h>
 
 #include <sys/types.h>
@@ -49,6 +50,8 @@
 #include <string.h>
 
 #include <stddef.h>
+#include "un-namespace.h"
+
 
 ssize_t sendmsg(int s, const struct msghdr *msg, int flags)
 {
