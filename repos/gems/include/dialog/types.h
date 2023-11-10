@@ -31,6 +31,7 @@ namespace Dialog {
 	struct Clicked_at;
 	struct Clacked_at;
 	struct Dragged_at;
+	struct Hovered_at;
 	static inline Clicked_at const &clicked_at(At const &at);
 	template <typename...> struct Scope;
 	struct Sub_scope;
@@ -185,6 +186,7 @@ struct Dialog::At : Noncopyable
 struct Dialog::Clicked_at : At { using At::At; };
 struct Dialog::Clacked_at : At { using At::At; };
 struct Dialog::Dragged_at : At { using At::At; };
+struct Dialog::Hovered_at : At { using At::At; };
 
 
 static inline Dialog::Clicked_at const &Dialog::clicked_at(At const &at)
@@ -371,6 +373,14 @@ struct Dialog::Hosted : Meta::Last<HIERARCHY...>::Type
 
 	void propagate(Dragged_at const &at, auto &&... args) const {
 		_with_narrowed_at(at, [&] (auto const &at) { this->drag(at, args...); }); }
+
+	bool if_hovered(Hovered_at const &at, auto const &fn) const
+	{
+		bool result = false;
+		_with_narrowed_at(at, [&] (Hovered_at const &at) {
+			result = !at._location.has_type("empty") && fn(at); });
+		return result;
+	}
 
 	/*
 	 * \noapi used internally by 'Scope::widget'
