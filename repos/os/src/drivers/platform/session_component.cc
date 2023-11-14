@@ -12,6 +12,7 @@
  */
 
 #include <dataspace/client.h>
+#include <base/attached_io_mem_dataspace.h>
 
 #include <device.h>
 #include <pci.h>
@@ -231,40 +232,51 @@ void Session_component::update_devices_rom()
 
 void Session_component::enable_device(Device const & device)
 {
-	pci_enable(_env, domain_registry(), device);
-
 	auto fn = [&] (Driver::Io_mmu::Domain & domain) {
+		device.for_pci_config([&] (Device::Pci_config const & cfg) {
+			Attached_io_mem_dataspace io_mem { _env, cfg.addr, 0x1000 };
+			domain.enable_pci_device(io_mem.cap(),
+			                         {cfg.bus_num, cfg.dev_num, cfg.func_num});
+		});
 		domain.enable_device();
 	};
+
+	auto default_domain_fn = [&] () { _domain_registry.with_default_domain(fn); };
 
 	device.for_each_io_mmu(
 		/* non-empty list fn */
 		[&] (Device::Io_mmu const & io_mmu) {
-			_domain_registry.with_domain(io_mmu.name, fn, [&] () { }); },
+			_domain_registry.with_domain(io_mmu.name, fn, default_domain_fn);
+		},
 
 		/* empty list fn */
-		[&] () {
-			_domain_registry.with_default_domain(fn); }
+		default_domain_fn
 	);
+
+	pci_enable(_env, device);
 }
 
 
 void Session_component::disable_device(Device const & device)
 {
-	pci_disable(_env, domain_registry(), device);
+	pci_disable(_env, device);
 
 	auto fn = [&] (Driver::Io_mmu::Domain & domain) {
+		device.for_pci_config([&] (Device::Pci_config const & cfg) {
+			domain.disable_pci_device({cfg.bus_num, cfg.dev_num, cfg.func_num});
+		});
 		domain.disable_device();
 	};
+
+	auto default_domain_fn = [&] () { _domain_registry.with_default_domain(fn); };
 
 	device.for_each_io_mmu(
 		/* non-empty list fn */
 		[&] (Device::Io_mmu const & io_mmu) {
-			_domain_registry.with_domain(io_mmu.name, fn, [&] () { }); },
+			_domain_registry.with_domain(io_mmu.name, fn, default_domain_fn); },
 
 		/* empty list fn */
-		[&] () {
-			_domain_registry.with_default_domain(fn); }
+		default_domain_fn
 	);
 }
 
