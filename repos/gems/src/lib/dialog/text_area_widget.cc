@@ -11,10 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* local includes */
-#include <dialog.h>
+#include <dialog/text_area_widget.h>
 
-using namespace Text_area;
+using namespace Dialog;
 
 
 enum {
@@ -53,8 +52,33 @@ template <typename T>
 static void swap(T &v1, T &v2) { auto tmp = v1; v1 = v2; v2 = tmp; };
 
 
-template <typename FN>
-void Dialog::Selection::for_each_selected_line(FN const &fn) const
+static unsigned unsigned_from_id(Dialog::Id const &id)
+{
+	unsigned value { };
+	ascii_to(id.value.string(), value);
+	return value;
+};
+
+
+void Text_area_widget::_with_position_at(::Dialog::At const &at, auto const &fn) const
+{
+	At::Narrowed<Vbox, Hbox, void>::with_at(at, [&] (At const &at) {
+
+		Text::Index const y = { unsigned_from_id(at.id()) + _scroll.y.value };
+
+		_text.apply(y, [&] (Line const &line) {
+			Line::Index x = line.upper_bound();
+
+			At::Narrowed<Float, Label, void>::with_at(at, [&] (At const &at) {
+				x = { at._location.attribute_value("at", 0u) }; });
+
+			fn(Position { x, y });
+		});
+	});
+}
+
+
+void Text_area_widget::Selection::for_each_selected_line(auto const &fn) const
 {
 	if (!defined())
 		return;
@@ -72,9 +96,8 @@ void Dialog::Selection::for_each_selected_line(FN const &fn) const
 }
 
 
-template <typename FN>
-void Dialog::Selection::with_selection_at_line(Text::Index y, Line const &line,
-                                               FN const &fn) const
+void Text_area_widget::Selection::with_selection_at_line(Text::Index y, Line const &line,
+                                                         auto const &fn) const
 {
 	if (!defined())
 		return;
@@ -103,74 +126,80 @@ void Dialog::Selection::with_selection_at_line(Text::Index y, Line const &line,
 }
 
 
-void Dialog::Selection::gen_selected_line(Xml_generator &xml,
-                                          Text::Index y, Line const &line) const
+void Text_area_widget::Selection::view_selected_line(Scope<Hbox, Float, Label> &s,
+                                                     Text::Index y, Line const &line) const
 {
 	with_selection_at_line(y, line, [&] (Line::Index const start_x, const unsigned n) {
-		xml.node("selection", [&] () {
-			xml.attribute("at",     start_x.value);
-			xml.attribute("length", n);
-		});
-	});
+		s.sub_node("selection", [&] () {
+			s.attribute("at",     start_x.value);
+			s.attribute("length", n); }); });
 }
 
 
-void Dialog::produce_xml(Xml_generator &xml)
+void Text_area_widget::view(Scope<Vbox> &s) const
 {
-	auto gen_line = [&] (Text::Index at, Line const &line)
+	using namespace ::Dialog;
+
+	struct Line_widget : Widget<Hbox>
 	{
-		xml.node("hbox", [&] () {
-			xml.attribute("name", at.value - _scroll.y.value);
-			xml.node("float", [&] () {
-				xml.attribute("north", "yes");
-				xml.attribute("south", "yes");
-				xml.attribute("west",  "yes");
-				xml.node("label", [&] () {
-					xml.attribute("font", "monospace/regular");
-					xml.attribute("text", String<512>(line));
-					xml.attribute("hover", "yes");
+		struct Attr
+		{
+			Text::Index const  y;
+			Line        const &line;
+			Position    const &cursor;
+			Selection   const &selection;
+		};
 
-					if (_cursor.y.value == at.value)
-						xml.node("cursor", [&] () {
-							xml.attribute("name", "cursor");
-							xml.attribute("at", _cursor.x.value); });
+		void view(Scope<Hbox> &s, Attr const &attr) const
+		{
+			bool const line_hovered = s.hovered();
 
-					if (_hovered_position.constructed())
-						if (_hovered_position->y.value == at.value)
-							xml.node("cursor", [&] () {
-								xml.attribute("name", "hover");
-								xml.attribute("style", "hover");
-								xml.attribute("at", _hovered_position->x.value); });
+			s.sub_scope<Float>([&] (Scope<Hbox, Float> &s) {
+				s.attribute("north", "yes");
+				s.attribute("south", "yes");
+				s.attribute("west",  "yes");
 
-					_selection.gen_selected_line(xml, at, line);
+				s.sub_scope<Label>(String<512>(attr.line), [&] (Scope<Hbox, Float, Label> &s) {
+					s.attribute("font", "monospace/regular");
+					s.attribute("hover", "yes");
+
+					if (attr.cursor.y.value == attr.y.value)
+						s.sub_node("cursor", [&] {
+							s.attribute("name", "cursor");
+							s.attribute("at", attr.cursor.x.value); });
+
+					if (line_hovered) {
+						unsigned const hover_x =
+							s.hover._location.attribute_value("at", attr.line.upper_bound().value);
+
+						s.sub_node("cursor", [&] {
+							s.attribute("name",  "hover");
+							s.attribute("style", "hover");
+							s.attribute("at",    hover_x); });
+					}
+
+					attr.selection.view_selected_line(s, attr.y, attr.line);
 				});
 			});
-		});
+		}
 	};
 
-	xml.node("frame", [&] () {
-		xml.node("button", [&] () {
-			xml.attribute("name", "text");
-
-			if (_text_hovered)
-				xml.attribute("hovered", "yes");
-
-			xml.node("float", [&] () {
-				xml.attribute("north", "yes");
-				xml.attribute("east",  "yes");
-				xml.attribute("west",  "yes");
-				xml.node("vbox", [&] () {
-					Dynamic_array<Line>::Range const range { .at     = _scroll.y,
-					                                         .length = _max_lines };
-					_text.for_each(range, gen_line);
-				});
-			});
+	Dynamic_array<Line>::Range const range { .at     = _scroll.y,
+	                                         .length = _max_lines };
+	unsigned count = 0;
+	_text.for_each(range, [&] (Text::Index const &at, Line const &line) {
+		s.widget(Hosted<Vbox, Line_widget> { Id { { count } } }, Line_widget::Attr {
+			.y         = at,
+			.line      = line,
+			.cursor    = _cursor,
+			.selection = _selection
 		});
+		count++;
 	});
 }
 
 
-void Dialog::_delete_selection()
+void Text_area_widget::_delete_selection()
 {
 	if (!_editable)
 		return;
@@ -246,7 +275,7 @@ void Dialog::_delete_selection()
 }
 
 
-void Dialog::_insert_printable(Codepoint code)
+void Text_area_widget::_insert_printable(Codepoint code)
 {
 	_tie_cursor_to_end_of_line();
 
@@ -257,7 +286,24 @@ void Dialog::_insert_printable(Codepoint code)
 }
 
 
-void Dialog::_handle_printable(Codepoint code)
+void Text_area_widget::_sanitize_scroll_position()
+{
+	/* ensure that the cursor remains visible */
+	if (_cursor.y.value > 0)
+		if (_scroll.y.value > _cursor.y.value - 1)
+			_scroll.y.value = _cursor.y.value - 1;
+
+	if (_cursor.y.value == 0)
+		_scroll.y.value = 0;
+
+	if (_scroll.y.value + _max_lines < _cursor.y.value + 2)
+		_scroll.y.value = _cursor.y.value - _max_lines + 2;
+
+	_clamp_scroll_position_to_upper_bound();
+}
+
+
+void Text_area_widget::_handle_printable(Codepoint code)
 {
 	if (!_editable)
 		return;
@@ -269,7 +315,7 @@ void Dialog::_handle_printable(Codepoint code)
 }
 
 
-void Dialog::_move_characters(Line &from, Line &to)
+void Text_area_widget::_move_characters(Line &from, Line &to)
 {
 	/* move all characters of line 'from' to the end of line 'to' */
 	Line::Index const first { 0 };
@@ -281,7 +327,7 @@ void Dialog::_move_characters(Line &from, Line &to)
 }
 
 
-void Dialog::_handle_backspace()
+void Text_area_widget::_handle_backspace()
 {
 	if (!_editable)
 		return;
@@ -323,7 +369,7 @@ void Dialog::_handle_backspace()
 }
 
 
-void Dialog::_handle_delete()
+void Text_area_widget::_handle_delete()
 {
 	if (!_editable)
 		return;
@@ -344,7 +390,7 @@ void Dialog::_handle_delete()
 }
 
 
-void Dialog::_handle_newline()
+void Text_area_widget::_handle_newline()
 {
 	if (!_editable)
 		return;
@@ -373,11 +419,11 @@ void Dialog::_handle_newline()
 }
 
 
-void Dialog::_handle_left()
+void Text_area_widget::_handle_left()
 {
 	_tie_cursor_to_end_of_line();
 
-if (_cursor.x.value == 0) {
+	if (_cursor.x.value == 0) {
 		if (_cursor.y.value > 0) {
 			_cursor.y.value--;
 			_text.apply(_cursor.y, [&] (Line &line) {
@@ -389,7 +435,7 @@ if (_cursor.x.value == 0) {
 }
 
 
-void Dialog::_handle_right()
+void Text_area_widget::_handle_right()
 {
 	if (!_cursor_at_end_of_line()) {
 		_cursor.x.value++;
@@ -403,21 +449,21 @@ void Dialog::_handle_right()
 }
 
 
-void Dialog::_handle_up()
+void Text_area_widget::_handle_up()
 {
 	if (_cursor.y.value > 0)
 		_cursor.y.value--;
 }
 
 
-void Dialog::_handle_down()
+void Text_area_widget::_handle_down()
 {
 	if (_cursor.y.value + 1 < _text.upper_bound().value)
 		_cursor.y.value++;
 }
 
 
-void Dialog::_handle_pageup()
+void Text_area_widget::_handle_pageup()
 {
 	if (_max_lines != ~0U) {
 		for (unsigned i = 0; i < _max_lines; i++)
@@ -428,7 +474,7 @@ void Dialog::_handle_pageup()
 }
 
 
-void Dialog::_handle_pagedown()
+void Text_area_widget::_handle_pagedown()
 {
 	if (_max_lines != ~0U) {
 		for (unsigned i = 0; i < _max_lines; i++)
@@ -439,35 +485,59 @@ void Dialog::_handle_pagedown()
 }
 
 
-void Dialog::_handle_home()
+void Text_area_widget::_handle_home()
 {
 	_cursor.x.value = 0;
 }
 
 
-void Dialog::_handle_end()
+void Text_area_widget::_handle_end()
 {
 	_text.apply(_cursor.y, [&] (Line &line) {
 		_cursor.x = line.upper_bound(); });
 }
 
 
-void Dialog::handle_input_event(Input::Event const &event)
+void Text_area_widget::click(Clicked_at const &at)
+{
+	_with_position_at(at, [&] (Position const pos) {
+
+		if (_shift) {
+			_selection.end.construct(pos);
+		} else {
+			_selection.start.construct(pos);
+			_selection.end.destruct();
+		}
+
+		_drag = true;
+	});
+}
+
+
+void Text_area_widget::clack(Clacked_at const &at, Action &action)
+{
+	_with_position_at(at, [&] (Position const pos) {
+		_cursor = pos; });
+
+	_drag = false;
+
+	if (_selection.defined())
+		action.trigger_copy();
+}
+
+
+void Text_area_widget::drag(Dragged_at const &at)
+{
+	_with_position_at(at, [&] (Position const pos) {
+		_selection.end.construct(pos); });
+}
+
+
+void Text_area_widget::handle_event(Event const &event, Action &action)
 {
 	bool update_dialog = false;
 
-	Position const orig_cursor = _cursor;
-
-	auto cursor_to_hovered_position = [&] ()
-	{
-		if (_hovered_position.constructed()) {
-			_cursor.x = _hovered_position->x;
-			_cursor.y = _hovered_position->y;
-			update_dialog = true;
-		}
-	};
-
-	event.handle_press([&] (Input::Keycode key, Codepoint code) {
+	event.event.handle_press([&] (Input::Keycode key, Codepoint code) {
 
 		bool key_has_visible_effect = true;
 
@@ -501,7 +571,7 @@ void Dialog::handle_input_event(Input::Event const &event)
 			else if (code.value == CODEPOINT_PAGEUP)    { _handle_pageup(); }
 			else if (code.value == CODEPOINT_HOME)      { _handle_home(); }
 			else if (code.value == CODEPOINT_END)       { _handle_end(); }
-			else if (code.value == CODEPOINT_INSERT)    { _trigger_paste.trigger_paste(); }
+			else if (code.value == CODEPOINT_INSERT)    { action.trigger_paste(); }
 			else {
 				key_has_visible_effect = false;
 			}
@@ -513,56 +583,25 @@ void Dialog::handle_input_event(Input::Event const &event)
 		if (_control) {
 
 			if (code.value == 'c')
-				_trigger_copy.trigger_copy();
+				action.trigger_copy();
 
 			if (code.value == 'x') {
-				_trigger_copy.trigger_copy();
+				action.trigger_copy();
 				_delete_selection();
 			}
 
 			if (code.value == 'v')
-				_trigger_paste.trigger_paste();
+				action.trigger_paste();
 
 			if (code.value == 's')
-				_trigger_save.trigger_save();
+				action.trigger_save();
 		}
 
 		if (key_has_visible_effect)
 			update_dialog = true;
-
-		bool const click = (key == Input::BTN_LEFT);
-		if (click && _hovered_position.constructed()) {
-
-			if (_shift)
-				_selection.end.construct(*_hovered_position);
-			else
-				_selection.start.construct(*_hovered_position);
-
-			_drag = true;
-		}
-
-		bool const middle_click = (key == Input::BTN_MIDDLE);
-		if (middle_click) {
-			cursor_to_hovered_position();
-			_trigger_paste.trigger_paste();
-		}
 	});
 
-	if (_drag && _hovered_position.constructed()) {
-		_selection.end.construct(*_hovered_position);
-		update_dialog = true;
-	}
-
-	bool const clack = event.key_release(Input::BTN_LEFT);
-	if (clack) {
-		cursor_to_hovered_position();
-		_drag = false;
-
-		if (_selection.defined())
-			_trigger_copy.trigger_copy();
-	}
-
-	event.handle_release([&] (Input::Keycode key) {
+	event.event.handle_release([&] (Input::Keycode key) {
 		if (shift_key(key))   _shift   = false;
 		if (control_key(key)) _control = false;
 	});
@@ -571,7 +610,7 @@ void Dialog::handle_input_event(Input::Event const &event)
 		(_max_lines == ~0U) || (_text.upper_bound().value <= _max_lines);
 
 	if (!all_lines_visible) {
-		event.handle_wheel([&] (int, int y) {
+		event.event.handle_wheel([&] (int, int y) {
 
 			/* scroll at granulatory of 1/5th of vertical view size */
 			y *= max(1U, _max_lines / 5);
@@ -587,105 +626,26 @@ void Dialog::handle_input_event(Input::Event const &event)
 	}
 
 	/* adjust scroll position */
-	if (all_lines_visible) {
+	if (all_lines_visible)
 		_scroll.y.value = 0;
 
-	} else if (orig_cursor != _cursor) {
-
-		/* ensure that the cursor remains visible */
-		if (_cursor.y.value > 0)
-			if (_scroll.y.value > _cursor.y.value - 1)
-				_scroll.y.value = _cursor.y.value - 1;
-
-		if (_cursor.y.value == 0)
-			_scroll.y.value = 0;
-
-		if (_scroll.y.value + _max_lines < _cursor.y.value + 2)
-			_scroll.y.value = _cursor.y.value - _max_lines + 2;
-	}
-
-	_clamp_scroll_position_to_upper_bound();
+	_sanitize_scroll_position();
 
 	if (update_dialog)
-		rom_session.trigger_update();
+		action.refresh_text_area();
 }
 
 
-void Dialog::handle_hover(Xml_node const &hover)
+void Text_area_widget::move_cursor_to(::Dialog::At const &at)
 {
-	Constructible<Position> orig_pos { };
+	_with_position_at(at, [&] (Position pos) {
+		_cursor = pos; });
 
-	if (_hovered_position.constructed())
-		orig_pos.construct(*_hovered_position);
-
-	_hovered_position.destruct();
-
-	auto with_hovered_line = [&] (Xml_node node)
-	{
-		Text::Index const y {
-			node.attribute_value("name", _text.upper_bound().value)
-			+ _scroll.y.value };
-
-		_text.apply(y, [&] (Line const &line) {
-
-			Line::Index const max_x = line.upper_bound();
-
-			_hovered_position.construct(max_x, y);
-
-			node.with_optional_sub_node("float", [&] (Xml_node node) {
-				node.with_optional_sub_node("label", [&] (Xml_node node) {
-
-					Line::Index const x {
-						node.attribute_value("at", max_x.value) };
-
-					_hovered_position.construct(x, y);
-				});
-			});
-		});
-	};
-
-	bool const hover_changed =
-		(orig_pos.constructed() != _hovered_position.constructed());
-
-	bool const position_changed = orig_pos.constructed()
-	                           && _hovered_position.constructed()
-	                           && (*orig_pos != *_hovered_position);
-
-	bool const orig_text_hovered = _text_hovered;
-
-	_text_hovered = false;
-
-	hover.with_optional_sub_node("frame", [&] (Xml_node node) {
-		node.with_optional_sub_node("button", [&] (Xml_node node) {
-
-			_text_hovered = true;
-
-			node.with_optional_sub_node("float", [&] (Xml_node node) {
-				node.with_optional_sub_node("vbox", [&] (Xml_node node) {
-					node.with_optional_sub_node("hbox", [&] (Xml_node node) {
-						with_hovered_line(node); }); }); }); }); });
-
-	if (hover_changed || position_changed || (_text_hovered != orig_text_hovered))
-		rom_session.trigger_update();
+	_sanitize_scroll_position();
 }
 
 
-Dialog::Dialog(Entrypoint &ep, Ram_allocator &ram, Region_map &rm,
-               Allocator &alloc, Trigger_copy &trigger_copy,
-               Trigger_paste &trigger_paste, Trigger_save &trigger_save)
-:
-	Xml_producer("dialog"),
-	rom_session(ep, ram, rm, *this),
-	_alloc(alloc),
-	_trigger_copy(trigger_copy),
-	_trigger_paste(trigger_paste),
-	_trigger_save(trigger_save)
-{
-	clear();
-}
-
-
-void Dialog::clear()
+void Text_area_widget::clear()
 {
 	Text::Index const first { 0 };
 
@@ -697,7 +657,17 @@ void Dialog::clear()
 }
 
 
-void Dialog::insert_at_cursor_position(Codepoint c)
+void Text_area_widget::append_character(Codepoint c)
+{
+	if (_printable(c)) {
+		Text::Index const y { _text.upper_bound().value - 1 };
+		_text.apply(y, [&] (Line &line) {
+			line.append(c); });
+	}
+}
+
+
+void Text_area_widget::insert_at_cursor_position(Codepoint c)
 {
 	if (_printable(c)) {
 		_insert_printable(c);
@@ -710,7 +680,7 @@ void Dialog::insert_at_cursor_position(Codepoint c)
 }
 
 
-void Dialog::gen_clipboard_content(Xml_generator &xml) const
+void Text_area_widget::gen_clipboard_content(Xml_generator &xml) const
 {
 	if (!_selection.defined())
 		return;

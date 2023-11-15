@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2020 Genode Labs GmbH
+ * Copyright (C) 2020-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -13,28 +13,21 @@
 
 /* Genode includes */
 #include <base/component.h>
-#include <base/session_object.h>
 #include <base/attached_rom_dataspace.h>
-#include <base/buffered_output.h>
-#include <os/buffered_xml.h>
-#include <sandbox/sandbox.h>
-#include <os/dynamic_rom_session.h>
-#include <os/vfs.h>
+#include <dialog/runtime.h>
+#include <dialog/text_area_widget.h>
 #include <os/reporter.h>
+#include <os/vfs.h>
 
-/* local includes */
-#include <gui.h>
-#include <report.h>
-#include <dialog.h>
-#include <child_state.h>
+namespace Text_area {
 
-namespace Text_area { struct Main; }
+	using namespace Dialog;
 
-struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
-                         Sandbox::State_handler,
-                         Gui::Input_event_handler,
-                         Dialog::Trigger_copy, Dialog::Trigger_paste,
-                         Dialog::Trigger_save
+	struct Main;
+}
+
+
+struct Text_area::Main : Text_area_widget::Action
 {
 	Env &_env;
 
@@ -47,59 +40,68 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 	unsigned _min_width  = 0;
 	unsigned _min_height = 0;
 
-	Registry<Child_state> _children { };
+	Runtime _runtime { _env, _heap };
 
-	Child_state _menu_view_child_state { _children, "menu_view",
-	                                     Ram_quota { 4*1024*1024 },
-	                                     Cap_quota { 200 } };
-	/**
-	 * Sandbox::State_handler
-	 */
-	void handle_sandbox_state() override
+	struct Main_dialog : Top_level_dialog
 	{
-		/* obtain current sandbox state */
-		Buffered_xml state(_heap, "state", [&] (Xml_generator &xml) {
-			_sandbox.generate_state_report(xml);
+		Main &_main;
+
+		Hosted<Frame, Button, Float, Text_area_widget> text { Id { "text" }, _main._heap };
+
+		Main_dialog(Main &main) : Top_level_dialog("text_area"), _main(main) { }
+
+		void view(Scope<> &s) const override
+		{
+			s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+				s.sub_scope<Button>([&] (Scope<Frame, Button> &s) {
+
+					if (s.hovered())
+						s.attribute("hovered", "yes");
+
+					s.sub_scope<Float>([&] (Scope<Frame, Button, Float> &s) {
+						s.attribute("north", "yes");
+						s.attribute("east",  "yes");
+						s.attribute("west",  "yes");
+						s.widget(text);
+					});
+				});
+			});
+		}
+
+		void click(Clicked_at const &at) override { text.propagate(at); }
+		void clack(Clacked_at const &at) override { text.propagate(at, _main); }
+		void drag (Dragged_at const &at) override { text.propagate(at); }
+
+	} _dialog { *this };
+
+	Runtime::View _view { _runtime, _dialog };
+
+	/* handler used to respond to keyboard input */
+	Runtime::Event_handler<Main> _event_handler { _runtime, *this, &Main::_handle_event };
+
+	void _handle_event(::Dialog::Event const &event)
+	{
+		bool const orig_modified = _modified();
+
+		_dialog.text.handle_event(event, *this);
+
+		event.event.handle_press([&] (Input::Keycode const key, Codepoint) {
+
+			/* paste on middle mouse click */
+			bool const middle_click = (key == Input::BTN_MIDDLE);
+			if (middle_click) {
+				_view.if_hovered([&] (Hovered_at const &at) {
+					_dialog.text.move_cursor_to(at);
+					trigger_paste();
+					_view.refresh();
+					return true;
+				});
+			}
 		});
 
-		bool reconfiguration_needed = false;
-
-		state.with_xml_node([&] (Xml_node state) {
-			state.for_each_sub_node("child", [&] (Xml_node const &child) {
-				if (_menu_view_child_state.apply_child_state_report(child))
-					reconfiguration_needed = true; }); });
-
-		if (reconfiguration_needed)
-			_update_sandbox_config();
+		if (_modified() != orig_modified)
+			_generate_saved_report();
 	}
-
-	Sandbox _sandbox { _env, *this };
-
-	typedef Sandbox::Local_service<Gui::Session_component> Gui_service;
-
-	Gui_service _gui_service { _sandbox, *this };
-
-	typedef Sandbox::Local_service<Dynamic_rom_session> Rom_service;
-
-	Rom_service _rom_service { _sandbox, *this };
-
-	typedef Sandbox::Local_service<Report::Session_component> Report_service;
-
-	Report_service _report_service { _sandbox, *this };
-
-	void _handle_hover(Xml_node const &node)
-	{
-		if (!node.has_sub_node("dialog"))
-			_dialog.handle_hover(Xml_node("<empty/>"));
-
-		node.with_optional_sub_node("dialog", [&] (Xml_node const &dialog) {
-			_dialog.handle_hover(dialog); });
-	}
-
-	Report::Session_component::Xml_handler<Main>
-		_hover_handler { *this, &Main::_handle_hover };
-
-	Dialog _dialog { _env.ep(), _env.ram(), _env.rm(), _heap, *this, *this, *this };
 
 	Constructible<Expanding_reporter> _saved_reporter { };
 
@@ -112,7 +114,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 
 	bool _modified() const
 	{
-		return _dialog.modification_count() != _saved_modification_count.value;
+		return _dialog.text.modification_count() != _saved_modification_count.value;
 	}
 
 	void _generate_saved_report()
@@ -125,158 +127,6 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 			if (_modified())
 				xml.attribute("modified", "yes");
 		});
-	}
-
-	void _generate_sandbox_config(Xml_generator &xml) const
-	{
-		xml.node("report", [&] () {
-			xml.attribute("child_ram",  "yes");
-			xml.attribute("child_caps", "yes");
-			xml.attribute("delay_ms", 20*1000);
-		});
-		xml.node("parent-provides", [&] () {
-
-			auto service_node = [&] (char const *name) {
-				xml.node("service", [&] () {
-					xml.attribute("name", name); }); };
-
-			service_node("ROM");
-			service_node("CPU");
-			service_node("PD");
-			service_node("LOG");
-			service_node("File_system");
-			service_node("Gui");
-			service_node("Timer");
-			service_node("Report");
-		});
-
-		xml.node("start", [&] () {
-			_menu_view_child_state.gen_start_node_content(xml);
-
-			xml.node("config", [&] () {
-				xml.attribute("xpos", "100");
-				xml.attribute("ypos", "50");
-
-				if (_min_width)  xml.attribute("width",  _min_width);
-				if (_min_height) xml.attribute("height", _min_height);
-
-				xml.node("report", [&] () {
-					xml.attribute("hover", "yes"); });
-
-				xml.node("libc", [&] () {
-					xml.attribute("stderr", "/dev/log"); });
-
-				xml.node("vfs", [&] () {
-					xml.node("tar", [&] () {
-						xml.attribute("name", "menu_view_styles.tar"); });
-					xml.node("dir", [&] () {
-						xml.attribute("name", "dev");
-						xml.node("log", [&] () { });
-					});
-					xml.node("dir", [&] () {
-						xml.attribute("name", "fonts");
-						xml.node("fs", [&] () {
-							xml.attribute("label", "fonts");
-						});
-					});
-				});
-			});
-
-			xml.node("route", [&] () {
-
-				xml.node("service", [&] () {
-					xml.attribute("name", "ROM");
-					xml.attribute("label", "dialog");
-					xml.node("local", [&] () { });
-				});
-
-				xml.node("service", [&] () {
-					xml.attribute("name", "Report");
-					xml.attribute("label", "hover");
-					xml.node("local", [&] () { });
-				});
-
-				xml.node("service", [&] () {
-					xml.attribute("name", "Gui");
-					xml.node("local", [&] () { });
-				});
-
-				xml.node("service", [&] () {
-					xml.attribute("name", "File_system");
-					xml.attribute("label", "fonts");
-					xml.node("parent", [&] () {
-						xml.attribute("label", "fonts"); });
-				});
-
-				xml.node("any-service", [&] () {
-					xml.node("parent", [&] () { }); });
-			});
-		});
-	}
-
-	/**
-	 * Sandbox::Local_service_base::Wakeup interface
-	 */
-	void wakeup_local_service() override
-	{
-		_rom_service.for_each_requested_session([&] (Rom_service::Request &request) {
-
-			if (request.label == "menu_view -> dialog")
-				request.deliver_session(_dialog.rom_session);
-			else
-				request.deny();
-		});
-
-		_report_service.for_each_requested_session([&] (Report_service::Request &request) {
-
-			if (request.label == "menu_view -> hover") {
-				Report::Session_component &session = *new (_heap)
-					Report::Session_component(_env, _hover_handler,
-					                          _env.ep(),
-					                          request.resources, "", request.diag);
-				request.deliver_session(session);
-			}
-		});
-
-		_report_service.for_each_session_to_close([&] (Report::Session_component &session) {
-
-			destroy(_heap, &session);
-			return Report_service::Close_response::CLOSED;
-		});
-
-		_gui_service.for_each_requested_session([&] (Gui_service::Request &request) {
-
-			Gui::Session_component &session = *new (_heap)
-				Gui::Session_component(_env, *this, _env.ep(),
-				                       request.resources, "", request.diag);
-
-			request.deliver_session(session);
-		});
-
-		_gui_service.for_each_upgraded_session([&] (Gui::Session_component &session,
-		                                                  Session::Resources const &amount) {
-			session.upgrade(amount);
-			return Gui_service::Upgrade_response::CONFIRMED;
-		});
-
-		_gui_service.for_each_session_to_close([&] (Gui::Session_component &session) {
-
-			destroy(_heap, &session);
-			return Gui_service::Close_response::CLOSED;
-		});
-	}
-
-	/**
-	 * Gui::Input_event_handler interface
-	 */
-	void handle_input_event(Input::Event const &event) override
-	{
-		bool const orig_modified = _modified();
-
-		_dialog.handle_input_event(event);
-
-		if (_modified() != orig_modified)
-			_generate_saved_report();
 	}
 
 	Directory::Path _path() const
@@ -301,7 +151,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 			enum { MAX_LINE_LEN = 1000 };
 			typedef String<MAX_LINE_LEN + 1> Content_line;
 
-			_dialog.clear();
+			_dialog.text.clear();
 			content.for_each_line<Content_line>([&] (Content_line const &line) {
 
 				if (line.length() == Content_line::capacity()) {
@@ -309,19 +159,19 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 					throw Max_line_len_exceeded();
 				}
 
-				_dialog.append_newline();
+				_dialog.text.append_newline();
 
 				for (Utf8_ptr utf8(line.string()); utf8.complete(); utf8 = utf8.next())
-					_dialog.append_character(utf8.codepoint());
+					_dialog.text.append_character(utf8.codepoint());
 			});
 
 		}
 		catch (...) {
 			warning("failed to load file ", _path());
-			_dialog.clear();
+			_dialog.text.clear();
 		}
 
-		_dialog.rom_session.trigger_update();
+		_view.refresh();
 	}
 
 	Constructible<Watch_handler<Main>> _watch_handler { };
@@ -335,7 +185,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 	Constructible<Expanding_reporter> _clipboard_reporter { };
 
 	/**
-	 * Dialog::Trigger_copy interface
+	 * Text_area::Dialog::Action interface
 	 */
 	void trigger_copy() override
 	{
@@ -343,7 +193,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 			return;
 
 		_clipboard_reporter->generate([&] (Xml_generator &xml) {
-			_dialog.gen_clipboard_content(xml); });
+			_dialog.text.gen_clipboard_content(xml); });
 	}
 
 	/*
@@ -356,7 +206,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 	struct Paste_buffer { char buffer[PASTE_BUFFER_SIZE]; } _paste_buffer { };
 
 	/**
-	 * Dialog::Trigger_paste interface
+	 * Text_area::Dialog::Action interface
 	 */
 	void trigger_paste() override
 	{
@@ -381,9 +231,9 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 		}
 
 		for (Utf8_ptr utf8(_paste_buffer.buffer); utf8.complete(); utf8 = utf8.next())
-			_dialog.insert_at_cursor_position(utf8.codepoint());
+			_dialog.text.insert_at_cursor_position(utf8.codepoint());
 
-		_dialog.rom_session.trigger_update();
+		_view.refresh();
 	}
 
 	/*
@@ -409,7 +259,7 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 
 			Buffered_output<1024, decltype(write)> output(write);
 
-			_dialog.for_each_character([&] (Codepoint c) { print(output, c); });
+			_dialog.text.for_each_character([&] (Codepoint c) { print(output, c); });
 		}
 		catch (New_file::Create_failed) {
 			error("file creation failed while saving file"); }
@@ -419,13 +269,13 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 			return;
 		}
 
-		_saved_modification_count.value = _dialog.modification_count();
+		_saved_modification_count.value = _dialog.text.modification_count();
 
 		_generate_saved_report();
 	}
 
 	/**
-	 * Dialog::Trigger_save interface
+	 * Text_area::Dialog::Action interface
 	 */
 	void trigger_save() override
 	{
@@ -453,11 +303,11 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 		_clipboard_reporter.conditional(copy_enabled,  _env, "clipboard", "clipboard");
 		_clipboard_rom     .conditional(paste_enabled, _env, "clipboard");
 
-		_dialog.max_lines(config.attribute_value("max_lines", ~0U));
+		_dialog.text.max_lines(config.attribute_value("max_lines", ~0U));
 
 		_watch(config.attribute_value("watch", false));
 
-		_dialog.editable(_editable());
+		_dialog.text.editable(_editable());
 
 		if (_editable()) {
 			bool const orig_saved_reporter_enabled = _saved_reporter.constructed();
@@ -493,14 +343,10 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
-	void _update_sandbox_config()
-	{
-		Buffered_xml const config { _heap, "config", [&] (Xml_generator &xml) {
-			_generate_sandbox_config(xml); } };
-
-		config.with_xml_node([&] (Xml_node const &config) {
-			_sandbox.apply_config(config); });
-	}
+	/**
+	 * Text_area::Dialog::Action interface
+	 */
+	void refresh_text_area() override { _view.refresh(); }
 
 	Main(Env &env)
 	:
@@ -515,7 +361,6 @@ struct Text_area::Main : Sandbox::Local_service_base::Wakeup,
 
 		_config.sigh(_config_handler);
 		_handle_config();
-		_update_sandbox_config();
 	}
 };
 

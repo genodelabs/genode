@@ -5,60 +5,39 @@
  */
 
 /*
- * Copyright (C) 2020 Genode Labs GmbH
+ * Copyright (C) 2020-2023 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _DIALOG_H_
-#define _DIALOG_H_
+#ifndef _INCLUDE__DIALOG__TEXT_AREA_WIDGET_H_
+#define _INCLUDE__DIALOG__TEXT_AREA_WIDGET_H_
 
 /* Genode includes */
-#include <base/component.h>
-#include <base/session_object.h>
-#include <os/buffered_xml.h>
-#include <sandbox/sandbox.h>
-#include <os/dynamic_rom_session.h>
-#include <input/event.h>
+#include <util/reconstructible.h>
 #include <util/utf8.h>
+#include <dialog/widgets.h>
+#include <gems/dynamic_array.h>
 
-/* local includes */
-#include <dynamic_array.h>
-#include <report.h>
-#include <types.h>
-
-namespace Text_area { struct Dialog; }
+namespace Dialog { struct Text_area_widget; }
 
 
-struct Text_area::Dialog : private Dynamic_rom_session::Xml_producer
+struct Dialog::Text_area_widget : Widget<Vbox>
 {
 	public:
 
-		Dynamic_rom_session rom_session;
-
-		struct Trigger_copy : Interface, Noncopyable
+		struct Action : Interface, Noncopyable
 		{
 			virtual void trigger_copy() = 0;
-		};
-
-		struct Trigger_paste : Interface, Noncopyable
-		{
 			virtual void trigger_paste() = 0;
-		};
-
-		struct Trigger_save : Interface, Noncopyable
-		{
 			virtual void trigger_save() = 0;
+			virtual void refresh_text_area() = 0;
 		};
 
 	private:
 
 		Allocator &_alloc;
-
-		Trigger_copy  &_trigger_copy;
-		Trigger_paste &_trigger_paste;
-		Trigger_save  &_trigger_save;
 
 		struct Character : Codepoint
 		{
@@ -84,16 +63,6 @@ struct Text_area::Dialog : private Dynamic_rom_session::Xml_producer
 		{
 			Line::Index x;
 			Text::Index y;
-
-			Position(Line::Index x, Text::Index y) : x(x), y(y) { }
-
-			Position(Position const &other) : x(other.x), y(other.y) { }
-
-			Position &operator = (Position const &other)
-			{
-				x = other.x, y = other.y;
-				return *this;
-			}
 
 			bool operator != (Position const &other) const
 			{
@@ -136,17 +105,14 @@ struct Text_area::Dialog : private Dynamic_rom_session::Xml_producer
 			void with_selection_at_line(Text::Index y, Line const &, FN const &) const;
 
 			/* generate dialog model */
-			void gen_selected_line(Xml_generator &, Text::Index, Line const &) const;
+			void view_selected_line(Scope<Hbox, Float, Label> &, Text::Index, Line const &) const;
 		};
 
-		bool _drag         = false;
-		bool _shift        = false;
-		bool _control      = false;
-		bool _text_hovered = false;
+		bool _drag    = false;
+		bool _shift   = false;
+		bool _control = false;
 
 		Selection _selection { };
-
-		void produce_xml(Xml_generator &xml) override;
 
 		static bool _printable(Codepoint code)
 		{
@@ -192,6 +158,7 @@ struct Text_area::Dialog : private Dynamic_rom_session::Xml_producer
 					                - _max_lines;
 		}
 
+		void _sanitize_scroll_position();
 		void _move_characters(Line &, Line &);
 		void _delete_selection();
 		void _insert_printable(Codepoint);
@@ -208,10 +175,17 @@ struct Text_area::Dialog : private Dynamic_rom_session::Xml_producer
 		void _handle_home();
 		void _handle_end();
 
+		void _with_position_at(At const &, auto const &) const;
+
 	public:
 
-		Dialog(Entrypoint &, Ram_allocator &, Region_map &, Allocator &,
-		       Trigger_copy &, Trigger_paste &, Trigger_save &);
+		Text_area_widget(Allocator &alloc) : _alloc(alloc) { clear(); }
+
+		void view(Scope<Vbox> &) const;
+
+		void click(Clicked_at const &);
+		void clack(Clacked_at const &, Action &);
+		void drag (Dragged_at const &);
 
 		void editable(bool editable) { _editable = editable; }
 
@@ -219,25 +193,15 @@ struct Text_area::Dialog : private Dynamic_rom_session::Xml_producer
 
 		void max_lines(unsigned max_lines) { _max_lines = max_lines; }
 
-		void handle_input_event(Input::Event const &);
+		void handle_event(Event const &, Action &);
 
-		void handle_hover(Xml_node const &hover);
+		void move_cursor_to(::Dialog::At const &);
 
 		void clear();
 
-		void append_newline()
-		{
-			_text.append(_alloc);
-		}
+		void append_newline() { _text.append(_alloc); }
 
-		void append_character(Codepoint c)
-		{
-			if (_printable(c)) {
-				Text::Index const y { _text.upper_bound().value - 1 };
-				_text.apply(y, [&] (Line &line) {
-					line.append(c); });
-			}
-		}
+		void append_character(Codepoint c);
 
 		/* insert character and advance cursor */
 		void insert_at_cursor_position(Codepoint);
@@ -257,4 +221,4 @@ struct Text_area::Dialog : private Dynamic_rom_session::Xml_producer
 		}
 };
 
-#endif /* _DIALOG_H_ */
+#endif /* _INCLUDE__DIALOG__TEXT_AREA_WIDGET_H_ */
