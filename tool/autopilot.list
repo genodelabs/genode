@@ -64,6 +64,7 @@ platform_drv
 rtc
 rump_ext2
 sd_card_bench
+sd_card_zynq
 seoul-auto
 smartcard
 smbios_decoder
