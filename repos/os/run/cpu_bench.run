@@ -48,6 +48,7 @@ proc bogomips_max_time { } {
 	if {[have_board imx6q_sabrelite]} { return  6320 }
 	if {[have_board imx7d_sabre]}     { return  9470 }
 	if {[have_board imx8q_evk]}       { return  7510 }
+	if {[have_board zynq_usrp_e31x]}  { return  7510 }
 	if {[have_board pc]} {
 		if {[have_spec x86_64]} { return   600 }
 		if {[have_spec x86_32]} { return  3150 }
