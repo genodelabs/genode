@@ -59,34 +59,37 @@ proc unique_byte_per_platform { } {
 				if {[have_spec foc]}       { return 6; }
 				if {[have_spec sel4]}      { return 7; }
 			}
+			if {[have_board zynq_usrp_e31x]} {
+				if {[have_spec hw]}        { return 8; }
+			}
 		}
 		if {[have_spec arm_v8a]} {
 			if {[have_board imx8q_evk]} {
-				if {[have_spec hw]}        { return 8; }
+				if {[have_spec hw]}        { return 20; }
 			}
 		}
 		if {[have_spec x86_32]} {
 			if {[have_board linux]} {
-				if {[have_spec linux]}     { return 9; }
+				if {[have_spec linux]}     { return 40; }
 			}
 			if {[have_board pc]} {
-				if {[have_spec foc]}       { return 10; }
-				if {[have_spec sel4]}      { return 11; }
-				if {[have_spec nova]}      { return 12; }
-				if {[have_spec fiasco]}    { return 13; }
-				if {[have_spec okl4]}      { return 14; }
-				if {[have_spec pistachio]} { return 15; }
+				if {[have_spec foc]}       { return 41; }
+				if {[have_spec sel4]}      { return 42; }
+				if {[have_spec nova]}      { return 43; }
+				if {[have_spec fiasco]}    { return 44; }
+				if {[have_spec okl4]}      { return 45; }
+				if {[have_spec pistachio]} { return 46; }
 			}
 		}
 		if {[have_spec x86_64]} {
 			if {[have_board linux]} {
-				if {[have_spec linux]}     { return 16; }
+				if {[have_spec linux]}     { return 60; }
 			}
 			if {[have_board pc]} {
-				if {[have_spec hw]}        { return 17; }
-				if {[have_spec foc]}       { return 18; }
-				if {[have_spec sel4]}      { return 19; }
-				if {[have_spec nova]}      { return 20; }
+				if {[have_spec hw]}        { return 61; }
+				if {[have_spec foc]}       { return 62; }
+				if {[have_spec sel4]}      { return 63; }
+				if {[have_spec nova]}      { return 64; }
 			}
 		}
 	}
