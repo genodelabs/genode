@@ -357,6 +357,8 @@ class Genode::Parent_service : public Try_parent_service
 
 		void initiate_request(Session_state &session) override
 		{
+			Session_state::Phase original_phase = session.phase;
+
 			for (unsigned i = 0; i < 10; i++) {
 
 				try {
@@ -367,11 +369,13 @@ class Genode::Parent_service : public Try_parent_service
 					Ram_quota ram_quota { ram_quota_from_args(session.args().string()) };
 					Parent::Resource_args args(String<64>("ram_quota=", ram_quota));
 					_env.parent().resource_request(args);
+					session.phase = original_phase;
 				}
 				catch (Out_of_caps) {
 					Cap_quota cap_quota { cap_quota_from_args(session.args().string()) };
 					Parent::Resource_args args(String<64>("cap_quota=", cap_quota));
 					_env.parent().resource_request(args);
+					session.phase = original_phase;
 				}
 			}
 
