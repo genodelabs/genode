@@ -2,6 +2,7 @@ if {[have_board imx7d_sabre] ||
     [have_board imx6q_sabrelite] ||
     [have_board rpi3] ||
     [have_board zynq_qemu] ||
+    [have_board zynq_usrp_e31x] ||
     [have_board imx53_qsb_tz] ||
     [have_board imx53_qsb] && [have_spec foc]} {
 	puts "\n Run script is not supported on this platform. \n";
