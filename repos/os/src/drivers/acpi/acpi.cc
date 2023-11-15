@@ -1611,7 +1611,8 @@ static void attribute_hex(Xml_generator &xml, char const *name,
 }
 
 
-void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
+void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
+                           Xml_node const &config_xml)
 {
 	/* parse table */
 	Acpi_table acpi_table(env, alloc);
@@ -1667,11 +1668,14 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 			});
 		};
 
+		bool ignore_drhd = config_xml.attribute_value("ignore_drhd", false);
 		for (Dmar_entry *entry = Dmar_entry::list()->first();
 		     entry; entry = entry->next()) {
 
 			entry->apply([&] (Dmar_common const &dmar) {
-				if (dmar.read<Dmar_common::Type>() == Dmar_common::Type::DRHD) {
+				if (!ignore_drhd &&
+				    dmar.read<Dmar_common::Type>() == Dmar_common::Type::DRHD)
+				{
 					Dmar_drhd drhd(dmar.base());
 
 					size_t size_log2 = drhd.read<Dmar_drhd::Size::Num_pages>() + 12;

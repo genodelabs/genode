@@ -15,6 +15,7 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/log.h>
+#include <base/attached_rom_dataspace.h>
 #include <util/xml_generator.h>
 
 /* local includes */
@@ -30,15 +31,16 @@ namespace Acpi {
 
 struct Acpi::Main
 {
-	Genode::Env &_env;
-	Genode::Heap _heap { _env.ram(), _env.rm() };
+	Genode::Env           &_env;
+	Genode::Heap           _heap { _env.ram(), _env.rm() };
+	Attached_rom_dataspace _config { _env, "config" };
 
 	struct Acpi_reporter
 	{
-		Acpi_reporter(Env &env, Heap &heap)
+		Acpi_reporter(Env &env, Heap &heap, Xml_node const &config_xml)
 		{
 			try {
-				Acpi::generate_report(env, heap);
+				Acpi::generate_report(env, heap, config_xml);
 			} catch (Genode::Xml_generator::Buffer_exceeded) {
 				error("ACPI report too large - failure");
 				throw;
@@ -49,7 +51,7 @@ struct Acpi::Main
 		}
 	};
 
-	Acpi_reporter         _acpi_reporter { _env, _heap };
+	Acpi_reporter         _acpi_reporter { _env, _heap, _config.xml() };
 	Smbios_table_reporter _smbt_reporter { _env, _heap };
 
 	Main(Env &env) : _env(env) { }
