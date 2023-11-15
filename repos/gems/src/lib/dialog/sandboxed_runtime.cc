@@ -349,6 +349,8 @@ void Sandboxed_runtime::View::_handle_input_event(Input::Event const &event)
 		_clack_seq_number.construct(_global_seq_number);
 
 	_try_handle_click_and_clack();
+
+	_optional_event_handler.handle_event(Event { _global_seq_number, event });
 }
 
 

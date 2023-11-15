@@ -43,6 +43,17 @@ class Dialog::Sandboxed_runtime : Noncopyable
 		Allocator &_alloc;
 		Sandbox   &_sandbox;
 
+		struct Optional_event_handler
+		{
+			Event_handler_base *_ptr;
+
+			void handle_event(Event const &event)
+			{
+				if (_ptr) _ptr->handle_event(event);
+			}
+
+		} _optional_event_handler { };
+
 		using Views = Dictionary<View, Top_level_dialog::Name>;
 
 		Event::Seq_number _global_seq_number { 1 };
@@ -183,6 +194,8 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 		Allocator &_alloc;
 
 		Event::Seq_number &_global_seq_number;
+
+		Optional_event_handler &_optional_event_handler;
 
 		Top_level_dialog &_dialog;
 
@@ -346,6 +359,7 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 			Views::Element(runtime._views, dialog.name),
 			_env(runtime._env), _alloc(runtime._alloc),
 			_global_seq_number(runtime._global_seq_number),
+			_optional_event_handler(runtime._optional_event_handler),
 			_dialog(dialog),
 			_menu_view_state(dialog.name, Ram_quota { 4*1024*1024 }, Cap_quota { 200 })
 		{ }
@@ -361,18 +375,24 @@ class Dialog::Sandboxed_runtime::Event_handler : Event_handler_base
 {
 	private:
 
+		Sandboxed_runtime &_runtime;
+
 		T &_obj;
+
 		void (T::*_member) (Event const &);
 		void handle_event(Event const &event) override { (_obj.*_member)(event); }
 
 	public:
 
 		Event_handler(Sandboxed_runtime &runtime, T &obj, void (T::*member)(Event const &))
-		: _obj(obj), _member(member)
+		:
+			_runtime(runtime), _obj(obj), _member(member)
 		{
 			/* register event handler at runtime */
-			(void)runtime;
+			_runtime._optional_event_handler._ptr = this;
 		}
+
+		~Event_handler() { _runtime._optional_event_handler._ptr = nullptr; }
 };
 
 #endif /* _INCLUDE__DIALOG__SANDBOXED_RUNTIME_H_ */
