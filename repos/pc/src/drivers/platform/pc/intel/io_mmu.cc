@@ -349,6 +349,11 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
   _managed_root_table(_env, table_allocator, *this, !coherent_page_walk()),
   _domain_allocator(_max_domains()-1)
 {
+	if (_broken_device()) {
+		error(name, " reports invalid capability registers. Please disable VT-d/IOMMU.");
+		return;
+	}
+
 	if (!read<Capability::Sagaw_4_level>() && !read<Capability::Sagaw_3_level>()) {
 		error("IOMMU does not support 3- or 4-level page tables");
 		return;

@@ -482,6 +482,21 @@ class Intel::Io_mmu : private Attached_mmio,
 				log("disabled IOMMU ", name());
 		}
 
+		/**
+		 * Some broken BIOSes messes up the ACPI table. In consequence, we may
+		 * try accessing invalid DMAR units. We only check for this to log an
+		 * error as a hint to the user to disable VT-d.
+		 *
+		 * See #2700
+		 */
+		bool _broken_device()
+		{
+			return read<Capability>()          == ~(Capability::access_t)0 ||
+			       read<Extended_capability>() == ~(Extended_capability::access_t)0 ||
+			       read<Capability>()          ==  (Capability::access_t)0 ||
+			       read<Extended_capability>() ==  (Extended_capability::access_t)0;
+		}
+
 		const uint32_t _supported_page_sizes {
 			read<Capability::Page_1GB>() << 30 |
 			read<Capability::Page_2MB>() << 21 | 1u << 12 };
