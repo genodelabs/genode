@@ -11,23 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _DYNAMIC_ARRAY_H_
-#define _DYNAMIC_ARRAY_H_
+#ifndef _INCLUDE__GEMS__DYNAMIC_ARRAY_H_
+#define _INCLUDE__GEMS__DYNAMIC_ARRAY_H_
 
-/* Genode includes */
 #include <base/allocator.h>
 
-namespace Text_area {
-
-	using namespace Genode;
-
-	template <typename>
-	struct Dynamic_array;
-}
+namespace Genode { template <typename> struct Dynamic_array; }
 
 
 template <typename ET>
-struct Text_area::Dynamic_array
+struct Genode::Dynamic_array
 {
 	public:
 
@@ -89,8 +82,7 @@ struct Text_area::Dynamic_array
 					destruct(Index{i - 1});
 		}
 
-		template <typename... ARGS>
-		void insert(Index at, ARGS &&... args)
+		void insert(Index at, auto &&... args)
 		{
 			/* grow array if index exceeds current capacity or if it's full */
 			if (at.value >= _capacity || _upper_bound == _capacity) {
@@ -132,8 +124,7 @@ struct Text_area::Dynamic_array
 			_upper_bound = max(at.value + 1, _upper_bound + 1);
 		}
 
-		template <typename... ARGS>
-		void append(ARGS &&... args) { insert(Index{_upper_bound}, args...); }
+		void append(auto &&... args) { insert(Index{_upper_bound}, args...); }
 
 		bool exists(Index at) const { return _index_valid(at); }
 
@@ -154,15 +145,13 @@ struct Text_area::Dynamic_array
 			_array[_upper_bound].destruct();
 		}
 
-		template <typename FN>
-		void apply(Index at, FN const &fn)
+		void apply(Index at, auto const &fn)
 		{
 			if (_index_valid(at))
 				fn(*_array[at.value]);
 		}
 
-		template <typename FN>
-		void apply(Index at, FN const &fn) const
+		void apply(Index at, auto const &fn) const
 		{
 			if (_index_valid(at))
 				fn(*_array[at.value]);
@@ -170,8 +159,7 @@ struct Text_area::Dynamic_array
 
 		struct Range { Index at; unsigned length; };
 
-		template <typename FN>
-		void for_each(Range range, FN const &fn) const
+		void for_each(Range range, auto const &fn) const
 		{
 			unsigned const first = range.at.value;
 			unsigned const limit = min(_upper_bound, first + range.length);
@@ -181,8 +169,7 @@ struct Text_area::Dynamic_array
 					fn(Index{i}, *_array[i]);
 		}
 
-		template <typename FN>
-		void for_each(FN const &fn) const
+		void for_each(auto const &fn) const
 		{
 			for_each(Range { .at = { 0U }, .length = ~0U }, fn);
 		}
@@ -195,4 +182,4 @@ struct Text_area::Dynamic_array
 		}
 };
 
-#endif /* _DYNAMIC_ARRAY_H_ */
+#endif /* _INCLUDE__GEMS__DYNAMIC_ARRAY_H_ */
