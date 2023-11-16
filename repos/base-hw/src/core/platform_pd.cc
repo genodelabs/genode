@@ -144,9 +144,8 @@ void Cap_space::upgrade_slab(Allocator &alloc)
 		[&] (void *ptr) {
 			_slab.insert_sb(ptr); },
 
-		[&] (Allocator::Alloc_error) {
-			/* XXX distinguish error conditions */
-			throw Out_of_ram();
+		[&] (Allocator::Alloc_error error) {
+			Allocator::throw_alloc_error(error);
 	});
 }
 
