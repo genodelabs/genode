@@ -2,6 +2,7 @@
 
 	<succeed after_seconds="20"/>
 	<fail>ROM dataspace modified</fail>
+	<fail>requests resources</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -34,7 +35,7 @@
 			</config>
 		</start>
 		<start name="cached_fs_rom">
-			<resource name="RAM" quantum="4M"/>
+			<resource name="RAM" quantum="5M"/>
 			<provides> <service name="ROM"/> </provides>
 		</start>
 		<start name="test-immutable_rom">
