@@ -15,6 +15,7 @@
 #define _INCLUDE__DIALOG__SANDBOXED_RUNTIME_H_
 
 #include <util/dictionary.h>
+#include <util/color.h>
 #include <os/dynamic_rom_session.h>
 #include <base/session_object.h>
 #include <report_session/report_session.h>
@@ -186,8 +187,7 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 		friend class Dictionary<View, Top_level_dialog::Name>;
 		friend class Avl_node<View>;
 		friend class Avl_tree<View>;
-
-	public:
+		friend class Sandboxed_runtime;
 
 		Env &_env;
 
@@ -295,20 +295,27 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 		{
 			using Start_name = String<128>;
 
-			Start_name const _name;
-			Ram_quota  const _initial_ram;
-			Cap_quota  const _initial_caps;
+			Start_name const name;
+			Ram_quota  const initial_ram;
+			Cap_quota  const initial_caps;
 
-			Ram_quota _ram  = _initial_ram;
-			Cap_quota _caps = _initial_caps;
+			Ram_quota ram  = initial_ram;
+			Cap_quota caps = initial_caps;
 
-			unsigned _version = 0;
+			int xpos = 0, ypos = 0;
+
+			unsigned min_width = 0, min_height = 0;
+
+			bool  opaque = false;
+			Color background { };
+
+			unsigned version = 0;
 
 			void trigger_restart()
 			{
-				_version++;
-				_ram  = _initial_ram;
-				_caps = _initial_caps;
+				version++;
+				ram  = initial_ram;
+				caps = initial_caps;
 			}
 
 			/**
@@ -325,26 +332,21 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 			{
 				bool result = false;
 
-				if (child.attribute_value("name", Start_name()) != _name)
+				if (child.attribute_value("name", Start_name()) != name)
 					return false;
 
 				if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested")) {
-					_ram.value *= 2;
+					ram.value *= 2;
 					result = true;
 				}
 
 				if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested")) {
-					_caps.value += 100;
+					caps.value += 100;
 					result = true;
 				}
 
 				return result;
 			}
-
-			Menu_view_state(Top_level_dialog::Name const &name, Ram_quota ram, Cap_quota caps)
-			:
-				_name(name), _initial_ram(ram), _initial_caps(caps)
-			{ }
 
 			void gen_start_node(Xml_generator &) const;
 
@@ -354,14 +356,37 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 
 	public:
 
-		View(Sandboxed_runtime &runtime, Top_level_dialog &dialog)
+		int      &xpos       = _menu_view_state.xpos;
+		int      &ypos       = _menu_view_state.ypos;
+		unsigned &min_width  = _menu_view_state.min_width;
+		unsigned &min_height = _menu_view_state.min_height;
+		bool     &opaque     = _menu_view_state.opaque;
+		Color    &background = _menu_view_state.background;
+
+		struct Attr
+		{
+			bool      opaque;
+			Ram_quota initial_ram;
+		};
+
+		View(Sandboxed_runtime &runtime, Top_level_dialog &dialog, Attr const attr)
 		:
 			Views::Element(runtime._views, dialog.name),
 			_env(runtime._env), _alloc(runtime._alloc),
 			_global_seq_number(runtime._global_seq_number),
 			_optional_event_handler(runtime._optional_event_handler),
 			_dialog(dialog),
-			_menu_view_state(dialog.name, Ram_quota { 4*1024*1024 }, Cap_quota { 200 })
+			_menu_view_state({
+				.name         = dialog.name,
+				.initial_ram  = attr.initial_ram,
+				.initial_caps = Cap_quota { 200 }
+			})
+		{ }
+
+		View(Sandboxed_runtime &runtime, Top_level_dialog &dialog)
+		:
+			View(runtime, dialog, Attr { .opaque      = false,
+			                             .initial_ram = { 4*1024*1024 } })
 		{ }
 
 		~View();

@@ -266,19 +266,27 @@ void Sandboxed_runtime::View::Menu_view_state::gen_start_node(Xml_generator &xml
 {
 	xml.node("start", [&] () {
 
-		xml.attribute("name",    _name);
-		xml.attribute("version", _version);
-		xml.attribute("caps",    _caps.value);
+		xml.attribute("name",    name);
+		xml.attribute("version", version);
+		xml.attribute("caps",    caps.value);
 
 		xml.node("resource", [&] () {
 			xml.attribute("name", "RAM");
-			Number_of_bytes const bytes(_ram.value);
+			Number_of_bytes const bytes(ram.value);
 			xml.attribute("quantum", String<64>(bytes)); });
 
 		xml.node("binary", [&] () {
 			xml.attribute("name", "menu_view"); });
 
 		xml.node("config", [&] () {
+
+			if (xpos)       xml.attribute("xpos",   xpos);
+			if (ypos)       xml.attribute("ypos",   ypos);
+			if (min_width)  xml.attribute("width",  min_width);
+			if (min_height) xml.attribute("height", min_height);
+			if (opaque)     xml.attribute("opaque", "yes");
+
+			xml.attribute("background", String<20>(background));
 
 			xml.node("report", [&] () {
 				xml.attribute("hover", "yes"); });

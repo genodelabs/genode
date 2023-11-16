@@ -91,9 +91,9 @@ class Dialog::Runtime : private Sandbox::State_handler
 
 		struct View : Sandboxed_runtime::View
 		{
-			View(Runtime &runtime, Top_level_dialog &dialog)
+			View(Runtime &runtime, Top_level_dialog &dialog, auto &&... args)
 			:
-				Sandboxed_runtime::View(runtime._runtime, dialog)
+				Sandboxed_runtime::View(runtime._runtime, dialog, args...)
 			{
 				runtime._update_sandbox_config();
 			}
@@ -105,6 +105,8 @@ class Dialog::Runtime : private Sandbox::State_handler
 			Event_handler(Runtime &runtime, T &obj, void (T::*member)(Event const &))
 			: Sandboxed_runtime::Event_handler<T>(runtime._runtime, obj, member) { }
 		};
+
+		void update_view_config() { _update_sandbox_config(); }
 };
 
 #endif /* _INCLUDE__DIALOG__RUNTIME_H_ */
