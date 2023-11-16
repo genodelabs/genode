@@ -367,6 +367,15 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 		~View();
 
 		void refresh() { _dialog_rom_session.trigger_update(); }
+
+		bool if_hovered(auto const &fn) const
+		{
+			bool result = false;
+			if (_dialog_hovered)
+				_with_dialog_hover([&] (Xml_node const &location) {
+					result = fn(Hovered_at { Event::Seq_number { }, location }); });
+			return result;
+		}
 };
 
 
