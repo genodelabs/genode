@@ -4,24 +4,16 @@ import_from_depot [depot_user]/src/qt5_component \
                   [depot_user]/src/qt5_declarative \
                   [depot_user]/src/test-qt_quick
 
-#
-# Generate config
-#
-
-append config {
+install_config {
 <config>
-	<parent-provides>}
-append config [qt5_parent_provides]
-append config {
+	<parent-provides>
+		} [qt5_parent_provides] {
 	</parent-provides>
 	<default caps="100"/>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
-
-append config [qt5_start_nodes]
-
-append config {
+	</default-route>
+	} [qt5_start_nodes] {
 	<start name="test-qt_quick" caps="250">
 		<resource name="RAM" quantum="80M"/>
 		<config>
@@ -51,14 +43,6 @@ append config {
 </config>
 }
 
-install_config $config
-
-#
-# Boot modules
-#
-
-append boot_modules [qt5_boot_modules]
-
-build_boot_image $boot_modules
+build_boot_image [qt5_boot_modules]
 
 run_genode_until forever

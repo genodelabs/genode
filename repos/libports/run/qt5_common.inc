@@ -323,7 +323,7 @@ proc qt5_start_nodes { } {
 
 proc qt5_boot_modules { } {
 
-	set boot_modules { }
+	set boot_modules [build_artifacts]
 
 	lappend boot_modules [language_chargen].chargen
 	lappend boot_modules special.chargen

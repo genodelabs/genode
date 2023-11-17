@@ -6,36 +6,18 @@ import_from_depot [depot_user]/src/qt5_component \
                   [depot_user]/src/test-qpluginwidget \
                   [depot_user]/src/zlib
 
-#
-# Build
-#
+build { server/loader server/tar_rom test/nitpicker }
 
-append build_components {
-	server/loader
-	server/tar_rom
-	test/nitpicker
-}
-
-build $build_components
-
-#
-# Generate config
-#
-
-append config {
+install_config {
 <config>
-	<parent-provides>}
-append config [qt5_parent_provides]
-append config {
+	<parent-provides>
+		} [qt5_parent_provides] {
 	</parent-provides>
 	<default caps="100"/>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
-
-append config [qt5_start_nodes]
-
-append config {
+	</default-route>
+	} [qt5_start_nodes] {
 	<start name="loader" caps="100">
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Loader"/></provides>
@@ -87,20 +69,6 @@ append config {
 </config>
 }
 
-install_config $config
-
-#
-# Boot modules
-#
-
-append boot_modules [qt5_boot_modules]
-
-append boot_modules {
-	loader
-	tar_rom
-	testnit
-}
-
-build_boot_image $boot_modules
+build_boot_image [qt5_boot_modules]
 
 run_genode_until forever
