@@ -2,7 +2,7 @@
 # Build
 #
 
-build { core init hello }
+build { core lib/ld init hello }
 
 create_boot_directory
 
@@ -35,7 +35,7 @@ install_config {
 # Boot image
 #
 
-build_boot_image { core ld.lib.so init hello_client hello_server }
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 
