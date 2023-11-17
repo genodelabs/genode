@@ -46,11 +46,11 @@ create_boot_directory
 import_from_depot [depot_user]/pkg/[drivers_nic_pkg]
 
 build {
-	core init timer server/nic_router app/ping test/lwip/udp
-	server/report_rom }
+	core lib/ld init timer lib/libc lib/libm lib/vfs lib/vfs_lwip
+	server/nic_router app/ping test/lwip/udp server/report_rom
+}
 
-append config {
-
+install_config {
 <config>
 
 	<parent-provides>
@@ -144,10 +144,7 @@ append config {
 
 </config> }
 
-install_config $config
-build_boot_image {
-	core init timer nic_router ping test-lwip-udp-server ld.lib.so libc.lib.so
-	libm.lib.so vfs.lib.so vfs_lwip.lib.so report_rom }
+build_boot_image [build_artifacts]
 
 # wait for server ip stack to come up
 run_genode_until {.*lwIP Nic interface up.*\n} 30

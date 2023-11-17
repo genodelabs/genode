@@ -3,9 +3,11 @@ if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 	exit 0
 }
 
-set targets "core init timer server/nic_router server/nic_bridge
-             test/lwip/http_srv test/lwip/http_clnt test/lwip/udp
-             server/nic_loopback lib/vfs_lwip "
+set targets {
+	core lib/ld init timer lib/libc lib/vfs lib/vfs_lwip
+	server/report_rom server/nic_router server/nic_bridge server/nic_loopback
+	test/lwip/http_srv test/lwip/http_clnt test/lwip/udp
+}
 
 proc client_bin { prot } {
 	if {$prot == "udp"}  { return "test-lwip-udp-client" }
@@ -69,10 +71,5 @@ proc server_config { name prot ip_addr gateway netmask nic port } {
 		</start>}
 	return $result
 }
-
-set boot_modules "
-	core init timer nic_router nic_bridge nic_loopback ld.lib.so
-	libc.lib.so vfs.lib.so vfs_lwip.lib.so [client_bin udp] [server_bin udp]
-	[client_bin http] [server_bin http] "
 
 append qemu_args "-nographic "

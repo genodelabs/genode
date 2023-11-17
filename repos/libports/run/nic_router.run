@@ -21,8 +21,6 @@ proc enable_test_7 { } { return 1 }
 
 source ${genode_dir}/repos/libports/run/nic_router.inc
 
-lappend targets server/report_rom
-
 build $targets
 
 create_boot_directory
@@ -378,9 +376,7 @@ append config {
 
 install_config $config
 
-lappend boot_modules report_rom
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 for {set i 0} {$i < $nr_of_clients} {incr i 1} {
 	append done_string {.*Test done.*\n}
