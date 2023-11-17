@@ -58,10 +58,8 @@ proc jent_avail { } {
 }
 
 append build_components {
-	core
-	init
-	timer
-	server/vfs
+	core lib/ld init timer
+	server/vfs lib/vfs lib/libc lib/libcrypto
 	app/tresor_tester
 	server/log_terminal
 	server/report_rom
@@ -1115,27 +1113,9 @@ if {[have_board linux]} {
 	}
 }
 
-append boot_modules {
-	core
-	init
-	timer
-	tresor_tester
-	ld.lib.so
-	log_terminal
-	report_rom
-	vfs
-	libc.lib.so
-	libcrypto.lib.so
-	vfs.lib.so
-	vfs_tresor_trust_anchor.lib.so
-	vfs_tresor_crypto_aes_cbc.lib.so
-	vfs_import.lib.so
-}
+set boot_modules [build_artifacts]
 
-append_if [jent_avail] boot_modules { vfs_jitterentropy.lib.so }
-
-append_if [have_board linux] boot_modules { lx_fs }
-append_if [have_board linux] boot_modules [tresor_image_name]
+lappend_if [have_board linux] boot_modules [tresor_image_name]
 
 build_boot_image $boot_modules
 

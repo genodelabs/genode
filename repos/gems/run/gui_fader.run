@@ -125,6 +125,6 @@ install_config {
 
 build { server/gui_fader }
 
-build_boot_image { gui_fader }
+build_boot_image [build_artifacts]
 
 run_genode_until forever

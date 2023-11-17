@@ -8,7 +8,7 @@ if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 	exit 0
 }
 
-build "core init test/aes_cbc_4k"
+build { core lib/ld init lib/libc lib/vfs lib/libcrypto test/aes_cbc_4k }
 
 create_boot_directory
 
@@ -132,10 +132,8 @@ if {$debug_steps} { exit 0 }
 #
 # build and boot image
 #
-set boot_modules { core ld.lib.so init }
-append boot_modules { libc.lib.so vfs.lib.so libcrypto.lib.so test-aes_cbc_4k }
 
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 

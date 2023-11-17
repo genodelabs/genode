@@ -147,8 +147,8 @@ set fd [open [run_dir]/genode/focus w]
 puts $fd "<focus label=\"text_area.2 -> \"/>"
 close $fd
 
-build { app/text_area app/menu_view }
+build { app/text_area app/menu_view lib/vfs lib/sandbox }
 
-build_boot_image { text_area sandbox.lib.so vfs.lib.so menu_view menu_view_styles.tar }
+build_boot_image [build_artifacts]
 
 run_genode_until forever

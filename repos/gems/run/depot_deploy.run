@@ -293,7 +293,7 @@ set noswapfile
 set viminfo=}
 close $vimrc_fd
 
-build_boot_image { depot_query depot_deploy }
+build_boot_image [build_artifacts]
 
 run_genode_until forever
 

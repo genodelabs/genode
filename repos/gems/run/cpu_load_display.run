@@ -147,6 +147,7 @@ install_config {
 	</start>
 </config>}
 
-build_boot_image {}
+build_boot_image [build_artifacts]
+
 append qemu_args " -smp 4,cores=4 "
 run_genode_until forever

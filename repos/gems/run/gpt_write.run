@@ -6,7 +6,7 @@ assert_spec linux
 #
 # Build
 #
-build { core init timer server/lx_block app/gpt_write }
+build { core lib/ld init timer server/lx_block app/gpt_write }
 
 create_boot_directory
 
@@ -60,13 +60,7 @@ install_config {
 #
 catch { exec dd if=/dev/zero of=bin/gpt.img bs=1M count=256 }
 
-#
-# Boot modules
-#
-build_boot_image {
-	core ld.lib.so init timer lx_block gpt_write
-	gpt.img
-}
+build_boot_image [list {*}[build_artifacts] gpt.img]
 
 run_genode_until {child "gpt_write" exited with exit value 0.*\n} 10
 

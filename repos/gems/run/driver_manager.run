@@ -138,16 +138,10 @@ set fd [open [run_dir]/genode/usb_policy "w"]
 puts $fd {<usb/>}
 close $fd
 
-
-#
-# Override 'drivers.config' as supplied with the 'drivers_managed-pc' pkg
-# with the (possibly modified) version found in the source tree. This avoids
-# the need to re-create the pkg while testing modifications of this file.
-#
-copy_file [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/drivers.config \
+copy_file [genode_dir]/repos/gems/sculpt/drivers/pc \
           [run_dir]/genode/drivers.config
 
-build_boot_image { driver_manager test-driver_manager ld.lib.so }
+build_boot_image [build_artifacts]
 
 #
 # Build ext2 file-system images to be supplied to Qemu

@@ -8,7 +8,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/dynamic_rom \
                   [depot_user]/src/nitpicker
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -112,10 +112,8 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
 build { app/nano3d }
 
-build_boot_image { nano3d }
+build_boot_image [build_artifacts]
 
 run_genode_until forever

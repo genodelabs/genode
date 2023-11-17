@@ -17,9 +17,7 @@ import_from_depot [depot_user]/pkg/[drivers_interactive_pkg] \
 
 
 build {
-	core
-	timer
-	init
+	core lib/ld timer init
 	server/lx_fs
 	lib/vfs_tresor
 	lib/vfs_tresor_crypto_aes_cbc
@@ -28,6 +26,7 @@ build {
 	lib/vfs_import
 	lib/vfs_jitterentropy
 	lib/vfs_pipe
+	lib/vfs lib/libc lib/posix lib/libcrypto
 	test/vfs_stress
 	test/libc
 	server/log_terminal
@@ -295,35 +294,10 @@ set shell_script "run/vfs_tresor.sh"
 set repo "[repository_contains $shell_script]"
 exec cp $repo/$shell_script bin/
 
-append boot_modules {
-	lx_fs
-	tresor_init_trust_anchor
-	vfs_tresor.lib.so
-	vfs_tresor_crypto_aes_cbc.lib.so
-	vfs_tresor_crypto_memcopy.lib.so
-	vfs_tresor_trust_anchor.lib.so
-	vfs_tresor.sh
-	vfs.lib.so
-	vfs_import.lib.so
-	vfs_jitterentropy.lib.so
-	vfs_pipe.lib.so
-	posix.lib.so
-	libc.lib.so
-	libcrypto.lib.so
-	log_terminal
-	fs_rom
-	report_rom
-	sequence
-	init
-	core
-	timer
-	ld.lib.so
-}
+set boot_modules [build_artifacts]
 
-append boot_modules {
-	encrypted_private_key superblock_hash
-}
-append boot_modules [tresor_image_file]
+append  boot_modules { vfs_tresor.sh encrypted_private_key superblock_hash }
+lappend boot_modules [tresor_image_file]
 
 set fd [open [run_dir]/genode/focus w]
 puts $fd "<focus label=\"terminal_service -> \" domain=\"default\"/>"

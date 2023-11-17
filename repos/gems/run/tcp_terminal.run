@@ -115,10 +115,7 @@ install_config {
 </config>
 }
 
-build_boot_image { tcp_terminal }
-
-
-# qemu config
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 append_qemu_nic_args "hostfwd=tcp::5555-:8888"

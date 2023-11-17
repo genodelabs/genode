@@ -176,6 +176,6 @@ install_config {
 
 build { app/decorator }
 
-build_boot_image { decorator }
+build_boot_image [build_artifacts]
 
 run_genode_until forever

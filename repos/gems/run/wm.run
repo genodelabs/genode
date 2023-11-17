@@ -158,6 +158,6 @@ copy_file [genode_dir]/repos/gems/recipes/raw/motif_wm/wm.config [run_dir]/genod
 
 build { app/window_layouter app/decorator server/nitpicker server/wm test/nitpicker }
 
-build_boot_image { window_layouter decorator nitpicker wm testnit }
+build_boot_image [build_artifacts]
 
 run_genode_until forever

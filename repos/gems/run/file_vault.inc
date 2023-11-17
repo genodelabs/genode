@@ -393,12 +393,7 @@ if {[have_board linux]} {
 	exec mkdir -p bin/file_vault_dir/trust_anchor
 }
 
-append boot_modules {
-
-	file_vault
-	file_vault-sync_to_tresor_vfs_init
-	file_vault-truncate_file
-}
+append boot_modules [build_artifacts]
 
 lappend_if [have_board linux] boot_modules file_vault_dir
 

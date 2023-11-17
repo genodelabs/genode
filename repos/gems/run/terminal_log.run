@@ -94,6 +94,6 @@ install_config {
 
 build { server/terminal_log test/nitpicker }
 
-build_boot_image { terminal_log testnit }
+build_boot_image [build_artifacts]
 
 run_genode_until forever

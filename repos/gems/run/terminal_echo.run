@@ -77,7 +77,7 @@ close $fd
 
 build { server/terminal }
 
-build_boot_image { terminal }
+build_boot_image [build_artifacts]
 
 run_genode_until forever
 

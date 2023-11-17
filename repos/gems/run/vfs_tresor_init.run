@@ -11,11 +11,11 @@ proc tresor_image_size_mb { } {
 	return $image_size
 }
 
-append build_components {
-	core init timer
+build {
+	core lib/ld init timer
 	server/lx_block
 	server/lx_fs
-	server/vfs
+	server/vfs lib/vfs
 	app/sequence
 
 	app/tresor_init_trust_anchor
@@ -26,8 +26,6 @@ append build_components {
 	lib/libc
 	lib/libcrypto
 }
-
-build $build_components
 
 create_boot_directory
 
@@ -147,28 +145,7 @@ install_config $config
 exec rm -rf bin/[tresor_image_file]
 exec truncate -s [tresor_image_size_mb]M bin/[tresor_image_file]
 
-append boot_modules {
-	core
-	init
-	timer
-	lx_block
-	lx_fs
-	sequence
-	vfs
-	vfs.lib.so
-	vfs_jitterentropy.lib.so
-	ld.lib.so
-	libcrypto.lib.so
-	libc.lib.so
-	tresor_init_trust_anchor
-	tresor_init
-	vfs_tresor_trust_anchor.lib.so
-	vfs_tresor_crypto_aes_cbc.lib.so
-}
-
-append boot_modules [tresor_image_file]
-
-build_boot_image $boot_modules
+build_boot_image [list {*}[build_artifacts] [tresor_image_file]]
 
 run_genode_until {.*child "initialize_tresor" exited with exit value 0.*\n} 240
 

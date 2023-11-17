@@ -129,9 +129,7 @@ install_config {
 exec rm -rf bin/fs
 exec mkdir -p bin/fs/
 
-build_boot_image { lx_fs
-                   fs
-                   ping }
+build_boot_image [list {*}[build_artifacts] fs]
 
 append qemu_args " -nographic "
 

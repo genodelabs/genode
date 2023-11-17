@@ -33,7 +33,7 @@ proc qt5_decorator_config { } {
 		</config>}
 }
 
-append config {
+install_config {
 <config>
 	<parent-provides>} [qt5_parent_provides] {
 	</parent-provides>
@@ -219,18 +219,7 @@ append config {
 </config>
 }
 
-install_config $config
-
-# for debugging only
-#append build_components { app/window_layouter app/themed_decorator }
-#build $build_components
-
-append boot_modules [qt5_boot_modules]
-
-# for debugging only
-#append boot_modules { window_layouter themed_decorator }
-
-build_boot_image $boot_modules
+build_boot_image [qt5_boot_modules]
 
 run_genode_until forever
 
