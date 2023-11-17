@@ -24,18 +24,16 @@ if {$use_fb_controller} {
 }
 
 set build_components {
-	core init timer
+	core lib/ld init timer
 	drivers/acpi
 	drivers/platform
 	app/pci_decode
 	drivers/framebuffer/intel/pc
 	test/framebuffer
 	server/report_rom
-	server/vfs
+	server/vfs lib/vfs lib/vfs_import
 	server/fs_rom
-	lib/vfs_import
 }
-
 
 append_if $use_gpu build_components { drivers/gpu/intel }
 append_if $use_top build_components { app/top }
@@ -287,21 +285,7 @@ append config {
 
 install_config $config
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer pc_intel_fb_drv intel_fb_controller
-	test-framebuffer report_rom fs_rom vfs vfs.lib.so vfs_import.lib.so
-	platform_drv acpi_drv pci_decode
-}
-
-append_if $use_gpu boot_modules { intel_gpu_drv }
-append_if $use_top boot_modules { top }
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 if { [get_cmd_switch --autopilot] } {
 	run_genode_until {\[init -\> init_dynamic -\> intel_fb_drv\]   HDMI-A-2:  enable.*} 30
