@@ -218,6 +218,6 @@ copy_file [genode_dir]/repos/gems/recipes/raw/motif_wm/wm.config [run_dir]/genod
 
 build { server/wm server/clipboard server/terminal }
 
-build_boot_image { wm clipboard terminal }
+build_boot_image [build_artifacts]
 
 run_genode_until forever

@@ -44,14 +44,7 @@ set build_components {
 	server/dynamic_rom
 }
 
-set boot_modules {
-	nic_router
-	event_filter
-	pc_nic_drv
-	pci_audio_drv
-	report_rom
-	dynamic_rom
-}
+set boot_modules [build_artifacts]
 
 set virtualbox5_binary "virtualbox5-nova"
 

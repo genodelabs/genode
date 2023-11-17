@@ -34,13 +34,16 @@ lappend_if [expr $use_net] depot_archives [depot_user]/src/nic_router
 import_from_depot $depot_archives
 
 
-set build_components { virtualbox6 }
+set build_components {
+	lib/libc lib/vfs lib/libiconv lib/stdcxx
+	lib/qemu-usb lib/virtualbox6-shaderlib
+	drivers/audio
+	virtualbox6
+}
 
 lappend_if [expr $use_top]    build_components app/top
 lappend_if [expr $use_serial] build_components server/log_terminal
 lappend_if [have_spec x86]    build_components drivers/rtc
-
-lappend  build_components drivers/audio
 
 build $build_components
 
@@ -285,19 +288,8 @@ set fd [open [run_dir]/genode/focus w]
 puts $fd "<focus label=\"wm -> focus\"/>"
 close $fd
 
-set boot_modules {
-	rtc_drv
-	virtualbox6 libc.lib.so vfs.lib.so libm.lib.so libiconv.lib.so stdcxx.lib.so
-	qemu-usb.lib.so virtualbox6-shaderlib.lib.so
-	fb_drv.config test.iso virtualbox6.vbox
-}
+set boot_modules [build_artifacts]
 
-# platform-specific modules
-lappend_if [expr $use_top] boot_modules top
-
-append_if [expr $use_net]     boot_modules { pc_nic_drv }
-append_if [expr $use_net]     boot_modules { nic_router }
-append_if [expr $use_serial]  boot_modules { log_terminal }
 append_if [expr $use_overlay] boot_modules { overlay.vdi }
 
 lappend boot_modules pci_audio_drv

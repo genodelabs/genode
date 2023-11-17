@@ -56,16 +56,17 @@ append build_components {
 	drivers/framebuffer
 	drivers/rtc
 	drivers/ps2
+	lib/qemu-usb lib/libyuv
 	virtualbox5
 }
 
-lappend_if [expr $use_serial] build_components server/log_terminal
-lappend_if [expr $use_usb]    build_components app/usb_report_filter
+lappend_if [expr $use_serial]   build_components server/log_terminal
+lappend_if [expr $use_usb]      build_components app/usb_report_filter
 lappend_if [expr $use_ram_fs || $use_usb] build_components lib/vfs_import
 lappend_if [expr $use_cpu_load] build_components app/trace_subject_reporter
 lappend_if [expr $use_cpu_load] build_components app/cpu_load_display
 lappend_if [expr $use_cpu_load] build_components app/top
-lappend_if [have_spec nova] build_components app/log_core
+lappend_if [have_spec nova]     build_components app/log_core
 
 build $build_components
 
@@ -449,22 +450,9 @@ append config {
 
 install_config $config
 
-append boot_modules {
-	ahci_drv
-	ps2_drv
-	rtc_drv
-	vesa_fb_drv
-	qemu-usb.lib.so
-	libyuv.lib.so
-}
-append boot_modules $virtualbox5_binary
+set boot_modules [build_artifacts]
 
-lappend_if [expr $use_serial] boot_modules log_terminal
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules $overlay_image
-lappend_if [expr $use_cpu_load] boot_modules trace_subject_reporter
-lappend_if [expr $use_cpu_load] boot_modules cpu_load_display
-lappend_if [expr $use_cpu_load] boot_modules top
-lappend_if [have_spec nova] boot_modules log_core
 
 # platform-specific modules
 lappend_if [expr $use_usb] boot_modules usb_report_filter

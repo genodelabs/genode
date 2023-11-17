@@ -29,7 +29,7 @@ if {![file exists bin/micro.code]} {
 
 proc apply_microcode { } { return true }
 
-build "core init test/microcode"
+build { core lib/ld init test/microcode }
 
 create_boot_directory
 
@@ -55,14 +55,9 @@ foreach file $microcode_files {
 	copy_file $file bin/ }
 
 
-set boot_modules { core ld.lib.so init test-microcode }
-
-
 set microcode_files [glob -tails -dir bin {[0-9,a-f][0-9,a-f]-[0-9,a-f][0-9,a-f]-[0-9,a-f][0-9,a-f]}]
-append boot_modules $microcode_files
 
-
-build_boot_image $boot_modules
+build_boot_image [list {*}[build_artifacts] {*}$microcode_files]
 
 
 append qemu_args "-nographic "

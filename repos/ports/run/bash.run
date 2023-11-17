@@ -145,8 +145,8 @@ set fd [open [run_dir]/genode/focus w]
 puts $fd "<focus label=\"terminal -> \" domain=\"default\"/>"
 close $fd
 
-build { lib/ld test/fork test/execve }
+build { lib/ld lib/libc lib/vfs lib/posix test/fork test/execve }
 
-build_boot_image { ld.lib.so libc.lib.so libm.lib.so vfs.lib.so posix.lib.so }
+build_boot_image [build_artifacts]
 
 run_genode_until forever

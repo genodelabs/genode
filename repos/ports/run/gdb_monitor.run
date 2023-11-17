@@ -14,16 +14,11 @@ if {![have_include "power_on/qemu"] ||
 	 puts "Run script is only supported for NOVA in Qemu"; exit 0
 }
 
-#
-# Build
-#
-
 set build_components {
-	core init timer
-	drivers/uart
-	app/gdb_monitor
-	test/gdb_monitor
+	core lib/ld init timer lib/libc lib/libm lib/vfs lib/posix lib/stdcxx
 	lib/vfs_pipe
+	drivers/uart
+	app/gdb_monitor lib/gdbserver_platform test/gdb_monitor
 }
 
 lappend build_components "lib/gdbserver_platform-$::env(KERNEL)"
@@ -32,11 +27,7 @@ build $build_components
 
 create_boot_directory
 
-#
-# Generate config
-#
-
-set config {
+install_config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -90,31 +81,17 @@ set config {
 </config>
 }
 
-install_config $config
-
-#
-# Boot modules
-#
-
 # evaluated by the run tool
 proc binary_name_gdbserver_platform_lib_so { } {
 	return "gdbserver_platform-$::env(KERNEL).lib.so"
 }
 
-# generic modules
-set boot_modules {
-	core init timer
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so
-	pc_uart_drv posix.lib.so stdcxx.lib.so vfs_pipe.lib.so
-	gdb_monitor gdbserver_platform.lib.so test-gdb_monitor
-}
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 #
 # Execute test case
 #
-#
+
 set local_port 5555
 
 # qemu config

@@ -101,11 +101,10 @@ catch { exec dd if=/dev/urandom of=bin/test.bin bs=4096 count=8160 }
 # Step 1: prepare and start the actual VM
 #
 set build_components {
-	server/event_filter
-	server/report_rom server/fs_rom server/vfs
-	server/tcp_terminal drivers/nic
-	lib/vfs_lwip lib/vfs_pipe lib/vfs_import
-	server/nic_router
+	lib/vfs lib/libc lib/posix lib/vfs_lwip lib/vfs_pipe lib/vfs_import
+	server/event_filter server/report_rom server/fs_rom server/vfs
+	server/tcp_terminal server/nic_router
+	drivers/nic
 }
 
 #
@@ -114,15 +113,10 @@ set build_components {
 foreach pkg {bash coreutils} {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
 
-set boot_modules {
-	vfs fs_rom nic_router
-	posix.lib.so bash.tar coreutils.tar
-	tcp_terminal vfs_lwip.lib.so vfs_pipe.lib.so vfs_import.lib.so
-	pc_nic_drv report_rom event_filter
-	test.bin template.bat
-}
+set boot_modules [build_artifacts]
 
-append boot_modules $vbox_file
+lappend boot_modules { bash.tar coreutils.tar test.bin template.bat }
+lappend boot_modules $vbox_file
 
 set config_of_app {
 

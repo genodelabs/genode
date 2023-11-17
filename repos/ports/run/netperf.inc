@@ -453,8 +453,7 @@ if { $use_usb_driver } {
 	close $fd
 }
 
-set boot_modules { netserver }
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 #
 # Execute test case

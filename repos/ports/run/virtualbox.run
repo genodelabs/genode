@@ -9,13 +9,11 @@ set use_top 1
 set use_gui 0
 
 set build_components {
-	drivers/framebuffer
+	lib/libiconv lib/qemu-usb lib/libyuv
 	server/report_rom
+	drivers/framebuffer
+	virtualbox5
 }
-
-append build_components virtualbox5
-
-set virtualbox_binary "virtualbox5-nova"
 
 create_boot_directory
 
@@ -36,8 +34,6 @@ lappend_if [have_spec x86]    build_components drivers/rtc
 
 lappend_if [expr $use_net]    build_components drivers/nic
 lappend_if [expr $use_net]    build_components server/nic_router
-
-build $build_components
 
 set config {
 <config prio_levels="4">
@@ -279,26 +275,7 @@ install_config $config
 
 exec cp ${genode_dir}/repos/ports/run/test.vbox bin/.
 
-set boot_modules { test.iso test.vbox }
-
-append boot_modules $virtualbox_binary
-
-# platform-specific modules
-lappend_if [have_spec         x86] boot_modules rtc_drv
-lappend_if [expr         $use_top] boot_modules top
-lappend_if [expr         $use_gui] boot_modules report_rom
-
-append boot_modules {
-	libiconv.lib.so
-	qemu-usb.lib.so
-	libyuv.lib.so
-}
-
-append_if [expr $use_net]          boot_modules { pc_nic_drv }
-append_if [expr $use_net]          boot_modules { nic_router }
-append_if [expr $use_serial]       boot_modules { log_terminal }
-
-build_boot_image $boot_modules
+build_boot_image [list {*}[build_artifacts] test.iso test.vbox]
 
 if {[have_include "power_on/qemu"]} {
 	if {[expr $use_gui]} {

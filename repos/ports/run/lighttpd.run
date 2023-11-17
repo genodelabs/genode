@@ -220,8 +220,7 @@ EpA5DBBklj8UE2CdONvN
 	</start>
 </config>}
 
-#build            { }
-build_boot_image { }
+build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 append_qemu_nic_args "hostfwd=tcp::5555-:80,hostfwd=tcp::5556-:443"
