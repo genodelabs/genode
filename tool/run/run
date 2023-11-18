@@ -257,14 +257,46 @@ proc install_config { args } {
 
 
 ##
+# Check consistency between [build_artifacts] and build_boot_image arguments
+#
+proc check_for_missing_lib_build { binaries } {
+
+	set artifacts [build_artifacts]
+	set missing_lib_builds { }
+	set proposed_build_targets { }
+	foreach binary $binaries {
+		if {[lsearch $artifacts $binary] == -1} {
+			if {[regexp {(.*)\.lib\.so$} $binary dummy libname]} {
+				lappend missing_lib_builds $binary
+				lappend proposed_build_targets "lib/$libname" } } }
+
+	if {[llength $missing_lib_builds] == 0} {
+		return }
+
+	set plural ""
+	if {[llength $missing_lib_builds] > 1} { set plural "s" }
+
+	puts stderr ""
+	puts stderr "Error: missing build argument$plural for: $missing_lib_builds\n"
+	puts stderr "  The build_boot_image argument$plural may be superfluous or"
+	puts stderr "  the build step lacks the argument$plural: $proposed_build_targets\n"
+	puts stderr "  Consider using \[build_artifacts\] as build_boot_image argument to"
+	puts stderr "  maintain consistency beween the build and build_boot_image steps."
+	puts stderr ""
+	exit 1
+}
+
+
+##
 # Integrate specified binaries into boot image
 #
 # \param binaries  space-separated list of file names located within the
 #                  '<build-dir>/bin/' directory
 #
-proc build_boot_image {binaries} {
+proc build_boot_image { binaries } {
 
 	check_for_missing_depot_archives
+	check_for_missing_lib_build $binaries
 
 	# lookup XSD files in the run-script-specific folder
 	set xsd_files ""
