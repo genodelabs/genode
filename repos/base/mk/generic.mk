@@ -134,42 +134,6 @@ binary_%.o: %
 		$(AS) $(AS_OPT) -f -o $@ -
 
 #
-# Generate assembler file from symbol list
-#
-# For undefined symbols (type U), we create a hard dependency by referencing
-# the symbols from the assembly file. The reference is created in the form of
-# a '.long' value with the address of the symbol. On x86_64, this is not
-# possible for PIC code. Hence, we reference the symbol via a PIC-compatible
-# movq instruction instead.
-#
-# If we declared the symbol as '.global' without using it, the undefined symbol
-# gets discarded at link time unless it is directly referenced by the target.
-# This is a problem in situations where the undefined symbol is resolved by an
-# archive rather than the target. I.e., when linking posix.lib.a (which
-# provides 'Libc::Component::construct'), the 'construct' function is merely
-# referenced by the libc.lib.so's 'Component::construct' function. But this
-# reference apparently does not suffice to keep the posix.lib.a's symbol. By
-# adding a hard dependency, we force the linker to resolve the symbol and don't
-# drop posix.lib.a.
-#
-ASM_SYM_DEPENDENCY := .long \1
-ifeq ($(filter-out $(SPECS),x86_64),)
-ASM_SYM_DEPENDENCY := movq \1@GOTPCREL(%rip), %rax
-endif
-
-%.symbols.s: %.symbols
-	$(MSG_CONVERT)$@
-	$(VERBOSE)\
-		sed -e "s/^\(\w\+\) D \(\w\+\)\$$/.data; .global \1; .type \1,%object; .size \1,\2; \1: .skip 1/" \
-		    -e "s/^\(\w\+\) V/.data; .weak \1; .type \1,%object; \1: .skip 1/" \
-		    -e "s/^\(\w\+\) T/.text; .global \1; .type \1,%function; \1:/" \
-		    -e "s/^\(\w\+\) R \(\w\+\)\$$/.section .rodata; .global \1; .type \1,%object; .size \1,\2; \1:/" \
-		    -e "s/^\(\w\+\) W/.text; .weak \1; .type \1,%function; \1:/" \
-		    -e "s/^\(\w\+\) B \(\w\+\)\$$/.bss; .global \1; .type \1,%object; .size \1,\2; \1:/" \
-		    -e "s/^\(\w\+\) U/.text; .global \1; $(ASM_SYM_DEPENDENCY)/" \
-		    $< > $@
-
-#
 # Create local symbol links for the used shared libraries
 #
 # Depending on whether an ABI stub for a given shared library exists, we link
@@ -182,8 +146,8 @@ endif
 # time a user of the library is linked, the ABI stub should be used instead of
 # the library.
 #
-select_so = $(firstword $(wildcard $(LIB_CACHE_DIR)/$(1:.lib.so=)/$(1:.lib.so=).abi.so \
-                                   $(LIB_CACHE_DIR)/$(1:.lib.so=)/$(1:.lib.so=).lib.so))
+select_so = $(firstword $(wildcard $(LIB_CACHE_DIR)/$(1:.lib.so=)/$(1:.lib.so=).abi.so) \
+                        $(LIB_CACHE_DIR)/$(1:.lib.so=)/$(1:.lib.so=).lib.so)
 
 ifneq ($(filter-out $(foreach s,$(SHARED_LIBS),$(realpath $s)), \
                     $(foreach s,$(SHARED_LIBS),$(call select_so,$s))),)

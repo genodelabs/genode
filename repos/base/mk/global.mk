@@ -238,16 +238,6 @@ LD_SCRIPT_SO ?= $(BASE_DIR)/src/ld/genode_rel.ld
 #
 AS_OPT += $(AS_MARCH)
 
-#
-# Control sequences for color terminals
-#
-# To disable colored output, define these variable empty in your
-# build-local 'etc/tools.conf' file.
-#
-BRIGHT_COL  ?= \033[01;33m
-DARK_COL    ?= \033[00;33m
-DEFAULT_COL ?= \033[0m
-
 ALL_INC_DIR := .
 ALL_INC_DIR += $(INC_DIR)
 ALL_INC_DIR += $(foreach DIR,$(REP_INC_DIR), $(foreach REP,$(REPOSITORIES),$(REP)/$(DIR)))
@@ -268,6 +258,4 @@ MSG_CONFIG   ?= @$(ECHO) "    CONFIG   "
 MSG_CLEAN    ?= @$(ECHO) "  CLEAN "
 MSG_ASSEM    ?= @$(ECHO) "    ASSEMBLE "
 MSG_INST     ?= @$(ECHO) "    INSTALL  "
-MSG_PRG      ?= @$(ECHO) "$(BRIGHT_COL)  Program $(DEFAULT_COL)"
-MSG_LIB      ?= @$(ECHO) "$(DARK_COL)  Library $(DEFAULT_COL)"
 

@@ -73,20 +73,16 @@ endif
 include $(BASE_DIR)/mk/generic.mk
 include $(BASE_DIR)/mk/base-libs.mk
 
-all: message $(TARGET)
+all: $(TARGET)
 
 ifneq ($(INSTALL_DIR),)
 ifneq ($(DEBUG_DIR),)
-all: message $(INSTALL_DIR)/$(TARGET) $(DEBUG_DIR)/$(TARGET) $(DEBUG_DIR)/$(TARGET).debug
+all: $(INSTALL_DIR)/$(TARGET) $(DEBUG_DIR)/$(TARGET) $(DEBUG_DIR)/$(TARGET).debug
 endif
 endif
 
 all:
 	@true # prevent nothing-to-be-done message
-
-.PHONY: message
-message:
-	$(MSG_PRG)$(PRG_REL_DIR)/$(TARGET)
 
 #
 # Enforce unconditional call of gnatmake rule when compiling Ada sources

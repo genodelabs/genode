@@ -61,7 +61,7 @@ proc build {targets} {
 	}
 
 	# record the build artifacts created during the build process
-	set artifacts_log [exec sed -n "/^#/s/^# Build artifact //p" progress.log]
+	set artifacts_log [exec sed -n "/BUILD_ARTIFACTS/s/^.*= //p" progress.log]
 	lappend _collected_build_artifacts {*}[split $artifacts_log "\n"]
 
 	puts "genode build completed"

@@ -1,20 +1,28 @@
 #
-# Prevent execution of any rule contained in $(TARGET_MK) as default rule
+# Determine library dependencies of a program
 #
-all:
 
 ACCUMULATE_MISSING_PORTS = 1
 
-#
-# Include common utility functions
-#
 include $(BASE_DIR)/mk/util.inc
+
+all:
+	@true
 
 #
 # Include target build instructions to aquire library dependecies
 #
 PRG_DIR := $(dir $(TARGET_MK))
+
 include $(TARGET_MK)
+
+#
+# Check if the requirements of the target are satisfied
+#
+UNSATISFIED_REQUIREMENTS = $(filter-out $(SPECS),$(REQUIRES))
+ifneq ($(UNSATISFIED_REQUIREMENTS),)
+WARNING_SKIP := "Skip library $(LIB) because it requires '$(UNSATISFIED_REQUIREMENTS)'"
+endif
 
 #
 # Add libgcov if coverage is requested
@@ -41,6 +49,14 @@ include $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/import/import-
 include $(SPEC_FILES)
 
 #
+# Evaluate library dependencies for this target
+#
+include $(BASE_DIR)/mk/dep.inc
+
+DEP_A_VAR_NAME  := DEP_A_$(TARGET).prg
+DEP_SO_VAR_NAME := DEP_SO_$(TARGET).prg
+
+#
 # Names of build artifacts to appear in the 'progress.log'
 #
 BUILD_ARTIFACTS ?= $(TARGET)
@@ -51,37 +67,18 @@ BUILD_ARTIFACTS ?= $(TARGET)
 PRG_REL_DIR := $(subst $(REP_DIR)/src/,,$(PRG_DIR))
 PRG_REL_DIR := $(PRG_REL_DIR:/=)
 
-#
-# Prevent generation of program rule if requirements are unsatisfied
-#
-UNSATISFIED_REQUIREMENTS = $(filter-out $(SPECS),$(REQUIRES))
 ifneq ($(UNSATISFIED_REQUIREMENTS),)
-all:
-	@$(ECHO) "Skip target $(PRG_REL_DIR) because it requires $(DARK_COL)$(UNSATISFIED_REQUIREMENTS)$(DEFAULT_COL)"
-else
-all: gen_prg_rule
+WARNING_SKIP := "Skip target $(PRG_REL_DIR) because it requires '$(UNSATISFIED_REQUIREMENTS)'"
 endif
 
-include $(LIB_PROGRESS_LOG)
-LIBS_TO_VISIT = $(filter-out $(LIBS_READY),$(LIBS))
+all: $(if $(WARNING_SKIP),generate_skip,generate)
 
-#
-# Generate program rule
-#
-gen_prg_rule: append_artifact_to_progress_log
-ifneq ($(LIBS),)
-	@for i in $(LIBS_TO_VISIT); do \
-	  $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk REP_DIR=$(REP_DIR) LIB=$$i; done
-	@(echo "DEP_A_$(TARGET).prg = $(foreach l,$(LIBS),\$${ARCHIVE_NAME($l)} \$$(DEP_A_$l))"; \
-	  echo "DEP_SO_$(TARGET).prg = $(foreach l,$(LIBS),\$${SO_NAME($l)} \$$(DEP_SO_$l))"; \
-	  echo "") >> $(LIB_DEP_FILE)
-endif
-ifneq ($(DEP_MISSING_PORTS),)
-	@(echo "MISSING_PORTS += $(DEP_MISSING_PORTS)"; \
-	  echo "") >> $(LIB_DEP_FILE)
-endif
-	@(echo "$(TARGET).prg: check_ports $(addsuffix .lib,$(LIBS))"; \
-	  echo "	@\$$(MKDIR) -p $(PRG_REL_DIR)"; \
+generate_skip:
+	@echo $(WARNING_SKIP)
+
+generate: $(call deps_for_libs,$(LIBS))
+	@(echo "$(TARGET).prg: check_ports $(addsuffix .lib.a,$(LIBS)) $(addsuffix .abi.so,$(LIBS))"; \
+	  echo "	\$$(VERBOSE)\$$(call _prepare_prg_step,$(PRG_REL_DIR)/$(TARGET),$(BUILD_ARTIFACTS))"; \
 	  echo "	\$$(VERBOSE_MK)\$$(MAKE) $(VERBOSE_DIR) -C $(PRG_REL_DIR) -f \$$(BASE_DIR)/mk/prg.mk \\"; \
 	  echo "	     REP_DIR=$(REP_DIR) \\"; \
 	  echo "	     PRG_REL_DIR=$(PRG_REL_DIR) \\"; \
@@ -116,8 +113,3 @@ ifeq ($(FORCE_BUILD_LIBS),yes)
 	@(echo ""; \
 	  echo "all: \$$(addsuffix .lib,\$$(filter-out \$$(INVALID_DEPS), $(LIBS)))") >> $(LIB_DEP_FILE)
 endif
-
-append_artifact_to_progress_log:
-	@( $(foreach A,$(BUILD_ARTIFACTS),\
-	      echo -e "\n# Build artifact $A\n";) true \
-	) >> $(LIB_PROGRESS_LOG)
