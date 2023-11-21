@@ -98,7 +98,7 @@ void Driver::Common::acquire_io_mmu_devices()
 
 	});
 
-	/* iterate devices and determine address translation mode */
+	/* iterate IOMMU devices and determine address translation mode */
 	bool mpu_present    { false };
 	bool device_present { false };
 	_io_mmu_devices.for_each([&] (Io_mmu const & io_mmu) {
@@ -111,11 +111,34 @@ void Driver::Common::acquire_io_mmu_devices()
 	if (device_present && !mpu_present)
 		_root.enable_dma_remapping();
 
+	/* iterate devices and add default mappings */
+	_devices.for_each([&] (Device & device) {
+		device.for_each_io_mmu([&] (Device::Io_mmu const & io_mmu) {
+			_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+				if (io_mmu_dev.name() == io_mmu.name) {
+					bool has_reserved_mem = false;
+					device.for_each_reserved_memory([&] (unsigned,
+					                                     Io_mmu::Range range) {
+						io_mmu_dev.add_default_range(range, range.start);
+						has_reserved_mem = true;
+					});
+					/* enable default mappings for corresponding pci devices */
+					device.for_pci_config([&] (Device::Pci_config const & cfg) {
+						io_mmu_dev.enable_default_mappings(
+							 {cfg.bus_num, cfg.dev_num, cfg.func_num});
+					});
+				}
+			});
+		}, [&] () { /* empty list fn */ });
+	});
+
 	bool kernel_iommu_present { false };
 	_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+		io_mmu_dev.default_mappings_complete();
 		if (io_mmu_dev.name() == "kernel_iommu")
 			kernel_iommu_present = true;
 	});
+
 
 	/* if kernel implements iommu, instantiate Kernel_iommu */
 	if (_iommu() && !kernel_iommu_present)

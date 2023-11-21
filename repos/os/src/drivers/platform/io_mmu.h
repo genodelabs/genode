@@ -134,6 +134,15 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 	public:
 
+		/* interface for adding default mappings (used for reserved memory) */
+		virtual void add_default_range(Range const &, addr_t) { }
+
+		/* interface for activating default mappings for certain device */
+		virtual void enable_default_mappings(Pci::Bdf) { }
+
+		/* interface for completing default mappings (enabled IOMMU) */
+		virtual void default_mappings_complete() { }
+
 		Device::Name const & name() const { return _name; }
 
 		bool domain_owner(Domain const & domain) const {
