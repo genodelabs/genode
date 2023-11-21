@@ -27,12 +27,25 @@ template <typename TABLE>
 void Intel::Io_mmu::Domain<TABLE>::enable_pci_device(Io_mem_dataspace_capability const,
                                                      Pci::Bdf const & bdf)
 {
-	_intel_iommu.root_table().insert_context<TABLE::address_width()>(
-		bdf, _translation_table_phys, _domain_id);
+	Domain_id cur_domain =
+		_intel_iommu.root_table().insert_context<TABLE::address_width()>(
+			bdf, _translation_table_phys, _domain_id);
 
-	/* invalidate translation caches only if failed requests are cached */
-	if (_intel_iommu.caching_mode())
-		_intel_iommu.invalidate_all(_domain_id, Pci::Bdf::rid(bdf));
+	/**
+	 * We need to invalidate the context-cache entry for this device and
+	 * IOTLB entries for the previously used domain id.
+	 *
+	 * If the IOMMU caches unresolved requests, we must invalidate those. In
+	 * legacy translation mode, these are cached with domain id 0. This is
+	 * currently implemented as global invalidation, though.
+	 *
+	 * Some older architectures also require explicit write-buffer flushing
+	 * unless invalidation takes place.
+	 */
+	if (cur_domain.valid())
+		_intel_iommu.invalidate_all(cur_domain, Pci::Bdf::rid(bdf));
+	else if (_intel_iommu.caching_mode())
+		_intel_iommu.invalidate_context(Domain_id(), Pci::Bdf::rid(bdf));
 	else
 		_intel_iommu.flush_write_buffer();
 }
@@ -42,6 +55,9 @@ template <typename TABLE>
 void Intel::Io_mmu::Domain<TABLE>::disable_pci_device(Pci::Bdf const bdf)
 {
 	_intel_iommu.root_table().remove_context(bdf, _translation_table_phys);
+
+	/* lookup default mappings and insert instead */
+	_intel_iommu.apply_default_mappings(bdf);
 
 	_intel_iommu.invalidate_all(_domain_id);
 }
@@ -147,7 +163,7 @@ void Intel::Io_mmu::invalidate_iotlb(Domain_id domain_id, addr_t, size_t)
 }
 
 /**
- * Clear context cache and IOTLB.
+ * Clear context cache
  *
  * By default, we perform a global invalidation. When provided with a valid
  * Domain_id, a domain-specific invalidation is conducted. When a rid is 
@@ -155,7 +171,7 @@ void Intel::Io_mmu::invalidate_iotlb(Domain_id domain_id, addr_t, size_t)
  *
  * See Table 25 for required invalidation scopes.
  */
-void Intel::Io_mmu::invalidate_all(Domain_id domain_id, Pci::rid_t rid)
+void Intel::Io_mmu::invalidate_context(Domain_id domain_id, Pci::rid_t rid)
 {
 	/**
 	 * We are using the register-based invalidation interface for the
@@ -196,6 +212,12 @@ void Intel::Io_mmu::invalidate_all(Domain_id domain_id, Pci::rid_t rid)
 	else if (_verbose && actual_scope < requested_scope)
 		warning("Performed context-cache invalidation with different granularity ",
 		        "(requested=", requested_scope, ", actual=", actual_scope, ")");
+}
+
+
+void Intel::Io_mmu::invalidate_all(Domain_id domain_id, Pci::rid_t rid)
+{
+	invalidate_context(domain_id, rid);
 
 	/* XXX clear PASID cache if we ever switch from legacy mode translation */
 
@@ -337,6 +359,48 @@ void Intel::Io_mmu::generate(Xml_generator & xml)
 }
 
 
+void Intel::Io_mmu::add_default_range(Range const & range, addr_t paddr)
+{
+	addr_t const             vaddr   { range.start };
+	size_t const             size    { range.size };
+
+	Page_flags flags { RW, NO_EXEC, USER, NO_GLOBAL,
+	                   RAM, Genode::CACHED };
+
+	try {
+		_default_mappings.insert_translation(vaddr, paddr, size, flags,
+		                                     supported_page_sizes());
+	} catch (...) { /* catch any double insertions */ }
+}
+
+
+void Intel::Io_mmu::default_mappings_complete()
+{
+	/* skip if already enabled */
+	if (read<Global_status::Enabled>())
+		return;
+
+	/* caches must be cleared if Esrtps is not set (see 6.6) */
+	if (!read<Capability::Esrtps>())
+		invalidate_all();
+
+	/* insert contexts into managed root table */
+	_default_mappings.copy_stage2(_managed_root_table);
+
+	/* set root table address */
+	write<Root_table_address>(
+		Root_table_address::Address::masked(_managed_root_table.phys_addr()));
+
+	/* issue set root table pointer command */
+	_global_command<Global_command::Srtp>(1);
+
+	/* enable IOMMU */
+	_global_command<Global_command::Enable>(1);
+
+	log("enabled IOMMU ", name(), " with default mappings");
+}
+
+
 Intel::Io_mmu::Io_mmu(Env                      & env,
                       Io_mmu_devices           & io_mmu_devices,
                       Device::Name       const & name,
@@ -347,6 +411,8 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
   Driver::Io_mmu(io_mmu_devices, name),
   _env(env),
   _managed_root_table(_env, table_allocator, *this, !coherent_page_walk()),
+  _default_mappings(_env, table_allocator, *this, !coherent_page_walk(),
+                    _sagaw_to_levels()),
   _domain_allocator(_max_domains()-1)
 {
 	if (_broken_device()) {
@@ -359,10 +425,7 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
 		return;
 	}
 
-	/* caches must be cleared if Esrtps is not set (see 6.6) */
-	if (!read<Capability::Esrtps>())
-		invalidate_all();
-	else if (read<Global_status::Enabled>()) {
+	if (read<Global_status::Enabled>()) {
 		error("IOMMU already enabled");
 		return;
 	}
@@ -383,11 +446,4 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
 			write<Fault_event_control::Mask>(0);
 		}
 	}
-
-	/* set root table address */
-	write<Root_table_address>(
-		Root_table_address::Address::masked(_managed_root_table.phys_addr()));
-
-	/* issue set root table pointer command*/
-	_global_command<Global_command::Srtp>(1);
 }

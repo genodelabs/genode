@@ -82,6 +82,34 @@ class Intel::Managed_root_table : public Registered_translation_table
 
 		addr_t phys_addr() { return _root_table_phys; }
 
+		template <typename FN>
+		void for_each_stage2_pointer(FN && fn)
+		{
+			Root_table::for_each([&] (uint8_t bus) {
+				_with_context_table(bus, [&] (Context_table & ctx) {
+					Pci::rid_t start_rid = Pci::Bdf::rid(Pci::Bdf { bus, 0, 0 });
+
+					Context_table::for_each(start_rid, [&] (Pci::rid_t rid) {
+						if (!ctx.present(rid))
+							return;
+
+						fn(Pci::Bdf::bdf(rid), ctx.stage2_pointer(rid), ctx.domain(rid));
+					});
+				});
+			});
+		}
+
+		template <typename FN>
+		void with_stage2_pointer(Pci::Bdf bdf, FN && fn)
+		{
+			_with_context_table(bdf.bus, [&] (Context_table & ctx) {
+				Pci::rid_t rid = Pci::Bdf::rid(bdf);
+
+				if (ctx.present(rid))
+					fn(ctx.stage2_pointer(rid), ctx.domain(rid));
+			});
+		}
+
 		/* add second-stage table */
 		template <unsigned ADDRESS_WIDTH>
 		Domain_id insert_context(Pci::Bdf bdf, addr_t phys_addr, Domain_id domain)

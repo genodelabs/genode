@@ -122,6 +122,10 @@ void Driver::Common::acquire_io_mmu_devices()
 						io_mmu_dev.add_default_range(range, range.start);
 						has_reserved_mem = true;
 					});
+
+					if (!has_reserved_mem)
+						return;
+
 					/* enable default mappings for corresponding pci devices */
 					device.for_pci_config([&] (Device::Pci_config const & cfg) {
 						io_mmu_dev.enable_default_mappings(
@@ -135,10 +139,10 @@ void Driver::Common::acquire_io_mmu_devices()
 	bool kernel_iommu_present { false };
 	_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
 		io_mmu_dev.default_mappings_complete();
+
 		if (io_mmu_dev.name() == "kernel_iommu")
 			kernel_iommu_present = true;
 	});
-
 
 	/* if kernel implements iommu, instantiate Kernel_iommu */
 	if (_iommu() && !kernel_iommu_present)

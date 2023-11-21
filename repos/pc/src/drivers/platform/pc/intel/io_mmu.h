@@ -30,6 +30,7 @@
 #include <intel/report_helper.h>
 #include <intel/page_table.h>
 #include <intel/domain_allocator.h>
+#include <intel/default_mappings.h>
 #include <expanding_page_table_allocator.h>
 
 namespace Intel {
@@ -176,11 +177,16 @@ class Intel::Io_mmu : private Attached_mmio,
 		 * controlling all hardware units. Otherwise, the session component will
 		 * create separate Domain objects that receive identical modification
 		 * instructions.
+		 *
+		 * The default root table holds default mappings (e.g. reserved memory)
+		 * that needs to be accessible even if devices have not been acquired yet.
 		 */
 		bool                          _verbose            { false };
 		Managed_root_table            _managed_root_table;
+		Default_mappings              _default_mappings;
 		Report_helper                 _report_helper      { *this };
 		Domain_allocator              _domain_allocator;
+		Domain_id                     _default_domain     { _domain_allocator.alloc() };
 		Constructible<Irq_connection> _fault_irq          { };
 		Signal_handler<Io_mmu>        _fault_handler      {
 			_env.ep(), *this, &Io_mmu::_handle_faults };
@@ -467,8 +473,9 @@ class Intel::Io_mmu : private Attached_mmio,
 		 * Io_mmu interface
 		 */
 
-		void _enable() override {
-			_global_command<Global_command::Enable>(1);
+		void _enable() override
+		{
+			/* IOMMU gets enabled already after default mappings are complete */
 
 			if (_verbose)
 				log("enabled IOMMU ", name());
@@ -476,10 +483,13 @@ class Intel::Io_mmu : private Attached_mmio,
 
 		void _disable() override
 		{
-			_global_command<Global_command::Enable>(0);
+			/**
+			 * Ideally, we would block all DMA here, however, we must preserve
+			 * some default mappings to allow access to reserved memory.
+			 */
 
 			if (_verbose)
-				log("disabled IOMMU ", name());
+				log("no enabled device for IOMMU ", name(), " anymore");
 		}
 
 		/**
@@ -497,6 +507,19 @@ class Intel::Io_mmu : private Attached_mmio,
 			       read<Extended_capability>() ==  (Extended_capability::access_t)0;
 		}
 
+		Default_mappings::Translation_levels _sagaw_to_levels()
+		{
+			using Levels = Default_mappings::Translation_levels;
+
+			if (read<Capability::Sagaw_4_level>())
+				return Levels::LEVEL4;
+
+			if (!read<Capability::Sagaw_3_level>() && read<Capability::Sagaw_5_level>())
+				error("IOMMU requires 5-level translation tables (not implemented)");
+
+			return Levels::LEVEL3;
+		}
+
 		const uint32_t _supported_page_sizes {
 			read<Capability::Page_1GB>() << 30 |
 			read<Capability::Page_2MB>() << 21 | 1u << 12 };
@@ -508,6 +531,7 @@ class Intel::Io_mmu : private Attached_mmio,
 		void generate(Xml_generator &) override;
 
 		void invalidate_iotlb(Domain_id, addr_t, size_t);
+		void invalidate_context(Domain_id domain, Pci::rid_t);
 		void invalidate_all(Domain_id domain = Domain_id { Domain_id::INVALID }, Pci::rid_t = 0);
 
 		bool     coherent_page_walk()   const { return read<Extended_capability::Page_walk_coherency>(); }
@@ -516,6 +540,16 @@ class Intel::Io_mmu : private Attached_mmio,
 
 		void flush_write_buffer();
 
+		/**
+		 * Io_mmu interface for default mappings
+		 */
+		void add_default_range(Range const &, addr_t) override;
+		void default_mappings_complete() override;
+		void enable_default_mappings(Pci::Bdf bdf) override {
+			_default_mappings.enable_device(bdf, _default_domain); }
+
+		void apply_default_mappings(Pci::Bdf bdf) {
+			_default_mappings.copy_stage2(_managed_root_table, bdf); }
 
 		/**
 		 * Io_mmu interface
@@ -559,7 +593,11 @@ class Intel::Io_mmu : private Attached_mmio,
 		       Context_table_allocator  & table_allocator,
 		       unsigned                   irq_number);
 
-		~Io_mmu() { _destroy_domains(); }
+		~Io_mmu()
+		{
+			_domain_allocator.free(_default_domain);
+			_destroy_domains();
+		}
 };
 
 
