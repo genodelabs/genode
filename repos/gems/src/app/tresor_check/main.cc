@@ -16,208 +16,97 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
-#include <block_session/connection.h>
+#include <vfs/simple_env.h>
 
-#include <timer_session/connection.h>
-
-/* gems includes */
-#include <tresor/check/library.h>
+/* tresor includes */
+#include <tresor/block_io.h>
+#include <tresor/crypto.h>
+#include <tresor/trust_anchor.h>
+#include <tresor/ft_check.h>
+#include <tresor/sb_check.h>
+#include <tresor/vbd_check.h>
 
 using namespace Genode;
+using namespace Tresor;
 
-namespace Tresor {
+namespace Tresor_check { class Main; }
 
-	char const *module_name(unsigned long)
-	{
-		return "?";
-	}
-}
-
-class Main
+class Tresor_check::Main : private Vfs::Env::User, private Tresor::Module_composition, public  Tresor::Module, public Module_channel
 {
 	private:
 
-		enum { TX_BUF_SIZE = Block::Session::TX_QUEUE_SIZE * Tresor::BLOCK_SIZE };
+		enum State { INIT, REQ_GENERATED, CHECK_SBS_SUCCEEDED };
 
-		Env                  &_env;
-		Heap                  _heap        { _env.ram(), _env.rm() };
-		Allocator_avl         _blk_alloc   { &_heap };
-		Block::Connection<>   _blk         { _env, &_blk_alloc, TX_BUF_SIZE };
-		Signal_handler<Main>  _blk_handler { _env.ep(), *this, &Main::_execute };
-		Tresor::Request          _blk_req     { };
-		Tresor::Io_buffer        _blk_buf     { };
-		Tresor_check::Library    _tresor_check    { };
+		Env  &_env;
+		Heap  _heap { _env.ram(), _env.rm() };
+		Attached_rom_dataspace _config_rom { _env, "config" };
+		Vfs::Simple_env _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs"), *this };
+		Signal_handler<Main> _sigh { _env.ep(), *this, &Main::_handle_signal };
+		Trust_anchor _trust_anchor { _vfs_env, _config_rom.xml().sub_node("trust-anchor") };
+		Crypto _crypto { _vfs_env, _config_rom.xml().sub_node("crypto") };
+		Block_io _block_io { _vfs_env, _config_rom.xml().sub_node("block-io") };
+		Vbd_check _vbd_check { };
+		Ft_check _ft_check { };
+		Sb_check _sb_check { };
+		bool _generated_req_success { };
+		State _state { INIT };
 
-		Genode::size_t        _blk_ratio   {
-			Tresor::BLOCK_SIZE / _blk.info().block_size };
+		NONCOPYABLE(Main);
 
-		void _execute()
+		void _generated_req_completed(State_uint state_uint) override
 		{
-			for (bool progress { true }; progress; ) {
-
-				progress = false;
-
-				_tresor_check.execute(_blk_buf);
-				if (_tresor_check.execute_progress()) {
-					progress = true;
-				}
-
-				Tresor::Request const req {
-					_tresor_check.peek_completed_client_request() };
-
-				if (req.valid()) {
-					_tresor_check.drop_completed_client_request(req);
-					if (req.success()) {
-						_env.parent().exit(0);
-					} else {
-						error("request was not successful");;
-						_env.parent().exit(-1);
-					}
-				}
-
-				struct Invalid_io_request : Exception { };
-
-				while (_blk.tx()->ready_to_submit()) {
-
-					Tresor::Io_buffer::Index data_index { 0 };
-					Tresor::Request request { };
-					_tresor_check.has_io_request(request, data_index);
-
-					if (!request.valid()) {
-						break;
-					}
-					if (_blk_req.valid()) {
-						break;
-					}
-					try {
-						request.tag(data_index.value);
-						Block::Packet_descriptor::Opcode op;
-						switch (request.operation()) {
-						case Tresor::Request::Operation::READ:
-							op = Block::Packet_descriptor::READ;
-							break;
-						case Tresor::Request::Operation::WRITE:
-							op = Block::Packet_descriptor::WRITE;
-							break;
-						default:
-							throw Invalid_io_request();
-						}
-						Block::Packet_descriptor packet {
-							_blk.alloc_packet(Tresor::BLOCK_SIZE), op,
-							request.block_number() * _blk_ratio,
-							request.count() * _blk_ratio };
-
-						if (request.operation() == Tresor::Request::Operation::WRITE) {
-							*reinterpret_cast<Tresor::Block*>(
-								_blk.tx()->packet_content(packet)) =
-									_blk_buf.item(data_index);
-						}
-						_blk.tx()->try_submit_packet(packet);
-						_blk_req = request;
-						_tresor_check.io_request_in_progress(data_index);
-						progress = true;
-					}
-					catch (Block::Session::Tx::Source::Packet_alloc_failed) {
-						break;
-					}
-				}
-
-				while (_blk.tx()->ack_avail()) {
-
-					Block::Packet_descriptor packet =
-						_blk.tx()->try_get_acked_packet();
-
-					if (!_blk_req.valid()) {
-						break;
-					}
-
-					bool const read  =
-						packet.operation() == Block::Packet_descriptor::READ;
-
-					bool const write =
-						packet.operation() == Block::Packet_descriptor::WRITE;
-
-					bool const op_match =
-						(read && _blk_req.read()) ||
-						(write && _blk_req.write());
-
-					bool const bn_match =
-						packet.block_number() / _blk_ratio == _blk_req.block_number();
-
-					if (!bn_match || !op_match) {
-						break;
-					}
-
-					_blk_req.success(packet.succeeded());
-
-					Tresor::Io_buffer::Index const data_index { _blk_req.tag() };
-					bool                  const success    { _blk_req.success() };
-
-					if (read && success) {
-						_blk_buf.item(data_index) =
-							*reinterpret_cast<Tresor::Block*>(
-								_blk.tx()->packet_content(packet));
-					}
-					_tresor_check.io_request_completed(data_index, success);
-					_blk.tx()->release_packet(packet);
-					_blk_req = Tresor::Request();
-					progress = true;
-				}
+			if (!_generated_req_success) {
+				error("command pool: request failed because generated request failed)");
+				_env.parent().exit(-1);
+				return;
 			}
-			_blk.tx()->wakeup();
+			_state = (State)state_uint;
+		}
+
+		void wakeup_vfs_user() override { _sigh.local_submit(); }
+
+		void _wakeup_back_end_services() { _vfs_env.io().commit(); }
+
+		void _handle_signal()
+		{
+			execute_modules();
+			_wakeup_back_end_services();
 		}
 
 	public:
 
-		Main(Env &env)
-		:
-			_env { env }
+		Main(Env &env) : Module_channel { COMMAND_POOL, 0 }, _env { env }
 		{
-			if (_blk_ratio == 0) {
-				error("backend block size not supported");
-				_env.parent().exit(-1);
-				return;
-			}
-
-			if (!_tresor_check.client_request_acceptable()) {
-				error("failed to submit request");
-				_env.parent().exit(-1);
-			}
-			_tresor_check.submit_client_request(
-				Tresor::Request(
-					Tresor::Request::Operation::READ,
-					false, 0, 0, 0, 0, 0));
-
-			_blk.tx_channel()->sigh_ack_avail(_blk_handler);
-			_blk.tx_channel()->sigh_ready_to_submit(_blk_handler);
-
-			_execute();
+			add_module(COMMAND_POOL, *this);
+			add_module(CRYPTO, _crypto);
+			add_module(TRUST_ANCHOR, _trust_anchor);
+			add_module(BLOCK_IO, _block_io);
+			add_module(VBD_CHECK, _vbd_check);
+			add_module(FT_CHECK, _ft_check);
+			add_module(SB_CHECK, _sb_check);
+			add_channel(*this);
+			_handle_signal();
 		}
 
-		~Main()
+		void execute(bool &progress) override
 		{
-			_blk.tx_channel()->sigh_ack_avail(Signal_context_capability());
-			_blk.tx_channel()->sigh_ready_to_submit(Signal_context_capability());
+			switch(_state) {
+			case INIT:
+
+				generate_req<Sb_check_request>(CHECK_SBS_SUCCEEDED, progress, _generated_req_success);
+				_state = REQ_GENERATED;
+				break;
+
+			case CHECK_SBS_SUCCEEDED: _env.parent().exit(0); break;
+			default: break;
+			}
 		}
 };
 
-extern "C" int memcmp(const void *p0, const void *p1, Genode::size_t size)
-{
-	return Genode::memcmp(p0, p1, size);
-}
+void Component::construct(Genode::Env &env) { static Tresor_check::Main main { env }; }
 
-extern "C" void adainit();
+namespace Libc {
 
-void Component::construct(Genode::Env &env)
-{
-	env.exec_static_constructors();
-	Timer::Connection timer { env };
-	timer.msleep(3000);
-	Genode::log("start checking");
-
-	Tresor::assert_valid_object_size<Tresor_check::Library>();
-
-	tresor_check_cxx_init();
-
-	static Main main(env);
+	struct Env;
+	struct Component { void construct(Libc::Env &) { } };
 }

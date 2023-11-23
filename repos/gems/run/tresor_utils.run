@@ -1,0 +1,160 @@
+assert_spec linux
+
+proc tresor_img_file { } { return "tresor.img" }
+
+append build_components {
+	core init timer server/lx_block server/lx_fs server/vfs app/sequence
+	app/tresor_init_trust_anchor app/tresor_init app/tresor_check
+	lib/vfs_tresor_crypto_aes_cbc lib/vfs_tresor_trust_anchor lib/vfs_jitterentropy
+	lib/libc lib/libcrypto }
+
+build $build_components
+
+create_boot_directory
+
+append config {
+
+	<config verbose="yes">
+		<parent-provides>
+			<service name="PD"/>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CPU"/>
+		</parent-provides>
+
+		<start name="timer" caps="100">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+			<route>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="lx_fs" ld="no" caps="100">
+			<resource name="RAM" quantum="2M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config> <default-policy root="/" writeable="yes"/> </config>
+			<route>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="vfs" caps="120">
+			<resource name="RAM" quantum="16M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs>
+					<dir name="ta_storage"> <fs/> </dir>
+					<dir name="dev">
+						<jitterentropy/>
+						<tresor_trust_anchor name="tresor_trust_anchor" storage_dir="/ta_storage"/>
+					</dir>
+				</vfs>
+				<default-policy root="/dev/tresor_trust_anchor" writeable="yes"/>
+			</config>
+			<route>
+				<service name="File_system"> <child name="lx_fs"/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="sequence" caps="200">
+			<resource name="RAM" quantum="128M"/>
+			<config>
+
+				<start name="tresor_init_trust_anchor">
+					<resource name="RAM" quantum="4M"/>
+					<config passphrase="foobar" trust_anchor_dir="/trust_anchor">
+						<vfs> <dir name="trust_anchor"> <fs label="ta"/> </dir> </vfs>
+					</config>
+					<route>
+						<service name="PD">  <parent/> </service>
+						<service name="ROM"> <parent/> </service>
+						<service name="LOG"> <parent/> </service>
+						<service name="CPU"> <parent/> </service>
+					</route>
+				</start>
+
+				<start name="tresor_init">
+					<resource name="RAM" quantum="4M"/>
+					<config>
+
+						<block-io type="vfs" path="/tresor.img"/>
+						<crypto path="/crypto"/>
+						<trust-anchor path="/trust_anchor"/>
+
+						<vfs>
+							<fs buffer_size="1M"/>
+							<tresor_crypto_aes_cbc name="crypto"/>
+							<dir name="trust_anchor">
+								<fs label="ta"/>
+							</dir>
+						</vfs>
+
+						<virtual-block-device nr_of_levels="3" nr_of_children="64" nr_of_leafs="512" />
+						<free-tree nr_of_levels="3" nr_of_children="64" nr_of_leafs="2048" />
+
+					</config>
+					<route>
+						<service name="PD">  <parent/> </service>
+						<service name="ROM"> <parent/> </service>
+						<service name="LOG"> <parent/> </service>
+						<service name="CPU"> <parent/> </service>
+					</route>
+				</start>
+
+				<start name="tresor_check" caps="100">
+					<resource name="RAM" quantum="4M"/>
+					<config>
+						<block-io type="vfs" path="/tresor.img"/>
+						<crypto path="/crypto"/>
+						<trust-anchor path="/trust_anchor"/>
+						<vfs>
+							<fs buffer_size="1M"/>
+							<tresor_crypto_aes_cbc name="crypto"/>
+							<dir name="trust_anchor"> <fs label="ta"/> </dir>
+						</vfs>
+					</config>
+					<route>
+						<service name="PD">  <parent/> </service>
+						<service name="ROM"> <parent/> </service>
+						<service name="LOG"> <parent/> </service>
+						<service name="CPU"> <parent/> </service>
+					</route>
+				</start>
+
+			</config>
+			<route>
+				<service name="File_system" label_last="ta"> <child name="vfs"/> </service>
+				<service name="File_system"> <child name="lx_fs"/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+	</config>
+}
+
+install_config $config
+
+exec rm -rf bin/tresor.img
+exec truncate -s 32M bin/tresor.img
+
+append boot_modules {
+	core init timer lx_block lx_fs sequence vfs vfs.lib.so vfs_jitterentropy.lib.so
+	ld.lib.so libcrypto.lib.so libc.lib.so tresor_init_trust_anchor tresor_init
+	tresor_check vfs_tresor_trust_anchor.lib.so tresor.img vfs_tresor_crypto_aes_cbc.lib.so }
+
+build_boot_image $boot_modules
+
+run_genode_until {.*child "sequence" exited with exit value 0.*\n} 240

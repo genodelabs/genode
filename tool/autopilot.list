@@ -79,6 +79,7 @@ timeout_smp
 timer_accuracy
 tool_chain_auto
 tresor_tester
+tresor_utils
 tz_vmm
 usb_block
 usb_hid_raw
