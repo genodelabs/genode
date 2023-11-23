@@ -16,7 +16,7 @@
 #include <intel/default_mappings.h>
 
 void Intel::Default_mappings::_insert_context(Managed_root_table & root,
-                                              Pci::Bdf             bdf,
+                                              Pci::Bdf const &     bdf,
                                               addr_t               paddr,
                                               Domain_id            domain_id)
 {
@@ -60,14 +60,15 @@ void Intel::Default_mappings::insert_translation(addr_t va, addr_t pa,
 }
 
 
-void Intel::Default_mappings::enable_device(Pci::Bdf bdf, Domain_id domain_id)
+void Intel::Default_mappings::enable_device(Pci::Bdf const & bdf,
+                                            Domain_id        domain_id)
 {
 	_insert_context(_root_table, bdf, _default_table_phys, domain_id);
 }
 
 
 void Intel::Default_mappings::copy_stage2(Managed_root_table & dst_root,
-                                          Pci::Bdf             bdf)
+                                          Pci::Bdf const &     bdf)
 {
 	_root_table.with_stage2_pointer(bdf, [&] (addr_t phys_addr, Domain_id domain) {
 		_insert_context(dst_root, bdf, phys_addr, domain); });
@@ -77,7 +78,7 @@ void Intel::Default_mappings::copy_stage2(Managed_root_table & dst_root,
 void Intel::Default_mappings::copy_stage2(Managed_root_table & dst_root)
 {
 	_root_table.for_each_stage2_pointer(
-		[&] (Pci::Bdf bdf, addr_t phys_addr, Domain_id domain) {
+		[&] (Pci::Bdf const & bdf, addr_t phys_addr, Domain_id domain) {
 			_insert_context(dst_root, bdf, phys_addr, domain); });
 }
 

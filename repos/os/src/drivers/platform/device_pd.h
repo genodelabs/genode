@@ -93,8 +93,8 @@ class Driver::Device_pd : public Io_mmu::Domain
 		void remove_range(Io_mmu::Range const &) override;
 
 		void enable_pci_device(Io_mem_dataspace_capability const,
-		                       Pci::Bdf const) override;
-		void disable_pci_device(Pci::Bdf const) override;
+		                       Pci::Bdf const &) override;
+		void disable_pci_device(Pci::Bdf const &) override;
 };
 
 

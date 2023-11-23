@@ -545,10 +545,10 @@ class Intel::Io_mmu : private Attached_mmio,
 		 */
 		void add_default_range(Range const &, addr_t) override;
 		void default_mappings_complete() override;
-		void enable_default_mappings(Pci::Bdf bdf) override {
+		void enable_default_mappings(Pci::Bdf const & bdf) override {
 			_default_mappings.enable_device(bdf, _default_domain); }
 
-		void apply_default_mappings(Pci::Bdf bdf) {
+		void apply_default_mappings(Pci::Bdf const & bdf) {
 			_default_mappings.copy_stage2(_managed_root_table, bdf); }
 
 		/**

@@ -14,8 +14,8 @@
 /* local includes */
 #include <intel/managed_root_table.h>
 
-void Intel::Managed_root_table::remove_context(Pci::Bdf  bdf,
-                                               addr_t    phys_addr)
+void Intel::Managed_root_table::remove_context(Pci::Bdf const & bdf,
+                                               addr_t           phys_addr)
 {
 	_with_context_table(bdf.bus, [&] (Context_table & ctx) {
 		Pci::rid_t      rid = Pci::Bdf::rid(bdf);

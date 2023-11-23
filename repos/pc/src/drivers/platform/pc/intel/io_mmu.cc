@@ -52,7 +52,7 @@ void Intel::Io_mmu::Domain<TABLE>::enable_pci_device(Io_mem_dataspace_capability
 
 
 template <typename TABLE>
-void Intel::Io_mmu::Domain<TABLE>::disable_pci_device(Pci::Bdf const bdf)
+void Intel::Io_mmu::Domain<TABLE>::disable_pci_device(Pci::Bdf const & bdf)
 {
 	_intel_iommu.root_table().remove_context(bdf, _translation_table_phys);
 

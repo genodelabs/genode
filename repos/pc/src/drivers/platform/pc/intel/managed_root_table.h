@@ -100,7 +100,7 @@ class Intel::Managed_root_table : public Registered_translation_table
 		}
 
 		template <typename FN>
-		void with_stage2_pointer(Pci::Bdf bdf, FN && fn)
+		void with_stage2_pointer(Pci::Bdf const & bdf, FN && fn)
 		{
 			_with_context_table(bdf.bus, [&] (Context_table & ctx) {
 				Pci::rid_t rid = Pci::Bdf::rid(bdf);
@@ -112,7 +112,7 @@ class Intel::Managed_root_table : public Registered_translation_table
 
 		/* add second-stage table */
 		template <unsigned ADDRESS_WIDTH>
-		Domain_id insert_context(Pci::Bdf bdf, addr_t phys_addr, Domain_id domain)
+		Domain_id insert_context(Pci::Bdf const & bdf, addr_t phys_addr, Domain_id domain)
 		{
 			Domain_id cur_domain { };
 
@@ -129,7 +129,7 @@ class Intel::Managed_root_table : public Registered_translation_table
 		}
 
 		/* remove second-stage table for particular device */
-		void remove_context(Pci::Bdf, addr_t);
+		void remove_context(Pci::Bdf const &, addr_t);
 
 		/* remove second-stage table for all devices */
 		void remove_context(addr_t);

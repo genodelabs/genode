@@ -114,7 +114,7 @@ void Device_pd::remove_range(Io_mmu::Range const & range)
 
 
 void Device_pd::enable_pci_device(Io_mem_dataspace_capability const io_mem_cap,
-                                  Pci::Bdf                    const bdf)
+                                  Pci::Bdf                    const & bdf)
 {
 	addr_t addr = _address_space.attach(io_mem_cap, 0x1000);
 
@@ -134,7 +134,7 @@ void Device_pd::enable_pci_device(Io_mem_dataspace_capability const io_mem_cap,
 }
 
 
-void Device_pd::disable_pci_device(Pci::Bdf const)
+void Device_pd::disable_pci_device(Pci::Bdf const &)
 {
 	warning("Cannot unassign PCI device from device PD (not implemented by kernel).");
 }

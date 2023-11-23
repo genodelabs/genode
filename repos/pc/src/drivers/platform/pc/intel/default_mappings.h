@@ -59,15 +59,15 @@ class Intel::Default_mappings
 			return 0;
 		}
 
-		void _insert_context(Managed_root_table &, Pci::Bdf, addr_t, Domain_id);
+		void _insert_context(Managed_root_table &, Pci::Bdf const &, addr_t, Domain_id);
 
 	public:
 
 		void insert_translation(addr_t, addr_t, size_t, Page_flags, uint32_t);
 
-		void enable_device(Pci::Bdf, Domain_id);
+		void enable_device(Pci::Bdf const &, Domain_id);
 
-		void copy_stage2(Managed_root_table &, Pci::Bdf);
+		void copy_stage2(Managed_root_table &, Pci::Bdf const &);
 		void copy_stage2(Managed_root_table &);
 
 		Default_mappings(Env                        & env,
