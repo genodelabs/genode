@@ -53,6 +53,7 @@ include $(DEPOT_TOOL_DIR)/mk/dependencies.inc
 
 # select function for determining the archive version depending on archive type
 _archive_version(bin) = bin_archive_version
+_archive_version(dbg) = bin_archive_version
 _archive_version(src) = archive_version
 _archive_version(api) = archive_version
 _archive_version(raw) = archive_version
@@ -60,7 +61,7 @@ _archive_version(pkg) = archive_version
 
 _version_defined = ${call ${_archive_version(${call archive_type,$1})},$1}
 
-NEEDED_ARCHIVES := $(foreach TYPE,pkg src raw api bin,${ARCHIVES(${TYPE})})
+NEEDED_ARCHIVES := $(foreach TYPE,pkg src raw api bin dbg,${ARCHIVES(${TYPE})})
 
 # check for completeness of archive-path arguments
 NO_VERSION_ARCHIVES := $(sort $(foreach A,$(NEEDED_ARCHIVES),\

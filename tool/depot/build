@@ -47,6 +47,9 @@ define HELP_MESSAGE
                        problems.
 
     CCACHE=1           Compiler calls will use the C/C++ compiler cache.
+
+    DBG=1              Build 'dbg' archives containing debug info files
+                       in addition to the corresponding 'bin' archives.
 endef
 
 export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
@@ -94,10 +97,19 @@ endif
 #
 # Generate makefile for archive-build stage
 #
+# The target pattern rules are needed to make sure that 'build_bin_archive'
+# is called only once for each bin/dbg archive pair.
+#
 
 # determine binary-archive path within the depot
 _dst_bin_spec_path = $(call archive_user,$1)/bin/$(call bin_archive_spec,$1)/
-dst_archive_path = $(call _dst_bin_spec_path,$1)$(call bin_archive_recipe,$1)/$(call bin_archive_version,$1)
+dst_bin_archive_path = $(call _dst_bin_spec_path,$1)$(call bin_archive_recipe,$1)/$(call bin_archive_version,$1)
+dst_bin_archive_path_pattern = $(call _dst_bin_spec_path,$1)$(call bin_archive_recipe,$1)/%
+
+# determine debug-archive path within the depot
+_dst_dbg_spec_path = $(call archive_user,$1)/dbg/$(call bin_archive_spec,$1)/
+dst_dbg_archive_path = $(call _dst_dbg_spec_path,$1)$(call bin_archive_recipe,$1)/$(call bin_archive_version,$1)
+dst_dbg_archive_path_pattern = $(call _dst_dbg_spec_path,$1)$(call bin_archive_recipe,$1)/%
 
 BUILD_MK_FILE := $(DEPOT_DIR)/var/build.mk
 
@@ -105,27 +117,38 @@ BUILD_MK_FILE := $(DEPOT_DIR)/var/build.mk
 
 wipe_existing_archives:
 	$(VERBOSE)rm -rf $(addprefix $(DEPOT_DIR)/,\
-	                    $(foreach A,${ARCHIVES(bin)},$(call dst_archive_path,$A)))
+	                    $(foreach A,${ARCHIVES(bin)},$(call dst_bin_archive_path,$A)))
+	$(VERBOSE)rm -rf $(addprefix $(DEPOT_DIR)/,\
+	                    $(foreach A,${ARCHIVES(dbg)},$(call dst_dbg_archive_path,$A)))
 
 $(BUILD_MK_FILE): checked_source_archives_exist checked_no_uncategorized
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)( echo -e "all:\n"; \
 	            echo "TOOL_DIR := $(GENODE_DIR)/tool"; \
 	             $(foreach A,${ARCHIVES(bin)},\
-	                target=$(call dst_archive_path,$A); \
+	                bin_target=$(call dst_bin_archive_path,$A); \
+	                bin_target_pattern=$(call dst_bin_archive_path_pattern,$A); \
+	                dbg_target=$(call dst_dbg_archive_path,$A); \
+	                dbg_target_pattern=$(call dst_dbg_archive_path_pattern,$A); \
 	                user=$(call archive_user,$A); \
 	                recipe=$(call bin_archive_recipe,$A); \
 	                version=$(call bin_archive_version,$A); \
 	                spec=$(call bin_archive_spec,$A); \
 	                echo ""; \
-	                echo "TARGETS += $$target"; \
-	                echo "TOOL($$target) := build_bin_archive"; \
-	                echo "ARGS($$target) := $$recipe/$$version USER=$$user SPEC=$$spec"; \
+	                echo "TARGETS += $$bin_target"; \
+	                echo "TOOL($$bin_target) := build_bin_archive"; \
+	                echo "ARGS($$bin_target) := $$recipe/$$version USER=$$user SPEC=$$spec"; \
+	                echo ""; \
+	                echo "ifneq (\$$(DBG),)"; \
+	                echo "TARGETS += $$dbg_target"; \
+	                echo "TOOL($$dbg_target) := build_bin_archive"; \
+	                echo "ARGS($$dbg_target) := $$recipe/$$version USER=$$user SPEC=$$spec"; \
+	                echo "endif"; \
+	                echo -e "\n$$bin_target_pattern $$dbg_target_pattern:"; \
+	                echo -e "\t\$$(MAKE) -f \$$(TOOL_DIR)/depot/mk/\$${TOOL(\$$@)}" \
+	                        "\$${ARGS(\$$@)} CCACHE=\$$(CCACHE) VERBOSE=\$$(VERBOSE)\n"; \
 	             ) \
 	             echo -e "\nall: \$$(TARGETS)"; \
-	             echo -e "\n\$$(TARGETS):"; \
-	             echo -e "\t\$$(MAKE) -f \$$(TOOL_DIR)/depot/mk/\$${TOOL(\$$@)}" \
-	                     "\$${ARGS(\$$@)} CCACHE=\$$(CCACHE) VERBOSE=\$$(VERBOSE)\n"; \
 	          ) > $@
 
 

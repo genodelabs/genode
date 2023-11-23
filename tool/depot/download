@@ -12,7 +12,10 @@ define HELP_MESSAGE
 
   usage:
 
-    $(firstword $(MAKEFILE_LIST)) <archive-path> {PUBLIC=<public>}
+    $(firstword $(MAKEFILE_LIST)) <archive-path> {PUBLIC=<public>} {DBG=1}
+
+  With the optional 'DBG=1' argument, 'dbg' archives are downloaded
+  in addition to the corresponding 'bin' archives.
 
 endef
 

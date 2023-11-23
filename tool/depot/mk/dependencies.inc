@@ -77,6 +77,15 @@ ARCHIVES(bin) := $(sort ${ARCHIVES(bin)} $(foreach P,${ARCHIVES(binpkg)},\
                                             $(call _binpkg_bin_archives,$P)))
 
 #
+# Populate ARCHIVES(dbg) with debug-packages
+#
+
+ifneq ($(DBG),)
+_dbg_from_bin = $(call archive_user,$1)/dbg/$(call bin_archive_spec,$1)/$(call bin_archive_recipe,$1)/$(call bin_archive_version,$1)
+ARCHIVES(dbg) := $(foreach A,${ARCHIVES(bin)},$(call _dbg_from_bin,$A))
+endif
+
+#
 # Extend ARCHIVES(src) with package dependencies
 #
 
