@@ -173,6 +173,7 @@ struct Decorator::Main : Window_factory_base
 		});
 
 		/* import initial state */
+		_handle_mode();
 		_handle_pointer_update();
 		_handle_window_layout_update();
 	}
