@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<xs:include schemaLocation="base_types.xsd"/>
+	<xs:include schemaLocation="net_types.xsd"/>
+
+	<xs:element name="config">
+		<xs:complexType>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+
+				<xs:element name="peer">
+					<xs:complexType>
+						<xs:attribute name="public_key" type="xs:string" />
+						<xs:attribute name="endpoint_ip" type="Ipv4_address" />
+						<xs:attribute name="endpoint_port" type="Port" />
+						<xs:attribute name="allowed_ip" type="Ipv4_address_prefix" />
+					</xs:complexType>
+				</xs:element><!-- peer -->
+
+			</xs:choice>
+			<xs:attribute name="private_key" type="xs:string"/>
+			<xs:attribute name="listen_port" type="Port" />
+			<xs:attribute name="use_rtc" type="Boolean" />
+		</xs:complexType>
+	</xs:element><!-- config -->
+
+</xs:schema>
