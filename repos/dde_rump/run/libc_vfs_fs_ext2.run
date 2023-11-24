@@ -10,12 +10,6 @@ set test_build_components "lib/vfs_rump"
 
 set test_vfs_config "<rump fs=\"ext2fs\" ram=\"10M\" writeable=\"yes\"/>"
 
-set test_boot_modules {
-	rump_fs.lib.so
-	rump.lib.so
-	vfs_rump.lib.so
-}
-
 set use_vfs_server 1
 
 source ${genode_dir}/repos/libports/run/libc_vfs_filesystem_test.inc

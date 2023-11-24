@@ -1,5 +1,12 @@
-if {[have_spec arm]} {
-   assert_spec arm_v7
+if {[have_spec arm]} { assert_spec arm_v7 }
+
+build {
+	core lib/ld init timer lib/vfs lib/libc
+	server/vfs_block
+	server/vfs
+	lib/vfs_rump
+	lib/vfs_import
+	test/libc_vfs
 }
 
 #
@@ -9,20 +16,6 @@ set mkfs [installed_command mkfs.vfat]
 set dd   [installed_command dd]
 
 #
-# Build
-#
-set build_components {
-	core init timer
-	server/vfs_block
-	server/vfs
-	lib/vfs_rump
-	lib/vfs_import
-	test/libc_vfs
-}
-
-build $build_components
-
-#
 # Build FAT-file-system image
 #
 catch { exec $dd if=/dev/zero of=bin/fs.raw bs=1M count=16 }
@@ -30,10 +23,7 @@ catch { exec $mkfs -F16 bin/fs.raw }
 
 create_boot_directory
 
-#
-# Generate config
-#
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -68,7 +58,7 @@ append config {
 		</config>
 	</start>
 	<start name="vfs" caps="200">
-		<resource name="RAM" quantum="10M" />
+		<resource name="RAM" quantum="30M" />
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs>
@@ -89,20 +79,7 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer test-libc_vfs vfs_block
-	rump.lib.so rump_fs.lib.so vfs vfs_rump.lib.so
-	fs.raw libc.lib.so vfs.lib.so vfs_import.lib.so
-}
-
-build_boot_image $boot_modules
+build_boot_image [list {*}[build_artifacts] fs.raw]
 
 append qemu_args "  -nographic "
 

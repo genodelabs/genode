@@ -1,17 +1,7 @@
-if {[have_spec arm]} {
-   assert_spec arm_v7
-}
+if {[have_spec arm]} { assert_spec arm_v7 }
 
-#
-# Check used commands
-#
-set mkisofs [installed_command mkisofs]
-
-#
-# Build
-#
-set build_components {
-	core init timer
+build {
+	core lib/ld init timer lib/vfs
 	server/fs_rom
 	server/vfs_block
 	server/vfs
@@ -19,13 +9,9 @@ set build_components {
 	test/iso
 }
 
-build $build_components
 create_boot_directory
 
-#
-# Generate config
-#
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -57,7 +43,7 @@ append config {
 		</config>
 	</start>
 	<start name="vfs" caps="200">
-		<resource name="RAM" quantum="12M" />
+		<resource name="RAM" quantum="20M" />
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs> <rump fs="cd9660" ram="10M" writeable="no"/> </vfs>
@@ -79,6 +65,11 @@ append config {
 </config>}
 
 #
+# Check used commands
+#
+set xorrisofs [installed_command xorrisofs]
+
+#
 # Create iso
 #
 exec cp -f [genode_dir]/repos/os/src/test/iso/test.txt [run_dir]
@@ -88,21 +79,10 @@ for { set i 1 } { $i <= 30 } { incr i } {
 }
 
 exec rm -f bin/fs.iso
-catch { exec $mkisofs -l -R -hide-rr-moved -jcharset utf-8 -o bin/fs.iso [run_dir]}
 
+catch { exec $xorrisofs -l -R -hide-rr-moved -o bin/fs.iso [run_dir]}
 
-install_config $config
-
-#
-# Boot modules
-#
-set boot_modules {
-	core ld.lib.so init timer test-iso vfs_block
-	rump.lib.so rump_fs.lib.so vfs_rump.lib.so vfs vfs.lib.so
-	fs.iso fs_rom
-}
-
-build_boot_image $boot_modules
+build_boot_image [list {*}[build_artifacts] fs.iso]
 
 append qemu_args "-nographic "
 

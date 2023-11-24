@@ -7,17 +7,8 @@ if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
 	exit 0
 }
 
-#
-# Check used commands
-#
-set mke2fs [installed_command mke2fs]
-set dd     [installed_command dd]
-
-#
-# Build
-#
-set build_components {
-	core init timer
+build {
+	core init timer lib/ld lib/libc lib/vfs
 	server/vfs_block
 	server/vfs
 	lib/vfs_rump
@@ -25,7 +16,11 @@ set build_components {
 	test/libc_vfs
 }
 
-build $build_components
+#
+# Check used commands
+#
+set mke2fs [installed_command mke2fs]
+set dd     [installed_command dd]
 
 #
 # Build EXT2-file-system image
@@ -35,10 +30,7 @@ catch { exec $mke2fs -F bin/ext2.raw }
 
 create_boot_directory
 
-#
-# Generate config
-#
-append config {
+install_config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -92,20 +84,7 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer test-libc_vfs vfs_block
-	rump.lib.so rump_fs.lib.so vfs vfs_rump.lib.so
-	ext2.raw libc.lib.so vfs.lib.so vfs_import.lib.so
-}
-
-build_boot_image $boot_modules
+build_boot_image [list {*}[build_artifacts] ext2.raw]
 
 append qemu_args "  -nographic"
 

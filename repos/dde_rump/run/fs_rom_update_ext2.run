@@ -1,8 +1,5 @@
-#
-# Build
-#
-set build_components {
-	core init timer
+build {
+	core lib/ld init timer lib/vfs
 	app/rom_logger
 	app/rom_to_file
 	lib/vfs_rump
@@ -13,8 +10,6 @@ set build_components {
 	server/vfs
 }
 
-build $build_components
-
 create_boot_directory
 
 catch { exec dd if=/dev/zero of=bin/ext2.img bs=1024 count=8192 }
@@ -23,10 +18,7 @@ set mkfs_cmd [installed_command mkfs.ext2]
 
 catch { exec $mkfs_cmd -F bin/ext2.img }
 
-#
-# Generate config
-#
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="CPU"/>
@@ -61,7 +53,7 @@ append config {
 		</config>
 	</start>
 	<start name="vfs" caps="256">
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="20M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs> <rump fs="ext2fs" ram="8M"/> </vfs>
@@ -95,7 +87,9 @@ append config {
 	</start>
 	<start name="rom_to_file">
 		<resource name="RAM" quantum="2M"/>
-		<config rom="dynamic_rom"/>
+		<config rom="dynamic_rom">
+			<vfs> <fs/> </vfs>
+		</config>
 		<route>
 			<service name="ROM" label="dynamic_rom"> <child name="dynamic_rom"/> </service>
 			<service name="File_system" > <child name="vfs"/> </service>
@@ -121,31 +115,7 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init
-	dynamic_rom
-	ext2.img
-	fs_rom
-	vfs_block
-	rom_logger
-	rom_to_file
-	rump_fs.lib.so
-	rump.lib.so
-	timer
-	vfs
-	vfs.lib.so
-	vfs_rump.lib.so
-	vfs_import.lib.so
-}
-
-build_boot_image $boot_modules
+build_boot_image [list {*}[build_artifacts] ext2.img]
 
 append qemu_args "  -nographic"
 

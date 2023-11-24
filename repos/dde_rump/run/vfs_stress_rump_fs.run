@@ -4,14 +4,8 @@
 # \date   2015-08-30
 #
 
-#
-# Check used commands
-#
-set mke2fs [installed_command mke2fs]
-set dd     [installed_command dd]
-
-set build_components {
-	core init timer
+build {
+	core lib/ld init timer lib/vfs
 	test/vfs_stress
 	server/vfs
 	server/vfs_block
@@ -19,8 +13,11 @@ set build_components {
 	lib/vfs_import
 }
 
-build $build_components
-
+#
+# Check used commands
+#
+set mke2fs [installed_command mke2fs]
+set dd     [installed_command dd]
 
 #
 # Build EXT2-file-system image
@@ -76,16 +73,9 @@ install_config {
 			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>
-</config>
-}
+</config> }
 
-set boot_modules {
- 	core init ld.lib.so timer vfs_stress
-	rump.lib.so rump_fs.lib.so vfs vfs_rump.lib.so
-	vfs_block ext2.raw vfs.lib.so vfs_import.lib.so
-}
-
-build_boot_image $boot_modules
+build_boot_image [list {*}[build_artifacts] ext2.raw]
 
 append qemu_args "-nographic -smp cpus=6"
 
