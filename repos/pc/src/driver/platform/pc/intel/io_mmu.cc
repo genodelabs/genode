@@ -261,6 +261,9 @@ void Intel::Io_mmu::generate(Xml_generator & xml)
 			xml.attribute("mask", (bool)read<Fault_event_control::Mask>());
 		});
 
+		if (read<Global_status::Irtps>())
+			_irq_table.generate(xml);
+
 		if (!read<Global_status::Rtps>())
 			return;
 
@@ -371,6 +374,43 @@ void Intel::Io_mmu::resume()
 }
 
 
+void Intel::Io_mmu::_enable_irq_remapping()
+{
+	/*
+	 * If IRQ remapping has already been enabled during boot, the kernel is
+	 * in charge of the remapping. Since there is no way to get the required
+	 * unremapped vector for requested MSI, we cannot take over control.
+	 */
+
+	if (read<Global_status::Ires>()) {
+		warning("IRQ remapping is controlled by kernel for ", name());
+		return;
+	}
+
+	/* caches must be cleared if Esirtps is not set */
+	if (read<Capability::Esirtps>())
+		invalidator().invalidate_irq(0, true);
+
+	/* set interrupt remapping table address */
+	write<Irq_table_address>(
+		Irq_table_address::Size::bits(Irq_table::ENTRIES_LOG2-1) |
+		Irq_table_address::Address::masked(_irq_table_phys));
+
+	/* issue set interrupt remapping table pointer command */
+	_global_command<Global_command::Sirtp>(1);
+
+	/* disable compatibility format interrupts */
+	_global_command<Global_command::Cfi>(0);
+
+	/* enable interrupt remapping */
+	_global_command<Global_command::Ire>(1);
+
+	log("enabled interrupt remapping for ", name());
+
+	_remap_irqs = true;
+}
+
+
 Intel::Io_mmu::Io_mmu(Env                      & env,
                       Io_mmu_devices           & io_mmu_devices,
                       Device::Name       const & name,
@@ -380,10 +420,11 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
 : Attached_mmio(env, {(char *)range.start, range.size}),
   Driver::Io_mmu(io_mmu_devices, name),
   _env(env),
-  _managed_root_table(_env, table_allocator, *this, !coherent_page_walk()),
-  _default_mappings(_env, table_allocator, *this, !coherent_page_walk(),
-                    _sagaw_to_levels()),
-  _domain_allocator(_max_domains()-1)
+  _table_allocator(table_allocator),
+  _domain_allocator(_max_domains()-1),
+  _managed_root_table(_env, _table_allocator, *this, !coherent_page_walk()),
+  _default_mappings(_env, _table_allocator, *this, !coherent_page_walk(),
+                    _sagaw_to_levels())
 {
 	if (_broken_device()) {
 		error(name, " reports invalid capability registers. Please disable VT-d/IOMMU.");
@@ -422,6 +463,7 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
 		_fault_irq->ack_irq();
 
 		Irq_session::Info info = _fault_irq->info();
+
 		if (info.type == Irq_session::Info::INVALID)
 			error("Unable to enable fault event interrupts for ", name);
 		else {
@@ -430,4 +472,12 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
 			write<Fault_event_control::Mask>(0);
 		}
 	}
+
+	/*
+	 * We always enable IRQ remapping if its supported by the IOMMU. Note, there
+	 * might be the possibility that the ACPI DMAR table says otherwise but
+	 * we've never seen such a case yet.
+	 */
+	if (read<Extended_capability::Ir>())
+		_enable_irq_remapping();
 }

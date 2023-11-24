@@ -32,6 +32,7 @@
 #include <intel/domain_allocator.h>
 #include <intel/default_mappings.h>
 #include <intel/invalidator.h>
+#include <intel/irq_remap_table.h>
 #include <expanding_page_table_allocator.h>
 
 namespace Intel {
@@ -39,6 +40,14 @@ namespace Intel {
 	using namespace Driver;
 
 	using Context_table_allocator = Managed_root_table::Allocator;
+
+	/**
+	 * We use a 4KB interrupt remap table since kernels (nova, hw) do not
+	 * support more than 256 interrupts anyway. We can thus reuse the
+	 * context-table allocator.
+	 */
+	using Irq_table = Irq_remap_table<12>;
+	using Irq_allocator = Irq_table::Irq_allocator;
 
 	class Io_mmu;
 	class Io_mmu_factory;
@@ -71,6 +80,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 				Domain_allocator & _domain_allocator;
 				Domain_id          _domain_id         { _domain_allocator.alloc() };
 				bool               _skip_invalidation { false };
+				Irq_allocator    & _irq_allocator;
 
 				addr_t             _translation_table_phys {
 					_table_allocator.construct<TABLE>() };
@@ -131,7 +141,8 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 				       Registry<Dma_buffer> const & buffer_registry,
 				       Env                        & env,
 				       Ram_allocator              & ram_alloc,
-				       Domain_allocator           & domain_allocator)
+				       Domain_allocator           & domain_allocator,
+				       Irq_allocator              & irq_allocator)
 				: Driver::Io_mmu::Domain(intel_iommu, md_alloc),
 				  Registered_translation_table(intel_iommu),
 				  _intel_iommu(intel_iommu),
@@ -139,7 +150,8 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 				  _ram_alloc(ram_alloc),
 				  _buffer_registry(buffer_registry),
 				  _table_allocator(_env, md_alloc, ram_alloc, 2),
-				  _domain_allocator(domain_allocator)
+				  _domain_allocator(domain_allocator),
+				  _irq_allocator(irq_allocator)
 				{
 					Invalidation_guard guard { *this, _intel_iommu.caching_mode() };
 
@@ -168,7 +180,39 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 	private:
 
-		Env                & _env;
+		static
+		Irq_table & _irq_table_virt(Context_table_allocator & alloc, addr_t phys)
+		{
+			addr_t va { 0 };
+
+			alloc.with_table<Irq_table>(phys,
+				[&] (Irq_table & t) { va = (addr_t)&t; },
+				[&] ()              { /* never reached */ });
+
+				/**
+				 * Dereferencing is save because _irq_table_phys is never 0
+				 * (allocator throws exception) and with_table() thus always sets
+				 * a valid virtual address.
+				 */
+				return *(Irq_table*)va;
+		}
+
+
+		Env                     & _env;
+		bool                      _verbose          { false };
+		Context_table_allocator & _table_allocator;
+
+		const addr_t              _irq_table_phys   {
+			_table_allocator.construct<Irq_table>() };
+
+		Irq_table               & _irq_table        {
+			_irq_table_virt(_table_allocator, _irq_table_phys) };
+
+		Irq_allocator             _irq_allocator    { };
+
+		Report_helper             _report_helper    { *this };
+		Domain_allocator          _domain_allocator;
+		Domain_id                 _default_domain   { _domain_allocator.alloc() };
 
 		/**
 		 * For a start, we keep a distinct root table for every hardware unit.
@@ -184,12 +228,11 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		 * The default root table holds default mappings (e.g. reserved memory)
 		 * that needs to be accessible even if devices have not been acquired yet.
 		 */
-		bool                          _verbose            { false };
 		Managed_root_table            _managed_root_table;
 		Default_mappings              _default_mappings;
-		Report_helper                 _report_helper      { *this };
-		Domain_allocator              _domain_allocator;
-		Domain_id                     _default_domain     { _domain_allocator.alloc() };
+
+		bool                          _remap_irqs { false };
+
 		Constructible<Irq_connection> _fault_irq          { };
 		Signal_handler<Io_mmu>        _fault_handler      {
 			_env.ep(), *this, &Io_mmu::_handle_faults };
@@ -263,8 +306,14 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 			/* queued invalidation enable */
 			struct Qie    : Bitfield<26,1> { };
 
+			/* interrupt remapping enable */
+			struct Ire    : Bitfield<25,1> { };
+
 			/* set interrupt remap table pointer */
 			struct Sirtp  : Bitfield<24,1> { };
+
+			/* compatibility format interrupts */
+			struct Cfi    : Bitfield<23,1> { };
 		};
 
 		struct Global_status : Register<0x1c, 32>
@@ -294,6 +343,14 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		{
 			struct Mode    : Bitfield<10, 2> { enum { LEGACY = 0x00 }; };
 			struct Address : Bitfield<12,52> { };
+		};
+
+		struct Irq_table_address : Register<0xB8, 64>
+		{
+			struct Size    : Bitfield< 0, 4> { };
+			struct Address : Bitfield<12,52> { };
+
+			/* not using extended interrupt mode (x2APIC) */
 		};
 
 		struct Fault_status : Register<0x34, 32>
@@ -437,6 +494,8 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 		void _handle_faults();
 
+		void _enable_irq_remapping();
+
 		/**
 		 * Io_mmu interface
 		 */
@@ -524,6 +583,33 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 			_default_mappings.copy_stage2(_managed_root_table, bdf); }
 
 		/**
+		 * Io_mmu interface for IRQ remapping
+		 */
+		void unmap_irq(Pci::Bdf const & bdf, unsigned idx) override
+		{
+			if (!_remap_irqs)
+				return;
+
+			if (_irq_table.unmap(_irq_allocator, bdf, idx))
+				invalidator().invalidate_irq(idx, false);
+		}
+
+		Irq_info map_irq(Pci::Bdf   const & bdf,
+		                 Irq_info   const & info,
+		                 Irq_config const & config) override
+		{
+			if (!_remap_irqs)
+				return info;
+
+			return _irq_table.map(_irq_allocator, bdf, info, config, [&] (unsigned idx) {
+				if (caching_mode())
+					invalidator().invalidate_irq(idx, false);
+				else
+					flush_write_buffer();
+			});
+		}
+
+		/**
 		 * Io_mmu interface
 		 */
 
@@ -540,7 +626,8 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 					                                                 buffer_registry,
 					                                                 _env,
 					                                                 ram_alloc,
-					                                                 _domain_allocator);
+					                                                 _domain_allocator,
+					                                                 _irq_allocator);
 
 			if (!read<Capability::Sagaw_3_level>() && read<Capability::Sagaw_5_level>())
 				error("IOMMU requires 5-level translation tables (not implemented)");
@@ -551,7 +638,8 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 				                                                 buffer_registry,
 				                                                 _env,
 				                                                 ram_alloc,
-				                                                 _domain_allocator);
+				                                                 _domain_allocator,
+				                                                 _irq_allocator);
 		}
 
 		/**
@@ -568,6 +656,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		~Io_mmu()
 		{
 			_domain_allocator.free(_default_domain);
+			_table_allocator.destruct<Irq_table>(_irq_table_phys);
 			_destroy_domains();
 		}
 };

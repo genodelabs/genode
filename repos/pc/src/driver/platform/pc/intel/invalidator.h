@@ -38,6 +38,7 @@ class Intel::Invalidator
 
 		virtual ~Invalidator() { }
 
+		virtual void invalidate_irq(unsigned, bool) { };
 		virtual void invalidate_iotlb(Domain_id) = 0;
 		virtual void invalidate_context(Domain_id domain, Pci::rid_t) = 0;
 		virtual void invalidate_all(Domain_id domain = Domain_id { Domain_id::INVALID },
@@ -171,6 +172,7 @@ class Intel::Queued_invalidator : public Invalidator
 				enum {
 					CONTEXT = 1,
 					IOTLB   = 2,
+					IEC     = 4
 				};
 			};
 
@@ -197,6 +199,17 @@ class Intel::Queued_invalidator : public Invalidator
 			struct Dr   : Bitfield<7,1> { };
 		};
 
+		struct Iec : Descriptor
+		{
+			struct Global : Bitfield<4,1> {
+				enum {
+					GLOBAL = 0,
+					INDEX  = 1
+				};
+			};
+			struct Index  : Bitfield<32,16> { };
+		};
+
 		bool _empty() {
 			return _queue_mmio.read<Queue_mmio::Head>() == _queue_mmio.read<Queue_mmio::Tail>(); }
 
@@ -216,6 +229,7 @@ class Intel::Queued_invalidator : public Invalidator
 
 	public:
 
+		void invalidate_irq(unsigned, bool) override;
 		void invalidate_iotlb(Domain_id) override;
 		void invalidate_context(Domain_id domain, Pci::rid_t) override;
 		void invalidate_all(Domain_id domain = Domain_id { Domain_id::INVALID },

@@ -120,6 +120,21 @@ void Intel::Register_invalidator::invalidate_all(Domain_id domain_id, Pci::rid_t
 }
 
 
+/* Clear interrupt entry cache */
+void Intel::Queued_invalidator::invalidate_irq(unsigned idx, bool global)
+{
+	Descriptor::access_t *entry = _tail();
+	Iec::Type::set(*entry, Iec::Type::IEC);
+	Iec::Global::set(*entry, global ? Iec::Global::GLOBAL : Iec::Global::INDEX);
+	Iec::Index::set(*entry, idx);
+
+	_next();
+
+	/* wait for completion */
+	while (!_empty());
+}
+
+
 /**
  * Clear IOTLB.
  *
