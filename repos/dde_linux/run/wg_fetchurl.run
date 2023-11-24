@@ -370,17 +370,12 @@ append config {
 install_config $config
 
 append targets {
-	core init timer server/nic_router server/report_rom
+	core init timer lib/ld server/nic_router server/report_rom lib/curl
 	app/fetchurl }
-
-append boot_modules {
-	core init timer nic_router fetchurl report_rom curl.lib.so
-	ld.lib.so }
 
 if $linux {
 
 	append targets { server/lx_fs }
-	append boot_modules { lx_fs }
 
 	# create the lx_fs root of fetchurl where it will store the downloaded file
 	proc lx_fs_root {} { return [run_dir]/genode }

@@ -84,7 +84,7 @@ puts $fd {
 </config>}
 close $fd
 
-build_boot_image { usb_terminal }
+build_boot_image [build_artifacts]
 
 append qemu_args " -chardev socket,path=$usb_raw_device,id=ser "
 append qemu_args " -device nec-usb-xhci,id=xhci -device usb-serial,bus=xhci.0,chardev=ser -nographic"

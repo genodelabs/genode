@@ -131,7 +131,7 @@ puts $fd {
 </config>}
 close $fd
 
-build_boot_image { event_dump }
+build_boot_image [build_artifacts]
 
 append qemu_args " -device nec-usb-xhci,id=xhci -device usb-kbd,bus=xhci.0 -nographic"
 

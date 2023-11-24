@@ -288,6 +288,6 @@ EpA5DBBklj8UE2CdONvN
 
 build { app/wireguard }
 
-build_boot_image { wireguard }
+build_boot_image [build_artifacts]
 
 run_genode_until forever

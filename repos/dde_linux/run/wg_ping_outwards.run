@@ -163,7 +163,7 @@ install_config {
 
 build { app/wireguard app/ping }
 
-build_boot_image { wireguard ping }
+build_boot_image [build_artifacts]
 
 append wait_for_string "64 bytes from 10.0.9.1.*"
 append wait_for_string "64 bytes from 10.0.9.1.*"

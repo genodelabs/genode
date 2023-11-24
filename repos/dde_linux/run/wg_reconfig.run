@@ -558,7 +558,7 @@ EpA5DBBklj8UE2CdONvN
 install_config $config
 
 append targets {
-	core init timer server/nic_router app/wireguard server/report_rom app/ping
+	core init timer lib/ld server/nic_router app/wireguard server/report_rom app/ping
 	app/fetchurl server/dynamic_rom }
 
 append boot_modules {

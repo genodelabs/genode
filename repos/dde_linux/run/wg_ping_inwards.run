@@ -137,7 +137,7 @@ install_config {
 
 build { app/wireguard }
 
-build_boot_image { wireguard }
+build_boot_image [build_artifacts]
 
 run_genode_until "uplink\] dynamic IP config: interface 10.0.2.3" 10
 

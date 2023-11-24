@@ -119,7 +119,7 @@ set fd [open [run_dir]/genode/usb_host_drv.config w]
 puts $fd $config
 close $fd
 
-build_boot_image { test-lwip_httpsrv }
+build_boot_image [build_artifacts]
 
 proc usb_bus {} {
 	return "$::env(BUS)" }

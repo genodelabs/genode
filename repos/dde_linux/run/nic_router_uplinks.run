@@ -396,7 +396,7 @@ install_config {
 </config>
 }
 
-build_boot_image { ping }
+build_boot_image [build_artifacts]
 
 append done_string ".*router.config: change"
 append done_string ".*router.config: sleep 3001 milliseconds"

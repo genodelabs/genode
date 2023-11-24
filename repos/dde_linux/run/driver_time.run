@@ -1,7 +1,3 @@
-#
-# Build
-#
-
 if {[expr ![have_spec arm_64] && ![have_spec x86_64]]} {
 	puts "Run script is not supported on this platform."
 	exit 0
@@ -9,13 +5,10 @@ if {[expr ![have_spec arm_64] && ![have_spec x86_64]]} {
 
 set use_top 0
 
-set build_components {
-	core init timer
-	test/driver_time
-}
-
+set build_components { core init timer lib/ld test/driver_time }
 
 append_if $use_top build_components { app/top }
+
 build $build_components
 
 create_boot_directory
@@ -58,18 +51,7 @@ append config {
 
 install_config $config
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer
-	test-driver_time
-}
-
-append_if $use_top boot_modules { top }
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 append qemu_args "-nographic "
 
