@@ -1,0 +1,799 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 23.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+Genode 23.11 brings a healthy mix of OS architectural work, curation of the
+existing framework, and new features. In an arguably radical move - but in
+perfect alignment with microkernel philosophy - we move the IOMMU driver from
+the kernel to user space. This way, Genode attains DMA protection independent
+of the used kernel. Section [Kernel-agnostic DMA protection] covers the
+background and implementation of this novel approach.
+
+We constantly re-evaluate our existing code base for opportunities of curation
+and simplification and the current release is no exception. It bears the fruit
+of an intense one-year cross-examination of Genode's existing virtualization
+interfaces across CPU architectures and kernels, as a collateral effort of
+bringing x86 virtualization to our custom base-hw microkernel. Section
+[Modernized virtualization interface] presents the story and outcome of this
+deep dive.
+
+As another curation effort, the release brings Genode's arsenal of USB device
+drivers in line with our modern DDE Linux porting approach.
+Section [USB device drivers updated to Linux 6.1.20] details this line of work.
+
+Feature-wise, the release contains the underpinnings of the CPU
+frequency/temperature/power monitoring and control feature of the latest
+Sculpt OS release
+(Section [PC power, frequency, temperature sensing and control]),
+showcases the port of the Linphone VoIP stack using the Goa tool
+(Section [Ported 3rd-party software]), and equips the Seoul virtual machine
+monitor with the ability to host 64-bit guests
+(Section [Seoul virtual machine monitor]).
+
+
+Kernel-agnostic DMA protection
+##############################
+
+On our quest towards a PC version of Sculpt OS on our custom (base-hw)
+microkernel, we were able to move an essential chunk away to clear another
+section of the path. Based on the preparatory changes to the platform driver
+regarding IOMMU handling introduced in
+[https://genode.org/documentation/release-notes/23.05#Towards_kernel-agnostic_DMA_protection - release 23.05],
+we were able to enable kernel-agnostic DMA protection on Intel platforms.
+
+Similar to how the MMU protects the system against unintended CPU-initiated
+memory transactions, the IOMMU protects the system against unintended DMA
+transactions. Since components allocate DMA buffers via the platform driver,
+the latter sits in the perfect spot to manage DMA remapping tables for its
+clients and let the IOMMU know about them.
+
+[image dma_remap]
+
+The figure above illustrates how we added remapping to the PC version of
+Sculpt OS. IOMMUs are announced in the ACPI DMAR table, which is parsed by our
+ACPI driver component.
+It particularly evaluates the _DMA Remapping Hardware Unit Defintions_ (DRHDs)
+and _Reserved Memory Region Reporting_ (RMRRs) structures and reports the
+essential details in form of an _acpi_ report. There are typically multiple
+DRHDs with different device scopes. The RMRRs specify memory regions that may
+be DMA targets for certain devices.
+
+The _acpi_ report is used by our PCI decode component, which creates a
+_devices_ report. It adds the DRHDs as devices to this report and annotates
+the found PCI devices with corresponding '<io_mmu name="drhdX"/>' nodes
+according to the DRHDs' device scopes. Moreover, it adds
+'<reserved_memory .../>' nodes to the particular devices as specified by the
+RMRRs.
+
+By evaluating the _devices_ report, the platform driver has a complete picture
+of the DMA remapping hardware units and knows about which PCI devices fall
+into their scopes. It takes control over the mentioned _drhdX_ devices on its
+own and sets up the necessary structures that are shared between all sessions
+and devices. For every Platform session and _drhdX_ device used, it creates an
+'Io_mmu::Domain' object that comprises a DMA remapping table. As shown in the
+figure, Client A, which acquires devices in the scope of drhd0 and drhd1, the
+platform driver sets up two DMA remapping tables. The tables are populated with
+the DMA buffers allocated via Client A's platform session. For every acquired
+device, the platform driver maps the corresponding remapping table. Note that
+DMA buffers are allocated on a per-session basis so that all devices in the
+same session will get access to all DMA buffers. To further restrict this,
+Client A could open separate platform sessions for distinct DMA-capable
+devices.
+
+A subtle implementation detail (not shown in the figure) concerns the
+aforementioned reserved memory. The reserved memory regions of a device must
+be added to the corresponding DMA remapping table. Moreover, these regions
+must be accessible at all times, i.e. even before the device is acquired by
+any client. For this purpose, the platform driver creates a default remapping
+table. This table is filled with the reserved memory regions and mapped for
+every unused device that requires access to any reserved memory region.
+
+A particular benefit of moving DMA remapping into the platform driver (apart
+from becoming kernel-agnostic) is that DMA remapping tables are now properly
+allocated from the session's quota. In consequence, this may increase the RAM
+and capability requirements for certain drivers.
+
+The platform driver's support for Intel IOMMUs is enabled by default on the
+NOVA and base-hw kernels. The seL4 and Fiasco.OC kernels are not yet covered.
+Nevertheless, we also kept NOVA's IOMMU enablement intact for the following
+reasons:
+
+* To protect the boot-up process from DMA attacks, the IOMMU should be enabled
+  as early as possible. The platform driver simply takes over control when it
+  is ready.
+
+* The platform driver is not (yet) able to manage interrupt remapping because
+  this requires access to the _I/O Advanced Programmable Interrupt Controller_
+  (IOAPIC) controlled by the kernel. Thus, in this release, we still let NOVA
+  manage the interrupt remapping table.
+
+* As we have not implemented support for AMD IOMMUs yet, we simply keep NOVA
+  in charge of this. If there is no Intel IOMMU present, the platform driver
+  falls back to the device PD for controlling the kernel-managed IOMMU.
+
+Along with the DMA remapping support, we added an _iommu_ report to the
+platform driver. On the PC version of Sculpt OS, this is enabled by default
+and routed to _/report/drivers/iommu_. The report summarizes the state of each
+DRHD. When the platform driver takes control, it also logs a message like
+"enabled IOMMU drhd0 with default mappings". The platform driver can be
+prevented from touching the IOMMU by removing the DRHD info from the _acpi_
+report. This can be achieved by supplying the ACPI driver with the following
+config:
+
+! <config ignore_drhd="yes"/>
+
+_Note that the ACPI driver does not handle configuration updates._
+
+Orthogonal to the DMA remapping support, we changed the allocation policy for
+DMA buffers in the generic part of the platform driver. The new policy leaves
+an unmapped page (guard page) between DMA buffers in the virtual I/O memory
+space. This ensures that a simple DMA buffer overflow does not corrupt other
+DMA buffers. Since this is only a matter of virtual address allocation, it
+does not add any additional RAM costs.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+PC power, frequency, temperature sensing and control
+====================================================
+
+PC CPU vendors provide various CPU features for the operating system to
+influence frequency and power consumption, like Intel HWP or AMD pstate to
+name just two of them. Some of the features require access to various MSR CPU
+registers, which can solely be accessed by privileged rdmsr and wrmsr
+instructions.
+
+Up to now, this feature was provided in a static manner, namely before Genode
+boots. It was possible to set a fixed desired target power consumption via the
+pre-boot chain loader bender. This feature got introduced with
+[https://genode.org/documentation/release-notes/20.11#Hardware_P-State_support_on_PC_hardware - Genode version 20.11]
+and was refined in
+[https://genode.org/documentation/release-notes/22.11#Configurable_Intel_HWP_mode - version 22.11].
+
+Another and desired approach is to permit the adjustment of the desired power
+consumption depending on the current load of the system. This dynamic way of
+power and frequency management has been in casual development since 2021 and
+first got presented in one [https://genodians.org/alex-ab/2023-05-29-freq_power - sneak peak]
+Genodian article. The feature now found its way into the
+[https://genodians.org/alex-ab/2023-10-23-msr - Sculpt 23.10] release.
+
+With the current Genode release, we have added general support to the
+framework that permits guarded access to selected MSRs via Genode's
+system-control RPC of the protection domain (PD) session. If the underlying
+kernel supports this feature, presently the NOVA kernel, read and write
+requests are forwarded via Genode's 'core' roottask to the kernel. A component
+needs the explicit [https://genode.org/documentation/release-notes/22.02#Restricting_physical_memory_information_to_device_drivers_only - managing_system] configuration role to get
+access to this functionality, which is denied by default.
+
+The actual knowledge about how to manage Intel HWP and AMD pstate is provided
+as a native Genode component, which uses the new 'Pd::system_control'
+interface. The component monitors and reports changes of MSR registers for
+temperature (Intel), frequency (AMD & Intel), and power consumption (Intel
+RAPL). Additionally, it can be instructed - by the means of configuration
+changes - to write some of the registers. Besides the low-level MSR component,
+a Genode package with a GUI component is provided to make the interactive
+usage of the feature more user-friendly. For Sculpt, we added an interactive
+dialog to assign the system-control role to a component like the graphical MSR
+package via the resource dialog. For a more detailed description please refer
+to our [https://genodians.org/alex-ab/2023-10-23-msr - Genodians article]
+for the Sculpt 23.10 release.
+
+
+Modernized virtualization interface
+===================================
+
+When we introduced the
+[https://genode.org/documentation/release-notes/19.05#Kernel-agnostic_virtual-machine_monitors - generic Virtual Machine Monitor (VMM) interface]
+for x86 virtualization with Genode
+[https://genode.org/documentation/release-notes/19.05#Kernel-agnostic_virtual-machine_monitors - version 19.05],
+it was largely modeled after our Genode VMM API for ARM with the following
+characteristics.
+
+* A vCPU's state could be requested, evaluated, and modified with the
+  'state()' method.
+
+* The vCPU was started by the 'run()' method.
+
+* For synchronization, the vCPU could be stopped with the 'pause()' method.
+
+However, this ostensibly uniform interface for ARM and x86 virtualization
+obscures two significant differences between the architectures.
+
+:Hardware and generic vCPU state:
+
+On ARM, the VMM directly handles the hardware virtualization state, i.e., the
+vCPU state is directly passed to the VMM. In contrast, what is passed to the
+VMM on x86 is a generic _Vcpu_state_. This is due to two aspects of x86
+virtualization: First, there are two competing implementations of
+virtualization on x86: AMD's _Secure Virtual Machine (SVM)_ / _AMD-V_ and
+Intel's _Virtual Machine Extensions (VMX)_. Second, neither interface lends
+itself to passing the vCPU state directly to the VMM: VMX requires privileged
+instructions to access fields in the _Virtual Machine Control Structure
+(VMCS)_. Whereas SVM supports direct access to fields in its _Virtual Machine
+Control Block (VMCB)_, the VMCB (as well as the VMCS) does not represent the
+whole state of the vCPU. Notably, both the VMCS and the VMCB do not include
+the CPU's general purpose registers, thereby warranting a separate data
+structure to synchronize the vCPU state with a VMM.
+
+:vCPU pause and state synchronization:
+
+On ARM, the 'pause()' method simply stopped the vCPU kernel thread from being
+scheduled. Since the VMM's vCPU handler runs on the same CPU core we could be
+certain that the vCPU was not running while the VMM's vCPU handler was
+executing, and calling 'pause()' made sure the vCPU wasn't rescheduled while
+the VMM was modifying its state. In contrast, calling 'pause()' on x86 has
+different semantics. It requests a synchronization point from the hypervisor,
+which responds by issuing a generic _PAUSE_ or _RECALL_ exit in order to
+signal the VMM that state can be injected into the vCPU. The mechanism is
+woven deeply into the device models of our x86 VMMs, and therefore
+asynchronous state synchronization from the VMM needed to be available in the
+VMM.
+
+
+API shortcomings and improvements
+---------------------------------
+
+On ARM, making the hardware vCPU state unconditionally available to the VMM via
+the 'state()' method meant that the API did not enforce any synchronization
+between hypervisor / hardware and VMM accesses to the vCPU state. On x86, the
+asynchronous semantics of the 'pause()' method required complex state tracking
+on the hypervisor side of the interface.
+
+To address both shortcomings, we replaced the previous API with a single
+'with_state()' method that takes a lambda function as an argument. The method
+allows scoped access to the vCPU's state and ensures that the vCPU is stopped
+before calling the supplied lambda function with the vCPU as parameter. Only
+if the lambda function returns 'true', the vCPU is resumed with its state
+updated by the VMM. Otherwise, the vCPU remains stopped.
+
+As a result, the API enforces that the vCPU state is only accessed while the
+vCPU is not running. Moreover, we were able to replace the ambiguous 'pause()'
+method by a generic mechanism that unblocks the vCPU handler, which in turn
+uses the 'with_state()' method to update the vCPU state. Finally, resuming of
+the vCPU is controlled by the return value of the lambda function exclusively
+and, thus, removes the error-prone explicit 'run()' method.
+
+
+Porting hypervisors and VMMs
+----------------------------
+
+The new API was first implemented for *base-hw*'s using AMD's SVM
+virtualization method and recently
+[https://genode.org/documentation/release-notes/23.05#Base-HW_microkernel - introduced]
+as part of the 23.05 release. The reduction of complexity was significant:
+explicitly requesting the vCPU state via 'with_state()' did away with a vast
+amount of vCPU-state tracking in the kernel. Instead, the VMM library
+explicitly requests updates to the vCPU state.
+
+With the first hypervisor ported, we were curious to see how easily our new
+interface could be applied to the *NOVA* hypervisor. The initial pleasant
+reduction of complex state handling in base-nova's VMM library was closely
+followed by the insight that there was no way to match the NOVA-specific
+execution model to our new library interface. The asynchronous nature of the
+'with_state()' interface meant that we needed a way to synchronize the vCPU
+state with the VMM that could be initiated from the VMM. Since NOVA's
+execution model is based on the hypervisor calling into the VMM on VM exits,
+we had to extend NOVA's system call interface to allow for an explicit setting
+and getting of the vCPU state. This was needed because the 'with_state()'
+interface requires that the vCPU state is made available to the caller within
+the method call, so the old model of requesting a _RECALL_ exit that would be
+processed asynchronously couldn't be used here. For the same reason, the vCPU
+exit reason had to be passed with the rest of the vCPU state in the UTCB since
+in this case this information wasn't provided through the VMM portal called
+from the hypervisor. The new 'ec_ctrl' system call variants proved to be a
+simple addition and allowed us to adapt to the new interface while still using
+NOVA's execution model for processing regular exits.
+
+The _blocking system call into the hypervisor_ execution model of *Fiasco.OC*
+and *seL4* offered its own unique set of challenges to the new library
+interface in the interplay between asynchronous 'with_state()' triggers and
+the synchronous vCPU run loop. Fortunately, we were able to meet these
+challenges without changing the kernels.
+
+While adapting our VMMs for ARM and x86, we found varying degrees of
+dependency on permanently accessible vCPU state, which we resolved by
+refactoring the implementations. As a result, the new interface is already
+used since the release of
+[https://genode.org/documentation/articles/sculpt-23-10 - Sculpt OS 23.10].
+We haven't experienced any runtime vCPU state access violations and can now be
+certain that there aren't any silent concurrent accesses to the vCPU state.
+
+All in all, the new VMM library interface has succeeded in reducing complexity
+while providing a more robust access to the vCPU state, which is shared
+between our various hypervisors and VMMs.
+
+
+Dialog API for low-complexity interactive applications
+======================================================
+
+Since version
+[https://genode.org/documentation/release-notes/14.11#New_menu_view_application - 14.11],
+Genode features a custom UI widget renderer in the form of a stand-alone
+component called _menu view_. It was designated for use cases where the
+complexity of commodity GUI tool kits like Qt is unwanted. Menu-view-based
+applications merely consume hover reports and produce dialog descriptions as
+XML. In contrast to GUI toolkit libraries, the widget rendering happens
+outside the address space of the application.
+
+Today, this custom widget renderer is used by a number of simple interactive
+Genode applications, the most prominent being the administrative user
+interface of Sculpt OS. Other examples are the touch keyboard, file vault,
+text area, and interactive
+[https://genodians.org/alex-ab/2023-10-23-msr - system monitoring tools].
+
+In each application, the XML processing used to be implemented via a rather
+ad-hoc-designed set of utilities. These utilities and patterns started to get
+in the way when applications become more complex - as we experienced while
+crafting the
+[https://genodians.org/nfeske/2023-01-05-mobile-user-interface - mobile variant]
+of Sculpt OS. These observations prompted us to formalize the implementation
+of menu-view based applications through a new light-weight framework called
+dialog API. The key ideas are as follows.
+
+First, applications are to be relieved from the technicalities of driving a
+sandboxed menu-view component, or the distinction of touch from pointer-based
+input, or the hovering of GUI elements. These concerns are to be covered by
+a runtime library. The application developer can thereby focus solely on the
+application logic, the UI representation (view) of its internal state (model),
+and the response to user interaction (controller).
+
+Second, the dialog API promotes an immediate translation of the application's
+internal state to its UI representation without the need to create an object
+for each GUI element. The application merely provides a 'view' (const) method
+that is tasked to generate a view of the application's state. This approach
+yields itself to the realization of dynamic user interfaces needing dynamic
+memory allocation inside the application.
+The 'view' method operates on a so-called 'Scope', which loosely corresponds
+to Genode's 'Xml_generator', but it expresses the generated structure using
+C++ types, not strings. A scope can host sub scopes similar to how an XML node
+can host child nodes. Hence, the _view_ method expresses the application's
+view as a composition of scopes such as frames, labels, vbox, or hbox.
+
+Third, user interaction is induced into the application by three callbacks
+'click', 'clack', and 'drag', each taking a location as argument. The location
+is not merely a position but entails the structural location of the user
+interaction within the dialog. For interpreting of the location, the
+application uses the same C++ types as for generating the view. Hence, the C++
+type system is leveraged to attain the consistency between the view and the
+controller, so to speak.
+
+Fourth, structural UI patterns - made out of nested scopes - can be combined
+into reusable building blocks called widgets. In contrast to scopes, widgets
+can have state. Widgets can host other widgets, and thereby allow for the
+implementation of higher-level GUI parts out of lower-level elements.
+
+The API resides at _gems/include/dialog/_ and is accompanied by the dialog
+library that implements the runtime needed for the interplay with the
+menu-view widget renderer. Note that it is specifically designed for the needs
+of Sculpt's UI and similar bare-bones utilities. It is not intended to become
+a desktop-grade general-purpose widget set. For example, complex topics like
+multi-language support are decidedly out of scope. During the release cycle,
+the administrative user interface of Sculpt OS - for both the desktop and
+mobile variants - has been converted to the new API. Also, the text-area
+application and the touch keyboard are using the new API now.
+
+Given that the new API has been confronted with the variety of use cases found
+in Sculpt's administrative user interface, it can now be considered for other
+basic applications. Since we target Genode-internal use for now, proper
+documentation is still missing. However, for the curious, an illustrative
+example can be found at _gems/src/test/dialog/_ accompanied by a corresponding
+_dialog.run_ script. For a real-world application, you may consider studying
+the _app/sculpt_manager/view/_ sub directory of the gems repository.
+
+
+API changes
+===========
+
+Simplified list-model utility
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The so-called 'List_model' utility located at _base/include/list_model.h_ has
+become an established pattern used by Genode components that need to maintain
+an internal data model for XML input data. It is particularly useful whenever
+XML data changes over time, in particular when reconfiguring a component at
+runtime.
+
+The original utility as introduced in version
+[https://genode.org/documentation/release-notes/18.02#API_changes - 18.02]
+relied on a policy-based programming pattern, which is more ceremonial than it
+needs to be, especially with recent versions of C++. The current release
+replaces the original policy-based 'update_from_xml' by a new method that
+takes three functors for creating, destroying, and updating elements as
+arguments. XML nodes are associated with their corresponding internal data
+models by annotating the element type with the 'type_matches' class function
+and the 'matches' method.
+
+Besides the interface change, two minor aspects are worth noting. First, to
+improve safety, list model elements can no longer be copied. Second, to foster
+consistency with other parts of Genode's API, the 'apply_first' method has
+been renamed to 'with_first'.
+
+
+Pruned IRQ-session arguments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+So far, we have used the 'device_config_phys' argument of the IRQ session to
+implicitly request the use of _Message-Signalled Interrupts_ (MSI) to core.
+This argument specifies the address to the PCI configuration space. However,
+with the addition of Intel IOMMU support to the platform driver, we encountered
+an instance where we need an MSI for a non-PCI device in order to receive fault
+IRQs from the IOMMU. We therefore added an 'irq_type' argument to the IRQ
+session, which allows the explicit specification of whether a LEGACY interrupt
+or an MSI is requested.
+
+Yet, as we exceeded the character limit by adding another argument, we pruned
+the IRQ-session arguments: Since 'device_config_phys' is not relevant for
+LEGACY interrupts, we removed this from the default _Irq_connection_
+constructor. We further added an alternative constructor for MSI, which sets
+'device_config_phys' but omits the 'irq_trigger' and 'irq_polarity' arguments.
+
+
+Libraries and applications
+##########################
+
+Seoul virtual machine monitor
+=============================
+
+The Seoul/Vancouver VMM - introduced to Genode with release 11.11 - is an
+experimental x86-based VMM which runs on Genode@NOVA, Genode@seL4, and
+Genode@Fiasco.OC, and Genode@hw on Intel and on AMD hardware. It has been up
+to now solely used with 32-bit and special crafted VMs. With the addition of
+[https://genode.org/documentation/release-notes/22.11#Seoul_VMM - VirtIO support]
+for GPU, input, and audio, the usage as specialized tailored
+[https://genodians.org/alex-ab/2023-05-09-seoul-23-04 - disposable VMs] became
+quite comfortable.
+
+However, time is ticking for 32bit on x86 and some features aren't provided in
+the same quality as for 64bit VMs. For example, when using Firefox on 32bit,
+the video playback on some webpages gets denied while functioning on 64bit
+without complaints. So, the time came to extend the Seoul VMM by 64bit guest
+support to make it fit for today and avoid further hassles.
+
+Over the year 2023, the Seoul VMM got extended by enabling the instruction
+emulator - called Halifax - to decode
+[https://wiki.osdev.org/X86-64_Instruction_Encoding - x86_64 instructions]
+with additional prefixes and additional 8 general purpose registers. Besides
+the necessary deep dive through this special topic, the Seoul VMM required
+extensions to handle more than 4G guest physical memory. Several changes to
+the guest-memory layout handling and the memory-layout reporting, e.g.,
+[https://wiki.osdev.org/Detecting_Memory_(x86) - VBios e820], were necessary.
+
+Once an early prototype successfully booted a 64bit Linux kernel, we found the
+initial user task of some Linux distributions to fail by complaining about
+unsupported CPUs. As it turned out, glibc-based software (and later also
+llvm-based) have several detection mechanism to identify the running CPU - and
+if they feel uncomfortable, deny to work. So, we had to extend the support to
+report more of the native CPUID values of the host and as an after-effect,
+have to emulate more MSR accesses as performed by 64bit Linux guests.
+Unfortunately, the MSRs between Intel and AMD differ in subtle ways, so a per
+CPU differentiation became necessary in the vCPU model.
+
+Additionally, during testing of the native 64bit Debian VM installation with
+the Seoul VMM, several improvements during early boot, especially for the
+interactive usage of the GRUB bootloader were made. Ready to use packages to
+test drive the 64bit Seoul VMM on Sculpt OS are available via the "alex-ab"
+depot.
+
+[image seoul_64bit]
+  Two instances of the Seoul VMM executing 64-bit Linux
+
+
+Ported 3rd-party software
+=========================
+
+Linphone SIP client
+-------------------
+
+Sculpt on the PinePhone used to provide only support for making and receiving
+regular phone calls but did not yet provide any VoIP functionality. Now, the
+"Linphone Console Client" and the "SIP Client for Ubuntu Touch" got ported to
+Genode to expand the available features on the PinePhone when it comes to
+mobile communication.
+
+We decided to port the [https://linphone.org - Linphone-SDK], the console
+client in particular, to Genode because it seems to be a time-tested solution
+on a range of OSes. Furthermore, it uses the [https://cmake.org - cmake]
+build-system, which makes it the ideal candidate for stressing
+[https://github.com/genodelabs/goa - Goa] with a reasonably complex project.
+Using Goa itself turned out to be straight-forward and by re-using the already
+existing back ends for POSIX-like systems, e.g. OSS for handling audio via the
+mediastreamer library, we only had to tweak the build-system in very few
+places. In the process, we encountered a few short-comings regarding the
+handling of shared libraries in cmake-based Goa projects. We were happy to
+address these and the fixes are part of the current Goa release.
+
+Since the user interface of the console client cannot be used comfortably on
+the PinePhone, it had to be complemented by a GUI application that handles the
+user interaction. While looking for such an application we noticed the
+[https://gitlab.com/ubports-linphone/linphone-simple/ - SIP Client for Ubuntu Touch]
+that utilizes the Ubuntu Touch UI Toolkit - where a port to Genode already
+exists. We adapted that project for our needs and - with the major components
+now in place - created a preset for Sculpt on the PinePhone.
+
+The preset's structure is depicted by the following chart.
+
+[image linphone_preset]
+  Structure of the linphone preset
+
+Each of the two components has its own requirements: The Linphone client needs
+access to the network, has to store its configuration, and requires access to
+the audio subsystem. It is the driving force behind the operation while it
+receives its instructions from the GUI. The GUI needs access to the GPU
+driver, as required for fluent rendering of QML on the PinePhone, as well as
+access to input events for user interaction.
+
+Naturally these requirements are satisfied by other components also
+incorporated into the preset:
+
+* The _Dynamic chroot_ component selects and limits the file-system access of
+  the client to the configured directory. In case of the PinePhone it points
+  to the '/recall/linphone' directory on the SD-card.
+
+* The _SNTP_ component provides the client with a correct real-time clock
+  value. Note that the SNTP component uses a different TCP/IP-stack than the
+  client itself.
+
+* The _Audio driver_ component makes the speaker as well as the microphone
+  available to the client.
+
+* The _GPU driver_ component allows the GUI to render the interface via OpenGL
+  on the GPU.
+
+* The _Touch keyboard_ collects the touch events and translates them into key
+  events that are then consumed by the GUI.
+
+The Linphone client and the GUI themselves are connected via the _terminal
+crosslink_ component where the control channel is formed by connecting stdout
+from the GUI to stdin from the client and vice versa.
+
+As denoted by the chart, the client actually functions as a _daemon_ that is
+running in the background, whereas the GUI is the _app_ the user interacts
+with.
+
+For more information and a usage guide, please refer to the corresponding
+[https://genodians.org/jws/2023-11-16-sip-client-for-genode - Genodians article].
+
+
+Socat
+-----
+
+We ported socat, a multipurpose relay (SOcket CAT), to Genode and created a
+ready-to-use pkg archive that allows for making a terminal session available
+on port '5555'.
+
+
+SDL libraries
+-------------
+
+This release also makes more SDL-related libraries available on Genode.
+The common helper libraries like SDL2-image, SDL2-mixer, SDL2-net, and SDL2-ttf
+complement the SDL2 support, while the SDL-gfx library enhances the support
+of SDL1.2. All these libraries are located in the _genode-world_ repository.
+
+
+Device drivers
+##############
+
+USB device drivers updated to Linux 6.1.20
+==========================================
+
+With our ongoing effort to replace our traditional device-driver porting
+approach by our new
+[https://genode.org/documentation/release-notes/21.08#Linux-device-driver_environment_re-imagined - device-driver environment],
+USB-device drivers were subject to this porting effort during this release
+cycle. This includes the HID driver for keyboard, mouse, and touch support,
+the network driver, which supports USB NICs like AX88179 or the PinePhone's
+CDC Ether profile of its LTE Modem, as well as the USB modem driver that
+offers basic LTE-modem access for modems relying on the
+[https://www.usb.org/document-library/mobile-broadband-interface-model-v10-errata-1-and-adopters-agreement - MBIM]
+configuration.
+
+
+Architecture
+------------
+
+In contrast to the USB host-controller drivers, USB device drivers do not
+communicate with the hardware directly, but only send messages to the USB host
+controller through Genode's USB-session interface. So, from Genode's point of
+view, they can be classified as protocol stacks. Therefore, we based these
+drivers not on the DDE Linux version that offers direct hardware access, but
+on 'virt_linux' as described in release
+[https://genode.org/documentation/release-notes/23.05#WireGuard_improvements - 23.05].
+
+We replaced the actual Linux calls that create USB messages (like control,
+bulk, or IRQ transfers) by custom implementations that forward these messages
+through a USB client session to the host controller. The client-session
+implementation is written in C++. Since our DDE Linux strictly separates C++
+from C-code, we introduced a USB-client C-API that can be called directly by
+the replacement functions.
+
+The same goes for the services the USB drivers offer/use. These services
+are accessed through the respective C-APIs. For example, the HID driver
+communicates with Genode's event session through the event C-API and the NIC
+driver through the uplink C-API.
+
+
+USB HID driver
+--------------
+
+The HID driver is a drop-in replacement of its predecessor. It still offers
+support to handle multiple devices at once, and the configuration remains
+unchanged.
+
+Note that we have dropped support for multi-touch devices, like Wacom, because
+touch was merely in a proof of concept state that should be redesigned and
+rethought for Genode if needed.
+
+
+USB modem
+---------
+
+The LTE-modem driver (usb_modem_drv) has been integrated into the network
+driver (see below).
+
+
+USB net
+-------
+
+The 'usb_net_drv' is a drop-in replacement for its predecessor with the
+exception that an additional configuration attribute is available:
+
+!<config mac="2e:60:90:0c:4e:01 configuration="2" />
+
+Next to the MAC address (like in the previous version), the USB configuration
+profile can be specified with the 'configuration' attribute. For USB devices
+that provide multiple configuration profiles, the Linux code will always
+select the first non-vendor-specific configuration profile found. This may not
+be the desired behavior, and therefore, can now be specified.
+
+The available configuration profile of a device can be found out under Linux
+using:
+
+! lsusb -s<bus>:<device> -vvv
+
+Currently the driver supports NICs containing an AX88179A chip and that offer
+the NCM or the ECM profile.  Support for the SMSC95XX line of devices has been
+dropped, but may be re-enabled if required.
+
+As mentioned above, the LTE modem support for MBIM-based modems has been
+merged into this driver because an LTE modem is merely a USB networking device
+(for data) plus a control channel. In case the driver discovers an LTE modem,
+it will announce a Genode terminal session as a control channel.
+
+Example configuration for the Huawai ME906s modem:
+
+!<start name="usb_net_drv">
+!  <resource name="RAM" quantum="10M"/>
+!  <provides>
+!    <service name="Terminal"/>
+!  </provides>
+!  <config mac="02:00:00:00:01:01" configuration="3"/>
+!  <route>
+!    <service name="Uplink"><child name="nic_router"/></service/>
+!    ....
+!  </route>
+!</start>
+
+The MBIM interface is enabled using configuration profile "3" and the service
+"Terminal" is provided.
+
+We have tested the driver mainly on Lenovo Thinkpad notebooks using Huawai's
+ME906e and Fibocoms's L830-EB-00 modems, but different modems might work as
+well.
+
+
+Current limitations
+-------------------
+
+The current version of 'virt_linux' does not support arm_v6 platforms like
+Raspberry Pi (Zero). We will address this shortcoming with the next release
+and update the drivers accordingly.
+
+
+Platforms
+#########
+
+Linux
+=====
+
+Following the official
+[https://wiki.libsdl.org/SDL2/MigrationGuide - migration guide] of SDL, the
+fb_sdl framebuffer driver was updated from SDL1 to SDL2 by Robin Eklind.
+Thanks to this valuable contribution, fb_sdl is now ready to run on modern
+Linux installations especially in environments that use the Wayland display
+server. Note, to compile the component from source, the installation of
+libsdl2 development packages (e.g., libsdl2-dev, libdrm-dev, and libgbm-dev on
+Ubuntu/Debian) is required.
+
+
+Build system and tools
+######################
+
+Debug information for depot binaries
+====================================
+
+So far, the Genode build system created symbolic links to unstripped binaries
+in the _debug/_ directory to provide useful debug information, but binaries
+from depot archives did not have this information available.
+
+With this release, the 'create', 'publish' and 'download' depot tools received
+an optional 'DBG=1' argument to create, publish, and download 'dbg' depot
+archives with debug-info files in addition to the corresponding 'bin' depot
+archives.
+
+To avoid the storage overhead from duplicated code with archived unstripped
+binaries, we now create separate debug info files using the "GNU debug link"
+method in the Genode build system and for the 'dbg' depot archives.
+
+
+Decommissioned implicit trigger of shared-library builds
+========================================================
+
+Since the very first version, Genode's build system automatically managed
+inter-library dependencies, which allowed us to cleanly separate different
+concerns (like CPU-architecture-specific optimizations) as small static
+libraries, which were automatically visited by the build system whenever
+building a dependent target.
+
+When we later
+[https://genode.org/documentation/release-notes/9.11#Completed_support_for_dynamic_linking - introduced]
+the support for shared libraries, we maintained the existing notion of
+libraries but merely considered shared objects as a special case. Hence,
+whenever a target depends on a shared library, the build system would
+automatically build the shared library before linking it to the target.
+
+With the later introduction of Genode's ABI's in version
+[https://genode.org/documentation/release-notes/17.02#Genode_Application_Binary_Interface - 17.02],
+we effectively dissolved the link-time dependency of targets from shared
+objects, which ultimately paved the ground for Genode's package management.
+However, our build-system retained the original policy of building shared
+libraries before linking dependent targets. Even though this is arguably
+convenient when using many small inter-dependent libraries, with complex
+shared libraries as dependencies, one always needs to locally build those
+complex libraries even though the library internals are rarely touched or the
+library is readily available as a pre-built binary archive. In the presence of
+large 3rd-party libraries, the build system's traditional policy starts to
+stand in the way of quick development-test cycles.
+
+With the current release, we dissolve the implicit built-time dependency of
+targets from shared libraries. Shared libraries must now be explicitly listed
+in the 'build' command of run scripts. For example, for run scripts that build
+Genode's base system along with the C runtime, the build command usually
+contains the following targets.
+
+! core lib/ld init timer lib/libc lib/libm lib/vfs lib/posix
+
+However, in practice most run scripts incorporate those basic ingredients as
+depot archives. So those targets need to be built only if they are touched by
+the development work. To incorporate the results of all explicitly built
+targets into a system image, the 'build_boot_image' command can be used as
+follows. Note that the listing of boot modules does not need to be maintained
+manually anymore.
+
+! build_boot_image [build_artifacts]
+
+During the release cycle of version 23.11, we have revisited all run scripts
+in this respect, and we encourage Genode users to follow suit. The run tool
+tries to give aid to implement this change whenever it detects the presence of
+a .lib.so 'build_boot_image' argument that is not covered by the prior build
+command. For example, on the attempt to integrate 'ld.lib.so' without having
+built 'lib/ld', the following diagnostic message will try to guide you.
+
+! Error: missing build argument for: ld.lib.so
+!
+!   The build_boot_image argument may be superfluous or
+!   the build step lacks the argument: lib/ld
+!
+!   Consider using [build_artifacts] as build_boot_image argument to
+!   maintain consistency between the build and build_boot_image steps.
+
+The inconvenience of the need to adopt existing run scripts notwithstanding,
+developers will certainly notice a welcome boost of their work flow,
+especially when working with complex 3rd-party libraries.
