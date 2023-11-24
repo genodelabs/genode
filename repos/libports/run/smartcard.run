@@ -27,7 +27,10 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/test_usb_host_drv-[board] \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/init
-build { test/smartcard lib/vfs_libusb lib/vfs_pipe }
+build {
+	lib/libc lib/libm lib/vfs lib/posix lib/libusb lib/vfs_libusb lib/vfs_pipe
+	test/smartcard
+}
 
 install_config {
 <config>
@@ -109,7 +112,7 @@ set fd [open [run_dir]/genode/usb_host_drv.config w]
 puts $fd $usb_config
 close $fd
 
-build_boot_image "[build_artifacts] Info.plist"
+build_boot_image [list {*}[build_artifacts] Info.plist]
 
 run_genode_until { Response: 62 0A 82 01 38 83 02 3F 00 8A 01 05 90 00} 30
 

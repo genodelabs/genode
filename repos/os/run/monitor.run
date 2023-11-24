@@ -10,7 +10,10 @@ if {![platform_supported]} {
 	exit 0
 }
 
-build { core lib/ld init timer monitor test/monitor server/terminal_crosslink }
+build {
+	core lib/ld init timer monitor lib/sandbox
+	test/monitor server/terminal_crosslink
+}
 
 create_boot_directory
 

@@ -33,7 +33,7 @@ if {[have_include power_on/qemu]} {
                       [depot_user]/src/vfs_lwip \
                       [depot_user]/src/vfs_pipe
 
-	append build_components { server/tcp_terminal }
+	append build_components { server/tcp_terminal lib/libc lib/libm }
 }
 
 build $build_components

@@ -17,7 +17,7 @@ if {[have_spec nova]} {
 }
 
 build {
-	core init timer lib/ld
+	core init timer lib/ld lib/libc lib/vfs
 	server/file_terminal server/terminal_log app/log_core
 }
 

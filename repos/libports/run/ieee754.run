@@ -7,7 +7,7 @@ if {[have_board rpi]} {
 	exit 0
 }
 
-build { core init lib/ld test/ieee754 lib/posix lib/libc lib/vfs }
+build { core init lib/ld test/ieee754 lib/posix lib/libc lib/libm lib/vfs }
 create_boot_directory
 
 install_config {
