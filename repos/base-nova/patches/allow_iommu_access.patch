@@ -1,0 +1,14 @@
+diff --git a/src/iommu_intel.cpp b/src/iommu_intel.cpp
+index 1441466..c07224e 100644
+--- a/src/iommu_intel.cpp
++++ b/src/iommu_intel.cpp
+@@ -36,7 +36,8 @@ uint32      Dmar::gcmd = GCMD_TE;
+ 
+ Dmar::Dmar (Paddr p) : List<Dmar> (list), reg_base ((hwdev_addr -= PAGE_SIZE) | (p & PAGE_MASK)), invq (static_cast<Dmar_qi *>(Buddy::allocator.alloc (ord, Pd::kern.quota, Buddy::FILL_0))), invq_idx (0)
+ {
+-    Pd::kern.Space_mem::delreg (Pd::kern.quota, Pd::kern.mdb_cache, p & ~PAGE_MASK);
++// XXX allow Genode platform driver to access device and take over control
++//    Pd::kern.Space_mem::delreg (Pd::kern.quota, Pd::kern.mdb_cache, p & ~PAGE_MASK);
+     Pd::kern.Space_mem::insert (Pd::kern.quota, reg_base, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, p & ~PAGE_MASK);
+ 
+     cap  = read<uint64>(REG_CAP);
