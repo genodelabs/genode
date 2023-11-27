@@ -312,6 +312,17 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 					xml.attribute("pkg", component.path); }); });
 	}
 
+	template <typename FN>
+	void for_each_viewed_launcher(FN const &fn) const
+	{
+		_launchers.for_each([&] (Launchers::Info const &info) {
+			if (_runtime_info.present_in_runtime(info.path))
+				return;
+
+			fn(info);
+		});
+	}
+
 	void apply_blueprint(Component &construction, Xml_node blueprint)
 	{
 		if (_state < PKG_REQUESTED)

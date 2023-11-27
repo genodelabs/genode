@@ -132,12 +132,7 @@ void Popup_dialog::_view_menu_elements(Scope<Frame, Vbox> &s, Xml_node const &de
 	 */
 	if (_state == TOP_LEVEL || _state < DEPOT_SHOWN) {
 		unsigned count = 0;
-		_launchers.for_each([&] (Launchers::Info const &info) {
-
-			/* allow each launcher to be used only once */
-			if (_runtime_info.present_in_runtime(info.path))
-				return;
-
+		for_each_viewed_launcher([&] (Launchers::Info const &info) {
 			Hosted<Frame, Vbox, Menu_entry> menu_entry { launcher_id(count++) };
 			s.widget(menu_entry, false, String<100>(Pretty(info.path)));
 		});
@@ -380,7 +375,8 @@ void Popup_dialog::click(Clicked_at const &at)
 		} else {
 
 			unsigned count = 0;
-			_launchers.for_each([&] (Launchers::Info const &info) {
+
+			for_each_viewed_launcher([&] (Launchers::Info const &info) {
 				if (id == launcher_id(count++))
 					_action.launch_global(info.path); });
 		}
