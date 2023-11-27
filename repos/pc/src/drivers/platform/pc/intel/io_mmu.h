@@ -251,6 +251,9 @@ class Intel::Io_mmu : private Attached_mmio,
 			/* write-buffer flush */
 			struct Wbf    : Bitfield<27,1> { };
 
+			/* queued invalidation enable */
+			struct Qie    : Bitfield<26,1> { };
+
 			/* set interrupt remap table pointer */
 			struct Sirtp  : Bitfield<24,1> { };
 		};

@@ -134,7 +134,6 @@ void Intel::Io_mmu::flush_write_buffer()
  */
 void Intel::Io_mmu::invalidate_iotlb(Domain_id domain_id, addr_t, size_t)
 {
-
 	unsigned requested_scope = Context_command::Cirg::GLOBAL;
 	if (domain_id.valid())
 		requested_scope = Context_command::Cirg::DOMAIN;
@@ -376,26 +375,29 @@ void Intel::Io_mmu::add_default_range(Range const & range, addr_t paddr)
 
 void Intel::Io_mmu::default_mappings_complete()
 {
-	/* skip if already enabled */
-	if (read<Global_status::Enabled>())
-		return;
+	Root_table_address::access_t rtp =
+		Root_table_address::Address::masked(_managed_root_table.phys_addr());
 
-	/* caches must be cleared if Esrtps is not set (see 6.6) */
-	if (!read<Capability::Esrtps>())
-		invalidate_all();
+	/* skip if already set */
+	if (read<Root_table_address>() == rtp)
+		return;
 
 	/* insert contexts into managed root table */
 	_default_mappings.copy_stage2(_managed_root_table);
 
 	/* set root table address */
-	write<Root_table_address>(
-		Root_table_address::Address::masked(_managed_root_table.phys_addr()));
+	write<Root_table_address>(rtp);
 
 	/* issue set root table pointer command */
 	_global_command<Global_command::Srtp>(1);
 
+	/* caches must be cleared if Esrtps is not set (see 6.6) */
+	if (!read<Capability::Esrtps>())
+		invalidate_all();
+
 	/* enable IOMMU */
-	_global_command<Global_command::Enable>(1);
+	if (!read<Global_status::Enabled>())
+		_global_command<Global_command::Enable>(1);
 
 	log("enabled IOMMU ", name(), " with default mappings");
 }
@@ -426,8 +428,11 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
 	}
 
 	if (read<Global_status::Enabled>()) {
-		error("IOMMU already enabled");
-		return;
+		log("IOMMU has been enabled during boot");
+
+		/* disable queued invalidation interface */
+		if (read<Global_status::Qies>())
+			_global_command<Global_command::Qie>(false);
 	}
 
 	/* enable fault event interrupts */
