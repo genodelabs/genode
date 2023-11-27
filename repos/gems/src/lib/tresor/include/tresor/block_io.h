@@ -145,15 +145,15 @@ class Tresor::Block_io : public Module
 		struct Write_client_data : Request
 		{
 			Write_client_data(Module_id m, Module_channel_id c, Physical_block_address p, Virtual_block_address v,
-			                  Key_id k, Request_tag t, Request_offset o, Block const &b, Hash &h, bool &s)
-			: Request(m, c, Request::WRITE_CLIENT_DATA, o, t, k, p, v, *const_cast<Block*>(&b), h, s) { }
+			                  Key_id k, Request_tag t, Request_offset o, Hash &h, bool &s)
+			: Request(m, c, Request::WRITE_CLIENT_DATA, o, t, k, p, v, *(Block*)0, h, s) { }
 		};
 
 		struct Read_client_data : Request
 		{
 			Read_client_data(Module_id m, Module_channel_id c, Physical_block_address p, Virtual_block_address v,
-			                  Key_id k, Request_tag t, Request_offset o, Block &b, bool &s)
-			: Request(m, c, Request::READ_CLIENT_DATA, o, t, k, p, v, b, *(Hash*)0, s) { }
+			                  Key_id k, Request_tag t, Request_offset o, bool &s)
+			: Request(m, c, Request::READ_CLIENT_DATA, o, t, k, p, v, *(Block*)0, *(Hash*)0, s) { }
 		};
 
 		Block_io(Vfs::Env &, Xml_node const &);

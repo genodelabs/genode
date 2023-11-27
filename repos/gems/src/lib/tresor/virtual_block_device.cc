@@ -112,7 +112,7 @@ void Virtual_block_device_channel::_read_vba(bool &progress)
 			} else
 				_generate_req<Block_io::Read_client_data>(
 					READ_BLK_SUCCEEDED, progress, node.pba, _vba, req._curr_key_id,
-					req._client_req_tag, req._client_req_offset, _data_blk);
+					req._client_req_tag, req._client_req_offset);
 		_lvl--;
 		break;
 	}
@@ -255,7 +255,7 @@ void Virtual_block_device_channel::_write_vba(bool &progress)
 			else
 				_generate_req<Block_io::Write_client_data>(
 					WRITE_BLK_SUCCEEDED, progress, _new_pbas.pbas[0], _vba,
-					req._curr_key_id, req._client_req_tag, req._client_req_offset, _data_blk, _hash);
+					req._curr_key_id, req._client_req_tag, req._client_req_offset, _hash);
 		}
 		_lvl--;
 		break;
@@ -267,7 +267,7 @@ void Virtual_block_device_channel::_write_vba(bool &progress)
 
 		_generate_req<Block_io::Write_client_data>(
 			WRITE_BLK_SUCCEEDED, progress, _new_pbas.pbas[0], _vba, req._curr_key_id,
-			req._client_req_tag, req._client_req_offset, _data_blk, _hash);
+			req._client_req_tag, req._client_req_offset, _hash);
 
 		break;
 
