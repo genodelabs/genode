@@ -407,6 +407,14 @@ struct gpio_desc * devm_gpiod_get_optional(struct device * dev, const char * con
 	return NULL;
 }
 
+#include <linux/gpio/consumer.h>
+
+struct gpio_desc * __must_check gpiod_get_optional(struct device * dev,const char * con_id,enum gpiod_flags flags)
+{
+	lx_emul_trace(__func__);
+	return NULL;
+}
+
 #include <linux/clk.h>
 
 struct clk *devm_clk_get_optional_enabled(struct device *dev, const char *id)
