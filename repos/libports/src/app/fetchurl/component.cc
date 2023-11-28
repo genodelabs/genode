@@ -115,6 +115,8 @@ struct Fetchurl::Main
 
 	Genode::Milliseconds _progress_timeout { 10u * 1000 };
 
+	bool _ignore_result { false };
+
 	void _schedule_report()
 	{
 		using namespace Genode;
@@ -189,6 +191,9 @@ struct Fetchurl::Main
 		};
 
 		config_node.for_each_sub_node("fetch", parse_fn);
+
+		_ignore_result = config_node.attribute_value("ignore_failures",
+		                                             _ignore_result);
 	}
 
 	Main(Libc::Env &e) : _env(e)
@@ -332,7 +337,8 @@ struct Fetchurl::Main
 
 		curl_easy_cleanup(curl);
 
-		return exit_res ^ CURLE_OK;
+		int const result = exit_res ^ CURLE_OK;
+		return _ignore_result ? 0 : result;
 	}
 };
 

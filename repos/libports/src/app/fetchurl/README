@@ -8,6 +8,12 @@ for a given amount of time, the transfer will be aborted. The duration can be
 set by setting the 'progress_timeout' attribute in the '<config>' node. It is
 specified in milliseconds and the default value is 10 seconds.
 
+The 'ignore_failures' attribute instructs the component to always report
+success (via exit-code 0). It is useful when batching is used where a
+failed fetch operation should not influence the over-all result. The default
+value is 'false'.
+
+
 The following config snippets illustrate its usage.
 
 Load the socket plugin in to the fetchurl binary (print output to log):
