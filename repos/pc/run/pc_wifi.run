@@ -78,7 +78,8 @@ assert_spec x86
 #
 
 create_boot_directory
-import_from_depot [depot_user]/pkg/pc_wifi
+import_from_depot [depot_user]/pkg/pc_wifi \
+                  [depot_user]/raw/pc_wifi_firmware
 
 set build_components {
 	core init timer
@@ -96,6 +97,7 @@ set build_components {
 append_if $debug_driver build_components {
 	drivers/wifi
 	lib/pc_wifi
+	lib/vfs_jitterentropy
 }
 
 build $build_components
