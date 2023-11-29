@@ -4,6 +4,34 @@
                                ===========
 
 
+Genode OS Framework release 23.11 | 2023-11-30
+##############################################
+
+| Genode 23.11 moves the IOMMU driver from the kernel to the user land,
+| introduces CPU power/temperature/frequency monitoring and steering,
+| comes with a new API for low-complexity GUI applications, and
+| streamlines the framework's virtualization interface. It also improves
+| developer ergonomics and showcases the port of the Linphone VoIP stack.
+
+Version 23.11 of the Genode OS Framework introduces DMA protection as
+kernel-agnostic feature, parting with the tradition of driving I/O protection
+units from the kernel. This radical move is accompanied by a sweeping
+modernization of the framework's virtualization interface across kernels and
+instruction-set architectures. In other words, the release is dominated by
+deeply technical topics.
+
+That said, it is not void of user-facing features either, as illustrated by
+the new port of the Linphone VoIP stack using the Goa tool, the extension of
+the Seoul virtual machine monitor to 64-bit guests, and the support for CPU
+power/temperature/frequency monitoring and steering on PC platforms.
+Furthermore, developers receive better tooling for the use and distribution of
+debug builds, and will observe a welcomed boost of their development-test
+cycles thanks to a largely streamlined build-system.
+
+These and more topics are covered in full detail by the
+[https:/documentation/release-notes/23.11 - release documentation of version 23.11...]
+
+
 Sculpt OS release 23.10 | 2023-10-26
 ####################################
 
