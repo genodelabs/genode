@@ -1,9 +1,9 @@
 LICENSE   := BSD
-VERSION   := 1.4.52
+VERSION   := 1.4.73
 DOWNLOADS := lighttpd.archive
 
 URL(lighttpd) := http://download.lighttpd.net/lighttpd/releases-1.4.x/lighttpd-$(VERSION).tar.gz
-SHA(lighttpd) := 0f9de0227681c078f6b8c6154b581ced5fe7bcb5ff428ccf292581764b771145
+SHA(lighttpd) := 816cbec71e8d02d874f1d5c798d76d091a76d5acbeb6e017ba76aeb4263d6995
 DIR(lighttpd) := src/app/lighttpd
 
-PATCHES := $(addprefix src/app/lighttpd/,fd_cloexec.patch stat_cache.c.patch)
+PATCHES := $(addprefix src/app/lighttpd/,fd_cloexec.patch)

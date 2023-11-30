@@ -1,5 +1,6 @@
+--- src/app/lighttpd/src/fdevent.c
 +++ src/app/lighttpd/src/fdevent.c
-@@ -453,7 +453,7 @@ void * fdevent_get_context(fdevents *ev, int fd) {
+@@ -51,7 +51,7 @@
  }
  
  void fdevent_setfd_cloexec(int fd) {
@@ -8,7 +9,7 @@
  	if (fd < 0) return;
  	force_assert(-1 != fcntl(fd, F_SETFD, FD_CLOEXEC));
  #else
-@@ -462,7 +462,7 @@ void fdevent_setfd_cloexec(int fd) {
+@@ -60,7 +60,7 @@
  }
  
  void fdevent_clrfd_cloexec(int fd) {
@@ -17,7 +18,7 @@
  	if (fd >= 0) force_assert(-1 != fcntl(fd, F_SETFD, 0));
  #else
  	UNUSED(fd);
-@@ -499,7 +499,7 @@ int fdevent_socket_cloexec(int domain, int type, int protocol) {
+@@ -96,7 +96,7 @@
  		return socket(domain, type | SOCK_CLOEXEC, protocol);
  #endif
  	if (-1 != (fd = socket(domain, type, protocol))) {
@@ -26,8 +27,8 @@
  		force_assert(-1 != fcntl(fd, F_SETFD, FD_CLOEXEC));
  #endif
  	}
-@@ -513,7 +513,7 @@ int fdevent_socket_nb_cloexec(int domain, int type, int protocol) {
- 		return socket(domain, type | SOCK_CLOEXEC | SOCK_NONBLOCK, protocol);
+@@ -120,7 +120,7 @@
+        #endif
  #endif
  	if (-1 != (fd = socket(domain, type, protocol))) {
 -#ifdef FD_CLOEXEC
@@ -35,16 +36,34 @@
  		force_assert(-1 != fcntl(fd, F_SETFD, FD_CLOEXEC));
  #endif
  #ifdef O_NONBLOCK
-@@ -532,7 +532,7 @@ int fdevent_open_cloexec(const char *pathname, int flags, mode_t mode) {
- 	return open(pathname, flags | O_CLOEXEC | O_NOCTTY, mode);
+@@ -173,7 +173,7 @@
+ #endif /* not used */
+ 
+ int fdevent_dup_cloexec (int fd) {
+-  #ifdef F_DUPFD_CLOEXEC
++  #if 0
+     return fcntl(fd, F_DUPFD_CLOEXEC, 3);
+   #else
+     const int newfd = fcntl(fd, F_DUPFD, 3);
+@@ -214,7 +214,7 @@
+ 	return open(pathname, flags | O_CLOEXEC | FDEVENT_O_FLAGS, mode);
  #else
- 	int fd = open(pathname, flags | O_NOCTTY, mode);
+ 	int fd = open(pathname, flags | FDEVENT_O_FLAGS, mode);
 -#ifdef FD_CLOEXEC
 +#if 0
  	if (fd != -1)
  		force_assert(-1 != fcntl(fd, F_SETFD, FD_CLOEXEC));
  #endif
-@@ -626,7 +626,7 @@ extern char **environ;
+@@ -254,7 +254,7 @@
+   #endif
+     {
+         if (0 != pipe(fds)
+-         #ifdef FD_CLOEXEC
++         #if 0
+          || 0 != fcntl(fds[0], F_SETFD, FD_CLOEXEC)
+          || 0 != fcntl(fds[1], F_SETFD, FD_CLOEXEC)
+          #endif
+@@ -378,7 +378,7 @@
  char ** fdevent_environ (void) { return environ; }
  
  
@@ -53,7 +72,7 @@
  static int fdevent_dup2_close_clrfd_cloexec(int oldfd, int newfd) {
      if (oldfd >= 0) {
          if (oldfd != newfd) {
-@@ -654,7 +654,7 @@ static int fdevent_dup2_close_clrfd_cloexec(int oldfd, int newfd, int reuse) {
+@@ -406,7 +406,7 @@
  
  
  int fdevent_set_stdin_stdout_stderr(int fdin, int fdout, int fderr) {
@@ -62,12 +81,3 @@
      if (STDIN_FILENO != fdevent_dup2_close_clrfd_cloexec(fdin, STDIN_FILENO))
          return -1;
      if (STDOUT_FILENO != fdevent_dup2_close_clrfd_cloexec(fdout, STDOUT_FILENO))
-@@ -696,7 +696,7 @@ pid_t fdevent_fork_execve(const char *name, char *argv[], char *envp[], int fdin
-     }
- 
-     if (0 != fdevent_set_stdin_stdout_stderr(fdin, fdout, fderr)) _exit(errno);
--  #ifdef FD_CLOEXEC
-+  #if 0
-     /*(might not be sufficient for open fds, but modern OS have FD_CLOEXEC)*/
-     for (int i = 3; i < 256; ++i) close(i);
-   #endif
