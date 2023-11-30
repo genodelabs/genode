@@ -123,7 +123,7 @@ class Tresor::Virtual_block_device_channel : public Module_channel
 
 		void _read_vba(bool &);
 
-		bool _check_and_decode_read_blk(bool &, bool);
+		bool _check_and_decode_read_blk(bool &);
 
 		Tree_node_index _node_idx(Tree_level_index, Virtual_block_address) const;
 

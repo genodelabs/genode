@@ -104,6 +104,7 @@ void Block_io_channel::_read_client_data(bool &progress)
 	case REQ_SUBMITTED: _file.read(READ_OK, FILE_ERR, req._pba * BLOCK_SIZE, { (char *)&_blk, BLOCK_SIZE }, progress); break;
 	case READ_OK:
 
+		calc_hash(_blk, req._hash);
 		_generate_req<Crypto_request>(
 			PLAINTEXT_BLK_SUPPLIED, progress, Crypto_request::DECRYPT_CLIENT_DATA, req._client_req_offset,
 			req._client_req_tag, req._key_id, *(Key_value *)0, req._pba, req._vba, _blk);

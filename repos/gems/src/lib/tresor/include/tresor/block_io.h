@@ -152,8 +152,8 @@ class Tresor::Block_io : public Module
 		struct Read_client_data : Request
 		{
 			Read_client_data(Module_id m, Module_channel_id c, Physical_block_address p, Virtual_block_address v,
-			                  Key_id k, Request_tag t, Request_offset o, bool &s)
-			: Request(m, c, Request::READ_CLIENT_DATA, o, t, k, p, v, *(Block*)0, *(Hash*)0, s) { }
+			                 Key_id k, Request_tag t, Request_offset o, Hash &h, bool &s)
+			: Request(m, c, Request::READ_CLIENT_DATA, o, t, k, p, v, *(Block*)0, h, s) { }
 		};
 
 		Block_io(Vfs::Env &, Xml_node const &);
