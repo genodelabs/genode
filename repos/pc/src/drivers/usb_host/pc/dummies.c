@@ -281,3 +281,10 @@ int pinctrl_init_done(struct device * dev)
 	return 0;
 }
 
+
+#include <linux/cdev.h>
+
+void cdev_init(struct cdev * cdev, const struct file_operations * fops)
+{
+	lx_emul_trace(__func__);
+}

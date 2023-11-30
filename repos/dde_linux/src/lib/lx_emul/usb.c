@@ -30,8 +30,6 @@
 
 #include <genode_c_api/usb.h>
 
-static struct file_operations * usbdev_file_operations = NULL;
-
 struct usb_interface;
 
 struct usb_find_request {
@@ -215,10 +213,12 @@ handle_return_code(struct genode_usb_request_urb req,
 	case -ENOMEM:    return MEMORY_ERROR;
 	case -ENODEV:    return NO_DEVICE_ERROR;
 	case -ESHUTDOWN: return NO_DEVICE_ERROR;
+	case -ENOSPC:    return STALL_ERROR;
 	case -EPROTO:    return PROTOCOL_ERROR;
 	case -EILSEQ:    return PROTOCOL_ERROR;
 	case -EPIPE:     return STALL_ERROR;
 	case -ETIMEDOUT: return TIMEOUT_ERROR;
+	case -EINVAL:    return PACKET_INVALID_ERROR;
 	default:         return UNKNOWN_ERROR;
 	};
 };
@@ -245,14 +245,7 @@ struct usb_per_dev_data
 	struct usb_rpc_call_args *rpc;
 	struct usb_device        *dev;
 	struct task_struct       *task;
-	struct list_head          urblist;
-};
-
-
-struct usb_urb_in_flight
-{
-	struct list_head    le;
-	struct usbdevfs_urb urb;
+	struct usb_anchor         submitted;
 };
 
 
@@ -267,11 +260,10 @@ static struct file * open_usb_dev(struct usb_device * udev)
 		data->inode.i_rdev = udev->dev.devt;
 		data->file.f_inode = &data->inode;
 		data->file.f_mode  = FMODE_WRITE;
-		usbdev_file_operations->open(&data->inode, &data->file);
 		data->dev = udev;
 		pid = kernel_thread(poll_usb_device, data, CLONE_FS | CLONE_FILES);
 		data->task = find_task_by_pid_ns(pid, NULL);
-		INIT_LIST_HEAD(&data->urblist);
+		init_usb_anchor(&data->submitted);
 		dev_set_drvdata(&udev->dev, data);
 	}
 
@@ -281,52 +273,40 @@ static struct file * open_usb_dev(struct usb_device * udev)
 
 static void release_device(struct usb_per_dev_data * data)
 {
-	genode_usb_session_handle_t session;
-	genode_usb_request_handle_t request;
-	struct usb_urb_in_flight   *iter, *next;
-	int ret = -ENODEV;
+	unsigned int ifnum;
 
-	/* discard URBs in reverse order like libusb is doing it */
-	list_for_each_entry_safe_reverse(iter, next, &data->urblist, le) {
-		usbdev_file_operations->unlocked_ioctl(&data->file,
-		                                       USBDEVFS_DISCARDURB,
-		                                       (unsigned long)&iter->urb);
-		handle_from_usercontext(iter->urb.usercontext, &session, &request);
-		genode_usb_ack_request(session, request, handle_return_code, &ret);
-		list_del(&iter->le);
-		kfree(iter);
-	}
+	usb_kill_anchored_urbs(&data->submitted);
+
+	if (!data->dev)
+		return;
 
 	/**
 	 * If the device gets released although it is still available,
 	 * reset the device to be sane for new sessions aquiring it
 	 */
-	if (data->dev)
-		usbdev_file_operations->unlocked_ioctl(&data->file, USBDEVFS_RESET, 0);
-
-	usbdev_file_operations->release(&data->inode, &data->file);
+	for (ifnum = 0; ifnum < 8; ifnum++) {
+		struct usb_interface * iface = usb_ifnum_to_if(data->dev, ifnum);
+		if (iface) usb_driver_release_interface(&usb_drv, iface);
+	}
+	usb_reset_device(data->dev);
 }
 
 
 static int claim_iface(struct usb_device *udev, unsigned int ifnum)
 {
-	struct file * file = open_usb_dev(udev);
-	return usbdev_file_operations->unlocked_ioctl(file, USBDEVFS_CLAIMINTERFACE,
-	                                              (unsigned long)&ifnum);
+	struct usb_interface * iface;
+	int ret = -ENODEV;
+
+	iface = usb_ifnum_to_if(udev, ifnum);
+	if (iface) ret = usb_driver_claim_interface(&usb_drv, iface, NULL);
+	return ret;
 }
 
 
 static int release_iface(struct usb_device *udev, unsigned int ifnum)
 {
-	struct usb_per_dev_data * data = dev_get_drvdata(&udev->dev);
-
-	if (!data)
-		return -ENODEV;
-
-	if (data)
-		usbdev_file_operations->unlocked_ioctl(&data->file,
-		                                       USBDEVFS_RELEASEINTERFACE,
-		                                       (unsigned long)&ifnum);
+	struct usb_interface * iface = usb_ifnum_to_if(udev, ifnum);
+	if (iface) usb_driver_release_interface(&usb_drv, iface);
 	return 0;
 }
 
@@ -354,8 +334,7 @@ static int claim(genode_usb_bus_num_t bus,
 	/*
 	 * As long as 'claim' is a rpc-call, and the usb device wasn't opened yet,
 	 * we cannot open the device here, this has to be done from a Linux task.
-	 * So just ignore it here, it will be claimed implicitely by the devio
-	 * usb layer later.
+	 * So just ignore it here.
 	 */
 	if (!data)
 		return 0;
@@ -429,16 +408,13 @@ handle_transfer_response(struct genode_usb_request_urb req,
                          struct genode_usb_buffer payload,
                          void * data)
 {
-	struct usbdevfs_urb * urb = ((struct usbdevfs_urb *)data);
-	struct genode_usb_request_control * ctrl =
-		genode_usb_get_request_control(&req);
+	struct urb * urb = (struct urb *) data;
 	struct genode_usb_request_transfer * transfer =
 		genode_usb_get_request_transfer(&req);
 
 	if (urb->status < 0)
 		return handle_return_code(req, payload, &urb->status);
 
-	if (ctrl)     ctrl->actual_size     = urb->actual_length;
 	if (transfer) transfer->actual_size = urb->actual_length;
 
 	if (req.type == ISOC) {
@@ -466,20 +442,23 @@ handle_string_request(struct genode_usb_request_string * req,
                       void                             * data)
 {
 	struct usb_device * udev = (struct usb_device *) data;
-	struct file       * file = open_usb_dev(udev);
+	int i, ret = -ENODEV;
 
-	struct usbdevfs_ctrltransfer ctrl = {
-		.bRequestType = USB_DIR_IN,
-		.bRequest     = USB_REQ_GET_DESCRIPTOR,
-		.wValue       = (USB_DT_STRING << 8) + req->index,
-		.wIndex       = udev->string_langid,
-		.wLength      = payload.size,
-		.timeout      = USB_CTRL_GET_TIMEOUT,
-		.data         = payload.addr,
-	};
-	int ret =
-		usbdev_file_operations->unlocked_ioctl(file, USBDEVFS_CONTROL,
-	                                           (unsigned long)&ctrl);
+	if (udev) {
+		for (i = 0; i < 3; ++i) {
+			/* retry on length 0 or error; some devices are flakey */
+			ret = usb_control_msg(udev, usb_rcvctrlpipe(udev, 0),
+					USB_REQ_GET_DESCRIPTOR, USB_DIR_IN,
+					(USB_DT_STRING << 8) + req->index, udev->string_langid,
+					payload.addr, payload.size,
+					USB_CTRL_GET_TIMEOUT);
+			if (ret <= 0 && ret != -ETIMEDOUT)
+				continue;
+			break;
+		}
+	}
+
+	if (ret > 0) ret = 0;
 	genode_usb_ack_request(session, request, handle_return_code, &ret);
 }
 
@@ -491,17 +470,16 @@ handle_altsetting_request(unsigned                    iface,
                           genode_usb_request_handle_t request,
                           void                      * data)
 {
+	int ret = -ENODEV;
 	struct usb_device * udev = (struct usb_device *) data;
-	struct file       * file = open_usb_dev(udev);
 
-	struct usbdevfs_setinterface setintf = {
-		.interface  = iface,
-		.altsetting = alt_setting
-	};
+	if (udev)
+		ret = usb_set_interface(udev, iface, alt_setting);
 
-	int ret =
-		usbdev_file_operations->unlocked_ioctl(file, USBDEVFS_SETINTERFACE,
-		                                       (unsigned long)&setintf);
+	if (ret)
+		printk("Alt setting request (iface=%u alt_setting=%u) failed\n",
+		       iface, alt_setting);
+
 	genode_usb_ack_request(session, request, handle_return_code, &ret);
 }
 
@@ -513,13 +491,18 @@ handle_config_request(unsigned                    cfg_idx,
                       void                      * data)
 {
 	struct usb_device * udev = (struct usb_device *) data;
-	struct file       * file = open_usb_dev(udev);
+	int ret = udev ? 0 : -ENODEV;
 
-	int u   = cfg_idx;
-	int ret =
-		usbdev_file_operations->unlocked_ioctl(file,
-		                                       USBDEVFS_SETCONFIGURATION,
-		                                       (unsigned long)&u);
+	/*
+	 * Skip SET_CONFIGURATION requests if the device already has the
+	 * selected config as active config. This workaround prevents issues
+	 * with Linux guests in vbox and SDC-reader passthrough.
+	 */
+	if (udev && !(udev->actconfig &&
+	      udev->actconfig->desc.bConfigurationValue == cfg_idx)) {
+		ret = usb_set_configuration(udev, cfg_idx);
+	}
+
 	genode_usb_ack_request(session, request, handle_return_code, &ret);
 }
 
@@ -531,21 +514,152 @@ handle_flush_request(unsigned char               ep,
                      void                      * data)
 {
 	struct usb_device * udev = (struct usb_device *) data;
-	struct file       * file = open_usb_dev(udev);
-	struct usb_per_dev_data * d = dev_get_drvdata(&udev->dev);
-	struct usb_urb_in_flight *iter, *next;
-	int ret = 0;
+	int ret = udev ? 0 : -ENODEV;
+	struct usb_host_endpoint * endpoint;
 
-	/* discard URBs of the related EP in reverse order, like libusb is doing */
-	list_for_each_entry_safe_reverse(iter, next, &d->urblist, le) {
-		if (iter->urb.endpoint == ep) {
-			usbdev_file_operations->unlocked_ioctl(file,
-			                                       USBDEVFS_DISCARDURB,
-			                                       (unsigned long)&iter->urb);
-		}
+	if (udev) {
+		endpoint = ep & USB_DIR_IN ? udev->ep_in[ep & 0xf]
+		              : udev->ep_out[ep & 0xf];
+		if (endpoint)
+			usb_hcd_flush_endpoint(udev, endpoint);
 	}
 
 	genode_usb_ack_request(session, request, handle_return_code, &ret);
+}
+
+
+static genode_usb_request_ret_t
+handle_ctrl_response(struct genode_usb_request_urb req,
+                         struct genode_usb_buffer payload,
+                         void * data)
+{
+	int status = *(int*)data;
+	struct genode_usb_request_control * ctrl =
+		genode_usb_get_request_control(&req);
+
+	if (status < 0)
+		return handle_return_code(req, payload, &status);
+
+	ctrl->actual_size = status;
+	return NO_ERROR;
+}
+
+
+static void async_complete(struct urb *urb)
+{
+	genode_usb_session_handle_t session_handle;
+	genode_usb_request_handle_t request_handle;
+	handle_from_usercontext(urb->context, &session_handle, &request_handle);
+	genode_usb_ack_request(session_handle, request_handle,
+	                       handle_transfer_response, (void*)urb);
+	usb_free_urb(urb);
+	lx_user_handle_io();
+}
+
+
+static int fill_bulk_urb(struct usb_device                  * udev,
+                         struct genode_usb_request_transfer * req,
+                         void                               * handle,
+                         struct genode_usb_buffer             buf,
+                         int                                  read,
+                         struct urb                        ** urb)
+{
+	int pipe = (read)
+		? usb_rcvbulkpipe(udev, req->ep) : usb_sndbulkpipe(udev, req->ep);
+
+	if (!buf.addr)
+		return -EINVAL;
+
+	*urb = usb_alloc_urb(0, GFP_KERNEL);
+	if (!*urb)
+		return -ENOMEM;
+
+	usb_fill_bulk_urb(*urb, udev, pipe, buf.addr, buf.size, async_complete, handle);
+	return 0;
+}
+
+
+static int fill_irq_urb(struct usb_device                  * udev,
+                        struct genode_usb_request_transfer * req,
+                        void                               * handle,
+                        struct genode_usb_buffer             buf,
+                        int                                  read,
+                        struct urb                        ** urb)
+{
+	int polling_interval;
+	int pipe = (read)
+		? usb_rcvintpipe(udev, req->ep) : usb_sndintpipe(udev, req->ep);
+
+	if (buf.size && !buf.addr)
+		return -EINVAL;
+
+	*urb = usb_alloc_urb(0, GFP_KERNEL);
+	if (!*urb)
+		return -ENOMEM;
+
+	if (req->polling_interval == -1) {
+
+		struct usb_host_endpoint *ep = (req->ep & USB_DIR_IN) ?
+			udev->ep_in[req->ep & 0xf] : udev->ep_out[req->ep & 0xf];
+
+		if (!ep)
+			return -ENOENT;
+
+		polling_interval = ep->desc.bInterval;
+	} else
+		polling_interval = req->polling_interval;
+
+	usb_fill_int_urb(*urb, udev, pipe, buf.addr, buf.size,
+	                 async_complete, handle, polling_interval);
+	return 0;
+}
+
+
+static int fill_isoc_urb(struct usb_device                  * udev,
+                         struct genode_usb_request_transfer * req,
+                         void                               * handle,
+                         struct genode_usb_buffer             buf,
+                         int                                  read,
+                         struct urb                        ** urb)
+{
+	int i;
+	unsigned offset = 0;
+	int pipe = (read)
+		? usb_rcvisocpipe(udev, req->ep) : usb_sndisocpipe(udev, req->ep);
+	struct usb_host_endpoint * ep =
+		req->ep & USB_DIR_IN ? udev->ep_in[req->ep & 0xf]
+		                     : udev->ep_out[req->ep & 0xf];
+
+	struct genode_usb_isoc_transfer *isoc = (struct genode_usb_isoc_transfer *)buf.addr;
+
+	if (!buf.addr || isoc->number_of_packets > MAX_PACKETS)
+		return -EINVAL;
+	if (!ep)
+		return -ENOENT;
+
+	*urb = usb_alloc_urb(isoc->number_of_packets, GFP_KERNEL);
+	if (!*urb)
+		return -ENOMEM;
+
+	(*urb)->dev                    = udev;
+	(*urb)->pipe                   = pipe;
+	(*urb)->start_frame            = -1;
+	(*urb)->stream_id              = 0;
+	(*urb)->transfer_buffer        = isoc->data;
+	(*urb)->transfer_buffer_length = buf.size - sizeof(*isoc);
+	(*urb)->number_of_packets      = isoc->number_of_packets;
+	(*urb)->interval               = 1 << min(15, ep->desc.bInterval - 1);
+	(*urb)->context                = handle;
+	(*urb)->transfer_flags         = URB_ISO_ASAP | (read ? URB_DIR_IN : URB_DIR_OUT);
+	(*urb)->complete               = async_complete;
+
+	for (i = 0; i < isoc->number_of_packets; i++) {
+		(*urb)->iso_frame_desc[i].offset = offset;
+		(*urb)->iso_frame_desc[i].length = isoc->packet_size[i];
+		offset += isoc->packet_size[i];
+	}
+
+	return 0;
 }
 
 
@@ -553,90 +667,62 @@ static void
 handle_urb_request(struct genode_usb_request_urb req,
                    genode_usb_session_handle_t   session_handle,
                    genode_usb_request_handle_t   request_handle,
-                   struct genode_usb_buffer payload, void * args)
+                   struct genode_usb_buffer payload, void * data)
 {
-	struct usb_device       * udev = (struct usb_device *) args;
-	struct usb_per_dev_data * data = dev_get_drvdata(&udev->dev);
-	struct file             * file = &data->file;
+	struct usb_device * udev = (struct usb_device *) data;
+	struct usb_per_dev_data * urbs = dev_get_drvdata(&udev->dev);
+	struct genode_usb_request_control * ctrl =
+		genode_usb_get_request_control(&req);
+	struct genode_usb_request_transfer * transfer =
+		genode_usb_get_request_transfer(&req);
+	int ret  = 0;
+	int read = transfer ? (transfer->ep & 0x80) : 0;
+	struct urb * urb = NULL;
+	void *handle = usercontext_from_handle(session_handle, request_handle);
 
 	switch (req.type) {
 	case CTRL:
 		{
-			struct usbdevfs_urb urb;
-			struct genode_usb_request_control * urc =
-				genode_usb_get_request_control(&req);
-			struct usbdevfs_ctrltransfer ctrl = {
-				.bRequestType = urc->request_type,
-				.bRequest     = urc->request,
-				.wValue       = urc->value,
-				.wIndex       = urc->index,
-				.wLength      = payload.size,
-				.timeout      = urc->timeout,
-				.data         = payload.addr,
-			};
-			urb.actual_length =
-				usbdev_file_operations->unlocked_ioctl(file, USBDEVFS_CONTROL,
-			                                           (unsigned long)&ctrl);
-			urb.status = urb.actual_length < 0 ? urb.actual_length : 0;
+			int pipe = (ctrl->request_type & 0x80)
+				? usb_rcvctrlpipe(udev, 0) : usb_sndctrlpipe(udev, 0);
+			usb_unlock_device(udev);
+			ret = usb_control_msg(udev, pipe, ctrl->request, ctrl->request_type,
+								  ctrl->value, ctrl->index, payload.addr,
+								  payload.size, ctrl->timeout);
+			usb_lock_device(udev);
 			genode_usb_ack_request(session_handle, request_handle,
-			                       handle_transfer_response, &urb);
-			break;
+			                       handle_ctrl_response, &ret);
+			return;
 		}
-	case IRQ:
 	case BULK:
-		{
-			struct genode_usb_request_transfer * urt =
-				genode_usb_get_request_transfer(&req);
-			struct usb_urb_in_flight * u =
-				kmalloc(sizeof(struct usb_urb_in_flight), GFP_KERNEL);
-			u->urb.type          = req.type == IRQ ? USBDEVFS_URB_TYPE_INTERRUPT
-			                                       : USBDEVFS_URB_TYPE_BULK,
-			u->urb.endpoint      = urt->ep;
-			u->urb.buffer_length = payload.size;
-			u->urb.buffer        = payload.addr;
-			u->urb.usercontext   = usercontext_from_handle(session_handle,
-			                                             request_handle);
-			u->urb.signr         = 1;
-			INIT_LIST_HEAD(&u->le);
-			list_add_tail(&u->le, &data->urblist);
-			usbdev_file_operations->unlocked_ioctl(file, USBDEVFS_SUBMITURB,
-			                                       (unsigned long)&u->urb);
-			break;
-		}
-	case ISOC:
-		{
-			int i;
-			struct genode_usb_request_transfer * urt =
-				genode_usb_get_request_transfer(&req);
-			struct genode_usb_isoc_transfer *isoc =
-				(struct genode_usb_isoc_transfer *)payload.addr;
-			unsigned num_packets = isoc ? isoc->number_of_packets : 0;
-			struct usb_urb_in_flight * u =
-				kmalloc(sizeof(struct usb_urb_in_flight) +
-				        sizeof(struct usbdevfs_iso_packet_desc)*num_packets,
-				        GFP_KERNEL);
-			u->urb.type              = USBDEVFS_URB_TYPE_ISO,
-			u->urb.endpoint          = urt->ep;
-			u->urb.buffer_length     = payload.size -
-			                           sizeof(struct genode_usb_isoc_transfer);
-			u->urb.buffer            = isoc ? isoc->data : NULL;;
-			u->urb.usercontext       = usercontext_from_handle(session_handle,
-			                                                   request_handle);
-			u->urb.signr             = 1;
-			u->urb.number_of_packets = num_packets;
-			INIT_LIST_HEAD(&u->le);
-			list_add_tail(&u->le, &data->urblist);
-			for (i = 0; i < num_packets; i++)
-				u->urb.iso_frame_desc[i].length = isoc ? isoc->packet_size[i] : 0;
-			usbdev_file_operations->unlocked_ioctl(file, USBDEVFS_SUBMITURB,
-			                                       (unsigned long)&u->urb);
-			break;
-		}
-	case NONE:
-	case ALT_SETTING:
-	case CONFIG:
+		ret = fill_bulk_urb(udev, transfer, handle, payload, read, &urb);
 		break;
+	case IRQ:
+		ret = fill_irq_urb(udev, transfer, handle, payload, read, &urb);
+		break;
+	case ISOC:
+		ret = fill_isoc_urb(udev, transfer, handle, payload, read, &urb);
+		break;
+	default:
+		printk("Unknown USB transfer request!\n");
+		ret = -EINVAL;
 	};
+
+	if (!ret) {
+		usb_anchor_urb(urb, &urbs->submitted);
+		ret = usb_submit_urb(urb, GFP_KERNEL);
+	}
+
+	if (!ret)
+		return;
+
+	if (urb) {
+		usb_unanchor_urb(urb);
+		usb_free_urb(urb);
+	}
+
+	genode_usb_ack_request(session_handle, request_handle,
+	                       handle_return_code, &ret);
 }
 
 
@@ -675,6 +761,7 @@ static inline void handle_rpc(struct usb_per_dev_data * data)
 		rpc->ret = 0;
 		return;
 	case RELEASE_ALL:
+		usb_unlock_device(data->dev);
 		exit_usb_task(data);
 		rpc->ret = 0;
 		do_exit(0);
@@ -700,28 +787,6 @@ static inline int check_for_urb(struct usb_device * udev)
 }
 
 
-static inline int check_for_urb_done(struct file * file)
-{
-	genode_usb_session_handle_t session_handle;
-	genode_usb_request_handle_t request_handle;
-	struct usb_urb_in_flight * u;
-	struct usbdevfs_urb      * urb = NULL;
-	int ret = usbdev_file_operations->unlocked_ioctl(file,
-	                                                 USBDEVFS_REAPURBNDELAY,
-	                                                 (unsigned long)&urb);
-	if (ret < 0)
-		return 0;
-
-	handle_from_usercontext(urb->usercontext, &session_handle, &request_handle);
-	genode_usb_ack_request(session_handle, request_handle,
-	                       handle_transfer_response, urb);
-	u = container_of(urb, struct usb_urb_in_flight, urb);
-	list_del(&u->le);
-	kfree(u);
-	return 1;
-}
-
-
 static int poll_usb_device(void * args)
 {
 	struct usb_per_dev_data * data = (struct usb_per_dev_data*)args;
@@ -729,15 +794,16 @@ static int poll_usb_device(void * args)
 	genode_usb_dev_num_t      dev  = data->dev->devnum;
 
 	for (;;) {
+		if (data->dev) usb_lock_device(data->dev);
 		while (check_for_urb(data->dev)) ;
-		while (check_for_urb_done(&data->file)) ;
 
 		/*
-		 * we have to check for RPC handling once again,
-		 * during asynchronous URB handling the Linux task might
+		 * we have to check for RPC handling here, during
+		 * asynchronous URB handling above the Linux task might
 		 * have been blocked and a new RPC entered the entrypoint
 		 */
 		handle_rpc(data);
+		if (data->dev) usb_unlock_device(data->dev);
 
 		/* check if device got removed */
 		if (!find_usb_device(bus, dev)) {
@@ -880,19 +946,3 @@ static int usbnet_init(void)
  * an additional one
  */
 module_init(usbnet_init);
-
-
-void lx_emul_usb_register_devio(const struct file_operations * fops)
-{
-	usbdev_file_operations = fops;
-}
-
-
-#include <linux/sched/signal.h>
-
-int kill_pid_usb_asyncio(int sig, int errno, sigval_t addr, struct pid * pid,
-                         const struct cred * cred)
-{
-	lx_user_handle_io();
-	return 0;
-}

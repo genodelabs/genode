@@ -110,15 +110,6 @@ void pci_free_irq_vectors(struct pci_dev *dev)
 }
 
 
-#include <linux/cdev.h>
-#include <lx_emul/usb.h>
-
-void cdev_init(struct cdev * cdev, const struct file_operations * fops)
-{
-	lx_emul_usb_register_devio(fops);
-}
-
-
 #include <linux/uaccess.h>
 
 unsigned long _copy_from_user(void * to,const void __user * from,unsigned long n)

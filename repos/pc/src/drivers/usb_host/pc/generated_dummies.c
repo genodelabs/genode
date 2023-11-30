@@ -263,6 +263,14 @@ void kill_anon_super(struct super_block * sb)
 }
 
 
+#include <linux/sched/signal.h>
+
+int kill_pid_usb_asyncio(int sig,int errno,sigval_t addr,struct pid * pid,const struct cred * cred)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/slab.h>
 
 void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
