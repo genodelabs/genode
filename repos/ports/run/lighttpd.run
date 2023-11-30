@@ -205,11 +205,12 @@ EpA5DBBklj8UE2CdONvN
 	</body>
 </html>
 					</inline>
+					<ram/>
 				</dir>
 				<dir name="tmp"> <ram/> </dir>
 			</vfs>
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-			      rtc="/dev/rtc/" rng="/dev/random" socket="/socket"/>
+			      rtc="/dev/rtc" rng="/dev/random" socket="/socket"/>
 		</config>
 
 		<route>
