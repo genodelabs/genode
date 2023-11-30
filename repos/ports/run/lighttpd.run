@@ -31,6 +31,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/openssl \
                   [depot_user]/src/posix \
                   [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_jitterentropy \
                   [depot_user]/src/vfs_[ip_stack] \
                   [depot_user]/src/zlib
 
@@ -115,7 +116,7 @@ install_config {
 			<vfs>
 				<dir name="dev">
 					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
-					<inline name="random">0123456789012345678901234567890123456789</inline>
+					<jitterentropy name="random"/>
 				</dir>
 				<dir name="socket"> } [socket_fs_plugin] { </dir>
 				<dir name="etc">
@@ -128,6 +129,7 @@ server.event-handler   = "select"
 server.network-backend = "write"
 server.upload-dirs     = ( "/tmp" )
 server.modules         = ("mod_openssl")
+server.modules += ( "mod_webdav" )
 index-file.names     = (
   "index.xhtml", "index.html", "index.htm"
 )
@@ -135,6 +137,9 @@ mimetype.assign      = (
   ".html"         =>      "text/html",
   ".htm"          =>      "text/html"
 )
+  dir-listing.activate = "enable"
+  webdav.activate = "enable"
+  webdav.is-readonly = "disable"
 $SERVER["socket"] == ":443" {
 	ssl.engine  = "enable"
 	ssl.pemfile = "/etc/lighttpd/example.pem"
