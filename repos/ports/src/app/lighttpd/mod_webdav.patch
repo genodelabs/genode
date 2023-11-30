@@ -1,0 +1,16 @@
+Disable usage of linkat and unlinkat which is not (yet) support
+in our libc.
+
+--- src/app/lighttpd/src/mod_webdav.c
++++ src/app/lighttpd/src/mod_webdav.c
+@@ -224,6 +224,10 @@
+ #endif
+ #endif
+ 
++#undef AT_FDCWD
++#undef _ATFILE_SOURCE
++
++
+ #ifndef AT_SYMLINK_NOFOLLOW
+ #define AT_SYMLINK_NOFOLLOW 0
+ #endif

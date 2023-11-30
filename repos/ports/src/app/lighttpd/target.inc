@@ -53,7 +53,6 @@ FILTER_OUT := lempar.c lighttpd-angel.c lemon.c \
               mod_vhostdb_ldap.c \
               mod_vhostdb_mysql.c \
               mod_vhostdb_pgsql.c \
-              mod_webdav.c \
               mod_wolfssl.c \
               mod_wstunnel.c
 SRC_C = $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(LIGHTTPD_DIR)/src/*.c)))
@@ -81,6 +80,7 @@ CC_OPT += -DLIBRARY_DIR="\"/lib\""
 CC_OPT += -DLIGHTTPD_STATIC
 CC_OPT += -DHAVE_LIBSSL -DUSE_OPENSSL -DUSE_OPENSSL_CRYPTO
 
+CC_OPT += -DMOD_WEBDAV_BUILD_MINIMAL
 
 CC_WARN = -Wall -Wno-unused-variable -Wno-unused-function
 
