@@ -16,6 +16,7 @@ fb_bench
 fetchurl_lwip
 fetchurl_lxip
 fs_query
+file_vault_client
 gdb
 hello
 ieee754

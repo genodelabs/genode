@@ -1,0 +1,472 @@
+proc jent_avail { } {
+	if {[have_board pbxa9]} { return 0 }
+	if {[have_board zynq_qemu]} { return 0 }
+	return 1
+}
+
+proc jent_avail_attr { } {
+	if {[jent_avail]} { return "yes" }
+	return "no"
+}
+
+proc passphrase { } { return abcdefgh }
+
+proc lx_fs_dir { } { return bin/file_vault_client_dir }
+
+proc lx_fs_dir_template { } { return $::env(LX_FS_DIR_TEMPLATE) }
+
+proc lx_fs_dir_template_set { } { return [info exists ::env(LX_FS_DIR_TEMPLATE)] }
+
+proc container_initialized { } { return [expr [have_board linux] && [lx_fs_dir_template_set]] }
+
+proc bash_profile { } {
+	if {[container_initialized]} { return file_vault_client_2.sh }
+	return file_vault_client_1.sh
+}
+
+if {[have_board linux]} {
+	if {[lx_fs_dir_template_set]} {
+		if {[file normalize [lx_fs_dir_template]] == [file normalize [lx_fs_dir]]} {
+			puts ""
+			puts "Error: please set LX_FS_DIR_TEMPLATE to something other than [lx_fs_dir]"
+			puts ""
+			exit -1
+		}
+		puts ""
+		puts "Use lx_fs directory template [lx_fs_dir_template]"
+		puts ""
+	}
+}
+
+build {
+	lib/tresor lib/vfs_tresor_trust_anchor lib/vfs_tresor_crypto_aes_cbc
+	lib/vfs_tresor app/tresor_init_trust_anchor app/tresor_init app/file_vault }
+
+create_boot_directory
+
+append archives "
+	[depot_user]/src/[base_src]
+	[depot_user]/src/init
+	[depot_user]/src/libc
+	[depot_user]/src/zlib
+	[depot_user]/src/fs_query
+	[depot_user]/src/vfs_block
+	[depot_user]/src/vfs
+	[depot_user]/src/openssl
+	[depot_user]/src/fs_tool
+	[depot_user]/src/fs_utils
+	[depot_user]/src/posix
+	[depot_user]/src/vfs_pipe
+	[depot_user]/src/rump
+	[depot_user]/src/fs_rom
+	[depot_user]/src/log_terminal
+	[depot_user]/src/sandbox
+	[depot_user]/src/coreutils
+	[depot_user]/src/bash
+	[depot_user]/src/report_rom
+	[depot_user]/src/dynamic_rom
+"
+
+append_if [jent_avail] archives " [depot_user]/src/vfs_jitterentropy "
+
+lappend_if [have_board linux] archives [depot_user]/src/lx_fs
+
+import_from_depot $archives
+
+append config {
+
+	<config>
+
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+		</parent-provides>
+
+		<start name="timer" caps="200">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Timer"/> </provides>
+			<route>
+				<service name="PD">      <parent/> </service>
+				<service name="ROM">     <parent/> </service>
+				<service name="LOG">     <parent/> </service>
+				<service name="CPU">     <parent/> </service>
+				<service name="IO_PORT"> <parent/> </service>
+				<service name="IRQ">     <parent/> </service>
+			</route>
+		</start>
+
+		<start name="dynamic_rom" caps="100">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/> </provides>
+			<config>
+				<rom name="file_vault_ui_config">
+					<inline>
+
+						<ui_config version="step_1_wait"/>
+
+					</inline>
+					<sleep milliseconds="3000"/>
+					<inline>}
+
+if {[container_initialized]} { append config "
+						<ui_config version=\"step_2_unlock\" passphrase=\"[passphrase]\"/>"
+} else { append config "
+						<ui_config version=\"step_2_init\" passphrase=\"[passphrase]\" client_fs_size=\"1M\" journaling_buf_size=\"1M\"/>"
+}
+append config {
+					</inline>
+					<sleep milliseconds="12000"/>
+					<inline>
+
+						<ui_config version="step_3_lock"/>
+
+					</inline>
+					<sleep milliseconds="3600000"/>
+
+				</rom>
+
+				<rom name="dynamic_init_config">
+					<inline>
+
+						<config/>
+
+					</inline>
+					<sleep milliseconds="9000"/>
+					<inline>
+
+						<config>
+
+							<parent-provides>
+								<service name="ROM"/>
+								<service name="PD"/>
+								<service name="CPU"/>
+								<service name="LOG"/>
+								<service name="Timer"/>
+								<service name="File_system"/>
+							</parent-provides>
+
+							<start name="log_terminal" caps="110">
+								<resource name="RAM" quantum="2M"/>
+								<provides><service name="Terminal"/></provides>
+								<route>
+									<service name="LOG"> <parent/> </service>
+									<service name="PD">  <parent/> </service>
+									<service name="CPU"> <parent/> </service>
+									<service name="ROM"> <parent/> </service>
+								</route>
+							</start>
+
+							<start name="vfs" caps="120">
+								<resource name="RAM" quantum="30M"/>
+								<provides><service name="File_system"/></provides>
+								<config>
+									<vfs>
+										<tar name="coreutils.tar"/>
+										<tar name="bash.tar"/>
+
+										<dir name="home"> <ram/> </dir>
+										<dir name="share"> </dir>
+										<dir name="tmp"> <ram/> </dir>
+										<dir name="dev">
+											<zero/> <null/> <terminal/>
+											<dir name="pipe"> <pipe/> </dir>
+											<inline name="rtc">2018-01-01 00:01</inline>
+										</dir>
+									</vfs>
+									<policy label_prefix="fs_rom" root="/"/>
+									<default-policy root="/" writeable="yes"/>
+								</config>
+								<route>
+									<service name="Terminal"> <child name="log_terminal"/> </service>
+									<service name="Timer"> <parent/> </service>
+									<service name="LOG"> <parent/> </service>
+									<service name="PD">  <parent/> </service>
+									<service name="CPU"> <parent/> </service>
+									<service name="ROM"> <parent/> </service>
+								</route>
+							</start>
+
+							<start name="fs_rom" caps="100">
+								<resource name="RAM" quantum="30M"/>
+								<provides> <service name="ROM"/> </provides>
+								<config/>
+								<route>
+									<service name="File_system"> <child name="vfs"/> </service>
+									<service name="LOG"> <parent/> </service>
+									<service name="PD">  <parent/> </service>
+									<service name="CPU"> <parent/> </service>
+									<service name="ROM"> <parent/> </service>
+								</route>
+							</start>
+
+							<start name="bash" caps="1000">
+								<resource name="RAM" quantum="64M"/>
+								<binary name="/bin/bash"/>
+								<config>
+									<libc stdin="/dev/terminal" stdout="/dev/terminal"
+										  stderr="/dev/terminal" rtc="/dev/rtc" pipe="/dev/pipe"/>
+									<vfs>
+										<fs label="shell" buffer_size="1M"/>
+										<dir name="file_vault">
+											<fs label="file_vault" buffer_size="1M"/>
+										</dir>
+										<rom name=".profile" label="} [bash_profile] {"/>
+									</vfs>
+									<arg value="bash"/>
+									<arg value="--login"/>
+									<env key="TERM" value="screen"/>
+									<env key="HOME" value="/"/>
+									<env key="PATH" value="/bin"/>
+								</config>
+								<route>
+									<service name="File_system" label="shell"> <child name="vfs"/> </service>
+									<service name="File_system" label="file_vault">  <parent/> </service>
+									<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
+									<service name="ROM" label_last="/bin/bash"> <child name="fs_rom"/> </service>
+									<service name="ROM" label_prefix="/bin"> <child name="fs_rom"/> </service>
+									<service name="Timer"> <parent/> </service>
+									<service name="LOG"> <parent/> </service>
+									<service name="PD">  <parent/> </service>
+									<service name="CPU"> <parent/> </service>
+									<service name="ROM"> <parent/> </service>
+								</route>
+							</start>
+
+						</config>
+
+					</inline>
+					<sleep milliseconds="3600000"/>
+
+				</rom>
+			</config>
+			<route>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="report_rom" caps="70">
+			<resource name="RAM" quantum="1M"/>
+			<provides>
+				<service name="ROM" />
+				<service name="Report" />
+			</provides>
+			<config verbose="yes"/>
+			<route>
+				<service name="LOG"> <parent/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+			</route>
+		</start>
+}
+if {[have_board linux]} {
+
+	append config {
+
+		<start name="data_fs" caps="200" ld="no">
+			<binary name="lx_fs"/>
+			<resource name="RAM" quantum="4M"/>
+			<provides>
+				<service name="File_system"/>
+			</provides>
+			<config>
+				<policy label="file_vault -> data"
+				        root="/} [file tail [lx_fs_dir]] {/data"
+				        writeable="yes"/>
+			</config>
+			<route>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="trust_anchor_fs" caps="200" ld="no">
+			<binary name="lx_fs"/>
+			<resource name="RAM" quantum="4M"/>
+			<provides>
+				<service name="File_system"/>
+			</provides>
+			<config>
+				<policy label="file_vault -> trust_anchor"
+				        root="/} [file tail [lx_fs_dir]] {/trust_anchor"
+				        writeable="yes"/>
+			</config>
+			<route>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+	}
+
+} else {
+
+	append config {
+
+		<start name="data_fs" caps="2000">
+			<binary name="vfs"/>
+			<resource name="RAM" quantum="200M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs>
+					<dir name="data">
+						<ram/>
+					</dir>
+				</vfs>
+				<policy label="file_vault -> data" root="/data" writeable="yes"/>
+			</config>
+			<route>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="trust_anchor_fs" caps="100">
+			<binary name="vfs"/>
+			<resource name="RAM" quantum="5M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs>
+					<dir name="trust_anchor">
+						<ram/>
+					</dir>
+				</vfs>
+				<policy label="file_vault -> trust_anchor" root="/trust_anchor" writeable="yes"/>
+			</config>
+			<route>
+				<service name="PD">  <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+	}
+}
+append config {
+
+		<start name="file_vault" caps="2000">
+			<resource name="RAM" quantum="200M"/>
+			<provides>
+				<service name="File_system"/>
+			</provides>
+			<config user_interface="config_and_report" jitterentropy_available="} [jent_avail_attr] {">
+				<vfs>
+					<dir name="tresor">
+						<fs label="tresor"/>
+					</dir>
+				</vfs>
+			</config>
+			<route>
+				<service name="ROM" label="ui_config"> <child name="dynamic_rom" label="file_vault_ui_config"/> </service>
+				<service name="Report" label="ui_report"> <child name="report_rom"/> </service>
+				<service name="File_system" label="tresor_trust_anchor_vfs -> storage_dir"> <child name="trust_anchor_fs" label="file_vault -> trust_anchor"/> </service>
+				<service name="File_system" label="tresor_init -> "> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label="tresor"> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label="fs_query -> "> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label="image_fs_query -> "> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label="tresor_vfs -> tresor_fs"> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label="truncate_file -> tresor"> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="RM"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="dynamic_init" caps="1500">
+			<resource name="RAM" quantum="200M"/>
+			<binary name="init"/>
+			<route>
+				<service name="ROM" label="config"> <child label="dynamic_init_config" name="dynamic_rom"/> </service>
+				<service name="File_system" label="bash -> file_vault">  <child name="file_vault"/> </service>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+			</route>
+		</start>
+
+	</config>
+}
+
+exec cp [repository_contains run/[bash_profile]]/run/[bash_profile] bin/
+
+install_config $config
+
+if {[have_board linux]} {
+	exec rm -rf [lx_fs_dir]
+	if {[lx_fs_dir_template_set]} {
+		exec cp -r [lx_fs_dir_template] [lx_fs_dir]
+	} else {
+		exec mkdir -p [lx_fs_dir]/data
+		exec mkdir -p [lx_fs_dir]/trust_anchor
+	}
+}
+
+append boot_modules [build_artifacts]
+lappend boot_modules [bash_profile]
+
+lappend_if [have_board linux] boot_modules [file tail [lx_fs_dir]]
+
+build_boot_image $boot_modules
+
+append qemu_args " -display none "
+run_genode_until "<ui_report version=\"step_3_lock\" state=\"locked\"/>.*\n" 60
+
+grep_output {\[init -> dynamic_init -> log_terminal\].*}
+
+if {[container_initialized]} {
+	compare_output_to {
+[init -> dynamic_init -> log_terminal] total 1
+[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 dir_1
+[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 18 Jan  1  1970 file_1
+[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 lost+found
+[init -> dynamic_init -> log_terminal] total 1
+[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 66 Jan  1  1970 file_2
+[init -> dynamic_init -> log_terminal] Ein zweiter Test.
+[init -> dynamic_init -> log_terminal] Eine weitere Datei.
+[init -> dynamic_init -> log_terminal] Mit mehr Inhalt.
+[init -> dynamic_init -> log_terminal] Und Sonderzeichen: /§($)=%!
+	}
+} else {
+	compare_output_to {
+[init -> dynamic_init -> log_terminal] Hallo Welt!
+[init -> dynamic_init -> log_terminal] Ein zweiter Test.
+[init -> dynamic_init -> log_terminal] total 1
+[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 18 Jan  1  1970 file_1
+[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 lost+found
+[init -> dynamic_init -> log_terminal] Eine weitere Datei.
+[init -> dynamic_init -> log_terminal] Mit mehr Inhalt.
+[init -> dynamic_init -> log_terminal] Eine weitere Datei.
+[init -> dynamic_init -> log_terminal] Mit mehr Inhalt.
+[init -> dynamic_init -> log_terminal] Und Sonderzeichen: /§($)=%!
+[init -> dynamic_init -> log_terminal] total 1
+[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 dir_1
+[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 18 Jan  1  1970 file_1
+[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 lost+found
+[init -> dynamic_init -> log_terminal] total 1
+[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 66 Jan  1  1970 file_2
+	}
+}
+
+if {[get_cmd_switch --autopilot] && [have_board linux]} { exec rm -rf [lx_fs_dir] }
