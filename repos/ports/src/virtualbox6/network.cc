@@ -351,7 +351,7 @@ class Nic_client
 static DECLCALLBACK(int) drvNicNetworkUp_BeginXmit(PPDMINETWORKUP pInterface, bool fOnWorkerThread)
 {
 	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
-	int rc = RTCritSectTryEnter(&pThis->XmitLock);
+	int rc = RTCritSectEnter(&pThis->XmitLock);
 	if (RT_FAILURE(rc))
 		rc = VERR_TRY_AGAIN;
 	return rc;
