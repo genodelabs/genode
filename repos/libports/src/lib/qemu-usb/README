@@ -11,7 +11,7 @@ that handles access to the PCI bus (raise interrupts, (un)map DMA memory)
 within the VMM device model.
 
 To use this library the user calls 'Qemu::usb_init' and passes
-pointers to the back end objects. In addition, a Signal_receiver
+pointers to the back end objects. In addition, an 'Entrypoint'
 reference has also to be handed over. It will receive all signals
 required by this library.
 

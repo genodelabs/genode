@@ -115,7 +115,7 @@ namespace Qemu {
 	 *
 	 * \param tq  Timer_queue instance provided by the user of the library
 	 * \param pd  Pci_device instance provided by the user of the library
-	 * \param sr  Signal_receiver used by the library to install signals
+	 * \param ep  Entrypoint used by the library to install signals
 	 *
 	 * \return Pointer to Controller object that is used to access the xHCI device state
 	 */
