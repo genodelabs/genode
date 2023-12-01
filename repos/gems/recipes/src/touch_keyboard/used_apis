@@ -1,6 +1,7 @@
 base
 sandbox
 os
+gems
 report_session
 event_session
 timer_session
