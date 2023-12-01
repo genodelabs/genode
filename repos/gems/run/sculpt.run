@@ -664,6 +664,8 @@ install_config {
 			<service name="Pin_state">   <child name="drivers"/> </service>
 			<service name="Pin_control"> <child name="drivers"/> </service>
 			<service name="Terminal"> <child name="terminal_monitor"/> </service>
+			<service name="TRACE" label="runtime"> <parent label="runtime -> "/> </service>
+			<service name="TRACE" label="global">  <parent label=""/>        </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>

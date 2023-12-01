@@ -1,7 +1,8 @@
 <launcher pkg="trace_logger">
 
 	<route>
-		<service name="TRACE"> <parent/> </service>
+		<!-- replace "global" by "runtime" to narrow the view -->
+		<service name="TRACE"> <parent label="global" /> </service>
 	</route>
 
 	<config verbose="yes"
@@ -12,11 +13,7 @@
 	        default_policy="null"
 	        default_buffer="4K">
 
-		<policy label_prefix="init -> runtime -> "/>
-
-		<!-- uncomment to trace the drivers subsystem
-		<policy label_prefix="init -> drivers -> "/>
-		-->
+		<default-policy/>
 
 	</config>
 

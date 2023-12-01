@@ -344,7 +344,9 @@ class Sculpt::Runtime_config
 				_hw_gpu    { _r, Type::PLATFORM,    "GPU hardware",     "gpu" },
 				_pin_state { _r, Type::PIN_STATE,   "GPIO pin state" },
 				_pin_ctrl  { _r, Type::PIN_CONTROL, "GPIO pin control" },
-				_trace     { _r, Type::TRACE,       "system-global tracing" },
+				_trace_all { _r, Type::TRACE,       "system",      "global" },
+				_trace_rt  { _r, Type::TRACE,       "deployment",  "runtime" },
+				_trace     { _r, Type::TRACE,       "component" },
 				_vm        { _r, Type::VM,          "virtualization hardware" },
 				_pd        { _r, Type::PD,          "system PD service" },
 				_monitor   { _r, Type::TERMINAL,    "debug monitor" };
