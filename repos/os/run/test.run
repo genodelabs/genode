@@ -315,15 +315,9 @@ proc query_failure_timeout { } {
 
 	global runtime_file
 
-	set meaning ""
-	catch {
-		set meaning [query_attr /runtime/events/timeout meaning $runtime_file]
-		set sec     [query_attr /runtime/events/timeout sec     $runtime_file]
-	}
-	if {$meaning == "failed"} {
-		return $sec }
-
-	return 0
+	set sec 0
+	catch { set sec [query_attr /runtime/fail after_seconds $runtime_file] }
+	return $sec
 }
 
 set failure_timeout [expr [query_failure_timeout] + 10]
@@ -338,7 +332,7 @@ proc query_expected_log_pattern { } {
 
 	set log ""
 	catch {
-		set log [query_node "/runtime/events/log\[@meaning='succeeded'\]/child::text()" $runtime_file]
+		set log [query_node "/runtime/succeed/child::text()" $runtime_file]
 	} { return "" }
 
 	# strip leading and trailing whitespace
