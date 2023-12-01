@@ -209,7 +209,7 @@ endif
 # $(TARGET).
 #
 ifneq ($(OBJECTS),)
-$(TARGET): $(LINK_ITEMS) $(wildcard $(LD_SCRIPTS)) $(LIB_SO_DEPS)
+$(TARGET): $(LINK_ITEMS) $(wildcard $(LD_SCRIPTS))
 	$(MSG_LINK)$(TARGET)
 	$(VERBOSE)libs=$(LIB_CACHE_DIR); $(LD_CMD) -o $@
 

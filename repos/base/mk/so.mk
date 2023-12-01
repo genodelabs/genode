@@ -144,22 +144,11 @@ endif
 STATIC_LIBS       := $(sort $(foreach l,$(ARCHIVES:.lib.a=),$(LIB_CACHE_DIR)/$l/$l.lib.a))
 STATIC_LIBS_BRIEF := $(subst $(LIB_CACHE_DIR),$$libs,$(STATIC_LIBS))
 
-#
-# Rule to build the <libname>.lib.so file
-#
-# When linking the shared library, we have to link all shared sub libraries
-# (LIB_SO_DEPS) to the library to store the library-dependency information in
-# the generated shared object.
-#
-
-#
-# Default entry point of shared libraries
-#
 ENTRY_POINT ?= 0x0
 
 $(LIB_SO): $(SHARED_LIBS)
 
-$(LIB_SO): $(STATIC_LIBS) $(OBJECTS) $(wildcard $(LD_SCRIPT_SO)) $(LIB_SO_DEPS)
+$(LIB_SO): $(STATIC_LIBS) $(OBJECTS) $(wildcard $(LD_SCRIPT_SO))
 	$(MSG_MERGE)$(LIB_SO)
 	$(VERBOSE)libs=$(LIB_CACHE_DIR); $(LD) -o $(LIB_SO) -soname=$(LIB_SO) -shared --eh-frame-hdr \
 	                $(LD_OPT) -T $(LD_SCRIPT_SO) --entry=$(ENTRY_POINT) \

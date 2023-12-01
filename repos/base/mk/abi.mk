@@ -92,7 +92,4 @@ all: # prevent 'Nothing to be done' message
 $(ABI_SO): symbols.o
 	$(MSG_MERGE)$(ABI_SO)
 	$(VERBOSE)$(LD) -o $(ABI_SO) -soname=$(ABI_SONAME) -shared --eh-frame-hdr $(LD_OPT) \
-	                -T $(LD_SCRIPT_SO) \
-	                --whole-archive --start-group \
-	                $(LIB_SO_DEPS) $< \
-	                --end-group --no-whole-archive
+	                -T $(LD_SCRIPT_SO) $<
