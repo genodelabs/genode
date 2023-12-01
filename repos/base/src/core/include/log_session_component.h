@@ -30,21 +30,13 @@ class Core::Log_session_component : public Rpc_object<Log_session>
 
 		Session_label const _label;
 
-		static Session_label _expand_label(Session_label const &label)
-		{
-			if (label == "init -> unlabeled")
-				return "";
-			else
-				return Session_label("[", label, "] ");
-		}
-
 	public:
 
 		/**
 		 * Constructor
 		 */
 		Log_session_component(Session_label const &label)
-		: _label(_expand_label(label)) { }
+		: _label("[", label, "] ") { }
 
 
 		/*****************
