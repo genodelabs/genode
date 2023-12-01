@@ -384,11 +384,11 @@ size_t Cpu_session_component::_weight_to_quota(size_t const weight) const
  ** Trace::Source_registry **
  ****************************/
 
-unsigned Core::Trace::Source::_alloc_unique_id()
+Core::Trace::Source::Id Core::Trace::Source::_alloc_unique_id()
 {
 	static Mutex lock;
 	static unsigned cnt;
 	Mutex::Guard guard(lock);
-	return cnt++;
+	return { cnt++ };
 }
 

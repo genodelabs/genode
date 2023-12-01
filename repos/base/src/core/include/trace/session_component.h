@@ -47,6 +47,17 @@ class Core::Trace::Session_component
 		unsigned                     _policy_cnt { 0 };
 		Attached_ram_dataspace       _argument_buffer;
 
+		/*
+		 * Whenever a trace session is deliberately labeled as empty by the
+		 * top-level init instance, the session is granted global reach.
+		 * Otherwise, the label is taken a prefix filter for the visibility
+		 * of trace subjects within the session.
+		 */
+		Filter _filter() const
+		{
+			return (_label == "init -> ") ? Filter("") : Filter(_label);
+		}
+
 	public:
 
 		/**
@@ -59,7 +70,6 @@ class Core::Trace::Session_component
 		                  Ram_allocator   &ram,
 		                  Region_map      &local_rm,
 		                  size_t           arg_buffer_size,
-		                  unsigned         parent_levels,
 		                  Source_registry &sources,
 		                  Policy_registry &policies);
 

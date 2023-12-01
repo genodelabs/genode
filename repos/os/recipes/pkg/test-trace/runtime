@@ -28,6 +28,7 @@
 			<service name="Timer"/>
 		</parent-provides>
 		<default-route>
+			<service name="TRACE"> <parent label=""/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="200"/>
@@ -37,21 +38,21 @@
 				<start name="test-trace">
 					<resource name="RAM" quantum="10M"/>
 					<config>
-						<trace_policy label="init -> dynamic -> test-trace -> sequence -> test-trace" thread="test-thread" module="null"/>
+						<trace_policy label="sequence -> test-trace" thread="test-thread" module="null"/>
 					</config>
 				</start>
 
 				<start name="test-trace">
 					<resource name="RAM" quantum="10M"/>
 					<config>
-						<trace_policy label="init -> dynamic -> test-trace -> top" thread="ep" module="null"/>
+						<trace_policy label="top" thread="ep" module="null"/>
 					</config>
 				</start>
 
 				<start name="test-trace">
 					<resource name="RAM" quantum="10M"/>
 					<config>
-						<trace_policy label="init -> dynamic -> test-trace -> top" thread="ep" module="null"/>
+						<trace_policy label="top" thread="ep" module="null"/>
 					</config>
 				</start>
 			</config>

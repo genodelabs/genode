@@ -5,11 +5,11 @@
 	<fail after_seconds="20"/>
 	<succeed>
 			[init -> trace_logger] Report *
-			[init -> trace_logger] PD "init -> dynamic -> test-trace_logger -> cpu_burner.*"*
+			[init -> trace_logger] PD "cpu_burner.*"*
 			[init -> trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
-			[init -> trace_logger] PD "init -> dynamic -> test-trace_logger -> dynamic_rom"*
+			[init -> trace_logger] PD "dynamic_rom"*
 			[init -> trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
-			[init -> trace_logger] PD "init -> dynamic -> test-trace_logger -> test-trace_logger"*
+			[init -> trace_logger] PD "test-trace_logger"*
 			[init -> trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
 			[init -> trace_logger]   100 *
 			[init -> trace_logger]   trigger_once
@@ -49,12 +49,16 @@
 			<resource name="RAM" quantum="80M"/>
 			<config verbose="yes" priority="no" sc_time="no" session_ram="10M" session_parent_levels="1" session_arg_buffer="64K" period_sec="3" default_policy="null" default_buffer="1K">
 
-				<policy label_prefix="init -> dynamic -> test-trace_logger -> cpu_burner" thread="ep"/>
+				<policy label_prefix="cpu_burner" thread="ep"/>
 
-				<policy label="init -> dynamic -> test-trace_logger -> test-trace_logger" thread="ep" buffer="4K" policy="rpc_name"/>
+				<policy label="test-trace_logger" thread="ep" buffer="4K" policy="rpc_name"/>
 
-				<policy label="init -> dynamic -> test-trace_logger -> dynamic_rom" thread="ep" buffer="8K" policy="log_output"/>
+				<policy label="dynamic_rom" thread="ep" buffer="8K" policy="log_output"/>
 			</config>
+			<route>
+				<service name="TRACE"> <parent label=""/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
 		</start>
 
 		<start name="dynamic_rom">

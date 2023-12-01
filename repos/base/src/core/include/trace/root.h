@@ -38,7 +38,6 @@ class Core::Trace::Root : public Root_component<Session_component>
 		{
 			size_t ram_quota       = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 			size_t arg_buffer_size = Arg_string::find_arg(args, "arg_buffer_size").ulong_value(0);
-			unsigned parent_levels = (unsigned)Arg_string::find_arg(args, "parent_levels").ulong_value(0);
 
 			if (arg_buffer_size > ram_quota)
 				throw Insufficient_ram_quota();
@@ -49,7 +48,7 @@ class Core::Trace::Root : public Root_component<Session_component>
 			                         session_label_from_args(args),
 			                         session_diag_from_args(args),
 			                         _ram, _local_rm,
-			                         arg_buffer_size, parent_levels,
+			                         arg_buffer_size,
 			                         _sources, _policies);
 		}
 

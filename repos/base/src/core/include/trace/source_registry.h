@@ -30,6 +30,8 @@ namespace Core { namespace Trace {
 
 	using namespace Genode::Trace;
 
+	using Filter = String<Session_label::capacity()>;
+
 	class Source;
 	class Source_owner;
 	class Source_registry;
@@ -71,16 +73,18 @@ class Core::Trace::Source
 			virtual Info trace_source_info() const = 0;
 		};
 
+		struct Id { unsigned value; };
+
 	private:
 
-		unsigned      const  _unique_id;
+		Id            const  _unique_id;
 		Info_accessor const &_info;
 		Control             &_control;
 		Dataspace_capability _policy { };
 		Dataspace_capability _buffer { };
 		Source_owner  const *_owner_ptr = nullptr;
 
-		static unsigned _alloc_unique_id();
+		static Id _alloc_unique_id();
 
 		/*
 		 * Noncopyable
@@ -144,7 +148,7 @@ class Core::Trace::Source
 
 		Dataspace_capability buffer()    const { return _buffer; }
 		Dataspace_capability policy()    const { return _policy; }
-		unsigned             unique_id() const { return _unique_id; }
+		Id                   id()        const { return _unique_id; }
 };
 
 
@@ -184,16 +188,11 @@ class Core::Trace::Source_registry
 		 ** Interface used by TRACE service **
 		 *************************************/
 
-		template <typename TEST, typename INSERT>
-		void export_sources(TEST &test, INSERT &insert)
+		void for_each_source(auto const &fn)
 		{
 			for (Source *s = _entries.first(); s; s = s->next())
-				if (!test(s->unique_id())) {
-					Source::Info const info = s->info();
-					insert(s->unique_id(), s->weak_ptr(), info.label, info.name);
-				}
+				fn(*s);
 		}
-
 };
 
 #endif /* _CORE__INCLUDE__TRACE__SOURCE_REGISTRY_H_ */

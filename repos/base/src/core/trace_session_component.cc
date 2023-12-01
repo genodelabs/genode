@@ -132,7 +132,6 @@ Session_component::Session_component(Rpc_entrypoint  &ep,
                                      Ram_allocator   &ram,
                                      Region_map      &local_rm,
                                      size_t           arg_buffer_size,
-                                     unsigned         /* parent_levels */,
                                      Source_registry &sources,
                                      Policy_registry &policies)
 :
@@ -143,7 +142,7 @@ Session_component::Session_component(Rpc_entrypoint  &ep,
 	_policies_slab(&_md_alloc),
 	_sources(sources),
 	_policies(policies),
-	_subjects(_subjects_slab, _sources),
+	_subjects(_subjects_slab, _sources, _filter()),
 	_argument_buffer(_ram, local_rm, arg_buffer_size)
 { }
 

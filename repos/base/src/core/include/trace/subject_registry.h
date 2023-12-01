@@ -137,7 +137,7 @@ class Core::Trace::Subject
 		friend class Subject_registry;
 
 		Subject_id    const _id;
-		unsigned      const _source_id;
+		Source::Id    const _source_id;
 		Weak_ptr<Source>    _source;
 		Session_label const _label;
 		Thread_name   const _name;
@@ -184,7 +184,7 @@ class Core::Trace::Subject
 		/**
 		 * Constructor, called from 'Subject_registry' only
 		 */
-		Subject(Subject_id id, unsigned source_id, Weak_ptr<Source> &source,
+		Subject(Subject_id id, Source::Id source_id, Weak_ptr<Source> &source,
 		        Session_label const &label, Thread_name const &name)
 		:
 			_id(id), _source_id(source_id), _source(source),
@@ -212,7 +212,7 @@ class Core::Trace::Subject
 		/**
 		 * Test if subject belongs to the specified unique source ID
 		 */
-		bool has_source_id(unsigned id) const { return id == _source_id; }
+		bool has_source_id(Source::Id id) const { return id.value == _source_id.value; }
 
 		/**
 		 * Start tracing
@@ -325,50 +325,10 @@ class Core::Trace::Subject_registry
 
 		Allocator       &_md_alloc;
 		Source_registry &_sources;
+		Filter     const _filter;
 		unsigned         _id_cnt  { 0 };
 		Mutex            _mutex   { };
 		Subjects         _entries { };
-
-		/**
-		 * Functor for testing the existance of subjects for a given source
-		 *
-		 * This functor is invoked by 'Source_registry::export'.
-		 */
-		struct Tester
-		{
-			Subjects &subjects;
-
-			Tester(Subjects &subjects) : subjects(subjects) { }
-
-			bool operator () (unsigned source_id)
-			{
-				for (Subject *s = subjects.first(); s; s = s->next())
-					if (s->has_source_id(source_id))
-						return true;
-				return false;
-			}
-		} _tester { _entries };
-
-		/**
-		 * Functor for inserting new subjects into the registry
-		 *
-		 * This functor is invoked by 'Source_registry::export'.
-		 */
-		struct Inserter
-		{
-			Subject_registry &registry;
-
-			Inserter(Subject_registry &registry) : registry(registry) { }
-
-			void operator () (unsigned source_id, Weak_ptr<Source> source,
-			                  Session_label const &label, Thread_name const &name)
-			{
-				Subject *subject = new (&registry._md_alloc)
-					Subject(Subject_id(++registry._id_cnt), source_id, source, label, name);
-
-				registry._entries.insert(subject);
-			}
-		} _inserter { *this };
 
 		/**
 		 * Destroy subject, and release policy and trace buffers
@@ -398,23 +358,11 @@ class Core::Trace::Subject_registry
 
 	public:
 
-		/**
-		 * Constructor
-		 *
-		 * \param md_alloc  meta-data allocator used for allocating 'Subject'
-		 *                  objects.
-		 * \param ram       allocator used for the allocation of trace
-		 *                  buffers and policy dataspaces.
-		 */
-		Subject_registry(Allocator &md_alloc,
-		                 Source_registry &sources)
+		Subject_registry(Allocator &md_alloc, Source_registry &sources, Filter const &filter)
 		:
-			_md_alloc(md_alloc), _sources(sources)
+			_md_alloc(md_alloc), _sources(sources), _filter(filter)
 		{ }
 
-		/**
-		 * Destructor
-		 */
 		~Subject_registry()
 		{
 			Mutex::Guard guard(_mutex);
@@ -430,7 +378,32 @@ class Core::Trace::Subject_registry
 		{
 			Mutex::Guard guard(_mutex);
 
-			_sources.export_sources(_tester, _inserter);
+			auto already_known = [&] (Source::Id const unique_id)
+			{
+				for (Subject *s = _entries.first(); s; s = s->next())
+					if (s->has_source_id(unique_id))
+						return true;
+				return false;
+			};
+
+			auto filter_matches = [&] (Session_label const &label)
+			{
+				return strcmp(_filter.string(), label.string(), _filter.length() - 1) == 0;
+			};
+
+			_sources.for_each_source([&] (Source &source) {
+
+				Source::Info const info = source.info();
+
+				if (!filter_matches(info.label) || already_known(source.id()))
+					return;
+
+				Weak_ptr<Source> source_ptr = source.weak_ptr();
+
+				_entries.insert(new (_md_alloc)
+					Subject(Subject_id(++_id_cnt), source.id(),
+					        source_ptr, info.label, info.name));
+			});
 		}
 
 		/**
@@ -453,12 +426,25 @@ class Core::Trace::Subject_registry
 		{
 			Mutex::Guard guard(_mutex);
 
+			auto filtered = [&] (Session_label const &label) -> Session_label
+			{
+				return (label.length() <= _filter.length() || !_filter.length())
+				        ? Session_label("") /* this cannot happen */
+				        : Session_label(label.string() + _filter.length() - 1);
+			};
+
 			unsigned i = 0;
 			for (Subject *s = _entries.first(); s && i < len; s = s->next()) {
-				ids[i]   = s->id();
-				dst[i++] = s->info();
-			}
+				ids[i] = s->id();
 
+				Subject_info const info = s->info();
+
+				/* strip filter prefix from reported trace-subject label */
+				dst[i++] = {
+					filtered(info.session_label()), info.thread_name(), info.state(),
+					info.policy_id(), info.execution_time(), info.affinity()
+				};
+			}
 			return i;
 		}
 
