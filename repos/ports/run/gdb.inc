@@ -57,10 +57,7 @@ if {[have_include power_on/qemu]} {
                       [depot_user]/src/vfs_lwip
 }
 
-append build_components "
-	test/monitor_gdb
-	test/log
-"
+append build_components { lib/ld test/monitor_gdb test/log }
 
 build $build_components
 
