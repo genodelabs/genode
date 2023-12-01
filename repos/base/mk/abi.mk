@@ -93,3 +93,5 @@ $(ABI_SO): symbols.o
 	$(MSG_MERGE)$(ABI_SO)
 	$(VERBOSE)$(LD) -o $(ABI_SO) -soname=$(ABI_SONAME) -shared --eh-frame-hdr $(LD_OPT) \
 	                -T $(LD_SCRIPT_SO) $<
+
+$(ABI_SO): $(LD_SCRIPT_SO)

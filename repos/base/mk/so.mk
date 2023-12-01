@@ -157,6 +157,8 @@ $(LIB_SO): $(STATIC_LIBS) $(OBJECTS) $(wildcard $(LD_SCRIPT_SO))
 	                --end-group --no-whole-archive \
 	                $(LIBGCC)
 
+$(ABI_SO): $(LD_SCRIPT_SO)
+
 $(LIB_CHECKED): $(LIB_SO) $(SYMBOLS)
 	$(VERBOSE)$(BASE_DIR)/../../tool/check_abi $(LIB_SO) $(SYMBOLS) && touch $@
 
