@@ -106,8 +106,9 @@ class Core::Vm_session_component
 		 *********************************/
 
 		/* used on destruction of attached dataspaces */
-		void detach(Region_map::Local_addr) override; /* vm_session_common.cc */
-		void unmap_region(addr_t, size_t) override;   /* vm_session_common.cc */
+		void detach(Region_map::Local_addr) override;            /* vm_session_common.cc */
+		void unmap_region(addr_t, size_t) override;              /* vm_session_common.cc */
+		void reserve_and_flush(Region_map::Local_addr) override; /* vm_session_common.cc */
 
 		/**************************
 		 ** Vm session interface **

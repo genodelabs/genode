@@ -112,8 +112,10 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 
 						Rm_region &region = *region_ptr;
 
-						if (!(cap == region.dataspace().cap()))
-							throw Region_conflict();
+						region.with_dataspace([&] (Dataspace_component &dataspace) {
+							if (!(cap == dataspace.cap()))
+								throw Region_conflict();
+						});
 
 						if (guest_phys < region.base() ||
 						    guest_phys > region.base() + region.size() - 1)
@@ -149,7 +151,9 @@ void Vm_session_component::detach(addr_t guest_phys, size_t size)
 			iteration_size = region->size();
 
 			/* inform dataspace */
-			region->dataspace().detached_from(*region);
+			region->with_dataspace([&] (Dataspace_component &dataspace) {
+				dataspace.detached_from(*region);
+			});
 
 			/* cleanup metadata */
 			_map.free(reinterpret_cast<void *>(region->base()));
@@ -179,4 +183,10 @@ void Vm_session_component::detach(Region_map::Local_addr addr)
 void Vm_session_component::unmap_region(addr_t base, size_t size)
 {
 	error(__func__, " unimplemented ", base, " ", size);
+}
+
+
+void Vm_session_component::reserve_and_flush(Region_map::Local_addr)
+{
+	error(__func__, " unimplemented");
 }

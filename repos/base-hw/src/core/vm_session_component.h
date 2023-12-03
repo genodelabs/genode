@@ -122,8 +122,9 @@ class Core::Vm_session_component
 		 ** Region_map_detach interface **
 		 *********************************/
 
-		void detach(Region_map::Local_addr) override;
-		void unmap_region(addr_t, size_t) override;
+		void detach(Region_map::Local_addr) override;            /* vm_session_common.cc */
+		void unmap_region(addr_t, size_t) override;              /* vm_session_common.cc */
+		void reserve_and_flush(Region_map::Local_addr) override; /* vm_session_common.cc */
 
 		/**************************
 		 ** Vm session interface **

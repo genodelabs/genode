@@ -39,11 +39,12 @@ void Dataspace_component::detach_from_rm_sessions()
 	while (Rm_region *r = _regions.first()) {
 
 		/*
-		 * The 'detach' function calls 'Dataspace_component::detached_from'
-		 * and thereby removes the current region from the '_regions' list.
+		 * The 'reserve_and_flush' function calls
+		 * 'Dataspace_component::detached_from' and thereby
+		 * removes the current region from the '_regions' list.
 		 */
 		_mutex.release();
-		r->rm().detach((void *)r->base());
+		r->rm().reserve_and_flush((void *)r->base());
 		_mutex.acquire();
 	}
 

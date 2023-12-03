@@ -58,6 +58,7 @@ class Core::Region_map_detach : Interface
 
 		virtual void detach(Region_map::Local_addr) = 0;
 		virtual void unmap_region(addr_t base, size_t size) = 0;
+		virtual void reserve_and_flush(Region_map::Local_addr) = 0;
 };
 
 
@@ -93,7 +94,7 @@ class Core::Rm_region : public List<Rm_region>::Element
 
 	private:
 
-		Dataspace_component  &_dsc;
+		Dataspace_component  *_dsc;
 		Region_map_detach    &_rm;
 
 		Attr const _attr;
@@ -102,20 +103,32 @@ class Core::Rm_region : public List<Rm_region>::Element
 
 		Rm_region(Dataspace_component &dsc, Region_map_detach &rm, Attr attr)
 		:
-			_dsc(dsc), _rm(rm), _attr(attr)
+			_dsc(&dsc), _rm(rm), _attr(attr)
 		{ }
 
-		addr_t                    base() const { return _attr.base;  }
-		size_t                    size() const { return _attr.size;  }
-		bool                     write() const { return _attr.write; }
-		bool                executable() const { return _attr.exec;  }
-		off_t                   offset() const { return _attr.off;   }
-		bool                       dma() const { return _attr.dma;   }
-		Dataspace_component &dataspace() const { return _dsc; }
-		Region_map_detach          &rm() const { return _rm;  }
+		addr_t                  base() const { return _attr.base;  }
+		size_t                  size() const { return _attr.size;  }
+		bool                   write() const { return _attr.write; }
+		bool              executable() const { return _attr.exec;  }
+		off_t                 offset() const { return _attr.off;   }
+		bool                     dma() const { return _attr.dma;   }
+		Region_map_detach        &rm() const { return _rm;  }
+
+		void mark_as_reserved() { _dsc = nullptr; }
+		bool reserved() const   { return !_dsc; }
 
 		Addr_range range() const { return { .start = _attr.base,
 		                                    .end   = _attr.base + _attr.size - 1 }; }
+
+		void with_dataspace(auto const &fn) const
+		{
+			if (!_dsc) {
+				Genode::error(__func__, ": invalid dataspace");
+				return;
+			}
+
+			fn(*_dsc);
+		}
 
 		void print(Output &out) const { Genode::print(out, _attr); }
 };
@@ -422,7 +435,7 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 				return Result::REFLECTED;  /* omit diagnostics */
 			};
 
-			if (!region_ptr)
+			if (!region_ptr || region_ptr->reserved())
 				return reflect_fault(Result::NO_REGION);
 
 			Rm_region const &region = *region_ptr;
@@ -430,39 +443,50 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 			/* fault information relative to 'region' */
 			Fault const relative_fault = fault.within_region(region);
 
-			Dataspace_component &dataspace = region.dataspace();
-
-			Native_capability managed_ds_cap = dataspace.sub_rm();
-
-			/* region refers to a regular dataspace */
-			if (!managed_ds_cap.valid()) {
-
-				bool const writeable = relative_fault.rwx.w
-				                    && dataspace.writeable();
-
-				bool const write_violation = relative_fault.write_access()
-				                         && !writeable;
-
-				bool const exec_violation  = relative_fault.exec_access()
-				                         && !relative_fault.rwx.x;
-
-				if (write_violation) return reflect_fault(Result::WRITE_VIOLATION);
-				if (exec_violation)  return reflect_fault(Result::EXEC_VIOLATION);
-
-				return resolved_fn(region, relative_fault);
-			}
-
-			/* traverse into managed dataspace */
-			Fault const sub_region_map_relative_fault =
-				relative_fault.within_sub_region_map(region.offset(),
-				                                     dataspace.size());
-
 			Result result = Result::NO_REGION;
-			_session_ep.apply(managed_ds_cap, [&] (Region_map_component *rmc_ptr) {
-				if (rmc_ptr)
-					result = rmc_ptr->_with_region_at_fault({ recursion_limit.value - 1 },
-					                                        sub_region_map_relative_fault,
-					                                        resolved_fn, reflect_fn); });
+
+			region.with_dataspace([&] (Dataspace_component &dataspace) {
+
+				Native_capability managed_ds_cap = dataspace.sub_rm();
+
+				/* region refers to a regular dataspace */
+				if (!managed_ds_cap.valid()) {
+
+					bool const writeable = relative_fault.rwx.w
+					                    && dataspace.writeable();
+
+					bool const write_violation = relative_fault.write_access()
+					                         && !writeable;
+
+					bool const exec_violation  = relative_fault.exec_access()
+					                         && !relative_fault.rwx.x;
+
+					if (write_violation) {
+						result = reflect_fault(Result::WRITE_VIOLATION);
+						return;
+					}
+
+					if (exec_violation) {
+						result = reflect_fault(Result::EXEC_VIOLATION);
+						return;
+					}
+
+					result = resolved_fn(region, relative_fault);
+					return;
+				}
+
+				/* traverse into managed dataspace */
+				Fault const sub_region_map_relative_fault =
+					relative_fault.within_sub_region_map(region.offset(),
+				                                         dataspace.size());
+
+				_session_ep.apply(managed_ds_cap, [&] (Region_map_component *rmc_ptr) {
+					if (rmc_ptr)
+						result = rmc_ptr->_with_region_at_fault({ recursion_limit.value - 1 },
+						                                        sub_region_map_relative_fault,
+						                                        resolved_fn, reflect_fn); });
+			});
+
 			return result;
 		}
 
@@ -484,6 +508,26 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 
 		Local_addr _attach(Dataspace_capability, Attach_attr);
 
+		void _with_region(Local_addr local_addr, auto const &fn)
+		{
+			/* read meta data for address */
+			Rm_region *region_ptr = _map.metadata(local_addr);
+
+			if (!region_ptr) {
+				if (_diag.enabled)
+					warning("_with_region: no attachment at ", (void *)local_addr);
+				return;
+			}
+
+			if ((region_ptr->base() != static_cast<addr_t>(local_addr)) && _diag.enabled)
+				warning("_with_region: ", static_cast<void *>(local_addr), " is not "
+				        "the beginning of the region ", Hex(region_ptr->base()));
+
+			fn(*region_ptr);
+		}
+
+		void _reserve_and_flush_unsynchronized(Rm_region &);
+
 	public:
 
 		/*
@@ -493,6 +537,8 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		 * \param size size of region to unmap
 		 */
 		void unmap_region(addr_t base, size_t size) override;
+
+		void reserve_and_flush(Local_addr) override;
 
 		/**
 		 * Constructor
@@ -557,43 +603,46 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 			return _with_region_at_fault(Recursion_limit { 5 }, fault,
 				[&] (Rm_region const &region, Fault const &region_relative_fault)
 				{
-					Dataspace_component &dataspace = region.dataspace();
+					With_mapping_result result = With_mapping_result::NO_REGION;
+					region.with_dataspace([&] (Dataspace_component &dataspace) {
+						Fault const ram_relative_fault =
+							region_relative_fault.within_ram(region.offset(), dataspace.attr());
 
-					Fault const ram_relative_fault =
-						region_relative_fault.within_ram(region.offset(), dataspace.attr());
+						Log2_range src_range { ram_relative_fault.hotspot };
+						Log2_range dst_range { fault.hotspot };
 
-					Log2_range src_range { ram_relative_fault.hotspot };
-					Log2_range dst_range { fault.hotspot };
+						src_range = src_range.constrained(ram_relative_fault.bounds);
 
-					src_range = src_range.constrained(ram_relative_fault.bounds);
+						Log2 const common_size = Log2_range::common_log2(dst_range,
+						                                                 src_range);
+						Log2 const map_size = kernel_constrained_map_size(common_size);
 
-					Log2 const common_size = Log2_range::common_log2(dst_range,
-					                                                 src_range);
-					Log2 const map_size = kernel_constrained_map_size(common_size);
+						src_range = src_range.constrained(map_size);
+						dst_range = dst_range.constrained(map_size);
 
-					src_range = src_range.constrained(map_size);
-					dst_range = dst_range.constrained(map_size);
+						if (!src_range.valid() || !dst_range.valid()) {
+							error("invalid mapping");
+							return;
+						}
 
-					if (!src_range.valid() || !dst_range.valid()) {
-						error("invalid mapping");
-						return With_mapping_result::NO_REGION;
-					}
+						Mapping const mapping {
+							.dst_addr       = dst_range.base.value,
+							.src_addr       = src_range.base.value,
+							.size_log2      = map_size.log2,
+							.cached         = dataspace.cacheability() == CACHED,
+							.io_mem         = dataspace.io_mem(),
+							.dma_buffer     = region.dma(),
+							.write_combined = dataspace.cacheability() == WRITE_COMBINED,
+							.writeable      = ram_relative_fault.rwx.w,
+							.executable     = ram_relative_fault.rwx.x
+						};
 
-					Mapping const mapping {
-						.dst_addr       = dst_range.base.value,
-						.src_addr       = src_range.base.value,
-						.size_log2      = map_size.log2,
-						.cached         = dataspace.cacheability() == CACHED,
-						.io_mem         = dataspace.io_mem(),
-						.dma_buffer     = region.dma(),
-						.write_combined = dataspace.cacheability() == WRITE_COMBINED,
-						.writeable      = ram_relative_fault.rwx.w,
-						.executable     = ram_relative_fault.rwx.x
-					};
+						apply_fn(mapping);
 
-					apply_fn(mapping);
+						result = With_mapping_result::RESOLVED;
+					});
 
-					return With_mapping_result::RESOLVED;
+					return result;
 				},
 				reflect_fn
 			);
