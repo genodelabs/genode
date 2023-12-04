@@ -1,17 +1,10 @@
-ip_config.patch
-
-From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
-
-
----
- net/ipv4/ipconfig.c |   55 ++++++++++++++++++++++++++++++++++++++++++---------
- 1 file changed, 45 insertions(+), 10 deletions(-)
+This patch makes the boot DHCP re-connectable.
 
 diff --git a/net/ipv4/ipconfig.c b/net/ipv4/ipconfig.c
-index 0bc7412..a92c6e3 100644
+index e90bc0a..490da72 100644
 --- a/net/ipv4/ipconfig.c
 +++ b/net/ipv4/ipconfig.c
-@@ -133,7 +133,7 @@ int ic_proto_enabled __initdata = 0
+@@ -130,7 +130,7 @@ int ic_proto_enabled __initdata = 0
  static int ic_host_name_set __initdata;	/* Host name set by us? */
  
  __be32 ic_myaddr = NONE;		/* My IP address */
@@ -19,17 +12,17 @@ index 0bc7412..a92c6e3 100644
 +__be32 ic_netmask = NONE;	/* Netmask for local subnet */
  __be32 ic_gateway = NONE;	/* Gateway IP address */
  
- __be32 ic_addrservaddr = NONE;	/* IP Address of the IP addresses'server */
-@@ -153,7 +153,7 @@ static char dhcp_client_identifier[253] __initdata;
- /* Persistent data: */
- 
- static int ic_proto_used;			/* Protocol used, if any */
+ #ifdef IPCONFIG_DYNAMIC
+@@ -156,7 +156,7 @@ static int ic_proto_used;			/* Protocol used, if any */
+ #else
+ #define ic_proto_used 0
+ #endif
 -static __be32 ic_nameservers[CONF_NAMESERVERS_MAX]; /* DNS Server IP addresses */
 +__be32 ic_nameservers[CONF_NAMESERVERS_MAX]; /* DNS Server IP addresses */
+ static __be32 ic_ntp_servers[CONF_NTP_SERVERS_MAX]; /* NTP server IP addresses */
  static u8 ic_domain[64];		/* DNS (not NIS) domain name */
  
- /*
-@@ -435,6 +435,33 @@ static int __init ic_setup_routes(void)
+@@ -431,6 +431,33 @@ static int __init ic_setup_routes(void)
  	return 0;
  }
  
@@ -50,7 +43,7 @@ index 0bc7412..a92c6e3 100644
 +		set_sockaddr((struct sockaddr_in *) &rm.rt_genmask, 0, 0);
 +		set_sockaddr((struct sockaddr_in *) &rm.rt_gateway, ic_gateway, 0);
 +		rm.rt_flags = RTF_UP | RTF_GATEWAY;
-+		if ((err = ic_route_ioctl(SIOCDELRT, &rm)) < 0) {
++		if ((err = ip_rt_ioctl(&init_net, SIOCDELRT, &rm)) < 0) {
 +			pr_err("IP-Config: Cannot delete default route (%d)\n",
 +			       err);
 +			return -1;
@@ -63,40 +56,7 @@ index 0bc7412..a92c6e3 100644
  /*
   *	Fill in default values for all missing parameters.
   */
-@@ -1531,24 +1558,24 @@ static int __init ip_auto_config(void)
- 	 */
- 	pr_info("IP-Config: Complete:\n");
- 
--	pr_info("     device=%s, hwaddr=%*phC, ipaddr=%pI4, mask=%pI4, gw=%pI4\n",
--		ic_dev->name, ic_dev->addr_len, ic_dev->dev_addr,
--		&ic_myaddr, &ic_netmask, &ic_gateway);
-+	pr_info("     device=%s, len=%u hwaddr=" MAC_FMT ", ipaddr=" IP_FMT ", mask=" IP_FMT " , gw=" IP_FMT "\n",
-+		ic_dev->name, ic_dev->addr_len, MAC_ARG(ic_dev->dev_addr),
-+		IP_ARG(ic_myaddr), IP_ARG(ic_netmask), IP_ARG(ic_gateway));
- 	pr_info("     host=%s, domain=%s, nis-domain=%s\n",
- 		utsname()->nodename, ic_domain, utsname()->domainname);
--	pr_info("     bootserver=%pI4, rootserver=%pI4, rootpath=%s",
--		&ic_servaddr, &root_server_addr, root_server_path);
-+	pr_info("     bootserver=" IP_FMT ", rootserver=" IP_FMT ", rootpath=%s\n",
-+		IP_ARG(ic_servaddr), IP_ARG(root_server_addr), root_server_path);
- 	if (ic_dev_mtu)
- 		pr_cont(", mtu=%d", ic_dev_mtu);
- 	for (i = 0; i < CONF_NAMESERVERS_MAX; i++)
- 		if (ic_nameservers[i] != NONE) {
--			pr_info("     nameserver%u=%pI4",
--				i, &ic_nameservers[i]);
-+			pr_info("     nameserver%u=" IP_FMT,
-+				i, IP_ARG(ic_nameservers[i]));
- 			break;
- 		}
- 	for (i++; i < CONF_NAMESERVERS_MAX; i++)
- 		if (ic_nameservers[i] != NONE)
--			pr_cont(", nameserver%u=%pI4", i, &ic_nameservers[i]);
-+			pr_cont(", nameserver%u=" IP_FMT, i, IP_ARG(ic_nameservers[i]));
- 	pr_cont("\n");
- #endif /* !SILENT */
- 
-@@ -1621,6 +1648,14 @@ static int __init ip_auto_config_setup(char *addrs)
+@@ -1719,6 +1746,14 @@ static int __init ip_auto_config_setup(char *addrs)
  	ic_set_manually = 1;
  	ic_enable = 1;
  
