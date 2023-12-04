@@ -299,7 +299,7 @@ append_if [expr $use_cpu_load] config {
 			<report activity="yes" affinity="yes"/>
 		</config>
 		<route>
-			<service name="TRACE"><parent/></service>
+			<service name="TRACE"><parent label=""/></service>
 			<service name="LOG"><parent/></service>
 			<service name="Timer"><child name="timer"/></service>
 			<service name="Report"><child name="report_rom"/></service>
@@ -323,7 +323,7 @@ append_if [expr $use_cpu_load] config {
 		<resource name="RAM" quantum="2M"/>
 		<config period_ms="10000"/>
 		<route>
-			<service name="TRACE"><parent/></service>
+			<service name="TRACE"><parent label=""/></service>
 			<service name="LOG"><parent/></service>
 			<service name="Timer"><child name="timer"/></service>
 			<service name="Report"><child name="report_rom"/></service>

@@ -163,6 +163,7 @@ install_config {
 		<route>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="CPU"> <child name="cpu_balancer"/> </service>
+			<service name="TRACE"> <parent label=""/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>

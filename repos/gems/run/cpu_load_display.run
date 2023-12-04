@@ -87,6 +87,7 @@ install_config {
 		</config>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="TRACE"> <parent label=""/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

@@ -139,6 +139,7 @@ install_config {
 			<route>
 				<service name="File_system"> <child name="lx_fs"/> </service>
 				<service name="ROM" label="config"> <child name="dynamic_rom"/> </service>
+				<service name="TRACE"> <parent label=""/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
