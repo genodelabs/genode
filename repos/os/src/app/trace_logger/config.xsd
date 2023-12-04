@@ -41,7 +41,6 @@
 			<xs:attribute name="sc_time"               type="Boolean" />
 			<xs:attribute name="session_arg_buffer"    type="Number_of_bytes" />
 			<xs:attribute name="session_ram"           type="Number_of_bytes" />
-			<xs:attribute name="session_parent_levels" type="xs:nonNegativeInteger" />
 			<xs:attribute name="default_policy"        type="Trace_policy_name" />
 			<xs:attribute name="period_sec"            type="Seconds" />
 			<xs:attribute name="default_buffer"        type="Number_of_bytes" />

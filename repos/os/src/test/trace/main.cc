@@ -146,7 +146,7 @@ struct Test_out_of_metadata
 
 		try {
 			Trace::Connection trace(env, sizeof(subject_ids) + 4096,
-			                        sizeof(subject_ids), 0);
+			                        sizeof(subject_ids));
 
 			/* we should never arrive here */
 			struct Unexpectedly_got_no_exception{};
@@ -168,7 +168,7 @@ struct Test_out_of_metadata
 			Test_thread thread5 { env, "test-thread5" };
 
 			Trace::Connection trace(env, sizeof(subject_ids) + 5*4096,
-			                        sizeof(subject_ids), 0);
+			                        sizeof(subject_ids));
 			trace.subjects(subject_ids, MAX_SUBJECT_IDS);
 
 			/* we should never arrive here */
@@ -187,7 +187,7 @@ struct Test_tracing
 {
 	Env                     &env;
 	Attached_rom_dataspace   config       { env, "config" };
-	Trace::Connection        trace        { env, 1024*1024, 64*1024, 0 };
+	Trace::Connection        trace        { env, 1024*1024, 64*1024 };
 	Timer::Connection        timer        { env };
 	Test_thread::Name        thread_name  { "test-thread" };
 	Test_thread              thread       { env, thread_name };

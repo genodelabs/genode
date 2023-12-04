@@ -114,8 +114,7 @@ class Trace_recorder::Monitor
 		Timer::Connection              _timer            { _env };
 		Trace::Connection              _trace            { _env,
 		                                                   TRACE_SESSION_RAM,
-		                                                   TRACE_SESSION_ARG_BUFFER,
-		                                                   0 };
+		                                                   TRACE_SESSION_ARG_BUFFER };
 
 		Signal_handler<Monitor>        _timeout_handler  { _env.ep(),
 		                                                   *this,

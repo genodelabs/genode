@@ -57,7 +57,7 @@ class Cpu::Trace
 			_arg_quota += upgrade;
 
 			_trace.destruct();
-			_trace.construct(_env, _ram_quota, _arg_quota, 0 /* parent levels */);
+			_trace.construct(_env, _ram_quota, _arg_quota);
 
 			/*
 			 * Explicitly re-trigger import of subjects. Otherwise

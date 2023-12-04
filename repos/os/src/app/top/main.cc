@@ -282,17 +282,12 @@ struct App::Main
 {
 	Env &_env;
 
-	enum {
-		PARENT_LEVELS = 0
-	};
-
 	size_t arg_buffer_ram  { 12 * 4096 }; /* ~ 190 trace Subject_info objects */
 	size_t trace_ram_quota { arg_buffer_ram + 4 * 4096 };
 
 	Reconstructible<Trace::Connection> _trace { _env,
 	                                            trace_ram_quota,
-	                                            arg_buffer_ram,
-	                                            PARENT_LEVELS };
+	                                            arg_buffer_ram };
 
 	static uint64_t _default_period_ms() { return 5000; }
 
@@ -369,7 +364,7 @@ void App::Main::_handle_period()
 	_trace_subject_registry.flush(*_trace, _heap);
 
 	_trace.destruct();
-	_trace.construct(_env, trace_ram_quota, arg_buffer_ram, PARENT_LEVELS);
+	_trace.construct(_env, trace_ram_quota, arg_buffer_ram);
 }
 
 

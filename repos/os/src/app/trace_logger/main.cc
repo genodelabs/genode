@@ -43,7 +43,6 @@ class Main
 		{
 			size_t       session_ram;
 			size_t       session_arg_buffer;
-			unsigned     session_parent_levels;
 			bool         verbose;
 			bool         prio;
 			bool         sc_time;
@@ -57,8 +56,7 @@ class Main
 
 		Trace::Connection _trace { _env,
 		                           _config.session_ram,
-		                           _config.session_arg_buffer,
-		                           _config.session_parent_levels };
+		                           _config.session_arg_buffer };
 
 		Timer::Connection _timer { _env };
 
@@ -231,20 +229,19 @@ class Main
 Main::Config Main::Config::from_xml(Xml_node const &config)
 {
 	return {
-		.session_ram           = config.attribute_value("session_ram",
-		                                                Number_of_bytes(1024*1024)),
-		.session_arg_buffer    = config.attribute_value("session_arg_buffer",
-		                                                Number_of_bytes(1024*4)),
-		.session_parent_levels = config.attribute_value("session_parent_levels", 0u),
-		.verbose               = config.attribute_value("verbose",  false),
-		.prio                  = config.attribute_value("priority", false),
-		.sc_time               = config.attribute_value("sc_time",  false),
-		.period_us             = Microseconds(config.attribute_value("period_sec", 5)
-		                                     * 1'000'000),
-		.default_buf_sz        = config.attribute_value("default_buffer",
-		                                                Number_of_bytes(4*1024)),
-		.default_policy_name   = config.attribute_value("default_policy",
-		                                                Policy_name("null"))
+		.session_ram         = config.attribute_value("session_ram",
+		                                              Number_of_bytes(1024*1024)),
+		.session_arg_buffer  = config.attribute_value("session_arg_buffer",
+		                                              Number_of_bytes(1024*4)),
+		.verbose             = config.attribute_value("verbose",  false),
+		.prio                = config.attribute_value("priority", false),
+		.sc_time             = config.attribute_value("sc_time",  false),
+		.period_us           = Microseconds(config.attribute_value("period_sec", 5)
+		                                    * 1'000'000),
+		.default_buf_sz      = config.attribute_value("default_buffer",
+		                                              Number_of_bytes(4*1024)),
+		.default_policy_name = config.attribute_value("default_policy",
+		                                              Policy_name("null"))
 	};
 }
 

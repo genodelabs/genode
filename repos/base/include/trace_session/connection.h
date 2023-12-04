@@ -35,13 +35,11 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	 *
 	 * \param ram_quota        RAM donated for tracing purposes
 	 * \param arg_buffer_size  session argument-buffer size
-	 * \param parent_levels    number of parent levels to trace
 	 */
-	Connection(Env &env, size_t ram_quota, size_t arg_buffer_size, unsigned parent_levels)
+	Connection(Env &env, size_t ram_quota, size_t arg_buffer_size)
 	:
 		Genode::Connection<Session>(env, Label(), Ram_quota { 10*1024 + ram_quota },
-		                            Args("arg_buffer_size=", arg_buffer_size, ", "
-		                                 "parent_levels=",   parent_levels)),
+		                            Args("arg_buffer_size=", arg_buffer_size)),
 		Session_client(env.rm(), cap())
 	{ }
 

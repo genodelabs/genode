@@ -8,7 +8,6 @@
 	<config verbose="yes"
 	        session_ram="90M"
 	        session_arg_buffer="1M"
-	        session_parent_levels="3"
 	        period_sec="10"
 	        default_policy="null"
 	        default_buffer="4K">

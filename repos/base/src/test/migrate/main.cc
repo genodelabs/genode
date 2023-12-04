@@ -59,8 +59,7 @@ struct Migrate
 	Timer::Connection  timer  { env };
 	Migrate_thread     thread { env };
 	Trace::Connection  trace  { env, 15 * 4096 /* RAM quota */,
-	                                 11 * 4096 /* ARG_BUFFER RAM quota */,
-	                                 0         /* parent levels */ };
+	                                 11 * 4096 /* ARG_BUFFER RAM quota */ };
 
 	Signal_handler<Migrate> timer_handler { env.ep(), *this,
 	                                        &Migrate::check_traces };

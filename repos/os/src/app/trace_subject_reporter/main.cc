@@ -156,7 +156,7 @@ struct App::Main
 {
 	Env &_env;
 
-	Trace::Connection _trace { _env, 128*1024, 32*1024, 0 };
+	Trace::Connection _trace { _env, 128*1024, 32*1024 };
 
 	Reporter _reporter { _env, "trace_subjects", "trace_subjects", 64*1024 };
 

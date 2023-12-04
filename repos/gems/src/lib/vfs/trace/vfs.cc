@@ -383,7 +383,7 @@ struct Vfs_trace::Local_factory : File_system_factory
 	}
 
 	Local_factory(Vfs::Env &env, Xml_node config)
-	: _env(env), _trace(env.env(), _config_session_ram(config), 512*1024, 0)
+	: _env(env), _trace(env.env(), _config_session_ram(config), 512*1024)
 	{
 		_trace.for_each_subject_info([&] (Trace::Subject_id   const id,
 		                                  Trace::Subject_info const &info) {
