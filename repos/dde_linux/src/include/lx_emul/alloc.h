@@ -1,6 +1,7 @@
 /*
  * \brief  Lx_emul support to allocate memory
  * \author Stefan Kalkowski
+ * \author Christian Helmuth
  * \date   2021-03-25
  */
 
@@ -26,6 +27,13 @@ void   lx_emul_mem_free(const void * ptr);
 unsigned long lx_emul_mem_size(const void * ptr);
 void  lx_emul_mem_cache_clean_invalidate(const void * ptr, unsigned long size);
 void  lx_emul_mem_cache_invalidate(const void * ptr, unsigned long size);
+
+/*
+ * Heap for lx_emul metadata - cleared but unprepared for Linux code
+ */
+
+void * lx_emul_heap_alloc(unsigned long size);
+void lx_emul_heap_free(void * ptr);
 
 #ifdef __cplusplus
 }
