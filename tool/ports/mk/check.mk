@@ -41,6 +41,12 @@ check: $(DOWNLOADS)
 	$(VERBOSE)git ls-remote --exit-code $(URL($*)) >/dev/null 2>&1
 
 #
+# Check source codes from a Git repository (sparse-checkout)
+#
+%.sparse-git:
+	$(VERBOSE)git ls-remote --exit-code $(URL($*)) >/dev/null 2>&1
+
+#
 # Check source codes from Subversion repository
 #
 %.svn:
