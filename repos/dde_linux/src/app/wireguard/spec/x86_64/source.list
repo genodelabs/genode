@@ -8,6 +8,9 @@ arch/x86/crypto/curve25519-x86_64.c
 arch/x86/crypto/poly1305-x86_64-cryptogams.pl
 arch/x86/crypto/poly1305_glue.c
 arch/x86/lib/hweight.S
+arch/x86/lib/memcpy_64.S
+arch/x86/lib/memmove_64.S
+arch/x86/lib/memset_64.S
 crypto/algapi.c
 crypto/api.c
 crypto/scatterwalk.c
@@ -61,6 +64,7 @@ lib/crypto/memneq.c
 lib/crypto/utils.c
 lib/ctype.c
 lib/find_bit.c
+lib/hexdump.c
 lib/idr.c
 lib/nlattr.c
 lib/radix-tree.c
@@ -68,6 +72,7 @@ lib/refcount.c
 lib/scatterlist.c
 lib/siphash.c
 lib/string.c
+lib/string_helpers.c
 lib/vsprintf.c
 lib/xarray.c
 net/core/dst.c

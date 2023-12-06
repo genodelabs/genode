@@ -427,6 +427,7 @@ include/linux/cacheflush.h
 include/linux/capability.h
 include/linux/cc_platform.h
 include/linux/cdev.h
+include/linux/cfi_types.h
 include/linux/cgroup-defs.h
 include/linux/cgroup.h
 include/linux/cgroup_api.h

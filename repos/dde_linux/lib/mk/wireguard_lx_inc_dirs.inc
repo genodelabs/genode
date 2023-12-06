@@ -27,14 +27,6 @@ INC_DIR += $(GEN_PRG_DIR)
 LIBS += virt_lx_emul virt_linux_generated
 
 #
-# We shadow some files of lx_emul and lx_kit in order to locally apply
-# modifications.
-#
-
-vpath lx_emul/alloc.cc $(GEN_PRG_DIR)
-vpath lx_kit/memory.cc $(GEN_PRG_DIR)
-
-#
 # Some local files include linux headers that expect the KBUILD_* symbols to
 # be defined. However, the lx_emul mechanism for adding the definitions doesn't
 # apply to these files, which is why we have to do it manually.

@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-03-27
+ * \date   2023-12-06
  */
 
 #include <lx_emul.h>
@@ -250,16 +250,6 @@ bool gfp_pfmemalloc_allowed(gfp_t gfp_mask)
 const u8 guid_index[16] = {};
 
 
-#include <linux/kernel.h>
-
-const char hex_asc[] = {};
-
-
-#include <linux/kernel.h>
-
-const char hex_asc_upper[] = {};
-
-
 #include <linux/icmpv6.h>
 
 void icmp6_send(struct sk_buff * skb,u8 type,u8 code,__u32 info,const struct in6_addr * force_saddr,const struct inet6_skb_parm * parm)
@@ -493,14 +483,6 @@ void skb_set_owner_w(struct sk_buff * skb,struct sock * sk)
 }
 
 
-#include <linux/string.h>
-
-char * skip_spaces(const char * str)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/smp.h>
 
 void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
@@ -528,14 +510,6 @@ void sock_edemux(struct sk_buff * skb)
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
-
-
-#include <linux/string_helpers.h>
-
-int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned int flags,const char * only)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/timerqueue.h>
