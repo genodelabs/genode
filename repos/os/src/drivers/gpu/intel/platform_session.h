@@ -5,11 +5,14 @@
  */
 
 /*
- * Copyright (C) 2021 Genode Labs GmbH
+ * Copyright (C) 2021-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
+
+#ifndef _PLATFORM_SESSION_H_
+#define _PLATFORM_SESSION_H_
 
 #include <region_map/client.h>
 #include <rm_session/connection.h>
@@ -35,6 +38,7 @@ namespace Platform {
 	class Session_component;
 	class Io_mem_session_component;
 	class Irq_session_component;
+	class Resources;
 	class Root;
 }
 
@@ -276,18 +280,144 @@ class Platform::Session_component : public Rpc_object<Session>
 };
 
 
+class Platform::Resources : Noncopyable
+{
+	private:
+
+		Env                                   & _env;
+		Signal_context_capability const         _irq_cap;
+		Platform::Connection                    _platform { _env           };
+		Reconstructible<Platform::Device>       _device   { _platform      };
+		Reconstructible<Platform::Device::Irq>  _irq      { *_device       };
+		Reconstructible<Igd::Mmio>              _mmio     { *_device, _env };
+		Reconstructible<Platform::Device::Mmio> _gmadr    { *_device, Platform::Device::Mmio::Index(1) };
+
+		Region_map_client   _rm_gttmm;
+		Region_map_client   _rm_gmadr;
+		Range               _range_gttmm;
+		Range               _range_gmadr;
+
+		void _reinit()
+		{
+			if (!with_mmio_gmadr([&](auto &mmio, auto &gmadr) {
+
+				using namespace Igd;
+
+				/********************************
+				 ** Prepare managed dataspaces **
+				 ********************************/
+
+				/* GTT starts at half of the mmio memory */
+				size_t const gttm_half_size = mmio.size() / 2;
+				off_t  const gtt_offset     = gttm_half_size;
+
+				if (gttm_half_size < GTT_RESERVED) {
+					Genode::error("GTTM size too small");
+					return;
+				}
+
+				/* attach actual iomem + reserved */
+				_rm_gttmm.detach(0ul);
+				_rm_gttmm.attach_at(mmio.cap(), 0ul, gtt_offset);
+
+				/* attach beginning of GTT */
+				_rm_gttmm.detach(gtt_offset);
+				_rm_gttmm.attach_at(mmio.cap(), gtt_offset,
+				                    GTT_RESERVED, gtt_offset);
+
+				_rm_gmadr.detach(0ul);
+				_rm_gmadr.attach_at(gmadr.cap(), 0ul, APERTURE_RESERVED);
+			}))
+				error(__func__, " failed");
+		}
+
+	public:
+
+		Resources(Env &env, Rm_connection &rm, Signal_context_capability irq)
+		:
+			_env(env),
+			_irq_cap(irq),
+			_rm_gttmm(rm.create(_mmio->size())),
+			_rm_gmadr(rm.create(Igd::APERTURE_RESERVED)),
+			_range_gttmm(1ul << 30, _mmio->size()),
+			_range_gmadr(1ul << 29, _gmadr->size())
+		{
+			_irq->sigh(_irq_cap);
+
+			/* GTT starts at half of the mmio memory */
+			size_t const gttm_half_size = _mmio->size() / 2;
+			off_t  const gtt_offset     = gttm_half_size;
+
+			if (gttm_half_size < Igd::GTT_RESERVED) {
+				Genode::error("GTTM size too small");
+				return;
+			}
+
+			_reinit();
+
+			/* attach the rest of the GTT as dummy RAM */
+			auto const dummmy_gtt_ds = _env.ram().alloc(Igd::PAGE_SIZE);
+			auto       remainder     = gttm_half_size - Igd::GTT_RESERVED;
+
+			for (off_t offset = gtt_offset + Igd::GTT_RESERVED;
+			     remainder > 0;
+			     offset += Igd::PAGE_SIZE, remainder -= Igd::PAGE_SIZE) {
+
+				rm.retry_with_upgrade({Igd::PAGE_SIZE}, Cap_quota{8}, [&]() {
+					_rm_gttmm.attach_at(dummmy_gtt_ds, offset, Igd::PAGE_SIZE); });
+			}
+		}
+
+		__attribute__((warn_unused_result))
+		bool with_mmio_gmadr(auto const &fn)
+		{
+			if (!_mmio.constructed() || !_gmadr.constructed())
+				return false;
+
+			fn(*_mmio, *_gmadr);
+
+			return true;
+		}
+
+		__attribute__((warn_unused_result))
+		bool with_irq(auto const &fn)
+		{
+			if (!_irq.constructed())
+				return false;
+
+			fn(*_irq);
+
+			return true;
+		}
+
+		__attribute__((warn_unused_result))
+		bool with_mmio(auto const &fn)
+		{
+			if (!_mmio.constructed())
+				return false;
+
+			fn(*_mmio);
+
+			return true;
+		}
+
+		void with_gttm_gmadr(auto const &fn)
+		{
+			fn(_platform, _rm_gttmm, _range_gttmm, _rm_gmadr, _range_gmadr);
+		}
+
+		void with_platform(auto const &fn) { fn(_platform); }
+};
+
+
 class Platform::Root : public Root_component<Session_component, Genode::Single_client>
 {
 	private:
 
 		Env               & _env;
-		Connection        & _platform;
+		Resources         & _resources;
 		Irq_ack_handler   & _ack_handler;
 		Gpu_reset_handler & _reset_handler;
-		Region_map_client   _gttmmadr_rm;
-		Range               _gttmmadr_range;
-		Region_map_client   _gmadr_rm;
-		Range               _gmadr_range;
 
 		Constructible<Session_component> _session { };
 
@@ -295,68 +425,32 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 
 		Root(Env                & env,
 		     Allocator          & md_alloc,
-		     Connection         & platform,
+		     Resources          & resources,
 		     Irq_ack_handler    & ack_handler,
-		     Gpu_reset_handler  & reset_handler,
-		     Igd::Mmio          & mmio,
-		     Device::Mmio       & gmadr,
-		     Rm_connection      & rm)
+		     Gpu_reset_handler  & reset_handler)
 		:
 			Root_component<Session_component,
 			               Genode::Single_client>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env),
-			_platform(platform),
+			_resources(resources),
 			_ack_handler(ack_handler),
-			_reset_handler(reset_handler),
-			_gttmmadr_rm(rm.create(mmio.size())),
-			_gttmmadr_range{1<<30, mmio.size()},
-			_gmadr_rm(rm.create(Igd::APERTURE_RESERVED)),
-			_gmadr_range{1<<29, gmadr.size()}
+			_reset_handler(reset_handler)
 		{
-			using namespace Igd;
-
-			/********************************
-			 ** Prepare managed dataspaces **
-			 ********************************/
-
-			/* GTT starts at half of the mmio memory */
-			size_t const gttm_half_size = mmio.size() / 2;
-			off_t  const gtt_offset     = gttm_half_size;
-
-			if (gttm_half_size < GTT_RESERVED) {
-				Genode::error("GTTM size too small");
-				return;
-			}
-
-			/* attach actual iomem + reserved */
-			_gttmmadr_rm.attach_at(mmio.cap(), 0, gtt_offset);
-
-			/* attach beginning of GTT */
-			_gttmmadr_rm.attach_at(mmio.cap(), gtt_offset,
-			                       GTT_RESERVED, gtt_offset);
-
-			/* attach the rest of the GTT as dummy RAM */
-			Genode::Ram_dataspace_capability dummmy_gtt_ds {
-				_env.ram().alloc(PAGE_SIZE) };
-			size_t remainder = gttm_half_size - GTT_RESERVED;
-			for (off_t offset = gtt_offset + GTT_RESERVED;
-			     remainder > 0;
-			     offset += PAGE_SIZE, remainder -= PAGE_SIZE) {
-				rm.retry_with_upgrade(Genode::Ram_quota{PAGE_SIZE},
-				                       Genode::Cap_quota{8}, [&]() {
-					_gttmmadr_rm.attach_at(dummmy_gtt_ds, offset, PAGE_SIZE); });
-			}
-
-			_gmadr_rm.attach_at(gmadr.cap(), 0, APERTURE_RESERVED);
-
 			env.parent().announce(env.ep().manage(*this));
 		}
 
 		Session_component *_create_session(char const * /* args */) override
 		{
-			_session.construct(_env, _platform, _ack_handler, _reset_handler,
-			                   _gttmmadr_rm.dataspace(), _gttmmadr_range,
-			                   _gmadr_rm.dataspace(), _gmadr_range);
+			_resources.with_gttm_gmadr([&](auto &platform,
+			                               auto &rm_gttmm, auto &range_gttmm,
+			                               auto &rm_gmadr, auto &range_gmadr) {
+				_session.construct(_env, platform, _ack_handler, _reset_handler,
+				                   rm_gttmm.dataspace(), range_gttmm,
+				                   rm_gmadr.dataspace(), range_gmadr);
+			});
+
+			if (!_session.constructed())
+				throw Service_denied();
 
 			return &*_session;
 		}
@@ -364,8 +458,11 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 		void _upgrade_session(Session_component *, const char *args) override
 		{
 			if (!_session.constructed()) return;
-			_platform.upgrade({ ram_quota_from_args(args),
-			                      cap_quota_from_args(args) });
+
+			_resources.with_platform([&](auto &platform) {
+				platform.upgrade({ ram_quota_from_args(args),
+				                   cap_quota_from_args(args) });
+			});
 		}
 
 		void _destroy_session(Session_component *) override
@@ -382,3 +479,5 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 			return false;
 		}
 };
+
+#endif /* _PLATFORM_SESSION_H_ */

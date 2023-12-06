@@ -1,11 +1,11 @@
 /*
- * \brief  Broadwell global graphics translation table
+ * \brief  Intel global graphics translation table
  * \author Josef Soentgen
  * \date   2017-03-15
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,6 +19,7 @@
 
 /* local includes */
 #include <mmio.h>
+#include <platform_session.h>
 
 
 namespace Igd { struct Ggtt; }
@@ -108,8 +109,6 @@ class Igd::Ggtt
 
 		} _space { };
 
-		Igd::Mmio &_mmio;
-
 		addr_t const _base;
 		size_t const _size;
 		size_t const _num_entries;
@@ -121,14 +120,14 @@ class Igd::Ggtt
 		size_t const _aperture_size;
 		size_t const _aperture_entries;
 
-		void _insert_pte(addr_t pa, Offset offset)
+		void _insert_pte(Igd::Mmio &mmio, addr_t const pa, Offset const &offset)
 		{
 			Page_table_entry::access_t pte = 0;
 			Page_table_entry::Physical_adress::set(pte, pa >> 12);
 			Page_table_entry::Present::set(pte, 1);
 
 			_entries[offset] = pte;
-			_mmio.flush_gfx_tlb();
+			mmio.flush_gfx_tlb();
 			Igd::wmb();
 		}
 
@@ -148,7 +147,6 @@ class Igd::Ggtt
 		Ggtt(Platform::Connection & platform, Igd::Mmio &mmio,
 		     addr_t base, size_t size, size_t aperture_size, size_t fb_size)
 		:
-			_mmio(mmio),
 			_base(base),
 			_size(size),
 			/* make the last entry/page unavailable */
@@ -164,7 +162,7 @@ class Igd::Ggtt
 				_space.set(i);
 			}
 			for (size_t i = fb_entries; i < _num_entries; i++) {
-				_insert_pte(_scratch_page.dma_addr(), i);
+				_insert_pte(mmio, _scratch_page.dma_addr(), i);
 			}
 		}
 
@@ -176,7 +174,7 @@ class Igd::Ggtt
 		 *
 		 * \throw Offset_out_of_range
 		 */
-		void insert_pte(addr_t pa, Offset offset)
+		void insert_pte(Igd::Mmio &mmio, addr_t const &pa, Offset const &offset)
 		{
 			if (offset > _num_entries) { throw Offset_out_of_range(); }
 
@@ -185,7 +183,7 @@ class Igd::Ggtt
 			}
 
 			_space.set(offset);
-			_insert_pte(pa, offset);
+			_insert_pte(mmio, pa, offset);
 		}
 
 		/**
@@ -193,7 +191,7 @@ class Igd::Ggtt
 		 *
 		 * \param offset  offset of GTT entry
 		 */
-		void remove_pte(Offset offset)
+		void remove_pte(Igd::Mmio &mmio, Offset const &offset)
 		{
 			if (!_space.allocated(offset)) {
 				Genode::warning(__func__, " offset:", offset, " was not used");
@@ -201,7 +199,7 @@ class Igd::Ggtt
 			}
 
 			_space.clear(offset);
-			_insert_pte(_scratch_page.dma_addr(), offset);
+			_insert_pte(mmio, _scratch_page.dma_addr(), offset);
 		}
 
 		/**
@@ -210,11 +208,11 @@ class Igd::Ggtt
 		 * \param start  offset of the first page in the GGTT
 		 * \param num    number of pages
 		 */
-		void remove_pte_range(Offset const start, Offset const num)
+		void remove_pte_range(Igd::Mmio &mmio, Offset const start, Offset const num)
 		{
 			Offset const end = start + num;
 			for (Offset offset = start; offset < end; offset++) {
-				remove_pte(offset);
+				remove_pte(mmio, offset);
 			}
 		}
 

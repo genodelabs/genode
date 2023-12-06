@@ -1,11 +1,11 @@
 /*
- * \brief  Broadwell multiplexer
+ * \brief  Intel GPU multiplexer for Broadwell generation and newer
  * \author Josef Soentgen
  * \data   2017-03-15
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -80,13 +80,9 @@ struct Igd::Device
 
 	Env                    & _env;
 	Allocator              & _md_alloc;
-	Platform::Connection   & _platform;
+	Platform::Resources    & _resources;
 	Rm_connection          & _rm;
-	Igd::Mmio              & _mmio;
-	Igd::Reset               _reset { _mmio };
-	Platform::Device::Mmio & _gmadr;
-	uint8_t                  _gmch_ctl;
-	Timer::Connection        _timer { _env };
+	Timer::Connection        _timer      { _env };
 
 	/*********
 	 ** PCI **
@@ -160,7 +156,7 @@ struct Igd::Device
 			return alloc(size);
 		}
 
-	} _pci_backend_alloc { _env, _platform };
+	} _pci_backend_alloc;
 
 	Device_info                      _info          { };
 	Gpu::Info_intel::Revision        _revision      { };
@@ -172,9 +168,10 @@ struct Igd::Device
 	Gpu::Info_intel::Clock_frequency _clock_frequency { };
 
 
-	bool _supported(Xml_node & supported,
-	                uint16_t   dev_id,
-	                uint8_t    rev_id)
+	bool _supported(Igd::Mmio       & mmio,
+	                Xml_node  const & supported,
+	                uint16_t  const   dev_id,
+	                uint8_t   const   rev_id)
 	{
 		bool found = false;
 
@@ -202,12 +199,12 @@ struct Igd::Device
 				return;
 
 			/* set generation for device IO as early as possible */
-			_mmio.generation(generation);
+			mmio.generation(generation);
 
 			if (info.id == dev_id) {
-				_info = info;
+				_info                  = info;
 				_revision.value        = rev_id;
-				_clock_frequency.value = _mmio.clock_frequency();
+				_clock_frequency.value = mmio.clock_frequency();
 
 				found = true;
 				return;
@@ -236,7 +233,7 @@ struct Igd::Device
 	 ** GGTT **
 	 **********/
 
-	size_t _ggtt_size()
+	size_t _ggtt_size(uint8_t const gmch_ctl) const
 	{
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 1068
@@ -250,7 +247,7 @@ struct Igd::Device
 			struct Ggc_lock                           : Bitfield<0, 1> { };
 		};
 		enum { PCI_GMCH_CTL = 0x50, };
-		MGGC_0_2_0_PCI::access_t v = _gmch_ctl;
+		MGGC_0_2_0_PCI::access_t v = gmch_ctl;
 
 		{
 			log("MGGC_0_2_0_PCI");
@@ -264,11 +261,29 @@ struct Igd::Device
 		return (1u << MGGC_0_2_0_PCI::Gtt_graphics_memory_size::get(v)) << 20;
 	}
 
-	addr_t _ggtt_base() const {
-		return _mmio.base() + (_mmio.size() / 2); }
+	Constructible<Igd::Ggtt> _ggtt { };
 
-	Igd::Ggtt _ggtt { _platform, _mmio, _ggtt_base(),
-	                  _ggtt_size(), _gmadr.size(), APERTURE_RESERVED };
+	__attribute__((warn_unused_result))
+	bool with_ggtt(auto const &fn)
+	{
+		if (!_ggtt.constructed())
+			return false;
+
+		fn(*_ggtt);
+
+		return true;
+	}
+
+	__attribute__((warn_unused_result))
+	bool with_ggtt(auto const &fn) const
+	{
+		if (!_ggtt.constructed())
+			return false;
+
+		fn(*_ggtt);
+
+		return true;
+	}
 
 	/************
 	 ** MEMORY **
@@ -317,21 +332,33 @@ struct Igd::Device
 	                                            Genode::Ram_dataspace_capability cap,
 	                                            Ggtt::Offset offset)
 	{
-		Genode::Dataspace_client client(cap);
-		addr_t const phys_addr = _pci_backend_alloc.dma_addr(cap);
-		size_t const size      = client.size();
+		Genode::Registered<Ggtt_mmio_mapping> *mem = nullptr;
 
-		/*
-		 * Create the mapping first and insert the entries afterwards
-		 * so we do not have to rollback when the allocation failes.
-		 */
-		Genode::Registered<Ggtt_mmio_mapping> *mem = new (&alloc)
-			Genode::Registered<Ggtt_mmio_mapping>(_ggtt_mmio_mapping_registry,
-			                                      _rm, _gmadr.cap(), offset, size);
-		for (size_t i = 0; i < size; i += PAGE_SIZE) {
-			addr_t const pa = phys_addr + i;
-			_ggtt.insert_pte(pa, offset + (i / PAGE_SIZE));
-		}
+		if (!with_ggtt([&](auto &ggtt) {
+			if (!_resources.with_mmio_gmadr([&](auto &mmio, auto &gmadr) {
+				Genode::Dataspace_client client(cap);
+				addr_t const phys_addr = _pci_backend_alloc.dma_addr(cap);
+				size_t const size      = client.size();
+
+				/*
+				 * Create the mapping first and insert the entries afterwards
+				 * so we do not have to rollback when the allocation fails.
+				 */
+				mem = new (&alloc)
+					Genode::Registered<Ggtt_mmio_mapping>(_ggtt_mmio_mapping_registry,
+					                                      _rm, gmadr.cap(), offset, size);
+
+				for (size_t i = 0; i < size; i += PAGE_SIZE) {
+					addr_t const pa = phys_addr + i;
+					ggtt.insert_pte(mmio, pa, offset + (i / PAGE_SIZE));
+				}
+			}))
+				error(__func__, " failed");
+		}))
+			throw Could_not_map_vram();
+
+		if (!mem)
+			throw Could_not_map_vram();
 
 		return *mem;
 	}
@@ -340,14 +367,20 @@ struct Igd::Device
 	{
 		size_t const num = Genode::Dataspace_client(cap).size() / PAGE_SIZE;
 
-		auto lookup_and_free = [&] (Ggtt_mmio_mapping &m) {
-			if (!(m.cap == cap)) { return; }
+		if (!with_ggtt([&](auto &ggtt) {
+			if (!_resources.with_mmio([&](auto &mmio) {
+				auto lookup_and_free = [&] (Ggtt_mmio_mapping &m) {
+					if (!(m.cap == cap)) { return; }
 
-			_ggtt.remove_pte_range(m.offset, num);
-			Genode::destroy(&alloc, &m);
-		};
+					ggtt.remove_pte_range(mmio, m.offset, num);
+					Genode::destroy(&alloc, &m);
+				};
 
-		_ggtt_mmio_mapping_registry.for_each(lookup_and_free);
+				_ggtt_mmio_mapping_registry.for_each(lookup_and_free);
+			}))
+				error(__func__, " with_mmio failed");
+		}))
+			error(__func__, " failed");
 	}
 
 	struct Invalid_ppgtt : Genode::Exception { };
@@ -460,6 +493,18 @@ struct Igd::Device
 			       + (skip * PAGE_SIZE);
 		}
 
+		Ggtt::Offset _offset(Ggtt::Offset const &pages)
+		{
+			Ggtt::Offset offset { };
+
+			if (!device.with_ggtt([&](auto &ggtt) {
+				offset = ggtt.find_free(pages, true);
+			}))
+				error("Gtt::Offset setup failed");
+
+			return offset;
+		}
+
 		addr_t gmaddr() const { /* graphics memory address */
 			return (offset + skip) * PAGE_SIZE; }
 
@@ -468,7 +513,7 @@ struct Igd::Device
 		:
 			device(device),
 			alloc(alloc),
-			offset(device._ggtt.find_free(pages, true)),
+			offset(_offset(pages)),
 			skip(skip_pages),
 			ram_ds(device, device._alloc_dataspace(pages * PAGE_SIZE)),
 			map(device, *this, alloc),
@@ -949,11 +994,11 @@ struct Igd::Device
 	Genode::Fifo<Vgpu>  _vgpu_list { };
 	Vgpu               *_active_vgpu { nullptr };
 
-	void _submit_execlist(Engine<Rcs_context> &engine)
+	void _submit_execlist(Igd::Mmio &mmio, Engine<Rcs_context> &engine)
 	{
 		Execlist &el = *engine.execlist;
 
-		int const port = _mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_write_pointer>();
+		int const port = mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_write_pointer>();
 
 
 		/*
@@ -964,8 +1009,8 @@ struct Igd::Device
 		bool empty = false;
 		for (unsigned i = 0; i < 100; i++) {
 
-			if (_mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_0_valid>() == 0 &&
-			    _mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_1_valid>() == 0) {
+			if (mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_0_valid>() == 0 &&
+			    mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_1_valid>() == 0) {
 				empty = true;
 				break;
 			}
@@ -987,27 +1032,27 @@ struct Igd::Device
 		desc[1] = el.elem0().high();
 		desc[0] = el.elem0().low();
 
-		_mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[3]);
-		_mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[2]);
-		_mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[1]);
-		_mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[0]);
+		mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[3]);
+		mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[2]);
+		mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[1]);
+		mmio.write<Igd::Mmio::EXECLIST_SUBMITPORT_RSCUNIT>(desc[0]);
 	}
 
-	void _submit_execlist_gen12(Engine<Rcs_context> &engine)
+	void _submit_execlist_gen12(Igd::Mmio &mmio, Engine<Rcs_context> &engine)
 	{
-		if (_mmio.read<Igd::Mmio::GEN12_EXECLIST_STATUS_RSCUNIT::Execution_queue_invalid>() == 0)
+		if (mmio.read<Igd::Mmio::GEN12_EXECLIST_STATUS_RSCUNIT::Execution_queue_invalid>() == 0)
 			return;
 
 		Execlist &el = *engine.execlist;
 
-		_mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(el.elem0().low(), 0);
-		_mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(el.elem0().high(), 1);
+		mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(el.elem0().low(), 0);
+		mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(el.elem0().high(), 1);
 
 		for (unsigned i = 2; i < 16; i++)
-			_mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(0, i);
+			mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(0, i);
 
 		/* load SQ to EQ */
-		_mmio.write<Igd::Mmio::GEN12_EXECLIST_CONTROL_RSCUNIT::Load>(1);
+		mmio.write<Igd::Mmio::GEN12_EXECLIST_CONTROL_RSCUNIT::Load>(1);
 	}
 
 	Vgpu *_unschedule_current_vgpu()
@@ -1031,7 +1076,7 @@ struct Igd::Device
 		return result;
 	}
 
-	void _schedule_current_vgpu()
+	void _schedule_current_vgpu(Igd::Mmio &mmio)
 	{
 		Vgpu *gpu = _current_vgpu();
 		if (!gpu) {
@@ -1041,12 +1086,12 @@ struct Igd::Device
 
 		Engine<Rcs_context> &rcs = gpu->rcs;
 
-		_mmio.flush_gfx_tlb();
+		mmio.flush_gfx_tlb();
 
 		if (_info.generation < 11)
-			_submit_execlist(rcs);
+			_submit_execlist(mmio, rcs);
 		else
-			_submit_execlist_gen12(rcs);
+			_submit_execlist_gen12(mmio, rcs);
 
 		_active_vgpu = gpu;
 		_timer.trigger_once(WATCHDOG_TIMEOUT);
@@ -1085,23 +1130,24 @@ struct Igd::Device
 	/* TODO introduce Fences object, Bit_allocator */
 	enum { INVALID_FENCE = 0xff, };
 
-	uint32_t _get_free_fence()
+	uint32_t _get_free_fence(Igd::Mmio &mmio)
 	{
-		return _mmio.find_free_fence();
+		return mmio.find_free_fence();
 	}
 
-	uint32_t _update_fence(uint32_t const id,
+	uint32_t _update_fence(Igd::Mmio    & mmio,
+	                       uint32_t const id,
 	                       addr_t   const lower,
 	                       addr_t   const upper,
 	                       uint32_t const pitch,
 	                       bool     const tile_x)
 	{
-		return _mmio.update_fence(id, lower, upper, pitch, tile_x);
+		return mmio.update_fence(id, lower, upper, pitch, tile_x);
 	}
 
-	void _clear_fence(uint32_t const id)
+	void _clear_fence(Igd::Mmio &mmio, uint32_t const id)
 	{
-		_mmio.clear_fence(id);
+		mmio.clear_fence(id);
 	}
 
 	/**********************
@@ -1128,42 +1174,46 @@ struct Igd::Device
 		if (!_active_vgpu) { return; }
 
 		Genode::error("watchdog triggered: engine stuck,"
-		              " vGPU=", _active_vgpu->id(), " IRQ: ",
-		              Hex(_mmio.read_irq_vector()));
+		              " vGPU=", _active_vgpu->id());
 
-		if (DEBUG) {
-			_mmio.dump();
-			_mmio.error_dump();
-			_mmio.fault_dump();
-			_mmio.execlist_status_dump();
+		bool ok = _resources.with_mmio([&](auto &mmio) {
+			if (DEBUG) {
+				mmio.dump();
+				mmio.error_dump();
+				mmio.fault_dump();
+				mmio.execlist_status_dump();
 
-			_active_vgpu->rcs.context->dump();
-			_hw_status_page->dump();
-			Execlist &el = *_active_vgpu->rcs.execlist;
-			el.ring_update_head(_active_vgpu->rcs.context->head_offset());
-			el.ring_dump(4096, _active_vgpu->rcs.context->tail_offset() * 2,
-			                   _active_vgpu->rcs.context->head_offset());
-		}
+				_active_vgpu->rcs.context->dump();
+				_hw_status_page->dump();
+				Execlist &el = *_active_vgpu->rcs.execlist;
+				el.ring_update_head(_active_vgpu->rcs.context->head_offset());
+				el.ring_dump(4096, _active_vgpu->rcs.context->tail_offset() * 2,
+				                   _active_vgpu->rcs.context->head_offset());
+			}
 
 
-		Vgpu *vgpu = reset();
+			Vgpu *vgpu = reset(mmio);
 
-		if (!vgpu)
-			error("reset vgpu is null");
+			if (!vgpu)
+				error("reset vgpu is null");
 
-		/* the stuck vgpu */
-		_handle_vgpu_after_reset(*vgpu);
+			/* the stuck vgpu */
+			_handle_vgpu_after_reset(*vgpu);
+		});
+
+		if (!ok)
+			error("reset of vGPU failed");
 	}
 
 	Genode::Signal_handler<Device> _watchdog_timeout_sigh {
 		_env.ep(), *this, &Device::_handle_watchdog_timeout };
 
-	void _device_reset_and_init()
+	void _device_reset_and_init(Igd::Mmio &mmio)
 	{
-		_mmio.reset();
-		_mmio.clear_errors();
-		_mmio.init();
-		_mmio.enable_intr();
+		mmio.reset();
+		mmio.clear_errors();
+		mmio.init();
+		mmio.enable_intr();
 	}
 
 	/**
@@ -1172,74 +1222,90 @@ struct Igd::Device
 	Device(Genode::Env            & env,
 	       Genode::Allocator      & alloc,
 	       Platform::Connection   & platform,
+	       Platform::Resources    & res,
 	       Rm_connection          & rm,
-	       Igd::Mmio              & mmio,
-	       Platform::Device::Mmio & gmadr,
 	       Genode::Xml_node       & supported,
 	       uint16_t                 device_id,
 	       uint8_t                  revision,
 	       uint8_t                  gmch_ctl)
 	:
-		_env(env), _md_alloc(alloc), _platform(platform), _rm(rm),
-		_mmio(mmio), _gmadr(gmadr), _gmch_ctl(gmch_ctl)
+		_env(env), _md_alloc(alloc), _resources(res), _rm(rm),
+		_pci_backend_alloc(_env, platform)
 	{
 		using namespace Genode;
 
-		if (!_supported(supported, device_id, revision))
+		if (!_resources.with_mmio_gmadr([&](auto &mmio, auto &gmadr) {
+			_resources.with_platform([&](auto &plat_con) {
+				auto const ggtt_base = mmio.base() + (mmio.size() / 2);
+
+				_ggtt.construct(plat_con, mmio, ggtt_base,
+				                _ggtt_size(gmch_ctl), gmadr.size(),
+				                APERTURE_RESERVED);
+
+				if (!_supported(mmio, supported, device_id, revision))
+					throw Unsupported_device();
+
+				_ggtt->dump();
+
+				_vgpu_avail = (gmadr.size() - APERTURE_RESERVED) / Vgpu::APERTURE_SIZE;
+
+				reinit(mmio);
+			});
+		}))
 			throw Unsupported_device();
 
+		_timer.sigh(_watchdog_timeout_sigh);
+	}
 
-		_ggtt.dump();
+	void reinit(Igd::Mmio &mmio)
+	{
+		_device_reset_and_init(mmio);
 
-		_vgpu_avail = (_gmadr.size() - APERTURE_RESERVED) / Vgpu::APERTURE_SIZE;
-
-		_device_reset_and_init();
-
-		_clock_gating();
+		_clock_gating(mmio);
 
 		/* setup global hardware status page */
-		_hw_status_ctx.construct(env.rm(), alloc, *this, 1, 0);
-		_hw_status_page.construct(_hw_status_ctx->vaddr());
+		if (!_hw_status_ctx.constructed())
+			_hw_status_ctx.construct(_env.rm(), _md_alloc, *this, 1, 0);
+		if (!_hw_status_page.constructed())
+			_hw_status_page.construct(_hw_status_ctx->vaddr());
 
 		Mmio::HWS_PGA_RCSUNIT::access_t const addr = _hw_status_ctx->gmaddr();
-		_mmio.write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
+		mmio.write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
 
 		/* read out slice, subslice, EUs information depending on platform */
 		if (_info.platform == Device_info::Platform::BROADWELL) {
 			enum { SUBSLICE_MAX = 3 };
 			_subslice_mask.value = (1u << SUBSLICE_MAX) - 1;
-			_subslice_mask.value &= ~_mmio.read<Igd::Mmio::FUSE2::Gt_subslice_disable_fuse_gen8>();
+			_subslice_mask.value &= ~mmio.read<Igd::Mmio::FUSE2::Gt_subslice_disable_fuse_gen8>();
 
 			for (unsigned i=0; i < SUBSLICE_MAX; i++)
 				if (_subslice_mask.value & (1u << i))
 					_subslices.value ++;
 
-			_init_eu_total(3, SUBSLICE_MAX, 8);
+			_init_eu_total(mmio, 3, SUBSLICE_MAX, 8);
 
 		} else
 		if (_info.generation == 9) {
 			enum { SUBSLICE_MAX = 4 };
 			_subslice_mask.value = (1u << SUBSLICE_MAX) - 1;
-			_subslice_mask.value &= ~_mmio.read<Igd::Mmio::FUSE2::Gt_subslice_disable_fuse_gen9>();
+			_subslice_mask.value &= ~mmio.read<Igd::Mmio::FUSE2::Gt_subslice_disable_fuse_gen9>();
 
 			for (unsigned i=0; i < SUBSLICE_MAX; i++)
 				if (_subslice_mask.value & (1u << i))
 					_subslices.value ++;
 
-			_init_eu_total(3, SUBSLICE_MAX, 8);
+			_init_eu_total(mmio, 3, SUBSLICE_MAX, 8);
 		} else
 		if (_info.generation == 12) {
-			_init_topology_gen12();
+			_init_topology_gen12(mmio);
 		} else
 			Genode::error("unsupported platform ", (int)_info.platform);
 
 		/* apply generation specific workarounds */
-		apply_workarounds(_mmio, _info.generation);
-
-		_timer.sigh(_watchdog_timeout_sigh);
+		apply_workarounds(mmio, _info.generation);
 	}
 
-	void _init_topology_gen12()
+	void _init_topology_gen12(Igd::Mmio &mmio)
 	{
 		/* NOTE: This needs to be different for DG2 and Xe_HP */
 		_topology.max_slices           = 1;
@@ -1249,15 +1315,15 @@ struct Igd::Device
 		_topology.eu_stride = 2; /* 16/8 */
 
 		/* NOTE: 1 for >=12.5 */
-		_topology.slice_mask = _mmio.read<Igd::Mmio::MIRROR_GT_SLICE_EN::Enabled>();
+		_topology.slice_mask = mmio.read<Igd::Mmio::MIRROR_GT_SLICE_EN::Enabled>();
 		if (_topology.slice_mask > 1)
 			error("topology: slices > 1");
 
-		uint32_t dss_en = _mmio.read<Igd::Mmio::MIRROR_GT_DSS_ENABLE>();
+		uint32_t dss_en = mmio.read<Igd::Mmio::MIRROR_GT_DSS_ENABLE>();
 		memcpy(_topology.subslice_mask, &dss_en, sizeof(dss_en));
 
 		/* Gen12 uses dual-subslices */
-		uint8_t eu_en_fuse = ~_mmio.read<Igd::Mmio::MIRROR_EU_DISABLE0::Disabled>();
+		uint8_t eu_en_fuse = ~mmio.read<Igd::Mmio::MIRROR_EU_DISABLE0::Disabled>();
 		uint16_t eu_en { 0 };
 		for (unsigned i = 0; i < _topology.max_eus_per_subslice / 2; i++) {
 			if (eu_en_fuse & (1u << i)) {
@@ -1279,15 +1345,16 @@ struct Igd::Device
 		_topology.valid = true;
 	}
 
-	void _clock_gating()
+	void _clock_gating(Igd::Mmio &mmio)
 	{
 		if (_info.platform == Device_info::Platform::KABYLAKE) {
-			_mmio.kbl_clock_gating();
+			mmio.kbl_clock_gating();
 		} else
 			Genode::warning("no clock gating");
 	}
 
-	void _init_eu_total(uint8_t const max_slices,
+	void _init_eu_total(Igd::Mmio &mmio,
+	                    uint8_t const max_slices,
 	                    uint8_t const max_subslices,
 	                    uint8_t const max_eus_per_subslice)
 	{
@@ -1295,7 +1362,7 @@ struct Igd::Device
 			Genode::error("wrong eu_total calculation");
 		}
 
-		_slice_mask.value = _mmio.read<Igd::Mmio::FUSE2::Gt_slice_enable_fuse>();
+		_slice_mask.value = mmio.read<Igd::Mmio::FUSE2::Gt_slice_enable_fuse>();
 
 		unsigned eu_total = 0;
 
@@ -1314,7 +1381,7 @@ struct Igd::Device
 			if (!(_slice_mask.value & (1u << slice)))
 				continue;
 
-			auto const disabled = _mmio.read<Igd::Mmio::EU_DISABLE>(disable_byte);
+			auto const disabled = mmio.read<Igd::Mmio::EU_DISABLE>(disable_byte);
 
 			for (unsigned b = 0; b < 8; b++) {
 				if (disabled & (1u << b))
@@ -1334,7 +1401,7 @@ struct Igd::Device
 	/**
 	 * Reset the physical device
 	 */
-	Vgpu *reset()
+	Vgpu *reset(Igd::Mmio &mmio)
 	{
 		/* Stop render engine
 		 *
@@ -1353,29 +1420,30 @@ struct Igd::Device
 		}
 
 		/* reset */
-		_reset.execute();
+		Igd::Reset reset { };
+		reset.execute(mmio);
 
 		/* set address of global hardware status page */
 		if (_hw_status_ctx.constructed()) {
 			Mmio::HWS_PGA_RCSUNIT::access_t const addr = _hw_status_ctx->gmaddr();
-			_mmio.write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
+			mmio.write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
 		}
 
-		_mmio.clear_errors();
+		mmio.clear_errors();
 
 		/* clear pending irqs */
-		_mmio.clear_render_irq();
+		mmio.clear_render_irq();
 
 		/*
 		 * Restore "Hardware Status Mask Register", this register controls which
 		 * IRQs are even written to the PCI bus (should be same as unmasked in IMR)
 		 */
-		_mmio.restore_hwstam();
+		mmio.restore_hwstam();
 
 		hw_status_page_pause_ring(false);
 
 		if (_current_vgpu()) {
-			_schedule_current_vgpu();
+			_schedule_current_vgpu(mmio);
 		}
 
 		return vgpu;
@@ -1465,7 +1533,7 @@ struct Igd::Device
 	 *
 	 * \param vgpu  reference to vGPU
 	 */
-	void vgpu_activate(Vgpu &vgpu)
+	void vgpu_activate(Vgpu &vgpu, Igd::Mmio &mmio)
 	{
 		if (vgpu.enqueued())
 			return;
@@ -1477,7 +1545,7 @@ struct Igd::Device
 		if (pending) { return; }
 
 		/* none pending, kick-off execution */
-		_schedule_current_vgpu();
+		_schedule_current_vgpu(mmio);
 	}
 
 	/**
@@ -1573,17 +1641,22 @@ struct Igd::Device
 	 * \throw Could_not_map_vram
 	 */
 	Ggtt::Mapping const &map_vram(Genode::Allocator &guard,
-	                                Genode::Ram_dataspace_capability cap,
-	                                bool aperture)
+	                              Genode::Ram_dataspace_capability cap,
+	                              bool aperture)
 	{
 		if (aperture == false) {
 			error("GGTT mapping outside aperture");
 			throw Could_not_map_vram();
 		}
 
+		if (!_ggtt.constructed()) {
+			error("GGTT mapping failed");
+			throw Could_not_map_vram();
+		}
+
 		size_t const size = Genode::Dataspace_client(cap).size();
 		size_t const num = size / PAGE_SIZE;
-		Ggtt::Offset const offset = _ggtt.find_free(num, aperture);
+		Ggtt::Offset const offset = _ggtt->find_free(num, aperture);
 		return map_dataspace_ggtt(guard, cap, offset);
 	}
 
@@ -1607,10 +1680,10 @@ struct Igd::Device
 	 *
 	 * \return id of the used fence register
 	 */
-	uint32_t set_tiling(Ggtt::Offset const start, size_t const size,
-	                    uint32_t const mode)
+	uint32_t set_tiling(Igd::Mmio &mmio, Ggtt::Offset const start,
+	                    size_t const size, uint32_t const mode)
 	{
-		uint32_t const id = _get_free_fence();
+		uint32_t const id = _get_free_fence(mmio);
 		if (id == INVALID_FENCE) {
 			Genode::warning("could not find free FENCE");
 			return id;
@@ -1620,7 +1693,7 @@ struct Igd::Device
 		uint32_t const pitch = ((mode & 0xffff0000) >> 16) / 128 - 1;
 		bool     const tilex = (mode & 0x1);
 
-		return _update_fence(id, lower, upper, pitch, tilex);
+		return _update_fence(mmio, id, lower, upper, pitch, tilex);
 	}
 
 	/**
@@ -1628,29 +1701,29 @@ struct Igd::Device
 	 *
 	 * \param id  id of fence register
 	 */
-	void clear_tiling(uint32_t const id)
+	void clear_tiling(Igd::Mmio &mmio, uint32_t const id)
 	{
-		_clear_fence(id);
+		_clear_fence(mmio, id);
 	}
 
-	bool handle_irq()
+	bool handle_irq(Igd::Mmio &mmio)
 	{
-		bool display_irq = _mmio.display_irq();
+		bool display_irq = mmio.display_irq();
 
 		/* handle render interrupts only */
-		if (_mmio.render_irq() == false)
+		if (mmio.render_irq() == false)
 			return display_irq;
 
-		_mmio.disable_master_irq();
+		mmio.disable_master_irq();
 
-		unsigned const v = _mmio.read_irq_vector();
+		unsigned const v = mmio.read_irq_vector();
 
-		bool ctx_switch = _mmio.context_switch(v);
-		bool user_complete = _mmio.user_complete(v);
+		bool const ctx_switch    = mmio.context_switch(v);
+		bool const user_complete = mmio.user_complete(v);
 
 		if (v) {
-			_mmio.clear_render_irq(v);
-	}
+			mmio.clear_render_irq(v);
+		}
 
 		Vgpu *notify_gpu = nullptr;
 		if (user_complete) {
@@ -1659,11 +1732,11 @@ struct Igd::Device
 				notify_gpu->user_complete();
 		}
 
-		bool const fault_valid = _mmio.fault_regs_valid();
+		bool const fault_valid = mmio.fault_regs_valid();
 		if (fault_valid) { Genode::error("FAULT_REG valid"); }
 
 		if (ctx_switch)
-			_mmio.update_context_status_pointer();
+			mmio.update_context_status_pointer();
 
 		if (user_complete) {
 			_unschedule_current_vgpu();
@@ -1676,14 +1749,14 @@ struct Igd::Device
 
 			/* keep the ball rolling...  */
 			if (_current_vgpu()) {
-				_schedule_current_vgpu();
+				_schedule_current_vgpu(mmio);
 			}
 		}
 
 		return display_irq;
 	}
 
-	void enable_master_irq() { _mmio.enable_master_irq(); }
+	void enable_master_irq(Igd::Mmio &mmio) { mmio.enable_master_irq(); }
 
 	private:
 
@@ -1959,7 +2032,11 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					}
 
 					if (vram.fenced != Vram::INVALID_FENCE) {
-						_device.clear_tiling(vram.fenced);
+						if (!_device._resources.with_mmio([&](auto &mmio) {
+							_device.clear_tiling(mmio, vram.fenced);
+						}))
+							warning("tiling could not be cleared");
+
 						_vgpu.active_fences--;
 					}
 
@@ -2042,7 +2119,12 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			if (!found)
 				throw Gpu::Session::Invalid_state();
 
-			_device.vgpu_activate(_vgpu);
+			if (!_device._resources.with_mmio([&](auto &mmio) {
+				_device.vgpu_activate(_vgpu, mmio);
+			})) {
+				Genode::error("Device mmio not available");
+			}
+
 			return { .value = _vgpu.current_seqno() };
 		}
 
@@ -2239,8 +2321,19 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			_apply_vram_local(id, lookup_and_unmap);
 		}
 
-		bool set_tiling_gpu(Vram_id id, off_t offset,
-		                    unsigned mode) override
+		bool set_tiling_gpu(Vram_id id, off_t offset, unsigned mode) override
+		{
+			bool result = false;
+
+			result |= _device._resources.with_mmio([&](auto &mmio) {
+				result = _set_tiling_gpu(mmio, id, offset, mode);
+			});
+
+			return result;
+		}
+
+		bool _set_tiling_gpu(Igd::Mmio &mmio, Vram_id const id,
+		                     off_t const offset, unsigned const mode)
 		{
 			if (_vgpu.active_fences > Igd::Device::Vgpu::MAX_FENCES) {
 				Genode::error("no free fences left, already active: ", _vgpu.active_fences);
@@ -2267,7 +2360,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			if (v->fenced) return true;
 
 			Igd::size_t const size = v->size;
-			Genode::uint32_t const fenced = _device.set_tiling(v->map.offset + offset, size, mode);
+			auto const fenced = _device.set_tiling(mmio, v->map.offset + offset, size, mode);
 
 			v->fenced = fenced;
 			if (fenced != Vram::INVALID_FENCE) { _vgpu.active_fences++; }
@@ -2337,8 +2430,12 @@ class Gpu::Root : public Gpu::Root_component
 		void _destroy_session(Session_component *s) override
 		{
 			if (s->vgpu_active()) {
-				Genode::warning("vGPU active, reset device and hope for the best");
-				_device->reset();
+				if (!_device || !_device->_resources.with_mmio([&](auto &mmio) {
+					Genode::warning("vGPU active, reset device and hope for the best");
+					_device->reset(mmio);
+				}))
+					Genode::warning("vGPU active, reset of device failed");
+
 			} else {
 				/* remove from scheduled list */
 				s->vgpu_unschedule();
@@ -2366,30 +2463,20 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 	Gpu::Root               _gpu_root       { _env, _root_heap              };
 	Attached_rom_dataspace  _config_rom     { _env, "config"                };
 	Heap                    _md_alloc       { _env.ram(), _env.rm()         };
-	Platform::Connection    _platform       { _env                          };
-	Platform::Device        _device         { _platform                     };
-	Platform::Device::Irq   _irq            { _device                       };
-	Igd::Mmio               _mmio           { _device, _env                 };
-	Platform::Device::Mmio  _gmadr          { _device, { 1 }                };
 	Rm_connection           _rm             { _env                          };
 	Io_signal_handler<Main> _irq_dispatcher { _env.ep(), *this,
 	                                          &Main::handle_irq             };
 	Signal_handler<Main>    _config_sigh    { _env.ep(), *this,
 	                                          &Main::_handle_config_update  };
+	Platform::Resources     _dev            { _env, _rm, _irq_dispatcher    };
 
-	Platform::Root _platform_root { _env, _md_alloc, _platform, *this, *this,
-	                                _mmio, _gmadr, _rm };
+	Platform::Root _platform_root { _env, _md_alloc, _dev, *this, *this };
 
 	Genode::Constructible<Igd::Device> _igd_device { };
 
-	Main(Genode::Env &env)
-	:
-		_env(env)
+	Main(Genode::Env &env) : _env(env)
 	{
 		_config_rom.sigh(_config_sigh);
-
-		/* IRQ */
-		_irq.sigh(_irq_dispatcher);
 
 		/* GPU */
 		_handle_config_update();
@@ -2397,32 +2484,40 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 	void _create_device()
 	{
-		uint16_t device_id;
-		uint8_t  revision;
-		uint8_t  gmch_ctl;
+		_dev.with_platform([&](auto &plat_con) {
+			uint16_t device_id { };
+			uint8_t  revision  { };
+			uint8_t  gmch_ctl  { };
 
-		_platform.update();
-		_platform.with_xml([&] (Xml_node node) {
-			node.with_optional_sub_node("device", [&] (Xml_node node) {
-				node.with_optional_sub_node("pci-config", [&] (Xml_node node) {
-					device_id = node.attribute_value("device_id", 0U);
-					revision  = node.attribute_value("revision",  0U);
-					gmch_ctl  = node.attribute_value("intel_gmch_control",  0U);
+			plat_con.update();
+
+			plat_con.with_xml([&] (Xml_node node) {
+				node.with_optional_sub_node("device", [&] (Xml_node node) {
+					node.with_optional_sub_node("pci-config", [&] (Xml_node node) {
+						device_id = node.attribute_value("device_id", 0U);
+						revision  = node.attribute_value("revision",  0U);
+						gmch_ctl  = node.attribute_value("intel_gmch_control",  0U);
+					});
 				});
 			});
-		});
 
-		try {
-			_igd_device.construct(_env, _md_alloc, _platform, _rm, _mmio,
-			                      _gmadr, _config_rom.xml(), device_id,
-			                      revision, gmch_ctl);
-			_gpu_root.manage(*_igd_device);
-			_env.parent().announce(_env.ep().manage(_gpu_root));
-		} catch (Igd::Device::Unsupported_device) {
-			Genode::warning("No supported Intel GPU detected - no GPU service");
-		} catch (...) {
-			Genode::error("Unknown error occurred - no GPU service");
-		}
+			if (!device_id) {
+				Genode::warning("No supported Intel GPU configured");
+				return;
+			}
+
+			try {
+				_igd_device.construct(_env, _md_alloc, plat_con, _dev, _rm,
+				                      _config_rom.xml(), device_id,
+				                      revision, gmch_ctl);
+				_gpu_root.manage(*_igd_device);
+				_env.parent().announce(_env.ep().manage(_gpu_root));
+			} catch (Igd::Device::Unsupported_device) {
+				Genode::warning("No supported Intel GPU detected - no GPU service");
+			} catch (...) {
+				Genode::error("Unknown error occurred - no GPU service");
+			}
+		});
 	}
 
 	void _handle_config_update()
@@ -2442,10 +2537,13 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 	void handle_irq()
 	{
 		bool display_irq = false;
-		if (_igd_device.constructed())
-			display_irq = _igd_device->handle_irq();
+		if (_igd_device.constructed()) {
+			if (!_dev.with_mmio([&](auto &mmio) {
+				display_irq = _igd_device->handle_irq(mmio);
+			}))
+				error("handle_irq with mmio not possible");
 		/* GPU not present forward all IRQs to platform client */
-		else {
+		} else {
 			_platform_root.handle_irq();
 			return;
 		}
@@ -2464,16 +2562,25 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 	void ack_irq() override
 	{
 		if (_igd_device.constructed()) {
-			_igd_device->enable_master_irq();
+			if (!_dev.with_mmio([&](auto &mmio) {
+				_igd_device->enable_master_irq(mmio);
+			}))
+				error(__func__, " with_mmio failed");
 		}
 
-		_irq.ack();
+		if (!_dev.with_irq([&](auto &irq) { irq.ack(); }))
+			error(__func__, " with_irq failed");
 	}
 
 	void reset() override
 	{
-		addr_t const base = _mmio.base() + (_mmio.size() / 2);
-		Igd::Ggtt(_platform, _mmio, base, Igd::GTT_RESERVED, 0, 0);
+		if (!_dev.with_mmio([&](auto &mmio) {
+			_dev.with_platform([&](auto &plat_con) {
+				auto const base = mmio.base() + (mmio.size() / 2);
+				Igd::Ggtt(plat_con, mmio, base, Igd::GTT_RESERVED, 0, 0);
+			});
+		}))
+			error("reset failed");
 	}
 };
 
