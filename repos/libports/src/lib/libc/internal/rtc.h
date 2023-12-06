@@ -55,7 +55,7 @@ struct Libc::Rtc : Vfs::Watch_response_handler
 					struct tm tm { };
 					if (strptime(buf, "%Y-%m-%d %H:%M:%S", &tm)
 					 || strptime(buf, "%Y-%m-%d %H:%M", &tm)) {
-						_rtc_value = mktime(&tm);
+						_rtc_value = timegm(&tm);
 						if (_rtc_value == (time_t)-1)
 							_rtc_value = 0;
 					}
