@@ -194,15 +194,7 @@ class Core::Trace::Subject
 		/**
 		 * Destructor, releases ownership of associated source
 		 */
-		~Subject()
-		{
-			Locked_ptr<Source> source(_source);
-
-			if (source.valid()) {
-				source->disable();
-				source->release_ownership(*this);
-			}
-		}
+		~Subject() { release(); }
 
 		/**
 		 * Return registry-local ID
@@ -305,6 +297,9 @@ class Core::Trace::Subject
 			/* source vanished */
 			if (!source.valid())
 				return;
+
+			source->disable();
+			source->release_ownership(*this);
 
 			_buffer.flush();
 			_policy.flush();
