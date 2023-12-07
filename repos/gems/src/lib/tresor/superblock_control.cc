@@ -105,7 +105,7 @@ _generate_vbd_req(Virtual_block_device_request::Type type, State_uint complete_s
 		complete_state, progress, type, _req_ptr->_client_req_offset, _req_ptr->_client_req_tag,
 		_sb.last_secured_generation, *_ft, *_mt, _sb.degree, _sb.max_vba(), _sb.state == Superblock::REKEYING,
 		vba, _sb.curr_snap_idx, _sb.snapshots, _sb.degree, _sb.previous_key.id, key_id,
-		_curr_gen, _pba, _gen_req_success, _nr_of_leaves, _req_ptr->_nr_of_blks);
+		_curr_gen, _pba, _gen_req_success, _nr_of_leaves, _req_ptr->_nr_of_blks, _sb.rekeying_vba);
 }
 
 

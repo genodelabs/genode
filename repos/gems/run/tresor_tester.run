@@ -398,7 +398,7 @@ append config {
 						<free-tree
 							nr_of_levels="4"
 							nr_of_children="8"
-							nr_of_leafs="100" />
+							nr_of_leafs="512" />
 
 					</initialize>
 					<construct/>
@@ -425,10 +425,7 @@ append config {
 					<request op="sync"  vba="0"  count="256" sync="yes"/>
 					<check/>
 
-					<log string="Step 11: test asynchronous rekeying (SKIPPED BECAUSE OF KNOWN BUG)"/>
-
-<!-- FIXME: this step would yet trigger a hash mismatch in the
-            VBD rekeying module
+					<log string="Step 11: test asynchronous rekeying"/>
 
 					<request op="write" vba="20" count="3"   sync="no" salt="7384"/>
 					<request op="rekey"                      sync="no"/>
@@ -461,7 +458,6 @@ append config {
 					<request op="read"  vba="10" count="2"   sync="no" salt="3758"/>
 					<request op="sync"  vba="0"  count="256" sync="yes"/>
 					<check/>
--->
 
 					<log string="Step 12: test synchronous free tree extension"/>
 

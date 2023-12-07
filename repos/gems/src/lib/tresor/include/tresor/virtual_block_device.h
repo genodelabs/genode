@@ -54,6 +54,7 @@ class Tresor::Virtual_block_device_request : public Module_request
 		Physical_block_address &_pba;
 		Number_of_blocks &_num_pbas;
 		Number_of_leaves &_num_leaves;
+		Virtual_block_address const _rekeying_vba;
 		bool &_success;
 
 		NONCOPYABLE(Virtual_block_device_request);
@@ -64,7 +65,7 @@ class Tresor::Virtual_block_device_request : public Module_request
 		                             Tree_root &, Tree_root &, Tree_degree, Virtual_block_address, bool,
 		                             Virtual_block_address, Snapshot_index, Snapshots &, Tree_degree, Key_id,
 		                             Key_id, Generation, Physical_block_address &, bool &, Number_of_leaves &,
-		                             Number_of_blocks &);
+		                             Number_of_blocks &, Virtual_block_address);
 
 		static char const *type_to_string(Type);
 

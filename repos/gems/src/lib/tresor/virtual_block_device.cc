@@ -28,14 +28,14 @@ Virtual_block_device_request(Module_id src_module_id, Module_channel_id src_chan
                              Virtual_block_address vba, Snapshot_index curr_snap_idx, Snapshots &snapshots,
                              Tree_degree snap_degr, Key_id prev_key_id, Key_id curr_key_id,
                              Generation curr_gen, Physical_block_address &pba, bool &success,
-                             Number_of_leaves &num_leaves, Number_of_blocks &num_pbas)
+                             Number_of_leaves &num_leaves, Number_of_blocks &num_pbas, Virtual_block_address rekeying_vba)
 :
 	Module_request { src_module_id, src_chan_id, VIRTUAL_BLOCK_DEVICE }, _type { type }, _vba { vba },
 	_snapshots { snapshots }, _curr_snap_idx { curr_snap_idx }, _snap_degr { snap_degr }, _curr_gen { curr_gen },
 	_curr_key_id { curr_key_id }, _prev_key_id { prev_key_id }, _ft { ft }, _mt { mt }, _vbd_degree { vbd_degree },
 	_vbd_highest_vba { vbd_highest_vba }, _rekeying { rekeying }, _client_req_offset { client_req_offset },
 	_client_req_tag { client_req_tag }, _last_secured_gen { last_secured_gen }, _pba { pba },
-	_num_pbas { num_pbas }, _num_leaves { num_leaves }, _success { success }
+	_num_pbas { num_pbas }, _num_leaves { num_leaves }, _rekeying_vba { rekeying_vba }, _success { success }
 { }
 
 
@@ -761,7 +761,7 @@ void Virtual_block_device_channel::_generate_ft_req(State complete_state, bool p
 	_generate_req<Free_tree_request>(
 		complete_state, progress, type, req._ft, req._mt, req._snapshots, req._last_secured_gen, req._curr_gen,
 		_free_gen, _num_blks, _new_pbas, _t1_nodes, req._snapshots.items[_snap_idx].max_level, _vba, req._vbd_degree,
-		req._vbd_highest_vba, req._rekeying, req._prev_key_id, req._curr_key_id, _vba, *(Physical_block_address*)0,
+		req._vbd_highest_vba, req._rekeying, req._prev_key_id, req._curr_key_id, req._rekeying_vba, *(Physical_block_address*)0,
 		*(Number_of_blocks*)0);
 }
 
