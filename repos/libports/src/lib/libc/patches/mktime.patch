@@ -13,6 +13,25 @@ index 3c66924..05c01ae 100644
  	for ( ; ; ) {
  		t = lo / 2 + hi / 2;
  		if (t < lo)
+@@ -1955,14 +2251,14 @@ time2sub(struct tm *const tmp,
+ 		} else	dir = tmcomp(&mytm, &yourtm);
+ 		if (dir != 0) {
+ 			if (t == lo) {
+-				++t;
+-				if (t <= lo)
++				if (t == TIME_T_MAX)
+ 					return WRONG;
++				++t;
+ 				++lo;
+ 			} else if (t == hi) {
+-				--t;
+-				if (t >= hi)
++				if (t == TIME_T_MIN)
+ 					return WRONG;
++				--t;
+ 				--hi;
+ 			}
+ 			if (lo > hi)
 diff --git a/src/lib/libc/contrib/tzcode/stdtime/private.h b/src/lib/libc/contrib/tzcode/stdtime/private.h
 index 354a78b..8300ba0 100644
 --- src/lib/libc/contrib/tzcode/stdtime/private.h
