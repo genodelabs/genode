@@ -59,7 +59,7 @@
 		</start>
 		<start name="top">
 			<resource name="RAM" quantum="2M"/>
-			<config period_ms="2000"/>
+			<config period_ms="500"/>
 		</start>
 	</config>
 </runtime>
