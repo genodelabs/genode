@@ -292,6 +292,7 @@ puts $fd "<focus label=\"wm -> focus\"/>"
 close $fd
 
 set boot_modules [build_artifacts]
+append boot_modules { test.iso virtualbox6.vbox }
 
 append_if [expr $use_overlay] boot_modules { overlay.vdi }
 
