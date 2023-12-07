@@ -1396,7 +1396,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 	if(not ip.dst().is_multicast()) {
 
 		_send_icmp_dst_unreachable(local_intf, eth, ip,
-		                           Icmp_packet::Code::DST_NET_UNREACHABLE);
+		                           Icmp_packet::Code::DST_HOST_UNREACHABLE);
 	}
 	if (_config().verbose()) {
 		log("[", local_domain, "] unroutable packet"); }
