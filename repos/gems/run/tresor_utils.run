@@ -1,9 +1,7 @@
 assert_spec linux
 
-proc tresor_img_file { } { return "tresor.img" }
-
 append build_components {
-	core init timer server/lx_block server/lx_fs server/vfs app/sequence
+	core init timer lib/ld lib/vfs server/lx_block server/lx_fs server/vfs app/sequence
 	app/tresor_init_trust_anchor app/tresor_init app/tresor_check
 	lib/vfs_tresor_crypto_aes_cbc lib/vfs_tresor_trust_anchor lib/vfs_jitterentropy
 	lib/libc lib/libcrypto }
@@ -150,10 +148,8 @@ install_config $config
 exec rm -rf bin/tresor.img
 exec truncate -s 32M bin/tresor.img
 
-append boot_modules {
-	core init timer lx_block lx_fs sequence vfs vfs.lib.so vfs_jitterentropy.lib.so
-	ld.lib.so libcrypto.lib.so libc.lib.so tresor_init_trust_anchor tresor_init
-	tresor_check vfs_tresor_trust_anchor.lib.so tresor.img vfs_tresor_crypto_aes_cbc.lib.so }
+append boot_modules [build_artifacts]
+lappend boot_modules tresor.img
 
 build_boot_image $boot_modules
 
