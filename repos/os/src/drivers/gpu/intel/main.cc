@@ -606,6 +606,7 @@ struct Igd::Device
 		Engine<Rcs_context>              rcs;
 		uint32_t                         active_fences    { 0 };
 		uint64_t                         _current_seqno   { 0 };
+		Gpu::addr_t                      _delayed_execute { 0 };
 
 		Genode::Attached_ram_dataspace  _info_dataspace;
 		Gpu::Info_intel                &_info {
@@ -671,6 +672,11 @@ struct Igd::Device
 
 		void mark_completed() {
 			_info.last_completed = Gpu::Sequence_number { .value = current_seqno() };
+		}
+
+		void delay_execute(Gpu::addr_t const vram_addr)
+		{
+			_delayed_execute = vram_addr;
 		}
 
 		bool setup_ring_vram(Gpu::addr_t const vram_addr)
@@ -969,16 +975,14 @@ struct Igd::Device
 	 ** SCHEDULING **
 	 ****************/
 
-	Genode::Fifo<Vgpu>  _vgpu_list { };
-	Vgpu               *_active_vgpu { nullptr };
+	Genode::Fifo<Vgpu>  _vgpu_list     { };
+	Genode::Fifo<Vgpu>  _vgpu_delay    { };
+	Vgpu               *_active_vgpu   { };
+	bool                _schedule_stop { };
 
-	void _submit_execlist(Igd::Mmio &mmio, Engine<Rcs_context> &engine)
+
+	bool exec_list_empty(Igd::Mmio &mmio) const
 	{
-		Execlist &el = engine.execlist;
-
-		int const port = mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_write_pointer>();
-
-
 		/*
 		 * Exec list might still be executing, check multiple times, in the normal
 		 * case first iteration should succeed. If still running loop should end
@@ -994,12 +998,21 @@ struct Igd::Device
 			}
 		}
 
+		return empty;
+	}
+
+	void _submit_execlist(Igd::Mmio &mmio, Engine<Rcs_context> &engine)
+	{
+		Execlist &el = engine.execlist;
+
+		int const port = mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_write_pointer>();
+
 		/*
 		 * In case exec list is still running write list anyway, it will preempt
 		 * something in the worst case.  Nonetheless if you see the warning below,
 		 * something is not right and should be investigated.
 		 */
-		if (!empty)
+		if (!exec_list_empty(mmio))
 			warning("exec list is not empty");
 
 		el.schedule(port);
@@ -1187,6 +1200,50 @@ struct Igd::Device
 
 	Genode::Signal_handler<Device> _watchdog_timeout_sigh {
 		_env.ep(), *this, &Device::_handle_watchdog_timeout };
+
+	void handle_system_update(String<32> const & state)
+	{
+		if (state == "driver_stop") {
+			_schedule_stop = true;
+			device_release_if_stopped_and_idle();
+			return;
+		}
+
+		if (state == "driver_reinit") {
+			_resources.acquire_device();
+
+			if (!_resources.with_mmio([&](auto &mmio) {
+
+				mmio.generation(_info.generation);
+				reinit(mmio);
+
+				_schedule_stop = false;
+
+				/* resume if there is a current vGPU */
+				if (_current_vgpu())
+					_schedule_current_vgpu(mmio);
+
+				/* re-add delayed execute RPCs() of vGPUs to ready list */
+				_vgpu_delay.dequeue_all([&](auto &vgpu) {
+					if (vgpu.setup_ring_vram(vgpu._delayed_execute)) {
+						vgpu_activate(vgpu, mmio);
+					} else
+						warning("setup_ring_vram failed");
+				});
+			}))
+				error("reinit - failed");
+
+			return;
+		}
+	}
+
+	void device_release_if_stopped_and_idle()
+	{
+		if (!_schedule_stop || _active_vgpu)
+			return;
+
+		_resources.release_device();
+	}
 
 	void _device_reset_and_init(Igd::Mmio &mmio)
 	{
@@ -1526,6 +1583,9 @@ struct Igd::Device
 
 		_vgpu_list.enqueue(vgpu);
 
+		if (_schedule_stop)
+			return;
+
 		if (pending) { return; }
 
 		/* none pending, kick-off execution */
@@ -1690,7 +1750,7 @@ struct Igd::Device
 			}
 
 			/* keep the ball rolling...  */
-			if (_current_vgpu()) {
+			if (!_schedule_stop && _current_vgpu()) {
 				_schedule_current_vgpu(mmio);
 			}
 		}
@@ -2033,7 +2093,11 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 		Gpu::Sequence_number execute(Vram_id id, off_t offset) override
 		{
-			bool found = false;
+			bool        found          = false;
+			bool        ppgtt_va_valid = false;
+			Gpu::addr_t ppgtt_va       = 0;
+
+			bool const dev_offline = !_device._resources.with_mmio([](auto &){});
 
 			_apply_vram_local(id, [&] (Vram_local &vram_local) {
 
@@ -2042,9 +2106,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					return;
 				}
 
-				addr_t ppgtt_va { 0 };
-
-				bool ppgtt_va_valid = vram_local.mappings.with_element(offset,
+				ppgtt_va_valid = vram_local.mappings.with_element(offset,
 					[&] (Vram_local::Mapping const &mapping) {
 						ppgtt_va = mapping.ppgtt_va; return true; },
 					[]() { return false; });
@@ -2055,8 +2117,24 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					throw Gpu::Session::Invalid_state();
 				}
 
+				/* setup ring vram would require MMIO which is not avail */
+				if (dev_offline)
+					return;
+
 				found = _vgpu.setup_ring_vram(ppgtt_va);
 			});
+
+			if (dev_offline && ppgtt_va_valid) {
+				/* add vGPU to the delayed list, resumed after dev is re-acquired */
+				if (!_vgpu.enqueued())
+					_device._vgpu_delay.enqueue(_vgpu);
+
+				/* remember current execute in vGPU */
+				_vgpu.delay_execute(ppgtt_va);
+
+				/* return seqno which will be used after device is re-aquired */
+				return { .value = _vgpu.current_seqno() + 1 };
+			}
 
 			if (!found)
 				throw Gpu::Session::Invalid_state();
@@ -2410,10 +2488,14 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 	Signal_handler<Main>    _config_sigh    { _env.ep(), *this,
 	                                          &Main::_handle_config_update  };
 	Platform::Resources     _dev            { _env, _rm, _irq_dispatcher    };
+	Signal_handler<Main>    _system_sigh    { _env.ep(), *this,
+	                                          &Main::_system_update };
 
 	Platform::Root _platform_root { _env, _md_alloc, _dev, *this, *this };
 
-	Genode::Constructible<Igd::Device> _igd_device { };
+	Constructible<Igd::Device>            _igd_device { };
+	Constructible<Attached_rom_dataspace> _system_rom { };
+
 
 	Main(Genode::Env &env) : _env(env)
 	{
@@ -2467,12 +2549,49 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 		if (!_config_rom.valid()) { return; }
 
+		bool const use_system_rom = _config_rom.xml().attribute_value("system", false);
+
+		if (use_system_rom) {
+			_system_rom.construct(_env, "system");
+			_system_rom->sigh(_system_sigh);
+			_system_update();
+		} else
+			_system_rom.destruct();
+
 		if (_igd_device.constructed()) {
 			Genode::log("gpu device already initialized - ignore");
 			return;
 		}
 
 		_create_device();
+
+	}
+
+	void _system_update()
+	{
+		if (!_system_rom.constructed())
+			return;
+
+		_system_rom->update();
+
+		if (!_system_rom->valid())
+			return;
+
+		auto state = _system_rom->xml().attribute_value("state", String<32>(""));
+
+		if (_igd_device.constructed()) {
+			_igd_device->handle_system_update(state);
+		} else {
+			if (state == "driver_stop") {
+				_dev.release_device();
+				return;
+			}
+
+			if (state == "driver_reinit") {
+				_dev.acquire_device();
+				return;
+			}
+		}
 	}
 
 	void handle_irq()
@@ -2511,6 +2630,9 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 		if (!_dev.with_irq([&](auto &irq) { irq.ack(); }))
 			error(__func__, " with_irq failed");
+
+		if (_igd_device.constructed())
+			_igd_device->device_release_if_stopped_and_idle();
 	}
 
 	void reset() override

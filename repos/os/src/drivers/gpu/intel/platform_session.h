@@ -418,6 +418,29 @@ class Platform::Resources : Noncopyable
 		}
 
 		void with_platform(auto const &fn) { fn(_platform); }
+
+		void acquire_device()
+		{
+			_device.construct(_platform);
+
+			_irq.construct(*_device);
+			_irq->sigh(_irq_cap);
+
+			_mmio.construct(*_device, _env);
+			_gmadr.construct(*_device, Platform::Device::Mmio<0>::Index(1));
+			_gmadr_mem.construct(_env.rm(), _gmadr->cap());
+
+			_reinit();
+		}
+
+		void release_device()
+		{
+			_gmadr_mem.destruct();
+			_gmadr.destruct();
+			_mmio.destruct();
+			_irq.destruct();
+			_device.destruct();
+		}
 };
 
 
