@@ -783,7 +783,7 @@ set skip_test(test-libc)            [expr [have_spec sel4] || [have_board rpi] |
 set skip_test(test-lx_block)        [expr ![have_board linux]]
 set skip_test(test-rm_fault)        [expr [have_board linux] || ![non_executable_supported]]
 set skip_test(test-rm_fault_no_nox) [expr [have_board linux] || ![skip_test test-rm_fault]]
-set skip_test(test-rm_nested)       [expr [have_board linux]]
+set skip_test(test-rm_nested)       [expr [have_board linux] || [have_spec pistachio]]
 set skip_test(test-slab)            [expr ![interactive] && [have_include "power_on/qemu"]]
 set skip_test(test-spark_exception) [expr [have_spec arm]]
 set skip_test(test-tcp_bulk_lwip)   [expr ![have_spec x86] && ![have_include "power_on/qemu"]]
