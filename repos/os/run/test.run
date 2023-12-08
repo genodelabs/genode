@@ -228,8 +228,8 @@ foreach rom [content_rom_modules] {
 	}
 
 	# handle vfs plugin shared-object targets
-	if {[regexp "^vfs_(.+).lib.so$" $rom dummy plugin]} {
-		lappend build_targets lib/vfs_$plugin
+	if {[regexp "^(.+).lib.so$" $rom dummy plugin]} {
+		lappend build_targets lib/$plugin
 		continue
 	}
 
