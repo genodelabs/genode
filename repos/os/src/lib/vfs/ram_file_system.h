@@ -70,11 +70,17 @@ struct Vfs_ram::Io_handle final : public  Vfs_handle,
 	/* Track if this handle has modified its node */
 	bool modifying = false;
 
+	using Path = Genode::String<MAX_PATH_LEN>;
+
+	Path const path; /* needed for deferred unlink-on-close to look up the parent */
+
 	Io_handle(Vfs::File_system &fs,
 	          Allocator       &alloc,
 	          int              status_flags,
-	          Vfs_ram::Node   &node)
-	: Vfs_handle(fs, fs, alloc, status_flags), node(node)
+	          Vfs_ram::Node   &node,
+	          Path      const &path)
+	:
+		Vfs_handle(fs, fs, alloc, status_flags), node(node), path(path)
 	{ }
 };
 
@@ -122,6 +128,8 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>
 
 		Vfs::Timestamp _modification_time { Vfs::Timestamp::INVALID };
 
+		bool _marked_as_unlinked = false;
+
 	public:
 
 		unsigned long inode;
@@ -155,8 +163,9 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>
 				h->watch_response();
 		}
 
-		void unlink() { inode = 0; }
-		bool unlinked() const { return inode == 0; }
+		void mark_as_unlinked() { _marked_as_unlinked = true; }
+
+		bool marked_as_unlinked() const { return _marked_as_unlinked; }
 
 		bool update_modification_timestamp(Vfs::Timestamp time)
 		{
@@ -211,8 +220,10 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>
 		 */
 		Node *index(size_t &i)
 		{
-			if (i-- == 0)
-				return this;
+			if (!_marked_as_unlinked) {
+				if (i-- == 0)
+					return this;
+			}
 
 			Node *n;
 
@@ -537,7 +548,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 			if (File * const file = dynamic_cast<File*>(node)) {
 				if (file->opened()) {
-					file->unlink();
+					file->mark_as_unlinked();
 					return;
 				}
 			} else if (Directory *dir = dynamic_cast<Directory*>(node)) {
@@ -545,6 +556,18 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			}
 
 			destroy(_env.alloc(), node);
+		}
+
+		void _try_complete_unlink(Vfs_ram::Directory *parent_ptr, Vfs_ram::Node &node)
+		{
+			if (node.marked_as_unlinked() && !node.opened()) {
+				if (parent_ptr) {
+					parent_ptr->release(&node);
+					parent_ptr->notify();
+				}
+				node.notify();
+				remove(&node);
+			}
 		}
 
 	public:
@@ -616,7 +639,10 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			}
 
 			try {
-				*handle = new (alloc) Io_handle(*this, alloc, mode, *file);
+				Io_handle * const io_handle_ptr = new (alloc)
+					Io_handle(*this, alloc, mode, *file, path);
+				file->open(*io_handle_ptr);
+				*handle = io_handle_ptr;
 				return OPEN_OK;
 			} catch (Genode::Out_of_ram) {
 				if (create) {
@@ -671,8 +697,10 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			}
 
 			try {
-				*handle = new (alloc) Io_handle(
-					*this, alloc, Io_handle::STATUS_RDONLY, *dir);
+				Io_handle * const io_handle_ptr = new (alloc)
+					Io_handle(*this, alloc, Io_handle::STATUS_RDONLY, *dir, path);
+				dir->open(*io_handle_ptr);
+				*handle = io_handle_ptr;
 				return OPENDIR_OK;
 			} catch (Genode::Out_of_ram) {
 				if (create) {
@@ -727,8 +755,10 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			}
 
 			try {
-				*handle = new (alloc)
-					Io_handle(*this, alloc, Io_handle::STATUS_RDWR, *link);
+				Io_handle * const io_handle_ptr = new (alloc)
+					Io_handle(*this, alloc, Io_handle::STATUS_RDWR, *link, path);
+				link->open(*io_handle_ptr);
+				*handle = io_handle_ptr;
 				return OPENLINK_OK;
 			} catch (Genode::Out_of_ram) {
 				if (create) {
@@ -753,14 +783,15 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			Vfs_ram::Node &node = ram_handle->node;
 			bool node_modified = ram_handle->modifying;
 
+			Vfs_ram::Directory * const parent_ptr = lookup_parent(ram_handle->path.string());
+
 			node.close(*ram_handle);
 			destroy(vfs_handle->alloc(), ram_handle);
 
-			if (node.unlinked() && !node.opened()) {
-				destroy(_env.alloc(), &node);
-			} else if (node_modified) {
+			if (node_modified)
 				node.notify();
-			}
+
+			_try_complete_unlink(parent_ptr, node);
 		}
 
 		Stat_result stat(char const *path, Stat &stat) override
@@ -855,10 +886,11 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if (!node)
 				return UNLINK_ERR_NO_ENTRY;
 
-			parent->release(node);
-			node->notify();
-			parent->notify();
-			remove(node);
+			/* defer unlink of a node that is still referenced by an Io_handle */
+			node->mark_as_unlinked();
+
+			_try_complete_unlink(parent, *node);
+
 			return UNLINK_OK;
 		}
 

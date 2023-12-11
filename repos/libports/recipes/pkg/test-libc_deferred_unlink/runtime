@@ -1,0 +1,24 @@
+<runtime ram="4M" caps="200" binary="test-libc_deferred_unlink">
+
+	<fail after_seconds="30"/>
+	<succeed>child * exited with exit value 0</succeed>
+	<fail>Error: </fail>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="test-libc_deferred_unlink"/>
+	</content>
+
+	<config>
+		<vfs>
+			<dir name="dev"> <log/> </dir>
+			<dir name="tmp"> <ram/> </dir>
+		</vfs>
+		<libc stdout="/dev/log" stderr="/dev/log"/>
+	</config>
+
+</runtime>
