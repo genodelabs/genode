@@ -50,7 +50,7 @@
 
 		<start name="server">
 			<binary name="test-netty_tcp"/>
-			<resource name="RAM" quantum="32M"/>
+			<resource name="RAM" quantum="34M"/>
 			<config port="80" read_write="yes" nonblock="false">
 				<vfs>
 					<dir name="dev"> <log/> </dir>
