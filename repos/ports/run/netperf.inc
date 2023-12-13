@@ -398,7 +398,7 @@ append config {
 
 	<start name="netserver_genode" caps="320" priority="-1">
 	<binary name="netserver"/>
-		<resource name="RAM" quantum="32M"/>
+		<resource name="RAM" quantum="14M"/>
 		<config>
 			<arg value="netserver"/>
 			<arg value="-D"/>
