@@ -660,3 +660,12 @@ int schedule_delayed_work(struct delayed_work *dwork, unsigned long delay)
 {
 	return mod_delayed_work(0, dwork, delay);
 }
+
+
+int kstrtoul(const char *s, unsigned int base, unsigned long *res)
+{
+	unsigned long val = 0;
+	Genode::ascii_to(s, val);
+	*res = val;
+	return 0;
+}

@@ -485,6 +485,15 @@ void late_ip_auto_config(void);
 void late_tcp_congestion_default(void);
 
 
+int __set_thash_entries(char *str);
+int __set_uhash_entries(char *str);
+
+static void lxip_kernel_params(void)
+{
+	__set_thash_entries("2048");
+	__set_uhash_entries("2048");
+}
+
 /**
  * Initialize sub-systems
  */
@@ -498,6 +507,8 @@ void lxip_init()
 
 	/* sub-systems */
 	subsys_net_dev_init();
+
+	lxip_kernel_params();
 	fs_inet_init();
 
 	/* enable local accepts */
