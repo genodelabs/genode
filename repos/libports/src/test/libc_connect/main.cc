@@ -25,7 +25,12 @@
 
 static char const *server_connected           = "10.0.1.2";
 static char const *server_connection_refused  = "10.0.1.2";
-static char const *server_timeout             = "10.0.1.4";
+
+/*
+ * the unreachable server address must be in another nic_router 'domain'
+ * so domain local IP stacks do not have direct ARP access to the address
+ */
+static char const *server_timeout             = "10.0.2.2";
 
 static int const port_connected          = 80;
 static int const port_connection_refused = 81;
