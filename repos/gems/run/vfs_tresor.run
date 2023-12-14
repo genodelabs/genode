@@ -1,24 +1,26 @@
 assert_spec linux
 
+set dd [installed_command dd]
+
 create_boot_directory
 
-proc tresor_image_file { } {
-	return "vfs_tresor_block.img"
-}
+proc tresor_image_name { } { return "vfs_tresor_block.img" }
 
-set use_interactively [expr ![get_cmd_switch --autopilot]]
+proc tresor_image_size_mb { } { return 4 }
 
-import_from_depot [depot_user]/pkg/[drivers_interactive_pkg] \
-                  [depot_user]/pkg/terminal \
-                  [depot_user]/src/ncurses \
+proc local_tresor_image { } { return bin/[tresor_image_name] }
+
+proc autopilot_tresor_image { } { return /tmp/[tresor_image_name].[exec id -un] }
+
+import_from_depot [depot_user]/src/ncurses \
                   [depot_user]/src/bash \
-                  [depot_user]/src/coreutils \
-                  [depot_user]/src/nitpicker
-
+                  [depot_user]/src/coreutils
 
 build {
-	core lib/ld timer init
-	server/lx_fs
+	core
+	timer
+	init
+	lib/ld
 	lib/vfs_tresor
 	lib/vfs_tresor_crypto_aes_cbc
 	lib/vfs_tresor_crypto_memcopy
@@ -26,17 +28,24 @@ build {
 	lib/vfs_import
 	lib/vfs_jitterentropy
 	lib/vfs_pipe
-	lib/vfs lib/libc lib/posix lib/libcrypto
+	lib/vfs
+	lib/libc
+	lib/libm
+	lib/posix
+	lib/libcrypto
 	test/vfs_stress
 	test/libc
 	server/log_terminal
 	server/report_rom
 	server/fs_rom
+	server/lx_fs
+	server/vfs
 	app/tresor_init_trust_anchor
+	app/tresor_init
 	app/sequence
 }
 
-set config {
+append config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -54,64 +63,20 @@ set config {
 	</default-route>
 
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1000" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="nitpicker">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Gui"/>
-			<service name="Capture"/>
-			<service name="Event"/>
-		</provides>
-		<config focus="rom" request_framebuffer="no" request_input="no">
-			<capture/> <event/>
-			<domain name="default" layer="2" content="client" label="no" hover="always"/>
-			<default-policy domain="default"/>
-		</config>
-		<route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>}
-
-append_if $use_interactively config {
-
-	<start name="terminal_service" caps="110">
-		<binary name="terminal"/>
-		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Terminal"/></provides>
-		<route>
-			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>}
-
-append_if [expr !$use_interactively] config {
-	<start name="terminal_service" caps="110">
-		<binary name="log_terminal"/>
+	<start name="log_terminal" caps="110">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>
 		<route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>}
+	</start>
 
-append config {
 	<start name="lx_fs" ld="no">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
@@ -127,15 +92,9 @@ append config {
 		<config>
 			<vfs>
 				<ram/>
-				<import>
-					<rom name="encrypted_private_key"/>
-					<rom name="superblock_hash"/>
-				</import>
-
 				<dir name="dev">
 					<jitterentropy/>
-					<tresor_trust_anchor name="tresor_trust_anchor"
-					                  storage_dir="/"/>
+					<tresor_trust_anchor name="tresor_trust_anchor" storage_dir="/"/>
 				</dir>
 			</vfs>
 
@@ -146,8 +105,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="initialize_tresor" caps="3000">
-		<binary name="sequence"/>
+	<start name="sequence" caps="3000">
 		<resource name="RAM" quantum="300M"/>
 		<config>
 
@@ -156,10 +114,35 @@ append config {
 				<config passphrase="foobar" trust_anchor_dir="/trust_anchor">
 					<vfs>
 						<dir name="trust_anchor">
-							<fs label="ta"/>
+							<fs label="tresor_trust_anchor"/>
 						</dir>
 					</vfs>
 				</config>
+			</start>
+
+			<start name="tresor_init">
+				<resource name="RAM" quantum="4M"/>
+				<config>
+
+					<block-io type="vfs" path="/} [tresor_image_name] {"/>
+					<crypto path="/crypto"/>
+					<trust-anchor path="/trust_anchor"/>
+
+					<vfs>
+						<fs label="tresor_block_io" buffer_size="1M"/>
+						<tresor_crypto_aes_cbc name="crypto"/>
+						<dir name="trust_anchor">
+							<fs label="tresor_trust_anchor"/>
+						</dir>
+					</vfs>
+
+					<virtual-block-device nr_of_levels="3" nr_of_children="64" nr_of_leafs="512" />
+					<free-tree nr_of_levels="3" nr_of_children="64" nr_of_leafs="2048" />
+
+				</config>
+				<route>
+					<any-service> <parent/> </any-service>
+				</route>
 			</start>
 
 			<start name="init" caps="1600">
@@ -188,12 +171,12 @@ append config {
 						<provides><service name="File_system"/></provides>
 						<config>
 							<vfs>
-								<fs buffer_size="1M" label="fs_backend"/>
+								<fs buffer_size="1M" label="tresor_block_io"/>
 								<tresor_crypto_aes_cbc name="tresor_crypto"/>
-								<dir name="ta"> <fs buffer_size="1M" label="ta"/> </dir>
+								<dir name="ta"> <fs buffer_size="1M" label="tresor_trust_anchor"/> </dir>
 								<dir name="dev">
 									<tresor name="tresor" debug="no" verbose="yes"
-										 block="/} [tresor_image_file] {"
+										 block="/} [tresor_image_name] {"
 										 crypto="/tresor_crypto"
 										 trust_anchor="/ta"/>
 								</dir>
@@ -202,8 +185,6 @@ append config {
 							<default-policy root="/dev" writeable="yes"/>
 						</config>
 						<route>
-							<service name="File_system" label="fs_backend"> <parent label="fs"/> </service>
-							<service name="File_system" label="ta">         <parent label="ta"/> </service>
 							<any-service> <parent/> </any-service>
 						</route>
 					</start>
@@ -230,7 +211,7 @@ append config {
 							<default-policy root="/" writeable="yes"/>
 						</config>
 						<route>
-							<service name="Terminal"> <parent label="terminal_service"/> </service>
+							<service name="Terminal"> <parent label="log_terminal"/> </service>
 							<service name="Timer"> <child name="timer"/> </service>
 							<any-service> <parent/> </any-service>
 						</route>
@@ -266,21 +247,23 @@ append config {
 							<env key="PATH" value="/bin"/>
 						</config>
 						<route>
-							<service name="File_system" label="shell">  <child name="vfs"/> </service>
-							<service name="File_system" label="tresor">    <child name="vfs_tresor"/> </service>
+							<service name="File_system" label="shell"> <child name="vfs"/> </service>
+							<service name="File_system" label="tresor"> <child name="vfs_tresor"/> </service>
 							<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
 							<service name="ROM" label_last="/bin/bash"> <child name="vfs_rom"/> </service>
-							<service name="ROM" label_prefix="/bin">    <child name="vfs_rom"/> </service>
+							<service name="ROM" label_prefix="/bin"> <child name="vfs_rom"/> </service>
 							<any-service> <parent/> <any-child/> </any-service>
 						</route>
 					</start>
+
 				</config>
 			</start>
+
 		</config>
 		<route>
-			<service name="Terminal"> <child name="terminal_service"/> </service>
-			<service name="File_system" label_last="fs"> <child name="lx_fs"/> </service>
-			<service name="File_system" label_last="ta"> <child name="vfs_tresor_trust_anchor"/> </service>
+			<service name="Terminal"> <child name="log_terminal"/> </service>
+			<service name="File_system" label_suffix="tresor_block_io"> <child name="lx_fs"/> </service>
+			<service name="File_system" label_suffix="tresor_trust_anchor"> <child name="vfs_tresor_trust_anchor"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
@@ -294,19 +277,28 @@ set shell_script "run/vfs_tresor.sh"
 set repo "[repository_contains $shell_script]"
 exec cp $repo/$shell_script bin/
 
+exec rm -rf [local_tresor_image]
+if { [get_cmd_switch --autopilot] } {
+
+	exec rm -rf [autopilot_tresor_image]
+	catch { exec $dd if=/dev/urandom of=[autopilot_tresor_image] bs=1M count=[tresor_image_size_mb] }
+	exec ln -sf -T [autopilot_tresor_image] [local_tresor_image]
+
+} else {
+
+	catch { exec $dd if=/dev/urandom of=[local_tresor_image] bs=1M count=[tresor_image_size_mb] }
+}
+
 set boot_modules [build_artifacts]
-
-append  boot_modules { vfs_tresor.sh encrypted_private_key superblock_hash }
-lappend boot_modules [tresor_image_file]
-
-set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"terminal_service -> \" domain=\"default\"/>"
-close $fd
+append  boot_modules { vfs_tresor.sh }
+lappend boot_modules [tresor_image_name]
 
 build_boot_image $boot_modules
 
-if {$use_interactively} {
-	run_genode_until forever
-} else {
-	run_genode_until {.*--- Automated Tresor testing finished.*} 1800
+run_genode_until {.*"/bin/bash".* exited with exit value 0.*\n} 120
+
+if { [get_cmd_switch --autopilot] } {
+
+	exec rm -rf [local_tresor_image]
+	exec rm -rf [autopilot_tresor_image]
 }

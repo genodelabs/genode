@@ -16,95 +16,54 @@
 
 /* tresor includes */
 #include <tresor/types.h>
+#include <tresor/block_io.h>
 
-namespace Tresor {
+namespace Tresor { class Ft_check; }
 
-	class Ft_check;
-	class Ft_check_request;
-	class Ft_check_channel;
-}
-
-
-class Tresor::Ft_check_request : public Module_request
+struct Tresor::Ft_check : Noncopyable
 {
-	friend class Ft_check_channel;
+	class Check : Noncopyable
+	{
+		public:
 
-	private:
+			using Module = Ft_check;
 
-		Tree_root const &_ft;
-		bool &_success;
+			struct Attr { Tree_root const &in_ft; };
 
-		NONCOPYABLE(Ft_check_request);
+		private:
 
-	public:
+			enum State { INIT, IN_PROGRESS, COMPLETE, READ_BLK, READ_BLK_SUCCEEDED };
 
-		Ft_check_request(Module_id, Module_channel_id, Tree_root const &, bool &);
+			using Helper = Request_helper<Check, State>;
 
-		void print(Output &out) const override { Genode::print(out, "check ", _ft); }
-};
+			Helper _helper;
+			Attr const _attr;
+			Type_1_node_block_walk _t1_blks { };
+			Type_2_node_block _t2_blk { };
+			bool _check_node[TREE_MAX_NR_OF_LEVELS + 1][NUM_NODES_PER_BLK] { };
+			Number_of_leaves _num_remaining_leaves { 0 };
+			Block _blk { };
+			Generatable_request<Helper, State, Block_io::Read> _read_block { };
 
+			bool _execute_node(Block_io &, Tree_level_index, Tree_node_index, bool &);
 
-class Tresor::Ft_check_channel : public Module_channel
-{
-	private:
+		public:
 
-		using Request = Ft_check_request;
+			Check(Attr const &attr) : _helper(*this), _attr(attr) { }
 
-		enum State : State_uint { REQ_SUBMITTED, REQ_IN_PROGRESS, REQ_COMPLETE, REQ_GENERATED, READ_BLK_SUCCEEDED };
+			void print(Output &out) const { Genode::print(out, "check ", _attr.in_ft); }
 
-		State _state { REQ_COMPLETE };
-		Type_1_node_block_walk _t1_blks { };
-		Type_2_node_block _t2_blk { };
-		bool _check_node[TREE_MAX_NR_OF_LEVELS + 1][NUM_NODES_PER_BLK] { };
-		Number_of_leaves _num_remaining_leaves { 0 };
-		Request *_req_ptr { };
-		Block _blk { };
-		bool _generated_req_success { false };
+			bool execute(Block_io &);
 
-		NONCOPYABLE(Ft_check_channel);
+			bool complete() const { return _helper.complete(); }
+			bool success() const { return _helper.success(); }
+	};
 
-		void _generated_req_completed(State_uint) override;
+	Ft_check() { }
 
-		void _request_submitted(Module_request &) override;
+	bool execute(Check &req, Block_io &block_io) { return req.execute(block_io); }
 
-		bool _request_complete() override { return _state == REQ_COMPLETE; }
-
-		void _mark_req_failed(bool &, Error_string);
-
-		void _mark_req_successful(bool &);
-
-		bool _execute_node(Tree_level_index, Tree_node_index, bool &);
-
-		template <typename REQUEST, typename... ARGS>
-		void _generate_req(State_uint state, bool &progress, ARGS &&... args)
-		{
-			_state = REQ_GENERATED;
-			generate_req<REQUEST>(state, progress, args..., _generated_req_success);
-		}
-
-	public:
-
-		Ft_check_channel(Module_channel_id id) : Module_channel { FT_CHECK, id } { }
-
-		void execute(bool &);
-};
-
-
-class Tresor::Ft_check : public Module
-{
-	private:
-
-		using Channel = Ft_check_channel;
-
-		Constructible<Channel> _channels[1] { };
-
-		NONCOPYABLE(Ft_check);
-
-	public:
-
-		Ft_check();
-
-		void execute(bool &) override;
+	static constexpr char const *name() { return "ft_check"; }
 };
 
 #endif /* _TRESOR__FT_CHECK_H_ */

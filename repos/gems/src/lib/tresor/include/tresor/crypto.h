@@ -21,155 +21,187 @@
 namespace Tresor {
 
 	class Crypto;
-	class Crypto_request;
-	class Crypto_channel;
+	class Crypto_key_files_interface;
 }
 
-class Tresor::Crypto_request : public Module_request
+struct Tresor::Crypto_key_files_interface : Interface
 {
-	friend class Crypto_channel;
+	virtual void add_crypto_key(Key_id) = 0;
 
-	public:
+	virtual void remove_crypto_key(Key_id) = 0;
 
-		enum Type { ADD_KEY, REMOVE_KEY, DECRYPT, ENCRYPT, DECRYPT_CLIENT_DATA, ENCRYPT_CLIENT_DATA };
+	virtual Vfs::Vfs_handle &encrypt_file(Key_id) = 0;
 
-	private:
-
-		Type const _type;
-		Request_offset const _client_req_offset;
-		Request_tag const _client_req_tag;
-		Physical_block_address const _pba;
-		Virtual_block_address const _vba;
-		Key_id const _key_id;
-		Key_value const &_key_plaintext;
-		Block &_blk;
-		bool &_success;
-
-		NONCOPYABLE(Crypto_request);
-
-	public:
-
-		Crypto_request(Module_id, Module_channel_id, Type, Request_offset, Request_tag, Key_id,
-		               Key_value const &, Physical_block_address, Virtual_block_address, Block &, bool &);
-
-		static const char *type_to_string(Type);
-
-		void print(Output &) const override;
+	virtual Vfs::Vfs_handle &decrypt_file(Key_id) = 0;
 };
 
-class Tresor::Crypto_channel : public Module_channel
+class Tresor::Crypto : Noncopyable
 {
-	private:
+	public:
 
-		using Request = Crypto_request;
-
-		enum State {
-			REQ_SUBMITTED, REQ_COMPLETE, PLAINTEXT_BLK_OBTAINED, PLAINTEXT_BLK_SUPPLIED, REQ_GENERATED,
-			READ_OK, WRITE_OK, FILE_ERR };
-
-		struct Key_directory
+		struct Attr
 		{
-			Crypto_channel &chan;
-			Key_id key_id;
-			Read_write_file<State> encrypt_file { chan._state, chan._vfs_env, { chan._path, "/keys/", key_id, "/encrypt" } };
-			Read_write_file<State> decrypt_file { chan._state, chan._vfs_env, { chan._path, "/keys/", key_id, "/decrypt" } };
-
-			NONCOPYABLE(Key_directory);
-
-			Key_directory(Crypto_channel &chan, Key_id key_id) : chan { chan }, key_id { key_id } { }
+			Crypto_key_files_interface &key_files;
+			Vfs::Vfs_handle &add_key_file;
+			Vfs::Vfs_handle &remove_key_file;
 		};
 
-		Vfs::Env &_vfs_env;
-		Tresor::Path const _path;
-		char _add_key_buf[sizeof(Key_id) + KEY_SIZE] { };
-		Write_only_file<State> _add_key_file { _state, _vfs_env, { _path, "/add_key" } };
-		Write_only_file<State> _remove_key_file { _state, _vfs_env, { _path, "/remove_key" } };
-		Constructible<Key_directory> _key_dirs[2] { };
-		State _state { REQ_COMPLETE };
-		bool _generated_req_success { false };
-		Block _blk { };
-		Request *_req_ptr { };
+	private:
 
-		NONCOPYABLE(Crypto_channel);
+		Attr const _attr;
+		addr_t _user { };
 
-		void _generated_req_completed(State_uint) override;
+	public:
 
-		void _request_submitted(Module_request &) override;
+		class Encrypt;
+		class Decrypt;
+		class Add_key;
+		class Remove_key;
 
-		bool _request_complete() override { return _state == REQ_COMPLETE; }
+		Crypto(Attr const &attr) : _attr(attr) { }
 
-		template <typename REQUEST, typename... ARGS>
-		void _generate_req(State_uint state, bool &progress, ARGS &&... args)
+		template <typename REQ>
+		bool execute(REQ &req)
 		{
-			_state = REQ_GENERATED;
-			generate_req<REQUEST>(state, progress, args..., _generated_req_success);
+			if (!_user)
+				_user = (addr_t)&req;
+
+			if (_user != (addr_t)&req)
+				return false;
+
+			bool progress = req.execute(_attr);
+			if (req.complete())
+				_user = 0;
+
+			return progress;
 		}
 
-		void _add_key(bool &);
-
-		void _remove_key(bool &);
-
-		void _decrypt(bool &);
-
-		void _encrypt(bool &);
-
-		void _encrypt_client_data(bool &);
-
-		void _decrypt_client_data(bool &);
-
-		void _mark_req_failed(bool &, char const *);
-
-		void _mark_req_successful(bool &);
-
-		Constructible<Key_directory> &_key_dir(Key_id key_id);
-
-	public:
-
-		Crypto_channel(Module_channel_id, Vfs::Env &, Xml_node const &);
-
-		void execute(bool &);
+		static constexpr char const *name() { return "crypto"; }
 };
 
-class Tresor::Crypto : public Module
+class Tresor::Crypto::Encrypt : Noncopyable
 {
+	public:
+
+		using Module = Crypto;
+
+		struct Attr
+		{
+			Key_id const in_key_id;
+			Physical_block_address const in_pba;
+			Block &in_out_blk;
+		};
+
 	private:
 
-		using Request = Crypto_request;
-		using Channel = Crypto_channel;
+		enum State { INIT, COMPLETE, WRITE, WRITE_OK, READ_OK, FILE_ERR };
 
-		Constructible<Channel> _channels[1] { };
-
-		NONCOPYABLE(Crypto);
+		Request_helper<Encrypt, State> _helper;
+		Attr const _attr;
+		off_t _offset { };
+		Constructible<File<State> > _file { };
 
 	public:
 
-		struct Add_key : Request
+		Encrypt(Attr const &attr) : _helper(*this), _attr(attr) { }
+
+		void print(Output &out) const { Genode::print(out, "encrypt pba ", _attr.in_pba); }
+
+		bool execute(Crypto::Attr const &);
+
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
+};
+
+class Tresor::Crypto::Decrypt : Noncopyable
+{
+	public:
+
+		using Module = Crypto;
+
+		struct Attr
 		{
-			Add_key(Module_id src_mod, Module_channel_id src_chan, Key &key, bool &succ)
-			: Request(src_mod, src_chan, Request::ADD_KEY, 0, 0, key.id, key.value, 0, 0, *(Block*)0, succ) { }
+			Key_id const in_key_id;
+			Physical_block_address const in_pba;
+			Block &in_out_blk;
 		};
 
-		struct Remove_key : Request
-		{
-			Remove_key(Module_id src_mod, Module_channel_id src_chan, Key_id key, bool &succ)
-			: Request(src_mod, src_chan, Request::REMOVE_KEY, 0, 0, key, *(Key_value*)0, 0, 0, *(Block*)0, succ) { }
-		};
+	private:
 
-		struct Decrypt : Request
-		{
-			Decrypt(Module_id src_mod, Module_channel_id src_chan, Key_id key, Physical_block_address pba, Block &blk, bool &succ)
-			: Request(src_mod, src_chan, Request::DECRYPT, 0, 0, key, *(Key_value*)0, pba, 0, blk, succ) { }
-		};
+		enum State { INIT, COMPLETE, WRITE, WRITE_OK, READ_OK, FILE_ERR };
 
-		struct Encrypt : Request
-		{
-			Encrypt(Module_id src_mod, Module_channel_id src_chan, Key_id key, Physical_block_address pba, Block &blk, bool &succ)
-			: Request(src_mod, src_chan, Request::ENCRYPT, 0, 0, key, *(Key_value*)0, pba, 0, blk, succ) { }
-		};
+		Request_helper<Decrypt, State> _helper;
+		Attr const _attr;
+		off_t _offset { };
+		Constructible<File<State> > _file { };
 
-		Crypto(Vfs::Env &, Xml_node const &);
+	public:
 
-		void execute(bool &) override;
+		Decrypt(Attr const &attr) : _helper(*this), _attr(attr) { }
+
+		void print(Output &out) const { Genode::print(out, "decrypt pba ", _attr.in_pba); }
+
+		bool execute(Crypto::Attr const &);
+
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
+};
+
+class Tresor::Crypto::Add_key : Noncopyable
+{
+	public:
+
+		using Module = Crypto;
+
+		struct Attr { Key const &in_key; };
+
+	private:
+
+		enum State { INIT, COMPLETE, WRITE, WRITE_OK, FILE_ERR };
+
+		Request_helper<Add_key, State> _helper;
+		Attr const _attr;
+		char _write_buf[sizeof(Key_id) + sizeof(Key_value)] { };
+		Constructible<File<State> > _file { };
+
+	public:
+
+		Add_key(Attr const &attr) : _helper(*this), _attr(attr) { }
+
+		void print(Output &out) const { Genode::print(out, "add key id ", _attr.in_key.id); }
+
+		bool execute(Crypto::Attr const &);
+
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
+};
+
+class Tresor::Crypto::Remove_key : Noncopyable
+{
+	public:
+
+		using Module = Crypto;
+
+		struct Attr { Key_id const in_key_id; };
+
+	private:
+
+		enum State { INIT, COMPLETE, WRITE, WRITE_OK, FILE_ERR };
+
+		Request_helper<Remove_key, State> _helper;
+		Attr const _attr;
+		Constructible<File<State> > _file { };
+
+	public:
+
+		Remove_key(Attr const &attr) : _helper(*this), _attr(attr) { }
+
+		void print(Output &out) const { Genode::print(out, "remove key id ", _attr.in_key_id); }
+
+		bool execute(Crypto::Attr const &);
+
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
 };
 
 #endif /* _TRESOR__CRYPTO_H_ */

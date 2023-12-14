@@ -97,6 +97,7 @@ vbox5_win7_64_share
 verify
 vfs_cfg
 vfs_import
+vfs_tresor
 vm_stress_seoul-debian32
 vm_stress_vbox5-debian32
 vm_stress_vbox5-debian64

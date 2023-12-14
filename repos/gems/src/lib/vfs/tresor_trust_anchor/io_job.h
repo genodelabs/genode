@@ -257,16 +257,10 @@ namespace Util {
 		       Vfs::file_offset      base_offset,
 		       Partial_result   partial_result = Partial_result::DENY)
 		:
-			_handle         { handle },
-			_op             { op },
-			_state          { _initial_state(op) },
-			_data           { buffer.base },
-			_base_offset    { base_offset },
-			_current_offset { 0 },
-			_current_count  { buffer.size },
-			_allow_partial  { partial_result == Partial_result::ALLOW },
-			_success        { false },
-			_complete       { false }
+			_handle(handle), _op(op), _state(_initial_state(op)), _data(buffer.base),
+			_base_offset(base_offset), _current_offset(0), _current_count(buffer.size),
+			_allow_partial(partial_result == Partial_result::ALLOW), _success(false),
+			_complete(false)
 		{ }
 
 		bool completed() const { return _complete; }

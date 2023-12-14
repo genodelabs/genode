@@ -641,8 +641,28 @@ class File_vault::Main
 		                                   size_t nr_of_ft_children,
 		                                   size_t nr_of_ft_leafs);
 
-		static bool tresor_control_file_yields_state_idle(Xml_node const &fs_query_listing,
-		                                                  char     const *file_name);
+		template <size_t N>
+		static bool listing_file_starts_with(Xml_node  const &fs_query_listing,
+		                                     char      const *file_name,
+		                                     String<N> const &str)
+		{
+			bool result { false };
+			bool done   { false };
+			fs_query_listing.with_optional_sub_node("dir", [&] (Xml_node const &node_0) {
+				node_0.for_each_sub_node("file", [&] (Xml_node const &node_1) {
+					if (done) {
+						return;
+					}
+					if (node_1.attribute_value("name", String<16>()) == file_name) {
+						node_1.with_raw_content([&] (char const *base, size_t size) {
+							result = String<N> { Cstring {base, size} } == str;
+							done = true;
+						});
+					}
+				});
+			});
+			return result;
+		}
 
 
 		/***************************************************
@@ -696,28 +716,6 @@ void Main::_handle_ui_config()
 	_ui_config_rom->update();
 	_ui_config.construct(_ui_config_rom->xml(), _verbose_ui_config);
 	_handle_ui_config_and_report();
-}
-
-
-bool Main::tresor_control_file_yields_state_idle(Xml_node const &fs_query_listing,
-                                                 char     const *file_name)
-{
-	bool result { false };
-	bool done   { false };
-	fs_query_listing.with_optional_sub_node("dir", [&] (Xml_node const &node_0) {
-		node_0.for_each_sub_node("file", [&] (Xml_node const &node_1) {
-			if (done) {
-				return;
-			}
-			if (node_1.attribute_value("name", String<16>()) == file_name) {
-				node_1.with_raw_content([&] (char const *base, size_t size) {
-					result = String<5> { Cstring {base, size} } == "idle";
-					done = true;
-				});
-			}
-		});
-	});
-	return result;
 }
 
 
@@ -940,16 +938,20 @@ void Main::_handle_resizing_fs_query_listing(Xml_node const &node)
 		switch (_resizing_state) {
 		case Resizing_state::WAIT_TILL_DEVICE_IS_READY:
 
-			if (tresor_control_file_yields_state_idle(node, "extend_progress")) {
+			if (listing_file_starts_with(node, "extend", String<10>("succeeded")) ||
+			    listing_file_starts_with(node, "extend", String<5>("none"))) {
 
 				_resizing_state = Resizing_state::ISSUE_REQUEST_AT_DEVICE;
 				Signal_transmitter(_state_handler).submit();
-			}
+
+			} else
+				error("failed to extend: tresor not ready");
+
 			break;
 
 		case Resizing_state::IN_PROGRESS_AT_DEVICE:
 
-			if (tresor_control_file_yields_state_idle(node, "extend_progress")) {
+			if (listing_file_starts_with(node, "extend", String<10>("succeeded"))) {
 
 				switch (_resizing_type) {
 				case Resizing_type::EXPAND_CLIENT_FS:
@@ -972,7 +974,10 @@ void Main::_handle_resizing_fs_query_listing(Xml_node const &node)
 				}
 				_resizing_state = Resizing_state::DETERMINE_CLIENT_FS_SIZE;
 				Signal_transmitter(_state_handler).submit();
-			}
+
+			} else
+				error("failed to extend: operation failed at tresor");
+
 			break;
 
 		default:
@@ -992,13 +997,16 @@ void Main::_handle_lock_fs_query_listing(Xml_node const &node)
 	switch (_state) {
 	case State::LOCK_WAIT_TILL_DEINIT_REQUEST_IS_DONE:
 
-		if (tresor_control_file_yields_state_idle(node, "deinitialize")) {
+		if (listing_file_starts_with(node, "deinitialize", String<10>("succeeded"))) {
 
 			_set_state(State::UNLOCK_OBTAIN_PARAMETERS);
 			_setup_obtain_params_passphrase = Input_passphrase { };
 			_setup_obtain_params_select = Setup_obtain_params_select::PASSPHRASE_INPUT;
 			Signal_transmitter(_state_handler).submit();
-		}
+
+		} else
+			error("failed to deinitialize: operation failed at tresor");
+
 		break;
 
 	default:
@@ -1024,20 +1032,27 @@ void Main::_handle_rekeying_fs_query_listing(Xml_node const &node)
 		switch (_rekeying_state) {
 		case Rekeying_state::WAIT_TILL_DEVICE_IS_READY:
 
-			if (tresor_control_file_yields_state_idle(node, "rekey_progress")) {
+			if (listing_file_starts_with(node, "rekey", String<10>("succeeded")) ||
+			    listing_file_starts_with(node, "rekey", String<5>("none"))) {
 
 				_rekeying_state = Rekeying_state::ISSUE_REQUEST_AT_DEVICE;
 				Signal_transmitter(_state_handler).submit();
-			}
+
+			} else
+				error("failed to rekey: tresor not ready");
+
 			break;
 
 		case Rekeying_state::IN_PROGRESS_AT_DEVICE:
 
-			if (tresor_control_file_yields_state_idle(node, "rekey_progress")) {
+			if (listing_file_starts_with(node, "rekey", String<10>("succeeded"))) {
 
 				_rekeying_state = Rekeying_state::INACTIVE;
 				Signal_transmitter(_state_handler).submit();
-			}
+
+			} else
+				error("failed to rekey: operation failed at tresor");
+
 			break;
 
 		default:
@@ -1465,10 +1480,8 @@ void File_vault::Main::handle_sandbox_state()
 					update_dialog = true;
 					update_sandbox = true;
 
-				} else {
-
+				} else
 					_unlock_retry_delay.schedule(Microseconds { 3000000 });
-				}
 			});
 			break;
 

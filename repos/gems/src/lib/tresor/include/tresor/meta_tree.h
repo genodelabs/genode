@@ -1,5 +1,5 @@
 /*
- * \brief  Module for doing VBD COW allocations on the meta tree
+ * \brief  Module for doing PBA allocations for the Free Tree via the Meta Tree
  * \author Martin Stein
  * \date   2023-02-13
  */
@@ -16,74 +16,49 @@
 
 /* tresor includes */
 #include <tresor/types.h>
+#include <tresor/block_io.h>
 
-namespace Tresor {
+namespace Tresor { class Meta_tree; }
 
-	class Meta_tree;
-	class Meta_tree_request;
-	class Meta_tree_channel;
-}
-
-class Tresor::Meta_tree_request : public Module_request
+class Tresor::Meta_tree : Noncopyable
 {
-	friend class Meta_tree_channel;
-
 	public:
 
-		enum Type { ALLOC_PBA };
+		class Allocate_pba;
 
-	private:
+		bool execute(Allocate_pba &, Block_io &);
 
-		Type const _type;
-		Tree_root &_mt;
-		Generation const _curr_gen;
-		Physical_block_address &_pba;
-		bool &_success;
-
-		NONCOPYABLE(Meta_tree_request);
-
-	public:
-
-		Meta_tree_request(Module_id, Module_channel_id, Type, Tree_root &, Generation, Physical_block_address &, bool &);
-
-		static char const *type_to_string(Type);
-
-		void print(Output &out) const override { Genode::print(out, type_to_string(_type)); }
+		static constexpr char const *name() { return "meta_tree"; }
 };
 
-class Tresor::Meta_tree_channel : public Module_channel
+class Tresor::Meta_tree::Allocate_pba : Noncopyable
 {
+	public:
+
+		using Module = Meta_tree;
+
+		struct Attr
+		{
+			Tree_root &in_out_mt;
+			Generation const in_curr_gen;
+			Physical_block_address &in_out_pba;
+		};
+
 	private:
 
-		using Request = Meta_tree_request;
+		enum State { INIT, COMPLETE, READ_BLK, SEEK_DOWN, SEEK_LEFT_OR_UP, WRITE_BLK, WRITE_BLK_SUCCEEDED };
 
-		enum State { REQ_SUBMITTED, REQ_GENERATED, SEEK_DOWN, SEEK_LEFT_OR_UP, WRITE_BLK, COMPLETE };
+		using Helper = Request_helper<Allocate_pba, State>;
 
-		State _state { COMPLETE };
-		Request *_req_ptr { nullptr };
+		Helper _helper;
+		Attr const _attr;
 		Block _blk { };
 		Tree_node_index _node_idx[TREE_MAX_NR_OF_LEVELS] { };
 		Type_1_node_block _t1_blks[TREE_MAX_NR_OF_LEVELS] { };
 		Type_2_node_block _t2_blk { };
 		Tree_level_index _lvl { 0 };
-		bool _generated_req_success { false };
-
-		NONCOPYABLE(Meta_tree_channel);
-
-		void _generated_req_completed(State_uint) override;
-
-		template <typename REQUEST, typename... ARGS>
-		void _generate_req(State_uint state, bool &progress, ARGS &&... args)
-		{
-			_state = REQ_GENERATED;
-			generate_req<REQUEST>(state, progress, args..., _generated_req_success);
-		}
-
-		void _request_submitted(Module_request &) override;
-
-		bool _request_complete() override { return _state == COMPLETE; }
-
-		void _mark_req_failed(bool &, char const *);
+		Generatable_request<Helper, State, Block_io::Read> _read_block { };
+		Generatable_request<Helper, State, Block_io::Write> _write_block { };
 
 		bool _can_alloc_pba_of(Type_2_node &);
 
@@ -91,38 +66,20 @@ class Tresor::Meta_tree_channel : public Module_channel
 
 		void _traverse_curr_node(bool &);
 
-		void _mark_req_successful(bool &);
-
 		void _start_tree_traversal(bool &);
 
 	public:
 
-		Meta_tree_channel(Module_channel_id id) : Module_channel { META_TREE, id } { }
+		Allocate_pba(Attr const &attr) : _helper(*this), _attr(attr) { }
 
-		void execute(bool &);
-};
+		~Allocate_pba() { }
 
-class Tresor::Meta_tree : public Module
-{
-	private:
+		void print(Output &out) const { Genode::print(out, "allocate pba"); }
 
-		using Channel = Meta_tree_channel;
+		bool execute(Block_io &);
 
-		Constructible<Channel> _channels[1] { };
-
-		NONCOPYABLE(Meta_tree);
-
-		void execute(bool &) override;
-
-	public:
-
-		struct Alloc_pba : Meta_tree_request
-		{
-			Alloc_pba(Module_id src_mod, Module_channel_id src_chan, Tree_root &mt, Generation gen, Physical_block_address &pba, bool &succ)
-			: Meta_tree_request(src_mod, src_chan, Meta_tree_request::ALLOC_PBA, mt, gen, pba, succ) { }
-		};
-
-		Meta_tree();
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
 };
 
 #endif /* _TRESOR__META_TREE_H_ */

@@ -16,94 +16,51 @@
 
 /* tresor includes */
 #include <tresor/types.h>
+#include <tresor/block_io.h>
 
-namespace Tresor {
+namespace Tresor { class Vbd_check; }
 
-	class Vbd_check;
-	class Vbd_check_request;
-	class Vbd_check_channel;
-}
-
-
-class Tresor::Vbd_check_request : public Module_request
+struct Tresor::Vbd_check : Noncopyable
 {
-	friend class Vbd_check_channel;
+	class Check : Noncopyable
+	{
+		public:
 
-	private:
+			using Module = Vbd_check;
 
-		Tree_root const &_vbd;
-		bool &_success;
+			struct Attr { Tree_root const &in_vbd; };
 
-		NONCOPYABLE(Vbd_check_request);
+		private:
 
-	public:
+			enum State { INIT, IN_PROGRESS, COMPLETE, READ_BLK, READ_BLK_SUCCEEDED };
 
-		Vbd_check_request(Module_id, Module_channel_id, Tree_root const &, bool &);
+			Request_helper<Check, State> _helper;
+			Attr const _attr;
+			Type_1_node_block_walk _t1_blks { };
+			bool _check_node[TREE_MAX_NR_OF_LEVELS][NUM_NODES_PER_BLK] { };
+			Block _blk { };
+			Number_of_leaves _num_remaining_leaves { 0 };
+			Generatable_request<Request_helper<Check, State>, State, Block_io::Read> _read_block { };
 
-		void print(Output &out) const override { Genode::print(out, "check ", _vbd); }
-};
+			bool _execute_node(Block_io &, Tree_level_index, Tree_node_index, bool &);
 
+		public:
 
-class Tresor::Vbd_check_channel : public Module_channel
-{
-	private:
+			Check(Attr const &attr) : _helper(*this), _attr(attr) { }
 
-		using Request = Vbd_check_request;
+			void print(Output &out) const { Genode::print(out, "check ", _attr.in_vbd); }
 
-		enum State : State_uint { REQ_SUBMITTED, REQ_IN_PROGRESS, REQ_COMPLETE, REQ_GENERATED, READ_BLK_SUCCEEDED };
+			bool execute(Block_io &);
 
-		State _state { REQ_COMPLETE };
-		Type_1_node_block_walk _t1_blks { };
-		bool _check_node[TREE_MAX_NR_OF_LEVELS][NUM_NODES_PER_BLK] { };
-		Block _blk { };
-		Request *_req_ptr { };
-		Number_of_leaves _num_remaining_leaves { 0 };
-		bool _generated_req_success { false };
+			bool complete() const { return _helper.complete(); }
+			bool success() const { return _helper.success(); }
+	};
 
-		NONCOPYABLE(Vbd_check_channel);
+	Vbd_check() { }
 
-		void _generated_req_completed(State_uint) override;
+	bool execute(Check &req, Block_io &block_io) { return req.execute(block_io); }
 
-		void _request_submitted(Module_request &) override;
-
-		bool _request_complete() override { return _state == REQ_COMPLETE; }
-
-		void _mark_req_failed(bool &, Error_string);
-
-		void _mark_req_successful(bool &);
-
-		bool _execute_node(Tree_level_index, Tree_node_index, bool &);
-
-		template <typename REQUEST, typename... ARGS>
-		void _generate_req(State_uint state, bool &progress, ARGS &&... args)
-		{
-			_state = REQ_GENERATED;
-			generate_req<REQUEST>(state, progress, args..., _generated_req_success);
-		}
-
-	public:
-
-		Vbd_check_channel(Module_channel_id id) : Module_channel { VBD_CHECK, id } { }
-
-		void execute(bool &);
-};
-
-
-class Tresor::Vbd_check : public Module
-{
-	private:
-
-		using Channel = Vbd_check_channel;
-
-		Constructible<Channel> _channels[1] { };
-
-		NONCOPYABLE(Vbd_check);
-
-	public:
-
-		Vbd_check();
-
-		void execute(bool &) override;
+	static constexpr char const *name() { return "vbd_check"; }
 };
 
 #endif /* _TRESOR__VBD_CHECK_H_ */

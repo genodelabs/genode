@@ -712,7 +712,7 @@ class Trust_anchor
 				return true;
 			}
 
-			// XXX trigger sync
+			/* XXX trigger sync */
 
 			bool const progress  = _private_key_io_job->execute();
 			bool const completed = _private_key_io_job->completed();
@@ -731,7 +731,7 @@ class Trust_anchor
 				return true;
 			}
 
-			// XXX trigger sync
+			/* XXX trigger sync */
 
 			bool const progress  = _jitterentropy_io_job->execute();
 			bool const completed = _jitterentropy_io_job->completed();
@@ -750,7 +750,7 @@ class Trust_anchor
 				return true;
 			}
 
-			// XXX trigger sync
+			/* XXX trigger sync */
 
 			bool const progress  = _key_io_job->execute();
 			bool const completed = _key_io_job->completed();
@@ -960,10 +960,7 @@ class Trust_anchor
 
 	public:
 
-		Trust_anchor(Vfs::Env &vfs_env, Path const &path)
-		:
-			_vfs_env   { vfs_env },
-			_base_path { path }
+		Trust_anchor(Vfs::Env &vfs_env, Path const &path) : _vfs_env(vfs_env), _base_path(path)
 		{
 			if (_check_key_file(_base_path)) {
 
@@ -1275,8 +1272,7 @@ class Vfs_tresor_trust_anchor::Hashsum_file_system : public Vfs::Single_file_sys
 			               Genode::Allocator &alloc,
 			               Trust_anchor      &ta)
 			:
-				Single_vfs_handle { ds, fs, alloc, 0 },
-				_trust_anchor     { ta }
+				Single_vfs_handle(ds, fs, alloc, 0), _trust_anchor(ta)
 			{ }
 
 			Read_result read(Byte_range_ptr const &src, size_t &out_count) override
@@ -1367,12 +1363,11 @@ class Vfs_tresor_trust_anchor::Hashsum_file_system : public Vfs::Single_file_sys
 
 		Hashsum_file_system(Trust_anchor &ta)
 		:
-			Single_file_system { Node_type::TRANSACTIONAL_FILE, type_name(),
-			                     Node_rwx::ro(), Xml_node("<hashsum/>") },
-			_trust_anchor      { ta }
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::ro(), Xml_node("<hash/>")),
+			_trust_anchor(ta)
 		{ }
 
-		static char const *type_name() { return "hashsum"; }
+		static char const *type_name() { return "hash"; }
 
 		char const *type() override { return type_name(); }
 
@@ -1433,8 +1428,7 @@ class Vfs_tresor_trust_anchor::Generate_key_file_system : public Vfs::Single_fil
 			               Genode::Allocator &alloc,
 			               Trust_anchor      &ta)
 			:
-				Single_vfs_handle { ds, fs, alloc, 0 },
-				_trust_anchor     { ta }
+				Single_vfs_handle(ds, fs, alloc, 0), _trust_anchor(ta)
 			{ }
 
 			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
@@ -1473,9 +1467,8 @@ class Vfs_tresor_trust_anchor::Generate_key_file_system : public Vfs::Single_fil
 
 		Generate_key_file_system(Trust_anchor &ta)
 		:
-			Single_file_system { Node_type::TRANSACTIONAL_FILE, type_name(),
-			                     Node_rwx::ro(), Xml_node("<generate_key/>") },
-			_trust_anchor      { ta }
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::ro(), Xml_node("<generate_key/>")),
+			_trust_anchor(ta)
 		{ }
 
 		static char const *type_name() { return "generate_key"; }
@@ -1539,9 +1532,7 @@ class Vfs_tresor_trust_anchor::Encrypt_file_system : public Vfs::Single_file_sys
 			               Genode::Allocator &alloc,
 			               Trust_anchor      &ta)
 			:
-				Single_vfs_handle { ds, fs, alloc, 0 },
-				_trust_anchor { ta },
-				_state        { State::NONE }
+				Single_vfs_handle(ds, fs, alloc, 0), _trust_anchor(ta), _state(State::NONE)
 			{ }
 
 			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
@@ -1600,9 +1591,8 @@ class Vfs_tresor_trust_anchor::Encrypt_file_system : public Vfs::Single_file_sys
 
 		Encrypt_file_system(Trust_anchor &ta)
 		:
-			Single_file_system { Node_type::TRANSACTIONAL_FILE, type_name(),
-			                     Node_rwx::rw(), Xml_node("<encrypt/>") },
-			_trust_anchor { ta }
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<encrypt/>")),
+			_trust_anchor(ta)
 		{ }
 
 		static char const *type_name() { return "encrypt"; }
@@ -1665,9 +1655,7 @@ class Vfs_tresor_trust_anchor::Decrypt_file_system : public Vfs::Single_file_sys
 			               Genode::Allocator &alloc,
 			               Trust_anchor      &ta)
 			:
-				Single_vfs_handle { ds, fs, alloc, 0 },
-				_trust_anchor { ta },
-				_state        { State::NONE }
+				Single_vfs_handle(ds, fs, alloc, 0), _trust_anchor(ta), _state(State::NONE)
 			{ }
 
 			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
@@ -1726,9 +1714,8 @@ class Vfs_tresor_trust_anchor::Decrypt_file_system : public Vfs::Single_file_sys
 
 		Decrypt_file_system(Trust_anchor &ta)
 		:
-			Single_file_system { Node_type::TRANSACTIONAL_FILE, type_name(),
-			                     Node_rwx::rw(), Xml_node("<decrypt/>") },
-			_trust_anchor { ta }
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<decrypt/>")),
+			_trust_anchor(ta)
 		{ }
 
 		static char const *type_name() { return "decrypt"; }
@@ -1793,8 +1780,7 @@ class Vfs_tresor_trust_anchor::Initialize_file_system : public Vfs::Single_file_
 			                  Genode::Allocator &alloc,
 			                  Trust_anchor      &ta)
 			:
-				Single_vfs_handle { ds, fs, alloc, 0 },
-				_trust_anchor     { ta }
+				Single_vfs_handle(ds, fs, alloc, 0), _trust_anchor(ta)
 			{ }
 
 			Read_result read(Byte_range_ptr const &buf,
@@ -1867,9 +1853,8 @@ class Vfs_tresor_trust_anchor::Initialize_file_system : public Vfs::Single_file_
 
 		Initialize_file_system(Trust_anchor &ta)
 		:
-			Single_file_system { Node_type::TRANSACTIONAL_FILE, type_name(),
-			                     Node_rwx::rw(), Xml_node("<initialize/>") },
-			_trust_anchor      { ta }
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<initialize/>")),
+			_trust_anchor(ta)
 		{ }
 
 		static char const *type_name() { return "initialize"; }
@@ -1938,12 +1923,9 @@ struct Vfs_tresor_trust_anchor::Local_factory : File_system_factory
 
 	Local_factory(Vfs::Env &vfs_env, Xml_node config)
 	:
-		_trust_anchor { vfs_env, _storage_path(config).string() },
-		_decrypt_fs   { _trust_anchor },
-		_encrypt_fs   { _trust_anchor },
-		_gen_key_fs   { _trust_anchor },
-		_hash_fs      { _trust_anchor },
-		_init_fs      { _trust_anchor }
+		_trust_anchor(vfs_env, _storage_path(config).string()),
+		_decrypt_fs(_trust_anchor), _encrypt_fs(_trust_anchor),
+		_gen_key_fs(_trust_anchor), _hash_fs(_trust_anchor), _init_fs(_trust_anchor)
 	{ }
 
 	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
@@ -1990,7 +1972,7 @@ class Vfs_tresor_trust_anchor::File_system : private Local_factory,
 				xml.node("decrypt",      [&] () { });
 				xml.node("encrypt",      [&] () { });
 				xml.node("generate_key", [&] () { });
-				xml.node("hashsum",      [&] () { });
+				xml.node("hash",      [&] () { });
 				xml.node("initialize",   [&] () { });
 			});
 
@@ -2001,8 +1983,7 @@ class Vfs_tresor_trust_anchor::File_system : private Local_factory,
 
 		File_system(Vfs::Env &vfs_env, Genode::Xml_node node)
 		:
-			Local_factory        { vfs_env, node },
-			Vfs::Dir_file_system { vfs_env, Xml_node(_config(node).string()), *this }
+			Local_factory(vfs_env, node), Vfs::Dir_file_system(vfs_env, Xml_node(_config(node).string()), *this)
 		{ }
 
 		~File_system() { }

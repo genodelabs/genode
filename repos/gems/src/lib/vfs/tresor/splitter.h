@@ -16,141 +16,393 @@
 #define _TRESOR__IO_SPLITTER_H_
 
 /* tresor includes */
-#include <tresor/request_pool.h>
+#include <tresor/superblock_control.h>
 
-namespace Tresor {
+namespace Tresor { class Splitter; }
 
-	struct Lookup_buffer : Genode::Interface
-	{
-		virtual Block const &src_for_writing_vba(Request_tag, Virtual_block_address) = 0;
-		virtual Block &dst_for_reading_vba(Request_tag, Virtual_block_address) = 0;
-	};
-
-	class Splitter_request;
-	class Splitter_channel;
-	class Splitter;
-}
-
-
-class Tresor::Splitter_request : public Tresor::Module_request
+struct Tresor::Splitter : Noncopyable
 {
-	friend class Splitter_channel;
-
 	public:
 
-		enum Operation { READ, WRITE };
+		class Read : Noncopyable
+		{
+			public:
+
+				using Module = Splitter;
+
+				struct Attr
+				{
+					Request_offset const in_off;
+					Generation const in_gen;
+					char *const in_buf_start;
+					size_t const in_buf_num_bytes;
+				};
+
+				struct Execute_attr
+				{
+					Superblock_control &sb_control;
+					Virtual_block_device &vbd;
+					Client_data_interface &client_data;
+					Block_io &block_io;
+					Crypto &crypto;
+				};
+
+			private:
+
+				enum State {
+					INIT, COMPLETE, READ_FIRST_VBA, READ_FIRST_VBA_SUCCEEDED, READ_LAST_VBA, READ_LAST_VBA_SUCCEEDED,
+					READ_MIDDLE_VBAS, READ_MIDDLE_VBAS_SUCCEEDED };
+
+				Request_helper<Read, State> _helper;
+				Attr const _attr;
+				addr_t _curr_off { };
+				addr_t _curr_buf_addr { };
+				Block _blk  { };
+				Generation _gen { };
+				Constructible<Superblock_control::Read_vbas> _read_vbas { };
+
+				Virtual_block_address _curr_vba() const { return (Virtual_block_address)(_curr_off / BLOCK_SIZE); }
+
+				void _generate_read(State target_state, bool &progress)
+				{
+					Number_of_blocks num_blocks =
+						target_state == READ_MIDDLE_VBAS ? _num_remaining_bytes() / BLOCK_SIZE : 1;
+
+					_read_vbas.construct(Superblock_control::Read_vbas::Attr{_curr_vba(), num_blocks, 0, 0});
+					_helper.state = target_state;
+					progress = true;
+				}
+
+				bool _execute_read(State succeeded_state, Execute_attr const &attr)
+				{
+					bool progress = attr.sb_control.execute(*_read_vbas, attr.vbd, attr.client_data, attr.block_io, attr.crypto);
+					if (_read_vbas->complete()) {
+						if (_read_vbas->success())
+							_helper.generated_req_succeeded(succeeded_state, progress);
+						else
+							_helper.generated_req_failed(progress);
+					}
+					return progress;
+				}
+
+				addr_t _curr_buf_off() const
+				{
+					ASSERT(_curr_off >= _attr.in_off && _curr_off <= _attr.in_off + _attr.in_buf_num_bytes);
+					return _curr_off - _attr.in_off;
+				}
+
+				addr_t _num_remaining_bytes() const
+				{
+					ASSERT(_curr_off >= _attr.in_off && _curr_off <= _attr.in_off + _attr.in_buf_num_bytes);
+					return _attr.in_off + _attr.in_buf_num_bytes - _curr_off;
+				}
+
+				void _advance_curr_off(size_t advance, bool &progress)
+				{
+					_curr_off += advance;
+					if (!_num_remaining_bytes()) {
+						_helper.mark_succeeded(progress);
+					} else if (_curr_off % BLOCK_SIZE) {
+						_curr_buf_addr = (addr_t)&_blk;
+						_generate_read(READ_FIRST_VBA, progress);
+					} else if (_num_remaining_bytes() < BLOCK_SIZE) {
+						_curr_buf_addr = (addr_t)&_blk;
+						_generate_read(READ_LAST_VBA, progress);
+					} else {
+						_curr_buf_addr = (addr_t)_attr.in_buf_start + _curr_buf_off();
+						_generate_read(READ_MIDDLE_VBAS, progress);
+					}
+				}
+
+			public:
+
+				Read(Attr const &attr) : _helper(*this), _attr(attr) { }
+
+				void print(Output &out) const { Genode::print(out, "read"); }
+
+				bool execute(Execute_attr const &attr)
+				{
+					bool progress = false;
+					switch (_helper.state) {
+					case INIT:
+
+						_gen = _attr.in_gen;
+						_advance_curr_off(_attr.in_off, progress);
+						break;
+
+					case READ_FIRST_VBA: progress |= _execute_read(READ_FIRST_VBA_SUCCEEDED, attr); break;
+					case READ_FIRST_VBA_SUCCEEDED:
+					{
+						size_t num_outside_bytes { _curr_off % BLOCK_SIZE };
+						size_t num_inside_bytes { min(_num_remaining_bytes(), BLOCK_SIZE - num_outside_bytes) };
+						memcpy(_attr.in_buf_start, (void *)((addr_t)&_blk + num_outside_bytes), num_inside_bytes);
+						_advance_curr_off(num_inside_bytes, progress);
+						break;
+					}
+					case READ_MIDDLE_VBAS: progress |= _execute_read(READ_MIDDLE_VBAS_SUCCEEDED, attr); break;
+					case READ_MIDDLE_VBAS_SUCCEEDED:
+
+						_advance_curr_off((_num_remaining_bytes() / BLOCK_SIZE) * BLOCK_SIZE, progress);
+						break;
+
+					case READ_LAST_VBA: progress |= _execute_read(READ_LAST_VBA_SUCCEEDED, attr); break;
+					case READ_LAST_VBA_SUCCEEDED:
+
+						memcpy((void *)((addr_t)_attr.in_buf_start + _curr_buf_off()), &_blk, _num_remaining_bytes());
+						_advance_curr_off(_num_remaining_bytes(), progress);
+						break;
+
+					default: break;
+					}
+					return progress;
+				}
+
+				Block &destination_buffer(Virtual_block_address vba)
+				{
+					return *(Block *)(_curr_buf_addr + (vba - _curr_vba()) * BLOCK_SIZE);
+				}
+
+				bool complete() const { return _helper.complete(); }
+				bool success() const { return _helper.success(); }
+		};
+
+		class Write : Noncopyable
+		{
+			public:
+
+				using Module = Splitter;
+
+				struct Attr
+				{
+					Request_offset const in_off;
+					Generation const in_gen;
+					char const *const in_buf_start;
+					size_t const in_buf_num_bytes;
+				};
+
+				struct Execute_attr
+				{
+					Superblock_control &sb_control;
+					Virtual_block_device &vbd;
+					Client_data_interface &client_data;
+					Block_io &block_io;
+					Free_tree &free_tree;
+					Meta_tree &meta_tree;
+					Crypto &crypto;
+				};
+
+			private:
+
+				enum State {
+					INIT, COMPLETE, READ_FIRST_VBA, READ_FIRST_VBA_SUCCEEDED, READ_LAST_VBA, READ_LAST_VBA_SUCCEEDED,
+					WRITE_FIRST_VBA, WRITE_FIRST_VBA_SUCCEEDED, WRITE_LAST_VBA, WRITE_LAST_VBA_SUCCEEDED,
+					WRITE_MIDDLE_VBAS, WRITE_MIDDLE_VBAS_SUCCEEDED };
+
+
+				Request_helper<Write, State> _helper;
+				Attr const _attr;
+				addr_t _curr_off { };
+				addr_t _curr_buf_addr { };
+				Block _blk  { };
+				Generation _gen { };
+				Constructible<Superblock_control::Read_vbas> _read_vbas { };
+				Constructible<Superblock_control::Write_vbas> _write_vbas { };
+
+				Virtual_block_address _curr_vba() const { return (Virtual_block_address)(_curr_off / BLOCK_SIZE); }
+
+				addr_t _curr_buf_off() const
+				{
+					ASSERT(_curr_off >= _attr.in_off && _curr_off <= _attr.in_off + _attr.in_buf_num_bytes);
+					return _curr_off - _attr.in_off;
+				}
+
+				addr_t _num_remaining_bytes() const
+				{
+					ASSERT(_curr_off >= _attr.in_off && _curr_off <= _attr.in_off + _attr.in_buf_num_bytes);
+					return _attr.in_off + _attr.in_buf_num_bytes - _curr_off;
+				}
+
+				void _generate_sb_control_request(State target_state, bool &progress)
+				{
+					Number_of_blocks num_blocks =
+						target_state == WRITE_MIDDLE_VBAS ? _num_remaining_bytes() / BLOCK_SIZE : 1;
+
+					switch (target_state) {
+					case READ_FIRST_VBA:
+					case READ_LAST_VBA: _read_vbas.construct(Superblock_control::Read_vbas::Attr{_curr_vba(), num_blocks, 0, 0}); break;
+					case WRITE_FIRST_VBA:
+					case WRITE_MIDDLE_VBAS:
+					case WRITE_LAST_VBA: _write_vbas.construct(Superblock_control::Write_vbas::Attr{_curr_vba(), num_blocks, 0, 0}); break;
+					default: ASSERT_NEVER_REACHED;
+					}
+					_helper.state = target_state;
+					progress = true;
+				}
+
+				void _advance_curr_off(size_t advance, bool &progress)
+				{
+					_curr_off += advance;
+					if (!_num_remaining_bytes()) {
+						_helper.mark_succeeded(progress);
+					} else if (_curr_off % BLOCK_SIZE) {
+						_curr_buf_addr = (addr_t)&_blk;
+						_generate_sb_control_request(READ_FIRST_VBA, progress);
+					} else if (_num_remaining_bytes() < BLOCK_SIZE) {
+						_curr_buf_addr = (addr_t)&_blk;
+						_generate_sb_control_request(READ_LAST_VBA, progress);
+					} else {
+						_curr_buf_addr = (addr_t)_attr.in_buf_start + _curr_buf_off();
+						_generate_sb_control_request(WRITE_MIDDLE_VBAS, progress);
+					}
+				}
+
+				bool _execute_read(State succeeded_state, Execute_attr const &attr)
+				{
+					bool progress = attr.sb_control.execute(*_read_vbas, attr.vbd, attr.client_data, attr.block_io, attr.crypto);
+					if (_read_vbas->complete()) {
+						if (_read_vbas->success())
+							_helper.generated_req_succeeded(succeeded_state, progress);
+						else
+							_helper.generated_req_failed(progress);
+					}
+					return progress;
+				}
+
+				bool _execute_write(State succeeded_state, Execute_attr const &attr)
+				{
+					bool progress = attr.sb_control.execute(*_write_vbas, attr.vbd, attr.client_data, attr.block_io, attr.free_tree, attr.meta_tree, attr.crypto);
+					if (_write_vbas->complete()) {
+						if (_write_vbas->success())
+							_helper.generated_req_succeeded(succeeded_state, progress);
+						else
+							_helper.generated_req_failed(progress);
+					}
+					return progress;
+				}
+
+			public:
+
+				Write(Attr const &attr) : _helper(*this), _attr(attr) { }
+
+				void print(Output &out) const { Genode::print(out, "write"); }
+
+				bool execute(Execute_attr const &attr)
+				{
+					bool progress = false;
+					switch (_helper.state) {
+					case INIT:
+
+						_gen = _attr.in_gen;
+						_advance_curr_off(_attr.in_off, progress);
+						break;
+
+					case READ_FIRST_VBA: progress |= _execute_read(READ_FIRST_VBA_SUCCEEDED, attr); break;
+					case READ_FIRST_VBA_SUCCEEDED:
+					{
+						size_t num_outside_bytes { _curr_off % BLOCK_SIZE };
+						size_t num_inside_bytes { min(_num_remaining_bytes(), BLOCK_SIZE - num_outside_bytes) };
+						memcpy((void *)((addr_t)&_blk + num_outside_bytes), _attr.in_buf_start, num_inside_bytes);
+						_curr_buf_addr = (addr_t)&_blk;
+						_generate_sb_control_request(WRITE_FIRST_VBA, progress);
+						break;
+					}
+					case WRITE_FIRST_VBA: progress |= _execute_write(WRITE_FIRST_VBA_SUCCEEDED, attr); break;
+					case WRITE_FIRST_VBA_SUCCEEDED:
+					{
+						size_t num_outside_bytes { _curr_off % BLOCK_SIZE };
+						size_t num_inside_bytes { min(_num_remaining_bytes(), BLOCK_SIZE - num_outside_bytes) };
+						_advance_curr_off(num_inside_bytes, progress);
+						break;
+					}
+					case WRITE_MIDDLE_VBAS: progress |= _execute_write(WRITE_MIDDLE_VBAS_SUCCEEDED, attr); break;
+					case WRITE_MIDDLE_VBAS_SUCCEEDED:
+
+						_advance_curr_off((_num_remaining_bytes() / BLOCK_SIZE) * BLOCK_SIZE, progress);
+						break;
+
+					case READ_LAST_VBA: progress |= _execute_read(READ_LAST_VBA_SUCCEEDED, attr); break;
+					case READ_LAST_VBA_SUCCEEDED:
+
+						memcpy(&_blk, (void *)((addr_t)_attr.in_buf_start + _curr_buf_off()), _num_remaining_bytes());
+						_curr_buf_addr = (addr_t)&_blk;
+						_generate_sb_control_request(WRITE_LAST_VBA, progress);
+						break;
+
+					case WRITE_LAST_VBA: progress |= _execute_write(WRITE_LAST_VBA_SUCCEEDED, attr); break;
+					case WRITE_LAST_VBA_SUCCEEDED: _advance_curr_off(_num_remaining_bytes(), progress); break;
+					default: break;
+					}
+					return progress;
+				}
+
+				Block const &source_buffer(Virtual_block_address vba)
+				{
+					return *(Block *)(_curr_buf_addr + (vba - _curr_vba()) * BLOCK_SIZE);
+				}
+
+				Block &destination_buffer()
+				{
+					ASSERT(_helper.state == READ_FIRST_VBA || _helper.state == READ_LAST_VBA);
+					return _blk;
+				}
+
+				bool complete() const { return _helper.complete(); }
+				bool success() const { return _helper.success(); }
+		};
 
 	private:
 
-		Operation const _op;
-		Request_offset const _off;
-		Key_id const _key_id;
-		Generation const _gen;
-		Byte_range_ptr const _buf;
-		bool &_success;
-
-		NONCOPYABLE(Splitter_request);
+		Read *_read_ptr { };
+		Write *_write_ptr { };
 
 	public:
 
-		Splitter_request(Module_id, Module_channel_id, Operation, bool &, Request_offset, Byte_range_ptr const &, Key_id, Generation);
-
-		static char const *op_to_string(Operation);
-
-		void print(Genode::Output &out) const override { Genode::print(out, op_to_string(_op), " off ", _off, " size ", _buf.num_bytes); }
-};
-
-
-class Tresor::Splitter_channel : public Tresor::Module_channel
-{
-	private:
-
-		using Request = Splitter_request;
-
-
-		enum State : State_uint {
-			PROTRUDING_FIRST_BLK_WRITTEN, PROTRUDING_LAST_BLK_WRITTEN, PROTRUDING_FIRST_BLK_READ, PROTRUDING_LAST_BLK_READ, INSIDE_BLKS_ACCESSED,
-			REQ_SUBMITTED, REQ_GENERATED, REQ_COMPLETE };
-
-		State _state { };
-		Request *_req_ptr { };
-		addr_t _curr_off { };
-		addr_t _curr_buf_addr { };
-		Block _blk  { };
-		Generation _gen { };
-		bool _generated_req_success { };
-
-		NONCOPYABLE(Splitter_channel);
-
-		void _generated_req_completed(State_uint) override;
-
-		void _request_submitted(Module_request &) override;
-
-		bool _request_complete() override { return _state == REQ_COMPLETE; }
-
-		Virtual_block_address _curr_vba() const { return (Virtual_block_address)(_curr_off / BLOCK_SIZE); }
-
-		addr_t _curr_buf_off() const
+		bool execute(Read &req, Read::Execute_attr const &attr)
 		{
-			ASSERT(_curr_off >= _req_ptr->_off && _curr_off <= _req_ptr->_off + _req_ptr->_buf.num_bytes);
-			return _curr_off - _req_ptr->_off;
+			if (!_read_ptr && !_write_ptr)
+				_read_ptr = &req;
+
+			if (_read_ptr != &req)
+				return false;
+
+			bool progress = req.execute(attr);
+			if (req.complete())
+				_read_ptr = nullptr;
+
+			return progress;
 		}
 
-		addr_t _num_remaining_bytes() const
+		bool execute(Write &req, Write::Execute_attr const &attr)
 		{
-			ASSERT(_curr_off >= _req_ptr->_off && _curr_off <= _req_ptr->_off + _req_ptr->_buf.num_bytes);
-			return _req_ptr->_off + _req_ptr->_buf.num_bytes - _curr_off;
+			if (!_write_ptr && !_write_ptr)
+				_write_ptr = &req;
+
+			if (_write_ptr != &req)
+				return false;
+
+			bool progress = req.execute(attr);
+			if (req.complete())
+				_write_ptr = nullptr;
+
+			return progress;
 		}
 
-		template <typename REQUEST, typename... ARGS>
-		void _generate_req(State_uint state, bool &progress, ARGS &&... args)
+		Block const &source_buffer(Virtual_block_address vba)
 		{
-			_state = REQ_GENERATED;
-			generate_req<REQUEST>(state, progress, args..., _generated_req_success);
+			ASSERT(_write_ptr);
+			return _write_ptr->source_buffer(vba);
 		}
 
-		void _mark_req_successful(bool &);
+		Block &destination_buffer(Virtual_block_address vba)
+		{
+			if (_read_ptr)
+				return _read_ptr->destination_buffer(vba);
+			if (_write_ptr)
+				return _write_ptr->destination_buffer();
+			ASSERT_NEVER_REACHED;
+		}
 
-		void _advance_curr_off(addr_t, Tresor::Request::Operation, bool &);
-
-		void _read(bool &progress);
-
-		void _write(bool &progress);
-
-		Block &_blk_buf_for_vba(Virtual_block_address);
-
-	public:
-
-		Splitter_channel(Module_channel_id id) : Module_channel { SPLITTER, id } { }
-
-		void execute(bool &progress);
-
-		Block const &src_for_writing_vba(Virtual_block_address vba) { return _blk_buf_for_vba(vba); }
-
-		Block &dst_for_reading_vba(Virtual_block_address vba) { return _blk_buf_for_vba(vba); }
+		static constexpr char const *name() { return "sb_control"; }
 };
-
-
-class Tresor::Splitter : public Tresor::Module, public Tresor::Lookup_buffer
-{
-	private:
-
-		using Channel = Splitter_channel;
-
-		Constructible<Channel> _channels[1] { };
-
-		NONCOPYABLE(Splitter);
-
-	public:
-
-		Splitter();
-
-		void execute(bool &) override;
-
-		Block const &src_for_writing_vba(Request_tag, Virtual_block_address) override;
-
-		Block &dst_for_reading_vba(Request_tag, Virtual_block_address) override;
-};
-
 
 #endif /* _TRESOR__IO_SPLITTER_H_ */

@@ -55,33 +55,25 @@ test_read_compare_1() {
 	fi
 }
 
-test_create_snapshot() {
+test_deinitialize() {
 	local tresor_dir="$1"
-
-	echo "Create snapshot"
-	echo true > $tresor_dir/control/create_snapshot
+	echo "Deinitialize"
+	local state="$(< $tresor_dir/control/deinitialize)"
+	echo true > $tresor_dir/control/deinitialize
 }
 
-test_list_snapshots() {
+wait_for_deinitialize() {
 	local tresor_dir="$1"
-
-	echo "List content of '$tresor_dir'"
-	ls -l $tresor_dir/snapshots
-}
-
-test_discard_snapshot() {
-	local tresor_dir="$1"
-	local snap_id=$2
-
-	echo "Discard snapshot with id: $snap_id"
-	echo $snap_id > $tresor_dir/control/discard_snapshot
+	echo "Wait for deinitialize"
+	local state="$(< $tresor_dir/control/deinitialize)"
 }
 
 test_rekey_start() {
 	local tresor_dir="$1"
 
 	echo "Start rekeying"
-	echo on > $tresor_dir/control/rekey
+	local state="$(< $tresor_dir/control/rekey)"
+	echo true > $tresor_dir/control/rekey
 	echo "Reykeying started"
 }
 
@@ -137,16 +129,14 @@ wait_for_rekeying() {
 	echo "Wait for rekeying to finish..."
 	while : ; do
 		local done=0
-		local file_content="$(< $tresor_dir/control/rekey_progress)"
+		local file_content="$(< $tresor_dir/control/rekey)"
 		# XXX remove later
 		echo "file_content: ${file_content}"
 		case "$file_content" in
-		*at*)
-			if [ "$verbose" = "yes" ]; then
-				echo "Rekeying: $file_content"
-			fi
+		*failed*)
+			done=1;
 			;;
-		*idle*)
+		*succeeded*)
 			done=1;
 			;;
 		esac
@@ -163,16 +153,14 @@ wait_for_vbd_extension() {
 	echo "Wait for VBD extension to finish..."
 	while : ; do
 		local done=0
-		local file_content="$(< $tresor_dir/control/extend_progress)"
+		local file_content="$(< $tresor_dir/control/extend)"
 		# XXX remove later
 		echo "file_content: ${file_content}"
 		case "$file_content" in
-		*at*)
-			if [ "$verbose" = "yes" ]; then
-				echo "Extending VBD: $file_content"
-			fi
+		*failed*)
+			done=1;
 			;;
-		*idle*)
+		*succeeded*)
 			done=1;
 			;;
 		esac
@@ -189,16 +177,14 @@ wait_for_ft_extension() {
 	echo "Wait for FT extension to finish..."
 	while : ; do
 		local done=0
-		local file_content="$(< $tresor_dir/control/extend_progress)"
+		local file_content="$(< $tresor_dir/control/extend)"
 		# XXX remove later
 		echo "file_content: ${file_content}"
 		case "$file_content" in
-		*at*)
-			if [ "$verbose" = "yes" ]; then
-				echo "Extending FT: $file_content"
-			fi
+		*failed*)
+			done=1;
 			;;
-		*idle*)
+		*succeeded*)
 			done=1;
 			;;
 		esac
@@ -212,95 +198,37 @@ wait_for_ft_extension() {
 main() {
 	local tresor_dir="/dev/tresor"
 	local data_file="$tresor_dir/current/data"
-
+	echo "list files..."
 	ls -l $tresor_dir
-
-	for i in $(seq 3); do
-
-		echo "--> Run $i:"
-
-		test_read_seq_unaligned_512 "$data_file" "1048576"
-
-		local pattern_file="/tmp/pattern"
-		produce_pattern "$i" "4096" > $pattern_file
-
-		test_write_1 "$data_file" "419"
-		test_write_1 "$data_file"  "63"
-		test_write_1 "$data_file" "333"
-
-		test_vbd_extension "$tresor_dir" "1000"
-		test_read_compare_1 "$data_file" "63"
-		test_write_1 "$data_file" "175"
-		test_read_compare_1 "$data_file" "419"
-		test_write_1 "$data_file" "91"
-		test_read_compare_1 "$data_file" "175"
-		test_read_compare_1 "$data_file" "91"
-		test_read_compare_1 "$data_file" "333"
-		wait_for_vbd_extension "$tresor_dir"
-
-		test_write_1 "$data_file"  "32"
-		test_write_1 "$data_file"  "77"
-		test_write_1 "$data_file" "199"
-
-		#test_ft_extension "$tresor_dir" "1000"
-		test_read_compare_1 "$data_file" "32"
-		test_write_1 "$data_file" "211"
-		test_read_compare_1 "$data_file" "77"
-		test_write_1 "$data_file" "278"
-		test_read_compare_1 "$data_file" "199"
-		test_read_compare_1 "$data_file" "278"
-		test_read_compare_1 "$data_file" "211"
-		#wait_for_ft_extension "$tresor_dir"
-
-		test_write_1 "$data_file"  "0"
-		test_write_1 "$data_file"  "8"
-		test_write_1 "$data_file" "16"
-		test_write_1 "$data_file" "490"
-		test_write_1 "$data_file" "468"
-
-		test_read_compare_1 "$data_file" "0"
-		test_read_compare_1 "$data_file" "8"
-		test_read_compare_1 "$data_file" "16"
-		test_read_compare_1 "$data_file" "490"
-
-		#test_rekey "$tresor_dir"
-
-		test_rekey_start "$tresor_dir"
-		test_write_1 "$data_file" "0"
-		test_rekey_state "$tresor_dir"
-		test_read_compare_1 "$data_file" "490"
-		test_rekey_state "$tresor_dir"
-		test_write_1 "$data_file" "16"
-		test_rekey_state "$tresor_dir"
-		test_read_compare_1 "$data_file" "468"
-		test_rekey_state "$tresor_dir"
-		test_read_compare_1 "$data_file" "8"
-		test_rekey_state "$tresor_dir"
-		test_read_compare_1 "$data_file" "16"
-		test_rekey_state "$tresor_dir"
-		test_read_compare_1 "$data_file" "0"
-		test_write_1 "$data_file" "300"
-		test_write_1 "$data_file" "240"
-		test_write_1 "$data_file" "201"
-		test_write_1 "$data_file" "328"
-		wait_for_rekeying "$tresor_dir" "yes"
-
-		echo "--> Run $i done"
-
-	done
-
-	echo "--> Read/Compare test"
-	test_read_compare_1 "$data_file" "0"
-	test_read_compare_1 "$data_file" "490"
-	test_read_compare_1 "$data_file" "468"
-	test_read_compare_1 "$data_file" "8"
-	test_read_compare_1 "$data_file" "16"
-	echo "--> Read/Compare test done"
-
-	echo "--- Automated Tresor testing finished, shell is yours ---"
+	echo "produce pattern..."
+	local pattern_file="/tmp/pattern"
+	produce_pattern "1" "4096" > $pattern_file
+	echo "write..."
+	test_write_1 "$data_file" "20"
+	echo "read..."
+	test_read_compare_1 "$data_file" "20"
+	test_write_1 "$data_file" "20"
+	echo "extend VBD..."
+	test_vbd_extension "$tresor_dir" "100"
+	test_write_1 "$data_file" "2"
+	test_read_compare_1 "$data_file" "2"
+	wait_for_vbd_extension "$tresor_dir"
+	echo "extend FT..."
+	test_ft_extension "$tresor_dir" "100"
+	test_write_1 "$data_file" "2"
+	test_read_compare_1 "$data_file" "2"
+	wait_for_ft_extension "$tresor_dir"
+	echo "rekey..."
+	test_rekey_start "$tresor_dir"
+	test_write_1 "$data_file" "2"
+	test_read_compare_1 "$data_file" "2"
+	wait_for_rekeying "$tresor_dir" "no"
+	test_deinitialize "$tresor_dir"
+	wait_for_deinitialize "$tresor_dir"
+	echo "done!"
 }
 
 main "$@"
 
 # just drop into shell
-# exit 0
+exit 0

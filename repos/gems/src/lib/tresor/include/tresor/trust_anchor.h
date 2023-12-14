@@ -18,141 +18,232 @@
 #include <tresor/types.h>
 #include <tresor/file.h>
 
-namespace Tresor {
+namespace Tresor { class Trust_anchor; }
 
-	class Trust_anchor;
-	class Trust_anchor_request;
-	class Trust_anchor_channel;
-}
-
-class Tresor::Trust_anchor_request : public Module_request
+class Tresor::Trust_anchor : Noncopyable
 {
-	friend class Trust_anchor_channel;
-
 	public:
 
-		enum Type { CREATE_KEY, ENCRYPT_KEY, DECRYPT_KEY, WRITE_HASH, READ_HASH, INITIALIZE };
+		struct Attr
+		{
+			Vfs::Vfs_handle &decrypt_file;
+			Vfs::Vfs_handle &encrypt_file;
+			Vfs::Vfs_handle &generate_key_file;
+			Vfs::Vfs_handle &initialize_file;
+			Vfs::Vfs_handle &hash_file;
+		};
 
 	private:
 
-		Type const _type;
-		Key_value &_key_plaintext;
-		Key_value &_key_ciphertext;
-		Hash &_hash;
-		Passphrase const _pass;
-		bool &_success;
-
-		NONCOPYABLE(Trust_anchor_request);
+		Attr const _attr;
+		addr_t _user { };
 
 	public:
 
-		Trust_anchor_request(Module_id src, Module_channel_id, Type, Key_value &, Key_value &, Hash &, Passphrase, bool &);
+		class Encrypt_key;
+		class Decrypt_key;
+		class Generate_key;
+		class Initialize;
+		class Read_hash;
+		class Write_hash;
 
-		static char const *type_to_string(Type);
+		Trust_anchor(Attr const &attr) : _attr(attr) { }
 
-		void print(Output &out) const override { Genode::print(out, type_to_string(_type)); }
+		template <typename REQ>
+		bool execute(REQ &req)
+		{
+			if (!_user)
+				_user = (addr_t)&req;
+
+			if (_user != (addr_t)&req)
+				return false;
+
+			bool progress = req.execute(_attr);
+			if (req.complete())
+				_user = 0;
+
+			return progress;
+		}
+
+		static constexpr char const *name() { return "trust_anchor"; }
 };
 
-class Tresor::Trust_anchor_channel : public Module_channel
+class Tresor::Trust_anchor::Encrypt_key : Noncopyable
 {
+	public:
+
+		using Module = Trust_anchor;
+
+		struct Attr
+		{
+			Key_value &out_key_ciphertext;
+			Key_value const &in_key_plaintext;
+		};
+
 	private:
 
-		using Request = Trust_anchor_request;
+		enum State { INIT, COMPLETE, WRITE, WRITE_OK, READ_OK, FILE_ERR };
 
-		enum State { REQ_SUBMITTED, REQ_COMPLETE, READ_OK, WRITE_OK, FILE_ERR  };
+		Request_helper<Encrypt_key, State> _helper;
+		Attr const _attr;
+		Constructible<File<State> > _file { };
 
-		State _state { REQ_COMPLETE };
-		Vfs::Env &_vfs_env;
+	public:
+
+		Encrypt_key(Attr const &attr) : _helper(*this), _attr(attr) { }
+
+		void print(Output &out) const { Genode::print(out, "encrypt key"); }
+
+		bool execute(Trust_anchor::Attr const &);
+
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
+};
+
+class Tresor::Trust_anchor::Decrypt_key : Noncopyable
+{
+	public:
+
+		using Module = Trust_anchor;
+
+		struct Attr
+		{
+			Key_value &out_key_plaintext;
+			Key_value const &in_key_ciphertext;
+		};
+
+	private:
+
+		enum State { INIT, COMPLETE, WRITE, WRITE_OK, READ_OK, FILE_ERR };
+
+		Request_helper<Decrypt_key, State> _helper;
+		Attr const _attr;
+		Constructible<File<State> > _file { };
+
+	public:
+
+		Decrypt_key(Attr const &attr) : _helper(*this), _attr(attr) { }
+
+		void print(Output &out) const { Genode::print(out, "decrypt key"); }
+
+		bool execute(Trust_anchor::Attr const &);
+
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
+};
+
+class Tresor::Trust_anchor::Initialize : Noncopyable
+{
+	public:
+
+		using Module = Trust_anchor;
+
+		struct Attr { Passphrase const &in_passphrase; };
+
+	private:
+
+		enum State { INIT, COMPLETE, WRITE, WRITE_OK, READ_OK, FILE_ERR };
+
+		Request_helper<Initialize, State> _helper;
+		Attr const _attr;
+		Constructible<File<State> > _file { };
 		char _result_buf[3];
-		Tresor::Path const _path;
-		Read_write_file<State> _decrypt_file { _state, _vfs_env, { _path, "/decrypt" } };
-		Read_write_file<State> _encrypt_file { _state, _vfs_env, { _path, "/encrypt" } };
-		Read_write_file<State> _generate_key_file { _state, _vfs_env, { _path, "/generate_key" } };
-		Read_write_file<State> _initialize_file { _state, _vfs_env, { _path, "/initialize" } };
-		Read_write_file<State> _hashsum_file { _state, _vfs_env, { _path, "/hashsum" } };
-		Trust_anchor_request *_req_ptr { nullptr };
-
-		NONCOPYABLE(Trust_anchor_channel);
-
-		void _request_submitted(Module_request &) override;
-
-		bool _request_complete() override { return _state == REQ_COMPLETE; }
-
-		void _create_key(bool &);
-
-		void _read_hash(bool &);
-
-		void _initialize(bool &);
-
-		void _write_hash(bool &);
-
-		void _encrypt_key(bool &);
-
-		void _decrypt_key(bool &);
-
-		void _mark_req_failed(bool &, Error_string);
-
-		void _mark_req_successful(bool &);
 
 	public:
 
-		void execute(bool &);
+		Initialize(Attr const &attr) : _helper(*this), _attr(attr) { }
 
-		Trust_anchor_channel(Module_channel_id, Vfs::Env &, Xml_node const &);
+		void print(Output &out) const { Genode::print(out, "initialize"); }
+
+		bool execute(Trust_anchor::Attr const &);
+
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
 };
 
-class Tresor::Trust_anchor : public Module
+class Tresor::Trust_anchor::Generate_key : Noncopyable
 {
+	public:
+
+		using Module = Trust_anchor;
+
+		struct Attr { Key_value &out_key_plaintext; };
+
 	private:
 
-		using Request = Trust_anchor_request;
-		using Channel = Trust_anchor_channel;
+		enum State { INIT, COMPLETE, READ, READ_OK, FILE_ERR };
 
-		Constructible<Channel> _channels[1] { };
-
-		NONCOPYABLE(Trust_anchor);
+		Request_helper<Generate_key, State> _helper;
+		Attr const _attr;
+		Constructible<File<State> > _file { };
 
 	public:
 
-		struct Create_key : Request
-		{
-			Create_key(Module_id m, Module_channel_id c, Key_value &k, bool &s)
-			: Request(m, c, Request::CREATE_KEY, k, *(Key_value*)0, *(Hash*)0, Passphrase(), s) { }
-		};
+		Generate_key(Attr const &attr) : _helper(*this), _attr(attr) { }
 
-		struct Encrypt_key : Request
-		{
-			Encrypt_key(Module_id m, Module_channel_id c, Key_value const &kp, Key_value &kc, bool &s)
-			: Request(m, c, Request::ENCRYPT_KEY, *const_cast<Key_value*>(&kp), kc, *(Hash*)0, Passphrase(), s) { }
-		};
+		void print(Output &out) const { Genode::print(out, "generate key"); }
 
-		struct Decrypt_key : Request
-		{
-			Decrypt_key(Module_id m, Module_channel_id c, Key_value &kp, Key_value const &kc, bool &s)
-			: Request(m, c, Request::DECRYPT_KEY, kp, *const_cast<Key_value*>(&kc), *(Hash*)0, Passphrase(), s) { }
-		};
+		bool execute(Trust_anchor::Attr const &);
 
-		struct Write_hash : Request
-		{
-			Write_hash(Module_id m, Module_channel_id c, Hash const &h, bool &s)
-			: Request(m, c, Request::WRITE_HASH, *(Key_value*)0, *(Key_value*)0, *const_cast<Hash*>(&h), Passphrase(), s) { }
-		};
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
+};
 
-		struct Read_hash : Request
-		{
-			Read_hash(Module_id m, Module_channel_id c, Hash &h, bool &s)
-			: Request(m, c, Request::READ_HASH, *(Key_value*)0, *(Key_value*)0, h, Passphrase(), s) { }
-		};
+class Tresor::Trust_anchor::Write_hash : Noncopyable
+{
+	public:
 
-		struct Initialize : Request
-		{
-			Initialize(Module_id src_mod, Module_channel_id src_chan, Passphrase pass, bool &succ)
-			: Request(src_mod, src_chan, Request::INITIALIZE, *(Key_value*)0, *(Key_value*)0, *(Hash*)0, pass, succ) { }
-		};
+		using Module = Trust_anchor;
 
-		Trust_anchor(Vfs::Env &, Xml_node const &);
+		struct Attr { Hash const &in_hash; };
 
-		void execute(bool &) override;
+	private:
+
+		enum State { INIT, COMPLETE, WRITE, WRITE_OK, READ_OK, FILE_ERR };
+
+		Request_helper<Write_hash, State> _helper;
+		Attr const _attr;
+		Constructible<File<State> > _file { };
+		char _result_buf[3];
+
+	public:
+
+		Write_hash(Attr const &attr) : _helper(*this), _attr(attr) { }
+
+		void print(Output &out) const { Genode::print(out, "write hash"); }
+
+		bool execute(Trust_anchor::Attr const &);
+
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
+};
+
+class Tresor::Trust_anchor::Read_hash : Noncopyable
+{
+	public:
+
+		using Module = Trust_anchor;
+
+		struct Attr { Hash &out_hash; };
+
+	private:
+
+		enum State { INIT, COMPLETE, READ, READ_OK, FILE_ERR };
+
+		Request_helper<Read_hash, State> _helper;
+		Attr const _attr;
+		Constructible<File<State> > _file { };
+
+	public:
+
+		Read_hash(Attr const &attr) : _helper(*this), _attr(attr) { }
+
+		void print(Output &out) const { Genode::print(out, "read hash"); }
+
+		bool execute(Trust_anchor::Attr const &);
+
+		bool complete() const { return _helper.complete(); }
+		bool success() const { return _helper.success(); }
 };
 
 #endif /* _TRESOR__TRUST_ANCHOR_H_ */

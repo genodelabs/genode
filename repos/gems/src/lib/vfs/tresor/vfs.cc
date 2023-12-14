@@ -21,2370 +21,1517 @@
 
 /* tresor includes */
 #include <tresor/block_io.h>
-#include <tresor/client_data.h>
+#include <tresor/client_data_interface.h>
 #include <tresor/crypto.h>
 #include <tresor/free_tree.h>
 #include <tresor/meta_tree.h>
-#include <tresor/request_pool.h>
 #include <tresor/superblock_control.h>
 #include <tresor/trust_anchor.h>
 #include <tresor/virtual_block_device.h>
 
-#include "splitter.h"
+/* vfs tresor includes */
+#include <splitter.h>
+
+using namespace Genode;
+using namespace Vfs;
+using namespace Tresor;
 
 namespace Vfs_tresor {
-	using namespace Vfs;
-	using namespace Genode;
-	using namespace Tresor;
 
+	class Request_interface;
+	class Data_operation;
 	class Data_file_system;
-
+	class Extend_operation;
 	class Extend_file_system;
-	class Extend_progress_file_system;
+	class Rekey_operation;
 	class Rekey_file_system;
-	class Rekey_progress_file_system;
+	class Deinitialize_operation;
 	class Deinitialize_file_system;
-	class Create_snapshot_file_system;
-	class Discard_snapshot_file_system;
+	class Control_local_factory;
+	class Control_file_system;
+	class Current_local_factory;
+	class Current_file_system;
+	class Local_factory;
+	class File_system;
+	class Plugin;
+}
 
-	struct Control_local_factory;
-	class  Control_file_system;
-
-	struct Snapshot_local_factory;
-	class  Snapshot_file_system;
-
-	struct Snapshots_local_factory;
-	class  Snapshots_file_system;
-
-	struct Local_factory;
-	class  File_system;
-
-	class Client_data;
-	class Wrapper;
-
-	template <typename T>
-	class Pointer
-	{
-		private:
-
-			T *_obj;
-
-		public:
-
-			struct Invalid : Genode::Exception { };
-
-			Pointer() : _obj(nullptr) { }
-
-			Pointer(T &obj) : _obj(&obj) { }
-
-			T &obj() const
-			{
-				if (_obj == nullptr)
-					throw Invalid();
-
-				return *_obj;
-			}
-
-			bool valid() const { return _obj != nullptr; }
-	};
-} /* namespace Vfs_tresor */
-
-
-class Vfs_tresor::Client_data : public Tresor::Module, public Tresor::Module_channel
+class Vfs_tresor::Data_operation : private Noncopyable
 {
+	public:
+
+		enum Result { PENDING, SUCCEEDED, FAILED };
+
+		struct Execute_attr
+		{
+			Splitter &splitter;
+			Superblock_control &sb_control;
+			Client_data_interface &client_data;
+			Virtual_block_device &vbd;
+			Free_tree &free_tree;
+			Meta_tree &meta_tree;
+			Block_io &block_io;
+			Crypto &crypto;
+			Trust_anchor &trust_anchor;
+		};
+
 	private:
 
-		using Request = Client_data_request;
+		enum State {
+			INIT, READ_REQUESTED, READ_STARTED, READ, READ_COMPLETE, WRITE_REQUESTED, WRITE_STARTED, WRITE,
+			WRITE_COMPLETE, SYNC_REQUESTED, SYNC_STARTED, SYNC, SYNC_COMPLETE };
 
-		Lookup_buffer &_lookup;
+		State _state { INIT };
+		bool const _verbose;
+		Generation _generation { };
+		addr_t _seek { };
+		bool _success { };
+		Constructible<Byte_range_ptr> _dst { };
+		Constructible<Const_byte_range_ptr> _src { };
+		Constructible<Splitter::Write> _write { };
+		Constructible<Splitter::Read> _read { };
+		Constructible<Superblock_control::Synchronize> _sync { };
 
-		NONCOPYABLE(Client_data);
-
-		void _request_submitted(Module_request &mod_req) override
+		bool _range_violation(Superblock_control &sb_control, addr_t start, size_t num_bytes) const
 		{
-			Request &req { *static_cast<Request *>(&mod_req) };
-			switch (req._type) {
-			case Request::OBTAIN_PLAINTEXT_BLK:
-			{
-				req._blk = _lookup.src_for_writing_vba(req._req_tag, req._vba);
-				req._success = true;
-				break;
-			}
-			case Request::SUPPLY_PLAINTEXT_BLK:
-			{
-				_lookup.dst_for_reading_vba(req._req_tag, req._vba) = req._blk;
-				req._success = true;
-				break;
-			} }
+			addr_t last_byte = num_bytes ? start - 1 + num_bytes : start;
+			addr_t last_file_byte = (sb_control.max_vba() * BLOCK_SIZE) + (BLOCK_SIZE - 1);
+			return last_byte > last_file_byte;
 		}
-
-		bool _request_complete() override { return true; }
 
 	public:
 
-		Client_data(Lookup_buffer &lb) : Module_channel { CLIENT_DATA, 0 }, _lookup { lb } { add_channel(*this);}
+		Data_operation(bool verbose) : _verbose(verbose) { }
+
+		Result write(addr_t seek, Const_byte_range_ptr const &src)
+		{
+			switch (_state) {
+			case INIT:
+
+				_seek = seek;
+				_src.construct(src.start, src.num_bytes);
+				_state = WRITE_REQUESTED;
+				if (_verbose)
+					log("write (seek ", _seek, " num_bytes ", _src->num_bytes, ") requested");
+				return PENDING;
+
+			case WRITE_REQUESTED:
+			case WRITE_STARTED:
+			case WRITE: return PENDING;
+			case WRITE_COMPLETE:
+
+				_src.destruct();
+				_state = INIT;
+				return _success ? SUCCEEDED : FAILED;
+
+			default: break;
+			}
+			ASSERT_NEVER_REACHED;
+		}
+
+		Result read(addr_t seek, Byte_range_ptr const &dst)
+		{
+			switch (_state) {
+			case INIT:
+
+				_seek = seek;
+				_dst.construct(dst.start, dst.num_bytes);
+				_state = READ_REQUESTED;
+				if (_verbose)
+					log("read (seek ", _seek, " num_bytes ", _dst->num_bytes, ") requested");
+				return PENDING;
+
+			case READ_REQUESTED:
+			case READ_STARTED:
+			case READ: return PENDING;
+			case READ_COMPLETE:
+
+				_dst.destruct();
+				_state = INIT;
+				return _success ? SUCCEEDED : FAILED;
+
+			default: break;
+			}
+			ASSERT_NEVER_REACHED;
+		}
+
+		Result sync()
+		{
+			switch (_state) {
+			case INIT:
+
+				_state = SYNC_REQUESTED;
+				if (_verbose)
+					log("sync requested");
+				return PENDING;
+
+			case SYNC_REQUESTED:
+			case SYNC_STARTED:
+			case SYNC: return PENDING;
+			case SYNC_COMPLETE:
+
+				_state = INIT;
+				return _success ? SUCCEEDED : FAILED;
+
+			default: break;
+			}
+			ASSERT_NEVER_REACHED;
+		}
+
+		bool complete() const { return _state == WRITE_COMPLETE || _state == READ_COMPLETE || _state == SYNC_COMPLETE; }
+
+		bool requested() const { return _state == WRITE_REQUESTED || _state == READ_REQUESTED || _state == SYNC_REQUESTED; }
+
+		void start()
+		{
+			switch (_state) {
+			case WRITE_REQUESTED: _state = WRITE_STARTED; break;
+			case READ_REQUESTED: _state = READ_STARTED; break;
+			case SYNC_REQUESTED: _state = SYNC_STARTED; break;
+			default: ASSERT_NEVER_REACHED;
+			}
+		}
+
+		bool execute(Execute_attr const &attr)
+		{
+			bool progress = false;
+			switch (_state) {
+			case WRITE_STARTED:
+
+				if (_range_violation(attr.sb_control, _seek, _src->num_bytes)) {
+					_success = false;
+					_state = WRITE_COMPLETE;
+					progress = true;
+					if (_verbose)
+						log("write (seek ", _seek, " num_bytes ", _src->num_bytes, ") failed: range violation");
+					break;
+				}
+				_write.construct(Splitter::Write::Attr{_seek, _generation, _src->start, _src->num_bytes});
+				_state = WRITE;
+				progress = true;
+				if (_verbose)
+					log("write (seek ", _seek, " num_bytes ", _src->num_bytes, ") started");
+				break;
+
+			case WRITE:
+
+				progress |= attr.splitter.execute(
+					*_write, {attr.sb_control, attr.vbd, attr.client_data, attr.block_io,
+					          attr.free_tree, attr.meta_tree, attr.crypto});
+
+				if (_write->complete()) {
+					_success = _write->success();
+					_write.destruct();
+					_state = WRITE_COMPLETE;
+					progress = true;
+					if (_verbose)
+						log("write (seek ", _seek, " num_bytes ", _src->num_bytes, ") ", _success ? "succeeded" : "failed");
+				}
+				break;
+
+			case READ_STARTED:
+
+				if (_range_violation(attr.sb_control, _seek, _dst->num_bytes)) {
+					_success = false;
+					_state = READ_COMPLETE;
+					progress = true;
+					if (_verbose)
+						log("read (seek ", _seek, " num_bytes ", _dst->num_bytes, ") failed: range violation");
+					break;
+				}
+				_read.construct(Splitter::Read::Attr{_seek, _generation, _dst->start, _dst->num_bytes});
+				_state = READ;
+				progress = true;
+				if (_verbose)
+					log("read (seek ", _seek, " num_bytes ", _dst->num_bytes, ") started");
+				break;
+
+			case READ:
+
+				progress |= attr.splitter.execute(
+					*_read, {attr.sb_control, attr.vbd, attr.client_data, attr.block_io, attr.crypto});
+
+				if (_read->complete()) {
+					_success = _read->success();
+					_read.destruct();
+					_state = READ_COMPLETE;
+					progress = true;
+					if (_verbose)
+						log("read (seek ", _seek, " num_bytes ", _dst->num_bytes, ") ", _success ? "succeeded" : "failed");
+				}
+				break;
+
+			case SYNC_STARTED:
+
+				_sync.construct(Superblock_control::Synchronize::Attr{});
+				_state = SYNC;
+				progress = true;
+				if (_verbose)
+					log("sync started");
+				break;
+
+			case SYNC:
+
+				progress |= attr.sb_control.execute(*_sync, attr.block_io, attr.trust_anchor);
+				if (_sync->complete()) {
+					_success = _sync->success();
+					_sync.destruct();
+					_state = SYNC_COMPLETE;
+					progress = true;
+					if (_verbose)
+						log("sync ", _success ? "succeeded" : "failed");
+				}
+				break;
+
+			default: break;
+			}
+			return progress;
+		}
 };
 
+class Vfs_tresor::Rekey_operation : private Noncopyable
+{
+	public:
 
-class Vfs_tresor::Wrapper
-:
-	private Tresor::Module_composition,
-	public  Tresor::Module
+		enum Result { NONE, SUCCEEDED, FAILED, PENDING };
+
+		struct Execute_attr
+		{
+			Rekey_file_system *rekey_fs_ptr;
+			Superblock_control &sb_control;
+			Virtual_block_device &vbd;
+			Free_tree &free_tree;
+			Meta_tree &meta_tree;
+			Block_io &block_io;
+			Crypto &crypto;
+			Trust_anchor &trust_anchor;
+		};
+
+	private:
+
+		enum State { INIT, REQUESTED, STARTED, REKEY, PAUSED, RESUMED, COMPLETE };
+
+		State _state { INIT };
+		bool const _verbose;
+		bool _success { };
+		bool _complete { };
+		Constructible<Superblock_control::Rekey> _rekey { };
+
+	public:
+
+		Rekey_operation(bool verbose) : _verbose(verbose) { }
+
+		bool request()
+		{
+			switch (_state) {
+			case INIT:
+			case COMPLETE:
+
+				_state = REQUESTED;
+				if (_verbose)
+					log("rekey requested");
+				return true;
+
+			default: return false;
+			}
+			ASSERT_NEVER_REACHED;
+		}
+
+		Result result() const
+		{
+			switch (_state) {
+			case INIT: return NONE;
+			case COMPLETE: return _success ? SUCCEEDED : FAILED;
+			default: return PENDING;
+			}
+			ASSERT_NEVER_REACHED;
+		}
+
+		bool execute(Execute_attr const &attr);
+
+		void resume()
+		{
+			switch (_state) {
+			case PAUSED: _state = RESUMED; break;
+			default: ASSERT_NEVER_REACHED;
+			}
+		}
+
+		void start()
+		{
+			switch (_state) {
+			case REQUESTED: _state = STARTED; break;
+			default: ASSERT_NEVER_REACHED;
+			}
+		}
+
+		bool complete() const { return _state == COMPLETE; }
+
+		bool paused() const { return _state == PAUSED; }
+
+		bool requested() const { return _state == REQUESTED; }
+};
+
+class Vfs_tresor::Deinitialize_operation : private Noncopyable
+{
+	public:
+
+		enum Result { NONE, SUCCEEDED, FAILED, PENDING };
+
+		struct Execute_attr
+		{
+			Deinitialize_file_system *deinit_fs_ptr;
+			Superblock_control &sb_control;
+			Block_io &block_io;
+			Crypto &crypto;
+			Trust_anchor &trust_anchor;
+		};
+
+	private:
+
+		enum State { INIT, REQUESTED, STARTED, DEINIT_SB_CONTROL, COMPLETE };
+
+		State _state { INIT };
+		bool const _verbose;
+		bool _success { };
+		Constructible<Superblock_control::Deinitialize> _deinit_sb_control { };
+
+	public:
+
+		Deinitialize_operation(bool verbose) : _verbose(verbose) { }
+
+		bool request()
+		{
+			switch (_state) {
+			case INIT:
+			case COMPLETE:
+
+				_state = REQUESTED;
+				if (_verbose)
+					log("deinitialize requested");
+				return true;
+
+			default: return false;
+			}
+			ASSERT_NEVER_REACHED;
+		}
+
+		void start()
+		{
+			switch (_state) {
+			case REQUESTED: _state = STARTED; break;
+			default: ASSERT_NEVER_REACHED;
+			}
+		}
+
+		Result result() const
+		{
+			switch (_state) {
+			case INIT: return NONE;
+			case COMPLETE: return _success ? SUCCEEDED : FAILED;
+			default: return PENDING;
+			}
+			ASSERT_NEVER_REACHED;
+		}
+
+		bool complete() const { return _state == COMPLETE; }
+
+		bool requested() const { return _state == REQUESTED; }
+
+		bool execute(Execute_attr const &attr);
+};
+
+class Vfs_tresor::Extend_operation : private Noncopyable
+{
+	public:
+
+		enum Result { NONE, SUCCEEDED, FAILED, PENDING };
+
+		struct Execute_attr
+		{
+			Extend_file_system *extend_fs_ptr;
+			Superblock_control &sb_control;
+			Virtual_block_device &vbd;
+			Free_tree &free_tree;
+			Meta_tree &meta_tree;
+			Block_io &block_io;
+			Trust_anchor &trust_anchor;
+		};
+
+	private:
+
+		enum State {
+			INIT, EXTEND_FT_REQUESTED, EXTEND_FT_STARTED, EXTEND_FT, EXTEND_FT_PAUSED, EXTEND_FT_RESUMED,
+			EXTEND_VBD_REQUESTED, EXTEND_VBD_STARTED, EXTEND_VBD, EXTEND_VBD_PAUSED, EXTEND_VBD_RESUMED, COMPLETE };
+
+		State _state { INIT };
+		bool const _verbose;
+		bool _success { };
+		bool _complete { };
+		Number_of_blocks _num_blocks { };
+		Constructible<Superblock_control::Extend_free_tree> _extend_ft { };
+		Constructible<Superblock_control::Extend_vbd> _extend_vbd { };
+
+	public:
+
+		Extend_operation(bool verbose) : _verbose(verbose) { }
+
+		bool request_for_free_tree(Number_of_blocks num_blocks)
+		{
+			switch (_state) {
+			case INIT:
+			case COMPLETE:
+
+				_num_blocks = num_blocks;
+				_state = EXTEND_FT_REQUESTED;
+				if (_verbose)
+					log("extend free tree requested");
+				return true;
+
+			default: break;
+			}
+			return false;
+		}
+
+		bool request_for_vbd(Number_of_blocks num_blocks)
+		{
+			switch (_state) {
+			case INIT:
+			case COMPLETE:
+
+				_num_blocks = num_blocks;
+				_state = EXTEND_VBD_REQUESTED;
+				if (_verbose)
+					log("extend virtual block device requested");
+				return true;
+
+			default: return false;
+			}
+			ASSERT_NEVER_REACHED;
+		}
+
+		Result result() const
+		{
+			switch (_state) {
+			case INIT: return NONE;
+			case COMPLETE: return _success ? SUCCEEDED : FAILED;
+			default: return PENDING;
+			}
+			ASSERT_NEVER_REACHED;
+		}
+
+		bool execute(Execute_attr const &attr);
+
+		void resume()
+		{
+			switch (_state) {
+			case EXTEND_FT_PAUSED: _state = EXTEND_FT_RESUMED; break;
+			case EXTEND_VBD_PAUSED: _state = EXTEND_VBD_RESUMED; break;
+			default: ASSERT_NEVER_REACHED;
+			}
+		}
+
+		void start()
+		{
+			switch (_state) {
+			case EXTEND_FT_REQUESTED: _state = EXTEND_FT_STARTED; break;
+			case EXTEND_VBD_REQUESTED: _state = EXTEND_VBD_STARTED; break;
+			default: ASSERT_NEVER_REACHED;
+			}
+		}
+
+		bool complete() const { return _state == COMPLETE; }
+
+		bool paused() const { return _state == EXTEND_FT_PAUSED || _state == EXTEND_VBD_PAUSED; }
+
+		bool requested() const { return _state == EXTEND_FT_REQUESTED || _state == EXTEND_VBD_REQUESTED; }
+};
+
+class Vfs_tresor::Plugin : private Noncopyable, private Client_data_interface, private Crypto_key_files_interface
 {
 	private:
 
-		NONCOPYABLE(Wrapper);
-
-		Vfs::Env &_vfs_env;
-
-		Constructible<Request_pool>            _request_pool { };
-		Constructible<Tresor::Free_tree>       _free_tree    { };
-		Constructible<Virtual_block_device>    _vbd          { };
-		Constructible<Superblock_control>      _sb_control   { };
-		Tresor::Meta_tree                      _meta_tree    { };
-		Constructible<Tresor::Trust_anchor>    _trust_anchor { };
-		Constructible<Tresor::Crypto>          _crypto       { };
-		Constructible<Tresor::Block_io>        _block_io     { };
-
-		Constructible<Tresor::Splitter>        _splitter     { };
-		Constructible<Client_data>             _client_data  { };
-
-
-	public:
-
-		enum class Result { UNKNOWN, OK, ERROR, EOF };
-
-
-	private:
-
-		class Command : public Module_channel
-		{
-			public:
-
-				using Operation = Tresor::Request::Operation;
-
-				enum State { IDLE, PENDING, IN_PROGRESS, COMPLETED };
-
-				static char const *op_to_string(Command::Operation op) {
-					return Tresor::Request::op_to_string(op); }
-
-			private:
-
-				NONCOPYABLE(Command);
-
-				Vfs_tresor::Wrapper &_main;
-
-				State _state { IDLE };
-				bool  _success { false };
-
-				void _generated_req_completed(State_uint) override { _main.mark_command_completed(id()); }
-
-			public:
-
-				Result           result { Result::UNKNOWN };
-				Operation        op     { Operation::READ };
-				Number_of_blocks count  { 0 };
-				Generation       gen    { 0 };
-				Key_id           key_id { 0 };
-
-				/* for READ/WRITE */
-				Genode::uint64_t  offset           { 0 };
-				char             *buffer_start     { nullptr };
-				size_t            buffer_num_bytes { 0 };
-
-				Command(Vfs_tresor::Wrapper &main, Module_channel_id id)
-				: Module_channel { COMMAND_POOL, id }, _main { main } { }
-
-				void reset()
-				{
-					_success = false;
-
-					result = Result::UNKNOWN;
-					op = Operation::READ;
-					count = 0;
-					gen = 0;
-					key_id = 0;
-					offset = 0;
-					buffer_start = nullptr;
-					buffer_num_bytes = 0;
-				}
-
-				bool success() const { return _success; }
-
-				bool eof(Virtual_block_address max) const {
-					return offset / Tresor::BLOCK_SIZE > max; }
-
-				bool synchronize() const { return op == Operation::SYNC; }
-
-				State state() const { return _state; }
-
-				void state(State state)
-				{
-					ASSERT(state != _state);
-					_state = state;
-				}
-
-				void execute(bool verbose, bool &progress)
-				{
-					ASSERT(_state == State::PENDING);
-
-					if (verbose)
-						log("Execute request ", *this);
-
-					switch (op) {
-					case Command::Operation::READ:
-						generate_req<Splitter_request>(State::COMPLETED,
-							progress, Splitter_request::Operation::READ, _success,
-							offset, Byte_range_ptr(buffer_start, buffer_num_bytes), key_id, gen);
-						break;
-					case Command::Operation::WRITE:
-						generate_req<Splitter_request>(State::COMPLETED,
-							progress, Splitter_request::Operation::WRITE, _success,
-							offset, Byte_range_ptr(buffer_start, buffer_num_bytes), key_id, gen);
-						break;
-					default:
-						generate_req<Tresor::Request>(State::COMPLETED,
-							progress, op, 0, 0, count, key_id, id(), gen, _success);
-						break;
-					}
-
-					_main.mark_command_in_progress(id());
-				}
-
-				void print(Genode::Output &out) const
-				{
-					Genode::print(out, "op: ", op_to_string(op), " "
-					                   "count: ", count, " "
-					                   "gen: ", gen, " "
-					                   "key_id: ", key_id, " "
-					                   "offset: ", offset, " "
-					                   "buffer_start: ", (void*)buffer_start, " "
-					                   "buffer_num_bytes: ", buffer_num_bytes);
-				}
-		};
-
-		template <typename FUNC>
-		void _with_first_processable_cmd(FUNC && func)
-		{
-			bool first_uncompleted_cmd { true };
-			bool done { false };
-			for_each_channel<Command>([&] (Command &cmd) {
-
-				if (done)
-					return;
-
-				if (cmd.state() == Command::PENDING) {
-					done = true;
-					if (first_uncompleted_cmd || !cmd.synchronize())
-						func(cmd);
-				}
-
-				if (cmd.state() == Command::IN_PROGRESS) {
-					if (cmd.synchronize())
-						done = true;
-					else
-						first_uncompleted_cmd = false;
-				}
-			});
-		}
-
-		template <typename FUNC>
-		bool _with_first_idle_cmd(FUNC && func)
-		{
-			bool done { false };
-			for_each_channel<Command>([&] (Command &cmd) {
-				if (done)
-					return;
-
-				if (cmd.state() == Command::IDLE) {
-					done = true;
-					/*
-					 * Always provide a fresh Command to ease burden on
-					 * the callee and set it PENDING afterwards as
-					 * 'func' may not fail.
-					 */
-					cmd.reset();
-					func(cmd);
-					cmd.state(Command::PENDING);
-				}
-			});
-			return done;
-		}
+		enum State {
+			INIT_SB_CONTROL, NO_OPERATION, DATA_OPERATION, REKEY_OPERATION, EXTEND_OPERATION,
+			DEINITIALIZE_OPERATION, DEINITIALIZED };
 
 		enum { MAX_NUM_COMMANDS = 16 };
-		Constructible<Command> _commands[MAX_NUM_COMMANDS] { };
 
-		bool ready_to_submit_request()
+		struct Crypto_key
 		{
-			bool result = false;
-			for_each_channel<Command>([&] (Command const &cmd) {
-				if (cmd.state() == Command::State::IDLE)
-					result = true;
-			});
-			return result;
-		}
-
-	public:
-
-		struct Control_request
-		{
-			enum State { UNKNOWN, IDLE, IN_PROGRESS, };
-			enum Result { NONE, SUCCESS, FAILED, };
-
-			State  state;
-			Result last_result;
-
-			Control_request() : state { State::UNKNOWN }, last_result { Result::NONE } { }
-
-			bool idle()        const { return state == IDLE; }
-			bool in_progress() const { return state == IN_PROGRESS; }
-
-			bool success()     const { return last_result == SUCCESS; }
-
-			void mark_in_progress()
-			{
-				state       = State::IN_PROGRESS;
-				last_result = Result::NONE;
-			}
-
-			static char const *state_to_cstring(State const s)
-			{
-				switch (s) {
-				case State::UNKNOWN:     return "unknown";
-				case State::IDLE:        return "idle";
-				case State::IN_PROGRESS: return "in-progress";
-				}
-				return "-";
-			}
+			Key_id const key_id;
+			Vfs_handle &encrypt_file;
+			Vfs_handle &decrypt_file;
 		};
 
-		struct Rekeying : Control_request
-		{
-			uint32_t              key_id;
-			Virtual_block_address max_vba;
-			Virtual_block_address rekeying_vba;
-			uint64_t              percent_done;
-
-			Rekeying() : Control_request { }, key_id { 0 }, max_vba { 0 },
-			             rekeying_vba { 0 }, percent_done { 0 } { }
-
-			void mark_in_progress(Virtual_block_address max,
-			                      Virtual_block_address rekeying)
-			{
-				max_vba      = max;
-				rekeying_vba = rekeying;
-				Control_request::mark_in_progress();
-			}
-		};
-
-		struct Deinitialize : Control_request
-		{
-			uint32_t key_id;
-
-			Deinitialize() : Control_request { }, key_id { 0 }
-			{
-				state = State::IDLE;
-			}
-		};
-
-		struct Extending : Control_request
-		{
-			enum Type { INVALID, VBD, FT };
-
-			Type                  type;
-			Virtual_block_address resizing_nr_of_pbas;
-			uint64_t              percent_done;
-
-			Extending() : Control_request { }, type { Type::INVALID},
-			              resizing_nr_of_pbas { 0 }, percent_done { 0 } { }
-
-			void mark_in_progress(Type type, Virtual_block_address resizing_nr_of_pbas)
-			{
-				type                = type;
-				resizing_nr_of_pbas = resizing_nr_of_pbas;
-				Control_request::mark_in_progress();
-			}
-
-			static Type string_to_type(char const *s)
-			{
-				if (Genode::strcmp("vbd", s, 3) == 0) {
-					return Type::VBD;
-				} else
-
-				if (Genode::strcmp("ft", s, 2) == 0) {
-					return Type::FT;
-				}
-
-				return Type::INVALID;
-			}
-
-			static char const *type_to_string(Type type)
-			{
-				switch (type) {
-				case Type::VBD:     return "vbd";
-				case Type::FT:      return "ft";
-				case Type::INVALID: return "invalid";
-				}
-				return nullptr;
-			}
-		};
-
-	private:
+		Vfs::Env &_vfs_env;
+		bool const _verbose;
+		Tresor::Path const _crypto_path;
+		Tresor::Path const _block_io_path;
+		Tresor::Path const _trust_anchor_path;
+		Vfs_handle &_block_io_file { open_file(_vfs_env, _block_io_path, Directory_service::OPEN_MODE_RDWR) };
+		Vfs_handle &_crypto_add_key_file { open_file(_vfs_env, { _crypto_path, "/add_key" }, Directory_service::OPEN_MODE_WRONLY) };
+		Vfs_handle &_crypto_remove_key_file { open_file(_vfs_env, { _crypto_path, "/remove_key" }, Directory_service::OPEN_MODE_WRONLY) };
+		Vfs_handle &_ta_decrypt_file { open_file(_vfs_env, { _trust_anchor_path, "/decrypt" }, Directory_service::OPEN_MODE_RDWR) };
+		Vfs_handle &_ta_encrypt_file { open_file(_vfs_env, { _trust_anchor_path, "/encrypt" }, Directory_service::OPEN_MODE_RDWR) };
+		Vfs_handle &_ta_generate_key_file { open_file(_vfs_env, { _trust_anchor_path, "/generate_key" }, Directory_service::OPEN_MODE_RDWR) };
+		Vfs_handle &_ta_initialize_file { open_file(_vfs_env, { _trust_anchor_path, "/initialize" }, Directory_service::OPEN_MODE_RDWR) };
+		Vfs_handle &_ta_hash_file { open_file(_vfs_env, { _trust_anchor_path, "/hash" }, Directory_service::OPEN_MODE_RDWR) };
+		Tresor::Free_tree _free_tree { };
+		Tresor::Virtual_block_device _vbd { };
+		Superblock_control _sb_control { };
+		Meta_tree _meta_tree { };
+		Trust_anchor _trust_anchor { { _ta_decrypt_file, _ta_encrypt_file, _ta_generate_key_file, _ta_initialize_file, _ta_hash_file } };
+		Crypto _crypto { {*this, _crypto_add_key_file, _crypto_remove_key_file} };
+		Block_io _block_io { _block_io_file };
+		Splitter _splitter { };
+		Extend_file_system * _extend_fs_ptr  { };
+		Rekey_file_system * _rekey_fs_ptr  { };
+		Deinitialize_file_system *_deinit_fs_ptr  { };
+		Constructible<Crypto_key> _crypto_keys[2] { };
+		Superblock_control::Initialize *_init_sb_control_ptr { };
+		Superblock::State _sb_state { Superblock::INVALID };
+		Data_operation _data_operation { _verbose };
+		Rekey_operation _rekey_operation { _verbose };
+		Extend_operation _extend_operation { _verbose };
+		Deinitialize_operation _deinit_operation { _verbose };
+		State _state { INIT_SB_CONTROL };
 
 		/*
-		 * XXX The initial object state of Rekeying and
-		 *     Extending relies on 'execute()' querying
-		 *     the Superblock_info to switch from UNKNOWN
-		 *     to the current state and could therefore
-		 *     deny attempts.
+		 * Noncopyable
 		 */
-		Rekeying     _rekey_obj  { };
-		Extending    _extend_obj { };
-		Deinitialize _deinit_obj { };
+		Plugin(Plugin const &) = delete;
+		Plugin &operator = (Plugin const &) = delete;
 
-		Genode::Mutex     _io_mutex { };
-		Vfs_handle const *_io_handle_ptr { nullptr };
-		Command          *_io_cmd_ptr    { nullptr };
-
-		bool _active_io_cmd_for_handle(Vfs_handle const &handle) const {
-			return _io_handle_ptr == &handle; }
-
-		template <typename SETUP_FN>
-		bool _setup_io_cmd_for_handle(Vfs_handle const &handle,
-		                              SETUP_FN   const &setup_fn)
+		Constructible<Crypto_key> &_crypto_key(Key_id key_id)
 		{
-			ASSERT(_io_handle_ptr == nullptr);
-
-			bool done = _with_first_idle_cmd([&] (Command &cmd) {
-				setup_fn(cmd);
-
-				_io_cmd_ptr    = &cmd;
-				_io_handle_ptr = &handle;
-			});
-			return done;
+			for (Constructible<Crypto_key> &key : _crypto_keys)
+				if (key.constructed() && key->key_id == key_id)
+					return key;
+			ASSERT_NEVER_REACHED;
 		}
 
-		template <typename PENDING_FN, typename COMPLETE_FN>
-		bool _with_io_active_cmd_for_handle(Vfs_handle  const &handle,
-		                                    PENDING_FN  const &pending_fn,
-		                                    COMPLETE_FN const &complete_fn)
+		bool _try_start_operation()
 		{
-			bool found = false;
-			if (_io_handle_ptr && _io_handle_ptr == &handle) {
-				if (_io_cmd_ptr) {
-					Command &cmd = *_io_cmd_ptr;
+			if (_deinit_operation.requested()) {
+				_deinit_operation.start();
+				_state = DEINITIALIZE_OPERATION;
+				return true;
+			}
+			if (_data_operation.requested()) {
+				_data_operation.start();
+				_state = DATA_OPERATION;
+				return true;
+			}
+			if (_extend_operation.requested()) {
+				_extend_operation.start();
+				_state = EXTEND_OPERATION;
+				return true;
+			}
+			if (_rekey_operation.requested()) {
+				_rekey_operation.start();
+				_state = REKEY_OPERATION;
+				return true;
+			}
+			return false;
+		}
 
-					switch (cmd.state()) {
-					case Command::State::IDLE:
-						/* should never happen */
-						break;
-					case Command::State::PENDING: [[fallthrough]];
-					case Command::State::IN_PROGRESS:
-						pending_fn();
-						break;
-					case Command::State::COMPLETED:
-						complete_fn(*_io_cmd_ptr);
-						cmd.state(Command::IDLE);
+		bool _try_resume_operation()
+		{
+			if (_extend_operation.paused()) {
+				_extend_operation.resume();
+				_state = EXTEND_OPERATION;
+				return true;
+			}
+			if (_rekey_operation.paused()) {
+				_rekey_operation.resume();
+				_state = REKEY_OPERATION;
+				return true;
+			}
+			return false;
+		}
 
-						_io_cmd_ptr    = nullptr;
-						_io_handle_ptr = nullptr;
-						break;
-					}
-					found = true;
+		bool _execute_operations()
+		{
+			bool progress = false;
+			switch (_state) {
+			case INIT_SB_CONTROL:
+
+				progress |= _sb_control.execute(*_init_sb_control_ptr, _block_io, _crypto, _trust_anchor) ;
+				if (_init_sb_control_ptr->complete()) {
+
+					ASSERT(_init_sb_control_ptr->success());
+					destroy(_vfs_env.alloc(), _init_sb_control_ptr);
+					_init_sb_control_ptr = nullptr;
+					if (_verbose)
+						log("initialize succeeded");
+
+					if (!_try_start_operation())
+						_state = NO_OPERATION;
+					progress = true;
 				}
+				break;
+
+			case DATA_OPERATION:
+
+				progress |= _data_operation.execute({_splitter, _sb_control, *this, _vbd, _free_tree, _meta_tree, _block_io, _crypto, _trust_anchor}) ;
+				if (_data_operation.complete()) {
+					if (!_try_resume_operation())
+						if (!_try_start_operation())
+							_state = NO_OPERATION;
+					progress = true;
+				}
+				break;
+
+			case DEINITIALIZE_OPERATION:
+
+				progress |= _deinit_operation.execute({_deinit_fs_ptr, _sb_control, _block_io, _crypto, _trust_anchor}) ;
+				if (_deinit_operation.complete()) {
+					_state = DEINITIALIZED;
+					progress = true;
+				}
+				break;
+
+			case EXTEND_OPERATION:
+
+				progress |= _extend_operation.execute({_extend_fs_ptr, _sb_control, _vbd, _free_tree, _meta_tree, _block_io, _trust_anchor}) ;
+				if (_extend_operation.complete()) {
+					if (!_try_start_operation())
+						_state = NO_OPERATION;
+					progress = true;
+				}
+				if (_extend_operation.paused()) {
+					if (_data_operation.requested()) {
+						_data_operation.start();
+						_state = DATA_OPERATION;
+					} else
+						_extend_operation.resume();
+					progress = true;
+				}
+				break;
+
+			case REKEY_OPERATION:
+
+				progress |= _rekey_operation.execute({_rekey_fs_ptr, _sb_control, _vbd, _free_tree, _meta_tree, _block_io, _crypto, _trust_anchor}) ;
+				if (_rekey_operation.complete()) {
+					if (!_try_start_operation())
+						_state = NO_OPERATION;
+					progress = true;
+				}
+				if (_rekey_operation.paused()) {
+					if (_data_operation.requested()) {
+						_data_operation.start();
+						_state = DATA_OPERATION;
+					} else
+						_rekey_operation.resume();
+					progress = true;
+				}
+				break;
+
+			case NO_OPERATION: progress |= _try_start_operation(); break;
+			default: break;
 			}
-			return found;
+			return progress;
 		}
 
-		Pointer<Snapshots_file_system>       _snapshots_fs       { };
-		Pointer<Extend_file_system>          _extend_fs          { };
-		Pointer<Extend_progress_file_system> _extend_progress_fs { };
-		Pointer<Rekey_file_system>           _rekey_fs           { };
-		Pointer<Rekey_progress_file_system>  _rekey_progress_fs  { };
-		Pointer<Deinitialize_file_system>    _deinit_fs          { };
-
-		/* configuration options */
-		bool _verbose       { false };
-		bool _debug         { false };
-
-		void _read_config(Xml_node config)
+		void _execute()
 		{
-			_verbose      = config.attribute_value("verbose", _verbose);
-			_debug        = config.attribute_value("debug",   _debug);
+			while (_execute_operations()) ;
+			_wakeup_back_end_services();
 		}
 
-		struct Could_not_open_block_backend : Genode::Exception { };
-		struct No_valid_superblock_found    : Genode::Exception { };
+		void _wakeup_back_end_services() { _vfs_env.io().commit(); }
 
-		void _initialize_tresor()
+		size_t _data_file_size() const { return (_sb_control.max_vba() + 1) * BLOCK_SIZE; }
+
+		/********************************
+		 ** Crypto_key_files_interface **
+		 ********************************/
+
+		void add_crypto_key(Key_id key_id) override
 		{
-			_free_tree.construct();
-			_vbd.construct();
-			_sb_control.construct();
-			_request_pool.construct();
-
-			add_module(FREE_TREE, *_free_tree);
-			add_module(VIRTUAL_BLOCK_DEVICE, *_vbd);
-			add_module(SUPERBLOCK_CONTROL, *_sb_control);
-			add_module(REQUEST_POOL, *_request_pool);
-
-			Module_channel_id id = 0;
-			for (auto & cmd : _commands) {
-				cmd.construct(*this, id++);
-				add_channel(*cmd);
-			}
-		}
-
-		void _process_completed(Command &cmd)
-		{
-			using R = Result;
-
-			bool const success = cmd.success();
-
-			if (_verbose)
-				log("Completed request ", cmd, " ",
-				    success ? "successfull" : "failed");
-
-			switch (cmd.op) {
-			case Command::Operation::REKEY:
-			{
-				_rekey_obj.state = Rekeying::State::IDLE;
-				_rekey_obj.last_result = success ? Rekeying::Result::SUCCESS
-				                                 : Rekeying::Result::FAILED;
-
-				_rekey_fs_trigger_watch_response();
-				_rekey_progress_fs_trigger_watch_response();
-
-				cmd.state(Command::IDLE);
-				break;
-			}
-			case Command::Operation::DEINITIALIZE:
-			{
-				_deinit_obj.state = Deinitialize::State::IDLE;
-				_deinit_obj.last_result = success ? Deinitialize::Result::SUCCESS
-				                                  : Deinitialize::Result::FAILED;
-
-				_deinit_fs_trigger_watch_response();
-
-				cmd.state(Command::IDLE);
-				break;
-			}
-			case Command::Operation::EXTEND_VBD:
-			{
-				_extend_obj.state = Extending::State::IDLE;
-				_extend_obj.last_result =
-					success ? Extending::Result::SUCCESS
-					        : Extending::Result::FAILED;
-
-				_extend_fs_trigger_watch_response();
-				_extend_progress_fs_trigger_watch_response();
-
-				cmd.state(Command::IDLE);
-				break;
-			}
-			case Command::Operation::EXTEND_FT:
-			{
-				_extend_obj.state = Extending::State::IDLE;
-				_extend_obj.last_result =
-					success ? Extending::Result::SUCCESS
-					        : Extending::Result::FAILED;
-
-				_extend_fs_trigger_watch_response();
-
-				cmd.state(Command::IDLE);
-				break;
-			}
-			case Command::Operation::CREATE_SNAPSHOT:
-			{
-				// FIXME more TODO here?
-				_snapshots_fs_update_snapshot_registry();
-
-				cmd.state(Command::IDLE);
-				break;
-			}
-			case Command::Operation::DISCARD_SNAPSHOT:
-			{
-				// FIXME more TODO here?
-				_snapshots_fs_update_snapshot_registry();
-
-				cmd.state(Command::IDLE);
-				break;
-			}
-			case Command::Operation::READ: [[fallthrough]];
-			case Command::Operation::WRITE:
-			{
-				bool const eof = cmd.eof(_sb_control->max_vba());
-
-				cmd.result = success ? R::OK
-				                     : eof ? R::EOF
-				                           : R::ERROR;
-				break;
-			}
-			case Command::Operation::SYNC:
-				cmd.result = success ? R::OK : R::ERROR;
-				break;
-			/* not handled here */
-			case Command::Operation::RESUME_REKEYING:
-				cmd.result = success ? R::OK : R::ERROR;
-				break;
-			case Command::Operation::INITIALIZE:
-				cmd.result = success ? R::OK : R::ERROR;
-				break;
-			} /* switch */
-		}
-
-		void _snapshots_fs_update_snapshot_registry();
-
-		void _extend_fs_trigger_watch_response();
-
-		void _extend_progress_fs_trigger_watch_response();
-
-		void _rekey_fs_trigger_watch_response();
-
-		void _rekey_progress_fs_trigger_watch_response();
-
-		void _deinit_fs_trigger_watch_response();
-
-		template <typename FN>
-		void _with_node(char const *name, char const *path, FN const &fn)
-		{
-			char xml_buffer[128] { };
-
-			Genode::Xml_generator xml {
-				xml_buffer, sizeof(xml_buffer), name,
-				[&] { xml.attribute("path", path); }
-			};
-
-			Genode::Xml_node node { xml_buffer, sizeof(xml_buffer) };
-			fn(node);
-		}
-
-	public:
-
-		Wrapper(Vfs::Env &vfs_env, Xml_node config) : _vfs_env { vfs_env }
-		{
-			_read_config(config);
-
-			using S = Genode::String<32>;
-
-			S const block_path =
-				config.attribute_value("block", S());
-			if (block_path.valid())
-				_with_node("block_io", block_path.string(),
-					[&] (Xml_node const &node) {
-						_block_io.construct(vfs_env, node);
-					});
-
-			S const trust_anchor_path =
-				config.attribute_value("trust_anchor", S());
-			if (trust_anchor_path.valid())
-				_with_node("trust_anchor", trust_anchor_path.string(),
-					[&] (Xml_node const &node) {
-						_trust_anchor.construct(vfs_env, node);
-					});
-
-			S const crypto_path =
-				config.attribute_value("crypto", S());
-			if (crypto_path.valid())
-				_with_node("crypto", crypto_path.string(),
-					[&] (Xml_node const &node) {
-						_crypto.construct(vfs_env, node);
-					});
-
-			_splitter.construct();
-			_client_data.construct(*_splitter);
-
-			add_module(COMMAND_POOL,  *this);
-			add_module(META_TREE,     _meta_tree);
-			add_module(CRYPTO,        *_crypto);
-			add_module(TRUST_ANCHOR,  *_trust_anchor);
-			add_module(CLIENT_DATA,   *_client_data);
-			add_module(BLOCK_IO,      *_block_io);
-			add_module(SPLITTER,      *_splitter);
-
-			_initialize_tresor();
-		}
-
-		void mark_command_in_progress(Module_channel_id cmd_id)
-		{
-			with_channel<Command>(cmd_id, [&] (Command &cmd) {
-				cmd.state(Command::IN_PROGRESS);
-			});
-		}
-
-		void mark_command_completed(Module_channel_id cmd_id)
-		{
-			with_channel<Command>(cmd_id, [&] (Command &cmd) {
-				cmd.state(Command::COMPLETED);
-				_process_completed(cmd);
-			});
-		}
-
-		void execute(bool &progress) override
-		{
-			_with_first_processable_cmd([&] (Command &cmd) {
-				cmd.execute(_verbose, progress);
-			});
-		}
-
-		Genode::uint64_t max_vba()
-		{
-			return _sb_control->max_vba();
-		}
-
-		/*
-		 * Handle a I/O request
-		 *
-		 * We rely on the 'handle' as well as the memory covered by
-		 * 'data' being valid throughout the processing of the pending
-		 * request.
-		 */
-		template <typename PENDING_FN, typename COMPLETE_FN>
-		void handle_io_request(Vfs_handle           const &handle,
-		                       Byte_range_ptr       const &data,
-		                       Tresor::Request::Operation  op,
-		                       Generation                  gen,
-		                       PENDING_FN           const &pending_fn,
-		                       COMPLETE_FN          const &complete_fn)
-		{
-
-			Genode::Mutex::Guard guard { _io_mutex };
-
-			/* queue new I/O request */
-			if (!_active_io_cmd_for_handle(handle)) {
-				bool const done =
-					_setup_io_cmd_for_handle(handle, [&] (Command &cmd) {
-
-					cmd.op               = op;
-					cmd.gen              = gen;
-					cmd.offset           = handle.seek();
-					/* make a copy as the object may be dynamic */
-					cmd.buffer_start     = data.start;
-					cmd.buffer_num_bytes = data.num_bytes;
-				});
-
-				if (!done) {
-					pending_fn();
+			for (Constructible<Crypto_key> &key : _crypto_keys)
+				if (!key.constructed()) {
+					key.construct(key_id,
+						open_file(_vfs_env, { _crypto_path, "/keys/", key_id, "/encrypt" }, Directory_service::OPEN_MODE_RDWR),
+						open_file(_vfs_env, { _crypto_path, "/keys/", key_id, "/decrypt" }, Directory_service::OPEN_MODE_RDWR)
+					);
 					return;
 				}
-			}
-
-			execute();
-
-			_with_io_active_cmd_for_handle(handle,
-				[&] { pending_fn(); },
-				[&] (Command const &cmd) {
-					complete_fn(cmd.result,
-					            cmd.buffer_num_bytes);
-			});
+			ASSERT_NEVER_REACHED;
 		}
 
-		void execute()
+		void remove_crypto_key(Key_id key_id) override
 		{
-			execute_modules();
-			_vfs_env.io().commit();
-
-			Tresor::Superblock_info const sb_info {
-				_sb_control->sb_info() };
-
-			using ES = Extending::State;
-			if (_extend_obj.state == ES::UNKNOWN && sb_info.valid) {
-				if (sb_info.extending_ft) {
-
-					_extend_obj.state = ES::IN_PROGRESS;
-					_extend_obj.type  = Extending::Type::FT;
-				} else
-
-				if (sb_info.extending_vbd) {
-
-					_extend_obj.state = ES::IN_PROGRESS;
-					_extend_obj.type  = Extending::Type::VBD;
-				} else {
-
-					_extend_obj.state = ES::IDLE;
-				}
-				_extend_fs_trigger_watch_response();
-			}
-
-			if (_extend_obj.in_progress()) {
-
-				Virtual_block_address const current_nr_of_pbas =
-					_sb_control->resizing_nr_of_pbas();
-
-				/* initial query */
-				if (_extend_obj.resizing_nr_of_pbas == 0)
-					_extend_obj.resizing_nr_of_pbas = current_nr_of_pbas;
-
-				/* update user-facing state */
-				uint64_t const last_percent_done = _extend_obj.percent_done;
-				_extend_obj.percent_done =
-					(_extend_obj.resizing_nr_of_pbas - current_nr_of_pbas)
-					* 100 / _extend_obj.resizing_nr_of_pbas;
-
-				if (last_percent_done != _extend_obj.percent_done)
-					_extend_progress_fs_trigger_watch_response();
-			}
-
-			using RS = Rekeying::State;
-			if (_rekey_obj.state == RS::UNKNOWN && sb_info.valid) {
-				_rekey_obj.state =
-					sb_info.rekeying ? RS::IN_PROGRESS : RS::IDLE;
-
-				_rekey_fs_trigger_watch_response();
-			}
-
-			if (_rekey_obj.in_progress()) {
-				_rekey_obj.rekeying_vba = _sb_control->rekeying_vba();
-
-				/* update user-facing state */
-				uint64_t const last_percent_done = _rekey_obj.percent_done;
-				_rekey_obj.percent_done =
-					_rekey_obj.rekeying_vba * 100 / _rekey_obj.max_vba;
-
-				if (last_percent_done != _rekey_obj.percent_done)
-					_rekey_progress_fs_trigger_watch_response();
-			}
+			Constructible<Crypto_key> &crypto_key = _crypto_key(key_id);
+			_vfs_env.root_dir().close(&crypto_key->encrypt_file);
+			_vfs_env.root_dir().close(&crypto_key->decrypt_file);
+			crypto_key.destruct();
 		}
 
-		bool start_rekeying()
+		Vfs_handle &encrypt_file(Key_id key_id) override { return _crypto_key(key_id)->encrypt_file; }
+		Vfs_handle &decrypt_file(Key_id key_id) override { return _crypto_key(key_id)->decrypt_file; }
+
+		/***************************
+		 ** Client_data_interface **
+		 ***************************/
+
+		void obtain_data(Obtain_data_attr const &attr) override
 		{
-			if (!ready_to_submit_request())
-				return false;
-
-			bool result = _with_first_idle_cmd([&] (Command &cmd) {
-
-				cmd.op = Command::Operation::REKEY;
-				cmd.key_id = _rekey_obj.key_id;
-
-				_rekey_obj.mark_in_progress(_sb_control->max_vba(),
-				                            _sb_control->rekeying_vba());
-
-				_rekey_fs_trigger_watch_response();
-				_rekey_progress_fs_trigger_watch_response();
-			});
-
-			execute();
-			return result;
+			attr.out_blk = _splitter.source_buffer(attr.in_vba);
 		}
 
-		Rekeying const rekeying_progress() const {
-			return _rekey_obj; }
-
-		bool start_deinitialize()
+		void supply_data(Supply_data_attr const &attr) override
 		{
-			if (!ready_to_submit_request())
-				return false;
-
-			bool result = _with_first_idle_cmd([&] (Command &cmd) {
-
-				cmd.op = Command::Operation::DEINITIALIZE;
-
-				_deinit_obj.mark_in_progress();
-				_deinit_fs_trigger_watch_response();
-			});
-
-			execute();
-			return result;
+			_splitter.destination_buffer(attr.in_vba) = attr.in_blk;
 		}
 
-		Deinitialize const deinitialize_progress() const {
-			return _deinit_obj; }
+	public:
 
-		bool start_extending(Extending::Type       type,
-		                     Tresor::Number_of_blocks blocks)
+		Plugin(Vfs::Env &vfs_env, Xml_node const &config)
+		:
+			_vfs_env(vfs_env),
+			_verbose(config.attribute_value("verbose", _verbose)),
+			_crypto_path(config.attribute_value("crypto", Tresor::Path())),
+			_block_io_path(config.attribute_value("block", Tresor::Path())),
+			_trust_anchor_path(config.attribute_value("trust_anchor", Tresor::Path()))
 		{
-			if (!ready_to_submit_request() || type == Extending::Type::INVALID)
-				return false;
-
-			Command::Operation op = Command::Operation::EXTEND_VBD;
-
-			switch (type) {
-			case Extending::Type::VBD:
-				op = Command::Operation::EXTEND_VBD;
-				break;
-			case Extending::Type::FT:
-				op = Command::Operation::EXTEND_FT;
-				break;
-			case Extending::Type::INVALID:
-				/* never reached */
-				return false;
-			}
-
-			bool result = _with_first_idle_cmd([&] (Command &cmd) {
-
-				cmd.op    = op;
-				cmd.count = blocks;
-
-				_extend_obj.mark_in_progress(type, 0);
-
-				_extend_fs_trigger_watch_response();
-				_extend_progress_fs_trigger_watch_response();
-			});
-
-			execute();
-			return result;
+			_init_sb_control_ptr = new (_vfs_env.alloc()) Superblock_control::Initialize({_sb_state});
+			if (_verbose)
+				log("initialize started");
 		}
 
-		Extending const extending_progress() const {
-			return _extend_obj; }
-
-		void snapshots_info(Tresor::Snapshots_info &info)
+		template <typename FUNC>
+		void with_data_file_size(FUNC && func)
 		{
-			info = _sb_control->snapshots_info();
-			execute();
+			_execute();
+			if (_state != INIT_SB_CONTROL)
+				func(_data_file_size());
 		}
 
-		bool create_snapshot()
+		template <typename FUNC>
+		void with_data_operation(FUNC && func)
 		{
-			if (!ready_to_submit_request())
-				return false;
-
-			bool result = _with_first_idle_cmd([&] (Command &cmd) {
-				cmd.op = Command::Operation::CREATE_SNAPSHOT; });
-
-			execute();
-			return result;
+			_execute();
+			func(_data_operation);
+			_execute();
 		}
 
-		bool discard_snapshot(Generation snap_gen)
+		template <typename FUNC>
+		void with_rekey_operation(FUNC && func)
 		{
-			if (!ready_to_submit_request())
-				return false;
-
-			bool result = _with_first_idle_cmd([&] (Command &cmd) {
-				cmd.op  = Command::Operation::DISCARD_SNAPSHOT;
-				cmd.gen = snap_gen;
-			});
-
-			execute();
-			return result;
+			_execute();
+			func(_rekey_operation);
+			_execute();
 		}
 
-		/***********************************************************
-		 ** Manange/Disolve interface needed for FS notifications **
-		 ***********************************************************/
-
-		void manage_snapshots_file_system(Snapshots_file_system &snapshots_fs)
+		template <typename FUNC>
+		void with_extend_operation(FUNC && func)
 		{
-			if (_snapshots_fs.valid()) {
-
-				class Already_managing_an_snapshots_file_system { };
-				throw Already_managing_an_snapshots_file_system { };
-			}
-			_snapshots_fs = snapshots_fs;
+			_execute();
+			func(_extend_operation);
+			_execute();
 		}
 
-		void dissolve_snapshots_file_system(Snapshots_file_system &snapshots_fs)
+		template <typename FUNC>
+		void with_deinit_operation(FUNC && func)
 		{
-			if (_snapshots_fs.valid()) {
-
-				if (&_snapshots_fs.obj() != &snapshots_fs) {
-
-					class Snapshots_file_system_not_managed { };
-					throw Snapshots_file_system_not_managed { };
-				}
-				_snapshots_fs = Pointer<Snapshots_file_system> { };
-
-			} else {
-
-				class No_snapshots_file_system_managed { };
-				throw No_snapshots_file_system_managed { };
-			}
+			_execute();
+			func(_deinit_operation);
+			_execute();
 		}
 
 		void manage_extend_file_system(Extend_file_system &extend_fs)
 		{
-			if (_extend_fs.valid()) {
-
-				class Already_managing_an_extend_file_system { };
-				throw Already_managing_an_extend_file_system { };
-			}
-			_extend_fs = extend_fs;
+			ASSERT(!_extend_fs_ptr);
+			_extend_fs_ptr = &extend_fs;
 		}
 
 		void dissolve_extend_file_system(Extend_file_system &extend_fs)
 		{
-			if (_extend_fs.valid()) {
-
-				if (&_extend_fs.obj() != &extend_fs) {
-
-					class Extend_file_system_not_managed { };
-					throw Extend_file_system_not_managed { };
-				}
-				_extend_fs = Pointer<Extend_file_system> { };
-
-			} else {
-
-				class No_extend_file_system_managed { };
-				throw No_extend_file_system_managed { };
-			}
-		}
-
-		void manage_extend_progress_file_system(Extend_progress_file_system &extend_progress_fs)
-		{
-			if (_extend_progress_fs.valid()) {
-
-				class Already_managing_an_extend_progres_file_system { };
-				throw Already_managing_an_extend_progres_file_system { };
-			}
-			_extend_progress_fs = extend_progress_fs;
-		}
-
-		void dissolve_extend_progress_file_system(Extend_progress_file_system &extend_progress_fs)
-		{
-			if (_extend_progress_fs.valid()) {
-
-				if (&_extend_progress_fs.obj() != &extend_progress_fs) {
-
-					class Extend_file_system_not_managed { };
-					throw Extend_file_system_not_managed { };
-				}
-				_extend_progress_fs = Pointer<Extend_progress_file_system> { };
-
-			} else {
-
-				class No_extend_file_system_managed { };
-				throw No_extend_file_system_managed { };
-			}
+			ASSERT(_extend_fs_ptr == &extend_fs);
+			_extend_fs_ptr = nullptr;
 		}
 
 		void manage_rekey_file_system(Rekey_file_system &rekey_fs)
 		{
-			if (_rekey_fs.valid()) {
-
-				class Already_managing_an_rekey_file_system { };
-				throw Already_managing_an_rekey_file_system { };
-			}
-			_rekey_fs = rekey_fs;
+			ASSERT(!_rekey_fs_ptr);
+			_rekey_fs_ptr = &rekey_fs;
 		}
 
 		void dissolve_rekey_file_system(Rekey_file_system &rekey_fs)
 		{
-			if (_rekey_fs.valid()) {
-
-				if (&_rekey_fs.obj() != &rekey_fs) {
-
-					class Rekey_file_system_not_managed { };
-					throw Rekey_file_system_not_managed { };
-				}
-				_rekey_fs = Pointer<Rekey_file_system> { };
-
-			} else {
-
-				class No_rekey_file_system_managed { };
-				throw No_rekey_file_system_managed { };
-			}
-		}
-
-		void manage_rekey_progress_file_system(Rekey_progress_file_system &rekey_progress_fs)
-		{
-			if (_rekey_progress_fs.valid()) {
-
-				class Already_managing_an_rekey_progress_file_system { };
-				throw Already_managing_an_rekey_progress_file_system { };
-			}
-			_rekey_progress_fs = rekey_progress_fs;
-		}
-
-		void dissolve_rekey_progress_file_system(Rekey_progress_file_system &rekey_progress_fs)
-		{
-			if (_rekey_progress_fs.valid()) {
-
-				if (&_rekey_progress_fs.obj() != &rekey_progress_fs) {
-
-					class Rekey_progress_file_system_not_managed { };
-					throw Rekey_progress_file_system_not_managed { };
-				}
-				_rekey_progress_fs = Pointer<Rekey_progress_file_system> { };
-
-			} else {
-
-				class No_rekey_progress_file_system_managed { };
-				throw No_rekey_progress_file_system_managed { };
-			}
+			ASSERT(_rekey_fs_ptr == &rekey_fs);
+			_rekey_fs_ptr = nullptr;
 		}
 
 		void manage_deinit_file_system(Deinitialize_file_system &deinit_fs)
 		{
-			if (_deinit_fs.valid()) {
-
-				class Already_managing_an_deinit_file_system { };
-				throw Already_managing_an_deinit_file_system { };
-			}
-			_deinit_fs = deinit_fs;
+			ASSERT(!_deinit_fs_ptr);
+			_deinit_fs_ptr = &deinit_fs;
 		}
 
 		void dissolve_deinit_file_system(Deinitialize_file_system &deinit_fs)
 		{
-			if (_deinit_fs.valid()) {
-
-				if (&_deinit_fs.obj() != &deinit_fs) {
-
-					class Deinitialize_file_system_not_managed { };
-					throw Deinitialize_file_system_not_managed { };
-				}
-				_deinit_fs = Pointer<Deinitialize_file_system> { };
-
-			} else {
-
-				class No_deinit_file_system_managed { };
-				throw No_deinit_file_system_managed { };
-			}
+			ASSERT(_deinit_fs_ptr == &deinit_fs);
+			_deinit_fs_ptr = nullptr;
 		}
 
+		bool verbose() const { return _verbose; }
 };
 
 
-class Vfs_tresor::Data_file_system : public Single_file_system
+class Vfs_tresor::Data_file_system : private Noncopyable, public Single_file_system
 {
 	private:
 
-		Wrapper &_w;
-		Generation _snap_gen;
-
-		using OP = Tresor::Request::Operation;
-		using FR = Wrapper::Result;
-		using RR = Vfs::File_io_service::Read_result;
-		using SR = Vfs::File_io_service::Sync_result;
-		using WR = Vfs::File_io_service::Write_result;
-
-		static RR read_result(FR r)
+		class Vfs_handle : private Noncopyable, public Single_vfs_handle
 		{
-			switch (r) {
-			case FR::OK:      return RR::READ_OK;
-			case FR::EOF:     return RR::READ_OK;
-			case FR::ERROR:   return RR::READ_ERR_IO;
-			case FR::UNKNOWN: return RR::READ_ERR_INVALID;
-			}
-			return RR::READ_ERR_INVALID;
-		}
+			private:
 
-		static SR sync_result(FR r)
-		{
-			switch (r) {
-			case FR::OK:      return SR::SYNC_OK;
-			case FR::EOF:     return SR::SYNC_ERR_INVALID;
-			case FR::ERROR:   return SR::SYNC_ERR_INVALID;
-			case FR::UNKNOWN: return SR::SYNC_ERR_INVALID;
-			}
-			return SR::SYNC_ERR_INVALID;
-		}
+				Plugin &_plugin;
 
-		static WR write_result(FR r)
-		{
-			switch (r) {
-			case FR::OK:      return WR::WRITE_OK;
-			case FR::EOF:     return WR::WRITE_OK;
-			case FR::ERROR:   return WR::WRITE_ERR_IO;
-			case FR::UNKNOWN: return WR::WRITE_ERR_INVALID;
-			}
-			return WR::WRITE_ERR_INVALID;
-		}
+			public:
 
+				Vfs_handle(Directory_service &dir_service, File_io_service &file_io_service,
+				           Allocator &alloc, Plugin &plugin)
+				:
+					Single_vfs_handle(dir_service, file_io_service, alloc, 0), _plugin(plugin)
+				{ }
+
+				/***********************
+				 ** Single_vfs_handle **
+				 ***********************/
+
+				Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
+				{
+					out_count = 0;
+					Read_result result = READ_QUEUED;
+					_plugin.with_data_operation([&] (Data_operation &data_operation) {
+
+						switch (data_operation.read(seek(), dst)) {
+						case Data_operation::PENDING: break;
+						case Data_operation::SUCCEEDED:
+
+							out_count = dst.num_bytes;
+							result = READ_OK;
+							break;
+
+						case Data_operation::FAILED: result = READ_ERR_IO; break;
+						};
+					});
+					return result;
+				}
+
+				Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
+				{
+					out_count = 0;
+					Write_result result = WRITE_ERR_WOULD_BLOCK;
+					_plugin.with_data_operation([&] (Data_operation &data_operation) {
+
+						switch (data_operation.write(seek(), src)) {
+						case Data_operation::PENDING: break;
+						case Data_operation::SUCCEEDED:
+
+							out_count = src.num_bytes;
+							result = WRITE_OK;
+							break;
+
+						case Data_operation::FAILED: result = WRITE_ERR_IO; break;
+						};
+					});
+					return result;
+				}
+
+				Sync_result sync() override
+				{
+					Sync_result result = SYNC_QUEUED;
+					_plugin.with_data_operation([&] (Data_operation &data_operation) {
+
+						switch (data_operation.sync()) {
+						case Data_operation::PENDING: break;
+						case Data_operation::SUCCEEDED:
+
+							result = SYNC_OK;
+							break;
+
+						case Data_operation::FAILED: result = SYNC_ERR_INVALID; break;
+						};
+					});
+					return result;
+				}
+
+				bool read_ready()  const override { return true; }
+				bool write_ready() const override { return true; }
+		};
+
+		Plugin &_plugin;
 
 	public:
 
-		struct Vfs_handle : Single_vfs_handle
-		{
-			Wrapper &_w;
-			Generation _snap_gen { INVALID_GENERATION };
-
-			Vfs_handle(Directory_service &ds,
-			           File_io_service &fs,
-			           Genode::Allocator &alloc,
-			           Wrapper &w,
-			           Generation snap_gen)
-			:
-				Single_vfs_handle(ds, fs, alloc, 0),
-				_w(w), _snap_gen(snap_gen)
-			{ }
-
-			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
-			{
-				RR result = RR::READ_ERR_INVALID;
-				_w.handle_io_request(*this, dst, OP::READ, _snap_gen,
-					[&] { result = READ_QUEUED; },
-					[&] (FR fresult, size_t count) {
-						result    = read_result(fresult);
-						out_count = count;
-					}
-				);
-				return result;
-			}
-
-			Write_result write(Const_byte_range_ptr const &src,
-			                   size_t &out_count) override
-			{
-				WR result = WR::WRITE_ERR_INVALID;
-				_w.handle_io_request(*this,
-				                     Byte_range_ptr(const_cast<char*>(src.start),
-				                                    src.num_bytes),
-				                     OP::WRITE, _snap_gen,
-					[&] { result = WRITE_ERR_WOULD_BLOCK; },
-					[&] (FR fresult, size_t count) {
-						result    = write_result(fresult);
-						out_count = count;
-					}
-				);
-				return result;
-			}
-
-			Sync_result sync() override
-			{
-				SR result = SR::SYNC_ERR_INVALID;
-				_w.handle_io_request(*this,
-				                     Byte_range_ptr(nullptr, 0),
-				                     OP::SYNC, 0,
-					[&] { result = SYNC_QUEUED; },
-					[&] (FR fresult, size_t) {
-						result = sync_result(fresult);
-					}
-				);
-				return result;
-			}
-
-			bool read_ready()  const override { return true; }
-			bool write_ready() const override { return true; }
-		};
-
-		Data_file_system(Wrapper &w, Generation snap_gen)
+		Data_file_system(Plugin &plugin)
 		:
-			Single_file_system(Node_type::CONTINUOUS_FILE, type_name(),
-			                   Node_rwx::rw(), Xml_node("<data/>")),
-			_w(w), _snap_gen(snap_gen)
+			Single_file_system(Node_type::CONTINUOUS_FILE, type_name(), Node_rwx::rw(), Xml_node("<data/>")),
+			_plugin(plugin)
 		{ }
 
-		~Data_file_system()
-		{
-			/* XXX sync on close */
-			/* XXX invalidate any still pending request */
-		}
+		static char const *type_name() { return "data"; }
 
-		/*********************************
-		 ** Directory-service interface **
-		 *********************************/
+		/************************
+		 ** Single_file_system **
+		 ************************/
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
-			Stat_result result = Single_file_system::stat(path, out);
-
-			/* max_vba range is from 0 ... N - 1 */
-			out.size = (_w.max_vba() + 1) * Tresor::BLOCK_SIZE;
+			Stat_result result = STAT_ERR_NO_ENTRY;
+			_plugin.with_data_file_size([&] (size_t size) {
+				result = Single_file_system::stat(path, out);
+				out.size = size;
+			});
 			return result;
 		}
 
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
+		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override { return FTRUNCATE_OK; }
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override {
-			return FTRUNCATE_OK; }
-
-		/***************************
-		 ** File-system interface **
-		 ***************************/
-
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Allocator   &alloc) override
+		Open_result open(char const *path, unsigned, Vfs::Vfs_handle **out_handle, Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
 
-			*out_handle =
-				new (alloc) Vfs_handle(*this, *this, alloc, _w, _snap_gen);
-
+			*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, _plugin);
 			return OPEN_OK;
 		}
 
-		static char const *type_name() { return "data"; }
 		char const *type() override { return type_name(); }
 };
 
 
-class Vfs_tresor::Extend_file_system : public Vfs::Single_file_system
+class Vfs_tresor::Extend_file_system : private Noncopyable, public Single_file_system
 {
 	private:
 
-		typedef Registered<Vfs_watch_handle>      Registered_watch_handle;
-		typedef Registry<Registered_watch_handle> Watch_handle_registry;
+		using Registered_watch_handle = Registered<Vfs_watch_handle>;
+		using Watch_handle_registry = Registry<Registered_watch_handle>;
+		using Content_string = String<11>;
 
-		Watch_handle_registry _handle_registry { };
-
-		Wrapper &_w;
-
-		using Content_string = String<32>;
-
-		static file_size copy_content(Content_string const &content,
-		                              char *dst, size_t const count)
+		class Vfs_handle : private Noncopyable, public Single_vfs_handle
 		{
-			copy_cstring(dst, content.string(), count);
-			size_t const length_without_nul = content.length() - 1;
-			return count > length_without_nul - 1 ? length_without_nul
-			                                      : count;
-		}
+			private:
 
-		struct Vfs_handle : Single_vfs_handle
-		{
-			Wrapper &_w;
+				Plugin &_plugin;
 
-			Vfs_handle(Directory_service &ds,
-			           File_io_service   &fs,
-			           Genode::Allocator &alloc,
-			           Wrapper &w)
-			:
-				Single_vfs_handle(ds, fs, alloc, 0),
-				_w(w)
-			{ }
-
-			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
-			{
-				/* EOF */
-				if (seek() != 0) {
-					out_count = 0;
-					return READ_OK;
-				}
-
-				/*
-				 * For now trigger extending execution via this hook
-				 * like we do in the Data_file_system.
-				 */
-				_w.execute();
-
-				Wrapper::Extending const & extending {
-					_w.extending_progress() };
-
-				if (extending.in_progress())
-					return READ_QUEUED;
-
-				if (extending.idle()) {
-					Content_string const content {
-						extending.success() ? "successful"
-						                    : "failed" };
-					copy_content(content, dst.start, dst.num_bytes);
+				static Read_result _read_ok(Content_string const &content, Byte_range_ptr const &dst, size_t &out_count)
+				{
+					copy_cstring(dst.start, content.string(), dst.num_bytes);
 					out_count = dst.num_bytes;
 					return READ_OK;
 				}
 
-				return READ_ERR_IO;
-			}
+			public:
 
-			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
-			{
-				using Type = Wrapper::Extending::Type;
-				if (!_w.extending_progress().idle()) {
-					return WRITE_ERR_IO;
+				Vfs_handle(Directory_service &dir_service, File_io_service &file_io_service,
+				           Allocator &alloc, Plugin &plugin)
+				:
+					Single_vfs_handle(dir_service, file_io_service, alloc, 0), _plugin(plugin)
+				{ }
+
+				/***********************
+				 ** Single_vfs_handle **
+				 ***********************/
+
+				Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
+				{
+					out_count = 0;
+					if (seek() == dst.num_bytes) {
+						return READ_OK;
+					}
+					if (seek() || dst.num_bytes < Content_string::capacity()) {
+						if (_plugin.verbose())
+							log("reading extend file failed: malformed arguments");
+						return READ_ERR_IO;
+					}
+					Read_result result = READ_QUEUED;
+					_plugin.with_extend_operation([&] (Extend_operation &extend_operation) {
+
+						switch (extend_operation.result()) {
+						case Extend_operation::NONE: result = _read_ok("none", dst, out_count); break;
+						case Extend_operation::SUCCEEDED: result = _read_ok("succeeded", dst, out_count); break;
+						case Extend_operation::FAILED: result = _read_ok("failed", dst, out_count); break;
+						case Extend_operation::PENDING: break;
+						}
+					});
+					return result;
 				}
 
-				char tree[16];
-				Arg_string::find_arg(src.start, "tree").string(tree, sizeof (tree), "-");
-				Type type = Wrapper::Extending::string_to_type(tree);
-				if (type == Type::INVALID) {
-					return WRITE_ERR_IO;
+				Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
+				{
+					out_count = 0;
+					char tree_arg[16];
+					Arg_string::find_arg(src.start, "tree").string(tree_arg, sizeof(tree_arg), "-");
+					unsigned long blocks_arg = Arg_string::find_arg(src.start, "blocks").ulong_value(0);
+					if (seek() || !blocks_arg) {
+						if (_plugin.verbose())
+							log("writing extend file failed: malformed arguments");
+						return WRITE_ERR_IO;
+					}
+					Write_result result = WRITE_ERR_IO;
+					_plugin.with_extend_operation([&] (Extend_operation &extend_operation) {
+
+						if (!strcmp("ft", tree_arg, 2)) {
+
+							if (!extend_operation.request_for_free_tree(blocks_arg)) {
+								result = WRITE_ERR_IO;
+								if (_plugin.verbose())
+									log("writing extend file failed: failed to request operation");
+								return;
+							}
+
+						} else if (!strcmp("vbd", tree_arg, 3)) {
+
+							if (!extend_operation.request_for_vbd(blocks_arg)) {
+								result = WRITE_ERR_IO;
+								if (_plugin.verbose())
+									log("writing extend file failed: failed to request operation");
+								return;
+							}
+
+						} else {
+
+							result = WRITE_ERR_IO;
+							if (_plugin.verbose())
+								log("writing extend file failed: malformed tree argument");
+							return;
+						}
+						out_count = src.num_bytes;
+						result = WRITE_OK;
+					});
+					return result;
 				}
 
-				unsigned long blocks = Arg_string::find_arg(src.start, "blocks").ulong_value(0);
-				if (blocks == 0) {
-					return WRITE_ERR_IO;
-				}
-
-				bool const okay = _w.start_extending(type, blocks);
-				if (!okay) {
-					return WRITE_ERR_IO;
-				}
-
-				out_count = src.num_bytes;
-				return WRITE_OK;
-			}
-
-			bool read_ready()  const override { return true; }
-			bool write_ready() const override { return true; }
+				bool read_ready()  const override { return true; }
+				bool write_ready() const override { return true; }
 		};
+
+		Watch_handle_registry _handle_registry { };
+		Plugin &_plugin;
 
 	public:
 
-		Extend_file_system(Wrapper &w)
+		Extend_file_system(Plugin &plugin)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
-			                   Node_rwx::rw(), Xml_node("<extend/>")),
-			_w(w)
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<extend/>")),
+			_plugin(plugin)
 		{
-			_w.manage_extend_file_system(*this);
+			_plugin.manage_extend_file_system(*this);
 		}
 
 		static char const *type_name() { return "extend"; }
 
-		char const *type() override { return type_name(); }
-
 		void trigger_watch_response()
 		{
 			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
 				handle.watch_response(); });
 		}
 
-		Watch_result watch(char const        *path,
-		                   Vfs_watch_handle **handle,
-		                   Allocator         &alloc) override
+		/************************
+		 ** Single_file_system **
+		 ************************/
+
+		Watch_result watch(char const *path, Vfs_watch_handle **handle, Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return WATCH_ERR_UNACCESSIBLE;
 
 			try {
-				*handle = new (alloc)
-					Registered_watch_handle(_handle_registry, *this, alloc);
-
+				*handle = new (alloc) Registered_watch_handle(_handle_registry, *this, alloc);
 				return WATCH_OK;
 			}
-			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_ram) { return WATCH_ERR_OUT_OF_RAM;  }
 			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_watch_handle *handle) override
 		{
-			destroy(handle->alloc(),
-			        static_cast<Registered_watch_handle *>(handle));
+			destroy(handle->alloc(), static_cast<Registered_watch_handle *>(handle));
 		}
-
-
-		/*********************************
-		 ** Directory-service interface **
-		 *********************************/
-
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
-		{
-			if (!_single_file(path))
-				return OPEN_ERR_UNACCESSIBLE;
-
-			try {
-				*out_handle =
-					new (alloc) Vfs_handle(*this, *this, alloc, _w);
-				return OPEN_OK;
-			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
-		}
-
-		Stat_result stat(char const *path, Stat &out) override
-		{
-			Stat_result result = Single_file_system::stat(path, out);
-			out.size = Content_string::size();
-			return result;
-		}
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override {
-			return FTRUNCATE_OK; }
-};
-
-
-class Vfs_tresor::Extend_progress_file_system : public Vfs::Single_file_system
-{
-	private:
-
-		typedef Registered<Vfs_watch_handle>      Registered_watch_handle;
-		typedef Registry<Registered_watch_handle> Watch_handle_registry;
-
-		Watch_handle_registry _handle_registry { };
-
-		Wrapper &_w;
-
-		using Content_string = String<32>;
-
-		static file_size copy_content(Content_string const &content,
-		                              char *dst, size_t const count)
-		{
-			copy_cstring(dst, content.string(), count);
-			size_t const length_without_nul = content.length() - 1;
-			return count > length_without_nul - 1 ? length_without_nul
-			                                      : count;
-		}
-
-		struct Vfs_handle : Single_vfs_handle
-		{
-			Wrapper &_w;
-
-			Vfs_handle(Directory_service &ds,
-			           File_io_service   &fs,
-			           Genode::Allocator &alloc,
-			           Wrapper &w)
-			:
-				Single_vfs_handle(ds, fs, alloc, 0),
-				_w(w)
-			{ }
-
-			Read_result read(Byte_range_ptr const &dst,
-			                 size_t               &out_count) override
-			{
-				/* EOF */
-				if (seek() != 0) {
-					out_count = 0;
-					return READ_OK;
-				}
-
-				/*
-				 * For now trigger extending execution via this hook
-				 * like we do in the Data_file_system.
-				 */
-				_w.execute();
-
-				Wrapper::Extending const & extending {
-					_w.extending_progress() };
-
-				if (extending.idle()) {
-					Content_string const content { "idle" };
-					copy_content(content, dst.start, dst.num_bytes);
-					out_count = dst.num_bytes;
-					return READ_OK;
-				}
-
-				if (extending.in_progress()) {
-					char const * const type =
-						Wrapper::Extending::type_to_string(extending.type);
-					Content_string const content { type, " at ", extending.percent_done, "%" };
-					copy_content(content, dst.start, dst.num_bytes);
-					out_count = dst.num_bytes;
-					return READ_OK;
-				}
-
-				return READ_ERR_IO;
-			}
-
-			Write_result write(Const_byte_range_ptr const &,
-			                   size_t                     &) override
-			{
-				return WRITE_ERR_IO;
-			}
-
-			bool read_ready()  const override { return true; }
-			bool write_ready() const override { return true; }
-		};
-
-	public:
-
-		Extend_progress_file_system(Wrapper &w)
-		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
-			                   Node_rwx::rw(), Xml_node("<extend_progress/>")),
-			_w(w)
-		{
-			_w.manage_extend_progress_file_system(*this);
-		}
-
-		static char const *type_name() { return "extend_progress"; }
 
 		char const *type() override { return type_name(); }
 
-		void trigger_watch_response()
-		{
-			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
-				handle.watch_response(); });
-		}
-
-		Watch_result watch(char const        *path,
-		                   Vfs_watch_handle **handle,
-		                   Allocator         &alloc) override
-		{
-			if (!_single_file(path))
-				return WATCH_ERR_UNACCESSIBLE;
-
-			try {
-				*handle = new (alloc)
-					Registered_watch_handle(_handle_registry, *this, alloc);
-
-				return WATCH_OK;
-			}
-			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
-			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
-		}
-
-		void close(Vfs_watch_handle *handle) override
-		{
-			destroy(handle->alloc(),
-			        static_cast<Registered_watch_handle *>(handle));
-		}
-
-
-		/*********************************
-		 ** Directory-service interface **
-		 *********************************/
-
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
+		Open_result open(char const *path, unsigned, Vfs::Vfs_handle **out_handle, Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
 
 			try {
-				*out_handle =
-					new (alloc) Vfs_handle(*this, *this, alloc, _w);
+				*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, _plugin);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram) { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = Single_file_system::stat(path, out);
-			out.size = Content_string::size();
+			out.size = Content_string::capacity();
 			return result;
 		}
 
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override {
-			return FTRUNCATE_OK; }
+		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override { return FTRUNCATE_OK; }
 };
 
 
-class Vfs_tresor::Rekey_file_system : public Vfs::Single_file_system
+class Vfs_tresor::Rekey_file_system : private Noncopyable, public Single_file_system
 {
 	private:
 
-		typedef Registered<Vfs_watch_handle>      Registered_watch_handle;
-		typedef Registry<Registered_watch_handle> Watch_handle_registry;
+		using Registered_watch_handle = Registered<Vfs_watch_handle>;
+		using Watch_handle_registry = Registry<Registered_watch_handle>;
 
 		Watch_handle_registry _handle_registry { };
 
-		Wrapper &_w;
+		Plugin &_plugin;
 
-		using Content_string = String<32>;
+		using Content_string = String<11>;
 
-		static file_size copy_content(Content_string const &content,
-		                              char *dst, size_t const count)
+		class Vfs_handle : private Noncopyable, public Single_vfs_handle
 		{
-			copy_cstring(dst, content.string(), count);
-			size_t const length_without_nul = content.length() - 1;
-			return count > length_without_nul - 1 ? length_without_nul
-			                                      : count;
-		}
+			private:
 
-		struct Vfs_handle : Single_vfs_handle
-		{
-			Wrapper &_w;
+				Plugin &_plugin;
 
-			/* store VBA in case the handle is kept open */
-			Virtual_block_address _last_rekeying_vba;
-
-			Vfs_handle(Directory_service &ds,
-			           File_io_service   &fs,
-			           Genode::Allocator &alloc,
-			           Wrapper &w)
-			:
-				Single_vfs_handle(ds, fs, alloc, 0),
-				_w(w),
-				_last_rekeying_vba(_w.rekeying_progress().rekeying_vba)
-			{ }
-
-			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
-			{
-				/* EOF */
-				if (seek() != 0) {
-					out_count = 0;
-					return READ_OK;
-				}
-
-				/*
-				 * For now trigger rekeying execution via this hook
-				 * like we do in the Data_file_system.
-				 */
-				_w.execute();
-
-				Wrapper::Rekeying const & rekeying {
-					_w.rekeying_progress() };
-
-				if (rekeying.in_progress())
-					return READ_QUEUED;
-
-				if (rekeying.idle()) {
-					Content_string const content {
-						rekeying.success() ? "successful"
-						                   : "failed" };
-					copy_content(content, dst.start, dst.num_bytes);
+				static Read_result _read_ok(Content_string const &content, Byte_range_ptr const &dst, size_t &out_count)
+				{
+					copy_cstring(dst.start, content.string(), dst.num_bytes);
 					out_count = dst.num_bytes;
 					return READ_OK;
 				}
 
-				return READ_ERR_IO;
-			}
+			public:
 
-			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
-			{
-				if (!_w.rekeying_progress().idle()) {
-					return WRITE_ERR_IO;
+				Vfs_handle(Directory_service &dir_service, File_io_service &file_io_service,
+				           Allocator &alloc, Plugin &plugin)
+				:
+					Single_vfs_handle(dir_service, file_io_service, alloc, 0), _plugin(plugin)
+				{ }
+
+				/***********************
+				 ** Single_vfs_handle **
+				 ***********************/
+
+				Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
+				{
+					out_count = 0;
+					if (seek() == dst.num_bytes) {
+						return READ_OK;
+					}
+					if (seek() || dst.num_bytes < Content_string::capacity()) {
+						if (_plugin.verbose())
+							log("reading rekey file failed: malformed arguments");
+						return READ_ERR_IO;
+					}
+					Read_result result = READ_QUEUED;
+					_plugin.with_rekey_operation([&] (Rekey_operation &rekey_operation) {
+
+						switch (rekey_operation.result()) {
+						case Rekey_operation::NONE: result = _read_ok("none", dst, out_count); break;
+						case Rekey_operation::SUCCEEDED: result = _read_ok("succeeded", dst, out_count); break;
+						case Rekey_operation::FAILED: result = _read_ok("failed", dst, out_count); break;
+						case Rekey_operation::PENDING: break;
+						}
+					});
+					return result;
 				}
 
-				bool start_rekeying { false };
-				Genode::ascii_to(src.start, start_rekeying);
+				Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
+				{
+					out_count = 0;
+					bool rekey_arg { false };
+					Genode::ascii_to(src.start, rekey_arg);
+					if (seek() || !rekey_arg) {
+						if (_plugin.verbose())
+							log("writing rekey file failed: malformed arguments");
+						return WRITE_ERR_IO;
+					}
+					Write_result result = WRITE_ERR_IO;
+					_plugin.with_rekey_operation([&] (Rekey_operation &rekey_operation) {
 
-				if (!start_rekeying) {
-					return WRITE_ERR_IO;
+						if (!rekey_operation.request()) {
+							result = WRITE_ERR_IO;
+							if (_plugin.verbose())
+								log("writing rekey file failed: failed to request operation");
+							return;
+						}
+						out_count = src.num_bytes;
+						result = WRITE_OK;
+					});
+					return result;
 				}
 
-				if (!_w.start_rekeying()) {
-					return WRITE_ERR_IO;
-				}
-
-				out_count = src.num_bytes;
-				return WRITE_OK;
-			}
-
-			bool read_ready()  const override { return true; }
-			bool write_ready() const override { return true; }
+				bool read_ready()  const override { return true; }
+				bool write_ready() const override { return true; }
 		};
 
 	public:
 
-		Rekey_file_system(Wrapper &w)
+		Rekey_file_system(Plugin &plugin)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
-			                   Node_rwx::rw(), Xml_node("<rekey/>")),
-			_w(w)
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<rekey/>")),
+			_plugin(plugin)
 		{
-			_w.manage_rekey_file_system(*this);
+			_plugin.manage_rekey_file_system(*this);
 		}
 
 		static char const *type_name() { return "rekey"; }
 
-		char const *type() override { return type_name(); }
-
 		void trigger_watch_response()
 		{
 			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
 				handle.watch_response(); });
 		}
 
-		Watch_result watch(char const        *path,
-		                   Vfs_watch_handle **handle,
-		                   Allocator         &alloc) override
-		{
-			if (!_single_file(path))
-				return WATCH_ERR_UNACCESSIBLE;
-
-			try {
-				*handle = new (alloc)
-					Registered_watch_handle(_handle_registry, *this, alloc);
-
-				return WATCH_OK;
-			}
-			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
-			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
-		}
-
-		void close(Vfs_watch_handle *handle) override
-		{
-			destroy(handle->alloc(),
-			        static_cast<Registered_watch_handle *>(handle));
-		}
-
-
-		/*********************************
-		 ** Directory-service interface **
-		 *********************************/
-
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
-		{
-			if (!_single_file(path))
-				return OPEN_ERR_UNACCESSIBLE;
-
-			try {
-				*out_handle =
-					new (alloc) Vfs_handle(*this, *this, alloc, _w);
-				return OPEN_OK;
-			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
-		}
-
-		Stat_result stat(char const *path, Stat &out) override
-		{
-			Stat_result result = Single_file_system::stat(path, out);
-			out.size = Content_string::size();
-			return result;
-		}
-
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override {
-			return FTRUNCATE_OK; }
-};
-
-
-class Vfs_tresor::Rekey_progress_file_system : public Vfs::Single_file_system
-{
-	private:
-
-		typedef Registered<Vfs_watch_handle>      Registered_watch_handle;
-		typedef Registry<Registered_watch_handle> Watch_handle_registry;
-
-		Watch_handle_registry _handle_registry { };
-
-		Wrapper &_w;
-
-		using Content_string = String<32>;
-
-		static file_size copy_content(Content_string const &content,
-		                              char *dst, size_t const count)
-		{
-			copy_cstring(dst, content.string(), count);
-			size_t const length_without_nul = content.length() - 1;
-			return count > length_without_nul - 1 ? length_without_nul
-			                                      : count;
-		}
-
-		struct Vfs_handle : Single_vfs_handle
-		{
-			Wrapper &_w;
-
-			Vfs_handle(Directory_service &ds,
-			           File_io_service   &fs,
-			           Genode::Allocator &alloc,
-			           Wrapper &w)
-			:
-				Single_vfs_handle(ds, fs, alloc, 0),
-				_w(w)
-			{ }
-
-			Read_result read(Byte_range_ptr const &dst,
-			                 size_t               &out_count) override
-			{
-				/* EOF */
-				if (seek() != 0) {
-					out_count = 0;
-					return READ_OK;
-				}
-
-				/*
-				 * For now trigger rekeying execution via this hook
-				 * like we do in the Data_file_system.
-				 */
-				_w.execute();
-
-				Wrapper::Rekeying const & rekeying {
-					_w.rekeying_progress() };
-
-				if (rekeying.idle()) {
-					Content_string const content { "idle" };
-					copy_content(content, dst.start, dst.num_bytes);
-					out_count = dst.num_bytes;
-					return READ_OK;
-				}
-
-				if (rekeying.in_progress()) {
-					Content_string const content { "at ", rekeying.percent_done, "%" };
-					copy_content(content, dst.start, dst.num_bytes);
-					out_count = dst.num_bytes;
-					return READ_OK;
-				}
-
-				return READ_ERR_IO;
-			}
-
-			Write_result write(Const_byte_range_ptr const &,
-			                   size_t                     &) override
-			{
-				return WRITE_ERR_IO;
-			}
-
-			bool read_ready()  const override { return true; }
-			bool write_ready() const override { return true; }
-		};
-
-	public:
-
-		Rekey_progress_file_system(Wrapper &w)
-		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
-			                   Node_rwx::rw(), Xml_node("<rekey_progress/>")),
-			_w(w)
-		{
-			_w.manage_rekey_progress_file_system(*this);
-		}
-
-		static char const *type_name() { return "rekey_progress"; }
+		/************************
+		 ** Single_file_system **
+		 ************************/
 
 		char const *type() override { return type_name(); }
 
-		void trigger_watch_response()
-		{
-			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
-				handle.watch_response(); });
-		}
-
-		Watch_result watch(char const        *path,
-		                   Vfs_watch_handle **handle,
-		                   Allocator         &alloc) override
+		Watch_result watch(char const *path, Vfs_watch_handle **handle, Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return WATCH_ERR_UNACCESSIBLE;
 
 			try {
-				*handle = new (alloc)
-					Registered_watch_handle(_handle_registry, *this, alloc);
-
+				*handle = new (alloc) Registered_watch_handle(_handle_registry, *this, alloc);
 				return WATCH_OK;
 			}
-			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_ram) { return WATCH_ERR_OUT_OF_RAM;  }
 			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_watch_handle *handle) override
 		{
-			destroy(handle->alloc(),
-			        static_cast<Registered_watch_handle *>(handle));
+			destroy(handle->alloc(), static_cast<Registered_watch_handle *>(handle));
 		}
 
-
-		/*********************************
-		 ** Directory-service interface **
-		 *********************************/
-
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
+		Open_result open(char const *path, unsigned, Vfs::Vfs_handle **out_handle, Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
 
 			try {
-				*out_handle =
-					new (alloc) Vfs_handle(*this, *this, alloc, _w);
+				*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, _plugin);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram) { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = Single_file_system::stat(path, out);
-			out.size = Content_string::size();
+			out.size = Content_string::capacity();
 			return result;
 		}
 
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override {
-			return FTRUNCATE_OK; }
+		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override { return FTRUNCATE_OK; }
 };
 
 
-class Vfs_tresor::Deinitialize_file_system : public Vfs::Single_file_system
+class Vfs_tresor::Deinitialize_file_system : private Noncopyable, public Single_file_system
 {
 	private:
 
-		typedef Registered<Vfs_watch_handle>      Registered_watch_handle;
-		typedef Registry<Registered_watch_handle> Watch_handle_registry;
+		using Registered_watch_handle = Registered<Vfs_watch_handle>;
+		using Watch_handle_registry = Registry<Registered_watch_handle>;
+		using Content_string = String<11>;
 
 		Watch_handle_registry _handle_registry { };
+		Plugin &_plugin;
 
-		Wrapper &_w;
-
-		using Content_string = String<32>;
-
-		static Content_string content_string(Wrapper const &wrapper)
+		class Vfs_handle : public Single_vfs_handle
 		{
-			Wrapper::Deinitialize const & deinitialize_progress {
-				wrapper.deinitialize_progress() };
+			private:
 
-			bool const in_progress { deinitialize_progress.in_progress() };
+				Plugin &_plugin;
 
-			bool const last_result {
-				!in_progress &&
-				deinitialize_progress.last_result !=
-					Wrapper::Deinitialize::Result::NONE };
-
-			bool const success { deinitialize_progress.success() };
-
-			Content_string const result {
-				Wrapper::Deinitialize::state_to_cstring(deinitialize_progress.state),
-				" last-result:",
-				last_result ? success ? "success" : "failed" : "none",
-				"\n" };
-
-			return result;
-		}
-
-		struct Vfs_handle : Single_vfs_handle
-		{
-			Wrapper &_w;
-
-			Vfs_handle(Directory_service &ds,
-			           File_io_service   &fs,
-			           Genode::Allocator &alloc,
-			           Wrapper &w)
-			:
-				Single_vfs_handle(ds, fs, alloc, 0),
-				_w(w)
-			{ }
-
-			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
-			{
-				if (seek() != 0) {
-					out_count = 0;
+				static Read_result _read_ok(Content_string const &content, Byte_range_ptr const &dst, size_t &out_count)
+				{
+					copy_cstring(dst.start, content.string(), dst.num_bytes);
+					out_count = dst.num_bytes;
 					return READ_OK;
 				}
-				_w.execute();
 
-				Wrapper::Deinitialize const & deinitialize_progress {
-					_w.deinitialize_progress() };
+			public:
 
-				if (deinitialize_progress.in_progress())
-					return READ_QUEUED;
+				Vfs_handle(Directory_service &dir_service, File_io_service &file_io_service,
+				           Allocator &alloc, Plugin &plugin)
+				:
+					Single_vfs_handle(dir_service, file_io_service, alloc, 0), _plugin(plugin)
+				{ }
 
-				Content_string const result { content_string(_w) };
-				copy_cstring(dst.start, result.string(), dst.num_bytes);
-				out_count = dst.num_bytes;
+				/***********************
+				 ** Single_vfs_handle **
+				 ***********************/
 
-				return READ_OK;
-			}
+				Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
+				{
+					out_count = 0;
+					if (seek() == dst.num_bytes) {
+						return READ_OK;
+					}
+					if (seek() || dst.num_bytes < Content_string::capacity()) {
+						if (_plugin.verbose())
+							log("reading deinitialize file failed: malformed arguments");
+						return READ_ERR_IO;
+					}
+					Read_result result = READ_QUEUED;
+					_plugin.with_deinit_operation([&] (Deinitialize_operation &deinit_operation) {
 
-			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
-			{
-				if (!_w.deinitialize_progress().idle()) {
-					return WRITE_ERR_IO;
+						switch (deinit_operation.result()) {
+						case Deinitialize_operation::NONE: result = _read_ok("none", dst, out_count); break;
+						case Deinitialize_operation::SUCCEEDED: result = _read_ok("succeeded", dst, out_count); break;
+						case Deinitialize_operation::FAILED: result = _read_ok("failed", dst, out_count); break;
+						case Deinitialize_operation::PENDING: break;
+						}
+					});
+					return result;
 				}
 
-				bool start_deinitialize { false };
-				Genode::ascii_to(src.start, start_deinitialize);
+				Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
+				{
+					out_count = 0;
+					bool deinitialize_arg { false };
+					Genode::ascii_to(src.start, deinitialize_arg);
+					if (seek() || !deinitialize_arg) {
+						if (_plugin.verbose())
+							log("writing deinitialize file failed: malformed arguments");
 
-				if (!start_deinitialize) {
-					return WRITE_ERR_IO;
+						return WRITE_ERR_IO;
+					}
+					Write_result result = WRITE_ERR_IO;
+					_plugin.with_deinit_operation([&] (Deinitialize_operation &deinit_operation) {
+
+						if (!deinit_operation.request()) {
+							result = WRITE_ERR_IO;
+							if (_plugin.verbose())
+								log("writing deinitialize file failed: failed to request operation");
+							return;
+						}
+						out_count = src.num_bytes;
+						result = WRITE_OK;
+					});
+					return result;
 				}
 
-				if (!_w.start_deinitialize()) {
-					return WRITE_ERR_IO;
-				}
-
-				out_count = src.num_bytes;
-				return WRITE_OK;
-			}
-
-			bool read_ready()  const override { return true; }
-			bool write_ready() const override { return true; }
+				bool read_ready()  const override { return true; }
+				bool write_ready() const override { return true; }
 		};
 
 	public:
 
-		Deinitialize_file_system(Wrapper &w)
+		Deinitialize_file_system(Plugin &plugin)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
-			                   Node_rwx::rw(), Xml_node("<deinitialize/>")),
-			_w(w)
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<deinitialize/>")),
+			_plugin(plugin)
 		{
-			_w.manage_deinit_file_system(*this);
+			_plugin.manage_deinit_file_system(*this);
 		}
 
 		static char const *type_name() { return "deinitialize"; }
 
-		char const *type() override { return type_name(); }
-
 		void trigger_watch_response()
 		{
 			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
 				handle.watch_response(); });
 		}
 
-		Watch_result watch(char const        *path,
-		                   Vfs_watch_handle **handle,
-		                   Allocator         &alloc) override
+		/************************
+		 ** Single_file_system **
+		 ************************/
+
+		char const *type() override { return type_name(); }
+
+		Watch_result watch(char const *path, Vfs_watch_handle **handle, Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return WATCH_ERR_UNACCESSIBLE;
 
 			try {
-				*handle = new (alloc)
-					Registered_watch_handle(_handle_registry, *this, alloc);
-
+				*handle = new (alloc) Registered_watch_handle(_handle_registry, *this, alloc);
 				return WATCH_OK;
 			}
-			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_ram) { return WATCH_ERR_OUT_OF_RAM;  }
 			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_watch_handle *handle) override
 		{
-			destroy(handle->alloc(),
-			        static_cast<Registered_watch_handle *>(handle));
+			destroy(handle->alloc(), static_cast<Registered_watch_handle *>(handle));
 		}
 
-
-		/*********************************
-		 ** Directory-service interface **
-		 *********************************/
-
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
+		Open_result open(char const  *path, unsigned, Vfs::Vfs_handle **out_handle, Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
 
 			try {
-				*out_handle =
-					new (alloc) Vfs_handle(*this, *this, alloc, _w);
+				*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, _plugin);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram) { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = Single_file_system::stat(path, out);
-			out.size = content_string(_w).length() - 1;
+			out.size = Content_string::capacity();
 			return result;
 		}
 
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override {
-			return FTRUNCATE_OK; }
+		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override { return FTRUNCATE_OK; }
 };
 
 
-class Vfs_tresor::Create_snapshot_file_system : public Vfs::Single_file_system
+class Vfs_tresor::Current_local_factory : private Noncopyable, public File_system_factory
 {
 	private:
 
-		Wrapper &_w;
+		Data_file_system _data_fs;
 
-		struct Vfs_handle : Single_vfs_handle
+		/*************************
+		 ** File_system_factory **
+		 *************************/
+
+		Vfs::File_system *create(Vfs::Env&, Xml_node node) override
 		{
-			Wrapper &_w;
+			if (node.has_type(Data_file_system::type_name()))
+				return &_data_fs;
 
-			Vfs_handle(Directory_service &ds,
-			           File_io_service   &fs,
-			           Genode::Allocator &alloc,
-			           Wrapper &w)
-			:
-				Single_vfs_handle(ds, fs, alloc, 0),
-				_w(w)
-			{ }
-
-			Read_result read(Byte_range_ptr const &, size_t &) override
-			{
-				return READ_ERR_IO;
-			}
-
-			Write_result write(Const_byte_range_ptr const &src, size_t &out_count) override
-			{
-				bool create_snapshot { false };
-				Genode::ascii_to(src.start, create_snapshot);
-				Genode::String<64> str(Genode::Cstring(src.start, src.num_bytes));
-				if (!create_snapshot)
-					return WRITE_ERR_IO;
-
-				if (!_w.create_snapshot()) {
-					out_count = 0;
-					return WRITE_OK;
-				}
-				out_count = src.num_bytes;
-				return WRITE_OK;
-			}
-
-			bool read_ready()  const override { return true; }
-			bool write_ready() const override { return true; }
-		};
+			return nullptr;
+		}
 
 	public:
 
-		Create_snapshot_file_system(Wrapper &w)
-		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
-			                   Node_rwx::wo(), Xml_node("<create_snapshot/>")),
-			_w(w)
-		{ }
-
-		static char const *type_name() { return "create_snapshot"; }
-
-		char const *type() override { return type_name(); }
-
-
-		/*********************************
-		 ** Directory-service interface **
-		 *********************************/
-
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
-		{
-			if (!_single_file(path))
-				return OPEN_ERR_UNACCESSIBLE;
-
-			try {
-				*out_handle =
-					new (alloc) Vfs_handle(*this, *this, alloc, _w);
-				return OPEN_OK;
-			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
-		}
-
-		Stat_result stat(char const *path, Stat &out) override
-		{
-			Stat_result result = Single_file_system::stat(path, out);
-			return result;
-		}
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override {
-			return FTRUNCATE_OK; }
+		Current_local_factory(Vfs::Env &, Plugin &plugin) : _data_fs(plugin) { }
 };
 
 
-class Vfs_tresor::Discard_snapshot_file_system : public Vfs::Single_file_system
+class Vfs_tresor::Current_file_system : private Current_local_factory, public Dir_file_system
 {
 	private:
 
-		Wrapper &_w;
+		using Config = String<128>;
 
-		struct Vfs_handle : Single_vfs_handle
-		{
-			Wrapper &_w;
-
-			Vfs_handle(Directory_service &ds,
-			           File_io_service   &fs,
-			           Genode::Allocator &alloc,
-			           Wrapper &w)
-			:
-				Single_vfs_handle(ds, fs, alloc, 0),
-				_w(w)
-			{ }
-
-			Read_result read(Byte_range_ptr const &, size_t &) override
-			{
-				return READ_ERR_IO;
-			}
-
-			Write_result write(Const_byte_range_ptr const &src,
-			                   size_t &out_count) override
-			{
-				out_count = 0;
-				Generation snap_gen { INVALID_GENERATION };
-				Genode::ascii_to(src.start, snap_gen);
-				if (snap_gen == INVALID_GENERATION)
-					return WRITE_ERR_IO;
-
-				if (!_w.discard_snapshot(snap_gen)) {
-					out_count = 0;
-					return WRITE_OK;
-				}
-				return WRITE_ERR_IO;
-			}
-
-			bool read_ready()  const override { return true; }
-			bool write_ready() const override { return true; }
-		};
-
-	public:
-
-		Discard_snapshot_file_system(Wrapper &w)
-		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(),
-			                   Node_rwx::wo(), Xml_node("<discard_snapshot/>")),
-			_w(w)
-		{ }
-
-		static char const *type_name() { return "discard_snapshot"; }
-
-		char const *type() override { return type_name(); }
-
-
-		/*********************************
-		 ** Directory-service interface **
-		 *********************************/
-
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
-		{
-			if (!_single_file(path))
-				return OPEN_ERR_UNACCESSIBLE;
-
-			try {
-				*out_handle =
-					new (alloc) Vfs_handle(*this, *this, alloc, _w);
-				return OPEN_OK;
-			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
-		}
-
-		Stat_result stat(char const *path, Stat &out) override
-		{
-			Stat_result result = Single_file_system::stat(path, out);
-			return result;
-		}
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override {
-			return FTRUNCATE_OK; }
-};
-
-
-struct Vfs_tresor::Snapshot_local_factory : File_system_factory
-{
-	Data_file_system _block_fs;
-
-	Snapshot_local_factory(Vfs::Env & /* env */,
-	                       Wrapper &tresor,
-	                       Generation snap_gen)
-	: _block_fs(tresor, snap_gen) { }
-
-	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
-	{
-		if (node.has_type(Data_file_system::type_name()))
-			return &_block_fs;
-
-		return nullptr;
-	}
-};
-
-
-class Vfs_tresor::Snapshot_file_system : private Snapshot_local_factory,
-                                         public Vfs::Dir_file_system
-{
-	private:
-
-		Generation _snap_gen;
-
-		typedef String<128> Config;
-
-		static Config _config(Generation snap_gen, bool readonly)
+		static Config _config()
 		{
 			char buf[Config::capacity()] { };
-
-			Xml_generator xml(buf, sizeof(buf), "dir", [&] () {
-
-				xml.attribute("name", !readonly ? String<16>("current") : String<16>(snap_gen));
+			Xml_generator xml(buf, sizeof(buf), "dir", [&] ()
+			{
+				xml.attribute("name", String<16>("current"));
 				xml.node("data", [&] () {
-					xml.attribute("readonly", readonly);
+					xml.attribute("readonly", false);
 				});
 			});
 
@@ -2393,895 +1540,397 @@ class Vfs_tresor::Snapshot_file_system : private Snapshot_local_factory,
 
 	public:
 
-		Snapshot_file_system(Vfs::Env &vfs_env,
-		                    Wrapper &tresor,
-		                    Generation snap_gen,
-		                    bool readonly = false)
+		Current_file_system(Vfs::Env &vfs_env, Plugin &plugin)
 		:
-			Snapshot_local_factory(vfs_env, tresor, snap_gen),
-			Vfs::Dir_file_system(vfs_env, Xml_node(_config(snap_gen, readonly).string()), *this),
-			_snap_gen(snap_gen)
+			Current_local_factory(vfs_env, plugin),
+			Dir_file_system(vfs_env, Xml_node(_config().string()), *this)
 		{ }
 
-		static char const *type_name() { return "snapshot"; }
+		static char const *type_name() { return "current"; }
+
+		/*********************
+		 ** Dir_file_system **
+		 *********************/
 
 		char const *type() override { return type_name(); }
-
-		Generation snap_gen() const { return _snap_gen; }
 };
 
 
-class Vfs_tresor::Snapshots_file_system : public Vfs::File_system
+class Vfs_tresor::Control_local_factory : private Noncopyable, public File_system_factory
 {
 	private:
 
-		typedef Registered<Vfs_watch_handle>      Registered_watch_handle;
-		typedef Registry<Registered_watch_handle> Watch_handle_registry;
-
-		Watch_handle_registry _handle_registry { };
-
-		Vfs::Env &_vfs_env;
-
-		bool _root_dir(char const *path) { return strcmp(path, "/snapshots") == 0; }
-		bool _top_dir(char const *path) { return strcmp(path, "/") == 0; }
-
-		struct Snapshot_registry
-		{
-			Genode::Allocator                                          &_alloc;
-			Wrapper                                                    &_wrapper;
-			Snapshots_file_system                                      &_snapshots_fs;
-			uint32_t                                                    _number_of_snapshots { 0 };
-			Genode::Registry<Genode::Registered<Snapshot_file_system>>  _registry            { };
-
-			struct Invalid_index : Genode::Exception { };
-			struct Invalid_path  : Genode::Exception { };
-
-
-
-			Snapshot_registry(Genode::Allocator     &alloc,
-			                  Wrapper               &wrapper,
-			                  Snapshots_file_system &snapshots_fs)
-			:
-				_alloc        { alloc },
-				_wrapper      { wrapper },
-				_snapshots_fs { snapshots_fs }
-			{ }
-
-			void update(Vfs::Env &vfs_env);
-
-			uint32_t number_of_snapshots() const { return _number_of_snapshots; }
-
-			Snapshot_file_system const &by_index(uint64_t idx) const
-			{
-				uint64_t i = 0;
-				Snapshot_file_system const *fsp { nullptr };
-				auto lookup = [&] (Snapshot_file_system const &fs) {
-					if (i == idx) {
-						fsp = &fs;
-					}
-					++i;
-				};
-				_registry.for_each(lookup);
-				if (fsp == nullptr) {
-					throw Invalid_index();
-				}
-				return *fsp;
-			}
-
-			Snapshot_file_system &_by_gen(Generation snap_gen)
-			{
-				Snapshot_file_system *fsp { nullptr };
-				auto lookup = [&] (Snapshot_file_system &fs) {
-					if (fs.snap_gen() == snap_gen) {
-						fsp = &fs;
-					}
-				};
-				_registry.for_each(lookup);
-				if (fsp == nullptr)
-					throw Invalid_path();
-
-				return *fsp;
-			}
-
-			Snapshot_file_system &by_path(char const *path)
-			{
-				if (!path)
-					throw Invalid_path();
-
-				if (path[0] == '/')
-					path++;
-
-				Generation snap_gen { INVALID_GENERATION };
-				Genode::ascii_to(path, snap_gen);
-				return _by_gen(snap_gen);
-			}
-		};
+		Plugin &_plugin;
+		Rekey_file_system _rekey_fs;
+		Deinitialize_file_system _deinitialize_fs;
+		Extend_file_system _extend_fs;
 
 	public:
 
-		void update_snapshot_registry()
-		{
-			_snap_reg.update(_vfs_env);
-		}
-
-		void trigger_watch_response()
-		{
-			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
-				handle.watch_response(); });
-		}
-
-		Watch_result watch(char const        *path,
-		                   Vfs_watch_handle **handle,
-		                   Allocator         &alloc) override
-		{
-			if (!_root_dir(path))
-				return WATCH_ERR_UNACCESSIBLE;
-
-			try {
-				*handle = new (alloc)
-					Registered_watch_handle(_handle_registry, *this, alloc);
-
-				return WATCH_OK;
-			}
-			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
-			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
-		}
-
-		void close(Vfs_watch_handle *handle) override
-		{
-			destroy(handle->alloc(),
-			        static_cast<Registered_watch_handle *>(handle));
-		}
-
-		struct Snap_vfs_handle : Vfs::Vfs_handle
-		{
-			using Vfs_handle::Vfs_handle;
-
-			virtual Read_result read(Byte_range_ptr const &, size_t &out_count) = 0;
-
-			virtual Write_result write(Const_byte_range_ptr const &, size_t &out_count) = 0;
-
-			virtual Sync_result sync()
-			{
-				return SYNC_OK;
-			}
-
-			virtual bool read_ready() const = 0;
-		};
-
-
-		struct Dir_vfs_handle : Snap_vfs_handle
-		{
-			Snapshot_registry const &_snap_reg;
-
-			bool const _root_dir { false };
-
-			Read_result _query_snapshots(size_t  index,
-			                             size_t &out_count,
-			                             Dirent &out)
-			{
-				if (index >= _snap_reg.number_of_snapshots()) {
-					out_count = sizeof(Dirent);
-					out.type = Dirent_type::END;
-					return READ_OK;
-				}
-
-				try {
-					Snapshot_file_system const &fs = _snap_reg.by_index(index);
-					Genode::String<32> name { fs.snap_gen() };
-
-					out = {
-						.fileno = (Genode::addr_t)this | index,
-						.type   = Dirent_type::DIRECTORY,
-						.rwx    = Node_rwx::rx(),
-						.name   = { name.string() },
-					};
-					out_count = sizeof(Dirent);
-					return READ_OK;
-				} catch (Snapshot_registry::Invalid_index) {
-					return READ_ERR_INVALID;
-				}
-			}
-
-			Read_result _query_root(size_t  index,
-			                        size_t &out_count,
-			                        Dirent &out)
-			{
-				if (index == 0) {
-					out = {
-						.fileno = (Genode::addr_t)this,
-						.type   = Dirent_type::DIRECTORY,
-						.rwx    = Node_rwx::rx(),
-						.name   = { "snapshots" }
-					};
-				} else {
-					out.type = Dirent_type::END;
-				}
-
-				out_count = sizeof(Dirent);
-				return READ_OK;
-			}
-
-			Dir_vfs_handle(Directory_service &ds,
-			               File_io_service   &fs,
-			               Genode::Allocator &alloc,
-			               Snapshot_registry const &snap_reg,
-			               bool root_dir)
-			:
-				Snap_vfs_handle(ds, fs, alloc, 0),
-				_snap_reg(snap_reg), _root_dir(root_dir)
-			{ }
-
-			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
-			{
-				out_count = 0;
-
-				if (dst.num_bytes < sizeof(Dirent))
-					return READ_ERR_INVALID;
-
-				size_t index = size_t(seek() / sizeof(Dirent));
-
-				Dirent &out = *(Dirent*)dst.start;
-
-				if (!_root_dir) {
-
-					/* opended as "/snapshots" */
-					return _query_snapshots(index, out_count, out);
-
-				} else {
-					/* opened as "/" */
-					return _query_root(index, out_count, out);
-				}
-			}
-
-			Write_result write(Const_byte_range_ptr const &, size_t &) override
-			{
-				return WRITE_ERR_INVALID;
-			}
-
-			bool read_ready() const override { return true; }
-		};
-
-		struct Dir_snap_vfs_handle : Vfs::Vfs_handle
-		{
-			Vfs_handle &vfs_handle;
-
-			Dir_snap_vfs_handle(Directory_service &ds,
-			                    File_io_service   &fs,
-			                    Genode::Allocator &alloc,
-			                    Vfs::Vfs_handle   &vfs_handle)
-			: Vfs_handle(ds, fs, alloc, 0), vfs_handle(vfs_handle) { }
-
-			~Dir_snap_vfs_handle()
-			{
-				vfs_handle.close();
-			}
-		};
-
-		Snapshot_registry  _snap_reg;
-		Wrapper           &_wrapper;
-
-		char const *_sub_path(char const *path) const
-		{
-			/* skip heading slash in path if present */
-			if (path[0] == '/') {
-				path++;
-			}
-
-			Genode::size_t const name_len = strlen(type_name());
-			if (strcmp(path, type_name(), name_len) != 0) {
-				return nullptr;
-			}
-
-			path += name_len;
-
-			/*
-			 * The first characters of the first path element are equal to
-			 * the current directory name. Let's check if the length of the
-			 * first path element matches the name length.
-			 */
-			if (*path != 0 && *path != '/') {
-				return 0;
-			}
-
-			return path;
-		}
-
-
-		Snapshots_file_system(Vfs::Env         &vfs_env,
-		                      Genode::Xml_node  /* node */,
-		                      Wrapper          &wrapper)
+		Control_local_factory(Vfs::Env &, Xml_node, Plugin &plugin)
 		:
-			_vfs_env  { vfs_env },
-			_snap_reg { vfs_env.alloc(), wrapper, *this },
-			_wrapper  { wrapper }
+			_plugin(plugin), _rekey_fs(plugin), _deinitialize_fs(plugin), _extend_fs(plugin)
+		{ }
+
+		~Control_local_factory()
 		{
-			_wrapper.manage_snapshots_file_system(*this);
+			_plugin.dissolve_rekey_file_system(_rekey_fs);
+			_plugin.dissolve_deinit_file_system(_deinitialize_fs);
+			_plugin.dissolve_extend_file_system(_extend_fs);
 		}
 
-		static char const *type_name() { return "snapshots"; }
+		/*************************
+		 ** File_system_factory **
+		 *************************/
 
-		char const *type() override { return type_name(); }
-
-
-		/*********************************
-		 ** Directory service interface **
-		 *********************************/
-
-		Dataspace_capability dataspace(char const * /* path */) override
+		Vfs::File_system *create(Vfs::Env&, Xml_node node) override
 		{
-			return Genode::Dataspace_capability();
-		}
+			if (node.has_type(Rekey_file_system::type_name()))
+				return &_rekey_fs;
 
-		void release(char const * /* path */, Dataspace_capability) override
-		{
-		}
+			if (node.has_type(Deinitialize_file_system::type_name()))
+				return &_deinitialize_fs;
 
-		Open_result open(char const       *path,
-		                 unsigned          mode,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Allocator        &alloc) override
-		{
-			path = _sub_path(path);
-			if (!path || path[0] != '/') {
-				return OPEN_ERR_UNACCESSIBLE;
-			}
-
-			try {
-				Snapshot_file_system &fs = _snap_reg.by_path(path);
-				return fs.open(path, mode, out_handle, alloc);
-			} catch (Snapshot_registry::Invalid_path) { }
-
-			return OPEN_ERR_UNACCESSIBLE;
-		}
-
-		Opendir_result opendir(char const       *path,
-		                       bool              create,
-		                       Vfs::Vfs_handle **out_handle,
-		                       Allocator        &alloc) override
-		{
-			if (create) {
-				return OPENDIR_ERR_PERMISSION_DENIED;
-			}
-
-			bool const top = _top_dir(path);
-			if (_root_dir(path) || top) {
-				_snap_reg.update(_vfs_env);
-
-				*out_handle = new (alloc) Dir_vfs_handle(*this, *this, alloc,
-				                                         _snap_reg, top);
-				return OPENDIR_OK;
-			} else {
-				char const *sub_path = _sub_path(path);
-				if (!sub_path) {
-					return OPENDIR_ERR_LOOKUP_FAILED;
-				}
-				try {
-					Snapshot_file_system &fs = _snap_reg.by_path(sub_path);
-					Vfs::Vfs_handle *handle = nullptr;
-					Opendir_result const res = fs.opendir(sub_path, create, &handle, alloc);
-					if (res != OPENDIR_OK) {
-						return OPENDIR_ERR_LOOKUP_FAILED;
-					}
-					*out_handle = new (alloc) Dir_snap_vfs_handle(*this, *this,
-					                                              alloc, *handle);
-					return OPENDIR_OK;
-				} catch (Snapshot_registry::Invalid_path) { }
-			}
-			return OPENDIR_ERR_LOOKUP_FAILED;
-		}
-
-		void close(Vfs_handle *handle) override
-		{
-			if (handle && (&handle->ds() == this))
-				destroy(handle->alloc(), handle);
-		}
-
-		Stat_result stat(char const *path, Stat &out_stat) override
-		{
-			out_stat = Stat { };
-			path = _sub_path(path);
-
-			/* path does not match directory name */
-			if (!path) {
-				return STAT_ERR_NO_ENTRY;
-			}
-
-			/*
-			 * If path equals directory name, return information about the
-			 * current directory.
-			 */
-			if (strlen(path) == 0 || _top_dir(path)) {
-
-				out_stat.type   = Node_type::DIRECTORY;
-				out_stat.inode  = 1;
-				out_stat.device = (Genode::addr_t)this;
-				return STAT_OK;
-			}
-
-			if (!path || path[0] != '/') {
-				return STAT_ERR_NO_ENTRY;
-			}
-
-			try {
-				Snapshot_file_system &fs = _snap_reg.by_path(path);
-				Stat_result const res = fs.stat(path, out_stat);
-				return res;
-			} catch (Snapshot_registry::Invalid_path) { }
-
-			return STAT_ERR_NO_ENTRY;
-		}
-
-		Unlink_result unlink(char const * /* path */) override
-		{
-			return UNLINK_ERR_NO_PERM;
-		}
-
-		Rename_result rename(char const * /* from */, char const * /* to */) override
-		{
-			return RENAME_ERR_NO_PERM;
-		}
-
-		file_size num_dirent(char const *path) override
-		{
-			if (_top_dir(path)) {
-				return 1;
-			}
-			if (_root_dir(path)) {
-				_snap_reg.update(_vfs_env);
-				file_size const num = _snap_reg.number_of_snapshots();
-				return num;
-			}
-			_snap_reg.update(_vfs_env);
-
-			path = _sub_path(path);
-			if (!path) {
-				return 0;
-			}
-			try {
-				Snapshot_file_system &fs = _snap_reg.by_path(path);
-				file_size const num = fs.num_dirent(path);
-				return num;
-			} catch (Snapshot_registry::Invalid_path) {
-				return 0;
-			}
-		}
-
-		bool directory(char const *path) override
-		{
-			if (_root_dir(path)) {
-				return true;
-			}
-
-			path = _sub_path(path);
-			if (!path) {
-				return false;
-			}
-			try {
-				Snapshot_file_system &fs = _snap_reg.by_path(path);
-				return fs.directory(path);
-			} catch (Snapshot_registry::Invalid_path) { }
-
-			return false;
-		}
-
-		char const *leaf_path(char const *path) override
-		{
-			path = _sub_path(path);
-			if (!path) {
-				return nullptr;
-			}
-
-			if (strlen(path) == 0 || strcmp(path, "") == 0) {
-				return path;
-			}
-
-			try {
-				Snapshot_file_system &fs = _snap_reg.by_path(path);
-				char const *leaf_path = fs.leaf_path(path);
-				if (leaf_path) {
-					return leaf_path;
-				}
-			} catch (Snapshot_registry::Invalid_path) { }
+			if (node.has_type(Extend_file_system::type_name()))
+				return &_extend_fs;
 
 			return nullptr;
 		}
-
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Write_result write(Vfs::Vfs_handle * /* vfs_handle */,
-		                   Const_byte_range_ptr const &, size_t & /* out_count */) override
-		{
-			return WRITE_ERR_IO;
-		}
-
-		bool queue_read(Vfs::Vfs_handle *vfs_handle, size_t size) override
-		{
-			Dir_snap_vfs_handle *dh =
-				dynamic_cast<Dir_snap_vfs_handle*>(vfs_handle);
-			if (dh) {
-				return dh->vfs_handle.fs().queue_read(&dh->vfs_handle, size);
-			}
-
-			return true;
-		}
-
-		Read_result complete_read(Vfs::Vfs_handle *vfs_handle,
-		                          Byte_range_ptr const &dst,
-		                          size_t & out_count) override
-		{
-			Snap_vfs_handle *sh =
-				dynamic_cast<Snap_vfs_handle*>(vfs_handle);
-			if (sh) {
-				Read_result const res = sh->read(dst, out_count);
-				return res;
-			}
-
-			Dir_snap_vfs_handle *dh =
-				dynamic_cast<Dir_snap_vfs_handle*>(vfs_handle);
-			if (dh) {
-				return dh->vfs_handle.fs().complete_read(&dh->vfs_handle,
-				                                         dst, out_count);
-			}
-
-			return READ_ERR_IO;
-		}
-
-		bool read_ready(Vfs::Vfs_handle const &) const override {
-			return true; }
-
-		bool write_ready(Vfs::Vfs_handle const &) const override {
-			return false; }
-
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override {
-			return FTRUNCATE_OK; }
 };
 
 
-struct Vfs_tresor::Control_local_factory : File_system_factory
-{
-	Wrapper                      &_wrapper;
-	Rekey_file_system             _rekeying_fs;
-	Rekey_progress_file_system    _rekeying_progress_fs;
-	Deinitialize_file_system      _deinitialize_fs;
-	Create_snapshot_file_system   _create_snapshot_fs;
-	Discard_snapshot_file_system  _discard_snapshot_fs;
-	Extend_file_system            _extend_fs;
-	Extend_progress_file_system   _extend_progress_fs;
-
-	Control_local_factory(Vfs::Env & /* env */,
-	                      Xml_node   /* config */,
-	                      Wrapper  & wrapper)
-	:
-		_wrapper(wrapper),
-		_rekeying_fs(wrapper),
-		_rekeying_progress_fs(wrapper),
-		_deinitialize_fs(wrapper),
-		_create_snapshot_fs(wrapper),
-		_discard_snapshot_fs(wrapper),
-		_extend_fs(wrapper),
-		_extend_progress_fs(wrapper)
-	{ }
-
-	~Control_local_factory()
-	{
-		_wrapper.dissolve_rekey_file_system(_rekeying_fs);
-		_wrapper.dissolve_rekey_progress_file_system(_rekeying_progress_fs);
-		_wrapper.dissolve_deinit_file_system(_deinitialize_fs);
-		_wrapper.dissolve_extend_file_system(_extend_fs);
-		_wrapper.dissolve_extend_progress_file_system(_extend_progress_fs);
-	}
-
-	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
-	{
-		if (node.has_type(Rekey_file_system::type_name())) {
-			return &_rekeying_fs;
-		}
-
-		if (node.has_type(Rekey_progress_file_system::type_name())) {
-			return &_rekeying_progress_fs;
-		}
-
-		if (node.has_type(Deinitialize_file_system::type_name())) {
-			return &_deinitialize_fs;
-		}
-
-		if (node.has_type(Create_snapshot_file_system::type_name())) {
-			return &_create_snapshot_fs;
-		}
-
-		if (node.has_type(Discard_snapshot_file_system::type_name())) {
-			return &_discard_snapshot_fs;
-		}
-
-		if (node.has_type(Extend_file_system::type_name())) {
-			return &_extend_fs;
-		}
-
-		if (node.has_type(Extend_progress_file_system::type_name())) {
-			return &_extend_progress_fs;
-		}
-
-		return nullptr;
-	}
-};
-
-
-class Vfs_tresor::Control_file_system : private Control_local_factory,
-                                        public Vfs::Dir_file_system
+class Vfs_tresor::Control_file_system : private Control_local_factory, public Dir_file_system
 {
 	private:
 
-		typedef String<256> Config;
+		using Config = String<256>;
 
-		static Config _config(Xml_node /* node */)
+		static Config _config()
 		{
 			char buf[Config::capacity()] { };
-
 			Xml_generator xml(buf, sizeof(buf), "dir", [&] () {
 				xml.attribute("name", "control");
 				xml.node("rekey", [&] () { });
-				xml.node("rekey_progress", [&] () { });
 				xml.node("extend", [&] () { });
-				xml.node("extend_progress", [&] () { });
-				xml.node("create_snapshot", [&] () { });
-				xml.node("discard_snapshot", [&] () { });
 				xml.node("deinitialize", [&] () { });
 			});
-
 			return Config(Cstring(buf));
 		}
 
 	public:
 
-		Control_file_system(Vfs::Env         &vfs_env,
-		                    Genode::Xml_node  node,
-		                    Wrapper          &tresor)
+		Control_file_system(Vfs::Env &vfs_env, Xml_node  node, Plugin &plugin)
 		:
-			Control_local_factory(vfs_env, node, tresor),
-			Vfs::Dir_file_system(vfs_env, Xml_node(_config(node).string()),
-			                     *this)
+			Control_local_factory(vfs_env, node, plugin),
+			Dir_file_system(vfs_env, Xml_node(_config().string()), *this)
 		{ }
 
 		static char const *type_name() { return "control"; }
 
+		/*********************
+		 ** Dir_file_system **
+		 *********************/
+
 		char const *type() override { return type_name(); }
 };
 
 
-struct Vfs_tresor::Local_factory : File_system_factory
-{
-	Wrapper               &_wrapper;
-	Snapshot_file_system   _current_snapshot_fs;
-	Snapshots_file_system  _snapshots_fs;
-	Control_file_system    _control_fs;
-
-	Local_factory(Vfs::Env &env, Xml_node config,
-	              Wrapper &wrapper)
-	:
-		_wrapper(wrapper),
-		_current_snapshot_fs(env, wrapper, 0, false),
-		_snapshots_fs(env, config, wrapper),
-		_control_fs(env, config, wrapper)
-	{ }
-
-	~Local_factory()
-	{
-		_wrapper.dissolve_snapshots_file_system(_snapshots_fs);
-	}
-
-	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
-	{
-		using Name = String<64>;
-		if (node.has_type(Snapshot_file_system::type_name())
-		    && node.attribute_value("name", Name()) == "current")
-			return &_current_snapshot_fs;
-
-		if (node.has_type(Control_file_system::type_name()))
-			return &_control_fs;
-
-		if (node.has_type(Snapshots_file_system::type_name()))
-			return &_snapshots_fs;
-
-		return nullptr;
-	}
-};
-
-
-class Vfs_tresor::File_system : private Local_factory,
-                                public Vfs::Dir_file_system
+class Vfs_tresor::Local_factory : private Noncopyable, public File_system_factory
 {
 	private:
 
-		Wrapper &_wrapper;
+		Plugin  &_plugin;
+		Current_file_system _current_fs;
+		Control_file_system _control_fs;
 
-		typedef String<256> Config;
+	public:
+
+		Local_factory(Vfs::Env &vfs_env, Xml_node config, Plugin &plugin)
+		:
+			_plugin(plugin), _current_fs(vfs_env, plugin), _control_fs(vfs_env, config, plugin)
+		{ }
+
+		/*************************
+		 ** File_system_factory **
+		 *************************/
+
+		Vfs::File_system *create(Vfs::Env&, Xml_node node) override
+		{
+			if (node.has_type(Current_file_system::type_name()))
+				return &_current_fs;
+
+			if (node.has_type(Control_file_system::type_name()))
+				return &_control_fs;
+
+			return nullptr;
+		}
+};
+
+
+class Vfs_tresor::File_system : private Local_factory, public Dir_file_system
+{
+	private:
+
+		using Config = String<256>;
+
+		Plugin &_plugin;
 
 		static Config _config(Xml_node node)
 		{
 			char buf[Config::capacity()] { };
-
-			Xml_generator xml(buf, sizeof(buf), "dir", [&] () {
-				typedef String<64> Name;
-
-				xml.attribute("name",
-				              node.attribute_value("name",
-				                                   Name("tresor")));
-
+			Xml_generator xml(buf, sizeof(buf), "dir", [&] ()
+			{
+				xml.attribute("name", node.attribute_value("name", String<64>("tresor")));
 				xml.node("control", [&] () { });
-
-				xml.node("snapshot", [&] () {
-					xml.attribute("name", "current");
-				});
-
-				xml.node("snapshots", [&] () { });
+				xml.node("current", [&] () { });
 			});
-
 			return Config(Cstring(buf));
 		}
 
 	public:
 
-		File_system(Vfs::Env &vfs_env, Genode::Xml_node node,
-		            Wrapper &wrapper)
+		File_system(Vfs::Env &vfs_env, Xml_node node, Plugin &plugin)
 		:
-			Local_factory(vfs_env, node, wrapper),
-			Vfs::Dir_file_system(vfs_env, Xml_node(_config(node).string()),
-			                     *this),
-			_wrapper(wrapper)
+			Local_factory(vfs_env, node, plugin),
+			Dir_file_system(vfs_env, Xml_node(_config(node).string()), *this),
+			_plugin(plugin)
 		{ }
-
-		~File_system()
-		{
-			// XXX rather then destroying the wrapper here, it should be
-			//     done on the out-side where it was allocated in the first
-			//     place but the factory interface does not support that yet
-			// destroy(vfs_env.alloc().alloc()), &_wrapper);
-		}
 };
 
 
-/**************************
- ** VFS plugin interface **
- **************************/
-
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+bool Vfs_tresor::Rekey_operation::execute(Execute_attr const &attr)
 {
-	struct Factory : Vfs::File_system_factory
-	{
-		Vfs::File_system *create(Vfs::Env &vfs_env,
-		                         Genode::Xml_node node) override
-		{
-			try {
-				/* XXX wrapper is not managed and will leak */
-				Vfs_tresor::Wrapper *wrapper =
-					new (vfs_env.alloc()) Vfs_tresor::Wrapper { vfs_env, node };
-				return new (vfs_env.alloc())
-					Vfs_tresor::File_system(vfs_env, node, *wrapper);
-			} catch (...) {
-				Genode::error("could not create 'tresor_fs' ");
+	bool progress = false;
+	switch (_state) {
+	case STARTED:
+
+		_rekey.construct(Superblock_control::Rekey::Attr{_complete});
+		_state = REKEY;
+		progress = true;
+		if (_verbose)
+			log("rekey started");
+		break;
+
+	case REKEY:
+
+		progress |= attr.sb_control.execute(
+			*_rekey, attr.vbd, attr.free_tree, attr.meta_tree, attr.block_io, attr.crypto, attr.trust_anchor);
+
+		if (_rekey->complete()) {
+			if (_rekey->success()) {
+				if (_complete) {
+					_success = true;
+					_state = COMPLETE;
+					if (attr.rekey_fs_ptr)
+						attr.rekey_fs_ptr->trigger_watch_response();
+					if (_verbose)
+						log("rekey succeeded");
+				} else
+					_state = PAUSED;
+			} else {
+				_success = false;
+				_state = COMPLETE;
+				if (attr.rekey_fs_ptr)
+					attr.rekey_fs_ptr->trigger_watch_response();
+				if (_verbose)
+					log("rekey failed");
 			}
-			return nullptr;
+			_rekey.destruct();
+			progress = true;
 		}
+		break;
+
+	case RESUMED:
+
+		_rekey.construct(Superblock_control::Rekey::Attr{_complete});
+		_state = REKEY;
+		progress = true;
+		break;
+
+	default: break;
+	}
+	return progress;
+}
+
+
+bool Vfs_tresor::Extend_operation::execute(Execute_attr const &attr)
+{
+	bool progress = false;
+	switch (_state) {
+	case EXTEND_FT_STARTED:
+
+		_extend_ft.construct(Superblock_control::Extend_free_tree::Attr{_num_blocks, _complete});
+		_state = EXTEND_FT;
+		progress = true;
+		if (_verbose)
+			log("extend free tree started");
+		break;
+
+	case EXTEND_FT:
+
+		progress |= attr.sb_control.execute(
+			*_extend_ft, attr.free_tree, attr.meta_tree, attr.block_io, attr.trust_anchor);
+
+		if (_extend_ft->complete()) {
+			if (_extend_ft->success()) {
+				if (_complete) {
+					_success = true;
+					_state = COMPLETE;
+					if (attr.extend_fs_ptr)
+						attr.extend_fs_ptr->trigger_watch_response();
+					if (_verbose)
+						log("extend free tree succeeded");
+				} else
+					_state = EXTEND_FT_PAUSED;
+			} else {
+				_success = false;
+				_state = COMPLETE;
+				if (attr.extend_fs_ptr)
+					attr.extend_fs_ptr->trigger_watch_response();
+				if (_verbose)
+					log("extend free tree failed");
+			}
+			_extend_ft.destruct();
+			progress = true;
+		}
+		break;
+
+	case EXTEND_FT_RESUMED:
+
+		_extend_ft.construct(Superblock_control::Extend_free_tree::Attr{_num_blocks, _complete});
+		_state = EXTEND_FT;
+		progress = true;
+		break;
+
+	case EXTEND_VBD_STARTED:
+
+		_extend_vbd.construct(Superblock_control::Extend_vbd::Attr{_num_blocks, _complete});
+		_state = EXTEND_VBD;
+		progress = true;
+		if (_verbose)
+			log("extend virtual block device started");
+		break;
+
+	case EXTEND_VBD:
+
+		progress |= attr.sb_control.execute(
+			*_extend_vbd, attr.vbd, attr.free_tree, attr.meta_tree, attr.block_io, attr.trust_anchor);
+
+		if (_extend_vbd->complete()) {
+			if (_extend_vbd->success()) {
+				if (_complete) {
+					_success = true;
+					_state = COMPLETE;
+					if (attr.extend_fs_ptr)
+						attr.extend_fs_ptr->trigger_watch_response();
+					if (_verbose)
+						log("extend virtual block device succeeded");
+				} else
+					_state = EXTEND_VBD_PAUSED;
+			} else {
+				_success = false;
+				_state = COMPLETE;
+				if (attr.extend_fs_ptr)
+					attr.extend_fs_ptr->trigger_watch_response();
+				if (_verbose)
+					log("extend virtual block device failed");
+			}
+			_extend_vbd.destruct();
+			progress = true;
+		}
+		break;
+
+	case EXTEND_VBD_RESUMED:
+
+		_extend_vbd.construct(Superblock_control::Extend_vbd::Attr{_num_blocks, _complete});
+		_state = EXTEND_VBD;
+		progress = true;
+		break;
+
+	default: break;
+	}
+	return progress;
+}
+
+
+bool Vfs_tresor::Deinitialize_operation::execute(Execute_attr const &attr)
+{
+	bool progress = false;
+	switch (_state) {
+	case STARTED:
+
+		_deinit_sb_control.construct(Superblock_control::Deinitialize::Attr{});
+		_state = DEINIT_SB_CONTROL;
+		progress = true;
+		if (_verbose)
+			log("deinitialize started");
+		break;
+
+	case DEINIT_SB_CONTROL:
+
+		progress |= attr.sb_control.execute(
+			*_deinit_sb_control, attr.block_io, attr.crypto, attr.trust_anchor);
+
+		if (_deinit_sb_control->complete()) {
+			if (_deinit_sb_control->success()) {
+				_success = true;
+				_state = COMPLETE;
+				if (_verbose)
+					log("deinitialize succeeded");
+			} else {
+				_success = false;
+				_state = DEINIT_SB_CONTROL;
+				if (_verbose)
+					log("deinitialize failed");
+			}
+			_deinit_sb_control.destruct();
+			if (attr.deinit_fs_ptr)
+				attr.deinit_fs_ptr->trigger_watch_response();
+			progress = true;
+		}
+		break;
+
+	default: break;
+	}
+	return progress;
+}
+
+
+extern "C" File_system_factory *vfs_file_system_factory(void)
+{
+	class Factory : public File_system_factory
+	{
+		private:
+
+			Allocator *_plugin_alloc_ptr { };
+			Vfs_tresor::Plugin *_plugin_ptr { };
+
+		public:
+
+			~Factory()
+			{
+				if (_plugin_ptr)
+					destroy(_plugin_alloc_ptr, _plugin_ptr);
+			}
+
+			/*************************
+			 ** File_system_factory **
+			 *************************/
+
+			Vfs::File_system *create(Vfs::Env &vfs_env, Xml_node node) override
+			{
+				try {
+					if (!_plugin_ptr) {
+						_plugin_alloc_ptr = &vfs_env.alloc();
+						_plugin_ptr = new (_plugin_alloc_ptr) Vfs_tresor::Plugin { vfs_env, node };
+					}
+					return new (vfs_env.alloc()) Vfs_tresor::File_system(vfs_env, node, *_plugin_ptr);
+
+				} catch (...) { error("could not create 'tresor_fs' "); }
+				return nullptr;
+			}
 	};
 
-	static Factory factory;
+	static Factory factory { };
 	return &factory;
 }
-
-
-/**********************
- ** Vfs_tresor::Wrapper **
- **********************/
-
-void Vfs_tresor::Wrapper::_snapshots_fs_update_snapshot_registry()
-{
-	if (_snapshots_fs.valid()) {
-		_snapshots_fs.obj().update_snapshot_registry();
-	}
-}
-
-
-void Vfs_tresor::Wrapper::_extend_fs_trigger_watch_response()
-{
-	if (_extend_fs.valid()) {
-		_extend_fs.obj().trigger_watch_response();
-	}
-}
-
-
-void Vfs_tresor::Wrapper::_extend_progress_fs_trigger_watch_response()
-{
-	if (_extend_progress_fs.valid()) {
-		_extend_progress_fs.obj().trigger_watch_response();
-	}
-}
-
-
-void Vfs_tresor::Wrapper::_rekey_fs_trigger_watch_response()
-{
-	if (_rekey_fs.valid()) {
-		_rekey_fs.obj().trigger_watch_response();
-	}
-}
-
-
-void Vfs_tresor::Wrapper::_rekey_progress_fs_trigger_watch_response()
-{
-	if (_rekey_progress_fs.valid()) {
-		_rekey_progress_fs.obj().trigger_watch_response();
-	}
-}
-
-
-void Vfs_tresor::Wrapper::_deinit_fs_trigger_watch_response()
-{
-	if (_deinit_fs.valid()) {
-		_deinit_fs.obj().trigger_watch_response();
-	}
-}
-
-
-/*******************************************************
- ** Vfs_tresor::Snapshots_file_system::Snapshot_registry **
- *******************************************************/
-
-void Vfs_tresor::Snapshots_file_system::Snapshot_registry::update(Vfs::Env &vfs_env)
-{
-	Tresor::Snapshots_info snap_info { };
-	_wrapper.snapshots_info(snap_info);
-	bool trigger_watch_response { false };
-
-	/* alloc new */
-	for (size_t i = 0; i < MAX_NR_OF_SNAPSHOTS; i++) {
-
-		Generation const snap_gen = snap_info.generations[i];
-		if (snap_gen == INVALID_GENERATION)
-			continue;
-
-		bool is_old = false;
-		auto find_old = [&] (Snapshot_file_system const &fs) {
-			is_old |= (fs.snap_gen() == snap_gen);
-		};
-		_registry.for_each(find_old);
-
-		if (!is_old) {
-
-			new (_alloc)
-				Genode::Registered<Snapshot_file_system> {
-					_registry, vfs_env, _wrapper, snap_gen, true };
-
-			++_number_of_snapshots;
-			trigger_watch_response = true;
-		}
-	}
-
-	/* destroy old */
-	auto find_stale = [&] (Snapshot_file_system const &fs)
-	{
-		bool is_stale = true;
-		for (size_t i = 0; i < MAX_NR_OF_SNAPSHOTS; i++) {
-			Generation const snap_gen = snap_info.generations[i];
-			if (snap_gen == INVALID_GENERATION)
-				continue;
-
-			if (fs.snap_gen() == snap_gen) {
-				is_stale = false;
-				break;
-			}
-		}
-
-		if (is_stale) {
-			destroy(&_alloc, &const_cast<Snapshot_file_system&>(fs));
-			--_number_of_snapshots;
-			trigger_watch_response = true;
-		}
-	};
-	_registry.for_each(find_stale);
-	if (trigger_watch_response) {
-		_snapshots_fs.trigger_watch_response();
-	}
-}  

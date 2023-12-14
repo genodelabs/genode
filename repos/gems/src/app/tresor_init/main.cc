@@ -34,86 +34,116 @@ using namespace Tresor;
 
 namespace Tresor_init { class Main; }
 
-class Tresor_init::Main : private Vfs::Env::User, private Tresor::Module_composition, public  Tresor::Module, public Module_channel
+class Tresor_init::Main : private Vfs::Env::User, private Crypto_key_files_interface
 {
 	private:
 
-		enum State { INIT, REQ_GENERATED, INIT_SBS_SUCCEEDED };
+		struct Crypto_key
+		{
+			Key_id const key_id;
+			Vfs::Vfs_handle &encrypt_file;
+			Vfs::Vfs_handle &decrypt_file;
+		};
 
 		Env  &_env;
 		Heap  _heap { _env.ram(), _env.rm() };
 		Attached_rom_dataspace _config_rom { _env, "config" };
 		Vfs::Simple_env _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs"), *this };
 		Signal_handler<Main> _sigh { _env.ep(), *this, &Main::_handle_signal };
-		Constructible<Configuration> _cfg { };
-		Trust_anchor _trust_anchor { _vfs_env, _config_rom.xml().sub_node("trust-anchor") };
-		Crypto _crypto { _vfs_env, _config_rom.xml().sub_node("crypto") };
-		Block_io _block_io { _vfs_env, _config_rom.xml().sub_node("block-io") };
+		Configuration _cfg { _config_rom.xml() };
+		Tresor::Path const _crypto_path { _config_rom.xml().sub_node("crypto").attribute_value("path", Tresor::Path()) };
+		Tresor::Path const _block_io_path { _config_rom.xml().sub_node("block-io").attribute_value("path", Tresor::Path()) };
+		Tresor::Path const _trust_anchor_path { _config_rom.xml().sub_node("trust-anchor").attribute_value("path", Tresor::Path()) };
+		Vfs::Vfs_handle &_block_io_file { open_file(_vfs_env, _block_io_path, Vfs::Directory_service::OPEN_MODE_RDWR) };
+		Vfs::Vfs_handle &_crypto_add_key_file { open_file(_vfs_env, { _crypto_path, "/add_key" }, Vfs::Directory_service::OPEN_MODE_WRONLY) };
+		Vfs::Vfs_handle &_crypto_remove_key_file { open_file(_vfs_env, { _crypto_path, "/remove_key" }, Vfs::Directory_service::OPEN_MODE_WRONLY) };
+		Vfs::Vfs_handle &_ta_decrypt_file { open_file(_vfs_env, { _trust_anchor_path, "/decrypt" }, Vfs::Directory_service::OPEN_MODE_RDWR) };
+		Vfs::Vfs_handle &_ta_encrypt_file { open_file(_vfs_env, { _trust_anchor_path, "/encrypt" }, Vfs::Directory_service::OPEN_MODE_RDWR) };
+		Vfs::Vfs_handle &_ta_generate_key_file { open_file(_vfs_env, { _trust_anchor_path, "/generate_key" }, Vfs::Directory_service::OPEN_MODE_RDWR) };
+		Vfs::Vfs_handle &_ta_initialize_file { open_file(_vfs_env, { _trust_anchor_path, "/initialize" }, Vfs::Directory_service::OPEN_MODE_RDWR) };
+		Vfs::Vfs_handle &_ta_hash_file { open_file(_vfs_env, { _trust_anchor_path, "/hash" }, Vfs::Directory_service::OPEN_MODE_RDWR) };
+		Trust_anchor _trust_anchor { { _ta_decrypt_file, _ta_encrypt_file, _ta_generate_key_file, _ta_initialize_file, _ta_hash_file } };
+		Crypto _crypto { {*this, _crypto_add_key_file, _crypto_remove_key_file} };
+		Block_io _block_io { _block_io_file };
+		Constructible<Crypto_key> _crypto_keys[2] { };
 		Pba_allocator _pba_alloc { NR_OF_SUPERBLOCK_SLOTS };
 		Vbd_initializer _vbd_initializer { };
 		Ft_initializer _ft_initializer { };
 		Sb_initializer _sb_initializer { };
-		bool _generated_req_success { };
-		State _state { INIT };
+		Sb_initializer::Initialize _init_superblocks {{
+			Tree_configuration {
+				(Tree_level_index)(_cfg.vbd_nr_of_lvls() - 1),
+				(Tree_degree)_cfg.vbd_nr_of_children(),
+				_cfg.vbd_nr_of_leafs()
+			},
+			Tree_configuration {
+				(Tree_level_index)_cfg.ft_nr_of_lvls() - 1,
+				(Tree_degree)_cfg.ft_nr_of_children(),
+				_cfg.ft_nr_of_leafs()
+			},
+			Tree_configuration {
+				(Tree_level_index)_cfg.ft_nr_of_lvls() - 1,
+				(Tree_degree)_cfg.ft_nr_of_children(),
+				_cfg.ft_nr_of_leafs()
+			},
+			_pba_alloc
+		}};
 
-		NONCOPYABLE(Main);
-
-		void _generated_req_completed(State_uint state_uint) override
+		Constructible<Crypto_key> &_crypto_key(Key_id key_id)
 		{
-			if (!_generated_req_success) {
-				error("command pool: request failed because generated request failed)");
-				_env.parent().exit(-1);
-				return;
-			}
-			_state = (State)state_uint;
+			for (Constructible<Crypto_key> &key : _crypto_keys)
+				if (key.constructed() && key->key_id == key_id)
+					return key;
+			ASSERT_NEVER_REACHED;
 		}
-
-		void wakeup_vfs_user() override { _sigh.local_submit(); }
 
 		void _wakeup_back_end_services() { _vfs_env.io().commit(); }
 
 		void _handle_signal()
 		{
-			execute_modules();
+			while(_sb_initializer.execute(_init_superblocks, _block_io, _trust_anchor, _vbd_initializer, _ft_initializer));
+			if (_init_superblocks.complete())
+				_env.parent().exit(_init_superblocks.success() ? 0 : -1);
 			_wakeup_back_end_services();
 		}
 
+		/********************************
+		 ** Crypto_key_files_interface **
+		 ********************************/
+
+		void add_crypto_key(Key_id key_id) override
+		{
+			for (Constructible<Crypto_key> &key : _crypto_keys)
+				if (!key.constructed()) {
+					key.construct(key_id,
+						open_file(_vfs_env, { _crypto_path, "/keys/", key_id, "/encrypt" }, Vfs::Directory_service::OPEN_MODE_RDWR),
+						open_file(_vfs_env, { _crypto_path, "/keys/", key_id, "/decrypt" }, Vfs::Directory_service::OPEN_MODE_RDWR)
+					);
+					return;
+				}
+			ASSERT_NEVER_REACHED;
+		}
+
+		void remove_crypto_key(Key_id key_id) override
+		{
+			Constructible<Crypto_key> &crypto_key = _crypto_key(key_id);
+			_vfs_env.root_dir().close(&crypto_key->encrypt_file);
+			_vfs_env.root_dir().close(&crypto_key->decrypt_file);
+			crypto_key.destruct();
+		}
+
+		Vfs::Vfs_handle &encrypt_file(Key_id key_id) override { return _crypto_key(key_id)->encrypt_file; }
+		Vfs::Vfs_handle &decrypt_file(Key_id key_id) override { return _crypto_key(key_id)->decrypt_file; }
+
+		/********************
+		 ** Vfs::Env::User **
+		 ********************/
+
+		void wakeup_vfs_user() override { _sigh.local_submit(); }
+
 	public:
 
-		Main(Env &env) : Module_channel { COMMAND_POOL, 0 }, _env { env }
-		{
-			add_module(COMMAND_POOL, *this);
-			add_module(CRYPTO, _crypto);
-			add_module(TRUST_ANCHOR, _trust_anchor);
-			add_module(BLOCK_IO, _block_io);
-			add_module(VBD_INITIALIZER, _vbd_initializer);
-			add_module(FT_INITIALIZER, _ft_initializer);
-			add_module(SB_INITIALIZER, _sb_initializer);
-			add_channel(*this);
-			_cfg.construct(_config_rom.xml());
-			_handle_signal();
-		}
-
-		void execute(bool &progress) override
-		{
-			switch(_state) {
-			case INIT:
-
-				generate_req<Sb_initializer_request>(
-					INIT_SBS_SUCCEEDED, progress, (Tree_level_index)_cfg->vbd_nr_of_lvls() - 1,
-					(Tree_degree)_cfg->vbd_nr_of_children(), _cfg->vbd_nr_of_leafs(),
-					(Tree_level_index)_cfg->ft_nr_of_lvls() - 1,
-					(Tree_degree)_cfg->ft_nr_of_children(), _cfg->ft_nr_of_leafs(),
-					(Tree_level_index)_cfg->ft_nr_of_lvls() - 1,
-					(Tree_degree)_cfg->ft_nr_of_children(), _cfg->ft_nr_of_leafs(), _pba_alloc,
-					_generated_req_success);
-				_state = REQ_GENERATED;
-				break;
-
-			case INIT_SBS_SUCCEEDED: _env.parent().exit(0); break;
-			default: break;
-			}
-		}
+		Main(Env &env) : _env(env) { _handle_signal(); }
 };
 
 void Component::construct(Genode::Env &env) { static Tresor_init::Main main { env }; }

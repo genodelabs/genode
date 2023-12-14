@@ -89,9 +89,8 @@ class Main : Vfs::Env::User
 				 char          const *name,
 				 Vfs::File_system    &vfs,
 				 Genode::Allocator   &alloc)
-				:
-					_vfs        { vfs },
-					_vfs_handle { nullptr }
+			:
+				_vfs(vfs), _vfs_handle(nullptr)
 			{
 				using Result = Vfs::Directory_service::Open_result;
 
@@ -207,9 +206,7 @@ class Main : Vfs::Env::User
 
 	public:
 
-		Main(Env &env)
-		:
-			_env { env }
+		Main(Env &env) : _env(env)
 		{
 			Xml_node const &config { _config_rom.xml() };
 

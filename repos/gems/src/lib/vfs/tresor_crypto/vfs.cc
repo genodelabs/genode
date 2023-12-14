@@ -65,10 +65,7 @@ class Vfs_tresor_crypto::Encrypt_file_system : public Vfs::Single_file_system
 			               Tresor_crypto::Interface            &crypto,
 			               uint32_t           key_id)
 			:
-				Single_vfs_handle { ds, fs, alloc, 0 },
-				_crypto { crypto },
-				_key_id { key_id },
-				_state  { State::NONE }
+				Single_vfs_handle(ds, fs, alloc, 0), _crypto(crypto), _key_id(key_id), _state(State::NONE)
 			{ }
 
 			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
@@ -130,10 +127,8 @@ class Vfs_tresor_crypto::Encrypt_file_system : public Vfs::Single_file_system
 
 		Encrypt_file_system(Tresor_crypto::Interface &crypto, uint32_t key_id)
 		:
-			Single_file_system { Node_type::TRANSACTIONAL_FILE, type_name(),
-			                     Node_rwx::rw(), Xml_node("<encrypt/>") },
-			_crypto { crypto },
-			_key_id { key_id }
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<encrypt/>")),
+			_crypto(crypto), _key_id(key_id)
 		{ }
 
 		static char const *type_name() { return "encrypt"; }
@@ -199,10 +194,7 @@ class Vfs_tresor_crypto::Decrypt_file_system : public Vfs::Single_file_system
 			               Tresor_crypto::Interface            &crypto,
 			               uint32_t           key_id)
 			:
-				Single_vfs_handle { ds, fs, alloc, 0 },
-				_crypto { crypto },
-				_key_id { key_id },
-				_state  { State::NONE }
+				Single_vfs_handle(ds, fs, alloc, 0), _crypto(crypto), _key_id(key_id), _state(State::NONE)
 			{ }
 
 			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
@@ -261,10 +253,8 @@ class Vfs_tresor_crypto::Decrypt_file_system : public Vfs::Single_file_system
 
 		Decrypt_file_system(Tresor_crypto::Interface &crypto, uint32_t key_id)
 		:
-			Single_file_system { Node_type::TRANSACTIONAL_FILE, type_name(),
-			                     Node_rwx::rw(), Xml_node("<decrypt/>") },
-			_crypto { crypto },
-			_key_id { key_id }
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<decrypt/>")),
+			_crypto(crypto), _key_id(key_id)
 		{ }
 
 		static char const *type_name() { return "decrypt"; }
@@ -317,8 +307,7 @@ struct Vfs_tresor_crypto::Key_local_factory : File_system_factory
 	Key_local_factory(Tresor_crypto::Interface &crypto,
 	                  uint32_t               key_id)
 	:
-		_encrypt_fs { crypto, key_id },
-		_decrypt_fs { crypto, key_id }
+		_encrypt_fs(crypto, key_id), _decrypt_fs(crypto, key_id)
 	{ }
 
 	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
@@ -364,11 +353,8 @@ class Vfs_tresor_crypto::Key_file_system : private Key_local_factory,
 		                Tresor_crypto::Interface   &crypto,
 		                uint32_t  key_id)
 		:
-			Key_local_factory    { crypto, key_id },
-			Vfs::Dir_file_system { vfs_env,
-			                       Xml_node(_config(key_id).string()),
-			                       *this },
-			_key_id { key_id }
+			Key_local_factory(crypto, key_id),
+			Vfs::Dir_file_system(vfs_env, Xml_node(_config(key_id).string()), *this), _key_id(key_id)
 		{ }
 
 		static char const *type_name() { return "keys"; }
@@ -405,8 +391,7 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 
 			Key_registry(Genode::Allocator &alloc, Tresor_crypto::Interface &crypto)
 			:
-				_alloc  { alloc },
-				_crypto { crypto }
+				_alloc(alloc), _crypto(crypto)
 			{ }
 
 			void update(Vfs::Env &vfs_env)
@@ -652,8 +637,7 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 		Keys_file_system(Vfs::Env             &vfs_env,
 		                 Tresor_crypto::Interface &crypto)
 		:
-			_vfs_env { vfs_env },
-			_key_reg { vfs_env.alloc(), crypto }
+			_vfs_env(vfs_env), _key_reg(vfs_env.alloc(), crypto)
 		{ }
 
 		static char const *type_name() { return "keys"; }
@@ -940,9 +924,7 @@ class Vfs_tresor_crypto::Management_file_system : public Vfs::Single_file_system
 			              Type               type,
 			              Tresor_crypto::Interface            &crypto)
 			:
-				Single_vfs_handle { ds, fs, alloc, 0 },
-				_type             { type },
-				_crypto           { crypto }
+				Single_vfs_handle(ds, fs, alloc, 0), _type(type), _crypto(crypto)
 			{ }
 
 			Read_result read(Byte_range_ptr const &, size_t &) override
@@ -1010,11 +992,8 @@ class Vfs_tresor_crypto::Management_file_system : public Vfs::Single_file_system
 
 		Management_file_system(Tresor_crypto::Interface &crypto, Type type, char const *type_name)
 		:
-			Single_file_system { Node_type::TRANSACTIONAL_FILE, type_name,
-			                     Node_rwx::wo(), Xml_node("<manage_keys/>") },
-			_type      { type },
-			_crypto    { crypto },
-			_type_name { type_name }
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name, Node_rwx::wo(), Xml_node("<manage_keys/>")),
+			_type(type), _crypto(crypto), _type_name(type_name)
 		{ }
 
 		char const *type() override { return _type_name; }
@@ -1090,9 +1069,7 @@ struct Vfs_tresor_crypto::Local_factory : File_system_factory
 	Local_factory(Vfs::Env &env,
 	              Tresor_crypto::Interface &crypto)
 	:
-		_keys_fs       { env, crypto },
-		_add_key_fs    { crypto },
-		_remove_key_fs { crypto }
+		_keys_fs(env, crypto), _add_key_fs(crypto), _remove_key_fs(crypto)
 	{ }
 
 	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
@@ -1142,9 +1119,8 @@ class Vfs_tresor_crypto::File_system : private Local_factory,
 
 		File_system(Vfs::Env &vfs_env, Genode::Xml_node node)
 		:
-			Local_factory        { vfs_env, Tresor_crypto::get_interface() },
-			Vfs::Dir_file_system { vfs_env, Xml_node(_config(node).string()),
-			                       *this }
+			Local_factory(vfs_env, Tresor_crypto::get_interface()),
+			Vfs::Dir_file_system(vfs_env, Xml_node(_config(node).string()), *this)
 		{ }
 
 		~File_system() { }

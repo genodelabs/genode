@@ -16,95 +16,60 @@
 
 /* tresor includes */
 #include <tresor/types.h>
+#include <tresor/vbd_check.h>
+#include <tresor/ft_check.h>
+#include <tresor/block_io.h>
 
-namespace Tresor {
+namespace Tresor { class Sb_check; }
 
-	class Sb_check;
-	class Sb_check_request;
-	class Sb_check_channel;
-}
-
-
-class Tresor::Sb_check_request : public Module_request
+struct Tresor::Sb_check : Noncopyable
 {
-	friend class Sb_check_channel;
+	class Check : Noncopyable
+	{
+		public:
 
-	private:
+			using Module = Sb_check;
 
-		bool &_success;
+		private:
 
-		NONCOPYABLE(Sb_check_request);
+			enum State {
+				INIT, COMPLETE, READ_BLK, READ_BLK_SUCCEEDED, CHECK_VBD, CHECK_VBD_SUCCEEDED, CHECK_FT, CHECK_FT_SUCCEEDED,
+				CHECK_MT, CHECK_MT_SUCCEEDED};
 
-	public:
+			using Helper = Request_helper<Check, State>;
 
-		Sb_check_request(Module_id, Module_channel_id, bool &);
+			Helper _helper;
+			Generation _highest_gen { 0 };
+			Superblock_index _highest_gen_sb_idx { 0 };
+			bool _scan_for_highest_gen_sb_done { false };
+			Superblock_index _sb_idx { 0 };
+			Superblock _sb { };
+			Snapshot_index _snap_idx { 0 };
+			Constructible<Tree_root> _tree_root { };
+			Block _blk { };
+			Generatable_request<Helper, State, Vbd_check::Check> _check_vbd { };
+			Generatable_request<Helper, State, Ft_check::Check> _check_ft { };
+			Generatable_request<Helper, State, Block_io::Read> _read_block { };
 
-		void print(Output &out) const override { Genode::print(out, "check"); }
-};
+		public:
 
+			Check() : _helper(*this) { }
 
-class Tresor::Sb_check_channel : public Module_channel
-{
-	private:
+			~Check() { }
 
-		using Request = Sb_check_request;
+			void print(Output &out) const { Genode::print(out, "check"); }
 
-		enum State { REQ_SUBMITTED, REQ_COMPLETE, READ_BLK_SUCCESSFUL, REQ_GENERATED, CHECK_VBD_SUCCESSFUL, CHECK_FT_SUCCESSFUL, CHECK_MT_SUCCESSFUL};
+			bool execute(Vbd_check &vbd_check, Ft_check &ft_check, Block_io &block_io);
 
-		State _state { REQ_COMPLETE };
-		Request *_req_ptr { };
-		Generation _highest_gen { 0 };
-		Superblock_index _highest_gen_sb_idx { 0 };
-		bool _scan_for_highest_gen_sb_done { false };
-		Superblock_index _sb_idx { 0 };
-		Superblock _sb { };
-		Snapshot_index _snap_idx { 0 };
-		Constructible<Tree_root> _tree_root { };
-		Block _blk { };
-		bool _generated_req_success { false };
+			bool complete() const { return _helper.complete(); }
+			bool success() const { return _helper.success(); }
+	};
 
-		NONCOPYABLE(Sb_check_channel);
+	Sb_check() { }
 
-		void _generated_req_completed(State_uint) override;
+	bool execute(Check &check, Vbd_check &vbd_check, Ft_check &ft_check, Block_io &block_io) { return check.execute(vbd_check, ft_check, block_io); };
 
-		void _request_submitted(Module_request &) override;
-
-		bool _request_complete() override { return _state == REQ_COMPLETE; }
-
-		template <typename REQUEST, typename... ARGS>
-		void _generate_req(State_uint state, bool &progress, ARGS &&... args)
-		{
-			_state = REQ_GENERATED;
-			generate_req<REQUEST>(state, progress, args..., _generated_req_success);
-		}
-
-		void _mark_req_failed(bool &, char const *);
-
-		void _mark_req_successful(bool &);
-
-	public:
-
-		Sb_check_channel(Module_channel_id id) : Module_channel { SB_CHECK, id } { }
-
-		void execute(bool &);
-};
-
-
-class Tresor::Sb_check : public Module
-{
-	private:
-
-		using Channel = Sb_check_channel;
-
-		Constructible<Channel> _channels[1] { };
-
-		NONCOPYABLE(Sb_check);
-
-	public:
-
-		Sb_check();
-
-		void execute(bool &) override;
+	static constexpr char const *name() { return "sb_check"; }
 };
 
 #endif /* _TRESOR__SB_CHECK_H_ */

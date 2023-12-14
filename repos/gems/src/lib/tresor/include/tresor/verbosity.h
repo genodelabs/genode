@@ -24,7 +24,6 @@ namespace Tresor {
 	enum { VERBOSE_REKEYING             = 0 };
 	enum { VERBOSE_READ_VBA             = 0 };
 	enum { VERBOSE_WRITE_VBA            = 0 };
-	enum { VERBOSE_CRYPTO               = 0 };
 	enum { VERBOSE_BLOCK_IO             = 0 };
 	enum { VERBOSE_BLOCK_IO_PBA_FILTER  = 0 };
 	enum { VERBOSE_BLOCK_IO_PBA         = 0 };
