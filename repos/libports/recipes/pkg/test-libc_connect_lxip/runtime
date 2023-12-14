@@ -34,7 +34,7 @@
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="256"/>
+		<default caps="200"/>
 
 		<start name="nic_router">
 			<resource name="RAM" quantum="10M"/>
@@ -50,7 +50,7 @@
 
 		<start name="server">
 			<binary name="test-netty_tcp"/>
-			<resource name="RAM" quantum="34M"/>
+			<resource name="RAM" quantum="10M"/>
 			<config port="80" read_write="yes" nonblock="false">
 				<vfs>
 					<dir name="dev"> <log/> </dir>
@@ -64,7 +64,7 @@
 		</start>
 
 		<start name="test-libc_connect" caps="200">
-			<resource name="RAM" quantum="48M"/>
+			<resource name="RAM" quantum="10M"/>
 			<config>
 				<vfs>
 					<dir name="dev"> <log/> </dir>

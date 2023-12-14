@@ -1,4 +1,4 @@
-<runtime ram="300M" caps="2500" binary="init">
+<runtime ram="280M" caps="2500" binary="init">
 
 	<requires> <timer/> </requires>
 
@@ -32,12 +32,11 @@
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="256"/>
-		<start name="nic_loopback">
+		<start name="nic_loopback" caps="80">
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Nic"/> </provides>
 		</start>
-		<start name="nic_bridge">
+		<start name="nic_bridge" caps="80">
 			<resource name="RAM" quantum="10M"/>
 			<provides><service name="Nic"/></provides>
 			<config verbose="no">
@@ -53,12 +52,12 @@
 		</start>
 
 		<start name="sequence" caps="1800">
-			<resource name="RAM" quantum="260M"/>
+			<resource name="RAM" quantum="100M"/>
 			<config>
 
-				<start name="local" caps="1000">
+				<start name="local" caps="800">
 					<binary name="init"/>
-					<resource name="RAM" quantum="100M"/>
+					<resource name="RAM" quantum="36M"/>
 					<config>
 						<parent-provides>
 							<service name="ROM"/>
@@ -76,7 +75,7 @@
 
 						<start name="recv">
 							<binary name="test-tcp"/>
-							<resource name="RAM" quantum="40M"/>
+							<resource name="RAM" quantum="16M"/>
 							<exit propagate="yes"/>
 							<config>
 								<arg value="recv"/>
@@ -92,7 +91,7 @@
 
 						<start name="send">
 							<binary name="test-tcp"/>
-							<resource name="RAM" quantum="40M"/>
+							<resource name="RAM" quantum="16M"/>
 							<config>
 								<arg value="send"/>
 								<arg value="192.168.1.1"/>
@@ -108,9 +107,9 @@
 					</config>
 				</start>
 
-				<start name="remote" caps="1000">
+				<start name="remote" caps="800">
 					<binary name="init"/>
-					<resource name="RAM" quantum="150M"/>
+					<resource name="RAM" quantum="60M"/>
 					<config>
 						<parent-provides>
 							<service name="ROM"/>
@@ -124,11 +123,11 @@
 						<default-route>
 							<any-service> <parent/> <any-child/> </any-service>
 						</default-route>
-						<default caps="256"/>
+						<default caps="200"/>
 
-						<start name="recv_fs" caps="200">
+						<start name="recv_fs">
 							<binary name="vfs"/>
-							<resource name="RAM" quantum="40M"/>
+							<resource name="RAM" quantum="10M"/>
 							<provides> <service name="File_system"/> </provides>
 							<config>
 								<vfs>
@@ -138,9 +137,9 @@
 							</config>
 						</start>
 
-						<start name="send_fs" caps="200">
+						<start name="send_fs">
 							<binary name="vfs"/>
-							<resource name="RAM" quantum="40M"/>
+							<resource name="RAM" quantum="10M"/>
 							<provides> <service name="File_system"/> </provides>
 							<config>
 								<vfs>
@@ -152,7 +151,7 @@
 
 						<start name="recv">
 							<binary name="test-tcp"/>
-							<resource name="RAM" quantum="32M"/>
+							<resource name="RAM" quantum="10M"/>
 							<exit propagate="yes"/>
 							<config>
 								<arg value="recv"/>
@@ -170,7 +169,7 @@
 
 						<start name="send">
 							<binary name="test-tcp"/>
-							<resource name="RAM" quantum="32M"/>
+							<resource name="RAM" quantum="10M"/>
 							<config>
 								<arg value="send"/>
 								<arg value="192.168.1.1"/>
