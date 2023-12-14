@@ -97,6 +97,16 @@ struct Genode::Const_byte_range_ptr : Noncopyable
 		size_t       const num_bytes;
 	};
 
+	bool contains(char const *ptr) const
+	{
+		return (ptr >= start) && (ptr <= start + num_bytes - 1);
+	}
+
+	bool contains(void const *ptr) const
+	{
+		return contains((char const *)ptr);
+	}
+
 	Const_byte_range_ptr(char const *start, size_t num_bytes)
 	: start(start), num_bytes(num_bytes) { }
 };
