@@ -7,6 +7,7 @@
 	<succeed>child "test-libc_connect" exited with exit value 0</succeed>
 
 	<content>
+		<rom label="black_hole"/>
 		<rom label="ld.lib.so"/>
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
@@ -44,8 +45,19 @@
 				<service name="Uplink"/>
 			</provides>
 			<config>
-				<domain name="default" interface="10.0.1.1/24"/>
+				<domain name="uplink"  interface="10.0.2.1/24"/>
+				<domain name="default" interface="10.0.1.1/24">
+					<ip dst="10.0.2.0/24" domain="uplink"/>
+				</domain>
+				<policy label_prefix="black_hole" domain="uplink"/>
 				<default-policy domain="default"/>
+			</config>
+		</start>
+
+		<start name="black_hole">
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<uplink_client/>
 			</config>
 		</start>
 
