@@ -2,7 +2,7 @@ The 'black_hole' component provides dummy implementations of common
 session interfaces.
 
 At this time, the following sessions are provided if enabled
-in the configuration of the component:
+in the configuration of the component.
 
 * Audio_in
 * Audio_out
@@ -24,4 +24,12 @@ in the configuration of the component:
 	<rom/>
 	<gpu/>
 	<usb/>
+</config>
+
+Black hole optionally requests the following sessions as client.
+
+* Uplink client
+
+<config>
+	<uplink_client/>
 </config>

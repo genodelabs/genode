@@ -8,6 +8,7 @@
 				<xs:element name="gpu"/>
 				<xs:element name="rom"/>
 				<xs:element name="uplink"/>
+				<xs:element name="uplink_client"/>
 				<xs:element name="nic"/>
 				<xs:element name="event"/>
 				<xs:element name="capture"/>
