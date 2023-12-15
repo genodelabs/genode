@@ -257,6 +257,8 @@ append config {
 
 					<log string="Step 2: test synchronous write, read"/>
 
+
+					<request op="read"  vba="1"   num_blocks="1"    uninitialized_data="yes"/>
 					<request op="write" vba="1"   num_blocks="1"    salt="1234"/>
 					<request op="read"  vba="1"   num_blocks="1"    salt="1234"/>
 					<request op="write" vba="12"  num_blocks="10"  />
@@ -402,6 +404,7 @@ append config {
 
 					<log string="Step 9: test synchronous rekeying"/>
 
+					<request op="read"  vba="30" num_blocks="10"   uninitialized_data="yes"/>
 					<request op="write" vba="0"  num_blocks="1"    salt="4359"/>
 					<request op="rekey"                       sync="yes"/>
 					<request op="read"  vba="0"  num_blocks="1"    salt="4359"/>

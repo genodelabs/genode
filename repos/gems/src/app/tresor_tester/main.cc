@@ -214,6 +214,7 @@ struct Tresor_tester::Request_node : Noncopyable
 	bool const salt_avail;
 	Salt const salt;
 	Snapshot_id const snap_id;
+	bool const uninitialized_data;
 
 	Operation read_op_attr(Xml_node const &node)
 	{
@@ -238,7 +239,8 @@ struct Tresor_tester::Request_node : Noncopyable
 		sync(node.attribute_value("sync", false)),
 		salt_avail(node.has_attribute("salt")),
 		salt(node.attribute_value("salt", (Salt)0)),
-		snap_id(node.attribute_value("id", (Snapshot_id)0))
+		snap_id(node.attribute_value("id", (Snapshot_id)0)),
+		uninitialized_data { node.attribute_value("uninitialized_data", false) }
 	{ }
 };
 
@@ -1010,14 +1012,17 @@ class Tresor_tester::Main : Vfs::Env::User, Client_data_interface, Crypto_key_fi
 			_with_command(attr.in_req_tag, [&] (Command &cmd) {
 				ASSERT(cmd.type == Command::REQUEST);
 				Request_node const &node { *cmd.request_node };
-				if (node.salt_avail) {
-					Tresor::Block gen_blk_data { };
+				Tresor::Block gen_blk_data { };
+				if (node.salt_avail)
 					_generate_blk_data(gen_blk_data, attr.in_vba, node.salt);
+				else if (node.uninitialized_data)
+					memset(&gen_blk_data, 0, BLOCK_SIZE);
+				else
+					return;
 
-					if (memcmp(&attr.in_blk, &gen_blk_data, BLOCK_SIZE)) {
-						warning("client data mismatch: vba=", attr.in_vba, " req_tag=", attr.in_req_tag);
-						_num_errors++;
-					}
+				if (memcmp(&attr.in_blk, &gen_blk_data, BLOCK_SIZE)) {
+					warning("client data mismatch: vba=", attr.in_vba, " req_tag=", attr.in_req_tag);
+					_num_errors++;
 				}
 			});
 			if (_benchmark.constructed())
