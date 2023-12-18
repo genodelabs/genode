@@ -1,11 +1,11 @@
 /*
- * \brief  Broadwell logical ring context
+ * \brief  Intel GPU logical ring context for Broadwell and newer
  * \author Josef Soentgen
  * \date   2017-03-15
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -360,13 +360,12 @@ class Igd::Execlist_context : public Igd::Common_context_regs
 
 	public:
 
-		Execlist_context(addr_t     const base,
-		                 addr_t     const ring_buffer_start,
-		                 size_t     const ring_buffer_length,
-		                 uint32_t   const immediate_header,
-		                 Generation const gen)
-		:
-			Common_context_regs(base)
+		Execlist_context(addr_t const base) : Common_context_regs(base) { }
+
+		void setup(addr_t     const ring_buffer_start,
+		           size_t     const ring_buffer_length,
+		           uint32_t   const immediate_header,
+		           Generation const gen)
 		{
 			write<Load_immediate_header>(immediate_header);
 			write_offset<Context_control_mmio>(RING_BASE);
@@ -597,9 +596,9 @@ class Igd::Ppgtt_context : public Igd::Common_context_regs
 
 	public:
 
-		Ppgtt_context(addr_t base, uint64_t plm4_addr)
-		:
-			Common_context_regs(base)
+		Ppgtt_context(addr_t const base) : Common_context_regs(base) { }
+
+		void setup(uint64_t const plm4_addr)
 		{
 			write<Load_immediate_header>(0x11001011);
 			write_offset<Cs_ctx_timestamp_mmio>(RING_BASE);
@@ -843,27 +842,30 @@ class Igd::Rcs_context
 		Pphardware_status_page          _hw_status_page;
 		Execlist_context<RCS_RING_BASE> _execlist_context;
 		Ppgtt_context<RCS_RING_BASE>    _ppgtt_context;
-		Engine_context                  _engine_context;
-		Ext_engine_context              _ext_engine_context;
-		Urb_atomic_context              _urb_atomic_context;
+		Engine_context                  _engine_context     { };
+		Ext_engine_context              _ext_engine_context { };
+		Urb_atomic_context              _urb_atomic_context { };
 
 	public:
 
-		Rcs_context(addr_t     const map_base,
-		            addr_t     const ring_buffer_start,
-		            size_t     const ring_buffer_length,
-		            uint64_t   const plm4_addr,
-		            Generation const gen)
+		Rcs_context(addr_t const map_base)
 		:
-			_hw_status_page(map_base),
-			_execlist_context((addr_t)(map_base + HW_STATUS_PAGE_SIZE),
-			                  ring_buffer_start, ring_buffer_length,
-			                  EXECLIST_CTX_IH, gen),
-			_ppgtt_context((addr_t)(map_base + HW_STATUS_PAGE_SIZE), plm4_addr),
-			_engine_context(),
-			_ext_engine_context(),
-			_urb_atomic_context()
+			_hw_status_page  (map_base),
+			_execlist_context(map_base + HW_STATUS_PAGE_SIZE),
+			_ppgtt_context   (map_base + HW_STATUS_PAGE_SIZE)
+		{ }
+
+		void setup(addr_t     const ring_buffer_start,
+		           size_t     const ring_buffer_length,
+		           uint64_t   const plm4_addr,
+		           Generation const gen)
 		{
+			auto const map_base = _hw_status_page.base();
+
+			_execlist_context.setup(ring_buffer_start, ring_buffer_length,
+			                        EXECLIST_CTX_IH, gen);
+			_ppgtt_context.setup(plm4_addr);
+
 			if (false)
 				Genode::log(__func__, ":",
 				            " map_base:", Genode::Hex(map_base),

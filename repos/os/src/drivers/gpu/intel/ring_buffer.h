@@ -1,11 +1,11 @@
 /*
- * \brief  Broadwell ring buffer
+ * \brief  Ring buffer for Broadwell and newer
  * \author Josef Soentgen
  * \date   2017-03-15
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -24,12 +24,13 @@
 
 namespace Igd {
 
-	class Ring_buffer;
+	template <typename> class Ring_buffer;
 }
 
 
 /*
  */
+template <typename MEMORY>
 class Igd::Ring_buffer
 {
 	public:
@@ -38,30 +39,31 @@ class Igd::Ring_buffer
 
 	private:
 
-		uint32_t *_dwords;
-		Index     _max;
-		Index     _tail;
-		Index     _head;
+		MEMORY      & _memory;
+		Index const   _max;
+		Index         _tail { };
+		Index         _head { };
+
+		void with_dwords(auto const &fn) const {
+			_memory.with_vaddr([&](auto vaddr) { fn((uint32_t *)vaddr); }); }
+
+		void with_dwords(auto const &fn) {
+			_memory.with_vaddr([&](auto vaddr) { fn((uint32_t *)vaddr); }); }
 
 	public:
 
-		Ring_buffer(addr_t   base,
-		            size_t   length)
-		:
-			_dwords((uint32_t*)base), _max(length / sizeof (uint32_t)),
-			_tail(0), _head(0)
-		{
-			/* initial clear */
-			Genode::memset(_dwords, 0, length);
-		}
+		Ring_buffer(MEMORY & memory, size_t const size)
+		: _memory(memory),  _max(size / sizeof (uint32_t)) { }
 
 		/**
 		 * Clear ring buffer and reset tail
 		 */
 		void reset()
 		{
-			Genode::memset(_dwords, 0, _max * sizeof(uint32_t));
-			_tail = 0;
+			with_dwords([&](auto dwords) {
+				Genode::memset(dwords, 0, _max * sizeof(uint32_t));
+				_tail = 0;
+			});
 		}
 
 		/**
@@ -69,9 +71,11 @@ class Igd::Ring_buffer
 		 */
 		void reset_and_fill_zero()
 		{
-			Genode::size_t const bytes = (_max - _tail) * sizeof(uint32_t);
-			Genode::memset(_dwords + _tail, 0, bytes);
-			_tail = 0;
+			with_dwords([&](auto dwords) {
+				auto const bytes = (_max - _tail) * sizeof(uint32_t);
+				Genode::memset(dwords + _tail, 0, bytes);
+				_tail = 0;
+			});
 		}
 
 		/**
@@ -118,19 +122,21 @@ class Igd::Ring_buffer
 			if (index < _tail) { throw -1; }
 			if (index > _max)  { throw -2; }
 
-			_dwords[index] = cmd.value;
-			_tail++;
+			with_dwords([&](auto dwords) {
+				dwords[index] = cmd.value;
+				_tail++;
 
-			if (_tail >= _max) {
-				Genode::warning("ring buffer wrapped ",
-				                "_tail: ", _tail, " ", "_max: ", _max);
-				_tail = 0;
-			}
+				if (_tail >= _max) {
+					Genode::warning("ring buffer wrapped ",
+					                "_tail: ", _tail, " ", "_max: ", _max);
+					_tail = 0;
+				}
 
-			if (_tail == _head) {
-				Genode::error("tail: ", Genode::Hex(_tail), " == head: ",
-				              Genode::Hex(_head), " in ring buffer");
-			}
+				if (_tail == _head) {
+					Genode::error("tail: ", Genode::Hex(_tail), " == head: ",
+					              Genode::Hex(_head), " in ring buffer");
+				}
+			});
 
 			return 1;
 		}
@@ -184,11 +190,13 @@ class Igd::Ring_buffer
 		 */
 		void flush(Index from, Index to) const
 		{
-			uint32_t *start = _dwords + from;
-			for (Index i = 0; i < (to - from); i++) {
-				uint32_t *addr = start++;
-				Utils::clflush(addr);
-			}
+			with_dwords([&](auto dwords) {
+				uint32_t *start = dwords + from;
+				for (Index i = 0; i < (to - from); i++) {
+					uint32_t *addr = start++;
+					Utils::clflush(addr);
+				}
+			});
 		}
 
 		/*********************
@@ -199,21 +207,24 @@ class Igd::Ring_buffer
 		{
 			using namespace Genode;
 
-			size_t const max = dw_limit ? dw_limit : _max;
+			with_dwords([&](auto dwords) {
+				size_t const max = dw_limit ? dw_limit : _max;
 
-			log("Ring_buffer: ", Hex(*_dwords), " max: ", _max, " (limit: ", max, ")",
-			    " hardware read: tail=", Genode::Hex(hw_tail),
-			    " head=", Genode::Hex(hw_head));
+				log("Ring_buffer: ", Hex(*dwords),
+				    " max: ", _max, " (limit: ", max, ")",
+				    " hardware read: tail=", Genode::Hex(hw_tail),
+				    " head=", Genode::Hex(hw_head));
 
-			for (size_t i = 0; i < max; i++) {
-				log(Hex(i*4, Hex::PREFIX, Hex::PAD), " ",
-				    Hex(_dwords[i], Hex::PREFIX, Hex::PAD),
-				    i == _tail ? " T " : "   ",
-				    i == _head ? " H " : "   ",
-				    i == hw_tail ? " T_HW " : "   ",
-				    i == hw_head ? " H_HW " : "   "
-				);
-			}
+				for (size_t i = 0; i < max; i++) {
+					log(Hex(i*4, Hex::PREFIX, Hex::PAD), " ",
+					    Hex(dwords[i], Hex::PREFIX, Hex::PAD),
+					    i == _tail ? " T " : "   ",
+					    i == _head ? " H " : "   ",
+					    i == hw_tail ? " T_HW " : "   ",
+					    i == hw_head ? " H_HW " : "   "
+					);
+				}
+			});
 		}
 };
 

@@ -269,9 +269,9 @@ struct Igd::Device
 		if (!_ggtt.constructed())
 			return false;
 
-		fn(*_ggtt);
-
-		return true;
+		return _resources.with_mmio([&](auto &mmio) {
+			fn(*_ggtt, mmio);
+		});
 	}
 
 	__attribute__((warn_unused_result))
@@ -307,53 +307,31 @@ struct Igd::Device
 		_pci_backend_alloc.free(cap);
 	}
 
-	struct Ggtt_mmio_mapping : Ggtt::Mapping
+	Genode::Registry<Genode::Registered<Ggtt::Mapping>> _ggtt_mapping_registry { };
+
+	Ggtt::Mapping &map_dataspace_ggtt(Genode::Allocator &alloc,
+	                                  Genode::Ram_dataspace_capability cap,
+	                                  Ggtt::Offset offset)
 	{
-		Region_map_client _rmc;
+		Genode::Registered<Ggtt::Mapping> *mem = nullptr;
 
-		Ggtt_mmio_mapping(Rm_connection      & rm,
-		                  Dataspace_capability cap,
-		                  Ggtt::Offset         offset,
-		                  size_t               size)
-		:
-			_rmc(rm.create(size))
-		{
-			_rmc.attach_at(cap, 0, size, offset * PAGE_SIZE);
-			Ggtt::Mapping::cap    = _rmc.dataspace();
-			Ggtt::Mapping::offset = offset;
-		}
+		if (!with_ggtt([&](auto &ggtt, auto &mmio) {
+			Genode::Dataspace_client client(cap);
+			addr_t const phys_addr = _pci_backend_alloc.dma_addr(cap);
+			size_t const size      = client.size();
 
-		virtual ~Ggtt_mmio_mapping() { }
-	};
+			/*
+			 * Create the mapping first and insert the entries afterwards
+			 * so we do not have to rollback when the allocation fails.
+			 */
+			mem = new (&alloc)
+				Genode::Registered<Ggtt::Mapping>(_ggtt_mapping_registry,
+				                                  offset, size);
 
-	Genode::Registry<Genode::Registered<Ggtt_mmio_mapping>> _ggtt_mmio_mapping_registry { };
-
-	Ggtt_mmio_mapping const &map_dataspace_ggtt(Genode::Allocator &alloc,
-	                                            Genode::Ram_dataspace_capability cap,
-	                                            Ggtt::Offset offset)
-	{
-		Genode::Registered<Ggtt_mmio_mapping> *mem = nullptr;
-
-		if (!with_ggtt([&](auto &ggtt) {
-			if (!_resources.with_mmio_gmadr([&](auto &mmio, auto &gmadr) {
-				Genode::Dataspace_client client(cap);
-				addr_t const phys_addr = _pci_backend_alloc.dma_addr(cap);
-				size_t const size      = client.size();
-
-				/*
-				 * Create the mapping first and insert the entries afterwards
-				 * so we do not have to rollback when the allocation fails.
-				 */
-				mem = new (&alloc)
-					Genode::Registered<Ggtt_mmio_mapping>(_ggtt_mmio_mapping_registry,
-					                                      _rm, gmadr.cap(), offset, size);
-
-				for (size_t i = 0; i < size; i += PAGE_SIZE) {
-					addr_t const pa = phys_addr + i;
-					ggtt.insert_pte(mmio, pa, offset + (i / PAGE_SIZE));
-				}
-			}))
-				error(__func__, " failed");
+			for (size_t i = 0; i < size; i += PAGE_SIZE) {
+				addr_t const pa = phys_addr + i;
+				ggtt.insert_pte(mmio, pa, offset + (i / PAGE_SIZE));
+			}
 		}))
 			throw Could_not_map_vram();
 
@@ -363,22 +341,12 @@ struct Igd::Device
 		return *mem;
 	}
 
-	void unmap_dataspace_ggtt(Genode::Allocator &alloc, Genode::Dataspace_capability cap)
+	void unmap_dataspace_ggtt(Genode::Allocator &alloc, Ggtt::Mapping &m)
 	{
-		size_t const num = Genode::Dataspace_client(cap).size() / PAGE_SIZE;
-
-		if (!with_ggtt([&](auto &ggtt) {
-			if (!_resources.with_mmio([&](auto &mmio) {
-				auto lookup_and_free = [&] (Ggtt_mmio_mapping &m) {
-					if (!(m.cap == cap)) { return; }
-
-					ggtt.remove_pte_range(mmio, m.offset, num);
-					Genode::destroy(&alloc, &m);
-				};
-
-				_ggtt_mmio_mapping_registry.for_each(lookup_and_free);
-			}))
-				error(__func__, " with_mmio failed");
+		if (!with_ggtt([&](auto &ggtt, auto &mmio) {
+			size_t const num = m.vsize / PAGE_SIZE;
+			ggtt.remove_pte_range(mmio, m.offset, num);
+			Genode::destroy(&alloc, &m);
 		}))
 			error(__func__, " failed");
 	}
@@ -400,45 +368,17 @@ struct Igd::Device
 	struct Execlist : Genode::Noncopyable
 	{
 		Igd::Context_descriptor _elem0;
-		Igd::Context_descriptor _elem1;
+		Igd::Context_descriptor _elem1 { };
 
-		Igd::Ring_buffer        _ring;
-		bool                    _scheduled;
+		bool                    _scheduled { };
 
-		Execlist(uint32_t const id, addr_t const lrca,
-		         addr_t const ring, size_t const ring_size)
-		:
-			_elem0(id, lrca), _elem1(),
-			_ring(ring, ring_size), _scheduled(false)
-		{ }
+		Execlist(uint32_t const id, addr_t const lrca) : _elem0(id, lrca) { }
 
 		Igd::Context_descriptor elem0() const { return _elem0; }
 		Igd::Context_descriptor elem1() const { return _elem1; }
 
 		void schedule(int port) { _scheduled = port; }
 		int scheduled() const { return _scheduled; }
-
-		/*************************
-		 ** Ring vram interface **
-		 *************************/
-
-		void               ring_reset() { _ring.reset(); }
-		Ring_buffer::Index ring_tail() const { return _ring.tail(); }
-		Ring_buffer::Index ring_head() const { return _ring.head(); }
-		Ring_buffer::Index ring_append(Igd::Cmd_header cmd) { return _ring.append(cmd); }
-
-		bool ring_avail(Ring_buffer::Index num) const { return _ring.avail(num); }
-		Ring_buffer::Index ring_max()   const { return _ring.max(); }
-		void ring_reset_and_fill_zero() { _ring.reset_and_fill_zero(); }
-		void ring_update_head(Ring_buffer::Index head) { _ring.update_head(head); }
-		void ring_reset_to_head(Ring_buffer::Index head) { _ring.reset_to_head(head); }
-
-		void ring_flush(Ring_buffer::Index from, Ring_buffer::Index to)
-		{
-			_ring.flush(from, to);
-		}
-
-		void ring_dump(size_t limit, unsigned hw_tail, unsigned hw_head) const { _ring.dump(limit, hw_tail, hw_head); }
 
 		/*********************
 		 ** Debug interface **
@@ -465,18 +405,20 @@ struct Igd::Device
 		};
 
 		struct Mapping_guard {
-			Device              &device;
-			Allocator           &alloc;
-			Ggtt::Mapping const &map;
+			Device        &device;
+			Allocator     &alloc;
+			Ggtt::Mapping &map;
 
-			Mapping_guard(Device &device, Ggtt_map_memory &gmm, Allocator &alloc)
+			Mapping_guard(Device          & device,
+			              Ggtt_map_memory & gmm,
+			              Allocator       & alloc)
 			:
 				device(device),
 				alloc(alloc),
 				map(device.map_dataspace_ggtt(alloc, gmm.ram_ds.ds, gmm.offset))
 			{ }
 
-			~Mapping_guard() { device.unmap_dataspace_ggtt(alloc, map.cap); }
+			~Mapping_guard() { device.unmap_dataspace_ggtt(alloc, map); }
 		};
 
 		Device             const &device;
@@ -485,13 +427,6 @@ struct Igd::Device
 		Ggtt::Offset       const  skip;
 		Dataspace_guard    const  ram_ds;
 		Mapping_guard      const  map;
-		Attached_dataspace const  ram;
-
-		addr_t vaddr() const
-		{
-			return reinterpret_cast<addr_t>(ram.local_addr<addr_t>())
-			       + (skip * PAGE_SIZE);
-		}
 
 		Ggtt::Offset _offset(Ggtt::Offset const &pages)
 		{
@@ -505,10 +440,20 @@ struct Igd::Device
 			return offset;
 		}
 
+		void with_vaddr(auto const &fn) const
+		{
+			addr_t const offset = (map.map.offset + skip) * PAGE_SIZE;
+
+			if (!device._resources.with_gmadr(offset, [&](auto const addr) {
+				fn(addr);
+			}))
+				error("Gmadr object unavailable");
+		}
+
 		addr_t gmaddr() const { /* graphics memory address */
 			return (offset + skip) * PAGE_SIZE; }
 
-		Ggtt_map_memory(Region_map &rm, Allocator &alloc, Device &device,
+		Ggtt_map_memory(Allocator &alloc, Device &device,
 		                Ggtt::Offset const pages, Ggtt::Offset const skip_pages)
 		:
 			device(device),
@@ -516,8 +461,7 @@ struct Igd::Device
 			offset(_offset(pages)),
 			skip(skip_pages),
 			ram_ds(device, device._alloc_dataspace(pages * PAGE_SIZE)),
-			map(device, *this, alloc),
-			ram(rm, map.map.cap)
+			map(device, *this, alloc)
 		{ }
 	};
 
@@ -534,17 +478,42 @@ struct Igd::Device
 		Ppgtt_scratch    ppgtt_scratch;
 		Ppgtt           *ppgtt { nullptr };
 
-		Genode::Constructible<CONTEXT>  context  { };
-		Genode::Constructible<Execlist> execlist { };
+		Execlist         execlist;
+
+		Igd::Ring_buffer<Ggtt_map_memory> _ring { ring, ring_size() };
+
+		void with_context(auto const &fn)
+		{
+			ctx.with_vaddr([&](auto const vaddr) {
+				auto context = CONTEXT(vaddr);
+
+				fn(context);
+			});
+		}
+
+		void with_context_ring(auto const &fn)
+		{
+			ctx.with_vaddr([&](auto const vaddr) {
+				auto context = CONTEXT(vaddr);
+
+				fn(context, _ring);
+			});
+		}
+
+		void with_ring(auto const &fn)
+		{
+			fn(_ring);
+		}
 
 		Engine(Igd::Device         &device,
 		       uint32_t             id,
 		       Allocator           &alloc)
 		:
-			ctx (device._env.rm(), alloc, device, CONTEXT::CONTEXT_PAGES, 1 /* omit GuC page */),
-			ring(device._env.rm(), alloc, device, CONTEXT::RING_PAGES, 0),
+			ctx (alloc, device, CONTEXT::CONTEXT_PAGES, 1 /* omit GuC page */),
+			ring(alloc, device, CONTEXT::RING_PAGES, 0),
 			ppgtt_allocator(alloc, device._env.rm(), device._pci_backend_alloc),
-			ppgtt_scratch(device._pci_backend_alloc)
+			ppgtt_scratch(device._pci_backend_alloc),
+			execlist(id, ctx.gmaddr())
 		{
 			/* PPGTT */
 			device._populate_scratch(ppgtt_scratch);
@@ -552,7 +521,6 @@ struct Igd::Device
 			ppgtt = new (ppgtt_allocator) Igd::Ppgtt(&ppgtt_scratch.pdp);
 
 			try {
-				size_t const ring_size = RING_PAGES * PAGE_SIZE;
 
 				/* get PML4 address */
 				addr_t const ppgtt_phys_addr = _ppgtt_phys_addr(ppgtt_allocator,
@@ -560,11 +528,13 @@ struct Igd::Device
 				addr_t const pml4 = ppgtt_phys_addr | 1;
 
 				/* setup context */
-				context.construct(ctx.vaddr(), ring.gmaddr(), ring_size, pml4, device.generation());
+				with_context([&](auto &context) {
+					context.setup(ring.gmaddr(), ring_size(), pml4,
+					              device.generation());
+				});
 
-				/* setup execlist */
-				execlist.construct(id, ctx.gmaddr(), ring.vaddr(), ring_size);
-				execlist->ring_reset();
+				/* initialize ring */
+				_ring.reset();
 			} catch (...) {
 				_destruct();
 				throw;
@@ -577,9 +547,6 @@ struct Igd::Device
 		{
 			if (ppgtt)
 				Genode::destroy(ppgtt_allocator, ppgtt);
-
-			execlist.destruct();
-			context.destruct();
 		}
 
 		size_t ring_size() const { return RING_PAGES * PAGE_SIZE; }
@@ -708,13 +675,22 @@ struct Igd::Device
 
 		bool setup_ring_vram(Gpu::addr_t const vram_addr)
 		{
+			bool ok = false;
+
+			rcs.with_ring([&](auto &ring) {
+				ok = _setup_ring_vram(vram_addr, ring);
+			});
+
+			return ok;
+		}
+
+		bool _setup_ring_vram(Gpu::addr_t const vram_addr, auto &ring)
+		{
 			_current_seqno++;
 
 			unsigned generation = _device.generation().value;
 
-			Execlist &el = *rcs.execlist;
-
-			Ring_buffer::Index advance = 0;
+			auto advance = 0;
 
 			bool dc_flush_wa = _device.match(Device_info::Platform::KABYLAKE,
 			                                 Device_info::Stepping::A0,
@@ -725,11 +701,11 @@ struct Igd::Device
 			                  + ((generation == 8) ? 20 : 22) /* epilog + w/a */
 			                  + (dc_flush_wa ? 12 : 0);
 
-			if (!el.ring_avail(need))
-				el.ring_reset_and_fill_zero();
+			if (!ring.avail(need))
+				ring.reset_and_fill_zero();
 
 			/* save old tail */
-			Ring_buffer::Index const tail = el.ring_tail();
+			auto const tail = ring.tail();
 
 			/*
 			 * IHD-OS-BDW-Vol 7-11.15 p. 18 ff.
@@ -748,7 +724,7 @@ struct Igd::Device
 				cmd[0] = pc.value;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -760,7 +736,7 @@ struct Igd::Device
 				cmd[1] = Igd::Pipe_control::DC_FLUSH_ENABLE;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -790,7 +766,7 @@ struct Igd::Device
 				cmd[2] = 0x34 * 4;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -802,7 +778,7 @@ struct Igd::Device
 				cmd[1] = Igd::Pipe_control::CS_STALL;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -823,7 +799,7 @@ struct Igd::Device
 				cmd[3] = (vram_addr >> 32) & 0xffff;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -846,7 +822,7 @@ struct Igd::Device
 				cmd[5] = Mi_noop().value;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -864,7 +840,7 @@ struct Igd::Device
 				cmd[1] = tmp;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -890,7 +866,7 @@ struct Igd::Device
 				cmd[5] = _current_seqno >> 32;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -917,7 +893,7 @@ struct Igd::Device
 				cmd[5] = generation < 12 ? Mi_noop().value : 0;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -930,7 +906,7 @@ struct Igd::Device
 				cmd[1] = ui.value;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -950,7 +926,7 @@ struct Igd::Device
 				cmd[1] = Mi_noop().value;
 
 				for (size_t i = 0; i < CMD_NUM; i++) {
-					advance += el.ring_append(cmd[i]);
+					advance += ring.append(cmd[i]);
 				}
 			}
 
@@ -961,10 +937,12 @@ struct Igd::Device
 				return false;
 			}
 
-			el.ring_flush(tail, tail + advance);
+			ring.flush(tail, tail + advance);
 
 			/* tail_offset must be specified in qword */
-			rcs.context->tail_offset((offset % (rcs.ring_size())) / 8);
+			rcs.with_context([&](auto &context) {
+				context.tail_offset((offset % (rcs.ring_size())) / 8);
+			});
 
 			return true;
 		}
@@ -996,7 +974,7 @@ struct Igd::Device
 
 	void _submit_execlist(Igd::Mmio &mmio, Engine<Rcs_context> &engine)
 	{
-		Execlist &el = *engine.execlist;
+		Execlist &el = engine.execlist;
 
 		int const port = mmio.read<Igd::Mmio::EXECLIST_STATUS_RSCUNIT::Execlist_write_pointer>();
 
@@ -1043,7 +1021,7 @@ struct Igd::Device
 		if (mmio.read<Igd::Mmio::GEN12_EXECLIST_STATUS_RSCUNIT::Execution_queue_invalid>() == 0)
 			return;
 
-		Execlist &el = *engine.execlist;
+		Execlist &el = engine.execlist;
 
 		mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(el.elem0().low(), 0);
 		mmio.write<Igd::Mmio::GEN12_EXECLIST_SQ_CONTENTS_RSCUNIT>(el.elem0().high(), 1);
@@ -1104,20 +1082,19 @@ struct Igd::Device
 	/**
 	 * \return true, if Vgpu is done and has not further work
 	 */
-	bool _notify_complete(Vgpu *gpu)
+	bool _notify_complete(Vgpu &gpu)
 	{
-		if (!gpu) { return true; }
+		uint64_t const curr_seqno = gpu.current_seqno();
+		uint64_t const comp_seqno = gpu.completed_seqno();
 
-		uint64_t const curr_seqno = gpu->current_seqno();
-		uint64_t const comp_seqno = gpu->completed_seqno();
-
-		Execlist &el = *gpu->rcs.execlist;
-		el.ring_update_head(gpu->rcs.context->head_offset());
+		gpu.rcs.with_context_ring([&](auto &context, auto &ring) {
+			ring.update_head(context.head_offset());
+		});
 
 		if (curr_seqno != comp_seqno)
 			return false;
 
-		Genode::Signal_transmitter(gpu->completion_sigh()).submit();
+		Genode::Signal_transmitter(gpu.completion_sigh()).submit();
 
 		return true;
 	}
@@ -1158,15 +1135,16 @@ struct Igd::Device
 	{
 		 /* signal completion of last job to vgpu */
 		vgpu.mark_completed();
-		_notify_complete(&vgpu);
+		_notify_complete(vgpu);
 
-		/* offset of head in ring context */
-		size_t head_offset = vgpu.rcs.context->head_offset();
-		/* set head = tail in ring and ring context */
-		Execlist &el = *vgpu.rcs.execlist;
-		el.ring_reset_to_head(head_offset);
-		/* set tail in context in qwords */
-		vgpu.rcs.context->tail_offset((head_offset % (vgpu.rcs.ring_size())) / 8);
+		vgpu.rcs.with_context_ring([&](auto &context, auto &ring) {
+			/* offset of head in ring context */
+			size_t head_offset = context.head_offset();
+			/* set head = tail in ring and ring context */
+			ring.reset_to_head(head_offset);
+			/* set tail in context in qwords */
+			context.tail_offset((head_offset % (vgpu.rcs.ring_size())) / 8);
+		});
 	}
 
 	void _handle_watchdog_timeout()
@@ -1183,12 +1161,14 @@ struct Igd::Device
 				mmio.fault_dump();
 				mmio.execlist_status_dump();
 
-				_active_vgpu->rcs.context->dump();
-				_hw_status_page->dump();
-				Execlist &el = *_active_vgpu->rcs.execlist;
-				el.ring_update_head(_active_vgpu->rcs.context->head_offset());
-				el.ring_dump(4096, _active_vgpu->rcs.context->tail_offset() * 2,
-				                   _active_vgpu->rcs.context->head_offset());
+				_active_vgpu->rcs.with_context_ring([&](auto &context, auto &ring) {
+					context.dump();
+					_hw_status_page->dump();
+
+					ring.update_head(context.head_offset());
+					ring.dump(4096, context.tail_offset() * 2,
+					          context.head_offset());
+				});
 			}
 
 
@@ -1265,9 +1245,13 @@ struct Igd::Device
 
 		/* setup global hardware status page */
 		if (!_hw_status_ctx.constructed())
-			_hw_status_ctx.construct(_env.rm(), _md_alloc, *this, 1, 0);
-		if (!_hw_status_page.constructed())
-			_hw_status_page.construct(_hw_status_ctx->vaddr());
+			_hw_status_ctx.construct(_md_alloc, *this, 1, 0);
+		if (!_hw_status_page.constructed()) {
+			/* global hw_status_ctx becomes never invalid up to now, so using vaddr is ok */
+			_hw_status_ctx->with_vaddr([&](auto const vaddr) {
+				_hw_status_page.construct(vaddr);
+			});
+		}
 
 		Mmio::HWS_PGA_RCSUNIT::access_t const addr = _hw_status_ctx->gmaddr();
 		mmio.write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
@@ -1630,48 +1614,6 @@ struct Igd::Device
 	}
 
 	/**
-	 * Map DMA vram in the GGTT
-	 *
-	 * \param guard     resource allocator and guard
-	 * \param cap       DMA vram capability
-	 * \param aperture  true if mapping should be accessible by CPU
-	 *
-	 * \return GGTT mapping
-	 *
-	 * \throw Could_not_map_vram
-	 */
-	Ggtt::Mapping const &map_vram(Genode::Allocator &guard,
-	                              Genode::Ram_dataspace_capability cap,
-	                              bool aperture)
-	{
-		if (aperture == false) {
-			error("GGTT mapping outside aperture");
-			throw Could_not_map_vram();
-		}
-
-		if (!_ggtt.constructed()) {
-			error("GGTT mapping failed");
-			throw Could_not_map_vram();
-		}
-
-		size_t const size = Genode::Dataspace_client(cap).size();
-		size_t const num = size / PAGE_SIZE;
-		Ggtt::Offset const offset = _ggtt->find_free(num, aperture);
-		return map_dataspace_ggtt(guard, cap, offset);
-	}
-
-	/**
-	 * Unmap DMA vram from GGTT
-	 *
-	 * \param guard    resource allocator and guard
-	 * \param mapping  GGTT mapping
-	 */
-	void unmap_vram(Genode::Allocator &guard, Ggtt::Mapping mapping)
-	{
-		unmap_dataspace_ggtt(guard, mapping.cap);
-	}
-
-	/**
 	 * Set tiling mode for GGTT region
 	 *
 	 * \param start  offset of the GGTT start entry
@@ -1742,7 +1684,7 @@ struct Igd::Device
 			_unschedule_current_vgpu();
 
 			if (notify_gpu) {
-				if (!_notify_complete(notify_gpu)) {
+				if (!_notify_complete(*notify_gpu)) {
 					_vgpu_list.enqueue(*notify_gpu);
 				}
 			}
@@ -2027,8 +1969,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					 */
 					if (vram.owner(_owner.cap) == false) return false;
 
-					if (vram.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
-						_device.unmap_vram(_heap, vram.map);
+					if (!vram.map.invalid()) {
+						_device.unmap_dataspace_ggtt(_heap, vram.map);
 					}
 
 					if (vram.fenced != Vram::INVALID_FENCE) {
@@ -2187,7 +2129,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 					if (vram.owner(cap()) == false) return false;
 
-					if (vram.map.offset != Igd::Ggtt::Mapping::INVALID_OFFSET) {
+					if (!vram.map.invalid()) {
 						Genode::error("cannot free mapped vram");
 						/* XXX throw */
 						return false;
@@ -2342,7 +2284,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 			Vram *v = nullptr;
 			auto lookup = [&] (Vram &vram) {
-				if (!vram.map.cap.valid() || !vram.owner(cap())) { return false; }
+				if (vram.map.invalid() || !vram.owner(cap())) { return false; }
 				v = &vram;
 				return false;
 			};
@@ -2435,7 +2377,6 @@ class Gpu::Root : public Gpu::Root_component
 					_device->reset(mmio);
 				}))
 					Genode::warning("vGPU active, reset of device failed");
-
 			} else {
 				/* remove from scheduled list */
 				s->vgpu_unschedule();

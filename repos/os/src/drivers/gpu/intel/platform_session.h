@@ -286,11 +286,13 @@ class Platform::Resources : Noncopyable
 
 		Env                                   & _env;
 		Signal_context_capability const         _irq_cap;
-		Platform::Connection                    _platform { _env           };
-		Reconstructible<Platform::Device>       _device   { _platform      };
-		Reconstructible<Platform::Device::Irq>  _irq      { *_device       };
-		Reconstructible<Igd::Mmio>              _mmio     { *_device, _env };
-		Reconstructible<Platform::Device::Mmio> _gmadr    { *_device, Platform::Device::Mmio::Index(1) };
+		Platform::Connection                    _platform  { _env           };
+
+		Reconstructible<Platform::Device>       _device    { _platform      };
+		Reconstructible<Platform::Device::Irq>  _irq       { *_device       };
+		Reconstructible<Igd::Mmio>              _mmio      { *_device, _env };
+		Reconstructible<Platform::Device::Mmio> _gmadr     { *_device, Platform::Device::Mmio::Index(1) };
+		Reconstructible<Attached_dataspace>     _gmadr_mem { _env.rm(), _gmadr->cap() };
 
 		Region_map_client   _rm_gttmm;
 		Region_map_client   _rm_gmadr;
@@ -375,6 +377,19 @@ class Platform::Resources : Noncopyable
 				return false;
 
 			fn(*_mmio, *_gmadr);
+
+			return true;
+		}
+
+		__attribute__((warn_unused_result))
+		bool with_gmadr(auto const offset, auto const &fn)
+		{
+			if (!_gmadr_mem.constructed())
+				return false;
+
+			auto const addr = reinterpret_cast<addr_t>(_gmadr_mem->local_addr<addr_t>())
+			                + offset;
+			fn(addr);
 
 			return true;
 		}

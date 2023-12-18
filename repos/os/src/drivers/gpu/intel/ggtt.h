@@ -39,16 +39,17 @@ class Igd::Ggtt
 
 		struct Mapping
 		{
-			Genode::Dataspace_capability cap { };
-			Offset                       offset;
-			Igd::addr_t                  vaddr = 0;
+			Offset      const offset;
+			Igd::addr_t const vsize;
 
-			enum { INVALID_OFFSET = ~0u - 1, };
+			enum { INVALID_OFFSET = ~0u - 1 };
 
-			Mapping() : offset(INVALID_OFFSET) { }
+			Mapping() : offset(INVALID_OFFSET), vsize(0) { }
 
-			Mapping(Genode::Dataspace_capability cap, Offset offset)
-			: cap(cap), offset(offset) { }
+			Mapping(Offset off_set, Igd::addr_t size)
+			: offset(off_set), vsize(size) { }
+
+			bool invalid() const { return offset == INVALID_OFFSET; }
 
 			virtual ~Mapping() { }
 		};
