@@ -41,13 +41,16 @@ Furthermore the ACPICA library may trigger, dependent on the ACPI ASL code,
 various I/O port and I/O mem accesses to hardware. Accesses to PCI devices are
 ignored and dropped by this component.
 
+Log verbosity can be increased by the "verbose" config attribute.
+
 Excerpt of important parts of the acpica configuration
 ------------------------------------------------------
 
 !<start name="acpica">
 !  <!-- <binary name="debug-acpica"/> -->
 !  ...
-!  <config reset="no" sleep="no" poweroff="no" report="yes" report_period_ms="2000" use_gpe="true"/>
+!  <config reset="no" sleep="no" poweroff="no" report="yes" report_period_ms="2000"
+           use_gpe="true" verbose="no"/>
 !  <route>
 !    <service name="ROM" label="system"> <child name="..."/> </service>
 !    <service name="Report"> <child name="..."/> </service>

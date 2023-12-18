@@ -200,10 +200,14 @@ struct Acpica::Main
 		bool const enable_reset    = config.xml().attribute_value("reset", false);
 		bool const enable_poweroff = config.xml().attribute_value("poweroff", false);
 		bool const enable_report   = config.xml().attribute_value("report", false);
+		bool const verbose         = config.xml().attribute_value("verbose", false);
 		auto const periodic_ms     = config.xml().attribute_value("report_period_ms", 0ULL);
 
 		if (enable_report)
 			report = new (heap) Acpica::Reportstate(env);
+
+		if (verbose)
+			init_printf(env);
 
 		init_acpica(config.xml().attribute_value("use_gpe", true));
 

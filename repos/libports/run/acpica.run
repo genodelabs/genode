@@ -162,9 +162,10 @@ set config {
 			</route>
 		</start>
 
-		<start name="acpica" caps="200">
+		<start name="acpica" caps="400">
 			<resource name="RAM" quantum="8M"/>
-			<config ld_verbose="yes" reset="yes" poweroff="yes" report="yes" report_period_ms="0">
+			<config ld_verbose="yes" reset="yes" poweroff="yes" report="yes"
+			        report_period_ms="0" verbose="yes">
 			</config>
 			<route>
 				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
