@@ -29,7 +29,7 @@ struct Acpica::Env
 	Env(Genode::Env &env, Genode::Allocator &heap) : env(env), heap(heap) { }
 };
 
-static Genode::Constructible<Acpica::Env> instance;
+static Acpica::Env * instance;
 
 
 Genode::Allocator & Acpica::heap()     { return instance->heap; }
@@ -38,5 +38,7 @@ Genode::Env       & Acpica::env()      { return instance->env; }
 
 void Acpica::init(Genode::Env &env, Genode::Allocator &heap)
 {
-	instance.construct(env, heap);
+	static Acpica::Env _instance { env, heap };
+
+	instance = &_instance;
 }
