@@ -56,7 +56,9 @@ class Format_command
 		Type   type      = INVALID;  /* format argument type               */
 		Length length    = DEFAULT;  /* format argument length             */
 		int    padding   = 0;        /* min number of characters to print  */
+		int    precision = 0;        /* max number of characters to print  */
 		int    base      = 10;       /* base of numeric arguments          */
+		bool   lalign    = false;    /* align left                         */
 		bool   zeropad   = false;    /* pad with zero instead of space     */
 		bool   uppercase = false;    /* use upper case for hex numbers     */
 		int    consumed  = 0;        /* nb of consumed format string chars */
@@ -72,11 +74,22 @@ class Format_command
 			if (format[consumed] != '%') return;
 			if (!format[++consumed]) return;
 
+			/* read left alignment */
+			if (format[consumed] == '-') {
+				lalign = true;
+				if (!format[++consumed]) return;
+			}
+
 			/* heading zero indicates zero-padding */
 			zeropad = (format[consumed] == '0');
 
 			/* read decimal padding value */
 			padding = decode_decimal(format, &consumed);
+			if (!format[consumed]) return;
+
+			/* read precision value */
+			if (format[consumed] == '.')
+				precision = decode_decimal(format, &(++consumed));
 			if (!format[consumed]) return;
 
 			/* decode length */
@@ -157,7 +170,6 @@ void Console::printf(const char *format, ...)
 
 void Console::vprintf(const char *format, va_list list)
 {
-
 	while (*format) {
 
 		/* eat and output plain characters */
@@ -234,7 +246,16 @@ void Console::vprintf(const char *format, va_list list)
 
 			case Format_command::STRING:
 
-				_out_string(va_arg(list, const char *));
+				if (cmd.precision) {
+					int p = 0;
+					char const *a = va_arg(list, const char *);
+					for (; a && *a && p < cmd.precision; ++a, ++p)
+						_out_char(*a);
+					for (; p < cmd.padding; ++p)
+						_out_char(' ');
+				} else {
+					_out_string(va_arg(list, const char *));
+				}
 				break;
 
 			case Format_command::PERCENT:
