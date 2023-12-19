@@ -600,8 +600,10 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 		/* triggers disablement of encoders attached to disconnected ports */
 		result = drm_client_modeset_commit(client);
 
-		if (result)
-			printk("%s: error on modeset commit %d\n", __func__, result);
+		if (result) {
+			printk("%s: error on modeset commit %d%s\n", __func__, result,
+			       (result == -ENOSPC) ? " - insufficient amount of RAM for framebuffer" : "");
+		}
 	}
 
 	/* notify Genode side */
