@@ -765,6 +765,7 @@ class Lima::Call
 					_main_ctx->gpu().upgrade_ram(donate);
 				});
 			} catch (Gpu::Vram::Allocation_failed) {
+				_va_alloc.free(va);
 				return;
 			}
 
@@ -776,14 +777,12 @@ class Lima::Call
 		{
 			::uint64_t const size = arg.size;
 
-			try {
-				_alloc_buffer(size, [&](Vram const &b) {
-					arg.handle = b.id().value;
-				});
-				return 0;
-			} catch (...) {
-				return -1;
-			}
+			bool result = false;
+			_alloc_buffer(size, [&](Vram const &b) {
+				arg.handle = b.id().value;
+				result = true;
+			});
+			return result ? 0 : -1;
 		}
 
 		int _drm_lima_gem_submit(drm_lima_gem_submit &arg)
