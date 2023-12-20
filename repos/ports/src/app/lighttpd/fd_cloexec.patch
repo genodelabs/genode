@@ -45,6 +45,15 @@
      return fcntl(fd, F_DUPFD_CLOEXEC, 3);
    #else
      const int newfd = fcntl(fd, F_DUPFD, 3);
+@@ -203,7 +203,7 @@
+ /* O_CLOEXEC handled further below, if defined) */
+ #ifdef O_NONBLOCK
+ #define FDEVENT_O_FLAGS \
+-        (O_BINARY | O_LARGEFILE | O_NOCTTY | O_NONBLOCK)
++        (O_BINARY | O_LARGEFILE | O_NOCTTY )
+ #else
+ #define FDEVENT_O_FLAGS \
+         (O_BINARY | O_LARGEFILE | O_NOCTTY )
 @@ -214,7 +214,7 @@
  	return open(pathname, flags | O_CLOEXEC | FDEVENT_O_FLAGS, mode);
  #else
