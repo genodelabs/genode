@@ -1,12 +1,12 @@
 /**
  *
  * \brief  Generic AHCI controller definitions
- * \author Sebasitan Sumpf
+ * \author Sebastian Sumpf
  * \date   2015-04-29
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -31,104 +31,49 @@ namespace Ahci {
 
 	struct Protocol;
 	struct Port;
-	template <size_t> struct Port_base_tpl;
-	using Port_base = Port_base_tpl<0x28>;
+	struct Port_base;
+	struct Port_mmio;
 	struct Hba;
+	struct Hba_mmio;
+	struct Resources;
 
 	using Response       = Block::Request_stream::Response;
 	using block_number_t = Block::block_number_t;
 	using block_count_t  = Block::block_count_t;
 }
 
+
 /**
- * HBA definitions
+ * HBA mmio definitions
  */
-struct Ahci::Hba : private Platform::Device::Mmio<0x28>
+struct Ahci::Hba_mmio : Platform::Device::Mmio<0x28>
 {
 	using Platform::Device::Mmio<SIZE>::base;
 	using Index = Platform::Device::Mmio<SIZE>::Index;
 
-	Platform::Device::Irq _irq;
-
-	/*
-	 * mmio region of AHCI controller is always in BAR 5
-	 */
-	class No_bar : Genode::Exception { };
-
-	Index _mmio_index(Platform::Connection &platform)
-	{
-		unsigned index = 0;
-		unsigned bar5  = ~0u;
-
-		platform.update();
-
-		platform.with_xml([&] (Xml_node & xml) {
-			xml.with_optional_sub_node("device", [&] (Xml_node xml) {
-				xml.for_each_sub_node("io_mem", [&] (Xml_node node) {
-					unsigned bar = node.attribute_value("pci_bar", ~0u);
-					if (bar == 5) bar5 = index;
-					index++;
-				});
-			});
-		});
-
-		if (bar5 == ~0u) {
-			error("MMIO region of HBA (BAR 5) not found. Try adding\n"
-			      "<policy info=\"yes\" ...>\n"
-			      "to platform driver configuration.");
-			throw No_bar();
-		}
-
-		return { bar5 };
-	}
-
-	Hba(Platform::Device        & dev,
-	    Signal_context_capability cap,
-	    Platform::Connection    & platform)
-	:
-		Platform::Device::Mmio<SIZE>(dev, _mmio_index(platform)),
-		_irq(dev)
-	{
-		log("version: "
-		    "major=", Hex(read<Hba::Version::Major>()), " "
-		    "minor=", Hex(read<Hba::Version::Minor>()));
-		log("command slots: ", command_slots());
-		log("native command queuing: ", ncq() ? "yes" : "no");
-		log("64-bit support: ", supports_64bit() ? "yes" : "no");
-
-		_irq.sigh(cap);
-
-		/* enable AHCI */
-		write<Ghc::Ae>(1);
-
-		/* enable interrupts */
-		write<Ghc::Ie>(1);
-	}
+	Hba_mmio(Platform::Device &device, Platform::Device::Mmio<0x28>::Index const &index)
+	: Platform::Device::Mmio<0x28>(device, index)
+	{ }
 
 	/**
-	 * Host capabilites
+	 * Host capabilities
 	 */
 	struct Cap : Register<0x0, 32>
 	{
-		struct Np   : Bitfield<0, 4> { };  /* number of ports */
-		struct Ncs  : Bitfield<8, 5> { };  /* number of command slots */
+		struct Np   : Bitfield< 0, 4> { }; /* number of ports */
+		struct Ncs  : Bitfield< 8, 5> { }; /* number of command slots */
 		struct Iss  : Bitfield<20, 4> { }; /* interface speed support */
 		struct Sncq : Bitfield<30, 1> { }; /* supports native command queuing */
 		struct Sa64 : Bitfield<31, 1> { }; /* supports 64 bit addressing */
 	};
-
-	unsigned port_count()    { return read<Cap::Np>() + 1; }
-	unsigned command_slots() { return read<Cap::Ncs>() + 1; }
-	bool     ncq()           { return !!read<Cap::Sncq>(); }
-	bool     supports_64bit(){ return !!read<Cap::Sa64>(); }
 
 	/**
 	 * Generic host control
 	 */
 	struct Ghc : Register<0x4, 32>
 	{
-		struct Hr : Bitfield<0, 1> { };  /* hard reset */
-		struct Ie : Bitfield<1, 1> { };  /* interrupt enable */
+		struct Hr : Bitfield< 0, 1> { }; /* hard reset */
+		struct Ie : Bitfield< 1, 1> { }; /* interrupt enable */
 		struct Ae : Bitfield<31, 1> { }; /* AHCI enable */
 	};
 
@@ -136,12 +81,6 @@ struct Ahci::Hba : private Platform::Device::Mmio<0x28>
 	 * Interrupt status
 	 */
 	struct Is : Register<0x8, 32> { };
-
-	void ack_irq()
-	{
-		write<Is>(read<Is>());
-		_irq.ack();
-	}
 
 	/**
 	 * Ports implemented
@@ -155,36 +94,232 @@ struct Ahci::Hba : private Platform::Device::Mmio<0x28>
 	 */
 	struct Version : Register<0x10, 32>
 	{
-		struct Minor : Bitfield<0, 16> { };
+		struct Minor : Bitfield< 0, 16> { };
 		struct Major : Bitfield<16, 16> { };
 	};
 
 	struct Cap2 : Register<0x24, 32> { };
+};
+
+
+/**
+ * HBA definitions
+ */
+struct Ahci::Hba
+{
+	Resources &_resource;
+
+	void with_mmio (auto const &, auto const &);
+	void with_mmio (auto const &, auto const &) const;
+
+	Hba(Resources &resource) : _resource(resource)
+	{
+		with_mmio([&](Hba_mmio &mmio) {
+
+			log("version: "
+			    "major=", Hex(mmio.read<Hba_mmio::Version::Major>()), " "
+			    "minor=", Hex(mmio.read<Hba_mmio::Version::Minor>()));
+			log("command slots: ", command_slots());
+			log("native command queuing: ", ncq() ? "yes" : "no");
+			log("64-bit support: ", supports_64bit() ? "yes" : "no");
+
+			/* enable AHCI */
+			mmio.write<Hba_mmio::Ghc::Ae>(1);
+
+			/* enable interrupts */
+			mmio.write<Hba_mmio::Ghc::Ie>(1);
+		}, [&]() { error("Hba init failed"); });
+	}
+
+	unsigned port_count() const
+	{
+		unsigned result = 0;
+
+		with_mmio([&](Hba_mmio const &mmio) {
+			result = mmio.read<Hba_mmio::Cap::Np>() + 1;
+		}, [&] () { /* no port count in case hardware is not available */ });
+
+		return result;
+	}
+
+	unsigned command_slots() const
+	{
+		unsigned result = 0;
+
+		with_mmio([&](Hba_mmio const &mmio) {
+			result = mmio.read<Hba_mmio::Cap::Ncs>() + 1;
+		}, [&] () { /* no mmio, no commands */ });
+
+		return result;
+	}
+
+	bool ncq() const
+	{
+		bool result = false;
+
+		with_mmio([&](Hba_mmio const &mmio) {
+			result = !!mmio.read<Hba_mmio::Cap::Sncq>();
+		}, [&] () { /* no mmio, no ncq */ });
+
+		return result;
+	}
+
+	bool supports_64bit() const
+	{
+		bool result = false;
+
+		with_mmio([&](Hba_mmio const &mmio) {
+			result = !!mmio.read<Hba_mmio::Cap::Sa64>();
+		}, [&] () { /* no mmio, no 64bit */ });
+
+		return result;
+	}
 
 	bool port_implemented(unsigned port) const
 	{
-		return read<Hba::Pi>() & (1u << port);
+		bool result = false;
+
+		with_mmio([&](Hba_mmio const &mmio) {
+			result = mmio.read<Hba_mmio::Pi>() & (1u << port);
+		}, [&] () { /* no mmio, no port */ });
+
+		return result;
 	}
 
 	/* for diagnostics */
-	unsigned pi_value()     const { return read<Hba::Pi>(); }
-	unsigned cap_np_value() const { return read<Cap::Np>(); }
-
-	template <typename FN>
-	void handle_irq(FN const & fn)
+	unsigned pi_value() const
 	{
-		unsigned port_list = read<Hba::Is>();
-		while (port_list) {
-			unsigned port = log2(port_list);
-			port_list    &= ~(1U << port);
-			fn(port);
-		}
+		unsigned value = 0;
 
-		/* clear status register */
-		ack_irq();
+		with_mmio([&](Hba_mmio const &mmio) {
+			 value = mmio.read<Hba_mmio::Pi>();
+		}, [&] () { /* no mmio, no diagnostic */ });
+
+		return value;
 	}
 
-	Byte_range_ptr range_at(off_t offset) const { return Platform::Device::Mmio<SIZE>::range_at(offset); }
+	unsigned cap_np_value() const
+	{
+		unsigned value = 0;
+
+		with_mmio([&](Hba_mmio const &mmio) {
+			value = mmio.read<Hba_mmio::Cap::Np>();
+		}, [&] () { /* no mmio, no diagnostic */ });
+
+		return value;
+	}
+
+	void ack_irq();
+
+	void handle_irq(auto const &fn, auto const &fn_error)
+	{
+		with_mmio([&](Hba_mmio &mmio) {
+			unsigned port_list = mmio.read<Hba_mmio::Is>();
+			while (port_list) {
+				unsigned port = log2(port_list);
+				port_list    &= ~(1U << port);
+				fn(port);
+			}
+
+			/* clear status register */
+			ack_irq();
+		}, fn_error);
+	}
+};
+
+
+struct Ahci::Resources
+{
+	private:
+
+		using Device = Platform::Device;
+
+		Platform::Connection              _platform;
+		Signal_context_capability const   _irq_cap;
+		Reconstructible<Device>           _device { _platform };
+		Reconstructible<Device::Irq>      _irq    { *_device };
+		Reconstructible<Hba_mmio>         _mmio   { *_device, _mmio_index(_platform) };
+		Hba                               _hba    { *this };
+
+
+		/*
+		 * mmio region of AHCI controller is always in BAR 5
+		 */
+		class No_bar : Genode::Exception { };
+
+
+		Hba_mmio::Index _mmio_index(Platform::Connection &platform)
+		{
+			unsigned index = 0;
+			unsigned bar5  = ~0u;
+
+			platform.update();
+
+			platform.with_xml([&] (Xml_node const & xml) {
+				xml.with_optional_sub_node("device", [&] (Xml_node const &xml) {
+					xml.for_each_sub_node("io_mem", [&] (Xml_node const &node) {
+						unsigned bar = node.attribute_value("pci_bar", ~0u);
+						if (bar == 5) bar5 = index;
+						index++;
+					});
+				});
+			});
+
+			if (bar5 == ~0u) {
+				error("MMIO region of HBA (BAR 5) not found. Try adding\n"
+				      "<policy info=\"yes\" ...>\n"
+				      "to platform driver configuration.");
+				throw No_bar();
+			}
+
+			return { bar5 };
+		}
+
+		void reinit()
+		{
+			if (_irq.constructed())
+				_irq->sigh(_irq_cap);
+		}
+
+	public:
+
+		Resources(Env &env, Signal_context_capability const &irq_cap)
+		:
+			_platform(env), _irq_cap(irq_cap)
+		{
+			reinit();
+		}
+
+		void with_mmio_irq(auto const &fn, auto const &fn_error)
+		{
+			if (_mmio.constructed() && _irq.constructed())
+				fn(*_mmio, *_irq);
+			else
+				fn_error();
+		}
+
+		void with_mmio(auto const &fn, auto const &fn_error)
+		{
+			if (_mmio.constructed())
+				fn(*_mmio);
+			else
+				fn_error();
+		}
+
+		void with_mmio(auto const &fn, auto const &fn_error) const
+		{
+			if (_mmio.constructed())
+				fn(*_mmio);
+			else
+				fn_error();
+		}
+
+		void with_hba(auto const &fn)
+		{
+			fn(_hba);
+		}
+
+		void with_platform(auto const &fn) { fn(_platform); }
 };
 
 
@@ -433,7 +568,8 @@ namespace Ahci {
 		Prdt(Byte_range_ptr const &range, addr_t phys, size_t bytes)
 		: Mmio(range)
 		{
-			uint64_t addr = phys;
+			uint64_t const addr = phys;
+
 			write<Dba>((uint32_t)addr);
 			write<Dbau>((uint32_t)(addr >> 32));
 			write<Bits::Dbc>((uint32_t)(bytes > 0 ? bytes - 1 : 0));
@@ -447,9 +583,8 @@ namespace Ahci {
 	{
 		Command_fis   fis;
 		Atapi_command atapi_cmd;
-
 		/* in Genode we only need one PRD (for one packet) */
-		Prdt            prdt;
+		Prdt          prdt;
 
 		enum { ATAPI_CMD_OFF = 0x40 };
 		enum { PRDT_OFF = 0x80 };
@@ -468,11 +603,8 @@ namespace Ahci {
 /**
  * Minimalistic AHCI port structure to merely detect device signature
  */
-template <Genode::size_t SIZE>
-struct Ahci::Port_base_tpl : Mmio<SIZE>
+struct Ahci::Port_base
 {
-	using Base = Mmio<SIZE>;
-
 	/* device signature */
 	enum Signature {
 		ATA_SIG        = 0x101,
@@ -480,29 +612,60 @@ struct Ahci::Port_base_tpl : Mmio<SIZE>
 		ATAPI_SIG_QEMU = 0xeb140000, /* will be fixed in Qemu */
 	};
 
-	unsigned              index { };
-	Platform::Connection &plat;
-	Hba                  &hba;
-	Base::Delayer        &delayer;
-
 	/**
 	 * Port signature
 	 */
-	struct Sig : Base::template Register<0x24, 32> { };
+	struct Mmio_port : public Mmio<0x28> {
+		Mmio_port(Byte_range_ptr const &range) : Mmio<0x28>(range) { }
+
+		struct Sig : Register<0x24, 32> { };
+	};
+
+	unsigned             const  index;
+	Platform::Connection       &plat;
+	Hba                        &hba;
+	Mmio_port::Delayer         &delayer;
 
 	static constexpr addr_t offset() { return 0x100; }
 	static constexpr size_t size()   { return 0x80;  }
 
-	Port_base_tpl(unsigned index, Platform::Connection &plat, Hba &hba,
-	          Base::Delayer &delayer)
-	: Base(hba.range_at(offset() + (index * size()))),
+	Port_base(unsigned index, Platform::Connection &plat, Hba &hba,
+	          Mmio_port::Delayer &delayer)
+	:
 	  index(index), plat(plat), hba(hba), delayer(delayer) { }
 
-	bool ata() const { return Base::template read<Sig>() == ATA_SIG; }
+	void with_mmio_port(auto const &fn) const
+	{
+		hba.with_mmio([&](Hba_mmio &hba_mmio) {
+			Mmio_port const mmio(hba_mmio.range_at(offset() + (index * size())));
+
+			fn(mmio);
+		}, [&]() { error("with_mmio_port failed"); });
+	}
+
+	bool implemented() const
+	{
+		return hba.port_implemented(index);
+	}
+
+	bool ata() const
+	{
+		bool ata = false;
+
+		with_mmio_port([&](Mmio_port const &mmio) {
+			ata = mmio.read<Mmio_port::Sig>() == ATA_SIG; });
+
+		return ata;
+	}
 
 	bool atapi() const
 	{
-		unsigned sig = Base::template read<Sig>();
+		unsigned sig = 0;
+
+		with_mmio_port([&](Mmio_port const &mmio) {
+			sig = mmio.read<Mmio_port::Sig>();
+		});
+
 		return sig == ATAPI_SIG || sig == ATAPI_SIG_QEMU;
 	}
 };
@@ -510,99 +673,27 @@ struct Ahci::Port_base_tpl : Mmio<SIZE>
 
 struct Ahci::Protocol : Interface
 {
-	virtual unsigned init(Port &port) = 0;
+	virtual unsigned             init(Port &, Port_mmio &) = 0;
 	virtual Block::Session::Info info() const = 0;
-	virtual void handle_irq(Port &port) = 0;
-
-	virtual Response submit(Port &port, Block::Request const request) = 0;
-	virtual Block::Request completed(Port &port) = 0;
-
-	virtual void writeable(bool rw) = 0;
+	virtual Response             submit(Port &, Block::Request const &, Port_mmio &) = 0;
+	virtual Block::Request       completed(Port_mmio &) = 0;
+	virtual void                 handle_irq(Port &, Port_mmio &) = 0;
+	virtual void                 writeable(bool rw) = 0;
 };
 
-/**
- * AHCI port
- */
-struct Ahci::Port : private Port_base_tpl<0x3c>
-{
-	using Port_base_tpl::write;
-	using Port_base_tpl::read;
-	using Port_base_tpl::wait_for_any;
-	using Port_base_tpl::wait_for;
-	using Port_base_tpl::Register_set::Polling_timeout;
-	using Port_base_tpl::index;
-	using Port_base_tpl::hba;
-	using Port_base_tpl::delayer;
-	using Port_base_tpl::plat;
 
-	struct Not_ready : Exception { };
-
-	Protocol    &protocol;
-	Region_map  &rm;
-	unsigned     cmd_slots = hba.command_slots();
-
-	Platform::Dma_buffer device_dma { plat, 0x1000, CACHED };
-	Platform::Dma_buffer cmd_dma    { plat,
-		align_addr(cmd_slots * Command_table::size(), 12), CACHED };
-	Platform::Dma_buffer device_info_dma { plat, 0x1000, CACHED };
-
-	addr_t device_info_dma_addr = 0;
-
-	Constructible<Byte_range_ptr> cmd_list { };
-	Constructible<Byte_range_ptr> fis { };
-	Constructible<Byte_range_ptr> cmd_table { };
-	Constructible<Byte_range_ptr> device_info { };
-
-	Constructible<Platform::Dma_buffer> dma_buffer { };
-	addr_t dma_base  = 0; /* physical address of DMA memory */
-
-	Port(Protocol &protocol, Region_map &rm, Platform::Connection & plat,
-	     Hba &hba, Mmio::Delayer &delayer, unsigned index)
-	:
-		Port_base_tpl(index, plat, hba, delayer),
-		protocol(protocol), rm(rm)
-	{
-		reset();
-		if (!enable())
-			throw 1;
-
-		stop();
-
-		wait_for(delayer, Cmd::Cr::Equal(0));
-
-		init();
-
-		/*
-		 * Init protocol and determine actual number of command slots of device
-		 */
-		try {
-			unsigned device_slots = protocol.init(*this);
-			cmd_slots = min(device_slots, cmd_slots);
-		} catch (Polling_timeout) {
-			/* ack any pending IRQ from failed device initialization */
-			ack_irq();
-			throw;
-		}
-	}
-
-	virtual ~Port() { }
+struct Ahci::Port_mmio : public Mmio<0x3c> {
+	Port_mmio(Byte_range_ptr const &range) : Mmio<0x3c>(range) { }
 
 	/**
 	 * Command list base (1K length naturally aligned)
 	 */
-	struct Clb : Register<0x0, 32> { };
+	struct Clb  : Register<0x0, 32> { };
 
 	/**
 	 * Command list base upper 32 bit
 	 */
 	struct Clbu : Register<0x4, 32> { };
-
-	void command_list_base(addr_t phys)
-	{
-		uint64_t addr = phys;
-		write<Clb> ((uint32_t)(addr));
-		write<Clbu>((uint32_t)(addr >> 32));
-	}
 
 	/**
 	 * FIS base address (256 bytes naturally aligned)
@@ -614,23 +705,16 @@ struct Ahci::Port : private Port_base_tpl<0x3c>
 	 */
 	struct Fbu : Register<0xc, 32> { };
 
-	void fis_rcv_base(addr_t phys)
-	{
-		uint64_t addr = phys;
-		write<Fb> ((uint32_t)(addr));
-		write<Fbu>((uint32_t)(addr >> 32));
-	}
-
 	/**
 	 * Port interrupt status
 	 */
 	struct Is : Register<0x10, 32, 1>
 	{
-		struct Dhrs : Bitfield<0, 1> { };  /* device to host register FIS */
-		struct Pss  : Bitfield<1, 1> { };  /* PIO setup FIS */
-		struct Dss  : Bitfield<2, 1> { };  /* DMA setup FIS */
-		struct Sdbs : Bitfield<3, 1> { };  /* Set device bit  */
-		struct Pcs  : Bitfield<6, 1> { };  /* port connect change status */
+		struct Dhrs : Bitfield< 0, 1> { }; /* device to host register FIS */
+		struct Pss  : Bitfield< 1, 1> { }; /* PIO setup FIS */
+		struct Dss  : Bitfield< 2, 1> { }; /* DMA setup FIS */
+		struct Sdbs : Bitfield< 3, 1> { }; /* Set device bit  */
+		struct Pcs  : Bitfield< 6, 1> { }; /* port connect change status */
 		struct Prcs : Bitfield<22, 1> { }; /* PhyRdy change status */
 		struct Infs : Bitfield<26, 1> { }; /* interface non-fatal error */
 		struct Ifs  : Bitfield<27, 1> { }; /* interface fatal error */
@@ -642,32 +726,17 @@ struct Ahci::Port : private Port_base_tpl<0x3c>
 		struct Dma_ext_irq : Bitfield<0, 3> { };
 	};
 
-	void ack_irq()
-	{
-		Is::access_t status = read <Is>();
-
-		/* clear Serr.Diag.x */
-		if (Is::Pcs::get(status))
-			write<Serr::Diag::X>(0);
-
-		/* clear Serr.Diag.n */
-		if (Is::Prcs::get(status))
-			write<Serr::Diag::N>(0);
-
-		write<Is>(read<Is>());
-	};
-
 	/**
 	 * Port interrupt enable
 	 */
 	struct Ie : Register<0x14, 32, 1>
 	{
-		struct Dhre : Bitfield<0, 1> { };  /* device to host register FIS interrupt */
-		struct Pse  : Bitfield<1, 1> { };  /* PIO setup FIS interrupt */
-		struct Dse  : Bitfield<2, 1> { };  /* DMA setup FIS interrupt */
-		struct Sdbe : Bitfield<3, 1> { };  /* set device bits FIS interrupt (ncq) */
-		struct Ufe  : Bitfield<4, 1> { };  /* unknown FIS */
-		struct Dpe  : Bitfield<5, 1> { };  /* descriptor processed */
+		struct Dhre : Bitfield< 0, 1> { }; /* device to host register FIS interrupt */
+		struct Pse  : Bitfield< 1, 1> { }; /* PIO setup FIS interrupt */
+		struct Dse  : Bitfield< 2, 1> { }; /* DMA setup FIS interrupt */
+		struct Sdbe : Bitfield< 3, 1> { }; /* set device bits FIS interrupt (ncq) */
+		struct Ufe  : Bitfield< 4, 1> { }; /* unknown FIS */
+		struct Dpe  : Bitfield< 5, 1> { }; /* descriptor processed */
 		struct Ifne : Bitfield<26, 1> { }; /* interface non-fatal error */
 		struct Ife  : Bitfield<27, 1> { }; /* interface fatal error */
 		struct Hbde : Bitfield<28, 1> { }; /* host bus data error */
@@ -675,73 +744,20 @@ struct Ahci::Port : private Port_base_tpl<0x3c>
 		struct Tfee : Bitfield<30, 1> { }; /* task file error */
 	};
 
-	void interrupt_enable()
-	{
-		Ie::access_t ie = 0;
-		Ie::Dhre::set(ie, 1);
-		Ie::Pse::set(ie, 1);
-		Ie::Dse::set(ie, 1);
-		Ie::Sdbe::set(ie, 1);
-		Ie::Ufe::set(ie, 1);
-		Ie::Dpe::set(ie, 1);
-		Ie::Ifne::set(ie, 1);
-		Ie::Hbde::set(ie, 1);
-		Ie::Hbfe::set(ie, 1);
-		Ie::Tfee::set(ie, 1);
-		write<Ie>(~0U);
-	}
-
 	/**
 	 * Port command
 	 */
 	struct Cmd : Register<0x18, 32>
 	{
-		struct St    : Bitfield<0, 1> { };  /* start */
-		struct Sud   : Bitfield<1, 1> { };  /* spin-up device */
-		struct Pod   : Bitfield<2, 1> { };  /* power-up device */
-		struct Fre   : Bitfield<4, 1> { };  /* FIS receive enable */
+		struct St    : Bitfield< 0, 1> { }; /* start */
+		struct Sud   : Bitfield< 1, 1> { }; /* spin-up device */
+		struct Pod   : Bitfield< 2, 1> { }; /* power-up device */
+		struct Fre   : Bitfield< 4, 1> { }; /* FIS receive enable */
 		struct Fr    : Bitfield<14, 1> { }; /* FIS receive running */
 		struct Cr    : Bitfield<15, 1> { }; /* command list running */
 		struct Atapi : Bitfield<24, 1> { };
 		struct Icc   : Bitfield<28, 4> { }; /* interface communication control */
 	};
-
-	void start()
-	{
-		if (read<Cmd::St>())
-			return;
-
-		try {
-			wait_for(delayer, Tfd::Sts_bsy::Equal(0));
-		} catch (Polling_timeout) {
-			error("HBA busy unable to start command processing.");
-			return;
-		}
-
-		try {
-			wait_for(delayer, Tfd::Sts_drq::Equal(0));
-		} catch (Polling_timeout) {
-			error("HBA in DRQ unable to start command processing.");
-			return;
-		}
-
-		write<Cmd::St>(1);
-	}
-
-	void stop()
-	{
-		if (!(read<Ci>() | read<Sact>()))
-			write<Cmd::St>(0);
-	}
-
-	void power_up()
-	{
-		Cmd::access_t cmd = read<Cmd>();
-		Cmd::Sud::set(cmd, 1);
-		Cmd::Pod::set(cmd, 1);
-		Cmd::Fre::set(cmd, 1);
-		write<Cmd>(cmd);
-	}
 
 	/**
 	 * Task file data
@@ -773,58 +789,6 @@ struct Ahci::Port : private Port_base_tpl<0x3c>
 		};
 	};
 
-	bool enable()
-	{
-		Ssts::access_t status = read<Ssts>();
-		if (Ssts::Dec::get(status) == Ssts::Dec::NONE)
-			return false;
-
-		/* if in power-mgmt state (partial or slumber)  */
-		if (Ssts::Ipm::get(status) & Ssts::Ipm::SUSPEND) {
-			/* try to wake up device */
-			write<Cmd::Icc>(Ssts::Ipm::ACTIVE);
-
-			retry<Not_ready>(
-				[&] {
-							if ((Ssts::Dec::get(status) != Ssts::Dec::ESTABLISHED) ||
-							    !(Ssts::Ipm::get(status) &  Ssts::Ipm::ACTIVE))
-								throw Not_ready();
-				},
-				[&] {
-					delayer.usleep(1000);
-					status = read<Ssts>();
-				}, 10);
-		}
-
-		return ((Ssts::Dec::get(status) == Ssts::Dec::ESTABLISHED) &&
-		        (Ssts::Ipm::get(status) &  Ssts::Ipm::ACTIVE));
-	}
-
-	/**
-	 * Serial ATA control
-	 */
-	struct Sctl : Register<0x2c, 32>
-	{
-		struct Det  : Bitfield<0, 4> { }; /* device dectection initialization */
-		struct Ipmt : Bitfield<8, 4> { }; /* allowed power management transitions */
-	};
-
-	void reset()
-	{
-		if (read<Cmd::St>())
-			warning("CMD.ST bit set during device reset --> unknown behavior");
-
-		write<Sctl::Det>(1);
-		delayer.usleep(1000);
-		write<Sctl::Det>(0);
-
-		try {
-			wait_for(delayer, Ssts::Dec::Equal(Ssts::Dec::ESTABLISHED));
-		} catch (Polling_timeout) {
-			warning("Port reset failed");
-		}
-	}
-
 	/**
 	 * Serial ATA error
 	 */
@@ -837,7 +801,14 @@ struct Ahci::Port : private Port_base_tpl<0x3c>
 		};
 	};
 
-	void clear_serr() { write<Serr>(read<Serr>()); }
+	/**
+	 * Serial ATA control
+	 */
+	struct Sctl : Register<0x2c, 32>
+	{
+		struct Det  : Bitfield<0, 4> { }; /* device detection initialization */
+		struct Ipmt : Bitfield<8, 4> { }; /* allowed power management transitions */
+	};
 
 	/**
 	 * Serial ATA active (strict write)
@@ -848,41 +819,259 @@ struct Ahci::Port : private Port_base_tpl<0x3c>
 	 * Command issue (strict write)
 	 */
 	struct Ci : Register<0x38, 32, true> { };
+};
 
-	void init()
+
+/**
+ * AHCI port
+ */
+struct Ahci::Port : private Port_base
+{
+	using Port_base::index;
+	using Port_base::hba;
+	using Port_base::delayer;
+	using Port_base::plat;
+
+	struct Not_ready : Exception { };
+
+	Protocol    &protocol;
+	Region_map  &rm;
+	unsigned     cmd_slots = hba.command_slots();
+
+	Platform::Dma_buffer device_dma { plat, 0x1000, CACHED };
+	Platform::Dma_buffer cmd_dma    { plat,
+		align_addr(cmd_slots * Command_table::size(), 12), CACHED };
+	Platform::Dma_buffer device_info_dma { plat, 0x1000, CACHED };
+
+	addr_t device_info_dma_addr = 0;
+
+	Constructible<Byte_range_ptr> cmd_list { };
+	Constructible<Byte_range_ptr> fis { };
+	Constructible<Byte_range_ptr> cmd_table { };
+	Constructible<Byte_range_ptr> device_info { };
+
+	Constructible<Platform::Dma_buffer> dma_buffer { };
+	addr_t dma_base  = 0; /* physical address of DMA memory */
+
+	void _with_port_mmio(auto const &fn, auto const &fn_error)
+	{
+		hba.with_mmio([&](Hba_mmio &hba_mmio) {
+			auto range = hba_mmio.range_at(offset() + (index * size()));
+			Port_mmio mmio(range);
+
+			fn(mmio);
+		}, fn_error);
+	}
+
+	Port(Protocol &protocol, Region_map &rm, Platform::Connection & plat,
+	     Hba &hba, Mmio_port::Delayer &delayer, unsigned index)
+	:
+		Port_base(index, plat, hba, delayer),
+		protocol(protocol), rm(rm)
+	{
+		_with_port_mmio([&](Port_mmio &mmio) {
+			reset(mmio);
+
+			if (!enable(mmio))
+				throw 1;
+
+			stop(mmio);
+
+			mmio.wait_for(delayer, Cmd::Cr::Equal(0));
+
+			init(mmio);
+
+			/*
+			 * Init protocol and determine actual number of command slots of device
+			 */
+			try {
+				unsigned const device_slots = protocol.init(*this, mmio);
+				cmd_slots                   = min(device_slots, cmd_slots);
+			} catch (Polling_timeout) {
+				/* ack any pending IRQ from failed device initialization */
+				ack_irq(mmio);
+				throw;
+			}
+		}, [&](){ error("Port() failed"); });
+	}
+
+	virtual ~Port() { }
+
+	void command_list_base(uint64_t const phys, Port_mmio &mmio)
+	{
+		mmio.write<Port_mmio::Clb> ((uint32_t)(phys));
+		mmio.write<Port_mmio::Clbu>((uint32_t)(phys >> 32));
+	}
+
+	void fis_rcv_base(uint64_t const phys, Port_mmio &mmio)
+	{
+		mmio.write<Port_mmio::Fb> ((uint32_t)(phys));
+		mmio.write<Port_mmio::Fbu>((uint32_t)(phys >> 32));
+	}
+
+	typedef Port_mmio::Is   Is;
+	typedef Port_mmio::Ie   Ie;
+	typedef Port_mmio::Cmd  Cmd;
+	typedef Port_mmio::Tfd  Tfd;
+	typedef Port_mmio::Ssts Ssts;
+	typedef Port_mmio::Serr Serr;
+	typedef Port_mmio::Sctl Sctl;
+	typedef Port_mmio::Sact Sact;
+	typedef Port_mmio::Ci   Ci;
+
+	typedef Port_mmio::Register_set::Polling_timeout Polling_timeout;
+
+	void ack_irq(Port_mmio &mmio)
+	{
+		auto const status = mmio.read<Is>();
+
+		/* clear Serr.Diag.x */
+		if (Is::Pcs::get(status))
+			mmio.write<Serr::Diag::X>(0);
+
+		/* clear Serr.Diag.n */
+		if (Is::Prcs::get(status))
+			mmio.write<Serr::Diag::N>(0);
+
+		mmio.write<Is>(mmio.read<Is>());
+	};
+
+	void interrupt_enable(Port_mmio &mmio)
+	{
+		Ie::access_t ie = 0;
+		Ie::Dhre::set(ie, 1);
+		Ie::Pse ::set(ie, 1);
+		Ie::Dse ::set(ie, 1);
+		Ie::Sdbe::set(ie, 1);
+		Ie::Ufe ::set(ie, 1);
+		Ie::Dpe ::set(ie, 1);
+		Ie::Ifne::set(ie, 1);
+		Ie::Hbde::set(ie, 1);
+		Ie::Hbfe::set(ie, 1);
+		Ie::Tfee::set(ie, 1);
+		mmio.write<Ie>(~0U);
+	}
+
+	void start(Port_mmio &mmio)
+	{
+		if (mmio.read<Cmd::St>())
+			return;
+
+		try {
+			mmio.wait_for(delayer, Tfd::Sts_bsy::Equal(0));
+		} catch (Polling_timeout) {
+			error("HBA busy unable to start command processing.");
+			return;
+		}
+
+		try {
+			mmio.wait_for(delayer, Tfd::Sts_drq::Equal(0));
+		} catch (Polling_timeout) {
+			error("HBA in DRQ unable to start command processing.");
+			return;
+		}
+
+		mmio.write<Cmd::St>(1);
+	}
+
+	void stop(Port_mmio &mmio)
+	{
+		if (!(mmio.read<Ci>() | mmio.read<Sact>()))
+			mmio.write<Cmd::St>(0);
+	}
+
+	void power_up(Port_mmio &mmio)
+	{
+		Cmd::access_t cmd = mmio.read<Cmd>();
+		Cmd::Sud::set(cmd, 1);
+		Cmd::Pod::set(cmd, 1);
+		Cmd::Fre::set(cmd, 1);
+		mmio.write<Cmd>(cmd);
+	}
+
+	bool enable(Port_mmio &mmio)
+	{
+		auto status = mmio.read<Ssts>();
+		if (Ssts::Dec::get(status) == Ssts::Dec::NONE)
+			return false;
+
+		/* if in power-mgmt state (partial or slumber)  */
+		if (Ssts::Ipm::get(status) & Ssts::Ipm::SUSPEND) {
+			/* try to wake up device */
+			mmio.write<Cmd::Icc>(Ssts::Ipm::ACTIVE);
+
+			retry<Not_ready>(
+				[&] {
+						if ((Ssts::Dec::get(status) != Ssts::Dec::ESTABLISHED) ||
+						    !(Ssts::Ipm::get(status) &  Ssts::Ipm::ACTIVE))
+						throw Not_ready();
+				},
+				[&] {
+					delayer.usleep(1000);
+					status = mmio.read<Ssts>();
+				}, 10);
+		}
+
+		return ((Ssts::Dec::get(status) == Ssts::Dec::ESTABLISHED) &&
+		        (Ssts::Ipm::get(status) &  Ssts::Ipm::ACTIVE));
+	}
+
+	void reset(Port_mmio &mmio)
+	{
+		if (mmio.read<Cmd::St>())
+			warning("CMD.ST bit set during device reset --> unknown behavior");
+
+		mmio.write<Sctl::Det>(1);
+		delayer.usleep(1000);
+		mmio.write<Sctl::Det>(0);
+
+		try {
+			mmio.wait_for(delayer, Ssts::Dec::Equal(Ssts::Dec::ESTABLISHED));
+		} catch (Polling_timeout) {
+			warning("Port reset failed");
+		}
+	}
+
+	void clear_serr(Port_mmio &mmio)
+	{
+		mmio.write<Serr>(mmio.read<Serr>());
+	}
+
+	void init(Port_mmio &mmio)
 	{
 		/* stop command list processing */
-		stop();
+		stop(mmio);
 
 		/* setup command list/table */
-		setup_memory();
+		setup_memory(mmio);
 
 		/* disallow all power-management transitions */
-		write<Sctl::Ipmt>(0x3);
+		mmio.write<Sctl::Ipmt>(0x3);
 
 		/* power-up device */
-		power_up();
+		power_up(mmio);
 
 		/* reset port */
-		reset();
+		reset(mmio);
 
 		/* clean error register */
-		clear_serr();
+		clear_serr(mmio);
 
 		/* enable required interrupts */
-		interrupt_enable();
+		interrupt_enable(mmio);
 
 		/* acknowledge all pending interrupts */
-		ack_irq();
+		ack_irq(mmio);
 		hba.ack_irq();
 	}
 
-	void setup_memory()
+	void setup_memory(Port_mmio &mmio)
 	{
 		/* command list 1K */
 		addr_t phys = device_dma.dma_addr();
+
 		cmd_list.construct(device_dma.local_addr<char>(), device_dma.size());
-		command_list_base(phys);
+		command_list_base(phys, mmio);
 
 		/* receive FIS base 256 byte */
 		enum { FIS_OFF = 1024 };
@@ -892,9 +1081,9 @@ struct Ahci::Port : private Port_base_tpl<0x3c>
 		 *  Set fis receive base, clear Fre (FIS receive) before and wait for FR
 		 *  (FIS receive running) to clear
 		 */
-		write<Cmd::Fre>(0);
-		wait_for(delayer, Cmd::Fr::Equal(0));
-		fis_rcv_base(phys + 1024);
+		mmio.write<Cmd::Fre>(0);
+		mmio.wait_for(delayer, Cmd::Fr::Equal(0));
+		fis_rcv_base(phys + 1024, mmio);
 
 		/* command table */
 		cmd_table.construct(cmd_dma.local_addr<char>(), cmd_dma.size());
@@ -924,10 +1113,11 @@ struct Ahci::Port : private Port_base_tpl<0x3c>
 		return {cmd_list->start + off, cmd_list->num_bytes - off};
 	}
 
-	void execute(unsigned slot)
+	void execute(unsigned slot, Port_mmio &mmio)
 	{
-		start();
-		write<Ci>(1U << slot);
+		start(mmio);
+
+		mmio.write<Ci>(1U << slot);
 	}
 
 	bool sanity_check(Block::Request const &request)
@@ -971,22 +1161,60 @@ struct Ahci::Port : private Port_base_tpl<0x3c>
 
 
 	Block::Session::Info info() const { return protocol.info(); }
-	void handle_irq() { protocol.handle_irq(*this); }
 
-	Response submit(Block::Request const request) {
-		return protocol.submit(*this, request); }
-
-	template <typename FN>
-	void for_one_completed_request(FN const &fn)
+	void handle_irq()
 	{
-		Block::Request request = protocol.completed(*this);
-		if (!request.operation.valid()) return;
+		_with_port_mmio([&](Port_mmio &mmio) {
+			protocol.handle_irq(*this, mmio);
+		}, [&](){ error("Port::handle_irq failed"); });
+	}
 
-		request.success = true;
-		fn(request);
+	Response submit(Block::Request const &request)
+	{
+		Response response { };
+
+		_with_port_mmio([&](Port_mmio &mmio) {
+			response = protocol.submit(*this, request, mmio);
+		}, [&](){ error("Port::submit failed"); });
+
+		return response;
+	}
+
+	void for_one_completed_request(auto const &fn)
+	{
+		_with_port_mmio([&](Port_mmio &mmio) {
+
+			Block::Request request = protocol.completed(mmio);
+			if (!request.operation.valid()) return;
+
+			request.success = true;
+			fn(request);
+
+		}, [&](){ error("for_one_completed_request failed"); });
 	}
 
 	void writeable(bool rw) { protocol.writeable(rw); }
 };
+
+
+void Ahci::Hba::ack_irq()
+{
+	_resource.with_mmio_irq([&](Hba_mmio &mmio, Platform::Device::Irq &irq) {
+		mmio.write<Hba_mmio::Is>(mmio.read<Hba_mmio::Is>());
+		irq.ack();
+	}, [&](){ error("Hba::ack_irq() failed"); });
+}
+
+
+void Ahci::Hba::with_mmio(auto const &fn, auto const &fn_error)
+{
+	_resource.with_mmio(fn, fn_error);
+}
+
+
+void Ahci::Hba::with_mmio(auto const &fn, auto const &fn_error) const
+{
+	_resource.with_mmio(fn, fn_error);
+}
 
 #endif /* _AHCI__AHCI_H_ */

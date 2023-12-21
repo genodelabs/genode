@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2020 Genode Labs GmbH
+ * Copyright (C) 2016-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -49,30 +49,26 @@ class Ahci::Driver : Noncopyable
 
 	private:
 
-		Env      &_env;
-		Dispatch &_dispatch;
-
-
 		struct Timer_delayer : Mmio<0>::Delayer, Timer::Connection
 		{
 			using Timer::Connection::Connection;
 
 			void usleep(uint64_t us) override { Timer::Connection::usleep(us); }
-		} _delayer { _env };
+		};
 
-		Signal_handler<Driver> _handler { _env.ep(), *this, &Driver::handle_irq };
+		Env                   & _env;
+		Dispatch              & _dispatch;
+		Timer_delayer           _delayer   { _env };
+		Signal_handler<Driver>  _handler   { _env.ep(), *this, &Driver::handle_irq };
+		Resources               _resources { _env, _handler };
 
-		Platform::Connection _plat   { _env };
-		Platform::Device     _device { _plat };
-		Hba                  _hba    { _device, _handler, _plat };
-
-		Constructible<Ata::Protocol>   _ata[MAX_PORTS];
+		Constructible<Ata::Protocol>   _ata  [MAX_PORTS];
 		Constructible<Atapi::Protocol> _atapi[MAX_PORTS];
 		Constructible<Port>            _ports[MAX_PORTS];
 
 		bool _enable_atapi;
 
-		unsigned _scan_ports(Region_map &rm)
+		unsigned _scan_ports(Region_map &rm, Platform::Connection &plat, Hba &hba)
 		{
 			log("port scan:");
 
@@ -80,17 +76,17 @@ class Ahci::Driver : Noncopyable
 
 			for (unsigned index = 0; index < MAX_PORTS; index++) {
 
-				if (_hba.port_implemented(index) == false)
-					continue;
+				Port_base port(index, plat, hba, _delayer);
 
-				Port_base port(index, _plat, _hba, _delayer);
+				if (port.implemented() == false)
+					continue;
 
 				bool enabled = false;
 				if (port.ata()) {
 					try {
 						_ata[index].construct();
-						_ports[index].construct(*_ata[index], rm, _plat,
-						                        _hba, _delayer, index);
+						_ports[index].construct(*_ata[index], rm, plat,
+						                        hba, _delayer, index);
 						enabled = true;
 					} catch (...) { }
 
@@ -98,8 +94,8 @@ class Ahci::Driver : Noncopyable
 				} else if (port.atapi() && _enable_atapi) {
 					try {
 						_atapi[index].construct();
-						_ports[index].construct(*_atapi[index], rm, _plat,
-						                        _hba, _delayer, index);
+						_ports[index].construct(*_atapi[index], rm, plat,
+						                        hba, _delayer, index);
 						enabled = true;
 					} catch (...) { }
 
@@ -121,11 +117,15 @@ class Ahci::Driver : Noncopyable
 		: _env(env), _dispatch(dispatch), _enable_atapi(support_atapi)
 		{
 			/* search for devices */
-			unsigned port_count = _scan_ports(env.rm());
+			_resources.with_platform([&](auto &platform) {
+				_resources.with_hba([&](auto &hba) {
+					unsigned port_count = _scan_ports(env.rm(), platform, hba);
 
-			if (port_count != _hba.port_count())
-				log("controller port count differs from detected ports (CAP.NP=",
-				    Hex(_hba.cap_np_value()), ",PI=", Hex(_hba.pi_value()), ")");
+					if (port_count != hba.port_count())
+						log("controller port count differs from detected ports (CAP.NP=",
+						    Hex(hba.cap_np_value()), ",PI=", Hex(hba.pi_value()), ")");
+				});
+			});
 		}
 
 		/**
@@ -133,12 +133,14 @@ class Ahci::Driver : Noncopyable
 		 */
 		void handle_irq()
 		{
-			_hba.handle_irq([&] (unsigned port) {
-				if (_ports[port].constructed())
-					_ports[port]->handle_irq();
+			_resources.with_hba([&](auto &hba) {
+				hba.handle_irq([&] (unsigned port) {
+					if (_ports[port].constructed())
+						_ports[port]->handle_irq();
 
-				/* handle (pending) requests */
-				_dispatch.session(port);
+					/* handle (pending) requests */
+					_dispatch.session(port);
+				}, [&]() { error("hba handle_irq failed"); });
 			});
 		}
 
@@ -295,19 +297,15 @@ struct Ahci::Block_session_component : Rpc_object<Block::Session>,
 };
 
 
-struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>,
-                    Dispatch
+struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 {
-	Env  &env;
-
-	Attached_rom_dataspace config { env, "config" };
-
-	Constructible<Ahci::Driver> driver { };
-	Constructible<Reporter> reporter { };
+	Env                                  & env;
+	Attached_rom_dataspace                 config   { env, "config" };
+	Constructible<Ahci::Driver>            driver   { };
+	Constructible<Reporter>                reporter { };
 	Constructible<Block_session_component> block_session[Driver::MAX_PORTS];
 
-	Main(Env &env)
-	: env(env)
+	Main(Env &env) : env(env)
 	{
 		log("--- Starting AHCI driver ---");
 		bool support_atapi  = config.xml().attribute_value("atapi", false);

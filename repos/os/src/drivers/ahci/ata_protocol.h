@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2020 Genode Labs GmbH
+ * Copyright (C) 2015-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -219,15 +219,15 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 		 ** Ahci::Protocol interface **
 		 ******************************/
 
-		unsigned init(Port &port) override
+		unsigned init(Port &port, Port_mmio &mmio) override
 		{
 			/* identify device */
 			Command_table table(port.command_table_range(0),
 			                    port.device_info_dma_addr, 0x1000);
 			table.fis.identify_device();
-			port.execute(0);
+			port.execute(0, mmio);
 
-			port.wait_for_any(port.delayer, Port::Is::Dss::Equal(1),
+			mmio.wait_for_any(port.delayer, Port::Is::Dss::Equal(1),
 			                                Port::Is::Pss::Equal(1),
 			                                Port::Is::Dhrs::Equal(1));
 
@@ -249,27 +249,26 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 				cmd_slots = 1;
 
 			_slots.limit((size_t)cmd_slots);
-			port.ack_irq();
+			port.ack_irq(mmio);
 
 			return cmd_slots;
 		}
 
-		void handle_irq(Port &port) override
+		void handle_irq(Port &port, Port_mmio &mmio) override
 		{
-			unsigned is = port.read<Port::Is>();
+			unsigned is = mmio.read<Port::Is>();
 
 			/* ncg */
 			if (_ncq_support(port) && Port::Is::Fpdma_irq::get(is))
 				do {
-					port.ack_irq();
-				}
-				while (Port::Is::Sdbs::get(port.read<Port::Is>()));
+					port.ack_irq(mmio);
+				} while (Port::Is::Sdbs::get(mmio.read<Port::Is>()));
 			/* normal dma */
-			else if (Port::Is::Dma_ext_irq::get(port.read<Port::Is>()))
-				port.ack_irq();
+			else if (Port::Is::Dma_ext_irq::get(mmio.read<Port::Is>()))
+				port.ack_irq(mmio);
 
-			_slot_states = port.read<Port::Ci>() | port.read<Port::Sact>();
-			port.stop();
+			_slot_states = mmio.read<Port::Ci>() | mmio.read<Port::Sact>();
+			port.stop(mmio);
 
 			_syncing = false;
 		}
@@ -284,7 +283,8 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 
 		void writeable(bool rw) override { _writeable = rw; }
 
-		Response submit(Port &port, Block::Request const request) override
+		Response submit(Port &port, Block::Request const &request,
+		                Port_mmio &mmio) override
 		{
 			Block::Operation const op = request.operation;
 
@@ -327,9 +327,9 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 			} else if (_ncq_support(port)) {
 				table.fis.fpdma(write == false, op.block_number, op.count, slot);
 				/* ensure that 'Cmd::St' is 1 before writing 'Sact' */
-				port.start();
+				port.start(mmio);
 				/* set pending */
-				port.write<Port::Sact>(1U << slot);
+				mmio.write<Port::Sact>(1U << slot);
 			} else {
 				table.fis.dma_ext(write == false, op.block_number, op.count);
 			}
@@ -339,12 +339,12 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 			header.write<Command_header::Bits::W>(write ? 1 : 0);
 			header.clear_byte_count();
 
-			port.execute(slot);
+			port.execute(slot, mmio);
 
 			return Response::ACCEPTED;
 		}
 
-		Block::Request completed(Port & /* port */) override
+		Block::Request completed(Port_mmio &) override
 		{
 			Block::Request r { };
 

@@ -1,11 +1,11 @@
 /*
- * \brief  Utilitize used by the AHCI driver
+ * \brief  Utilities used by the AHCI driver
  * \author Josef Soentgen
  * \date   2018-03-05
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
