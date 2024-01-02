@@ -434,12 +434,8 @@ struct Monitor::Main : Sandbox::State_handler,
 
 	void flush(Monitored_thread &thread) override
 	{
-		if (!_gdb_stub.constructed()) {
-			Genode::error("flush_thread() called without monitor config");
-			return;
-		}
-
-		_gdb_stub->flush(thread);
+		if (_gdb_stub.constructed())
+			_gdb_stub->flush(thread);
 	}
 
 	void thread_stopped(Capability<Pd_session> pd, Monitored_thread &thread) override
