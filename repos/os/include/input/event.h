@@ -25,13 +25,6 @@ namespace Input {
 
 	struct Touch_id { unsigned value; };
 
-	struct Axis_id
-	{
-		enum { X = 1, Y = 2 };
-
-		unsigned value;
-	};
-
 	/*
 	 * Event attributes
 	 */
@@ -47,7 +40,13 @@ namespace Input {
 	struct Touch           { Touch_id id; float x, y; };
 	struct Touch_release   { Touch_id id; };
 	struct Seq_number      { unsigned value; };
-	struct Axis            { Axis_id id; float value; };
+
+	struct Axis
+	{
+		enum class Id : unsigned { LX = 1, LY, LT, RX, RY, RT } id;
+
+		float value;
+	};
 
 	class Event;
 	class Binding;
@@ -239,7 +238,7 @@ void Input::Event::print(Genode::Output &out) const
 	case TOUCH:         print(out, "TOUCH ", _attr.touch.id.value, " ",
 	                                         _xy<float>(_attr.touch)); break;
 	case SEQ_NUMBER:    print(out, "SEQ_NUMBER ", _attr.seq_number.value); break;
-	case AXIS:          print(out, "AXIS ", _attr.axis.id.value, " ",
+	case AXIS:          print(out, "AXIS ", unsigned(_attr.axis.id), " ",
 	                                        _attr.axis.value); break;
 	};
 }
