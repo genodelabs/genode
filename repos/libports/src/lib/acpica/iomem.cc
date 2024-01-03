@@ -27,6 +27,8 @@
 extern "C" {
 #include "acpi.h"
 #include "acpiosxf.h"
+#include "accommon.h"
+#include "actables.h"
 }
 
 #define FAIL(retval) \
@@ -382,12 +384,20 @@ ACPI_PHYSICAL_ADDRESS AcpiOsGetRootPointer (void)
 	/* try platform_info ROM provided by core */
 	try {
 		Genode::Attached_rom_dataspace info(env, "platform_info");
-		Genode::Xml_node xml(info.local_addr<char>(), info.size());
-		Genode::Xml_node acpi_node = xml.sub_node("acpi");
+		Genode::Xml_node acpi_node = info.xml().sub_node("acpi");
 
+		using Genode::memcpy;
+
+		ACPI_MAKE_RSDP_SIG(faked_rsdp.Signature);
+		memcpy(faked_rsdp.OemId, "Faked", 6);
+		faked_rsdp.Checksum = 0;
 		faked_rsdp.Revision = acpi_node.attribute_value("revision", 0U);
 		faked_rsdp.RsdtPhysicalAddress = acpi_node.attribute_value("rsdt", 0UL);
+		faked_rsdp.Length = sizeof(ACPI_TABLE_RSDP);
 		faked_rsdp.XsdtPhysicalAddress = acpi_node.attribute_value("xsdt", 0UL);
+
+		/* update checksum */
+		faked_rsdp.Checksum = (UINT8) -AcpiTbChecksum((UINT8 *)&faked_rsdp, ACPI_RSDP_CHECKSUM_LENGTH);
 
 		if (faked_rsdp.XsdtPhysicalAddress || faked_rsdp.RsdtPhysicalAddress)
 			return FAKED_PHYS_RSDP_ADDR;
