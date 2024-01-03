@@ -102,7 +102,7 @@ class Genode::Session_object : private Ram_quota_guard,
 		 * mode (defined via the 'diag' session argument).
 		 */
 		template <typename... ARGS>
-		void diag(ARGS &&... args)
+		void diag(ARGS &&... args) const
 		{
 			if (_diag.enabled)
 				log(RPC_INTERFACE::service_name(), " (", _label, ") ", args...);
@@ -112,7 +112,7 @@ class Genode::Session_object : private Ram_quota_guard,
 		 * Output label-prefixed error message
 		 */
 		template <typename... ARGS>
-		void error(ARGS &&... args)
+		void error(ARGS &&... args) const
 		{
 			Genode::error(RPC_INTERFACE::service_name(), " (", _label, ") ", args...);
 		}
@@ -121,7 +121,7 @@ class Genode::Session_object : private Ram_quota_guard,
 		 * Output label-prefixed error message
 		 */
 		template <typename... ARGS>
-		void warning(ARGS &&... args)
+		void warning(ARGS &&... args) const
 		{
 			Genode::warning(RPC_INTERFACE::service_name(), " (", _label, ") ", args...);
 		}
