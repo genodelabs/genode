@@ -232,8 +232,10 @@ class Acpica::Io_mem
 			if (ref_dec())
 				return;
 
-			if (!stale())
+			if (!stale()) {
+				Acpica::env().rm().detach(_virt);
 				Genode::destroy(Acpica::heap(), _io_mem);
+			}
 
 			_phys   = _size = 0;
 			_virt   = nullptr;
@@ -298,8 +300,10 @@ class Acpica::Io_mem
 
 		Genode::addr_t pre_expand(ACPI_PHYSICAL_ADDRESS p, ACPI_SIZE s)
 		{
-			if (_io_mem)
+			if (_io_mem) {
+				Acpica::env().rm().detach(_virt);
 				Genode::destroy(Acpica::heap(), _io_mem);
+			}
 
 			Genode::addr_t xsize = _phys - p + _size;
 			if (!allocate(p, xsize, _ref))
@@ -310,8 +314,10 @@ class Acpica::Io_mem
 
 		Genode::addr_t post_expand(ACPI_PHYSICAL_ADDRESS p, ACPI_SIZE s)
 		{
-			if (_io_mem)
+			if (_io_mem) {
+				Acpica::env().rm().detach(_virt);
 				Genode::destroy(Acpica::heap(), _io_mem);
+			}
 
 			ACPI_SIZE xsize = p + s - _phys;
 			if (!allocate(_phys, xsize, _ref))
@@ -343,6 +349,7 @@ class Acpica::Io_mem
 
 					Genode::addr_t virt = reinterpret_cast<Genode::addr_t>(io2._virt);
 
+					Acpica::env().rm().detach(virt);
 					Acpica::env().rm().attach_at(io_ds, virt, io2._size, off_phys);
 				});
 
