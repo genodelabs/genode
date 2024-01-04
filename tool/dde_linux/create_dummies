@@ -154,10 +154,10 @@ endif # LINUX_KERNEL_DIR specified
 #
 # Collect undefined references for target
 #
-# use 'env - ' to reset environment, especially TARGET because it will be used by Genode's build sytem
+# Remove TARGET variable from environment, because it will be used by Genode's build sytem
 # during linking later on and not point to the actual build TARGET (GNU Make 4.4+)
 #
-UNDEF_REFS := $(sort $(subst `,,$(subst ',,$(shell env - PATH=$(PATH) make -C $(BUILD_DIR) $(TARGET) 2>&1 | grep " undefined reference to " | sed -e "s/.* reference to //"))))
+UNDEF_REFS := $(sort $(subst `,,$(subst ',,$(shell env -u TARGET make -C $(BUILD_DIR) $(TARGET) 2>&1 | grep " undefined reference to " | sed -e "s/.* reference to //"))))
 
 define print_file_header
 echo "/*"                                                       > $(2);
