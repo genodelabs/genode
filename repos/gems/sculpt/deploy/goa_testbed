@@ -1,0 +1,128 @@
+<config arch="" info="Goa testbed">
+
+	<common_routes>
+		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+		<service name="CPU">   <parent/> </service>
+		<service name="PD">    <parent/> </service>
+		<service name="LOG">   <parent/> </service>
+		<service name="Timer"> <parent/> </service>
+	</common_routes>
+
+	<start name="window_layouter" priority="-1" pkg="window_layouter">
+		<route>
+			<service name="Gui">                           <child name="wm"/> </service>
+			<service name="ROM" label="window_list">       <child name="wm"/> </service>
+			<service name="ROM" label="focus_request">     <child name="wm"/> </service>
+			<service name="ROM" label="hover">             <child name="wm"/> </service>
+			<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
+			<service name="Report">                        <child name="wm"/> </service>
+			<service name="File_system" label="recall">
+				<child name="recall_fs"/>
+			</service>
+		</route>
+	</start>
+
+	<start name="themed_decorator" priority="-1" pkg="themed_decorator">
+		<route>
+			<service name="ROM" label="window_layout"> <child name="wm"/> </service>
+			<service name="ROM" label="pointer">       <child name="wm"/> </service>
+			<service name="Report">                    <child name="wm"/> </service>
+			<service name="Gui">                       <child name="wm"/> </service>
+		</route>
+	</start>
+
+	<start name="wm" priority="-1" pkg="wm">
+		<route>
+			<service name="Gui" label="focus"> <parent label="focus"/> </service>
+			<service name="Gui">                           <parent/> </service>
+			<service name="Report" label_last="shape">     <parent/> </service>
+			<service name="Report" label_last="clipboard"> <parent/> </service>
+			<service name="ROM"    label_last="clipboard"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="fonts_fs" priority="-2" pkg="fonts_fs">
+		<route>
+			<service name="ROM" label="config">
+				<parent label="config -> managed/fonts"/>
+			</service>
+		</route>
+	</start>
+
+	<start name="recall_fs" priority="-2" pkg="recall_fs">
+		<route>
+			<service name="File_system"> <child name="default_fs_rw"/> </service>
+		</route>
+	</start>
+
+	<start name="black_hole" priority="-2" pkg="black_hole">
+		<route/>
+	</start>
+
+	<start name="sntp_dummy_rtc" pkg="sntp_dummy_rtc">
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+		</route>
+	</start>
+
+	<start name="mesa_gpu-intel" priority="-2" pkg="mesa_gpu-intel">
+		<route>
+			<service name="RM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="fs_rom" priority="-2" pkg="jschlatow/pkg/fs_rom/2023-10-24">
+		<route>
+			<service name="File_system"> <parent label="report"/> </service>
+		</route>
+	</start>
+
+	<start name="system_info" pkg="jschlatow/pkg/system_info/2024-01-04-a" priority="-2">
+		<route>
+			<service name="Gui"> <parent label="backdrop"/> </service>
+			<service name="Rtc"> <child name="sntp_dummy_rtc"/> </service>
+			<service name="ROM" label="drivers/iommu"> <child name="fs_rom"/> </service>
+			<service name="ROM" label="runtime/nic_router/state"> <child name="fs_rom"/> </service>
+		</route>
+		<config default_timezone="CET-1CEST,M3.5.0,M10.5.0" background_color="#333955">
+			<vfs> <dir name="dev"> <log/> <rtc/> </dir> </vfs>
+			<libc stdout="/dev/log" rtc="/dev/rtc"/>
+			<label>Goa Testbed</label>
+			<clock/>
+			<tabular rom="runtime/nic_router/state" alt="no IP found">
+				<node type="domain" name="uplink">
+					<row label="Uplink" attribute="ipv4"/>
+				</node>
+				<node type="domain" name="default">
+					<row label="Default" attribute="ipv4"/>
+				</node>
+			</tabular>
+		</config>
+	</start>
+
+	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2024-01-03" priority="-2">
+		<route>
+			<service name="TRACE">       <parent/> </service>
+			<service name="VM">          <parent/> </service>
+			<service name="Gpu">         <parent/> </service>
+			<service name="Gui">         <child name="wm"/>              </service>
+			<service name="Rtc">         <child name="sntp_dummy_rtc"/>  </service>
+			<service name="Audio_in">    <child name="black_hole"/>      </service>
+			<service name="Audio_out">   <child name="black_hole"/>      </service>
+			<service name="Usb">         <child name="black_hole"/>      </service>
+			<service name="Event">       <child name="black_hole"/>      </service>
+			<service name="Capture">     <child name="black_hole"/>      </service>
+			<service name="File_system"> <child name="recall_fs"/>       </service>
+			<service name="Nic" label_prefix="tcp_terminal"> <child name="nic_router" label="telnet"/> </service>
+			<service name="Nic" label_prefix="lighttpd">     <child name="nic_router" label="http"/>   </service>
+			<service name="Nic"> <!-- for test scenario -->  <child name="nic_router"/>                </service>
+			<service name="Report" label="clipboard">     <child name="wm"/> </service>
+			<service name="Report" label="shape">         <child name="wm"/> </service>
+			<service name="ROM"    label="clipboard">     <child name="wm"/> </service>
+			<service name="ROM"    label="platform_info"> <parent label="platform_info"/> </service>
+			<service name="ROM"    label="capslock">      <parent label="capslock"/>      </service>
+			<service name="ROM" label="mesa_gpu_drv.lib.so"> <child name="mesa_gpu-intel"/> </service>
+		</route>
+	</start>
+
+</config>

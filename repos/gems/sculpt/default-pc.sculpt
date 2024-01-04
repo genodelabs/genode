@@ -14,4 +14,4 @@ depot: genodelabs cnuke alex-ab mstein nfeske cproc chelmuth jschlatow
 depot: ssumpf skalk
 
 # preconfigured example scenarios
-presets: empty nano3d window_manager falkon_web_browser
+presets: empty nano3d window_manager falkon_web_browser goa_testbed
