@@ -256,14 +256,6 @@ void input_ff_destroy(struct input_dev * dev)
 }
 
 
-#include <linux/input/mt.h>
-
-void input_mt_destroy_slots(struct input_dev * dev)
-{
-	lx_emul_trace(__func__);
-}
-
-
 #include <linux/skbuff.h>
 
 void skb_init()

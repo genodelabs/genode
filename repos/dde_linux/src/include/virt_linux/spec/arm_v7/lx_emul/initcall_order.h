@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2023-08-18
+ * \date   2024-01-05
  */
 
 #pragma once
@@ -69,6 +69,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_usb_common_init4",
 	"__initcall_usb_init4",
 	"__initcall_input_init4",
+	"__initcall_power_supply_class_init4",
 	"__initcall_leds_init4",
 	"__initcall_net_dev_init4",
 	"__initcall_neigh_init4",
@@ -142,6 +143,8 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_holtek_mouse_driver_init6",
 	"__initcall_holtek_driver_init6",
 	"__initcall_ms_driver_init6",
+	"__initcall_mt_driver_init6",
+	"__initcall_wacom_driver_init6",
 	"__initcall_hid_init6",
 	"__initcall_sock_diag_init6",
 	"__initcall_failover_init6",

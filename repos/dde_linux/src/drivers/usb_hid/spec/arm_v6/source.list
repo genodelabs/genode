@@ -3,6 +3,7 @@ arch/arm/lib/div64.S
 arch/arm/lib/findbit.S
 arch/arm/lib/setbit.S
 arch/arm/lib/strchr.S
+arch/arm/lib/strrchr.S
 arch/arm/lib/testclearbit.S
 arch/arm/lib/testsetbit.S
 drivers/base/bus.c
@@ -19,8 +20,12 @@ drivers/hid/hid-generic.c
 drivers/hid/hid-holtek-mouse.c
 drivers/hid/hid-input.c
 drivers/hid/hid-microsoft.c
+drivers/hid/hid-multitouch.c
 drivers/hid/hid-quirks.c
 drivers/hid/usbhid/hid-core.c
+drivers/hid/wacom_sys.c
+drivers/hid/wacom_wac.c
+drivers/input/input-mt.c
 drivers/input/input.c
 drivers/usb/core/config.c
 drivers/usb/core/driver.c
@@ -60,6 +65,7 @@ lib/hexdump.c
 lib/hweight.c
 lib/idr.c
 lib/kasprintf.c
+lib/kfifo.c
 lib/klist.c
 lib/kobject.c
 lib/kstrtox.c

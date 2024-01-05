@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-01-22
+ * \date   2024-02-05
  */
 
 #include <lx_emul.h>
@@ -123,6 +123,22 @@ int devm_led_classdev_register_ext(struct device * parent,struct led_classdev * 
 }
 
 
+#include <linux/leds.h>
+
+int devm_led_trigger_register(struct device * dev,struct led_trigger * trig)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/power_supply.h>
+
+struct power_supply * __must_check devm_power_supply_register(struct device * parent,const struct power_supply_desc * desc,const struct power_supply_config * cfg)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack(void)
@@ -186,8 +202,9 @@ int input_ff_event(struct input_dev * dev,unsigned int type,unsigned int code,in
 }
 
 
-extern void input_mt_release_slots(struct input_dev * dev);
-void input_mt_release_slots(struct input_dev * dev)
+#include <linux/math.h>
+
+unsigned long int_sqrt(unsigned long x)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -278,9 +295,41 @@ int kobject_uevent_env(struct kobject * kobj,enum kobject_action action,char * e
 }
 
 
+#include <linux/leds.h>
+
+void led_trigger_event(struct led_trigger * trig,enum led_brightness brightness)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/moduleparam.h>
 
 int param_set_copystring(const char * val,const struct kernel_param * kp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/power_supply.h>
+
+void power_supply_changed(struct power_supply * psy)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/power_supply.h>
+
+void * power_supply_get_drvdata(struct power_supply * psy)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/power_supply.h>
+
+int power_supply_powers(struct power_supply * psy,struct device * dev)
 {
 	lx_emul_trace_and_stop(__func__);
 }
