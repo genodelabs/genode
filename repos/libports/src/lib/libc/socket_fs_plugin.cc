@@ -194,10 +194,21 @@ struct Libc::Socket_fs::Context : Plugin_context
 
 		bool _fd_read_ready(Fd type)
 		{
-			if (_fd[type].file)
-				return Libc::read_ready_from_kernel(_fd[type].file);
-			else
-				return false;
+			if (!_fd[type].file) return false;
+
+			bool ret = false;
+			auto fn = [&] {
+				ret = Libc::read_ready_from_kernel(_fd[type].file);
+				return Fn::COMPLETE;
+			};
+
+			if (Libc::Kernel::kernel().main_context() && Libc::Kernel::kernel().main_suspended()) {
+				fn();
+			} else {
+				monitor().monitor(fn);
+			}
+
+			return ret;
 		}
 
 		bool _fd_write_ready(Fd type)
