@@ -17,7 +17,10 @@ include:
 
 content: src/lib/curl
 
-content: LICENSE
+content: LICENSE FindCURL.cmake
 
 LICENSE:
 	cp $(PORT_DIR)/src/lib/curl/COPYING $@
+
+FindCURL.cmake:
+	echo 'set(CURL_FOUND True)' > $@

@@ -40,3 +40,17 @@ content: LICENSE
 
 LICENSE:
 	cp $(PORT_DIR)/src/lib/qt5/LICENSE.LGPLv3 $@
+
+CMAKE_MODULES := FindQt5Core.cmake \
+                 FindQt5Gui.cmake \
+                 FindQt5Network.cmake \
+                 FindQt5PrintSupport.cmake \
+                 FindQt5Sql.cmake \
+                 FindQt5Test.cmake \
+                 FindQt5Widgets.cmake \
+                 FindQt5Xml.cmake
+
+content: $(CMAKE_MODULES)
+
+$(CMAKE_MODULES): Find%.cmake:
+	echo 'set($*_FOUND True)' | sed -r 's/\w+_FOUND/\U&/' > $@

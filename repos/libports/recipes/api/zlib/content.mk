@@ -1,4 +1,4 @@
-content: include lib/symbols/zlib LICENSE
+content: include lib/symbols/zlib LICENSE FindZLIB.cmake
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/zlib)
 
@@ -12,3 +12,5 @@ lib/symbols/zlib:
 LICENSE:
 	echo "zlib license" > $@
 
+FindZLIB.cmake:
+	echo 'set(ZLIB_FOUND True)' > $@

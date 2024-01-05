@@ -17,7 +17,10 @@ include:
 	cp -r $(PORT_DIR)/include/* $@
 	cp -r $(REP_DIR)/include/EGL $@
 
-content: LICENSE
+content: LICENSE FindOpenGL.cmake
 
 LICENSE:
 	cp $(PORT_DIR)/src/lib/mesa/docs/license.rst $@
+
+Find%.cmake:
+	echo 'set($*_FOUND True)' | sed -r 's/\w+_FOUND/\U&/' > $@
