@@ -16,6 +16,7 @@
 #include <ram_dataspace_factory.h>
 #include <platform.h>
 #include <map_local.h>
+#include <util/misc_math.h>
 
 using namespace Core;
 
@@ -51,19 +52,35 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 	if (!guard.virt_ptr)
 		return;
 
-	/* map the dataspace's physical pages to corresponding virtual addresses */
-	size_t num_pages = page_rounded_size >> get_page_size_log2();
-	if (!map_local(ds.phys_addr(), (addr_t)guard.virt_ptr, num_pages)) {
-		error("core-local memory mapping failed");
-		return;
+	/*
+	 * Map and clear dataspaces in chucks of 128MiB max to prevent large
+	 * mappings from filling up core's page table.
+	 */
+	static size_t constexpr max_chunk_size = 128 * 1024 * 1024;
+
+	size_t size_remaining = page_rounded_size;
+	addr_t chunk_phys_addr = ds.phys_addr();
+
+	while (size_remaining) {
+		size_t chunk_size = min(size_remaining, max_chunk_size);
+		size_t num_pages = chunk_size >> get_page_size_log2();
+
+		/* map the dataspace's physical pages to corresponding virtual addresses */
+		if (!map_local(chunk_phys_addr, (addr_t)guard.virt_ptr, num_pages)) {
+			error("core-local memory mapping failed");
+			return;
+		}
+
+		/* dependent on the architecture, cache maintainance might be necessary */
+		Cpu::clear_memory_region((addr_t)guard.virt_ptr, chunk_size,
+		                         ds.cacheability() != CACHED);
+
+		/* unmap dataspace from core */
+		if (!unmap_local((addr_t)guard.virt_ptr, num_pages))
+			error("could not unmap core-local address range at ", guard.virt_ptr);
+
+		size_remaining  -= chunk_size;
+		chunk_phys_addr += chunk_size;
 	}
-
-	/* dependent on the architecture, cache maintainance might be necessary */
-	Cpu::clear_memory_region((addr_t)guard.virt_ptr, page_rounded_size,
-	                         ds.cacheability() != CACHED);
-
-	/* unmap dataspace from core */
-	if (!unmap_local((addr_t)guard.virt_ptr, num_pages))
-		error("could not unmap core-local address range at ", guard.virt_ptr);
 }
 
