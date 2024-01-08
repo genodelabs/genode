@@ -236,14 +236,6 @@ void bust_spinlocks(int yes)
 }
 
 
-#include <linux/swap.h>
-
-void check_move_unevictable_pages(struct pagevec * pvec)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/pagemap.h>
 
 bool clear_page_dirty_for_io(struct page * page)
@@ -1224,20 +1216,6 @@ void intel_gt_driver_unregister(struct intel_gt * gt)
 }
 
 
-extern void intel_gt_flush_ggtt_writes(struct intel_gt * gt);
-void intel_gt_flush_ggtt_writes(struct intel_gt * gt)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void intel_gt_invalidate_tlb(struct intel_gt * gt,u32 seqno);
-void intel_gt_invalidate_tlb(struct intel_gt * gt,u32 seqno)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern u32 intel_gt_mcr_read_any(struct intel_gt * gt,i915_reg_t reg);
 u32 intel_gt_mcr_read_any(struct intel_gt * gt,i915_reg_t reg)
 {
@@ -1581,14 +1559,6 @@ void kill_anon_super(struct super_block * sb)
 #include <linux/kmsg_dump.h>
 
 void kmsg_dump(enum kmsg_dump_reason reason)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/swap.h>
-
-void mark_page_accessed(struct page * page)
 {
 	lx_emul_trace_and_stop(__func__);
 }

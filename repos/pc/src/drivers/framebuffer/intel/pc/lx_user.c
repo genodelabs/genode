@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2022-2023 Genode Labs GmbH
+ * Copyright (C) 2022-2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -602,12 +602,15 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 
 		if (result) {
 			printk("%s: error on modeset commit %d%s\n", __func__, result,
-			       (result == -ENOSPC) ? " - insufficient amount of RAM for framebuffer" : "");
+			       (result == -ENOSPC) ? " - ENOSPC" : " - unknown error");
 		}
 	}
 
 	/* notify Genode side */
 	lx_emul_i915_hotplug_connector(client);
+
+	if (fb)
+		drm_framebuffer_put(fb);
 
 	return result;
 }
@@ -694,8 +697,8 @@ static int user_register_fb(struct drm_client_dev   const * const dev,
 
 	int                        result   = -EINVAL;
 	struct i915_gtt_view const view     = { .type = I915_GTT_VIEW_NORMAL };
-	unsigned long              flags    = 0;
-	struct i915_vma           *vma      = NULL;
+	static struct i915_vma    *vma      = NULL;
+	static unsigned long       flags    = 0;
 	void   __iomem            *vaddr    = NULL;
 	struct drm_i915_private   *dev_priv = to_i915(dev->dev);
 	struct drm_framebuffer    *fb       = drm_framebuffer_lookup(dev->dev,
@@ -708,6 +711,13 @@ static int user_register_fb(struct drm_client_dev   const * const dev,
 	}
 
 	wakeref = intel_runtime_pm_get(&dev_priv->runtime_pm);
+
+	if (vma) {
+		intel_unpin_fb_vma(vma, flags);
+
+		vma   = NULL;
+		flags = 0;
+	}
 
 	/* Pin the GGTT vma for our access via info->screen_base.
 	 * This also validates that any existing fb inherited from the
@@ -744,6 +754,9 @@ static int user_register_fb(struct drm_client_dev   const * const dev,
 
 	register_framebuffer(info);
 
+	if (fb)
+		drm_framebuffer_put(fb);
+
 	return 0;
 }
 
@@ -762,13 +775,18 @@ static int check_resize_fb(struct drm_client_dev       * const dev,
 
 	/* if requested size is smaller, free up current dumb buffer */
 	if (gem_dumb->width && gem_dumb->height &&
-	    gem_dumb->width * gem_dumb->height < width * height) {
+	    (gem_dumb->width < width || gem_dumb->height < height)) {
+
+		result = drm_mode_rmfb(dev->dev, dumb_fb->fb_id, dev->file);
+		if (result) {
+			drm_err(dev->dev, "%s: failed to remove framebufer %d\n",
+			        __func__, result);
+		}
 
 		result = drm_mode_destroy_dumb(dev->dev, gem_dumb->handle, dev->file);
 		if (result) {
 			drm_err(dev->dev, "%s: failed to destroy framebuffer %d\n",
 			        __func__, result);
-			return result;
 		}
 
 		memset(gem_dumb, 0, sizeof(*gem_dumb));
@@ -792,7 +810,7 @@ static int check_resize_fb(struct drm_client_dev       * const dev,
 		}
 	}
 
-	/* bind framwbuffer(GEM object) to drm client */
+	/* bind framebuffer(GEM object) to drm client */
 	if (!dumb_fb->width && !dumb_fb->height) {
 		/* .fb_id <- written by kernel */
 		dumb_fb->width        = gem_dumb->width,

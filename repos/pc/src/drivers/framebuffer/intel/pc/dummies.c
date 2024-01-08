@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2021-2022 Genode Labs GmbH
+ * Copyright (C) 2021-2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -817,6 +817,30 @@ struct pinctrl * devm_pinctrl_get(struct device * dev)
 #include <linux/pinctrl/consumer.h>
 
 void devm_pinctrl_put(struct pinctrl * p)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void check_move_unevictable_pages(struct pagevec * pvec)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_gt_flush_ggtt_writes(struct intel_gt * gt)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_gt_invalidate_tlb(struct intel_gt * gt,u32 seqno)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void mark_page_accessed(struct page * page)
 {
 	lx_emul_trace(__func__);
 }
