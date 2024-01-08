@@ -267,18 +267,13 @@ namespace Etnaviv {
 	using namespace Gpu;
 
 	struct Call;
-	struct Buffer;
 } /* namespace Etnaviv */
 
 
-namespace Gpu {
-	using Buffer_id = Vram_id;
-}
-
-struct Gpu::Vram { };
-
-struct Etnaviv::Buffer : Gpu::Vram
+struct Gpu::Vram
 {
+	struct Allocation_failed : Genode::Exception { };
+
 	Gpu::Connection &_gpu;
 
 	Genode::Id_space<Gpu::Vram>::Element const _elem;
@@ -288,17 +283,20 @@ struct Etnaviv::Buffer : Gpu::Vram
 
 	Genode::Constructible<Genode::Attached_dataspace> _attached_buffer { };
 
-	Buffer(Gpu::Connection  &gpu,
-	       size_t            size,
-	       Vram_id_space    &space)
+	Vram(Gpu::Connection  &gpu,
+	     size_t            size,
+	     Vram_id_space    &space)
 	:
 		_gpu  { gpu },
 		_elem { *this, space },
 		 cap  { _gpu.alloc_vram(_elem.id(), size) },
 		 size { size }
-	{ }
+	{
+		if (!cap.valid())
+			throw Allocation_failed();
+	}
 
-	~Buffer()
+	~Vram()
 	{
 		_gpu.free_vram(_elem.id());
 	}
@@ -317,7 +315,7 @@ struct Etnaviv::Buffer : Gpu::Vram
 		return reinterpret_cast<Gpu::addr_t>(_attached_buffer->local_addr<Gpu::addr_t>());
 	}
 
-	Gpu::Buffer_id id() const
+	Gpu::Vram_id id() const
 	{
 		return _elem.id();
 	}
@@ -337,181 +335,462 @@ class Etnaviv::Call
 		Genode::Env  &_env { *vfs_gpu_env() };
 		Genode::Heap  _heap { _env.ram(), _env.rm() };
 
-		/*****************
-		 ** Gpu session **
-		 *****************/
+		/*
+		 * A Buffer wraps the actual Vram object and is used
+		 * locally in each Gpu_context.
+		 */
+		struct Buffer
+		{
+			Genode::Id_space<Buffer>::Element const _elem;
 
-		Gpu::Connection _gpu_session { _env };
-		Gpu::Info_etnaviv const &_gpu_info {
-			*_gpu_session.attached_info<Gpu::Info_etnaviv>() };
+			Gpu::Vram const &_vram;
+
+			Buffer(Genode::Id_space<Buffer>       &space,
+			       Gpu::Vram                const &vram)
+			:
+				_elem { *this, space,
+				        Genode::Id_space<Buffer>::Id { .value = vram.id().value } },
+				_vram { vram },
+
+				busy { false }
+			{ }
+
+			~Buffer() { }
+
+			bool busy;
+		};
+
+		using Buffer_space = Genode::Id_space<Buffer>;
+
+		struct Gpu_context
+		{
+			private:
+
+				/*
+				 * Noncopyable
+				 */
+				Gpu_context(Gpu_context const &) = delete;
+				Gpu_context &operator=(Gpu_context const &) = delete;
+
+				Genode::Allocator &_alloc;
+
+				static int _open_gpu()
+				{
+					int const fd = ::open("/dev/gpu", 0);
+					if (fd < 0) {
+						error("Failed to open '/dev/gpu': ",
+						      "try configure '<gpu>' in 'dev' directory of VFS'");
+						throw Gpu::Session::Invalid_state();
+					}
+					return fd;
+				}
+
+				static unsigned long _stat_gpu(int fd)
+				{
+					struct ::stat buf;
+					if (::fstat(fd, &buf) < 0) {
+						error("Could not stat '/dev/gpu'");
+						::close(fd);
+						throw Gpu::Session::Invalid_state();
+					}
+					return buf.st_ino;
+				}
+
+				int           const _fd;
+				unsigned long const _id;
+
+				Gpu::Connection &_gpu { *vfs_gpu_connection(_id) };
+
+				Genode::Id_space<Gpu_context>::Element const _elem;
+
+				/*
+				 * The vram space is used for actual memory allocations.
+				 * Each and every Gpu_context is able to allocate memory
+				 * at the Gpu session although normally the main context
+				 * is going to alloc memory for buffer objects.
+				 */
+				Gpu::Vram_id_space _vram_space { };
+
+				template <typename FN>
+				void _try_apply(Gpu::Vram_id id, FN const &fn)
+				{
+					try {
+						_vram_space.apply<Vram>(id, fn);
+					} catch (Vram_id_space::Unknown_id) { }
+				}
+
+				/*
+				 * The buffer space is used to attach a given buffer
+				 * object backed by an vram allocation - normally from the
+				 * main context - to the given context, i.e., it is mapped
+				 * when SUBMIT is executed.
+				 */
+				Buffer_space _buffer_space { };
+
+				template <typename FN>
+				void _try_apply(Buffer_space::Id id, FN const &fn)
+				{
+					try {
+						_buffer_space.apply<Buffer>(id, fn);
+					} catch (Buffer_space::Unknown_id) { }
+				}
+
+				/*
+				 * Each context contains its own exec buffer object that is
+				 * required by the Gpu session to pass on the driver specific
+				 * command buffer.
+				 */
+				Gpu::Vram *_exec_buffer;
+
+
+			public:
+
+				bool defer_destruction { false };
+
+				static constexpr size_t _exec_buffer_size = { 256u << 10 };
+
+				Gpu_context(Genode::Allocator &alloc,
+				            Genode::Id_space<Gpu_context> &space)
+				:
+					_alloc { alloc },
+					_fd { _open_gpu() },
+					_id { _stat_gpu(_fd) },
+					_elem { *this, space },
+					_exec_buffer { new (alloc) Gpu::Vram(_gpu, _exec_buffer_size,
+					                                           _vram_space) }
+				{ }
+
+				~Gpu_context()
+				{
+					while (_buffer_space.apply_any<Buffer>([&] (Buffer &b) {
+						Genode::destroy(_alloc, &b);
+					})) { ; }
+
+					/*
+					 * 'close' below will destroy the Gpu session belonging
+					 * to this context so free the exec buffer beforehand.
+					 */
+					while (_vram_space.apply_any<Vram>([&] (Vram &v) {
+						Genode::destroy(_alloc, &v);
+					})) { ; }
+
+					::close(_fd);
+				}
+
+				Gpu::Connection& gpu()
+				{
+					return _gpu;
+				}
+
+				Gpu::Vram_capability export_vram(Gpu::Vram_id id)
+				{
+					Gpu::Vram_capability cap { };
+					_try_apply(id, [&] (Gpu::Vram const &b) {
+						cap = _gpu.export_vram(b.id());
+					});
+					return cap;
+				}
+
+				Buffer *import_vram(Gpu::Vram_capability cap, Gpu::Vram const &v)
+				{
+					Buffer *b = nullptr;
+
+					try { _gpu.import_vram(cap, v.id()); }
+					catch (... /* should only throw Invalid_state*/) {
+						return nullptr; }
+
+					try { b = new (_alloc) Buffer(_buffer_space, v); }
+					catch (... /* either conflicting id or alloc failure */) {
+						return nullptr; }
+
+					return b;
+				}
+
+				void free_buffer(Buffer_space::Id id)
+				{
+					_try_apply(id, [&] (Buffer &b) {
+
+						/*
+						 * We have to invalidate any imported buffer as otherwise
+						 * the object stays ref-counted in the driver and the
+						 * VA occupied by the object is not freed.
+						 *
+						 * For that we repurpose 'unmap_gpu' that otherwise is
+						 * not used.
+						 */
+						_gpu.unmap_gpu(Gpu::Vram_id { .value = id.value }, 0,
+						               Gpu::Virtual_address());
+						Genode::destroy(_alloc, &b);
+					});
+				}
+
+				bool buffer_space_contains(Buffer_space::Id id)
+				{
+					bool found = false;
+					_try_apply(id, [&] (Buffer const &) { found = true; });
+					return found;
+				}
+
+				Gpu::Vram_id_space &vram_space()
+				{
+					return _vram_space;
+				}
+
+				template <typename FN>
+				void with_vram_space(Gpu::Vram_id id, FN const &fn)
+				{
+					_try_apply(id, fn);
+				}
+
+				template <typename FN>
+				void access_exec_buffer(Genode::Env &env, FN const &fn)
+				{
+					/*
+					 * 'env' is solely needed for mapping the exec buffer
+					 * and is therefor used here locally.
+					 */
+					if (_exec_buffer->mmap(env)) {
+						char *ptr = (char*)_exec_buffer->mmap_addr();
+						if (ptr)
+							fn(ptr, _exec_buffer_size);
+					}
+				}
+
+				Gpu::Vram_id exec_buffer_id() const
+				{
+					return _exec_buffer->id();
+				}
+
+				unsigned long id() const
+				{
+					return _elem.id().value;
+				}
+
+				int fd() const
+				{
+					return _fd;
+				}
+		};
+
+		using Gpu_context_space = Genode::Id_space<Gpu_context>;
+		Gpu_context_space _gpu_context_space { };
+
+		struct Fenceobj
+		{
+			Genode::Id_space<Fenceobj>::Element const _elem;
+
+			uint32_t const _fence;
+
+			Fenceobj(Genode::Id_space<Fenceobj> &space,
+			         Gpu_context_space::Id       ctx_id,
+			         uint32_t                    fence)
+			:
+				_elem  { *this, space, { .value = ctx_id.value } },
+				_fence { fence }
+			{ }
+
+			Gpu_context_space::Id ctx_id() const
+			{
+				return Gpu_context_space::Id { .value = _elem.id().value };
+			}
+
+			uint32_t fence() const { return _fence; }
+		};
+
+		using Fenceobj_space = Genode::Id_space<Fenceobj>;
+		Fenceobj_space _fenceobj_space { };
 
 		Gpu::Vram_id_space _buffer_space { };
 
-		/*
-		 * Play it safe, glmark2 apparently submits araound 110 KiB at
-		 * some point.
-		 */
-		enum { EXEC_BUFFER_SIZE = 256u << 10 };
-		Constructible<Buffer> _exec_buffer { };
+		Gpu_context *_main_ctx {
+			new (_heap) Gpu_context(_heap, _gpu_context_space) };
 
-		void _wait_for_completion(uint32_t fence)
-		{
-			Sequence_number const seqno { .value = fence };
-			do {
-				if (_gpu_session.complete(seqno))
-					break;
-
-				_env.ep().wait_and_dispatch_one_io_signal();
-			} while (true);
-		}
+		Gpu::Info_etnaviv const &_gpu_info {
+			*_main_ctx->gpu().attached_info<Gpu::Info_etnaviv>() };
 
 		template <typename FN>
 		bool _apply_handle(uint32_t handle, FN const &fn)
 		{
-			Buffer_id const id { .value = handle };
+			Vram_id const id { .value = handle };
 
 			bool found = false;
-			_buffer_space.apply<Buffer>(id, [&] (Buffer &b) {
-				fn(b);
+			_main_ctx->with_vram_space(id, [&] (Vram &vram) {
+				fn(vram);
 				found = true;
 			});
 
 			return found;
 		}
 
-		Dataspace_capability _lookup_cap_from_handle(uint32_t handle)
+		void _wait_for_completion(uint32_t fence)
 		{
-			Dataspace_capability cap { };
-			auto lookup_cap = [&] (Buffer const &b) {
-				cap = b.cap;
-			};
-			(void)_apply_handle(handle, lookup_cap);
-			return cap;
-		}
+			try {
+				auto lookup_fenceobj = [&] (Fenceobj &fo) {
 
-		/******************************
-		 ** Device DRM I/O controls **
-		 ******************************/
+					Sequence_number const seqno { .value = fo.fence() };
 
-		int _drm_etnaviv_gem_cpu_fini(drm_etnaviv_gem_cpu_fini &arg)
-		{
-			return _apply_handle(arg.handle, [&] (Buffer const &b) {
-				_gpu_session.unmap_cpu(b.id());
-			}) ? 0 : -1;
-		}
+					auto poll_completion = [&] (Gpu_context &gc) {
+						do {
+							if (gc.gpu().complete(seqno))
+								break;
 
-		int _drm_etnaviv_gem_cpu_prep(drm_etnaviv_gem_cpu_prep &arg)
-		{
-			int res = -1;
-			return _apply_handle(arg.handle, [&] (Buffer const &b) {
+							char buf;
+							(void)::read(gc.fd(), &buf, sizeof(buf));
+						} while (true);
 
-				Gpu::Mapping_attributes attrs { false, false };
-
-				if (arg.op == ETNA_PREP_READ)
-					attrs.readable = true;
-				else
-
-				if (arg.op == ETNA_PREP_WRITE)
-					attrs.writeable = true;
-
-				/*
-				 * For now we ignore NOSYNC
-				 */
-
-				bool const to = arg.timeout.tv_sec != 0;
-				if (to) {
-					for (int i = 0; i < 100; i++) {
-						Dataspace_capability const map_cap =
-						_gpu_session.map_cpu(b.id(), attrs);
-						if (map_cap.valid()) {
-							res = 0;
-							break;
-						}
-					}
-				}
-				else {
-					Dataspace_capability const map_cap =
-						_gpu_session.map_cpu(b.id(), attrs);
-					if (map_cap.valid())
-						res = 0;
-				}
-			}) ? res : -1;
-		}
-
-		int _drm_etnaviv_gem_info(drm_etnaviv_gem_info &arg)
-		{
-			return _apply_handle(arg.handle,
-				[&] (Buffer &b) {
-					if (!b.mmap(_env))
-						return;
-					arg.offset = reinterpret_cast<Genode::uint64_t>(b.mmap_addr());
-				}) ? 0 : -1;
+						if (gc.defer_destruction)
+							Genode::destroy(_heap, &gc);
+					};
+					_gpu_context_space.apply<Gpu_context>(fo.ctx_id(),
+					                                      poll_completion);
+				};
+				_fenceobj_space.apply<Fenceobj>(Fenceobj_space::Id { .value = fence },
+				                                lookup_fenceobj);
+			} catch (Fenceobj_space::Unknown_id) {
+				/* XXX */
+			} catch (Gpu_context_space::Unknown_id) {
+				/* XXX */
+			}
 		}
 
 		template <typename FUNC>
 		void _alloc_buffer(::uint64_t const size, FUNC const &fn)
 		{
 			size_t donate = size;
-			Buffer *buffer = nullptr;
-			retry<Gpu::Session::Out_of_ram>(
-			[&] () {
-				retry<Gpu::Session::Out_of_caps>(
+			Vram *vram = nullptr;
+			try {
+				retry<Gpu::Session::Out_of_ram>(
 				[&] () {
-					buffer =
-						new (&_heap) Buffer(_gpu_session, size,
-						                    _buffer_space);
+					retry<Gpu::Session::Out_of_caps>(
+					[&] () {
+						vram =
+							new (&_heap) Vram(_main_ctx->gpu(), size,
+							                    _main_ctx->vram_space());
+					},
+					[&] () {
+						_main_ctx->gpu().upgrade_caps(2);
+					});
 				},
 				[&] () {
-					_gpu_session.upgrade_caps(2);
+					_main_ctx->gpu().upgrade_ram(donate);
 				});
-			},
-			[&] () {
-				_gpu_session.upgrade_ram(donate);
-			});
+			} catch (Gpu::Vram::Allocation_failed) {
+				return;
+			}
 
-			if (buffer)
-				fn(*buffer);
+			if (vram)
+				fn(*vram);
+		}
+
+		/******************************
+		 ** Device DRM I/O controls **
+		 ******************************/
+
+		int _drm_etnaviv_gem_info(drm_etnaviv_gem_info &arg)
+		{
+			return _apply_handle(arg.handle, [&] (Vram &vram) {
+				if (!vram.mmap(_env))
+					return;
+				arg.offset = reinterpret_cast<Genode::uint64_t>(vram.mmap_addr());
+			}) ? 0 : -1;
+		}
+
+		int _drm_etnaviv_gem_cpu_fini(drm_etnaviv_gem_cpu_fini &arg)
+		{
+			return _apply_handle(arg.handle, [&] (Vram const &vram) {
+				_main_ctx->gpu().unmap_cpu(vram.id());
+			}) ? 0 : -1;
+		}
+
+		int _drm_etnaviv_gem_cpu_prep(drm_etnaviv_gem_cpu_prep &arg)
+		{
+			int res = -1;
+			return _apply_handle(arg.handle, [&] (Vram const &vram) {
+
+				Gpu::Mapping_attributes attrs {
+					arg.op == ETNA_PREP_READ,
+					arg.op == ETNA_PREP_WRITE
+				};
+
+				/*
+				 * For now we ignore NOSYNC as well as timeouts.
+				 */
+
+				do {
+					Dataspace_capability const map_cap =
+						_main_ctx->gpu().map_cpu(vram.id(), attrs);
+					if (map_cap.valid())
+						break;
+
+					char buf;
+					(void)::read(_main_ctx->fd(), &buf, sizeof(buf));
+				} while (true);
+				res = 0;
+
+			}) ? res : -1;
 		}
 
 		int _drm_etnaviv_gem_new(drm_etnaviv_gem_new &arg)
 		{
 			::uint64_t const size = arg.size;
 
-			try {
-				_alloc_buffer(size, [&](Buffer const &b) {
-					arg.handle = b.id().value;
-				});
-				return 0;
-			} catch (...) {
-				return -1;
-			}
+			bool result = false;
+			_alloc_buffer(size, [&](Vram const &vram) {
+				arg.handle = vram.id().value;
+				result = true;
+			});
+			return result ? 0 : -1;
 		}
 
 		int _drm_etnaviv_gem_submit(drm_etnaviv_gem_submit &arg)
 		{
-			size_t const payload_size = Etnaviv::get_payload_size(arg);
-			if (payload_size > EXEC_BUFFER_SIZE) {
-				Genode::error(__func__, ": exec buffer too small (",
-				              (unsigned)EXEC_BUFFER_SIZE, ") needed ", payload_size);
-				return -1;
-			}
+			Gpu_context_space::Id ctx_id { .value = _main_ctx->id() };
 
-			/*
-			 * Copy each array flat to the exec buffer and adjust the
-			 * addresses in the submit object.
-			 */
-			char *local_exec_buffer = (char*)_exec_buffer->mmap_addr();
-			Genode::memset(local_exec_buffer, 0, EXEC_BUFFER_SIZE);
-			Etnaviv::serialize(&arg, local_exec_buffer);
+			bool result = false;
+			_gpu_context_space.apply<Gpu_context>(ctx_id, [&] (Gpu_context &gc) {
 
-			try {
-				Genode::uint64_t const pending_exec_buffer =
-					_gpu_session.execute(_exec_buffer->id(), 0).value;
-				arg.fence = pending_exec_buffer & 0xffffffffu;
-				return 0;
-			} catch (Gpu::Session::Invalid_state) { }
+				bool serialized = false;
+				gc.access_exec_buffer(_env, [&] (char *ptr, size_t size) {
 
-			return -1;
+					size_t const payload_size = Etnaviv::get_payload_size(arg);
+					if (payload_size > size) {
+						error("exec buffer for context ", ctx_id.value,
+						      " too small, got ", size, " but needed ",
+						      payload_size);
+						return;
+					}
+
+					/*
+					 * Copy each array flat to the exec buffer and adjust the
+					 * addresses in the submit object.
+					 */
+					Genode::memset(ptr, 0, size);
+					Etnaviv::serialize(&arg, ptr);
+
+					serialized = true;
+				});
+
+				if (!serialized)
+					return;
+
+				try {
+					Genode::uint64_t const pending_exec_buffer =
+						gc.gpu().execute(gc.exec_buffer_id(), 0).value;
+
+					arg.fence = pending_exec_buffer & 0xffffffffu;
+
+					/* XXX make part of context ? */
+					new (&_heap) Fenceobj(_fenceobj_space,
+					                      Gpu_context_space::Id { .value = gc.id() },
+					                      arg.fence);
+
+					result = true;
+				} catch (Gpu::Session::Invalid_state) {
+					warning(": could not execute: ", gc.exec_buffer_id().value);
+				}
+			});
+
+			return result ? 0 : -1;
 		}
 
 		int _drm_etnaviv_gem_wait(drm_etnaviv_gem_wait &)
@@ -597,8 +876,14 @@ class Etnaviv::Call
 
 		int _drm_gem_close(drm_gem_close const &gem_close)
 		{
+			auto free_buffer = [&] (Gpu_context &ctx) {
+				Buffer_space::Id const id { .value = gem_close.handle };
+				ctx.free_buffer(id);
+			};
+			_gpu_context_space.for_each<Gpu_context>(free_buffer);
+
 			return _apply_handle(gem_close.handle,
-				[&] (Etnaviv::Buffer &b) {
+				[&] (Gpu::Vram &b) {
 					destroy(_heap, &b);
 				}) ? 0 : -1;
 		}
@@ -649,20 +934,16 @@ class Etnaviv::Call
 
 	public:
 
-		Call()
-		{
-			try {
-				_exec_buffer.construct(_gpu_session,
-				                       (size_t)EXEC_BUFFER_SIZE,
-				                       _buffer_space);
-			} catch (...) {
-				throw Gpu::Session::Invalid_state();
-			}
-			if (!_exec_buffer->mmap(_env))
-				throw Gpu::Session::Invalid_state();
-		}
+		Call() { }
 
-		~Call() { }
+		~Call()
+		{
+			while (_fenceobj_space.apply_any<Fenceobj>([&] (Fenceobj &obj) {
+				Genode::destroy(_heap, &obj); })) { ; }
+
+			while (_gpu_context_space.apply_any<Gpu_context>([&] (Gpu_context &ctx) {
+				Genode::destroy(_heap, &ctx); })) { ; }
+		}
 
 		int ioctl(unsigned long request, void *arg)
 		{
