@@ -514,13 +514,6 @@ void rfkill_init(void)
 }
 
 
-void kvfree_call_rcu(struct rcu_head * head,rcu_callback_t func)
-{
-	void *ptr = (void *) head - (unsigned long) func;
-	kvfree(ptr);
-}
-
-
 #include <linux/dma-mapping.h>
 
 void *dmam_alloc_attrs(struct device *dev, size_t size, dma_addr_t *dma_handle,

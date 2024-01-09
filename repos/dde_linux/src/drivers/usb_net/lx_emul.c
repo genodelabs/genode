@@ -65,18 +65,6 @@ int register_pernet_device(struct pernet_operations *ops)
 }
 
 
-#include <linux/rcutree.h>
-
-/*
- * taken from src/lib/wifi/lx_emul.c
- */
-void kvfree_call_rcu(struct rcu_head * head, rcu_callback_t func)
-{
-	void *ptr = (void *) head - (unsigned long) func;
-	kvfree(ptr);
-}
-
-
 #include <linux/gfp.h>
 
 unsigned long get_zeroed_page(gfp_t gfp_mask)
