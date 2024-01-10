@@ -27,9 +27,16 @@
 #undef ___define_initcall
 #undef __define_initcall
 
-#define __define_initcall(fn, id) \
-	static void __initcall_##fn##id(void)__attribute__((constructor)); \
-	static void __initcall_##fn##id() { \
-			lx_emul_register_initcall(fn, __func__); };
+/*
+ * Define local register function and global pointer to function in the form
+ * '__initptr_<function name>_<id>_<counter>_<line number of macro>'
+ */
+#define __define_initcall(fn, id)                    \
+	static void __initcall_##fn##id(void) {            \
+		lx_emul_register_initcall(fn, __func__); }       \
+	                                                   \
+	void * __PASTE(__initptr_##fn##id##_,              \
+	       __PASTE(__COUNTER__,                        \
+	       __PASTE(_,__LINE__))) = __initcall_##fn##id;
 
 #endif /* _LX_EMUL__SHADOW__LINUX__INIT_H_ */

@@ -52,6 +52,9 @@ extern "C" void lx_emul_start_kernel(void * dtb)
 {
 	using namespace Lx_kit;
 
+	/* register 'module_init' calls and friends */
+	lx_emul_register_initcalls();
+
 	new (env().heap) Task(lx_emul_init_task_function, dtb,
 	                      lx_emul_init_task_struct, SWAPPER_PID, "swapper",
 	                      env().scheduler, Task::TIME_HANDLER);

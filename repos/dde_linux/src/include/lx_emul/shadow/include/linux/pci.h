@@ -14,9 +14,13 @@
 #undef DECLARE_PCI_FIXUP_CLASS_FINAL
 
 #define DECLARE_PCI_FIXUP_CLASS_FINAL(vendor, device, class, \
-                     class_shift, hook) \
-static void __pci_fixup_final_##hook(struct pci_dev *dev) __attribute__((constructor)); \
-static void __pci_fixup_final_##hook(struct pci_dev *dev) { \
-	lx_emul_register_pci_fixup(hook, __func__); };
+                     class_shift, hook)                      \
+static void __pci_fixup_final_##hook(struct pci_dev *dev) {  \
+	lx_emul_register_pci_fixup(hook, __func__); };             \
+	void * __PASTE(__initptr_pci_fixup_final_##hook##_,        \
+	       __PASTE(__COUNTER__,                                \
+	       __PASTE(_, __LINE__))) = __pci_fixup_final_##hook;
+
+
 
 #endif /* _LINUX__PCI_H_ */

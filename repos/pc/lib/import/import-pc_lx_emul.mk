@@ -44,7 +44,7 @@ SRC_C   += lx_emul/shadow/drivers/pci/search.c
 SRC_C   += lx_emul/shadow/drivers/pci/setup-irq.c
 SRC_C   += lx_emul/shadow/drivers/pci/setup-res.c
 SRC_CC  += lx_emul/pci.cc
-SRC_CC  += lx_emul/pci_bus.c
+SRC_C   += lx_emul/pci_bus.c
 SRC_CC  += lx_kit/device.cc
 SRC_CC  += lx_kit/memory_dma.cc
 
