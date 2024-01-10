@@ -44,7 +44,7 @@ namespace Intel {
 }
 
 
-class Intel::Io_mmu : private Attached_mmio,
+class Intel::Io_mmu : private Attached_mmio<0x800>,
                       public  Driver::Io_mmu,
                       private Translation_table_registry
 {

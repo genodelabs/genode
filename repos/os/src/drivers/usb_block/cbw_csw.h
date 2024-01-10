@@ -34,7 +34,7 @@ using Genode::addr_t;
  ** USB Command Block/Status Wrapper implementation **
  *****************************************************/
 
-struct Usb::Cbw : Genode::Mmio
+struct Usb::Cbw : Genode::Mmio<0xf>
 {
 	enum { LENGTH = 31 };
 
@@ -46,8 +46,8 @@ struct Usb::Cbw : Genode::Mmio
 	struct Lun : Register<0xd,  8> { }; /* logical unit number */
 	struct Cbl : Register<0xe,  8> { }; /* command buffer length */
 
-	Cbw(addr_t addr, uint32_t t, uint32_t d,
-	    uint8_t f, uint8_t l, uint8_t len) : Mmio(addr)
+	Cbw(Byte_range_ptr const &range, uint32_t t, uint32_t d,
+	    uint8_t f, uint8_t l, uint8_t len) : Mmio(range)
 	{
 		write<Sig>(SIG);
 		write<Tag>(t);
@@ -72,11 +72,11 @@ struct Usb::Cbw : Genode::Mmio
 struct Test_unit_ready : Usb::Cbw,
                          Scsi::Test_unit_ready
 {
-	Test_unit_ready(addr_t addr, uint32_t tag, uint8_t lun)
+	Test_unit_ready(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
 	:
-		Cbw(addr, tag, 0, Usb::ENDPOINT_IN, lun,
+		Cbw(range, tag, 0, Usb::ENDPOINT_IN, lun,
 		    Scsi::Test_unit_ready::LENGTH),
-		Scsi::Test_unit_ready(addr+15)
+		Scsi::Test_unit_ready(Cbw::range_at(15))
 	{ if (verbose_scsi) dump(); }
 
 	void dump()
@@ -90,11 +90,11 @@ struct Test_unit_ready : Usb::Cbw,
 
 struct Request_sense : Usb::Cbw, Scsi::Request_sense
 {
-	Request_sense(addr_t addr, uint32_t tag, uint8_t lun)
+	Request_sense(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
 	:
-		Cbw(addr, tag, Scsi::Request_sense_response::LENGTH,
+		Cbw(range, tag, Scsi::Request_sense_response::LENGTH,
 		    Usb::ENDPOINT_IN, lun, Scsi::Request_sense::LENGTH),
-		Scsi::Request_sense(addr+15)
+		Scsi::Request_sense(Cbw::range_at(15))
 	{ if (verbose_scsi) dump(); }
 
 	void dump()
@@ -108,10 +108,10 @@ struct Request_sense : Usb::Cbw, Scsi::Request_sense
 
 struct Start_stop : Usb::Cbw, Scsi::Start_stop
 {
-	Start_stop(addr_t addr, uint32_t tag, uint8_t lun)
+	Start_stop(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
 	:
-		Cbw(addr, tag, 0, Usb::ENDPOINT_IN, lun, Scsi::Start_stop::LENGTH),
-		Scsi::Start_stop(addr+15)
+		Cbw(range, tag, 0, Usb::ENDPOINT_IN, lun, Scsi::Start_stop::LENGTH),
+		Scsi::Start_stop(Cbw::range_at(15))
 	{ if (verbose_scsi) dump(); }
 
 	void dump()
@@ -125,11 +125,11 @@ struct Start_stop : Usb::Cbw, Scsi::Start_stop
 
 struct Inquiry : Usb::Cbw, Scsi::Inquiry
 {
-	Inquiry(addr_t addr, uint32_t tag, uint8_t lun)
+	Inquiry(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
 	:
-		Cbw(addr, tag, Scsi::Inquiry_response::LENGTH,
+		Cbw(range, tag, Scsi::Inquiry_response::LENGTH,
 		    Usb::ENDPOINT_IN, lun, Scsi::Inquiry::LENGTH),
-		Scsi::Inquiry(addr+15)
+		Scsi::Inquiry(Cbw::range_at(15))
 	{ if (verbose_scsi) dump(); }
 
 	void dump()
@@ -143,11 +143,11 @@ struct Inquiry : Usb::Cbw, Scsi::Inquiry
 
 struct Read_capacity_10 : Usb::Cbw, Scsi::Read_capacity_10
 {
-	Read_capacity_10(addr_t addr, uint32_t tag, uint8_t lun)
+	Read_capacity_10(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
 	:
-		Cbw(addr, tag, Scsi::Capacity_response_10::LENGTH,
+		Cbw(range, tag, Scsi::Capacity_response_10::LENGTH,
 		    Usb::ENDPOINT_IN, lun, Scsi::Read_capacity_10::LENGTH),
-		Scsi::Read_capacity_10(addr+15)
+		Scsi::Read_capacity_10(Cbw::range_at(15))
 	{ if (verbose_scsi) dump(); }
 
 	void dump()
@@ -161,12 +161,12 @@ struct Read_capacity_10 : Usb::Cbw, Scsi::Read_capacity_10
 
 struct Read_10 : Usb::Cbw, Scsi::Read_10
 {
-	Read_10(addr_t addr, uint32_t tag, uint8_t lun,
+	Read_10(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
 	        uint32_t lba, uint16_t len, uint32_t block_size)
 	:
-		Cbw(addr, tag, len * block_size,
+		Cbw(range, tag, len * block_size,
 		    Usb::ENDPOINT_IN, lun, Scsi::Read_10::LENGTH),
-		Scsi::Read_10(addr+15, lba, len)
+		Scsi::Read_10(Cbw::range_at(15), lba, len)
 	{ if (verbose_scsi) dump(); }
 
 	void dump()
@@ -180,12 +180,12 @@ struct Read_10 : Usb::Cbw, Scsi::Read_10
 
 struct Write_10 : Usb::Cbw, Scsi::Write_10
 {
-	Write_10(addr_t addr, uint32_t tag, uint8_t lun,
+	Write_10(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
              uint32_t lba, uint16_t len, uint32_t block_size)
 	:
-		Cbw(addr, tag, len * block_size,
+		Cbw(range, tag, len * block_size,
 		    Usb::ENDPOINT_OUT, lun, Scsi::Write_10::LENGTH),
-		Scsi::Write_10(addr+15, lba, len)
+		Scsi::Write_10(Cbw::range_at(15), lba, len)
 	{ if (verbose_scsi) dump(); }
 
 	void dump()
@@ -199,11 +199,11 @@ struct Write_10 : Usb::Cbw, Scsi::Write_10
 
 struct Read_capacity_16 : Usb::Cbw, Scsi::Read_capacity_16
 {
-	Read_capacity_16(addr_t addr, uint32_t tag, uint8_t lun)
+	Read_capacity_16(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun)
 	:
-		Cbw(addr, tag, Scsi::Capacity_response_16::LENGTH,
+		Cbw(range, tag, Scsi::Capacity_response_16::LENGTH,
 		    Usb::ENDPOINT_IN, lun, Scsi::Read_capacity_16::LENGTH),
-		Scsi::Read_capacity_16(addr+15)
+		Scsi::Read_capacity_16(Cbw::range_at(15))
 	{ if (verbose_scsi) dump(); }
 
 	void dump()
@@ -217,12 +217,12 @@ struct Read_capacity_16 : Usb::Cbw, Scsi::Read_capacity_16
 
 struct Read_16 : Usb::Cbw, Scsi::Read_16
 {
-	Read_16(addr_t addr, uint32_t tag, uint8_t lun,
+	Read_16(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
 	        uint64_t lba, uint32_t len, uint32_t block_size)
 	:
-		Cbw(addr, tag, len * block_size,
+		Cbw(range, tag, len * block_size,
 		    Usb::ENDPOINT_IN, lun, Scsi::Read_16::LENGTH),
-		Scsi::Read_16(addr+15, lba, len)
+		Scsi::Read_16(Cbw::range_at(15), (uint32_t)lba, (uint16_t)len)
 	{ if (verbose_scsi) dump(); }
 
 	void dump()
@@ -236,12 +236,12 @@ struct Read_16 : Usb::Cbw, Scsi::Read_16
 
 struct Write_16 : Usb::Cbw, Scsi::Write_16
 {
-	Write_16(addr_t addr, uint32_t tag, uint8_t lun,
+	Write_16(Genode::Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
              uint64_t lba, uint32_t len, uint32_t block_size)
 	:
-		Cbw(addr, tag, len * block_size,
+		Cbw(range, tag, len * block_size,
 		    Usb::ENDPOINT_OUT, lun, Scsi::Write_16::LENGTH),
-		Scsi::Write_16(addr+15, lba, len)
+		Scsi::Write_16(Cbw::range_at(15), (uint32_t)lba, (uint16_t)len)
 	{ if (verbose_scsi) dump(); }
 
 	void dump()
@@ -253,7 +253,7 @@ struct Write_16 : Usb::Cbw, Scsi::Write_16
 };
 
 
-struct Usb::Csw : Genode::Mmio
+struct Usb::Csw : Genode::Mmio<0xd>
 {
 	enum { LENGTH = 13 };
 
@@ -264,7 +264,7 @@ struct Usb::Csw : Genode::Mmio
 	enum { PASSED = 0, FAILED = 1, PHASE_ERROR = 2 };
 	struct Sts : Register<0xc, 8> { }; /* status */
 
-	Csw(addr_t addr) : Mmio(addr) { }
+	Csw(Genode::Byte_range_ptr const &range) : Mmio(range) { }
 
 	uint32_t sig() const { return read<Sig>(); }
 	uint32_t tag() const { return read<Tag>(); }

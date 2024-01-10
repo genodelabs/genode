@@ -16,14 +16,14 @@
 
 namespace Driver {
 	static void pci_ehci_quirks(Env &, Device const &,
-	                            Device::Pci_config const &, addr_t);
+	                            Device::Pci_config const &, Pci::Config const &);
 }
 
 
 void Driver::pci_ehci_quirks(Env                      & env,
                              Device             const & dev,
                              Device::Pci_config const & cfg,
-                             addr_t                     base)
+                             Pci::Config        const & pci_config)
 {
 	enum { EHCI_CLASS_CODE = 0xc0320 };
 
@@ -31,7 +31,7 @@ void Driver::pci_ehci_quirks(Env                      & env,
 		return;
 
 	/* EHCI host controller register definitions */
-	struct Ehci : Mmio
+	struct Ehci : Mmio<0x44>
 	{
 		struct Capability_parameters : Register<0x8, 32>
 		{
@@ -42,7 +42,7 @@ void Driver::pci_ehci_quirks(Env                      & env,
 		using Mmio::Mmio;
 	};
 
-	struct Ehci_pci : Mmio
+	struct Ehci_pci : Mmio<0x64>
 	{
 		struct Port_wake : Register<0x62, 16> {};
 
@@ -50,7 +50,7 @@ void Driver::pci_ehci_quirks(Env                      & env,
 	};
 
 	/* PCI extended capability for EHCI */
-	struct Cap : Mmio
+	struct Cap : Mmio<0x8>
 	{
 		struct Pointer : Register<0x0, 16>
 		{
@@ -72,16 +72,18 @@ void Driver::pci_ehci_quirks(Env                      & env,
 		if (!bar.valid() || bar.number != 0)
 			return;
 
-		Ehci_pci pw(base);
+		Ehci_pci pw(pci_config.range());
 
-		Attached_io_mem_dataspace iomem(env, range.start, 0x1000);
-		Ehci ehci((addr_t)iomem.local_addr<void>());
+		static constexpr size_t IO_MEM_SIZE = 0x1000;
+
+		Attached_io_mem_dataspace iomem(env, range.start, IO_MEM_SIZE);
+		Ehci ehci({iomem.local_addr<char>(), IO_MEM_SIZE});
 		addr_t offset =
 			ehci.read<Ehci::Capability_parameters::Extended_cap_pointer>();
 
 		/* iterate over EHCI extended capabilities */
 		while (offset) {
-			Cap cap(base + offset);
+			Cap cap(pci_config.range_at(offset));
 			if (cap.read<Cap::Pointer::Id>() != Cap::Pointer::Id::SYNC)
 				break;
 

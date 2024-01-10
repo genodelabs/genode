@@ -238,14 +238,14 @@ struct Usb::Block_driver : Usb::Completion
 			}
 
 			int const actual_size = p.transfer.actual_size;
-			char * const data     = reinterpret_cast<char*>(iface.content(p));
+			Byte_range_ptr data {(char *)iface.content(p), p.size()};
 
 			using namespace Scsi;
 
 			switch (actual_size) {
 			case Inquiry_response::LENGTH:
 			{
-				Inquiry_response r((addr_t)data);
+				Inquiry_response r(data);
 				if (verbose_scsi) r.dump();
 
 				if (!r.sbc()) {
@@ -258,7 +258,7 @@ struct Usb::Block_driver : Usb::Completion
 			}
 			case Capacity_response_10::LENGTH:
 			{
-				Capacity_response_10 r((addr_t)data);
+				Capacity_response_10 r(data);
 				if (verbose_scsi) r.dump();
 
 				block_count = r.last_block() + 1;
@@ -267,7 +267,7 @@ struct Usb::Block_driver : Usb::Completion
 			}
 			case Capacity_response_16::LENGTH:
 			{
-				Capacity_response_16 r((addr_t)data);
+				Capacity_response_16 r(data);
 				if (verbose_scsi) r.dump();
 
 				block_count = r.last_block() + 1;
@@ -276,7 +276,7 @@ struct Usb::Block_driver : Usb::Completion
 			}
 			case Request_sense_response::LENGTH:
 			{
-				Request_sense_response r((addr_t)data);
+				Request_sense_response r(data);
 				if (verbose_scsi) r.dump();
 
 				uint8_t const asc = r.read<Request_sense_response::Asc>();
@@ -322,7 +322,7 @@ struct Usb::Block_driver : Usb::Completion
 			}
 			case Csw::LENGTH:
 			{
-				Csw csw((addr_t)data);
+				Csw csw(data);
 
 				uint32_t const sig = csw.sig();
 				if (sig != Csw::SIG) {
@@ -528,6 +528,7 @@ struct Usb::Block_driver : Usb::Completion
 			 */
 
 			char cbw_buffer[Cbw::LENGTH];
+			Byte_range_ptr cbw_buf_range {(char *)cbw_buffer, Cbw::LENGTH};
 
 			/*
 			 * We should probably execute the SCSI REPORT_LUNS command first
@@ -537,7 +538,7 @@ struct Usb::Block_driver : Usb::Completion
 			 */
 
 			/* Scsi::Opcode::INQUIRY */
-			Inquiry inq((addr_t)cbw_buffer, INQ_TAG, active_lun);
+			Inquiry inq(cbw_buf_range, INQ_TAG, active_lun);
 
 			cbw(cbw_buffer, init, true);
 			resp(Scsi::Inquiry_response::LENGTH, init, true);
@@ -559,13 +560,13 @@ struct Usb::Block_driver : Usb::Completion
 				enum { MAX_RETRIES = 10 };
 				int retries;
 				for (retries = 0; retries < MAX_RETRIES; retries++) {
-					Test_unit_ready unit_ready((addr_t)cbw_buffer, RDY_TAG, active_lun);
+					Test_unit_ready unit_ready(cbw_buf_range, RDY_TAG, active_lun);
 
 					cbw(cbw_buffer, init, true);
 					csw(init, true);
 
 					if (!init.unit_ready) {
-						Request_sense sense((addr_t)cbw_buffer, REQ_TAG, active_lun);
+						Request_sense sense(cbw_buf_range, REQ_TAG, active_lun);
 
 						cbw(cbw_buffer, init, true);
 						resp(Scsi::Request_sense_response::LENGTH, init, true);
@@ -582,7 +583,7 @@ struct Usb::Block_driver : Usb::Completion
 						} else if (init.start_stop) {
 
 							init.start_stop = false;
-							Start_stop start_stop((addr_t)cbw_buffer, SS_TAG, active_lun);
+							Start_stop start_stop(cbw_buf_range, SS_TAG, active_lun);
 
 							cbw(cbw_buffer, init, true);
 							csw(init, true);
@@ -609,7 +610,7 @@ struct Usb::Block_driver : Usb::Completion
 			 */
 
 			/* Scsi::Opcode::READ_CAPACITY_10 */
-			Read_capacity_10 read_cap((addr_t)cbw_buffer, CAP_TAG, active_lun);
+			Read_capacity_10 read_cap(cbw_buf_range, CAP_TAG, active_lun);
 
 			cbw(cbw_buffer, init, true);
 			resp(Scsi::Capacity_response_10::LENGTH, init, true);
@@ -626,7 +627,7 @@ struct Usb::Block_driver : Usb::Completion
 			 */
 			if (init.block_count > ~(uint32_t)0U) {
 
-				Read_capacity_16 read_cap((addr_t)cbw_buffer, CAP_TAG, active_lun);
+				Read_capacity_16 read_cap(cbw_buf_range, CAP_TAG, active_lun);
 
 				init.read_capacity = false;
 
@@ -779,7 +780,7 @@ struct Usb::Block_driver : Usb::Completion
 			warning("This is not the actual size you are looking for");
 
 		do {
-			Csw csw((addr_t)iface.content(p));
+			Csw csw({(char *)iface.content(p), p.size()});
 
 			uint32_t const sig = csw.sig();
 			if (sig != Csw::SIG) {
@@ -879,12 +880,13 @@ struct Usb::Block_driver : Usb::Completion
 		 * before entering this function
 		 */
 		char cb[Cbw::LENGTH];
+		Byte_range_ptr cb_range {(char *)cb, Cbw::LENGTH};
 		if (read) {
-			if (force_cmd_16) Read_16 r((addr_t)cb, t, active_lun, lba, c, _block_size);
-			else              Read_10 r((addr_t)cb, t, active_lun, (uint32_t)lba, c, _block_size);
+			if (force_cmd_16) Read_16 r(cb_range, t, active_lun, lba, c, _block_size);
+			else              Read_10 r(cb_range, t, active_lun, (uint32_t)lba, c, _block_size);
 		} else {
-			if (force_cmd_16) Write_16 w((addr_t)cb, t, active_lun, lba, c, _block_size);
-			else              Write_10 w((addr_t)cb, t, active_lun, (uint32_t)lba, c, _block_size);
+			if (force_cmd_16) Write_16 w(cb_range, t, active_lun, lba, c, _block_size);
+			else              Write_10 w(cb_range, t, active_lun, (uint32_t)lba, c, _block_size);
 		}
 
 		cbw(cb, *this);

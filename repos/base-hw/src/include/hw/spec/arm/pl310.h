@@ -22,7 +22,7 @@
 namespace Hw { struct Pl310; }
 
 
-class Hw::Pl310 : public Genode::Mmio
+class Hw::Pl310 : public Genode::Mmio<0xf64>
 {
 	protected:
 
@@ -104,7 +104,7 @@ class Hw::Pl310 : public Genode::Mmio
 
 	public:
 
-		Pl310(Genode::addr_t const base) : Mmio(base) { }
+		Pl310(Genode::addr_t const base) : Mmio({(char *)base, Mmio::SIZE}) { }
 
 		void enable()  {}
 		void disable() {}

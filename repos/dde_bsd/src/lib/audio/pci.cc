@@ -51,9 +51,9 @@ class Pci_driver
 
 		struct Device
 		{
-			Platform::Device       dev;
-			Platform::Device::Irq  irq;
-			Platform::Device::Mmio mmio;
+			Platform::Device          dev;
+			Platform::Device::Irq     irq;
+			Platform::Device::Mmio<0> mmio;
 
 			Device(Platform::Connection &pci,
 			       Platform::Device::Name const &name)

@@ -148,7 +148,7 @@ extern "C" void dde_mdelay(unsigned long msecs)
 
 struct Range { addr_t start; size_t size; };
 
-using Io_mem  = Platform::Device::Mmio;
+using Io_mem  = Platform::Device::Mmio<0>;
 using Io_port = Platform::Device::Io_port_range;
 
 struct Pci_driver

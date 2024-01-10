@@ -35,14 +35,14 @@ class Genode::Fpu_context
 	 */
 	char   _fxsave_area[527];
 
-	struct Context : Mmio
+	struct Context : Mmio<512>
 	{
 		struct Fcw   : Register<0, 16>  { };
 		struct Mxcsr : Register<24, 32> { };
 
-		Context(addr_t const base) : Mmio(base)
+		Context(addr_t const base) : Mmio({(char *)base, Mmio::SIZE})
 		{
-			memset((void *)base, 0, 512);
+			memset((void *)base, 0, Mmio::SIZE);
 			write<Fcw>(0x37f);    /* mask exceptions SysV ABI */
 			write<Mxcsr>(0x1f80);
 		}

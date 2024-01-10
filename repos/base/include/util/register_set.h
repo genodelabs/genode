@@ -23,7 +23,8 @@
 namespace Genode {
 
 	struct Register_set_plain_access;
-	template <typename> class Register_set;
+	struct Register_set_base;
+	template <typename, size_t> class Register_set;
 }
 
 
@@ -68,6 +69,21 @@ struct Genode::Register_set_plain_access
 };
 
 
+struct Genode::Register_set_base : Noncopyable
+{
+	/**
+	 * Interface for delaying the execution of a calling thread
+	 */
+	struct Delayer : Interface
+	{
+		/**
+		 * Delay execution of the caller for 'us' microseconds
+		 */
+		virtual void usleep(uint64_t us) = 0;
+	};
+};
+
+
 /**
  * Set of fine-grained and typesafe accessible registers with offsets
  *
@@ -83,8 +99,8 @@ struct Genode::Register_set_plain_access
  * must not define members named 'Register_base', 'Bitfield_base',
  * 'Register_array_base' or 'Array_bitfield_base'.
  */
-template <typename PLAIN_ACCESS>
-class Genode::Register_set : Noncopyable
+template <typename PLAIN_ACCESS, Genode::size_t REGISTER_SET_SIZE>
+class Genode::Register_set : public Register_set_base
 {
 	private:
 
@@ -225,6 +241,8 @@ class Genode::Register_set : Noncopyable
 			typedef typename Genode::Register<_ACCESS_WIDTH>::access_t
 				access_t;
 
+			static_assert(OFFSET + sizeof(access_t) <= REGISTER_SET_SIZE);
+
 			/**
 			 * A region within a register
 			 *
@@ -333,27 +351,26 @@ class Genode::Register_set : Noncopyable
 					Compound_array;
 			};
 
+
+			struct Dst { off_t offset; uint8_t shift; };
+
 			/**
 			 * Calculate destination of an array-item access
 			 *
-			 * \param offset  Gets overridden with the offset of the
-			 *                access type instance, that contains the
-			 *                access destination
-			 * \param shift   Gets overridden with the shift of the
-			 *                destination within the access type instance
-			 *                targeted by 'offset'.
 			 * \param index   index of the targeted array item
 			 */
-			static inline void dst(off_t & offset,
-			                       unsigned long & shift,
-			                       unsigned long const index)
+			static constexpr Dst dst(unsigned long index)
 			{
-				unsigned long const bit_off = index << ITEM_WIDTH_LOG2;
-				offset  = (off_t) ((bit_off >> BYTE_WIDTH_LOG2)
-				          & ~(sizeof(access_t)-1) );
-				shift   = bit_off - ( offset << BYTE_WIDTH_LOG2 );
+				off_t   bit_offset  = off_t(index << ITEM_WIDTH_LOG2);
+				off_t   byte_offset = bit_offset >> BYTE_WIDTH_LOG2;
+				off_t   offset      = byte_offset & ~(sizeof(access_t) - 1);
+				uint8_t shift       = uint8_t(bit_offset - (offset << BYTE_WIDTH_LOG2));
 				offset += OFFSET;
+
+				return { .offset = offset, .shift = shift };
 			}
+
+			static_assert(dst(MAX_INDEX).offset + sizeof(access_t) <= REGISTER_SET_SIZE);
 
 			/**
 			 * Calc destination of a simple array-item access without shift
@@ -485,10 +502,9 @@ class Genode::Register_set : Noncopyable
 
 			/* access width and item width differ */
 			} else {
-				long unsigned shift;
-				Array::dst(offset, shift, index);
-				return (Plain_access::read<access_t>(_plain_access, offset)
-				        >> shift) & Array::ITEM_MASK;
+				typename Array::Dst dst { Array::dst(index) };
+				return (Plain_access::read<access_t>(_plain_access, dst.offset)
+				        >> dst.shift) & Array::ITEM_MASK;
 			}
 		}
 
@@ -517,8 +533,7 @@ class Genode::Register_set : Noncopyable
 
 			/* access width and item width differ */
 			} else {
-				long unsigned shift;
-				Array::dst(offset, shift, index);
+				typename Array::Dst dst { Array::dst(index) };
 
 				/* insert new value into old register value */
 				access_t write_value;
@@ -530,12 +545,12 @@ class Genode::Register_set : Noncopyable
 
 					/* apply bitfield to the old register value */
 					write_value = Plain_access::read<access_t>(_plain_access,
-					                                           offset);
-					write_value &= ~(Array::ITEM_MASK << shift);
+					                                           dst.offset);
+					write_value &= ~(Array::ITEM_MASK << dst.shift);
 				}
 				/* apply bitfield value and override register */
-				write_value |= (value & Array::ITEM_MASK) << shift;
-				Plain_access::write<access_t>(_plain_access, offset,
+				write_value |= (value & Array::ITEM_MASK) << dst.shift;
+				Plain_access::write<access_t>(_plain_access, dst.offset,
 				                              write_value);
 			}
 		}
@@ -678,17 +693,6 @@ class Genode::Register_set : Noncopyable
 		{
 			uint64_t value;
 			explicit Microseconds(uint64_t value) : value(value) { }
-		};
-
-		/**
-		 * Interface for delaying the execution of a calling thread
-		 */
-		struct Delayer : Interface
-		{
-			/**
-			 * Delay execution of the caller for 'us' microseconds
-			 */
-			virtual void usleep(uint64_t us) = 0;
 		};
 
 

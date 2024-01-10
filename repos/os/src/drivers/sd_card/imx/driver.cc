@@ -524,7 +524,7 @@ Driver::Driver(Env & env, Platform::Connection & platform)
 :
 	Driver_base(env.ram()),
 	Platform::Device(platform),
-	Platform::Device::Mmio(*static_cast<Platform::Device *>(this)),
+	Platform::Device::Mmio<SIZE>(*static_cast<Platform::Device *>(this)),
 	_env(env),
 	_platform(platform)
 {

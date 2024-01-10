@@ -31,7 +31,8 @@ namespace Ahci {
 
 	struct Protocol;
 	struct Port;
-	struct Port_base;
+	template <size_t> struct Port_base_tpl;
+	using Port_base = Port_base_tpl<0x28>;
 	struct Hba;
 
 	using Response       = Block::Request_stream::Response;
@@ -42,10 +43,10 @@ namespace Ahci {
 /**
  * HBA definitions
  */
-struct Ahci::Hba : private Platform::Device::Mmio
+struct Ahci::Hba : private Platform::Device::Mmio<0x28>
 {
-	using Platform::Device::Mmio::base;
-	using Index = Platform::Device::Mmio::Index;
+	using Platform::Device::Mmio<SIZE>::base;
+	using Index = Platform::Device::Mmio<SIZE>::Index;
 
 	Platform::Device::Irq _irq;
 
@@ -85,7 +86,7 @@ struct Ahci::Hba : private Platform::Device::Mmio
 	    Signal_context_capability cap,
 	    Platform::Connection    & platform)
 	:
-		Platform::Device::Mmio(dev, _mmio_index(platform)),
+		Platform::Device::Mmio<SIZE>(dev, _mmio_index(platform)),
 		_irq(dev)
 	{
 		log("version: "
@@ -144,6 +145,8 @@ struct Ahci::Hba : private Platform::Device::Mmio
 
 	/**
 	 * Ports implemented
+	 *
+	 * Each bit set here corresponds to a port that can be accessed by software
 	 */
 	struct Pi : Register<0xc, 32> { };
 
@@ -176,6 +179,8 @@ struct Ahci::Hba : private Platform::Device::Mmio
 		/* clear status register */
 		ack_irq();
 	}
+
+	Byte_range_ptr range_at(off_t offset) const { return Platform::Device::Mmio<SIZE>::range_at(offset); }
 };
 
 
@@ -185,7 +190,7 @@ struct Ahci::Hba : private Platform::Device::Mmio
 
 namespace Ahci {
 
-	struct Device_fis : Mmio
+	struct Device_fis : Mmio<0x4>
 	{
 		struct Status : Register<0x2, 8>
 		{
@@ -194,12 +199,12 @@ namespace Ahci {
 		};
 		struct Error  : Register<0x3, 8> { };
 
-		Device_fis(addr_t recv_base)
-		: Mmio(recv_base + 0x40) { }
+		Device_fis(Byte_range_ptr const &recv_range)
+		: Mmio({recv_range.start + 0x40, recv_range.num_bytes - 0x40}) { }
 	};
 
 
-	struct Command_fis : Mmio
+	struct Command_fis : Mmio<0xe>
 	{
 		struct Type : Register<0x0, 8> { }; /* FIS type */
 		struct Bits : Register<0x1, 8, 1>
@@ -236,8 +241,8 @@ namespace Ahci {
 		struct Sector8_15 : Register<0xd, 8> { };
 		struct Sector     : Bitset_2<Sector0_7, Sector8_15> { }; /* sector count */
 
-		Command_fis(addr_t base)
-		: Mmio(base)
+		Command_fis(Byte_range_ptr const &range)
+		: Mmio(range)
 		{
 			clear();
 
@@ -310,7 +315,7 @@ namespace Ahci {
 	/**
 	 * AHCI command list structure header
 	 */
-	struct Command_header : Mmio
+	struct Command_header : Mmio<0x10>
 	{
 		struct Bits : Register<0x0, 16>
 		{
@@ -326,7 +331,7 @@ namespace Ahci {
 		struct Ctba0    : Register<0x8, 32> { }; /* command table base addr (low) */
 		struct Ctba0_u0 : Register<0xc, 32> { }; /* command table base addr (upper) */
 
-		Command_header(addr_t base) : Mmio(base) { }
+		using Mmio::Mmio;
 
 		void cmd_table_base(addr_t base_phys)
 		{
@@ -354,7 +359,7 @@ namespace Ahci {
 	/**
 	 * ATAPI packet 12 or 16 bytes
 	 */
-	struct Atapi_command : Mmio
+	struct Atapi_command : Mmio<0xa>
 	{
 		struct Command : Register<0, 8>   { };
 
@@ -372,9 +377,9 @@ namespace Ahci {
 		struct Sector      : Bitset_2<Sector0_7, Sector8_15> { };
 
 
-		Atapi_command(addr_t base) : Mmio(base)
+		Atapi_command(Byte_range_ptr const &range) : Mmio(range)
 		{
-			memset((void *)base, 0, 16);
+			memset((void *)base(), 0, 16);
 		}
 
 		void read_capacity()
@@ -410,7 +415,7 @@ namespace Ahci {
 	/**
 	 * Physical region descritpor table
 	 */
-	struct Prdt : Mmio
+	struct Prdt : Mmio<0x10>
 	{
 		struct Dba  : Register<0x0, 32> { }; /* data base address */
 		struct Dbau : Register<0x4, 32> { }; /* data base address upper 32 bits */
@@ -421,8 +426,8 @@ namespace Ahci {
 			struct Irq : Bitfield<31,1>  { }; /* interrupt completion */
 		};
 
-		Prdt(addr_t base, addr_t phys, size_t bytes)
-		: Mmio(base)
+		Prdt(Byte_range_ptr const &range, addr_t phys, size_t bytes)
+		: Mmio(range)
 		{
 			uint64_t addr = phys;
 			write<Dba>((uint32_t)addr);
@@ -442,11 +447,14 @@ namespace Ahci {
 		/* in Genode we only need one PRD (for one packet) */
 		Prdt            prdt;
 
-		Command_table(addr_t base,
+		enum { ATAPI_CMD_OFF = 0x40 };
+		enum { PRDT_OFF = 0x80 };
+
+		Command_table(Byte_range_ptr const &range,
 		              addr_t phys,
 		              size_t bytes = 0)
-		: fis(base), atapi_cmd(base + 0x40),
-		  prdt(base + 0x80, phys, bytes)
+		: fis(range), atapi_cmd({range.start + ATAPI_CMD_OFF, range.num_bytes - ATAPI_CMD_OFF}),
+		  prdt({range.start + PRDT_OFF, range.num_bytes - PRDT_OFF}, phys, bytes)
 		{ }
 
 		static constexpr size_t size() { return 0x100; }
@@ -456,8 +464,11 @@ namespace Ahci {
 /**
  * Minimalistic AHCI port structure to merely detect device signature
  */
-struct Ahci::Port_base : Mmio
+template <Genode::size_t SIZE>
+struct Ahci::Port_base_tpl : Mmio<SIZE>
 {
+	using Base = Mmio<SIZE>;
+
 	/* device signature */
 	enum Signature {
 		ATA_SIG        = 0x101,
@@ -468,31 +479,26 @@ struct Ahci::Port_base : Mmio
 	unsigned              index { };
 	Platform::Connection &plat;
 	Hba                  &hba;
-	Mmio::Delayer        &delayer;
+	Base::Delayer        &delayer;
 
 	/**
 	 * Port signature
 	 */
-	struct Sig : Register<0x24, 32> { };
+	struct Sig : Base::template Register<0x24, 32> { };
 
 	static constexpr addr_t offset() { return 0x100; }
 	static constexpr size_t size()   { return 0x80;  }
 
-	Port_base(unsigned index, Platform::Connection &plat, Hba &hba,
-	          Mmio::Delayer &delayer)
-	: Mmio(hba.base() + offset() + (index * size())),
+	Port_base_tpl(unsigned index, Platform::Connection &plat, Hba &hba,
+	          Base::Delayer &delayer)
+	: Base(hba.range_at(offset() + (index * size()))),
 	  index(index), plat(plat), hba(hba), delayer(delayer) { }
 
-	bool implemented() const
-	{
-		return hba.port_implemented(index);
-	}
-
-	bool ata() const { return read<Sig>() == ATA_SIG; }
+	bool ata() const { return Base::template read<Sig>() == ATA_SIG; }
 
 	bool atapi() const
 	{
-		unsigned sig = read<Sig>();
+		unsigned sig = Base::template read<Sig>();
 		return sig == ATAPI_SIG || sig == ATAPI_SIG_QEMU;
 	}
 };
@@ -513,17 +519,17 @@ struct Ahci::Protocol : Interface
 /**
  * AHCI port
  */
-struct Ahci::Port : private Port_base
+struct Ahci::Port : private Port_base_tpl<0x3c>
 {
-	using Port_base::write;
-	using Port_base::read;
-	using Port_base::wait_for_any;
-	using Port_base::wait_for;
-	using Port_base::Register_set::Polling_timeout;
-	using Port_base::index;
-	using Port_base::hba;
-	using Port_base::delayer;
-	using Port_base::plat;
+	using Port_base_tpl::write;
+	using Port_base_tpl::read;
+	using Port_base_tpl::wait_for_any;
+	using Port_base_tpl::wait_for;
+	using Port_base_tpl::Register_set::Polling_timeout;
+	using Port_base_tpl::index;
+	using Port_base_tpl::hba;
+	using Port_base_tpl::delayer;
+	using Port_base_tpl::plat;
 
 	struct Not_ready : Exception { };
 
@@ -538,10 +544,10 @@ struct Ahci::Port : private Port_base
 
 	addr_t device_info_dma_addr = 0;
 
-	addr_t cmd_list      = 0;
-	addr_t fis_base      = 0;
-	addr_t cmd_table     = 0;
-	addr_t device_info   = 0;
+	Constructible<Byte_range_ptr> cmd_list { };
+	Constructible<Byte_range_ptr> fis { };
+	Constructible<Byte_range_ptr> cmd_table { };
+	Constructible<Byte_range_ptr> device_info { };
 
 	Constructible<Platform::Dma_buffer> dma_buffer { };
 	addr_t dma_base  = 0; /* physical address of DMA memory */
@@ -549,7 +555,7 @@ struct Ahci::Port : private Port_base
 	Port(Protocol &protocol, Region_map &rm, Platform::Connection & plat,
 	     Hba &hba, Mmio::Delayer &delayer, unsigned index)
 	:
-		Port_base(index, plat, hba, delayer),
+		Port_base_tpl(index, plat, hba, delayer),
 		protocol(protocol), rm(rm)
 	{
 		reset();
@@ -871,11 +877,12 @@ struct Ahci::Port : private Port_base
 	{
 		/* command list 1K */
 		addr_t phys = device_dma.dma_addr();
-		cmd_list    = addr_t(device_dma.local_addr<addr_t>());
+		cmd_list.construct(device_dma.local_addr<char>(), device_dma.size());
 		command_list_base(phys);
 
 		/* receive FIS base 256 byte */
-		fis_base = cmd_list + 1024;
+		enum { FIS_OFF = 1024 };
+		fis.construct(cmd_list->start + FIS_OFF, cmd_list->num_bytes - FIS_OFF);
 
 		/*
 		 *  Set fis receive base, clear Fre (FIS receive) before and wait for FR
@@ -886,28 +893,31 @@ struct Ahci::Port : private Port_base
 		fis_rcv_base(phys + 1024);
 
 		/* command table */
-		cmd_table = addr_t(cmd_dma.local_addr<addr_t>());
+		cmd_table.construct(cmd_dma.local_addr<char>(), cmd_dma.size());
 		phys      = cmd_dma.dma_addr();
 
 		/* set command table addresses in command list */
 		for (unsigned i = 0; i < cmd_slots; i++) {
-			Command_header h(cmd_list + (i * Command_header::size()));
+			off_t off = (i * Command_header::size());
+			Command_header h({cmd_list->start + off, cmd_list->num_bytes - off});
 			h.cmd_table_base(phys + (i * Command_table::size()));
 		}
 
 		/* dataspace for device info */
 		device_info_dma_addr = device_info_dma.dma_addr();
-		device_info          = addr_t(device_info_dma.local_addr<addr_t>());
+		device_info.construct(device_info_dma.local_addr<char>(), device_info_dma.size());
 	}
 
-	addr_t command_table_addr(unsigned slot)
+	Byte_range_ptr command_table_range(unsigned slot)
 	{
-		return cmd_table + (slot * Command_table::size());
+		off_t off = slot * Command_table::size();
+		return {cmd_table->start + off, cmd_table->num_bytes - off};
 	};
 
-	addr_t command_header_addr(unsigned slot)
+	Byte_range_ptr command_header_range(unsigned slot)
 	{
-		return cmd_list + (slot * Command_header::size());
+		off_t off = slot * Command_header::size();
+		return {cmd_list->start + off, cmd_list->num_bytes - off};
 	}
 
 	void execute(unsigned slot)

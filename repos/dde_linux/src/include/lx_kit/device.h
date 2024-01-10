@@ -45,14 +45,14 @@ class Lx_kit::Device : List<Device>::Element
 
 		struct Io_mem : List<Io_mem>::Element
 		{
-			using Index = Platform::Device::Mmio::Index;
+			using Index = Platform::Device::Mmio<0>::Index;
 
 			Index    idx;
 			addr_t   addr;
 			size_t   size;
 			unsigned pci_bar;
 
-			Constructible<Platform::Device::Mmio> io_mem {};
+			Constructible<Platform::Device::Mmio<0> > io_mem {};
 
 			bool match(addr_t addr, size_t size);
 

@@ -86,12 +86,12 @@ struct Pl11x_driver::Main
 
 	using Type = Platform::Device::Type;
 
-	Platform::Connection     _platform  { _env };
-	Platform::Device         _pl11x_dev { _platform, Type { "arm,pl111" } };
-	Platform::Device         _sp810_dev { _platform, Type { "arm,sp810" } };
-	Platform::Device::Mmio  _lcd_io_mem { _pl11x_dev };
-	Platform::Device::Mmio  _sys_mem    { _sp810_dev };
-	Platform::Dma_buffer    _fb_dma     { _platform, FRAMEBUFFER_SIZE, UNCACHED };
+	Platform::Connection      _platform  { _env };
+	Platform::Device          _pl11x_dev { _platform, Type { "arm,pl111" } };
+	Platform::Device          _sp810_dev { _platform, Type { "arm,sp810" } };
+	Platform::Device::Mmio<0> _lcd_io_mem { _pl11x_dev };
+	Platform::Device::Mmio<0> _sys_mem    { _sp810_dev };
+	Platform::Dma_buffer      _fb_dma     { _platform, FRAMEBUFFER_SIZE, UNCACHED };
 
 	void _init_device();
 

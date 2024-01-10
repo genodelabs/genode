@@ -57,8 +57,7 @@ class Vmm::Vm
 		Attached_rom_dataspace   _kernel_rom { _env, _config.kernel_name() };
 		Attached_ram_dataspace   _vm_ram     { _env.ram(), _env.rm(),
 		                                       _config.ram_size(), CACHED };
-		Ram                      _ram        { RAM_START, _config.ram_size(),
-		                                       (addr_t)_vm_ram.local_addr<void>()};
+		Ram                      _ram        { RAM_START, {_vm_ram.local_addr<char>(), _config.ram_size()}};
 		Mmio_bus                 _bus {};
 		Gic                      _gic;
 		List<Cpu_entry>          _cpu_list {};
@@ -99,11 +98,11 @@ class Vmm::Vm
 		}
 
 		addr_t dtb_addr() {
-			return _ram.base() + _dtb_offset();
+			return _ram.guest_base() + _dtb_offset();
 		}
 
 		addr_t kernel_addr() {
-			return _ram.base() + KERNEL_OFFSET;
+			return _ram.guest_base() + KERNEL_OFFSET;
 		}
 };
 

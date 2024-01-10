@@ -29,7 +29,7 @@ namespace Bootstrap {
 }
 
 
-class Bootstrap::Aipstz : public Genode::Mmio
+class Bootstrap::Aipstz : public Genode::Mmio<0x54>
 {
 	private:
 
@@ -66,7 +66,7 @@ class Bootstrap::Aipstz : public Genode::Mmio
 		/**
 		 * Configure this module appropriately for the first kernel run
 		 */
-		Aipstz(Genode::addr_t const base) : Genode::Mmio(base)
+		Aipstz(Genode::addr_t const base) : Mmio({(char *)base, Mmio::SIZE})
 		{
 			/* avoid AIPS intervention at any memory access */
 			write<Mpr1>(Mpr::ALL_UNBUFFERED_AND_FULLY_TRUSTED);

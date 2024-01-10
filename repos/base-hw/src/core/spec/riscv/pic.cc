@@ -17,7 +17,7 @@
 
 Board::Pic::Pic(Global_interrupt_controller &)
 :
-	_plic(Core::Platform::mmio_to_virt(Board::PLIC_BASE))
+	_plic({(char *)Core::Platform::mmio_to_virt(Board::PLIC_BASE), Board::PLIC_SIZE})
 {
 	/* enable external interrupts */
 	enum { SEIE = 0x200 };

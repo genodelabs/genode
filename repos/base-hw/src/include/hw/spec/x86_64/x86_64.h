@@ -31,6 +31,7 @@ struct Hw::Cpu_memory_map
 	enum {
 		MMIO_IOAPIC_BASE = 0xfec00000,
 		MMIO_IOAPIC_SIZE = 0x1000,
+		LAPIC_SIZE = 0xe34,
 	};
 
 	static Genode::addr_t lapic_phys_base()

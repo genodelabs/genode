@@ -29,7 +29,7 @@ class Board::Pic : public Hw::Gicv2
 
 		using uint32_t = Genode::uint32_t;
 
-		struct Gich : Genode::Mmio
+		struct Gich : Genode::Mmio<0x104>
 		{
 			struct Gich_hcr    : Register<0x00,  32> { };
 			struct Gich_vmcr   : Register<0x08,  32> { };

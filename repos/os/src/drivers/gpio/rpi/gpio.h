@@ -29,7 +29,7 @@ namespace Gpio {
 	class Reg;
 }
 
-class Gpio::Reg : Attached_io_mem_dataspace, Mmio
+class Gpio::Reg : Attached_io_mem_dataspace, Mmio<0xa0>
 {
 	private:
 
@@ -139,7 +139,7 @@ class Gpio::Reg : Attached_io_mem_dataspace, Mmio
 		    addr_t base, off_t offset, size_t size)
 		:
 			Attached_io_mem_dataspace(env, base, size),
-			Mmio((addr_t)local_addr<Reg>() + offset),
+			Mmio({local_addr<char>() + offset, size - offset}),
 			_delayer(env)
 		{ }
 

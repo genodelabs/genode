@@ -52,7 +52,7 @@ class Block::Mbr : public Partition_table
 		/**
 		 * Partition table entry format
 		 */
-		struct Partition_record : Mmio
+		struct Partition_record : Mmio<16>
 		{
 			struct Type : Register<4, 8>
 			{
@@ -66,8 +66,7 @@ class Block::Mbr : public Partition_table
 
 			Partition_record() = delete;
 
-			Partition_record(addr_t base)
-			: Mmio(base) { }
+			using Mmio::Mmio;
 
 			bool valid()       const { return read<Type>() != Type::INVALID; }
 			bool extended()    const { return read<Type>() == Type::EXTENTED_CHS ||
@@ -83,7 +82,7 @@ class Block::Mbr : public Partition_table
 		/**
 		 * Master/Extented boot record format
 		 */
-		struct Boot_record : Mmio
+		struct Boot_record : Mmio<512>
 		{
 			struct Magic : Register<510, 16>
 			{
@@ -92,7 +91,7 @@ class Block::Mbr : public Partition_table
 
 			Boot_record() = delete;
 
-			Boot_record(addr_t base) : Mmio(base) { }
+			using Mmio::Mmio;
 
 			bool valid() const
 			{
@@ -100,9 +99,9 @@ class Block::Mbr : public Partition_table
 				return read<Magic>() == Magic::NUMBER;
 			}
 
-			addr_t record(unsigned index) const
+			Byte_range_ptr record(unsigned index) const
 			{
-				return base() + 446 + (index * Partition_record::size());
+				return range_at(446 + (index * Partition_record::size()));
 			}
 		};
 
@@ -113,7 +112,7 @@ class Block::Mbr : public Partition_table
 		template <typename FUNC>
 		void _parse_extended(Partition_record const &record, FUNC const &f) const
 		{
-			Reconstructible<Partition_record const> r(record.base());
+			Reconstructible<Partition_record const> r(record.range());
 			unsigned lba = r->lba();
 			unsigned last_lba = 0;
 
@@ -124,7 +123,7 @@ class Block::Mbr : public Partition_table
 				if (!s.success())
 					return;
 
-				Boot_record const ebr(s.addr<addr_t>());
+				Boot_record const ebr(s.buffer());
 				if (!ebr.valid())
 					return;
 
@@ -188,7 +187,7 @@ class Block::Mbr : public Partition_table
 				return Parse_result::NO_MBR;
 
 			/* check for MBR */
-			Boot_record const mbr(s.addr<addr_t>());
+			Boot_record const mbr(s.buffer());
 			if (!mbr.valid())
 				return Parse_result::NO_MBR;
 

@@ -55,7 +55,7 @@ uint32_t Board::Timer::pit_calc_timer_freq(void)
 
 Board::Timer::Timer(unsigned)
 :
-	Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
+	Mmio({(char *)Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()), Mmio::SIZE})
 {
 	init();
 }

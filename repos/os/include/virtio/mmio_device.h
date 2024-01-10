@@ -25,7 +25,7 @@ namespace Virtio {
 }
 
 
-class Virtio::Device : Platform::Device::Mmio
+class Virtio::Device : Platform::Device::Mmio<0x200>
 {
 	public:
 
@@ -102,7 +102,7 @@ class Virtio::Device : Platform::Device::Mmio
 
 		Device(Platform::Device & device)
 		:
-			Platform::Device::Mmio(device), _irq(device, {0})
+			Platform::Device::Mmio<SIZE>(device), _irq(device, {0})
 		{
 			if (read<Magic>() != VIRTIO_MMIO_MAGIC) {
 				throw Invalid_device(); }

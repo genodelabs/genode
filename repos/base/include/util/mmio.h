@@ -15,12 +15,14 @@
 #define _INCLUDE__UTIL__MMIO_H_
 
 /* Genode includes */
+#include <base/log.h>
+#include <util/string.h>
 #include <util/register_set.h>
 
 namespace Genode {
 
 	class Mmio_plain_access;
-	class Mmio;
+	template <size_t> class Mmio;
 }
 
 /**
@@ -32,27 +34,24 @@ class Genode::Mmio_plain_access
 
 	private:
 
-		addr_t const _base;
+		Byte_range_ptr const _range;
 
 		/**
-		 * Write '_ACCESS_T' typed 'value' to MMIO base + 'offset'
+		 * Write 'ACCESS_T' typed 'value' to MMIO base + 'offset'
 		 */
 		template <typename ACCESS_T>
 		inline void _write(off_t const offset, ACCESS_T const value)
 		{
-			addr_t const dst = _base + offset;
-			*(ACCESS_T volatile *)dst = value;
+			*(ACCESS_T volatile *)(_range.start + offset) = value;
 		}
 
 		/**
-		 * Read '_ACCESS_T' typed from MMIO base + 'offset'
+		 * Read 'ACCESS_T' typed from MMIO base + 'offset'
 		 */
 		template <typename ACCESS_T>
 		inline ACCESS_T _read(off_t const &offset) const
 		{
-			addr_t const dst = _base + offset;
-			ACCESS_T const value = *(ACCESS_T volatile *)dst;
-			return value;
+			return *(ACCESS_T volatile *)(_range.start + offset);
 		}
 
 	public:
@@ -62,9 +61,16 @@ class Genode::Mmio_plain_access
 		 *
 		 * \param base  base address of targeted MMIO region
 		 */
-		Mmio_plain_access(addr_t const base) : _base(base) { }
+		Mmio_plain_access(Byte_range_ptr const &range) : _range(range.start, range.num_bytes) { }
 
-		addr_t base() const { return _base; }
+		Byte_range_ptr range_at(off_t offset) const
+		{
+			return {_range.start + offset, _range.num_bytes - offset};
+		}
+
+		Byte_range_ptr range() const { return range_at(0); }
+
+		addr_t base() const { return (addr_t)range().start; }
 };
 
 
@@ -73,17 +79,28 @@ class Genode::Mmio_plain_access
  *
  * For further details refer to the documentation of the 'Register_set' class.
  */
-struct Genode::Mmio : Mmio_plain_access, Register_set<Mmio_plain_access>
+template <Genode::size_t MMIO_SIZE>
+struct Genode::Mmio : Mmio_plain_access, Register_set<Mmio_plain_access, MMIO_SIZE>
 {
+	static constexpr size_t SIZE = MMIO_SIZE;
+
+	class Range_violation : Exception { };
+
 	/**
 	 * Constructor
 	 *
-	 * \param base  base address of targeted MMIO region
+	 * \param range  byte range of targeted MMIO region
 	 */
-	Mmio(addr_t const base)
+	Mmio(Byte_range_ptr const &range)
 	:
-		Mmio_plain_access(base),
-		Register_set(*static_cast<Mmio_plain_access *>(this)) { }
+		Mmio_plain_access(range),
+		Register_set<Mmio_plain_access, SIZE>(*static_cast<Mmio_plain_access *>(this))
+	{
+		if (range.num_bytes < SIZE) {
+			error("MMIO range is unexpectedly too small");
+			throw Range_violation { };
+		}
+	}
 };
 
 #endif /* _INCLUDE__UTIL__MMIO_H_ */

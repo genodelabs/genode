@@ -45,10 +45,10 @@ class Igd::Ring_buffer
 		Index         _head { };
 
 		void with_dwords(auto const &fn) const {
-			_memory.with_vaddr([&](auto vaddr) { fn((uint32_t *)vaddr); }); }
+			_memory.with_vrange([&](Byte_range_ptr const &vrange) { fn((uint32_t *)vrange.start); }); }
 
 		void with_dwords(auto const &fn) {
-			_memory.with_vaddr([&](auto vaddr) { fn((uint32_t *)vaddr); }); }
+			_memory.with_vrange([&](Byte_range_ptr const &vrange) { fn((uint32_t *)vrange.start); }); }
 
 	public:
 

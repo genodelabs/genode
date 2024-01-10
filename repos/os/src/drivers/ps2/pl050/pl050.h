@@ -77,7 +77,7 @@ class Pl050
 
 		public:
 
-			_Channel(Platform::Device::Mmio &mmio)
+			_Channel(Platform::Device::Mmio<0> &mmio)
 			:
 				_reg_base(mmio.local_addr<Genode::uint32_t>())
 			{ }
@@ -119,8 +119,8 @@ class Pl050
 
 	public:
 
-		Pl050(Platform::Device::Mmio &keyboard_mmio,
-		      Platform::Device::Mmio &mouse_mmio)
+		Pl050(Platform::Device::Mmio<0> &keyboard_mmio,
+		      Platform::Device::Mmio<0> &mouse_mmio)
 		:
 			_kbd(keyboard_mmio), _aux(mouse_mmio)
 		{

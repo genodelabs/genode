@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <util/mmio.h>
+#include <hw/spec/x86_64/x86_64.h>
 
 namespace Board {
 
@@ -47,7 +48,7 @@ struct Board::Irte : Genode::Register<64>
 };
 
 
-class Board::Global_interrupt_controller : public Genode::Mmio
+class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_map::MMIO_IOAPIC_SIZE>
 {
 	private:
 
@@ -147,7 +148,7 @@ class Board::Global_interrupt_controller : public Genode::Mmio
 };
 
 
-class Board::Local_interrupt_controller : public Genode::Mmio
+class Board::Local_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_map::LAPIC_SIZE>
 {
 	private:
 

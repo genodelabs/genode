@@ -42,8 +42,8 @@ struct Ps2::Main
 
 	Device _device { _platform };
 
-	Device::Mmio _mmio_keyboard { _device, { 0 } };
-	Device::Mmio _mmio_mouse    { _device, { 1 } };
+	Device::Mmio<0> _mmio_keyboard { _device, { 0 } };
+	Device::Mmio<0> _mmio_mouse    { _device, { 1 } };
 
 	Device::Irq _irq_keyboard { _device, { 0 } };
 	Device::Irq _irq_mouse    { _device, { 1 } };

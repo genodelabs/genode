@@ -440,12 +440,12 @@ struct Igd::Device
 			return offset;
 		}
 
-		void with_vaddr(auto const &fn) const
+		void with_vrange(auto const &fn) const
 		{
 			addr_t const offset = (map.map.offset + skip) * PAGE_SIZE;
 
-			if (!device._resources.with_gmadr(offset, [&](auto const addr) {
-				fn(addr);
+			if (!device._resources.with_gmadr(offset, [&](Byte_range_ptr const &range) {
+				fn(range);
 			}))
 				error("Gmadr object unavailable");
 		}
@@ -484,8 +484,8 @@ struct Igd::Device
 
 		void with_context(auto const &fn)
 		{
-			ctx.with_vaddr([&](auto const vaddr) {
-				auto context = CONTEXT(vaddr);
+			ctx.with_vrange([&](Byte_range_ptr const &vrange) {
+				auto context = CONTEXT(vrange);
 
 				fn(context);
 			});
@@ -493,8 +493,8 @@ struct Igd::Device
 
 		void with_context_ring(auto const &fn)
 		{
-			ctx.with_vaddr([&](auto const vaddr) {
-				auto context = CONTEXT(vaddr);
+			ctx.with_vrange([&](Byte_range_ptr const &vrange) {
+				auto context = CONTEXT(vrange);
 
 				fn(context, _ring);
 			});
@@ -1247,9 +1247,9 @@ struct Igd::Device
 		if (!_hw_status_ctx.constructed())
 			_hw_status_ctx.construct(_md_alloc, *this, 1, 0);
 		if (!_hw_status_page.constructed()) {
-			/* global hw_status_ctx becomes never invalid up to now, so using vaddr is ok */
-			_hw_status_ctx->with_vaddr([&](auto const vaddr) {
-				_hw_status_page.construct(vaddr);
+			/* global hw_status_ctx becomes never invalid up to now, so using vrange is ok */
+			_hw_status_ctx->with_vrange([&](Byte_range_ptr const &vrange) {
+				_hw_status_page.construct(vrange);
 			});
 		}
 

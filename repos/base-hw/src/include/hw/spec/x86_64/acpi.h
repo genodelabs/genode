@@ -59,20 +59,20 @@ struct Hw::Apic_madt
 
 	Apic_madt *next() const { return reinterpret_cast<Apic_madt *>((Genode::uint8_t *)this + length); }
 
-	struct Ioapic : Genode::Mmio
+	struct Ioapic : Genode::Mmio<0xc>
 	{
 		struct Id       : Register <0x02,  8> { };
 		struct Paddr    : Register <0x04, 32> { };
 		struct Gsi_base : Register <0x08, 32> { };
 
-		Ioapic(Apic_madt const * a) : Mmio(reinterpret_cast<Genode::addr_t>(a)) { }
+		Ioapic(Apic_madt const * a) : Mmio({(char *)a, Mmio::SIZE}) { }
 	};
 
-	struct Lapic : Genode::Mmio
+	struct Lapic : Genode::Mmio<0x8>
 	{
 		struct Flags : Register <0x04, 32> { enum { VALID = 1 }; };
 
-		Lapic(Apic_madt const * a) : Mmio(reinterpret_cast<Genode::addr_t>(a)) { }
+		Lapic(Apic_madt const * a) : Mmio({(char *)a, Mmio::SIZE}) { }
 
 		bool valid() { return read<Flags>() & Flags::VALID; };
 	};
@@ -81,7 +81,7 @@ struct Hw::Apic_madt
 
 
 /* ACPI spec 5.2.9 and ACPI GAS 5.2.3.2 */
-struct Hw::Acpi_fadt : Genode::Mmio
+struct Hw::Acpi_fadt : Genode::Mmio<276>
 {
 	enum Addressspace { IO = 0x1 };
 
@@ -174,7 +174,7 @@ struct Hw::Acpi_fadt : Genode::Mmio
 		asm volatile ("outl %0, %w1" : : "a"(val), "Nd"(port));
 	}
 
-	Acpi_fadt(Acpi_generic const * a) : Mmio(Genode::addr_t(a)) { }
+	Acpi_fadt(Acpi_generic const * a) : Mmio({(char *)a, Mmio::SIZE}) { }
 
 	addr_t facs() const
 	{
@@ -346,7 +346,7 @@ struct Hw::Acpi_fadt : Genode::Mmio
 };
 
 
-struct Hw::Acpi_facs : Genode::Mmio
+struct Hw::Acpi_facs : Genode::Mmio<64>
 {
 	struct Length             : Register < 0x04, 32> { };
 	struct Fw_wake_vector     : Register < 0x0c, 32> { };
@@ -362,7 +362,7 @@ struct Hw::Acpi_facs : Genode::Mmio
 			write<Fw_wake_vector_ext>(0);
 	}
 
-	Acpi_facs(addr_t const mmio) : Mmio(mmio) { }
+	Acpi_facs(addr_t const mmio) : Mmio({(char *)mmio, Mmio::SIZE}) { }
 };
 
 

@@ -34,11 +34,11 @@ class Vmm::Virtio_console : public Virtio_device<Virtio_split_queue, 2>
 		{
 			Genode::Mutex::Guard guard(_mutex);
 
-			auto read = [&] (addr_t data, size_t size)
+			auto read = [&] (Byte_range_ptr const &data)
 			{
 				if (!_terminal.avail()) return 0ul;
 
-				size_t length = _terminal.read((void *)data, size);
+				size_t length = _terminal.read((void *)data.start, data.num_bytes);
 				return length;
 			};
 
@@ -52,10 +52,10 @@ class Vmm::Virtio_console : public Virtio_device<Virtio_split_queue, 2>
 		{
 			if (idx != TX) return;
 
-			auto write = [&] (addr_t data, size_t size)
+			auto write = [&] (Byte_range_ptr const &data)
 			{
-				_terminal.write((void *)data, size);
-				return size;
+				_terminal.write((void *)data.start, data.num_bytes);
+				return data.num_bytes;
 			};
 
 			if (_queue[TX]->notify(write))

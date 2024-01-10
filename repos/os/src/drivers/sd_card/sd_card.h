@@ -114,9 +114,9 @@ namespace Sd_card {
 	};
 
 
-	struct Ext_csd : Mmio
+	struct Ext_csd : Mmio<0xd8>
 	{
-		Ext_csd(addr_t base) : Mmio(base) { }
+		using Mmio::Mmio;
 
 		struct Revision     : Register<0xc0, 8>  { };
 		struct Sector_count : Register<0xd4, 32> { };

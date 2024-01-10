@@ -77,11 +77,10 @@ struct Board::Vmcb_control_area
 struct Board::Vmcb_reserved_for_host
 {
 	/* 64bit used by the inherited Mmio class here */
-	Genode::uint64_t  _reserved[1];
 	Genode::addr_t root_vmcb_phys = 0U;
 };
 static_assert(Board::Vmcb_control_area::total_size -
-              sizeof(Board::Vmcb_control_area) - sizeof(Genode::Mmio) -
+              sizeof(Board::Vmcb_control_area) - sizeof(Genode::Mmio<0>) -
               sizeof(Board::Vmcb_reserved_for_host) ==
               0);
 
@@ -136,7 +135,7 @@ struct Board::Vmcb_state_save_area
 struct alignas(Genode::get_page_size()) Board::Vmcb
 :
 	Board::Vmcb_control_area,
-	public Genode::Mmio,
+	public Genode::Mmio<Genode::get_page_size()>,
 	Board::Vmcb_reserved_for_host,
 	Board::Vmcb_state_save_area
 {

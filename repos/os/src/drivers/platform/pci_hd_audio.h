@@ -27,7 +27,7 @@ void Driver::pci_hd_audio_quirks(Device::Pci_config const & cfg, Pci::Config & c
 		return;
 
 	/* PCI configuration register for HDAUDIO */
-	struct Hdaudio : Mmio
+	struct Hdaudio : Mmio<0x7a>
 	{
 		struct Traffic_class_select : Register<0x44, 8> {};
 
@@ -46,7 +46,7 @@ void Driver::pci_hd_audio_quirks(Device::Pci_config const & cfg, Pci::Config & c
 
 	config.write<Pci::Config::Command::Fast_back_to_back_enable>(1);
 
-	Hdaudio audio(config.base());
+	Hdaudio audio(config.range());
 	audio.write<Hdaudio::Traffic_class_select>(0);
 
 	if (cfg.vendor_id == 0x8086)

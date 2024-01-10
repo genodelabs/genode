@@ -53,7 +53,7 @@ class Ahci::Driver : Noncopyable
 		Dispatch &_dispatch;
 
 
-		struct Timer_delayer : Mmio::Delayer, Timer::Connection
+		struct Timer_delayer : Mmio<0>::Delayer, Timer::Connection
 		{
 			using Timer::Connection::Connection;
 
@@ -78,10 +78,10 @@ class Ahci::Driver : Noncopyable
 
 			for (unsigned index = 0; index < MAX_PORTS; index++) {
 
-				Port_base port(index, _plat, _hba, _delayer);
-
-				if (port.implemented() == false)
+				if (_hba.port_implemented(index) == false)
 					continue;
+
+				Port_base port(index, _plat, _hba, _delayer);
 
 				bool enabled = false;
 				if (port.ata()) {

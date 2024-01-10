@@ -28,7 +28,7 @@ class Platform::Device : Interface, Noncopyable
 {
 	public:
 
-		struct Mmio;
+		template <size_t> struct Mmio;
 		struct Irq;
 		struct Io_port_range;
 
@@ -37,8 +37,6 @@ class Platform::Device : Interface, Noncopyable
 	private:
 
 		typedef Device_interface::Range Range;
-
-		friend class Mmio;
 
 		::Platform::Connection &_platform;
 
@@ -86,7 +84,8 @@ class Platform::Device : Interface, Noncopyable
 };
 
 
-class Platform::Device::Mmio : Range, Attached_dataspace, public Genode::Mmio
+template <Genode::size_t SIZE>
+class Platform::Device::Mmio : Range, Attached_dataspace, public Genode::Mmio<SIZE>
 {
 	private:
 
@@ -108,7 +107,7 @@ class Platform::Device::Mmio : Range, Attached_dataspace, public Genode::Mmio
 		Mmio(Device &device, Index index)
 		:
 			Attached_dataspace(device._rm(), _ds_cap(device, index.value)),
-			Genode::Mmio(_local_addr())
+			Genode::Mmio<SIZE>({(char *)_local_addr(), size()})
 		{ }
 
 		explicit Mmio(Device &device) : Mmio(device, Index { 0 }) { }

@@ -42,7 +42,7 @@ class Hw::Pic
 		static constexpr unsigned min_spi     = 32;
 		static constexpr unsigned spurious_id = 1023;
 
-		struct Distributor : Genode::Mmio
+		struct Distributor : Genode::Mmio<0x7fe0>
 		{
 			static constexpr unsigned nr_of_irq = 1024;
 
@@ -103,19 +103,17 @@ class Hw::Pic
 
 			unsigned max_irq() { return 32 * (read<Typer::It_lines_number>() + 1) - 1; }
 
-			Distributor(Genode::addr_t const base) : Genode::Mmio(base)
-			{ }
+			using Mmio::Mmio;
 		};
 
-		struct Redistributor : Genode::Mmio
+		struct Redistributor : Genode::Mmio<0x4>
 		{
 			struct Ctlr : Register<0x0, 32>
 			{
 				struct Uwp : Bitfield<31, 1> { };
 			};
 
-			Redistributor(Genode::addr_t const base) : Genode::Mmio(base)
-			{ }
+			using Mmio::Mmio;
 
 			/* wait for upstream writes */
 			void wait_for_uwp()
@@ -126,7 +124,7 @@ class Hw::Pic
 			}
 		};
 
-		struct Redistributor_sgi_ppi : Genode::Mmio
+		struct Redistributor_sgi_ppi : Genode::Mmio<0xc08>
 		{
 			struct Igroupr0   : Register<0x80, 32> { };
 
@@ -143,8 +141,7 @@ class Hw::Pic
 
 			struct Icfgr1 : Register<0xc04, 32> { };
 
-			Redistributor_sgi_ppi(Genode::addr_t const base) : Genode::Mmio(base)
-			{ }
+			using Mmio::Mmio;
 		};
 
 		struct Cpu_interface

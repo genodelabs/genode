@@ -51,21 +51,21 @@ class Vmm::Virtio_net : public Virtio_device<Virtio_split_queue, 2>
 		void _rx()
 		{
 			/* RX */
-			auto recv = [&] (addr_t data, size_t size)
+			auto recv = [&] (Byte_range_ptr const &data)
 			{
 				if (!_nic.rx()->packet_avail() || !_nic.rx()->ready_to_ack())
 					return 0ul;
 
 				Nic::Packet_descriptor const rx_packet = _nic.rx()->get_packet();
 
-				size_t sz = Genode::min(size, rx_packet.size() + NIC_HEADER_SIZE);
+				size_t sz = Genode::min(data.num_bytes, rx_packet.size() + NIC_HEADER_SIZE);
 
-				Genode::memcpy((void *)(data + NIC_HEADER_SIZE),
+				Genode::memcpy((void *)(data.start + NIC_HEADER_SIZE),
 				               _nic.rx()->packet_content(rx_packet),
 				               sz - NIC_HEADER_SIZE);
 				_nic.rx()->acknowledge_packet(rx_packet);
 
-				Genode::memset((void*)data, 0, NIC_HEADER_SIZE);
+				Genode::memset((void*)data.start, 0, NIC_HEADER_SIZE);
 
 				return sz;
 			};
@@ -79,22 +79,22 @@ class Vmm::Virtio_net : public Virtio_device<Virtio_split_queue, 2>
 
 		void _tx()
 		{
-			auto send = [&] (addr_t data, size_t size)
+			auto send = [&] (Byte_range_ptr const &data)
 			{
 				if (!_nic.tx()->ready_to_submit()) return 0lu;
 
-				data += NIC_HEADER_SIZE; size -= NIC_HEADER_SIZE;
+				Byte_range_ptr body {data.start + NIC_HEADER_SIZE, data.num_bytes - NIC_HEADER_SIZE};
 
 				Nic::Packet_descriptor tx_packet;
 				try {
-					tx_packet = _nic.tx()->alloc_packet(size); }
+					tx_packet = _nic.tx()->alloc_packet(body.num_bytes); }
 				catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
 				return 0ul; }
 
 				Genode::memcpy(_nic.tx()->packet_content(tx_packet),
-				               (void *)data, size);
+				               (void *)body.start, body.num_bytes);
 				_nic.tx()->submit_packet(tx_packet);
-				return size;
+				return body.num_bytes;
 			};
 
 			if (!_queue[TX].constructed()) return;

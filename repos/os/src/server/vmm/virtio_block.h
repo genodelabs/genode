@@ -103,8 +103,7 @@ class Vmm::Virtio_block_request
 
 		template <typename T>
 		T * _desc_addr(Descriptor const & desc) const {
-			return (T*) _ram.local_address((addr_t)desc.address(),
-			                               desc.length()); }
+			return (T*) _ram.to_local_range({(char *)desc.address(), desc.length()}).start; }
 
 		Index              _request_idx;
 		Descriptor         _request    { _array.get(_request_idx)       };

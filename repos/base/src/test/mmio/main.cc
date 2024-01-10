@@ -58,9 +58,9 @@ struct Cpu_state : Register<16>
 /**
  * Exemplary MMIO region type
  */
-struct Test_mmio : public Mmio
+struct Test_mmio : public Mmio<MMIO_SIZE>
 {
-	Test_mmio(addr_t const base) : Mmio(base) { }
+	Test_mmio(addr_t const base) : Mmio({(char *)base, Mmio::SIZE}) { }
 
 	struct Reg_64 : Register<0x00, 64>
 	{
@@ -129,7 +129,7 @@ struct Test_mmio : public Mmio
 
 	struct Simple_array_1 : Register_array<0x0, 32, 2, 32> { };
 
-	struct Simple_array_2 : Register_array<0x2, 16, 4, 16> { };
+	struct Simple_array_2 : Register_array<0x2, 16, 3, 16> { };
 
 	struct Strict_reg : Register<0x0, 32, true>
 	{

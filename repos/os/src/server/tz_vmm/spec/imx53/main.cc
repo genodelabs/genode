@@ -55,7 +55,7 @@ class Main
 		                         KERNEL_OFFSET, Machine_type(MACHINE_QSB),
 		                         Board_revision(BOARD_QSB),
 		                         _heap, _exception_handler };
-		M4if          _m4if    { _env, Imx53::M4IF_BASE, Imx53::M4IF_SIZE };
+		M4if          _m4if    { _env, {(char *)Imx53::M4IF_BASE, Imx53::M4IF_SIZE} };
 		Serial_driver _serial  { _env.ram(), _env.rm() };
 		Block_driver  _block   { _env, _config.xml(), _heap, _vm };
 

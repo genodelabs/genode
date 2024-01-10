@@ -218,7 +218,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 void Board::Cpu::wake_up_all_cpus(void * const ip)
 {
-	struct Src : Genode::Mmio
+	struct Src : Genode::Mmio<0x84>
 	{
 		struct A7_cr0 : Register<0x4,  32>
 		{
@@ -232,7 +232,7 @@ void Board::Cpu::wake_up_all_cpus(void * const ip)
 		struct Gpr3 : Register<0x7c, 32> {}; /* ep core 1 */
 		struct Gpr4 : Register<0x80, 32> {}; /* ep core 1 */
 
-		Src(void * const entry) : Genode::Mmio(SRC_MMIO_BASE)
+		Src(void * const entry) : Mmio({(char *)SRC_MMIO_BASE, Mmio::SIZE})
 		{
 			write<Gpr3>((Gpr3::access_t)entry);
 			write<Gpr4>((Gpr4::access_t)entry);

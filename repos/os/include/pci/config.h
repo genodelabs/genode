@@ -33,7 +33,7 @@ namespace Pci {
 	};
 };
 
-struct Pci::Config : Genode::Mmio
+struct Pci::Config : Genode::Mmio<0x45>
 {
 	struct Vendor : Register<0x0, 16>
 	{
@@ -82,7 +82,7 @@ struct Pci::Config : Genode::Mmio
 		struct Multi_function : Bitfield<7,1> {};
 	};
 
-	struct Base_address : Mmio
+	struct Base_address : Mmio<0x8>
 	{
 		struct Bar_32bit : Register<0, 32>
 		{
@@ -126,7 +126,7 @@ struct Pci::Config : Genode::Mmio
 			return _conf_value;
 		}
 
-		Base_address(Genode::addr_t base) : Mmio(base) { }
+		Base_address(Genode::Byte_range_ptr const &range) : Mmio(range) { }
 
 		bool valid() { return _conf() != 0; }
 
@@ -202,7 +202,8 @@ struct Pci::Config : Genode::Mmio
 	 ** PCI Capabilities **
 	 **********************/
 
-	struct Pci_capability : Genode::Mmio
+	template <Genode::size_t SIZE>
+	struct Pci_capability : Genode::Mmio<SIZE>
 	{
 		struct Id : Register<0,8>
 		{
@@ -223,11 +224,17 @@ struct Pci::Config : Genode::Mmio
 
 		struct Pointer : Register<1,8> {};
 
-		using Genode::Mmio::Mmio;
+		using Mmio<SIZE>::Mmio;
 	};
 
 
-	struct Power_management_capability : Pci_capability
+	struct Pci_capability_header : Pci_capability<0x2>
+	{
+		using Pci_capability::Pci_capability;
+	};
+
+
+	struct Power_management_capability : Pci_capability<0x8>
 	{
 		struct Capabilities : Register<0x2, 16> {};
 
@@ -279,7 +286,7 @@ struct Pci::Config : Genode::Mmio
 	};
 
 
-	struct Msi_capability : Pci_capability
+	struct Msi_capability : Pci_capability<0xe>
 	{
 		struct Control : Register<0x2, 16>
 		{
@@ -315,7 +322,7 @@ struct Pci::Config : Genode::Mmio
 	};
 
 
-	struct Msi_x_capability : Pci_capability
+	struct Msi_x_capability : Pci_capability<0xc>
 	{
 		struct Control : Register<0x2, 16>
 		{
@@ -337,7 +344,7 @@ struct Pci::Config : Genode::Mmio
 			struct Offset    : Bitfield<3, 29> {};
 		};
 
-		struct Table_entry : Genode::Mmio
+		struct Table_entry : Genode::Mmio<0x10>
 		{
 			enum { SIZE = 16 };
 
@@ -349,7 +356,7 @@ struct Pci::Config : Genode::Mmio
 				struct Mask : Bitfield <0, 1> { };
 			};
 
-			using Genode::Mmio::Mmio;
+			using Mmio::Mmio;
 		};
 
 		using Pci_capability::Pci_capability;
@@ -372,7 +379,7 @@ struct Pci::Config : Genode::Mmio
 	};
 
 
-	struct Pci_express_capability : Pci_capability
+	struct Pci_express_capability : Pci_capability<0x3c>
 	{
 		struct Capabilities : Register<0x2, 16> {};
 
@@ -484,7 +491,8 @@ struct Pci::Config : Genode::Mmio
 
 	enum { PCI_E_EXTENDED_CAPS_OFFSET = 0x100U };
 
-	struct Pci_express_extended_capability : Genode::Mmio
+	template<Genode::size_t SIZE>
+	struct Pci_express_extended_capability : Genode::Mmio<SIZE>
 	{
 		struct Id : Register<0x0, 16>
 		{
@@ -504,11 +512,17 @@ struct Pci::Config : Genode::Mmio
 			struct Offset : Bitfield<4, 12> {};
 		};
 
-		using Genode::Mmio::Mmio;
+		using Mmio<SIZE>::Mmio;
 	};
 
 
-	struct Advanced_error_reporting_capability : Pci_express_extended_capability
+	struct Pci_express_extended_capability_header : Pci_express_extended_capability<0x4>
+	{
+		using Pci_express_extended_capability::Pci_express_extended_capability;
+	};
+
+
+	struct Advanced_error_reporting_capability : Pci_express_extended_capability<0x34>
 	{
 		struct Uncorrectable_error_status : Register<0x4,  32> {};
 		struct Correctable_error_status   : Register<0x10, 32> {};
@@ -547,8 +561,8 @@ struct Pci::Config : Genode::Mmio
 	Genode::Constructible<Pci_express_capability>              pci_e_cap   {};
 	Genode::Constructible<Advanced_error_reporting_capability> adv_err_cap {};
 
-	Base_address bar0 { base() + BASE_ADDRESS_0       };
-	Base_address bar1 { base() + BASE_ADDRESS_0 + 0x4 };
+	Base_address bar0 { Mmio::range_at(BASE_ADDRESS_0) };
+	Base_address bar1 { Mmio::range_at(BASE_ADDRESS_0 + 0x4) };
 
 	void clear_errors() {
 		if (adv_err_cap.constructed()) adv_err_cap->clear(); }
@@ -562,21 +576,22 @@ struct Pci::Config : Genode::Mmio
 
 		uint16_t off = read<Capability_pointer>();
 		while (off) {
-			Pci_capability cap(base() + off);
-			switch(cap.read<Pci_capability::Id>()) {
-			case Pci_capability::Id::POWER_MANAGEMENT:
-				power_cap.construct(base()+off); break;
-			case Pci_capability::Id::MSI:
-				msi_cap.construct(base()+off);   break;
-			case Pci_capability::Id::MSI_X:
-				msi_x_cap.construct(base()+off); break;
-			case Pci_capability::Id::PCI_E:
-				pci_e_cap.construct(base()+off); break;
+			using Capability_header = Pci_capability_header;
+			Capability_header cap(Mmio::range_at(off));
+			switch(cap.read<Capability_header::Id>()) {
+			case Capability_header::Id::POWER_MANAGEMENT:
+				power_cap.construct(Mmio::range_at(off)); break;
+			case Capability_header::Id::MSI:
+				msi_cap.construct(Mmio::range_at(off));   break;
+			case Capability_header::Id::MSI_X:
+				msi_x_cap.construct(Mmio::range_at(off)); break;
+			case Capability_header::Id::PCI_E:
+				pci_e_cap.construct(Mmio::range_at(off)); break;
 
 			default:
 				/* ignore unhandled capability */ ;
 			}
-			off = cap.read<Pci_capability::Pointer>();
+			off = cap.read<Capability_header::Pointer>();
 		}
 
 		if (!pci_e_cap.constructed())
@@ -584,21 +599,22 @@ struct Pci::Config : Genode::Mmio
 
 		off = PCI_E_EXTENDED_CAPS_OFFSET;
 		while (off) {
-			Pci_express_extended_capability cap(base() + off);
-			switch (cap.read<Pci_express_extended_capability::Id>()) {
-			case Pci_express_extended_capability::Id::INVALID:
+			using Capability_header = Pci_express_extended_capability_header;
+			Capability_header cap(Mmio::range_at(off));
+			switch (cap.read<Capability_header::Id>()) {
+			case Capability_header::Id::INVALID:
 				return;
-			case Pci_express_extended_capability::Id::ADVANCED_ERROR_REPORTING:
-				adv_err_cap.construct(base() + off); break;
+			case Capability_header::Id::ADVANCED_ERROR_REPORTING:
+				adv_err_cap.construct(Mmio::range_at(off)); break;
 
 			default:
 				/* ignore unhandled extended capability */ ;
 			}
-			off = cap.read<Pci_express_extended_capability::Next_and_version::Offset>();
+			off = cap.read<Capability_header::Next_and_version::Offset>();
 		}
 	}
 
-	using Genode::Mmio::Mmio;
+	using Mmio::Mmio;
 
 	bool valid() {
 		return read<Vendor>() != Vendor::INVALID; }
@@ -612,13 +628,12 @@ struct Pci::Config : Genode::Mmio
 	template <typename MEM_FN, typename IO_FN>
 	void for_each_bar(MEM_FN const & memory, IO_FN const & io)
 	{
-		Genode::addr_t const reg_addr = base() + BASE_ADDRESS_0;
 		Genode::size_t const reg_cnt  =
 			(read<Header_type::Type>()) ? BASE_ADDRESS_COUNT_TYPE_1
 			                            : BASE_ADDRESS_COUNT_TYPE_0;
 
 		for (unsigned i = 0; i < reg_cnt; i++) {
-			Base_address reg0(reg_addr + i*0x4);
+			Base_address reg0 { Mmio::range_at(BASE_ADDRESS_0 + i*0x4) };
 			if (!reg0.valid())
 				continue;
 			if (reg0.memory()) {
@@ -634,7 +649,7 @@ struct Pci::Config : Genode::Mmio
 		if (idx > 5 || (idx > 1 && bridge()))
 			return;
 
-		Base_address bar { base() + BASE_ADDRESS_0 + idx*0x4 };
+		Base_address bar { Mmio::range_at(BASE_ADDRESS_0 + idx*0x4) };
 		bar.set(addr);
 	}
 
@@ -660,10 +675,10 @@ struct Pci::Config_type0 : Pci::Config
 
 	using Pci::Config::Config;
 
-	Base_address bar2 { base() + BASE_ADDRESS_0 + 0x8  };
-	Base_address bar3 { base() + BASE_ADDRESS_0 + 0xc  };
-	Base_address bar4 { base() + BASE_ADDRESS_0 + 0x10 };
-	Base_address bar5 { base() + BASE_ADDRESS_0 + 0x14 };
+	Base_address bar2 { Mmio::range_at(BASE_ADDRESS_0 + 0x8 ) };
+	Base_address bar3 { Mmio::range_at(BASE_ADDRESS_0 + 0xc ) };
+	Base_address bar4 { Mmio::range_at(BASE_ADDRESS_0 + 0x10) };
+	Base_address bar5 { Mmio::range_at(BASE_ADDRESS_0 + 0x14) };
 
 	struct Subsystem_vendor : Register<0x2c, 16> { };
 	struct Subsystem_device : Register<0x2e, 16> { };

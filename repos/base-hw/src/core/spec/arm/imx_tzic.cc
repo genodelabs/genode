@@ -18,4 +18,4 @@
 using namespace Core;
 
 
-Hw::Pic::Pic() : Mmio(Platform::mmio_to_virt(Board::IRQ_CONTROLLER_BASE)) { }
+Hw::Pic::Pic() : Mmio({(char *)Platform::mmio_to_virt(Board::IRQ_CONTROLLER_BASE), Mmio::SIZE}) { }

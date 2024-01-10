@@ -44,7 +44,7 @@ void Vmm::Virtio_gpu_queue::notify(Virtio_gpu_device & dev)
 void Vmm::Virtio_gpu_control_request::_get_display_info()
 {
 	Framebuffer::Mode mode = _device.resize();
-	Display_info_response dir { _desc_addr(1) };
+	Display_info_response dir { _desc_range(1) };
 	memset((void*)dir.base(), 0, Display_info_response::SIZE);
 	dir.write<Control_header::Type>(Control_header::Type::OK_DISPLAY_INFO);
 
@@ -59,8 +59,8 @@ void Vmm::Virtio_gpu_control_request::_get_display_info()
 
 void Vmm::Virtio_gpu_control_request::_resource_create_2d()
 {
-	Resource_create_2d c2d      { _desc_addr(0) };
-	Control_header     response { _desc_addr(1) };
+	Resource_create_2d c2d      { _desc_range(0) };
+	Control_header     response { _desc_range(1) };
 
 	if (c2d.read<Resource_create_2d::Format>() !=
 	    Resource_create_2d::Format::B8G8R8X8) {
@@ -90,8 +90,8 @@ void Vmm::Virtio_gpu_control_request::_resource_delete()
 	using Resource = Virtio_gpu_device::Resource;
 	using Scanout  = Resource::Scanout;
 
-	Resource_unref rur      { _desc_addr(0) };
-	Control_header response { _desc_addr(1)  };
+	Resource_unref rur      { _desc_range(0) };
+	Control_header response { _desc_range(1)  };
 
 	response.write<Control_header::Type>(Control_header::Type::ERR_INVALID_RESOURCE_ID);
 	uint32_t id = rur.read<Resource_unref::Resource_id>();
@@ -113,9 +113,9 @@ void Vmm::Virtio_gpu_control_request::_resource_attach_backing()
 	using Resource = Virtio_gpu_device::Resource;
 	using Entry    = Resource_attach_backing::Memory_entry;
 
-	Resource_attach_backing rab        { _desc_addr(0) };
-	addr_t                  entry_base { _desc_addr(1) };
-	Control_header response            { _desc_addr(2) };
+	Resource_attach_backing rab        { _desc_range(0) };
+	Byte_range_ptr entry_range         { _desc_range(1) };
+	Control_header response            { _desc_range(2) };
 
 	response.write<Control_header::Type>(Control_header::Type::ERR_INVALID_RESOURCE_ID);
 	uint32_t id = rab.read<Resource_attach_backing::Resource_id>();
@@ -127,10 +127,11 @@ void Vmm::Virtio_gpu_control_request::_resource_attach_backing()
 
 		try {
 			for (unsigned i = 0; i < nr; i++) {
-				Entry entry(entry_base+i*Entry::SIZE);
+				off_t offset = i*Entry::SIZE;
+				Entry entry({entry_range.start + offset, entry_range.num_bytes - offset});
 				size_t sz  = entry.read<Entry::Length>();
-				addr_t off = _device._ram.local_address((addr_t)entry.read<Entry::Address>(), sz)
-				             - _device._ram.local();
+				addr_t off = (addr_t)_device._ram.to_local_range({(char *)entry.read<Entry::Address>(), sz}).start
+				             - _device._ram.local_base();
 				res.attach(off, sz);
 			}
 			response.write<Control_header::Type>(Control_header::Type::OK_NO_DATA);
@@ -143,8 +144,8 @@ void Vmm::Virtio_gpu_control_request::_resource_attach_backing()
 
 void Vmm::Virtio_gpu_control_request::_set_scanout()
 {
-	Set_scanout    scr      { _desc_addr(0) };
-	Control_header response { _desc_addr(1) };
+	Set_scanout    scr      { _desc_range(0) };
+	Control_header response { _desc_range(1) };
 
 	uint32_t id  = scr.read<Set_scanout::Resource_id>();
 	uint32_t sid = scr.read<Set_scanout::Scanout_id>();
@@ -177,8 +178,8 @@ void Vmm::Virtio_gpu_control_request::_set_scanout()
 
 void Vmm::Virtio_gpu_control_request::_resource_flush()
 {
-	Resource_flush rf       { _desc_addr(0) };
-	Control_header response { _desc_addr(1) };
+	Resource_flush rf       { _desc_range(0) };
+	Control_header response { _desc_range(1) };
 
 	uint32_t id  = rf.read<Resource_flush::Resource_id>();
 	response.write<Control_header::Type>(Control_header::Type::ERR_INVALID_RESOURCE_ID);
@@ -229,8 +230,8 @@ void Vmm::Virtio_gpu_control_request::_resource_flush()
 
 void Vmm::Virtio_gpu_control_request::_transfer_to_host_2d()
 {
-	Transfer_to_host_2d tth      { _desc_addr(0) };
-	Control_header      response { _desc_addr(1) };
+	Transfer_to_host_2d tth      { _desc_range(0) };
+	Control_header      response { _desc_range(1) };
 
 	uint32_t id = tth.read<Transfer_to_host_2d::Resource_id>();
 	response.write<Control_header::Type>(Control_header::Type::ERR_INVALID_RESOURCE_ID);

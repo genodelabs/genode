@@ -33,7 +33,7 @@ void Driver::pci_virtio_info(Device             const & dev,
 
 	struct Virtio : Pci::Config
 	{
-		struct Capability : Pci::Config::Pci_capability
+		struct Capability : Pci::Config::Pci_capability<0x14>
 		{
 			enum { COMMON = 1, NOTIFY = 2, ISR = 3, DEVICE = 4 };
 
@@ -43,7 +43,7 @@ void Driver::pci_virtio_info(Device             const & dev,
 			struct Length        : Register<0xc, 32> {};
 			struct Offset_factor : Register<0x10, 32> {};
 
-			using Pci::Config::Pci_capability::Pci_capability;
+			using Pci_capability::Pci_capability;
 
 			bool valid()
 			{
@@ -100,18 +100,20 @@ void Driver::pci_virtio_info(Device             const & dev,
 
 			uint16_t off = read<Capability_pointer>();
 			while (off) {
-				Capability cap(base() + off);
-				if (cap.read<Pci_capability::Id>() ==
-				    Pci_capability::Id::VENDOR &&
+				Capability cap(Mmio::range_at(off));
+				if (cap.read<Capability::Id>() ==
+				    Capability::Id::VENDOR &&
 				    cap.valid())
 					capability(cap, dev, xml);
-				off = cap.read<Pci_capability::Pointer>();
+				off = cap.read<Capability::Pointer>();
 			}
 		}
 	};
 
-	Attached_io_mem_dataspace io_mem(env, cfg.addr, 0x1000);
-	Virtio                    config((addr_t)io_mem.local_addr<void>());
+	static constexpr size_t IO_MEM_SIZE = 0x1000;
+
+	Attached_io_mem_dataspace io_mem(env, cfg.addr, IO_MEM_SIZE);
+	Virtio                    config({io_mem.local_addr<char>(), IO_MEM_SIZE});
 	config.for_each_capability(dev, xml);
 }
 

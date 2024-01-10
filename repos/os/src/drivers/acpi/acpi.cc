@@ -115,13 +115,13 @@ struct Generic
 } __attribute__((packed));
 
 
-struct Dmar_common : Genode::Mmio
+struct Dmar_common : Genode::Mmio<0x4>
 {
 	struct Type : Register<0x0, 16> {
 		enum { DRHD= 0U, RMRR = 0x1U, ATSR = 0x2U, RHSA = 0x3U }; };
 	struct Length : Register<0x2, 16> { };
 
-	Dmar_common(addr_t mmio) : Genode::Mmio(mmio) { }
+	Dmar_common(Byte_range_ptr const &range) : Mmio(range) { }
 };
 
 
@@ -143,7 +143,7 @@ struct Dmar_struct_header : Generic
 	{
 		addr_t addr = dmar_entry_start();
 		while (addr < dmar_entry_end()) {
-			Dmar_common dmar(addr);
+			Dmar_common dmar({(char *)addr, dmar_entry_end() - addr});
 
 			func(dmar);
 
@@ -163,38 +163,43 @@ struct Dmar_struct_header : Generic
 
 
 /* Intel VT-d IO Spec - 8.3.1. */
-struct Device_scope : Genode::Mmio
+struct Device_scope : Genode::Mmio<0x6>
 {
-	enum { MAX_PATHS = 4 };
-
-	Device_scope(addr_t a) : Genode::Mmio(a) { }
+	Device_scope(Byte_range_ptr const &range) : Mmio(range) { }
 
 	struct Type   : Register<0x0, 8> { enum { PCI_END_POINT = 0x1 }; };
 	struct Length : Register<0x1, 8> { };
 	struct Bus    : Register<0x5, 8> { };
 
-	struct Path   : Register_array<0x6, 8, MAX_PATHS, 16> {
-		struct Dev  : Bitfield<0,8> { };
-		struct Func : Bitfield<8,8> { };
+	struct Path : Genode::Mmio<0x2>
+	{
+		Path(Byte_range_ptr const &range) : Mmio(range) { }
+
+		struct Dev  : Register<0, 8> { };
+		struct Func : Register<1, 8> { };
+
+		uint8_t dev()  const { return read<Dev >(); }
+		uint8_t func() const { return read<Func>(); }
 	};
 
-	unsigned count() const {
-		unsigned const length = read<Length>();
-		if (length < 6)
-			return 0;
+	void for_each_path(auto const &fn) const
+	{
+		auto const length = read<Length>();
 
-		unsigned paths = (read<Length>() - 6) / 2;
-		if (paths > MAX_PATHS) {
-			Genode::error("Device_scope: more paths (", paths, ") than"
-			              " supported (", (int)MAX_PATHS,")");
-			return MAX_PATHS;
+		unsigned offset = Device_scope::SIZE;
+
+		while (offset < length) {
+			Path const path(Mmio::range_at(offset));
+
+			fn(path);
+
+			offset += Path::SIZE;
 		}
-		return paths;
 	}
 };
 
 /* DMA Remapping Hardware Definition - Intel VT-d IO Spec - 8.3. */
-struct Dmar_drhd : Genode::Mmio
+struct Dmar_drhd : Genode::Mmio<0x10>
 {
 	struct Length  : Register<0x2, 16> { };
 	struct Flags   : Register<0x4,  8> { };
@@ -203,52 +208,52 @@ struct Dmar_drhd : Genode::Mmio
 	struct Segment : Register<0x6, 16> { };
 	struct Phys    : Register<0x8, 64> { };
 
-	Dmar_drhd(addr_t a) : Genode::Mmio(a) { }
+	Dmar_drhd(Byte_range_ptr const &range) : Mmio(range) { }
 
 	template <typename FUNC>
 	void apply(FUNC const &func = [] () { } )
 	{
-		addr_t addr = base() + 16;
-		while (addr < base() + read<Length>()) {
-			Device_scope scope(addr);
+		off_t offset = 16;
+		while (offset < read<Length>()) {
+			Device_scope scope(Mmio::range_at(offset));
 
 			func(scope);
 
-			addr = scope.base() + scope.read<Device_scope::Length>();
+			offset += scope.read<Device_scope::Length>();
 		}
 	}
 };
 
 /* DMA Remapping Reporting structure - Intel VT-d IO Spec - 8.3. */
-struct Dmar_rmrr : Genode::Mmio
+struct Dmar_rmrr : Genode::Mmio<0x18>
 {
 	struct Length : Register<0x02, 16> { };
 	struct Base   : Register<0x08, 64> { };
 	struct Limit  : Register<0x10, 64> { };
 
-	Dmar_rmrr(addr_t a) : Genode::Mmio(a) { }
+	Dmar_rmrr(Byte_range_ptr const &range) : Mmio(range) { }
 
 	template <typename FUNC>
 	void apply(FUNC const &func = [] () { } )
 	{
-		addr_t addr = base() + 24;
-		while (addr < base() + read<Length>()) {
-			Device_scope scope(addr);
+		addr_t offset = 24;
+		while (offset < read<Length>()) {
+			Device_scope scope(Mmio::range_at(offset));
 
 			func(scope);
 
-			addr = scope.base() + scope.read<Device_scope::Length>();
+			offset += scope.read<Device_scope::Length>();
 		}
 	}
 };
 
 /* I/O Virtualization Definition Blocks for AMD IO-MMU */
-struct Ivdb : Genode::Mmio
+struct Ivdb : Genode::Mmio<0x4>
 {
 	struct Type   : Register<0x00, 8>  { };
 	struct Length : Register<0x02, 16> { };
 
-	Ivdb(addr_t const addr) : Genode::Mmio(addr) { }
+	Ivdb(Byte_range_ptr const &range) : Mmio(range) { }
 };
 
 
@@ -275,7 +280,7 @@ struct Ivdb_entry : public List<Ivdb_entry>::Element
 
 
 /* I/O Virtualization Reporting Structure (IVRS) for AMD IO-MMU */
-struct Ivrs : Genode::Mmio
+struct Ivrs : Genode::Mmio<0x28>
 {
 	struct Length : Register<0x04, 32> { };
 	struct Ivinfo : Register<0x24, 32> {
@@ -284,37 +289,33 @@ struct Ivrs : Genode::Mmio
 
 	static constexpr unsigned min_size() { return 0x30; }
 
-	Ivrs(addr_t const table) : Genode::Mmio(table) { }
+	Ivrs(Byte_range_ptr const &range) : Mmio(range) { }
 
 	void parse(Allocator &alloc)
 	{
-		addr_t addr = base() + 0x30;
-		while (addr < base() + read<Ivrs::Length>()) {
+		uint32_t offset = 0x30;
+		while (offset < read<Ivrs::Length>()) {
 			bool dmar = Ivinfo::Dmar::get(read<Ivinfo::Dmar>());
 			if (dmar)
 				Genode::warning("Predefined regions should be added to IOMMU");
 
-			Ivdb ivdb(addr);
+			Ivdb ivdb(Mmio::range_at(offset));
 
 			uint32_t const type = ivdb.read<Ivdb::Type>();
 			uint32_t const size = ivdb.read<Ivdb::Length>();
 
 			Ivdb_entry::list()->insert(new (&alloc) Ivdb_entry(type));
 
-			addr += size;
+			offset += size;
 		}
 	}
 };
 
-/* Fixed ACPI description table (FADT) */
-struct Fadt : Genode::Mmio
+
+struct Fadt_reset : Genode::Mmio<0x88>
 {
-	size_t const size;
+	Fadt_reset(Byte_range_ptr const &range) : Mmio(range) { }
 
-	Fadt(addr_t mmio, size_t size) : Genode::Mmio(mmio), size(size) { }
-
-	struct Dsdt           : Register<0x28, 32> { };
-	struct Sci_int        : Register<0x2e, 16> { };
 	struct Features       : Register<0x70, 32> {
 		/* Table 5-35 Fixed ACPI Description Table Fixed Feature Flags */
 		struct Reset : Bitfield<10, 1> { };
@@ -328,25 +329,31 @@ struct Fadt : Genode::Mmio
 	struct Reset_reg      : Register<0x78, 64> { };
 	struct Reset_value    : Register<0x80,  8> { };
 
-	bool dsdt_valid() {
-		 return size >= Dsdt::OFFSET + Dsdt::ACCESS_WIDTH / 8; }
+	uint16_t io_port_reset() const { return read<Reset_reg>() & 0xffffu; }
+	uint8_t  reset_value()   const { return read<Fadt_reset::Reset_value>(); }
+};
 
-	bool sci_int_valid() {
-		 return size >= Sci_int::OFFSET + Sci_int::ACCESS_WIDTH / 8; }
 
-	bool io_reset_supported()
+/* Fixed ACPI description table (FADT) */
+struct Fadt : Genode::Mmio<0x30>
+{
+	Fadt(Byte_range_ptr const &range) : Mmio(range) { }
+
+	struct Dsdt    : Register<0x28, 32> { };
+	struct Sci_int : Register<0x2e, 16> { };
+
+	void detect_io_reset(auto const &range, auto const &fn) const
 	{
-		if (size < Reset_value::OFFSET + Reset_value::ACCESS_WIDTH / 8)
-			return false;
+		if (range.num_bytes < Fadt_reset::SIZE)
+			return;
 
-		if (!read<Features::Reset>())
-			return false;
+		Fadt_reset const reset(range);
 
-		if (read<Reset_type::Address_space>() == Reset_type::Address_space::SYSTEM_IO)
-			return true;
+		if (!read<Fadt_reset::Features::Reset>())
+			return;
 
-		warning("unsupported reset mode ", read<Reset_type::Address_space>());
-		return false;
+		if (read<Fadt_reset::Reset_type::Address_space>() == Fadt_reset::Reset_type::Address_space::SYSTEM_IO)
+			fn(reset);
 	}
 };
 
@@ -421,16 +428,16 @@ class Pci_config_space : public List<Pci_config_space>::Element
 			return &_list;
 		}
 
-		struct Config_space : Mmio
+		struct Config_space : Mmio<0x100>
 		{
 			struct Vendor : Register<0x00, 16> { enum { INTEL = 0x8086 }; };
 			struct Class  : Register<0x0b,  8> { enum { DISPLAY = 0x3 }; };
 			struct Asls   : Register<0xfc, 32> { };
 
-			Config_space(addr_t mmio) : Mmio(mmio) { }
+			Config_space(Byte_range_ptr const &range) : Mmio(range) { }
 		};
 
-		struct Opregion : Mmio
+		struct Opregion : Mmio<0x3c6>
 		{
 			struct Minor : Register<0x16, 8> { };
 			struct Major : Register<0x17, 8> { };
@@ -441,7 +448,7 @@ class Pci_config_space : public List<Pci_config_space>::Element
 			struct Asle_rvda : Register<0x3ba, 64> { };
 			struct Asle_rvds : Register<0x3c2, 32> { };
 
-			Opregion(addr_t mmio) : Mmio(mmio) { }
+			Opregion(Byte_range_ptr const &range) : Mmio(range) { }
 		};
 
 		static void intel_opregion(Env &env)
@@ -459,7 +466,7 @@ class Pci_config_space : public List<Pci_config_space>::Element
 				Attached_io_mem_dataspace pci_config(env, e->_base +
 				                                     config_offset * config_size,
 				                                     config_size);
-				Config_space device((addr_t)pci_config.local_addr<void>());
+				Config_space device({pci_config.local_addr<char>(), config_size});
 
 				if ((device.read<Config_space::Vendor>() != Config_space::Vendor::INTEL) ||
 				    (device.read<Config_space::Class>()  != Config_space::Class::DISPLAY))
@@ -477,7 +484,7 @@ class Pci_config_space : public List<Pci_config_space>::Element
 
 				{
 					Attached_io_mem_dataspace map_asls(env, phys_asls, asls_size);
-					Opregion opregion((addr_t)map_asls.local_addr<void>());
+					Opregion opregion({map_asls.local_addr<char>(), asls_size});
 
 					auto const rvda = opregion.read<Opregion::Asle_rvda>();
 					auto const rvds = opregion.read<Opregion::Asle_rvds>();
@@ -1426,27 +1433,25 @@ class Acpi_table
 					if (table.is_ivrs() && Ivrs::min_size() <= table->size) {
 						log("Found IVRS");
 
-						Ivrs ivrs(reinterpret_cast<Genode::addr_t>(table->signature));
+						Ivrs ivrs({(char *)table->signature, table->size});
 						ivrs.parse(_heap);
 					}
 
-					if (table.is_facp()) {
-						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature), table->size);
+					if (table.is_facp() && (Fadt::SIZE <= table->size)) {
+						Byte_range_ptr const range((char *)table->signature,
+						                           table->size);
 
-						if (fadt.dsdt_valid())
-							dsdt = fadt.read<Fadt::Dsdt>();
+						Fadt fadt(range);
 
-						if (fadt.io_reset_supported()) {
-							uint16_t const reset_io_port = fadt.read<Fadt::Reset_reg>() & 0xffffu;
-							uint8_t  const reset_value   = fadt.read<Fadt::Reset_value>();
+						dsdt = fadt.read<Fadt::Dsdt>();
 
-							_reset_info.construct(Reset_info { .io_port = reset_io_port,
-							                                   .value   = reset_value });
-						}
-						if (fadt.sci_int_valid()) {
-							_sci_int = fadt.read<Fadt::Sci_int>();
-							_sci_int_valid = true;
-						}
+						_sci_int = fadt.read<Fadt::Sci_int>();
+						_sci_int_valid = true;
+
+						fadt.detect_io_reset(range, [&](auto const &reset) {
+							_reset_info.construct(Reset_info { .io_port = reset.io_port_reset(),
+							                                   .value   = reset.reset_value() });
+						});
 					}
 
 					if (table.is_searched()) {
@@ -1651,20 +1656,16 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 		/* lambda definition for scope evaluation in rmrr */
 		auto func_scope = [&] (Device_scope const &scope)
 		{
-			if (!scope.count())
-				return;
-
 			xml.node("scope", [&] () {
 				xml.attribute("bus_start", scope.read<Device_scope::Bus>());
 				xml.attribute("type", scope.read<Device_scope::Type>());
-				for (unsigned j = 0 ; j < scope.count(); j++) {
+
+				scope.for_each_path([&](auto const &path) {
 					xml.node("path", [&] () {
-						attribute_hex(xml, "dev",
-						              scope.read<Device_scope::Path::Dev>(j));
-						attribute_hex(xml, "func",
-						              scope.read<Device_scope::Path::Func>(j));
+						attribute_hex(xml, "dev" , path.dev());
+						attribute_hex(xml, "func", path.func());
 					});
-				}
+				});
 			});
 		};
 
@@ -1676,7 +1677,7 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 				if (!ignore_drhd &&
 				    dmar.read<Dmar_common::Type>() == Dmar_common::Type::DRHD)
 				{
-					Dmar_drhd drhd(dmar.base());
+					Dmar_drhd drhd(dmar.range());
 
 					size_t size_log2 = drhd.read<Dmar_drhd::Size::Num_pages>() + 12;
 
@@ -1692,7 +1693,7 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 				if (dmar.read<Dmar_common::Type>() != Dmar_common::Type::RMRR)
 					return;
 
-				Dmar_rmrr rmrr(dmar.base());
+				Dmar_rmrr rmrr(dmar.range());
 
 				xml.node("rmrr", [&] () {
 					attribute_hex(xml, "start", rmrr.read<Dmar_rmrr::Base>());

@@ -37,16 +37,14 @@ class Main
 		 ** Qemu firmware interface **
 		 *****************************/
 
-		struct Fw : Mmio
+		struct Fw : Mmio<0x18>
 		{
 			template <typename T>
 			struct Data     : Register<0x0, sizeof(T) * 8> { };
 			struct Selector : Register<0x8, 16> { };
 			struct Dma      : Register<0x10, 64> { };
 
-			Fw(addr_t const base)
-			:
-			  Mmio(base) { }
+			Fw(Byte_range_ptr const &range) : Mmio(range) { }
 		};
 
 		Env &_env;
@@ -57,10 +55,10 @@ class Main
 
 		using Type = Platform::Device::Type;
 
-		Platform::Connection   _platform { _env };
-		Platform::Device       _fw_dev { _platform, Type { "qemu,fw-cfg-mmio" } };
-		Platform::Device::Mmio _fw_mem { _fw_dev };
-		Fw                     _fw { (addr_t)_fw_mem.local_addr<addr_t>() };
+		Platform::Connection      _platform { _env };
+		Platform::Device          _fw_dev { _platform, Type { "qemu,fw-cfg-mmio" } };
+		Platform::Device::Mmio<0> _fw_mem { _fw_dev };
+		Fw                        _fw { {_fw_mem.local_addr<char>(), _fw_mem.size()} };
 
 		Platform::Dma_buffer _fb_dma     { _platform, SCR_HEIGHT * SCR_STRIDE, UNCACHED };
 		Platform::Dma_buffer _config_dma { _platform, 0x1000, UNCACHED };
@@ -91,15 +89,13 @@ class Main
 			return host_to_big_endian(_fw.read<Fw::Data<T>>()); }
 
 		/* DMA control structure */
-		struct Fw_dma_config : Genode::Mmio
+		struct Fw_dma_config : Genode::Mmio<0x10>
 		{
 			struct Control : Register<0x0, 32> { };
 			struct Length  : Register<0x4, 32> { };
 			struct Address : Register<0x8, 64> { };
 
-			Fw_dma_config(addr_t const base)
-			:
-			  Mmio(base)
+			Fw_dma_config(Byte_range_ptr const &range) : Mmio(range)
 			{
 				/* set write bit */
 				write<Control>(host_to_big_endian(1u << 4));
@@ -116,7 +112,7 @@ class Main
 		};
 
 		/* ramfb configuration */
-		struct Ram_fb_config : Genode::Mmio
+		struct Ram_fb_config : Genode::Mmio<0x1c>
 		{
 			struct Address    : Register<0x0, 64> { };
 			struct Drm_format : Register<0x8, 32> { };
@@ -124,17 +120,15 @@ class Main
 			struct Height     : Register<0x14, 32> { };
 			struct Stride     : Register<0x18, 32> { };
 
-			Ram_fb_config(addr_t const base)
-			:
-			  Mmio(base)
-			  {
-					enum {
-						DRM_FORMAT_ARGB8888 = 0x34325241,
-					};
-					/* RGBA32 */
-					write<Drm_format>(host_to_big_endian(DRM_FORMAT_ARGB8888));
-					write<Stride>(host_to_big_endian(SCR_STRIDE));
-				}
+			Ram_fb_config(Byte_range_ptr const &range) : Mmio(range)
+			{
+				enum {
+					DRM_FORMAT_ARGB8888 = 0x34325241,
+				};
+				/* RGBA32 */
+				write<Drm_format>(host_to_big_endian(DRM_FORMAT_ARGB8888));
+				write<Stride>(host_to_big_endian(SCR_STRIDE));
+			}
 		};
 
 		Fw_config_file _find_ramfb()
@@ -173,12 +167,12 @@ class Main
 			addr_t config_phys = _config_dma.dma_addr();
 			addr_t fb_phys     = _fb_dma.dma_addr();
 
-			Ram_fb_config config { config_addr };
+			Ram_fb_config config { {(char *)config_addr, _config_dma.size()} };
 			config.write<Ram_fb_config::Address>(host_to_big_endian(fb_phys));
 			config.write<Ram_fb_config::Width>(host_to_big_endian(SCR_WIDTH));
 			config.write<Ram_fb_config::Height>(host_to_big_endian(SCR_HEIGHT));
 
-			Fw_dma_config fw_dma { config_addr + FW_OFFSET};
+			Fw_dma_config fw_dma { {(char *)config_addr + FW_OFFSET, _config_dma.size() - FW_OFFSET} };
 			fw_dma.write<Fw_dma_config::Length>(host_to_big_endian(file.size));
 			fw_dma.write<Fw_dma_config::Address>(host_to_big_endian(config_phys));
 

@@ -27,9 +27,9 @@ static inline addr_t redistributor_addr()
 
 Hw::Pic::Pic()
 :
-	_distr(Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE)),
-	_redistr(redistributor_addr()),
-	_redistr_sgi(redistributor_addr() + 0x10000),
+	_distr({(char *)Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE), Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE}),
+	_redistr({(char *)redistributor_addr(), Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE}),
+	_redistr_sgi({(char *)redistributor_addr() + 0x10000, Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE - 0x10000}),
 	_max_irq(_distr.max_irq())
 {
 	_redistributor_init();

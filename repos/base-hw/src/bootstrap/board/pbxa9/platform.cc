@@ -40,12 +40,12 @@ void Board::Cpu::wake_up_all_cpus(void * const ip)
 	 * read out this register and jump to it after the cpu received
 	 * an interrupt
 	 */
-	struct System_control : Genode::Mmio
+	struct System_control : Genode::Mmio<0x38>
 	{
 		struct Flagsset : Register<0x30, 32> { };
 		struct Flagsclr : Register<0x34, 32> { };
 
-		System_control(void * const ip) : Mmio(SYSTEM_CONTROL_MMIO_BASE)
+		System_control(void * const ip) : Mmio({(char *)SYSTEM_CONTROL_MMIO_BASE, Mmio::SIZE})
 		{
 			write<Flagsclr>(~0UL);
 			write<Flagsset>(reinterpret_cast<Flagsset::access_t>(ip));

@@ -26,7 +26,7 @@ class Mmio_big_endian_access
 
 	private:
 
-		addr_t const _base;
+		Byte_range_ptr const _range;
 
 		/**
 		 * Write '_ACCESS_T' typed 'value' to MMIO base + 'offset'
@@ -34,8 +34,7 @@ class Mmio_big_endian_access
 		template <typename ACCESS_T>
 		inline void _write(off_t const offset, ACCESS_T const value)
 		{
-			addr_t const dst = _base + offset;
-			*(ACCESS_T volatile *)dst = host_to_big_endian(value);
+			*(ACCESS_T volatile *)(_range.start + offset) = host_to_big_endian(value);
 		}
 
 		/**
@@ -44,30 +43,38 @@ class Mmio_big_endian_access
 		template <typename ACCESS_T>
 		inline ACCESS_T _read(off_t const &offset) const
 		{
-			addr_t const dst = _base + offset;
-			ACCESS_T const value = *(ACCESS_T volatile *)dst;
-			return host_to_big_endian(value);
+			return host_to_big_endian(*(ACCESS_T volatile *)(_range.start + offset));
 		}
 
 	public:
 
-		Mmio_big_endian_access(addr_t const base) : _base(base) { }
+		Mmio_big_endian_access(Byte_range_ptr const &range) : _range(range.start, range.num_bytes) { }
 
-		addr_t base() const { return _base; }
+		Byte_range_ptr range_at(off_t offset) const
+		{
+			return {_range.start + offset, _range.num_bytes - offset};
+		}
+
+		Byte_range_ptr range() const { return range_at(0); }
+
+		addr_t base() const { return (addr_t)range().start; }
 };
 
 
+template <size_t MMIO_SIZE>
 struct Mmio : Mmio_big_endian_access,
-              Register_set<Mmio_big_endian_access>
+              Register_set<Mmio_big_endian_access, MMIO_SIZE>
 {
-	Mmio(addr_t const base)
+	static constexpr size_t SIZE = MMIO_SIZE;
+
+	Mmio(Byte_range_ptr const &range)
 	:
-		Mmio_big_endian_access(base),
-		Register_set(*static_cast<Mmio_big_endian_access *>(this)) { }
+		Mmio_big_endian_access(range),
+		Register_set<Mmio_big_endian_access, SIZE>(*static_cast<Mmio_big_endian_access *>(this)) { }
 };
 
 
-struct Fdt_header : Mmio
+struct Fdt_header : Mmio<10*4>
 {
 	struct Magic             : Register<0x0,  32> {};
 	struct Totalsize         : Register<0x4,  32> {};
@@ -81,19 +88,15 @@ struct Fdt_header : Mmio
 	struct Size_dt_struct    : Register<0x24, 32> {};
 
 	using Mmio::Mmio;
-
-	enum { SIZE = 10*4 };
 };
 
 
-struct Fdt_reserve_entry : Mmio
+struct Fdt_reserve_entry : Mmio<2*8>
 {
 	struct Address : Register<0, 64> {};
 	struct Size    : Register<8, 64> {};
 
 	using Mmio::Mmio;
-
-	enum { SIZE = 2*8 };
 };
 
 
@@ -106,35 +109,37 @@ enum Fdt_tokens {
 };
 
 
-struct Fdt_token : Mmio
+template <size_t SIZE>
+struct Fdt_token_tpl : Mmio<SIZE>
 {
-	struct Type : Register<0, 32> {};
+	using Base = Mmio<SIZE>;
 
-	Fdt_token(addr_t const base, Fdt_tokens type)
+	struct Type : Base::template Register<0, 32> {};
+
+	Fdt_token_tpl(Byte_range_ptr const &range, Fdt_tokens type)
 	:
-		Mmio(base)
+		Base(range)
 	{
-		write<Type>(type);
+		Base::template write<Type>(type);
 	}
-
-	enum { SIZE = 4 };
 };
 
 
-struct Fdt_prop : Fdt_token
+using Fdt_token = Fdt_token_tpl<0x4>;
+
+
+struct Fdt_prop : Fdt_token_tpl<Fdt_token::SIZE + 2*4>
 {
 	struct Len     : Register<4, 32> {};
 	struct Nameoff : Register<8, 32> {};
 
-	Fdt_prop(addr_t base, uint32_t len, uint32_t name_offset)
+	Fdt_prop(Byte_range_ptr const &range, uint32_t len, uint32_t name_offset)
 	:
-		Fdt_token(base, FDT_PROP)
+		Fdt_token_tpl(range, FDT_PROP)
 	{
 		write<Fdt_prop::Len>(len);
 		write<Fdt_prop::Nameoff>(name_offset);
 	}
-
-	enum { SIZE = Fdt_token::SIZE + 2*4 };
 };
 
 
@@ -220,20 +225,20 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 
 	auto node = [&] (auto const & name, auto const & fn)
 	{
-		Fdt_token start(_buffer.addr+off, FDT_BEGIN_NODE);
+		Fdt_token start({(char *)_buffer.addr+off, _buffer.size-off}, FDT_BEGIN_NODE);
 		off += Fdt_token::SIZE;
 		_buffer.write(off, name.string(), name.length());
 		off += (uint32_t)name.length();
 		off = align_addr(off, 2);
 		fn();
-		Fdt_token end(_buffer.addr+off, FDT_END_NODE);
+		Fdt_token end({(char *)_buffer.addr+off, _buffer.size-off}, FDT_END_NODE);
 		off += Fdt_token::SIZE;
 	};
 
 	auto property = [&] (auto const & name, auto const & val)
 	{
 		_dict.add(name);
-		Fdt_prop prop(_buffer.addr+off, (uint32_t)val.length(),
+		Fdt_prop prop({(char *)_buffer.addr+off, _buffer.size-off}, (uint32_t)val.length(),
 		              _dict.offset(name));
 		off += Fdt_prop::SIZE;
 		val.write(off, _buffer);
@@ -366,7 +371,7 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 		});
 	});
 
-	Fdt_token end(_buffer.addr+off, FDT_END);
+	Fdt_token end({(char *)_buffer.addr+off, _buffer.size-off}, FDT_END);
 	off += Fdt_token::SIZE;
 }
 
@@ -374,7 +379,7 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 void Vmm::Fdt_generator::generate(Config const & config,
                                   void * initrd_start, size_t initrd_size)
 {
-	Fdt_header header(_buffer.addr);
+	Fdt_header header({(char *)_buffer.addr, _buffer.size});
 	header.write<Fdt_header::Magic>(FDT_MAGIC);
 	header.write<Fdt_header::Version>(FDT_VERSION);
 	header.write<Fdt_header::Last_comp_version>(FDT_COMP_VERSION);
@@ -382,7 +387,7 @@ void Vmm::Fdt_generator::generate(Config const & config,
 
 	uint32_t off = Fdt_header::SIZE;
 	header.write<Fdt_header::Off_mem_rsvmap>(off);
-	Fdt_reserve_entry memory(_buffer.addr+off);
+	Fdt_reserve_entry memory({(char *)_buffer.addr+off, _buffer.size-off});
 	memory.write<Fdt_reserve_entry::Address>(0);
 	memory.write<Fdt_reserve_entry::Size>(0);
 
@@ -391,7 +396,7 @@ void Vmm::Fdt_generator::generate(Config const & config,
 
 	_generate_tree(off, config, initrd_start, initrd_size);
 
-	header.write<Fdt_header::Size_dt_struct>(off-Fdt_header::SIZE-Fdt_reserve_entry::SIZE);
+	header.write<Fdt_header::Size_dt_struct>((uint32_t)(off-Fdt_header::SIZE-Fdt_reserve_entry::SIZE));
 
 	header.write<Fdt_header::Off_dt_strings>(off);
 	header.write<Fdt_header::Size_dt_strings>(_dict.length());

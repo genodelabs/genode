@@ -23,7 +23,7 @@ namespace Board { class Timer; }
 /**
  * Timer driver for core
  */
-struct Board::Timer : Genode::Mmio
+struct Board::Timer : Genode::Mmio<0x14>
 {
 	enum { TICS_PER_MS = 33333 };
 

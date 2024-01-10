@@ -27,9 +27,9 @@ namespace Sd_card { class Driver; }
 
 class Sd_card::Driver : public  Driver_base,
                         private Platform::Device,
-                        private Platform::Device::Mmio
+                        private Platform::Device::Mmio<0x100>
 {
-	using Mmio = Genode::Mmio;
+	using Mmio = Genode::Mmio<SIZE>;
 
 	private:
 

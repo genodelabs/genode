@@ -15,7 +15,7 @@
 
 Hw::Pic::Pic()
 :
-	Genode::Mmio(Board::IRQ_CONTROLLER_BASE)
+	Mmio({(char *)Board::IRQ_CONTROLLER_BASE, Board::IRQ_CONTROLLER_SIZE})
 {
 	for (unsigned i = 0; i < NR_OF_IRQ; i++) {
 		write<Intsec::Nonsecure>(!Board::secure_irq(i), i);

@@ -29,9 +29,9 @@ namespace Ata {
 /**
  * Return data of 'identify_device' ATA command
  */
-struct Ata::Identity : Mmio
+struct Ata::Identity : Mmio<0x1a4>
 {
-	Identity(addr_t base) : Mmio(base) { }
+	using Mmio::Mmio;
 
 	struct Serial_number : Register_array<0x14, 8, 20, 8> { };
 	struct Model_number : Register_array<0x36, 8, 40, 8> { };
@@ -222,7 +222,7 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 		unsigned init(Port &port) override
 		{
 			/* identify device */
-			Command_table table(port.command_table_addr(0),
+			Command_table table(port.command_table_range(0),
 			                    port.device_info_dma_addr, 0x1000);
 			table.fis.identify_device();
 			port.execute(0);
@@ -231,7 +231,7 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 			                                Port::Is::Pss::Equal(1),
 			                                Port::Is::Dhrs::Equal(1));
 
-			_identity.construct(port.device_info);
+			_identity.construct(*port.device_info);
 			serial.construct(*_identity);
 			model.construct(*_identity);
 
@@ -316,7 +316,7 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 			_slot_states       |= 1u << slot;
 
 			/* setup fis */
-			Command_table table(port.command_table_addr(slot),
+			Command_table table(port.command_table_range(slot),
 			                    port.dma_base + request.offset, /* physical address */
 			                    op.count * _block_size());
 
@@ -335,7 +335,7 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 			}
 
 			/* set or clear write flag in command header */
-			Command_header header(port.command_header_addr(slot));
+			Command_header header(port.command_header_range(slot));
 			header.write<Command_header::Bits::W>(write ? 1 : 0);
 			header.clear_byte_count();
 

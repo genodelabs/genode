@@ -27,7 +27,7 @@ class Hw::Gicv2
 		/**
 		 * Distributor of the ARM generic interrupt controller
 		 */
-		struct Distributor : Genode::Mmio
+		struct Distributor : Genode::Mmio<0xf04>
 		{
 			static constexpr unsigned nr_of_irq = 1024;
 
@@ -99,7 +99,7 @@ class Hw::Gicv2
 				};
 			};
 
-			Distributor(Genode::addr_t const base) : Genode::Mmio(base) { }
+			Distributor(Genode::addr_t const base) : Mmio({(char *)base, Mmio::SIZE}) { }
 
 			/**
 			 * Return minimum IRQ priority
@@ -125,7 +125,7 @@ class Hw::Gicv2
 		/**
 		 * CPU interface of the ARM generic interrupt controller
 		 */
-		struct Cpu_interface : Genode::Mmio
+		struct Cpu_interface : Genode::Mmio<0x14>
 		{
 			/**
 			 * Control register
@@ -162,7 +162,7 @@ class Hw::Gicv2
 			struct Eoir : Register<0x10, 32, true> {
 				struct Irq_id : Bitfield<0,10> { }; };
 
-			Cpu_interface(Genode::addr_t const base) : Genode::Mmio(base) { }
+			Cpu_interface(Genode::addr_t const base) : Mmio({(char *)base, Mmio::SIZE}) { }
 		};
 
 

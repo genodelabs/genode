@@ -31,13 +31,13 @@ class Main
 {
 	private:
 
-		Env                   &_env;
-		Heap                   _heap          { _env.ram(), _env.rm() };
-		Platform::Connection   _platform      { _env };
-		Platform::Device       _device        { _platform };
-		Platform::Device::Mmio _mmio          { _device };
-		Platform::Device::Irq  _irq           { _device };
-		Uplink_client          _uplink_client { _env, _heap, _mmio, _irq };
+		Env                      &_env;
+		Heap                      _heap          { _env.ram(), _env.rm() };
+		Platform::Connection      _platform      { _env };
+		Platform::Device          _device        { _platform };
+		Platform::Device::Mmio<0> _mmio          { _device };
+		Platform::Device::Irq     _irq           { _device };
+		Uplink_client             _uplink_client { _env, _heap, _mmio, _irq };
 
 	public:
 

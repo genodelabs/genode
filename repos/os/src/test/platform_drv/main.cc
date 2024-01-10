@@ -32,9 +32,9 @@ struct Main
 {
 	struct Device
 	{
-		Constructible<Platform::Device>       device {};
-		Constructible<Platform::Device::Mmio> mmio {};
-		Constructible<Platform::Device::Irq>  irq {};
+		Constructible<Platform::Device>           device {};
+		Constructible<Platform::Device::Mmio<0> > mmio {};
+		Constructible<Platform::Device::Irq>      irq {};
 
 		Device(Platform::Connection & plat, Platform::Device::Name name)
 		{
@@ -44,7 +44,7 @@ struct Main
 				return;
 			}
 
-			mmio.construct(*device, Platform::Device::Mmio::Index{0});
+			mmio.construct(*device, Platform::Device::Mmio<0>::Index{0});
 			irq.construct(*device, Platform::Device::Irq::Index{0});
 		}
 

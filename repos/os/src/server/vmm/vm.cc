@@ -61,7 +61,7 @@ Genode::addr_t Vm::_dtb_offset() const
 
 void Vm::_load_kernel()
 {
-	memcpy((void*)(_ram.local() + KERNEL_OFFSET),
+	memcpy((void*)(_ram.local_base() + KERNEL_OFFSET),
 	       _kernel_rom.local_addr<void>(), _kernel_rom.size());
 }
 
@@ -72,15 +72,15 @@ void Vm::_load_initrd()
 		return;
 
 	_initrd_rom.construct(_env, _config.initrd_name());
-	memcpy((void*)(_ram.local() + _initrd_offset()),
+	memcpy((void*)(_ram.local_base() + _initrd_offset()),
 	       _initrd_rom->local_addr<void>(), _initrd_size());
 }
 
 
 void Vm::_load_dtb()
 {
-	Fdt_generator fdt(_env, _heap, _ram.local() + _dtb_offset(), 1 << LOG2_2MB);
-	fdt.generate(_config, (void*)(_ram.base() + _initrd_offset()),
+	Fdt_generator fdt(_env, _heap, _ram.local_base() + _dtb_offset(), 1 << LOG2_2MB);
+	fdt.generate(_config, (void*)(_ram.guest_base() + _initrd_offset()),
 	             _initrd_size());
 }
 

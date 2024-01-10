@@ -27,7 +27,7 @@ namespace I2c
 }
 
 
-class I2c::I2c : Platform::Device::Mmio
+class I2c::I2c : Platform::Device::Mmio<0x12>
 {
 	private:
 
@@ -112,7 +112,7 @@ class I2c::I2c : Platform::Device::Mmio
 	public:
 
 		I2c(Genode::Env & env, Platform::Device & dev)
-		: Platform::Device::Mmio(dev, {0}),
+		: Platform::Device::Mmio<SIZE>(dev, {0}),
 		  _irq_handler(env, dev)
 		{
 			write<Control>(0);

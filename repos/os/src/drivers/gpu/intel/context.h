@@ -25,9 +25,11 @@
 
 namespace Igd {
 
+	using Genode::Byte_range_ptr;
+
 	struct Context_status_qword;
 
-	struct Common_context_regs;
+	template <size_t> struct Common_context_regs;
 
 	struct Generation;
 
@@ -84,27 +86,30 @@ struct Igd::Context_status_qword : Genode::Register<64>
 };
 
 
-struct Igd::Common_context_regs : public Genode::Mmio
+template <Genode::size_t SIZE>
+struct Igd::Common_context_regs : public Genode::Mmio<SIZE>
 {
+	using Base = Genode::Mmio<SIZE>;
+
 	template <long int OFFSET>
-	struct Common_register : Register<OFFSET * sizeof(uint32_t), 32> { };
+	struct Common_register : Base::template Register<OFFSET * sizeof(uint32_t), 32> { };
 
 	template <long int OFFSET, size_t NUM>
-	struct Common_register_array : Register_array<OFFSET * sizeof(uint32_t), 32, NUM, 32> { };
+	struct Common_register_array : Base::template Register_array<OFFSET * sizeof(uint32_t), 32, NUM, 32> { };
 
 	template <long int OFFSET, size_t NUM>
-	struct Common_register_array_64 : Register_array<OFFSET * sizeof(uint32_t), 64, NUM, 64> { };
+	struct Common_register_array_64 : Base::template Register_array<OFFSET * sizeof(uint32_t), 64, NUM, 64> { };
 
-	addr_t _base;
+	Byte_range_ptr _range;
 
-	Common_context_regs(addr_t base) : Genode::Mmio(base), _base(base) { }
+	Common_context_regs(Byte_range_ptr const &range) : Genode::Mmio<SIZE>(range), _range(range.start, range.num_bytes) { }
 
-	addr_t base() const { return _base; }
+	addr_t base() const { return (addr_t)_range.start; }
 
 	template <typename T>
 	void write_offset(typename T::access_t const value)
 	{
-		write<T>(value + T::OFFSET);
+		Base::template write<T>(value + T::OFFSET);
 	}
 };
 
@@ -118,7 +123,7 @@ struct Igd::Common_context_regs : public Genode::Mmio
  * All engines use the same layout until offset 0x118.
  */
 template <Genode::addr_t RING_BASE>
-class Igd::Execlist_context : public Igd::Common_context_regs
+class Igd::Execlist_context : public Igd::Common_context_regs<0x1E * sizeof(uint32_t) + 2 * 4>
 {
 	public:
 
@@ -360,7 +365,7 @@ class Igd::Execlist_context : public Igd::Common_context_regs
 
 	public:
 
-		Execlist_context(addr_t const base) : Common_context_regs(base) { }
+		Execlist_context(Byte_range_ptr const &range) : Common_context_regs(range) { }
 
 		void setup(addr_t     const ring_buffer_start,
 		           size_t     const ring_buffer_length,
@@ -461,7 +466,7 @@ class Igd::Execlist_context : public Igd::Common_context_regs
 
 
 template <Genode::addr_t RING_BASE>
-class Igd::Ppgtt_context : public Igd::Common_context_regs
+class Igd::Ppgtt_context : public Igd::Common_context_regs<0x47 * sizeof(uint32_t) + 9 * 4>
 {
 	public:
 
@@ -596,7 +601,7 @@ class Igd::Ppgtt_context : public Igd::Common_context_regs
 
 	public:
 
-		Ppgtt_context(addr_t const base) : Common_context_regs(base) { }
+		Ppgtt_context(Byte_range_ptr const &range) : Common_context_regs(range) { }
 
 		void setup(uint64_t const plm4_addr)
 		{
@@ -678,7 +683,7 @@ class Igd::Urb_atomic_context
 /*
  * IHD-OS-BDW-Vol 2d-11.15 p. 199
  */
-class Igd::Hardware_status_page : public Igd::Common_context_regs
+class Igd::Hardware_status_page : public Igd::Common_context_regs<0x32*4 + 4>
 {
 	public:
 
@@ -708,8 +713,8 @@ class Igd::Hardware_status_page : public Igd::Common_context_regs
 		struct Context_status_dwords : Common_register_array_64<16, CONTEXT_STATUS_REGISTERS> { };
 		struct Last_written_status_offset : Common_register<31> { };
 
-		Hardware_status_page(addr_t base)
-		: Common_context_regs(base)
+		Hardware_status_page(Byte_range_ptr const &range)
+		: Common_context_regs(range)
 		{
 			semaphore(0);
 		}
@@ -784,14 +789,14 @@ class Igd::Hardware_status_page : public Igd::Common_context_regs
 /*
  * IHD-OS-BDW-Vol 2d-11.15 p. 303
  */
-class Igd::Pphardware_status_page : public Igd::Common_context_regs
+class Igd::Pphardware_status_page : public Igd::Common_context_regs<4 * 4 + 4>
 {
 	public:
 
 		struct Ring_head_ptr_storage : Common_register<4> { };
 
-		Pphardware_status_page(addr_t base)
-		: Common_context_regs(base) { }
+		Pphardware_status_page(Byte_range_ptr const &range)
+		: Common_context_regs(range) { }
 };
 
 
@@ -848,11 +853,11 @@ class Igd::Rcs_context
 
 	public:
 
-		Rcs_context(addr_t const map_base)
+		Rcs_context(Byte_range_ptr const &map_range)
 		:
-			_hw_status_page  (map_base),
-			_execlist_context(map_base + HW_STATUS_PAGE_SIZE),
-			_ppgtt_context   (map_base + HW_STATUS_PAGE_SIZE)
+			_hw_status_page  (map_range),
+			_execlist_context({map_range.start + HW_STATUS_PAGE_SIZE, map_range.num_bytes - HW_STATUS_PAGE_SIZE}),
+			_ppgtt_context   ({map_range.start + HW_STATUS_PAGE_SIZE, map_range.num_bytes - HW_STATUS_PAGE_SIZE})
 		{ }
 
 		void setup(addr_t     const ring_buffer_start,

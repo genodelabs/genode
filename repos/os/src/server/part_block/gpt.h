@@ -60,7 +60,7 @@ class Block::Gpt : public Block::Partition_table
 		/**
 		 * DCE uuid struct
 		 */
-		struct Uuid : Mmio
+		struct Uuid : Mmio<16>
 		{
 			struct Time_low            : Register<0, 32> { };
 			struct Time_mid            : Register<4, 16> { };
@@ -72,7 +72,7 @@ class Block::Gpt : public Block::Partition_table
 			struct Node : Register_array<10, 8, 6, 8> { };
 
 			Uuid() = delete;
-			Uuid(addr_t base) : Mmio(base) { };
+			using Mmio::Mmio;
 
 			unsigned time_low() const { return read<Time_low>(); }
 
@@ -98,7 +98,7 @@ class Block::Gpt : public Block::Partition_table
 		/**
 		 * GUID parition table header
 		 */
-		struct Gpt_hdr : Mmio
+		struct Gpt_hdr : Mmio<92>
 		{
 			struct Sig      : Register<0, 64> { };  /* identifies GUID Partition Table */
 			struct Revision : Register<8, 32> { };  /* GPT specification revision */
@@ -112,7 +112,7 @@ class Block::Gpt : public Block::Partition_table
 			struct Part_lba_start : Register<40, 64> { }; /* first LBA usable for partitions */
 			struct Part_lba_end   : Register<48, 64> { }; /* last LBA usable for partitions */
 
-			Uuid guid() { return Uuid(base() + 56); } /* GUID to identify the disk */
+			Uuid guid() { return Uuid(range_at(56)); } /* GUID to identify the disk */
 
 			struct Gpe_lba    : Register<72, 64> { }; /* first LBA of GPE array */
 			struct Entries    : Register<80, 32> { }; /* number of entries in GPE array */
@@ -120,7 +120,7 @@ class Block::Gpt : public Block::Partition_table
 			struct Gpe_crc    : Register<88, 32> { }; /* CRC32 of GPE array */
 
 			Gpt_hdr() = delete;
-			Gpt_hdr(addr_t base) : Mmio(base) { };
+			using Mmio::Mmio;
 
 			uint64_t part_lba_start() const { return read<Part_lba_start>(); }
 			uint64_t part_lba_end()   const { return read<Part_lba_end>(); }
@@ -190,7 +190,7 @@ class Block::Gpt : public Block::Partition_table
 				size_t length = entries() * entry_size();
 				Sync_read gpe(handler, alloc, gpe_lba(), length / block_size);
 				if (!gpe.success()
-				 || crc32(gpe.addr<addr_t>(), length) != read<Gpe_crc>())
+				 || crc32((addr_t)gpe.buffer().start, length) != read<Gpe_crc>())
 					return false;
 
 				if (check_primary) {
@@ -199,7 +199,7 @@ class Block::Gpt : public Block::Partition_table
 					if (!backup_hdr.success())
 						return false;
 
-					Gpt_hdr backup(backup_hdr.addr<addr_t>());
+					Gpt_hdr backup(backup_hdr.buffer());
 					if (!backup.valid(handler, alloc, block_size, false))
 						warning("Backup GPT header is corrupted");
 				}
@@ -220,12 +220,12 @@ class Block::Gpt : public Block::Partition_table
 		/**
 		 * GUID partition entry format
 		 */
-		struct Gpt_entry : Mmio
+		struct Gpt_entry : Mmio<56 + 36 * 2>
 		{
 			enum { NAME_LEN = 36 };
 
-			Uuid  type() const { return Uuid(base()); }                /* partition type GUID */
-			Uuid  guid() const { return Uuid(base()+ Uuid::size()); }  /* unique partition GUID */
+			Uuid  type() const { return Uuid(range()); }                 /* partition type GUID */
+			Uuid  guid() const { return Uuid(range_at(Uuid::size())); }  /* unique partition GUID */
 
 			struct Lba_start : Register<32, 64> { };                     /* start of partition */
 			struct Lba_end   : Register<40, 64> { };                     /* end of partition */
@@ -233,7 +233,7 @@ class Block::Gpt : public Block::Partition_table
 			struct Name      : Register_array<56, 16, NAME_LEN, 16> { }; /* partition name in UNICODE-16 */
 
 			Gpt_entry() = delete;
-			Gpt_entry(addr_t base) : Mmio(base) { }
+			using Mmio::Mmio;
 
 			uint64_t lba_start() const { return read<Lba_start>(); }
 			uint64_t lba_end() const { return read<Lba_end>(); }
@@ -340,7 +340,7 @@ class Block::Gpt : public Block::Partition_table
 			uint64_t used = 0;
 
 			for (uint32_t i = 0; i < num; i++) {
-				Gpt_entry const e(entries.base() + i * header.entry_size());
+				Gpt_entry const e(entries.range_at(i * header.entry_size()));
 
 				if (!e.valid()) { continue; }
 
@@ -364,7 +364,7 @@ class Block::Gpt : public Block::Partition_table
 			                      gpt.entries() * gpt.entry_size() / _info.block_size);
 			if (!entry_array.success())
 				return false;
-			Gpt_entry entries(entry_array.addr<addr_t>());
+			Gpt_entry entries(entry_array.buffer());
 
 			_gpt_part_lba_end = gpt.part_lba_end();
 			_gpt_total        = (gpt.part_lba_end() - gpt.part_lba_start()) + 1;
@@ -372,7 +372,7 @@ class Block::Gpt : public Block::Partition_table
 
 			for (int i = 0; i < MAX_PARTITIONS; i++) {
 
-				Gpt_entry e(entries.base() + i * gpt.entry_size());
+				Gpt_entry e(entries.range_at(i * gpt.entry_size()));
 
 				if (!e.valid())
 					continue;
@@ -404,7 +404,7 @@ class Block::Gpt : public Block::Partition_table
 			if (!s.success())
 				return false;
 
-			Gpt_hdr gpt_hdr(s.addr<addr_t>());
+			Gpt_hdr gpt_hdr(s.buffer());
 
 			if (!_parse_gpt(gpt_hdr))
 				return false;

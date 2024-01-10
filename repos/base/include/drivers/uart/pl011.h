@@ -17,13 +17,13 @@
 /* Genode includes */
 #include <util/mmio.h>
 
-namespace Genode { class Pl011_uart; } 
+namespace Genode { class Pl011_uart; }
 
 
 /**
  * Driver base for the PrimeCell UART PL011 Revision r1p3
  */
-class Genode::Pl011_uart : Mmio
+class Genode::Pl011_uart : Mmio<0x3a>
 {
 	protected:
 
@@ -132,7 +132,7 @@ class Genode::Pl011_uart : Mmio
 
 
 Genode::Pl011_uart::Pl011_uart(addr_t const base, uint32_t const clock,
-                               uint32_t const baud_rate) : Mmio(base)
+                               uint32_t const baud_rate) : Mmio({(char *)base, Mmio::SIZE})
 {
 	write<Uartcr>(Uartcr::Uarten::bits(1) |
 	              Uartcr::Txe::bits(1)    |

@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <os/attached_mmio.h>
 
-class M4if : Genode::Attached_mmio
+class M4if : Genode::Attached_mmio<0x11c>
 {
 	private:
 
@@ -58,8 +58,8 @@ class M4if : Genode::Attached_mmio
 
 	public:
 
-		M4if(Genode::Env &env, Genode::addr_t base, Genode::size_t size)
-		: Genode::Attached_mmio(env, base, size) { }
+		M4if(Genode::Env &env, Genode::Byte_range_ptr const &range)
+		: Attached_mmio(env, range) { }
 
 		void set_region0(Genode::addr_t addr, Genode::size_t size)
 		{

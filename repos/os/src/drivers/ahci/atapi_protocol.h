@@ -33,7 +33,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		void _atapi_command(Port &port)
 		{
-			Command_header header(port.command_header_addr(0));
+			Command_header header(port.command_header_range(0));
 			header.atapi_command();
 			header.clear_byte_count();
 			port.execute(0);
@@ -41,7 +41,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		void _read_sense(Port &port)
 		{
-			Command_table table(port.command_table_addr(0),
+			Command_table table(port.command_table_range(0),
 			                    port.device_info_dma_addr, 0x1000);
 			table.fis.atapi();
 			table.atapi_cmd.read_sense();
@@ -51,7 +51,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		void _test_unit_ready(Port &port)
 		{
-			Command_table table(port.command_table_addr(0), 0, 0);
+			Command_table table(port.command_table_range(0), 0, 0);
 			table.fis.atapi();
 			table.atapi_cmd.test_unit_ready();
 
@@ -60,7 +60,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		void _read_capacity(Port &port)
 		{
-			Command_table table(port.command_table_addr(0),
+			Command_table table(port.command_table_range(0),
 			                    port.device_info_dma_addr, 0x1000);
 			table.fis.atapi();
 			table.fis.byte_count(~0);
@@ -72,7 +72,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		void _start_unit(Port &port)
 		{
-			Command_table table(port.command_table_addr(0), 0, 0);
+			Command_table table(port.command_table_range(0), 0, 0);
 			table.fis.atapi();
 			table.atapi_cmd.start_unit();
 
@@ -110,7 +110,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 					port.wait_for(port.delayer, Port::Is::Dhrs::Equal(1));
 					port.ack_irq();
 
-					Device_fis f(port.fis_base);
+					Device_fis f(*port.fis);
 					/* check if devic is ready */
 					if (!f.read<Device_fis::Status::Device_ready>() || f.read<Device_fis::Error>())
 						throw Port::Polling_timeout();
@@ -121,8 +121,8 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 					                  Port::Is::Dhrs::Equal(1));
 					port.ack_irq();
 
-					_block_count = host_to_big_endian(((unsigned *)port.device_info)[0]) + 1;
-					_block_size  = host_to_big_endian(((unsigned *)port.device_info)[1]);
+					_block_count = host_to_big_endian(((unsigned *)port.device_info->start)[0]) + 1;
+					_block_size  = host_to_big_endian(((unsigned *)port.device_info->start)[1]);
 				},
 				[&] {}, 3);
 
@@ -158,7 +158,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 			_pending.success = false;
 
 			/* setup fis */
-			Command_table table(port.command_table_addr(0),
+			Command_table table(port.command_table_range(0),
 			                    port.dma_base + request.offset,
 			                    op.count * _block_size);
 			table.fis.atapi();
@@ -168,7 +168,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 			table.fis.byte_count(~0);
 
 			/* set and clear write flag in command header */
-			Command_header header(port.command_header_addr(0));
+			Command_header header(port.command_header_range(0));
 			header.write<Command_header::Bits::W>(0);
 			header.clear_byte_count();
 

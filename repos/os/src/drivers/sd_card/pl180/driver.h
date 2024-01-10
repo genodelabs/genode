@@ -30,7 +30,7 @@ namespace Sd_card {
 
 class Sd_card::Driver : public  Block::Driver,
                         private Platform::Device,
-                        private Platform::Device::Mmio
+                        private Platform::Device::Mmio<0>
 {
 	private:
 

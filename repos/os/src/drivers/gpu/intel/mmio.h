@@ -23,10 +23,15 @@
 #include <types.h>
 
 
-namespace Igd { class Mmio; }
+namespace Igd {
+
+	static constexpr size_t MMIO_SIZE = 0x190074;
+
+	class Mmio;
+}
 
 
-class Igd::Mmio : public Platform::Device::Mmio
+class Igd::Mmio : public Platform::Device::Mmio<MMIO_SIZE>
 {
 	public:
 
@@ -1137,7 +1142,7 @@ class Igd::Mmio : public Platform::Device::Mmio
 
 	private:
 
-		struct Timer_delayer : Genode::Mmio::Delayer
+		struct Timer_delayer : Genode::Mmio<MMIO_SIZE>::Delayer
 		{
 			Timer::Connection _timer;
 			Timer_delayer(Genode::Env & env) : _timer(env) { }
@@ -1666,7 +1671,7 @@ class Igd::Mmio : public Platform::Device::Mmio
 	public:
 
 		Mmio(Platform::Device & device, Genode::Env & env)
-		: Platform::Device::Mmio(device, {0}), _delayer(env) { }
+		: Platform::Device::Mmio<MMIO_SIZE>(device, {0}), _delayer(env) { }
 
 		Delayer &delayer() { return _delayer; }
 

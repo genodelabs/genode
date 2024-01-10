@@ -28,7 +28,7 @@ namespace Board { class Timer; }
 /**
  * LAPIC-based timer driver for core
  */
-struct Board::Timer: Genode::Mmio
+struct Board::Timer: Genode::Mmio<Hw::Cpu_memory_map::LAPIC_SIZE>
 {
 	enum {
 		/* PIT constants */

@@ -26,7 +26,7 @@ using Board::Vmcb;
 
 Vmcb::Vmcb(Genode::uint32_t id)
 :
-	Mmio((Genode::addr_t)this)
+	Mmio({(char *)this, Mmio::SIZE})
 {
 	write<Guest_asid>(id);
 	write<Msrpm_base_pa>(dummy_msrpm());

@@ -67,10 +67,8 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 
 		Cpu::Signal_handler<Virtio_input_device> _handler;
 
-		struct Virtio_input_event : Mmio
+		struct Virtio_input_event : Mmio<8>
 		{
-			enum { SIZE = 8 };
-
 			struct Type  : Register<0, 16> {};
 			struct Code  : Register<2, 16> {};
 			struct Value : Register<4, 32> {};
@@ -213,20 +211,20 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 			if (!_queue[0].constructed())
 				return;
 
-			bool irq = _queue[0]->notify([&] (addr_t addr, size_t size) {
-				if (size < Virtio_input_event::SIZE) {
-					warning("wrong virtioqueue packet size for input ", size);
+			bool irq = _queue[0]->notify([&] (Byte_range_ptr const &data) {
+				if (data.num_bytes < Virtio_input_event::SIZE) {
+					warning("wrong virtioqueue packet size for input ", data.num_bytes);
 					return 0UL;
 				}
 
-				Virtio_input_event vie(addr);
+				Virtio_input_event vie(data);
 
 				if (_state == IN_MOTION) {
 					vie.write<Virtio_input_event::Type>(Linux_evdev::EV_ABS);
 					vie.write<Virtio_input_event::Code>(Linux_evdev::ABS_Y);
 					vie.write<Virtio_input_event::Value>(_motion_y);
 					_state = SYNC;
-					return size;
+					return data.num_bytes;
 				}
 
 				if (_state == SYNC) {
@@ -234,7 +232,7 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 					vie.write<Virtio_input_event::Code>(0);
 					vie.write<Virtio_input_event::Value>(0);
 					_state = READY;
-					return size;
+					return data.num_bytes;
 				}
 
 				if (_num_events == _idx_events) {
@@ -269,7 +267,7 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 					_motion_y = y;
 					_state = IN_MOTION;
 				});
-				return size;
+				return data.num_bytes;
 			});
 
 			if (irq) _buffer_notification();

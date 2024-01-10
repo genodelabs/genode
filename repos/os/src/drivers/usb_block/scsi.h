@@ -84,7 +84,7 @@ namespace Scsi {
  * SCSI command responses **
  ***************************/
 
-struct Scsi::Inquiry_response : Genode::Mmio
+struct Scsi::Inquiry_response : Genode::Mmio<0x24>
 {
 	/*
 	 * Minimum response length is 36 bytes.
@@ -105,7 +105,7 @@ struct Scsi::Inquiry_response : Genode::Mmio
 	struct Pid : Register_array<0x10, 8, 16, 8> { }; /* product identification */
 	struct Rev : Register_array<0x20, 8, 4, 8> { }; /* product revision level */
 
-	Inquiry_response(addr_t addr) : Mmio(addr) { }
+	Inquiry_response(Byte_range_ptr const &range) : Mmio(range) { }
 
 	bool       sbc() const { return read<Dt>() == 0x00; }
 	bool removable() const { return read<Rm::Rmb>();    }
@@ -132,7 +132,7 @@ struct Scsi::Inquiry_response : Genode::Mmio
 };
 
 
-struct Scsi::Request_sense_response : Genode::Mmio
+struct Scsi::Request_sense_response : Genode::Mmio<0x13>
 {
 	enum { LENGTH = 18 };
 
@@ -153,7 +153,7 @@ struct Scsi::Request_sense_response : Genode::Mmio
 	struct Fru : Register<0xe,  8> { }; /* field replaceable unit code */
 	struct Sks : Register<0xf, 32> { }; /* sense key specific (3 byte) */
 
-	Request_sense_response(addr_t addr) : Mmio(addr) { }
+	Request_sense_response(Byte_range_ptr const &range) : Mmio(range) { }
 
 	void dump()
 	{
@@ -167,14 +167,14 @@ struct Scsi::Request_sense_response : Genode::Mmio
 };
 
 
-struct Scsi::Capacity_response_10 : Genode::Mmio
+struct Scsi::Capacity_response_10 : Genode::Mmio<0x8>
 {
 	enum { LENGTH = 8 };
 
 	struct Lba : Register<0x0, 32> { };
 	struct Bs  : Register<0x4, 32> { };
 
-	Capacity_response_10(addr_t addr) : Mmio(addr) { }
+	Capacity_response_10(Byte_range_ptr const &range) : Mmio(range) { }
 
 	uint32_t last_block() const { return be(read<Lba>()); }
 	uint32_t block_size() const { return be(read<Bs>()); }
@@ -188,14 +188,14 @@ struct Scsi::Capacity_response_10 : Genode::Mmio
 };
 
 
-struct Scsi::Capacity_response_16 : Genode::Mmio
+struct Scsi::Capacity_response_16 : Genode::Mmio<0xc>
 {
 	enum { LENGTH = 32 };
 
 	struct Lba : Register<0x0, 64> { };
 	struct Bs  : Register<0x8, 32> { };
 
-	Capacity_response_16(addr_t addr) : Mmio(addr) { }
+	Capacity_response_16(Byte_range_ptr const &range) : Mmio(range) { }
 
 	uint64_t last_block() const { return be(read<Lba>()); }
 	uint32_t block_size() const { return be(read<Bs>()); }
@@ -213,7 +213,7 @@ struct Scsi::Capacity_response_16 : Genode::Mmio
  ** CBD 6 byte commands **
  *************************/
 
-struct Scsi::Cmd_6 : Genode::Mmio
+struct Scsi::Cmd_6 : Genode::Mmio<0x6>
 {
 	enum { LENGTH = 6 };
 	struct Op  : Register<0x0,  8> { }; /* SCSI command */
@@ -221,7 +221,7 @@ struct Scsi::Cmd_6 : Genode::Mmio
 	struct Len : Register<0x4,  8> { }; /* transfer length */
 	struct Ctl : Register<0x5,  8> { }; /* controll */
 
-	Cmd_6(addr_t addr) : Mmio(addr) { memset((void*)addr, 0, LENGTH); }
+	Cmd_6(Byte_range_ptr const &range) : Mmio(range) { memset((void*)base(), 0, LENGTH); }
 
 	void dump()
 	{
@@ -235,7 +235,7 @@ struct Scsi::Cmd_6 : Genode::Mmio
 
 struct Scsi::Test_unit_ready : Cmd_6
 {
-	Test_unit_ready(addr_t addr) : Cmd_6(addr)
+	Test_unit_ready(Byte_range_ptr const &range) : Cmd_6(range)
 	{
 		write<Cmd_6::Op>(Opcode::TEST_UNIT_READY);
 	}
@@ -244,7 +244,7 @@ struct Scsi::Test_unit_ready : Cmd_6
 
 struct Scsi::Request_sense : Cmd_6
 {
-	Request_sense(addr_t addr) : Cmd_6(addr)
+	Request_sense(Byte_range_ptr const &range) : Cmd_6(range)
 	{
 		write<Cmd_6::Op>(Opcode::REQUEST_SENSE);
 		write<Cmd_6::Len>(Request_sense_response::LENGTH);
@@ -254,7 +254,7 @@ struct Scsi::Request_sense : Cmd_6
 
 struct Scsi::Inquiry : Cmd_6
 {
-	Inquiry(addr_t addr) : Cmd_6(addr)
+	Inquiry(Byte_range_ptr const &range) : Cmd_6(range)
 	{
 		write<Cmd_6::Op>(Opcode::INQUIRY);
 		write<Cmd_6::Len>(Inquiry_response::LENGTH);
@@ -262,7 +262,7 @@ struct Scsi::Inquiry : Cmd_6
 };
 
 
-struct Scsi::Start_stop : Genode::Mmio
+struct Scsi::Start_stop : Genode::Mmio<0x5>
 {
 	enum { LENGTH = 6 };
 	struct Op  : Register<0x0,  8> { }; /* SCSI command */
@@ -275,9 +275,9 @@ struct Scsi::Start_stop : Genode::Mmio
 		struct St   : Bitfield<0, 1> { }; /* start */
 	}; /* flags */
 
-	Start_stop(addr_t addr) : Mmio(addr)
+	Start_stop(Byte_range_ptr const &range) : Mmio(range)
 	{
-		memset((void*)addr, 0, LENGTH);
+		memset((void*)base(), 0, LENGTH);
 
 		write<Op>(Opcode::START_STOP);
 		write<I::Immed>(1);
@@ -301,7 +301,7 @@ struct Scsi::Start_stop : Genode::Mmio
  ** CBD 10 byte commands **
  **************************/
 
-struct Scsi::Cmd_10 : Genode::Mmio
+struct Scsi::Cmd_10 : Genode::Mmio<0xa>
 {
 	enum { LENGTH = 10 };
 	struct Op  : Register<0x0,  8> { }; /* SCSI command */
@@ -309,7 +309,7 @@ struct Scsi::Cmd_10 : Genode::Mmio
 	struct Len : Register<0x7, 16> { }; /* transfer length */
 	struct Ctl : Register<0x9,  8> { }; /* controll */
 
-	Cmd_10(addr_t addr) : Mmio(addr) { memset((void*)addr, 0, LENGTH); }
+	Cmd_10(Byte_range_ptr const &range) : Mmio(range) { memset((void*)base(), 0, LENGTH); }
 
 	void dump()
 	{
@@ -323,7 +323,7 @@ struct Scsi::Cmd_10 : Genode::Mmio
 
 struct Scsi::Read_capacity_10 : Cmd_10
 {
-	Read_capacity_10(addr_t addr) : Cmd_10(addr)
+	Read_capacity_10(Byte_range_ptr const &range) : Cmd_10(range)
 	{
 		write<Cmd_10::Op>(Opcode::READ_CAPACITY_10);
 	}
@@ -332,7 +332,7 @@ struct Scsi::Read_capacity_10 : Cmd_10
 
 struct Scsi::Io_10 : Cmd_10
 {
-	Io_10(addr_t addr, uint32_t lba, uint16_t len) : Cmd_10(addr)
+	Io_10(Byte_range_ptr const &range, uint32_t lba, uint16_t len) : Cmd_10(range)
 	{
 		write<Cmd_10::Lba>(be(lba));
 		write<Cmd_10::Len>(be(len));
@@ -342,7 +342,7 @@ struct Scsi::Io_10 : Cmd_10
 
 struct Scsi::Read_10 : Io_10
 {
-	Read_10(addr_t addr, uint32_t lba, uint16_t len) : Io_10(addr, lba, len)
+	Read_10(Byte_range_ptr const &range, uint32_t lba, uint16_t len) : Io_10(range, lba, len)
 	{
 		write<Cmd_10::Op>(Opcode::READ_10);
 	}
@@ -351,7 +351,7 @@ struct Scsi::Read_10 : Io_10
 
 struct Scsi::Write_10 : Io_10
 {
-	Write_10(addr_t addr, uint32_t lba, uint16_t len) : Io_10(addr, lba, len)
+	Write_10(Byte_range_ptr const &range, uint32_t lba, uint16_t len) : Io_10(range, lba, len)
 	{
 		write<Cmd_10::Op>(Opcode::WRITE_10);
 	}
@@ -362,7 +362,7 @@ struct Scsi::Write_10 : Io_10
  ** CBD 16 long LBA byte commands **
  ***********************************/
 
-struct Scsi::Cmd_16 : Genode::Mmio
+struct Scsi::Cmd_16 : Genode::Mmio<0x10>
 {
 	enum { LENGTH = 16 };
 	struct Op  : Register<0x0,  8> { }; /* SCSI command */
@@ -370,7 +370,7 @@ struct Scsi::Cmd_16 : Genode::Mmio
 	struct Len : Register<0xa, 32> { }; /* transfer length */
 	struct Ctl : Register<0xf,  8> { }; /* controll */
 
-	Cmd_16(addr_t addr) : Mmio(addr) { memset((void*)addr, 0, LENGTH); }
+	Cmd_16(Byte_range_ptr const &range) : Mmio(range) { memset((void*)base(), 0, LENGTH); }
 
 	void dump()
 	{
@@ -384,7 +384,7 @@ struct Scsi::Cmd_16 : Genode::Mmio
 
 struct Scsi::Read_capacity_16 : Cmd_16
 {
-	Read_capacity_16(addr_t addr) : Cmd_16(addr)
+	Read_capacity_16(Byte_range_ptr const &range) : Cmd_16(range)
 	{
 		write<Cmd_16::Op>(Opcode::READ_CAPACITY_16);
 	}
@@ -393,7 +393,7 @@ struct Scsi::Read_capacity_16 : Cmd_16
 
 struct Scsi::Io_16 : Cmd_16
 {
-	Io_16(addr_t addr, uint64_t lba, uint32_t len) : Cmd_16(addr)
+	Io_16(Byte_range_ptr const &range, uint32_t lba, uint16_t len) : Cmd_16(range)
 	{
 		write<Cmd_16::Lba>(be(lba));
 		write<Cmd_16::Len>(be(len));
@@ -403,7 +403,7 @@ struct Scsi::Io_16 : Cmd_16
 
 struct Scsi::Read_16 : Io_16
 {
-	Read_16(addr_t addr, uint64_t lba, uint32_t len) : Io_16(addr, lba, len)
+	Read_16(Byte_range_ptr const &range, uint32_t lba, uint16_t len) : Io_16(range, lba, len)
 	{
 		write<Cmd_16::Op>(Opcode::READ_16);
 	}
@@ -412,7 +412,7 @@ struct Scsi::Read_16 : Io_16
 
 struct Scsi::Write_16 : Io_16
 {
-	Write_16(addr_t addr, uint64_t lba, uint32_t len) : Io_16(addr, lba, len)
+	Write_16(Byte_range_ptr const &range, uint32_t lba, uint16_t len) : Io_16(range, lba, len)
 	{
 		write<Cmd_16::Op>(Opcode::WRITE_16);
 	}

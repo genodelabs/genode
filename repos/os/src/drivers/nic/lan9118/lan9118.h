@@ -94,7 +94,7 @@ class Lan9118_base
 			{ }
 		};
 
-		Platform::Device::Mmio    &_mmio;
+		Platform::Device::Mmio<0> &_mmio;
 		Platform::Device::Irq     &_irq;
 		volatile uint32_t *_reg_base { _mmio.local_addr<uint32_t>() };
 		Timer::Connection          _timer;
@@ -281,10 +281,10 @@ class Lan9118_base
 		 */
 		class Device_not_supported { };
 
-		Lan9118_base(Platform::Device::Mmio   &mmio,
-		             Platform::Device::Irq    &irq,
-		             Signal_context_capability irq_handler,
-		             Env                      &env)
+		Lan9118_base(Platform::Device::Mmio<0> &mmio,
+		             Platform::Device::Irq     &irq,
+		             Signal_context_capability  irq_handler,
+		             Env                       &env)
 		:
 			_mmio(mmio), _irq(irq), _timer(env)
 		{
@@ -441,10 +441,10 @@ class Uplink_client : public Signal_handler<Uplink_client>,
 
 	public:
 
-		Uplink_client(Env                    &env,
-		              Allocator              &alloc,
-		              Platform::Device::Mmio &mmio,
-		              Platform::Device::Irq  &irq)
+		Uplink_client(Env                       &env,
+		              Allocator                 &alloc,
+		              Platform::Device::Mmio<0> &mmio,
+		              Platform::Device::Irq     &irq)
 		:
 			Signal_handler<Uplink_client> { env.ep(), *this, &Uplink_client::_handle_irq },
 			Lan9118_base                  { mmio, irq, *this, env },

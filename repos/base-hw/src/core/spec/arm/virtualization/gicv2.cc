@@ -23,7 +23,7 @@ using Board::Pic;
 
 Pic::Gich::Gich()
 :
-	Genode::Mmio(Core::Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE))
+	Mmio({(char *)Core::Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE), Mmio::SIZE})
 { }
 
 

@@ -20,7 +20,7 @@
 namespace I2c { struct Mmio; }
 
 
-struct I2c::Mmio: Platform::Device::Mmio
+struct I2c::Mmio: Platform::Device::Mmio<0x12>
 {
 	struct Address : Mmio::Register<0x0, 16> {
 		struct Adr : Mmio::Register<0x0, 16>::Bitfield<1, 7> {};
@@ -49,7 +49,7 @@ struct I2c::Mmio: Platform::Device::Mmio
 
 	struct Data : Mmio::Register<0x10, 16> {};
 
-	Mmio(Platform::Device &device) : Platform::Device::Mmio { device } { }
+	Mmio(Platform::Device &device) : Platform::Device::Mmio<SIZE> { device } { }
 };
 
 #endif /* _I2C_MMIO_H_ */

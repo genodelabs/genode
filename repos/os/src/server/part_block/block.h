@@ -63,11 +63,11 @@ class Block::Sync_read : Noncopyable
 
 	private:
 
-		Handler   &_handler;
-		Allocator &_alloc;
-		size_t     _size      { 0 };
-		void      *_buffer    { nullptr };
-		bool       _success   { false };
+		Handler                      &_handler;
+		Allocator                    &_alloc;
+		size_t                        _size      { 0 };
+		Constructible<Byte_range_ptr> _buffer    { };
+		bool                          _success   { false };
 
 		/*
 		 * Noncopyable
@@ -100,7 +100,7 @@ class Block::Sync_read : Noncopyable
 
 		~Sync_read()
 		{
-			_alloc.free(_buffer, _size);
+			_alloc.free(_buffer->start, _size);
 		}
 
 		bool success() const { return _success; }
@@ -108,8 +108,8 @@ class Block::Sync_read : Noncopyable
 		void consume_read_result(Block_connection::Job &, off_t offset,
 		                         char const *src, size_t length)
 		{
-			_buffer = _alloc.alloc(length);
-			memcpy((char *)_buffer + offset, src, length);
+			_buffer.construct((char *)_alloc.alloc(length), length);
+			memcpy(_buffer->start + offset, src, length);
 			_size += length;
 		}
 
@@ -126,8 +126,7 @@ class Block::Sync_read : Noncopyable
 			_success = success;
 		}
 
-		template <typename T> T addr() const {
-			return reinterpret_cast<T>(_buffer); }
+		Byte_range_ptr const &buffer() const { return *_buffer; }
 };
 
 

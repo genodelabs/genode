@@ -56,11 +56,12 @@ class Vmm::Virtio_gpu_control_request
 		using Descriptor       = Virtio_gpu_queue::Descriptor;
 		using Descriptor_array = Virtio_gpu_queue::Descriptor_array;
 
-		struct Control_header : Mmio
+		template <size_t SIZE>
+		struct Control_header_tpl : Mmio<SIZE>
 		{
-			enum { SIZE = 24 };
+			using Base = Mmio<SIZE>;
 
-			struct Type : Register<0,  32>
+			struct Type : Base::template Register<0,  32>
 			{
 				enum Commands {
 					/* 2D commands */
@@ -95,17 +96,17 @@ class Vmm::Virtio_gpu_control_request
 					ERR_INVALID_PARAMETER,
 				};
 			};
-			struct Flags    : Register<0x4,  32> {};
-			struct Fence_id : Register<0x8,  64> {};
-			struct Ctx_id   : Register<0x10, 32> {};
+			struct Flags    : Base::template Register<0x4,  32> {};
+			struct Fence_id : Base::template Register<0x8,  64> {};
+			struct Ctx_id   : Base::template Register<0x10, 32> {};
 
-			using Mmio::Mmio;
+			using Base::Mmio;
 		};
 
-		struct Display_info_response : Control_header
-		{
-			enum { SIZE = Control_header::SIZE + 24*16 };
+		using Control_header = Control_header_tpl<24>;
 
+		struct Display_info_response : Control_header_tpl<Control_header::SIZE + 24*16>
+		{
 			struct X       : Register<0x18, 32> {};
 			struct Y       : Register<0x1c, 32> {};
 			struct Width   : Register<0x20, 32> {};
@@ -113,13 +114,11 @@ class Vmm::Virtio_gpu_control_request
 			struct Enabled : Register<0x28, 32> {};
 			struct Flags   : Register<0x2c, 32> {};
 
-			using Control_header::Control_header;
+			using Control_header_tpl::Control_header_tpl;
 		};
 
-		struct Resource_create_2d : Control_header
+		struct Resource_create_2d : Control_header_tpl<Control_header::SIZE + 16>
 		{
-			enum { SIZE = Control_header::SIZE + 16 };
-
 			struct Resource_id : Register<0x18, 32> {};
 
 			struct Format : Register<0x1c, 32>
@@ -139,42 +138,34 @@ class Vmm::Virtio_gpu_control_request
 			struct Width       : Register<0x20, 32> {};
 			struct Height      : Register<0x24, 32> {};
 
-			using Control_header::Control_header;
+			using Control_header_tpl::Control_header_tpl;
 		};
 
-		struct Resource_unref : Control_header
+		struct Resource_unref : Control_header_tpl<Control_header::SIZE + 8>
 		{
-			enum { SIZE = Control_header::SIZE + 8 };
-
 			struct Resource_id : Register<0x18, 32> {};
 
-			using Control_header::Control_header;
+			using Control_header_tpl::Control_header_tpl;
 		};
 
-		struct Resource_attach_backing : Control_header
+		struct Resource_attach_backing : Control_header_tpl<Control_header::SIZE + 8>
 		{
-			enum { SIZE = Control_header::SIZE + 8 };
-
 			struct Resource_id : Register<0x18, 32> {};
 			struct Nr_entries  : Register<0x1c, 32> {};
 
-			struct Memory_entry : Mmio
+			struct Memory_entry : Mmio<16>
 			{
-				enum { SIZE = 16 };
-
 				struct Address : Register<0x0, 64> {};
 				struct Length  : Register<0x8, 32> {};
 
 				using Mmio::Mmio;
 			};
 
-			using Control_header::Control_header;
+			using Control_header_tpl::Control_header_tpl;
 		};
 
-		struct Set_scanout : Control_header
+		struct Set_scanout : Control_header_tpl<Control_header::SIZE + 24>
 		{
-			enum { SIZE = Control_header::SIZE + 24 };
-
 			struct X           : Register<0x18, 32> {};
 			struct Y           : Register<0x1c, 32> {};
 			struct Width       : Register<0x20, 32> {};
@@ -182,26 +173,22 @@ class Vmm::Virtio_gpu_control_request
 			struct Scanout_id  : Register<0x28, 32> {};
 			struct Resource_id : Register<0x2c, 32> {};
 
-			using Control_header::Control_header;
+			using Control_header_tpl::Control_header_tpl;
 		};
 
-		struct Resource_flush : Control_header
+		struct Resource_flush : Control_header_tpl<Control_header::SIZE + 24>
 		{
-			enum { SIZE = Control_header::SIZE + 24 };
-
 			struct X           : Register<0x18, 32> {};
 			struct Y           : Register<0x1c, 32> {};
 			struct Width       : Register<0x20, 32> {};
 			struct Height      : Register<0x24, 32> {};
 			struct Resource_id : Register<0x28, 32> {};
 
-			using Control_header::Control_header;
+			using Control_header_tpl::Control_header_tpl;
 		};
 
-		struct Transfer_to_host_2d :Control_header
+		struct Transfer_to_host_2d :Control_header_tpl<Control_header::SIZE + 32>
 		{
-			enum { SIZE = Control_header::SIZE + 32 };
-
 			struct X           : Register<0x18, 32> {};
 			struct Y           : Register<0x1c, 32> {};
 			struct Width       : Register<0x20, 32> {};
@@ -209,7 +196,7 @@ class Vmm::Virtio_gpu_control_request
 			struct Offset      : Register<0x28, 64> {};
 			struct Resource_id : Register<0x30, 32> {};
 
-			using Control_header::Control_header;
+			using Control_header_tpl::Control_header_tpl;
 		};
 
 		Descriptor_array  & _array;
@@ -232,14 +219,14 @@ class Vmm::Virtio_gpu_control_request
 			return _array.get(idx);
 		}
 
-		addr_t _desc_addr(unsigned i)
+		Byte_range_ptr _desc_range(unsigned i)
 		{
 			Descriptor d = _desc(i);
 			/* we only support 32-bit ram addresses by now */
-			return _ram.local_address((addr_t)d.address(), d.length());
+			return _ram.to_local_range({(char *)d.address(), d.length()});
 		}
 
-		Control_header _ctrl_hdr { _desc_addr(0) };
+		Control_header _ctrl_hdr { _desc_range(0) };
 
 		void _get_display_info();
 		void _resource_create_2d();

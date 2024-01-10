@@ -20,7 +20,7 @@
 
 using Genode::uint8_t;
 
-struct Microcode : Genode::Mmio
+struct Microcode : Genode::Mmio<36>
 {
 	struct Version  : Register< 0, 32> { };
 	struct Revision : Register< 4, 32> { };
@@ -43,7 +43,7 @@ struct Microcode : Genode::Mmio
 	struct Datasize  : Register<28, 32> { };
 	struct Totalsize : Register<32, 32> { };
 
-	Microcode(Genode::addr_t const addr) : Mmio(addr) { }
+	using Mmio::Mmio;
 };
 
 static void read_micro_code_rom(Genode::Env &env, Genode::String<9> &rom_name,
@@ -55,7 +55,7 @@ static void read_micro_code_rom(Genode::Env &env, Genode::String<9> &rom_name,
 
 	try {
 		Attached_rom_dataspace mc_rom(env, rom_name.string());
-		Microcode mc_bits(reinterpret_cast<addr_t>(mc_rom.local_addr<uint8_t>()));
+		Microcode mc_bits({mc_rom.local_addr<char>(), mc_rom.size()});
 
 		unsigned total_size = mc_bits.read<Microcode::Totalsize>();
 		unsigned data_size = mc_bits.read<Microcode::Datasize>();

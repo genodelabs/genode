@@ -59,12 +59,13 @@ namespace Nvme {
 
 	struct Cqe;
 
-	struct Sqe;
+	template <size_t> struct Sqe;
+	struct Sqe_header;
 	struct Sqe_create_cq;
 	struct Sqe_create_sq;
 	struct Sqe_identify;
 	struct Sqe_get_feature;
-	struct Sqe_set_feature;
+	template <size_t> struct Sqe_set_feature;
 	struct Sqe_io;
 
 	struct Set_hmb;
@@ -165,7 +166,7 @@ namespace Nvme {
 /*
  * Identify command data
  */
-struct Nvme::Identify_data : Genode::Mmio
+struct Nvme::Identify_data : Genode::Mmio<0x208>
 {
 	enum {
 		SN_OFFSET = 0x04, SN_LEN = 20,
@@ -202,10 +203,9 @@ struct Nvme::Identify_data : Genode::Mmio
 	struct Nn    : Register<0x204, 32> { }; /* number of namespaces */
 	struct Vwc   : Register<0x204,  8> { }; /* volatile write cache */
 
-	Identify_data(addr_t const base)
-	: Genode::Mmio(base)
+	Identify_data(Byte_range_ptr const &range) : Mmio(range)
 	{
-		char const *p = (char const*)base;
+		char const *p = Mmio::range().start;
 
 		sn = Sn(Util::extract_string(p, SN_OFFSET, SN_LEN+1));
 		mn = Mn(Util::extract_string(p, MN_OFFSET, MN_LEN+1));
@@ -217,7 +217,7 @@ struct Nvme::Identify_data : Genode::Mmio
 /*
  * Identify name space command data
  */
-struct Nvme::Identify_ns_data : public Genode::Mmio
+struct Nvme::Identify_ns_data : public Genode::Mmio<0xc0>
 {
 	struct Nsze   : Register<0x00, 64> { }; /* name space size */
 	struct Ncap   : Register<0x08, 64> { }; /* name space capacity */
@@ -242,16 +242,14 @@ struct Nvme::Identify_ns_data : public Genode::Mmio
 		struct Rp    : Bitfield<24,  2> { }; /* relative performance */
 	};
 
-	Identify_ns_data(addr_t const base)
-	: Genode::Mmio(base)
-	{ }
+	Identify_ns_data(Byte_range_ptr const &range) : Mmio(range) { }
 };
 
 
 /*
  * Queue doorbell register
  */
-struct Nvme::Doorbell : public Genode::Mmio
+struct Nvme::Doorbell : public Genode::Mmio<0x8>
 {
 	struct Sqtdbl : Register<0x00, 32>
 	{
@@ -263,15 +261,14 @@ struct Nvme::Doorbell : public Genode::Mmio
 		struct Cqh : Bitfield< 0, 16> { }; /* submission queue tail */
 	};
 
-	Doorbell(addr_t const base)
-	: Genode::Mmio(base) { }
+	Doorbell(Byte_range_ptr const &range) : Mmio(range) { }
 };
 
 
 /*
  * Completion queue entry
  */
-struct Nvme::Cqe : Genode::Mmio
+struct Nvme::Cqe : Genode::Mmio<0x10>
 {
 	struct Dw0  : Register<0x00, 32> { }; /* command specific */
 	struct Dw1  : Register<0x04, 32> { }; /* reserved */
@@ -288,7 +285,7 @@ struct Nvme::Cqe : Genode::Mmio
 		struct Dnr : Bitfield<15, 1> { }; /* do not retry */
 	};
 
-	Cqe(addr_t const base) : Genode::Mmio(base) { }
+	Cqe(Byte_range_ptr const &range) : Mmio(range) { }
 
 	static uint32_t request_id(Nvme::Cqe const &b)
 	{
@@ -324,46 +321,53 @@ struct Nvme::Cqe : Genode::Mmio
 /*
  * Submission queue entry base
  */
-struct Nvme::Sqe : Genode::Mmio
+template <size_t SIZE>
+struct Nvme::Sqe : Genode::Mmio<SIZE>
 {
-	struct Cdw0 : Register<0x00, 32>
+	using Base = Genode::Mmio<SIZE>;
+
+	using Cdw0_base = Base::template Register<0x00, 32>;
+	struct Cdw0 : Cdw0_base
 	{
-		struct Opc  : Bitfield< 0,  8> { }; /* opcode */
-		struct Fuse : Bitfield< 9,  2> { }; /* fused operation */
-		struct Psdt : Bitfield<14,  2> { }; /* PRP or SGL for data transfer */
-		struct Cid  : Bitfield<16, 16> { }; /* command identifier */
+		struct Opc  : Cdw0_base::template Bitfield< 0,  8> { }; /* opcode */
+		struct Fuse : Cdw0_base::template Bitfield< 9,  2> { }; /* fused operation */
+		struct Psdt : Cdw0_base::template Bitfield<14,  2> { }; /* PRP or SGL for data transfer */
+		struct Cid  : Cdw0_base::template Bitfield<16, 16> { }; /* command identifier */
 	};
-	struct Nsid : Register<0x04, 32> { };
-	struct Mptr : Register<0x10, 64> { };
-	struct Prp1 : Register<0x18, 64> { };
-	struct Prp2 : Register<0x20, 64> { };
+	struct Nsid : Base::template Register<0x04, 32> { };
+	struct Mptr : Base::template Register<0x10, 64> { };
+	struct Prp1 : Base::template Register<0x18, 64> { };
+	struct Prp2 : Base::template Register<0x20, 64> { };
 
 	/* SGL not supported */
 
-	Sqe(addr_t const base) : Genode::Mmio(base) { }
+	Sqe(Byte_range_ptr const &range) : Mmio<SIZE>(range) { }
 
-	bool valid() const { return base() != 0ul; }
+	bool valid() const { return Base::base() != 0ul; }
 };
+
+
+struct Nvme::Sqe_header : Nvme::Sqe<0x28> { using Sqe::Sqe; };
 
 
 /*
  * Identify command
  */
-struct Nvme::Sqe_identify : Nvme::Sqe
+struct Nvme::Sqe_identify : Nvme::Sqe<0x2c>
 {
 	struct Cdw10 : Register<0x28, 32>
 	{
 		struct Cns : Bitfield< 0, 8> { }; /* controller or namespace structure */
 	};
 
-	Sqe_identify(addr_t const base) : Sqe(base) { }
+	Sqe_identify(Byte_range_ptr const &range) : Sqe(range) { }
 };
 
 
 /*
  * Get feature command
  */
-struct Nvme::Sqe_get_feature : Nvme::Sqe
+struct Nvme::Sqe_get_feature : Nvme::Sqe<0x2c>
 {
 	struct Cdw10 : Register<0x28, 32>
 	{
@@ -371,33 +375,37 @@ struct Nvme::Sqe_get_feature : Nvme::Sqe
 		struct Sel : Bitfield< 8, 2> { }; /* select which value is returned */
 	};
 
-	Sqe_get_feature(addr_t const base) : Sqe(base) { }
+	Sqe_get_feature(Byte_range_ptr const &range) : Sqe(range) { }
 };
 
 
 /*
  * Set feature command
  */
-struct Nvme::Sqe_set_feature : Nvme::Sqe
+template <size_t SIZE>
+struct Nvme::Sqe_set_feature : Nvme::Sqe<SIZE>
 {
-	struct Cdw10 : Register<0x28, 32>
+	using Base = Genode::Mmio<SIZE>;
+
+	using Cdw10_base = Base::template Register<0x28, 32>;
+	struct Cdw10 : Cdw10_base
 	{
-		struct Fid : Bitfield< 0, 8> { }; /* feature identifier */
-		struct Sv  : Bitfield<31, 1> { }; /* save */
+		struct Fid : Cdw10_base::template Bitfield< 0, 8> { }; /* feature identifier */
+		struct Sv  : Cdw10_base::template Bitfield<31, 1> { }; /* save */
 	};
 
-	Sqe_set_feature(addr_t const base) : Sqe(base) { }
+	Sqe_set_feature(Byte_range_ptr const &range) : Sqe<SIZE>(range) { }
 };
 
 
-struct Hmb_de : Genode::Mmio
+struct Hmb_de : Genode::Mmio<0x10>
 {
 	enum { SIZE = 16u };
 
 	struct Badd  : Register<0x00, 64> { };
 	struct Bsize : Register<0x08, 64> { };
 
-	Hmb_de(addr_t const base, addr_t const buffer, size_t units) : Genode::Mmio(base)
+	Hmb_de(Byte_range_ptr const &range, addr_t const buffer, size_t units) : Mmio(range)
 	{
 		write<Badd>(buffer);
 		write<Bsize>(units);
@@ -405,7 +413,7 @@ struct Hmb_de : Genode::Mmio
 };
 
 
-struct Nvme::Set_hmb : Nvme::Sqe_set_feature
+struct Nvme::Set_hmb : Nvme::Sqe_set_feature<0x40>
 {
 	struct Cdw11 : Register<0x2c, 32>
 	{
@@ -434,10 +442,10 @@ struct Nvme::Set_hmb : Nvme::Sqe_set_feature
 		struct Hmdlec : Bitfield<0, 32> { }; /* host memory descriptor list entry count */
 	};
 
-	Set_hmb(addr_t const base, uint64_t const hmdl,
+	Set_hmb(Byte_range_ptr const &range, uint64_t const hmdl,
 	        uint32_t const units, uint32_t const entries)
 	:
-		Sqe_set_feature(base)
+		Sqe_set_feature(range)
 	{
 		write<Sqe_set_feature::Cdw10::Fid>(Feature_fid::HMB);
 		write<Cdw11::Ehm>(1);
@@ -452,7 +460,7 @@ struct Nvme::Set_hmb : Nvme::Sqe_set_feature
 /*
  *  Create completion queue command
  */
-struct Nvme::Sqe_create_cq : Nvme::Sqe
+struct Nvme::Sqe_create_cq : Nvme::Sqe<0x30>
 {
 	struct Cdw10 : Register<0x28, 32>
 	{
@@ -467,14 +475,14 @@ struct Nvme::Sqe_create_cq : Nvme::Sqe
 		struct Iv : Bitfield<16, 16> { }; /* interrupt vector */
 	};
 
-	Sqe_create_cq(addr_t const base) : Sqe(base) { }
+	Sqe_create_cq(Byte_range_ptr const &range) : Sqe(range) { }
 };
 
 
 /*
  * Create submission queue command
  */
-struct Nvme::Sqe_create_sq : Nvme::Sqe
+struct Nvme::Sqe_create_sq : Nvme::Sqe<0x30>
 {
 	struct Cdw10 : Register<0x28, 32>
 	{
@@ -489,14 +497,14 @@ struct Nvme::Sqe_create_sq : Nvme::Sqe
 		struct Cqid  : Bitfield<16, 16> { }; /* completion queue identifier */
 	};
 
-	Sqe_create_sq(addr_t const base) : Sqe(base) { }
+	Sqe_create_sq(Byte_range_ptr const &range) : Sqe(range) { }
 };
 
 
 /*
  * I/O command
  */
-struct Nvme::Sqe_io : Nvme::Sqe
+struct Nvme::Sqe_io : Nvme::Sqe<0x34>
 {
 	struct Slba_lower : Register<0x28, 32> { };
 	struct Slba_upper : Register<0x2c, 32> { };
@@ -507,7 +515,7 @@ struct Nvme::Sqe_io : Nvme::Sqe
 		struct Nlb  : Bitfield< 0, 16> { };
 	};
 
-	Sqe_io(addr_t const base) : Sqe(base) { }
+	Sqe_io(Byte_range_ptr const &range) : Sqe(range) { }
 };
 
 
@@ -538,12 +546,12 @@ struct Nvme::Sq : Nvme::Queue
 
 	using Queue::Queue;
 
-	addr_t next()
+	Byte_range_ptr next()
 	{
-		addr_t a = (addr_t)local_addr<void>() + (tail * SQE_LEN);
-		Genode::memset((void*)a, 0, SQE_LEN);
+		char *a = local_addr<char>() + (tail * SQE_LEN);
+		Genode::memset(a, 0, SQE_LEN);
 		tail = (tail + 1) % max_entries;
-		return a;
+		return {a, size()};
 	}
 };
 
@@ -558,7 +566,11 @@ struct Nvme::Cq : Nvme::Queue
 
 	using Queue::Queue;
 
-	addr_t next() { return (addr_t)local_addr<void>() + (head * CQE_LEN); }
+	Byte_range_ptr next()
+	{
+		off_t offset = head * CQE_LEN;
+		return {local_addr<char>() + offset, size() - offset};
+	}
 
 	void advance_head()
 	{
@@ -574,10 +586,10 @@ struct Nvme::Cq : Nvme::Queue
  * Controller
  */
 class Nvme::Controller : Platform::Device,
-                         Platform::Device::Mmio,
+                         Platform::Device::Mmio<0x1010>,
                          Platform::Device::Irq
 {
-	using Mmio = Genode::Mmio;
+	using Mmio = Genode::Mmio<SIZE>;
 
 	public:
 
@@ -974,15 +986,15 @@ class Nvme::Controller : Platform::Device,
 	 * \return  returns address of the next free entry or 0 if there is
 	 *          no free entry
 	 */
-	addr_t _admin_command(Opcode opc, uint32_t nsid, uint32_t cid)
+	Byte_range_ptr _admin_command(Opcode opc, uint32_t nsid, uint32_t cid)
 	{
-		if (_queue_full(*_admin_sq, *_admin_cq)) { return 0ul; }
+		if (_queue_full(*_admin_sq, *_admin_cq)) { return {nullptr, 0ul}; }
 
-		Sqe b(_admin_sq->next());
-		b.write<Nvme::Sqe::Cdw0::Opc>(opc);
-		b.write<Nvme::Sqe::Cdw0::Cid>(cid);
-		b.write<Nvme::Sqe::Nsid>(nsid);
-		return b.base();
+		Sqe_header b(_admin_sq->next());
+		b.write<Nvme::Sqe_header::Cdw0::Opc>(opc);
+		b.write<Nvme::Sqe_header::Cdw0::Cid>(cid);
+		b.write<Nvme::Sqe_header::Nsid>(nsid);
+		return b.range();
 	}
 
 	/**
@@ -1068,7 +1080,7 @@ class Nvme::Controller : Platform::Device,
 
 		Sqe_identify b(_admin_command(Opcode::IDENTIFY, 0, NSLIST_CID));
 
-		b.write<Nvme::Sqe::Prp1>(_nvme_nslist.dma_addr());
+		b.write<Nvme::Sqe_identify::Prp1>(_nvme_nslist.dma_addr());
 		b.write<Nvme::Sqe_identify::Cdw10::Cns>(Cns::NSLIST);
 
 		write<Admin_sdb::Sqt>(_admin_sq->tail);
@@ -1106,7 +1118,7 @@ class Nvme::Controller : Platform::Device,
 			_nvme_query_ns[id].construct(_platform, IDENTIFY_LEN);
 
 		Sqe_identify b(_admin_command(Opcode::IDENTIFY, ns[id], QUERYNS_CID));
-		b.write<Nvme::Sqe::Prp1>(_nvme_query_ns[id]->dma_addr());
+		b.write<Nvme::Sqe_identify::Prp1>(_nvme_query_ns[id]->dma_addr());
 		b.write<Nvme::Sqe_identify::Cdw10::Cns>(Cns::IDENTIFY_NS);
 
 		write<Admin_sdb::Sqt>(_admin_sq->tail);
@@ -1116,7 +1128,7 @@ class Nvme::Controller : Platform::Device,
 			throw Initialization_failed();
 		}
 
-		Identify_ns_data nsdata((addr_t)_nvme_query_ns[id]->local_addr<void>());
+		Identify_ns_data nsdata({_nvme_query_ns[id]->local_addr<char>(), _nvme_query_ns[id]->size()});
 		uint32_t const flbas = nsdata.read<Nvme::Identify_ns_data::Flbas::Formats>();
 
 		/* use array subscription, omit first entry */
@@ -1133,7 +1145,7 @@ class Nvme::Controller : Platform::Device,
 	void _identify()
 	{
 		Sqe_identify b(_admin_command(Opcode::IDENTIFY, 0, IDENTIFY_CID));
-		b.write<Nvme::Sqe::Prp1>(_nvme_identify.dma_addr());
+		b.write<Nvme::Sqe_identify::Prp1>(_nvme_identify.dma_addr());
 		b.write<Nvme::Sqe_identify::Cdw10::Cns>(Cns::IDENTIFY);
 
 		write<Admin_sdb::Sqt>(_admin_sq->tail);
@@ -1143,7 +1155,8 @@ class Nvme::Controller : Platform::Device,
 			throw Initialization_failed();
 		}
 
-		_identify_data.construct((addr_t)_nvme_identify.local_addr<void>());
+		_identify_data.construct(
+			Byte_range_ptr(_nvme_identify.local_addr<char>(), _nvme_identify.size()));
 
 		/* store information */
 		_info.version = Genode::String<8>(read<Vs::Mjr>(), ".",
@@ -1230,17 +1243,18 @@ class Nvme::Controller : Platform::Device,
 
 		_hmb_chunk_registry.construct(_hmb_alloc);
 
-		addr_t list_base =
-			(addr_t)_hmb_descr_list_buffer->local_addr<addr_t>();
+		Reconstructible<Byte_range_ptr> list
+			{_hmb_descr_list_buffer->local_addr<char>(), _hmb_descr_list_buffer->size()};
+
 		for (uint32_t i = 0; i < num_entries; i++) {
 			try {
 				Hmb_chunk *c =
 					new (_hmb_alloc) Hmb_chunk(*_hmb_chunk_registry,
 					                           _platform, HMB_CHUNK_SIZE);
 
-				Hmb_de e(list_base, c->dma_buffer.dma_addr(), HMB_CHUNK_UNITS);
+				Hmb_de e(*list, c->dma_buffer.dma_addr(), HMB_CHUNK_UNITS);
+				list.construct(list->start + Hmb_de::SIZE, list->num_bytes - Hmb_de::SIZE);
 
-				list_base += Hmb_de::SIZE;
 			} catch (... /* intentional catch-all */) {
 				warning("could not allocate HMB chunk");
 
@@ -1284,7 +1298,7 @@ class Nvme::Controller : Platform::Device,
 		Nvme::Cq &cq = *_cq[id];
 
 		Sqe_create_cq b(_admin_command(Opcode::CREATE_IO_CQ, 0, CREATE_IO_CQ_CID));
-		b.write<Nvme::Sqe::Prp1>(cq.dma_addr());
+		b.write<Nvme::Sqe_create_cq::Prp1>(cq.dma_addr());
 		b.write<Nvme::Sqe_create_cq::Cdw10::Qid>(id);
 		b.write<Nvme::Sqe_create_cq::Cdw10::Qsize>(_max_io_entries_mask);
 		b.write<Nvme::Sqe_create_cq::Cdw11::Pc>(1);
@@ -1314,7 +1328,7 @@ class Nvme::Controller : Platform::Device,
 		Nvme::Sq &sq = *_sq[id];
 
 		Sqe_create_sq b(_admin_command(Opcode::CREATE_IO_SQ, 0, CREATE_IO_SQ_CID));
-		b.write<Nvme::Sqe::Prp1>(sq.dma_addr());
+		b.write<Nvme::Sqe_create_sq::Prp1>(sq.dma_addr());
 		b.write<Nvme::Sqe_create_sq::Cdw10::Qid>(id);
 		b.write<Nvme::Sqe_create_sq::Cdw10::Qsize>(_max_io_entries_mask);
 		b.write<Nvme::Sqe_create_sq::Cdw11::Pc>(1);
@@ -1340,7 +1354,7 @@ class Nvme::Controller : Platform::Device,
 	           Signal_context_capability irq_sigh)
 	:
 		Platform::Device(platform),
-		Platform::Device::Mmio((Platform::Device&)*this),
+		Platform::Device::Mmio<SIZE>((Platform::Device&)*this),
 		Platform::Device::Irq((Platform::Device&)*this),
 		_env(env), _platform(platform), _delayer(delayer)
 	{
@@ -1419,14 +1433,14 @@ class Nvme::Controller : Platform::Device,
 	 *
 	 * \return  returns virtual address of the I/O command
 	 */
-	addr_t io_command(uint16_t nsid, uint16_t cid)
+	Byte_range_ptr io_command(uint16_t nsid, uint16_t cid)
 	{
 		Nvme::Sq &sq = *_sq[nsid];
 
-		Sqe e(sq.next());
-		e.write<Nvme::Sqe::Cdw0::Cid>(cid);
-		e.write<Nvme::Sqe::Nsid>(nsid);
-		return e.base();
+		Sqe_header e(sq.next());
+		e.write<Nvme::Sqe_header::Cdw0::Cid>(cid);
+		e.write<Nvme::Sqe_header::Nsid>(nsid);
+		return e.range();
 	}
 
 	/**
@@ -1755,7 +1769,7 @@ class Nvme::Driver : Genode::Noncopyable
 		 ** MMIO Controller **
 		 *********************/
 
-		struct Timer_delayer : Genode::Mmio::Delayer,
+		struct Timer_delayer : Genode::Mmio<0>::Delayer,
 		                       Timer::Connection
 		{
 			Timer_delayer(Genode::Env &env)
@@ -1985,12 +1999,12 @@ class Nvme::Driver : Genode::Noncopyable
 
 			Nvme::Sqe_io b(_nvme_ctrlr.io_command(Nvme::IO_NSID, cid));
 			Nvme::Opcode const op = write ? Nvme::Opcode::WRITE : Nvme::Opcode::READ;
-			b.write<Nvme::Sqe::Cdw0::Opc>(op);
-			b.write<Nvme::Sqe::Prp1>(request_pa);
+			b.write<Nvme::Sqe_io::Cdw0::Opc>(op);
+			b.write<Nvme::Sqe_io::Prp1>(request_pa);
 
 			/* payload will fit into 2 mps chunks */
 			if (len > Nvme::MPS && !need_list) {
-				b.write<Nvme::Sqe::Prp2>(request_pa + Nvme::MPS);
+				b.write<Nvme::Sqe_io::Prp2>(request_pa + Nvme::MPS);
 			} else if (need_list) {
 
 				/* get page to store list of mps chunks */
@@ -2018,7 +2032,7 @@ class Nvme::Driver : Genode::Noncopyable
 					pe[i] = npa;
 					npa  += Nvme::MPS;
 				}
-				b.write<Nvme::Sqe::Prp2>(pa);
+				b.write<Nvme::Sqe_io::Prp2>(pa);
 			}
 
 			b.write<Nvme::Sqe_io::Slba_lower>(uint32_t(lba));
@@ -2035,7 +2049,7 @@ class Nvme::Driver : Genode::Noncopyable
 			              .id            = id };
 
 			Nvme::Sqe_io b(_nvme_ctrlr.io_command(Nvme::IO_NSID, cid));
-			b.write<Nvme::Sqe::Cdw0::Opc>(Nvme::Opcode::FLUSH);
+			b.write<Nvme::Sqe_io::Cdw0::Opc>(Nvme::Opcode::FLUSH);
 		}
 
 		void _submit_trim(Block::Request const request)
@@ -2050,7 +2064,7 @@ class Nvme::Driver : Genode::Noncopyable
 			Block::sector_t const lba   = request.operation.block_number;
 
 			Nvme::Sqe_io b(_nvme_ctrlr.io_command(Nvme::IO_NSID, cid));
-			b.write<Nvme::Sqe::Cdw0::Opc>(Nvme::Opcode::WRITE_ZEROS);
+			b.write<Nvme::Sqe_io::Cdw0::Opc>(Nvme::Opcode::WRITE_ZEROS);
 			b.write<Nvme::Sqe_io::Slba_lower>(uint32_t(lba));
 			b.write<Nvme::Sqe_io::Slba_upper>(uint32_t(lba >> 32u));
 

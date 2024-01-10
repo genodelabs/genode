@@ -18,7 +18,7 @@
 #include <base/attached_io_mem_dataspace.h>
 #include <util/mmio.h>
 
-namespace Genode { class Attached_mmio; }
+namespace Genode { template <size_t> class Attached_mmio; }
 
 
 /**
@@ -30,8 +30,9 @@ namespace Genode { class Attached_mmio; }
  * and cast the received address. This helper undertakes all of this
  * generic work when inheriting from it.
  */
+template <Genode::size_t SIZE>
 class Genode::Attached_mmio : public Attached_io_mem_dataspace,
-                              public Mmio
+                              public Mmio<SIZE>
 {
 	public:
 
@@ -49,10 +50,9 @@ class Genode::Attached_mmio : public Attached_io_mem_dataspace,
 		 * \throw Out_of_caps
 		 * \throw Region_map::Region_conflict
 		 */
-		Attached_mmio(Env &env, addr_t base, size_t size,
-		              bool write_combined = false)
-		: Attached_io_mem_dataspace(env, base, size, write_combined),
-		  Mmio((addr_t)local_addr<void>()) { }
+		Attached_mmio(Env &env, Byte_range_ptr const &range, bool write_combined = false)
+		: Attached_io_mem_dataspace(env, (addr_t)range.start, range.num_bytes, write_combined),
+		  Mmio<SIZE>({local_addr<char>(), range.num_bytes}) { }
 };
 
 #endif /* _INCLUDE__OS__ATTACHED_MMIO_H_ */

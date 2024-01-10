@@ -272,7 +272,7 @@ Bootstrap::Platform::Board::Board()
 }
 
 
-struct Lapic : Mmio
+struct Lapic : Mmio<Hw::Cpu_memory_map::LAPIC_SIZE>
 {
 	struct Svr : Register<0x0f0, 32>
 	{
@@ -299,7 +299,7 @@ struct Lapic : Mmio
 		struct Destination : Bitfield<24, 8> { };
 	};
 
-	Lapic(addr_t const addr) : Mmio(addr) { }
+	Lapic(addr_t const addr) : Mmio({(char *)addr, Mmio::SIZE}) { }
 };
 
 

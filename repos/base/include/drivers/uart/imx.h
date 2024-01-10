@@ -24,7 +24,7 @@ namespace Genode { class Imx_uart; }
 /**
  * Driver base for i.MX UART-module
  */
-class Genode::Imx_uart: Mmio
+class Genode::Imx_uart: Mmio<0xa2>
 {
 	/**
 	 * Control register 1
@@ -246,7 +246,7 @@ class Genode::Imx_uart: Mmio
 		 *
 		 * \param base  device MMIO base
 		 */
-		Imx_uart(addr_t base, uint32_t, uint32_t) : Mmio(base)
+		Imx_uart(addr_t base, uint32_t, uint32_t) : Mmio({(char*)base, Mmio::SIZE})
 		{
 			init();
 		}

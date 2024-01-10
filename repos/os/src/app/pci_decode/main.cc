@@ -56,7 +56,7 @@ struct Main
 	bus_t parse_pci_function(Bdf bdf, Config & cfg,
 	                         addr_t cfg_phys_base,
 	                         Xml_generator & generator, unsigned & msi);
-	bus_t parse_pci_bus(bus_t bus, addr_t base, addr_t phys_base,
+	bus_t parse_pci_bus(bus_t bus, Byte_range_ptr const & range, addr_t phys_base,
 	                    Xml_generator & generator, unsigned & msi);
 
 	void parse_irq_override_rules(Xml_node & xml);
@@ -94,7 +94,7 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 	/* check for bridges */
 	if (cfg.read<Config::Header_type::Type>()) {
 		for_bridge(bdf.bus, [&] (Bridge & parent) {
-			Config_type1 bcfg(cfg.base());
+			Config_type1 bcfg(cfg.range());
 			new (heap) Bridge(parent.sub_bridges, bdf,
 			                  bcfg.secondary_bus_number(),
 			                  bcfg.subordinate_bus_number());
@@ -142,7 +142,7 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 			gen.attribute("revision",      string(cfg.read<Cc::Revision>()));
 			gen.attribute("bridge",        cfg.bridge() ? "yes" : "no");
 			if (!cfg.bridge()) {
-				C0 cfg0(cfg.base());
+				C0 cfg0(cfg.range());
 				gen.attribute("sub_vendor_id",
 				              string(cfg0.read<C0::Subsystem_vendor>()));
 				gen.attribute("sub_device_id",
@@ -286,17 +286,17 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 }
 
 
-bus_t Main::parse_pci_bus(bus_t           bus,
-                          addr_t          base,
-                          addr_t          phys_base,
-                          Xml_generator & generator,
-                          unsigned      & msi_number)
+bus_t Main::parse_pci_bus(bus_t                  bus,
+                          Byte_range_ptr const & range,
+                          addr_t                 phys_base,
+                          Xml_generator        & generator,
+                          unsigned             & msi_number)
 {
 	bus_t max_subordinate_bus = bus;
 
-	auto per_function = [&] (addr_t config_base, addr_t config_phys_base,
+	auto per_function = [&] (Byte_range_ptr const & config_range, addr_t config_phys_base,
 	                         dev_t dev, func_t fn) {
-		Config cfg(config_base);
+		Config cfg(config_range);
 		if (!cfg.valid())
 			return true;
 
@@ -312,10 +312,10 @@ bus_t Main::parse_pci_bus(bus_t           bus,
 	for (dev_t dev = 0; dev < DEVICES_PER_BUS_MAX; dev++) {
 		for (func_t fn = 0; fn < FUNCTION_PER_DEVICE_MAX; fn++) {
 			unsigned factor = dev * FUNCTION_PER_DEVICE_MAX + fn;
-			addr_t config_base = base + factor * FUNCTION_CONFIG_SPACE_SIZE;
-			addr_t config_phys_base =
-				phys_base + factor * FUNCTION_CONFIG_SPACE_SIZE;
-			if (!per_function(config_base, config_phys_base, dev, fn))
+			off_t config_offset = factor * FUNCTION_CONFIG_SPACE_SIZE;
+			Byte_range_ptr config_range { range.start + config_offset, range.num_bytes - config_offset };
+			addr_t config_phys_base = phys_base + config_offset;
+			if (!per_function(config_range, config_phys_base, dev, fn))
 				break;
 		}
 	}
@@ -504,7 +504,7 @@ void Main::parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator)
 			pci_config_ds.construct(env, offset, BUS_SIZE);
 			bus_t const subordinate_bus =
 				parse_pci_bus((bus_t)bus + bus_off,
-				              (addr_t)pci_config_ds->local_addr<void>(),
+				              {pci_config_ds->local_addr<char>(), BUS_SIZE},
 				              offset, generator, msi_number);
 
 			max_subordinate_bus = max(max_subordinate_bus, subordinate_bus);

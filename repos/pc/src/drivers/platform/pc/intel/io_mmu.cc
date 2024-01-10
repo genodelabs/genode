@@ -409,7 +409,7 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
                       Device::Io_mem::Range      range,
                       Context_table_allocator  & table_allocator,
                       unsigned                   irq_number)
-: Attached_mmio(env, range.start, range.size),
+: Attached_mmio(env, {(char *)range.start, range.size}),
   Driver::Io_mmu(io_mmu_devices, name),
   _env(env),
   _managed_root_table(_env, table_allocator, *this, !coherent_page_walk()),

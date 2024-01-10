@@ -23,7 +23,7 @@ namespace Virtio {
 	class Device;
 }
 
-struct Virtio::Device_mmio : public Genode::Mmio
+struct Virtio::Device_mmio : public Genode::Mmio<0x100>
 {
 	struct DeviceFeatureSelect : Register<0x00, 32> { };
 	struct DeviceFeature       : Register<0x04, 32> { };
@@ -96,13 +96,13 @@ class Virtio::Device
 		Platform::Device       _device { _plat };
 		Platform::Device::Irq  _irq    { _device, { 0 } };
 
-		Constructible<Platform::Device::Mmio> _mmio[MMIO_MAX] { };
+		Constructible<Platform::Device::Mmio<0> > _mmio[MMIO_MAX] { };
 
-		Mmio     _cfg_common { _bar_offset("common")     };
-		Mmio     _dev_config { _bar_offset("device")     };
-		Mmio     _notify     { _bar_offset("notify")     };
-		Mmio     _isr        { _bar_offset("irq_status") };
-		size_t   _notify_offset_multiplier { 0 };
+		Device_mmio _cfg_common { _bar_range("common")     };
+		Device_mmio _dev_config { _bar_range("device")     };
+		Device_mmio _notify     { _bar_range("notify")     };
+		Device_mmio _isr        { _bar_range("irq_status") };
+		size_t      _notify_offset_multiplier { 0 };
 
 		template <typename FN>
 		void with_virtio_range(String<16> type, FN const & fn)
@@ -123,7 +123,7 @@ class Virtio::Device
 			});
 		}
 
-		addr_t _bar_offset(String<16> type)
+		Byte_range_ptr _bar_range(String<16> type)
 		{
 			unsigned idx = MMIO_MAX;
 			addr_t   off = ~0UL;
@@ -137,8 +137,8 @@ class Virtio::Device
 
 			if (!_mmio[idx].constructed())
 				_mmio[idx].construct(_device,
-				                     Platform::Device::Mmio::Index{idx});
-			return _mmio[idx]->base() + off;
+				                     Platform::Device::Mmio<0>::Index{idx});
+			return _mmio[idx]->range_at(off);
 		}
 
 	public:

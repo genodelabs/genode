@@ -92,7 +92,7 @@ struct Virtdev_rom::Main
 	Sliced_heap               _heap { _env.ram(), _env.rm() };
 	Virtdev_rom::Root         _root { _env, _heap, _ds };
 
-	struct Device : public Attached_mmio
+	struct Device : public Attached_mmio<0xc>
 	{
 		struct Magic : Register<0x000, 32> { };
 		struct Id    : Register<0x008, 32> {
@@ -108,8 +108,8 @@ struct Virtdev_rom::Main
 			};
 		};
 
-		Device(Env &env, addr_t base, size_t size)
-		: Attached_mmio(env, base, size, false) { }
+		Device(Env &env, Byte_range_ptr const &range)
+		: Attached_mmio(env, range, false) { }
 	};
 
 	static char const *_name_for_id(unsigned id)
@@ -138,7 +138,7 @@ struct Virtdev_rom::Main
 
 			for (size_t idx = 0; idx < NUM_VIRTIO_TRANSPORTS; ++idx) {
 				addr_t addr = BASE_ADDRESS + idx * DEVICE_SIZE;
-				Device device { _env, BASE_ADDRESS + idx * DEVICE_SIZE, DEVICE_SIZE };
+				Device device { _env, {(char *)(BASE_ADDRESS + idx * DEVICE_SIZE), DEVICE_SIZE} };
 
 				if (device.read<Device::Magic>() != VIRTIO_MMIO_MAGIC) {
 					warning("Found non VirtIO MMIO device @ ", Hex(addr));

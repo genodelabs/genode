@@ -26,7 +26,7 @@ namespace Board { class Timer; }
 /**
  * Timer driver for core
  */
-struct Board::Timer : Genode::Mmio
+struct Board::Timer : Genode::Mmio<0x18>
 {
 	/**
 	 * Counter value registers

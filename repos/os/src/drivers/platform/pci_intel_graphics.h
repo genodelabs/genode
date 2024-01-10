@@ -91,7 +91,7 @@ void Driver::pci_intel_graphics_info(Device::Pci_config const & cfg,
 		return;
 
 	/* PCI configuration registers of host bridge */
-	struct Host_bridge : Mmio
+	struct Host_bridge : Mmio<0x54>
 	{
 		struct Gen_old_gmch_control : Register<0x52, 16> {};
 		struct Gen_gmch_control     : Register<0x50, 16> {};
@@ -105,8 +105,10 @@ void Driver::pci_intel_graphics_info(Device::Pci_config const & cfg,
 			if (cfg.bus_num || cfg.dev_num || cfg.func_num)
 				return;
 
-			Attached_io_mem_dataspace io_mem(env, cfg.addr, 0x1000);
-			Host_bridge               config((addr_t)io_mem.local_addr<void>());
+			static constexpr size_t IO_MEM_SIZE = 0x1000;
+
+			Attached_io_mem_dataspace io_mem(env, cfg.addr, IO_MEM_SIZE);
+			Host_bridge               config({io_mem.local_addr<char>(), IO_MEM_SIZE});
 			unsigned gen  = pci_intel_graphics_generation(cfg.device_id);
 			uint16_t gmch = 0;
 

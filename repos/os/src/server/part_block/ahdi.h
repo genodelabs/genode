@@ -96,7 +96,7 @@ class Block::Ahdi : public Partition_table
 		{
 			bool any_partition_valid = false;
 
-			Root_sector const root = *sector.addr<Root_sector const *>();
+			Root_sector const root = *(Root_sector const *)sector.buffer().start;
 			for (unsigned i = 0; i < MAX_PARTITIONS; i++)
 				if (root.partitions[i].valid())
 					any_partition_valid = true;
@@ -107,7 +107,7 @@ class Block::Ahdi : public Partition_table
 		template <typename FUNC>
 		void _parse_ahdi(Sync_read const &sector, FUNC const &fn)
 		{
-			Root_sector &root = *sector.addr<Root_sector *>();
+			Root_sector &root = *(Root_sector *)sector.buffer().start;
 
 			for (unsigned i = 0; i < MAX_PARTITIONS; i++) {
 				Partition_record const &part = root.partitions[i];

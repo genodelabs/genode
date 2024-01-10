@@ -142,7 +142,7 @@ Driver::Driver(Env &env, Platform::Connection & platform)
 :
 	Block::Driver(env.ram()),
 	Platform::Device(platform),
-	Platform::Device::Mmio(*this, { 0 }),
+	Platform::Device::Mmio<SIZE>(*this, { 0 }),
 	_platform(platform),
 	_timer(env)
 {
