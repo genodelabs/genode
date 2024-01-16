@@ -31,8 +31,28 @@ src/lib/openssl:
 	cp -r $(REP_DIR)/src/lib/openssl/crypto $@/
 	cp -r $(REP_DIR)/src/lib/openssl/spec $@/
 
-content: LICENSE
+content: LICENSE libcrypto.pc libssl.pc openssl.pc
 
 LICENSE:
 	cp $(PORT_DIR)/src/lib/openssl/LICENSE $@
 
+VERSION := $(shell sed -n 's/VERSION.*:=[ ]*\(.*\)/\1/p' $(REP_DIR)/ports/openssl.port)
+
+libcrypto.pc:
+	echo "Name: OpenSSL-libcrypto" > $@
+	echo "Description: OpenSSL cryptography library" >> $@
+	echo "Version: $(VERSION)" >> $@
+	echo "Libs: -l:libcrypto.lib.so" >> $@
+
+libssl.pc:
+	echo "Name: OpenSSL-libssl" > $@
+	echo "Description: Secure Sockets Layer and cryptography libraries" >> $@
+	echo "Version: $(VERSION)" >> $@
+	echo "Requires.private: libcrypto" >> $@
+	echo "Libs: -l:libssl.lib.so" >> $@
+
+openssl.pc:
+	echo "Name: OpenSSL" > $@
+	echo "Description: Secure Sockets Layer and cryptography libraries and tools" >> $@
+	echo "Version: $(VERSION)" >> $@
+	echo "Requires: libssl libcrypto" >> $@
