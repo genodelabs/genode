@@ -481,6 +481,8 @@ nlist T
 nrand48 T
 offtime T
 open T
+open_memstream T
+open_wmemstream T
 openat T
 opendir T
 openlog T
