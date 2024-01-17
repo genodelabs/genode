@@ -1,4 +1,4 @@
-build { core init timer lib/ld lib/libc lib/vfs lib/posix test/libc }
+build { core init timer lib/ld lib/libc lib/libm lib/vfs lib/posix test/libc }
 
 create_boot_directory
 
