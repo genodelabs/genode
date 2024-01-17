@@ -188,6 +188,11 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 			return request;
 		}
+
+		bool pending_requests() const override
+		{
+			return _pending.operation.valid();
+		}
 };
 
 #endif /* _AHCI__ATAPI_PROTOCOL_H_ */

@@ -363,6 +363,8 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 
 			return r;
 		}
+
+		bool pending_requests() const override { return !!_slot_states; }
 };
 
 #endif /* _AHCI__ATA_PROTOCOL_H_ */

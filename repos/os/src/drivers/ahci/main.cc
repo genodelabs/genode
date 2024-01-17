@@ -62,11 +62,16 @@ class Ahci::Driver : Noncopyable
 		Signal_handler<Driver>  _handler   { _env.ep(), *this, &Driver::handle_irq };
 		Resources               _resources { _env, _handler };
 
+		Constructible<Attached_rom_dataspace> _system_rom { };
+		Signal_handler<Driver>  _system_rom_sigh {
+			_env.ep(), *this, &Driver::_system_update };
+
 		Constructible<Ata::Protocol>   _ata  [MAX_PORTS];
 		Constructible<Atapi::Protocol> _atapi[MAX_PORTS];
 		Constructible<Port>            _ports[MAX_PORTS];
 
 		bool _enable_atapi;
+		bool _schedule_stop { };
 
 		unsigned _scan_ports(Region_map &rm, Platform::Connection &plat, Hba &hba)
 		{
@@ -111,9 +116,50 @@ class Ahci::Driver : Noncopyable
 			return port_count;
 		}
 
+		void _system_update()
+		{
+			if (!_system_rom.constructed())
+				return;
+
+			_system_rom->update();
+
+			if (!_system_rom->valid())
+				return;
+
+			auto state = _system_rom->xml().attribute_value("state",
+			                                                String<32>(""));
+
+			if (state == "driver_stop") {
+				_schedule_stop = true;
+
+				for_each_port([&](auto &port, auto, auto) {
+					port.stop_processing = true;
+				});
+
+				device_release_if_stopped_and_idle();
+
+				return;
+			}
+
+			if (state == "driver_reinit") {
+				_resources.acquire_device();
+
+				_schedule_stop = false;
+
+				/* re-start request handling of client sessions */
+				for_each_port([&](auto &port, auto const index, auto) {
+					port.stop_processing = false;
+					port.reinit();
+					_dispatch.session(index);
+				});
+
+				return;
+			}
+		}
+
 	public:
 
-		Driver(Env &env, Dispatch &dispatch, bool support_atapi)
+		Driver(Env &env, Dispatch &dispatch, bool support_atapi, bool use_system_rom)
 		: _env(env), _dispatch(dispatch), _enable_atapi(support_atapi)
 		{
 			/* search for devices */
@@ -126,6 +172,11 @@ class Ahci::Driver : Noncopyable
 						    Hex(hba.cap_np_value()), ",PI=", Hex(hba.pi_value()), ")");
 				});
 			});
+
+			if (use_system_rom) {
+				_system_rom.construct(_env, "system");
+				_system_rom->sigh(_system_rom_sigh);
+			}
 		}
 
 		/**
@@ -142,6 +193,28 @@ class Ahci::Driver : Noncopyable
 					_dispatch.session(port);
 				}, [&]() { error("hba handle_irq failed"); });
 			});
+
+			device_release_if_stopped_and_idle();
+		}
+
+		void device_release_if_stopped_and_idle()
+		{
+			if (!_schedule_stop)
+				return;
+
+			/* check for outstanding requests */
+			bool pending = false;
+
+			for_each_port([&](auto const &port, auto, auto) {
+				if (port.protocol.pending_requests())
+					pending = true;
+			});
+
+			/* avoid disabling device if we have outstanding requests */
+			if (pending)
+				return;
+
+			_resources.release_device();
 		}
 
 		Port &port(Session_label const &label, Session_policy const &policy)
@@ -270,6 +343,10 @@ struct Ahci::Block_session_component : Rpc_object<Block::Session>,
 				});
 			});
 
+			/* all completed packets are handled, but no further processing */
+			if (port.stop_processing)
+				break;
+
 			with_requests([&] (Block::Request request) {
 
 				Response response = Response::RETRY;
@@ -309,8 +386,9 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 	{
 		log("--- Starting AHCI driver ---");
 		bool support_atapi  = config.xml().attribute_value("atapi", false);
+		bool use_system_rom = config.xml().attribute_value("system", false);
 		try {
-			driver.construct(env, *this, support_atapi);
+			driver.construct(env, *this, support_atapi, use_system_rom);
 			report_ports();
 		} catch (Ahci::Missing_controller) {
 			error("no AHCI controller found");

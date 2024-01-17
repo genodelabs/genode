@@ -114,6 +114,11 @@ struct Ahci::Hba
 
 	Hba(Resources &resource) : _resource(resource)
 	{
+		reinit();
+	}
+
+	void reinit()
+	{
 		with_mmio([&](Hba_mmio &mmio) {
 
 			log("version: "
@@ -287,6 +292,27 @@ struct Ahci::Resources
 		:
 			_platform(env), _irq_cap(irq_cap)
 		{
+			reinit();
+		}
+
+		void release_device()
+		{
+			if (_device.constructed())
+				log("release AHCI device for suspend");
+
+			_mmio  .destruct();
+			_irq   .destruct();
+			_device.destruct();
+		}
+
+		void acquire_device()
+		{
+			_device.construct(_platform);
+			_irq   .construct(*_device);
+			_mmio  .construct(*_device, _mmio_index(_platform));
+
+			_hba.reinit();
+
 			reinit();
 		}
 
@@ -679,6 +705,7 @@ struct Ahci::Protocol : Interface
 	virtual Block::Request       completed(Port_mmio &) = 0;
 	virtual void                 handle_irq(Port &, Port_mmio &) = 0;
 	virtual void                 writeable(bool rw) = 0;
+	virtual bool                 pending_requests() const = 0;
 };
 
 
@@ -838,6 +865,8 @@ struct Ahci::Port : private Port_base
 	Region_map  &rm;
 	unsigned     cmd_slots = hba.command_slots();
 
+	bool         stop_processing { };
+
 	Platform::Dma_buffer device_dma { plat, 0x1000, CACHED };
 	Platform::Dma_buffer cmd_dma    { plat,
 		align_addr(cmd_slots * Command_table::size(), 12), CACHED };
@@ -868,6 +897,11 @@ struct Ahci::Port : private Port_base
 	:
 		Port_base(index, plat, hba, delayer),
 		protocol(protocol), rm(rm)
+	{
+		reinit();
+	}
+
+	void reinit()
 	{
 		_with_port_mmio([&](Port_mmio &mmio) {
 			reset(mmio);
@@ -1190,7 +1224,10 @@ struct Ahci::Port : private Port_base
 			request.success = true;
 			fn(request);
 
-		}, [&](){ error("for_one_completed_request failed"); });
+		}, [&](){
+			if (protocol.pending_requests())
+				error("for_one_completed_request failed with pending requests");
+		});
 	}
 
 	void writeable(bool rw) { protocol.writeable(rw); }
