@@ -4,6 +4,35 @@
                                ===========
 
 
+Road Map for 2024 | 2024-01-18
+##############################
+
+| After intensively concentrating on deeply technical topics below the surface
+| in 2023, we are going to reap user-visible rewards in 2024 by focussing on
+| Sculpt OS usability.
+
+Thanks to the input gathered from our annual road-map discussion on Genode's
+[https://genode.org/community/mailing-lists - mailing list], we have updated
+the project [https://genode.org/about/road-map - road map] for 2024.
+
+Without hesitation, our developer community quickly rallied behind the topic
+"Sculpt OS usability", desiring to boost the user experience with respect to
+multi-monitor usage, convenient interactive UIs for common tasks,
+profound support for touchpads and touchscreens, tearing-free graphics,
+low-latency audio, casual on-target debugging, and suspend/resume.
+
+The focus on usability notwithstanding, we will steadily continue with the
+gardening of Genode's driver landscape, fostering the consistent use of drivers
+ported from up-to-date Linux kernels, clear-cut ACPI support, and making
+drivers pluggable.
+In 2024, we will also promote Genode's custom (base-hw) microkernel to become
+the default kernel for Sculpt OS, which is the culmination of a multi-year
+effort.
+
+Please find our reflection of the past year and the complete plan for 2024
+presented on Genode's official [https:/about/road-map - road-map page].
+
+
 Genode OS Framework release 23.11 | 2023-11-30
 ##############################################
 
