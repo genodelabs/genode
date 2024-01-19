@@ -450,7 +450,7 @@ append config {
 
 install_config $config
 
-set boot_modules [build_artifacts]
+lappend boot_modules {*}[build_artifacts]
 
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules $overlay_image
 

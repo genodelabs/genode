@@ -113,10 +113,7 @@ set build_components {
 foreach pkg {bash coreutils} {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
 
-set boot_modules [build_artifacts]
-
-lappend boot_modules { bash.tar coreutils.tar test.bin template.bat }
-lappend boot_modules $vbox_file
+lappend boot_modules bash.tar coreutils.tar test.bin template.bat $vbox_file
 
 set config_of_app {
 
