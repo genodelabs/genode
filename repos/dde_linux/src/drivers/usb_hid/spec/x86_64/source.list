@@ -52,6 +52,7 @@ lib/find_bit.c
 lib/hexdump.c
 lib/idr.c
 lib/kasprintf.c
+lib/kfifo.c
 lib/klist.c
 lib/kobject.c
 lib/kstrtox.c

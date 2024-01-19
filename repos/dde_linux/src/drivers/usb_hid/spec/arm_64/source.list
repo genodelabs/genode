@@ -58,6 +58,7 @@ lib/hexdump.c
 lib/hweight.c
 lib/idr.c
 lib/kasprintf.c
+lib/kfifo.c
 lib/klist.c
 lib/kobject.c
 lib/kstrtox.c
