@@ -307,8 +307,8 @@ trim_lines
 compare_output_to {
 [init -> log_terminal] [init -> event_dump] Input event #0	PRESS KEY_X 65534	key count: 1
 [init -> log_terminal] [init -> event_dump] Input event #1	RELEASE KEY_X	key count: 0
-[init -> log_terminal] [init -> event_dump] Input event #2	PRESS BTN_LEFT 65534	key count: 1
-[init -> log_terminal] [init -> event_dump] Input event #3	REL_MOTION -1+1	key count: 1
+[init -> log_terminal] [init -> event_dump] Input event #2	REL_MOTION -1+1	key count: 0
+[init -> log_terminal] [init -> event_dump] Input event #3	PRESS BTN_LEFT 65534	key count: 1
 [init -> log_terminal] [init -> event_dump] Input event #4	RELEASE BTN_LEFT	key count: 0
 [init -> log_terminal] [init -> usb_hid_drv] usb usb-X-X: USB disconnect, device number X
 [init -> log_terminal] [init -> usb_hid_drv] Disconnected device: inputX
@@ -318,11 +318,11 @@ compare_output_to {
 [init -> log_terminal] [init -> usb_hid_drv] Connected device: inputX (HID 03eb:204d)
 [init -> log_terminal] [init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Keyboard [HID 03eb:204d]
 [init -> log_terminal] [init -> usb_hid_drv] input: HID 03eb:204d
-[init -> log_terminal] [init -> usb_hid_drv] Connected device: inputX (HID 03eb:204d)
+[init -> log_terminal] [init -> usb_hid_drv] Connected device: inputX (HID 03eb:204d) MOUSE
 [init -> log_terminal] [init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Mouse [HID 03eb:204d]
 [init -> log_terminal] [init -> event_dump] Input event #5	PRESS KEY_X 65534	key count: 1
 [init -> log_terminal] [init -> event_dump] Input event #6	RELEASE KEY_X	key count: 0
-[init -> log_terminal] [init -> event_dump] Input event #7	PRESS BTN_LEFT 65534	key count: 1
-[init -> log_terminal] [init -> event_dump] Input event #8	REL_MOTION -1+1	key count: 1
+[init -> log_terminal] [init -> event_dump] Input event #7	REL_MOTION -1+1	key count: 0
+[init -> log_terminal] [init -> event_dump] Input event #8	PRESS BTN_LEFT 65534	key count: 1
 [init -> log_terminal] [init -> event_dump] Input event #9	RELEASE BTN_LEFT	key count: 0
 }
