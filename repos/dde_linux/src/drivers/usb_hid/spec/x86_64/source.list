@@ -1,10 +1,10 @@
 arch/x86/lib/hweight.S
 drivers/base/bus.c
-drivers/base/core.c
 drivers/base/class.c
+drivers/base/core.c
+drivers/base/dd.c
 drivers/base/devres.c
 drivers/base/driver.c
-drivers/base/dd.c
 drivers/base/property.c
 drivers/hid/hid-apple.c
 drivers/hid/hid-cherry.c
@@ -46,7 +46,6 @@ kernel/time/timekeeping.c
 kernel/time/timer.c
 kernel/time/timer_list.c
 kernel/workqueue.c
-mm/util.c
 lib/bitmap.c
 lib/ctype.c
 lib/find_bit.c
@@ -57,8 +56,9 @@ lib/klist.c
 lib/kobject.c
 lib/kstrtox.c
 lib/radix-tree.c
-lib/xarray.c
 lib/siphash.c
 lib/string.c
 lib/string_helpers.c
 lib/vsprintf.c
+lib/xarray.c
+mm/util.c

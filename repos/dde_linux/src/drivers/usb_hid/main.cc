@@ -18,6 +18,7 @@
 
 #include <lx_emul/init.h>
 #include <lx_emul/task.h>
+#include <lx_emul/input_leds.h>
 #include <lx_kit/env.h>
 
 #include <genode_c_api/event.h>
@@ -127,9 +128,9 @@ struct Leds
 		while (true) {
 			led.handle_config();
 
-			lx_led_state_update(led.capslock.enabled(),
-			                    led.numlock.enabled(),
-			                    led.scrlock.enabled());
+			lx_emul_input_leds_update(led.capslock.enabled(),
+			                          led.numlock.enabled(),
+			                          led.scrlock.enabled());
 
 			led.led_task_handler.block_and_schedule();
 		}

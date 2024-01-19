@@ -4,11 +4,11 @@ arch/arm64/lib/strcmp.S
 arch/arm64/lib/strlen.S
 arch/arm64/lib/strncmp.S
 drivers/base/bus.c
-drivers/base/core.c
 drivers/base/class.c
+drivers/base/core.c
+drivers/base/dd.c
 drivers/base/devres.c
 drivers/base/driver.c
-drivers/base/dd.c
 drivers/base/property.c
 drivers/hid/hid-apple.c
 drivers/hid/hid-cherry.c
@@ -39,8 +39,8 @@ kernel/time/clocksource.c
 kernel/time/hrtimer.c
 kernel/time/jiffies.c
 kernel/time/ntp.c
-kernel/time/tick-broadcast.c
 kernel/time/tick-broadcast-hrtimer.c
+kernel/time/tick-broadcast.c
 kernel/time/tick-common.c
 kernel/time/tick-oneshot.c
 kernel/time/tick-sched.c
@@ -51,7 +51,6 @@ kernel/time/timekeeping.c
 kernel/time/timer.c
 kernel/time/timer_list.c
 kernel/workqueue.c
-mm/util.c
 lib/bitmap.c
 lib/ctype.c
 lib/find_bit.c
@@ -63,8 +62,9 @@ lib/klist.c
 lib/kobject.c
 lib/kstrtox.c
 lib/radix-tree.c
-lib/xarray.c
 lib/siphash.c
 lib/string.c
 lib/string_helpers.c
 lib/vsprintf.c
+lib/xarray.c
+mm/util.c

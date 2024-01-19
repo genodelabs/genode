@@ -311,6 +311,9 @@ static void evdev_event_generator(struct genode_event_generator_ctx *ctx,
 
 		bool processed = false;
 
+		/* filter injected EV_LED updates */
+		if (v->type == EV_LED) continue;
+
 		/* filter input_repeat_key() */
 		if ((v->type == EV_KEY) && (v->value > 1)) continue;
 

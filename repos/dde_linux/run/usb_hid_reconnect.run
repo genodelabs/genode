@@ -68,7 +68,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="usb_hid_drv" caps="140">
+	<start name="usb_hid_drv" caps="180">
 		<resource name="RAM" quantum="11M"/>
 		<config use_report="yes" capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
 		<route>

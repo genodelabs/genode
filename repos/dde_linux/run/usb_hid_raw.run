@@ -113,7 +113,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="usb_hid_drv" caps="140">
+	<start name="usb_hid_drv" caps="180">
 		<resource name="RAM" quantum="11M"/>
 		<config use_report="yes" capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
 		<route>
@@ -132,23 +132,41 @@ install_config {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="ROM"/> </provides>
 		<config verbose="no">
-			<rom name="capslock">
-				<inline> <capslock enabled="no"/> </inline>
-				<sleep milliseconds="250" />
-				<inline> <capslock enabled="yes"/> </inline>
-				<sleep milliseconds="250" />
-			</rom>
 			<rom name="numlock">
-				<inline> <numlock enabled="no"/> </inline>
+				<inline> <numlock enabled="no"/>  </inline>
+				<sleep milliseconds="500" />
+				<inline> <numlock enabled="yes"/> </inline>
+				<sleep milliseconds="500" />
+				<inline> <numlock enabled="no"/>  </inline>
+				<sleep milliseconds="500" />
+				<inline> <numlock enabled="no"/>  </inline>
 				<sleep milliseconds="500" />
 				<inline> <numlock enabled="yes"/> </inline>
 				<sleep milliseconds="500" />
 			</rom>
+			<rom name="capslock">
+				<inline> <capslock enabled="no"/>  </inline>
+				<sleep milliseconds="500"/>
+				<inline> <capslock enabled="no"/>  </inline>
+				<sleep milliseconds="500" />
+				<inline> <capslock enabled="yes"/> </inline>
+				<sleep milliseconds="500" />
+				<inline> <capslock enabled="no"/>  </inline>
+				<sleep milliseconds="500" />
+				<inline> <capslock enabled="yes"/> </inline>
+				<sleep milliseconds="500" />
+			</rom>
 			<rom name="scrlock">
-				<inline> <scrlock enabled="no"/> </inline>
-				<sleep milliseconds="1000" />
+				<inline> <scrlock enabled="no"/>  </inline>
+				<sleep milliseconds="500"/>
+				<inline> <scrlock enabled="no"/>  </inline>
+				<sleep milliseconds="500" />
+				<inline> <scrlock enabled="no"/>  </inline>
+				<sleep milliseconds="500" />
 				<inline> <scrlock enabled="yes"/> </inline>
-				<sleep milliseconds="1000" />
+				<sleep milliseconds="500" />
+				<inline> <scrlock enabled="yes"/> </inline>
+				<sleep milliseconds="500" />
 			</rom>
 		</config>
 		<route>

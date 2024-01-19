@@ -5,11 +5,11 @@ INC_DIR = $(PRG_DIR)/../.. $(REP_DIR)/src/lib/usb_client
 
 SRC_C += dummies.c \
          generated_dummies.c \
-         led.c \
          lx_emul.c \
          lx_user.c
 
 SRC_C += lx_emul/shadow/drivers/input/evdev.c \
+         lx_emul/shadow/drivers/input/input-leds.c \
          lx_emul/virt/shadow/drivers/usb/core/message.c \
          lx_emul/virt/shadow/drivers/usb/core/urb.c \
          lx_emul/virt/usb_client.c
