@@ -19,6 +19,9 @@ DEFINE_STATIC_KEY_FALSE(bpf_stats_enabled_key);
 DEFINE_STATIC_KEY_FALSE(bpf_master_redirect_enabled_key);
 DEFINE_STATIC_KEY_FALSE(memalloc_socks_key);
 
+DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);
+EXPORT_PER_CPU_SYMBOL(cpu_sibling_map);
+
 unsigned long __FIXADDR_TOP = 0xfffff000;
 
 bool arm64_use_ng_mappings = false;

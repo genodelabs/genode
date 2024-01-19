@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-08-18
+ * \date   2024-01-18
  */
 
 #include <lx_emul.h>
@@ -54,23 +54,7 @@ int __ipv6_addr_type(const struct in6_addr * addr)
 
 #include <linux/irqdomain.h>
 
-struct irq_domain * __irq_domain_add(struct fwnode_handle * fwnode,unsigned int size,irq_hw_number_t hwirq_max,int direct_max,const struct irq_domain_ops * ops,void * host_data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/irqdomain.h>
-
 struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number_t hwirq,unsigned int * irq)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/phy.h>
-
-int __mdiobus_register(struct mii_bus * bus,struct module * owner)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -502,14 +486,6 @@ unsigned long lpj_fine;
 
 #include <linux/phy.h>
 
-struct mii_bus * mdiobus_alloc_size(size_t size)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/phy.h>
-
 void mdiobus_free(struct mii_bus * bus)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -648,14 +624,6 @@ int of_property_read_string(const struct device_node * np,const char * propname,
 
 #include <linux/phy.h>
 
-void phy_attached_info(struct phy_device * phydev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/phy.h>
-
 struct phy_device * phy_connect(struct net_device * dev,const char * bus_id,void (* handler)(struct net_device *),phy_interface_t interface)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -705,14 +673,6 @@ int phy_ethtool_set_link_ksettings(struct net_device * ndev,const struct ethtool
 #include <linux/phy.h>
 
 void phy_print_status(struct phy_device * phydev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/phy.h>
-
-void phy_start(struct phy_device * phydev)
 {
 	lx_emul_trace_and_stop(__func__);
 }

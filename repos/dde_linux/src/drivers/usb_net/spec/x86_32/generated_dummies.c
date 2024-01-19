@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-08-18
+ * \date   2024-01-22
  */
 
 #include <lx_emul.h>
@@ -150,6 +150,14 @@ void bpf_warn_invalid_xdp_action(struct net_device * dev,struct bpf_prog * prog,
 #include <linux/bitrev.h>
 
 u8 const byte_rev_table[256] = {};
+
+
+#include <linux/arch_topology.h>
+
+const struct cpumask * cpu_clustergroup_mask(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/context_tracking_irq.h>
