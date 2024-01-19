@@ -1660,6 +1660,10 @@ class Nvme::Driver : Genode::Noncopyable
 
 		Genode::Attached_rom_dataspace &_config_rom;
 
+		Constructible<Attached_rom_dataspace> _system_rom { };
+		Signal_handler<Driver>  _system_rom_sigh {
+			_env.ep(), *this, &Driver::_system_update };
+
 		void _handle_config_update()
 		{
 			_config_rom.update();
@@ -1674,6 +1678,12 @@ class Nvme::Driver : Genode::Noncopyable
 			_verbose_regs     = config.attribute_value("verbose_regs",     _verbose_regs);
 
 			_hmb_size = config.attribute_value("max_hmb_size", Genode::Number_of_bytes(0));
+
+			if (config.attribute_value("system", false)) {
+				_system_rom.construct(_env, "system");
+				_system_rom->sigh(_system_rom_sigh);
+			} else
+				_system_rom.destruct();
 		}
 
 		Genode::Signal_handler<Driver> _config_sigh {
@@ -1685,16 +1695,16 @@ class Nvme::Driver : Genode::Noncopyable
 
 		Genode::Reporter _namespace_reporter { _env, "controller" };
 
-		void _report_namespaces()
+		void _report_namespaces(Nvme::Controller &ctrlr)
 		{
 			try {
 				Genode::Reporter::Xml_generator xml(_namespace_reporter, [&]() {
-					Nvme::Controller::Info const &info = _nvme_ctrlr.info();
+					Nvme::Controller::Info const &info = ctrlr.info();
 
 					xml.attribute("serial", info.sn);
 					xml.attribute("model",  info.mn);
 
-					Nvme::Controller::Nsinfo ns = _nvme_ctrlr.nsinfo(Nvme::IO_NSID);
+					Nvme::Controller::Nsinfo ns = ctrlr.nsinfo(Nvme::IO_NSID);
 
 					xml.node("namespace", [&]() {
 						xml.attribute("id",          (uint16_t)Nvme::IO_NSID);
@@ -1752,9 +1762,9 @@ class Nvme::Driver : Genode::Noncopyable
 		Request                          _requests[Nvme::MAX_IO_ENTRIES] { };
 
 		template <typename FUNC>
-		bool _for_any_request(FUNC const &func) const
+		bool _for_any_request(FUNC const &func, auto &ctrlr) const
 		{
-			for (uint16_t i = 0; i < _nvme_ctrlr.max_io_entries(); i++) {
+			for (uint16_t i = 0; i < ctrlr.max_io_entries(); i++) {
 				if (_command_id_allocator.used(i) && func(_requests[i])) {
 					return true;
 				}
@@ -1762,8 +1772,11 @@ class Nvme::Driver : Genode::Noncopyable
 			return false;
 		}
 
+		uint64_t _submits_in_flight { };
+
 		bool _submits_pending   { false };
 		bool _completed_pending { false };
+		bool _stop_processing   { false };
 
 		/*********************
 		 ** MMIO Controller **
@@ -1778,8 +1791,27 @@ class Nvme::Driver : Genode::Noncopyable
 			void usleep(uint64_t us) override { Timer::Connection::usleep(us); }
 		} _delayer { _env };
 
-		Signal_context_capability _irq_sigh;
-		Nvme::Controller _nvme_ctrlr { _env, _platform, _delayer, _irq_sigh };
+		Signal_context_capability const _irq_sigh;
+		Signal_context_capability const _restart_sigh;
+
+		Reconstructible<Nvme::Controller> _nvme_ctrlr { _env, _platform,
+		                                                _delayer, _irq_sigh };
+
+		void with_nvme(auto const &fn, auto const &fn_error)
+		{
+			if (_nvme_ctrlr.constructed())
+				fn(*_nvme_ctrlr);
+			else
+				fn_error();
+		}
+
+		void with_nvme(auto const &fn, auto const &fn_error) const
+		{
+			if (_nvme_ctrlr.constructed())
+				fn(*_nvme_ctrlr);
+			else
+				fn_error();
+		}
 
 		/*********
 		 ** DMA **
@@ -1806,32 +1838,40 @@ class Nvme::Driver : Genode::Noncopyable
 		 */
 		Driver(Genode::Env                       &env,
 		       Genode::Attached_rom_dataspace    &config_rom,
-		       Genode::Signal_context_capability  request_sigh)
+		       Genode::Signal_context_capability  irq_sigh,
+		       Genode::Signal_context_capability  restart_sigh)
 		: _env(env),
-		  _config_rom(config_rom), _irq_sigh(request_sigh)
+		  _config_rom(config_rom),
+		  _irq_sigh(irq_sigh),
+		  _restart_sigh(restart_sigh)
 		{
 			_config_rom.sigh(_config_sigh);
 			_handle_config_update();
 
+			reinit(*_nvme_ctrlr);
+		}
+
+		void reinit(Nvme::Controller &ctrlr)
+		{
 			/*
 			 * Setup and identify NVMe PCI controller
 			 */
 
-			if (_verbose_regs) { _nvme_ctrlr.dump_cap(); }
+			if (_verbose_regs) { ctrlr.dump_cap(); }
 
-			_nvme_ctrlr.init();
-			_nvme_ctrlr.identify();
+			ctrlr.init();
+			ctrlr.identify();
 
 			if (_verbose_identify) {
-				_nvme_ctrlr.dump_identify();
-				_nvme_ctrlr.dump_nslist();
+				ctrlr.dump_identify();
+				ctrlr.dump_nslist();
 			}
 
 			/*
 			 * Setup HMB
 			 */
-			if (_nvme_ctrlr.info().hmpre)
-				_nvme_ctrlr.setup_hmb(_hmb_size);
+			if (ctrlr.info().hmpre)
+				ctrlr.setup_hmb(_hmb_size);
 
 			/*
 			 * Setup I/O
@@ -1846,14 +1886,14 @@ class Nvme::Driver : Genode::Noncopyable
 				           Hex(phys_addr + Nvme::PRP_DS_SIZE), "]");
 			}
 
-			_nvme_ctrlr.setup_io(Nvme::IO_NSID, Nvme::IO_NSID);
+			ctrlr.setup_io(Nvme::IO_NSID, Nvme::IO_NSID);
 
 			/*
 			 * Setup Block session
 			 */
 
 			/* set Block session properties */
-			Nvme::Controller::Nsinfo nsinfo = _nvme_ctrlr.nsinfo(Nvme::IO_NSID);
+			Nvme::Controller::Nsinfo nsinfo = ctrlr.nsinfo(Nvme::IO_NSID);
 			if (!nsinfo.valid()) {
 				error("could not query namespace information");
 				throw Nvme::Controller::Initialization_failed();
@@ -1864,7 +1904,7 @@ class Nvme::Driver : Genode::Noncopyable
 			          .align_log2  = Nvme::MPS_LOG2,
 			          .writeable   = false };
 
-			Nvme::Controller::Info const &info = _nvme_ctrlr.info();
+			Nvme::Controller::Info const &info = ctrlr.info();
 
 			log("NVMe:",  info.version.string(),   " "
 			    "serial:'", info.sn.string(), "'", " "
@@ -1874,14 +1914,14 @@ class Nvme::Driver : Genode::Noncopyable
 			log("Block", " "
 			    "size: ",  _info.block_size, " "
 			    "count: ", _info.block_count, " "
-			    "I/O entries: ", _nvme_ctrlr.max_io_entries());
+			    "I/O entries: ", ctrlr.max_io_entries());
 
 			/* generate Report if requested */
 			try {
 				Genode::Xml_node report = _config_rom.xml().sub_node("report");
 				if (report.attribute_value("namespaces", false)) {
 					_namespace_reporter.enabled(true);
-					_report_namespaces();
+					_report_namespaces(ctrlr);
 				}
 			} catch (...) { }
 		}
@@ -1892,19 +1932,58 @@ class Nvme::Driver : Genode::Noncopyable
 
 		void writeable(bool writeable) { _info.writeable = writeable; }
 
+		void device_release_if_stopped_and_idle()
+		{
+			if (_stop_processing && _submits_in_flight == 0) {
+				_nvme_ctrlr.destruct();
+			}
+		}
+
+		void _system_update()
+		{
+			if (!_system_rom.constructed())
+				return;
+
+			_system_rom->update();
+
+			if (!_system_rom->valid())
+				return;
+
+			auto state = _system_rom->xml().attribute_value("state",
+			                                                String<32>(""));
+
+			if (state == "driver_stop") {
+				_stop_processing = true;
+				device_release_if_stopped_and_idle();
+				return;
+			}
+
+			if (state == "driver_reinit") {
+				_stop_processing = false;
+
+				_nvme_ctrlr.construct(_env, _platform, _delayer, _irq_sigh);
+				reinit(*_nvme_ctrlr);
+
+				/* restart block session handling */
+				Signal_transmitter(_restart_sigh).submit();
+
+				return;
+			}
+		}
 
 		/******************************
 		 ** Block request stream API **
 		 ******************************/
 
-		Response _check_acceptance(Block::Request request) const
+		Response _check_acceptance(Block::Request          request,
+		                           Nvme::Controller const &ctrlr) const
 		{
 			/*
 			 * All memory is dimensioned in a way that it will allow for
 			 * MAX_IO_ENTRIES requests, so it is safe to only check the
 			 * I/O queue.
 			 */
-			if (_nvme_ctrlr.io_queue_full(Nvme::IO_NSID)) {
+			if (ctrlr.io_queue_full(Nvme::IO_NSID)) {
 				return Response::RETRY;
 			}
 
@@ -1929,8 +2008,8 @@ class Nvme::Driver : Genode::Noncopyable
 
 			case Block::Operation::Type::READ:
 				/* limit request to what we can handle, needed for overlap check */
-				if (request.operation.count > _nvme_ctrlr.max_count(Nvme::IO_NSID)) {
-					request.operation.count = _nvme_ctrlr.max_count(Nvme::IO_NSID);
+				if (request.operation.count > ctrlr.max_count(Nvme::IO_NSID)) {
+					request.operation.count = ctrlr.max_count(Nvme::IO_NSID);
 				}
 			}
 
@@ -1956,12 +2035,12 @@ class Nvme::Driver : Genode::Noncopyable
 				}
 				return overlap;
 			};
-			if (_for_any_request(overlap_check)) { return Response::RETRY; }
+			if (_for_any_request(overlap_check, ctrlr)) { return Response::RETRY; }
 
 			return Response::ACCEPTED;
 		}
 
-		void _submit(Block::Request request)
+		void _submit(Block::Request request, Nvme::Controller &ctrlr)
 		{
 			if (!_dma_buffer.constructed())
 				return;
@@ -1970,8 +2049,8 @@ class Nvme::Driver : Genode::Noncopyable
 				request.operation.type == Block::Operation::Type::WRITE;
 
 			/* limit request to what we can handle */
-			if (request.operation.count > _nvme_ctrlr.max_count(Nvme::IO_NSID)) {
-				request.operation.count = _nvme_ctrlr.max_count(Nvme::IO_NSID);
+			if (request.operation.count > ctrlr.max_count(Nvme::IO_NSID)) {
+				request.operation.count = ctrlr.max_count(Nvme::IO_NSID);
 			}
 
 			uint32_t        const count = (uint32_t)request.operation.count;
@@ -1997,7 +2076,7 @@ class Nvme::Driver : Genode::Noncopyable
 			r = Request { .block_request = request,
 			              .id            = id };
 
-			Nvme::Sqe_io b(_nvme_ctrlr.io_command(Nvme::IO_NSID, cid));
+			Nvme::Sqe_io b(ctrlr.io_command(Nvme::IO_NSID, cid));
 			Nvme::Opcode const op = write ? Nvme::Opcode::WRITE : Nvme::Opcode::READ;
 			b.write<Nvme::Sqe_io::Cdw0::Opc>(op);
 			b.write<Nvme::Sqe_io::Prp1>(request_pa);
@@ -2040,7 +2119,8 @@ class Nvme::Driver : Genode::Noncopyable
 			b.write<Nvme::Sqe_io::Cdw12::Nlb>(count - 1); /* 0-base value */
 		}
 
-		void _submit_sync(Block::Request const request)
+		void _submit_sync(Block::Request const &request,
+		                  Nvme::Controller     &ctrlr)
 		{
 			uint16_t const cid = _command_id_allocator.alloc();
 			uint32_t const id  = cid | (Nvme::IO_NSID<<16);
@@ -2048,11 +2128,12 @@ class Nvme::Driver : Genode::Noncopyable
 			r = Request { .block_request = request,
 			              .id            = id };
 
-			Nvme::Sqe_io b(_nvme_ctrlr.io_command(Nvme::IO_NSID, cid));
+			Nvme::Sqe_io b(ctrlr.io_command(Nvme::IO_NSID, cid));
 			b.write<Nvme::Sqe_io::Cdw0::Opc>(Nvme::Opcode::FLUSH);
 		}
 
-		void _submit_trim(Block::Request const request)
+		void _submit_trim(Block::Request const &request,
+		                  Nvme::Controller     &ctrlr)
 		{
 			uint16_t const cid = _command_id_allocator.alloc();
 			uint32_t const id  = cid | (Nvme::IO_NSID<<16);
@@ -2063,7 +2144,7 @@ class Nvme::Driver : Genode::Noncopyable
 			uint32_t        const count = (uint32_t)request.operation.count;
 			Block::sector_t const lba   = request.operation.block_number;
 
-			Nvme::Sqe_io b(_nvme_ctrlr.io_command(Nvme::IO_NSID, cid));
+			Nvme::Sqe_io b(ctrlr.io_command(Nvme::IO_NSID, cid));
 			b.write<Nvme::Sqe_io::Cdw0::Opc>(Nvme::Opcode::WRITE_ZEROS);
 			b.write<Nvme::Sqe_io::Slba_lower>(uint32_t(lba));
 			b.write<Nvme::Sqe_io::Slba_upper>(uint32_t(lba >> 32u));
@@ -2077,11 +2158,16 @@ class Nvme::Driver : Genode::Noncopyable
 			b.write<Nvme::Sqe_io::Cdw12::Nlb>(count - 1); /* 0-base value */
 		}
 
-		void _get_completed_request(Block::Request &out, uint16_t &out_cid)
+		void _get_completed_request(Nvme::Controller &ctrlr,
+		                            Block::Request   &out,
+		                            uint16_t         &out_cid)
 		{
-			_nvme_ctrlr.handle_io_completion(Nvme::IO_NSID, [&] (Nvme::Cqe const &b) {
+			ctrlr.handle_io_completion(Nvme::IO_NSID, [&] (Nvme::Cqe const &b) {
 
 				if (_verbose_io) { Nvme::Cqe::dump(b); }
+
+				if (_stop_processing)
+					error("_get_completed request and ", _submits_in_flight);
 
 				uint32_t const id  = Nvme::Cqe::request_id(b);
 				uint16_t const cid = Nvme::Cqe::command_id(b);
@@ -2112,56 +2198,89 @@ class Nvme::Driver : Genode::Noncopyable
 		 ** driver interface **
 		 **********************/
 
-		Response acceptable(Block::Request const request) const
+		Response acceptable(Block::Request const &request) const
 		{
-			return _check_acceptance(request);
+			Response result = Response::RETRY;
+
+			if (_stop_processing)
+				return result;
+
+			with_nvme([&](auto &ctrlr) {
+				result = _check_acceptance(request, ctrlr);
+			}, [&]() {
+				/* retry later */
+				result = Response::RETRY;
+			});
+
+			return result;
 		}
 
-		void submit(Block::Request const request)
+		void submit(Block::Request const &request)
 		{
-			switch (request.operation.type) {
-			case Block::Operation::Type::READ:
-			case Block::Operation::Type::WRITE:
-				_submit(request);
-				break;
-			case Block::Operation::Type::SYNC:
-				_submit_sync(request);
-				break;
-			case Block::Operation::Type::TRIM:
-				_submit_trim(request);
-				break;
-			default:
-				return;
-			}
+			with_nvme([&](auto &ctrlr) {
+				switch (request.operation.type) {
+				case Block::Operation::Type::READ:
+				case Block::Operation::Type::WRITE:
+					_submit(request, ctrlr);
+					break;
+				case Block::Operation::Type::SYNC:
+					_submit_sync(request, ctrlr);
+					break;
+				case Block::Operation::Type::TRIM:
+					_submit_trim(request, ctrlr);
+					break;
+				default:
+					return;
+				}
 
-			_submits_pending = true;
+				_submits_in_flight ++;
+				_submits_pending = true;
+			}, [&]() {
+				error("unexpected NVME controller state - submit");
+			});
 		}
 
 		void ack_irq()
 		{
-			_nvme_ctrlr.ack_irq();
+			with_nvme([&](auto &ctrlr) {
+				ctrlr.ack_irq();
+			}, [&]() {
+				error("unexpected NVME controller state - ack_irq");
+			});
 		}
 
 		bool execute()
 		{
 			if (!_submits_pending) { return false; }
 
-			_nvme_ctrlr.commit_io(Nvme::IO_NSID);
-			_submits_pending = false;
-			return true;
+			bool success = false;
+
+			with_nvme([&](auto &ctrlr) {
+				ctrlr.commit_io(Nvme::IO_NSID);
+				_submits_pending = false;
+				success = true;
+			}, [&]() {
+				error("unexpected NVME controller state - execute");
+			});
+
+			return success;
 		}
 
-		template <typename FN>
-		void with_any_completed_job(FN const &fn)
+		void with_any_completed_job(auto const &fn)
 		{
-			uint16_t cid { 0 };
+			uint16_t       cid     { 0 };
 			Block::Request request { };
 
-			_get_completed_request(request, cid);
+			with_nvme([&](auto &ctrlr) {
+				_get_completed_request(ctrlr, request, cid);
+			}, [&]() { /* if hw is off, no requests are in flight */ });
 
 			if (request.operation.valid()) {
 				fn(request);
 				_free_completed_request(cid);
+
+				if (_submits_in_flight)
+					_submits_in_flight --;
 			}
 		}
 
@@ -2169,8 +2288,12 @@ class Nvme::Driver : Genode::Noncopyable
 		{
 			if (!_completed_pending) { return; }
 
-			_nvme_ctrlr.ack_io_completions(Nvme::IO_NSID);
-			_completed_pending = false;
+			with_nvme([&](auto &ctrlr) {
+				ctrlr.ack_io_completions(Nvme::IO_NSID);
+				_completed_pending = false;
+			}, [&]() {
+				error("unexepected NVME controller state - ack_if");
+			});
 		}
 
 		Dataspace_capability dma_buffer_construct(size_t size)
@@ -2199,7 +2322,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 	Signal_handler<Main> _request_handler { _env.ep(), *this, &Main::_handle_requests };
 	Signal_handler<Main> _irq_handler     { _env.ep(), *this, &Main::_handle_irq };
 
-	Nvme::Driver _driver { _env, _config_rom, _irq_handler };
+	Nvme::Driver _driver { _env, _config_rom, _irq_handler, _request_handler };
 
 	void _handle_irq()
 	{
@@ -2250,8 +2373,10 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 				});
 			});
 
-			/* defered acknowledge on the controller */
+			/* deferred acknowledge on the controller */
 			_driver.acknowledge_if_completed();
+
+			_driver.device_release_if_stopped_and_idle();
 
 			if (!progress) { break; }
 		}
