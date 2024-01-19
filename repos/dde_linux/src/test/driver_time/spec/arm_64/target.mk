@@ -1,4 +1,4 @@
-REQUIRES := arm_64
+REQUIRES := arm_v8
 
 SRC_CC += timestamp.cc
 SRC_C  += lx_emul.c

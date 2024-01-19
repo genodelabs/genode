@@ -15,6 +15,9 @@
 #include <lx_emul.h>
 
 
+DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);
+EXPORT_PER_CPU_SYMBOL(cpu_sibling_map);
+
 extern int __init buses_init(void);
 int __init buses_init(void)
 {
