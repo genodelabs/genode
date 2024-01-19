@@ -1,5 +1,5 @@
-TARGET   := arm_64_virt_linux
-REQUIRES := arm_64
+TARGET   := arm_virt_linux
+REQUIRES := arm_v7
 
 CUSTOM_TARGET_DEPS := kernel_build.phony
 
@@ -8,7 +8,7 @@ PWD    := $(shell pwd)
 
 # options for Linux kernel build to not depend on current time, user and host
 LX_MK_REPRODUCIBLE = KBUILD_BUILD_TIMESTAMP=no_timestamp KBUILD_BUILD_USER=genode KBUILD_BUILD_HOST=genode
-LX_MK_ARGS = ARCH=arm64 CROSS_COMPILE=$(CROSS_DEV_PREFIX) CC=$(CC) $(LX_MK_REPRODUCIBLE)
+LX_MK_ARGS = ARCH=arm CROSS_COMPILE=$(CROSS_DEV_PREFIX) CC=$(CC) $(LX_MK_REPRODUCIBLE)
 
 #
 # Linux kernel configuration
@@ -18,6 +18,7 @@ LX_MK_ARGS = ARCH=arm64 CROSS_COMPILE=$(CROSS_DEV_PREFIX) CC=$(CC) $(LX_MK_REPRO
 #
 
 # define 'LX_ENABLE' and 'LX_DISABLE'
+include $(REP_DIR)/src/virt_linux/arm_v7/target.inc
 include $(REP_DIR)/src/virt_linux/target.inc
 
 # filter for make output of kernel build system

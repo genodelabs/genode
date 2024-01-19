@@ -1,5 +1,5 @@
 TARGET   := arm_virt_linux
-REQUIRES := arm
+REQUIRES := arm_v6
 
 CUSTOM_TARGET_DEPS := kernel_build.phony
 
@@ -18,6 +18,7 @@ LX_MK_ARGS = ARCH=arm CROSS_COMPILE=$(CROSS_DEV_PREFIX) CC=$(CC) $(LX_MK_REPRODU
 #
 
 # define 'LX_ENABLE' and 'LX_DISABLE'
+include $(REP_DIR)/src/virt_linux/arm_v6/target.inc
 include $(REP_DIR)/src/virt_linux/target.inc
 
 # filter for make output of kernel build system

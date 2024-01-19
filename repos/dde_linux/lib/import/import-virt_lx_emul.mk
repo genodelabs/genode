@@ -17,11 +17,14 @@ endif
 ifeq ($(filter-out $(SPECS),x86_64),)
 	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/x86_64
 endif
-ifeq ($(filter-out $(SPECS),arm),)
-	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm
+ifeq ($(filter-out $(SPECS),arm_v6),)
+	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm_v6
 endif
-ifeq ($(filter-out $(SPECS),arm_64),)
-	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm_64
+ifeq ($(filter-out $(SPECS),arm_v7),)
+	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm_v7
+endif
+ifeq ($(filter-out $(SPECS),arm_v8),)
+	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm_v8
 endif
 
 -include $(call select_from_repositories,lib/import/import-lx_emul_common.inc)
@@ -41,9 +44,12 @@ ifeq ($(filter-out $(SPECS),x86),)
 	#
 	CC_DEF += -DARCH_DMA_MINALIGN=16 -DARCH_SLAB_MINALIGN=1
 endif
-ifeq ($(filter-out $(SPECS),arm_64),)
-	SRC_C += lx_emul/virt/spec/arm_64/dummies_arch.c
-endif
-ifeq ($(filter-out $(SPECS),arm),)
+ifeq ($(filter-out $(SPECS),arm_v6),)
 	SRC_C += lx_emul/virt/spec/arm/dummies_arch.c
+endif
+ifeq ($(filter-out $(SPECS),arm_v7),)
+	SRC_C += lx_emul/virt/spec/arm/dummies_arch.c
+endif
+ifeq ($(filter-out $(SPECS),arm_v8),)
+	SRC_C += lx_emul/virt/spec/arm_v8/dummies_arch.c
 endif
