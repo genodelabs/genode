@@ -92,6 +92,9 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 	int ret = 0;
 	unsigned timeout_jiffies = msecs_to_jiffies(10000u);
 
+	if (!urb || !urb->complete)
+		return -EINVAL;
+
 	if (!urb->dev->bus)
 		return -ENODEV;
 
