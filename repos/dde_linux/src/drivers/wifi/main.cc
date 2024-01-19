@@ -170,6 +170,9 @@ struct Main
 
 	Main(Genode::Env &env) : env(env)
 	{
+		/* prepare Lx_kit::Env */
+		wifi_init(env, _wpa_startup_blockade);
+
 		_frontend.construct(env, _wifi_msg_buffer);
 		_wifi_frontend = &*_frontend;
 
@@ -189,44 +192,6 @@ struct Main
 void *wifi_get_buffer(void)
 {
 	return &_wifi_msg_buffer;
-}
-
-
-/*
- * Since the wireless LAN driver incorporates the 'wpa_supplicant',
- * which itself is a libc-using application, we have to initialize
- * the libc environment. Normally this initialization is performed
- * by the libc (see 'src/lib/libc/component.cc') but as the various
- * initcalls of the Linux kernel are registered as ctor we have to
- * initialize the Lx_kit::Env before the static ctors are executed.
- * As those are called prior to calling 'Libc::Component::construct',
- * which is implemented by us, we pose as regular component and
- * call the libc 'Component::construct' explicitly after we have
- * finished our initialization (Lx_kit::Env include).
- */
-
-void Component::construct(Genode::Env &env)
-{
-	try {
-		Genode::Heap shared_obj_heap(env.ram(), env.rm());
-
-		Shared_object shared_obj(env, shared_obj_heap, "libc.lib.so",
-		                         Shared_object::BIND_LAZY,
-		                         Shared_object::DONT_KEEP);
-
-		typedef void (*Construct_fn)(Genode::Env &);
-
-		Construct_fn const construct_fn =
-			shared_obj.lookup<Construct_fn>("_ZN9Component9constructERN6Genode3EnvE");
-
-		/* prepare Lx_kit::Env */
-		wifi_init(env, _wpa_startup_blockade);
-
-		construct_fn(env);
-	} catch (... /* intentional catch-all */) {
-		Genode::error("could not perform multi-staged construction");
-		throw;
-	}
 }
 
 
