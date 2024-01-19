@@ -335,6 +335,81 @@ int of_get_mac_address(struct device_node * np,u8 * addr)
 #endif
 
 
+#include <linux/irqdomain.h>
+
+struct fwnode_handle * __irq_domain_alloc_fwnode(unsigned int type,int id,const char * name,phys_addr_t * pa)
+{
+	lx_emul_trace(__func__);
+	return (struct fwnode_handle *)0x1;
+}
+
+
+struct irq_domain * __irq_domain_add(struct fwnode_handle * fwnode,unsigned int size,irq_hw_number_t hwirq_max,int direct_max,const struct irq_domain_ops * ops,void * host_data)
+{
+	lx_emul_trace(__func__);
+	return (struct irq_domain *)0x1;
+}
+
+
+unsigned int irq_create_mapping_affinity(struct irq_domain * domain,irq_hw_number_t hwirq,const struct irq_affinity_desc * affinity)
+{
+	lx_emul_trace(__func__);
+	return 1;
+}
+
+
+#include <linux/irq.h>
+
+void irq_set_chip_and_handler_name(unsigned int irq,const struct irq_chip * chip,irq_flow_handler_t handle,const char * name)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/phy.h>
+
+struct mii_bus * mdiobus_alloc_size(size_t size)
+{
+	static struct mii_bus _m;
+	lx_emul_trace(__func__);
+	return &_m;
+}
+
+
+int __mdiobus_register(struct mii_bus * bus,struct module * owner)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+struct phy_device * phy_find_first(struct mii_bus * bus)
+{
+	static struct phy_device _p;
+	lx_emul_trace(__func__);
+	return &_p;
+}
+
+
+int phy_connect_direct(struct net_device * dev,struct phy_device * phydev,void (* handler)(struct net_device *),phy_interface_t interface)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void phy_attached_info(struct phy_device * phydev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void phy_start(struct phy_device * phydev)
+{
+	lx_emul_trace(__func__);
+}
+
+
 extern void software_node_notify(struct device * dev);
 void software_node_notify(struct device * dev)
 {

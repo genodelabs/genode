@@ -44,14 +44,6 @@ int __ipv6_addr_type(const struct in6_addr * addr)
 }
 
 
-#include <linux/phy.h>
-
-int __mdiobus_register(struct mii_bus * bus,struct module * owner)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/printk.h>
 
 int __printk_ratelimit(const char * func)
@@ -419,14 +411,6 @@ struct pernet_operations __net_initdata loopback_net_ops;
 
 #include <linux/phy.h>
 
-struct mii_bus * mdiobus_alloc_size(size_t size)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/phy.h>
-
 void mdiobus_free(struct mii_bus * bus)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -536,14 +520,6 @@ int param_set_copystring(const char * val,const struct kernel_param * kp)
 
 #include <linux/phy.h>
 
-void phy_attached_info(struct phy_device * phydev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/phy.h>
-
 struct phy_device * phy_connect(struct net_device * dev,const char * bus_id,void (* handler)(struct net_device *),phy_interface_t interface)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -593,14 +569,6 @@ int phy_ethtool_set_link_ksettings(struct net_device * ndev,const struct ethtool
 #include <linux/phy.h>
 
 void phy_print_status(struct phy_device * phydev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/phy.h>
-
-void phy_start(struct phy_device * phydev)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -799,8 +767,6 @@ int usb_clear_halt(struct usb_device * dev,int pipe)
 	lx_emul_trace_and_stop(__func__);
 }
 
-
-#include <linux/usb.h>
 
 extern void usb_devio_cleanup(void);
 void usb_devio_cleanup(void)

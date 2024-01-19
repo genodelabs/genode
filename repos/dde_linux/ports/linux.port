@@ -15,10 +15,12 @@ PATCH_FILES := i915_irq.patch \
                usb_host_devio_sg.patch \
                usb_net_pinephone.patch \
                usb_net_cdc_ncm.patch \
+               usb_net_smsc95xx.patch \
                workqueue_deadlock.patch
 PATCHES += $(addprefix patches/,$(PATCH_FILES))
 
 PATCH_OPT(patches/i915_irq.patch)           := -p1 -d${DIR(linux)}
 PATCH_OPT(patches/usb_net_pinephone.patch)  := -p1 -d${DIR(linux)}
 PATCH_OPT(patches/usb_net_cdc_ncm.patch)    := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/usb_net_smsc95xx.patch)   := -p1 -d${DIR(linux)}
 PATCH_OPT(patches/workqueue_deadlock.patch) := -p1 -d${DIR(linux)}

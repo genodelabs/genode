@@ -21,6 +21,7 @@ drivers/net/usb/ax88179_178a.c
 drivers/net/usb/cdc_ether.c
 drivers/net/usb/cdc_mbim.c
 drivers/net/usb/cdc_ncm.c
+drivers/net/usb/smsc95xx.c
 drivers/net/usb/usbnet.c
 drivers/usb/class/cdc-wdm.c
 drivers/usb/core/config.c
