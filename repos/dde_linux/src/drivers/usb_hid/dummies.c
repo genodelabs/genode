@@ -72,6 +72,9 @@ void update_vsyscall(struct timekeeper * tk)
 #endif
 
 
+DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);
+EXPORT_PER_CPU_SYMBOL(cpu_sibling_map);
+
 unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n);
 unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n)
 
