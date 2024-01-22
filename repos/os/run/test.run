@@ -222,11 +222,6 @@ proc content_rom_modules { } {
 
 foreach rom [content_rom_modules] {
 
-	# raw-archive content is installed directly into [run_dir]/genode
-	if {![rom_module_from_raw_archive $rom]} {
-		lappend boot_modules $rom
-	}
-
 	# handle vfs plugin shared-object targets
 	if {[regexp "^(.+).lib.so$" $rom dummy plugin]} {
 		lappend build_targets lib/$plugin
