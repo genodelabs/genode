@@ -219,14 +219,30 @@ struct Call
 	int err = 0;
 };
 
-static Call      _call;
-static Semaphore _block;
-
-
 namespace Lx {
 	class Socket;
 }
 
+
+struct Statics
+{
+	Call              call;
+	Semaphore         block;
+};
+
+
+static Statics & statics()
+{
+	static Statics instance { };
+
+	return instance;
+};
+
+
+static Call &_call()
+{
+	return statics().call;
+}
 
 
 /**
@@ -248,7 +264,7 @@ class Lx::Socket
 
 		struct socket *_call_socket()
 		{
-			struct socket *sock = static_cast<struct socket*>(_call.handle->socket);
+			struct socket *sock = static_cast<struct socket*>(_call().handle->socket);
 			if (!sock)
 				error("BUG: sock is zero");
 
@@ -258,71 +274,71 @@ class Lx::Socket
 		void _do_socket()
 		{
 			struct socket *s;
-			int res = lx_sock_create_kern(_call.socket.domain, _call.socket.type,
-			                              _call.socket.protocol, &s);
+			int res = lx_sock_create_kern(_call().socket.domain, _call().socket.type,
+			                              _call().socket.protocol, &s);
 			if (!res) {
-				_call.socket.result = s;
-				_call.err           = 0;
+				_call().socket.result = s;
+				_call().err           = 0;
 				return;
 			}
 
-			_call.socket.result = nullptr;
-			_call.err           = res;
+			_call().socket.result = nullptr;
+			_call().err           = res;
 		}
 
 		void _do_close()
 		{
 			struct socket *sock = _call_socket();
 
-			_call.err = lx_sock_release(sock);
+			_call().err = lx_sock_release(sock);
 		}
 
 		void _do_bind()
 		{
 			struct socket *sock = _call_socket();
 
-			_call.err = lx_sock_bind(sock,
-			                         const_cast<void*>(_call.bind.addr),
-			                         _call.bind.addrlen);
+			_call().err = lx_sock_bind(sock,
+			                         const_cast<void*>(_call().bind.addr),
+			                         _call().bind.addrlen);
 		}
 
 		void _do_getsockname()
 		{
 			struct socket *sock    = _call_socket();
-			int            addrlen = *_call.getsockname.addrlen;
+			int            addrlen = *_call().getsockname.addrlen;
 
-			_call.err = lx_sock_getname(sock, _call.getsockname.addr, 0);
+			_call().err = lx_sock_getname(sock, _call().getsockname.addr, 0);
 
-			*_call.getsockname.addrlen = addrlen;
+			*_call().getsockname.addrlen = addrlen;
 		}
 
 		void _do_recvmsg()
 		{
 			struct socket *sock = _call_socket();
 
-			_call.err = lx_sock_recvmsg(sock, &_call.recvmsg.msg,
-			                            _call.recvmsg.flags,
-			                            _call.handle->non_block);
+			_call().err = lx_sock_recvmsg(sock, &_call().recvmsg.msg,
+			                            _call().recvmsg.flags,
+			                            _call().handle->non_block);
 		}
 
 		void _do_sendmsg()
 		{
 			struct socket *sock = _call_socket();
 
-			_call.err = lx_sock_sendmsg(sock, &_call.sendmsg.msg,
-			                            _call.sendmsg.flags,
-			                            _call.handle->non_block);
+			_call().err = lx_sock_sendmsg(sock, &_call().sendmsg.msg,
+			                            _call().sendmsg.flags,
+			                            _call().handle->non_block);
 		}
 
 		void _do_setsockopt()
 		{
 			struct socket *sock = _call_socket();
 
-			_call.err = lx_sock_setsockopt(sock,
-				                           _call.setsockopt.level,
-				                           _call.setsockopt.optname,
-				                           _call.setsockopt.optval,
-				                           _call.setsockopt.optlen);
+			_call().err = lx_sock_setsockopt(sock,
+				                           _call().setsockopt.level,
+				                           _call().setsockopt.optname,
+				                           _call().setsockopt.optval,
+				                           _call().setsockopt.optlen);
 		}
 
 		void _do_get_mac_address()
@@ -331,18 +347,18 @@ class Lx::Socket
 			if (!addr)
 				return;
 
-			size_t const copy = 6 > _call.get_mac_address.addr_len
-			                  ? _call.get_mac_address.addr_len
+			size_t const copy = 6 > _call().get_mac_address.addr_len
+			                  ? _call().get_mac_address.addr_len
 			                  : 6;
 
-			memcpy(_call.get_mac_address.addr, addr, copy);
+			memcpy(_call().get_mac_address.addr, addr, copy);
 		}
 
 		void _do_poll_all()
 		{
-			Wifi::Poll_socket_fd *sockets = _call.poll_all.sockets;
-			unsigned num                  = _call.poll_all.num;
-			int timeout                   = _call.poll_all.timeout;
+			Wifi::Poll_socket_fd *sockets = _call().poll_all.sockets;
+			unsigned num                  = _call().poll_all.num;
+			int timeout                   = _call().poll_all.timeout;
 
 			int nready             = 0;
 			bool timeout_triggered = false;
@@ -404,12 +420,12 @@ class Lx::Socket
 				woken_up = true;
 			} while (1);
 
-			_call.err = nready;
+			_call().err = nready;
 		}
 
 		void _do_non_block()
 		{
-			_call.handle->non_block = _call.non_block.value;
+			_call().handle->non_block = _call().non_block.value;
 		}
 
 		void _handle()
@@ -420,7 +436,7 @@ class Lx::Socket
 
 		void _handle_blockade()
 		{
-			_block.up();
+			statics().block.up();
 		}
 
 	public:
@@ -435,7 +451,7 @@ class Lx::Socket
 
 		void exec_call()
 		{
-			switch (_call.opcode) {
+			switch (_call().opcode) {
 			case Call::BIND:            _do_bind();            break;
 			case Call::CLOSE:           _do_close();           break;
 			case Call::GETSOCKNAME:     _do_getsockname();     break;
@@ -457,9 +473,9 @@ class Lx::Socket
 			 * when actually did something useful, i.e., were called by
 			 * some socket operation and not by kicking the socket.
 			 */
-			Call::Opcode old = _call.opcode;
+			Call::Opcode old = _call().opcode;
 
-			_call.opcode = Call::NONE;
+			_call().opcode = Call::NONE;
 
 			if (old != Call::NONE) { _dispatcher_blockade.local_submit(); }
 		}
@@ -467,7 +483,7 @@ class Lx::Socket
 		void submit_and_block()
 		{
 			_sender.submit();
-			_block.down();
+			statics().block.down();
 		}
 };
 
@@ -532,17 +548,17 @@ using namespace Wifi;
 Wifi::Socket *Socket_call::socket(int domain, int type, int protocol)
 {
 	/* FIXME domain, type, protocol values */
-	_call.opcode          = Call::SOCKET;
-	_call.socket.domain   = domain;
-	_call.socket.type     = type & 0xff;
-	_call.socket.protocol = protocol;
+	_call().opcode          = Call::SOCKET;
+	_call().socket.domain   = domain;
+	_call().socket.type     = type & 0xff;
+	_call().socket.protocol = protocol;
 
 	_socket->submit_and_block();
 
-	if (_call.socket.result == 0)
+	if (_call().socket.result == 0)
 		return 0;
 
-	Wifi::Socket *s = new (Lx_kit::env().heap) Wifi::Socket(_call.socket.result);
+	Wifi::Socket *s = new (Lx_kit::env().heap) Wifi::Socket(_call().socket.result);
 
 	return s;
 }
@@ -550,30 +566,30 @@ Wifi::Socket *Socket_call::socket(int domain, int type, int protocol)
 
 int Socket_call::close(Socket *s)
 {
-	_call.opcode = Call::CLOSE;
-	_call.handle = s;
+	_call().opcode = Call::CLOSE;
+	_call().handle = s;
 
 	_socket->submit_and_block();
 
-	if (_call.err)
-		warning("closing socket failed: ", _call.err);
+	if (_call().err)
+		warning("closing socket failed: ", _call().err);
 
 	destroy(Lx_kit::env().heap, s);
-	return _call.err;
+	return _call().err;
 }
 
 
 int Socket_call::bind(Socket *s, Wifi::Sockaddr const *addr, unsigned addrlen)
 {
 	/* FIXME convert to/from Sockaddr */
-	_call.opcode       = Call::BIND;
-	_call.handle       = s;
-	_call.bind.addr    = (void const *)addr;
-	_call.bind.addrlen = addrlen;
+	_call().opcode       = Call::BIND;
+	_call().handle       = s;
+	_call().bind.addr    = (void const *)addr;
+	_call().bind.addrlen = addrlen;
 
 	_socket->submit_and_block();
 
-	return convert_errno_from_linux(_call.err);
+	return convert_errno_from_linux(_call().err);
 }
 
 
@@ -581,28 +597,28 @@ int Socket_call::getsockname(Socket *s, Wifi::Sockaddr *addr, unsigned *addrlen)
 {
 	/* FIXME convert to/from Sockaddr */
 	/* FIXME unsigned * -> int * */
-	_call.opcode              = Call::GETSOCKNAME;
-	_call.handle              = s;
-	_call.getsockname.addr    = (void *)addr;
-	_call.getsockname.addrlen = (int *)addrlen;
+	_call().opcode              = Call::GETSOCKNAME;
+	_call().handle              = s;
+	_call().getsockname.addr    = (void *)addr;
+	_call().getsockname.addrlen = (int *)addrlen;
 
 	_socket->submit_and_block();
 
-	return convert_errno_from_linux(_call.err);
+	return convert_errno_from_linux(_call().err);
 }
 
 
 int Socket_call::poll_all(Poll_socket_fd *s, unsigned num, int timeout)
 {
-	_call.opcode = Call::POLL_ALL;
-	_call.handle = 0;
-	_call.poll_all.sockets = s;
-	_call.poll_all.num     = num;
-	_call.poll_all.timeout = timeout;
+	_call().opcode = Call::POLL_ALL;
+	_call().handle = 0;
+	_call().poll_all.sockets = s;
+	_call().poll_all.num     = num;
+	_call().poll_all.timeout = timeout;
 
 	_socket->submit_and_block();
 
-	return convert_errno_from_linux(_call.err);
+	return convert_errno_from_linux(_call().err);
 }
 
 
@@ -621,49 +637,49 @@ static inline int msg_flags(Wifi::Flags in)
 
 Wifi::ssize_t Socket_call::recvmsg(Socket *s, Wifi::Msghdr *msg, Wifi::Flags flags)
 {
-	_call.opcode                       = Call::RECVMSG;
-	_call.handle                       = s;
-	_call.recvmsg.msg.msg_name         = msg->msg_name;
-	_call.recvmsg.msg.msg_namelen      = msg->msg_namelen;
-	_call.recvmsg.msg.msg_iovcount     = msg->msg_iovlen;
+	_call().opcode                       = Call::RECVMSG;
+	_call().handle                       = s;
+	_call().recvmsg.msg.msg_name         = msg->msg_name;
+	_call().recvmsg.msg.msg_namelen      = msg->msg_namelen;
+	_call().recvmsg.msg.msg_iovcount     = msg->msg_iovlen;
 
-	_call.recvmsg.msg.msg_control      = msg->msg_control;
-	_call.recvmsg.msg.msg_controllen   = msg->msg_controllen;
-	_call.recvmsg.flags                = msg_flags(flags);
+	_call().recvmsg.msg.msg_control      = msg->msg_control;
+	_call().recvmsg.msg.msg_controllen   = msg->msg_controllen;
+	_call().recvmsg.flags                = msg_flags(flags);
 
 	for (unsigned i = 0; i < msg->msg_iovlen; ++i) {
-		_call.recvmsg.msg.msg_iov[i].iov_base = msg->msg_iov[i].iov_base;
-		_call.recvmsg.msg.msg_iov[i].iov_len  = msg->msg_iov[i].iov_len;
+		_call().recvmsg.msg.msg_iov[i].iov_base = msg->msg_iov[i].iov_base;
+		_call().recvmsg.msg.msg_iov[i].iov_len  = msg->msg_iov[i].iov_len;
 	}
 
 	_socket->submit_and_block();
 
-	msg->msg_namelen = _call.recvmsg.msg.msg_namelen;
+	msg->msg_namelen = _call().recvmsg.msg.msg_namelen;
 
-	return convert_errno_from_linux(_call.err);
+	return convert_errno_from_linux(_call().err);
 }
 
 
 Wifi::ssize_t Socket_call::sendmsg(Socket *s, Wifi::Msghdr const *msg, Wifi::Flags flags)
 {
-	_call.opcode                       = Call::SENDMSG;
-	_call.handle                       = s;
-	_call.sendmsg.msg.msg_name         = msg->msg_name;
-	_call.sendmsg.msg.msg_namelen      = msg->msg_namelen;
-	_call.sendmsg.msg.msg_iovcount     = msg->msg_iovlen;
+	_call().opcode                       = Call::SENDMSG;
+	_call().handle                       = s;
+	_call().sendmsg.msg.msg_name         = msg->msg_name;
+	_call().sendmsg.msg.msg_namelen      = msg->msg_namelen;
+	_call().sendmsg.msg.msg_iovcount     = msg->msg_iovlen;
 
-	_call.sendmsg.msg.msg_control      = 0;
-	_call.sendmsg.msg.msg_controllen   = 0;
-	_call.sendmsg.flags                = msg_flags(flags);
+	_call().sendmsg.msg.msg_control      = 0;
+	_call().sendmsg.msg.msg_controllen   = 0;
+	_call().sendmsg.flags                = msg_flags(flags);
 
 	for (unsigned i = 0; i < msg->msg_iovlen; ++i) {
-		_call.sendmsg.msg.msg_iov[i].iov_base = msg->msg_iov[i].iov_base;
-		_call.sendmsg.msg.msg_iov[i].iov_len  = msg->msg_iov[i].iov_len;
+		_call().sendmsg.msg.msg_iov[i].iov_base = msg->msg_iov[i].iov_base;
+		_call().sendmsg.msg.msg_iov[i].iov_len  = msg->msg_iov[i].iov_len;
 	}
 
 	_socket->submit_and_block();
 
-	return convert_errno_from_linux(_call.err);
+	return convert_errno_from_linux(_call().err);
 }
 
 
@@ -709,24 +725,24 @@ int Socket_call::setsockopt(Socket *s,
                             const void *optval, unsigned optlen)
 {
 	/* FIXME optval values */
-	_call.opcode             = Call::SETSOCKOPT;
-	_call.handle             = s;
-	_call.setsockopt.level   = sockopt_level(level);
-	_call.setsockopt.optname = sockopt_name(level, optname);
-	_call.setsockopt.optval  = optval;
-	_call.setsockopt.optlen  = optlen;
+	_call().opcode             = Call::SETSOCKOPT;
+	_call().handle             = s;
+	_call().setsockopt.level   = sockopt_level(level);
+	_call().setsockopt.optname = sockopt_name(level, optname);
+	_call().setsockopt.optval  = optval;
+	_call().setsockopt.optlen  = optlen;
 
 	_socket->submit_and_block();
 
-	return convert_errno_from_linux(_call.err);
+	return convert_errno_from_linux(_call().err);
 }
 
 
 void Socket_call::non_block(Socket *s, bool value)
 {
-	_call.opcode          = Call::NON_BLOCK;
-	_call.handle          = s;
-	_call.non_block.value = value;
+	_call().opcode          = Call::NON_BLOCK;
+	_call().handle          = s;
+	_call().non_block.value = value;
 
 	_socket->submit_and_block();
 }
@@ -734,10 +750,10 @@ void Socket_call::non_block(Socket *s, bool value)
 
 void Socket_call::get_mac_address(unsigned char *addr)
 {
-	_call.opcode               = Call::GET_MAC_ADDRESS;
-	_call.handle               = 0;
-	_call.get_mac_address.addr     = addr;
-	_call.get_mac_address.addr_len = 6; // XXX enforce and set from caller
+	_call().opcode               = Call::GET_MAC_ADDRESS;
+	_call().handle               = 0;
+	_call().get_mac_address.addr     = addr;
+	_call().get_mac_address.addr_len = 6; // XXX enforce and set from caller
 
 	_socket->submit_and_block();
 }
