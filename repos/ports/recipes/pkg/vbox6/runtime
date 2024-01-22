@@ -68,7 +68,7 @@
 				<arg value="virtualbox"/>
 				<env key="VBOX_USER_HOME" value="/"/>
 				<env key="VBOX_LOG_DEST"          value="file=/dev/log"/>
-				<env key="VBOX_LOG"               value=""/>
+				<env key="VBOX_LOG"               value="+dbgf+gim"/>
 				<env key="VBOX_LOG_FLAGS"         value="thread"/>
 				<env key="VBOX_RELEASE_LOG_DEST"  value="file=/dev/log"/>
 				<env key="VBOX_RELEASE_LOG"       value=""/>

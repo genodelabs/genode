@@ -382,11 +382,6 @@ HRESULT Console::i_teleporterTrg(PUVM, IMachine *, Utf8Str *, bool, Progress *, 
 int dbgfR3BpInit(VM*) { return VINF_SUCCESS; }
 
 
-/* DBGFR3BugCheck.cpp */
-
-int dbgfR3BugCheckInit(VM*) { return VINF_SUCCESS; }
-
-
 /* dbgcfg.cpp */
 
 int RTDbgCfgCreate(PRTDBGCFG, const char *, bool)                          TRACE(VINF_SUCCESS)
