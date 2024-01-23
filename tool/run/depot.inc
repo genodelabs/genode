@@ -145,7 +145,14 @@ proc _collect_src_archive_from_depot { user name version } {
 	close $fh
 
 	foreach api $used_apis {
-		regexp [_depot_api_versioned_name_pattern] $api dummy api_name api_version
+		#
+		# The 'used_apis' file can contain fully specified entries or shortcuts.
+		# A fully specified entry has the form '<user>/api/<name>/version'.
+		# A shortcut has the form '<name>/version'. In this case, the '<user>' is
+		# implicitely equal to the depot user of the src archive.
+		#
+		if {![regexp [_depot_archive_versioned_path_pattern] $api dummy user dummy api_name api_version]} {
+			regexp [_depot_api_versioned_name_pattern] $api dummy api_name api_version }
 		if {![_depot_contains_archive $user api $api_name $api_version]} {
 			lappend _missing_depot_archives [list $user api "" $api_name $api_version]
 			continue
