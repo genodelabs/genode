@@ -70,16 +70,22 @@ SRC_C += lx_emul/shadow/arch/x86/kernel/irq.c
 SRC_C += lx_emul/shadow/arch/x86/kernel/setup_percpu.c
 endif
 
-ifeq ($(filter-out $(SPECS),arm),)
+ifeq ($(filter-out $(SPECS),arm_v6),)
 LX_ARCH   := arm
 GEN_ARCH  := arm
-SPEC_ARCH := arm
+SPEC_ARCH := arm_v6
 endif
 
-ifeq ($(filter-out $(SPECS),arm_64),)
+ifeq ($(filter-out $(SPECS),arm_v7),)
+LX_ARCH   := arm
+GEN_ARCH  := arm
+SPEC_ARCH := arm_v7
+endif
+
+ifeq ($(filter-out $(SPECS),arm_v8),)
 LX_ARCH   := arm64
 GEN_ARCH  := arm
-SPEC_ARCH := arm_64
+SPEC_ARCH := arm_v8
 endif
 
 ifneq ($(SHARED_LIB),)
