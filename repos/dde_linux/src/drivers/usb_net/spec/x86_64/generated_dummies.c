@@ -9,12 +9,6 @@
 
 #include <linux/gfp.h>
 
-struct page * __alloc_pages(gfp_t gfp,unsigned int order,int preferred_nid,nodemask_t * nodemask)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/cpumask.h>
 
 struct cpumask __cpu_active_mask;
@@ -23,14 +17,6 @@ struct cpumask __cpu_active_mask;
 #include <linux/phy.h>
 
 int __devm_mdiobus_register(struct device * dev,struct mii_bus * bus,struct module * owner)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
-
-void __folio_put(struct folio * folio)
 {
 	lx_emul_trace_and_stop(__func__);
 }

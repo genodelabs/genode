@@ -270,6 +270,7 @@ drivers/base/base.h
 drivers/base/physical_location.h
 drivers/base/power/power.h
 drivers/base/trace.h
+drivers/net/usb/smsc95xx.h
 drivers/usb/core/hub.h
 drivers/usb/core/otg_productlist.h
 drivers/usb/core/usb.h

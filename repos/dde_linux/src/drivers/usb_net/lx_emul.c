@@ -73,12 +73,6 @@ unsigned long get_zeroed_page(gfp_t gfp_mask)
 }
 
 
-void free_pages(unsigned long addr,unsigned int order)
-{
-	kfree((void *)addr);
-}
-
-
 #include <linux/gfp.h>
 
 void * page_frag_alloc_align(struct page_frag_cache * nc, unsigned int fragsz,
