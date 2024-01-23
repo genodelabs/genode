@@ -1,13 +1,21 @@
 #
 #  Test to trigger periodically ACPI suspend and resume and periodically
-#  trying to restart graphic driver.
+#  trying to restart graphic driver, ps/2, ahci and nvme driver.
 #
-#  The pc_intel_fb_drv is restarting on X201 successfully after resume.
-#  On Qemu the restart of vesa_fb_drv after resume does not work up to now.
+#  Main test hardware so far:
+#  - Lenovo X201 - resume of intel/display + AHCI + PS/2 working
+#  - Lenovo T490 - resume of intel/display + NVME + PS/2 working + GPU
+#  - Qemu - resume happens, vesa_fb_drv fails, ahci fails, nvme fails
 #
-#  Intel AMT SOL most the time does not work after resume.
-#  PCMCIA Serial card worked reliable on X201 after resume.
+#  Not working: vesa_fb_drv nor boot_fb_drv after resume
+#  Untested: all other drivers, e.g. nic, wifi, sd_card, usb ... all others
 #
+#  UART via Intel AMT SOL is most the time not working after resume. Using
+#  it may hang up the boot for unknown reasons. On X201 it must not be used to
+#  get reliable resume results! However using PCMCIA serial card in X201 seems
+#  ok.
+#
+#  Thereby, by default serial output is disabled by this script for non Qemu.
 
 assert_spec x86
 
@@ -21,7 +29,15 @@ if {
 
 
 if {[have_spec nova]} {
+	# enable logmem to get kernel logs in memory
 	proc kernel_output { } { return "novga logmem" }
+}
+
+
+# serial is not ever usable on hardware after resume, avoid hang by now
+if {![have_include "power_on/qemu"]} {
+	# switch off serial device usage by kernel and core
+	proc boot_output { } { return "" }
 }
 
 
@@ -30,6 +46,8 @@ set board_non_intel [expr [have_include "power_on/qemu"]]
 
 set use_gpu_client 1
 set use_gpe "no"
+set use_ahci 0
+set use_nvme 0
 
 proc priority_timer    { } { return {priority="0"} }
 proc priority_base     { } { return {priority="-1"} }
@@ -243,6 +261,117 @@ proc log_output { } {
 }
 
 
+proc ahci_config { } {
+
+	global use_ahci
+
+	set return_ahci ""
+
+	if {!$use_ahci} {
+		return $return_ahci
+	}
+
+	append return_ahci {
+		<start name="ahci_drv" caps="300" } [priority_drivers] {>
+			<resource name="RAM" quantum="12M" />
+			<provides><service name="Block" /></provides>
+			<config atapi="yes" system="yes">
+				<report ports="yes"/>
+				<policy label="test-ahci -> " device="0" writeable="no" />
+			</config>
+			<route>
+				<service name="Platform">
+					<child name="platform_drv"/>
+				</service>
+
+				<service name="ROM" label="system">
+					<child name="dynamic_rom"/>
+				</service>
+
+				<service name="Report">
+					<child name="drivers_reports"/>
+				</service>
+
+				<any-service> <parent /> <any-child/> </any-service>
+			</route>
+		</start>
+	}
+
+	append return_ahci {
+		<start name="test-ahci" caps="200" } [priority_scenario] {>
+			<binary name="block_tester" />
+			<resource name="RAM" quantum="50M" />
+			<config verbose="yes" report="no" log="yes" stop_on_error="no">
+				<tests>
+				    <random size="128K" length="1024G" seed="0xaffeaffe" batch="8"/>
+				</tests>
+			</config>
+			<route>
+				<service name="Block"><child name="ahci_drv"/></service>
+				<any-service> <parent/> <any-child /> </any-service>
+			</route>
+		</start>
+	}
+
+	return $return_ahci
+}
+
+
+proc nvme_config { } {
+
+	global use_nvme
+
+	set return_nvme ""
+
+	if {!$use_nvme} {
+		return $return_nvme
+	}
+
+	append return_nvme {
+		<start name="nvme_drv" caps="300" } [priority_drivers] {>
+			<resource name="RAM" quantum="24M"/>
+			<provides> <service name="Block"/> </provides>
+			<config max_hmb_size="16M" verbose_regs="yes" verbose_identify="yes" system="yes">
+				<policy label="test-nvme -> " writeable="no"/>
+			</config>
+			<route>
+				<service name="Platform">
+					<child name="platform_drv"/>
+				</service>
+
+				<service name="ROM" label="system">
+					<child name="dynamic_rom"/>
+				</service>
+
+				<service name="Report">
+					<child name="drivers_reports"/>
+				</service>
+
+				<any-service> <parent /> <any-child/> </any-service>
+			</route>
+		</start>
+	}
+
+	append return_nvme {
+		<start name="test-nvme" caps="200" } [priority_scenario] {>
+			<binary name="block_tester" />
+			<resource name="RAM" quantum="50M" />
+			<config verbose="yes" report="no" log="yes" stop_on_error="no">
+				<tests>
+				    <random size="128K" length="1024G" seed="0xaffeaffe" batch="8"/>
+				</tests>
+			</config>
+			<route>
+				<service name="Block"><child name="nvme_drv"/></service>
+				<any-service> <parent/> <any-child /> </any-service>
+			</route>
+		</start>
+	}
+
+	return $return_nvme
+}
+
+
 proc gpu_config { } {
 	global board_non_intel
 
@@ -251,14 +380,14 @@ proc gpu_config { } {
 	set return_gpu ""
 
 	append return_gpu {
-		<start name="gpu_drv" caps="2000">
+		<start name="gpu_drv" caps="2000" } [priority_drivers] {>
 			<binary name="intel_gpu_drv"/>
 			<resource name="RAM" quantum="40M"/>
 			<provides>
 				<service name="Gpu"/>
 				<service name="Platform"/>
 			</provides>
-			<config>
+			<config system="yes">
 				<device vendor="0x8086" device="0x1606" generation="8" platform="broadwell" description="HD Graphics (BDW GT1 ULT)"/>
 				<device vendor="0x8086" device="0x1616" generation="8" platform="broadwell" description="HD Graphics 5500 (BDW GT2 ULT)"/>
 				<device vendor="0x8086" device="0x1622" generation="8" platform="broadwell" description="Iris Pro Graphics 6200 (BDW GT3e)"/>
@@ -273,6 +402,10 @@ proc gpu_config { } {
 			<route>
 				<service name="Platform">
 					<child name="platform_drv" label="fb_drv"/>
+				</service>
+
+				<service name="ROM" label="system">
+					<child name="dynamic_rom"/>
 				</service>
 				<any-service> <parent /> <any-child/> </any-service>
 			</route>
@@ -291,7 +424,7 @@ proc gpu_client { } {
 	set return_gpu ""
 
 	append return_gpu {
-		<start name="glmark2" caps="500">
+		<start name="glmark2" caps="500" } [priority_scenario] {>
 			<resource name="RAM" quantum="240M"/>
 			<config>
 				<vfs>
@@ -336,8 +469,11 @@ build {
 	drivers/framebuffer/vesa
 	drivers/framebuffer/boot
 	drivers/gpu/intel
+	drivers/ahci
+	drivers/nvme
 	app/acpica
 	app/pci_decode
+	app/block_tester
 	test/suspend
 }
 
@@ -438,6 +574,8 @@ append config {
 				<policy label_prefix="acpica">
 					<device name="acpi"/>
 				</policy>
+				<policy label="ahci_drv -> "> <pci class="AHCI"/> </policy>
+				<policy label="nvme_drv -> " info="yes"> <pci class="NVME"/> </policy>
 			</config>
 			<route>
 				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
@@ -452,6 +590,8 @@ append config {
 	} [  gui_config] {
 	} [  log_output] {
 	} [  gpu_client] {
+	} [ ahci_config] {
+	} [ nvme_config] {
 
 		<start name="drivers_init" caps="10000" } [priority_drivers] {>
 			<binary name="init"/>
@@ -477,6 +617,9 @@ append config {
 				</service>
 				<service name="Gui">
 					<child name="wm"/>
+				</service>
+				<service name="ROM" label="system">
+					<child name="dynamic_rom"/>
 				</service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
@@ -559,25 +702,41 @@ append config {
 					</inline>
 					<sleep milliseconds="30000"/>
 
+<!--
 					<inline description="remove all restartable drivers">
 						<system state="driver_remove_restartable"/>
 					</inline>
 					<sleep milliseconds="4000"/>
+-->
 
 					<inline description="notify non-restartable drivers">
 						<system state="driver_stop"/>
 					</inline>
 					<sleep milliseconds="4000"/>
 
+					<!--
+					     TODO: for a real OS scenario, e.g. Sculpt OS - you
+					     have now to wait until all devices are unused and
+					     powered off, e.g. you have to evaluate the
+					     report of the platform driver until it is in the
+					     right state !!!!!!!
+					-->
+
 					<inline description="prepare suspending">
 						<system state="s3_prepare"/>
 					</inline>
-					<sleep milliseconds="4000"/>
+					<sleep milliseconds="10000"/>
+
+					<!--
+					     TODO: for a real OS scenario, e.g. Sculpt OS -
+					     wait until s3_prepare is done, e.g. evaluate an
+					     ACPICA report !?
+					-->
 
 					<inline description="suspend system">
 						<system state="suspend"/>
 					</inline>
-					<sleep milliseconds="4000"/>
+					<sleep milliseconds="10000"/>
 
 					<inline description="resume system">
 						<system state="s3_resume"/>
@@ -659,5 +818,32 @@ build_boot_image [build_artifacts]
 # enable MMIO PCI MMCFG access.
 #
 append qemu_args "-smp 1"
+
+if {[have_include "power_on/qemu"] && $use_ahci} {
+	append qemu_args " -device ahci,id=ahci "
+	append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none"
+	append qemu_args " -device ide-hd,drive=disk,bus=ahci.0 "
+
+	#
+	# Build EXT2-file-system image
+	#
+	set mke2fs [installed_command mke2fs]
+	set dd     [installed_command dd]
+	catch { exec $dd if=/dev/zero of=bin/ext2.raw bs=1M count=16 }
+	catch { exec $mke2fs -F bin/ext2.raw }
+}
+
+if {[have_include "power_on/qemu"] && $use_nvme} {
+	#
+	# Create raw image
+	#
+	set dd [installed_command dd]
+	catch { exec $dd if=/dev/zero of=bin/nvme.raw bs=1M count=32 }
+
+	append qemu_args " -device pcie-root-port,id=root_port1 "
+	append qemu_args " -drive id=nvme0,file=bin/nvme.raw,format=raw,if=none "
+	append qemu_args " -device nvme,drive=nvme0,serial=fnord,id=nvme0n1,bus=root_port1 "
+}
+
 
 run_genode_until forever
