@@ -14,8 +14,8 @@ INC_DIR += $(MUSL_TM_DIR)
 ifeq ($(filter-out $(SPECS),x86_64),)
 SPEC_ARCH := x86_64
 endif
-ifeq ($(filter-out $(SPECS),arm_64),)
-SPEC_ARCH := arm_64
+ifeq ($(filter-out $(SPECS),arm_v8),)
+SPEC_ARCH := arm_v8
 endif
 
 INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/$(SPEC_ARCH)

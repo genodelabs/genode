@@ -2,7 +2,7 @@
 # For documentation see $(REP_DIR)/lib/mk/wireguard_lx_inc_dirs.inc .
 #
 
-PRG_DIR := $(REP_DIR)/src/app/wireguard/spec/arm_64
+PRG_DIR := $(REP_DIR)/src/app/wireguard/spec/arm_v8
 GEN_PRG_DIR := $(PRG_DIR)/../..
 
 DDE_LINUX_DIR := $(subst /src/include/lx_kit,,$(call select_from_repositories,src/include/lx_kit))

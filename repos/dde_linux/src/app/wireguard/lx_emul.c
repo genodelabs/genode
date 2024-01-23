@@ -109,11 +109,14 @@ void setup_udp_tunnel_sock(struct net * net,struct socket * sock,struct udp_tunn
 
 #include <linux/ipv6.h>
 
+#if IS_ENABLED(CONFIG_IPV6)
+
 bool ipv6_mod_enabled(void)
 {
 	return false;
 }
 
+#endif
 
 #include <net/udp_tunnel.h>
 #include <genode_c_api/wireguard.h>

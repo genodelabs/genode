@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-03-28
+ * \date   2024-01-26
  */
 
 #include <lx_emul.h>
@@ -10,14 +10,6 @@
 #include <linux/ratelimit_types.h>
 
 int ___ratelimit(struct ratelimit_state * rs,const char * func)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/gfp.h>
-
-struct page * __alloc_pages(gfp_t gfp,unsigned int order,int preferred_nid,nodemask_t * nodemask)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -34,30 +26,6 @@ const char * __clk_get_name(const struct clk * clk)
 #include <linux/cpumask.h>
 
 struct cpumask __cpu_active_mask;
-
-
-#include <linux/mm.h>
-
-void __folio_put(struct folio * folio)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/gfp.h>
-
-unsigned long __get_free_pages(gfp_t gfp_mask,unsigned int order)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <net/ipv6.h>
-
-int __ipv6_addr_type(const struct in6_addr * addr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/irqdomain.h>
@@ -214,14 +182,6 @@ void free_netdev(struct net_device * dev)
 }
 
 
-#include <linux/gfp.h>
-
-void free_pages(unsigned long addr,unsigned int order)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/property.h>
 
 unsigned int fwnode_count_parents(const struct fwnode_handle * fwnode)
@@ -301,19 +261,6 @@ const char hex_asc[] = {};
 const char hex_asc_upper[] = {};
 
 
-#include <linux/icmpv6.h>
-
-void icmp6_send(struct sk_buff * skb,u8 type,u8 code,__u32 info,const struct in6_addr * force_saddr,const struct inet6_skb_parm * parm)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/in6.h>
-
-const struct in6_addr in6addr_any;
-
-
 #include <net/netfilter/nf_conntrack.h>
 
 struct net init_net;
@@ -351,25 +298,9 @@ long __sched io_schedule_timeout(long timeout)
 }
 
 
-#include <net/ipv6.h>
-
-int ip6_dst_hoplimit(struct dst_entry * dst)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/ip_tunnels.h>
 
 const struct header_ops ip_tunnel_header_ops;
-
-
-#include <net/addrconf.h>
-
-int ipv6_chk_addr(struct net * net,const struct in6_addr * addr,const struct net_device * dev,int strict)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/interrupt.h>
@@ -659,22 +590,6 @@ bool timerqueue_del(struct timerqueue_head * head,struct timerqueue_node * node)
 #include <linux/timerqueue.h>
 
 struct timerqueue_node * timerqueue_iterate_next(struct timerqueue_node * node)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <net/udp_tunnel.h>
-
-int udp_sock_create6(struct net * net,struct udp_port_cfg * cfg,struct socket ** sockp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <net/udp_tunnel.h>
-
-int udp_tunnel6_xmit_skb(struct dst_entry * dst,struct sock * sk,struct sk_buff * skb,struct net_device * dev,struct in6_addr * saddr,struct in6_addr * daddr,__u8 prio,__u8 ttl,__be32 label,__be16 src_port,__be16 dst_port,bool nocheck)
 {
 	lx_emul_trace_and_stop(__func__);
 }
