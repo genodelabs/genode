@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2022-2023 Genode Labs GmbH
+ * Copyright (C) 2022-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -47,7 +47,7 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 	_state(*data.vcpu_state),
 	_context(context),
 	_id(id),
-	_vcpu_context(id.id, data.vmcb)
+	_vcpu_context(id.id, data.virt_area, data.phys_addr)
 {
 	affinity(cpu);
 }
@@ -78,9 +78,8 @@ void Vm::proceed(Cpu & cpu)
 	 * we can pop it later
 	 */
 	_vcpu_context.regs->trapno = _vcpu_context.vmcb.root_vmcb_phys;
-	Hypervisor::switch_world(_vcpu_context.vmcb.vcpu_data()->vmcb_phys_addr,
-	                         (addr_t) &_vcpu_context.regs->r8,
-	                         _vcpu_context.regs->fpu_context());
+	Hypervisor::switch_world( _vcpu_context.vmcb_phys_addr,
+	    (addr_t)&_vcpu_context.regs->r8, _vcpu_context.regs->fpu_context());
 	/*
 	 * This will fall into an interrupt or otherwise jump into
 	 * _kernel_entry
@@ -175,9 +174,12 @@ void Vm::_sync_from_vmm()
 }
 
 
-Board::Vcpu_context::Vcpu_context(unsigned id, void *vcpu_data_ptr)
+Board::Vcpu_context::Vcpu_context(unsigned id,
+                                  void     *virt_area,
+                                  addr_t    vmcb_phys_addr)
 :
-	vmcb(*Genode::construct_at<Vmcb>(vcpu_data_ptr, id)),
+	vmcb(*Genode::construct_at<Vmcb>(virt_area, id)),
+	vmcb_phys_addr(vmcb_phys_addr),
 	regs(1)
 {
 	regs->trapno = TRAP_VMEXIT;

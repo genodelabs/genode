@@ -154,11 +154,6 @@ struct alignas(Genode::get_page_size()) Board::Vmcb
 	                         sizeof(Board::Vmcb_state_save_area) -
 	                         Board::Vmcb_control_area::total_size];
 
-	Genode::Vcpu_data * vcpu_data()
-	{
-		return reinterpret_cast<Genode::Vcpu_data *>(this);
-	}
-
 	/*
 	 * AMD Manual Vol. 2, Table B-1: VMCB Layout, Control Area
 	 */

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2022 Genode Labs GmbH
+ * Copyright (C) 2022-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -23,15 +23,20 @@ namespace Genode {
 	/**
 	 * CPU context of a virtual machine
 	 */
-	struct Vcpu_data;
-}
+	struct Vcpu_data
+	{
+		void *      virt_area;
+		addr_t      phys_addr;
+		Vcpu_state *vcpu_state;
 
-struct Genode::Vcpu_data
-{
-	alignas(Genode::get_page_size())
-	uint8_t vmcb[get_page_size()];
-	Genode::addr_t     vmcb_phys_addr;
-	Genode::Vcpu_state * vcpu_state;
+		static constexpr size_t num_pages() {
+			return 3;
+		}
+
+		static constexpr size_t size() {
+			return get_page_size() * num_pages();
+		}
+	};
 };
 
 #endif /* _INCLUDE__SPEC__PC__VM_STATE_H_ */

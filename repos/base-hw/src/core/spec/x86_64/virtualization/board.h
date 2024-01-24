@@ -23,6 +23,9 @@
 #include <spec/x86_64/virtualization/svm.h>
 #include <cpu.h>
 
+using Genode::addr_t;
+using Genode::uint64_t;
+
 namespace Board {
 
 	using Vm_page_table = Hw::Page_table;
@@ -62,15 +65,18 @@ namespace Kernel {
 struct Board::Vcpu_context
 {
 	Vcpu_context(unsigned id, void *vcpu_data_ptr);
+	Vcpu_context(unsigned id, void *virt_area, addr_t vmcb_phys_addr);
 	void initialize_svm(Kernel::Cpu &cpu, void *table);
-	void read_vcpu_state(Genode::Vcpu_state &state);
-	void write_vcpu_state(Genode::Vcpu_state &state);
+	void read_vcpu_state(Vcpu_state &state);
+	void write_vcpu_state(Vcpu_state &state);
 
-	Vmcb &vmcb;
+	Vmcb  &vmcb;
+	addr_t vmcb_phys_addr;
+
 	Genode::Align_at<Core::Cpu::Context> regs;
-	Genode::uint64_t tsc_aux_host = 0U;
-	Genode::uint64_t tsc_aux_guest = 0U;
-	Genode::uint64_t exitcode = EXIT_INIT;
+	uint64_t tsc_aux_host = 0U;
+	uint64_t tsc_aux_guest = 0U;
+	uint64_t exitcode = EXIT_INIT;
 };
 
 #endif /* _CORE__SPEC__PC__VIRTUALIZATION__BOARD_H_ */
