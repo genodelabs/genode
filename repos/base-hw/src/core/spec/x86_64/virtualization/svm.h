@@ -155,9 +155,9 @@ struct alignas(Genode::get_page_size()) Board::Vmcb
 	                         sizeof(Board::Vmcb_state_save_area) -
 	                         Board::Vmcb_control_area::total_size];
 
-	Genode::Vm_data * vm_data()
+	Genode::Vcpu_data * vcpu_data()
 	{
-		return reinterpret_cast<Genode::Vm_data *>(this);
+		return reinterpret_cast<Genode::Vcpu_data *>(this);
 	}
 
 	/*

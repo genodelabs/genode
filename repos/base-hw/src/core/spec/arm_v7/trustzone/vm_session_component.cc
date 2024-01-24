@@ -52,7 +52,7 @@ void * Vm_session_component::_alloc_table()
 static unsigned id_alloc = 0;
 
 
-Genode::addr_t Vm_session_component::_alloc_vm_data(Genode::addr_t ds_addr)
+Genode::addr_t Vm_session_component::_alloc_vcpu_data(Genode::addr_t ds_addr)
 {
 	return ds_addr;
 }

@@ -23,10 +23,10 @@ namespace Genode {
 	/**
 	 * CPU context of a virtual machine
 	 */
-	struct Vm_data;
+	struct Vcpu_data;
 }
 
-struct Genode::Vm_data
+struct Genode::Vcpu_data
 {
 	alignas(Genode::get_page_size())
 	uint8_t vmcb[get_page_size()];

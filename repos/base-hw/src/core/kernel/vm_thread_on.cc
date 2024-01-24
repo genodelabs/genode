@@ -26,7 +26,7 @@ void Kernel::Thread::_call_new_vm()
 	}
 
 	_call_new<Vm>(_user_irq_pool, _cpu_pool.cpu((unsigned)user_arg_2()),
-	              *(Board::Vm_data*)user_arg_3(),
+	              *(Board::Vcpu_data*)user_arg_3(),
 	              *context, *(Vm::Identity*)user_arg_4());
 }
 

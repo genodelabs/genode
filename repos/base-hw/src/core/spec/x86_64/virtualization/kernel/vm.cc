@@ -37,7 +37,7 @@ using Board::Vmcb;
 
 Vm::Vm(Irq::Pool              & user_irq_pool,
        Cpu                    & cpu,
-       Genode::Vm_data        & data,
+       Genode::Vcpu_data      & data,
        Kernel::Signal_context & context,
        Identity               & id)
 :
@@ -78,7 +78,7 @@ void Vm::proceed(Cpu & cpu)
 	 * we can pop it later
 	 */
 	_vcpu_context.regs->trapno = _vcpu_context.vmcb.root_vmcb_phys;
-	Hypervisor::switch_world(_vcpu_context.vmcb.vm_data()->vmcb_phys_addr,
+	Hypervisor::switch_world(_vcpu_context.vmcb.vcpu_data()->vmcb_phys_addr,
 	                         (addr_t) &_vcpu_context.regs->r8,
 	                         _vcpu_context.regs->fpu_context());
 	/*

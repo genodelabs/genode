@@ -65,7 +65,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 
 	try {
 		vcpu.ds_cap = _constrained_md_ram_alloc.alloc(_ds_size(), Cache::UNCACHED);
-		vcpu.ds_addr = _alloc_vm_data(_region_map.attach(vcpu.ds_cap));
+		vcpu.ds_addr = _alloc_vcpu_data(_region_map.attach(vcpu.ds_cap));
 	} catch (...) {
 		if (vcpu.ds_cap.valid())
 			_constrained_md_ram_alloc.free(vcpu.ds_cap);

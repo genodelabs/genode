@@ -135,7 +135,7 @@ void Board::Vcpu_context::Virtual_timer_irq::disable()
 
 Kernel::Vm::Vm(Irq::Pool              & user_irq_pool,
                Cpu                    & cpu,
-               Genode::Vm_data        & data,
+               Genode::Vcpu_data      & data,
                Kernel::Signal_context & context,
                Identity               & id)
 :

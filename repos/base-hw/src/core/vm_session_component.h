@@ -92,7 +92,7 @@ class Core::Vm_session_component
 		unsigned                    _vcpu_id_alloc { 0 };
 
 		static size_t _ds_size();
-		static size_t _alloc_vm_data(Genode::addr_t ds_addr);
+		static size_t _alloc_vcpu_data(Genode::addr_t ds_addr);
 
 		void *        _alloc_table();
 		void          _attach(addr_t phys_addr, addr_t vm_addr, size_t size);

@@ -101,23 +101,23 @@ static Vmid_allocator &alloc()
 }
 
 
-Genode::addr_t Vm_session_component::_alloc_vm_data(Genode::addr_t ds_addr)
+Genode::addr_t Vm_session_component::_alloc_vcpu_data(Genode::addr_t ds_addr)
 {
-	void * vm_data_ptr = cma()
-	                     .alloc_aligned(sizeof(Board::Vm_data), 12)
-                             .convert<void *>(
-	                                      [&](void *ptr) { return ptr; },
-	                                      [&](Range_allocator::Alloc_error) -> void * {
-	                                              /* XXX handle individual error conditions */
-	                                              error("failed to allocate kernel object");
-	                                              throw Insufficient_ram_quota();
-	                                          }
+	void * vcpu_data_ptr = cma()
+	                       .alloc_aligned(sizeof(Board::Vcpu_data), 12)
+                               .convert<void *>(
+	                                        [&](void *ptr) { return ptr; },
+	                                        [&](Range_allocator::Alloc_error) -> void * {
+	                                                /* XXX handle individual error conditions */
+	                                                error("failed to allocate kernel object");
+	                                                throw Insufficient_ram_quota();
+	                                            }
 	);
 
-	Genode::Vm_data* vm_data = (Genode::Vm_data *) vm_data_ptr;
-	vm_data->vcpu_state = (Genode::Vcpu_state *) ds_addr;
-	vm_data->vmcb_phys_addr = (addr_t)cma().phys_addr(vm_data->vmcb);
-	return (Genode::addr_t) vm_data_ptr;
+	Genode::Vcpu_data* vcpu_data = (Genode::Vcpu_data *) vcpu_data_ptr;
+	vcpu_data->vcpu_state = (Genode::Vcpu_state *) ds_addr;
+	vcpu_data->vmcb_phys_addr = (addr_t)cma().phys_addr(vcpu_data->vmcb);
+	return (Genode::addr_t) vcpu_data_ptr;
 }
 
 

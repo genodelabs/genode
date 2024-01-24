@@ -103,7 +103,7 @@ static Vmid_allocator &alloc()
 }
 
 
-Genode::addr_t Vm_session_component::_alloc_vm_data(Genode::addr_t ds_addr)
+Genode::addr_t Vm_session_component::_alloc_vcpu_data(Genode::addr_t ds_addr)
 {
 	return ds_addr;
 }
