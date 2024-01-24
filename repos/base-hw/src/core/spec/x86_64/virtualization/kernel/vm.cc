@@ -47,7 +47,7 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 	_state(*data.vcpu_state),
 	_context(context),
 	_id(id),
-	_vcpu_context(id.id, &data.vmcb, data.vmcb_phys_addr)
+	_vcpu_context(id.id, data.vmcb)
 {
 	affinity(cpu);
 }
@@ -78,7 +78,7 @@ void Vm::proceed(Cpu & cpu)
 	 * we can pop it later
 	 */
 	_vcpu_context.regs->trapno = _vcpu_context.vmcb.root_vmcb_phys;
-	Hypervisor::switch_world(_vcpu_context.vmcb.phys_addr,
+	Hypervisor::switch_world(_vcpu_context.vmcb.vm_data()->vmcb_phys_addr,
 	                         (addr_t) &_vcpu_context.regs->r8,
 	                         _vcpu_context.regs->fpu_context());
 	/*
@@ -175,10 +175,9 @@ void Vm::_sync_from_vmm()
 }
 
 
-Board::Vcpu_context::Vcpu_context(unsigned id, void *vcpu_data_ptr,
-                                  Genode::addr_t context_phys_addr)
+Board::Vcpu_context::Vcpu_context(unsigned id, void *vcpu_data_ptr)
 :
-	vmcb(*Genode::construct_at<Vmcb>(vcpu_data_ptr, id, context_phys_addr)),
+	vmcb(*Genode::construct_at<Vmcb>(vcpu_data_ptr, id)),
 	regs(1)
 {
 	regs->trapno = TRAP_VMEXIT;

@@ -116,7 +116,7 @@ Genode::addr_t Vm_session_component::_alloc_vm_data(Genode::addr_t ds_addr)
 
 	Genode::Vm_data* vm_data = (Genode::Vm_data *) vm_data_ptr;
 	vm_data->vcpu_state = (Genode::Vcpu_state *) ds_addr;
-	vm_data->vmcb_phys_addr = (addr_t)cma().phys_addr(&vm_data->vmcb);
+	vm_data->vmcb_phys_addr = (addr_t)cma().phys_addr(vm_data->vmcb);
 	return (Genode::addr_t) vm_data_ptr;
 }
 

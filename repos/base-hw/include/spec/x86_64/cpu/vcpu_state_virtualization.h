@@ -14,9 +14,9 @@
 #ifndef _INCLUDE__SPEC__PC__VM_STATE_H_
 #define _INCLUDE__SPEC__PC__VM_STATE_H_
 
+#include <base/internal/page_size.h>
 /* x86 CPU state */
 #include <cpu/vcpu_state.h>
-#include <virtualization/svm.h>
 
 namespace Genode {
 
@@ -28,7 +28,8 @@ namespace Genode {
 
 struct Genode::Vm_data
 {
-	Board::Vmcb        vmcb;
+	alignas(Genode::get_page_size())
+	uint8_t vmcb[get_page_size()];
 	Genode::addr_t     vmcb_phys_addr;
 	Genode::Vcpu_state * vcpu_state;
 };

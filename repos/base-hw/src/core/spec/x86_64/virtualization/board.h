@@ -61,8 +61,7 @@ namespace Kernel {
 
 struct Board::Vcpu_context
 {
-	Vcpu_context(unsigned id, void *vcpu_data_ptr,
-                       Genode::addr_t context_phys_addr);
+	Vcpu_context(unsigned id, void *vcpu_data_ptr);
 	void initialize_svm(Kernel::Cpu &cpu, void *table);
 	void read_vcpu_state(Genode::Vcpu_state &state);
 	void write_vcpu_state(Genode::Vcpu_state &state);

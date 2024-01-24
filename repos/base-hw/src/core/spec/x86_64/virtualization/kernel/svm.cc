@@ -24,14 +24,13 @@ using Kernel::Vm;
 using Board::Vmcb;
 
 
-Vmcb::Vmcb(Genode::uint32_t id, Genode::addr_t addr)
+Vmcb::Vmcb(Genode::uint32_t id)
 :
 	Mmio((Genode::addr_t)this)
 {
 	write<Guest_asid>(id);
 	write<Msrpm_base_pa>(dummy_msrpm());
 	write<Iopm_base_pa>(dummy_iopm());
-	phys_addr = addr;
 
 	/*
 	 * Set the guest PAT register to the default value.

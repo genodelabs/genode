@@ -17,6 +17,7 @@
 #include <base/internal/page_size.h>
 #include <base/stdint.h>
 #include <cpu/vcpu_state.h>
+#include <cpu/vcpu_state_virtualization.h>
 #include <util/mmio.h>
 #include <util/string.h>
 
@@ -76,7 +77,7 @@ struct Board::Vmcb_control_area
 struct Board::Vmcb_reserved_for_host
 {
 	/* 64bit used by the inherited Mmio class here */
-	Genode::addr_t phys_addr      = 0U;
+	Genode::uint64_t  _reserved[1];
 	Genode::addr_t root_vmcb_phys = 0U;
 };
 static_assert(Board::Vmcb_control_area::total_size -
@@ -143,7 +144,7 @@ struct alignas(Genode::get_page_size()) Board::Vmcb
 		Asid_host = 0,
 	};
 
-	Vmcb(Genode::uint32_t id, Genode::addr_t addr = 0);
+	Vmcb(Genode::uint32_t id);
 	void init(Genode::size_t cpu_id, void * table_ptr);
 	static Vmcb & host_vmcb(Genode::size_t cpu_id);
 	static Genode::addr_t dummy_msrpm();
@@ -153,6 +154,11 @@ struct alignas(Genode::get_page_size()) Board::Vmcb
 	Genode::uint8_t reserved[Genode::get_page_size()             -
 	                         sizeof(Board::Vmcb_state_save_area) -
 	                         Board::Vmcb_control_area::total_size];
+
+	Genode::Vm_data * vm_data()
+	{
+		return reinterpret_cast<Genode::Vm_data *>(this);
+	}
 
 	/*
 	 * AMD Manual Vol. 2, Table B-1: VMCB Layout, Control Area
