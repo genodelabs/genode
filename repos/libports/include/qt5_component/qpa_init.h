@@ -20,6 +20,7 @@
 /* libc includes */
 #include <dlfcn.h>  /* 'dlopen'  */
 #include <stdio.h>  /* 'fprintf' */
+#include <stdlib.h> /* 'exit'    */
 #include <unistd.h> /* 'access'  */
 
 /**
