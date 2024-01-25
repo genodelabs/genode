@@ -958,7 +958,7 @@ proc have_include { name } {
 #
 rename exit real_exit
 proc exit {{status 0}} {
-	run_power_off
+	catch {run_power_off}
 
 	real_exit $status
 }
