@@ -29,7 +29,7 @@ struct I2c::Mmio: Platform::Device::Mmio
 	struct Freq_divider : Mmio::Register<0x4, 16> {};
 
 	struct Control : Mmio::Register<0x8, 16> {
-		struct Repeat_start        : Mmio::Register<0x8, 16>::Bitfield<2, 1> {}; 
+		struct Repeat_start        : Mmio::Register<0x8, 16>::Bitfield<2, 1> {};
 		struct Tx_ack_enable       : Mmio::Register<0x8, 16>::Bitfield<3, 1> {};
 		struct Tx_rx_select        : Mmio::Register<0x8, 16>::Bitfield<4, 1> {};
 		struct Master_slave_select : Mmio::Register<0x8, 16>::Bitfield<5, 1> {};

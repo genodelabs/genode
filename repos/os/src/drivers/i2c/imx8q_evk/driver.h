@@ -43,6 +43,7 @@ class I2c::Driver: public I2c::Driver_base
 			bool        verbose;
 			unsigned    bus_no;
 			Device_name device_name;
+			uint16_t    bus_speed_khz;
 		};
 
 	private:

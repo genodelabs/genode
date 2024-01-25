@@ -17,6 +17,27 @@
 #include "driver.h"
 
 
+namespace {
+
+	Genode::uint8_t _bus_speed_to_divider(Genode::uint16_t bus_speed_khz)
+	{
+	   /* the table can be found:
+	    * IMX8MMRM.pdf on 5233
+	    *
+	    * The bus base frequency is 25MHz.
+	    */
+
+	   if (bus_speed_khz >= 400) return 0x2a;   /* divide by   64 maximal speed supported */
+	   if (bus_speed_khz >= 200) return 0x2f;   /* divide by  128 */
+	   if (bus_speed_khz >= 100) return 0x33;   /* divide by  256 */
+	   if (bus_speed_khz >=  50) return 0x37;   /* divide by  512 */
+	   if (bus_speed_khz >=  25) return 0x3B;   /* divide by 1024 */
+
+	   return 0x3F;  /* divide by 2048 minimal speed */
+	}
+}
+
+
 void I2c::Driver::_wait_for_irq()
 {
 	_sem_cnt++;
@@ -58,8 +79,8 @@ void I2c::Driver::_bus_reset()
 
 void I2c::Driver::_bus_start()
 {
-	/* input root 90 is 25Mhz target is 400Khz, divide by 64 */
-	_mmio.write<Mmio::Freq_divider>(0x2a);
+	/* input root 90 is 25Mhz select divisor to approximate desired bus speed */
+	_mmio.write<Mmio::Freq_divider>(_bus_speed_to_divider(_args.bus_speed_khz));
 	_mmio.write<Mmio::Status>(0);
 	_mmio.write<Mmio::Control>(Mmio::Control::Enable::bits(1));
 

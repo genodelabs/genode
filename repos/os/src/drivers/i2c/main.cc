@@ -37,10 +37,12 @@ struct I2c::Main
 
 		static I2c::Driver::Args _driver_args_from_config(Xml_node config)
 		{
+			constexpr uint16_t const default_bus_speed_khz { 400 };
 			return {
-				.verbose     = config.attribute_value("verbose", false),
-				.bus_no      = config.attribute_value("bus_no", 0u),
-				.device_name = config.attribute_value("device_name", Device_name())
+				.verbose       = config.attribute_value("verbose", false),
+				.bus_no        = config.attribute_value("bus_no", 0u),
+				.device_name   = config.attribute_value("device_name", Device_name()),
+				.bus_speed_khz = config.attribute_value("bus_speed_khz", default_bus_speed_khz)
 			};
 		}
 

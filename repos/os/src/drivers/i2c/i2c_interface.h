@@ -1,5 +1,5 @@
 /*
- * \brief  I2C driver base class to be implemented by platform specific 
+ * \brief  I2C driver base class to be implemented by platform specific
  * \author Jean-Adrien Domage <jean-adrien.domage@gapfruit.com>
  * \date   2021-02-08
  */
