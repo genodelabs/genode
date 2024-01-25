@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-03-27
+ * \date   2024-01-25
  */
 
 #include <lx_emul.h>
@@ -75,6 +75,14 @@ int _printk_deferred(const char * fmt,...)
 
 extern void ack_bad_irq(unsigned int irq);
 void ack_bad_irq(unsigned int irq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/arch_topology.h>
+
+const struct cpumask * cpu_clustergroup_mask(int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }

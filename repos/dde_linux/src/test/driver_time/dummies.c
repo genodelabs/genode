@@ -11,7 +11,12 @@
  * version 2.
  */
 
+#include <lx_emul.h>
 #include <lx_emul/debug.h>
+
+
+DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);
+EXPORT_PER_CPU_SYMBOL(cpu_sibling_map);
 
 
 #include <linux/syscore_ops.h>
