@@ -1,0 +1,198 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Decode 'Genode::backtrace()' output and other memory addresses
+# \author Christian Prochaska
+# \date   2024-01-25
+#
+# Credits: heavily inspired by the Fiasco.OC backtrace tool
+#
+
+
+if {$::argc == 0} {
+	puts "Usage (in Genode debug directory):"
+	puts ""
+	puts {[KERNEL=...] backtrace [binary]}
+	puts ""
+	puts "then paste shared library info and backtrace addresses."
+	puts ""
+	puts "If the KERNEL environment variable is set, the file name "
+	puts "'ld.lib.so' will be replaced by 'ld-KERNEL.lib.so'"
+	puts ""
+	exit 1
+}
+
+
+set genode_tools_dir "/usr/local/genode/tool/23.05/bin"
+
+set arch {}
+
+array set images {}
+array set image_bases {}
+array set sections {}
+array set symbols {}
+
+set sorted_symbols_keys {}
+
+
+proc readelf {} {
+	global genode_tools_dir
+	return "$genode_tools_dir/genode-x86-readelf"
+}
+
+
+proc nm {} {
+	global genode_tools_dir
+	global arch
+	return "$genode_tools_dir/genode-$arch-nm"
+}
+
+
+proc addr2line {} {
+	global genode_tools_dir
+	global arch
+	return "$genode_tools_dir/genode-$arch-addr2line"
+}
+
+
+proc scan_image {img base} {
+
+	global arch
+	global images
+	global image_bases
+	global sections
+	global symbols
+	global sorted_symbols_keys
+
+	if {$arch == ""} {
+		set readelf_output [exec [readelf] -h $img]
+		if {[regexp {AArch64} $readelf_output]} {
+			set arch "aarch64"
+		} elseif {[regexp {ARM} $readelf_output]} {
+			set arch "arm"
+		} elseif {[regexp {RISC-V} $readelf_output]} {
+			set arch "riscv"
+		} elseif {[regexp {80386} $readelf_output]} {
+			set arch "x86"
+		} elseif {[regexp {X86-64} $readelf_output]} {
+			set arch "x86"
+		} else {
+			puts "Error: could not obtain architecture from image file"
+			return
+		}
+	}
+
+	# ignore base address of ld.lib.so
+	if {$img == "ld.lib.so"} {
+		set base 0
+		if {[info exists ::env(KERNEL)]} {
+			set img ld-$::env(KERNEL).lib.so
+		}
+	}
+
+	set nm_output ""
+
+	if {[catch { set nm_output [exec [nm] -C $img.debug] } msg]} {
+		puts "Warning: $msg"
+		return
+	}
+
+	set nm_lines [split $nm_output "\n"]
+
+	foreach nm_line $nm_lines {
+
+		if {[regexp {^([0-9a-fA-F]+)\s+(\S)\s+(.*)$} $nm_line -> addr section sym]} {
+			set key "[format "0x%x" [expr $base + 0x$addr]]"
+			set images($key) $img
+			set image_bases($key) $base
+			set sections($key) $section
+			set symbols($key) $sym
+		}
+	}
+
+	set sorted_symbols_keys [lsort -integer [array names symbols]]
+
+	puts "Scanned image $img"
+}
+
+
+proc print_func {addr} {
+
+	global images
+	global image_bases
+	global sections
+	global symbols
+	global sorted_symbols_keys
+
+	set addr [format "0x%x" $addr]
+
+	set symbol_start_addr 0
+
+	foreach key $sorted_symbols_keys {
+		if {[expr $key > $addr]} {
+			break }
+		set symbol_start_addr $key
+	}
+
+	if {$symbol_start_addr} {
+		set img $images($symbol_start_addr)
+		set local_addr [format "0x%x" [expr $addr - $image_bases($symbol_start_addr)]]
+		set line [exec [addr2line] -e $img $local_addr]
+		puts "$symbols($symbol_start_addr)"
+		puts ""
+		puts "    * $addr: $img:$local_addr $sections($symbol_start_addr)"
+		puts "    * $line"
+	} else {
+		puts "<unknown>"
+		puts "    * $addr"
+	}
+
+	puts ""
+}
+
+
+foreach arg $::argv { scan_image $arg 0 }
+
+while {1} {
+
+	gets stdin line
+
+	# prevent mixing of pasted input and generated output
+	after 10
+
+	puts ""
+
+	if {[regexp {^\[.*\]   (0x[0-9a-f]+).*?: (.*)$} $line -> base img]} {
+
+		# shared library info
+
+		# ignore linker area
+		if {$img == "linker area"} {
+			continue }
+
+		# ignore stack area
+		if {$img == "stack area"} {
+			continue }
+
+		scan_image $img $base
+
+	} elseif {[regexp {^\[.*]\s+[0-9a-f]+\s+([0-9a-f]+)$} $line -> addr]} {
+
+		# backtrace address
+
+		print_func 0x$addr
+
+	} elseif {[regexp {^(0x[0-9a-f]+)$} $line -> addr]} {
+
+		# single hex address prefixed with 0x
+
+		print_func $addr
+
+	} elseif {[regexp {^([0-9a-f]+)$} $line -> addr]} {
+
+		# single hex address not prefixed with 0x
+
+		print_func 0x$addr
+
+	}
+}
