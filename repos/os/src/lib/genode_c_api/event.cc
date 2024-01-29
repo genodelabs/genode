@@ -102,6 +102,12 @@ namespace {
 				batch.submit(Input::Relative_motion { x, y }); });
 		}
 
+		static void _abs_motion(struct genode_event_submit *myself, int x, int y)
+		{
+			_with_batch(myself, [&] (Event::Session_client::Batch &batch) {
+				batch.submit(Input::Absolute_motion { x, y }); });
+		}
+
 		static void _touch(struct genode_event_submit *myself,
 		                   struct genode_event_touch_args const *args)
 		{
@@ -133,6 +139,7 @@ namespace {
 			press         = _press;
 			release       = _release;
 			rel_motion    = _rel_motion;
+			abs_motion    = _abs_motion;
 			touch         = _touch;
 			touch_release = _touch_release;
 			wheel         = _wheel;
