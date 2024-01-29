@@ -27,6 +27,7 @@
 #include <log_source.h>
 #include <touch_click_source.h>
 #include <touch_key_source.h>
+#include <transform_source.h>
 #include <event_session.h>
 
 namespace Event_filter { struct Main; }
@@ -251,6 +252,9 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 
 		if (node.type() == Log_source::name())
 			return *new (_heap) Log_source(owner, node, *this);
+
+		if (node.type() == Transform_source::name())
+			return *new (_heap) Transform_source(owner, node, *this);
 
 		if (node.type() == Touch_click_source::name())
 			return *new (_heap) Touch_click_source(owner, node, *this);

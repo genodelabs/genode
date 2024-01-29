@@ -96,6 +96,34 @@ one of the following filters:
   rectangular area - using the attributes 'xpos', 'ypos', 'width', and
   'height' - and the name of the tapped key as 'key' attribute.
 
+:<transform>:
+
+  Transforms touch and absolute-motion event coordinates by a sequence of
+  the following primitives expressed as sub-nodes.
+
+  :<translate>:
+
+    Moves coordinates by 'x' and 'y' attributes.
+
+  :<scale>:
+
+    Scales horizontal and vertical axis by 'x' and 'y' attributes.
+
+  :<rotate>:
+
+    Rotates clockwise (around origin (0,0) by 90, 180, or 270 degrees in
+    attribute 'angle'.
+
+  :<reorient>:
+
+    Rotates clockwise (like 'rotate') but also translates results for
+    desired target 'width' and 'height' attributes.
+
+  :<hflip>/<vflip>:
+
+    Flip coordinates horizontally/vertically and translate into
+    'width'/'height'.
+
 
 Character generator rules
 -------------------------
