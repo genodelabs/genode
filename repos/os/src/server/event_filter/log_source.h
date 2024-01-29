@@ -33,6 +33,8 @@ class Event_filter::Log_source : public Source, Source::Filter
 
 		Prefix _prefix = "";
 
+		bool _motion = false;
+
 		Owner _owner;
 
 		Source &_source;
@@ -40,17 +42,17 @@ class Event_filter::Log_source : public Source, Source::Filter
 		unsigned _event_cnt = 0;
 		int      _key_cnt   = 0;
 
+
 		/**
 		 * Filter interface
 		 */
 		void filter_event(Source::Sink &destination, Input::Event const &event) override
 		{
-			/* only log presses and releases */
-			if (event.press() || event.release()) {
+			if (_motion || event.press() || event.release()) {
 				if (event.press())   ++_key_cnt;
 				if (event.release()) --_key_cnt;
 
-				log(_prefix, "event #", _event_cnt++, "\t", event, "\tkey count: ", _key_cnt);
+				log(_prefix, "Input event #", _event_cnt++, "\t", event, "\tkey count: ", _key_cnt);
 			}
 
 			/* forward event */
@@ -59,7 +61,8 @@ class Event_filter::Log_source : public Source, Source::Filter
 
 		void _apply_config(Xml_node const config)
 		{
-			_prefix = config.attribute_value("prefix", _prefix);
+			_prefix = config.attribute_value("prefix", Prefix());
+			_motion = config.attribute_value("motion", false);
 		}
 
 	public:

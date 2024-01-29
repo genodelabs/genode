@@ -581,11 +581,11 @@ append qemu_args " -nographic "
 
 run_genode_until {.*child "test-event_filter" exited with exit value 0.*} 60
 
-grep_output {mapped event}
+grep_output {mapped Input event}
 unify_output {\t} { }
 compare_output_to {
-[init -> event_filter] Unremapped event #0 PRESS KEY_UNKNOWN 65534 key count: 1
-[init -> event_filter] Remapped event #0 PRESS KEY_A 65534 key count: 1
-[init -> event_filter] Unremapped event #1 RELEASE KEY_UNKNOWN key count: 0
-[init -> event_filter] Remapped event #1 RELEASE KEY_A key count: 0
+[init -> event_filter] Unremapped Input event #0 PRESS KEY_UNKNOWN 65534 key count: 1
+[init -> event_filter] Remapped Input event #0 PRESS KEY_A 65534 key count: 1
+[init -> event_filter] Unremapped Input event #1 RELEASE KEY_UNKNOWN key count: 0
+[init -> event_filter] Remapped Input event #1 RELEASE KEY_A key count: 0
 }

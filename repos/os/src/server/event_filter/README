@@ -37,8 +37,10 @@ one of the following filters:
 
 :<log>:
 
-  Logs debug information about key presses and releases to the component's 'Log'
-  session. An optional 'prefix' attribute can be provided in order to
+  Logs debug information about input events to the component's 'Log'
+  session. Per default, only key presses and releases are logged. The
+  optional 'motion' attribute (boolean) enables logging of motion and touch
+  events too. An optional 'prefix' attribute can be provided in order to
   distinguish multiple '<log>' filters. The given prefix is placed at the
   beginning of each log message.
 
