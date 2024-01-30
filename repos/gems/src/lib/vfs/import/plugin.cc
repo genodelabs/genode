@@ -139,6 +139,8 @@ class Vfs_import::File_system : public Vfs::File_system
 				return;
 			}
 
+			dst_handle->fs().ftruncate(dst_handle, 0);
+
 			char              buf[4096];
 			Vfs_handle::Guard guard { dst_handle };
 			Flush_guard       flush { env.io(), *dst_handle };

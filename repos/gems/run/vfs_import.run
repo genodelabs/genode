@@ -75,6 +75,22 @@ install_config {
 							<import overwrite="yes">
 								<dir name="fs">
 									<symlink name="link" target="test"/>
+									<inline name="test">Hello, this is Genode!</inline>
+								</dir>
+							</import>
+						</vfs>
+					</config>
+				</start>
+				<start name="/bin/true" caps="500">
+					<config>
+						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
+						<vfs>
+							<dir name="fs"> <fs/> </dir>
+							<dir name="dev"> <log/> <null/> </dir>
+							<ram/>
+							<import overwrite="yes">
+								<dir name="fs">
+									<symlink name="link" target="test"/>
 									<inline name="test">Hello world!</inline>
 								</dir>
 							</import>
@@ -108,4 +124,4 @@ build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 
-run_genode_until {Hello world!} 30
+run_genode_until {Hello world!.{0,7}\n} 30
