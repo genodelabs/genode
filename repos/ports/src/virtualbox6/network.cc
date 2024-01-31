@@ -126,8 +126,9 @@ class Nic_client
 		Genode::Signal_handler<Nic_client> _tx_ready_to_submit;
 		Genode::Signal_handler<Nic_client> _destruct_dispatcher;
 
-		bool _link_up = false;
-		bool _retry   = false;
+		bool _link_up   = false;
+		bool _retry     = false;
+		bool _tx_wakeup = false;
 
 		/* VM <-> device driver (down) <-> nic_client (up) <-> nic session */
 		PPDMINETWORKDOWN   _down_net;
@@ -136,10 +137,20 @@ class Nic_client
 
 		void _handle_rx_packet_avail()
 		{
-			while (_nic.rx()->packet_avail() && _nic.rx()->ready_to_ack()) {
-				Nic::Packet_descriptor rx_packet = _nic.rx()->get_packet();
+			auto &rx = *_nic.rx();
 
-				char *rx_content = _nic.rx()->packet_content(rx_packet);
+			bool progress = false;
+
+			while (rx.packet_avail() && rx.ready_to_ack()) {
+				auto const rx_packet = rx.try_get_packet();
+
+				if (!rx_packet.size())
+					break;
+
+				char *rx_content = rx.packet_content(rx_packet);
+
+				if (!rx_content)
+					break;
 
 				Libc::with_libc([&] () {
 					int rc = _down_net->pfnWaitReceiveAvail(_down_net, RT_INDEFINITE_WAIT);
@@ -147,10 +158,14 @@ class Nic_client
 
 					rc = _down_net->pfnReceive(_down_net, rx_content, rx_packet.size());
 					AssertRC(rc);
-				});
 
-				_nic.rx()->acknowledge_packet(rx_packet);
+					if (rx.try_ack_packet(rx_packet))
+						progress = true;
+				});
 			}
+
+			if (progress)
+				rx.wakeup();
 		}
 
 		void _handle_rx_ready_to_ack() { _handle_rx_packet_avail(); }
@@ -313,17 +328,27 @@ class Nic_client
 		{
 			if (!_link_up) { return VERR_NET_DOWN; }
 
+			auto &tx = *_nic.tx();
+
 			if (tx_packet.size() < packet_len) {
 				RTLogPrintf("%s: packet too large\n", __func__);
-				_nic.tx()->release_packet(tx_packet);
+				tx.release_packet(tx_packet);
 				return VINF_SUCCESS;
 			}
 
 			/* send it */
-			auto const tx_content = _nic.tx()->packet_content(tx_packet);
+			auto const tx_content = tx.packet_content(tx_packet);
 			Genode::memcpy(tx_content, packet, packet_len);
 			auto tx_packet_actual_len = Nic::Packet_descriptor(tx_packet.offset(), packet_len);
-			_nic.tx()->submit_packet(tx_packet_actual_len);
+
+			if (!tx.try_submit_packet(tx_packet_actual_len)) {
+				RTLogPrintf("%s: drop packet\n", __func__);
+				tx.release_packet(tx_packet);
+				return VINF_SUCCESS;
+			}
+
+			_tx_wakeup = true;
+
 			return VINF_SUCCESS;
 		}
 
@@ -332,6 +357,15 @@ class Nic_client
 			auto const len = Nic::Packet_descriptor(tx_not_sent.offset(),
 			                                        Nic::Packet_allocator::OFFSET_PACKET_SIZE);
 			_nic.tx()->release_packet(len);
+		}
+
+		void tx_wakeup()
+		{
+			if (!_tx_wakeup)
+				return;
+
+			_tx_wakeup = false;
+			_nic.tx()->wakeup();
 		}
 };
 
@@ -363,7 +397,11 @@ static DECLCALLBACK(int) drvNicNetworkUp_BeginXmit(PPDMINETWORKUP pInterface, bo
  */
 static DECLCALLBACK(void) drvNicNetworkUp_EndXmit(PPDMINETWORKUP pInterface)
 {
-	PDRVNIC pThis = PDMINETWORKUP_2_DRVNIC(pInterface);
+	PDRVNIC      const pThis      = PDMINETWORKUP_2_DRVNIC(pInterface);
+	Nic_client * const nic_client = pThis->nic_client;
+
+	nic_client->tx_wakeup();
+
 	RTCritSectLeave(&pThis->XmitLock);
 }
 
