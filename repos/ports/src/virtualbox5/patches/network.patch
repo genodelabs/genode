@@ -4,6 +4,19 @@ diff --git a/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp b/src/app/
 index aa3eb87..fc2660a 100644
 --- a/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/Network/DevE1000.cpp
+@@ -1614,6 +1614,12 @@
+ static void e1kWakeupReceive(PPDMDEVINS pDevIns)
+ {
+     PE1KSTATE pThis = PDMINS_2_DATA(pDevIns, PE1KSTATE);
++
++    if (pThis->pDrvR3 && pThis->pDrvR3->pfnReceiveReady) {
++        pThis->pDrvR3->pfnReceiveReady(pThis->pDrvR3);
++        return;
++    }
++
+     if (    pThis->fMaybeOutOfSpace
+         &&  pThis->hEventMoreRxDescAvail != NIL_RTSEMEVENT)
+     {
 @@ -7629,7 +7629,7 @@
          return PDMDEV_SET_ERROR(pDevIns, rc,
                                  N_("Configuration error: Failed to get the value of 'EthernetCRC'"));
@@ -94,3 +107,14 @@ index 481267e..80f4af9 100644
          if (rc == VINF_NAT_DNS)
          {
  #ifdef RT_OS_LINUX
+--- a/src/app/virtualbox/include/VBox/vmm/pdmnetifs.h
++++ b/src/app/virtualbox/include/VBox/vmm/pdmnetifs.h
+@@ -322,6 +322,8 @@
+ 
+     /** @todo Add a callback that informs the driver chain about MAC address changes if we ever implement that.  */
+ 
++    DECLR3CALLBACKMEMBER(void, pfnReceiveReady,(PPDMINETWORKUP pInterface));
++
+ } PDMINETWORKUP;
+ 
+ /** Ring-0 edition of PDMINETWORKUP. */

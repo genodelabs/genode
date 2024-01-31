@@ -74,6 +74,8 @@ typedef struct DRVNIC
 	PPDMDRVINS              pDrvIns;
 	/** Transmit lock used by pfnBeginXmit/pfnEndXmit. */
 	RTCRITSECT              XmitLock;
+	/** Receive lock used by nic_ep and EMT-0..X */
+	RTCRITSECT              RecvLock;
 	/** Nic::Session client wrapper. */
 	Nic_client             *nic_client;
 } DRVNIC, *PDRVNIC;
@@ -137,30 +139,56 @@ class Nic_client
 
 		void _handle_rx_packet_avail()
 		{
+			int const rc = RTCritSectEnter(&_drvnic->RecvLock);
+			AssertRC(rc);
+
+			_handle_rx_packet_avail_unlocked();
+
+			RTCritSectLeave(&_drvnic->RecvLock);
+		}
+
+		void _handle_rx_packet_avail_unlocked()
+		{
 			auto &rx = *_nic.rx();
 
 			bool progress = false;
+			bool unready  = false;
 
 			while (rx.packet_avail() && rx.ready_to_ack()) {
+				Libc::with_libc([&] () {
+					RTMSINTERVAL const wait_ms = 0; /* try once without blocking */
+
+					int rc = _down_net->pfnWaitReceiveAvail(_down_net, wait_ms);
+					if (rc != VINF_SUCCESS)
+						unready = true;
+				});
+
+				/* network model of VBox can't accept a new packet at moment */
+				if (unready)
+					break;
+
 				auto const rx_packet = rx.try_get_packet();
 
-				if (!rx_packet.size())
+				if (!rx_packet.size()) {
+					RTLogPrintf("unexpected - should not happen - size 0\n");
 					break;
+				}
 
 				char *rx_content = rx.packet_content(rx_packet);
 
-				if (!rx_content)
+				if (!rx_content) {
+					RTLogPrintf("unexpected - should not happen - no content\n");
 					break;
+				}
 
 				Libc::with_libc([&] () {
-					int rc = _down_net->pfnWaitReceiveAvail(_down_net, RT_INDEFINITE_WAIT);
-					if (RT_FAILURE(rc)) return;
+					int rc = _down_net->pfnReceive(_down_net, rx_content,
+					                               rx_packet.size());
 
-					rc = _down_net->pfnReceive(_down_net, rx_content, rx_packet.size());
-					AssertRC(rc);
-
-					if (rx.try_ack_packet(rx_packet))
+					if (rc == VINF_SUCCESS && rx.try_ack_packet(rx_packet))
 						progress = true;
+					else
+						RTLogPrintf("unexpected - should not happen - ack packet\n");
 				});
 			}
 
@@ -366,6 +394,16 @@ class Nic_client
 
 			_tx_wakeup = false;
 			_nic.tx()->wakeup();
+		}
+
+		void rx_resume()
+		{
+			int const rc = RTCritSectEnter(&_drvnic->RecvLock);
+			AssertRC(rc);
+
+			_handle_rx_packet_avail_unlocked();
+
+			RTCritSectLeave(&_drvnic->RecvLock);
 		}
 };
 
@@ -619,6 +657,18 @@ static DECLCALLBACK(void) drvNicDestruct(PPDMDRVINS pDrvIns)
 
 	if (RTCritSectIsInitialized(&pThis->XmitLock))
 		RTCritSectDelete(&pThis->XmitLock);
+
+	if (RTCritSectIsInitialized(&pThis->RecvLock))
+		RTCritSectDelete(&pThis->RecvLock);
+}
+
+
+static DECLCALLBACK(void) drvNicNetworkUp_ReceiveReady(PPDMINETWORKUP pInterface)
+{
+	PDRVNIC      const pThis      = PDMINETWORKUP_2_DRVNIC(pInterface);
+	Nic_client * const nic_client = pThis->nic_client;
+
+	nic_client->rx_resume();
 }
 
 
@@ -647,10 +697,12 @@ static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 	pThis->INetworkUp.pfnEndXmit            = drvNicNetworkUp_EndXmit;
 	pThis->INetworkUp.pfnSetPromiscuousMode = drvNicNetworkUp_SetPromiscuousMode;
 	pThis->INetworkUp.pfnNotifyLinkChanged  = drvNicNetworkUp_NotifyLinkChanged;
+	pThis->INetworkUp.pfnReceiveReady       = drvNicNetworkUp_ReceiveReady;
 	/* INetworkConfig - used on Genode to request Mac address of nic_session */
 	pThis->INetworkConfig.pfnGetMac         = drvGetMac;
 
 	RTCritSectInit(&pThis->XmitLock);
+	RTCritSectInit(&pThis->RecvLock);
 
 	/*
 	 * Check that no-one is attached to us.

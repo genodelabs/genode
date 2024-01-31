@@ -2,6 +2,20 @@ diff --git a/src/virtualbox6/src/VBox/Devices/Network/DevE1000.cpp b/src/virtual
 index 2c2e366..b45855b 100644
 --- a/src/virtualbox6/src/VBox/Devices/Network/DevE1000.cpp
 +++ b/src/virtualbox6/src/VBox/Devices/Network/DevE1000.cpp
+@@ -1768,6 +1768,13 @@
+  */
+ static void e1kWakeupReceive(PPDMDEVINS pDevIns, PE1KSTATE pThis)
+ {
++    PE1KSTATECC pThisCC = PDMDEVINS_2_DATA_CC(pDevIns, PE1KSTATECC);
++
++    if (pThisCC->pDrvR3 && pThisCC->pDrvR3->pfnReceiveReady) {
++        pThisCC->pDrvR3->pfnReceiveReady(pThisCC->pDrvR3);
++        return;
++    }
++
+     if (   pThis->fMaybeOutOfSpace
+         && pThis->hEventMoreRxDescAvail != NIL_SUPSEMEVENT)
+     {
 @@ -8001,7 +8001,7 @@
          return PDMDEV_SET_ERROR(pDevIns, rc,
                                  N_("Configuration error: Failed to get the value of 'EthernetCRC'"));
@@ -93,3 +107,14 @@ index bb69ca7..6d75de0 100644
          pThisCC->pDrv = PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMINETWORKUP);
          AssertMsgReturn(pThisCC->pDrv, ("Failed to obtain the PDMINETWORKUP interface!\n"),
                          VERR_PDM_MISSING_INTERFACE_BELOW);
+--- a/src/virtualbox6/include/VBox/vmm/pdmnetifs.h
++++ b/src/virtualbox6/include/VBox/vmm/pdmnetifs.h
+@@ -325,6 +325,8 @@
+ 
+     /** @todo Add a callback that informs the driver chain about MAC address changes if we ever implement that.  */
+ 
++    DECLR3CALLBACKMEMBER(void, pfnReceiveReady,(PPDMINETWORKUP pInterface));
++
+ } PDMINETWORKUP;
+ 
+ /** Ring-0 edition of PDMINETWORKUP. */
