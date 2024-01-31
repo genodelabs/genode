@@ -147,6 +147,8 @@ class Jitterentropy : public Entropy_source
 {
 	private:
 
+		bool _initialized { false };
+
 		rand_data *_rand_data { nullptr };
 
 		Jitterentropy(Jitterentropy const &) = delete;
@@ -159,13 +161,18 @@ class Jitterentropy : public Entropy_source
 		{
 			jitterentropy_init(alloc);
 
-			if (jent_entropy_init() != 0) {
-				error("jitterentropy library could not be initialized!");
+			int err = jent_entropy_init();
+			if (err != 0) {
+				warning("jitterentropy: initialization error (", err,
+				        ") randomness is poor quality");
+				return;
 			}
+
 			_rand_data = jent_entropy_collector_alloc(0, 0);
 			if (_rand_data == nullptr) {
 				error("jitterentropy could not allocate entropy collector!");
 			}
+			_initialized = true;
 		}
 
 
@@ -176,6 +183,13 @@ class Jitterentropy : public Entropy_source
 		uint64_t gen_random_u64() override
 		{
 			uint64_t result;
+
+			/* jitterentropy initialization failed and cannot be used, return something */
+			if (!_initialized) {
+				static uint64_t counter = 1;
+				return (uint64_t)&result * ++counter;
+			}
+
 			jent_read_entropy(_rand_data, (char*)&result, sizeof(result));
 			return result;
 		}
