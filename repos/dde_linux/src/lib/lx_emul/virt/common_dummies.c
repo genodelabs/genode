@@ -124,10 +124,12 @@ void ignore_signals(struct task_struct * t)
 	lx_emul_trace(__func__);
 }
 
+
+#ifdef CONFIG_TREE_SRCU
 #include <linux/srcu.h>
 
 void synchronize_srcu(struct srcu_struct * ssp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
-
+#endif

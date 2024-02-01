@@ -27,7 +27,6 @@ SRC_C   += lx_emul/shadow/kernel/irq_work.c
 SRC_C   += lx_emul/shadow/kernel/locking/spinlock.c
 SRC_C   += lx_emul/shadow/kernel/pid.c
 SRC_C   += lx_emul/shadow/kernel/printk/printk.c
-SRC_C   += lx_emul/shadow/kernel/rcu/tree.c
 SRC_C   += lx_emul/shadow/kernel/sched/cputime.c
 SRC_C   += lx_emul/shadow/kernel/sched/core.c
 SRC_C   += lx_emul/shadow/kernel/sched/fair.c
@@ -50,6 +49,13 @@ SRC_CC  += lx_kit/memory.cc
 SRC_CC  += lx_kit/scheduler.cc
 SRC_CC  += lx_kit/task.cc
 SRC_CC  += lx_kit/timeout.cc
+
+# RCU for UP
+ifdef RCU_TINY
+SRC_C += lx_emul/shadow/kernel/rcu/tiny.c
+else
+SRC_C += lx_emul/shadow/kernel/rcu/tree.c
+endif
 
 ifeq ($(filter-out $(SPECS),x86_32),)
 LX_ARCH   := x86

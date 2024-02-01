@@ -793,6 +793,8 @@ include/linux/rcu_sync.h
 include/linux/rculist.h
 include/linux/rculist_bl.h
 include/linux/rcupdate.h
+include/linux/rcupdate_wait.h
+include/linux/rcutiny.h
 include/linux/rcutree.h
 include/linux/rcuwait.h
 include/linux/reboot.h
@@ -844,9 +846,13 @@ include/linux/smp_types.h
 include/linux/socket.h
 include/linux/spinlock.h
 include/linux/spinlock_api_smp.h
+include/linux/spinlock_api_up.h
 include/linux/spinlock_types.h
 include/linux/spinlock_types_raw.h
+include/linux/spinlock_types_up.h
+include/linux/spinlock_up.h
 include/linux/srcu.h
+include/linux/srcutiny.h
 include/linux/srcutree.h
 include/linux/stackdepot.h
 include/linux/stacktrace.h
@@ -908,6 +914,7 @@ include/linux/wait_bit.h
 include/linux/workqueue.h
 include/linux/writeback.h
 include/linux/xarray.h
+include/trace/events/rcu.h
 include/uapi/asm-generic/Kbuild
 include/uapi/asm-generic/bitsperlong.h
 include/uapi/asm-generic/errno-base.h
@@ -1022,6 +1029,9 @@ include/video/edid.h
 kernel/bounds.c
 kernel/configs/tiny-base.config
 kernel/configs/tiny.config
+kernel/rcu/rcu.h
+kernel/rcu/rcu_segcblist.h
+kernel/rcu/srcutiny.c
 kernel/time/timeconst.bc
 lib/ctype.c
 lib/gen_crc32table.c

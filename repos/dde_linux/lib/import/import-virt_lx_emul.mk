@@ -21,7 +21,8 @@ ifeq ($(filter-out $(SPECS),arm_v6),)
 	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm_v6
 endif
 ifeq ($(filter-out $(SPECS),arm_v7),)
-	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm_v7
+	INC_DIR  += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm_v7
+	RCU_TINY := yes
 endif
 ifeq ($(filter-out $(SPECS),arm_v8),)
 	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm_v8
@@ -30,12 +31,18 @@ endif
 -include $(call select_from_repositories,lib/import/import-lx_emul_common.inc)
 
 SRC_C  += lx_emul/shadow/drivers/char/random.c
-SRC_C  += lx_emul/shadow/kernel/rcu/srcutree.c
 SRC_C  += lx_emul/shadow/mm/page_alloc.c
 SRC_C  += lx_emul/shadow/mm/vmalloc.c
 SRC_C  += lx_emul/virt/common_dummies.c
 SRC_CC += lx_emul/virt/irq.cc
 SRC_CC += lx_kit/memory_non_dma.cc
+
+# RCU for UP
+ifdef RCU_TINY
+SRC_C += kernel/rcu/srcutiny.c
+else
+SRC_C += lx_emul/shadow/kernel/rcu/srcutree.c
+endif
 
 ifeq ($(filter-out $(SPECS),x86),)
 	SRC_C += lx_emul/virt/spec/x86/dummies_arch.c
