@@ -90,12 +90,14 @@ void bpf_prog_change_xdp(struct bpf_prog *prev_prog, struct bpf_prog *prog)
 }
 
 
+#ifdef CONFIG_TREE_RCU
 #include <linux/rcutree.h>
 
 void synchronize_rcu_expedited(void)
 {
 	lx_emul_trace(__func__);
 }
+#endif
 
 
 #include <linux/rcupdate.h>

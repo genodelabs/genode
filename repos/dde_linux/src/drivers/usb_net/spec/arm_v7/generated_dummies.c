@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-01-23
+ * \date   2024-02-01
  */
 
 #include <lx_emul.h>
@@ -13,11 +13,6 @@ const char * __clk_get_name(const struct clk * clk)
 {
 	lx_emul_trace_and_stop(__func__);
 }
-
-
-#include <linux/cpumask.h>
-
-struct cpumask __cpu_active_mask;
 
 
 #include <linux/phy.h>
@@ -42,11 +37,6 @@ struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number
 {
 	lx_emul_trace_and_stop(__func__);
 }
-
-
-#include <asm-generic/percpu.h>
-
-unsigned long __per_cpu_offset[NR_CPUS] = {};
 
 
 #include <linux/printk.h>
@@ -132,38 +122,6 @@ void async_synchronize_full(void)
 #include <linux/filter.h>
 
 void bpf_warn_invalid_xdp_action(struct net_device * dev,struct bpf_prog * prog,u32 act)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/context_tracking_irq.h>
-
-noinstr void ct_irq_enter(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/context_tracking_irq.h>
-
-void ct_irq_enter_irqson(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/context_tracking_irq.h>
-
-noinstr void ct_irq_exit(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/context_tracking_irq.h>
-
-void ct_irq_exit_irqson(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -315,14 +273,6 @@ struct packet_offload * gro_find_receive_by_type(__be16 type)
 const u8 guid_index[16] = {};
 
 
-#include <linux/irq.h>
-
-void handle_fasteoi_irq(struct irq_desc * desc)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/addrconf.h>
 
 void in6_dev_finish_destroy(struct inet6_dev * idev)
@@ -373,57 +323,9 @@ long __sched io_schedule_timeout(long timeout)
 }
 
 
-#include <linux/interrupt.h>
-
-int irq_can_set_affinity(unsigned int irq)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/irqdomain.h>
-
-void irq_domain_free_irqs_common(struct irq_domain * domain,unsigned int virq,unsigned int nr_irqs)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/irqdomain.h>
-
-void irq_domain_set_info(struct irq_domain * domain,unsigned int virq,irq_hw_number_t hwirq,const struct irq_chip * chip,void * chip_data,irq_flow_handler_t handler,void * handler_data,const char * handler_name)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/irq.h>
-
-void irq_modify_status(unsigned int irq,unsigned long clr,unsigned long set)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/interrupt.h>
-
-int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/irqdomain.h>
 
 void irq_set_default_host(struct irq_domain * domain)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/irqnr.h>
-
-struct irq_desc * irq_to_desc(unsigned int irq)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -511,22 +413,6 @@ void mdiobus_unregister(struct mii_bus * bus)
 }
 
 
-#include <linux/preempt.h>
-
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/sch_generic.h>
 
 struct Qdisc_ops mq_qdisc_ops;
@@ -602,11 +488,6 @@ struct property * of_find_property(const struct device_node * np,const char * na
 {
 	lx_emul_trace_and_stop(__func__);
 }
-
-
-#include <linux/of.h>
-
-const struct fwnode_operations of_fwnode_ops;
 
 
 #include <linux/of.h>
@@ -825,14 +706,6 @@ struct sk_buff * skb_mac_gso_segment(struct sk_buff * skb,netdev_features_t feat
 }
 
 
-#include <linux/smp.h>
-
-void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/sock.h>
 
 void sock_edemux(struct sk_buff * skb)
@@ -854,14 +727,6 @@ int sysctl_tstamp_allow_data;
 #include <linux/tcp.h>
 
 struct sk_buff * tcp_get_timestamping_opt_stats(const struct sock * sk,const struct sk_buff * orig_skb,const struct sk_buff * ack_skb)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/clockchips.h>
-
-void tick_broadcast(const struct cpumask * mask)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -988,6 +853,14 @@ const u8 uuid_index[16] = {};
 #include <linux/sched/wake_q.h>
 
 void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/rcupdate_wait.h>
+
+void wakeme_after_rcu(struct rcu_head * head)
 {
 	lx_emul_trace_and_stop(__func__);
 }
