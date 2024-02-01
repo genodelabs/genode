@@ -126,12 +126,14 @@ void devres_add(struct device *dev, void *res)
 }
 
 
+#ifdef CONFIG_TREE_RCU
 #include <linux/rcutree.h>
 
 void synchronize_rcu_expedited(void)
 {
 	lx_emul_trace(__func__);
 }
+#endif
 
 
 #include <linux/rcupdate.h>
