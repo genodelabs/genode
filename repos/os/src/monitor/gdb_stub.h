@@ -384,7 +384,10 @@ struct qXfer : Command_with_separator
 				State::Memory_map const memory_map(state._current->pd);
 				memory_map.with_bytes([&] (Const_byte_range_ptr const &bytes) {
 					_send_window(out, bytes, Window::from_args(args)); });
-			}
+			} else
+				gdb_response(out, [&] (Output &out) {
+					print(out, "l"); });
+
 			handled = true;
 		});
 
