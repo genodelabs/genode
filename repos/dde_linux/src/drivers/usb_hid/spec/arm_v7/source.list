@@ -41,8 +41,6 @@ kernel/time/clocksource.c
 kernel/time/hrtimer.c
 kernel/time/jiffies.c
 kernel/time/ntp.c
-kernel/time/tick-broadcast-hrtimer.c
-kernel/time/tick-broadcast.c
 kernel/time/tick-common.c
 kernel/time/tick-oneshot.c
 kernel/time/tick-sched.c
