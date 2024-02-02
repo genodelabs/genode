@@ -1,5 +1,4 @@
-LIB_MK := $(addprefix lib/mk/,legacy_lxip.mk lxip_include.mk vfs_legacy_lxip.mk) \
-          $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/lx_kit_setjmp.mk)
+LIB_MK := $(addprefix lib/mk/,legacy_lxip.mk lxip_include.mk vfs_legacy_lxip.mk)
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/dde_linux)
 
