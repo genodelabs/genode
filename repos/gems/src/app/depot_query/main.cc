@@ -65,6 +65,8 @@ Depot_query::Main::_find_rom_in_pkg(File_content    const &archives,
 			});
 			break;
 
+		case Archive::BIN:
+		case Archive::DBG:
 		case Archive::IMAGE:
 			break;
 		}
@@ -221,6 +223,12 @@ void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
 		break;
 	}
 
+	case Archive::BIN:
+	case Archive::DBG:
+		dependencies.record(Archive::Path(Archive::user(path), "/src/",
+		                                  Archive::name(path), "/",
+		                                  Archive::version(path)), require_verify);
+		break;
 	case Archive::RAW:
 	case Archive::IMAGE:
 		break;
@@ -258,6 +266,8 @@ void Depot_query::Main::_collect_binary_dependencies(Archive::Path const &path,
 		break;
 
 	case Archive::RAW:
+	case Archive::BIN:
+	case Archive::DBG:
 		dependencies.record(path, require_verify);
 		break;
 
