@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2024-01-16
+ * \date   2024-02-05
  */
 
 #pragma once
@@ -69,6 +69,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_usb_common_init4",
 	"__initcall_usb_init4",
 	"__initcall_input_init4",
+	"__initcall_power_supply_class_init4",
 	"__initcall_leds_init4",
 	"__initcall_net_dev_init4",
 	"__initcall_neigh_init4",
@@ -143,17 +144,17 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_holtek_kbd_driver_init6",
 	"__initcall_holtek_mouse_driver_init6",
 	"__initcall_holtek_driver_init6",
+	"__initcall_magicmouse_driver_init6",
 	"__initcall_ms_driver_init6",
+	"__initcall_mt_driver_init6",
+	"__initcall_wacom_driver_init6",
 	"__initcall_hid_init6",
 	"__initcall_sock_diag_init6",
 	"__initcall_failover_init6",
 	"__initcall_gre_offload_init6",
-	"__initcall_tunnel4_init6",
 	"__initcall_inet_diag_init6",
 	"__initcall_tcp_diag_init6",
 	"__initcall_cubictcp_register6",
-	"__initcall_inet6_init6",
-	"__initcall_sit_init6",
 	"__initcall_init_machine_late7",
 	"__initcall_swp_emulation_init7",
 	"__initcall_printk_late_init7",

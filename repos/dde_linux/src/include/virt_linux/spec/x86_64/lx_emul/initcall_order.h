@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2024-01-05
+ * \date   2024-02-05
  */
 
 #pragma once
@@ -146,6 +146,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_asix_driver_init6",
 	"__initcall_ax88179_178a_driver_init6",
 	"__initcall_cdc_driver_init6",
+	"__initcall_smsc95xx_driver_init6",
 	"__initcall_usbnet_init6",
 	"__initcall_cdc_ncm_driver_init6",
 	"__initcall_cdc_mbim_driver_init6",
@@ -161,6 +162,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_holtek_kbd_driver_init6",
 	"__initcall_holtek_mouse_driver_init6",
 	"__initcall_holtek_driver_init6",
+	"__initcall_magicmouse_driver_init6",
 	"__initcall_ms_driver_init6",
 	"__initcall_mt_driver_init6",
 	"__initcall_wacom_driver_init6",
@@ -168,12 +170,9 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_sock_diag_init6",
 	"__initcall_failover_init6",
 	"__initcall_gre_offload_init6",
-	"__initcall_tunnel4_init6",
 	"__initcall_inet_diag_init6",
 	"__initcall_tcp_diag_init6",
 	"__initcall_cubictcp_register6",
-	"__initcall_inet6_init6",
-	"__initcall_sit_init6",
 	"__initcall_start_sync_check_timer7",
 	"__initcall_update_mp_table7",
 	"__initcall_lapic_insert_resource7",
