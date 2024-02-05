@@ -55,13 +55,6 @@ void Cpu_scheduler::_set_head(Share &s, unsigned const q, bool const c)
 }
 
 
-void Cpu_scheduler::_next_fill()
-{
-	_head->_fill = _fill;
-	_fills.head_to_tail();
-}
-
-
 void Cpu_scheduler::_head_claimed(unsigned const r)
 {
 	if (!_head->_quota)
@@ -94,8 +87,10 @@ void Cpu_scheduler::_head_filled(unsigned const r)
 
 	if (r)
 		_head->_fill = r;
-	else
-		_next_fill();
+	else {
+		_head->_fill = _fill;
+		_fills.head_to_tail();
+	}
 }
 
 
@@ -125,11 +120,11 @@ bool Cpu_scheduler::_fill_for_head()
 {
 	Double_list_item<Cpu_share> *const item { _fills.head() };
 	if (!item)
-		return 0;
+		return false;
 
 	Share &share = item->payload();
 	_set_head(share, share._fill, 0);
-	return 1;
+	return true;
 }
 
 
@@ -205,7 +200,7 @@ void Cpu_scheduler::ready(Share &s)
 {
 	assert(!s._ready && &s != &_idle);
 
-	s._ready = 1;
+	s._ready = true;
 	if (s._quota) {
 
 		_ucl[s._prio].remove(&s._claim_item);
@@ -214,14 +209,10 @@ void Cpu_scheduler::ready(Share &s)
 			_rcl[s._prio].insert_head(&s._claim_item);
 			if (_head && _head_claims) {
 
-				if (s._prio >= _head->_prio) {
-
+				if (s._prio >= _head->_prio)
 					_need_to_schedule = true;
-				}
-			} else {
-
+			} else
 				_need_to_schedule = true;
-			}
 		} else {
 
 			_rcl[s._prio].insert_tail(&s._claim_item);;
@@ -230,10 +221,8 @@ void Cpu_scheduler::ready(Share &s)
 
 	s._fill = _fill;
 	_fills.insert_tail(&s._fill_item);
-	if (!_head || _head == &_idle) {
 
-		_need_to_schedule = true;
-	}
+	if (!_head || _head == &_idle) _need_to_schedule = true;
 }
 
 
@@ -244,7 +233,7 @@ void Cpu_scheduler::unready(Share &s)
 	if (&s == _head)
 		_need_to_schedule = true;
 
-	s._ready = 0;
+	s._ready = false;
 	_fills.remove(&s._fill_item);
 
 	if (!s._quota)

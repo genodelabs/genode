@@ -156,7 +156,6 @@ class Kernel::Cpu_scheduler
 		void     _next_round();
 		void     _consumed(unsigned const q);
 		void     _set_head(Share &s, unsigned const q, bool const c);
-		void     _next_fill();
 		void     _head_claimed(unsigned const r);
 		void     _head_filled(unsigned const r);
 		bool     _claim_for_head();
