@@ -47,6 +47,7 @@ namespace Cpu_scheduler_test {
 	 */
 	class Cpu_scheduler;
 	class Cpu_share;
+	class Main;
 }
 
 
@@ -123,6 +124,7 @@ class Kernel::Cpu_share
 class Kernel::Cpu_scheduler
 {
 	friend class Cpu_scheduler_test::Cpu_scheduler;
+	friend class Cpu_scheduler_test::Main;
 
 	private:
 
@@ -204,8 +206,8 @@ class Kernel::Cpu_scheduler
 		unsigned       _head_quota  = 0;
 		bool           _head_claims = false;
 		bool           _head_yields = false;
-		unsigned const _quota;
-		unsigned       _residual;
+		unsigned const _super_period_length;
+		unsigned       _super_period_left;
 		unsigned const _fill;
 		bool           _need_to_schedule { true };
 		time_t         _last_time { 0 };
@@ -223,7 +225,6 @@ class Kernel::Cpu_scheduler
 		static void _reset(Cpu_share &share);
 
 		void     _reset_claims(unsigned const p);
-		void     _next_round();
 		void     _consumed(unsigned const q);
 		void     _set_head(Share &s, unsigned const q, bool const c);
 		void     _head_claimed(unsigned const r);
@@ -302,10 +303,9 @@ class Kernel::Cpu_scheduler
 		 */
 
 		Share &head();
+
 		unsigned head_quota() const {
-			return Genode::min(_head_quota, _residual); }
-		unsigned quota() const { return _quota; }
-		unsigned residual() const { return _residual; }
+			return Genode::min(_head_quota, _super_period_left); }
 };
 
 #endif /* _CORE__KERNEL__CPU_SCHEDULER_H_ */

@@ -31,19 +31,15 @@ void Cpu_scheduler::_reset_claims(unsigned const p)
 }
 
 
-void Cpu_scheduler::_next_round()
-{
-	_residual = _quota;
-	_for_each_prio([&] (Cpu_priority const p, bool &) { _reset_claims(p); });
-}
-
-
 void Cpu_scheduler::_consumed(unsigned const q)
 {
-	if (_residual > q)
-		_residual -= q;
-	else
-		_next_round();
+	if (_super_period_left > q) {
+		_super_period_left -= q;
+		return;
+	}
+
+	_super_period_left = _super_period_length;
+	_for_each_prio([&] (Cpu_priority const p, bool &) { _reset_claims(p); });
 }
 
 
@@ -127,7 +123,7 @@ bool Cpu_scheduler::_fill_for_head()
 
 unsigned Cpu_scheduler::_trim_consumption(unsigned &q)
 {
-	q = Genode::min(Genode::min(q, _head_quota), _residual);
+	q = Genode::min(Genode::min(q, _head_quota), _super_period_left);
 	if (!_head_yields)
 		return _head_quota - q;
 
@@ -299,9 +295,14 @@ Cpu_share &Cpu_scheduler::head()
 }
 
 
-Cpu_scheduler::Cpu_scheduler(Share &i, unsigned const q, unsigned const f)
+Cpu_scheduler::Cpu_scheduler(Share         &idle,
+                             unsigned const super_period_length,
+                             unsigned const f)
 :
-	_idle(i), _quota(q), _residual(q), _fill(f)
+	_idle(idle),
+	_super_period_length(super_period_length),
+	_super_period_left(super_period_length),
+	_fill(f)
 {
-	_set_head(i, f, 0);
+	_set_head(idle, f, 0);
 }

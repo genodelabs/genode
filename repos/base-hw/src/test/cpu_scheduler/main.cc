@@ -193,7 +193,7 @@ class Cpu_scheduler_test::Main
 			_current_time += consumed_quota;
 			_scheduler.update(_current_time);
 			unsigned const round_time {
-				_scheduler.quota() - _scheduler.residual() };
+				_scheduler._super_period_length - _scheduler._super_period_left };
 
 			if (round_time != expected_round_time) {
 
@@ -263,7 +263,7 @@ void Cpu_scheduler_test::Cpu_scheduler::print(Output &output) const
 	using Genode::print;
 
 	print(output, "(\n");
-	print(output, "   quota: ", _residual, "/", _quota, ", ");
+	print(output, "   quota: ", _super_period_left, "/", _super_period_length, ", ");
 	print(output, "fill: ", _fill, ", ");
 	print(output, "need to schedule: ", _need_to_schedule ? "true" : "false", ", ");
 	print(output, "last_time: ", _last_time);
