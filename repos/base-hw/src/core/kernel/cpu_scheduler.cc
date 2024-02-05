@@ -178,26 +178,18 @@ void Cpu_scheduler::update(time_t time)
 	unsigned duration = (unsigned) (time - _last_time);
 	_last_time        = time;
 	_need_to_schedule = false;
+	unsigned const r  = _trim_consumption(duration);
 
 	/* do not detract the quota if the head context was removed even now */
 	if (_head) {
-		unsigned const r = _trim_consumption(duration);
-
 		if (_head_claims)
 			_head_claimed(r);
 		else
 			_head_filled(r);
-
-		_head_yields = false;
-		_consumed(duration);
-
-	} else if (_head_was_removed) {
-
-		_trim_consumption(duration);
-		_head_was_removed = false;
-		_head_yields = false;
-		_consumed(duration);
 	}
+
+	_head_yields = false;
+	_consumed(duration);
 
 	if (_claim_for_head())
 		return;
@@ -276,10 +268,8 @@ void Cpu_scheduler::remove(Share &s)
 
 	if (s._ready) unready(s);
 
-	if (&s == _head) {
+	if (&s == _head)
 		_head = nullptr;
-		_head_was_removed = true;
-	}
 
 	if (!s._quota)
 		return;
