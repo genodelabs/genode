@@ -27,11 +27,10 @@ namespace Cpu_scheduler_test {
 	class Cpu_scheduler;
 	class Main;
 
+	using Share_list = List<List_element<Cpu_share>>;
 	static Cpu_share &cast(Kernel::Cpu_share &share);
 
 	static Cpu_share const &cast(Kernel::Cpu_share const &share);
-
-	static Double_list<Kernel::Cpu_share> &cast(Double_list<Kernel::Cpu_share> const &list);
 }
 
 
@@ -255,13 +254,6 @@ Cpu_scheduler_test::cast(Kernel::Cpu_share const &share)
 }
 
 
-static Double_list<Kernel::Cpu_share> &
-Cpu_scheduler_test::cast(Double_list<Kernel::Cpu_share> const &list)
-{
-	return *const_cast<Double_list<Kernel::Cpu_share> *>(&list);
-}
-
-
 /***************************************
  ** Cpu_scheduler_test::Cpu_scheduler **
  ***************************************/
@@ -308,7 +300,7 @@ void Cpu_scheduler_test::Cpu_scheduler::print(Output &output) const
 
 					print(output, " ready: ");
 					bool first_share { true };
-					cast(_rcl[prio]).for_each([&] (Kernel::Cpu_share const &share) {
+					_rcl[prio].for_each([&] (Kernel::Cpu_share const &share) {
 
 						if (&share == _head && _head_claims) {
 							if (_need_to_schedule) {
@@ -331,7 +323,7 @@ void Cpu_scheduler_test::Cpu_scheduler::print(Output &output) const
 
 					print(output, " unready: ");
 					bool first_share { true };
-					cast(_ucl[prio]).for_each([&] (Kernel::Cpu_share const &share) {
+					_ucl[prio].for_each([&] (Kernel::Cpu_share const &share) {
 
 						print(
 							output, first_share ? "" : ", ", cast(share).label() , "-",
@@ -348,7 +340,7 @@ void Cpu_scheduler_test::Cpu_scheduler::print(Output &output) const
 
 		print(output, "\n   fills: ");
 		bool first_share { true };
-		cast(_fills).for_each([&] (Kernel::Cpu_share const &share) {
+		_fills.for_each([&] (Kernel::Cpu_share const &share) {
 
 			if (&share == _head && !_head_claims) {
 				if (_need_to_schedule) {

@@ -1,6 +1,7 @@
 /*
  * \brief   Schedules CPU shares for the execution time of a CPU
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2014-10-09
  */
 
@@ -16,9 +17,9 @@
 
 /* core includes */
 #include <util.h>
+#include <util/list.h>
 #include <util/misc_math.h>
 #include <kernel/configuration.h>
-#include <kernel/double_list.h>
 
 namespace Kernel {
 
@@ -90,13 +91,15 @@ class Kernel::Cpu_share
 
 	private:
 
-		Double_list_item<Cpu_share> _fill_item  { *this };
-		Double_list_item<Cpu_share> _claim_item { *this };
-		Cpu_priority          const _prio;
-		unsigned                    _quota;
-		unsigned                    _claim;
-		unsigned                    _fill       { 0 };
-		bool                        _ready      { false };
+		using List_element = Genode::List_element<Cpu_share>;
+
+		List_element       _fill_item  { this };
+		List_element       _claim_item { this };
+		Cpu_priority const _prio;
+		unsigned           _quota;
+		unsigned           _claim;
+		unsigned           _fill       { 0 };
+		bool               _ready      { false };
 
 	public:
 
@@ -123,22 +126,89 @@ class Kernel::Cpu_scheduler
 
 	private:
 
+		class Share_list
+		{
+			private:
+
+				using List_element = Genode::List_element<Cpu_share>;
+
+				Genode::List<List_element> _list {};
+				List_element              *_last { nullptr };
+
+			public:
+
+				template <typename F> void for_each(F const &fn)
+				{
+					for (List_element * le = _list.first(); le; le = le->next())
+						fn(*le->object());
+				}
+
+				template <typename F> void for_each(F const &fn) const
+				{
+					for (List_element const * le = _list.first(); le;
+					     le = le->next()) fn(*le->object());
+				}
+
+				Cpu_share* head() const {
+					return _list.first() ? _list.first()->object() : nullptr; }
+
+				void insert_head(List_element * const le)
+				{
+					_list.insert(le);
+					if (!_last) _last = le;
+				}
+
+				void insert_tail(List_element * const le)
+				{
+					_list.insert(le, _last);
+					_last = le;
+				}
+
+				void remove(List_element * const le)
+				{
+					_list.remove(le);
+
+					if (_last != le)
+						return;
+
+					_last = nullptr;
+					for (List_element * le = _list.first(); le; le = le->next())
+						_last = le;
+				}
+
+
+				void to_tail(List_element * const le)
+				{
+					remove(le);
+					insert_tail(le);
+				}
+
+				void to_head(List_element * const le)
+				{
+					remove(le);
+					insert_head(le);
+				}
+
+				void head_to_tail() {
+					to_tail(_list.first()); }
+		};
+
 		typedef Cpu_share    Share;
 		typedef Cpu_priority Prio;
 
-		Double_list<Cpu_share>  _rcl[Prio::max() + 1]; /* ready claims */
-		Double_list<Cpu_share>  _ucl[Prio::max() + 1]; /* unready claims */
-		Double_list<Cpu_share>  _fills { };          /* ready fills */
-		Share                  &_idle;
-		Share                  *_head = nullptr;
-		unsigned                _head_quota  = 0;
-		bool                    _head_claims = false;
-		bool                    _head_yields = false;
-		unsigned const          _quota;
-		unsigned                _residual;
-		unsigned const          _fill;
-		bool                    _need_to_schedule { true };
-		time_t                  _last_time { 0 };
+		Share_list     _rcl[Prio::max() + 1]; /* ready claims */
+		Share_list     _ucl[Prio::max() + 1]; /* unready claims */
+		Share_list     _fills { };          /* ready fills */
+		Share         &_idle;
+		Share         *_head = nullptr;
+		unsigned       _head_quota  = 0;
+		bool           _head_claims = false;
+		bool           _head_yields = false;
+		unsigned const _quota;
+		unsigned       _residual;
+		unsigned const _fill;
+		bool           _need_to_schedule { true };
+		time_t         _last_time { 0 };
 
 		template <typename F> void _for_each_prio(F f)
 		{

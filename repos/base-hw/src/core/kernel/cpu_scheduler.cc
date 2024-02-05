@@ -82,7 +82,7 @@ void Cpu_scheduler::_head_claimed(unsigned const r)
 
 void Cpu_scheduler::_head_filled(unsigned const r)
 {
-	if (_fills.head() != &_head->_fill_item)
+	if (_fills.head() != _head)
 		return;
 
 	if (r)
@@ -98,17 +98,15 @@ bool Cpu_scheduler::_claim_for_head()
 {
 	bool result { false };
 	_for_each_prio([&] (Cpu_priority const p, bool &cancel_for_each_prio) {
-		Double_list_item<Cpu_share> *const item { _rcl[p].head() };
+		Cpu_share* const share = _rcl[p].head();
 
-		if (!item)
+		if (!share)
 			return;
 
-		Cpu_share &share { item->payload() };
-
-		if (!share._claim)
+		if (!share->_claim)
 			return;
 
-		_set_head(share, share._claim, 1);
+		_set_head(*share, share->_claim, 1);
 		result = true;
 		cancel_for_each_prio = true;
 	});
@@ -118,12 +116,11 @@ bool Cpu_scheduler::_claim_for_head()
 
 bool Cpu_scheduler::_fill_for_head()
 {
-	Double_list_item<Cpu_share> *const item { _fills.head() };
-	if (!item)
+	Cpu_share *const share = _fills.head();
+	if (!share)
 		return false;
 
-	Share &share = item->payload();
-	_set_head(share, share._fill, 0);
+	_set_head(*share, share->_fill, 0);
 	return true;
 }
 
