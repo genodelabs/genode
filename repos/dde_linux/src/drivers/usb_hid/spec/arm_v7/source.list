@@ -19,6 +19,7 @@ drivers/hid/hid-core.c
 drivers/hid/hid-generic.c
 drivers/hid/hid-holtek-mouse.c
 drivers/hid/hid-input.c
+drivers/hid/hid-magicmouse.c
 drivers/hid/hid-microsoft.c
 drivers/hid/hid-multitouch.c
 drivers/hid/hid-quirks.c
