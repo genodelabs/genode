@@ -2,7 +2,7 @@ LICENSE   := BSD
 VERSION   := 1.2.0
 DOWNLOADS := jitterentropy.archive
 
-URL(jitterentropy) := http://www.chronox.de/jent/jitterentropy-$(VERSION).tar.xz
+URL(jitterentropy) := http://www.chronox.de/jent/releases/historic/jitterentropy-$(VERSION).tar.xz
 SHA(jitterentropy) := c2cadcc413b9f5f40b6cc0e092933a32585f7db8f28269af2bee794fde8034b2
 SIG(jitterentropy) := ${URL(jitterentropy)}.asc
 KEY(jitterentropy) := 5F0D446594D2BF6977A9828AF02C639D843B5F11
