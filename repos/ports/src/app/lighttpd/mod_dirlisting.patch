@@ -1,0 +1,15 @@
+Disable usage of linkat and unlinkat which is not (yet) support
+in our libc.
+
+--- src/app/lighttpd/src/mod_dirlisting.c
++++ src/app/lighttpd/src/mod_dirlisting.c
+@@ -42,6 +42,9 @@
+ #endif
+ #endif
+ 
++#undef AT_FDCWD
++#undef _ATFILE_SOURCE
++
+ #ifdef _WIN32
+ #include <windows.h>
+ #include <stringapiset.h>

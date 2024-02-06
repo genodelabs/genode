@@ -11,43 +11,29 @@ FILTER_OUT := lempar.c lighttpd-angel.c lemon.c \
               mod_authn_pam.c \
               mod_authn_sasl.c \
               mod_cgi.c \
-              mod_cml.c \
-              mod_cml_funcs.c \
-              mod_cml_lua.c \
-              mod_compress.c \
               mod_deflate.c \
-              mod_evasive.c \
               mod_evhost.c \
               mod_expire.c \
               mod_extforward.c \
               mod_fastcgi.c \
-              mod_flv_streaming.c \
-              mod_geoip.c \
               mod_gnutls.c \
               mod_magnet.c \
               mod_magnet_cache.c \
               mod_maxminddb.c \
               mod_mbedtls.c \
-              mod_mysql_vhost.c \
               mod_nss.c \
               mod_proxy.c \
               mod_redirect.c \
               mod_rewrite.c \
               mod_rrdtool.c \
               mod_scgi.c \
-              mod_secdownload.c \
               mod_setenv.c \
               mod_simple_vhost.c \
               mod_skeleton.c \
               mod_sockproxy.c \
               mod_ssi.c \
-              mod_ssi_expr.c \
-              mod_ssi_exprparser.c \
               mod_status.c \
-              mod_trigger_b4_dl.c \
-              mod_uploadprogress.c \
               mod_userdir.c \
-              mod_usertrack.c \
               mod_vhostdb.c \
               mod_vhostdb_dbi.c \
               mod_vhostdb_ldap.c \
