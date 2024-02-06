@@ -166,6 +166,10 @@ struct Ahci::Hba : private Platform::Device::Mmio<0x28>
 		return read<Hba::Pi>() & (1u << port);
 	}
 
+	/* for diagnostics */
+	unsigned pi_value()     const { return read<Hba::Pi>(); }
+	unsigned cap_np_value() const { return read<Cap::Np>(); }
+
 	template <typename FN>
 	void handle_irq(FN const & fn)
 	{

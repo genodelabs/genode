@@ -72,9 +72,11 @@ class Ahci::Driver : Noncopyable
 
 		bool _enable_atapi;
 
-		void _scan_ports(Region_map &rm)
+		unsigned _scan_ports(Region_map &rm)
 		{
-			log("number of ports: ", _hba.port_count());
+			log("port scan:");
+
+			unsigned port_count = 0;
 
 			for (unsigned index = 0; index < MAX_PORTS; index++) {
 
@@ -106,7 +108,11 @@ class Ahci::Driver : Noncopyable
 						log("\t\t#", index, ":", port.atapi() ? " off (ATAPI)"
 						    : "  off (unknown device signature)");
 				}
+
+				port_count++;
 			}
+
+			return port_count;
 		}
 
 	public:
@@ -115,7 +121,11 @@ class Ahci::Driver : Noncopyable
 		: _env(env), _dispatch(dispatch), _enable_atapi(support_atapi)
 		{
 			/* search for devices */
-			_scan_ports(env.rm());
+			unsigned port_count = _scan_ports(env.rm());
+
+			if (port_count != _hba.port_count())
+				log("controller port count differs from detected ports (CAP.NP=",
+				    Hex(_hba.cap_np_value()), ",PI=", Hex(_hba.pi_value()), ")");
 		}
 
 		/**
