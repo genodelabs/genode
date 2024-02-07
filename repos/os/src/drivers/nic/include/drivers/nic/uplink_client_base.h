@@ -107,7 +107,8 @@ class Genode::Uplink_client_base : Noncopyable
 					case Transmit_result::ACCEPTED:
 
 						pkts_transmitted = true;
-						_conn->rx()->acknowledge_packet(conn_rx_pkt);
+						_conn->rx()->try_ack_packet(conn_rx_pkt);
+
 						break;
 
 					case Transmit_result::REJECTED:
@@ -115,7 +116,8 @@ class Genode::Uplink_client_base : Noncopyable
 						warning("failed to forward packet from "
 						        "Uplink-connection RX to driver");
 
-						_conn->rx()->acknowledge_packet(conn_rx_pkt);
+						_conn->rx()->try_ack_packet(conn_rx_pkt);
+
 						break;
 
 					case Transmit_result::RETRY:
@@ -135,6 +137,8 @@ class Genode::Uplink_client_base : Noncopyable
 
 				_drv_finish_transmitted_pkts();
 			}
+
+			_conn->rx()->wakeup();
 		}
 
 
@@ -142,9 +146,21 @@ class Genode::Uplink_client_base : Noncopyable
 		 ** Generic back end for interface towards driver **
 		 ***************************************************/
 
-		template <typename FUNC>
+		void _drv_rx_handle_pkt_try(size_t  conn_tx_pkt_size,
+		                            auto && fn_tx_write)
+		{
+			_drv_rx_handle_pkt_gen(conn_tx_pkt_size, fn_tx_write, true);
+		}
+
 		void _drv_rx_handle_pkt(size_t  conn_tx_pkt_size,
-		                        FUNC && write_to_conn_tx_pkt)
+		                        auto && fn_tx_write)
+		{
+			_drv_rx_handle_pkt_gen(conn_tx_pkt_size, fn_tx_write, false);
+		}
+
+		void _drv_rx_handle_pkt_gen(size_t  conn_tx_pkt_size,
+		                            auto && write_to_conn_tx_pkt,
+		                            bool try_pattern)
 		{
 			if (!_conn.constructed()) {
 				return;
@@ -174,14 +190,20 @@ class Genode::Uplink_client_base : Noncopyable
 
 					if (adjusted_conn_tx_pkt_size == conn_tx_pkt_size) {
 
-						_conn->tx()->submit_packet(conn_tx_pkt);
+						if (try_pattern)
+							_conn->tx()->try_submit_packet(conn_tx_pkt);
+						else
+							_conn->tx()->submit_packet(conn_tx_pkt);
 
 					} else if (adjusted_conn_tx_pkt_size < conn_tx_pkt_size) {
 
 						Packet_descriptor adjusted_conn_tx_pkt {
 							conn_tx_pkt.offset(), adjusted_conn_tx_pkt_size };
 
-						_conn->tx()->submit_packet(adjusted_conn_tx_pkt);
+						if (try_pattern)
+							_conn->tx()->try_submit_packet(adjusted_conn_tx_pkt);
+						else
+							_conn->tx()->submit_packet(adjusted_conn_tx_pkt);
 
 					} else {
 
@@ -202,6 +224,14 @@ class Genode::Uplink_client_base : Noncopyable
 
 				return;
 			}
+		}
+
+		void _rx_done()
+		{
+			if (!_conn.constructed())
+				return;
+
+			_conn->tx()->wakeup();
 		}
 
 		void _drv_handle_link_state(bool drv_link_state)
