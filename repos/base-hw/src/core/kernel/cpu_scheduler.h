@@ -198,17 +198,18 @@ class Kernel::Cpu_scheduler
 		typedef Cpu_share    Share;
 		typedef Cpu_priority Prio;
 
+		enum State { UP_TO_DATE, OUT_OF_DATE, YIELD };
+
+		State          _state { UP_TO_DATE };
 		Share_list     _rcl[Prio::max() + 1]; /* ready claims */
 		Share_list     _ucl[Prio::max() + 1]; /* unready claims */
 		Share_list     _fills { };          /* ready fills */
 		Share         &_idle;
 		Share         *_current = nullptr;
 		unsigned       _current_quantum { 0 };
-		bool           _yield = false;
 		unsigned const _super_period_length;
 		unsigned       _super_period_left { _super_period_length };
 		unsigned const _fill;
-		bool           _need_to_schedule { true };
 		time_t         _last_time { 0 };
 
 		template <typename F> void _for_each_prio(F f)
@@ -260,8 +261,10 @@ class Kernel::Cpu_scheduler
 		 */
 		Cpu_scheduler(Share &i, unsigned const q, unsigned const f);
 
-		bool need_to_schedule() { return _need_to_schedule; }
-		void timeout()          { _need_to_schedule = true; }
+		bool need_to_schedule() const { return _state != UP_TO_DATE; }
+
+		void timeout() {
+			if (_state == UP_TO_DATE) _state = OUT_OF_DATE; }
 
 		/**
 		 * Update state according to the current (absolute) time

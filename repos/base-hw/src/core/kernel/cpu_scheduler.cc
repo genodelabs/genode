@@ -70,7 +70,7 @@ void Cpu_scheduler::_current_claimed(unsigned const r)
 	 * at least ensure that it does not have to wait for all unprioritized
 	 * scheduling contexts as well before being scheduled again.
 	 */
-	if (!_yield)
+	if (_state != YIELD)
 		_fills.to_head(&_current->_fill_item);
 }
 
@@ -123,7 +123,7 @@ bool Cpu_scheduler::_schedule_fill()
 unsigned Cpu_scheduler::_trim_consumption(unsigned &q)
 {
 	q = Genode::min(Genode::min(q, _current_quantum), _super_period_left);
-	if (!_yield)
+	if (_state != YIELD)
 		return _current_quantum - q;
 
 	return 0;
@@ -157,7 +157,6 @@ void Cpu_scheduler::update(time_t time)
 
 	unsigned duration = (unsigned) (time - _last_time);
 	_last_time        = time;
-	_need_to_schedule = false;
 	unsigned const r  = _trim_consumption(duration);
 
 	/* do not detract the quota if the current share was removed even now */
@@ -166,8 +165,9 @@ void Cpu_scheduler::update(time_t time)
 		else                  _current_filled(r);
 	}
 
-	_yield = false;
 	_consumed(duration);
+
+	_state = UP_TO_DATE;
 
 	if (_schedule_claim())
 		return;
@@ -184,6 +184,9 @@ void Cpu_scheduler::ready(Share &s)
 	assert(!s._ready && &s != &_idle);
 
 	s._ready = true;
+
+	bool out_of_date = false;
+
 	if (s._quota) {
 
 		_ucl[s._prio].remove(&s._claim_item);
@@ -192,12 +195,9 @@ void Cpu_scheduler::ready(Share &s)
 			_rcl[s._prio].insert_head(&s._claim_item);
 			if (_current && _current->_claim) {
 
-				if (s._prio >= _current->_prio)
-					_need_to_schedule = true;
-			} else
-				_need_to_schedule = true;
+				if (s._prio >= _current->_prio) out_of_date = true;
+			} else out_of_date = true;
 		} else {
-
 			_rcl[s._prio].insert_tail(&s._claim_item);;
 		}
 	}
@@ -205,7 +205,9 @@ void Cpu_scheduler::ready(Share &s)
 	s._fill = _fill;
 	_fills.insert_tail(&s._fill_item);
 
-	if (!_current || _current == &_idle) _need_to_schedule = true;
+	if (!_current || _current == &_idle) out_of_date = true;
+
+	if (out_of_date && _state == UP_TO_DATE) _state = OUT_OF_DATE;
 }
 
 
@@ -213,8 +215,7 @@ void Cpu_scheduler::unready(Share &s)
 {
 	assert(s._ready && &s != &_idle);
 
-	if (&s == _current)
-		_need_to_schedule = true;
+	if (&s == _current && _state == UP_TO_DATE) _state = OUT_OF_DATE;
 
 	s._ready = false;
 	_fills.remove(&s._fill_item);
@@ -229,8 +230,7 @@ void Cpu_scheduler::unready(Share &s)
 
 void Cpu_scheduler::yield()
 {
-	_yield = true;
-	_need_to_schedule = true;
+	_state = YIELD;
 }
 
 

@@ -265,13 +265,13 @@ void Cpu_scheduler_test::Cpu_scheduler::print(Output &output) const
 	print(output, "(\n");
 	print(output, "   quota: ", _super_period_left, "/", _super_period_length, ", ");
 	print(output, "fill: ", _fill, ", ");
-	print(output, "need to schedule: ", _need_to_schedule ? "true" : "false", ", ");
+	print(output, "need to schedule: ", need_to_schedule() ? "true" : "false", ", ");
 	print(output, "last_time: ", _last_time);
 
 	if (_current != nullptr) {
 
 		print(output, "\n   current: ( ");
-		if (_need_to_schedule) {
+		if (need_to_schedule()) {
 			print(output, "\033[31m");
 		} else {
 			print(output, "\033[32m");
@@ -280,7 +280,7 @@ void Cpu_scheduler_test::Cpu_scheduler::print(Output &output) const
 		print(output, "quota: ", _current_quantum, ", ");
 		print(output, "\033[0m");
 		print(output, "claims: ", (_current && _current->_claim) ? "true" : "false", ", ");
-		print(output, "yields: ", _yield ? "true" : "false", " ");
+		print(output, "yields: ", _state == YIELD ? "true" : "false", " ");
 		print(output, ")");
 	}
 	bool prios_empty { true };
@@ -303,7 +303,7 @@ void Cpu_scheduler_test::Cpu_scheduler::print(Output &output) const
 					_rcl[prio].for_each([&] (Kernel::Cpu_share const &share) {
 
 						if (&share == _current && _current->_claim) {
-							if (_need_to_schedule) {
+							if (need_to_schedule()) {
 								print(output, "\033[31m");
 							} else {
 								print(output, "\033[32m");
@@ -343,7 +343,7 @@ void Cpu_scheduler_test::Cpu_scheduler::print(Output &output) const
 		_fills.for_each([&] (Kernel::Cpu_share const &share) {
 
 			if (&share == _current && !_current->_claim) {
-				if (_need_to_schedule) {
+				if (need_to_schedule()) {
 					print(output, "\033[31m");
 				} else {
 					print(output, "\033[32m");
