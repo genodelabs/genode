@@ -232,8 +232,6 @@ class Kernel::Cpu_scheduler
 		bool _schedule_claim();
 		bool _schedule_fill();
 
-		unsigned _trim_consumption(unsigned &q);
-
 		/**
 		 * Fill 's' becomes a claim due to a quota donation
 		 */

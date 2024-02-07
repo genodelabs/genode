@@ -120,16 +120,6 @@ bool Cpu_scheduler::_schedule_fill()
 }
 
 
-unsigned Cpu_scheduler::_trim_consumption(unsigned &q)
-{
-	q = Genode::min(Genode::min(q, _current_quantum), _super_period_left);
-	if (_state != YIELD)
-		return _current_quantum - q;
-
-	return 0;
-}
-
-
 void Cpu_scheduler::_quota_introduction(Share &s)
 {
 	if (s._ready) _rcl[s._prio].insert_tail(&s._claim_item);
@@ -155,12 +145,14 @@ void Cpu_scheduler::update(time_t time)
 {
 	using namespace Genode;
 
-	unsigned duration = (unsigned) (time - _last_time);
-	_last_time        = time;
-	unsigned const r  = _trim_consumption(duration);
+	unsigned const duration =
+		min(min((unsigned)(time-_last_time), _current_quantum),
+		    _super_period_left);
+	_last_time = time;
 
 	/* do not detract the quota if the current share was removed even now */
 	if (_current) {
+		unsigned const r = (_state != YIELD) ?  _current_quantum - duration : 0;
 		if (_current->_claim) _current_claimed(r);
 		else                  _current_filled(r);
 	}
