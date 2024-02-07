@@ -68,6 +68,8 @@ extern void dde_ipxe_nic_unregister_callbacks();
  */
 extern int dde_ipxe_nic_tx(unsigned if_index, const char *packet, unsigned packet_len);
 
+extern void dde_ipxe_nic_tx_done();
+
 /**
  * Get MAC address of device
  *

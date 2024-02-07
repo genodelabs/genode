@@ -94,6 +94,11 @@ class Uplink_client : public Uplink_client_base
 			return Transmit_result::REJECTED;
 		}
 
+		void _drv_finish_transmitted_pkts() override
+		{
+			dde_ipxe_nic_tx_done();
+		}
+
 	public:
 
 		Uplink_client(Env       &env,

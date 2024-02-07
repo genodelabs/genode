@@ -239,6 +239,14 @@ int dde_ipxe_nic_link_state(unsigned if_index)
 }
 
 
+void dde_ipxe_nic_tx_done()
+{
+	dde_lock_enter();
+	netdev_tx_done(net_dev);
+	dde_lock_leave();
+}
+
+
 int dde_ipxe_nic_tx(unsigned if_index, const char *packet, unsigned packet_len)
 {
 	if (if_index != 1)
@@ -248,13 +256,13 @@ int dde_ipxe_nic_tx(unsigned if_index, const char *packet, unsigned packet_len)
 
 	struct io_buffer *iobuf = alloc_iob(packet_len);
 
-	dde_lock_leave();
+	if (!iobuf) {
+		dde_lock_leave();
 
-	if (!iobuf)
 		return -1;
+	}
 
 	memcpy(iob_put(iobuf, packet_len), packet, packet_len);
-	dde_lock_enter();
 
 	netdev_poll(net_dev);
 	netdev_tx(net_dev, iob_disown(iobuf));

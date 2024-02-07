@@ -10,7 +10,8 @@ PATCHES   := patches/dde_ipxe.patch \
              patches/intel.patch \
              patches/intel_update.patch \
              patches/tg3.patch \
-             patches/realtek.patch
+             patches/realtek.patch \
+             patches/intel_tx_batch.patch
 
 PATCH_OPT := -p1 -d ${DIR(ipxe)}
 

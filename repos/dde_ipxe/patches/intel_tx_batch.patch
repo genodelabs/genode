@@ -1,0 +1,111 @@
+--- a/src/drivers/net/intel.c
++++ b/src/drivers/net/intel.c
+@@ -717,6 +717,23 @@
+ 	intel_reset ( intel );
+ }
+ 
++static int intel_transmit_done ( struct net_device *netdev)
++{
++	struct intel_nic *intel = netdev->priv;
++
++	unsigned int tx_tail;
++
++	tx_tail = ( intel->tx.prod % INTEL_NUM_TX_DESC );
++
++	wmb();
++
++	/* Notify card that there are packets ready to transmit */
++	writel ( tx_tail, intel->regs + intel->tx.reg + INTEL_xDT );
++
++	return 0;
++
++}
++
+ /**
+  * Transmit packet
+  *
+@@ -745,10 +762,11 @@
+ 	address = virt_to_bus ( iobuf->data );
+ 	len = iob_len ( iobuf );
+ 	intel->tx.describe ( tx, address, len );
+-	wmb();
+ 
+-	/* Notify card that there are packets ready to transmit */
+-	writel ( tx_tail, intel->regs + intel->tx.reg + INTEL_xDT );
++	/* ptr check just in case we make transmit_done configurable - set/unset */
++	if ((intel->tx.cons == ((tx_tail + 1) % INTEL_NUM_TX_DESC)) || !netdev->op->transmit_done) {
++		intel_transmit_done(netdev);
++	}
+ 
+ 	DBGC2 ( intel, "INTEL %p TX %d is [%llx,%llx)\n", intel, tx_idx,
+ 		( ( unsigned long long ) address ),
+@@ -845,7 +863,7 @@
+ 		return;
+ 
+ 	/* Poll for TX completions, if applicable */
+-	if ( icr & INTEL_IRQ_TXDW )
++	if ( icr & (INTEL_IRQ_TXDW | INTEL_IRQ_TXQE))
+ 		intel_poll_tx ( netdev );
+ 
+ 	/* Poll for RX completions, if applicable */
+@@ -882,7 +900,7 @@
+ 	struct intel_nic *intel = netdev->priv;
+ 	uint32_t mask;
+ 
+-	mask = ( INTEL_IRQ_TXDW | INTEL_IRQ_LSC | INTEL_IRQ_RXT0 );
++	mask = ( INTEL_IRQ_TXQE | INTEL_IRQ_LSC | INTEL_IRQ_RXT0 );
+ 	if ( enable ) {
+ 		writel ( mask, intel->regs + INTEL_IMS );
+ 	} else {
+@@ -897,6 +915,7 @@
+ 	.transmit	= intel_transmit,
+ 	.poll		= intel_poll,
+ 	.irq		= intel_irq,
++	.transmit_done  = intel_transmit_done,
+ };
+ 
+ /******************************************************************************
+--- a/src/include/ipxe/netdevice.h
++++ b/src/include/ipxe/netdevice.h
+@@ -260,6 +260,8 @@
+ 	 * supported.
+ 	 */
+ 	void ( * irq ) ( struct net_device *netdev, int enable );
++
++	int ( * transmit_done ) ( struct net_device *netdev);
+ };
+ 
+ /** Network device error */
+@@ -575,6 +577,7 @@
+ extern void netdev_link_err ( struct net_device *netdev, int rc );
+ extern void netdev_link_down ( struct net_device *netdev );
+ extern int netdev_tx ( struct net_device *netdev, struct io_buffer *iobuf );
++extern int netdev_tx_done ( struct net_device *netdev );
+ extern void netdev_tx_defer ( struct net_device *netdev,
+ 			      struct io_buffer *iobuf );
+ extern void netdev_tx_err ( struct net_device *netdev,
+--- a/src/net/netdevice.c
++++ b/src/net/netdevice.c
+@@ -213,6 +213,22 @@
+ 	return rc;
+ }
+ 
++int netdev_tx_done ( struct net_device *netdev ) {
++
++	int rc;
++
++	/* Avoid calling transmit() on unopened network devices */
++	if ( ! netdev_is_open ( netdev ) ) {
++		rc = -ENETUNREACH;
++		return rc;
++	}
++
++	if ( !netdev->op || !netdev->op->transmit_done )
++		return -ENETUNREACH;
++
++	return netdev->op->transmit_done ( netdev );
++}
++
+ /**
+  * Defer transmitted packet
+  *
