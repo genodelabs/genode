@@ -151,7 +151,7 @@ Cpu_job & Cpu::schedule()
 	if (_scheduler.need_to_schedule()) {
 		_timer.process_timeouts();
 		_scheduler.update(_timer.time());
-		time_t t = _scheduler.head_quota();
+		time_t t = _scheduler.current_time_left();
 		_timer.set_timeout(this, t);
 		time_t duration = _timer.schedule_timeout();
 		old_job.update_execution_time(duration);

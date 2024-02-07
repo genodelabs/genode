@@ -43,25 +43,24 @@ void Cpu_scheduler::_consumed(unsigned const q)
 }
 
 
-void Cpu_scheduler::_set_head(Share &s, unsigned const q, bool const c)
+void Cpu_scheduler::_set_current(Share &s, unsigned const q)
 {
-	_head_quota = q;
-	_head_claims = c;
-	_head = &s;
+	_current_quantum = q;
+	_current = &s;
 }
 
 
-void Cpu_scheduler::_head_claimed(unsigned const r)
+void Cpu_scheduler::_current_claimed(unsigned const r)
 {
-	if (!_head->_quota)
+	if (!_current->_quota)
 		return;
 
-	_head->_claim = r > _head->_quota ? _head->_quota : r;
+	_current->_claim = r > _current->_quota ? _current->_quota : r;
 
-	if (_head->_claim || !_head->_ready)
+	if (_current->_claim || !_current->_ready)
 		return;
 
-	_rcl[_head->_prio].to_tail(&_head->_claim_item);
+	_rcl[_current->_prio].to_tail(&_current->_claim_item);
 
 	/*
 	 * This is an optimization for the case that a prioritized scheduling
@@ -71,26 +70,26 @@ void Cpu_scheduler::_head_claimed(unsigned const r)
 	 * at least ensure that it does not have to wait for all unprioritized
 	 * scheduling contexts as well before being scheduled again.
 	 */
-	if (!_head_yields)
-		_fills.to_head(&_head->_fill_item);
+	if (!_yield)
+		_fills.to_head(&_current->_fill_item);
 }
 
 
-void Cpu_scheduler::_head_filled(unsigned const r)
+void Cpu_scheduler::_current_filled(unsigned const r)
 {
-	if (_fills.head() != _head)
+	if (_fills.head() != _current)
 		return;
 
 	if (r)
-		_head->_fill = r;
+		_current->_fill = r;
 	else {
-		_head->_fill = _fill;
+		_current->_fill = _fill;
 		_fills.head_to_tail();
 	}
 }
 
 
-bool Cpu_scheduler::_claim_for_head()
+bool Cpu_scheduler::_schedule_claim()
 {
 	bool result { false };
 	_for_each_prio([&] (Cpu_priority const p, bool &cancel_for_each_prio) {
@@ -102,7 +101,7 @@ bool Cpu_scheduler::_claim_for_head()
 		if (!share->_claim)
 			return;
 
-		_set_head(*share, share->_claim, 1);
+		_set_current(*share, share->_claim);
 		result = true;
 		cancel_for_each_prio = true;
 	});
@@ -110,22 +109,22 @@ bool Cpu_scheduler::_claim_for_head()
 }
 
 
-bool Cpu_scheduler::_fill_for_head()
+bool Cpu_scheduler::_schedule_fill()
 {
 	Cpu_share *const share = _fills.head();
 	if (!share)
 		return false;
 
-	_set_head(*share, share->_fill, 0);
+	_set_current(*share, share->_fill);
 	return true;
 }
 
 
 unsigned Cpu_scheduler::_trim_consumption(unsigned &q)
 {
-	q = Genode::min(Genode::min(q, _head_quota), _super_period_left);
-	if (!_head_yields)
-		return _head_quota - q;
+	q = Genode::min(Genode::min(q, _current_quantum), _super_period_left);
+	if (!_yield)
+		return _current_quantum - q;
 
 	return 0;
 }
@@ -133,59 +132,50 @@ unsigned Cpu_scheduler::_trim_consumption(unsigned &q)
 
 void Cpu_scheduler::_quota_introduction(Share &s)
 {
-	if (s._ready)
-		_rcl[s._prio].insert_tail(&s._claim_item);
-	else
-		_ucl[s._prio].insert_tail(&s._claim_item);
+	if (s._ready) _rcl[s._prio].insert_tail(&s._claim_item);
+	else          _ucl[s._prio].insert_tail(&s._claim_item);
 }
 
 
 void Cpu_scheduler::_quota_revokation(Share &s)
 {
-	if (s._ready)
-		_rcl[s._prio].remove(&s._claim_item);
-	else
-		_ucl[s._prio].remove(&s._claim_item);
+	if (s._ready) _rcl[s._prio].remove(&s._claim_item);
+	else          _ucl[s._prio].remove(&s._claim_item);
 }
 
 
 void Cpu_scheduler::_quota_adaption(Share &s, unsigned const q)
 {
-	if (q) {
-		if (s._claim > q)
-			s._claim = q;
-	} else {
-		_quota_revokation(s);
-	}
-
+	if (s._claim > q) s._claim = q;
+	if (!q)           _quota_revokation(s);
 }
 
 
 void Cpu_scheduler::update(time_t time)
 {
+	using namespace Genode;
+
 	unsigned duration = (unsigned) (time - _last_time);
 	_last_time        = time;
 	_need_to_schedule = false;
 	unsigned const r  = _trim_consumption(duration);
 
-	/* do not detract the quota if the head context was removed even now */
-	if (_head) {
-		if (_head_claims)
-			_head_claimed(r);
-		else
-			_head_filled(r);
+	/* do not detract the quota if the current share was removed even now */
+	if (_current) {
+		if (_current->_claim) _current_claimed(r);
+		else                  _current_filled(r);
 	}
 
-	_head_yields = false;
+	_yield = false;
 	_consumed(duration);
 
-	if (_claim_for_head())
+	if (_schedule_claim())
 		return;
 
-	if (_fill_for_head())
+	if (_schedule_fill())
 		return;
 
-	_set_head(_idle, _fill, 0);
+	_set_current(_idle, _fill);
 }
 
 
@@ -200,9 +190,9 @@ void Cpu_scheduler::ready(Share &s)
 		if (s._claim) {
 
 			_rcl[s._prio].insert_head(&s._claim_item);
-			if (_head && _head_claims) {
+			if (_current && _current->_claim) {
 
-				if (s._prio >= _head->_prio)
+				if (s._prio >= _current->_prio)
 					_need_to_schedule = true;
 			} else
 				_need_to_schedule = true;
@@ -215,7 +205,7 @@ void Cpu_scheduler::ready(Share &s)
 	s._fill = _fill;
 	_fills.insert_tail(&s._fill_item);
 
-	if (!_head || _head == &_idle) _need_to_schedule = true;
+	if (!_current || _current == &_idle) _need_to_schedule = true;
 }
 
 
@@ -223,7 +213,7 @@ void Cpu_scheduler::unready(Share &s)
 {
 	assert(s._ready && &s != &_idle);
 
-	if (&s == _head)
+	if (&s == _current)
 		_need_to_schedule = true;
 
 	s._ready = false;
@@ -239,7 +229,7 @@ void Cpu_scheduler::unready(Share &s)
 
 void Cpu_scheduler::yield()
 {
-	_head_yields = true;
+	_yield = true;
 	_need_to_schedule = true;
 }
 
@@ -250,8 +240,8 @@ void Cpu_scheduler::remove(Share &s)
 
 	if (s._ready) unready(s);
 
-	if (&s == _head)
-		_head = nullptr;
+	if (&s == _current)
+		_current = nullptr;
 
 	if (!s._quota)
 		return;
@@ -285,13 +275,13 @@ void Cpu_scheduler::quota(Share &s, unsigned const q)
 }
 
 
-Cpu_share &Cpu_scheduler::head()
+Cpu_share &Cpu_scheduler::current()
 {
-	if (!_head) {
-		Genode::error("attempt to access invalid scheduler head");
+	if (!_current) {
+		Genode::error("attempt to access invalid scheduler's current share");
 		update(_last_time);
 	}
-	return *_head;
+	return *_current;
 }
 
 
@@ -301,8 +291,7 @@ Cpu_scheduler::Cpu_scheduler(Share         &idle,
 :
 	_idle(idle),
 	_super_period_length(super_period_length),
-	_super_period_left(super_period_length),
 	_fill(f)
 {
-	_set_head(idle, f, 0);
+	_set_current(idle, f);
 }

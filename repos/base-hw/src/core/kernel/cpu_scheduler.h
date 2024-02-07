@@ -202,12 +202,11 @@ class Kernel::Cpu_scheduler
 		Share_list     _ucl[Prio::max() + 1]; /* unready claims */
 		Share_list     _fills { };          /* ready fills */
 		Share         &_idle;
-		Share         *_head = nullptr;
-		unsigned       _head_quota  = 0;
-		bool           _head_claims = false;
-		bool           _head_yields = false;
+		Share         *_current = nullptr;
+		unsigned       _current_quantum { 0 };
+		bool           _yield = false;
 		unsigned const _super_period_length;
-		unsigned       _super_period_left;
+		unsigned       _super_period_left { _super_period_length };
 		unsigned const _fill;
 		bool           _need_to_schedule { true };
 		time_t         _last_time { 0 };
@@ -224,13 +223,14 @@ class Kernel::Cpu_scheduler
 
 		static void _reset(Cpu_share &share);
 
-		void     _reset_claims(unsigned const p);
-		void     _consumed(unsigned const q);
-		void     _set_head(Share &s, unsigned const q, bool const c);
-		void     _head_claimed(unsigned const r);
-		void     _head_filled(unsigned const r);
-		bool     _claim_for_head();
-		bool     _fill_for_head();
+		void _reset_claims(unsigned const p);
+		void _consumed(unsigned const q);
+		void _set_current(Share &s, unsigned const q);
+		void _current_claimed(unsigned const r);
+		void _current_filled(unsigned const r);
+		bool _schedule_claim();
+		bool _schedule_fill();
+
 		unsigned _trim_consumption(unsigned &q);
 
 		/**
@@ -264,7 +264,7 @@ class Kernel::Cpu_scheduler
 		void timeout()          { _need_to_schedule = true; }
 
 		/**
-		 * Update head according to the current (absolute) time
+		 * Update state according to the current (absolute) time
 		 */
 		void update(time_t time);
 
@@ -279,7 +279,7 @@ class Kernel::Cpu_scheduler
 		void unready(Share &s);
 
 		/**
-		 * Current head looses its current claim/fill for this round
+		 * Current share likes another share to be scheduled now
 		 */
 		void yield();
 
@@ -298,14 +298,10 @@ class Kernel::Cpu_scheduler
 		 */
 		void quota(Share &s, unsigned const q);
 
-		/*
-		 * Accessors
-		 */
+		Share& current();
 
-		Share &head();
-
-		unsigned head_quota() const {
-			return Genode::min(_head_quota, _super_period_left); }
+		unsigned current_time_left() const {
+			return Genode::min(_current_quantum, _super_period_left); }
 };
 
 #endif /* _CORE__KERNEL__CPU_SCHEDULER_H_ */

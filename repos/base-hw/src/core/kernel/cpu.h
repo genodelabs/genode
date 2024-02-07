@@ -192,7 +192,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool, private Timeout
 		 * Returns the currently active job
 		 */
 		Job & scheduled_job() {
-			return *static_cast<Job *>(&_scheduler.head())->helping_destination(); }
+			return *static_cast<Job *>(&_scheduler.current())->helping_destination(); }
 
 		unsigned id() const { return _id; }
 		Cpu_scheduler &scheduler() { return _scheduler; }
