@@ -31,9 +31,7 @@ namespace Board {
 	using Vm_page_table = Hw::Page_table;
 	using Vm_page_table_array =
 		Vm_page_table::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
-
 	struct Vcpu_context;
-
 	using Vcpu_data = Genode::Vcpu_data;
 	using Vcpu_state = Genode::Vcpu_state;
 
@@ -42,7 +40,7 @@ namespace Board {
 	};
 
 	/* FIXME move into Vcpu_context as 'enum class' when we have C++20 */
-	enum Platform_exitcodes : Genode::uint64_t {
+	enum Platform_exitcodes : uint64_t {
 		EXIT_NPF     = 0xfc,
 		EXIT_INIT    = 0xfd,
 		EXIT_STARTUP = 0xfe,
@@ -64,19 +62,21 @@ namespace Kernel {
 
 struct Board::Vcpu_context
 {
-	Vcpu_context(unsigned id, void *vcpu_data_ptr);
-	Vcpu_context(unsigned id, void *virt_area, addr_t vmcb_phys_addr);
-	void initialize_svm(Kernel::Cpu &cpu, void *table);
+	Vcpu_context(unsigned id, Vcpu_data &vcpu_data);
+	void initialize(Kernel::Cpu &cpu, addr_t table_phys_addr);
 	void read_vcpu_state(Vcpu_state &state);
 	void write_vcpu_state(Vcpu_state &state);
 
-	Vmcb  &vmcb;
-	addr_t vmcb_phys_addr;
+	Vmcb *vmcb { nullptr };
 
 	Genode::Align_at<Core::Cpu::Context> regs;
+	Vcpu_data                   &vcpu_data;
 	uint64_t tsc_aux_host = 0U;
 	uint64_t tsc_aux_guest = 0U;
 	uint64_t exitcode = EXIT_INIT;
+
+	Vcpu_context(const Vcpu_context &)            = delete;
+	const Vcpu_context &operator=(Vcpu_context &) = delete;
 };
 
 #endif /* _CORE__SPEC__PC__VIRTUALIZATION__BOARD_H_ */

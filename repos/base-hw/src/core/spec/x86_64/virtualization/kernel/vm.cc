@@ -29,7 +29,8 @@
 #include <virtualization/svm.h>
 #include <hw/spec/x86_64/x86_64.h>
 
-using Genode::addr_t;
+using namespace Genode;
+
 using Kernel::Cpu;
 using Kernel::Vm;
 using Board::Vmcb;
@@ -37,7 +38,7 @@ using Board::Vmcb;
 
 Vm::Vm(Irq::Pool              & user_irq_pool,
        Cpu                    & cpu,
-       Genode::Vcpu_data      & data,
+       Vcpu_data              & data,
        Kernel::Signal_context & context,
        Identity               & id)
 :
@@ -47,7 +48,7 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 	_state(*data.vcpu_state),
 	_context(context),
 	_id(id),
-	_vcpu_context(id.id, data.virt_area, data.phys_addr)
+	_vcpu_context(id.id, data)
 {
 	affinity(cpu);
 }
@@ -73,13 +74,8 @@ void Vm::proceed(Cpu & cpu)
 	Cpu::Ia32_tsc_aux::write(
 	    (Cpu::Ia32_tsc_aux::access_t)_vcpu_context.tsc_aux_guest);
 
-	/*
-	 * We push the host context's physical address to trapno so that
-	 * we can pop it later
-	 */
-	_vcpu_context.regs->trapno = _vcpu_context.vmcb.root_vmcb_phys;
-	Hypervisor::switch_world( _vcpu_context.vmcb_phys_addr,
-	    (addr_t)&_vcpu_context.regs->r8, _vcpu_context.regs->fpu_context());
+	_vcpu_context.vmcb->switch_world(_vcpu_context.vcpu_data.phys_addr,
+			*_vcpu_context.regs);
 	/*
 	 * This will fall into an interrupt or otherwise jump into
 	 * _kernel_entry
@@ -90,7 +86,6 @@ void Vm::proceed(Cpu & cpu)
 void Vm::exception(Cpu & cpu)
 {
 	using namespace Board;
-	using Genode::Cpu_state;
 
 	switch (_vcpu_context.regs->trapno) {
 		case Cpu_state::INTERRUPTS_START ... Cpu_state::INTERRUPTS_END:
@@ -103,7 +98,7 @@ void Vm::exception(Cpu & cpu)
 			/* exception method was entered without exception */
 			break;
 		default:
-			Genode::error("VM: triggered unknown exception ",
+			error("VM: triggered unknown exception ",
 			              _vcpu_context.regs->trapno,
 			              " with error code ", _vcpu_context.regs->errcode,
 			              " at ip=",
@@ -113,14 +108,10 @@ void Vm::exception(Cpu & cpu)
 			return;
 	};
 
-	enum Svm_exitcodes : Genode::uint64_t {
-		VMEXIT_INVALID = -1ULL,
-		VMEXIT_INTR = 0x60,
-		VMEXIT_NPF = 0x400,
-	};
-
 	if (_vcpu_context.exitcode == EXIT_INIT) {
-			_vcpu_context.initialize_svm(cpu, _id.table);
+			addr_t table_phys_addr =
+			    reinterpret_cast<addr_t>(_id.table);
+			_vcpu_context.initialize(cpu, table_phys_addr);
 			_vcpu_context.tsc_aux_host = cpu.id();
 			_vcpu_context.exitcode     = EXIT_STARTUP;
 			_pause_vcpu();
@@ -128,26 +119,11 @@ void Vm::exception(Cpu & cpu)
 			return;
 	}
 
-	_vcpu_context.exitcode = _vcpu_context.vmcb.read<Vmcb::Exitcode>();
+	_vcpu_context.exitcode = _vcpu_context.vmcb->get_exitcode();
 
-	switch (_vcpu_context.exitcode) {
-		case VMEXIT_INVALID:
-			Genode::error("Vm::exception: invalid SVM state!");
-			return;
-		case 0x40 ... 0x5f:
-			Genode::error("Vm::exception: unhandled SVM exception ",
-			              Genode::Hex(_vcpu_context.exitcode));
-			return;
-		case VMEXIT_INTR:
-			_vcpu_context.exitcode = EXIT_PAUSED;
-			return;
-		case VMEXIT_NPF:
-			_vcpu_context.exitcode = EXIT_NPF;
-			[[fallthrough]];
-		default:
+	if (_vcpu_context.exitcode != EXIT_PAUSED) {
 			_pause_vcpu();
 			_context.submit(1);
-			return;
 	}
 }
 
@@ -174,13 +150,94 @@ void Vm::_sync_from_vmm()
 }
 
 
-Board::Vcpu_context::Vcpu_context(unsigned id,
-                                  void     *virt_area,
-                                  addr_t    vmcb_phys_addr)
+Board::Vcpu_context::Vcpu_context(unsigned id, Vcpu_data &vcpu_data)
 :
-	vmcb(*Genode::construct_at<Vmcb>(virt_area, id)),
-	vmcb_phys_addr(vmcb_phys_addr),
-	regs(1)
+	regs(1),
+	vcpu_data(vcpu_data)
 {
+	vmcb = construct_at<Vmcb>(vcpu_data.virt_area, id);
 	regs->trapno = TRAP_VMEXIT;
+}
+
+void Board::Vcpu_context::read_vcpu_state(Vcpu_state &state)
+{
+	vmcb->read_vcpu_state(state);
+
+	if (state.cx.charged() || state.dx.charged() || state.bx.charged()) {
+		regs->rax   = state.ax.value();
+		regs->rcx   = state.cx.value();
+		regs->rdx   = state.dx.value();
+		regs->rbx   = state.bx.value();
+	}
+
+	if (state.bp.charged() || state.di.charged() || state.si.charged()) {
+		regs->rdi   = state.di.value();
+		regs->rsi   = state.si.value();
+		regs->rbp   = state.bp.value();
+	}
+
+	if (state.r8 .charged() || state.r9 .charged() ||
+	    state.r10.charged() || state.r11.charged() ||
+	    state.r12.charged() || state.r13.charged() ||
+	    state.r14.charged() || state.r15.charged()) {
+
+		regs->r8  = state.r8.value();
+		regs->r9  = state.r9.value();
+		regs->r10 = state.r10.value();
+		regs->r11 = state.r11.value();
+		regs->r12 = state.r12.value();
+		regs->r13 = state.r13.value();
+		regs->r14 = state.r14.value();
+		regs->r15 = state.r15.value();
+	}
+
+	if (state.fpu.charged()) {
+		state.fpu.with_state(
+		    [&](Vcpu_state::Fpu::State const &fpu) {
+			    memcpy((void *) regs->fpu_context(), &fpu, sizeof(fpu));
+		    });
+	}
+}
+
+void Board::Vcpu_context::write_vcpu_state(Vcpu_state &state)
+{
+	state.discharge();
+	state.exit_reason = (unsigned) exitcode;
+
+	state.fpu.charge([&](Vcpu_state::Fpu::State &fpu) {
+		memcpy(&fpu, (void *) regs->fpu_context(), sizeof(fpu));
+	});
+
+	/* SVM will overwrite rax but VMX doesn't. */
+	state.ax.charge(regs->rax);
+	state.cx.charge(regs->rcx);
+	state.dx.charge(regs->rdx);
+	state.bx.charge(regs->rbx);
+
+	state.di.charge(regs->rdi);
+	state.si.charge(regs->rsi);
+	state.bp.charge(regs->rbp);
+
+	state.r8.charge(regs->r8);
+	state.r9.charge(regs->r9);
+	state.r10.charge(regs->r10);
+	state.r11.charge(regs->r11);
+	state.r12.charge(regs->r12);
+	state.r13.charge(regs->r13);
+	state.r14.charge(regs->r14);
+	state.r15.charge(regs->r15);
+
+	state.tsc.charge(Hw::Lapic::rdtsc());
+
+	tsc_aux_guest = Cpu::Ia32_tsc_aux::read();
+	state.tsc_aux.charge(tsc_aux_guest);
+	Cpu::Ia32_tsc_aux::write((Cpu::Ia32_tsc_aux::access_t) tsc_aux_host);
+
+	vmcb->write_vcpu_state(state);
+}
+
+
+void Board::Vcpu_context::initialize(Kernel::Cpu &cpu, addr_t table_phys_addr)
+{
+	vmcb->initialize(cpu, table_phys_addr);
 }

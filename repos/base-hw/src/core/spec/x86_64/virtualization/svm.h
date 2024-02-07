@@ -16,10 +16,27 @@
 
 #include <base/internal/page_size.h>
 #include <base/stdint.h>
+#include <cpu.h>
 #include <cpu/vcpu_state.h>
 #include <cpu/vcpu_state_virtualization.h>
 #include <util/mmio.h>
 #include <util/string.h>
+
+using Genode::addr_t;
+using Genode::size_t;
+using Genode::uint8_t;
+using Genode::uint32_t;
+using Genode::uint64_t;
+using Genode::Mmio;
+using Genode::Vcpu_data;
+using Genode::Vcpu_state;
+using Genode::get_page_size;
+using Genode::memset;
+
+namespace Kernel
+{
+class Cpu;
+}
 
 namespace Board
 {
@@ -32,18 +49,18 @@ namespace Board
 }
 
 
-struct alignas(Genode::get_page_size()) Board::Msrpm
+struct alignas(get_page_size()) Board::Msrpm
 {
-	Genode::uint8_t pad[8192];
+	uint8_t pad[8192];
 
 	Msrpm();
 };
 
 struct
-alignas(Genode::get_page_size())
+alignas(get_page_size())
 Board::Iopm
 {
-	Genode::uint8_t pad[12288];
+	uint8_t pad[12288];
 
 	Iopm();
 };
@@ -55,17 +72,17 @@ Board::Iopm
  */
 struct Board::Vmcb_control_area
 {
-	enum : Genode::size_t {
+	enum : size_t {
 		total_size      = 1024U,
 		used_guest_size = 0x3E0U
 	};
 
 	/* The control area is padded and used via Mmio-like accesses. */
-	Genode::uint8_t control_area[used_guest_size];
+	uint8_t control_area[used_guest_size];
 
 	Vmcb_control_area()
 	{
-		Genode::memset((void *) this, 0, sizeof(Vmcb_control_area));
+		memset((void *) this, 0, sizeof(Vmcb_control_area));
 	}
 };
 
@@ -77,10 +94,10 @@ struct Board::Vmcb_control_area
 struct Board::Vmcb_reserved_for_host
 {
 	/* 64bit used by the inherited Mmio class here */
-	Genode::addr_t root_vmcb_phys = 0U;
+	addr_t root_vmcb_phys = 0U;
 };
 static_assert(Board::Vmcb_control_area::total_size -
-              sizeof(Board::Vmcb_control_area) - sizeof(Genode::Mmio<0>) -
+              sizeof(Board::Vmcb_control_area) - sizeof(Mmio<0>) -
               sizeof(Board::Vmcb_reserved_for_host) ==
               0);
 
@@ -89,28 +106,28 @@ static_assert(Board::Vmcb_control_area::total_size -
  */
 struct Board::Vmcb_state_save_area
 {
-	typedef Genode::Vcpu_state::Segment Segment;
+	typedef Vcpu_state::Segment Segment;
 
 	Segment          es, cs, ss, ds, fs, gs, gdtr, ldtr, idtr, tr;
-	Genode::uint8_t  reserved1[43];
-	Genode::uint8_t  cpl;
-	Genode::uint8_t  reserved2[4];
-	Genode::uint64_t efer;
-	Genode::uint8_t  reserved3[112];
-	Genode::uint64_t cr4, cr3, cr0, dr7, dr6, rflags, rip;
-	Genode::uint8_t  reserved4[88];
-	Genode::uint64_t rsp;
-	Genode::uint64_t s_cet, ssp, isst_addr;
-	Genode::uint64_t rax, star, lstar, cstar, sfmask, kernel_gs_base;
-	Genode::uint64_t sysenter_cs, sysenter_esp, sysenter_eip, cr2;
-	Genode::uint8_t  reserved5[32];
-	Genode::uint64_t g_pat;
-	Genode::uint64_t dbgctl;
-	Genode::uint64_t br_from;
-	Genode::uint64_t br_to;
-	Genode::uint64_t lastexcpfrom;
-	Genode::uint8_t  reserved6[72];
-	Genode::uint64_t spec_ctrl;
+	uint8_t  reserved1[43];
+	uint8_t  cpl;
+	uint8_t  reserved2[4];
+	uint64_t efer;
+	uint8_t  reserved3[112];
+	uint64_t cr4, cr3, cr0, dr7, dr6, rflags, rip;
+	uint8_t  reserved4[88];
+	uint64_t rsp;
+	uint64_t s_cet, ssp, isst_addr;
+	uint64_t rax, star, lstar, cstar, sfmask, kernel_gs_base;
+	uint64_t sysenter_cs, sysenter_esp, sysenter_eip, cr2;
+	uint8_t  reserved5[32];
+	uint64_t g_pat;
+	uint64_t dbgctl;
+	uint64_t br_from;
+	uint64_t br_to;
+	uint64_t lastexcpfrom;
+	uint8_t  reserved6[72];
+	uint64_t spec_ctrl;
 } __attribute__((packed));
 
 
@@ -132,10 +149,10 @@ struct Board::Vmcb_state_save_area
  * In total, this allows Register type access to the VMCB control area and easy
  * direct access to the VMCB state save area.
  */
-struct alignas(Genode::get_page_size()) Board::Vmcb
+struct alignas(get_page_size()) Board::Vmcb
 :
 	Board::Vmcb_control_area,
-	public Genode::Mmio<Genode::get_page_size()>,
+	public Mmio<get_page_size()>,
 	Board::Vmcb_reserved_for_host,
 	Board::Vmcb_state_save_area
 {
@@ -143,14 +160,19 @@ struct alignas(Genode::get_page_size()) Board::Vmcb
 		Asid_host = 0,
 	};
 
-	Vmcb(Genode::uint32_t id);
-	void init(Genode::size_t cpu_id, void * table_ptr);
-	static Vmcb & host_vmcb(Genode::size_t cpu_id);
-	static Genode::addr_t dummy_msrpm();
-	void enforce_intercepts(Genode::uint32_t desired_primary = 0U, Genode::uint32_t desired_secondary = 0U);
-	static Genode::addr_t dummy_iopm();
+	Vmcb(uint32_t id);
+	static Vmcb & host_vmcb(size_t cpu_id);
+	static addr_t dummy_msrpm();
+	void enforce_intercepts(uint32_t desired_primary = 0U, uint32_t desired_secondary = 0U);
+	static addr_t dummy_iopm();
 
-	Genode::uint8_t reserved[Genode::get_page_size()             -
+	void initialize(Kernel::Cpu &cpu, addr_t page_table_phys_addr);
+	void write_vcpu_state(Vcpu_state &state);
+	void read_vcpu_state(Vcpu_state &state);
+	void switch_world(addr_t vmcb_phys_addr, Core::Cpu::Context &regs);
+	uint64_t get_exitcode();
+
+	uint8_t reserved[get_page_size()             -
 	                         sizeof(Board::Vmcb_state_save_area) -
 	                         Board::Vmcb_control_area::total_size];
 

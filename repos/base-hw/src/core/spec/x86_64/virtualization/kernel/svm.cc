@@ -18,13 +18,14 @@
 #include <spec/x86_64/virtualization/svm.h>
 #include <util/mmio.h>
 
-using Genode::addr_t;
+using namespace Genode;
+
 using Kernel::Cpu;
 using Kernel::Vm;
 using Board::Vmcb;
 
 
-Vmcb::Vmcb(Genode::uint32_t id)
+Vmcb::Vmcb(uint32_t id)
 :
 	Mmio({(char *)this, Mmio::SIZE})
 {
@@ -40,9 +41,9 @@ Vmcb::Vmcb(Genode::uint32_t id)
 }
 
 
-Vmcb & Vmcb::host_vmcb(Genode::size_t cpu_id)
+Vmcb & Vmcb::host_vmcb(size_t cpu_id)
 {
-	static Genode::Constructible<Vmcb> host_vmcb[NR_OF_CPUS];
+	static Constructible<Vmcb> host_vmcb[NR_OF_CPUS];
 
 	if (!host_vmcb[cpu_id].constructed()) {
 		host_vmcb[cpu_id].construct(Vmcb::Asid_host);
@@ -50,13 +51,21 @@ Vmcb & Vmcb::host_vmcb(Genode::size_t cpu_id)
 	return *host_vmcb[cpu_id];
 }
 
-
-void Vmcb::init(Genode::size_t cpu_id, void * table_ptr)
+void Vmcb::initialize(Kernel::Cpu &cpu, addr_t page_table_phys_addr)
 {
 	using Cpu = Hw::X86_64_cpu;
 
-	root_vmcb_phys = Core::Platform::core_phys_addr((addr_t)
-	                                                &host_vmcb(cpu_id));
+	Cpu::Ia32_efer::access_t ia32_efer_msr = Cpu::Ia32_efer::read();
+	Cpu::Ia32_efer::Svme::set(ia32_efer_msr, 1);
+	Cpu::Ia32_efer::write(ia32_efer_msr);
+
+	Cpu::Amd_vm_syscvg::access_t amd_vm_syscvg_msr =
+	    Cpu::Amd_vm_syscvg::read();
+	Cpu::Amd_vm_syscvg::Nested_paging::set(amd_vm_syscvg_msr, 1);
+	Cpu::Amd_vm_syscvg::write(amd_vm_syscvg_msr);
+
+	root_vmcb_phys =
+	    Core::Platform::core_phys_addr((addr_t)&host_vmcb(cpu.id()));
 	asm volatile ("vmsave" : : "a" (root_vmcb_phys) : "memory");
 	Cpu::Amd_vm_hsavepa::write((Cpu::Amd_vm_hsavepa::access_t) root_vmcb_phys);
 
@@ -64,7 +73,7 @@ void Vmcb::init(Genode::size_t cpu_id, void * table_ptr)
 	 * enable nested paging
 	 */
 	write<Npt_control::Np_enable>(1);
-	write<N_cr3>((Genode::addr_t) table_ptr);
+	write<N_cr3>(page_table_phys_addr);
 
 	write<Int_control::V_intr_mask>(1); /* See 15.2 */
 	write<Intercept_ex::Vectors>(17);   /* AC */
@@ -76,7 +85,7 @@ void Vmcb::init(Genode::size_t cpu_id, void * table_ptr)
 /*
  * Enforce SVM intercepts
  */
-void Vmcb::enforce_intercepts(Genode::uint32_t desired_primary, Genode::uint32_t desired_secondary)
+void Vmcb::enforce_intercepts(uint32_t desired_primary, uint32_t desired_secondary)
 {
 	write<Vmcb::Intercept_misc1>(
 		desired_primary                           |
@@ -103,13 +112,11 @@ void Vmcb::enforce_intercepts(Genode::uint32_t desired_primary, Genode::uint32_t
  * AMD Vol.2 15.11: MSR Permissions Map
  * All set to 1 since we want all MSRs to be intercepted.
  */
-Genode::addr_t Vmcb::dummy_msrpm()
+addr_t Vmcb::dummy_msrpm()
 {
-	static Genode::Constructible<Board::Msrpm> msrpm;
-	if (!msrpm.constructed())
-		msrpm.construct();
+	static Board::Msrpm msrpm;
 
-	return Core::Platform::core_phys_addr((addr_t) & *msrpm);
+	return Core::Platform::core_phys_addr((addr_t) &msrpm);
 }
 
 
@@ -117,311 +124,271 @@ Genode::addr_t Vmcb::dummy_msrpm()
  * AMD Vol.2 15.10.1 I/O Permissions Map
  * All set to 1 since we want all IO port accesses to be intercepted.
  */
-Genode::addr_t Vmcb::dummy_iopm()
+addr_t Vmcb::dummy_iopm()
 {
-	static Genode::Constructible<Board::Iopm> iopm;
-	if (!iopm.constructed())
-		iopm.construct();
+	static Board::Iopm iopm;
 
-	return Core::Platform::core_phys_addr((addr_t) &*iopm);
+	return Core::Platform::core_phys_addr((addr_t) &iopm);
 }
 
 
 Board::Msrpm::Msrpm()
 {
-	Genode::memset(this, 0xFF, sizeof(*this));
+	memset(this, 0xFF, sizeof(*this));
 }
 
 
 Board::Iopm::Iopm()
 {
-	Genode::memset(this, 0xFF, sizeof(*this));
+	memset(this, 0xFF, sizeof(*this));
 }
 
 
-void Board::Vcpu_context::initialize_svm(Kernel::Cpu & cpu, void * table)
+void Vmcb::write_vcpu_state(Vcpu_state &state)
 {
-	using Cpu = Hw::X86_64_cpu;
+	typedef Vcpu_state::Range Range;
 
-	Cpu::Ia32_efer::access_t ia32_efer_msr =  Cpu::Ia32_efer::read();
-	Cpu::Ia32_efer::Svme::set(ia32_efer_msr, 1);
-	Cpu::Ia32_efer::write(ia32_efer_msr);
-
-	Cpu::Amd_vm_syscvg::access_t amd_vm_syscvg_msr = Cpu::Amd_vm_syscvg::read();
-	Cpu::Amd_vm_syscvg::Nested_paging::set(amd_vm_syscvg_msr, 1);
-	Cpu::Amd_vm_syscvg::write(amd_vm_syscvg_msr);
-
-	vmcb.init(cpu.id(), table);
-}
-
-
-void Board::Vcpu_context::write_vcpu_state(Genode::Vcpu_state &state)
-{
-	typedef Genode::Vcpu_state::Range Range;
-
-	state.discharge();
-	state.exit_reason = (unsigned) exitcode;
-
-	state.fpu.charge([&] (Genode::Vcpu_state::Fpu::State &fpu) {
-		memcpy(&fpu, (void *) regs->fpu_context(), sizeof(fpu));
-	});
-
-	state.ax.charge(vmcb.rax);
-	state.cx.charge(regs->rcx);
-	state.dx.charge(regs->rdx);
-	state.bx.charge(regs->rbx);
-
-	state.di.charge(regs->rdi);
-	state.si.charge(regs->rsi);
-	state.bp.charge(regs->rbp);
-
-
-	state.ip.charge(vmcb.rip);
+	state.ax.charge(rax);
+	state.ip.charge(rip);
 	/*
 	 * SVM doesn't use ip_len, so just leave the old value.
 	 * We still have to charge it when charging ip.
 	 */
 	state.ip_len.set_charged();
 
-	state.flags.charge(vmcb.rflags);
-	state.sp.charge(vmcb.rsp);
+	state.flags.charge(rflags);
+	state.sp.charge(rsp);
 
-	state.dr7.charge(vmcb.dr7);
+	state.dr7.charge(dr7);
 
-	state. r8.charge(regs->r8);
-	state. r9.charge(regs->r9);
-	state.r10.charge(regs->r10);
-	state.r11.charge(regs->r11);
-	state.r12.charge(regs->r12);
-	state.r13.charge(regs->r13);
-	state.r14.charge(regs->r14);
-	state.r15.charge(regs->r15);
+	state.cr0.charge(cr0);
+	state.cr2.charge(cr2);
+	state.cr3.charge(cr3);
+	state.cr4.charge(cr4);
 
-	state.cr0.charge(vmcb.cr0);
-	state.cr2.charge(vmcb.cr2);
-	state.cr3.charge(vmcb.cr3);
-	state.cr4.charge(vmcb.cr4);
+	state.cs.charge(cs);
+	state.ss.charge(ss);
+	state.es.charge(es);
+	state.ds.charge(ds);
+	state.fs.charge(fs);
+	state.gs.charge(gs);
+	state.tr.charge(tr);
+	state.ldtr.charge(ldtr);
+	state.gdtr.charge(Range { .limit = gdtr.limit, .base = gdtr.base });
 
-	state.cs.charge(vmcb.cs);
-	state.ss.charge(vmcb.ss);
-	state.es.charge(vmcb.es);
-	state.ds.charge(vmcb.ds);
-	state.fs.charge(vmcb.fs);
-	state.gs.charge(vmcb.gs);
-	state.tr.charge(vmcb.tr);
-	state.ldtr.charge(vmcb.ldtr);
-	state.gdtr.charge(Range { .limit = vmcb.gdtr.limit,
-	                          .base  = vmcb.gdtr.base });
+	state.idtr.charge(Range { .limit = idtr.limit, .base = idtr.base });
 
-	state.idtr.charge(Range { .limit = vmcb.idtr.limit,
-	                          .base  = vmcb.idtr.base });
+	state.sysenter_cs.charge(sysenter_cs);
+	state.sysenter_sp.charge(sysenter_esp);
+	state.sysenter_ip.charge(sysenter_eip);
 
-	state.sysenter_cs.charge(vmcb.sysenter_cs);
-	state.sysenter_sp.charge(vmcb.sysenter_esp);
-	state.sysenter_ip.charge(vmcb.sysenter_eip);
+	state.qual_primary.charge(read<Vmcb::Exitinfo1>());
+	state.qual_secondary.charge(read<Vmcb::Exitinfo2>());
 
-	state.qual_primary.charge(vmcb.read<Vmcb::Exitinfo1>());
-	state.qual_secondary.charge(vmcb.read<Vmcb::Exitinfo2>());
+	/* Charging ctrl_primary and ctrl_secondary breaks Virtualbox 6 */
 
-	state.ctrl_primary.charge(vmcb.read<Vmcb::Intercept_misc1>());
-	state.ctrl_secondary.charge(vmcb.read<Vmcb::Intercept_misc2>());
-
-	state.inj_info.charge(vmcb.read<Vmcb::Exitintinfo>()& 0xFFFFFFFF);
-	state.inj_error.charge((Genode::uint32_t)
-	                       (vmcb.read<Vmcb::Exitintinfo>() >> 32));
+	state.inj_info.charge(read<Vmcb::Exitintinfo>() & 0xFFFFFFFF);
+	state.inj_error.charge(
+	    (uint32_t)(read<Vmcb::Exitintinfo>() >> 32));
 
 	/* Guest is in an interrupt shadow, see 15.21.5 */
-	state.intr_state.charge((unsigned)
-	                        vmcb.read<Vmcb::Int_control_ext::Int_shadow>());
+	state.intr_state.charge(
+	    (unsigned)read<Vmcb::Int_control_ext::Int_shadow>());
 	/* Guest activity state (actv) not used by SVM */
 	state.actv_state.set_charged();
 
 	state.tsc.charge(Hw::Lapic::rdtsc());
-	state.tsc_offset.charge(vmcb.read<Vmcb::Tsc_offset>());
+	state.tsc_offset.charge(read<Vmcb::Tsc_offset>());
 
-	tsc_aux_guest = Cpu::Ia32_tsc_aux::read();
-	state.tsc_aux.charge(tsc_aux_guest);
-	Cpu::Ia32_tsc_aux::write((Cpu::Ia32_tsc_aux::access_t) tsc_aux_host);
-
-	state.efer.charge(vmcb.efer);
+	state.efer.charge(efer);
 
 	/* pdpte not used by SVM */
 
-	state.star.charge(vmcb.star);
-	state.lstar.charge(vmcb.lstar);
-	state.cstar.charge(vmcb.cstar);
-	state.fmask.charge(vmcb.sfmask);
-	state.kernel_gs_base.charge(vmcb.kernel_gs_base);
+	state.star.charge(star);
+	state.lstar.charge(lstar);
+	state.cstar.charge(cstar);
+	state.fmask.charge(sfmask);
+	state.kernel_gs_base.charge(kernel_gs_base);
 
 	/* Task Priority Register, see 15.24 */
-	state.tpr.charge((unsigned) vmcb.read<Vmcb::Int_control::V_tpr>());
+	state.tpr.charge((unsigned)read<Vmcb::Int_control::V_tpr>());
 	/* TPR threshold not used by SVM */
 }
 
 
-void Board::Vcpu_context::read_vcpu_state(Genode::Vcpu_state &state)
+void Vmcb::read_vcpu_state(Vcpu_state &state)
 {
-	if (state.ax.charged() || state.cx.charged() ||
-	    state.dx.charged() || state.bx.charged()) {
-		vmcb.rax   = state.ax.value();
-		regs->rcx   = state.cx.value();
-		regs->rdx   = state.dx.value();
-		regs->rbx   = state.bx.value();
-	}
+	if (state.ax.charged())       rax = state.ax.value();
+	if (state.flags.charged()) rflags = state.flags.value();
+	if (state.sp.charged())       rsp = state.sp.value();
+	if (state.ip.charged())       rip = state.ip.value();
+	/* ip_len not used by SVM */
+	if (state.dr7.charged()) dr7 = state.dr7.value();
 
-	if (state.bp.charged() || state.di.charged() || state.si.charged()) {
-		regs->rdi   = state.di.value();
-		regs->rsi   = state.si.value();
-		regs->rbp   = state.bp.value();
-	}
+	if (state.cr0.charged()) cr0 =  state.cr0.value();
+	if (state.cr2.charged()) cr2 =  state.cr2.value();
+	if (state.cr3.charged()) cr3 =  state.cr3.value();
+	if (state.cr4.charged()) cr4 =  state.cr4.value();
 
-	if (state.flags.charged()) {
-		vmcb.rflags = state.flags.value();
-	}
+	if (state.cs.charged()) cs =  state.cs.value();
+	if (state.ss.charged()) ss =  state.ss.value();
 
-	if (state.sp.charged()) {
-		vmcb.rsp = state.sp.value();
-	}
+	if (state.es.charged()) es =  state.es.value();
+	if (state.ds.charged()) ds =  state.ds.value();
 
-	if (state.ip.charged()) {
-		vmcb.rip = state.ip.value();
-		/* ip_len not used by SVM */
-	}
+	if (state.fs.charged()) fs =  state.fs.value();
+	if (state.gs.charged()) gs =  state.gs.value();
 
-	if (state.dr7.charged()) {
-		vmcb.dr7 = state.dr7.value();
-	}
-
-	if (state.r8 .charged() || state.r9 .charged() ||
-	    state.r10.charged() || state.r11.charged() ||
-	    state.r12.charged() || state.r13.charged() ||
-	    state.r14.charged() || state.r15.charged()) {
-
-		regs->r8  = state.r8.value();
-		regs->r9  = state.r9.value();
-		regs->r10 = state.r10.value();
-		regs->r11 = state.r11.value();
-		regs->r12 = state.r12.value();
-		regs->r13 = state.r13.value();
-		regs->r14 = state.r14.value();
-		regs->r15 = state.r15.value();
-	}
-
-	if (state.cr0.charged() || state.cr2.charged() ||
-	    state.cr3.charged() || state.cr4.charged()) {
-		vmcb.cr0 = state.cr0.value();
-		vmcb.cr2 = state.cr2.value();
-		vmcb.cr3 = state.cr3.value();
-		vmcb.cr4 = state.cr4.value();
-	}
-
-	if (state.cs.charged() || state.ss.charged()) {
-		vmcb.cs = state.cs.value();
-		vmcb.ss = state.ss.value();
-	}
-
-	if (state.es.charged() || state.ds.charged()) {
-		vmcb.es = state.es.value();
-		vmcb.ds = state.ds.value();
-	}
-
-	if (state.fs.charged() || state.gs.charged()) {
-		vmcb.fs = state.fs.value();
-		vmcb.gs = state.gs.value();
-	}
-
-	if (state.tr.charged()) {
-		vmcb.tr = state.tr.value();
-	}
-
-	if (state.ldtr.charged()) {
-		vmcb.ldtr = state.ldtr.value();
-	}
+	if (state.tr.charged())     tr =  state.tr.value();
+	if (state.ldtr.charged()) ldtr =  state.ldtr.value();
 
 	if (state.gdtr.charged()) {
-		vmcb.gdtr.limit = state.gdtr.value().limit;
-		vmcb.gdtr.base  = state.gdtr.value().base;
+		gdtr.limit = state.gdtr.value().limit;
+		gdtr.base  = state.gdtr.value().base;
 	}
 
 	if (state.idtr.charged()) {
-		vmcb.idtr.limit = state.idtr.value().limit;
-		vmcb.idtr.base  = state.idtr.value().base;
+		idtr.limit = state.idtr.value().limit;
+		idtr.base  = state.idtr.value().base;
 	}
 
-	if (state.sysenter_cs.charged() || state.sysenter_sp.charged() ||
-	    state.sysenter_ip.charged()) {
-		vmcb.sysenter_cs = state.sysenter_cs.value();
-		vmcb.sysenter_esp = state.sysenter_sp.value();
-		vmcb.sysenter_eip = state.sysenter_ip.value();
-	}
+	if (state.sysenter_cs.charged()) sysenter_cs  = state.sysenter_cs.value();
+	if (state.sysenter_sp.charged()) sysenter_esp = state.sysenter_sp.value();
+	if (state.sysenter_ip.charged()) sysenter_eip = state.sysenter_ip.value();
 
 	if (state.ctrl_primary.charged() || state.ctrl_secondary.charged()) {
-		vmcb.enforce_intercepts(state.ctrl_primary.value(),
-			                state.ctrl_secondary.value());
+		enforce_intercepts(state.ctrl_primary.value(),
+			           state.ctrl_secondary.value());
 	}
 
 	if (state.inj_info.charged() || state.inj_error.charged()) {
 		/* Honor special signaling bit */
 		if (state.inj_info.value() & 0x1000) {
-			vmcb.write<Vmcb::Int_control::V_irq>(1);
-			vmcb.write<Vmcb::Int_control::V_ign_tpr>(1);
-			vmcb.write<Vmcb::Intercept_misc1::Vintr>(1);
+			write<Vmcb::Int_control::V_irq>(1);
+			write<Vmcb::Int_control::V_ign_tpr>(1);
+			write<Vmcb::Intercept_misc1::Vintr>(1);
 		} else {
-			vmcb.write<Vmcb::Int_control::V_irq>(0);
-			vmcb.write<Vmcb::Int_control::V_ign_tpr>(0);
-			vmcb.write<Vmcb::Intercept_misc1::Vintr>(0);
+			write<Vmcb::Int_control::V_irq>(0);
+			write<Vmcb::Int_control::V_ign_tpr>(0);
+			write<Vmcb::Intercept_misc1::Vintr>(0);
 		}
 
-
-		vmcb.write<Vmcb::Eventinj>(
+		write<Vmcb::Eventinj>(
 			/* Filter out special signaling bits */
 			(state.inj_info.value()     &
-			(Genode::uint32_t) ~0x3000) |
-			(((Genode::uint64_t) state.inj_error.value()) << 32)
+			(uint32_t) ~0x3000) |
+			(((uint64_t) state.inj_error.value()) << 32)
 		);
 	}
 
 	if (state.intr_state.charged()) {
-		vmcb.write<Vmcb::Int_control_ext::Int_shadow>(state.intr_state.value());
+		write<Vmcb::Int_control_ext::Int_shadow>(
+		    state.intr_state.value());
 	}
 	/* Guest activity state (actv) not used by SVM */
 
 	if (state.tsc_offset.charged()) {
 		/* state.tsc not used by SVM */
-		vmcb.write<Vmcb::Tsc_offset>(vmcb.read<Vmcb::Tsc_offset>() +
-		                             state.tsc_offset.value());
+		write<Vmcb::Tsc_offset>(read<Vmcb::Tsc_offset>() +
+			                state.tsc_offset.value());
 	}
-
-	tsc_aux_host = Cpu::Ia32_tsc_aux::read();
-	if (state.tsc_aux.charged()) {
-		tsc_aux_guest = state.tsc_aux.value();
-	}
-	Cpu::Ia32_tsc_aux::write((Cpu::Ia32_tsc_aux::access_t) tsc_aux_guest);
 
 	if (state.efer.charged()) {
-		vmcb.efer = state.efer.value();
+		efer = state.efer.value();
 	}
 
 	/* pdpte not used by SVM */
 
-	if (state.star.charged() || state.lstar.charged() ||
-	    state.cstar.charged() || state.fmask.charged() ||
-	    state.kernel_gs_base.charged()) {
-		vmcb.star = state.star.value();
-		vmcb.cstar = state.cstar.value();
-		vmcb.lstar = state.lstar.value();
-		vmcb.sfmask = state.lstar.value();
-		vmcb.kernel_gs_base = state.kernel_gs_base.value();
-	}
+	if (state.star.charged()) star                     = state.star.value();
+	if (state.cstar.charged()) cstar                   = state.cstar.value();
+	if (state.lstar.charged()) lstar                   = state.lstar.value();
+	if (state.fmask.charged()) sfmask                  = state.fmask.value();
+	if (state.kernel_gs_base.charged()) kernel_gs_base = state.kernel_gs_base.value();
 
 	if (state.tpr.charged()) {
-		vmcb.write<Vmcb::Int_control::V_tpr>(state.tpr.value());
+		write<Vmcb::Int_control::V_tpr>(state.tpr.value());
 		/* TPR threshold not used on AMD */
 	}
+}
 
-	if (state.fpu.charged()) {
-		state.fpu.with_state([&] (Genode::Vcpu_state::Fpu::State const &fpu) {
-			memcpy((void *) regs->fpu_context(), &fpu, sizeof(fpu));
-		});
+uint64_t Vmcb::get_exitcode()
+{
+	enum Svm_exitcodes : uint64_t
+	{
+		SVM_EXIT_INVALID = -1ULL,
+		SVM_VMEXIT_INTR  =  0x60,
+		SVM_VMEXIT_NPF   = 0x400,
+	};
+
+	uint64_t exitcode = read<Vmcb::Exitcode>();
+	switch (exitcode) {
+		case SVM_EXIT_INVALID:
+			error("VM: invalid SVM state!");
+			break;
+		case 0x40 ... 0x5f:
+			error("VM: unhandled SVM exception ",
+			              Hex(exitcode));
+			break;
+		case SVM_VMEXIT_INTR:
+			exitcode = EXIT_PAUSED;
+			break;
+		case SVM_VMEXIT_NPF:
+			exitcode = EXIT_NPF;
+			break;
+		default:
+			break;
 	}
+
+	return exitcode;
+}
+
+void Vmcb::switch_world(addr_t vmcb_phys_addr, Core::Cpu::Context &regs)
+{
+	/*
+	 * We push the host context's physical address to trapno so that
+	 * we can pop it later
+	 */
+	regs.trapno = root_vmcb_phys;
+	asm volatile(
+	    "fxrstor (%[fpu_context]);"
+	    "mov %[guest_state], %%rax;"
+	    "mov  %[regs], %%rsp;"
+	    "popq %%r8;"
+	    "popq %%r9;"
+	    "popq %%r10;"
+	    "popq %%r11;"
+	    "popq %%r12;"
+	    "popq %%r13;"
+	    "popq %%r14;"
+	    "popq %%r15;"
+	    "add $8, %%rsp;" /* don't pop rax */
+	    "popq %%rbx;"
+	    "popq %%rcx;"
+	    "popq %%rdx;"
+	    "popq %%rdi;"
+	    "popq %%rsi;"
+	    "popq %%rbp;"
+	    "clgi;"
+	    "sti;"
+	    "vmload;"
+	    "vmrun;"
+	    "vmsave;"
+	    "popq %%rax;" /* get the physical address of the host VMCB from
+	                     the stack */
+	    "vmload;"
+	    "stgi;" /* maybe enter the kernel to handle an external interrupt
+	               that occured ... */
+	    "nop;"
+	    "cli;"        /* ... otherwise, just disable interrupts again */
+	    "pushq %[trap_vmexit];" /* make the stack point to trapno, the right place
+	                     to jump to _kernel_entry. We push 256 because
+	                     this is outside of the valid range for interrupts
+	                   */
+	    "jmp _kernel_entry;" /* jump to _kernel_entry to save the
+	                            GPRs without breaking any */
+	    :
+	    : [regs]        "r"(&regs.r8), [fpu_context] "r"(regs.fpu_context()),
+	      [guest_state] "r"(vmcb_phys_addr),
+	      [trap_vmexit] "i"(TRAP_VMEXIT)
+	    : "rax", "memory");
 }
