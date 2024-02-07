@@ -43,7 +43,7 @@ class Uplink_client : public Uplink_client_base
 		{
 			instance = this;
 			dde_ipxe_nic_register_callbacks(
-				_drv_rx_callback, _drv_link_callback);
+				_drv_rx_callback, _drv_link_callback, _drv_rx_done);
 
 			Net::Mac_address mac_addr { };
 			dde_ipxe_nic_get_mac_addr(1, mac_addr.addr);
@@ -55,14 +55,18 @@ class Uplink_client : public Uplink_client_base
 		 ** Interface towards iPXE driver **
 		 ***********************************/
 
+		static void _drv_rx_done()
+		{
+			instance->_rx_done();
+		}
+
 		static void _drv_rx_callback(unsigned    interface_idx,
 		                             const char *drv_rx_pkt_base,
 		                             unsigned    drv_rx_pkt_size)
 		{
-			instance->_drv_rx_handle_pkt(
-				drv_rx_pkt_size,
-				[&] (void   *conn_tx_pkt_base,
-				     size_t &)
+			instance->_drv_rx_handle_pkt_try(drv_rx_pkt_size,
+			                                 [&] (void   *conn_tx_pkt_base,
+			                                      size_t &)
 			{
 				memcpy(conn_tx_pkt_base, drv_rx_pkt_base, drv_rx_pkt_size);
 				return Write_result::WRITE_SUCCEEDED;

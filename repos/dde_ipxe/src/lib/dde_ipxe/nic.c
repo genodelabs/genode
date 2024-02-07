@@ -33,6 +33,7 @@ static struct net_device *net_dev;
  */
 static dde_ipxe_nic_link_cb link_callback;
 static dde_ipxe_nic_rx_cb   rx_callback;
+static dde_ipxe_nic_rx_done rx_done;
 
 /**
  * Known iPXE driver structures (located in the driver binaries)
@@ -149,6 +150,10 @@ int process_rx_data()
 		free_iob(iobuf);
 	}
 
+	/* notify about all requests done */
+	if (received && rx_done)
+		rx_done();
+
 	return received;
 }
 
@@ -195,12 +200,14 @@ static void irq_handler(void *p)
  ************************/
 
 void dde_ipxe_nic_register_callbacks(dde_ipxe_nic_rx_cb rx_cb,
-                                     dde_ipxe_nic_link_cb link_cb)
+                                     dde_ipxe_nic_link_cb link_cb,
+                                     dde_ipxe_nic_rx_done done)
 {
 	dde_lock_enter();
 
 	rx_callback   = rx_cb;
 	link_callback = link_cb;
+	rx_done       = done;
 
 	dde_lock_leave();
 }
@@ -212,6 +219,7 @@ void dde_ipxe_nic_unregister_callbacks(void)
 
 	rx_callback   = (dde_ipxe_nic_rx_cb)0;
 	link_callback = (dde_ipxe_nic_link_cb)0;
+	rx_done       = (dde_ipxe_nic_rx_done)0;
 
 	dde_lock_leave();
 }
