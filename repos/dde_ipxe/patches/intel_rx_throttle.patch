@@ -1,0 +1,42 @@
+--- a/src/drivers/net/intel.c
++++ b/src/drivers/net/intel.c
+@@ -681,6 +681,27 @@
+ 		intel->force_icr = INTEL_IRQ_RXT0;
+ 	}
+ 
++	/*
++	 * Intel PCI/PCI-X family of Gigabit Ethernet control Software Developers's
++	 * Manual Rev 4.0
++	 *
++	 * 13.4.18 Interrupt Throttling Register
++	 * advises - 651 to 5580 - for "optimal performance setting"
++	 */
++
++	uint32_t const throttle_before = readl ( intel->regs + INTEL_ITR );
++	uint32_t const throttle = 651; /* 651 * 256µs -> 0.166 ms */
++
++	writel( throttle, intel->regs + INTEL_ITR );
++
++	uint64_t const value = readl ( intel->regs + INTEL_ITR );
++
++	dde_printf("throttle RX interrupt %luµs%s -> %luµs - %s\n",
++	           256ul * throttle_before / 1000ul,
++	           throttle_before ? "" : "(off)",
++	           256ul * value / 1000ul,
++	           value == throttle ? "succeeded" : "failed");
++
+ 	return 0;
+ 
+ 	intel_destroy_ring ( intel, &intel->rx );
+--- a/src/drivers/net/intel.h
++++ b/src/drivers/net/intel.h
+@@ -102,6 +102,9 @@
+ #define INTEL_IRQ_RXO		0x00000040UL	/**< Receive overrun */
+ #define INTEL_IRQ_RXT0		0x00000080UL	/**< Receive timer */
+ 
++/** Interrupt throttling Register */
++#define INTEL_ITR 0x000C4UL
++
+ /** Interrupt Mask Set/Read Register */
+ #define INTEL_IMS 0x000d0UL
+ 
