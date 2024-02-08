@@ -1,0 +1,81 @@
+diff -ur -x '*~' -x recording_userspace src.orig/lib/jitterentropy/jitterentropy.h src/lib/jitterentropy/jitterentropy.h
+--- src.orig/lib/jitterentropy/jitterentropy.h
++++ src/lib/jitterentropy/jitterentropy.h
+@@ -42,6 +42,8 @@
+ #ifndef _JITTERENTROPY_H
+ #define _JITTERENTROPY_H
+ 
++#include "jitterentropy-base-genode.h"
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+diff -ur -x '*~' -x recording_userspace src.orig/lib/jitterentropy/src/jitterentropy-noise.c src/lib/jitterentropy/src/jitterentropy-noise.c
+--- src.orig/lib/jitterentropy/src/jitterentropy-noise.c
++++ src/lib/jitterentropy/src/jitterentropy-noise.c
+@@ -112,7 +112,7 @@
+ 		jent_loop_shuffle(ec, MAX_HASH_LOOP, MIN_HASH_LOOP);
+ 
+ 	/* Use the memset to shut up valgrind */
+-	memset(intermediary, 0, sizeof(intermediary));
++	jent_memset(intermediary, 0, sizeof(intermediary));
+ 
+ 	sha3_256_init(&ctx);
+ 
+@@ -413,7 +413,7 @@
+ 	/* The final operation automatically re-initializes the ->hash_state */
+ 	sha3_final(ec->hash_state, jent_block);
+ 	if (dst_len)
+-		memcpy(dst, jent_block, dst_len);
++		jent_memcpy(dst, jent_block, dst_len);
+ 
+ 	/*
+ 	 * Stir the new state with the data from the old state - the digest
+diff -ur -x '*~' -x recording_userspace src.orig/lib/jitterentropy/src/jitterentropy-sha3.c src/lib/jitterentropy/src/jitterentropy-sha3.c
+--- src.orig/lib/jitterentropy/src/jitterentropy-sha3.c
++++ src/lib/jitterentropy/src/jitterentropy-sha3.c
+@@ -295,7 +295,7 @@
+ 		 * buffer, copy it and leave it unprocessed.
+ 		 */
+ 		if (inlen < todo) {
+-			memcpy(ctx->partial + partial, in, inlen);
++			jent_memcpy(ctx->partial + partial, in, inlen);
+ 			return;
+ 		}
+ 
+@@ -303,7 +303,7 @@
+ 		 * The input data is large enough to fill the entire partial
+ 		 * block buffer. Thus, we fill it and transform it.
+ 		 */
+-		memcpy(ctx->partial + partial, in, todo);
++		jent_memcpy(ctx->partial + partial, in, todo);
+ 		inlen -= todo;
+ 		in += todo;
+ 
+@@ -318,7 +318,7 @@
+ 	}
+ 
+ 	/* If we have data left, copy it into the partial block buffer */
+-	memcpy(ctx->partial, in, inlen);
++	jent_memcpy(ctx->partial, in, inlen);
+ }
+ 
+ void sha3_final(struct sha_ctx *ctx, uint8_t *digest)
+@@ -329,7 +329,7 @@
+ 	/* Final round in sponge absorbing phase */
+ 
+ 	/* Fill the unused part of the partial buffer with zeros */
+-	memset(ctx->partial + partial, 0, ctx->r - partial);
++	jent_memset(ctx->partial + partial, 0, ctx->r - partial);
+ 
+ 	/*
+ 	 * Add the leading and trailing bit as well as the 01 bits for the
+@@ -353,7 +353,7 @@
+ 	if (ctx->digestsize % 8)
+ 		le32_to_ptr(digest, (uint32_t)(ctx->state[i]));
+ 
+-	memset(ctx->partial, 0, ctx->r);
++	jent_memset(ctx->partial, 0, ctx->r);
+ 	sha3_init(ctx);
+ }
+ 

@@ -17,7 +17,7 @@
 static inline void jent_get_nstime(__u64 *out)
 {
 	uint32_t lo, hi;
-	__asm__ __volatile__ ( "rdtsc" : "=a" (lo), "=d" (hi));
+	asm volatile ( "rdtsc" : "=a" (lo), "=d" (hi));
 	*out = (uint64_t)hi << 32 | lo;
 }
 

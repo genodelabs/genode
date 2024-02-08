@@ -5,7 +5,7 @@ MIRROR_FROM_REP_DIR := lib/mk/jitterentropy.inc \
                        src/lib/jitterentropy
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/jitterentropy)
-MIRROR_FROM_PORT_DIR := src/lib/jitterentropy/jitterentropy-base.c \
+MIRROR_FROM_PORT_DIR := src/lib/jitterentropy/src \
                         include/jitterentropy/jitterentropy.h
 
 content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_PORT_DIR) LICENSE

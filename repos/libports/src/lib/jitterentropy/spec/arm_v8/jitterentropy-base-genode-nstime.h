@@ -18,7 +18,7 @@ static inline void jent_get_nstime(__u64 *out)
 {
 	uint64_t t;
 	/* cycle counter */
-	asm volatile("mrs %0, pmccntr_el0" : "=r" (t));
+	asm volatile ("mrs %0, pmccntr_el0" : "=r" (t));
 	*out = t;
 }
 

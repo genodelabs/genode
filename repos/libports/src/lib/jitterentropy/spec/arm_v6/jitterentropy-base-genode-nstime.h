@@ -17,7 +17,7 @@
 static inline void jent_get_nstime(__u64 *out)
 {
 	uint32_t t;
-	asm volatile("mrc p15, 0, %0, c15, c12, 1" : "=r"(t));
+	asm volatile ("mrc p15, 0, %0, c15, c12, 1" : "=r"(t));
 	*out = t;
 }
 

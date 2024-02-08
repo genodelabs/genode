@@ -16,9 +16,9 @@
 
 static inline void jent_get_nstime(__u64 *out)
 {
-       uint64_t t;
-       __asm__ __volatile__ ( "rdtsc" : "=A" (t));
-       *out = t;
+	uint64_t t;
+	asm volatile ( "rdtsc" : "=A" (t));
+	*out = t;
 }
 
 #endif /* _JITTERENTROPY_X86_32_BASE_GENODE_NSTIME_H */

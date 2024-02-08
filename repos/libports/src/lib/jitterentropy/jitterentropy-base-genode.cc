@@ -15,8 +15,7 @@
 #include <base/allocator.h>
 #include <util/string.h>
 
-/* local includes */
-#include <jitterentropy-base-genode.h>
+#include <jitterentropy.h>
 
 
 static Genode::Allocator *_alloc;
@@ -40,7 +39,7 @@ void *jent_zalloc(size_t len)
 }
 
 
-void jent_zfree(void *ptr, unsigned int len)
+void jent_zfree(void *ptr, unsigned int)
 {
 	if (!_alloc) { return; }
 	_alloc->free(ptr, 0);
@@ -50,4 +49,10 @@ void jent_zfree(void *ptr, unsigned int len)
 void *jent_memcpy(void *dest, const void *src, size_t n)
 {
 	return Genode::memcpy(dest, src, n);
+}
+
+
+void *jent_memset(void *dest, int c, size_t n)
+{
+	return Genode::memset(dest, (uint8_t)c, n);
 }
