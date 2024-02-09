@@ -42,9 +42,6 @@ namespace Board
 {
 	struct Msrpm;
 	struct Iopm;
-	struct Vmcb_control_area;
-	struct Vmcb_reserved_for_host;
-	struct Vmcb_state_save_area;
 	struct Vmcb;
 }
 
@@ -66,101 +63,23 @@ Board::Iopm
 };
 
 
-
-/*
- * VMCB Control area, excluding the reserved for host part
- */
-struct Board::Vmcb_control_area
-{
-	enum : size_t {
-		total_size      = 1024U,
-		used_guest_size = 0x3E0U
-	};
-
-	/* The control area is padded and used via Mmio-like accesses. */
-	uint8_t control_area[used_guest_size];
-
-	Vmcb_control_area()
-	{
-		memset((void *) this, 0, sizeof(Vmcb_control_area));
-	}
-};
-
-
-/*
- * Part of the VMCB control area that is reserved for host data.
- * This uses 16 bytes less to accomodate for the size of the Mmio class.
- */
-struct Board::Vmcb_reserved_for_host
-{
-	/* 64bit used by the inherited Mmio class here */
-	addr_t root_vmcb_phys = 0U;
-};
-static_assert(Board::Vmcb_control_area::total_size -
-              sizeof(Board::Vmcb_control_area) - sizeof(Mmio<0>) -
-              sizeof(Board::Vmcb_reserved_for_host) ==
-              0);
-
-/*
- * AMD Manual Vol. 2, Table B-2: VMCB Layout, State Save Area
- */
-struct Board::Vmcb_state_save_area
-{
-	typedef Vcpu_state::Segment Segment;
-
-	Segment          es, cs, ss, ds, fs, gs, gdtr, ldtr, idtr, tr;
-	uint8_t  reserved1[43];
-	uint8_t  cpl;
-	uint8_t  reserved2[4];
-	uint64_t efer;
-	uint8_t  reserved3[112];
-	uint64_t cr4, cr3, cr0, dr7, dr6, rflags, rip;
-	uint8_t  reserved4[88];
-	uint64_t rsp;
-	uint64_t s_cet, ssp, isst_addr;
-	uint64_t rax, star, lstar, cstar, sfmask, kernel_gs_base;
-	uint64_t sysenter_cs, sysenter_esp, sysenter_eip, cr2;
-	uint8_t  reserved5[32];
-	uint64_t g_pat;
-	uint64_t dbgctl;
-	uint64_t br_from;
-	uint64_t br_to;
-	uint64_t lastexcpfrom;
-	uint8_t  reserved6[72];
-	uint64_t spec_ctrl;
-} __attribute__((packed));
-
-
 /*
  * VMCB data structure
  * See: AMD Manual Vol. 2, Appendix B Layout of VMCB
- *
- * We construct the VMCB by inheriting from its components. Inheritance is used
- * instead of making the components members of the overall structure in order to
- * present the interface on the top level. Order of inheritance is important!
- *
- * The Mmio interface is inherited from on this level to achieve the desired
- * placement of the Mmio data member address in the host data part and after the
- * VMCB control area data.
- * The remaining part of the VMCB control area that is reserved for host data
- * is then inherited from after the Mmio interface.
- * Lastly, the VMCB state save area is inherited from to make its members
- * directly available in the VCMB structure.
- * In total, this allows Register type access to the VMCB control area and easy
- * direct access to the VMCB state save area.
  */
-struct alignas(get_page_size()) Board::Vmcb
+struct Board::Vmcb
 :
-	Board::Vmcb_control_area,
-	public Mmio<get_page_size()>,
-	Board::Vmcb_reserved_for_host,
-	Board::Vmcb_state_save_area
+	public Mmio<get_page_size()>
 {
 	enum {
-		Asid_host = 0,
+		Asid_host =    0,
+		State_off = 1024,
 	};
 
-	Vmcb(uint32_t id);
+
+	addr_t root_vmcb_phys = { 0 };
+
+	Vmcb(addr_t vmcb_page_addr, uint32_t id);
 	static Vmcb & host_vmcb(size_t cpu_id);
 	static addr_t dummy_msrpm();
 	void enforce_intercepts(uint32_t desired_primary = 0U, uint32_t desired_secondary = 0U);
@@ -171,10 +90,6 @@ struct alignas(get_page_size()) Board::Vmcb
 	void read_vcpu_state(Vcpu_state &state);
 	void switch_world(addr_t vmcb_phys_addr, Core::Cpu::Context &regs);
 	uint64_t get_exitcode();
-
-	uint8_t reserved[get_page_size()             -
-	                         sizeof(Board::Vmcb_state_save_area) -
-	                         Board::Vmcb_control_area::total_size];
 
 	/*
 	 * AMD Manual Vol. 2, Table B-1: VMCB Layout, Control Area
@@ -351,6 +266,56 @@ struct alignas(get_page_size()) Board::Vmcb
 	struct Vmsa               : Register<0x108,64> {
 		struct Vmsa_ptr       : Bitfield<12,52> { };
 	};
-} __attribute__((packed));
+
+
+	/*
+	 * AMD Manual Vol. 2, Table B-2: VMCB Layout, State Save Area
+	 */
+
+	/*
+	 * Segments are 128bit in size and therefore cannot be represented with
+	 * the current Register Framework.
+	 */
+	struct Segment : public Mmio<128>
+	{
+		using Mmio<128>::Mmio;
+
+		struct Sel   : Register<0x0,16> { };
+		struct Ar    : Register<0x2,16> { };
+		struct Limit : Register<0x4,32> { };
+		struct Base  : Register<0x8,64> { };
+	};
+
+	Segment   es { range_at(State_off +  0x0) };
+	Segment   cs { range_at(State_off + 0x10) };
+	Segment   ss { range_at(State_off + 0x20) };
+	Segment   ds { range_at(State_off + 0x30) };
+	Segment   fs { range_at(State_off + 0x40) };
+	Segment   gs { range_at(State_off + 0x50) };
+	Segment gdtr { range_at(State_off + 0x60) };
+	Segment ldtr { range_at(State_off + 0x70) };
+	Segment idtr { range_at(State_off + 0x80) };
+	Segment   tr { range_at(State_off + 0x90) };
+
+	struct Efer           : Register<State_off +  0xD0,64> { };
+	struct Cr4            : Register<State_off + 0x148,64> { };
+	struct Cr3            : Register<State_off + 0x150,64> { };
+	struct Cr0            : Register<State_off + 0x158,64> { };
+	struct Dr7            : Register<State_off + 0x160,64> { };
+	struct Rflags         : Register<State_off + 0x170,64> { };
+	struct Rip            : Register<State_off + 0x178,64> { };
+	struct Rsp            : Register<State_off + 0x1D8,64> { };
+	struct Rax            : Register<State_off + 0x1F8,64> { };
+	struct Star           : Register<State_off + 0x200,64> { };
+	struct Lstar          : Register<State_off + 0x208,64> { };
+	struct Cstar          : Register<State_off + 0x210,64> { };
+	struct Sfmask         : Register<State_off + 0x218,64> { };
+	struct Kernel_gs_base : Register<State_off + 0x220,64> { };
+	struct Sysenter_cs    : Register<State_off + 0x228,64> { };
+	struct Sysenter_esp   : Register<State_off + 0x230,64> { };
+	struct Sysenter_eip   : Register<State_off + 0x238,64> { };
+	struct Cr2            : Register<State_off + 0x240,64> { };
+	struct G_pat          : Register<State_off + 0x268,64> { };
+};
 
 #endif /* _INCLUDE__SPEC__PC__SVM_H_ */

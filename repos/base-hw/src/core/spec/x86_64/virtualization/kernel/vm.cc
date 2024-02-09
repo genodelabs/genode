@@ -11,6 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include "base/internal/page_size.h"
 #include <base/log.h>
 #include <cpu/vcpu_state_virtualization.h>
 #include <util/construct_at.h>
@@ -74,7 +75,7 @@ void Vm::proceed(Cpu & cpu)
 	Cpu::Ia32_tsc_aux::write(
 	    (Cpu::Ia32_tsc_aux::access_t)_vcpu_context.tsc_aux_guest);
 
-	_vcpu_context.vmcb->switch_world(_vcpu_context.vcpu_data.phys_addr,
+	_vcpu_context.vmcb->switch_world(_vcpu_context.vcpu_data.phys_addr + get_page_size(),
 			*_vcpu_context.regs);
 	/*
 	 * This will fall into an interrupt or otherwise jump into
@@ -155,7 +156,9 @@ Board::Vcpu_context::Vcpu_context(unsigned id, Vcpu_data &vcpu_data)
 	regs(1),
 	vcpu_data(vcpu_data)
 {
-	vmcb = construct_at<Vmcb>(vcpu_data.virt_area, id);
+	vmcb = construct_at<Vmcb>(vcpu_data.virt_area,
+	                          ((addr_t) vcpu_data.virt_area) +
+	                          get_page_size(), id);
 	regs->trapno = TRAP_VMEXIT;
 }
 
