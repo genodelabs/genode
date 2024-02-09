@@ -48,9 +48,15 @@ The '<config>' node may take the following optional attributes:
 
 :'target_root': Sets the target root directory for trace output.
 
+:'default_buffer': Sets the default buffer size (default: '64K'), can be overriden
+                   via policy.
+
+:'session_ram': Sets the session RAM quota (default: '1024K').
+
+:'session_arg_buffer': Sets the session argument buffer size (default: '128K').
 
 Furthermore, the '<policy>' nodes may take the following optional attributes:
 
 :'thread': Restricts the tracing to a certain thread of the matching component(s).
 
-:'buffer': Sets the size of the trace buffer (default: '64K').
+:'buffer': Sets the size of the trace buffer (default: see 'default_buffer').

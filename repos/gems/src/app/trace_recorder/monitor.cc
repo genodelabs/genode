@@ -27,6 +27,22 @@ Directory::Path Trace_recorder::Monitor::Trace_directory::subject_path(::Subject
 }
 
 
+Trace_recorder::Monitor::Config Trace_recorder::Monitor::Config::from_xml(Xml_node const &config)
+{
+	return {
+		.session_ram =
+			config.attribute_value("session_ram",
+			                       Number_of_bytes(DEFAULT_TRACE_SESSION_RAM)),
+		.session_arg_buffer =
+			config.attribute_value("session_arg_buffer",
+			                       Number_of_bytes(DEFAULT_TRACE_SESSION_ARG_BUFFER)),
+		.default_buf_sz =
+			config.attribute_value("default_buffer",
+			                       Number_of_bytes(DEFAULT_BUFFER_SIZE)),
+	};
+}
+
+
 void Trace_recorder::Monitor::Attached_buffer::process_events(Trace_directory &trace_directory)
 {
 	/* start iteration for every writer */
@@ -85,9 +101,17 @@ void Trace_recorder::Monitor::start(Xml_node config)
 	/* create new trace directory */
 	_trace_directory.construct(_env, _alloc, config, _rtc);
 
+	using TM = Trace_recorder::Monitor;
+	TM::Config const trace_config = TM::Config::from_xml(config);
+
+	_trace.construct(_env, trace_config.session_ram,
+	                       trace_config.session_arg_buffer);
+
 	/* find matching subjects according to config and start tracing */
-	_trace.for_each_subject_info([&] (Trace::Subject_id   const &id,
-	                                  Trace::Subject_info const &info) {
+	using SC = Genode::Trace::Session_client;
+	SC::For_each_subject_info_result const info_result =
+		_trace->for_each_subject_info([&] (Trace::Subject_id   const &id,
+		                                   Trace::Subject_info const &info) {
 		try {
 			/* skip dead subjects */
 			if (info.state() == Trace::Subject_info::DEAD)
@@ -100,14 +124,15 @@ void Trace_recorder::Monitor::start(Xml_node config)
 				return;
 
 			Number_of_bytes buffer_sz =
-				session_policy.attribute_value("buffer", Number_of_bytes(DEFAULT_BUFFER_SIZE));
+				session_policy.attribute_value("buffer",
+				                               Number_of_bytes(trace_config.default_buf_sz));
 
 			/* find and assign policy; create/insert if not present */
 			Policy::Name  const policy_name = session_policy.attribute_value("policy", Policy::Name());
 			bool const create =
 				_policies.with_element(policy_name,
 					[&] /* match */ (Policy & policy) {
-						_trace.trace(id, policy.id(), buffer_sz);
+						_trace->trace(id, policy.id(), buffer_sz);
 						return false;
 					},
 					[&] /* no_match */ { return true; }
@@ -115,8 +140,8 @@ void Trace_recorder::Monitor::start(Xml_node config)
 
 			/* create policy if it did not exist */
 			if (create) {
-				Policy &policy = *new (_alloc) Policy(_env, _trace, policy_name, _policies);
-				_trace.trace(id, policy.id(), buffer_sz);
+				Policy &policy = *new (_alloc) Policy(_env, *_trace, policy_name, _policies);
+				_trace->trace(id, policy.id(), buffer_sz);
 			}
 
 			log("Inserting trace policy \"", policy_name, "\" into ",
@@ -125,7 +150,7 @@ void Trace_recorder::Monitor::start(Xml_node config)
 			/* attach and remember trace buffer */
 			Attached_buffer &buffer = *new (_alloc) Attached_buffer(_trace_buffers,
 			                                                        _env,
-			                                                        _trace.buffer(id),
+			                                                        _trace->buffer(id),
 			                                                        info,
 			                                                        id);
 
@@ -153,6 +178,9 @@ void Trace_recorder::Monitor::start(Xml_node config)
 		catch (Session_policy::No_policy_defined) { return; }
 	});
 
+	if (info_result.count == info_result.limit)
+		warning("number of subjects equals limit, results may be truncated");
+
 	/* register timeout */
 	unsigned period_ms { 0 };
 	if (!config.has_attribute("period_ms"))
@@ -171,7 +199,7 @@ void Trace_recorder::Monitor::stop()
 	_trace_buffers.for_each([&] (Attached_buffer &buf) {
 		try {
 			/* stop tracing */
-			_trace.pause(buf.subject_id());
+			_trace->pause(buf.subject_id());
 		} catch (Trace::Nonexistent_subject) { }
 
 		/* read remaining events from buffers */
@@ -184,7 +212,7 @@ void Trace_recorder::Monitor::stop()
 
 		try {
 			/* detach buffer */
-			_trace.free(buf.subject_id());
+			_trace->free(buf.subject_id());
 		} catch (Trace::Nonexistent_subject) { }
 
 		/* destroy buffer */
@@ -192,4 +220,6 @@ void Trace_recorder::Monitor::stop()
 	});
 
 	_trace_directory.destruct();
+
+	_trace.destruct();
 }
