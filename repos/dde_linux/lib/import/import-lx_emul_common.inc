@@ -108,7 +108,6 @@ SRC_C   += lx_emul/spec/$(GEN_ARCH)/start.c
 SRC_S   += lx_kit/spec/$(SPEC_ARCH)/setjmp.S
 
 INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/$(SPEC_ARCH)
-INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/x86
 INC_DIR += $(DDE_LINUX_DIR)/src/include
 INC_DIR += $(SPEC_SHADOW_INC_DIR)
 INC_DIR += $(SHADOW_INC_DIR)
