@@ -65,7 +65,7 @@ built.tag: qmake_prepared.tag
 		cd $(CURDIR)/install/qt/$$(dirname $${LIB}) && \
 			$(OBJCOPY) --only-keep-debug $$(basename $${LIB}) $$(basename $${LIB}).debug && \
 			$(STRIP) $$(basename $${LIB}) -o $$(basename $${LIB}).stripped && \
-			$(OBJCOPY) --add-gnu-debuglink=$$(basename $${LIB}).debug $$(basename $${LIB}); \
+			$(OBJCOPY) --add-gnu-debuglink=$$(basename $${LIB}).debug $$(basename $${LIB}).stripped; \
 		ln -sf $(CURDIR)/install/qt/$${LIB}.stripped $(PWD)/bin/$$(basename $${LIB}); \
 		ln -sf $(CURDIR)/install/qt/$${LIB}.stripped $(PWD)/debug/$$(basename $${LIB}); \
 		ln -sf $(CURDIR)/install/qt/$${LIB}.debug $(PWD)/debug/; \
