@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -21,118 +21,85 @@
 #include <util/misc_math.h>
 #include <kernel/configuration.h>
 
-namespace Kernel {
-
-	/**
-	 * Priority of an unconsumed CPU claim versus other unconsumed CPU claims
-	 */
-	class Cpu_priority;
-
-	/**
-	 * Scheduling context that is both claim and fill
-	 */
-	class Cpu_share;
-
-	/**
-	 * Schedules CPU shares for the execution time of a CPU
-	 */
-	class Cpu_scheduler;
-}
+namespace Kernel { class Scheduler; }
 
 
-namespace Cpu_scheduler_test {
-
-	/**
-	 * Forward declaration of corresponding unit-test classes for friendship
-	 */
-	class Cpu_scheduler;
-	class Cpu_share;
+/**
+ * Forward declaration of corresponding unit-test classes for friendship
+ */
+namespace Scheduler_test {
+	class Scheduler;
+	class Context;
 	class Main;
 }
 
 
-class Kernel::Cpu_priority
+class Kernel::Scheduler
 {
-	private:
-
-		unsigned _value;
-
 	public:
 
-		static constexpr unsigned min() { return 0; }
-		static constexpr unsigned max() { return cpu_priorities - 1; }
-
-		/**
-		 * Construct priority with value 'v'
-		 */
-		Cpu_priority(unsigned const v)
-		:
-			_value { Genode::min(v, max()) }
-		{ }
-
-		/*
-		 * Standard operators
-		 */
-
-		Cpu_priority &operator =(unsigned const v)
+		struct Priority
 		{
-			_value = Genode::min(v, max());
-			return *this;
-		}
+			unsigned value;
 
-		operator unsigned() const { return _value; }
-};
+			static constexpr unsigned min() { return 0; }
+			static constexpr unsigned max() { return cpu_priorities - 1; }
+
+			Priority(unsigned const value)
+			: value(Genode::min(value, max())) { }
+
+			Priority &operator =(unsigned const v)
+			{
+				value = Genode::min(v, max());
+				return *this;
+			}
+		};
 
 
-class Kernel::Cpu_share
-{
-	friend class Cpu_scheduler;
-	friend class Cpu_scheduler_test::Cpu_scheduler;
-	friend class Cpu_scheduler_test::Cpu_share;
-
-	private:
-
-		using List_element = Genode::List_element<Cpu_share>;
-
-		List_element       _fill_item  { this };
-		List_element       _claim_item { this };
-		Cpu_priority const _prio;
-		unsigned           _quota;
-		unsigned           _claim;
-		unsigned           _fill       { 0 };
-		bool               _ready      { false };
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param p  claimed priority
-		 * \param q  claimed quota
-		 */
-		Cpu_share(Cpu_priority const p, unsigned const q)
-		: _prio(p), _quota(q), _claim(q) { }
-
-		/*
-		 * Accessors
-		 */
-
-		bool ready() const { return _ready; }
-		void quota(unsigned const q) { _quota = q; }
-};
-
-class Kernel::Cpu_scheduler
-{
-	friend class Cpu_scheduler_test::Cpu_scheduler;
-	friend class Cpu_scheduler_test::Main;
-
-	private:
-
-		class Share_list
+		class Context
 		{
 			private:
 
-				using List_element = Genode::List_element<Cpu_share>;
+				friend class Scheduler;
+				friend class Scheduler_test::Scheduler;
+				friend class Scheduler_test::Context;
+
+				using List_element = Genode::List_element<Context>;
+
+				unsigned     _priority;
+				unsigned     _quota;
+				List_element _priotized_le { this };
+				unsigned     _priotized_time_left { 0 };
+
+				List_element _slack_le { this };
+				unsigned     _slack_time_left { 0 };
+
+				bool _ready { false };
+
+				void _reset() { _priotized_time_left = _quota; }
+
+			public:
+
+				Context(Priority const priority,
+				        unsigned const quota)
+				:
+					_priority(priority.value),
+					_quota(quota) { }
+
+				bool ready() const { return _ready; }
+				void quota(unsigned const q) { _quota = q; }
+		};
+
+	private:
+
+		friend class Scheduler_test::Scheduler;
+		friend class Scheduler_test::Main;
+
+		class Context_list
+		{
+			private:
+
+				using List_element = Genode::List_element<Context>;
 
 				Genode::List<List_element> _list {};
 				List_element              *_last { nullptr };
@@ -151,7 +118,7 @@ class Kernel::Cpu_scheduler
 					     le = le->next()) fn(*le->object());
 				}
 
-				Cpu_share* head() const {
+				Context* head() const {
 					return _list.first() ? _list.first()->object() : nullptr; }
 
 				void insert_head(List_element * const le)
@@ -195,69 +162,43 @@ class Kernel::Cpu_scheduler
 					to_tail(_list.first()); }
 		};
 
-		typedef Cpu_share    Share;
-		typedef Cpu_priority Prio;
-
 		enum State { UP_TO_DATE, OUT_OF_DATE, YIELD };
 
-		State          _state { UP_TO_DATE };
-		Share_list     _rcl[Prio::max() + 1]; /* ready claims */
-		Share_list     _ucl[Prio::max() + 1]; /* unready claims */
-		Share_list     _fills { };          /* ready fills */
-		Share         &_idle;
-		Share         *_current = nullptr;
-		unsigned       _current_quantum { 0 };
+		unsigned const _slack_quota;
 		unsigned const _super_period_length;
-		unsigned       _super_period_left { _super_period_length };
-		unsigned const _fill;
-		time_t         _last_time { 0 };
 
-		template <typename F> void _for_each_prio(F f)
+		unsigned _super_period_left { _super_period_length };
+		unsigned _current_quantum { 0 };
+
+		time_t _last_time { 0 };
+		State  _state { UP_TO_DATE };
+
+		Context_list _rpl[cpu_priorities]; /* ready lists by priority   */
+		Context_list _upl[cpu_priorities]; /* unready lists by priority */
+		Context_list _slack_list { };
+
+		Context &_idle;
+		Context *_current { nullptr };
+
+		template <typename F> void _each_prio_until(F f)
 		{
-			bool cancel_for_each_prio { false };
-			for (unsigned p = Prio::max(); p != Prio::min() - 1; p--) {
-				f(p, cancel_for_each_prio);
-				if (cancel_for_each_prio)
+			for (unsigned p = Priority::max(); p != Priority::min()-1; p--)
+				if (f(p))
 					return;
-			}
 		}
 
-		static void _reset(Cpu_share &share);
-
-		void _reset_claims(unsigned const p);
 		void _consumed(unsigned const q);
-		void _set_current(Share &s, unsigned const q);
-		void _current_claimed(unsigned const r);
-		void _current_filled(unsigned const r);
-		bool _schedule_claim();
-		bool _schedule_fill();
-
-		/**
-		 * Fill 's' becomes a claim due to a quota donation
-		 */
-		void _quota_introduction(Share &s);
-
-		/**
-		 * Claim 's' looses its state as claim due to quota revokation
-		 */
-		void _quota_revokation(Share &s);
-
-		/**
-		 * The quota of claim 's' changes to 'q'
-		 */
-		void _quota_adaption(Share &s, unsigned const q);
+		void _set_current(Context &context, unsigned const q);
+		void _account_priotized(Context &, unsigned const r);
+		void _account_slack(Context &c, unsigned const r);
+		bool _schedule_priotized();
+		bool _schedule_slack();
 
 	public:
 
-		/**
-		 * Constructor
-		 *
-		 * \param i  Gets scheduled with static quota when no other share
-		 *           is schedulable. Unremovable. All values get ignored.
-		 * \param q  total amount of time quota that can be claimed by shares
-		 * \param f  time-slice length of the fill round-robin
-		 */
-		Cpu_scheduler(Share &i, unsigned const q, unsigned const f);
+		Scheduler(Context       &idle,
+		          unsigned const super_period_length,
+		          unsigned const slack_quota);
 
 		bool need_to_schedule() const { return _state != UP_TO_DATE; }
 
@@ -270,36 +211,36 @@ class Kernel::Cpu_scheduler
 		void update(time_t time);
 
 		/**
-		 * Set share 's' ready
+		 * Set 'context' ready
 		 */
-		void ready(Share &s);
+		void ready(Context &context);
 
 		/**
-		 * Set share 's' unready
+		 * Set 'context' unready
 		 */
-		void unready(Share &s);
+		void unready(Context &context);
 
 		/**
-		 * Current share likes another share to be scheduled now
+		 * Current context likes another context to be scheduled now
 		 */
 		void yield();
 
 		/**
-		 * Remove share 's' from scheduler
+		 * Remove 'context' from scheduler
 		 */
-		void remove(Share &s);
+		void remove(Context &context);
 
 		/**
-		 * Insert share 's' into scheduler
+		 * Insert 'context' into scheduler
 		 */
-		void insert(Share &s);
+		void insert(Context &context);
 
 		/**
-		 * Set quota of share 's' to 'q'
+		 * Set prioritized quota of 'context' to 'quota'
 		 */
-		void quota(Share &s, unsigned const q);
+		void quota(Context &context, unsigned const quota);
 
-		Share& current();
+		Context& current();
 
 		unsigned current_time_left() const {
 			return Genode::min(_current_quantum, _super_period_left); }

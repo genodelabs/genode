@@ -1,11 +1,12 @@
 /*
- * \brief   Schedules CPU shares for the execution time of a CPU
+ * \brief   Schedules CPU contexts for the execution time of a CPU
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2014-10-09
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,49 +19,46 @@
 using namespace Kernel;
 
 
-void Cpu_scheduler::_reset(Cpu_share &share)
+void Scheduler::_consumed(unsigned const time)
 {
-	share._claim = share._quota;
-}
-
-
-void Cpu_scheduler::_reset_claims(unsigned const p)
-{
-	_rcl[p].for_each([&] (Cpu_share &share) { _reset(share); });
-	_ucl[p].for_each([&] (Cpu_share &share) { _reset(share); });
-}
-
-
-void Cpu_scheduler::_consumed(unsigned const q)
-{
-	if (_super_period_left > q) {
-		_super_period_left -= q;
+	if (_super_period_left > time) {
+		_super_period_left -= time;
 		return;
 	}
 
+	/**
+	 * Start of a new super period
+	 */
 	_super_period_left = _super_period_length;
-	_for_each_prio([&] (Cpu_priority const p, bool &) { _reset_claims(p); });
+
+	/* reset all priotized contexts */
+	_each_prio_until([&] (Priority const priority) {
+		unsigned const p = priority.value;
+		_rpl[p].for_each([&] (Context &c) { c._reset(); });
+		_upl[p].for_each([&] (Context &c) { c._reset(); });
+		return false;
+	});
 }
 
 
-void Cpu_scheduler::_set_current(Share &s, unsigned const q)
+void Scheduler::_set_current(Context &context, unsigned const q)
 {
 	_current_quantum = q;
-	_current = &s;
+	_current = &context;
 }
 
 
-void Cpu_scheduler::_current_claimed(unsigned const r)
+void Scheduler::_account_priotized(Context &c, unsigned const r)
 {
-	if (!_current->_quota)
+	if (!c._quota)
 		return;
 
-	_current->_claim = r > _current->_quota ? _current->_quota : r;
+	c._priotized_time_left = (r > c._quota) ? c._quota : r;
 
-	if (_current->_claim || !_current->_ready)
+	if (c._priotized_time_left || !c.ready())
 		return;
 
-	_rcl[_current->_prio].to_tail(&_current->_claim_item);
+	_rpl[c._priority].to_tail(&c._priotized_le);
 
 	/*
 	 * This is an optimization for the case that a prioritized scheduling
@@ -71,77 +69,57 @@ void Cpu_scheduler::_current_claimed(unsigned const r)
 	 * scheduling contexts as well before being scheduled again.
 	 */
 	if (_state != YIELD)
-		_fills.to_head(&_current->_fill_item);
+		_slack_list.to_head(&c._slack_le);
 }
 
 
-void Cpu_scheduler::_current_filled(unsigned const r)
+void Scheduler::_account_slack(Context &c, unsigned const r)
 {
-	if (_fills.head() != _current)
+	if (_slack_list.head() != &c)
 		return;
 
 	if (r)
-		_current->_fill = r;
+		c._slack_time_left = r;
 	else {
-		_current->_fill = _fill;
-		_fills.head_to_tail();
+		c._slack_time_left = _slack_quota;
+		_slack_list.head_to_tail();
 	}
 }
 
 
-bool Cpu_scheduler::_schedule_claim()
+bool Scheduler::_schedule_priotized()
 {
 	bool result { false };
-	_for_each_prio([&] (Cpu_priority const p, bool &cancel_for_each_prio) {
-		Cpu_share* const share = _rcl[p].head();
 
-		if (!share)
-			return;
+	_each_prio_until([&] (Priority const p) {
+		Context* const context = _rpl[p.value].head();
 
-		if (!share->_claim)
-			return;
+		if (!context)
+			return false;
 
-		_set_current(*share, share->_claim);
+		if (!context->_priotized_time_left)
+			return false;
+
+		_set_current(*context, context->_priotized_time_left);
 		result = true;
-		cancel_for_each_prio = true;
+		return true;
 	});
 	return result;
 }
 
 
-bool Cpu_scheduler::_schedule_fill()
+bool Scheduler::_schedule_slack()
 {
-	Cpu_share *const share = _fills.head();
-	if (!share)
+	Context *const context = _slack_list.head();
+	if (!context)
 		return false;
 
-	_set_current(*share, share->_fill);
+	_set_current(*context, context->_slack_time_left);
 	return true;
 }
 
 
-void Cpu_scheduler::_quota_introduction(Share &s)
-{
-	if (s._ready) _rcl[s._prio].insert_tail(&s._claim_item);
-	else          _ucl[s._prio].insert_tail(&s._claim_item);
-}
-
-
-void Cpu_scheduler::_quota_revokation(Share &s)
-{
-	if (s._ready) _rcl[s._prio].remove(&s._claim_item);
-	else          _ucl[s._prio].remove(&s._claim_item);
-}
-
-
-void Cpu_scheduler::_quota_adaption(Share &s, unsigned const q)
-{
-	if (s._claim > q) s._claim = q;
-	if (!q)           _quota_revokation(s);
-}
-
-
-void Cpu_scheduler::update(time_t time)
+void Scheduler::update(time_t time)
 {
 	using namespace Genode;
 
@@ -150,52 +128,53 @@ void Cpu_scheduler::update(time_t time)
 		    _super_period_left);
 	_last_time = time;
 
-	/* do not detract the quota if the current share was removed even now */
+	/* do not detract the quota of idle or removed context */
 	if (_current) {
 		unsigned const r = (_state != YIELD) ?  _current_quantum - duration : 0;
-		if (_current->_claim) _current_claimed(r);
-		else                  _current_filled(r);
+		if (_current->_priotized_time_left) _account_priotized(*_current, r);
+		else _account_slack(*_current, r);
 	}
 
 	_consumed(duration);
 
 	_state = UP_TO_DATE;
 
-	if (_schedule_claim())
+	if (_schedule_priotized())
 		return;
 
-	if (_schedule_fill())
+	if (_schedule_slack())
 		return;
 
-	_set_current(_idle, _fill);
+	_set_current(_idle, _slack_quota);
 }
 
 
-void Cpu_scheduler::ready(Share &s)
+void Scheduler::ready(Context &c)
 {
-	assert(!s._ready && &s != &_idle);
+	assert(!c.ready() && &c != &_idle);
 
-	s._ready = true;
+	c._ready = true;
 
 	bool out_of_date = false;
 
-	if (s._quota) {
+	if (c._quota) {
 
-		_ucl[s._prio].remove(&s._claim_item);
-		if (s._claim) {
+		_upl[c._priority].remove(&c._priotized_le);
+		if (c._priotized_time_left) {
 
-			_rcl[s._prio].insert_head(&s._claim_item);
-			if (_current && _current->_claim) {
+			_rpl[c._priority].insert_head(&c._priotized_le);
+			if (_current && _current->_priotized_time_left) {
 
-				if (s._prio >= _current->_prio) out_of_date = true;
+				if (c._priority >= _current->_priority)
+					out_of_date = true;
 			} else out_of_date = true;
 		} else {
-			_rcl[s._prio].insert_tail(&s._claim_item);;
+			_rpl[c._priority].insert_tail(&c._priotized_le);;
 		}
 	}
 
-	s._fill = _fill;
-	_fills.insert_tail(&s._fill_item);
+	c._slack_time_left = _slack_quota;
+	_slack_list.insert_tail(&c._slack_le);
 
 	if (!_current || _current == &_idle) out_of_date = true;
 
@@ -203,87 +182,97 @@ void Cpu_scheduler::ready(Share &s)
 }
 
 
-void Cpu_scheduler::unready(Share &s)
+void Scheduler::unready(Context &c)
 {
-	assert(s._ready && &s != &_idle);
+	assert(c.ready() && &c != &_idle);
 
-	if (&s == _current && _state == UP_TO_DATE) _state = OUT_OF_DATE;
+	if (&c == _current && _state == UP_TO_DATE) _state = OUT_OF_DATE;
 
-	s._ready = false;
-	_fills.remove(&s._fill_item);
+	c._ready = false;
+	_slack_list.remove(&c._slack_le);
 
-	if (!s._quota)
+	if (!c._quota)
 		return;
 
-	_rcl[s._prio].remove(&s._claim_item);
-	_ucl[s._prio].insert_tail(&s._claim_item);
+	_rpl[c._priority].remove(&c._priotized_le);
+	_upl[c._priority].insert_tail(&c._priotized_le);
 }
 
 
-void Cpu_scheduler::yield()
+void Scheduler::yield()
 {
 	_state = YIELD;
 }
 
 
-void Cpu_scheduler::remove(Share &s)
+void Scheduler::remove(Context &c)
 {
-	assert(&s != &_idle);
+	assert(&c != &_idle);
 
-	if (s._ready) unready(s);
+	if (c._ready) unready(c);
 
-	if (&s == _current)
+	if (&c == _current)
 		_current = nullptr;
 
-	if (!s._quota)
+	if (!c._quota)
 		return;
 
-	_ucl[s._prio].remove(&s._claim_item);
+	_upl[c._priority].remove(&c._priotized_le);
 }
 
 
-void Cpu_scheduler::insert(Share &s)
+void Scheduler::insert(Context &c)
 {
-	assert(!s._ready);
+	assert(!c.ready());
 
-	if (!s._quota)
+	if (!c._quota)
 		return;
 
-	s._claim = s._quota;
-	_ucl[s._prio].insert_head(&s._claim_item);
+	c._reset();
+	_upl[c._priority].insert_head(&c._priotized_le);
 }
 
 
-void Cpu_scheduler::quota(Share &s, unsigned const q)
+void Scheduler::quota(Context &c, unsigned const q)
 {
-	assert(&s != &_idle);
+	assert(&c != &_idle);
 
-	if (s._quota)
-		_quota_adaption(s, q);
-	else if (q)
-		_quota_introduction(s);
+	if (c._quota) {
+		if (c._priotized_time_left > q) c._priotized_time_left = q;
 
-	s._quota = q;
+		/* does the quota gets revoked completely? */
+		if (!q) {
+			if (c.ready()) _rpl[c._priority].remove(&c._priotized_le);
+			else           _upl[c._priority].remove(&c._priotized_le);
+		}
+	} else if (q) {
+
+		/* initial quota introduction */
+		if (c.ready()) _rpl[c._priority].insert_tail(&c._priotized_le);
+		else           _upl[c._priority].insert_tail(&c._priotized_le);
+	}
+
+	c.quota(q);
 }
 
 
-Cpu_share &Cpu_scheduler::current()
+Scheduler::Context& Scheduler::current()
 {
 	if (!_current) {
-		Genode::error("attempt to access invalid scheduler's current share");
+		Genode::error("attempt to access invalid scheduler's current context");
 		update(_last_time);
 	}
 	return *_current;
 }
 
 
-Cpu_scheduler::Cpu_scheduler(Share         &idle,
-                             unsigned const super_period_length,
-                             unsigned const f)
+Scheduler::Scheduler(Context       &idle,
+                     unsigned const super_period_length,
+                     unsigned const slack_quota)
 :
-	_idle(idle),
+	_slack_quota(slack_quota),
 	_super_period_length(super_period_length),
-	_fill(f)
+	_idle(idle)
 {
-	_set_current(idle, f);
+	_set_current(idle, slack_quota);
 }

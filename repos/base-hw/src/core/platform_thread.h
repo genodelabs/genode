@@ -91,8 +91,8 @@ class Core::Platform_thread : Noncopyable
 
 		unsigned _scale_priority(unsigned virt_prio)
 		{
-			return Cpu_session::scale_priority(Kernel::Cpu_priority::max(),
-			                                   virt_prio);
+			static constexpr unsigned p = Kernel::Scheduler::Priority::max();
+			return Cpu_session::scale_priority(p, virt_prio);
 		}
 
 		Platform_pd &_kernel_main_get_core_platform_pd();

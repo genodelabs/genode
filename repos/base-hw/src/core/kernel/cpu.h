@@ -127,7 +127,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool, private Timeout
 		unsigned const _id;
 		Board::Pic     _pic;
 		Timer          _timer;
-		Cpu_scheduler  _scheduler;
+		Scheduler      _scheduler;
 		Idle_thread    _idle;
 		Ipi            _ipi_irq;
 
@@ -195,7 +195,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool, private Timeout
 			return *static_cast<Job *>(&_scheduler.current())->helping_destination(); }
 
 		unsigned id() const { return _id; }
-		Cpu_scheduler &scheduler() { return _scheduler; }
+		Scheduler &scheduler() { return _scheduler; }
 
 		Irq::Pool &irq_pool() { return *this; }
 
