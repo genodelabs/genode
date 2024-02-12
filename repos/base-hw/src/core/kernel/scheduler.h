@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__KERNEL__CPU_SCHEDULER_H_
-#define _CORE__KERNEL__CPU_SCHEDULER_H_
+#ifndef _CORE__KERNEL__SCHEDULER_H_
+#define _CORE__KERNEL__SCHEDULER_H_
 
 /* core includes */
 #include <util.h>
@@ -246,4 +246,4 @@ class Kernel::Scheduler
 			return Genode::min(_current_quantum, _super_period_left); }
 };
 
-#endif /* _CORE__KERNEL__CPU_SCHEDULER_H_ */
+#endif /* _CORE__KERNEL__SCHEDULER_H_ */

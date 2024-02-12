@@ -14,7 +14,7 @@
 
 #include <types.h>
 #include <hw/assert.h>
-#include <kernel/cpu_scheduler.h>
+#include <kernel/scheduler.h>
 
 using namespace Kernel;
 

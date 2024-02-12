@@ -17,7 +17,7 @@
 #include <base/component.h>
 
 /* core includes */
-#include <kernel/cpu_scheduler.h>
+#include <kernel/scheduler.h>
 
 using namespace Genode;
 using namespace Kernel;

@@ -5,7 +5,7 @@
 #
 
 TARGET   = test-cpu_scheduler
-SRC_CC   = main.cc cpu_scheduler.cc
+SRC_CC   = main.cc scheduler.cc
 INC_DIR += $(REP_DIR)/src/core $(REP_DIR)/src/include $(BASE_DIR)/src/include
 LIBS     = base
 
