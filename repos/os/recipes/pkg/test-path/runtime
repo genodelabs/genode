@@ -1,0 +1,52 @@
+<runtime ram="10M" caps="100" binary="test-path">
+
+	<requires> <timer/> </requires>
+
+	<fail after_seconds="10"/>
+
+	<succeed>
+			[init] --- 'Genode::Path' test ---
+			[init] 
+			[init] testing removal of superfluous slashes
+			[init] 
+			[init] '//dir1///' -> '/dir1/'
+			[init] 
+			[init] testing removal of superfluous dot-slashes
+			[init] 
+			[init] '/./dir1/././' -> '/dir1/'
+			[init] './dir1/././' -> './dir1/'
+			[init] 
+			[init] testing removal of double dot dirs
+			[init] 
+			[init] '/..' -> '/'
+			[init] '/dir1/..' -> '/'
+			[init] '/dir1/../..' -> '/'
+			[init] '/dir1/dir2/..' -> '/dir1'
+			[init] '/dir1/../dir2' -> '/dir2'
+			[init] '/../dir1' -> '/dir1'
+			[init] '/../../dir1' -> '/dir1'
+			[init] '/../dir1/..' -> '/'
+			[init] '..' -> ''
+			[init] 'dir1/..' -> ''
+			[init] 'dir1/../..' -> ''
+			[init] 'dir1/dir2/..' -> 'dir1'
+			[init] 'dir1/../dir2' -> 'dir2'
+			[init] '../dir1' -> 'dir1'
+			[init] '../../dir1' -> 'dir1'
+			[init] '../dir1/..' -> ''
+			[init] 
+			[init] testing removal of trailing dot
+			[init] 
+			[init] '/dir1/.' -> '/dir1/'
+			[init] 
+			[init] --- 'Genode::Path' test finished ---
+	</succeed>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-path"/>
+	</content>
+
+	<config/>
+
+</runtime>
