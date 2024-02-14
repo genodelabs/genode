@@ -103,8 +103,8 @@ struct Menu_view::Main
 	Directory _fonts_dir  { _root_dir, "fonts" };
 	Directory _styles_dir { _root_dir, "styles" };
 
-	Style_database _styles { _env.ram(), _env.rm(), _heap, _fonts_dir, _styles_dir,
-	                         _dialog_update_handler };
+	Style_database _styles { _env.ep(), _env.ram(), _env.rm(), _heap,
+	                         _fonts_dir, _styles_dir, _dialog_update_handler };
 
 	Animator _animator { };
 

@@ -279,12 +279,12 @@ class Vfs_trace::Subject : private Subject_factory,
 
 		typedef String<200> Config;
 
-		Watch_handler<Subject> _enable_handler {
+		Io::Watch_handler<Subject> _enable_handler {
 		  _enabled_fs, "/enable",
 		  Subject_factory::_env.alloc(),
 		  *this, &Subject::_enable_subject };
 
-		Watch_handler<Subject> _buffer_size_handler {
+		Io::Watch_handler<Subject> _buffer_size_handler {
 		  _buffer_size_fs, "/buffer_size",
 		  Subject_factory::_env.alloc(),
 		  *this, &Subject::_buffer_size };

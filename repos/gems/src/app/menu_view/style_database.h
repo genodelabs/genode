@@ -148,19 +148,21 @@ class Menu_view::Style_database
 			 *
 			 * \throw Reading_failed
 			 */
-			Font_entry(Directory const &fonts_dir, Path const &path, Allocator &alloc,
+			Font_entry(Entrypoint &ep, Directory const &fonts_dir,
+			           Path const &path, Allocator &alloc,
 			           Style_database const &style_database)
 			try :
 				path(path),
 				_style_database(style_database),
 				_vfs_font(alloc, fonts_dir, path),
 				_cached_font(alloc, _vfs_font, _font_cache_limit),
-				_glyphs_changed_handler(fonts_dir, Path(path, "/glyphs"),
+				_glyphs_changed_handler(ep, fonts_dir, Path(path, "/glyphs"),
 				                        *this, &Font_entry::_handle_glyphs_changed)
 			{ }
 			catch (...) { throw Reading_failed(); }
 		};
 
+		Entrypoint      &_ep;
 		Ram_allocator   &_ram;
 		Region_map      &_rm;
 		Allocator       &_alloc;
@@ -228,11 +230,12 @@ class Menu_view::Style_database
 
 	public:
 
-		Style_database(Ram_allocator &ram, Region_map &rm, Allocator &alloc,
+		Style_database(Entrypoint &ep, Ram_allocator &ram, Region_map &rm,
+		               Allocator &alloc,
 		               Directory const &fonts_dir, Directory const &styles_dir,
 		               Signal_context_capability style_changed_sigh)
 		:
-			_ram(ram), _rm(rm), _alloc(alloc),
+			_ep(ep), _ram(ram), _rm(rm), _alloc(alloc),
 			_fonts_dir(fonts_dir), _styles_dir(styles_dir),
 			_style_changed_sigh(style_changed_sigh)
 		{ }
@@ -273,7 +276,7 @@ class Menu_view::Style_database
 			 */
 			try {
 				Font_entry *e = new (_alloc)
-					Font_entry(_fonts_dir, path, _alloc, *this);
+					Font_entry(_ep, _fonts_dir, path, _alloc, *this);
 
 				_fonts.insert(e);
 				return &e->font();

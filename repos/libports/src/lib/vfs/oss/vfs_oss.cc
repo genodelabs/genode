@@ -813,55 +813,55 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 
 	Audio _audio { _env.env(), _info, _info_fs };
 
-	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _enable_input_handler {
+	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _enable_input_handler {
 		_enable_input_fs, "/enable_input",
 		_env.alloc(),
 		*this,
 		&Vfs::Oss_file_system::Local_factory::_enable_input_changed };
 
-	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _enable_output_handler {
+	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _enable_output_handler {
 		_enable_output_fs, "/enable_output",
 		_env.alloc(),
 		*this,
 		&Vfs::Oss_file_system::Local_factory::_enable_output_changed };
 
-	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _halt_input_handler {
+	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _halt_input_handler {
 		_halt_input_fs, "/halt_input",
 		_env.alloc(),
 		*this,
 		&Vfs::Oss_file_system::Local_factory::_halt_input_changed };
 
-	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _halt_output_handler {
+	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _halt_output_handler {
 		_halt_output_fs, "/halt_output",
 		_env.alloc(),
 		*this,
 		&Vfs::Oss_file_system::Local_factory::_halt_output_changed };
 
-	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _ifrag_total_handler {
+	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _ifrag_total_handler {
 		_ifrag_total_fs, "/ifrag_total",
 		_env.alloc(),
 		*this,
 		&Vfs::Oss_file_system::Local_factory::_ifrag_total_changed };
 
-	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _ifrag_size_handler {
+	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _ifrag_size_handler {
 		_ifrag_size_fs, "/ifrag_size",
 		_env.alloc(),
 		*this,
 		&Vfs::Oss_file_system::Local_factory::_ofrag_size_changed };
 
-	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _ofrag_total_handler {
+	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _ofrag_total_handler {
 		_ofrag_total_fs, "/ofrag_total",
 		_env.alloc(),
 		*this,
 		&Vfs::Oss_file_system::Local_factory::_ofrag_total_changed };
 
-	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _ofrag_size_handler {
+	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _ofrag_size_handler {
 		_ofrag_size_fs, "/ofrag_size",
 		_env.alloc(),
 		*this,
 		&Vfs::Oss_file_system::Local_factory::_ofrag_size_changed };
 
-	Genode::Watch_handler<Vfs::Oss_file_system::Local_factory> _play_underruns_handler {
+	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _play_underruns_handler {
 		_play_underruns_fs, "/play_underruns",
 		_env.alloc(),
 		*this,

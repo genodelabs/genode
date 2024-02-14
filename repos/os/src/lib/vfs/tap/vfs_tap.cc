@@ -244,7 +244,7 @@ struct Vfs::Tap_file_system::Local_factory : File_system_factory,
 	 ** Watch handlers **
 	 ********************/
 
-	Genode::Watch_handler<Vfs::Tap_file_system::Local_factory<FS>> _mac_addr_changed_handler {
+	Genode::Io::Watch_handler<Vfs::Tap_file_system::Local_factory<FS>> _mac_addr_changed_handler {
 		_mac_addr_fs, "/mac_addr",
 		_env.alloc(),
 		*this,

@@ -31,6 +31,10 @@ namespace Genode {
 	class  Append_file;
 	class  New_file;
 	class  Watcher;
+	namespace Io {
+		template <typename>
+		class Watch_handler;
+	}
 	template <typename>
 	class  Watch_handler;
 	template <typename FN>
@@ -954,9 +958,12 @@ class Genode::Watcher
 };
 
 
+/**
+ * Watch handler that operates on I/O signal level
+ */
 template <typename T>
-class Genode::Watch_handler : public Vfs::Watch_response_handler,
-                              private Watcher
+class Genode::Io::Watch_handler : public Vfs::Watch_response_handler,
+                                  private Watcher
 
 {
 	private:
@@ -979,6 +986,41 @@ class Genode::Watch_handler : public Vfs::Watch_response_handler,
 		{ }
 
 		void watch_response() override { (_obj.*_member)(); }
+};
+
+
+/**
+ * Watch handler that operates on application signal level
+ */
+template <typename T>
+class Genode::Watch_handler : public Signal_handler<Watch_handler<T>>
+{
+	private:
+
+		Io::Watch_handler<Watch_handler> _io_watch_handler;
+
+		T  &_obj;
+		void (T::*_member) ();
+
+		void _handle_watch_response()
+		{
+			Signal_handler<Watch_handler<T>>::local_submit();
+		}
+
+		void _handle_signal()
+		{
+			(_obj.*_member)();
+		}
+
+	public:
+
+		Watch_handler(Genode::Entrypoint &ep, Directory const &dir,
+		              Directory::Path const &rel_path,
+		              T &obj, void (T::*member)())
+		: Signal_handler<Watch_handler<T>>(ep, *this, &Watch_handler<T>::_handle_signal),
+		  _io_watch_handler(dir, rel_path, *this, &Watch_handler<T>::_handle_watch_response),
+		  _obj(obj), _member(member)
+		{ }
 };
 
 #endif /* _INCLUDE__OS__VFS_H_ */

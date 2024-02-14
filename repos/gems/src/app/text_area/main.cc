@@ -136,7 +136,8 @@ struct Text_area::Main : Text_area_widget::Action
 
 	void _watch(bool enabled)
 	{
-		_watch_handler.conditional(enabled, _vfs, _path(), *this, &Main::_handle_watch);
+		_watch_handler.conditional(enabled, _env.ep(), _vfs, _path(), *this,
+		                           &Main::_handle_watch);
 	}
 
 	bool _editable() const { return !_watch_handler.constructed(); }

@@ -202,12 +202,12 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 		Constructible<Rtc> _rtc { };
 
 		/* handler for watching the stdout's info pseudo file */
-		Constructible<Watch_handler<Kernel>> _terminal_resize_handler { };
+		Constructible<Io::Watch_handler<Kernel>> _terminal_resize_handler { };
 
 		void _handle_terminal_resize();
 
 		/* handler for watching user interrupts (control-c) */
-		Constructible<Watch_handler<Kernel>> _user_interrupt_handler { };
+		Constructible<Io::Watch_handler<Kernel>> _user_interrupt_handler { };
 
 		void _handle_user_interrupt();
 

@@ -80,8 +80,15 @@ struct Terminal::Main : Character_consumer
 			_config_handler.local_submit();
 	}
 
-	Watch_handler<Main> _glyphs_changed_handler {
-		_root_dir, "fonts/monospace/regular/glyphs", *this, &Main::_handle_glyphs_changed };
+	/*
+	 * XXX Currently an I/O-level watch handler is used
+	 *     to prevent a config/watch handler cycle as
+	 *     side-effect of '_root_dir.apply_config()' with
+	 *     an application-level watch handler.
+	 */
+	Io::Watch_handler<Main> _glyphs_changed_handler {
+		_root_dir, "fonts/monospace/regular/glyphs", *this,
+		&Main::_handle_glyphs_changed };
 
 	Color_palette _color_palette { };
 
