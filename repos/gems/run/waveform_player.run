@@ -1,0 +1,198 @@
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/pkg/fonts_fs \
+                  [depot_user]/src/init \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libpng \
+                  [depot_user]/src/zlib
+
+build { server/record_play_mixer server/record_rom app/waveform_player app/rom_osci }
+
+proc play_period_ms { } {
+	if {[have_spec linux]} { return 80 }
+	return 5
+}
+
+proc record_period_ms { } {
+	if {[have_spec linux]} { return 40 }
+	return 5
+}
+
+proc jitter_ms { } {
+	if {[have_spec linux]} { return 20 }
+	return 2
+}
+
+install_config {
+<config prio_levels="4">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="LOG"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="TRACE"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="report_rom" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="ROM"/> <service name="Report"/> </provides>
+		<config>
+		</config>
+	</start>
+
+	<start name="drivers" caps="1500" managing_system="yes" priority="-1">
+		<resource name="RAM" quantum="64M"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="Capture"> <child name="nitpicker"/> </service>
+			<service name="Event">   <child name="nitpicker"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="nitpicker" priority="-2">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+		</provides>
+		<config>
+			<capture/> <event/>
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name="default" layer="3" content="client" label="no" hover="always" />
+			<policy label_prefix="pointer" domain="pointer"/>
+			<default-policy domain="default"/>
+		</config>
+	</start>
+
+	<start name="pointer" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+
+	<start name="fonts_fs" caps="300" priority="-1">
+		<resource name="RAM" quantum="8M"/>
+		<binary name="vfs"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="fonts_fs.config"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides> <service name="File_system"/> </provides>
+	</start>
+
+	<start name="mixer">
+		<resource name="RAM" quantum="2M"/>
+		<binary name="record_play_mixer"/>
+		<provides> <service name="Record"/> <service name="Play"/> </provides>
+		<config jitter_ms="} [jitter_ms] {">
+
+			<mix name="left">  <play label_suffix="left"/>  </mix>
+			<mix name="right"> <play label_suffix="right"/> </mix>
+			<mix name="lefty">
+				<signal name="left"  volume="0.7"/>
+				<signal name="right" volume="0.3"/>
+			</mix>
+			<mix name="righty">
+				<signal name="left"  volume="0.3"/>
+				<signal name="right" volume="0.7"/>
+			</mix>
+
+			<policy label_suffix="left"   record="left"/>
+			<policy label_suffix="lefty"  record="lefty"/>
+			<policy label_suffix="righty" record="righty"/>
+			<policy label_suffix="right"  record="right"/>
+		</config>
+	</start>
+
+	<start name="waveform_config" priority="-2">
+		<binary name="dynamic_rom"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<rom name="config">
+				<inline>
+					<config period_ms="} [play_period_ms] {">
+						<play label="left"  wave="sine"   hz="1000" sample_rate_hz="44100"/>
+						<play label="right" wave="square" hz="1000" sample_rate_hz="33333"/>
+					</config>
+				</inline>
+				<sleep milliseconds="2000" />
+				<inline>
+					<config period_ms="} [play_period_ms] {">
+						<play label="left"  wave="sine"   hz="10000" sample_rate_hz="44100"/>
+						<play label="right" wave="square" hz="10000" sample_rate_hz="33333"/>
+					</config>
+				</inline>
+				<sleep milliseconds="2000" />
+				<inline>
+					<config period_ms="} [play_period_ms] {">
+						<play label="left"  wave="sine"   hz="0" sample_rate_hz="44100"/>
+						<play label="right" wave="square" hz="0" sample_rate_hz="33333"/>
+					</config>
+				</inline>
+				<sleep milliseconds="2000" />
+			</rom>
+		</config>
+	</start>
+
+	<start name="waveform_player" priority="0">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="ROM" label="config"> <child name="waveform_config"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="record_rom" priority="0">
+		<resource name="RAM" quantum="8M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config period_ms="} [record_period_ms] {" sample_rate_hz="44100">
+			<record label="left"/>
+			<record label="lefty"/>
+			<record label="righty"/>
+			<record label="right"/>
+		</config>
+	</start>
+
+	<start name="rom_osci" priority="-1">
+		<resource name="RAM" quantum="8M"/>
+		<config width="640" height="480" xpos="200" ypos="100" fps="20" v_scale="0.15" phase_lock="yes">
+			<channel label="left"   color="#ff6633" v_pos="0.2"/>
+			<channel label="lefty"  color="#cc7777" v_pos="0.4"/>
+			<channel label="righty" color="#9988bb" v_pos="0.6"/>
+			<channel label="right"  color="#6699ff" v_pos="0.8"/>
+		</config>
+		<route>
+			<service name="ROM" label="recording"> <child name="record_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -nographic "
+
+run_genode_until forever
+

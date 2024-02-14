@@ -1,0 +1,78 @@
+The mixer routes and mixes audio signals produced by play clients to record
+clients according to its configuration. Typical play clients are an audio
+player or a microphone driver whereas typical record clients are an audio
+recorder or an audio-output driver.
+
+Both play and record clients are expected to operate periodically. The number
+of samples produced per period is up to each client and does not need to be
+constant over time. The mixer infers the used sample rates and periods by
+observing the behavior of the clients. Sample rates between play and record
+clients are converted automatically.
+
+The latency depends on the period lengths of both record and play sides as
+well as on the observed jitter. By default, the mixer automatically determines
+the buffering parameters needed for continuous playback in the presence of
+jitter. If jitter for a given scenario is known, the expected jitter can be
+configured such that the mixer won't try to optimize latency beyond known-good
+bounds.
+
+Configuration
+~~~~~~~~~~~~~
+
+A simple mixer configuration looks as follows:
+
+! <config jitter_ms="5">
+!
+!   <mix name="left">  <play label_suffix="left"/>  </mix>
+!   <mix name="right"> <play label_suffix="right"/> </mix>
+!
+!   <policy label_suffix="left"  record="left"/>
+!   <policy label_suffix="right" record="right"/>
+!
+! </config>
+
+This configuration defines two signals "left" and "right" that are mixed from
+the audio input of the matching <play> clients. In the example, each play
+session labeled as "left" is mixed into the "left" signal. Each <mix> node
+can host an arbitrary number of <play> nodes. The same <play> policy can appear
+at multiple <mix> nodes.
+
+A <policy> node assigns a signal to a record client. In the example, a record
+client labeled "left" is connected to the <mix> signal "left".
+
+The mixer allows for the cascading of <mix> nodes. For example, the following
+signal "lefty" is a mix if the two signals "left" and "right", weighted by
+respective volume attributes.
+
+! <mix name="lefty">
+!   <signal name="left"  volume="0.7"/>
+!   <signal name="right" volume="0.3"/>
+! </mix>
+
+The 'volume' can be specified for <policy>, <play>, and <signal> nodes and
+defines a factor that is multiplied with each sample value.
+
+The 'jitter_ms' value at the <config> node denotes the expected jitter. The
+mixer won't try to optimize latency beyond that value. A jitter of 5 ms
+means that the periodicity of play and record clients is expected to vary
+from period to period up to 5 ms. To attain continuous playback given
+this situation, the mixer buffers 10 ms of data. In the worst case - should
+the play client come 5 ms too late while the record client comes 5 ms too
+early - the audio still does not stutter.
+
+In cases where the jittering behavior of client differs, it is possible to
+define the expected jitter as 'jitter_ms' attribute at individual <play> and
+<policy> nodes. This way, a high-priority audio driver strictly driven by
+interrupts in 5 ms intervals can be configured to a low jitter value like 1
+ms. This way, a high-priority sporadic play client operating at a period of 5
+ms can attain low latency while a low-priority media player operating at a
+period of 80 ms could be configured to a jitter of 10 ms. In the presence of
+multiple jitter attributes (e.g, one present in the <config> node and one
+present in a <policy> node, the highest value takes effect.
+
+Example
+~~~~~~~
+
+The _gems/run/waveform_player.run_ script illustrates the integration and
+configuration of the mixer by using a waveform generator as play client and an
+oscilloscope as record client.
