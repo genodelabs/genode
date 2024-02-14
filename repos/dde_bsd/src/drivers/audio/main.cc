@@ -15,6 +15,8 @@
 /* Genode includes */
 #include <audio_in_session/rpc_object.h>
 #include <audio_out_session/rpc_object.h>
+#include <record_session/connection.h>
+#include <play_session/connection.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/session_label.h>
 #include <base/component.h>
@@ -467,6 +469,144 @@ class Audio_in::Root : public Audio_in::Root_component
 };
 
 
+struct Stereo_output : Noncopyable
+{
+	static constexpr unsigned SAMPLES_PER_PERIOD = Audio_in::PERIOD;
+	static constexpr unsigned CHANNELS = 2;
+
+	Env &_env;
+
+	Record::Connection _left  { _env, "left"  };
+	Record::Connection _right { _env, "right" };
+
+	struct Recording : private Noncopyable
+	{
+		bool depleted = false;
+
+		/* 16 bit per sample, interleaved left and right */
+		int16_t data[SAMPLES_PER_PERIOD*CHANNELS] { };
+
+		void clear() { for (auto &e : data) e = 0; }
+
+		void from_record_sessions(Record::Connection &left, Record::Connection &right)
+		{
+			using Samples_ptr = Record::Connection::Samples_ptr;
+
+			bool const orig_depleted = depleted;
+
+			Record::Num_samples const num_samples { SAMPLES_PER_PERIOD };
+
+			auto clamped = [&] (float v)
+			{
+				return (v >  1.0) ?  1.0
+				     : (v < -1.0) ? -1.0
+				     :  v;
+			};
+
+			auto float_to_s16 = [&] (float v) { return int16_t(clamped(v)*32767); };
+
+			left.record(num_samples,
+				[&] (Record::Time_window const tw, Samples_ptr const &samples) {
+					depleted = false;
+
+					for (unsigned i = 0; i < SAMPLES_PER_PERIOD; i++)
+						data[i*CHANNELS] = float_to_s16(samples.start[i]);
+
+					right.record_at(tw, num_samples,
+						[&] (Samples_ptr const &samples) {
+							for (unsigned i = 0; i < SAMPLES_PER_PERIOD; i++)
+								data[i*CHANNELS + 1] = float_to_s16(samples.start[i]);
+						});
+				},
+				[&] {
+					depleted = true;
+					clear();
+				}
+			);
+
+			if (orig_depleted != depleted && depleted)
+				log("recording depleted");
+		}
+	};
+
+	Recording _recording { };
+
+	Signal_handler<Stereo_output> _output_handler {
+		_env.ep(), *this, &Stereo_output::_handle_output };
+
+	void _handle_output()
+	{
+		_recording.from_record_sessions(_left, _right);
+		Audio::play(_recording.data, sizeof(_recording.data));
+	}
+
+	Stereo_output(Env &env) : _env(env)
+	{
+		Audio::play_sigh(_output_handler);
+
+		/* submit two silent packets to get the driver going */
+		Audio::play(_recording.data, sizeof(_recording.data));
+		Audio::play(_recording.data, sizeof(_recording.data));
+	}
+};
+
+
+struct Stereo_input : Noncopyable
+{
+	static constexpr unsigned SAMPLES_PER_PERIOD = Audio_in::PERIOD;
+	static constexpr unsigned CHANNELS = 2;
+
+	Env &_env;
+
+	Play::Connection _left  { _env, "left"  };
+	Play::Connection _right { _env, "right" };
+
+	/* 16 bit per sample, interleaved left and right */
+	int16_t data[SAMPLES_PER_PERIOD*CHANNELS] { };
+
+	struct Frame { float left, right; };
+
+	void _for_each_frame(auto const &fn) const
+	{
+		float const scale = 1.0f/32768;
+
+		for (unsigned i = 0; i < SAMPLES_PER_PERIOD; i++)
+			fn(Frame { .left  = scale*float(data[i*CHANNELS]),
+			           .right = scale*float(data[i*CHANNELS + 1]) });
+	}
+
+	Play::Time_window _time_window { };
+
+	Signal_handler<Stereo_input> _input_handler {
+		_env.ep(), *this, &Stereo_input::_handle_input };
+
+	void _handle_input()
+	{
+		if (int const err = Audio::record(data, sizeof(data))) {
+			if (err && err != 35)
+				warning("error ", err, " during recording");
+			return;
+		}
+
+		Play::Duration const duration_us { 11*1000 }; /* hint for first period */
+		_time_window = _left.schedule_and_enqueue(_time_window, duration_us,
+			[&] (auto &submit) {
+				_for_each_frame([&] (Frame const frame) {
+					submit(frame.left); }); });
+
+		_right.enqueue(_time_window,
+			[&] (auto &submit) {
+				_for_each_frame([&] (Frame const frame) {
+					submit(frame.right); }); });
+	}
+
+	Stereo_input(Env &env) : _env(env)
+	{
+		Audio::record_sigh(_input_handler);
+	}
+};
+
+
 /**********
  ** Main **
  **********/
@@ -487,17 +627,30 @@ struct Main
 		Audio::update_config(_env, _config.xml());
 	}
 
+	bool const _record_play = _config.xml().attribute_value("record_play", false);
+
 	Constructible<Audio_out::Out>  _out      { };
 	Constructible<Audio_out::Root> _out_root { };
 
 	Constructible<Audio_in::In>   _in      { };
 	Constructible<Audio_in::Root> _in_root { };
 
+	Constructible<Stereo_output> _stereo_output { };
+	Constructible<Stereo_input>  _stereo_input  { };
+
 	Signal_handler<Main> _announce_session_handler {
 		_env.ep(), *this, &Main::_handle_announce_session };
 
 	void _handle_announce_session()
 	{
+		if (_record_play) {
+			_stereo_output.construct(_env);
+			_stereo_input .construct(_env);
+			return;
+		}
+
+		/* Audio_out/Audio_in mode */
+
 		_out.construct(_env);
 		Audio::play_sigh(_out->sigh());
 

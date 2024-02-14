@@ -10,16 +10,87 @@ if {[have_spec linux]} {
 	exit 0
 }
 
+# select use of 'Audio_in/Audio_out' or 'Record/Play' sessions
+proc use_record_play_sessions { } { return 1 }
 
 create_boot_directory
-build {
-	core init timer
-	drivers/acpi
-	drivers/platform
-	app/pci_decode
-	server/report_rom
-	drivers/audio
-	test/audio_out
+
+proc build_targets { } {
+
+	set targets {
+		core init timer
+		drivers/acpi drivers/platform app/pci_decode server/report_rom
+		drivers/audio
+	}
+
+	if {[use_record_play_sessions]} {
+		lappend targets server/record_play_mixer app/waveform_player \
+		                test/audio_play lib/vfs
+	} else {
+		lappend targets test/audio_out
+	}
+}
+
+build [build_targets]
+
+proc audio_driver_config_attr { } {
+
+	if {[use_record_play_sessions]} {
+		return {report_mixer="yes" record_play="yes"}
+	} else {
+		return {report_mixer="yes"}
+	}
+}
+
+proc record_play_start_nodes { } {
+
+	if {![use_record_play_sessions]} {
+		return "" }
+
+	return {
+	<start name="mixer">
+		<resource name="RAM" quantum="2M"/>
+		<resource name="CPU" quantum="20"/>
+		<binary name="record_play_mixer"/>
+		<provides> <service name="Record"/> <service name="Play"/> </provides>
+		<config jitter_ms="10">
+
+			<mix name="left">  <play label_suffix="left" /> </mix>
+			<mix name="right"> <play label_suffix="right"/> </mix>
+
+			<policy label_suffix="left"   record="left"  volume="1.0"/>
+			<policy label_suffix="right"  record="right" volume="1.0"/>
+		</config>
+	</start>
+
+	<start name="test-audio_play">
+		<resource name="RAM" quantum="40M"/>
+		<config sample_path="sample.f32">
+			<vfs> <rom name="sample.f32"/> </vfs>
+		</config>
+		<route>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	}
+}
+
+proc audio_in_out_start_nodes { } {
+
+	if {[use_record_play_sessions]} {
+		return "" }
+
+	return {
+	<start name="test-audio_out">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<filename>sample.f32</filename>
+		</config>
+		<route>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	}
 }
 
 install_config {
@@ -45,7 +116,7 @@ install_config {
 	<start name="report_rom">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config>
+		<config verbose="yes">
 			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
 			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
 		</config>
@@ -55,12 +126,7 @@ install_config {
 		<resource name="RAM" quantum="4M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="IO_MEM"> <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="PD">     <parent/> </service>
-			<service name="RM">     <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="ROM">    <parent/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -69,12 +135,7 @@ install_config {
 		<route>
 			<service name="Report">             <child name="report_rom"/> </service>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
-			<service name="IO_MEM"> <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="PD">     <parent/> </service>
-			<service name="RM">     <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="ROM">    <parent/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -86,13 +147,7 @@ install_config {
 		<route>
 			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
-			<service name="IRQ">     <parent/> </service>
-			<service name="IO_MEM">  <parent/> </service>
-			<service name="ROM">     <parent/> </service>
-			<service name="PD">      <parent/> </service>
-			<service name="CPU">     <parent/> </service>
-			<service name="LOG">     <parent/> </service>
-			<service name="Timer">   <parent/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 		<config>
 			<policy label="audio_drv -> "> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
@@ -102,43 +157,28 @@ install_config {
 	<start name="audio_drv">
 		<binary name="pci_audio_drv"/>
 		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Audio_out"/> </provides>
-		<config/>
+		<provides> <service name="Audio_out"/> <service name="Audio_in"/> </provides>
+		<config } [audio_driver_config_attr] {/>
 	</start>
 
-	<start name="test-audio_out">
-		<resource name="RAM" quantum="4M"/>
-		<config>
-			<filename>sample.raw</filename>
-		</config>
-		<route>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
+	} [record_play_start_nodes] {
+	} [audio_in_out_start_nodes] {
+
 </config>}
 
 #
 # Get sample file
 #
 
-if {![file exists bin/sample.raw]} {
+if {![file exists bin/sample.f32]} {
 	puts ""
 	puts "The sample file is missing. Please take a look at"
-	puts "repos/dde_bsd/README, create 'sample.raw' and put"
+	puts "repos/dde_bsd/README, create 'sample.f32' and put"
 	puts "the file into './bin'. afterwards"
 	puts ""
 	exit 1
 }
 
-build_boot_image {
-	core ld.lib.so init timer
-	platform_drv acpi_drv pci_decode report_rom
-	pci_audio_drv test-audio_out sample.raw
-}
+build_boot_image [list {*}[build_artifacts] sample.f32]
 
-
-#
-# For obvious reasons the timeout depends on the total
-# length of the used sample file.
-#
-run_genode_until {.*played.*1 time\(s\)} 60
+run_genode_until forever

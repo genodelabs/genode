@@ -10,30 +10,71 @@ if {[have_spec linux]} {
 	exit 0
 }
 
+# select use of 'Audio_in/Audio_out' or 'Record/Play' sessions
+proc use_record_play_sessions { } { return 1 }
 
-#
-# Build
-#
+proc build_targets { } {
 
-set build_components {
-	core init timer
-	drivers/acpi
-	drivers/platform
-	app/pci_decode
-	server/report_rom
-	drivers/audio
-	test/audio_in
+	set targets {
+		core init timer
+		drivers/acpi drivers/platform app/pci_decode server/report_rom
+		drivers/audio
+	}
+
+	if {[use_record_play_sessions]} {
+		lappend targets server/record_play_mixer
+	} else {
+		lappend targets test/audio_in
+	}
 }
 
-build $build_components
+build [build_targets]
 
 create_boot_directory
 
-#
-# Config
-#
+proc audio_driver_config_attr { } {
 
-append config {
+	if {[use_record_play_sessions]} {
+		return {report_mixer="yes" record_play="yes"}
+	} else {
+		return {report_mixer="yes"}
+	}
+}
+
+proc record_play_start_nodes { } {
+
+	if {![use_record_play_sessions]} { return "" }
+
+	return {
+	<start name="mixer">
+		<resource name="RAM" quantum="2M"/>
+		<resource name="CPU" quantum="20"/>
+		<binary name="record_play_mixer"/>
+		<provides> <service name="Record"/> <service name="Play"/> </provides>
+		<config jitter_ms="10">
+
+			<mix name="left">  <play label_suffix="left" /> </mix>
+			<mix name="right"> <play label_suffix="right"/> </mix>
+
+			<policy label_suffix="left"   record="left"  volume="1.0"/>
+			<policy label_suffix="right"  record="right" volume="1.0"/>
+		</config>
+	</start>
+	}
+}
+
+proc audio_in_out_start_nodes { } {
+
+	if {[use_record_play_sessions]} { return "" }
+
+	return {
+	<start name="test-audio_in">
+		<resource name="RAM" quantum="8M"/>
+	</start>
+	}
+}
+
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -67,12 +108,7 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="IO_MEM"> <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="PD">     <parent/> </service>
-			<service name="RM">     <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="ROM">    <parent/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -81,12 +117,7 @@ append config {
 		<route>
 			<service name="Report">             <child name="report_rom"/> </service>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
-			<service name="IO_MEM"> <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="PD">     <parent/> </service>
-			<service name="RM">     <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="ROM">    <parent/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
@@ -98,13 +129,7 @@ append config {
 		<route>
 			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
-			<service name="IRQ">     <parent/> </service>
-			<service name="IO_MEM">  <parent/> </service>
-			<service name="ROM">     <parent/> </service>
-			<service name="PD">      <parent/> </service>
-			<service name="CPU">     <parent/> </service>
-			<service name="LOG">     <parent/> </service>
-			<service name="Timer">   <parent/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 		<config>
 			<policy label="audio_drv -> "> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
@@ -118,31 +143,19 @@ append config {
 			<service name="Audio_out"/>
 			<service name="Audio_in"/>
 		</provides>
-		<config>
+		<config } [audio_driver_config_attr] {>
 			<mixer field="outputs.master" value="128"/>
 			<mixer field="record.adc-0:1_source" value="sel2"/>
 			<mixer field="record.adc-0:1" value="128"/>
 			<mixer field="record.enable" value="on"/>
 		</config>
 	</start>
-	<start name="test-audio_in">
-		<resource name="RAM" quantum="8M"/>
-	</start>
+
+	} [record_play_start_nodes] {
+	} [audio_in_out_start_nodes] {
+
 </config>}
 
-install_config $config
-
-
-#
-# Boot modules
-#
-
-set boot_modules {
-	core ld.lib.so init timer
-	platform_drv acpi_drv pci_decode report_rom
-	pci_audio_drv test-audio_in
-}
-
-build_boot_image $boot_modules
+build_boot_image [build_artifacts]
 
 run_genode_until forever
