@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2022 Genode Labs GmbH
+ * Copyright (C) 2022-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,6 +19,7 @@
 #include <cpu.h>
 #include <cpu/vcpu_state.h>
 #include <cpu/vcpu_state_virtualization.h>
+#include <spec/x86_64/virtualization/virt_interface.h>
 #include <util/mmio.h>
 #include <util/string.h>
 
@@ -33,16 +34,14 @@ using Genode::Vcpu_state;
 using Genode::get_page_size;
 using Genode::memset;
 
-namespace Kernel
-{
-class Cpu;
-}
+namespace Kernel { class Cpu; }
 
 namespace Board
 {
 	struct Msrpm;
 	struct Iopm;
 	struct Vmcb;
+	struct Vmcb_buf;
 }
 
 
@@ -67,7 +66,7 @@ Board::Iopm
  * VMCB data structure
  * See: AMD Manual Vol. 2, Appendix B Layout of VMCB
  */
-struct Board::Vmcb
+struct Board::Vmcb_buf
 :
 	public Mmio<get_page_size()>
 {
@@ -77,19 +76,10 @@ struct Board::Vmcb
 	};
 
 
-	addr_t root_vmcb_phys = { 0 };
+	Vmcb_buf(addr_t vmcb_addr, uint32_t id);
 
-	Vmcb(addr_t vmcb_page_addr, uint32_t id);
-	static Vmcb & host_vmcb(size_t cpu_id);
 	static addr_t dummy_msrpm();
-	void enforce_intercepts(uint32_t desired_primary = 0U, uint32_t desired_secondary = 0U);
 	static addr_t dummy_iopm();
-
-	void initialize(Kernel::Cpu &cpu, addr_t page_table_phys_addr);
-	void write_vcpu_state(Vcpu_state &state);
-	void read_vcpu_state(Vcpu_state &state);
-	void switch_world(addr_t vmcb_phys_addr, Core::Cpu::Context &regs);
-	uint64_t get_exitcode();
 
 	/*
 	 * AMD Manual Vol. 2, Table B-1: VMCB Layout, Control Area
@@ -317,5 +307,43 @@ struct Board::Vmcb
 	struct Cr2            : Register<State_off + 0x240,64> { };
 	struct G_pat          : Register<State_off + 0x268,64> { };
 };
+
+
+
+/*
+ * VMCB data structure
+ * See: AMD Manual Vol. 2, Appendix B Layout of VMCB
+ */
+struct Board::Vmcb
+:
+	public Board::Virt_interface
+{
+	enum
+	{
+		Asid_host = 0,
+		State_off = 1024,
+	};
+
+	Vmcb_buf       v;
+	addr_t root_vmcb_phys = { 0 };
+
+	Vmcb(Vcpu_data &vcpu_data, uint32_t id);
+	static Vmcb_buf &host_vmcb(size_t cpu_id);
+	void enforce_intercepts(uint32_t desired_primary   = 0U,
+	                        uint32_t desired_secondary = 0U);
+	void initialize(Kernel::Cpu   &cpu,
+	                addr_t page_table_phys_addr,
+	                Core::Cpu::Context &) override;
+	void write_vcpu_state(Vcpu_state &state) override;
+	void read_vcpu_state(Vcpu_state &state) override;
+	void switch_world(Core::Cpu::Context &regs) override;
+	Genode::uint64_t handle_vm_exit() override;
+
+	Virt_type virt_type() override
+	{
+		return Virt_type::SVM;
+	}
+};
+static_assert(sizeof(Board::Vmcb) <= get_page_size());
 
 #endif /* _INCLUDE__SPEC__PC__SVM_H_ */

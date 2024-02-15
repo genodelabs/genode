@@ -10,8 +10,6 @@
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
-
-#include "base/internal/page_size.h"
 #include <base/log.h>
 #include <cpu/vcpu_state_virtualization.h>
 #include <util/construct_at.h>
@@ -34,7 +32,6 @@ using namespace Genode;
 
 using Kernel::Cpu;
 using Kernel::Vm;
-using Board::Vmcb;
 
 
 Vm::Vm(Irq::Pool              & user_irq_pool,
@@ -75,8 +72,7 @@ void Vm::proceed(Cpu & cpu)
 	Cpu::Ia32_tsc_aux::write(
 	    (Cpu::Ia32_tsc_aux::access_t)_vcpu_context.tsc_aux_guest);
 
-	_vcpu_context.vmcb->switch_world(_vcpu_context.vcpu_data.phys_addr + get_page_size(),
-			*_vcpu_context.regs);
+	_vcpu_context.virt.switch_world(*_vcpu_context.regs);
 	/*
 	 * This will fall into an interrupt or otherwise jump into
 	 * _kernel_entry
@@ -120,7 +116,7 @@ void Vm::exception(Cpu & cpu)
 			return;
 	}
 
-	_vcpu_context.exitcode = _vcpu_context.vmcb->get_exitcode();
+	_vcpu_context.exitcode = _vcpu_context.virt.handle_vm_exit();
 
 	if (_vcpu_context.exitcode != EXIT_PAUSED) {
 			_pause_vcpu();
@@ -150,21 +146,17 @@ void Vm::_sync_from_vmm()
 	_vcpu_context.read_vcpu_state(_state);
 }
 
-
 Board::Vcpu_context::Vcpu_context(unsigned id, Vcpu_data &vcpu_data)
 :
 	regs(1),
-	vcpu_data(vcpu_data)
+	virt(detect_virtualization(vcpu_data, id))
 {
-	vmcb = construct_at<Vmcb>(vcpu_data.virt_area,
-	                          ((addr_t) vcpu_data.virt_area) +
-	                          get_page_size(), id);
 	regs->trapno = TRAP_VMEXIT;
 }
 
 void Board::Vcpu_context::read_vcpu_state(Vcpu_state &state)
 {
-	vmcb->read_vcpu_state(state);
+	virt.read_vcpu_state(state);
 
 	if (state.cx.charged() || state.dx.charged() || state.bx.charged()) {
 		regs->rax   = state.ax.value();
@@ -236,11 +228,11 @@ void Board::Vcpu_context::write_vcpu_state(Vcpu_state &state)
 	state.tsc_aux.charge(tsc_aux_guest);
 	Cpu::Ia32_tsc_aux::write((Cpu::Ia32_tsc_aux::access_t) tsc_aux_host);
 
-	vmcb->write_vcpu_state(state);
+	virt.write_vcpu_state(state);
 }
 
 
 void Board::Vcpu_context::initialize(Kernel::Cpu &cpu, addr_t table_phys_addr)
 {
-	vmcb->initialize(cpu, table_phys_addr);
+	virt.initialize(cpu, table_phys_addr, *regs);
 }

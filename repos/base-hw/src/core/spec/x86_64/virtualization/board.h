@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2022-2023 Genode Labs GmbH
+ * Copyright (C) 2022-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -39,7 +39,6 @@ namespace Board {
 		VCPU_MAX = 16
 	};
 
-	/* FIXME move into Vcpu_context as 'enum class' when we have C++20 */
 	enum Platform_exitcodes : uint64_t {
 		EXIT_NPF     = 0xfc,
 		EXIT_INIT    = 0xfd,
@@ -67,16 +66,21 @@ struct Board::Vcpu_context
 	void read_vcpu_state(Vcpu_state &state);
 	void write_vcpu_state(Vcpu_state &state);
 
-	Vmcb *vmcb { nullptr };
-
 	Genode::Align_at<Core::Cpu::Context> regs;
-	Vcpu_data                   &vcpu_data;
+
+	Virt_interface                      &virt;
+
 	uint64_t tsc_aux_host = 0U;
 	uint64_t tsc_aux_guest = 0U;
 	uint64_t exitcode = EXIT_INIT;
 
-	Vcpu_context(const Vcpu_context &)            = delete;
-	const Vcpu_context &operator=(Vcpu_context &) = delete;
+	static Virt_interface &detect_virtualization(Vcpu_data &vcpu_data,
+	                                             unsigned   id)
+	{
+		return *Genode::construct_at<Vmcb>(
+			vcpu_data.virt_area,
+			vcpu_data, id);
+	}
 };
 
 #endif /* _CORE__SPEC__PC__VIRTUALIZATION__BOARD_H_ */

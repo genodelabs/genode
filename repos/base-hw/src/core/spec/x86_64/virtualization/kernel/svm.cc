@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2022-2023 Genode Labs GmbH
+ * Copyright (C) 2022-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -24,9 +24,10 @@ using namespace Genode;
 using Kernel::Cpu;
 using Kernel::Vm;
 using Board::Vmcb;
+using Board::Vmcb_buf;
 
 
-Vmcb::Vmcb(addr_t vmcb_page_addr, uint32_t id)
+Vmcb_buf::Vmcb_buf(addr_t vmcb_page_addr, uint32_t id)
 :
 	Mmio({(char *)vmcb_page_addr, Mmio::SIZE})
 {
@@ -44,10 +45,18 @@ Vmcb::Vmcb(addr_t vmcb_page_addr, uint32_t id)
 }
 
 
-Vmcb & Vmcb::host_vmcb(size_t cpu_id)
+Vmcb::Vmcb(Vcpu_data &vcpu_data, uint32_t id)
+:
+	Board::Virt_interface(vcpu_data),
+	v((addr_t) vcpu_data.virt_area + get_page_size(), id)
+{
+}
+
+
+Vmcb_buf &Vmcb::host_vmcb(size_t cpu_id)
 {
 	static uint8_t host_vmcb_pages[get_page_size() * NR_OF_CPUS];
-	static Constructible<Vmcb> host_vmcb[NR_OF_CPUS];
+	static Constructible<Vmcb_buf> host_vmcb[NR_OF_CPUS];
 
 	if (!host_vmcb[cpu_id].constructed()) {
 		host_vmcb[cpu_id].construct(
@@ -58,7 +67,8 @@ Vmcb & Vmcb::host_vmcb(size_t cpu_id)
 	return *host_vmcb[cpu_id];
 }
 
-void Vmcb::initialize(Kernel::Cpu &cpu, addr_t page_table_phys_addr)
+void Vmcb::initialize(Kernel::Cpu &cpu, addr_t page_table_phys_addr,
+                      Core::Cpu::Context &)
 {
 	using Cpu = Hw::X86_64_cpu;
 
@@ -79,11 +89,11 @@ void Vmcb::initialize(Kernel::Cpu &cpu, addr_t page_table_phys_addr)
 	/*
 	 * enable nested paging
 	 */
-	write<Npt_control::Np_enable>(1);
-	write<N_cr3>(page_table_phys_addr);
+	v.write<Vmcb_buf::Npt_control::Np_enable>(1);
+	v.write<Vmcb_buf::N_cr3>(page_table_phys_addr);
 
-	write<Int_control::V_intr_mask>(1); /* See 15.2 */
-	write<Intercept_ex::Vectors>(17);   /* AC */
+	v.write<Vmcb_buf::Int_control::V_intr_mask>(1); /* See 15.2 */
+	v.write<Vmcb_buf::Intercept_ex::Vectors>(17);   /* AC */
 
 	enforce_intercepts();
 }
@@ -94,23 +104,23 @@ void Vmcb::initialize(Kernel::Cpu &cpu, addr_t page_table_phys_addr)
  */
 void Vmcb::enforce_intercepts(uint32_t desired_primary, uint32_t desired_secondary)
 {
-	write<Vmcb::Intercept_misc1>(
+	v.write<Vmcb_buf::Intercept_misc1>(
 		desired_primary                           |
-		Vmcb::Intercept_misc1::Intr::bits(1)      |
-		Vmcb::Intercept_misc1::Nmi::bits(1)       |
-		Vmcb::Intercept_misc1::Init::bits(1)      |
-		Vmcb::Intercept_misc1::Invd::bits(1)      |
-		Vmcb::Intercept_misc1::Hlt::bits(1)       |
-		Vmcb::Intercept_misc1::Ioio_prot::bits(1) |
-		Vmcb::Intercept_misc1::Msr_prot::bits(1)  |
-		Vmcb::Intercept_misc1::Shutdown::bits(1)
+		Vmcb_buf::Intercept_misc1::Intr::bits(1)      |
+		Vmcb_buf::Intercept_misc1::Nmi::bits(1)       |
+		Vmcb_buf::Intercept_misc1::Init::bits(1)      |
+		Vmcb_buf::Intercept_misc1::Invd::bits(1)      |
+		Vmcb_buf::Intercept_misc1::Hlt::bits(1)       |
+		Vmcb_buf::Intercept_misc1::Ioio_prot::bits(1) |
+		Vmcb_buf::Intercept_misc1::Msr_prot::bits(1)  |
+		Vmcb_buf::Intercept_misc1::Shutdown::bits(1)
 	);
-	write<Vmcb::Intercept_misc2>(
+	v.write<Vmcb_buf::Intercept_misc2>(
 		desired_secondary                      |
-		Vmcb::Intercept_misc2::Vmload::bits(1) |
-		Vmcb::Intercept_misc2::Vmsave::bits(1) |
-		Vmcb::Intercept_misc2::Clgi::bits(1)   |
-		Vmcb::Intercept_misc2::Skinit::bits(1)
+		Vmcb_buf::Intercept_misc2::Vmload::bits(1) |
+		Vmcb_buf::Intercept_misc2::Vmsave::bits(1) |
+		Vmcb_buf::Intercept_misc2::Clgi::bits(1)   |
+		Vmcb_buf::Intercept_misc2::Skinit::bits(1)
 	);
 }
 
@@ -119,7 +129,7 @@ void Vmcb::enforce_intercepts(uint32_t desired_primary, uint32_t desired_seconda
  * AMD Vol.2 15.11: MSR Permissions Map
  * All set to 1 since we want all MSRs to be intercepted.
  */
-addr_t Vmcb::dummy_msrpm()
+addr_t Vmcb_buf::dummy_msrpm()
 {
 	static Board::Msrpm msrpm;
 
@@ -131,7 +141,7 @@ addr_t Vmcb::dummy_msrpm()
  * AMD Vol.2 15.10.1 I/O Permissions Map
  * All set to 1 since we want all IO port accesses to be intercepted.
  */
-addr_t Vmcb::dummy_iopm()
+addr_t Vmcb_buf::dummy_iopm()
 {
 	static Board::Iopm iopm;
 
@@ -153,217 +163,217 @@ Board::Iopm::Iopm()
 
 void Vmcb::write_vcpu_state(Vcpu_state &state)
 {
-	state.ax.charge(read<Vmcb::Rax>());
-	state.ip.charge(read<Vmcb::Rip>());
+	state.ax.charge(v.read<Vmcb_buf::Rax>());
+	state.ip.charge(v.read<Vmcb_buf::Rip>());
 	/*
 	 * SVM doesn't use ip_len, so just leave the old value.
 	 * We still have to charge it when charging ip.
 	 */
 	state.ip_len.set_charged();
 
-	state.flags.charge(read<Vmcb::Rflags>());
-	state.sp.charge(read<Vmcb::Rsp>());
+	state.flags.charge(v.read<Vmcb_buf::Rflags>());
+	state.sp.charge(v.read<Vmcb_buf::Rsp>());
 
-	state.dr7.charge(read<Vmcb::Dr7>());
+	state.dr7.charge(v.read<Vmcb_buf::Dr7>());
 
-	state.cr0.charge(read<Vmcb::Cr0>());
-	state.cr2.charge(read<Vmcb::Cr2>());
-	state.cr3.charge(read<Vmcb::Cr3>());
-	state.cr4.charge(read<Vmcb::Cr4>());
+	state.cr0.charge(v.read<Vmcb_buf::Cr0>());
+	state.cr2.charge(v.read<Vmcb_buf::Cr2>());
+	state.cr3.charge(v.read<Vmcb_buf::Cr3>());
+	state.cr4.charge(v.read<Vmcb_buf::Cr4>());
 
 	state.cs.charge(Vcpu_state::Segment {
-		.sel = Vmcb::cs.read<Vmcb::Segment::Sel>(),
-		.ar = Vmcb::cs.read<Vmcb::Segment::Ar>(),
-		.limit = Vmcb::cs.read<Vmcb::Segment::Limit>(),
-		.base = Vmcb::cs.read<Vmcb::Segment::Base>(),
+		.sel = v.cs.read<Vmcb_buf::Segment::Sel>(),
+		.ar = v.cs.read<Vmcb_buf::Segment::Ar>(),
+		.limit = v.cs.read<Vmcb_buf::Segment::Limit>(),
+		.base = v.cs.read<Vmcb_buf::Segment::Base>(),
 	});
 
 	state.ss.charge(Vcpu_state::Segment {
-		.sel = Vmcb::ss.read<Vmcb::Segment::Sel>(),
-		.ar = Vmcb::ss.read<Vmcb::Segment::Ar>(),
-		.limit = Vmcb::ss.read<Vmcb::Segment::Limit>(),
-		.base = Vmcb::ss.read<Vmcb::Segment::Base>(),
+		.sel = v.ss.read<Vmcb_buf::Segment::Sel>(),
+		.ar = v.ss.read<Vmcb_buf::Segment::Ar>(),
+		.limit = v.ss.read<Vmcb_buf::Segment::Limit>(),
+		.base = v.ss.read<Vmcb_buf::Segment::Base>(),
 	});
 
 	state.es.charge(Vcpu_state::Segment {
-		.sel = Vmcb::es.read<Vmcb::Segment::Sel>(),
-		.ar = Vmcb::es.read<Vmcb::Segment::Ar>(),
-		.limit = Vmcb::es.read<Vmcb::Segment::Limit>(),
-		.base = Vmcb::es.read<Vmcb::Segment::Base>(),
+		.sel = v.es.read<Vmcb_buf::Segment::Sel>(),
+		.ar = v.es.read<Vmcb_buf::Segment::Ar>(),
+		.limit = v.es.read<Vmcb_buf::Segment::Limit>(),
+		.base = v.es.read<Vmcb_buf::Segment::Base>(),
 	});
 
 	state.ds.charge(Vcpu_state::Segment {
-		.sel = Vmcb::ds.read<Vmcb::Segment::Sel>(),
-		.ar = Vmcb::ds.read<Vmcb::Segment::Ar>(),
-		.limit = Vmcb::ds.read<Vmcb::Segment::Limit>(),
-		.base = Vmcb::ds.read<Vmcb::Segment::Base>(),
+		.sel = v.ds.read<Vmcb_buf::Segment::Sel>(),
+		.ar = v.ds.read<Vmcb_buf::Segment::Ar>(),
+		.limit = v.ds.read<Vmcb_buf::Segment::Limit>(),
+		.base = v.ds.read<Vmcb_buf::Segment::Base>(),
 	});
 
 	state.fs.charge(Vcpu_state::Segment {
-		.sel = Vmcb::fs.read<Vmcb::Segment::Sel>(),
-		.ar = Vmcb::fs.read<Vmcb::Segment::Ar>(),
-		.limit = Vmcb::fs.read<Vmcb::Segment::Limit>(),
-		.base = Vmcb::fs.read<Vmcb::Segment::Base>(),
+		.sel = v.fs.read<Vmcb_buf::Segment::Sel>(),
+		.ar = v.fs.read<Vmcb_buf::Segment::Ar>(),
+		.limit = v.fs.read<Vmcb_buf::Segment::Limit>(),
+		.base = v.fs.read<Vmcb_buf::Segment::Base>(),
 	});
 
 	state.gs.charge(Vcpu_state::Segment {
-		.sel = Vmcb::gs.read<Vmcb::Segment::Sel>(),
-		.ar = Vmcb::gs.read<Vmcb::Segment::Ar>(),
-		.limit = Vmcb::gs.read<Vmcb::Segment::Limit>(),
-		.base = Vmcb::gs.read<Vmcb::Segment::Base>(),
+		.sel = v.gs.read<Vmcb_buf::Segment::Sel>(),
+		.ar = v.gs.read<Vmcb_buf::Segment::Ar>(),
+		.limit = v.gs.read<Vmcb_buf::Segment::Limit>(),
+		.base = v.gs.read<Vmcb_buf::Segment::Base>(),
 	});
 
 	state.tr.charge(Vcpu_state::Segment {
-		.sel = Vmcb::tr.read<Vmcb::Segment::Sel>(),
-		.ar = Vmcb::tr.read<Vmcb::Segment::Ar>(),
-		.limit = Vmcb::tr.read<Vmcb::Segment::Limit>(),
-		.base = Vmcb::tr.read<Vmcb::Segment::Base>(),
+		.sel = v.tr.read<Vmcb_buf::Segment::Sel>(),
+		.ar = v.tr.read<Vmcb_buf::Segment::Ar>(),
+		.limit = v.tr.read<Vmcb_buf::Segment::Limit>(),
+		.base = v.tr.read<Vmcb_buf::Segment::Base>(),
 	});
 
 	state.ldtr.charge(Vcpu_state::Segment {
-		.sel = Vmcb::ldtr.read<Vmcb::Segment::Sel>(),
-		.ar = Vmcb::ldtr.read<Vmcb::Segment::Ar>(),
-		.limit = Vmcb::ldtr.read<Vmcb::Segment::Limit>(),
-		.base = Vmcb::ldtr.read<Vmcb::Segment::Base>(),
+		.sel = v.ldtr.read<Vmcb_buf::Segment::Sel>(),
+		.ar = v.ldtr.read<Vmcb_buf::Segment::Ar>(),
+		.limit = v.ldtr.read<Vmcb_buf::Segment::Limit>(),
+		.base = v.ldtr.read<Vmcb_buf::Segment::Base>(),
 	});
 
 	state.gdtr.charge(Vcpu_state::Range {
-		.limit = Vmcb::gdtr.read<Vmcb::Segment::Limit>(),
-		.base = Vmcb::gdtr.read<Vmcb::Segment::Base>(),
+		.limit = v.gdtr.read<Vmcb_buf::Segment::Limit>(),
+		.base = v.gdtr.read<Vmcb_buf::Segment::Base>(),
 	});
 
 	state.idtr.charge(Vcpu_state::Range {
-		.limit = Vmcb::idtr.read<Vmcb::Segment::Limit>(),
-		.base = Vmcb::idtr.read<Vmcb::Segment::Base>(),
+		.limit = v.idtr.read<Vmcb_buf::Segment::Limit>(),
+		.base = v.idtr.read<Vmcb_buf::Segment::Base>(),
 	});
 
 
-	state.sysenter_cs.charge(read<Vmcb::Sysenter_cs>());
-	state.sysenter_sp.charge(read<Vmcb::Sysenter_esp>());
-	state.sysenter_ip.charge(read<Vmcb::Sysenter_eip>());
+	state.sysenter_cs.charge(v.read<Vmcb_buf::Sysenter_cs>());
+	state.sysenter_sp.charge(v.read<Vmcb_buf::Sysenter_esp>());
+	state.sysenter_ip.charge(v.read<Vmcb_buf::Sysenter_eip>());
 
-	state.qual_primary.charge(read<Vmcb::Exitinfo1>());
-	state.qual_secondary.charge(read<Vmcb::Exitinfo2>());
+	state.qual_primary.charge(v.read<Vmcb_buf::Exitinfo1>());
+	state.qual_secondary.charge(v.read<Vmcb_buf::Exitinfo2>());
 
 	/* Charging ctrl_primary and ctrl_secondary breaks Virtualbox 6 */
 
-	state.inj_info.charge(read<Vmcb::Exitintinfo>() & 0xFFFFFFFF);
+	state.inj_info.charge(v.read<Vmcb_buf::Exitintinfo>() & 0xFFFFFFFF);
 	state.inj_error.charge(
-	    (uint32_t)(read<Vmcb::Exitintinfo>() >> 32));
+	    (uint32_t)(v.read<Vmcb_buf::Exitintinfo>() >> 32));
 
 	/* Guest is in an interrupt shadow, see 15.21.5 */
 	state.intr_state.charge(
-	    (unsigned)read<Vmcb::Int_control_ext::Int_shadow>());
+	    (unsigned)v.read<Vmcb_buf::Int_control_ext::Int_shadow>());
 	/* Guest activity state (actv) not used by SVM */
 	state.actv_state.set_charged();
 
 	state.tsc.charge(Hw::Lapic::rdtsc());
-	state.tsc_offset.charge(read<Vmcb::Tsc_offset>());
+	state.tsc_offset.charge(v.read<Vmcb_buf::Tsc_offset>());
 
-	state.efer.charge(read<Vmcb::Efer>());
+	state.efer.charge(v.read<Vmcb_buf::Efer>());
 
 	/* pdpte not used by SVM */
 
-	state.star.charge(read<Vmcb::Star>());
-	state.lstar.charge(read<Vmcb::Lstar>());
-	state.cstar.charge(read<Vmcb::Cstar>());
-	state.fmask.charge(read<Vmcb::Sfmask>());
-	state.kernel_gs_base.charge(read<Vmcb::Kernel_gs_base>());
+	state.star.charge(v.read<Vmcb_buf::Star>());
+	state.lstar.charge(v.read<Vmcb_buf::Lstar>());
+	state.cstar.charge(v.read<Vmcb_buf::Cstar>());
+	state.fmask.charge(v.read<Vmcb_buf::Sfmask>());
+	state.kernel_gs_base.charge(v.read<Vmcb_buf::Kernel_gs_base>());
 
 	/* Task Priority Register, see 15.24 */
-	state.tpr.charge((unsigned)read<Vmcb::Int_control::V_tpr>());
+	state.tpr.charge((unsigned)v.read<Vmcb_buf::Int_control::V_tpr>());
 	/* TPR threshold not used by SVM */
 }
 
 
 void Vmcb::read_vcpu_state(Vcpu_state &state)
 {
-	if (state.ax.charged())    write<Vmcb::Rax>(state.ax.value());
-	if (state.flags.charged()) write<Vmcb::Rflags>(state.flags.value());
-	if (state.sp.charged())    write<Vmcb::Rsp>(state.sp.value());
-	if (state.ip.charged())    write<Vmcb::Rip>(state.ip.value());
+	if (state.ax.charged())    v.write<Vmcb_buf::Rax>(state.ax.value());
+	if (state.flags.charged()) v.write<Vmcb_buf::Rflags>(state.flags.value());
+	if (state.sp.charged())    v.write<Vmcb_buf::Rsp>(state.sp.value());
+	if (state.ip.charged())    v.write<Vmcb_buf::Rip>(state.ip.value());
 	/* ip_len not used by SVM */
-	if (state.dr7.charged())   write<Vmcb::Dr7>(state.dr7.value());
+	if (state.dr7.charged())   v.write<Vmcb_buf::Dr7>(state.dr7.value());
 
-	if (state.cr0.charged()) write<Vmcb::Cr0>(state.cr0.value());
-	if (state.cr2.charged()) write<Vmcb::Cr2>(state.cr2.value());
-	if (state.cr3.charged()) write<Vmcb::Cr3>(state.cr3.value());
-	if (state.cr4.charged()) write<Vmcb::Cr4>(state.cr4.value());
+	if (state.cr0.charged()) v.write<Vmcb_buf::Cr0>(state.cr0.value());
+	if (state.cr2.charged()) v.write<Vmcb_buf::Cr2>(state.cr2.value());
+	if (state.cr3.charged()) v.write<Vmcb_buf::Cr3>(state.cr3.value());
+	if (state.cr4.charged()) v.write<Vmcb_buf::Cr4>(state.cr4.value());
 
 	if (state.cs.charged()) {
-		Vmcb::cs.write<Vmcb::Segment::Sel>(state.cs.value().sel);
-		Vmcb::cs.write<Vmcb::Segment::Ar>(state.cs.value().ar);
-		Vmcb::cs.write<Vmcb::Segment::Limit>(state.cs.value().limit);
-		Vmcb::cs.write<Vmcb::Segment::Base>(state.cs.value().base);
+		v.cs.write<Vmcb_buf::Segment::Sel>(state.cs.value().sel);
+		v.cs.write<Vmcb_buf::Segment::Ar>(state.cs.value().ar);
+		v.cs.write<Vmcb_buf::Segment::Limit>(state.cs.value().limit);
+		v.cs.write<Vmcb_buf::Segment::Base>(state.cs.value().base);
 	}
 
 	if (state.ss.charged()) {
-		Vmcb::ss.write<Vmcb::Segment::Sel>(state.ss.value().sel);
-		Vmcb::ss.write<Vmcb::Segment::Ar>(state.ss.value().ar);
-		Vmcb::ss.write<Vmcb::Segment::Limit>(state.ss.value().limit);
-		Vmcb::ss.write<Vmcb::Segment::Base>(state.ss.value().base);
+		v.ss.write<Vmcb_buf::Segment::Sel>(state.ss.value().sel);
+		v.ss.write<Vmcb_buf::Segment::Ar>(state.ss.value().ar);
+		v.ss.write<Vmcb_buf::Segment::Limit>(state.ss.value().limit);
+		v.ss.write<Vmcb_buf::Segment::Base>(state.ss.value().base);
 	}
 
 	if (state.es.charged()) {
-		Vmcb::es.write<Vmcb::Segment::Sel>(state.es.value().sel);
-		Vmcb::es.write<Vmcb::Segment::Ar>(state.es.value().ar);
-		Vmcb::es.write<Vmcb::Segment::Limit>(state.es.value().limit);
-		Vmcb::es.write<Vmcb::Segment::Base>(state.es.value().base);
+		v.es.write<Vmcb_buf::Segment::Sel>(state.es.value().sel);
+		v.es.write<Vmcb_buf::Segment::Ar>(state.es.value().ar);
+		v.es.write<Vmcb_buf::Segment::Limit>(state.es.value().limit);
+		v.es.write<Vmcb_buf::Segment::Base>(state.es.value().base);
 	}
 
 	if (state.ds.charged()) {
-		Vmcb::ds.write<Vmcb::Segment::Sel>(state.ds.value().sel);
-		Vmcb::ds.write<Vmcb::Segment::Ar>(state.ds.value().ar);
-		Vmcb::ds.write<Vmcb::Segment::Limit>(state.ds.value().limit);
-		Vmcb::ds.write<Vmcb::Segment::Base>(state.ds.value().base);
+		v.ds.write<Vmcb_buf::Segment::Sel>(state.ds.value().sel);
+		v.ds.write<Vmcb_buf::Segment::Ar>(state.ds.value().ar);
+		v.ds.write<Vmcb_buf::Segment::Limit>(state.ds.value().limit);
+		v.ds.write<Vmcb_buf::Segment::Base>(state.ds.value().base);
 	}
 
 	if (state.fs.charged()) {
-		Vmcb::gs.write<Vmcb::Segment::Sel>(state.gs.value().sel);
-		Vmcb::gs.write<Vmcb::Segment::Ar>(state.gs.value().ar);
-		Vmcb::gs.write<Vmcb::Segment::Limit>(state.gs.value().limit);
-		Vmcb::gs.write<Vmcb::Segment::Base>(state.gs.value().base);
+		v.gs.write<Vmcb_buf::Segment::Sel>(state.gs.value().sel);
+		v.gs.write<Vmcb_buf::Segment::Ar>(state.gs.value().ar);
+		v.gs.write<Vmcb_buf::Segment::Limit>(state.gs.value().limit);
+		v.gs.write<Vmcb_buf::Segment::Base>(state.gs.value().base);
 	}
 
 	if (state.gs.charged()) {
-		Vmcb::fs.write<Vmcb::Segment::Sel>(state.fs.value().sel);
-		Vmcb::fs.write<Vmcb::Segment::Ar>(state.fs.value().ar);
-		Vmcb::fs.write<Vmcb::Segment::Limit>(state.fs.value().limit);
-		Vmcb::fs.write<Vmcb::Segment::Base>(state.fs.value().base);
+		v.fs.write<Vmcb_buf::Segment::Sel>(state.fs.value().sel);
+		v.fs.write<Vmcb_buf::Segment::Ar>(state.fs.value().ar);
+		v.fs.write<Vmcb_buf::Segment::Limit>(state.fs.value().limit);
+		v.fs.write<Vmcb_buf::Segment::Base>(state.fs.value().base);
 	}
 
 	if (state.tr.charged()) {
-		Vmcb::tr.write<Vmcb::Segment::Sel>(state.tr.value().sel);
-		Vmcb::tr.write<Vmcb::Segment::Ar>(state.tr.value().ar);
-		Vmcb::tr.write<Vmcb::Segment::Limit>(state.tr.value().limit);
-		Vmcb::tr.write<Vmcb::Segment::Base>(state.tr.value().base);
+		v.tr.write<Vmcb_buf::Segment::Sel>(state.tr.value().sel);
+		v.tr.write<Vmcb_buf::Segment::Ar>(state.tr.value().ar);
+		v.tr.write<Vmcb_buf::Segment::Limit>(state.tr.value().limit);
+		v.tr.write<Vmcb_buf::Segment::Base>(state.tr.value().base);
 	}
 
 	if (state.ldtr.charged()) {
-		Vmcb::ldtr.write<Vmcb::Segment::Sel>(state.ldtr.value().sel);
-		Vmcb::ldtr.write<Vmcb::Segment::Ar>(state.ldtr.value().ar);
-		Vmcb::ldtr.write<Vmcb::Segment::Limit>(state.ldtr.value().limit);
-		Vmcb::ldtr.write<Vmcb::Segment::Base>(state.ldtr.value().base);
+		v.ldtr.write<Vmcb_buf::Segment::Sel>(state.ldtr.value().sel);
+		v.ldtr.write<Vmcb_buf::Segment::Ar>(state.ldtr.value().ar);
+		v.ldtr.write<Vmcb_buf::Segment::Limit>(state.ldtr.value().limit);
+		v.ldtr.write<Vmcb_buf::Segment::Base>(state.ldtr.value().base);
 	}
 
 	if (state.gdtr.charged()) {
-		Vmcb::gdtr.write<Vmcb::Segment::Limit>(state.gdtr.value().limit);
-		Vmcb::gdtr.write<Vmcb::Segment::Base>(state.gdtr.value().base);
+		v.gdtr.write<Vmcb_buf::Segment::Limit>(state.gdtr.value().limit);
+		v.gdtr.write<Vmcb_buf::Segment::Base>(state.gdtr.value().base);
 	}
 
 	if (state.idtr.charged()) {
-		Vmcb::idtr.write<Vmcb::Segment::Limit>(state.idtr.value().limit);
-		Vmcb::idtr.write<Vmcb::Segment::Base>(state.idtr.value().base);
+		v.idtr.write<Vmcb_buf::Segment::Limit>(state.idtr.value().limit);
+		v.idtr.write<Vmcb_buf::Segment::Base>(state.idtr.value().base);
 	}
 
 	if (state.sysenter_cs.charged())
-		write<Vmcb::Sysenter_cs>(state.sysenter_cs.value());
+		v.write<Vmcb_buf::Sysenter_cs>(state.sysenter_cs.value());
 
 	if (state.sysenter_sp.charged())
-		write<Vmcb::Sysenter_esp>(state.sysenter_sp.value());
+		v.write<Vmcb_buf::Sysenter_esp>(state.sysenter_sp.value());
 
 	if (state.sysenter_ip.charged())
-		write<Vmcb::Sysenter_eip>(state.sysenter_ip.value());
+		v.write<Vmcb_buf::Sysenter_eip>(state.sysenter_ip.value());
 
 	if (state.ctrl_primary.charged() || state.ctrl_secondary.charged()) {
 		enforce_intercepts(state.ctrl_primary.value(),
@@ -373,16 +383,16 @@ void Vmcb::read_vcpu_state(Vcpu_state &state)
 	if (state.inj_info.charged() || state.inj_error.charged()) {
 		/* Honor special signaling bit */
 		if (state.inj_info.value() & 0x1000) {
-			write<Vmcb::Int_control::V_irq>(1);
-			write<Vmcb::Int_control::V_ign_tpr>(1);
-			write<Vmcb::Intercept_misc1::Vintr>(1);
+			v.write<Vmcb_buf::Int_control::V_irq>(1);
+			v.write<Vmcb_buf::Int_control::V_ign_tpr>(1);
+			v.write<Vmcb_buf::Intercept_misc1::Vintr>(1);
 		} else {
-			write<Vmcb::Int_control::V_irq>(0);
-			write<Vmcb::Int_control::V_ign_tpr>(0);
-			write<Vmcb::Intercept_misc1::Vintr>(0);
+			v.write<Vmcb_buf::Int_control::V_irq>(0);
+			v.write<Vmcb_buf::Int_control::V_ign_tpr>(0);
+			v.write<Vmcb_buf::Intercept_misc1::Vintr>(0);
 		}
 
-		write<Vmcb::Eventinj>(
+		v.write<Vmcb_buf::Eventinj>(
 			/* Filter out special signaling bits */
 			(state.inj_info.value()     &
 			(uint32_t) ~0x3000) |
@@ -391,36 +401,37 @@ void Vmcb::read_vcpu_state(Vcpu_state &state)
 	}
 
 	if (state.intr_state.charged()) {
-		write<Vmcb::Int_control_ext::Int_shadow>(
+		v.write<Vmcb_buf::Int_control_ext::Int_shadow>(
 		    state.intr_state.value());
 	}
 	/* Guest activity state (actv) not used by SVM */
 
 	if (state.tsc_offset.charged()) {
 		/* state.tsc not used by SVM */
-		write<Vmcb::Tsc_offset>(read<Vmcb::Tsc_offset>() +
-			                state.tsc_offset.value());
+		v.write<Vmcb_buf::Tsc_offset>(v.read<Vmcb_buf::Tsc_offset>() +
+			                      state.tsc_offset.value());
 	}
 
 	if (state.efer.charged()) {
-		write<Vmcb::Efer>(state.efer.value());
+		v.write<Vmcb_buf::Efer>(state.efer.value());
 	}
 
 	/* pdpte not used by SVM */
 
-	if (state.star.charged())  write<Vmcb::Star>(state.star.value());
-	if (state.cstar.charged()) write<Vmcb::Cstar>(state.cstar.value());
-	if (state.lstar.charged()) write<Vmcb::Lstar>(state.lstar.value());
-	if (state.fmask.charged()) write<Vmcb::Sfmask>(state.lstar.value());
+	if (state.star.charged())  v.write<Vmcb_buf::Star>(state.star.value());
+	if (state.cstar.charged()) v.write<Vmcb_buf::Cstar>(state.cstar.value());
+	if (state.lstar.charged()) v.write<Vmcb_buf::Lstar>(state.lstar.value());
+	if (state.fmask.charged()) v.write<Vmcb_buf::Sfmask>(state.lstar.value());
 	if (state.kernel_gs_base.charged())
-		write<Vmcb::Kernel_gs_base>(state.kernel_gs_base.value());
+		v.write<Vmcb_buf::Kernel_gs_base>(state.kernel_gs_base.value());
 
 	if (state.tpr.charged())
-		write<Vmcb::Int_control::V_tpr>(state.tpr.value());
+		v.write<Vmcb_buf::Int_control::V_tpr>(state.tpr.value());
 	/* TPR threshold not used on AMD */
 }
 
-uint64_t Vmcb::get_exitcode()
+
+uint64_t Vmcb::handle_vm_exit()
 {
 	enum Svm_exitcodes : uint64_t
 	{
@@ -429,7 +440,7 @@ uint64_t Vmcb::get_exitcode()
 		SVM_VMEXIT_NPF   = 0x400,
 	};
 
-	uint64_t exitcode = read<Vmcb::Exitcode>();
+	uint64_t exitcode = v.read<Vmcb_buf::Exitcode>();
 	switch (exitcode) {
 		case SVM_EXIT_INVALID:
 			error("VM: invalid SVM state!");
@@ -451,7 +462,7 @@ uint64_t Vmcb::get_exitcode()
 	return exitcode;
 }
 
-void Vmcb::switch_world(addr_t vmcb_phys_addr, Core::Cpu::Context &regs)
+void Vmcb::switch_world(Core::Cpu::Context &regs)
 {
 	/*
 	 * We push the host context's physical address to trapno so that
@@ -497,7 +508,7 @@ void Vmcb::switch_world(addr_t vmcb_phys_addr, Core::Cpu::Context &regs)
 	                            GPRs without breaking any */
 	    :
 	    : [regs]        "r"(&regs.r8), [fpu_context] "r"(regs.fpu_context()),
-	      [guest_state] "r"(vmcb_phys_addr),
+	      [guest_state] "r"(vcpu_data.phys_addr + get_page_size()),
 	      [trap_vmexit] "i"(TRAP_VMEXIT)
 	    : "rax", "memory");
 }
