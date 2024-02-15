@@ -39,6 +39,8 @@ namespace Audio_out {
 	class  Out;
 	class  Root;
 	struct Root_policy;
+	using Root_component = Root_component<Session_component, Root_policy>;
+
 	static Session_component *channel_acquired[MAX_CHANNELS];
 }
 
@@ -51,7 +53,7 @@ class Audio_out::Session_component : public Audio_out::Session_rpc_object
 
 	public:
 
-		Session_component(Genode::Env &env, Channel_number channel, Signal_context_capability cap)
+		Session_component(Env &env, Channel_number channel, Signal_context_capability cap)
 		:
 			Session_rpc_object(env, cap), _channel(channel)
 		{
@@ -69,9 +71,9 @@ class Audio_out::Out
 {
 	private:
 
-		Genode::Env                            &_env;
-		Genode::Signal_handler<Audio_out::Out>  _data_avail_dispatcher;
-		Genode::Signal_handler<Audio_out::Out>  _notify_dispatcher;
+		Env                            &_env;
+		Signal_handler<Audio_out::Out>  _data_avail_handler;
+		Signal_handler<Audio_out::Out>  _notify_handler;
 
 		bool _active() {
 			return  channel_acquired[LEFT] && channel_acquired[RIGHT] &&
@@ -108,7 +110,7 @@ class Audio_out::Out
 
 			int err = Audio::play(silence, sizeof(silence));
 			if (err && err != 35) {
-				Genode::warning("Error ", err, " during silence playback");
+				warning("error ", err, " during silence playback");
 			}
 		}
 
@@ -131,7 +133,7 @@ class Audio_out::Out
 
 				/* send to driver */
 				if (int err = Audio::play(data, sizeof(data))) {
-					Genode::warning("Error ", err, " during playback");
+					warning("error ", err, " during playback");
 				}
 
 				p_left->invalidate();
@@ -174,11 +176,11 @@ class Audio_out::Out
 
 	public:
 
-		Out(Genode::Env &env)
+		Out(Env &env)
 		:
 			_env(env),
-			_data_avail_dispatcher(env.ep(), *this, &Audio_out::Out::_handle_data_avail),
-			_notify_dispatcher(env.ep(), *this, &Audio_out::Out::_handle_notify)
+			_data_avail_handler(env.ep(), *this, &Audio_out::Out::_handle_data_avail),
+			_notify_handler(env.ep(), *this, &Audio_out::Out::_handle_notify)
 		{
 			/* play a silence packets to get the driver running */
 			// XXX replace by explicit call to audio_start
@@ -186,9 +188,9 @@ class Audio_out::Out
 			_play_silence();
 		}
 
-		Signal_context_capability data_avail() { return _data_avail_dispatcher; }
+		Signal_context_capability data_avail() { return _data_avail_handler; }
 
-		Signal_context_capability sigh() { return _notify_dispatcher; }
+		Signal_context_capability sigh() { return _notify_handler; }
 
 		static bool channel_number(const char     *name,
 		                           Channel_number *out_number)
@@ -203,7 +205,7 @@ class Audio_out::Out
 			};
 
 			for (Names *n = names; n->name; ++n)
-				if (!Genode::strcmp(name, n->name)) {
+				if (!strcmp(name, n->name)) {
 					*out_number = n->number;
 					return true;
 				}
@@ -224,9 +226,9 @@ struct Audio_out::Root_policy
 			Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 
 		if (sizeof(Stream) > ram_quota) {
-			Genode::error("insufficient 'ram_quota', got ", ram_quota,
-			              " need ", sizeof(Stream));
-			throw Genode::Insufficient_ram_quota();
+			error("insufficient 'ram_quota', got ", ram_quota,
+			      " need ", sizeof(Stream));
+			throw Insufficient_ram_quota();
 		}
 
 		char channel_name[16];
@@ -235,24 +237,19 @@ struct Audio_out::Root_policy
 		                                             sizeof(channel_name),
 		                                             "left");
 		if (!Out::channel_number(channel_name, &channel_number)) {
-			Genode::error("invalid output channel '",(char const *)channel_name,"' requested, "
-			              "denying '",Genode::label_from_args(args),"'");
-			throw Genode::Service_denied();
+			error("invalid output channel '",(char const *)channel_name,"' requested, "
+			      "denying '", label_from_args(args), "'");
+			throw Service_denied();
 		}
 		if (Audio_out::channel_acquired[channel_number]) {
-			Genode::error("output channel '",(char const *)channel_name,"' is unavailable, "
-			              "denying '",Genode::label_from_args(args),"'");
-			throw Genode::Service_denied();
+			error("output channel '",(char const *)channel_name,"' is unavailable, "
+			      "denying '", label_from_args(args), "'");
+			throw Service_denied();
 		}
 	}
 
 	void release() { }
 };
-
-
-namespace Audio_out {
-	typedef Root_component<Session_component, Root_policy> Root_component;
-}
 
 
 /**
@@ -262,7 +259,7 @@ class Audio_out::Root : public Audio_out::Root_component
 {
 	private:
 
-		Genode::Env &_env;
+		Env &_env;
 
 		Signal_context_capability _cap;
 
@@ -283,7 +280,7 @@ class Audio_out::Root : public Audio_out::Root_component
 
 	public:
 
-		Root(Genode::Env &env, Allocator &md_alloc,
+		Root(Env &env, Allocator &md_alloc,
 		     Signal_context_capability cap)
 		:
 			Root_component(env.ep(), md_alloc),
@@ -302,8 +299,9 @@ namespace Audio_in {
 	class In;
 	class Root;
 	struct Root_policy;
-	static Session_component *channel_acquired;
+	using Root_component = Root_component<Session_component, Root_policy>;
 
+	static Session_component *channel_acquired;
 }
 
 
@@ -315,8 +313,8 @@ class Audio_in::Session_component : public Audio_in::Session_rpc_object
 
 	public:
 
-		Session_component(Genode::Env &env, Channel_number channel,
-		                  Genode::Signal_context_capability cap)
+		Session_component(Env &env, Channel_number channel,
+		                  Signal_context_capability cap)
 		: Session_rpc_object(env, cap), _channel(channel) {
 			channel_acquired = this; }
 
@@ -328,8 +326,8 @@ class Audio_in::In
 {
 	private:
 
-		Genode::Env                          &_env;
-		Genode::Signal_handler<Audio_in::In>  _notify_dispatcher;
+		Env                          &_env;
+		Signal_handler<Audio_in::In>  _notify_handler;
 
 		bool _active() { return channel_acquired && channel_acquired->active(); }
 
@@ -340,7 +338,7 @@ class Audio_in::In
 			static short data[2 * Audio_in::PERIOD];
 			if (int err = Audio::record(data, sizeof(data))) {
 					if (err && err != 35) {
-						Genode::warning("Error ", err, " during recording");
+						warning("error ", err, " during recording");
 					}
 					return;
 			}
@@ -375,13 +373,13 @@ class Audio_in::In
 
 	public:
 
-		In(Genode::Env &env)
+		In(Env &env)
 		:
 			_env(env),
-			_notify_dispatcher(env.ep(), *this, &Audio_in::In::_handle_notify)
+			_notify_handler(env.ep(), *this, &Audio_in::In::_handle_notify)
 		{ _record_packet(); }
 
-		Signal_context_capability sigh() { return _notify_dispatcher; }
+		Signal_context_capability sigh() { return _notify_handler; }
 
 		static bool channel_number(const char     *name,
 		                           Channel_number *out_number)
@@ -395,7 +393,7 @@ class Audio_in::In
 			};
 
 			for (Names *n = names; n->name; ++n)
-				if (!Genode::strcmp(name, n->name)) {
+				if (!strcmp(name, n->name)) {
 					*out_number = n->number;
 					return true;
 				}
@@ -412,10 +410,10 @@ struct Audio_in::Root_policy
 		size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
 		if (sizeof(Stream) > ram_quota) {
-			Genode::error("insufficient 'ram_quota', got ", ram_quota,
-			              " need ", sizeof(Stream),
-			              ", denying '", Genode::label_from_args(args),"'");
-			throw Genode::Insufficient_ram_quota();
+			error("insufficient 'ram_quota', got ", ram_quota,
+			      " need ", sizeof(Stream),
+			      ", denying '", label_from_args(args),"'");
+			throw Insufficient_ram_quota();
 		}
 
 		char channel_name[16];
@@ -424,24 +422,19 @@ struct Audio_in::Root_policy
 		                                             sizeof(channel_name),
 		                                             "left");
 		if (!In::channel_number(channel_name, &channel_number)) {
-			Genode::error("invalid input channel '",(char const *)channel_name,"' requested, "
-			              "denying '",Genode::label_from_args(args),"'");
-			throw Genode::Service_denied();
+			error("invalid input channel '",(char const *)channel_name,"' requested, "
+			      "denying '", label_from_args(args),"'");
+			throw Service_denied();
 		}
 		if (Audio_in::channel_acquired) {
-			Genode::error("input channel '",(char const *)channel_name,"' is unavailable, "
-			              "denying '",Genode::label_from_args(args),"'");
-			throw Genode::Service_denied();
+			error("input channel '",(char const *)channel_name,"' is unavailable, "
+			      "denying '", label_from_args(args),"'");
+			throw Service_denied();
 		}
 	}
 
 	void release() { }
 };
-
-
-namespace Audio_in {
-	typedef Root_component<Session_component, Root_policy> Root_component;
-}
 
 
 /**
@@ -451,7 +444,7 @@ class Audio_in::Root : public Audio_in::Root_component
 {
 	private:
 
-		Genode::Env               &_env;
+		Env                       &_env;
 		Signal_context_capability  _cap;
 
 	protected:
@@ -469,8 +462,7 @@ class Audio_in::Root : public Audio_in::Root_component
 
 	public:
 
-		Root(Genode::Env &env, Allocator &md_alloc,
-		     Signal_context_capability cap)
+		Root(Env &env, Allocator &md_alloc, Signal_context_capability cap)
 		: Root_component(env.ep(), md_alloc), _env(env), _cap(cap) { }
 };
 
@@ -481,52 +473,49 @@ class Audio_in::Root : public Audio_in::Root_component
 
 struct Main
 {
-	Genode::Env        &env;
-	Genode::Heap       heap { &env.ram(), &env.rm() };
+	Env  &_env;
+	Heap  _heap { _env.ram(), _env.rm() };
 
-	Genode::Attached_rom_dataspace config { env, "config" };
+	Attached_rom_dataspace _config { _env, "config" };
 
-	Genode::Signal_handler<Main> config_update_dispatcher {
-		env.ep(), *this, &Main::handle_config_update };
+	Signal_handler<Main> _config_update_handler {
+		_env.ep(), *this, &Main::_handle_config_update };
 
-	void handle_config_update()
+	void _handle_config_update()
 	{
-		config.update();
-		if (!config.valid()) { return; }
-		Audio::update_config(env, config.xml());
+		_config.update();
+		Audio::update_config(_env, _config.xml());
 	}
 
-	Genode::Constructible<Audio_out::Out>  _out      { };
-	Genode::Constructible<Audio_out::Root> _out_root { };
+	Constructible<Audio_out::Out>  _out      { };
+	Constructible<Audio_out::Root> _out_root { };
 
-	Genode::Constructible<Audio_in::In>   _in      { };
-	Genode::Constructible<Audio_in::Root> _in_root { };
+	Constructible<Audio_in::In>   _in      { };
+	Constructible<Audio_in::Root> _in_root { };
 
-	Genode::Signal_handler<Main> announce_session_dispatcher {
-		env.ep(), *this, &Main::handle_announce_session };
+	Signal_handler<Main> _announce_session_handler {
+		_env.ep(), *this, &Main::_handle_announce_session };
 
-	void handle_announce_session()
+	void _handle_announce_session()
 	{
-		_out.construct(env);
+		_out.construct(_env);
 		Audio::play_sigh(_out->sigh());
 
-		_out_root.construct(env, heap, _out->data_avail());
-		env.parent().announce(env.ep().manage(*_out_root));
+		_out_root.construct(_env, _heap, _out->data_avail());
+		_env.parent().announce(_env.ep().manage(*_out_root));
 
-		_in.construct(env);
+		_in.construct(_env);
 		Audio::record_sigh(_in->sigh());
 
-		_in_root.construct(env, heap,
-		                   Genode::Signal_context_capability());
-		env.parent().announce(env.ep().manage(*_in_root));
+		_in_root.construct(_env, _heap, Signal_context_capability());
+		_env.parent().announce(_env.ep().manage(*_in_root));
 	}
 
-	Main(Genode::Env &env) : env(env)
+	Main(Env &env) : _env(env)
 	{
-		config.sigh(config_update_dispatcher);
+		_config.sigh(_config_update_handler);
 
-		Audio::init_driver(env, heap, config.xml(),
-		                   announce_session_dispatcher);
+		Audio::init_driver(_env, _heap, _config.xml(), _announce_session_handler);
 	}
 };
 
