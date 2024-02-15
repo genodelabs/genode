@@ -197,6 +197,7 @@ build_with_qmake: qmake_prepared.tag
 	$(VERBOSE)source env.sh && $(QMAKE) \
 		-qtconf qmake_root/mkspecs/$(QMAKE_PLATFORM)/qt.conf \
 		$(QMAKE_PROJECT_FILE) \
+		"CONFIG += force_debug_info" \
 		$(QT5_OUTPUT_FILTER)
 
 	$(VERBOSE)source env.sh && $(MAKE) $(QT5_OUTPUT_FILTER)
