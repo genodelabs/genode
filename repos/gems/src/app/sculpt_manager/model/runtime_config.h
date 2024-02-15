@@ -326,6 +326,7 @@ class Sculpt::Runtime_config
 				_vimrc     { _r, Type::ROM,         "default vim configuration",      "config -> vimrc" },
 				_fonts     { _r, Type::ROM,         "system font configuration",      "config -> managed/fonts" },
 				_pf_info   { _r, Type::ROM,         "platform information",           "platform_info" },
+				_bld_info  { _r, Type::ROM,         "build information",              "build_info" },
 				_system    { _r, Type::ROM,         "system status",                  "config -> managed/system" },
 				_report    { _r, Type::REPORT,      "system reports" },
 				_shape     { _r, Type::REPORT,      "pointer shape",    "shape",     Service::Match_label::LAST },
