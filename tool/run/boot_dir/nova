@@ -82,12 +82,11 @@ proc run_boot_dir {binaries} {
 	build_core_image $binaries
 
 	exec mkdir -p [run_dir]/boot
-	exec [cross_dev_prefix]objcopy -O elf32-i386 [run_dir]/genode/hypervisor [run_dir]/boot/hypervisor
-	exec [cross_dev_prefix]strip [run_dir]/boot/hypervisor
+	copy_file [run_dir]/genode/hypervisor [run_dir]/boot/hypervisor
 
 	remove_genode_dir
 
-	exec mv   [run_dir]/image.elf [run_dir]/boot/image.elf
+	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
 
 	#
 	# Setup bender options, e.g. serial and applying Intel HWP mode
