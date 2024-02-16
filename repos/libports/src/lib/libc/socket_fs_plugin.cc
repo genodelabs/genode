@@ -839,12 +839,23 @@ static ssize_t do_recvfrom(File_descriptor *fd,
 		size_t out_sum = 0;
 
 		do {
-			size_t const result = read(data_fd,
-			                           (char *)buf + out_sum,
-			                           len - out_sum);
+			ssize_t const result = read(data_fd,
+			                            (char *)buf + out_sum,
+			                            len - out_sum);
+
 			if (result <= 0) { /* eof & error */
 				if (out_sum)
 					return out_sum;
+
+				/*
+				 * For non-blocking reads with MSG_PEEK, we need to return -1 and
+				 * EWOULDBLOCK or EAGAIN in case the socket is connected. Check connect
+				 * status and return accordingly.
+				 */
+				if (errno == EIO && (flags & MSG_PEEK) &&
+				    (context->fd_flags() & O_NONBLOCK) &&
+				    context->read_connect_status() == 0)
+						return Errno(EWOULDBLOCK);
 
 				return result;
 			}
