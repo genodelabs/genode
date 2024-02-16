@@ -7,7 +7,8 @@ $(MIRROR_FROM_REP_DIR):
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt5)
 
-MIRROR_FROM_PORT_DIR := src/lib/qt5/qttools/examples/designer/calculatorform
+MIRROR_FROM_PORT_DIR := src/lib/qt5/qttools/examples/designer/calculatorform \
+                        src/lib/qt5/qttools/.qmake.conf
 
 content: $(MIRROR_FROM_PORT_DIR)
 

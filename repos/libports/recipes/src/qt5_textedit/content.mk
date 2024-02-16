@@ -7,7 +7,8 @@ $(MIRROR_FROM_REP_DIR):
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt5)
 
-MIRROR_FROM_PORT_DIR := src/lib/qt5/qtbase/examples/widgets/richtext/textedit
+MIRROR_FROM_PORT_DIR := src/lib/qt5/qtbase/examples/widgets/richtext/textedit \
+                        src/lib/qt5/qtbase/.qmake.conf
 
 content: $(MIRROR_FROM_PORT_DIR)
 
