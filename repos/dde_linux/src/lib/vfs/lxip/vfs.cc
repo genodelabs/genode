@@ -527,7 +527,7 @@ class Vfs::Lxip_peek_file final : public Vfs::Lxip_file
 			Errno err = genode_socket_recvmsg(&_sock, msg_recv.header(), &bytes_avail, true);
 
 			if (err == GENODE_EAGAIN)
-				return 0;
+				return -1;
 
 			return bytes_avail;
 		}
