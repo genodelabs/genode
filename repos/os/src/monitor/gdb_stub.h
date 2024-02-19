@@ -558,13 +558,10 @@ struct ask : Command_without_separator
 
 		state.gdb_connected = true;
 
-		bool handled = false;
+		bool stop_reply_sent = false;
 
 		state.inferiors.for_each<Inferior_pd const &>([&] (Inferior_pd const &inferior) {
 			inferior.for_each_thread([&] (Monitored_thread &thread) {
-
-				if (handled)
-					return;
 
 				using Stop_state = Monitored_thread::Stop_state;
 				using Stop_reply_signal = Monitored_thread::Stop_reply_signal;
@@ -572,24 +569,42 @@ struct ask : Command_without_separator
 				if (thread.stop_state == Stop_state::RUNNING)
 					return;
 
-				thread.stop_state = Stop_state::STOPPED_REPLY_SENT;
+				/* found a stopped thread */
 
-				long unsigned int pid = inferior.id();
-				long unsigned int tid = thread.id();
+				if (!stop_reply_sent) {
 
-				gdb_response(out, [&] (Output &out) {
-					print(out, "T", Gdb_hex((uint8_t)thread.stop_reply_signal),
-					           "thread:p", Gdb_hex(pid), ".", Gdb_hex(tid), ";");
-					if (thread.stop_reply_signal == Stop_reply_signal::TRAP)
-						print(out, "swbreak:;");
-				});
+					/* send a stop reply for one stopped thread */
 
-				handled = true;
+					state.notification_in_progress = true;
+
+					long unsigned int pid = inferior.id();
+					long unsigned int tid = thread.id();
+
+					gdb_response(out, [&] (Output &out) {
+						print(out, "T", Gdb_hex((uint8_t)thread.stop_reply_signal),
+						           "thread:p", Gdb_hex(pid), ".", Gdb_hex(tid), ";");
+						if (thread.stop_reply_signal == Stop_reply_signal::TRAP)
+							print(out, "swbreak:;");
+					});
+
+					thread.stop_state = Stop_state::STOPPED_REPLY_SENT;
+
+					stop_reply_sent = true;
+
+				} else {
+
+					/* report other stopped threads on 'vStopped' */
+
+					thread.stop_state = Stop_state::STOPPED_REPLY_PENDING;
+				}
 			});
 		});
 
-		if (!handled)
+		if (!stop_reply_sent) {
+			/* all threads are running */
+			state.notification_in_progress = false;
 			gdb_ok(out);
+		}
 	}
 };
 
