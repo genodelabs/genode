@@ -291,32 +291,7 @@ struct Timer_queue : public Qemu::Timer_queue
 
 struct Pci_device : public Qemu::Pci_device
 {
-	Libc::Allocator _alloc { };
-
 	PPDMDEVINS pci_dev;
-
-	struct Dma_bounce_buffer
-	{
-		Genode::Allocator &_alloc;
-
-		Qemu::addr_t   const base;
-		Qemu::size_t   const size;
-		void         * const addr { _alloc.alloc(size) };
-
-		Dma_bounce_buffer(Genode::Allocator &alloc,
-		                  Qemu::addr_t       base,
-		                  Qemu::size_t       size)
-		: _alloc { alloc }, base { base }, size { size }
-		{ }
-
-		virtual ~Dma_bounce_buffer()
-		{
-			_alloc.free(addr, size);
-		}
-	};
-
-	using Reg_dma_buffer = Genode::Registered<Dma_bounce_buffer>;
-	Genode::Registry<Reg_dma_buffer> _dma_buffers { };
 
 	Pci_device(PPDMDEVINS pDevIns) : pci_dev(pDevIns) { }
 
@@ -328,44 +303,6 @@ struct Pci_device : public Qemu::Pci_device
 
 	int write_dma(Qemu::addr_t addr, void const *buf, Qemu::size_t size) override {
 		return PDMDevHlpPhysWrite(pci_dev, addr, buf, size); }
-
-	void *map_dma(Qemu::addr_t base, Qemu::size_t size,
-	              Qemu::Pci_device::Dma_direction dir) override
-	{
-		Reg_dma_buffer *dma = nullptr;
-
-		try {
-			dma = new (_alloc) Reg_dma_buffer(_dma_buffers,
-			                                  _alloc, base, size);
-		} catch (...) {
-			return nullptr;
-		}
-
-		/* copy data for write request to bounce buffer */
-		if (dir == Qemu::Pci_device::Dma_direction::OUT) {
-			(void)PDMDevHlpPhysRead(pci_dev, base, dma->addr, size);
-		}
-
-		return dma->addr;
-	}
-
-	void unmap_dma(void *addr, Qemu::size_t size,
-	               Qemu::Pci_device::Dma_direction dir) override
-	{
-		_dma_buffers.for_each([&] (Reg_dma_buffer &dma) {
-			if (dma.addr != addr) {
-				return;
-			}
-
-			/* copy data for read request from bounce buffer */
-			if (dir == Qemu::Pci_device::Dma_direction::IN) {
-				(void)PDMDevHlpPhysWrite(pci_dev,
-				                         dma.base, dma.addr, dma.size);
-			}
-
-			Genode::destroy(_alloc, &dma);
-		});
-	}
 };
 
 

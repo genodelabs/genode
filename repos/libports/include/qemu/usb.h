@@ -68,8 +68,6 @@ namespace Qemu {
 		virtual void  raise_interrupt(int assert) = 0;
 		virtual int   read_dma(addr_t addr, void *buf, size_t size) = 0;
 		virtual int   write_dma(addr_t addr, void const *buf, size_t size) = 0;
-		virtual void *map_dma(addr_t base, size_t size, Dma_direction dir) = 0;
-		virtual void  unmap_dma(void *addr, size_t size, Dma_direction dir) = 0;
 	};
 
 

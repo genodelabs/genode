@@ -947,8 +947,10 @@ size_t iov_from_buf(const struct iovec *iov, unsigned int iov_cnt,
 	unsigned int i;
 	for (i = 0, done = 0; (offset || done < bytes) && i < iov_cnt; i++) {
 		if (offset < iov[i].iov_len) {
-			size_t len = Genode::min(iov[i].iov_len - offset, bytes - done);
-			memcpy((char*)iov[i].iov_base + offset, (char*)buf + done, len);
+			size_t       const len      = Genode::min(iov[i].iov_len - offset, bytes - done);
+			Qemu::addr_t const dma_addr = (Qemu::addr_t)((char *)iov[i].iov_base + offset);
+
+			_pci_device->write_dma(dma_addr, (char*)buf + done, len);
 			done += len;
 			offset = 0;
 		} else {
@@ -969,8 +971,10 @@ size_t iov_to_buf(const struct iovec *iov, const unsigned int iov_cnt,
 	unsigned int i;
 	for (i = 0, done = 0; (offset || done < bytes) && i < iov_cnt; i++) {
 		if (offset < iov[i].iov_len) {
-			size_t len = Genode::min(iov[i].iov_len - offset, bytes - done);
-			memcpy((char*)buf + done, (char*)iov[i].iov_base + offset, len);
+			size_t       const len      = Genode::min(iov[i].iov_len - offset, bytes - done);
+			Qemu::addr_t const dma_addr = (Qemu::addr_t)((char *)iov[i].iov_base + offset);
+
+			_pci_device->read_dma(dma_addr, (char*)buf + done, len);
 			done += len;
 			offset = 0;
 		} else {
@@ -997,55 +1001,23 @@ void qemu_sglist_destroy(QEMUSGList *sgl) {
 
 int usb_packet_map(USBPacket *p, QEMUSGList *sgl)
 {
-	Qemu::Pci_device::Dma_direction dir =
-		(p->pid == USB_TOKEN_IN) ? Qemu::Pci_device::Dma_direction::IN
-		                         : Qemu::Pci_device::Dma_direction::OUT;
-
-	void *mem;
-
+	/*
+	 * We add the SGL entries themself to be able to call 'read_dma'
+	 * and 'write_dma' directly (and to satisfy asserts in the contrib
+	 * code).
+	 */
 	for (int i = 0; i < sgl->niov; i++) {
-		dma_addr_t base = (dma_addr_t) sgl->iov[i].iov_base;
-		dma_addr_t len = sgl->iov[i].iov_len;
+		dma_addr_t const base = (dma_addr_t) sgl->iov[i].iov_base;
+		dma_addr_t const len = sgl->iov[i].iov_len;
 
-		while (len) {
-			dma_addr_t xlen = len;
-			mem = _pci_device->map_dma(base, xlen, dir);
-			if (verbose_iov)
-				Genode::log("mem: ", mem, " base: ", (void *)base, " len: ",
-				            Genode::Hex(len));
-
-			if (!mem) {
-				goto err;
-			}
-			if (xlen > len) {
-				xlen = len;
-			}
-			qemu_iovec_add(&p->iov, mem, xlen);
-			len -= xlen;
-			base += xlen;
-		}
+		qemu_iovec_add(&p->iov, (void*)base, len);
 	}
+
 	return 0;
-
-err:
-	Genode::error("could not map dma");
-	usb_packet_unmap(p, sgl);
-	return -1;
 }
 
 
-void usb_packet_unmap(USBPacket *p, QEMUSGList *sgl)
-{
-	Qemu::Pci_device::Dma_direction dir =
-		(p->pid == USB_TOKEN_IN) ? Qemu::Pci_device::Dma_direction::IN
-		                         : Qemu::Pci_device::Dma_direction::OUT;
-
-	for (int i = 0; i < p->iov.niov; i++) {
-		_pci_device->unmap_dma(p->iov.iov[i].iov_base,
-		                       p->iov.iov[i].iov_len,
-		                       dir);
-	}
-}
+void usb_packet_unmap(USBPacket *p, QEMUSGList *sgl) { }
 
 
 /******************
