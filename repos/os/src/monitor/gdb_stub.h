@@ -642,25 +642,22 @@ struct m : Command_without_separator
 
 		gdb_response(out, [&] (Output &out) {
 
-			for (size_t pos = 0; pos < len; ) {
+			/*
+			 * The terminal_crosslink component uses a buffer of 4 KiB and
+			 * some space is needed for asynchronous notifications and
+			 * protocol overhead. GDB's 'm' command encodes memory as hex,
+			 * two characters per byte. Hence, a dump of max. 1 KiB is
+			 * currently possible.
+			 */
+			char buf[1024] { };
 
-				char chunk[16*1024] { };
+			Byte_range_ptr const dst { buf, min(sizeof(buf), len) };
 
-				size_t const remain_len = len - pos;
-				size_t const num_bytes  = min(sizeof(chunk), remain_len);
+			size_t const read_len =
+				state.read_memory(Memory_accessor::Virt_addr { addr }, dst);
 
-				size_t const read_len =
-					state.read_memory(Memory_accessor::Virt_addr { addr + pos },
-					                  Byte_range_ptr(chunk, num_bytes));
-
-				for (unsigned i = 0; i < read_len; i++)
-					print(out, Gdb_hex(chunk[i]));
-
-				pos += read_len;
-
-				if (read_len < num_bytes)
-					break;
-			}
+			for (unsigned i = 0; i < read_len; i++)
+				print(out, Gdb_hex(buf[i]));
 		});
 	}
 };
