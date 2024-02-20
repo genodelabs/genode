@@ -8,6 +8,9 @@ LIBS = libc libm mesa stdcxx $(QT5_PORT_LIBS)
 INSTALL_LIBS = qml/QtGraphicalEffects/libqtgraphicaleffectsplugin.lib.so \
                qml/QtGraphicalEffects/private/libqtgraphicaleffectsprivate.lib.so
 
+BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
+                  qt5_graphicaleffects_qml.tar
+
 built.tag: qmake_prepared.tag
 
 	@#

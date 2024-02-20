@@ -205,6 +205,8 @@ endif
 		ln -sf $(CURDIR)/$${cmake_target_binary}.debug $(PWD)/debug/; \
 	done
 
+BUILD_ARTIFACTS ?= $(notdir $(CMAKE_TARGET_BINARIES))
+
 #
 # build applications with CMake
 #

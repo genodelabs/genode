@@ -14,6 +14,11 @@ INSTALL_LIBS = lib/libQt5Core.lib.so \
                plugins/imageformats/libqjpeg.lib.so \
                plugins/sqldrivers/libqsqlite.lib.so
 
+BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
+                  qt5_libqgenode.tar \
+                  qt5_libqjpeg.tar \
+                  qt5_libqsqlite.tar
+
 built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 
 	@#

@@ -29,6 +29,9 @@ INSTALL_LIBS = lib/libQt5Qml.lib.so \
                qml/QtQuick/Window.2/libwindowplugin.lib.so \
                qml/QtTest/libqmltestplugin.lib.so
 
+BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
+                  qt5_declarative_qml.tar
+
 built.tag: qmake_prepared.tag
 
 	@#

@@ -12,6 +12,10 @@ INSTALL_LIBS = lib/libQt5VirtualKeyboard.lib.so \
                qml/QtQuick/VirtualKeyboard/Settings/libqtquickvirtualkeyboardsettingsplugin.lib.so \
                qml/QtQuick/VirtualKeyboard/Styles/libqtquickvirtualkeyboardstylesplugin.lib.so
 
+BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
+                  qt5_libqtvirtualkeyboardplugin.tar \
+                  qt5_virtualkeyboard_qml.tar
+
 built.tag: qmake_prepared.tag
 
 	@#

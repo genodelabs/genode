@@ -210,6 +210,8 @@ build_with_qmake: qmake_prepared.tag
 		ln -sf $(CURDIR)/$${qmake_target_binary}.debug $(PWD)/debug/; \
 	done
 
+BUILD_ARTIFACTS ?= $(notdir $(QMAKE_TARGET_BINARIES))
+
 #
 # build applications with qmake
 #

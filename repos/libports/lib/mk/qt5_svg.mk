@@ -7,6 +7,9 @@ LIBS = libc libm mesa stdcxx $(QT5_PORT_LIBS)
 INSTALL_LIBS = lib/libQt5Svg.lib.so \
                plugins/imageformats/libqsvg.lib.so
 
+BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
+                  qt5_libqsvg.tar
+
 built.tag: qmake_prepared.tag
 
 	@#

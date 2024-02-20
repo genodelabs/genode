@@ -7,6 +7,9 @@ LIBS = libc libm mesa stdcxx $(QT5_PORT_LIBS)
 
 INSTALL_LIBS = qml/QtQuick/Controls/libqtquickcontrolsplugin.lib.so
 
+BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
+                  qt5_quickcontrols_qml.tar
+
 built.tag: qmake_prepared.tag
 
 	@#

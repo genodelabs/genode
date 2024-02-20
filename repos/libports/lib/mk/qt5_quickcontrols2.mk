@@ -16,6 +16,9 @@ INSTALL_LIBS = lib/libQt5QuickControls2.lib.so \
                qml/QtQuick/Controls.2/Universal/libqtquickcontrols2universalstyleplugin.lib.so \
                qml/QtQuick/Templates.2/libqtquicktemplates2plugin.lib.so
 
+BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
+                  qt5_quickcontrols2_qml.tar
+
 built.tag: qmake_prepared.tag
 
 	@#
