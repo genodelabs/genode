@@ -19,7 +19,7 @@ BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
                   qt5_libqjpeg.tar \
                   qt5_libqsqlite.tar
 
-built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
+build: qmake_prepared.tag qmake_root/lib/ld.lib.so
 
 	@#
 	@# run qmake
@@ -82,13 +82,8 @@ built.tag: qmake_prepared.tag qmake_root/lib/ld.lib.so
 	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqjpeg.tar   --transform='s/\.stripped//' -C install qt/plugins/imageformats/libqjpeg.lib.so.stripped
 	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqsqlite.tar --transform='s/\.stripped//' -C install qt/plugins/sqldrivers/libqsqlite.lib.so.stripped
 
-	@#
-	@# mark as done
-	@#
-
-	$(VERBOSE)touch $@
-
+.PHONY: build
 
 ifeq ($(called_from_lib_mk),yes)
-all: built.tag
+all: build
 endif

@@ -10,7 +10,7 @@ INSTALL_LIBS = lib/libQt5Svg.lib.so \
 BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
                   qt5_libqsvg.tar
 
-built.tag: qmake_prepared.tag
+build: qmake_prepared.tag
 
 	@#
 	@# run qmake
@@ -55,13 +55,8 @@ built.tag: qmake_prepared.tag
 
 	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqsvg.tar --transform='s/\.stripped//' -C install qt/plugins/imageformats/libqsvg.lib.so.stripped
 
-	@#
-	@# mark as done
-	@#
-
-	$(VERBOSE)touch $@
-
+.PHONY: build
 
 ifeq ($(called_from_lib_mk),yes)
-all: built.tag
+all: build
 endif
