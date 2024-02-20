@@ -300,7 +300,7 @@ class Platform::Resources : Noncopyable
 
 		void _reinit()
 		{
-			if (!with_mmio_gmadr([&](auto &mmio, auto &gmadr) {
+			with_mmio_gmadr([&](auto &mmio, auto &gmadr) {
 
 				using namespace Igd;
 
@@ -328,8 +328,9 @@ class Platform::Resources : Noncopyable
 
 				_rm_gmadr.detach(0ul);
 				_rm_gmadr.attach_at(gmadr.cap(), 0ul, APERTURE_RESERVED);
-			}))
-				error(__func__, " failed");
+			}, []() {
+				error("reinit failed");
+			});
 		}
 
 	public:
@@ -369,47 +370,40 @@ class Platform::Resources : Noncopyable
 			}
 		}
 
-		__attribute__((warn_unused_result))
-		bool with_mmio_gmadr(auto const &fn)
+		void with_mmio_gmadr(auto const &fn, auto const &fn_error)
 		{
-			if (!_mmio.constructed() || !_gmadr.constructed())
-				return false;
+			if (!_mmio.constructed() || !_gmadr.constructed()) {
+				fn_error();
+				return;
+			}
 
 			fn(*_mmio, *_gmadr);
-
-			return true;
 		}
 
-		__attribute__((warn_unused_result))
-		bool with_gmadr(auto const offset, auto const &fn)
+		void with_gmadr(auto const offset, auto const &fn, auto const &fn_error)
 		{
-			if (!_gmadr.constructed() || !_gmadr_mem.constructed())
-				return false;
+			if (!_gmadr.constructed() || !_gmadr_mem.constructed()) {
+				fn_error();
+				return;
+			}
 
 			fn({_gmadr_mem->local_addr<char>() + offset, _gmadr->size() - offset });
-			return true;
 		}
 
-		__attribute__((warn_unused_result))
-		bool with_irq(auto const &fn)
+		void with_irq(auto const &fn, auto const &fn_error)
 		{
-			if (!_irq.constructed())
-				return false;
-
-			fn(*_irq);
-
-			return true;
+			if (_irq.constructed())
+				fn(*_irq);
+			else
+				fn_error();
 		}
 
-		__attribute__((warn_unused_result))
-		bool with_mmio(auto const &fn)
+		void with_mmio(auto const &fn, auto const &fn_error)
 		{
-			if (!_mmio.constructed())
-				return false;
-
-			fn(*_mmio);
-
-			return true;
+			if (_mmio.constructed())
+				fn(*_mmio);
+			else
+				fn_error();
 		}
 
 		void with_gttm_gmadr(auto const &fn)

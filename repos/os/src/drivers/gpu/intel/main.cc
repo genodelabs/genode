@@ -263,26 +263,26 @@ struct Igd::Device
 
 	Constructible<Igd::Ggtt> _ggtt { };
 
-	__attribute__((warn_unused_result))
-	bool with_ggtt(auto const &fn)
+	void with_ggtt(auto const &fn, auto const &fn_error)
 	{
-		if (!_ggtt.constructed())
-			return false;
+		if (!_ggtt.constructed()) {
+			fn_error();
+			return;
+		}
 
-		return _resources.with_mmio([&](auto &mmio) {
+		_resources.with_mmio([&](auto &mmio) {
 			fn(*_ggtt, mmio);
+		}, [&]() {
+			fn_error();
 		});
 	}
 
-	__attribute__((warn_unused_result))
-	bool with_ggtt(auto const &fn) const
+	void with_ggtt(auto const &fn, auto const &fn_error) const
 	{
-		if (!_ggtt.constructed())
-			return false;
-
-		fn(*_ggtt);
-
-		return true;
+		if (_ggtt.constructed())
+			fn(*_ggtt);
+		else
+			fn_error();
 	}
 
 	/************
@@ -315,7 +315,7 @@ struct Igd::Device
 	{
 		Genode::Registered<Ggtt::Mapping> *mem = nullptr;
 
-		if (!with_ggtt([&](auto &ggtt, auto &mmio) {
+		with_ggtt([&](auto &ggtt, auto &mmio) {
 			Genode::Dataspace_client client(cap);
 			addr_t const phys_addr = _pci_backend_alloc.dma_addr(cap);
 			size_t const size      = client.size();
@@ -332,8 +332,9 @@ struct Igd::Device
 				addr_t const pa = phys_addr + i;
 				ggtt.insert_pte(mmio, pa, offset + (i / PAGE_SIZE));
 			}
-		}))
+		}, []() {
 			throw Could_not_map_vram();
+		});
 
 		if (!mem)
 			throw Could_not_map_vram();
@@ -341,14 +342,15 @@ struct Igd::Device
 		return *mem;
 	}
 
-	void unmap_dataspace_ggtt(Genode::Allocator &alloc, Ggtt::Mapping &m)
+	void unmap_dataspace_ggtt(Genode::Allocator &alloc, Ggtt::Mapping *m)
 	{
-		if (!with_ggtt([&](auto &ggtt, auto &mmio) {
-			size_t const num = m.vsize / PAGE_SIZE;
-			ggtt.remove_pte_range(mmio, m.offset, num);
-			Genode::destroy(&alloc, &m);
-		}))
-			error(__func__, " failed");
+		with_ggtt([&](auto &ggtt, auto &mmio) {
+			size_t const num = m->vsize / PAGE_SIZE;
+			ggtt.remove_pte_range(mmio, m->offset, num);
+			Genode::destroy(&alloc, m);
+		}, []() {
+			error("unmap_dataspace_ggtt failed");
+		});
 	}
 
 	struct Invalid_ppgtt : Genode::Exception { };
@@ -418,7 +420,7 @@ struct Igd::Device
 				map(device.map_dataspace_ggtt(alloc, gmm.ram_ds.ds, gmm.offset))
 			{ }
 
-			~Mapping_guard() { device.unmap_dataspace_ggtt(alloc, map); }
+			~Mapping_guard() { device.unmap_dataspace_ggtt(alloc, &map); }
 		};
 
 		Device             const &device;
@@ -432,10 +434,11 @@ struct Igd::Device
 		{
 			Ggtt::Offset offset { };
 
-			if (!device.with_ggtt([&](auto &ggtt) {
+			device.with_ggtt([&](auto &ggtt) {
 				offset = ggtt.find_free(pages, true);
-			}))
+			}, []() {
 				error("Gtt::Offset setup failed");
+			});
 
 			return offset;
 		}
@@ -444,10 +447,11 @@ struct Igd::Device
 		{
 			addr_t const offset = (map.map.offset + skip) * PAGE_SIZE;
 
-			if (!device._resources.with_gmadr(offset, [&](Byte_range_ptr const &range) {
+			device._resources.with_gmadr(offset, [&](Byte_range_ptr const &range) {
 				fn(range);
-			}))
+			}, []() {
 				error("Gmadr object unavailable");
+			});
 		}
 
 		addr_t gmaddr() const { /* graphics memory address */
@@ -1167,7 +1171,7 @@ struct Igd::Device
 		Genode::error("watchdog triggered: engine stuck,"
 		              " vGPU=", _active_vgpu->id());
 
-		bool ok = _resources.with_mmio([&](auto &mmio) {
+		_resources.with_mmio([&](auto &mmio) {
 			if (DEBUG) {
 				mmio.dump();
 				mmio.error_dump();
@@ -1192,10 +1196,9 @@ struct Igd::Device
 
 			/* the stuck vgpu */
 			_handle_vgpu_after_reset(*vgpu);
-		});
-
-		if (!ok)
+		}, []() {
 			error("reset of vGPU failed");
+		});
 	}
 
 	Genode::Signal_handler<Device> _watchdog_timeout_sigh {
@@ -1212,7 +1215,7 @@ struct Igd::Device
 		if (state == "driver_reinit") {
 			_resources.acquire_device();
 
-			if (!_resources.with_mmio([&](auto &mmio) {
+			_resources.with_mmio([&](auto &mmio) {
 
 				mmio.generation(_info.generation);
 				reinit(mmio);
@@ -1230,8 +1233,9 @@ struct Igd::Device
 					} else
 						warning("setup_ring_vram failed");
 				});
-			}))
+			}, []() {
 				error("reinit - failed");
+			});
 
 			return;
 		}
@@ -1271,7 +1275,7 @@ struct Igd::Device
 	{
 		using namespace Genode;
 
-		if (!_resources.with_mmio_gmadr([&](auto &mmio, auto &gmadr) {
+		_resources.with_mmio_gmadr([&](auto &mmio, auto &gmadr) {
 			_resources.with_platform([&](auto &plat_con) {
 				auto const ggtt_base = mmio.base() + (mmio.size() / 2);
 
@@ -1288,8 +1292,9 @@ struct Igd::Device
 
 				reinit(mmio);
 			});
-		}))
+		}, []() {
 			throw Unsupported_device();
+		});
 
 		_timer.sigh(_watchdog_timeout_sigh);
 	}
@@ -2030,14 +2035,15 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					if (vram.owner(_owner.cap) == false) return false;
 
 					if (!vram.map.invalid()) {
-						_device.unmap_dataspace_ggtt(_heap, vram.map);
+						_device.unmap_dataspace_ggtt(_heap, &vram.map);
 					}
 
 					if (vram.fenced != Vram::INVALID_FENCE) {
-						if (!_device._resources.with_mmio([&](auto &mmio) {
+						_device._resources.with_mmio([&](auto &mmio) {
 							_device.clear_tiling(mmio, vram.fenced);
-						}))
+						}, [&]() {
 							warning("tiling could not be cleared");
+						});
 
 						_vgpu.active_fences--;
 					}
@@ -2097,7 +2103,10 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			bool        ppgtt_va_valid = false;
 			Gpu::addr_t ppgtt_va       = 0;
 
-			bool const dev_offline = !_device._resources.with_mmio([](auto &){});
+			bool dev_offline = true;
+
+			_device._resources.with_mmio([&](auto &){ dev_offline = false; },
+			                             [ ](){});
 
 			_apply_vram_local(id, [&] (Vram_local &vram_local) {
 
@@ -2132,18 +2141,18 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				/* remember current execute in vGPU */
 				_vgpu.delay_execute(ppgtt_va);
 
-				/* return seqno which will be used after device is re-aquired */
+				/* return seqno which will be used after device is re-acquired */
 				return { .value = _vgpu.current_seqno() + 1 };
 			}
 
 			if (!found)
 				throw Gpu::Session::Invalid_state();
 
-			if (!_device._resources.with_mmio([&](auto &mmio) {
+			_device._resources.with_mmio([&](auto &mmio) {
 				_device.vgpu_activate(_vgpu, mmio);
-			})) {
+			}, []() {
 				Genode::error("Device mmio not available");
-			}
+			});
 
 			return { .value = _vgpu.current_seqno() };
 		}
@@ -2345,9 +2354,9 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		{
 			bool result = false;
 
-			result |= _device._resources.with_mmio([&](auto &mmio) {
+			_device._resources.with_mmio([&](auto &mmio) {
 				result = _set_tiling_gpu(mmio, id, offset, mode);
-			});
+			}, []() { });
 
 			return result;
 		}
@@ -2450,10 +2459,17 @@ class Gpu::Root : public Gpu::Root_component
 		void _destroy_session(Session_component *s) override
 		{
 			if (s->vgpu_active()) {
-				if (!_device || !_device->_resources.with_mmio([&](auto &mmio) {
-					Genode::warning("vGPU active, reset device and hope for the best");
-					_device->reset(mmio);
-				}))
+				bool warn = true;
+
+				if (_device) {
+					_device->_resources.with_mmio([&](auto &mmio) {
+						Genode::warning("vGPU active, reset device and hope for the best");
+						_device->reset(mmio);
+						warn = false;
+					}, []() { });
+				}
+
+				if (warn)
 					Genode::warning("vGPU active, reset of device failed");
 			} else {
 				/* remove from scheduled list */
@@ -2598,10 +2614,11 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 	{
 		bool display_irq = false;
 		if (_igd_device.constructed()) {
-			if (!_dev.with_mmio([&](auto &mmio) {
+			_dev.with_mmio([&](auto &mmio) {
 				display_irq = _igd_device->handle_irq(mmio);
-			}))
+			}, []() {
 				error("handle_irq with mmio not possible");
+			});
 		/* GPU not present forward all IRQs to platform client */
 		} else {
 			_platform_root.handle_irq();
@@ -2622,14 +2639,18 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 	void ack_irq() override
 	{
 		if (_igd_device.constructed()) {
-			if (!_dev.with_mmio([&](auto &mmio) {
+			_dev.with_mmio([&](auto &mmio) {
 				_igd_device->enable_master_irq(mmio);
-			}))
-				error(__func__, " with_mmio failed");
+			}, []() {
+				error("ack_irq with_mmio failed");
+			});
 		}
 
-		if (!_dev.with_irq([&](auto &irq) { irq.ack(); }))
-			error(__func__, " with_irq failed");
+		_dev.with_irq([&](auto &irq) {
+			irq.ack();
+		}, []() {
+			error("ack_irq with_irq failed");
+		});
 
 		if (_igd_device.constructed())
 			_igd_device->device_release_if_stopped_and_idle();
@@ -2637,13 +2658,14 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 	void reset() override
 	{
-		if (!_dev.with_mmio([&](auto &mmio) {
+		_dev.with_mmio([&](auto &mmio) {
 			_dev.with_platform([&](auto &plat_con) {
 				auto const base = mmio.base() + (mmio.size() / 2);
 				Igd::Ggtt(plat_con, mmio, base, Igd::GTT_RESERVED, 0, 0);
 			});
-		}))
+		}, []() {
 			error("reset failed");
+		});
 	}
 };
 
