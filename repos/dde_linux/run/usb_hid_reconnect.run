@@ -149,13 +149,13 @@ run_genode_until {(qemu)} 20 $spawn_id
 for {set i 0} {$i < 50} {incr i} {
 
 	# connect keyboard
-	send "device_add usb-kbd,id=ukb1\n"
+	send "device_add usb-kbd,id=ukb$i\n"
 
 	# wait for keyboard
 	run_genode_until {.*USB HID.*Keyboard.*\n} 10 $spawn_id
 
 	# disconnect keyboard
-	send "device_del ukb1\n"
+	send "device_del ukb$i\n"
 
 	# wait for disconnect
 	run_genode_until {.*USB disconnect.*\n} 10 $spawn_id
