@@ -598,7 +598,7 @@ struct Igd::Device
 	struct Vgpu : Genode::Fifo<Vgpu>::Element
 	{
 		enum {
-			APERTURE_SIZE = 4096ul,
+			DUMMY_MESA_APERTURE_SIZE = 4096ul,
 			MAX_FENCES    = 16,
 
 			INFO_SIZE = 4096,
@@ -635,7 +635,7 @@ struct Igd::Device
 			_device.vgpu_created();
 
 			_info = Gpu::Info_intel(_device.id(), _device.features(),
-			                        APERTURE_SIZE,
+			                        DUMMY_MESA_APERTURE_SIZE,
 			                        _id, Gpu::Sequence_number { .value = 0 },
 			                        _device._revision,
 			                        _device._slice_mask,
@@ -1281,14 +1281,15 @@ struct Igd::Device
 
 				_ggtt.construct(plat_con, mmio, ggtt_base,
 				                _ggtt_size(gmch_ctl), gmadr.size(),
-				                APERTURE_RESERVED);
+				                _resources.aperture_reserved());
 
 				if (!_supported(mmio, supported, device_id, revision))
 					throw Unsupported_device();
 
 				_ggtt->dump();
 
-				_vgpu_avail = (gmadr.size() - APERTURE_RESERVED) / Vgpu::APERTURE_SIZE;
+				_vgpu_avail = (gmadr.size() - _resources.aperture_reserved())
+				            / Vgpu::DUMMY_MESA_APERTURE_SIZE;
 
 				reinit(mmio);
 			});
@@ -2503,7 +2504,8 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 	                                          &Main::handle_irq             };
 	Signal_handler<Main>    _config_sigh    { _env.ep(), *this,
 	                                          &Main::_handle_config_update  };
-	Platform::Resources     _dev            { _env, _rm, _irq_dispatcher    };
+	Platform::Resources     _dev            { _env, _rm, _irq_dispatcher,
+	                                          _config_aperture_size() };
 	Signal_handler<Main>    _system_sigh    { _env.ep(), *this,
 	                                          &Main::_system_update };
 
@@ -2557,6 +2559,16 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 				Genode::error("Unknown error occurred - no GPU service");
 			}
 		});
+	}
+
+	Number_of_bytes _config_aperture_size() const
+	{
+		auto aperture_size = Number_of_bytes(64ull << 20);
+
+		if (_config_rom.valid())
+			aperture_size = _config_rom.xml().attribute_value("max_framebuffer_memory", aperture_size);
+
+		return aperture_size;
 	}
 
 	void _handle_config_update()
@@ -2661,7 +2673,7 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 		_dev.with_mmio([&](auto &mmio) {
 			_dev.with_platform([&](auto &plat_con) {
 				auto const base = mmio.base() + (mmio.size() / 2);
-				Igd::Ggtt(plat_con, mmio, base, Igd::GTT_RESERVED, 0, 0);
+				Igd::Ggtt(plat_con, mmio, base, _dev.gtt_reserved(), 0, 0);
 			});
 		}, []() {
 			error("reset failed");

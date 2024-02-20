@@ -30,10 +30,6 @@ namespace Igd {
 
 	enum {
 		PAGE_SIZE = 4096,
-		/* reserved aperture for platform service */
-		APERTURE_RESERVED = 64u<<20,
-		/* reserved GTT for platform service, GTT entry is 8 byte */
-		GTT_RESERVED      = (APERTURE_RESERVED/PAGE_SIZE) * 8,
 	};
 
 	inline void wmb() { asm volatile ("sfence": : :"memory"); }

@@ -286,12 +286,15 @@ class Platform::Resources : Noncopyable
 
 		Env                                       & _env;
 		Signal_context_capability const             _irq_cap;
+
 		Platform::Connection                        _platform  { _env           };
 		Reconstructible<Platform::Device>           _device    { _platform      };
 		Reconstructible<Platform::Device::Irq>      _irq       { *_device       };
 		Reconstructible<Igd::Mmio>                  _mmio      { *_device, _env };
 		Reconstructible<Platform::Device::Mmio<0> > _gmadr     { *_device, Platform::Device::Mmio<0>::Index(1) };
 		Reconstructible<Attached_dataspace>         _gmadr_mem { _env.rm(), _gmadr->cap() };
+
+		uint64_t const      _aperture_reserved;
 
 		Region_map_client   _rm_gttmm;
 		Region_map_client   _rm_gmadr;
@@ -312,7 +315,7 @@ class Platform::Resources : Noncopyable
 				size_t const gttm_half_size = mmio.size() / 2;
 				off_t  const gtt_offset     = gttm_half_size;
 
-				if (gttm_half_size < GTT_RESERVED) {
+				if (gttm_half_size < gtt_reserved()) {
 					Genode::error("GTTM size too small");
 					return;
 				}
@@ -324,25 +327,59 @@ class Platform::Resources : Noncopyable
 				/* attach beginning of GTT */
 				_rm_gttmm.detach(gtt_offset);
 				_rm_gttmm.attach_at(mmio.cap(), gtt_offset,
-				                    GTT_RESERVED, gtt_offset);
+				                    gtt_reserved(), gtt_offset);
 
 				_rm_gmadr.detach(0ul);
-				_rm_gmadr.attach_at(gmadr.cap(), 0ul, APERTURE_RESERVED);
+				_rm_gmadr.attach_at(gmadr.cap(), 0ul, aperture_reserved());
 			}, []() {
 				error("reinit failed");
 			});
 		}
 
+		Number_of_bytes _sanitized_aperture_size(Number_of_bytes memory) const
+		{
+			/*
+			 * Ranges of global GTT (ggtt) are handed in page granularity (4k)
+			 * to the platform client (intel display driver).
+			 * 512 page table entries a 4k fit into one page, which adds up to
+			 * 2M virtual address space.
+			 */
+			auto constexpr shift_2mb = 21ull;
+			auto constexpr MIN_MEMORY_FOR_MULTIPLEXER = 4ull << shift_2mb;
+
+			/* align requests to 2M and enforce 2M as minimum */
+			memory = memory & _align_mask(shift_2mb);
+			if (memory < (1ull << shift_2mb))
+				memory = 1ull << shift_2mb;
+
+			if (_gmadr->size() >= MIN_MEMORY_FOR_MULTIPLEXER) {
+				if (memory > _gmadr->size() - MIN_MEMORY_FOR_MULTIPLEXER)
+					memory = _gmadr->size() - MIN_MEMORY_FOR_MULTIPLEXER;
+			} else {
+				/* paranoia case, should never trigger */
+				memory = _gmadr->size() / 2;
+				error("aperture smaller than ", MIN_MEMORY_FOR_MULTIPLEXER,
+				      " will not work properly");
+			}
+
+			log("Maximum aperture size ", Number_of_bytes(_gmadr->size()));
+			log(" - available framebuffer memory for display driver: ", memory);
+
+			return memory;
+		}
+
 	public:
 
-		Resources(Env &env, Rm_connection &rm, Signal_context_capability irq)
+		Resources(Env &env, Rm_connection &rm, Signal_context_capability irq,
+		          Number_of_bytes const &aperture)
 		:
 			_env(env),
 			_irq_cap(irq),
+			_aperture_reserved(_sanitized_aperture_size(aperture)),
 			_rm_gttmm(rm.create(_mmio->size())),
-			_rm_gmadr(rm.create(Igd::APERTURE_RESERVED)),
+			_rm_gmadr(rm.create(aperture_reserved())),
 			_range_gttmm(1ul << 30, _mmio->size()),
-			_range_gmadr(1ul << 29, _gmadr->size())
+			_range_gmadr(1ul << 29, aperture_reserved())
 		{
 			_irq->sigh(_irq_cap);
 
@@ -350,7 +387,7 @@ class Platform::Resources : Noncopyable
 			size_t const gttm_half_size = _mmio->size() / 2;
 			off_t  const gtt_offset     = gttm_half_size;
 
-			if (gttm_half_size < Igd::GTT_RESERVED) {
+			if (gttm_half_size < gtt_reserved()) {
 				Genode::error("GTTM size too small");
 				return;
 			}
@@ -359,9 +396,9 @@ class Platform::Resources : Noncopyable
 
 			/* attach the rest of the GTT as dummy RAM */
 			auto const dummmy_gtt_ds = _env.ram().alloc(Igd::PAGE_SIZE);
-			auto       remainder     = gttm_half_size - Igd::GTT_RESERVED;
+			auto       remainder     = gttm_half_size - gtt_reserved();
 
-			for (off_t offset = gtt_offset + Igd::GTT_RESERVED;
+			for (off_t offset = gtt_offset + gtt_reserved();
 			     remainder > 0;
 			     offset += Igd::PAGE_SIZE, remainder -= Igd::PAGE_SIZE) {
 
@@ -434,6 +471,17 @@ class Platform::Resources : Noncopyable
 			_mmio.destruct();
 			_irq.destruct();
 			_device.destruct();
+		}
+
+		/*
+		 * Reserved aperture for platform service
+		 */
+		uint64_t aperture_reserved() const { return _aperture_reserved; }
+
+		uint64_t gtt_reserved() const
+		{
+			/* reserved GTT for platform service, GTT entry is 8 byte */
+			return (aperture_reserved() / Igd::PAGE_SIZE) * 8;
 		}
 };
 

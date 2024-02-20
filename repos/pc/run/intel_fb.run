@@ -229,7 +229,7 @@ append_if $use_gpu config {
 					<service name="Gpu"/>
 					<service name="Platform"/>
 				</provides>
-				<config>
+				<config max_framebuffer_memory="64M">
 					<device vendor="0x8086" device="0x1606" generation="8" platform="broadwell" description="HD Graphics (BDW GT1 ULT)"/>
 					<device vendor="0x8086" device="0x1616" generation="8" platform="broadwell" description="HD Graphics 5500 (BDW GT2 ULT)"/>
 					<device vendor="0x8086" device="0x1622" generation="8" platform="broadwell" description="Iris Pro Graphics 6200 (BDW GT3e)"/>
