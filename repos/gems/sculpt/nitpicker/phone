@@ -1,0 +1,28 @@
+<config focus="rom">
+	<capture/> <event/>
+	<report hover="yes" focus="yes" clicked="yes" keystate="no"/>
+	<background color="#000000"/>
+
+	<domain name="overlay"        layer="0" label="no" hover="always" focus="transient" content="client"/>
+	<domain name="pointer"        layer="0" content="client" label="no" origin="pointer" />
+	<domain name="invisible"      layer="1" xpos="10000" />
+	<domain name="leitzentrale"   layer="1" label="no" hover="always" focus="transient" content="client"/>
+	<domain name="touch_keyboard" layer="2" ypos="960" label="no" hover="always" content="client" focus="transient" />
+	<domain name="background"     layer="4" label="no" hover="always" content="client" focus="transient" />
+	<domain name="default"        layer="3" label="no" hover="always" content="client" focus="transient" width="720" height="960"/>
+	<domain name="follow_touch"   layer="3" origin="pointer" label="no" hover="always" content="client" focus="transient" width="720" height="960"/>
+	<domain name="camera"         layer="2" label="no" hover="always" content="client" focus="transient" xpos="120" ypos="120"/>
+
+	<policy label_prefix="pointer -> "                  domain="invisible"/>
+	<policy label_prefix="leitzentrale -> "             domain="leitzentrale"/>
+	<policy label_prefix="runtime -> touch_keyboard"    domain="touch_keyboard"/>
+	<policy label_prefix="runtime -> follow_touch"      domain="follow_touch"/>
+	<policy label_prefix="runtime -> camera"            domain="camera"/>
+	<policy label_prefix="runtime -> overlay"           domain="overlay"/>
+	<policy label_prefix="backdrop"                     domain="background"/>
+	<default-policy domain="default"/>
+
+	<global-key name="KEY_DASHBOARD" label="global_keys_handler -> input" />
+	<global-key name="KEY_PRINT"     label="runtime -> screenshot -> keys -> input" />
+	<global-key name="KEY_POWER"     label="leitzentrale -> manager -> fader -> " />
+</config>

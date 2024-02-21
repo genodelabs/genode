@@ -1,0 +1,9 @@
+<config>
+	<output>
+		<touch-key>
+			<input name="sdl"/>
+			<tap xpos="0" ypos="400" width="25" height="600" key="KEY_DASHBOARD"/>
+		</touch-key>
+	</output>
+	<policy label="sdl" input="sdl"/>
+</config>

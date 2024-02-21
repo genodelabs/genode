@@ -1,0 +1,21 @@
+<config>
+	<vfs>
+		<rom name="Vera.ttf"/>
+		<rom name="VeraMono.ttf"/>
+		<dir name="fonts">
+			<dir name="title">
+				<ttf name="regular" path="/Vera.ttf" size_px="32" cache="256K"/>
+			</dir>
+			<dir name="text">
+				<ttf name="regular" path="/Vera.ttf" size_px="24" cache="256K"/>
+			</dir>
+			<dir name="annotation">
+				<ttf name="regular" path="/Vera.ttf" size_px="20" cache="256K"/>
+			</dir>
+			<dir name="monospace">
+				<ttf name="regular" path="/VeraMono.ttf" size_px="22" cache="256K"/>
+			</dir>
+		</dir>
+	</vfs>
+	<default-policy root="/fonts"/>
+</config>

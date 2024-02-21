@@ -1,0 +1,169 @@
+<config>
+	<input name="leitzentrale_enabled" rom="leitzentrale" node="leitzentrale">
+		<attribute name="enabled" /> </input>
+
+	<output node="config">
+		<inline>
+			<parent-provides>
+				<service name="ROM"/>
+				<service name="PD"/>
+				<service name="RM"/>
+				<service name="CPU"/>
+				<service name="LOG"/>
+				<service name="Report"/>
+				<service name="Gui"/>
+				<service name="Timer"/>
+				<service name="File_system"/>
+			</parent-provides>
+
+			<default-route> <any-service> <parent/> </any-service> </default-route>
+
+			<default caps="100"/>
+
+			<service name="Gui">
+				<default-policy> <child name="wm"/> </default-policy> </service>
+
+			<service name="File_system">
+				<default-policy> <child name="fonts_fs"/> </default-policy> </service>
+
+			<service name="ROM">
+				<default-policy> <child name="report_rom"/> </default-policy> </service>
+
+			<service name="Report">
+				<default-policy> <child name="report_rom"/> </default-policy> </service>
+
+			<start name="report_rom" caps="200">
+				<resource name="RAM" quantum="4M"/>
+				<provides>
+					<service name="Report"/>
+					<service name="ROM"/>
+				</provides>
+				<config verbose="no">
+					<policy label="decorator -> window_layout"   report="manager -> window_layout"/>
+					<policy label="wm -> resize_request"         report="manager -> window_layout"/>
+					<policy label="wm -> focus"                  report="manager -> wm_focus"/>
+					<policy label="decorator -> pointer"         report="wm -> pointer"/>
+					<policy label="manager -> window_list"       report="wm -> window_list"/>
+					<policy label="manager -> decorator_margins" report="decorator -> decorator_margins"/>
+					<policy label="runtime -> leitzentrale -> main_view -> dialog"
+					        report="manager -> main_dialog"/>
+					<policy label="manager -> main_view_hover"
+					        report="runtime -> leitzentrale -> main_view -> hover"/>
+				</config>
+			</start>
+
+			<start name="wm" caps="300">
+				<resource name="RAM" quantum="4M"/>
+				<provides>
+					<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
+				</provides>
+				<config>
+					<policy label_prefix="decorator" role="decorator"/>
+					<default-policy/>
+				</config>
+				<route>
+					<service name="ROM" label="resize_request"> <child name="report_rom"/> </service>
+					<service name="ROM" label="focus">          <child name="report_rom"/> </service>
+					<service name="Report">                     <child name="report_rom"/> </service>
+					<service name="Gui">                        <child name="manager"/>    </service>
+					<any-service> <parent/> <any-child/> </any-service>
+				</route>
+			</start>
+
+			<start name="decorator" caps="350">
+				<binary name="themed_decorator"/>
+				<resource name="RAM" quantum="12M"/>
+				<resource name="CPU" quantum="20"/>
+				<config>
+					<libc/>
+					<vfs>
+						<dir name="theme">
+							<inline name="metadata">
+								<theme>
+									<aura  top="5" bottom="5" left="5" right="5"/>
+									<decor top="6" bottom="6" left="6" right="6"/>
+								</theme>
+							</inline>
+							<rom name="default.png"/>
+						</dir>
+						<dir name="dev"> <log/> </dir>
+					</vfs>
+					<policy label="log" decoration="yes" motion="20"/>
+					<policy label="runtime -> leitzentrale -> main_view"      decoration="no" motion="0"/>
+					<policy label="runtime -> leitzentrale -> touch_keyboard" decoration="no" motion="20"/>
+					<policy label_prefix="logo" decoration="no"/>
+					<default-policy/>
+				</config>
+				<route>
+					<service name="ROM"    label="default.png"> <parent label="drop_shadow.png"/> </service>
+					<service name="ROM"    label="window_layout">     <child name="report_rom"/> </service>
+					<service name="ROM"    label="pointer">           <child name="report_rom"/> </service>
+					<service name="Report" label="decorator_margins"> <child name="report_rom"/> </service>
+					<service name="Report" label="hover">             <child name="report_rom"/> </service>
+					<service name="Gui">                              <child name="wm"/>         </service>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+
+			<start name="config_fs_report">
+				<binary name="fs_report"/>
+				<resource name="RAM" quantum="2M"/>
+				<provides> <service name="Report"/> </provides>
+				<config> <vfs> <fs/> </vfs> </config>
+				<route>
+					<service name="File_system"> <parent label="config"/> </service>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+
+			<start name="manager" caps="300">
+				<binary name="phone_manager"/>
+				<resource name="RAM" quantum="3M"/>
+				<provides> <service name="Gui"/> </provides>
+				<config ld_verbose="yes" verbose_modem="no"/>
+				<route>
+					<service name="Report" label="runtime_config">
+						<child name="config_fs_report" label="managed -> runtime"/> </service>
+					<service name="Report" label="deploy_config">
+						<child name="config_fs_report" label="managed -> deploy"/> </service>
+					<service name="Report" label="system_config">
+						<child name="config_fs_report" label="managed -> system"/> </service>
+					<service name="Report" label="wifi_config">
+						<child name="config_fs_report" label="managed -> wifi"/> </service>
+					<service name="Report" label="modem_config">
+						<child name="config_fs_report" label="managed -> modem"/> </service>
+					<service name="Report" label="audio_config">
+						<child name="config_fs_report" label="managed -> audio"/> </service>
+					<service name="Report" label="nic_router_config">
+						<child name="config_fs_report" label="managed -> nic_router"/> </service>
+					<service name="Report" label="installation_config">
+						<child name="config_fs_report" label="managed -> installation"/> </service>
+					<service name="Report" label="depot_query">
+						<child name="config_fs_report" label="managed -> depot_query"/> </service>
+					<service name="Report"> <child name="report_rom"/> </service>
+					<service name="ROM" label_prefix="report ->"> <parent/> </service>
+					<service name="ROM" label="nitpicker_focus">  <parent/> </service>
+					<service name="ROM" label="nitpicker_hover">  <parent/> </service>
+					<service name="ROM" label_suffix="_hover">     <child name="report_rom"/> </service>
+					<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
+					<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
+					<service name="ROM" label="clicked">           <child name="report_rom"/> </service>
+					<service name="Gui"> <parent label="manager -> fader -> "/> </service>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+
+			<start name="fonts_fs" caps="100">
+				<binary name="vfs"/>
+				<resource name="RAM" quantum="4M"/>
+				<provides> <service name="File_system"/> </provides>
+				<route>
+					<service name="ROM" label="config">
+						<parent label="config -> fonts"/> </service>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+
+		</inline>
+	</output>
+</config>

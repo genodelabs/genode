@@ -1,0 +1,6 @@
+<launcher pkg="nano3d">
+	<route>
+		<service name="Gui"> <parent/> </service>
+	</route>
+	<config shape="cube"/>
+</launcher>
