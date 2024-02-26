@@ -1,0 +1,138 @@
+iris: handle IRIS_MEMZONE_BINDER with a real vma_heap like
+      the others
+
+We're moving towards a path where all contexts share the same virtual
+memory - because this will make implementing vm_bind much easier - ,
+and to achieve that we need to rework the binder memzone. As it is,
+different contexts will choose overlapping addresses. So in this patch
+we adjust the Binder to be 1GB - per Ken's suggestion - and use a real
+vma_heap for it. As a bonus the code gets simpler since it just reuses
+the same pattern we already have for the other memzones.
+
+Credits to Kenneth Granunke for helping me with this change.
+
+diff --git a/src/lib/mesa/src/gallium/drivers/iris/iris_binder.c b/src/gallium/drivers/iris/iris_binder.c
+index 19ee29f..0c64ab5 100644
+--- a/src/lib/mesa/src/gallium/drivers/iris/iris_binder.c
++++ b/src/lib/mesa/src/gallium/drivers/iris/iris_binder.c
+@@ -36,7 +36,7 @@
+  * binding table entries are full 32-bit pointers.)
+  *
+  * To handle this, we split a 4GB region of VMA into two memory zones.
+- * IRIS_MEMZONE_BINDER is a small region at the bottom able to hold a few
++ * IRIS_MEMZONE_BINDER is a 1GB region at the bottom able to hold a few
+  * binder BOs.  IRIS_MEMZONE_SURFACE contains the rest of the 4GB, and is
+  * always at a higher address than the binders.  This allows us to program
+  * Surface State Base Address to the binder BO's address, and offset the
+@@ -71,23 +71,12 @@ binder_realloc(struct iris_context *ice)
+    struct iris_bufmgr *bufmgr = screen->bufmgr;
+    struct iris_binder *binder = &ice->state.binder;
+ 
+-   uint64_t next_address = IRIS_MEMZONE_BINDER_START;
+-
+    if (binder->bo) {
+-      /* Place the new binder just after the old binder, unless we've hit the
+-       * end of the memory zone...then wrap around to the start again.
+-       */
+-      next_address = binder->bo->gtt_offset + IRIS_BINDER_SIZE;
+-      if (next_address >= IRIS_MEMZONE_SURFACE_START)
+-         next_address = IRIS_MEMZONE_BINDER_START;
+-
+-      iris_bo_unreference(binder->bo);
++     iris_bo_unreference(binder->bo);
+    }
+ 
+-
+    binder->bo =
+       iris_bo_alloc(bufmgr, "binder", IRIS_BINDER_SIZE, IRIS_MEMZONE_BINDER);
+-   binder->bo->gtt_offset = next_address;
+    binder->map = iris_bo_map(NULL, binder->bo, MAP_WRITE);
+    binder->insert_point = INIT_INSERT_POINT;
+ 
+diff --git a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c b/src/gallium/drivers/iris/iris_bufmgr.c
+index 1849e33..a89a494 100644
+--- a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
++++ b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
+@@ -302,10 +302,6 @@ vma_alloc(struct iris_bufmgr *bufmgr,
+    if (memzone == IRIS_MEMZONE_BORDER_COLOR_POOL)
+       return IRIS_BORDER_COLOR_POOL_ADDRESS;
+ 
+-   /* The binder handles its own allocations.  Return non-zero here. */
+-   if (memzone == IRIS_MEMZONE_BINDER)
+-      return IRIS_MEMZONE_BINDER_START;
+-
+    uint64_t addr =
+       util_vma_heap_alloc(&bufmgr->vma_allocator[memzone], size, alignment);
+ 
+@@ -331,10 +327,6 @@ vma_free(struct iris_bufmgr *bufmgr,
+ 
+    enum iris_memory_zone memzone = iris_memzone_for_address(address);
+ 
+-   /* The binder handles its own allocations. */
+-   if (memzone == IRIS_MEMZONE_BINDER)
+-      return;
+-
+    assert(memzone < ARRAY_SIZE(bufmgr->vma_allocator));
+ 
+    util_vma_heap_free(&bufmgr->vma_allocator[memzone], address, size);
+@@ -430,9 +422,10 @@ alloc_bo_from_cache(struct iris_bufmgr *bufmgr,
+        * end up in the cache). Therefore its old aux-buffer range can be
+        * removed from the aux-map.
+        */
+-      if (bo->bufmgr->aux_map_ctx)
++      if (bo->bufmgr->aux_map_ctx) {
+          gen_aux_map_unmap_range(bo->bufmgr->aux_map_ctx, bo->gtt_offset,
+                                  bo->size);
++      }
+       bo->aux_map_address = 0;
+    }
+ 
+@@ -1335,10 +1328,8 @@ iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
+    _mesa_hash_table_destroy(bufmgr->name_table, NULL);
+    _mesa_hash_table_destroy(bufmgr->handle_table, NULL);
+ 
+-   for (int z = 0; z < IRIS_MEMZONE_COUNT; z++) {
+-      if (z != IRIS_MEMZONE_BINDER)
++   for (int z = 0; z < IRIS_MEMZONE_COUNT; z++)
+          util_vma_heap_finish(&bufmgr->vma_allocator[z]);
+-   }
+ 
+    close(bufmgr->fd);
+ 
+@@ -1859,15 +1850,18 @@ iris_bufmgr_create(struct gen_device_info *devinfo, int fd, bool bo_reuse)
+    STATIC_ASSERT(IRIS_MEMZONE_SHADER_START == 0ull);
+    const uint64_t _4GB = 1ull << 32;
+    const uint64_t _2GB = 1ul << 31;
++   const uint64_t _1GB = 1ul << 30;
+ 
+    /* The STATE_BASE_ADDRESS size field can only hold 1 page shy of 4GB */
+    const uint64_t _4GB_minus_1 = _4GB - PAGE_SIZE;
+ 
+    util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_SHADER],
+                       PAGE_SIZE, _4GB_minus_1 - PAGE_SIZE);
++   util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_BINDER],
++                      IRIS_MEMZONE_BINDER_START, _1GB);
+    util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_SURFACE],
+                       IRIS_MEMZONE_SURFACE_START,
+-                      _4GB_minus_1 - IRIS_MAX_BINDERS * IRIS_BINDER_SIZE);
++                      _4GB_minus_1 - _1GB);
+    /* TODO: Why does limiting to 2GB help some state items on gen12?
+     *  - CC Viewport Pointer
+     *  - Blend State Pointer
+diff --git a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.h b/src/gallium/drivers/iris/iris_bufmgr.h
+index 7755919..c3e937f 100644
+--- a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.h
++++ b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.h
+@@ -79,11 +79,10 @@ enum iris_memory_zone {
+ #define IRIS_MEMZONE_COUNT (IRIS_MEMZONE_OTHER + 1)
+ 
+ #define IRIS_BINDER_SIZE (64 * 1024)
+-#define IRIS_MAX_BINDERS 100
+ 
+ #define IRIS_MEMZONE_SHADER_START     (0ull * (1ull << 32))
+ #define IRIS_MEMZONE_BINDER_START     (1ull * (1ull << 32))
+-#define IRIS_MEMZONE_SURFACE_START    (IRIS_MEMZONE_BINDER_START + IRIS_MAX_BINDERS * IRIS_BINDER_SIZE)
++#define IRIS_MEMZONE_SURFACE_START    (IRIS_MEMZONE_BINDER_START + (1ull << 30))
+ #define IRIS_MEMZONE_DYNAMIC_START    (2ull * (1ull << 32))
+ #define IRIS_MEMZONE_OTHER_START      (3ull * (1ull << 32))
+ 
