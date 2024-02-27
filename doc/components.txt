@@ -34,10 +34,11 @@ of them is briefly characterized as follows:
   the driver is made available to other system components via
   one of Genode's device-independent session interfaces, which are
   'platform_session', 'capture_session', 'event_session', 'block_session',
-  'audio_out_session', 'log_session', 'nic_session', and 'timer_session'
-  (see _os/include/_ for the interface definitions). Those interfaces are
-  uniform across hardware platforms and kernel base platforms. Usually,
-  each device driver can accommodate only one client at a time.
+  'record_session', 'play_session', 'log_session', 'uplink_session', and
+  'timer_session' (see _os/include/_ for the interface definitions).
+  Those interfaces are uniform across hardware platforms and kernel base
+  platforms. Usually, each device driver accommodates one client at a
+  time.
 
 :Resource multiplexers: provide mechanisms to multiplex device resources
   to multiple clients. A typical resource multiplexer requests one
@@ -194,9 +195,9 @@ provided by the kernel, or a pseudo time source (busy):
 Audio drivers
 =============
 
-Audio drivers implement the Audio_out session interface defined at
-_os/include/audio_out_session/_ for playback and optionally the audio_in
-interface for recording.
+Audio drivers use the audio mixer's record session interface defined at
+_os/include/record_session/_ for audio output and optionally the play
+session interface _os/include/play_session/_ for audio input.
 
 :_os/src/drivers/audio/spec/linux/_:
   Uses ALSA as back-end on the Linux base platform and supports only playback.
@@ -277,9 +278,9 @@ subdirectory of a source repository.
   framebuffer and a virtual input interface. Nitpicker (including a README
   file) is located at _os/src/server/nitpicker/_.
 
-:Audio output: The audio mixer located at _os/src/server/mixer/_ enables
-  multiple clients to use the audio-out interface. The mixing is done by simply
-  adding and clamping the signals of all present clients.
+:Audio output: The audio mixer located at _os/src/server/record_play_mixer/_
+  allows for the routing and mixing of audio signals from play-session clients
+  to record-session clients.
 
 :Networking: The NIC bridge located at _os/src/server/nic_bridge/_ multiplexes
   one NIC session to multiple virtual NIC sessions using a proxy-ARP
