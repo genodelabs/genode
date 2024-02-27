@@ -1,0 +1,119 @@
+The VFS OSS plugin offers access to Genode's Record and Play sessions by
+providing a file-system that can be mounted at arbitrary location within the
+VFS of a component. It exposes a data file that can be used as 'dsp' file,
+e.g., _/dev/dsp_ as is common with OSS. The support I/O control operations or
+rather the properties of the pseudo-device are provided in form of a structured
+'info' file located in the directory named after the data file, e.g.,
+_/dev/.dsp/info_.
+
+This file may by used to query the configured parameters and has the following
+structure:
+
+! <oss channels="2" format="16" sample_rate="44100" ifrag_total="430"
+!      ifrag_size="2048" ifrag_avail="0" ifrag_bytes="0" ofrag_total="254"
+!      ofrag_size="2048" ofrag_avail="254" ofrag_bytes="520192" optr_samples="0"
+!      optr_fifo_samples="0" play_underruns="0"/>
+
+Each parameter can also be accessed via its own file. The following list
+presents all files:
+
+  * :channels (ro): number of available channels. Set to 2 (stereo).
+    Corresponding OSS commands: 'SNDCTL_DSP_CHANNELS'
+
+  * :format (ro): sample format, e.g. s16le. Defaults to AFMT_S16_LE.
+    Corresponding OSS commands: 'SNDCTL_DSP_SAMPLESIZE'
+
+  * :sample_rate (ro): sample rate of the underlying Audio_out session.
+    Corresponding OSS commands: 'SNDCTL_DSP_SPEED'
+
+  * :ifrag_total (rw): total number of input fragments. Set to number of
+    packets in the underlying Audio_in session's packet-stream by default.
+    Corresponding OSS commands: 'SNDCTL_DSP_SETFRAGMENT',
+    'SNDCTL_DSP_GETISPACE'
+
+  * :ifrag_size (rw): size of an input fragment. Set to 2048 (number of
+    channels times size of Audio_in period times size of s16le sample) by
+    default.
+    Corresponding OSS commands: 'SNDCTL_DSP_SETFRAGMENT',
+    'SNDCTL_DSP_GETISPACE'
+
+  * :ifrag_avail (ro): number of available input fragments. Initially set to 0.
+    Corresponding OSS commands: 'SNDCTL_DSP_GETISPACE'
+
+  * :ifrag_bytes (ro): number of available input bytes. Initially set to 0.
+    Corresponding OSS commands: 'SNDCTL_DSP_GETISPACE'
+
+  * :enable_input (rw): writing 1 or 0 into this file enables or disables
+    input processing.
+    Corresponding OSS commands: SNDCTL_DSP_SETTRIGGER
+
+  * :halt_input (wo): writing anything into this file halts input processing.
+    Corresponding OSS commands: SNDCTL_DSP_HALT
+
+  * :ofrag_total (rw): total number of output fragments. Set to number of
+    packets in the underlying Audio_out session's packet-stream by default.
+    Corresponding OSS commands: 'SNDCTL_DSP_SETFRAGMENT',
+    'SNDCTL_DSP_GETOSPACE'
+
+  * :ofrag_size (rw): size of an output fragment. Set to 2048 (number of
+    channels times size of Audio_out period times size of s16le sample) by
+    default.
+    Corresponding OSS commands: 'SNDCTL_DSP_SETFRAGMENT',
+    'SNDCTL_DSP_GETOSPACE'
+
+  * :ofrag_avail (ro): number of available output fragments. Initially set to
+    total fragment count.
+    Corresponding OSS commands: 'SNDCTL_DSP_GETOSPACE'
+
+  * :ofrag_bytes (ro): number of available output bytes. Initially set to
+    total count buffer space.
+    Corresponding OSS commands: 'SNDCTL_DSP_GETOSPACE'
+
+  * :optr_samples (ro): total number of samples enqueued in the Play session
+    Corresponding OSS commands: 'SNDCTL_DSP_CURRENT_OPTR'
+
+  * :optr_fifo_samples (ro): number of samples residing in the internal output
+    buffer
+    Corresponding OSS commands: 'SNDCTL_DSP_CURRENT_OPTR'
+
+  * :play_underruns (rw): number of detected underrun errors, Writing anything
+    into this file resets the value to zero 
+    Corresponding OSS commands: 'SNDCTL_DSP_GETERROR'
+
+  * :enable_output (rw): writing 1 or 0 into this file enables or disables
+    output processing.
+    Corresponding OSS commands: SNDCTL_DSP_SETTRIGGER
+
+  * :halt_output (wo): writing anything into this file halts output processing.
+    Corresponding OSS commands: SNDCTL_DSP_HALT
+
+In its current state the plugin is merely enough to use simple applications
+requiring nothing more than a minimal set of the OSSv4 API. It does not allow
+altering of all parameters and will only work when 44100Hz/s16le is used.
+
+The following '<oss_next>' attributes can be used to alter the behaviour of
+the plugin:
+
+  * :verbose: if set to 'true' diagnostic message will be printed to the log,
+    it defaults to 'false'
+
+  * :max_ofrag_size: sets the maximal allowed output fragment size, defaults
+    to 8192 that correspondes to 2048 samples (~46,4 ms) at stereo 44.1 kHz
+
+  * :min_ofrag_size: sets the minimal allowed output fragment size, defaults
+    to 2048 that correspondes to 512 samples (~11,6 ms) at stereo 44.1 kHz
+
+  * :max_ifrag_size: sets the maximal allowed input fragment size, defaults
+    to 8192 that correspondes to 2048 samples (~46,4 ms) at stereo 44.1 kHz
+
+  * :min_ifrag_size: sets the minimal allowed input fragment size, defaults
+    to 2048 that correspondes to 512 samples (~11,6 ms) at stereo 44.1 kHz
+
+
+The following config snippet illustrates its configuration:
+
+! <vfs>
+!   <dir name="dev">
+!     <oss_next name="dsp" min_ofrage_size="8192"/>
+!   </dir>
+! </vfs>
