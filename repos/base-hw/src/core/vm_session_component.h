@@ -101,6 +101,7 @@ class Core::Vm_session_component
 		void          _attach_vm_memory(Dataspace_component &, addr_t,
 		                                Attach_attr);
 		void          _detach_vm_memory(addr_t, size_t);
+		void          _with_region(Region_map::Local_addr, auto const &);
 
 	protected:
 

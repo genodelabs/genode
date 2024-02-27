@@ -149,14 +149,7 @@ void Vm_session_component::detach(addr_t guest_phys, size_t size)
 
 		if (region) {
 			iteration_size = region->size();
-
-			/* inform dataspace */
-			region->with_dataspace([&] (Dataspace_component &dataspace) {
-				dataspace.detached_from(*region);
-			});
-
-			/* cleanup metadata */
-			_map.free(reinterpret_cast<void *>(region->base()));
+			detach(region->base());
 		}
 
 		if (addr >= guest_phys_end - (iteration_size - 1))
@@ -164,19 +157,30 @@ void Vm_session_component::detach(addr_t guest_phys, size_t size)
 
 		addr += iteration_size;
 	} while (true);
+}
 
-	/* kernel specific code to detach memory from guest */
-	_detach_vm_memory(guest_phys, size);
+
+void Vm_session_component::_with_region(Region_map::Local_addr addr,
+                                        auto const &fn)
+{
+	Rm_region *region = _map.metadata(addr);
+	if (region)
+		fn(*region);
+	else
+		error(__PRETTY_FUNCTION__, " unknown region");
 }
 
 
 void Vm_session_component::detach(Region_map::Local_addr addr)
 {
-	Rm_region *region = _map.metadata(addr);
-	if (region)
-		detach(region->base(), region->size());
-	else
-		error(__PRETTY_FUNCTION__, " unknown region");
+	_with_region(addr, [&] (Rm_region &region) {
+
+		if (!region.reserved())
+			reserve_and_flush(addr);
+
+		/* free the reserved region */
+		_map.free(reinterpret_cast<void *>(region.base()));
+	});
 }
 
 
@@ -186,7 +190,18 @@ void Vm_session_component::unmap_region(addr_t base, size_t size)
 }
 
 
-void Vm_session_component::reserve_and_flush(Region_map::Local_addr)
+void Vm_session_component::reserve_and_flush(Region_map::Local_addr addr)
 {
-	error(__func__, " unimplemented");
+	_with_region(addr, [&] (Rm_region &region) {
+
+		/* inform dataspace */
+		region.with_dataspace([&] (Dataspace_component &dataspace) {
+			dataspace.detached_from(region);
+		});
+
+		region.mark_as_reserved();
+
+		/* kernel specific code to detach memory from guest */
+		_detach_vm_memory(region.base(), region.size());
+	});
 }
