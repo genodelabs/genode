@@ -1,0 +1,32 @@
+<runtime ram="2M" caps="100" binary="record_play_mixer">
+
+	<provides> <record/> <play/> </provides>
+
+	<config jitter_ms="10">
+		<mix name="left">
+			<!-- default rule -->
+			<play label_suffix=" -> left" volume="0.7"/>
+		</mix>
+		<mix name="right">
+			<!-- default rule -->
+			<play label_suffix=" -> right" volume="0.7"/>
+		</mix>
+
+		<mix name="mic_left">  <play label="audio -> mic_left"/>  </mix>
+		<mix name="mic_right"> <play label="audio -> mic_right"/> </mix>
+
+		<!-- audio driver that wants to play back -->
+		<policy label="audio -> left"   record="left"  period_ms="12" jitter_ms="5" volume="1.0"/>
+		<policy label="audio -> right"  record="right" period_ms="12" jitter_ms="5" volume="1.0"/>
+
+		<!-- default rule for clients that want to record from the microphone -->
+		<policy label_suffix="left"  record="mic_left"  period_ms="12" jitter_ms="5" volume="1.0"/>
+		<policy label_suffix="right" record="mic_right" period_ms="12" jitter_ms="5" volume="1.0"/>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="record_play_mixer"/>
+	</content>
+
+</runtime>
