@@ -55,6 +55,8 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::PIN_CONTROL: return "pin_control";
 		case Service::Type::VM:          return "vm";
 		case Service::Type::PD:          return "pd";
+		case Service::Type::PLAY:        return "play";
+		case Service::Type::RECORD:      return "record";
 		case Service::Type::UNDEFINED:   break;
 		}
 		return "undefined";
@@ -88,6 +90,8 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::PIN_CONTROL: return "GPIO pin control";
 		case Service::Type::VM:          return "Hardware-based virtualization";
 		case Service::Type::PD:          return "Protection domain";
+		case Service::Type::PLAY:        return "Play";
+		case Service::Type::RECORD:      return "Record";
 		case Service::Type::UNDEFINED:   break;
 		}
 		return "<undefined>";

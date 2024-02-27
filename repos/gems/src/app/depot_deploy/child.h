@@ -572,6 +572,8 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 					_gen_provides_sub_node(xml, service, "cpu",         "CPU");
 					_gen_provides_sub_node(xml, service, "rtc",         "Rtc");
 					_gen_provides_sub_node(xml, service, "capture",     "Capture");
+					_gen_provides_sub_node(xml, service, "play",        "Play");
+					_gen_provides_sub_node(xml, service, "record",      "Record");
 				});
 			});
 		}
