@@ -4,6 +4,42 @@
                                ===========
 
 
+Genode OS Framework release 24.02 | 2024-02-29
+##############################################
+
+| Version 24.02 revisits Genode's audio support for latency-sensitive
+| scenarios, flexible sample rates, and pluggable drivers. It also introduces
+| the new ability of the Goa SDK to use Sculpt OS as remote test target,
+| comes with a new TCP/IP stack based on Linux 6.1.20, makes drivers aware
+| of suspend/resume, and improves HID event handling.
+
+Genode 24.02 kicks off the year with a profound redesign of the framework's
+audio infrastructure, addressing the routing and mixing of multi-channel audio
+streams at flexible sample rates, the dynamic starting and removal of audio
+sources and sinks, and latency optimization.
+
+Besides audio, the second infrastructural rework is a new TCP/IP stack based
+on DDE-Linux 6.1.20. It wraps up our long-year transition from a fairly
+fragmented landscape of ported driver code to the consistent use of our modern
+Linux device-driver environment across all Linux-based drivers and protocol
+stacks.
+
+The feature highlight of the release is the new ability of using Sculpt OS as
+a remote test target for the Goa SDK during application development. Thanks
+to this new feature, Genode applications can be developed and tested in a
+quick and uniform way, whether testing directly on a Linux-based development
+environment, or on a Sculpt PC reachable via a local network, or a PinePhone
+connected to the same wireless access point.
+
+Further highlights of the release are the versatile handling of human-interface
+devices including the calibration of motion events, the use of Vivante GPUs by
+multiple clients, and the driver-related preparatory steps needed for
+implementing suspend/resume for Sculpt OS.
+
+You can find the changes presented in full detail in the
+[https:/documentation/release-notes/24.02 - release documentation of version 24.02...]
+
+
 Road Map for 2024 | 2024-01-18
 ##############################
 
