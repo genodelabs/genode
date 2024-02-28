@@ -1,20 +1,22 @@
+Use drm_poll instead of libc version (see: libdrm -> ioctl_dispatch.cc)
+diff --git a/src/lib/mesa/src/util/libsync.h b/src/lib/mesa/src/util/libsync.h
+index 60e3e5d..c81647c 100644
 --- a/src/lib/mesa/src/util/libsync.h
 +++ b/src/lib/mesa/src/util/libsync.h
-@@ -65,6 +65,8 @@
- #define SYNC_IOC_MERGE		_IOWR(SYNC_IOC_MAGIC, 3, struct sync_merge_data)
+@@ -98,6 +98,7 @@ struct sync_file_info {
+ #define SYNC_IOC_FILE_INFO	_IOWR(SYNC_IOC_MAGIC, 4, struct sync_file_info)
  #endif
  
 +extern int drm_poll(struct pollfd *, nfds_t, int);
-+
+ 
  static inline int sync_wait(int fd, int timeout)
  {
- 	struct pollfd fds = {0};
-@@ -74,7 +76,7 @@
- 	fds.events = POLLIN;
+@@ -110,7 +111,7 @@ static inline int sync_wait(int fd, int timeout)
  
  	do {
+ 		clock_gettime(CLOCK_MONOTONIC, &poll_start);
 -		ret = poll(&fds, 1, timeout);
 +		ret = drm_poll(&fds, 1, timeout);
+ 		clock_gettime(CLOCK_MONOTONIC, &poll_end);
  		if (ret > 0) {
  			if (fds.revents & (POLLERR | POLLNVAL)) {
- 				errno = EINVAL;

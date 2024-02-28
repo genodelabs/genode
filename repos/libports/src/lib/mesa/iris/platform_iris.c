@@ -15,8 +15,7 @@
  * Mesa
  */
 #include <egl_dri2.h>
-#include <drivers/dri/common/utils.h>
-
+#include <gallium/frontends/dri/dri_util.h>
 /*
  * Libc
  */
@@ -196,6 +195,7 @@ static const __DRIextension *dri2_loader_extensions[] = {
 	&dri2_loader_extension.base,
 	&image_lookup_extension.base,
 	&background_callable_extension.base,
+	&use_invalidate.base,
 	NULL,
 };
 
@@ -213,8 +213,9 @@ EGLBoolean dri2_initialize_genode_backend(_EGLDisplay *disp)
 	if (!dri2_dpy)
 		return _eglError(EGL_BAD_ALLOC, "eglInitialize");
 
-	dri2_dpy->fd          = 43;
-	dri2_dpy->driver_name = strdup("iris");
+	dri2_dpy->fd_render_gpu  = 43;
+	dri2_dpy->fd_display_gpu = dri2_dpy->fd_render_gpu;
+	dri2_dpy->driver_name    = strdup("iris");
 
 	disp->DriverData = (void *)dri2_dpy;
 	dri2_dpy->vtbl   = &dri2_genode_display_vtbl;

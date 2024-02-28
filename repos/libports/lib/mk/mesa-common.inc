@@ -7,9 +7,17 @@ INC_DIR += $(LIB_DIR)/include \
            $(MESA_PORT_DIR)/include \
            $(MESA_SRC_DIR)/src/gallium/include \
            $(MESA_SRC_DIR)/src \
-           $(MESA_GEN_DIR)/src
+           $(MESA_GEN_DIR)/src \
+           $(MESA_GEN_DIR)/src/compiler
 
 CC_OPT += -D__GENODE__ -DGALLIUM_SOFTPIPE
+
+#
+# Otherwise TLS init function calls will be created, for example, for
+# 'glapi_tls_Context' in >C++11 code. This requires support in the dynamic
+# linker which we don't have.
+#
+CC_CXX_OPT += -fno-extern-tls-init
 
 #
 # C++20 warnings disable on update
@@ -37,6 +45,8 @@ CC_OPT += -DENABLE_ST_OMX_BELLAGIO=0  \
           -DHAVE_DLADDR  \
           -DHAVE_DLFCN_H  \
           -DHAVE_DL_ITERATE_PHDR  \
+          -DHAVE_DRI \
+          -DHAVE_DRI2 \
           -DHAVE_EXECINFO_H  \
           -DHAVE_FLOCK  \
           -DHAVE_FUNC_ATTRIBUTE_ALIAS  \
@@ -54,6 +64,9 @@ CC_OPT += -DENABLE_ST_OMX_BELLAGIO=0  \
           -DHAVE_FUNC_ATTRIBUTE_WEAK  \
           -DHAVE_GETRANDOM  \
           -DHAVE_MKOSTEMP  \
+          -DHAVE_OPENGL=1 \
+          -DHAVE_OPENGL_ES_1=1 \
+          -DHAVE_OPENGL_ES_2=1 \
           -DHAVE_PIPE_LOADER_DRI \
           -DHAVE_POSIX_MEMALIGN  \
           -DHAVE_PTHREAD  \
@@ -61,10 +74,11 @@ CC_OPT += -DENABLE_ST_OMX_BELLAGIO=0  \
           -DHAVE_RANDOM_R  \
           -DHAVE_STRTOF  \
           -DHAVE_STRTOK_R  \
+          -DHAVE_STRUCT_TIMESPEC \
           -DHAVE_TIMESPEC_GET  \
           -DHAVE_ZLIB  \
           -DPACKAGE_BUGREPORT='"https://gitlab.freedesktop.org/mesa/mesa/-/issues"' \
-          -DPACKAGE_VERSION='"21.0.0"' \
+          -DPACKAGE_VERSION='"24.0.1"' \
           -D__STDC_CONSTANT_MACROS  \
           -D__STDC_FORMAT_MACROS  \
           -D__STDC_LIMIT_MACROS \

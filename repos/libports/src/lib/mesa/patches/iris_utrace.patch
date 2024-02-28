@@ -1,0 +1,21 @@
+* short circuit 'fstat'
+diff --git a/src/lib/mesa/src/gallium/drivers/iris/iris_utrace.c b/src/lib/mesa/src/gallium/drivers/iris/iris_utrace.c
+index 8700857..eafd2e7 100644
+--- a/src/lib/mesa/src/gallium/drivers/iris/iris_utrace.c
++++ b/src/lib/mesa/src/gallium/drivers/iris/iris_utrace.c
+@@ -176,12 +176,14 @@ void iris_utrace_init(struct iris_context *ice)
+    struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
+ 
+    struct stat st;
+-   uint32_t minor;
++   uint32_t minor = 0;
+ 
++#ifndef __GENODE__
+    if (fstat(screen->fd, &st) == 0)
+       minor = minor(st.st_rdev);
+    else
+       minor = 0;
++#endif
+ 
+    intel_ds_device_init(&ice->ds, screen->devinfo, screen->fd, minor,
+                         INTEL_DS_API_OPENGL);

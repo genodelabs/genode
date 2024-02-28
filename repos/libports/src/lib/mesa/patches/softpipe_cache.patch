@@ -1,8 +1,8 @@
 Allocate texture cache lazy instead of relying on OS specific VM address space
-reservation via malloc.
+reservation via malloc. Safes over 100MB for small scenarios.
 
 diff --git a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_sample.c b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_sample.c
-index 8725930..d36c833 100644
+index 7edeb2c..139f0d6 100644
 --- a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_sample.c
 +++ b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_sample.c
 @@ -724,7 +724,7 @@ get_texel_buffer_no_border(const struct sp_sampler_view *sp_sview,
@@ -48,19 +48,19 @@ index 8725930..d36c833 100644
  
  
 diff --git a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.c b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.c
-index 7a1009a..78de40a 100644
+index 4bc8e3e..bb280e5 100644
 --- a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.c
 +++ b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.c
-@@ -221,6 +221,9 @@ sp_find_cached_tile_tex(struct softpipe_tex_tile_cache *tc,
-                     pos, x/TILE_SIZE, y/TILE_SIZE, z, face, level,
+@@ -222,6 +222,9 @@ sp_find_cached_tile_tex(struct softpipe_tex_tile_cache *tc,
                      pos, tile->addr.bits.x, tile->addr.bits.y, tile->z, tile->face, tile->level);
  #endif
-+
+ 
 +      if (tile->data == NULL)
 +         tile->data = malloc(sizeof(struct softpipe_tex_data));
- 
++
        /* check if we need to get a new transfer */
        if (!tc->tex_trans ||
+           tc->tex_level != addr.bits.level ||
 @@ -265,7 +268,7 @@ sp_find_cached_tile_tex(struct softpipe_tex_tile_cache *tc,
                           TEX_TILE_SIZE,
                           TEX_TILE_SIZE,
@@ -71,7 +71,7 @@ index 7a1009a..78de40a 100644
     }
  
 diff --git a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.h b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.h
-index 2e4635f..fa21e1f 100644
+index a6bb2eb..5998343 100644
 --- a/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.h
 +++ b/src/lib/mesa/src/gallium/drivers/softpipe/sp_tex_tile_cache.h
 @@ -60,15 +60,19 @@ union tex_tile_address {

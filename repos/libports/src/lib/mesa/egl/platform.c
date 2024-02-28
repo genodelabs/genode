@@ -15,6 +15,7 @@
  * Mesa
  */
 #include <egl_dri2.h>
+#include <util/xmlconfig.h>
 
 /*
  * Libc
@@ -76,13 +77,13 @@ _create_surface(_EGLDisplay *disp,
 	                             dri2_surf->base.GLColorspace);
 
 	if (dri2_dpy->dri2) {
-		dri2_surf->dri_drawable = (*dri2_dpy->dri2->createNewDrawable)(dri2_dpy->dri_screen, config,
+		dri2_surf->dri_drawable = (*dri2_dpy->dri2->createNewDrawable)(dri2_dpy->dri_screen_render_gpu, config,
 		                                                               dri2_surf);
 		/* create back buffer image */
 		unsigned flags = 0;
 		flags |= __DRI_IMAGE_USE_LINEAR;
 		flags |= (__DRI_IMAGE_USE_SHARE | __DRI_IMAGE_USE_BACKBUFFER);
-		dri2_surf->back_image = dri2_dpy->image->createImage(dri2_dpy->dri_screen,
+		dri2_surf->back_image = dri2_dpy->image->createImage(dri2_dpy->dri_screen_render_gpu,
 		                                                     dri2_surf->base.Width,
 		                                                     dri2_surf->base.Height,
 		                                                     __DRI_IMAGE_FORMAT_XRGB8888,
@@ -91,7 +92,7 @@ _create_surface(_EGLDisplay *disp,
 	} else {
 		assert(dri2_dpy->swrast);
 		dri2_surf->dri_drawable =
-		   (*dri2_dpy->swrast->createNewDrawable)(dri2_dpy->dri_screen,
+		   (*dri2_dpy->swrast->createNewDrawable)(dri2_dpy->dri_screen_render_gpu,
 		                                          config, dri2_surf);
 	}
 
@@ -166,6 +167,12 @@ EGLBoolean dri2_initialize_genode(_EGLDisplay *disp)
 		printf("Error: could not open EGL back end driver ('mesa_gpu_drv.lib.so')\n");
 		return EGL_FALSE;
 	}
+
+	/*
+	 * xmlconfig.c expects a valid 'execname' variable (see file). Since
+	 * the fallback 'getprogname' returns NULL, inject something
+	 */
+	driInjectExecName("mesa_app");
 
 	typedef EGLBoolean (*genode_backend)(_EGLDisplay *);
 

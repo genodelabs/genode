@@ -14,7 +14,8 @@
  * Mesa
  */
 #include <egl_dri2.h>
-#include <drivers/dri/common/utils.h>
+#include <gallium/frontends/dri/dri_util.h>
+
 /*
  * Libc
  */
@@ -183,6 +184,7 @@ static const __DRIextension *dri2_loader_extensions[] = {
 	&image_loader_extension.base,
 	&image_lookup_extension.base,
 	&background_callable_extension.base,
+	&use_invalidate.base,
 	NULL,
 };
 
@@ -202,7 +204,8 @@ static EGLBoolean dri2_initialize_genode_etnaviv(_EGLDisplay *disp)
 	if (!dri2_dpy)
 		return _eglError(EGL_BAD_ALLOC, "eglInitialize");
 
-	dri2_dpy->fd          = 42;
+	dri2_dpy->fd_render_gpu  = 42;
+	dri2_dpy->fd_display_gpu = dri2_dpy->fd_render_gpu;
 	dri2_dpy->driver_name = strdup("etnaviv");
 
 	disp->DriverData = (void *)dri2_dpy;

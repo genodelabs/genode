@@ -1,6 +1,29 @@
+* disable shader cache (not supported)
+* shortcircut 'close'
+
+diff --git a/src/lib/mesa/src/gallium/drivers/lima/lima_disk_cache.c b/src/lib/mesa/src/gallium/drivers/lima/lima_disk_cache.c
+index 0c3bef7..c5f9b02 100644
+--- a/src/lib/mesa/src/gallium/drivers/lima/lima_disk_cache.c
++++ b/src/lib/mesa/src/gallium/drivers/lima/lima_disk_cache.c
+@@ -191,6 +191,7 @@ err:
+ void
+ lima_disk_cache_init(struct lima_screen *screen)
+ {
++#ifdef ENABLE_SHADER_CACHE
+    const struct build_id_note *note =
+       build_id_find_nhdr_for_addr(lima_disk_cache_init);
+    assert(note && build_id_length(note) == 20); /* sha1 */
+@@ -202,4 +203,5 @@ lima_disk_cache_init(struct lima_screen *screen)
+    _mesa_sha1_format(timestamp, id_sha1);
+ 
+    screen->disk_cache = disk_cache_create(screen->base.get_name(&screen->base), timestamp, 0);
++#endif
+ }
+diff --git a/src/lib/mesa/src/gallium/drivers/lima/lima_fence.c b/src/lib/mesa/src/gallium/drivers/lima/lima_fence.c
+index 193e3ee..df81156 100644
 --- a/src/lib/mesa/src/gallium/drivers/lima/lima_fence.c
---- b/src/lib/mesa/src/gallium/drivers/lima/lima_fence.c
-@@ -90,8 +93,14 @@ lima_fence_get_fd(struct pipe_screen *pscreen,
++++ b/src/lib/mesa/src/gallium/drivers/lima/lima_fence.c
+@@ -90,8 +90,14 @@ lima_fence_get_fd(struct pipe_screen *pscreen,
  static void
  lima_fence_destroy(struct pipe_fence_handle *fence)
  {
@@ -8,22 +31,10 @@
 +   /*
 +    * On Genode the fd is not created by the libc
 +    * (see ioctl_lima.cc).
-+   */
++    */
     if (fence->fd >= 0)
        close(fence->fd);
 +#endif
     FREE(fence);
  }
  
---- a/src/lib/mesa/src/loader/loader.c
---- b/src/lib/mesa/src/loader/loader.c
-@@ -473,6 +473,9 @@
- 	if (fd == 43) {
- 		return strdup("iris");
- 	}
-+	if (fd == 44) {
-+		return strdup("lima");
-+	}
-    char *driver;
- 
-    /* Allow an environment variable to force choosing a different driver

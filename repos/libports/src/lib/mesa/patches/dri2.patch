@@ -1,0 +1,17 @@
+diff --git a/src/lib/mesa/src/gallium/frontends/dri/dri2.c b/src/lib/mesa/src/gallium/frontends/dri/dri2.c
+index ad68f3b..fdd0936 100644
+--- a/src/lib/mesa/src/gallium/frontends/dri/dri2.c
++++ b/src/lib/mesa/src/gallium/frontends/dri/dri2.c
+@@ -650,7 +650,11 @@ dri2_allocate_textures(struct dri_context *ctx,
+          whandle.format = format;
+          whandle.modifier = DRM_FORMAT_MOD_INVALID;
+          if (screen->can_share_buffer)
+-            whandle.type = WINSYS_HANDLE_TYPE_SHARED;
++            /*
++             * Change from SHARED to FD because we abuse etna_screen_create
++             * to allocate the BO but the imx8q_gpu_drv is rendernode only.
++             */
++            whandle.type = WINSYS_HANDLE_TYPE_FD;
+          else
+             whandle.type = WINSYS_HANDLE_TYPE_KMS;
+          drawable->textures[statt] =

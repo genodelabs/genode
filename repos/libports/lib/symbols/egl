@@ -121,5 +121,5 @@ eglWaitGL T
 eglWaitNative T
 eglWaitSync T
 genode_blit T
-image_lookup_extension D 24
+image_lookup_extension D 40
 use_invalidate D 16

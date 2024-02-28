@@ -1,0 +1,88 @@
+* call drm_unmap_ppgtt when a vm area from cache is cleared, so libdrm can unmap
+  at GPU driver
+* use drm_lseek instead of libc version in order to retrieve bo object size
+* disable fd operations
+* align size to 2MB in 'iris_bo_alloc' as done in 'alloc_fresh_bo' to not
+  pollute bo cache
+diff --git a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
+index 088f34f..98483f3 100644
+--- a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
++++ b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
+@@ -112,6 +112,8 @@
+ 
+ #define FILE_DEBUG_FLAG DEBUG_BUFMGR
+ 
++ void drm_unmap_ppgtt(__u32 handle);
++
+ /**
+  * For debugging purposes, this returns a time in seconds.
+  */
+@@ -1048,6 +1050,7 @@ alloc_bo_from_cache(struct iris_bufmgr *bufmgr,
+             continue;
+          }
+ 
++         drm_unmap_ppgtt(cur->gem_handle);
+          vma_free(bufmgr, cur->address, cur->size);
+          cur->address = 0ull;
+       }
+@@ -1167,8 +1170,16 @@ iris_bo_alloc(struct iris_bufmgr *bufmgr,
+    struct iris_bo *bo;
+    unsigned int page_size = getpagesize();
+    enum iris_heap heap = flags_to_heap(bufmgr, flags);
+-   struct bo_cache_bucket *bucket =
+-      bucket_for_size(bufmgr, size, heap, flags);
++   struct bo_cache_bucket *bucket;
++
++   /*
++    * Use same optimization as 'alloc_fresh_bo', otherwise 2M buckets will
++    * balloon for 1M - <2M allocations
++    */
++   if (size >= 1024 * 1024)
++      size = align64(size, 2 * 1024 * 1024);
++
++   bucket = bucket_for_size(bufmgr, size, heap, flags);
+ 
+    if (memzone != IRIS_MEMZONE_OTHER || (flags & BO_ALLOC_COHERENT))
+       flags |= BO_ALLOC_NO_SUBALLOC;
+@@ -1887,6 +1898,8 @@ iris_gem_set_tiling(struct iris_bo *bo, const struct isl_surf *surf)
+    return ret;
+ }
+ 
++extern int drm_lseek(int fd, off_t offset, int whence);
++
+ struct iris_bo *
+ iris_bo_import_dmabuf(struct iris_bufmgr *bufmgr, int prime_fd,
+                       const uint64_t modifier)
+@@ -1923,7 +1936,7 @@ iris_bo_import_dmabuf(struct iris_bufmgr *bufmgr, int prime_fd,
+     * later, we can lseek on the prime fd to get the size.  Older
+     * kernels will just fail, in which case we fall back to the
+     * provided (estimated or guess size). */
+-   ret = lseek(prime_fd, 0, SEEK_END);
++   ret = drm_lseek(prime_fd, 0, SEEK_END);
+    if (ret != -1)
+       bo->size = ret;
+ 
+@@ -2460,12 +2473,14 @@ iris_bufmgr_get_for_fd(int fd, bool bo_reuse)
+    struct intel_device_info devinfo;
+    struct stat st;
+ 
++#if 0
+    if (fstat(fd, &st))
+       return NULL;
+-
++#endif
+    struct iris_bufmgr *bufmgr = NULL;
+ 
+    simple_mtx_lock(&global_bufmgr_list_mutex);
++#if 0
+    list_for_each_entry(struct iris_bufmgr, iter_bufmgr, &global_bufmgr_list, link) {
+       struct stat iter_st;
+       if (fstat(iter_bufmgr->fd, &iter_st))
+@@ -2478,6 +2493,7 @@ iris_bufmgr_get_for_fd(int fd, bool bo_reuse)
+       }
+    }
+ 
++#endif
+    if (!intel_get_device_info_from_fd(fd, &devinfo))
+       return NULL;
+ 

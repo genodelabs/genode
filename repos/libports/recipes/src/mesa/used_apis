@@ -2,6 +2,7 @@ base
 blit
 libdrm
 expat
+format
 gpu_session
 libc
 os

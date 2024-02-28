@@ -1,0 +1,25 @@
+Genode only supports GEN8+, remove version below 8.
+
+diff --git a/src/lib/mesa/src/intel/isl/isl_priv.h b/src/lib/mesa/src/intel/isl/isl_priv.h
+index 0eb5426..1218e2b 100644
+--- a/src/lib/mesa/src/intel/isl/isl_priv.h
++++ b/src/lib/mesa/src/intel/isl/isl_priv.h
+@@ -55,18 +55,6 @@ typedef void (*isl_emit_cpb_control_s_func)(const struct isl_device *dev, void *
+    static inline isl_##func##_func                                      \
+    isl_##func##_get_func(const struct isl_device *dev) {                \
+       switch (ISL_GFX_VERX10(dev)) {                                    \
+-      case 40:                                                          \
+-         return isl_gfx4_##func;                                        \
+-      case 45:                                                          \
+-         /* G45 surface state is the same as gfx5 */                    \
+-      case 50:                                                          \
+-         return isl_gfx5_##func;                                        \
+-      case 60:                                                          \
+-         return isl_gfx6_##func;                                        \
+-      case 70:                                                          \
+-         return isl_gfx7_##func;                                        \
+-      case 75:                                                          \
+-         return isl_gfx75_##func;                                       \
+       case 80:                                                          \
+          return isl_gfx8_##func;                                        \
+       case 90:                                                          \

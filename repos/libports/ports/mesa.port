@@ -1,5 +1,5 @@
 LICENSE   := GPLv2
-VERSION   := 21.0.0
+VERSION   := 24.0.1
 DOWNLOADS := mesa.archive
 
 #
@@ -7,24 +7,23 @@ DOWNLOADS := mesa.archive
 #
 URL_BASE      := https://archive.mesa3d.org
 URL(mesa)     := $(URL_BASE)/mesa-$(VERSION).tar.xz
-SHA(mesa)     := e6204e98e6a8d77cf9dc5d34f99dd8e3ef7144f3601c808ca0dd26ba522e0d84
+SHA(mesa)     := f387192b08c471c545590dd12230a2a343244804b5fe866fec6aea02eab57613
 
 DIR(mesa)     := src/lib/mesa
 TAR_OPT(mesa) := --strip-components=1 --files-from $(REP_DIR)/src/lib/mesa/files.list
 HASH_INPUT    += $(REP_DIR)/src/lib/mesa/files.list
 
-PATCHES       := src/lib/mesa/patches/bitset_redefined.patch \
+PATCHES       := src/lib/mesa/patches/dri2.patch \
                  src/lib/mesa/patches/etnaviv.patch \
-                 src/lib/mesa/patches/iris.patch \
-                 src/lib/mesa/patches/iris_bufmgr_fd.patch \
-                 src/lib/mesa/patches/iris_bufmgr_unmap.patch \
-                 src/lib/mesa/patches/iris_disable_compute.patch \
-                 src/lib/mesa/patches/iris_binder_memory.patch \
-                 src/lib/mesa/patches/lseek.patch \
+                 src/lib/mesa/patches/intel_gen.patch \
+                 src/lib/mesa/patches/iris_bufmgr.patch \
+                 src/lib/mesa/patches/iris_utrace.patch \
+                 src/lib/mesa/patches/lima.patch \
+                 src/lib/mesa/patches/loader_fds.patch \
                  src/lib/mesa/patches/mesa.patch \
+                 src/lib/mesa/patches/os_dupfd.patch \
                  src/lib/mesa/patches/os_mmap.patch \
                  src/lib/mesa/patches/softpipe_cache.patch \
-                 src/lib/mesa/patches/lima.patch \
                  src/lib/mesa/patches/sync_wait.patch
 
 PATCH_OPT     := -p1
@@ -32,8 +31,8 @@ PATCH_OPT     := -p1
 #
 # Generated Mesa sources
 #
-URL(generated) = https://github.com/cnuke/mesa_generated.git
-REV(generated) = c3954da3f66d6cb961421f03c09d589faade1784
+URL(generated) = https://github.com/ssumpf/mesa_generated.git
+REV(generated) = 2b684dc19480b4620fd57e98dc2993f540872a31
 DIR(generated) = generated
 
 #
@@ -57,7 +56,14 @@ GEN_TARGET = generated
 #
 # Generate files
 #
-generated_files = $(GEN_TARGET)/src/compiler/glsl/float64_glsl.h \
+generated_files = $(GEN_TARGET)/src/compiler/builtin_types.c \
+                  $(GEN_TARGET)/src/compiler/builtin_types.h \
+                  $(GEN_TARGET)/src/compiler/glsl/astc_glsl.h \
+                  $(GEN_TARGET)/src/compiler/glsl/bc1_glsl.h \
+                  $(GEN_TARGET)/src/compiler/glsl/bc4_glsl.h \
+                  $(GEN_TARGET)/src/compiler/glsl/cross_platform_settings_piece_all.h \
+                  $(GEN_TARGET)/src/compiler/glsl/etc2_rgba_stitch_glsl.h \
+                  $(GEN_TARGET)/src/compiler/glsl/float64_glsl.h \
                   $(GEN_TARGET)/src/compiler/glsl/glcpp/glcpp-lex.c \
                   $(GEN_TARGET)/src/compiler/glsl/glcpp/glcpp-parse.c \
                   $(GEN_TARGET)/src/compiler/glsl/glsl_lexer.cpp \
@@ -78,8 +84,30 @@ generated_files = $(GEN_TARGET)/src/compiler/glsl/float64_glsl.h \
                   $(GEN_TARGET)/src/compiler/spirv/vtn_gather_types.c \
                   $(GEN_TARGET)/src/compiler/spirv/vtn_generator_ids.h \
                   $(GEN_TARGET)/src/gallium/auxiliary/indices/u_indices_gen.c \
+                  $(GEN_TARGET)/src/gallium/auxiliary/tr_util.c \
+                  $(GEN_TARGET)/src/gallium/auxiliary/u_tracepoints.h \
+                  $(GEN_TARGET)/src/gallium/drivers/lima/lima_nir_algebraic.c \
                   $(GEN_TARGET)/src/git_sha1.h \
-                  $(GEN_TARGET)/src/mapi/glapi/gen/api_exec.c \
+                  $(GEN_TARGET)/src/intel/dev/intel_wa.c \
+                  $(GEN_TARGET)/src/intel/ds/intel_tracepoints.c \
+                  $(GEN_TARGET)/src/intel/genxml/gen8_pack.h \
+                  $(GEN_TARGET)/src/intel/genxml/gen9_pack.h \
+                  $(GEN_TARGET)/src/intel/genxml/gen11_pack.h \
+                  $(GEN_TARGET)/src/intel/genxml/gen12_pack.h \
+                  $(GEN_TARGET)/src/intel/genxml/gen125_pack.h \
+                  $(GEN_TARGET)/src/intel/genxml/gen125_rt_pack.h \
+                  $(GEN_TARGET)/src/intel/genxml/gen20_pack.h \
+                  $(GEN_TARGET)/src/intel/genxml/gen20_rt_pack.h \
+                  $(GEN_TARGET)/src/intel/genxml/genX_bits.h \
+                  $(GEN_TARGET)/src/intel/genxml/genX_xml.h \
+                  $(GEN_TARGET)/src/intel/isl/isl_format_layout.c \
+                  $(GEN_TARGET)/src/intel/perf/intel_perf_metrics.h \
+                  $(GEN_TARGET)/src/mapi/glapi/gen/api_beginend_init.h \
+                  $(GEN_TARGET)/src/mapi/glapi/gen/api_exec_decl.h \
+                  $(GEN_TARGET)/src/mapi/glapi/gen/api_exec_init.c \
+                  $(GEN_TARGET)/src/mapi/glapi/gen/api_hw_select_init.h \
+                  $(GEN_TARGET)/src/mapi/glapi/gen/api_save.h \
+                  $(GEN_TARGET)/src/mapi/glapi/gen/api_save_init.h \
                   $(GEN_TARGET)/src/mapi/glapi/gen/enums.c \
                   $(GEN_TARGET)/src/mapi/glapi/gen/glapi_mapi_tmp.h \
                   $(GEN_TARGET)/src/mapi/glapi/gen/marshal_generated0.c \
@@ -90,30 +118,20 @@ generated_files = $(GEN_TARGET)/src/compiler/glsl/float64_glsl.h \
                   $(GEN_TARGET)/src/mapi/glapi/gen/marshal_generated5.c \
                   $(GEN_TARGET)/src/mapi/glapi/gen/marshal_generated6.c \
                   $(GEN_TARGET)/src/mapi/glapi/gen/marshal_generated7.c \
+                  $(GEN_TARGET)/src/mapi/glapi/gen/unmarshal_table.c \
                   $(GEN_TARGET)/src/mapi/shared-glapi/glapi_mapi_tmp.h \
                   $(GEN_TARGET)/src/mesa/format_fallback.c \
                   $(GEN_TARGET)/src/mesa/format_info.h \
-                  $(GEN_TARGET)/src/mesa/format_pack.c \
-                  $(GEN_TARGET)/src/mesa/format_unpack.c \
                   $(GEN_TARGET)/src/mesa/get_hash.h \
                   $(GEN_TARGET)/src/mesa/main/dispatch.h \
                   $(GEN_TARGET)/src/mesa/main/marshal_generated.h \
                   $(GEN_TARGET)/src/mesa/main/remap_helper.h \
                   $(GEN_TARGET)/src/mesa/program/lex.yy.c \
                   $(GEN_TARGET)/src/mesa/program/program_parse.tab.c \
+                  $(GEN_TARGET)/src/util/driconf_static.h \
                   $(GEN_TARGET)/src/util/format_srgb.c \
                   $(GEN_TARGET)/src/util/format/u_format_pack.h \
                   $(GEN_TARGET)/src/util/format/u_format_table.c \
-                  $(GEN_TARGET)/src/intel/genxml/gen8_pack.h \
-                  $(GEN_TARGET)/src/intel/genxml/gen9_pack.h \
-                  $(GEN_TARGET)/src/intel/genxml/gen11_pack.h \
-                  $(GEN_TARGET)/src/intel/genxml/gen12_pack.h \
-                  $(GEN_TARGET)/src/intel/genxml/gen125_pack.h \
-                  $(GEN_TARGET)/src/intel/genxml/genX_bits.h \
-                  $(GEN_TARGET)/src/intel/genxml/genX_xml.h \
-                  $(GEN_TARGET)/src/intel/isl/isl_format_layout.c \
-                  $(GEN_TARGET)/src/intel/perf/gen_perf_metrics.h \
-                  $(GEN_TARGET)/src/gallium/drivers/lima/lima_nir_algebraic.c
 
 #
 # Print message and create directory
@@ -133,10 +151,26 @@ CMD = ${CMD($(notdir $@))}
 #
 # Generated creation rules
 #
+#
+GL_ES_API = $(SRC)/src/mapi/glapi/gen/gl_and_es_API.xml
+
+CMD(astc_glsl.h)            = astc_decoder.glsl     $@ -n astc_source
+CMD(float64_glsl.h)         = float64.glsl          $@ -n float64_source
+CMD(bc1_glsl.h)             = bc1.glsl              $@ -n bc1_source
+CMD(bc4_glsl.h)             = bc4.glsl              $@ -n bc4_source
+CMD(etc2_rgba_stitch_glsl.h) = etc2_rgba_stitch.glsl $@ -n etc2_rgba_stitch_source
+CMD(cross_platform_settings_piece_all.h) = CrossPlatformSettings_piece_all.glsl \
+                                           $@ -n cross_platform_settings_piece_all_header
+
+$(GEN_TARGET)/src/compiler/glsl/astc_glsl.h \
+$(GEN_TARGET)/src/compiler/glsl/bc1_glsl.h \
+$(GEN_TARGET)/src/compiler/glsl/bc4_glsl.h \
+$(GEN_TARGET)/src/compiler/glsl/cross_platform_settings_piece_all.h \
+$(GEN_TARGET)/src/compiler/glsl/etc2_rgba_stitch_glsl.h \
 $(GEN_TARGET)/src/compiler/glsl/float64_glsl.h:
 	$(MSG_DIR)
 	$(VERBOSE)$(PYTHON) $(SRC)/src/util/xxd.py \
-	                    $(SRC)/src/compiler/glsl/float64.glsl $@ -n float64_source
+	                    $(SRC)/src/compiler/glsl/$(CMD)
 
 CMD(nir_opcodes.h)              = nir_opcodes_h.py
 CMD(nir_opcodes.c)              = nir_opcodes_c.py
@@ -169,7 +203,7 @@ $(GEN_TARGET)/src/mapi/shared-glapi/glapi_mapi_tmp.h \
 $(GEN_TARGET)/src/mapi/glapi/gen/glapi_mapi_tmp.h:
 	$(MSG_DIR)
 	$(VERBOSE)$(PYTHON) $(SRC)/src/mapi/mapi_abi.py --printer ${CMD($@)} \
-		$(SRC)/src/mapi/glapi/gen/gl_and_es_API.xml > $@
+		$(GL_ES_API) > $@
 
 CMD(ir_expression_operation.h)          = enum
 CMD(ir_expression_operation_constant.h) = constant
@@ -192,23 +226,26 @@ $(GEN_TARGET)/src/compiler/spirv/spirv_info.c:
 	$(MSG_DIR)
 	$(VERBOSE)$(PYTHON) $(SRC)/src/compiler/spirv/$(CMD) $@
 
+$(GEN_TARGET)/src/compiler/builtin_types.h:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/compiler/builtin_types_h.py $@
+
+$(GEN_TARGET)/src/compiler/builtin_types.c:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/compiler/builtin_types_c.py $@
+
 CMD(dispatch.h)           = gl_table.py -m remap_table
 CMD(marshal_generated.h)  = gl_marshal_h.py
 CMD(remap_helper.h)       = remap_helper.py
-CMD(api_exec.c)           = gl_genexec.py
-CMD(marshal_generated0.c) = gl_marshal.py -i 0 -n 8
-CMD(marshal_generated1.c) = gl_marshal.py -i 1 -n 8
-CMD(marshal_generated2.c) = gl_marshal.py -i 2 -n 8
-CMD(marshal_generated3.c) = gl_marshal.py -i 3 -n 8
-CMD(marshal_generated4.c) = gl_marshal.py -i 4 -n 8
-CMD(marshal_generated5.c) = gl_marshal.py -i 5 -n 8
-CMD(marshal_generated6.c) = gl_marshal.py -i 6 -n 8
-CMD(marshal_generated7.c) = gl_marshal.py -i 7 -n 8
+CMD(marshal_generated0.c) = gl_marshal.py $(GL_ES_API) 0 8
+CMD(marshal_generated1.c) = gl_marshal.py $(GL_ES_API) 1 8
+CMD(marshal_generated2.c) = gl_marshal.py $(GL_ES_API) 2 8
+CMD(marshal_generated3.c) = gl_marshal.py $(GL_ES_API) 3 8
+CMD(marshal_generated4.c) = gl_marshal.py $(GL_ES_API) 4 8
+CMD(marshal_generated5.c) = gl_marshal.py $(GL_ES_API) 5 8
+CMD(marshal_generated6.c) = gl_marshal.py $(GL_ES_API) 6 8
+CMD(marshal_generated7.c) = gl_marshal.py $(GL_ES_API) 7 8
 
-$(GEN_TARGET)/src/mesa/main/dispatch.h \
-$(GEN_TARGET)/src/mesa/main/marshal_generated.h \
-$(GEN_TARGET)/src/mesa/main/remap_helper.h \
-$(GEN_TARGET)/src/mapi/glapi/gen/api_exec.c \
 $(GEN_TARGET)/src/mapi/glapi/gen/marshal_generated0.c \
 $(GEN_TARGET)/src/mapi/glapi/gen/marshal_generated1.c \
 $(GEN_TARGET)/src/mapi/glapi/gen/marshal_generated2.c \
@@ -218,13 +255,41 @@ $(GEN_TARGET)/src/mapi/glapi/gen/marshal_generated5.c \
 $(GEN_TARGET)/src/mapi/glapi/gen/marshal_generated6.c \
 $(GEN_TARGET)/src/mapi/glapi/gen/marshal_generated7.c:
 	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/mapi/glapi/gen/$(CMD) > $@
+
+$(GEN_TARGET)/src/mapi/glapi/gen/unmarshal_table.c:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/mapi/glapi/gen/gl_unmarshal_table.py \
+	                    $(GL_ES_API) > $@
+
+$(GEN_TARGET)/src/mesa/main/dispatch.h \
+$(GEN_TARGET)/src/mesa/main/marshal_generated.h \
+$(GEN_TARGET)/src/mesa/main/remap_helper.h:
+	$(MSG_DIR)
 	$(VERBOSE)$(PYTHON) $(SRC)/src/mapi/glapi/gen/$(CMD) \
-	-f $(SRC)/src/mapi/glapi/gen/gl_and_es_API.xml > $@
+	-f $(GL_ES_API) > $@
 
 $(GEN_TARGET)/src/mesa/get_hash.h:
 	$(MSG_DIR)
 	$(VERBOSE)$(PYTHON) $(SRC)/src/mesa/main/get_hash_generator.py \
-	-f $(SRC)/src/mapi/glapi/gen/gl_and_es_API.xml > $@
+	-f $(GL_ES_API) > $@
+
+CMD(api_exec_decl.h)      = api_exec_decl_h.py
+CMD(api_exec_init.c)      = api_exec_init.py
+CMD(api_hw_select_init.h) = api_hw_select_init_h.py
+CMD(api_save.h)           = api_save_h.py
+CMD(api_save_init.h)      = api_save_init_h.py
+CMD(api_beginend_init.h)  = api_beginend_init_h.py
+
+$(GEN_TARGET)/src/mapi/glapi/gen/api_beginend_init.h \
+$(GEN_TARGET)/src/mapi/glapi/gen/api_exec_decl.h \
+$(GEN_TARGET)/src/mapi/glapi/gen/api_exec_init.c \
+$(GEN_TARGET)/src/mapi/glapi/gen/api_hw_select_init.h \
+$(GEN_TARGET)/src/mapi/glapi/gen/api_save.h \
+$(GEN_TARGET)/src/mapi/glapi/gen/api_save_init.h:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/mapi/glapi/gen/$(CMD) \
+	                    -f $(SRC)/src/mapi/glapi/gen/gl_and_es_API.xml > $@
 
 $(GEN_TARGET)/src/mapi/glapi/gen/enums.c:
 	$(MSG_DIR)
@@ -234,19 +299,29 @@ $(GEN_TARGET)/src/mapi/glapi/gen/enums.c:
 $(GEN_TARGET)/src/gallium/auxiliary/indices/u_indices_gen.c:
 	$(MSG_DIR)
 	$(VERBOSE)$(PYTHON) \
-		$(SRC)/src/gallium/auxiliary/indices/u_indices_gen.py > $@
+		$(SRC)/src/gallium/auxiliary/indices/u_indices_gen.py $@
+
+$(GEN_TARGET)/src/gallium/auxiliary/tr_util.c:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/gallium/auxiliary/driver_trace/enums2names.py \
+	                    $(SRC)/src/gallium/include/pipe/p_defines.h \
+	                    $(SRC)/src/gallium/include/pipe/p_video_enums.h \
+	                    $(SRC)/src/util/blend.h \
+	                    -C $@ -H $(GEN_TARGET)/src/gallium/auxiliary/tr_util.h -I tr_util.h
+
+$(GEN_TARGET)/src/gallium/auxiliary/u_tracepoints.h:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/gallium/auxiliary/util/u_tracepoints.py \
+	                    -p $(SRC)/src/util/perf/ \
+	                    -H $(GEN_TARGET)/src/gallium/auxiliary/u_tracepoints.h
 
 $(GEN_TARGET)/src/git_sha1.h:
 	$(MSG_DIR)
 	$(VERBOSE)$(PYTHON) $(SRC)/bin/git_sha1_gen.py --output $@
 
 CMD(format_info.h)   = format_info.py
-CMD(format_pack.c)   = format_pack.py
-CMD(format_unpack.c) = format_unpack.py
 
-$(GEN_TARGET)/src/mesa/format_info.h \
-$(GEN_TARGET)/src/mesa/format_pack.c \
-$(GEN_TARGET)/src/mesa/format_unpack.c:
+$(GEN_TARGET)/src/mesa/format_info.h:
 	$(MSG_DIR)
 	$(VERBOSE)$(PYTHON) $(SRC)/src/mesa/main/$(CMD) $(SRC)/src/mesa/main/formats.csv \
 	> $@
@@ -267,6 +342,11 @@ $(GEN_TARGET)/src/util/format_srgb.c:
 	$(MSG_DIR)
 	$(VERBOSE)$(PYTHON) $(SRC)/src/util/format_srgb.py > $@
 
+$(GEN_TARGET)/src/util/driconf_static.h:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/util/driconf_static.py \
+	                    $(SRC)/src/util/00-mesa-defaults.conf $@
+
 $(GEN_TARGET)/src/compiler/glsl/glsl_parser.cpp:
 	$(MSG_DIR)
 	$(VERBOSE)bison  -Wno-deprecated -o $@ -p "_mesa_glsl_" \
@@ -282,25 +362,40 @@ $(GEN_TARGET)/src/mesa/program/program_parse.tab.c:
 	$(VERBOSE)bison  -Wno-deprecated -o $@ \
 		--defines=$(@D)/program_parse.tab.h $(SRC)/src/mesa/program/program_parse.y
 
+
+PACK_OPT = --engines=render,blitter,video
+
 $(GEN_TARGET)/src/intel/genxml/gen8_pack.h:
 	$(MSG_DIR)
-	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen8.xml >$@
+	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen8.xml $(PACK_OPT) >$@
 
 $(GEN_TARGET)/src/intel/genxml/gen9_pack.h:
 	$(MSG_DIR)
-	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen9.xml >$@
+	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen9.xml $(PACK_OPT) >$@
 
 $(GEN_TARGET)/src/intel/genxml/gen11_pack.h:
 	$(MSG_DIR)
-	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen11.xml >$@
+	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen11.xml $(PACK_OPT) >$@
 
 $(GEN_TARGET)/src/intel/genxml/gen12_pack.h:
 	$(MSG_DIR)
-	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen12.xml >$@
+	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen12.xml $(PACK_OPT) >$@
 
 $(GEN_TARGET)/src/intel/genxml/gen125_pack.h:
 	$(MSG_DIR)
-	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen125.xml >$@
+	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen125.xml $(PACK_OPT) >$@
+
+$(GEN_TARGET)/src/intel/genxml/gen125_rt_pack.h:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen125_rt.xml $(PACK_OPT) >$@
+
+$(GEN_TARGET)/src/intel/genxml/gen20_pack.h:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen20.xml $(PACK_OPT) >$@
+
+$(GEN_TARGET)/src/intel/genxml/gen20_rt_pack.h:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/genxml/gen_pack_header.py $(SRC)/src/intel/genxml/gen20_rt.xml $(PACK_OPT) >$@
 
 $(GEN_TARGET)/src/intel/genxml/genX_bits.h:
 	$(MSG_DIR)
@@ -310,7 +405,12 @@ $(GEN_TARGET)/src/intel/genxml/genX_bits.h:
 	                    $(SRC)/src/intel/genxml/gen11.xml \
 	                    $(SRC)/src/intel/genxml/gen12.xml \
 	                    $(SRC)/src/intel/genxml/gen125.xml \
-	                    -o $@
+	                    $(SRC)/src/intel/genxml/gen125_rt.xml \
+	                    $(SRC)/src/intel/genxml/gen20.xml \
+	                    $(SRC)/src/intel/genxml/gen20_rt.xml \
+	                    -o $@ \
+	                    --include-symbols 'MI_BATCH_BUFFER_START::Batch Buffer Start Address,MI_REPORT_PERF_COUNT::Memory Address,MI_STORE_DATA_IMM::Address,MI_STORE_DATA_IMM::Immediate Data,MI_STORE_REGISTER_MEM::Memory Address,3DSTATE_DEPTH_BUFFER::Surface Base Address,3DSTATE_DEPTH_BUFFER::Surface Pitch,3DSTATE_STENCIL_BUFFER::Surface Base Address,3DSTATE_STENCIL_BUFFER::Surface Pitch,3DSTATE_HIER_DEPTH_BUFFER::Surface Base Address,3DSTATE_HIER_DEPTH_BUFFER::Surface Pitch,3DSTATE_CLEAR_PARAMS,3DSTATE_SO_BUFFER::Surface Base Address,3DSTATE_SO_BUFFER::Stream Offset,3DSTATE_CPSIZE_CONTROL_BUFFER::Surface Base Address,3DSTATE_CPSIZE_CONTROL_BUFFER::Surface Pitch,RENDER_SURFACE_STATE::Surface Base Address,RENDER_SURFACE_STATE::Surface Pitch,RENDER_SURFACE_STATE::Auxiliary Surface Base Address,RENDER_SURFACE_STATE::Auxiliary Surface Pitch,RENDER_SURFACE_STATE::Clear Value Address,RENDER_SURFACE_STATE::Red Clear Color,RENDER_SURFACE_STATE::Green Clear Color,RENDER_SURFACE_STATE::Blue Clear Color,RENDER_SURFACE_STATE::Alpha Clear Color,RENDER_SURFACE_STATE::Width,RENDER_SURFACE_STATE::Height,RENDER_SURFACE_STATE::Depth,RENDER_SURFACE_STATE::Surface Type,RENDER_SURFACE_STATE::Render Target View Extent,CLEAR_COLOR,VERTEX_BUFFER_STATE::Buffer Starting Address,CPS_STATE,RT_DISPATCH_GLOBALS::Hit Group Table,RT_DISPATCH_GLOBALS::Miss Group Table,RT_DISPATCH_GLOBALS::Callable Group Table,RT_DISPATCH_GLOBALS::Launch Width,RT_DISPATCH_GLOBALS::Launch Height,RT_DISPATCH_GLOBALS::Launch Depth'
+
 
 $(GEN_TARGET)/src/intel/genxml/genX_xml.h:
 	$(MSG_DIR)
@@ -320,6 +420,7 @@ $(GEN_TARGET)/src/intel/genxml/genX_xml.h:
 	                    $(SRC)/src/intel/genxml/gen11.xml \
 	                    $(SRC)/src/intel/genxml/gen12.xml \
 	                    $(SRC)/src/intel/genxml/gen125.xml \
+	                    $(SRC)/src/intel/genxml/gen20.xml \
 	                    > $@
 
 $(GEN_TARGET)/src/intel/isl/isl_format_layout.c:
@@ -327,26 +428,51 @@ $(GEN_TARGET)/src/intel/isl/isl_format_layout.c:
 	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/isl/gen_format_layout.py \
 	                    --csv $(call _src,$(@D))/isl_format_layout.csv --out $@
 
-$(GEN_TARGET)/src/intel/perf/gen_perf_metrics.h:
+$(GEN_TARGET)/src/intel/perf/intel_perf_metrics.h:
 	$(MSG_DIR)
 	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/perf/gen_perf.py \
-	                    --code generated/src/intel/perf/gen_perf_metrics.c \
-	                    --header generated/src/intel/perf/gen_perf_metrics.h \
-	                    $(SRC)/src/intel/perf/oa-bdw.xml \
-	                    $(SRC)/src/intel/perf/oa-bxt.xml \
-	                    $(SRC)/src/intel/perf/oa-cflgt2.xml \
-	                    $(SRC)/src/intel/perf/oa-cflgt3.xml \
-	                    $(SRC)/src/intel/perf/oa-chv.xml \
-	                    $(SRC)/src/intel/perf/oa-glk.xml \
+	                    --code generated/src/intel/perf/intel_perf_metrics.c \
+	                    --header generated/src/intel/perf/intel_perf_metrics.h \
 	                    $(SRC)/src/intel/perf/oa-hsw.xml \
-	                    $(SRC)/src/intel/perf/oa-icl.xml \
-	                    $(SRC)/src/intel/perf/oa-kblgt2.xml \
-	                    $(SRC)/src/intel/perf/oa-kblgt3.xml \
-	                    $(SRC)/src/intel/perf/oa-lkf.xml \
+	                    $(SRC)/src/intel/perf/oa-bdw.xml \
+	                    $(SRC)/src/intel/perf/oa-chv.xml \
 	                    $(SRC)/src/intel/perf/oa-sklgt2.xml \
 	                    $(SRC)/src/intel/perf/oa-sklgt3.xml \
 	                    $(SRC)/src/intel/perf/oa-sklgt4.xml \
-	                    $(SRC)/src/intel/perf/oa-tgl.xml
+	                    $(SRC)/src/intel/perf/oa-kblgt2.xml \
+	                    $(SRC)/src/intel/perf/oa-kblgt3.xml \
+	                    $(SRC)/src/intel/perf/oa-cflgt2.xml \
+	                    $(SRC)/src/intel/perf/oa-cflgt3.xml \
+	                    $(SRC)/src/intel/perf/oa-bxt.xml \
+	                    $(SRC)/src/intel/perf/oa-glk.xml \
+	                    $(SRC)/src/intel/perf/oa-icl.xml \
+	                    $(SRC)/src/intel/perf/oa-ehl.xml \
+	                    $(SRC)/src/intel/perf/oa-tglgt1.xml \
+	                    $(SRC)/src/intel/perf/oa-tglgt2.xml \
+	                    $(SRC)/src/intel/perf/oa-rkl.xml \
+	                    $(SRC)/src/intel/perf/oa-dg1.xml \
+	                    $(SRC)/src/intel/perf/oa-adl.xml \
+	                    $(SRC)/src/intel/perf/oa-acmgt1.xml \
+	                    $(SRC)/src/intel/perf/oa-acmgt2.xml \
+	                    $(SRC)/src/intel/perf/oa-acmgt3.xml \
+	                    $(SRC)/src/intel/perf/oa-mtlgt2.xml \
+	                    $(SRC)/src/intel/perf/oa-mtlgt3.xml
+
+
+$(GEN_TARGET)/src/intel/dev/intel_wa.c:
+	$(MSG_DIR)
+	$(VERBOSE)$(PYTHON) $(SRC)/src/intel/dev/gen_wa_helpers.py \
+	                    $(SRC)/src/intel/dev/mesa_defs.json \
+	                    $(GEN_TARGET)/src/intel/dev/intel_wa.h \
+	                    $@
+
+$(GEN_TARGET)/src/intel/ds/intel_tracepoints.c:
+	$(MSG_DIR)
+	$(VERBOSE) $(PYTHON) $(SRC)/src/intel/ds/intel_tracepoints.py \
+	                     -p $(SRC)/src/util/perf/ \
+	                     --utrace-hdr $(GEN_TARGET)/src/intel/ds/intel_tracepoints.h \
+	                     --perfetto-hdr $(GEN_TARGET)/src/intel/ds/intel_tracepoints_perfetto.h \
+	                     --utrace-src $@
 
 $(GEN_TARGET)/src/gallium/drivers/lima/lima_nir_algebraic.c:
 	$(MSG_DIR)
@@ -371,7 +497,7 @@ $(call check_tool,flex)
 #
 # Determine python version to use
 #
-PYTHON := $(notdir $(lastword $(shell which python3 $(addprefix python3.,5 6 7 8))))
+PYTHON := $(notdir $(lastword $(shell which python3 $(addprefix python3.,8 9 10 11))))
 
 ifeq ($(PYTHON),)
 default: python_not_installed

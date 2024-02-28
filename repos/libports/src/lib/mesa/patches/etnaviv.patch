@@ -1,45 +1,21 @@
---- a/src/lib/mesa/src/gallium/frontends/dri/dri2.c
-+++ b/src/lib/mesa/src/gallium/frontends/dri/dri2.c
-@@ -550,7 +550,11 @@ dri2_allocate_textures(struct dri_context *ctx,
-          whandle.format = format;
-          whandle.modifier = DRM_FORMAT_MOD_INVALID;
-          if (screen->can_share_buffer)
--            whandle.type = WINSYS_HANDLE_TYPE_SHARED;
-+            /* 
-+             * Change from SHARED to FD because we abuse etna_screen_create
-+             * to allocate the BO but the imx8q_gpu_drv is rendernode only.
-+             */
-+            whandle.type = WINSYS_HANDLE_TYPE_FD;
-          else
-             whandle.type = WINSYS_HANDLE_TYPE_KMS;
-          drawable->textures[statt] =
---- a/src/lib/mesa/src/loader/loader.c
-+++ b/src/lib/mesa/src/loader/loader.c
-@@ -467,6 +467,9 @@ out:
- char *
- loader_get_driver_for_fd(int fd)
- {
-+	if (fd == 42) {
-+		return strdup("etnaviv");
-+	}
-    char *driver;
+* disable shader cache
+diff --git a/src/lib/mesa/src/gallium/drivers/etnaviv/etnaviv_disk_cache.c b/src/lib/mesa/src/gallium/drivers/etnaviv/etnaviv_disk_cache.c
+index 7d43fe0..9622ac3 100644
+--- a/src/lib/mesa/src/gallium/drivers/etnaviv/etnaviv_disk_cache.c
++++ b/src/lib/mesa/src/gallium/drivers/etnaviv/etnaviv_disk_cache.c
+@@ -37,6 +37,7 @@ etna_disk_cache_init(struct etna_compiler *compiler, const char *renderer)
+    if (DBG_ENABLED(ETNA_DBG_NOCACHE))
+       return;
  
-    /* Allow an environment variable to force choosing a different driver
---- a/src/lib/mesa/src/util/os_file.c
-+++ b/src/lib/mesa/src/util/os_file.c
-@@ -50,6 +50,12 @@ os_dupfd_cloexec(int fd)
- int
- os_dupfd_cloexec(int fd)
- {
-+   /*
-+    * The fd is not allocate via the libc so dup will not work, just
-+    * return the original fd.
-+    */
-+   return fd;
-+
-    int minfd = 3;
-    int newfd = fcntl(fd, F_DUPFD_CLOEXEC, minfd);
++#ifdef ENABLE_SHADER_CACHE
+    const struct build_id_note *note =
+          build_id_find_nhdr_for_addr(etna_disk_cache_init);
+    assert(note && build_id_length(note) == 20); /* sha1 */
+@@ -48,6 +49,7 @@ etna_disk_cache_init(struct etna_compiler *compiler, const char *renderer)
+    _mesa_sha1_format(timestamp, id_sha1);
  
--- 
-2.20.1
-
+    compiler->disk_cache = disk_cache_create(renderer, timestamp, etna_mesa_debug);
++#endif
+ }
+ 
+ void

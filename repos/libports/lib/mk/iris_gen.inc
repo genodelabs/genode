@@ -12,6 +12,8 @@ INC_DIR += $(MESA_GEN_DIR)/src/compiler/nir \
 
 CC_OPT  += -DGALLIUM_IRIS
 
+CC_C_OPT += -Wno-unused-function
+
 SRC_C = gallium/drivers/iris/iris_query.c \
         gallium/drivers/iris/iris_state.c \
         gallium/drivers/iris/iris_blorp.c 

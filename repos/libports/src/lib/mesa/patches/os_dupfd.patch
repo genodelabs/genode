@@ -1,0 +1,17 @@
+diff --git a/src/lib/mesa/src/util/os_file.c b/src/lib/mesa/src/util/os_file.c
+index 464425a..0590d98 100644
+--- a/src/lib/mesa/src/util/os_file.c
++++ b/src/lib/mesa/src/util/os_file.c
+@@ -53,6 +53,12 @@ os_dupfd_cloexec(int fd)
+ int
+ os_dupfd_cloexec(int fd)
+ {
++   /*
++    * The fd is not allocate via the libc so dup will not work, just
++    * return the original fd.
++    */
++   return fd;
++
+    int minfd = 3;
+    int newfd = fcntl(fd, F_DUPFD_CLOEXEC, minfd);
+ 

@@ -14,7 +14,8 @@
  * Mesa
  */
 #include <egl_dri2.h>
-#include <drivers/dri/common/utils.h>
+#include <gallium/frontends/dri/dri_util.h>
+
 /*
  * Libc
  */
@@ -176,7 +177,7 @@ dri2_initialize_genode_swrast(_EGLDisplay *disp)
 
 	disp->DriverData = (void *)dri2_dpy;
 
-	dri2_dpy->fd = -1;
+	dri2_dpy->fd_render_gpu = -1;
 	dri2_dpy->driver_name = strdup("swrast");
 	if (!dri2_load_driver_swrast(disp))
 		goto close_driver;
