@@ -250,7 +250,7 @@ are executable binaries. This led to improvements of our lx_kit, for example,
 we had to replace static C++ constructors by automatically generated functions
 for kernel module-initialization calls because C++ constructors are supposed
 to be called by the binary and not during library initialization
-(Section [Initcall handling without relying on global constructors]).
+(Section [Linux-device-driver environment (DDE)]).
 Additionally, we took the opportunity of experimenting with a socket C-API
 with the ultimate goal to replace the VFS plugins for Linux (vfs_lxip) and
 lwIP (vfs_lwip) with a unified version, but this is an ongoing effort.
