@@ -492,8 +492,6 @@ struct Stereo_output : Noncopyable
 		{
 			using Samples_ptr = Record::Connection::Samples_ptr;
 
-			bool const orig_depleted = depleted;
-
 			Record::Num_samples const num_samples { SAMPLES_PER_PERIOD };
 
 			auto clamped = [&] (float v)
@@ -523,9 +521,6 @@ struct Stereo_output : Noncopyable
 					clear();
 				}
 			);
-
-			if (orig_depleted != depleted && depleted)
-				log("recording depleted");
 		}
 	};
 
