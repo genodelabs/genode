@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2020 Genode Labs GmbH
+ * Copyright (C) 2016-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -70,9 +70,14 @@ namespace Libc {
 	void init_file_operations(Cwd &, Config_accessor const &);
 
 	/**
+	 * Poll support
+	 */
+	void init_poll(Signal &, Monitor &);
+
+	/**
 	 * Select support
 	 */
-	void init_select(Select &, Signal &, Monitor &);
+	void init_select(Select &);
 
 	/**
 	 * Support for querying available RAM quota in sysctl functions

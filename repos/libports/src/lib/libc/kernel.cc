@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2016-2020 Genode Labs GmbH
+ * Copyright (C) 2016-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -408,9 +408,6 @@ void Libc::Kernel::_clone_state_from_parent()
 }
 
 
-extern void (*libc_select_notify_from_kernel)();
-
-
 void Libc::Kernel::handle_io_progress()
 {
 	if (_io_progressed) {
@@ -502,7 +499,8 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_vfs_plugin(*this, _env.rm());
 	init_file_operations(*this, _libc_env);
 	init_time(*this, *this);
-	init_select(*this, _signal, *this);
+	init_poll(_signal, *this);
+	init_select(*this);
 	init_socket_fs(*this, *this);
 	init_passwd(_passwd_config());
 	init_signal(_signal);

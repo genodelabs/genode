@@ -23,15 +23,12 @@
 
 namespace Libc {
 
-	struct Select_cb;
-	typedef Genode::Constructible<Libc::Select_cb> Select_handler_cb;
-
 	struct Select_handler_base
 	{
-		Select_handler_cb *_select_cb;
-
-		Select_handler_base();
-		~Select_handler_base();
+		int    _nfds { };
+		fd_set _readfds { };
+		fd_set _writefds { };
+		fd_set _exceptfds { };
 
 		/**
 		 * Traditional select()

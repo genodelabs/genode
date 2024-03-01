@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2017 Genode Labs GmbH
+ * Copyright (C) 2010-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -52,6 +52,17 @@ namespace Libc {
 
 		public:
 
+			struct Pollfd
+			{
+				File_descriptor *fdo;
+				short            events;
+				/*
+				 * This pointer points to 'revents' of the original
+				 * 'struct pollfd' array.
+				 */
+				short           *revents;
+			};
+
 			Plugin(int priority = 0);
 			virtual ~Plugin();
 
@@ -65,11 +76,6 @@ namespace Libc {
 			virtual bool supports_readlink(const char *path, char *buf, ::size_t bufsiz);
 			virtual bool supports_rename(const char *oldpath, const char *newpath);
 			virtual bool supports_rmdir(const char *path);
-			virtual bool supports_select(int nfds,
-			                             fd_set *readfds,
-			                             fd_set *writefds,
-			                             fd_set *exceptfds,
-			                             struct timeval *timeout);
 			virtual bool supports_socket(int domain, int type, int protocol);
 			virtual bool supports_stat(const char *path);
 			virtual bool supports_symlink(const char *oldpath, const char *newpath);
@@ -120,7 +126,7 @@ namespace Libc {
 			virtual int msync(void *addr, ::size_t len, int flags);
 			virtual File_descriptor *open(const char *pathname, int flags);
 			virtual int pipe(File_descriptor *pipefd[2]);
-			virtual bool poll(File_descriptor&, struct pollfd &pfd);
+			virtual int poll(Pollfd fds[], int nfds);
 			virtual ssize_t read(File_descriptor *, void *buf, ::size_t count);
 			virtual ssize_t readlink(const char *path, char *buf, ::size_t bufsiz);
 			virtual ssize_t recv(File_descriptor *, void *buf, ::size_t len, int flags);
@@ -129,8 +135,6 @@ namespace Libc {
 			virtual ssize_t recvmsg(File_descriptor *, struct msghdr *msg, int flags);
 			virtual int rename(const char *oldpath, const char *newpath);
 			virtual int rmdir(const char *pathname);
-			virtual int select(int nfds, fd_set *readfds, fd_set *writefds,
-			                   fd_set *exceptfds, struct timeval *timeout);
 			virtual ssize_t send(File_descriptor *, const void *buf, ::size_t len, int flags);
 			virtual ssize_t sendto(File_descriptor *, const void *buf,
 			                       ::size_t len, int flags,

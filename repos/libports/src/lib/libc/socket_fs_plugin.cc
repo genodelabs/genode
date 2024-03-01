@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2015-2019 Genode Labs GmbH
+ * Copyright (C) 2015-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -355,14 +355,12 @@ struct Libc::Socket_fs::Local_functor : Sockaddr_functor
 struct Libc::Socket_fs::Plugin : Libc::Plugin
 {
 	bool supports_poll() override { return true; }
-	bool supports_select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
 
 	ssize_t read(File_descriptor *, void *, ::size_t) override;
 	ssize_t write(File_descriptor *, const void *, ::size_t) override;
 	int fcntl(File_descriptor *, int, long) override;
 	int close(File_descriptor *) override;
-	bool poll(File_descriptor &fd, struct pollfd &pfd) override;
-	int select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
+	int poll(Pollfd fds[], int nfds) override;
 	int ioctl(File_descriptor *, unsigned long, char *) override;
 };
 
@@ -1316,111 +1314,46 @@ ssize_t Socket_fs::Plugin::write(File_descriptor *fd, const void *buf, ::size_t 
 }
 
 
-bool Socket_fs::Plugin::poll(File_descriptor &fdo, struct pollfd &pfd)
-{
-	if (fdo.plugin != this) return false;
-	Socket_fs::Context *context { nullptr };
+int Socket_fs::Plugin::poll(Pollfd fds[], int nfds)
 
-	try {
-		context = dynamic_cast<Socket_fs::Context *>(fdo.context);
-	} catch (Socket_fs::Context::Inaccessible) {
-		pfd.revents |= POLLNVAL;
-		return true;
-	}
-
-	enum {
-		POLLIN_MASK = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI,
-		POLLOUT_MASK = POLLOUT | POLLWRNORM | POLLWRBAND,
-	};
-
-	bool res { false };
-
-	if ((pfd.events & POLLIN_MASK) && context->read_ready()) {
-		pfd.revents |= pfd.events & POLLIN_MASK;
-		res = true;
-	}
-
-	if ((pfd.events & POLLOUT_MASK) && context->write_ready()) {
-		pfd.revents |= pfd.events & POLLOUT_MASK;
-		res = true;
-	}
-
-	return res;
-}
-
-
-bool Socket_fs::Plugin::supports_select(int nfds,
-                                        fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-                                        struct timeval *timeout)
-{
-	/* return true if any file descriptor (which is set) belongs to the VFS */
-	for (int fd = 0; fd < nfds; ++fd) {
-
-		if (FD_ISSET(fd, readfds) || FD_ISSET(fd, writefds) || FD_ISSET(fd, exceptfds)) {
-			File_descriptor *fdo = file_descriptor_allocator()->find_by_libc_fd(fd);
-
-			if (fdo && (fdo->plugin == this))
-				return true;
-		}
-	}
-
-	return false;
-}
-
-
-int Socket_fs::Plugin::select(int nfds,
-                              fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-                              timeval *timeout)
 {
 	int nready = 0;
 
-	fd_set const in_readfds  = *readfds;
-	fd_set const in_writefds = *writefds;
-	/* XXX exceptfds not supported */
-
-	/* clear fd sets */
-	FD_ZERO(readfds);
-	FD_ZERO(writefds);
-	FD_ZERO(exceptfds);
-
 	auto fn = [&] {
 
-		for (int fd = 0; fd < nfds; ++fd) {
+		for (int pollfd_index = 0; pollfd_index < nfds; pollfd_index++) {
 
-			bool fd_in_readfds = FD_ISSET(fd, &in_readfds);
-			bool fd_in_writefds = FD_ISSET(fd, &in_writefds);
+			bool fd_ready = false;
 
-			if (!fd_in_readfds && !fd_in_writefds)
-				continue;
+			if (fds[pollfd_index].events & (POLLIN | POLLPRI | POLLRDNORM | POLLRDBAND)) {
 
-			File_descriptor *fdo = file_descriptor_allocator()->find_by_libc_fd(fd);
-
-			/* handle only fds that belong to this plugin */
-			if (!fdo || (fdo->plugin != this))
-				continue;
-
-			if (fd_in_readfds) {
 				try {
-					Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fdo->context);
+					Socket_fs::Context *context =
+						static_cast<Socket_fs::Context *>(fds[pollfd_index].fdo->context);
 
 					if (context->read_ready()) {
-						FD_SET(fd, readfds);
-						++nready;
+						*fds[pollfd_index].revents |= POLLIN;
+						fd_ready = true;
 					}
 				} catch (Socket_fs::Context::Inaccessible) { }
 			}
 
-			if (fd_in_writefds) {
+			if (fds[pollfd_index].events & (POLLOUT | POLLWRNORM | POLLWRBAND)) {
 				try {
-					Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fdo->context);
+					Socket_fs::Context *context =
+						static_cast<Socket_fs::Context *>(fds[pollfd_index].fdo->context);
+
 					if (context->write_ready()) {
-						FD_SET(fd, writefds);
-						++nready;
+						*fds[pollfd_index].revents |= POLLOUT;
+						fd_ready = true;
 					}
 				} catch (Socket_fs::Context::Inaccessible) { }
 			}
 
-			/* XXX exceptfds not supported */
+			/* XXX POLLERR not supported */
+
+			if (fd_ready)
+				nready++;
 		}
 		return Fn::COMPLETE;
 	};

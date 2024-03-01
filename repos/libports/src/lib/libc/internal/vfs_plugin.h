@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2014-2019 Genode Labs GmbH
+ * Copyright (C) 2014-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -223,10 +223,6 @@ class Libc::Vfs_plugin final : public Plugin
 		bool supports_unlink(const char *)                     override { return true; }
 		bool supports_mmap()                                   override { return true; }
 
-		bool supports_select(int nfds,
-		                     fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-		                     struct timeval *timeout) override;
-
 		/* kernel-specific API without monitor */
 		File_descriptor *open_from_kernel(const char *, int, int libc_fd);
 		int close_from_kernel(File_descriptor *);
@@ -248,7 +244,7 @@ class Libc::Vfs_plugin final : public Plugin
 		int     mkdir(const char *, mode_t) override;
 		File_descriptor *open(const char *path, int flags) override;
 		int     pipe(File_descriptor *pipefdo[2]) override;
-		bool    poll(File_descriptor &fdo, struct pollfd &pfd) override;
+		int     poll(Pollfd fds[], int nfds) override;
 		ssize_t read(File_descriptor *, void *, ::size_t) override;
 		ssize_t readlink(const char *, char *, ::size_t) override;
 		int     rename(const char *, const char *) override;
@@ -259,7 +255,6 @@ class Libc::Vfs_plugin final : public Plugin
 		ssize_t write(File_descriptor *, const void *, ::size_t ) override;
 		void   *mmap(void *, ::size_t, int, int, File_descriptor *, ::off_t) override;
 		int     munmap(void *, ::size_t) override;
-		int     select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout) override;
 };
 
 #endif /* _LIBC__INTERNAL__VFS_PLUGIN_H_ */
