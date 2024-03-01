@@ -104,7 +104,7 @@ install_config {
 		<resource name="RAM" quantum="2M"/>
 		<binary name="record_play_mixer"/>
 		<provides> <service name="Record"/> <service name="Play"/> </provides>
-		<config jitter_ms="} [jitter_ms] {">
+		<config jitter_ms="} [jitter_ms] {" record_period_ms="} [record_period_ms] {">
 
 			<mix name="left">  <play label_suffix="left"/>  </mix>
 			<mix name="right"> <play label_suffix="right"/> </mix>

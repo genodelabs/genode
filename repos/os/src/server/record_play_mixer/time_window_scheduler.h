@@ -44,7 +44,6 @@ class Mixer::Time_window_scheduler
 		{
 			unsigned rate_hz;
 			unsigned median_period_us;
-			unsigned predicted_now_us;
 			unsigned jitter_us;
 
 			bool valid() const { return median_period_us > 0u; }
@@ -53,7 +52,6 @@ class Mixer::Time_window_scheduler
 			{
 				Genode::print(out, "rate_hz=",      rate_hz,
 				              " median_period_us=", median_period_us,
-				              " predicted_now_us=", predicted_now_us,
 				              " jitter_us=",        jitter_us);
 			}
 		};
@@ -67,7 +65,8 @@ class Mixer::Time_window_scheduler
 		unsigned _curr_index  = 0;
 		unsigned _num_entries = 0;
 
-		unsigned _learned_jitter_us = 5000;
+		unsigned _learned_jitter_us = 0;
+		unsigned _learned_period_us = 0;
 
 		void _with_nth_entry(unsigned n, auto const &fn) const
 		{
@@ -89,8 +88,7 @@ class Mixer::Time_window_scheduler
 			unsigned sum_period_us = 0,
 			         num_periods   = 0;
 
-			unsigned long sum_ages_us = 0, /* relative to latest */
-			              sum_samples = 0;
+			unsigned long sum_samples = 0;
 
 			Entry latest { };
 			_with_nth_entry(0, [&] (Entry const e) { latest = e; });
@@ -104,7 +102,6 @@ class Mixer::Time_window_scheduler
 				median_period_us.capture(period_us);
 
 				num_periods++;
-				sum_ages_us   += latest.time.us_since(prev.time);
 				sum_period_us += period_us;
 				sum_samples   += prev.num_samples;
 			});
@@ -112,27 +109,33 @@ class Mixer::Time_window_scheduler
 			if (num_periods == 0)
 				return { };
 
-			unsigned const avg_age_us = unsigned(sum_ages_us/num_periods);
-
 			return {
 				.rate_hz = (sum_period_us == 0) ? 0
 				         : unsigned((sum_samples*1000*1000)/sum_period_us),
 
 				.median_period_us = median_period_us.median(),
 
-				.predicted_now_us = latest.time.before_us(avg_age_us)
-				                               .after_us(sum_period_us/2).us(),
-
 				.jitter_us = median_period_us.jitter(),
 			};
 		}
 
-		void _learn_jitter(Stats const &stats)
+		void _learn_jitter(Stats const &stats, Config const &config)
 		{
+			if (_learned_jitter_us == 0)
+				_learned_jitter_us = config.jitter_us;
+
 			_learned_jitter_us = (99*_learned_jitter_us)/100;
 
 			if (stats.jitter_us > _learned_jitter_us)
 				_learned_jitter_us = stats.jitter_us;
+		}
+
+		void _learn_period(Stats const &stats, Config const &config)
+		{
+			if (_learned_period_us == 0)
+				_learned_period_us = config.period_us;
+
+			_learned_period_us = (99*_learned_period_us + stats.median_period_us)/100;
 		}
 
 		/*
@@ -148,6 +151,25 @@ class Mixer::Time_window_scheduler
 			unsigned const sample_distance_ns = (1000*1000*1000)/sample_rate_hz;
 
 			return (4*sample_distance_ns)/1000;
+		}
+
+		/**
+		 * Return clock value between expected and measured, skewed towards expected
+		 */
+		static Clock _counter_drifted(Clock const expected, Clock const measured)
+		{
+			auto diff_us = [&] (Clock const &a, Clock const &b)
+			{
+				return a.later_than(b) ? a.us_since(b) : b.us_since(a);
+			};
+
+			unsigned const drift_us = diff_us(expected, measured);
+			unsigned const counter_drift_us = drift_us/20;
+
+			if (expected.later_than(measured))
+				return expected.before_us(counter_drift_us);
+			else
+				return expected.after_us(counter_drift_us);
 		}
 
 	public:
@@ -192,13 +214,19 @@ class Mixer::Time_window_scheduler
 
 			Stats const stats = _calc_stats();
 
-			_learn_jitter(stats);
+			_learn_jitter(stats, config);
+			_learn_period(stats, config);
+
+			Entry const now = _entries[_curr_index];
 
 			unsigned const jitter_us = max(_learned_jitter_us, config.jitter_us);
 			unsigned const delay_us  = jitter_us + _prefetch_us(stats.rate_hz);
 
-			Clock const start { previous.end },
-			            end   { stats.predicted_now_us + stats.median_period_us + delay_us };
+			Clock const start     { previous.end };
+			Clock const real_end  { now.time.us() + _learned_period_us + delay_us };
+			Clock const ideal_end { previous.end  + _learned_period_us };
+
+			Clock const end = _counter_drifted(ideal_end, real_end);
 
 			if (Clock::range_valid(start, end))
 				return Play::Time_window { start.us(), end.us() };
@@ -226,12 +254,18 @@ class Mixer::Time_window_scheduler
 
 			Stats const stats = _calc_stats();
 
-			_learn_jitter(stats);
+			_learn_jitter(stats, config);
+			_learn_period(stats, config);
+
+			Entry const now = _entries[_curr_index];
 
 			unsigned const jitter_us = max(_learned_jitter_us, config.jitter_us);
 
-			Clock const start { previous.end },
-			            end   { Clock{stats.predicted_now_us}.before_us(jitter_us).us() };
+			Clock const start     { previous.end };
+			Clock const real_end  { now.time.before_us(jitter_us).us() };
+			Clock const ideal_end { previous.end + _learned_period_us };
+
+			Clock const end = _counter_drifted(ideal_end, real_end);
 
 			if (Clock::range_valid(start, end))
 				return Record::Time_window { start.us(), end.us() };
@@ -244,8 +278,7 @@ class Mixer::Time_window_scheduler
 			Stats const stats = _calc_stats();
 
 			Genode::print(out, "now=",    _entries[_curr_index].time.us()/1000,
-			              " (predicted ", stats.predicted_now_us/1000, ")"
-			              " period=",     float(stats.median_period_us)/1000.0f,
+			              " (period=",    float(stats.median_period_us)/1000.0f,
 			              " jitter=",     float(stats.jitter_us)/1000.0f,
 			              " (learned ",   float(_learned_jitter_us)/1000.0f, ")",
 			              " prefetch=",   float(_prefetch_us(stats.rate_hz))/1000.0f);
