@@ -177,7 +177,7 @@ class Main
 
 			try {
 				Number_of_bytes const buffer_sz =
-					session_policy.attribute_value("buffer", _config.default_buf_sz);
+					session_policy.attribute_value("buffer", Number_of_bytes(_config.default_buf_sz));
 
 				Policy_name const policy_name =
 					session_policy.attribute_value("policy", _config.default_policy_name);
