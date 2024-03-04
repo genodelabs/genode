@@ -312,8 +312,8 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 
 			*r = request;
 
-			size_t slot         = _slots.index(*r);
-			_slot_states       |= 1u << slot;
+			auto const slot  = unsigned(_slots.index(*r));
+			_slot_states    |= 1u << slot;
 
 			/* setup fis */
 			Command_table table(port.command_table_range(slot),
