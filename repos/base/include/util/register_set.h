@@ -636,8 +636,8 @@ class Genode::Register_set : public Register_set_base
 		{
 			typedef typename T::Bitset_2_base::Bits_0 Bits_0;
 			typedef typename T::Bitset_2_base::Bits_1 Bits_1;
-			write<Bits_0>(v);
-			write<Bits_1>(v >> Bits_0::BITFIELD_WIDTH);
+			write<Bits_0>(typename Bits_0::access_t(v));
+			write<Bits_1>(typename Bits_1::access_t(v >> Bits_0::BITFIELD_WIDTH));
 		}
 
 		/**
@@ -671,9 +671,9 @@ class Genode::Register_set : public Register_set_base
 			typedef typename T::Bitset_3_base::Bits_0 Bits_0;
 			typedef typename T::Bitset_3_base::Bits_1 Bits_1;
 			typedef typename T::Bitset_3_base::Bits_2 Bits_2;
-			write<Bitset_2<Bits_0, Bits_1> >(v);
-			write<Bits_2>(v >> (Bits_0::BITFIELD_WIDTH +
-			                    Bits_1::BITFIELD_WIDTH));
+			write<Bitset_2<Bits_0, Bits_1> >(typename Bitset_2<Bits_0, Bits_1>::access_t(v));
+			write<Bits_2>(typename Bits_2::access_t(v >> (Bits_0::BITFIELD_WIDTH +
+			                                              Bits_1::BITFIELD_WIDTH)));
 		}
 
 
