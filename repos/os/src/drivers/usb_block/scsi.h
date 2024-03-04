@@ -134,7 +134,7 @@ struct Scsi::Inquiry_response : Genode::Const_mmio<0x24>
 };
 
 
-struct Scsi::Request_sense_response : Genode::Const_mmio<0x13>
+struct Scsi::Request_sense_response : Genode::Const_mmio<0x12>
 {
 	enum { LENGTH = 18 };
 
@@ -153,7 +153,11 @@ struct Scsi::Request_sense_response : Genode::Const_mmio<0x13>
 	struct Asc : Register<0xc,  8> { }; /* additional sense code */
 	struct Asq : Register<0xd,  8> { }; /* additional sense code qualifier */
 	struct Fru : Register<0xe,  8> { }; /* field replaceable unit code */
-	struct Sks : Register<0xf, 32> { }; /* sense key specific (3 byte) */
+
+	struct Sks_0 : Register<0xf,  8> { };
+	struct Sks_1 : Register<0x10, 8> { };
+	struct Sks_2 : Register<0x11, 8> { };
+	struct Sks : Bitset_3<Sks_0, Sks_1, Sks_2> { }; /* sense key specific (3 byte) */
 
 	Request_sense_response(Const_byte_range_ptr const &range, bool verbose)
 	: Const_mmio(range) { if (verbose) dump(); }
@@ -192,7 +196,7 @@ struct Scsi::Capacity_response_10 : Genode::Const_mmio<0x8>
 };
 
 
-struct Scsi::Capacity_response_16 : Genode::Const_mmio<0xc>
+struct Scsi::Capacity_response_16 : Genode::Const_mmio<0x20>
 {
 	enum { LENGTH = 32 };
 
@@ -267,7 +271,7 @@ struct Scsi::Inquiry : Cmd_6
 };
 
 
-struct Scsi::Start_stop : Genode::Mmio<0x5>
+struct Scsi::Start_stop : Genode::Mmio<0x6>
 {
 	enum { LENGTH = 6 };
 	struct Op  : Register<0x0,  8> { }; /* SCSI command */
@@ -279,6 +283,7 @@ struct Scsi::Start_stop : Genode::Mmio<0x5>
 		struct Loej : Bitfield<1, 1> { }; /* load eject */
 		struct St   : Bitfield<0, 1> { }; /* start */
 	}; /* flags */
+	struct Ctl : Register<0x5, 8> { }; /* control */
 
 	Start_stop(Byte_range_ptr const &range) : Mmio(range)
 	{
