@@ -1,0 +1,6 @@
+HTTP server to be deployed in runtime.
+
+- Required Nic session should be routed to nic_router "http" domain for use
+  forwarded port 80
+- File_system session labeled "webroot" can be routed to any server by
+  relabeling, e.g., "report" or "config" in parent.

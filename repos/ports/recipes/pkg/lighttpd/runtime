@@ -1,0 +1,60 @@
+<runtime ram="8M" caps="200" binary="lighttpd">
+
+	<requires>
+		<timer/>
+		<nic/>
+		<file_system label="webroot" writeable="no"/>
+	</requires>
+
+	<config>
+		<arg value="lighttpd"/>
+		<arg value="-f"/>
+		<arg value="/etc/lighttpd/lighttpd.conf"/>
+		<arg value="-D"/>
+		<vfs>
+			<dir name="dev">
+				<log/> <null/>
+				<inline name="rtc">2024-03-05 00:01</inline>
+				<jitterentropy name="random"/>
+			</dir>
+			<dir name="socket"> <lwip dhcp="yes"/> </dir>
+			<dir name="etc">
+				<dir name="lighttpd">
+					<inline name="lighttpd.conf"># lighttpd configuration
+server.port            = 80
+server.document-root   = "/webroot"
+server.event-handler   = "select"
+server.network-backend = "write"
+server.upload-dirs     = ( "/tmp" )
+mimetype.assign      = (
+  ".html" => "text/html",
+  ".htm"  => "text/html",
+  "log"   => "text/plain",
+  ""      => "application/octet-stream",
+)
+dir-listing.activate = "enable"
+					</inline>
+				</dir>
+			</dir>
+			<dir name="webroot"> <fs label="webroot"/> </dir>
+			<dir name="tmp"> <ram/> </dir>
+		</vfs>
+		<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+		      rtc="/dev/rtc" rng="/dev/random" socket="/socket"/>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libcrypto.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="libssl.lib.so"/>
+		<rom label="lighttpd"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_jitterentropy.lib.so"/>
+		<rom label="vfs_lwip.lib.so"/>
+		<rom label="zlib.lib.so"/>
+	</content>
+
+</runtime>
