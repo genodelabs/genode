@@ -1,0 +1,13 @@
+Remove O_NONBLOCK from flags for regular files as libc cannot tell apart
+regular files from others behind file-system sessions.
+
++++ src/app/lighttpd/src/fdevent.c	2024-03-05 11:49:43.490307503 +0100
+@@ -205,7 +205,7 @@
+ /* O_CLOEXEC handled further below, if defined) */
+ #ifdef O_NONBLOCK
+ #define FDEVENT_O_FLAGS \
+-        (O_BINARY | O_LARGEFILE | O_NOCTTY | O_NONBLOCK)
++        (O_BINARY | O_LARGEFILE | O_NOCTTY )
+ #else
+ #define FDEVENT_O_FLAGS \
+         (O_BINARY | O_LARGEFILE | O_NOCTTY )
