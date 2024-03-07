@@ -1,5 +1,6 @@
 TARGET   = nova_timer_drv
 INC_DIR += $(PRG_DIR)
-SRC_CC  += time_source.cc
+SRC_CC  += main.cc
+LIBS    += base
 
-include $(call select_from_repositories,src/timer/target.inc)
+REP_INC_DIR += src/include
