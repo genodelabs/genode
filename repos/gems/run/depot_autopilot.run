@@ -649,6 +649,7 @@ set default_test_pkgs {
 	test-spark
 	test-spark_exception
 	test-spark_secondary_stack
+	test-alarm
 	test-black_hole
 	test-clipboard
 	test-depot_query_index
