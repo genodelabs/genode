@@ -42,7 +42,7 @@ install_config {
 	<start name="terminal_crosslink" caps="100">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Terminal"/> </provides>
-		<config/>
+		<config buffer="9K"/>
 	</start>
 
 	<start name="monitor" caps="1000">
@@ -60,7 +60,7 @@ install_config {
 			<default caps="100"/>
 			<affinity-space width="2" height="1"/>
 
-			<monitor>
+			<monitor max_response="8K">
 				<policy label="test-monitor" stop="no" wx="yes" />
 			</monitor>
 

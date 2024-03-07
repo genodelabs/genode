@@ -124,17 +124,16 @@ struct Test::Main
 		/*
 		 * Dimensioning of the buffer for one round trip:
 		 *
-		 * The terminal_crosslink component uses a buffer of 4 KiB and
-		 * the debug monitor limits the 'm' command response to 2 KiB to leave
-		 * enough space for asynchronous notifications and protocol overhead.
-		 * GDB's 'm' command encodes memory as hex, two characters per byte.
-		 * Hence, a dump of max. 1 KiB is currently possible.
-		 *
 		 * The most effective way to optimize the throughput would be to
-		 * increase the terminal-crosslink's buffer size, reducing the number
-		 * of round trips.
+		 * increase the terminal-crosslink's buffer size and the maximum GDB
+		 * response size of the debug monitor, reducing the number of round
+		 * trips.
+		 *
+		 * GDB's 'm' command encodes memory as hex, two characters per byte.
+		 * Hence, a dump of max. 1/2 of the configured GDB response size is
+		 * possible.
 		 */
-		char buffer[1024] { };
+		char buffer[4096] { };
 
 		uint64_t const start_us = timer.elapsed_us();
 		uint64_t       now_us   = start_us;
