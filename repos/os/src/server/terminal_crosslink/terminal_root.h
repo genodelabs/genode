@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -67,10 +67,10 @@ namespace Terminal_crosslink {
 			/**
 			 * Constructor
 			 */
-			Root(Env &env, Allocator &alloc)
+			Root(Env &env, Allocator &alloc, size_t buffer_size)
 			: Root_component(&env.ep().rpc_ep(), &alloc),
-			  _session_component1(env, _session_component2),
-			  _session_component2(env, _session_component1),
+			  _session_component1(env, _session_component2, buffer_size),
+			  _session_component2(env, _session_component1, buffer_size),
 			  _session_state(0)
 			{ }
 	};

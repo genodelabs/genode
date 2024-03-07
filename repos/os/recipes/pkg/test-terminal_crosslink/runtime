@@ -30,6 +30,7 @@
 		<start name="terminal_crosslink">
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Terminal"/> </provides>
+			<config buffer="4K"/>
 		</start>
 		<start name="test-terminal_crosslink">
 			<resource name="RAM" quantum="1M"/>

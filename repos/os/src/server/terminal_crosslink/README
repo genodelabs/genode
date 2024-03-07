@@ -1,14 +1,11 @@
 The 'terminal_crosslink' server allows exactly two clients to communicate with
 each other using the 'Terminal' interface. Data sent to the server gets stored
-in a buffer of 4096 bytes (one buffer per client). As long as the data to be
-written fits into the buffer, the 'write()' call returns immediately. If no
-more data fits into the buffer, the 'write()' call blocks until the other
-client has consumed some of the data from the buffer via the 'read()' call. The
-'read()' call never blocks. A signal receiver can be used to block until new
-data is ready for reading.
+in a buffer of configurable size (one buffer per client, 4K by default). The
+'read()' and 'write()' calls never block. A signal receiver can be used to
+block until new data is ready for reading.
 
 Example
 -------
 
-An example run script 'terminal_crosslink.run' can be found in the 'os/run'
-directory.
+An example depot package 'test-terminal_crosslink' can be found in the
+'os/recipes/pkg' directory.

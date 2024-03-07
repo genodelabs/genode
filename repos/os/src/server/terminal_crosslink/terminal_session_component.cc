@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -23,11 +23,13 @@
 using namespace Genode;
 
 Terminal_crosslink::Session_component::Session_component(Env &env,
-                                                         Session_component &partner)
+                                                         Session_component &partner,
+                                                         size_t buffer_size)
 : _env(env),
   _partner(partner),
+  _buffer_size(buffer_size),
   _session_cap(_env.ep().rpc_ep().manage(this)),
-  _io_buffer(env.ram(), env.rm(), BUFFER_SIZE),
+  _io_buffer(env.ram(), env.rm(), IO_BUFFER_SIZE),
   _cross_num_bytes_avail(0)
 {
 }
@@ -85,22 +87,25 @@ bool Terminal_crosslink::Session_component::avail()
 
 size_t Terminal_crosslink::Session_component::_read(size_t dst_len)
 {
-	return _partner.cross_read(_io_buffer.local_addr<unsigned char>(), dst_len);
+	return _partner.cross_read(_io_buffer.local_addr<unsigned char>(),
+	                           min(dst_len, _io_buffer.size()));
 }
 
 
 size_t Terminal_crosslink::Session_component::_write(size_t num_bytes)
 {
+	num_bytes = min(num_bytes, _io_buffer.size());
+
 	unsigned char *src = _io_buffer.local_addr<unsigned char>();
 
 	size_t num_bytes_written = 0;
-	while (num_bytes_written < num_bytes)
-		try {
-			_buffer.add(src[num_bytes_written]);
-			++num_bytes_written;
-		} catch(Local_buffer::Overflow) {
-			break;
-		}
+	bool error = false;
+
+	while ((num_bytes_written < num_bytes) && !error)
+		_buffer.add(src[num_bytes_written]).with_result(
+			[&] (Ring_buffer::Add_ok)    { ++num_bytes_written; },
+			[&] (Ring_buffer::Add_error) { error = true; }
+		);
 
 	_cross_num_bytes_avail += num_bytes_written;
 	_partner.cross_write();
