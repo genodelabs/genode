@@ -153,6 +153,10 @@ struct Monitor::Gdb::State : Noncopyable
 
 	bool gdb_connected { false };
 
+	struct Max_response { size_t num_bytes; };
+
+	Max_response max_response;
+
 	void flush(Inferior_pd &pd)
 	{
 		if (_current.constructed() && _current->pd.id() == pd.id())
@@ -266,9 +270,12 @@ struct Monitor::Gdb::State : Noncopyable
 		return false;
 	}
 
-	State(Inferiors &inferiors, Memory_accessor &memory_accessor)
+	State(Inferiors &inferiors, Memory_accessor &memory_accessor,
+	      Xml_node const &config)
 	:
-		inferiors(inferiors), _memory_accessor(memory_accessor)
+		inferiors(inferiors), _memory_accessor(memory_accessor),
+		max_response(config.sub_node("monitor").attribute_value("max_response",
+		                                                        Number_of_bytes(2048)))
 	{ }
 };
 
@@ -343,12 +350,12 @@ struct qXfer : Command_with_separator
 	{
 		size_t offset, len;
 
-		static Window from_args(Const_byte_range_ptr const &args)
+		static Window from_args(Const_byte_range_ptr const &args,
+		                        State::Max_response max_response)
 		{
 			return { .offset = comma_separated_hex_value(args, 0, 0UL),
-			         /* terminal_crosslink currently buffers 4096 bytes */
 			         .len    = min(comma_separated_hex_value(args, 1, 0UL),
-			                       2048UL) };
+			                       max_response.num_bytes) };
 		}
 	};
 
@@ -368,14 +375,14 @@ struct qXfer : Command_with_separator
 
 		with_skipped_prefix(args, "features:read:target.xml:", [&] (Const_byte_range_ptr const &args) {
 			Raw_data_ptr const total_bytes { _binary_gdb_target_xml_start, _binary_gdb_target_xml_end };
-			_send_window(out, total_bytes, Window::from_args(args));
+			_send_window(out, total_bytes, Window::from_args(args, state.max_response));
 			handled = true;
 		});
 
 		with_skipped_prefix(args, "threads:read::", [&] (Const_byte_range_ptr const &args) {
 			State::Thread_list const thread_list(state.inferiors);
 			thread_list.with_bytes([&] (Const_byte_range_ptr const &bytes) {
-				_send_window(out, bytes, Window::from_args(args)); });
+				_send_window(out, bytes, Window::from_args(args, state.max_response)); });
 			handled = true;
 		});
 
@@ -383,7 +390,7 @@ struct qXfer : Command_with_separator
 			if (state.current_defined()) {
 				State::Memory_map const memory_map(state._current->pd);
 				memory_map.with_bytes([&] (Const_byte_range_ptr const &bytes) {
-					_send_window(out, bytes, Window::from_args(args)); });
+					_send_window(out, bytes, Window::from_args(args, state.max_response)); });
 			} else
 				gdb_response(out, [&] (Output &out) {
 					print(out, "l"); });
@@ -638,26 +645,32 @@ struct m : Command_without_separator
 	void execute(State &state, Const_byte_range_ptr const &args, Output &out) const override
 	{
 		addr_t const addr = comma_separated_hex_value(args, 0, addr_t(0));
-		size_t const len  = comma_separated_hex_value(args, 1, 0UL);
+
+		/* GDB's 'm' command encodes memory as hex, two characters per byte. */
+		size_t const len  = min(comma_separated_hex_value(args, 1, 0UL),
+		                        state.max_response.num_bytes / 2);
 
 		gdb_response(out, [&] (Output &out) {
 
-			/*
-			 * The terminal_crosslink component uses a buffer of 4 KiB and
-			 * some space is needed for asynchronous notifications and
-			 * protocol overhead. GDB's 'm' command encodes memory as hex,
-			 * two characters per byte. Hence, a dump of max. 1 KiB is
-			 * currently possible.
-			 */
-			char buf[1024] { };
+			for (size_t pos = 0; pos < len; ) {
 
-			Byte_range_ptr const dst { buf, min(sizeof(buf), len) };
+				char chunk[min(16*1024UL, len)] { };
 
-			size_t const read_len =
-				state.read_memory(Memory_accessor::Virt_addr { addr }, dst);
+				size_t const remain_len = len - pos;
+				size_t const num_bytes  = min(sizeof(chunk), remain_len);
 
-			for (unsigned i = 0; i < read_len; i++)
-				print(out, Gdb_hex(buf[i]));
+				size_t const read_len =
+					state.read_memory(Memory_accessor::Virt_addr { addr + pos },
+					                  Byte_range_ptr(chunk, num_bytes));
+
+				for (unsigned i = 0; i < read_len; i++)
+					print(out, Gdb_hex(chunk[i]));
+
+				pos += read_len;
+
+				if (read_len < num_bytes)
+					break;
+			}
 		});
 	}
 };

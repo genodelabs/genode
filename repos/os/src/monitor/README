@@ -45,7 +45,7 @@ GDB commands are useful:
 The <monitor> configuration can host optional <policy> nodes referring to
 inferiors by their respective labels. For example:
 
-! <monitor>
+! <monitor max_response="2K">
 !  <policy label="first-test-log" wait="no" stop="yes" wx="no"/>
 ! </monitor>
 
@@ -67,6 +67,11 @@ The enabling of the 'wx' attribute prompts the monitor to map the executable
 code of the monitored component as writeable memory, allowing the patching of
 text segment by GDB, which is needed for using breakpoints.
 
+The "max_response" attribute of the <monitor> node specifies the
+maximum payload size of a GDB command response packet. The default value
+is 2048 bytes. It can be increased for higher memory dump throughput, provided
+that the terminal session component has the capacity to receive the configured
+amount plus GDB protocol overhead and potential asynchronous notifications.
 
 RAM wiping
 ----------
