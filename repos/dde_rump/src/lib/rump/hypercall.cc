@@ -324,6 +324,18 @@ int rumpuser_clock_sleep(int enum_rumpclock, int64_t sec, long nsec)
 			break;
 	}
 
+	/*
+	 * When using rump in the form of vfs_rump as file-system implementation,
+	 * this function is steadily called with sleep times in the range of 0 to
+	 * 10 ms, inducing load even when the file system is not accessed.
+	 *
+	 * This load on idle can be lowered by forcing a sleep time of at least one
+	 * second. This does not harm the operation of vfs_rump because the file
+	 * system is not driven by time.
+	 */
+	if (msec < 1000)
+		msec = 1000;
+
 	Rump::env().sleep_sem().down(true, Genode::Microseconds(msec * 1000));
 
 	rumpkern_sched(nlocks, 0);
