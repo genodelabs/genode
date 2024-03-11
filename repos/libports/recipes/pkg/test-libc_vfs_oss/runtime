@@ -1,0 +1,24 @@
+<runtime ram="3M" caps="100" binary="test-oss">
+
+	<requires> <play/> <record/> </requires>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="test-oss"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_oss.lib.so"/>
+	</content>
+
+	<config>
+		<libc stdout="/dev/log" stderr="/dev/log"/>
+		<vfs>
+			<dir name="dev">
+				<log/> <oss name="dsp"/>
+			</dir>
+		</vfs>
+	</config>
+
+</runtime>
