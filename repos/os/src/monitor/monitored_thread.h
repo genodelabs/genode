@@ -73,6 +73,7 @@ struct Monitor::Monitored_thread : Monitored_rpc_object<Cpu_thread>
 		ILL  = 4,
 		TRAP = 5,
 		FPE  = 8,
+		KILL = 9,
 		SEGV = 11
 	};
 

@@ -162,7 +162,8 @@ struct Monitor::Main : Sandbox::State_handler,
 
 		void flush(Inferior_pd &pd)
 		{
-			_state.flush(pd);
+			Terminal_output output { ._write_fn { _terminal } };
+			_state.flush(pd, output.buffered);
 			_memory_accessor.flush();
 		}
 

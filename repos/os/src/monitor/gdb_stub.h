@@ -157,10 +157,46 @@ struct Monitor::Gdb::State : Noncopyable
 
 	Max_response max_response;
 
-	void flush(Inferior_pd &pd)
+	/**
+	 * Try to notify GDB about a vanished inferior
+	 */
+	void try_send_exit_notification(Output &out, int pid)
+	{
+		if (!notification_in_progress) {
+
+			notification_in_progress = true;
+
+			using Stop_reply_signal = Monitored_thread::Stop_reply_signal;
+
+			if (pid > 0)
+				gdb_notification(out, [&] (Output &out) {
+					print(out, "Stop:X",
+					           Gdb_hex((uint8_t)Stop_reply_signal::KILL),
+					           ";process:", Gdb_hex(pid));
+				});
+			else
+				gdb_notification(out, [&] (Output &out) {
+					print(out, "Stop:X",
+					           Gdb_hex((uint8_t)Stop_reply_signal::KILL));
+				});
+
+		} else {
+			/*
+			 * Only one notification can be in flight and we don't want to
+			 * keep exit information in the monitor for later because GDB
+			 * might never consume it. There will be another notification
+			 * attempt when GDB calls 'vCont' for the vanished inferior
+			 * (again) in the future.
+			 */
+		}
+	}
+
+	void flush(Inferior_pd &pd, Output &out)
 	{
 		if (_current.constructed() && _current->pd.id() == pd.id())
 			_current.destruct();
+
+		try_send_exit_notification(out, (int)pd.id());
 	}
 
 	void flush(Monitored_thread &thread)
@@ -883,6 +919,8 @@ struct vCont : Command_without_separator
 					int pid = -1;
 					int tid = -1;
 
+					bool inferior_found = false;
+
 					with_skipped_prefix(arg, ":", [&] (Const_byte_range_ptr const &arg) {
 						thread_id(arg, pid, tid); });
 
@@ -893,6 +931,8 @@ struct vCont : Command_without_separator
 
 						if ((pid != -1) && ((int)inferior.id() != pid))
 							return;
+
+						inferior_found = true;
 
 						inferior.for_each_thread([&] (Monitored_thread &thread) {
 
@@ -905,6 +945,9 @@ struct vCont : Command_without_separator
 							fn(inferior, thread);
 						});
 					});
+
+					if (!inferior_found)
+						state.try_send_exit_notification(out, pid);
 				};
 
 				using Stop_state = Monitored_thread::Stop_state;
