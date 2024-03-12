@@ -109,7 +109,7 @@ time_t Timer::ticks_to_us(time_t const ticks) const {
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
-	return (us / 1000) * _device.ticks_per_ms; }
+	return (us * _device.ticks_per_ms) / 1000; }
 
 
 time_t Timer::_max_value() const {

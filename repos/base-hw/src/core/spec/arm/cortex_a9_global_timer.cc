@@ -102,7 +102,7 @@ unsigned Timer::interrupt_id() const {
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
-	return (us / 1000) * TICS_PER_MS; }
+	return (us * TICS_PER_MS) / 1000; }
 
 
 time_t Timer::_duration() const {

@@ -84,7 +84,7 @@ time_t Timer::ticks_to_us(time_t const ticks) const {
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
-	return (us / 1000UL) * Board::Timer::TICS_PER_MS; }
+	return (us * Board::Timer::TICS_PER_MS) / 1000; }
 
 
 time_t Timer::_max_value() const {
