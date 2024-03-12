@@ -1,0 +1,19 @@
+<launcher pkg="dbg_download">
+	<route>
+		<service name="File_system" label="system_config">
+			<parent label="config"/>
+		</service>
+		<service name="File_system" label="used">
+			<child name="default_fs_rw"/>
+		</service>
+		<service name="ROM" label="build_info">
+			<parent label="build_info"/>
+		</service>
+		<service name="Nic">
+			<child name="nic_router"/>
+		</service>
+		<service name="RM">
+			<parent/>
+		</service>
+	</route>
+</launcher>

@@ -23,3 +23,4 @@ _/pkg/trace_logger
 _/pkg/mixer
 _/pkg/dynamic_rom
 _/pkg/unconfigured_nano3d
+_/pkg/dbg_download

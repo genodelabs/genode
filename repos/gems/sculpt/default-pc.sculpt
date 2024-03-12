@@ -7,7 +7,7 @@ gpu_drv: intel
 import: pkg/drivers_managed-pc pkg/pc_wifi src/pc_nic_drv
 
 # selection of launcher-menu entries
-launcher: vm_fs shared_fs usb_devices_rom
+launcher: vm_fs shared_fs usb_devices_rom download_debug_info
 
 # selection of accepted depot-package providers
 depot: genodelabs cnuke alex-ab mstein nfeske cproc chelmuth jschlatow
