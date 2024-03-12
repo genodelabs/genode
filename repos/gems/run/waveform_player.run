@@ -50,6 +50,7 @@ install_config {
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
+		<resource name="CPU" quantum="10"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
@@ -102,6 +103,7 @@ install_config {
 
 	<start name="mixer">
 		<resource name="RAM" quantum="2M"/>
+		<resource name="CPU" quantum="10"/>
 		<binary name="record_play_mixer"/>
 		<provides> <service name="Record"/> <service name="Play"/> </provides>
 		<config jitter_ms="} [jitter_ms] {" record_period_ms="} [record_period_ms] {">
@@ -157,6 +159,7 @@ install_config {
 
 	<start name="waveform_player" priority="0">
 		<resource name="RAM" quantum="1M"/>
+		<resource name="CPU" quantum="10"/>
 		<route>
 			<service name="ROM" label="config"> <child name="waveform_config"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -165,6 +168,7 @@ install_config {
 
 	<start name="record_rom" priority="0">
 		<resource name="RAM" quantum="8M"/>
+		<resource name="CPU" quantum="10"/>
 		<provides> <service name="ROM"/> </provides>
 		<config period_ms="} [record_period_ms] {" sample_rate_hz="44100">
 			<record label="left"/>
