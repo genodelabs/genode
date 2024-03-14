@@ -64,8 +64,6 @@ struct Pc::Main
 	{
 		Lx_kit::initialize(env, _signal_handler);
 
-		env.exec_static_constructors();
-
 		genode_mac_address_reporter_init(env, Lx_kit::env().heap);
 
 		genode_uplink_init(genode_env_ptr(env),

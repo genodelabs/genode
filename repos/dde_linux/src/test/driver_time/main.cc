@@ -44,8 +44,6 @@ struct Test::Driver
 	{
 		Lx_kit::initialize(env, _signal_handler);
 
-		env.exec_static_constructors();
-
 		try {
 			Attached_rom_dataspace info(env, "platform_info");
 			tsc_freq_khz = info.xml().sub_node("hardware").sub_node("tsc")

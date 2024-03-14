@@ -119,7 +119,6 @@ struct Framebuffer::Driver
 	Driver(Env &env) : env(env)
 	{
 		Lx_kit::initialize(env, scheduler_handler);
-		env.exec_static_constructors();
 
 		config.sigh(config_handler);
 	}

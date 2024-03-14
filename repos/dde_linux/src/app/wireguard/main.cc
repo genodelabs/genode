@@ -92,12 +92,6 @@ class Wireguard::Main : private Entrypoint::Io_progress_handler,
 		{
 			Lx_kit::initialize(_env, _signal_handler);
 
-			/*
-			 * We have to call the static constructors because otherwise the
-			 * initcall list of the LX kit won't get populated.
-			 */
-			_env.exec_static_constructors();
-
 			_config_rom.sigh(_config_handler);
 			_handle_config();
 
