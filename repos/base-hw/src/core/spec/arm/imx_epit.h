@@ -40,6 +40,7 @@ struct Board::Timer : Genode::Mmio<0x14>
 		};
 
 		struct Oci_en : Bitfield<2, 1> { };   /* interrupt on compare */
+		struct Rld    : Bitfield<3, 1> { };   /* counter reload mode */
 
 		struct Prescaler : Bitfield<4, 12>    /* clock input divisor */
 		{

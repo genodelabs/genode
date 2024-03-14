@@ -54,6 +54,7 @@ void Board::Timer::init()
 	Cr::access_t cr = read<Cr>();
 	Cr::En_mod::set(cr, Cr::En_mod::RELOAD);
 	Cr::Oci_en::set(cr, 1);
+	Cr::Rld::set(cr, 0);
 	Cr::Prescaler::set(cr, Cr::Prescaler::DIVIDE_BY_1);
 	Cr::Clk_src::set(cr, Cr::Clk_src::HIGH_FREQ_REF_CLK);
 	Cr::Iovw::set(cr, 1);
@@ -97,19 +98,8 @@ time_t Timer::_duration() const
 	Device::Cnt::access_t const initial_cnt {
 		(Device::Cnt::access_t)_last_timeout_duration };
 
-	/*
-	 * There are two situations here:
-	 *
-	 * 1. SR.OCIF reads as 1, meaning, the timer IRQ has triggered. In
-	 *    this case we read CNT after having read SR.OCIF in order to
-	 *    ensure that we use a post-IRQ (wrapped) counter value.
-	 *
-	 * 2. SR.OCIF reads as 0, meaning, the timer IRQ hasn't triggered yet. In
-	 *    this case we read CNT before having read SR.OCIF in order to
-	 *    ensure that we use a pre-IRQ (non-wrapped) counter value.
-	 */
 	Device::Cnt::access_t const curr_cnt { _device.read<Device::Cnt>() };
-	if (_device.read<Device::Sr::Ocif>())
+	if (curr_cnt > initial_cnt)
 		return _max_value() - _device.read<Device::Cnt>() + initial_cnt;
 	else
 		return initial_cnt - curr_cnt;
