@@ -615,6 +615,8 @@ install_config {
 				<child name="config_fs_rom" label="managed/runtime"/> </service>
 			<service name="ROM" label_prefix="config -> ">
 				<child name="config_fs_rom"/> </service>
+			<service name="ROM" label_prefix="report -> ">
+				<child name="report_fs_rom"/> </service>
 			<service name="ROM" label="capslock">
 				<child name="report_rom"/> </service>
 			<service name="ROM" label="clicked">

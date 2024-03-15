@@ -32,6 +32,8 @@
 #include <nic_session/nic_session.h>
 #include <rtc_session/rtc_session.h>
 #include <trace_session/trace_session.h>
+#include <io_mem_session/io_mem_session.h>
+#include <io_port_session/io_port_session.h>
 
 namespace Sculpt {
 

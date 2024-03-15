@@ -44,6 +44,7 @@
 #include <view/settings_widget.h>
 #include <view/system_dialog.h>
 #include <view/file_browser_dialog.h>
+#include <fb_driver.h>
 #include <gui.h>
 #include <keyboard_focus.h>
 #include <network.h>
@@ -203,6 +204,8 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Device discovery **
 	 **********************/
 
+	Attached_rom_dataspace const _platform { _env, "platform_info" };
+
 	Attached_rom_dataspace _devices { _env, "report -> drivers/devices" };
 
 	Signal_handler<Main> _devices_handler {
@@ -210,11 +213,15 @@ struct Sculpt::Main : Input_event_handler,
 
 	Board_info _board_info { };
 
+	Fb_driver _fb_driver { };
+
 	void _handle_devices()
 	{
 		_devices.update();
 
-		_board_info = Board_info::from_xml(_devices.xml());
+		_board_info = Board_info::from_xml(_devices.xml(), _platform.xml());
+
+		_fb_driver.update(_child_states, _board_info, _platform.xml());
 
 		update_network_dialog();
 	}
@@ -661,8 +668,6 @@ struct Sculpt::Main : Input_event_handler,
 		_env.ep(), *this, &Main::_handle_runtime_state };
 
 	void _handle_runtime_state();
-
-	Attached_rom_dataspace const _platform { _env, "platform_info" };
 
 
 	/****************************************
@@ -2041,6 +2046,8 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("width",  _affinity_space.width());
 		xml.attribute("height", _affinity_space.height());
 	});
+
+	_fb_driver.gen_start_nodes(xml);
 
 	_dialog_runtime.gen_start_nodes(xml);
 

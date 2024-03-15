@@ -55,7 +55,6 @@
 			<policy label="rom_reporter -> usb_devices"     report="usb_drv -> devices"/>
 			<policy label="rom_reporter -> dynamic_state"   report="dynamic -> state"/>
 			<policy label="usb_hid_drv -> report"           report="usb_drv -> devices"/>
-			<policy label="dynamic -> intel_fb_drv -> intel_opregion"  report="acpi_drv -> intel_opregion"/>
 		</config>
 	</start>
 
@@ -90,7 +89,7 @@
 		<resource name="RAM" quantum="7M"/>
 		<route>
 			<service name="Report" label="acpi"> <child name="report_rom"/> </service>
-			<service name="Report" label="intel_opregion"> <child name="report_rom"/> </service>
+			<service name="Report" label="intel_opregion"> <parent label="intel_opregion"/> </service>
 			<service name="Report" label="smbios_table"> <parent label="smbios_table"/> </service>
 			<service name="IO_MEM"> <parent/> </service>
 			<service name="LOG">    <parent/> </service>
@@ -137,11 +136,11 @@
 		<config>
 			<report devices="yes" iommu="yes"/>
 			<policy label_prefix="ps2_drv"> <device name="ps2"/> </policy>
-			<policy label_prefix="dynamic -> vesa_fb_drv" info="yes"> <pci class="VGA"/> </policy>
-			<policy label_prefix="dynamic -> ahci_drv">    <pci class="AHCI"/>  </policy>
-			<policy label_prefix="dynamic -> nvme_drv" info="yes"> <pci class="NVME"/>  </policy>
-			<policy label_prefix="usb_drv" info="yes">     <pci class="USB"/>   </policy>
-			<policy label_prefix="dynamic -> intel_gpu_drv" info="yes">
+			<policy label_prefix="runtime -> vesa_fb" info="yes">  <pci class="VGA"/>  </policy>
+			<policy label_prefix="dynamic -> ahci_drv">            <pci class="AHCI"/> </policy>
+			<policy label_prefix="dynamic -> nvme_drv" info="yes"> <pci class="NVME"/> </policy>
+			<policy label_prefix="usb_drv" info="yes">             <pci class="USB"/>  </policy>
+			<policy label_prefix="runtime -> intel_gpu" info="yes">
 				<pci class="VGA"/>
 				<pci class="ISABRIDGE"/>
 			</policy>
@@ -268,7 +267,6 @@
 			<service name="Report"> <parent/> </service>
 			<service name="Usb"> <child name="usb_drv"/> </service>
 			<service name="ROM" label="config"> <child name="report_rom"/> </service>
-			<service name="ROM" label="intel_fb_drv -> intel_opregion"> <child name="report_rom"/> </service>
 			<service name="LOG">     <parent/> </service>
 			<service name="PD">      <parent/> </service>
 			<service name="RM">      <parent/> </service>

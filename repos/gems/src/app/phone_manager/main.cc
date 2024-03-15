@@ -37,6 +37,7 @@
 #include <model/presets.h>
 #include <model/screensaver.h>
 #include <managed_config.h>
+#include <fb_driver.h>
 #include <gui.h>
 #include <storage.h>
 #include <network.h>
@@ -111,6 +112,35 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_gui.input()->for_each_event([&] (Input::Event const &ev) {
 			handle_input_event(ev); });
+	}
+
+
+	/***********************
+	 ** Device management **
+	 ***********************/
+
+	Attached_rom_dataspace const _platform { _env, "platform_info" };
+
+	Attached_rom_dataspace _devices { _env, "report -> drivers/devices" };
+
+	Signal_handler<Main> _devices_handler {
+		_env.ep(), *this, &Main::_handle_devices };
+
+	Board_info _board_info { };
+
+	void _handle_devices()
+	{
+		_devices.update();
+
+		_board_info = Board_info::from_xml(_devices.xml(), _platform.xml());
+
+		/* enable non-PCI wifi (PinePhone) */
+		if (_devices.xml().num_sub_nodes() == 0)
+			_board_info.wifi_present = true;
+
+		_fb_driver.update(_child_states, _board_info, _platform.xml());
+
+		update_network_dialog();
 	}
 
 	Managed_config<Main> _system_config {
@@ -208,6 +238,8 @@ struct Sculpt::Main : Input_event_handler,
 			_update_managed_system_config();
 	}
 
+	Fb_driver _fb_driver { };
+
 	Signal_handler<Main> _gui_mode_handler {
 		_env.ep(), *this, &Main::_handle_gui_mode };
 
@@ -291,10 +323,6 @@ struct Sculpt::Main : Input_event_handler,
 	 * Storage::Action interface
 	 */
 	void refresh_storage_dialog() override { _generate_dialog(); }
-
-	Board_info _board_info { .wifi_present  = true,
-	                         .lan_present   = false,
-	                         .modem_present = true };
 
 	Network _network { _env, _heap, *this, *this, _child_states, *this, _runtime_state };
 
@@ -996,8 +1024,6 @@ struct Sculpt::Main : Input_event_handler,
 		_env.ep(), *this, &Main::_handle_runtime_state };
 
 	void _handle_runtime_state();
-
-	Attached_rom_dataspace const _platform { _env, "platform_info" };
 
 
 	/********************
@@ -1932,6 +1958,7 @@ struct Sculpt::Main : Input_event_handler,
 		 * Subscribe to reports
 		 */
 		_update_state_rom    .sigh(_update_state_handler);
+		_devices             .sigh(_devices_handler);
 		_window_list         .sigh(_window_list_handler);
 		_decorator_margins   .sigh(_decorator_margins_handler);
 		_scan_rom            .sigh(_scan_handler);
@@ -1949,6 +1976,7 @@ struct Sculpt::Main : Input_event_handler,
 		_handle_leitzentrale();
 		_handle_gui_mode();
 		_storage.handle_storage_devices_update();
+		_handle_devices();
 		_handle_runtime_config();
 		_handle_modem_state();
 
@@ -2356,6 +2384,8 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("width",  _affinity_space.width());
 		xml.attribute("height", _affinity_space.height());
 	});
+
+	_fb_driver.gen_start_nodes(xml);
 
 	_dialog_runtime.gen_start_nodes(xml);
 

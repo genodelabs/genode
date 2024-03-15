@@ -31,10 +31,6 @@ namespace Driver_manager {
 	using namespace Genode;
 	struct Main;
 	struct Device_driver;
-	struct Intel_gpu_driver;
-	struct Intel_fb_driver;
-	struct Vesa_fb_driver;
-	struct Boot_fb_driver;
 	struct Ahci_driver;
 	struct Nvme_driver;
 
@@ -116,124 +112,6 @@ class Driver_manager::Device_driver : Noncopyable
 	public:
 
 		virtual void generate_start_node(Xml_generator &xml) const = 0;
-};
-
-
-struct Driver_manager::Intel_gpu_driver : Device_driver
-{
-	Version version { 0 };
-
-	void generate_start_node(Xml_generator &xml) const override
-	{
-		_gen_forwarded_service<Gpu::Session>(xml, "intel_gpu_drv");
-
-		xml.node("start", [&] () {
-			_gen_common_start_node_content(xml, "intel_gpu_drv", "intel_gpu_drv",
-			                               Ram_quota{64*1024*1024}, Cap_quota{1400},
-			                               Priority{0}, version);
-			xml.node("provides", [&] () {
-				xml.node("service", [&] () {
-					xml.attribute("name", Gpu::Session::service_name()); });
-				xml.node("service", [&] () {
-					xml.attribute("name", Platform::Session::service_name()); });
-			});
-			xml.node("route", [&] () {
-				_gen_config_route(xml, "gpu_drv.config");
-				_gen_default_parent_route(xml);
-			});
-		});
-	}
-};
-
-
-struct Driver_manager::Intel_fb_driver : Device_driver
-{
-	Intel_gpu_driver intel_gpu_driver { };
-
-	Version version { 0 };
-
-	void generate_start_node(Xml_generator &xml) const override
-	{
-		intel_gpu_driver.generate_start_node(xml);
-
-		xml.node("start", [&] () {
-			_gen_common_start_node_content(xml, "intel_fb_drv", "pc_intel_fb_drv",
-			                               Ram_quota{42*1024*1024}, Cap_quota{800},
-			                               Priority{0}, version);
-			xml.node("heartbeat", [&] () { });
-			xml.node("route", [&] () {
-				_gen_config_route(xml, "fb_drv.config");
-				xml.node("service", [&] () {
-					xml.attribute("name", Platform::Session::service_name());
-						xml.node("child", [&] () {
-							xml.attribute("name", "intel_gpu_drv");
-						});
-				});
-				_gen_default_parent_route(xml);
-			});
-		});
-	}
-};
-
-
-struct Driver_manager::Vesa_fb_driver : Device_driver
-{
-	void generate_start_node(Xml_generator &xml) const override
-	{
-		xml.node("start", [&] () {
-			_gen_common_start_node_content(xml, "vesa_fb_drv", "vesa_fb_drv",
-			                               Ram_quota{8*1024*1024}, Cap_quota{110},
-			                               Priority{-1}, Version{0});
-			xml.node("route", [&] () {
-				_gen_config_route(xml, "fb_drv.config");
-				_gen_default_parent_route(xml);
-			});
-		});
-	}
-};
-
-
-struct Driver_manager::Boot_fb_driver : Device_driver
-{
-	Ram_quota const _ram_quota;
-
-	struct Mode
-	{
-		enum { TYPE_RGB_COLOR = 1 };
-
-		unsigned _pitch = 0, _height = 0;
-
-		Mode() { }
-
-		Mode(Xml_node node)
-		:
-			_pitch(node.attribute_value("pitch", 0U)),
-			_height(node.attribute_value("height", 0U))
-		{
-			/* check for unsupported type */
-			if (node.attribute_value("type", 0U) != TYPE_RGB_COLOR)
-				_pitch = _height = 0;
-		}
-
-		size_t num_bytes() const { return _pitch * _height + 1024*1024; }
-
-		bool valid() const { return _pitch * _height != 0; }
-	};
-
-	Boot_fb_driver(Mode const mode) : _ram_quota(Ram_quota{mode.num_bytes()}) { }
-
-	void generate_start_node(Xml_generator &xml) const override
-	{
-		xml.node("start", [&] () {
-			_gen_common_start_node_content(xml, "boot_fb_drv", "boot_fb_drv",
-			                               _ram_quota, Cap_quota{100},
-			                               Priority{-1}, Version{0});
-			xml.node("route", [&] () {
-				_gen_config_route(xml, "fb_drv.config");
-				_gen_default_parent_route(xml);
-			});
-		});
-	}
 };
 
 
@@ -348,36 +226,21 @@ struct Driver_manager::Main
 {
 	Env &_env;
 
-	Attached_rom_dataspace _platform      { _env, "platform_info" };
-	Attached_rom_dataspace _usb_devices   { _env, "usb_devices"   };
-	Attached_rom_dataspace _usb_policy    { _env, "usb_policy"    };
-	Attached_rom_dataspace _devices       { _env, "devices"   };
-	Attached_rom_dataspace _ahci_ports    { _env, "ahci_ports"    };
-	Attached_rom_dataspace _nvme_ns       { _env, "nvme_ns"       };
-	Attached_rom_dataspace _dynamic_state { _env, "dynamic_state" };
+	Attached_rom_dataspace _platform    { _env, "platform_info" };
+	Attached_rom_dataspace _usb_devices { _env, "usb_devices"   };
+	Attached_rom_dataspace _usb_policy  { _env, "usb_policy"    };
+	Attached_rom_dataspace _devices     { _env, "devices"   };
+	Attached_rom_dataspace _ahci_ports  { _env, "ahci_ports"    };
+	Attached_rom_dataspace _nvme_ns     { _env, "nvme_ns"       };
 
 	Reporter _init_config    { _env, "config", "init.config" };
 	Reporter _usb_drv_config { _env, "config", "usb_drv.config" };
 	Reporter _block_devices  { _env, "block_devices" };
 
-	Constructible<Intel_fb_driver> _intel_fb_driver { };
-	Constructible<Vesa_fb_driver>  _vesa_fb_driver  { };
-	Constructible<Boot_fb_driver>  _boot_fb_driver  { };
-	Constructible<Ahci_driver>     _ahci_driver     { };
-	Constructible<Nvme_driver>     _nvme_driver     { };
+	Constructible<Ahci_driver> _ahci_driver     { };
+	Constructible<Nvme_driver> _nvme_driver     { };
 
 	bool _devices_rom_parsed { false };
-
-	bool _use_ohci { true };
-
-	Boot_fb_driver::Mode _boot_fb_mode() const
-	{
-		try {
-			Xml_node fb = _platform.xml().sub_node("boot").sub_node("framebuffer");
-			return Boot_fb_driver::Mode(fb);
-		} catch (...) { }
-		return Boot_fb_driver::Mode();
-	}
 
 	void _handle_devices_update();
 
@@ -401,11 +264,6 @@ struct Driver_manager::Main
 
 	Signal_handler<Main> _nvme_ns_update_handler {
 		_env.ep(), *this, &Main::_handle_nvme_ns_update };
-
-	Signal_handler<Main> _dynamic_state_handler {
-		_env.ep(), *this, &Main::_handle_dynamic_state };
-
-	void _handle_dynamic_state();
 
 	static void _gen_parent_service_xml(Xml_generator &xml, char const *name)
 	{
@@ -439,11 +297,10 @@ struct Driver_manager::Main
 		_usb_drv_config.enabled(true);
 		_block_devices.enabled(true);
 
-		_devices      .sigh(_devices_update_handler);
-		_usb_policy   .sigh(_usb_policy_update_handler);
-		_ahci_ports   .sigh(_ahci_ports_update_handler);
-		_nvme_ns      .sigh(_nvme_ns_update_handler);
-		_dynamic_state.sigh(_dynamic_state_handler);
+		_devices   .sigh(_devices_update_handler);
+		_usb_policy.sigh(_usb_policy_update_handler);
+		_ahci_ports.sigh(_ahci_ports_update_handler);
+		_nvme_ns   .sigh(_nvme_ns_update_handler);
 
 		_generate_init_config(_init_config);
 
@@ -458,16 +315,11 @@ void Driver_manager::Main::_handle_devices_update()
 {
 	_devices.update();
 
-	/* decide about fb not before the first valid pci report is available */
 	if (!_devices.valid())
 		return;
 
-	bool has_vga            = false;
-	bool has_intel_graphics = false;
-	bool has_ahci           = false;
-	bool has_nvme           = false;
-
-	Boot_fb_driver::Mode const boot_fb_mode = _boot_fb_mode();
+	bool has_ahci = false;
+	bool has_nvme = false;
 
 	_devices.xml().for_each_sub_node([&] (Xml_node device) {
 		device.with_optional_sub_node("pci-config", [&] (Xml_node pci) {
@@ -476,51 +328,18 @@ void Driver_manager::Main::_handle_devices_update()
 			uint16_t const class_code = (uint16_t)(pci.attribute_value("class", 0U) >> 8);
 
 			enum {
-				VENDOR_VBOX  = 0x80EEU,
 				VENDOR_INTEL = 0x8086U,
-				CLASS_VGA    = 0x300U,
 				CLASS_AHCI   = 0x106U,
 				CLASS_NVME   = 0x108U,
 			};
 
-			if (class_code == CLASS_VGA)
-				has_vga = true;
-
-			if (vendor_id == VENDOR_INTEL && class_code == CLASS_VGA)
-				has_intel_graphics = true;
-
 			if (vendor_id == VENDOR_INTEL && class_code == CLASS_AHCI)
 				has_ahci = true;
-
-			if (vendor_id == VENDOR_VBOX)
-				_use_ohci = false;
 
 			if (class_code == CLASS_NVME)
 				has_nvme = true;
 		});
 	});
-
-	if (!_intel_fb_driver.constructed() && has_intel_graphics) {
-		_intel_fb_driver.construct();
-		_vesa_fb_driver.destruct();
-		_boot_fb_driver.destruct();
-		_generate_init_config(_init_config);
-	}
-
-	if (!_boot_fb_driver.constructed() && boot_fb_mode.valid() && !has_intel_graphics) {
-		_intel_fb_driver.destruct();
-		_vesa_fb_driver.destruct();
-		_boot_fb_driver.construct(boot_fb_mode);
-		_generate_init_config(_init_config);
-	}
-
-	if (!_vesa_fb_driver.constructed() && has_vga && !has_intel_graphics &&
-	    !boot_fb_mode.valid()) {
-		_intel_fb_driver.destruct();
-		_boot_fb_driver.destruct();
-		_vesa_fb_driver.construct();
-		_generate_init_config(_init_config);
-	}
 
 	if (!_ahci_driver.constructed() && has_ahci) {
 		_ahci_driver.construct();
@@ -602,16 +421,6 @@ void Driver_manager::Main::_generate_init_config(Reporter &init_config) const
 			_gen_parent_service_xml(xml, Usb::Session::service_name());
 			_gen_parent_service_xml(xml, Capture::Session::service_name());
 		});
-
-
-		if (_intel_fb_driver.constructed())
-			_intel_fb_driver->generate_start_node(xml);
-
-		if (_vesa_fb_driver.constructed())
-			_vesa_fb_driver->generate_start_node(xml);
-
-		if (_boot_fb_driver.constructed())
-			_boot_fb_driver->generate_start_node(xml);
 
 		if (_ahci_driver.constructed())
 			_ahci_driver->generate_start_node(xml);
@@ -773,38 +582,6 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 			});
 		});
 	});
-}
-
-
-void Driver_manager::Main::_handle_dynamic_state()
-{
-	_dynamic_state.update();
-
-	bool reconfigure_dynamic_init = false;
-
-	_dynamic_state.xml().for_each_sub_node([&] (Xml_node child) {
-
-		using Name = Device_driver::Name;
-
-		Name const name = child.attribute_value("name", Name());
-
-		if (name == "intel_fb_drv") {
-
-			unsigned long const skipped_heartbeats =
-				child.attribute_value("skipped_heartbeats", 0U);
-
-			if (skipped_heartbeats >= 2) {
-
-				if (_intel_fb_driver.constructed()) {
-					_intel_fb_driver->version.value++;
-					reconfigure_dynamic_init = true;
-				}
-			}
-		}
-	});
-
-	if (reconfigure_dynamic_init)
-		_generate_init_config(_init_config);
 }
 
 
