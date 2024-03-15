@@ -92,7 +92,7 @@ struct Stress_test
 	struct Slave
 	{
 		static constexpr int DURATION_US         = DURATION_SEC * 1000 * 1000;
-		static constexpr int MIN_TIMER_PERIOD_US = 1000;
+		static constexpr int MIN_TIMER_PERIOD_US = 250;
 		static constexpr int MAX_CNT_BASE        = DURATION_US / MIN_TIMER_PERIOD_US;
 		static constexpr int MAX_CNT_TOLERANCE   = MAX_CNT_BASE / 9;
 		static constexpr int MAX_CNT             = MAX_CNT_BASE + MAX_CNT_TOLERANCE;
