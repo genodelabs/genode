@@ -1121,13 +1121,6 @@ int i915_vm_alloc_pt_stash(struct i915_address_space * vm,struct i915_vm_pt_stas
 }
 
 
-extern void i915_vm_free_pt_stash(struct i915_address_space * vm,struct i915_vm_pt_stash * stash);
-void i915_vm_free_pt_stash(struct i915_address_space * vm,struct i915_vm_pt_stash * stash)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern int i915_vm_map_pt_stash(struct i915_address_space * vm,struct i915_vm_pt_stash * stash);
 int i915_vm_map_pt_stash(struct i915_address_space * vm,struct i915_vm_pt_stash * stash)
 {

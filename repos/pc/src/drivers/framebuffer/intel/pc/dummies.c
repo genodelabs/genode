@@ -844,3 +844,10 @@ void mark_page_accessed(struct page * page)
 {
 	lx_emul_trace(__func__);
 }
+
+
+extern void i915_vm_free_pt_stash(struct i915_address_space * vm,struct i915_vm_pt_stash * stash);
+void i915_vm_free_pt_stash(struct i915_address_space * vm,struct i915_vm_pt_stash * stash)
+{
+	lx_emul_trace(__func__);
+}
