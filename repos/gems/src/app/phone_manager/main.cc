@@ -292,10 +292,11 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void refresh_storage_dialog() override { _generate_dialog(); }
 
-	Pci_info _pci_info { .wifi_present  = true,
-	                     .modem_present = true };
+	Board_info _board_info { .wifi_present  = true,
+	                         .lan_present   = false,
+	                         .modem_present = true };
 
-	Network _network { _env, _heap, *this, *this, _child_states, *this, _runtime_state, _pci_info };
+	Network _network { _env, _heap, *this, *this, _child_states, *this, _runtime_state };
 
 	/**
 	 * Network::Action interface
@@ -753,13 +754,11 @@ struct Sculpt::Main : Input_event_handler,
 		         _popup.state, _deploy._children };
 
 	Conditional_widget<Network_widget>
-		_network_widget {
-		                  Conditional_widget<Network_widget>::Attr { .centered = true },
+		_network_widget { Conditional_widget<Network_widget>::Attr { .centered = true },
 		                  Id { "net settings" },
 		                  _network._nic_target, _network._access_points,
 		                  _network._wifi_connection, _network._nic_state,
-		                  _network.wpa_passphrase, _network._wlan_config_policy,
-		                  _pci_info };
+		                  _network.wpa_passphrase, _network._wlan_config_policy };
 
 	void _view_main_dialog(Scope<> &s) const
 	{
@@ -844,7 +843,7 @@ struct Sculpt::Main : Input_event_handler,
 				_network_title_bar.view_status(s, network_status_message());
 			});
 
-			s.widget(_network_widget, _network_title_bar.selected());
+			s.widget(_network_widget, _network_title_bar.selected(), _board_info);
 
 			s.widget(_software_title_bar, [&] (auto &s) {
 				_software_title_bar.view_status(s, _software_status_message()); });
@@ -1602,11 +1601,11 @@ struct Sculpt::Main : Input_event_handler,
 		bool regenerate_dialog = false;
 
 		/* mobile data connectivity depends on the presence of a battery */
-		if (_power_state.modem_present() != _pci_info.modem_present) {
+		if (_power_state.modem_present() != _board_info.modem_present) {
 
 			/* update condition for the "Mobile data" network option */
-			_pci_info.modem_present = _power_state.modem_present()
-			                       && _modem_state.ready();
+			_board_info.modem_present = _power_state.modem_present()
+			                         && _modem_state.ready();
 
 			regenerate_dialog = true;
 		}
@@ -1739,10 +1738,10 @@ struct Sculpt::Main : Input_event_handler,
 
 		/* update condition of "Mobile data" network option */
 		{
-			bool const orig_mobile_data_ready = _pci_info.modem_present;
-			_pci_info.modem_present = _power_state.modem_present()
-			                       && _modem_state.ready();
-			if (orig_mobile_data_ready != _pci_info.modem_present)
+			bool const orig_mobile_data_ready = _board_info.modem_present;
+			_board_info.modem_present = _power_state.modem_present()
+			                         && _modem_state.ready();
+			if (orig_mobile_data_ready != _board_info.modem_present)
 				regenerate_dialog = true;
 		}
 

@@ -203,27 +203,18 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Device discovery **
 	 **********************/
 
-	Attached_rom_dataspace _pci_devices { _env, "report -> drivers/pci_devices" };
+	Attached_rom_dataspace _devices { _env, "report -> drivers/devices" };
 
-	Signal_handler<Main> _pci_devices_handler {
-		_env.ep(), *this, &Main::_handle_pci_devices };
+	Signal_handler<Main> _devices_handler {
+		_env.ep(), *this, &Main::_handle_devices };
 
-	Pci_info _pci_info { };
+	Board_info _board_info { };
 
-	void _handle_pci_devices()
+	void _handle_devices()
 	{
-		_pci_devices.update();
-		_pci_info.wifi_present  = false;
-		_pci_info.lan_present   = true;
-		_pci_info.modem_present = false;
+		_devices.update();
 
-		_pci_devices.xml().for_each_sub_node("device", [&] (Xml_node device) {
-			device.with_optional_sub_node("pci-config", [&] (Xml_node pci) {
-				/* detect Intel Wireless card */
-				if (pci.attribute_value("class", 0UL) == 0x28000)
-					_pci_info.wifi_present = true;
-			});
-		});
+		_board_info = Board_info::from_xml(_devices.xml());
 
 		update_network_dialog();
 	}
@@ -275,7 +266,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Network **
 	 *************/
 
-	Network _network { _env, _heap, *this, *this, _child_states, *this, _runtime_state, _pci_info };
+	Network _network { _env, _heap, *this, *this, _child_states, *this, _runtime_state };
 
 	struct Network_top_level_dialog : Top_level_dialog
 	{
@@ -287,7 +278,7 @@ struct Sculpt::Main : Input_event_handler,
 		void view(Scope<> &s) const override
 		{
 			s.sub_scope<Frame>([&] (Scope<Frame> &s) {
-				_main._network.dialog.view(s); });
+				_main._network.dialog.view(s, _main._board_info); });
 		}
 
 		void click(Clicked_at const &at) override
@@ -1406,7 +1397,7 @@ struct Sculpt::Main : Input_event_handler,
 		 * Subscribe to reports
 		 */
 		_update_state_rom    .sigh(_update_state_handler);
-		_pci_devices         .sigh(_pci_devices_handler);
+		_devices             .sigh(_devices_handler);
 		_window_list         .sigh(_window_list_handler);
 		_decorator_margins   .sigh(_decorator_margins_handler);
 		_scan_rom            .sigh(_scan_handler);
@@ -1426,7 +1417,7 @@ struct Sculpt::Main : Input_event_handler,
 		 */
 		_handle_gui_mode();
 		_storage.handle_storage_devices_update();
-		_handle_pci_devices();
+		_handle_devices();
 		_handle_runtime_config();
 
 		/*

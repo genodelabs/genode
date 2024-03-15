@@ -20,7 +20,7 @@
 
 /* local includes */
 #include <model/child_exit_state.h>
-#include <model/pci_info.h>
+#include <model/board_info.h>
 #include <view/network_widget.h>
 #include <runtime.h>
 #include <keyboard_focus.h>
@@ -53,7 +53,6 @@ struct Sculpt::Network : Network_widget::Action
 	Runtime_config_generator &_runtime_config_generator;
 
 	Runtime_info const &_runtime_info;
-	Pci_info     const &_pci_info;
 
 	using Wlan_config_policy = Network_widget::Wlan_config_policy;
 
@@ -113,8 +112,7 @@ struct Sculpt::Network : Network_widget::Action
 
 	Network_widget dialog {
 		_nic_target, _access_points,
-		_wifi_connection, _nic_state, wpa_passphrase, _wlan_config_policy,
-		_pci_info };
+		_wifi_connection, _nic_state, wpa_passphrase, _wlan_config_policy };
 
 	Managed_config<Network> _wlan_config {
 		_env, "config", "wifi", *this, &Network::_handle_wlan_config };
@@ -218,12 +216,12 @@ struct Sculpt::Network : Network_widget::Action
 	Network(Env &env, Allocator &alloc, Action &action, Info const &info,
 	        Registry<Child_state> &child_states,
 	        Runtime_config_generator &runtime_config_generator,
-	        Runtime_info const &runtime_info, Pci_info const &pci_info)
+	        Runtime_info const &runtime_info)
 	:
 		_env(env), _alloc(alloc), _action(action), _info(info),
 		_child_states(child_states),
 		_runtime_config_generator(runtime_config_generator),
-		_runtime_info(runtime_info), _pci_info(pci_info)
+		_runtime_info(runtime_info)
 	{
 		/*
 		 * Subscribe to reports

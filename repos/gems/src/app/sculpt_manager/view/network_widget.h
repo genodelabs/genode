@@ -17,7 +17,7 @@
 /* local includes */
 #include <model/nic_target.h>
 #include <model/nic_state.h>
-#include <model/pci_info.h>
+#include <model/board_info.h>
 #include <view/ap_selector_widget.h>
 
 namespace Sculpt { struct Network_widget; }
@@ -29,7 +29,6 @@ struct Sculpt::Network_widget : Widget<Frame>
 
 	Nic_target const &_nic_target;
 	Nic_state  const &_nic_state;
-	Pci_info   const &_pci_info;
 
 	struct Action : Ap_selector_widget::Action
 	{
@@ -47,7 +46,7 @@ struct Sculpt::Network_widget : Widget<Frame>
 			_wifi  { Id { "Wifi"         }, Type::WIFI         },
 			_modem { Id { "Mobile data"  }, Type::MODEM        };
 
-		void view(Scope<Hbox> &s, Nic_target const &target, Pci_info const &pci_info) const
+		void view(Scope<Hbox> &s, Nic_target const &target, Board_info const &board_info) const
 		{
 			Type const selected = target.type();
 
@@ -61,15 +60,15 @@ struct Sculpt::Network_widget : Widget<Frame>
 				s.widget(_local, selected);
 
 			if (target.managed() || target.manual_type == Nic_target::WIRED)
-				if (pci_info.lan_present)
+				if (board_info.lan_present)
 					s.widget(_wired, selected);
 
 			if (target.managed() || target.manual_type == Nic_target::WIFI)
-				if (pci_info.wifi_present)
+				if (board_info.wifi_present)
 					s.widget(_wifi, selected);
 
 			if (target.managed() || target.manual_type == Nic_target::MODEM)
-				if (pci_info.modem_present)
+				if (board_info.modem_present)
 					s.widget(_modem, selected);
 		}
 
@@ -94,21 +93,20 @@ struct Sculpt::Network_widget : Widget<Frame>
 	               Wifi_connection      const &wifi_connection,
 	               Nic_state            const &nic_state,
 	               Blind_wpa_passphrase const &wpa_passphrase,
-	               Wlan_config_policy   const &wlan_config_policy,
-	               Pci_info             const &pci_info)
+	               Wlan_config_policy   const &wlan_config_policy)
 	:
-		_nic_target(nic_target), _nic_state(nic_state), _pci_info(pci_info),
+		_nic_target(nic_target), _nic_state(nic_state),
 		_ap_selector(Id { "aps" },
 		             access_points, wifi_connection,
 		             wlan_config_policy, wpa_passphrase)
 	{ }
 
-	void view(Scope<Frame> &s) const
+	void view(Scope<Frame> &s, Board_info const &board_info) const
 	{
 		s.sub_scope<Vbox>([&] (Scope<Frame, Vbox> &s) {
 			s.sub_scope<Min_ex>(35);
 
-			s.widget(_target_selector, _nic_target, _pci_info);
+			s.widget(_target_selector, _nic_target, board_info);
 
 			if (_nic_target.wifi() || _nic_target.wired() || _nic_target.modem()) {
 
