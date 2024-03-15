@@ -28,7 +28,7 @@
 		</default-route>
 		<default caps="200"/>
 		<start name="terminal_crosslink">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="Terminal"/> </provides>
 			<config buffer="4K"/>
 		</start>

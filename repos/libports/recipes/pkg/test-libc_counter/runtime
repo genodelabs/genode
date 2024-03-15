@@ -33,7 +33,7 @@
 		<default caps="100"/>
 
 		<start name="terminal_crosslink">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="Terminal"/> </provides>
 		</start>
 
