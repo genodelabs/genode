@@ -35,7 +35,7 @@
 			</config>
 		</start>
 		<start name="cached_fs_rom">
-			<resource name="RAM" quantum="5M"/>
+			<resource name="RAM" quantum="10M"/>
 			<provides> <service name="ROM"/> </provides>
 		</start>
 		<start name="test-immutable_rom">
