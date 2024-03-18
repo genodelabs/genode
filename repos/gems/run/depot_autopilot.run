@@ -85,6 +85,11 @@ proc autopilot_create_tar_from_depot_binaries { archive_path args } {
 
 	check_for_missing_depot_archives
 
+	if {[llength $content] == 0} {
+		puts stderr "Error: no content for depot.tar"
+		exit -1
+	}
+
 	eval "exec tar cf $archive_path -T /dev/null -C [depot_dir] [lsort -unique $content]"
 }
 
