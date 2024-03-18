@@ -2,7 +2,6 @@
 
 	<fail after_seconds="120"/>
 	<succeed>--- test succeeded ---</succeed>
-	<fail>Error: </fail>
 
 	<content>
 		<rom label="fs_rom"/>
