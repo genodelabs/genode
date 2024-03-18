@@ -127,7 +127,7 @@
 
 						<start name="recv_fs" caps="150">
 							<binary name="vfs"/>
-							<resource name="RAM" quantum="32M"/>
+							<resource name="RAM" quantum="16M"/>
 							<provides> <service name="File_system"/> </provides>
 							<config>
 								<vfs>
@@ -139,7 +139,7 @@
 
 						<start name="send_fs" caps="150">
 							<binary name="vfs"/>
-							<resource name="RAM" quantum="32M"/>
+							<resource name="RAM" quantum="16M"/>
 							<provides> <service name="File_system"/> </provides>
 							<config>
 								<vfs>
@@ -151,7 +151,7 @@
 
 						<start name="recv">
 							<binary name="test-tcp"/>
-							<resource name="RAM" quantum="32M"/>
+							<resource name="RAM" quantum="16M"/>
 							<exit propagate="yes"/>
 							<config>
 								<arg value="recv"/>
@@ -169,7 +169,7 @@
 
 						<start name="send">
 							<binary name="test-tcp"/>
-							<resource name="RAM" quantum="32M"/>
+							<resource name="RAM" quantum="16M"/>
 							<config>
 								<arg value="send"/>
 								<arg value="192.168.1.1"/>
