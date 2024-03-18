@@ -28,6 +28,7 @@ struct Sculpt::Board_info
 	bool vesa_fb_present;
 	bool nvme_present;
 	bool ahci_present;
+	bool usb_present;
 
 	static Board_info from_xml(Xml_node const &devices, Xml_node const &platform)
 	{
@@ -47,6 +48,7 @@ struct Sculpt::Board_info
 					VGA  = 0x30000,
 					AHCI = 0x10600,
 					NVME = 0x10800,
+					UHCI = 0xc0300, OHCI = 0xc0310, EHCI = 0xc0320, XHCI = 0xc0330,
 				};
 
 				enum class Pci_vendor : unsigned { INTEL = 0x8086U, };
@@ -64,6 +66,10 @@ struct Sculpt::Board_info
 				if (matches_class(Pci_class::WIFI)) result.wifi_present = true;
 				if (matches_class(Pci_class::LAN))  result.lan_present  = true;
 				if (matches_class(Pci_class::NVME)) result.nvme_present = true;
+
+				if (matches_class(Pci_class::UHCI) || matches_class(Pci_class::OHCI)
+				 || matches_class(Pci_class::EHCI) || matches_class(Pci_class::XHCI))
+					result.usb_present = true;
 
 				if (matches_class(Pci_class::AHCI) && matches_vendor(Pci_vendor::INTEL))
 					result.ahci_present  = true;
@@ -94,7 +100,8 @@ struct Sculpt::Board_info
 		                  " boot_fb=",   boot_fb_present,
 		                  " vesa_fb=",   vesa_fb_present,
 		                  " nvme=",      nvme_present,
-		                  " ahci=",      ahci_present);
+		                  " ahci=",      ahci_present,
+		                  " usb=",       usb_present);
 	}
 };
 

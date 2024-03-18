@@ -76,9 +76,7 @@ class Sculpt::Runtime_config
 				                   || (service == "IO_MEM")
 				                   || (service == "Rtc")
 				                   || (service == "IRQ")
-				                   || (service == "TRACE")
-				                   || (service == "Event")
-				                   || (service == "Capture");
+				                   || (service == "TRACE");
 				if (hardware) {
 					result = "hardware";
 					return;
@@ -130,7 +128,10 @@ class Sculpt::Runtime_config
 					}
 				}
 
-				if (service == "Gui") {
+				bool const gui = (service == "Gui")
+				              || (service == "Event")
+				              || (service == "Capture");
+				if (gui) {
 					result = "GUI";
 					return;
 				}
@@ -317,7 +318,7 @@ class Sculpt::Runtime_config
 				_nitpicker { _r, Type::GUI,         "system GUI server" },
 				_gpu       { _r, Type::GPU,         "GPU" },
 				_lz_event  { _r, Type::EVENT,       "management GUI events",          "leitzentrale" },
-				_event     { _r, Type::EVENT,       "system input events",            "global" },
+				_event     { _r, Type::EVENT,       "filtered input events" },
 				_lz_capture{ _r, Type::CAPTURE,     "management GUI",                 "leitzentrale" },
 				_capture   { _r, Type::CAPTURE,     "system GUI",                     "global" },
 				_config_fs { _r, Type::FILE_SYSTEM, "writeable system configuration", "config" },
@@ -337,7 +338,6 @@ class Sculpt::Runtime_config
 				_io_port   { _r, Type::IO_PORT,     "raw hardware access" },
 				_irq       { _r, Type::IRQ,         "raw hardware access" },
 				_block     { _r, Type::BLOCK,       "direct block-device access" },
-				_usb       { _r, Type::USB,         "direct USB-device access" },
 				_pci_wifi  { _r, Type::PLATFORM,    "wifi hardware",    "wifi" },
 				_pci_net   { _r, Type::PLATFORM,    "network hardware", "nic" },
 				_pci_audio { _r, Type::PLATFORM,    "audio hardware",   "audio" },

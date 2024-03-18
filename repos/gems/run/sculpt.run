@@ -186,6 +186,27 @@ proc nic_driver_routes { } {
 }
 
 
+##
+# ROM routes that relabel generic USB driver names to board-specific binaries
+#
+proc usb_driver_routes { } {
+
+	set result(pc) {
+		<service name="ROM" label="usb_drv"> <parent label="pc_usb_host_drv"/> </service>
+	}
+
+	set result(pinephone) {
+		<service name="ROM" label="usb_drv">     <parent label="a64_usb_host_drv"/> </service>
+		<service name="ROM" label="usb_drv.dtb"> <parent label="usb-pinephone.dtb"/> </service>
+	}
+
+	if {[info exists result([board])]} {
+		return $result([board]); }
+
+	return "";
+}
+
+
 proc log_core_start_node { } {
 
 	if {[have_board linux]} return
@@ -690,7 +711,7 @@ install_config {
 				<child name="leitzentrale" label="fonts"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="LOG" label="unlogged"> <parent/> </service>
-			} [log_route] [nic_driver_routes] {
+			} [log_route] [nic_driver_routes] [usb_driver_routes] {
 			<service name="Event" label="leitzentrale"> <child name="leitzentrale"/> </service>
 			<service name="Event"> <child name="event_filter"/> </service>
 			<service name="Capture" label="global">       <child name="nitpicker"/>    </service>

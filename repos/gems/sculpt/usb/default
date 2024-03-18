@@ -1,13 +1,2 @@
-<!--
-  Manually maintained rules for assigning USB devices to clients.
-
-  The content is indented with two tabs because it is incorporated as is
-  into the <raw> sub node of the the USB driver configuration.
-  -->
-
-<usb>
-
-		<!-- rule for flashing the ergodox firmware
-		<policy label_suffix="teensy" vendor_id="0x16c0" product_id="0x0478"/>
-		-->
-</usb>
+<config bios_handoff="no">
+</config>

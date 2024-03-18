@@ -102,7 +102,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 
 	bool discarded() const { return Storage_device::state == FAILED; }
 
-	Label usb_block_drv_name() const { return Label(label, ".drv"); }
+	Label usb_block_drv_name() const { return label; }
 
 	Usb_storage_device(Env &env, Allocator &alloc, Signal_context_capability sigh,
 	                   Label const &label)
@@ -117,14 +117,28 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 
 	inline void gen_usb_block_drv_start_content(Xml_generator &xml) const;
 
-	static bool type_matches(Xml_node node)
+	void gen_usb_policy(Xml_generator &xml) const
 	{
-		return node.attribute_value("class", String<32>()) == "storage";
+		xml.node("policy", [&] {
+			xml.attribute("label_prefix", label);
+			xml.node("device", [&] {
+				xml.attribute("name", label); }); });
+	}
+
+	static bool type_matches(Xml_node const &device)
+	{
+		bool storage_device = false;
+		device.for_each_sub_node("config", [&] (Xml_node const &config) {
+			config.for_each_sub_node("interface", [&] (Xml_node const &interface) {
+				if (interface.attribute_value("class", 0u) == 0x8)
+					storage_device = true; }); });
+
+		return storage_device;
 	}
 
 	bool matches(Xml_node node) const
 	{
-		return node.attribute_value("label_suffix", Label()) == label;
+		return node.attribute_value("name", Label()) == label;
 	}
 };
 
@@ -146,8 +160,8 @@ void Sculpt::Usb_storage_device::gen_usb_block_drv_start_content(Xml_generator &
 
 	xml.node("route", [&] () {
 		gen_service_node<Usb::Session>(xml, [&] () {
-			xml.node("parent", [&] () {
-				xml.attribute("label", label); }); });
+			xml.node("child", [&] () {
+				xml.attribute("name", "usb"); }); });
 
 		gen_parent_rom_route(xml, "usb_block_drv");
 		gen_parent_rom_route(xml, "ld.lib.so");

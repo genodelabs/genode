@@ -136,6 +136,8 @@
 						<child name="config_fs_report" label="managed -> audio"/> </service>
 					<service name="Report" label="nic_router_config">
 						<child name="config_fs_report" label="managed -> nic_router"/> </service>
+					<service name="Report" label="usb_config">
+						<child name="config_fs_report" label="managed -> usb"/> </service>
 					<service name="Report" label="installation_config">
 						<child name="config_fs_report" label="managed -> installation"/> </service>
 					<service name="Report" label="depot_query">

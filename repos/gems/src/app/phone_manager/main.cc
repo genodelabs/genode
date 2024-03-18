@@ -38,6 +38,7 @@
 #include <model/screensaver.h>
 #include <managed_config.h>
 #include <fb_driver.h>
+#include <usb_driver.h>
 #include <gui.h>
 #include <storage.h>
 #include <network.h>
@@ -80,11 +81,13 @@ struct Sculpt::Main : Input_event_handler,
                       Pin_widget::Action,
                       Dialpad_widget::Action,
                       Current_call_widget::Action,
+                      Network_widget::Action,
                       Software_presets_widget::Action,
                       Software_options_widget::Action,
                       Software_update_widget::Action,
                       Software_add_widget::Action,
-                      Screensaver::Action
+                      Screensaver::Action,
+                      Usb_driver::Action
 {
 	Env &_env;
 
@@ -119,36 +122,11 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Device management **
 	 ***********************/
 
-	Attached_rom_dataspace const _platform { _env, "platform_info" };
-
-	Attached_rom_dataspace _devices { _env, "report -> drivers/devices" };
-
-	Signal_handler<Main> _devices_handler {
-		_env.ep(), *this, &Main::_handle_devices };
-
-	Board_info _board_info { };
-
-	void _handle_devices()
-	{
-		_devices.update();
-
-		_board_info = Board_info::from_xml(_devices.xml(), _platform.xml());
-
-		/* enable non-PCI wifi (PinePhone) */
-		if (_devices.xml().num_sub_nodes() == 0)
-			_board_info.wifi_present = true;
-
-		_fb_driver.update(_child_states, _board_info, _platform.xml());
-
-		update_network_dialog();
-	}
-
 	Managed_config<Main> _system_config {
 		_env, "system", "system", *this, &Main::_handle_system_config };
 
 	struct System
 	{
-		bool usb;
 		bool storage;
 
 		using State = String<32>;
@@ -166,7 +144,6 @@ struct Sculpt::Main : Input_event_handler,
 		static System from_xml(Xml_node const &node)
 		{
 			return System {
-				.usb           = node.attribute_value("usb",     false),
 				.storage       = node.attribute_value("storage", false),
 				.state         = node.attribute_value("state",   State()),
 				.power_profile = node.attribute_value("power_profile", Power_profile()),
@@ -177,7 +154,6 @@ struct Sculpt::Main : Input_event_handler,
 
 		void generate(Xml_generator &xml) const
 		{
-			if (usb)     xml.attribute("usb",     "yes");
 			if (storage) xml.attribute("storage", "yes");
 
 			if (state.length() > 1)
@@ -196,8 +172,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		bool operator != (System const &other) const
 		{
-			return (other.usb           != usb)
-			    || (other.storage       != storage)
+			return (other.storage       != storage)
 			    || (other.state         != state)
 			    || (other.power_profile != power_profile)
 			    || (other.brightness    != brightness)
@@ -218,6 +193,33 @@ struct Sculpt::Main : Input_event_handler,
 		_update_managed_system_config();
 	}
 
+	Attached_rom_dataspace const _platform { _env, "platform_info" };
+
+	Attached_rom_dataspace _devices { _env, "report -> drivers/devices" };
+
+	Signal_handler<Main> _devices_handler {
+		_env.ep(), *this, &Main::_handle_devices };
+
+	Board_info _board_info { };
+
+	void _handle_devices()
+	{
+		_devices.update();
+
+		_board_info = Board_info::from_xml(_devices.xml(), _platform.xml());
+
+		/* enable non-PCI wifi (PinePhone) */
+		if (_devices.xml().num_sub_nodes() == 0)
+			_board_info.wifi_present = true;
+
+		_board_info.usb_present = true;
+
+		_fb_driver.update(_child_states, _board_info, _platform.xml());
+		_update_usb_drivers();
+
+		update_network_dialog();
+	}
+
 	void _enter_second_driver_stage()
 	{
 		/*
@@ -226,12 +228,11 @@ struct Sculpt::Main : Input_event_handler,
 		 * is up, we can kick off the start of the remaining drivers.
 		 */
 
-		if (_system.usb && _system.storage)
+		if (_system.storage)
 			return;
 
 		System const orig_system = _system;
 
-		_system.usb     = true;
 		_system.storage = true;
 
 		if (_system != orig_system)
@@ -242,6 +243,16 @@ struct Sculpt::Main : Input_event_handler,
 
 	Signal_handler<Main> _gui_mode_handler {
 		_env.ep(), *this, &Main::_handle_gui_mode };
+
+	Usb_driver _usb_driver { _env, *this };
+
+	void _update_usb_drivers()
+	{
+		_usb_driver.update(_child_states, _board_info, {
+			.hid = false,
+			.net = (_network._nic_target.type() == Nic_target::MODEM)
+		});
+	}
 
 	void _handle_gui_mode();
 
@@ -302,7 +313,43 @@ struct Sculpt::Main : Input_event_handler,
 		return _prepare_version.value != _prepare_completed.value;
 	}
 
+
+	/*************
+	 ** Storage **
+	 *************/
+
+	Attached_rom_dataspace _block_devices_rom { _env, "report -> drivers/block_devices" };
+
+	Signal_handler<Main> _block_devices_handler {
+		_env.ep(), *this, &Main::_handle_block_devices };
+
+	void _handle_block_devices()
+	{
+		_block_devices_rom.update();
+		_usb_driver.with_devices([&] (Xml_node const &usb_devices) {
+			_storage.update(usb_devices,
+			                _block_devices_rom.xml(),
+			                _block_devices_handler);
+		});
+
+		/* update USB policies for storage devices */
+		_update_usb_drivers();
+	}
+
 	Storage _storage { _env, _heap, _child_states, *this, *this };
+
+	/**
+	 * Usb_driver::Action
+	 */
+	void handle_usb_plug_unplug() override { _handle_block_devices(); }
+
+	/**
+	 * Usb_driver::Action
+	 */
+	void gen_usb_storage_policies(Xml_generator &xml) const override
+	{
+		_storage.gen_usb_storage_policies(xml);
+	}
 
 	/**
 	 * Storage::Action interface
@@ -324,6 +371,11 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void refresh_storage_dialog() override { _generate_dialog(); }
 
+
+	/*************
+	 ** Network **
+	 *************/
+
 	Network _network { _env, _heap, *this, *this, _child_states, *this, _runtime_state };
 
 	/**
@@ -344,6 +396,31 @@ struct Sculpt::Main : Input_event_handler,
 				return _network_widget.hosted.if_hovered(at, [&] (Hovered_at const &at) {
 					return _network_widget.hosted.ap_list_hovered(at); }); }); });
 	}
+
+	/**
+	 * Network_widget::Action
+	 */
+	void nic_target(Nic_target::Type const type) override
+	{
+		_network.nic_target(type);
+
+		/* start/stop USB net driver */
+		_update_usb_drivers();
+		generate_runtime_config();
+	}
+
+	/**
+	 * Network_widget::Action
+	 */
+	void wifi_connect(Access_point::Bssid bssid) override
+	{
+		_network.wifi_connect(bssid);
+	}
+
+	/**
+	 * Network_widget::Action
+	 */
+	void wifi_disconnect() override { _network.wifi_disconnect(); }
 
 
 	/************
@@ -1173,7 +1250,7 @@ struct Sculpt::Main : Input_event_handler,
 		_pin_widget             .propagate(at, _sim_pin, *this);
 		_dialpad_widget         .propagate(at, *this);
 		_storage_widget         .propagate(at, *this);
-		_network_widget         .propagate(at, _network);
+		_network_widget         .propagate(at, *this);
 		_software_presets_widget.propagate(at, _presets);
 		_software_update_widget .propagate(at, *this);
 		_software_add_widget    .propagate(at, *this);
@@ -1354,11 +1431,6 @@ struct Sculpt::Main : Input_event_handler,
 		} else if (name == "wifi_drv") {
 
 			_network.restart_wifi_drv_on_next_runtime_cfg();
-			generate_runtime_config();
-
-		} else if (name == "usb_net") {
-
-			_network.restart_usb_net_on_next_runtime_cfg();
 			generate_runtime_config();
 
 		} else {
@@ -1975,8 +2047,8 @@ struct Sculpt::Main : Input_event_handler,
 		_handle_config();
 		_handle_leitzentrale();
 		_handle_gui_mode();
-		_storage.handle_storage_devices_update();
 		_handle_devices();
+		_handle_block_devices();
 		_handle_runtime_config();
 		_handle_modem_state();
 
@@ -2386,6 +2458,9 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	});
 
 	_fb_driver.gen_start_nodes(xml);
+
+	if (_network._nic_target.type() == Nic_target::Type::MODEM)
+		_usb_driver.gen_start_nodes(xml);
 
 	_dialog_runtime.gen_start_nodes(xml);
 

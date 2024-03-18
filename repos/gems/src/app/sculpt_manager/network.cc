@@ -265,43 +265,19 @@ void Sculpt::Network::_handle_nic_router_config(Xml_node config)
 
 void Sculpt::Network::gen_runtime_start_nodes(Xml_generator &xml) const
 {
-	switch (_nic_target.type()) {
-	case Nic_target::WIRED:
-
+	if (_nic_target.type() == Nic_target::WIRED)
 		xml.node("start", [&] () {
 			xml.attribute("version", _nic_drv_version);
-			gen_nic_drv_start_content(xml);
-		});
-		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
-		break;
+			gen_nic_drv_start_content(xml); });
 
-	case Nic_target::WIFI:
-
+	if (_nic_target.type() == Nic_target::WIFI)
 		xml.node("start", [&] () {
 			xml.attribute("version", _wifi_drv_version);
-			gen_wifi_drv_start_content(xml);
-		});
-		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
-		break;
+			gen_wifi_drv_start_content(xml); });
 
-	case Nic_target::MODEM:
+	bool const nic_router_needed = _nic_target.type() != Nic_target::OFF
+	                            && _nic_target.type() != Nic_target::UNDEFINED;
 
-		xml.node("start", [&] () {
-			xml.attribute("version", _usb_net_version);
-			gen_usb_net_start_content(xml);
-		});
-		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
-		break;
-
-	case Nic_target::DISCONNECTED:
-
-		xml.node("start", [&] () { gen_nic_router_start_content(xml); });
-		break;
-
-	case Nic_target::OFF:
-		break;
-
-	case Nic_target::UNDEFINED:
-		break;
-	}
+	if (nic_router_needed)
+		xml.node("start", [&] { gen_nic_router_start_content(xml); });
 }

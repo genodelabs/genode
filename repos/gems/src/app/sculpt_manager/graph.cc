@@ -112,6 +112,10 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 	s.sub_scope<Min_ex>(25);
 	s.sub_scope<Label>(ram);
 	s.sub_scope<Label>(caps);
+
+	if ((name == "usb") && _storage_devices.usb_present)
+		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
+			s.widget(_usb_devices_widget); });
 }
 
 
@@ -134,25 +138,6 @@ void Graph::_view_storage_node(Scope<Depgraph> &s) const
 }
 
 
-void Graph::_view_usb_node(Scope<Depgraph> &s) const
-{
-	bool const any_selected = _runtime_state.selected().valid();
-
-	Selectable_node::view(s, Id { "usb" },
-		{
-			.selected    = _usb_selected,
-			.important   = !any_selected || _runtime_state.usb_in_tcb(),
-			.primary_dep = { },
-			.pretty_name = "USB"
-		},
-		[&] (Scope<Depgraph, Frame, Vbox> &s) {
-			s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-				s.widget(_usb_devices_widget); });
-		}
-	);
-}
-
-
 void Graph::view(Scope<Depgraph> &s) const
 {
 	if (Feature::PRESENT_PLUS_MENU && _sculpt_partition.valid())
@@ -163,13 +148,7 @@ void Graph::view(Scope<Depgraph> &s) const
 	else
 		s.sub_scope<Parent_node>(Id { "storage" }, "Storage");
 
-	if (_storage_devices.usb_present)
-		_view_usb_node(s);
-	else
-		s.sub_scope<Parent_node>(Id { "usb" }, "USB");
-
 	/* parent roles */
-	s.sub_scope<Parent_node>(Id { "hardware" }, "Hardware");
 	s.sub_scope<Parent_node>(Id { "hardware" }, "Hardware");
 	s.sub_scope<Parent_node>(Id { "config" },   "Config");
 	s.sub_scope<Parent_node>(Id { "info" },     "Info");
@@ -281,9 +260,7 @@ void Graph::click(Clicked_at const &at, Action &action)
 	Id const id = at.matching_id<Depgraph, Frame, Vbox, Button>();
 	if (id.valid()) {
 		_storage_selected = !_storage_selected && (id.value == "storage");
-		_usb_selected     = !_usb_selected     && (id.value == "usb");
 
-		if (_usb_selected)     _usb_devices_widget  .reset();
 		if (_storage_selected) _block_devices_widget.reset();
 
 		_runtime_config.with_start_name(id, [&] (Start_name const &name) {

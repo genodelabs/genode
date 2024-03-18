@@ -24,7 +24,6 @@
 #include <io_port_session/io_port_session.h>
 #include <timer_session/timer_session.h>
 #include <log_session/log_session.h>
-#include <usb_session/usb_session.h>
 #include <platform_session/platform_session.h>
 
 namespace Driver_manager {
@@ -227,14 +226,11 @@ struct Driver_manager::Main
 	Env &_env;
 
 	Attached_rom_dataspace _platform    { _env, "platform_info" };
-	Attached_rom_dataspace _usb_devices { _env, "usb_devices"   };
-	Attached_rom_dataspace _usb_policy  { _env, "usb_policy"    };
 	Attached_rom_dataspace _devices     { _env, "devices"   };
 	Attached_rom_dataspace _ahci_ports  { _env, "ahci_ports"    };
 	Attached_rom_dataspace _nvme_ns     { _env, "nvme_ns"       };
 
 	Reporter _init_config    { _env, "config", "init.config" };
-	Reporter _usb_drv_config { _env, "config", "usb_drv.config" };
 	Reporter _block_devices  { _env, "block_devices" };
 
 	Constructible<Ahci_driver> _ahci_driver     { };
@@ -246,14 +242,6 @@ struct Driver_manager::Main
 
 	Signal_handler<Main> _devices_update_handler {
 		_env.ep(), *this, &Main::_handle_devices_update };
-
-	void _handle_usb_devices_update();
-
-	Signal_handler<Main> _usb_devices_update_handler {
-		_env.ep(), *this, &Main::_handle_usb_devices_update };
-
-	Signal_handler<Main> _usb_policy_update_handler {
-		_env.ep(), *this, &Main::_handle_usb_devices_update };
 
 	void _handle_ahci_ports_update();
 
@@ -270,9 +258,8 @@ struct Driver_manager::Main
 		xml.node("service", [&] () { xml.attribute("name", name); });
 	};
 
-	void _generate_init_config    (Reporter &) const;
-	void _generate_usb_drv_config (Reporter &, Xml_node, Xml_node) const;
-	void _generate_block_devices  (Reporter &) const;
+	void _generate_init_config  (Reporter &) const;
+	void _generate_block_devices(Reporter &) const;
 
 	Ahci_driver::Default_label _default_block_device() const;
 
@@ -294,11 +281,9 @@ struct Driver_manager::Main
 	Main(Env &env) : _env(env)
 	{
 		_init_config.enabled(true);
-		_usb_drv_config.enabled(true);
 		_block_devices.enabled(true);
 
 		_devices   .sigh(_devices_update_handler);
-		_usb_policy.sigh(_usb_policy_update_handler);
 		_ahci_ports.sigh(_ahci_ports_update_handler);
 		_nvme_ns   .sigh(_nvme_ns_update_handler);
 
@@ -351,15 +336,6 @@ void Driver_manager::Main::_handle_devices_update()
 		_generate_init_config(_init_config);
 	}
 
-	/* generate initial usb driver config not before we know whether ohci should be enabled */
-	_generate_usb_drv_config(_usb_drv_config,
-	                         Xml_node("<devices/>"),
-	                         Xml_node("<usb/>"));
-
-	_usb_devices.sigh(_usb_devices_update_handler);
-
-	_handle_usb_devices_update();
-
 	_devices_rom_parsed = true;
 }
 
@@ -381,15 +357,6 @@ void Driver_manager::Main::_handle_nvme_ns_update()
 
 	/* update service forwarding rules */
 	_generate_init_config(_init_config);
-}
-
-
-void Driver_manager::Main::_handle_usb_devices_update()
-{
-	_usb_devices.update();
-	_usb_policy.update();
-
-	_generate_usb_drv_config(_usb_drv_config, _usb_devices.xml(), _usb_policy.xml());
 }
 
 
@@ -418,7 +385,6 @@ void Driver_manager::Main::_generate_init_config(Reporter &init_config) const
 			_gen_parent_service_xml(xml, Timer::Session::service_name());
 			_gen_parent_service_xml(xml, Platform::Session::service_name());
 			_gen_parent_service_xml(xml, Report::Session::service_name());
-			_gen_parent_service_xml(xml, Usb::Session::service_name());
 			_gen_parent_service_xml(xml, Capture::Session::service_name());
 		});
 
@@ -520,67 +486,6 @@ void Driver_manager::Main::_generate_block_devices(Reporter &block_devices) cons
 				xml.attribute("serial",      serial);
 			});
 		}
-	});
-}
-
-
-void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
-                                                    Xml_node devices,
-                                                    Xml_node policy) const
-{
-	Reporter::Xml_generator xml(usb_drv_config, [&] () {
-
-		xml.attribute("bios_handoff", false);
-
-		xml.node("report", [&] () {
-			xml.attribute("config",  true);
-			xml.attribute("devices", true);
-		});
-
-		/* incorporate user-managed policy */
-		policy.with_raw_content([&] (char const *start, size_t length) {
-			xml.append(start, length); });
-
-		/* usb hid drv gets all hid devices */
-		xml.node("policy", [&] () {
-			xml.attribute("label_prefix", "usb_hid_drv");
-			xml.node("device", [&] () {
-				xml.attribute("class", "0x3");
-			});
-		});
-
-		/* produce policy nodes for all storage devices */
-		devices.for_each_sub_node("device", [&] (Xml_node device) {
-
-			bool usb_storage = false;
-			device.for_each_sub_node("config", [&] (Xml_node cfg) {
-
-				cfg.for_each_sub_node("interface", [&] (Xml_node iface) {
-
-					enum { USB_CLASS_MASS_STORAGE = 8 };
-
-					if (iface.attribute_value("class", 0UL) ==
-					    USB_CLASS_MASS_STORAGE)
-						usb_storage = true;
-					});
-			});
-
-			if (!usb_storage)
-				return;
-
-			using Name = String<64>;
-
-			Name const name = device.attribute_value("name", Name());
-
-			xml.node("policy", [&] () {
-
-				xml.attribute("label_suffix", name);
-				xml.attribute("class", "storage");
-				xml.node("device", [&] () {
-					xml.attribute("name", name);
-				});
-			});
-		});
 	});
 }
 

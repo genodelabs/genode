@@ -81,7 +81,7 @@ struct Sculpt::Storage_devices
 
 				return *new (alloc)
 					Usb_storage_device(env, alloc, sigh,
-					                   node.attribute_value("label_suffix", Label()));
+					                   node.attribute_value("name", Label()));
 			},
 
 			/* destroy */
@@ -102,6 +102,12 @@ struct Sculpt::Storage_devices
 			usb_present = true; });
 
 		return device_added_or_vanished;
+	}
+
+	void gen_usb_storage_policies(Xml_generator &xml) const
+	{
+		usb_storage_devices.for_each([&] (Usb_storage_device const &device) {
+			device.gen_usb_policy(xml); });
 	}
 
 	/**

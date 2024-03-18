@@ -71,7 +71,6 @@ namespace Sculpt {
 
 	void gen_nic_drv_start_content(Xml_generator &);
 	void gen_wifi_drv_start_content(Xml_generator &);
-	void gen_usb_net_start_content(Xml_generator &);
 
 	void gen_nic_router_start_content(Xml_generator &);
 	void gen_nic_router_uplink(Xml_generator &, char const *);

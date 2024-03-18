@@ -36,5 +36,5 @@
 		</chargen>
 	</output>
 	<policy label="drivers -> ps2"     input="ps2"/>
-	<policy label="drivers -> usb_hid" input="usb"/>
+	<policy label="runtime -> usb_hid" input="usb"/>
 </config>

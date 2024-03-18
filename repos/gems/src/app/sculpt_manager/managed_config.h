@@ -110,6 +110,8 @@ struct Sculpt::Managed_config
 		/* determine initial '_mode' */
 		_update_manual_config_rom();
 	}
+
+	void trigger_update() { _manual_config_handler.local_submit(); }
 };
 
 #endif /* _MANAGED_CONFIG_H_ */

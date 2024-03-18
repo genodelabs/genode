@@ -43,10 +43,6 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 
 	Runtime_config_generator &_runtime;
 
-	Attached_rom_dataspace _block_devices_rom { _env, "report -> drivers/block_devices" };
-
-	Attached_rom_dataspace _usb_active_config_rom { _env, "report -> drivers/usb_active_config" };
-
 	Storage_devices _storage_devices { };
 
 	Ram_fs_state _ram_fs_state;
@@ -57,10 +53,8 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 
 	Inspect_view_version _inspect_view_version { 0 };
 
-	void handle_storage_devices_update();
-
-	Signal_handler<Storage> _storage_device_update_handler {
-		_env.ep(), *this, &Storage::handle_storage_devices_update };
+	void update(Xml_node const &usb_devices, Xml_node const &block_devices,
+	            Signal_context_capability sigh);
 
 	/*
 	 * Determine whether showing the file-system browser or not
@@ -75,6 +69,11 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 	}
 
 	void gen_runtime_start_nodes(Xml_generator &) const;
+
+	void gen_usb_storage_policies(Xml_generator &xml) const
+	{
+		_storage_devices.gen_usb_storage_policies(xml);
+	}
 
 	template <typename FN>
 	void _apply_partition(Storage_target const &target, FN const &fn)
@@ -182,16 +181,12 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 		_runtime.generate_runtime_config();
 	}
 
-
 	Storage(Env &env, Allocator &alloc, Registry<Child_state> &child_states,
 	        Action &action, Runtime_config_generator &runtime)
 	:
 		_env(env), _alloc(alloc), _action(action), _runtime(runtime),
 		_ram_fs_state(child_states, "ram_fs")
-	{
-		_block_devices_rom    .sigh(_storage_device_update_handler);
-		_usb_active_config_rom.sigh(_storage_device_update_handler);
-	}
+	{ }
 };
 
 #endif /* _STORAGE_H_ */

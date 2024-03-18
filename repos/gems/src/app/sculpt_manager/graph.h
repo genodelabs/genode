@@ -63,14 +63,12 @@ struct Sculpt::Graph : Widget<Depgraph>
 		                        _storage_devices, _sculpt_partition };
 
 	bool _storage_selected = false;
-	bool _usb_selected     = false;
 
 	void _view_selected_node_content(Scope<Depgraph, Frame, Vbox> &,
 	                                 Start_name const &,
 	                                 Runtime_state::Info const &) const;
 
 	void _view_storage_node(Scope<Depgraph> &) const;
-	void _view_usb_node(Scope<Depgraph> &) const;
 
 	Graph(Runtime_state                &runtime_state,
 	      Runtime_config         const &runtime_config,

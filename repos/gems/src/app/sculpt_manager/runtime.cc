@@ -30,4 +30,3 @@
 #include <runtime/update.cc>
 #include <runtime/wifi_drv.cc>
 #include <runtime/fs_tool.cc>
-#include <runtime/usb_net.cc>

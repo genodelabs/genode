@@ -29,7 +29,7 @@
 namespace Sculpt { struct Network; }
 
 
-struct Sculpt::Network : Network_widget::Action
+struct Sculpt::Network : Noncopyable
 {
 	Env &_env;
 
@@ -65,7 +65,6 @@ struct Sculpt::Network : Network_widget::Action
 
 	unsigned _nic_drv_version  = 0;
 	unsigned _wifi_drv_version = 0;
-	unsigned _usb_net_version  = 0;
 
 	Attached_rom_dataspace _wlan_accesspoints_rom {
 		_env, "report -> runtime/wifi_drv/accesspoints" };
@@ -135,10 +134,7 @@ struct Sculpt::Network : Network_widget::Action
 
 	void _update_nic_target_from_config(Xml_node const &);
 
-	/**
-	 * Network_widget::Action interface
-	 */
-	void nic_target(Nic_target::Type const type) override
+	void nic_target(Nic_target::Type const type)
 	{
 		if (type != _nic_target.managed_type) {
 			_nic_target.managed_type = type;
@@ -148,7 +144,7 @@ struct Sculpt::Network : Network_widget::Action
 		}
 	}
 
-	void wifi_connect(Access_point::Bssid bssid) override
+	void wifi_connect(Access_point::Bssid bssid)
 	{
 		_access_points.for_each([&] (Access_point const &ap) {
 			if (ap.bssid != bssid)
@@ -183,9 +179,8 @@ struct Sculpt::Network : Network_widget::Action
 
 	void restart_nic_drv_on_next_runtime_cfg()  { _nic_drv_version++; }
 	void restart_wifi_drv_on_next_runtime_cfg() { _wifi_drv_version++; }
-	void restart_usb_net_on_next_runtime_cfg()  { _usb_net_version++; }
 
-	void wifi_disconnect() override
+	void wifi_disconnect()
 	{
 		/*
 		 * Reflect state change immediately to the user interface even

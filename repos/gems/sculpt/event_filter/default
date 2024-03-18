@@ -8,8 +8,8 @@
 			<input name="sdl"/>
 		</merge>
 	</output>
-	<policy label="drivers -> ps2"   input="ps2"/>
-	<policy label="drivers -> usb"   input="usb"/>
-	<policy label="drivers -> touch" input="touch"/>
-	<policy label="drivers -> sdl"   input="sdl"/>
+	<policy label="drivers -> ps2"     input="ps2"/>
+	<policy label="runtime -> usb_hid" input="usb"/>
+	<policy label="drivers -> touch"   input="touch"/>
+	<policy label="drivers -> sdl"     input="sdl"/>
 </config>

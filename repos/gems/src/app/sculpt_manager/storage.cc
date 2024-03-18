@@ -15,7 +15,9 @@
 #include <storage.h>
 
 
-void Sculpt::Storage::handle_storage_devices_update()
+void Sculpt::Storage::update(Xml_node const &usb_devices,
+                             Xml_node const &block_devices,
+                             Signal_context_capability sigh)
 {
 	bool reconfigure_runtime = false;
 
@@ -31,22 +33,18 @@ void Sculpt::Storage::handle_storage_devices_update()
 	};
 
 	{
-		_block_devices_rom.update();
-
-		_storage_devices.update_block_devices_from_xml(_env, _alloc, _block_devices_rom.xml(),
-		                                               _storage_device_update_handler);
+		_storage_devices.update_block_devices_from_xml(_env, _alloc, block_devices,
+		                                               sigh);
 
 		_storage_devices.block_devices.for_each([&] (Block_device &dev) {
 			process_part_block_report(dev); });
 	}
 
 	{
-		_usb_active_config_rom.update();
-
 		bool const usb_storage_added_or_vanished =
 			_storage_devices.update_usb_storage_devices_from_xml(_env, _alloc,
-			                                                     _usb_active_config_rom.xml(),
-			                                                     _storage_device_update_handler);
+			                                                     usb_devices,
+			                                                     sigh);
 
 		if (usb_storage_added_or_vanished)
 			reconfigure_runtime = true;
