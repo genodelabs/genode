@@ -7,17 +7,16 @@
 proc ip_stack { } { return lwip }
 
 proc socket_fs_plugin { } {
-	set result "<[ip_stack]"
+	return "<[ip_stack] dhcp=\"yes\"/>"
+}
 
+proc nic_router_uplink { } {
+	# static IP config on Linux
 	if {[have_spec linux]} {
-		append result { ip_addr="10.0.2.55" netmask="255.255.255.0"}
-		append result { gateway="10.0.2.1" nameserver="1.1.1.1"}
+		return {<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">}
 	} else {
-		append result { dhcp="yes"}
+		return {<domain name="uplink">}
 	}
-
-	append result {/>}
-	return $result
 }
 
 create_boot_directory
@@ -79,7 +78,7 @@ install_config {
 			<policy label_prefix="lighttpd" domain="downlink"/>
 			<policy label_prefix="nic_drv"  domain="uplink"/>
 
-			<domain name="uplink">
+			} [nic_router_uplink] {
 
 				<nat domain="downlink"
 				     tcp-ports="16384"
