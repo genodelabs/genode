@@ -61,7 +61,7 @@ static inline Genode::addr_t reserve_stack_area()
 	using namespace Genode;
 	using Genode::size_t;
 
-	int const flags       = MAP_ANONYMOUS | MAP_PRIVATE;
+	int const flags       = MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED;
 	int const prot        = PROT_NONE;
 	size_t const size     = stack_area_virtual_size();
 	void * const addr_in  = (void *)stack_area_virtual_base();
