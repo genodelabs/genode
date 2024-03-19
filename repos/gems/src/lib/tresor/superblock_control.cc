@@ -529,8 +529,8 @@ bool Superblock_control::Initialize::execute(Execute_attr const &attr)
 	case READ_BLOCK: progress |= _read_block.execute(attr.block_io); break;
 	case READ_BLOCK_SUCCEEDED:
 
-		_sb_ciphertext.decode_from_blk(_blk);
 		if (check_hash(_blk, _hash)) {
+			_sb_ciphertext.decode_from_blk(_blk);
 			_gen = _sb_ciphertext.snapshots.items[_sb_ciphertext.snapshots.newest_snap_idx()].gen;
 			attr.sb.copy_all_but_key_values_from(_sb_ciphertext);
 			_decrypt_key.generate(_helper, DECRYPT_KEY, DECRYPT_CURR_KEY_SUCCEEDED, progress, attr.sb.current_key.value, _sb_ciphertext.current_key.value);
