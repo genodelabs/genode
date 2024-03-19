@@ -868,7 +868,7 @@ class Tresor_tester::Main : Vfs::Env::User, Client_data_interface, Crypto_key_fi
 				case Command::IN_PROGRESS:
 				{
 					Sb_check::Check &req = *cmd.check_superblocks_ptr;
-					progress |= _sb_check.execute(req, _vbd_check, _ft_check, _block_io);
+					progress |= _sb_check.execute(req, _vbd_check, _ft_check, _block_io, _trust_anchor);
 					_try_complete_command(cmd, req, progress);
 					break;
 				}
