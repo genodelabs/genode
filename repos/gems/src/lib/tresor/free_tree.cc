@@ -216,9 +216,11 @@ void Free_tree::Extend_tree::_generate_write_blk_req(bool &progress)
 }
 
 
-void Free_tree::Extend_tree::_add_new_root_lvl()
+bool Free_tree::Extend_tree::_add_new_root_lvl()
 {
-	ASSERT(_attr.in_out_ft.max_lvl < TREE_MAX_LEVEL);
+	if (_attr.in_out_ft.max_lvl >= TREE_MAX_LEVEL)
+		return false;
+
 	_attr.in_out_ft.max_lvl++;
 	_t1_blks[_attr.in_out_ft.max_lvl] = { };
 	_t1_blks[_attr.in_out_ft.max_lvl].nodes[0] = _attr.in_out_ft.t1_node();
@@ -227,6 +229,8 @@ void Free_tree::Extend_tree::_add_new_root_lvl()
 	if (VERBOSE_FT_EXTENSION)
 		log("  set root: ", _attr.in_out_ft, "\n  set lvl ", _attr.in_out_ft.max_lvl, " node 0: ",
 		    _t1_blks[_attr.in_out_ft.max_lvl].nodes[0]);
+
+	return true;
 }
 
 
@@ -287,7 +291,10 @@ bool Free_tree::Extend_tree::execute(Block_io &block_io, Meta_tree &meta_tree)
 			if (VERBOSE_FT_EXTENSION)
 				log("  root (", _attr.in_out_ft, "): load to lvl ", _lvl);
 		} else {
-			_add_new_root_lvl();
+			if (!_add_new_root_lvl()) {
+				_helper.mark_failed(progress, "failed to add new root level to tree");
+				break;
+			}
 			_add_new_branch_at(_attr.in_out_ft.max_lvl, 1);
 			_generate_write_blk_req(progress);
 			if (VERBOSE_FT_EXTENSION)

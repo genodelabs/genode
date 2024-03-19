@@ -154,7 +154,7 @@ class Tresor::Free_tree::Extend_tree : Noncopyable
 
 		void _add_new_branch_at(Tree_level_index, Tree_node_index);
 
-		void _add_new_root_lvl();
+		bool _add_new_root_lvl();
 
 		void _generate_write_blk_req(bool &);
 

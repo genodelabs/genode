@@ -541,7 +541,10 @@ bool Virtual_block_device::Extend_tree::execute(Block_io &block_io, Free_tree &f
 			if (VERBOSE_VBD_EXTENSION)
 				log("  read lvl ", _lvl, " parent snap ", _snap_idx, " ", snap);
 		} else {
-			_add_new_root_lvl_to_snap();
+			if (!_add_new_root_lvl_to_snap()) {
+				_helper.mark_failed(progress, "failed to add new root level to snapshot");
+				break;
+			}
 			_add_new_branch_to_snap(_attr.in_out_snapshots.items[_snap_idx].max_level, 1);
 			_set_new_pbas_identical_to_curr_pbas();
 			_generate_write_blk_req(progress);
@@ -634,12 +637,14 @@ bool Virtual_block_device::Extend_tree::execute(Block_io &block_io, Free_tree &f
 }
 
 
-void Virtual_block_device::Extend_tree::_add_new_root_lvl_to_snap()
+bool Virtual_block_device::Extend_tree::_add_new_root_lvl_to_snap()
 {
 	Snapshot_index old_idx { _snap_idx };
 	Snapshot_index &idx { _snap_idx };
 	Snapshot *snap { _attr.in_out_snapshots.items };
-	ASSERT(snap[idx].max_level < TREE_MAX_LEVEL);
+	if (snap[idx].max_level >= TREE_MAX_LEVEL)
+		return false;
+
 	Tree_level_index new_lvl { snap[old_idx].max_level + 1 };
 	_t1_blks.items[new_lvl] = { };
 	_t1_blks.items[new_lvl].nodes[0] = { snap[idx].pba, snap[idx].gen, snap[idx].hash };
@@ -655,6 +660,8 @@ void Virtual_block_device::Extend_tree::_add_new_root_lvl_to_snap()
 
 	if (VERBOSE_VBD_EXTENSION)
 		log("  update snap ", idx, " ", snap[idx], "\n  update lvl ", new_lvl, " child 0 ", _t1_blks.items[new_lvl].nodes[0]);
+
+	return true;
 }
 
 

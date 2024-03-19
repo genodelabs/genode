@@ -282,7 +282,7 @@ class Tresor::Virtual_block_device::Extend_tree : Noncopyable
 		Generatable_request<Helper, State, Block_io::Write> _write_block { };
 		Generatable_request<Helper, State, Free_tree::Allocate_pbas> _alloc_pbas { };
 
-		void _add_new_root_lvl_to_snap();
+		bool _add_new_root_lvl_to_snap();
 
 		void _add_new_branch_to_snap(Tree_level_index, Tree_node_index);
 
