@@ -240,23 +240,13 @@ append config {
 
 					<initialize-trust-anchor passphrase="foobar"/>
 					<initialize>
-
-						<virtual-block-device
-							nr_of_levels="3"
-							nr_of_children="8"
-							nr_of_leafs="64" />
-
-						<free-tree
-							nr_of_levels="4"
-							nr_of_children="8"
-							nr_of_leafs="100" />
-
+						<virtual-block-device max_lvl="2" degree="8" num_leaves="64" />
+						<free-tree max_lvl="3" degree="8" num_leaves="100" />
 					</initialize>
 					<check/>
 					<construct/>
 
 					<log string="Step 2: test synchronous write, read"/>
-
 
 					<request op="read"  vba="1"   num_blocks="1"    uninitialized_data="yes"/>
 					<request op="write" vba="1"   num_blocks="1"    salt="1234"/>
@@ -388,17 +378,8 @@ append config {
 					<request op="deinitialize" />
 					<destruct/>
 					<initialize>
-
-						<virtual-block-device
-							nr_of_levels="4"
-							nr_of_children="8"
-							nr_of_leafs="100" />
-
-						<free-tree
-							nr_of_levels="4"
-							nr_of_children="8"
-							nr_of_leafs="512" />
-
+						<virtual-block-device max_lvl="3" degree="8" num_leaves="100" />
+						<free-tree max_lvl="3" degree="8" num_leaves="512" />
 					</initialize>
 					<construct/>
 
@@ -589,22 +570,77 @@ append config {
 					<request op="sync"  vba="0"  num_blocks="256" />
 					<check/>
 
-					<log string="Step 15: reinitialize Tresor device"/>
+					<log string="Step 15: check minimum vbd dimensions"/>
+
+					<request op="deinitialize"/>
+					<destruct/>
+					<initialize>
+						<virtual-block-device max_lvl="1" degree="2" num_leaves="1"/>
+						<free-tree max_lvl="1" degree="2" num_leaves="1"/>
+					</initialize>
+					<check/>
+					<construct/>
+					<request op="read" vba="0" num_blocks="1" uninitialized="yes"/>
+					<request op="write" vba="0" num_blocks="1" salt="4321"/>
+					<request op="read" vba="0" num_blocks="1" salt="4321"/>
+
+					<log string="Step 16: check minimum free tree dimensions"/>
+
+					<request op="deinitialize"/>
+					<destruct/>
+					<initialize>
+						<virtual-block-device max_lvl="1" degree="2" num_leaves="1"/>
+						<free-tree max_lvl="2" degree="64" num_leaves="4096"/>
+					</initialize>
+					<construct/>
+					<check/>
+					<request op="write" vba="0" num_blocks="1" salt="1234"/>
+					<request op="read" vba="0" num_blocks="1" salt="1234"/>
+					<request op="rekey" sync="yes"/>
+					<request op="write" vba="0" num_blocks="1" salt="4321"/>
+					<request op="read" vba="0" num_blocks="1" salt="4321"/>
+					<request op="create_snapshot" id="13"/>
+					<request op="write" vba="0" num_blocks="1" salt="1234"/>
+					<request op="rekey"/>
+					<request op="write" vba="0" num_blocks="1" salt="9465"/>
+					<request op="read" vba="0" num_blocks="1" salt="9465"/>
+					<request op="extend_vbd" num_blocks="61" sync="yes"/>
+					<request op="write" vba="0" num_blocks="32" sync="yes" salt="4321"/>
+					<request op="read" vba="0" num_blocks="32" salt="4321"/>
+					<check/>
+					<check-snapshots/>
+
+					<log string="Step 17: check maximum tree dimensions"/>
+
+					<destruct/>
+					<initialize>
+						<virtual-block-device max_lvl="5" degree="64" num_leaves="100000"/>
+						<free-tree max_lvl="5" degree="64" num_leaves="100000"/>
+					</initialize>
+					<construct/>
+					<check/>
+					<request op="write" vba="0" num_blocks="1" salt="1234"/>
+					<request op="write" vba="99999" num_blocks="1" salt="5463"/>
+					<request op="read" vba="0" num_blocks="1" salt="1234"/>
+					<request op="extend_vbd" num_blocks="200"/>
+					<request op="write" vba="0" num_blocks="1" salt="4567"/>
+					<request op="read" vba="99999" num_blocks="1" salt="5463"/>
+					<request op="read" vba="0" num_blocks="1" salt="4567"/>
+					<request op="extend_ft" num_blocks="200"/>
+					<request op="write" vba="100" num_blocks="100" salt="1384"/>
+					<request op="write" vba="99990" num_blocks="30" salt="5463"/>
+					<request op="read" vba="100" num_blocks="100" salt="1384"/>
+					<request op="read" vba="99990" num_blocks="30" salt="5463"/>
+					<check/>
+					<check-snapshots/>
+
+					<log string="Step 18: reinitialize Tresor device"/>
 
 					<request op="deinitialize" />
 					<destruct/>
 					<initialize>
-
-						<virtual-block-device
-							nr_of_levels="4"
-							nr_of_children="64"
-							nr_of_leafs="25600" />
-
-						<free-tree
-							nr_of_levels="4"
-							nr_of_children="64"
-							nr_of_leafs="25600" />
-
+						<virtual-block-device max_lvl="3" degree="64" num_leaves="25600" />
+						<free-tree max_lvl="3" degree="64" num_leaves="25600" />
 					</initialize>
 					<construct/>
 }
@@ -612,7 +648,7 @@ if {[benchmark_blk_count] > 0} {
 
 	append config {
 
-					<log string="Step 16: do read/write benchmarks"/>
+					<log string="Step 19: do read/write benchmarks"/>
 
 					<start-benchmark label="read initial data in one request"/>
 					<request op="read" vba="0" num_blocks="} [benchmark_blk_count] {" />
@@ -1052,18 +1088,18 @@ if {[benchmark_blk_count] > 0} {
 
 	append config {
 
-					<log string="Step 16: skip because benchmarks are disabled for this platform"/>
+					<log string="Step 19: skip because benchmarks are disabled for this platform"/>
 	}
 }
 append config {
 
-					<log string="Step 17: test check-snapshots command"/>
+					<log string="Step 20: test check-snapshots command"/>
 
-					<request op="create_snapshot"  id="13"/>
-					<request op="write" vba="17737" num_blocks="70"  salt="8924"/>
-					<request op="create_snapshot"  id="14"/>
-					<request op="write" vba="00129" num_blocks="30"  salt="9471"/>
 					<request op="create_snapshot"  id="15"/>
+					<request op="write" vba="17737" num_blocks="70"  salt="8924"/>
+					<request op="create_snapshot"  id="16"/>
+					<request op="write" vba="00129" num_blocks="30"  salt="9471"/>
+					<request op="create_snapshot"  id="17"/>
 					<check-snapshots/>
 
 				</commands>

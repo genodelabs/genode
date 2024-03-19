@@ -642,7 +642,7 @@ bool Virtual_block_device::Extend_tree::_add_new_root_lvl_to_snap()
 	Snapshot_index old_idx { _snap_idx };
 	Snapshot_index &idx { _snap_idx };
 	Snapshot *snap { _attr.in_out_snapshots.items };
-	if (snap[idx].max_level >= TREE_MAX_LEVEL)
+	if (snap[idx].max_level >= TREE_MAX_MAX_LEVEL)
 		return false;
 
 	Tree_level_index new_lvl { snap[old_idx].max_level + 1 };

@@ -1,6 +1,7 @@
-The tresor_check component check the meta data of a Tresor device. This includes
-the tree for the virtual block device, free tree and meta tree. On success,
-the component exits with exit value 0, otherwise with exit value -1.
+The tresor_check component checks the integrity of the meta and payload data of
+a Tresor container. This includes the tree for the virtual block device, the
+free tree and the meta tree. On success, the component exits with exit value 0,
+otherwise with exit value -1.
 
 
 Sessions
@@ -15,5 +16,5 @@ component apart from the environment sessions:
 Examples
 ~~~~~~~~
 
-An example of how to use the tresor_init component can be found in the test script
-'tresor/run/tresor_check.run'.
+An example of how to use the tresor_check component can be found in the test
+script 'gems/run/tresor_utils.run'.

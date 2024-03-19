@@ -40,7 +40,7 @@ bool Ft_initializer::Initialize::execute(Block_io &block_io)
 	case INIT:
 
 		_num_remaining_leaves = _attr.in_tree_cfg.num_leaves;
-		for (Tree_level_index lvl = 0; lvl < TREE_MAX_LEVEL; lvl++)
+		for (Tree_level_index lvl = 0; lvl < TREE_MAX_MAX_LEVEL; lvl++)
 			_reset_level(lvl, DONE);
 
 		_t1_node_states[_attr.in_tree_cfg.max_lvl + 1][0] = INIT_BLOCK;

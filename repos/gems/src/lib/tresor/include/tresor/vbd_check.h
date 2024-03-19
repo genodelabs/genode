@@ -37,7 +37,7 @@ struct Tresor::Vbd_check : Noncopyable
 			Request_helper<Check, State> _helper;
 			Attr const _attr;
 			Type_1_node_block_walk _t1_blks { };
-			bool _check_node[TREE_MAX_NR_OF_LEVELS][NUM_NODES_PER_BLK] { };
+			bool _check_node[TREE_MAX_NR_OF_LEVELS + 1][NUM_NODES_PER_BLK] { };
 			Block _blk { };
 			Number_of_leaves _num_remaining_leaves { 0 };
 			Generatable_request<Request_helper<Check, State>, State, Block_io::Read> _read_block { };

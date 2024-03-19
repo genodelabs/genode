@@ -1,62 +1,68 @@
-The tresor_init component creates a fresh Tresor device (virtual block device,
-free tree and superblocks) on a back-end block-device according to the
-configured parameters. On success, the component exits with exit value 0,
-otherwise with exit value -1.
+The tresor_init component creates a fresh Tresor container on a back-end
+block-device according to the configured parameters. On success, the component
+exits with exit value 0, otherwise with exit value -1.
 
 
 Configuration
 ~~~~~~~~~~~~~
 
-This is an example configuration of the component which shows the default
-value for each attribute except 'config.dst_ip' and 'config.interface':
+This is an example configuration of the component:
 
 ! <config>
-!    <virtual-block-device
-!       nr_of_levels="4"
-!       nr_of_children="64"
-!       nr_of_leafs="8192" />
-!
-!    <free-tree
-!       nr_of_levels="3"
-!       nr_of_children="64"
-!       nr_of_leafs="1024" />
+!   <virtual-block-device max_lvl="2" degree="64" num_leaves="512" />
+!   <free-tree max_lvl="2" degree="64" num_leaves="2048" />
 ! </config>
 
 This is a short description of the tags and attributes:
 
-:config.virtual-block-device:
-  Mandatory. Contains parameters for the tree that represents the virtual
-  block device.
+:config.virtual-block-device.degree:
+  Contains the configuration for the hash tree that forms the virtual block
+  device of the Tresor container. The leaves of this tree hold the most
+  recent state of the encrypted payload data stored in the container.
+  Therefore, the dimensions of this tree define the storage capacity of the
+  container.
 
-:config.virtual-block-device.nr_of_levels:
-  Mandatory. Number of tree levels including the leafs and the root.
+:config.virtual-block-device.degree:
+  The trees degree or number of children per inner tree node. The minimum value
+  is 2 and the maxiumum value 64.
 
-:config.virtual-block-device.nr_of_children:
-  Mandatory. The tree degree or number of children for each inner node of the
-  tree.
+:config.virtual-block-device.max_lvl:
+  Highest level index beneath the trees root. Level index 0 is the
+  leaf level that consists of the encrypted payload-data blocks. A value of
+  1 is the minimum and results in one inner tree level and a maximum of
+  [degree^1] leaves. The maximum value is 5 resulting in a maximum of
+  [degree^5] leaves.
 
-:config.virtual-block-device.nr_of_leafs:
-  Mandatory. The number of leafs of the tree that are used. This defines the
-  number of virtual blocks available to the Tresor device. This number must be
-  less or equal the number of leafs of the tree, which results from the number
-  of tree levels and the tree degree.
+:config.virtual-block-device.num_leaves:
+  The number of leaves of the tree that are used. This value must
+  be within the limit defined by [max_level] and [degree].
+  Considering the above mentioned maxima and the fixed leaf-size of 4Kbyte,
+  the upper limit for the storage capacity of the container is 4Tbyte .
 
 :config.free-tree:
-  Mandatory. Contains parameters for the tree that is used for managing the
-  spare blocks of the Tresor device.
+  Contains the configuration for the hash tree that forms the journaling buffer
+  of the Tresor container. This buffer is used for implementing the
+  Copy-On-Write semantics of the container and keeping snapshots of older
+  states of the stored data. The buffers capacity is determined by the
+  number of leaves of this tree and affects how many snapshots can be kept at
+  a time.
 
-:config.free-tree.nr_of_levels:
-  Mandatory. Number of tree levels including the leafs and the root.
+:config.free-tree.degree:
+  The trees degree or number of children per inner tree node. The minimum value
+  is 2 and the maxiumum value 64.
 
-:config.free-tree.nr_of_children:
-  Mandatory. The tree degree or number of children for each inner node of the
-  tree.
+:config.free-tree.max_lvl:
+  Highest level index beneath the trees root. Level index 0 is the
+  leaf level that consists of the buffered blocks. A value of
+  1 is the minimum and results in one inner tree level and a maximum of
+  [degree^1] leaves. The maximum value is 5 resulting in a maximum of
+  [degree^5] leaves.
 
-:config.free-tree.nr_of_leafs:
-  Mandatory. The number of leafs of the tree that are used. This defines the
-  number of spare blocks available to the Tresor device. This number must be less
-  or equal the number of leafs of the tree, which results from the number of
-  tree levels and the tree degree.
+:config.free-tree.num_leaves:
+  The number of leaves of the tree that are used. This value must
+  be within the limit defined by [max_level] and [degree].
+  Considering the above mentioned maxima and the fixed leaf-size of 4Kbyte,
+  the upper limit for the journaling buffer of the container is 4Tbyte .
 
 
 Sessions
@@ -71,5 +77,5 @@ component apart from the environment sessions:
 Examples
 ~~~~~~~~
 
-An example of how to use the tresor_init component can be found in the test script
-'tresor/run/tresor_init_dev.run'.
+An example of how to use the tresor_init component can be found in the test
+script 'gems/run/tresor_utils.run'.

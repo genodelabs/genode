@@ -23,6 +23,9 @@
 #include <os/reporter.h>
 #include <timer_session/connection.h>
 
+/* tresor includes */
+#include <tresor/types.h>
+
 /* local includes */
 #include <gui_session_component.h>
 #include <report_session_component.h>
@@ -86,15 +89,16 @@ class File_vault::Main
 {
 	private:
 
+		static constexpr Tree_degree TRESOR_VBD_DEGREE = 64;
+		static constexpr Tree_level_index TRESOR_VBD_MAX_LVL = 5;
+		static constexpr Tree_degree TRESOR_FREE_TREE_DEGREE = 64;
+		static constexpr Tree_level_index TRESOR_FREE_TREE_MAX_LVL = 5;
+
 		enum {
 			MIN_CLIENT_FS_SIZE = 100 * 1024,
 			STATE_STRING_CAPACITY = 64,
 			TRESOR_BLOCK_SIZE = 4096,
 			MAIN_FRAME_WIDTH = 46,
-			TRESOR_VBD_TREE_NR_OF_LEVELS = 6,
-			TRESOR_VBD_TREE_NR_OF_CHILDREN = 64,
-			TRESOR_FREE_TREE_NR_OF_LEVELS = 6,
-			TRESOR_FREE_TREE_NR_OF_CHILDREN = 64,
 			TRESOR_NR_OF_SUPERBLOCKS = 8,
 		};
 
@@ -624,7 +628,7 @@ class File_vault::Main
 			}
 		}
 
-		static size_t _tresor_tree_nr_of_leaves(size_t payload_size);
+		static Number_of_blocks _tresor_tree_num_leaves(size_t payload_size);
 
 
 		static size_t _tree_nr_of_blocks(size_t nr_of_lvls,
@@ -1973,7 +1977,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 									_expand_client_fs_contingent.value() };
 
 								size_t const effective_bytes {
-									bytes - (bytes % TRESOR_BLOCK_SIZE) };
+									bytes - (bytes % Tresor::BLOCK_SIZE) };
 
 								if (effective_bytes > 0) {
 
@@ -1989,7 +1993,7 @@ void File_vault::Main::produce_xml(Xml_generator &xml)
 									gen_info_line(xml, "info_1",
 										String<128> {
 											"Must be at least ",
-											Number_of_bytes { TRESOR_BLOCK_SIZE } }.string());
+											Number_of_bytes { Tresor::BLOCK_SIZE } }.string());
 
 									gen_start_button = false;
 								}
@@ -2357,9 +2361,9 @@ void File_vault::Main::wakeup_local_service()
 }
 
 
-size_t Main::_tresor_tree_nr_of_leaves(size_t payload_size)
+Number_of_blocks Main::_tresor_tree_num_leaves(size_t payload_size)
 {
-	size_t nr_of_leaves { payload_size / TRESOR_BLOCK_SIZE };
+	Number_of_blocks nr_of_leaves { payload_size / TRESOR_BLOCK_SIZE };
 	if (payload_size % TRESOR_BLOCK_SIZE) {
 		nr_of_leaves++;
 	}
@@ -2439,31 +2443,25 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 			TRESOR_BLOCK_SIZE *
 				_tresor_nr_of_blocks(
 					TRESOR_NR_OF_SUPERBLOCKS,
-					TRESOR_VBD_TREE_NR_OF_LEVELS,
-					TRESOR_VBD_TREE_NR_OF_CHILDREN,
-					_tresor_tree_nr_of_leaves(_ui_client_fs_size()),
-					TRESOR_FREE_TREE_NR_OF_LEVELS,
-					TRESOR_FREE_TREE_NR_OF_CHILDREN,
-					_tresor_tree_nr_of_leaves(_ui_journaling_buf_size())));
+					TRESOR_VBD_MAX_LVL + 1,
+					TRESOR_VBD_DEGREE,
+					_tresor_tree_num_leaves(_ui_client_fs_size()),
+					TRESOR_FREE_TREE_MAX_LVL + 1,
+					TRESOR_FREE_TREE_DEGREE,
+					_tresor_tree_num_leaves(_ui_journaling_buf_size())));
 
 		break;
 
 	case State::SETUP_RUN_TRESOR_INIT:
 	{
-		Tree_geometry const vbd_tree_geom {
-			TRESOR_VBD_TREE_NR_OF_LEVELS,
-			TRESOR_VBD_TREE_NR_OF_CHILDREN,
-			_tresor_tree_nr_of_leaves(_ui_client_fs_size()) };
-
-		Tree_geometry const free_tree_geom {
-			TRESOR_VBD_TREE_NR_OF_LEVELS,
-			TRESOR_VBD_TREE_NR_OF_CHILDREN,
-			_tresor_tree_nr_of_leaves(_ui_journaling_buf_size()) };
-
+		Tresor::Superblock_configuration sb_config {
+			Tree_configuration { TRESOR_VBD_MAX_LVL, TRESOR_VBD_DEGREE, _tresor_tree_num_leaves(_ui_client_fs_size()) },
+			Tree_configuration { TRESOR_FREE_TREE_MAX_LVL, TRESOR_FREE_TREE_DEGREE, _tresor_tree_num_leaves(_ui_journaling_buf_size()) }
+		};
 		gen_parent_provides_and_report_nodes(xml);
 		_gen_menu_view_start_node_if_required(xml);
 		gen_tresor_trust_anchor_vfs_start_node(xml, _tresor_trust_anchor_vfs, _jent_avail);
-		gen_tresor_init_start_node(xml, _tresor_init, vbd_tree_geom, free_tree_geom);
+		gen_tresor_init_start_node(xml, _tresor_init, sb_config);
 		break;
 	}
 	case State::SETUP_START_TRESOR_VFS:
@@ -2698,12 +2696,12 @@ size_t Main::_tresor_size() const
 	return
 		_tresor_nr_of_blocks(
 			TRESOR_NR_OF_SUPERBLOCKS,
-			TRESOR_VBD_TREE_NR_OF_LEVELS,
-			TRESOR_VBD_TREE_NR_OF_CHILDREN,
-			_tresor_tree_nr_of_leaves(_ui_client_fs_size()),
-			TRESOR_FREE_TREE_NR_OF_LEVELS,
-			TRESOR_FREE_TREE_NR_OF_CHILDREN,
-			_tresor_tree_nr_of_leaves(_ui_journaling_buf_size()))
+			TRESOR_VBD_MAX_LVL + 1,
+			TRESOR_VBD_DEGREE,
+			_tresor_tree_num_leaves(_ui_client_fs_size()),
+			TRESOR_FREE_TREE_MAX_LVL + 1,
+			TRESOR_FREE_TREE_DEGREE,
+			_tresor_tree_num_leaves(_ui_journaling_buf_size()))
 		* TRESOR_BLOCK_SIZE;
 }
 

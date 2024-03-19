@@ -36,9 +36,7 @@ class Tresor::Sb_initializer : Noncopyable
 
 				struct Attr
 				{
-					Tree_configuration const in_vbd_cfg;
-					Tree_configuration const in_ft_cfg;
-					Tree_configuration const in_mt_cfg;
+					Superblock_configuration const &in_sb_cfg;
 					Pba_allocator &in_out_pba_alloc;
 				};
 

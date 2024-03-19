@@ -1,43 +1,23 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-	<xs:simpleType name="Nr_of_levels">
-		<xs:restriction base="xs:integer">
-			<xs:minInclusive value="3"/>
-			<xs:maxInclusive value="7"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Nr_of_levels -->
-
-	<xs:simpleType name="Nr_of_children">
-		<xs:restriction base="xs:integer">
-			<xs:minInclusive value="2"/>
-			<xs:maxInclusive value="64"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Nr_of_children -->
-
 	<xs:element name="config">
 		<xs:complexType>
 			<xs:choice minOccurs="0" maxOccurs="unbounded">
 
-				<xs:element name="key">
-					<xs:complexType>
-						<xs:attribute name="id" type="xs:positiveInteger" />
-					</xs:complexType>
-				</xs:element><!-- key -->
-
 				<xs:element name="virtual-block-device">
 					<xs:complexType>
-						<xs:attribute name="nr_of_levels"   type="Nr_of_levels" />
-						<xs:attribute name="nr_of_children" type="Nr_of_children" />
-						<xs:attribute name="nr_of_leafs"    type="xs:positiveInteger" />
+						<xs:attribute name="max_lvl" type="xs:positiveInteger" />
+						<xs:attribute name="degree" type="xs:positiveInteger" />
+						<xs:attribute name="num_leaves" type="xs:positiveInteger" />
 					</xs:complexType>
 				</xs:element><!-- virtual-block-device -->
 
 				<xs:element name="free-tree">
-					<xs:complexType>
-						<xs:attribute name="nr_of_levels"   type="Nr_of_levels" />
-						<xs:attribute name="nr_of_children" type="Nr_of_children" />
-						<xs:attribute name="nr_of_leafs"    type="xs:positiveInteger" />
+					<xs:complexType
+						<xs:attribute name="max_lvl" type="xs:positiveInteger" />
+						<xs:attribute name="degree" type="xs:positiveInteger" />
+						<xs:attribute name="num_leaves" type="xs:positiveInteger" />>
 					</xs:complexType>
 				</xs:element><!-- free-tree -->
 

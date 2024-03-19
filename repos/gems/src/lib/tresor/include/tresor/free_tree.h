@@ -80,9 +80,9 @@ class Tresor::Free_tree::Allocate_pbas : Noncopyable
 		Tree_walk_generations _old_generations { };
 		Number_of_blocks _num_pbas { 0 };
 		Block _blk { };
-		Tree_node_index _node_idx[TREE_MAX_NR_OF_LEVELS] { };
+		Tree_node_index _node_idx[TREE_MAX_NR_OF_LEVELS + 1] { };
 		bool _apply_allocation { false };
-		Type_1_node_block _t1_blks[TREE_MAX_NR_OF_LEVELS] { };
+		Type_1_node_block _t1_blks[TREE_MAX_NR_OF_LEVELS + 1] { };
 		Type_2_node_block _t2_blk { };
 		Tree_degree_log_2 _vbd_degree_log_2 { 0 };
 		Tree_level_index _lvl { 0 };
@@ -144,7 +144,7 @@ class Tresor::Free_tree::Extend_tree : Noncopyable
 		Tree_walk_pbas _new_pbas { };
 		Tree_level_index _lvl { 0 };
 		Block _blk { };
-		Type_1_node_block _t1_blks[TREE_MAX_NR_OF_LEVELS] { };
+		Type_1_node_block _t1_blks[TREE_MAX_NR_OF_LEVELS + 1] { };
 		Type_2_node_block _t2_blk { };
 		Tree_level_index _alloc_lvl { 0 };
 		Physical_block_address _alloc_pba { 0 };

@@ -23,14 +23,12 @@ void Sb_check::Check::_check_snap(bool &progress)
 	if (!snap.valid) {
 		_helper.state = CHECK_VBD_SUCCEEDED;
 		progress = true;
-		if (VERBOSE_CHECK)
-			log("  skip snap ", _snap_idx, " as it is unused");
 		return;
 	}
 	_tree_root.construct(snap.pba, snap.gen, snap.hash, snap.max_level, _sb.degree, snap.nr_of_leaves);
 	_check_vbd.generate(_helper, CHECK_VBD, CHECK_VBD_SUCCEEDED, progress, *_tree_root);
 	if (VERBOSE_CHECK)
-		log("  check snap ", _snap_idx, " (", snap, ")");
+		log("  check snap #", _snap_idx, " (", snap, ")");
 }
 
 
@@ -55,7 +53,7 @@ bool Sb_check::Check::execute(Vbd_check &vbd_check, Ft_check &ft_check, Block_io
 		if (check_hash(_blk, _hash)) {
 			_sb.decode_from_blk(_blk);
 			if (VERBOSE_CHECK)
-				log("check superblock ", _sb_idx, " hash ", _hash, "\n  read superblock");
+				log("check superblock (pba ", _sb_idx, " hash ", _hash, ")");
 
 			if (!_sb.valid()) {
 				_helper.mark_failed(progress, "superblock marked invalid");;
@@ -81,7 +79,7 @@ bool Sb_check::Check::execute(Vbd_check &vbd_check, Ft_check &ft_check, Block_io
 			_tree_root.construct(_sb.free_number, _sb.free_gen, _sb.free_hash, _sb.free_max_level, _sb.free_degree, _sb.free_leaves);
 			_check_ft.generate(_helper, CHECK_FT, CHECK_FT_SUCCEEDED, progress, *_tree_root);
 			if (VERBOSE_CHECK)
-				log("  check free tree");
+				log("  check free tree (", _tree_root->t1_node(), ")");
 		}
 		break;
 
@@ -91,7 +89,7 @@ bool Sb_check::Check::execute(Vbd_check &vbd_check, Ft_check &ft_check, Block_io
 		_tree_root.construct(_sb.meta_number, _sb.meta_gen, _sb.meta_hash, _sb.meta_max_level, _sb.meta_degree, _sb.meta_leaves);
 		_check_ft.generate(_helper, CHECK_MT, CHECK_MT_SUCCEEDED, progress, *_tree_root);
 		if (VERBOSE_CHECK)
-			log("  check meta tree");
+			log("  check meta tree (", _tree_root->t1_node(), ")");
 		break;
 
 	case CHECK_MT: progress |= _check_ft.execute(ft_check, block_io); break;

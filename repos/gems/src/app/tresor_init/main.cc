@@ -26,9 +26,6 @@
 #include <tresor/sb_initializer.h>
 #include <tresor/vbd_initializer.h>
 
-/* tresor init includes */
-#include <tresor_init/configuration.h>
-
 using namespace Genode;
 using namespace Tresor;
 
@@ -50,7 +47,7 @@ class Tresor_init::Main : private Vfs::Env::User, private Crypto_key_files_inter
 		Attached_rom_dataspace _config_rom { _env, "config" };
 		Vfs::Simple_env _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs"), *this };
 		Signal_handler<Main> _sigh { _env.ep(), *this, &Main::_handle_signal };
-		Configuration _cfg { _config_rom.xml() };
+		Superblock_configuration _sb_config { _config_rom.xml() };
 		Tresor::Path const _crypto_path { _config_rom.xml().sub_node("crypto").attribute_value("path", Tresor::Path()) };
 		Tresor::Path const _block_io_path { _config_rom.xml().sub_node("block-io").attribute_value("path", Tresor::Path()) };
 		Tresor::Path const _trust_anchor_path { _config_rom.xml().sub_node("trust-anchor").attribute_value("path", Tresor::Path()) };
@@ -70,25 +67,7 @@ class Tresor_init::Main : private Vfs::Env::User, private Crypto_key_files_inter
 		Vbd_initializer _vbd_initializer { };
 		Ft_initializer _ft_initializer { };
 		Sb_initializer _sb_initializer { };
-		Sb_initializer::Initialize _init_superblocks {{
-			Tree_configuration {
-				(Tree_level_index)(_cfg.vbd_nr_of_lvls() - 1),
-				(Tree_degree)_cfg.vbd_nr_of_children(),
-				_cfg.vbd_nr_of_leafs()
-			},
-			Tree_configuration {
-				(Tree_level_index)_cfg.ft_nr_of_lvls() - 1,
-				(Tree_degree)_cfg.ft_nr_of_children(),
-				_cfg.ft_nr_of_leafs()
-			},
-			Tree_configuration {
-				(Tree_level_index)_cfg.ft_nr_of_lvls() - 1,
-				(Tree_degree)_cfg.ft_nr_of_children(),
-				_cfg.ft_nr_of_leafs()
-			},
-			_pba_alloc
-		}};
-
+		Sb_initializer::Initialize _init_superblocks { {_sb_config, _pba_alloc} };
 		Constructible<Crypto_key> &_crypto_key(Key_id key_id)
 		{
 			for (Constructible<Crypto_key> &key : _crypto_keys)

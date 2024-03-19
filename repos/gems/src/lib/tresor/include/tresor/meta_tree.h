@@ -53,8 +53,8 @@ class Tresor::Meta_tree::Allocate_pba : Noncopyable
 		Helper _helper;
 		Attr const _attr;
 		Block _blk { };
-		Tree_node_index _node_idx[TREE_MAX_NR_OF_LEVELS] { };
-		Type_1_node_block _t1_blks[TREE_MAX_NR_OF_LEVELS] { };
+		Tree_node_index _node_idx[TREE_MAX_NR_OF_LEVELS + 1] { };
+		Type_1_node_block _t1_blks[TREE_MAX_NR_OF_LEVELS + 1] { };
 		Type_2_node_block _t2_blk { };
 		Tree_level_index _lvl { 0 };
 		Generatable_request<Helper, State, Block_io::Read> _read_block { };

@@ -101,7 +101,7 @@ bool Vbd_initializer::Initialize::execute(Block_io &block_io)
 	case INIT:
 
 		_num_remaining_leaves = _attr.in_tree_cfg.num_leaves;
-		for (Tree_level_index lvl = 0; lvl < TREE_MAX_LEVEL; lvl++)
+		for (Tree_level_index lvl = 1; lvl < TREE_MAX_MAX_LEVEL; lvl++)
 			_reset_level(lvl, Vbd_initializer::Initialize::DONE);
 
 		_node_states[_attr.in_tree_cfg.max_lvl + 1][0] = Vbd_initializer::Initialize::INIT_BLOCK;
@@ -111,7 +111,7 @@ bool Vbd_initializer::Initialize::execute(Block_io &block_io)
 
 	case EXECUTE_NODES:
 
-		for (Tree_level_index lvl = 0; lvl <= _attr.in_tree_cfg.max_lvl + 1; lvl++)
+		for (Tree_level_index lvl = 1; lvl <= _attr.in_tree_cfg.max_lvl + 1; lvl++)
 			for (Tree_node_index node_idx = 0; node_idx < _attr.in_tree_cfg.degree; node_idx++)
 				if (_execute_node(lvl, node_idx, progress))
 					return progress;

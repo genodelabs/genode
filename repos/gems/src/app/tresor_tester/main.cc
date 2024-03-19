@@ -18,9 +18,6 @@
 #include <timer_session/connection.h>
 #include <vfs/simple_env.h>
 
-/* tresor init includes */
-#include <tresor_init/configuration.h>
-
 /* tresor includes */
 #include <tresor/crypto.h>
 #include <tresor/trust_anchor.h>
@@ -270,7 +267,7 @@ struct Tresor_tester::Command : Avl_node<Command>, Schedule<Command>::Item
 	Constructible<Initialize_trust_anchor_node> init_trust_anchor_node { };
 	Constructible<Start_benchmark_node> start_benchmark_node { };
 	Constructible<Log_node> log_node { };
-	Constructible<Tresor_init::Configuration> initialize_config { };
+	Constructible<Tresor::Superblock_configuration> sb_config { };
 	Trust_anchor::Initialize *init_trust_anchor_ptr { };
 	Sb_initializer::Initialize *init_superblocks_ptr { };
 	Sb_check::Check *check_superblocks_ptr { };
@@ -342,7 +339,7 @@ struct Tresor_tester::Command : Avl_node<Command>, Schedule<Command>::Item
 	Command(Xml_node const &node, Id id) : type(type_from_node(node)), id(id)
 	{
 		switch (type) {
-		case INITIALIZE: initialize_config.construct(node); break;
+		case INITIALIZE: sb_config.construct(node); break;
 		case REQUEST: request_node.construct(node); break;
 		case INIT_TRUST_ANCHOR: init_trust_anchor_node.construct(node); break;
 		case START_BENCHMARK: start_benchmark_node.construct(node); break;
@@ -589,25 +586,7 @@ class Tresor_tester::Main : Vfs::Env::User, Client_data_interface, Crypto_key_fi
 				case Command::INIT:
 				{
 					_reset_snap_refs();
-					Tresor_init::Configuration const &cfg { *cmd.initialize_config };
-					cmd.init_superblocks_ptr = new (_heap) Sb_initializer::Initialize({
-						Tree_configuration {
-							(Tree_level_index)(cfg.vbd_nr_of_lvls() - 1),
-							(Tree_degree)cfg.vbd_nr_of_children(),
-							cfg.vbd_nr_of_leafs()
-						},
-						Tree_configuration {
-							(Tree_level_index)cfg.ft_nr_of_lvls() - 1,
-							(Tree_degree)cfg.ft_nr_of_children(),
-							cfg.ft_nr_of_leafs()
-						},
-						Tree_configuration {
-							(Tree_level_index)cfg.ft_nr_of_lvls() - 1,
-							(Tree_degree)cfg.ft_nr_of_children(),
-							cfg.ft_nr_of_leafs()
-						},
-						_pba_alloc
-					});
+					cmd.init_superblocks_ptr = new (_heap) Sb_initializer::Initialize({ *cmd.sb_config, _pba_alloc });
 					_mark_command_in_progress(cmd, progress);
 					break;
 				}

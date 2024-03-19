@@ -50,6 +50,10 @@ bool Superblock_control::Write_vbas::execute(Execute_attr const &attr)
 	switch (_helper.state) {
 	case INIT:
 
+		if (!_attr.in_num_vbas) {
+			_helper.mark_failed(progress, "number of blocks is 0");
+			break;
+		}
 		if (_attr.in_first_vba + _attr.in_num_vbas - 1 > attr.sb.max_vba()) {
 			_helper.mark_failed(progress, "invalid VBA range");
 			break;
@@ -60,9 +64,9 @@ bool Superblock_control::Write_vbas::execute(Execute_attr const &attr)
 	case WRITE_VBA: progress |= _write_vba.execute(attr.vbd, attr.client_data, attr.block_io, attr.free_tree, attr.meta_tree, attr.crypto); break;
 	case WRITE_VBA_SUCCEEDED:
 
-		if (++_num_written_vbas < _attr.in_num_vbas) {
+		if (++_num_written_vbas < _attr.in_num_vbas)
 			_start_write_vba(attr, progress);
-		} else
+		else
 			_helper.mark_succeeded(progress);
 		break;
 
@@ -93,6 +97,10 @@ bool Superblock_control::Read_vbas::execute(Execute_attr const &attr)
 	switch (_helper.state) {
 	case INIT:
 
+		if (!_attr.in_num_vbas) {
+			_helper.mark_failed(progress, "number of blocks is 0");
+			break;
+		}
 		if (_attr.in_first_vba + _attr.in_num_vbas - 1 > attr.sb.max_vba()) {
 			_helper.mark_failed(progress, "invalid VBA range");
 			break;
@@ -103,9 +111,9 @@ bool Superblock_control::Read_vbas::execute(Execute_attr const &attr)
 	case READ_VBA: progress |= _read_vba.execute(attr.vbd, attr.client_data, attr.block_io, attr.crypto); break;
 	case READ_VBA_SUCCEEDED:
 
-		if (++_num_read_vbas < _attr.in_num_vbas) {
+		if (++_num_read_vbas < _attr.in_num_vbas)
 			_start_read_vba(attr, progress);
-		} else
+		else
 			_helper.mark_succeeded(progress);
 		break;
 

@@ -667,10 +667,9 @@ namespace File_vault {
 		});
 	}
 
-	void gen_tresor_init_start_node(Xml_generator       &xml,
-	                             Child_state   const &child,
-	                             Tree_geometry const &vbd_geom,
-	                             Tree_geometry const &ft_geom)
+	void gen_tresor_init_start_node(Xml_generator &xml,
+	                                Child_state const &child,
+	                                Tresor::Superblock_configuration sb_config)
 	{
 		child.gen_start_node(xml, [&] () {
 
@@ -700,16 +699,7 @@ namespace File_vault {
 						});
 					});
 				});
-				xml.node("virtual-block-device", [&] () {
-					xml.attribute("nr_of_levels",   vbd_geom.nr_of_levels());
-					xml.attribute("nr_of_children", vbd_geom.nr_of_children());
-					xml.attribute("nr_of_leafs",    vbd_geom.nr_of_leaves());
-				});
-				xml.node("free-tree", [&] () {
-					xml.attribute("nr_of_levels",   ft_geom.nr_of_levels());
-					xml.attribute("nr_of_children", ft_geom.nr_of_children());
-					xml.attribute("nr_of_leafs",    ft_geom.nr_of_leaves());
-				});
+				sb_config.generate_xml(xml);
 			});
 			xml.node("route", [&] () {
 				route_to_child_service(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor");

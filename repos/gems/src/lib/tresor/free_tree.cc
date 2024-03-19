@@ -249,7 +249,7 @@ void Free_tree::Extend_tree::_generate_write_blk_req(bool &progress)
 
 bool Free_tree::Extend_tree::_add_new_root_lvl()
 {
-	if (_attr.in_out_ft.max_lvl >= TREE_MAX_LEVEL)
+	if (_attr.in_out_ft.max_lvl >= TREE_MAX_MAX_LEVEL)
 		return false;
 
 	_attr.in_out_ft.max_lvl++;

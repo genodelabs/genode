@@ -106,6 +106,7 @@ void Meta_tree::Allocate_pba::_alloc_pba_of(Type_2_node &t2_node, Physical_block
 	t2_node.reserved = false;
 }
 
+
 void Meta_tree::Allocate_pba::_traverse_curr_node(bool &progress)
 {
 	if (_lvl) {

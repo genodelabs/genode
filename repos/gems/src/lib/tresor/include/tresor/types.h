@@ -16,6 +16,8 @@
 #define _TRESOR__TYPES_H_
 
 /* base includes */
+#include <util/xml_node.h>
+#include <util/xml_generator.h>
 #include <util/reconstructible.h>
 
 /* os includes */
@@ -65,8 +67,11 @@ namespace Tresor {
 	enum { NUM_NODES_PER_BLK = (size_t)BLOCK_SIZE / (size_t)ON_DISC_NODE_SIZE };
 	enum { TREE_MAX_DEGREE_LOG_2 = 6 };
 	enum { TREE_MAX_DEGREE = 1 << TREE_MAX_DEGREE_LOG_2 };
-	enum { TREE_MAX_LEVEL = 6 };
-	enum { TREE_MAX_NR_OF_LEVELS = TREE_MAX_LEVEL + 1 };
+	enum { TREE_MIN_DEGREE_LOG_2 = 1 };
+	enum { TREE_MIN_DEGREE = 1 << TREE_MIN_DEGREE_LOG_2 };
+	enum { TREE_MIN_MAX_LEVEL = 1 };
+	enum { TREE_MAX_MAX_LEVEL = 5 };
+	enum { TREE_MAX_NR_OF_LEVELS = TREE_MAX_MAX_LEVEL + 1 };
 	enum { KEY_SIZE = 32 };
 	enum { MAX_NR_OF_SNAPSHOTS = 48 };
 	enum { MAX_SNAP_IDX = MAX_NR_OF_SNAPSHOTS - 1 };
@@ -74,10 +79,8 @@ namespace Tresor {
 	enum { SNAPSHOT_STORAGE_SIZE = 72 };
 	enum { NR_OF_SUPERBLOCK_SLOTS = 8 };
 	enum { MAX_SUPERBLOCK_INDEX = NR_OF_SUPERBLOCK_SLOTS - 1 };
-	enum { FREE_TREE_MIN_MAX_LEVEL = 2 };
-	enum { TREE_MAX_NR_OF_LEAVES = to_the_power_of<Number_of_leaves>(TREE_MAX_DEGREE, (TREE_MAX_LEVEL - 1)) };
-	enum { INVALID_VBA = to_the_power_of<Virtual_block_address>(TREE_MAX_DEGREE, TREE_MAX_LEVEL - 1) };
-	enum { TREE_MIN_DEGREE = 1 };
+	enum { TREE_MAX_NR_OF_LEAVES = to_the_power_of<Number_of_leaves>(TREE_MAX_DEGREE, (TREE_MAX_MAX_LEVEL - 1)) };
+	enum { INVALID_VBA = to_the_power_of<Virtual_block_address>(TREE_MAX_DEGREE, TREE_MAX_MAX_LEVEL - 1) };
 
 	struct Byte_range;
 	struct Key_value;
@@ -88,6 +91,7 @@ namespace Tresor {
 	struct Block_generator;
 	struct Superblock;
 	struct Superblock_info;
+	struct Superblock_configuration;
 	struct Snapshot;
 	struct Snapshots_info;
 	struct Snapshots;
@@ -606,9 +610,57 @@ struct Tresor::Tree_root
 
 struct Tresor::Tree_configuration
 {
-	Tree_level_index max_lvl;
-	Tree_degree degree;
-	Number_of_leaves num_leaves;
+	Tree_level_index const max_lvl;
+	Tree_degree const degree;
+	Number_of_leaves const num_leaves;
+
+	void assert_valid() const
+	{
+		ASSERT(max_lvl >= TREE_MIN_MAX_LEVEL);
+		ASSERT(max_lvl <= TREE_MAX_MAX_LEVEL);
+		ASSERT(degree <= TREE_MAX_DEGREE);
+		ASSERT(degree >= TREE_MIN_DEGREE);
+		ASSERT(is_power_of_2(degree));
+		ASSERT(num_leaves);
+		ASSERT(num_leaves <= tree_max_max_vba(degree, max_lvl) + 1);
+	}
+
+	Tree_configuration(Tree_level_index max_lvl, Tree_degree degree, Number_of_leaves num_leaves)
+	: max_lvl(max_lvl), degree(degree), num_leaves(num_leaves) { assert_valid(); }
+
+	Tree_configuration(Xml_node const &node)
+	:
+		max_lvl(node.attribute_value("max_lvl", (Tree_level_index)0)),
+		degree(node.attribute_value("degree", (Tree_degree)0)),
+		num_leaves(node.attribute_value("num_leaves", (Number_of_leaves)0))
+	{ assert_valid(); }
+};
+
+
+struct Tresor::Superblock_configuration
+{
+	Tree_configuration const vbd;
+	Tree_configuration const free_tree;
+
+	Superblock_configuration(Tree_configuration const &vbd, Tree_configuration const &free_tree)
+	: vbd(vbd), free_tree(free_tree) { }
+
+	Superblock_configuration(Xml_node const &node)
+	: vbd(node.sub_node("virtual-block-device")), free_tree(node.sub_node("free-tree")) { }
+
+	void generate_xml(Xml_generator &xml)
+	{
+		xml.node("virtual-block-device", [&] () {
+			xml.attribute("max_lvl", vbd.max_lvl);
+			xml.attribute("degree", vbd.degree);
+			xml.attribute("num_leaves", vbd.num_leaves);
+		});
+		xml.node("free-tree", [&] () {
+			xml.attribute("max_lvl", free_tree.max_lvl);
+			xml.attribute("degree", free_tree.degree);
+			xml.attribute("num_leaves", free_tree.num_leaves);
+		});
+	}
 };
 
 
@@ -634,7 +686,7 @@ struct Tresor::Type_1_node_block
 
 struct Tresor::Type_1_node_block_walk
 {
-	Type_1_node_block items[TREE_MAX_NR_OF_LEVELS] { };
+	Type_1_node_block items[TREE_MAX_NR_OF_LEVELS + 1] { };
 
 	Type_1_node &node(Virtual_block_address vba, Tree_level_index lvl, Tree_degree degr)
 	{
@@ -721,7 +773,7 @@ struct Tresor::Snapshot
 	Physical_block_address pba          { INVALID_PBA };
 	Generation             gen          { MAX_GENERATION };
 	Number_of_leaves       nr_of_leaves { TREE_MAX_NR_OF_LEAVES };
-	Tree_level_index       max_level    { TREE_MAX_LEVEL };
+	Tree_level_index       max_level    { TREE_MAX_MAX_LEVEL };
 	bool                   valid        { false };
 	Snapshot_id            id           { MAX_SNAP_ID };
 	bool                   keep         { false };
@@ -1037,12 +1089,12 @@ struct Tresor::Superblock
 
 struct Tresor::Type_1_node_walk
 {
-	Type_1_node nodes[TREE_MAX_NR_OF_LEVELS] { };
+	Type_1_node nodes[TREE_MAX_NR_OF_LEVELS + 1] { };
 
 	void print(Output &out) const
 	{
 		bool first { true };
-		for (unsigned idx { 0 }; idx < TREE_MAX_NR_OF_LEVELS; idx++) {
+		for (unsigned idx { 0 }; idx <= TREE_MAX_NR_OF_LEVELS + 1; idx++) {
 
 			if (!nodes[idx].valid())
 				continue;
@@ -1056,12 +1108,12 @@ struct Tresor::Type_1_node_walk
 
 struct Tresor::Tree_walk_pbas
 {
-	Physical_block_address pbas[TREE_MAX_NR_OF_LEVELS] { 0 };
+	Physical_block_address pbas[TREE_MAX_NR_OF_LEVELS + 1] { 0 };
 
 	void print(Output &out) const
 	{
 		bool first { true };
-		for (unsigned idx { 0 }; idx < TREE_MAX_NR_OF_LEVELS; idx++) {
+		for (unsigned idx { 0 }; idx < TREE_MAX_NR_OF_LEVELS + 1; idx++) {
 
 			if (!pbas[idx])
 				continue;
@@ -1075,7 +1127,7 @@ struct Tresor::Tree_walk_pbas
 
 struct Tresor::Tree_walk_generations
 {
-	Generation items[TREE_MAX_NR_OF_LEVELS] { };
+	Generation items[TREE_MAX_NR_OF_LEVELS + 1] { };
 };
 
 
@@ -1154,7 +1206,7 @@ class Tresor::Pba_allocation {
 		void print(Output &out) const
 		{
 			bool first { true };
-			for (unsigned lvl { 0 }; lvl < TREE_MAX_NR_OF_LEVELS; lvl++) {
+			for (unsigned lvl { 0 }; lvl < TREE_MAX_NR_OF_LEVELS + 1; lvl++) {
 
 				if (_t1_node_walk.nodes[lvl].pba == _new_pbas.pbas[lvl])
 					continue;
@@ -1164,6 +1216,5 @@ class Tresor::Pba_allocation {
 			}
 		}
 };
-
 
 #endif /* _TRESOR__TYPES_H_ */
