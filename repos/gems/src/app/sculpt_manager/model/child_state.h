@@ -106,12 +106,12 @@ struct Sculpt::Child_state : Noncopyable
 				return false;
 
 			if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested")) {
-				_ram_quota.value *= 2;
+				_ram_quota.value = min(_ram_quota.value*2, 256*1024*1024u);
 				result = true;
 			}
 
 			if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested")) {
-				_cap_quota.value += 100;
+				_cap_quota.value = min(_cap_quota.value + 100, 5000u);
 				result = true;
 			}
 

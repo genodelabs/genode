@@ -202,12 +202,12 @@ class Dialog::Distant_runtime::View : private Views::Element
 				return false;
 
 			if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested")) {
-				_ram.value *= 2;
+				_ram.value = min(2*_ram.value, 32*1024*1024u);
 				result = true;
 			}
 
 			if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested")) {
-				_caps.value += 100;
+				_caps.value = min(_caps.value + 100, 2000u);
 				result = true;
 			}
 
