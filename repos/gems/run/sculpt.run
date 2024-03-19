@@ -271,7 +271,10 @@ install_config {
 			<policy label="clipboard -> focus"  report="nitpicker -> focus"/>
 			<policy label="drivers -> capslock" report="global_keys_handler -> capslock"/>
 			<policy label="runtime -> capslock" report="global_keys_handler -> capslock"/>
+			<policy label="runtime -> numlock"  report="global_keys_handler -> numlock"/>
 			<policy label="drivers -> numlock"  report="global_keys_handler -> numlock"/>
+			<policy label="numlock_remap_rom -> numlock" report="global_keys_handler -> numlock"/>
+			<policy label="event_filter -> capslock" report="global_keys_handler -> capslock"/>
 			<policy label="runtime -> clicked"  report="nitpicker -> clicked"/>
 			<policy label="leitzentrale -> manager -> nitpicker_focus" report="nitpicker -> focus"/>
 			<policy label="leitzentrale -> manager -> nitpicker_hover" report="nitpicker -> hover"/>
@@ -403,16 +406,10 @@ install_config {
 				<child name="config_fs_rom" label="drivers"/> </service>
 			<service name="ROM" label_last="capslock">
 				<child name="report_rom" label="drivers -> capslock"/> </service>
-			<service name="ROM" label_last="event_filter.config">
-				<child name="config_fs_rom" label="managed/event_filter"/> </service>
-			<service name="ROM" label_prefix="event_filter -> keyboard/">
-				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label_last="fb_drv.config">
 				<child name="config_fs_rom" label="managed/fb_drv"/> </service>
 			<service name="ROM" label_last="gpu_drv.config">
 				<child name="config_fs_rom" label="gpu_drv"/> </service>
-			<service name="ROM" label_last="numlock_remap.config">
-				<child name="config_fs_rom" label="numlock_remap"/> </service>
 			<service name="ROM" label_last="usb_policy">
 				<child name="config_fs_rom" label="usb"/> </service>
 			<service name="ROM" label_last="system">
@@ -421,10 +418,11 @@ install_config {
 				<child name="config_fs_rom" label="managed/modem"/> </service>
 			<service name="ROM" label_last="audio.config">
 				<child name="config_fs_rom" label="managed/audio"/> </service>
-			<service name="ROM" label_last="numlock">  <child name="report_rom"/> </service>
+			<service name="ROM" label_last="numlock">
+				<child name="report_rom" label="drivers -> numlock"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
 			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
+			<service name="Event">   <child name="event_filter"/> </service>
 			<service name="Report">  <child name="fs_report"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
@@ -454,6 +452,38 @@ install_config {
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Timer">  <child name="timer"/>      </service>
 			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<!-- toggle key mappings depending on the numlock state -->
+	<start name="numlock_remap_rom">
+		<binary name="rom_filter"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="ROM"/> </provides>
+		<route>
+			<service name="ROM" label="config">
+				<child name="config_fs_rom" label="numlock_remap"/> </service>
+			<service name="ROM" label="numlock"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="event_filter" caps="120">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Event"/> </provides>
+		<route>
+			<service name="ROM" label="config">
+				<child name="config_fs_rom" label="managed/event_filter"/> </service>
+			<service name="ROM" label_prefix="keyboard/">
+				<child name="config_fs_rom"/> </service>
+			<service name="ROM" label="numlock.remap"> <child name="numlock_remap_rom"/> </service>
+			<service name="ROM" label="capslock">      <child name="report_rom"/> </service>
+			<service name="ROM">   <parent/> </service>
+			<service name="PD">    <parent/> </service>
+			<service name="CPU">   <parent/> </service>
+			<service name="LOG">   <parent/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Event"> <child name="nitpicker"/> </service>
 		</route>
 	</start>
 
@@ -619,6 +649,8 @@ install_config {
 				<child name="report_fs_rom"/> </service>
 			<service name="ROM" label="capslock">
 				<child name="report_rom"/> </service>
+			<service name="ROM" label="numlock">
+				<child name="report_rom"/> </service>
 			<service name="ROM" label="clicked">
 				<child name="report_rom"/> </service>
 			<service name="File_system" label="config">
@@ -659,8 +691,8 @@ install_config {
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="LOG" label="unlogged"> <parent/> </service>
 			} [log_route] [nic_driver_routes] {
-			<service name="Event"   label="global">       <child name="nitpicker"/>    </service>
-			<service name="Event"   label="leitzentrale"> <child name="leitzentrale"/> </service>
+			<service name="Event" label="leitzentrale"> <child name="leitzentrale"/> </service>
+			<service name="Event"> <child name="event_filter"/> </service>
 			<service name="Capture" label="global">       <child name="nitpicker"/>    </service>
 			<service name="Capture" label="leitzentrale"> <child name="leitzentrale"/> </service>
 			<service name="Pin_state">   <child name="drivers"/> </service>

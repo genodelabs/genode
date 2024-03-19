@@ -1,9 +1,13 @@
 <config>
 	<output>
-		<touch-key>
-			<input name="sdl"/>
-			<tap xpos="0" ypos="400" width="25" height="600" key="KEY_DASHBOARD"/>
-		</touch-key>
+		<merge>
+			<touch-key>
+				<input name="drivers"/>
+				<tap xpos="0" ypos="400" width="25" height="600" key="KEY_DASHBOARD"/>
+			</touch-key>
+			<input name="runtime"/>
+		</merge>
 	</output>
-	<policy label="sdl" input="sdl"/>
+	<policy label_prefix="drivers -> " input="drivers"/>
+	<policy label_prefix="runtime -> " input="runtime"/>
 </config>

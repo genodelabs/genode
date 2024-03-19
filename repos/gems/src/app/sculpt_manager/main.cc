@@ -2189,15 +2189,15 @@ void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 		});
 	});
 
-	auto gen_policy = [&] (auto label) {
-		xml.node("policy", [&] () {
+	auto gen_policy = [&] (auto label, auto input) {
+		xml.node("policy", [&] {
 			xml.attribute("label", label);
-			xml.attribute("input", label); }); };
+			xml.attribute("input", input); }); };
 
-	gen_policy("ps2");
-	gen_policy("usb");
-	gen_policy("touch");
-	gen_policy("sdl");
+	gen_policy("drivers -> ps2",   "ps2");
+	gen_policy("drivers -> usb",   "usb");
+	gen_policy("drivers -> touch", "touch");
+	gen_policy("drivers -> sdl",   "sdl");
 }
 
 

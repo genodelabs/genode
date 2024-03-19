@@ -12,36 +12,8 @@
 	<start name="fb_sdl" caps="100" ld="no">
 		<resource name="RAM" quantum="32M"/>
 		<route>
-			<service name="Event"> <child name="event_filter" label="sdl"/> </service>
+			<service name="Event"> <parent label="sdl"/> </service>
 			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<!-- toggle key mappings depending on the numlock state -->
-	<start name="numlock_remap_rom" caps="100">
-		<binary name="rom_filter"/>
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="ROM"/> </provides>
-		<route>
-			<service name="ROM" label="config">  <parent label="numlock_remap.config"/> </service>
-			<service name="ROM" label="numlock"> <parent label="numlock"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="event_filter" caps="120">
-		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Event"/> </provides>
-		<route>
-			<service name="ROM" label="config">        <parent label="event_filter.config"/> </service>
-			<service name="ROM" label="numlock.remap"> <child name="numlock_remap_rom"/> </service>
-			<service name="ROM" label="capslock">      <parent label="capslock"/> </service>
-			<service name="ROM">   <parent/> </service>
-			<service name="PD">    <parent/> </service>
-			<service name="CPU">   <parent/> </service>
-			<service name="LOG">   <parent/> </service>
-			<service name="Timer"> <parent/> </service>
-			<service name="Event"> <parent/> </service>
 		</route>
 	</start>
 

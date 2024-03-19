@@ -35,6 +35,6 @@
 			<include rom="special.chargen"/>
 		</chargen>
 	</output>
-	<policy label="ps2" input="ps2"/>
-	<policy label="usb" input="usb"/>
+	<policy label="drivers -> ps2"     input="ps2"/>
+	<policy label="drivers -> usb_hid" input="usb"/>
 </config>
