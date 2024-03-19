@@ -799,20 +799,6 @@ struct Tresor::Snapshots
 			snap.encode_to_blk(generator);
 	}
 
-	void discard_disposable_snapshots(Generation last_secured_gen,
-	                                  Generation curr_gen)
-	{
-		for (Snapshot &snap : items) {
-
-			if (snap.valid &&
-			    !snap.keep &&
-			    snap.gen != curr_gen &&
-			    snap.gen != last_secured_gen)
-
-				snap.valid = false;
-		}
-	}
-
 	Snapshot_index newest_snap_idx() const
 	{
 		Snapshot_index result { INVALID_SNAP_IDX };
@@ -1038,6 +1024,13 @@ struct Tresor::Superblock
 		meta_max_level = sb.meta_max_level;
 		meta_degree = sb.meta_degree;
 		meta_leaves = sb.meta_leaves;
+	}
+
+	void discard_disposable_snapshots()
+	{
+		for (Snapshot &snap : snapshots.items)
+			if (snap.valid && snap.gen < last_secured_generation && !snap.keep)
+				snap.valid = false;
 	}
 };
 

@@ -22,7 +22,6 @@ using namespace Tresor;
 void Superblock_control::Write_vbas::_start_write_vba(Execute_attr const &attr, bool &progress)
 {
 	Virtual_block_address vba = _attr.in_first_vba + _num_written_vbas;
-	attr.sb.snapshots.discard_disposable_snapshots(attr.sb.last_secured_generation, attr.curr_gen);
 	if (attr.sb.curr_snap().gen != attr.curr_gen) {
 		Snapshot &snap { attr.sb.curr_snap() };
 		attr.sb.curr_snap_idx = attr.sb.snapshots.alloc_idx(attr.curr_gen, attr.sb.last_secured_generation);
@@ -123,7 +122,6 @@ bool Superblock_control::Extend_free_tree::execute(Execute_attr const &attr)
 	case INIT:
 	{
 		_num_pbas = _attr.in_num_pbas;
-		attr.sb.snapshots.discard_disposable_snapshots(attr.sb.last_secured_generation, attr.curr_gen);
 		Physical_block_address last_used_pba { attr.sb.first_pba + (attr.sb.nr_of_pbas - 1) };
 		Number_of_blocks nr_of_unused_pbas { MAX_PBA - last_used_pba };
 
@@ -208,7 +206,6 @@ bool Superblock_control::Extend_vbd::execute(Execute_attr const &attr)
 	case INIT:
 	{
 		_num_pbas = _attr.in_num_pbas;
-		attr.sb.snapshots.discard_disposable_snapshots(attr.sb.last_secured_generation, attr.curr_gen);
 		Physical_block_address last_used_pba { attr.sb.first_pba + (attr.sb.nr_of_pbas - 1) };
 		Number_of_blocks nr_of_unused_pbas { MAX_PBA - last_used_pba };
 
@@ -296,7 +293,6 @@ bool Superblock_control::Rekey::execute(Execute_attr const &attr)
 	switch (_helper.state) {
 	case INIT:
 
-		attr.sb.snapshots.discard_disposable_snapshots(attr.sb.last_secured_generation, attr.curr_gen);
 		_attr.out_rekeying_finished = false;
 		switch (attr.sb.state) {
 		case Superblock::NORMAL:
@@ -390,6 +386,7 @@ bool Superblock_control::Secure_superblock::execute(Execute_attr const &attr)
 	case INIT:
 
 		attr.sb.curr_snap().gen = attr.curr_gen;
+		attr.sb.discard_disposable_snapshots();
 		_sb_ciphertext.copy_all_but_key_values_from(attr.sb);
 		_encrypt_key.generate(
 			_helper, ENCRYPT_KEY, ENCRYPT_CURR_KEY_SUCCEEDED, progress, _sb_ciphertext.current_key.value, attr.sb.current_key.value);
@@ -453,7 +450,6 @@ bool Superblock_control::Discard_snapshot::execute(Execute_attr const &attr)
 			if (snap.valid && snap.gen == _attr.in_gen && snap.keep)
 				snap.keep = false;
 
-		attr.sb.snapshots.discard_disposable_snapshots(attr.sb.last_secured_generation, attr.curr_gen);
 		_secure_sb.generate(_helper, SECURE_SB, SECURE_SB_SUCCEEDED, progress);
 		break;
 
@@ -477,7 +473,6 @@ bool Superblock_control::Create_snapshot::execute(Execute_attr const &attr)
 			_helper.mark_succeeded(progress);
 		} else {
 			snap.keep = true;
-			attr.sb.snapshots.discard_disposable_snapshots(attr.sb.last_secured_generation, attr.curr_gen);
 			_secure_sb.generate(_helper, SECURE_SB, SECURE_SB_SUCCEEDED, progress);
 		}
 		break;
@@ -501,7 +496,6 @@ bool Superblock_control::Synchronize::execute(Execute_attr const &attr)
 	switch (_helper.state) {
 	case INIT:
 
-		attr.sb.snapshots.discard_disposable_snapshots(attr.sb.last_secured_generation, attr.curr_gen);
 		attr.sb.last_secured_generation = attr.curr_gen;
 		_secure_sb.generate(_helper, SECURE_SB, SECURE_SB_SUCCEEDED, progress);
 		break;
@@ -576,7 +570,6 @@ bool Superblock_control::Deinitialize::execute(Execute_attr const &attr)
 	switch (_helper.state) {
 	case INIT:
 
-		attr.sb.snapshots.discard_disposable_snapshots(attr.sb.last_secured_generation, attr.curr_gen);
 		attr.sb.last_secured_generation = attr.curr_gen;
 		_secure_sb.generate(_helper, SECURE_SB, SECURE_SB_SUCCEEDED, progress);
 		break;
