@@ -16,6 +16,7 @@
 #include <common.h>
 #include <pci.h>
 #include <intel/io_mmu.h>
+#include <ioapic.h>
 
 namespace Driver { struct Main; };
 
@@ -33,6 +34,7 @@ struct Driver::Main
 	                                         &Main::_system_update };
 
 	Intel::Io_mmu_factory  _intel_iommu    { _env, _common.io_mmu_factories() };
+	Ioapic_factory         _ioapic_factory { _env, _common.irq_controller_factories() };
 
 	void _handle_config();
 	void _suspend(String<8>);
@@ -51,6 +53,7 @@ struct Driver::Main
 		_system_update();
 
 		_common.acquire_io_mmu_devices();
+		_common.acquire_irq_controller();
 		_common.announce_service();
 	}
 };

@@ -379,6 +379,12 @@ class Driver::Device : private List_model<Device>::Element
 				fn(idx++, ipr.range, ipr.bar); });
 		}
 
+		template <typename FN> void for_each_property(FN const & fn) const
+		{
+			_property_list.for_each([&] (Property const & p) {
+				fn(p.name, p.value); });
+		}
+
 		template <typename FN> void for_pci_config(FN const & fn) const
 		{
 			/*
