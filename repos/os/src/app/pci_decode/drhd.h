@@ -34,10 +34,14 @@ struct Drhd : List_model<Drhd>::Element
 
 	struct Device : Registry<Device>::Element
 	{
-		Bdf bdf;
+		enum { IOAPIC = 0x3 };
 
-		Device(Registry<Device> & registry, Bdf bdf)
-		: Registry<Device>::Element(registry, *this), bdf(bdf)
+		Bdf bdf;
+		uint8_t type;
+		uint8_t id;
+
+		Device(Registry<Device> & registry, Bdf bdf, uint8_t type, uint8_t id)
+		: Registry<Device>::Element(registry, *this), bdf(bdf), type(type), id(id)
 		{ }
 	};
 

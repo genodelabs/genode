@@ -22,6 +22,7 @@
 #include <irq.h>
 #include <rmrr.h>
 #include <drhd.h>
+#include <ioapic.h>
 #include <pci/config.h>
 
 using namespace Genode;
@@ -50,6 +51,7 @@ struct Main
 	List_model<Irq_override> irq_override_list {};
 	List_model<Rmrr>         reserved_memory_list {};
 	List_model<Drhd>         drhd_list {};
+	List_model<Ioapic>       ioapic_list {};
 
 	Constructible<Attached_io_mem_dataspace> pci_config_ds {};
 
@@ -148,6 +150,8 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 	/* disable MSI/MSI-X by default */
 	if (msi) cfg.msi_cap->write<Pci::Config::Msi_capability::Control::Enable>(0);
 	if (msi_x) cfg.msi_x_cap->write<Pci::Config::Msi_x_capability::Control::Enable>(0);
+
+	/* XXX we might need to skip PCI-discoverable IOAPIC and IOMMU devices */
 
 	gen.node("device", [&]
 	{
@@ -491,6 +495,55 @@ void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 	if (xml.has_sub_node("sci_int"))
 		parse_acpica_info(xml, gen);
 
+	/*
+	 * IOAPIC devices
+	 */
+	bool intr_remap = false;
+	xml.with_optional_sub_node("dmar", [&] (Xml_node const & node) {
+		intr_remap = node.attribute_value("intr_remap", intr_remap); });
+
+	ioapic_list.for_each([&] (Ioapic const & ioapic) {
+		gen.node("device", [&]
+		{
+			gen.attribute("name", ioapic.name());
+			gen.attribute("type", "ioapic");
+			gen.node("io_mem", [&]
+			{
+				gen.attribute("address", String<20>(Hex(ioapic.addr)));
+				gen.attribute("size",    "0x1000");
+			});
+
+			/* find corresponding drhd and add <io_mmu/> node and Routing_id property */
+			drhd_list.for_each([&] (Drhd const & drhd) {
+				drhd.devices.for_each([&] (Drhd::Device const & device) {
+					if (device.type == Drhd::Device::IOAPIC && device.id == ioapic.id) {
+						gen.node("io_mmu", [&] { gen.attribute("name", drhd.name()); });
+						gen.node("property", [&]
+						{
+							gen.attribute("name", "routing_id");
+							gen.attribute("value", String<10>(Hex(Pci::Bdf::rid(device.bdf))));
+						});
+					}
+				});
+			});
+
+			gen.node("property", [&]
+			{
+				gen.attribute("name",  "irq_start");
+				gen.attribute("value", ioapic.base_irq);
+			});
+
+			if (!intr_remap)
+				return;
+
+			gen.node("property", [&]
+			{
+				gen.attribute("name",  "remapping");
+				gen.attribute("value", "yes");
+			});
+		});
+	});
+
 	/* Intel DMA-remapping hardware units */
 	drhd_list.for_each([&] (Drhd const & drhd) {
 		gen.node("device", [&]
@@ -686,6 +739,25 @@ Main::Main(Env & env) : env(env)
 		[&] (Rmrr &, Xml_node const &) { }
 	);
 
+	ioapic_list.update_from_xml(xml,
+
+		/* create */
+		[&] (Xml_node const &node) -> Ioapic &
+		{
+			uint8_t  id   = node.attribute_value("id", (uint8_t)0U);
+			addr_t   addr = node.attribute_value("addr", 0U);
+			uint32_t base = node.attribute_value("base_irq", 0U);
+
+			return *new (heap) Ioapic(id, addr, base);
+		},
+
+		/* destroy */
+		[&] (Ioapic &ioapic) { destroy(heap, &ioapic); },
+
+		/* update */
+		[&] (Ioapic &, Xml_node const &) { }
+	);
+
 	unsigned nbr { 0 };
 	drhd_list.update_from_xml(xml,
 
@@ -706,18 +778,22 @@ Main::Main(Env & env) : env(env)
 				                       Drhd::Scope::EXPLICIT, nbr++);
 
 			/* parse device scopes which define the explicitly assigned devices */
-			bus_t bus = 0;
-			dev_t dev = 0;
-			func_t fn = 0;
+			bus_t   bus  = 0;
+			dev_t   dev  = 0;
+			func_t  fn   = 0;
+			uint8_t type = 0;
+			uint8_t id   = 0;
 
 			node.for_each_sub_node("scope", [&] (Xml_node node) {
-				bus = node.attribute_value<uint8_t>("bus_start", 0U);
+				bus  = node.attribute_value<uint8_t>("bus_start", 0U);
+				type = node.attribute_value<uint8_t>("type", 0U);
+				id   = node.attribute_value<uint8_t>("id", 0U);
 				node.with_optional_sub_node("path", [&] (Xml_node node) {
 					dev = node.attribute_value<uint8_t>("dev", 0);
 					fn  = node.attribute_value<uint8_t>("func", 0);
 				});
 
-				new (heap) Drhd::Device(drhd->devices, {bus, dev, fn});
+				new (heap) Drhd::Device(drhd->devices, {bus, dev, fn}, type, id);
 			});
 
 			return *drhd;
