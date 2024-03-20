@@ -152,6 +152,8 @@ class Tresor::Free_tree::Extend_tree : Noncopyable
 		Generatable_request<Helper, State, Block_io::Write> _write_block { };
 		Generatable_request<Helper, State, Meta_tree::Allocate_pba> _allocate_pba { };
 
+		bool _check_and_decode_read_blk(bool &);
+
 		void _add_new_branch_at(Tree_level_index, Tree_node_index);
 
 		bool _add_new_root_lvl();
