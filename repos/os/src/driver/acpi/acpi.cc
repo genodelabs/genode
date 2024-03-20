@@ -42,12 +42,10 @@ static const bool verbose = false;
  */
 struct Apic_struct
 {
-	enum Types { SRC_OVERRIDE = 2 };
+	enum Types { IOAPIC = 1, SRC_OVERRIDE = 2 };
 
 	uint8_t type;
 	uint8_t length;
-
-	bool is_override() { return type == SRC_OVERRIDE; }
 
 	Apic_struct *next() { return reinterpret_cast<Apic_struct *>((uint8_t *)this + length); }
 } __attribute__((packed));
@@ -73,6 +71,15 @@ struct Apic_override : Apic_struct
 	uint8_t  irq;
 	uint32_t gsi;
 	uint16_t flags;
+} __attribute__((packed));
+
+/* ACPI spec 5.2.12.3 */
+struct Apic_ioapic : Apic_struct
+{
+	uint8_t  id;
+	uint8_t  reserved;
+	uint32_t addr;
+	uint32_t base_irq;
 } __attribute__((packed));
 
 struct Dmar_struct_header;
@@ -169,6 +176,7 @@ struct Device_scope : Genode::Mmio<0x6>
 
 	struct Type   : Register<0x0, 8> { enum { PCI_END_POINT = 0x1 }; };
 	struct Length : Register<0x1, 8> { };
+	struct Id     : Register<0x4, 8> { };
 	struct Bus    : Register<0x5, 8> { };
 
 	struct Path : Genode::Mmio<0x2>
@@ -407,6 +415,34 @@ class Irq_override : public List<Irq_override>::Element
 
 
 /**
+ * List that holds IOAPIC information
+ */
+class Ioapic : public List<Ioapic>::Element
+{
+	private:
+
+		uint8_t  _id;       /* I/O APIC id */
+		uint32_t _addr;     /* physical address */
+		uint32_t _base_irq; /* base irq number */
+
+	public:
+
+		Ioapic(uint8_t id, uint32_t addr, uint32_t base)
+		: _id(id), _addr(addr), _base_irq(base) { }
+
+		static List<Ioapic> *list()
+		{
+			static List<Ioapic> _list;
+			return &_list;
+		}
+
+		uint8_t  id()               const { return _id; }
+		uint32_t addr()             const { return _addr; }
+		uint32_t base_irq()         const { return _base_irq; }
+};
+
+
+/**
  * List that holds the result of the mcfg table parsing which are pointers
  * to the extended pci config space - 4k for each device.
  */
@@ -611,22 +647,37 @@ class Table_wrapper
 		bool is_dmar() { return _cmp("DMAR"); }
 
 		/**
-		 * Parse override structures
+		 * Parse MADT/APIC table
 		 */
 		void parse_madt(Genode::Allocator &alloc)
 		{
 			Apic_struct *apic = _table->apic_struct();
 			for (; apic < _table->end(); apic = apic->next()) {
-				if (!apic->is_override())
-					continue;
+				Apic_override *o;
+				Apic_ioapic   *ioapic;
 
-				Apic_override *o = static_cast<Apic_override *>(apic);
-				
-				Genode::log("MADT IRQ ", o->irq, " -> GSI ", (unsigned)o->gsi, " "
-				            "flags: ", (unsigned)o->flags);
-				
-				Irq_override::list()->insert(new (&alloc)
+				switch (apic->type) {
+
+				case Apic_struct::Types::SRC_OVERRIDE:
+					o = static_cast<Apic_override *>(apic);
+					
+					Genode::log("MADT IRQ ", o->irq, " -> GSI ", (unsigned)o->gsi, " "
+					            "flags: ", (unsigned)o->flags);
+					
+					Irq_override::list()->insert(new (&alloc)
 					Irq_override(o->irq, o->gsi, o->flags));
+					break;
+
+				case Apic_struct::Types::IOAPIC:
+					ioapic = static_cast<Apic_ioapic *>(apic);
+
+					Ioapic::list()->insert(new (&alloc)
+					Ioapic(ioapic->id, ioapic->addr, ioapic->base_irq));
+					break;
+
+				default:
+					break;
+				}
 			}
 		}
 
@@ -1672,11 +1723,21 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 			});
 		}
 
+		for (Ioapic *i = Ioapic::list()->first(); i; i = i->next())
+		{
+			xml.node("ioapic", [&] () {
+				xml.attribute("id",        i->id());
+				xml.attribute("base_irq",  i->base_irq());
+				attribute_hex(xml, "addr", i->addr());
+			});
+		}
+
 		/* lambda definition for scope evaluation in rmrr */
 		auto func_scope = [&] (Device_scope const &scope)
 		{
 			xml.node("scope", [&] () {
 				xml.attribute("bus_start", scope.read<Device_scope::Bus>());
+				xml.attribute("id",   scope.read<Device_scope::Id>());
 				xml.attribute("type", scope.read<Device_scope::Type>());
 
 				scope.for_each_path([&](auto const &path) {
