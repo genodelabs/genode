@@ -22,6 +22,7 @@
 /* local includes */
 #include <device.h>
 #include <dma_allocator.h>
+#include <irq_controller.h>
 
 namespace Driver
 {
@@ -38,7 +39,14 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 {
 	public:
 
-		using Range = Platform::Device_interface::Range;
+		using Range      = Platform::Device_interface::Range;
+		using Irq_config = Irq_controller::Irq_config;
+
+		struct Irq_info {
+			enum { DIRECT, REMAPPED } remapped;
+			Irq_session::Info         session_info;
+			unsigned                  irq_number;
+		};
 
 		class Domain : private Registry<Domain>::Element
 		{
@@ -146,6 +154,11 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 		/* interface for completing default mappings (enabled IOMMU) */
 		virtual void default_mappings_complete() { }
+
+		/* interface for mapping/unmapping interrupts */
+		virtual void     unmap_irq(Pci::Bdf const &, unsigned) { }
+		virtual Irq_info map_irq(Pci::Bdf const &, Irq_info const & info, Irq_config const &) {
+			return info; }
 
 		Device::Name const & name() const { return _name; }
 

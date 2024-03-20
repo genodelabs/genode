@@ -26,17 +26,43 @@ void Driver::Device_component::_release_resources()
 		destroy(_session.heap(), &iomem); });
 
 	_irq_registry.for_each([&] (Irq & irq) {
-		destroy(_session.heap(), &irq); });
+
+		/* unmap IRQ from corresponding remapping table */
+		if (irq.type == Irq_session::TYPE_LEGACY) {
+			_session.irq_controller_registry().for_each([&] (Irq_controller & controller) {
+				if (!controller.handles_irq(irq.number)) return;
+
+				_session.with_io_mmu(controller.iommu(), [&] (Driver::Io_mmu & io_mmu_dev) {
+					io_mmu_dev.unmap_irq(controller.bdf(), irq.remapped_nbr);
+				});
+			});
+		} else {
+			_io_mmu_registry.for_each([&] (Io_mmu & io_mmu) {
+				if (_pci_config.constructed())
+					_session.with_io_mmu(io_mmu.name, [&] (Driver::Io_mmu & io_mmu_dev) {
+						io_mmu_dev.unmap_irq(_pci_config->bdf, irq.remapped_nbr); });
+			});
+		}
+
+		destroy(_session.heap(), &irq);
+	});
 
 	_io_port_range_registry.for_each([&] (Io_port_range & iop) {
 		destroy(_session.heap(), &iop); });
 
-	/* remove reserved memory ranges from IOMMU domains */
-	_session.domain_registry().for_each_domain(
-		[&] (Driver::Io_mmu::Domain & domain) {
-			_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
-				domain.remove_range(iomem.range);
-		});
+	_io_mmu_registry.for_each([&] (Io_mmu & io_mmu) {
+		_session.domain_registry().with_domain(io_mmu.name,
+			[&] (Driver::Io_mmu::Domain & domain) {
+
+				/* remove reserved memory ranges from IOMMU domains */
+				_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
+					domain.remove_range(iomem.range); });
+
+			},
+			[&] () {} /* no match */
+		);
+
+		destroy(_session.heap(), &io_mmu);
 	});
 
 	_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
@@ -93,7 +119,38 @@ Device_component::io_mem(unsigned idx, Range &range)
 
 Genode::Irq_session_capability Device_component::irq(unsigned idx)
 {
+	using Irq_config = Irq_controller::Irq_config;
+
 	Irq_session_capability cap;
+
+	auto remapped_irq = [&] (Device::Name      const & iommu_name,
+	                         Pci::Bdf          const & bdf,
+	                         Irq                     & irq,
+	                         Irq_session::Info const & info,
+	                         Irq_config        const & config)
+	{
+		using Irq_info = Driver::Io_mmu::Irq_info;
+		Irq_info remapped_irq { Irq_info::DIRECT, info, irq.number };
+
+		auto map_fn = [&] (Device::Name const & name) {
+			_session.with_io_mmu(name, [&] (Driver::Io_mmu & io_mmu) {
+				remapped_irq = io_mmu.map_irq(bdf, remapped_irq, config);
+			});
+		};
+
+		/* for legacy IRQs, take IOMMU referenced by IOAPIC */
+		if (iommu_name != "")
+			map_fn(iommu_name);
+		else
+			_io_mmu_registry.for_each([&] (Io_mmu const & io_mmu) {
+				map_fn(io_mmu.name);
+			});
+
+		/* store remapped number at irq object */
+		irq.remapped_nbr = remapped_irq.irq_number;
+
+		return remapped_irq;
+	};
 
 	_irq_registry.for_each([&] (Irq & irq)
 	{
@@ -101,19 +158,38 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 			return;
 
 		if (!irq.shared && !irq.irq.constructed()) {
-			addr_t pci_cfg_addr = 0;
+			addr_t   pci_cfg_addr = 0;
+			Pci::Bdf bdf { 0, 0, 0 };
 			if (irq.type != Irq_session::TYPE_LEGACY) {
-				if (_pci_config.constructed()) pci_cfg_addr = _pci_config->addr;
-				else
+				if (_pci_config.constructed()) {
+					pci_cfg_addr = _pci_config->addr;
+					bdf          = _pci_config->bdf;
+				} else
 					error("MSI(-x) detected for device without pci-config!");
 
 				irq.irq.construct(_env, irq.number, pci_cfg_addr, irq.type);
 			} else
 				irq.irq.construct(_env, irq.number, irq.mode, irq.polarity);
 
+			/**
+			 * Core/Kernel is and remains in control of the IRQ controller. When
+			 * IRQ remapping is enabled, however, we need to modify the upper 32bit
+			 * of the corresponding redirection table entry. This is save for
+			 * base-hw as it never touches the upper 32bit after the initial setup.
+			 */
 			Irq_session::Info info = irq.irq->info();
 			if (pci_cfg_addr && info.type == Irq_session::Info::MSI)
-				pci_msi_enable(_env, *this, pci_cfg_addr, info, irq.type);
+				pci_msi_enable(_env, *this, pci_cfg_addr,
+				               remapped_irq("", bdf, irq, info, Irq_config::Invalid()).session_info,
+				               irq.type);
+			else
+				_session.irq_controller_registry().for_each([&] (Irq_controller & controller) {
+					if (!controller.handles_irq(irq.number)) return;
+
+					remapped_irq(controller.iommu(), controller.bdf(), irq, info,
+					             controller.irq_config(irq.number));
+					controller.remap_irq(irq.number, irq.remapped_nbr);
+				});
 		}
 
 		if (irq.shared && !irq.sirq.constructed())
@@ -121,6 +197,15 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 			                              [&] (Shared_interrupt & sirq) {
 				irq.sirq.construct(_env.ep().rpc_ep(), sirq,
 				                   irq.mode, irq.polarity);
+
+				_session.irq_controller_registry().for_each([&] (Irq_controller & controller) {
+					if (!controller.handles_irq(irq.number)) return;
+
+					remapped_irq(controller.iommu(), controller.bdf(), irq,
+					             { Irq_session::Info::INVALID, 0, 0 },
+					             controller.irq_config(irq.number));
+					controller.remap_irq(irq.number, irq.remapped_nbr);
+				});
 			});
 
 		cap = irq.shared ? irq.sirq->cap() : irq.irq->cap();
@@ -218,7 +303,8 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			_ram_quota += Io_mem_session::RAM_QUOTA;
 			session.cap_quota_guard().withdraw(Cap_quota{Io_mem_session::CAP_QUOTA});
 			_cap_quota += Io_mem_session::CAP_QUOTA;
-			_pci_config.construct(cfg.addr);
+			Pci::Bdf bdf { cfg.bus_num, cfg.dev_num, cfg.func_num };
+			_pci_config.construct(cfg.addr, bdf);
 		});
 
 		device.for_each_reserved_memory([&] (unsigned idx, Range range)
@@ -249,7 +335,10 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			[&] (Driver::Device::Io_mmu const &io_mmu) {
 				session.domain_registry().with_domain(io_mmu.name,
 				                                      add_range_fn,
-				                                      default_domain_fn); },
+				                                      [&] () { });
+				/* save IOMMU names for this device */
+				new (session.heap()) Io_mmu(_io_mmu_registry, io_mmu.name);
+			},
 
 			/* empty list fn */
 			default_domain_fn

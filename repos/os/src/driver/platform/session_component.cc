@@ -218,6 +218,12 @@ Driver::Io_mmu_domain_registry & Session_component::domain_registry()
 }
 
 
+Genode::Registry<Driver::Irq_controller> & Session_component::irq_controller_registry()
+{
+	return _irq_controller_registry;
+}
+
+
 void Session_component::update_devices_rom()
 {
 	_rom_session.trigger_update();
@@ -418,6 +424,7 @@ Session_component::Session_component(Env                          & env,
                                      Device_model                 & devices,
                                      Session_registry             & registry,
                                      Io_mmu_devices               & io_mmu_devices,
+                                     Registry<Irq_controller>     & irq_controller_registry,
                                      Label          const         & label,
                                      Resources      const         & resources,
                                      Diag           const         & diag,
@@ -430,7 +437,9 @@ Session_component::Session_component(Env                          & env,
 	Session_registry::Element(registry, *this),
 	Dynamic_rom_session::Xml_producer("devices"),
 	_env(env), _config(config), _devices(devices),
-	_io_mmu_devices(io_mmu_devices), _info(info), _version(version),
+	_io_mmu_devices(io_mmu_devices),
+	_irq_controller_registry(irq_controller_registry),
+	_info(info), _version(version),
 	_dma_allocator(_md_alloc, dma_remapping)
 {
 	/*

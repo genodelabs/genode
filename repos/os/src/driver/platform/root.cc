@@ -43,6 +43,7 @@ Driver::Session_component * Driver::Root::_create_session(const char *args)
 
 		sc = new (md_alloc())
 			Session_component(_env, _config, _devices, _sessions, _io_mmu_devices,
+			                  _irq_controller_registry,
 			                  label,
 			                  session_resources_from_args(args),
 			                  session_diag_from_args(args),
@@ -111,8 +112,11 @@ Driver::Root::Root(Env                          & env,
                    Attached_rom_dataspace const & config,
                    Device_model                 & devices,
                    Io_mmu_devices               & io_mmu_devices,
+                   Registry<Irq_controller>     & irq_controller_registry,
                    bool const                     kernel_iommu)
 : Root_component<Session_component>(env.ep(), sliced_heap),
   _env(env), _config(config), _devices(devices),
-  _io_mmu_devices(io_mmu_devices), _kernel_iommu(kernel_iommu)
+  _io_mmu_devices(io_mmu_devices),
+  _irq_controller_registry(irq_controller_registry),
+  _kernel_iommu(kernel_iommu)
 { }

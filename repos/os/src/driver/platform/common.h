@@ -20,6 +20,7 @@
 #include <root.h>
 #include <device_owner.h>
 #include <io_mmu.h>
+#include <irq_controller.h>
 #include <device_pd.h>
 
 namespace Driver { class Common; };
@@ -42,6 +43,9 @@ class Driver::Common : Device_reporter,
 
 		Io_mmu_devices           _io_mmu_devices   { };
 		Registry<Io_mmu_factory> _io_mmu_factories { };
+
+		Registry<Irq_controller>         _irq_controller_registry { };
+		Registry<Irq_controller_factory> _irq_controller_factories { };
 
 		Driver::Root             _root;
 
@@ -71,9 +75,13 @@ class Driver::Common : Device_reporter,
 		Xml_node platform_info() {
 			return _platform_info.xml(); }
 
+		Registry<Irq_controller_factory> & irq_controller_factories() {
+			return _irq_controller_factories; }
+
 		void announce_service();
 		void handle_config(Xml_node config);
 		void acquire_io_mmu_devices();
+		void acquire_irq_controller();
 
 		void report_resume();
 
@@ -161,11 +169,30 @@ void Driver::Common::acquire_io_mmu_devices()
 }
 
 
+void Driver::Common::acquire_irq_controller()
+{
+	_irq_controller_factories.for_each([&] (Irq_controller_factory & factory) {
+
+		_devices.for_each([&] (Device & dev) {
+			if (dev.owner().valid())
+				return;
+
+			if (factory.matches(dev)) {
+				dev.acquire(*this);
+				factory.create(_heap, _irq_controller_registry, dev);
+			}
+		});
+
+	});
+}
+
+
 void Driver::Common::_handle_devices()
 {
 	_devices_rom.update();
 	_devices.update(_devices_rom.xml(), _root);
 	acquire_io_mmu_devices();
+	acquire_irq_controller();
 	update_report();
 	_root.update_policy();
 }
@@ -206,6 +233,10 @@ void Driver::Common::disable_device(Device const & device)
 		if (io_mmu.name() == device.name())
 			destroy(_heap, &io_mmu);
 	});
+	_irq_controller_registry.for_each([&] (Irq_controller & irq_controller) {
+		if (irq_controller.name() == device.name())
+			destroy(_heap, &irq_controller);
+	});
 }
 
 
@@ -243,7 +274,8 @@ Driver::Common::Common(Genode::Env                  & env,
 	_env(env),
 	_rom_name(config_rom.xml().attribute_value("devices_rom",
 	                                           String<64>("devices"))),
-	_root(_env, _sliced_heap, config_rom, _devices, _io_mmu_devices, _iommu())
+	_root(_env, _sliced_heap, config_rom, _devices, _io_mmu_devices,
+	      _irq_controller_registry, _iommu())
 {
 	_devices_rom.sigh(_dev_handler);
 	_handle_devices();
