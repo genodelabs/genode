@@ -1,0 +1,165 @@
+symlinks.patch
+
+From: Tom Tromey <tromey@adacore.com>
+Date: Wed,  6 Apr 2022 13:17:10 -0600
+
+Currently gdb uses realpath when finding an objfile.  However, this
+yields surprising results when the given name is a symlink -- if the
+symlink is retargeted, re-running will not cause a change.
+
+This patch fixes the problem by changing gdb to compute the absolute
+path rather than the real path.
+
+This area has some history.  PR gdb/15415 changed this area to try to
+preserve the basename of the executable, so that programs that check
+argv[0] will continue to work correctly.
+
+There's also PR gdb/15934, which proposes preserving the original name
+for use in argv[0] and in "info inferior".  I haven't done this.  The
+"info inferior" part might not be too difficult (unsure) but I wasn't
+sure how argv[0] could really be preserved given relative file names,
+the use of shell to startup, and the user's ability to change gdb's
+working directory.
+
+I think this patch does fix PR symtab/24143, which concerns finding
+separate debug files when symlinks are used.  The included test does
+not test exactly this scenario, though.
+
+Regression tested on x86-64 Fedora 34.
+
+Bug: https://sourceware.org/bugzilla/show_bug.cgi?id=24143
+---
+ gdb/exec.c                             |   14 ++------
+ gdb/symfile.c                          |    2 +
+ gdb/testsuite/gdb.base/symlink-exe.exp |   57 ++++++++++++++++++++++++++++++++
+ 3 files changed, 62 insertions(+), 11 deletions(-)
+ create mode 100644 gdb/testsuite/gdb.base/symlink-exe.exp
+
+diff --git a/gdb/exec.c b/gdb/exec.c
+index 9243b22..b01b121 100644
+--- a/gdb/exec.c
++++ b/gdb/exec.c
+@@ -385,7 +385,7 @@ exec_file_attach (const char *filename, int from_tty)
+   else
+     {
+       int load_via_target = 0;
+-      const char *scratch_pathname, *canonical_pathname;
++      const char *scratch_pathname;
+       int scratch_chan;
+       char **matching;
+ 
+@@ -397,7 +397,7 @@ exec_file_attach (const char *filename, int from_tty)
+ 	    load_via_target = 1;
+ 	}
+ 
+-      gdb::unique_xmalloc_ptr<char> canonical_storage, scratch_storage;
++      gdb::unique_xmalloc_ptr<char> scratch_storage;
+       if (load_via_target)
+ 	{
+ 	  /* gdb_bfd_fopen does not support "target:" filenames.  */
+@@ -408,7 +408,6 @@ exec_file_attach (const char *filename, int from_tty)
+ 
+ 	  scratch_pathname = filename;
+ 	  scratch_chan = -1;
+-	  canonical_pathname = scratch_pathname;
+ 	}
+       else
+ 	{
+@@ -436,19 +435,14 @@ exec_file_attach (const char *filename, int from_tty)
+ 	    perror_with_name (filename);
+ 
+ 	  scratch_pathname = scratch_storage.get ();
+-
+-	  /* gdb_bfd_open (and its variants) prefers canonicalized
+-	     pathname for better BFD caching.  */
+-	  canonical_storage = gdb_realpath (scratch_pathname);
+-	  canonical_pathname = canonical_storage.get ();
+ 	}
+ 
+       gdb_bfd_ref_ptr temp;
+       if (write_files && !load_via_target)
+-	temp = gdb_bfd_fopen (canonical_pathname, gnutarget,
++	temp = gdb_bfd_fopen (scratch_pathname, gnutarget,
+ 			      FOPEN_RUB, scratch_chan);
+       else
+-	temp = gdb_bfd_open (canonical_pathname, gnutarget, scratch_chan);
++	temp = gdb_bfd_open (scratch_pathname, gnutarget, scratch_chan);
+       current_program_space->set_exec_bfd (std::move (temp));
+ 
+       if (!current_program_space->exec_bfd ())
+diff --git a/gdb/symfile.c b/gdb/symfile.c
+index 7f9cada..715c5c9 100644
+--- a/gdb/symfile.c
++++ b/gdb/symfile.c
+@@ -1710,7 +1710,7 @@ symfile_bfd_open (const char *name)
+ 
+       /* Look down path for it, allocate 2nd new malloc'd copy.  */
+       desc = openp (getenv ("PATH"),
+-		    OPF_TRY_CWD_FIRST | OPF_RETURN_REALPATH,
++		    OPF_TRY_CWD_FIRST,
+ 		    expanded_name.get (), O_RDONLY | O_BINARY, &absolute_name);
+ #if defined(__GO32__) || defined(_WIN32) || defined (__CYGWIN__)
+       if (desc < 0)
+diff --git a/gdb/testsuite/gdb.base/symlink-exe.exp b/gdb/testsuite/gdb.base/symlink-exe.exp
+new file mode 100644
+index 0000000..4a45f06
+--- /dev/null
++++ b/gdb/testsuite/gdb.base/symlink-exe.exp
+@@ -0,0 +1,57 @@
++# Copyright 2022 Free Software Foundation, Inc.
++
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
++
++if {![isnative]} {
++    unsupported "symlink-exe.exp not supported on non-native target"
++    return -1
++}
++
++if {[is_remote host]} {
++    unsupported "symlink-exe.exp not supported on remote host"
++    return -1
++}
++
++# We don't really care about the contents, but we're going to build
++# two executables here and they need different source file names.
++standard_testfile main.c argv0-symlink.c
++
++if {[build_executable ${testfile}.exp ${testfile}1 ${srcfile}] == -1} {
++    return -1
++}
++
++set status [remote_exec host \
++		"ln -sf ${testfile}1 [standard_output_file ${testfile}]"]
++if {[lindex $status 0] != 0} {
++    unsupported "symlink-exe.exp - host does not support symbolic links"
++    return -1
++}
++
++clean_restart $testfile
++gdb_test "run" ".*"
++
++# Ensure the new file has a newer mtime.
++sleep 1
++if {[build_executable ${testfile}.exp ${testfile}2 ${srcfile2}] == -1} {
++    return -1
++}
++set status [remote_exec host \
++		"ln -sf ${testfile}2 [standard_output_file ${testfile}]"]
++if {[lindex $status 0] != 0} {
++    unsupported "symlink-exe.exp - host does not support symbolic links"
++    return -1
++}
++
++gdb_test "run" ".*${testfile}.* has changed; re-reading symbols.*" \
++    "run and re-read symbols"

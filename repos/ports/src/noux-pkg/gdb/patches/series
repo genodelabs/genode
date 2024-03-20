@@ -8,3 +8,4 @@ call_dummy_location.patch
 non_stop.patch
 memory_map.patch
 first_inferior.patch
+symlinks.patch

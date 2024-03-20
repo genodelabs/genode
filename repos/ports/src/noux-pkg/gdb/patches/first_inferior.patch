@@ -6,8 +6,38 @@ is sent in 'Hg' commands even if no thread is selected, to get
 the memory map of the correct inferior with the 'info mem'
 command.
 
+Also, prevent failed assertions on other commands without a selected thread.
+
+diff --git a/gdb/exec.c b/gdb/exec.c
+index ad543c9..9243b22 100644
+--- a/gdb/exec.c
++++ b/gdb/exec.c
+@@ -515,6 +515,10 @@ exec_file_attach (const char *filename, int from_tty)
+ static void
+ exec_file_command (const char *args, int from_tty)
+ {
++  /* prevent a failed assertion in 'find_inferior_pid()' */
++  if (inferior_ptid == null_ptid)
++    error(_("Cannot execute this command without a live selected thread."));
++
+   if (from_tty && target_has_execution ()
+       && !query (_("A program is being debugged already.\n"
+ 		   "Are you sure you want to change the file? ")))
+diff --git a/gdb/infcmd.c b/gdb/infcmd.c
+index 0ddc541..021e29f 100644
+--- a/gdb/infcmd.c
++++ b/gdb/infcmd.c
+@@ -2924,6 +2924,8 @@ interrupt_command (const char *args, int from_tty)
+       if (args != nullptr
+ 	  && startswith (args, "-a"))
+ 	all_threads = 1;
++      else
++        ensure_valid_thread();
+ 
+       interrupt_target_1 (all_threads);
+     }
 diff --git a/gdb/remote.c b/gdb/remote.c
-index b5db0c0..f36d4a9 100644
+index 5fccf69..f12d504 100644
 --- a/gdb/remote.c
 +++ b/gdb/remote.c
 @@ -2908,6 +2908,9 @@ remote_target::set_thread (ptid_t ptid, int gen)
