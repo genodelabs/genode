@@ -262,7 +262,7 @@ endef
 WAIT_FOR_OBJECTS = $(addsuffix .o,$(basename $(filter-out initcall_table.c,$(SRC_C))))
 
 # retrieve 'initptr_*' using nm from object files
-INITCALLS = $(sort $(shell $(NM) -U $(WAIT_FOR_OBJECTS) |\
+INITCALLS = $(sort $(shell $(NM) --defined-only $(WAIT_FOR_OBJECTS) |\
               grep "__initptr" |\
               awk '{print $$3}'))
 
