@@ -1,0 +1,97 @@
+From a15427e75f2521ed5e467e3c5cb8446586bbdabb Mon Sep 17 00:00:00 2001
+
+From: Andrew Pinski <quic_apinski@quicinc.com>
+
+Subject: [PATCH] warn-access: Fix handling of unnamed types [PR109804]
+
+This looks like an oversight of handling DEMANGLE_COMPONENT_UNNAMED_TYPE.
+DEMANGLE_COMPONENT_UNNAMED_TYPE only has the u.s_number.number set while
+the code expected newc.u.s_binary.left would be valid.
+So this treats DEMANGLE_COMPONENT_UNNAMED_TYPE like we treat function paramaters
+(DEMANGLE_COMPONENT_FUNCTION_PARAM) and template paramaters (DEMANGLE_COMPONENT_TEMPLATE_PARAM).
+
+Note the code in the demangler does this when it sets DEMANGLE_COMPONENT_UNNAMED_TYPE:
+      ret->type = DEMANGLE_COMPONENT_UNNAMED_TYPE;
+      ret->u.s_number.number = num;
+
+Committed as obvious after bootstrap/test on x86_64-linux-gnu
+
+	PR tree-optimization/109804
+
+gcc/ChangeLog:
+
+	* gimple-ssa-warn-access.cc (new_delete_mismatch_p): Handle
+	DEMANGLE_COMPONENT_UNNAMED_TYPE.
+
+gcc/testsuite/ChangeLog:
+
+	* g++.dg/warn/Wmismatched-new-delete-8.C: New test.
+
+Signed-off-by: Andrew Pinski <quic_apinski@quicinc.com>
+(cherry picked from commit 1076ffda6ce5e6d5fc9577deaf8233e549e5787a)
+---
+ gcc/gimple-ssa-warn-access.cc                      |    1 
+ .../g++.dg/warn/Wmismatched-new-delete-8.C         |   42 ++++++++++++++++++++
+ 2 files changed, 43 insertions(+)
+ create mode 100644 gcc/testsuite/g++.dg/warn/Wmismatched-new-delete-8.C
+
+diff --git a/gcc/gimple-ssa-warn-access.cc b/gcc/gimple-ssa-warn-access.cc
+index 8d088ad33..e70a6f1fb 100644
+--- a/gcc/gimple-ssa-warn-access.cc
++++ b/gcc/gimple-ssa-warn-access.cc
+@@ -1688,6 +1688,7 @@ new_delete_mismatch_p (const demangle_component &newc,
+ 
+     case DEMANGLE_COMPONENT_FUNCTION_PARAM:
+     case DEMANGLE_COMPONENT_TEMPLATE_PARAM:
++    case DEMANGLE_COMPONENT_UNNAMED_TYPE:
+       return newc.u.s_number.number != delc.u.s_number.number;
+ 
+     case DEMANGLE_COMPONENT_CHARACTER:
+diff --git a/gcc/testsuite/g++.dg/warn/Wmismatched-new-delete-8.C b/gcc/testsuite/g++.dg/warn/Wmismatched-new-delete-8.C
+new file mode 100644
+index 000000000..0ddc056c6
+--- /dev/null
++++ b/gcc/testsuite/g++.dg/warn/Wmismatched-new-delete-8.C
+@@ -0,0 +1,42 @@
++/* PR tree-optimization/109804 */
++/* { dg-do compile { target c++11 } } */
++/* { dg-options "-Wall" } */
++
++/* Here we used to ICE in new_delete_mismatch_p because
++   we didn't handle unnamed types from the demangler (DEMANGLE_COMPONENT_UNNAMED_TYPE). */
++
++template <typename T, typename ARGS>
++static inline T * construct_at(void *at, ARGS && args)
++{
++ struct Placeable : T
++ {
++  Placeable(ARGS && args) : T(args) { }
++  void * operator new (long unsigned int, void *ptr) { return ptr; }
++  void operator delete (void *, void *) { }
++ };
++ return new (at) Placeable(static_cast<ARGS &&>(args));
++}
++template <typename MT>
++struct Reconstructible
++{
++  char _space[sizeof(MT)];
++  Reconstructible() { }
++};
++template <typename MT>
++struct Constructible : Reconstructible<MT>
++{
++ Constructible(){}
++};
++struct A { };
++struct B
++{
++ Constructible<A> a { };
++ B(int) { }
++};
++Constructible<B> b { };
++void f()
++{
++  enum { ENUM_A = 1 };
++  enum { ENUM_B = 1 };
++  construct_at<B>(b._space, ENUM_B);
++}
