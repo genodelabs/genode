@@ -649,7 +649,7 @@ class Table_wrapper
 			}
 		}
 
-		void parse_dmar(Genode::Allocator &alloc) const
+		Dmar_struct_header const & parse_dmar(Genode::Allocator &alloc) const
 		{
 			Dmar_struct_header *head = _table->dmar_header();
 			Genode::log(head->width + 1, " bit DMA physical addressable",
@@ -661,6 +661,8 @@ class Table_wrapper
 			});
 
 			Dmar_entry::list()->insert(new (&alloc) Dmar_entry(head->clone(alloc)));
+
+			return *head;
 		}
 
 		Table_wrapper(Acpi::Memory &memory, addr_t base,
@@ -1359,7 +1361,14 @@ class Acpi_table
 			Genode::uint8_t  value;
 		};
 
+		struct Dmar_info
+		{
+			bool            intr_remap;
+			Genode::uint8_t host_address_width;
+		};
+
 		Genode::Constructible<Reset_info> _reset_info { };
+		Genode::Constructible<Dmar_info>  _dmar_info  { };
 		unsigned short                    _sci_int    { };
 		bool                              _sci_int_valid { };
 
@@ -1475,7 +1484,10 @@ class Acpi_table
 					if (table.is_dmar()) {
 						Genode::log("Found DMAR");
 
-						table.parse_dmar(_heap);
+						Dmar_struct_header const & head = table.parse_dmar(_heap);
+						_dmar_info.construct(
+							Dmar_info { (bool)(head.flags & Dmar_struct_header::INTR_REMAP_MASK),
+							            (uint8_t)(head.width + 1) });
 					}
 				} catch (Acpi::Memory::Unsupported_range &) { }
 
@@ -1588,6 +1600,13 @@ class Acpi_table
 		{
 			if (_sci_int_valid)
 				xml.node("sci_int", [&] () { xml.attribute("irq", _sci_int); });
+
+			if (_dmar_info.constructed())
+				xml.node("dmar", [&] () {
+					xml.attribute("intr_remap",         _dmar_info->intr_remap);
+					xml.attribute("host_address_width", _dmar_info->host_address_width);
+				});
+
 
 			if (!_reset_info.constructed())
 				return;
