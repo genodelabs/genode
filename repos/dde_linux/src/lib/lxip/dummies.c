@@ -365,3 +365,12 @@ int netdev_register_kobject(struct net_device * ndev)
 	lx_emul_trace(__func__);
 	return 0;
 }
+
+
+#include <linux/sched/signal.h>
+
+int send_sig(int sig,struct task_struct * p,int priv)
+{
+	lx_emul_trace(__func__);
+	return -1;
+}

@@ -1117,14 +1117,6 @@ void refcount_warn_saturate(refcount_t * r,enum refcount_saturation_type t)
 }
 
 
-#include <linux/sched/signal.h>
-
-int send_sig(int sig,struct task_struct * p,int priv)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/fs.h>
 
 int send_sigurg(struct fown_struct * fown)
