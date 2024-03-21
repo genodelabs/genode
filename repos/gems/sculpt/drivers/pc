@@ -125,7 +125,7 @@
 		</route>
 		<config>
 			<report devices="yes" iommu="yes"/>
-			<policy label_prefix="ps2_drv"> <device name="ps2"/> </policy>
+			<policy label_prefix="runtime -> ps2"> <device name="ps2"/> </policy>
 			<policy label_prefix="runtime -> vesa_fb" info="yes">  <pci class="VGA"/>  </policy>
 			<policy label_prefix="dynamic -> ahci_drv">            <pci class="AHCI"/> </policy>
 			<policy label_prefix="dynamic -> nvme_drv" info="yes"> <pci class="NVME"/> </policy>
@@ -139,23 +139,6 @@
 			<policy label_suffix="-> audio"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
 			<policy label="acpica"> <device name="acpi"/> </policy>
 		</config>
-	</start>
-
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
-		<config capslock_led="rom" numlock_led="rom" system="yes"/>
-		<route>
-			<service name="Platform"> <child name="platform_drv"/> </service>
-			<service name="Event"> <parent label="ps2"/> </service>
-			<service name="ROM" label="capslock"> <parent label="capslock"/> </service>
-			<service name="ROM" label="numlock">  <parent label="numlock"/>  </service>
-			<service name="ROM" label="system">   <parent label="system"/>   </service>
-			<service name="ROM">   <parent/> </service>
-			<service name="PD">    <parent/> </service>
-			<service name="CPU">   <parent/> </service>
-			<service name="LOG">   <parent/> </service>
-			<service name="Timer"> <parent/> </service>
-		</route>
 	</start>
 
 	<start name="driver_manager">

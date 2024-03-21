@@ -45,6 +45,7 @@
 #include <view/system_dialog.h>
 #include <view/file_browser_dialog.h>
 #include <fb_driver.h>
+#include <ps2_driver.h>
 #include <usb_driver.h>
 #include <gui.h>
 #include <keyboard_focus.h>
@@ -223,14 +224,15 @@ struct Sculpt::Main : Input_event_handler,
 		_board_info = Board_info::from_xml(_devices.xml(), _platform.xml());
 
 		_fb_driver.update(_child_states, _board_info, _platform.xml());
+		_ps2_driver.update(_child_states, _board_info);
 		_update_usb_drivers();
 
 		update_network_dialog();
 		generate_runtime_config();
 	}
 
-	Fb_driver _fb_driver { };
-
+	Ps2_driver _ps2_driver { };
+	Fb_driver  _fb_driver  { };
 	Usb_driver _usb_driver { _env, *this };
 
 	void _update_usb_drivers()
@@ -2114,7 +2116,8 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("height", _affinity_space.height());
 	});
 
-	_fb_driver.gen_start_nodes(xml);
+	_ps2_driver.gen_start_node(xml);
+	_fb_driver .gen_start_nodes(xml);
 	_usb_driver.gen_start_nodes(xml);
 
 	_dialog_runtime.gen_start_nodes(xml);
@@ -2262,7 +2265,7 @@ void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 			xml.attribute("label", label);
 			xml.attribute("input", input); }); };
 
-	gen_policy("drivers -> ps2",     "ps2");
+	gen_policy("runtime -> ps2",     "ps2");
 	gen_policy("runtime -> usb_hid", "usb");
 	gen_policy("drivers -> touch",   "touch");
 	gen_policy("drivers -> sdl",     "sdl");

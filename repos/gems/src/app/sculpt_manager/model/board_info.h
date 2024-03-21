@@ -20,15 +20,16 @@ namespace Sculpt { struct Board_info; }
 
 struct Sculpt::Board_info
 {
-	bool wifi_present;
-	bool lan_present;
-	bool modem_present;
-	bool intel_gfx_present;
-	bool boot_fb_present;
-	bool vesa_fb_present;
-	bool nvme_present;
-	bool ahci_present;
-	bool usb_present;
+	bool wifi_present,
+	     lan_present,
+	     modem_present,
+	     intel_gfx_present,
+	     boot_fb_present,
+	     vesa_fb_present,
+	     nvme_present,
+	     ahci_present,
+	     usb_present,
+	     ps2_present;
 
 	static Board_info from_xml(Xml_node const &devices, Xml_node const &platform)
 	{
@@ -40,6 +41,10 @@ struct Sculpt::Board_info
 		bool vga = false;
 
 		devices.for_each_sub_node("device", [&] (Xml_node const &device) {
+
+			if (device.attribute_value("name", String<16>()) == "ps2")
+				result.ps2_present = true;
+
 			device.with_optional_sub_node("pci-config", [&] (Xml_node const &pci) {
 
 				enum class Pci_class : unsigned {
