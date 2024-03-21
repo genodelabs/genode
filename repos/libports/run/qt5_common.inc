@@ -205,7 +205,7 @@ proc qt5_start_nodes { } {
 		</start>
 
 		<start name="pointer">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="Report"/> </provides>
 			<config shapes="yes"/>
 			<route>
