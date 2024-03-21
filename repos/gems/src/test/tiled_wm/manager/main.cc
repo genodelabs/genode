@@ -141,6 +141,11 @@ void Test::Manager::report_layout_rules()
 				xml.attribute("name",  "screen");
 				xml.attribute("layer", "1");
 				xml.node("row", [&] () {
+					xml.attribute("name",   "panel");
+					xml.attribute("layer",  "2");
+					xml.attribute("height", "24");
+				});
+				xml.node("row", [&] () {
 					xml.attribute("name", "content");
 					xml.attribute("layer", "4");
 					xml.node("column", [&] () {
@@ -152,23 +157,18 @@ void Test::Manager::report_layout_rules()
 						xml.attribute("weight", "1");
 					});
 				});
-				xml.node("row", [&] () {
-					xml.attribute("name",   "panel");
-					xml.attribute("layer",  "2");
-					xml.attribute("height", "24");
-				});
 			});
 		});
 		xml.node("assign", [&] () {
 			xml.attribute("label_prefix", "test-tiled_wm-panel");
 			xml.attribute("target", "panel");
 		});
-		if (overlay_visible) {
-			xml.node("assign", [&] () {
-				xml.attribute("label_prefix", "test-tiled_wm-overlay");
-				xml.attribute("target", "overlay");
-			});
-		}
+		xml.node("assign", [&] () {
+			xml.attribute("label_prefix", "test-tiled_wm-overlay");
+			xml.attribute("target", "overlay");
+			if (!overlay_visible)
+				xml.attribute("visible", false);
+		});
 
 		/* debug */
 		if (false) {
@@ -181,13 +181,12 @@ void Test::Manager::report_layout_rules()
 		}
 
 		for (App &app : apps) {
-			if (!app.visible) continue;
-
 			xml.node("assign", [&] () {
 				xml.attribute("label_prefix", app.label);
 				xml.attribute("target", "content");
+				if (!app.visible)
+					xml.attribute("visible", "false");
 			});
-			break;
 		}
 	});
 }

@@ -19,7 +19,7 @@
 #include "panel.h"
 
 
-void Panel_button::_clicked() { Q_EMIT clicked(text()); }
+void Panel_button::_clicked() { Q_EMIT clicked(text()); if (text() == "Panel") showMenu(); }
 void Panel_button::_toggled(bool checked) { Q_EMIT toggled(checked, text()); }
 
 
@@ -33,6 +33,11 @@ Panel_button::Panel_button(QString label)
 	setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
 
 	_layout->addWidget(_icon, 0, Qt::AlignCenter);
+
+	if (label == "Panel") {
+		_menu->addAction("Action");
+		setMenu(_menu);
+	}
 
 	connect(this, SIGNAL(clicked()), SLOT(_clicked()));
 	connect(this, SIGNAL(toggled(bool)), SLOT(_toggled(bool)));

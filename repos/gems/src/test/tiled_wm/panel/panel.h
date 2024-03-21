@@ -19,6 +19,7 @@
 #include <QPushButton>
 #include <QWidget>
 #include <QButtonGroup>
+#include <QMenu>
 
 /* Qoost includes */
 #include <qoost/compound_widget.h>
@@ -40,6 +41,7 @@ class Panel_button : public Compound_widget<QPushButton, QHBoxLayout>
 	private:
 
 		QMember<Icon> _icon;
+		QMember<QMenu> _menu;
 
 	private Q_SLOTS:
 

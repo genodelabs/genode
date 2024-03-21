@@ -221,6 +221,8 @@ install_config {
 
 build_boot_image [qt5_boot_modules]
 
+append qemu_args " -device nec-usb-xhci,id=xhci -device usb-tablet"
+
 run_genode_until forever
 
 # vi: set ft=tcl :
