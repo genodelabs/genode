@@ -43,9 +43,9 @@ void Intel::Io_mmu::Domain<TABLE>::enable_pci_device(Io_mem_dataspace_capability
 	 * unless invalidation takes place.
 	 */
 	if (cur_domain.valid())
-		_intel_iommu.invalidate_all(cur_domain, Pci::Bdf::rid(bdf));
+		_intel_iommu.invalidator().invalidate_all(cur_domain, Pci::Bdf::rid(bdf));
 	else if (_intel_iommu.caching_mode())
-		_intel_iommu.invalidate_context(Domain_id(), Pci::Bdf::rid(bdf));
+		_intel_iommu.invalidator().invalidate_context(Domain_id(), Pci::Bdf::rid(bdf));
 	else
 		_intel_iommu.flush_write_buffer();
 }
@@ -59,7 +59,7 @@ void Intel::Io_mmu::Domain<TABLE>::disable_pci_device(Pci::Bdf const & bdf)
 	/* lookup default mappings and insert instead */
 	_intel_iommu.apply_default_mappings(bdf);
 
-	_intel_iommu.invalidate_all(_domain_id);
+	_intel_iommu.invalidator().invalidate_all(_domain_id);
 }
 
 
@@ -97,7 +97,7 @@ void Intel::Io_mmu::Domain<TABLE>::add_range(Range const & range,
 
 	/* only invalidate iotlb if failed requests are cached */
 	if (_intel_iommu.caching_mode())
-		_intel_iommu.invalidate_iotlb(_domain_id, vaddr, size);
+		_intel_iommu.invalidator().invalidate_iotlb(_domain_id);
 	else
 		_intel_iommu.flush_write_buffer();
 }
@@ -111,7 +111,7 @@ void Intel::Io_mmu::Domain<TABLE>::remove_range(Range const & range)
 	                                      !_intel_iommu.coherent_page_walk());
 
 	if (!_skip_invalidation)
-		_intel_iommu.invalidate_iotlb(_domain_id, range.start, range.size);
+		_intel_iommu.invalidator().invalidate_iotlb(_domain_id);
 }
 
 
@@ -136,104 +136,9 @@ void Intel::Io_mmu::flush_write_buffer()
 }
 
 
-/**
- * Clear IOTLB.
- *
- * By default, we perform a global invalidation. When provided with a valid
- * Domain_id, a domain-specific invalidation is conducted. If provided with
- * a DMA address and size, a page-selective invalidation is performed.
- *
- * See Table 25 for required invalidation scopes.
- */
-void Intel::Io_mmu::invalidate_iotlb(Domain_id domain_id, addr_t, size_t)
+Intel::Invalidator & Intel::Io_mmu::invalidator()
 {
-	unsigned requested_scope = Context_command::Cirg::GLOBAL;
-	if (domain_id.valid())
-		requested_scope = Context_command::Cirg::DOMAIN;
-
-	/* wait for ongoing invalidation request to be completed */
-	while (Iotlb::Invalidate::get(read_iotlb_reg()));
-
-	/* invalidate IOTLB */
-	write_iotlb_reg(Iotlb::Invalidate::bits(1) |
-	                Iotlb::Iirg::bits(requested_scope) |
-	                Iotlb::Dr::bits(1) | Iotlb::Dw::bits(1) |
-	                Iotlb::Did::bits(domain_id.value));
-
-	/* wait for completion */
-	while (Iotlb::Invalidate::get(read_iotlb_reg()));
-
-	/* check for errors */
-	unsigned actual_scope = Iotlb::Iaig::get(read_iotlb_reg());
-	if (!actual_scope)
-		error("IOTLB invalidation failed (scope=", requested_scope, ")");
-	else if (_verbose && actual_scope < requested_scope)
-		warning("Performed IOTLB invalidation with different granularity ",
-		        "(requested=", requested_scope, ", actual=", actual_scope, ")");
-
-	/* XXX implement page-selective-within-domain IOTLB invalidation */
-}
-
-/**
- * Clear context cache
- *
- * By default, we perform a global invalidation. When provided with a valid
- * Domain_id, a domain-specific invalidation is conducted. When a rid is 
- * provided, a device-specific invalidation is done.
- *
- * See Table 25 for required invalidation scopes.
- */
-void Intel::Io_mmu::invalidate_context(Domain_id domain_id, Pci::rid_t rid)
-{
-	/**
-	 * We are using the register-based invalidation interface for the
-	 * moment. This is only supported in legacy mode and for major
-	 * architecture version 5 and lower (cf. 6.5).
-	 */
-
-	if (read<Version::Major>() > 5) {
-		error("Unable to invalidate caches: Register-based invalidation only ",
-		      "supported in architecture versions 5 and lower");
-		return;
-	}
-
-	/* make sure that there is no context invalidation ongoing */
-	while (read<Context_command::Invalidate>());
-
-	unsigned requested_scope = Context_command::Cirg::GLOBAL;
-	if (domain_id.valid())
-		requested_scope = Context_command::Cirg::DOMAIN;
-
-	if (rid != 0)
-		requested_scope = Context_command::Cirg::DEVICE;
-
-	/* clear context cache */
-	write<Context_command>(Context_command::Invalidate::bits(1) |
-	                       Context_command::Cirg::bits(requested_scope) |
-	                       Context_command::Sid::bits(rid) |
-	                       Context_command::Did::bits(domain_id.value));
-
-
-	/* wait for completion */
-	while (read<Context_command::Invalidate>());
-
-	/* check for errors */
-	unsigned actual_scope = read<Context_command::Caig>();
-	if (!actual_scope)
-		error("Context-cache invalidation failed (scope=", requested_scope, ")");
-	else if (_verbose && actual_scope < requested_scope)
-		warning("Performed context-cache invalidation with different granularity ",
-		        "(requested=", requested_scope, ", actual=", actual_scope, ")");
-}
-
-
-void Intel::Io_mmu::invalidate_all(Domain_id domain_id, Pci::rid_t rid)
-{
-	invalidate_context(domain_id, rid);
-
-	/* XXX clear PASID cache if we ever switch from legacy mode translation */
-
-	invalidate_iotlb(domain_id, 0, 0);
+	return *_register_invalidator;
 }
 
 
@@ -406,7 +311,7 @@ void Intel::Io_mmu::default_mappings_complete()
 
 	/* caches must be cleared if Esrtps is not set (see 6.6) */
 	if (!read<Capability::Esrtps>())
-		invalidate_all();
+		invalidator().invalidate_all();
 
 	/* enable IOMMU */
 	if (!read<Global_status::Enabled>())
@@ -443,7 +348,7 @@ void Intel::Io_mmu::resume()
 	_global_command<Global_command::Srtp>(1);
 
 	if (!read<Capability::Esrtps>())
-		invalidate_all();
+		invalidator().invalidate_all();
 
 	/* enable IOMMU */
 	if (!read<Global_status::Enabled>())
@@ -481,6 +386,15 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
 		/* disable queued invalidation interface */
 		if (read<Global_status::Qies>())
 			_global_command<Global_command::Qie>(false);
+
+		if (read<Version::Major>() > 5) {
+			error("Register-based invalidation only ",
+			      "supported in architecture versions 5 and lower");
+		}
+
+		addr_t context_reg_base = base() + 0x28;
+		addr_t iotlb_reg_base   = base() + 8*_offset<Extended_capability::Iro>();
+		_register_invalidator.construct(context_reg_base, iotlb_reg_base, _verbose);
 	}
 
 	/* enable fault event interrupts (if not already enabled by kernel) */

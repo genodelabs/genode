@@ -31,6 +31,7 @@
 #include <intel/page_table.h>
 #include <intel/domain_allocator.h>
 #include <intel/default_mappings.h>
+#include <intel/invalidator.h>
 #include <expanding_page_table_allocator.h>
 
 namespace Intel {
@@ -49,6 +50,8 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
                       private Translation_table_registry
 {
 	public:
+
+		friend class Register_invalidator;
 
 		/* Use derived domain class to store reference to buffer registry */
 		template <typename TABLE>
@@ -92,7 +95,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 						_domain._skip_invalidation = false;
 
 						if (_requires_invalidation)
-							_domain._intel_iommu.invalidate_all(_domain._domain_id);
+							_domain._intel_iommu.invalidator().invalidate_all(_domain._domain_id);
 						else
 							_domain._intel_iommu.flush_write_buffer();
 					}
@@ -191,6 +194,8 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		Signal_handler<Io_mmu>        _fault_handler      {
 			_env.ep(), *this, &Io_mmu::_handle_faults };
 
+		Constructible<Register_invalidator> _register_invalidator { };
+
 		/**
 		 * Registers
 		 */
@@ -287,30 +292,6 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 			struct Address : Bitfield<12,52> { };
 		};
 
-		struct Context_command : Register<0x28, 64>
-		{
-			struct Invalidate : Bitfield<63,1> { };
-
-			/* invalidation request granularity */
-			struct Cirg       : Bitfield<61,2>
-			{
-				enum {
-					GLOBAL = 0x1,
-					DOMAIN = 0x2,
-					DEVICE = 0x3
-				};
-			};
-
-			/* actual invalidation granularity */
-			struct Caig      : Bitfield<59,2> { };
-
-			/* source id */
-			struct Sid       : Bitfield<16,16> { };
-
-			/* domain id */
-			struct Did       : Bitfield<0,16> { };
-		};
-
 		struct Fault_status : Register<0x34, 32>
 		{
 			/* fault record index */
@@ -383,32 +364,6 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 			struct Info : Bitfield<12,52> { };
 		};
 
-		struct Iotlb : Genode::Register<64>
-		{
-			struct Invalidate : Bitfield<63,1> { };
-
-			/* IOTLB invalidation request granularity */
-			struct Iirg : Bitfield<60,2>
-			{
-				enum {
-					GLOBAL = 0x1,
-					DOMAIN = 0x2,
-					DEVICE = 0x3
-				};
-			};
-
-			/* IOTLB actual invalidation granularity */
-			struct Iaig : Bitfield<57,2> { };
-
-			/* drain reads/writes */
-			struct Dr   : Bitfield<49,1> { };
-			struct Dw   : Bitfield<48,1> { };
-
-			/* domain id */
-			struct Did  : Bitfield<32,16> { };
-
-		};
-
 		/* saved registers during suspend */
 		Fault_event_control::access_t  _s3_fec { };
 		Fault_event_data ::access_t    _s3_fedata { };
@@ -460,12 +415,6 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		template <typename OFFSET_BITFIELD>
 		All_registers::access_t read_offset_register(unsigned index) {
 			return read<All_registers>(_offset<OFFSET_BITFIELD>() + index); }
-
-		void write_iotlb_reg(Iotlb::access_t v) {
-			write_offset_register<Extended_capability::Iro>(1, v); }
-
-		Iotlb::access_t read_iotlb_reg() {
-			return read_offset_register<Extended_capability::Iro>(1); }
 
 		template <typename REG>
 		REG::access_t read_fault_record(unsigned index) {
@@ -539,9 +488,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 		void generate(Xml_generator &) override;
 
-		void invalidate_iotlb(Domain_id, addr_t, size_t);
-		void invalidate_context(Domain_id domain, Pci::rid_t);
-		void invalidate_all(Domain_id domain = Domain_id { Domain_id::INVALID }, Pci::rid_t = 0);
+		Invalidator & invalidator();
 
 		bool     coherent_page_walk()   const { return read<Extended_capability::Page_walk_coherency>(); }
 		bool     caching_mode()         const { return read<Capability::Caching_mode>(); }
