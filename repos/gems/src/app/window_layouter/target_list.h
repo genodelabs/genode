@@ -148,6 +148,9 @@ class Window_layouter::Target_list
 			/* visit all windows on the layer */
 			assignments.for_each([&] (Assign const &assign) {
 
+				if (!assign.visible())
+					return;
+
 				Target::Name const target_name = assign.target_name();
 
 				/* search target by name */

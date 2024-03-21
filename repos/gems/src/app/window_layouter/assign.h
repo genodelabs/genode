@@ -60,6 +60,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		bool _ypos_any     = false;
 		bool _size_defined = false;
 		bool _maximized    = false;
+		bool _visible      = false;
 
 		Point _pos  { };
 		Area  _size { };
@@ -79,6 +80,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 			_pos_defined  = assign.has_attribute("xpos")  && assign.has_attribute("ypos");
 			_size_defined = assign.has_attribute("width") && assign.has_attribute("height");
 			_maximized    = assign.attribute_value("maximized", false);
+			_visible      = assign.attribute_value("visible", true);
 			_xpos_any     = assign.attribute_value("xpos", String<20>()) == "any";
 			_ypos_any     = assign.attribute_value("ypos", String<20>()) == "any";
 			_pos          = Point::from_xml(assign);
@@ -124,6 +126,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		}
 
 		bool maximized() const { return _maximized; }
+		bool visible()   const { return _visible; }
 
 		/**
 		 * Call 'fn' with 'Registry<Member>' if label matches assignment
@@ -214,6 +217,9 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 			if (_maximized)
 				xml.attribute("maximized", "yes");
+
+			if (!_visible)
+				xml.attribute("visible", "no");
 		}
 
 		struct Window_state
@@ -235,6 +241,9 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 			if (window.maximized)
 				xml.attribute("maximized", "yes");
+
+			if (!_visible)
+				xml.attribute("visible", "no");
 		}
 
 		template <typename FN>
