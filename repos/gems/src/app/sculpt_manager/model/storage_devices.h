@@ -14,9 +14,10 @@
 #ifndef _MODEL__STORAGE_DEVICES_
 #define _MODEL__STORAGE_DEVICES_
 
-#include "types.h"
-#include "block_device.h"
-#include "usb_storage_device.h"
+#include <types.h>
+#include <model/block_device.h>
+#include <model/ahci_device.h>
+#include <model/usb_storage_device.h>
 
 namespace Sculpt { struct Storage_devices; }
 
@@ -24,6 +25,7 @@ namespace Sculpt { struct Storage_devices; }
 struct Sculpt::Storage_devices
 {
 	Block_devices       block_devices       { };
+	Ahci_devices        ahci_devices        { };
 	Usb_storage_devices usb_storage_devices { };
 
 	bool _block_devices_report_valid = false;
@@ -60,8 +62,32 @@ struct Sculpt::Storage_devices
 			_block_devices_report_valid = true;
 	}
 
+	bool update_ahci_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
+	                                  Signal_context_capability sigh)
+	{
+		bool progress = false;
+		ahci_devices.update_from_xml(node,
+
+			/* create */
+			[&] (Xml_node const &node) -> Ahci_device & {
+				progress = true;
+				return *new (alloc) Ahci_device(env, alloc, sigh, node);
+			},
+
+			/* destroy */
+			[&] (Ahci_device &a) {
+				destroy(alloc, &a);
+				progress = true;
+			},
+
+			/* update */
+			[&] (Ahci_device &, Xml_node const &) { }
+		);
+		return progress;
+	}
+
 	/**
-	 * Update 'usb_storage_devices' from 'usb_active_config' report
+	 * Update 'usb_storage_devices' from USB devices report
 	 *
 	 * \return true if USB storage device was added or vanished
 	 */
@@ -125,6 +151,9 @@ struct Sculpt::Storage_devices
 		block_devices.for_each([&] (Block_device const &dev) {
 			fn(dev); });
 
+		ahci_devices.for_each([&] (Ahci_device const &dev) {
+			fn(dev); });
+
 		usb_storage_devices.for_each([&] (Usb_storage_device const &dev) {
 			fn(dev); });
 	}
@@ -133,6 +162,9 @@ struct Sculpt::Storage_devices
 	void for_each(FN const &fn)
 	{
 		block_devices.for_each([&] (Block_device &dev) {
+			fn(dev); });
+
+		ahci_devices.for_each([&] (Ahci_device &dev) {
 			fn(dev); });
 
 		usb_storage_devices.for_each([&] (Usb_storage_device &dev) {

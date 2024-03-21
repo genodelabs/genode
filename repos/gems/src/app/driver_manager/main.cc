@@ -30,7 +30,6 @@ namespace Driver_manager {
 	using namespace Genode;
 	struct Main;
 	struct Device_driver;
-	struct Ahci_driver;
 	struct Nvme_driver;
 
 	struct Priority { int value; };
@@ -114,62 +113,6 @@ class Driver_manager::Device_driver : Noncopyable
 };
 
 
-struct Driver_manager::Ahci_driver : Device_driver
-{
-	void generate_start_node(Xml_generator &xml) const override
-	{
-		xml.node("start", [&] () {
-			_gen_common_start_node_content(xml, "ahci_drv", "ahci_drv",
-			                               Ram_quota{10*1024*1024}, Cap_quota{100},
-			                               Priority{-1}, Version{0});
-			_gen_provides_node<Block::Session>(xml);
-			xml.node("config", [&] () {
-				xml.node("report", [&] () { xml.attribute("ports", "yes"); });
-				for (unsigned i = 0; i < 6; i++) {
-					xml.node("policy", [&] () {
-						xml.attribute("label_suffix", String<64>("ahci-", i));
-						xml.attribute("device", i);
-						xml.attribute("writeable", "yes");
-					});
-				}
-			});
-			xml.node("heartbeat", [&] () { });
-			xml.node("route", [&] () {
-				xml.node("service", [&] () {
-					xml.attribute("name", "Report");
-					xml.node("parent", [&] () { xml.attribute("label", "ahci_ports"); });
-				});
-				_gen_default_parent_route(xml);
-			});
-		});
-	}
-
-	typedef String<32> Default_label;
-
-	void gen_service_forwarding_policy(Xml_generator &xml,
-	                                   Default_label const &default_label) const
-	{
-		for (unsigned i = 0; i < 6; i++) {
-			xml.node("policy", [&] () {
-				xml.attribute("label_suffix", String<64>("ahci-", i));
-				xml.node("child", [&] () {
-					xml.attribute("name", "ahci_drv"); });
-			});
-		}
-
-		if (default_label.valid()) {
-			xml.node("policy", [&] () {
-				xml.attribute("label_suffix", " default");
-				xml.node("child", [&] () {
-					xml.attribute("name", "ahci_drv");
-					xml.attribute("label", default_label);
-				});
-			});
-		}
-	}
-};
-
-
 struct Driver_manager::Nvme_driver : Device_driver
 {
 	void generate_start_node(Xml_generator &xml) const override
@@ -227,13 +170,11 @@ struct Driver_manager::Main
 
 	Attached_rom_dataspace _platform    { _env, "platform_info" };
 	Attached_rom_dataspace _devices     { _env, "devices"   };
-	Attached_rom_dataspace _ahci_ports  { _env, "ahci_ports"    };
 	Attached_rom_dataspace _nvme_ns     { _env, "nvme_ns"       };
 
 	Reporter _init_config    { _env, "config", "init.config" };
 	Reporter _block_devices  { _env, "block_devices" };
 
-	Constructible<Ahci_driver> _ahci_driver     { };
 	Constructible<Nvme_driver> _nvme_driver     { };
 
 	bool _devices_rom_parsed { false };
@@ -242,11 +183,6 @@ struct Driver_manager::Main
 
 	Signal_handler<Main> _devices_update_handler {
 		_env.ep(), *this, &Main::_handle_devices_update };
-
-	void _handle_ahci_ports_update();
-
-	Signal_handler<Main> _ahci_ports_update_handler {
-		_env.ep(), *this, &Main::_handle_ahci_ports_update };
 
 	void _handle_nvme_ns_update();
 
@@ -261,8 +197,6 @@ struct Driver_manager::Main
 	void _generate_init_config  (Reporter &) const;
 	void _generate_block_devices(Reporter &) const;
 
-	Ahci_driver::Default_label _default_block_device() const;
-
 	void _generate_block_devices()
 	{
 		/* devices must be detected before the checks below can be conducted */
@@ -270,8 +204,6 @@ struct Driver_manager::Main
 			return;
 
 		/* check that all drivers completed initialization before reporting */
-		if (_ahci_driver.constructed() && !_ahci_ports.xml().has_type("ports"))
-			return;
 		if (_nvme_driver.constructed() && !_nvme_ns.xml().has_type("controller"))
 			return;
 
@@ -284,13 +216,11 @@ struct Driver_manager::Main
 		_block_devices.enabled(true);
 
 		_devices   .sigh(_devices_update_handler);
-		_ahci_ports.sigh(_ahci_ports_update_handler);
 		_nvme_ns   .sigh(_nvme_ns_update_handler);
 
 		_generate_init_config(_init_config);
 
 		_handle_devices_update();
-		_handle_ahci_ports_update();
 		_handle_nvme_ns_update();
 	}
 };
@@ -326,27 +256,12 @@ void Driver_manager::Main::_handle_devices_update()
 		});
 	});
 
-	if (!_ahci_driver.constructed() && has_ahci) {
-		_ahci_driver.construct();
-		_generate_init_config(_init_config);
-	}
-
 	if (!_nvme_driver.constructed() && has_nvme) {
 		_nvme_driver.construct();
 		_generate_init_config(_init_config);
 	}
 
 	_devices_rom_parsed = true;
-}
-
-
-void Driver_manager::Main::_handle_ahci_ports_update()
-{
-	_ahci_ports.update();
-	_generate_block_devices();
-
-	/* update service forwarding rules */
-	_generate_init_config(_init_config);
 }
 
 
@@ -388,80 +303,26 @@ void Driver_manager::Main::_generate_init_config(Reporter &init_config) const
 			_gen_parent_service_xml(xml, Capture::Session::service_name());
 		});
 
-		if (_ahci_driver.constructed())
-			_ahci_driver->generate_start_node(xml);
-
 		if (_nvme_driver.constructed())
 			_nvme_driver->generate_start_node(xml);
 
 		/* block-service forwarding rules */
-		bool const ahci = _ahci_driver.constructed() && _ahci_ports.xml().has_sub_node("port");
 		bool const nvme = _nvme_driver.constructed() && _nvme_ns.xml().has_sub_node("namespace");
 
-		if (!ahci && !nvme) return;
+		if (!nvme) return;
 
-		bool const ahci_and_nvme = ahci && nvme;
 		xml.node("service", [&] () {
 			xml.attribute("name", Block::Session::service_name());
-				if (ahci)
-					_ahci_driver->gen_service_forwarding_policy(xml,
-						ahci_and_nvme ? Ahci_driver::Default_label() : _default_block_device());
 				if (nvme)
-					_nvme_driver->gen_service_forwarding_policy(xml,
-						ahci_and_nvme ? Nvme_driver::Default_label() : "nvme-0");
+					_nvme_driver->gen_service_forwarding_policy(xml, "nvme-0");
 		});
 	});
-}
-
-
-Driver_manager::Ahci_driver::Default_label
-Driver_manager::Main::_default_block_device() const
-{
-	unsigned num_devices = 0;
-
-	Ahci_driver::Default_label result;
-
-	_ahci_ports.xml().for_each_sub_node([&] (Xml_node ahci_port) {
-
-		/* count devices */
-		num_devices++;
-
-		unsigned long const num = ahci_port.attribute_value("num", 0UL);
-		result = Ahci_driver::Default_label("ahci-", num);
-	});
-
-	/* if there is more than one device, we don't return a default device */
-	return (num_devices == 1) ? result : Ahci_driver::Default_label();
 }
 
 
 void Driver_manager::Main::_generate_block_devices(Reporter &block_devices) const
 {
 	Reporter::Xml_generator xml(block_devices, [&] () {
-
-		/* mention default block device in 'default' attribute */
-		Ahci_driver::Default_label const default_label = _default_block_device();
-		if (default_label.valid())
-			xml.attribute("default", default_label);
-
-		_ahci_ports.xml().for_each_sub_node([&] (Xml_node ahci_port) {
-
-			xml.node("device", [&] () {
-
-				unsigned long const
-					num         = ahci_port.attribute_value("num",         0UL),
-					block_count = ahci_port.attribute_value("block_count", 0UL),
-					block_size  = ahci_port.attribute_value("block_size",  0UL);
-
-				typedef String<80> Model;
-				Model const model = ahci_port.attribute_value("model", Model());
-
-				xml.attribute("label",       String<64>("ahci-", num));
-				xml.attribute("block_count", block_count);
-				xml.attribute("block_size",  block_size);
-				xml.attribute("model",       model);
-			});
-		});
 
 		/* for now just report the first name space */
 		if (_nvme_ns.xml().has_sub_node("namespace")) {

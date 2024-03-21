@@ -53,7 +53,8 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 
 	Inspect_view_version _inspect_view_version { 0 };
 
-	void update(Xml_node const &usb_devices, Xml_node const &block_devices,
+	void update(Xml_node const &usb_devices, Xml_node const &ahci_ports,
+	            Xml_node const &block_devices,
 	            Signal_context_capability sigh);
 
 	/*

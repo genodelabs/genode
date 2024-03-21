@@ -16,6 +16,7 @@
 
 
 void Sculpt::Storage::update(Xml_node const &usb_devices,
+                             Xml_node const &ahci_ports,
                              Xml_node const &block_devices,
                              Signal_context_capability sigh)
 {
@@ -31,6 +32,15 @@ void Sculpt::Storage::update(Xml_node const &usb_devices,
 		 || dev.state == Storage_device::UNKNOWN)
 			reconfigure_runtime = true;
 	};
+
+	{
+		reconfigure_runtime |=
+			_storage_devices.update_ahci_devices_from_xml(_env, _alloc, ahci_ports,
+			                                              sigh);
+
+		_storage_devices.ahci_devices.for_each([&] (Ahci_device &dev) {
+			process_part_block_report(dev); });
+	}
 
 	{
 		_storage_devices.update_block_devices_from_xml(_env, _alloc, block_devices,
@@ -100,41 +110,42 @@ void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 	xml.node("start", [&] () {
 		gen_ram_fs_start_content(xml, _ram_fs_state); });
 
-	auto part_block_needed_for_use = [&] (Storage_device const &dev) {
-		return (_sculpt_partition.device == dev.label)
-		     && _sculpt_partition.partition.valid(); };
+	auto contains_used_fs = [&] (Storage_device const &device)
+	{
+		if (!_sculpt_partition.valid())
+			return false;
 
-	_storage_devices.block_devices.for_each([&] (Block_device const &dev) {
-	
-		if (dev.part_block_needed_for_discovery()
-		 || dev.part_block_needed_for_access()
-		 || part_block_needed_for_use(dev))
+		if (device.provider == Storage_device::Provider::PARENT)
+			return (device.label == _sculpt_partition.device);
 
+		return (device.port  == _sculpt_partition.port)
+		    && (device.label == _sculpt_partition.device);
+	};
+
+	_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device const &device) {
+
+		if (device.usb_block_drv_needed() || contains_used_fs(device))
 			xml.node("start", [&] () {
-				Storage_device::Label const parent { };
-				dev.gen_part_block_start_content(xml, parent); }); });
-
-	_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device const &dev) {
-
-		if (dev.usb_block_drv_needed() || _sculpt_partition.device == dev.label)
-			xml.node("start", [&] () {
-				dev.gen_usb_block_drv_start_content(xml); });
-
-		if (dev.part_block_needed_for_discovery()
-		 || dev.part_block_needed_for_access()
-		 || part_block_needed_for_use(dev))
-
-			xml.node("start", [&] () {
-				Storage_device::Label const driver = dev.usb_block_drv_name();
-				dev.gen_part_block_start_content(xml, driver);
-		});
+				device.gen_usb_block_drv_start_content(xml); });
 	});
 
 	_storage_devices.for_each([&] (Storage_device const &device) {
 
+		bool const device_contains_used_fs_in_partition =
+			contains_used_fs(device) && !device.whole_device;
+
+		bool const part_block_needed = device.part_block_needed_for_discovery()
+		                            || device.part_block_needed_for_access()
+		                            || device_contains_used_fs_in_partition;
+		if (part_block_needed)
+			xml.node("start", [&] {
+				device.gen_part_block_start_content(xml); });
+
 		device.for_each_partition([&] (Partition const &partition) {
 
-			Storage_target const target { device.label, partition.number };
+			Storage_target const target { .device    = device.label,
+			                              .port      = device.port,
+			                              .partition = partition.number };
 
 			if (partition.check_in_progress) {
 				xml.node("start", [&] () {

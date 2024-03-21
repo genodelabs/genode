@@ -35,7 +35,8 @@ struct Sculpt::Block_device : List_model<Block_device>::Element,
 	Block_device(Env &env, Allocator &alloc, Signal_context_capability sigh,
 	             Label const &label, Model const &model, Capacity capacity)
 	:
-		Storage_device(env, alloc, label, capacity, sigh), model(model)
+		Storage_device(env, alloc, Storage_device::Provider::PARENT,
+		               label, Port { }, capacity, sigh), model(model)
 	{ }
 
 	bool matches(Xml_node const &node) const

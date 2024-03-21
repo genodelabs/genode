@@ -22,7 +22,7 @@ namespace Sculpt { struct Ram_fs_widget; }
 
 struct Sculpt::Ram_fs_widget : Widget<Vbox>
 {
-	Storage_target const _target { "ram_fs", Partition::Number() };
+	Storage_target const _target { "ram_fs", { }, Partition::Number() };
 
 	struct Action : Interface, Noncopyable
 	{

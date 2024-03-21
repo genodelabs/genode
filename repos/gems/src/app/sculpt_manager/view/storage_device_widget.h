@@ -35,12 +35,11 @@ struct Sculpt::Storage_device_widget : Widget<Vbox>
 		_partition_operations.reset_operation();
 	}
 
-	void click(Clicked_at const &at, Storage_target const &used_target, Action &action)
+	void click(Clicked_at const &at, Storage_device const &device, Storage_target const &used_target, Action &action)
 	{
-		Id const device_id    = at.matching_id<Vbox>();
 		Id const partition_id = at.matching_id<Vbox, Hbox>();
 
-		Storage_target const selected_target { device_id.value, _selected_partition };
+		Storage_target const selected_target { device.label, device.port, _selected_partition };
 
 		if (partition_id.valid()) {
 			_selected_partition = (partition_id.value == _selected_partition)
@@ -53,11 +52,9 @@ struct Sculpt::Storage_device_widget : Widget<Vbox>
 		_partition_operations.click(at, selected_target, used_target, action);
 	}
 
-	void clack(Clacked_at const &at, Action &action)
+	void clack(Clacked_at const &at, Storage_device const &device, Action &action)
 	{
-		Id const device_id = at.matching_id<Vbox>();
-
-		Storage_target const selected_target { device_id.value, _selected_partition };
+		Storage_target const selected_target { device.label, device.port, _selected_partition };
 
 		_partition_operations.clack(at, selected_target, action);
 	}

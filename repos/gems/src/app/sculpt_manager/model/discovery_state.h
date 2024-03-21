@@ -67,7 +67,7 @@ struct Sculpt::Discovery_state
 				if (!partition.whole_device()
 				 && partition.label == "GENODE*"
 				 && partition.file_system.accessible())
-					target = Storage_target { device.label, partition.number }; });
+					target = Storage_target { device.label, device.port, partition.number }; });
 		};
 
 		if (!target.valid())
@@ -82,7 +82,7 @@ struct Sculpt::Discovery_state
 			devices.block_devices.for_each([&] (Storage_device const &device) {
 				if (device.whole_device
 				 && device.whole_device_partition->file_system.accessible())
-					target = Storage_target { device.label, Partition::Number() }; });
+					target = Storage_target { device.label, device.port, Partition::Number() }; });
 
 		if (target.valid())
 			_done = true;

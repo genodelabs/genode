@@ -47,6 +47,7 @@
 #include <fb_driver.h>
 #include <ps2_driver.h>
 #include <usb_driver.h>
+#include <ahci_driver.h>
 #include <gui.h>
 #include <keyboard_focus.h>
 #include <network.h>
@@ -76,7 +77,8 @@ struct Sculpt::Main : Input_event_handler,
                       Panel_dialog::State,
                       Popup_dialog::Refresh,
                       Screensaver::Action,
-                      Usb_driver::Action
+                      Usb_driver::Action,
+                      Ahci_driver::Action
 {
 	Env &_env;
 
@@ -223,17 +225,19 @@ struct Sculpt::Main : Input_event_handler,
 
 		_board_info = Board_info::from_xml(_devices.xml(), _platform.xml());
 
-		_fb_driver.update(_child_states, _board_info, _platform.xml());
-		_ps2_driver.update(_child_states, _board_info);
+		_fb_driver  .update(_child_states, _board_info, _platform.xml());
+		_ps2_driver .update(_child_states, _board_info);
+		_ahci_driver.update(_child_states, _board_info);
 		_update_usb_drivers();
 
 		update_network_dialog();
 		generate_runtime_config();
 	}
 
-	Ps2_driver _ps2_driver { };
-	Fb_driver  _fb_driver  { };
-	Usb_driver _usb_driver { _env, *this };
+	Ps2_driver  _ps2_driver  { };
+	Fb_driver   _fb_driver   { };
+	Usb_driver  _usb_driver  { _env, *this };
+	Ahci_driver _ahci_driver { _env, *this };
 
 	void _update_usb_drivers()
 	{
@@ -270,9 +274,11 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_block_devices_rom.update();
 		_usb_driver.with_devices([&] (Xml_node const &usb_devices) {
-			_storage.update(usb_devices,
-			                _block_devices_rom.xml(),
-			                _block_devices_handler);
+			_ahci_driver.with_ahci_ports([&] (Xml_node const &ahci_ports) {
+				_storage.update(usb_devices, ahci_ports,
+				                _block_devices_rom.xml(),
+				                _block_devices_handler);
+			});
 		});
 
 		/* update USB policies for storage devices */
@@ -293,6 +299,11 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_storage.gen_usb_storage_policies(xml);
 	}
+
+	/**
+	 * Ahci_driver::Action
+	 */
+	void handle_ahci_discovered() override { _handle_block_devices(); }
 
 	/**
 	 * Storage::Action interface
@@ -1883,7 +1894,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 		device.for_each_partition([&] (Partition &partition) {
 
-			Storage_target const target { device.label, partition.number };
+			Storage_target const target { device.label, device.port, partition.number };
 
 			if (partition.check_in_progress) {
 				String<64> name(target.label(), ".e2fsck");
@@ -2116,9 +2127,10 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("height", _affinity_space.height());
 	});
 
-	_ps2_driver.gen_start_node(xml);
-	_fb_driver .gen_start_nodes(xml);
-	_usb_driver.gen_start_nodes(xml);
+	_ps2_driver .gen_start_node (xml);
+	_fb_driver  .gen_start_nodes(xml);
+	_usb_driver .gen_start_nodes(xml);
+	_ahci_driver.gen_start_node (xml);
 
 	_dialog_runtime.gen_start_nodes(xml);
 

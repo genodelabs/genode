@@ -107,7 +107,8 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 	Usb_storage_device(Env &env, Allocator &alloc, Signal_context_capability sigh,
 	                   Label const &label)
 	:
-		Storage_device(env, alloc, label, Capacity{0}, sigh),
+		Storage_device(env, alloc, Storage_device::Provider::RUNTIME, label,
+		               Port { }, Capacity{0}, sigh),
 		_driver_report_rom(env, String<80>("report -> runtime/", usb_block_drv_name(),
 		                                   "/devices").string())
 	{

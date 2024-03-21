@@ -37,7 +37,7 @@ struct Dialog::Partition_button : Widget<Hbox>
 			if (partition.label.length() > 1)
 				s.sub_scope<Label>(String<80>(" (", partition.label, ") "));
 
-			Storage_target const target { device.label, partition.number };
+			Storage_target const target { device.label, device.port, partition.number };
 			if (used_target == target)
 				s.sub_scope<Label>("* ");
 		});

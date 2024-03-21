@@ -51,7 +51,7 @@ struct Sculpt::Board_info
 					WIFI = 0x28000,
 					LAN  = 0x20000,
 					VGA  = 0x30000,
-					AHCI = 0x10600,
+					AHCI = 0x10601,
 					NVME = 0x10800,
 					UHCI = 0xc0300, OHCI = 0xc0310, EHCI = 0xc0320, XHCI = 0xc0330,
 				};

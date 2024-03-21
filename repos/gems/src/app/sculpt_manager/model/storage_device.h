@@ -14,10 +14,9 @@
 #ifndef _MODEL__STORAGE_DEVICE_H_
 #define _MODEL__STORAGE_DEVICE_H_
 
-#include "types.h"
-#include "partition.h"
-#include "capacity.h"
-#include "xml.h"
+#include <model/partition.h>
+#include <model/capacity.h>
+#include <xml.h>
 
 namespace Sculpt { struct Storage_device; };
 
@@ -33,9 +32,24 @@ struct Sculpt::Storage_device
 
 	Allocator &_alloc;
 
-	typedef String<32> Label;
+	enum class Provider { PARENT, RUNTIME };
 
-	Label const label;
+	using Label = String<32>;
+	using Port  = String<8>;
+
+	Provider const provider;
+	Label    const label;    /* driver name, or label of parent session */
+	Port     const port;
+
+	Label name() const
+	{
+		return port.valid() ? Start_name { label, "-", port }
+		                    : Start_name { label };
+	}
+
+	Start_name part_block_start_name() const { return { name(), ".part_block" }; }
+	Start_name relabel_start_name()    const { return { name(), ".relabel"    }; }
+	Start_name expand_start_name()     const { return { name(), ".expand"     }; }
 
 	Capacity capacity; /* non-const because USB storage devices need to update it */
 
@@ -114,14 +128,15 @@ struct Sculpt::Storage_device
 	/**
 	 * Constructor
 	 *
-	 * \param label  label of block device
+	 * \param label  label of block device at parent, or driver name
 	 * \param sigh   signal handler to be notified on partition-info updates
 	 */
-	Storage_device(Env &env, Allocator &alloc, Label const &label,
+	Storage_device(Env &env, Allocator &alloc, Provider provider,
+	               Label const &label, Port const &port,
 	               Capacity capacity, Signal_context_capability sigh)
 	:
-		_alloc(alloc), label(label), capacity(capacity),
-		_partitions_rom(env, String<80>("report -> runtime/", label, ".part_block/partitions").string())
+		_alloc(alloc), provider(provider), label(label), port(port), capacity(capacity),
+		_partitions_rom(env, String<80>("report -> runtime/", part_block_start_name(), "/partitions").string())
 	{
 		_partitions_rom.sigh(sigh);
 		process_part_block_report();
@@ -156,13 +171,7 @@ struct Sculpt::Storage_device
 		return needed_for_access;
 	}
 
-	/**
-	 * Generate content of start node for part_block
-	 *
-	 * \param service_name  name of server that provides the block device, or
-	 *                      if invalid, request block device from parent.
-	 */
-	inline void gen_part_block_start_content(Xml_generator &xml, Label const &server_name) const;
+	inline void gen_part_block_start_content(Xml_generator &) const;
 
 	template <typename FN>
 	void for_each_partition(FN const &fn) const
@@ -216,19 +225,14 @@ struct Sculpt::Storage_device
 	}
 
 	bool discovery_in_progress() const { return state == UNKNOWN; }
-
-	Start_name part_block_start_name() const { return Start_name(label, ".part_block"); }
-	Start_name relabel_start_name()    const { return Start_name(label, ".relabel"); }
-	Start_name expand_start_name()     const { return Start_name(label, ".expand");  }
 };
 
 
-void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml,
-                                                          Label const &server_name) const
+void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml) const
 {
 	xml.attribute("version", _part_block_version);
 
-	gen_common_start_content(xml, Label(label, ".part_block"),
+	gen_common_start_content(xml, part_block_start_name(),
 	                         Cap_quota{100}, Ram_quota{8*1024*1024},
 	                         Priority::STORAGE);
 
@@ -253,11 +257,13 @@ void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml,
 	xml.node("route", [&] () {
 
 		gen_service_node<Block::Session>(xml, [&] () {
-			if (server_name.valid())
-				gen_named_node(xml, "child", server_name);
+			if (provider == Provider::PARENT)
+				xml.node("parent", [&] {
+					xml.attribute("label", label); });
 			else
-				xml.node("parent", [&] () {
-					xml.attribute("label", label); }); });
+				gen_named_node(xml, "child", label, [&] {
+					xml.attribute("label", port); });
+		});
 
 		gen_parent_rom_route(xml, "part_block");
 		gen_parent_rom_route(xml, "ld.lib.so");

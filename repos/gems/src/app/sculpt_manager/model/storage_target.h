@@ -22,26 +22,35 @@ namespace Sculpt { struct Storage_target; }
 
 struct Sculpt::Storage_target
 {
-	typedef String<Storage_device::Label::capacity() + 4> Label;
+	using Label = String<Storage_device::Label::capacity() + 5>;
 
 	Storage_device::Label device;
+	Storage_device::Port  port;
 	Partition::Number     partition;
 
 	bool operator == (Storage_target const &other) const
 	{
-		return (device == other.device) && (partition == other.partition);
+		return (device    == other.device)
+		    && (port      == other.port)
+		    && (partition == other.partition);
 	}
 
 	bool operator != (Storage_target const &other) const { return !(*this == other); }
 
 	bool valid() const { return device.valid(); }
 
+	Label device_and_port() const
+	{
+		return port.valid() ? Label { device, "-", port } : Label { device };
+	}
+
 	/**
 	 * Return string to be used as session label referring to the target
 	 */
 	Label label() const
 	{
-		return partition.valid() ? Label(device, ".", partition) : Label(device);
+		return partition.valid() ? Label(device_and_port(), ".", partition)
+		                         : Label(device_and_port());
 	}
 
 	bool ram_fs() const { return device == "ram_fs"; }
@@ -50,7 +59,9 @@ struct Sculpt::Storage_target
 
 	void gen_block_session_route(Xml_generator &xml) const
 	{
-		bool const usb          = (Label(Cstring(device.string(), 3)) == "usb");
+		bool const usb  = (Label(Cstring(device.string(), 3)) == "usb");
+		bool const ahci = (Label(Cstring(device.string(), 4)) == "ahci");
+
 		bool const whole_device = !partition.valid();
 
 		xml.node("service", [&] () {
@@ -58,10 +69,11 @@ struct Sculpt::Storage_target
 
 			if (whole_device) {
 
-				if (usb)
+				if (usb || ahci)
 					xml.node("child", [&] () {
-						xml.attribute("name",  Label(device, ".drv"));
-						xml.attribute("label", partition);
+						xml.attribute("name",  device);
+						if (port.valid())
+							xml.attribute("label", port);
 					});
 				else
 					xml.node("parent", [&] () { xml.attribute("label", device); });
@@ -70,7 +82,7 @@ struct Sculpt::Storage_target
 			/* access partition */
 			else {
 				xml.node("child", [&] () {
-					xml.attribute("name",  Label(device, ".part_block"));
+					xml.attribute("name",  Label(device_and_port(), ".part_block"));
 					xml.attribute("label", partition);
 				});
 			}

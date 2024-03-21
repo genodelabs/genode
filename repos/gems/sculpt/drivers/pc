@@ -42,7 +42,6 @@
 			<policy label="dynamic -> config"               report="driver_manager -> init.config"/>
 			<policy label="driver_manager -> devices"       report="platform_drv -> devices"/>
 			<policy label="driver_manager -> dynamic_state" report="dynamic -> state"/>
-			<policy label="driver_manager -> ahci_ports"    report="dynamic -> ahci_ports"/>
 			<policy label="driver_manager -> nvme_ns"       report="dynamic -> nvme_ns"/>
 			<policy label="rom_reporter -> acpi"            report="acpi_drv -> acpi"/>
 			<policy label="rom_reporter -> devices"         report="platform_drv -> devices"/>
@@ -127,7 +126,7 @@
 			<report devices="yes" iommu="yes"/>
 			<policy label_prefix="runtime -> ps2"> <device name="ps2"/> </policy>
 			<policy label_prefix="runtime -> vesa_fb" info="yes">  <pci class="VGA"/>  </policy>
-			<policy label_prefix="dynamic -> ahci_drv">            <pci class="AHCI"/> </policy>
+			<policy label_prefix="runtime -> ahci">                <pci class="AHCI"/> </policy>
 			<policy label_prefix="dynamic -> nvme_drv" info="yes"> <pci class="NVME"/> </policy>
 			<policy label_prefix="runtime -> usb" info="yes">      <pci class="USB"/>  </policy>
 			<policy label_prefix="runtime -> intel_gpu" info="yes">
@@ -147,7 +146,6 @@
 			<service name="Report" label="init.config"> <child name="report_rom"/> </service>
 			<service name="Report" label="block_devices"> <parent label="block_devices"/> </service>
 			<service name="ROM" label="devices">       <child name="report_rom"/> </service>
-			<service name="ROM" label="ahci_ports">    <child name="report_rom"/> </service>
 			<service name="ROM" label="nvme_ns">       <child name="report_rom"/> </service>
 			<service name="ROM" label="dynamic_state"> <child name="report_rom"/> </service>
 			<service name="LOG"> <parent/> </service>
@@ -167,7 +165,6 @@
 		</provides>
 		<route>
 			<service name="Platform"> <child name="platform_drv"/> </service>
-			<service name="Report" label="ahci_ports"> <child name="report_rom"/> </service>
 			<service name="Report" label="nvme_ns"> <child name="report_rom"/> </service>
 			<service name="Report" label="state"> <child name="report_rom"/> </service>
 			<service name="Report"> <parent/> </service>

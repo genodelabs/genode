@@ -29,7 +29,7 @@ void Partition_operations::view(Scope<Vbox> &s,
 
 	bool const whole_device = !partition.number.valid();
 
-	Storage_target const target { device.label, partition.number };
+	Storage_target const target { device.label, device.port, partition.number };
 
 	bool const device_in_use = (used_target.device == device.label);
 

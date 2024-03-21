@@ -328,6 +328,7 @@ struct Sculpt::Main : Input_event_handler,
 		_block_devices_rom.update();
 		_usb_driver.with_devices([&] (Xml_node const &usb_devices) {
 			_storage.update(usb_devices,
+			                Xml_node { "<empty/> " }, /* ahci */
 			                _block_devices_rom.xml(),
 			                _block_devices_handler);
 		});
@@ -2237,7 +2238,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 		device.for_each_partition([&] (Partition &partition) {
 
-			Storage_target const target { device.label, partition.number };
+			Storage_target const target { device.label, device.port, partition.number };
 
 			if (partition.check_in_progress) {
 				String<64> name(target.label(), ".e2fsck");
