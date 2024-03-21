@@ -142,11 +142,14 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 			_stacked  = true;
 		}
 
-		bool stacked() const { return _stacked; }
+		bool back_most() const
+		{
+			return _stacked && !_neighbor.valid();
+		}
 
 		bool in_front_of(Window_base const &neighbor) const
 		{
-			return _neighbor == neighbor.frontmost_view();
+			return _stacked && (_neighbor == neighbor.frontmost_view());
 		}
 
 		void geometry(Rect geometry) { _geometry = geometry; }
