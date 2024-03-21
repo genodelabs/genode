@@ -259,16 +259,16 @@ endef
 
 
 # 'module_init' calls should only be in C-sources
-WAIT_FOR_OBJECTS = $(addsuffix .o,$(basename $(filter-out initcall_table.c,$(SRC_C))))
+INITCALL_OBJECTS = $(addsuffix .o,$(basename $(SRC_C)))
 
 # retrieve 'initptr_*' using nm from object files
-INITCALLS = $(sort $(shell $(NM) --defined-only $(WAIT_FOR_OBJECTS) |\
+INITCALLS = $(sort $(shell $(NM) --defined-only $(INITCALL_OBJECTS) |\
               grep "__initptr" |\
               awk '{print $$3}'))
 
-SRC_C += initcall_table.c
+OBJ_POSTPROC_SRC += initcall_table.c
 
-initcall_table.c: $(WAIT_FOR_OBJECTS)
+initcall_table.c:
 	$(MSG_CONFIG)$@
 	@$(call print_file_header,$(shell date +"%F"),$@)
 	@$(foreach sym,$(INITCALLS),$(call print_declaration,$(sym),$@))
