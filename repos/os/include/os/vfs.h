@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -259,6 +259,16 @@ struct Genode::Directory : Noncopyable, Interface
 			return stat.type == Vfs::Node_type::DIRECTORY;
 		}
 
+		bool symlink_exists(Path const &rel_path) const
+		{
+			Vfs::Directory_service::Stat stat { };
+
+			if (_stat(rel_path, stat) != Vfs::Directory_service::STAT_OK)
+				return false;
+
+			return stat.type == Vfs::Node_type::SYMLINK;
+		}
+
 		/**
 		 * Return size of file at specified directory-relative path
 		 *
@@ -326,6 +336,65 @@ struct Genode::Directory : Noncopyable, Interface
 				throw Nonexistent_file();
 
 			return Path(Genode::Cstring(buf, (size_t)out_count));
+		}
+
+		/**
+		 * Attempt to create symlink
+		 *
+		 * This operation may fail. Its success can be checked by calling
+		 * 'symlink_exists'.
+		 */
+		void create_symlink(Path const &rel_path, Path const &target)
+		{
+			using namespace Vfs;
+			Vfs_handle *link_handle;
+
+			auto openlink_result = _nonconst_fs().openlink(
+				join(_path, rel_path).string(),
+				true, &link_handle, _alloc);
+
+			using Openlink_result = Directory_service::Openlink_result;
+
+			if (openlink_result == Openlink_result::OPENLINK_ERR_NODE_ALREADY_EXISTS)
+				openlink_result = _fs.openlink(
+					join(_path, rel_path).string(),
+					false, &link_handle, _alloc);
+
+			if (openlink_result != Openlink_result::OPENLINK_OK)
+				return;
+
+			Vfs_handle::Guard guard(link_handle);
+
+			Const_byte_range_ptr const src { target.string(), target.length() };
+
+			size_t out_count = 0;
+			link_handle->fs().write(link_handle, src, out_count);
+
+			if (out_count < src.num_bytes) {
+				unlink(rel_path);
+				return;
+			}
+
+			/* sync before the handle gets closed */
+
+			while (!link_handle->fs().queue_sync(link_handle))
+				_io.commit_and_wait();
+
+			File_io_service::Sync_result result;
+
+			for (;;) {
+				result = link_handle->fs().complete_sync(link_handle);
+
+				if (result != File_io_service::SYNC_QUEUED)
+					break;
+
+				_io.commit_and_wait();
+			};
+
+			if (result != File_io_service::SYNC_OK) {
+				unlink(rel_path);
+				return;
+			}
 		}
 
 		void unlink(Path const &rel_path)
