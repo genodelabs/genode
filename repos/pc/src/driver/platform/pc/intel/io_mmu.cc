@@ -138,7 +138,10 @@ void Intel::Io_mmu::flush_write_buffer()
 
 Intel::Invalidator & Intel::Io_mmu::invalidator()
 {
-	return *_register_invalidator;
+	if (!read<Global_status::Qies>())
+		return *_register_invalidator;
+	else
+		return *_queued_invalidator;
 }
 
 
@@ -153,6 +156,12 @@ void Intel::Io_mmu::_handle_faults()
 
 		if (read<Fault_status::Iqe>())
 			error("Invalidation queue error");
+
+		if (read<Fault_status::Ice>())
+			error("Invalidation completion error");
+
+		if (read<Fault_status::Ite>())
+			error("Invalidation time-out error");
 
 		/* acknowledge all faults */
 		write<Fault_status>(0x7d);
@@ -336,6 +345,12 @@ void Intel::Io_mmu::resume()
 	if (read<Global_status::Enabled>() && read<Global_status::Qies>())
 		_global_command<Global_command::Qie>(false);
 
+	if (read<Extended_capability::Qi>()) {
+		/* enable queued invalidation if supported */
+		_queued_invalidator.construct(_env, base() + 0x80);
+		_global_command<Global_command::Qie>(true);
+	}
+
 	/* restore fault events only if kernel did not enable IRQ remapping */
 	if (!read<Global_status::Ires>()) {
 		write<Fault_event_control>(_s3_fec);
@@ -386,12 +401,14 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
 		/* disable queued invalidation interface */
 		if (read<Global_status::Qies>())
 			_global_command<Global_command::Qie>(false);
+	}
 
-		if (read<Version::Major>() > 5) {
-			error("Register-based invalidation only ",
-			      "supported in architecture versions 5 and lower");
-		}
-
+	if (read<Extended_capability::Qi>()) {
+		/* enable queued invalidation if supported */
+		_queued_invalidator.construct(_env, base() + 0x80);
+		_global_command<Global_command::Qie>(true);
+	} else {
+		/* use register-based invalidation interface as fallback */
 		addr_t context_reg_base = base() + 0x28;
 		addr_t iotlb_reg_base   = base() + 8*_offset<Extended_capability::Iro>();
 		_register_invalidator.construct(context_reg_base, iotlb_reg_base, _verbose);

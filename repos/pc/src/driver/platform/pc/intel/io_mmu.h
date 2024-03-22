@@ -195,6 +195,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 			_env.ep(), *this, &Io_mmu::_handle_faults };
 
 		Constructible<Register_invalidator> _register_invalidator { };
+		Constructible<Queued_invalidator>   _queued_invalidator   { };
 
 		/**
 		 * Registers
@@ -242,6 +243,9 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 			/* interrupt remapping support */
 			struct Ir  : Bitfield<3,1> { };
+
+			/* queued-invalidation support */
+			struct Qi  : Bitfield<1,1> { };
 
 			struct Page_walk_coherency : Bitfield<0,1> { };
 		};
@@ -296,6 +300,12 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		{
 			/* fault record index */
 			struct Fri : Bitfield<8,8> { };
+
+			/* invalidation time-out error */
+			struct Ite : Bitfield<6,1> { };
+
+			/* invalidation completion error */
+			struct Ice : Bitfield<5,1> { };
 
 			/* invalidation queue error */
 			struct Iqe : Bitfield<4,1> { };
