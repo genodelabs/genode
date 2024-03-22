@@ -6,4 +6,4 @@ ram_fs: depot
 launcher: ping pc_nic
 
 # supplemental depot content added to the system image
-import: pkg/drivers_managed-pc src/pc_nic_drv pkg/pc_nic pkg/ping
+import: pkg/sculpt_drivers-pc pkg/pc_nic pkg/ping

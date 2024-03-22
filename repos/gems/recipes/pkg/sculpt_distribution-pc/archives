@@ -1,7 +1,5 @@
 _/pkg/sculpt
-_/pkg/drivers_managed-pc
-_/pkg/pc_wifi
-_/pkg/pc_nic_drv
+_/pkg/sculpt_drivers-pc
 _/pkg/vbox6
 _/pkg/acpica
 _/pkg/system_clock-pc
