@@ -24,6 +24,7 @@
     <pkg path="usb_webcam"      info="USB webcam"/>
     <pkg path="bsd_audio_drv"   info="audio driver" arch="x86_64"/>
     <pkg path="mixer"           info="audio mixer"/>
+    <pkg path="terminal"        info="graphical terminal"/>
   </index>
 
   <index name="Demos">
