@@ -1,8 +1,10 @@
 _/raw/gdb_x86
 _/src/init
+_/src/chroot
 _/src/cached_fs_rom
 _/src/vfs
 _/src/expat
+_/src/gdb_support
 _/src/gdb_x86
 _/src/gmp
 _/src/libc

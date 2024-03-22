@@ -1,15 +1,19 @@
-<runtime ram="76M" caps="1000" binary="init" config="gdb.config">
+<runtime ram="128M" caps="1000" binary="init" config="gdb.config">
 
 	<requires>
 		<timer/>
 		<terminal label="monitor"/>
 		<terminal label="ui"/>
-		<file_system label="target"/>
+		<file_system label="system_config" writeable="no"/>
+		<file_system label="used" writeable="no"/>
+		<rom label="build_info"/>
 		<rm/>
 	</requires>
 
 	<content>
+		<rom label="chroot"/>
 		<rom label="gdb.config"/>
+		<rom label="gdb_support"/>
 		<rom label="init"/>
 		<rom label="vfs"/>
 		<rom label="cached_fs_rom"/>
