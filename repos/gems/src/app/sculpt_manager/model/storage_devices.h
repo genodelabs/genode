@@ -17,6 +17,7 @@
 #include <types.h>
 #include <model/block_device.h>
 #include <model/ahci_device.h>
+#include <model/nvme_device.h>
 #include <model/usb_storage_device.h>
 
 namespace Sculpt { struct Storage_devices; }
@@ -26,6 +27,7 @@ struct Sculpt::Storage_devices
 {
 	Block_devices       block_devices       { };
 	Ahci_devices        ahci_devices        { };
+	Nvme_devices        nvme_devices        { };
 	Usb_storage_devices usb_storage_devices { };
 
 	bool _block_devices_report_valid = false;
@@ -82,6 +84,32 @@ struct Sculpt::Storage_devices
 
 			/* update */
 			[&] (Ahci_device &, Xml_node const &) { }
+		);
+		return progress;
+	}
+
+	bool update_nvme_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
+	                                  Signal_context_capability sigh)
+	{
+		auto const model = node.attribute_value("model", Nvme_device::Model());
+
+		bool progress = false;
+		nvme_devices.update_from_xml(node,
+
+			/* create */
+			[&] (Xml_node const &node) -> Nvme_device & {
+				progress = true;
+				return *new (alloc) Nvme_device(env, alloc, sigh, model, node);
+			},
+
+			/* destroy */
+			[&] (Nvme_device &a) {
+				destroy(alloc, &a);
+				progress = true;
+			},
+
+			/* update */
+			[&] (Nvme_device &, Xml_node const &) { }
 		);
 		return progress;
 	}
@@ -154,6 +182,9 @@ struct Sculpt::Storage_devices
 		ahci_devices.for_each([&] (Ahci_device const &dev) {
 			fn(dev); });
 
+		nvme_devices.for_each([&] (Nvme_device const &dev) {
+			fn(dev); });
+
 		usb_storage_devices.for_each([&] (Usb_storage_device const &dev) {
 			fn(dev); });
 	}
@@ -165,6 +196,9 @@ struct Sculpt::Storage_devices
 			fn(dev); });
 
 		ahci_devices.for_each([&] (Ahci_device &dev) {
+			fn(dev); });
+
+		nvme_devices.for_each([&] (Nvme_device &dev) {
 			fn(dev); });
 
 		usb_storage_devices.for_each([&] (Usb_storage_device &dev) {

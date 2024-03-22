@@ -48,6 +48,7 @@
 #include <ps2_driver.h>
 #include <usb_driver.h>
 #include <ahci_driver.h>
+#include <nvme_driver.h>
 #include <gui.h>
 #include <keyboard_focus.h>
 #include <network.h>
@@ -78,7 +79,8 @@ struct Sculpt::Main : Input_event_handler,
                       Popup_dialog::Refresh,
                       Screensaver::Action,
                       Usb_driver::Action,
-                      Ahci_driver::Action
+                      Ahci_driver::Action,
+                      Nvme_driver::Action
 {
 	Env &_env;
 
@@ -228,6 +230,7 @@ struct Sculpt::Main : Input_event_handler,
 		_fb_driver  .update(_child_states, _board_info, _platform.xml());
 		_ps2_driver .update(_child_states, _board_info);
 		_ahci_driver.update(_child_states, _board_info);
+		_nvme_driver.update(_child_states, _board_info);
 		_update_usb_drivers();
 
 		update_network_dialog();
@@ -238,6 +241,7 @@ struct Sculpt::Main : Input_event_handler,
 	Fb_driver   _fb_driver   { };
 	Usb_driver  _usb_driver  { _env, *this };
 	Ahci_driver _ahci_driver { _env, *this };
+	Nvme_driver _nvme_driver { _env, *this };
 
 	void _update_usb_drivers()
 	{
@@ -275,9 +279,11 @@ struct Sculpt::Main : Input_event_handler,
 		_block_devices_rom.update();
 		_usb_driver.with_devices([&] (Xml_node const &usb_devices) {
 			_ahci_driver.with_ahci_ports([&] (Xml_node const &ahci_ports) {
-				_storage.update(usb_devices, ahci_ports,
-				                _block_devices_rom.xml(),
-				                _block_devices_handler);
+				_nvme_driver.with_nvme_namespaces([&] (Xml_node const &nvme_namespaces) {
+					_storage.update(usb_devices, ahci_ports, nvme_namespaces,
+					                _block_devices_rom.xml(),
+					                _block_devices_handler);
+				});
 			});
 		});
 
@@ -304,6 +310,11 @@ struct Sculpt::Main : Input_event_handler,
 	 * Ahci_driver::Action
 	 */
 	void handle_ahci_discovered() override { _handle_block_devices(); }
+
+	/**
+	 * Nvme_driver::Action
+	 */
+	void handle_nvme_discovered() override { _handle_block_devices(); }
 
 	/**
 	 * Storage::Action interface
@@ -2131,6 +2142,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	_fb_driver  .gen_start_nodes(xml);
 	_usb_driver .gen_start_nodes(xml);
 	_ahci_driver.gen_start_node (xml);
+	_nvme_driver.gen_start_node (xml);
 
 	_dialog_runtime.gen_start_nodes(xml);
 

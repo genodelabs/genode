@@ -61,6 +61,7 @@ struct Sculpt::Storage_target
 	{
 		bool const usb  = (Label(Cstring(device.string(), 3)) == "usb");
 		bool const ahci = (Label(Cstring(device.string(), 4)) == "ahci");
+		bool const nvme = (Label(Cstring(device.string(), 4)) == "nvme");
 
 		bool const whole_device = !partition.valid();
 
@@ -69,7 +70,7 @@ struct Sculpt::Storage_target
 
 			if (whole_device) {
 
-				if (usb || ahci)
+				if (usb || ahci || nvme)
 					xml.node("child", [&] () {
 						xml.attribute("name",  device);
 						if (port.valid())

@@ -184,6 +184,33 @@ struct Sculpt::Ahci_devices_widget : Storage_devices_widget_base
 };
 
 
+namespace Sculpt { struct Nvme_devices_widget; }
+
+struct Sculpt::Nvme_devices_widget : Storage_devices_widget_base
+{
+	using Storage_devices_widget_base::Storage_devices_widget_base;
+
+	void view(Scope<Vbox> &s) const
+	{
+		s.sub_scope<Min_ex>(35);
+		_storage_devices.nvme_devices.for_each([&] (Nvme_device const &dev) {
+			Hosted<Vbox, Storage_device_button> button { Id { dev.name() }, dev.model };
+			_view_device(s, dev, button);
+		});
+	}
+
+	void click(Clicked_at const &at, Storage_device_widget::Action &action)
+	{
+		_click_device<Storage_device_button>(at, action);
+	}
+
+	void clack(Clacked_at const &at, Storage_device_widget::Action &action)
+	{
+		_clack_device(at, action);
+	}
+};
+
+
 namespace Sculpt { struct Usb_storage_device_button; }
 
 struct Sculpt::Usb_storage_device_button : Widget<Button>

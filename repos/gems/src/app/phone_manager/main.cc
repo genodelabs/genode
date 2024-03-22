@@ -329,6 +329,7 @@ struct Sculpt::Main : Input_event_handler,
 		_usb_driver.with_devices([&] (Xml_node const &usb_devices) {
 			_storage.update(usb_devices,
 			                Xml_node { "<empty/> " }, /* ahci */
+			                Xml_node { "<empty/> " }, /* nvme */
 			                _block_devices_rom.xml(),
 			                _block_devices_handler);
 		});
