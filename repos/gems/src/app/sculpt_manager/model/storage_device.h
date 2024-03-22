@@ -47,7 +47,7 @@ struct Sculpt::Storage_device
 		                    : Start_name { label };
 	}
 
-	Start_name part_block_start_name() const { return { name(), ".part_block" }; }
+	Start_name part_block_start_name() const { return { name(), ".part" }; }
 	Start_name relabel_start_name()    const { return { name(), ".relabel"    }; }
 	Start_name expand_start_name()     const { return { name(), ".expand"     }; }
 

@@ -83,7 +83,7 @@ struct Sculpt::Storage_target
 			/* access partition */
 			else {
 				xml.node("child", [&] () {
-					xml.attribute("name",  Label(device_and_port(), ".part_block"));
+					xml.attribute("name",  Label(device_and_port(), ".part"));
 					xml.attribute("label", partition);
 				});
 			}
