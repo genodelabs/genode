@@ -56,3 +56,13 @@ asmlinkage int vprintk_emit(int facility, int level,
 	return 0;
 }
 
+
+void lx_emul_trace_msg(char const *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(print_string, sizeof(print_string), fmt, args);
+	va_end(args);
+
+	lx_emul_trace(print_string);
+}

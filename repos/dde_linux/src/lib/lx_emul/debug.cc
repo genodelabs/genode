@@ -29,7 +29,7 @@ extern "C" void lx_emul_trace_and_stop(const char * func)
 }
 
 
-extern "C" void lx_emul_trace(const char *) {}
+extern "C" void lx_emul_trace(const char *s) { trace(s); }
 
 
 extern "C" void lx_emul_backtrace()

@@ -23,6 +23,8 @@ __attribute__((noreturn)) void lx_emul_trace_and_stop(const char * func);
 
 void lx_emul_trace(const char * func);
 
+__attribute__((__format__(printf, 1, 2))) void lx_emul_trace_msg(char const *fmt, ...);
+
 void lx_emul_backtrace(void);
 
 #ifdef __cplusplus
