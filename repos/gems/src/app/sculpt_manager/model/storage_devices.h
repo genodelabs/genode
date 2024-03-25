@@ -18,6 +18,7 @@
 #include <model/block_device.h>
 #include <model/ahci_device.h>
 #include <model/nvme_device.h>
+#include <model/mmc_device.h>
 #include <model/usb_storage_device.h>
 
 namespace Sculpt { struct Storage_devices; }
@@ -28,6 +29,7 @@ struct Sculpt::Storage_devices
 	Block_devices       block_devices       { };
 	Ahci_devices        ahci_devices        { };
 	Nvme_devices        nvme_devices        { };
+	Mmc_devices         mmc_devices         { };
 	Usb_storage_devices usb_storage_devices { };
 
 	bool _block_devices_report_valid = false;
@@ -114,6 +116,30 @@ struct Sculpt::Storage_devices
 		return progress;
 	}
 
+	bool update_mmc_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
+	                                 Signal_context_capability sigh)
+	{
+		bool progress = false;
+		mmc_devices.update_from_xml(node,
+
+			/* create */
+			[&] (Xml_node const &node) -> Mmc_device & {
+				progress = true;
+				return *new (alloc) Mmc_device(env, alloc, sigh, node);
+			},
+
+			/* destroy */
+			[&] (Mmc_device &d) {
+				destroy(alloc, &d);
+				progress = true;
+			},
+
+			/* update */
+			[&] (Mmc_device &, Xml_node const &) { }
+		);
+		return progress;
+	}
+
 	/**
 	 * Update 'usb_storage_devices' from USB devices report
 	 *
@@ -173,36 +199,22 @@ struct Sculpt::Storage_devices
 		return _block_devices_report_valid && _usb_active_config_valid;
 	}
 
-	template <typename FN>
-	void for_each(FN const &fn) const
+	void for_each(auto const &fn) const
 	{
-		block_devices.for_each([&] (Block_device const &dev) {
-			fn(dev); });
-
-		ahci_devices.for_each([&] (Ahci_device const &dev) {
-			fn(dev); });
-
-		nvme_devices.for_each([&] (Nvme_device const &dev) {
-			fn(dev); });
-
-		usb_storage_devices.for_each([&] (Usb_storage_device const &dev) {
-			fn(dev); });
+		block_devices      .for_each([&] (Storage_device const &dev) { fn(dev); });
+		ahci_devices       .for_each([&] (Storage_device const &dev) { fn(dev); });
+		nvme_devices       .for_each([&] (Storage_device const &dev) { fn(dev); });
+		mmc_devices        .for_each([&] (Storage_device const &dev) { fn(dev); });
+		usb_storage_devices.for_each([&] (Storage_device const &dev) { fn(dev); });
 	}
 
-	template <typename FN>
-	void for_each(FN const &fn)
+	void for_each(auto const &fn)
 	{
-		block_devices.for_each([&] (Block_device &dev) {
-			fn(dev); });
-
-		ahci_devices.for_each([&] (Ahci_device &dev) {
-			fn(dev); });
-
-		nvme_devices.for_each([&] (Nvme_device &dev) {
-			fn(dev); });
-
-		usb_storage_devices.for_each([&] (Usb_storage_device &dev) {
-			fn(dev); });
+		block_devices      .for_each([&] (Storage_device &dev) { fn(dev); });
+		ahci_devices       .for_each([&] (Storage_device &dev) { fn(dev); });
+		nvme_devices       .for_each([&] (Storage_device &dev) { fn(dev); });
+		mmc_devices        .for_each([&] (Storage_device &dev) { fn(dev); });
+		usb_storage_devices.for_each([&] (Storage_device &dev) { fn(dev); });
 	}
 };
 

@@ -29,6 +29,7 @@ struct Sculpt::Board_info
 	     soc_fb_present,
 	     nvme_present,
 	     ahci_present,
+	     mmc_present,
 	     usb_present,
 	     ps2_present,
 	     soc_touch_present;

@@ -180,6 +180,8 @@ proc driver_routes { } {
 		<service name="ROM" label="wifi_firmware.tar"> <parent label="a64_wifi_firmware.tar"/> </service>
 		<service name="ROM" label="usb_drv">           <parent label="a64_usb_host_drv"/> </service>
 		<service name="ROM" label="usb_drv.dtb">       <parent label="usb-pinephone.dtb"/> </service>
+		<service name="ROM" label="mmc_drv">           <parent label="a64_sd_card_drv"/> </service>
+		<service name="ROM" label="mmc_drv.dtb">       <parent label="sd_card-pinephone.dtb"/> </service>
 		<service name="ROM" label="fb_drv">            <parent label="de_fb_drv"/> </service>
 		<service name="ROM" label="fb_drv.dtb">        <parent label="de-pinephone.dtb"/> </service>
 		<service name="ROM" label="touch_drv">         <parent label="goodix_touch_drv"/> </service>

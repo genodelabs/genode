@@ -66,6 +66,10 @@ struct Sculpt::Graph : Widget<Depgraph>
 		_nvme_devices_widget { Id { "nvme_devices" },
 		                       _storage_devices, _sculpt_partition };
 
+	Hosted<Depgraph, Frame, Vbox, Frame, Mmc_devices_widget>
+		_mmc_devices_widget { Id { "mmc_devices" },
+		                      _storage_devices, _sculpt_partition };
+
 	Hosted<Depgraph, Frame, Vbox, Frame, Usb_devices_widget>
 		_usb_devices_widget { Id { "usb_devices" },
 		                        _storage_devices, _sculpt_partition };
@@ -109,6 +113,7 @@ struct Sculpt::Graph : Widget<Depgraph>
 		_block_devices_widget.reset_operation();
 		_ahci_devices_widget.reset_operation();
 		_nvme_devices_widget.reset_operation();
+		_mmc_devices_widget.reset_operation();
 		_usb_devices_widget.reset_operation();
 	}
 };

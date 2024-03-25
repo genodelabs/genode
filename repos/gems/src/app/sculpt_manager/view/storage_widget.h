@@ -117,7 +117,8 @@ struct Sculpt::Storage_device_button : Widget<Button>
 			s.sub_scope<Left_floating_hbox>(
 				[&] (Scope<Button, Hbox, Left_floating_hbox> &s) {
 					s.sub_scope<Label>(dev.name());
-					s.sub_scope<Label>(String<80>(" (", model, ") "));
+					if (model.length() > 1)
+						s.sub_scope<Label>(String<80>(" (", model, ") "));
 					if (used_target.device_and_port() == dev.name())
 						s.sub_scope<Label>("* ");
 			});
@@ -194,6 +195,33 @@ struct Sculpt::Nvme_devices_widget : Storage_devices_widget_base
 	{
 		s.sub_scope<Min_ex>(35);
 		_storage_devices.nvme_devices.for_each([&] (Nvme_device const &dev) {
+			Hosted<Vbox, Storage_device_button> button { Id { dev.name() }, dev.model };
+			_view_device(s, dev, button);
+		});
+	}
+
+	void click(Clicked_at const &at, Storage_device_widget::Action &action)
+	{
+		_click_device<Storage_device_button>(at, action);
+	}
+
+	void clack(Clacked_at const &at, Storage_device_widget::Action &action)
+	{
+		_clack_device(at, action);
+	}
+};
+
+
+namespace Sculpt { struct Mmc_devices_widget; }
+
+struct Sculpt::Mmc_devices_widget : Storage_devices_widget_base
+{
+	using Storage_devices_widget_base::Storage_devices_widget_base;
+
+	void view(Scope<Vbox> &s) const
+	{
+		s.sub_scope<Min_ex>(35);
+		_storage_devices.mmc_devices.for_each([&] (Mmc_device const &dev) {
 			Hosted<Vbox, Storage_device_button> button { Id { dev.name() }, dev.model };
 			_view_device(s, dev, button);
 		});

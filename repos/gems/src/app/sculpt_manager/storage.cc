@@ -18,6 +18,7 @@
 void Sculpt::Storage::update(Xml_node const &usb_devices,
                              Xml_node const &ahci_ports,
                              Xml_node const &nvme_namespaces,
+                             Xml_node const &mmc_devices,
                              Xml_node const &block_devices,
                              Signal_context_capability sigh)
 {
@@ -49,6 +50,15 @@ void Sculpt::Storage::update(Xml_node const &usb_devices,
 			                                              sigh);
 
 		_storage_devices.nvme_devices.for_each([&] (Nvme_device &dev) {
+			process_part_block_report(dev); });
+	}
+
+	{
+		reconfigure_runtime |=
+			_storage_devices.update_mmc_devices_from_xml(_env, _alloc, mmc_devices,
+			                                             sigh);
+
+		_storage_devices.mmc_devices.for_each([&] (Mmc_device &dev) {
 			process_part_block_report(dev); });
 	}
 

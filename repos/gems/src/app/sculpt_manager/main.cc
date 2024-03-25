@@ -281,6 +281,7 @@ struct Sculpt::Main : Input_event_handler,
 			_ahci_driver.with_ahci_ports([&] (Xml_node const &ahci_ports) {
 				_nvme_driver.with_nvme_namespaces([&] (Xml_node const &nvme_namespaces) {
 					_storage.update(usb_devices, ahci_ports, nvme_namespaces,
+					                Xml_node { "<empty/> " }, /* mmc */
 					                _block_devices_rom.xml(),
 					                _block_devices_handler);
 				});

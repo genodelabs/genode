@@ -124,6 +124,10 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 	if (name == "nvme")
 		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
 			s.widget(_nvme_devices_widget); });
+
+	if (name == "mmc")
+		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
+			s.widget(_mmc_devices_widget); });
 }
 
 
@@ -296,6 +300,7 @@ void Graph::click(Clicked_at const &at, Action &action)
 	_block_devices_widget.propagate(at, action);
 	_ahci_devices_widget .propagate(at, action);
 	_nvme_devices_widget .propagate(at, action);
+	_mmc_devices_widget  .propagate(at, action);
 	_usb_devices_widget  .propagate(at, action);
 
 	_remove .propagate(at);
@@ -309,6 +314,7 @@ void Graph::clack(Clacked_at const &at, Action &action, Ram_fs_widget::Action &r
 	_block_devices_widget.propagate(at, action);
 	_ahci_devices_widget .propagate(at, action);
 	_nvme_devices_widget .propagate(at, action);
+	_mmc_devices_widget  .propagate(at, action);
 	_usb_devices_widget  .propagate(at, action);
 
 	_remove.propagate(at, [&] {

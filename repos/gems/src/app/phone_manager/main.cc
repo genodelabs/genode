@@ -40,6 +40,7 @@
 #include <fb_driver.h>
 #include <touch_driver.h>
 #include <usb_driver.h>
+#include <mmc_driver.h>
 #include <gui.h>
 #include <storage.h>
 #include <network.h>
@@ -88,7 +89,8 @@ struct Sculpt::Main : Input_event_handler,
                       Software_update_widget::Action,
                       Software_add_widget::Action,
                       Screensaver::Action,
-                      Usb_driver::Action
+                      Usb_driver::Action,
+                      Mmc_driver::Action
 {
 	Env &_env;
 
@@ -152,8 +154,6 @@ struct Sculpt::Main : Input_event_handler,
 
 		void generate(Xml_generator &xml, Screensaver const &screensaver) const
 		{
-			if (storage) xml.attribute("storage", "yes");
-
 			if (state.length() > 1)
 				xml.attribute("state", state);
 
@@ -208,11 +208,13 @@ struct Sculpt::Main : Input_event_handler,
 			_board_info.wifi_present = true;
 
 		_board_info.usb_present       = true;
+		_board_info.mmc_present       = true;
 		_board_info.soc_fb_present    = true;
 		_board_info.soc_touch_present = true;
 
-		_fb_driver.update(_child_states, _board_info, _platform.xml());
+		_fb_driver   .update(_child_states, _board_info, _platform.xml());
 		_touch_driver.update(_child_states, _board_info);
+		_mmc_driver  .update(_child_states, _board_info);
 		_update_usb_drivers();
 
 		update_network_dialog();
@@ -239,11 +241,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Fb_driver    _fb_driver    { };
 	Touch_driver _touch_driver { };
-
-	Signal_handler<Main> _gui_mode_handler {
-		_env.ep(), *this, &Main::_handle_gui_mode };
-
-	Usb_driver _usb_driver { _env, *this };
+	Usb_driver   _usb_driver { _env, *this };
+	Mmc_driver   _mmc_driver { _env, *this };
 
 	void _update_usb_drivers()
 	{
@@ -252,6 +251,9 @@ struct Sculpt::Main : Input_event_handler,
 			.net = (_network._nic_target.type() == Nic_target::MODEM)
 		});
 	}
+
+	Signal_handler<Main> _gui_mode_handler {
+		_env.ep(), *this, &Main::_handle_gui_mode };
 
 	void _handle_gui_mode();
 
@@ -326,11 +328,14 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_block_devices_rom.update();
 		_usb_driver.with_devices([&] (Xml_node const &usb_devices) {
-			_storage.update(usb_devices,
-			                Xml_node { "<empty/> " }, /* ahci */
-			                Xml_node { "<empty/> " }, /* nvme */
-			                _block_devices_rom.xml(),
-			                _block_devices_handler);
+			_mmc_driver.with_devices([&] (Xml_node const &mmc_devices) {
+				_storage.update(usb_devices,
+				                Xml_node { "<empty/> " }, /* ahci */
+				                Xml_node { "<empty/> " }, /* nvme */
+				                mmc_devices,
+				                _block_devices_rom.xml(),
+				                _block_devices_handler);
+			});
 		});
 
 		/* update USB policies for storage devices */
@@ -351,6 +356,11 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_storage.gen_usb_storage_policies(xml);
 	}
+
+	/**
+	 * Mmc_driver::Action
+	 */
+	void handle_mmc_discovered() override { _handle_block_devices(); }
 
 	/**
 	 * Storage::Action interface
@@ -791,20 +801,20 @@ struct Sculpt::Main : Input_event_handler,
 
 	struct Storage_widget : Widget<Frame>
 	{
-		Hosted<Frame, Block_devices_widget> _block_devices;
+		Hosted<Frame, Mmc_devices_widget> _mmc_devices;
 
 		template <typename... ARGS>
-		Storage_widget(ARGS &&... args) : _block_devices(Id { "devices" }, args...) { }
+		Storage_widget(ARGS &&... args) : _mmc_devices(Id { "devices" }, args...) { }
 
-		void view(Scope<Frame> &s) const { s.widget(_block_devices); }
-
-		template <typename... ARGS>
-		void click(ARGS &&... args) { _block_devices.propagate(args...); }
+		void view(Scope<Frame> &s) const { s.widget(_mmc_devices); }
 
 		template <typename... ARGS>
-		void clack(ARGS &&... args) { _block_devices.propagate(args...); }
+		void click(ARGS &&... args) { _mmc_devices.propagate(args...); }
 
-		void reset_operation() { _block_devices.reset_operation(); }
+		template <typename... ARGS>
+		void clack(ARGS &&... args) { _mmc_devices.propagate(args...); }
+
+		void reset_operation() { _mmc_devices.reset_operation(); }
 	};
 
 	Conditional_widget<Storage_widget> _storage_widget {
@@ -2462,6 +2472,9 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		_fb_driver   .gen_start_nodes(xml);
 		_touch_driver.gen_start_node (xml);
 	}
+
+	if (_system.storage)
+		_mmc_driver.gen_start_node(xml);
 
 	if (_network._nic_target.type() == Nic_target::Type::MODEM)
 		_usb_driver.gen_start_nodes(xml);
