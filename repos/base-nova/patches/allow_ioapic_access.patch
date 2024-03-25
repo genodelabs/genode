@@ -1,0 +1,14 @@
+diff --git a/src/ioapic.cpp b/src/ioapic.cpp
+index d3c7991..d357cf3 100644
+--- a/src/ioapic.cpp
++++ b/src/ioapic.cpp
+@@ -29,7 +29,8 @@ Ioapic *Ioapic::list;
+ 
+ Ioapic::Ioapic (Paddr p, unsigned i, unsigned g) : List<Ioapic> (list), reg_base ((hwdev_addr -= PAGE_SIZE) | (p & PAGE_MASK)), gsi_base (g), id (i), rid (0)
+ {
+-    Pd::kern.Space_mem::delreg (Pd::kern.quota, Pd::kern.mdb_cache, p & ~PAGE_MASK);
++// XXX allow Genode platform driver to access device and take over control
++//    Pd::kern.Space_mem::delreg (Pd::kern.quota, Pd::kern.mdb_cache, p & ~PAGE_MASK);
+     Pd::kern.Space_mem::insert (Pd::kern.quota, reg_base, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, p & ~PAGE_MASK);
+ 
+     trace (TRACE_APIC, "APIC:%#lx ID:%#x VER:%#x IRT:%#x PRQ:%u GSI:%u",
