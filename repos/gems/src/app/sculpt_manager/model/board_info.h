@@ -26,10 +26,12 @@ struct Sculpt::Board_info
 	     intel_gfx_present,
 	     boot_fb_present,
 	     vesa_fb_present,
+	     soc_fb_present,
 	     nvme_present,
 	     ahci_present,
 	     usb_present,
-	     ps2_present;
+	     ps2_present,
+	     soc_touch_present;
 
 	static Board_info from_xml(Xml_node const &devices, Xml_node const &platform)
 	{

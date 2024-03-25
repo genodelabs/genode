@@ -38,6 +38,7 @@
 #include <model/screensaver.h>
 #include <managed_config.h>
 #include <fb_driver.h>
+#include <touch_driver.h>
 #include <usb_driver.h>
 #include <gui.h>
 #include <storage.h>
@@ -139,8 +140,6 @@ struct Sculpt::Main : Input_event_handler,
 
 		unsigned brightness;
 
-		bool display;
-
 		static System from_xml(Xml_node const &node)
 		{
 			return System {
@@ -148,11 +147,10 @@ struct Sculpt::Main : Input_event_handler,
 				.state         = node.attribute_value("state",   State()),
 				.power_profile = node.attribute_value("power_profile", Power_profile()),
 				.brightness    = node.attribute_value("brightness", 0u),
-				.display       = node.attribute_value("display", true)
 			};
 		}
 
-		void generate(Xml_generator &xml) const
+		void generate(Xml_generator &xml, Screensaver const &screensaver) const
 		{
 			if (storage) xml.attribute("storage", "yes");
 
@@ -160,14 +158,13 @@ struct Sculpt::Main : Input_event_handler,
 				xml.attribute("state", state);
 
 			if (power_profile.length() > 1) {
-				if (power_profile == "performance" && !display)
+				if (power_profile == "performance" && !screensaver.display_enabled())
 					xml.attribute("power_profile", "economic");
 				else
 					xml.attribute("power_profile", power_profile);
 			}
 
 			xml.attribute("brightness", brightness);
-			xml.attribute("display", display ? "yes" : "no");
 		}
 
 		bool operator != (System const &other) const
@@ -175,8 +172,7 @@ struct Sculpt::Main : Input_event_handler,
 			return (other.storage       != storage)
 			    || (other.state         != state)
 			    || (other.power_profile != power_profile)
-			    || (other.brightness    != brightness)
-			    || (other.display       != display);
+			    || (other.brightness    != brightness);
 		}
 
 	} _system { };
@@ -184,8 +180,7 @@ struct Sculpt::Main : Input_event_handler,
 	void _update_managed_system_config()
 	{
 		_system_config.generate([&] (Xml_generator &xml) {
-			_system.generate(xml); });
-	}
+			_system.generate(xml, _screensaver); }); }
 
 	void _handle_system_config(Xml_node node)
 	{
@@ -212,9 +207,12 @@ struct Sculpt::Main : Input_event_handler,
 		if (_devices.xml().num_sub_nodes() == 0)
 			_board_info.wifi_present = true;
 
-		_board_info.usb_present = true;
+		_board_info.usb_present       = true;
+		_board_info.soc_fb_present    = true;
+		_board_info.soc_touch_present = true;
 
 		_fb_driver.update(_child_states, _board_info, _platform.xml());
+		_touch_driver.update(_child_states, _board_info);
 		_update_usb_drivers();
 
 		update_network_dialog();
@@ -239,7 +237,8 @@ struct Sculpt::Main : Input_event_handler,
 			_update_managed_system_config();
 	}
 
-	Fb_driver _fb_driver { };
+	Fb_driver    _fb_driver    { };
+	Touch_driver _touch_driver { };
 
 	Signal_handler<Main> _gui_mode_handler {
 		_env.ep(), *this, &Main::_handle_gui_mode };
@@ -279,8 +278,8 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void screensaver_changed() override
 	{
-		_system.display = _screensaver.display_enabled();
 		_update_managed_system_config();
+		generate_runtime_config();
 	}
 
 	Attached_rom_dataspace _leitzentrale_rom { _env, "leitzentrale" };
@@ -2459,7 +2458,10 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("height", _affinity_space.height());
 	});
 
-	_fb_driver.gen_start_nodes(xml);
+	if (_screensaver.display_enabled()) {
+		_fb_driver   .gen_start_nodes(xml);
+		_touch_driver.gen_start_node (xml);
+	}
 
 	if (_network._nic_target.type() == Nic_target::Type::MODEM)
 		_usb_driver.gen_start_nodes(xml);

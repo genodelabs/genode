@@ -27,7 +27,8 @@ struct Sculpt::Fb_driver : private Noncopyable
 	Constructible<Child_state> _intel_gpu { },
 	                           _intel_fb  { },
 	                           _vesa_fb   { },
-	                           _boot_fb   { };
+	                           _boot_fb   { },
+	                           _soc_fb    { };
 
 	void gen_start_nodes(Xml_generator &xml) const
 	{
@@ -101,6 +102,18 @@ struct Sculpt::Fb_driver : private Noncopyable
 				gen_common_routes(xml);
 			});
 		});
+
+		start_node(_soc_fb, "fb_drv", [&] {
+			xml.node("route", [&] {
+				gen_parent_route<Platform::Session>   (xml);
+				gen_parent_route<Pin_control::Session>(xml);
+				gen_capture_route(xml);
+				gen_parent_rom_route(xml, "config", "config -> fb_drv");
+				gen_parent_rom_route(xml, "dtb",    "fb_drv.dtb");
+				gen_parent_route<Rm_session>(xml);
+				gen_common_routes(xml);
+			});
+		});
 	};
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info,
@@ -117,6 +130,10 @@ struct Sculpt::Fb_driver : private Noncopyable
 		_vesa_fb.conditional(board_info.vesa_fb_present,
 		                     registry, "vesa_fb", Priority::MULTIMEDIA,
 		                     Ram_quota { 8*1024*1024 }, Cap_quota { 110 });
+
+		_soc_fb.conditional(board_info.soc_fb_present,
+		                    registry, "fb", Priority::MULTIMEDIA,
+		                    Ram_quota { 16*1024*1024 }, Cap_quota { 250 });
 
 		if (board_info.boot_fb_present && !_boot_fb.constructed())
 			Boot_fb::with_mode(platform, [&] (Boot_fb::Mode mode) {

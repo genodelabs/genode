@@ -151,14 +151,15 @@ proc log_route { } {
 
 
 ##
-# ROM routes that relabel generic NIC driver names to platform-specific binaries
+# ROM routes that relabel generic driver names to platform-specific binaries
 #
-proc nic_driver_routes { } {
+proc driver_routes { } {
 
 	set result(pc) {
 		<service name="ROM" label="nic_drv">           <parent label="pc_nic_drv"/> </service>
 		<service name="ROM" label="wifi.lib.so">       <parent label="pc_wifi.lib.so"/> </service>
 		<service name="ROM" label="wifi_firmware.tar"> <parent label="pc_wifi_firmware.tar"/> </service>
+		<service name="ROM" label="usb_drv">           <parent label="pc_usb_host_drv"/> </service>
 	}
 
 	set result(mnt_reform2) {
@@ -177,27 +178,13 @@ proc nic_driver_routes { } {
 		<service name="ROM" label="wifi.lib.so">       <parent label="a64_wifi.lib.so"/> </service>
 		<service name="ROM" label="wifi_drv.dtb">      <parent label="wifi-pinephone.dtb"/> </service>
 		<service name="ROM" label="wifi_firmware.tar"> <parent label="a64_wifi_firmware.tar"/> </service>
-	}
-
-	if {[info exists result([board])]} {
-		return $result([board]); }
-
-	return "";
-}
-
-
-##
-# ROM routes that relabel generic USB driver names to board-specific binaries
-#
-proc usb_driver_routes { } {
-
-	set result(pc) {
-		<service name="ROM" label="usb_drv"> <parent label="pc_usb_host_drv"/> </service>
-	}
-
-	set result(pinephone) {
-		<service name="ROM" label="usb_drv">     <parent label="a64_usb_host_drv"/> </service>
-		<service name="ROM" label="usb_drv.dtb"> <parent label="usb-pinephone.dtb"/> </service>
+		<service name="ROM" label="usb_drv">           <parent label="a64_usb_host_drv"/> </service>
+		<service name="ROM" label="usb_drv.dtb">       <parent label="usb-pinephone.dtb"/> </service>
+		<service name="ROM" label="fb_drv">            <parent label="de_fb_drv"/> </service>
+		<service name="ROM" label="fb_drv.dtb">        <parent label="de-pinephone.dtb"/> </service>
+		<service name="ROM" label="touch_drv">         <parent label="goodix_touch_drv"/> </service>
+		<service name="ROM" label="touch_drv.dtb">     <parent label="goodix-pinephone.dtb"/> </service>
+		<service name="IRQ" label_prefix="touch ->"> <child name="drivers" label="runtime -> touch -> PH4"/> </service>
 	}
 
 	if {[info exists result([board])]} {
@@ -454,6 +441,7 @@ install_config {
 			<service name="Gpu"/>
 			<service name="Pin_state"/>
 			<service name="Pin_control"/>
+			<service name="IRQ"/>
 		</provides>
 	</start>
 
@@ -711,7 +699,7 @@ install_config {
 				<child name="leitzentrale" label="fonts"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="LOG" label="unlogged"> <parent/> </service>
-			} [log_route] [nic_driver_routes] [usb_driver_routes] {
+			} [log_route] [driver_routes] {
 			<service name="Event" label="leitzentrale"> <child name="leitzentrale"/> </service>
 			<service name="Event"> <child name="event_filter"/> </service>
 			<service name="Capture" label="global">       <child name="nitpicker"/>    </service>
