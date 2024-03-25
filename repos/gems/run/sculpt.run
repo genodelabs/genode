@@ -279,10 +279,8 @@ install_config {
 			        report="global_keys_handler -> leitzentrale"/>
 			<policy label="pointer -> shape"    report="shape"/>
 			<policy label="clipboard -> focus"  report="nitpicker -> focus"/>
-			<policy label="drivers -> capslock" report="global_keys_handler -> capslock"/>
 			<policy label="runtime -> capslock" report="global_keys_handler -> capslock"/>
 			<policy label="runtime -> numlock"  report="global_keys_handler -> numlock"/>
-			<policy label="drivers -> numlock"  report="global_keys_handler -> numlock"/>
 			<policy label="numlock_remap_rom -> numlock" report="global_keys_handler -> numlock"/>
 			<policy label="event_filter -> capslock" report="global_keys_handler -> capslock"/>
 			<policy label="runtime -> clicked"  report="nitpicker -> clicked"/>
@@ -414,22 +412,14 @@ install_config {
 			} [log_route] {
 			<service name="ROM" label="config">
 				<child name="config_fs_rom" label="drivers"/> </service>
-			<service name="ROM" label_last="capslock">
-				<child name="report_rom" label="drivers -> capslock"/> </service>
-			<service name="ROM" label_last="fb_drv.config">
-				<child name="config_fs_rom" label="managed/fb_drv"/> </service>
 			<service name="ROM" label_last="gpu_drv.config">
 				<child name="config_fs_rom" label="gpu_drv"/> </service>
-			<service name="ROM" label_last="usb_policy">
-				<child name="config_fs_rom" label="usb"/> </service>
 			<service name="ROM" label_last="system">
 				<child name="config_fs_rom" label="managed/system"/> </service>
 			<service name="ROM" label_last="modem.config">
 				<child name="config_fs_rom" label="managed/modem"/> </service>
 			<service name="ROM" label_last="audio.config">
 				<child name="config_fs_rom" label="managed/audio"/> </service>
-			<service name="ROM" label_last="numlock">
-				<child name="report_rom" label="drivers -> numlock"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
 			<service name="Capture"> <child name="nitpicker"/> </service>
 			<service name="Event">   <child name="event_filter"/> </service>
@@ -437,8 +427,6 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</route>
 		<provides>
-			<service name="Block"/>
-			<service name="Usb"/>
 			<service name="Platform"/>
 			<service name="Gpu"/>
 			<service name="Pin_state"/>
@@ -668,8 +656,6 @@ install_config {
 				<child name="config_fs" label="rw"/> </service>
 			<service name="File_system" label="report">
 				<child name="report_fs" label="ro"/> </service>
-			<service name="Block"> <child name="drivers"/> </service>
-			<service name="Usb"> <child name="drivers"/> </service>
 			<service name="Platform" label_prefix="acpica">
 				<child name="drivers" label="acpica"/> </service>
 			<service name="Platform"> <child name="drivers"/> </service>
