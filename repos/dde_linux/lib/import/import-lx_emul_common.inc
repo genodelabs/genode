@@ -19,6 +19,7 @@ SRC_CC  += lx_emul/time.cc
 SRC_CC  += lx_emul/irq_flags.cc
 
 SRC_C   += lx_emul/clocksource.c
+SRC_C   += lx_emul/irqchip.c
 SRC_C   += lx_emul/shadow/fs/exec.c
 SRC_C   += lx_emul/shadow/kernel/cpu.c
 SRC_C   += lx_emul/shadow/kernel/exit.c
@@ -27,8 +28,8 @@ SRC_C   += lx_emul/shadow/kernel/irq_work.c
 SRC_C   += lx_emul/shadow/kernel/locking/spinlock.c
 SRC_C   += lx_emul/shadow/kernel/pid.c
 SRC_C   += lx_emul/shadow/kernel/printk/printk.c
-SRC_C   += lx_emul/shadow/kernel/sched/cputime.c
 SRC_C   += lx_emul/shadow/kernel/sched/core.c
+SRC_C   += lx_emul/shadow/kernel/sched/cputime.c
 SRC_C   += lx_emul/shadow/kernel/sched/fair.c
 SRC_C   += lx_emul/shadow/kernel/sched/sched.c
 SRC_C   += lx_emul/shadow/kernel/smp.c
@@ -103,7 +104,6 @@ endif
 SHADOW_INC_DIR      := $(DDE_LINUX_DIR)/src/include/lx_emul/shadow/include
 SPEC_SHADOW_INC_DIR := $(DDE_LINUX_DIR)/src/include/lx_emul/shadow/arch/$(LX_ARCH)/include
 
-SRC_C   += lx_emul/spec/$(GEN_ARCH)/irqchip.c
 SRC_C   += lx_emul/spec/$(GEN_ARCH)/start.c
 SRC_S   += lx_kit/spec/$(SPEC_ARCH)/setjmp.S
 

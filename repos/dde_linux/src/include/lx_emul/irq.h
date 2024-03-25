@@ -25,7 +25,7 @@ void lx_emul_irq_unmask(unsigned int irq);
 
 void lx_emul_irq_mask(unsigned int irq);
 
-void lx_emul_irq_eoi(unsigned int irq);
+void lx_emul_irq_ack(unsigned int irq);
 
 int lx_emul_irq_task_function(void * data);
 

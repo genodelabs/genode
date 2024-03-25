@@ -60,7 +60,7 @@ lx_emul_pci_for_each_device(void * bus, lx_emul_add_device_callback_t fn)
 	env().devices.for_each([&] (Device & d) {
 		unsigned irq = 0;
 		d.for_each_irq([&] (Device::Irq & i) {
-			if (!irq) irq = i.number.value; });
+			if (!irq) irq = i.number; });
 
 		d.for_pci_config([&] (Device::Pci_config & cfg) {
 			fn(bus, num++, d.name().string(), cfg.vendor_id, cfg.device_id,

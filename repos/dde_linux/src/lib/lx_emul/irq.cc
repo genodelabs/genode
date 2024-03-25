@@ -32,7 +32,7 @@ extern "C" void lx_emul_irq_mask(unsigned int irq)
 }
 
 
-extern "C" void lx_emul_irq_eoi(unsigned int irq)
+extern "C" void lx_emul_irq_ack(unsigned int irq)
 {
 	Lx_kit::env().devices.for_each([&] (Lx_kit::Device & d) {
 		d.irq_ack(irq); });
@@ -43,8 +43,10 @@ extern "C" int lx_emul_pending_irq()
 {
 	int pending_irq = -1;
 
-	Lx_kit::env().scheduler.pending_irq([&] (unsigned int irq) {
-		pending_irq = (int)irq; });
+	Lx_kit::env().devices.for_each([&] (Lx_kit::Device & d) {
+		if (pending_irq == -1)
+			pending_irq = d.pending_irq();
+	});
 
 	return pending_irq;
 }

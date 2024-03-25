@@ -30,7 +30,7 @@ namespace {
 
 			Lx_kit::Env &_env;
 
-			Lx_kit::Pending_irq _pending_irq { 0 };
+			unsigned _pending_irq = 0;
 
 		public:
 
@@ -40,9 +40,9 @@ namespace {
 
 			void trigger_irq(Number number)
 			{
-				_pending_irq.value = number.value;
+				_pending_irq = number.value;
 
-				_env.scheduler.unblock_irq_handler(_pending_irq);
+				_env.scheduler.unblock_irq_handler();
 				_env.scheduler.schedule();
 			}
 	};
@@ -221,9 +221,6 @@ extern "C" void lx_emul_pin_control(char const *pin_name, bool enabled)
 	pins().with_pin(pin_name, [&] (Pin &pin) {
 		pin.control(enabled); });
 }
-
-
-extern "C" void lx_emul_backtrace(void);
 
 
 extern "C" int lx_emul_pin_sense(char const *pin_name)

@@ -1,6 +1,8 @@
 /*
  * \brief  Linux DDE interrupt controller
  * \author Stefan Kalkowski
+ * \author Josef Soentgen
+ * \author Christian Helmuth
  * \date   2021-03-10
  */
 
@@ -19,17 +21,10 @@
 #include <linux/irqchip.h>
 #include <../kernel/irq/internals.h>
 
-static int dde_irq_set_wake(struct irq_data *d, unsigned int on)
-{
-	lx_emul_trace_and_stop(__func__);
-	return 0;
-}
 
-
-static void dde_irq_unmask(struct irq_data *d)
+static void dde_irq_ack(struct irq_data *d)
 {
-	lx_emul_irq_eoi(d->hwirq);
-	lx_emul_irq_unmask(d->hwirq);
+	lx_emul_irq_ack(d->hwirq);
 }
 
 
@@ -39,9 +34,9 @@ static void dde_irq_mask(struct irq_data *d)
 }
 
 
-static void dde_irq_eoi(struct irq_data *d)
+static void dde_irq_unmask(struct irq_data *d)
 {
-	lx_emul_irq_eoi(d->hwirq);
+	lx_emul_irq_unmask(d->hwirq);
 }
 
 
@@ -55,14 +50,16 @@ static int dde_irq_set_type(struct irq_data *d, unsigned int type)
 
 struct irq_chip dde_irqchip_data_chip = {
 	.name           = "dde-irqs",
-	.irq_eoi        = dde_irq_eoi,
+	.irq_disable    = dde_irq_mask,
+	.irq_ack        = dde_irq_ack,
 	.irq_mask       = dde_irq_mask,
 	.irq_unmask     = dde_irq_unmask,
-	.irq_set_wake   = dde_irq_set_wake,
+	.irq_eoi        = dde_irq_ack,
 	.irq_set_type   = dde_irq_set_type,
 };
 
 
+#ifdef CONFIG_OF
 #ifdef CONFIG_IRQ_DOMAIN_HIERARCHY
 static int dde_domain_translate(struct irq_domain * d,
                                   struct irq_fwspec * fwspec,
@@ -126,6 +123,7 @@ static const struct irq_domain_ops dde_irqchip_data_domain_ops = {
 
 struct irq_domain *dde_irq_domain;
 
+
 int lx_emul_irq_init(struct device_node *node, struct device_node *parent)
 {
 	dde_irq_domain = irq_domain_create_tree(&node->fwnode,
@@ -167,6 +165,18 @@ IRQCHIP_DECLARE(dde_gic_a9,  "arm,cortex-a9-gic", lx_emul_irq_init);
 IRQCHIP_DECLARE(dde_gic_400, "arm,gic-400",       lx_emul_irq_init);
 
 
+static int map_irq(int irq)
+{
+	return dde_irq_domain ? irq_find_mapping(dde_irq_domain, irq) : irq;
+}
+
+#else
+
+static int map_irq(int irq) { return irq; }
+
+#endif /* CONFIG_OF */
+
+
 int lx_emul_irq_task_function(void * data)
 {
 	int irq;
@@ -183,9 +193,7 @@ int lx_emul_irq_task_function(void * data)
 			local_irq_save(flags);
 			irq_enter();
 
-			irq = dde_irq_domain ? irq_find_mapping(dde_irq_domain,
-			                                        irq)
-			                     : irq;
+			irq = map_irq(irq);
 
 			if (!irq) {
 				ack_bad_irq(irq);

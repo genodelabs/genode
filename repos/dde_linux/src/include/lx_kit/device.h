@@ -23,7 +23,6 @@
 #include <util/list.h>
 #include <util/xml_node.h>
 
-#include <lx_kit/pending_irq.h>
 
 namespace Lx_kit {
 	using namespace Genode;
@@ -64,18 +63,21 @@ class Lx_kit::Device : List<Device>::Element
 		{
 			using Index = Platform::Device::Irq::Index;
 
+			enum State { IDLE, PENDING, MASKED, MASKED_PENDING };
+
 			Index                  idx;
-			Pending_irq            number;
+			unsigned               number;
 			Io_signal_handler<Irq> handler;
-			bool                   masked  { true  };
-			bool                   occured { false };
+			State                  state { MASKED };
 
 			Constructible<Platform::Device::Irq> session {};
 
 			Irq(Entrypoint & ep, unsigned idx, unsigned number);
 
 			void _handle();
-			void handle();
+			void mask();
+			void unmask(Platform::Device &);
+			void ack();
 		};
 
 		struct Io_port : List<Io_port>::Element
@@ -169,6 +171,7 @@ class Lx_kit::Device : List<Device>::Element
 		bool   irq_unmask(unsigned irq);
 		void   irq_mask(unsigned irq);
 		void   irq_ack(unsigned irq);
+		int    pending_irq();
 
 		bool   read_config(unsigned reg, unsigned len, unsigned *val);
 		bool   write_config(unsigned reg, unsigned len, unsigned  val);

@@ -38,25 +38,65 @@ bool Device::Io_port::match(uint16_t addr)
 }
 
 
-/****************
- ** Device::Irq**
- ****************/
+/*****************
+ ** Device::Irq **
+ *****************/
 
 void Device::Irq::_handle()
 {
-	handle();
+	switch (state) {
+	case IDLE:           state = PENDING;        break;
+	case PENDING:        state = PENDING;        break;
+	case MASKED:         state = MASKED_PENDING; break;
+	case MASKED_PENDING: state = MASKED_PENDING; break;
+	}
+
+	env().scheduler.unblock_irq_handler();
 	env().scheduler.schedule();
 }
 
 
-void Device::Irq::handle()
+void Device::Irq::ack()
 {
-	occured = true;
+	if (session.constructed())
+		session->ack();
 
-	if (masked)
-		return;
+	switch (state) {
+	case IDLE:           state = IDLE;   break;
+	case PENDING:        state = IDLE;   break;
+	case MASKED:         state = MASKED; break;
+	case MASKED_PENDING: state = MASKED; break;
+	}
+}
 
-	env().scheduler.unblock_irq_handler(number);
+
+void Device::Irq::mask()
+{
+	switch (state) {
+	case IDLE:           state = MASKED;         break;
+	case MASKED:         state = MASKED;         break;
+	case PENDING:        state = MASKED_PENDING; break;
+	case MASKED_PENDING: state = MASKED_PENDING; break;
+	}
+}
+
+
+void Device::Irq::unmask(Platform::Device &dev)
+{
+	if (!session.constructed()) {
+		session.construct(dev, idx);
+		session->sigh_omit_initial_signal(handler);
+		session->ack();
+	}
+
+	switch (state) {
+	case IDLE:           state = IDLE;    break;
+	case MASKED:         state = IDLE;    break;
+	case PENDING:        state = PENDING; break;
+	case MASKED_PENDING: state = PENDING; break;
+	}
+
+	env().scheduler.unblock_irq_handler();
 }
 
 
@@ -139,25 +179,33 @@ void * Device::io_mem_local_addr(addr_t phys_addr, size_t size)
 }
 
 
+int Device::pending_irq()
+{
+	if (!_pdev.constructed())
+		return -1;
+
+	int result = -1;
+
+	for_each_irq([&] (Irq & irq) {
+		if (result == -1 && irq.state == Irq::PENDING)
+			result = irq.number;
+	});
+
+	return result;
+}
+
+
 bool Device::irq_unmask(unsigned number)
 {
 	bool ret = false;
 
 	for_each_irq([&] (Irq & irq) {
-		if (irq.number.value != number)
+		if (irq.number != number)
 			return;
 
 		ret = true;
 		enable();
-
-		if (!irq.session.constructed()) {
-			irq.session.construct(*_pdev, irq.idx);
-			irq.session->sigh_omit_initial_signal(irq.handler);
-			irq.session->ack();
-		}
-
-		irq.masked = false;
-		if (irq.occured) irq.handle();
+		irq.unmask(*_pdev);
 	});
 
 	return ret;
@@ -170,8 +218,7 @@ void Device::irq_mask(unsigned number)
 		return;
 
 	for_each_irq([&] (Irq & irq) {
-		if (irq.number.value == number) irq.masked = true; });
-
+		if (irq.number == number) irq.mask(); });
 }
 
 
@@ -181,10 +228,9 @@ void Device::irq_ack(unsigned number)
 		return;
 
 	for_each_irq([&] (Irq & irq) {
-		if (irq.number.value != number || !irq.occured || !irq.session.constructed())
+		if (irq.number != number)
 			return;
-		irq.occured = false;
-		irq.session->ack();
+		irq.ack();
 	});
 }
 
