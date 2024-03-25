@@ -128,15 +128,6 @@ void Scheduler::_execute()
 {
 	_idle_pre_post_process();
 
-	/*
-	 * Iterate over all tasks and run first runnable.
-	 *
-	 * (1) If one runnable tasks was run start over from beginning of
-	 *     list.
-	 *
-	 * (2) If no task is runnable quit scheduling (break endless
-	 *     loop).
-	 */
 	while (true) {
 		bool at_least_one = false;
 
@@ -151,6 +142,7 @@ void Scheduler::_execute()
 			Genode::destroy(Lx_kit::env().heap, tmp);
 		}
 
+		/* iterate over all tasks and run first runnable */
 		for (Task * t = _present_list.first(); t; t = t->next()) {
 
 			if (!t->runnable())
@@ -161,10 +153,11 @@ void Scheduler::_execute()
 			t->run();
 			at_least_one = true;
 
-			if (!t->runnable())
-				break;
+			/* start over after one task was executed to preserve priority order */
+			break;
 		}
 
+		/* no task was runnable - quit scheduling (break endless loop) */
 		if (!at_least_one)
 			break;
 	}
