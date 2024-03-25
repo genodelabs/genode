@@ -15,8 +15,5 @@
 #include <lx_kit/env.h>
 #include <lx_emul/log.h>
 
-extern "C" void lx_emul_vprintf(char const *fmt, va_list va) {
-	 Lx_kit::env().console.vprintf(fmt, va); }
-
 extern "C" void lx_emul_print_string(char const *str) {
 	 Lx_kit::env().console.print_string(str); }
