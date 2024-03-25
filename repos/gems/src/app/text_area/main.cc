@@ -37,9 +37,6 @@ struct Text_area::Main : Text_area_widget::Action
 
 	Root_directory _vfs { _env, _heap, _config.xml().sub_node("vfs") };
 
-	unsigned _min_width  = 0;
-	unsigned _min_height = 0;
-
 	Runtime _runtime { _env, _heap };
 
 	struct Main_dialog : Top_level_dialog
@@ -294,9 +291,6 @@ struct Text_area::Main : Text_area_widget::Action
 		_config.update();
 
 		Xml_node const config = _config.xml();
-
-		_min_width  = config.attribute_value("min_width",  0U);
-		_min_height = config.attribute_value("min_height", 0U);
 
 		bool const copy_enabled  = config.attribute_value("copy",  false);
 		bool const paste_enabled = config.attribute_value("paste", false);
