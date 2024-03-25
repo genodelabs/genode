@@ -44,11 +44,7 @@
 #include <view/settings_widget.h>
 #include <view/system_dialog.h>
 #include <view/file_browser_dialog.h>
-#include <fb_driver.h>
-#include <ps2_driver.h>
-#include <usb_driver.h>
-#include <ahci_driver.h>
-#include <nvme_driver.h>
+#include <drivers.h>
 #include <gui.h>
 #include <keyboard_focus.h>
 #include <network.h>
@@ -78,9 +74,8 @@ struct Sculpt::Main : Input_event_handler,
                       Panel_dialog::State,
                       Popup_dialog::Refresh,
                       Screensaver::Action,
-                      Usb_driver::Action,
-                      Ahci_driver::Action,
-                      Nvme_driver::Action
+                      Drivers::Info,
+                      Drivers::Action
 {
 	Env &_env;
 
@@ -212,43 +207,26 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Device discovery **
 	 **********************/
 
-	Attached_rom_dataspace const _platform { _env, "platform_info" };
+	Drivers _drivers { _env, _child_states, *this, *this };
 
-	Attached_rom_dataspace _devices { _env, "report -> drivers/devices" };
+	Board_info::Options _driver_options { };
 
-	Signal_handler<Main> _devices_handler {
-		_env.ep(), *this, &Main::_handle_devices };
-
-	Board_info _board_info { };
-
-	void _handle_devices()
+	/**
+	 * Drivers::Action
+	 */
+	void handle_device_plug_unplug() override
 	{
-		_devices.update();
-
-		_board_info = Board_info::from_xml(_devices.xml(), _platform.xml());
-
-		_fb_driver  .update(_child_states, _board_info, _platform.xml());
-		_ps2_driver .update(_child_states, _board_info);
-		_ahci_driver.update(_child_states, _board_info);
-		_nvme_driver.update(_child_states, _board_info);
-		_update_usb_drivers();
-
-		update_network_dialog();
+		_handle_block_devices();
+		network_config_changed();
 		generate_runtime_config();
 	}
 
-	Ps2_driver  _ps2_driver  { };
-	Fb_driver   _fb_driver   { };
-	Usb_driver  _usb_driver  { _env, *this };
-	Ahci_driver _ahci_driver { _env, *this };
-	Nvme_driver _nvme_driver { _env, *this };
-
-	void _update_usb_drivers()
+	/**
+	 * Drivers::Info
+	 */
+	void gen_usb_storage_policies(Xml_generator &xml) const override
 	{
-		_usb_driver.update(_child_states, _board_info, {
-			.hid = true,
-			.net = (_network._nic_target.type() == Nic_target::MODEM)
-		});
+		_storage.gen_usb_storage_policies(xml);
 	}
 
 
@@ -277,45 +255,18 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_block_devices()
 	{
 		_block_devices_rom.update();
-		_usb_driver.with_devices([&] (Xml_node const &usb_devices) {
-			_ahci_driver.with_ahci_ports([&] (Xml_node const &ahci_ports) {
-				_nvme_driver.with_nvme_namespaces([&] (Xml_node const &nvme_namespaces) {
-					_storage.update(usb_devices, ahci_ports, nvme_namespaces,
-					                Xml_node { "<empty/> " }, /* mmc */
-					                _block_devices_rom.xml(),
-					                _block_devices_handler);
-				});
-			});
-		});
+
+		_drivers.with_storage_devices([&] (Drivers::Storage_devices const &devices) {
+			_storage.update(devices.usb, devices.ahci, devices.nvme, devices.mmc,
+			                _block_devices_rom.xml(),
+			                _block_devices_handler); });
 
 		/* update USB policies for storage devices */
-		_update_usb_drivers();
+		_drivers.update_usb();
 	}
 
 	Storage _storage { _env, _heap, _child_states, *this, *this };
 
-	/**
-	 * Usb_driver::Action
-	 */
-	void handle_usb_plug_unplug() override { _handle_block_devices(); }
-
-	/**
-	 * Usb_driver::Action
-	 */
-	void gen_usb_storage_policies(Xml_generator &xml) const override
-	{
-		_storage.gen_usb_storage_policies(xml);
-	}
-
-	/**
-	 * Ahci_driver::Action
-	 */
-	void handle_ahci_discovered() override { _handle_block_devices(); }
-
-	/**
-	 * Nvme_driver::Action
-	 */
-	void handle_nvme_discovered() override { _handle_block_devices(); }
 
 	/**
 	 * Storage::Action interface
@@ -344,7 +295,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Network **
 	 *************/
 
-	Network _network { _env, _heap, *this, *this, _child_states, *this, _runtime_state };
+	Network _network { _env, _heap, *this, *this, _child_states, *this };
 
 	/**
 	 * Network::Info interface
@@ -364,8 +315,10 @@ struct Sculpt::Main : Input_event_handler,
 
 		void view(Scope<> &s) const override
 		{
-			s.sub_scope<Frame>([&] (Scope<Frame> &s) {
-				_main._network.dialog.view(s, _main._board_info); });
+			_main._drivers.with_board_info([&] (Board_info const &board_info) {
+				s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+					_main._network.dialog.view(s, board_info); });
+			});
 		}
 
 		void click(Clicked_at const &at) override
@@ -385,9 +338,6 @@ struct Sculpt::Main : Input_event_handler,
 	void nic_target(Nic_target::Type const type) override
 	{
 		_network.nic_target(type);
-
-		/* start/stop USB net driver */
-		_update_usb_drivers();
 		generate_runtime_config();
 	}
 
@@ -407,8 +357,14 @@ struct Sculpt::Main : Input_event_handler,
 	/**
 	 * Network::Action interface
 	 */
-	void update_network_dialog() override
+	void network_config_changed() override
 	{
+		Nic_target::Type const type = _network._nic_target.type();
+		_driver_options.usb_net = (type == Nic_target::MODEM);
+		_driver_options.wifi    = (type == Nic_target::WIFI);
+		_driver_options.nic     = (type == Nic_target::WIRED);
+		_drivers.update_options(_driver_options);
+
 		_network_dialog.refresh();
 		_system_dialog.refresh();
 	}
@@ -939,12 +895,12 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void restart_deployed_component(Start_name const &name) override
 	{
-		if (name == "nic_drv") {
+		if (name == "nic") {
 
 			_network.restart_nic_drv_on_next_runtime_cfg();
 			generate_runtime_config();
 
-		} else if (name == "wifi_drv") {
+		} else if (name == "wifi") {
 
 			_network.restart_wifi_drv_on_next_runtime_cfg();
 			generate_runtime_config();
@@ -1493,7 +1449,6 @@ struct Sculpt::Main : Input_event_handler,
 		 * Subscribe to reports
 		 */
 		_update_state_rom    .sigh(_update_state_handler);
-		_devices             .sigh(_devices_handler);
 		_window_list         .sigh(_window_list_handler);
 		_decorator_margins   .sigh(_decorator_margins_handler);
 		_scan_rom            .sigh(_scan_handler);
@@ -1513,17 +1468,16 @@ struct Sculpt::Main : Input_event_handler,
 		 * Import initial report content
 		 */
 		_handle_gui_mode();
-		_handle_devices();
 		_handle_block_devices();
 		_handle_runtime_config();
 
 		/*
 		 * Read static platform information
 		 */
-		_platform.xml().with_optional_sub_node("affinity-space", [&] (Xml_node const &node) {
-			_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
-			                                  node.attribute_value("height", 1U));
-		});
+		_drivers.with_platform_info([&] (Xml_node const &platform) {
+			platform.with_optional_sub_node("affinity-space", [&] (Xml_node const &node) {
+				_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
+				                                  node.attribute_value("height", 1U)); }); });
 
 		/*
 		 * Generate initial config/managed/deploy configuration
@@ -2139,14 +2093,8 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("height", _affinity_space.height());
 	});
 
-	_ps2_driver .gen_start_node (xml);
-	_fb_driver  .gen_start_nodes(xml);
-	_usb_driver .gen_start_nodes(xml);
-	_ahci_driver.gen_start_node (xml);
-	_nvme_driver.gen_start_node (xml);
-
+	_drivers.gen_start_nodes(xml);
 	_dialog_runtime.gen_start_nodes(xml);
-
 	_storage.gen_runtime_start_nodes(xml);
 	_file_browser_state.gen_start_nodes(xml);
 

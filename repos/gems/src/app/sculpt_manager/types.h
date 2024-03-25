@@ -66,6 +66,26 @@ namespace Sculpt {
 	 * Argument type for controlling the verification of downloads
 	 */
 	struct Verify { bool value; };
+
+	/**
+	 * Utility for passing lambda arguments to non-template functions
+	 */
+	template <typename... ARGS>
+	struct With
+	{
+		struct Callback : Interface
+		{
+			virtual void operator () (ARGS &&...) const = 0;
+		};
+
+		template <typename FN>
+		struct Fn : Callback
+		{
+			FN const &_fn;
+			Fn(FN const &fn) : _fn(fn) { };
+			void operator () (ARGS &&... args) const override { _fn(args...); }
+		};
+	};
 }
 
 #endif /* _TYPES_H_ */

@@ -37,7 +37,7 @@ struct Sculpt::Network : Noncopyable
 
 	struct Action : Interface
 	{
-		virtual void update_network_dialog() = 0;
+		virtual void network_config_changed() = 0;
 	};
 
 	struct Info : Interface
@@ -52,8 +52,6 @@ struct Sculpt::Network : Noncopyable
 
 	Runtime_config_generator &_runtime_config_generator;
 
-	Runtime_info const &_runtime_info;
-
 	using Wlan_config_policy = Network_widget::Wlan_config_policy;
 
 	Nic_target _nic_target { };
@@ -67,18 +65,17 @@ struct Sculpt::Network : Noncopyable
 	unsigned _wifi_drv_version = 0;
 
 	Attached_rom_dataspace _wlan_accesspoints_rom {
-		_env, "report -> runtime/wifi_drv/accesspoints" };
+		_env, "report -> runtime/wifi/accesspoints" };
 
 	Attached_rom_dataspace _wlan_state_rom {
-		_env, "report -> runtime/wifi_drv/state" };
+		_env, "report -> runtime/wifi/state" };
 
 	Attached_rom_dataspace _nic_router_state_rom {
 		_env, "report -> runtime/nic_router/state" };
 
 	void _generate_nic_router_config();
 
-	void _generate_nic_router_uplink(Xml_generator &xml,
-	                                 char    const *label);
+	void _generate_nic_router_uplink(Xml_generator &xml, char const *label);
 
 	Access_points _access_points { };
 
@@ -120,7 +117,7 @@ struct Sculpt::Network : Noncopyable
 	{
 		if (_wlan_config.try_generate_manually_managed()) {
 			_wlan_config_policy = Wlan_config_policy::MANUAL;
-			_action.update_network_dialog();
+			_action.network_config_changed();
 			return;
 		}
 
@@ -140,7 +137,7 @@ struct Sculpt::Network : Noncopyable
 			_nic_target.managed_type = type;
 			_generate_nic_router_config();
 			_runtime_config_generator.generate_runtime_config();
-			_action.update_network_dialog();
+			_action.network_config_changed();
 		}
 	}
 
@@ -210,13 +207,11 @@ struct Sculpt::Network : Noncopyable
 
 	Network(Env &env, Allocator &alloc, Action &action, Info const &info,
 	        Registry<Child_state> &child_states,
-	        Runtime_config_generator &runtime_config_generator,
-	        Runtime_info const &runtime_info)
+	        Runtime_config_generator &runtime_config_generator)
 	:
 		_env(env), _alloc(alloc), _action(action), _info(info),
 		_child_states(child_states),
-		_runtime_config_generator(runtime_config_generator),
-		_runtime_info(runtime_info)
+		_runtime_config_generator(runtime_config_generator)
 	{
 		/*
 		 * Subscribe to reports

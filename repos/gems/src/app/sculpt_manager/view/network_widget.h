@@ -60,15 +60,15 @@ struct Sculpt::Network_widget : Widget<Frame>
 				s.widget(_local, selected);
 
 			if (target.managed() || target.manual_type == Nic_target::WIRED)
-				if (board_info.lan_present)
+				if (board_info.detected.nic)
 					s.widget(_wired, selected);
 
 			if (target.managed() || target.manual_type == Nic_target::WIFI)
-				if (board_info.wifi_present)
+				if (board_info.wifi_avail())
 					s.widget(_wifi, selected);
 
 			if (target.managed() || target.manual_type == Nic_target::MODEM)
-				if (board_info.modem_present)
+				if (board_info.soc.modem)
 					s.widget(_modem, selected);
 		}
 

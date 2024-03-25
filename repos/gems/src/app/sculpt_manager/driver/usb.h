@@ -11,17 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _USB_DRIVER_H_
-#define _USB_DRIVER_H_
+#ifndef _DRIVER__USB_H_
+#define _DRIVER__USB_H_
 
-/* Genode includes */
-#include <uplink_session/uplink_session.h>
-
-/* local includes */
-#include <model/child_exit_state.h>
-#include <model/board_info.h>
 #include <managed_config.h>
-#include <runtime.h>
 
 namespace Sculpt { struct Usb_driver; }
 
@@ -31,15 +24,38 @@ struct Sculpt::Usb_driver : private Noncopyable
 	struct Action : Interface
 	{
 		virtual void handle_usb_plug_unplug() = 0;
+	};
+
+	struct Info : Interface
+	{
 		virtual void gen_usb_storage_policies(Xml_generator &) const = 0;
 	};
 
-	Env    &_env;
-	Action &_action;
+	Env        &_env;
+	Info const &_info;
+	Action     &_action;
 
-	Constructible<Child_state> _hcd { },
-	                           _hid { },
-	                           _net { };
+	Constructible<Child_state> _hcd { }, _hid { }, _net { };
+
+	static constexpr unsigned CLASS_HID = 3, CLASS_NET = 2;
+
+	struct Detected
+	{
+		bool hid, net;
+
+		static Detected from_xml(Xml_node const &devices)
+		{
+			Detected result { };
+			devices.for_each_sub_node("device", [&] (Xml_node const &device) {
+				device.for_each_sub_node("config", [&] (Xml_node const &config) {
+					config.for_each_sub_node("interface", [&] (Xml_node const &interface) {
+						unsigned const class_id = interface.attribute_value("class", 0u);
+						result.hid |= (class_id == CLASS_HID);
+						result.net |= (class_id == CLASS_NET); }); }); });
+			return result;
+		}
+
+	} _detected { };
 
 	Attached_rom_dataspace _devices { _env, "report -> runtime/usb/devices" };
 
@@ -49,6 +65,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 	void _handle_devices()
 	{
 		_devices.update();
+		_detected = Detected::from_xml(_devices.xml());
 		_action.handle_usb_plug_unplug();
 	}
 
@@ -66,17 +83,19 @@ struct Sculpt::Usb_driver : private Noncopyable
 			xml.node("policy", [&] {
 				xml.attribute("label_prefix", "usb_hid");
 				xml.node("device", [&] {
-					xml.attribute("class", "0x3"); }); });
+					xml.attribute("class", CLASS_HID); }); });
 
 			/* copy user-provided rules */
 			config.for_each_sub_node("policy", [&] (Xml_node const &policy) {
 				copy_node(xml, policy); });
 
-			_action.gen_usb_storage_policies(xml);
+			_info.gen_usb_storage_policies(xml);
 		});
 	}
 
-	Usb_driver(Env &env, Action &action) : _env(env), _action(action)
+	Usb_driver(Env &env, Info const &info, Action &action)
+	:
+		_env(env), _info(info), _action(action)
 	{
 		_devices.sigh(_devices_handler);
 		_usb_config.trigger_update();
@@ -85,16 +104,6 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 	void gen_start_nodes(Xml_generator &xml) const
 	{
-		auto gen_common_routes = [&] (Xml_generator &xml)
-		{
-			gen_parent_route<Rom_session>     (xml);
-			gen_parent_route<Cpu_session>     (xml);
-			gen_parent_route<Pd_session>      (xml);
-			gen_parent_route<Log_session>     (xml);
-			gen_parent_route<Timer::Session>  (xml);
-			gen_parent_route<Report::Session> (xml);
-		};
-
 		auto start_node = [&] (auto const &driver, auto const &binary, auto const &fn)
 		{
 			if (driver.constructed())
@@ -108,6 +117,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 			gen_provides<Usb::Session>(xml);
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>(xml);
+				gen_parent_rom_route(xml, "usb_drv");
 				gen_parent_rom_route(xml, "config", "config -> managed/usb");
 				gen_parent_rom_route(xml, "dtb",    "usb_drv.dtb");
 				gen_common_routes(xml);
@@ -122,6 +132,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 			xml.node("route", [&] {
 				gen_service_node<Usb::Session>(xml, [&] {
 					gen_named_node(xml, "child", "usb"); });
+				gen_parent_rom_route(xml, "usb_hid_drv");
 				gen_parent_rom_route(xml, "capslock", "capslock");
 				gen_parent_rom_route(xml, "numlock",  "numlock");
 				gen_common_routes(xml);
@@ -138,6 +149,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 			xml.node("route", [&] {
 				gen_service_node<Usb::Session>(xml, [&] {
 					gen_named_node(xml, "child", "usb"); });
+				gen_parent_rom_route(xml, "usb_net_drv");
 				gen_common_routes(xml);
 				gen_service_node<Uplink::Session>(xml, [&] {
 					xml.node("child", [&] () {
@@ -149,20 +161,17 @@ struct Sculpt::Usb_driver : private Noncopyable
 		});
 	};
 
-	struct Features { bool hid, net; };
-
-	void update(Registry<Child_state> &registry,
-	            Board_info const &board_info, Features features)
+	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		_hcd.conditional(board_info.usb_present,
+		_hcd.conditional(board_info.usb_avail(),
 		                 registry, "usb", Priority::MULTIMEDIA,
 		                 Ram_quota { 16*1024*1024 }, Cap_quota { 200 });
 
-		_hid.conditional(board_info.usb_present && features.hid,
+		_hid.conditional(board_info.usb_avail() && _detected.hid,
 		                 registry, "usb_hid", Priority::MULTIMEDIA,
 		                 Ram_quota { 11*1024*1024 }, Cap_quota { 180 });
 
-		_net.conditional(board_info.usb_present && features.net,
+		_net.conditional(board_info.usb_avail() && _detected.net && board_info.options.usb_net,
 		                 registry, "usb_net", Priority::DEFAULT,
 		                 Ram_quota { 20*1024*1024 }, Cap_quota { 200 });
 
@@ -172,4 +181,4 @@ struct Sculpt::Usb_driver : private Noncopyable
 	void with_devices(auto const &fn) const { fn(_devices.xml()); }
 };
 
-#endif /* _USB_DRIVER_H_ */
+#endif /* _DRIVER__USB_H_ */

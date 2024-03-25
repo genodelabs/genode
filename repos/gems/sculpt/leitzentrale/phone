@@ -116,7 +116,7 @@
 				</route>
 			</start>
 
-			<start name="manager" caps="300">
+			<start name="manager" caps="400">
 				<binary name="phone_manager"/>
 				<resource name="RAM" quantum="3M"/>
 				<provides> <service name="Gui"/> </provides>

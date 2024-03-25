@@ -92,8 +92,8 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 				s.widget(_remove);
 				s.widget(_restart); }); });
 
-	} else if (name == "nic_drv" ||
-	           name == "wifi_drv") {
+	} else if (name == "nic" ||
+	           name == "wifi") {
 
 		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
 			s.sub_scope<Hbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Hbox> &s) {

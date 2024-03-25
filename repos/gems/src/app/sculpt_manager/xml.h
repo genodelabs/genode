@@ -94,6 +94,16 @@ namespace Sculpt {
 			gen_named_node(xml, "service", SESSION::service_name()); });
 	}
 
+	static inline void gen_common_routes(Xml_generator &xml)
+	{
+		gen_parent_rom_route(xml, "ld.lib.so");
+		gen_parent_route<Cpu_session>    (xml);
+		gen_parent_route<Pd_session>     (xml);
+		gen_parent_route<Log_session>    (xml);
+		gen_parent_route<Timer::Session> (xml);
+		gen_parent_route<Report::Session>(xml);
+	}
+
 	static inline void gen_common_start_content(Xml_generator   &xml,
 	                                            Rom_name  const &name,
 	                                            Cap_quota const  caps,

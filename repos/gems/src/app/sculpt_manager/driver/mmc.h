@@ -11,16 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _MMC_DRIVER_H_
-#define _MMC_DRIVER_H_
-
-/* Genode includes */
-#include <block_session/block_session.h>
-
-/* local includes */
-#include <model/child_exit_state.h>
-#include <model/board_info.h>
-#include <runtime.h>
+#ifndef _DRIVER__MMC_H_
+#define _DRIVER__MMC_H_
 
 namespace Sculpt { struct Mmc_driver; }
 
@@ -72,20 +64,15 @@ struct Sculpt::Mmc_driver : private Noncopyable
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>(xml);
 				gen_parent_rom_route(xml, "dtb", "mmc_drv.dtb");
-				gen_parent_rom_route(xml, "ld.lib.so");
 				gen_parent_rom_route(xml, "mmc_drv");
-				gen_parent_route<Cpu_session>     (xml);
-				gen_parent_route<Pd_session>      (xml);
-				gen_parent_route<Log_session>     (xml);
-				gen_parent_route<Timer::Session>  (xml);
-				gen_parent_route<Report::Session> (xml);
+				gen_common_routes(xml);
 			});
 		});
 	};
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		_mmc.conditional(board_info.mmc_present,
+		_mmc.conditional(board_info.soc.mmc,
 		                 registry, "mmc", Priority::DEFAULT,
 		                 Ram_quota { 16*1024*1024 }, Cap_quota { 500 });
 	}
@@ -93,4 +80,4 @@ struct Sculpt::Mmc_driver : private Noncopyable
 	void with_devices(auto const &fn) const { fn(_devices.xml()); }
 };
 
-#endif /* _MMC_DRIVER_H_ */
+#endif /* _DRIVER__MMC_H_ */

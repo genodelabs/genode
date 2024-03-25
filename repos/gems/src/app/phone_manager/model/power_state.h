@@ -97,6 +97,8 @@ struct Sculpt::Power_state
 
 		return battery_present;
 	}
+
+	bool wifi_present() const { return modem_present(); }
 };
 
 #endif /* _MODEL__POWER_STATE_H_ */

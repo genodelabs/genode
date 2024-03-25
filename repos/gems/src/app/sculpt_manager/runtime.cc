@@ -22,11 +22,9 @@
 #include <runtime/file_system.cc>
 #include <runtime/fs_rom.cc>
 #include <runtime/gpt_write.cc>
-#include <runtime/nic_drv.cc>
 #include <runtime/nic_router.cc>
 #include <runtime/prepare.cc>
 #include <runtime/ram_fs.cc>
 #include <runtime/runtime_view.cc>
 #include <runtime/update.cc>
-#include <runtime/wifi_drv.cc>
 #include <runtime/fs_tool.cc>

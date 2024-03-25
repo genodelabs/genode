@@ -37,10 +37,7 @@
 #include <model/presets.h>
 #include <model/screensaver.h>
 #include <managed_config.h>
-#include <fb_driver.h>
-#include <touch_driver.h>
-#include <usb_driver.h>
-#include <mmc_driver.h>
+#include <drivers.h>
 #include <gui.h>
 #include <storage.h>
 #include <network.h>
@@ -89,8 +86,8 @@ struct Sculpt::Main : Input_event_handler,
                       Software_update_widget::Action,
                       Software_add_widget::Action,
                       Screensaver::Action,
-                      Usb_driver::Action,
-                      Mmc_driver::Action
+                      Drivers::Info,
+                      Drivers::Action
 {
 	Env &_env;
 
@@ -100,6 +97,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Build_info const _build_info =
 		Build_info::from_xml(Attached_rom_dataspace(_env, "build_info").xml());
+
+	bool const _phone_hardware = (_build_info.board == "pinephone");
 
 	Registry<Child_state> _child_states { };
 
@@ -130,7 +129,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	struct System
 	{
-		bool storage;
+		bool storage_stage;
 
 		using State = String<32>;
 
@@ -145,7 +144,7 @@ struct Sculpt::Main : Input_event_handler,
 		static System from_xml(Xml_node const &node)
 		{
 			return System {
-				.storage       = node.attribute_value("storage", false),
+				.storage_stage = node.attribute_value("storage", false),
 				.state         = node.attribute_value("state",   State()),
 				.power_profile = node.attribute_value("power_profile", Power_profile()),
 				.brightness    = node.attribute_value("brightness", 0u),
@@ -169,7 +168,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		bool operator != (System const &other) const
 		{
-			return (other.storage       != storage)
+			return (other.storage_stage != storage_stage)
 			    || (other.state         != state)
 			    || (other.power_profile != power_profile)
 			    || (other.brightness    != brightness);
@@ -188,36 +187,40 @@ struct Sculpt::Main : Input_event_handler,
 		_update_managed_system_config();
 	}
 
-	Attached_rom_dataspace const _platform { _env, "platform_info" };
 
-	Attached_rom_dataspace _devices { _env, "report -> drivers/devices" };
+	/**********************
+	 ** Device discovery **
+	 **********************/
 
-	Signal_handler<Main> _devices_handler {
-		_env.ep(), *this, &Main::_handle_devices };
+	Board_info::Soc _soc {
+		.fb    = _phone_hardware,  /* immediately activated */
+		.touch = _phone_hardware,
+		.wifi  = false, /* activated at second driver stage */
+		.usb   = false,
+		.mmc   = false,
+		.modem = false, /* depends on presence of battery */
+	};
 
-	Board_info _board_info { };
+	Drivers _drivers { _env, _child_states, *this, *this };
 
-	void _handle_devices()
+	Board_info::Options _driver_options { };
+
+	/**
+	 * Drivers::Action
+	 */
+	void handle_device_plug_unplug() override
 	{
-		_devices.update();
+		_handle_block_devices();
+		network_config_changed();
+		generate_runtime_config();
+	}
 
-		_board_info = Board_info::from_xml(_devices.xml(), _platform.xml());
-
-		/* enable non-PCI wifi (PinePhone) */
-		if (_devices.xml().num_sub_nodes() == 0)
-			_board_info.wifi_present = true;
-
-		_board_info.usb_present       = true;
-		_board_info.mmc_present       = true;
-		_board_info.soc_fb_present    = true;
-		_board_info.soc_touch_present = true;
-
-		_fb_driver   .update(_child_states, _board_info, _platform.xml());
-		_touch_driver.update(_child_states, _board_info);
-		_mmc_driver  .update(_child_states, _board_info);
-		_update_usb_drivers();
-
-		update_network_dialog();
+	/**
+	 * Drivers::Info
+	 */
+	void gen_usb_storage_policies(Xml_generator &xml) const override
+	{
+		_storage.gen_usb_storage_policies(xml);
 	}
 
 	void _enter_second_driver_stage()
@@ -228,28 +231,16 @@ struct Sculpt::Main : Input_event_handler,
 		 * is up, we can kick off the start of the remaining drivers.
 		 */
 
-		if (_system.storage)
+		if (_system.storage_stage)
 			return;
 
-		System const orig_system = _system;
+		_system.storage_stage = true;
 
-		_system.storage = true;
-
-		if (_system != orig_system)
-			_update_managed_system_config();
-	}
-
-	Fb_driver    _fb_driver    { };
-	Touch_driver _touch_driver { };
-	Usb_driver   _usb_driver { _env, *this };
-	Mmc_driver   _mmc_driver { _env, *this };
-
-	void _update_usb_drivers()
-	{
-		_usb_driver.update(_child_states, _board_info, {
-			.hid = false,
-			.net = (_network._nic_target.type() == Nic_target::MODEM)
-		});
+		if (_phone_hardware) {
+			_soc.mmc = true;
+			_drivers.update_soc(_soc);
+			_update_soc_feature_selection();
+		}
 	}
 
 	Signal_handler<Main> _gui_mode_handler {
@@ -280,7 +271,8 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void screensaver_changed() override
 	{
-		_update_managed_system_config();
+		_driver_options.display = _screensaver.display_enabled();
+		_drivers.update_options(_driver_options);
 		generate_runtime_config();
 	}
 
@@ -327,40 +319,21 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_block_devices()
 	{
 		_block_devices_rom.update();
-		_usb_driver.with_devices([&] (Xml_node const &usb_devices) {
-			_mmc_driver.with_devices([&] (Xml_node const &mmc_devices) {
-				_storage.update(usb_devices,
-				                Xml_node { "<empty/> " }, /* ahci */
-				                Xml_node { "<empty/> " }, /* nvme */
-				                mmc_devices,
-				                _block_devices_rom.xml(),
-				                _block_devices_handler);
-			});
+
+		_drivers.with_storage_devices([&] (Xml_node const &usb_devices,
+		                                   Xml_node const &ahci_ports,
+		                                   Xml_node const &nvme_namespaces,
+		                                   Xml_node const &mmc_devices) {
+			_storage.update(usb_devices, ahci_ports, nvme_namespaces, mmc_devices,
+			                _block_devices_rom.xml(),
+			                _block_devices_handler);
 		});
 
 		/* update USB policies for storage devices */
-		_update_usb_drivers();
+		_drivers.update_usb();
 	}
 
 	Storage _storage { _env, _heap, _child_states, *this, *this };
-
-	/**
-	 * Usb_driver::Action
-	 */
-	void handle_usb_plug_unplug() override { _handle_block_devices(); }
-
-	/**
-	 * Usb_driver::Action
-	 */
-	void gen_usb_storage_policies(Xml_generator &xml) const override
-	{
-		_storage.gen_usb_storage_policies(xml);
-	}
-
-	/**
-	 * Mmc_driver::Action
-	 */
-	void handle_mmc_discovered() override { _handle_block_devices(); }
 
 	/**
 	 * Storage::Action interface
@@ -387,12 +360,12 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Network **
 	 *************/
 
-	Network _network { _env, _heap, *this, *this, _child_states, *this, _runtime_state };
+	Network _network { _env, _heap, *this, *this, _child_states, *this };
 
 	/**
 	 * Network::Action interface
 	 */
-	void update_network_dialog() override
+	void network_config_changed() override
 	{
 		_generate_dialog();
 	}
@@ -414,9 +387,11 @@ struct Sculpt::Main : Input_event_handler,
 	void nic_target(Nic_target::Type const type) override
 	{
 		_network.nic_target(type);
-
-		/* start/stop USB net driver */
-		_update_usb_drivers();
+		_driver_options.usb_net = (type == Nic_target::MODEM);
+		_driver_options.wifi    = (type == Nic_target::WIFI);
+		_driver_options.nic     = (type == Nic_target::WIRED);
+		_drivers.update_options(_driver_options);
+		_update_soc_feature_selection();
 		generate_runtime_config();
 	}
 
@@ -959,7 +934,8 @@ struct Sculpt::Main : Input_event_handler,
 				_network_title_bar.view_status(s, network_status_message());
 			});
 
-			s.widget(_network_widget, _network_title_bar.selected(), _board_info);
+			_drivers.with_board_info([&] (Board_info const &board_info) {
+				s.widget(_network_widget, _network_title_bar.selected(), board_info); });
 
 			s.widget(_software_title_bar, [&] (auto &s) {
 				_software_title_bar.view_status(s, _software_status_message()); });
@@ -1700,6 +1676,25 @@ struct Sculpt::Main : Input_event_handler,
 	Signal_handler<Main> _power_handler {
 		_env.ep(), *this, &Main::_handle_power };
 
+	bool _update_soc_feature_selection()
+	{
+		Board_info::Soc const orig_soc = _soc;
+
+		/* wifi and mobile data depends on the presence of a battery */
+		_soc.modem = _power_state.modem_present() && _modem_state.ready();
+		_soc.wifi  = _power_state.wifi_present();
+
+		/* start USB host driver only when needed for USB net */
+		if (_phone_hardware)
+			_soc.usb = (_network._nic_target.type() == Nic_target::MODEM);
+
+		bool const changed = (orig_soc != _soc);
+		if (changed)
+			_drivers.update_soc(_soc);
+
+		return changed;
+	}
+
 	void _handle_power()
 	{
 		_power_rom.update();
@@ -1709,15 +1704,8 @@ struct Sculpt::Main : Input_event_handler,
 
 		bool regenerate_dialog = false;
 
-		/* mobile data connectivity depends on the presence of a battery */
-		if (_power_state.modem_present() != _board_info.modem_present) {
-
-			/* update condition for the "Mobile data" network option */
-			_board_info.modem_present = _power_state.modem_present()
-			                         && _modem_state.ready();
-
+		if (_system.storage_stage && _update_soc_feature_selection())
 			regenerate_dialog = true;
-		}
 
 		if (orig_power_state.summary() != _power_state.summary())
 			regenerate_dialog = true;
@@ -1846,13 +1834,8 @@ struct Sculpt::Main : Input_event_handler,
 		_modem_state = Modem_state::from_xml(_modem_state_rom.xml());
 
 		/* update condition of "Mobile data" network option */
-		{
-			bool const orig_mobile_data_ready = _board_info.modem_present;
-			_board_info.modem_present = _power_state.modem_present()
-			                         && _modem_state.ready();
-			if (orig_mobile_data_ready != _board_info.modem_present)
-				regenerate_dialog = true;
-		}
+		if (orig_modem_state.ready() != _modem_state.ready())
+			regenerate_dialog = true;
 
 		_current_call.update(_modem_state);
 
@@ -2029,6 +2012,10 @@ struct Sculpt::Main : Input_event_handler,
 
 	Main(Env &env) : _env(env)
 	{
+		_driver_options.display = true;
+		_drivers.update_options(_driver_options);
+		_drivers.update_soc(_soc);
+
 		_config.sigh(_config_handler);
 		_leitzentrale_rom.sigh(_leitzentrale_handler);
 		_manual_deploy_rom.sigh(_manual_deploy_handler);
@@ -2041,7 +2028,6 @@ struct Sculpt::Main : Input_event_handler,
 		 * Subscribe to reports
 		 */
 		_update_state_rom    .sigh(_update_state_handler);
-		_devices             .sigh(_devices_handler);
 		_window_list         .sigh(_window_list_handler);
 		_decorator_margins   .sigh(_decorator_margins_handler);
 		_scan_rom            .sigh(_scan_handler);
@@ -2058,8 +2044,6 @@ struct Sculpt::Main : Input_event_handler,
 		_handle_config();
 		_handle_leitzentrale();
 		_handle_gui_mode();
-		_handle_devices();
-		_handle_block_devices();
 		_handle_runtime_config();
 		_handle_modem_state();
 
@@ -2071,10 +2055,10 @@ struct Sculpt::Main : Input_event_handler,
 		/*
 		 * Read static platform information
 		 */
-		_platform.xml().with_optional_sub_node("affinity-space", [&] (Xml_node const &node) {
-			_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
-			                                  node.attribute_value("height", 1U));
-		});
+		_drivers.with_platform_info([&] (Xml_node const &platform) {
+			platform.with_optional_sub_node("affinity-space", [&] (Xml_node const &node) {
+				_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
+				                                  node.attribute_value("height", 1U)); }); });
 
 		/*
 		 * Generate initial config/managed/deploy configuration
@@ -2128,7 +2112,7 @@ void Sculpt::Main::_handle_window_layout()
 	 *
 	 * Once after the basic GUI is up, spawn storage drivers and touch keyboard.
 	 */
-	if (!_system.storage) {
+	if (!_system.storage_stage) {
 		_with_window(window_list, main_view_label, [&] (Xml_node) {
 			_enter_second_driver_stage();
 			_touch_keyboard.started = true;
@@ -2468,22 +2452,10 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("height", _affinity_space.height());
 	});
 
-	if (_screensaver.display_enabled()) {
-		_fb_driver   .gen_start_nodes(xml);
-		_touch_driver.gen_start_node (xml);
-	}
-
-	if (_system.storage)
-		_mmc_driver.gen_start_node(xml);
-
-	if (_network._nic_target.type() == Nic_target::Type::MODEM)
-		_usb_driver.gen_start_nodes(xml);
-
+	_drivers.gen_start_nodes(xml);
 	_dialog_runtime.gen_start_nodes(xml);
-
-	_touch_keyboard.gen_start_node(xml);
-
 	_storage.gen_runtime_start_nodes(xml);
+	_touch_keyboard.gen_start_node(xml);
 
 	/*
 	 * Load configuration and update depot config on the sculpt partition

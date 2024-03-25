@@ -69,9 +69,6 @@ namespace Sculpt {
 	void gen_gpt_relabel_start_content(Xml_generator &, Storage_device const &);
 	void gen_gpt_expand_start_content (Xml_generator &, Storage_device const &);
 
-	void gen_nic_drv_start_content(Xml_generator &);
-	void gen_wifi_drv_start_content(Xml_generator &);
-
 	void gen_nic_router_start_content(Xml_generator &);
 	void gen_nic_router_uplink(Xml_generator &, char const *);
 

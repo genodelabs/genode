@@ -11,13 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _PS2_DRIVER_H_
-#define _PS2_DRIVER_H_
-
-/* local includes */
-#include <model/child_exit_state.h>
-#include <model/board_info.h>
-#include <runtime.h>
+#ifndef _DRIVER__PS2_H_
+#define _DRIVER__PS2_H_
 
 namespace Sculpt { struct Ps2_driver; }
 
@@ -44,14 +39,11 @@ struct Sculpt::Ps2_driver : private Noncopyable
 
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>(xml);
+				gen_common_routes(xml);
 				gen_parent_rom_route(xml, "capslock", "capslock");
 				gen_parent_rom_route(xml, "numlock",  "numlock");
 				gen_parent_rom_route(xml, "system",   "config -> managed/system");
 				gen_parent_route<Rom_session>   (xml);
-				gen_parent_route<Cpu_session>   (xml);
-				gen_parent_route<Pd_session>    (xml);
-				gen_parent_route<Log_session>   (xml);
-				gen_parent_route<Timer::Session>(xml);
 				gen_service_node<Event::Session>(xml, [&] {
 					xml.node("parent", [&] {
 						xml.attribute("label", "ps2"); }); });
@@ -61,10 +53,10 @@ struct Sculpt::Ps2_driver : private Noncopyable
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		_ps2.conditional(board_info.ps2_present,
+		_ps2.conditional(board_info.detected.ps2,
 		                 registry, "ps2", Priority::MULTIMEDIA,
 		                 Ram_quota { 1*1024*1024 }, Cap_quota { 100 });
 	}
 };
 
-#endif /* _PS2_DRIVER_H_ */
+#endif /* _DRIVER__PS2_H_ */

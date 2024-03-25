@@ -20,97 +20,124 @@ namespace Sculpt { struct Board_info; }
 
 struct Sculpt::Board_info
 {
-	bool wifi_present,
-	     lan_present,
-	     modem_present,
-	     intel_gfx_present,
-	     boot_fb_present,
-	     vesa_fb_present,
-	     soc_fb_present,
-	     nvme_present,
-	     ahci_present,
-	     mmc_present,
-	     usb_present,
-	     ps2_present,
-	     soc_touch_present;
-
-	static Board_info from_xml(Xml_node const &devices, Xml_node const &platform)
+	/**
+	 * Runtime-detected features
+	 */
+	struct Detected
 	{
-		Board_info result { };
+		bool wifi, nic, intel_gfx, boot_fb, vesa, nvme, ahci, usb, ps2;
 
-		Boot_fb::with_mode(platform, [&] (Boot_fb::Mode mode) {
-			result.boot_fb_present = mode.valid(); });
+		void print(Output &out) const
+		{
+			Genode::print(out, "wifi=",      wifi,      " nic=",       nic,
+			                  " intel_gfx=", intel_gfx, " boot_fb=",   boot_fb,
+			                  " vesa=",      vesa,      " nvme=",      nvme,
+			                  " ahci=",      ahci,      " usb=",       usb);
+		}
 
-		bool vga = false;
+		static inline Detected from_xml(Xml_node const &devices, Xml_node const &platform);
 
-		devices.for_each_sub_node("device", [&] (Xml_node const &device) {
+	} detected;
 
-			if (device.attribute_value("name", String<16>()) == "ps2")
-				result.ps2_present = true;
-
-			device.with_optional_sub_node("pci-config", [&] (Xml_node const &pci) {
-
-				enum class Pci_class : unsigned {
-					WIFI = 0x28000,
-					LAN  = 0x20000,
-					VGA  = 0x30000,
-					AHCI = 0x10601,
-					NVME = 0x10802,
-					UHCI = 0xc0300, OHCI = 0xc0310, EHCI = 0xc0320, XHCI = 0xc0330,
-				};
-
-				enum class Pci_vendor : unsigned { INTEL = 0x8086U, };
-
-				auto matches_class = [&] (Pci_class value)
-				{
-					return pci.attribute_value("class", 0U) == unsigned(value);
-				};
-
-				auto matches_vendor = [&] (Pci_vendor value)
-				{
-					return pci.attribute_value("vendor_id", 0U) == unsigned(value);
-				};
-
-				if (matches_class(Pci_class::WIFI)) result.wifi_present = true;
-				if (matches_class(Pci_class::LAN))  result.lan_present  = true;
-				if (matches_class(Pci_class::NVME)) result.nvme_present = true;
-
-				if (matches_class(Pci_class::UHCI) || matches_class(Pci_class::OHCI)
-				 || matches_class(Pci_class::EHCI) || matches_class(Pci_class::XHCI))
-					result.usb_present = true;
-
-				if (matches_class(Pci_class::AHCI) && matches_vendor(Pci_vendor::INTEL))
-					result.ahci_present  = true;
-
-				if (matches_class(Pci_class::VGA)) {
-					vga = true;
-					if (matches_vendor(Pci_vendor::INTEL))
-						result.intel_gfx_present = true;
-				}
-			});
-		});
-
-		if (result.intel_gfx_present)
-			result.boot_fb_present = false;
-
-		if (vga && !result.intel_gfx_present && !result.boot_fb_present)
-			result.vesa_fb_present = true;
-
-		return result;
-	}
-
-	void print(Output &out) const
+	/**
+	 * Statically-known or configured features
+	 */
+	struct Soc
 	{
-		Genode::print(out, "wifi=",      wifi_present,
-		                  " lan=",       lan_present,
-		                  " modem=",     modem_present,
-		                  " intel_gfx=", intel_gfx_present,
-		                  " boot_fb=",   boot_fb_present,
-		                  " vesa_fb=",   vesa_fb_present,
-		                  " nvme=",      nvme_present,
-		                  " ahci=",      ahci_present,
-		                  " usb=",       usb_present);
-	}
+		bool fb, touch, wifi, usb, mmc, modem;
+
+		bool operator != (Soc const &other) const
+		{
+			return (fb   != other.fb)   || (touch != other.touch)
+			    || (wifi != other.wifi) || (usb   != other.usb)
+			    || (mmc  != other.mmc)  || (modem != other.modem);
+		}
+	} soc;
+
+	/**
+	 * Features that can be toggled at runtime
+	 */
+	struct Options
+	{
+		bool display, usb_net, nic, wifi;
+
+		bool operator != (Options const &other) const
+		{
+			return display != other.display || usb_net != other.usb_net
+			    || nic     != other.nic     || wifi    != other.wifi;
+		}
+
+	} options;
+
+	bool usb_avail()  const { return detected.usb  || soc.usb; }
+	bool wifi_avail() const { return detected.wifi || soc.wifi; }
 };
+
+
+Sculpt::Board_info::Detected
+Sculpt::Board_info::Detected::from_xml(Xml_node const &devices, Xml_node const &platform)
+{
+	Detected detected { };
+
+	Boot_fb::with_mode(platform, [&] (Boot_fb::Mode mode) {
+		detected.boot_fb = mode.valid(); });
+
+	bool vga = false;
+
+	devices.for_each_sub_node("device", [&] (Xml_node const &device) {
+
+		if (device.attribute_value("name", String<16>()) == "ps2")
+			detected.ps2 = true;
+
+		device.with_optional_sub_node("pci-config", [&] (Xml_node const &pci) {
+
+			enum class Pci_class : unsigned {
+				WIFI = 0x28000,
+				NIC  = 0x20000,
+				VGA  = 0x30000,
+				AHCI = 0x10601,
+				NVME = 0x10802,
+				UHCI = 0xc0300, OHCI = 0xc0310, EHCI = 0xc0320, XHCI = 0xc0330,
+			};
+
+			enum class Pci_vendor : unsigned { INTEL = 0x8086U, };
+
+			auto matches_class = [&] (Pci_class value)
+			{
+				return pci.attribute_value("class", 0U) == unsigned(value);
+			};
+
+			auto matches_vendor = [&] (Pci_vendor value)
+			{
+				return pci.attribute_value("vendor_id", 0U) == unsigned(value);
+			};
+
+			if (matches_class(Pci_class::WIFI)) detected.wifi = true;
+			if (matches_class(Pci_class::NIC))  detected.nic  = true;
+			if (matches_class(Pci_class::NVME)) detected.nvme = true;
+
+			if (matches_class(Pci_class::UHCI) || matches_class(Pci_class::OHCI)
+			 || matches_class(Pci_class::EHCI) || matches_class(Pci_class::XHCI))
+				detected.usb = true;
+
+			if (matches_class(Pci_class::AHCI) && matches_vendor(Pci_vendor::INTEL))
+				detected.ahci = true;
+
+			if (matches_class(Pci_class::VGA)) {
+				vga = true;
+				if (matches_vendor(Pci_vendor::INTEL))
+					detected.intel_gfx = true;
+			}
+		});
+	});
+
+	if (detected.intel_gfx)
+		detected.boot_fb = false;
+
+	if (vga && !detected.intel_gfx && !detected.boot_fb)
+		detected.vesa = true;
+
+	return detected;
+}
 
 #endif /* _MODEL__BOARD_INFO_H_ */
