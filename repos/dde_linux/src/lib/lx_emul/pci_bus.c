@@ -119,6 +119,7 @@ static void pci_add_single_device_callback(void       * data,
 	dev->revision         = revision;
 	dev->class            = class_code;
 	dev->current_state    = PCI_UNKNOWN;
+	dev->error_state      = pci_channel_io_normal;
 
 	lx_emul_pci_for_each_resource(name, dev,
 	                              pci_add_resource_to_device_callback);
