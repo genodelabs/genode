@@ -45,8 +45,8 @@ struct Sculpt::Fb_driver : private Noncopyable
 
 		start_node(_intel_gpu, "intel_gpu_drv", [&] {
 			xml.node("provides", [&] {
-				gen_service_node<Gpu::Session>     (xml, [&] () { });
-				gen_service_node<Platform::Session>(xml, [&] () { });
+				gen_service_node<Gpu::Session>     (xml, [&] { });
+				gen_service_node<Platform::Session>(xml, [&] { });
 			});
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>(xml);
@@ -71,7 +71,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 		});
 
 		start_node(_vesa_fb, "vesa_fb_drv", [&] {
-			xml.node("route", [&] () {
+			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>(xml);
 				gen_capture_route(xml);
 				gen_parent_rom_route(xml, "vesa_fb_drv");
@@ -83,7 +83,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 		});
 
 		start_node(_boot_fb, "boot_fb_drv", [&] {
-			xml.node("route", [&] () {
+			xml.node("route", [&] {
 				gen_parent_rom_route(xml, "config", "config -> fb_drv");
 				gen_parent_rom_route(xml, "boot_fb_drv");
 				gen_parent_route<Io_mem_session>(xml);

@@ -152,7 +152,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 				gen_parent_rom_route(xml, "usb_net_drv");
 				gen_common_routes(xml);
 				gen_service_node<Uplink::Session>(xml, [&] {
-					xml.node("child", [&] () {
+					xml.node("child", [&] {
 						xml.attribute("name", "nic_router");
 						xml.attribute("label", "usb_net -> ");
 					});

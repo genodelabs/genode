@@ -83,7 +83,7 @@ struct Sculpt::Child_state : Noncopyable
 
 			xml.attribute("caps", _cap_quota.value);
 			xml.attribute("priority", (int)_priority);
-			gen_named_node(xml, "resource", "RAM", [&] () {
+			gen_named_node(xml, "resource", "RAM", [&] {
 				Number_of_bytes const bytes(_ram_quota.value);
 				xml.attribute("quantum", String<64>(bytes)); });
 		}

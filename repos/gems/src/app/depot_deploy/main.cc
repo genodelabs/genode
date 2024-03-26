@@ -142,7 +142,7 @@ struct Depot_deploy::Main
 				static_config.with_raw_content([&] (char const *start, size_t length) {
 					xml.append(start, length); });
 			},
-			[&] () { warning("config lacks <static> node"); });
+			[&] { warning("config lacks <static> node"); });
 
 		config.with_optional_sub_node("report", [&] (Xml_node const &report) {
 
@@ -152,7 +152,7 @@ struct Depot_deploy::Main
 					xml.attribute(name, report.attribute_value(name, false));
 			};
 
-			auto copy_buffer_size_attribute = [&] ()
+			auto copy_buffer_size_attribute = [&]
 			{
 				auto const name = "buffer";
 				if (report.has_attribute(name))
@@ -160,7 +160,7 @@ struct Depot_deploy::Main
 			};
 
 			size_t const delay_ms = report.attribute_value("delay_ms", 1000UL);
-			xml.node("report", [&] () {
+			xml.node("report", [&] {
 				xml.attribute("delay_ms", delay_ms);
 
 				/* attributes according to repos/os/src/lib/sandbox/report.h */
@@ -180,7 +180,7 @@ struct Depot_deploy::Main
 
 		config.with_optional_sub_node("heartbeat", [&] (Xml_node const &heartbeat) {
 			size_t const rate_ms = heartbeat.attribute_value("rate_ms", 2000UL);
-			xml.node("heartbeat", [&] () {
+			xml.node("heartbeat", [&] {
 				xml.attribute("rate_ms", rate_ms);
 			});
 		});
@@ -192,7 +192,7 @@ struct Depot_deploy::Main
 				                          _prio_levels, Affinity::Space(1, 1),
 				                          parent, parent);
 			},
-			[&] () { warning("config lacks <common_routes> node"); });
+			[&] { warning("config lacks <common_routes> node"); });
 	}
 
 	Main(Env &env) : _env(env)

@@ -22,8 +22,8 @@ void Sculpt::gen_chroot_start_content(Xml_generator &xml, Start_name const &name
 
 	gen_named_node(xml, "binary", "chroot");
 
-	xml.node("config", [&] () {
-		xml.node("default-policy", [&] () {
+	xml.node("config", [&] {
+		xml.node("default-policy", [&] {
 			xml.attribute("path", path);
 			if (writeable == WRITEABLE)
 				xml.attribute("writeable", "yes");
@@ -32,9 +32,9 @@ void Sculpt::gen_chroot_start_content(Xml_generator &xml, Start_name const &name
 
 	gen_provides<::File_system::Session>(xml);
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 
-	 	gen_service_node<::File_system::Session>(xml, [&] () {
+	 	gen_service_node<::File_system::Session>(xml, [&] {
 			gen_named_node(xml, "child", "default_fs_rw"); });
 
 		gen_parent_rom_route(xml, "chroot");

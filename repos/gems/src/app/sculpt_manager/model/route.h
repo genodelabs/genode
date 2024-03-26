@@ -136,7 +136,7 @@ struct Sculpt::Route : List_model<Route>::Element
 			return;
 		}
 
-		gen_named_node(xml, "service", Service::name_attr(required), [&] () {
+		gen_named_node(xml, "service", Service::name_attr(required), [&] {
 
 			if (required_label.valid()) {
 

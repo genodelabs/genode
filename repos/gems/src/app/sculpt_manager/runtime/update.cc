@@ -21,11 +21,11 @@ void Sculpt::gen_update_start_content(Xml_generator &xml)
 
 	gen_named_node(xml, "binary", "init");
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 
 		typedef String<32> Label;
 		auto gen_fs = [&] (Label const &label, Label const &server) {
-			gen_service_node<::File_system::Session>(xml, [&] () {
+			gen_service_node<::File_system::Session>(xml, [&] {
 				xml.attribute("label", label);
 				gen_named_node(xml, "child", server); }); };
 
@@ -65,9 +65,9 @@ void Sculpt::gen_update_start_content(Xml_generator &xml)
 		gen_parent_route<Report::Session>(xml);
 
 		auto gen_relabeled_log = [&] (Label const &label, Label const &relabeled) {
-			gen_service_node<Log_session>(xml, [&] () {
+			gen_service_node<Log_session>(xml, [&] {
 				xml.attribute("label", label);
-				xml.node("parent", [&] () {
+				xml.node("parent", [&] {
 					xml.attribute("label", relabeled); }); }); };
 
 		/* shorten LOG-session labels to reduce the debug-output noise */
@@ -76,7 +76,7 @@ void Sculpt::gen_update_start_content(Xml_generator &xml)
 		gen_relabeled_log("dynamic -> extract",  "extract");
 		gen_parent_route<Log_session>(xml);
 
-		gen_service_node<Nic::Session>(xml, [&] () {
+		gen_service_node<Nic::Session>(xml, [&] {
 			gen_named_node(xml, "child", "nic_router"); });
 	});
 }

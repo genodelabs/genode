@@ -137,7 +137,7 @@ struct Sculpt::Deploy
 				if (_runtime_info.abandoned_by_user(name))
 					return;
 
-				xml.node("start", [&] () {
+				xml.node("start", [&] {
 
 					/*
 					 * Copy attributes

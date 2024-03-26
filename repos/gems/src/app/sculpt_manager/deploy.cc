@@ -172,16 +172,16 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator  &xml,
                                              Affinity::Space affinity_space) const
 {
 	/* depot-ROM instance for regular (immutable) depot content */
-	xml.node("start", [&] () {
+	xml.node("start", [&] {
 		gen_fs_rom_start_content(xml, "cached_fs_rom", "depot",
 		                         cached_depot_rom_state); });
 
 	/* depot-ROM instance for mutable content (/depot/local/) */
-	xml.node("start", [&] () {
+	xml.node("start", [&] {
 		gen_fs_rom_start_content(xml, "fs_rom", "depot",
 		                         uncached_depot_rom_state); });
 
-	xml.node("start", [&] () {
+	xml.node("start", [&] {
 		gen_depot_query_start_content(xml); });
 
 	Xml_node const managed_deploy = _managed_deploy_rom.xml();
@@ -198,7 +198,7 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator  &xml,
 		_children.gen_start_nodes(xml, managed_deploy.sub_node("common_routes"),
 		                          prio_levels, affinity_space,
 		                          "depot_rom", "dynamic_depot_rom");
-		xml.node("monitor", [&] () {
+		xml.node("monitor", [&] {
 			_children.gen_monitor_policy_nodes(xml);});
 	}
 }

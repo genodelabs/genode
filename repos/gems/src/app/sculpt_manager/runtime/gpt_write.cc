@@ -32,15 +32,15 @@ void Sculpt::_gen_gpt_write_start_content(Xml_generator        &xml,
 
 	gen_named_node(xml, "binary", "gpt_write");
 
-	xml.node("config", [&] () {
+	xml.node("config", [&] {
 		xml.attribute("verbose",         "yes");
 		xml.attribute("update_geometry", "yes");
 		xml.attribute("preserve_hybrid", "yes");
 
-		xml.node("actions", [&] () { fn(xml); });
+		xml.node("actions", [&] { fn(xml); });
 	});
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 
 		Storage_target const target { device.label, device.port, Partition::Number { } };
 		target.gen_block_session_route(xml);
@@ -64,7 +64,7 @@ void Sculpt::gen_gpt_relabel_start_content(Xml_generator        &xml,
 		device.for_each_partition([&] (Partition const &partition) {
 
 			if (partition.number.valid() && partition.relabel_in_progress())
-				xml.node("modify", [&] () {
+				xml.node("modify", [&] {
 					xml.attribute("entry",     partition.number);
 					xml.attribute("new_label", partition.next_label); }); }); });
 }
@@ -78,7 +78,7 @@ void Sculpt::gen_gpt_expand_start_content(Xml_generator        &xml,
 		device.for_each_partition([&] (Partition const &partition) {
 
 			if (partition.number.valid() && partition.gpt_expand_in_progress)
-				xml.node("modify", [&] () {
+				xml.node("modify", [&] {
 					xml.attribute("entry",    partition.number);
 					xml.attribute("new_size", "max"); }); }); });
 }

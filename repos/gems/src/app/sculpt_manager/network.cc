@@ -18,12 +18,12 @@
 void Sculpt::Network::_generate_nic_router_uplink(Xml_generator &xml,
                                                   char    const *label)
 {
-	xml.node("policy", [&] () {
+	xml.node("policy", [&] {
 		xml.attribute("label_prefix", label);
 		xml.attribute("domain", "uplink");
 	});
-	gen_named_node(xml, "domain", "uplink", [&] () {
-		xml.node("nat", [&] () {
+	gen_named_node(xml, "domain", "uplink", [&] {
+		xml.node("nat", [&] {
 			xml.attribute("domain",    "default");
 			xml.attribute("tcp-ports", "1000");
 			xml.attribute("udp-ports", "1000");
@@ -81,14 +81,14 @@ void Sculpt::Network::_generate_nic_router_config()
 	_nic_router_config.generate([&] (Xml_generator &xml) {
 		xml.attribute("verbose_domain_state", "yes");
 
-		xml.node("report", [&] () {
+		xml.node("report", [&] {
 			xml.attribute("interval_sec",    "5");
 			xml.attribute("bytes",           "yes");
 			xml.attribute("config",          "yes");
 			xml.attribute("config_triggers", "yes");
 		});
 
-		xml.node("default-policy", [&] () {
+		xml.node("default-policy", [&] {
 			xml.attribute("domain", "default"); });
 
 		bool uplink_exists = true;
@@ -98,10 +98,10 @@ void Sculpt::Network::_generate_nic_router_config()
 		case Nic_target::MODEM: _generate_nic_router_uplink(xml, "usb_net -> "); break;
 		default: uplink_exists = false;
 		}
-		gen_named_node(xml, "domain", "default", [&] () {
+		gen_named_node(xml, "domain", "default", [&] {
 			xml.attribute("interface", "10.0.1.1/24");
 
-			xml.node("dhcp-server", [&] () {
+			xml.node("dhcp-server", [&] {
 				xml.attribute("ip_first", "10.0.1.2");
 				xml.attribute("ip_last",  "10.0.1.200");
 				if (_nic_target.type() != Nic_target::DISCONNECTED) {
@@ -109,17 +109,17 @@ void Sculpt::Network::_generate_nic_router_config()
 			});
 
 			if (uplink_exists) {
-				xml.node("tcp", [&] () {
+				xml.node("tcp", [&] {
 					xml.attribute("dst", "0.0.0.0/0");
-					xml.node("permit-any", [&] () {
+					xml.node("permit-any", [&] {
 						xml.attribute("domain", "uplink"); }); });
 
-				xml.node("udp", [&] () {
+				xml.node("udp", [&] {
 					xml.attribute("dst", "0.0.0.0/0");
-					xml.node("permit-any", [&] () {
+					xml.node("permit-any", [&] {
 						xml.attribute("domain", "uplink"); }); });
 
-				xml.node("icmp", [&] () {
+				xml.node("icmp", [&] {
 					xml.attribute("dst", "0.0.0.0/0");
 					xml.attribute("domain", "uplink"); });
 			}
@@ -136,7 +136,7 @@ void Sculpt::Network::_generate_nic_router_config()
 				xml.attribute("label",  name);
 				xml.attribute("domain", name); });
 
-			gen_named_node(xml, "domain", name, [&] () {
+			gen_named_node(xml, "domain", name, [&] {
 				xml.attribute("interface", interface);
 				xml.node("dhcp-server", [&] {
 					xml.attribute("ip_first", dhcp_addr);

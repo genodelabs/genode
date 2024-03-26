@@ -127,7 +127,7 @@ void Sculpt::Storage::update(Xml_node const &usb_devices,
 
 void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 {
-	xml.node("start", [&] () {
+	xml.node("start", [&] {
 		gen_ram_fs_start_content(xml, _ram_fs_state); });
 
 	auto contains_used_fs = [&] (Storage_device const &device)
@@ -145,7 +145,7 @@ void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 	_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device const &device) {
 
 		if (device.usb_block_drv_needed() || contains_used_fs(device))
-			xml.node("start", [&] () {
+			xml.node("start", [&] {
 				device.gen_usb_block_drv_start_content(xml); });
 	});
 
@@ -168,20 +168,20 @@ void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 			                              .partition = partition.number };
 
 			if (partition.check_in_progress) {
-				xml.node("start", [&] () {
+				xml.node("start", [&] {
 					gen_fsck_ext2_start_content(xml, target); }); }
 
 			if (partition.format_in_progress) {
-				xml.node("start", [&] () {
+				xml.node("start", [&] {
 					gen_mkfs_ext2_start_content(xml, target); }); }
 
 			if (partition.fs_resize_in_progress) {
-				xml.node("start", [&] () {
+				xml.node("start", [&] {
 					gen_resize2fs_start_content(xml, target); }); }
 
 			if (partition.file_system.type != File_system::UNKNOWN) {
 				if (partition.file_system.inspected || target == _sculpt_partition)
-					xml.node("start", [&] () {
+					xml.node("start", [&] {
 						gen_fs_start_content(xml, target, partition.file_system.type); });
 
 				/*
@@ -190,7 +190,7 @@ void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 				 * underlying storage target.
 				 */
 				if (target == _sculpt_partition)
-					gen_named_node(xml, "alias", "default_fs_rw", [&] () {
+					gen_named_node(xml, "alias", "default_fs_rw", [&] {
 						xml.attribute("child", target.fs()); });
 			}
 
@@ -198,18 +198,18 @@ void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 
 		/* relabel partitions if needed */
 		if (device.relabel_in_progress())
-			xml.node("start", [&] () {
+			xml.node("start", [&] {
 				gen_gpt_relabel_start_content(xml, device); });
 
 		/* expand partitions if needed */
 		if (device.expand_in_progress())
-			xml.node("start", [&] () {
+			xml.node("start", [&] {
 				gen_gpt_expand_start_content(xml, device); });
 
 	}); /* for each device */
 
 	if (_sculpt_partition.ram_fs())
-		gen_named_node(xml, "alias", "default_fs_rw", [&] () {
+		gen_named_node(xml, "alias", "default_fs_rw", [&] {
 			xml.attribute("child", "ram_fs"); });
 }
 

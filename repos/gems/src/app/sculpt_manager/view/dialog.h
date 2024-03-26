@@ -69,7 +69,7 @@ struct Dialog::Left_annotation : Sub_scope
 	static void view_sub_scope(auto &s, auto const &text)
 	{
 		s.node("hbox", [&] {
-			s.sub_node("float", [&] () {
+			s.sub_node("float", [&] {
 				s.attribute("west", "yes");
 				Annotation::sub_node(s, text); }); });
 	}
@@ -83,11 +83,11 @@ struct Dialog::Left_right_annotation : Sub_scope
 	static void view_sub_scope(auto &s, auto const &left, auto const &right)
 	{
 		s.node("hbox", [&] {
-			s.named_sub_node("float", "left", [&] () {
+			s.named_sub_node("float", "left", [&] {
 				s.attribute("west", "yes");
 				Annotation::sub_node(s, left); });
 
-			s.named_sub_node("float", "right", [&] () {
+			s.named_sub_node("float", "right", [&] {
 				s.attribute("east", "yes");
 				Annotation::sub_node(s, right); });
 		});
@@ -282,7 +282,7 @@ struct Dialog::Titled_frame : Widget<Frame>
 					s.attribute("min_ex", attr.min_ex); });
 			s.sub_node("label", [&] { s.attribute("text", s.id.value); });
 			s.sub_node("float", [&] {
-				s.sub_node("vbox", [&] () {
+				s.sub_node("vbox", [&] {
 					fn(); }); }); });
 	}
 

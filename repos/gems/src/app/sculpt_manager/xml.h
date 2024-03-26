@@ -27,7 +27,7 @@ namespace Sculpt {
 	static inline void gen_named_node(Xml_generator &xml,
 	                                  char const *type, char const *name, FN const &fn)
 	{
-		xml.node(type, [&] () {
+		xml.node(type, [&] {
 			xml.attribute("name", name);
 			fn();
 		});
@@ -35,7 +35,7 @@ namespace Sculpt {
 
 	static inline void gen_named_node(Xml_generator &xml, char const *type, char const *name)
 	{
-		xml.node(type, [&] () { xml.attribute("name", name); });
+		xml.node(type, [&] { xml.attribute("name", name); });
 	}
 
 	template <size_t N, typename FN>
@@ -66,17 +66,17 @@ namespace Sculpt {
 	template <typename SESSION>
 	static inline void gen_parent_route(Xml_generator &xml)
 	{
-		gen_named_node(xml, "service", SESSION::service_name(), [&] () {
-			xml.node("parent", [&] () { }); });
+		gen_named_node(xml, "service", SESSION::service_name(), [&] {
+			xml.node("parent", [&] { }); });
 	}
 
 	static inline void gen_parent_rom_route(Xml_generator  &xml,
 	                                        Rom_name const &name,
 	                                        auto     const &label)
 	{
-		gen_service_node<Rom_session>(xml, [&] () {
+		gen_service_node<Rom_session>(xml, [&] {
 			xml.attribute("label_last", name);
-			xml.node("parent", [&] () {
+			xml.node("parent", [&] {
 				xml.attribute("label", label); });
 		});
 	}
@@ -90,7 +90,7 @@ namespace Sculpt {
 	template <typename SESSION>
 	static inline void gen_provides(Xml_generator &xml)
 	{
-		xml.node("provides", [&] () {
+		xml.node("provides", [&] {
 			gen_named_node(xml, "service", SESSION::service_name()); });
 	}
 
@@ -113,7 +113,7 @@ namespace Sculpt {
 		xml.attribute("name", name);
 		xml.attribute("caps", caps.value);
 		xml.attribute("priority", (int)priority);
-		gen_named_node(xml, "resource", "RAM", [&] () {
+		gen_named_node(xml, "resource", "RAM", [&] {
 			xml.attribute("quantum", String<64>(Number_of_bytes(ram.value))); });
 	}
 

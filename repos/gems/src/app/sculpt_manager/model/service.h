@@ -99,7 +99,7 @@ struct Sculpt::Service
 	{
 		bool const parent = !server.valid();
 
-		xml.node(parent ? "parent" : "child", [&] () {
+		xml.node(parent ? "parent" : "child", [&] {
 
 			if (!parent)
 				xml.attribute("name", server);

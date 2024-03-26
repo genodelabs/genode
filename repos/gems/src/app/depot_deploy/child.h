@@ -134,7 +134,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		                                   Service::Name  const &service_name)
 		{
 			if (service.type() == node_type)
-				xml.node("service", [&] () {
+				xml.node("service", [&] {
 					xml.attribute("name", service_name); });
 		}
 
@@ -329,7 +329,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		void gen_query(Xml_generator &xml) const
 		{
 			if (blueprint_needed())
-				xml.node("blueprint", [&] () {
+				xml.node("blueprint", [&] {
 					xml.attribute("pkg", _blueprint_pkg_path); });
 		}
 
@@ -368,7 +368,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		void gen_installation_entry(Xml_generator &xml) const
 		{
 			with_missing_pkg_path([&] (Archive::Path const &path) {
-				xml.node("archive", [&] () {
+				xml.node("archive", [&] {
 					xml.attribute("path", path);
 					xml.attribute("source", "no"); }); });
 		}
@@ -416,7 +416,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 
 	Xml_node const start_xml = _start_xml->xml();
 
-	xml.node("start", [&] () {
+	xml.node("start", [&] {
 
 		xml.attribute("name", _name);
 
@@ -473,14 +473,14 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 		Binary_name const binary = shim_reroute ? Binary_name("shim")
 		                                        : _binary_name;
 
-		xml.node("binary", [&] () { xml.attribute("name", binary); });
+		xml.node("binary", [&] { xml.attribute("name", binary); });
 
 		Number_of_bytes ram = _pkg_ram_quota;
 		if (_defined_by_launcher())
 			ram = launcher_xml.attribute_value("ram", ram);
 		ram = start_xml.attribute_value("ram", ram);
 
-		xml.node("resource", [&] () {
+		xml.node("resource", [&] {
 			xml.attribute("name", "RAM");
 			xml.attribute("quantum", String<32>(ram));
 		});
@@ -490,7 +490,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 			cpu_quota = launcher_xml.attribute_value("cpu", cpu_quota);
 		cpu_quota = start_xml.attribute_value("cpu", cpu_quota);
 
-		xml.node("resource", [&] () {
+		xml.node("resource", [&] {
 			xml.attribute("name", "CPU");
 			xml.attribute("quantum", cpu_quota);
 		});
@@ -513,7 +513,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 				start_xml.with_optional_sub_node("affinity", [&] (Xml_node node) {
 					location = Affinity::Location::from_xml(affinity_space, node); });
 
-			xml.node("affinity", [&] () {
+			xml.node("affinity", [&] {
 				xml.attribute("xpos",   location.xpos());
 				xml.attribute("ypos",   location.ypos());
 				xml.attribute("width",  location.width());
@@ -552,7 +552,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 		 * Declare services provided by the subsystem.
 		 */
 		if (runtime.has_sub_node("provides")) {
-			xml.node("provides", [&] () {
+			xml.node("provides", [&] {
 				runtime.sub_node("provides").for_each_sub_node([&] (Xml_node service) {
 					_gen_provides_sub_node(xml, service, "audio_in",    "Audio_in");
 					_gen_provides_sub_node(xml, service, "audio_out",   "Audio_out");
@@ -579,14 +579,14 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 			});
 		}
 
-		xml.node("route", [&] () {
+		xml.node("route", [&] {
 
 			if (start_xml.has_sub_node("monitor")) {
-				xml.node("service", [&] () {
+				xml.node("service", [&] {
 					xml.attribute("name", "PD");
 					xml.node("local");
 				});
-				xml.node("service", [&] () {
+				xml.node("service", [&] {
 					xml.attribute("name", "CPU");
 					xml.node("local");
 				});
@@ -614,7 +614,7 @@ void Depot_deploy::Child::gen_monitor_policy_node(Xml_generator &xml) const
 
 	if (start_xml.has_sub_node("monitor")) {
 		Xml_node const monitor = start_xml.sub_node("monitor");
-		xml.node("policy", [&] () {
+		xml.node("policy", [&] {
 			xml.attribute("label", _name);
 			xml.attribute("wait", monitor.attribute_value("wait", false));
 			xml.attribute("wx", monitor.attribute_value("wx", false));
@@ -647,10 +647,10 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 			if (service_name == "PD" || service_name == "CPU") {
 				route_binary_to_shim = true;
 
-				xml.node("service", [&] () {
+				xml.node("service", [&] {
 					xml.attribute("name", service_name);
 					xml.attribute("unscoped_label", _name);
-					xml.node("parent", [&] () { });
+					xml.node("parent", [&] { });
 				});
 			}
 
@@ -665,10 +665,10 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 	 * If the subsystem is hosted under a shim, make the shim binary available
 	 */
 	if (route_binary_to_shim)
-		xml.node("service", [&] () {
+		xml.node("service", [&] {
 			xml.attribute("name", "ROM");
 			xml.attribute("unscoped_label", "shim");
-			xml.node("parent", [&] () {
+			xml.node("parent", [&] {
 				xml.attribute("label", "shim"); }); });
 
 	/*
@@ -708,18 +708,18 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 				return;
 
 			/* we found the <rom> node for the config ROM */
-			xml.node("service", [&] () {
+			xml.node("service", [&] {
 				xml.attribute("name",  "ROM");
 				xml.attribute("label", "config");
 				typedef String<160> Path;
 				Path const path = rom.attribute_value("path", Path());
 
 				if (cached_depot_rom.valid())
-					xml.node("child", [&] () {
+					xml.node("child", [&] {
 						xml.attribute("name", rom_server(path));
 						xml.attribute("label", path); });
 				else
-					xml.node("parent", [&] () {
+					xml.node("parent", [&] {
 						xml.attribute("label", path); });
 			});
 		});
@@ -745,7 +745,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 		Label const label = rom.attribute_value("label", Label());
 		Label const as    = rom.attribute_value("as",    label);
 
-		xml.node("service", [&] () {
+		xml.node("service", [&] {
 			xml.attribute("name", "ROM");
 
 			if (route_binary_to_shim && label == _binary_name)
@@ -754,12 +754,12 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 				xml.attribute("label_last", as);
 
 			if (cached_depot_rom.valid()) {
-				xml.node("child", [&] () {
+				xml.node("child", [&] {
 					xml.attribute("name",  rom_server(path));
 					xml.attribute("label", path);
 				});
 			} else {
-				xml.node("parent", [&] () {
+				xml.node("parent", [&] {
 					xml.attribute("label", path); });
 			}
 		});

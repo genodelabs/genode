@@ -25,9 +25,9 @@ void Sculpt::gen_fs_start_content(Xml_generator        &xml,
 
 	gen_provides<::File_system::Session>(xml);
 
-	xml.node("config", [&] () {
-		xml.node("vfs", [&] () {
-			xml.node("rump", [&] () {
+	xml.node("config", [&] {
+		xml.node("vfs", [&] {
+			xml.node("rump", [&] {
 				switch (fs_type) {
 				case File_system::EXT2:  xml.attribute("fs", "ext2fs"); break;
 				case File_system::FAT32: xml.attribute("fs", "msdos");  break;
@@ -41,13 +41,13 @@ void Sculpt::gen_fs_start_content(Xml_generator        &xml,
 				xml.attribute("writeable", "yes");
 			});
 		});
-		xml.node("default-policy", [&] () {
+		xml.node("default-policy", [&] {
 			xml.attribute("root", "/");
 			xml.attribute("writeable", "yes");
 		});
 	});
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 		target.gen_block_session_route(xml);
 		gen_parent_rom_route(xml, "vfs");
 		gen_parent_rom_route(xml, "ld.lib.so");

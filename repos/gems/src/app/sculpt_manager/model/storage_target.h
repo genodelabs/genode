@@ -66,24 +66,24 @@ struct Sculpt::Storage_target
 
 		bool const whole_device = !partition.valid();
 
-		xml.node("service", [&] () {
+		xml.node("service", [&] {
 			xml.attribute("name", Block::Session::service_name());
 
 			if (whole_device) {
 
 				if (usb || ahci || nvme || mmc)
-					xml.node("child", [&] () {
+					xml.node("child", [&] {
 						xml.attribute("name",  device);
 						if (port.valid())
 							xml.attribute("label", port);
 					});
 				else
-					xml.node("parent", [&] () { xml.attribute("label", device); });
+					xml.node("parent", [&] { xml.attribute("label", device); });
 			}
 
 			/* access partition */
 			else {
-				xml.node("child", [&] () {
+				xml.node("child", [&] {
 					xml.attribute("name",  Label(device_and_port(), ".part"));
 					xml.attribute("label", partition);
 				});

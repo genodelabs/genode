@@ -33,15 +33,15 @@ namespace Sculpt {
 
 void Sculpt::gen_touch_keyboard(Xml_generator &xml, Touch_keyboard_attr const attr)
 {
-	xml.node("start", [&] () {
+	xml.node("start", [&] {
 
 		gen_common_start_content(xml, "manager_keyboard",
 		                         Cap_quota{700}, Ram_quota{18*1024*1024},
 		                         Priority::LEITZENTRALE);
 
-		gen_named_node(xml, "binary", "touch_keyboard", [&] () { });
+		gen_named_node(xml, "binary", "touch_keyboard", [&] { });
 
-		xml.node("config", [&] () {
+		xml.node("config", [&] {
 			xml.attribute("min_width",  attr.min_width);
 			xml.attribute("min_height", attr.min_height);
 
@@ -51,7 +51,7 @@ void Sculpt::gen_touch_keyboard(Xml_generator &xml, Touch_keyboard_attr const at
 			xml.attribute("background", String<20>(attr.background));
 		});
 
-		xml.node("route", [&] () {
+		xml.node("route", [&] {
 			gen_parent_rom_route(xml, "ld.lib.so");
 			gen_parent_rom_route(xml, "touch_keyboard");
 			gen_parent_rom_route(xml, "layout", "touch_keyboard_layout.config");
@@ -70,17 +70,17 @@ void Sculpt::gen_touch_keyboard(Xml_generator &xml, Touch_keyboard_attr const at
 			gen_parent_route<Log_session>    (xml);
 			gen_parent_route<Timer::Session> (xml);
 
-			gen_service_node<::File_system::Session>(xml, [&] () {
+			gen_service_node<::File_system::Session>(xml, [&] {
 				xml.attribute("label", "fonts");
-				xml.node("parent", [&] () {
+				xml.node("parent", [&] {
 					xml.attribute("label", "leitzentrale -> fonts"); }); });
 
-			gen_service_node<Gui::Session>(xml, [&] () {
-				xml.node("parent", [&] () {
+			gen_service_node<Gui::Session>(xml, [&] {
+				xml.node("parent", [&] {
 					xml.attribute("label", "leitzentrale -> touch_keyboard"); }); });
 
-			gen_service_node<Event::Session>(xml, [&] () {
-				xml.node("parent", [&] () {
+			gen_service_node<Event::Session>(xml, [&] {
+				xml.node("parent", [&] {
 					xml.attribute("label", "global"); }); });
 		});
 	});

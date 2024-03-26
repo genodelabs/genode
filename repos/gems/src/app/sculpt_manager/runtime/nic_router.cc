@@ -24,16 +24,16 @@ void Sculpt::gen_nic_router_start_content(Xml_generator &xml)
 	                         Cap_quota{300}, Ram_quota{10*1024*1024},
 	                         Priority::NETWORK);
 
-	xml.node("provides", [&] () {
-		xml.node("service", [&] () {
+	xml.node("provides", [&] {
+		xml.node("service", [&] {
 			xml.attribute("name", Nic::Session::service_name());
 		});
-		xml.node("service", [&] () {
+		xml.node("service", [&] {
 			xml.attribute("name", Uplink::Session::service_name());
 		});
 	});
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 		gen_parent_rom_route(xml, "nic_router");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "config", "config -> managed/nic_router");

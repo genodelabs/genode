@@ -238,13 +238,13 @@ void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml) co
 
 	gen_named_node(xml, "binary", "part_block");
 
-	xml.node("heartbeat", [&] () { });
+	xml.node("heartbeat", [&] { });
 
-	xml.node("config", [&] () {
-		xml.node("report", [&] () { xml.attribute("partitions", "yes"); });
+	xml.node("config", [&] {
+		xml.node("report", [&] { xml.attribute("partitions", "yes"); });
 
 		for (unsigned i = 1; i < 10; i++) {
-			xml.node("policy", [&] () {
+			xml.node("policy", [&] {
 				xml.attribute("label",     i);
 				xml.attribute("partition", i);
 				xml.attribute("writeable", "yes");
@@ -254,9 +254,9 @@ void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml) co
 
 	gen_provides<Block::Session>(xml);
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 
-		gen_service_node<Block::Session>(xml, [&] () {
+		gen_service_node<Block::Session>(xml, [&] {
 			if (provider == Provider::PARENT)
 				xml.node("parent", [&] {
 					xml.attribute("label", label); });
@@ -271,9 +271,9 @@ void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml) co
 		gen_parent_route<Pd_session>  (xml);
 		gen_parent_route<Log_session> (xml);
 
-		gen_service_node<Report::Session>(xml, [&] () {
+		gen_service_node<Report::Session>(xml, [&] {
 			xml.attribute("label", "partitions");
-			xml.node("parent", [&] () { }); });
+			xml.node("parent", [&] { }); });
 	});
 }
 

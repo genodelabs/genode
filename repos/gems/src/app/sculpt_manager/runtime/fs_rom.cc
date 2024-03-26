@@ -22,13 +22,13 @@ void Sculpt::gen_fs_rom_start_content(Xml_generator &xml,
 
 	gen_named_node(xml, "binary", binary);
 
-	xml.node("config", [&] () { });
+	xml.node("config", [&] { });
 
 	gen_provides<Rom_session>(xml);
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 
-		gen_service_node<::File_system::Session>(xml, [&] () {
+		gen_service_node<::File_system::Session>(xml, [&] {
 			gen_named_node(xml, "child", server); });
 
 		gen_parent_rom_route(xml, binary);

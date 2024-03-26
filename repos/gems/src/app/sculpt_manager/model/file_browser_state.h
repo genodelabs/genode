@@ -79,21 +79,21 @@ struct Sculpt::File_browser_state : Noncopyable
 		if (!fs_query.constructed() || !any_browsed_fs())
 			return;
 
-		xml.node("start", [&] () {
+		xml.node("start", [&] {
 			fs_query->gen_start_node_content(xml);
 
 			gen_named_node(xml, "binary", "fs_query");
 
-			xml.node("config", [&] () {
-				xml.node("vfs", [&] () {
-					xml.node("fs", [&] () {}); });
+			xml.node("config", [&] {
+				xml.node("vfs", [&] {
+					xml.node("fs", [&] {}); });
 
-				xml.node("query", [&] () {
+				xml.node("query", [&] {
 					xml.attribute("path", path);
 				});
 			});
 
-			xml.node("route", [&] () {
+			xml.node("route", [&] {
 				gen_parent_rom_route(xml, "fs_query");
 				gen_parent_rom_route(xml, "ld.lib.so");
 				gen_parent_rom_route(xml, "vfs.lib.so");
@@ -103,18 +103,18 @@ struct Sculpt::File_browser_state : Noncopyable
 				gen_parent_route<Log_session>     (xml);
 				gen_parent_route<Report::Session> (xml);
 
-				gen_service_node<::File_system::Session>(xml, [&] () {
+				gen_service_node<::File_system::Session>(xml, [&] {
 
 					if (browsed_fs == "config") {
-						xml.node("parent", [&] () {
+						xml.node("parent", [&] {
 							xml.attribute("label", "config"); });
 					}
 					else if (browsed_fs == "report") {
-						xml.node("parent", [&] () {
+						xml.node("parent", [&] {
 							xml.attribute("label", "report"); });
 					}
 					else {
-						xml.node("child", [&] () {
+						xml.node("child", [&] {
 							xml.attribute("name", browsed_fs); });
 					}
 				});
@@ -124,18 +124,18 @@ struct Sculpt::File_browser_state : Noncopyable
 		if (edited_file.length() <= 1 || !text_area.constructed())
 			return;
 
-		xml.node("start", [&] () {
+		xml.node("start", [&] {
 			xml.attribute("name", text_area->name());
 
 			text_area->gen_start_node_version(xml);
 
 			xml.attribute("caps", 350);
-			gen_named_node(xml, "resource", "RAM", [&] () {
+			gen_named_node(xml, "resource", "RAM", [&] {
 				xml.attribute("quantum", String<64>(22*1024*1024UL)); });
 
 			gen_named_node(xml, "binary", "text_area");
 
-			xml.node("config", [&] () {
+			xml.node("config", [&] {
 				Path const file_path = (path == "/")
 				                     ? Path("/", edited_file)
 				                     : Path(path, "/", edited_file);
@@ -150,18 +150,18 @@ struct Sculpt::File_browser_state : Noncopyable
 					xml.attribute("watch", "yes");
 
 				if (edit) {
-					xml.node("save", [&] () {
+					xml.node("save", [&] {
 						xml.attribute("version", save_version); });
 
-					xml.node("report", [&] () {
+					xml.node("report", [&] {
 						xml.attribute("saved", "yes"); });
 				}
 
-				xml.node("vfs", [&] () {
-					xml.node("fs", [&] () {}); });
+				xml.node("vfs", [&] {
+					xml.node("fs", [&] {}); });
 			});
 
-			xml.node("route", [&] () {
+			xml.node("route", [&] {
 				gen_parent_rom_route(xml, "text_area");
 				gen_parent_rom_route(xml, "ld.lib.so");
 				gen_parent_rom_route(xml, "vfs.lib.so");
@@ -179,31 +179,31 @@ struct Sculpt::File_browser_state : Noncopyable
 				gen_parent_route<Report::Session> (xml);
 				gen_parent_route<Timer::Session>  (xml);
 
-				gen_service_node<Rom_session>(xml, [&] () {
+				gen_service_node<Rom_session>(xml, [&] {
 					xml.attribute("label", "clipboard");
-					xml.node("parent", [&] () { }); });
+					xml.node("parent", [&] { }); });
 
-				gen_service_node<Gui::Session>(xml, [&] () {
-					xml.node("parent", [&] () {
+				gen_service_node<Gui::Session>(xml, [&] {
+					xml.node("parent", [&] {
 						xml.attribute("label", "leitzentrale -> editor"); }); });
 
-				gen_service_node<::File_system::Session>(xml, [&] () {
+				gen_service_node<::File_system::Session>(xml, [&] {
 					xml.attribute("label", "fonts");
-					xml.node("parent", [&] () {
+					xml.node("parent", [&] {
 						xml.attribute("label", "leitzentrale -> fonts"); }); });
 
-				gen_service_node<::File_system::Session>(xml, [&] () {
+				gen_service_node<::File_system::Session>(xml, [&] {
 
 					if (browsed_fs == "config") {
-						xml.node("parent", [&] () {
+						xml.node("parent", [&] {
 							xml.attribute("label", "config"); });
 					}
 					else if (browsed_fs == "report") {
-						xml.node("parent", [&] () {
+						xml.node("parent", [&] {
 							xml.attribute("label", "report"); });
 					}
 					else {
-						xml.node("child", [&] () {
+						xml.node("child", [&] {
 							xml.attribute("name", browsed_fs); });
 					}
 				});

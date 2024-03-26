@@ -18,11 +18,11 @@ void Sculpt::gen_ram_fs_start_content(Xml_generator &xml,
 {
 	state.gen_start_node_content(xml);
 
-	xml.node("binary", [&] () { xml.attribute("name", "vfs"); });
+	xml.node("binary", [&] { xml.attribute("name", "vfs"); });
 
 	gen_provides<::File_system::Session>(xml);
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 		gen_parent_rom_route(xml, "vfs");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "vfs.lib.so");

@@ -440,15 +440,15 @@ struct Sculpt::Main : Input_event_handler,
 				xml.attribute("version", _query_version.value);
 
 				if (_popup_dialog.depot_query_needs_users())
-					xml.node("scan", [&] () {
+					xml.node("scan", [&] {
 						xml.attribute("users", "yes"); });
 
 				if (_system_dialog_watches_depot() || _scan_rom.xml().has_type("empty"))
-					xml.node("scan", [&] () {
+					xml.node("scan", [&] {
 						xml.attribute("users", "yes"); });
 
 				if (_system_dialog_watches_depot() || _image_index_rom.xml().has_type("empty"))
-					xml.node("image_index", [&] () {
+					xml.node("image_index", [&] {
 						xml.attribute("os",    "sculpt");
 						xml.attribute("board", _build_info.board);
 						xml.attribute("user",  _image_index_user);
@@ -1578,7 +1578,7 @@ void Sculpt::Main::_handle_window_layout()
 
 		auto gen_window = [&] (Xml_node win, Rect rect) {
 			if (rect.valid()) {
-				xml.node("window", [&] () {
+				xml.node("window", [&] {
 					xml.attribute("id",     win.attribute_value("id", 0UL));
 					xml.attribute("xpos",   rect.x1());
 					xml.attribute("ypos",   rect.y1());
@@ -1721,11 +1721,11 @@ void Sculpt::Main::_handle_window_layout()
 			Label const label = win.attribute_value("label", Label());
 
 			if (label == inspect_label && _selected_tab == Panel_dialog::Tab::INSPECT)
-				xml.node("window", [&] () {
+				xml.node("window", [&] {
 					xml.attribute("id", win.attribute_value("id", 0UL)); });
 
 			if (label == editor_view_label && _selected_tab == Panel_dialog::Tab::FILES)
-				xml.node("window", [&] () {
+				xml.node("window", [&] {
 					xml.attribute("id", win.attribute_value("id", 0UL)); });
 		});
 	});
@@ -1759,16 +1759,16 @@ void Sculpt::Main::_handle_gui_mode()
 		_fonts_config.generate([&] (Xml_generator &xml) {
 			xml.attribute("copy",  true);
 			xml.attribute("paste", true);
-			xml.node("vfs", [&] () {
+			xml.node("vfs", [&] {
 				gen_named_node(xml, "rom", "Vera.ttf");
 				gen_named_node(xml, "rom", "VeraMono.ttf");
-				gen_named_node(xml, "dir", "fonts", [&] () {
+				gen_named_node(xml, "dir", "fonts", [&] {
 
 					auto gen_ttf_dir = [&] (char const *dir_name,
 					                        char const *ttf_path, double size_px) {
 
-						gen_named_node(xml, "dir", dir_name, [&] () {
-							gen_named_node(xml, "ttf", "regular", [&] () {
+						gen_named_node(xml, "dir", dir_name, [&] {
+							gen_named_node(xml, "ttf", "regular", [&] {
 								xml.attribute("path",    ttf_path);
 								xml.attribute("size_px", size_px);
 								xml.attribute("cache",   "256K");
@@ -1782,11 +1782,11 @@ void Sculpt::Main::_handle_gui_mode()
 					gen_ttf_dir("monospace",  "/VeraMono.ttf", _font_size_px);
 				});
 			});
-			xml.node("default-policy", [&] () { xml.attribute("root", "/fonts"); });
+			xml.node("default-policy", [&] { xml.attribute("root", "/fonts"); });
 
 			auto gen_color = [&] (unsigned index, Color color) {
-				xml.node("palette", [&] () {
-					xml.node("color", [&] () {
+				xml.node("palette", [&] {
+					xml.node("color", [&] {
 						xml.attribute("index", index);
 						xml.attribute("value", String<16>(color));
 					});
@@ -2050,7 +2050,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 
 	xml.attribute("prio_levels", _prio_levels.value);
 
-	xml.node("report", [&] () {
+	xml.node("report", [&] {
 		xml.attribute("init_ram",   "yes");
 		xml.attribute("init_caps",  "yes");
 		xml.attribute("child_ram",  "yes");
@@ -2059,9 +2059,9 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("buffer",     "1M");
 	});
 
-	xml.node("heartbeat", [&] () { xml.attribute("rate_ms", 2000); });
+	xml.node("heartbeat", [&] { xml.attribute("rate_ms", 2000); });
 
-	xml.node("parent-provides", [&] () {
+	xml.node("parent-provides", [&] {
 		gen_parent_service<Rom_session>(xml);
 		gen_parent_service<Cpu_session>(xml);
 		gen_parent_service<Pd_session>(xml);
@@ -2088,7 +2088,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		gen_parent_service<Terminal::Session>(xml);
 	});
 
-	xml.node("affinity-space", [&] () {
+	xml.node("affinity-space", [&] {
 		xml.attribute("width",  _affinity_space.width());
 		xml.attribute("height", _affinity_space.height());
 	});
@@ -2102,7 +2102,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	 * Load configuration and update depot config on the sculpt partition
 	 */
 	if (_storage._sculpt_partition.valid() && _prepare_in_progress())
-		xml.node("start", [&] () {
+		xml.node("start", [&] {
 			gen_prepare_start_content(xml, _prepare_version); });
 
 	if (_storage.any_file_system_inspected())
@@ -2116,7 +2116,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	if (_storage._sculpt_partition.valid()) {
 
 		auto chroot = [&] (Start_name const &name, Path const &path, Writeable w) {
-			xml.node("start", [&] () {
+			xml.node("start", [&] {
 				gen_chroot_start_content(xml, name, path, w); }); };
 
 		if (_update_running()) {
@@ -2130,18 +2130,18 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	/* execute file operations */
 	if (_storage._sculpt_partition.valid())
 		if (_file_operation_queue.any_operation_in_progress())
-			xml.node("start", [&] () {
+			xml.node("start", [&] {
 				gen_fs_tool_start_content(xml, _fs_tool_version,
 				                          _file_operation_queue); });
 
 	_network.gen_runtime_start_nodes(xml);
 
 	if (_update_running())
-		xml.node("start", [&] () {
+		xml.node("start", [&] {
 			gen_update_start_content(xml); });
 
 	if (_storage._sculpt_partition.valid() && !_prepare_in_progress()) {
-		xml.node("start", [&] () {
+		xml.node("start", [&] {
 			gen_launcher_query_start_content(xml); });
 
 		_deploy.gen_runtime_start_nodes(xml, _prio_levels, _affinity_space);
@@ -2152,15 +2152,15 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 {
 	auto gen_include = [&] (auto rom) {
-		xml.node("include", [&] () {
+		xml.node("include", [&] {
 			xml.attribute("rom", rom); }); };
 
-	xml.node("output", [&] () {
-		xml.node("chargen", [&] () {
-			xml.node("remap", [&] () {
+	xml.node("output", [&] {
+		xml.node("chargen", [&] {
+			xml.node("remap", [&] {
 
 				auto gen_key = [&] (auto from, auto to) {
-					xml.node("key", [&] () {
+					xml.node("key", [&] {
 						xml.attribute("name", from);
 						xml.attribute("to",   to); }); };
 
@@ -2169,31 +2169,31 @@ void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 				gen_key("KEY_LEFTMETA", "KEY_SCREEN");
 				gen_include("numlock.remap");
 
-				xml.node("merge", [&] () {
+				xml.node("merge", [&] {
 
 					auto gen_input = [&] (auto name) {
-						xml.node("input", [&] () {
+						xml.node("input", [&] {
 							xml.attribute("name", name); }); };
 
-					xml.node("accelerate", [&] () {
+					xml.node("accelerate", [&] {
 						xml.attribute("max",                   50);
 						xml.attribute("sensitivity_percent", 1000);
 						xml.attribute("curve",                127);
 
-						xml.node("button-scroll", [&] () {
+						xml.node("button-scroll", [&] {
 							gen_input("ps2");
 
-							xml.node("vertical", [&] () {
+							xml.node("vertical", [&] {
 								xml.attribute("button", "BTN_MIDDLE");
 								xml.attribute("speed_percent", -10); });
 
-							xml.node("horizontal", [&] () {
+							xml.node("horizontal", [&] {
 								xml.attribute("button", "BTN_MIDDLE");
 								xml.attribute("speed_percent", -10); });
 						});
 					});
 
-					xml.node("touch-click", [&] () {
+					xml.node("touch-click", [&] {
 						gen_input("touch"); });
 
 					gen_input("usb");
@@ -2203,24 +2203,24 @@ void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 			});
 
 			auto gen_key = [&] (auto key) {
-				gen_named_node(xml, "key", key, [&] () {}); };
+				gen_named_node(xml, "key", key, [&] {}); };
 
-			xml.node("mod1", [&] () {
+			xml.node("mod1", [&] {
 				gen_key("KEY_LEFTSHIFT");
 				gen_key("KEY_RIGHTSHIFT"); });
 
-			xml.node("mod2", [&] () {
+			xml.node("mod2", [&] {
 				gen_key("KEY_LEFTCTRL");
 				gen_key("KEY_RIGHTCTRL"); });
 
-			xml.node("mod3", [&] () {
+			xml.node("mod3", [&] {
 				gen_key("KEY_RIGHTALT");  /* AltGr */ });
 
-			xml.node("mod4", [&] () {
-				xml.node("rom", [&] () {
+			xml.node("mod4", [&] {
+				xml.node("rom", [&] {
 					xml.attribute("name", "capslock"); }); });
 
-			xml.node("repeat", [&] () {
+			xml.node("repeat", [&] {
 				xml.attribute("delay_ms", 230);
 				xml.attribute("rate_ms",   40); });
 

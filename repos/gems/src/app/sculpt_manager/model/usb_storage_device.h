@@ -152,16 +152,16 @@ void Sculpt::Usb_storage_device::gen_usb_block_drv_start_content(Xml_generator &
 
 	gen_named_node(xml, "binary", "usb_block_drv");
 
-	xml.node("config", [&] () {
+	xml.node("config", [&] {
 		xml.attribute("report",    "yes");
 		xml.attribute("writeable", "yes");
 	});
 
 	gen_provides<Block::Session>(xml);
 
-	xml.node("route", [&] () {
-		gen_service_node<Usb::Session>(xml, [&] () {
-			xml.node("child", [&] () {
+	xml.node("route", [&] {
+		gen_service_node<Usb::Session>(xml, [&] {
+			xml.node("child", [&] {
 				xml.attribute("name", "usb"); }); });
 
 		gen_parent_rom_route(xml, "usb_block_drv");
@@ -171,8 +171,8 @@ void Sculpt::Usb_storage_device::gen_usb_block_drv_start_content(Xml_generator &
 		gen_parent_route<Log_session>    (xml);
 		gen_parent_route<Timer::Session> (xml);
 
-		gen_service_node<Report::Session>(xml, [&] () {
-			xml.node("parent", [&] () { }); });
+		gen_service_node<Report::Session>(xml, [&] {
+			xml.node("parent", [&] { }); });
 	});
 }
 

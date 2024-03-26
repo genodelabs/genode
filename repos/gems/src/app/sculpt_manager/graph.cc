@@ -256,7 +256,7 @@ void Graph::view(Scope<Depgraph> &s) const
 				_runtime_config.with_graph_id(dep_name, [&] (Dialog::Id const &id) {
 					dep_id = id; });
 
-				s.node("dep", [&] () {
+				s.node("dep", [&] {
 					s.attribute("node", component.graph_id.value);
 					s.attribute("on",   dep_id.value);
 				});

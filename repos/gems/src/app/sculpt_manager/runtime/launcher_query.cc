@@ -21,23 +21,23 @@ void Sculpt::gen_launcher_query_start_content(Xml_generator &xml)
 
 	gen_named_node(xml, "binary", "fs_query");
 
-	xml.node("config", [&] () {
+	xml.node("config", [&] {
 		xml.attribute("query", "rom");
-		xml.node("vfs", [&] () {
-			xml.node("fs", [&] () {}); });
+		xml.node("vfs", [&] {
+			xml.node("fs", [&] {}); });
 
-		xml.node("query", [&] () {
+		xml.node("query", [&] {
 			xml.attribute("path", "/launcher");
 			xml.attribute("content", "yes");
 		});
 
-		xml.node("query", [&] () {
+		xml.node("query", [&] {
 			xml.attribute("path", "/presets");
 			xml.attribute("content", "yes");
 		});
 	});
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 		gen_parent_rom_route(xml, "fs_query");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "vfs.lib.so");
@@ -47,8 +47,8 @@ void Sculpt::gen_launcher_query_start_content(Xml_generator &xml)
 		gen_parent_route<Log_session>     (xml);
 		gen_parent_route<Report::Session> (xml);
 
-		gen_service_node<::File_system::Session>(xml, [&] () {
-			xml.node("parent", [&] () {
+		gen_service_node<::File_system::Session>(xml, [&] {
+			xml.node("parent", [&] {
 				xml.attribute("label", "config"); }); });
 	});
 }

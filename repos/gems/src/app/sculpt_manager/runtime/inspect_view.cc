@@ -34,7 +34,7 @@ static void gen_terminal_start(Xml_generator &xml)
 
 	gen_provides<Terminal::Session>(xml);
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 		gen_parent_rom_route(xml, "config", "terminal.config");
 
 		gen_parent_route<Rom_session>    (xml);
@@ -58,28 +58,28 @@ static void gen_vfs_start(Xml_generator &xml,
 
 	gen_provides<::File_system::Session>(xml);
 
-	xml.node("config", [&] () {
+	xml.node("config", [&] {
 
-		xml.node("vfs", [&] () {
+		xml.node("vfs", [&] {
 			gen_named_node(xml, "tar", "bash-minimal.tar");
 			gen_named_node(xml, "tar", "coreutils-minimal.tar");
 			gen_named_node(xml, "tar", "vim-minimal.tar");
 
-			gen_named_node(xml, "dir", "dev", [&] () {
-				xml.node("null",      [&] () {});
-				xml.node("zero",      [&] () {});
-				xml.node("terminal",  [&] () {});
-				gen_named_node(xml, "inline", "rtc", [&] () {
+			gen_named_node(xml, "dir", "dev", [&] {
+				xml.node("null",      [&] {});
+				xml.node("zero",      [&] {});
+				xml.node("terminal",  [&] {});
+				gen_named_node(xml, "inline", "rtc", [&] {
 					xml.append("2018-01-01 00:01");
 				});
-				gen_named_node(xml, "dir", "pipe", [&] () {
-					xml.node("pipe", [&] () { });
+				gen_named_node(xml, "dir", "pipe", [&] {
+					xml.node("pipe", [&] { });
 				});
 			});
 
 			auto fs_dir = [&] (String<64> const &label) {
-				gen_named_node(xml, "dir", label, [&] () {
-					xml.node("fs", [&] () {
+				gen_named_node(xml, "dir", label, [&] {
+					xml.node("fs", [&] {
 						xml.attribute("buffer_size", 272u << 10);
 						xml.attribute("label", label); }); }); };
 
@@ -92,40 +92,40 @@ static void gen_vfs_start(Xml_generator &xml,
 			if (ram_fs_state.inspected)
 				fs_dir("ram");
 
-			gen_named_node(xml, "dir", "tmp", [&] () {
-				xml.node("ram", [&] () { }); });
+			gen_named_node(xml, "dir", "tmp", [&] {
+				xml.node("ram", [&] { }); });
 
-			gen_named_node(xml, "dir", "share", [&] () {
-				gen_named_node(xml, "dir", "vim", [&] () {
-					xml.node("rom", [&] () {
+			gen_named_node(xml, "dir", "share", [&] {
+				gen_named_node(xml, "dir", "vim", [&] {
+					xml.node("rom", [&] {
 						xml.attribute("name", "vimrc"); }); }); });
 
 			gen_named_node(xml, "rom", "VERSION");
 		});
 
-		xml.node("default-policy", [&] () {
+		xml.node("default-policy", [&] {
 			xml.attribute("root",      "/");
 			xml.attribute("writeable", "yes");
 		});
 	});
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 
-		gen_service_node<::File_system::Session>(xml, [&] () {
+		gen_service_node<::File_system::Session>(xml, [&] {
 			xml.attribute("label", "config");
-			xml.node("parent", [&] () { xml.attribute("label", "config"); });
+			xml.node("parent", [&] { xml.attribute("label", "config"); });
 		});
 
-		gen_service_node<::File_system::Session>(xml, [&] () {
+		gen_service_node<::File_system::Session>(xml, [&] {
 			xml.attribute("label", "report");
-			xml.node("parent", [&] () { xml.attribute("label", "report"); });
+			xml.node("parent", [&] { xml.attribute("label", "report"); });
 		});
 
-		gen_service_node<Terminal::Session>(xml, [&] () {
+		gen_service_node<Terminal::Session>(xml, [&] {
 			gen_named_node(xml, "child", "terminal"); });
 
-		xml.node("any-service", [&] () {
-			xml.node("parent", [&] () { }); });
+		xml.node("any-service", [&] {
+			xml.node("parent", [&] { }); });
 	});
 }
 
@@ -136,17 +136,17 @@ static void gen_fs_rom_start(Xml_generator &xml)
 	                         Cap_quota{100}, Ram_quota{15*1024*1024},
 	                         Priority::LEITZENTRALE);
 
-	gen_named_node(xml, "binary", "cached_fs_rom", [&] () { });
+	gen_named_node(xml, "binary", "cached_fs_rom", [&] { });
 
 	gen_provides<Rom_session>(xml);
 
-	xml.node("config", [&] () { });
+	xml.node("config", [&] { });
 
-	xml.node("route", [&] () {
-		gen_service_node<::File_system::Session>(xml, [&] () {
+	xml.node("route", [&] {
+		gen_service_node<::File_system::Session>(xml, [&] {
 			gen_named_node(xml, "child", "vfs"); });
 
-		xml.node("any-service", [&] () { xml.node("parent", [&] () { }); });
+		xml.node("any-service", [&] { xml.node("parent", [&] { }); });
 	});
 }
 
@@ -157,11 +157,11 @@ static void gen_bash_start(Xml_generator &xml)
 	                         Cap_quota{400}, Ram_quota{16*1024*1024},
 	                         Priority::LEITZENTRALE);
 
-	gen_named_node(xml, "binary", "/bin/bash", [&] () { });
+	gen_named_node(xml, "binary", "/bin/bash", [&] { });
 
-	xml.node("config", [&] () {
+	xml.node("config", [&] {
 
-		xml.node("libc", [&] () {
+		xml.node("libc", [&] {
 			xml.attribute("stdout", "/dev/terminal");
 			xml.attribute("stderr", "/dev/terminal");
 			xml.attribute("stdin",  "/dev/terminal");
@@ -169,12 +169,12 @@ static void gen_bash_start(Xml_generator &xml)
 			xml.attribute("rtc",    "/dev/rtc");
 		});
 
-		xml.node("vfs", [&] () {
-			xml.node("fs", [&] () {
+		xml.node("vfs", [&] {
+			xml.node("fs", [&] {
 				xml.attribute("buffer_size", 272u << 10); }); });
 
 		auto gen_env = [&] (auto key, auto value) {
-			xml.node("env", [&] () {
+			xml.node("env", [&] {
 				xml.attribute("key",   key);
 				xml.attribute("value", value); }); };
 
@@ -183,24 +183,24 @@ static void gen_bash_start(Xml_generator &xml)
 		gen_env("PATH", "/bin");
 		gen_env("PS1",  "inspect:$PWD> ");
 
-		xml.node("arg", [&] () { xml.attribute("value", "bash"); });
+		xml.node("arg", [&] { xml.attribute("value", "bash"); });
 	});
 
-	xml.node("route", [&] () {
-		gen_service_node<::File_system::Session>(xml, [&] () {
+	xml.node("route", [&] {
+		gen_service_node<::File_system::Session>(xml, [&] {
 			gen_named_node(xml, "child", "vfs"); });
 
-		gen_service_node<Rom_session>(xml, [&] () {
+		gen_service_node<Rom_session>(xml, [&] {
 			xml.attribute("label_last", "/bin/bash");
 			gen_named_node(xml, "child", "vfs_rom");
 		});
 
-		gen_service_node<Rom_session>(xml, [&] () {
+		gen_service_node<Rom_session>(xml, [&] {
 			xml.attribute("label_prefix", "/bin");
 			gen_named_node(xml, "child", "vfs_rom");
 		});
 
-		xml.node("any-service", [&] () { xml.node("parent", [&] () { }); });
+		xml.node("any-service", [&] { xml.node("parent", [&] { }); });
 	});
 }
 
@@ -210,7 +210,7 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
                               Ram_fs_state    const &ram_fs_state,
                               Inspect_view_version   version)
 {
-	xml.node("start", [&] () {
+	xml.node("start", [&] {
 
 		xml.attribute("version", version.value);
 
@@ -218,11 +218,11 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 		                         Cap_quota{1000}, Ram_quota{76*1024*1024},
 		                         Priority::LEITZENTRALE);
 
-		gen_named_node(xml, "binary", "init", [&] () { });
+		gen_named_node(xml, "binary", "init", [&] { });
 
-		xml.node("config", [&] () {
+		xml.node("config", [&] {
 
-			xml.node("parent-provides", [&] () {
+			xml.node("parent-provides", [&] {
 				gen_parent_service<Rom_session>(xml);
 				gen_parent_service<Cpu_session>(xml);
 				gen_parent_service<Pd_session> (xml);
@@ -234,27 +234,27 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 				gen_parent_service<Gui::Session>(xml);
 			});
 
-			xml.node("start", [&] () { gen_terminal_start(xml); });
-			xml.node("start", [&] () { gen_vfs_start(xml, devices, ram_fs_state); });
-			xml.node("start", [&] () { gen_fs_rom_start(xml); });
-			xml.node("start", [&] () { gen_bash_start(xml); });
+			xml.node("start", [&] { gen_terminal_start(xml); });
+			xml.node("start", [&] { gen_vfs_start(xml, devices, ram_fs_state); });
+			xml.node("start", [&] { gen_fs_rom_start(xml); });
+			xml.node("start", [&] { gen_bash_start(xml); });
 		});
 
-		xml.node("route", [&] () {
+		xml.node("route", [&] {
 
-			gen_service_node<::File_system::Session>(xml, [&] () {
+			gen_service_node<::File_system::Session>(xml, [&] {
 				xml.attribute("label", "config");
-				xml.node("parent", [&] () { xml.attribute("label", "config"); });
+				xml.node("parent", [&] { xml.attribute("label", "config"); });
 			});
 
-			gen_service_node<::File_system::Session>(xml, [&] () {
+			gen_service_node<::File_system::Session>(xml, [&] {
 				xml.attribute("label", "report");
-				xml.node("parent", [&] () { xml.attribute("label", "report"); });
+				xml.node("parent", [&] { xml.attribute("label", "report"); });
 			});
 
-			gen_service_node<::File_system::Session>(xml, [&] () {
+			gen_service_node<::File_system::Session>(xml, [&] {
 				xml.attribute("label", "report");
-				xml.node("parent", [&] () { xml.attribute("label", "report"); });
+				xml.node("parent", [&] { xml.attribute("label", "report"); });
 			});
 
 			gen_parent_rom_route(xml, "ld.lib.so");
@@ -283,35 +283,35 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 			gen_parent_route<Timer::Session> (xml);
 
 			for_each_inspected_storage_target(devices, [&] (Storage_target const &target) {
-				gen_service_node<::File_system::Session>(xml, [&] () {
+				gen_service_node<::File_system::Session>(xml, [&] {
 					xml.attribute("label_last", target.label());
 					gen_named_node(xml, "child", target.fs());
 				});
 			});
 
 			if (ram_fs_state.inspected)
-				gen_service_node<::File_system::Session>(xml, [&] () {
+				gen_service_node<::File_system::Session>(xml, [&] {
 					xml.attribute("label_last", "ram");
 					gen_named_node(xml, "child", "ram_fs");
 				});
 
-			gen_service_node<Gui::Session>(xml, [&] () {
-				xml.node("parent", [&] () {
+			gen_service_node<Gui::Session>(xml, [&] {
+				xml.node("parent", [&] {
 					xml.attribute("label", String<64>("leitzentrale -> inspect")); }); });
 
-			gen_service_node<Rom_session>(xml, [&] () {
+			gen_service_node<Rom_session>(xml, [&] {
 				xml.attribute("label", "terminal.config");
-				xml.node("parent", [&] () {
+				xml.node("parent", [&] {
 					xml.attribute("label", String<64>("config -> managed/fonts")); }); });
 
-			gen_service_node<Rom_session>(xml, [&] () {
+			gen_service_node<Rom_session>(xml, [&] {
 				xml.attribute("label", "terminal -> clipboard");
-				xml.node("parent", [&] () {
+				xml.node("parent", [&] {
 					xml.attribute("label", String<64>("inspect -> clipboard")); }); });
 
-			gen_service_node<Report::Session>(xml, [&] () {
+			gen_service_node<Report::Session>(xml, [&] {
 				xml.attribute("label", "terminal -> clipboard");
-				xml.node("parent", [&] () {
+				xml.node("parent", [&] {
 					xml.attribute("label", String<64>("inspect -> clipboard")); }); });
 		});
 	});

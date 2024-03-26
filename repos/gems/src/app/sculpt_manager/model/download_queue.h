@@ -48,7 +48,7 @@ struct Sculpt::Download_queue : Noncopyable
 					xml.attribute("verify", "no"); };
 
 			auto gen_install_node = [&] (auto type) {
-				xml.node(type, [&] () {
+				xml.node(type, [&] {
 					xml.attribute("path", path);
 					gen_verify_attr(); }); };
 
@@ -59,7 +59,7 @@ struct Sculpt::Download_queue : Noncopyable
 			else if (Depot::Archive::image(path))
 				gen_install_node("image");
 			else
-				xml.node("archive", [&] () {
+				xml.node("archive", [&] {
 					xml.attribute("path", path);
 					xml.attribute("source", "no");
 					gen_verify_attr(); });

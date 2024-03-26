@@ -297,7 +297,7 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 	{
 		if (_state >= TOP_LEVEL)
 			depot_users.for_each_sub_node("user", [&] (Xml_node user) {
-				xml.node("index", [&] () {
+				xml.node("index", [&] {
 					User const name = user.attribute_value("name", User());
 					xml.attribute("user",    name);
 					xml.attribute("version", _sculpt_version);
@@ -308,7 +308,7 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 
 		if (_state >= PKG_REQUESTED)
 			_construction_info.with_construction([&] (Component const &component) {
-				xml.node("blueprint", [&] () {
+				xml.node("blueprint", [&] {
 					xml.attribute("pkg", component.path); }); });
 	}
 

@@ -24,17 +24,17 @@ void Sculpt::gen_fs_tool_start_content(Xml_generator &xml, Fs_tool_version versi
 
 	gen_named_node(xml, "binary", "fs_tool");
 
-	xml.node("config", [&] () {
+	xml.node("config", [&] {
 
 		xml.attribute("exit",    "yes");
 		xml.attribute("verbose", "yes");
 
-		xml.node("vfs", [&] () {
+		xml.node("vfs", [&] {
 
 			auto gen_fs = [&] (auto name, auto label, auto buffer_size)
 			{
-				gen_named_node(xml, "dir", name, [&] () {
-					xml.node("fs",  [&] () {
+				gen_named_node(xml, "dir", name, [&] {
+					xml.node("fs",  [&] {
 						xml.attribute("label",       label);
 						xml.attribute("buffer_size", buffer_size); }); });
 			};
@@ -46,9 +46,9 @@ void Sculpt::gen_fs_tool_start_content(Xml_generator &xml, Fs_tool_version versi
 		operations.gen_fs_tool_config(xml);
 	});
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 
-		gen_service_node<::File_system::Session>(xml, [&] () {
+		gen_service_node<::File_system::Session>(xml, [&] {
 			xml.attribute("label", "target");
 			gen_named_node(xml, "child", "default_fs_rw"); });
 
@@ -60,8 +60,8 @@ void Sculpt::gen_fs_tool_start_content(Xml_generator &xml, Fs_tool_version versi
 		gen_parent_route<Log_session> (xml);
 		gen_parent_route<Rom_session> (xml);
 
-		gen_service_node<::File_system::Session>(xml, [&] () {
+		gen_service_node<::File_system::Session>(xml, [&] {
 			xml.attribute("label", "config");
-			xml.node("parent", [&] () { xml.attribute("label", "config"); }); });
+			xml.node("parent", [&] { xml.attribute("label", "config"); }); });
 	});
 }

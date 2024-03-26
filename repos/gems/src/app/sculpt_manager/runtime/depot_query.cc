@@ -21,14 +21,14 @@ void Sculpt::gen_depot_query_start_content(Xml_generator &xml)
 
 	gen_named_node(xml, "binary", "depot_query");
 
-	xml.node("config", [&] () {
+	xml.node("config", [&] {
 		xml.attribute("query", "rom");
-		xml.node("vfs", [&] () {
-			gen_named_node(xml, "dir", "depot", [&] () {
-				xml.node("fs", [&] () {}); }); }); });
+		xml.node("vfs", [&] {
+			gen_named_node(xml, "dir", "depot", [&] {
+				xml.node("fs", [&] {}); }); }); });
 
-	xml.node("route", [&] () {
-		gen_service_node<::File_system::Session>(xml, [&] () {
+	xml.node("route", [&] {
+		gen_service_node<::File_system::Session>(xml, [&] {
 			gen_named_node(xml, "child", "depot"); });
 
 		gen_parent_rom_route(xml, "depot_query");

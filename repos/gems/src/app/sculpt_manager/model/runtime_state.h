@@ -171,7 +171,7 @@ class Sculpt::Runtime_state : public Runtime_info
 				if (!launched)
 					return;
 
-				gen_named_node(xml, "start", name, [&] () {
+				gen_named_node(xml, "start", name, [&] {
 
 					Version const version = state.restarted_version(name);
 
@@ -187,7 +187,7 @@ class Sculpt::Runtime_state : public Runtime_info
 						construction->gen_affinity(xml);
 						construction->gen_monitor(xml);
 
-						xml.node("route", [&] () {
+						xml.node("route", [&] {
 							construction->gen_pd_cpu_route(xml);
 
 							construction->routes.for_each([&] (Route const &route) {

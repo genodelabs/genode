@@ -24,43 +24,43 @@ void Sculpt::gen_runtime_view_start_content(Xml_generator &xml,
 {
 	state.gen_start_node_content(xml);
 
-	gen_named_node(xml, "resource", "CPU", [&] () {
+	gen_named_node(xml, "resource", "CPU", [&] {
 		xml.attribute("quantum", 20); });
 
 	gen_named_node(xml, "binary", "menu_view");
 
-	xml.node("config", [&] () {
-		xml.node("libc", [&] () { xml.attribute("stderr", "/dev/log"); });
-		xml.node("report", [&] () { xml.attribute("hover", "yes"); });
-		xml.node("vfs", [&] () {
+	xml.node("config", [&] {
+		xml.node("libc", [&] { xml.attribute("stderr", "/dev/log"); });
+		xml.node("report", [&] { xml.attribute("hover", "yes"); });
+		xml.node("vfs", [&] {
 			gen_named_node(xml, "tar", "menu_view_styles.tar");
 			gen_named_node(xml, "rom", "Vera.ttf");
-			gen_named_node(xml, "dir", "fonts", [&] () {
-				gen_named_node(xml, "dir", "text", [&] () {
-					gen_named_node(xml, "ttf", "regular", [&] () {
+			gen_named_node(xml, "dir", "fonts", [&] {
+				gen_named_node(xml, "dir", "text", [&] {
+					gen_named_node(xml, "ttf", "regular", [&] {
 						xml.attribute("size_px", font_size);
 						xml.attribute("cache", "256K");
 						xml.attribute("path", "/Vera.ttf"); }); }); });
 
-			gen_named_node(xml, "dir", "dev", [&] () {
-				xml.node("log",  [&] () { }); });
+			gen_named_node(xml, "dir", "dev", [&] {
+				xml.node("log",  [&] { }); });
 		});
 	});
 
-	xml.node("route", [&] () {
+	xml.node("route", [&] {
 
-		gen_service_node<Gui::Session>(xml, [&] () {
-			xml.node("parent", [&] () {
+		gen_service_node<Gui::Session>(xml, [&] {
+			xml.node("parent", [&] {
 				xml.attribute("label", "leitzentrale -> runtime_view"); }); });
 
-		gen_service_node<Rom_session>(xml, [&] () {
+		gen_service_node<Rom_session>(xml, [&] {
 			xml.attribute("label", "dialog");
-			xml.node("parent", [&] () {
+			xml.node("parent", [&] {
 				xml.attribute("label", "leitzentrale -> runtime_view -> dialog"); }); });
 
-		gen_service_node<Report::Session>(xml, [&] () {
+		gen_service_node<Report::Session>(xml, [&] {
 			xml.attribute("label", "hover");
-			xml.node("parent", [&] () {
+			xml.node("parent", [&] {
 				xml.attribute("label", "leitzentrale -> runtime_view -> hover"); }); });
 
 		gen_parent_rom_route(xml, "menu_view");

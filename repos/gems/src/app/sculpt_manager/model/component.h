@@ -191,7 +191,7 @@ struct Sculpt::Component : Noncopyable
 		if (all_cpus)
 			return;
 
-		xml.node("affinity", [&] () {
+		xml.node("affinity", [&] {
 			xml.attribute("xpos",   affinity_location.xpos());
 			xml.attribute("ypos",   affinity_location.ypos());
 			xml.attribute("width",  affinity_location.width());
@@ -202,7 +202,7 @@ struct Sculpt::Component : Noncopyable
 	void gen_monitor(Xml_generator &xml) const
 	{
 		if (monitor)
-			xml.node("monitor", [&] () {
+			xml.node("monitor", [&] {
 				xml.attribute("wait", wait ? "yes" : "no");
 				xml.attribute("wx", wx ? "yes" : "no");
 			});
@@ -218,9 +218,9 @@ struct Sculpt::Component : Noncopyable
 		 * Until PD & CPU gets merged, enforce on Sculpt that PD and CPU routes
 		 * go to the same server.
 		 */
-		gen_named_node(xml, "service", Sculpt::Service::name_attr(pd_route.required), [&] () {
+		gen_named_node(xml, "service", Sculpt::Service::name_attr(pd_route.required), [&] {
 			pd_route.selected_service->gen_xml(xml); });
-		gen_named_node(xml, "service", "CPU", [&] () {
+		gen_named_node(xml, "service", "CPU", [&] {
 			pd_route.selected_service->gen_xml(xml); });
 	}
 
