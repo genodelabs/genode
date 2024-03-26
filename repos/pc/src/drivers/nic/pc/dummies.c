@@ -128,43 +128,6 @@ EXPORT_SYMBOL_GPL(bpf_master_redirect_enabled_key);
 DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);
 EXPORT_PER_CPU_SYMBOL(cpu_sibling_map);
 
-#include <net/rtnetlink.h>
-
-void rtnl_register(int protocol,int msgtype,rtnl_doit_func doit,rtnl_dumpit_func dumpit,unsigned int flags)
-{
-	lx_emul_trace(__func__);
-}
-
-#include <linux/rtnetlink.h>
-
-int rtnl_lock_killable(void)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-#include <linux/rtnetlink.h>
-
-int rtnl_is_locked(void)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-#include <linux/rtnetlink.h>
-
-void rtnl_lock(void)
-{
-	lx_emul_trace(__func__);
-}
-
-#include <linux/rtnetlink.h>
-
-void rtnl_unlock(void)
-{
-	lx_emul_trace(__func__);
-}
-
 #include <linux/netdevice.h>
 
 int __init dev_proc_init(void)
