@@ -86,6 +86,8 @@ namespace Sculpt {
 			void operator () (ARGS &&... args) const override { _fn(args...); }
 		};
 	};
+
+	struct Progress { bool progress; };
 }
 
 #endif /* _TYPES_H_ */

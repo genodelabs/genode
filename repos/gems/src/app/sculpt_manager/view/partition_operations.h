@@ -34,7 +34,7 @@ struct Sculpt::Partition_operations
 	void view(Scope<Vbox> &s, Storage_device const &, Partition const &,
 	          Storage_target const &used_target) const;
 
-	struct Action : Fs_operations::Action
+	struct Action : virtual Fs_operations::Action
 	{
 		virtual void format(Storage_target const &) = 0;
 		virtual void cancel_format(Storage_target const &) = 0;

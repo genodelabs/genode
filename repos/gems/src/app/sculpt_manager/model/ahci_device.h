@@ -41,11 +41,10 @@ struct Sculpt::Ahci_device : List_model<Ahci_device>::Element, Storage_device
 		       * node.attribute_value("block_count", 0ULL) };
 	}
 
-	Ahci_device(Env &env, Allocator &alloc, Signal_context_capability sigh,
-	            Xml_node const &node)
+	Ahci_device(Env &env, Allocator &alloc, Xml_node const &node,
+	            Storage_device::Action &action)
 	:
-		Storage_device(env, alloc, Storage_device::Provider::RUNTIME,
-		               "ahci", _port(node), _capacity(node), sigh),
+		Storage_device(env, alloc, "ahci", _port(node), _capacity(node), action),
 		model(node.attribute_value("model", Model()))
 	{ }
 

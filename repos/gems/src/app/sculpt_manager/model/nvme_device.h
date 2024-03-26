@@ -41,11 +41,10 @@ struct Sculpt::Nvme_device : List_model<Nvme_device>::Element, Storage_device
 		       * node.attribute_value("block_count", 0ULL) };
 	}
 
-	Nvme_device(Env &env, Allocator &alloc, Signal_context_capability sigh,
-	            Model const &model, Xml_node const &node)
+	Nvme_device(Env &env, Allocator &alloc, Model const &model, Xml_node const &node,
+	            Storage_device::Action &action)
 	:
-		Storage_device(env, alloc, Storage_device::Provider::RUNTIME,
-		               "nvme", _port(node), _capacity(node), sigh),
+		Storage_device(env, alloc, "nvme", _port(node), _capacity(node), action),
 		model(model)
 	{ }
 

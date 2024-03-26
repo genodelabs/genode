@@ -78,7 +78,10 @@ struct Sculpt::Nvme_driver : private Noncopyable
 		                  Ram_quota { 8*1024*1024 }, Cap_quota { 100 });
 	}
 
-	void with_namespaces(auto const &fn) const { fn(_namespaces.xml()); }
+	void with_namespaces(auto const &fn) const
+	{
+		fn(_nvme.constructed() ? _namespaces.xml() : Xml_node("<none/>"));
+	}
 };
 
 #endif /* _DRIVER_NVME_H_ */

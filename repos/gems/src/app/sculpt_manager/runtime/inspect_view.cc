@@ -21,7 +21,7 @@ static void for_each_inspected_storage_target(Storage_devices const &devices, au
 	devices.for_each([&] (Storage_device const &device) {
 		device.for_each_partition([&] (Partition const &partition) {
 			if (partition.file_system.inspected)
-				fn(Storage_target { device.label, device.port, partition.number }); }); });
+				fn(Storage_target { device.driver, device.port, partition.number }); }); });
 }
 
 

@@ -28,7 +28,7 @@ struct Sculpt::Storage_devices_widget_base : Widget<Vbox>
 
 	Constructible<Hosted<Vbox, Frame, Storage_device_widget>> _storage_device_widget { };
 
-	Block_device::Label _selected_device { };
+	Storage_target::Label _selected_device { };
 
 	Storage_devices_widget_base(Storage_devices const &storage_devices,
 	                            Storage_target  const &used_target)
@@ -118,7 +118,7 @@ struct Sculpt::Storage_device_button : Widget<Button>
 					s.sub_scope<Label>(dev.name());
 					if (model.length() > 1)
 						s.sub_scope<Label>(String<80>(" (", model, ") "));
-					if (used_target.device_and_port() == dev.name())
+					if (used_target.driver_and_port() == dev.name())
 						s.sub_scope<Label>("* ");
 			});
 
@@ -126,33 +126,6 @@ struct Sculpt::Storage_device_button : Widget<Button>
 				[&] (Scope<Button, Hbox, Right_floating_hbox> &s) {
 					s.sub_scope<Label>(String<64>(dev.capacity)); });
 		});
-	}
-};
-
-
-namespace Sculpt { struct Block_devices_widget; }
-
-struct Sculpt::Block_devices_widget : Storage_devices_widget_base
-{
-	using Storage_devices_widget_base::Storage_devices_widget_base;
-
-	void view(Scope<Vbox> &s) const
-	{
-		s.sub_scope<Min_ex>(35);
-		_storage_devices.block_devices.for_each([&] (Block_device const &dev) {
-			Hosted<Vbox, Storage_device_button> button { Id { dev.name() }, dev.model };
-			_view_device(s, dev, button);
-		});
-	}
-
-	void click(Clicked_at const &at, Storage_device_widget::Action &action)
-	{
-		_click_device<Storage_device_button>(at, action);
-	}
-
-	void clack(Clacked_at const &at, Storage_device_widget::Action &action)
-	{
-		_clack_device(at, action);
 	}
 };
 
@@ -258,7 +231,7 @@ struct Sculpt::Usb_storage_device_button : Widget<Button>
 						String<16> const vendor { dev.driver_info->vendor };
 						s.sub_scope<Label>(String<64>(" (", vendor, ") "));
 					}
-					if (used_target.device_and_port() == dev.name())
+					if (used_target.driver_and_port() == dev.name())
 						s.sub_scope<Label>("* ");
 			});
 

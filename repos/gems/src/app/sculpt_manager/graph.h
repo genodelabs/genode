@@ -54,10 +54,6 @@ struct Sculpt::Graph : Widget<Depgraph>
 		_remove  { Id { "Remove"  } },
 		_restart { Id { "Restart" } };
 
-	Hosted<Depgraph, Frame, Vbox, Frame, Block_devices_widget>
-		_block_devices_widget { Id { "block_devices" },
-		                        _storage_devices, _sculpt_partition };
-
 	Hosted<Depgraph, Frame, Vbox, Frame, Ahci_devices_widget>
 		_ahci_devices_widget { Id { "ahci_devices" },
 		                       _storage_devices, _sculpt_partition };
@@ -80,8 +76,6 @@ struct Sculpt::Graph : Widget<Depgraph>
 	                                 Start_name const &,
 	                                 Runtime_state::Info const &) const;
 
-	void _view_storage_node(Scope<Depgraph> &) const;
-
 	Graph(Runtime_state                &runtime_state,
 	      Runtime_config         const &runtime_config,
 	      Storage_devices        const &storage_devices,
@@ -98,7 +92,7 @@ struct Sculpt::Graph : Widget<Depgraph>
 
 	void view(Scope<Depgraph> &) const;
 
-	struct Action : Storage_device_widget::Action
+	struct Action : virtual Storage_device_widget::Action
 	{
 		virtual void remove_deployed_component(Start_name const &) = 0;
 		virtual void restart_deployed_component(Start_name const &) = 0;
@@ -110,7 +104,6 @@ struct Sculpt::Graph : Widget<Depgraph>
 
 	void reset_storage_operation()
 	{
-		_block_devices_widget.reset_operation();
 		_ahci_devices_widget.reset_operation();
 		_nvme_devices_widget.reset_operation();
 		_mmc_devices_widget.reset_operation();

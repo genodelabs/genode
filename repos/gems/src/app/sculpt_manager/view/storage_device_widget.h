@@ -39,7 +39,7 @@ struct Sculpt::Storage_device_widget : Widget<Vbox>
 	{
 		Id const partition_id = at.matching_id<Vbox, Hbox>();
 
-		Storage_target const selected_target { device.label, device.port, _selected_partition };
+		Storage_target const selected_target { device.driver, device.port, _selected_partition };
 
 		if (partition_id.valid()) {
 			_selected_partition = (partition_id.value == _selected_partition)
@@ -54,7 +54,7 @@ struct Sculpt::Storage_device_widget : Widget<Vbox>
 
 	void clack(Clacked_at const &at, Storage_device const &device, Action &action)
 	{
-		Storage_target const selected_target { device.label, device.port, _selected_partition };
+		Storage_target const selected_target { device.driver, device.port, _selected_partition };
 
 		_partition_operations.clack(at, selected_target, action);
 	}

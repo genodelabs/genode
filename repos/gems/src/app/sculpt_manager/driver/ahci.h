@@ -79,7 +79,10 @@ struct Sculpt::Ahci_driver : private Noncopyable
 		                 Ram_quota { 10*1024*1024 }, Cap_quota { 100 });
 	}
 
-	void with_ports(auto const &fn) const { fn(_ports.xml()); }
+	void with_ports(auto const &fn) const
+	{
+		fn(_ahci.constructed() ? _ports.xml() : Xml_node("<none/>"));
+	}
 };
 
 #endif /* _DRIVER__AHCI_H_ */

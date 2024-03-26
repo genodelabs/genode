@@ -77,7 +77,10 @@ struct Sculpt::Mmc_driver : private Noncopyable
 		                 Ram_quota { 16*1024*1024 }, Cap_quota { 500 });
 	}
 
-	void with_devices(auto const &fn) const { fn(_devices.xml()); }
+	void with_devices(auto const &fn) const
+	{
+		fn(_mmc.constructed() ? _devices.xml() : Xml_node("<none/>"));
+	}
 };
 
 #endif /* _DRIVER__MMC_H_ */

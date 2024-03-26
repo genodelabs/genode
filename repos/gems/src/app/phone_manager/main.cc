@@ -68,7 +68,7 @@ namespace Sculpt { struct Main; }
 struct Sculpt::Main : Input_event_handler,
                       Runtime_config_generator,
                       Deploy::Action,
-                      Storage::Action,
+                      Storage_device::Action,
                       Network::Action,
                       Network::Info,
                       Graph::Action,
@@ -81,6 +81,7 @@ struct Sculpt::Main : Input_event_handler,
                       Dialpad_widget::Action,
                       Current_call_widget::Action,
                       Network_widget::Action,
+                      Ram_fs_widget::Action,
                       Software_presets_widget::Action,
                       Software_options_widget::Action,
                       Software_update_widget::Action,
@@ -210,7 +211,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void handle_device_plug_unplug() override
 	{
-		_handle_block_devices();
+		_handle_storage_devices();
 		network_config_changed();
 		generate_runtime_config();
 	}
@@ -311,37 +312,39 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Storage **
 	 *************/
 
-	Attached_rom_dataspace _block_devices_rom { _env, "report -> drivers/block_devices" };
-
-	Signal_handler<Main> _block_devices_handler {
-		_env.ep(), *this, &Main::_handle_block_devices };
-
-	void _handle_block_devices()
+	void _handle_storage_devices()
 	{
-		_block_devices_rom.update();
+		Storage_target const orig_sculpt_partition = _storage._sculpt_partition;
 
-		_drivers.with_storage_devices([&] (Xml_node const &usb_devices,
-		                                   Xml_node const &ahci_ports,
-		                                   Xml_node const &nvme_namespaces,
-		                                   Xml_node const &mmc_devices) {
-			_storage.update(usb_devices, ahci_ports, nvme_namespaces, mmc_devices,
-			                _block_devices_rom.xml(),
-			                _block_devices_handler);
-		});
+		bool total_progress = false;
+		for (bool progress = true; progress; total_progress |= progress) {
+			progress = false;
+			_drivers.with_storage_devices([&] (Drivers::Storage_devices const &devices) {
+				progress = _storage.update(devices.usb,  devices.ahci,
+				                           devices.nvme, devices.mmc).progress; });
 
-		/* update USB policies for storage devices */
-		_drivers.update_usb();
+			/* update USB policies for storage devices */
+			_drivers.update_usb();
+		}
+
+		if (orig_sculpt_partition != _storage._sculpt_partition)
+			_restart_from_storage_target();
+
+		if (total_progress) {
+			generate_runtime_config();
+			_generate_dialog();
+		}
 	}
 
-	Storage _storage { _env, _heap, _child_states, *this, *this };
-
 	/**
-	 * Storage::Action interface
+	 * Storage_device::Action
 	 */
-	void use_storage_target(Storage_target const &target) override
-	{
-		_storage._sculpt_partition = target;
+	void storage_device_discovered() override { _handle_storage_devices(); }
 
+	Storage _storage { _env, _heap, _child_states, *this };
+
+	void _restart_from_storage_target()
+	{
 		/* trigger loading of the configuration from the sculpt partition */
 		_prepare_version.value++;
 
@@ -349,11 +352,6 @@ struct Sculpt::Main : Input_event_handler,
 
 		generate_runtime_config();
 	}
-
-	/**
-	 * Storage::Action interface
-	 */
-	void refresh_storage_dialog() override { _generate_dialog(); }
 
 
 	/*************
@@ -1256,7 +1254,7 @@ struct Sculpt::Main : Input_event_handler,
 		_storage_widget         .propagate(at, *this);
 		_software_presets_widget.propagate(at, _presets, *this);
 		_software_add_widget    .propagate(at, *this);
-		_graph                  .propagate(at, *this, _storage);
+		_graph                  .propagate(at, *this, *this);
 
 		_update_touch_keyboard_visibility();
 	}
@@ -1350,44 +1348,57 @@ struct Sculpt::Main : Input_event_handler,
 
 	void use(Storage_target const &target) override
 	{
+		_storage._sculpt_partition = target;
 		_software_update_widget.hosted.reset();
 		_download_queue.reset();
-		_storage.use(target);
+		generate_runtime_config();
 	}
 
 	/*
-	 * Storage_dialog::Action interface
+	 * Storage_device_widget::Action interface
 	 */
 	void format(Storage_target const &target) override
 	{
 		_storage.format(target);
+		generate_runtime_config();
 	}
 
 	void cancel_format(Storage_target const &target) override
 	{
 		_storage.cancel_format(target);
 		_reset_storage_widget_operation();
+		generate_runtime_config();
 	}
 
 	void expand(Storage_target const &target) override
 	{
 		_storage.expand(target);
+		generate_runtime_config();
 	}
 
 	void cancel_expand(Storage_target const &target) override
 	{
 		_storage.cancel_expand(target);
 		_reset_storage_widget_operation();
+		generate_runtime_config();
 	}
 
 	void check(Storage_target const &target) override
 	{
 		_storage.check(target);
+		generate_runtime_config();
 	}
 
 	void toggle_default_storage_target(Storage_target const &target) override
 	{
 		_storage.toggle_default_storage_target(target);
+		generate_runtime_config();
+	}
+
+	void reset_ram_fs() override
+	{
+		_storage.reset_ram_fs();
+		generate_runtime_config();
 	}
 
 	/*
@@ -2228,7 +2239,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 		device.for_each_partition([&] (Partition &partition) {
 
-			Storage_target const target { device.label, device.port, partition.number };
+			Storage_target const target { device.driver, device.port, partition.number };
 
 			if (partition.check_in_progress) {
 				String<64> name(target.label(), ".e2fsck");
@@ -2320,8 +2331,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 	/* handle failed initialization of USB-storage devices */
 	_storage._storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device &dev) {
-		String<64> name(dev.usb_block_drv_name());
-		Child_exit_state exit_state(state, name);
+		Child_exit_state exit_state(state, dev.driver);
 		if (exit_state.exited) {
 			dev.discard_usb_block_drv();
 			reconfigure_runtime = true;

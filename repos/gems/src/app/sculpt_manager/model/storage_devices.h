@@ -15,7 +15,6 @@
 #define _MODEL__STORAGE_DEVICES_
 
 #include <types.h>
-#include <model/block_device.h>
 #include <model/ahci_device.h>
 #include <model/nvme_device.h>
 #include <model/mmc_device.h>
@@ -24,58 +23,32 @@
 namespace Sculpt { struct Storage_devices; }
 
 
-struct Sculpt::Storage_devices
+struct Sculpt::Storage_devices : Noncopyable
 {
-	Block_devices       block_devices       { };
+	Storage_device::Action &_action;
+
+	Storage_devices(Storage_device::Action &action) : _action(action) { }
+
 	Ahci_devices        ahci_devices        { };
 	Nvme_devices        nvme_devices        { };
 	Mmc_devices         mmc_devices         { };
 	Usb_storage_devices usb_storage_devices { };
 
-	bool _block_devices_report_valid = false;
-	bool _usb_active_config_valid    = false;
+	struct Discovered { bool ahci, nvme, mmc, usb; } _discovered { };
 
-	bool usb_present = false;
+	unsigned num_usb_devices = 0;
 
-	/**
-	 * Update 'block_devices' from 'block_devices' report
-	 */
-	void update_block_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
-	                                   Signal_context_capability sigh)
+	Progress update_ahci(Env &env, Allocator &alloc, Xml_node const &node)
 	{
-		block_devices.update_from_xml(node,
+		_discovered.ahci |= (!node.has_type("empty"));
 
-			/* create */
-			[&] (Xml_node const &node) -> Block_device & {
-				return *new (alloc)
-					Block_device(env, alloc, sigh,
-					             node.attribute_value("label", Block_device::Label()),
-					             node.attribute_value("model", Block_device::Model()),
-					             Capacity { node.attribute_value("block_size",  0ULL)
-					                      * node.attribute_value("block_count", 0ULL) });
-			},
-
-			/* destroy */
-			[&] (Block_device &b) { destroy(alloc, &b); },
-
-			/* update */
-			[&] (Block_device &, Xml_node const &) { }
-		);
-
-		if (node.has_type("block_devices"))
-			_block_devices_report_valid = true;
-	}
-
-	bool update_ahci_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
-	                                  Signal_context_capability sigh)
-	{
 		bool progress = false;
 		ahci_devices.update_from_xml(node,
 
 			/* create */
 			[&] (Xml_node const &node) -> Ahci_device & {
 				progress = true;
-				return *new (alloc) Ahci_device(env, alloc, sigh, node);
+				return *new (alloc) Ahci_device(env, alloc, node, _action);
 			},
 
 			/* destroy */
@@ -87,12 +60,13 @@ struct Sculpt::Storage_devices
 			/* update */
 			[&] (Ahci_device &, Xml_node const &) { }
 		);
-		return progress;
+		return { progress };
 	}
 
-	bool update_nvme_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
-	                                  Signal_context_capability sigh)
+	Progress update_nvme(Env &env, Allocator &alloc, Xml_node const &node)
 	{
+		_discovered.nvme |= !node.has_type("empty");
+
 		auto const model = node.attribute_value("model", Nvme_device::Model());
 
 		bool progress = false;
@@ -101,7 +75,7 @@ struct Sculpt::Storage_devices
 			/* create */
 			[&] (Xml_node const &node) -> Nvme_device & {
 				progress = true;
-				return *new (alloc) Nvme_device(env, alloc, sigh, model, node);
+				return *new (alloc) Nvme_device(env, alloc, model, node, _action);
 			},
 
 			/* destroy */
@@ -113,19 +87,20 @@ struct Sculpt::Storage_devices
 			/* update */
 			[&] (Nvme_device &, Xml_node const &) { }
 		);
-		return progress;
+		return { progress };
 	}
 
-	bool update_mmc_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
-	                                 Signal_context_capability sigh)
+	Progress update_mmc(Env &env, Allocator &alloc, Xml_node const &node)
 	{
+		_discovered.mmc |= !node.has_type("empty");
+
 		bool progress = false;
 		mmc_devices.update_from_xml(node,
 
 			/* create */
 			[&] (Xml_node const &node) -> Mmc_device & {
 				progress = true;
-				return *new (alloc) Mmc_device(env, alloc, sigh, node);
+				return *new (alloc) Mmc_device(env, alloc, node, _action);
 			},
 
 			/* destroy */
@@ -137,7 +112,7 @@ struct Sculpt::Storage_devices
 			/* update */
 			[&] (Mmc_device &, Xml_node const &) { }
 		);
-		return progress;
+		return { progress };
 	}
 
 	/**
@@ -145,29 +120,24 @@ struct Sculpt::Storage_devices
 	 *
 	 * \return true if USB storage device was added or vanished
 	 */
-	bool update_usb_storage_devices_from_xml(Env &env, Allocator &alloc, Xml_node node,
-	                                         Signal_context_capability sigh)
+	Progress update_usb(Env &env, Allocator &alloc, Xml_node const &node)
 	{
-		using Label = Usb_storage_device::Label;
+		_discovered.usb |= !node.has_type("empty");
 
-		bool device_added_or_vanished = false;
-
+		bool progress = false;
 		usb_storage_devices.update_from_xml(node,
 
 			/* create */
 			[&] (Xml_node const &node) -> Usb_storage_device &
 			{
-				device_added_or_vanished = true;
-
-				return *new (alloc)
-					Usb_storage_device(env, alloc, sigh,
-					                   node.attribute_value("name", Label()));
+				progress = true;
+				return *new (alloc) Usb_storage_device(env, alloc, node, _action);
 			},
 
 			/* destroy */
 			[&] (Usb_storage_device &elem)
 			{
-				device_added_or_vanished = true;
+				progress = true;
 				destroy(alloc, &elem);
 			},
 
@@ -175,13 +145,11 @@ struct Sculpt::Storage_devices
 			[&] (Usb_storage_device &, Xml_node const &) { }
 		);
 
-		_usb_active_config_valid = true;
-
-		usb_present = false;
+		num_usb_devices = 0;
 		usb_storage_devices.for_each([&] (Storage_device const &) {
-			usb_present = true; });
+			num_usb_devices++; });
 
-		return device_added_or_vanished;
+		return { progress };
 	}
 
 	void gen_usb_storage_policies(Xml_generator &xml) const
@@ -190,18 +158,8 @@ struct Sculpt::Storage_devices
 			device.gen_usb_policy(xml); });
 	}
 
-	/**
-	 * Return true as soon as the storage-device information from the drivers
-	 * subsystem is complete.
-	 */
-	bool all_devices_enumerated() const
-	{
-		return _block_devices_report_valid && _usb_active_config_valid;
-	}
-
 	void for_each(auto const &fn) const
 	{
-		block_devices      .for_each([&] (Storage_device const &dev) { fn(dev); });
 		ahci_devices       .for_each([&] (Storage_device const &dev) { fn(dev); });
 		nvme_devices       .for_each([&] (Storage_device const &dev) { fn(dev); });
 		mmc_devices        .for_each([&] (Storage_device const &dev) { fn(dev); });
@@ -210,7 +168,6 @@ struct Sculpt::Storage_devices
 
 	void for_each(auto const &fn)
 	{
-		block_devices      .for_each([&] (Storage_device &dev) { fn(dev); });
 		ahci_devices       .for_each([&] (Storage_device &dev) { fn(dev); });
 		nvme_devices       .for_each([&] (Storage_device &dev) { fn(dev); });
 		mmc_devices        .for_each([&] (Storage_device &dev) { fn(dev); });

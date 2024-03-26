@@ -14,84 +14,44 @@
 /* local includes */
 #include <storage.h>
 
+using namespace Sculpt;
 
-void Sculpt::Storage::update(Xml_node const &usb_devices,
-                             Xml_node const &ahci_ports,
-                             Xml_node const &nvme_namespaces,
-                             Xml_node const &mmc_devices,
-                             Xml_node const &block_devices,
-                             Signal_context_capability sigh)
+
+Progress Storage::update(Xml_node const &usb,  Xml_node const &ahci,
+                         Xml_node const &nvme, Xml_node const &mmc)
 {
-	bool reconfigure_runtime = false;
+	bool progress = false;
 
-	auto process_part_block_report = [&] (Storage_device &dev)
-	{
+	progress |= _storage_devices.update_ahci(_env, _alloc, ahci).progress;
+	progress |= _storage_devices.update_nvme(_env, _alloc, nvme).progress;
+	progress |= _storage_devices.update_mmc (_env, _alloc, mmc) .progress;
+	progress |= _storage_devices.update_usb (_env, _alloc, usb) .progress;
+
+	_storage_devices.for_each([&] (Storage_device &dev) {
 		Storage_device::State const orig_state = dev.state;
+		dev.process_partitions();
+		progress |= (dev.state != orig_state);
+	});
 
-		dev.process_part_block_report();
-
-		if (dev.state != orig_state
-		 || dev.state == Storage_device::UNKNOWN)
-			reconfigure_runtime = true;
-	};
-
-	{
-		reconfigure_runtime |=
-			_storage_devices.update_ahci_devices_from_xml(_env, _alloc, ahci_ports,
-			                                              sigh);
-
-		_storage_devices.ahci_devices.for_each([&] (Ahci_device &dev) {
-			process_part_block_report(dev); });
-	}
-
-	{
-		reconfigure_runtime |=
-			_storage_devices.update_nvme_devices_from_xml(_env, _alloc, nvme_namespaces,
-			                                              sigh);
-
-		_storage_devices.nvme_devices.for_each([&] (Nvme_device &dev) {
-			process_part_block_report(dev); });
-	}
-
-	{
-		reconfigure_runtime |=
-			_storage_devices.update_mmc_devices_from_xml(_env, _alloc, mmc_devices,
-			                                             sigh);
-
-		_storage_devices.mmc_devices.for_each([&] (Mmc_device &dev) {
-			process_part_block_report(dev); });
-	}
-
-	{
-		_storage_devices.update_block_devices_from_xml(_env, _alloc, block_devices,
-		                                               sigh);
-
-		_storage_devices.block_devices.for_each([&] (Block_device &dev) {
-			process_part_block_report(dev); });
-	}
-
-	{
-		bool const usb_storage_added_or_vanished =
-			_storage_devices.update_usb_storage_devices_from_xml(_env, _alloc,
-			                                                     usb_devices,
-			                                                     sigh);
-
-		if (usb_storage_added_or_vanished)
-			reconfigure_runtime = true;
-
-		_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device &dev) {
-			dev.process_driver_report();
-			process_part_block_report(dev);
-		});
-	}
+	_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device &dev) {
+		dev.process_report(); });
 
 	if (!_sculpt_partition.valid()) {
 
-		Storage_target const default_target =
-			_discovery_state.detect_default_target(_storage_devices);
+		bool const all_devices_enumerated = !usb .has_type("empty")
+		                                 && !ahci.has_type("empty")
+		                                 && !nvme.has_type("empty")
+		                                 && !mmc .has_type("empty");
+		if (all_devices_enumerated) {
 
-		if (default_target.valid())
-			use(default_target);
+			Storage_target const default_target =
+				_discovery_state.detect_default_target(_storage_devices);
+
+			if (default_target.valid()) {
+				_sculpt_partition = default_target;
+				progress |= true;
+			}
+		}
 	}
 
 	/*
@@ -99,7 +59,7 @@ void Sculpt::Storage::update(Xml_node const &usb_devices,
 	 * the '_sculpt_partition' to enable the selection of another storage
 	 * target to use.
 	 */
-	if (_sculpt_partition.valid()) {
+	else if (_sculpt_partition.valid()) {
 
 		bool sculpt_partition_exists = false;
 
@@ -108,24 +68,22 @@ void Sculpt::Storage::update(Xml_node const &usb_devices,
 
 		_storage_devices.for_each([&] (Storage_device const &device) {
 			device.for_each_partition([&] (Partition const &partition) {
-				if (device.label == _sculpt_partition.device
+				if (device.driver    == _sculpt_partition.driver
 				 && partition.number == _sculpt_partition.partition)
 					sculpt_partition_exists = true; }); });
 
 		if (!sculpt_partition_exists) {
 			warning("sculpt partition unexpectedly vanished");
 			_sculpt_partition = Storage_target { };
+			progress |= true;
 		}
 	}
 
-	_action.refresh_storage_dialog();
-
-	if (reconfigure_runtime)
-		_runtime.generate_runtime_config();
+	return { progress };
 }
 
 
-void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
+void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 {
 	xml.node("start", [&] {
 		gen_ram_fs_start_content(xml, _ram_fs_state); });
@@ -135,11 +93,8 @@ void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 		if (!_sculpt_partition.valid())
 			return false;
 
-		if (device.provider == Storage_device::Provider::PARENT)
-			return (device.label == _sculpt_partition.device);
-
-		return (device.port  == _sculpt_partition.port)
-		    && (device.label == _sculpt_partition.device);
+		return (device.port   == _sculpt_partition.port)
+		    && (device.driver == _sculpt_partition.driver);
 	};
 
 	_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device const &device) {
@@ -163,7 +118,7 @@ void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 
 		device.for_each_partition([&] (Partition const &partition) {
 
-			Storage_target const target { .device    = device.label,
+			Storage_target const target { .driver    = device.driver,
 			                              .port      = device.port,
 			                              .partition = partition.number };
 

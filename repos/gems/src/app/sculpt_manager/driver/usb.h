@@ -178,7 +178,10 @@ struct Sculpt::Usb_driver : private Noncopyable
 		_usb_config.trigger_update();
 	}
 
-	void with_devices(auto const &fn) const { fn(_devices.xml()); }
+	void with_devices(auto const &fn) const
+	{
+		fn(_hcd.constructed() ? _devices.xml() : Xml_node("<none/>"));
+	}
 };
 
 #endif /* _DRIVER__USB_H_ */

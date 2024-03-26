@@ -46,21 +46,31 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		{ }
 	};
 
+	Env &_env;
+
 	/* information provided asynchronously by usb_block_drv */
 	Constructible<Driver_info> driver_info { };
 
-	Attached_rom_dataspace _driver_report_rom;
+	Attached_rom_dataspace _report {
+		_env, String<80>("report -> runtime/", driver, "/devices").string() };
 
-	void process_driver_report()
+	Signal_handler<Usb_storage_device> _report_handler {
+		_env.ep(), *this, &Usb_storage_device::_handle_report };
+
+	void _handle_report()
 	{
-		_driver_report_rom.update();
+		_report.update();
+		_action.storage_device_discovered();
+	}
 
-		Xml_node report = _driver_report_rom.xml();
+	void process_report()
+	{
+		Xml_node report = _report.xml();
 
 		if (!report.has_sub_node("device"))
 			return;
 
-		Xml_node device = report.sub_node("device");
+		Xml_node const device = report.sub_node("device");
 
 		capacity = Capacity { device.attribute_value("block_count", 0ULL)
 		                    * device.attribute_value("block_size",  0ULL) };
@@ -102,18 +112,19 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 
 	bool discarded() const { return Storage_device::state == FAILED; }
 
-	Label usb_block_drv_name() const { return label; }
-
-	Usb_storage_device(Env &env, Allocator &alloc, Signal_context_capability sigh,
-	                   Label const &label)
-	:
-		Storage_device(env, alloc, Storage_device::Provider::RUNTIME, label,
-		               Port { }, Capacity{0}, sigh),
-		_driver_report_rom(env, String<80>("report -> runtime/", usb_block_drv_name(),
-		                                   "/devices").string())
+	static Driver _driver(Xml_node const &node)
 	{
-		_driver_report_rom.sigh(sigh);
-		process_driver_report();
+		return node.attribute_value("name", Driver());
+	}
+
+	Usb_storage_device(Env &env, Allocator &alloc, Xml_node const &node,
+	                   Storage_device::Action &action)
+	:
+		Storage_device(env, alloc, _driver(node), Port { }, Capacity{0}, action),
+		_env(env)
+	{
+		_report.sigh(_report_handler);
+		_report_handler.local_submit();
 	}
 
 	inline void gen_usb_block_drv_start_content(Xml_generator &xml) const;
@@ -121,9 +132,9 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 	void gen_usb_policy(Xml_generator &xml) const
 	{
 		xml.node("policy", [&] {
-			xml.attribute("label_prefix", label);
+			xml.attribute("label_prefix", driver);
 			xml.node("device", [&] {
-				xml.attribute("name", label); }); });
+				xml.attribute("name", driver); }); });
 	}
 
 	static bool type_matches(Xml_node const &device)
@@ -137,17 +148,13 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		return storage_device;
 	}
 
-	bool matches(Xml_node node) const
-	{
-		return node.attribute_value("name", Label()) == label;
-	}
+	bool matches(Xml_node node) const { return _driver(node) == driver; }
 };
 
 
 void Sculpt::Usb_storage_device::gen_usb_block_drv_start_content(Xml_generator &xml) const
 {
-	gen_common_start_content(xml, usb_block_drv_name(),
-	                         Cap_quota{100}, Ram_quota{6*1024*1024},
+	gen_common_start_content(xml, driver, Cap_quota{100}, Ram_quota{6*1024*1024},
 	                         Priority::STORAGE);
 
 	gen_named_node(xml, "binary", "usb_block_drv");

@@ -24,9 +24,6 @@ struct Sculpt::Feature
 	/* show the '+' botton at the graph for opening the deploy popup dialog */
 	static constexpr bool PRESENT_PLUS_MENU = true;
 
-	/* manage storage from within the respective graph nodes */
-	static constexpr bool STORAGE_DIALOG_HOSTED_IN_GRAPH = true;
-
 	/* allow the browsing of file systems via the inspect view */
 	static constexpr bool INSPECT_VIEW = true;
 };

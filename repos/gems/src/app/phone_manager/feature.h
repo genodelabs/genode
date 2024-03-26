@@ -22,9 +22,7 @@ namespace Sculpt { struct Feature; };
 struct Sculpt::Feature
 {
 	static constexpr bool PRESENT_PLUS_MENU = false;
-	static constexpr bool STORAGE_DIALOG_HOSTED_IN_GRAPH = false;
 	static constexpr bool INSPECT_VIEW = false;
-	static constexpr bool VISUAL_HOVER = false;
 };
 
 #endif /* _FEATURE_H_ */

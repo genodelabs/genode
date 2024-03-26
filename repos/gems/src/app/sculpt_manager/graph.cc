@@ -110,7 +110,7 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 	s.sub_scope<Label>(ram);
 	s.sub_scope<Label>(caps);
 
-	if ((name == "usb") && _storage_devices.usb_present)
+	if ((name == "usb") && _storage_devices.num_usb_devices)
 		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
 			s.widget(_usb_devices_widget); });
 
@@ -128,34 +128,10 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 }
 
 
-void Graph::_view_storage_node(Scope<Depgraph> &s) const
-{
-	bool const any_selected = _runtime_state.selected().valid();
-
-	Selectable_node::view(s, Id { "storage" },
-		{
-			.selected    = _storage_selected,
-			.important   = !any_selected || _runtime_state.storage_in_tcb(),
-			.primary_dep = { },
-			.pretty_name = "Storage"
-		},
-		[&] (Scope<Depgraph, Frame, Vbox> &s) {
-			s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-				s.widget(_block_devices_widget); });
-		}
-	);
-}
-
-
 void Graph::view(Scope<Depgraph> &s) const
 {
 	if (Feature::PRESENT_PLUS_MENU && _sculpt_partition.valid())
 		s.widget(_plus, _popup_state == Popup::VISIBLE);
-
-	if (Feature::STORAGE_DIALOG_HOSTED_IN_GRAPH)
-		_view_storage_node(s);
-	else
-		s.sub_scope<Parent_node>(Id { "storage" }, "Storage");
 
 	/* parent roles */
 	s.sub_scope<Parent_node>(Id { "hardware" }, "Hardware");
@@ -267,14 +243,9 @@ void Graph::click(Clicked_at const &at, Action &action)
 {
 	/* select node */
 	Id const id = at.matching_id<Depgraph, Frame, Vbox, Button>();
-	if (id.valid()) {
-		_storage_selected = !_storage_selected && (id.value == "storage");
-
-		if (_storage_selected) _block_devices_widget.reset();
-
+	if (id.valid())
 		_runtime_config.with_start_name(id, [&] (Start_name const &name) {
 			_runtime_state.toggle_selection(name, _runtime_config); });
-	}
 
 	_plus.propagate(at, [&] {
 
@@ -293,12 +264,11 @@ void Graph::click(Clicked_at const &at, Action &action)
 		action.open_popup_dialog(popup_anchor(at._location));
 	});
 
-	_ram_fs_widget       .propagate(at, _sculpt_partition, action);
-	_block_devices_widget.propagate(at, action);
-	_ahci_devices_widget .propagate(at, action);
-	_nvme_devices_widget .propagate(at, action);
-	_mmc_devices_widget  .propagate(at, action);
-	_usb_devices_widget  .propagate(at, action);
+	_ram_fs_widget      .propagate(at, _sculpt_partition, action);
+	_ahci_devices_widget.propagate(at, action);
+	_nvme_devices_widget.propagate(at, action);
+	_mmc_devices_widget .propagate(at, action);
+	_usb_devices_widget .propagate(at, action);
 
 	_remove .propagate(at);
 	_restart.propagate(at);
@@ -307,12 +277,11 @@ void Graph::click(Clicked_at const &at, Action &action)
 
 void Graph::clack(Clacked_at const &at, Action &action, Ram_fs_widget::Action &ram_fs_action)
 {
-	_ram_fs_widget       .propagate(at, ram_fs_action);
-	_block_devices_widget.propagate(at, action);
-	_ahci_devices_widget .propagate(at, action);
-	_nvme_devices_widget .propagate(at, action);
-	_mmc_devices_widget  .propagate(at, action);
-	_usb_devices_widget  .propagate(at, action);
+	_ram_fs_widget      .propagate(at, ram_fs_action);
+	_ahci_devices_widget.propagate(at, action);
+	_nvme_devices_widget.propagate(at, action);
+	_mmc_devices_widget .propagate(at, action);
+	_usb_devices_widget .propagate(at, action);
 
 	_remove.propagate(at, [&] {
 		action.remove_deployed_component(_runtime_state.selected());

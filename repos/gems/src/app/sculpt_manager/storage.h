@@ -14,36 +14,20 @@
 #ifndef _STORAGE_H_
 #define _STORAGE_H_
 
-/* Genode includes */
-#include <base/attached_rom_dataspace.h>
-#include <os/reporter.h>
-
 /* local includes */
 #include <model/discovery_state.h>
-#include <view/storage_widget.h>
-#include <view/ram_fs_widget.h>
 #include <runtime.h>
 
 namespace Sculpt { struct Storage; }
 
 
-struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
+struct Sculpt::Storage : Noncopyable
 {
 	Env &_env;
 
 	Allocator &_alloc;
 
-	struct Action : Interface
-	{
-		virtual void use_storage_target(Storage_target const &) = 0;
-		virtual void refresh_storage_dialog() = 0;
-	};
-
-	Action &_action;
-
-	Runtime_config_generator &_runtime;
-
-	Storage_devices _storage_devices { };
+	Storage_devices _storage_devices;
 
 	Ram_fs_state _ram_fs_state;
 
@@ -53,10 +37,8 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 
 	Inspect_view_version _inspect_view_version { 0 };
 
-	void update(Xml_node const &usb_devices, Xml_node const &ahci_ports,
-	            Xml_node const &nvme_namespaces, Xml_node const &mmc_devices,
-	            Xml_node const &block_devices,
-	            Signal_context_capability sigh);
+	Progress update(Xml_node const &usb_devices,     Xml_node const &ahci_ports,
+	                Xml_node const &nvme_namespaces, Xml_node const &mmc_devices);
 
 	/*
 	 * Determine whether showing the file-system browser or not
@@ -81,7 +63,7 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 	{
 		_storage_devices.for_each([&] (Storage_device &device) {
 
-			if (target.device != device.label)
+			if (target.driver != device.driver)
 				return;
 
 			device.for_each_partition([&] (Partition &partition) {
@@ -89,27 +71,22 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 				bool const whole_device = !target.partition.valid()
 				                       && !partition.number.valid();
 
-				bool const partition_matches = (device.label == target.device)
+				bool const partition_matches = (device.driver    == target.driver)
 				                            && (partition.number == target.partition);
 
-				if (whole_device || partition_matches) {
+				if (whole_device || partition_matches)
 					fn(partition);
-					_runtime.generate_runtime_config();
-				}
 			});
 		});
 	}
 
-	/**
-	 * Storage_widget::Action interface
-	 */
-	void format(Storage_target const &target) override
+	void format(Storage_target const &target)
 	{
 		_apply_partition(target, [&] (Partition &partition) {
 			partition.format_in_progress = true; });
 	}
 
-	void cancel_format(Storage_target const &target) override
+	void cancel_format(Storage_target const &target)
 	{
 		_apply_partition(target, [&] (Partition &partition) {
 
@@ -120,13 +97,13 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 		});
 	}
 
-	void expand(Storage_target const &target) override
+	void expand(Storage_target const &target)
 	{
 		_apply_partition(target, [&] (Partition &partition) {
 			partition.gpt_expand_in_progress = true; });
 	}
 
-	void cancel_expand(Storage_target const &target) override
+	void cancel_expand(Storage_target const &target)
 	{
 		_apply_partition(target, [&] (Partition &partition) {
 
@@ -138,16 +115,14 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 		});
 	}
 
-	void check(Storage_target const &target) override
+	void check(Storage_target const &target)
 	{
 		_apply_partition(target, [&] (Partition &partition) {
 			partition.check_in_progress = true; });
 	}
 
-	void toggle_inspect_view(Storage_target const &target) override
+	void toggle_inspect_view(Storage_target const &target)
 	{
-		Inspect_view_version const orig_version = _inspect_view_version;
-
 		if (target.ram_fs()) {
 			_ram_fs_state.inspected = !_ram_fs_state.inspected;
 			_inspect_view_version.value++;
@@ -157,35 +132,23 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 			partition.file_system.inspected = !partition.file_system.inspected;
 			_inspect_view_version.value++;
 		});
-
-		if (orig_version.value == _inspect_view_version.value)
-			return;
-
-		_runtime.generate_runtime_config();
 	}
 
-	void toggle_default_storage_target(Storage_target const &target) override
+	void toggle_default_storage_target(Storage_target const &target)
 	{
 		_apply_partition(target, [&] (Partition &partition) {
 			partition.toggle_default_label(); });
 	}
 
-	void use(Storage_target const &target) override
-	{
-		_action.use_storage_target(target);
-	}
-
-	void reset_ram_fs() override
+	void reset_ram_fs()
 	{
 		_ram_fs_state.trigger_restart();
-
-		_runtime.generate_runtime_config();
 	}
 
 	Storage(Env &env, Allocator &alloc, Registry<Child_state> &child_states,
-	        Action &action, Runtime_config_generator &runtime)
+	        Storage_device::Action &action)
 	:
-		_env(env), _alloc(alloc), _action(action), _runtime(runtime),
+		_env(env), _alloc(alloc), _storage_devices(action),
 		_ram_fs_state(child_states, "ram_fs")
 	{ }
 };

@@ -25,13 +25,13 @@ void Partition_operations::view(Scope<Vbox> &s,
                                 Partition      const &partition,
                                 Storage_target const &used_target) const
 {
-	String<16> const version(device.label, ".", partition.number);
+	String<16> const version(device.driver, ".", partition.number);
 
 	bool const whole_device = !partition.number.valid();
 
-	Storage_target const target { device.label, device.port, partition.number };
+	Storage_target const target { device.driver, device.port, partition.number };
 
-	bool const device_in_use = (used_target.device == device.label);
+	bool const device_in_use = (used_target.driver == device.driver);
 
 	bool const target_in_use = (used_target == target)
 	                        || (whole_device && device_in_use)

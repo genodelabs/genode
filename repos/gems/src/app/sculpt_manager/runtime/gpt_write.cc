@@ -40,7 +40,7 @@ void Sculpt::_gen_gpt_write_start_content(Xml_generator        &xml,
 
 	xml.node("route", [&] {
 
-		Storage_target const target { device.label, device.port, Partition::Number { } };
+		Storage_target const target { device.driver, device.port, Partition::Number { } };
 		target.gen_block_session_route(xml);
 
 		gen_parent_rom_route(xml, "gpt_write");

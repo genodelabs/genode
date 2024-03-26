@@ -30,26 +30,30 @@ struct Sculpt::Storage_device
 		FAILED    /* driver failed to access the device */
 	};
 
-	Allocator &_alloc;
-
-	enum class Provider { PARENT, RUNTIME };
-
-	using Label = String<32>;
-	using Port  = String<8>;
-
-	Provider const provider;
-	Label    const label;    /* driver name, or label of parent session */
-	Port     const port;
-
-	Label name() const
+	struct Action : Interface
 	{
-		return port.valid() ? Start_name { label, "-", port }
-		                    : Start_name { label };
+		virtual void storage_device_discovered() = 0;
+	};
+
+	Env       &_env;
+	Allocator &_alloc;
+	Action    &_action;
+
+	using Driver = String<32>;
+	using Port   = String<8>;
+
+	Driver const driver;
+	Port   const port;
+
+	Start_name name() const
+	{
+		return port.valid() ? Start_name { driver, "-", port }
+		                    : Start_name { driver };
 	}
 
-	Start_name part_block_start_name() const { return { name(), ".part" }; }
-	Start_name relabel_start_name()    const { return { name(), ".relabel"    }; }
-	Start_name expand_start_name()     const { return { name(), ".expand"     }; }
+	Start_name part_block_start_name() const { return { name(), ".part"    }; }
+	Start_name relabel_start_name()    const { return { name(), ".relabel" }; }
+	Start_name expand_start_name()     const { return { name(), ".expand"  }; }
 
 	Capacity capacity; /* non-const because USB storage devices need to update it */
 
@@ -62,7 +66,11 @@ struct Sculpt::Storage_device
 
 	Partitions partitions { };
 
-	Attached_rom_dataspace _partitions_rom;
+	Attached_rom_dataspace _partitions {
+		_env, String<80>("report -> runtime/", part_block_start_name(), "/partitions").string() };
+
+	Signal_handler<Storage_device> _partitions_handler {
+		_env.ep(), *this, &Storage_device::_handle_partitions };
 
 	unsigned _part_block_version = 0;
 
@@ -94,11 +102,15 @@ struct Sculpt::Storage_device
 		_update_partitions_from_xml(Xml_node("<partitions/>"));
 	}
 
-	void process_part_block_report()
+	void _handle_partitions()
 	{
-		_partitions_rom.update();
+		_partitions.update();
+		_action.storage_device_discovered();
+	}
 
-		Xml_node const report = _partitions_rom.xml();
+	void process_partitions()
+	{
+		Xml_node const report = _partitions.xml();
 		if (!report.has_type("partitions"))
 			return;
 
@@ -125,21 +137,14 @@ struct Sculpt::Storage_device
 			state = RELEASED;
 	}
 
-	/**
-	 * Constructor
-	 *
-	 * \param label  label of block device at parent, or driver name
-	 * \param sigh   signal handler to be notified on partition-info updates
-	 */
-	Storage_device(Env &env, Allocator &alloc, Provider provider,
-	               Label const &label, Port const &port,
-	               Capacity capacity, Signal_context_capability sigh)
+	Storage_device(Env &env, Allocator &alloc, Driver const &driver,
+	               Port const &port, Capacity capacity, Action &action)
 	:
-		_alloc(alloc), provider(provider), label(label), port(port), capacity(capacity),
-		_partitions_rom(env, String<80>("report -> runtime/", part_block_start_name(), "/partitions").string())
+		_env(env), _alloc(alloc), _action(action),
+		driver(driver), port(port), capacity(capacity)
 	{
-		_partitions_rom.sigh(sigh);
-		process_part_block_report();
+		_partitions.sigh(_partitions_handler);
+		_partitions_handler.local_submit();
 	}
 
 	~Storage_device()
@@ -255,13 +260,8 @@ void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml) co
 	xml.node("route", [&] {
 
 		gen_service_node<Block::Session>(xml, [&] {
-			if (provider == Provider::PARENT)
-				xml.node("parent", [&] {
-					xml.attribute("label", label); });
-			else
-				gen_named_node(xml, "child", label, [&] {
-					xml.attribute("label", port); });
-		});
+			gen_named_node(xml, "child", driver, [&] {
+				xml.attribute("label", port); }); });
 
 		gen_parent_rom_route(xml, "part_block");
 		gen_parent_rom_route(xml, "ld.lib.so");
