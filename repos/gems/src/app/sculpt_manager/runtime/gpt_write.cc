@@ -15,17 +15,15 @@
 
 namespace Sculpt {
 
-	template <typename GEN_ACTIONS_FN>
 	void _gen_gpt_write_start_content(Xml_generator &, Storage_device const &,
-	                                  Start_name const &, GEN_ACTIONS_FN const &);
+	                                  Start_name const &, auto const &);
 }
 
 
-template <typename GEN_ACTIONS_FN>
 void Sculpt::_gen_gpt_write_start_content(Xml_generator        &xml,
                                           Storage_device const &device,
                                           Start_name     const &name,
-                                          GEN_ACTIONS_FN const &fn)
+                                          auto           const &gen_actions_fn)
 {
 	gen_common_start_content(xml, name, Cap_quota{100}, Ram_quota{2*1024*1024},
 	                         Priority::STORAGE);
@@ -37,7 +35,7 @@ void Sculpt::_gen_gpt_write_start_content(Xml_generator        &xml,
 		xml.attribute("update_geometry", "yes");
 		xml.attribute("preserve_hybrid", "yes");
 
-		xml.node("actions", [&] { fn(xml); });
+		xml.node("actions", [&] { gen_actions_fn(xml); });
 	});
 
 	xml.node("route", [&] {

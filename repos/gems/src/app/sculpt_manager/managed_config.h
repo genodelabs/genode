@@ -69,8 +69,7 @@ struct Sculpt::Managed_config
 		(_obj.*_handle)(_manual_config_rom.xml());
 	}
 
-	template <typename FN>
-	void with_manual_config(FN const &fn) const
+	void with_manual_config(auto const &fn) const
 	{
 		fn(_manual_config_rom.xml());
 	}
@@ -91,8 +90,7 @@ struct Sculpt::Managed_config
 		return true;
 	}
 
-	template <typename FN>
-	void generate(FN const &fn)
+	void generate(auto const &fn)
 	{
 		_config.generate([&] (Xml_generator &xml) { fn(xml); });
 	}

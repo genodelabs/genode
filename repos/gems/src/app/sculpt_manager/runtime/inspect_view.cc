@@ -16,8 +16,7 @@
 using namespace Sculpt;
 
 
-template <typename FN>
-static void for_each_inspected_storage_target(Storage_devices const &devices, FN const &fn)
+static void for_each_inspected_storage_target(Storage_devices const &devices, auto const &fn)
 {
 	devices.for_each([&] (Storage_device const &device) {
 		device.for_each_partition([&] (Partition const &partition) {

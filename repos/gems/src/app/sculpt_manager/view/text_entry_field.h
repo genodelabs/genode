@@ -57,8 +57,7 @@ struct Sculpt::Text_entry_field
 		}
 	}
 
-	template <typename STRING>
-	Text_entry_field(STRING const &s)
+	Text_entry_field(auto const &s)
 	{
 		for (Utf8_ptr utf8 = s.string(); utf8.complete(); utf8 = utf8.next())
 			apply(utf8.codepoint());

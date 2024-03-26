@@ -84,8 +84,7 @@ class Sculpt::Launchers : public Noncopyable
 			);
 		}
 
-		template <typename FN>
-		void for_each(FN const &fn) const
+		void for_each(auto const &fn) const
 		{
 			_sorted.for_each([&] (Dict::Element const &e) { fn(Info(e.name)); });
 		}

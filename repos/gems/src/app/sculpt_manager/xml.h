@@ -23,9 +23,8 @@
 
 namespace Sculpt {
 
-	template <typename FN>
 	static inline void gen_named_node(Xml_generator &xml,
-	                                  char const *type, char const *name, FN const &fn)
+	                                  char const *type, char const *name, auto const &fn)
 	{
 		xml.node(type, [&] {
 			xml.attribute("name", name);
@@ -38,21 +37,19 @@ namespace Sculpt {
 		xml.node(type, [&] { xml.attribute("name", name); });
 	}
 
-	template <size_t N, typename FN>
 	static inline void gen_named_node(Xml_generator &xml,
-	                                  char const *type, String<N> const &name, FN const &fn)
+	                                  char const *type, auto const &name, auto const &fn)
 	{
 		gen_named_node(xml, type, name.string(), fn);
 	}
 
-	template <size_t N>
-	static inline void gen_named_node(Xml_generator &xml, char const *type, String<N> const &name)
+	static inline void gen_named_node(Xml_generator &xml, char const *type, auto const &name)
 	{
 		gen_named_node(xml, type, name.string());
 	}
 
-	template <typename SESSION, typename FN>
-	static inline void gen_service_node(Xml_generator &xml, FN const &fn)
+	template <typename SESSION>
+	static inline void gen_service_node(Xml_generator &xml, auto const &fn)
 	{
 		gen_named_node(xml, "service", SESSION::service_name(), fn);
 	}
@@ -123,8 +120,8 @@ namespace Sculpt {
 		return node.attribute_value(attr_name, T{});
 	}
 
-	template <typename T, typename... ARGS>
-	static T _attribute_value(Xml_node node, char const *sub_node_type, ARGS... args)
+	template <typename T>
+	static T _attribute_value(Xml_node node, char const *sub_node_type, auto &&... args)
 	{
 		if (!node.has_sub_node(sub_node_type))
 			return T{};
@@ -138,8 +135,8 @@ namespace Sculpt {
 	 * The list of arguments except for the last one refer to XML path into the
 	 * XML structure. The last argument denotes the queried attribute name.
 	 */
-	template <typename T, typename... ARGS>
-	static T query_attribute(Xml_node node, ARGS &&... args)
+	template <typename T>
+	static T query_attribute(Xml_node node, auto &&... args)
 	{
 		return _attribute_value<T>(node, args...);
 	}

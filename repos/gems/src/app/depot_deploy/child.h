@@ -256,8 +256,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		/*
 		 * \return true if condition changed
 		 */
-		template <typename COND_FN>
-		bool apply_condition(COND_FN const &fn)
+		bool apply_condition(auto const &cond_fn)
 		{
 			Condition const orig_condition = _condition;
 
@@ -266,14 +265,13 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			                      : Xml_node("<empty/>");
 
 			if (_start_xml.constructed())
-				_condition = fn(_start_xml->xml(), launcher_xml)
+				_condition = cond_fn(_start_xml->xml(), launcher_xml)
 				           ? SATISFIED : UNSATISFIED;
 
 			return _condition != orig_condition;
 		}
 
-		template <typename FN>
-		void apply_if_unsatisfied(FN const &fn) const
+		void apply_if_unsatisfied(auto const &fn) const
 		{
 			Xml_node launcher_xml = _launcher_xml.constructed()
 			                      ? _launcher_xml->xml()
@@ -355,8 +353,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		inline void gen_monitor_policy_node(Xml_generator&) const;
 
-		template <typename FN>
-		void with_missing_pkg_path(FN const &fn) const
+		void with_missing_pkg_path(auto const &fn) const
 		{
 			if (_state == State::PKG_INCOMPLETE)
 				fn(_config_pkg_path());

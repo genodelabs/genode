@@ -212,8 +212,7 @@ struct Sculpt::Deploy
 	/**
 	 * Call 'fn' for each unsatisfied dependency of the child's 'start' node
 	 */
-	template <typename FN>
-	void _for_each_missing_server(Xml_node start, FN const &fn) const
+	void _for_each_missing_server(Xml_node start, auto const &fn) const
 	{
 		start.for_each_sub_node("route", [&] (Xml_node route) {
 			route.for_each_sub_node("service", [&] (Xml_node service) {

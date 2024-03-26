@@ -36,8 +36,7 @@ struct Sculpt::Storage_devices_widget_base : Widget<Vbox>
 		_storage_devices(storage_devices), _used_target(used_target)
 	{ }
 
-	template <typename DEVICE, typename BUTTON>
-	void _view_device(Scope<Vbox> &s, DEVICE const &dev, BUTTON const &button) const
+	void _view_device(Scope<Vbox> &s, auto const &dev, auto const &button) const
 	{
 		bool const selected = ( _selected_device == dev.name() );
 

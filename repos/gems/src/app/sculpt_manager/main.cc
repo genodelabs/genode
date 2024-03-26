@@ -193,8 +193,7 @@ struct Sculpt::Main : Input_event_handler,
 	template <typename TOP_LEVEL_DIALOG>
 	struct Dialog_view : TOP_LEVEL_DIALOG, private Distant_runtime::View
 	{
-		template <typename... ARGS>
-		Dialog_view(Distant_runtime &runtime, ARGS &&... args)
+		Dialog_view(Distant_runtime &runtime, auto &&... args)
 		: TOP_LEVEL_DIALOG(args...), Distant_runtime::View(runtime, *this) { }
 
 		using Distant_runtime::View::refresh;
@@ -1380,8 +1379,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_window_layout();
 
-	template <size_t N, typename FN>
-	void _with_window(Xml_node window_list, String<N> const &match, FN const &fn)
+	template <size_t N>
+	void _with_window(Xml_node window_list, String<N> const &match, auto const &fn)
 	{
 		window_list.for_each_sub_node("window", [&] (Xml_node win) {
 			if (win.attribute_value("label", String<N>()) == match)

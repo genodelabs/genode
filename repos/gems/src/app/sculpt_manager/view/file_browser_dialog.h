@@ -46,8 +46,7 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 
 	Action &_action;
 
-	template <typename FN>
-	static void _for_each_path_elem(Path const path, FN const &fn)
+	static void _for_each_path_elem(Path const path, auto const &fn)
 	{
 		char const *curr = path.string();
 

@@ -42,8 +42,7 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 
 	Id _selected_route { };
 
-	template <typename FN>
-	void _apply_to_selected_route(Action &action, FN const &fn)
+	void _apply_to_selected_route(Action &action, auto const &fn)
 	{
 		unsigned count = 0;
 		action.apply_to_construction([&] (Component &component) {

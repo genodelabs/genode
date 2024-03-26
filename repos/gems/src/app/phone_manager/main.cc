@@ -778,16 +778,12 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		Hosted<Frame, Mmc_devices_widget> _mmc_devices;
 
-		template <typename... ARGS>
-		Storage_widget(ARGS &&... args) : _mmc_devices(Id { "devices" }, args...) { }
+		Storage_widget(auto &&... args) : _mmc_devices(Id { "devices" }, args...) { }
 
 		void view(Scope<Frame> &s) const { s.widget(_mmc_devices); }
 
-		template <typename... ARGS>
-		void click(ARGS &&... args) { _mmc_devices.propagate(args...); }
-
-		template <typename... ARGS>
-		void clack(ARGS &&... args) { _mmc_devices.propagate(args...); }
+		void click(auto &&... args) { _mmc_devices.propagate(args...); }
+		void clack(auto &&... args) { _mmc_devices.propagate(args...); }
 
 		void reset_operation() { _mmc_devices.reset_operation(); }
 	};
@@ -1319,8 +1315,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_window_layout();
 
-	template <size_t N, typename FN>
-	void _with_window(Xml_node window_list, String<N> const &match, FN const &fn)
+	template <size_t N>
+	void _with_window(Xml_node window_list, String<N> const &match, auto const &fn)
 	{
 		window_list.for_each_sub_node("window", [&] (Xml_node win) {
 			if (win.attribute_value("label", String<N>()) == match)

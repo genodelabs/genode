@@ -109,8 +109,7 @@ class Sculpt::Presets : public Noncopyable
 			_presets.for_each([&] (Preset const &) { _count++; });
 		}
 
-		template <typename FN>
-		void for_each(FN const &fn) const
+		void for_each(auto const &fn) const
 		{
 			_sorted.for_each([&] (Preset const &preset) { fn(preset.info); });
 		}

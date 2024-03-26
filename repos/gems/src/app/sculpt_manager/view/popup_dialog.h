@@ -222,8 +222,7 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 		return Path(user, "/index/", _sculpt_version);
 	}
 
-	template <typename FN>
-	void _for_each_menu_item(FN const &fn) const
+	void _for_each_menu_item(auto const &fn) const
 	{
 		_menu.for_each_item(_index_rom.xml(), _selected_user, fn);
 	}
@@ -312,8 +311,7 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 					xml.attribute("pkg", component.path); }); });
 	}
 
-	template <typename FN>
-	void for_each_viewed_launcher(FN const &fn) const
+	void for_each_viewed_launcher(auto const &fn) const
 	{
 		_launchers.for_each([&] (Launchers::Info const &info) {
 			if (_runtime_info.present_in_runtime(info.path))

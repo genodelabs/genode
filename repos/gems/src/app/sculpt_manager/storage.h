@@ -77,8 +77,7 @@ struct Sculpt::Storage : Storage_device_widget::Action, Ram_fs_widget::Action
 		_storage_devices.gen_usb_storage_policies(xml);
 	}
 
-	template <typename FN>
-	void _apply_partition(Storage_target const &target, FN const &fn)
+	void _apply_partition(Storage_target const &target, auto const &fn)
 	{
 		_storage_devices.for_each([&] (Storage_device &device) {
 

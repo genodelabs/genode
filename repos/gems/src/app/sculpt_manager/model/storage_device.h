@@ -173,15 +173,13 @@ struct Sculpt::Storage_device
 
 	inline void gen_part_block_start_content(Xml_generator &) const;
 
-	template <typename FN>
-	void for_each_partition(FN const &fn) const
+	void for_each_partition(auto const &fn) const
 	{
 		fn(*whole_device_partition);
 		partitions.for_each([&] (Partition const &partition) { fn(partition); });
 	}
 
-	template <typename FN>
-	void for_each_partition(FN const &fn)
+	void for_each_partition(auto const &fn)
 	{
 		fn(*whole_device_partition);
 		partitions.for_each([&] (Partition &partition) { fn(partition); });

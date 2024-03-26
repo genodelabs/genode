@@ -468,15 +468,13 @@ class Sculpt::Runtime_state : public Runtime_info
 			}
 		}
 
-		template <typename FN>
-		void apply_to_construction(FN const &fn)
+		void apply_to_construction(auto const &fn)
 		{
 			if (_construction_in_progress())
 				fn(*_currently_constructed->construction);
 		}
 
-		template <typename FN>
-		void with_construction(FN const &fn) const
+		void with_construction(auto const &fn) const
 		{
 			if (_construction_in_progress())
 				fn(*_currently_constructed->construction);

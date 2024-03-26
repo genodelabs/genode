@@ -44,8 +44,7 @@ struct Sculpt::Index_menu
 		}
 	}
 
-	template <typename FN>
-	void _for_each_item(Xml_node const &index, FN const &fn, unsigned level) const
+	void _for_each_item(Xml_node const &index, auto const &fn, unsigned level) const
 	{
 		if (level == _level) {
 			index.for_each_sub_node(fn);
@@ -57,8 +56,7 @@ struct Sculpt::Index_menu
 				_for_each_item(index, fn, level + 1); });
 	}
 
-	template <typename FN>
-	void for_each_item(Xml_node const &index, User const &user, FN const &fn) const
+	void for_each_item(Xml_node const &index, User const &user, auto const &fn) const
 	{
 		/*
 		 * The index may contain duplicates, evaluate only the first match.

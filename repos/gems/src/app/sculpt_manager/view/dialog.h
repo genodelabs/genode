@@ -412,8 +412,7 @@ struct Dialog::Operation_button : Widget<Button>
 		view(s, selected, s.id.value);
 	}
 
-	template <typename FN>
-	void click(Clicked_at const &, FN const &fn) const { fn(); }
+	void click(Clicked_at const &, auto const &fn) const { fn(); }
 };
 
 
@@ -516,8 +515,7 @@ struct Dialog::Choice : Widget<Hbox>
 		bool const _unfolded;
 		Id   const _selected_item;
 
-		template <typename HOSTED, typename... ARGS>
-		void widget(HOSTED const &hosted, ARGS &&... args)
+		void widget(auto const &hosted, auto &&... args)
 		{
 			if (_unfolded || (hosted.id == _selected_item))
 				hosted._view_hosted(_scope, args...);

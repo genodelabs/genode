@@ -230,8 +230,7 @@ class Sculpt::Runtime_config
 			/* dependencies on other child components */
 			List_model<Dep> deps { };
 
-			template <typename FN>
-			void for_each_secondary_dep(FN const &fn) const
+			void for_each_secondary_dep(auto const &fn) const
 			{
 				deps.for_each([&] (Dep const &dep) {
 					if (dep.to_name != primary_dependency)
@@ -245,8 +244,7 @@ class Sculpt::Runtime_config
 				name(name), graph_id(graph_ids, name, id)
 			{ }
 
-			template <typename FN>
-			void for_each_service(FN const &fn) const
+			void for_each_service(auto const &fn) const
 			{
 				_child_services.for_each(fn);
 			}
@@ -352,8 +350,7 @@ class Sculpt::Runtime_config
 				_pd        { _r, Type::PD,          "system PD service" },
 				_monitor   { _r, Type::TERMINAL,    "debug monitor" };
 
-			template <typename FN>
-			void for_each(FN const &fn) const { _r.for_each(fn); }
+			void for_each(auto const &fn) const { _r.for_each(fn); }
 
 		} _parent_services { };
 
@@ -406,14 +403,12 @@ class Sculpt::Runtime_config
 				[&] { });
 		}
 
-		template <typename FN>
-		void for_each_component(FN const &fn) const { _components.for_each(fn); }
+		void for_each_component(auto const &fn) const { _components.for_each(fn); }
 
 		/**
 		 * Call 'fn' with the name of each dependency of component 'name'
 		 */
-		template <typename FN>
-		void for_each_dependency(Start_name const &name, FN const &fn) const
+		void for_each_dependency(Start_name const &name, auto const &fn) const
 		{
 			_components.for_each([&] (Component const &component) {
 				if (component.name == name) {
@@ -421,8 +416,7 @@ class Sculpt::Runtime_config
 						fn(dep.to_name); }); } });
 		}
 
-		template <typename FN>
-		void for_each_service(FN const &fn) const
+		void for_each_service(auto const &fn) const
 		{
 			_parent_services.for_each(fn);
 

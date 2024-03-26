@@ -116,8 +116,7 @@ struct Sculpt::Index_update_queue : Noncopyable
 		return result;
 	}
 
-	template <typename FN>
-	void with_update(Path const &path, FN const &fn) const
+	void with_update(Path const &path, auto const &fn) const
 	{
 		_updates.for_each([&] (Update const &update) {
 			if (update.path == path)

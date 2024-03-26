@@ -95,8 +95,7 @@ struct Sculpt::Download_queue : Noncopyable
 		new (_alloc) Registered<Download>(_downloads, path, verify);
 	}
 
-	template <typename FN>
-	void with_download(Path const &path, FN const &fn) const
+	void with_download(Path const &path, auto const &fn) const
 	{
 		_downloads.for_each([&] (Download const &download) {
 			if (download.path == path)
@@ -170,8 +169,7 @@ struct Sculpt::Download_queue : Noncopyable
 	bool any_completed_download() const { return _state_present(Download::State::DONE); }
 	bool any_failed_download()    const { return _state_present(Download::State::FAILED); }
 
-	template <typename FN>
-	void for_each_failed_download(FN const &fn) const
+	void for_each_failed_download(auto const &fn) const
 	{
 		_downloads.for_each([&] (Download const &download) {
 			if (download.state == Download::State::FAILED)

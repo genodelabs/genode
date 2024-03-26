@@ -22,16 +22,14 @@ namespace Dialog { struct Parent_node; }
 
 struct Dialog::Parent_node : Sub_scope
 {
-	template <typename SCOPE, typename TEXT>
-	static void view_sub_scope(SCOPE &s, TEXT const &text)
+	static void view_sub_scope(auto &s, auto const &text)
 	{
 		s.node("frame", [&] {
 			s.sub_node("label", [&] {
 				s.attribute("text", Sculpt::Start_name(" ", text, " ")); }); });
 	}
 
-	template <typename AT, typename FN>
-	static void with_narrowed_at(AT const &, FN const &) { }
+	static void with_narrowed_at(auto const &, auto const &) { }
 };
 
 
@@ -47,9 +45,8 @@ struct Dialog::Selectable_node
 		Start_name pretty_name;
 	};
 
-	template <typename FN>
 	static void view(Scope<Depgraph> &s, Id const &id,
-	                 Attr const &attr, FN const &selected_fn)
+	                 Attr const &attr, auto const &selected_fn)
 	{
 		s.sub_scope<Frame>(id, [&] (Scope<Depgraph, Frame> &s) {
 

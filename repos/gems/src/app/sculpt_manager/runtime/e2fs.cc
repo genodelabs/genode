@@ -15,23 +15,20 @@
 
 namespace Sculpt {
 
-	template <typename GEN_ARGS_FN>
 	void gen_e2fs_start_content(Xml_generator &, Storage_target const &,
-	                            Rom_name const &, GEN_ARGS_FN const &);
+	                            Rom_name const &, auto const &);
 
-	template <typename ARG>
-	void gen_arg(Xml_generator &xml, ARG const &arg)
+	void gen_arg(Xml_generator &xml, auto const &arg)
 	{
 		xml.node("arg", [&] { xml.attribute("value", arg); });
 	}
 }
 
 
-template <typename GEN_ARGS_FN>
 void Sculpt::gen_e2fs_start_content(Xml_generator        &xml,
                                     Storage_target const &target,
                                     Rom_name       const &tool,
-                                    GEN_ARGS_FN    const &gen_args_fn)
+                                    auto           const &gen_args_fn)
 {
 	gen_common_start_content(xml, String<64>(target.label(), ".", tool),
 	                         Cap_quota{500}, Ram_quota{100*1024*1024},

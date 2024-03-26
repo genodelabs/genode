@@ -103,12 +103,11 @@ class Depot_deploy::Children
 		/*
 		 * \return true if the condition of any child changed
 		 */
-		template <typename COND_FN>
-		bool apply_condition(COND_FN const &fn)
+		bool apply_condition(auto const &cond_fn)
 		{
 			bool any_condition_changed = false;
 			_children.for_each([&] (Child &child) {
-				any_condition_changed |= child.apply_condition(fn); });
+				any_condition_changed |= child.apply_condition(cond_fn); });
 			return any_condition_changed;
 		}
 
@@ -116,8 +115,7 @@ class Depot_deploy::Children
 		 * Call 'fn' with start 'Xml_node' of each child that has an
 		 * unsatisfied start condition.
 		 */
-		template <typename FN>
-		void for_each_unsatisfied_child(FN const &fn) const
+		void for_each_unsatisfied_child(auto const &fn) const
 		{
 			_children.for_each([&] (Child const &child) {
 				child.apply_if_unsatisfied(fn); });
@@ -158,8 +156,7 @@ class Depot_deploy::Children
 				child.gen_installation_entry(xml); });
 		}
 
-		template <typename FN>
-		void for_each_missing_pkg_path(FN const &fn) const
+		void for_each_missing_pkg_path(auto const &fn) const
 		{
 			_children.for_each([&] (Child const &child) {
 				child.with_missing_pkg_path(fn); });
