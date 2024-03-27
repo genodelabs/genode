@@ -549,7 +549,8 @@ class Vfs::Rump_file_system : public File_system
 			if (create)
 				mode |= O_CREAT;
 
-			int fd = rump_sys_open(path, mode);
+			enum { DEFAULT_PERMISSIONS = 0777 };
+			int fd = create ? rump_sys_open(path, mode, DEFAULT_PERMISSIONS) : rump_sys_open(path, mode);
 			if (fd == -1) switch (errno) {
 			case ENAMETOOLONG: return OPEN_ERR_NAME_TOO_LONG;
 			case EACCES:       return OPEN_ERR_NO_PERM;
