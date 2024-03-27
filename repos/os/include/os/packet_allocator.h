@@ -184,7 +184,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		 ** Dummies **
 		 *************/
 
-		bool need_size_for_free() const override { return false; }
+		bool need_size_for_free() const override { return true; }
 		void free(void *) override { }
 		size_t overhead(size_t) const override {  return 0;}
 		size_t avail() const override { return 0; }
