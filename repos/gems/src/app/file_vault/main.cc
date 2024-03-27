@@ -628,22 +628,22 @@ class File_vault::Main
 			}
 		}
 
-		static Number_of_blocks _tresor_tree_num_leaves(size_t payload_size);
+		static Number_of_blocks _tresor_tree_num_leaves(uint64_t payload_size);
 
 
-		static size_t _tree_nr_of_blocks(size_t nr_of_lvls,
+		static uint64_t _tree_nr_of_blocks(size_t nr_of_lvls,
 		                          size_t nr_of_children,
-		                          size_t nr_of_leafs);
+		                          uint64_t nr_of_leafs);
 
-		size_t _tresor_size() const;
+		uint64_t _tresor_size() const;
 
-		static size_t _tresor_nr_of_blocks(size_t nr_of_superblocks,
+		static uint64_t _tresor_nr_of_blocks(size_t nr_of_superblocks,
 		                                   size_t nr_of_vbd_lvls,
 		                                   size_t nr_of_vbd_children,
-		                                   size_t nr_of_vbd_leafs,
+		                                   uint64_t nr_of_vbd_leafs,
 		                                   size_t nr_of_ft_lvls,
 		                                   size_t nr_of_ft_children,
-		                                   size_t nr_of_ft_leafs);
+		                                   uint64_t nr_of_ft_leafs);
 
 		template <size_t N>
 		static bool listing_file_starts_with(Xml_node  const &fs_query_listing,
@@ -2361,7 +2361,7 @@ void File_vault::Main::wakeup_local_service()
 }
 
 
-Number_of_blocks Main::_tresor_tree_num_leaves(size_t payload_size)
+Number_of_blocks Main::_tresor_tree_num_leaves(uint64_t payload_size)
 {
 	Number_of_blocks nr_of_leaves { payload_size / TRESOR_BLOCK_SIZE };
 	if (payload_size % TRESOR_BLOCK_SIZE) {
@@ -2673,12 +2673,12 @@ void File_vault::Main::_generate_sandbox_config(Xml_generator &xml) const
 }
 
 
-size_t Main::_tree_nr_of_blocks(size_t nr_of_lvls,
+uint64_t Main::_tree_nr_of_blocks(size_t nr_of_lvls,
                                 size_t nr_of_children,
-                                size_t nr_of_leafs)
+                                uint64_t nr_of_leafs)
 {
-	size_t nr_of_blks { 0 };
-	size_t nr_of_last_lvl_blks { nr_of_leafs };
+	uint64_t nr_of_blks { 0 };
+	uint64_t nr_of_last_lvl_blks { nr_of_leafs };
 	for (size_t lvl_idx { 0 }; lvl_idx < nr_of_lvls; lvl_idx++) {
 		nr_of_blks += nr_of_last_lvl_blks;
 		if (nr_of_last_lvl_blks % nr_of_children) {
@@ -2691,7 +2691,7 @@ size_t Main::_tree_nr_of_blocks(size_t nr_of_lvls,
 }
 
 
-size_t Main::_tresor_size() const
+uint64_t Main::_tresor_size() const
 {
 	return
 		_tresor_nr_of_blocks(
@@ -2706,21 +2706,21 @@ size_t Main::_tresor_size() const
 }
 
 
-size_t Main::_tresor_nr_of_blocks(size_t nr_of_superblocks,
+uint64_t Main::_tresor_nr_of_blocks(size_t nr_of_superblocks,
                                size_t nr_of_vbd_lvls,
                                size_t nr_of_vbd_children,
-                               size_t nr_of_vbd_leafs,
+                               uint64_t nr_of_vbd_leafs,
                                size_t nr_of_ft_lvls,
                                size_t nr_of_ft_children,
-                               size_t nr_of_ft_leafs)
+                               uint64_t nr_of_ft_leafs)
 {
-	size_t const nr_of_vbd_blks {
+	uint64_t const nr_of_vbd_blks {
 		_tree_nr_of_blocks(
 			nr_of_vbd_lvls,
 			nr_of_vbd_children,
 			nr_of_vbd_leafs) };
 
-	size_t const nr_of_ft_blks {
+	uint64_t const nr_of_ft_blks {
 		_tree_nr_of_blocks(
 			nr_of_ft_lvls,
 			nr_of_ft_children,
@@ -2741,7 +2741,7 @@ size_t Main::_tresor_nr_of_blocks(size_t nr_of_superblocks,
 	 *			nr_of_mt_children,
 	 *			nr_of_mt_leafs) };
 	 */
-	size_t const nr_of_mt_blks { nr_of_ft_blks };
+	uint64_t const nr_of_mt_blks { nr_of_ft_blks };
 
 	return
 		nr_of_superblocks +

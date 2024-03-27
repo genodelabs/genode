@@ -60,7 +60,7 @@ class Tresor::File
 		HOST_STATE &_host_state;
 		State _state { IDLE };
 		Vfs::Vfs_handle &_handle;
-		Vfs::file_size _num_processed_bytes { 0 };
+		size_t _num_processed_bytes { 0 };
 
 		/*
 		 * Noncopyable

@@ -55,7 +55,7 @@ struct Tresor::Splitter : Noncopyable
 
 				Request_helper<Read, State> _helper;
 				Attr const _attr;
-				addr_t _curr_off { };
+				uint64_t _curr_off { };
 				addr_t _curr_buf_addr { };
 				Block _blk  { };
 				Generation _gen { };
@@ -88,16 +88,16 @@ struct Tresor::Splitter : Noncopyable
 				addr_t _curr_buf_off() const
 				{
 					ASSERT(_curr_off >= _attr.in_off && _curr_off <= _attr.in_off + _attr.in_buf_num_bytes);
-					return _curr_off - _attr.in_off;
+					return (addr_t)(_curr_off - _attr.in_off);
 				}
 
 				addr_t _num_remaining_bytes() const
 				{
 					ASSERT(_curr_off >= _attr.in_off && _curr_off <= _attr.in_off + _attr.in_buf_num_bytes);
-					return _attr.in_off + _attr.in_buf_num_bytes - _curr_off;
+					return _attr.in_buf_num_bytes - (size_t)(_curr_off - _attr.in_off);
 				}
 
-				void _advance_curr_off(size_t advance, bool &progress)
+				void _advance_curr_off(uint64_t advance, bool &progress)
 				{
 					_curr_off += advance;
 					if (!_num_remaining_bytes()) {
@@ -133,7 +133,7 @@ struct Tresor::Splitter : Noncopyable
 					case READ_FIRST_VBA: progress |= _execute_read(READ_FIRST_VBA_SUCCEEDED, attr); break;
 					case READ_FIRST_VBA_SUCCEEDED:
 					{
-						size_t num_outside_bytes { _curr_off % BLOCK_SIZE };
+						size_t num_outside_bytes { (size_t)(_curr_off % BLOCK_SIZE) };
 						size_t num_inside_bytes { min(_num_remaining_bytes(), BLOCK_SIZE - num_outside_bytes) };
 						memcpy(_attr.in_buf_start, (void *)((addr_t)&_blk + num_outside_bytes), num_inside_bytes);
 						_advance_curr_off(num_inside_bytes, progress);
@@ -201,7 +201,7 @@ struct Tresor::Splitter : Noncopyable
 
 				Request_helper<Write, State> _helper;
 				Attr const _attr;
-				addr_t _curr_off { };
+				uint64_t _curr_off { };
 				addr_t _curr_buf_addr { };
 				Block _blk  { };
 				Generation _gen { };
@@ -213,13 +213,13 @@ struct Tresor::Splitter : Noncopyable
 				addr_t _curr_buf_off() const
 				{
 					ASSERT(_curr_off >= _attr.in_off && _curr_off <= _attr.in_off + _attr.in_buf_num_bytes);
-					return _curr_off - _attr.in_off;
+					return (addr_t)(_curr_off - _attr.in_off);
 				}
 
 				addr_t _num_remaining_bytes() const
 				{
 					ASSERT(_curr_off >= _attr.in_off && _curr_off <= _attr.in_off + _attr.in_buf_num_bytes);
-					return _attr.in_off + _attr.in_buf_num_bytes - _curr_off;
+					return _attr.in_buf_num_bytes - (size_t)(_curr_off - _attr.in_off);
 				}
 
 				void _generate_sb_control_request(State target_state, bool &progress)
@@ -239,7 +239,7 @@ struct Tresor::Splitter : Noncopyable
 					progress = true;
 				}
 
-				void _advance_curr_off(size_t advance, bool &progress)
+				void _advance_curr_off(uint64_t advance, bool &progress)
 				{
 					_curr_off += advance;
 					if (!_num_remaining_bytes()) {
@@ -299,7 +299,7 @@ struct Tresor::Splitter : Noncopyable
 					case READ_FIRST_VBA: progress |= _execute_read(READ_FIRST_VBA_SUCCEEDED, attr); break;
 					case READ_FIRST_VBA_SUCCEEDED:
 					{
-						size_t num_outside_bytes { _curr_off % BLOCK_SIZE };
+						size_t num_outside_bytes { (size_t)(_curr_off % BLOCK_SIZE) };
 						size_t num_inside_bytes { min(_num_remaining_bytes(), BLOCK_SIZE - num_outside_bytes) };
 						memcpy((void *)((addr_t)&_blk + num_outside_bytes), _attr.in_buf_start, num_inside_bytes);
 						_curr_buf_addr = (addr_t)&_blk;
@@ -309,7 +309,7 @@ struct Tresor::Splitter : Noncopyable
 					case WRITE_FIRST_VBA: progress |= _execute_write(WRITE_FIRST_VBA_SUCCEEDED, attr); break;
 					case WRITE_FIRST_VBA_SUCCEEDED:
 					{
-						size_t num_outside_bytes { _curr_off % BLOCK_SIZE };
+						size_t num_outside_bytes { (size_t)(_curr_off % BLOCK_SIZE) };
 						size_t num_inside_bytes { min(_num_remaining_bytes(), BLOCK_SIZE - num_outside_bytes) };
 						_advance_curr_off(num_inside_bytes, progress);
 						break;

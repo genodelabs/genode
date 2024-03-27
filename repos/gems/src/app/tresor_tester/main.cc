@@ -147,7 +147,7 @@ class Tresor_tester::Benchmark : Noncopyable
 
 			if (_num_virt_blks_read) {
 
-				size_t const bytes_read { _num_virt_blks_read * Tresor::BLOCK_SIZE };
+				uint64_t const bytes_read { _num_virt_blks_read * Tresor::BLOCK_SIZE };
 				double const mibyte_read { (double)bytes_read / (double)(1024 * 1024) };
 				double const mibyte_per_sec_read {
 					(double)bytes_read / (double)passed_time_sec / (double)(1024 * 1024) };
@@ -157,7 +157,7 @@ class Tresor_tester::Benchmark : Noncopyable
 			}
 			if (_num_virt_blks_written) {
 
-				size_t bytes_written { _num_virt_blks_written * Tresor::BLOCK_SIZE };
+				uint64_t bytes_written { _num_virt_blks_written * Tresor::BLOCK_SIZE };
 				double const mibyte_written { (double)bytes_written / (double)(1024 * 1024) };
 				double const mibyte_per_sec_written {
 					(double)bytes_written / (double)passed_time_sec / (double)(1024 * 1024) };

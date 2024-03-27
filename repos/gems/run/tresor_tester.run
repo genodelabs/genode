@@ -47,7 +47,7 @@ proc block_io_vfs_ram_mb { } {
 		return [expr 8 * $bench_mb]
 	}
 	# when benchmarks turned off
-	return 10
+	return 36
 }
 
 proc jent_avail { } {

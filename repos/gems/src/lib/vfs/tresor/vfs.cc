@@ -84,7 +84,7 @@ class Vfs_tresor::Data_operation : private Noncopyable
 		State _state { INIT };
 		bool const _verbose;
 		Generation _generation { };
-		addr_t _seek { };
+		Vfs::file_size _seek { };
 		bool _success { };
 		Constructible<Byte_range_ptr> _dst { };
 		Constructible<Const_byte_range_ptr> _src { };
@@ -92,10 +92,10 @@ class Vfs_tresor::Data_operation : private Noncopyable
 		Constructible<Splitter::Read> _read { };
 		Constructible<Superblock_control::Synchronize> _sync { };
 
-		bool _range_violation(Superblock_control &sb_control, addr_t start, size_t num_bytes) const
+		bool _range_violation(Superblock_control &sb_control, uint64_t start, uint64_t num_bytes) const
 		{
-			addr_t last_byte = num_bytes ? start - 1 + num_bytes : start;
-			addr_t last_file_byte = (sb_control.max_vba() * BLOCK_SIZE) + (BLOCK_SIZE - 1);
+			uint64_t last_byte = num_bytes ? start - 1 + num_bytes : start;
+			uint64_t last_file_byte = (sb_control.max_vba() * BLOCK_SIZE) + (BLOCK_SIZE - 1);
 			return last_byte > last_file_byte;
 		}
 
@@ -103,7 +103,7 @@ class Vfs_tresor::Data_operation : private Noncopyable
 
 		Data_operation(bool verbose) : _verbose(verbose) { }
 
-		Result write(addr_t seek, Const_byte_range_ptr const &src)
+		Result write(Vfs::file_size seek, Const_byte_range_ptr const &src)
 		{
 			switch (_state) {
 			case INIT:
@@ -129,7 +129,7 @@ class Vfs_tresor::Data_operation : private Noncopyable
 			ASSERT_NEVER_REACHED;
 		}
 
-		Result read(addr_t seek, Byte_range_ptr const &dst)
+		Result read(Vfs::file_size seek, Byte_range_ptr const &dst)
 		{
 			switch (_state) {
 			case INIT:
@@ -742,7 +742,7 @@ class Vfs_tresor::Plugin : private Noncopyable, private Client_data_interface, p
 
 		void _wakeup_back_end_services() { _vfs_env.io().commit(); }
 
-		size_t _data_file_size() const { return (_sb_control.max_vba() + 1) * BLOCK_SIZE; }
+		Vfs::file_size _data_file_size() const { return (_sb_control.max_vba() + 1) * BLOCK_SIZE; }
 
 		/********************************
 		 ** Crypto_key_files_interface **
@@ -984,7 +984,7 @@ class Vfs_tresor::Data_file_system : private Noncopyable, public Single_file_sys
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = STAT_ERR_NO_ENTRY;
-			_plugin.with_data_file_size([&] (size_t size) {
+			_plugin.with_data_file_size([&] (Vfs::file_size size) {
 				result = Single_file_system::stat(path, out);
 				out.size = size;
 			});

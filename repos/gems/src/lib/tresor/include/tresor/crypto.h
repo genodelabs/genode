@@ -98,7 +98,7 @@ class Tresor::Crypto::Encrypt : Noncopyable
 
 		Request_helper<Encrypt, State> _helper;
 		Attr const _attr;
-		off_t _offset { };
+		uint64_t _offset { };
 		Constructible<File<State> > _file { };
 
 	public:
@@ -132,7 +132,7 @@ class Tresor::Crypto::Decrypt : Noncopyable
 
 		Request_helper<Decrypt, State> _helper;
 		Attr const _attr;
-		off_t _offset { };
+		uint64_t _offset { };
 		Constructible<File<State> > _file { };
 
 	public:
