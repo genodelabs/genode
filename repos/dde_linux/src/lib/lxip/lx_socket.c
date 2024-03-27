@@ -92,6 +92,7 @@ static enum Errno _genode_errno(int errno)
 	case ETOOMANYREFS:    return GENODE_ETOOMANYREFS;
 	case EUSERS:          return GENODE_EUSERS;
 	case EXDEV:           return GENODE_EXDEV;
+	case ECONNRESET:      return GENODE_ECONNRESET;
 	default:
 		printk("%s:%d unsupported errno %d\n",
 		       __func__, __LINE__, errno);
