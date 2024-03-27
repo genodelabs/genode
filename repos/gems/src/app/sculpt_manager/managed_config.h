@@ -37,7 +37,7 @@ struct Sculpt::Managed_config
 
 	HANDLER &_obj;
 
-	void (HANDLER::*_handle) (Xml_node);
+	void (HANDLER::*_handle) (Xml_node const &);
 
 	/*
 	 * Configuration supplied by the user
@@ -97,7 +97,7 @@ struct Sculpt::Managed_config
 
 	Managed_config(Env &env, Xml_node_name const &xml_node_name,
 	               Rom_name const &rom_name,
-	               HANDLER &obj, void (HANDLER::*handle) (Xml_node))
+	               HANDLER &obj, void (HANDLER::*handle) (Xml_node const &))
 	:
 		_env(env), _obj(obj), _handle(handle),
 		_manual_config_rom(_env, Label("config -> ", rom_name).string()),

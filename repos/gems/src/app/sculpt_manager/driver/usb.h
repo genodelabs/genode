@@ -57,22 +57,19 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 	} _detected { };
 
-	Attached_rom_dataspace _devices { _env, "report -> runtime/usb/devices" };
+	Rom_handler<Usb_driver> _devices {
+		_env, "report -> runtime/usb/devices", *this, &Usb_driver::_handle_devices };
 
-	Signal_handler<Usb_driver> _devices_handler {
-		_env.ep(), *this, &Usb_driver::_handle_devices };
-
-	void _handle_devices()
+	void _handle_devices(Xml_node const &devices)
 	{
-		_devices.update();
-		_detected = Detected::from_xml(_devices.xml());
+		_detected = Detected::from_xml(devices);
 		_action.handle_usb_plug_unplug();
 	}
 
 	Managed_config<Usb_driver> _usb_config {
 		_env, "config", "usb", *this, &Usb_driver::_handle_usb_config };
 
-	void _handle_usb_config(Xml_node config)
+	void _handle_usb_config(Xml_node const &config)
 	{
 		_usb_config.generate([&] (Xml_generator &xml) {
 			copy_attributes(xml, config);
@@ -97,9 +94,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 	:
 		_env(env), _info(info), _action(action)
 	{
-		_devices.sigh(_devices_handler);
 		_usb_config.trigger_update();
-		_devices_handler.local_submit();
 	}
 
 	void gen_start_nodes(Xml_generator &xml) const
@@ -180,7 +175,8 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 	void with_devices(auto const &fn) const
 	{
-		fn(_hcd.constructed() ? _devices.xml() : Xml_node("<none/>"));
+		_devices.with_xml([&] (Xml_node const &devices) {
+			fn(_hcd.constructed() ? devices : Xml_node("<none/>")); });
 	}
 };
 

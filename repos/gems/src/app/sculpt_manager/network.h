@@ -64,14 +64,14 @@ struct Sculpt::Network : Noncopyable
 	unsigned _nic_drv_version  = 0;
 	unsigned _wifi_drv_version = 0;
 
-	Attached_rom_dataspace _wlan_accesspoints_rom {
-		_env, "report -> runtime/wifi/accesspoints" };
+	Rom_handler<Network> _wlan_accesspoints_rom {
+		_env, "report -> runtime/wifi/accesspoints", *this, &Network::_handle_wlan_accesspoints };
 
-	Attached_rom_dataspace _wlan_state_rom {
-		_env, "report -> runtime/wifi/state" };
+	Rom_handler<Network> _wlan_state_rom {
+		_env, "report -> runtime/wifi/state", *this, &Network::_handle_wlan_state };
 
-	Attached_rom_dataspace _nic_router_state_rom {
-		_env, "report -> runtime/nic_router/state" };
+	Rom_handler<Network> _nic_router_state_rom {
+		_env, "report -> runtime/nic_router/state", *this, &Network::_handle_nic_router_state };
 
 	void _generate_nic_router_config();
 
@@ -87,22 +87,13 @@ struct Sculpt::Network : Noncopyable
 
 	void handle_key_press(Codepoint);
 
-	void _handle_wlan_accesspoints();
-	void _handle_wlan_state();
-	void _handle_nic_router_state();
-	void _handle_nic_router_config(Xml_node);
+	void _handle_wlan_accesspoints(Xml_node const &);
+	void _handle_wlan_state(Xml_node const &);
+	void _handle_nic_router_state(Xml_node const &);
+	void _handle_nic_router_config(Xml_node const &);
 
 	Managed_config<Network> _nic_router_config {
 		_env, "config", "nic_router", *this, &Network::_handle_nic_router_config };
-
-	Signal_handler<Network> _wlan_accesspoints_handler {
-		_env.ep(), *this, &Network::_handle_wlan_accesspoints };
-
-	Signal_handler<Network> _wlan_state_handler {
-		_env.ep(), *this, &Network::_handle_wlan_state };
-
-	Signal_handler<Network> _nic_router_state_handler {
-		_env.ep(), *this, &Network::_handle_nic_router_state };
 
 	Wlan_config_policy _wlan_config_policy = Wlan_config_policy::MANAGED;
 
@@ -113,7 +104,7 @@ struct Sculpt::Network : Noncopyable
 	Managed_config<Network> _wlan_config {
 		_env, "config", "wifi", *this, &Network::_handle_wlan_config };
 
-	void _handle_wlan_config(Xml_node)
+	void _handle_wlan_config(Xml_node const &)
 	{
 		if (_wlan_config.try_generate_manually_managed()) {
 			_wlan_config_policy = Wlan_config_policy::MANUAL;
@@ -213,13 +204,6 @@ struct Sculpt::Network : Noncopyable
 		_child_states(child_states),
 		_runtime_config_generator(runtime_config_generator)
 	{
-		/*
-		 * Subscribe to reports
-		 */
-		_wlan_accesspoints_rom.sigh(_wlan_accesspoints_handler);
-		_wlan_state_rom       .sigh(_wlan_state_handler);
-		_nic_router_state_rom .sigh(_nic_router_state_handler);
-
 		/*
 		 * Evaluate and forward initial manually managed config
 		 */

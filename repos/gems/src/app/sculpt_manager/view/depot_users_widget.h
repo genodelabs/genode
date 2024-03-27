@@ -25,7 +25,7 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 {
 	public:
 
-		using Depot_users = Attached_rom_dataspace;
+		using Depot_users = Rom_data;
 		using User        = Depot::Archive::User;
 		using Url         = Depot_url::Url;
 
@@ -215,10 +215,8 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 			return (_selected == _add_id()) ? User() : _selected;
 		}
 
-		void view(Scope<Vbox> &s) const
+		void _view(Scope<Vbox> &s, Xml_node const &depot_users) const
 		{
-			Xml_node const depot_users = _depot_users.xml();
-
 			bool known_pubkey = false;
 
 			s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
@@ -255,6 +253,12 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 			}
 		}
 
+		void view(Scope<Vbox> &s) const
+		{
+			_depot_users.with_xml([&] (Xml_node const &depot_users) {
+				_view(s, depot_users); });
+		}
+
 		bool unfolded() const { return _unfolded || !_selected_user_exists; }
 
 		struct User_properties
@@ -267,14 +271,16 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 		User_properties selected_user_properties() const
 		{
 			User_properties result { };
-			_depot_users.xml().for_each_sub_node([&] (Xml_node const &user) {
-				if (_selected == user.attribute_value("name", User())) {
-					result = {
-						.exists       = true,
-						.download_url = Depot_url::from_string(_url(user)).valid(),
-						.public_key   = user.attribute_value("known_pubkey", false)
-					};
-				}
+			_depot_users.with_xml([&] (Xml_node const &users) {
+				users.for_each_sub_node([&] (Xml_node const &user) {
+					if (_selected == user.attribute_value("name", User())) {
+						result = {
+							.exists       = true,
+							.download_url = Depot_url::from_string(_url(user)).valid(),
+							.public_key   = user.attribute_value("known_pubkey", false)
+						};
+					}
+				});
 			});
 			return result;
 		}
@@ -289,11 +295,13 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 
 		void _add_and_select_new_depot_user(Action &action)
 		{
-			Depot_url const depot_url = _edit_item.depot_url(_depot_users.xml());
-			if (depot_url.valid()) {
-				action.add_depot_url(depot_url);
-				_select_depot_user(depot_url.user);
-			}
+			_depot_users.with_xml([&] (Xml_node const &users) {
+				Depot_url const depot_url = _edit_item.depot_url(users);
+				if (depot_url.valid()) {
+					action.add_depot_url(depot_url);
+					_select_depot_user(depot_url.user);
+				}
+			});
 		}
 
 		void click(Clicked_at const &at, Action &action, auto const &select_fn)
@@ -314,8 +322,9 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 				}
 			}
 
-			_edit_item.propagate(at, _depot_users.xml(), [&] {
-				_add_and_select_new_depot_user(action); });
+			_depot_users.with_xml([&] (Xml_node const &users) {
+				_edit_item.propagate(at, users, [&] {
+					_add_and_select_new_depot_user(action); }); });
 		}
 
 		bool keyboard_needed() const { return _selected == _add_id(); }
@@ -337,9 +346,10 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 			 */
 			_selected_user_exists = false;
 
-			_depot_users.xml().for_each_sub_node([&] (Xml_node const &user) {
-				if (_selected == user.attribute_value("name", User()))
-					_selected_user_exists = true; });
+			_depot_users.with_xml([&] (Xml_node const &users) {
+				users.for_each_sub_node([&] (Xml_node const &user) {
+					if (_selected == user.attribute_value("name", User()))
+						_selected_user_exists = true; }); });
 		}
 };
 

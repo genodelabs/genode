@@ -53,8 +53,8 @@ struct Sculpt::Deploy
 
 	Depot_query &_depot_query;
 
-	Attached_rom_dataspace const &_launcher_listing_rom;
-	Attached_rom_dataspace const &_blueprint_rom;
+	Rom_data const &_launcher_listing_rom;
+	Rom_data const &_blueprint_rom;
 
 	Download_queue &_download_queue;
 
@@ -78,7 +78,8 @@ struct Sculpt::Deploy
 	Expanding_reporter _managed_deploy_config { _env, "config", "deploy_config" };
 
 	/* config obtained from '/config/managed/deploy' */
-	Attached_rom_dataspace _managed_deploy_rom { _env, "config -> managed/deploy" };
+	Rom_handler<Deploy> _managed_deploy_rom {
+		_env, "config -> managed/deploy", *this, &Deploy::_handle_managed_deploy };
 
 	Constructible<Buffered_xml> _template { };
 
@@ -187,7 +188,7 @@ struct Sculpt::Deploy
 	Managed_config<Deploy> _installation {
 		_env, "installation", "installation", *this, &Deploy::_handle_installation };
 
-	void _handle_installation(Xml_node manual_config)
+	void _handle_installation(Xml_node const &manual_config)
 	{
 		_manual_installation_scheduled = manual_config.has_sub_node("archive");
 		handle_deploy();
@@ -201,12 +202,12 @@ struct Sculpt::Deploy
 		    || _download_queue.any_active_download();
 	}
 
-	void handle_deploy();
+	void _handle_managed_deploy(Xml_node const &);
 
-	void _handle_managed_deploy()
+	void handle_deploy()
 	{
-		_managed_deploy_rom.update();
-		handle_deploy();
+		_managed_deploy_rom.with_xml([&] (Xml_node const &managed_deploy) {
+			_handle_managed_deploy(managed_deploy); });
 	}
 
 	/**
@@ -254,9 +255,6 @@ struct Sculpt::Deploy
 
 	void gen_runtime_start_nodes(Xml_generator &, Prio_levels, Affinity::Space) const;
 
-	Signal_handler<Deploy> _managed_deploy_handler {
-		_env.ep(), *this, &Deploy::_handle_managed_deploy };
-
 	void restart()
 	{
 		/* ignore stale query results */
@@ -296,8 +294,8 @@ struct Sculpt::Deploy
 	       Action &action,
 	       Runtime_config_generator &runtime_config_generator,
 	       Depot_query &depot_query,
-	       Attached_rom_dataspace const &launcher_listing_rom,
-	       Attached_rom_dataspace const &blueprint_rom,
+	       Rom_data const &launcher_listing_rom,
+	       Rom_data const &blueprint_rom,
 	       Download_queue &download_queue)
 	:
 		_env(env), _alloc(alloc), _child_states(child_states),
@@ -308,9 +306,7 @@ struct Sculpt::Deploy
 		_launcher_listing_rom(launcher_listing_rom),
 		_blueprint_rom(blueprint_rom),
 		_download_queue(download_queue)
-	{
-		_managed_deploy_rom.sigh(_managed_deploy_handler);
-	}
+	{ }
 };
 
 #endif /* _DEPLOY_H_ */

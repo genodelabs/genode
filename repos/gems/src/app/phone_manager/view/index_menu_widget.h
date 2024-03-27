@@ -25,7 +25,7 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 	public:
 
 		using User  = Depot::Archive::User;
-		using Index = Attached_rom_dataspace;
+		using Index = Rom_data;
 		using Name  = Start_name;
 
 		struct Sub_menu_title : Widget<Left_floating_hbox>
@@ -61,6 +61,12 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 
 		void _reset_selection() { _pkg_selected = false; }
 
+		void _for_each_menu_item(User const &user, auto const &fn) const
+		{
+			_index.with_xml([&] (Xml_node const &index) {
+				_menu.for_each_item(index, user, fn); });
+		}
+
 	public:
 
 		Index_menu_widget(Index const &index) : _index(index) { }
@@ -71,7 +77,7 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 				s.widget(_back, Name { _menu });
 
 			unsigned count = 0;
-			_menu.for_each_item(_index.xml(), user, [&] (Xml_node const &item) {
+			_for_each_menu_item(user, [&] (Xml_node const &item) {
 
 				Id const id { { count } };
 
@@ -110,7 +116,7 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 				Id const clicked = at.matching_id<Vbox, Menu_entry>();
 
 				unsigned count = 0;
-				_menu.for_each_item(_index.xml(), user, [&] (Xml_node const &item) {
+				_for_each_menu_item(user, [&] (Xml_node const &item) {
 
 					if (clicked == Id { { count } }) {
 
@@ -168,7 +174,7 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 				return true;
 
 			bool at_least_one_item_exists = false;
-			_menu.for_each_item(_index.xml(), user, [&] (Xml_node const &) {
+			_for_each_menu_item(user, [&] (Xml_node const &) {
 				at_least_one_item_exists = true; });
 
 			return at_least_one_item_exists;

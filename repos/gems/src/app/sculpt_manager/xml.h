@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/xml_generator.h>
+#include <base/attached_rom_dataspace.h>
 #include <base/log.h>
 
 /* local includes */
@@ -162,6 +163,52 @@ namespace Sculpt {
 				from.for_each_sub_node([&] (Xml_node const &sub_node) {
 					copy_node(xml, sub_node, { max_depth.value - 1 }); }); });
 	}
+
+	struct Rom_data : Noncopyable
+	{
+		protected:
+
+			Xml_node _node { "<empty/>" };
+
+		public:
+
+			void with_xml(auto const &fn) const { fn(_node); }
+
+			bool valid() const { return !_node.has_type("empty"); }
+	};
+
+	template <typename T>
+	class Rom_handler : public Rom_data
+	{
+		private:
+
+			Attached_rom_dataspace _rom;
+
+			T &_obj;
+
+			void (T::*_member) (Xml_node const &);
+
+			Signal_handler<Rom_handler> _handler;
+
+			void _handle()
+			{
+				_rom.update();
+				_node = _rom.xml();
+				(_obj.*_member)(_node);
+			}
+
+		public:
+
+			Rom_handler(Env &env, Session_label const &label,
+			            T &obj, void (T::*member)(Xml_node const &))
+			:
+				_rom(env, label.string()), _obj(obj), _member(member),
+				_handler(env.ep(), *this, &Rom_handler::_handle)
+			{
+				_rom.sigh(_handler);
+				_handler.local_submit();
+			}
+	};
 }
 
 #endif /* _XML_H_ */

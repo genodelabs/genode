@@ -66,11 +66,9 @@ struct Sculpt::Storage_device
 
 	Partitions partitions { };
 
-	Attached_rom_dataspace _partitions {
-		_env, String<80>("report -> runtime/", part_block_start_name(), "/partitions").string() };
-
-	Signal_handler<Storage_device> _partitions_handler {
-		_env.ep(), *this, &Storage_device::_handle_partitions };
+	Rom_handler<Storage_device> _partitions {
+		_env, String<80>("report -> runtime/", part_block_start_name(), "/partitions").string(),
+		*this, &Storage_device::_handle_partitions };
 
 	unsigned _part_block_version = 0;
 
@@ -102,39 +100,37 @@ struct Sculpt::Storage_device
 		_update_partitions_from_xml(Xml_node("<partitions/>"));
 	}
 
-	void _handle_partitions()
-	{
-		_partitions.update();
-		_action.storage_device_discovered();
-	}
+	void _handle_partitions(Xml_node const &) { _action.storage_device_discovered(); }
 
 	void process_partitions()
 	{
-		Xml_node const report = _partitions.xml();
-		if (!report.has_type("partitions"))
-			return;
+		_partitions.with_xml([&] (Xml_node const &report) {
 
-		whole_device = (report.attribute_value("type", String<16>()) == "disk");
+			if (!report.has_type("partitions"))
+				return;
 
-		_update_partitions_from_xml(report);
+			whole_device = (report.attribute_value("type", String<16>()) == "disk");
 
-		/*
-		 * Import whole-device partition information.
-		 *
-		 * Ignore reports that come in while the device is in use. Otherwise,
-		 * the reconstruction of 'whole_device_partition' would wrongly reset
-		 * the partition state such as the 'file_system.inspected' flag.
-		 */
-		if (!whole_device_partition.constructed() || whole_device_partition->idle()) {
-			whole_device_partition.construct(Partition::Args::whole_device(capacity));
-			report.for_each_sub_node("partition", [&] (Xml_node partition) {
-				if (partition.attribute_value("number", Partition::Number()) == "0")
-					whole_device_partition.construct(Partition::Args::from_xml(partition)); });
-		}
+			_update_partitions_from_xml(report);
 
-		/* finish initial discovery phase */
-		if (state == UNKNOWN)
-			state = RELEASED;
+			/*
+			 * Import whole-device partition information.
+			 *
+			 * Ignore reports that come in while the device is in use. Otherwise,
+			 * the reconstruction of 'whole_device_partition' would wrongly reset
+			 * the partition state such as the 'file_system.inspected' flag.
+			 */
+			if (!whole_device_partition.constructed() || whole_device_partition->idle()) {
+				whole_device_partition.construct(Partition::Args::whole_device(capacity));
+				report.for_each_sub_node("partition", [&] (Xml_node partition) {
+					if (partition.attribute_value("number", Partition::Number()) == "0")
+						whole_device_partition.construct(Partition::Args::from_xml(partition)); });
+			}
+
+			/* finish initial discovery phase */
+			if (state == UNKNOWN)
+				state = RELEASED;
+		});
 	}
 
 	Storage_device(Env &env, Allocator &alloc, Driver const &driver,
@@ -142,10 +138,7 @@ struct Sculpt::Storage_device
 	:
 		_env(env), _alloc(alloc), _action(action),
 		driver(driver), port(port), capacity(capacity)
-	{
-		_partitions.sigh(_partitions_handler);
-		_partitions_handler.local_submit();
-	}
+	{ }
 
 	~Storage_device()
 	{

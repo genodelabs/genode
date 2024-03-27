@@ -55,16 +55,12 @@ class Sculpt::Drivers::Instance : Noncopyable,
 
 		Attached_rom_dataspace const _platform { _env, "platform_info" };
 
-		Attached_rom_dataspace _devices { _env, "report -> drivers/devices" };
+		Rom_handler<Instance> _devices {
+			_env, "report -> drivers/devices", *this, &Instance::_handle_devices };
 
-		Signal_handler<Instance> _devices_handler {
-			_env.ep(), *this, &Instance::_handle_devices };
-
-		void _handle_devices()
+		void _handle_devices(Xml_node const &devices)
 		{
-			_devices.update();
-
-			_board_info.detected = Board_info::Detected::from_xml(_devices.xml(),
+			_board_info.detected = Board_info::Detected::from_xml(devices,
 			                                                      _platform.xml());
 
 			_fb_driver   .update(_children, _board_info, _platform.xml());
@@ -77,6 +73,12 @@ class Sculpt::Drivers::Instance : Noncopyable,
 			_nic_driver  .update(_children, _board_info);
 
 			_action.handle_device_plug_unplug();
+		}
+
+		void _handle_devices()
+		{
+			_devices.with_xml([&] (Xml_node const &devices) {
+				_handle_devices(devices); });
 		}
 
 		Ps2_driver   _ps2_driver   { };
@@ -104,10 +106,7 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		Instance(Env &env, Children &children, Info const &info, Action &action)
 		:
 			_env(env), _children(children), _info(info), _action(action)
-		{
-			_devices.sigh(_devices_handler);
-			_devices_handler.local_submit();
-		}
+		{ }
 
 		void update_usb() { _usb_driver.update(_children, _board_info); }
 

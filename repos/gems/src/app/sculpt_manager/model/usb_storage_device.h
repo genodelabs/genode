@@ -51,31 +51,23 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 	/* information provided asynchronously by usb_block_drv */
 	Constructible<Driver_info> driver_info { };
 
-	Attached_rom_dataspace _report {
-		_env, String<80>("report -> runtime/", driver, "/devices").string() };
+	Rom_handler<Usb_storage_device> _report {
+		_env, String<80>("report -> runtime/", driver, "/devices").string(),
+		*this, &Usb_storage_device::_handle_report };
 
-	Signal_handler<Usb_storage_device> _report_handler {
-		_env.ep(), *this, &Usb_storage_device::_handle_report };
-
-	void _handle_report()
-	{
-		_report.update();
-		_action.storage_device_discovered();
-	}
+	void _handle_report(Xml_node const &) { _action.storage_device_discovered(); }
 
 	void process_report()
 	{
-		Xml_node report = _report.xml();
+		_report.with_xml([&] (Xml_node const &report) {
+			report.with_optional_sub_node("device", [&] (Xml_node const &device) {
 
-		if (!report.has_sub_node("device"))
-			return;
+				capacity = Capacity { device.attribute_value("block_count", 0ULL)
+				                    * device.attribute_value("block_size",  0ULL) };
 
-		Xml_node const device = report.sub_node("device");
-
-		capacity = Capacity { device.attribute_value("block_count", 0ULL)
-		                    * device.attribute_value("block_size",  0ULL) };
-
-		driver_info.construct(device);
+				driver_info.construct(device);
+			});
+		});
 	}
 
 	bool usb_block_drv_needed() const
@@ -122,10 +114,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 	:
 		Storage_device(env, alloc, _driver(node), Port { }, Capacity{0}, action),
 		_env(env)
-	{
-		_report.sigh(_report_handler);
-		_report_handler.local_submit();
-	}
+	{ }
 
 	inline void gen_usb_block_drv_start_content(Xml_generator &xml) const;
 

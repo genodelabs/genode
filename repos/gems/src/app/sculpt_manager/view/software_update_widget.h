@@ -27,7 +27,6 @@ struct Sculpt::Software_update_widget : Widget<Vbox>
 {
 	using Depot_users = Depot_users_widget::Depot_users;
 	using User        = Depot_users_widget::User;
-	using Image_index = Attached_rom_dataspace;
 	using Version     = String<16>;
 
 	Build_info const _build_info;
@@ -36,7 +35,6 @@ struct Sculpt::Software_update_widget : Widget<Vbox>
 	Download_queue       const &_download_queue;
 	Index_update_queue   const &_index_update_queue;
 	File_operation_queue const &_file_operation_queue;
-	Image_index          const &_image_index;
 
 	Path _last_installed { };
 	Path _last_selected  { };
@@ -209,14 +207,12 @@ struct Sculpt::Software_update_widget : Widget<Vbox>
 	                       Download_queue       const &download_queue,
 	                       Index_update_queue   const &index_update_queue,
 	                       File_operation_queue const &file_operation_queue,
-	                       Depot_users          const &depot_users,
-	                       Image_index          const &image_index)
+	                       Depot_users          const &depot_users)
 	:
 		_build_info(build_info), _nic_state(nic_state),
 		_download_queue(download_queue),
 		_index_update_queue(index_update_queue),
 		_file_operation_queue(file_operation_queue),
-		_image_index(image_index),
 		_users(Id { "users" }, depot_users, _build_info.depot_user)
 	{ }
 

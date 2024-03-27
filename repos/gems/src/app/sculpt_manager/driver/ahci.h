@@ -29,22 +29,12 @@ struct Sculpt::Ahci_driver : private Noncopyable
 
 	Constructible<Child_state> _ahci { };
 
-	Attached_rom_dataspace _ports { _env, "report -> runtime/ahci/ports" };
+	Rom_handler<Ahci_driver> _ports {
+		_env, "report -> runtime/ahci/ports", *this, &Ahci_driver::_handle_ports };
 
-	Signal_handler<Ahci_driver> _ports_handler {
-		_env.ep(), *this, &Ahci_driver::_handle_ports };
+	void _handle_ports(Xml_node const &) { _action.handle_ahci_discovered(); }
 
-	void _handle_ports()
-	{
-		_ports.update();
-		_action.handle_ahci_discovered();
-	}
-
-	Ahci_driver(Env &env, Action &action) : _env(env), _action(action)
-	{
-		_ports.sigh(_ports_handler);
-		_ports_handler.local_submit();
-	}
+	Ahci_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
 	void gen_start_node(Xml_generator &xml) const
 	{
@@ -81,7 +71,8 @@ struct Sculpt::Ahci_driver : private Noncopyable
 
 	void with_ports(auto const &fn) const
 	{
-		fn(_ahci.constructed() ? _ports.xml() : Xml_node("<none/>"));
+		_ports.with_xml([&] (Xml_node const &ports) {
+			fn(_ahci.constructed() ? ports : Xml_node("<none/>")); });
 	}
 };
 

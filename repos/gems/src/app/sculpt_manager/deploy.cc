@@ -74,10 +74,8 @@ void Sculpt::Deploy::view_diag(Scope<> &s) const
 }
 
 
-void Sculpt::Deploy::handle_deploy()
+void Sculpt::Deploy::_handle_managed_deploy(Xml_node const &managed_deploy)
 {
-	Xml_node const managed_deploy = _managed_deploy_rom.xml();
-
 	/* determine CPU architecture of deployment */
 	Arch const orig_arch = _arch;
 	_arch = managed_deploy.attribute_value("arch", Arch());
@@ -100,26 +98,27 @@ void Sculpt::Deploy::handle_deploy()
 	{
 		bool any_child_affected = false;
 
-		Xml_node const launcher_listing = _launcher_listing_rom.xml();
-		launcher_listing.for_each_sub_node("dir", [&] (Xml_node dir) {
+		_launcher_listing_rom.with_xml([&] (Xml_node const &listing) {
+			listing.for_each_sub_node("dir", [&] (Xml_node const &dir) {
 
-			typedef String<20> Path;
-			Path const path = dir.attribute_value("path", Path());
+				using Path = String<20>;
+				Path const path = dir.attribute_value("path", Path());
 
-			if (path != "/launcher")
-				return;
-
-			dir.for_each_sub_node("file", [&] (Xml_node file) {
-
-				if (file.attribute_value("xml", false) == false)
+				if (path != "/launcher")
 					return;
 
-				typedef Depot_deploy::Child::Launcher_name Name;
-				Name const name = file.attribute_value("name", Name());
+				dir.for_each_sub_node("file", [&] (Xml_node const &file) {
 
-				file.for_each_sub_node("launcher", [&] (Xml_node launcher) {
-					if (_children.apply_launcher(name, launcher))
-						any_child_affected = true; });
+					if (file.attribute_value("xml", false) == false)
+						return;
+
+					typedef Depot_deploy::Child::Launcher_name Name;
+					Name const name = file.attribute_value("name", Name());
+
+					file.for_each_sub_node("launcher", [&] (Xml_node const &launcher) {
+						if (_children.apply_launcher(name, launcher))
+							any_child_affected = true; });
+				});
 			});
 		});
 		return any_child_affected;
@@ -129,18 +128,20 @@ void Sculpt::Deploy::handle_deploy()
 
 	auto apply_blueprint = [&]
 	{
+		bool progress = false;
 		try {
-			Xml_node const blueprint = _blueprint_rom.xml();
+			_blueprint_rom.with_xml([&] (Xml_node const &blueprint) {
 
 			/* apply blueprint, except when stale */
-			typedef String<32> Version;
-			Version const version = blueprint.attribute_value("version", Version());
-			if (version == Version(_depot_query.depot_query_version().value))
-				return _children.apply_blueprint(_blueprint_rom.xml());
+				using Version = String<32>;
+				Version const version = blueprint.attribute_value("version", Version());
+				if (version == Version(_depot_query.depot_query_version().value))
+					progress = _children.apply_blueprint(blueprint);
+			});
 		}
 		catch (...) {
 			error("spurious exception during deploy update (apply_blueprint)"); }
-		return false;
+		return progress;
 	};
 
 	bool const blueprint_affected_child = apply_blueprint();
@@ -184,21 +185,22 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator  &xml,
 	xml.node("start", [&] {
 		gen_depot_query_start_content(xml); });
 
-	Xml_node const managed_deploy = _managed_deploy_rom.xml();
+	_managed_deploy_rom.with_xml([&] (Xml_node const &managed_deploy) {
 
-	/* insert content of '<static>' node as is */
-	if (managed_deploy.has_sub_node("static")) {
-		Xml_node static_config = managed_deploy.sub_node("static");
-		static_config.with_raw_content([&] (char const *start, size_t length) {
-			xml.append(start, length); });
-	}
+		/* insert content of '<static>' node as is */
+		if (managed_deploy.has_sub_node("static")) {
+			Xml_node static_config = managed_deploy.sub_node("static");
+			static_config.with_raw_content([&] (char const *start, size_t length) {
+				xml.append(start, length); });
+		}
 
-	/* generate start nodes for deployed packages */
-	if (managed_deploy.has_sub_node("common_routes")) {
-		_children.gen_start_nodes(xml, managed_deploy.sub_node("common_routes"),
-		                          prio_levels, affinity_space,
-		                          "depot_rom", "dynamic_depot_rom");
-		xml.node("monitor", [&] {
-			_children.gen_monitor_policy_nodes(xml);});
-	}
+		/* generate start nodes for deployed packages */
+		if (managed_deploy.has_sub_node("common_routes")) {
+			_children.gen_start_nodes(xml, managed_deploy.sub_node("common_routes"),
+			                          prio_levels, affinity_space,
+			                          "depot_rom", "dynamic_depot_rom");
+			xml.node("monitor", [&] {
+				_children.gen_monitor_policy_nodes(xml);});
+		}
+	});
 }

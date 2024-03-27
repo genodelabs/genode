@@ -152,17 +152,15 @@ void Sculpt::Network::_generate_nic_router_config()
 }
 
 
-void Sculpt::Network::_handle_wlan_accesspoints()
+void Sculpt::Network::_handle_wlan_accesspoints(Xml_node const &accesspoints)
 {
-	bool const initial_scan = !_wlan_accesspoints_rom.xml().has_sub_node("accesspoint");
-
-	_wlan_accesspoints_rom.update();
+	bool const initial_scan = !accesspoints.has_sub_node("accesspoint");
 
 	/* suppress updating the list while the access-point list is hovered */
 	if (!initial_scan && _info.ap_list_hovered())
 		return;
 
-	_access_points.update_from_xml(_wlan_accesspoints_rom.xml(),
+	_access_points.update_from_xml(accesspoints,
 
 		/* create */
 		[&] (Xml_node const &node) -> Access_point &
@@ -193,20 +191,17 @@ void Sculpt::Network::_handle_wlan_accesspoints()
 }
 
 
-void Sculpt::Network::_handle_wlan_state()
+void Sculpt::Network::_handle_wlan_state(Xml_node const &state)
 {
-	_wlan_state_rom.update();
-	_wifi_connection = Wifi_connection::from_xml(_wlan_state_rom.xml());
+	_wifi_connection = Wifi_connection::from_xml(state);
 	_action.network_config_changed();
 }
 
 
-void Sculpt::Network::_handle_nic_router_state()
+void Sculpt::Network::_handle_nic_router_state(Xml_node const &state)
 {
-	_nic_router_state_rom.update();
-
 	Nic_state const old_nic_state = _nic_state;
-	_nic_state = Nic_state::from_xml(_nic_router_state_rom.xml());
+	_nic_state = Nic_state::from_xml(state);
 
 	if (_nic_state.ipv4 != old_nic_state.ipv4)
 		_action.network_config_changed();
@@ -254,7 +249,7 @@ void Sculpt::Network::_update_nic_target_from_config(Xml_node const &config)
 
 
 
-void Sculpt::Network::_handle_nic_router_config(Xml_node config)
+void Sculpt::Network::_handle_nic_router_config(Xml_node const &config)
 {
 	_update_nic_target_from_config(config);
 	_generate_nic_router_config();

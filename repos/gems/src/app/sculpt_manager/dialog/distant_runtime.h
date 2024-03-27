@@ -20,6 +20,9 @@
 #include <util/color.h>
 #include <dialog/types.h>
 
+/* local includes */
+#include <xml.h>
+
 namespace Dialog { struct Distant_runtime; }
 
 
@@ -116,10 +119,9 @@ class Dialog::Distant_runtime::View : private Views::Element
 		Expanding_reporter _dialog_reporter {
 			_env, "dialog", { _dialog.name, "_dialog" } };
 
-		Attached_rom_dataspace _hover_rom {
-			_env, Session_label::String(_dialog.name, "_view_hover").string() };
-
-		Signal_handler<View> _hover_handler { _env.ep(), *this, &View::_handle_hover };
+		Sculpt::Rom_handler<View> _hover_rom {
+			_env, Session_label::String(_dialog.name, "_view_hover").string(),
+			*this, &View::_handle_hover };
 
 		bool _dialog_hovered = false; /* used to cut hover feedback loop */
 
@@ -129,20 +131,17 @@ class Dialog::Distant_runtime::View : private Views::Element
 		{
 			bool done = false;
 
-			_hover_rom.xml().with_optional_sub_node("dialog", [&] (Xml_node const &dialog) {
-				fn(dialog);
-				done = true; });
+			_hover_rom.with_xml([&] (Xml_node const &hover) {
+				hover.with_optional_sub_node("dialog", [&] (Xml_node const &dialog) {
+					fn(dialog);
+					done = true; }); });
 
 			if (!done)
 				fn(Xml_node("<empty/>"));
 		}
 
-		void _handle_hover()
+		void _handle_hover(Xml_node const &hover)
 		{
-			_hover_rom.update();
-
-			Xml_node const hover = _hover_rom.xml();
-
 			bool const orig_dialog_hovered = _dialog_hovered;
 
 			_hover_seq_number = { hover.attribute_value("seq_number", 0U) };
@@ -241,7 +240,6 @@ class Dialog::Distant_runtime::View : private Views::Element
 			_initial_ram(attr.initial_ram), _opaque(attr.opaque),
 			_background(attr.background)
 		{
-			_hover_rom.sigh(_hover_handler);
 			_refresh_handler.local_submit();
 		}
 

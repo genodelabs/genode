@@ -26,7 +26,7 @@ namespace Sculpt { struct System_dialog; }
 struct Sculpt::System_dialog : Top_level_dialog
 {
 	using Depot_users = Depot_users_widget::Depot_users;
-	using Image_index = Attached_rom_dataspace;
+	using Image_index = Rom_data;
 
 	Presets     const &_presets;
 	Image_index const &_image_index;
@@ -65,7 +65,8 @@ struct Sculpt::System_dialog : Top_level_dialog
 					s.widget(_presets_widget, _presets);
 					break;
 				case Tab::UPDATE:
-					s.widget(_update_widget, _image_index.xml());
+					_image_index.with_xml([&] (Xml_node const &index) {
+						s.widget(_update_widget, index); });
 					s.widget(_version_widget, _build_info);
 					break;
 				};
@@ -107,8 +108,7 @@ struct Sculpt::System_dialog : Top_level_dialog
 		_presets_action(presets_action), _update_action(update_action),
 		_update_widget(Id { "update" },
 		               build_info, nic_state, download_queue,
-		               index_update_queue, file_operation_queue, depot_users,
-		               image_index)
+		               index_update_queue, file_operation_queue, depot_users)
 	{ }
 
 	bool update_tab_selected() const { return _selected_tab == Tab::UPDATE; }

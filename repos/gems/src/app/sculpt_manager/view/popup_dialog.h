@@ -34,7 +34,7 @@ namespace Sculpt { struct Popup_dialog; }
 
 struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 {
-	using Depot_users    = Attached_rom_dataspace;
+	using Depot_users    = Rom_data;
 	using Blueprint_info = Component::Blueprint_info;
 
 	Env &_env;
@@ -234,7 +234,8 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 	{
 		s.sub_scope<Frame>([&] (Scope<Frame> &s) {
 			s.sub_scope<Vbox>([&] (Scope<Frame, Vbox> &s) {
-				_view_menu_elements(s, _depot_users.xml()); }); });
+				_depot_users.with_xml([&] (Xml_node const &users) {
+					_view_menu_elements(s, users); }); }); });
 	}
 
 	void click(Clicked_at const &) override;

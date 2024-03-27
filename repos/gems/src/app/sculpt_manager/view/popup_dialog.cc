@@ -357,9 +357,10 @@ void Popup_dialog::click(Clicked_at const &at)
 	auto with_matching_user = [&] (Id const &id, auto const &fn)
 	{
 		unsigned count = 0;
-		_depot_users.xml().for_each_sub_node("user", [&] (Xml_node const &user) {
-			if (id == user_id(count++))
-				fn(user.attribute_value("name", User())); });
+		_depot_users.with_xml([&] (Xml_node const &users) {
+			users.for_each_sub_node("user", [&] (Xml_node const &user) {
+				if (id == user_id(count++))
+					fn(user.attribute_value("name", User())); }); });
 	};
 
 	State const orig_state = _state;
