@@ -435,7 +435,7 @@ install_config {
 		</provides>
 	</start>
 
-	<start name="nitpicker" caps="1000" priority="0">
+	<start name="nitpicker" caps="1000" priority="-1">
 		<resource name="RAM" quantum="12M"/>
 		<resource name="CPU" quantum="10"/>
 		<provides>
