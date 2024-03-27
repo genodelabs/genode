@@ -8,7 +8,7 @@ mkdir file_vault/dir_1
 echo "Eine weitere Datei." > file_vault/dir_1/file_2
 echo "Mit mehr Inhalt." >> file_vault/dir_1/file_2
 cat file_vault/dir_1/file_2
-echo "Und Sonderzeichen: /§($)=%!" >> file_vault/dir_1/file_2
+echo "Und Sonderzeichen: /.:($)=%!" >> file_vault/dir_1/file_2
 cat file_vault/dir_1/file_2
 ls -la file_vault/
 ls -la file_vault/dir_1

@@ -446,7 +446,7 @@ if {[container_initialized]} {
 [init -> dynamic_init -> log_terminal] Ein zweiter Test.
 [init -> dynamic_init -> log_terminal] Eine weitere Datei.
 [init -> dynamic_init -> log_terminal] Mit mehr Inhalt.
-[init -> dynamic_init -> log_terminal] Und Sonderzeichen: /§($)=%!
+[init -> dynamic_init -> log_terminal] Und Sonderzeichen: /.:($)=%!
 	}
 } else {
 	compare_output_to {
@@ -459,7 +459,7 @@ if {[container_initialized]} {
 [init -> dynamic_init -> log_terminal] Mit mehr Inhalt.
 [init -> dynamic_init -> log_terminal] Eine weitere Datei.
 [init -> dynamic_init -> log_terminal] Mit mehr Inhalt.
-[init -> dynamic_init -> log_terminal] Und Sonderzeichen: /§($)=%!
+[init -> dynamic_init -> log_terminal] Und Sonderzeichen: /.:($)=%!
 [init -> dynamic_init -> log_terminal] total 1
 [init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 dir_1
 [init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 18 Jan  1  1970 file_1
