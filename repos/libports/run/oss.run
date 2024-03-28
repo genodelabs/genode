@@ -11,7 +11,7 @@ if {[have_include "power_on/qemu"]} {
 }
 
 build {
-	core init timer lib/ld lib/libc lib/vfs lib/posix lib/vfs_oss
+	core init timer lib/ld lib/libc lib/vfs lib/posix lib/vfs_legacy_oss
 	drivers/acpi drivers/audio drivers/platform app/pci_decode
 	server/report_rom test/oss
 }
@@ -103,7 +103,7 @@ install_config {
 			<vfs>
 				<dir name="dev">
 					<log/>
-					<oss name="dsp"/>
+					<legacy_oss name="dsp"/>
 				</dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log"/>

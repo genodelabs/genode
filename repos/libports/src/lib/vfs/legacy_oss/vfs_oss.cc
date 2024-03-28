@@ -988,7 +988,7 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 
 	static Name name(Xml_node config)
 	{
-		return config.attribute_value("name", Name("oss"));
+		return config.attribute_value("name", Name("lagacy_oss"));
 	}
 
 	Data_file_system _data_fs;
@@ -1207,7 +1207,7 @@ class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
 			                       *this }
 		{ }
 
-		static const char *name() { return "oss"; }
+		static const char *name() { return "legacy_oss"; }
 
 		char const *type() override { return name(); }
 };

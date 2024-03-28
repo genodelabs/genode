@@ -21,7 +21,7 @@ lappend depot_archives [depot_user]/src/nitpicker
 lappend depot_archives [depot_user]/src/report_rom
 lappend depot_archives [depot_user]/src/vfs_import
 lappend depot_archives [depot_user]/src/vfs_pipe
-lappend depot_archives [depot_user]/src/vfs_oss
+lappend depot_archives [depot_user]/src/vfs_legacy_oss
 lappend depot_archives [depot_user]/src/mesa
 lappend depot_archives [depot_user]/src/expat
 lappend depot_archives [depot_user]/src/libdrm

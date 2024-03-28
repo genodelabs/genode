@@ -53,7 +53,7 @@
 			<config vbox_file="machine.vbox6" xhci="yes" vm_name="linux" capslock="rom" ld_verbose="yes">
 				<vfs>
 					<dir name="dev">
-						<log/> <rtc/> <null/> <gpu/> <zero/> <oss name="dsp"/>
+						<log/> <rtc/> <null/> <gpu/> <zero/> <legacy_oss name="dsp"/>
 					</dir>
 					<dir name="pipe"> <pipe/> </dir>
 					<dir name="shared"> <fs label="shared" writeable="yes"/> </dir>
@@ -113,7 +113,7 @@
 		<rom label="stdcxx.lib.so"/>
 		<rom label="vfs.lib.so"/>
 		<rom label="vfs_gpu.lib.so"/>
-		<rom label="vfs_oss.lib.so"/>
+		<rom label="vfs_legacy_oss.lib.so"/>
 		<rom label="vfs_pipe.lib.so"/>
 		<rom label="virtualbox6-shaderlib.lib.so"/>
 		<rom label="virtualbox6-sharedclipboard.lib.so"/>

@@ -1,9 +1,10 @@
-The VFS OSS plugin offers access to Genode's Audio_out and Audio_in sessions by
-providing a file-system that can be mounted at arbitrary location within the VFS
-of a component. It exposes a data file that can be used as 'dsp' file, e.g.,
-_/dev/dsp_ as is common with OSS. The support I/O control operations or rather the
-properties of the pseudo-device are provided in form of a structured 'info'
-file located in the directory named after the data file, e.g., _/dev/.dsp/info_.
+The legacy VFS OSS plugin offers access to Genode's Audio_out and Audio_in
+sessions by providing a file-system that can be mounted at arbitrary location
+within the VFS of a component. It exposes a data file that can be used as 'dsp'
+file, e.g., _/dev/dsp_ as is common with OSS. The support I/O control
+operations or rather the properties of the pseudo-device are provided in form
+of a structured 'info' file located in the directory named after the data file,
+e.g., _/dev/.dsp/info_.
 
 This file may by used to query the configured parameters and has the following
 structure:
@@ -87,6 +88,6 @@ The following config snippet illustrates its configuration:
 
 ! <vfs>
 !   <dir name="dev">
-!     <oss name="dsp"/>
+!     <legacy_oss name="dsp"/>
 !   </dir>
 ! </vfs>

@@ -1,4 +1,4 @@
-MIRROR_FROM_REP_DIR := lib/mk/vfs_oss.mk src/lib/vfs/oss
+MIRROR_FROM_REP_DIR := lib/mk/vfs_legacy_oss.mk src/lib/vfs/legacy_oss
 
 content: $(MIRROR_FROM_REP_DIR) LICENSE
 

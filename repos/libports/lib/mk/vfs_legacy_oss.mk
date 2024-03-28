@@ -1,6 +1,6 @@
 SRC_CC := vfs_oss.cc
 
-vpath %.cc $(REP_DIR)/src/lib/vfs/oss
+vpath %.cc $(REP_DIR)/src/lib/vfs/legacy_oss
 
 LIBS := libc
 
