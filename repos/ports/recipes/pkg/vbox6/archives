@@ -12,6 +12,6 @@ _/src/stdcxx
 _/src/vbox6
 _/src/vfs
 _/src/vfs_gpu
-_/src/vfs_legacy_oss
+_/src/vfs_oss
 _/src/vfs_pipe
 _/src/zlib
