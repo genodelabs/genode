@@ -1,0 +1,3 @@
+<config>
+	<target driver="ram_fs"/>
+</config>

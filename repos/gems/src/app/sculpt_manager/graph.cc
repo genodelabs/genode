@@ -98,7 +98,7 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 	}
 
 	if (name == "ram_fs")
-		s.widget(_ram_fs_widget, _sculpt_partition, _ram_fs_state);
+		s.widget(_ram_fs_widget, _selected_target, _ram_fs_state);
 
 	String<100> const
 		ram (Capacity{info.assigned_ram - info.avail_ram}, " / ",
@@ -130,7 +130,7 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 
 void Graph::view(Scope<Depgraph> &s) const
 {
-	if (Feature::PRESENT_PLUS_MENU && _sculpt_partition.valid())
+	if (Feature::PRESENT_PLUS_MENU && _selected_target.valid())
 		s.widget(_plus, _popup_state == Popup::VISIBLE);
 
 	/* parent roles */
@@ -185,7 +185,7 @@ void Graph::view(Scope<Depgraph> &s) const
 		Dialog::Id primary_dep = Id { component.primary_dependency };
 
 		if (primary_dep.value == "default_fs_rw")
-			primary_dep = Dialog::Id { _sculpt_partition.fs() };
+			primary_dep = Dialog::Id { _selected_target.fs() };
 
 		/* primary dependency is another component */
 		_runtime_config.with_graph_id(primary_dep,
@@ -222,7 +222,7 @@ void Graph::view(Scope<Depgraph> &s) const
 					return;
 
 				if (dep_name == "default_fs_rw")
-					dep_name = _sculpt_partition.fs();
+					dep_name = _selected_target.fs();
 
 				Dialog::Id dep_id { dep_name };
 
@@ -264,7 +264,7 @@ void Graph::click(Clicked_at const &at, Action &action)
 		action.open_popup_dialog(popup_anchor(at._location));
 	});
 
-	_ram_fs_widget      .propagate(at, _sculpt_partition, action);
+	_ram_fs_widget      .propagate(at, _selected_target, action);
 	_ahci_devices_widget.propagate(at, action);
 	_nvme_devices_widget.propagate(at, action);
 	_mmc_devices_widget .propagate(at, action);

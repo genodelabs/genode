@@ -17,7 +17,8 @@
 using namespace Sculpt;
 
 
-Progress Storage::update(Xml_node const &usb,  Xml_node const &ahci,
+Progress Storage::update(Xml_node const &config,
+                         Xml_node const &usb,  Xml_node const &ahci,
                          Xml_node const &nvme, Xml_node const &mmc)
 {
 	bool progress = false;
@@ -36,48 +37,66 @@ Progress Storage::update(Xml_node const &usb,  Xml_node const &ahci,
 	_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device &dev) {
 		dev.process_report(); });
 
-	if (!_sculpt_partition.valid()) {
+	Storage_target const orig_selected_target   = _selected_target;
+	Storage_target const orig_configured_target = _configured_target;
+
+	config.with_sub_node("target",
+		[&] (Xml_node const &target) {
+			Storage_target const configured_target = Storage_target::from_xml(target);
+			if (configured_target != _configured_target) {
+				_configured_target = configured_target;
+				_malconfiguration = false; } },
+
+		[&] { _configured_target = { }; });
+
+	if (orig_configured_target != _configured_target)
+		_selected_target = { };
+
+	if (!_selected_target.valid()) {
 
 		bool const all_devices_enumerated = !usb .has_type("empty")
 		                                 && !ahci.has_type("empty")
 		                                 && !nvme.has_type("empty")
 		                                 && !mmc .has_type("empty");
 		if (all_devices_enumerated) {
-
-			Storage_target const default_target =
-				_discovery_state.detect_default_target(_storage_devices);
-
-			if (default_target.valid()) {
-				_sculpt_partition = default_target;
-				progress |= true;
-			}
+			if (_configured_target.valid())
+				_selected_target = _malconfiguration ? Storage_target { } : _configured_target;
+			else
+				_selected_target = _discovery_state.detect_default_target(_storage_devices);
 		}
 	}
 
 	/*
 	 * Detect the removal of a USB stick that is currently in "use". Reset
-	 * the '_sculpt_partition' to enable the selection of another storage
+	 * the '_selected_target' to enable the selection of another storage
 	 * target to use.
 	 */
-	else if (_sculpt_partition.valid()) {
+	else if (_selected_target.valid()) {
 
-		bool sculpt_partition_exists = false;
+		bool selected_target_exists = false;
 
-		if (_sculpt_partition.ram_fs())
-			sculpt_partition_exists = true;
+		if (_selected_target.ram_fs())
+			selected_target_exists = true;
 
 		_storage_devices.for_each([&] (Storage_device const &device) {
 			device.for_each_partition([&] (Partition const &partition) {
-				if (device.driver    == _sculpt_partition.driver
-				 && partition.number == _sculpt_partition.partition)
-					sculpt_partition_exists = true; }); });
+				if (device.driver    == _selected_target.driver
+				 && partition.number == _selected_target.partition)
+					selected_target_exists = true; }); });
 
-		if (!sculpt_partition_exists) {
-			warning("sculpt partition unexpectedly vanished");
-			_sculpt_partition = Storage_target { };
-			progress |= true;
+		if (!selected_target_exists) {
+			if (_configured_target.valid()) {
+				warning("configured storage target does not exist");
+				_malconfiguration = true;
+			} else {
+				warning("selected storage target unexpectedly vanished");
+			}
+
+			_selected_target   = { };
 		}
 	}
+
+	progress |= (orig_selected_target != _selected_target);
 
 	return { progress };
 }
@@ -90,11 +109,11 @@ void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 
 	auto contains_used_fs = [&] (Storage_device const &device)
 	{
-		if (!_sculpt_partition.valid())
+		if (!_selected_target.valid())
 			return false;
 
-		return (device.port   == _sculpt_partition.port)
-		    && (device.driver == _sculpt_partition.driver);
+		return (device.port   == _selected_target.port)
+		    && (device.driver == _selected_target.driver);
 	};
 
 	_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device const &device) {
@@ -135,7 +154,7 @@ void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 					gen_resize2fs_start_content(xml, target); }); }
 
 			if (partition.file_system.type != File_system::UNKNOWN) {
-				if (partition.file_system.inspected || target == _sculpt_partition)
+				if (partition.file_system.inspected || target == _selected_target)
 					xml.node("start", [&] {
 						gen_fs_start_content(xml, target, partition.file_system.type); });
 
@@ -144,7 +163,7 @@ void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 				 * to as "default_fs_rw" without the need to know the name of the
 				 * underlying storage target.
 				 */
-				if (target == _sculpt_partition)
+				if (target == _selected_target)
 					gen_named_node(xml, "alias", "default_fs_rw", [&] {
 						xml.attribute("child", target.fs()); });
 			}
@@ -163,7 +182,7 @@ void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 
 	}); /* for each device */
 
-	if (_sculpt_partition.ram_fs())
+	if (_selected_target.ram_fs())
 		gen_named_node(xml, "alias", "default_fs_rw", [&] {
 			xml.attribute("child", "ram_fs"); });
 }

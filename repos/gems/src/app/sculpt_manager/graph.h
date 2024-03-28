@@ -40,7 +40,7 @@ struct Sculpt::Graph : Widget<Depgraph>
 	Runtime_state                &_runtime_state;
 	Runtime_config         const &_runtime_config;
 	Storage_devices        const &_storage_devices;
-	Storage_target         const &_sculpt_partition;
+	Storage_target         const &_selected_target;
 	Ram_fs_state           const &_ram_fs_state;
 	Popup::State           const &_popup_state;
 	Depot_deploy::Children const &_deploy_children;
@@ -56,19 +56,19 @@ struct Sculpt::Graph : Widget<Depgraph>
 
 	Hosted<Depgraph, Frame, Vbox, Frame, Ahci_devices_widget>
 		_ahci_devices_widget { Id { "ahci_devices" },
-		                       _storage_devices, _sculpt_partition };
+		                       _storage_devices, _selected_target };
 
 	Hosted<Depgraph, Frame, Vbox, Frame, Nvme_devices_widget>
 		_nvme_devices_widget { Id { "nvme_devices" },
-		                       _storage_devices, _sculpt_partition };
+		                       _storage_devices, _selected_target };
 
 	Hosted<Depgraph, Frame, Vbox, Frame, Mmc_devices_widget>
 		_mmc_devices_widget { Id { "mmc_devices" },
-		                      _storage_devices, _sculpt_partition };
+		                      _storage_devices, _selected_target };
 
 	Hosted<Depgraph, Frame, Vbox, Frame, Usb_devices_widget>
 		_usb_devices_widget { Id { "usb_devices" },
-		                        _storage_devices, _sculpt_partition };
+		                        _storage_devices, _selected_target };
 
 	bool _storage_selected = false;
 
@@ -79,13 +79,13 @@ struct Sculpt::Graph : Widget<Depgraph>
 	Graph(Runtime_state                &runtime_state,
 	      Runtime_config         const &runtime_config,
 	      Storage_devices        const &storage_devices,
-	      Storage_target         const &sculpt_partition,
+	      Storage_target         const &selected_target,
 	      Ram_fs_state           const &ram_fs_state,
 	      Popup::State           const &popup_state,
 	      Depot_deploy::Children const &deploy_children)
 	:
 		_runtime_state(runtime_state), _runtime_config(runtime_config),
-		_storage_devices(storage_devices), _sculpt_partition(sculpt_partition),
+		_storage_devices(storage_devices), _selected_target(selected_target),
 		_ram_fs_state(ram_fs_state), _popup_state(popup_state),
 		_deploy_children(deploy_children)
 	{ }

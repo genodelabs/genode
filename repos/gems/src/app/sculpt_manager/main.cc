@@ -119,6 +119,13 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_gui_mode();
 
+	Rom_handler<Main> _config { _env, "config", *this, &Main::_handle_config };
+
+	void _handle_config(Xml_node const &)
+	{
+		_handle_storage_devices();
+	}
+
 	Screensaver _screensaver { _env, *this };
 
 	/**
@@ -249,20 +256,22 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_storage_devices()
 	{
-		Storage_target const orig_sculpt_partition = _storage._sculpt_partition;
+		Storage_target const orig_target = _storage._selected_target;
 
 		bool total_progress = false;
 		for (bool progress = true; progress; total_progress |= progress) {
 			progress = false;
 			_drivers.with_storage_devices([&] (Drivers::Storage_devices const &devices) {
-				progress = _storage.update(devices.usb,  devices.ahci,
-				                           devices.nvme, devices.mmc).progress; });
+				_config.with_xml([&] (Xml_node const &config) {
+					progress = _storage.update(config,
+					                           devices.usb,  devices.ahci,
+					                           devices.nvme, devices.mmc).progress; }); });
 
 			/* update USB policies for storage devices */
 			_drivers.update_usb();
 		}
 
-		if (orig_sculpt_partition != _storage._sculpt_partition)
+		if (orig_target != _storage._selected_target)
 			_restart_from_storage_target();
 
 		if (total_progress) {
@@ -381,7 +390,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	bool _update_running() const
 	{
-		return _storage._sculpt_partition.valid()
+		return _storage._selected_target.valid()
 		    && !_prepare_in_progress()
 		    && _network.ready()
 		    && _deploy.update_needed();
@@ -603,7 +612,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	bool system_available() const override
 	{
-		return _storage._sculpt_partition.valid() && !_prepare_in_progress();
+		return _storage._selected_target.valid() && !_prepare_in_progress();
 	}
 
 	struct Diag_dialog : Top_level_dialog
@@ -669,7 +678,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_runtime_state(Xml_node const &);
 
-	Runtime_state _runtime_state { _heap, _storage._sculpt_partition };
+	Runtime_state _runtime_state { _heap, _storage._selected_target };
 
 	Managed_config<Main> _runtime_config {
 		_env, "config", "runtime", *this, &Main::_handle_runtime };
@@ -801,9 +810,14 @@ struct Sculpt::Main : Input_event_handler,
 
 	void use(Storage_target const &target) override
 	{
-		_storage._sculpt_partition = target;
+		Storage_target const orig_target = _storage._selected_target;
+
+		_storage._selected_target = target;
 		_system_dialog.reset_update_widget();
 		_download_queue.reset();
+
+		if (orig_target != _storage._selected_target)
+			_restart_from_storage_target();
 
 		/* hide system panel button and system dialog when "un-using" */
 		_panel_dialog.refresh();
@@ -1394,7 +1408,7 @@ struct Sculpt::Main : Input_event_handler,
 	Popup _popup { };
 
 	Graph _graph { _runtime_state, _cached_runtime_config, _storage._storage_devices,
-	               _storage._sculpt_partition, _storage._ram_fs_state,
+	               _storage._selected_target, _storage._ram_fs_state,
 	               _popup.state, _deploy._children };
 
 	struct Graph_dialog : Dialog::Top_level_dialog
@@ -2049,7 +2063,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	/*
 	 * Load configuration and update depot config on the sculpt partition
 	 */
-	if (_storage._sculpt_partition.valid() && _prepare_in_progress())
+	if (_storage._selected_target.valid() && _prepare_in_progress())
 		xml.node("start", [&] {
 			gen_prepare_start_content(xml, _prepare_version); });
 
@@ -2061,7 +2075,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	 * Spawn chroot instances for accessing '/depot' and '/public'. The
 	 * chroot instances implicitly refer to the 'default_fs_rw'.
 	 */
-	if (_storage._sculpt_partition.valid()) {
+	if (_storage._selected_target.valid()) {
 
 		auto chroot = [&] (Start_name const &name, Path const &path, Writeable w) {
 			xml.node("start", [&] {
@@ -2076,7 +2090,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	}
 
 	/* execute file operations */
-	if (_storage._sculpt_partition.valid())
+	if (_storage._selected_target.valid())
 		if (_file_operation_queue.any_operation_in_progress())
 			xml.node("start", [&] {
 				gen_fs_tool_start_content(xml, _fs_tool_version,
@@ -2088,7 +2102,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.node("start", [&] {
 			gen_update_start_content(xml); });
 
-	if (_storage._sculpt_partition.valid() && !_prepare_in_progress()) {
+	if (_storage._selected_target.valid() && !_prepare_in_progress()) {
 		xml.node("start", [&] {
 			gen_launcher_query_start_content(xml); });
 

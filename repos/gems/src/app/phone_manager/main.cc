@@ -255,6 +255,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_config(Xml_node const &config)
 	{
+		_handle_storage_devices();
+
 		_verbose_modem = config.attribute_value("verbose_modem", false);
 	}
 
@@ -303,20 +305,22 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_storage_devices()
 	{
-		Storage_target const orig_sculpt_partition = _storage._sculpt_partition;
+		Storage_target const orig_target = _storage._selected_target;
 
 		bool total_progress = false;
 		for (bool progress = true; progress; total_progress |= progress) {
 			progress = false;
 			_drivers.with_storage_devices([&] (Drivers::Storage_devices const &devices) {
-				progress = _storage.update(devices.usb,  devices.ahci,
-				                           devices.nvme, devices.mmc).progress; });
+				_config.with_xml([&] (Xml_node const &config) {
+					progress = _storage.update(config,
+					                           devices.usb,  devices.ahci,
+					                           devices.nvme, devices.mmc).progress; }); });
 
 			/* update USB policies for storage devices */
 			_drivers.update_usb();
 		}
 
-		if (orig_sculpt_partition != _storage._sculpt_partition)
+		if (orig_target != _storage._selected_target)
 			_restart_from_storage_target();
 
 		if (total_progress) {
@@ -410,7 +414,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	bool _update_running() const
 	{
-		return _storage._sculpt_partition.valid()
+		return _storage._selected_target.valid()
 		    && !_prepare_in_progress()
 		    && _network.ready()
 		    && _deploy.update_needed();
@@ -750,7 +754,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Conditional_widget<Storage_widget> _storage_widget {
 		Conditional_widget<Storage_widget>::Attr { .centered = true },
-		Id { "storage dialog" }, _storage._storage_devices, _storage._sculpt_partition };
+		Id { "storage dialog" }, _storage._storage_devices, _storage._selected_target };
 
 	/*
 	 * Network section
@@ -797,7 +801,7 @@ struct Sculpt::Main : Input_event_handler,
 	Conditional_widget<Graph>
 		_graph { Id { "graph" },
 		         _runtime_state, _cached_runtime_config, _storage._storage_devices,
-		         _storage._sculpt_partition, _storage._ram_fs_state,
+		         _storage._selected_target, _storage._ram_fs_state,
 		         _popup.state, _deploy._children };
 
 	Conditional_widget<Network_widget>
@@ -897,28 +901,28 @@ struct Sculpt::Main : Input_event_handler,
 				_software_title_bar.view_status(s, _software_status_message()); });
 
 			s.widget(_software_tabs_widget, _software_title_bar.selected(),
-			         _storage._sculpt_partition, _presets, _software_status_available());
+			         _storage._selected_target, _presets, _software_status_available());
 
 			s.widget(_graph, _software_title_bar.selected()
 			              && _software_tabs_widget.hosted.runtime_selected());
 
 			s.widget(_software_presets_widget, _software_title_bar.selected()
 			                                && _software_tabs_widget.hosted.presets_selected()
-			                                && _storage._sculpt_partition.valid(),
+			                                && _storage._selected_target.valid(),
 			         _presets);
 
 			s.widget(_software_options_widget, _software_title_bar.selected()
 			                                && _software_tabs_widget.hosted.options_selected()
-			                                && _storage._sculpt_partition.valid());
+			                                && _storage._selected_target.valid());
 
 			s.widget(_software_add_widget, _software_title_bar.selected()
 			                            && _software_tabs_widget.hosted.add_selected()
-			                            && _storage._sculpt_partition.valid());
+			                            && _storage._selected_target.valid());
 
 			_image_index_rom.with_xml([&] (Xml_node const &image_index) {
 				s.widget(_software_update_widget, _software_title_bar.selected()
 				                               && _software_tabs_widget.hosted.update_selected()
-				                               && _storage._sculpt_partition.valid(),
+				                               && _storage._selected_target.valid(),
 				         image_index);
 			});
 
@@ -966,7 +970,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_runtime_state(Xml_node const &);
 
-	Runtime_state _runtime_state { _heap, _storage._sculpt_partition };
+	Runtime_state _runtime_state { _heap, _storage._selected_target };
 
 	Managed_config<Main> _runtime_config {
 		_env, "config", "runtime", *this, &Main::_handle_runtime };
@@ -1314,9 +1318,15 @@ struct Sculpt::Main : Input_event_handler,
 
 	void use(Storage_target const &target) override
 	{
-		_storage._sculpt_partition = target;
+		Storage_target const orig_target = _storage._selected_target;
+
+		_storage._selected_target = target;
 		_software_update_widget.hosted.reset();
 		_download_queue.reset();
+
+		if (orig_target != _storage._selected_target)
+			_restart_from_storage_target();
+
 		generate_runtime_config();
 	}
 
@@ -2382,7 +2392,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	/*
 	 * Load configuration and update depot config on the sculpt partition
 	 */
-	if (_storage._sculpt_partition.valid() && _prepare_in_progress())
+	if (_storage._selected_target.valid() && _prepare_in_progress())
 		xml.node("start", [&] {
 			gen_prepare_start_content(xml, _prepare_version); });
 
@@ -2390,7 +2400,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	 * Spawn chroot instances for accessing '/depot' and '/public'. The
 	 * chroot instances implicitly refer to the 'default_fs_rw'.
 	 */
-	if (_storage._sculpt_partition.valid()) {
+	if (_storage._selected_target.valid()) {
 
 		auto chroot = [&] (Start_name const &name, Path const &path, Writeable w) {
 			xml.node("start", [&] {
@@ -2405,7 +2415,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	}
 
 	/* execute file operations */
-	if (_storage._sculpt_partition.valid())
+	if (_storage._selected_target.valid())
 		if (_file_operation_queue.any_operation_in_progress())
 			xml.node("start", [&] {
 				gen_fs_tool_start_content(xml, _fs_tool_version,
@@ -2417,7 +2427,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.node("start", [&] {
 			gen_update_start_content(xml); });
 
-	if (_storage._sculpt_partition.valid() && !_prepare_in_progress()) {
+	if (_storage._selected_target.valid() && !_prepare_in_progress()) {
 		xml.node("start", [&] {
 			gen_launcher_query_start_content(xml); });
 

@@ -28,6 +28,15 @@ struct Sculpt::Storage_target
 	Storage_device::Port   port;
 	Partition::Number      partition;
 
+	static Storage_target from_xml(Xml_node const &target)
+	{
+		return {
+			.driver    = target.attribute_value("driver",    Storage_device::Driver()),
+			.port      = target.attribute_value("port",      Storage_device::Port()),
+			.partition = target.attribute_value("partition", Partition::Number())
+		};
+	}
+
 	bool operator == (Storage_target const &other) const
 	{
 		return (driver    == other.driver)

@@ -31,13 +31,17 @@ struct Sculpt::Storage : Noncopyable
 
 	Ram_fs_state _ram_fs_state;
 
-	Storage_target _sculpt_partition { };
+	Storage_target _configured_target { },
+	               _selected_target   { };
+
+	bool _malconfiguration = false;
 
 	Discovery_state _discovery_state { };
 
 	Inspect_view_version _inspect_view_version { 0 };
 
-	Progress update(Xml_node const &usb_devices,     Xml_node const &ahci_ports,
+	Progress update(Xml_node const &config,
+	                Xml_node const &usb_devices,     Xml_node const &ahci_ports,
 	                Xml_node const &nvme_namespaces, Xml_node const &mmc_devices);
 
 	/*

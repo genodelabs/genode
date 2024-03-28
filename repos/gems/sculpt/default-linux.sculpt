@@ -2,6 +2,7 @@
 drivers: linux
 deploy:  example
 ram_fs:  depot
+manager: use_ram_fs
 
 # selection of launcher-menu entries
 launcher: sticks_blue_backdrop nano3d system_shell
