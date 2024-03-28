@@ -1,0 +1,15 @@
+<runtime ram="8M" caps="100" binary="rom_osci">
+
+	<requires> <gui/> <rom label="recording"/> </requires>
+
+	<config width="640" height="480" xpos="200" ypos="100" fps="20" v_scale="0.5" phase_lock="yes">
+		<channel label="left"       color="#ff6633" v_pos="0.2"/>
+		<channel label="right"      color="#cc7777" v_pos="0.4"/>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="rom_osci"/>
+	</content>
+
+</runtime>
