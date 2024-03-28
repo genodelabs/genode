@@ -1,0 +1,16 @@
+<runtime ram="8M" caps="100" binary="record_rom">
+
+	<provides> <rom/> </provides>
+	<requires> <record/> </requires>
+
+	<config period_ms="10" sample_rate_hz="44100">
+		<record label="left"/>
+		<record label="right"/>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="record_rom"/>
+	</content>
+
+</runtime>
