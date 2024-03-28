@@ -915,9 +915,14 @@ struct Sculpt::Main : Input_event_handler,
 			                                && _software_tabs_widget.hosted.options_selected()
 			                                && _storage._selected_target.valid());
 
-			s.widget(_software_add_widget, _software_title_bar.selected()
-			                            && _software_tabs_widget.hosted.add_selected()
-			                            && _storage._selected_target.valid());
+			{
+				using Attr = Software_add_widget::Attr;
+				s.widget(_software_add_widget, _software_title_bar.selected()
+				                            && _software_tabs_widget.hosted.add_selected()
+				                            && _storage._selected_target.valid(),
+				         Attr { .visible_frames     = true,
+				                .left_aligned_items = false });
+			}
 
 			_image_index_rom.with_xml([&] (Xml_node const &image_index) {
 				s.widget(_software_update_widget, _software_title_bar.selected()

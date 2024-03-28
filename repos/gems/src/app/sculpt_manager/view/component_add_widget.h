@@ -14,6 +14,7 @@
 #ifndef _VIEW__COMPONENT_ADD_WIDGET_H_
 #define _VIEW__COMPONENT_ADD_WIDGET_H_
 
+#include <model/capacity.h>
 #include <view/index_menu_widget.h>
 #include <view/pd_route_widget.h>
 #include <view/resource_widget.h>
@@ -166,6 +167,10 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 		_back.propagate(at, [&] { leave_fn(); });
 
 		_launch.propagate(at);
+
+		if (at.matching_id<Vbox, Frame, Debug_widget>() == Id { "debug" })
+			action.apply_to_construction([&] (Component &component) {
+				_debug.propagate(at, component); });
 
 		Id const route_id = at.matching_id<Vbox, Frame, Vbox, Menu_entry>();
 

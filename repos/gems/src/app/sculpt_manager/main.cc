@@ -64,16 +64,15 @@ struct Sculpt::Main : Input_event_handler,
                       Network::Info,
                       Graph::Action,
                       Panel_dialog::Action,
-                      Popup_dialog::Action,
                       Network_widget::Action,
                       Settings_widget::Action,
                       Software_presets_widget::Action,
                       Software_update_widget::Action,
                       File_browser_dialog::Action,
-                      Popup_dialog::Construction_info,
+                      Popup_dialog::Action,
+                      Component::Construction_info,
                       Depot_query,
                       Panel_dialog::State,
-                      Popup_dialog::Refresh,
                       Screensaver::Action,
                       Drivers::Info,
                       Drivers::Action
@@ -414,6 +413,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Depot::Archive::User _image_index_user = _build_info.depot_user;
 
+	Depot::Archive::User _index_user = _build_info.depot_user;
+
 	Expanding_reporter _depot_query_reporter { _env, "query", "depot_query"};
 
 	/**
@@ -442,13 +443,19 @@ struct Sculpt::Main : Input_event_handler,
 				xml.attribute("arch",    _deploy._arch);
 				xml.attribute("version", _query_version.value);
 
-				if (_popup_dialog.depot_query_needs_users())
+				bool const query_users = _popup_dialog.watches_depot()
+				                      || _system_dialog_watches_depot()
+				                      || !_scan_rom.valid();
+				if (query_users)
 					xml.node("scan", [&] {
 						xml.attribute("users", "yes"); });
 
-				if (_system_dialog_watches_depot() || !_scan_rom.valid())
-					xml.node("scan", [&] {
-						xml.attribute("users", "yes"); });
+				if (_popup_dialog.watches_depot() || !_image_index_rom.valid())
+					xml.node("index", [&] {
+						xml.attribute("user",    _index_user);
+						xml.attribute("version", _sculpt_version);
+						xml.attribute("content", "yes");
+					});
 
 				if (_system_dialog_watches_depot() || !_image_index_rom.valid())
 					xml.node("image_index", [&] {
@@ -457,8 +464,9 @@ struct Sculpt::Main : Input_event_handler,
 						xml.attribute("user",  _image_index_user);
 					});
 
-				_scan_rom.with_xml([&] (Xml_node const &scan) {
-					_popup_dialog.gen_depot_query(xml, scan); });
+				_runtime_state.with_construction([&] (Component const &component) {
+					xml.node("blueprint", [&] {
+						xml.attribute("pkg", component.path); }); });
 
 				/* update query for blueprints of all unconfigured start nodes */
 				_deploy.gen_depot_query(xml);
@@ -482,6 +490,29 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 
+	/******************
+	 ** Browse index **
+	 ******************/
+
+	Rom_handler<Main> _index_rom {
+		_env, "report -> runtime/depot_query/index", *this, &Main::_handle_index };
+
+	void _handle_index(Xml_node const &)
+	{
+		if (_popup_dialog.watches_depot())
+			_popup_dialog.refresh();
+	}
+
+	/**
+	 * Software_add_widget::Action interface
+	 */
+	void query_index(Depot::Archive::User const &user) override
+	{
+		_index_user = user;
+		trigger_depot_query();
+	}
+
+
 	/*********************
 	 ** Blueprint query **
 	 *********************/
@@ -502,9 +533,10 @@ struct Sculpt::Main : Input_event_handler,
 			return;
 
 		_runtime_state.apply_to_construction([&] (Component &component) {
-			_popup_dialog.apply_blueprint(component, blueprint); });
+			component.try_apply_blueprint(blueprint); });
 
 		_deploy.handle_deploy();
+		_popup_dialog.refresh();
 	}
 
 
@@ -519,8 +551,9 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_scan(Xml_node const &)
 	{
-		_popup_dialog.depot_users_scan_updated();
 		_system_dialog.sanitize_user_selection();
+		_popup_dialog.sanitize_user_selection();
+		_popup_dialog.refresh();
 	}
 
 	Rom_handler<Main> _image_index_rom {
@@ -734,7 +767,8 @@ struct Sculpt::Main : Input_event_handler,
 	 ****************************/
 
 	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase,
-	                                 *this, _system_dialog, _system_visible };
+	                                 *this, _system_dialog, _system_visible,
+	                                 _popup_dialog, _popup };
 
 	struct Keyboard_focus_guard
 	{
@@ -786,14 +820,18 @@ struct Sculpt::Main : Input_event_handler,
 		ev.handle_press([&] (Input::Keycode, Codepoint code) {
 			if (_keyboard_focus.target == Keyboard_focus::WPA_PASSPHRASE)
 				_network.handle_key_press(code);
+			if (_keyboard_focus.target == Keyboard_focus::POPUP)
+				_popup_dialog.handle_key(code, *this);
 			else if (_system_visible && _system_dialog.keyboard_needed())
 				_system_dialog.handle_key(code, *this);
 
 			need_generate_dialog = true;
 		});
 
-		if (need_generate_dialog)
+		if (need_generate_dialog) {
 			_generate_dialog();
+			_popup_dialog.refresh();
+		}
 	}
 
 	/*
@@ -994,6 +1032,41 @@ struct Sculpt::Main : Input_event_handler,
 			_file_operation_queue.schedule_next_operations();
 
 		generate_runtime_config();
+	}
+
+	/**
+	 * Software_add_dialog::Action interface
+	 */
+	void update_sculpt_index(Depot::Archive::User const &user, Verify verify) override
+	{
+		_download_queue.remove_inactive_downloads();
+		_index_update_queue.remove_inactive_updates();
+		_index_update_queue.add(Path(user, "/index/", _sculpt_version), verify);
+		generate_runtime_config();
+	}
+
+	/**
+	 * Popup_options_widget::Action interface
+	 */
+	void enable_optional_component(Path const &launcher) override
+	{
+		_runtime_state.launch(launcher, launcher);
+
+		/* trigger change of the deployment */
+		_deploy.update_managed_deploy_config();
+		_download_queue.remove_inactive_downloads();
+	}
+
+	/**
+	 * Popup_options_widget::Action interface
+	 */
+	void disable_optional_component(Path const &launcher) override
+	{
+		_runtime_state.abandon(launcher);
+
+		/* update config/managed/deploy with the component 'name' removed */
+		_deploy.update_managed_deploy_config();
+		_download_queue.remove_inactive_downloads();
 	}
 
 	/*
@@ -1254,7 +1327,6 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		/* close popup menu */
 		_popup.state = Popup::OFF;
-		_popup_dialog.reset();
 		_popup_dialog.refresh();
 
 		/* remove popup window from window layout */
@@ -1264,29 +1336,30 @@ struct Sculpt::Main : Input_event_handler,
 		_graph_view.refresh();
 	}
 
-	/*
-	 * Popup_dialog::Action interface
-	 */
-	void launch_global(Path const &launcher) override
+	void new_construction(Component::Path const &pkg, Verify verify,
+	                      Component::Info const &info) override
 	{
-		_runtime_state.launch(launcher, launcher);
-
-		_close_popup_dialog();
-
-		/* trigger change of the deployment */
-		_download_queue.remove_inactive_downloads();
-		_deploy.update_managed_deploy_config();
+		_runtime_state.new_construction(pkg, verify, info, _affinity_space);
+		trigger_depot_query();
 	}
 
-	Start_name new_construction(Component::Path const &pkg, Verify verify,
-	                            Component::Info const &info) override
-	{
-		return _runtime_state.new_construction(pkg, verify, info, _affinity_space);
-	}
-
-	void _apply_to_construction(Popup_dialog::Action::Apply_to &fn) override
+	void _apply_to_construction(Component::Construction_action::Apply_to &fn) override
 	{
 		_runtime_state.apply_to_construction([&] (Component &c) { fn.apply_to(c); });
+	}
+
+	/**
+	 * Component::Construction_action interface
+	 */
+	void trigger_pkg_download() override
+	{
+		_runtime_state.apply_to_construction([&] (Component &c) {
+			_download_queue.add(c.path, c.verify); });
+
+		/* incorporate new download-queue content into update */
+		_deploy.update_installation();
+
+		generate_runtime_config();
 	}
 
 	void discard_construction() override { _runtime_state.discard_construction(); }
@@ -1301,37 +1374,10 @@ struct Sculpt::Main : Input_event_handler,
 		_deploy.update_managed_deploy_config();
 	}
 
-	void trigger_download(Path const &path, Verify verify) override
-	{
-		_download_queue.remove_inactive_downloads();
-		_download_queue.add(path, verify);
-
-		/* incorporate new download-queue content into update */
-		_deploy.update_installation();
-
-		generate_runtime_config();
-		_generate_dialog();
-	}
-
-	void remove_index(Depot::Archive::User const &user) override
-	{
-		auto remove = [&] (Path const &path) {
-			_file_operation_queue.remove_file(path); };
-
-		remove(Path("/rw/depot/",  user, "/index/", _sculpt_version));
-		remove(Path("/rw/public/", user, "/index/", _sculpt_version, ".xz"));
-		remove(Path("/rw/public/", user, "/index/", _sculpt_version, ".xz.sig"));
-
-		if (!_file_operation_queue.any_operation_in_progress())
-			_file_operation_queue.schedule_next_operations();
-
-		generate_runtime_config();
-	}
-
 	/**
-	 * Popup_dialog::Construction_info interface
+	 * Component::Construction_info interface
 	 */
-	void _with_construction(Popup_dialog::Construction_info::With const &fn) const override
+	void _with_construction(Component::Construction_info::With const &fn) const override
 	{
 		_runtime_state.with_construction([&] (Component const &c) { fn.with(c); });
 	}
@@ -1346,20 +1392,17 @@ struct Sculpt::Main : Input_event_handler,
 
 	Dialog_view<Diag_dialog> _diag_dialog { _dialog_runtime, *this, _heap };
 
-	Dialog_view<Popup_dialog> _popup_dialog { _dialog_runtime, _env, *this, *this,
+	Dialog_view<Popup_dialog> _popup_dialog { _dialog_runtime, *this,
+	                                          _build_info, _sculpt_version,
 	                                          _launchers, _network._nic_state,
-	                                          _network._nic_target, _runtime_state,
-	                                          _cached_runtime_config, _download_queue,
-	                                          _scan_rom, *this, *this };
+	                                          _index_update_queue, _index_rom,
+	                                          _download_queue, _runtime_state,
+	                                          _cached_runtime_config, _scan_rom,
+	                                          *this };
 
 	Dialog_view<File_browser_dialog> _file_browser_dialog { _dialog_runtime,
 	                                                        _cached_runtime_config,
 	                                                        _file_browser_state, *this };
-
-	/**
-	 * Popup_dialog::Refresh interface
-	 */
-	void refresh_popup_dialog() override { _popup_dialog.refresh(); }
 
 	Managed_config<Main> _fb_drv_config {
 		_env, "config", "fb_drv", *this, &Main::_handle_fb_drv_config };
@@ -1958,14 +2001,7 @@ void Sculpt::Main::_handle_runtime_state(Xml_node const &state)
 					_deploy.update_installation();
 
 				/* update depot-user selection after adding new depot URL */
-				if (_system_visible)
-					trigger_depot_query();
-
-				/*
-				 * The removal of an index file may have completed, re-query index
-				 * files to reflect this change at the depot selection menu.
-				 */
-				if (_popup_dialog.interested_in_file_operations())
+				if (_system_visible || (_popup.state == Popup::VISIBLE))
 					trigger_depot_query();
 			}
 		}

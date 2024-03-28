@@ -18,6 +18,7 @@
 #include <model/nic_state.h>
 #include <model/index_update_queue.h>
 #include <model/index_menu.h>
+#include <model/sculpt_version.h>
 #include <view/depot_users_widget.h>
 #include <view/index_menu_widget.h>
 #include <view/index_pkg_widget.h>
@@ -109,7 +110,7 @@ struct Sculpt::Software_add_widget : Widget_interface<Vbox>
 					if (component.path == pkg_path)
 						pkg_selected = true; });
 
-				label = { Pretty(label), "(", Depot::Archive::version(pkg_path), ")",
+				label = { Pretty(label), " (", Depot::Archive::version(pkg_path), ")",
 				          pkg_installing ? " installing... " : "... " };
 			}
 
@@ -134,9 +135,14 @@ struct Sculpt::Software_add_widget : Widget_interface<Vbox>
 
 	Hosted<Vbox, Frame, Vbox, Float, Operation_button> _check { Id { "check" } };
 
-	void view(Scope<Vbox> &s) const
+	struct Attr { bool visible_frames, left_aligned_items; };
+
+	void view(Scope<Vbox> &s, Attr const attr) const
 	{
 		s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
+			if (!attr.visible_frames)
+				s.attribute("style", "invisible");
+
 			s.sub_scope<Vbox>([&] (Scope<Vbox, Frame, Vbox> &s) {
 				s.widget(_users);
 
@@ -163,18 +169,25 @@ struct Sculpt::Software_add_widget : Widget_interface<Vbox>
 		if (_users.unfolded())
 			return;
 
-		s.sub_scope<Vgap>();
+		if (attr.visible_frames)
+			s.sub_scope<Vgap>();
 
 		User const user = _users.selected();
 		if (!_component_add_widget_visible() && !_menu.anything_visible(user))
 			return;
 
+		bool const resource_dialog = _component_add_widget_visible();
+
 		s.sub_scope<Float>([&] (Scope<Vbox, Float> &s) {
+			if (attr.left_aligned_items && !resource_dialog)
+				s.attribute("west", "yes");
 			s.sub_scope<Frame>([&] (Scope<Vbox, Float, Frame> &s) {
+				if (!attr.visible_frames)
+					s.attribute("style", "invisible");
 				s.sub_scope<Vbox>([&] (Scope<Vbox, Float, Frame, Vbox> &s) {
 					s.sub_scope<Min_ex>(35);
 
-					if (_component_add_widget_visible())
+					if (resource_dialog)
 						_construction_info.with_construction([&] (Component const &component) {
 							s.widget(_component_add, component); });
 

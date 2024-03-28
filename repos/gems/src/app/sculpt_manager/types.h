@@ -15,6 +15,7 @@
 #define _TYPES_H_
 
 #include <util/list_model.h>
+#include <util/xml_generator.h>
 #include <base/env.h>
 #include <base/attached_rom_dataspace.h>
 #include <platform_session/platform_session.h>

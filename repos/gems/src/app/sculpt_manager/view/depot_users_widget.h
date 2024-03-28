@@ -17,6 +17,7 @@
 #include <view/dialog.h>
 #include <view/text_entry_field.h>
 #include <model/depot_url.h>
+#include <xml.h>
 
 namespace Sculpt { struct Depot_users_widget; }
 
