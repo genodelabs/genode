@@ -228,8 +228,9 @@
 				<binary name="sculpt_manager"/>
 				<resource name="RAM" quantum="3M"/>
 				<provides> <service name="Gui"/> </provides>
-				<config/>
 				<route>
+					<service name="ROM" label="config">
+						<parent label="config -> manager"/> </service>
 					<service name="Report" label="runtime_config">
 						<child name="config_fs_report" label="managed -> runtime"/> </service>
 					<service name="Report" label="deploy_config">

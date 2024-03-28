@@ -1,5 +1,6 @@
 drivers:      phone_linux
 leitzentrale: phone
+manager:      phone
 nitpicker:    phone
 fonts:        phone
 event_filter: phone_linux

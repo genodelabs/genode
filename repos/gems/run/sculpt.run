@@ -750,6 +750,7 @@ set required_configs {
 	usb
 	system
 	ram_fs
+	manager
 }
 
 foreach config $required_configs {
