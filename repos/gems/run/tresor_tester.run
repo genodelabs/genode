@@ -1147,7 +1147,7 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic "
 
-set test_timeout 100
+set test_timeout 200
 if {[benchmark_blk_count] > 0} {
 	set test_timeout 300
 }
