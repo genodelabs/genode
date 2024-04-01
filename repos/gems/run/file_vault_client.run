@@ -126,7 +126,7 @@ if {[container_initialized]} { append config "
 }
 append config {
 					</inline>
-					<sleep milliseconds="12000"/>
+					<sleep milliseconds="20000"/>
 					<inline>
 
 						<ui_config version="step_3_lock"/>
