@@ -1,3 +1,8 @@
+if {[have_spec riscv]} {
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0
+}
+
 proc jent_avail { } {
 	if {[have_board pbxa9]} { return 0 }
 	if {[have_board zynq_qemu]} { return 0 }
