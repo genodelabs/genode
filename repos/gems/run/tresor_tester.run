@@ -153,7 +153,7 @@ if {[have_board linux]} {
 
 	append config {
 
-		<start name="block_io_fs" caps="100">
+		<start name="block_io_fs" caps="400">
 			<binary name="vfs"/>
 			<resource name="RAM" quantum="} [block_io_vfs_ram_mb] {M"/>
 			<provides><service name="File_system"/></provides>
