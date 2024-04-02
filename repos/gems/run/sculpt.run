@@ -201,7 +201,7 @@ proc log_core_start_node { } {
 	if {[have_board linux]} return
 
 	return {
-	<start name="log_core">
+	<start name="log_core" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<config period_ms="2000"/>
 		<route>
@@ -219,7 +219,7 @@ proc log_kernel_start_node { } {
 	if {![have_spec nova]} return
 
 	return {
-	<start name="log_kernel">
+	<start name="log_kernel" priority="-1">
 		<binary name="log_core"/>
 		<resource name="RAM" quantum="1M"/>
 		<config period_ms="2000"/>
@@ -264,7 +264,7 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_rom" priority="0">
+	<start name="report_rom" priority="-1">
 		<binary name="report_rom"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
@@ -295,14 +295,14 @@ install_config {
 		</config>
 	</start>
 
-	<start name="report_logger" priority="0">
+	<start name="report_logger" priority="-1">
 		<binary name="report_rom"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
 
-	<start name="config_fs" caps="200" priority="0">
+	<start name="config_fs" caps="200" priority="-1">
 		<binary name="vfs"/>
 		<resource name="RAM" quantum="12M"/>
 		<provides> <service name="File_system"/> </provides>
@@ -316,7 +316,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="config_fs_rom">
+	<start name="config_fs_rom" priority="-1">
 		<binary name="fs_rom"/>
 		<resource name="RAM" quantum="10M"/>
 		<provides> <service name="ROM"/> </provides>
@@ -326,7 +326,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="report_fs_rom">
+	<start name="report_fs_rom" priority="-1">
 		<binary name="fs_rom"/>
 		<resource name="RAM" quantum="3M"/>
 		<provides> <service name="ROM"/> </provides>
@@ -336,7 +336,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="report_fs">
+	<start name="report_fs" priority="-1">
 		<binary name="vfs"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="File_system"/> </provides>
@@ -364,7 +364,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="log_terminal">
+	<start name="log_terminal" priority="-1">
 		<binary name="file_terminal"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Terminal"/> </provides>
@@ -379,7 +379,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="log">
+	<start name="log" priority="-1">
 		<binary name="terminal_log"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="LOG"/> </provides>
@@ -393,7 +393,7 @@ install_config {
 	} [log_core_start_node] {
 	} [log_kernel_start_node] {
 
-	<start name="fs_report">
+	<start name="fs_report" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> </provides>
 		<config> <vfs> <fs/> </vfs> </config>
@@ -453,7 +453,7 @@ install_config {
 	</start>
 
 	<!-- toggle key mappings depending on the numlock state -->
-	<start name="numlock_remap_rom">
+	<start name="numlock_remap_rom" priority="-1">
 		<binary name="rom_filter"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="ROM"/> </provides>
@@ -465,7 +465,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="event_filter" caps="120">
+	<start name="event_filter" priority="-1" caps="120">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Event"/> </provides>
 		<route>
@@ -625,7 +625,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="terminal_monitor">
+	<start name="terminal_monitor" priority="-1">
 		<binary name="terminal_crosslink"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides>

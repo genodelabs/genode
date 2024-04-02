@@ -164,6 +164,7 @@ void Distant_runtime::gen_start_nodes(Xml_generator &xml) const
 
 		xml.attribute("name",    _start_name);
 		xml.attribute("version", _version);
+		xml.attribute("priority", (int)Priority::LEITZENTRALE);
 		xml.attribute("caps",    _caps.value);
 
 		xml.node("resource", [&] {

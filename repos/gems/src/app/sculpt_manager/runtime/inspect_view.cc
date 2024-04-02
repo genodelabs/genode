@@ -29,7 +29,7 @@ static void gen_terminal_start(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "terminal",
 	                         Cap_quota{110}, Ram_quota{18*1024*1024},
-	                         Priority::LEITZENTRALE);
+	                         Priority::NESTED_MAX);
 
 	gen_provides<Terminal::Session>(xml);
 
@@ -53,7 +53,7 @@ static void gen_vfs_start(Xml_generator &xml,
 {
 	gen_common_start_content(xml, "vfs",
 	                         Cap_quota{200}, Ram_quota{6*1024*1024},
-	                         Priority::LEITZENTRALE);
+	                         Priority::NESTED_MAX);
 
 	gen_provides<::File_system::Session>(xml);
 
@@ -133,7 +133,7 @@ static void gen_fs_rom_start(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "vfs_rom",
 	                         Cap_quota{100}, Ram_quota{15*1024*1024},
-	                         Priority::LEITZENTRALE);
+	                         Priority::NESTED_MAX);
 
 	gen_named_node(xml, "binary", "cached_fs_rom", [&] { });
 
@@ -154,7 +154,7 @@ static void gen_bash_start(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "bash",
 	                         Cap_quota{400}, Ram_quota{16*1024*1024},
-	                         Priority::LEITZENTRALE);
+	                         Priority::NESTED_MAX);
 
 	gen_named_node(xml, "binary", "/bin/bash", [&] { });
 

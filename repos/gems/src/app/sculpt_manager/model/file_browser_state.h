@@ -127,6 +127,7 @@ struct Sculpt::File_browser_state : Noncopyable
 
 			text_area->gen_start_node_version(xml);
 
+			xml.attribute("priority", (int)Priority::LEITZENTRALE);
 			xml.attribute("caps", 350);
 			gen_named_node(xml, "resource", "RAM", [&] {
 				xml.attribute("quantum", String<64>(22*1024*1024UL)); });
