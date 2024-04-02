@@ -11,6 +11,8 @@
 		<report/>
 		<gpu/>
 		<usb/>
+		<play/>
+		<record/>
 	</provides>
 
 	<config>
@@ -23,6 +25,8 @@
 		<rom/>
 		<gpu/>
 		<usb/>
+		<play/>
+		<record/>
 	</config>
 
 	<content>

@@ -8,4 +8,6 @@ report_session
 uplink_session
 gpu_session
 usb_session
+play_session
+record_session
 os

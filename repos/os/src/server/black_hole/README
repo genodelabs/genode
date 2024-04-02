@@ -13,6 +13,8 @@ in the configuration of the component.
 * ROM
 * Gpu
 * Usb
+* Play
+* Record
 
 <config>
 	<audio_in/>
@@ -24,6 +26,8 @@ in the configuration of the component.
 	<rom/>
 	<gpu/>
 	<usb/>
+	<play/>
+	<record/>
 </config>
 
 Black hole optionally requests the following sessions as client.
