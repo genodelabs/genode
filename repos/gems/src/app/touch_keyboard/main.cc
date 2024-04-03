@@ -44,10 +44,7 @@ struct Touch_keyboard::Main : Top_level_dialog
 
 	Runtime _runtime { _env, _heap };
 
-	Runtime::View _view { _runtime, *this, Runtime::View::Attr {
-		.opaque      = true,
-		.initial_ram = Ram_quota { 4*1024*1024 }
-	} };
+	Runtime::View _view { _runtime, *this };
 
 	/*
 	 * Top_level_dialog interface

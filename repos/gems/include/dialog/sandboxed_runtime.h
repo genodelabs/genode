@@ -38,6 +38,8 @@ class Dialog::Sandboxed_runtime : Noncopyable
 
 		template <typename T> class Event_handler;
 
+		using Start_name = String<128>;
+
 	private:
 
 		Env       &_env;
@@ -96,218 +98,14 @@ class Dialog::Sandboxed_runtime : Noncopyable
 		Rom_service    _rom_service;
 		Report_service _report_service;
 
-	public:
-
-		Sandboxed_runtime(Env &, Allocator &, Sandbox &);
-
-		/**
-		 * Respond to sandbox state changes
-		 *
-		 * \return true  if the sandbox configuration needs to be updated
-		 */
-		bool apply_sandbox_state(Xml_node const &);
-
-		void gen_start_nodes(Xml_generator &) const;
-};
-
-
-class Dialog::Sandboxed_runtime::Report_session : public Session_object<Report::Session>
-{
-	public:
-
-		struct Handler : Interface, Genode::Noncopyable
-		{
-			virtual void handle_report() = 0;
-		};
-
-	private:
-
-		Attached_ram_dataspace _client_ds;
-		Attached_ram_dataspace _local_ds;
-
-		Constructible<Xml_node> _xml { }; /* points inside _local_ds */
-
-		Handler &_handler;
-
-
-		/*******************************
-		 ** Report::Session interface **
-		 *******************************/
-
-		Dataspace_capability dataspace() override { return _client_ds.cap(); }
-
-		void submit(size_t length) override
-		{
-			size_t const num_bytes = min(_client_ds.size(), length);
-
-			memcpy(_local_ds.local_addr<char>(), _client_ds.local_addr<char>(),
-			       num_bytes);
-
-			_xml.destruct();
-
-			try { _xml.construct(_local_ds.local_addr<char>(), num_bytes); }
-			catch (...) { }
-
-			_handler.handle_report();
-		}
-
-		void response_sigh(Signal_context_capability) override { }
-
-		size_t obtain_response() override { return 0; }
-
-	public:
-
-		template <typename... ARGS>
-		Report_session(Env &env, Handler &handler,
-		               Entrypoint &ep, Resources const &resources,
-		               ARGS &&... args)
-		:
-			Session_object(ep, resources, args...),
-			_client_ds(env.ram(), env.rm(), resources.ram_quota.value/2),
-			_local_ds (env.ram(), env.rm(), resources.ram_quota.value/2),
-			_handler(handler)
-		{ }
-
-		template <typename FN>
-		void with_xml(FN const &fn) const
-		{
-			if (_xml.constructed())
-				fn(*_xml);
-			else
-				fn(Xml_node("<empty/>"));
-		}
-};
-
-
-class Dialog::Sandboxed_runtime::View : private Views::Element
-{
-	private:
-
-		/* needed for privately inheriting 'Views::Element' */
-		friend class Dictionary<View, Top_level_dialog::Name>;
-		friend class Avl_node<View>;
-		friend class Avl_tree<View>;
-		friend class Sandboxed_runtime;
-
-		Env &_env;
-
-		Allocator &_alloc;
-
-		Event::Seq_number &_global_seq_number;
-
-		Optional_event_handler &_optional_event_handler;
-
-		Top_level_dialog &_dialog;
-
-		bool _dialog_hovered = false; /* used to cut hover feedback loop */
-
-		/* sequence numbers to correlate hover info with click/clack events */
-		Event::Seq_number                _hover_seq_number { };
-		Constructible<Event::Seq_number> _click_seq_number { };
-		Constructible<Event::Seq_number> _clack_seq_number { };
-
-		bool _click_delivered = false; /* used to deliver each click only once */
-
-		bool _dragged() const
-		{
-			return _click_seq_number.constructed()
-			   && *_click_seq_number == _global_seq_number
-			   &&  _click_delivered;
-		}
-
-		bool _hover_observable_without_click = false;
-
-		struct Rom_producer : Dynamic_rom_session::Xml_producer
-		{
-			View const &_view;
-
-			Rom_producer(View const &view)
-			:
-				Dynamic_rom_session::Xml_producer("dialog"),
-				_view(view)
-			{ }
-
-			void produce_xml(Xml_generator &xml) override
-			{
-				_view._with_dialog_hover([&] (Xml_node const &hover) {
-
-					Event::Dragged const dragged { _view._dragged() };
-
-					bool const supply_hover = _view._hover_observable_without_click
-					                       || dragged.value;
-
-					static Xml_node omitted_hover("<hover/>");
-
-					At const at { _view._global_seq_number,
-					              supply_hover ? hover : omitted_hover };
-
-					Scope<> top_level_scope(xml, at, dragged, { _view._dialog.name });
-
-					_view._dialog.view(top_level_scope);
-				});
-			}
-		} _dialog_producer { *this };
-
-		Dynamic_rom_session _dialog_rom_session {
-			_env.ep(), _env.ram(), _env.rm(), _dialog_producer };
-
-		template <typename T>
-		struct Hover_handler : Report_session::Handler
-		{
-			T &_obj;
-			void (T::*_member) ();
-
-			Hover_handler(T &obj, void (T::*member)())
-			: _obj(obj), _member(member) { }
-
-			void handle_report() override
-			{
-				(_obj.*_member)();
-			}
-		};
-
-		Constructible<Report_session> _hover_report_session { };
-
-		template <typename FN>
-		void _with_dialog_hover(FN const &fn) const
-		{
-			bool done = false;
-
-			if (_hover_report_session.constructed())
-				_hover_report_session->with_xml([&] (Xml_node const &hover) {
-					hover.with_optional_sub_node("dialog", [&] (Xml_node const &dialog) {
-						fn(dialog);
-						done = true; }); });
-
-			if (!done)
-				fn(Xml_node("<empty/>"));
-		}
-
-		void _handle_input_event(Input::Event const &);
-
-		void _handle_hover();
-
-		Hover_handler<View> _hover_handler { *this, &View::_handle_hover };
-
-		void _try_handle_click_and_clack();
-
 		struct Menu_view_state
 		{
-			using Start_name = String<128>;
-
 			Start_name const name;
-			Ram_quota  const initial_ram;
-			Cap_quota  const initial_caps;
+			Ram_quota  const initial_ram  { 4*1024*1024 };
+			Cap_quota  const initial_caps { 100 };
 
 			Ram_quota ram  = initial_ram;
 			Cap_quota caps = initial_caps;
-
-			int xpos = 0, ypos = 0;
-
-			unsigned min_width = 0, min_height = 0;
-
-			bool  opaque = false;
-			Color background { };
 
 			unsigned version = 0;
 
@@ -348,45 +146,226 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 				return result;
 			}
 
-			void gen_start_node(Xml_generator &) const;
+			void gen_start_node(Xml_generator &, Views const &) const;
 
 		} _menu_view_state;
+
+		class Report_session : public Session_object<Report::Session>
+		{
+			public:
+
+				struct Handler : Interface, Genode::Noncopyable
+				{
+					virtual void handle_report() = 0;
+				};
+
+			private:
+
+				Attached_ram_dataspace _client_ds;
+				Attached_ram_dataspace _local_ds;
+
+				Constructible<Xml_node> _xml { }; /* points inside _local_ds */
+
+				Handler &_handler;
+
+
+				/*******************************
+				 ** Report::Session interface **
+				 *******************************/
+
+				Dataspace_capability dataspace() override { return _client_ds.cap(); }
+
+				void submit(size_t length) override
+				{
+					size_t const num_bytes = min(_client_ds.size(), length);
+
+					memcpy(_local_ds.local_addr<char>(), _client_ds.local_addr<char>(),
+					       num_bytes);
+
+					_xml.destruct();
+
+					try { _xml.construct(_local_ds.local_addr<char>(), num_bytes); }
+					catch (...) { }
+
+					_handler.handle_report();
+				}
+
+				void response_sigh(Signal_context_capability) override { }
+
+				size_t obtain_response() override { return 0; }
+
+			public:
+
+				template <typename... ARGS>
+				Report_session(Env &env, Handler &handler,
+				               Entrypoint &ep, Resources const &resources,
+				               ARGS &&... args)
+				:
+					Session_object(ep, resources, args...),
+					_client_ds(env.ram(), env.rm(), resources.ram_quota.value/2),
+					_local_ds (env.ram(), env.rm(), resources.ram_quota.value/2),
+					_handler(handler)
+				{ }
+
+				template <typename FN>
+				void with_xml(FN const &fn) const
+				{
+					if (_xml.constructed())
+						fn(*_xml);
+					else
+						fn(Xml_node("<empty/>"));
+				}
+		};
+
+		template <typename T>
+		struct Hover_handler : Report_session::Handler
+		{
+			T &_obj;
+			void (T::*_member) ();
+
+			Hover_handler(T &obj, void (T::*member)())
+			: _obj(obj), _member(member) { }
+
+			void handle_report() override
+			{
+				(_obj.*_member)();
+			}
+		};
+
+		Top_level_dialog::Name _hovered_dialog { };
+
+		Hover_handler<Sandboxed_runtime> _hover_handler {
+			*this, &Sandboxed_runtime::_handle_hover };
+
+		void _handle_hover();
+
+		Constructible<Report_session> _hover_report_session { };
+
+		Event::Seq_number _hover_seq_number { };
+
+	public:
+
+		struct Attr { Start_name name; };
+
+		Sandboxed_runtime(Env &, Allocator &, Sandbox &,
+		                  Attr const &attr = { "view" });
+
+		/**
+		 * Respond to sandbox state changes
+		 *
+		 * \return true  if the sandbox configuration needs to be updated
+		 */
+		bool apply_sandbox_state(Xml_node const &);
+
+		void gen_start_nodes(Xml_generator &) const;
+};
+
+
+class Dialog::Sandboxed_runtime::View : private Views::Element
+{
+	private:
+
+		/* needed for privately inheriting 'Views::Element' */
+		friend class Dictionary<View, Top_level_dialog::Name>;
+		friend class Avl_node<View>;
+		friend class Avl_tree<View>;
+		friend class Sandboxed_runtime;
+
+		Env &_env;
+
+		Sandboxed_runtime &_runtime;
+
+		Top_level_dialog &_dialog;
+
+		bool _dialog_hovered = false;
+
+		/* sequence numbers to correlate hover info with click/clack events */
+		Constructible<Event::Seq_number> _click_seq_number { };
+		Constructible<Event::Seq_number> _clack_seq_number { };
+
+		bool _click_delivered = false; /* used to deliver each click only once */
+
+		bool _dragged() const
+		{
+			return _click_seq_number.constructed()
+			   && *_click_seq_number == _runtime._global_seq_number
+			   &&  _click_delivered;
+		}
+
+		bool _hover_observable_without_click = false;
+
+		void _with_dialog_hover(auto const &fn) const
+		{
+			bool done = false;
+
+			if (_runtime._hover_report_session.constructed())
+				_runtime._hover_report_session->with_xml([&] (Xml_node const &hover) {
+					hover.with_optional_sub_node("dialog", [&] (Xml_node const &dialog) {
+						fn(dialog);
+						done = true; }); });
+
+			if (!done)
+				fn(Xml_node("<empty/>"));
+		}
+
+		struct Rom_producer : Dynamic_rom_session::Xml_producer
+		{
+			View const &_view;
+
+			Rom_producer(View const &view)
+			:
+				Dynamic_rom_session::Xml_producer("dialog"),
+				_view(view)
+			{ }
+
+			void produce_xml(Xml_generator &xml) override
+			{
+				_view._with_dialog_hover([&] (Xml_node const &hover) {
+
+					Event::Dragged const dragged { _view._dragged() };
+
+					bool const supply_hover = _view._hover_observable_without_click
+					                       || dragged.value;
+
+					static Xml_node omitted_hover("<hover/>");
+
+					At const at { _view._runtime._global_seq_number,
+					              supply_hover ? hover : omitted_hover };
+
+					Scope<> top_level_scope(xml, at, dragged, { _view._dialog.name });
+
+					_view._dialog.view(top_level_scope);
+				});
+			}
+		} _dialog_producer { *this };
+
+		Dynamic_rom_session _dialog_rom_session {
+			_env.ep(), _env.ram(), _env.rm(), _dialog_producer };
+
+		void _gen_menu_view_dialog(Xml_generator &) const;
+		void _gen_menu_view_routes(Xml_generator &) const;
+
+		void _handle_input_event(Input::Event const &);
+
+		void _handle_hover();
+		void _leave();
+		void _try_handle_click_and_clack();
 
 		Registry<Gui_session> _gui_sessions { };
 
 	public:
 
-		int      &xpos       = _menu_view_state.xpos;
-		int      &ypos       = _menu_view_state.ypos;
-		unsigned &min_width  = _menu_view_state.min_width;
-		unsigned &min_height = _menu_view_state.min_height;
-		bool     &opaque     = _menu_view_state.opaque;
-		Color    &background = _menu_view_state.background;
-
-		struct Attr
-		{
-			bool      opaque;
-			Ram_quota initial_ram;
-		};
-
-		View(Sandboxed_runtime &runtime, Top_level_dialog &dialog, Attr const attr)
-		:
-			Views::Element(runtime._views, dialog.name),
-			_env(runtime._env), _alloc(runtime._alloc),
-			_global_seq_number(runtime._global_seq_number),
-			_optional_event_handler(runtime._optional_event_handler),
-			_dialog(dialog),
-			_menu_view_state({
-				.name         = dialog.name,
-				.initial_ram  = attr.initial_ram,
-				.initial_caps = Cap_quota { 200 }
-			})
-		{ }
+		int      xpos       { };
+		int      ypos       { };
+		unsigned min_width  { };
+		unsigned min_height { };
+		bool     opaque     { };
+		Color    background { };
 
 		View(Sandboxed_runtime &runtime, Top_level_dialog &dialog)
 		:
-			View(runtime, dialog, Attr { .opaque      = false,
-			                             .initial_ram = { 4*1024*1024 } })
+			Views::Element(runtime._views, dialog.name),
+			_env(runtime._env), _runtime(runtime), _dialog(dialog)
 		{ }
 
 		~View();
