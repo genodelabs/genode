@@ -65,6 +65,8 @@ class Menu_view::Style_database
 			Path        const path;  /* needed for lookup */
 			Label_style const style;
 
+			bool const out_of_date = false;
+
 			static Label_style _init_style(Allocator &alloc,
 			                               Directory const &styles_dir,
 			                               Path const &path)
@@ -95,6 +97,8 @@ class Menu_view::Style_database
 			File_content           png_file;
 			Png_image              png_image;
 			Texture<Pixel_rgb888> &texture;
+
+			bool const out_of_date = false;
 
 			void const *_png_data()
 			{
@@ -183,10 +187,10 @@ class Menu_view::Style_database
 		T const *_lookup(List<T> &list, char const *path) const
 		{
 			for (T const *e = list.first(); e; e = e->next())
-				if (Genode::strcmp(e->path.string(), path) == 0)
+				if ((Genode::strcmp(e->path.string(), path) == 0) && !e->out_of_date)
 					return e;
 
-			return 0;
+			return nullptr;
 		}
 
 		/*
@@ -313,6 +317,8 @@ class Menu_view::Style_database
 			}
 			_out_of_date = false;
 		}
+
+		bool up_to_date() const { return !_out_of_date; }
 };
 
 #endif /* _STYLE_DATABASE_H_ */

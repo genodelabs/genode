@@ -94,12 +94,12 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		if (node.has_attribute("text")) {
 			_text       = node.attribute_value("text", _text);
 			_text       = Xml_unquoted(_text);
-			_min_height = _font->height();
+			_min_height = _font ? _font->height() : 0;
 		}
 
 		unsigned const min_ex = node.attribute_value("min_ex", 0U);
 		if (min_ex) {
-			Glyph_painter::Fixpoint_number min_w_px = _font->string_width("x");
+			Glyph_painter::Fixpoint_number min_w_px = _font ? _font->string_width("x") : 0;
 			min_w_px.value *= min_ex;
 			_min_width = min_w_px.decimal();
 		}
@@ -154,12 +154,12 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 	 */
 	int xpos_of_glyph(unsigned at) const override
 	{
-		return _font->string_width(_text.string(), at).decimal();
+		return _font ? _font->string_width(_text.string(), at).decimal() : 0;
 	}
 
 	unsigned _char_index_at_xpos(unsigned xpos) const
 	{
-		return _font->index_at_xpos(_text.string(), xpos);
+		return _font ? _font->index_at_xpos(_text.string(), xpos) : 0;
 	}
 
 	Hovered hovered(Point at) const override

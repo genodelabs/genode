@@ -214,8 +214,6 @@ void Menu_view::Main::_handle_config()
 {
 	_config.update();
 
-	_styles.flush_outdated_styles();
-
 	Xml_node const config = _config.xml();
 
 	config.with_optional_sub_node("report", [&] (Xml_node const &report) {
@@ -237,6 +235,20 @@ void Menu_view::Main::_handle_config()
 		/* update */
 		[&] (Dialog &d, Xml_node const &node) { d.update(node); }
 	);
+
+	/* re-assign font pointers in labels (needed due to font style change) */
+	if (!_styles.up_to_date()) {
+		_dialogs.for_each([&] (Dialog &dialog) {
+			dialog._handle_dialog();
+
+			/* fast-forward geometry animation on font changes */
+			while (dialog.animation_in_progress())
+				dialog.animate();
+		});
+
+		_styles.flush_outdated_styles();
+	}
+	trigger_redraw();
 }
 
 
