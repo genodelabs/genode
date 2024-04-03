@@ -1475,8 +1475,7 @@ struct Sculpt::Main : Input_event_handler,
 	Dialog::Distant_runtime::View
 		_graph_view { _dialog_runtime, _graph_dialog,
 		            { .opaque      = false,
-		              .background  = { },
-		              .initial_ram = { 8*1024*1024 } } };
+		              .background  = { } } };
 
 	Main(Env &env) : _env(env)
 	{
@@ -1538,14 +1537,14 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 	typedef String<128> Label;
 	Label const
 		inspect_label          ("runtime -> leitzentrale -> inspect"),
-		runtime_view_label     ("runtime -> leitzentrale -> runtime_view"),
-		panel_view_label       ("runtime -> leitzentrale -> panel_view"),
-		diag_view_label        ("runtime -> leitzentrale -> diag_view"),
-		popup_view_label       ("runtime -> leitzentrale -> popup_view"),
-		system_view_label      ("runtime -> leitzentrale -> system_view"),
-		settings_view_label    ("runtime -> leitzentrale -> settings_view"),
-		network_view_label     ("runtime -> leitzentrale -> network_view"),
-		file_browser_view_label("runtime -> leitzentrale -> file_browser_view"),
+		runtime_view_label     ("runtime -> leitzentrale -> runtime_dialog"),
+		panel_view_label       ("runtime -> leitzentrale -> panel_dialog"),
+		diag_view_label        ("runtime -> leitzentrale -> diag_dialog"),
+		popup_view_label       ("runtime -> leitzentrale -> popup_dialog"),
+		system_view_label      ("runtime -> leitzentrale -> system_dialog"),
+		settings_view_label    ("runtime -> leitzentrale -> settings_dialog"),
+		network_view_label     ("runtime -> leitzentrale -> network_dialog"),
+		file_browser_view_label("runtime -> leitzentrale -> file_browser_dialog"),
 		editor_view_label      ("runtime -> leitzentrale -> editor"),
 		logo_label             ("logo");
 

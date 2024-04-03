@@ -119,38 +119,25 @@
 					<policy label="manager -> window_list"       report="wm -> window_list"/>
 					<policy label="manager -> decorator_margins" report="decorator -> decorator_margins"/>
 					<policy label="nitpicker -> focus"           report="manager -> focus"/>
-					<policy label="runtime -> leitzentrale -> diag_view -> dialog"
+
+					<policy label="runtime -> leitzentrale -> diag_dialog"
 					        report="manager -> diag_dialog"/>
-					<policy label="runtime -> leitzentrale -> network_view -> dialog"
+					<policy label="runtime -> leitzentrale -> network_dialog"
 					        report="manager -> network_dialog"/>
-					<policy label="runtime -> leitzentrale -> settings_view -> dialog"
+					<policy label="runtime -> leitzentrale -> settings_dialog"
 					        report="manager -> settings_dialog"/>
-					<policy label="runtime -> leitzentrale -> system_view -> dialog"
+					<policy label="runtime -> leitzentrale -> system_dialog"
 					        report="manager -> system_dialog"/>
-					<policy label="runtime -> leitzentrale -> file_browser_view -> dialog"
+					<policy label="runtime -> leitzentrale -> file_browser_dialog"
 					        report="manager -> file_browser_dialog"/>
-					<policy label="runtime -> leitzentrale -> popup_view -> dialog"
+					<policy label="runtime -> leitzentrale -> popup_dialog"
 					        report="manager -> popup_dialog"/>
-					<policy label="runtime -> leitzentrale -> panel_view -> dialog"
+					<policy label="runtime -> leitzentrale -> panel_dialog"
 					        report="manager -> panel_dialog"/>
-					<policy label="runtime -> leitzentrale -> runtime_view -> dialog"
+					<policy label="runtime -> leitzentrale -> runtime_dialog"
 					        report="manager -> runtime_dialog"/>
-					<policy label="manager -> diag_view_hover"
-					        report="runtime -> leitzentrale -> diag_view -> hover"/>
-					<policy label="manager -> network_view_hover"
-					        report="runtime -> leitzentrale -> network_view -> hover"/>
-					<policy label="manager -> settings_view_hover"
-					        report="runtime -> leitzentrale -> settings_view -> hover"/>
-					<policy label="manager -> system_view_hover"
-					        report="runtime -> leitzentrale -> system_view -> hover"/>
-					<policy label="manager -> file_browser_view_hover"
-					        report="runtime -> leitzentrale -> file_browser_view -> hover"/>
-					<policy label="manager -> runtime_view_hover"
+					<policy label="manager -> hover"
 					        report="runtime -> leitzentrale -> runtime_view -> hover"/>
-					<policy label="manager -> panel_view_hover"
-					        report="runtime -> leitzentrale -> panel_view -> hover"/>
-					<policy label="manager -> popup_view_hover"
-					        report="runtime -> leitzentrale -> popup_view -> hover"/>
 				</config>
 			</start>
 
@@ -191,14 +178,14 @@
 						<dir name="dev"> <log/> </dir>
 					</vfs>
 					<policy label="log" decoration="yes" motion="20"/>
-					<policy label="runtime -> leitzentrale -> settings_view"     decoration="no" motion="20"/>
-					<policy label="runtime -> leitzentrale -> system_view"       decoration="no" motion="20"/>
-					<policy label="runtime -> leitzentrale -> file_browser_view" decoration="no" motion="30"/>
-					<policy label="runtime -> leitzentrale -> network_view"      decoration="no" motion="20"/>
-					<policy label="runtime -> leitzentrale -> runtime_view"      decoration="no" motion="30"/>
-					<policy label="runtime -> leitzentrale -> diag_view"         decoration="no" motion="30"/>
-					<policy label="runtime -> leitzentrale -> popup_view"        decoration="no" motion="20"/>
-					<policy label="runtime -> leitzentrale -> panel_view"        decoration="no" motion="20"/>
+					<policy label="runtime -> leitzentrale -> settings_dialog"     decoration="no" motion="20"/>
+					<policy label="runtime -> leitzentrale -> system_dialog"       decoration="no" motion="20"/>
+					<policy label="runtime -> leitzentrale -> file_browser_dialog" decoration="no" motion="30"/>
+					<policy label="runtime -> leitzentrale -> network_dialog"      decoration="no" motion="20"/>
+					<policy label="runtime -> leitzentrale -> runtime_dialog"      decoration="no" motion="30"/>
+					<policy label="runtime -> leitzentrale -> diag_dialog"         decoration="no" motion="30"/>
+					<policy label="runtime -> leitzentrale -> popup_dialog"        decoration="no" motion="20"/>
+					<policy label="runtime -> leitzentrale -> panel_dialog"        decoration="no" motion="20"/>
 					<policy label_prefix="logo" decoration="no"/>
 					<default-policy/>
 				</config>
@@ -257,7 +244,7 @@
 					<service name="ROM" label_prefix="report ->"> <parent/> </service>
 					<service name="ROM" label="nitpicker_focus">  <parent/> </service>
 					<service name="ROM" label="nitpicker_hover">  <parent/> </service>
-					<service name="ROM" label_suffix="_hover">     <child name="report_rom"/> </service>
+					<service name="ROM" label="hover">             <child name="report_rom"/> </service>
 					<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
 					<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
 					<service name="Gui"> <parent/> </service>

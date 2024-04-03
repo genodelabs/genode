@@ -50,39 +50,13 @@ static bool clack(Input::Event const &event)
 
 bool Distant_runtime::apply_runtime_state(Xml_node const &state)
 {
-	using Name = Top_level_dialog::Name;
-
-	/* the dialog name is the start name with the "_view" suffix removed */
-	auto with_dialog_name = [] (Start_name const &name, auto const &fn)
-	{
-		if (name.length() > 6) {
-			size_t       const dialog_name_len = name.length() - 6;
-			char const * const view_suffix_ptr = name.string() + dialog_name_len;
-			if (strcmp(view_suffix_ptr, "_view") == 0)
-				fn(Name(Cstring(name.string(), dialog_name_len)));
-		}
-	};
-
 	bool reconfiguration_needed = false;
 	state.for_each_sub_node("child", [&] (Xml_node const &child) {
-		Start_name const start_name = child.attribute_value("name", Start_name());
-		with_dialog_name(start_name, [&] (Name const &name) {
-			_views.with_element(name,
-				[&] (View &view) {
-					if (view._apply_child_state_report(child))
-						reconfiguration_needed = true; },
-				[&] /* no view named after this child */ { });
-			});
-	 });
+		if (_apply_child_state_report(child))
+			reconfiguration_needed = true;
+	});
 
 	return reconfiguration_needed;
-}
-
-
-void Distant_runtime::gen_start_nodes(Xml_generator &xml) const
-{
-	_views.for_each([&] (View const &view) {
-		view._gen_start_node(xml); });
 }
 
 
@@ -109,19 +83,36 @@ void Distant_runtime::route_input_event(Event::Seq_number seq_number, Input::Eve
 }
 
 
+void Distant_runtime::_handle_hover(Xml_node const &hover)
+{
+	using Name = Top_level_dialog::Name;
+	Name const orig_hovered_dialog = _hovered_dialog;
+
+	_hover_seq_number = { hover.attribute_value("seq_number", 0U) };
+
+	hover.with_sub_node("dialog",
+		[&] (Xml_node const &dialog) {
+			_hovered_dialog = dialog.attribute_value("name", Name()); },
+		[&] { _hovered_dialog = { }; });
+
+	if (orig_hovered_dialog.valid() && orig_hovered_dialog != _hovered_dialog)
+		_views.with_element(orig_hovered_dialog,
+			[&] (View &view) { view._leave(); },
+			[&] { });
+
+	if (_hovered_dialog.valid())
+		_views.with_element(_hovered_dialog,
+			[&] (View &view) { view._handle_hover(); },
+			[&] { });
+}
+
+
 void Distant_runtime::_try_handle_click_and_clack()
 {
 	auto with_hovered_view = [&] (Event::Seq_number seq_number, auto const &fn)
 	{
-		/* find name of dialog hovered with matching 'seq_number' */
-		Top_level_dialog::Name name { };
-		_views.for_each([&] (View const &view) {
-			if (seq_number == view._hover_seq_number)
-				name = view._dialog.name; });
-
-		/* apply 'fn' with (non-const) view as argument */
-		if (name.valid())
-			_views.with_element(name,
+		if (_hover_seq_number == seq_number)
+			_views.with_element(_hovered_dialog,
 			                    [&] (View &view) { fn(view); },
 			                    [&] { });
 	};
@@ -167,7 +158,7 @@ void Distant_runtime::_try_handle_click_and_clack()
 }
 
 
-void Distant_runtime::View::_gen_start_node(Xml_generator &xml) const
+void Distant_runtime::gen_start_nodes(Xml_generator &xml) const
 {
 	xml.node("start", [&] {
 
@@ -186,12 +177,6 @@ void Distant_runtime::View::_gen_start_node(Xml_generator &xml) const
 		xml.node("heartbeat", [&] { });
 
 		xml.node("config", [&] {
-
-			if (min_width)  xml.attribute("width",  min_width);
-			if (min_height) xml.attribute("height", min_height);
-			if (_opaque)    xml.attribute("opaque", "yes");
-
-			xml.attribute("background", String<20>(_background));
 
 			xml.node("report", [&] {
 				xml.attribute("hover", "yes"); });
@@ -213,9 +198,10 @@ void Distant_runtime::View::_gen_start_node(Xml_generator &xml) const
 					});
 				});
 			});
-		});
 
-		using Label = Session_label::String;
+			_views.for_each([&] (View const &view) {
+				view._gen_menu_view_dialog(xml); });
+		});
 
 		xml.node("route", [&] {
 			gen_parent_rom_route(xml, "menu_view");
@@ -231,21 +217,13 @@ void Distant_runtime::View::_gen_start_node(Xml_generator &xml) const
 			gen_parent_route<Log_session>    (xml);
 			gen_parent_route<Timer::Session> (xml);
 
-			gen_service_node<Gui::Session>(xml, [&] {
-				xml.node("parent", [&] {
-					xml.attribute("label", Label("leitzentrale -> ", _start_name)); }); });
-
-			gen_service_node<Rom_session>(xml, [&] {
-				xml.attribute("label", "dialog");
-				xml.node("parent", [&] {
-					xml.attribute("label", Label("leitzentrale -> ", _start_name, " -> dialog"));
-				});
-			});
+			_views.for_each([&] (View const &view) {
+				view._gen_menu_view_routes(xml); });
 
 			gen_service_node<Report::Session>(xml, [&] {
 				xml.attribute("label", "hover");
 				xml.node("parent", [&] {
-					xml.attribute("label", Label("leitzentrale -> ", _start_name, " -> hover"));
+					xml.attribute("label", "leitzentrale -> runtime_view -> hover");
 				});
 			});
 
@@ -255,4 +233,34 @@ void Distant_runtime::View::_gen_start_node(Xml_generator &xml) const
 					xml.attribute("label", "leitzentrale -> fonts"); }); });
 		});
 	});
+}
+
+
+void Distant_runtime::View::_gen_menu_view_dialog(Xml_generator &xml) const
+{
+	xml.node("dialog", [&] {
+		xml.attribute("name", name);
+
+		if (min_width)  xml.attribute("width",  min_width);
+		if (min_height) xml.attribute("height", min_height);
+		if (_opaque)    xml.attribute("opaque", "yes");
+
+		xml.attribute("background", String<20>(_background));
+	});
+}
+
+
+void Distant_runtime::View::_gen_menu_view_routes(Xml_generator &xml) const
+{
+	Session_label::String const label { "leitzentrale -> ", name, "_dialog" };
+
+	gen_service_node<Rom_session>(xml, [&] {
+		xml.attribute("label", name);
+		xml.node("parent", [&] {
+			xml.attribute("label", label); }); });
+
+	gen_service_node<Gui::Session>(xml, [&] {
+		xml.attribute("label", name);
+		xml.node("parent", [&] {
+			xml.attribute("label", label); }); });
 }

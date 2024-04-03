@@ -45,10 +45,10 @@
 					<policy label="decorator -> pointer"         report="wm -> pointer"/>
 					<policy label="manager -> window_list"       report="wm -> window_list"/>
 					<policy label="manager -> decorator_margins" report="decorator -> decorator_margins"/>
-					<policy label="runtime -> leitzentrale -> main_view -> dialog"
+					<policy label="runtime -> leitzentrale -> main_dialog"
 					        report="manager -> main_dialog"/>
-					<policy label="manager -> main_view_hover"
-					        report="runtime -> leitzentrale -> main_view -> hover"/>
+					<policy label="manager -> hover"
+					        report="runtime -> leitzentrale -> runtime_view -> hover"/>
 				</config>
 			</start>
 
@@ -147,7 +147,7 @@
 					<service name="ROM" label_prefix="report ->"> <parent/> </service>
 					<service name="ROM" label="nitpicker_focus">  <parent/> </service>
 					<service name="ROM" label="nitpicker_hover">  <parent/> </service>
-					<service name="ROM" label_suffix="_hover">     <child name="report_rom"/> </service>
+					<service name="ROM" label="hover">             <child name="report_rom"/> </service>
 					<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
 					<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
 					<service name="ROM" label="clicked">           <child name="report_rom"/> </service>

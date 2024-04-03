@@ -1173,8 +1173,7 @@ struct Sculpt::Main : Input_event_handler,
 	Dialog::Distant_runtime::View
 		_main_view { _dialog_runtime, _main_dialog,
 		             { .opaque      = true,
-		               .background  = _background_color,
-		               .initial_ram = { 12*1024*1024 } } };
+		               .background  = _background_color } };
 
 	void _click(Clicked_at const &at)
 	{
@@ -2049,7 +2048,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 	Decorator_margins const margins { decorator_margins };
 
 	using Label = String<128>;
-	Label const main_view_label     ("runtime -> leitzentrale -> main_view");
+	Label const main_view_label     ("runtime -> leitzentrale -> main_dialog");
 	Label const touch_keyboard_label("runtime -> leitzentrale -> touch_keyboard");
 
 	/*
