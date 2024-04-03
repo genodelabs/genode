@@ -15,16 +15,17 @@
 #define _ROOT_WIDGET_H_
 
 /* local includes */
-#include "widget.h"
+#include <widget.h>
 
 namespace Menu_view { struct Root_widget; }
 
 
 struct Menu_view::Root_widget : Widget
 {
-	Root_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
+	Root_widget(Name const &name, Unique_id const &id,
+	            Widget_factory &factory, Xml_node const &node)
 	:
-		Widget(factory, node, unique_id)
+		Widget(name, id, factory, node)
 	{ }
 
 	Area animated_size() const

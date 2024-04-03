@@ -177,6 +177,9 @@ namespace File_vault {
 						});
 					});
 				});
+
+				xml.node("dialog", [&] {
+					xml.attribute("name", "dialog"); });
 			});
 
 			xml.node("route", [&] () {

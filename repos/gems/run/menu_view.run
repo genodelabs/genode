@@ -309,7 +309,7 @@ install_config {
 
 	<start name="menu_view" caps="200">
 		<resource name="RAM" quantum="8M"/>
-		<config xpos="200" ypos="100">
+		<config>
 			<report hover="yes"/>
 			<libc stderr="/dev/log"/>
 			<vfs>
@@ -317,10 +317,12 @@ install_config {
 				<dir name="dev"> <log/> </dir>
 				<dir name="fonts"> <fs label="fonts"/> </dir>
 			</vfs>
+			<dialog name="dialog"       xpos="200" ypos="150"/>
+			<dialog name="fixed_dialog" xpos="400" ypos="50" width="400"/>
 		</config>
 		<route>
-			<service name="ROM" label="dialog"> <child name="dynamic_rom" /> </service>
-			<service name="Report" label="hover"> <child name="report_rom"/> </service>
+			<service name="ROM"    label="dialog"> <child name="dynamic_rom" /> </service>
+			<service name="Report" label="hover">  <child name="report_rom"/> </service>
 			<service name="File_system" label="fonts"> <child name="fonts_fs"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -329,6 +331,23 @@ install_config {
 </config>}
 
 build { app/menu_view }
+
+set fd [open [run_dir]/genode/fixed_dialog w]
+puts $fd {
+<dialog>
+	<frame>
+		<vbox>
+			<button name="perf" hovered="yes">
+				<label text="Performance"/>
+			</button>
+			<button name="battery" selected="yes" hovered="yes">
+				<label text="Battery"/>
+			</button>
+		</vbox>
+	</frame>
+</dialog>
+}
+close $fd
 
 build_boot_image [build_artifacts]
 

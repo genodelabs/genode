@@ -33,9 +33,9 @@ namespace Menu_view {
 
 	using Genode::size_t;
 
-	typedef Surface_base::Point Point;
-	typedef Surface_base::Area  Area;
-	typedef Surface_base::Rect  Rect;
+	using Point = Surface_base::Point;
+	using Area  = Surface_base::Area;
+	using Rect  = Surface_base::Rect;
 }
 
 #endif /* _TYPES_H_ */

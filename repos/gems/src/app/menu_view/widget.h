@@ -56,11 +56,9 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		using List_model<Widget>::Element::next;
 
-		enum { NAME_MAX_LEN = 32 };
-		typedef String<NAME_MAX_LEN> Name;
-
-		typedef Name       Type_name;
-		typedef String<10> Version;
+		using Name      = String<32>;
+		using Version   = String<10>;
+		using Type_name = Name;
 
 		struct Unique_id
 		{
@@ -205,13 +203,16 @@ class Menu_view::Widget : List_model<Widget>::Element
 		                Point(r.x2() - margin.right, r.y2() - margin.bottom));
 		}
 
-		Widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
+		Widget(Name const &name, Unique_id const id,
+		       Widget_factory &factory, Xml_node const &node)
 		:
-			_type_name(node.type()),
-			_name(node_name(node)),
-			_version(node_version(node)),
-			_unique_id(unique_id),
-			_factory(factory)
+			_type_name(node.type()), _name(name), _version(node_version(node)),
+			_unique_id(id), _factory(factory)
+		{ }
+
+		Widget(Widget_factory &factory, Xml_node const &node, Unique_id const id)
+		:
+			Widget(node_name(node), id, factory, node)
 		{ }
 
 		virtual ~Widget()
