@@ -428,7 +428,6 @@ install_config {
 		</route>
 		<provides>
 			<service name="Platform"/>
-			<service name="Gpu"/>
 			<service name="Pin_state"/>
 			<service name="Pin_control"/>
 			<service name="IRQ"/>
@@ -666,7 +665,6 @@ install_config {
 			<service name="Gui" label="lock_screen">
 				<child name="nitpicker" label="lock_screen"/> </service>
 			<service name="Gui"> <child name="nitpicker"/> </service>
-			<service name="Gpu"> <child name="drivers"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="Report" label_suffix="-> shape"> <child name="pointer"/> </service>
 			<service name="Report" label="inspect -> clipboard">
