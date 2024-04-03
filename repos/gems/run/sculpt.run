@@ -216,8 +216,7 @@ proc log_core_start_node { } {
 
 proc log_kernel_start_node { } {
 
-	if {[have_board linux]}     return
-	if {[have_board pinephone]} return
+	if {![have_spec nova]} return
 
 	return {
 	<start name="log_kernel">
