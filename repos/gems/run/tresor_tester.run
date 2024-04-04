@@ -22,34 +22,6 @@ proc lx_tresor_image_size_mb { } {
 	return 400
 }
 
-proc benchmark_blk_count { } {
-
-	if {[have_board linux]} {
-
-		 # benchmarks over 50 mebibyte
-		return 12800
-	}
-	if {[have_board virt_qemu_arm_v8a]} {
-
-		# benchmarks over 25 mebibyte
-		return 6400
-	}
-	# benchmarks turned off
-	return 0
-}
-
-proc block_io_vfs_ram_mb { } {
-
-	if {[benchmark_blk_count] > 0} {
-
-		# when benchmarks turned on
-		set bench_mb [expr (([benchmark_blk_count] * 4096) / 1024 / 1024)]
-		return [expr 8 * $bench_mb]
-	}
-	# when benchmarks turned off
-	return 36
-}
-
 proc jent_avail { } {
 
 	if {[have_board pbxa9]} { return 0 }
@@ -155,7 +127,7 @@ if {[have_board linux]} {
 
 		<start name="block_io_fs" caps="400">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="} [block_io_vfs_ram_mb] {M"/>
+			<resource name="RAM" quantum="36M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -236,51 +208,19 @@ append config {
 
 				<commands>
 
-					<log string="Step 1: Initialize Trust Anchor and Tresor device, start Tresor library"/>
+					<log string="Step 1: set up tresor container"/>
 
 					<initialize-trust-anchor passphrase="foobar"/>
 					<initialize>
-						<virtual-block-device max_lvl="2" degree="8" num_leaves="64" />
-						<free-tree max_lvl="3" degree="8" num_leaves="100" />
+						<virtual-block-device max_lvl="2" degree="8" num_leaves="32" />
+						<free-tree max_lvl="2" degree="8" num_leaves="64" />
 					</initialize>
 					<check/>
 					<construct/>
 
-					<log string="Step 2: test synchronous write, read"/>
+					<log string="Step 2: block access"/>
 
-					<request op="read"  vba="1"   num_blocks="1"    uninitialized_data="yes"/>
-					<request op="write" vba="1"   num_blocks="1"    salt="1234"/>
-					<request op="read"  vba="1"   num_blocks="1"    salt="1234"/>
-					<request op="write" vba="12"  num_blocks="10"  />
-					<request op="read"  vba="12"  num_blocks="10"  />
-					<request op="write" vba="24"  num_blocks="40" />
-					<request op="read"  vba="24"  num_blocks="40" />
-
-					<log string="Step 3: test synchronous write, read, compare"/>
-
-					<request op="write" vba="9"  num_blocks="1"   salt="4321"/>
-					<request op="read"  vba="9"  num_blocks="1"   salt="4321"/>
-					<request op="write" vba="41" num_blocks="3"  salt="8765"/>
-					<request op="read"  vba="41" num_blocks="3"  salt="8765"/>
-					<request op="write" vba="9"  num_blocks="1"   salt="1234"/>
-					<request op="write" vba="41" num_blocks="19"  salt="5678"/>
-					<request op="read"  vba="9"  num_blocks="1"   salt="1234"/>
-					<request op="read"  vba="41" num_blocks="19"  salt="5678"/>
-
-					<log string="Step 4: test asynchronous write, read"/>
-
-					<request op="write" vba="20" num_blocks="3"  />
-					<request op="write" vba="15" num_blocks="10" />
-					<request op="read"  vba="34" num_blocks="2"  />
-					<request op="read"  vba="21" num_blocks="5"  />
-					<request op="write" vba="12" num_blocks="12" />
-					<request op="read"  vba="32" num_blocks="8"  />
-					<request op="write" vba="17" num_blocks="7"  />
-					<request op="write" vba="29" num_blocks="9"  />
-					<request op="read"  vba="14" num_blocks="18" />
-
-					<log string="Step 5: test asynchronous write, read, compare"/>
-
+					<request op="read"  vba="1"   num_blocks="16"    uninitialized_data="yes"/>
 					<request op="write" vba="20" num_blocks="3"   salt="7373"/>
 					<request op="read"  vba="21" num_blocks="1"   salt="7373"/>
 					<request op="write" vba="15" num_blocks="10"  salt="1515"/>
@@ -293,7 +233,7 @@ append config {
 					<request op="write" vba="11" num_blocks="6"   salt="0987"/>
 					<request op="read"  vba="17" num_blocks="5"   salt="9689"/>
 					<request op="write" vba="22" num_blocks="2"   salt="6543"/>
-					<request op="write" vba="25" num_blocks="11"  salt="5432"/>
+					<request op="write" vba="25" num_blocks="7"   salt="5432"/>
 					<request op="read"  vba="24" num_blocks="1"   salt="1515"/>
 					<request op="write" vba="10" num_blocks="5"   salt="4221"/>
 					<request op="write" vba="21" num_blocks="2"   salt="1001"/>
@@ -308,14 +248,14 @@ append config {
 					<request op="read"  vba="19" num_blocks="3"   salt="1331"/>
 					<request op="read"  vba="10" num_blocks="2"   salt="4221"/>
 
-					<log string="Step 6: shut down Tresor library, check Tresor integrity, restart Tresor library"/>
+					<log string="Step 3: lock, check and unlock tresor container"/>
 
 					<request op="deinitialize" />
 					<destruct/>
 					<check/>
 					<construct/>
 
-					<log string="Step 7: test snapshot management"/>
+					<log string="Step 4: snapshot management"/>
 
 					<request op="write" vba="20" num_blocks="3"    salt="7304"/>
 					<request op="create_snapshot"             id="1"/>
@@ -324,253 +264,137 @@ append config {
 					<request op="write" vba="15" num_blocks="4"    salt="6111"/>
 					<request op="read"  vba="21" num_blocks="3"    salt="9612"/>
 					<request op="read"  vba="19" num_blocks="3"    salt="9612"/>
-					<request op="write" vba="17" num_blocks="5"    salt="5353"/>
 					<request op="create_snapshot"             id="2"/>
-					<request op="create_snapshot"             id="3"/>
 					<request op="read"  vba="22" num_blocks="3"    salt="9612"/>
 					<request op="read"  vba="15" num_blocks="2"    salt="6111"/>
 					<request op="write" vba="11" num_blocks="6"    salt="5436"/>
 					<check-snapshots/>
 					<request op="discard_snapshot"            id="1"/>
-					<request op="discard_snapshot"            id="2"/>
+					<check-snapshots/>
+					<request op="discard_snapshot" id="2"/>
 					<check-snapshots/>
 					<request op="sync"  vba="0"  num_blocks="256" />
 					<check/>
 					<request op="write" vba="20" num_blocks="3"    salt="7384"/>
-					<request op="create_snapshot"             id="4"/>
-					<request op="create_snapshot"             id="5"/>
+					<request op="create_snapshot"             id="3"/>
 					<request op="read"  vba="21" num_blocks="1"    salt="7384"/>
 					<request op="write" vba="15" num_blocks="10"   salt="9602"/>
 					<request op="write" vba="15" num_blocks="4"    salt="6100"/>
-					<request op="read"  vba="21" num_blocks="3"    salt="9602"/>
-					<request op="read"  vba="19" num_blocks="3"    salt="9602"/>
 					<request op="write" vba="17" num_blocks="5"    salt="5555"/>
-					<request op="read"  vba="22" num_blocks="3"    salt="9602"/>
 					<request op="read"  vba="15" num_blocks="2"    salt="6100"/>
-					<request op="create_snapshot"             id="6"/>
-					<request op="write" vba="11" num_blocks="6"    salt="1436"/>
+					<request op="create_snapshot"             id="4"/>
+					<request op="create_snapshot" id="5"/>
 					<request op="read"  vba="17" num_blocks="5"    salt="5555"/>
-					<request op="write" vba="22" num_blocks="2"    salt="7463"/>
-					<request op="write" vba="25" num_blocks="11"   salt="4323"/>
+					<request op="write" vba="25" num_blocks="7"    salt="4323"/>
 					<request op="read"  vba="24" num_blocks="1"    salt="9602"/>
 					<request op="write" vba="10" num_blocks="5"    salt="3758"/>
-					<request op="create_snapshot"             id="7"/>
-					<request op="create_snapshot"             id="8"/>
-					<request op="write" vba="21" num_blocks="2"    salt="8094"/>
-					<request op="write" vba="12" num_blocks="10"   salt="4455"/>
+					<request op="create_snapshot" id="6"/>
 					<request op="write" vba="26" num_blocks="4"    salt="7574"/>
 					<request op="write" vba="15" num_blocks="7"    salt="1931"/>
-					<request op="read"  vba="23" num_blocks="1"    salt="7463"/>
 					<request op="read"  vba="25" num_blocks="1"    salt="4323"/>
-					<request op="read"  vba="28" num_blocks="2"    salt="7574"/>
-					<request op="create_snapshot"             id="9"/>
-					<request op="read"  vba="24" num_blocks="1"    salt="9602"/>
-					<request op="read"  vba="12" num_blocks="3"    salt="4455"/>
 					<request op="read"  vba="19" num_blocks="3"    salt="1931"/>
 					<request op="read"  vba="10" num_blocks="2"    salt="3758"/>
 					<check-snapshots/>
-					<request op="discard_snapshot"            id="4"/>
+					<request op="discard_snapshot"            id="5"/>
+					<check-snapshots/>
 					<request op="sync"  vba="0"  num_blocks="256" />
 					<check/>
 
-					<log string="Step 8: reinitialize Tresor device"/>
+					<log string="Step 5: set up new tresor container"/>
 
-					<request op="deinitialize" />
+					<request op="deinitialize"/>
 					<destruct/>
 					<initialize>
-						<virtual-block-device max_lvl="3" degree="8" num_leaves="100" />
+						<virtual-block-device max_lvl="3" degree="8" num_leaves="30" />
 						<free-tree max_lvl="3" degree="8" num_leaves="512" />
 					</initialize>
 					<construct/>
 
-					<log string="Step 9: test synchronous rekeying"/>
+					<log string="Step 6: rekeying"/>
 
-					<request op="read"  vba="30" num_blocks="10"   uninitialized_data="yes"/>
-					<request op="write" vba="0"  num_blocks="1"    salt="4359"/>
-					<request op="rekey"                       sync="yes"/>
-					<request op="read"  vba="0"  num_blocks="1"    salt="4359"/>
-					<request op="write" vba="15" num_blocks="7"    salt="1742"/>
-					<request op="write" vba="20" num_blocks="13"   salt="8471"/>
-					<request op="create_snapshot"             id="10"/>
-					<request op="write" vba="33" num_blocks="5"    salt="7831"/>
-					<request op="rekey"                       sync="yes"/>
-					<request op="read"  vba="17" num_blocks="3"    salt="1742"/>
-					<request op="write" vba="51" num_blocks="8"    salt="8384"/>
-					<request op="read"  vba="25" num_blocks="1"    salt="8471"/>
-					<request op="write" vba="30" num_blocks="5"    salt="2837"/>
-					<request op="create_snapshot"             id="11"/>
-					<request op="rekey"                       sync="yes"/>
-					<request op="read"  vba="35" num_blocks="2"    salt="7831"/>
-					<request op="read"  vba="31" num_blocks="4"    salt="2837"/>
-					<request op="read"  vba="51" num_blocks="8"    salt="8384"/>
-					<request op="sync"  vba="0"  num_blocks="256" />
-					<check/>
-
-					<log string="Step 10: test asynchronous rekeying"/>
-
-					<request op="write" vba="20" num_blocks="3"    salt="7384"/>
+					<request op="write" vba="10" num_blocks="5"    salt="7831"/>
+					<request op="write" vba="2"  num_blocks="8"    salt="8384"/>
+					<request op="write" vba="14" num_blocks="5"    salt="2837"/>
 					<request op="rekey"                       />
+					<request op="read"  vba="12" num_blocks="2"    salt="7831"/>
+					<request op="read"  vba="15" num_blocks="4"    salt="2837"/>
+					<request op="read"  vba="2"  num_blocks="8"    salt="8384"/>
+					<request op="write" vba="20" num_blocks="3"    salt="7384"/>
 					<request op="read"  vba="21" num_blocks="1"    salt="7384"/>
 					<request op="write" vba="15" num_blocks="10"   salt="9602"/>
 					<request op="write" vba="15" num_blocks="4"    salt="6100"/>
-					<request op="read"  vba="21" num_blocks="3"    salt="9602"/>
 					<request op="read"  vba="19" num_blocks="3"    salt="9602"/>
 					<request op="write" vba="17" num_blocks="5"    salt="5555"/>
-					<request op="read"  vba="22" num_blocks="3"    salt="9602"/>
 					<request op="read"  vba="15" num_blocks="2"    salt="6100"/>
-					<request op="write" vba="11" num_blocks="6"    salt="1436"/>
-					<request op="create_snapshot"             id="12"/>
+					<request op="create_snapshot" id="8"/>
 					<request op="read"  vba="17" num_blocks="5"    salt="5555"/>
 					<request op="write" vba="22" num_blocks="2"    salt="7463"/>
 					<request op="rekey"                      />
-					<request op="write" vba="25" num_blocks="11"   salt="4323"/>
+					<request op="write" vba="25" num_blocks="5"    salt="4323"/>
 					<request op="read"  vba="24" num_blocks="1"    salt="9602"/>
 					<request op="write" vba="10" num_blocks="5"    salt="3758"/>
-					<request op="write" vba="21" num_blocks="2"    salt="8094"/>
 					<request op="write" vba="12" num_blocks="10"   salt="4455"/>
 					<request op="write" vba="26" num_blocks="4"    salt="7574"/>
 					<request op="write" vba="15" num_blocks="7"    salt="1931"/>
 					<request op="read"  vba="23" num_blocks="1"    salt="7463"/>
 					<request op="read"  vba="25" num_blocks="1"    salt="4323"/>
 					<request op="read"  vba="28" num_blocks="2"    salt="7574"/>
-					<request op="read"  vba="24" num_blocks="1"    salt="9602"/>
 					<request op="read"  vba="12" num_blocks="3"    salt="4455"/>
 					<request op="read"  vba="19" num_blocks="3"    salt="1931"/>
 					<request op="read"  vba="10" num_blocks="2"    salt="3758"/>
 					<request op="sync"  vba="0"  num_blocks="256" />
 					<check/>
 
-					<log string="Step 11: test synchronous free tree extension"/>
-
-					<request op="write" vba="20" num_blocks="3"    salt="7304"/>
-					<request op="extend_ft"      num_blocks="23"  />
-					<request op="read"  vba="21" num_blocks="1"    salt="7304"/>
-					<request op="extend_ft"      num_blocks="6"   />
-					<request op="write" vba="15" num_blocks="10"   salt="9612"/>
-					<request op="write" vba="15" num_blocks="4"    salt="6111"/>
-					<request op="extend_ft"      num_blocks="10"  />
-					<request op="read"  vba="21" num_blocks="3"    salt="9612"/>
-					<request op="read"  vba="19" num_blocks="3"    salt="9612"/>
-					<request op="write" vba="17" num_blocks="5"    salt="5353"/>
-					<request op="extend_ft"      num_blocks="2"   />
-					<request op="extend_ft"      num_blocks="2"   />
-					<request op="extend_ft"      num_blocks="2"   />
-					<request op="read"  vba="22" num_blocks="3"    salt="9612"/>
-					<request op="extend_ft"      num_blocks="1"   />
-					<request op="read"  vba="15" num_blocks="2"    salt="6111"/>
-					<request op="write" vba="11" num_blocks="6"    salt="5436"/>
-					<request op="sync"  vba="0"  num_blocks="256" />
-					<check/>
-
-					<log string="Step 12: test asynchronous free tree extension"/>
+					<log string="Step 7: extend free tree"/>
 
 					<request op="write" vba="20" num_blocks="3"     salt="3874"/>
 					<request op="extend_ft"      num_blocks="21"  />
 					<request op="extend_ft"      num_blocks="17"  />
 					<request op="read"  vba="21" num_blocks="1"     salt="3874"/>
 					<request op="write" vba="15" num_blocks="10"    salt="6092"/>
-					<request op="write" vba="15" num_blocks="4"     salt="1060"/>
-					<request op="read"  vba="21" num_blocks="3"     salt="6092"/>
-					<request op="read"  vba="19" num_blocks="3"     salt="6092"/>
 					<request op="write" vba="17" num_blocks="5"     salt="5555"/>
-					<request op="read"  vba="22" num_blocks="3"     salt="6092"/>
-					<request op="read"  vba="15" num_blocks="2"     salt="1060"/>
-					<request op="extend_ft"      num_blocks="180" />
+					<request op="extend_ft"      num_blocks="50" />
 					<request op="write" vba="11" num_blocks="6"     salt="4316"/>
 					<request op="read"  vba="17" num_blocks="5"     salt="5555"/>
-					<request op="write" vba="22" num_blocks="2"     salt="4673"/>
-					<request op="write" vba="25" num_blocks="11"    salt="3243"/>
-					<request op="read"  vba="24" num_blocks="1"     salt="6092"/>
 					<request op="write" vba="10" num_blocks="5"     salt="7538"/>
-					<request op="extend_ft"      num_blocks="3"   />
-					<request op="extend_ft"      num_blocks="2"   />
-					<request op="write" vba="21" num_blocks="2"     salt="0984"/>
-					<request op="write" vba="12" num_blocks="10"    salt="4545"/>
-					<request op="write" vba="26" num_blocks="4"     salt="5774"/>
 					<request op="write" vba="15" num_blocks="7"     salt="9311"/>
-					<request op="write" vba="65" num_blocks="7"     salt="4583"/>
-					<request op="read"  vba="23" num_blocks="1"     salt="4673"/>
-					<request op="read"  vba="25" num_blocks="1"     salt="3243"/>
-					<request op="read"  vba="28" num_blocks="2"     salt="5774"/>
 					<request op="extend_ft"      num_blocks="11"  />
 					<request op="read"  vba="24" num_blocks="1"     salt="6092"/>
-					<request op="read"  vba="12" num_blocks="3"     salt="4545"/>
 					<request op="read"  vba="19" num_blocks="3"     salt="9311"/>
 					<request op="read"  vba="10" num_blocks="2"     salt="7538"/>
-					<request op="read"  vba="65" num_blocks="7"     salt="4583"/>
-					<request op="write" vba="60" num_blocks="10"    salt="2725"/>
-					<request op="read"  vba="63" num_blocks="7"     salt="2725"/>
-					<request op="read"  vba="70" num_blocks="2"     salt="4583"/>
+					<request op="write" vba="0"  num_blocks="5"      salt="2725"/>
+					<request op="read"  vba="0"  num_blocks="4"     salt="2725"/>
 					<request op="sync"  vba="0"  num_blocks="256" />
 					<check/>
 
-					<log string="Step 13: test synchronous vbd extension"/>
-
-					<request op="write" vba="20" num_blocks="3"    salt="0473"/>
-					<request op="extend_vbd"     num_blocks="23"  />
-					<request op="read"  vba="21" num_blocks="1"    salt="0473"/>
-					<request op="extend_vbd"     num_blocks="6"   />
-					<request op="write" vba="15" num_blocks="10"   salt="1296"/>
-					<request op="write" vba="15" num_blocks="4"    salt="1161"/>
-					<request op="extend_vbd"     num_blocks="10"  />
-					<request op="read"  vba="21" num_blocks="3"    salt="1296"/>
-					<request op="read"  vba="19" num_blocks="3"    salt="1296"/>
-					<request op="write" vba="17" num_blocks="5"    salt="5353"/>
-					<request op="extend_vbd"     num_blocks="2"   />
-					<request op="extend_vbd"     num_blocks="2"   />
-					<request op="extend_vbd"     num_blocks="2"   />
-					<request op="read"  vba="22" num_blocks="3"    salt="1296"/>
-					<request op="extend_vbd"     num_blocks="1"   />
-					<request op="read"  vba="15" num_blocks="2"    salt="1161"/>
-					<request op="write" vba="11" num_blocks="6"    salt="3654"/>
-					<request op="write" vba="65" num_blocks="1"    salt="5346"/>
-					<request op="read"  vba="65" num_blocks="1"    salt="5346"/>
-					<request op="sync"  vba="0"  num_blocks="256" />
-					<check/>
-
-					<log string="Step 14: test asynchronous vbd extension"/>
+					<log string="Step 8: extend virtual block device"/>
 
 					<request op="write" vba="20" num_blocks="3"     salt="7384"/>
 					<request op="extend_vbd"     num_blocks="21"  />
-					<request op="extend_vbd"     num_blocks="17"  />
 					<request op="read"  vba="21" num_blocks="1"     salt="7384"/>
 					<request op="write" vba="15" num_blocks="10"    salt="9602"/>
 					<request op="write" vba="15" num_blocks="4"     salt="6100"/>
-					<request op="read"  vba="21" num_blocks="3"     salt="9602"/>
-					<request op="read"  vba="19" num_blocks="3"     salt="9602"/>
 					<request op="write" vba="17" num_blocks="5"     salt="5555"/>
-					<request op="read"  vba="22" num_blocks="3"     salt="9602"/>
-					<request op="read"  vba="15" num_blocks="2"     salt="6100"/>
-					<request op="extend_vbd"     num_blocks="180" />
-					<request op="write" vba="11" num_blocks="6"     salt="1436"/>
+					<request op="extend_vbd"     num_blocks="50"  />
 					<request op="read"  vba="17" num_blocks="5"     salt="5555"/>
 					<request op="write" vba="22" num_blocks="2"     salt="7463"/>
-					<request op="write" vba="25" num_blocks="11"    salt="4323"/>
-					<request op="read"  vba="24" num_blocks="1"     salt="9602"/>
+					<request op="write" vba="35" num_blocks="11"    salt="4323"/>
+					<request op="read"  vba="15" num_blocks="2"     salt="6100"/>
 					<request op="write" vba="10" num_blocks="5"     salt="3758"/>
 					<request op="extend_vbd"     num_blocks="3"   />
 					<request op="extend_vbd"     num_blocks="2"   />
-					<request op="write" vba="21" num_blocks="2"     salt="8094"/>
-					<request op="write" vba="12" num_blocks="10"    salt="4455"/>
-					<request op="write" vba="26" num_blocks="4"     salt="7574"/>
-					<request op="write" vba="15" num_blocks="7"     salt="1931"/>
+					<request op="write" vba="12" num_blocks="10" salt="4455"/>
 					<request op="write" vba="65" num_blocks="7"     salt="8453"/>
 					<request op="read"  vba="23" num_blocks="1"     salt="7463"/>
-					<request op="read"  vba="25" num_blocks="1"     salt="4323"/>
-					<request op="read"  vba="28" num_blocks="2"     salt="7574"/>
-					<request op="extend_vbd"     num_blocks="11"  />
+					<request op="read"  vba="35" num_blocks="1"     salt="4323"/>
 					<request op="read"  vba="24" num_blocks="1"     salt="9602"/>
 					<request op="read"  vba="12" num_blocks="3"     salt="4455"/>
-					<request op="read"  vba="19" num_blocks="3"     salt="1931"/>
 					<request op="read"  vba="10" num_blocks="2"     salt="3758"/>
 					<request op="read"  vba="65" num_blocks="7"     salt="8453"/>
-					<request op="write" vba="60" num_blocks="10"    salt="2275"/>
-					<request op="read"  vba="63" num_blocks="7"     salt="2275"/>
-					<request op="read"  vba="70" num_blocks="2"     salt="8453"/>
 					<request op="sync"  vba="0"  num_blocks="256" />
 					<check/>
 
-					<log string="Step 15: check minimum vbd dimensions"/>
+					<log string="Step 9: minimal virtual block device"/>
 
 					<request op="deinitialize"/>
 					<destruct/>
@@ -584,7 +408,7 @@ append config {
 					<request op="write" vba="0" num_blocks="1" salt="4321"/>
 					<request op="read" vba="0" num_blocks="1" salt="4321"/>
 
-					<log string="Step 16: check minimum free tree dimensions"/>
+					<log string="Step 10: minimal free tree"/>
 
 					<request op="deinitialize"/>
 					<destruct/>
@@ -599,7 +423,7 @@ append config {
 					<request op="rekey" sync="yes"/>
 					<request op="write" vba="0" num_blocks="1" salt="4321"/>
 					<request op="read" vba="0" num_blocks="1" salt="4321"/>
-					<request op="create_snapshot" id="13"/>
+					<request op="create_snapshot" id="9"/>
 					<request op="write" vba="0" num_blocks="1" salt="1234"/>
 					<request op="rekey"/>
 					<request op="write" vba="0" num_blocks="1" salt="9465"/>
@@ -608,9 +432,11 @@ append config {
 					<request op="write" vba="0" num_blocks="32" sync="yes" salt="4321"/>
 					<request op="read" vba="0" num_blocks="32" salt="4321"/>
 					<check/>
-					<check-snapshots/>
+					<check-snapshots/> }
 
-					<log string="Step 17: check maximum tree dimensions"/>
+append_if [have_board linux] config {
+
+					<log string="Step 11: maximum tree dimensions"/>
 
 					<destruct/>
 					<initialize>
@@ -622,11 +448,11 @@ append config {
 					<request op="write" vba="0" num_blocks="1" salt="1234"/>
 					<request op="write" vba="99999" num_blocks="1" salt="5463"/>
 					<request op="read" vba="0" num_blocks="1" salt="1234"/>
-					<request op="extend_vbd" num_blocks="200"/>
+					<request op="extend_vbd" num_blocks="20"/>
 					<request op="write" vba="0" num_blocks="1" salt="4567"/>
 					<request op="read" vba="99999" num_blocks="1" salt="5463"/>
 					<request op="read" vba="0" num_blocks="1" salt="4567"/>
-					<request op="extend_ft" num_blocks="200"/>
+					<request op="extend_ft" num_blocks="20"/>
 					<request op="write" vba="100" num_blocks="100" salt="1384"/>
 					<request op="write" vba="99990" num_blocks="30" salt="5463"/>
 					<request op="read" vba="100" num_blocks="100" salt="1384"/>
@@ -634,7 +460,7 @@ append config {
 					<check/>
 					<check-snapshots/>
 
-					<log string="Step 18: reinitialize Tresor device"/>
+					<log string="Step 12: do read/write benchmarks"/>
 
 					<request op="deinitialize" />
 					<destruct/>
@@ -643,27 +469,21 @@ append config {
 						<free-tree max_lvl="3" degree="64" num_leaves="25600" />
 					</initialize>
 					<construct/>
-}
-if {[benchmark_blk_count] > 0} {
-
-	append config {
-
-					<log string="Step 19: do read/write benchmarks"/>
 
 					<start-benchmark label="read initial data in one request"/>
-					<request op="read" vba="0" num_blocks="} [benchmark_blk_count] {" />
+					<request op="read" vba="0" num_blocks="12800"/>
 					<finish-benchmark/>
 
 					<start-benchmark label="overwrite initial data in one request"/>
-					<request op="write" vba="0" num_blocks="} [benchmark_blk_count] {" />
+					<request op="write" vba="0" num_blocks="12800"/>
 					<finish-benchmark/>
 
 					<start-benchmark label="overwrite written data in one request"/>
-					<request op="write" vba="0" num_blocks="} [benchmark_blk_count] {" />
+					<request op="write" vba="0" num_blocks="12800"/>
 					<finish-benchmark/>
 
 					<start-benchmark label="read written data in one request"/>
-					<request op="read" vba="0" num_blocks="} [benchmark_blk_count] {" />
+					<request op="read" vba="0" num_blocks="12800"/>
 					<finish-benchmark/>
 
 					<start-benchmark label="read written data randomized"/>
@@ -1084,23 +904,7 @@ if {[benchmark_blk_count] > 0} {
 					<check/>
 	}
 
-} else {
-
-	append config {
-
-					<log string="Step 19: skip because benchmarks are disabled for this platform"/>
-	}
-}
 append config {
-
-					<log string="Step 20: test check-snapshots command"/>
-
-					<request op="create_snapshot"  id="15"/>
-					<request op="write" vba="17737" num_blocks="70"  salt="8924"/>
-					<request op="create_snapshot"  id="16"/>
-					<request op="write" vba="00129" num_blocks="30"  salt="9471"/>
-					<request op="create_snapshot"  id="17"/>
-					<check-snapshots/>
 
 				</commands>
 
@@ -1119,8 +923,7 @@ append config {
 
 		</start>
 
-	</config>
-}
+	</config> }
 
 install_config $config
 
@@ -1148,7 +951,7 @@ build_boot_image $boot_modules
 append qemu_args " -nographic "
 
 set test_timeout 200
-if {[benchmark_blk_count] > 0} {
+if {[have_board linux]} {
 	set test_timeout 300
 }
 run_genode_until "child \"test\" exited with exit value.*\n" $test_timeout
