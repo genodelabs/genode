@@ -1724,31 +1724,57 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 		if (!argp) return { true, EINVAL };
 
+		int const sample_rate = *(int const *)argp;
+		if (sample_rate < 0)
+			return { true, EINVAL };
+
+		bool legacy_oss = false;
+
+		monitor().monitor([&] {
+			_with_info(*fd, [&] (Xml_node info) {
+				if (info.type() != "oss") return;
+
+				/* assume legacy if version is not set, current is 2 */
+				legacy_oss = info.attribute_value("plugin_version", 1U) == 1U;
+			});
+
+			return Fn::COMPLETE;
+		});
+
+		if (!legacy_oss) {
+
+			char sample_rate_string[8] { };
+
+			::snprintf(sample_rate_string, sizeof(sample_rate_string), "%u", sample_rate);
+
+			Absolute_path sample_rate_path = ioctl_dir(*fd);
+			sample_rate_path.append_element("sample_rate");
+			File_descriptor *sample_rate_fd = open(sample_rate_path.base(), O_RDWR);
+			if (!sample_rate_fd)
+				return { true, ENOTSUP };
+			write(sample_rate_fd, sample_rate_string, sizeof(sample_rate_string));
+			close(sample_rate_fd);
+		}
+
 		monitor().monitor([&] {
 			_with_info(*fd, [&] (Xml_node info) {
 				if (info.type() != "oss") {
 					return;
 				}
 
-				unsigned int const samplerate =
+				unsigned int const got_sample_rate =
 					info.attribute_value("sample_rate", 0U);
-				if (samplerate == 0U) {
+				if (got_sample_rate == 0U) {
 					result = EINVAL;
 					return;
 				}
 
-				int const speed = *(int const *)argp;
-				if (speed < 0) {
-					result = EINVAL;
-					return;
-				}
-
-				if ((unsigned)speed != samplerate) {
+				if ((unsigned)sample_rate != got_sample_rate) {
 					result = ENOTSUP;
 					return;
 				}
 
-				*(int *)argp = samplerate;
+				*(int *)argp = got_sample_rate;
 
 				handled = true;
 			});
