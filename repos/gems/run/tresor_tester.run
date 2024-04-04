@@ -68,13 +68,13 @@ append config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 			<route>
-				<service name="PD">      <parent/> </service>
-				<service name="ROM">     <parent/> </service>
-				<service name="LOG">     <parent/> </service>
-				<service name="CPU">     <parent/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
 				<service name="IO_PORT"> <parent/> </service>
-				<service name="IO_MEM">  <parent/> </service>
-				<service name="IRQ">     <parent/> </service>
+				<service name="IO_MEM"> <parent/> </service>
+				<service name="IRQ"> <parent/> </service>
 			</route>
 		</start>
 
@@ -84,7 +84,7 @@ append config {
 			<config verbose="yes"/>
 			<route>
 				<service name="LOG"> <parent/> </service>
-				<service name="PD">  <parent/> </service>
+				<service name="PD"> <parent/> </service>
 				<service name="CPU"> <parent/> </service>
 				<service name="ROM"> <parent/> </service>
 			</route>
@@ -95,15 +95,13 @@ append config {
 			<provides><service name="Terminal"/></provides>
 			<route>
 				<service name="LOG"> <parent/> </service>
-				<service name="PD">  <parent/> </service>
+				<service name="PD"> <parent/> </service>
 				<service name="CPU"> <parent/> </service>
 				<service name="ROM"> <parent/> </service>
 			</route>
-		</start>
-}
-if {[have_board linux]} {
+		</start> }
 
-	append config {
+append_if [have_board linux] config {
 
 		<start name="block_io_fs" caps="100" ld="no">
 			<binary name="lx_fs"/>
@@ -114,16 +112,13 @@ if {[have_board linux]} {
 			</config>
 			<route>
 				<service name="LOG"> <parent/> </service>
-				<service name="PD">  <parent/> </service>
+				<service name="PD"> <parent/> </service>
 				<service name="CPU"> <parent/> </service>
 				<service name="ROM"> <parent/> </service>
 			</route>
-		</start>
-	}
+		</start> }
 
-} else {
-
-	append config {
+append_if [expr ![have_board linux]] config {
 
 		<start name="block_io_fs" caps="400">
 			<binary name="vfs"/>
@@ -143,14 +138,13 @@ if {[have_board linux]} {
 				<default-policy root="/block_io" writeable="yes"/>
 			</config>
 			<route>
-				<service name="PD">  <parent/> </service>
+				<service name="PD"> <parent/> </service>
 				<service name="ROM"> <parent/> </service>
 				<service name="LOG"> <parent/> </service>
 				<service name="CPU"> <parent/> </service>
 			</route>
-		</start>
-	}
-}
+		</start> }
+
 append config {
 
 		<start name="trust_anchor_fs" caps="200">
@@ -174,6 +168,7 @@ append_if [expr ![jent_avail]] config {
 						<inline name="jitterentropy">0123456789abcdefghijklmnopqrstuv</inline> }
 
 append config {
+
 						<tresor_trust_anchor name="tresor_trust_anchor" storage_dir="/storage"/>
 					</dir>
 				</vfs>
@@ -212,92 +207,92 @@ append config {
 
 					<initialize-trust-anchor passphrase="foobar"/>
 					<initialize>
-						<virtual-block-device max_lvl="2" degree="8" num_leaves="32" />
-						<free-tree max_lvl="2" degree="8" num_leaves="64" />
+						<virtual-block-device max_lvl="2" degree="8" num_leaves="32"/>
+						<free-tree max_lvl="2" degree="8" num_leaves="64"/>
 					</initialize>
 					<check/>
 					<construct/>
 
 					<log string="Step 2: block access"/>
 
-					<request op="read"  vba="1"   num_blocks="16"    uninitialized_data="yes"/>
-					<request op="write" vba="20" num_blocks="3"   salt="7373"/>
-					<request op="read"  vba="21" num_blocks="1"   salt="7373"/>
-					<request op="write" vba="15" num_blocks="10"  salt="1515"/>
-					<request op="write" vba="15" num_blocks="4"   salt="6001"/>
-					<request op="read"  vba="21" num_blocks="3"   salt="1515"/>
-					<request op="read"  vba="19" num_blocks="3"   salt="1515"/>
-					<request op="write" vba="17" num_blocks="5"   salt="9689"/>
-					<request op="read"  vba="22" num_blocks="3"   salt="1515"/>
-					<request op="read"  vba="15" num_blocks="2"   salt="6001"/>
-					<request op="write" vba="11" num_blocks="6"   salt="0987"/>
-					<request op="read"  vba="17" num_blocks="5"   salt="9689"/>
-					<request op="write" vba="22" num_blocks="2"   salt="6543"/>
-					<request op="write" vba="25" num_blocks="7"   salt="5432"/>
-					<request op="read"  vba="24" num_blocks="1"   salt="1515"/>
-					<request op="write" vba="10" num_blocks="5"   salt="4221"/>
-					<request op="write" vba="21" num_blocks="2"   salt="1001"/>
-					<request op="write" vba="12" num_blocks="10"  salt="3366"/>
-					<request op="write" vba="26" num_blocks="4"   salt="7271"/>
-					<request op="write" vba="15" num_blocks="7"   salt="1331"/>
-					<request op="read"  vba="23" num_blocks="1"   salt="6543"/>
-					<request op="read"  vba="25" num_blocks="1"   salt="5432"/>
-					<request op="read"  vba="28" num_blocks="2"   salt="7271"/>
-					<request op="read"  vba="24" num_blocks="1"   salt="1515"/>
-					<request op="read"  vba="12" num_blocks="3"   salt="3366"/>
-					<request op="read"  vba="19" num_blocks="3"   salt="1331"/>
-					<request op="read"  vba="10" num_blocks="2"   salt="4221"/>
+					<request op="read" vba="1" num_blocks="16" uninitialized_data="yes"/>
+					<request op="write" vba="20" num_blocks="3" salt="7373"/>
+					<request op="read" vba="21" num_blocks="1" salt="7373"/>
+					<request op="write" vba="15" num_blocks="10" salt="1515"/>
+					<request op="write" vba="15" num_blocks="4" salt="6001"/>
+					<request op="read" vba="21" num_blocks="3" salt="1515"/>
+					<request op="read" vba="19" num_blocks="3" salt="1515"/>
+					<request op="write" vba="17" num_blocks="5" salt="9689"/>
+					<request op="read" vba="22" num_blocks="3" salt="1515"/>
+					<request op="read" vba="15" num_blocks="2" salt="6001"/>
+					<request op="write" vba="11" num_blocks="6" salt="0987"/>
+					<request op="read" vba="17" num_blocks="5" salt="9689"/>
+					<request op="write" vba="22" num_blocks="2" salt="6543"/>
+					<request op="write" vba="25" num_blocks="7" salt="5432"/>
+					<request op="read" vba="24" num_blocks="1" salt="1515"/>
+					<request op="write" vba="10" num_blocks="5" salt="4221"/>
+					<request op="write" vba="21" num_blocks="2" salt="1001"/>
+					<request op="write" vba="12" num_blocks="10" salt="3366"/>
+					<request op="write" vba="26" num_blocks="4" salt="7271"/>
+					<request op="write" vba="15" num_blocks="7" salt="1331"/>
+					<request op="read" vba="23" num_blocks="1" salt="6543"/>
+					<request op="read" vba="25" num_blocks="1" salt="5432"/>
+					<request op="read" vba="28" num_blocks="2" salt="7271"/>
+					<request op="read" vba="24" num_blocks="1" salt="1515"/>
+					<request op="read" vba="12" num_blocks="3" salt="3366"/>
+					<request op="read" vba="19" num_blocks="3" salt="1331"/>
+					<request op="read" vba="10" num_blocks="2" salt="4221"/>
 
 					<log string="Step 3: lock, check and unlock tresor container"/>
 
-					<request op="deinitialize" />
+					<request op="deinitialize"/>
 					<destruct/>
 					<check/>
 					<construct/>
 
 					<log string="Step 4: snapshot management"/>
 
-					<request op="write" vba="20" num_blocks="3"    salt="7304"/>
-					<request op="create_snapshot"             id="1"/>
-					<request op="read"  vba="21" num_blocks="1"    salt="7304"/>
-					<request op="write" vba="15" num_blocks="10"   salt="9612"/>
-					<request op="write" vba="15" num_blocks="4"    salt="6111"/>
-					<request op="read"  vba="21" num_blocks="3"    salt="9612"/>
-					<request op="read"  vba="19" num_blocks="3"    salt="9612"/>
-					<request op="create_snapshot"             id="2"/>
-					<request op="read"  vba="22" num_blocks="3"    salt="9612"/>
-					<request op="read"  vba="15" num_blocks="2"    salt="6111"/>
-					<request op="write" vba="11" num_blocks="6"    salt="5436"/>
+					<request op="write" vba="20" num_blocks="3" salt="7304"/>
+					<request op="create_snapshot" id="1"/>
+					<request op="read" vba="21" num_blocks="1" salt="7304"/>
+					<request op="write" vba="15" num_blocks="10" salt="9612"/>
+					<request op="write" vba="15" num_blocks="4" salt="6111"/>
+					<request op="read" vba="21" num_blocks="3" salt="9612"/>
+					<request op="read" vba="19" num_blocks="3" salt="9612"/>
+					<request op="create_snapshot" id="2"/>
+					<request op="read" vba="22" num_blocks="3" salt="9612"/>
+					<request op="read" vba="15" num_blocks="2" salt="6111"/>
+					<request op="write" vba="11" num_blocks="6" salt="5436"/>
 					<check-snapshots/>
-					<request op="discard_snapshot"            id="1"/>
+					<request op="discard_snapshot" id="1"/>
 					<check-snapshots/>
 					<request op="discard_snapshot" id="2"/>
 					<check-snapshots/>
-					<request op="sync"  vba="0"  num_blocks="256" />
+					<request op="sync"/>
 					<check/>
-					<request op="write" vba="20" num_blocks="3"    salt="7384"/>
-					<request op="create_snapshot"             id="3"/>
-					<request op="read"  vba="21" num_blocks="1"    salt="7384"/>
-					<request op="write" vba="15" num_blocks="10"   salt="9602"/>
-					<request op="write" vba="15" num_blocks="4"    salt="6100"/>
-					<request op="write" vba="17" num_blocks="5"    salt="5555"/>
-					<request op="read"  vba="15" num_blocks="2"    salt="6100"/>
-					<request op="create_snapshot"             id="4"/>
+					<request op="write" vba="20" num_blocks="3" salt="7384"/>
+					<request op="create_snapshot" id="3"/>
+					<request op="read" vba="21" num_blocks="1" salt="7384"/>
+					<request op="write" vba="15" num_blocks="10" salt="9602"/>
+					<request op="write" vba="15" num_blocks="4" salt="6100"/>
+					<request op="write" vba="17" num_blocks="5" salt="5555"/>
+					<request op="read" vba="15" num_blocks="2" salt="6100"/>
+					<request op="create_snapshot" id="4"/>
 					<request op="create_snapshot" id="5"/>
-					<request op="read"  vba="17" num_blocks="5"    salt="5555"/>
-					<request op="write" vba="25" num_blocks="7"    salt="4323"/>
-					<request op="read"  vba="24" num_blocks="1"    salt="9602"/>
-					<request op="write" vba="10" num_blocks="5"    salt="3758"/>
+					<request op="read" vba="17" num_blocks="5" salt="5555"/>
+					<request op="write" vba="25" num_blocks="7" salt="4323"/>
+					<request op="read" vba="24" num_blocks="1" salt="9602"/>
+					<request op="write" vba="10" num_blocks="5" salt="3758"/>
 					<request op="create_snapshot" id="6"/>
-					<request op="write" vba="26" num_blocks="4"    salt="7574"/>
-					<request op="write" vba="15" num_blocks="7"    salt="1931"/>
-					<request op="read"  vba="25" num_blocks="1"    salt="4323"/>
-					<request op="read"  vba="19" num_blocks="3"    salt="1931"/>
-					<request op="read"  vba="10" num_blocks="2"    salt="3758"/>
+					<request op="write" vba="26" num_blocks="4" salt="7574"/>
+					<request op="write" vba="15" num_blocks="7" salt="1931"/>
+					<request op="read" vba="25" num_blocks="1" salt="4323"/>
+					<request op="read" vba="19" num_blocks="3" salt="1931"/>
+					<request op="read" vba="10" num_blocks="2" salt="3758"/>
 					<check-snapshots/>
-					<request op="discard_snapshot"            id="5"/>
+					<request op="discard_snapshot" id="5"/>
 					<check-snapshots/>
-					<request op="sync"  vba="0"  num_blocks="256" />
+					<request op="sync"/>
 					<check/>
 
 					<log string="Step 5: set up new tresor container"/>
@@ -305,93 +300,93 @@ append config {
 					<request op="deinitialize"/>
 					<destruct/>
 					<initialize>
-						<virtual-block-device max_lvl="3" degree="8" num_leaves="30" />
-						<free-tree max_lvl="3" degree="8" num_leaves="512" />
+						<virtual-block-device max_lvl="3" degree="8" num_leaves="30"/>
+						<free-tree max_lvl="3" degree="8" num_leaves="512"/>
 					</initialize>
 					<construct/>
 
 					<log string="Step 6: rekeying"/>
 
-					<request op="write" vba="10" num_blocks="5"    salt="7831"/>
-					<request op="write" vba="2"  num_blocks="8"    salt="8384"/>
-					<request op="write" vba="14" num_blocks="5"    salt="2837"/>
-					<request op="rekey"                       />
-					<request op="read"  vba="12" num_blocks="2"    salt="7831"/>
-					<request op="read"  vba="15" num_blocks="4"    salt="2837"/>
-					<request op="read"  vba="2"  num_blocks="8"    salt="8384"/>
-					<request op="write" vba="20" num_blocks="3"    salt="7384"/>
-					<request op="read"  vba="21" num_blocks="1"    salt="7384"/>
-					<request op="write" vba="15" num_blocks="10"   salt="9602"/>
-					<request op="write" vba="15" num_blocks="4"    salt="6100"/>
-					<request op="read"  vba="19" num_blocks="3"    salt="9602"/>
-					<request op="write" vba="17" num_blocks="5"    salt="5555"/>
-					<request op="read"  vba="15" num_blocks="2"    salt="6100"/>
+					<request op="write" vba="10" num_blocks="5" salt="7831"/>
+					<request op="write" vba="2" num_blocks="8" salt="8384"/>
+					<request op="write" vba="14" num_blocks="5" salt="2837"/>
+					<request op="rekey"/>
+					<request op="read" vba="12" num_blocks="2" salt="7831"/>
+					<request op="read" vba="15" num_blocks="4" salt="2837"/>
+					<request op="read" vba="2" num_blocks="8" salt="8384"/>
+					<request op="write" vba="20" num_blocks="3" salt="7384"/>
+					<request op="read" vba="21" num_blocks="1" salt="7384"/>
+					<request op="write" vba="15" num_blocks="10" salt="9602"/>
+					<request op="write" vba="15" num_blocks="4" salt="6100"/>
+					<request op="read" vba="19" num_blocks="3" salt="9602"/>
+					<request op="write" vba="17" num_blocks="5" salt="5555"/>
+					<request op="read" vba="15" num_blocks="2" salt="6100"/>
 					<request op="create_snapshot" id="8"/>
-					<request op="read"  vba="17" num_blocks="5"    salt="5555"/>
-					<request op="write" vba="22" num_blocks="2"    salt="7463"/>
-					<request op="rekey"                      />
-					<request op="write" vba="25" num_blocks="5"    salt="4323"/>
-					<request op="read"  vba="24" num_blocks="1"    salt="9602"/>
-					<request op="write" vba="10" num_blocks="5"    salt="3758"/>
-					<request op="write" vba="12" num_blocks="10"   salt="4455"/>
-					<request op="write" vba="26" num_blocks="4"    salt="7574"/>
-					<request op="write" vba="15" num_blocks="7"    salt="1931"/>
-					<request op="read"  vba="23" num_blocks="1"    salt="7463"/>
-					<request op="read"  vba="25" num_blocks="1"    salt="4323"/>
-					<request op="read"  vba="28" num_blocks="2"    salt="7574"/>
-					<request op="read"  vba="12" num_blocks="3"    salt="4455"/>
-					<request op="read"  vba="19" num_blocks="3"    salt="1931"/>
-					<request op="read"  vba="10" num_blocks="2"    salt="3758"/>
-					<request op="sync"  vba="0"  num_blocks="256" />
+					<request op="read" vba="17" num_blocks="5" salt="5555"/>
+					<request op="write" vba="22" num_blocks="2" salt="7463"/>
+					<request op="rekey"/>
+					<request op="write" vba="25" num_blocks="5" salt="4323"/>
+					<request op="read" vba="24" num_blocks="1" salt="9602"/>
+					<request op="write" vba="10" num_blocks="5" salt="3758"/>
+					<request op="write" vba="12" num_blocks="10" salt="4455"/>
+					<request op="write" vba="26" num_blocks="4" salt="7574"/>
+					<request op="write" vba="15" num_blocks="7" salt="1931"/>
+					<request op="read" vba="23" num_blocks="1" salt="7463"/>
+					<request op="read" vba="25" num_blocks="1" salt="4323"/>
+					<request op="read" vba="28" num_blocks="2" salt="7574"/>
+					<request op="read" vba="12" num_blocks="3" salt="4455"/>
+					<request op="read" vba="19" num_blocks="3" salt="1931"/>
+					<request op="read" vba="10" num_blocks="2" salt="3758"/>
+					<request op="sync"/>
 					<check/>
 
 					<log string="Step 7: extend free tree"/>
 
-					<request op="write" vba="20" num_blocks="3"     salt="3874"/>
-					<request op="extend_ft"      num_blocks="21"  />
-					<request op="extend_ft"      num_blocks="17"  />
-					<request op="read"  vba="21" num_blocks="1"     salt="3874"/>
-					<request op="write" vba="15" num_blocks="10"    salt="6092"/>
-					<request op="write" vba="17" num_blocks="5"     salt="5555"/>
-					<request op="extend_ft"      num_blocks="50" />
-					<request op="write" vba="11" num_blocks="6"     salt="4316"/>
-					<request op="read"  vba="17" num_blocks="5"     salt="5555"/>
-					<request op="write" vba="10" num_blocks="5"     salt="7538"/>
-					<request op="write" vba="15" num_blocks="7"     salt="9311"/>
-					<request op="extend_ft"      num_blocks="11"  />
-					<request op="read"  vba="24" num_blocks="1"     salt="6092"/>
-					<request op="read"  vba="19" num_blocks="3"     salt="9311"/>
-					<request op="read"  vba="10" num_blocks="2"     salt="7538"/>
-					<request op="write" vba="0"  num_blocks="5"      salt="2725"/>
-					<request op="read"  vba="0"  num_blocks="4"     salt="2725"/>
-					<request op="sync"  vba="0"  num_blocks="256" />
+					<request op="write" vba="20" num_blocks="3" salt="3874"/>
+					<request op="extend_ft" num_blocks="21"/>
+					<request op="extend_ft" num_blocks="17"/>
+					<request op="read" vba="21" num_blocks="1" salt="3874"/>
+					<request op="write" vba="15" num_blocks="10" salt="6092"/>
+					<request op="write" vba="17" num_blocks="5" salt="5555"/>
+					<request op="extend_ft" num_blocks="50"/>
+					<request op="write" vba="11" num_blocks="6" salt="4316"/>
+					<request op="read" vba="17" num_blocks="5" salt="5555"/>
+					<request op="write" vba="10" num_blocks="5" salt="7538"/>
+					<request op="write" vba="15" num_blocks="7" salt="9311"/>
+					<request op="extend_ft" num_blocks="11"/>
+					<request op="read" vba="24" num_blocks="1" salt="6092"/>
+					<request op="read" vba="19" num_blocks="3" salt="9311"/>
+					<request op="read" vba="10" num_blocks="2" salt="7538"/>
+					<request op="write" vba="0" num_blocks="5" salt="2725"/>
+					<request op="read" vba="0" num_blocks="4" salt="2725"/>
+					<request op="sync"/>
 					<check/>
 
 					<log string="Step 8: extend virtual block device"/>
 
-					<request op="write" vba="20" num_blocks="3"     salt="7384"/>
-					<request op="extend_vbd"     num_blocks="21"  />
-					<request op="read"  vba="21" num_blocks="1"     salt="7384"/>
-					<request op="write" vba="15" num_blocks="10"    salt="9602"/>
-					<request op="write" vba="15" num_blocks="4"     salt="6100"/>
-					<request op="write" vba="17" num_blocks="5"     salt="5555"/>
-					<request op="extend_vbd"     num_blocks="50"  />
-					<request op="read"  vba="17" num_blocks="5"     salt="5555"/>
-					<request op="write" vba="22" num_blocks="2"     salt="7463"/>
-					<request op="write" vba="35" num_blocks="11"    salt="4323"/>
-					<request op="read"  vba="15" num_blocks="2"     salt="6100"/>
-					<request op="write" vba="10" num_blocks="5"     salt="3758"/>
-					<request op="extend_vbd"     num_blocks="3"   />
-					<request op="extend_vbd"     num_blocks="2"   />
+					<request op="write" vba="20" num_blocks="3" salt="7384"/>
+					<request op="extend_vbd" num_blocks="21"/>
+					<request op="read" vba="21" num_blocks="1" salt="7384"/>
+					<request op="write" vba="15" num_blocks="10" salt="9602"/>
+					<request op="write" vba="15" num_blocks="4" salt="6100"/>
+					<request op="write" vba="17" num_blocks="5" salt="5555"/>
+					<request op="extend_vbd" num_blocks="50"/>
+					<request op="read" vba="17" num_blocks="5" salt="5555"/>
+					<request op="write" vba="22" num_blocks="2" salt="7463"/>
+					<request op="write" vba="35" num_blocks="11" salt="4323"/>
+					<request op="read" vba="15" num_blocks="2" salt="6100"/>
+					<request op="write" vba="10" num_blocks="5" salt="3758"/>
+					<request op="extend_vbd" num_blocks="3"/>
+					<request op="extend_vbd" num_blocks="2"/>
 					<request op="write" vba="12" num_blocks="10" salt="4455"/>
-					<request op="write" vba="65" num_blocks="7"     salt="8453"/>
-					<request op="read"  vba="23" num_blocks="1"     salt="7463"/>
-					<request op="read"  vba="35" num_blocks="1"     salt="4323"/>
-					<request op="read"  vba="24" num_blocks="1"     salt="9602"/>
-					<request op="read"  vba="12" num_blocks="3"     salt="4455"/>
-					<request op="read"  vba="10" num_blocks="2"     salt="3758"/>
-					<request op="read"  vba="65" num_blocks="7"     salt="8453"/>
-					<request op="sync"  vba="0"  num_blocks="256" />
+					<request op="write" vba="65" num_blocks="7" salt="8453"/>
+					<request op="read" vba="23" num_blocks="1" salt="7463"/>
+					<request op="read" vba="35" num_blocks="1" salt="4323"/>
+					<request op="read" vba="24" num_blocks="1" salt="9602"/>
+					<request op="read" vba="12" num_blocks="3" salt="4455"/>
+					<request op="read" vba="10" num_blocks="2" salt="3758"/>
+					<request op="read" vba="65" num_blocks="7" salt="8453"/>
+					<request op="sync"/>
 					<check/>
 
 					<log string="Step 9: minimal virtual block device"/>
@@ -462,11 +457,11 @@ append_if [have_board linux] config {
 
 					<log string="Step 12: do read/write benchmarks"/>
 
-					<request op="deinitialize" />
+					<request op="deinitialize"/>
 					<destruct/>
 					<initialize>
-						<virtual-block-device max_lvl="3" degree="64" num_leaves="25600" />
-						<free-tree max_lvl="3" degree="64" num_leaves="25600" />
+						<virtual-block-device max_lvl="3" degree="64" num_leaves="25600"/>
+						<free-tree max_lvl="3" degree="64" num_leaves="25600"/>
 					</initialize>
 					<construct/>
 
@@ -488,421 +483,420 @@ append_if [have_board linux] config {
 
 					<start-benchmark label="read written data randomized"/>
 
-					<request op="read" vba="00001" num_blocks="10" />
-					<request op="read" vba="00028" num_blocks="80" />
-					<request op="read" vba="24045" num_blocks="50" />
-					<request op="read" vba="04441" num_blocks="10" />
-					<request op="read" vba="14240" num_blocks="40" />
-					<request op="read" vba="00230" num_blocks="80" />
-					<request op="read" vba="01673" num_blocks="30" />
-					<request op="read" vba="21609" num_blocks="30" />
-					<request op="read" vba="12201" num_blocks="10" />
-					<request op="read" vba="19601" num_blocks="10" />
-					<request op="read" vba="08901" num_blocks="10" />
-					<request op="read" vba="00972" num_blocks="20" />
-					<request op="read" vba="00097" num_blocks="70" />
-					<request op="read" vba="05593" num_blocks="30" />
-					<request op="read" vba="15201" num_blocks="10" />
-					<request op="read" vba="25237" num_blocks="20" />
-					<request op="read" vba="03537" num_blocks="70" />
-					<request op="read" vba="15151" num_blocks="10" />
-					<request op="read" vba="04374" num_blocks="40" />
-					<request op="read" vba="05350" num_blocks="40" />
-					<request op="read" vba="00754" num_blocks="40" />
-					<request op="read" vba="01729" num_blocks="90" />
-					<request op="read" vba="11246" num_blocks="60" />
-					<request op="read" vba="13229" num_blocks="90" />
-					<request op="read" vba="13001" num_blocks="10" />
-					<request op="read" vba="00120" num_blocks="90" />
-					<request op="read" vba="20111" num_blocks="10" />
-					<request op="read" vba="02451" num_blocks="10" />
-					<request op="read" vba="14734" num_blocks="40" />
-					<request op="read" vba="00942" num_blocks="20" />
-					<request op="read" vba="00091" num_blocks="10" />
-					<request op="read" vba="23011" num_blocks="10" />
-					<request op="read" vba="20271" num_blocks="50" />
-					<request op="read" vba="01283" num_blocks="30" />
-					<request op="read" vba="12823" num_blocks="30" />
-					<request op="read" vba="00200" num_blocks="50" />
-					<request op="read" vba="01234" num_blocks="40" />
-					<request op="read" vba="17490" num_blocks="70" />
-					<request op="read" vba="19990" num_blocks="20" />
-					<request op="read" vba="02190" num_blocks="30" />
-					<request op="read" vba="00421" num_blocks="10" />
-					<request op="read" vba="11421" num_blocks="10" />
-					<request op="read" vba="02481" num_blocks="50" />
-					<request op="read" vba="23471" num_blocks="10" />
-					<request op="read" vba="21291" num_blocks="40" />
-					<request op="read" vba="00212" num_blocks="20" />
-					<request op="read" vba="14402" num_blocks="20" />
-					<request op="read" vba="01201" num_blocks="10" />
-					<request op="read" vba="20975" num_blocks="30" />
-					<request op="read" vba="13777" num_blocks="70" />
+					<request op="read" vba="00001" num_blocks="10"/>
+					<request op="read" vba="00028" num_blocks="80"/>
+					<request op="read" vba="24045" num_blocks="50"/>
+					<request op="read" vba="04441" num_blocks="10"/>
+					<request op="read" vba="14240" num_blocks="40"/>
+					<request op="read" vba="00230" num_blocks="80"/>
+					<request op="read" vba="01673" num_blocks="30"/>
+					<request op="read" vba="21609" num_blocks="30"/>
+					<request op="read" vba="12201" num_blocks="10"/>
+					<request op="read" vba="19601" num_blocks="10"/>
+					<request op="read" vba="08901" num_blocks="10"/>
+					<request op="read" vba="00972" num_blocks="20"/>
+					<request op="read" vba="00097" num_blocks="70"/>
+					<request op="read" vba="05593" num_blocks="30"/>
+					<request op="read" vba="15201" num_blocks="10"/>
+					<request op="read" vba="25237" num_blocks="20"/>
+					<request op="read" vba="03537" num_blocks="70"/>
+					<request op="read" vba="15151" num_blocks="10"/>
+					<request op="read" vba="04374" num_blocks="40"/>
+					<request op="read" vba="05350" num_blocks="40"/>
+					<request op="read" vba="00754" num_blocks="40"/>
+					<request op="read" vba="01729" num_blocks="90"/>
+					<request op="read" vba="11246" num_blocks="60"/>
+					<request op="read" vba="13229" num_blocks="90"/>
+					<request op="read" vba="13001" num_blocks="10"/>
+					<request op="read" vba="00120" num_blocks="90"/>
+					<request op="read" vba="20111" num_blocks="10"/>
+					<request op="read" vba="02451" num_blocks="10"/>
+					<request op="read" vba="14734" num_blocks="40"/>
+					<request op="read" vba="00942" num_blocks="20"/>
+					<request op="read" vba="00091" num_blocks="10"/>
+					<request op="read" vba="23011" num_blocks="10"/>
+					<request op="read" vba="20271" num_blocks="50"/>
+					<request op="read" vba="01283" num_blocks="30"/>
+					<request op="read" vba="12823" num_blocks="30"/>
+					<request op="read" vba="00200" num_blocks="50"/>
+					<request op="read" vba="01234" num_blocks="40"/>
+					<request op="read" vba="17490" num_blocks="70"/>
+					<request op="read" vba="19990" num_blocks="20"/>
+					<request op="read" vba="02190" num_blocks="30"/>
+					<request op="read" vba="00421" num_blocks="10"/>
+					<request op="read" vba="11421" num_blocks="10"/>
+					<request op="read" vba="02481" num_blocks="50"/>
+					<request op="read" vba="23471" num_blocks="10"/>
+					<request op="read" vba="21291" num_blocks="40"/>
+					<request op="read" vba="00212" num_blocks="20"/>
+					<request op="read" vba="14402" num_blocks="20"/>
+					<request op="read" vba="01201" num_blocks="10"/>
+					<request op="read" vba="20975" num_blocks="30"/>
+					<request op="read" vba="13777" num_blocks="70"/>
 
-					<request op="read" vba="00100" num_blocks="10" />
-					<request op="read" vba="00820" num_blocks="80" />
-					<request op="read" vba="24540" num_blocks="50" />
-					<request op="read" vba="04144" num_blocks="10" />
-					<request op="read" vba="14042" num_blocks="40" />
-					<request op="read" vba="00032" num_blocks="80" />
-					<request op="read" vba="01376" num_blocks="30" />
-					<request op="read" vba="21906" num_blocks="30" />
-					<request op="read" vba="12102" num_blocks="10" />
-					<request op="read" vba="19106" num_blocks="10" />
-					<request op="read" vba="08109" num_blocks="10" />
-					<request op="read" vba="00279" num_blocks="20" />
-					<request op="read" vba="00790" num_blocks="70" />
-					<request op="read" vba="05395" num_blocks="30" />
-					<request op="read" vba="15102" num_blocks="10" />
-					<request op="read" vba="25032" num_blocks="20" />
-					<request op="read" vba="03735" num_blocks="70" />
-					<request op="read" vba="15151" num_blocks="10" />
-					<request op="read" vba="04473" num_blocks="40" />
-					<request op="read" vba="05053" num_blocks="40" />
-					<request op="read" vba="00457" num_blocks="40" />
-					<request op="read" vba="01927" num_blocks="90" />
-					<request op="read" vba="11642" num_blocks="60" />
-					<request op="read" vba="13922" num_blocks="90" />
-					<request op="read" vba="13100" num_blocks="10" />
-					<request op="read" vba="00021" num_blocks="90" />
-					<request op="read" vba="20111" num_blocks="10" />
-					<request op="read" vba="02154" num_blocks="10" />
-					<request op="read" vba="14437" num_blocks="40" />
-					<request op="read" vba="00249" num_blocks="20" />
-					<request op="read" vba="00190" num_blocks="10" />
-					<request op="read" vba="23110" num_blocks="10" />
-					<request op="read" vba="20172" num_blocks="50" />
-					<request op="read" vba="01382" num_blocks="30" />
-					<request op="read" vba="12328" num_blocks="30" />
-					<request op="read" vba="00002" num_blocks="50" />
-					<request op="read" vba="01432" num_blocks="40" />
-					<request op="read" vba="17094" num_blocks="70" />
-					<request op="read" vba="19099" num_blocks="20" />
-					<request op="read" vba="02091" num_blocks="30" />
-					<request op="read" vba="00124" num_blocks="10" />
-					<request op="read" vba="11124" num_blocks="10" />
-					<request op="read" vba="02184" num_blocks="50" />
-					<request op="read" vba="23174" num_blocks="10" />
-					<request op="read" vba="21192" num_blocks="40" />
-					<request op="read" vba="00212" num_blocks="20" />
-					<request op="read" vba="14204" num_blocks="20" />
-					<request op="read" vba="01102" num_blocks="10" />
-					<request op="read" vba="20579" num_blocks="30" />
-					<request op="read" vba="13777" num_blocks="70" />
+					<request op="read" vba="00100" num_blocks="10"/>
+					<request op="read" vba="00820" num_blocks="80"/>
+					<request op="read" vba="24540" num_blocks="50"/>
+					<request op="read" vba="04144" num_blocks="10"/>
+					<request op="read" vba="14042" num_blocks="40"/>
+					<request op="read" vba="00032" num_blocks="80"/>
+					<request op="read" vba="01376" num_blocks="30"/>
+					<request op="read" vba="21906" num_blocks="30"/>
+					<request op="read" vba="12102" num_blocks="10"/>
+					<request op="read" vba="19106" num_blocks="10"/>
+					<request op="read" vba="08109" num_blocks="10"/>
+					<request op="read" vba="00279" num_blocks="20"/>
+					<request op="read" vba="00790" num_blocks="70"/>
+					<request op="read" vba="05395" num_blocks="30"/>
+					<request op="read" vba="15102" num_blocks="10"/>
+					<request op="read" vba="25032" num_blocks="20"/>
+					<request op="read" vba="03735" num_blocks="70"/>
+					<request op="read" vba="15151" num_blocks="10"/>
+					<request op="read" vba="04473" num_blocks="40"/>
+					<request op="read" vba="05053" num_blocks="40"/>
+					<request op="read" vba="00457" num_blocks="40"/>
+					<request op="read" vba="01927" num_blocks="90"/>
+					<request op="read" vba="11642" num_blocks="60"/>
+					<request op="read" vba="13922" num_blocks="90"/>
+					<request op="read" vba="13100" num_blocks="10"/>
+					<request op="read" vba="00021" num_blocks="90"/>
+					<request op="read" vba="20111" num_blocks="10"/>
+					<request op="read" vba="02154" num_blocks="10"/>
+					<request op="read" vba="14437" num_blocks="40"/>
+					<request op="read" vba="00249" num_blocks="20"/>
+					<request op="read" vba="00190" num_blocks="10"/>
+					<request op="read" vba="23110" num_blocks="10"/>
+					<request op="read" vba="20172" num_blocks="50"/>
+					<request op="read" vba="01382" num_blocks="30"/>
+					<request op="read" vba="12328" num_blocks="30"/>
+					<request op="read" vba="00002" num_blocks="50"/>
+					<request op="read" vba="01432" num_blocks="40"/>
+					<request op="read" vba="17094" num_blocks="70"/>
+					<request op="read" vba="19099" num_blocks="20"/>
+					<request op="read" vba="02091" num_blocks="30"/>
+					<request op="read" vba="00124" num_blocks="10"/>
+					<request op="read" vba="11124" num_blocks="10"/>
+					<request op="read" vba="02184" num_blocks="50"/>
+					<request op="read" vba="23174" num_blocks="10"/>
+					<request op="read" vba="21192" num_blocks="40"/>
+					<request op="read" vba="00212" num_blocks="20"/>
+					<request op="read" vba="14204" num_blocks="20"/>
+					<request op="read" vba="01102" num_blocks="10"/>
+					<request op="read" vba="20579" num_blocks="30"/>
+					<request op="read" vba="13777" num_blocks="70"/>
 
-					<request op="read" vba="00010" num_blocks="10" />
-					<request op="read" vba="02080" num_blocks="80" />
-					<request op="read" vba="24054" num_blocks="50" />
-					<request op="read" vba="04414" num_blocks="10" />
-					<request op="read" vba="14204" num_blocks="40" />
-					<request op="read" vba="03200" num_blocks="80" />
-					<request op="read" vba="07631" num_blocks="30" />
-					<request op="read" vba="20691" num_blocks="30" />
-					<request op="read" vba="10212" num_blocks="10" />
-					<request op="read" vba="10619" num_blocks="10" />
-					<request op="read" vba="00918" num_blocks="10" />
-					<request op="read" vba="07920" num_blocks="20" />
-					<request op="read" vba="09070" num_blocks="70" />
-					<request op="read" vba="09535" num_blocks="30" />
-					<request op="read" vba="10215" num_blocks="10" />
-					<request op="read" vba="23275" num_blocks="20" />
-					<request op="read" vba="03573" num_blocks="70" />
-					<request op="read" vba="15115" num_blocks="10" />
-					<request op="read" vba="07344" num_blocks="40" />
-					<request op="read" vba="05305" num_blocks="40" />
-					<request op="read" vba="05740" num_blocks="40" />
-					<request op="read" vba="02791" num_blocks="90" />
-					<request op="read" vba="14261" num_blocks="60" />
-					<request op="read" vba="12293" num_blocks="90" />
-					<request op="read" vba="10013" num_blocks="10" />
-					<request op="read" vba="02100" num_blocks="90" />
-					<request op="read" vba="21110" num_blocks="10" />
-					<request op="read" vba="05412" num_blocks="10" />
-					<request op="read" vba="13744" num_blocks="40" />
-					<request op="read" vba="04920" num_blocks="20" />
-					<request op="read" vba="09010" num_blocks="10" />
-					<request op="read" vba="21013" num_blocks="10" />
-					<request op="read" vba="00210" num_blocks="50" />
-					<request op="read" vba="08231" num_blocks="30" />
-					<request op="read" vba="12832" num_blocks="30" />
-					<request op="read" vba="00200" num_blocks="50" />
-					<request op="read" vba="03241" num_blocks="40" />
-					<request op="read" vba="19407" num_blocks="70" />
-					<request op="read" vba="19909" num_blocks="20" />
-					<request op="read" vba="09102" num_blocks="30" />
-					<request op="read" vba="02410" num_blocks="10" />
-					<request op="read" vba="12411" num_blocks="10" />
-					<request op="read" vba="08412" num_blocks="50" />
-					<request op="read" vba="22413" num_blocks="10" />
-					<request op="read" vba="24211" num_blocks="40" />
-					<request op="read" vba="01220" num_blocks="20" />
-					<request op="read" vba="10424" num_blocks="20" />
-					<request op="read" vba="00211" num_blocks="10" />
-					<request op="read" vba="21950" num_blocks="30" />
-					<request op="read" vba="17773" num_blocks="70" />
+					<request op="read" vba="00010" num_blocks="10"/>
+					<request op="read" vba="02080" num_blocks="80"/>
+					<request op="read" vba="24054" num_blocks="50"/>
+					<request op="read" vba="04414" num_blocks="10"/>
+					<request op="read" vba="14204" num_blocks="40"/>
+					<request op="read" vba="03200" num_blocks="80"/>
+					<request op="read" vba="07631" num_blocks="30"/>
+					<request op="read" vba="20691" num_blocks="30"/>
+					<request op="read" vba="10212" num_blocks="10"/>
+					<request op="read" vba="10619" num_blocks="10"/>
+					<request op="read" vba="00918" num_blocks="10"/>
+					<request op="read" vba="07920" num_blocks="20"/>
+					<request op="read" vba="09070" num_blocks="70"/>
+					<request op="read" vba="09535" num_blocks="30"/>
+					<request op="read" vba="10215" num_blocks="10"/>
+					<request op="read" vba="23275" num_blocks="20"/>
+					<request op="read" vba="03573" num_blocks="70"/>
+					<request op="read" vba="15115" num_blocks="10"/>
+					<request op="read" vba="07344" num_blocks="40"/>
+					<request op="read" vba="05305" num_blocks="40"/>
+					<request op="read" vba="05740" num_blocks="40"/>
+					<request op="read" vba="02791" num_blocks="90"/>
+					<request op="read" vba="14261" num_blocks="60"/>
+					<request op="read" vba="12293" num_blocks="90"/>
+					<request op="read" vba="10013" num_blocks="10"/>
+					<request op="read" vba="02100" num_blocks="90"/>
+					<request op="read" vba="21110" num_blocks="10"/>
+					<request op="read" vba="05412" num_blocks="10"/>
+					<request op="read" vba="13744" num_blocks="40"/>
+					<request op="read" vba="04920" num_blocks="20"/>
+					<request op="read" vba="09010" num_blocks="10"/>
+					<request op="read" vba="21013" num_blocks="10"/>
+					<request op="read" vba="00210" num_blocks="50"/>
+					<request op="read" vba="08231" num_blocks="30"/>
+					<request op="read" vba="12832" num_blocks="30"/>
+					<request op="read" vba="00200" num_blocks="50"/>
+					<request op="read" vba="03241" num_blocks="40"/>
+					<request op="read" vba="19407" num_blocks="70"/>
+					<request op="read" vba="19909" num_blocks="20"/>
+					<request op="read" vba="09102" num_blocks="30"/>
+					<request op="read" vba="02410" num_blocks="10"/>
+					<request op="read" vba="12411" num_blocks="10"/>
+					<request op="read" vba="08412" num_blocks="50"/>
+					<request op="read" vba="22413" num_blocks="10"/>
+					<request op="read" vba="24211" num_blocks="40"/>
+					<request op="read" vba="01220" num_blocks="20"/>
+					<request op="read" vba="10424" num_blocks="20"/>
+					<request op="read" vba="00211" num_blocks="10"/>
+					<request op="read" vba="21950" num_blocks="30"/>
+					<request op="read" vba="17773" num_blocks="70"/>
 
-					<request op="read" vba="01000" num_blocks="10" />
-					<request op="read" vba="08002" num_blocks="80" />
-					<request op="read" vba="25044" num_blocks="50" />
-					<request op="read" vba="01444" num_blocks="10" />
-					<request op="read" vba="10244" num_blocks="40" />
-					<request op="read" vba="00203" num_blocks="80" />
-					<request op="read" vba="03617" num_blocks="30" />
-					<request op="read" vba="23610" num_blocks="30" />
-					<request op="read" vba="11220" num_blocks="10" />
-					<request op="read" vba="11690" num_blocks="10" />
-					<request op="read" vba="01980" num_blocks="10" />
-					<request op="read" vba="02907" num_blocks="20" />
-					<request op="read" vba="07009" num_blocks="70" />
-					<request op="read" vba="03559" num_blocks="30" />
-					<request op="read" vba="11250" num_blocks="10" />
-					<request op="read" vba="20253" num_blocks="20" />
-					<request op="read" vba="07533" num_blocks="70" />
-					<request op="read" vba="11155" num_blocks="10" />
-					<request op="read" vba="04347" num_blocks="40" />
-					<request op="read" vba="00355" num_blocks="40" />
-					<request op="read" vba="04705" num_blocks="40" />
-					<request op="read" vba="09712" num_blocks="90" />
-					<request op="read" vba="16214" num_blocks="60" />
-					<request op="read" vba="19232" num_blocks="90" />
-					<request op="read" vba="11030" num_blocks="10" />
-					<request op="read" vba="00102" num_blocks="90" />
-					<request op="read" vba="21101" num_blocks="10" />
-					<request op="read" vba="01425" num_blocks="10" />
-					<request op="read" vba="14743" num_blocks="40" />
-					<request op="read" vba="02904" num_blocks="20" />
-					<request op="read" vba="01009" num_blocks="10" />
-					<request op="read" vba="21031" num_blocks="10" />
-					<request op="read" vba="25207" num_blocks="50" />
-					<request op="read" vba="03218" num_blocks="30" />
-					<request op="read" vba="13822" num_blocks="30" />
-					<request op="read" vba="00200" num_blocks="50" />
-					<request op="read" vba="04213" num_blocks="40" />
-					<request op="read" vba="10479" num_blocks="70" />
-					<request op="read" vba="10999" num_blocks="20" />
-					<request op="read" vba="00129" num_blocks="30" />
-					<request op="read" vba="01402" num_blocks="10" />
-					<request op="read" vba="11412" num_blocks="10" />
-					<request op="read" vba="01428" num_blocks="50" />
-					<request op="read" vba="21437" num_blocks="10" />
-					<request op="read" vba="24219" num_blocks="40" />
-					<request op="read" vba="02201" num_blocks="20" />
-					<request op="read" vba="12440" num_blocks="20" />
-					<request op="read" vba="01210" num_blocks="10" />
-					<request op="read" vba="20907" num_blocks="30" />
-					<request op="read" vba="17737" num_blocks="70" />
+					<request op="read" vba="01000" num_blocks="10"/>
+					<request op="read" vba="08002" num_blocks="80"/>
+					<request op="read" vba="25044" num_blocks="50"/>
+					<request op="read" vba="01444" num_blocks="10"/>
+					<request op="read" vba="10244" num_blocks="40"/>
+					<request op="read" vba="00203" num_blocks="80"/>
+					<request op="read" vba="03617" num_blocks="30"/>
+					<request op="read" vba="23610" num_blocks="30"/>
+					<request op="read" vba="11220" num_blocks="10"/>
+					<request op="read" vba="11690" num_blocks="10"/>
+					<request op="read" vba="01980" num_blocks="10"/>
+					<request op="read" vba="02907" num_blocks="20"/>
+					<request op="read" vba="07009" num_blocks="70"/>
+					<request op="read" vba="03559" num_blocks="30"/>
+					<request op="read" vba="11250" num_blocks="10"/>
+					<request op="read" vba="20253" num_blocks="20"/>
+					<request op="read" vba="07533" num_blocks="70"/>
+					<request op="read" vba="11155" num_blocks="10"/>
+					<request op="read" vba="04347" num_blocks="40"/>
+					<request op="read" vba="00355" num_blocks="40"/>
+					<request op="read" vba="04705" num_blocks="40"/>
+					<request op="read" vba="09712" num_blocks="90"/>
+					<request op="read" vba="16214" num_blocks="60"/>
+					<request op="read" vba="19232" num_blocks="90"/>
+					<request op="read" vba="11030" num_blocks="10"/>
+					<request op="read" vba="00102" num_blocks="90"/>
+					<request op="read" vba="21101" num_blocks="10"/>
+					<request op="read" vba="01425" num_blocks="10"/>
+					<request op="read" vba="14743" num_blocks="40"/>
+					<request op="read" vba="02904" num_blocks="20"/>
+					<request op="read" vba="01009" num_blocks="10"/>
+					<request op="read" vba="21031" num_blocks="10"/>
+					<request op="read" vba="25207" num_blocks="50"/>
+					<request op="read" vba="03218" num_blocks="30"/>
+					<request op="read" vba="13822" num_blocks="30"/>
+					<request op="read" vba="00200" num_blocks="50"/>
+					<request op="read" vba="04213" num_blocks="40"/>
+					<request op="read" vba="10479" num_blocks="70"/>
+					<request op="read" vba="10999" num_blocks="20"/>
+					<request op="read" vba="00129" num_blocks="30"/>
+					<request op="read" vba="01402" num_blocks="10"/>
+					<request op="read" vba="11412" num_blocks="10"/>
+					<request op="read" vba="01428" num_blocks="50"/>
+					<request op="read" vba="21437" num_blocks="10"/>
+					<request op="read" vba="24219" num_blocks="40"/>
+					<request op="read" vba="02201" num_blocks="20"/>
+					<request op="read" vba="12440" num_blocks="20"/>
+					<request op="read" vba="01210" num_blocks="10"/>
+					<request op="read" vba="20907" num_blocks="30"/>
+					<request op="read" vba="17737" num_blocks="70"/>
 
 					<finish-benchmark/>
 
 					<start-benchmark label="overwrite written data randomized"/>
 
-					<request op="write" vba="00001" num_blocks="10" />
-					<request op="write" vba="00028" num_blocks="80" />
-					<request op="write" vba="24045" num_blocks="50" />
-					<request op="write" vba="04441" num_blocks="10" />
-					<request op="write" vba="14240" num_blocks="40" />
-					<request op="write" vba="00230" num_blocks="80" />
-					<request op="write" vba="01673" num_blocks="30" />
-					<request op="write" vba="21609" num_blocks="30" />
-					<request op="write" vba="12201" num_blocks="10" />
-					<request op="write" vba="19601" num_blocks="10" />
-					<request op="write" vba="08901" num_blocks="10" />
-					<request op="write" vba="00972" num_blocks="20" />
-					<request op="write" vba="00097" num_blocks="70" />
-					<request op="write" vba="05593" num_blocks="30" />
-					<request op="write" vba="15201" num_blocks="10" />
-					<request op="write" vba="25237" num_blocks="20" />
-					<request op="write" vba="03537" num_blocks="70" />
-					<request op="write" vba="15151" num_blocks="10" />
-					<request op="write" vba="04374" num_blocks="40" />
-					<request op="write" vba="05350" num_blocks="40" />
-					<request op="write" vba="00754" num_blocks="40" />
-					<request op="write" vba="01729" num_blocks="90" />
-					<request op="write" vba="11246" num_blocks="60" />
-					<request op="write" vba="13229" num_blocks="90" />
-					<request op="write" vba="13001" num_blocks="10" />
-					<request op="write" vba="00120" num_blocks="90" />
-					<request op="write" vba="20111" num_blocks="10" />
-					<request op="write" vba="02451" num_blocks="10" />
-					<request op="write" vba="14734" num_blocks="40" />
-					<request op="write" vba="00942" num_blocks="20" />
-					<request op="write" vba="00091" num_blocks="10" />
-					<request op="write" vba="23011" num_blocks="10" />
-					<request op="write" vba="20271" num_blocks="50" />
-					<request op="write" vba="01283" num_blocks="30" />
-					<request op="write" vba="12823" num_blocks="30" />
-					<request op="write" vba="00200" num_blocks="50" />
-					<request op="write" vba="01234" num_blocks="40" />
-					<request op="write" vba="17490" num_blocks="70" />
-					<request op="write" vba="19990" num_blocks="20" />
-					<request op="write" vba="02190" num_blocks="30" />
-					<request op="write" vba="00421" num_blocks="10" />
-					<request op="write" vba="11421" num_blocks="10" />
-					<request op="write" vba="02481" num_blocks="50" />
-					<request op="write" vba="23471" num_blocks="10" />
-					<request op="write" vba="21291" num_blocks="40" />
-					<request op="write" vba="00212" num_blocks="20" />
-					<request op="write" vba="14402" num_blocks="20" />
-					<request op="write" vba="01201" num_blocks="10" />
-					<request op="write" vba="20975" num_blocks="30" />
-					<request op="write" vba="13777" num_blocks="70" />
+					<request op="write" vba="00001" num_blocks="10"/>
+					<request op="write" vba="00028" num_blocks="80"/>
+					<request op="write" vba="24045" num_blocks="50"/>
+					<request op="write" vba="04441" num_blocks="10"/>
+					<request op="write" vba="14240" num_blocks="40"/>
+					<request op="write" vba="00230" num_blocks="80"/>
+					<request op="write" vba="01673" num_blocks="30"/>
+					<request op="write" vba="21609" num_blocks="30"/>
+					<request op="write" vba="12201" num_blocks="10"/>
+					<request op="write" vba="19601" num_blocks="10"/>
+					<request op="write" vba="08901" num_blocks="10"/>
+					<request op="write" vba="00972" num_blocks="20"/>
+					<request op="write" vba="00097" num_blocks="70"/>
+					<request op="write" vba="05593" num_blocks="30"/>
+					<request op="write" vba="15201" num_blocks="10"/>
+					<request op="write" vba="25237" num_blocks="20"/>
+					<request op="write" vba="03537" num_blocks="70"/>
+					<request op="write" vba="15151" num_blocks="10"/>
+					<request op="write" vba="04374" num_blocks="40"/>
+					<request op="write" vba="05350" num_blocks="40"/>
+					<request op="write" vba="00754" num_blocks="40"/>
+					<request op="write" vba="01729" num_blocks="90"/>
+					<request op="write" vba="11246" num_blocks="60"/>
+					<request op="write" vba="13229" num_blocks="90"/>
+					<request op="write" vba="13001" num_blocks="10"/>
+					<request op="write" vba="00120" num_blocks="90"/>
+					<request op="write" vba="20111" num_blocks="10"/>
+					<request op="write" vba="02451" num_blocks="10"/>
+					<request op="write" vba="14734" num_blocks="40"/>
+					<request op="write" vba="00942" num_blocks="20"/>
+					<request op="write" vba="00091" num_blocks="10"/>
+					<request op="write" vba="23011" num_blocks="10"/>
+					<request op="write" vba="20271" num_blocks="50"/>
+					<request op="write" vba="01283" num_blocks="30"/>
+					<request op="write" vba="12823" num_blocks="30"/>
+					<request op="write" vba="00200" num_blocks="50"/>
+					<request op="write" vba="01234" num_blocks="40"/>
+					<request op="write" vba="17490" num_blocks="70"/>
+					<request op="write" vba="19990" num_blocks="20"/>
+					<request op="write" vba="02190" num_blocks="30"/>
+					<request op="write" vba="00421" num_blocks="10"/>
+					<request op="write" vba="11421" num_blocks="10"/>
+					<request op="write" vba="02481" num_blocks="50"/>
+					<request op="write" vba="23471" num_blocks="10"/>
+					<request op="write" vba="21291" num_blocks="40"/>
+					<request op="write" vba="00212" num_blocks="20"/>
+					<request op="write" vba="14402" num_blocks="20"/>
+					<request op="write" vba="01201" num_blocks="10"/>
+					<request op="write" vba="20975" num_blocks="30"/>
+					<request op="write" vba="13777" num_blocks="70"/>
 
-					<request op="write" vba="00100" num_blocks="10" />
-					<request op="write" vba="00820" num_blocks="80" />
-					<request op="write" vba="24540" num_blocks="50" />
-					<request op="write" vba="04144" num_blocks="10" />
-					<request op="write" vba="14042" num_blocks="40" />
-					<request op="write" vba="00032" num_blocks="80" />
-					<request op="write" vba="01376" num_blocks="30" />
-					<request op="write" vba="21906" num_blocks="30" />
-					<request op="write" vba="12102" num_blocks="10" />
-					<request op="write" vba="19106" num_blocks="10" />
-					<request op="write" vba="08109" num_blocks="10" />
-					<request op="write" vba="00279" num_blocks="20" />
-					<request op="write" vba="00790" num_blocks="70" />
-					<request op="write" vba="05395" num_blocks="30" />
-					<request op="write" vba="15102" num_blocks="10" />
-					<request op="write" vba="25032" num_blocks="20" />
-					<request op="write" vba="03735" num_blocks="70" />
-					<request op="write" vba="15151" num_blocks="10" />
-					<request op="write" vba="04473" num_blocks="40" />
-					<request op="write" vba="05053" num_blocks="40" />
-					<request op="write" vba="00457" num_blocks="40" />
-					<request op="write" vba="01927" num_blocks="90" />
-					<request op="write" vba="11642" num_blocks="60" />
-					<request op="write" vba="13922" num_blocks="90" />
-					<request op="write" vba="13100" num_blocks="10" />
-					<request op="write" vba="00021" num_blocks="90" />
-					<request op="write" vba="20111" num_blocks="10" />
-					<request op="write" vba="02154" num_blocks="10" />
-					<request op="write" vba="14437" num_blocks="40" />
-					<request op="write" vba="00249" num_blocks="20" />
-					<request op="write" vba="00190" num_blocks="10" />
-					<request op="write" vba="23110" num_blocks="10" />
-					<request op="write" vba="20172" num_blocks="50" />
-					<request op="write" vba="01382" num_blocks="30" />
-					<request op="write" vba="12328" num_blocks="30" />
-					<request op="write" vba="00002" num_blocks="50" />
-					<request op="write" vba="01432" num_blocks="40" />
-					<request op="write" vba="17094" num_blocks="70" />
-					<request op="write" vba="19099" num_blocks="20" />
-					<request op="write" vba="02091" num_blocks="30" />
-					<request op="write" vba="00124" num_blocks="10" />
-					<request op="write" vba="11124" num_blocks="10" />
-					<request op="write" vba="02184" num_blocks="50" />
-					<request op="write" vba="23174" num_blocks="10" />
-					<request op="write" vba="21192" num_blocks="40" />
-					<request op="write" vba="00212" num_blocks="20" />
-					<request op="write" vba="14204" num_blocks="20" />
-					<request op="write" vba="01102" num_blocks="10" />
-					<request op="write" vba="20579" num_blocks="30" />
-					<request op="write" vba="13777" num_blocks="70" />
+					<request op="write" vba="00100" num_blocks="10"/>
+					<request op="write" vba="00820" num_blocks="80"/>
+					<request op="write" vba="24540" num_blocks="50"/>
+					<request op="write" vba="04144" num_blocks="10"/>
+					<request op="write" vba="14042" num_blocks="40"/>
+					<request op="write" vba="00032" num_blocks="80"/>
+					<request op="write" vba="01376" num_blocks="30"/>
+					<request op="write" vba="21906" num_blocks="30"/>
+					<request op="write" vba="12102" num_blocks="10"/>
+					<request op="write" vba="19106" num_blocks="10"/>
+					<request op="write" vba="08109" num_blocks="10"/>
+					<request op="write" vba="00279" num_blocks="20"/>
+					<request op="write" vba="00790" num_blocks="70"/>
+					<request op="write" vba="05395" num_blocks="30"/>
+					<request op="write" vba="15102" num_blocks="10"/>
+					<request op="write" vba="25032" num_blocks="20"/>
+					<request op="write" vba="03735" num_blocks="70"/>
+					<request op="write" vba="15151" num_blocks="10"/>
+					<request op="write" vba="04473" num_blocks="40"/>
+					<request op="write" vba="05053" num_blocks="40"/>
+					<request op="write" vba="00457" num_blocks="40"/>
+					<request op="write" vba="01927" num_blocks="90"/>
+					<request op="write" vba="11642" num_blocks="60"/>
+					<request op="write" vba="13922" num_blocks="90"/>
+					<request op="write" vba="13100" num_blocks="10"/>
+					<request op="write" vba="00021" num_blocks="90"/>
+					<request op="write" vba="20111" num_blocks="10"/>
+					<request op="write" vba="02154" num_blocks="10"/>
+					<request op="write" vba="14437" num_blocks="40"/>
+					<request op="write" vba="00249" num_blocks="20"/>
+					<request op="write" vba="00190" num_blocks="10"/>
+					<request op="write" vba="23110" num_blocks="10"/>
+					<request op="write" vba="20172" num_blocks="50"/>
+					<request op="write" vba="01382" num_blocks="30"/>
+					<request op="write" vba="12328" num_blocks="30"/>
+					<request op="write" vba="00002" num_blocks="50"/>
+					<request op="write" vba="01432" num_blocks="40"/>
+					<request op="write" vba="17094" num_blocks="70"/>
+					<request op="write" vba="19099" num_blocks="20"/>
+					<request op="write" vba="02091" num_blocks="30"/>
+					<request op="write" vba="00124" num_blocks="10"/>
+					<request op="write" vba="11124" num_blocks="10"/>
+					<request op="write" vba="02184" num_blocks="50"/>
+					<request op="write" vba="23174" num_blocks="10"/>
+					<request op="write" vba="21192" num_blocks="40"/>
+					<request op="write" vba="00212" num_blocks="20"/>
+					<request op="write" vba="14204" num_blocks="20"/>
+					<request op="write" vba="01102" num_blocks="10"/>
+					<request op="write" vba="20579" num_blocks="30"/>
+					<request op="write" vba="13777" num_blocks="70"/>
 
-					<request op="write" vba="00010" num_blocks="10" />
-					<request op="write" vba="02080" num_blocks="80" />
-					<request op="write" vba="24054" num_blocks="50" />
-					<request op="write" vba="04414" num_blocks="10" />
-					<request op="write" vba="14204" num_blocks="40" />
-					<request op="write" vba="03200" num_blocks="80" />
-					<request op="write" vba="07631" num_blocks="30" />
-					<request op="write" vba="20691" num_blocks="30" />
-					<request op="write" vba="10212" num_blocks="10" />
-					<request op="write" vba="10619" num_blocks="10" />
-					<request op="write" vba="00918" num_blocks="10" />
-					<request op="write" vba="07920" num_blocks="20" />
-					<request op="write" vba="09070" num_blocks="70" />
-					<request op="write" vba="09535" num_blocks="30" />
-					<request op="write" vba="10215" num_blocks="10" />
-					<request op="write" vba="23275" num_blocks="20" />
-					<request op="write" vba="03573" num_blocks="70" />
-					<request op="write" vba="15115" num_blocks="10" />
-					<request op="write" vba="07344" num_blocks="40" />
-					<request op="write" vba="05305" num_blocks="40" />
-					<request op="write" vba="05740" num_blocks="40" />
-					<request op="write" vba="02791" num_blocks="90" />
-					<request op="write" vba="14261" num_blocks="60" />
-					<request op="write" vba="12293" num_blocks="90" />
-					<request op="write" vba="10013" num_blocks="10" />
-					<request op="write" vba="02100" num_blocks="90" />
-					<request op="write" vba="21110" num_blocks="10" />
-					<request op="write" vba="05412" num_blocks="10" />
-					<request op="write" vba="13744" num_blocks="40" />
-					<request op="write" vba="04920" num_blocks="20" />
-					<request op="write" vba="09010" num_blocks="10" />
-					<request op="write" vba="21013" num_blocks="10" />
-					<request op="write" vba="00210" num_blocks="50" />
-					<request op="write" vba="08231" num_blocks="30" />
-					<request op="write" vba="12832" num_blocks="30" />
-					<request op="write" vba="00200" num_blocks="50" />
-					<request op="write" vba="03241" num_blocks="40" />
-					<request op="write" vba="19407" num_blocks="70" />
-					<request op="write" vba="19909" num_blocks="20" />
-					<request op="write" vba="09102" num_blocks="30" />
-					<request op="write" vba="02410" num_blocks="10" />
-					<request op="write" vba="12411" num_blocks="10" />
-					<request op="write" vba="08412" num_blocks="50" />
-					<request op="write" vba="22413" num_blocks="10" />
-					<request op="write" vba="24211" num_blocks="40" />
-					<request op="write" vba="01220" num_blocks="20" />
-					<request op="write" vba="10424" num_blocks="20" />
-					<request op="write" vba="00211" num_blocks="10" />
-					<request op="write" vba="21950" num_blocks="30" />
-					<request op="write" vba="17773" num_blocks="70" />
+					<request op="write" vba="00010" num_blocks="10"/>
+					<request op="write" vba="02080" num_blocks="80"/>
+					<request op="write" vba="24054" num_blocks="50"/>
+					<request op="write" vba="04414" num_blocks="10"/>
+					<request op="write" vba="14204" num_blocks="40"/>
+					<request op="write" vba="03200" num_blocks="80"/>
+					<request op="write" vba="07631" num_blocks="30"/>
+					<request op="write" vba="20691" num_blocks="30"/>
+					<request op="write" vba="10212" num_blocks="10"/>
+					<request op="write" vba="10619" num_blocks="10"/>
+					<request op="write" vba="00918" num_blocks="10"/>
+					<request op="write" vba="07920" num_blocks="20"/>
+					<request op="write" vba="09070" num_blocks="70"/>
+					<request op="write" vba="09535" num_blocks="30"/>
+					<request op="write" vba="10215" num_blocks="10"/>
+					<request op="write" vba="23275" num_blocks="20"/>
+					<request op="write" vba="03573" num_blocks="70"/>
+					<request op="write" vba="15115" num_blocks="10"/>
+					<request op="write" vba="07344" num_blocks="40"/>
+					<request op="write" vba="05305" num_blocks="40"/>
+					<request op="write" vba="05740" num_blocks="40"/>
+					<request op="write" vba="02791" num_blocks="90"/>
+					<request op="write" vba="14261" num_blocks="60"/>
+					<request op="write" vba="12293" num_blocks="90"/>
+					<request op="write" vba="10013" num_blocks="10"/>
+					<request op="write" vba="02100" num_blocks="90"/>
+					<request op="write" vba="21110" num_blocks="10"/>
+					<request op="write" vba="05412" num_blocks="10"/>
+					<request op="write" vba="13744" num_blocks="40"/>
+					<request op="write" vba="04920" num_blocks="20"/>
+					<request op="write" vba="09010" num_blocks="10"/>
+					<request op="write" vba="21013" num_blocks="10"/>
+					<request op="write" vba="00210" num_blocks="50"/>
+					<request op="write" vba="08231" num_blocks="30"/>
+					<request op="write" vba="12832" num_blocks="30"/>
+					<request op="write" vba="00200" num_blocks="50"/>
+					<request op="write" vba="03241" num_blocks="40"/>
+					<request op="write" vba="19407" num_blocks="70"/>
+					<request op="write" vba="19909" num_blocks="20"/>
+					<request op="write" vba="09102" num_blocks="30"/>
+					<request op="write" vba="02410" num_blocks="10"/>
+					<request op="write" vba="12411" num_blocks="10"/>
+					<request op="write" vba="08412" num_blocks="50"/>
+					<request op="write" vba="22413" num_blocks="10"/>
+					<request op="write" vba="24211" num_blocks="40"/>
+					<request op="write" vba="01220" num_blocks="20"/>
+					<request op="write" vba="10424" num_blocks="20"/>
+					<request op="write" vba="00211" num_blocks="10"/>
+					<request op="write" vba="21950" num_blocks="30"/>
+					<request op="write" vba="17773" num_blocks="70"/>
 
-					<request op="write" vba="01000" num_blocks="10" />
-					<request op="write" vba="08002" num_blocks="80" />
-					<request op="write" vba="25044" num_blocks="50" />
-					<request op="write" vba="01444" num_blocks="10" />
-					<request op="write" vba="10244" num_blocks="40" />
-					<request op="write" vba="00203" num_blocks="80" />
-					<request op="write" vba="03617" num_blocks="30" />
-					<request op="write" vba="23610" num_blocks="30" />
-					<request op="write" vba="11220" num_blocks="10" />
-					<request op="write" vba="11690" num_blocks="10" />
-					<request op="write" vba="01980" num_blocks="10" />
-					<request op="write" vba="02907" num_blocks="20" />
-					<request op="write" vba="07009" num_blocks="70" />
-					<request op="write" vba="03559" num_blocks="30" />
-					<request op="write" vba="11250" num_blocks="10" />
-					<request op="write" vba="20253" num_blocks="20" />
-					<request op="write" vba="07533" num_blocks="70" />
-					<request op="write" vba="11155" num_blocks="10" />
-					<request op="write" vba="04347" num_blocks="40" />
-					<request op="write" vba="00355" num_blocks="40" />
-					<request op="write" vba="04705" num_blocks="40" />
-					<request op="write" vba="09712" num_blocks="90" />
-					<request op="write" vba="16214" num_blocks="60" />
-					<request op="write" vba="19232" num_blocks="90" />
-					<request op="write" vba="11030" num_blocks="10" />
-					<request op="write" vba="00102" num_blocks="90" />
-					<request op="write" vba="21101" num_blocks="10" />
-					<request op="write" vba="01425" num_blocks="10" />
-					<request op="write" vba="14743" num_blocks="40" />
-					<request op="write" vba="02904" num_blocks="20" />
-					<request op="write" vba="01009" num_blocks="10" />
-					<request op="write" vba="21031" num_blocks="10" />
-					<request op="write" vba="25207" num_blocks="50" />
-					<request op="write" vba="03218" num_blocks="30" />
-					<request op="write" vba="13822" num_blocks="30" />
-					<request op="write" vba="00200" num_blocks="50" />
-					<request op="write" vba="04213" num_blocks="40" />
-					<request op="write" vba="10479" num_blocks="70" />
-					<request op="write" vba="10999" num_blocks="20" />
-					<request op="write" vba="00129" num_blocks="30" />
-					<request op="write" vba="01402" num_blocks="10" />
-					<request op="write" vba="11412" num_blocks="10" />
-					<request op="write" vba="01428" num_blocks="50" />
-					<request op="write" vba="21437" num_blocks="10" />
-					<request op="write" vba="24219" num_blocks="40" />
-					<request op="write" vba="02201" num_blocks="20" />
-					<request op="write" vba="12440" num_blocks="20" />
-					<request op="write" vba="01210" num_blocks="10" />
-					<request op="write" vba="20907" num_blocks="30" />
-					<request op="write" vba="17737" num_blocks="70" />
+					<request op="write" vba="01000" num_blocks="10"/>
+					<request op="write" vba="08002" num_blocks="80"/>
+					<request op="write" vba="25044" num_blocks="50"/>
+					<request op="write" vba="01444" num_blocks="10"/>
+					<request op="write" vba="10244" num_blocks="40"/>
+					<request op="write" vba="00203" num_blocks="80"/>
+					<request op="write" vba="03617" num_blocks="30"/>
+					<request op="write" vba="23610" num_blocks="30"/>
+					<request op="write" vba="11220" num_blocks="10"/>
+					<request op="write" vba="11690" num_blocks="10"/>
+					<request op="write" vba="01980" num_blocks="10"/>
+					<request op="write" vba="02907" num_blocks="20"/>
+					<request op="write" vba="07009" num_blocks="70"/>
+					<request op="write" vba="03559" num_blocks="30"/>
+					<request op="write" vba="11250" num_blocks="10"/>
+					<request op="write" vba="20253" num_blocks="20"/>
+					<request op="write" vba="07533" num_blocks="70"/>
+					<request op="write" vba="11155" num_blocks="10"/>
+					<request op="write" vba="04347" num_blocks="40"/>
+					<request op="write" vba="00355" num_blocks="40"/>
+					<request op="write" vba="04705" num_blocks="40"/>
+					<request op="write" vba="09712" num_blocks="90"/>
+					<request op="write" vba="16214" num_blocks="60"/>
+					<request op="write" vba="19232" num_blocks="90"/>
+					<request op="write" vba="11030" num_blocks="10"/>
+					<request op="write" vba="00102" num_blocks="90"/>
+					<request op="write" vba="21101" num_blocks="10"/>
+					<request op="write" vba="01425" num_blocks="10"/>
+					<request op="write" vba="14743" num_blocks="40"/>
+					<request op="write" vba="02904" num_blocks="20"/>
+					<request op="write" vba="01009" num_blocks="10"/>
+					<request op="write" vba="21031" num_blocks="10"/>
+					<request op="write" vba="25207" num_blocks="50"/>
+					<request op="write" vba="03218" num_blocks="30"/>
+					<request op="write" vba="13822" num_blocks="30"/>
+					<request op="write" vba="00200" num_blocks="50"/>
+					<request op="write" vba="04213" num_blocks="40"/>
+					<request op="write" vba="10479" num_blocks="70"/>
+					<request op="write" vba="10999" num_blocks="20"/>
+					<request op="write" vba="00129" num_blocks="30"/>
+					<request op="write" vba="01402" num_blocks="10"/>
+					<request op="write" vba="11412" num_blocks="10"/>
+					<request op="write" vba="01428" num_blocks="50"/>
+					<request op="write" vba="21437" num_blocks="10"/>
+					<request op="write" vba="24219" num_blocks="40"/>
+					<request op="write" vba="02201" num_blocks="20"/>
+					<request op="write" vba="12440" num_blocks="20"/>
+					<request op="write" vba="01210" num_blocks="10"/>
+					<request op="write" vba="20907" num_blocks="30"/>
+					<request op="write" vba="17737" num_blocks="70"/>
 
 					<finish-benchmark/>
-					<check/>
-	}
+					<check/> }
 
 append config {
 
@@ -916,7 +910,7 @@ append config {
 				<service name="Terminal"> <child name="log_terminal"/> </service>
 				<service name="Timer"> <child name="timer"/> </service>
 				<service name="LOG"> <parent/> </service>
-				<service name="PD">  <parent/> </service>
+				<service name="PD"> <parent/> </service>
 				<service name="CPU"> <parent/> </service>
 				<service name="ROM"> <parent/> </service>
 			</route>
