@@ -69,7 +69,7 @@ struct Vfs::Oss_file_system::Audio
 
 			Readonly_value_file_system<unsigned>  &_channels_fs;
 			Readonly_value_file_system<unsigned>  &_format_fs;
-			Readonly_value_file_system<unsigned>  &_sample_rate_fs;
+			Value_file_system<unsigned>           &_sample_rate_fs;
 			Value_file_system<unsigned>           &_ifrag_total_fs;
 			Value_file_system<unsigned>           &_ifrag_size_fs;
 			Readonly_value_file_system<unsigned>  &_ifrag_avail_fs;
@@ -84,7 +84,7 @@ struct Vfs::Oss_file_system::Audio
 
 			Info(Readonly_value_file_system<unsigned>  &channels_fs,
 			     Readonly_value_file_system<unsigned>  &format_fs,
-			     Readonly_value_file_system<unsigned>  &sample_rate_fs,
+			     Value_file_system<unsigned>           &sample_rate_fs,
 			     Value_file_system<unsigned>           &ifrag_total_fs,
 			     Value_file_system<unsigned>           &ifrag_size_fs,
 			     Readonly_value_file_system<unsigned>  &ifrag_avail_fs,
@@ -695,6 +695,11 @@ struct Vfs::Oss_file_system::Audio
 
 				MIN_IFRAG_SIZE = MIN_OFRAG_SIZE,
 				MAX_IFRAG_SIZE = MAX_OFRAG_SIZE,
+
+				/* cover lower input rates (e.g. voice recordings) */
+				MIN_SAMPLE_RATE =  8'000u,
+				/* limit max to reasonable playback rates */
+				MAX_SAMPLE_RATE = 48'000u,
 			};
 
 			bool     verbose;
@@ -710,15 +715,21 @@ struct Vfs::Oss_file_system::Audio
 			unsigned max_ifrag_size;
 			unsigned min_ifrag_size;
 
+			unsigned max_sample_rate;
+			unsigned min_sample_rate;
+
 			void print(Genode::Output &out) const
 			{
-				Genode::print(out, "verbose: ",        verbose,        " "
-				                   "play_enabled: ",   play_enabled,   " "
-				                   "min_ofrag_size: ", min_ofrag_size, " "
-				                   "max_ofrag_size: ", max_ofrag_size, " "
-				                   "record_enabled: ", record_enabled, " "
-				                   "min_ifrag_size: ", min_ifrag_size, " "
-				                   "max_ifrag_size: ", max_ifrag_size, " ");
+				Genode::print(out, "verbose: ",         verbose,         " "
+				                   "play_enabled: ",    play_enabled,    " "
+				                   "min_ofrag_size: ",  min_ofrag_size,  " "
+				                   "max_ofrag_size: ",  max_ofrag_size,  " "
+				                   "record_enabled: ",  record_enabled,  " "
+				                   "min_ifrag_size: ",  min_ifrag_size,  " "
+				                   "max_ifrag_size: ",  max_ifrag_size,  " "
+				                   "min_sample_rate: ", min_sample_rate, " "
+				                   "max_sample_rate: ", max_sample_rate, " "
+				);
 			}
 
 			static Config from_xml(Xml_node const &);
@@ -867,6 +878,10 @@ struct Vfs::Oss_file_system::Audio
 			});
 			return result;
 		}
+
+		unsigned max_sample_rate() const { return _config.max_sample_rate; }
+
+		unsigned min_sample_rate() const { return _config.min_sample_rate; }
 
 		/******************
 		 ** Play session **
@@ -1025,7 +1040,11 @@ Vfs::Oss_file_system::Audio::Config::from_xml(Xml_node const &config)
 		.record_enabled = config.attribute_value("record_enabled", true),
 		.max_ifrag_size = cap_max(config,        "max_ifrag_size", MAX_IFRAG_SIZE),
 		.min_ifrag_size = limit(cap_min(config,  "min_ifrag_size", MIN_IFRAG_SIZE),
-		                        MAX_IFRAG_SIZE)
+		                        MAX_IFRAG_SIZE),
+
+		.max_sample_rate = cap_max(config,        "max_sample_rate", MAX_SAMPLE_RATE),
+		.min_sample_rate = limit(cap_min(config,  "min_sample_rate", MIN_SAMPLE_RATE),
+		                        MAX_SAMPLE_RATE)
 	};
 }
 
@@ -1178,7 +1197,7 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 	/* RO/RW files */
 	Readonly_value_file_system<unsigned>  _channels_fs          { "channels", 0U };
 	Readonly_value_file_system<unsigned>  _format_fs            { "format", 0U };
-	Readonly_value_file_system<unsigned>  _sample_rate_fs       { "sample_rate", 0U };
+	Value_file_system<unsigned>           _sample_rate_fs       { "sample_rate", 0U };
 	Value_file_system<unsigned>           _ifrag_total_fs       { "ifrag_total", 0U };
 	Value_file_system<unsigned>           _ifrag_size_fs        { "ifrag_size", 0U} ;
 	Readonly_value_file_system<unsigned>  _ifrag_avail_fs       { "ifrag_avail", 0U };
@@ -1262,6 +1281,12 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 		_env.alloc(),
 		*this,
 		&Vfs::Oss_file_system::Local_factory::_play_underruns_changed };
+
+	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _sample_rate_handler {
+		_sample_rate_fs, "/sample_rate",
+		_env.alloc(),
+		*this,
+		&Vfs::Oss_file_system::Local_factory::_sample_rate_changed };
 
 	/********************
 	 ** Watch handlers **
@@ -1377,6 +1402,27 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 		_info_fs.value(_info);
 	}
 
+	void _sample_rate_changed()
+	{
+		unsigned const sample_rate_max = _audio.max_sample_rate();
+		unsigned const sample_rate_min = _audio.min_sample_rate();
+
+		unsigned sample_rate_new = _sample_rate_fs.value();
+
+		sample_rate_new = max(sample_rate_new, sample_rate_min);
+		sample_rate_new = min(sample_rate_new, sample_rate_max);
+
+		_info.sample_rate = sample_rate_new;
+
+		_audio.update_output_duration(_info.ofrag_size);
+
+		_info.update();
+		_info_fs.value(_info);
+
+		if (_audio.verbose())
+			log("Sample rate changed to ", _info.sample_rate);
+	}
+
 	static Name name(Xml_node config)
 	{
 		return config.attribute_value("name", Name("oss"));
@@ -1401,7 +1447,6 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 		if (node.has_type(Readonly_value_file_system<unsigned>::type_name())) {
 
 			if (_channels_fs.matches(node))          return &_channels_fs;
-			if (_sample_rate_fs.matches(node))       return &_sample_rate_fs;
 			if (_ifrag_avail_fs.matches(node))       return &_ifrag_avail_fs;
 			if (_ifrag_bytes_fs.matches(node))       return &_ifrag_bytes_fs;
 			if (_ofrag_avail_fs.matches(node))       return &_ofrag_avail_fs;
@@ -1422,6 +1467,7 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 			if (_ofrag_total_fs.matches(node))    return &_ofrag_total_fs;
 			if (_ofrag_size_fs.matches(node))     return &_ofrag_size_fs;
 			if (_play_underruns_fs.matches(node)) return &_play_underruns_fs;
+			if (_sample_rate_fs.matches(node))    return &_sample_rate_fs;
 		}
 
 		return nullptr;
@@ -1459,7 +1505,7 @@ class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
 						xml.attribute("name", "channels");
 					});
 
-					xml.node("readonly_value", [&] {
+					xml.node("value", [&] {
 							 xml.attribute("name", "sample_rate");
 					});
 
