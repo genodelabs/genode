@@ -51,6 +51,7 @@ struct Vfs::Oss_file_system::Audio
 
 		struct Info
 		{
+			unsigned  plugin_version;
 			unsigned  channels;
 			unsigned  format;
 			unsigned  sample_rate;
@@ -96,6 +97,7 @@ struct Vfs::Oss_file_system::Audio
 			     Readonly_value_file_system<unsigned>  &optr_fifo_samples_fs,
 			     Value_file_system<unsigned>           &play_underruns_fs)
 			:
+				plugin_version        { 2 },
 				channels              { 0 },
 				format                { 0 },
 				sample_rate           { 0 },
@@ -149,6 +151,7 @@ struct Vfs::Oss_file_system::Audio
 				char buf[512] { };
 
 				Genode::Xml_generator xml(buf, sizeof(buf), "oss", [&] () {
+					xml.attribute("plugin_version",    plugin_version);
 					xml.attribute("channels",          channels);
 					xml.attribute("format",            format);
 					xml.attribute("sample_rate",       sample_rate);
