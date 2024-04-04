@@ -226,6 +226,7 @@ unify_output {(?n)usb-[0-9]-[0-9]: USB disconnect, device number [0-9]} "usb-X-X
 unify_output {(?n)input[0-9]} "inputX"
 unify_output {(?n) as /devices/.*} ""
 unify_output {(?n)^\[init -\> usb_drv.*} ""
+unify_output {(?n)^\[init -\> usb_hid_drv\] Connected device: inputX \(ATEN CS1764A V1.1.110\).*} ""
 trim_lines
 
 compare_output_to {
