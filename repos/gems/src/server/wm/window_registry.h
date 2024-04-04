@@ -162,9 +162,11 @@ class Wm::Window_registry
 		Allocator &_alloc;
 		Reporter  &_window_list_reporter;
 
-		enum { MAX_WINDOWS = 1024 };
+		static constexpr unsigned MAX_WINDOWS = 1024;
 
 		Genode::Bit_allocator<MAX_WINDOWS> _window_ids { };
+
+		unsigned _next_id = 0; /* used to alloc subsequent numbers */
 
 		List<Window> _windows { };
 
@@ -213,7 +215,20 @@ class Wm::Window_registry
 
 		Id create()
 		{
-			Window * const win = new (_alloc) Window((unsigned)_window_ids.alloc());
+			auto alloc_id = [&]
+			{
+				for (;;) {
+					unsigned try_id = _next_id;
+					_next_id = (_next_id + 1) % MAX_WINDOWS;
+					try {
+						_window_ids.alloc_addr(try_id);
+						return try_id;
+					}
+					catch (...) { }
+				}
+			};
+
+			Window * const win = new (_alloc) Window(alloc_id());
 
 			_windows.insert(win);
 
