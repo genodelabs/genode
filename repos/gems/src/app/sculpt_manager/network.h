@@ -61,9 +61,6 @@ struct Sculpt::Network : Noncopyable
 
 	Wpa_passphrase wpa_passphrase { };
 
-	unsigned _nic_drv_version  = 0;
-	unsigned _wifi_drv_version = 0;
-
 	Rom_handler<Network> _wlan_accesspoints_rom {
 		_env, "report -> runtime/wifi/accesspoints", *this, &Network::_handle_wlan_accesspoints };
 
@@ -164,9 +161,6 @@ struct Sculpt::Network : Noncopyable
 			});
 		});
 	}
-
-	void restart_nic_drv_on_next_runtime_cfg()  { _nic_drv_version++; }
-	void restart_wifi_drv_on_next_runtime_cfg() { _wifi_drv_version++; }
 
 	void wifi_disconnect()
 	{

@@ -88,6 +88,15 @@ struct Sculpt::Main : Input_event_handler,
 
 	Registry<Child_state> _child_states { };
 
+	void _with_child(auto const &name, auto const &fn)
+	{
+		_child_states.for_each([&] (Child_state &child) {
+			if (child.name() == name)
+				fn(child); });
+
+		_child_states.for_each([&] (Child_state &) { }); /* restore orig. order */
+	}
+
 	Input::Seq_number _global_input_seq_number { };
 
 	Gui::Connection _gui { _env, "input" };
@@ -932,17 +941,17 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void restart_deployed_component(Start_name const &name) override
 	{
-		if (name == "nic") {
+		auto restart = [&] (auto const &name)
+		{
+			_with_child(name, [&] (Child_state &child) {
+				child.trigger_restart();
+				generate_runtime_config();
+			});
+		};
 
-			_network.restart_nic_drv_on_next_runtime_cfg();
-			generate_runtime_config();
-
-		} else if (name == "wifi") {
-
-			_network.restart_wifi_drv_on_next_runtime_cfg();
-			generate_runtime_config();
-
-		} else {
+		if (name == "nic" || name == "wifi")
+			restart(name);
+		else {
 
 			_runtime_state.restart(name);
 
