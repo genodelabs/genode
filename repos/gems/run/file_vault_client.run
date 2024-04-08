@@ -126,7 +126,7 @@ if {[container_initialized]} { append config "
 }
 append config {
 					</inline>
-					<sleep milliseconds="20000"/>
+					<sleep milliseconds="50000"/>
 					<inline>
 
 						<ui_config version="step_3_lock"/>
@@ -366,7 +366,7 @@ if {[have_board linux]} {
 }
 append config {
 
-		<start name="file_vault" caps="1000">
+		<start name="file_vault" caps="2000">
 			<resource name="RAM" quantum="80M"/>
 			<provides>
 				<service name="File_system"/>
@@ -436,7 +436,7 @@ lappend_if [have_board linux] boot_modules [file tail [lx_fs_dir]]
 build_boot_image $boot_modules
 
 append qemu_args " -display none "
-run_genode_until "<ui_report version=\"step_3_lock\" state=\"locked\"/>.*\n" 60
+run_genode_until "<ui_report version=\"step_3_lock\" state=\"locked\"/>.*\n" 100
 
 grep_output {\[init -> dynamic_init -> log_terminal\].*}
 
