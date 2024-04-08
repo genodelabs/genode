@@ -66,13 +66,19 @@ void Pager_entrypoint::entry()
 
 			Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
 
+			Cache cacheable = Genode::CACHED;
+			if (!_mapping.cached)
+				cacheable = Genode::UNCACHED;
+			if (_mapping.write_combined)
+				cacheable = Genode::WRITE_COMBINED;
+
 			Hw::Page_flags const flags {
 				.writeable  = _mapping.writeable  ? Hw::RW   : Hw::RO,
 				.executable = _mapping.executable ? Hw::EXEC : Hw::NO_EXEC,
 				.privileged = Hw::USER,
 				.global     = Hw::NO_GLOBAL,
 				.type       = _mapping.io_mem ? Hw::DEVICE : Hw::RAM,
-				.cacheable  = _mapping.cached ? Genode::CACHED : Genode::UNCACHED
+				.cacheable  = cacheable
 			};
 
 			as->insert_translation(_mapping.dst_addr, _mapping.src_addr,
