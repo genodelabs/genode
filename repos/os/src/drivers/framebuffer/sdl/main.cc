@@ -276,6 +276,10 @@ void Fb_sdl::Main::_handle_sdl_event(Event_batch &batch, SDL_Event const &event)
 	case SDL_KEYUP:
 	case SDL_KEYDOWN:
 
+		/* filter key-repeat events */
+		if (event.key.repeat)
+			return;
+
 		keycode = convert_keycode(event.key.keysym.sym);
 		break;
 
