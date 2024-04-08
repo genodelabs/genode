@@ -7,7 +7,7 @@
 #
 # Note: the string must be exactly 5 bytes long.
 #
-proc sculpt_version { } { return "23.11" }
+proc sculpt_version { } { return "24.04" }
 
 
 proc assert_platform_supported { } {
