@@ -7,7 +7,7 @@ gpu_drv: intel
 import: pkg/sculpt_drivers-pc
 
 # selection of launcher-menu entries
-launcher: vm_fs shared_fs download_debug_info black_hole
+launcher: vm_fs shared_fs download_debug_info black_hole trace_logger
 
 # selection of accepted depot-package providers
 depot: genodelabs cnuke alex-ab mstein nfeske cproc chelmuth jschlatow
