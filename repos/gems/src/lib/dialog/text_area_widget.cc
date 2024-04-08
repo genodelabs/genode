@@ -629,7 +629,8 @@ void Text_area_widget::handle_event(Event const &event, Action &action)
 	if (all_lines_visible)
 		_scroll.y.value = 0;
 
-	_sanitize_scroll_position();
+	if (event.event.press() && !event.event.key_press(Input::BTN_LEFT))
+		_sanitize_scroll_position();
 
 	if (update_dialog)
 		action.refresh_text_area();
