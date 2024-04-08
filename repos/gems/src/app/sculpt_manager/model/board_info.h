@@ -25,13 +25,13 @@ struct Sculpt::Board_info
 	 */
 	struct Detected
 	{
-		bool wifi, nic, intel_gfx, boot_fb, vesa, nvme, ahci, usb, ps2;
+		bool wifi, nic, intel_gfx, boot_fb, vga, nvme, ahci, usb, ps2;
 
 		void print(Output &out) const
 		{
 			Genode::print(out, "wifi=",      wifi,      " nic=",       nic,
 			                  " intel_gfx=", intel_gfx, " boot_fb=",   boot_fb,
-			                  " vesa=",      vesa,      " nvme=",      nvme,
+			                  " vga=",       vga,       " nvme=",      nvme,
 			                  " ahci=",      ahci,      " usb=",       usb);
 		}
 
@@ -61,10 +61,22 @@ struct Sculpt::Board_info
 	{
 		bool display, usb_net, nic, wifi;
 
+		struct Suppress {
+
+			bool ps2, intel_gpu;
+
+			bool operator != (Suppress const &other) const
+			{
+				return ps2 != other.ps2 || intel_gpu != other.intel_gpu;
+			}
+
+		} suppress;
+
 		bool operator != (Options const &other) const
 		{
-			return display != other.display || usb_net != other.usb_net
-			    || nic     != other.nic     || wifi    != other.wifi;
+			return display  != other.display  || usb_net != other.usb_net
+			    || nic      != other.nic      || wifi    != other.wifi
+			    || suppress != other.suppress;
 		}
 
 	} options;
@@ -81,8 +93,6 @@ Sculpt::Board_info::Detected::from_xml(Xml_node const &devices, Xml_node const &
 
 	Boot_fb::with_mode(platform, [&] (Boot_fb::Mode mode) {
 		detected.boot_fb = mode.valid(); });
-
-	bool vga = false;
 
 	devices.for_each_sub_node("device", [&] (Xml_node const &device) {
 
@@ -124,18 +134,12 @@ Sculpt::Board_info::Detected::from_xml(Xml_node const &devices, Xml_node const &
 				detected.ahci = true;
 
 			if (matches_class(Pci_class::VGA)) {
-				vga = true;
+				detected.vga = true;
 				if (matches_vendor(Pci_vendor::INTEL))
 					detected.intel_gfx = true;
 			}
 		});
 	});
-
-	if (detected.intel_gfx)
-		detected.boot_fb = false;
-
-	if (vga && !detected.intel_gfx && !detected.boot_fb)
-		detected.vesa = true;
 
 	return detected;
 }

@@ -129,8 +129,16 @@ struct Sculpt::Main : Input_event_handler,
 
 	Rom_handler<Main> _config { _env, "config", *this, &Main::_handle_config };
 
-	void _handle_config(Xml_node const &)
+	void _handle_config(Xml_node const &config)
 	{
+		Board_info::Options const orig_options = _driver_options;
+		_driver_options.suppress.ps2       = !config.attribute_value("ps2",       true);
+		_driver_options.suppress.intel_gpu = !config.attribute_value("intel_gpu", true);
+		if (orig_options != _driver_options) {
+			_drivers.update_options(_driver_options);
+			generate_runtime_config();
+		}
+
 		_handle_storage_devices();
 	}
 

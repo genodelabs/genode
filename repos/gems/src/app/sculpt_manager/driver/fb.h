@@ -109,15 +109,20 @@ struct Sculpt::Fb_driver : private Noncopyable
 	void update(Registry<Child_state> &registry, Board_info const &board_info,
 	            Xml_node const &platform)
 	{
-		_intel_gpu.conditional(board_info.detected.intel_gfx,
+		bool const use_intel   =  board_info.detected.intel_gfx
+		                      && !board_info.options.suppress.intel_gpu;
+		bool const use_boot_fb = !use_intel   && board_info.detected.boot_fb;
+		bool const use_vesa    = !use_boot_fb && !use_intel && board_info.detected.vga;
+
+		_intel_gpu.conditional(use_intel,
 		                       registry, "intel_gpu", Priority::MULTIMEDIA,
 		                       Ram_quota { 32*1024*1024 }, Cap_quota { 1400 });
 
-		_intel_fb.conditional(board_info.detected.intel_gfx,
+		_intel_fb.conditional(use_intel,
 		                      registry, "intel_fb", Priority::MULTIMEDIA,
 		                      Ram_quota { 16*1024*1024 }, Cap_quota { 800 });
 
-		_vesa_fb.conditional(board_info.detected.vesa,
+		_vesa_fb.conditional(use_vesa,
 		                     registry, "vesa_fb", Priority::MULTIMEDIA,
 		                     Ram_quota { 8*1024*1024 }, Cap_quota { 110 });
 
@@ -125,7 +130,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 		                    registry, "fb", Priority::MULTIMEDIA,
 		                    Ram_quota { 16*1024*1024 }, Cap_quota { 250 });
 
-		if (board_info.detected.boot_fb && !_boot_fb.constructed())
+		if (use_boot_fb && !_boot_fb.constructed())
 			Boot_fb::with_mode(platform, [&] (Boot_fb::Mode mode) {
 				_boot_fb.construct(registry, "boot_fb", Priority::MULTIMEDIA,
 				                   mode.ram_quota(), Cap_quota { 100 }); });
