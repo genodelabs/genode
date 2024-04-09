@@ -86,6 +86,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 			xml.node("route", [&] {
 				gen_parent_rom_route(xml, "config", "config -> fb_drv");
 				gen_parent_rom_route(xml, "boot_fb_drv");
+				gen_parent_rom_route(xml, "platform_info");
 				gen_parent_route<Io_mem_session>(xml);
 				gen_capture_route(xml);
 				gen_common_routes(xml);
