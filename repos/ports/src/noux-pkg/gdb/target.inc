@@ -7,6 +7,10 @@ CONFIGURE_ARGS += --program-prefix=$(PROGRAM_PREFIX) \
 # the configure script calls the linker with "-lexpat", which fails
 CONFIGURE_ARGS += --without-expat
 CPPFLAGS += -DHAVE_LIBEXPAT=1
+
+# prevent use of host libgmp in configure test
+CONFIGURE_ARGS += --without-libgmp-prefix
+
 CFLAGS += -Wno-error=sizeof-pointer-memaccess \
           -Wno-error=unused-value \
           -Wno-error=overflow
