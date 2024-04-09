@@ -386,23 +386,31 @@ struct Wifi::Frontend : Wifi::Rfkill_notification_handler
 		_verbose       = config.attribute_value("verbose",       _verbose);
 		_verbose_state = config.attribute_value("verbose_state", _verbose_state);
 
-		Genode::uint64_t connected_scan_interval =
+		Genode::uint64_t const connected_scan_interval =
 			Util::check_time(config.attribute_value("connected_scan_interval",
 			                                        _connected_scan_interval),
 			                 0, 15*60);
 
-		Genode::uint64_t scan_interval =
+		Genode::uint64_t const scan_interval =
 			Util::check_time(config.attribute_value("scan_interval",
 			                                        _scan_interval),
 			                 5, 15*60);
 
-		if (   connected_scan_interval > _connected_scan_interval
-		    || scan_interval > _scan_interval) {
-			_arm_scan_timer(_connected_ap.bssid_valid());
-		}
+		bool const new_connected_scan_interval =
+			connected_scan_interval != _connected_scan_interval;
+
+		bool const new_scan_interval =
+			connected_scan_interval != _scan_interval;
 
 		_connected_scan_interval = connected_scan_interval;
 		_scan_interval           = scan_interval;
+
+		/*
+		 * Arm again if intervals changed, implicitly discards
+		 * an already scheduled timer.
+		 */
+		if (new_connected_scan_interval || new_scan_interval)
+			_arm_scan_timer(_connected_ap.bssid_valid());
 
 		/*
 		 * Always handle rfkill, regardless in which state we are currently in.
