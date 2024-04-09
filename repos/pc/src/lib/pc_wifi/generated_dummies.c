@@ -661,34 +661,6 @@ void irq_work_tick(void)
 }
 
 
-extern void iwl_leds_exit(struct iwl_priv * priv);
-void iwl_leds_exit(struct iwl_priv * priv)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void iwl_leds_init(struct iwl_priv * priv);
-void iwl_leds_init(struct iwl_priv * priv)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void iwl_mvm_leds_exit(struct iwl_mvm * mvm);
-void iwl_mvm_leds_exit(struct iwl_mvm * mvm)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void iwlagn_led_enable(struct iwl_priv * priv);
-void iwlagn_led_enable(struct iwl_priv * priv)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kobject.h>
 
 struct kobject *kernel_kobj;
