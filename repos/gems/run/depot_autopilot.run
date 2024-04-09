@@ -452,9 +452,7 @@ proc prepare_to_run_genode { } {
 	# Build boot image from boot modules
 	#
 
-	set boot_modules [build_artifacts]
-	append boot_modules $test_modules
-	build_boot_image $boot_modules
+	build_boot_image [list {*}[build_artifacts] {*}$test_modules]
 
 	set last_test_pkg ""
 	set run_genode_failed 0
