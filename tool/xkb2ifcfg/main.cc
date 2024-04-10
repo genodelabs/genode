@@ -489,7 +489,7 @@ struct Main::Sequence
 						_xml.attribute("second", Formatted("0x%04x", seq.at(1).utf32).string());
 						_xml.attribute("third",  Formatted("0x%04x", seq.at(2).utf32).string());
 						_xml.attribute("fourth", Formatted("0x%04x", seq.at(3).utf32).string());
-					} catch (std::out_of_range) { }
+					} catch (std::out_of_range &) { }
 
 					_xml.attribute("code", Formatted("0x%04x", utf32).string());
 				});
