@@ -475,10 +475,9 @@ class Vfs::Lxip_data_file final : public Vfs::Lxip_file
 
 			_write_err = genode_socket_sendmsg(&_sock, msg_send.header(), &bytes_sent);
 
-			/* TODO: propagate EAGAIN
+			/* propagate EAGAIN */
 			if (_write_err == GENODE_EAGAIN)
 				throw Would_block();
-			*/
 
 			return _write_err == GENODE_ENONE ? bytes_sent : -1;
 		}
