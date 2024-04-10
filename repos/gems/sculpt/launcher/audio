@@ -1,0 +1,18 @@
+<launcher pkg="bsd_audio_drv" priority="0">
+	<config report="yes" record_play="yes">
+		<!-- value range [0,255] -->
+		<mixer field="outputs.master" value="160"/>
+
+		<!-- look into mixer report for source selection -->
+		<mixer field="record.enable"         value="on"/>
+		<mixer field="record.adc-0:1_source" value="sel2"/>
+		<mixer field="record.adc-0:1"        value="160"/>
+	</config>
+	<route>
+		<service name="Platform"> <parent label="audio"/> </service>
+		<service name="Record">   <child name="mixer"/>  </service>
+		<service name="Play">     <child name="mixer"/>  </service>
+		<service name="Report">   <parent/>              </service>
+		<service name="RM">       <parent/>              </service>
+	</route>
+</launcher>
