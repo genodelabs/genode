@@ -62,8 +62,15 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		{
 			_board_info.detected = Board_info::Detected::from_xml(devices,
 			                                                      _platform.xml());
+			/*
+			 * The decision which fb driver to start depends on information
+			 * about available devices from both the devices ROM and the
+			 * platform info ROM, so we skip the update if the devices ROM
+			 * is not ready yet.
+			 */
+			if (!devices.has_type("empty"))
+				_fb_driver.update(_children, _board_info, _platform.xml());
 
-			_fb_driver   .update(_children, _board_info, _platform.xml());
 			_ps2_driver  .update(_children, _board_info);
 			_touch_driver.update(_children, _board_info);
 			_ahci_driver .update(_children, _board_info);
