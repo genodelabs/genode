@@ -20,7 +20,7 @@ _/pkg/mesa_gpu-cpu
 _/pkg/usb_webcam
 _/pkg/test-capture
 _/pkg/trace_logger
-_/pkg/mixer
+_/pkg/record_play_mixer
 _/pkg/dynamic_rom
 _/pkg/unconfigured_nano3d
 _/pkg/dbg_download
