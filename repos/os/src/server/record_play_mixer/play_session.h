@@ -308,7 +308,7 @@ class Mixer::Play_session : public Session_object<Play::Session, Play_session>,
 				if (probe_result == Probe_result::OK)
 					return;
 
-				if (_operations.once_in_a_while()) {
+				if (_operations.once_in_a_while() && !_stopped()) {
 
 					bool earlier_than_avail_samples = false,
 					     later_than_avail_samples   = false;
@@ -328,7 +328,7 @@ class Mixer::Play_session : public Session_object<Play::Session, Play_session>,
 							warning("required sample value is no longer available");
 							warning("(jitter config or period too high?)");
 						}
-						else if (later_than_avail_samples && !_stopped()) {
+						else if (later_than_avail_samples) {
 							warning("required sample is not yet available");
 							warning("(increase 'jitter_ms' config attribute?)");
 						}
