@@ -78,15 +78,17 @@ Device_component::io_mem(unsigned idx, Range &range)
 		if (iomem.idx != idx)
 			return;
 
-		if (!iomem.io_mem.constructed())
-			iomem.io_mem.construct(_env,
-			                       iomem.range.start,
-			                       iomem.range.size,
-			                       iomem.prefetchable);
+		try {
+			if (!iomem.io_mem.constructed())
+				iomem.io_mem.construct(_env,
+				                       iomem.range.start,
+				                       iomem.range.size,
+				                       iomem.prefetchable);
 
-		range = iomem.range;
-		range.start &= 0xfff;
-		cap = iomem.io_mem->cap();
+			range = iomem.range;
+			range.start &= 0xfff;
+			cap = iomem.io_mem->cap();
+		} catch (Genode::Service_denied) { }
 	});
 
 	return cap;
