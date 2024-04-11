@@ -947,8 +947,6 @@ struct Igd::Device
 				return false;
 			}
 
-			ring.flush(tail, tail + advance);
-
 			/* tail_offset must be specified in qword */
 			rcs.with_context([&](auto &context) {
 				context.tail_offset((offset % (rcs.ring_size())) / 8);

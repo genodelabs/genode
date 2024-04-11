@@ -313,6 +313,7 @@ class Genode::Level_4_translation_table
 					throw Invalid_address();
 
 				func(vo, pa, sz, _entries[i]);
+				Utils::clflush(&_entries[i]);
 
 				/* check whether we wrap */
 				if (end < vo) return;
@@ -535,6 +536,7 @@ class Genode::Page_directory
 					throw Invalid_address();
 
 				func(vo, pa, sz, _entries[i]);
+				Utils::clflush(&_entries[i]);
 
 				/* check whether we wrap */
 				if (end < vo) { return; }
@@ -724,6 +726,7 @@ class Genode::Pml4_table
 					throw Invalid_address();
 
 				func(vo, pa, sz, _entries[i]);
+				Utils::clflush(&_entries[i]);
 
 				/* check whether we wrap */
 				if (end < vo) { return; }

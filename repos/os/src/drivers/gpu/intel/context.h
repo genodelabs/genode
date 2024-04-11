@@ -21,7 +21,6 @@
 /* local includes */
 #include <types.h>
 #include <commands.h>
-#include <utils.h>
 
 namespace Igd {
 
@@ -727,8 +726,6 @@ class Igd::Hardware_status_page : public Igd::Common_context_regs<0x32*4 + 4>
 
 		uint64_t sequence_number()
 		{
-			/* invalidates cache before reading */
-			Utils::clflush((void *)(base() + Sequence_number::OFFSET));
 			return read<Sequence_number>();
 		}
 

@@ -182,23 +182,6 @@ class Igd::Ring_buffer
 		 */
 		Index max() const { return _max; }
 
-		/**
-		 * Flush range of commands in ring buffer
-		 *
-		 * \param from  index to start from
-		 * \param to    index to end on
-		 */
-		void flush(Index from, Index to) const
-		{
-			with_dwords([&](auto dwords) {
-				uint32_t *start = dwords + from;
-				for (Index i = 0; i < (to - from); i++) {
-					uint32_t *addr = start++;
-					Utils::clflush(addr);
-				}
-			});
-		}
-
 		/*********************
 		 ** Debug interface **
 		 *********************/
