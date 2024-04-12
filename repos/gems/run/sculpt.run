@@ -419,6 +419,8 @@ install_config {
 				<child name="config_fs_rom" label="managed/modem"/> </service>
 			<service name="ROM" label_last="audio.config">
 				<child name="config_fs_rom" label="managed/audio"/> </service>
+			<service name="ROM" label_last="sleep_states">
+				<child name="report_fs_rom" label="runtime/acpi_support/sleep_states"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
 			<service name="Capture"> <child name="nitpicker"/> </service>
 			<service name="Event">   <child name="event_filter"/> </service>

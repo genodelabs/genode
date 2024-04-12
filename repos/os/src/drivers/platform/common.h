@@ -49,6 +49,8 @@ class Driver::Common : Device_reporter,
 		Constructible<Expanding_reporter> _dev_reporter { };
 		Constructible<Expanding_reporter> _iommu_reporter { };
 
+		uint64_t _resume_counter { };
+
 		void _handle_devices();
 		bool _iommu();
 
@@ -67,6 +69,7 @@ class Driver::Common : Device_reporter,
 		void handle_config(Xml_node config);
 		void acquire_io_mmu_devices();
 
+		void report_resume();
 
 		/*********************
 		 ** Device_reporter **
@@ -174,6 +177,7 @@ void Driver::Common::update_report()
 {
 	if (_dev_reporter.constructed())
 		_dev_reporter->generate([&] (Xml_generator & xml) {
+			xml.attribute("resumed", _resume_counter);
 			_devices.generate(xml); });
 	if (_iommu_reporter.constructed())
 		_iommu_reporter->generate([&] (Xml_generator & xml) {
@@ -181,6 +185,12 @@ void Driver::Common::update_report()
 				io_mmu.generate(xml); }); });
 }
 
+
+void Driver::Common::report_resume()
+{
+	_resume_counter ++;
+	update_report();
+}
 
 void Driver::Common::disable_device(Device const & device)
 {

@@ -89,6 +89,7 @@
 		<provides> <service name="Platform"/> </provides>
 		<route>
 			<service name="ROM" label="system">  <parent label="system"/> </service>
+			<service name="ROM" label="sleep_states"> <parent label="sleep_states"/> </service>
 			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
 			<service name="ROM" label="acpi">    <child name="report_rom"/> </service>
 			<service name="Report" label="devices"> <child name="report_rom"/> </service>
