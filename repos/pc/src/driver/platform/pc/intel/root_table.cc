@@ -24,7 +24,6 @@ static void attribute_hex(Genode::Xml_generator & xml, char const * name,
 
 
 void Intel::Root_table::generate(Xml_generator & xml,
-                                 Env           & env,
                                  Report_helper & report_helper)
 {
 	for_each([&] (uint8_t bus) {
@@ -38,7 +37,7 @@ void Intel::Root_table::generate(Xml_generator & xml,
 			attribute_hex(xml, "context_table", ctx_addr);
 
 			auto fn = [&] (Context_table & context) {
-				context.generate(xml, env, report_helper);
+				context.generate(xml, report_helper);
 			};
 
 			/* dump context table */

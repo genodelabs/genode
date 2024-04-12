@@ -24,7 +24,6 @@ static void attribute_hex(Genode::Xml_generator & xml, char const * name,
 
 
 void Intel::Context_table::generate(Xml_generator & xml,
-                                    Env           & env,
                                     Report_helper & report_helper)
 {
 	for_each(0, [&] (Pci::rid_t id) {
@@ -51,7 +50,7 @@ void Intel::Context_table::generate(Xml_generator & xml,
 					/* dump stage2 table */
 					report_helper.with_table<Table3>(stage2_addr,
 						[&] (Table3 & stage2_table) {
-							stage2_table.generate(xml, env, report_helper); });
+							stage2_table.generate(xml, report_helper); });
 					break;
 				case Hi::Address_width::AGAW_4_LEVEL:
 					using Table4 = Intel::Level_4_translation_table;
@@ -59,7 +58,7 @@ void Intel::Context_table::generate(Xml_generator & xml,
 					/* dump stage2 table */
 					report_helper.with_table<Table4>(stage2_addr,
 						[&] (Table4 & stage2_table) {
-							stage2_table.generate(xml, env, report_helper); });
+							stage2_table.generate(xml, report_helper); });
 					break;
 				default:
 					xml.node("unsupported-agaw-error", [&] () {});

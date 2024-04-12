@@ -155,7 +155,6 @@ struct Intel::Page_directory_descriptor<_PAGE_SIZE_LOG2>::Table
 	static void generate(unsigned long           index,
 	                     access_t                entry,
 	                     Genode::Xml_generator & xml,
-	                     Genode::Env           & env,
 	                     Report_helper         & report_helper)
 	{
 		using Genode::Hex;
@@ -168,7 +167,7 @@ struct Intel::Page_directory_descriptor<_PAGE_SIZE_LOG2>::Table
 			xml.attribute("address", Hex_str(Hex(pd_addr)));
 
 			report_helper.with_table<ENTRY>(pd_addr, [&] (ENTRY & pd) {
-				pd.generate(xml, env, report_helper); });
+				pd.generate(xml, report_helper); });
 		});
 	}
 };
@@ -237,7 +236,6 @@ struct Intel::Level_4_descriptor : Common_descriptor
 	static void generate(unsigned long           index,
 	                     access_t                entry,
 	                     Genode::Xml_generator & xml,
-	                     Genode::Env           & env,
 	                     Report_helper         & report_helper)
 	{
 		using Genode::Hex;
@@ -250,7 +248,7 @@ struct Intel::Level_4_descriptor : Common_descriptor
 			xml.attribute("address", Hex_str(Hex(level3_addr)));
 
 			report_helper.with_table<ENTRY>(level3_addr, [&] (ENTRY & level3_table) {
-				level3_table.generate(xml, env, report_helper); });
+				level3_table.generate(xml, report_helper); });
 		});
 	}
 };
@@ -264,7 +262,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_2MB; }
 
-		void generate(Genode::Xml_generator &, Genode::Env & env, Report_helper &);
+		void generate(Genode::Xml_generator &, Report_helper &);
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 	struct Level_2_translation_table
@@ -274,7 +272,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_1GB; }
 
-		void generate(Genode::Xml_generator &, Genode::Env & env, Report_helper &);
+		void generate(Genode::Xml_generator &, Report_helper &);
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 	struct Level_3_translation_table
@@ -284,7 +282,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_512GB; }
 
-		void generate(Genode::Xml_generator &, Genode::Env & env, Report_helper &);
+		void generate(Genode::Xml_generator &, Report_helper &);
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 	struct Level_4_translation_table
@@ -294,7 +292,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_256TB; }
 
-		void generate(Genode::Xml_generator &, Genode::Env & env, Report_helper &);
+		void generate(Genode::Xml_generator &, Report_helper &);
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 }

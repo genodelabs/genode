@@ -282,7 +282,7 @@ void Intel::Io_mmu::generate(Xml_generator & xml)
 		/* dump root table, context table, and page tables */
 		_report_helper.with_table<Root_table>(rt_addr,
 			[&] (Root_table & root_table) {
-				root_table.generate(xml, _env, _report_helper);
+				root_table.generate(xml, _report_helper);
 			});
 	});
 }

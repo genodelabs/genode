@@ -72,7 +72,7 @@ class Intel::Root_table
 				clflush(&_entries[bus*2]);
 		}
 
-		void generate(Xml_generator &, Env &, Report_helper &);
+		void generate(Xml_generator &, Report_helper &);
 
 		Root_table()
 		{

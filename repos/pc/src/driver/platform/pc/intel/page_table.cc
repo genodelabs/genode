@@ -15,7 +15,6 @@
 
 void Intel::Level_1_translation_table::generate(
 	Genode::Xml_generator & xml,
-	Genode::Env           &,
 	Report_helper         &)
 {
 	for_each_entry([&] (unsigned long i, Descriptor::access_t e) {
@@ -25,38 +24,35 @@ void Intel::Level_1_translation_table::generate(
 
 void Intel::Level_2_translation_table::generate(
 	Genode::Xml_generator & xml,
-	Genode::Env           & env,
 	Report_helper         & report_helper)
 {
 	for_each_entry([&] (unsigned long i, Descriptor::access_t e) {
 		if (Descriptor::maps_page(e))
 			Descriptor::Page::generate_page(i, e, xml);
 		else
-			Descriptor::Table::generate<Entry>(i, e, xml, env, report_helper);
+			Descriptor::Table::generate<Entry>(i, e, xml, report_helper);
 	});
 }
 
 
 void Intel::Level_3_translation_table::generate(
 	Genode::Xml_generator & xml,
-	Genode::Env           & env,
 	Report_helper         & report_helper)
 {
 	for_each_entry([&] (unsigned long i, Descriptor::access_t e) {
 		if (Descriptor::maps_page(e))
 			Descriptor::Page::generate_page(i, e, xml);
 		else
-			Descriptor::Table::generate<Entry>(i, e, xml, env, report_helper);
+			Descriptor::Table::generate<Entry>(i, e, xml, report_helper);
 	});
 }
 
 
 void Intel::Level_4_translation_table::generate(
 	Genode::Xml_generator & xml,
-	Genode::Env           & env,
 	Report_helper         & report_helper)
 {
 	for_each_entry([&] (unsigned long i, Descriptor::access_t e) {
-		Descriptor::generate<Entry>(i, e, xml, env, report_helper);
+		Descriptor::generate<Entry>(i, e, xml, report_helper);
 	});
 }
