@@ -16,6 +16,7 @@
 
 #include <platform_session/device.h>
 #include <os/ring_buffer.h>
+#include <base/sleep.h>
 
 #include "serial_interface.h"
 
@@ -220,6 +221,24 @@ class I8042
 		bool _aux_data_pending()   { return _status() & STAT_AUX_DATA; }
 
 		/**
+		 * Probe controller by flushing limited amount of available data
+		 *
+		 * If there's no controller we'll infinitely read 0xff from status
+		 * port.
+		 */
+		bool _probe_controller()
+		{
+			unsigned attempts = 32; /* artificial maximum controller buffer size */
+
+			while (_output_buffer_full() && attempts > 0) {
+				(void)_data();
+				attempts--;
+			}
+
+			return attempts > 0;
+		}
+
+		/**
 		 * Wait for data and read
 		 */
 		unsigned char _wait_data()
@@ -229,10 +248,8 @@ class I8042
 			while (!_output_buffer_full() && attempts > 0)
 				attempts--;
 
-			if (attempts == 0) {
-				Genode::error("no data available");
+			if (attempts == 0)
 				return RET_INVALID;
-			}
 
 			return _data();
 		}
@@ -273,14 +290,11 @@ class I8042
 			_kbd_interface(*this, false),
 			_aux_interface(*this, true)
 		{
-			reset();
-		}
+			if (!_probe_controller()) {
+				Genode::log("i8042: no controller detected");
+				Genode::sleep_forever();
+			}
 
-		/**
-		 * Test and initialize controller
-		 */
-		void reset()
-		{
 			unsigned char configuration;
 			unsigned char ret;
 
@@ -295,18 +309,19 @@ class I8042
 				_command(CMD_TEST);
 				if ((ret = _wait_data()) != RET_TEST_OK) {
 					Genode::log("i8042: self test failed (", Genode::Hex(ret), ")");
-					return;
+					Genode::sleep_forever();
 				}
 
 				_command(CMD_KBD_TEST);
 				if ((ret = _wait_data()) != RET_KBD_TEST_OK) {
 					Genode::log("i8042: kbd test failed (", Genode::Hex(ret), ")");
-					return;
+					Genode::sleep_forever();
 				}
 
 				_command(CMD_AUX_TEST);
 				if ((ret = _wait_data()) != RET_AUX_TEST_OK) {
 					Genode::log("I8042: aux test failed (", Genode::Hex(ret), ")");
+					/* don't sleep forever as keyboard may work */
 					return;
 				}
 
