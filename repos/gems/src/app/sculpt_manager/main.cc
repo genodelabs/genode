@@ -860,8 +860,12 @@ struct Sculpt::Main : Input_event_handler,
 			}
 		};
 
-		if (_selected_tab == Panel_dialog::Tab::COMPONENTS)
-			handle_vertical_scroll(_graph_scroll_ypos);
+		if (_selected_tab == Panel_dialog::Tab::COMPONENTS) {
+			if (_popup.state == Popup::VISIBLE)
+				handle_vertical_scroll(_popup_scroll_ypos);
+			else
+				handle_vertical_scroll(_graph_scroll_ypos);
+		}
 
 		if (need_generate_dialog) {
 			_generate_dialog();
@@ -1488,6 +1492,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	int _graph_scroll_ypos = 0;
+	int _popup_scroll_ypos = 0;
 
 	/*
 	 * Signal handler used for locally triggering a window-layout update
@@ -1737,6 +1742,16 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			}
 		});
 
+		auto sanitize_scroll_position = [&] (Area const &win_size, int &scroll_ypos)
+		{
+			if (win_size.h() > avail.h()) {
+				int const out_of_view_h = win_size.h() - avail.h();
+				scroll_ypos = max(scroll_ypos, -out_of_view_h);
+				scroll_ypos = min(scroll_ypos,  out_of_view_h);
+			} else
+				scroll_ypos = 0;
+		};
+
 		/*
 		 * Calculate centered runtime view within the available main (inspect)
 		 * area.
@@ -1746,13 +1761,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			Area const size = win_size(win);
 			Rect const inspect(inspect_p1, inspect_p2);
 
-			/* sanitize graph scroll position */
-			if (size.h() > inspect.h()) {
-				int const out_of_view_h = size.h() - inspect.h();
-				_graph_scroll_ypos = max(_graph_scroll_ypos, -out_of_view_h);
-				_graph_scroll_ypos = min(_graph_scroll_ypos,  out_of_view_h);
-			} else
-				_graph_scroll_ypos = 0;
+			sanitize_scroll_position(size, _graph_scroll_ypos);
 
 			runtime_view_pos = inspect.center(size) + Point(0, _graph_scroll_ypos);
 		});
@@ -1760,13 +1769,23 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		if (_popup.state == Popup::VISIBLE) {
 			_with_window(window_list, popup_view_label, [&] (Xml_node const &win) {
 				Area const size = win_size(win);
-
-				int const anchor_y_center = (_popup.anchor.y1() + _popup.anchor.y2())/2;
+				Rect const inspect(inspect_p1, inspect_p2);
 
 				int const x = runtime_view_pos.x() + _popup.anchor.x2();
-				int const y = max((int)panel_height, runtime_view_pos.y() + anchor_y_center - (int)size.h()/2);
 
-				gen_window(win, Rect(Point(x, y), size));
+				auto y = [&]
+				{
+					/* try to vertically align the popup at the '+' button */
+					if (size.h() < inspect.h()) {
+						int const anchor_y = (_popup.anchor.y1() + _popup.anchor.y2())/2;
+						int const abs_anchor_y = runtime_view_pos.y() + anchor_y;
+						return max((int)panel_height, abs_anchor_y - (int)size.h()/2);
+					} else {
+						sanitize_scroll_position(size, _popup_scroll_ypos);
+						return _popup_scroll_ypos;
+					}
+				};
+				gen_window(win, Rect(Point(x, y()), size));
 			});
 		}
 
