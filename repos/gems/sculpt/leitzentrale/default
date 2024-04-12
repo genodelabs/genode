@@ -45,7 +45,7 @@
 				<inline>
 					<start name="fader" priority="-1">
 						<binary name="gui_fader"/>
-						<resource name="RAM" quantum="50M"/>
+						<resource name="RAM" quantum="100M"/>
 						<resource name="CPU" quantum="20"/>
 						<provides> <service name="Gui"/> </provides>
 						<config initial_fade_in_steps="100" fade_in_steps="20" alpha="210"/>
@@ -74,7 +74,7 @@
 		</if>
 		<inline>
 			<start name="gui_fb" priority="-1">
-				<resource name="RAM" quantum="18M"/>
+				<resource name="RAM" quantum="33M"/>
 				<resource name="CPU" quantum="20"/>
 				<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
 				<config/>
@@ -160,9 +160,9 @@
 				</route>
 			</start>
 
-			<start name="decorator" caps="350" priority="-1">
+			<start name="decorator" caps="400" priority="-1">
 				<binary name="themed_decorator"/>
-				<resource name="RAM" quantum="12M"/>
+				<resource name="RAM" quantum="20M"/>
 				<resource name="CPU" quantum="20"/>
 				<config>
 					<libc/>
