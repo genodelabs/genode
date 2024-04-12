@@ -49,6 +49,16 @@ The virtual resolution can be enforced by:
 ! <config force_width="1024" force_height="768">
 ! </config>
 
+The amount of memory used by the driver for the accounting of its available
+buffer space is set by:
+
+! <config max_framebuffer_memory="64M">
+! </config>
+
+The default and minimal value is '64M' and suffices for resolutions of at
+least '3840x2160'. How much actual memory is used depends on the configured
+resolution.
+
 To present all available connectors and their possible resolutions to the user,
 the driver is able to deliver a corresponding report, which can be enabled
 in the configuration as follows:

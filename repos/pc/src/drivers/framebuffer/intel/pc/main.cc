@@ -164,6 +164,43 @@ struct Framebuffer::Driver
 		if (force_width && force_height)
 			fn(force_width, force_height);
 	}
+
+	unsigned long long max_framebuffer_memory()
+	{
+		/*
+		 * The max framebuffer memory is virtual in nature and denotes how
+		 * the driver sizes its buffer space. When actual memory is used and
+		 * the available RAM quota is not enough the component will issue a
+		 * resource request.
+		 *
+		 * As the available memory is used during the initialization of the
+		 * driver and is not queried afterwards it is safe to acquired it
+		 * only once. Since it is used to size the GEM buffer pool set the amount
+		 * of memory so that it includes the currently anticipated resolutions
+		 * (e.g. 3840x2160) and is in line with the default value of the Intel GPU
+		 * multiplexer.
+		 */
+		static unsigned long long _framebuffer_memory = 0;
+
+		if (_framebuffer_memory)
+			return _framebuffer_memory;
+
+		enum : unsigned { DEFAULT_FB_MEMORY = 64u << 20, };
+		auto framebuffer_memory = Number_of_bytes(DEFAULT_FB_MEMORY);
+		if (config.valid())
+			framebuffer_memory =
+				config.xml().attribute_value("max_framebuffer_memory",
+				                             framebuffer_memory);
+
+		if (framebuffer_memory < DEFAULT_FB_MEMORY) {
+			warning("configured framebuffer memory too small, use default of ",
+			        Number_of_bytes(DEFAULT_FB_MEMORY));
+			framebuffer_memory = Number_of_bytes(DEFAULT_FB_MEMORY);
+		}
+		_framebuffer_memory = framebuffer_memory;
+
+		return _framebuffer_memory;
+	}
 };
 
 
@@ -264,6 +301,13 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 		mode.max_width  = width;
 		mode.max_height = height;
 	});
+}
+
+
+unsigned long long driver_max_framebuffer_memory(void)
+{
+	Genode::Env &env = Lx_kit::env().env;
+	return driver(env).max_framebuffer_memory();
 }
 
 

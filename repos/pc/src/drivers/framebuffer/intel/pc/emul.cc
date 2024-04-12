@@ -17,6 +17,8 @@
 /* local includes */
 #include "lx_emul.h"
 
+extern unsigned long long driver_max_framebuffer_memory(void);
+
 
 unsigned short emul_intel_gmch_control_reg()
 {
@@ -39,5 +41,5 @@ unsigned short emul_intel_gmch_control_reg()
 
 unsigned long long emul_avail_ram()
 {
-	return Lx_kit::env().env.pd().avail_ram().value;
+	return driver_max_framebuffer_memory();
 }
