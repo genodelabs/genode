@@ -31,7 +31,7 @@ namespace Acpica {
 	template <typename H, typename S, typename F, typename FSIZE>
 	void for_each_element(H const head, S *, F const &fn, FSIZE const &fn_size);
 
-	void generate_suspend_report(Genode::Reporter::Xml_generator &);
+	void generate_suspend_report(Reporter::Xml_generator &, String<32> const &);
 
 	void init_printf(Env &);
 }

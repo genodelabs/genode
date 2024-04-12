@@ -729,8 +729,8 @@ append config {
 
 					<!--
 					     TODO: for a real OS scenario, e.g. Sculpt OS -
-					     wait until s3_prepare is done, e.g. evaluate an
-					     ACPICA report !?
+					     waits until s3_prepare is done, e.g. evaluate the
+					     ACPICA sleep_state report!
 					-->
 
 					<inline description="suspend system">

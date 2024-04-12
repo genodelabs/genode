@@ -17,10 +17,14 @@
 
 using namespace Acpica;
 
-using Genode::Reporter;
-
-void Acpica::generate_suspend_report(Reporter::Xml_generator &xml)
+void Acpica::generate_suspend_report(Reporter::Xml_generator &xml,
+                                     String<32> const &state)
 {
+	static unsigned version = 0;
+
+	xml.attribute("version"  , version++);
+	xml.attribute("complete" , state);
+
 	for (unsigned sleep_state = 1; sleep_state < ACPI_S_STATE_COUNT; sleep_state ++) {
 		UINT8 slp_typa {};
 		UINT8 slp_typb {};

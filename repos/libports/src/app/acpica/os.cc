@@ -52,15 +52,19 @@ using namespace Genode;
 struct Acpica::Statechange
 {
 	Signal_handler<Acpica::Statechange> _dispatcher;
-	Attached_rom_dataspace _system_state;
+	Attached_rom_dataspace              _system_state;
+	Expanding_reporter                 &_report_sleep_states;
+
 	bool _enable_reset;
 	bool _enable_poweroff;
 	bool _enable_sleep;
 
-	Statechange(Env &env, bool reset, bool poweroff, bool sleep)
+	Statechange(Env &env, bool reset, bool poweroff, bool sleep,
+	            Expanding_reporter &report)
 	:
 		_dispatcher(env.ep(), *this, &Statechange::state_changed),
 		_system_state(env, "system"),
+		_report_sleep_states(report),
 		_enable_reset(reset), _enable_poweroff(poweroff), _enable_sleep(sleep)
 	{
 		_system_state.sigh(_dispatcher);
@@ -68,8 +72,7 @@ struct Acpica::Statechange
 		state_changed();
 	}
 
-	template <typename T>
-	void suspend_prepare_check(T const &state)
+	void suspend_prepare_check(auto const &state)
 	{
 		if (!_enable_sleep)
 			return;
@@ -90,10 +93,13 @@ struct Acpica::Statechange
 		if (ACPI_FAILURE(res))
 			Genode::error("AcpiEnterSleepStatePrep failed ",
 			              res, " ", AcpiFormatException(res));
+
+		_report_sleep_states.generate([&] (auto & xml) {
+			Acpica::generate_suspend_report(xml, state);
+		});
 	}
 
-	template <typename T>
-	void resume_check(T const &state)
+	void resume_check(auto const &state)
 	{
 		if (!_enable_sleep)
 			return;
@@ -117,6 +123,10 @@ struct Acpica::Statechange
 		if (ACPI_FAILURE(res))
 			Genode::error("AcpiLeaveSleepState failed ",
 			              res, " ", AcpiFormatException(res));
+
+		_report_sleep_states.generate([&] (auto & xml) {
+			Acpica::generate_suspend_report(xml, state);
+		});
 	}
 
 	void state_changed() {
@@ -216,7 +226,7 @@ struct Acpica::Main
 
 		if (enable_reset || enable_poweroff || enable_sleep)
 			new (heap) Acpica::Statechange(env, enable_reset, enable_poweroff,
-			                               enable_sleep);
+			                               enable_sleep, report_sleep_states);
 
 		if (periodic_ms) {
 			timer.sigh(timer_trigger);
@@ -422,7 +432,7 @@ void Acpica::Main::init_acpica(bool const use_gpe)
 
 	/* report S0-S5 support and the SLP_TYPa/b values to be used by kernel(s) */
 	report_sleep_states.generate([&] (auto &xml) {
-		Acpica::generate_suspend_report(xml);
+		Acpica::generate_suspend_report(xml, "S0");
 	});
 
 	/* use dbg level to steer error reporting in pci.cc */
