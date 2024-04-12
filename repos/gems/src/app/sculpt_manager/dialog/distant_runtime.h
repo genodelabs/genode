@@ -52,8 +52,8 @@ class Dialog::Distant_runtime : Noncopyable
 		Event::Seq_number _global_seq_number { 1 };
 
 		Start_name const _start_name   { "runtime_view" };
-		Ram_quota  const _initial_ram  { 4*1024*1024 };
-		Cap_quota  const _initial_caps { 200 };
+		Ram_quota  const _initial_ram  { 52*1024*1024 };
+		Cap_quota  const _initial_caps { 300 };
 
 		Ram_quota _ram  = _initial_ram;
 		Cap_quota _caps = _initial_caps;
