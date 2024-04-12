@@ -1043,7 +1043,16 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void install_boot_image(Path const &path) override
 	{
-		_file_operation_queue.copy_all_files(Path("/rw/depot/", path), "/rw/boot");
+		auto install_boot_files = [&] (auto const &subdir)
+		{
+			_file_operation_queue.copy_all_files(Path("/rw/depot/", path, subdir),
+			                                     Path("/rw/boot",         subdir));
+		};
+
+		install_boot_files("");
+
+		if (_build_info.board == "pc")
+			install_boot_files("/grub"); /* grub.cfg */
 
 		if (!_file_operation_queue.any_operation_in_progress())
 			_file_operation_queue.schedule_next_operations();
