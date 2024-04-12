@@ -786,6 +786,7 @@ set skip_test(test-fault_detection) [expr [have_spec pistachio] || [have_spec fi
 set skip_test(test-fs_packet)       [expr ![interactive] && [have_include "power_on/qemu"]]
 set skip_test(test-libc)            [expr [have_spec sel4] || [have_board rpi] || [have_board imx53_qsb_tz]]
 set skip_test(test-lx_block)        [expr ![have_board linux]]
+set skip_test(test-read_only_rom)   [expr [have_board linux]]
 set skip_test(test-rm_fault)        [expr [have_board linux] || ![non_executable_supported]]
 set skip_test(test-rm_fault_no_nox) [expr [have_board linux] || ![skip_test test-rm_fault]]
 set skip_test(test-rm_nested)       [expr [have_board linux] || [have_spec pistachio]]
