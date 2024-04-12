@@ -845,6 +845,24 @@ struct Sculpt::Main : Input_event_handler,
 			need_generate_dialog = true;
 		});
 
+		auto handle_vertical_scroll = [&] (int &scroll_ypos)
+		{
+			int dy = 0;
+
+			ev.handle_wheel([&] (int, int y) { dy = y*32; });
+
+			if (ev.key_press(Input::KEY_PAGEUP))   dy =  int(_gui.mode().area.h() / 3);
+			if (ev.key_press(Input::KEY_PAGEDOWN)) dy = -int(_gui.mode().area.h() / 3);
+
+			if (dy != 0) {
+				scroll_ypos += dy;
+				_wheel_handler.local_submit();
+			}
+		};
+
+		if (_selected_tab == Panel_dialog::Tab::COMPONENTS)
+			handle_vertical_scroll(_graph_scroll_ypos);
+
 		if (need_generate_dialog) {
 			_generate_dialog();
 			_popup_dialog.refresh();
@@ -1469,6 +1487,16 @@ struct Sculpt::Main : Input_event_handler,
 				fn(win); });
 	}
 
+	int _graph_scroll_ypos = 0;
+
+	/*
+	 * Signal handler used for locally triggering a window-layout update
+	 *
+	 * Wheel events tend to come in batches, the signal handler is used to
+	 * defer the call of '_update_window_layout' until all events are processed.
+	 */
+	Signal_handler<Main> _wheel_handler { _env.ep(), *this, &Main::_update_window_layout };
+
 
 	/*******************
 	 ** Runtime graph **
@@ -1715,8 +1743,18 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		 */
 		Point runtime_view_pos { };
 		_with_window(window_list, runtime_view_label, [&] (Xml_node const &win) {
-			Area const size  = constrained_win_size(win);
-			runtime_view_pos = Rect(inspect_p1, inspect_p2).center(size);
+			Area const size = win_size(win);
+			Rect const inspect(inspect_p1, inspect_p2);
+
+			/* sanitize graph scroll position */
+			if (size.h() > inspect.h()) {
+				int const out_of_view_h = size.h() - inspect.h();
+				_graph_scroll_ypos = max(_graph_scroll_ypos, -out_of_view_h);
+				_graph_scroll_ypos = min(_graph_scroll_ypos,  out_of_view_h);
+			} else
+				_graph_scroll_ypos = 0;
+
+			runtime_view_pos = inspect.center(size) + Point(0, _graph_scroll_ypos);
 		});
 
 		if (_popup.state == Popup::VISIBLE) {
