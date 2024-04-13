@@ -31,7 +31,7 @@ extern "C" {
 #include <errno.h>
 #include <drm.h>
 #include <i915_drm.h>
-
+#include <xf86drm.h>
 #define DRM_NUMBER(req) ((req) & 0xff)
 }
 
@@ -39,8 +39,34 @@ namespace Libc {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include <unistd.h>
 }
+
+/*
+ * This is currently not in upstream libdrm (2.4.120) but in internal Mesa
+ * 'i195_drm.h'
+ */
+#ifndef I915_PARAM_PXP_STATUS
+/*
+ * Query the status of PXP support in i915.
+ *
+ * The query can fail in the following scenarios with the listed error codes:
+ *     -ENODEV = PXP support is not available on the GPU device or in the
+ *               kernel due to missing component drivers or kernel configs.
+ *
+ * If the IOCTL is successful, the returned parameter will be set to one of
+ * the following values:
+ *     1 = PXP feature is supported and is ready for use.
+ *     2 = PXP feature is supported but should be ready soon (pending
+ *         initialization of non-i915 system dependencies).
+ *
+ * NOTE: When param is supported (positive return values), user space should
+ *       still refer to the GEM PXP context-creation UAPI header specs to be
+ *       aware of possible failure due to system state machine at the time.
+ */
+#define I915_PARAM_PXP_STATUS 58
+#endif
 
 using Genode::addr_t;
 using Genode::Attached_dataspace;
@@ -284,11 +310,18 @@ struct Drm::Buffer
 	Vram::Allocation _allocation;
 	Gpu::addr_t _local_addr { 0 };
 
+	/* handle id's have to start at 1 (0) is invalid */
+	static Drm::Buffer_id _new_id()
+	{
+		static unsigned long _id = 0;
+		return Drm::Buffer_id { ++_id };
+	}
+
 	Buffer(Genode::Env              &env,
 	       Genode::Id_space<Buffer> &space,
 	       Vram::Allocation          allocation)
 	:
-		_env { env }, _elem { *this, space }, _allocation { allocation }
+		_env { env }, _elem { *this, space, _new_id() }, _allocation { allocation }
 	{ }
 
 	~Buffer()
@@ -319,6 +352,7 @@ struct Drm::Buffer
 
 	Drm::Buffer_id id() const
 	{
+		/* skip first id (0) */
 		return Drm::Buffer_id { _elem.id().value };
 	}
 };
@@ -460,7 +494,7 @@ struct Drm::Context
 
 		_gpu.unmap_gpu(buffer.vram.id,
 		               buffer.vram.offset,
-		               buffer.gpu_vaddr);
+		               Utils::limit_to_48bit(buffer.gpu_vaddr));
 		buffer.gpu_vaddr_valid = false;
 	}
 
@@ -882,6 +916,18 @@ class Drm::Call
 				if (verbose_ioctl)
 					Genode::warning("I915_PARAM_MMAP_GTT_VERSION ", *value);
 				return 0;
+			/* validates user pointer and size */
+			case I915_PARAM_HAS_USERPTR_PROBE:
+				*value = 0;
+				return 0;
+			/*
+			 * Protected Xe Path (PXP) hardware/ME feature (encrypted video memory, TEE,
+			 * ...)
+			 */
+			case I915_PARAM_PXP_STATUS:
+				*value = 0;
+				errno = ENODEV;
+				return -1;
 			default:
 				Genode::error("Unhandled device param:", Genode::Hex(param));
 				return -1;
@@ -951,6 +997,18 @@ class Drm::Call
 				return 0;
 			case I915_CONTEXT_PARAM_RECOVERABLE:
 				return 0;
+			/*
+			 * The id of the associated virtual memory address space (ppGTT) of
+			 * this context. Can be retrieved and passed to another context
+			 * (on the same fd) for both to use the same ppGTT and so share
+			 * address layouts, and avoid reloading the page tables on context
+			 * switches between themselves.
+			 *
+			 * This is currently not supported.
+			 */
+			case I915_CONTEXT_PARAM_VM:
+				return 0;
+
 			default:
 				Genode::error(__func__, " unknown param=", p->param);
 				return -1;
@@ -964,6 +1022,16 @@ class Drm::Call
 			switch (p->param) {
 			case I915_CONTEXT_PARAM_SSEU:
 				return 0;
+
+			/* addressable VM area (PPGTT 48Bit - one page) for GEN8+ */
+			case I915_CONTEXT_PARAM_GTT_SIZE:
+				p->value = (1ull << 48) - 0x1000;
+				return 0;
+
+			/* global VM used for sharing BOs between contexts -> not supported so far */
+			case I915_CONTEXT_PARAM_VM:
+				return 0;
+
 			default:
 				Genode::error(__func__, " ctx=", p->ctx_id, " param=", p->param, " size=", p->size, " value=", Genode::Hex(p->value));
 				return -1;
@@ -1025,28 +1093,9 @@ class Drm::Call
 				return -1;
 			}
 
-			if (p->flags & I915_EXEC_FENCE_ARRAY) {
-				bool unsupported = false;
-
-				for (unsigned i = 0; i < p->num_cliprects; i++) {
-					auto &fence = reinterpret_cast<drm_i915_gem_exec_fence *>(p->cliprects_ptr)[i];
-
-					Sync_obj::Id const id { .value = fence.handle };
-					_sync_objects.apply<Sync_obj>(id, [&](Sync_obj &) {
-						/**
-						 * skipping signal fences should be save as long as
-						 * no one tries to wait for ...
-						 * - fence.flags & I915_EXEC_FENCE_SIGNAL
-						 */
-						if (fence.flags & I915_EXEC_FENCE_WAIT)
-							unsupported = true;
-					});
-				}
-
-				if (unsupported) {
-					Genode::error("fence wait not supported");
-					return -1;
-				}
+			if (verbose_ioctl && p->flags & I915_EXEC_FENCE_ARRAY) {
+				Genode::warning("unsupported: Fence array with Sync-objects with "
+				                "FENCE_WAIT/SIGNAL");
 			}
 
 			auto const obj =
@@ -1055,7 +1104,6 @@ class Drm::Call
 			return _context_space.apply<Drm::Context>(Drm::Context::id(ctx_id),
 			                                          [&] (Drm::Context &context) {
 				return context.exec_buffer(obj, p->buffer_count, bb_id, p->batch_len); });
-
 		}
 
 		int _device_gem_busy(void *arg)
@@ -1230,13 +1278,14 @@ class Drm::Call
 			}
 
 			if (ok) {
-				errno = 62 /* ETIME */;
-				return -1;
+				return 0;
 			} else
 				Genode::error("unknown sync object handle ", handles[0]);
 
+			errno = EINVAL;
 			return -1;
 		}
+
 		int _generic_syncobj_destroy(void *arg)
 		{
 			auto * const p = reinterpret_cast<drm_syncobj_destroy *>(arg);
@@ -1311,8 +1360,32 @@ class Drm::Call
 			 } catch (Genode::Id_space<Buffer>::Unknown_id) {
 				return -1;
 			}
-
 			p->fd = prime_fd;
+			return 0;
+		}
+
+
+		/*
+		 * This is used to distinguish between the "i915" and the "xe" kernel
+		 * drivers. Genode's driver is "i915" for now.
+		 */
+		int _generic_version(void *arg)
+		{
+			auto *version = reinterpret_cast<drm_version_t *>(arg);
+
+			char const *driver = "i915";
+
+			version->name_len = 5;
+			if (version->name)
+					Genode::copy_cstring(version->name, driver, 5);
+
+			/*
+			 * dummy alloc remaining member, since they are de-allocated using 'free'
+			 * in xf86drm.c
+			 */
+			if (!version->date) version->date = (char *)Libc::malloc(1);
+			if (!version->desc) version->desc = (char *)Libc::malloc(1);
+
 			return 0;
 		}
 
@@ -1324,13 +1397,14 @@ class Drm::Call
 			}
 
 			switch (cmd) {
-			case DRM_NUMBER(DRM_IOCTL_GEM_CLOSE): return _generic_gem_close(arg);
-			case DRM_NUMBER(DRM_IOCTL_GEM_FLINK): return _generic_gem_flink(arg);
-			case DRM_NUMBER(DRM_IOCTL_SYNCOBJ_CREATE): return _generic_syncobj_create(arg);
-			case DRM_NUMBER(DRM_IOCTL_SYNCOBJ_WAIT): return _generic_syncobj_wait(arg);
+			case DRM_NUMBER(DRM_IOCTL_GEM_CLOSE):       return _generic_gem_close(arg);
+			case DRM_NUMBER(DRM_IOCTL_GEM_FLINK):       return _generic_gem_flink(arg);
+			case DRM_NUMBER(DRM_IOCTL_GEM_OPEN):        return _generic_gem_open(arg);
+			case DRM_NUMBER(DRM_IOCTL_GET_CAP):         return _generic_get_cap(arg);
+			case DRM_NUMBER(DRM_IOCTL_SYNCOBJ_CREATE):  return _generic_syncobj_create(arg);
 			case DRM_NUMBER(DRM_IOCTL_SYNCOBJ_DESTROY): return _generic_syncobj_destroy(arg);
-			case DRM_NUMBER(DRM_IOCTL_GEM_OPEN): return _generic_gem_open(arg);
-			case DRM_NUMBER(DRM_IOCTL_GET_CAP): return _generic_get_cap(arg);
+			case DRM_NUMBER(DRM_IOCTL_SYNCOBJ_WAIT):    return _generic_syncobj_wait(arg);
+			case DRM_NUMBER(DRM_IOCTL_VERSION):         return _generic_version(arg);
 			case DRM_NUMBER(DRM_IOCTL_PRIME_FD_TO_HANDLE):
 				return _generic_prime_fd_to_handle(arg);
 			case DRM_NUMBER(DRM_IOCTL_PRIME_HANDLE_TO_FD):
@@ -1351,6 +1425,9 @@ class Drm::Call
 			drm_syncobj_create reserve_id_0 { };
 			if (_generic_syncobj_create(&reserve_id_0))
 				Genode::warning("syncobject 0 not reserved");
+
+			/* make handle id 0 unavailable in buffer space */
+			_alloc_buffer(0x1000, [](Buffer &) { });
 		}
 
 		~Call()
@@ -1425,6 +1502,18 @@ class Drm::Call
 			return device ? _device_ioctl(device_number(request), arg)
 			              : _generic_ioctl(command_number(request), arg);
 		}
+
+		/*
+		 * Mesa 24+ way to retrieve device information (incomplete, expand as
+		 * needed). Before it was done via '_device_getparam'
+		 */
+		int drm_pci_device(drmDevicePtr device)
+		{
+			device->deviceinfo.pci->device_id   = _gpu_info.chip_id;
+			device->deviceinfo.pci->revision_id = _gpu_info.revision.value;
+
+			return 0;
+		}
 };
 
 
@@ -1492,4 +1581,18 @@ extern "C" int genode_ioctl(int /* fd */, unsigned long request, void *arg)
 	int const ret = _call->ioctl(request, arg);
 	if (verbose_ioctl) { Genode::log("returned ", ret, " from ", __builtin_return_address(0)); }
 	return ret;
+}
+
+
+extern "C"  int genode_drmGetPciDevice(int fd, uint32_t flags, drmDevicePtr device)
+{
+	if (_call.constructed() == false) { errno = EIO; return -1; }
+
+	/* TODO create constant */
+	if (fd != 43) {
+		Genode::error(__func__, " fd is not Genode Iris (43)");
+		return -ENODEV;
+	}
+
+	return _call->drm_pci_device(device);
 }

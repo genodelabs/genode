@@ -1,0 +1,65 @@
+diff --git a/src/lib/libdrm/xf86drm.c b/src/lib/libdrm/xf86drm.c
+index 2e76f0e..ff7e432 100644
+--- a/src/lib/libdrm/xf86drm.c
++++ b/src/lib/libdrm/xf86drm.c
+@@ -4562,6 +4562,7 @@ drm_device_has_rdev(drmDevicePtr device, dev_t find_rdev)
+  */
+ #define MAX_DRM_NODES 256
+ 
++
+ /**
+  * Get information about a device from its dev_t identifier
+  *
+@@ -4704,6 +4705,10 @@ drm_public int drmGetNodeTypeFromDevId(dev_t devid)
+     return node_type;
+ }
+ 
++#ifdef __GENODE__
++int genode_drmGetPciDevice(int fd, uint32_t flags, drmDevicePtr device);
++#endif
++
+ /**
+  * Get information about the opened drm device
+  *
+@@ -4724,6 +4729,41 @@ drm_public int drmGetDevice2(int fd, uint32_t flags, drmDevicePtr *device)
+     if (fd == -1)
+         return -EINVAL;
+ 
++#ifdef __GENODE__
++    /* PCI only */
++    int           node_type = DRM_NODE_PRIMARY;
++    char const *  node      = "genode";
++    char *addr;
++    int   ret;
++    drmDevicePtr dev;
++
++
++    if (flags & DRM_DEVICE_GET_PCI_REVISION) {
++        dev = drmDeviceAlloc(node_type, node, sizeof(drmPciBusInfo),
++                             sizeof(drmPciDeviceInfo), &addr);
++        if (!dev) return -ENOMEM;
++        dev->bustype     = DRM_BUS_PCI;
++        dev->businfo.pci = (drmPciBusInfoPtr)addr;
++
++        addr += sizeof(drmPciBusInfo);
++        dev->deviceinfo.pci = (drmPciDeviceInfoPtr)addr;
++
++        if ((ret = genode_drmGetPciDevice(fd, flags, dev))) return ret;
++    } else {
++       dev = drmDeviceAlloc(node_type, node, sizeof(drmPlatformBusInfo),
++                       sizeof(drmPlatformDeviceInfo), &addr);
++       if (!dev) return -ENOMEM;
++
++       dev->bustype = DRM_BUS_PLATFORM;
++       dev->businfo.platform    = addr;
++       dev->deviceinfo.platform = NULL;
++    }
++
++    *device = dev;
++
++    return 0;
++#endif
++
+     if (fstat(fd, &sbuf))
+         return -errno;
+ 

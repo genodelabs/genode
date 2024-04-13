@@ -1,9 +1,9 @@
 LICENSE   := MIT
-VERSION   := 2.4.105
+VERSION   := 2.4.120
 DOWNLOADS := libdrm.archive
 
 URL(libdrm) := https://dri.freedesktop.org/libdrm/libdrm-$(VERSION).tar.xz
-SHA(libdrm) := 1d1d024b7cadc63e2b59cddaca94f78864940ab440843841113fbac6afaf2a46
+SHA(libdrm) := 3bf55363f76c7250946441ab51d3a6cc0ae518055c0ff017324ab76cdefb327a
 DIR(libdrm) := src/lib/libdrm
 FILE_LIST    := $(REP_DIR)/src/lib/libdrm/files.list
 TAR_OPT(libdrm) := --strip-components=1 --files-from $(FILE_LIST)

@@ -446,6 +446,7 @@ class Etnaviv::Call
 			public:
 
 				bool defer_destruction { false };
+				bool fenced            { false };
 
 				static constexpr size_t _exec_buffer_size = { 256u << 10 };
 
@@ -780,9 +781,12 @@ class Etnaviv::Call
 					arg.fence = pending_exec_buffer & 0xffffffffu;
 
 					/* XXX make part of context ? */
-					new (&_heap) Fenceobj(_fenceobj_space,
-					                      Gpu_context_space::Id { .value = gc.id() },
-					                      arg.fence);
+					if (gc.fenced == false) {
+						new (&_heap) Fenceobj(_fenceobj_space,
+						                      Gpu_context_space::Id { .value = gc.id() },
+						                      arg.fence);
+						gc.fenced = true;
+					}
 
 					result = true;
 				} catch (Gpu::Session::Invalid_state) {

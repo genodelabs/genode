@@ -20,7 +20,7 @@ SRC_C := xf86drm.c \
 
 SRC_C += dummies.c
 
-CC_OPT = -DHAVE_LIBDRM_ATOMIC_PRIMITIVES=1 -DHAVE_SYS_SYSCTL_H=1
+CC_OPT = -D__GENODE__ -DHAVE_LIBDRM_ATOMIC_PRIMITIVES=1 -DHAVE_SYS_SYSCTL_H=1
 
 #
 # We rename 'ioctl' calls to 'genode_ioctl' calls, this way we are not required
