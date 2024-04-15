@@ -86,6 +86,9 @@ struct Sculpt::Usb_driver : private Noncopyable
 			config.for_each_sub_node("policy", [&] (Xml_node const &policy) {
 				copy_node(xml, policy); });
 
+			/* wildcard for USB clients with no policy yet */
+			xml.node("default-policy", [&] { });
+
 			_info.gen_usb_storage_policies(xml);
 		});
 	}
