@@ -13,6 +13,8 @@ success (via exit-code 0). It is useful when batching is used where a
 failed fetch operation should not influence the over-all result. The default
 value is 'false'.
 
+The 'verbose' attribute instruct the component to increase its verbosity
+and show diagnostic messages during its operation.
 
 The following config snippets illustrate its usage.
 

@@ -117,6 +117,8 @@ struct Fetchurl::Main
 
 	bool _ignore_result { false };
 
+	bool _verbose { false };
+
 	void _schedule_report()
 	{
 		using namespace Genode;
@@ -194,6 +196,8 @@ struct Fetchurl::Main
 
 		_ignore_result = config_node.attribute_value("ignore_failures",
 		                                             _ignore_result);
+
+		_verbose = config_node.attribute_value("verbose", false);
 	}
 
 	Main(Libc::Env &e) : _env(e)
@@ -213,6 +217,7 @@ struct Fetchurl::Main
 		for (size_t sub_path_len = 0; ; sub_path_len++) {
 
 			bool const end_of_path = (out_path[sub_path_len] == 0);
+
 			bool const end_of_elem = (out_path[sub_path_len] == '/');
 
 			if (end_of_path)
@@ -262,7 +267,8 @@ struct Fetchurl::Main
 		}
 		_fetch.fd = fd;
 
-		curl_easy_setopt(_curl, CURLOPT_VERBOSE, 1L);
+		if (_verbose)
+			curl_easy_setopt(_curl, CURLOPT_VERBOSE, 1L);
 
 		curl_easy_setopt(_curl, CURLOPT_URL, _fetch.url.string());
 		curl_easy_setopt(_curl, CURLOPT_FOLLOWLOCATION, true);
