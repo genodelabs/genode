@@ -157,6 +157,8 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 		_runtime_config(runtime_config)
 	{ }
 
+	void reset() { _selected_route = { }; }
+
 	void view(Scope<Vbox> &s, Component const &component) const
 	{
 		_view_pkg_elements(s, component);

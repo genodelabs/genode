@@ -210,7 +210,11 @@ struct Sculpt::Software_add_widget : Widget_interface<Vbox>
 		});
 	}
 
-	void _reset_menu() { _menu.reset(); }
+	void _reset_menu()
+	{
+		_menu.reset();
+		_component_add.reset();
+	}
 
 	bool keyboard_needed() const { return _users.keyboard_needed(); }
 
