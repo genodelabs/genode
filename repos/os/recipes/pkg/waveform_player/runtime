@@ -1,0 +1,15 @@
+<runtime ram="8M" caps="100" binary="waveform_player">
+
+	<requires> <play/> </requires>
+
+	<config period_ms="10">
+		<play label="left"  wave="sine" hz="600" sample_rate_hz="44100"/>
+		<play label="right" wave="sine" hz="600" sample_rate_hz="44100"/>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="waveform_player"/>
+	</content>
+
+</runtime>

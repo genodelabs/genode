@@ -1,0 +1,9 @@
+<launcher pkg="waveform_player" priority="-1">
+	<route>
+		<service name="Play"> <child name="mixer"/> </service>
+	</route>
+	<config period_ms="10">
+		<play label="left"  wave="sine" hz="600" sample_rate_hz="44100"/>
+		<play label="right" wave="sine" hz="600" sample_rate_hz="44100"/>
+	</config>
+</launcher>
