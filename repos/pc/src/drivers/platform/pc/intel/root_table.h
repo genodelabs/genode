@@ -22,9 +22,7 @@
 #include <base/env.h>
 #include <util/register.h>
 #include <util/xml_generator.h>
-
-/* local includes */
-#include <clflush.h>
+#include <cpu/clflush.h>
 
 namespace Intel {
 	using namespace Genode;
@@ -71,7 +69,7 @@ class Intel::Root_table
 			_entries[bus*2] = Entry::Address::masked(addr) | Entry::Present::bits(1);
 
 			if (flush)
-				Utils::clflush(&_entries[bus*2]);
+				clflush(&_entries[bus*2]);
 		}
 
 		void generate(Xml_generator &, Env &, Report_helper &);

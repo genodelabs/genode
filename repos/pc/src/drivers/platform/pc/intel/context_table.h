@@ -22,9 +22,7 @@
 #include <util/register.h>
 #include <util/xml_generator.h>
 #include <pci/types.h>
-
-/* local includes */
-#include <clflush.h>
+#include <cpu/clflush.h>
 
 namespace Intel {
 	using namespace Genode;
@@ -138,7 +136,7 @@ class Intel::Context_table
 			_entries[_lo_index(rid)] = lo_val;
 
 			if (flush)
-				Utils::clflush(&_entries[_lo_index(rid)]);
+				clflush(&_entries[_lo_index(rid)]);
 		}
 
 		void remove(Pci::rid_t rid, bool flush)
@@ -148,7 +146,7 @@ class Intel::Context_table
 			_entries[_lo_index(rid)] = val;
 
 			if (flush)
-				Utils::clflush(&_entries[_lo_index(rid)]);
+				clflush(&_entries[_lo_index(rid)]);
 		}
 
 		void generate(Xml_generator &, Env &, Intel::Report_helper &);
@@ -156,7 +154,7 @@ class Intel::Context_table
 		void flush_all()
 		{
 			for (Genode::size_t i=0; i < 512; i+=8)
-				Utils::clflush(&_entries[i]);
+				clflush(&_entries[i]);
 		}
 
 		Context_table()

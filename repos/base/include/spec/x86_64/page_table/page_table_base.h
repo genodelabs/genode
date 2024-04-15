@@ -12,22 +12,17 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__PC__SPEC__X86_64__PAGE_TABLE_BASE_H_
-#define _SRC__DRIVERS__PLATFORM__PC__SPEC__X86_64__PAGE_TABLE_BASE_H_
+#ifndef _INCLUDE__SPEC__X86_64__PAGE_TABLE__PAGE_TABLE_BASE_H_
+#define _INCLUDE__SPEC__X86_64__PAGE_TABLE__PAGE_TABLE_BASE_H_
 
 #include <base/log.h>
-#include <hw/page_flags.h>
-#include <hw/util.h>
+#include <page_table/page_flags.h>
 #include <util/misc_math.h>
-
-#include <clflush.h>
-#include <expanding_page_table_allocator.h>
+#include <cpu/clflush.h>
 
 #define assert(expression)
 
 namespace Genode {
-
-	using namespace Hw;
 
 	/**
 	 * (Generic) 4-level translation structures.
@@ -114,7 +109,7 @@ class Genode::Final_table
 				desc = table_entry;
 
 				if (flush)
-					Utils::clflush(&desc);
+					clflush(&desc);
 			}
 		};
 
@@ -130,7 +125,7 @@ class Genode::Final_table
 				desc = 0;
 
 				if (flush)
-					Utils::clflush(&desc);
+					clflush(&desc);
 			}
 		};
 
@@ -165,7 +160,7 @@ class Genode::Final_table
 		 */
 		Final_table()
 		{
-			if (!Hw::aligned(this, ALIGNM_LOG2)) throw Misaligned();
+			if (!aligned<addr_t>((addr_t)this, ALIGNM_LOG2)) throw Misaligned();
 			Genode::memset(&_entries, 0, sizeof(_entries));
 		}
 
@@ -280,7 +275,7 @@ class Genode::Page_directory
 
 					desc = table_entry;
 					if (flush)
-						Utils::clflush(&desc);
+						clflush(&desc);
 					return;
 				}
 
@@ -292,7 +287,7 @@ class Genode::Page_directory
 					desc = (access_t) Td::create(table_phys);
 
 					if (flush)
-						Utils::clflush(&desc);
+						clflush(&desc);
 
 				} else if (Descriptor::maps_page(desc)) {
 					throw Double_insertion();
@@ -349,7 +344,7 @@ class Genode::Page_directory
 					}
 
 					if (desc == 0 && flush)
-						Utils::clflush(&desc);
+						clflush(&desc);
 				}
 			}
 		};
@@ -382,7 +377,7 @@ class Genode::Page_directory
 
 		Page_directory()
 		{
-			if (!Hw::aligned(this, ALIGNM_LOG2)) throw Misaligned();
+			if (!aligned<addr_t>((addr_t)this, ALIGNM_LOG2)) throw Misaligned();
 			Genode::memset(&_entries, 0, sizeof(_entries));
 		}
 
@@ -487,7 +482,7 @@ class Genode::Pml4_table
 					desc = Descriptor::create(table_phys);
 
 					if (flush)
-						Utils::clflush(&desc);
+						clflush(&desc);
 				}
 
 				/* insert translation */
@@ -530,7 +525,7 @@ class Genode::Pml4_table
 								desc = 0;
 
 								if (flush)
-									Utils::clflush(&desc);
+									clflush(&desc);
 							}
 						},
 						[&] () {
@@ -579,7 +574,7 @@ class Genode::Pml4_table
 
 		Pml4_table()
 		{
-			if (!Hw::aligned(this, ALIGNM_LOG2)) throw Misaligned();
+			if (!aligned<addr_t>((addr_t)this, ALIGNM_LOG2)) throw Misaligned();
 			Genode::memset(&_entries, 0, sizeof(_entries));
 		}
 
@@ -648,4 +643,4 @@ class Genode::Pml4_table
 
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
-#endif /* _SRC__DRIVERS__PLATFORM__PC__SPEC__X86_64__PAGE_TABLE_BASE_H_ */
+#endif /* _INCLUDE__SPEC__X86_64__PAGE_TABLE__PAGE_TABLE_BASE_H_ */
