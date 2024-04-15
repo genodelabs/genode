@@ -3,16 +3,21 @@ LIB_SRC_DIR   := $(CURL_PORT_DIR)/src/lib/curl/lib
 
 SRC_C = \
 	altsvc.c \
-	amigaos.c \
-	asyn-ares.c \
 	asyn-thread.c \
 	base64.c \
+	bufq.c \
+	bufref.c \
+	cf-h1-proxy.c \
+	cf-h2-proxy.c \
+	cf-haproxy.c \
+	cf-https-connect.c \
+	cf-socket.c \
+	cfilters.c \
 	conncache.c \
 	connect.c \
 	content_encoding.c \
 	cookie.c \
 	curl_addrinfo.c \
-	curl_ctype.c \
 	curl_des.c \
 	curl_endian.c \
 	curl_fnmatch.c \
@@ -27,11 +32,15 @@ SRC_C = \
 	curl_range.c \
 	curl_rtmp.c \
 	curl_sasl.c \
+	curl_sha512_256.c \
 	curl_sspi.c \
 	curl_threads.c \
+	curl_trc.c \
+	cw-out.c \
 	dict.c \
 	doh.c \
-	dotdot.c \
+	dynbuf.c \
+	dynhds.c \
 	easy.c \
 	escape.c \
 	file.c \
@@ -43,21 +52,23 @@ SRC_C = \
 	getinfo.c \
 	gopher.c \
 	hash.c \
+	headers.c \
 	hmac.c \
 	hostasyn.c \
-	hostcheck.c \
 	hostip.c \
 	hostip4.c \
 	hostip6.c \
 	hostsyn.c \
+	hsts.c \
 	http.c \
+	http1.c \
 	http2.c \
 	http_chunks.c \
 	http_digest.c \
 	http_negotiate.c \
 	http_ntlm.c \
 	http_proxy.c \
-	idn_win32.c \
+	idn.c \
 	if2ip.c \
 	imap.c \
 	inet_ntop.c \
@@ -73,8 +84,8 @@ SRC_C = \
 	mqtt.c \
 	multi.c \
 	netrc.c \
-	non-ascii.c \
 	nonblock.c \
+	noproxy.c \
 	openldap.c \
 	parsedate.c \
 	pingpong.c \
@@ -83,8 +94,8 @@ SRC_C = \
 	psl.c \
 	rand.c \
 	rename.c \
+	request.c \
 	rtsp.c \
-	security.c \
 	select.c \
 	sendf.c \
 	setopt.c \
@@ -107,11 +118,11 @@ SRC_C = \
 	system_win32.c \
 	telnet.c \
 	tftp.c \
+	timediff.c \
 	timeval.c \
 	transfer.c \
 	url.c \
 	urlapi.c \
-	vauth/cleartext.c \
 	vauth/cram.c \
 	vauth/digest.c \
 	vauth/digest_sspi.c \
@@ -124,27 +135,19 @@ SRC_C = \
 	vauth/spnego_sspi.c \
 	vauth/vauth.c \
 	version.c \
-	vquic/ngtcp2.c \
-	vquic/quiche.c \
+	vquic/curl_ngtcp2.c \
+	vquic/curl_quiche.c \
 	vssh/libssh.c \
 	vssh/libssh2.c \
-	vssh/wolfssh.c \
-	vtls/bearssl.c \
-	vtls/gskit.c \
-	vtls/gtls.c \
-	vtls/mbedtls.c \
-	vtls/mbedtls_threadlock.c \
-	vtls/mesalink.c \
-	vtls/nss.c \
+	vtls/hostcheck.c \
+	vtls/keylog.c \
 	vtls/openssl.c \
 	vtls/schannel.c \
 	vtls/schannel_verify.c \
 	vtls/sectransp.c \
 	vtls/vtls.c \
-	vtls/wolfssl.c \
-	warnless.c \
-	wildcard.c \
-	x509asn1.c \
+	vtls/x509asn1.c \
+	warnless.c
 	# end of SRC_C
 
 CC_OPT += -DHAVE_CONFIG_H -DBUILDING_LIBCURL=1

@@ -1,0 +1,12 @@
+Include limits.h header before setting SIZE_* defines to prevent
+redefine warnings.
++++ src/lib/curl/lib/curl_setup.h
+@@ -35,6 +35,8 @@
+ #endif
+ #endif
+ 
++#include <sys/limits.h>
++
+ /* Set default _WIN32_WINNT */
+ #ifdef __MINGW32__
+ #include <_mingw.h>

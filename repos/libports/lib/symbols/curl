@@ -2,7 +2,9 @@ curl_easy_cleanup T
 curl_easy_duphandle T
 curl_easy_escape T
 curl_easy_getinfo T
+curl_easy_header T
 curl_easy_init T
+curl_easy_nextheader T
 curl_easy_pause T
 curl_easy_perform T
 curl_easy_recv T
@@ -23,6 +25,7 @@ curl_global_cleanup T
 curl_global_init T
 curl_global_init_mem T
 curl_global_sslset T
+curl_global_trace T
 curl_maprintf T
 curl_mfprintf T
 curl_mime_addpart T
@@ -44,6 +47,7 @@ curl_multi_add_handle T
 curl_multi_assign T
 curl_multi_cleanup T
 curl_multi_fdset T
+curl_multi_get_handles T
 curl_multi_info_read T
 curl_multi_init T
 curl_multi_perform T
@@ -78,5 +82,6 @@ curl_url_cleanup T
 curl_url_dup T
 curl_url_get T
 curl_url_set T
+curl_url_strerror T
 curl_version T
 curl_version_info T

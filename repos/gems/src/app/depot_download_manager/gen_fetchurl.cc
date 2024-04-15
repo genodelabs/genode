@@ -29,6 +29,7 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 			xml.attribute("stdout", "/dev/log");
 			xml.attribute("stderr", "/dev/log");
 			xml.attribute("rtc",    "/dev/rtc");
+			xml.attribute("pipe",   "/pipe");
 			xml.attribute("socket", "/socket");
 		});
 		xml.node("report", [&] {
@@ -53,9 +54,14 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 				});
 				xml.node("inline", [&] {
 					xml.attribute("name", "random");
-					String<64> entropy("01234567890123456789");
+					String<64> entropy("01234567890123456789"
+					                   "01234567890123456789");
 					xml.append(entropy.string());
 				});
+			});
+			xml.node("dir", [&] {
+				xml.attribute("name", "pipe");
+				xml.node("pipe", [&] { });
 			});
 			xml.node("fs", [&] {
 				xml.attribute("label", "tcpip"); });
@@ -106,6 +112,7 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 		gen_parent_rom_route(xml, "libssl.lib.so");
 		gen_parent_rom_route(xml, "libcrypto.lib.so");
 		gen_parent_rom_route(xml, "vfs.lib.so");
+		gen_parent_rom_route(xml, "vfs_pipe.lib.so");
 		gen_parent_rom_route(xml, "zlib.lib.so");
 		gen_parent_route<Cpu_session>    (xml);
 		gen_parent_route<Pd_session>     (xml);

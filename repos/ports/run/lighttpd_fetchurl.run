@@ -31,6 +31,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_[ip_stack] \
                   [depot_user]/src/vfs_audit \
+                  [depot_user]/src/vfs_pipe \
                   [depot_user]/src/zlib
 
 proc lighttpd_config { } {
@@ -134,13 +135,14 @@ install_config {
 			<vfs>
 				<dir name="dev">
 					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
-					<inline name="random">01234567890123456789</inline>
+					<inline name="random">0123456789012345678901234567890123456789</inline>
 				</dir>
 				<dir name="socket"> } [socket_fs_plugin] { </dir>
 				<dir name="audit"> <audit path="socket"/> </dir>
+				<dir name="pipe"> <pipe/> </dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
-			      rng="/dev/random" socket="} [socket_path] {"/>
+			      rng="/dev/random" socket="} [socket_path] {" pipe="/pipe"/>
 			<fetch url="http://10.0.3.2/zero" path="/dev/null" retry="3"/>
 		</config>
 	</start>

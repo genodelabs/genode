@@ -1,14 +1,14 @@
 LICENSE   := MIT
 DOWNLOADS := curl.archive
-VERSION   := 7.70.0
+VERSION   := 8.7.1
 
-URL(curl) := http://curl.haxx.se/download/curl-$(VERSION).tar.gz
-SHA(curl) := ca2feeb8ef13368ce5d5e5849a5fd5e2dd4755fecf7d8f0cc94000a4206fb8e7
+URL(curl) := https://curl.se/download/curl-$(VERSION).tar.gz
+SHA(curl) := f91249c87f68ea00cf27c44fdfa5a78423e41e71b7d408e5901a9896d905c495
 SIG(curl) := ${URL(curl)}.asc
 KEY(curl) := daniel@haxx.se
 DIR(curl) := src/lib/curl
 
-PATCHES   := $(addprefix src/lib/curl/,no_socketpair.patch max_write_size.patch)
+PATCHES   := $(addprefix src/lib/curl/,curl_setup.patch max_write_size.patch)
 
 DIRS := include
 DIR_CONTENT(include) = src/lib/curl/include/curl

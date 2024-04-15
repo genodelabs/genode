@@ -48,8 +48,8 @@ static size_t write_callback(char   *ptr,
                              void   *userdata);
 
 static int progress_callback(void *userdata,
-                             double dltotal, double dlnow,
-                             double ultotal, double ulnow);
+                             curl_off_t dltotal, curl_off_t dlnow,
+                             curl_off_t ultotal, curl_off_t ulnow);
 
 
 class Fetchurl::Fetch : Genode::List<Fetch>::Element
@@ -262,6 +262,8 @@ struct Fetchurl::Main
 		}
 		_fetch.fd = fd;
 
+		curl_easy_setopt(_curl, CURLOPT_VERBOSE, 1L);
+
 		curl_easy_setopt(_curl, CURLOPT_URL, _fetch.url.string());
 		curl_easy_setopt(_curl, CURLOPT_FOLLOWLOCATION, true);
 
@@ -272,7 +274,7 @@ struct Fetchurl::Main
 		curl_easy_setopt(_curl, CURLOPT_WRITEDATA, &_fetch);
 
 		curl_easy_setopt(_curl, CURLOPT_NOPROGRESS, 0L);
-		curl_easy_setopt(_curl, CURLOPT_PROGRESSFUNCTION, progress_callback);
+		curl_easy_setopt(_curl, CURLOPT_XFERINFOFUNCTION, progress_callback);
 		User_data ud {
 			.timer        = _timer,
 			.last_ms      = _timer.curr_time().trunc_to_plain_ms(),
@@ -354,8 +356,8 @@ static size_t write_callback(char   *ptr,
 
 
 static int progress_callback(void *userdata,
-                             double dltotal, double dlnow,
-                             double ultotal, double ulnow)
+                             curl_off_t dltotal, curl_off_t dlnow,
+                             curl_off_t ultotal, curl_off_t ulnow)
 {
 	(void)ultotal;
 	(void)ulnow;
@@ -377,7 +379,7 @@ static int progress_callback(void *userdata,
 	 * the max timeout value, we will abort the download attempt.
 	 */
 
-	if (dlnow == fetch.dlnow) {
+	if ((double)dlnow == fetch.dlnow) {
 		ud.curr_timeout.value += diff.value;
 	}
 	else {
@@ -385,8 +387,8 @@ static int progress_callback(void *userdata,
 	}
 	bool const timeout = ud.curr_timeout.value >= ud.max_timeout.value;
 
-	fetch.dltotal = dltotal;
-	fetch.dlnow   = dlnow;
+	fetch.dltotal = (double)dltotal;
+	fetch.dlnow   = (double)dlnow;
 	fetch.timeout = timeout;
 	fetch.main._schedule_report();
 

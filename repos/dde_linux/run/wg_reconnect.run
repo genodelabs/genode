@@ -79,6 +79,7 @@ lappend depot_archives [depot_user]/src/[rtc_drv_binary_name]
 lappend depot_archives [depot_user]/src/vfs
 lappend depot_archives [depot_user]/src/vfs_jitterentropy
 lappend depot_archives [depot_user]/src/vfs_lwip
+lappend depot_archives [depot_user]/src/vfs_pipe
 lappend depot_archives [depot_user]/src/wireguard
 lappend depot_archives [depot_user]/src/zlib
 

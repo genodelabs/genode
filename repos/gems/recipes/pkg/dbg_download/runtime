@@ -32,6 +32,7 @@
 		<rom label="extract"/>
 		<rom label="libarchive.lib.so"/>
 		<rom label="liblzma.lib.so"/>
+		<rom label="vfs_pipe.lib.so"/>
 		<rom label="dbg_download"/>
 	</content>
 

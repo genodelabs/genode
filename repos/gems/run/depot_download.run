@@ -16,6 +16,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/fs_rom \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_lxip \
+                  [depot_user]/src/vfs_pipe \
                   [depot_user]/src/fetchurl \
                   [depot_user]/src/libc \
                   [depot_user]/src/libssh \
