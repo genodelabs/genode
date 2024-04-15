@@ -8,6 +8,16 @@
 		<service name="Timer"> <parent/> </service>
 	</common_routes>
 
+	<start name="black_hole"/>
+	<start name="mixer"/>
+	<start name="system_clock"/>
+
+	<start name="recall_fs" priority="-2" pkg="recall_fs">
+		<route>
+			<service name="File_system"> <child name="default_fs_rw"/> </service>
+		</route>
+	</start>
+
 	<start name="window_layouter" priority="-1" pkg="window_layouter">
 		<route>
 			<service name="Gui">                           <child name="wm"/> </service>
@@ -39,12 +49,6 @@
 		</route>
 	</start>
 
-	<start name="recall_fs" priority="-2" pkg="recall_fs">
-		<route>
-			<service name="File_system"> <child name="default_fs_rw"/> </service>
-		</route>
-	</start>
-
 	<start name="falkon_backdrop" priority="-2" pkg="sticks_blue_backdrop">
 		<route>
 			<service name="Gui"> <parent label="backdrop"/> </service>
@@ -62,24 +66,13 @@
 		</config>
 	</start>
 
-	<start name="black_hole" priority="-2" pkg="black_hole">
-		<route/>
-	</start>
-
-	<start name="system_clock-pc" priority="-2" pkg="system_clock-pc">
+	<start name="falkon-jemalloc" priority="-2" pkg="cproc/pkg/falkon-jemalloc/2024-04-16">
 		<route>
-			<service name="IRQ">     <parent/> </service>
-			<service name="IO_PORT"> <parent/> </service>
-		</route>
-	</start>
-
-	<start name="falkon-jemalloc" priority="-2" pkg="cproc/pkg/falkon-jemalloc/2023-10-05">
-		<route>
-			<service name="Nic">       <child name="nic_router"/>      </service>
-			<service name="Rtc">       <child name="system_clock-pc"/> </service>
-			<service name="Audio_out"> <child name="black_hole"/>      </service>
-			<service name="Audio_in">  <child name="black_hole"/>      </service>
-			<service name="Capture">   <child name="black_hole"/>      </service>
+			<service name="Nic">     <child name="nic_router"/>   </service>
+			<service name="Rtc">     <child name="system_clock"/> </service>
+			<service name="Play">    <child name="mixer"/>        </service>
+			<service name="Record">  <child name="mixer"/>        </service>
+			<service name="Capture"> <child name="black_hole"/>   </service>
 			<service name="File_system" label="config">     <child name="ram_fs"/> </service>
 			<service name="File_system" label="downloads">  <child name="ram_fs"/> </service>
 			<service name="Gui">                            <child name="wm"/> </service>
