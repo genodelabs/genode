@@ -1,4 +1,4 @@
-<launcher name="backdrop" pkg="sticks_blue_backdrop">
+<launcher name="backdrop" pkg="sticks_blue_backdrop" priority="-2">
 	<route>
 		<service name="Gui"> <parent label="backdrop"/> </service>
 	</route>

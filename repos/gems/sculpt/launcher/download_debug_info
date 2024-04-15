@@ -1,4 +1,4 @@
-<launcher pkg="dbg_download">
+<launcher pkg="dbg_download" priority="-2">
 	<route>
 		<service name="File_system" label="system_config">
 			<parent label="config"/>

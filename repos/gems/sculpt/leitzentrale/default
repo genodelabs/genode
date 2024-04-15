@@ -3,6 +3,7 @@
 		<attribute name="enabled" /> </input>
 
 	<output node="config">
+		<attribute name="prio_levels" value="4"/>
 		<inline>
 			<parent-provides>
 				<service name="ROM"/>
@@ -42,7 +43,7 @@
 			<has_value input="leitzentrale_enabled" value="yes" />
 			<then>
 				<inline>
-					<start name="fader">
+					<start name="fader" priority="-1">
 						<binary name="gui_fader"/>
 						<resource name="RAM" quantum="50M"/>
 						<resource name="CPU" quantum="20"/>
@@ -57,7 +58,7 @@
 			</then>
 			<else>
 				<inline>
-					<start name="fader">
+					<start name="fader" priority="-1">
 						<binary name="gui_fader"/>
 						<resource name="RAM" quantum="50M"/>
 						<resource name="CPU" quantum="20"/>
@@ -72,7 +73,7 @@
 			</else>
 		</if>
 		<inline>
-			<start name="gui_fb">
+			<start name="gui_fb" priority="-1">
 				<resource name="RAM" quantum="18M"/>
 				<resource name="CPU" quantum="20"/>
 				<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
@@ -83,7 +84,7 @@
 				</route>
 			</start>
 
-			<start name="nitpicker" caps="200">
+			<start name="nitpicker" caps="200" priority="-1">
 				<resource name="RAM" quantum="14M"/>
 				<resource name="CPU" quantum="40"/>
 				<provides>
@@ -105,7 +106,7 @@
 				</route>
 			</start>
 
-			<start name="report_rom" caps="200">
+			<start name="report_rom" caps="200" priority="-1">
 				<resource name="RAM" quantum="4M"/>
 				<provides>
 					<service name="Report"/>
@@ -141,7 +142,7 @@
 				</config>
 			</start>
 
-			<start name="wm" caps="300">
+			<start name="wm" caps="300" priority="-1">
 				<resource name="RAM" quantum="4M"/>
 				<provides>
 					<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
@@ -159,7 +160,7 @@
 				</route>
 			</start>
 
-			<start name="decorator" caps="350">
+			<start name="decorator" caps="350" priority="-1">
 				<binary name="themed_decorator"/>
 				<resource name="RAM" quantum="12M"/>
 				<resource name="CPU" quantum="20"/>
@@ -200,7 +201,7 @@
 				</route>
 			</start>
 
-			<start name="config_fs_report">
+			<start name="config_fs_report" priority="-1">
 				<binary name="fs_report"/>
 				<resource name="RAM" quantum="2M"/>
 				<provides> <service name="Report"/> </provides>
@@ -211,7 +212,7 @@
 				</route>
 			</start>
 
-			<start name="manager" caps="400">
+			<start name="manager" caps="400" priority="-1">
 				<binary name="sculpt_manager"/>
 				<resource name="RAM" quantum="3M"/>
 				<provides> <service name="Gui"/> </provides>
@@ -252,7 +253,7 @@
 				</route>
 			</start>
 
-			<start name="fonts_fs" caps="100">
+			<start name="fonts_fs" caps="100" priority="-1">
 				<binary name="vfs"/>
 				<resource name="RAM" quantum="4M"/>
 				<provides> <service name="File_system"/> </provides>
@@ -263,7 +264,7 @@
 				</route>
 			</start>
 
-			<start name="log_terminal">
+			<start name="log_terminal" priority="-1">
 				<binary name="terminal"/>
 				<resource name="RAM" quantum="8M"/>
 				<provides> <service name="Terminal"/> </provides>
@@ -288,7 +289,7 @@
 				</route>
 			</start>
 
-			<start name="log" caps="100">
+			<start name="log" caps="100" priority="-1">
 				<binary name="stdin2out"/>
 				<resource name="RAM" quantum="2M" />
 				<config>
@@ -304,7 +305,7 @@
 				</route>
 			</start>
 
-			<start name="backdrop" caps="150">
+			<start name="backdrop" caps="150" priority="-1">
 				<resource name="RAM" quantum="4M" />
 				<config width="300" height="150">
 					<libc/>
