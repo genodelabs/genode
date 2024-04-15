@@ -34,7 +34,7 @@ struct Driver::Main
 	Intel::Io_mmu_factory  _intel_iommu    { _env, _common.io_mmu_factories() };
 
 	void _handle_config();
-	void _suspend();
+	void _suspend(String<8>);
 	void _reset();
 	void _system_update();
 
@@ -100,14 +100,18 @@ void Driver::Main::_system_update()
 		_reset();
 
 	if (state == "suspend") {
-		try { _suspend(); } catch (...) { error("suspend failed"); }
+		try { _suspend("S3"); } catch (...) { error("suspend failed"); }
 		/* report independent of result */
 		_common.report_resume();
+	}
+
+	if (state == "poweroff") {
+		try { _suspend("S5"); } catch (...) { error("poweroff failed"); }
 	}
 }
 
 
-void Driver::Main::_suspend()
+void Driver::Main::_suspend(String<8> suspend_mode)
 {
 	_sleep_rom .update();
 
@@ -123,7 +127,7 @@ void Driver::Main::_suspend()
 			return call<Rpc_system_control>(state); }
 	} system_control { _env.pd().system_control_cap(Affinity::Location()) };
 
-	_sleep_rom.xml().with_sub_node("S3", [&] (auto const &node) {
+	_sleep_rom.xml().with_sub_node(suspend_mode.string(), [&] (auto const &node) {
 
 		auto const typea = "SLP_TYPa";
 		auto const typeb = "SLP_TYPb";
@@ -146,11 +150,11 @@ void Driver::Main::_suspend()
 		out = system_control.system_control(in);
 
 		if (!out.trapno)
-			error("S3 suspend failed");
+			error(suspend_mode, " suspend failed");
 		else
-			log("resumed from S3");
+			log("resumed from ", suspend_mode);
 	}, [&] {
-		warning("S3 suspend not supported");
+		warning(suspend_mode, " not supported");
 	});
 }
 
