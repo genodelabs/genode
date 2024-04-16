@@ -1340,7 +1340,7 @@ struct Sculpt::Main : Input_event_handler,
 				Start_name const start_name("editor");
 				_file_browser_state.text_area.construct(_child_states, start_name,
 				                                        Priority::LEITZENTRALE,
-				                                        Ram_quota{16*1024*1024}, Cap_quota{250});
+				                                        Ram_quota{32*1024*1024}, Cap_quota{350});
 			}
 		}
 
