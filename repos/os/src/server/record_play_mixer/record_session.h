@@ -38,6 +38,7 @@ class Mixer::Record_session : public Session_object<Record::Session, Record_sess
 
 		struct Operations : virtual Clock_operations
 		{
+			virtual void update_record_sessions_state() = 0;
 			virtual void bind_sample_producers_to_record_sessions() = 0;
 		};
 
@@ -94,6 +95,7 @@ class Mixer::Record_session : public Session_object<Record::Session, Record_sess
 			_operations(operations)
 		{
 			_operations.bind_sample_producers_to_record_sessions();
+			_operations.update_record_sessions_state();
 		}
 
 		void wakeup()
@@ -250,6 +252,7 @@ class Mixer::Record_root : public Root_component<Record_session>
 		void _destroy_session(Record_session *session) override
 		{
 			Genode::destroy(md_alloc(), session);
+			_operations.update_record_sessions_state();
 		}
 
 	public:

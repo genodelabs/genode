@@ -35,6 +35,7 @@ class Mixer::Play_session : public Session_object<Play::Session, Play_session>,
 
 		struct Operations : virtual Clock_operations
 		{
+			virtual void update_play_sessions_state() = 0;
 			virtual void bind_play_sessions_to_audio_signals() = 0;
 			virtual void wakeup_record_clients() = 0;
 		};
@@ -238,6 +239,7 @@ class Mixer::Play_session : public Session_object<Play::Session, Play_session>,
 			_operations(operations)
 		{
 			_operations.bind_play_sessions_to_audio_signals();
+			_operations.update_play_sessions_state();
 		}
 
 		void global_jitter_us(unsigned us) { _expected_jitter_us = us; };
@@ -462,6 +464,7 @@ class Mixer::Play_root : public Root_component<Play_session>
 		{
 			Genode::destroy(md_alloc(), session);
 			_operations.bind_play_sessions_to_audio_signals();
+			_operations.update_play_sessions_state();
 		}
 
 	public:

@@ -91,6 +91,11 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 		});
 	}
 
+	void update_record_sessions_state() override
+	{
+		_update_state_report();
+	}
+
 	/**
 	 * Play_session::Operations
 	 */
@@ -101,6 +106,11 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 
 		_audio_signals.for_each([&] (Audio_signal &audio_signal) {
 			audio_signal.bind_inputs(_audio_signals, _play_sessions); });
+	}
+
+	void update_play_sessions_state() override
+	{
+		_update_state_report();
 	}
 
 	/**
@@ -116,7 +126,14 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 	{
 		if (_clock_from_config.constructed())
 			xml.attribute("clock_value", _clock_from_config->us());
-		(void)xml;
+		_play_sessions.for_each([&] (Play_session const &play_session) {
+			xml.node("play", [&] {
+				xml.attribute("label", play_session.label()); });
+		});
+		_record_sessions.for_each([&] (Record_session const &record_session) {
+			xml.node("record", [&] {
+				xml.attribute("label", record_session.label()); });
+		});
 	}
 
 	void _update_state_report()

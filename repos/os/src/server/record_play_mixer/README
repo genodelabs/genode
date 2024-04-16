@@ -70,6 +70,28 @@ period of 80 ms could be configured to a jitter of 10 ms. In the presence of
 multiple jitter attributes (e.g, one present in the <config> node and one
 present in a <policy> node, the highest value takes effect.
 
+State report
+~~~~~~~~~~~~
+
+The mixer generates a state-report that contains all active Play and
+Record sessions. This information can be used to augment the configuration
+by specifying the complete label in each '<play>' and '<policy>' (for
+Record session) node.
+
+The following snippet shows an examplary state-report:
+
+! <state>
+!   <play label="audio_drv -> mic_right"/>
+!   <play label="audio_drv -> mic_left"/>
+!   <play label="waveform_player -> right"/>
+!   <play label="waveform_player -> left"/>
+!   <record label="audio_drv -> right"/>
+!   <record label="audio_drv -> left"/>
+! </state>
+
+The state-report additionally also reflects the current version of the
+configuration if the '<config>' node contains a 'version' attribute.
+
 Example
 ~~~~~~~
 
