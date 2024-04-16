@@ -161,15 +161,17 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		_hcd.conditional(board_info.usb_avail(),
+		bool const suspending = board_info.options.suspending;
+
+		_hcd.conditional(board_info.usb_avail() && !suspending,
 		                 registry, "usb", Priority::MULTIMEDIA,
 		                 Ram_quota { 16*1024*1024 }, Cap_quota { 200 });
 
-		_hid.conditional(board_info.usb_avail() && _detected.hid,
+		_hid.conditional(board_info.usb_avail() && _detected.hid && !suspending,
 		                 registry, "usb_hid", Priority::MULTIMEDIA,
 		                 Ram_quota { 11*1024*1024 }, Cap_quota { 180 });
 
-		_net.conditional(board_info.usb_avail() && _detected.net && board_info.options.usb_net,
+		_net.conditional(board_info.usb_avail() && _detected.net && !suspending && board_info.options.usb_net,
 		                 registry, "usb_net", Priority::DEFAULT,
 		                 Ram_quota { 20*1024*1024 }, Cap_quota { 200 });
 

@@ -38,6 +38,7 @@
 #include <model/settings.h>
 #include <model/presets.h>
 #include <model/screensaver.h>
+#include <model/system_state.h>
 #include <view/download_status_widget.h>
 #include <view/popup_dialog.h>
 #include <view/panel_dialog.h>
@@ -66,8 +67,7 @@ struct Sculpt::Main : Input_event_handler,
                       Panel_dialog::Action,
                       Network_widget::Action,
                       Settings_widget::Action,
-                      Software_presets_widget::Action,
-                      Software_update_widget::Action,
+                      System_dialog::Action,
                       File_browser_dialog::Action,
                       Popup_dialog::Action,
                       Component::Construction_info,
@@ -114,12 +114,27 @@ struct Sculpt::Main : Input_event_handler,
 			handle_input_event(ev); });
 	}
 
+	System_state _system_state { };
+
+	using Power_features = System_power_widget::Supported;
+
+	Power_features _power_features { .suspend  = false,
+	                                 .reset    = (_build_info.board == "pc"),
+	                                 .poweroff = false };
+
 	Managed_config<Main> _system_config {
 		_env, "system", "system", *this, &Main::_handle_system_config };
 
-	void _handle_system_config(Xml_node const &)
+	void _broadcast_system_state()
 	{
-		_system_config.try_generate_manually_managed();
+		_system_config.generate([&] (Xml_generator &xml) {
+			_system_state.generate(xml); });
+	}
+
+	void _handle_system_config(Xml_node const &state)
+	{
+		if (_system_state.apply_config(state).progress)
+			_broadcast_system_state();
 	}
 
 	Signal_handler<Main> _gui_mode_handler {
@@ -150,6 +165,38 @@ struct Sculpt::Main : Input_event_handler,
 	void screensaver_changed() override
 	{
 		/* hook for driving the lifetime of the display driver */
+	}
+
+	/**
+	 * System_power_widget::Action
+	 */
+	void trigger_suspend() override
+	{
+		_system_state.state = System_state::DRIVERS_STOPPING;
+		_broadcast_system_state();
+
+		_driver_options.suspending = true;
+		_drivers.update_options(_driver_options);
+
+		generate_runtime_config();
+	}
+
+	/**
+	 * System_power_widget::Action
+	 */
+	void trigger_reboot() override
+	{
+		_system_state.state = System_state::RESET;
+		_broadcast_system_state();
+	}
+
+	/**
+	 * System_power_widget::Action
+	 */
+	void trigger_power_off() override
+	{
+		_system_state.state = System_state::POWERED_OFF;
+		_broadcast_system_state();
 	}
 
 	Managed_config<Main> _fonts_config {
@@ -232,6 +279,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Drivers _drivers { _env, _child_states, *this, *this };
 
+	Drivers::Resumed _resumed = _drivers.resumed();
+
 	Board_info::Options _driver_options { };
 
 	/**
@@ -239,9 +288,47 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void handle_device_plug_unplug() override
 	{
+		/* drive suspend/resume */
+		{
+			auto const orig_state = _system_state.state;
+
+			Drivers::Resumed const orig_resumed = _resumed;
+			_resumed = _drivers.resumed();
+
+			if (orig_resumed.count != _resumed.count)
+				_system_state.state = System_state::ACPI_RESUMING;
+
+			if (_system_state.drivers_stopping() && _drivers.ready_for_suspend())
+				_system_state.state = System_state::ACPI_SUSPENDING;
+
+			if (orig_state != _system_state.state)
+				_broadcast_system_state();
+		}
+
 		_handle_storage_devices();
 		network_config_changed();
 		generate_runtime_config();
+	}
+
+	Rom_handler<Main> _acpi_sleep_states {
+		_env, "report -> runtime/acpi_support/sleep_states",
+		*this, &Main::_handle_acpi_sleep_states };
+
+	void _handle_acpi_sleep_states(Xml_node const &node)
+	{
+		auto const orig_state = _system_state.state;
+
+		if (_system_state.ready_for_suspended(node))
+			_system_state.state = System_state::SUSPENDED;
+
+		if (_system_state.ready_for_restarting_drivers(node)) {
+			_system_state.state = System_state::RUNNING;
+			_driver_options.suspending = false;
+			_drivers.update_options(_driver_options);
+		}
+
+		if (orig_state != _system_state.state)
+			_broadcast_system_state();
 	}
 
 	/**
@@ -1433,10 +1520,11 @@ struct Sculpt::Main : Input_event_handler,
 	Dialog_view<Panel_dialog> _panel_dialog { _dialog_runtime, *this, *this };
 
 	Dialog_view<System_dialog> _system_dialog { _dialog_runtime,
-	                                            _presets, _build_info, _network._nic_state,
+	                                            _presets, _build_info, _power_features,
+	                                            _network._nic_state,
 	                                            _download_queue, _index_update_queue,
 	                                            _file_operation_queue, _scan_rom,
-	                                            _image_index_rom, *this, *this };
+	                                            _image_index_rom, *this };
 
 	Dialog_view<Diag_dialog> _diag_dialog { _dialog_runtime, *this, _heap };
 
@@ -2110,6 +2198,16 @@ void Sculpt::Main::_handle_runtime_state(Xml_node const &state)
 
 	if (_dialog_runtime.apply_runtime_state(state))
 		reconfigure_runtime = true;
+
+	/* power-management features depend on optional acpi_support subsystem */
+	{
+		bool const acpi_support = _runtime_state.present_in_runtime("acpi_support");
+		Power_features const orig_power_features = _power_features;
+		_power_features.poweroff = acpi_support;
+		_power_features.suspend  = acpi_support;
+		if (orig_power_features != _power_features)
+			_system_dialog.refresh();
+	}
 
 	if (refresh_storage)
 		_handle_storage_devices();

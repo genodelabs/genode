@@ -72,6 +72,12 @@ class Sculpt::Drivers : Noncopyable
 		void with_storage_devices(auto const &fn) const { _with(With_storage_devices::Fn { fn }); }
 		void with_board_info     (auto const &fn) const { _with(With_board_info::Fn      { fn }); }
 		void with_platform_info  (auto const &fn) const { _with(With_platform_info::Fn   { fn }); }
+
+		bool ready_for_suspend() const;
+
+		struct Resumed { unsigned count; };
+
+		Resumed resumed() const;
 };
 
 #endif /* _DRIVERS_H_ */

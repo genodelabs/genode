@@ -53,8 +53,11 @@ struct Sculpt::Ps2_driver : private Noncopyable
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		_ps2.conditional(board_info.detected.ps2 && !board_info.options.suppress.ps2,
-		                 registry, "ps2", Priority::MULTIMEDIA,
+		bool const use_ps2 = board_info.detected.ps2
+		                 && !board_info.options.suppress.ps2
+		                 && !board_info.options.suspending;
+
+		_ps2.conditional(use_ps2, registry, "ps2", Priority::MULTIMEDIA,
 		                 Ram_quota { 1*1024*1024 }, Cap_quota { 100 });
 	}
 };

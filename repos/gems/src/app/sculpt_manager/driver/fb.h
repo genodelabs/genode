@@ -52,6 +52,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 				gen_parent_route<Platform::Session>(xml);
 				gen_parent_rom_route(xml, "intel_gpu_drv");
 				gen_parent_rom_route(xml, "config", "config -> gpu_drv");
+				gen_parent_rom_route(xml, "system", "config -> managed/system");
 				gen_parent_route<Rm_session>(xml);
 				gen_common_routes(xml);
 			});
@@ -110,10 +111,13 @@ struct Sculpt::Fb_driver : private Noncopyable
 	void update(Registry<Child_state> &registry, Board_info const &board_info,
 	            Xml_node const &platform)
 	{
+		bool const suspending  = board_info.options.suspending;
+
 		bool const use_intel   =  board_info.detected.intel_gfx
-		                      && !board_info.options.suppress.intel_gpu;
-		bool const use_boot_fb = !use_intel   && board_info.detected.boot_fb;
-		bool const use_vesa    = !use_boot_fb && !use_intel && board_info.detected.vga;
+		                      && !board_info.options.suppress.intel_gpu
+		                      && !suspending;
+		bool const use_boot_fb = !use_intel && !suspending && board_info.detected.boot_fb;
+		bool const use_vesa    = !use_boot_fb && !use_intel && !suspending && board_info.detected.vga;
 
 		_intel_gpu.conditional(use_intel,
 		                       registry, "intel_gpu", Priority::MULTIMEDIA,

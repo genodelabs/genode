@@ -92,8 +92,11 @@ struct Sculpt::Wifi_driver : private Noncopyable
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		_wifi.conditional(board_info.wifi_avail() && board_info.options.wifi,
-		                  registry, "wifi", Priority::DEFAULT,
+		bool const use_wifi = board_info.wifi_avail()
+		                  &&  board_info.options.wifi
+		                  && !board_info.options.suspending;
+
+		_wifi.conditional(use_wifi, registry, "wifi", Priority::DEFAULT,
 		                  Ram_quota { 16*1024*1024 }, Cap_quota { 250 });
 	}
 };

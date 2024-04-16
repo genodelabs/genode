@@ -20,6 +20,38 @@ namespace Sculpt { struct Board_info; }
 
 struct Sculpt::Board_info
 {
+	enum class Pci_class : unsigned {
+		WIFI = 0x28000,
+		NIC  = 0x20000,
+		VGA  = 0x30000,
+		AHCI = 0x10601,
+		NVME = 0x10802,
+		UHCI = 0xc0300, OHCI = 0xc0310, EHCI = 0xc0320, XHCI = 0xc0330,
+	};
+
+	enum class Pci_vendor : unsigned { INTEL = 0x8086U, };
+
+	static bool _matches_class(Xml_node const &pci, Pci_class value)
+	{
+		return pci.attribute_value("class", 0U) == unsigned(value);
+	};
+
+	static bool _matches_vendor(Xml_node const &pci, Pci_vendor value)
+	{
+		return pci.attribute_value("vendor_id", 0U) == unsigned(value);
+	};
+
+	static bool _matches_usb(Xml_node const &pci)
+	{
+		return _matches_class(pci, Pci_class::UHCI) || _matches_class(pci, Pci_class::OHCI)
+			|| _matches_class(pci, Pci_class::EHCI) || _matches_class(pci, Pci_class::XHCI);
+	}
+
+	static bool _matches_ahci(Xml_node const &pci)
+	{
+		return _matches_class(pci, Pci_class::AHCI) && _matches_vendor(pci, Pci_vendor::INTEL);
+	}
+
 	/**
 	 * Runtime-detected features
 	 */
@@ -38,6 +70,23 @@ struct Sculpt::Board_info
 		static inline Detected from_xml(Xml_node const &devices, Xml_node const &platform);
 
 	} detected;
+
+	struct Used
+	{
+		bool wifi, nic, intel_gfx, nvme, ahci, usb;
+
+		void print(Output &out) const
+		{
+			Genode::print(out, "wifi=",      wifi,      " nic=",  nic,
+			                  " intel_gfx=", intel_gfx, " nvme=", nvme,
+			                  " ahci=",      ahci,      " usb=",  usb);
+		}
+
+		static inline Used from_xml(Xml_node const &devices);
+
+		bool any() const { return wifi || nic || intel_gfx || nvme || usb; }
+
+	} used;
 
 	/**
 	 * Statically-known or configured features
@@ -72,11 +121,13 @@ struct Sculpt::Board_info
 
 		} suppress;
 
+		bool suspending;
+
 		bool operator != (Options const &other) const
 		{
-			return display  != other.display  || usb_net != other.usb_net
-			    || nic      != other.nic      || wifi    != other.wifi
-			    || suppress != other.suppress;
+			return display  != other.display  || usb_net    != other.usb_net
+			    || nic      != other.nic      || wifi       != other.wifi
+			    || suppress != other.suppress || suspending != other.suspending;
 		}
 
 	} options;
@@ -101,47 +152,50 @@ Sculpt::Board_info::Detected::from_xml(Xml_node const &devices, Xml_node const &
 
 		device.with_optional_sub_node("pci-config", [&] (Xml_node const &pci) {
 
-			enum class Pci_class : unsigned {
-				WIFI = 0x28000,
-				NIC  = 0x20000,
-				VGA  = 0x30000,
-				AHCI = 0x10601,
-				NVME = 0x10802,
-				UHCI = 0xc0300, OHCI = 0xc0310, EHCI = 0xc0320, XHCI = 0xc0330,
-			};
+			if (_matches_class(pci, Pci_class::WIFI)) detected.wifi = true;
+			if (_matches_class(pci, Pci_class::NIC))  detected.nic  = true;
+			if (_matches_class(pci, Pci_class::NVME)) detected.nvme = true;
+			if (_matches_usb(pci))                    detected.usb  = true;
+			if (_matches_ahci(pci))                   detected.ahci = true;
 
-			enum class Pci_vendor : unsigned { INTEL = 0x8086U, };
-
-			auto matches_class = [&] (Pci_class value)
-			{
-				return pci.attribute_value("class", 0U) == unsigned(value);
-			};
-
-			auto matches_vendor = [&] (Pci_vendor value)
-			{
-				return pci.attribute_value("vendor_id", 0U) == unsigned(value);
-			};
-
-			if (matches_class(Pci_class::WIFI)) detected.wifi = true;
-			if (matches_class(Pci_class::NIC))  detected.nic  = true;
-			if (matches_class(Pci_class::NVME)) detected.nvme = true;
-
-			if (matches_class(Pci_class::UHCI) || matches_class(Pci_class::OHCI)
-			 || matches_class(Pci_class::EHCI) || matches_class(Pci_class::XHCI))
-				detected.usb = true;
-
-			if (matches_class(Pci_class::AHCI) && matches_vendor(Pci_vendor::INTEL))
-				detected.ahci = true;
-
-			if (matches_class(Pci_class::VGA)) {
+			if (_matches_class(pci, Pci_class::VGA)) {
 				detected.vga = true;
-				if (matches_vendor(Pci_vendor::INTEL))
+				if (_matches_vendor(pci, Pci_vendor::INTEL))
 					detected.intel_gfx = true;
 			}
 		});
 	});
 
 	return detected;
+}
+
+
+Sculpt::Board_info::Used
+Sculpt::Board_info::Used::from_xml(Xml_node const &devices)
+{
+	Used used { };
+
+	devices.for_each_sub_node("device", [&] (Xml_node const &device) {
+
+		if (!device.attribute_value("used", false))
+			return;
+
+		device.with_optional_sub_node("pci-config", [&] (Xml_node const &pci) {
+
+			if (_matches_class(pci, Pci_class::WIFI)) used.wifi = true;
+			if (_matches_class(pci, Pci_class::NIC))  used.nic  = true;
+			if (_matches_class(pci, Pci_class::NVME)) used.nvme = true;
+			if (_matches_usb(pci))                    used.usb  = true;
+			if (_matches_ahci(pci))                   used.ahci = true;
+
+			if (_matches_class(pci, Pci_class::VGA)) {
+				if (_matches_vendor(pci, Pci_vendor::INTEL))
+					used.intel_gfx = true;
+			}
+		});
+	});
+
+	return used;
 }
 
 #endif /* _MODEL__BOARD_INFO_H_ */

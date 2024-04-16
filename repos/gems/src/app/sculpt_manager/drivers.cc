@@ -52,6 +52,7 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		Action     &_action;
 
 		Board_info _board_info { };
+		Resumed    _resumed    { };
 
 		Attached_rom_dataspace const _platform { _env, "platform_info" };
 
@@ -62,6 +63,10 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		{
 			_board_info.detected = Board_info::Detected::from_xml(devices,
 			                                                      _platform.xml());
+			_board_info.used = Board_info::Used::from_xml(devices);
+
+			_resumed = { devices.attribute_value("resumed", 0u) };
+
 			/*
 			 * The decision which fb driver to start depends on information
 			 * about available devices from both the devices ROM and the
@@ -159,6 +164,10 @@ class Sculpt::Drivers::Instance : Noncopyable,
 
 		void with(With_board_info::Callback    const &fn) const { fn(_board_info); }
 		void with(With_platform_info::Callback const &fn) const { fn(_platform.xml()); }
+
+		bool ready_for_suspend() const { return !_board_info.used.any(); }
+
+		Resumed resumed() const { return _resumed; }
 };
 
 
@@ -191,3 +200,7 @@ void Drivers::update_soc    (Board_info::Soc     soc) { _instance.update_soc(soc
 void Drivers::update_options(Board_info::Options opt) { _instance.update_options(opt); }
 
 void Drivers::gen_start_nodes(Xml_generator &xml) const { _instance.gen_start_nodes(xml); }
+
+bool Drivers::ready_for_suspend() const { return _instance.ready_for_suspend(); };
+
+Drivers::Resumed Drivers::resumed() const { return _instance.resumed(); };

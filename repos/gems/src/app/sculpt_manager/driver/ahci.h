@@ -46,6 +46,7 @@ struct Sculpt::Ahci_driver : private Noncopyable
 			gen_named_node(xml, "binary", "ahci_drv");
 			gen_provides<Block::Session>(xml);
 			xml.node("config", [&] {
+				xml.attribute("system", "yes");
 				xml.node("report", [&] { xml.attribute("ports", "yes"); });
 				for (unsigned i = 0; i < 6; i++)
 					xml.node("policy", [&] {

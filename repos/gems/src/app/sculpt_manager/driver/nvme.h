@@ -46,6 +46,7 @@ struct Sculpt::Nvme_driver : private Noncopyable
 			gen_named_node(xml, "binary", "nvme_drv");
 			gen_provides<Block::Session>(xml);
 			xml.node("config", [&] {
+				xml.attribute("system", "yes");
 				xml.node("report", [&] { xml.attribute("namespaces", "yes"); });
 				xml.node("policy", [&] {
 					xml.attribute("label",     1);

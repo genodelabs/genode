@@ -47,8 +47,11 @@ struct Sculpt::Nic_driver : private Noncopyable
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		_nic.conditional(board_info.detected.nic && board_info.options.nic,
-		                 registry, "nic", Priority::DEFAULT,
+		bool const use_nic = board_info.detected.nic
+		                 &&  board_info.options.nic
+		                 && !board_info.options.suspending;
+
+		_nic.conditional(use_nic, registry, "nic", Priority::DEFAULT,
 		                 Ram_quota { 20*1024*1024 }, Cap_quota { 300 });
 	}
 };
