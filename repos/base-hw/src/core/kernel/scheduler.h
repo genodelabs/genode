@@ -145,7 +145,6 @@ class Kernel::Scheduler
 						_last = le;
 				}
 
-
 				void to_tail(List_element * const le)
 				{
 					remove(le);
@@ -157,9 +156,6 @@ class Kernel::Scheduler
 					remove(le);
 					insert_head(le);
 				}
-
-				void head_to_tail() {
-					to_tail(_list.first()); }
 		};
 
 		enum State { UP_TO_DATE, OUT_OF_DATE, YIELD };

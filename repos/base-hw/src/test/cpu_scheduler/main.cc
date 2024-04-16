@@ -452,7 +452,7 @@ Scheduler_test::Main::Main(Env &env)
 
 	_construct_context(6, __LINE__);
 	_scheduler.ready(_context(6));
-	_update_current_and_check(120, 700, 2, 100, __LINE__);
+	_update_current_and_check(120, 700, 6, 100, __LINE__);
 
 	_scheduler.ready(_context(4));
 	_update_current_and_check( 80, 780, 4,  90, __LINE__);
@@ -460,10 +460,10 @@ Scheduler_test::Main::Main(Env &env)
 	_scheduler.unready(_context(4));
 	_scheduler.ready(_context(1));
 	_update_current_and_check( 50, 830, 1,  10, __LINE__);
-	_update_current_and_check( 50, 840, 1, 100, __LINE__);
-	_update_current_and_check( 50, 890, 1,  50, __LINE__);
-	_update_current_and_check(100, 940, 2,  20, __LINE__);
-	_update_current_and_check( 60, 960, 6,  40, __LINE__);
+	_update_current_and_check( 50, 840, 1,  50, __LINE__);
+	_update_current_and_check( 50, 890, 6,  20, __LINE__);
+	_update_current_and_check(100, 910, 2,  90, __LINE__);
+	_update_current_and_check( 60, 970, 2,  30, __LINE__);
 	_update_current_and_check( 60,   0, 3, 110, __LINE__);
 
 
@@ -519,8 +519,8 @@ Scheduler_test::Main::Main(Env &env)
 	_update_current_and_check( 40, 810, 4, 100, __LINE__);
 
 	_scheduler.ready(_context(3));
-	_update_current_and_check( 30, 840, 4,  70, __LINE__);
-	_update_current_and_check( 80, 910, 1,  90, __LINE__);
+	_update_current_and_check( 30, 840, 3, 100, __LINE__);
+	_update_current_and_check( 70, 910, 3,  30, __LINE__);
 
 	_scheduler.ready(_context(7));
 	_scheduler.ready(_context(8));
@@ -557,15 +557,16 @@ Scheduler_test::Main::Main(Env &env)
 
 	_scheduler.unready(_context(8));
 	_scheduler.yield();
-	_update_current_and_check( 40, 260, 1,  90, __LINE__);
+	_update_current_and_check( 40, 260, 2,  10, __LINE__);
+	_update_current_and_check( 40, 270, 1, 100, __LINE__);
 
 	_scheduler.unready(_context(1));
-	_update_current_and_check( 50, 310, 2, 100, __LINE__);
+	_update_current_and_check( 40, 310, 2, 100, __LINE__);
 	_update_current_and_check( 10, 320, 2,  90, __LINE__);
 
-	_set_context_ready_and_check(1, false, __LINE__);
-	_update_current_and_check(200, 410, 1, 100, __LINE__);
-	_update_current_and_check( 10, 420, 1,  90, __LINE__);
+	_set_context_ready_and_check(1, true, __LINE__);
+	_update_current_and_check(200, 410, 1,  60, __LINE__);
+	_update_current_and_check( 10, 420, 1,  50, __LINE__);
 
 	_scheduler.unready(_context(1));
 	_update_current_and_check( 10, 430, 2, 100, __LINE__);
@@ -574,36 +575,36 @@ Scheduler_test::Main::Main(Env &env)
 	_update_current_and_check( 10, 440, 5, 120, __LINE__);
 
 	_scheduler.yield();
-	_update_current_and_check( 90, 530, 2,  90, __LINE__);
+	_update_current_and_check( 90, 530, 5,  100, __LINE__);
 
 	_scheduler.yield();
-	_update_current_and_check( 10, 540, 5, 100, __LINE__);
+	_update_current_and_check( 10, 540, 2, 90, __LINE__);
 
 	_set_context_ready_and_check(7, true, __LINE__);
 	_update_current_and_check( 10, 550, 7, 180, __LINE__);
 
 	_scheduler.yield();
-	_update_current_and_check( 10, 560, 5,  90, __LINE__);
+	_update_current_and_check( 10, 560, 7, 100, __LINE__);
 
 	_scheduler.yield();
-	_update_current_and_check( 10, 570, 2, 100, __LINE__);
+	_update_current_and_check( 10, 570, 2,  80, __LINE__);
 
 	_scheduler.yield();
-	_update_current_and_check( 10, 580, 7, 100, __LINE__);
+	_update_current_and_check( 10, 580, 5, 100, __LINE__);
 
 	_scheduler.unready(_context(5));
-	_update_current_and_check( 10, 590, 7,  90, __LINE__);
+	_update_current_and_check( 10, 590, 7, 100, __LINE__);
 
 	_scheduler.unready(_context(7));
 	_set_context_ready_and_check(5, true, __LINE__);
-	_update_current_and_check( 10, 600, 2, 100, __LINE__);
+	_update_current_and_check( 10, 600, 5,  90, __LINE__);
 
-	_set_context_ready_and_check(7, false, __LINE__);
-	_update_current_and_check(200, 700, 5, 100, __LINE__);
+	_set_context_ready_and_check(7, true, __LINE__);
+	_update_current_and_check(200, 690, 7,  90, __LINE__);
 
 	_scheduler.unready(_context(5));
 	_scheduler.unready(_context(7));
-	_update_current_and_check( 10, 710, 2, 100, __LINE__);
+	_update_current_and_check( 20, 710, 2, 100, __LINE__);
 
 	_scheduler.unready(_context(2));
 	_update_current_and_check( 10, 720, 0, 100, __LINE__);
@@ -613,25 +614,25 @@ Scheduler_test::Main::Main(Env &env)
 	_set_context_ready_and_check(9, true, __LINE__);
 	_update_current_and_check( 10, 840, 9, 100, __LINE__);
 
-	_set_context_ready_and_check(6, false, __LINE__);
-	_update_current_and_check( 20, 860, 9,  80, __LINE__);
+	_set_context_ready_and_check(6, true, __LINE__);
+	_update_current_and_check( 20, 860, 6, 100, __LINE__);
 
-	_set_context_ready_and_check(8, false, __LINE__);
-	_update_current_and_check( 10, 870, 9,  70, __LINE__);
-
-	_scheduler.yield();
-	_update_current_and_check( 10, 880, 6, 100, __LINE__);
+	_set_context_ready_and_check(8, true, __LINE__);
+	_update_current_and_check( 10, 870, 8, 100, __LINE__);
 
 	_scheduler.yield();
-	_update_current_and_check( 10, 890, 8, 100, __LINE__);
+	_update_current_and_check( 10, 880, 6,  90, __LINE__);
 
-	_set_context_ready_and_check(7, false, __LINE__);
 	_scheduler.yield();
-	_update_current_and_check( 20, 910, 9,  90, __LINE__);
+	_update_current_and_check( 10, 890, 9,  80, __LINE__);
+
+	_set_context_ready_and_check(7, true, __LINE__);
+	_scheduler.yield();
+	_update_current_and_check( 20, 910, 7,  70, __LINE__);
 
 	_scheduler.unready(_context(8));
 	_scheduler.unready(_context(9));
-	_update_current_and_check( 10, 920, 6,  80, __LINE__);
+	_update_current_and_check( 10, 920, 7,  60, __LINE__);
 
 	_scheduler.unready(_context(6));
 	_scheduler.unready(_context(7));
@@ -649,7 +650,7 @@ Scheduler_test::Main::Main(Env &env)
 	_update_current_and_check( 10, 970, 3,  30, __LINE__);
 
 	_scheduler.unready(_context(3));
-	_update_current_and_check( 10, 980, 1,  20, __LINE__);
+	_update_current_and_check( 10, 980, 5,  20, __LINE__);
 
 	_set_context_ready_and_check(3, true, __LINE__);
 	_update_current_and_check( 10, 990, 3,  10, __LINE__);
@@ -684,9 +685,9 @@ Scheduler_test::Main::Main(Env &env)
 	_scheduler.unready(_context(5));
 	_update_current_and_check( 10, 200, 9,  30, __LINE__);
 
-	_set_context_ready_and_check(6, false, __LINE__);
+	_set_context_ready_and_check(6, true, __LINE__);
 	_construct_context(4, __LINE__);
-	_update_current_and_check( 10, 210, 9,  20, __LINE__);
+	_update_current_and_check( 10, 210, 6, 100, __LINE__);
 
 	_destroy_context(5, __LINE__);
 	_set_context_ready_and_check(4, true, __LINE__);
@@ -695,7 +696,7 @@ Scheduler_test::Main::Main(Env &env)
 	_update_current_and_check( 10, 320, 4,  90, __LINE__);
 
 	_destroy_context(4, __LINE__);
-	_update_current_and_check(200, 410, 9,  10, __LINE__);
+	_update_current_and_check(200, 410, 6,  90, __LINE__);
 
 	_construct_context(5, __LINE__);
 	_scheduler.ready(_context(5));
@@ -703,7 +704,7 @@ Scheduler_test::Main::Main(Env &env)
 
 	_construct_context(4, __LINE__);
 	_scheduler.yield();
-	_update_current_and_check( 10, 430, 6, 100, __LINE__);
+	_update_current_and_check( 10, 430, 5, 100, __LINE__);
 
 	_set_context_ready_and_check(4, true, __LINE__);
 	_scheduler.yield();
@@ -711,14 +712,14 @@ Scheduler_test::Main::Main(Env &env)
 
 	_destroy_context(6, __LINE__);
 	_scheduler.yield();
-	_update_current_and_check( 20, 500, 5, 100, __LINE__);
+	_update_current_and_check( 20, 500, 4, 100, __LINE__);
 
 	_destroy_context(9, __LINE__);
-	_update_current_and_check(200, 600, 4, 100, __LINE__);
+	_update_current_and_check(200, 600, 5, 100, __LINE__);
 
 	_construct_context(7, __LINE__);
 	_construct_context(8, __LINE__);
-	_update_current_and_check(200, 700, 5, 100, __LINE__);
+	_update_current_and_check(200, 700, 4, 100, __LINE__);
 
 	_set_context_ready_and_check(1, true, __LINE__);
 	_set_context_ready_and_check(7, true, __LINE__);
@@ -776,16 +777,16 @@ Scheduler_test::Main::Main(Env &env)
 
 	_scheduler.unready(_context(1));
 	_update_current_and_check(100, 270, 4,  90, __LINE__);
-	_update_current_and_check(100, 360, 4, 100, __LINE__);
+	_update_current_and_check(100, 360, 4,  90, __LINE__);
 
 	_scheduler.quota(_context(1), 110);
-	_update_current_and_check( 10, 370, 4,  90, __LINE__);
+	_update_current_and_check( 10, 370, 4,  80, __LINE__);
 
 	_scheduler.quota(_context(1), 120);
-	_update_current_and_check( 20, 390, 4,  70, __LINE__);
+	_update_current_and_check( 20, 390, 4,  60, __LINE__);
 
 	_scheduler.quota(_context(4), 210);
-	_update_current_and_check( 10, 400, 4,  60, __LINE__);
+	_update_current_and_check( 10, 400, 4,  50, __LINE__);
 
 	_scheduler.ready(_context(1));
 	_update_current_and_check( 10, 410, 1, 110, __LINE__);
@@ -813,43 +814,43 @@ Scheduler_test::Main::Main(Env &env)
 
 	_scheduler.unready(_context(2));
 	_scheduler.quota(_context(4), 80);
-	_update_current_and_check( 70, 630, 8, 100, __LINE__);
-	_update_current_and_check( 50, 680, 8,  50, __LINE__);
+	_update_current_and_check( 70, 630, 8,  60, __LINE__);
+	_update_current_and_check( 50, 680, 8,  10, __LINE__);
 
 	_scheduler.unready(_context(8));
-	_update_current_and_check( 10, 690, 4,  50, __LINE__);
+	_update_current_and_check( 10, 690, 4,  40, __LINE__);
 
 	_construct_context(3, __LINE__);
-	_update_current_and_check( 30, 720, 4,  20, __LINE__);
+	_update_current_and_check( 30, 720, 4,  10, __LINE__);
 
 	_scheduler.quota(_context(3), 210);
 	_scheduler.yield();
 	_scheduler.unready(_context(4));
-	_update_current_and_check( 20, 740, 5,  90, __LINE__);
+	_update_current_and_check( 20, 730, 9, 100, __LINE__);
 
 	_scheduler.unready(_context(9));
-	_set_context_ready_and_check(4, false, __LINE__);
-	_update_current_and_check( 50, 790, 5,  40, __LINE__);
+	_set_context_ready_and_check(4, true, __LINE__);
+	_update_current_and_check( 60, 790, 4, 100, __LINE__);
 
 	_set_context_ready_and_check(2, true, __LINE__);
 	_update_current_and_check( 40, 830, 2,  50, __LINE__);
-	_update_current_and_check( 60, 880, 2, 100, __LINE__);
-	_update_current_and_check( 10, 890, 2,  90, __LINE__);
+	_update_current_and_check( 60, 880, 2,  90, __LINE__);
+	_update_current_and_check( 10, 890, 2,  80, __LINE__);
 
 	_scheduler.yield();
 	_set_context_ready_and_check(9, true, __LINE__);
-	_update_current_and_check( 60, 950, 6,  50, __LINE__);
+	_update_current_and_check( 60, 950, 9,  40, __LINE__);
 
 	_scheduler.unready(_context(6));
-	_update_current_and_check( 20, 970, 1,  30, __LINE__);
+	_update_current_and_check( 20, 970, 9,  20, __LINE__);
 
 	_scheduler.yield();
 	_scheduler.ready(_context(8));
-	_update_current_and_check( 10, 980, 4,  20, __LINE__);
+	_update_current_and_check( 10, 980, 8,  20, __LINE__);
 
 	_scheduler.unready(_context(8));
 	_scheduler.yield();
-	_update_current_and_check( 10, 990, 5,  10, __LINE__);
+	_update_current_and_check( 10, 990, 4,  10, __LINE__);
 
 	_scheduler.yield();
 	_update_current_and_check( 20,   0, 9,  40, __LINE__);
@@ -896,9 +897,9 @@ Scheduler_test::Main::Main(Env &env)
 
 	_destroy_context(3, __LINE__);
 	_update_current_and_check( 90, 840, 9,  40, __LINE__);
-	_update_current_and_check( 60, 880, 2, 100, __LINE__);
-	_update_current_and_check(120, 980, 1,  20, __LINE__);
-	_update_current_and_check( 80,   0, 9,  40, __LINE__);
+	_update_current_and_check( 60, 880, 5,  20, __LINE__);
+	_update_current_and_check(120, 900, 1, 100, __LINE__);
+	_update_current_and_check(100,   0, 9,  40, __LINE__);
 
 
 	_env.parent().exit(0);

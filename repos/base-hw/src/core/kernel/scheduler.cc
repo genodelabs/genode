@@ -75,15 +75,13 @@ void Scheduler::_account_priotized(Context &c, unsigned const r)
 
 void Scheduler::_account_slack(Context &c, unsigned const r)
 {
-	if (_slack_list.head() != &c)
-		return;
-
-	if (r)
+	if (r) {
 		c._slack_time_left = r;
-	else {
-		c._slack_time_left = _slack_quota;
-		_slack_list.head_to_tail();
+		return;
 	}
+
+	c._slack_time_left = _slack_quota;
+	if (c.ready()) _slack_list.to_tail(&c._slack_le);
 }
 
 
@@ -129,8 +127,8 @@ void Scheduler::update(time_t time)
 	_last_time = time;
 
 	/* do not detract the quota of idle or removed context */
-	if (_current) {
-		unsigned const r = (_state != YIELD) ?  _current_quantum - duration : 0;
+	if (_current && _current != &_idle) {
+		unsigned const r = (_state != YIELD) ? _current_quantum - duration : 0;
 		if (_current->_priotized_time_left) _account_priotized(*_current, r);
 		else _account_slack(*_current, r);
 	}
@@ -155,30 +153,23 @@ void Scheduler::ready(Context &c)
 
 	c._ready = true;
 
-	bool out_of_date = false;
+	bool keep_current =
+		(_current->_priotized_time_left &&
+		 !c._priotized_time_left) ||
+		(_current->_priotized_time_left &&
+		 (_current->_priority > c._priority));
 
 	if (c._quota) {
-
 		_upl[c._priority].remove(&c._priotized_le);
-		if (c._priotized_time_left) {
-
+		if (c._priotized_time_left)
 			_rpl[c._priority].insert_head(&c._priotized_le);
-			if (_current && _current->_priotized_time_left) {
-
-				if (c._priority >= _current->_priority)
-					out_of_date = true;
-			} else out_of_date = true;
-		} else {
-			_rpl[c._priority].insert_tail(&c._priotized_le);;
-		}
+		else
+			_rpl[c._priority].insert_tail(&c._priotized_le);
 	}
 
-	c._slack_time_left = _slack_quota;
-	_slack_list.insert_tail(&c._slack_le);
+	_slack_list.insert_head(&c._slack_le);
 
-	if (!_current || _current == &_idle) out_of_date = true;
-
-	if (out_of_date && _state == UP_TO_DATE) _state = OUT_OF_DATE;
+	if (!keep_current && _state == UP_TO_DATE) _state = OUT_OF_DATE;
 }
 
 
@@ -224,6 +215,8 @@ void Scheduler::remove(Context &c)
 void Scheduler::insert(Context &c)
 {
 	assert(!c.ready());
+
+	c._slack_time_left = _slack_quota;
 
 	if (!c._quota)
 		return;
