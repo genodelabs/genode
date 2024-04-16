@@ -48,7 +48,7 @@ struct Sculpt::Keyboard_focus
 
 		target = UNDEFINED;
 
-		if (_panel.inspect_tab_visible())
+		if (_panel.inspect_tab_selected() || _panel.files_tab_selected())
 			target = WM;
 
 		if ((_popup.state == Popup::VISIBLE) && _popup_dialog.keyboard_needed())
