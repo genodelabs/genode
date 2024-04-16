@@ -82,10 +82,54 @@ proc display_config { } {
 		<start name="intel_fb_drv" caps="1000">
 			<binary name="pc_intel_fb_drv"/>
 			<resource name="RAM" quantum="60M"/>
-			<config ld_verbose="yes" width="1024" height="768">
+			<config ld_verbose="yes" width="1024" height="768" system="yes">
 				<report connectors="yes"/>
 			</config>
+			<route>
+				<service name="ROM" label="system">
+					<parent label="system"/> </service>
+				<any-service> <any-child/> <parent/> </any-service>
+			</route>
 		</start>}
+}
+
+
+proc restartable_drivers { } {
+	set return_drivers ""
+
+	append return_drivers {
+							<inline>
+
+								<parent-provides>
+									<service name="ROM"/>
+									<service name="IO_MEM"/>
+									<service name="IO_PORT"/>
+									<service name="PD"/>
+									<service name="RM"/>
+									<service name="CPU"/>
+									<service name="LOG"/>
+									<service name="Platform"/>
+									<service name="Report"/>
+									<service name="Timer"/>
+									<service name="Capture"/>
+									<service name="Event"/>
+									<service name="Gui"/>
+								</parent-provides>
+								<default-route>
+									<any-service> <any-child/> <parent/> </any-service>
+								</default-route>
+
+	} [display_config] {
+	} [input_config] {
+
+								<start name="nano3d" caps="100">
+									<resource name="RAM" quantum="8M"/>
+								</start>
+
+							</inline>
+	}
+
+	return $return_drivers
 }
 
 
@@ -474,7 +518,6 @@ build {
 	app/acpica
 	app/pci_decode
 	app/block_tester
-	test/suspend
 }
 
 create_boot_directory
@@ -532,7 +575,7 @@ append config {
 				<policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>
 				<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
 				<policy label="pci_decode -> system" report="acpi_drv -> acpi"/>
-				<policy label="test-suspend -> sleep_states" report="acpica -> sleep_states"/>
+				<policy label="platform_drv -> sleep_states" report="acpica -> sleep_states"/>
 				<policy label="intel_fb_drv -> intel_opregion" report="acpi_drv -> intel_opregion"/>
 			</config>
 		</start>
@@ -556,7 +599,7 @@ append config {
 		</start>
 
 		<start name="platform_drv" caps="300" managing_system="yes" } [priority_base] {>
-			<binary name="platform_drv"/>
+			<binary name="pc_platform_drv"/>
 			<resource name="RAM" quantum="8M"/>
 			<provides>
 				<service name="Platform"/>
@@ -581,6 +624,7 @@ append config {
 				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
 				<service name="ROM" label="acpi"> <child name="drivers_reports"/> </service>
 				<service name="ROM" label="devices"> <child name="drivers_reports"/> </service>
+				<service name="ROM" label="sleep_states"> <child name="drivers_reports"/> </service>
 				<service name="Report"> <child name="drivers_reports"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
@@ -635,40 +679,15 @@ append config {
 				</input>
 
 				<output node="config">
-					<if> <has_value input="check_system" value="online"/>
-						<then>
-							<inline>
-
-								<parent-provides>
-									<service name="ROM"/>
-									<service name="IO_MEM"/>
-									<service name="IO_PORT"/>
-									<service name="PD"/>
-									<service name="RM"/>
-									<service name="CPU"/>
-									<service name="LOG"/>
-									<service name="Platform"/>
-									<service name="Report"/>
-									<service name="Timer"/>
-									<service name="Capture"/>
-									<service name="Event"/>
-									<service name="Gui"/>
-								</parent-provides>
-								<default-route>
-									<any-service> <any-child/> <parent/> </any-service>
-								</default-route>
-
-	} [display_config] {
-	} [input_config] {
-
-								<start name="nano3d" caps="100">
-									<resource name="RAM" quantum="8M"/>
-								</start>
-
-							</inline>
-						</then>
+					<if> <has_value input="check_system" value=""/>
+						<then> } [restartable_drivers] { </then>
 						<else>
-							<inline/>
+							<if> <has_value input="check_system" value="blanking"/>
+								<then> } [restartable_drivers] { </then>
+								<else>
+									<inline/>
+								</else>
+							</if>
 						</else>
 					</if>
 				</output>
@@ -698,16 +717,14 @@ append config {
 				<rom name="system">
 
 					<inline description="system normal">
-						<system state="online"/>
+						<system state=""/>
 					</inline>
-					<sleep milliseconds="30000"/>
+					<sleep milliseconds="10000"/>
 
-<!--
-					<inline description="remove all restartable drivers">
-						<system state="driver_remove_restartable"/>
+					<inline description="disable display connectors">
+						<system state="blanking"/>
 					</inline>
-					<sleep milliseconds="4000"/>
--->
+					<sleep milliseconds="10000"/>
 
 					<inline description="notify non-restartable drivers">
 						<system state="driver_stop"/>
@@ -741,31 +758,11 @@ append config {
 					<inline description="resume system">
 						<system state="s3_resume"/>
 					</inline>
-					<sleep milliseconds="4000"/>
-
-					<inline description="resume system">
-						<system state="driver_reinit"/>
-					</inline>
-					<sleep milliseconds="4000"/>
+					<sleep milliseconds="10000"/>
 
 				</rom>
 			</config>
 		</start>
-
-		<start name="test-suspend" managing_system="yes" caps="120" } [priority_scenario] {>
-			<resource name="RAM" quantum="4M"/>
-			<config/>
-			<route>
-				<service name="ROM" label="system">
-					<child name="dynamic_rom"/>
-				</service>
-				<service name="ROM" label="sleep_states">
-					<child name="drivers_reports"/>
-				</service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-
 	</config>
 }
 
