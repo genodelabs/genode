@@ -8,6 +8,9 @@
 		<service name="Timer"> <parent/> </service>
 	</common_routes>
 
+	<start name="recall_fs"/>
+	<start name="black_hole"/>
+
 	<start name="window_layouter" priority="-1" pkg="window_layouter">
 		<route>
 			<service name="Gui">                           <child name="wm"/> </service>
@@ -47,16 +50,6 @@
 				<parent label="config -> managed/fonts"/>
 			</service>
 		</route>
-	</start>
-
-	<start name="recall_fs" priority="-2" pkg="recall_fs">
-		<route>
-			<service name="File_system"> <child name="default_fs_rw"/> </service>
-		</route>
-	</start>
-
-	<start name="black_hole" priority="-2" pkg="black_hole">
-		<route/>
 	</start>
 
 	<start name="sntp_dummy_rtc" pkg="sntp_dummy_rtc">

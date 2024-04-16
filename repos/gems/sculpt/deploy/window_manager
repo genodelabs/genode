@@ -8,6 +8,9 @@
 		<service name="Timer"> <parent/> </service>
 	</common_routes>
 
+	<start name="recall_fs"/>
+	<start name="black_hole"/>
+
 	<start name="system_shell" priority="-2" pkg="system_shell">
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
@@ -63,12 +66,6 @@
 		</route>
 	</start>
 
-	<start name="recall_fs" priority="-2" pkg="recall_fs">
-		<route>
-			<service name="File_system"> <child name="default_fs_rw"/> </service>
-		</route>
-	</start>
-
 	<start name="wm_backdrop" priority="-2" pkg="sticks_blue_backdrop">
 		<route>
 			<service name="Gui"> <parent label="backdrop"/> </service>
@@ -86,10 +83,6 @@
 			<image png="genode_logo.png" anchor="bottom_right" alpha="150"
 			                             xpos="-20" ypos="-20" />
 		</config>
-	</start>
-
-	<start name="black_hole" priority="-2" pkg="black_hole">
-		<route/>
 	</start>
 
 </config>
