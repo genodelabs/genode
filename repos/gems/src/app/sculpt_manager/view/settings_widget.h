@@ -114,7 +114,8 @@ struct Sculpt::Settings_widget : Widget<Vbox>
 			[&] { _selected_section = Selected_section::NONE; },
 			[&] (Clicked_at const &at) {
 				Id const id = at.matching_id<Keyboard_radio>();
-				action.select_keyboard_layout(id.value);
+				if (id.valid())
+					action.select_keyboard_layout(id.value);
 			});
 	}
 };
