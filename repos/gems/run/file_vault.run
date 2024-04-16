@@ -60,12 +60,12 @@ append config {
 			<resource name="CPU" quantum="5"/>
 			<provides> <service name="Timer"/> </provides>
 			<route>
-				<service name="PD">      <parent/> </service>
-				<service name="ROM">     <parent/> </service>
-				<service name="LOG">     <parent/> </service>
-				<service name="CPU">     <parent/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
 				<service name="IO_PORT"> <parent/> </service>
-				<service name="IRQ">     <parent/> </service>
+				<service name="IRQ"> <parent/> </service>
 			</route>
 		</start>
 
@@ -148,9 +148,7 @@ append_if [have_board linux] config {
 				<service name="File_system"/>
 			</provides>
 			<config>
-				<policy label="file_vault -> data"
-				        root="/file_vault_dir/data"
-				        writeable="yes"/>
+				<policy label="file_vault -> data" root="/file_vault_dir/data" writeable="yes"/>
 			</config>
 			<route>
 				<service name="Timer"> <child name="timer"/> </service>
@@ -168,9 +166,7 @@ append_if [have_board linux] config {
 				<service name="File_system"/>
 			</provides>
 			<config>
-				<policy label="file_vault -> trust_anchor"
-				        root="/file_vault_dir/trust_anchor"
-				        writeable="yes"/>
+				<policy label="file_vault -> trust_anchor" root="/file_vault_dir/trust_anchor" writeable="yes"/>
 			</config>
 			<route>
 				<service name="Timer"> <child name="timer"/> </service>
@@ -216,7 +212,7 @@ append_if [expr ![have_board linux]] config {
 				<policy label="file_vault -> trust_anchor" root="/trust_anchor" writeable="yes"/>
 			</config>
 			<route>
-				<service name="PD">  <parent/> </service>
+				<service name="PD"> <parent/> </service>
 				<service name="ROM"> <parent/> </service>
 				<service name="LOG"> <parent/> </service>
 				<service name="CPU"> <parent/> </service>
@@ -235,21 +231,21 @@ append config {
 				</vfs>
 			</config>
 			<route>
-				<service name="ROM"         label="ui_config">                           <child name="dynamic_rom"     label="file_vault_ui_config"/> </service>
-				<service name="Report"      label="ui_report">                           <child name="report_rom"/> </service>
+				<service name="ROM" label="ui_config"> <child name="dynamic_rom" label="file_vault_ui_config"/> </service>
+				<service name="Report" label="ui_report"> <child name="report_rom"/> </service>
 				<service name="File_system" label="tresor_trust_anchor_vfs -> storage_dir"> <child name="trust_anchor_fs" label="file_vault -> trust_anchor"/> </service>
-				<service name="File_system" label="tresor_init -> ">                        <child name="data_fs"         label="file_vault -> data"/> </service>
-				<service name="File_system" label="tresor">                                 <child name="data_fs"         label="file_vault -> data"/> </service>
-				<service name="File_system" label="fs_query -> ">                        <child name="data_fs"         label="file_vault -> data"/> </service>
-				<service name="File_system" label="image_fs_query -> ">                  <child name="data_fs"         label="file_vault -> data"/> </service>
-				<service name="File_system" label="tresor_vfs -> tresor_fs">                   <child name="data_fs"         label="file_vault -> data"/> </service>
-				<service name="File_system" label="truncate_file -> tresor">                <child name="data_fs"         label="file_vault -> data"/> </service>
-				<service name="Timer">                                                   <child name="timer"/> </service>
-				<service name="PD">                                                      <parent/> </service>
-				<service name="ROM">                                                     <parent/> </service>
-				<service name="CPU">                                                     <parent/> </service>
-				<service name="LOG">                                                     <parent/> </service>
-				<service name="RM">                                                      <parent/> </service>
+				<service name="File_system" label="tresor_init -> "> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label="tresor"> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label="fs_query -> "> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label="image_fs_query -> "> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label="tresor_vfs -> tresor_fs"> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label="truncate_file -> tresor"> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="RM"> <parent/> </service>
 			</route>
 		</start>
 

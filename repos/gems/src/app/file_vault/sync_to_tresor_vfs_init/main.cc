@@ -11,8 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-
-/* Genode includes */
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
@@ -20,31 +18,21 @@
 
 using namespace Genode;
 
-struct Main : private Vfs::Env::User
+struct Main : Vfs::Env::User
 {
-	Env                    &_env;
-	Heap                    _heap       { _env.ram(), _env.rm() };
-	Attached_rom_dataspace  _config_rom { _env, "config" };
-
-	Vfs::Simple_env _vfs_env { _env, _heap,
-		_config_rom.xml().sub_node("vfs"), *this };
-
-	Directory _root_dir { _vfs_env };
+	Env &env;
+	Heap heap { env.ram(), env.rm() };
+	Attached_rom_dataspace config_rom { env, "config" };
+	Vfs::Simple_env vfs_env { env, heap, config_rom.xml().sub_node("vfs"), *this };
+	Directory root { vfs_env };
 
 	void wakeup_vfs_user() override { }
 
-	Main(Env &env) : _env { env }
+	Main(Env &env) : env(env)
 	{
-		{
-			Append_file { _root_dir,
-			              Directory::Path("/tresor/tresor/current/data") };
-		}
-		_env.parent().exit(0);
+		{ Append_file { root, Directory::Path("/tresor/tresor/current/data") }; }
+		env.parent().exit(0);
 	}
 };
 
-
-void Component::construct(Env &env)
-{
-	static Main main(env);
-}
+void Component::construct(Env &env) { static Main main(env); }

@@ -221,8 +221,6 @@ struct Main : Prompt::Action
 
 	struct Setup_frame : Widget<Frame>
 	{
-		enum { MIN_CAPACITY = 100 * 1024 };
-
 		enum Prompt_type { PASSPHRASE, CAPACITY, JOURNALING_BUFFER };
 
 		Main &main;
@@ -235,20 +233,11 @@ struct Main : Prompt::Action
 
 		Setup_frame(Main &main) : main(main) { }
 
-		size_t min_journal_buf() const
-		{
-			size_t result { (size_t)capacity.as_num_bytes() >> 8 };
-			if (result < MIN_CAPACITY)
-				result = MIN_CAPACITY;
-
-			return result;
-		}
-
 		bool passphrase_long_enough() const { return passphrase.text.length() >= MIN_PASSPHRASE_LENGTH + 1; }
 
 		bool capacity_sufficient() const { return capacity.as_num_bytes() >= MIN_CAPACITY; }
 
-		bool journal_buf_sufficient() const { return journal_buf.as_num_bytes() >= min_journal_buf(); }
+		bool journal_buf_sufficient() const { return journal_buf.as_num_bytes() >= min_journal_buf(capacity.as_num_bytes()); }
 
 		bool ready_to_setup() const { return passphrase_long_enough() && capacity_sufficient() && journal_buf_sufficient(); }
 
@@ -281,7 +270,7 @@ struct Main : Prompt::Action
 				s.sub_scope<Left_align>(" Journaling buffer: ");
 				s.widget(journal_buf, selected == JOURNALING_BUFFER);
 				if (!journal_buf_sufficient())
-					s.sub_scope<Left_align>(Text(" Minimum: ", min_journal_buf(), " "));
+					s.sub_scope<Left_align>(Text(" Minimum: ", min_journal_buf(capacity.as_num_bytes()), " "));
 
 				if (capacity_sufficient() && journal_buf_sufficient()) {
 					s.sub_scope<Left_align>("");
@@ -664,7 +653,7 @@ struct Main : Prompt::Action
 	Expanding_reporter ui_config_reporter { env, "ui_config", "ui_config" };
 	Attached_rom_dataspace ui_report_rom { env, "ui_report" };
 	Signal_handler<Main> signal_handler { env.ep(), *this, &Main::handle_signal };
-	Constructible<Ui_report> ui_report { };
+	Reconstructible<Ui_report> ui_report { };
 
 	void handle_event(Dialog::Event const &event)
 	{
