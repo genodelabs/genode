@@ -427,6 +427,11 @@ class Interface_component
 		                    size_t                         buf_size,
 		                    Signal_context_capability      sigh_cap,
 		                    uint8_t                        iface_idx);
+		Interface_component(Env                           &env,
+		                    Reg_list<Interface_component> &registry,
+		                    Session_component             &session,
+		                    size_t                         buf_size,
+		                    Signal_context_capability      sigh_cap);
 
 		bool handle_response(genode_usb_request_handle_t request_id,
 		                     genode_usb_request_ret_t    return_value,
@@ -466,6 +471,12 @@ class Device_component
 		                 Session_component              &session,
 		                 bool                     const  controls,
 		                 genode_usb_device::Label const &device,
+		                 Signal_context_capability       sigh_cap);
+		Device_component(Env                            &env,
+		                 Heap                           &heap,
+		                 Reg_list<Device_component>     &registry,
+		                 Session_component              &session,
+		                 bool                     const  controls,
 		                 Signal_context_capability       sigh_cap);
 		~Device_component();
 
@@ -864,6 +875,19 @@ Interface_component::Interface_component(Env                           &env,
 }
 
 
+Interface_component::Interface_component(Env                           &env,
+                                         Reg_list<Interface_component> &registry,
+                                         Session_component             &session,
+                                         size_t                         buf_size,
+                                         Signal_context_capability      sigh_cap)
+:
+	Base(env, session, registry, buf_size, *this, sigh_cap),
+	_iface_idx(0xff)
+{
+	disconnect();
+}
+
+
 void
 Device_component::_handle_request(Constructible<Packet_descriptor> &cpd,
                                   genode_buffer_t                   payload,
@@ -910,12 +934,11 @@ Interface_capability Device_component::acquire_interface(uint8_t index,
                                                          size_t  buf_size)
 {
 	if (!_session.matches(_device_label, index))
-		return Interface_capability();
-
-	Interface_component * ic = new (_heap)
+		return (new (_heap) Interface_component(_env, _interfaces, _session,
+		                                        buf_size, _sigh_cap))->session_cap();
+	return (new (_heap)
 		Interface_component(_env, _interfaces, _session, _device_label,
-		                    buf_size, _sigh_cap, index);
-	return ic->session_cap();
+		                    buf_size, _sigh_cap, index))->session_cap();
 }
 
 
@@ -1033,6 +1056,20 @@ Device_component::Device_component(Env                            &env,
 	_controls(controls),
 	_device_label(device),
 	_sigh_cap(sigh_cap) {}
+
+
+Device_component::Device_component(Env                            &env,
+                                   Heap                           &heap,
+                                   Reg_list<Device_component>     &registry,
+                                   Session_component              &session,
+                                   bool                     const  controls,
+                                   Signal_context_capability       sigh_cap)
+:
+	Device_component(env, heap, registry, session, controls,
+	                 "INVALID_DEVICE", sigh_cap)
+{
+	disconnect();
+}
 
 
 Device_component::~Device_component()
@@ -1316,7 +1353,10 @@ Device_capability Session_component::acquire_device(Device_name const &name)
 		_root.report();
 	});
 
-	if (!found) _acquire("INVALID_DEVICE", false);
+	if (!found)
+		cap = (new (_heap)
+			Device_component(_env, _heap, _device_sessions, *this,
+			                 false, _sigh_cap))->session_cap();
 	return cap;
 }
 
