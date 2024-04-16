@@ -105,7 +105,7 @@ class Genode::Area
 
 		bool valid() const { return _w > 0 && _h > 0; }
 
-		size_t count() const { return _w*_h; }
+		size_t count() const { return (size_t)_w*(size_t)_h; }
 
 		/**
 		 * Operator for testing non-equality of two areas
