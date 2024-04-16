@@ -122,7 +122,9 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 	void _update_state_report()
 	{
 		_state_reporter.generate([&] (Xml_generator &xml) {
-			xml.attribute("version", _version);
+			if (_version != "")
+				xml.attribute("version", _version);
+
 			_generate_state_report(xml);
 		});
 	}
