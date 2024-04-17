@@ -129,7 +129,10 @@ class Ahci::Driver : Noncopyable
 			auto state = _system_rom->xml().attribute_value("state",
 			                                                String<32>(""));
 
-			if (state == "driver_stop") {
+			bool const resume_driver =  _schedule_stop && state == "";
+			bool const stop_driver   = !_schedule_stop && state != "";
+
+			if (stop_driver) {
 				_schedule_stop = true;
 
 				for_each_port([&](auto &port, auto, auto) {
@@ -138,13 +141,15 @@ class Ahci::Driver : Noncopyable
 
 				device_release_if_stopped_and_idle();
 
+				log("driver halted");
+
 				return;
 			}
 
-			if (state == "driver_reinit") {
-				_resources.acquire_device();
-
+			if (resume_driver) {
 				_schedule_stop = false;
+
+				_resources.acquire_device();
 
 				/* re-start request handling of client sessions */
 				for_each_port([&](auto &port, auto const index, auto) {
@@ -152,6 +157,8 @@ class Ahci::Driver : Noncopyable
 					port.reinit();
 					_dispatch.session(index);
 				});
+
+				log("driver resumed");
 
 				return;
 			}

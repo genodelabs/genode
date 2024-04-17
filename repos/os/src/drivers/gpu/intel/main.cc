@@ -1204,13 +1204,19 @@ struct Igd::Device
 
 	void handle_system_update(String<32> const & state)
 	{
-		if (state == "driver_stop") {
+		bool const resume_driver =  _schedule_stop && state == "";
+		bool const stop_driver   = !_schedule_stop && state != "";
+
+		if (stop_driver) {
 			_schedule_stop = true;
 			device_release_if_stopped_and_idle();
+
+			log("driver halted");
+
 			return;
 		}
 
-		if (state == "driver_reinit") {
+		if (resume_driver) {
 			_resources.acquire_device();
 
 			_resources.with_mmio([&](auto &mmio) {
@@ -1231,6 +1237,9 @@ struct Igd::Device
 					} else
 						warning("setup_ring_vram failed");
 				});
+
+				log("driver resumed");
+
 			}, []() {
 				error("reinit - failed");
 			});

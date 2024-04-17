@@ -1952,17 +1952,25 @@ class Nvme::Driver : Genode::Noncopyable
 			auto state = _system_rom->xml().attribute_value("state",
 			                                                String<32>(""));
 
-			if (state == "driver_stop") {
+			bool const resume_driver =  _stop_processing && state == "";
+			bool const stop_driver   = !_stop_processing && state != "";
+
+			if (stop_driver) {
 				_stop_processing = true;
 				device_release_if_stopped_and_idle();
+
+				log("driver halted");
+
 				return;
 			}
 
-			if (state == "driver_reinit") {
+			if (resume_driver) {
 				_stop_processing = false;
 
 				_nvme_ctrlr.construct(_env, _platform, _delayer, _irq_sigh);
 				reinit(*_nvme_ctrlr);
+
+				log("driver resumed");
 
 				/* restart block session handling */
 				Signal_transmitter(_restart_sigh).submit();
