@@ -165,6 +165,16 @@ class Igd::Ggtt
 			for (size_t i = fb_entries; i < _num_entries; i++) {
 				_insert_pte(mmio, _scratch_page.dma_addr(), i);
 			}
+
+		}
+
+		void fill_fb_with_scratch_pages(Mmio &mmio, size_t const fb_size)
+		{
+			auto const entries = Genode::min(fb_size / PAGE_SIZE, _num_entries);
+
+			for (size_t i = 0; i < entries; i++) {
+				_insert_pte(mmio, _scratch_page.dma_addr(), i);
+			}
 		}
 
 		/**

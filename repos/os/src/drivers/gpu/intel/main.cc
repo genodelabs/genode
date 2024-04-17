@@ -285,6 +285,15 @@ struct Igd::Device
 			fn_error();
 	}
 
+	void reset_reserved_fb_ggtt()
+	{
+		with_ggtt([&](auto &ggtt, auto &mmio) {
+			ggtt.fill_fb_with_scratch_pages(mmio, _resources.aperture_reserved());
+		}, []() {
+			Genode::error(__func__, " failed");
+		});
+	}
+
 	/************
 	 ** MEMORY **
 	 ************/
@@ -2677,14 +2686,8 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 	void reset() override
 	{
-		_dev.with_mmio([&](auto &mmio) {
-			_dev.with_platform([&](auto &plat_con) {
-				auto const base = mmio.base() + (mmio.size() / 2);
-				Igd::Ggtt(plat_con, mmio, base, _dev.gtt_reserved(), 0, 0);
-			});
-		}, []() {
-			error("reset failed");
-		});
+		if (_igd_device.constructed())
+			_igd_device->reset_reserved_fb_ggtt();
 	}
 };
 
