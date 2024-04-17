@@ -403,6 +403,41 @@ void Intel::Io_mmu::default_mappings_complete()
 }
 
 
+void Intel::Io_mmu::suspend()
+{
+	_s3_fec    = read<Fault_event_control>();
+	_s3_fedata = read<Fault_event_data>();
+	_s3_feaddr = read<Fault_event_address>();
+	_s3_rta    = read<Root_table_address>();
+}
+
+
+void Intel::Io_mmu::resume()
+{
+	/* disable queued invalidation interface if it was re-enabled by kernel */
+	if (read<Global_status::Enabled>() && read<Global_status::Qies>())
+		_global_command<Global_command::Qie>(false);
+
+	/* restore fault events only if kernel did not enable IRQ remapping */
+	if (!read<Global_status::Ires>()) {
+		write<Fault_event_control>(_s3_fec);
+		write<Fault_event_data>(_s3_fedata);
+		write<Fault_event_address>(_s3_feaddr);
+	}
+
+	/* issue set root table pointer command */
+	write<Root_table_address>(_s3_rta);
+	_global_command<Global_command::Srtp>(1);
+
+	if (!read<Capability::Esrtps>())
+		invalidate_all();
+
+	/* enable IOMMU */
+	if (!read<Global_status::Enabled>())
+		_global_command<Global_command::Enable>(1);
+}
+
+
 Intel::Io_mmu::Io_mmu(Env                      & env,
                       Io_mmu_devices           & io_mmu_devices,
                       Device::Name       const & name,

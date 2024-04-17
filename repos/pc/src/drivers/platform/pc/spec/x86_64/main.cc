@@ -100,7 +100,17 @@ void Driver::Main::_system_update()
 		_reset();
 
 	if (state == "suspend") {
+		/* save IOMMU state */
+		_common.io_mmu_devices().for_each([&] (Driver::Io_mmu & io_mmu) {
+			io_mmu.suspend();
+		});
+
 		try { _suspend("S3"); } catch (...) { error("suspend failed"); }
+
+		/* re-initialise IOMMU independent of result */
+		_common.io_mmu_devices().for_each([&] (Driver::Io_mmu & io_mmu) {
+			io_mmu.resume();
+		});
 		/* report independent of result */
 		_common.report_resume();
 	}

@@ -408,6 +408,12 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 			struct Did  : Bitfield<32,16> { };
 
 		};
+
+		/* saved registers during suspend */
+		Fault_event_control::access_t  _s3_fec { };
+		Fault_event_data ::access_t    _s3_fedata { };
+		Fault_event_address ::access_t _s3_feaddr { };
+		Root_table_address::access_t   _s3_rta { };
 		
 		uint32_t _max_domains() {
 			return 1 << (4 + read<Capability::Domains>()*2); }
@@ -542,6 +548,12 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		uint32_t supported_page_sizes() const { return _supported_page_sizes; }
 
 		void flush_write_buffer();
+
+		/**
+		 * Io_mmu suspend/resume interface
+		 */
+		void suspend() override;
+		void resume() override;
 
 		/**
 		 * Io_mmu interface for default mappings
