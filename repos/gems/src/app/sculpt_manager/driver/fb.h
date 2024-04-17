@@ -59,6 +59,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 		});
 
 		start_node(_intel_fb, "pc_intel_fb_drv", [&] {
+			xml.node("heartbeat", [&] { });
 			xml.node("route", [&] {
 				gen_service_node<Platform::Session>(xml, [&] {
 					gen_named_node(xml, "child", "intel_gpu"); });

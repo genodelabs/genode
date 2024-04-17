@@ -138,6 +138,12 @@ struct Sculpt::Child_state : Noncopyable
 			if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested"))
 				upgrade("caps", _cap_quota, _attr.max.caps, _warned_once.caps);
 
+			bool const responsive = (child.attribute_value("skipped_heartbeats", 0U) <= 4);
+			if (!responsive) {
+				trigger_restart();
+				result = true;
+			}
+
 			return result;
 		}
 
