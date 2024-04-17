@@ -134,6 +134,10 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 	public:
 
+		/* suspend/resume interface */
+		virtual void suspend() { }
+		virtual void resume() { }
+
 		/* interface for adding default mappings (used for reserved memory) */
 		virtual void add_default_range(Range const &, addr_t) { }
 

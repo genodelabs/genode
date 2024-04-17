@@ -65,6 +65,9 @@ class Driver::Common : Device_reporter,
 		Registry<Io_mmu_factory> & io_mmu_factories() {
 			return _io_mmu_factories; }
 
+		Io_mmu_devices & io_mmu_devices() {
+			return _io_mmu_devices; }
+
 		void announce_service();
 		void handle_config(Xml_node config);
 		void acquire_io_mmu_devices();
