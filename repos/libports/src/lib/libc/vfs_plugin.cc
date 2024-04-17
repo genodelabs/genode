@@ -2066,7 +2066,12 @@ int Libc::Vfs_plugin::fcntl(File_descriptor *fd, int cmd, long arg)
 		break;
 	}
 
-	error("fcntl(): command ", Hex(cmd), " not supported - vfs");
+	/* limit the amount of repeating error messages in the log */
+	static int previous_unsupported_command = -1;
+	if (cmd != previous_unsupported_command) {
+		previous_unsupported_command = cmd;
+		error("fcntl(): command ", Hex(cmd), " not supported - vfs");
+	}
 	return Errno(EINVAL);
 }
 
