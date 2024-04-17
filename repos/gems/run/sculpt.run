@@ -347,10 +347,6 @@ install_config {
 					<inline name="log">### start ###</inline>
 					<dir name="runtime">
 						<inline name="state"><empty/></inline>
-						<dir name="wifi_drv">
-							<inline name="accesspoints"><empty/></inline>
-							<inline name="state">       <empty/></inline>
-						</dir>
 						<dir name="nic_router"> <inline name="state">    <empty/></inline> </dir>
 						<dir name="update">     <inline name="state">    <empty/></inline> </dir>
 						<dir name="depot_query"><inline name="blueprint"><empty/></inline> </dir>
