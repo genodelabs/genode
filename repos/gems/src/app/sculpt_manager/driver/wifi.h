@@ -59,19 +59,14 @@ struct Sculpt::Wifi_driver : private Noncopyable
 			});
 
 			xml.node("route", [&] {
-
+				gen_service_node<Platform::Session>(xml, [&] {
+					xml.node("parent", [&] {
+						xml.attribute("label", "wifi"); }); });
 				xml.node("service", [&] {
 					xml.attribute("name", "Uplink");
 					xml.node("child", [&] {
 						xml.attribute("name", "nic_router");
-						xml.attribute("label", "wifi -> ");
-					});
-				});
-
-				gen_service_node<Platform::Session>(xml, [&] {
-					xml.node("parent", [&] {
-						xml.attribute("label", "wifi"); }); });
-
+						xml.attribute("label", "wifi -> "); }); });
 				gen_common_routes(xml);
 				gen_parent_rom_route(xml, "wifi_drv");
 				gen_parent_rom_route(xml, "wifi_drv.dtb");
@@ -87,7 +82,6 @@ struct Sculpt::Wifi_driver : private Noncopyable
 				gen_parent_rom_route(xml, "wpa_supplicant.lib.so");
 				gen_parent_route<Rm_session>   (xml);
 				gen_parent_route<Rtc::Session> (xml);
-
 				gen_service_node<Rom_session>(xml, [&] {
 					xml.attribute("label", "wifi_config");
 					xml.node("parent", [&] {

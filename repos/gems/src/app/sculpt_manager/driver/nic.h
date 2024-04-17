@@ -31,12 +31,12 @@ struct Sculpt::Nic_driver : private Noncopyable
 			gen_named_node(xml, "binary", "nic_drv");
 			xml.node("config", [&] { });
 			xml.node("route", [&] {
-				gen_service_node<Uplink::Session>(xml, [&] {
-					xml.node("child", [&] {
-						xml.attribute("name", "nic_router"); }); });
 				gen_service_node<Platform::Session>(xml, [&] {
 					xml.node("parent", [&] {
 						xml.attribute("label", "nic"); }); });
+				gen_service_node<Uplink::Session>(xml, [&] {
+					xml.node("child", [&] {
+						xml.attribute("name", "nic_router"); }); });
 				gen_common_routes(xml);
 				gen_parent_rom_route(xml, "nic_drv");
 				gen_parent_rom_route(xml, "nic_drv.dtb");
