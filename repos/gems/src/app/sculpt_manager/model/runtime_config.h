@@ -88,12 +88,6 @@ class Sculpt::Runtime_config
 					return;
 				}
 
-				bool const storage = (service == "Block");
-				if (storage) {
-					result = "storage";
-					return;
-				}
-
 				if (service == "ROM") {
 
 					/*
