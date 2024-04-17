@@ -37,7 +37,7 @@ proc image_uboot_gzip_opt { } {
 #
 proc run_image { } {
 
-	set elf_img [file join [run_dir] boot image.elf]
+	set elf_img [file join [run_dir] boot [kernel_specific_binary image.elf]]
 
 	# parse ELF entrypoint and load address
 	set entrypoint [exec [cross_dev_prefix]readelf -h $elf_img | \

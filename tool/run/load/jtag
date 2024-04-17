@@ -24,7 +24,7 @@ proc run_load { } {
 
 	set debugger [load_jtag_debugger]
 	set board    [load_jtag_board]
-	set elf_img "[run_dir]/image.elf"
+	set elf_img "[run_dir]/[kernel_specific_binary image.elf]"
 
 	# sleep a bit, board might need some time to come up
 	sleep 8

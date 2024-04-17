@@ -134,7 +134,7 @@ proc run_power_on { } {
 
 	# on ARM/RISC-V, we supply the boot image as kernel
 	if {[have_spec arm] || [have_spec arm_v8] || [have_spec riscv]} {
-		append qemu_args " -kernel [run_dir]/boot/image.elf " }
+		append qemu_args " -kernel [run_dir]/boot/[kernel_specific_binary image.elf] " }
 
 	set board_qemu_args [board_qemu_args]
 

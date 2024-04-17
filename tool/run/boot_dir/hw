@@ -1,6 +1,7 @@
 proc binary_name_ld_lib_so { } { return "ld-hw.lib.so" }
 proc binary_name_core_a    { } { return "core-hw.a"    }
 proc binary_name_timer     { } { return "hw_timer_drv" }
+proc binary_name_image_elf { } { return "image-hw.elf" }
 
 
 proc run_boot_string { } { return "\nkernel initialized" }
@@ -90,16 +91,16 @@ proc run_boot_dir {binaries} {
 	# create core binary containing the boot modules
 	build_core [run_dir]/genode/$core_obj $modules [run_dir]/genode/core.elf [core_link_address]
 	exec [cross_dev_prefix]strip [run_dir]/genode/core.elf
-	build_core [run_dir]/genode/$bootstrap_obj { core.elf } [run_dir]/image.elf [bootstrap_link_address]
+	build_core [run_dir]/genode/$bootstrap_obj { core.elf } [run_dir]/image-hw.elf [bootstrap_link_address]
 
 	# Save config part of the image.elf for easy inspection
 	exec cp -f [run_dir]/genode/config [run_dir].config
 
 	remove_genode_dir
-	exec [cross_dev_prefix]strip [run_dir]/image.elf
+	exec [cross_dev_prefix]strip [run_dir]/image-hw.elf
 
 	exec mkdir -p [run_dir]/boot
-	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
+	exec mv [run_dir]/image-hw.elf [run_dir]/boot/image-hw.elf
 
 	set options_bender "[boot_output] "
 
@@ -107,7 +108,7 @@ proc run_boot_dir {binaries} {
 		#
 		# Compress Genode image, to be uncompressed by GRUB
 		#
-		exec gzip -n [run_dir]/boot/image.elf
+		exec gzip -n [run_dir]/boot/image-hw.elf
 
 		if {[have_include "image/disk"]} {
 			install_disk_bootloader_to_run_dir
@@ -130,7 +131,7 @@ proc run_boot_dir {binaries} {
 		puts $fh "menuentry 'Genode on base-hw' {"
 		puts $fh " insmod multiboot2"
 		puts $fh " multiboot2 /boot/bender $options_bender"
-		puts $fh " module2 /boot/image.elf.gz image.elf"
+		puts $fh " module2 /boot/image-hw.elf.gz image-hw.elf"
 		puts $fh "}"
 		close $fh
 	}
@@ -150,7 +151,7 @@ proc run_boot_dir {binaries} {
 					[load_tftp_base_dir][load_tftp_offset_dir]
 			}
 		} else {
-			exec {*}[load_tftp_inst_cmd] [pwd]/[run_dir]/boot/image.elf [load_tftp_base_dir][load_tftp_offset_dir]
+			exec {*}[load_tftp_inst_cmd] [pwd]/[run_dir]/boot/image-hw.elf [load_tftp_base_dir][load_tftp_offset_dir]
 		}
 	}
 
@@ -165,7 +166,7 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender $options_bender"
-		puts $fh " load /boot/image.elf"
+		puts $fh " load /boot/image-hw.elf"
 		close $fh
 
 		generate_tftp_config
