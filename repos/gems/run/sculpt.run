@@ -25,8 +25,29 @@ proc assert_platform_supported { } {
 assert_platform_supported
 
 
-if {[have_spec nova]} {
-	proc kernel_output { } { return "novga serial logmem" }
+proc log_core { } {
+
+	global ::env
+
+	if {[info exists ::env(LOG)]} {
+		if {$::env(LOG) == "core"} { return true }
+	}
+
+	return false
+}
+
+
+if {[log_core]} {
+	if {[have_spec nova]} {
+		proc kernel_output { } { return "novga serial logmem" }
+	}
+} else {
+	# disable default enabled serial log output via core
+	proc boot_output { } { return "" }
+
+	if {[have_spec nova]} {
+		proc kernel_output { } { return "novga logmem" }
+	}
 }
 
 
@@ -141,10 +162,8 @@ import_from_depot [depot_user]/src/[base_src] \
 
 proc log_route { } {
 
-	global ::env
-	if {[info exists ::env(LOG)]} {
-		if {$::env(LOG) == "core"} {
-			return {<service name="LOG"> <parent/> </service>} } }
+	if {[log_core]} {
+		return {<service name="LOG"> <parent/> </service>} }
 
 	return {<service name="LOG"> <child name="log"/> </service>}
 }
