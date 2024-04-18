@@ -37,21 +37,27 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 	Constructible<Child_state> _hcd { }, _hid { }, _net { };
 
-	static constexpr unsigned CLASS_HID = 3, CLASS_NET = 2;
+	static constexpr unsigned CLASS_HID = 3, CLASS_NET = 2, CLASS_STORAGE = 8;
 
 	struct Detected
 	{
 		bool hid, net;
+		bool storage_aquired;
 
 		static Detected from_xml(Xml_node const &devices)
 		{
 			Detected result { };
 			devices.for_each_sub_node("device", [&] (Xml_node const &device) {
+				bool const acquired = device.attribute_value("acquired", false);
 				device.for_each_sub_node("config", [&] (Xml_node const &config) {
 					config.for_each_sub_node("interface", [&] (Xml_node const &interface) {
 						unsigned const class_id = interface.attribute_value("class", 0u);
-						result.hid |= (class_id == CLASS_HID);
-						result.net |= (class_id == CLASS_NET); }); }); });
+						result.hid             |= (class_id == CLASS_HID);
+						result.net             |= (class_id == CLASS_NET);
+						result.storage_aquired |= (class_id == CLASS_STORAGE) && acquired;
+					});
+				});
+			});
 			return result;
 		}
 
@@ -183,6 +189,8 @@ struct Sculpt::Usb_driver : private Noncopyable
 		_devices.with_xml([&] (Xml_node const &devices) {
 			fn(_hcd.constructed() ? devices : Xml_node("<none/>")); });
 	}
+
+	bool suspend_supported() const { return !_detected.storage_aquired; }
 };
 
 #endif /* _DRIVER__USB_H_ */

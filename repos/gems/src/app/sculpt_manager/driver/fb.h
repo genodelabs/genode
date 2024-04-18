@@ -141,6 +141,13 @@ struct Sculpt::Fb_driver : private Noncopyable
 				_boot_fb.construct(registry, "boot_fb", Priority::MULTIMEDIA,
 				                   mode.ram_quota(), Cap_quota { 100 }); });
 	}
+
+	static bool suspend_supported(Board_info const &board_info)
+	{
+		/* offer suspend/resume only when using intel graphics */
+		return board_info.detected.intel_gfx
+		   && !board_info.options.suppress.intel_gpu;
+	}
 };
 
 #endif /* _DRIVER__FB_H_ */

@@ -73,6 +73,10 @@ class Sculpt::Drivers : Noncopyable
 		void with_board_info     (auto const &fn) const { _with(With_board_info::Fn      { fn }); }
 		void with_platform_info  (auto const &fn) const { _with(With_platform_info::Fn   { fn }); }
 
+		/* true if hardware is suspend/resume capable */
+		bool suspend_supported() const;
+
+		/* true once 'Board_info::Option::suspending' phase is compete */
 		bool ready_for_suspend() const;
 
 		struct Resumed { unsigned count; };

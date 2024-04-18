@@ -165,6 +165,12 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		void with(With_board_info::Callback    const &fn) const { fn(_board_info); }
 		void with(With_platform_info::Callback const &fn) const { fn(_platform.xml()); }
 
+		bool suspend_supported() const
+		{
+			return _fb_driver.suspend_supported(_board_info)
+			   && _usb_driver.suspend_supported();
+		}
+
 		bool ready_for_suspend() const { return !_board_info.used.any(); }
 
 		Resumed resumed() const { return _resumed; }
@@ -201,6 +207,7 @@ void Drivers::update_options(Board_info::Options opt) { _instance.update_options
 
 void Drivers::gen_start_nodes(Xml_generator &xml) const { _instance.gen_start_nodes(xml); }
 
+bool Drivers::suspend_supported() const { return _instance.suspend_supported(); };
 bool Drivers::ready_for_suspend() const { return _instance.ready_for_suspend(); };
 
 Drivers::Resumed Drivers::resumed() const { return _instance.resumed(); };
