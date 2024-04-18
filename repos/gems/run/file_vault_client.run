@@ -102,6 +102,7 @@ append config {
 				<service name="LOG">     <parent/> </service>
 				<service name="CPU">     <parent/> </service>
 				<service name="IO_PORT"> <parent/> </service>
+				<service name="IO_MEM">  <parent/> </service>
 				<service name="IRQ">     <parent/> </service>
 			</route>
 		</start>
