@@ -679,3 +679,11 @@ void iwlagn_led_enable(struct iwl_priv * priv)
 {
 	lx_emul_trace(__func__);
 }
+
+
+#include <linux/iommu.h>
+
+void iommu_device_unuse_default_domain(struct device * dev)
+{
+	lx_emul_trace(__func__);
+}

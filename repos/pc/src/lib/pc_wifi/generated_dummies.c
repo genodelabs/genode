@@ -629,14 +629,6 @@ long __sched io_schedule_timeout(long timeout)
 struct io_tlb_mem io_tlb_default_mem;
 
 
-#include <linux/iommu.h>
-
-void iommu_device_unuse_default_domain(struct device * dev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/uio.h>
 
 void iov_iter_kvec(struct iov_iter * i,unsigned int direction,const struct kvec * kvec,unsigned long nr_segs,size_t count)
