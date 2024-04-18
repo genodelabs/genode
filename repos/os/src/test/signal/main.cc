@@ -236,6 +236,8 @@ struct Stress_test : Signal_test
 		log("");
 		log("sender submitted a total of ", sender.submit_cnt(), " signals");
 		log("handler received a total of ", handler.receive_cnt(), " signals");
+		log("handler was activated ", handler.activation_cnt(), " times (",
+		    handler.receive_cnt()/handler.activation_cnt(), " signals per activation)");
 		log("");
 		log("handler received ",      handler.receive_cnt() / DURATION_SEC, " signals per second");
 		log("handler was activated ", handler.activation_cnt() / DURATION_SEC, " times per second");
