@@ -315,62 +315,17 @@ void Intel::Io_mmu::default_mappings_complete()
 	/* insert contexts into managed root table */
 	_default_mappings.copy_stage2(_managed_root_table);
 
-	/* set root table address */
-	write<Root_table_address>(rtp);
-
-	/* issue set root table pointer command */
-	_global_command<Global_command::Srtp>(1);
-
-	/* caches must be cleared if Esrtps is not set (see 6.6) */
-	if (!read<Capability::Esrtps>())
-		invalidator().invalidate_all();
-
-	/* enable IOMMU */
-	if (!read<Global_status::Enabled>())
-		_global_command<Global_command::Enable>(1);
+	_enable_translation();
 
 	log("enabled IOMMU ", name(), " with default mappings");
 }
 
 
-void Intel::Io_mmu::suspend()
-{
-	_s3_fec    = read<Fault_event_control>();
-	_s3_fedata = read<Fault_event_data>();
-	_s3_feaddr = read<Fault_event_address>();
-	_s3_rta    = read<Root_table_address>();
-}
-
-
 void Intel::Io_mmu::resume()
 {
-	/* disable queued invalidation interface if it was re-enabled by kernel */
-	if (read<Global_status::Enabled>() && read<Global_status::Qies>())
-		_global_command<Global_command::Qie>(false);
-
-	if (read<Extended_capability::Qi>()) {
-		/* enable queued invalidation if supported */
-		_queued_invalidator.construct(_env, base() + 0x80);
-		_global_command<Global_command::Qie>(true);
-	}
-
-	/* restore fault events only if kernel did not enable IRQ remapping */
-	if (!read<Global_status::Ires>()) {
-		write<Fault_event_control>(_s3_fec);
-		write<Fault_event_data>(_s3_fedata);
-		write<Fault_event_address>(_s3_feaddr);
-	}
-
-	/* issue set root table pointer command */
-	write<Root_table_address>(_s3_rta);
-	_global_command<Global_command::Srtp>(1);
-
-	if (!read<Capability::Esrtps>())
-		invalidator().invalidate_all();
-
-	/* enable IOMMU */
-	if (!read<Global_status::Enabled>())
-		_global_command<Global_command::Enable>(1);
+	_init();
+	_enable_translation();
+	_enable_irq_remapping();
 }
 
 
@@ -411,6 +366,71 @@ void Intel::Io_mmu::_enable_irq_remapping()
 }
 
 
+void Intel::Io_mmu::_enable_translation()
+{
+	Root_table_address::access_t rtp =
+		Root_table_address::Address::masked(_managed_root_table.phys_addr());
+
+	/* set root table address */
+	write<Root_table_address>(rtp);
+
+	/* issue set root table pointer command */
+	_global_command<Global_command::Srtp>(1);
+
+	/* caches must be cleared if Esrtps is not set (see 6.6) */
+	if (!read<Capability::Esrtps>())
+		invalidator().invalidate_all();
+
+	/* enable IOMMU */
+	if (!read<Global_status::Enabled>())
+		_global_command<Global_command::Enable>(1);
+}
+
+
+void Intel::Io_mmu::_init()
+{
+	if (read<Global_status::Enabled>()) {
+		log("IOMMU has been enabled during boot");
+
+		/* disable queued invalidation interface */
+		if (read<Global_status::Qies>())
+			_global_command<Global_command::Qie>(false);
+	}
+
+	if (read<Extended_capability::Qi>()) {
+		/* enable queued invalidation if supported */
+		_queued_invalidator.construct(_env, base() + 0x80);
+		_global_command<Global_command::Qie>(true);
+	} else {
+		/* use register-based invalidation interface as fallback */
+		addr_t context_reg_base = base() + 0x28;
+		addr_t iotlb_reg_base   = base() + 8*_offset<Extended_capability::Iro>();
+		_register_invalidator.construct(context_reg_base, iotlb_reg_base, _verbose);
+	}
+
+	/* enable fault event interrupts if desired */
+	if (_fault_irq.constructed()) {
+		Irq_session::Info info = _fault_irq->info();
+
+		if (info.type == Irq_session::Info::INVALID)
+			error("Unable to enable fault event interrupts for ", _name);
+		else {
+			write<Fault_event_address>((Fault_event_address::access_t)info.address);
+			write<Fault_event_data>((Fault_event_data::access_t)info.value);
+			write<Fault_event_control::Mask>(0);
+		}
+	}
+
+	/*
+	 * We always enable IRQ remapping if its supported by the IOMMU. Note, there
+	 * might be the possibility that the ACPI DMAR table says otherwise but
+	 * we've never seen such a case yet.
+	 */
+	if (read<Extended_capability::Ir>())
+		_enable_irq_remapping();
+}
+
+
 Intel::Io_mmu::Io_mmu(Env                      & env,
                       Io_mmu_devices           & io_mmu_devices,
                       Device::Name       const & name,
@@ -436,48 +456,13 @@ Intel::Io_mmu::Io_mmu(Env                      & env,
 		return;
 	}
 
-	if (read<Global_status::Enabled>()) {
-		log("IOMMU has been enabled during boot");
-
-		/* disable queued invalidation interface */
-		if (read<Global_status::Qies>())
-			_global_command<Global_command::Qie>(false);
-	}
-
-	if (read<Extended_capability::Qi>()) {
-		/* enable queued invalidation if supported */
-		_queued_invalidator.construct(_env, base() + 0x80);
-		_global_command<Global_command::Qie>(true);
-	} else {
-		/* use register-based invalidation interface as fallback */
-		addr_t context_reg_base = base() + 0x28;
-		addr_t iotlb_reg_base   = base() + 8*_offset<Extended_capability::Iro>();
-		_register_invalidator.construct(context_reg_base, iotlb_reg_base, _verbose);
-	}
-
 	/* enable fault event interrupts (if not already enabled by kernel) */
 	if (irq_number && !read<Global_status::Ires>()) {
 		_fault_irq.construct(_env, irq_number, 0, Irq_session::TYPE_MSI);
 
 		_fault_irq->sigh(_fault_handler);
 		_fault_irq->ack_irq();
-
-		Irq_session::Info info = _fault_irq->info();
-
-		if (info.type == Irq_session::Info::INVALID)
-			error("Unable to enable fault event interrupts for ", name);
-		else {
-			write<Fault_event_address>((Fault_event_address::access_t)info.address);
-			write<Fault_event_data>((Fault_event_data::access_t)info.value);
-			write<Fault_event_control::Mask>(0);
-		}
 	}
 
-	/*
-	 * We always enable IRQ remapping if its supported by the IOMMU. Note, there
-	 * might be the possibility that the ACPI DMAR table says otherwise but
-	 * we've never seen such a case yet.
-	 */
-	if (read<Extended_capability::Ir>())
-		_enable_irq_remapping();
+	_init();
 }

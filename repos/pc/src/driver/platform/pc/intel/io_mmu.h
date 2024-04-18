@@ -431,12 +431,6 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 			struct Info : Bitfield<12,52> { };
 		};
 
-		/* saved registers during suspend */
-		Fault_event_control::access_t  _s3_fec { };
-		Fault_event_data ::access_t    _s3_fedata { };
-		Fault_event_address ::access_t _s3_feaddr { };
-		Root_table_address::access_t   _s3_rta { };
-		
 		uint32_t _max_domains() {
 			return 1 << (4 + read<Capability::Domains>()*2); }
 
@@ -495,6 +489,10 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		void _handle_faults();
 
 		void _enable_irq_remapping();
+
+		/* utility methods used on boot and resume */
+		void _init();
+		void _enable_translation();
 
 		/**
 		 * Io_mmu interface
@@ -568,7 +566,6 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		/**
 		 * Io_mmu suspend/resume interface
 		 */
-		void suspend() override;
 		void resume() override;
 
 		/**
