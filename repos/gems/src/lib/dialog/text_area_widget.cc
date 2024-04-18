@@ -631,6 +631,8 @@ void Text_area_widget::handle_event(Event const &event, Action &action)
 
 	if (event.event.press() && !event.event.key_press(Input::BTN_LEFT))
 		_sanitize_scroll_position();
+	else
+		_clamp_scroll_position_to_upper_bound();
 
 	if (update_dialog)
 		action.refresh_text_area();
