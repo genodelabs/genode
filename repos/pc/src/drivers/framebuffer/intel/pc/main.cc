@@ -120,6 +120,18 @@ struct Framebuffer::Driver
 	{
 		Lx_kit::initialize(env, scheduler_handler);
 
+		/*
+		 * Delay startup of driver until graphic device is available.
+		 * After resume it is possible, that no device is instantly available.
+		 * This ported Linux driver hangs up otherwise, when the delayed
+		 * Device announcement is handled later inside the lx_kit for unknown
+		 * reasons.
+		 */
+		Lx_kit::env().devices.for_each([](auto & device) {
+			/* only enable graphic device and skip bridge, which has no irq atm */
+			device.for_each_irq([&](auto &) { device.enable(); });
+		});
+
 		config.sigh(config_handler);
 	}
 
