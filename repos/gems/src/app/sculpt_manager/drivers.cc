@@ -68,12 +68,16 @@ class Sculpt::Drivers::Instance : Noncopyable,
 			_resumed = { devices.attribute_value("resumed", 0u) };
 
 			/*
-			 * The decision which fb driver to start depends on information
-			 * about available devices from both the devices ROM and the
-			 * platform info ROM, so we skip the update if the devices ROM
-			 * is not ready yet.
+			 * The decision which fb driver to start might depend (e.g. on PC)
+			 * on information about available devices from both the devices ROM
+			 * and the platform info ROM, so we skip the update if the devices
+			 * ROM is not ready yet.
+			 *
+			 * On SoC platforms this information is provided by the static
+			 * Board_info::Soc configuration and gets evluated instead to make
+			 * the decision.
 			 */
-			if (!devices.has_type("empty"))
+			if (!devices.has_type("empty") || _board_info.soc.fb)
 				_fb_driver.update(_children, _board_info, _platform.xml());
 
 			_ps2_driver  .update(_children, _board_info);
