@@ -8,7 +8,7 @@ import: pkg/sculpt_drivers-pc
 
 # selection of launcher-menu entries
 launcher: vm_fs shared_fs download_debug_info black_hole trace_logger
-launcher: audio mixer system_clock acpi_support recall_fs
+launcher: audio mixer system_clock acpi_support recall_fs touchpad
 
 # selection of accepted depot-package providers
 depot: genodelabs cnuke alex-ab mstein nfeske cproc chelmuth jschlatow

@@ -1,0 +1,13 @@
+<launcher pkg="chelmuth/pkg/pc_i2c_hid_drv/2024-04-24" priority="-1">
+	<config info="Fujtisu U7411 (SYNAPTICS)"/>
+	<!--
+	<config gpio_pin="266" bus_addr="21" hid_addr="1"  info="Fujtisu U7511 (ELAN)"/>
+	<config gpio_pin="174" bus_addr="44" hid_addr="32" info="Fujtisu U7412 (SYNAPTICS)"/>
+	<config gpio_pin="174" bus_addr="44" hid_addr="32" info="Fujtisu U7413 (SYNAPTICS)"/>
+	<config gpio_pin="3"   bus_addr="44" hid_addr="32" info="Framework Gen12/Gen13"/>
+	-->
+	<route>
+		<service name="Platform"> <parent label="touchpad"/> </service>
+		<service name="Event">    <parent label="touchpad"/> </service>
+	</route>
+</launcher>

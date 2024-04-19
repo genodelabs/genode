@@ -114,6 +114,10 @@
 				<pci class="VGA"/>
 				<pci class="ISABRIDGE"/>
 			</policy>
+			<policy label="runtime -> touchpad" info="yes">
+				<device name="00:15.3" type="pci"/>
+				<device name="INT34C5" type="acpi"/>
+			</policy>
 			<policy label_suffix="-> wifi" msix="false" info="yes"> <pci class="WIFI"/> </policy>
 			<policy label_suffix="-> nic" info="yes">   <pci class="ETHERNET"/> </policy>
 			<policy label_suffix="-> audio"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
