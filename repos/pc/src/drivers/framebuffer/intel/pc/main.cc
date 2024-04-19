@@ -43,20 +43,26 @@ namespace Framebuffer {
 
 struct Framebuffer::Driver
 {
+	typedef Constructible<Attached_rom_dataspace> Attached_rom_system;
+
 	Env                    &env;
 	Timer::Connection       timer    { env };
 	Attached_rom_dataspace  config   { env, "config" };
+	Attached_rom_system     system   { };
 	Expanding_reporter      reporter { env, "connectors", "connectors" };
 
-	Signal_handler<Driver>  config_handler { env.ep(), *this,
-	                                        &Driver::config_update };
-	Signal_handler<Driver>  timer_handler  { env.ep(), *this,
-	                                        &Driver::handle_timer };
+	Signal_handler<Driver>  config_handler    { env.ep(), *this,
+	                                            &Driver::config_update };
+	Signal_handler<Driver>  timer_handler     { env.ep(), *this,
+	                                            &Driver::handle_timer };
 	Signal_handler<Driver>  scheduler_handler { env.ep(), *this,
-	                                           &Driver::handle_scheduler };
+	                                            &Driver::handle_scheduler };
+	Signal_handler<Driver>  system_handler    { env.ep(), *this,
+	                                            &Driver::system_update };
 
 	bool                    update_in_progress { false };
 	bool                    new_config_rom     { false };
+	bool                    disable_all        { false };
 
 	class Fb
 	{
@@ -103,6 +109,7 @@ struct Framebuffer::Driver
 	Constructible<Fb> fb {};
 
 	void config_update();
+	void system_update();
 	void generate_report(void *);
 	void lookup_config(char const *, struct genode_mode &mode);
 
@@ -226,6 +233,12 @@ void Framebuffer::Driver::config_update()
 	if (!config.valid() || !lx_user_task)
 		return;
 
+	if (config.xml().attribute_value("system", false)) {
+		system.construct(Lx_kit::env().env, "system");
+		system->sigh(system_handler);
+	} else
+		system.destruct();
+
 	if (update_in_progress)
 		new_config_rom = true;
 	else
@@ -233,6 +246,22 @@ void Framebuffer::Driver::config_update()
 
 	lx_emul_task_unblock(lx_user_task);
 	Lx_kit::env().scheduler.execute();
+}
+
+
+void Framebuffer::Driver::system_update()
+{
+	if (!system.constructed())
+		return;
+
+	system->update();
+
+	if (system->valid())
+		disable_all = system->xml().attribute_value("state", String<9>(""))
+		              == "blanking";
+
+	if (disable_all)
+		config_update();
 }
 
 
@@ -278,10 +307,10 @@ void Framebuffer::Driver::lookup_config(char const * const name,
                                         struct genode_mode &mode)
 {
 	/* default settings, possibly overridden by explicit configuration below */
-	mode.enabled    = true;
+	mode.enabled    = !disable_all;
 	mode.brightness = 70 /* percent */;
 
-	if (!config.valid())
+	if (!config.valid() || disable_all)
 		return;
 
 	/* iterate independently of force* ever to get brightness and hz */
@@ -424,6 +453,11 @@ int lx_emul_i915_config_done_and_block(void)
 
 	state.update_in_progress = false;
 	state.new_config_rom     = false;
+
+	if (state.disable_all) {
+		state.disable_all = false;
+		Lx_kit::env().env.parent().exit(0);
+	}
 
 	/* true if linux task should block, otherwise continue due to new config */
 	return !new_config;
