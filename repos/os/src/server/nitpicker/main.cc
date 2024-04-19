@@ -212,6 +212,8 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 		View_stack         const &_view_stack;
 		Capture_session::Handler &_handler;
 
+		Area _fallback_bounding_box { 0, 0 };
+
 	protected:
 
 		Capture_session *_create_session(const char *args) override
@@ -232,6 +234,13 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 
 		void _destroy_session(Capture_session *session) override
 		{
+			/*
+			 * Retain buffer size of the last vanishing session. This avoids
+			 * mode switches when the only capture client temporarily
+			 * disappears (driver restart).
+			 */
+			_fallback_bounding_box = session->buffer_size();
+
 			Genode::destroy(md_alloc(), session);
 
 			/* shrink screen according to the remaining output back ends */
@@ -257,10 +266,13 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 		 */
 		Area bounding_box() const
 		{
-			Area result { 0, 0 };
+			Area result = { 0, 0 };
+			bool any_session_present = false;
 			_sessions.for_each([&] (Capture_session const &session) {
+				any_session_present = true;
 				result = max_area(result, session.buffer_size()); });
-			return result;
+
+			return any_session_present ? result : _fallback_bounding_box;
 		}
 
 		/**
