@@ -1211,50 +1211,43 @@ struct Igd::Device
 	Genode::Signal_handler<Device> _watchdog_timeout_sigh {
 		_env.ep(), *this, &Device::_handle_watchdog_timeout };
 
-	void handle_system_update(String<32> const & state)
+	void stop_driver()
 	{
-		bool const resume_driver =  _schedule_stop && state == "";
-		bool const stop_driver   = !_schedule_stop && state != "";
-
-		if (stop_driver) {
-			_schedule_stop = true;
-			device_release_if_stopped_and_idle();
-
-			log("driver halted");
-
+		if (_schedule_stop)
 			return;
-		}
 
-		if (resume_driver) {
-			_resources.acquire_device();
+		_schedule_stop = true;
+		device_release_if_stopped_and_idle();
+	}
 
-			_resources.with_mmio([&](auto &mmio) {
+	void resume_driver()
+	{
+		_resources.acquire_device();
 
-				mmio.generation(_info.generation);
-				reinit(mmio);
+		_resources.with_mmio([&](auto &mmio) {
 
-				_schedule_stop = false;
+			mmio.generation(_info.generation);
+			reinit(mmio);
 
-				/* resume if there is a current vGPU */
-				if (_current_vgpu())
-					_schedule_current_vgpu(mmio);
+			_schedule_stop = false;
 
-				/* re-add delayed execute RPCs() of vGPUs to ready list */
-				_vgpu_delay.dequeue_all([&](auto &vgpu) {
-					if (vgpu.setup_ring_vram(vgpu._delayed_execute)) {
-						vgpu_activate(vgpu, mmio);
-					} else
-						warning("setup_ring_vram failed");
-				});
+			/* resume if there is a current vGPU */
+			if (_current_vgpu())
+				_schedule_current_vgpu(mmio);
 
-				log("driver resumed");
-
-			}, []() {
-				error("reinit - failed");
+			/* re-add delayed execute RPCs() of vGPUs to ready list */
+			_vgpu_delay.dequeue_all([&](auto &vgpu) {
+				if (vgpu.setup_ring_vram(vgpu._delayed_execute)) {
+					vgpu_activate(vgpu, mmio);
+				} else
+					warning("setup_ring_vram failed");
 			});
 
-			return;
-		}
+			log("driver resumed");
+
+		}, []() {
+			error("resuming driver failed");
+		});
 	}
 
 	void device_release_if_stopped_and_idle()
@@ -1263,6 +1256,8 @@ struct Igd::Device
 			return;
 
 		_resources.release_device();
+
+		log("driver halted");
 	}
 
 	void _device_reset_and_init(Igd::Mmio &mmio)
@@ -2524,6 +2519,7 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 	                                          _config_aperture_size() };
 	Signal_handler<Main>    _system_sigh    { _env.ep(), *this,
 	                                          &Main::_system_update };
+	String<16>              _system_state   { "" };
 
 	Platform::Root _platform_root { _env, _md_alloc, _dev, *this, *this };
 
@@ -2621,19 +2617,34 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 		if (!_system_rom->valid())
 			return;
 
-		auto state = _system_rom->xml().attribute_value("state", String<32>(""));
+		auto const previous_system_state = _system_state;
+
+		_system_state = _system_rom->xml().attribute_value("state", _system_state);
+
+		bool const same_state    = _system_state == previous_system_state;
+		bool const resume_driver = !same_state && _system_state == "";
+		bool const stop_driver   = !same_state && _system_state != ""
+		                                       && _system_state != "blanking";
 
 		if (_igd_device.constructed()) {
-			_igd_device->handle_system_update(state);
+			/* supported GPU case */
+			if (stop_driver)
+				_igd_device->stop_driver();
+
+			if (resume_driver)
+				_igd_device->resume_driver();
 		} else {
-			if (state == "driver_stop") {
+			/* not supported GPU case */
+			if (stop_driver) {
 				_dev.release_device();
-				return;
+
+				log("driver halted");
 			}
 
-			if (state == "driver_reinit") {
+			if (resume_driver) {
 				_dev.acquire_device();
-				return;
+
+				log("driver resumed");
 			}
 		}
 	}
