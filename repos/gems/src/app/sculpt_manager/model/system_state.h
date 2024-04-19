@@ -34,7 +34,7 @@ struct Sculpt::System_state : private Noncopyable
 		auto value = node.attribute_value("state", String<64>());
 
 		if (value == "driver_stop") return State::DRIVERS_STOPPING;
-		if (value == "s3_prepare")  return State::ACPI_RESUMING;
+		if (value == "s3_prepare")  return State::ACPI_SUSPENDING;
 		if (value == "suspend")     return State::SUSPENDED;
 		if (value == "s3_resume")   return State::ACPI_RESUMING;
 		if (value == "poweroff")    return State::POWERED_OFF;
