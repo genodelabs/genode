@@ -31,6 +31,12 @@ struct Gpu_reset_handler
 	virtual void reset() = 0;
 };
 
+struct Hw_ready_state
+{
+	virtual ~Hw_ready_state() {}
+	virtual bool mmio_ready() = 0;
+};
+
 namespace Platform {
 	using namespace Genode;
 
@@ -107,12 +113,12 @@ class Platform::Device_component : public Rpc_object<Device_interface,
 
 	public:
 
-		Device_component(Env                & env,
-		                 Irq_ack_handler    & ack_handler,
-		                 Dataspace_capability gttmmadr_ds_cap,
-		                 Range                gttmmadr_range,
-		                 Dataspace_capability gmadr_ds_cap,
-		                 Range                gmadr_range)
+		Device_component(Env                  & env,
+		                 Irq_ack_handler      & ack_handler,
+		                 Dataspace_capability   gttmmadr_ds_cap,
+		                 Range                  gttmmadr_range,
+		                 Dataspace_capability   gmadr_ds_cap,
+		                 Range                  gmadr_range)
 		:
 		  _env(env),
 		  _gttmmadr_io(gttmmadr_ds_cap),
@@ -171,6 +177,7 @@ class Platform::Session_component : public Rpc_object<Session>
 
 		Env                & _env;
 		Connection         & _platform;
+		Hw_ready_state     & _hw_ready;
 		Gpu_reset_handler  & _reset_handler;
 		Heap                 _heap { _env.ram(), _env.rm() };
 		Device_component     _device_component;
@@ -200,6 +207,7 @@ class Platform::Session_component : public Rpc_object<Session>
 		                  Connection         & platform,
 		                  Irq_ack_handler    & ack_handler,
 		                  Gpu_reset_handler  & reset_handler,
+		                  Hw_ready_state     & hw_ready,
 		                  Dataspace_capability gttmmadr_ds_cap,
 		                  Range                gttmmadr_range,
 		                  Dataspace_capability gmadr_ds_cap,
@@ -207,6 +215,7 @@ class Platform::Session_component : public Rpc_object<Session>
 		:
 		  _env(env),
 		  _platform(platform),
+		  _hw_ready(hw_ready),
 		  _reset_handler(reset_handler),
 		  _device_component(env, ack_handler, gttmmadr_ds_cap, gttmmadr_range,
 		                    gmadr_ds_cap, gmadr_range)
@@ -229,8 +238,8 @@ class Platform::Session_component : public Rpc_object<Session>
 
 		Device_capability acquire_single_device() override
 		{
-			if (_acquired)
-				return Device_capability();
+			if (_acquired || !_hw_ready.mmio_ready())
+				return { };
 
 			_acquired = true;
 			return _device_component.cap();
@@ -280,7 +289,7 @@ class Platform::Session_component : public Rpc_object<Session>
 };
 
 
-class Platform::Resources : Noncopyable
+class Platform::Resources : Noncopyable, public Hw_ready_state
 {
 	private:
 
@@ -483,6 +492,8 @@ class Platform::Resources : Noncopyable
 			/* reserved GTT for platform service, GTT entry is 8 byte */
 			return (aperture_reserved() / Igd::PAGE_SIZE) * 8;
 		}
+
+		bool mmio_ready() override { return _device.constructed(); }
 };
 
 
@@ -520,7 +531,8 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 			_resources.with_gttm_gmadr([&](auto &platform,
 			                               auto &rm_gttmm, auto &range_gttmm,
 			                               auto &rm_gmadr, auto &range_gmadr) {
-				_session.construct(_env, platform, _ack_handler, _reset_handler,
+				_session.construct(_env, platform, _ack_handler,
+				                   _reset_handler, _resources,
 				                   rm_gttmm.dataspace(), range_gttmm,
 				                   rm_gmadr.dataspace(), range_gmadr);
 			});
