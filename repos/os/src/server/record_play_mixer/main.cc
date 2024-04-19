@@ -49,6 +49,8 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 	using Config_version = String<32>;
 	Config_version _version { };
 
+	unsigned _warning_rate_ms = 0;
+
 	Constructible<Clock> _clock_from_config { };
 
 	Time_window_scheduler::Config _global_record_config { };
@@ -151,6 +153,11 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 		_config.update();
 		Xml_node const config = _config.xml();
 
+		unsigned const orig_warning_rate_ms = _warning_rate_ms;
+		_warning_rate_ms = config.attribute_value("warning_rate_ms", 0u);
+		if (orig_warning_rate_ms != _warning_rate_ms)
+			_timer.trigger_periodic(_warning_rate_ms*1000);
+
 		double const default_jitter_ms = config.attribute_value("jitter_ms", 1.0);
 		_global_record_config = {
 			.period_us = us_from_ms_attr(config, "record_period_ms", 5.0),
@@ -223,7 +230,6 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 		_handle_config();
 
 		_timer.sigh(_timer_handler);
-		_timer.trigger_periodic(1000*1000);
 
 		_env.parent().announce(_env.ep().manage(_play_root));
 		_env.parent().announce(_env.ep().manage(_record_root));

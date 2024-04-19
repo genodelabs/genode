@@ -98,3 +98,14 @@ Example
 The _gems/run/waveform_player.run_ script illustrates the integration and
 configuration of the mixer by using a waveform generator as play client and an
 oscilloscope as record client.
+
+Diagnostic features
+~~~~~~~~~~~~~~~~~~~
+
+The time-stable processing of audio streams depends on system-global
+parameters such as the kernel scheduling and CPU affinities of the mixer,
+drivers, and applications.
+To assist with the integration of the mixer and with choosing sensible jitter
+and period parameters, the config attribute 'warning_rate_ms' can be set to a
+maximum rate at which timing violations are reported. The default value of "0"
+suppresses those warning messages.
