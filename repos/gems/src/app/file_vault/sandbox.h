@@ -18,9 +18,6 @@
 #include <util/string.h>
 #include <sandbox/sandbox.h>
 
-/* local includes */
-#include <input.h>
-
 namespace File_vault {
 
 	template <typename ARG>

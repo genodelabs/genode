@@ -6,11 +6,11 @@
 
 	<fail after_seconds="70"/>
 	<succeed>
-			&lt;ui_report version="step_*" state="uninitialized"/>*
-			&lt;ui_report version="step_*" state="initializing"/>*
-			&lt;ui_report version="step_*" state="unlocked"/>*
-			&lt;ui_report version="step_*" state="locked"/>*
-			&lt;ui_report version="step_*" state="unlocked"/>*
+			&lt;ui_report version="step_*" state="uninitialized"*
+			&lt;ui_report version="step_*" state="initializing"*
+			&lt;ui_report version="step_*" state="unlocked"*
+			&lt;ui_report version="step_*" state="locked"*
+			&lt;ui_report version="step_*" state="unlocked"*
 	</succeed>
 
 	<content>
@@ -145,7 +145,7 @@
 
 		<start name="file_vault" caps="1500">
 			<resource name="RAM" quantum="180M"/>
-			<config user_interface="config_and_report">
+			<config jitterentropy_available="no">
 				<vfs>
 					<dir name="tresor">
 						<fs label="tresor"/>

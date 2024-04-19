@@ -1,9 +1,7 @@
 _/src/init
 _/src/libc
-_/src/libpng
 _/src/zlib
 _/src/fs_query
-_/src/menu_view
 _/src/tresor
 _/src/vfs_block
 _/src/vfs_jitterentropy
@@ -15,3 +13,7 @@ _/src/posix
 _/src/rump
 _/src/sandbox
 _/src/file_vault
+_/src/file_vault_gui
+_/src/report_rom
+_/src/menu_view
+_/src/libpng

@@ -1,6 +1,6 @@
 TARGET := file_vault
 
-SRC_CC += main.cc menu_view_dialog.cc capacity.cc
+SRC_CC += main.cc
 
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(call select_from_repositories,/src/lib/tresor/include)

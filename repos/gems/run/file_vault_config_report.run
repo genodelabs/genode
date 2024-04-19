@@ -1,2 +1,0 @@
-set ui "config_and_report"
-source ${genode_dir}/repos/gems/run/file_vault.inc

@@ -15,14 +15,9 @@
 #define _TYPES_H_
 
 /* Genode includes */
-#include <tresor/types.h>
-
-namespace Genode { }
+#include <include/file_vault/types.h>
 
 namespace File_vault {
-
-	using namespace Tresor;
-	using namespace Genode;
 
 	using Node_name = String<32>;
 	using File_path = String<32>;

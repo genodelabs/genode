@@ -1,15 +1,15 @@
-<runtime ram="220M" caps="2200" binary="init">
+<runtime ram="120M" caps="2000" binary="init">
 
 	<provides>
 		<file_system/>
 	</provides>
 
 	<requires>
-		<file_system label="data"         writeable="yes"/>
+		<file_system label="data" writeable="yes"/>
 		<file_system label="trust_anchor" writeable="yes"/>
-		<file_system label="fonts"        writeable="no"/>
-		<rm/>
+		<file_system label="fonts" writeable="yes"/>
 		<gui/>
+		<rm/>
 		<timer/>
 	</requires>
 
@@ -18,10 +18,8 @@
 		<rom label="ld.lib.so"/>
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
-		<rom label="libpng.lib.so"/>
 		<rom label="zlib.lib.so"/>
 		<rom label="fs_query"/>
-		<rom label="menu_view"/>
 		<rom label="vfs"/>
 		<rom label="vfs.lib.so"/>
 		<rom label="vfs_block"/>
@@ -43,7 +41,11 @@
 		<rom label="file_vault"/>
 		<rom label="file_vault-sync_to_tresor_vfs_init"/>
 		<rom label="file_vault-truncate_file"/>
+		<rom label="file_vault_gui"/>
+		<rom label="report_rom"/>
+		<rom label="menu_view"/>
 		<rom label="menu_view_styles.tar"/>
+		<rom label="libpng.lib.so"/>
 	</content>
 
 	<config>
@@ -65,35 +67,61 @@
 			</default-policy>
 		</service>
 
-		<start name="file_vault" caps="2000">
-			<resource name="RAM" quantum="200M"/>
+		<start name="report_rom" caps="100">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> <service name="ROM"/> </provides>
+			<config>
+				<policy label="gui -> ui_report" report="file_vault -> ui_report"/>
+				<policy label="file_vault -> ui_config" report="gui -> ui_config"/>
+			</config>
+			<route>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="file_vault" caps="1200">
+			<resource name="RAM" quantum="100M"/>
 			<provides>
 				<service name="File_system"/>
 			</provides>
-			<config user_interface="menu_view">
-				<vfs>
-					<dir name="tresor">
-						<fs label="tresor"/>
-					</dir>
-				</vfs>
+			<config>
+				<vfs> <dir name="tresor"> <fs label="tresor"/> </dir> </vfs>
 			</config>
 			<route>
+				<service name="ROM" label="ui_config"> <child name="report_rom"/> </service>
+				<service name="Report" label="ui_report"> <child name="report_rom"/> </service>
 				<service name="File_system" label="tresor_trust_anchor_vfs -> storage_dir"> <parent label="trust_anchor"/> </service>
-				<service name="File_system" label="vfs_block -> ">                          <parent label="data"/> </service>
-				<service name="File_system" label="tresor_init -> ">                        <parent label="data"/> </service>
-				<service name="File_system" label="tresor">                                 <parent label="data"/> </service>
-				<service name="File_system" label="fs_query -> ">                           <parent label="data"/> </service>
-				<service name="File_system" label="image_fs_query -> ">                     <parent label="data"/> </service>
-				<service name="File_system" label="tresor_vfs -> tresor_fs">                <parent label="data"/> </service>
-				<service name="File_system" label="truncate_file -> tresor">                <parent label="data"/> </service>
-				<service name="File_system" label="menu_view -> fonts">                     <parent label="fonts"/> </service>
-				<service name="Timer">                                                      <parent/> </service>
-				<service name="Gui">                                                        <parent/> </service>
-				<service name="PD">                                                         <parent/> </service>
-				<service name="ROM">                                                        <parent/> </service>
-				<service name="CPU">                                                        <parent/> </service>
-				<service name="LOG">                                                        <parent/> </service>
-				<service name="RM">                                                         <parent/> </service>
+				<service name="File_system" label="tresor_init -> "> <parent label="data"/> </service>
+				<service name="File_system" label="tresor"> <parent label="data"/> </service>
+				<service name="File_system" label="image_fs_query -> "> <parent label="data"/> </service>
+				<service name="File_system" label="tresor_vfs -> tresor_fs"> <parent label="data"/> </service>
+				<service name="File_system" label="truncate_file -> tresor"> <parent label="data"/> </service>
+				<service name="Timer"> <parent/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="RM"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="gui" caps="400">
+			<binary name="file_vault_gui"/>
+			<resource name="RAM" quantum="8M"/>
+			<route>
+				<service name="ROM" label="ui_report"> <child name="report_rom"/> </service>
+				<service name="Report" label="ui_config"> <child name="report_rom"/> </service>
+				<service name="File_system" label_last="fonts"> <parent label="fonts"/> </service>
+				<service name="Gui"> <parent/> </service>
+				<service name="Timer"> <parent/> </service>
+				<service name="PD"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="LOG"> <parent/> </service>
+				<service name="RM"> <parent/> </service>
 			</route>
 		</start>
 

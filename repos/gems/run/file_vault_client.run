@@ -372,7 +372,7 @@ append config {
 			<provides>
 				<service name="File_system"/>
 			</provides>
-			<config user_interface="config_and_report" jitterentropy_available="} [jent_avail_attr] {">
+			<config jitterentropy_available="} [jent_avail_attr] {">
 				<vfs>
 					<dir name="tresor">
 						<fs label="tresor"/>
@@ -437,7 +437,7 @@ lappend_if [have_board linux] boot_modules [file tail [lx_fs_dir]]
 build_boot_image $boot_modules
 
 append qemu_args " -display none "
-run_genode_until "<ui_report version=\"step_3_lock\" state=\"locked\"/>.*\n" 100
+run_genode_until "<ui_report version=\"step_3_lock\" state=\"locked\".*\n" 100
 
 grep_output {\[init -> dynamic_init -> log_terminal\].*}
 
