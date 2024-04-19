@@ -2201,7 +2201,7 @@ void Sculpt::Main::_handle_runtime_state(Xml_node const &state)
 
 	/* power-management features depend on optional acpi_support subsystem */
 	{
-		bool const acpi_support = _runtime_state.present_in_runtime("acpi_support");
+		bool const acpi_support = _cached_runtime_config.present_in_runtime("acpi_support");
 		Power_features const orig_power_features = _power_features;
 		_power_features.poweroff = acpi_support;
 		_power_features.suspend  = acpi_support && _drivers.suspend_supported();;

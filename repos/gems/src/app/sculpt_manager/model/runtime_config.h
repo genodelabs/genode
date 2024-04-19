@@ -382,6 +382,15 @@ class Sculpt::Runtime_config
 			);
 		}
 
+		bool present_in_runtime(Start_name const &name) const
+		{
+			bool result = false;
+			_components.for_each([&] (Component const &component) {
+				if (component.name == name)
+					result = true; });
+			return result;
+		}
+
 		void with_start_name(Dialog::Id const &id, auto const &fn) const
 		{
 			_components.for_each([&] (Component const &component) {
