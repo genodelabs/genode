@@ -110,31 +110,22 @@ append config {
 		<start name="dynamic_rom" caps="100">
 			<resource name="RAM" quantum="4M"/>
 			<provides><service name="ROM"/> </provides>
-			<config>
+			<config verbose="yes">
 				<rom name="file_vault_ui_config">
-					<inline>
-
-						<ui_config version="step_1_wait"/>
-
-					</inline>
+					<inline> <ui_config/> </inline>
 					<sleep milliseconds="3000"/>
 					<inline>}
 
 if {[container_initialized]} { append config "
-						<ui_config version=\"step_2_unlock\" passphrase=\"[passphrase]\"/>"
+						<ui_config passphrase=\"[passphrase]\"/>"
 } else { append config "
-						<ui_config version=\"step_2_init\" passphrase=\"[passphrase]\" client_fs_size=\"1M\" journaling_buf_size=\"1M\"/>"
+						<ui_config passphrase=\"[passphrase]\" client_fs_size=\"1M\" journaling_buf_size=\"1M\"/>"
 }
 append config {
 					</inline>
 					<sleep milliseconds="50000"/>
-					<inline>
-
-						<ui_config version="step_3_lock"/>
-
-					</inline>
+					<inline> <ui_config/> </inline>
 					<sleep milliseconds="3600000"/>
-
 				</rom>
 
 				<rom name="dynamic_init_config">
@@ -437,7 +428,7 @@ lappend_if [have_board linux] boot_modules [file tail [lx_fs_dir]]
 build_boot_image $boot_modules
 
 append qemu_args " -display none "
-run_genode_until "<ui_report version=\"step_3_lock\" state=\"locked\".*\n" 100
+run_genode_until "child \"bash\" exited with exit value 0.*\n" 100
 
 grep_output {\[init -> dynamic_init -> log_terminal\].*}
 

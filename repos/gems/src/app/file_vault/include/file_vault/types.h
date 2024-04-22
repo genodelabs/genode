@@ -44,8 +44,6 @@ namespace File_vault {
 			fn(); });
 	}
 
-	using Version_string = String<80>;
-
 	inline size_t min_journal_buf(Number_of_bytes capacity)
 	{
 		size_t result { (size_t)capacity >> 8 };
@@ -122,7 +120,6 @@ namespace File_vault {
 		};
 
 		State state { INVALID };
-		Version_string version { };
 		Number_of_bytes image_size { };
 		Number_of_bytes capacity { };
 		Number_of_clients num_clients { };
@@ -134,7 +131,6 @@ namespace File_vault {
 		Ui_report(Xml_node const &node)
 		:
 			state(string_to_state(node.attribute_value("state", State_string()))),
-			version(node.attribute_value("version", Version_string())),
 			image_size(node.attribute_value("image_size", Number_of_bytes())),
 			capacity(node.attribute_value("capacity", Number_of_bytes())),
 			num_clients(node.attribute_value("num_clients", 0ULL))
@@ -146,7 +142,6 @@ namespace File_vault {
 		void generate(Xml_generator &xml)
 		{
 			xml.attribute("state", state_to_string(state));
-			xml.attribute("version", version);
 			xml.attribute("image_size", image_size);
 			xml.attribute("capacity", capacity);
 			xml.attribute("num_clients", num_clients.value);
@@ -212,7 +207,6 @@ namespace File_vault {
 			void generate(Xml_generator &xml) { xml.attribute("id", id.value); }
 		};
 
-		Version_string version { };
 		Passphrase passphrase { };
 		Number_of_bytes client_fs_size { };
 		Number_of_bytes journaling_buf_size { };
@@ -221,7 +215,6 @@ namespace File_vault {
 
 		Ui_config(Xml_node const &node)
 		:
-			version(node.attribute_value("version", Version_string())),
 			passphrase(node.attribute_value("passphrase", Passphrase())),
 			client_fs_size(node.attribute_value("client_fs_size", Number_of_bytes())),
 			journaling_buf_size(node.attribute_value("journaling_buf_size", Number_of_bytes()))

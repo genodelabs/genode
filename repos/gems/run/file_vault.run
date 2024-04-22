@@ -72,47 +72,20 @@ append config {
 		<start name="dynamic_rom" caps="100">
 			<resource name="RAM" quantum="4M"/>
 			<provides><service name="ROM"/> </provides>
-			<config verbose="no">
+			<config verbose="yes">
 				<rom name="file_vault_ui_config">
-					<inline>
-
-						<ui_config version="step_1_wait"/>
-
-					</inline>
+					<inline> <ui_config/> </inline>
 					<sleep milliseconds="6000"/>
-					<inline>
-
-						<ui_config version="step_2_init" passphrase="abcdefgh"
-						                                 client_fs_size="1M"
-						                                 journaling_buf_size="1M"/>
-
-					</inline>
+					<inline> <ui_config passphrase="abcdefgh" client_fs_size="1M" journaling_buf_size="1M"/> </inline>
 					<sleep milliseconds="10000"/>
-					<inline>
-
-						<ui_config version="step_3_lock"/>
-
-					</inline>
+					<inline> <ui_config/> </inline>
 					<sleep milliseconds="6000"/>
-					<inline>
-
-						<ui_config version="step_4_bad_unlock" passphrase="00000001"/>
-
-					</inline>
+					<inline> <ui_config passphrase="00000001"/> </inline>
 					<sleep milliseconds="6000"/>
-					<inline>
-
-						<ui_config version="step_5_wait"/>
-
-					</inline>
+					<inline> <ui_config/> </inline>
 					<sleep milliseconds="6000"/>
-					<inline>
-
-						<ui_config version="step_6_unlock" passphrase="abcdefgh"/>
-
-					</inline>
+					<inline> <ui_config passphrase="abcdefgh"/> </inline>
 					<sleep milliseconds="600000"/>
-
 				</rom>
 			</config>
 			<route>

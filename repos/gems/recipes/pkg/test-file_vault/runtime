@@ -6,11 +6,11 @@
 
 	<fail after_seconds="70"/>
 	<succeed>
-			&lt;ui_report version="step_*" state="uninitialized"*
-			&lt;ui_report version="step_*" state="initializing"*
-			&lt;ui_report version="step_*" state="unlocked"*
-			&lt;ui_report version="step_*" state="locked"*
-			&lt;ui_report version="step_*" state="unlocked"*
+			&lt;ui_report state="uninitialized"*
+			&lt;ui_report state="initializing"*
+			&lt;ui_report state="unlocked"*
+			&lt;ui_report state="locked"*
+			&lt;ui_report state="unlocked"*
 	</succeed>
 
 	<content>
@@ -40,43 +40,18 @@
 			<provides><service name="ROM"/> </provides>
 			<config verbose="no">
 				<rom name="file_vault_ui_config">
-					<inline>
-
-						<ui_config version="step_1_wait"/>
-
-					</inline>
+					<inline> <ui_config/> </inline>
 					<sleep milliseconds="6000"/>
-					<inline>
-
-						<ui_config version="step_2_init" passphrase="abcdefgh" client_fs_size="1M" journaling_buf_size="1M"/>
-
-					</inline>
+					<inline> <ui_config passphrase="abcdefgh" client_fs_size="1M" journaling_buf_size="1M"/> </inline>
 					<sleep milliseconds="10000"/>
-					<inline>
-
-						<ui_config version="step_3_lock"/>
-
-					</inline>
+					<inline> <ui_config/> </inline>
 					<sleep milliseconds="6000"/>
-					<inline>
-
-						<ui_config version="step_4_bad_unlock" passphrase="00000001"/>
-
-					</inline>
+					<inline> <ui_config passphrase="00000001"/> </inline>
 					<sleep milliseconds="6000"/>
-					<inline>
-
-						<ui_config version="step_5_wait"/>
-
-					</inline>
+					<inline> <ui_config/> </inline>
 					<sleep milliseconds="6000"/>
-					<inline>
-
-						<ui_config version="step_6_unlock" passphrase="abcdefgh"/>
-
-					</inline>
+					<inline> <ui_config passphrase="abcdefgh"/> </inline>
 					<sleep milliseconds="600000"/>
-
 				</rom>
 			</config>
 			<route>
