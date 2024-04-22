@@ -209,6 +209,7 @@ struct Sculpt::Main : Input_event_handler,
 		.usb   = false,
 		.mmc   = false,
 		.modem = false, /* depends on presence of battery */
+		.nic   = false,
 	};
 
 	Drivers _drivers { _env, _child_states, *this, *this };

@@ -47,7 +47,7 @@ struct Sculpt::Nic_driver : private Noncopyable
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		bool const use_nic = board_info.detected.nic
+		bool const use_nic = (board_info.detected.nic || board_info.soc.nic)
 		                 &&  board_info.options.nic
 		                 && !board_info.options.suspending;
 

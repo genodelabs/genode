@@ -93,7 +93,7 @@ struct Sculpt::Board_info
 	 */
 	struct Soc
 	{
-		bool fb, touch, wifi, usb, mmc, modem;
+		bool fb, touch, wifi, usb, mmc, modem, nic;
 
 		bool operator != (Soc const &other) const
 		{

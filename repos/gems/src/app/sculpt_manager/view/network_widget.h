@@ -60,7 +60,7 @@ struct Sculpt::Network_widget : Widget<Frame>
 				s.widget(_local, selected);
 
 			if (target.managed() || target.manual_type == Nic_target::WIRED)
-				if (board_info.detected.nic)
+				if (board_info.detected.nic || board_info.soc.nic)
 					s.widget(_wired, selected);
 
 			if (target.managed() || target.manual_type == Nic_target::WIFI)
