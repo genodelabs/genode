@@ -16,6 +16,7 @@
 #include <capture_session/capture_session.h>
 #include <event_session/event_session.h>
 #include <gpu_session/gpu_session.h>
+#include <i2c_session/i2c_session.h>
 #include <io_port_session/io_port_session.h>
 #include <pin_control_session/pin_control_session.h>
 #include <pin_state_session/pin_state_session.h>

@@ -182,10 +182,17 @@ proc driver_routes { } {
 	}
 
 	set result(mnt_reform2) {
+		<service name="ROM" label="fb_drv">            <parent label="imx8mq_fb_drv"/> </service>
+		<service name="ROM" label="fb_drv.dtb">        <parent label="imx8mq_fb_drv-mnt_reform2.dtb"/> </service>
+		<service name="ROM" label="mmc_drv">           <parent label="imx8mq_sd_card_drv"/> </service>
+		<service name="ROM" label="mmc_drv.dtb">       <parent label="imx8mq_sd_card_drv-mnt_reform2.dtb"/> </service>
 		<service name="ROM" label="nic_drv">           <parent label="fec_nic_drv"/> </service>
 		<service name="ROM" label="nic_drv.dtb">       <parent label="fec_nic_drv-mnt_reform2.dtb"/> </service>
+		<service name="ROM" label="usb_drv">           <parent label="imx8mq_usb_host_drv"/> </service>
+		<service name="ROM" label="usb_drv.dtb">       <parent label="imx8mq_usb_host_drv-mnt_reform2.dtb"/> </service>
 		<service name="ROM" label="wifi.lib.so">       <parent label="imx8mq_wifi.lib.so"/> </service>
 		<service name="ROM" label="wifi_firmware.tar"> <parent label="imx8mq_wifi_firmware.tar"/> </service>
+		<service name="I2c"> <child name="drivers"/> </service>
 	}
 
 	set result(imx8q_evk) {
@@ -446,6 +453,7 @@ install_config {
 			<service name="Platform"/>
 			<service name="Pin_state"/>
 			<service name="Pin_control"/>
+			<service name="I2c"/>
 			<service name="IRQ"/>
 		</provides>
 	</start>

@@ -27,7 +27,7 @@ struct Sculpt::Service
 
 	enum class Type {
 		AUDIO_IN, AUDIO_OUT, BLOCK, EVENT, CAPTURE, FILE_SYSTEM, NIC, GUI, GPU,
-		RM, IO_MEM, IO_PORT, IRQ, REPORT, ROM, TERMINAL, TRACE, USB, RTC,
+		RM, IO_MEM, IO_PORT, IRQ, REPORT, ROM, TERMINAL, TRACE, USB, RTC, I2C,
 		PLATFORM, PIN_STATE, PIN_CONTROL, VM, PD, UPLINK, PLAY, RECORD, UNDEFINED };
 
 	enum class Match_label { EXACT, LAST };
@@ -55,6 +55,7 @@ struct Sculpt::Service
 		case Type::GUI:         return "Gui";
 		case Type::GPU:         return "Gpu";
 		case Type::RM:          return "RM";
+		case Type::I2C:         return "I2C";
 		case Type::IO_MEM:      return "IO_MEM";
 		case Type::IO_PORT:     return "IO_PORT";
 		case Type::IRQ:         return "IRQ";

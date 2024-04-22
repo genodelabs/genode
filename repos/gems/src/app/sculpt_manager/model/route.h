@@ -41,6 +41,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::GUI:         return "gui";
 		case Service::Type::GPU:         return "gpu";
 		case Service::Type::RM:          return "rm";
+		case Service::Type::I2C:         return "i2c";
 		case Service::Type::IO_MEM:      return "io_mem";
 		case Service::Type::IO_PORT:     return "io_port";
 		case Service::Type::IRQ:         return "irq";
@@ -76,6 +77,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::GUI:         return "GUI";
 		case Service::Type::GPU:         return "GPU";
 		case Service::Type::RM:          return "Region maps";
+		case Service::Type::I2C:         return "I2C";
 		case Service::Type::IO_MEM:      return "Direct memory-mapped I/O";
 		case Service::Type::IO_PORT:     return "Direct port I/O";
 		case Service::Type::IRQ:         return "Direct device interrupts";

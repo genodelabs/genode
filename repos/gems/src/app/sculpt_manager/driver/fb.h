@@ -99,6 +99,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>   (xml);
 				gen_parent_route<Pin_control::Session>(xml);
+				gen_parent_route<I2c::Session>(xml);
 				gen_capture_route(xml);
 				gen_parent_rom_route(xml, "fb_drv");
 				gen_parent_rom_route(xml, "config", "config -> fb_drv");

@@ -21,6 +21,7 @@
 #include <vm_session/vm_session.h>
 #include <timer_session/connection.h>
 #include <io_port_session/io_port_session.h>
+#include <i2c_session/i2c_session.h>
 #include <event_session/event_session.h>
 #include <capture_session/capture_session.h>
 #include <gpu_session/gpu_session.h>
@@ -85,6 +86,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Build_info const _build_info =
 		Build_info::from_xml(Attached_rom_dataspace(_env, "build_info").xml());
+
+	bool const _mnt_reform = (_build_info.board == "mnt_reform2");
 
 	Registry<Child_state> _child_states { };
 
@@ -277,11 +280,28 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Device discovery **
 	 **********************/
 
+	Board_info::Soc _soc {
+		.fb    = _mnt_reform,
+		.touch = false,
+		.wifi  = false, /* initialized via PCI */
+		.usb   = _mnt_reform,
+		.mmc   = _mnt_reform,
+		.modem = false,
+		.nic   = _mnt_reform,
+	};
+
 	Drivers _drivers { _env, _child_states, *this, *this };
 
 	Drivers::Resumed _resumed = _drivers.resumed();
 
-	Board_info::Options _driver_options { };
+	Board_info::Options _driver_options {
+		.display = _mnt_reform,
+		.usb_net = false,
+		.nic     = false,
+		.wifi    = false,
+		.suppress {},
+		.suspending = false,
+	};
 
 	/**
 	 * Drivers::Action
@@ -1626,6 +1646,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Main(Env &env) : _env(env)
 	{
+		_drivers.update_soc(_soc);
 		_gui.input()->sigh(_input_handler);
 		_gui.mode_sigh(_gui_mode_handler);
 		_handle_gui_mode();
@@ -2263,6 +2284,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		gen_parent_service<Gpu::Session>(xml);
 		gen_parent_service<Pin_state::Session>(xml);
 		gen_parent_service<Pin_control::Session>(xml);
+		gen_parent_service<I2c::Session>(xml);
 		gen_parent_service<Terminal::Session>(xml);
 	});
 
