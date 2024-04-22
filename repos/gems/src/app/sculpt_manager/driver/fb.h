@@ -116,17 +116,19 @@ struct Sculpt::Fb_driver : private Noncopyable
 	{
 		bool const suspending  = board_info.options.suspending;
 
-		bool const use_intel   =  board_info.detected.intel_gfx
-		                      && !board_info.options.suppress.intel_gpu
-		                      && !suspending;
-		bool const use_boot_fb = !use_intel && !suspending && board_info.detected.boot_fb;
-		bool const use_vesa    = !use_boot_fb && !use_intel && !suspending && board_info.detected.vga;
+		bool const use_intel_gpu =  board_info.detected.intel_gfx &&
+		                           !board_info.options.suppress.intel_gpu;
+		bool const use_intel_fb  =  use_intel_gpu && !suspending;
+		bool const use_boot_fb   = !use_intel_fb  && !suspending &&
+		                            board_info.detected.boot_fb;
+		bool const use_vesa      = !use_intel_fb  && !suspending &&
+		                            board_info.detected.vga && !use_boot_fb;
 
-		_intel_gpu.conditional(use_intel,
+		_intel_gpu.conditional(use_intel_gpu,
 		                       registry, "intel_gpu", Priority::MULTIMEDIA,
 		                       Ram_quota { 32*1024*1024 }, Cap_quota { 1400 });
 
-		_intel_fb.conditional(use_intel,
+		_intel_fb.conditional(use_intel_fb,
 		                      registry, "intel_fb", Priority::MULTIMEDIA,
 		                      Ram_quota { 16*1024*1024 }, Cap_quota { 800 });
 
