@@ -23,7 +23,7 @@ struct Sculpt::System_state : private Noncopyable
 {
 	enum State {
 		RUNNING,
-		DRIVERS_STOPPING, ACPI_SUSPENDING, SUSPENDED, ACPI_RESUMING,
+		BLANKING, DRIVERS_STOPPING, ACPI_SUSPENDING, SUSPENDED, ACPI_RESUMING,
 		POWERED_OFF, RESET
 	};
 
@@ -33,6 +33,7 @@ struct Sculpt::System_state : private Noncopyable
 	{
 		auto value = node.attribute_value("state", String<64>());
 
+		if (value == "blanking")    return State::BLANKING;
 		if (value == "driver_stop") return State::DRIVERS_STOPPING;
 		if (value == "s3_prepare")  return State::ACPI_SUSPENDING;
 		if (value == "suspend")     return State::SUSPENDED;
@@ -47,6 +48,7 @@ struct Sculpt::System_state : private Noncopyable
 	{
 		switch (state) {
 		case RUNNING:          break;
+		case BLANKING:         return "blanking";
 		case DRIVERS_STOPPING: return "driver_stop";
 		case ACPI_SUSPENDING:  return "s3_prepare";
 		case SUSPENDED:        return "suspend";
