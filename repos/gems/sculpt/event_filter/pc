@@ -31,8 +31,8 @@
 				<rom name="capslock"/>
 			</mod4>
 			<repeat delay_ms="230" rate_ms="40"/>
-			<include rom="en_us.chargen"/>
-			<include rom="special.chargen"/>
+			<include rom="keyboard/en_us"/>
+			<include rom="keyboard/special"/>
 		</chargen>
 	</output>
 	<policy label="runtime -> ps2"     input="ps2"/>
