@@ -2414,11 +2414,8 @@ void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 						});
 					});
 
-					xml.node("touch-click", [&] {
-						gen_input("touch"); });
-
 					gen_input("usb");
-					gen_input("touch");
+					gen_input("touchpad");
 					gen_input("sdl");
 				});
 			});
@@ -2459,10 +2456,10 @@ void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 			xml.attribute("label", label);
 			xml.attribute("input", input); }); };
 
-	gen_policy("runtime -> ps2",     "ps2");
-	gen_policy("runtime -> usb_hid", "usb");
-	gen_policy("drivers -> touch",   "touch");
-	gen_policy("drivers -> sdl",     "sdl");
+	gen_policy("runtime -> ps2",      "ps2");
+	gen_policy("runtime -> usb_hid",  "usb");
+	gen_policy("runtime -> touchpad", "touchpad");
+	gen_policy("drivers -> sdl",      "sdl");
 }
 
 
