@@ -1853,10 +1853,11 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 		auto sanitize_scroll_position = [&] (Area const &win_size, int &scroll_ypos)
 		{
-			if (win_size.h() > avail.h()) {
-				int const out_of_view_h = win_size.h() - avail.h();
+			unsigned const inspect_h = unsigned(inspect_p2.y() - inspect_p1.y() + 1);
+			if (win_size.h() > inspect_h) {
+				int const out_of_view_h = win_size.h() - inspect_h;
 				scroll_ypos = max(scroll_ypos, -out_of_view_h);
-				scroll_ypos = min(scroll_ypos,  out_of_view_h);
+				scroll_ypos = min(scroll_ypos, 0);
 			} else
 				scroll_ypos = 0;
 		};
@@ -1870,9 +1871,14 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			Area const size = win_size(win);
 			Rect const inspect(inspect_p1, inspect_p2);
 
-			sanitize_scroll_position(size, _graph_scroll_ypos);
-
-			runtime_view_pos = inspect.center(size) + Point(0, _graph_scroll_ypos);
+			/* center graph if there is enough space, scroll otherwise */
+			if (size.h() < inspect.h()) {
+				runtime_view_pos = inspect.center(size);
+			} else {
+				sanitize_scroll_position(size, _graph_scroll_ypos);
+				runtime_view_pos = { inspect.center(size).x(),
+				                     int(panel.h()) + _graph_scroll_ypos };
+			}
 		});
 
 		if (_popup.state == Popup::VISIBLE) {
@@ -1891,7 +1897,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 						return max((int)panel_height, abs_anchor_y - (int)size.h()/2);
 					} else {
 						sanitize_scroll_position(size, _popup_scroll_ypos);
-						return _popup_scroll_ypos;
+						return int(panel.h()) + _popup_scroll_ypos;
 					}
 				};
 				gen_window(win, Rect(Point(x, y()), size));
