@@ -36,7 +36,7 @@ struct Sculpt::System_power_widget : Widget<Vbox>
 		}
 	};
 
-	enum class Option { UNKNOWN, SUSPEND, REBOOT, OFF };
+	enum class Option { UNKNOWN, STANDBY, REBOOT, OFF };
 
 	Option _selected_option { Option::UNKNOWN };
 
@@ -96,7 +96,7 @@ struct Sculpt::System_power_widget : Widget<Vbox>
 		};
 
 		Hosted<Float, Frame, Vbox, Entry>
-			_suspend     { Id { "Suspend"         }, Option::SUSPEND },
+			_suspend     { Id { "Standby"         }, Option::STANDBY },
 			_reboot      { Id { "Hard reboot"     }, Option::REBOOT  },
 			_off         { Id { "Hard power down" }, Option::OFF     };
 
@@ -152,7 +152,7 @@ struct Sculpt::System_power_widget : Widget<Vbox>
 	{
 		_power_options.propagate(at, [&] (Option const confirmed) {
 
-			if (confirmed == Option::SUSPEND) action.trigger_suspend();
+			if (confirmed == Option::STANDBY) action.trigger_suspend();
 			if (confirmed == Option::REBOOT)  action.trigger_reboot();
 			if (confirmed == Option::OFF)     action.trigger_power_off();
 		});
