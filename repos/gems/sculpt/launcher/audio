@@ -1,7 +1,7 @@
 <launcher pkg="bsd_audio_drv" priority="0">
-	<config report="yes" record_play="yes">
+	<config report_mixer="yes" record_play="yes">
 		<!-- value range [0,255] -->
-		<mixer field="outputs.master" value="160"/>
+		<mixer field="outputs.master" value="255"/>
 
 		<!-- look into mixer report for source selection -->
 		<mixer field="record.enable"         value="on"/>
