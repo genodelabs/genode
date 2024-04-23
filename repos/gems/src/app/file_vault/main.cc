@@ -162,8 +162,8 @@ struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 	bool jent_avail { config_rom.xml().attribute_value("jitterentropy_available", true) };
 	Root_directory vfs { env, heap, config_rom.xml().sub_node("vfs") };
 	Registry<Child_state> children { };
-	Child_state mke2fs { children, "mke2fs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 500 } };
-	Child_state resize2fs { children, "resize2fs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 500 } };
+	Child_state mke2fs { children, "mke2fs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 300 } };
+	Child_state resize2fs { children, "resize2fs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 300 } };
 	Child_state tresor_vfs { children, "tresor_vfs", "vfs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 200 } };
 	Child_state tresor_trust_anchor_vfs { children, "tresor_trust_anchor_vfs", "vfs", Ram_quota { 4 * 1024 * 1024 }, Cap_quota { 200 } };
 	Child_state rump_vfs { children, "rump_vfs", "vfs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 200 } };

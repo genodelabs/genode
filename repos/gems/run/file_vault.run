@@ -194,8 +194,8 @@ append_if [expr ![have_board linux]] config {
 
 append config {
 
-		<start name="file_vault" caps="2000">
-			<resource name="RAM" quantum="200M"/>
+		<start name="file_vault" caps="1000">
+			<resource name="RAM" quantum="80M"/>
 			<config jitterentropy_available="} [jent_avail_attr] {">
 				<vfs>
 					<dir name="tresor">
