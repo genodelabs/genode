@@ -52,11 +52,7 @@
 		</route>
 	</start>
 
-	<start name="sntp_dummy_rtc" pkg="sntp_dummy_rtc">
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-		</route>
-	</start>
+	<start name="system_clock"/>
 
 	<start name="mesa_gpu-intel" priority="-2" pkg="mesa_gpu-intel">
 		<route>
@@ -64,16 +60,16 @@
 		</route>
 	</start>
 
-	<start name="fs_rom" priority="-2" pkg="jschlatow/pkg/fs_rom/2023-10-24">
+	<start name="fs_rom" priority="-2" pkg="jschlatow/pkg/fs_rom/2024-04-11">
 		<route>
 			<service name="File_system"> <parent label="report"/> </service>
 		</route>
 	</start>
 
-	<start name="system_info" pkg="jschlatow/pkg/system_info/2024-01-04-a" priority="-2">
+	<start name="system_info" pkg="jschlatow/pkg/system_info/2024-04-22" priority="-2">
 		<route>
 			<service name="Gui"> <parent label="backdrop"/> </service>
-			<service name="Rtc"> <child name="sntp_dummy_rtc"/> </service>
+			<service name="Rtc"> <child name="system_clock"/> </service>
 			<service name="ROM" label="drivers/iommu"> <child name="fs_rom"/> </service>
 			<service name="ROM" label="runtime/nic_router/state"> <child name="fs_rom"/> </service>
 		</route>
@@ -93,13 +89,13 @@
 		</config>
 	</start>
 
-	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2024-01-03" priority="-2">
+	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2024-04-22" priority="-2">
 		<route>
 			<service name="TRACE">       <parent/> </service>
 			<service name="VM">          <parent/> </service>
 			<service name="Gpu">         <parent/> </service>
 			<service name="Gui">         <child name="wm"/>              </service>
-			<service name="Rtc">         <child name="sntp_dummy_rtc"/>  </service>
+			<service name="Rtc">         <child name="system_clock"/>    </service>
 			<service name="Audio_in">    <child name="black_hole"/>      </service>
 			<service name="Audio_out">   <child name="black_hole"/>      </service>
 			<service name="Usb">         <child name="black_hole"/>      </service>
