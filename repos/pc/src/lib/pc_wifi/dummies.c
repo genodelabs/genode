@@ -687,3 +687,54 @@ void iommu_device_unuse_default_domain(struct device * dev)
 {
 	lx_emul_trace(__func__);
 }
+
+
+#include <net/mac80211.h>
+
+const char * __ieee80211_create_tpt_led_trigger(struct ieee80211_hw * hw,unsigned int flags,const struct ieee80211_tpt_blink * blink_table,unsigned int blink_table_len)
+{
+	lx_emul_trace(__func__);
+	return NULL;
+}
+
+
+#include <net/mac80211.h>
+
+const char * __ieee80211_get_radio_led_name(struct ieee80211_hw * hw)
+{
+	lx_emul_trace(__func__);
+	return NULL;
+}
+
+
+#include <linux/leds.h>
+
+int led_classdev_register_ext(struct device * parent,struct led_classdev * led_cdev,struct led_init_data * init_data)
+{
+	lx_emul_trace(__func__);
+	return -1;
+}
+
+
+#include <linux/leds.h>
+
+void led_classdev_unregister(struct led_classdev * led_cdev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/leds.h>
+
+void led_trigger_blink_oneshot(struct led_trigger * trig,unsigned long * delay_on,unsigned long * delay_off,int invert)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/leds.h>
+
+void led_trigger_unregister(struct led_trigger * trig)
+{
+	lx_emul_trace(__func__);
+}

@@ -36,22 +36,6 @@ unsigned long __fdget(unsigned int fd)
 }
 
 
-#include <net/mac80211.h>
-
-const char * __ieee80211_create_tpt_led_trigger(struct ieee80211_hw * hw,unsigned int flags,const struct ieee80211_tpt_blink * blink_table,unsigned int blink_table_len)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <net/mac80211.h>
-
-const char * __ieee80211_get_radio_led_name(struct ieee80211_hw * hw)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/printk.h>
 
 void __printk_safe_enter(void)
@@ -701,38 +685,6 @@ void kmsg_dump(enum kmsg_dump_reason reason)
 #include <linux/kobject.h>
 
 int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/leds.h>
-
-int led_classdev_register_ext(struct device * parent,struct led_classdev * led_cdev,struct led_init_data * init_data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/leds.h>
-
-void led_classdev_unregister(struct led_classdev * led_cdev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/leds.h>
-
-void led_trigger_blink_oneshot(struct led_trigger * trig,unsigned long * delay_on,unsigned long * delay_off,int invert)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/leds.h>
-
-void led_trigger_unregister(struct led_trigger * trig)
 {
 	lx_emul_trace_and_stop(__func__);
 }
