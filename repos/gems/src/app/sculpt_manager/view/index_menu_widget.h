@@ -162,7 +162,7 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 
 		void one_level_back()
 		{
-			if (_menu.level() == 0)
+			if (_menu.level() > 0)
 				_menu._level--;
 
 			_reset_selection();
