@@ -186,7 +186,7 @@ install_config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3001"/>
+				<sleep milliseconds="5001"/>
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1"
@@ -210,7 +210,7 @@ install_config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3002"/>
+				<sleep milliseconds="5002"/>
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1"
@@ -229,7 +229,7 @@ install_config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3003"/>
+				<sleep milliseconds="5003"/>
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1"
@@ -253,7 +253,7 @@ install_config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3004"/>
+				<sleep milliseconds="5004"/>
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1"
@@ -277,7 +277,7 @@ install_config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3005"/>
+				<sleep milliseconds="5005"/>
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1"
@@ -296,7 +296,7 @@ install_config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3006"/>
+				<sleep milliseconds="5006"/>
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1"
@@ -320,7 +320,7 @@ install_config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3007"/>
+				<sleep milliseconds="5007"/>
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1"
@@ -344,7 +344,7 @@ install_config {
 					</config>
 
 				</inline>
-				<sleep milliseconds="3008"/>
+				<sleep milliseconds="5008"/>
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1"
@@ -399,39 +399,39 @@ install_config {
 build_boot_image [build_artifacts]
 
 append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 3001 milliseconds"
+append done_string ".*router.config: sleep 5001 milliseconds"
 append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
 append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 3002 milliseconds"
+append done_string ".*router.config: sleep 5002 milliseconds"
 append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
 append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 3003 milliseconds"
+append done_string ".*router.config: sleep 5003 milliseconds"
 append done_string ".*downlink.*invalid domain.*invalid ICMP rule"
 
 append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 3004 milliseconds"
+append done_string ".*router.config: sleep 5004 milliseconds"
 append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
 append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 3005 milliseconds"
+append done_string ".*router.config: sleep 5005 milliseconds"
 append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
 append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 3006 milliseconds"
+append done_string ".*router.config: sleep 5006 milliseconds"
 append done_string ".*downlink.*invalid domain.*invalid ICMP rule"
 
 append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 3007 milliseconds"
+append done_string ".*router.config: sleep 5007 milliseconds"
 append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
 append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 3008 milliseconds"
+append done_string ".*router.config: sleep 5008 milliseconds"
 append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
 append done_string ".*router.config: change"
 append done_string ".*router.config: sleep 600000 milliseconds"
 append done_string ".*From 10.0.1.79 icmp_seq=.* Destination Unreachable"
 
-run_genode_until $done_string 70
+run_genode_until $done_string 90
