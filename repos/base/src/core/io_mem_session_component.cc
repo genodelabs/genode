@@ -48,8 +48,28 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 		return Dataspace_attr();
 	}
 
+	/**
+	 * _Unfortunate_ workaround for Intel PCH GPIO device.
+	 *
+	 * The ported i2c_hid driver contains driver code for the "Intel
+	 * Tigerlake/Alderlake PCH pinctrl/GPIO" device. Unfortunately, acpica
+	 * driver also accesses the same device on Lid open/close via ACPI AML code
+	 * of the DSDT table to read out the state of a GPIO pin connected to the
+	 * notebook lid. This would fail as I/O memory is handed out only once and
+	 * cannot be shared. The workaround disables the region check for the
+	 * specified GPIO I/O memory regions and provides both drivers shared
+	 * access to the regions.
+	 *
+	 * This is a preliminary workaround. A general solution should separate the
+	 * GPIO driver into a component (e.g., platform driver) that regulates
+	 * accesses by i2c_hid and acpica.
+	 */
+	bool skip_iomem_check = (req_base == 0xfd6d0000ull && req_size == 4096) ||
+	                        (req_base == 0xfd6a0000ull && req_size == 4096) ||
+	                        (req_base == 0xfd6e0000ull && req_size == 4096);
+
 	/* allocate region */
-	if (_io_mem_alloc.alloc_addr(req_size, req_base).failed()) {
+	if (!skip_iomem_check && _io_mem_alloc.alloc_addr(req_size, req_base).failed()) {
 		error("I/O memory ", Hex_range<addr_t>(req_base, req_size), " not available");
 		return Dataspace_attr();
 	}
