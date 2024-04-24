@@ -134,6 +134,36 @@ void lx_emul_time_update_jiffies(void)
 }
 
 
+extern void update_wall_time(void);
+
+
+void lx_emul_time_update_jiffies_cpu_relax()
+{
+	/* based upon tick_do_update_jiffies64 in kernel/time/tick-sched.c */
+
+	ktime_t delta, now = ktime_get();
+
+	/* check if jiffies need an update */
+	if (ktime_before(now, tick_next_period))
+		return;
+
+	delta = ktime_sub(now, tick_next_period);
+
+	if (unlikely(delta >= TICK_NSEC)) {
+		/* Slow path for long idle sleep times */
+		s64 incr = TICK_NSEC;
+
+		ktime_t ticks = ktime_divns(delta, incr);
+
+		jiffies_64 += ticks;
+
+		tick_next_period = ktime_add_ns(tick_next_period, incr * ticks);
+
+		update_wall_time();
+	}
+}
+
+
 enum { LX_EMUL_MAX_OF_CLOCK_PROVIDERS = 256 };
 
 

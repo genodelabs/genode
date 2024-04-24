@@ -32,6 +32,8 @@ void lx_emul_time_update_jiffies(void);
 
 void lx_emul_time_initial(unsigned long long);
 
+void lx_emul_time_update_jiffies_cpu_relax(void);
+
 #ifdef __cplusplus
 }
 #endif
