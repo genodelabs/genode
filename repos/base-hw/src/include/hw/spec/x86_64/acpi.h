@@ -91,6 +91,9 @@ struct Hw::Acpi_fadt : Genode::Mmio<276>
 	struct Fw_ctrl      : Register <         0x24, 32> { };
 	struct Fw_ctrl_ext  : Register <FW_OFFSET_EXT, 64> { };
 
+	struct Smi_cmd     : Register<0x30, 32> { };
+	struct Acpi_enable : Register<0x34, 8> { };
+
 	struct Pm1a_cnt_blk : Register < 64, 32> {
 		struct Slp_typ : Bitfield < 10, 3> { };
 		struct Slp_ena : Bitfield < 13, 1> { };
@@ -175,6 +178,15 @@ struct Hw::Acpi_fadt : Genode::Mmio<276>
 	}
 
 	Acpi_fadt(Acpi_generic const * a) : Mmio({(char *)a, Mmio::SIZE}) { }
+
+	void takeover_acpi()
+	{
+		if (!read<Acpi_enable>() || !read<Smi_cmd>())
+			return;
+
+		asm volatile ("out %0, %w1" :: "a" (read<Acpi_enable>()),
+		              "Nd" (read<Smi_cmd>()));
+	}
 
 	addr_t facs() const
 	{

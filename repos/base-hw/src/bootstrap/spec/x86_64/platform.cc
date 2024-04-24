@@ -228,6 +228,8 @@ Bootstrap::Platform::Board::Board()
 					info.acpi_fadt = addr_t(table);
 
 					Hw::Acpi_fadt fadt(table);
+					fadt.takeover_acpi();
+
 					Hw::Acpi_facs facs(fadt.facs());
 					facs.wakeup_vector(AP_BOOT_CODE_PAGE);
 
