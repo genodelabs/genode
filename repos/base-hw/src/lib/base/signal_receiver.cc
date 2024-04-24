@@ -146,7 +146,7 @@ void Signal_receiver::block_for_signal()
 	if (!context->_pending) {
 		/* update signal context */
 		Mutex::Guard context_guard(context->_mutex);
-		unsigned const num    = context->_curr_signal.num + data->num;
+		unsigned const num    = data->num;
 		context->_pending     = true;
 		context->_curr_signal = Signal::Data(context, num);
 	}
