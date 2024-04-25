@@ -337,7 +337,7 @@ Using a persistent storage device
 The steps described above used an in-memory file system (ram fs) as target for
 Sculpt OS, which is a nice playground for experimentation but otherwise
 impractical for real-world use because all downloads and configurations
-vanish rebooting the system.
+vanish when rebooting the system.
 
 Sculpt OS supports USB storage, NVMe, and SATA (AHCI) as storage target. Only
 one target can be selected for use at a time. To select one of those targets for
