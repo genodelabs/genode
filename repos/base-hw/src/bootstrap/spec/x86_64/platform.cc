@@ -20,6 +20,7 @@
 #include <multiboot2.h>
 
 #include <hw/spec/x86_64/acpi.h>
+#include <hw/spec/x86_64/apic.h>
 
 using namespace Genode;
 
@@ -274,57 +275,28 @@ Bootstrap::Platform::Board::Board()
 }
 
 
-struct Lapic : Mmio<Hw::Cpu_memory_map::LAPIC_SIZE>
+static inline
+void ipi_to_all(Hw::Local_apic &lapic, unsigned const boot_frame,
+                Hw::Local_apic::Icr_low::Delivery_mode::Mode const mode)
 {
-	struct Svr : Register<0x0f0, 32>
-	{
-		struct APIC_enable : Bitfield<8, 1> { };
-	};
+	using Icr_low = Hw::Local_apic::Icr_low;
 
-	struct Icr_low : Register<0x300, 32>
-	{
-		struct Vector          : Bitfield< 0, 8> { };
-		struct Delivery_mode   : Bitfield< 8, 3>
-		{
-			enum Mode { INIT = 5, SIPI = 6 };
-		};
-		struct Delivery_status : Bitfield<12, 1> { };
-		struct Level_assert    : Bitfield<14, 1> { };
-		struct Dest_shorthand  : Bitfield<18, 2>
-		{
-			enum { ALL_OTHERS = 3 };
-		};
-	};
-
-	struct Icr_high : Register<0x310, 32>
-	{
-		struct Destination : Bitfield<24, 8> { };
-	};
-
-	Lapic(addr_t const addr) : Mmio({(char *)addr, Mmio::SIZE}) { }
-};
-
-
-static inline void ipi_to_all(Lapic &lapic, unsigned const boot_frame,
-                              Lapic::Icr_low::Delivery_mode::Mode const mode)
-{
 	/* wait until ready */
-	while (lapic.read<Lapic::Icr_low::Delivery_status>())
+	while (lapic.read<Icr_low::Delivery_status>())
 		asm volatile ("pause":::"memory");
 
 	unsigned const apic_cpu_id = 0; /* unused for IPI to all */
 
-	Lapic::Icr_low::access_t icr_low = 0;
-
-	Lapic::Icr_low::Vector::set(icr_low, boot_frame);
-	Lapic::Icr_low::Delivery_mode::set(icr_low, mode);
-	Lapic::Icr_low::Level_assert::set(icr_low);
-	Lapic::Icr_low::Level_assert::set(icr_low);
-	Lapic::Icr_low::Dest_shorthand::set(icr_low, Lapic::Icr_low::Dest_shorthand::ALL_OTHERS);
+	Icr_low::access_t icr_low = 0;
+	Icr_low::Vector::set(icr_low, boot_frame);
+	Icr_low::Delivery_mode::set(icr_low, mode);
+	Icr_low::Level_assert::set(icr_low);
+	Icr_low::Level_assert::set(icr_low);
+	Icr_low::Dest_shorthand::set(icr_low, Icr_low::Dest_shorthand::ALL_OTHERS);
 
 	/* program */
-	lapic.write<Lapic::Icr_high::Destination>(apic_cpu_id);
-	lapic.write<Lapic::Icr_low>(icr_low);
+	lapic.write<Hw::Local_apic::Icr_high::Destination>(apic_cpu_id);
+	lapic.write<Icr_low>(icr_low);
 }
 
 
@@ -356,11 +328,11 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Cpu::IA32_apic_base::Lapic::set(lapic_msr);
 	Cpu::IA32_apic_base::write(lapic_msr);
 
-	Lapic lapic(board.core_mmio.virt_addr(Hw::Cpu_memory_map::lapic_phys_base()));
+	Hw::Local_apic lapic(board.core_mmio.virt_addr(Hw::Cpu_memory_map::lapic_phys_base()));
 
 	/* enable local APIC if required */
-	if (!lapic.read<Lapic::Svr::APIC_enable>())
-		lapic.write<Lapic::Svr::APIC_enable>(true);
+	if (!lapic.read<Hw::Local_apic::Svr::APIC_enable>())
+		lapic.write<Hw::Local_apic::Svr::APIC_enable>(true);
 
 	/* reset assembly counter (crt0.s) by last booted CPU, required for resume */
 	if (__cpus_booted >= board.cpus)
@@ -377,12 +349,15 @@ unsigned Bootstrap::Platform::enable_mmu()
 	/* BSP - we're primary CPU - wake now all other CPUs */
 
 	/* see Intel Multiprocessor documentation - we need to do INIT-SIPI-SIPI */
-	ipi_to_all(lapic, 0 /* unused */, Lapic::Icr_low::Delivery_mode::INIT);
+	ipi_to_all(lapic, 0 /* unused */,
+	           Hw::Local_apic::Icr_low::Delivery_mode::INIT);
 	/* wait 10  ms - debates ongoing whether this is still required */
-	ipi_to_all(lapic, AP_BOOT_CODE_PAGE >> 12, Lapic::Icr_low::Delivery_mode::SIPI);
+	ipi_to_all(lapic, AP_BOOT_CODE_PAGE >> 12,
+	           Hw::Local_apic::Icr_low::Delivery_mode::SIPI);
 	/* wait 200 us - debates ongoing whether this is still required */
 	/* debates ongoing whether the second SIPI is still required */
-	ipi_to_all(lapic, AP_BOOT_CODE_PAGE >> 12, Lapic::Icr_low::Delivery_mode::SIPI);
+	ipi_to_all(lapic, AP_BOOT_CODE_PAGE >> 12,
+	           Hw::Local_apic::Icr_low::Delivery_mode::SIPI);
 
 	return (unsigned)cpu_id;
 }

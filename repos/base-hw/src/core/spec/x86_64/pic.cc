@@ -39,7 +39,7 @@ enum {
 Local_interrupt_controller::
 Local_interrupt_controller(Global_interrupt_controller &global_irq_ctrl)
 :
-	Mmio             { {(char *)Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()), Mmio::SIZE} },
+	Local_apic({Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base())}),
 	_global_irq_ctrl { global_irq_ctrl }
 {
 	init();

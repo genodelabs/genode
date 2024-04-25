@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <util/mmio.h>
+#include <hw/spec/x86_64/apic.h>
 #include <hw/spec/x86_64/x86_64.h>
 
 namespace Board {
@@ -148,42 +149,9 @@ class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_ma
 };
 
 
-class Board::Local_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_map::LAPIC_SIZE>
+class Board::Local_interrupt_controller : private Hw::Local_apic
 {
 	private:
-
-		/*
-		 * Registers
-		 */
-
-		struct Id  : Register<0x020, 32> { };
-		struct EOI : Register<0x0b0, 32, true> { };
-		struct Svr : Register<0x0f0, 32>
-		{
-			struct APIC_enable : Bitfield<8, 1> { };
-		};
-
-		/*
-		 * ISR register, see Intel SDM Vol. 3A, section 10.8.4.
-		 *
-		 * Each of the 8 32-bit ISR values is followed by 12 bytes of padding.
-		 */
-		struct Isr : Register_array<0x100, 32, 8 * 4, 32> { };
-
-		/*
-		 * Interrupt control register
-		 */
-		struct Icr_low  : Register<0x300, 32, true>
-		{
-			struct Vector          : Bitfield< 0, 8> { };
-			struct Delivery_status : Bitfield<12, 1> { };
-			struct Level_assert    : Bitfield<14, 1> { };
-		};
-
-		struct Icr_high : Register<0x310, 32, true>
-		{
-			struct Destination : Bitfield<24, 8> { };
-		};
 
 		Global_interrupt_controller &_global_irq_ctrl;
 
