@@ -1,0 +1,92 @@
+assert_spec linux
+
+set tshark [installed_command tshark]
+set trafgen [installed_command trafgen]
+set lx_fs_root "internet_checksum_dir"
+set lx_fs_dir "bin/$lx_fs_root"
+set input_file_name "input.pcap"
+set input_file "bin/$input_file_name"
+
+rename exit run_tool_exit
+proc exit {{code 0}} {
+	global lx_fs_dir
+	global input_file
+	if {[get_cmd_switch --autopilot]} { exec rm -rf $input_file $lx_fs_dir }
+	run_tool_exit $code
+}
+build { core init lib/ld lib/vfs test/internet_checksum server/lx_fs }
+create_boot_directory
+
+set seed ""
+if {[info exists ::env(SEED)]} {
+	set seed $::env(SEED)
+} else {
+	set min_seed 0
+	set max_seed [expr 2**32]
+	set seed [expr int($min_seed + floor(rand() * $max_seed))]
+}
+puts "\nUse script with SEED=$seed in order to get reproducible results\n"
+
+install_config {
+<config verbose="yes">
+
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+	</parent-provides>
+
+	<start name="lx_fs" ld="no" caps="100">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config> <policy label="test-internet_checksum -> " root="/} $lx_fs_root {" writeable="yes"/> </config>
+		<route> <any-service> <parent/> </any-service> </route>
+	</start>
+
+	<start name="test-internet_checksum" caps="100">
+		<resource name="RAM" quantum="1M"/>
+		<config seed="} $seed {"> <vfs> <fs/> </vfs> </config>
+		<route>
+			<service name="File_system"> <child name="lx_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config> }
+
+exec rm -rf $lx_fs_dir
+exec mkdir -p $lx_fs_dir
+exec $trafgen --rand --seed $seed --in [genode_dir]/repos/os/src/test/internet_checksum/trafgen.cfg --num 10000 --out $input_file
+
+proc assert_no_bad_checksums_in {pcap_file} {
+	global tshark
+	set view_filter "ip.checksum_bad.expert || tcp.checksum_bad.expert || udp.checksum.bad || icmp.checksum_bad"
+	set out "<invalid>"
+	set out [exec $tshark -o ip.check_checksum:TRUE -o tcp.check_checksum:TRUE -o udp.check_checksum:TRUE -Y "$view_filter" -r $pcap_file]
+	if {$out != ""} {
+		puts "\nError: bad checksums found in $pcap_file\n"
+		exit -1
+	}
+}
+assert_no_bad_checksums_in $input_file
+build_boot_image [list {*}[build_artifacts] $lx_fs_root $input_file_name]
+append qemu_args " -nographic "
+run_genode_until {\[init\] child "test-internet_checksum" exited.*?\n} 30
+
+set output_file "$lx_fs_dir/output.pcap"
+assert_no_bad_checksums_in $output_file
+set num_checked_checksums ""
+set string_buf ""
+regexp {checked [0-9]+ checksums} $output string_buf
+regexp {[0-9]+} $string_buf num_checked_checksums
+
+set tmp_file "$lx_fs_dir/tmp"
+exec $tshark -o ip.check_checksum:TRUE -o tcp.check_checksum:TRUE -o udp.check_checksum:TRUE -V -r $output_file | grep -e "Checksum Status:" -e "Header checksum status:" > $tmp_file
+set num_output_checksums [exec wc -l < $tmp_file]
+if {$num_checked_checksums != $num_output_checksums} {
+	puts "\nError: number of checksums in $output_file differs from number of checked checksums\n"
+	exit -1
+}
+grep_output {\[init\] child "test-internet_checksum" exited}
+compare_output_to {[init] child "test-internet_checksum" exited with exit value 0}

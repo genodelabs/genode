@@ -1,0 +1,19 @@
+This test aims for testing the typical use of the internet checksum algorithms
+provided with the net library. It is accompanied by a similarly named test
+script.
+
+The test script feeds the test component with a sufficiently big input.pcap
+file that is randomly generated on each run using trafgen. The test component
+then iterates over all packets in the file. For each found IPv4, UDP, TCP or
+ICMP header (except the embedded ones in ICMP errors), it typically does the
+following:
+
+  1. try to validate the initial checksum
+  2. try to re-calculate the initial checksum and see if it stas the same
+  3. modify the header randomly, update the checksum incrementally, and write
+     out the result to a file output.pcap
+
+The checksums in the resulting output.pcap file are then checked by the test
+script using tshark. On each run, the test script prints the seed used for
+randomization in both, the test component and trafgen. In order to reproduce a
+given test result, one can simply run the test script with SEED=<seed>.
