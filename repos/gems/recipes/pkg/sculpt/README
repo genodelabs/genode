@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 23.10
+                      Sculpt Operating System 24.04
                       =============================
 
 
@@ -11,6 +11,8 @@
 
 Introduction
 ############
+
+[image sculpt_24_04 100%]
 
 Sculpt is a component-based desktop operating system that puts the user in
 the position of full control. It is empowered by the Genode OS Framework,
@@ -23,9 +25,10 @@ Sculpt system will cover the following topics:
 * A boot image that is a live system, rescue system, and bootstrap system all
   in one,
 * Connecting to a wired or wireless network,
-* Installing and deploying software,
+* Managing and accessing storage devices,
+* Installation on disk,
 * Ways to tweak and introspect the system, and
-* Managing and accessing storage devices.
+* Integrity-protected package management, system update, and rollback.
 
 
 Community
@@ -58,7 +61,7 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at the
-[https://genode.org/documentation/sculpt-23-10.pdf - Genode website].
+[https://genode.org/documentation/sculpt-24.04.pdf - Genode website].
 
 
 Hardware requirements and preparations
@@ -73,14 +76,14 @@ refurbished version of one of these. You may also find the unofficial
 [https://usr.sysret.de/jws/genode/hcl.html - hardware compatibility list]
 helpful for finding Genode-compatible hardware.
 
-Sculpt has been tested with screen resolutions up to 2560 x 1440. Displays
+Sculpt has been tested with screen resolutions up to 3840 x 2160. Displays
 with a higher resolution are not expected to work. The sweet spot is a full-HD
 display.
 
 Please revisit the BIOS settings of your machine in the following respects:
 
 :VT-d enabled: Even though Sculpt is able to run without an IOMMU, we
-  advise to enable this option for the sandboxing of device drivers.
+  advise enabling this option for the sandboxing of device drivers.
 
 :VT-x enabled: Hardware-assisted virtualization is needed to run VirtualBox
   on top of Sculpt.
@@ -113,87 +116,108 @@ from [https://genode.org/download/sculpt].
 Right after system boot, Sculpt's system-management user interface
 ("Leitzentrale") appears.
 The panel at the top of the screen contains two centered tabs for switching
-between the "Components" view and a "Files" view (Figure [sculpt_20_08_panel]).
+between the "Components" view and a "Files" view.
 The components view displays a live graph of the software components and their
 relationships. It also provides convenient access to the connected storage
-devices. The "Log" button at the right side of the panel reveals diagnostic
+devices. The "Log" button on the right side of the panel reveals diagnostic
 messages, the "Network" button allows you to configure network connectivity,
 and the "Settings" button on the left gives access to a few user-interface
-tweaks (Figure [sculpt_20_08_panel]).
+tweaks).
 
-[image sculpt_20_08_panel 60%]
+[image sculpt_24_04_panel 80%]
 
 Consider the following steps as a warm-up with Sculpt OS.
 
 Select the in-memory file system as *default storage location* by clicking
-on the "ram fs" component in the graph and pressing the "Use" button
-(Figure [sculpt_20_08_use_ram_fs]).
+on the "ram fs" component in the graph and pressing the "Use" button.
 This way, software will be installed solely into memory without accessing any
 real storage device.
 
-[image sculpt_20_08_use_ram_fs 40%]
+[image sculpt_24_04_use_ram_fs 36%]
 
 Enable *networking* in the "Network" dialog by selecting the "Wired" or
 "Wifi" option. In the latter case, select an access point and enter the
 corresponding passphrase (if needed). A successful network connection is
-indicated by the IP address displayed at the bottom of the network dialog
-(Figure [sculpt_20_08_network]).
+indicated by the IP address displayed at the bottom of the network dialog.
 
-[image sculpt_20_08_network 40%]
+[image sculpt_20_08_network 50%]
 
 With a storage location selected and established network connectivity,
 it is time to give a preconfigured example sculpt scenario a *quick try*.
 The system menu at the upper-left screen corner reveals a couple of presets
 to play with. As a first test, let's load the nano3d preset.
 
-[image sculpt_23_04_presets 40%]
+[image sculpt_24_04_presets 50%]
 
 When loading the preset, Sculpt will automatically download all the needed
 ingredients into the selected RAM file system and start the components of the
 demo scenario, which presents a simple spinning object that follows the mouse.
-If curious, you may give the other presets a try as well. But more
-interestingly, let's discover how to sculpt a custom scenario by starting
+*Press F12* to toggle between the administrative user interface and the running
+preset at any time.
+You may give the other presets a try as well:
+
+:empty: takes you back to the initial state.
+
+:falkon web browser: runs a disposable Chromium-based web browser entirely
+  in memory.
+
+:goa testbed: allows developers to use Sculpt OS as a remote test target using
+  the Goa SDK.
+
+:window manager: is a suitable starting point for creating a desktop-computing
+  user experience on Sculpt OS.
+
+
+Composing a system from scratch
+===============================
+
+Let's discover how to sculpt a custom scenario by starting
 with the *empty* preset that takes us back to the initial system state. In the
 following, we will build up a custom system by integrating one component
 after another.
 
 The gateway for *installing and starting* individual components is the
-unassuming "+" button of the components view. Select "Depot ..." from the menu
-(Figure [sculpt_21_10_menu]).
+unassuming '+' button of the components view. The menu consists of two tabs.
+The "Options" contain a list of preconfigured components that can be added
+or removed via checkboxes. For example, by enabling the "mixer", one can
+empower the system to mix audio signals. As of now, we can leave all options
+aside and turn our attention to the "Add" tab. As the name suggests, it allows
+us to add new components. It presents a choice of software sources with
+"genodelabs" being preselected along with an "Update Index" button. By
+updating the index, Sculpt downloads a catalog of components offered by
+the selected software provider. Once the index is downloaded, the catalog is
+presented as a hierarchically structured menu.
 
-[image sculpt_21_10_menu 40%]
+[image sculpt_24_04_update_index 50%]
 
-The depot contains software packages, which can be obtained by different
-independent software providers. The selection of software providers is
-completely up to the user and can be defined in the "Selection ..." sub menu
-(Figure [sculpt_21_10_select]).
+Software offered by different providers can safely be installed side by side
+because Sculpt keeps downloads from different providers separated. The
+default "genodelabs" provider offers components officially provided by
+Genode Labs.
+Think of each provider as a different individual. The providers known by
+the default system image are members of Genode's core developer team.
+One can add a new provider by supplying a custom URL using the "Edit" button.
+Note that by merely knowing a URL but no public key, Sculpt won't be able to
+verify the integrity of software obtained from such manually added providers.
+However, even if neither trusting one particular software provider nor the
+integrity of the download, one can still install and use the provided software
+without risk as long as one does not explicitly grant the untrusted components
+access to sensitive parts of the system. The judgement of trust is entirely
+yours.
 
-[image sculpt_21_10_select 32%]
-
-Select "genodelabs" to download the directory of software officially
-provided by Genode Labs. Note that the other options are not necessarily
-affiliated with Genode Labs. Think of each option as a different individual.
-If you don't trust one particular software provider, you can still install and
-use the provided software without risk as long as you don't explicitly grant
-their components access to sensitive parts of your system. The judgement
-of trust is entirely yours.
-
-When now going back to the depot menu, a new menu item "genodelabs ..."
-appears. It leads to a catalogue of software browsable via hierarchically
-structured menus. As a starter, let's add a desktop background.
+As a starter, let's add a desktop background.
 In the "GUI ..." sub menu, a click on the first item named "sticks blue
-backdrop" reveals the option to install the package
-(Figure [sculpt_20_08_install_backdrop]).
+backdrop" reveals the option to install the package.
 
-[image sculpt_20_08_install_backdrop 42%]
+[image sculpt_24_04_install_backdrop 45%]
 
 A click on the "Install" button triggers the download of the package and its
 dependencies. Once the download is complete, the menu presents a configuration
 dialog that allows you to define the interplay of the new component with the
 system. In this particular case, you have to decide for a GUI service to be
-used by the backdrop (Figure [sculpt_23_10_backdrop_routes]).
+used by the backdrop.
 
-[image sculpt_23_10_backdrop_routes 42%]
+[image sculpt_24_04_backdrop_routes 45%]
 
 The first option "system GUI server" would grant direct access to the system's
 low-level GUI server, which is normally not used by applications but by
@@ -204,21 +228,21 @@ appears as a layer behind all other applications. The fourth option "keyboard
 focus" is preserved for a single component that controls the keyboard focus.
 In our case, "desktop background" is the correct choice.
 Once the configuration is complete, a new button for adding the component to
-the system appears (Figure [sculpt_23_10_add_backdrop]).
+the system appears.
 
-[image sculpt_23_10_add_backdrop 42%]
+[image sculpt_24_04_add_backdrop 42%]
 
 After pressing the button, you should notice a slight visual change. *Press*
 *F12* to toggle between the Leitzentrale and the desktop. Now, the backdrop
 should become visible in full glory. In the component graph, the new component
 appears connected to the "GUI". A click on the component reveals further
 information along with the options to remove it from the system or to
-restart it (Figure [sculpt_20_08_backdrop_selected]).
+restart it.
 
-[image sculpt_20_08_backdrop_selected 40%]
+[image sculpt_24_04_backdrop_selected 42%]
 
 As a next step, let us add a window system. In the '+' menu, you can find
-a readily packaged window system at _genodelabs_ -> _GUI_ -> _themed wm_.
+a readily packaged window system at _GUI_ -> _themed wm_.
 After installing the package, you are asked to take five decisions:
 
 The _GUI (focus)_ should be assigned to "keyboard focus" to put the
@@ -235,22 +259,22 @@ to obtain clipboard content.
 
 After adding the component, the "themed wm" will appear in the components view.
 To give the window system a quick try, add the small demo you can find at
-_genodelabs_ -> _Demos_ -> _nano3d_ and assign its _GUI_ to our "themed wm".
-You will be greeted with the window as shown in Figure [sculpt_ce_nano3d].
+_Demos_ -> _nano3d_ and assign its _GUI_ to our "themed wm".
+You will be greeted with the window as follows.
 
 [image sculpt_ce_nano3d 40%]
 
 Next, let us add a *small Unix-like subsystem* called _system shell_ hosted in
 a window. This subsystem will be presented in a terminal window. The font
 used by the terminal is obtained from a font server. To create the font
-server, install and add the package _genodelabs_ -> _GUI_ -> _fonts fs_, and
+server, install and add the package _GUI_ -> _fonts fs_, and
 assign the _system font configuration_ to its _ROM (config)_. "ROM" means
 read-only memory. So we grant the font server read-only access to the system's
 default font configuration (which is generated automatically according to the
 screen resolution).
 
 For starting the actual system shell, select and install
-_genodelabs_ -> _Tools_ -> _system shell_ from the menu. The configuration
+_Tools_ -> _system shell_ from the menu. The configuration
 dialog is a bit more elaborate this time.
 
 :GUI: defines the GUI server that should host the terminal.
@@ -260,7 +284,7 @@ dialog is a bit more elaborate this time.
   _/config/_ inside the instance. There exist a number of options.
   By selecting _writeable system configuration_, we grant control over
   the whole system. It goes without saying that this should not be done
-  lightheartedly. However, since we trust the "system shell" package from
+  light-heartedly. However, since we trust the "system shell" package from
   Genode Labs, let's do it.
 
 :File system (report): defines the file system to be mounted at _/report/_
@@ -291,24 +315,80 @@ dialog is a bit more elaborate this time.
   its virtual memory layout by itself.
 
 With those decisions taken, a fresh system shell can be started, which appears
-in a window (Figure [sculpt_20_08_system_shell]).
+in a window.
 
 [image sculpt_20_08_system_shell 60%]
 
 When selecting the "system shell" component in the graph, the
 relationship to the other components of the system is presented. This provides
 a convenient way to reveal the _trusted computing base_ of the selected
-component (Figure [sculpt_20_08_system_shell_selected]).
+component.
 For example, since there is no connection from _system shell_ to the
 _nic_router_, we know that this component is isolated from the network. The
 network-related components are outside the trusted computing base of the
 system shell.
 
-[image sculpt_20_08_system_shell_selected 50%]
+[image sculpt_24_04_system_shell_selected 50%]
+
+
+Using a persistent storage device
+=================================
+
+The steps described above used an in-memory file system (ram fs) as target for
+Sculpt OS, which is a nice playground for experimentation but otherwise
+impractical for real-world use because all downloads and configurations
+vanish rebooting the system.
+
+Sculpt OS supports USB storage, NVMe, and SATA (AHCI) as storage target. Only
+one target can be selected for use at a time. To select one of those targets for
+use, make sure to have deselected the "Use" button of the "ram fs" component.
+
+The following steps describe the use of the USB stick that holds the Sculpt
+OS boot image as target. The USB stick can be accessed be selecting the "usb"
+component.
+
+[image sculpt_24_04_usb_selected 50%]
+
+Upon selecting the USB stick, one can see three partitions. The first two
+partitions are necessary for booting from the stick whereas the third
+partition labeled "GENODE" is designated as Sculpt storage target.
+This partition is merely large enough to hold the system image of about 30 MiB,
+but there is no room for additional data yet.
+When selecting the 3rd partition, the dialog offers several management
+operations.
+
+[image sculpt_24_04_usb_operations 50%]
+
+One can use the "Expand" operation to enlarge the partition up to the
+capacity of the storage device,
+
+[image sculpt_24_04_usb_expanding 80%]
+
+Under the hood, the expand operation modifies the partition table and
+resizes the file system, which you can observe by the additional components
+at the right. Depending on the used USB stick, the resizing can take some
+time. You may have a glimpse at the log window to get hold of diagnostic
+messages.
+
+[image sculpt_24_04_usb_default 50%]
+
+Once the resizing has completed, you can see that the partition has grown to
+a practical size. In principle, one can manually instruct Sculpt OS to use
+this partition as storage target via the "Use" button. To automate this manual
+step, the partition can be marked as preferred storage target by enabling the
+"Default" button. This renames the partition to "GENODE*", which tells
+Sculpt to use it automatically at boot time. By combining this automatism with
+the steps described in Section [Making customizations permanent] all of your
+customizations can take immediate effect at boot time.
 
 
 Further exploration
--------------------
+===================
+
+The presets offered in the "System" menu provide suitable starting points for
+creating custom Sculpt systems. In particular the "window manager" preset
+is a useful baseline for desktop-like use cases, providing a ready-to-use
+window system along with a system-shell window.
 
 Of course, there are many more components to explore and to combine.
 For inspiration, please follow the postings at
@@ -350,6 +430,7 @@ For inspiration, please follow the postings at
 
 :Advanced window management:
 
+  The features of the "window system" preset described in detail.
   Let Sculpt remember window positions across reboots, swap out window
   decorations on the fly, and have fun with manipulating the window layout
   directly via a textual interface.
@@ -412,8 +493,7 @@ System overview
 [image sculpt_overview]
   System overview
 
-The Sculpt system consists of four parts living on top of the microkernel
-(Figure [sculpt_overview]).
+The Sculpt system consists of four parts living on top of the microkernel.
 
 
 Static system
@@ -422,7 +502,7 @@ Static system
 The first - static - part of the system is baked into the boot image. It
 contains components that must be shared by the upper - dynamic - parts and
 defines the relationships between the upper parts via a static policy that
-is fixed by the creator of the boot image (Figure [sculpt_static]).
+is fixed by the creator of the boot image.
 
 ;         Drivers      |   Leitzentrale   |     Runtime
 ;    --------------------------------------------------------
@@ -452,45 +532,13 @@ changes are gone.
 Drivers subsystem
 -----------------
 
-The drivers subsystem provides all the basic services needed to realize an
-interactive system scenario: a framebuffer driver for the graphical
-output, input drivers to obtain user input, and a block service to
-access a storage device. All other drivers like networking or audio drivers
-are not covered by the drivers subsystem. They will enter the picture at a
-later stage and will use the platform service and USB service to access
-device resources.
-
-;                                        Framebuffer     AHCI
-;                                          Driver       Driver
-;                                             :  \     /  :
-;   ACPI --- Platform ------- USB      Driver :  Dynamic  :
-; discover    driver -- PS/2 :   :    Manager :    Init   :
-;               :        :   :   :            :           :
-;               :        :   :   :            :           :
-;               :        Event   :            :           :
-;               :       Filter   :            :           :
-;               :          :     :            :           :
-;               :          :     :            :           :
-;          (platform)  (event) (USB)    (framebuffer)  (block)
-
-[image sculpt_20_08_drivers 80%]
-  Services provided by the drivers subsystem
-
-As illustrated by Figure [sculpt_20_08_drivers], some drivers like the
-framebuffer driver live in a dynamically managed subsystem that depends on
-runtime discovery of the hardware by the so-called driver-manager component.
-Whenever an Intel graphics device is present, the Intel framebuffer driver
-is spawned. Otherwise, a generic VESA driver or a driver for a
-boot-time-initialized framebuffer is used.
-
-Several components of the drivers subsystem report their state. For example,
-when the Intel framebuffer is used, it reports the list of connectors present.
-Most importantly, the driver manager reports the available block devices.
-
-As user input may enter the system in multiple ways - most prominently PS/2
-and USB HID - the drivers subsystem contains a so-called event-filter
-component that merges these event streams and applies transformations like
-key remappings or mouse acceleration.
+The drivers subsystem hosts the most fundamental drivers needed to operate the
+hardware platform. On the PC, it includes drivers for ACPI discovery,
+safeguarding the access of the PCI bus, or controlling the IOMMU.
+This functionality is provided to the rest of the system as a so-called
+platform service. All other drivers like USB, NVMe, display, networking, or
+audio are not covered by the drivers subsystem. They enter the picture at a
+later stage and use the platform service to access device resources.
 
 
 Leitzentrale subsystem
@@ -500,10 +548,7 @@ The Leitzentrale gives you - the user - full control over the config file
 system and the report file system. You are free to inspect and
 manipulate the system in any way you wish. The German term Leitzentrale
 refers to a control center that requires a certain degree of sophistication
-from the operator, which would be you. A typo at the wrong place may
-render your system temporarily inaccessible, eventually requiring a reboot.
-But don't be afraid. Since all manual changes performed in the Leitzentrale
-occur in memory only, you are not at risk of permanently bricking your machine.
+from the operator, which would be you.
 
 The Leitzentrale can be toggled at any time by pressing F12 and will be enabled
 right after boot. It presents itself with a minimalistic GUI for accessing
@@ -512,11 +557,10 @@ connectivity. Most importantly, however, it allows the user to access the
 _config_ and _report_ file systems. Both file systems are readily accessible
 under the "Files" tab of the panel. The file browser allows you to traverse
 directory hierarchies, inspect individual files, and edit files.
-Alternatively to the "Files" tab, Sculpt 23.10 features a command-line
+Alternatively to the "Files" tab, Sculpt 24.04 features a command-line
 interface. To spawn this command-line interface, click on the "ram fs"
 component in the graph and select "Inspect". In the panel, a third tab named
-"Inspect" appears, which hosts the command-line interface
-(Figure [sculpt_23_04_inspect_tab]).
+"Inspect" appears, which hosts the command-line interface.
 
 [image sculpt_23_04_inspect_tab 100%]
 
@@ -551,7 +595,7 @@ Interactive file browser
 
 The "Files" tab of the panel switches the main screen area to a simple file
 browser that lists all file systems available, in particular the _config_
-and _report_ file systems (Figure [sculpt_21_03_files_tab]).
+and _report_ file systems.
 By toggling one of the file-system buttons, the
 respective directory hierarchy can be browsed. When hovering a file, an "Edit"
 or "View" button appears, which can be used to open the file in a text area
@@ -559,11 +603,11 @@ that appears on the right side of the file browser. The editor supports the
 usual notepad-like motions, operations, and shortcuts (control-c for copy,
 control-v for paste, control-s for save).
 
-[image sculpt_21_03_files_tab 80%]
+[image sculpt_24_04_files_tab 80%]
 
-_Note that the file browser as the most recent addition to Sculpt does not_
+_Note that the file browser does not_
 _yet support file operations like the copying, renaming, or removal of_
-_files. Also the editing of files with long lines or the browsing of_
+_files. Also, the editing of files with long lines or the browsing of_
 _directories with many entries is not appropriately covered yet. As a_
 _fallback when encountering these limitations, the current version of Sculpt_
 _still features the Unix-based inspect tab, which can be activated by_
@@ -595,8 +639,8 @@ you should be comfortable with the following operations:
 Adjusting the user-input handling
 ---------------------------------
 
-By default, Sculpt uses the US-English keyboard layout but it offers a few
-alternative keyboard layouts like French and German in the settings menu at
+By default, Sculpt uses the US-English keyboard layout, but it offers a few
+alternative keyboard layouts like French and German in the settings menu in
 the upper left corner. A change of this setting is reflected in the
 _config/managed/event_filter_ file, which is the configuration for the
 event-filter component mentioned in Section [System overview]. For tweaking
@@ -629,7 +673,7 @@ After saving the file, a Vim user's life suddenly becomes much more pleasant.
 Take the time to review the remaining parts of the event-filter
 configuration. The nested configuration nodes define a hierarchy of
 filters that are applied in the order from the inside to outside
-(Figure [event_filter]). There are filters for merging events ('<merge>'),
+There are filters for merging events ('<merge>'),
 remapping buttons and keys ('<remap>'), supplementing symbolic character
 information ('<chargen>'), pointer acceleration ('<accelerate>'), and
 emulating a scroll wheel by moving the pointer while pressing the middle
@@ -641,13 +685,13 @@ Display settings
 
 If you are running the Intel graphics driver, you can inspect the connected
 displays and their supported resolutions by taking a look at the report at
-_/report/drivers/dynamic/intel_fb_drv/connectors_. This report is updated
+_/report/runtime/intel_fb/connectors_. This report is updated
 whenever a display is connected or disconnected. You can use this
 information to enable or disable a display in the driver's configuration,
 which you can find at _/config/fb_drv_.
 
-For a quick test, change the attribute 'height="768"' to 'force_height="768"'
-(you may modify 'width' analogously). When saving the file, the screen
+For a quick test, change the attributes 'height="768"' to 'force_height="768"'
+and 'width="1024"' to 'force_width="1024"'. When saving the file, the screen
 real-estate will forcibly be limited to the specified size. This is helpful
 during presentations where the projector has a lower resolution than the
 laptop's internal display. By specifying the beamer's resolution, both the
@@ -659,26 +703,8 @@ Exploring the drivers and Leitzentrale subsystems
 
 You can review the construction plan of the drivers subsystem by opening the
 file _drivers_ at the config file system. In particular, it is interesting to
-follow the '<route>' rules to see how the various components are connected.
-But there is more. The configuration is live. It enables you to reconfigure
-individual components on-the-fly. For example, search for the '<start>' node
-of the PS/2 driver and add the attribute 'verbose_keyboard="yes"' to the
-embedded '<config>' node. By saving the file, the changed configuration
-becomes effective. Any key pressed or released on the PS/2 keyboard will
-result in a log message on the right. You may revert this change (vim: 'u')
-and save the original version of the file.
-
-_Note that not all components are dynamically reconfigurable but many_
-_modern ones - in particular the init component and most long-running_
-_server components - are._
-
-_It is possible to forcibly restart a component by adding a 'version'_
-_attribute to the '<start>' node. Whenever the 'version' value is changed,_
-_the component is re-spawned._
-
-_The component-specific configuration options are documented in the README_
-_files accompanying the respective components in the source tree._
-
+follow the '<route>' rules to see how the various components are connected,
+and the '<policy>' rules that assign device resources to driver components.
 Analogously to the drivers subsystem, you can find the construction plan
 for the Leitzentrale subsystem at the file _leitzentrale_. Try out
 the following tweaks:
@@ -702,7 +728,7 @@ Whenever adding a new component via the '+' menu, one has to define how to
 connect the component with the rest of the system. It is important to know
 what the presented options mean to take educated decisions.
 
-[image sculpt_23_10_system_shell_routing 40%]
+[image sculpt_24_04_system_shell_routing 40%]
 
 Each choice represents a connection to a system resource of a particular type.
 Initially, the presented options are resources that are built-in into Sculpt's
@@ -712,10 +738,6 @@ as options.
 
    Resource type            | Interface      | Built-in options
   ----------------------------------------------------------------------------
-  ----------------------------------------------------------------------------
-   Audio input              | 'Audio_in'     |
-  ----------------------------------------------------------------------------
-   Audio output             | 'Audio_out'    |
   ----------------------------------------------------------------------------
    Block device             | 'Block'        | direct block-device access
   ----------------------------------------------------------------------------
@@ -747,7 +769,7 @@ as options.
   ----------------------------------------------------------------------------
                             |                | used file system
   ----------------------------------------------------------------------------
-   GPU                      | 'Gpu'          | hardware-accelerated graphics
+   GPU                      | 'Gpu'          |
   ----------------------------------------------------------------------------
    GUI                      | 'Gui'          | keyboard focus
   ----------------------------------------------------------------------------
@@ -763,9 +785,13 @@ as options.
   ----------------------------------------------------------------------------
    Network uplink           | 'Uplink'       |
   ----------------------------------------------------------------------------
+   Play                     | 'Play'         |
+  ----------------------------------------------------------------------------
    Protection domain        | 'PD'           | system PD service
   ----------------------------------------------------------------------------
    Real-time clock          | 'Rtc'          |
+  ----------------------------------------------------------------------------
+   Record                   | 'Record'       |
   ----------------------------------------------------------------------------
    Region maps              | 'RM'           | custom virtual memory objects
   ----------------------------------------------------------------------------
@@ -786,6 +812,8 @@ as options.
                             |                | system status
   ----------------------------------------------------------------------------
                             |                | global clipboard
+  ----------------------------------------------------------------------------
+                            |                | build information
   ----------------------------------------------------------------------------
    Terminal                 | 'Terminal'     | debug monitor
   ----------------------------------------------------------------------------
@@ -816,7 +844,7 @@ default. One application cannot see the output of other applications nor can
 it sniff user input globally. One can connect multiple applications -
 trusted and untrusted alike - to the low-level GUI server without fear.
 
-However, in typical scenarios, applications don't use the bare-bone system GUI
+However, in typical scenarios, applications don't use the bare-bones system GUI
 server directly but rather employ a window manager that sits in-between the
 system GUI server and the applications, and equips the system with the
 notion of windows.
@@ -854,7 +882,7 @@ ROM
 ~~~
 
 ROM stands for read-only memory. A ROM service reveals information to
-its clients but a client cannot change the information. Note that the
+its clients, but a client cannot change the information. Note that the
 provided information does not need to be static. It can potentially
 change over time. Whenever that happens, the ROM service informs its
 clients about the availability of a new version. The base system provides
@@ -862,7 +890,7 @@ the following built-in ROM resources:
 
 :global capslock state: the system-global state of the capslock key.
   It can be handed out to components like virtual machines to keep the
-  capslock state of guest operation systems consistent with the host.
+  capslock state of guest operating systems consistent with the host.
 
 :default vim configuration: the configuration of the Vim text
   editor as used in the Leitzentrale's inspect window and managed at
@@ -889,6 +917,9 @@ the following built-in ROM resources:
   with the component. This prevents overly nosey components from snooping the
   clipboard content.
 
+:build information: provides details gathered during the build process of
+  the Sculpt system, like version numbers or the configured default depot
+  user. It is used by the Sculpt manager and debugging-support components.
 
 Report
 ~~~~~~
@@ -927,7 +958,7 @@ not exist per file but for the entire file-system resource.
 Of course, many use cases call for finer-grained access control. This is
 where intermediate _chroot_ file-system components come into play. Such
 a component reduces the view on an existing file system to a specific
-sub directory, which then appears as a new file system to the application.
+subdirectory, which then appears as a new file system to the application.
 For examples, please review the launchers at _/config/launcher/_ such as the
 _shared_fs_.
 
@@ -941,7 +972,7 @@ The Sculpt base system has two built-in file systems.
 :read-only system reports: allows the client to inspect the global state of
   the system. The reports found in this file system are organized in a
   directory structure that corresponds to the system structure. For example,
-  all reports generated by the runtime sub system reside within the _runtime/_
+  all reports generated by the runtime subsystem reside within the _runtime/_
   directory. Note that this global state may contain sensible information.
   For this reason, the system reports should not be handed out to components
   that are suspected of information leakage.
@@ -988,32 +1019,27 @@ the reach of each device to the memory explicitly assigned to the device
 (DMA buffers).
 Second, it arbitrates the access of device-driver components to devices.
 
-Regarding the latter, the platform driver differentiates four categories
+Regarding the latter, the platform driver differentiates categories
 of drivers, namely wifi, network, audio, and ACPI. When assigning one
 of those resources to a driver component, the driver will see a virtual
 PCI bus with only the devices that fall in the chosen category.
-
-Note that USB, AHCI, NVMe, and PS/2 are handled differently as those
-devices are driven by Sculpt's _drivers_ subsystem.
 
 
 USB
 ~~~
 
 By connecting a component to USB, the component becomes able to access
-individual USB devices. The device is selected by the component by specifying
-a session label that corresponds to a name of a device listed at
-_/report/drivers/usb_devices_. The most prominent use case for the USB
-resource is the direct assignment of USB devices to virtual machines
-as described in Section
-[Updating the USB boot device from within VirtualBox].
+individual USB devices. One prominent use case for the USB
+resource is the direct assignment of USB devices to virtual machines.
+The assignment of USB devices to components is described in
+Section [Assignment of USB devices to components].
 
 
 Real-time clock
 ~~~~~~~~~~~~~~~
 
 The real-time clock enables a component to know what time it is. The service is
-optionally provided by a package called system clock.
+optionally provided by a package called "system clock".
 
 
 GPU
@@ -1059,7 +1085,9 @@ Terminal
 ~~~~~~~~
 
 In general, a terminal service provides a bi-directional input/output stream.
-Sculpt's built-in debug-monitor speaks the GDB protocol as a terminal service.
+Examples are a graphical terminal, or a UART driver.
+
+Sculpt's built-in debug monitor speaks the GDB protocol as a terminal service.
 The resource-assignment dialog for adding a new component offers a debug
 option as checkbox. If enabled, the new component is exposed as a debugging
 target (inferior) via the GDB protocol. A debugger can be connected as a
@@ -1101,8 +1129,8 @@ Network and uplink
 ~~~~~~~~~~~~~~~~~~
 
 Network services provide an interface for sending and receiving network
-packets. Sculpt's Leitzentrale conveniently manages drivers for wireless (wifi
-drv) and wired (nic drv) networking as well as the user-level network routing
+packets. Sculpt's Leitzentrale conveniently manages drivers for wireless (wifi)
+and wired (nic) networking as well as the user-level network routing
 component (nic router). So you usually see the NIC router as an option. The
 NIC router multiplexes the network access among multiple network applications.
 By default, it acts as a virtual NAT router, handing out a distinct IP address
@@ -1113,17 +1141,13 @@ the driver with network packets to send, and accepts incoming packets received
 by the driver. In most situations, the NIC router provides this service.
 
 
-Terminal, audio input, and audio output
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Record and play
+~~~~~~~~~~~~~~~
 
-Terminal services allow for the input and output of streams of text. Examples
-are a graphical terminal, or a UART driver. The base system has no built-in
-terminal service.
-
-As the names suggest, audio input and output enable components to record
-and play audio. The base system does not provide such services. Instead,
-audio infrastructure like drivers and a mixer can be installed as regular
-components.
+The record and play services enable components to record
+and play audio. These services are typically provided by the audio mixer,
+which is available as option in the '+' menu. The mixing rules are defined
+at _config/launcher/mixer_.
 
 
 Capture and event
@@ -1149,10 +1173,10 @@ GUI server, or specifically to the management GUI.
 CPU-resource assignment
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-[image sculpt_23_10_affinity 40%]
+[image sculpt_24_04_affinity 40%]
 
 You may already have noticed the additional item "Resource assignment ..."
-in the component-configuration dialog (Figure [sculpt_23_10_affinity]).
+in the component-configuration dialog.
 It leads to a sub menu for restricting the CPU usage of the new component. The
 configuration dialog shows a matrix of CPU cores where the x-axis denotes the
 physical cores and the y-axis the hyperthreads. By default, all available CPU
@@ -1172,7 +1196,7 @@ components. The dialog presents four options:
   The highest priority should be preserved to latency-critical device drivers
   such as audio drivers. This option is also a sensible choice for trusted
   components that must stay somewhat responsive under any condition. For
-  example, the components of the leitzentrale GUI operate on this priority to
+  example, the components of the Leitzentrale GUI operate on this priority to
   preserve the user's control over the system even in the event of a rampaging
   high-priority device driver.
 
@@ -1206,15 +1230,15 @@ Service-level sandboxing
 
 In order to deploy any component, all resources requested by the component must
 be assigned to appropriate services. For example, when adding a web browser,
-the browser's request for audio-in/out session must be satisfied, which is
+the browser's request for record and play sessions must be satisfied, which is
 natural when consuming multimedia content. However, in other situations, we
 may deliberately want to isolate the web browser from the audio hardware,
 forcibly preventing the browser from producing any noise or tapping the
 microphone.
 
 This is where the so-called "black hole" component enters the picture,
-which can readily be deployed from the package _genodelabs_ -> _Tools_ ->
-_black hole_. The black-hole component provides pseudo services for most
+which can be enabled as option in the '+' menu.
+The black-hole component provides pseudo services for most
 resources mentioned in the previous section, including audio, networking,
 video capture, USB, and ROM. Hence, the resource requirements of an untrusted
 component can be satisfied without exposing a real resource. This is
@@ -1234,22 +1258,22 @@ In contrast to the drivers subsystem and the Leitzentrale, which have a
 predefined purpose, the runtime subsystem is shaped by the user. The
 components present in the runtime subsystem are displayed by the components view.
 Some of them are managed by the Leitzentrale. For example, while inspecting a
-file system, the corresponding "inspect" component appear automatically. Other
+file system, the corresponding "inspect" component appears automatically. Other
 components correspond to subsystems deployed from installed packages, in
-particular the ones created via the "+" menu.
+particular the ones created via the '+' menu.
 
 The current configuration of the runtime subsystem is available at the
 _config_ file system at _managed/runtime_. It is not recommended to modify
-this file manually. However, in some situations, it is useful to take manual
-control over the runtime configuration. This is possible by copying the file
-to the root of the config file system.
+this file manually. However, for diagnostic purposes, it is sometimes useful to
+take manual control over the runtime configuration. This is possible by
+copying the file to the root of the config file system.
 Note that this will inhibit the management functionality of the Leitzentrale.
 You can yield back the control to the Leitzentrale by removing the _runtime_
 file from the root of the config file system.
 
 As a prerequisite for deploying user-selected components, a default storage
 location must be defined by selecting the "Use" button of a file system
-in the menu. For the start, it is best to select the "ram" file system as
+in the menu. For the start, it is best to select the "ram fs" as
 storage location. Once you are comfortable with Sculpt, you may make the
 installation and customizations permanent by using a real storage device
 instead.
@@ -1260,17 +1284,17 @@ the config file system. As the RAM file system is empty, no files are copied.
 Second, the so-called _depot/_ is initialized at the selected file system. The
 depot is the designated place for the installation of software packages. By
 default, the depot is initialized such that the Sculpt system accepts software
-from Genode Labs as well as from a few members of the Genode community. You
+from Genode Labs and Genode's individual core developers. You
 may inspect the content of _/ram/depot_ using the inspect window.
 
 With a file system and an Internet connection selected, additional software
 can be installed and run. The most convenient way is the interactive use of
-the '+' menu to browse the catalogues of packages provided by software
+the '+' menu to browse the catalogs of packages provided by software
 providers and to configure new component instances.
 
 Additionally, the deployment can be controlled by the _deploy_ file of the
 _config_ file system and the so-called launchers located at the _launcher/_
-sub directory.
+subdirectory.
 The _deploy_ file contains a '<start>' node for each running component.
 Such a <start> node specifies the package, the assigned resources,
 and the rules of how the component is connected with other components.
@@ -1308,9 +1332,8 @@ are reflected in the _managed/deploy_ file.
 Note that any modification of _deploy_ resets _managed/deploy_ to the state
 defined in the _deploy_ file.
 
-Launchers appear at the top level of the '+' menu. So they are a convenient
-mechanism to quickly add often-used components with specific policies to the
-system.
+Launchers appear as checkboxes at the options tab of the '+' menu,
+which make them a handy way to start and stop preconfigured components.
 
 
 Storage device access and preparation
@@ -1319,10 +1342,12 @@ Storage device access and preparation
 Whereas the RAM file system is practical for quick tests, it goes without
 saying that we want to persistently store data, programs, and configuration
 information on a storage device. Sculpt supports SATA disks, NVMe devices,
-and USB-storage devices. The storage and USB nodes of the components view list
-all devices detected by the drivers subsystem. A click on a device reveals
-possible operations or - if a partition table is present - more details about
+SD cards, and USB-storage devices. Depending on the present block-device
+controllers, Sculpt starts the driver components "nvme", "mmc", and "ahci" as needed.
+A click on such a node reveals the attached block devices,
+possible operations, or - if a partition table is present - more details about
 the device structure.
+USB storage devices can be managed at the "usb" node.
 
 Depending on the operation selected by the user, the Sculpt manager will
 automatically spawn helper components in the runtime to perform the selected
@@ -1374,10 +1399,9 @@ it is possible to mark one file system as default. At boot time - when the
 Sculpt manager discovers the attached storage devices - it automatically
 selects a file system for use according to the following order of preference:
 
+# An entire SATA or NVMe device used as a single EXT2 file system
 # Partition named "GENODE*" on a USB device in a GPT (GUID Partition Table),
 # Partition named "GENODE*" on a SATA or NVMe storage device in a GPT,
-# An entire SATA or NVMe device used as a single EXT2 file system (as devised
-  by Sculpt EA).
 
 The storage dialog hosts a convenient "Default" button that allows one
 to toggle a partition label between "GENODE" and "GENODE*". For example,
@@ -1387,61 +1411,6 @@ non-default using this button.
 
 Advanced usage
 ##############
-
-On-target system update
-=======================
-
-The system image of Sculpt OS resides at the _/boot/_ directory of the
-"Genode" partition of the boot medium. E.g., when using a USB stick as boot
-medium on the PC, the boot directory resides on the 3rd partition of the
-USB stick. To update the Sculpt system image, make sure to have selected
-your boot partition for "use" by Sculpt. Should your boot medium differ from
-your regular Sculpt partition, e.g., when using an entire hard disk as one Sculpt
-partition, you may need to "un-use" your regular Sculpt partition and
-temporarily "use" your boot USB stick instead.
-
-With having your boot medium selected for the use by Sculpt, the system menu
-at the upper-left screen corner provides you with a convenient user interface
-for discovering and downloading new versions, and for switching between the
-installed system images.
-
-[image sculpt_23_04_check_updates 50%]
-
-The upper part of the dialog allows you to select the system-image provider.
-By default, the provider is set to the one of your currently running system
-image. But you have to option to obtain images from alternative providers,
-or even add a new custom provider by using the "Edit" button. Under the
-hood, each listed provider corresponds a directory in your _depot/_ at the
-sculpt partition.
-When adding a custom provider, it will show up as a new directory there.
-The lower part of the dialog presents the information about the currently
-running system image for reference.
-
-The check-for-updates button downloads the information about available
-images from the selected provider. This information is the presented along
-with the already downloaded images as exemplified in the following screenshot.
-
-[image sculpt_23_04_update 50%]
-
-The little "..." dots indicate that change-log information is available when
-clicking on the entry. The download button fetches the image. Once fetched,
-the download button turns into an install button. You can select any present
-image for your next boot via the corresponding install button. Under the hood,
-this operation copies the content of the
-_depot/<provider>/image/sculpt-<board>-<version>/_ directory to your _/boot/_
-directory.
-Note that you can switch back and forth between different versions this way.
-For example, should a new version not behave to your full satisfaction, you
-can easily switch back to the previous one by using the install button of the
-original version. As a precaution, it is good to have downloaded the initial
-Sculpt version you are using. In the worst case, should a new version fail to
-boot, you can still manually copy this downloaded original version from your
-local _depot/_ to your boot directory using a live USB system.
-
-Once an image is installed, the dialog tells you "reboot to activate".
-One way to do that is by changing the system state in _/config/system_ to
-"reset".
-
 
 Manual configuration
 ====================
@@ -1464,9 +1433,9 @@ files.
 The Sculpt manager interacts with the rest of the system solely by
 monitoring reports aggregated in the report file system, and writing
 configuration files into the config file system. All files generated
-by the Sculpt manager are located at the _managed/_ sub directory of the
+by the Sculpt manager are located at the _managed/_ subdirectory of the
 config file system. By manually creating a same-named file at the root of the
-config file system, one can supply a custom managed configuration to the
+config file system, one can supply a custom-managed configuration to the
 Sculpt manager. A useful practice is taking a snapshot of the generated
 configuration as a starting point for the custom version. For example, by
 copying the NIC router configuration while it is connected to a network:
@@ -1478,6 +1447,7 @@ usually take immediate effect.
 
 Examples of manual customization are:
 * Adding custom NIC router policies such as port-forwarding rules,
+* Managing Wifi credentials manually by supplying a custom _config/wifi_ file.
 * Installing depot content manually by managing _/config/installation_
   by hand. This includes the ability to download the source code for
   any package.
@@ -1489,7 +1459,6 @@ Examples of manual customization are:
   additional reporting when troubleshooting.
 * Manually defining the default font sizes by creating a custom _config/fonts_
   configuration.
-* Managing Wifi credentials manually by supplying a custom _config/wifi_ file.
 
 To revert any manual customization, delete the corresponding file. In this
 case, the Sculpt manager will take over again. Note that all manual
@@ -1506,9 +1475,205 @@ _deploy_ configuration. You can turn the currently running system into
 a preset by copying _/config/managed/deploy_ as new file to
 _/config/presets/_.
 
-To keep your custom presem available after reboot, follow the pattern
+To keep your custom preset available after reboot, follow the pattern
 described in Section [Making customizations permanent] by copying the file to
-_/config/23.10/presets/_ at your Sculpt partition.
+_/config/24.04/presets/_ at your Sculpt partition.
+
+
+Installation on disk
+====================
+
+Even though Sculpt OS is distributed as a system image for a USB stick,
+the same image can be written to an NVMe or SATA disk to attain a computer
+that boots directly into Sculpt OS. The easiest way is starting a live
+Linux of your choice, downloading the Sculpt OS image to /tmp/, checking the
+SHA256 sum of the downloaded file against the known-good value as found on the
+download page, and writing the file to the block device of the disk using the
+'dd' command. After booting into Sculpt OS from disk, use the interactive
+dialogs in the nvme or ahci component to extend the 3rd (GENODE) partition to
+make the whole disk usable and mark the partition as "default" (relabeling it
+to GENODE*).
+
+Should you prefer to set up your machine for dual-booting Linux and Sculpt OS,
+you can find all information needed for supplementing a Sculpt OS boot entry
+to your existing boot loader at the /boot directory of the third partition of
+Sculpt's disk image.
+
+
+On-target system update
+=======================
+
+The system image of Sculpt OS resides at the _/boot/_ directory of the
+"GENODE" partition of the boot medium. E.g., when using a USB stick as boot
+medium on the PC, the boot directory resides on the 3rd partition of the
+USB stick. To update the Sculpt system image, make sure to have selected
+your boot partition for "use" by Sculpt. Should your boot medium differ from
+your regular Sculpt partition, e.g., when using an entire hard disk as one Sculpt
+partition, you may need to "un-use" your regular Sculpt partition and
+temporarily "use" your boot USB stick instead.
+
+With having your boot medium selected for the use by Sculpt, the system menu
+at the upper-left screen corner provides you with a convenient user interface
+for discovering and downloading new versions, and for switching between the
+installed system images.
+
+[image sculpt_24_04_check_updates 50%]
+
+The upper part of the dialog allows you to select the system-image provider.
+By default, the provider is set to the one of your currently running system
+image. But you have the option to obtain images from alternative providers,
+or even add a new custom provider by using the "Edit" button. Under the
+hood, each listed provider corresponds to a directory in your _depot/_ at the
+sculpt partition.
+When adding a custom provider, it will show up as a new directory there.
+The lower part of the dialog presents the information about the currently
+running system image for reference.
+
+The check-for-updates button downloads the information about available
+images from the selected provider. This information is presented along
+with the already downloaded images as exemplified in the following screenshot.
+
+[image sculpt_24_04_update 50%]
+
+The little "..." dots indicate that change-log information is available when
+clicking on the entry. The download button fetches the image. Once fetched,
+the download button turns into an install button. You can select any present
+image for your next boot via the corresponding install button. Under the hood,
+this operation copies the content of the
+_depot/<provider>/image/sculpt-<board>-<version>/_ directory to your _/boot/_
+directory.
+Note that you can switch back and forth between different versions this way.
+For example, should a new version not behave to your full satisfaction, you
+can easily switch back to the previous one by using the install button of the
+original version. As a precaution, it is good to have downloaded the initial
+Sculpt version you are using. In the worst case, should a new version fail to
+boot, you can still manually copy this downloaded original version from your
+local _depot/_ to your boot directory using a live USB system.
+
+Once an image is installed, the dialog tells you "reboot to activate".
+One way to do that is by changing the system state in _/config/system_ to
+"reset".
+
+
+Audio
+=====
+
+Sculpt OS supports playback and recording of audio as an optional feature
+that is available at the options tab of the '+' menu. The central component is
+the mixer, which provides the record and play services to the audio driver(s)
+and applications.
+
+[image sculpt_24_04_audio_options 40%]
+
+The audio driver is a mere client of the mixer. It can be started and removed
+without interfering with the liveliness of audio applications.
+
+[image sculpt_24_04_mixer_audio 40%]
+
+By default, the mixer keeps the microphone muted and mixes the playback of all
+applications at an equal volume. This policy is defined by the mixer's
+configuration at _/config/launcher/mixer_, which you can find accompanied by
+instructive comments. For example, uncomment the '<play>' nodes referring to
+'mic_left' and 'mic_right' to unmute the mic, or tweak the volume values.
+For tweaking the configuration, it is useful to know the labels of the
+clients. One can obtain this information from the mixer's report at
+_/report/runtime/mixer/state_.
+You can find the mixer configuration described in more detail in its
+[https://github.com/genodelabs/genode/blob/master/repos/os/src/server/record_play_mixer/README - documentation].
+
+Analogously to the mixer, the audio driver can be configured dynamically
+by tweaking the values in _/config/launcher/audio_. For example, you can
+find the master volume for the whole device there.
+
+
+Assignment of USB devices to components
+=======================================
+
+Sculpt OS has built-in drivers for USB HID devices and USB storage devices,
+which are started automatically if detected. In addition, individual USB
+devices can be assigned to components such as virtual machines, webcam
+drivers, or smartcard drivers. The user-defined rules for assigning USB
+devices to components reside at _/config/usb_. Sculpt combines these rules
+with dynamic built-in rules concerning HID and storage devices into
+_/config/managed/usb_, which is the USB-driver configuration.
+
+The _/config/usb_ file contains a few examples that can be taken as a blueprint.
+The '<policy>' nodes refer to clients of the USB host controller whereas
+the embedded '<device>' nodes represent assignments. The examples take the
+vendor and device IDs of devices as keys for the assignment.
+
+Note that one device may be present in multiple policies, which works well if
+only one of the matching clients is running at a time. It is fine to define
+rules for devices that are not present. As soon as such a device gets plugged
+in, the assignment will take effect. This is useful when repeatedly plugging
+and unplugging the same USB device assigned to a virtual machine.
+
+While defining _/config/usb_ rules, it is helpful to review the currently
+attached devices. This information is available at
+_/report/runtime/usb/devices_.
+
+
+System power control
+====================
+
+Sculpt OS offers system-power controls like reset, power-down, and standby
+available as an optional feature. On PC hardware, this functionality requires
+ACPI support, which can be enabled as option on the '+' menu.
+
+[image sculpt_24_04_acpi_support 40%]
+
+Once enabled, the "acpi support" component appears and the system menu at the
+upper-left screen corner hosts interactive power controls.
+
+[image sculpt_24_04_system_power 40%]
+
+Caveats
+-------
+
+As suggested by the names of controls, the reset and power-down operations
+take immediate effect if confirmed. Note that the file-system driver
+synchronizes file modifications every 10 seconds. So take a breath before
+powering down or rebooting your machine.
+
+The standby support is highly experimental. The baseline functionality of
+returning from sleep to an interactively accessible system has been tested on
+machines with mixed yet promising results.
+
+On most machines, the wifi driver is not able to re-initialize the wifi device
+after resume. The Lenovo x260 is a notable exception.
+
+Upon resume, Sculpt OS restarts the USB host-controller driver, which
+implies the restart of all USB clients. E.g., a virtual machine connected
+to USB will be affected. While accessing any USB storage device, the standby
+option is deliberately not presented.
+
+The NVMe, AHCI, and Intel GPU drivers are suspend-resume aware, which means
+that clients of their services are expected to continue operating after
+resuming from standby. The response of the file-system stack to suspend-resume
+cycles is not yet thoroughly tested through.
+
+The audio driver is not automatically restarted during the suspend-resume
+cycle. You may try restarting audio manually.
+
+The limitations will be addressed gradually over time. Feedback about the
+feature on your specific machine is appreciated. Don't hesitate to post your
+experience on the Genode mailing list.
+
+
+Touchpad on Intel Gen11+
+========================
+
+Touchpads on recent Intel laptops are integrated as I2C HID devices without
+legacy PS/2 emulation. To support such trackpads, a dedicated driver is
+needed. Even though Sculpt OS has no built-in trackpad driver, it offers
+an I2C HID driver as an option in the '+' menu. Of course, you will need to
+use a USB mouse to initially activate and configure this option.
+
+The driver needs to know a few platform-specific values that must be manually
+configured at _/config/launcher/trackpad_. The configuration is annotated with
+known values for several laptop models. Adjust the configuration by using the
+values matching your hardware and restart the touchpad driver to let the new
+configuration take effect.
 
 
 Building the boot image
@@ -1517,18 +1682,18 @@ Building the boot image
 The following steps assume that you have the Genode tool chain installed on a
 GNU/Linux system. For reference, Ubuntu LTS is known to work well. If you
 don't know your way around Genode's source tree yet, please consider the
-"Getting started" section of the Genode Foundations book that is available as
-a free download at [https://genode.org].
+"Getting started" section of the Genode Foundations book that is available to
+download at [https://genode.org].
 
 # Clone Genode's Git repository:
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-23.10 sculpt-23.10
+  ! git checkout -b sculpt-24.04 sculpt-24.04
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2023-10-25
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2024-04-26
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
@@ -1536,10 +1701,8 @@ a free download at [https://genode.org].
 # Download all ingredients for the Sculpt boot image
 
   ! ./tool/depot/download \
-  !    genodelabs/pkg/x86_64/sculpt/2023-10-25 \
-  !    genodelabs/pkg/x86_64/drivers_managed-pc/2023-10-25 \
-  !    genodelabs/pkg/x86_64/pc_wifi/2023-10-25 \
-  !    genodelabs/bin/x86_64/pc_nic_drv/2023-10-25
+  !    genodelabs/pkg/x86_64/sculpt/2024-04-26 \
+  !    genodelabs/pkg/x86_64/sculpt_drivers-pc/2024-04-26
 
 # Create a build directory
 
@@ -1549,10 +1712,14 @@ a free download at [https://genode.org].
   Most importantly, enable the 'gems' source-code repository where the Sculpt
   scenario resides. In addition, the 'libports', 'ports', 'pc', 'dde_linux',
   'dde_rump', and 'dde_bsd' repositories are needed as well.
+
   Second, change the default configuration of the 'QEMU_RUN_OPT' variable to
   'image/disk' instead of 'image/iso'. This way, the build process will
   produce a valid disk image with a GPT partition table instead of a legacy
   ISO image.
+
+  You may also consider enabling parallel build by uncommenting the
+  corresponding line at the top of the file.
 
 # Prepare GRUB 2, which is needed for booting from the disk image
 
@@ -1584,12 +1751,11 @@ Before building the packages, various ports of 3rd-party software need to
 be prepared. The following command prepares all of them at once:
 
 ! <GENODE-DIR>/tool/ports/prepare_port \
-!      acpica bash coreutils curl dde_bsd dde_linux \
-!      dde_rump e2fsprogs-lib expat freetype gnupg grub2 \
-!      jitterentropy jpeg libarchive libc libdrm \
-!      libgcrypt libiconv libnl libpng libssh libusb \
-!      libuvc libyuv linux linux-firmware mesa ncurses \
-!      nova openssl qemu-usb qoost qt5 stb stdcxx \
+!      acpica bash coreutils curl dde_bsd dde_rump e2fsprogs-lib \
+!      expat freetype gdb gmp gnupg grub2 jitterentropy jpeg \
+!      libarchive libc libdrm libgcrypt libiconv libnl libpng \
+!      libssh libusb libuvc libyuv linux linux-firmware mesa \
+!      ncurses nova openssl qemu-usb qoost qt5 stb stdcxx \
 !      ttf-bitstream-vera vim virtualbox6 wpa_supplicant \
 !      x86emu xz zlib
 
@@ -1624,7 +1790,7 @@ described in Section [Building the boot image] - implicitly builds all required
 binary packages from source.
 
 The 'sculpt_distribution' and 'sculpt_distribution-pc' packages can be
-created independently from the _sculpt.run_ script by using the 'depot/create'
+created independently of the _sculpt.run_ script by using the 'depot/create'
 tool manually.
 
 ! <GENODE-DIR>/tool/depot/create \
@@ -1634,7 +1800,7 @@ tool manually.
 
 The 'FORCE=1' argument ensures that source archives are re-created and
 checked for the consistency with their versions. Whenever the source code of any
-of the archives changes, the 'UPDATE_VERSIONS=1' argument automatically
+archive changes, the 'UPDATE_VERSIONS=1' argument automatically
 updates its version. Please don't forget to commit the updated 'hash'
 files. The empty 'REBUILD=' argument limits the creation of binary packages
 to those that do not yet exist in binary form. If not specified, the
@@ -1653,37 +1819,15 @@ _gems/sculpt/default-pc.sculpt_ and the accompanied files at
 _gems/sculpt/launcher/_. Each launcher contains a node with a mandatory 'pkg'
 attribute. If the attribute value contains one or more '/' characters, it is
 assumed to be a complete pkg path of the form '<USER>/pkg/<NAME>/<VERSION>'.
-Otherwise it is assumed to be just the pkg name and is replaced by the current
+Otherwise, it is assumed to be just the pkg name and is replaced by the current
 version of the current depot user's pkg at system-integration time.
 
+The following article gives further inspiration and practical hints for
+customizing the Sculpt OS system image.
 
-Updating the USB boot device from within VirtualBox
-===================================================
+:Crafting a modded Sculpt OS image in a few moderate steps:
 
-The _/config/deploy_ example is prepared to assign USB storage
-devices directly to a running virtual machine. You may inspect the report
-_/report/drivers/usb_devices_ to get a list of attached USB devices.
-Use Vim to copy the '<device>' node of the selected device into the
-'<inline>' section within the _/config/launcher/usb_devices_rom_ file.
-
-The updated 'usb_devices' ROM prompts VirtualBox to open a USB session at
-the drivers subsystem. Hence, when saving the modified
-_/config/launcher/usb_devices_rom_ file, the guest OS should detect a new USB
-device (check the output of 'dmesg'). You may now write a new version of the
-Sculpt ISO image to the device by following the steps described in Section
-[Building the boot image].
-
-Alternatively, to update a USB storage device that already has Sculpt OS
-installed to a new version built manually via the steps described in
-Section [Building the boot image], you may prefer to replace the files at the
-_boot/_ directory of the "GENODE" partition of the USB device by the content of
-the freshly built _var/run/sculpt/boot/_ directory as found in the build
-directory after executing the 'make run/sculpt' step.
-Make sure to copy the files 'hypervisor' (microkernel) and 'image.elf.gz'
-(system image of the Sculpt base system).
-By backing up your previous _boot/_ directory, you can conveniently roll back
-the Sculpt system to the previous version by restoring the original _boot/_
-content.
+  [https://genodians.org/nfeske/2023-11-10-modding-sculpt]
 
 
 Credits
