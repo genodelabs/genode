@@ -4,6 +4,61 @@
                                ===========
 
 
+Sculpt OS release 24.04 | 2024-04-26
+####################################
+
+| Sculpt OS 24.04 is rich of new user-visible features.
+| It now supports 4K displays and I2C touchpads out of the box,
+| brings experimental support for suspend/resume,
+| allows the fine-grained assignment of USB devices to applications and VMs,
+| and introduces new audio-mixing capabilities.
+
+The release of version 24.04 adheres to
+our [https://genode.org/about/road-map - declared] focus on Sculpt OS usability
+during this year. Seasoned users will immediately recognize the new power of the
+component-management UI, offering easy control over optional features,
+software providers, and software installation. Among many little
+user-interface improvements, the component graph and configuration interface
+have become scrollable, boosting the interactive user experience.
+
+When looking closely at the components, users will recognize a whole new set
+of drivers neatly grouped under hardware. In contrast to earlier versions,
+which operated these drivers hidden from the user, the new version manages the
+drivers dynamically and fully transparent for the user. The change makes the
+user interface more logical and simpler. However, the driving force behind this
+approach
+was our aspired support for suspend/resume, which requires the dynamic
+life-cycle management of drivers. This brings us to the technical highlight of
+the release: After on-and-off development for more than a year, we are more
+than happy offering suspend/resume as an experimental feature.
+
+As culmination of a second long-term development, version 24.04 employs a new
+and much more flexible interplay between the USB-host driver and components
+accessing USB devices. The dynamic assignment of devices to virtual machines
+and other components has become a breeze.
+
+Just in time for the release, Sculpt OS has received a completely overhauled
+audio stack that supports pluggable drivers, arbitrary sample rates, and the
+flexible routing and mixing of audio signals. We are eager to stress and
+refine the taken approach over the upcoming release cycle to make low-latency
+audio a commodity on Sculpt OS.
+
+Thanks to our routine with running Sculpt OS on modern laptops day to day,
+version 24.04 bumps the range of supported hardware. Displays up to 4K are
+supported out of the box now, and touchpads of laptops like the Gen13 Framework
+have become operational.
+
+Speaking of developers, the release offers two bold new features targeted at
+this specific demography, namely the support for on-target debugging via GDB,
+and the ability to use Sculpt OS as a remote test target of Genode's Goa SDK.
+Look out for more information about these features in the upcoming weeks
+at [https://genodians.org].
+
+Sculpt OS 24.04 is available as ready-to-use system image at the
+[https://genode.org/download/sculpt - Sculpt download page] accompanied
+with updated [https://genode.org/documentation/articles/sculpt-24-04 - documentation].
+
+
 Genode OS Framework release 24.02 | 2024-02-29
 ##############################################
 
