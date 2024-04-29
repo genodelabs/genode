@@ -34,10 +34,11 @@ struct Sculpt::Ram_fs_state : Child_state, File_system
 
 	Ram_fs_state(Registry<Child_state> &registry, Start_name const &name)
 	:
-		Child_state(registry, { .name     = name,
-		                        .priority = Priority::LEITZENTRALE,
-		                        .initial  = { Ram_quota{1024*1024}, Cap_quota{300} },
-		                        .max      = { Ram_quota{2*1024*1024*1024UL}, { } } }),
+		Child_state(registry, { .name      = name,
+		                        .priority  = Priority::LEITZENTRALE,
+		                        .cpu_quota = 0,
+		                        .initial   = { Ram_quota{1024*1024}, Cap_quota{300} },
+		                        .max       = { Ram_quota{2*1024*1024*1024UL}, { } } }),
 		File_system(File_system::UNKNOWN)
 	{ }
 };

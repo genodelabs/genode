@@ -137,8 +137,13 @@ struct Sculpt::Fb_driver : private Noncopyable
 		                     Ram_quota { 8*1024*1024 }, Cap_quota { 110 });
 
 		_soc_fb.conditional(board_info.soc.fb && board_info.options.display,
-		                    registry, "fb", Priority::MULTIMEDIA,
-		                    Ram_quota { 16*1024*1024 }, Cap_quota { 250 });
+		                    registry, Child_state::Attr {
+		                        .name      = "fb",
+		                        .priority  = Priority::MULTIMEDIA,
+		                        .cpu_quota = 20,
+		                        .initial   = { Ram_quota { 16*1024*1024 },
+		                                       Cap_quota { 250 } },
+		                        .max       = { } } );
 
 		if (use_boot_fb && !_boot_fb.constructed())
 			Boot_fb::with_mode(platform, [&] (Boot_fb::Mode mode) {

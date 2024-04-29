@@ -62,16 +62,18 @@ struct Sculpt::Deploy
 	Arch _arch { };
 
 	Child_state cached_depot_rom_state {
-		_child_states, { .name     = "depot_rom",
-		                 .priority = Priority::STORAGE,
-		                 .initial  = { Ram_quota{24*1024*1024}, Cap_quota{200} },
-		                 .max      = { Ram_quota{2*1024*1024*1024UL}, { } } } };
+		_child_states, { .name      = "depot_rom",
+		                 .priority  = Priority::STORAGE,
+		                 .cpu_quota = 0,
+		                 .initial   = { Ram_quota{24*1024*1024}, Cap_quota{200} },
+		                 .max       = { Ram_quota{2*1024*1024*1024UL}, { } } } };
 
 	Child_state uncached_depot_rom_state {
-		_child_states, { .name     = "dynamic_depot_rom",
-		                 .priority = Priority::STORAGE,
-		                 .initial  = { Ram_quota{8*1024*1024}, Cap_quota{200} },
-		                 .max      = { Ram_quota{2*1024*1024*1024UL}, { } } } };
+		_child_states, { .name      = "dynamic_depot_rom",
+		                 .priority  = Priority::STORAGE,
+		                 .cpu_quota = 0,
+		                 .initial   = { Ram_quota{8*1024*1024}, Cap_quota{200} },
+		                 .max       = { Ram_quota{2*1024*1024*1024UL}, { } } } };
 
 	/*
 	 * Report written to '/config/managed/deploy'

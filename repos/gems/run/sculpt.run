@@ -427,7 +427,7 @@ install_config {
 
 	<start name="drivers" caps="4850" priority="-1" managing_system="yes">
 		<resource name="RAM" quantum="200M"/>
-		<resource name="CPU" quantum="10"/>
+		<resource name="CPU" quantum="5"/>
 		<binary name="init"/>
 		<route>
 			} [log_route] {
@@ -610,7 +610,7 @@ install_config {
 	<start name="leitzentrale" caps="2400" priority="-1">
 		<binary name="init"/>
 		<resource name="RAM" quantum="203M"/>
-		<resource name="CPU" quantum="35"/>
+		<resource name="CPU" quantum="10"/>
 		<affinity xpos="1" width="1"/> <!-- decouple leitzentrale from boot CPU -->
 		<provides>
 			<service name="Gui"/>
@@ -662,7 +662,7 @@ install_config {
 	<start name="runtime" caps="50000" priority="-1" managing_system="yes">
 		<binary name="monitor"/>
 		<resource name="RAM" quantum="32G"/>
-		<resource name="CPU" quantum="40"/>
+		<resource name="CPU" quantum="70"/>
 		<route>
 			<service name="ROM" label="config">
 				<child name="config_fs_rom" label="managed/runtime"/> </service>

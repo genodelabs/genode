@@ -167,10 +167,15 @@ void Distant_runtime::gen_start_nodes(Xml_generator &xml) const
 		xml.attribute("priority", (int)Priority::LEITZENTRALE);
 		xml.attribute("caps",    _caps.value);
 
-		xml.node("resource", [&] {
-			xml.attribute("name", "RAM");
-			Number_of_bytes const bytes(_ram.value);
-			xml.attribute("quantum", String<64>(bytes)); });
+		auto resource = [&] (auto const &type, auto const &amount)
+		{
+			xml.node("resource", [&] {
+				xml.attribute("name", type);
+				xml.attribute("quantum", String<64>(amount)); });
+		};
+
+		resource("RAM", Number_of_bytes(_ram.value));
+		resource("CPU", 20);
 
 		xml.node("binary", [&] {
 			xml.attribute("name", "menu_view"); });

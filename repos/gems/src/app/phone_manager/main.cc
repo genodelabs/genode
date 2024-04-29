@@ -2129,13 +2129,12 @@ void Sculpt::Main::_handle_gui_mode()
 	if (mode.area.count() > 1)
 		_gui_mode_ready = true;
 
-	_update_window_layout();
-
 	_screen_size = mode.area;
 	_main_view.min_width  = _screen_size.w();
 	_main_view.min_height = _screen_size.h();
 
 	generate_runtime_config();
+	_update_window_layout();
 }
 
 
@@ -2399,9 +2398,12 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	});
 
 	_drivers.gen_start_nodes(xml);
+
 	_dialog_runtime.gen_start_nodes(xml);
 	_storage.gen_runtime_start_nodes(xml);
-	_touch_keyboard.gen_start_node(xml);
+
+	if (_system.storage_stage) /* touch keyboard not needed at earliest boot stage */
+		_touch_keyboard.gen_start_node(xml);
 
 	/*
 	 * Load configuration and update depot config on the sculpt partition

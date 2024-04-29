@@ -47,8 +47,13 @@ struct Sculpt::Touch_driver : private Noncopyable
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
 		_soc.conditional(board_info.soc.touch && board_info.options.display,
-		                 registry, "touch", Priority::MULTIMEDIA,
-		                 Ram_quota { 10*1024*1024 }, Cap_quota { 250 });
+		                 registry, Child_state::Attr {
+		                    .name      = "touch",
+		                    .priority  = Priority::MULTIMEDIA,
+		                    .cpu_quota = 10,
+		                    .initial   = { Ram_quota { 10*1024*1024 },
+		                                   Cap_quota { 250 } },
+		                    .max       = { } } );
 	}
 };
 

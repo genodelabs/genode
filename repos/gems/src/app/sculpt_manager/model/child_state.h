@@ -34,6 +34,7 @@ struct Sculpt::Child_state : Noncopyable
 		{
 			Start_name name;
 			Priority   priority;
+			unsigned   cpu_quota;
 
 			struct Initial { Ram_quota ram; Cap_quota caps; } initial;
 			struct Max     { Ram_quota ram; Cap_quota caps; } max;
@@ -71,10 +72,11 @@ struct Sculpt::Child_state : Noncopyable
 		Child_state(Registry<Child_state> &registry, auto const &name,
 		            Priority priority, Ram_quota initial_ram, Cap_quota initial_caps)
 		:
-			Child_state(registry, { .name     = name,
-			                        .priority = priority,
-			                        .initial  = { initial_ram, initial_caps },
-			                        .max      = { } })
+			Child_state(registry, { .name      = name,
+			                        .priority  = priority,
+			                        .cpu_quota = 0,
+			                        .initial   = { initial_ram, initial_caps },
+			                        .max       = { } })
 		{ }
 
 		void trigger_restart()
@@ -98,9 +100,14 @@ struct Sculpt::Child_state : Noncopyable
 
 			xml.attribute("caps", _cap_quota.value);
 			xml.attribute("priority", (int)_attr.priority);
+
 			gen_named_node(xml, "resource", "RAM", [&] {
 				Number_of_bytes const bytes(_ram_quota.value);
 				xml.attribute("quantum", String<64>(bytes)); });
+
+			if (_attr.cpu_quota)
+				gen_named_node(xml, "resource", "CPU", [&] {
+					xml.attribute("quantum", _attr.cpu_quota); });
 		}
 
 		/**
