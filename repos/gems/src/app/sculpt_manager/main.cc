@@ -2388,6 +2388,7 @@ void Sculpt::Main::_generate_event_filter_config(Xml_generator &xml)
 				gen_key("KEY_CAPSLOCK", "KEY_CAPSLOCK");
 				gen_key("KEY_F12",      "KEY_DASHBOARD");
 				gen_key("KEY_LEFTMETA", "KEY_SCREEN");
+				gen_key("KEY_SYSRQ",    "KEY_PRINT");
 				gen_include("numlock.remap");
 
 				xml.node("merge", [&] {

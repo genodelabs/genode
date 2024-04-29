@@ -2,10 +2,10 @@
 	<output>
 		<chargen>
 			<remap>
-				<!-- <key name="KEY_CAPSLOCK" to="KEY_ESC"/> -->
-				<key name="KEY_F11"      to="KEY_RESTART"/>
+				<key name="KEY_CAPSLOCK" to="KEY_CAPSLOCK"/>
 				<key name="KEY_F12"      to="KEY_DASHBOARD"/>
 				<key name="KEY_LEFTMETA" to="KEY_SCREEN"/>
+				<key name="KEY_SYSRQ"    to="KEY_PRINT"/>
 				<include rom="numlock.remap"/>
 				<merge>
 					<accelerate max="50" sensitivity_percent="1000" curve="127">
