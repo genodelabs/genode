@@ -148,20 +148,14 @@ void Graph::view(Scope<Depgraph> &s) const
 		Start_name const name = component.name;
 		Start_name pretty_name { Pretty(name) };
 
-		if (name == "mmcblk0.part_block")
-			pretty_name = "mmcblk0";
+		if (name == "mmc-mmcblk0.part")
+			pretty_name = "0.part";
 
-		if (name == "mmcblk0.1.fs")
+		if (name == "mmc-mmcblk0.1.fs")
 			pretty_name = "1.fs";
 
 		/* omit sculpt's helpers from the graph */
 		bool const hidden = (name == "runtime_view"
-		                  || name == "popup_view"
-		                  || name == "main_view"
-		                  || name == "panel_view"
-		                  || name == "settings_view"
-		                  || name == "network_view"
-		                  || name == "file_browser_view"
 		                  || name == "editor"
 		                  || name == "launcher_query"
 		                  || name == "update"
@@ -171,8 +165,6 @@ void Graph::view(Scope<Depgraph> &s) const
 		                  || name == "depot_rom"
 		                  || name == "dynamic_depot_rom"
 		                  || name == "depot_query"
-		                  || name == "system_view"
-		                  || name == "diag_view"
 		                  || name == "manager_keyboard");
 		if (hidden)
 			return;
