@@ -40,6 +40,7 @@ struct Sculpt::Settings
 		{
 			static Keyboard_layout layouts[] = {
 				{ .name = "French",       .chargen_file = "keyboard/fr_fr" },
+				{ .name = "French Bepo",  .chargen_file = "keyboard/fr_bepo" },
 				{ .name = "German",       .chargen_file = "keyboard/de_de" },
 				{ .name = "Swiss French", .chargen_file = "keyboard/fr_ch" },
 				{ .name = "Swiss German", .chargen_file = "keyboard/de_ch" },
