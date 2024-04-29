@@ -47,9 +47,14 @@ struct Sculpt::Mmc_driver : private Noncopyable
 			gen_provides<Block::Session>(xml);
 			xml.node("config", [&] {
 				xml.attribute("report", "yes");
-				xml.node("default-policy", [&] {
-					xml.attribute("device", "mmcblk0");
-					xml.attribute("writeable", "yes"); });
+				for (unsigned i = 0; i < 4; i++) {
+					String<64> name("mmcblk", i);
+					xml.node("policy", [&] {
+						xml.attribute("label", name);
+						xml.attribute("device", name);
+						xml.attribute("writeable", "yes");
+					});
+				}
 			});
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>(xml);
