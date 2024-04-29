@@ -76,7 +76,7 @@ class Window_layouter::Target_list
 			}
 
 			/* amount of pixels we can use for weighed columns */
-			unsigned const weigthed_avail = avail_px - preserved_pixels;
+			unsigned const weighted_avail = avail_px - preserved_pixels;
 
 			/*
 			 * Calculate positions
@@ -91,9 +91,9 @@ class Window_layouter::Target_list
 					if (px)
 						return px;
 
-					unsigned const weight = weight_attr_value(child);
+					double const weight = weight_attr_value(child);
 					if (weight && total_weight)
-						return (((weight << 16)*weigthed_avail)/total_weight) >> 16;
+						return (unsigned) (weight/total_weight*weighted_avail);
 
 					return 0U;
 				};
@@ -103,12 +103,12 @@ class Window_layouter::Target_list
 				if (weighted)
 					count_weighted++;
 
-				/* true if target is the last weigthed column or row */
+				/* true if target is the last weighted column or row */
 				bool const last_weighted = weighted
 				                        && (count_weighted == num_weighted);
 
 				unsigned const px_size = last_weighted
-				                       ? (weigthed_avail - used_weighted)
+				                       ? (weighted_avail - used_weighted)
 				                       : calc_px_size();
 
 				if (weighted)
