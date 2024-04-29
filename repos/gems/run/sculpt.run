@@ -806,7 +806,7 @@ copy_file [genode_dir]/repos/gems/recipes/pkg/sculpt/README [initial_config_file
 copy_file [genode_dir]/repos/gems/run/sculpt/vimrc          [initial_config_file vimrc]
 
 # keyboard layouts
-foreach file { en_us de_ch de_de fr_ch fr_fr special } {
+foreach file { en_us de_ch de_de fr_ch fr_fr fr_bepo special } {
 	set from [genode_dir]/repos/os/src/server/event_filter/$file.chargen
 	set to   [file join [initial_config_dir] keyboard $file]
 	check_xml_syntax $from
