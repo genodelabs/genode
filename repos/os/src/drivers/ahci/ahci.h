@@ -954,6 +954,9 @@ struct Ahci::Port : private Port_base
 	typedef Port_mmio::Ci   Ci;
 
 	typedef Port_mmio::Register_set::Polling_timeout Polling_timeout;
+	typedef Port_mmio::Register_set::Attempts        Attempts;
+	typedef Port_mmio::Register_set::Microseconds    Microseconds;
+
 
 	void ack_irq(Port_mmio &mmio)
 	{
@@ -992,7 +995,11 @@ struct Ahci::Port : private Port_base
 			return;
 
 		try {
-			mmio.wait_for(delayer, Tfd::Sts_bsy::Equal(0));
+			/* wait up to 5s */
+			mmio.wait_for(Port::Attempts(5000),
+			              Port::Microseconds(1000),
+			              delayer,
+			              Tfd::Sts_bsy::Equal(0));
 		} catch (Polling_timeout) {
 			error("HBA busy unable to start command processing.");
 			return;

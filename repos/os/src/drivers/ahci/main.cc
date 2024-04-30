@@ -141,8 +141,6 @@ class Ahci::Driver : Noncopyable
 
 				device_release_if_stopped_and_idle();
 
-				log("driver halted");
-
 				return;
 			}
 
@@ -153,9 +151,13 @@ class Ahci::Driver : Noncopyable
 
 				/* re-start request handling of client sessions */
 				for_each_port([&](auto &port, auto const index, auto) {
-					port.stop_processing = false;
-					port.reinit();
-					_dispatch.session(index);
+					try {
+						port.reinit();
+						port.stop_processing = false;
+						_dispatch.session(index);
+					} catch (...) {
+						error("port ", index, " failed to be resumed");
+					}
 				});
 
 				log("driver resumed");
@@ -220,6 +222,8 @@ class Ahci::Driver : Noncopyable
 			/* avoid disabling device if we have outstanding requests */
 			if (pending)
 				return;
+
+			log("driver halted");
 
 			_resources.release_device();
 		}
