@@ -1,7 +1,7 @@
 CONFIGURE_ARGS = --disable-selinux --disable-xsmp --disable-xsmp-interact \
                  --disable-netbeans --disable-gtktest --disable-largefile \
                  --disable-acl --disable-gpm --disable-sysmouse \
-                 --disable-nls
+                 --disable-nls --enable-multibyte
 
 #
 # configure: error: cross-compiling: please set 'vim_cv_toupper_broken'
