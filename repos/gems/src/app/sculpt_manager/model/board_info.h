@@ -84,7 +84,7 @@ struct Sculpt::Board_info
 
 		static inline Used from_xml(Xml_node const &devices);
 
-		bool any() const { return wifi || nic || intel_gfx || nvme || usb; }
+		bool any() const { return wifi || nic || intel_gfx || nvme || usb || ahci; }
 
 	} used;
 
