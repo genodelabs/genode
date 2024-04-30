@@ -26,3 +26,4 @@ _/pkg/unconfigured_nano3d
 _/pkg/usb_webcam
 _/pkg/window_layouter
 _/pkg/wm
+_/src/vfs_oss
