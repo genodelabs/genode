@@ -30,7 +30,7 @@ if {
 
 if {[have_spec nova]} {
 	# enable logmem to get kernel logs in memory
-	proc kernel_output { } { return "novga logmem" }
+	proc kernel_output { } { return "logmem" }
 }
 
 

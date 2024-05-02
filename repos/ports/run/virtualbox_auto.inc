@@ -16,7 +16,7 @@ if { [get_cmd_switch --autopilot] && [have_spec x86_32] } {
 }
 
 if {[have_spec nova]} {
-	proc kernel_output { } { return "novga logmem" }
+	proc kernel_output { } { return "logmem" }
 }
 
 create_boot_directory

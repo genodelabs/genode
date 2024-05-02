@@ -13,7 +13,7 @@ proc log_service { } {
 }
 
 if {[have_spec nova]} {
-	proc kernel_output { } { return "novga logmem" }
+	proc kernel_output { } { return "logmem" }
 }
 
 build {

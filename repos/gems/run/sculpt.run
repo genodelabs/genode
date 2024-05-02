@@ -39,14 +39,14 @@ proc log_core { } {
 
 if {[log_core]} {
 	if {[have_spec nova]} {
-		proc kernel_output { } { return "novga serial logmem" }
+		proc kernel_output { } { return "serial logmem" }
 	}
 } else {
 	# disable default enabled serial log output via core
 	proc boot_output { } { return "" }
 
 	if {[have_spec nova]} {
-		proc kernel_output { } { return "novga logmem" }
+		proc kernel_output { } { return "logmem" }
 	}
 }
 
