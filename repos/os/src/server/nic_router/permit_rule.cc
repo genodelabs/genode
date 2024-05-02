@@ -32,10 +32,7 @@ void Permit_any_rule::print(Output &output) const
 }
 
 
-Permit_any_rule::Permit_any_rule(Domain_dict &domains, Xml_node const node)
-:
-	Permit_rule { domains.deprecated_find_by_domain_attr<Invalid>(node) }
-{ }
+Permit_any_rule::Permit_any_rule(Domain &domain) : Permit_rule { domain } { }
 
 
 /************************
@@ -55,12 +52,8 @@ void Permit_single_rule::print(Output &output) const
 }
 
 
-Permit_single_rule::Permit_single_rule(Domain_dict    &domains,
-                                       Xml_node const  node)
+Permit_single_rule::Permit_single_rule(Port port, Domain &domain)
 :
-	Permit_rule { domains.deprecated_find_by_domain_attr<Invalid>(node) },
-	_port       { node.attribute_value("port", Port(0)) }
-{
-	if (_port == Port(0) || dynamic_port(_port)) {
-		throw Invalid(); }
-}
+	Permit_rule { domain },
+	_port       { port }
+{ }

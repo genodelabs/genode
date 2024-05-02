@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/exception.h>
 #include <net/mac_address.h>
+#include <util/attempt.h>
 
 namespace Net { class Mac_allocator; }
 
@@ -30,14 +31,15 @@ class Net::Mac_allocator
 
 	public:
 
-		struct Alloc_failed : Genode::Exception {};
-
 		Mac_allocator(Mac_address base) : _base(base)
 		{
 			Genode::memset(&_free, true, sizeof(_free));
 		}
 
-		Mac_address alloc()
+		struct Alloc_error { };
+		using Alloc_result = Genode::Attempt<Mac_address, Alloc_error>;
+
+		Alloc_result alloc()
 		{
 			for (unsigned id = 0; id < sizeof(_free) / sizeof(_free[0]); id++) {
 				if (!_free[id]) {
@@ -48,7 +50,7 @@ class Net::Mac_allocator
 				mac.addr[5] = id;
 				return mac;
 			}
-			throw Alloc_failed();
+			return Alloc_error();
 		}
 
 		void free(Mac_address mac) { _free[mac.addr[5]] = true; }

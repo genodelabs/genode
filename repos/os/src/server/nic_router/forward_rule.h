@@ -49,7 +49,7 @@ class Net::Forward_rule : public Genode::Avl_node<Forward_rule>
 
 		struct Invalid : Genode::Exception { };
 
-		Forward_rule(Domain_dict &domains, Genode::Xml_node const node);
+		Forward_rule(Port port, Ipv4_address to_ip, Port to_port, Domain &domain);
 
 		template <typename HANDLE_MATCH_FN,
 		          typename HANDLE_NO_MATCH_FN>

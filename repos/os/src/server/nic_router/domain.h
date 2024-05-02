@@ -21,7 +21,6 @@
 #include <ip_rule.h>
 #include <arp_cache.h>
 #include <port_allocator.h>
-#include <pointer.h>
 #include <ipv4_config.h>
 #include <dhcp_server.h>
 #include <interface.h>
@@ -54,7 +53,8 @@ struct Net::Domain_object_stats
 
 	void dissolve_interface(Interface_object_stats const &stats);
 
-	void report(Genode::Xml_generator &xml);
+	bool report_empty() const;
+	void report(Genode::Xml_generator &xml) const;
 };
 
 
@@ -66,7 +66,8 @@ struct Net::Domain_link_stats : Domain_object_stats
 
 	void dissolve_interface(Interface_link_stats const &stats);
 
-	void report(Genode::Xml_generator &xml);
+	bool report_empty() const;
+	void report(Genode::Xml_generator &xml) const;
 };
 
 
@@ -74,26 +75,12 @@ class Net::Domain_dict : public Dictionary<Domain, Domain_name>
 {
 	public:
 
-		template <typename NO_MATCH_EXCEPTION>
-		Domain &deprecated_find_by_name(Domain_name const &domain_name)
+		void find_by_domain_attr(Genode::Xml_node const &node, auto const &ok_fn, auto const &failed_fn)
 		{
-			Domain *dom_ptr { nullptr };
-			with_element(
-				domain_name,
-				[&] /* match_fn */ (Domain &dom) { dom_ptr = &dom; },
-				[&] /* no_match_fn */ () { throw NO_MATCH_EXCEPTION { }; }
-			);
-			return *dom_ptr;
+			with_element(node.attribute_value("domain", Domain_name()),
+				[&] (Domain &domain) { ok_fn(domain); }, [&] { failed_fn(); });
 		}
 
-		template <typename NO_MATCH_EXCEPTION>
-		Domain &deprecated_find_by_domain_attr(Genode::Xml_node const &node)
-		{
-			Domain_name const domain_name {
-				node.attribute_value("domain", Domain_name { }) };
-
-			return deprecated_find_by_name<NO_MATCH_EXCEPTION>(domain_name);
-		}
 };
 
 
@@ -117,7 +104,7 @@ class Net::Domain : public List<Domain>::Element,
 		Nat_rule_tree                         _nat_rules            { };
 		Interface_list                        _interfaces           { };
 		unsigned long                         _interface_cnt        { 0 };
-		Pointer<Dhcp_server>                  _dhcp_server          { };
+		Dhcp_server                          *_dhcp_server_ptr      { };
 		Genode::Reconstructible<Ipv4_config>  _ip_config;
 		bool                            const _ip_config_dynamic    { !ip_config().valid() };
 		List<Domain>                          _ip_config_dependents { };
@@ -141,19 +128,19 @@ class Net::Domain : public List<Domain>::Element,
 		Domain_object_stats                   _dhcp_stats           { };
 		unsigned long                         _dropped_fragm_ipv4   { 0 };
 
-		void _read_forward_rules(Genode::Cstring  const &protocol,
-		                         Domain_dict            &domains,
-		                         Genode::Xml_node const  node,
-		                         char             const *type,
-		                         Forward_rule_tree      &rules);
+		[[nodiscard]] bool _read_forward_rules(Genode::Cstring  const &protocol,
+		                                       Domain_dict            &domains,
+		                                       Genode::Xml_node const  node,
+		                                       char             const *type,
+		                                       Forward_rule_tree      &rules);
 
-		void _read_transport_rules(Genode::Cstring  const &protocol,
-		                           Domain_dict            &domains,
-		                           Genode::Xml_node const  node,
-		                           char             const *type,
-		                           Transport_rule_list    &rules);
+		[[nodiscard]] bool _read_transport_rules(Genode::Cstring  const &protocol,
+		                                         Domain_dict            &domains,
+		                                         Genode::Xml_node const  node,
+		                                         char             const *type,
+		                                         Transport_rule_list    &rules);
 
-		void _invalid(char const *reason) const;
+		[[nodiscard]] bool _invalid(char const *reason) const;
 
 		void _log_ip_config() const;
 
@@ -171,11 +158,15 @@ class Net::Domain : public List<Domain>::Element,
 
 		void __FIXME__dissolve_foreign_arp_waiters();
 
+		/*
+		 * Noncopyable
+		 */
+		Domain(Domain const &);
+		Domain &operator = (Domain const &);
+
 	public:
 
-		struct Invalid          : Genode::Exception { };
-		struct Ip_config_static : Genode::Exception { };
-		struct No_next_hop      : Genode::Exception { };
+		struct Invalid : Genode::Exception { };
 
 		Domain(Configuration          &config,
 		       Genode::Xml_node const &node,
@@ -185,11 +176,21 @@ class Net::Domain : public List<Domain>::Element,
 
 		~Domain();
 
-		void init(Domain_dict &domains);
+		[[nodiscard]] bool finish_construction() const;
+
+		[[nodiscard]] bool init(Domain_dict &domains);
 
 		void deinit();
 
-		Ipv4_address const &next_hop(Ipv4_address const &ip) const;
+		void with_next_hop(Ipv4_address const &ip, auto const &ok_fn, auto const &error_fn) const
+		{
+			if (ip_config().interface().prefix_matches(ip))
+				ok_fn(ip);
+			else if (ip_config().gateway_valid())
+				ok_fn(ip_config().gateway());
+			else
+				error_fn();
+		}
 
 		void ip_config_from_dhcp_ack(Dhcp_packet &dhcp_ack);
 
@@ -209,7 +210,9 @@ class Net::Domain : public List<Domain>::Element,
 
 		void raise_tx_bytes(Genode::size_t bytes) { _tx_bytes += bytes; }
 
-		void report(Genode::Xml_generator &xml);
+		bool report_empty(Report const &) const;
+
+		void report(Genode::Xml_generator &xml, Report const &) const;
 
 		void add_dropped_fragm_ipv4(unsigned long dropped_fragm_ipv4);
 
@@ -217,6 +220,20 @@ class Net::Domain : public List<Domain>::Element,
 
 		void update_ready_state();
 
+		void with_dhcp_server(auto const &dhcp_server_fn, auto const &no_dhcp_server_fn)
+		{
+			if (!_dhcp_server_ptr) {
+				no_dhcp_server_fn();
+				return;
+			}
+			if (_dhcp_server_ptr->has_invalid_remote_dns_cfg()) {
+				no_dhcp_server_fn();
+				return;
+			}
+			dhcp_server_fn(*_dhcp_server_ptr);
+		}
+
+		void with_dhcp_server(auto const &fn) { with_dhcp_server(fn, []{}); }
 
 		/*********
 		 ** log **
@@ -247,7 +264,6 @@ class Net::Domain : public List<Domain>::Element,
 		Nat_rule_tree               &nat_rules()                 { return _nat_rules; }
 		Interface_list              &interfaces()                { return _interfaces; }
 		Configuration               &config()              const { return _config; }
-		Dhcp_server                 &dhcp_server();
 		Arp_cache                   &arp_cache()                 { return _arp_cache; }
 		Arp_waiter_list             &foreign_arp_waiters()       { return _foreign_arp_waiters; }
 		Link_side_tree              &tcp_links()                 { return _tcp_links; }

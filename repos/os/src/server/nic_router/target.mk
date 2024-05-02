@@ -4,7 +4,6 @@ LIBS += base net
 
 SRC_CC += \
 	arp_waiter.cc \
-	ip_rule.cc \
 	ipv4_address_prefix.cc \
 	nic_session_root.cc \
 	port_allocator.cc \
@@ -18,7 +17,6 @@ SRC_CC += \
 	configuration.cc \
 	domain.cc \
 	l3_protocol.cc \
-	direct_rule.cc \
 	link.cc \
 	transport_rule.cc \
 	permit_rule.cc \

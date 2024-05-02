@@ -205,26 +205,19 @@ class Net::Dhcp_packet
 		/**
 		 * Domain name server option
 		 */
-		class Dns_server : public Option
+		struct Dns_server : public Option
 		{
-			private:
+			static constexpr Code CODE = Code::DNS_SERVER;
 
-				Ipv4_address _dns_servers[0];
+			Dns_server(Genode::size_t len) : Option(CODE, (Genode::uint8_t)len) { }
 
-			public:
+			void for_each_address(auto const &fn) const
+			{
+				Ipv4_address const *dns_servers = (Ipv4_address const *)((Genode::addr_t)this + sizeof(*this));
+				for (unsigned idx = 0; idx < len() / sizeof(*dns_servers); idx++)
+					fn(dns_servers[idx]);
+			}
 
-				static constexpr Code CODE = Code::DNS_SERVER;
-
-				Dns_server(Genode::size_t len) : Option(CODE, (Genode::uint8_t)len) { }
-
-				void for_each_address(auto const &fn) const
-				{
-					for (unsigned idx = 0;
-					     idx < len() / sizeof(_dns_servers[0]); idx++) {
-
-						fn(_dns_servers[idx]);
-					}
-				}
 		};
 
 		/**
@@ -515,6 +508,24 @@ class Net::Dhcp_packet
 				ptr = (void *)((Genode::addr_t)ptr + sizeof(opt) + opt.len());
 			}
 		}
+
+		template <typename T>
+		void with_option(auto const &found_fn, auto const &not_found_fn) const
+		{
+			bool found = false;
+			for_each_option([&] (Option const &opt) {
+				if (found || opt.code() != T::CODE)
+					return;
+
+				found = true;
+				found_fn(*(T const *)(&opt));
+			});
+			if (!found)
+				not_found_fn();
+		}
+
+		template <typename T>
+		void with_option(auto const &fn) const { with_option<T>(fn, []{}); }
 
 
 		/***************

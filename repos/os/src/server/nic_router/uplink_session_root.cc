@@ -62,16 +62,12 @@ Net::Uplink_session_component::Interface_policy::determine_domain_name() const
 	try {
 		Session_policy policy(_label, _config().node());
 		domain_name = policy.attribute_value("domain", Domain_name());
+		if (domain_name == Domain_name() && _config().verbose())
+			log("[?] no domain attribute in policy for downlink label \"", _label, "\"");
 	}
 	catch (Session_policy::No_policy_defined) {
 		if (_config().verbose()) {
 			log("[?] no policy for downlink label \"", _label, "\""); }
-	}
-	catch (Xml_node::Nonexistent_attribute) {
-		if (_config().verbose()) {
-			log("[?] no domain attribute in policy for downlink label \"",
-			    _label, "\"");
-		}
 	}
 	return domain_name;
 }

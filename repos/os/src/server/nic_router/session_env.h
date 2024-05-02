@@ -169,6 +169,8 @@ class Genode::Session_env : public Ram_allocator,
 			return ptr;
 		};
 
+		bool report_empty() const { return false; }
+
 		void report(Genode::Xml_generator &xml) const
 		{
 			xml.node("ram-quota", [&] () {

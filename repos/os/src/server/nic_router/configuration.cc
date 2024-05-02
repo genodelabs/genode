@@ -63,31 +63,20 @@ void Configuration::_invalid_domain(Domain     &domain,
 Icmp_packet::Code
 Configuration::_init_icmp_type_3_code_on_fragm_ipv4(Xml_node const &node) const
 {
-	char const *const attr_name { "icmp_type_3_code_on_fragm_ipv4" };
-	try {
-		Xml_attribute const &attr { node.attribute(attr_name) };
-		if (attr.has_value("no")) {
-			return Icmp_packet::Code::INVALID;
-		}
-		uint8_t attr_val { };
-		bool const attr_transl_succeeded { attr.value<uint8_t>(attr_val) };
-		Icmp_packet::Code const result {
-			Icmp_packet::code_from_uint8(
-				Icmp_packet::Type::DST_UNREACHABLE, attr_val) };
-
-		if (!attr_transl_succeeded ||
-		    result == Icmp_packet::Code::INVALID) {
-
-			warning("attribute 'icmp_type_3_code_on_fragm_ipv4' has invalid "
-			        "value, assuming value \"no\"");
-
-			return Icmp_packet::Code::INVALID;
-		}
+	using Attribute_string = String<16>;
+	Icmp_packet::Code result = Icmp_packet::Code::INVALID;
+	Attribute_string attr_str = node.attribute_value("icmp_type_3_code_on_fragm_ipv4", Attribute_string());
+	if (attr_str == "no" || attr_str == Attribute_string())
 		return result;
+
+	uint8_t attr_u8 { };
+	if (Genode::ascii_to(attr_str.string(), attr_u8) == attr_str.length() - 1) {
+		result = Icmp_packet::code_from_uint8(Icmp_packet::Type::DST_UNREACHABLE, attr_u8);
+		if (result != Icmp_packet::Code::INVALID)
+			return result;
 	}
-	catch (Xml_node::Nonexistent_attribute) {
-		return Icmp_packet::Code::INVALID;
-	}
+	warning("attribute 'icmp_type_3_code_on_fragm_ipv4' has invalid value");
+	return result;
 }
 
 
@@ -120,119 +109,101 @@ Configuration::Configuration(Env                             &env,
 {
 	/* do parts of domain initialization that do not lookup other domains */
 	node.for_each_sub_node("domain", [&] (Xml_node const node) {
-		try {
-			Domain_name const name {
-				node.attribute_value("name", Domain_name { }) };
+		Domain_name const name {
+			node.attribute_value("name", Domain_name { }) };
 
-			_domains.with_element(
-				name,
-				[&] /* match_fn */ (Domain &other_domain)
-				{
-					if (_verbose) {
+		_domains.with_element(
+			name,
+			[&] /* match_fn */ (Domain &other_domain)
+			{
+				if (_verbose) {
 
-						log("[", name,
-						    "] invalid domain (name not unique) ");
+					log("[", name,
+					    "] invalid domain (name not unique) ");
 
-						log("[", other_domain,
-						    "] invalid domain (name not unique) ");
-					}
-					destroy(_alloc, &other_domain);
-				},
-				[&] /* no_match_fn */ ()
-				{
-					new (_alloc) Domain {
-						*this, node, name, _alloc, _domains };
+					log("[", other_domain,
+					    "] invalid domain (name not unique) ");
 				}
-			);
-		}
-		catch (Domain::Invalid) { }
+				destroy(_alloc, &other_domain);
+			},
+			[&] /* no_match_fn */ ()
+			{
+				Domain &domain = *new (_alloc) Domain { *this, node, name, _alloc, _domains };
+				if (!domain.finish_construction())
+					destroy(_alloc, &domain);
+			}
+		);
 	});
 	/* do parts of domain initialization that may lookup other domains */
 	while (true) {
+		Domain *invalid_domain_ptr { };
+		_domains.for_each([&] (Domain &domain) {
+			if (invalid_domain_ptr)
+				return;
 
-		struct Retry_without_domain : Genode::Exception
-		{
-			Domain &domain;
+			if (!domain.init(_domains)) {
+				invalid_domain_ptr = &domain;
+				return;
+			}
+			if (_verbose) {
+				log("[", domain, "] initiated domain"); }
+		});
+		if (!invalid_domain_ptr)
+			break;
 
-			Retry_without_domain(Domain &domain) : domain(domain) { }
-		};
-		try {
-			_domains.for_each([&] (Domain &domain) {
-				try { domain.init(_domains); }
-				catch (Domain::Invalid) { throw Retry_without_domain(domain); }
-				if (_verbose) {
-					log("[", domain, "] initiated domain"); }
-			});
-		}
-		catch (Retry_without_domain exception) {
+		/* destroy domain that became invalid during initialization */
+		destroy(_alloc, invalid_domain_ptr);
 
-			/* destroy domain that became invalid during initialization */
-			destroy(_alloc, &exception.domain);
-
-			/* deinitialize the remaining domains again */
-			_domains.for_each([&] (Domain &domain) {
-				domain.deinit();
-				if (_verbose) {
-					log("[", domain, "] deinitiated domain"); }
-			});
-			/* retry to initialize the remaining domains */
-			continue;
-		}
-		break;
+		/* deinitialize the remaining domains again */
+		_domains.for_each([&] (Domain &domain) {
+			domain.deinit();
+			if (_verbose) {
+				log("[", domain, "] deinitiated domain"); }
+		});
 	}
-	try {
-		/* check whether we shall create a report generator */
-		Xml_node const report_node = node.sub_node("report");
-		try {
-			/* try to re-use existing reporter */
-			_reporter = old_config._reporter();
-			old_config._reporter = Pointer<Reporter>();
-		}
-		catch (Pointer<Reporter>::Invalid) {
-
+	node.with_optional_sub_node("report", [&] (Xml_node const &report_node) {
+		if (old_config._reporter_ptr) {
+			/* re-use existing reporter */
+			_reporter_ptr = old_config._reporter_ptr;
+			old_config._reporter_ptr = nullptr;
+		} else {
 			/* there is no reporter by now, create a new one */
-			_reporter = *new (_alloc) Reporter(env, "state", nullptr, 4096 * 4);
+			_reporter_ptr = new (_alloc) Reporter(env, "state", nullptr, 4096 * 4);
 		}
 		/* create report generator */
-		_report = *new (_alloc)
-			Report {
-				_verbose, report_node, timer, _domains, shared_quota, env.pd(),
-				_reporter(), report_signal_cap };
-	}
-	catch (Genode::Xml_node::Nonexistent_sub_node) { }
-
+		_report.construct(
+			_verbose, report_node, timer, _domains, shared_quota, env.pd(),
+			*_reporter_ptr, report_signal_cap);
+	});
 	/* initialize NIC clients */
 	_node.for_each_sub_node("nic-client", [&] (Xml_node const node) {
-		try {
-			Session_label const label {
-				node.attribute_value("label",  Session_label::String { }) };
+		Session_label const label {
+			node.attribute_value("label",  Session_label::String { }) };
 
-			Domain_name const domain {
-				node.attribute_value("domain", Domain_name { }) };
+		Domain_name const domain {
+			node.attribute_value("domain", Domain_name { }) };
 
-			_nic_clients.with_element(
-				label,
-				[&] /* match */ (Nic_client &nic_client)
-				{
-					if (_verbose) {
+		_nic_clients.with_element(
+			label,
+			[&] /* match */ (Nic_client &nic_client)
+			{
+				if (_verbose) {
 
-						log("[", domain, "] invalid NIC client: ",
-						    label, " (label not unique)");
+					log("[", domain, "] invalid NIC client: ",
+					    label, " (label not unique)");
 
-						log("[", nic_client.domain(), "] invalid NIC client: ",
-						    nic_client.label(), " (label not unique)");
-					}
-					destroy(_alloc, &nic_client);
-				},
-				[&] /* no_match */ ()
-				{
-					new (_alloc) Nic_client {
-						label, domain, alloc, old_config._nic_clients,
-						_nic_clients, env, timer, interfaces, *this };
+					log("[", nic_client.domain(), "] invalid NIC client: ",
+					    nic_client.label(), " (label not unique)");
 				}
-			);
-		}
-		catch (Nic_client::Invalid) { }
+				destroy(_alloc, &nic_client);
+			},
+			[&] /* no_match */ ()
+			{
+				Nic_client &nic_client = *new (_alloc) Nic_client { label, domain, alloc, _nic_clients, *this };
+				if (!nic_client.finish_construction(env, timer, interfaces, old_config._nic_clients))
+					destroy(_alloc, &nic_client);
+			}
+		);
 	});
 	/*
 	 * Destroy old NIC clients to ensure that NIC client interfaces that were
@@ -248,12 +219,8 @@ Configuration::~Configuration()
 	_nic_clients.destroy_each(_alloc);
 
 	/* destroy reporter */
-	try { destroy(_alloc, &_reporter()); }
-	catch (Pointer<Reporter>::Invalid) { }
-
-	/* destroy report generator */
-	try { destroy(_alloc, &_report()); }
-	catch (Pointer<Report>::Invalid) { }
+	if (_reporter_ptr)
+		destroy(_alloc, _reporter_ptr);
 
 	/* destroy domains */
 	_domains.destroy_each(_alloc);

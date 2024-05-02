@@ -40,16 +40,14 @@ class Net::Direct_rule_base
 
 	public:
 
-		struct Invalid : Genode::Exception { };
-
-		Direct_rule_base(Genode::Xml_node const node);
+		Direct_rule_base(Ipv4_address_prefix const dst) : _dst(dst) { }
 
 
 		/*********
 		 ** log **
 		 *********/
 
-		void print(Genode::Output &output) const;
+		void print(Genode::Output &output) const { Genode::print(output, "dst ", _dst); }
 
 
 		/***************
@@ -64,7 +62,7 @@ template <typename T>
 struct Net::Direct_rule : Direct_rule_base,
                           Direct_rule_list<T>::Element
 {
-	Direct_rule(Genode::Xml_node const node) : Direct_rule_base(node) { }
+	Direct_rule(Ipv4_address_prefix const &dst) : Direct_rule_base(dst) { }
 };
 
 

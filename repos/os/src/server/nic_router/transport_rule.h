@@ -17,7 +17,6 @@
 /* local includes */
 #include <direct_rule.h>
 #include <permit_rule.h>
-#include <pointer.h>
 
 namespace Genode { class Allocator; }
 
@@ -33,23 +32,25 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 {
 	private:
 
-		Genode::Allocator              &_alloc;
-		Pointer<Permit_any_rule> const  _permit_any_rule;
-		Permit_single_rule_tree         _permit_single_rules { };
+		Genode::Allocator       &_alloc;
+		Permit_any_rule         *_permit_any_rule_ptr { };
+		Permit_single_rule_tree  _permit_single_rules { };
 
-		static Pointer<Permit_any_rule>
+		static Permit_any_rule *
 		_read_permit_any_rule(Domain_dict            &domains,
 		                      Genode::Xml_node const  node,
 		                      Genode::Allocator      &alloc);
 
+		/*
+		 * Noncopyable
+		 */
+		Transport_rule(Transport_rule const &);
+		Transport_rule &operator = (Transport_rule const &);
+
 	public:
 
-		Transport_rule(Domain_dict            &domains,
-		               Genode::Xml_node const  node,
-		               Genode::Allocator      &alloc,
-		               Genode::Cstring  const &protocol,
-		               Configuration          &config,
-		               Domain           const &domain);
+		Transport_rule(Ipv4_address_prefix const &dst,
+		               Genode::Allocator         &alloc);
 
 		~Transport_rule();
 
@@ -60,9 +61,9 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 		                         HANDLE_MATCH_FN    && handle_match,
 		                         HANDLE_NO_MATCH_FN && handle_no_match) const
 		{
-			if (_permit_any_rule.valid()) {
+			if (_permit_any_rule_ptr) {
 
-				handle_match(_permit_any_rule());
+				handle_match(*_permit_any_rule_ptr);
 
 			} else {
 
@@ -70,6 +71,12 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 					port, handle_match, handle_no_match);
 			}
 		}
+
+		[[nodiscard]] bool finish_construction(Domain_dict            &domains,
+		                                       Genode::Xml_node const  node,
+		                                       Genode::Cstring  const &protocol,
+		                                       Configuration          &config,
+		                                       Domain           const &domain);
 };
 
 

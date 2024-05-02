@@ -26,72 +26,68 @@ using namespace Genode;
  ** Nic_client **
  ****************/
 
-void Nic_client::_invalid(char const *reason) const
-{
-	if (_config.verbose()) {
-		log("[", domain(), "] invalid NIC client: ", label(),
-		    " (", reason, ")");
-	}
-	throw Invalid();
-}
-
-
 Net::Nic_client::Nic_client(Session_label const &label_arg,
                             Domain_name   const &domain_arg,
                             Allocator           &alloc,
-                            Nic_client_dict     &old_nic_clients,
                             Nic_client_dict     &new_nic_clients,
-                            Env                 &env,
-                            Cached_timer        &timer,
-                            Interface_list      &interfaces,
                             Configuration       &config)
 :
 	Nic_client_dict::Element { new_nic_clients, label_arg },
 	_alloc                   { alloc },
 	_config                  { config },
 	_domain                  { domain_arg }
+{ }
+
+
+bool Nic_client::finish_construction(Env &env, Cached_timer &timer, Interface_list &interfaces,
+                                     Nic_client_dict &old_nic_clients)
 {
+	char const *error = "";
 	old_nic_clients.with_element(
 		label(),
 		[&] /* handle_match */ (Nic_client &old_nic_client)
 		{
 			/* reuse existing interface */
-			Nic_client_interface &interface = old_nic_client._interface();
-			old_nic_client._interface = Pointer<Nic_client_interface>();
+			Nic_client_interface &interface = *old_nic_client._crit->interface_ptr;
+			old_nic_client._crit->interface_ptr = nullptr;
 			interface.domain_name(domain());
-			_interface = interface;
+			_crit.construct(&interface);
 		},
 		[&] /* handle_no_match */ ()
 		{
 			/* create a new interface */
-			if (config.verbose()) {
+			if (_config.verbose()) {
 				log("[", domain(), "] create NIC client: ", label()); }
 
 			try {
-				_interface = *new (_alloc)
-					Nic_client_interface {
-						env, timer, alloc, interfaces, config, domain(),
-						label() };
+				_crit.construct(new (_alloc)
+					Nic_client_interface(env, timer, _alloc, interfaces, _config, domain(), label()));
 			}
-			catch (Insufficient_ram_quota) { _invalid("NIC session RAM quota"); }
-			catch (Insufficient_cap_quota) { _invalid("NIC session CAP quota"); }
-			catch (Service_denied)         { _invalid("NIC session denied"); }
+			catch (Insufficient_ram_quota) { error = "NIC session RAM quota"; }
+			catch (Insufficient_cap_quota) { error = "NIC session CAP quota"; }
+			catch (Service_denied)         { error = "NIC session denied"; }
 		}
 	);
+	if (_crit.constructed())
+		return true;
+
+	if (_config.verbose())
+		log("[", domain(), "] invalid NIC client: ", label(), " (", error, ")");
+	return false;
 }
 
 
 Net::Nic_client::~Nic_client()
 {
+	if (!_crit.constructed())
+		return;
+
 	/* if the interface was yet not reused by another NIC client, destroy it */
-	try {
-		Nic_client_interface &interface = _interface();
+	if (_crit->interface_ptr) {
 		if (_config.verbose()) {
 			log("[", domain(), "] destroy NIC client: ", label()); }
-
-		destroy(_alloc, &interface);
+		destroy(_alloc, _crit->interface_ptr);
 	}
-	catch (Pointer<Nic_client_interface>::Invalid) { }
 }
 
 

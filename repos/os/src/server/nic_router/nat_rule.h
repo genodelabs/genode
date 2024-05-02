@@ -44,7 +44,7 @@ class Net::Nat_rule : public Genode::Avl_node<Nat_rule>
 
 		struct Invalid : Genode::Exception { };
 
-		Nat_rule(Domain_dict            &domains,
+		Nat_rule(Domain                 &domain,
 		         Port_allocator         &tcp_port_alloc,
 		         Port_allocator         &udp_port_alloc,
 		         Port_allocator         &icmp_port_alloc,

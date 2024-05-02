@@ -65,8 +65,6 @@ class Net::Report
 
 	public:
 
-		struct Empty : Genode::Exception { };
-
 		Report(bool                              const &verbose,
 		       Genode::Xml_node                  const  node,
 		       Cached_timer                            &timer,
@@ -80,7 +78,7 @@ class Net::Report
 
 		void handle_interface_link_state();
 
-		void generate();
+		void generate() const;
 
 
 		/***************

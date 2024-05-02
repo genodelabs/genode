@@ -117,6 +117,7 @@ class Net::Nic_session_component : private Nic_session_component_base,
 				Domain_name determine_domain_name() const override;
 				void handle_config(Configuration const &config) override { _config = config; }
 				Genode::Session_label const &label() const override { return _label; }
+				bool report_empty() const override { return _session_env.report_empty(); };
 				void report(Genode::Xml_generator &xml) const override { _session_env.report(xml); };
 				void handle_domain_ready_state(bool state) override;
 				bool interface_link_state() const override;
@@ -167,13 +168,13 @@ class Net::Nic_session_root
 
 		enum { MAC_ALLOC_BASE = 0x02 };
 
-		Genode::Env              &_env;
-		Cached_timer             &_timer;
-		Mac_allocator             _mac_alloc;
-		Mac_address        const  _router_mac;
-		Reference<Configuration>  _config;
-		Quota                    &_shared_quota;
-		Interface_list           &_interfaces;
+		Genode::Env                       &_env;
+		Cached_timer                      &_timer;
+		Mac_allocator                      _mac_alloc;
+		Genode::Constructible<Mac_address> _router_mac { };
+		Reference<Configuration>           _config;
+		Quota                             &_shared_quota;
+		Interface_list                    &_interfaces;
 
 		void _invalid_downlink(char const *reason);
 

@@ -24,63 +24,63 @@ using namespace Net;
 using namespace Genode;
 
 
-Pointer<Permit_any_rule>
-Transport_rule::_read_permit_any_rule(Domain_dict    &domains,
-                                      Xml_node const  node,
-                                      Allocator      &alloc)
-{
-	try {
-		Xml_node sub_node = node.sub_node("permit-any");
-		return Pointer<Permit_any_rule>(*new (alloc)
-		                                Permit_any_rule(domains, sub_node));
-	}
-	catch (Xml_node::Nonexistent_sub_node) { }
-	return Pointer<Permit_any_rule>();
-}
-
-
-Transport_rule::Transport_rule(Domain_dict    &domains,
-                               Xml_node const  node,
-                               Allocator      &alloc,
-                               Cstring  const &protocol,
-                               Configuration  &config,
-                               Domain   const &domain)
+Transport_rule::Transport_rule(Ipv4_address_prefix const &dst,
+                               Allocator                 &alloc)
 :
-	Direct_rule(node),
-	_alloc(alloc),
-	_permit_any_rule(_read_permit_any_rule(domains, node, alloc))
+	Direct_rule(dst),
+	_alloc(alloc)
+{ }
+
+
+bool Transport_rule::finish_construction(Domain_dict    &domains,
+                                         Xml_node const  node,
+                                         Cstring  const &protocol,
+                                         Configuration  &config,
+                                         Domain   const &local_domain)
 {
-	/* skip specific permit rules if all ports are permitted anyway */
-	try {
-		Permit_any_rule &permit_any_rule = _permit_any_rule();
-		if (config.verbose()) {
-			log("[", domain, "] ", protocol, " permit-any rule: ", permit_any_rule);
-			log("[", domain, "] ", protocol, " rule: dst ", _dst);
-		}
-		return;
-	} catch (Pointer<Permit_any_rule>::Invalid) { }
-
-	/* read specific permit rules */
-	node.for_each_sub_node("permit", [&] (Xml_node const node) {
-		Permit_single_rule &rule = *new (alloc)
-			Permit_single_rule(domains, node);
-
-		_permit_single_rules.insert(&rule);
-		if (config.verbose()) {
-			log("[", domain, "] ", protocol, " permit rule: ", rule); }
+	/* try to find a permit-any rule first */
+	bool error = false;
+	node.with_optional_sub_node("permit-any", [&] (Xml_node const &permit_any_node) {
+		domains.find_by_domain_attr(permit_any_node,
+			[&] (Domain &remote_domain) { _permit_any_rule_ptr = new (_alloc) Permit_any_rule(remote_domain); },
+			[&] { error = true; });
 	});
-	/* drop the transport rule if it has no permitted ports */
-	if (!_permit_single_rules.first()) {
-		throw Invalid(); }
+	if (error)
+		return false;
 
-	if (config.verbose()) {
-		log("[", domain, "] ", protocol, " rule: dst ", _dst); }
+	/* skip specific permit rules if all ports are permitted anyway */
+	if (_permit_any_rule_ptr) {
+		if (config.verbose()) {
+			log("[", local_domain, "] ", protocol, " permit-any rule: ", *_permit_any_rule_ptr);
+			log("[", local_domain, "] ", protocol, " rule: dst ", _dst);
+		}
+		return true;
+	}
+	/* read specific permit rules */
+	node.for_each_sub_node("permit", [&] (Xml_node const permit_node) {
+		if (error)
+			return;
+
+		Port port = permit_node.attribute_value("port", Port(0));
+		if (port == Port(0) || dynamic_port(port)) {
+			error = true;
+			return;
+		}
+		domains.find_by_domain_attr(permit_node,
+			[&] (Domain &remote_domain) {
+				Permit_single_rule &rule = *new (_alloc) Permit_single_rule(port, remote_domain);
+				_permit_single_rules.insert(&rule);
+				if (config.verbose())
+					log("[", local_domain, "] ", protocol, " permit rule: ", rule); },
+			[&] { error = true; });
+	});
+	return !error && (_permit_any_rule_ptr || _permit_single_rules.first());
 }
 
 
 Transport_rule::~Transport_rule()
 {
 	_permit_single_rules.destroy_each(_alloc);
-	try { destroy(_alloc, &_permit_any_rule()); }
-	catch (Pointer<Permit_any_rule>::Invalid) { }
+	if (_permit_any_rule_ptr)
+		destroy(_alloc, _permit_any_rule_ptr);
 }

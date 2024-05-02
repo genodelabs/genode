@@ -69,7 +69,7 @@ void Arp_cache::new_entry(Ipv4_address const &ip, Mac_address const &mac)
 void Arp_cache::destroy_entries_with_mac(Mac_address const &mac)
 {
 	for (unsigned curr = 0; curr < NR_OF_ENTRIES; curr++) {
-		try {
+		if (_entries[curr].constructed()) {
 			Arp_cache_entry &entry = *_entries[curr];
 			if (entry.mac() != mac) {
 				continue;
@@ -79,8 +79,7 @@ void Arp_cache::destroy_entries_with_mac(Mac_address const &mac)
 			}
 			remove(&entry);
 			_entries[curr].destruct();
-
-		} catch (Arp_cache_entry_slot::Deref_unconstructed_object) { }
+		}
 	}
 }
 

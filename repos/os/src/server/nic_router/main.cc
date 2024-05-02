@@ -70,9 +70,7 @@ class Net::Main
 
 void Main::_handle_report()
 {
-	try { _config().report().generate(); }
-	catch (Pointer<Report>::Invalid) { }
-	
+	_config().with_report([&] (Report &r) { r.generate(); });
 }
 
 

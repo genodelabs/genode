@@ -35,5 +35,5 @@ char const *Net::l3_protocol_name(L3_protocol protocol)
 	case L3_protocol::TCP:  return tcp_name();
 	case L3_protocol::UDP:  return udp_name();
 	case L3_protocol::ICMP: return icmp_name();
-	default: throw Interface::Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }

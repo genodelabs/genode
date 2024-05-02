@@ -33,13 +33,10 @@ void Forward_rule::print(Output &output) const
 }
 
 
-Forward_rule::Forward_rule(Domain_dict &domains, Xml_node const node)
+Forward_rule::Forward_rule(Port port, Ipv4_address to_ip, Port to_port, Domain &domain)
 :
-	_port    { node.attribute_value("port", Port(0)) },
-	_to_ip   { node.attribute_value("to", Ipv4_address()) },
-	_to_port { node.attribute_value("to_port", Port(0)) },
-	_domain  { domains.deprecated_find_by_domain_attr<Invalid>(node) }
-{
-	if (_port == Port(0) || !_to_ip.valid() || dynamic_port(_port)) {
-		throw Invalid(); }
-}
+	_port    { port },
+	_to_ip   { to_ip },
+	_to_port { to_port },
+	_domain  { domain }
+{ }

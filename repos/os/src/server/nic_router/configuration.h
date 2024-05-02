@@ -33,27 +33,33 @@ class Net::Configuration
 
 		using Mac_string = Genode::String<17>;
 
-		Genode::Allocator          &_alloc;
-		unsigned long        const  _max_packets_per_signal;
-		bool                 const  _verbose;
-		bool                 const  _verbose_packets;
-		bool                 const  _verbose_packet_drop;
-		bool                 const  _verbose_domain_state;
-		bool                 const  _trace_packets;
-		bool                 const  _icmp_echo_server;
-		Icmp_packet::Code    const  _icmp_type_3_code_on_fragm_ipv4;
-		Genode::Microseconds const  _dhcp_discover_timeout;
-		Genode::Microseconds const  _dhcp_request_timeout;
-		Genode::Microseconds const  _dhcp_offer_timeout;
-		Genode::Microseconds const  _icmp_idle_timeout;
-		Genode::Microseconds const  _udp_idle_timeout;
-		Genode::Microseconds const  _tcp_idle_timeout;
-		Genode::Microseconds const  _tcp_max_segm_lifetime;
-		Pointer<Report>             _report      { };
-		Pointer<Genode::Reporter>   _reporter    { };
-		Domain_dict                 _domains     { };
-		Nic_client_dict             _nic_clients { };
-		Genode::Xml_node     const  _node;
+		Genode::Allocator             &_alloc;
+		unsigned long           const  _max_packets_per_signal;
+		bool                    const  _verbose;
+		bool                    const  _verbose_packets;
+		bool                    const  _verbose_packet_drop;
+		bool                    const  _verbose_domain_state;
+		bool                    const  _trace_packets;
+		bool                    const  _icmp_echo_server;
+		Icmp_packet::Code       const  _icmp_type_3_code_on_fragm_ipv4;
+		Genode::Microseconds    const  _dhcp_discover_timeout;
+		Genode::Microseconds    const  _dhcp_request_timeout;
+		Genode::Microseconds    const  _dhcp_offer_timeout;
+		Genode::Microseconds    const  _icmp_idle_timeout;
+		Genode::Microseconds    const  _udp_idle_timeout;
+		Genode::Microseconds    const  _tcp_idle_timeout;
+		Genode::Microseconds    const  _tcp_max_segm_lifetime;
+		Genode::Constructible<Report>  _report { };
+		Genode::Reporter              *_reporter_ptr { };
+		Domain_dict                    _domains { };
+		Nic_client_dict                _nic_clients { };
+		Genode::Xml_node        const  _node;
+
+		/*
+		 * Noncopyable
+		 */
+		Configuration(Configuration const &);
+		Configuration &operator = (Configuration const &);
 
 		Icmp_packet::Code
 		_init_icmp_type_3_code_on_fragm_ipv4(Genode::Xml_node const &node) const;
@@ -77,6 +83,8 @@ class Net::Configuration
 
 		~Configuration();
 
+		void with_report(auto const &fn) { if (_report.constructed()) fn(*_report); }
+
 
 		/***************
 		 ** Accessors **
@@ -98,7 +106,6 @@ class Net::Configuration
 		Genode::Microseconds  tcp_idle_timeout()               const { return _tcp_idle_timeout; }
 		Genode::Microseconds  tcp_max_segm_lifetime()          const { return _tcp_max_segm_lifetime; }
 		Domain_dict          &domains()                              { return _domains; }
-		Report               &report()                               { return _report(); }
 		Genode::Xml_node      node()                           const { return _node; }
 };
 

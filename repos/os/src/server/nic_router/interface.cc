@@ -23,6 +23,7 @@
 #include <interface.h>
 #include <configuration.h>
 #include <l3_protocol.h>
+#include <assertion.h>
 
 using namespace Net;
 using Genode::Deallocator;
@@ -151,7 +152,7 @@ static void _link_packet(L3_protocol  const  prot,
 			return;
 		}
 		return;
-	default: throw Interface::Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }
 
 
@@ -176,7 +177,7 @@ static void _update_checksum(L3_protocol   const prot,
 			                               sizeof(Icmp_packet));
 			return;
 		}
-	default: throw Interface::Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }
 
 
@@ -186,7 +187,7 @@ static Port _dst_port(L3_protocol const prot, void *const prot_base)
 	case L3_protocol::TCP:  return (*(Tcp_packet *)prot_base).dst_port();
 	case L3_protocol::UDP:  return (*(Udp_packet *)prot_base).dst_port();
 	case L3_protocol::ICMP: return Port((*(Icmp_packet *)prot_base).query_id());
-	default: throw Interface::Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }
 
 
@@ -198,7 +199,7 @@ static void _dst_port(L3_protocol  const prot,
 	case L3_protocol::TCP:  (*(Tcp_packet *)prot_base).dst_port(port);  return;
 	case L3_protocol::UDP:  (*(Udp_packet *)prot_base).dst_port(port);  return;
 	case L3_protocol::ICMP: (*(Icmp_packet *)prot_base).query_id(port.value); return;
-	default: throw Interface::Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }
 
 
@@ -208,7 +209,7 @@ static Port _src_port(L3_protocol const prot, void *const prot_base)
 	case L3_protocol::TCP:  return (*(Tcp_packet *)prot_base).src_port();
 	case L3_protocol::UDP:  return (*(Udp_packet *)prot_base).src_port();
 	case L3_protocol::ICMP: return Port((*(Icmp_packet *)prot_base).query_id());
-	default: throw Interface::Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }
 
 
@@ -220,7 +221,7 @@ static void _src_port(L3_protocol  const prot,
 	case L3_protocol::TCP:  ((Tcp_packet *)prot_base)->src_port(port);        return;
 	case L3_protocol::UDP:  ((Udp_packet *)prot_base)->src_port(port);        return;
 	case L3_protocol::ICMP: ((Icmp_packet *)prot_base)->query_id(port.value); return;
-	default: throw Interface::Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }
 
 
@@ -232,35 +233,62 @@ static void *_prot_base(L3_protocol const  prot,
 	case L3_protocol::TCP:  return &ip.data<Tcp_packet>(size_guard);
 	case L3_protocol::UDP:  return &ip.data<Udp_packet>(size_guard);
 	case L3_protocol::ICMP: return &ip.data<Icmp_packet>(size_guard);
-	default: throw Interface::Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }
 
+
+static bool _supported_transport_prot(L3_protocol prot)
+{
+	return
+		prot == L3_protocol::TCP ||
+		prot == L3_protocol::UDP ||
+		prot == L3_protocol::ICMP;
+}
+
+
+static void _with_forward_rule(Domain &dom, L3_protocol prot, Port port, auto const &fn)
+{
+	switch (prot) {
+	case L3_protocol::TCP: dom.tcp_forward_rules().find_by_port(port, [&] (Forward_rule const &r) { fn(r); }, []{}); break;
+	case L3_protocol::UDP: dom.udp_forward_rules().find_by_port(port, [&] (Forward_rule const &r) { fn(r); }, []{}); break;
+	default: break; }
+}
+
+
+static void _with_transport_rule(Domain &dom, L3_protocol prot, Ipv4_address const &ip, Port port, auto const &fn)
+{
+	switch (prot) {
+	case L3_protocol::TCP: dom.tcp_rules().find_best_match(ip, port, [&] (Transport_rule const &tr, Permit_rule const &pr) { fn(tr, pr); }, []{}); break;
+	case L3_protocol::UDP: dom.udp_rules().find_best_match(ip, port, [&] (Transport_rule const &tr, Permit_rule const &pr) { fn(tr, pr); }, []{}); break;
+	default: break; }
+}
 
 /**************************
  ** Interface_link_stats **
  **************************/
 
-void Interface_link_stats::report(Genode::Xml_generator &xml)
+bool Interface_link_stats::report_empty() const
 {
-	bool empty = true;
+	return
+		!refused_for_ram && !refused_for_ports && !opening && !open && !closing && !closed && !dissolved_timeout_opening &&
+		!dissolved_timeout_open && !dissolved_timeout_closing && !dissolved_timeout_closed && !dissolved_no_timeout && !destroyed;
+}
 
-	if (refused_for_ram)   { xml.node("refused_for_ram",   [&] () { xml.attribute("value", refused_for_ram); });   empty = false; }
-	if (refused_for_ports) { xml.node("refused_for_ports", [&] () { xml.attribute("value", refused_for_ports); }); empty = false; }
 
-	if (opening) { xml.node("opening", [&] () { xml.attribute("value", opening); }); empty = false; }
-	if (open)    { xml.node("open",    [&] () { xml.attribute("value", open);    }); empty = false; }
-	if (closing) { xml.node("closing", [&] () { xml.attribute("value", closing); }); empty = false; }
-	if (closed)  { xml.node("closed",  [&] () { xml.attribute("value", closed);  }); empty = false; }
-
-	if (dissolved_timeout_opening) { xml.node("dissolved_timeout_opening", [&] () { xml.attribute("value", dissolved_timeout_opening); }); empty = false; }
-	if (dissolved_timeout_open)    { xml.node("dissolved_timeout_open",    [&] () { xml.attribute("value", dissolved_timeout_open);    }); empty = false; }
-	if (dissolved_timeout_closing) { xml.node("dissolved_timeout_closing", [&] () { xml.attribute("value", dissolved_timeout_closing); }); empty = false; }
-	if (dissolved_timeout_closed)  { xml.node("dissolved_timeout_closed",  [&] () { xml.attribute("value", dissolved_timeout_closed);  }); empty = false; }
-	if (dissolved_no_timeout)      { xml.node("dissolved_no_timeout",      [&] () { xml.attribute("value", dissolved_no_timeout);      }); empty = false; }
-
-	if (destroyed) { xml.node("destroyed", [&] () { xml.attribute("value", destroyed); }); empty = false; }
-
-	if (empty) { throw Report::Empty(); }
+void Interface_link_stats::report(Genode::Xml_generator &xml) const
+{
+	if (refused_for_ram)           xml.node("refused_for_ram",           [&] { xml.attribute("value", refused_for_ram); });
+	if (refused_for_ports)         xml.node("refused_for_ports",         [&] { xml.attribute("value", refused_for_ports); });
+	if (opening)                   xml.node("opening",                   [&] { xml.attribute("value", opening); });
+	if (open)                      xml.node("open",                      [&] { xml.attribute("value", open);    });
+	if (closing)                   xml.node("closing",                   [&] { xml.attribute("value", closing); });
+	if (closed)                    xml.node("closed",                    [&] { xml.attribute("value", closed);  });
+	if (dissolved_timeout_opening) xml.node("dissolved_timeout_opening", [&] { xml.attribute("value", dissolved_timeout_opening); });
+	if (dissolved_timeout_open)    xml.node("dissolved_timeout_open",    [&] { xml.attribute("value", dissolved_timeout_open);    });
+	if (dissolved_timeout_closing) xml.node("dissolved_timeout_closing", [&] { xml.attribute("value", dissolved_timeout_closing); });
+	if (dissolved_timeout_closed)  xml.node("dissolved_timeout_closed",  [&] { xml.attribute("value", dissolved_timeout_closed);  });
+	if (dissolved_no_timeout)      xml.node("dissolved_no_timeout",      [&] { xml.attribute("value", dissolved_no_timeout);      });
+	if (destroyed)                 xml.node("destroyed",                 [&] { xml.attribute("value", destroyed); });
 }
 
 
@@ -268,14 +296,13 @@ void Interface_link_stats::report(Genode::Xml_generator &xml)
  ** Interface_object_stats **
  ****************************/
 
-void Interface_object_stats::report(Genode::Xml_generator &xml)
+bool Interface_object_stats::report_empty() const { return !alive && !destroyed; }
+
+
+void Interface_object_stats::report(Genode::Xml_generator &xml) const
 {
-	bool empty = true;
-
-	if (alive)     { xml.node("alive",     [&] () { xml.attribute("value", alive);     }); empty = false; }
-	if (destroyed) { xml.node("destroyed", [&] () { xml.attribute("value", destroyed); }); empty = false; }
-
-	if (empty) { throw Report::Empty(); }
+	if (alive)     xml.node("alive",     [&] { xml.attribute("value", alive);     });
+	if (destroyed) xml.node("destroyed", [&] { xml.attribute("value", destroyed); });
 }
 
 
@@ -290,7 +317,7 @@ void Interface::destroy_link(Link &link)
 	case L3_protocol::TCP:  ::_destroy_link<Tcp_link>(link, links(prot), _alloc);  break;
 	case L3_protocol::UDP:  ::_destroy_link<Udp_link>(link, links(prot), _alloc);  break;
 	case L3_protocol::ICMP: ::_destroy_link<Icmp_link>(link, links(prot), _alloc); break;
-	default: throw Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }
 
 
@@ -318,29 +345,9 @@ void Interface::_pass_prot_to_domain(Domain                       &domain,
 }
 
 
-Forward_rule_tree &
-Interface::_forward_rules(Domain &local_domain, L3_protocol const prot) const
-{
-	switch (prot) {
-	case L3_protocol::TCP: return local_domain.tcp_forward_rules();
-	case L3_protocol::UDP: return local_domain.udp_forward_rules();
-	default: throw Bad_transport_protocol(); }
-}
-
-
-Transport_rule_list &
-Interface::_transport_rules(Domain &local_domain, L3_protocol const prot) const
-{
-	switch (prot) {
-	case L3_protocol::TCP: return local_domain.tcp_rules();
-	case L3_protocol::UDP: return local_domain.udp_rules();
-	default: throw Bad_transport_protocol(); }
-}
-
-
 void Interface::_attach_to_domain_raw(Domain &domain)
 {
-	_domain = domain;
+	_domain_ptr = &domain;
 	_refetch_domain_ready_state();
 	_interfaces.remove(this);
 	domain.attach_interface(*this);
@@ -349,10 +356,10 @@ void Interface::_attach_to_domain_raw(Domain &domain)
 
 void Interface::_detach_from_domain_raw()
 {
-	Domain &domain = _domain();
+	Domain &domain = *_domain_ptr;
 	domain.detach_interface(*this);
 	_interfaces.insert(this);
-	_domain = Pointer<Domain>();
+	_domain_ptr = nullptr;
 	_refetch_domain_ready_state();
 
 	domain.add_dropped_fragm_ipv4(_dropped_fragm_ipv4);
@@ -367,10 +374,10 @@ void Interface::_detach_from_domain_raw()
 void Interface::_update_domain_object(Domain &new_domain) {
 
 	/* detach raw */
-	Domain &old_domain = _domain();
+	Domain &old_domain = *_domain_ptr;
 	old_domain.interface_updates_domain_object(*this);
 	_interfaces.insert(this);
-	_domain = Pointer<Domain>();
+	_domain_ptr = nullptr;
 	_refetch_domain_ready_state();
 
 	old_domain.add_dropped_fragm_ipv4(_dropped_fragm_ipv4);
@@ -381,7 +388,7 @@ void Interface::_update_domain_object(Domain &new_domain) {
 	old_domain.dhcp_stats().dissolve_interface(_dhcp_stats);
 
 	/* attach raw */
-	_domain = new_domain;
+	_domain_ptr = &new_domain;
 	_refetch_domain_ready_state();
 	_interfaces.remove(this);
 	new_domain.attach_interface(*this);
@@ -413,7 +420,7 @@ void Interface::attach_to_domain_finish()
 		return; }
 
 	/* if domain has yet no IP config, participate in requesting one */
-	Domain &domain = _domain();
+	Domain &domain = *_domain_ptr;
 	Ipv4_config const &ip_config = domain.ip_config();
 	if (!ip_config.valid()) {
 		_dhcp_client->discover();
@@ -464,11 +471,10 @@ void Interface::handle_domain_ready_state(bool state)
 
 void Interface::_refetch_domain_ready_state()
 {
-	if (_domain.valid()) {
-		handle_domain_ready_state(_domain().ready());
-	} else {
+	if (_domain_ptr)
+		handle_domain_ready_state(_domain_ptr->ready());
+	else
 		handle_domain_ready_state(false);
-	}
 }
 
 
@@ -481,59 +487,74 @@ void Interface::_reset_and_refetch_domain_ready_state()
 
 void Interface::_detach_from_domain()
 {
-	try {
-		detach_from_ip_config(domain());
-		_detach_from_domain_raw();
-	}
-	catch (Pointer<Domain>::Invalid) { }
+	with_domain([&] (Domain &domain) {
+		detach_from_ip_config(domain);
+		_detach_from_domain_raw(); });
 }
 
 
-void
-Interface::_new_link(L3_protocol             const  protocol,
-                     Link_side_id            const &local,
-                     Pointer<Port_allocator_guard>  remote_port_alloc,
-                     Domain                        &remote_domain,
-                     Link_side_id            const &remote)
+Packet_result Interface::_new_link(L3_protocol          const  protocol,
+                                   Domain                     &local_domain,
+                                   Link_side_id         const &local,
+                                   Port_allocator_guard       *remote_port_alloc_ptr,
+                                   Domain                     &remote_domain,
+                                   Link_side_id         const &remote)
 {
+	Packet_result result { };
 	switch (protocol) {
 	case L3_protocol::TCP:
 		try {
 			new (_alloc)
-				Tcp_link { *this, local, remote_port_alloc, remote_domain,
+				Tcp_link { *this, local_domain, local, remote_port_alloc_ptr, remote_domain,
 				           remote, _timer, _config(), protocol, _tcp_stats };
 		}
-		catch (Out_of_ram)  { throw Free_resources_and_retry_handle_eth(L3_protocol::TCP); }
-		catch (Out_of_caps) { throw Free_resources_and_retry_handle_eth(L3_protocol::TCP); }
-
+		catch (Out_of_ram)  {
+			_tcp_stats.refused_for_ram++;
+			result = packet_drop("out of RAM while creating TCP link");
+		}
+		catch (Out_of_caps) {
+			_tcp_stats.refused_for_ram++;
+			result = packet_drop("out of CAPs while creating TCP link");
+		}
 		break;
 	case L3_protocol::UDP:
 		try {
 			new (_alloc)
-				Udp_link { *this, local, remote_port_alloc, remote_domain,
+				Udp_link { *this, local_domain, local, remote_port_alloc_ptr, remote_domain,
 				           remote, _timer, _config(), protocol, _udp_stats };
 		}
-		catch (Out_of_ram)  { throw Free_resources_and_retry_handle_eth(L3_protocol::UDP); }
-		catch (Out_of_caps) { throw Free_resources_and_retry_handle_eth(L3_protocol::UDP); }
-
+		catch (Out_of_ram) {
+			_udp_stats.refused_for_ram++;
+			result = packet_drop("out of RAM while creating UDP link");
+		}
+		catch (Out_of_caps) {
+			_udp_stats.refused_for_ram++;
+			result = packet_drop("out of CAPs while creating UDP link");
+		}
 		break;
 	case L3_protocol::ICMP:
 		try {
 			new (_alloc)
-				Icmp_link { *this, local, remote_port_alloc, remote_domain,
+				Icmp_link { *this, local_domain, local, remote_port_alloc_ptr, remote_domain,
 				            remote, _timer, _config(), protocol, _icmp_stats };
 		}
-		catch (Out_of_ram)  { throw Free_resources_and_retry_handle_eth(L3_protocol::ICMP); }
-		catch (Out_of_caps) { throw Free_resources_and_retry_handle_eth(L3_protocol::ICMP); }
-
+		catch (Out_of_ram) {
+			_icmp_stats.refused_for_ram++;
+			result = packet_drop("out of RAM while creating ICMP link");
+		}
+		catch (Out_of_caps) {
+			_icmp_stats.refused_for_ram++;
+			result = packet_drop("out of CAPs while creating ICMP link");
+		}
 		break;
-	default: throw Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
+	return result;
 }
 
 
 void Interface::dhcp_allocation_expired(Dhcp_allocation &allocation)
 {
-	_release_dhcp_allocation(allocation, _domain());
+	_release_dhcp_allocation(allocation, *_domain_ptr);
 	_released_dhcp_allocations.insert(&allocation);
 }
 
@@ -544,7 +565,7 @@ Link_list &Interface::links(L3_protocol const protocol)
 	case L3_protocol::TCP:  return _tcp_links;
 	case L3_protocol::UDP:  return _udp_links;
 	case L3_protocol::ICMP: return _icmp_links;
-	default: throw Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }
 
 
@@ -554,22 +575,24 @@ Link_list &Interface::dissolved_links(L3_protocol const protocol)
 	case L3_protocol::TCP:  return _dissolved_tcp_links;
 	case L3_protocol::UDP:  return _dissolved_udp_links;
 	case L3_protocol::ICMP: return _dissolved_icmp_links;
-	default: throw Bad_transport_protocol(); }
+	default: ASSERT_NEVER_REACHED; }
 }
 
 
-void Interface::_adapt_eth(Ethernet_frame          &eth,
-                           Ipv4_address      const &dst_ip,
-                           Packet_descriptor const &pkt,
-                           Domain                  &remote_domain)
+Packet_result Interface::_adapt_eth(Ethernet_frame          &eth,
+                                    Ipv4_address      const &dst_ip,
+                                    Packet_descriptor const &pkt,
+                                    Domain                  &remote_domain)
 {
+	Packet_result result { };
 	Ipv4_config const &remote_ip_cfg = remote_domain.ip_config();
 	if (!remote_ip_cfg.valid()) {
-		throw Drop_packet("target domain has yet no IP config");
+		result = packet_drop("target domain has yet no IP config");
 	}
-	if (remote_domain.use_arp()) {
+	if (!remote_domain.use_arp())
+		return result;
 
-		Ipv4_address const &hop_ip = remote_domain.next_hop(dst_ip);
+	auto with_next_hop = [&] (Ipv4_address const &hop_ip) {
 		remote_domain.arp_cache().find_by_ip(
 			hop_ip,
 			[&] /* handle_match */ (Arp_cache_entry const &entry)
@@ -583,56 +606,68 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
 					interface._broadcast_arp_request(
 						remote_ip_cfg.interface().address, hop_ip);
 				});
-				try { new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt }; }
-				catch (Out_of_ram)  { throw Free_resources_and_retry_handle_eth(); }
-				catch (Out_of_caps) { throw Free_resources_and_retry_handle_eth(); }
-				throw Packet_postponed();
+				try {
+					new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt };
+					result = packet_postponed();
+				}
+				catch (Out_of_ram)  { result = packet_drop("out of RAM while creating ARP waiter"); }
+				catch (Out_of_caps) { result = packet_drop("out of CAPs while creating ARP waiter"); }
 			}
 		);
-	}
+	};
+	auto without_next_hop = [&] { result = packet_drop("cannot find next hop"); };
+	remote_domain.with_next_hop(dst_ip, with_next_hop, without_next_hop);
+	return result;
 }
 
 
-void Interface::_nat_link_and_pass(Ethernet_frame         &eth,
-                                   Size_guard             &size_guard,
-                                   Ipv4_packet            &ip,
-                                   Internet_checksum_diff &ip_icd,
-                                   L3_protocol      const  prot,
-                                   void            *const  prot_base,
-                                   size_t           const  prot_size,
-                                   Link_side_id     const &local_id,
-                                   Domain                 &local_domain,
-                                   Domain                 &remote_domain)
+Packet_result Interface::_nat_link_and_pass(Ethernet_frame         &eth,
+                                            Size_guard             &size_guard,
+                                            Ipv4_packet            &ip,
+                                            Internet_checksum_diff &ip_icd,
+                                            L3_protocol      const  prot,
+                                            void            *const  prot_base,
+                                            size_t           const  prot_size,
+                                            Link_side_id     const &local_id,
+                                            Domain                 &local_domain,
+                                            Domain                 &remote_domain)
 {
-	try {
-		Pointer<Port_allocator_guard> remote_port_alloc;
-		remote_domain.nat_rules().find_by_domain(
-			local_domain,
-			[&] /* handle_match */ (Nat_rule &nat)
-			{
-				if(_config().verbose()) {
-					log("[", local_domain, "] using NAT rule: ", nat); }
+	Packet_result result { };
+	Port_allocator_guard *remote_port_alloc_ptr { };
+	remote_domain.nat_rules().find_by_domain(
+		local_domain,
+		[&] /* handle_match */ (Nat_rule &nat)
+		{
+			if(_config().verbose()) {
+				log("[", local_domain, "] using NAT rule: ", nat); }
 
-				_src_port(prot, prot_base, nat.port_alloc(prot).alloc());
-				ip.src(remote_domain.ip_config().interface().address, ip_icd);
-				remote_port_alloc = nat.port_alloc(prot);
-			},
-			[&] /* no_match */ () { }
-		);
-		Link_side_id const remote_id = { ip.dst(), _dst_port(prot, prot_base),
-		                                 ip.src(), _src_port(prot, prot_base) };
-		_new_link(prot, local_id, remote_port_alloc, remote_domain, remote_id);
-		_pass_prot_to_domain(
-			remote_domain, eth, size_guard, ip, ip_icd, prot, prot_base,
-			prot_size);
+			Port src_port(0);
+			nat.port_alloc(prot).alloc().with_result(
+				[&] (Port src_port) {
+					_src_port(prot, prot_base, src_port);
+					ip.src(remote_domain.ip_config().interface().address, ip_icd);
+					remote_port_alloc_ptr = &nat.port_alloc(prot); },
+				[&] (auto) {
+					result = packet_drop("no available NAT ports");
+					switch (prot) {
+					case L3_protocol::TCP: _tcp_stats.refused_for_ports++; break;
+					case L3_protocol::UDP: _udp_stats.refused_for_ports++; break;
+					case L3_protocol::ICMP: _icmp_stats.refused_for_ports++; break;
+					default: ASSERT_NEVER_REACHED; } });
+		},
+		[&] /* no_match */ () { }
+	);
+	if (result.valid())
+		return result;
 
-	} catch (Port_allocator_guard::Out_of_indices) {
-		switch (prot) {
-		case L3_protocol::TCP:  _tcp_stats.refused_for_ports++;  break;
-		case L3_protocol::UDP:  _udp_stats.refused_for_ports++;  break;
-		case L3_protocol::ICMP: _icmp_stats.refused_for_ports++; break;
-		default: throw Bad_transport_protocol(); }
-	}
+	Link_side_id const remote_id = { ip.dst(), _dst_port(prot, prot_base),
+	                                 ip.src(), _src_port(prot, prot_base) };
+	result = _new_link(prot, local_domain, local_id, remote_port_alloc_ptr, remote_domain, remote_id);
+	if (result.valid())
+		return result;
+
+	_pass_prot_to_domain(remote_domain, eth, size_guard, ip, ip_icd, prot, prot_base, prot_size);
+	return packet_handled();
 }
 
 
@@ -733,14 +768,15 @@ void Interface::_release_dhcp_allocation(Dhcp_allocation &allocation,
 }
 
 
-void Interface::_new_dhcp_allocation(Ethernet_frame &eth,
-                                     Dhcp_packet    &dhcp,
-                                     Dhcp_server    &dhcp_srv,
-                                     Domain         &local_domain)
+Packet_result Interface::_new_dhcp_allocation(Ethernet_frame &eth,
+                                              Dhcp_packet    &dhcp,
+                                              Dhcp_server    &dhcp_srv,
+                                              Domain         &local_domain)
 {
-	try {
+	Packet_result result { };
+	auto ok_fn = [&] (Ipv4_address const &ip) {
 		Dhcp_allocation &allocation = *new (_alloc)
-			Dhcp_allocation { *this, dhcp_srv.alloc_ip(), dhcp.client_mac(),
+			Dhcp_allocation { *this, ip, dhcp.client_mac(),
 			                  _timer, _config().dhcp_offer_timeout() };
 
 		_dhcp_allocations.insert(allocation);
@@ -752,38 +788,37 @@ void Interface::_new_dhcp_allocation(Ethernet_frame &eth,
 		                 Dhcp_packet::Message_type::OFFER,
 		                 dhcp.xid(),
 		                 local_domain.ip_config().interface());
-	}
-	catch (Out_of_ram)  { throw Free_resources_and_retry_handle_eth(); }
-	catch (Out_of_caps) { throw Free_resources_and_retry_handle_eth(); }
+
+		result = packet_handled();
+	};
+	try { dhcp_srv.alloc_ip().with_result(ok_fn, [&] (auto) { result = packet_drop("failed to allocate IP for DHCP client"); }); }
+	catch (Out_of_ram)  { result = packet_drop("out of RAM while creating DHCP allocation"); }
+	catch (Out_of_caps) { result = packet_drop("out of CAPs while creating DHCP allocation"); }
+	return result;
 }
 
 
-void Interface::_handle_dhcp_request(Ethernet_frame            &eth,
-                                     Dhcp_packet               &dhcp,
-                                     Domain                    &local_domain,
-                                     Ipv4_address_prefix const &local_intf)
+Packet_result Interface::_handle_dhcp_request(Ethernet_frame            &eth,
+                                              Dhcp_server               &dhcp_srv,
+                                              Dhcp_packet               &dhcp,
+                                              Domain                    &local_domain,
+                                              Ipv4_address_prefix const &local_intf)
 {
-	try {
-		/* try to get the DHCP server config of this interface */
-		Dhcp_server &dhcp_srv = local_domain.dhcp_server();
+	Packet_result result { };
+	auto no_msg_type_fn = [&] { result = packet_drop("DHCP request misses option \"Message Type\""); };
+	auto msg_type_fn = [&] (Dhcp_packet::Message_type_option const &msg_type) {
 
-		/* determine type of DHCP request */
-		Dhcp_packet::Message_type const msg_type =
-			dhcp.option<Dhcp_packet::Message_type_option>().value();
+		/* look up existing DHCP configuration for client */
+		auto dhcp_allocation_fn = [&] (Dhcp_allocation &allocation) {
 
-		try {
-			/* look up existing DHCP configuration for client */
-			Dhcp_allocation &allocation =
-				_dhcp_allocations.find_by_mac(dhcp.client_mac());
-
-			switch (msg_type) {
+			switch (msg_type.value()) {
 			case Dhcp_packet::Message_type::DISCOVER:
 
 				if (allocation.bound()) {
 
 					_release_dhcp_allocation(allocation, local_domain);
 					_destroy_dhcp_allocation(allocation, local_domain);
-					_new_dhcp_allocation(eth, dhcp, dhcp_srv, local_domain);
+					result = _new_dhcp_allocation(eth, dhcp, dhcp_srv, local_domain);
 					return;
 
 				} else {
@@ -792,6 +827,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame            &eth,
 					                 allocation.ip(),
 					                 Dhcp_packet::Message_type::OFFER,
 					                 dhcp.xid(), local_intf);
+					result = packet_handled();
 					return;
 				}
 			case Dhcp_packet::Message_type::REQUEST:
@@ -802,32 +838,39 @@ void Interface::_handle_dhcp_request(Ethernet_frame            &eth,
 					                 allocation.ip(),
 					                 Dhcp_packet::Message_type::ACK,
 					                 dhcp.xid(), local_intf);
+					result = packet_handled();
 					return;
 
 				} else {
-					Dhcp_packet::Server_ipv4 &dhcp_srv_ip =
-						dhcp.option<Dhcp_packet::Server_ipv4>();
 
-					if (dhcp_srv_ip.value() == local_intf.address)
-					{
-						allocation.set_bound();
-						allocation.lifetime(dhcp_srv.ip_lease_time());
-						if (_config().verbose()) {
-							log("[", local_domain, "] bind DHCP allocation: ",
-							    allocation);
+					auto no_server_ipv4_fn = [&] { result = packet_drop("DHCP request misses option \"Server IPv4\""); };
+					auto server_ipv4_fn = [&] (Dhcp_packet::Server_ipv4 const &dhcp_srv_ip) {
+
+						if (dhcp_srv_ip.value() == local_intf.address)
+						{
+							allocation.set_bound();
+							allocation.lifetime(dhcp_srv.ip_lease_time());
+							if (_config().verbose()) {
+								log("[", local_domain, "] bind DHCP allocation: ",
+								    allocation);
+							}
+							_send_dhcp_reply(dhcp_srv, eth.src(), dhcp.client_mac(),
+							                 allocation.ip(),
+							                 Dhcp_packet::Message_type::ACK,
+							                 dhcp.xid(), local_intf);
+							result = packet_handled();
+							return;
+
+						} else {
+
+							_release_dhcp_allocation(allocation, local_domain);
+							_destroy_dhcp_allocation(allocation, local_domain);
+							result = packet_handled();
+							return;
 						}
-						_send_dhcp_reply(dhcp_srv, eth.src(), dhcp.client_mac(),
-						                 allocation.ip(),
-						                 Dhcp_packet::Message_type::ACK,
-						                 dhcp.xid(), local_intf);
-						return;
-
-					} else {
-
-						_release_dhcp_allocation(allocation, local_domain);
-						_destroy_dhcp_allocation(allocation, local_domain);
-						return;
-					}
+					};
+					dhcp.with_option<Dhcp_packet::Server_ipv4>(server_ipv4_fn, no_server_ipv4_fn);
+					return;
 				}
 			case Dhcp_packet::Message_type::INFORM:
 
@@ -835,6 +878,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame            &eth,
 				                 allocation.ip(),
 				                 Dhcp_packet::Message_type::ACK,
 				                 dhcp.xid(), local_intf);
+				result = packet_handled();
 				return;
 
 			case Dhcp_packet::Message_type::DECLINE:
@@ -842,20 +886,21 @@ void Interface::_handle_dhcp_request(Ethernet_frame            &eth,
 
 				_release_dhcp_allocation(allocation, local_domain);
 				_destroy_dhcp_allocation(allocation, local_domain);
+				result = packet_handled();
 				return;
 
-			case Dhcp_packet::Message_type::NAK:   throw Drop_packet("DHCP NAK from client");
-			case Dhcp_packet::Message_type::OFFER: throw Drop_packet("DHCP OFFER from client");
-			case Dhcp_packet::Message_type::ACK:   throw Drop_packet("DHCP ACK from client");
-			default:                               throw Drop_packet("DHCP request with broken message type");
+			case Dhcp_packet::Message_type::NAK:   result = packet_drop("DHCP NAK from client"); return;
+			case Dhcp_packet::Message_type::OFFER: result = packet_drop("DHCP OFFER from client"); return;
+			case Dhcp_packet::Message_type::ACK:   result = packet_drop("DHCP ACK from client"); return;
+			default:                               result = packet_drop("DHCP request with broken message type"); return;
 			}
-		}
-		catch (Dhcp_allocation_tree::No_match) {
+		};
+		auto no_dhcp_allocation_fn = [&] {
 
-			switch (msg_type) {
+			switch (msg_type.value()) {
 			case Dhcp_packet::Message_type::DISCOVER:
 
-				_new_dhcp_allocation(eth, dhcp, dhcp_srv, local_domain);
+				result = _new_dhcp_allocation(eth, dhcp, dhcp_srv, local_domain);
 				return;
 
 			case Dhcp_packet::Message_type::REQUEST:
@@ -864,19 +909,21 @@ void Interface::_handle_dhcp_request(Ethernet_frame            &eth,
 				                 Ipv4_address { },
 				                 Dhcp_packet::Message_type::NAK,
 				                 dhcp.xid(), local_intf);
+				result = packet_handled();
 				return;
 
-			case Dhcp_packet::Message_type::DECLINE: throw Drop_packet("DHCP DECLINE from client without offered/acked IP");
-			case Dhcp_packet::Message_type::RELEASE: throw Drop_packet("DHCP RELEASE from client without offered/acked IP");
-			case Dhcp_packet::Message_type::NAK:     throw Drop_packet("DHCP NAK from client");
-			case Dhcp_packet::Message_type::OFFER:   throw Drop_packet("DHCP OFFER from client");
-			case Dhcp_packet::Message_type::ACK:     throw Drop_packet("DHCP ACK from client");
-			default:                                 throw Drop_packet("DHCP request with broken message type");
+			case Dhcp_packet::Message_type::DECLINE: result = packet_drop("DHCP DECLINE from client without offered/acked IP"); return;
+			case Dhcp_packet::Message_type::RELEASE: result = packet_drop("DHCP RELEASE from client without offered/acked IP"); return;
+			case Dhcp_packet::Message_type::NAK:     result = packet_drop("DHCP NAK from client"); return;
+			case Dhcp_packet::Message_type::OFFER:   result = packet_drop("DHCP OFFER from client"); return;
+			case Dhcp_packet::Message_type::ACK:     result = packet_drop("DHCP ACK from client"); return;
+			default:                                 result = packet_drop("DHCP request with broken message type"); return;
 			}
-		}
-	}
-	catch (Dhcp_packet::Option_not_found exception) {
-		throw Drop_packet("DHCP request misses required option"); }
+		};
+		_dhcp_allocations.find_by_mac(dhcp.client_mac(), dhcp_allocation_fn, no_dhcp_allocation_fn);
+	};
+	dhcp.with_option<Dhcp_packet::Message_type_option>(msg_type_fn, no_msg_type_fn);
+	return result;
 }
 
 
@@ -947,28 +994,23 @@ bool Interface::link_state() const
 
 void Interface::handle_interface_link_state()
 {
-	struct Keep_ip_config : Exception { };
-	try {
-		attach_to_domain_finish();
+	attach_to_domain_finish();
 
-		/* if the whole domain is down, discard IP config */
-		Domain &domain_ = domain();
-		if (!link_state() && domain_.ip_config().valid()) {
-			domain_.interfaces().for_each([&] (Interface &interface) {
-				if (interface.link_state()) {
-					throw Keep_ip_config(); }
-			});
-			domain_.discard_ip_config();
-			domain_.arp_cache().destroy_all_entries();
+	/* discard dynamic IP config if the entire domain is down */
+	with_domain([&] (Domain &domain) {
+		if (domain.ip_config_dynamic() && !link_state() && domain.ip_config().valid()) {
+			bool discard_ip_config = true;
+			domain.interfaces().for_each([&] (Interface &interface) {
+				if (interface.link_state())
+					discard_ip_config = false; });
+			if (discard_ip_config) {
+				domain.discard_ip_config();
+				domain.arp_cache().destroy_all_entries();
+			}
 		}
-	}
-	catch (Pointer<Domain>::Invalid) { }
-	catch (Domain::Ip_config_static) { }
-	catch (Keep_ip_config) { }
-
+	});
 	/* force report if configured */
-	try { _config().report().handle_interface_link_state(); }
-	catch (Pointer<Report>::Invalid) { }
+	_config().with_report([&] (Report &r) { r.handle_interface_link_state(); });
 }
 
 
@@ -1003,21 +1045,21 @@ void Interface::_send_icmp_echo_reply(Ethernet_frame &eth,
 }
 
 
-void Interface::_handle_icmp_query(Ethernet_frame          &eth,
-                                   Size_guard              &size_guard,
-                                   Ipv4_packet             &ip,
-                                   Internet_checksum_diff  &ip_icd,
-                                   Packet_descriptor const &pkt,
-                                   L3_protocol              prot,
-                                   void                    *prot_base,
-                                   size_t                   prot_size,
-                                   Domain                  &local_domain)
+Packet_result Interface::_handle_icmp_query(Ethernet_frame          &eth,
+                                            Size_guard              &size_guard,
+                                            Ipv4_packet             &ip,
+                                            Internet_checksum_diff  &ip_icd,
+                                            Packet_descriptor const &pkt,
+                                            L3_protocol              prot,
+                                            void                    *prot_base,
+                                            size_t                   prot_size,
+                                            Domain                  &local_domain)
 {
+	Packet_result result { };
 	Link_side_id const local_id = { ip.src(), _src_port(prot, prot_base),
 	                                ip.dst(), _dst_port(prot, prot_base) };
 
 	/* try to route via existing ICMP links */
-	bool done { false };
 	local_domain.links(prot).find_by_id(
 		local_id,
 		[&] /* handle_match */ (Link_side const &local_side)
@@ -1030,7 +1072,9 @@ void Interface::_handle_icmp_query(Ethernet_frame          &eth,
 				log("[", local_domain, "] using ", l3_protocol_name(prot),
 				    " link: ", link);
 			}
-			_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
+			result = _adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
+			if (result.valid())
+				return;
 			ip.src(remote_side.dst_ip(), ip_icd);
 			ip.dst(remote_side.src_ip(), ip_icd);
 			_src_port(prot, prot_base, remote_side.dst_port());
@@ -1040,13 +1084,12 @@ void Interface::_handle_icmp_query(Ethernet_frame          &eth,
 				prot_base, prot_size);
 
 			_link_packet(prot, prot_base, link, client);
-			done = true;
+			result = packet_handled();
 		},
 		[&] /* handle_no_match */ () { }
 	);
-	if (done) {
-		return;
-	}
+	if (result.valid())
+		return result;
 
 	/* try to route via ICMP rules */
 	local_domain.icmp_rules().find_longest_prefix_match(
@@ -1057,38 +1100,34 @@ void Interface::_handle_icmp_query(Ethernet_frame          &eth,
 				log("[", local_domain, "] using ICMP rule: ", rule); }
 
 			Domain &remote_domain = rule.domain();
-			_adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
-			_nat_link_and_pass(eth, size_guard, ip, ip_icd, prot, prot_base,
-			                   prot_size, local_id, local_domain,
-			                   remote_domain);
-
-			done = true;
+			result = _adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
+			if (result.valid())
+				return;
+			result = _nat_link_and_pass(
+				eth, size_guard, ip, ip_icd, prot, prot_base, prot_size, local_id, local_domain, remote_domain);
 		},
 		[&] /* handle_no_match */ () { }
 	);
-	if (done) {
-		return;
-	}
-
-	throw Bad_transport_protocol();
+	return result;
 }
 
 
-void Interface::_handle_icmp_error(Ethernet_frame          &eth,
-                                   Size_guard              &size_guard,
-                                   Ipv4_packet             &ip,
-                                   Internet_checksum_diff  &ip_icd,
-                                   Packet_descriptor const &pkt,
-                                   Domain                  &local_domain,
-                                   Icmp_packet             &icmp,
-                                   size_t                   icmp_sz)
+Packet_result Interface::_handle_icmp_error(Ethernet_frame          &eth,
+                                            Size_guard              &size_guard,
+                                            Ipv4_packet             &ip,
+                                            Internet_checksum_diff  &ip_icd,
+                                            Packet_descriptor const &pkt,
+                                            Domain                  &local_domain,
+                                            Icmp_packet             &icmp,
+                                            size_t                   icmp_sz)
 {
+	Packet_result result { };
 	Ipv4_packet            &embed_ip     { icmp.data<Ipv4_packet>(size_guard) };
 	Internet_checksum_diff  embed_ip_icd { };
 
 	/* drop packet if embedded IP checksum invalid */
 	if (embed_ip.checksum_error()) {
-		throw Drop_packet("bad checksum in IP packet embedded in ICMP error");
+		return packet_drop("bad checksum in IP packet embedded in ICMP error");
 	}
 	/* get link identity of the embeddeded transport packet */
 	L3_protocol  const embed_prot      = embed_ip.protocol();
@@ -1112,7 +1151,9 @@ void Interface::_handle_icmp_error(Ethernet_frame          &eth,
 				    l3_protocol_name(embed_prot), " link: ", link);
 			}
 			/* adapt source and destination of Ethernet frame and IP packet */
-			_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
+			result = _adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
+			if (result.valid())
+				return;
 			if (remote_side.dst_ip() == remote_domain.ip_config().interface().address) {
 				ip.src(remote_side.dst_ip(), ip_icd);
 			}
@@ -1136,31 +1177,33 @@ void Interface::_handle_icmp_error(Ethernet_frame          &eth,
 			/* refresh link only if the error is not about an ICMP query */
 			if (embed_prot != L3_protocol::ICMP) {
 				_link_packet(embed_prot, embed_prot_base, link, client); }
+			result = packet_handled();
 		},
 		[&] /* handle_no_match */ ()
 		{
-			throw Drop_packet("no link that matches packet embedded in "
-			                  "ICMP error");
+			result = packet_drop("no link that matches packet embedded in ICMP error");
 		}
 	);
+	return result;
 }
 
 
-void Interface::_handle_icmp(Ethernet_frame            &eth,
-                             Size_guard                &size_guard,
-                             Ipv4_packet               &ip,
-                             Internet_checksum_diff    &ip_icd,
-                             Packet_descriptor   const &pkt,
-                             L3_protocol                prot,
-                             void                      *prot_base,
-                             size_t                     prot_size,
-                             Domain                    &local_domain,
-                             Ipv4_address_prefix const &local_intf)
+Packet_result Interface::_handle_icmp(Ethernet_frame            &eth,
+                                      Size_guard                &size_guard,
+                                      Ipv4_packet               &ip,
+                                      Internet_checksum_diff    &ip_icd,
+                                      Packet_descriptor   const &pkt,
+                                      L3_protocol                prot,
+                                      void                      *prot_base,
+                                      size_t                     prot_size,
+                                      Domain                    &local_domain,
+                                      Ipv4_address_prefix const &local_intf)
 {
 	/* drop packet if ICMP checksum is invalid */
+	Packet_result result { };
 	Icmp_packet &icmp = *reinterpret_cast<Icmp_packet *>(prot_base);
 	if (icmp.checksum_error(size_guard.unconsumed())) {
-		throw Drop_packet("bad ICMP checksum"); }
+		return packet_drop("bad ICMP checksum"); }
 
 	/* try to act as ICMP Echo server */
 	if (icmp.type() == Icmp_packet::Type::ECHO_REQUEST &&
@@ -1171,22 +1214,24 @@ void Interface::_handle_icmp(Ethernet_frame            &eth,
 			log("[", local_domain, "] act as ICMP Echo server"); }
 
 		_send_icmp_echo_reply(eth, ip, icmp, prot_size, size_guard);
-		return;
+		return packet_handled();
 	}
 	/* try to act as ICMP router */
 	switch (icmp.type()) {
 	case Icmp_packet::Type::ECHO_REPLY:
-	case Icmp_packet::Type::ECHO_REQUEST:    _handle_icmp_query(eth, size_guard, ip, ip_icd, pkt, prot, prot_base, prot_size, local_domain); break;
-	case Icmp_packet::Type::DST_UNREACHABLE: _handle_icmp_error(eth, size_guard, ip, ip_icd, pkt, local_domain, icmp, prot_size); break;
-	default: Drop_packet("unhandled type in ICMP"); }
+	case Icmp_packet::Type::ECHO_REQUEST: result = _handle_icmp_query(eth, size_guard, ip, ip_icd, pkt, prot, prot_base, prot_size, local_domain); break;
+	case Icmp_packet::Type::DST_UNREACHABLE: result = _handle_icmp_error(eth, size_guard, ip, ip_icd, pkt, local_domain, icmp, prot_size); break;
+	default: result = packet_drop("unhandled type in ICMP"); }
+	return result;
 }
 
 
-void Interface::_handle_ip(Ethernet_frame          &eth,
-                           Size_guard              &size_guard,
-                           Packet_descriptor const &pkt,
-                           Domain                  &local_domain)
+Packet_result Interface::_handle_ip(Ethernet_frame          &eth,
+                                    Size_guard              &size_guard,
+                                    Packet_descriptor const &pkt,
+                                    Domain                  &local_domain)
 {
+	Packet_result result { };
 	Ipv4_packet            &ip     { eth.data<Ipv4_packet>(size_guard) };
 	Internet_checksum_diff  ip_icd { };
 
@@ -1200,7 +1245,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 			_send_icmp_dst_unreachable(
 				local_intf, eth, ip, _config().icmp_type_3_code_on_fragm_ipv4());
 		}
-		throw Drop_packet("fragmented IPv4 not supported");
+		return packet_drop("fragmented IPv4 not supported");
 	}
 	/* try handling subnet-local IP packets */
 	if (local_intf.prefix_matches(ip.dst()) &&
@@ -1211,15 +1256,15 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 		 * the router. Thus, forward it to all other interfaces of the domain.
 		 */
 		_domain_broadcast(eth, size_guard, local_domain);
-		return;
+		return packet_handled();
 	}
 
 	/* try to route via transport layer rules */
-	bool done { false };
-	try {
-		L3_protocol  const prot      = ip.protocol();
-		size_t       const prot_size = size_guard.unconsumed();
-		void        *const prot_base = _prot_base(prot, size_guard, ip);
+	L3_protocol const prot = ip.protocol();
+	if (_supported_transport_prot(prot)) {
+
+		size_t const prot_size = size_guard.unconsumed();
+		void *const prot_base = _prot_base(prot, size_guard, ip);
 
 		/* try handling DHCP requests before trying any routing */
 		if (prot == L3_protocol::UDP) {
@@ -1232,135 +1277,116 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 				switch (dhcp.op()) {
 				case Dhcp_packet::REQUEST:
 
-					try {
-						_handle_dhcp_request(
-							eth, dhcp, local_domain, local_intf);
-					}
-					catch (Pointer<Dhcp_server>::Invalid) {
-						throw Drop_packet("DHCP request while DHCP server inactive");
-					}
-					return;
+					local_domain.with_dhcp_server(
+						[&] /* dhcp_server_fn */ (Dhcp_server &srv) {
+							result = _handle_dhcp_request(eth, srv, dhcp, local_domain, local_intf); },
+						[&] /* no_dhcp_server_fn */ {
+							result = packet_drop("DHCP request while DHCP server inactive"); });
+					return result;
 
 				case Dhcp_packet::REPLY:
 
 					if (eth.dst() != router_mac() &&
 					    eth.dst() != Mac_address(0xff))
 					{
-						throw Drop_packet("Ethernet of DHCP reply doesn't target router"); }
+						return packet_drop("Ethernet of DHCP reply doesn't target router"); }
 
 					if (dhcp.client_mac() != router_mac()) {
-						throw Drop_packet("DHCP reply doesn't target router"); }
+						return packet_drop("DHCP reply doesn't target router"); }
 
 					if (!_dhcp_client.constructed()) {
-						throw Drop_packet("DHCP reply while DHCP client inactive"); }
+						return packet_drop("DHCP reply while DHCP client inactive"); }
 
-					_dhcp_client->handle_dhcp_reply(dhcp);
-					return;
+					return _dhcp_client->handle_dhcp_reply(dhcp, local_domain);
 
-				default:
-
-					throw Drop_packet("Bad DHCP opcode");
+				default: return packet_drop("Bad DHCP opcode");
 				}
 			}
 		}
-		else if (prot == L3_protocol::ICMP) {
-			_handle_icmp(eth, size_guard, ip, ip_icd, pkt, prot, prot_base,
-			             prot_size, local_domain, local_intf);
-			return;
-		}
+		if (prot == L3_protocol::ICMP) {
+			result = _handle_icmp(eth, size_guard, ip, ip_icd, pkt, prot, prot_base,
+			                      prot_size, local_domain, local_intf);
+		} else {
 
-		Link_side_id const local_id = { ip.src(), _src_port(prot, prot_base),
-		                                ip.dst(), _dst_port(prot, prot_base) };
+			Link_side_id const local_id = { ip.src(), _src_port(prot, prot_base),
+			                                ip.dst(), _dst_port(prot, prot_base) };
 
-		/* try to route via existing UDP/TCP links */
-		local_domain.links(prot).find_by_id(
-			local_id,
-			[&] /* handle_match */ (Link_side const &local_side)
-			{
-				Link &link = local_side.link();
-				bool const client = local_side.is_client();
-				Link_side &remote_side =
-					client ? link.server() : link.client();
-
-				Domain &remote_domain = remote_side.domain();
-				if (_config().verbose()) {
-					log("[", local_domain, "] using ", l3_protocol_name(prot),
-					    " link: ", link);
-				}
-				_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
-				ip.src(remote_side.dst_ip(), ip_icd);
-				ip.dst(remote_side.src_ip(), ip_icd);
-				_src_port(prot, prot_base, remote_side.dst_port());
-				_dst_port(prot, prot_base, remote_side.src_port());
-				_pass_prot_to_domain(
-					remote_domain, eth, size_guard, ip, ip_icd, prot,
-					prot_base, prot_size);
-
-				_link_packet(prot, prot_base, link, client);
-				done = true;
-			},
-			[&] /* handle_no_match */ () { }
-		);
-		if (done) {
-			return;
-		}
-
-		/* try to route via forward rules */
-		if (local_id.dst_ip == local_intf.address) {
-
-			_forward_rules(local_domain, prot).find_by_port(
-				local_id.dst_port,
-				[&] /* handle_match */ (Forward_rule const &rule)
+			/* try to route via existing UDP/TCP links */
+			local_domain.links(prot).find_by_id(
+				local_id,
+				[&] /* handle_match */ (Link_side const &local_side)
 				{
+					Link &link = local_side.link();
+					bool const client = local_side.is_client();
+					Link_side &remote_side =
+						client ? link.server() : link.client();
+
+					Domain &remote_domain = remote_side.domain();
+					if (_config().verbose()) {
+						log("[", local_domain, "] using ", l3_protocol_name(prot),
+						    " link: ", link);
+					}
+					result = _adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
+					if (result.valid())
+						return;
+					ip.src(remote_side.dst_ip(), ip_icd);
+					ip.dst(remote_side.src_ip(), ip_icd);
+					_src_port(prot, prot_base, remote_side.dst_port());
+					_dst_port(prot, prot_base, remote_side.src_port());
+					_pass_prot_to_domain(
+						remote_domain, eth, size_guard, ip, ip_icd, prot,
+						prot_base, prot_size);
+
+					_link_packet(prot, prot_base, link, client);
+					result = packet_handled();
+				},
+				[&] /* handle_no_match */ () { }
+			);
+			if (result.valid())
+				return result;
+
+			/* try to route via forward rules */
+			if (local_id.dst_ip == local_intf.address) {
+				_with_forward_rule(local_domain, prot, local_id.dst_port, [&] (Forward_rule const &rule) {
 					if(_config().verbose()) {
 						log("[", local_domain, "] using forward rule: ",
-						    l3_protocol_name(prot), " ", rule);
+							l3_protocol_name(prot), " ", rule);
 					}
 					Domain &remote_domain = rule.domain();
-					_adapt_eth(eth, rule.to_ip(), pkt, remote_domain);
+					result = _adapt_eth(eth, rule.to_ip(), pkt, remote_domain);
+					if (result.valid())
+						return;
 					ip.dst(rule.to_ip(), ip_icd);
 					if (!(rule.to_port() == Port(0))) {
 						_dst_port(prot, prot_base, rule.to_port());
 					}
-					_nat_link_and_pass(
+					result = _nat_link_and_pass(
 						eth, size_guard, ip, ip_icd, prot, prot_base,
 						prot_size, local_id, local_domain, remote_domain);
-
-					done = true;
-				},
-				[&] /* handle_no_match */ () { }
-			);
-			if (done) {
-				return;
+				});
+				if (result.valid())
+					return result;
 			}
-		}
-		/* try to route via transport and permit rules */
-		_transport_rules(local_domain, prot).find_best_match(
-			local_id.dst_ip,
-			local_id.dst_port,
-			[&] /* handle_match */ (Transport_rule const &transport_rule,
-			                        Permit_rule    const &permit_rule)
-			{
-				if(_config().verbose()) {
-					log("[", local_domain, "] using ",
-					    l3_protocol_name(prot), " rule: ",
-					    transport_rule, " ", permit_rule);
-				}
-				Domain &remote_domain = permit_rule.domain();
-				_adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
-				_nat_link_and_pass(
-					eth, size_guard, ip, ip_icd, prot, prot_base, prot_size,
-					local_id, local_domain, remote_domain);
-
-				done = true;
-			},
-			[&] /* handle_no_match */ () { }
-		);
-		if (done) {
-			return;
+			/* try to route via transport and permit rules */
+			_with_transport_rule(local_domain, prot, local_id.dst_ip, local_id.dst_port,
+				[&] (Transport_rule const &transport_rule, Permit_rule const &permit_rule) {
+					if(_config().verbose()) {
+						log("[", local_domain, "] using ",
+							l3_protocol_name(prot), " rule: ",
+							transport_rule, " ", permit_rule);
+					}
+					Domain &remote_domain = permit_rule.domain();
+					result = _adapt_eth(eth, local_id.dst_ip, pkt, remote_domain);
+					if (result.valid())
+						return;
+					result = _nat_link_and_pass(
+						eth, size_guard, ip, ip_icd, prot, prot_base, prot_size,
+						local_id, local_domain, remote_domain);
+				});
 		}
 	}
-	catch (Interface::Bad_transport_protocol) { }
+	if (result.valid())
+		return result;
 
 	/* try to route via IP rules */
 	local_domain.ip_rules().find_longest_prefix_match(
@@ -1371,17 +1397,18 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 				log("[", local_domain, "] using IP rule: ", rule); }
 
 			Domain &remote_domain = rule.domain();
-			_adapt_eth(eth, ip.dst(), pkt, remote_domain);
+			result = _adapt_eth(eth, ip.dst(), pkt, remote_domain);
+			if (result.valid())
+				return;
 			remote_domain.interfaces().for_each([&] (Interface &interface) {
 				interface.send(eth, size_guard);
 			});
-			done = true;
+			result = packet_handled();
 		},
 		[&] /* handle_no_match */ () { }
 	);
-	if (done) {
-		return;
-	}
+	if (result.valid())
+		return result;
 
 	/*
 	 * Give up and drop packet. According to RFC 1812 section 4.3.2.7, an ICMP
@@ -1398,8 +1425,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 		_send_icmp_dst_unreachable(local_intf, eth, ip,
 		                           Icmp_packet::Code::DST_HOST_UNREACHABLE);
 	}
-	if (_config().verbose()) {
-		log("[", local_domain, "] unroutable packet"); }
+	return packet_drop("unroutable");
 }
 
 
@@ -1455,7 +1481,7 @@ void Interface::_handle_arp_reply(Ethernet_frame &eth,
 				Arp_waiter &waiter = *waiter_le->object();
 				waiter_le = waiter_le->next();
 				if (ip != waiter.ip()) { continue; }
-				waiter.src()._continue_handle_eth(local_domain, waiter.packet());
+				waiter.src()._continue_handle_eth(waiter.packet());
 				destroy(waiter.src()._alloc, &waiter);
 			}
 		}
@@ -1504,10 +1530,10 @@ void Interface::_send_arp_reply(Ethernet_frame &request_eth,
 }
 
 
-void Interface::_handle_arp_request(Ethernet_frame &eth,
-                                    Size_guard     &size_guard,
-                                    Arp_packet     &arp,
-                                    Domain         &local_domain)
+Packet_result Interface::_handle_arp_request(Ethernet_frame &eth,
+                                             Size_guard     &size_guard,
+                                             Arp_packet     &arp,
+                                             Domain         &local_domain)
 {
 	Ipv4_config         const &local_ip_cfg = local_domain.ip_config();
 	Ipv4_address_prefix const &local_intf   = local_ip_cfg.interface();
@@ -1517,7 +1543,7 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 		if (arp.src_ip() == arp.dst_ip()) {
 
 			/* gratuitous ARP requests are not really necessary */
-			throw Drop_packet("gratuitous ARP request");
+			return packet_drop("gratuitous ARP request");
 
 		} else if (arp.dst_ip() == local_intf.address) {
 
@@ -1542,7 +1568,7 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 		if (local_ip_cfg.gateway_valid()) {
 
 			/* leave request up to the gateway of the domain */
-			throw Drop_packet("leave ARP request up to gateway");
+			return packet_drop("leave ARP request up to gateway");
 
 		} else {
 
@@ -1553,35 +1579,54 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 			_send_arp_reply(eth, arp);
 		}
 	}
+	return packet_handled();
 }
 
 
-void Interface::_handle_arp(Ethernet_frame &eth,
-                            Size_guard     &size_guard,
-                            Domain         &local_domain)
+Packet_result Interface::_handle_arp(Ethernet_frame &eth,
+                                     Size_guard     &size_guard,
+                                     Domain         &local_domain)
 {
 	/* ignore ARP regarding protocols other than IPv4 via ethernet */
 	Arp_packet &arp = eth.data<Arp_packet>(size_guard);
 	if (!arp.ethernet_ipv4()) {
-		throw Drop_packet("ARP for unknown protocol"); }
+		return packet_drop("ARP for unknown protocol"); }
 
 	switch (arp.opcode()) {
-	case Arp_packet::REPLY:   _handle_arp_reply(eth, size_guard, arp, local_domain);   break;
-	case Arp_packet::REQUEST: _handle_arp_request(eth, size_guard, arp, local_domain); break;
-	default: throw Drop_packet("unknown ARP operation"); }
+	case Arp_packet::REPLY: _handle_arp_reply(eth, size_guard, arp, local_domain); break;
+	case Arp_packet::REQUEST: return _handle_arp_request(eth, size_guard, arp, local_domain);
+	default: return packet_drop("unknown ARP operation"); }
+	return packet_handled();
+}
+
+
+void Interface::_drop_packet(Packet_descriptor const &pkt, char const *reason)
+{
+	_ack_packet(pkt);
+	with_domain(
+		[&] /* domain_fn */ (Domain &domain) {
+			if (domain .verbose_packet_drop())
+				log("[", domain, "] drop packet (", reason, ")"); },
+		[&] /* no_domain_fn */ {
+			if (_config().verbose())
+				log("[?] drop packet (", reason, ")"); });
 }
 
 
 void Interface::_handle_pkt()
 {
 	Packet_descriptor const pkt = _sink.get_packet();
-	Size_guard size_guard(pkt.size());
-	try {
-		_handle_eth(_sink.packet_content(pkt), size_guard, pkt);
-		_ack_packet(pkt);
+	if (!_sink.packet_valid(pkt) || pkt.size() < sizeof(Packet_stream_sink::Content_type)) {
+		_drop_packet(pkt, "invalid Nic packet");
+		return;
 	}
-	catch (Packet_postponed) { }
-	catch (Genode::Packet_descriptor::Invalid_packet) { }
+	Size_guard size_guard(pkt.size());
+	Packet_result result = _handle_eth(_sink.packet_content(pkt), size_guard, pkt);
+	switch (result.type) {
+	case Packet_result::HANDLED: _ack_packet(pkt); break;
+	case Packet_result::POSTPONED: break;
+	case Packet_result::DROP: _drop_packet(pkt, result.drop_reason); break;
+	case Packet_result::INVALID: ASSERT_NEVER_REACHED; }
 }
 
 
@@ -1644,29 +1689,27 @@ void Interface::_handle_pkt_stream_signal()
 }
 
 
-void Interface::_continue_handle_eth(Domain            const &domain,
-                                     Packet_descriptor const &pkt)
+void Interface::_continue_handle_eth(Packet_descriptor const &pkt)
 {
+	if (!_sink.packet_valid(pkt) || pkt.size() < sizeof(Packet_stream_sink::Content_type)) {
+		_drop_packet(pkt, "invalid Nic packet");
+		return;
+	}
 	Size_guard size_guard(pkt.size());
-	try { _handle_eth(_sink.packet_content(pkt), size_guard, pkt); }
-	catch (Packet_postponed) {
-		if (domain.verbose_packet_drop()) {
-			log("[", domain, "] drop packet (handling postponed twice)"); }
-	}
-	catch (Genode::Packet_descriptor::Invalid_packet) {
-		if (domain.verbose_packet_drop()) {
-			log("[", domain, "] invalid Nic packet received");
-		}
-	}
-	_ack_packet(pkt);
+	Packet_result result = _handle_eth(_sink.packet_content(pkt), size_guard, pkt);
+	switch (result.type) {
+	case Packet_result::HANDLED: _ack_packet(pkt); break;
+	case Packet_result::POSTPONED: _drop_packet(pkt, "postponed twice"); break;
+	case Packet_result::DROP: _drop_packet(pkt, result.drop_reason); break;
+	case Packet_result::INVALID: ASSERT_NEVER_REACHED; }
 }
 
 
 void Interface::_destroy_dhcp_allocation(Dhcp_allocation &allocation,
                                          Domain          &local_domain)
 {
-	try { local_domain.dhcp_server().free_ip(local_domain, allocation.ip()); }
-	catch (Pointer<Dhcp_server>::Invalid) { }
+	local_domain.with_dhcp_server([&] (Dhcp_server &srv) {
+		srv.free_ip(allocation.ip()); });
 	destroy(_alloc, &allocation);
 }
 
@@ -1680,17 +1723,17 @@ void Interface::_destroy_released_dhcp_allocations(Domain &local_domain)
 }
 
 
-void Interface::_handle_eth(Ethernet_frame           &eth,
-                            Size_guard               &size_guard,
-                            Packet_descriptor  const &pkt,
-                            Domain                   &local_domain)
+Packet_result Interface::_handle_eth(Ethernet_frame           &eth,
+                                     Size_guard               &size_guard,
+                                     Packet_descriptor  const &pkt,
+                                     Domain                   &local_domain)
 {
 	if (local_domain.ip_config().valid()) {
 
 		switch (eth.type()) {
-		case Ethernet_frame::Type::ARP:  _handle_arp(eth, size_guard, local_domain);     break;
-		case Ethernet_frame::Type::IPV4: _handle_ip(eth, size_guard, pkt, local_domain); break;
-		default: throw Bad_network_protocol(); }
+		case Ethernet_frame::Type::ARP: return _handle_arp(eth, size_guard, local_domain);
+		case Ethernet_frame::Type::IPV4: return _handle_ip(eth, size_guard, pkt, local_domain);
+		default: return packet_drop("unknown network layer protocol"); }
 
 	} else {
 
@@ -1700,161 +1743,81 @@ void Interface::_handle_eth(Ethernet_frame           &eth,
 			if (eth.dst() != router_mac() &&
 			    eth.dst() != Mac_address(0xff))
 			{
-				throw Drop_packet("Expecting Ethernet targeting the router"); }
+				return packet_drop("Expecting Ethernet targeting the router"); }
 
 			Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
 			if (ip.protocol() != Ipv4_packet::Protocol::UDP) {
-				throw Drop_packet("Expecting UDP packet"); }
+				return packet_drop("Expecting UDP packet"); }
 
 			Udp_packet &udp = ip.data<Udp_packet>(size_guard);
 			if (!Dhcp_packet::is_dhcp(&udp)) {
-				throw Drop_packet("Expecting DHCP packet"); }
+				return packet_drop("Expecting DHCP packet"); }
 
 			Dhcp_packet &dhcp = udp.data<Dhcp_packet>(size_guard);
 			switch (dhcp.op()) {
 			case Dhcp_packet::REPLY:
 
 				if (dhcp.client_mac() != router_mac()) {
-					throw Drop_packet("Expecting DHCP targeting the router"); }
+					return packet_drop("Expecting DHCP targeting the router"); }
 
 				if (!_dhcp_client.constructed()) {
-					throw Drop_packet("Expecting DHCP client to be active"); }
+					return packet_drop("Expecting DHCP client to be active"); }
 
-				_dhcp_client->handle_dhcp_reply(dhcp);
-				break;
+				return _dhcp_client->handle_dhcp_reply(dhcp, local_domain);
 
 			default:
 
-				throw Drop_packet("Expecting DHCP reply");
+				return packet_drop("Expecting DHCP reply");
 			}
 			break;
 		}
 		case Ethernet_frame::Type::ARP: {
-				throw Drop_packet("Ignore ARP request on unconfigured interface");
+				return packet_drop("Ignore ARP request on unconfigured interface");
 		}
-		default:
-
-			throw Bad_network_protocol();
+		default: return packet_drop("unknown network layer protocol");
 		}
 	}
+	ASSERT_NEVER_REACHED;
 }
 
 
-void Interface::_handle_eth(void              *const  eth_base,
-                            Size_guard               &size_guard,
-                            Packet_descriptor  const &pkt)
+Packet_result Interface::_handle_eth(void              *const  eth_base,
+                                     Size_guard               &size_guard,
+                                     Packet_descriptor  const &pkt)
 {
+	Packet_result result { };
 	try {
-		Domain &local_domain = _domain();
-		local_domain.raise_rx_bytes(size_guard.total_size());
-		try {
-			Ethernet_frame &eth = Ethernet_frame::cast_from(eth_base, size_guard);
-			try {
-				/* do garbage collection over transport-layer links and DHCP allocations */
-				_destroy_dissolved_links<Icmp_link>(_dissolved_icmp_links, _alloc);
-				_destroy_dissolved_links<Udp_link>(_dissolved_udp_links,   _alloc);
-				_destroy_dissolved_links<Tcp_link>(_dissolved_tcp_links,   _alloc);
-				_destroy_released_dhcp_allocations(local_domain);
+		Ethernet_frame &eth = Ethernet_frame::cast_from(eth_base, size_guard);
+		auto domain_fn = [&] (Domain &domain) {
 
-				/* log received packet if desired */
-				if (local_domain.verbose_packets()) {
-					log("[", local_domain, "] rcv ", eth); }
+			domain.raise_rx_bytes(size_guard.total_size());
 
-				if (local_domain.trace_packets())
-					Genode::Trace::Ethernet_packet(local_domain.name().string(),
-					                               Genode::Trace::Ethernet_packet::Direction::RECV,
-					                               eth_base,
-					                               size_guard.total_size());
+			/* do garbage collection over transport-layer links and DHCP allocations */
+			_destroy_dissolved_links<Icmp_link>(_dissolved_icmp_links, _alloc);
+			_destroy_dissolved_links<Udp_link>(_dissolved_udp_links, _alloc);
+			_destroy_dissolved_links<Tcp_link>(_dissolved_tcp_links, _alloc);
+			_destroy_released_dhcp_allocations(domain);
 
-				/* try to handle ethernet frame */
-				try { _handle_eth(eth, size_guard, pkt, local_domain); }
-				catch (Free_resources_and_retry_handle_eth) {
-					try {
-						if (_config().verbose()) {
-							log("[", local_domain, "] free resources and retry to handle packet"); }
+			/* log received packet if desired */
+			if (domain.verbose_packets()) {
+				log("[", domain, "] rcv ", eth); }
 
-						/*
-						 * Resources do not suffice, destroy some links
-						 *
-						 * Limit number of links to destroy because otherwise,
-						 * this could block the router for a significant
-						 * amount of time.
-						 */
-						unsigned long max = MAX_FREE_OPS_PER_EMERGENCY;
-						_destroy_some_links<Tcp_link> (_tcp_links,  _dissolved_tcp_links,  _alloc, max);
-						_destroy_some_links<Udp_link> (_udp_links,  _dissolved_udp_links,  _alloc, max);
-						_destroy_some_links<Icmp_link>(_icmp_links, _dissolved_icmp_links, _alloc, max);
+			if (domain.trace_packets())
+				Genode::Trace::Ethernet_packet(
+					domain.name().string(), Genode::Trace::Ethernet_packet::Direction::RECV,
+						eth_base, size_guard.total_size());
 
-						/* retry to handle ethernet frame */
-						_handle_eth(eth, size_guard, pkt, local_domain);
-					}
-					catch (Free_resources_and_retry_handle_eth exception) {
-						if (exception.prot != (L3_protocol)0) {
-							switch (exception.prot) {
-							case L3_protocol::TCP:  _tcp_stats.refused_for_ram++;  break;
-							case L3_protocol::UDP:  _udp_stats.refused_for_ram++;  break;
-							case L3_protocol::ICMP: _icmp_stats.refused_for_ram++; break;
-							default: throw Bad_transport_protocol(); }
-						}
-
-						/* give up if the resources still not suffice */
-						throw Drop_packet("insufficient resources");
-					}
-				}
-			}
-			catch (Dhcp_server::Alloc_ip_failed) {
-				if (_config().verbose()) {
-					log("[", local_domain, "] failed to allocate IP for DHCP "
-					    "client");
-				}
-			}
-			catch (Port_allocator_guard::Out_of_indices) {
-				if (_config().verbose()) {
-					log("[", local_domain, "] no available NAT ports"); }
-			}
-			catch (Domain::No_next_hop) {
-				if (_config().verbose()) {
-					log("[", local_domain, "] cannot find next hop"); }
-			}
-			catch (Alloc_dhcp_msg_buffer_failed) {
-				if (_config().verbose()) {
-					log("[", local_domain, "] failed to allocate buffer for "
-					    "DHCP reply");
-				}
-			}
-			catch (Bad_network_protocol) {
-				if (_config().verbose()) {
-					log("[", local_domain, "] unknown network layer "
-					    "protocol");
-				}
-			}
-			catch (Drop_packet exception) {
-				if (local_domain.verbose_packet_drop()) {
-					log("[", local_domain, "] drop packet (",
-					    exception.reason, ")");
-				}
-			}
-		}
-		catch (Size_guard::Exceeded) {
-			if (_config().verbose()) {
-				log("[", local_domain, "] drop packet: packet size-guard "
-				    "exceeded");
-			}
-		}
+			result = _handle_eth(eth, size_guard, pkt, domain);
+		};
+		auto no_domain_fn = [&] /* no_domain_fn */ {
+			if (_config().verbose_packets())
+				log("[?] rcv ", eth);
+			result = packet_drop("no domain");
+		};
+		with_domain(domain_fn, no_domain_fn);
 	}
-	catch (Pointer<Domain>::Invalid) {
-		try {
-			Ethernet_frame &eth = Ethernet_frame::cast_from(eth_base, size_guard);
-			if (_config().verbose_packets()) {
-				log("[?] rcv ", eth); }
-		}
-		catch (Size_guard::Exceeded) {
-			if (_config().verbose_packets()) {
-				log("[?] rcv ?"); }
-		}
-		if (_config().verbose()) {
-			log("[?] drop packet: no domain"); }
-	}
+	catch (Size_guard::Exceeded) { result = packet_drop("packet size-guard exceeded"); }
+	return result;
 }
 
 
@@ -1871,7 +1834,7 @@ void Interface::_send_submit_pkt(Packet_descriptor &pkt,
                                  void            * &pkt_base,
                                  size_t             pkt_size)
 {
-	Domain &local_domain = _domain();
+	Domain &local_domain = *_domain_ptr;
 	local_domain.raise_tx_bytes(pkt_size);
 	if (local_domain.verbose_packets()) {
 		try {
@@ -1915,8 +1878,7 @@ Interface::Interface(Genode::Entrypoint     &ep,
 	_interfaces                { interfaces }
 {
 	_interfaces.insert(this);
-	try { _config().report().handle_interface_link_state(); }
-	catch (Pointer<Report>::Invalid) { }
+	_config().with_report([&] (Report &r) { r.handle_interface_link_state(); });
 }
 
 
@@ -1941,11 +1903,7 @@ bool Interface::_try_update_link(Link        &link,
 		return false;
 
 	if (link.client().src_ip() == link.server().dst_ip()) {
-
-		link.handle_config(
-			cln_dom, new_srv_dom, Pointer<Port_allocator_guard> { },
-			_config());
-
+		link.handle_config(cln_dom, new_srv_dom, nullptr, _config());
 		return true;
 	}
 	if (link.server().dst_ip() != new_srv_dom.ip_config().interface().address)
@@ -1957,13 +1915,10 @@ bool Interface::_try_update_link(Link        &link,
 		[&] /* handle_match */ (Nat_rule &nat)
 		{
 			Port_allocator_guard &remote_port_alloc { nat.port_alloc(prot) };
-			try { remote_port_alloc.alloc(link.server().dst_port()); }
-			catch (Port_allocator::Allocation_conflict)  { return; }
-			catch (Port_allocator_guard::Out_of_indices) { return; }
+			if (!remote_port_alloc.alloc(link.server().dst_port()))
+				return;
 
-			link.handle_config(
-				cln_dom, new_srv_dom, remote_port_alloc, _config());
-
+			link.handle_config(cln_dom, new_srv_dom, &remote_port_alloc, _config());
 			keep_link = true;
 		},
 		[&] /* handle_no_match */ () { }
@@ -1977,49 +1932,35 @@ void Interface::_update_udp_tcp_links(L3_protocol  prot,
 {
 	links(prot).for_each([&] (Link &link) {
 
-		bool link_has_been_updated { false };
+		bool link_updated { false };
 
 		if (link.server().src_ip() != link.client().dst_ip()) {
 
-			_forward_rules(cln_dom, prot).find_by_port(
-				link.client().dst_port(),
-				[&] /* handle_match */ (Forward_rule const &rule)
-				{
-					if (rule.to_ip() != link.server().src_ip())
+			_with_forward_rule(cln_dom, prot, link.client().dst_port(), [&] (Forward_rule const &rule) {
+				if (rule.to_ip() != link.server().src_ip())
+					return;
+
+				if (rule.to_port() == Port { 0 }) {
+
+					if (link.server().src_port() !=
+						link.client().dst_port())
 						return;
 
-					if (rule.to_port() == Port { 0 }) {
+				} else {
 
-						if (link.server().src_port() !=
-						    link.client().dst_port())
-							return;
-
-					} else {
-
-						if (rule.to_port() != link.server().src_port())
-							return;
-					}
-					link_has_been_updated =
-						_try_update_link(link, rule.domain(), prot, cln_dom);
-				},
-				[&] /* handle_no_match */ () { }
-			);
+					if (rule.to_port() != link.server().src_port())
+						return;
+				}
+				link_updated = _try_update_link(link, rule.domain(), prot, cln_dom);
+			});
 
 		} else {
 
-			_transport_rules(cln_dom, prot).find_best_match(
-				link.client().dst_ip(),
-				link.client().dst_port(),
-				[&] /* handle_match */ (Transport_rule const &,
-				                        Permit_rule    const &rule)
-				{
-					link_has_been_updated =
-						_try_update_link(link, rule.domain(), prot, cln_dom);
-				},
-				[&] /* handle_no_match */ () { }
-			);
+			_with_transport_rule(cln_dom, prot, link.client().dst_ip(), link.client().dst_port(),
+				[&] (Transport_rule const &, Permit_rule const &rule) {
+					link_updated = _try_update_link(link, rule.domain(), prot, cln_dom); });
 		}
-		if (link_has_been_updated)
+		if (link_updated)
 			return;
 
 		_dismiss_link(link);
@@ -2055,51 +1996,37 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
                                          Domain &new_domain)
 {
 	bool dhcp_clients_outdated { false };
-	try {
-		Dhcp_server &old_dhcp_srv = old_domain.dhcp_server();
-		Dhcp_server &new_dhcp_srv = new_domain.dhcp_server();
-		if (!old_dhcp_srv.config_equal_to_that_of(new_dhcp_srv)) {
-			throw Pointer<Dhcp_server>::Invalid();
-		}
-		_dhcp_allocations.for_each([&] (Dhcp_allocation &allocation) {
-			try {
-				new_dhcp_srv.alloc_ip(allocation.ip());
+	old_domain.with_dhcp_server([&] (Dhcp_server &old_dhcp_srv) {
+	new_domain.with_dhcp_server([&] (Dhcp_server &new_dhcp_srv) {
+		if (old_dhcp_srv.config_equal_to_that_of(new_dhcp_srv)) {
+			/* try to re-use existing DHCP allocations */
+			_dhcp_allocations.for_each([&] (Dhcp_allocation &allocation) {
+				if (!new_dhcp_srv.alloc_ip(allocation.ip())) {
+					if (_config().verbose())
+						log("[", new_domain, "] dismiss DHCP allocation: ", allocation, " (no IP)");
 
-				/* keep DHCP allocation */
-				if (_config().verbose()) {
-					log("[", new_domain, "] update DHCP allocation: ",
-					    allocation);
+					dhcp_clients_outdated = true;
+					_dhcp_allocations.remove(allocation);
+					_destroy_dhcp_allocation(allocation, old_domain);
+					return;
 				}
-				return;
-			}
-			catch (Dhcp_server::Alloc_ip_failed) {
-				if (_config().verbose()) {
-					log("[", new_domain, "] dismiss DHCP allocation: ",
-					    allocation, " (no IP)");
-				}
-			}
-			/* dismiss DHCP allocation */
+				if (_config().verbose())
+					log("[", new_domain, "] update DHCP allocation: ", allocation);
+			});
+		} else {
+			/* dismiss all DHCP allocations */
 			dhcp_clients_outdated = true;
-			_dhcp_allocations.remove(allocation);
-			_destroy_dhcp_allocation(allocation, old_domain);
-		});
-	}
-	catch (Pointer<Dhcp_server>::Invalid) {
-
-		/* dismiss all DHCP allocations */
-		dhcp_clients_outdated = true;
-		while (Dhcp_allocation *allocation = _dhcp_allocations.first()) {
-			if (_config().verbose()) {
-				log("[", new_domain, "] dismiss DHCP allocation: ",
-				    *allocation, " (other/no DHCP server)");
+			while (Dhcp_allocation *allocation = _dhcp_allocations.first()) {
+				if (_config().verbose())
+					log("[", new_domain, "] dismiss DHCP allocation: ",
+						*allocation, " (other/no DHCP server)");
+				_dhcp_allocations.remove(*allocation);
+				_destroy_dhcp_allocation(*allocation, old_domain);
 			}
-			_dhcp_allocations.remove(*allocation);
-			_destroy_dhcp_allocation(*allocation, old_domain);
 		}
-	}
-	if (dhcp_clients_outdated) {
-		_reset_and_refetch_domain_ready_state();
-	}
+		if (dhcp_clients_outdated)
+			_reset_and_refetch_domain_ready_state();
+	});});
 }
 
 
@@ -2146,9 +2073,9 @@ void Interface::handle_config_1(Configuration &config)
 	_config = config;
 	_policy.handle_config(config);
 	Domain_name const &new_domain_name = _policy.determine_domain_name();
-	try {
+	with_domain([&] (Domain &old_domain) {
+
 		/* destroy state objects that are not needed anymore */
-		Domain &old_domain = domain();
 		_destroy_dissolved_links<Icmp_link>(_dissolved_icmp_links, _alloc);
 		_destroy_dissolved_links<Udp_link> (_dissolved_udp_links,  _alloc);
 		_destroy_dissolved_links<Tcp_link> (_dissolved_tcp_links,  _alloc);
@@ -2167,37 +2094,35 @@ void Interface::handle_config_1(Configuration &config)
 			},
 			[&] /* no_match_fn */ () { }
 		);
-	}
-	catch (Pointer<Domain>::Invalid) { }
+	});
 }
 
 
 void Interface::_failed_to_send_packet_link()
 {
 	if (_config().verbose()) {
-		log("[", _domain(), "] failed to send packet (link down)"); }
+		log("[", *_domain_ptr, "] failed to send packet (link down)"); }
 }
 
 
 void Interface::_failed_to_send_packet_submit()
 {
 	if (_config().verbose()) {
-		log("[", _domain(), "] failed to send packet (queue full)"); }
+		log("[", *_domain_ptr, "] failed to send packet (queue full)"); }
 }
 
 
 void Interface::_failed_to_send_packet_alloc()
 {
 	if (_config().verbose()) {
-		log("[", _domain(), "] failed to send packet (packet alloc failed)"); }
+		log("[", *_domain_ptr, "] failed to send packet (packet alloc failed)"); }
 }
 
 
 void Interface::handle_config_2()
 {
 	Domain_name const &new_domain_name = _policy.determine_domain_name();
-	try {
-		Domain &old_domain = domain();
+	auto domain_fn = [&] (Domain &old_domain) {
 		_config().domains().with_element(
 			new_domain_name,
 			[&] /* match_fn */ (Domain &new_domain)
@@ -2245,9 +2170,8 @@ void Interface::handle_config_2()
 				}
 			}
 		);
-	}
-	catch (Pointer<Domain>::Invalid) {
-
+	};
+	auto no_domain_fn = [&] {
 		/* the interface had no domain but now it may get one */
 		_config().domains().with_element(
 			new_domain_name,
@@ -2262,13 +2186,14 @@ void Interface::handle_config_2()
 			},
 			[&] /* no_match_fn */ () { }
 		);
-	}
+	};
+	with_domain(domain_fn, no_domain_fn);
 }
 
 
 void Interface::handle_config_3()
 {
-	try {
+	if (_update_domain.constructed()) {
 		/*
 		 * Update the domain object only if handle_config_2 determined that
 		 * the interface stays attached to the same domain. Otherwise the
@@ -2296,13 +2221,9 @@ void Interface::handle_config_3()
 		_update_icmp_links(new_domain);
 		_update_dhcp_allocations(old_domain, new_domain);
 		_update_own_arp_waiters(new_domain);
-	}
-	catch (Constructible<Update_domain>::Deref_unconstructed_object) {
-
+	} else
 		/* if the interface moved to another domain, finish the operation */
-		try { attach_to_domain_finish(); }
-		catch (Pointer<Domain>::Invalid) { }
-	}
+		with_domain([&] (Domain &) { attach_to_domain_finish(); });
 }
 
 
@@ -2310,7 +2231,7 @@ void Interface::_ack_packet(Packet_descriptor const &pkt)
 {
 	if (!_sink.try_ack_packet(pkt)) {
 		if (_config().verbose()) {
-			log("[", _domain(), "] leak packet (sink not ready to "
+			log("[", *_domain_ptr, "] leak packet (sink not ready to "
 			    "acknowledge)");
 		}
 		return;
@@ -2320,59 +2241,48 @@ void Interface::_ack_packet(Packet_descriptor const &pkt)
 
 void Interface::cancel_arp_waiting(Arp_waiter &waiter)
 {
-	try {
-		Domain &domain = _domain();
-		if (domain.verbose_packet_drop()) {
-			log("[", domain, "] drop packet (ARP got cancelled)"); }
-	}
-	catch (Pointer<Domain>::Invalid) {
-		if (_config().verbose_packet_drop()) {
-			log("[?] drop packet (ARP got cancelled)"); }
-	}
-	_ack_packet(waiter.packet());
+	_drop_packet(waiter.packet(), "ARP got cancelled");
 	destroy(_alloc, &waiter);
 }
 
 
 Interface::~Interface()
 {
-	try { _config().report().handle_interface_link_state(); }
-	catch (Pointer<Report>::Invalid) { }
+	_config().with_report([&] (Report &r) { r.handle_interface_link_state(); });
 	_detach_from_domain();
 	_interfaces.remove(this);
 }
 
 
-void Interface::report(Genode::Xml_generator &xml)
-{
-	xml.node("interface",  [&] () {
-		bool empty { true };
-		xml.attribute("label", _policy.label());
-		if (_config().report().link_state()) {
-			xml.attribute("link_state", link_state());
-			empty = false;
-		}
-		if (_config().report().stats()) {
-			try {
-				_policy.report(xml);
-				empty = false;
-			}
-			catch (Report::Empty) { }
 
-			try { xml.node("tcp-links",        [&] () { _tcp_stats.report(xml);  }); empty = false; } catch (Report::Empty) { }
-			try { xml.node("udp-links",        [&] () { _udp_stats.report(xml);  }); empty = false; } catch (Report::Empty) { }
-			try { xml.node("icmp-links",       [&] () { _icmp_stats.report(xml); }); empty = false; } catch (Report::Empty) { }
-			try { xml.node("arp-waiters",      [&] () { _arp_stats.report(xml);  }); empty = false; } catch (Report::Empty) { }
-			try { xml.node("dhcp-allocations", [&] () { _dhcp_stats.report(xml); }); empty = false; } catch (Report::Empty) { }
-		}
-		if (_config().report().dropped_fragm_ipv4() && _dropped_fragm_ipv4) {
-			xml.node("dropped-fragm-ipv4", [&] () {
-				xml.attribute("value", _dropped_fragm_ipv4);
-			});
-			empty = false;
-		}
-		if (empty) { throw Report::Empty(); }
-	});
+bool Interface::report_empty(Report const &report_cfg) const
+{
+	bool stats = report_cfg.stats() && (
+		!_policy.report_empty() || !_tcp_stats.report_empty() || !_udp_stats.report_empty() ||
+		!_icmp_stats.report_empty() || !_arp_stats.report_empty() || _dhcp_stats.report_empty());
+	bool lnk_state = report_cfg.link_state();
+	bool fragm_ip = report_cfg.dropped_fragm_ipv4() && _dropped_fragm_ipv4;
+	return !lnk_state && !stats && !fragm_ip;
+}
+
+
+void Interface::report(Genode::Xml_generator &xml, Report const &report_cfg) const
+{
+	xml.attribute("label", _policy.label());
+	if (report_cfg.link_state())
+		xml.attribute("link_state", link_state());
+
+	if (report_cfg.stats()) {
+		_policy.report(xml);
+		if (!_tcp_stats.report_empty())  xml.node("tcp-links",        [&] { _tcp_stats.report(xml);  });
+		if (!_udp_stats.report_empty())  xml.node("udp-links",        [&] { _udp_stats.report(xml);  });
+		if (!_icmp_stats.report_empty()) xml.node("icmp-links",       [&] { _icmp_stats.report(xml); });
+		if (!_arp_stats.report_empty())  xml.node("arp-waiters",      [&] { _arp_stats.report(xml);  });
+		if (!_dhcp_stats.report_empty()) xml.node("dhcp-allocations", [&] { _dhcp_stats.report(xml); });
+	}
+	if (report_cfg.dropped_fragm_ipv4() && _dropped_fragm_ipv4)
+		xml.node("dropped-fragm-ipv4", [&] {
+			xml.attribute("value", _dropped_fragm_ipv4); });
 }
 
 

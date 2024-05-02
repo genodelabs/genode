@@ -60,20 +60,16 @@ Interface_policy::Interface_policy(Genode::Session_label const &label,
 Domain_name
 Net::Nic_session_component::Interface_policy::determine_domain_name() const
 {
-	Domain_name domain_name;
+	Domain_name domain_name { };
 	try {
 		Session_policy policy(_label, _config().node());
 		domain_name = policy.attribute_value("domain", Domain_name());
+		if (domain_name == Domain_name() && _config().verbose())
+			log("[?] no domain attribute in policy for downlink label \"", _label, "\"");
 	}
 	catch (Session_policy::No_policy_defined) {
 		if (_config().verbose()) {
 			log("[?] no policy for downlink label \"", _label, "\""); }
-	}
-	catch (Xml_node::Nonexistent_attribute) {
-		if (_config().verbose()) {
-			log("[?] no domain attribute in policy for downlink label \"",
-			    _label, "\"");
-		}
 	}
 	return domain_name;
 }
@@ -169,8 +165,7 @@ Net::Nic_session_component::Interface_policy::interface_link_state() const
 	case UP_DOWN:           return false;
 	case UP_DOWN_UP:        return true;
 	}
-	class Never_reached : Exception { };
-	throw Never_reached { };
+	ASSERT_NEVER_REACHED;
 }
 
 
@@ -216,8 +211,7 @@ Net::Nic_session_component::Interface_policy::read_and_ack_session_link_state()
 		_session_link_state_transition(DOWN_UP);
 		return true;
 	}
-	class Never_reached { };
-	throw Never_reached { };
+	ASSERT_NEVER_REACHED;
 }
 
 
@@ -296,11 +290,14 @@ Net::Nic_session_root::Nic_session_root(Env               &env,
 	_env                                  { env },
 	_timer                                { timer },
 	_mac_alloc                            { MAC_ALLOC_BASE },
-	_router_mac                           { _mac_alloc.alloc() },
 	_config                               { config },
 	_shared_quota                         { shared_quota },
 	_interfaces                           { interfaces }
-{ }
+{
+	_mac_alloc.alloc().with_result(
+		[&] (Mac_address const &mac){ _router_mac.construct(mac); },
+		[] (auto) { ASSERT_NEVER_REACHED; });
+}
 
 
 Nic_session_component *Net::Nic_session_root::_create_session(char const *args)
@@ -311,25 +308,29 @@ Nic_session_component *Net::Nic_session_root::_create_session(char const *args)
 			_env, _shared_quota, args,
 			[&] (Session_env &session_env, void *session_at, Ram_dataspace_capability ram_ds)
 			{
+				Nic_session_component *result { };
 				Session_label const label { label_from_args(args) };
-				Mac_address const mac { _mac_alloc.alloc() };
-				try {
-					return construct_at<Nic_session_component>(
-						session_at, session_env,
-						Arg_string::find_arg(args, "tx_buf_size").ulong_value(0),
-						Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
-						_timer, mac, _router_mac, label, _interfaces,
-						_config(), ram_ds);
-				}
-				catch (...) {
-					_mac_alloc.free(mac);
-					throw;
-				}
+				_mac_alloc.alloc().with_result(
+					[&] (auto mac) {
+						try {
+							result = construct_at<Nic_session_component>(
+								session_at, session_env,
+								Arg_string::find_arg(args, "tx_buf_size").ulong_value(0),
+								Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
+								_timer, mac, *_router_mac, label, _interfaces,
+								_config(), ram_ds);
+						}
+						catch (...) {
+							_mac_alloc.free(mac);
+							throw;
+						}
+					},
+					[&] (auto) {
+						_invalid_downlink("failed to allocate MAC address");
+						throw Service_denied();
+					});
+				return result;
 			});
-	}
-	catch (Mac_allocator::Alloc_failed) {
-		_invalid_downlink("failed to allocate MAC address");
-		throw Service_denied();
 	}
 	catch (Region_map::Invalid_dataspace) {
 		_invalid_downlink("Failed to attach RAM");

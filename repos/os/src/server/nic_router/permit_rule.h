@@ -16,10 +16,10 @@
 
 /* local includes */
 #include <avl_tree.h>
+#include <port_allocator.h>
 
 /* Genode includes */
 #include <util/avl_tree.h>
-#include <net/port.h>
 
 namespace Genode {
 
@@ -72,9 +72,7 @@ struct Net::Permit_any_rule : Permit_rule
 {
 	public:
 
-		struct Invalid : Genode::Exception { };
-
-		Permit_any_rule(Domain_dict &domains, Genode::Xml_node const node);
+		Permit_any_rule(Domain &domain);
 
 
 		/*********
@@ -99,10 +97,7 @@ class Net::Permit_single_rule : public  Permit_rule,
 
 	public:
 
-		struct Invalid : Genode::Exception { };
-
-		Permit_single_rule(Domain_dict            &domains,
-		                   Genode::Xml_node const  node);
+		Permit_single_rule(Port port, Domain &domain);
 
 		template <typename HANDLE_MATCH_FN,
 		          typename HANDLE_NO_MATCH_FN>

@@ -16,6 +16,7 @@
 
 /* local includes */
 #include <cached_timer.h>
+#include <packet_result.h>
 
 /* Genode includes */
 #include <net/dhcp.h>
@@ -45,9 +46,9 @@ class Net::Dhcp_client
 
 		void _handle_timeout(Genode::Duration);
 
-		void _rerequest(State next_state);
+		void _rerequest(State next_state, Domain &domain);
 
-		Genode::Microseconds _rerequest_timeout(unsigned lease_time_div_log2);
+		Genode::Microseconds _rerequest_timeout(unsigned lease_time_div_log2, Domain &domain);
 
 		void _set_state(State state, Genode::Microseconds timeout);
 
@@ -57,16 +58,12 @@ class Net::Dhcp_client
 		           Ipv4_address              requested_ip,
 		           Genode::size_t            pkt_size);
 
-		Configuration &_config();
-
-		Domain &_domain();
-
 	public:
 
 		Dhcp_client(Cached_timer      &timer,
 		            Interface         &interface);
 
-		void handle_dhcp_reply(Dhcp_packet &dhcp);
+		[[nodiscard]] Packet_result handle_dhcp_reply(Dhcp_packet &dhcp, Domain &domain);
 
 		void discover();
 };

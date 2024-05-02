@@ -41,28 +41,30 @@ class Net::Nic_client : private Nic_client_dict::Element
 
 	private:
 
-		Genode::Allocator             &_alloc;
-		Configuration           const &_config;
-		Domain_name             const  _domain;
-		Pointer<Nic_client_interface>  _interface { };
+		struct Critical { Nic_client_interface *interface_ptr; };
 
-		void _invalid(char const *reason) const;
+		Genode::Allocator              &_alloc;
+		Configuration                  &_config;
+		Domain_name              const  _domain;
+		Genode::Constructible<Critical> _crit { };
+
+		/*
+		 * Noncopyable
+		 */
+		Nic_client(Nic_client const &);
+		Nic_client &operator = (Nic_client const &);
 
 	public:
-
-		struct Invalid : Genode::Exception { };
 
 		Nic_client(Genode::Session_label const &label_arg,
 		           Domain_name           const &domain_arg,
 		           Genode::Allocator           &alloc,
-		           Nic_client_dict             &old_nic_clients,
 		           Nic_client_dict             &new_nic_clients,
-		           Genode::Env                 &env,
-		           Cached_timer                &timer,
-		           Interface_list              &interfaces,
 		           Configuration               &config);
 
 		~Nic_client();
+
+		[[nodiscard]] bool finish_construction(Genode::Env &, Cached_timer &, Interface_list &, Nic_client_dict &);
 
 
 		/**************
@@ -93,6 +95,8 @@ class Net::Nic_client_interface_base : public Interface_policy
 		Genode::Session_label const &label() const override { return _label; }
 		void handle_domain_ready_state(bool state) override;
 		bool interface_link_state() const override;
+		bool report_empty() const override { return true; };
+		void report(Genode::Xml_generator &) const override { };
 
 	public:
 

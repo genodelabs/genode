@@ -47,10 +47,10 @@ void Dns_domain_name::set_to(Dns_domain_name const &name)
 {
 	if (name.valid()) {
 		name.with_string([&] (String const &string) {
-			if (_string.valid()) {
-				_string() = string;
+			if (_string_ptr) {
+				*_string_ptr = string;
 			} else {
-				_string = *new (_alloc) String { string };
+				_string_ptr = new (_alloc) String { string };
 			}
 		});
 	} else {
@@ -63,10 +63,10 @@ void Dns_domain_name::set_to(Xml_attribute const &name_attr)
 {
 	name_attr.with_raw_value([&] (char const *base, size_t size) {
 		if (size < STRING_CAPACITY) {
-			if (_string.valid()) {
-				_string() = Cstring { base, size };
+			if (_string_ptr) {
+				*_string_ptr = Cstring { base, size };
 			} else {
-				_string = *new (_alloc) String { Cstring { base, size } };
+				_string_ptr = new (_alloc) String { Cstring { base, size } };
 			}
 		} else {
 			set_invalid();
@@ -79,10 +79,10 @@ void Dns_domain_name::set_to(Dhcp_packet::Domain_name const &name_option)
 {
 	name_option.with_string([&] (char const *base, size_t size) {
 		if (size < STRING_CAPACITY) {
-			if (_string.valid()) {
-				_string() = Cstring { base, size };
+			if (_string_ptr) {
+				*_string_ptr = Cstring { base, size };
 			} else {
-				_string = *new (_alloc) String { Cstring { base, size } };
+				_string_ptr = new (_alloc) String { Cstring { base, size } };
 			}
 		} else {
 			set_invalid();
@@ -93,22 +93,21 @@ void Dns_domain_name::set_to(Dhcp_packet::Domain_name const &name_option)
 
 void Dns_domain_name::set_invalid()
 {
-	if (_string.valid()) {
-		_alloc.free(&_string(), sizeof(String));
-		_string = { };
+	if (_string_ptr) {
+		_alloc.free(_string_ptr, sizeof(String));
+		_string_ptr = nullptr;
 	}
 }
 
 
 bool Dns_domain_name::equal_to(Dns_domain_name const &other) const
 {
-	if (_string.valid()) {
-		if (other._string.valid()) {
-			return _string() == other._string();
-		}
+	if (_string_ptr) {
+		if (other._string_ptr)
+			return *_string_ptr == *other._string_ptr;
 		return false;
 	}
-	return !other._string.valid();
+	return !other._string_ptr;
 }
 
 

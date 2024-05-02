@@ -40,7 +40,6 @@
 /* local includes */
 #include <list.h>
 #include <reference.h>
-#include <pointer.h>
 #include <l3_protocol.h>
 #include <lazy_one_shot_timeout.h>
 
@@ -187,7 +186,7 @@ class Net::Link : public Link_list::Element
 
 		Reference<Configuration>       _config;
 		Interface                     &_client_interface;
-		Pointer<Port_allocator_guard>  _server_port_alloc;
+		Port_allocator_guard          *_server_port_alloc_ptr;
 		Lazy_one_shot_timeout<Link>    _dissolve_timeout;
 		Genode::Microseconds           _dissolve_timeout_us;
 		L3_protocol             const  _protocol;
@@ -201,29 +200,36 @@ class Net::Link : public Link_list::Element
 
 		void _packet() { _dissolve_timeout.schedule(_dissolve_timeout_us); }
 
+		/*
+		 * Noncopyable
+		 */
+		Link(Link const &);
+		Link &operator = (Link const &);
+
 	public:
 
 		struct No_port_allocator : Genode::Exception { };
 
-		Link(Interface                           &cln_interface,
-		     Link_side_id                  const &cln_id,
-		     Pointer<Port_allocator_guard>        srv_port_alloc,
-		     Domain                              &srv_domain,
-		     Link_side_id                  const &srv_id,
-		     Cached_timer                        &timer,
-		     Configuration                       &config,
-		     L3_protocol                   const  protocol,
-		     Genode::Microseconds          const  dissolve_timeout,
-		     Interface_link_stats                &stats);
+		Link(Interface                  &cln_interface,
+		     Domain                     &cln_domain,
+		     Link_side_id         const &cln_id,
+		     Port_allocator_guard       *srv_port_alloc_ptr,
+		     Domain                     &srv_domain,
+		     Link_side_id         const &srv_id,
+		     Cached_timer               &timer,
+		     Configuration              &config,
+		     L3_protocol          const  protocol,
+		     Genode::Microseconds const  dissolve_timeout,
+		     Interface_link_stats       &stats);
 
 		~Link();
 
 		void dissolve(bool timeout);
 
-		void handle_config(Domain                        &cln_domain,
-		                   Domain                        &srv_domain,
-		                   Pointer<Port_allocator_guard>  srv_port_alloc,
-		                   Configuration                 &config);
+		void handle_config(Domain               &cln_domain,
+		                   Domain               &srv_domain,
+		                   Port_allocator_guard *srv_port_alloc_ptr,
+		                   Configuration        &config);
 
 		/*********
 		 ** Log **
@@ -273,8 +279,9 @@ class Net::Tcp_link : public Link
 	public:
 
 		Tcp_link(Interface                     &cln_interface,
+		         Domain                        &cln_domain,
 		         Link_side_id            const &cln_id,
-		         Pointer<Port_allocator_guard>  srv_port_alloc,
+		         Port_allocator_guard          *srv_port_alloc_ptr,
 		         Domain                        &srv_domain,
 		         Link_side_id            const &srv_id,
 		         Cached_timer                  &timer,
@@ -291,8 +298,9 @@ class Net::Tcp_link : public Link
 struct Net::Udp_link : Link
 {
 	Udp_link(Interface                     &cln_interface,
+	         Domain                        &cln_domain,
 	         Link_side_id            const &cln_id,
-	         Pointer<Port_allocator_guard>  srv_port_alloc,
+	         Port_allocator_guard          *srv_port_alloc_ptr,
 	         Domain                        &srv_domain,
 	         Link_side_id            const &srv_id,
 	         Cached_timer                  &timer,
@@ -308,15 +316,16 @@ struct Net::Udp_link : Link
 
 struct Net::Icmp_link : Link
 {
-	Icmp_link(Interface                     &cln_interface,
-	          Link_side_id            const &cln_id,
-	          Pointer<Port_allocator_guard>  srv_port_alloc,
-	          Domain                        &srv_domain,
-	          Link_side_id            const &srv_id,
-	          Cached_timer                  &timer,
-	          Configuration                 &config,
-	          L3_protocol             const  protocol,
-	          Interface_link_stats          &stats);
+	Icmp_link(Interface                  &cln_interface,
+	          Domain                     &cln_domain,
+	          Link_side_id         const &cln_id,
+	          Port_allocator_guard       *srv_port_alloc_ptr,
+	          Domain                     &srv_domain,
+	          Link_side_id         const &srv_id,
+	          Cached_timer               &timer,
+	          Configuration              &config,
+	          L3_protocol          const  protocol,
+	          Interface_link_stats       &stats);
 
 	void client_packet() { _packet(); }
 

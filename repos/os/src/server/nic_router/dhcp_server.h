@@ -17,7 +17,6 @@
 /* local includes */
 #include <bit_allocator_dynamic.h>
 #include <list.h>
-#include <pointer.h>
 #include <dns.h>
 #include <ipv4_config.h>
 #include <cached_timer.h>
@@ -52,14 +51,15 @@ class Net::Dhcp_server_base
 		Dns_server_list    _dns_servers     { };
 		Dns_domain_name    _dns_domain_name { _alloc };
 
-		void _invalid(Domain const &domain,
-		              char   const *reason);
+		[[nodiscard]] bool _invalid(Domain const &domain,
+		                            char   const *reason);
 
 	public:
 
-		Dhcp_server_base(Genode::Xml_node const &node,
-		                 Domain           const &domain,
-		                 Genode::Allocator      &alloc);
+		Dhcp_server_base(Genode::Allocator &alloc);
+
+		[[nodiscard]] bool finish_construction(Genode::Xml_node const &node,
+		                                       Domain           const &domain);
 
 		~Dhcp_server_base();
 };
@@ -70,7 +70,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 {
 	private:
 
-		Pointer<Domain>      const    _dns_config_from;
+		Domain                       *_dns_config_from_ptr { };
 		Genode::Microseconds const    _ip_lease_time;
 		Ipv4_address         const    _ip_first;
 		Ipv4_address         const    _ip_last;
@@ -80,37 +80,43 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 
 		Genode::Microseconds _init_ip_lease_time(Genode::Xml_node const node);
 
-		Pointer<Domain> _init_dns_config_from(Genode::Xml_node const  node,
-		                                      Domain_dict            &domains);
-
 		Ipv4_config const &_resolve_dns_config_from() const;
+
+		/*
+		 * Noncopyable
+		 */
+		Dhcp_server(Dhcp_server const &);
+		Dhcp_server &operator = (Dhcp_server const &);
 
 	public:
 
 		enum { DEFAULT_IP_LEASE_TIME_SEC = 3600 };
 
-		struct Alloc_ip_failed : Genode::Exception { };
-		struct Invalid         : Genode::Exception { };
+		struct Invalid : Genode::Exception { };
 
-		Dhcp_server(Genode::Xml_node    const  node,
-		            Domain                    &domain,
-		            Genode::Allocator         &alloc,
-		            Ipv4_address_prefix const &interface,
-		            Domain_dict               &domains);
+		Dhcp_server(Genode::Xml_node const  node,
+		            Genode::Allocator      &alloc);
 
-		Ipv4_address alloc_ip();
+		[[nodiscard]] bool finish_construction(Genode::Xml_node    const  node,
+		                                       Domain_dict               &domains,
+		                                       Domain                    &domain,
+		                                       Ipv4_address_prefix const &interface);
 
-		void alloc_ip(Ipv4_address const &ip);
+		struct Alloc_ip_error { };
+		using Alloc_ip_result = Genode::Attempt<Ipv4_address, Alloc_ip_error>;
 
-		void free_ip(Domain       const &domain,
-		             Ipv4_address const &ip);
+		[[nodiscard]] Alloc_ip_result alloc_ip();
+
+		[[nodiscard]] bool alloc_ip(Ipv4_address const &ip);
+
+		void free_ip(Ipv4_address const &ip);
 
 		bool has_invalid_remote_dns_cfg() const;
 
 		template <typename FUNC>
 		void for_each_dns_server_ip(FUNC && functor) const
 		{
-			if (_dns_config_from.valid()) {
+			if (_dns_config_from_ptr) {
 
 				_resolve_dns_config_from().for_each_dns_server(
 					[&] (Dns_server const &dns_server) {
@@ -129,13 +135,19 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 
 		Dns_domain_name const &dns_domain_name() const
 		{
-			if (_dns_config_from.valid()) {
+			if (_dns_config_from_ptr) {
 				return _resolve_dns_config_from().dns_domain_name();
 			}
 			return _dns_domain_name;
 		}
 
 		bool config_equal_to_that_of(Dhcp_server const &dhcp_server) const;
+
+		void with_dns_config_from(auto const &fn) const
+		{
+			if (_dns_config_from_ptr)
+				fn(*_dns_config_from_ptr);
+		}
 
 
 		/*********
@@ -149,7 +161,6 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 		 ** Accessors **
 		 ***************/
 
-		Domain               &dns_config_from()     { return _dns_config_from(); }
 		Genode::Microseconds  ip_lease_time() const { return _ip_lease_time; }
 };
 
@@ -179,7 +190,18 @@ class Net::Dhcp_allocation : public  Genode::Avl_node<Dhcp_allocation>,
 
 		~Dhcp_allocation();
 
-		Dhcp_allocation &find_by_mac(Mac_address const &mac);
+		void find_by_mac(Mac_address const &mac, auto const &match_fn, auto const &no_match_fn)
+		{
+			if (mac == _mac) {
+				match_fn(*this);
+				return;
+			}
+			Dhcp_allocation *allocation_ptr = child(_higher(mac));
+			if (allocation_ptr)
+				allocation_ptr->find_by_mac(mac, match_fn, no_match_fn);
+			else
+				no_match_fn();
+		}
 
 		void lifetime(Genode::Microseconds lifetime);
 
@@ -218,9 +240,13 @@ struct Net::Dhcp_allocation_tree
 
 	public:
 
-		struct No_match : Genode::Exception { };
-
-		Dhcp_allocation &find_by_mac(Mac_address const &mac) const;
+		void find_by_mac(Mac_address const &mac, auto const &match_fn, auto const &no_match_fn) const
+		{
+			if (_tree.first())
+				_tree.first()->find_by_mac(mac, match_fn, no_match_fn);
+			else
+				no_match_fn();
+		}
 
 		void insert(Dhcp_allocation &dhcp_alloc)
 		{

@@ -35,7 +35,7 @@ class Net::Ip_rule : public Direct_rule<Ip_rule>
 
 	public:
 
-		Ip_rule(Domain_dict &domains, Genode::Xml_node const node);
+		Ip_rule(Ipv4_address_prefix const &dst, Domain &domain) : Direct_rule(dst), _domain(domain) { }
 
 
 		/***************

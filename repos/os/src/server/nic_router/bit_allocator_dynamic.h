@@ -17,6 +17,9 @@
 /* Genode includes */
 #include <base/allocator.h>
 
+/* local includes */
+#include <assertion.h>
+
 namespace Genode {
 
 	class Bit_array_dynamic;
@@ -26,14 +29,6 @@ namespace Genode {
 
 class Genode::Bit_array_dynamic
 {
-	public:
-
-		struct Invalid_bit_count              : Exception { };
-		struct Invalid_index_access           : Exception { };
-		struct Invalid_clear                  : Exception { };
-		struct Invalid_set                    : Exception { };
-		struct Count_of_bits_not_word_aligned : Exception { };
-
 	protected:
 
 		enum {
@@ -50,13 +45,14 @@ class Genode::Bit_array_dynamic
 		addr_t _word(addr_t index) const {
 			return index / BITS_PER_WORD; }
 
-		void _check_range(addr_t const index,
-		                  addr_t const width) const
+		[[nodiscard]] bool _check_range(addr_t const index,
+		                                addr_t const width) const
 		{
 			if ((index >= _word_cnt * BITS_PER_WORD) ||
 			    width > _word_cnt * BITS_PER_WORD ||
 			    _word_cnt * BITS_PER_WORD - width < index)
-				throw Invalid_index_access();
+				return false;
+			return true;
 		}
 
 		addr_t _mask(addr_t const index, addr_t const width,
@@ -71,9 +67,10 @@ class Genode::Bit_array_dynamic
 			                                : ((1UL << width) - 1) << shift;
 		}
 
-		void _set(addr_t index, addr_t width, bool free)
+		[[nodiscard]] bool _set(addr_t index, addr_t width, bool free)
 		{
-			_check_range(index, width);
+			if (!_check_range(index, width))
+				return false;
 
 			addr_t rest, word, mask;
 			do {
@@ -82,17 +79,18 @@ class Genode::Bit_array_dynamic
 
 				if (free) {
 					if ((_words[word] & mask) != mask)
-						throw Invalid_clear();
+						return false;
 					_words[word] &= ~mask;
 				} else {
 					if (_words[word] & mask)
-						throw Invalid_set();
+						return false;
 					_words[word] |= mask;
 				}
 
 				index = (_word(index) + 1) * BITS_PER_WORD;
 				width = rest;
 			} while (rest);
+			return true;
 		}
 
 	public:
@@ -103,7 +101,8 @@ class Genode::Bit_array_dynamic
 		 */
 		bool get(addr_t index, addr_t width) const
 		{
-			_check_range(index, width);
+			if (!_check_range(index, width))
+				return false;
 
 			bool used = false;
 			addr_t rest, mask;
@@ -117,23 +116,18 @@ class Genode::Bit_array_dynamic
 			return used;
 		}
 
-		void set(addr_t const index, addr_t const width) {
-			_set(index, width, false); }
+		[[nodiscard]] bool set(addr_t const index, addr_t const width) {
+			return _set(index, width, false); }
 
-		void clear(addr_t const index, addr_t const width) {
-			_set(index, width, true); }
+		[[nodiscard]] bool clear(addr_t const index, addr_t const width) {
+			return _set(index, width, true); }
 
 		Bit_array_dynamic(addr_t *addr, unsigned bits)
 		: _bit_cnt(bits), _word_cnt(_bit_cnt / BITS_PER_WORD),
 		  _words(addr)
 		{
-			if (!bits || bits % BITS_PER_WORD)
-				throw Invalid_bit_count();
-
+			ASSERT(bits && bits % BITS_PER_WORD == 0);
 			memset(_words, 0, sizeof(addr_t)*_word_cnt);
-
-			if (bits % BITS_PER_WORD)
-				throw Count_of_bits_not_word_aligned();
 		}
 };
 
@@ -164,11 +158,11 @@ class Genode::Bit_allocator_dynamic
 		 *
 		 * \noapi
 		 */
-		void _reserve(addr_t bit_start, size_t const num)
+		[[nodiscard]] bool _reserve(addr_t bit_start, size_t const num)
 		{
-			if (!num) return;
+			if (!num) return true;
 
-			_array.set(bit_start, num);
+			return _array.set(bit_start, num);
 		}
 
 		size_t _ram_size() const
@@ -178,50 +172,53 @@ class Genode::Bit_allocator_dynamic
 
 	public:
 
-		struct Out_of_indices : Exception { };
-		struct Range_conflict : Exception { };
+		struct Alloc_error { };
+		using Alloc_result = Attempt<Genode::addr_t, Alloc_error>;
 
-		addr_t alloc(size_t const num_log2 = 0)
+		[[nodiscard]] Alloc_result alloc()
 		{
-			addr_t const step = 1UL << num_log2;
+			addr_t const step = 1UL;
 			addr_t max = ~0UL;
 
 			do {
-				try {
-					/* throws exception if array is accessed outside bounds */
-					for (addr_t i = _next & ~(step - 1); i < max; i += step) {
-						if (_array.get(i, step))
-							continue;
+				for (addr_t i = _next & ~(step - 1); i < max; i += step) {
+					if (_array.get(i, step))
+						continue;
 
-						_array.set(i, step);
-						_next = i + step;
-						return i;
-					}
-				} catch (Bit_array_dynamic::Invalid_index_access) { }
+					if (!_array.set(i, step))
+						break;
 
+					_next = i + step;
+					return i;
+				}
 				max = _next;
 				_next = 0;
 
 			} while (max != 0);
 
-			throw Out_of_indices();
+			return Alloc_error();
 		}
 
-		void alloc_addr(addr_t const bit_start, size_t const num_log2 = 0)
+		[[nodiscard]] bool alloc_addr(addr_t const bit_start)
 		{
-			addr_t const step = 1UL << num_log2;
+			addr_t const step = 1UL;
 			if (_array.get(bit_start, step))
-				throw Range_conflict();
+				return false;
 
-			_array.set(bit_start, step);
+			if (!_array.set(bit_start, step))
+				return false;
+
 			_next = bit_start + step;
-			return;
+			return true;
 		}
 
-		void free(addr_t const bit_start, size_t const num_log2 = 0)
+		[[nodiscard]] bool free(addr_t const bit_start)
 		{
-			_array.clear(bit_start, 1UL << num_log2);
+			if (!_array.clear(bit_start, 1UL))
+				return false;
+
 			_next = bit_start;
+			return true;
 		}
 
 		Bit_allocator_dynamic(Allocator &alloc, unsigned bits)
@@ -233,7 +230,7 @@ class Genode::Bit_allocator_dynamic
 			_ram((addr_t *)_alloc.alloc(_ram_size())),
 			_array(_ram, _bits_aligned)
 		{
-			_reserve(bits, _bits_aligned - bits);
+			ASSERT(_reserve(bits, _bits_aligned - bits));
 		}
 
 		~Bit_allocator_dynamic()

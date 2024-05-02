@@ -22,8 +22,9 @@ namespace Net {
 	template <typename T>
 	static Ipv4_address dhcp_ipv4_option(Dhcp_packet &dhcp)
 	{
-		try { return dhcp.option<T>().value(); }
-		catch (Dhcp_packet::Option_not_found) { return Ipv4_address { }; }
+		Ipv4_address result = { };
+		dhcp.with_option<T>([&] (auto opt) { result = opt.value(); });
+		return result;
 	}
 }
 
