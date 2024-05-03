@@ -292,6 +292,13 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 
 		void report_displays(Xml_generator &xml) const
 		{
+			bool any_session_present = false;
+			_sessions.for_each([&] (Capture_session const &) {
+				any_session_present = true; });
+
+			if (!any_session_present)
+				return;
+
 			Area const size = bounding_box();
 
 			if (size.count() == 0)
@@ -540,10 +547,9 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 			/* notify clients about the change screen mode */
 			for (Gui_session *s = _session_list.first(); s; s = s->next())
 				s->notify_mode_change();
-
-			_report_displays();
 		}
 
+		_report_displays();
 		_update_input_connection();
 	}
 
