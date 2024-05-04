@@ -135,8 +135,17 @@ struct Framebuffer::Driver
 		 * reasons.
 		 */
 		Lx_kit::env().devices.for_each([](auto & device) {
-			/* only enable graphic device and skip bridge, which has no irq atm */
-			device.for_each_irq([&](auto &) { device.enable(); });
+			/*
+			 * Only iterate over intel devices, other rendering devices might
+			 * be visibale depending on the policy filtering rule of
+			 * the platform driver.
+			 */
+			device.for_pci_config([&] (auto &cfg) {
+				if (cfg.vendor_id == 0x8086) {
+					/* only enable graphic device and skip bridge, which has no irq atm */
+					device.for_each_irq([&](auto &) { device.enable(); });
+				}
+			});
 		});
 
 		config.sigh(config_handler);
