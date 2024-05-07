@@ -201,7 +201,12 @@ void Sup::Gmm::map_to_guest(Vmm_addr from, Guest_addr to, Pages pages, Protectio
 			.writeable  = prot.writeable
 		};
 
-		_vm_connection.attach(_slices[i], to.value, attr);
+		try { _vm_connection.attach(_slices[i], to.value, attr); }
+		catch (Vm_session::Region_conflict const &) {
+			error("region conflict while mapping guest memory",
+			      " (offset=", (void *)(attr.offset), " size=", Hex(attr.size),
+			      " to=", (void *)to.value, ")");
+		}
 
 		to.value += attr.size;
 	}
