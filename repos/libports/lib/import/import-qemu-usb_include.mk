@@ -1,6 +1,6 @@
 QEMU_CONTRIB_DIR := $(call select_from_ports,qemu-usb)/src/lib/qemu
 
-LIB_DIR     := $(REP_DIR)/src/lib/qemu-usb
+LIB_DIR     := $(call select_from_repositories,src/lib/qemu-usb)
 LIB_INC_DIR := $(LIB_DIR)/include
 
 #

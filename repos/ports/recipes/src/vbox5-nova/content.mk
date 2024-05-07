@@ -43,6 +43,7 @@ MIRROR_FROM_LIBPORTS := lib/mk/libc-mem.mk \
                         lib/import/import-qemu-usb_include.mk \
                         lib/mk/qemu-usb_include.mk \
                         lib/mk/qemu-usb.inc \
+                        lib/mk/qemu-usb-webcam.inc \
                         lib/mk/spec/x86_32/qemu-usb.mk \
                         lib/mk/spec/x86_64/qemu-usb.mk \
                         include/qemu \
