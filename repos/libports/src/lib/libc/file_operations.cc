@@ -41,6 +41,7 @@ extern "C" {
 #include <internal/plugin_registry.h>
 #include <internal/plugin.h>
 #include <internal/file.h>
+#include <internal/file_operations.h>
 #include <internal/mem_alloc.h>
 #include <internal/mmap_registry.h>
 #include <internal/errno.h>
@@ -104,7 +105,7 @@ typedef Token<Vfs::Scanner_policy_path_element> Path_element_token;
 /**
  * Resolve symbolic links in a given absolute path
  */
-void Libc::resolve_symlinks(char const *path, Absolute_path &resolved_path)
+Symlink_resolve_result Libc::resolve_symlinks(char const *path, Absolute_path &resolved_path)
 {
 	char path_element[PATH_MAX];
 	char symlink_target[PATH_MAX];
@@ -118,7 +119,7 @@ void Libc::resolve_symlinks(char const *path, Absolute_path &resolved_path)
 	do {
 		if (follow_count++ == FOLLOW_LIMIT) {
 			errno = ELOOP;
-			throw Symlink_resolve_error();
+			return Symlink_resolve_error();
 		}
 
 		current_iteration_working_path = next_iteration_working_path;
@@ -140,7 +141,7 @@ void Libc::resolve_symlinks(char const *path, Absolute_path &resolved_path)
 				next_iteration_working_path.append_element(path_element);
 			} catch (Path_base::Path_too_long) {
 				errno = ENAMETOOLONG;
-				throw Symlink_resolve_error();
+				return Symlink_resolve_error();
 			}
 
 			/*
@@ -152,14 +153,14 @@ void Libc::resolve_symlinks(char const *path, Absolute_path &resolved_path)
 				int res;
 				FNAME_FUNC_WRAPPER_GENERIC(res = , stat, next_iteration_working_path.base(), &stat_buf);
 				if (res == -1) {
-					throw Symlink_resolve_error();
+					return Symlink_resolve_error();
 				}
 				if (S_ISLNK(stat_buf.st_mode)) {
 					FNAME_FUNC_WRAPPER_GENERIC(res = , readlink,
 					                           next_iteration_working_path.base(),
 					                           symlink_target, sizeof(symlink_target) - 1);
 					if (res < 1)
-						throw Symlink_resolve_error();
+						return Symlink_resolve_error();
 
 					/* zero terminate target */
 					symlink_target[res] = 0;
@@ -174,7 +175,7 @@ void Libc::resolve_symlinks(char const *path, Absolute_path &resolved_path)
 							next_iteration_working_path.append_element(symlink_target);
 						} catch (Path_base::Path_too_long) {
 							errno = ENAMETOOLONG;
-							throw Symlink_resolve_error();
+							return Symlink_resolve_error();
 						}
 					}
 					symlink_resolved_in_this_iteration = true;
@@ -188,10 +189,12 @@ void Libc::resolve_symlinks(char const *path, Absolute_path &resolved_path)
 
 	resolved_path = next_iteration_working_path;
 	resolved_path.remove_trailing('/');
+
+	return Symlinks_resolved_ok();
 }
 
 
-static void resolve_symlinks_except_last_element(char const *path, Absolute_path &resolved_path)
+static Symlink_resolve_result resolve_symlinks_except_last_element(char const *path, Absolute_path &resolved_path)
 {
 	Absolute_path absolute_path_without_last_element(path, cwd().base());
 	absolute_path_without_last_element.strip_last_element();
@@ -205,8 +208,10 @@ static void resolve_symlinks_except_last_element(char const *path, Absolute_path
 		resolved_path.append_element(absolute_path_last_element.base());
 	} catch (Path_base::Path_too_long) {
 		errno = ENAMETOOLONG;
-		throw Symlink_resolve_error();
+		return Symlink_resolve_error();
 	}
+
+	return Symlinks_resolved_ok();
 }
 
 
@@ -222,14 +227,14 @@ extern "C" int access(const char *path, int amode)
 	if (path[0] == '\0')
 		return Errno(ENOENT);
 
-	try {
-		Absolute_path resolved_path;
-		resolve_symlinks(path, resolved_path);
-		FNAME_FUNC_WRAPPER(access, resolved_path.base(), amode);
-	} catch (Symlink_resolve_error) {
+	Absolute_path resolved_path;
+
+	if (resolve_symlinks(path, resolved_path).failed()) {
 		errno = ENOENT;
 		return -1;
 	}
+
+	FNAME_FUNC_WRAPPER(access, resolved_path.base(), amode);
 }
 
 
@@ -408,14 +413,13 @@ extern "C" int lstat(const char *path, struct stat *buf)
 	if (path[0] == '\0')
 		return Errno(ENOENT);
 
-	try {
-		Absolute_path resolved_path;
-		resolve_symlinks_except_last_element(path, resolved_path);
-		resolved_path.remove_trailing('/');
-		FNAME_FUNC_WRAPPER(stat, resolved_path.base(), buf);
-	} catch (Symlink_resolve_error) {
+	Absolute_path resolved_path;
+
+	if (resolve_symlinks_except_last_element(path, resolved_path).failed())
 		return -1;
-	}
+
+	resolved_path.remove_trailing('/');
+	FNAME_FUNC_WRAPPER(stat, resolved_path.base(), buf);
 }
 
 
@@ -427,14 +431,13 @@ extern "C" int mkdir(const char *path, mode_t mode)
 	if (path[0] == '\0')
 		return Errno(ENOENT);
 
-	try {
-		Absolute_path resolved_path;
-		resolve_symlinks_except_last_element(path, resolved_path);
-		resolved_path.remove_trailing('/');
-		FNAME_FUNC_WRAPPER(mkdir, resolved_path.base(), mode);
-	} catch(Symlink_resolve_error) {
+	Absolute_path resolved_path;
+
+	if (resolve_symlinks_except_last_element(path, resolved_path).failed())
 		return -1;
-	}
+
+	resolved_path.remove_trailing('/');
+	FNAME_FUNC_WRAPPER(mkdir, resolved_path.base(), mode);
 }
 
 
@@ -550,17 +553,12 @@ __SYS_(int, open, (const char *pathname, int flags, ...),
 	Plugin *plugin;
 	File_descriptor *new_fdo;
 
-	try {
-		resolve_symlinks_except_last_element(pathname, resolved_path);
-	} catch (Symlink_resolve_error) {
+	if (resolve_symlinks_except_last_element(pathname, resolved_path).failed())
 		return -1;
-	}
 
 	if (!(flags & O_NOFOLLOW)) {
 		/* resolve last element */
-		try {
-			resolve_symlinks(resolved_path.base(), resolved_path);
-		} catch (Symlink_resolve_error) {
+		if (resolve_symlinks(resolved_path.base(), resolved_path).failed()) {
 			if (errno == ENOENT) {
 				if (!(flags & O_CREAT))
 					return -1;
@@ -671,13 +669,12 @@ extern "C" ssize_t readlink(const char *path, char *buf, ::size_t bufsiz)
 	if (path[0] == '\0')
 		return Errno(ENOENT);
 
-	try {
-		Absolute_path resolved_path;
-		resolve_symlinks_except_last_element(path, resolved_path);
-		FNAME_FUNC_WRAPPER(readlink, resolved_path.base(), buf, bufsiz);
-	} catch(Symlink_resolve_error) {
+	Absolute_path resolved_path;
+
+	if (resolve_symlinks_except_last_element(path, resolved_path).failed())
 		return -1;
-	}
+
+	FNAME_FUNC_WRAPPER(readlink, resolved_path.base(), buf, bufsiz);
 }
 
 
@@ -689,18 +686,18 @@ extern "C" int rename(const char *oldpath, const char *newpath)
 	if ((oldpath[0] == '\0') || (newpath[0] == '\0'))
 		return Errno(ENOENT);
 
-	try {
-		Absolute_path resolved_oldpath, resolved_newpath;
-		resolve_symlinks_except_last_element(oldpath, resolved_oldpath);
-		resolve_symlinks_except_last_element(newpath, resolved_newpath);
+	Absolute_path resolved_oldpath, resolved_newpath;
 
-		resolved_oldpath.remove_trailing('/');
-		resolved_newpath.remove_trailing('/');
-
-		FNAME_FUNC_WRAPPER(rename, resolved_oldpath.base(), resolved_newpath.base());
-	} catch(Symlink_resolve_error) {
+	if (resolve_symlinks_except_last_element(oldpath, resolved_oldpath).failed())
 		return -1;
-	}
+
+	if (resolve_symlinks_except_last_element(newpath, resolved_newpath).failed())
+		return -1;
+
+	resolved_oldpath.remove_trailing('/');
+	resolved_newpath.remove_trailing('/');
+
+	FNAME_FUNC_WRAPPER(rename, resolved_oldpath.base(), resolved_newpath.base());
 }
 
 
@@ -712,25 +709,24 @@ extern "C" int rmdir(const char *path)
 	if (path[0] == '\0')
 		return Errno(ENOENT);
 
-	try {
-		Absolute_path resolved_path;
-		resolve_symlinks_except_last_element(path, resolved_path);
-		resolved_path.remove_trailing('/');
+	Absolute_path resolved_path;
 
-		struct stat stat_buf { };
+	if (resolve_symlinks_except_last_element(path, resolved_path).failed())
+		return -1;
 
-		if (stat(resolved_path.base(), &stat_buf) == -1)
-			return -1;
+	resolved_path.remove_trailing('/');
 
-		if (!S_ISDIR(stat_buf.st_mode)) {
-			errno = ENOTDIR;
-			return -1;
-		}
+	struct stat stat_buf { };
 
-		FNAME_FUNC_WRAPPER(rmdir, resolved_path.base());
-	} catch(Symlink_resolve_error) {
+	if (stat(resolved_path.base(), &stat_buf) == -1)
+		return -1;
+
+	if (!S_ISDIR(stat_buf.st_mode)) {
+		errno = ENOTDIR;
 		return -1;
 	}
+
+	FNAME_FUNC_WRAPPER(rmdir, resolved_path.base());
 }
 
 
@@ -742,14 +738,13 @@ extern "C" int stat(const char *path, struct stat *buf)
 	if (path[0] == '\0')
 		return Errno(ENOENT);
 
-	try {
-		Absolute_path resolved_path;
-		resolve_symlinks(path, resolved_path);
-		resolved_path.remove_trailing('/');
-		FNAME_FUNC_WRAPPER(stat, resolved_path.base(), buf);
-	} catch(Symlink_resolve_error) {
+	Absolute_path resolved_path;
+
+	if (resolve_symlinks(path, resolved_path).failed())
 		return -1;
-	}
+
+	resolved_path.remove_trailing('/');
+	FNAME_FUNC_WRAPPER(stat, resolved_path.base(), buf);
 }
 
 
@@ -761,13 +756,12 @@ extern "C" int symlink(const char *oldpath, const char *newpath)
 	if ((oldpath[0] == '\0') || (newpath[0] == '\0'))
 		return Errno(ENOENT);
 
-	try {
-		Absolute_path resolved_path;
-		resolve_symlinks_except_last_element(newpath, resolved_path);
-		FNAME_FUNC_WRAPPER(symlink, oldpath, resolved_path.base());
-	} catch(Symlink_resolve_error) {
+	Absolute_path resolved_path;
+
+	if (resolve_symlinks_except_last_element(newpath, resolved_path).failed())
 		return -1;
-	}
+
+	FNAME_FUNC_WRAPPER(symlink, oldpath, resolved_path.base());
 }
 
 
@@ -779,13 +773,12 @@ extern "C" int unlink(const char *path)
 	if (path[0] == '\0')
 		return Errno(ENOENT);
 
-	try {
-		Absolute_path resolved_path;
-		resolve_symlinks_except_last_element(path, resolved_path);
-		FNAME_FUNC_WRAPPER(unlink, resolved_path.base());
-	} catch(Symlink_resolve_error) {
+	Absolute_path resolved_path;
+
+	if (resolve_symlinks_except_last_element(path, resolved_path).failed())
 		return -1;
-	}
+
+	FNAME_FUNC_WRAPPER(unlink, resolved_path.base());
 }
 
 

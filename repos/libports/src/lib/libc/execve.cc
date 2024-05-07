@@ -372,9 +372,7 @@ extern "C" int execve(char const *filename,
 
 	for (unsigned i = 0; i < MAX_INTERPRETER_NESTING_LEVELS; i++) {
 
-		try {
-			Libc::resolve_symlinks(path.string(), resolved_path); }
-		catch (Libc::Symlink_resolve_error) {
+		if (Libc::resolve_symlinks(path.string(), resolved_path).failed()) {
 			warning("execve: executable binary '", filename, "' does not exist");
 			return Libc::Errno(ENOENT);
 		}

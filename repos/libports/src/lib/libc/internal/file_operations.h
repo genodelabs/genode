@@ -28,7 +28,12 @@ namespace Libc {
 
 	typedef Genode::Path<PATH_MAX> Absolute_path;
 
-	void resolve_symlinks(char const *path, Absolute_path &resolved_path);
+	struct Symlinks_resolved_ok { };
+	struct Symlink_resolve_error { };
+	using Symlink_resolve_result = Attempt<Symlinks_resolved_ok, Symlink_resolve_error>;
+
+	Symlink_resolve_result resolve_symlinks(char const *path,
+	                                        Absolute_path &resolved_path);
 }
 
 #endif /* _LIBC__INTERNAL__FILE_OPERATIONS_H_ */

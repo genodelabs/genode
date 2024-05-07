@@ -35,10 +35,6 @@ namespace Libc {
 
 	typedef Genode::Path<PATH_MAX> Absolute_path;
 
-	class Symlink_resolve_error : Genode::Exception { };
-
-	void resolve_symlinks(char const *path, Absolute_path &resolved_path);
-
 	class Plugin : public List<Plugin>::Element
 	{
 		protected:

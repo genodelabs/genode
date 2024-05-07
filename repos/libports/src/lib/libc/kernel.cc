@@ -15,6 +15,7 @@
 
 /* libc-internal includes */
 #include <internal/kernel.h>
+#include <internal/file_operations.h>
 
 Libc::Kernel * Libc::Kernel::_kernel_ptr;
 
@@ -84,7 +85,8 @@ void Libc::Kernel::_init_file_descriptors()
 
 	} diag_guard { *this };
 
-	auto resolve_symlinks = [&] (Absolute_path next_iteration_working_path, Absolute_path &resolved_path)
+	auto resolve_symlinks = [&] (Absolute_path next_iteration_working_path,
+	                             Absolute_path &resolved_path) -> Symlink_resolve_result
 	{
 		char path_element[PATH_MAX];
 		char symlink_target[PATH_MAX];
@@ -97,7 +99,7 @@ void Libc::Kernel::_init_file_descriptors()
 		do {
 			if (follow_count++ == FOLLOW_LIMIT) {
 				errno = ELOOP;
-				throw Symlink_resolve_error();
+				return Symlink_resolve_error();
 			}
 
 			current_iteration_working_path = next_iteration_working_path;
@@ -119,7 +121,7 @@ void Libc::Kernel::_init_file_descriptors()
 					next_iteration_working_path.append_element(path_element);
 				} catch (Path_base::Path_too_long) {
 					errno = ENAMETOOLONG;
-					throw Symlink_resolve_error();
+					return Symlink_resolve_error();
 				}
 
 				/*
@@ -130,13 +132,13 @@ void Libc::Kernel::_init_file_descriptors()
 					struct stat stat_buf;
 					int res = _vfs.stat_from_kernel(next_iteration_working_path.base(), &stat_buf);
 					if (res == -1) {
-						throw Symlink_resolve_error();
+						return Symlink_resolve_error();
 					}
 					if (S_ISLNK(stat_buf.st_mode)) {
 						res = readlink(next_iteration_working_path.base(),
 						               symlink_target, sizeof(symlink_target) - 1);
 						if (res < 1)
-							throw Symlink_resolve_error();
+							return Symlink_resolve_error();
 
 						/* zero terminate target */
 						symlink_target[res] = 0;
@@ -151,7 +153,7 @@ void Libc::Kernel::_init_file_descriptors()
 								next_iteration_working_path.append_element(symlink_target);
 							} catch (Path_base::Path_too_long) {
 								errno = ENAMETOOLONG;
-								throw Symlink_resolve_error();
+								return Symlink_resolve_error();
 							}
 						}
 						symlink_resolved_in_this_iteration = true;
@@ -165,21 +167,28 @@ void Libc::Kernel::_init_file_descriptors()
 
 		resolved_path = next_iteration_working_path;
 		resolved_path.remove_trailing('/');
+
+		return Symlinks_resolved_ok();
 	};
 
 	typedef String<Vfs::MAX_PATH_LEN> Path;
 
-	auto resolve_absolute_path = [&] (Path const &path)
+	struct Absolute_path_resolved_ok { };
+	struct Absolute_path_resolve_error { };
+	using Absolute_path_resolve_result = Attempt<Absolute_path_resolved_ok,
+	                                             Absolute_path_resolve_error>;
+
+	auto resolve_absolute_path = [&] (Path const &path, Absolute_path &abs_path) -> Absolute_path_resolve_result
 	{
-		Absolute_path abs_path { };
 		Absolute_path abs_dir(path.string(), _cwd.base());   abs_dir.strip_last_element();
 		Absolute_path dir_entry(path.string(), _cwd.base()); dir_entry.keep_only_last_element();
 
 		try {
-			resolve_symlinks(abs_dir, abs_path);
+			if (resolve_symlinks(abs_dir, abs_path).failed())
+				return Absolute_path_resolve_error();
 			abs_path.append_element(dir_entry.string());
-			return abs_path;
-		} catch (Path_base::Path_too_long) { return Absolute_path(); }
+			return Absolute_path_resolved_ok();
+		} catch (Path_base::Path_too_long) { return Absolute_path_resolve_error(); }
 	};
 
 	auto init_fd = [&] (Xml_node const &node, char const *attr,
@@ -189,55 +198,55 @@ void Libc::Kernel::_init_file_descriptors()
 			return;
 
 		Path const attr_value { node.attribute_value(attr, Path()) };
-		try {
-			Absolute_path const path { resolve_absolute_path(attr_value) };
 
-			struct stat out_stat { };
-			if (_vfs.stat_from_kernel(path.string(), &out_stat) != 0) {
-				warning("failed to call 'stat' on ", path);
-				diag_guard.show = true;
-				return;
-			}
+		Absolute_path path { };
 
-			File_descriptor *fd =
-				_vfs.open_from_kernel(path.string(), flags, libc_fd);
-
-			if (!fd)
-				return;
-
-			if (fd->libc_fd != libc_fd) {
-				error("could not allocate fd ",libc_fd," for ",path,", "
-			          "got fd ",fd->libc_fd);
-				_vfs.close_from_kernel(fd);
-				diag_guard.show = true;
-				return;
-			}
-
-			fd->cloexec = node.attribute_value("cloexec", false);
-
-			/*
-			 * We need to manually register the path. Normally this is done
-			 * by '_open'. But we call the local 'open' function directly
-			 * because we want to explicitly specify the libc fd ID.
-			 */
-			if (fd->fd_path)
-				warning("may leak former FD path memory");
-
-			{
-				char *dst = (char *)_heap.alloc(path.max_len());
-				copy_cstring(dst, path.string(), path.max_len());
-				fd->fd_path = dst;
-			}
-
-			::off_t const seek = node.attribute_value("seek", 0ULL);
-			if (seek)
-				_vfs.lseek_from_kernel(fd, seek);
-
-		} catch (Symlink_resolve_error) {
-			warning("failed to resolve path for ", attr_value);
+		if (resolve_absolute_path(attr_value, path).failed()) {
+			warning("failed to resolve path for ", path);
 			diag_guard.show = true;
 			return;
 		}
+
+		struct stat out_stat { };
+		if (_vfs.stat_from_kernel(path.string(), &out_stat) != 0) {
+			warning("failed to call 'stat' on ", path);
+			diag_guard.show = true;
+			return;
+		}
+
+		File_descriptor *fd =
+			_vfs.open_from_kernel(path.string(), flags, libc_fd);
+
+		if (!fd)
+			return;
+
+		if (fd->libc_fd != libc_fd) {
+			error("could not allocate fd ",libc_fd," for ",path,", "
+			      "got fd ",fd->libc_fd);
+			_vfs.close_from_kernel(fd);
+			diag_guard.show = true;
+			return;
+		}
+
+		fd->cloexec = node.attribute_value("cloexec", false);
+
+		/*
+		 * We need to manually register the path. Normally this is done
+		 * by '_open'. But we call the local 'open' function directly
+		 * because we want to explicitly specify the libc fd ID.
+		 */
+		if (fd->fd_path)
+			warning("may leak former FD path memory");
+
+		{
+			char *dst = (char *)_heap.alloc(path.max_len());
+			copy_cstring(dst, path.string(), path.max_len());
+			fd->fd_path = dst;
+		}
+
+		::off_t const seek = node.attribute_value("seek", 0ULL);
+		if (seek)
+			_vfs.lseek_from_kernel(fd, seek);
 	};
 
 	if (_vfs.root_dir_has_dirents()) {
