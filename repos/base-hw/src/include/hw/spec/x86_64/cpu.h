@@ -162,6 +162,8 @@ struct Hw::X86_64_cpu
 	X86_64_CPUID_REGISTER(Cpuid_15_ebx, 15, ebx);
 	X86_64_CPUID_REGISTER(Cpuid_15_ecx, 15, ecx);
 
+	X86_64_CPUID_REGISTER(Cpuid_16_eax, 16, ecx);
+
 	X86_64_CPUID_REGISTER(Cpuid_8000000A_edx, 0x8000000A, edx,
 		struct Np : Bitfield<0, 1> { }; /* Nested paging */
 	);

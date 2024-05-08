@@ -121,14 +121,12 @@ class Hw::Lapic
 	 * Adapted from Christian Prochaska's and Alexander Boettcher's
 	 * implementation for Nova.
 	 *
-	 * For details, see Vol. 3A of the Intel SDM:
-	 * 19.7.3 Determining the Processor Base Frequency
+	 * For details, see Vol. 3B of the Intel SDM (September 2023):
+	 * 20.7.3 Determining the Processor Base Frequency
 	 */
 	static unsigned _read_tsc_freq()
 	{
 		using Cpu = Hw::X86_64_cpu;
-
-		unsigned freq_tsc = 0U;
 
 		if (Vendor::get_vendor_id() != Vendor::INTEL)
 			return 0;
@@ -138,38 +136,44 @@ class Hw::Lapic
 
 		enum
 		{
-			Cpu_id_clock = 0x15
+			Cpu_id_clock     = 0x15,
+			Cpu_id_base_freq = 0x16
 		};
 
-		Cpu::Cpuid_0_eax::access_t eax = Cpu::Cpuid_0_eax::read();
+		Cpu::Cpuid_0_eax::access_t eax_0 = Cpu::Cpuid_0_eax::read();
 
-		if (eax >= Cpu_id_clock) {
-			Cpu::Cpuid_15_eax::access_t eax = Cpu::Cpuid_15_eax::read();
-			Cpu::Cpuid_15_ebx::access_t ebx = Cpu::Cpuid_15_ebx::read();
-			Cpu::Cpuid_15_ecx::access_t ecx = Cpu::Cpuid_15_ecx::read();
+		/*
+		 * If CPUID leaf 15 is available, return the frequency reported there.
+		 */
+		if (eax_0 >= Cpu_id_clock) {
+			Cpu::Cpuid_15_eax::access_t eax_15 = Cpu::Cpuid_15_eax::read();
+			Cpu::Cpuid_15_ebx::access_t ebx_15 = Cpu::Cpuid_15_ebx::read();
+			Cpu::Cpuid_15_ecx::access_t ecx_15 = Cpu::Cpuid_15_ecx::read();
 
-			if (eax && ebx) {
-				if (ecx)
+			if (eax_15 && ebx_15) {
+				if (ecx_15)
 					return static_cast<unsigned>(
-						((Genode::uint64_t)(ecx) * ebx) / eax / 1000
+						((Genode::uint64_t)(ecx_15) * ebx_15) / eax_15 / 1000
 						);
 
 				if (family == 6) {
 					if (model == 0x5c) /* Goldmont */
-						freq_tsc = static_cast<unsigned>((19200ull * ebx) / eax);
+						return static_cast<unsigned>((19200ull * ebx_15) / eax_15);
 					if (model == 0x55) /* Xeon */
-						freq_tsc = static_cast<unsigned>((25000ull * ebx) / eax);
+						return static_cast<unsigned>((25000ull * ebx_15) / eax_15);
 				}
 
-				if (!freq_tsc && family >= 6)
-					freq_tsc = static_cast<unsigned>((24000ull * ebx) / eax);
-
-				if (freq_tsc)
-					return freq_tsc;
+				if (family >= 6)
+					return static_cast<unsigned>((24000ull * ebx_15) / eax_15);
 			}
+		}
 
-			if (family != 6)
-				return 0;
+
+		/*
+		 * Specific methods for family 6 models
+		 */
+		if (family == 6) {
+			unsigned freq_tsc = 0U;
 
 			if (model == 0x2a ||
 			    model == 0x2d || /* Sandy Bridge */
@@ -177,7 +181,7 @@ class Hw::Lapic
 			{
 				Cpu::Platform_info::access_t platform_info = Cpu::Platform_info::read();
 				Genode::uint64_t ratio = Cpu::Platform_info::Ratio::get(platform_info);
-				freq_tsc = static_cast<unsigned>(ratio * 100000);
+				freq_tsc =  static_cast<unsigned>(ratio * 100000);
 			} else if (model == 0x1a ||
 				   model == 0x1e ||
 				   model == 0x1f ||
@@ -208,17 +212,39 @@ class Hw::Lapic
 					Genode::uint64_t ratio = Cpu::Platform_id::Bus_ratio::get(platform_id);
 
 					freq_tsc = static_cast<unsigned>(freq_bus * ratio);
-				}
+			}
+
+			if (!freq_tsc)
+				Genode::warning("TSC: family 6 Intel platform info reports bus frequency of 0");
+			else
+				return freq_tsc;
 		}
 
-		return freq_tsc;
+
+		/*
+		 * Finally, using Processor Frequency Information for a rough estimate
+		 */
+		if (eax_0 >= Cpu_id_base_freq) {
+			Cpu::Cpuid_16_eax::access_t base_mhz = Cpu::Cpuid_16_eax::read();
+
+			if (base_mhz) {
+				Genode::warning("TSC: using processor base frequency: ", base_mhz, " MHz");
+				return base_mhz * 1000;
+			} else {
+				Genode::warning("TSC: CPUID reported processor base frequency of 0");
+			}
+		}
+
+		return 0;
 	}
 
 	static unsigned _measure_tsc_freq()
 	{
-		Genode::warning("TSC calibration not yet implemented, using fixed value");
+		const unsigned Tsc_fixed_value = 2400;
+
+		Genode::warning("TSC: calibration not yet implemented, using fixed value of ", Tsc_fixed_value, " MHz");
 		/* TODO: implement TSC calibration on AMD */
-		return 1000000U;
+		return Tsc_fixed_value * 1000;
 	}
 
 	public:
