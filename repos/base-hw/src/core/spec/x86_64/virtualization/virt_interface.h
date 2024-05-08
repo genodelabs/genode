@@ -30,6 +30,7 @@ namespace Board
 {
 enum Virt_type {
 	SVM,
+	VMX
 };
 
 struct Virt_interface

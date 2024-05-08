@@ -4,13 +4,14 @@
  * \author Christian Prochaska
  * \author Reto Buerki
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2011-04-15
  *
  * This file contains the x86_64-specific part of the CPU state.
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -33,6 +34,7 @@ struct Genode::Cpu_state
 		NO_MATH_COPROC        = 0x07,
 		GENERAL_PROTECTION    = 0x0d,
 		PAGE_FAULT            = 0x0e,
+		ALIGNMENT_CHECK       = 0x11,
 		SUPERVISOR_CALL       = 0x80,
 		INTERRUPTS_START      = 0x20,
 		RESET                 = 0xfe,

@@ -1,11 +1,12 @@
 /*
  * \brief  Definitions common to all x86_64 CPUs
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2017-04-10
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -298,6 +299,25 @@ struct Hw::Virtualization_support
 		}
 
 		return false;
+	}
+
+	static bool has_vmx()
+	{
+		if (Hw::Vendor::get_vendor_id() != Hw::Vendor::INTEL)
+			return false;
+
+		Cpu::Cpuid_1_ecx::access_t ecx = Cpu::Cpuid_1_ecx::read();
+		if (!Cpu::Cpuid_1_ecx::Vmx::get(ecx))
+			return false;
+
+		/* Check if VMX feature is off and locked */
+		Cpu::Ia32_feature_control::access_t feature_control =
+			Cpu::Ia32_feature_control::read();
+		if (!Cpu::Ia32_feature_control::Vmx_no_smx::get(feature_control) &&
+		     Cpu::Ia32_feature_control::Lock::get(feature_control))
+			return false;
+
+		return true;
 	}
 };
 

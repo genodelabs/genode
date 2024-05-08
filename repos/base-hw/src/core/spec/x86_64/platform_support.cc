@@ -1,11 +1,12 @@
 /*
  * \brief   Platform implementations specific for x86_64
  * \author  Reto Buerki
+ * \author  Benjamin Lamowski
  * \date    2015-05-04
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -55,7 +56,7 @@ void Platform::_init_additional_platform_info(Xml_generator &xml)
 	xml.node("hardware", [&]() {
 		xml.node("features", [&] () {
 			xml.attribute("svm", Hw::Virtualization_support::has_svm());
-			xml.attribute("vmx", false);
+			xml.attribute("vmx", Hw::Virtualization_support::has_vmx());
 		});
 		xml.node("tsc", [&]() {
 			xml.attribute("invariant", Hw::Lapic::invariant_tsc());

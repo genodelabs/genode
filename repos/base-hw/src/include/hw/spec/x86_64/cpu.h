@@ -1,11 +1,12 @@
 /*
  * \brief  x86_64 CPU definitions
  * \author Stefan Kalkowski
+ * \author Benjamin Lamowski
  * \date   2017-04-07
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -130,15 +131,177 @@ struct Hw::X86_64_cpu
 	);
 
 	X86_64_MSR_REGISTER(Ia32_efer, 0xC0000080,
-		struct Svme : Bitfield< 12, 1> { }; /* Secure Virtual Machine Enable */
+		struct Lme  : Bitfield< 8, 1> { }; /* Long Mode Enable */
+		struct Lma  : Bitfield<10, 1> { }; /* Long Mode Active */
+		struct Svme : Bitfield<12, 1> { }; /* Secure Virtual Machine Enable */
+	);
+
+	/* Map of BASE Address of FS */
+	X86_64_MSR_REGISTER(Ia32_fs_base, 0xC0000100);
+
+	/* Map of BASE Address of GS */
+	X86_64_MSR_REGISTER(Ia32_gs_base, 0xC0000101);
+
+	/* System Call Target Address */
+	X86_64_MSR_REGISTER(Ia32_star, 0xC0000081);
+
+	/* IA-32e Mode System Call Target Address */
+	X86_64_MSR_REGISTER(Ia32_lstar, 0xC0000082);
+
+	/* IA-32e Mode System Call Target Address */
+	X86_64_MSR_REGISTER(Ia32_cstar, 0xC0000083);
+
+	/* System Call Flag Mask */
+	X86_64_MSR_REGISTER(Ia32_fmask, 0xC0000084);
+
+	/* Swap Target of BASE Address of GS */
+	X86_64_MSR_REGISTER(Ia32_kernel_gs_base, 0xC0000102);
+
+	/* See Vol. 4, Table 2-2 of the Intel SDM */
+	X86_64_MSR_REGISTER(Ia32_feature_control, 0x3A,
+		struct Lock       : Bitfield< 0, 0> { }; /* VMX Lock */
+		struct Vmx_no_smx : Bitfield< 2, 2> { }; /* Enable VMX outside SMX */
 	);
 
 	/*
 	 * Auxiliary TSC register
-	 * For details, see Vol. 3B of the Intel SDM:
-	 * 17.17.2 IA32_TSC_AUX Register and RDTSCP Support
+	 * For details, see Vol. 3B of the Intel SDM (September 2023):
+	 * 18.17.2 IA32_TSC_AUX Register and RDTSCP Support
 	 */
 	X86_64_MSR_REGISTER(Ia32_tsc_aux, 0xc0000103);
+
+	/*
+	 * Reporting Register of Basic VMX Capabilities
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.1 Basic VMX Information
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_basic, 0x480,
+		struct Rev             : Bitfield< 0,31> { }; /* VMCS revision */
+		struct Clear_controls  : Bitfield<55, 1> { }; /* VMCS controls may be cleared, see A.2 */
+	);
+
+	/*
+	 * Capability Reporting Register of Pin-Based VM-Execution Controls
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.3.1 Pin-Based VM-Execution Controls
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_pinbased_ctls, 0x481,
+		struct Allowed_0_settings : Bitfield< 0,32> { }; /* allowed 0-settings */
+		struct Allowed_1_settings : Bitfield<32,32> { }; /* allowed 1-settings */
+	);
+
+	/*
+	 * Capability Reporting Register of Pin-Based VM-Execution Flex Controls
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.3.1 Pin-Based VM-Execution Controls
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_true_pinbased_ctls, 0x48D,
+		struct Allowed_0_settings : Bitfield< 0,32> { }; /* allowed 0-settings */
+		struct Allowed_1_settings : Bitfield<32,32> { }; /* allowed 1-settings */
+	);
+
+	/*
+	 * Capability Reporting Register of Primary Processor-Based VM-Execution Controls
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.3.2 Primary Processor-Based VM-Execution Controls
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_procbased_ctls, 0x482,
+		struct Allowed_0_settings : Bitfield< 0,32> { }; /* allowed 0-settings */
+		struct Allowed_1_settings : Bitfield<32,32> { }; /* allowed 1-settings */
+	);
+
+	/*
+	 * Capability Reporting Register of Primary Processor-Based VM-Execution Flex Controls
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.3.2 Primary Processor-Based VM-Execution Controls
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_true_procbased_ctls, 0x48E,
+		struct Allowed_0_settings : Bitfield< 0,32> { }; /* allowed 0-settings */
+		struct Allowed_1_settings : Bitfield<32,32> { }; /* allowed 1-settings */
+	);
+
+	/*
+	 * Capability Reporting Register of Primary VM-Exit Controls
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.4.1 Primary VM-Exit Controls
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_exit_ctls, 0x483,
+		struct Allowed_0_settings : Bitfield< 0,32> { }; /* allowed 0-settings */
+		struct Allowed_1_settings : Bitfield<32,32> { }; /* allowed 1-settings */
+	);
+
+	/*
+	 * Capability Reporting Register of VM-Exit Flex Controls
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.4.1 Primary VM-Exit Controls
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_true_exit_ctls, 0x48F,
+		struct Allowed_0_settings : Bitfield< 0,32> { }; /* allowed 0-settings */
+		struct Allowed_1_settings : Bitfield<32,32> { }; /* allowed 1-settings */
+	);
+
+	/*
+	 * Capability Reporting Register of VM-Entry Controls
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.5 VM-Entry Controls
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_entry_ctls, 0x484,
+		struct Allowed_0_settings : Bitfield< 0,32> { }; /* allowed 0-settings */
+		struct Allowed_1_settings : Bitfield<32,32> { }; /* allowed 1-settings */
+	);
+
+	/*
+	 * Capability Reporting Register of VM-Entry Flex Controls
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.5 VM-Entry Controls
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_true_entry_ctls, 0x490,
+		struct Allowed_0_settings : Bitfield< 0,32> { }; /* allowed 0-settings */
+		struct Allowed_1_settings : Bitfield<32,32> { }; /* allowed 1-settings */
+	);
+
+	/*
+	 * Capability Reporting Register of Secondary Processor-Based VM-Execution Controls
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.3.3 Secondary Processor-Based VM-Execution Controls
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_procbased_ctls2, 0x48B,
+		struct Allowed_0_settings : Bitfield< 0,32> { }; /* allowed 0-settings */
+		struct Allowed_1_settings : Bitfield<32,32> { }; /* allowed 1-settings */
+	);
+
+	/*
+	 * Capability Reporting Register of CR0 Bits Fixed to 0
+	 * [sic] in fact, bits reported here need to be 1
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.7 VMX-Fixed Bits in CR0
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_cr0_fixed0, 0x486);
+
+	/*
+	 * Capability Reporting Register of CR0 Bits Fixed to 1
+	 * [sic] in fact, bits *NOT* reported here need to be 0
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.7 VMX-Fixed Bits in CR0
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_cr0_fixed1, 0x487);
+
+	/*
+	 * Capability Reporting Register of CR5 Bits Fixed to 0
+	 * [sic] in fact, bits reported here need to be 1
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.8 VMX-Fixed Bits in CR4
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_cr4_fixed0, 0x488);
+
+	/*
+	 * Capability Reporting Register of CR4 Bits Fixed to 1
+	 * [sic] in fact, bits *NOT* reported here need to be 0
+	 * For details, see Vol. 3D of the Intel SDM (September 2023):
+	 * A.8 VMX-Fixed Bits in CR4
+	 */
+	X86_64_MSR_REGISTER(Ia32_vmx_cr4_fixed1, 0x489);
+
 
 	X86_64_CPUID_REGISTER(Cpuid_0_eax, 0, eax);
 	X86_64_CPUID_REGISTER(Cpuid_0_ebx, 0, ebx);
@@ -148,15 +311,13 @@ struct Hw::X86_64_cpu
 	X86_64_CPUID_REGISTER(Cpuid_1_eax, 1, eax);
 
 	X86_64_CPUID_REGISTER(Cpuid_1_ecx, 1, ecx,
+		struct Vmx          : Bitfield< 5, 1> { };
 		struct Tsc_deadline : Bitfield<24, 1> { };
 	);
 
 	X86_64_CPUID_REGISTER(Cpuid_1_edx, 1, edx,
 		struct Pat : Bitfield<16, 1> { };
 	);
-
-	/* Number of address space identifiers (ASID) */
-	X86_64_CPUID_REGISTER(Amd_nasid, 0x8000000A, ebx);
 
 	X86_64_CPUID_REGISTER(Cpuid_15_eax, 15, eax);
 	X86_64_CPUID_REGISTER(Cpuid_15_ebx, 15, ebx);

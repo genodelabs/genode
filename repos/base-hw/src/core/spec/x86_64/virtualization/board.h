@@ -18,10 +18,12 @@
 #include <kernel/configuration.h>
 #include <kernel/irq.h>
 
+#include <cpu.h>
 #include <cpu/vcpu_state_virtualization.h>
 #include <hw/spec/x86_64/page_table.h>
+#include <hw/spec/x86_64/x86_64.h>
 #include <spec/x86_64/virtualization/svm.h>
-#include <cpu.h>
+#include <spec/x86_64/virtualization/vmx.h>
 
 using Genode::addr_t;
 using Genode::uint64_t;
@@ -46,7 +48,7 @@ namespace Board {
 		EXIT_PAUSED  = 0xff,
 	};
 
-	enum Custom_trapnos {
+	enum Custom_trapnos : uint64_t {
 		TRAP_VMEXIT = 256,
 		TRAP_VMSKIP = 257,
 	};
@@ -72,14 +74,24 @@ struct Board::Vcpu_context
 
 	uint64_t tsc_aux_host = 0U;
 	uint64_t tsc_aux_guest = 0U;
-	uint64_t exitcode = EXIT_INIT;
+	uint64_t exit_reason = EXIT_INIT;
 
 	static Virt_interface &detect_virtualization(Vcpu_data &vcpu_data,
 	                                             unsigned   id)
 	{
-		return *Genode::construct_at<Vmcb>(
-			vcpu_data.virt_area,
-			vcpu_data, id);
+		if (Hw::Virtualization_support::has_svm())
+			return *Genode::construct_at<Vmcb>(
+				vcpu_data.virt_area,
+				vcpu_data,
+				id);
+		else if (Hw::Virtualization_support::has_vmx()) {
+			return *Genode::construct_at<Vmcs>(
+				vcpu_data.virt_area,
+				vcpu_data);
+		} else {
+			Genode::error( "No virtualization support detected.");
+			throw Core::Service_denied();
+		}
 	}
 };
 

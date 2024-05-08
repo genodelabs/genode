@@ -16,7 +16,6 @@
 #include <util/mmio.h>
 #include <cpu/string.h>
 
-#include <hw/assert.h>
 #include <map_local.h>
 #include <platform_pd.h>
 #include <platform.h>
@@ -24,9 +23,10 @@
 #include <kernel/vm.h>
 #include <kernel/main.h>
 
+#include <hw/spec/x86_64/x86_64.h>
 #include <virtualization/hypervisor.h>
 #include <virtualization/svm.h>
-#include <hw/spec/x86_64/x86_64.h>
+#include <virtualization/vmx.h>
 
 using namespace Genode;
 
@@ -62,7 +62,7 @@ void Vm::proceed(Cpu & cpu)
 	using namespace Board;
 	cpu.switch_to(*_vcpu_context.regs);
 
-	if (_vcpu_context.exitcode == EXIT_INIT) {
+	if (_vcpu_context.exit_reason == EXIT_INIT) {
 		_vcpu_context.regs->trapno = TRAP_VMSKIP;
 		Hypervisor::restore_state_for_entry((addr_t)&_vcpu_context.regs->r8,
 		                                    _vcpu_context.regs->fpu_context());
@@ -75,8 +75,11 @@ void Vm::proceed(Cpu & cpu)
 	_vcpu_context.virt.switch_world(*_vcpu_context.regs);
 	/*
 	 * This will fall into an interrupt or otherwise jump into
-	 * _kernel_entry
+	 * _kernel_entry. If VMX encountered a severe error condition,
+	 * it will print an error message and regularly return from the world
+	 * switch. In this case, just remove the vCPU thread from the scheduler.
 	 */
+	_pause_vcpu();
 }
 
 
@@ -84,15 +87,58 @@ void Vm::exception(Cpu & cpu)
 {
 	using namespace Board;
 
+	bool pause = false;
+
 	switch (_vcpu_context.regs->trapno) {
+		case TRAP_VMEXIT:
+			_vcpu_context.exit_reason =
+				_vcpu_context.virt.handle_vm_exit();
+			/*
+			 * If handle_vm_exit() returns EXIT_PAUSED, the vCPU has
+			 * exited due to a host interrupt. The exit reason is
+			 * set to EXIT_PAUSED so that if the VMM queries the
+			 * vCPU state while the vCPU is stopped, it is clear
+			 * that it does not need to handle a synchronous vCPU exit.
+			 *
+			 * VMX jumps directly to __kernel_entry when exiting
+			 * guest mode and skips the interrupt vectors, therefore
+			 * trapno will not be set to the host interrupt and we
+			 * have to explicitly handle interrupts here.
+			 *
+			 * SVM on the other hand will service the host interrupt
+			 * after the stgi instruction (see
+			 * AMD64 Architecture Programmer's Manual Vol 2
+			 * 15.17 Global Interrupt Flag, STGI and CLGI Instructions)
+			 * and will jump to the interrupt vector, setting trapno
+			 * to the host interrupt. This means the exception
+			 * handler should actually skip this case branch, which
+			 * is fine because _vcpu_context.exit_reason is set to
+			 * EXIT_PAUSED by default, so a VMM querying the vCPU
+			 * state will still get the right value.
+			 *
+			 * For any other exit reason, we exclude this vCPU
+			 * thread from being scheduled and signal the VMM that
+			 * it needs to handle an exit.
+			 */
+			if (_vcpu_context.exit_reason == EXIT_PAUSED)
+				_interrupt(_user_irq_pool, cpu.id());
+			else
+				pause = true;
+			break;
 		case Cpu_state::INTERRUPTS_START ... Cpu_state::INTERRUPTS_END:
 			_interrupt(_user_irq_pool, cpu.id());
 			break;
-		case TRAP_VMEXIT:
-			/* exception method was entered because of a VMEXIT */
-			break;
 		case TRAP_VMSKIP:
-			/* exception method was entered without exception */
+			/* vCPU is running for the first time */
+			_vcpu_context.initialize(cpu,
+			    reinterpret_cast<addr_t>(_id.table));
+			_vcpu_context.tsc_aux_host = cpu.id();
+			/*
+			 * We set the artificial startup exit code, stop the
+			 * vCPU thread and ask the VMM to handle it.
+			 */
+			_vcpu_context.exit_reason = EXIT_STARTUP;
+			pause = true;
 			break;
 		default:
 			error("VM: triggered unknown exception ",
@@ -102,25 +148,12 @@ void Vm::exception(Cpu & cpu)
 			              (void *)_vcpu_context.regs->ip, " sp=",
 			              (void *)_vcpu_context.regs->sp);
 			_pause_vcpu();
-			return;
+			break;
 	};
 
-	if (_vcpu_context.exitcode == EXIT_INIT) {
-			addr_t table_phys_addr =
-			    reinterpret_cast<addr_t>(_id.table);
-			_vcpu_context.initialize(cpu, table_phys_addr);
-			_vcpu_context.tsc_aux_host = cpu.id();
-			_vcpu_context.exitcode     = EXIT_STARTUP;
-			_pause_vcpu();
-			_context.submit(1);
-			return;
-	}
-
-	_vcpu_context.exitcode = _vcpu_context.virt.handle_vm_exit();
-
-	if (_vcpu_context.exitcode != EXIT_PAUSED) {
-			_pause_vcpu();
-			_context.submit(1);
+	if (pause == true) {
+		_pause_vcpu();
+		_context.submit(1);
 	}
 }
 
@@ -133,14 +166,14 @@ void Vm::_sync_to_vmm()
 	 * Set exit code so that if _run() was not called after an exit, the
 	 * next exit due to a signal will be interpreted as PAUSE request.
 	 */
-	_vcpu_context.exitcode = Board::EXIT_PAUSED;
+	_vcpu_context.exit_reason = Board::EXIT_PAUSED;
 }
 
 
 void Vm::_sync_from_vmm()
 {
 	/* first run() will skip through to issue startup exit */
-	if (_vcpu_context.exitcode == Board::EXIT_INIT)
+	if (_vcpu_context.exit_reason == Board::EXIT_INIT)
 		return;
 
 	_vcpu_context.read_vcpu_state(_state);
@@ -197,7 +230,7 @@ void Board::Vcpu_context::read_vcpu_state(Vcpu_state &state)
 void Board::Vcpu_context::write_vcpu_state(Vcpu_state &state)
 {
 	state.discharge();
-	state.exit_reason = (unsigned) exitcode;
+	state.exit_reason = (unsigned) exit_reason;
 
 	state.fpu.charge([&](Vcpu_state::Fpu::State &fpu) {
 		memcpy(&fpu, (void *) regs->fpu_context(), sizeof(fpu));
