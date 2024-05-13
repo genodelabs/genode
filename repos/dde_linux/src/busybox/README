@@ -1,0 +1,26 @@
+Busybox port
+############
+
+For convenience reasons this target builds a busybox binary that can be used,
+e.g., within run-scripts to provide an initram-filesystem for a Linux guest OS,
+or native Linux kernel during device-driver porting.
+
+Requirements
+~~~~~~~~~~~~
+
+Tom compile and link busybox appropriatedly, the Genode toolchain is not
+sufficient. Instead tools of the host system are used. When building busybox
+on a x86_64 host machine for either ARM or x86 32-bit machines these targets
+require a cross-compilation toolchain to be installed first.
+
+On a x86_64 Debian-based machine, one needs to install for ARM 32-bit:
+
+! apt-get install crossbuild-essential-armhf
+
+and for ARM 64-bit:
+
+! apt-get install crossbuild-essential-arm64
+
+for x86 32-bit cross compilation, you need:
+
+! apt-get install crossbuild-essential-i386
