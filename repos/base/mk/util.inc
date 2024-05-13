@@ -69,3 +69,8 @@ select_from_ports = $(call _checked_port_dir,$1)
 else
 select_from_ports = $(REP_DIR)
 endif
+
+#
+# Utility to check for availability of a tool
+#
+check_tool = $(if $(shell command -v $(1)),,$(error Need to have '$(1)' installed.))
