@@ -15,13 +15,17 @@
 #ifndef _SRC__LIB__HW__SPEC__ARM__PAGE_TABLE_H_
 #define _SRC__LIB__HW__SPEC__ARM__PAGE_TABLE_H_
 
+#include <cpu/page_flags.h>
 #include <hw/util.h>
 #include <hw/assert.h>
-#include <hw/page_flags.h>
 #include <hw/page_table_allocator.h>
 #include <util/register.h>
 
-namespace Hw { class Page_table; }
+namespace Hw {
+	using namespace Genode;
+
+	class Page_table;
+}
 
 
 class Hw::Page_table

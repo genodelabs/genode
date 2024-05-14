@@ -14,6 +14,7 @@
 #ifndef _SRC__DRIVERS__PLATFORM__PC__INTEL__PAGE_TABLE_H_
 #define _SRC__DRIVERS__PLATFORM__PC__INTEL__PAGE_TABLE_H_
 
+#include <base/env.h>
 #include <util/register.h>
 #include <util/xml_generator.h>
 

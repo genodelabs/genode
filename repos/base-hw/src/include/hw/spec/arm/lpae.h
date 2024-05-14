@@ -16,10 +16,11 @@
 
 #include <util/misc_math.h>
 #include <util/register.h>
-#include <hw/page_flags.h>
+#include <cpu/page_flags.h>
 #include <hw/page_table_allocator.h>
 
 namespace Hw {
+	using Genode::Page_flags;
 
 	enum {
 		SIZE_LOG2_4KB   = 12,
@@ -206,7 +207,7 @@ class Hw::Long_translation_table
 
 				static typename Descriptor::access_t create(Page_flags const &f)
 				{
-					if (f.type == Hw::DEVICE)
+					if (f.type == Genode::DEVICE)
 						return Attribute_index::bits(DEVICE);
 
 					switch (f.cacheable) {

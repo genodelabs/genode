@@ -66,9 +66,9 @@ Platform::Pd::Pd(Platform::Ram_allocator & alloc)
 	using namespace Genode;
 	addr_t const table_virt_base = Hw::Mm::core_page_tables().base;
 	map_insert(Mapping((addr_t)table_base, table_virt_base,
-	                   sizeof(Table),       Hw::PAGE_FLAGS_KERN_DATA));
+	                   sizeof(Table),       Genode::PAGE_FLAGS_KERN_DATA));
 	map_insert(Mapping((addr_t)array_base, table_virt_base + sizeof(Table),
-	                   sizeof(Table_array), Hw::PAGE_FLAGS_KERN_DATA));
+	                   sizeof(Table_array), Genode::PAGE_FLAGS_KERN_DATA));
 }
 
 
@@ -183,7 +183,7 @@ Platform::Platform()
 	/* temporarily map all bootstrap memory 1:1 for transition to core */
 	// FIXME do not insert as mapping for core
 	core_pd->map_insert(Mapping(bootstrap_region.base, bootstrap_region.base,
-	                            (addr_t)&_bss_end - (addr_t)&_prog_img_beg, Hw::PAGE_FLAGS_KERN_TEXT));
+	                            (addr_t)&_bss_end - (addr_t)&_prog_img_beg, Genode::PAGE_FLAGS_KERN_TEXT));
 
 	/* map memory-mapped I/O for core */
 	board.core_mmio.for_each_mapping([&] (Mapping const & m) {
@@ -195,7 +195,7 @@ Platform::Platform()
 	/* setup boot info page */
 	void * bi_base = ram_alloc.alloc(sizeof(Boot_info));
 	core_pd->map_insert(Mapping((addr_t)bi_base, Hw::Mm::boot_info().base,
-	                            sizeof(Boot_info), Hw::PAGE_FLAGS_KERN_TEXT));
+	                            sizeof(Boot_info), Genode::PAGE_FLAGS_KERN_TEXT));
 	Boot_info & bootinfo =
 		*construct_at<Boot_info>(bi_base, (addr_t)&core_pd->table,
 		                         (addr_t)&core_pd->array,

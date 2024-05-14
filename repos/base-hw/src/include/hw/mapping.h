@@ -15,9 +15,19 @@
 #define _SRC__LIB__HW__MAPPING_H_
 
 #include <hw/memory_region.h>
-#include <hw/page_flags.h>
+#include <cpu/page_flags.h>
 
-namespace Hw { class Mapping; }
+namespace Hw {
+	using Genode::Page_flags;
+	using Genode::RO;
+	using Genode::NO_EXEC;
+	using Genode::KERN;
+	using Genode::NO_GLOBAL;
+	using Genode::RAM;
+
+	class Mapping;
+}
+
 
 
 class Hw::Mapping

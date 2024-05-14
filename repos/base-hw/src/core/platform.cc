@@ -24,7 +24,7 @@
 #include <kernel/main.h>
 
 /* base-hw internal includes */
-#include <hw/page_flags.h>
+#include <cpu/page_flags.h>
 #include <hw/util.h>
 #include <hw/memory_region.h>
 

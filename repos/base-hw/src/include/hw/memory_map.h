@@ -46,7 +46,7 @@ struct Hw::Mmio_space : Hw::Memory_region_array
 	{
 		addr_t virt_base = Mm::core_mmio().base;
 		auto lambda = [&] (unsigned, Memory_region const & r) {
-			f(Mapping { r.base, virt_base, r.size, PAGE_FLAGS_KERN_IO });
+			f(Mapping { r.base, virt_base, r.size, Genode::PAGE_FLAGS_KERN_IO });
 			virt_base += r.size + get_page_size();
 		};
 		for_each(lambda);

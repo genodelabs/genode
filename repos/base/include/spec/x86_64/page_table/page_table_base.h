@@ -16,7 +16,7 @@
 #define _INCLUDE__SPEC__X86_64__PAGE_TABLE__PAGE_TABLE_BASE_H_
 
 #include <base/log.h>
-#include <page_table/page_flags.h>
+#include <cpu/page_flags.h>
 #include <util/misc_math.h>
 #include <cpu/clflush.h>
 

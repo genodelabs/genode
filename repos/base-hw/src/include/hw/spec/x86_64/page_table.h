@@ -16,13 +16,14 @@
 
 #include <base/log.h>
 #include <hw/assert.h>
-#include <hw/page_flags.h>
+#include <cpu/page_flags.h>
 #include <hw/page_table_allocator.h>
 #include <hw/util.h>
 #include <util/misc_math.h>
 #include <util/register.h>
 
 namespace Hw {
+	using namespace Genode;
 
 	/**
 	 * IA-32e paging translates 48-bit linear addresses to 52-bit physical

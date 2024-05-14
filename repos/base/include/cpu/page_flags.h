@@ -11,13 +11,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__LIB__HW__PAGE_FLAGS_H_
-#define _SRC__LIB__HW__PAGE_FLAGS_H_
+#ifndef _INCLUDE__CPU__PAGE_FLAGS_H_
+#define _INCLUDE__CPU__PAGE_FLAGS_H_
 
 #include <base/cache.h>
 #include <base/output.h>
 
-namespace Hw {
+namespace Genode {
 
 	enum Writeable   { RO, RW            };
 	enum Executeable { NO_EXEC, EXEC     };
@@ -29,7 +29,7 @@ namespace Hw {
 }
 
 
-struct Hw::Page_flags
+struct Genode::Page_flags
 {
 	Writeable     writeable;
 	Executeable   executable;
@@ -57,7 +57,7 @@ struct Hw::Page_flags
 };
 
 
-namespace Hw {
+namespace Genode {
 
 	static constexpr Page_flags PAGE_FLAGS_KERN_IO
 		{ RW, NO_EXEC, KERN, GLOBAL, DEVICE, Genode::UNCACHED };
@@ -71,4 +71,4 @@ namespace Hw {
 		{ RW, NO_EXEC, USER, NO_GLOBAL, RAM, Genode::CACHED   };
 }
 
-#endif /* _SRC__LIB__HW__PAGE_FLAGS_H_ */
+#endif /* _INCLUDE__CPU__PAGE_FLAGS_H_ */
