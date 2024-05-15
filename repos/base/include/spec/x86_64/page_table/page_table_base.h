@@ -2,11 +2,12 @@
  * \brief  x86_64 page table definitions
  * \author Adrian-Ken Rueegsegger
  * \author Johannes Schlatow
+ * \author Benjamin Lamowski
  * \date   2015-02-06
  */
 
 /*
- * Copyright (C) 2015-2023 Genode Labs GmbH
+ * Copyright (C) 2015-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,8 +20,6 @@
 #include <cpu/page_flags.h>
 #include <util/misc_math.h>
 #include <cpu/clflush.h>
-
-#define assert(expression)
 
 namespace Genode {
 
@@ -134,7 +133,6 @@ class Genode::Final_table
 		{
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
 			     i = vo >> PAGE_SIZE_LOG2) {
-				assert (i < MAX_ENTRIES);
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = Genode::min(size, end-vo);
 
@@ -200,8 +198,9 @@ class Genode::Final_table
 		template <typename ALLOCATOR>
 		void insert_translation(addr_t vo, addr_t pa, size_t size,
 		                        Page_flags const & flags, ALLOCATOR &,
-		                        bool flush, uint32_t)
+		                        bool flush = false, uint32_t supported_sizes = (1U << 30 | 1U << 21 | 1U << 12))
 		{
+			(void)supported_sizes;
 			this->_range_op(vo, pa, size, Insert_func(flags, flush));
 		}
 
@@ -213,7 +212,7 @@ class Genode::Final_table
 		 * \param alloc second level translation table allocator
 		 */
 		template <typename ALLOCATOR>
-		void remove_translation(addr_t vo, size_t size, ALLOCATOR &, bool flush)
+		void remove_translation(addr_t vo, size_t size, ALLOCATOR &, bool flush = false)
 		{
 			this->_range_op(vo, 0, size, Remove_func(flush));
 		}
@@ -355,7 +354,6 @@ class Genode::Page_directory
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
 			     i = vo >> PAGE_SIZE_LOG2)
 			{
-				assert (i < MAX_ENTRIES);
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = Genode::min(size, end-vo);
 
@@ -418,7 +416,8 @@ class Genode::Page_directory
 		template <typename ALLOCATOR>
 		void insert_translation(addr_t vo, addr_t pa, size_t size,
 		                        Page_flags const & flags, ALLOCATOR & alloc,
-		                        bool flush, uint32_t supported_sizes) {
+		                        bool flush = false,
+					uint32_t supported_sizes = (1U << 30 | 1U << 21 | 1U << 12)) {
 			_range_op(vo, pa, size,
 			          Insert_func(flags, alloc, flush, supported_sizes)); }
 
@@ -541,7 +540,6 @@ class Genode::Pml4_table
 		{
 			for (size_t i = (vo & SIZE_MASK) >> PAGE_SIZE_LOG2; size > 0;
 			     i = (vo & SIZE_MASK) >> PAGE_SIZE_LOG2) {
-				assert (i < MAX_ENTRIES);
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = Genode::min(size, end-vo);
 
@@ -623,7 +621,7 @@ class Genode::Pml4_table
 		template <typename ALLOCATOR>
 		void insert_translation(addr_t vo, addr_t pa, size_t size,
 		                        Page_flags const & flags, ALLOCATOR & alloc,
-		                        bool flush, uint32_t supported_sizes) {
+		                        bool flush = false, uint32_t supported_sizes = (1U << 30 | 1U << 21 | 1U << 12)) {
 			_range_op(vo, pa, size,
 			          Insert_func(flags, alloc, flush, supported_sizes)); }
 
@@ -636,7 +634,7 @@ class Genode::Pml4_table
 		 */
 		template <typename ALLOCATOR>
 		void remove_translation(addr_t vo, size_t size, ALLOCATOR & alloc,
-		                        bool flush)
+		                        bool flush = false)
 		{
 			_range_op(vo, 0, size, Remove_func(alloc, flush));
 		}
