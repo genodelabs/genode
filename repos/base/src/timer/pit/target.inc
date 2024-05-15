@@ -1,9 +1,8 @@
 TARGET   = pit_timer_drv
 REQUIRES = x86
-GEN_DIR := $(dir $(call select_from_repositories,src/timer/main.cc))
-INC_DIR += $(GEN_DIR)/pit
-SRC_CC  += time_source.cc
+SRC_CC  += main.cc
+LIBS    += base
 
-include $(GEN_DIR)/target.inc
+REP_INC_DIR += src/include
 
-vpath time_source.cc $(GEN_DIR)/pit
+vpath main.cc $(dir $(call select_from_repositories,src/timer/pit/main.cc))
