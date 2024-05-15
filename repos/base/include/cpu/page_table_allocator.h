@@ -12,19 +12,19 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__PC__HW__PAGE_TABLE_ALLOCATOR_H_
-#define _SRC__DRIVERS__PLATFORM__PC__HW__PAGE_TABLE_ALLOCATOR_H_
+#ifndef _INCLUDE__CPU__PAGE_TABLE_ALLOCATOR_H_
+#define _INCLUDE__CPU__PAGE_TABLE_ALLOCATOR_H_
 
 #include <util/bit_allocator.h>
 #include <util/construct_at.h>
 
-namespace Hw {
+namespace Genode {
 	template <Genode::size_t TABLE_SIZE> class Page_table_allocator;
 	struct Out_of_tables {};
 }
 
 template <Genode::size_t TABLE_SIZE>
-class Hw::Page_table_allocator
+class Genode::Page_table_allocator
 {
 	protected:
 
@@ -91,7 +91,7 @@ class Hw::Page_table_allocator
 
 template <Genode::size_t TABLE_SIZE>
 template <unsigned COUNT>
-class Hw::Page_table_allocator<TABLE_SIZE>::Array
+class Genode::Page_table_allocator<TABLE_SIZE>::Array
 {
 	public:
 
@@ -106,7 +106,7 @@ class Hw::Page_table_allocator<TABLE_SIZE>::Array
 
 	public:
 
-		Array() : _alloc((Table*)&_tables, (addr_t)&_tables) {}
+		Array() : _alloc((Table*)&_tables, (addr_t)&_tables, COUNT * TABLE_SIZE) {}
 
 		template <typename T>
 		explicit Array(T phys_addr)
@@ -118,9 +118,9 @@ class Hw::Page_table_allocator<TABLE_SIZE>::Array
 
 template <Genode::size_t TABLE_SIZE>
 template <unsigned COUNT>
-class Hw::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
+class Genode::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
 :
-	public Hw::Page_table_allocator<TABLE_SIZE>
+	public Genode::Page_table_allocator<TABLE_SIZE>
 {
 	private:
 
@@ -143,6 +143,14 @@ class Hw::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
 
 		Allocator(Table * tables, addr_t phys_addr, size_t size)
 		: Page_table_allocator((addr_t)tables, phys_addr, size) {}
+
+		Allocator(addr_t phys_addr, addr_t virt_addr, size_t size)
+		: Page_table_allocator(virt_addr, phys_addr, size),
+		  _free_tables(static_cast<Allocator*>(&reinterpret_cast<Array*>(virt_addr)->alloc())->_free_tables)
+		{
+			static_assert(!__is_polymorphic(Bit_allocator),
+			              "base class needs to be non-virtual");
+		}
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__PC__HW__PAGE_TABLE_ALLOCATOR_H_ */
+#endif /* _INCLUDE__CPU__PAGE_TABLE_ALLOCATOR_H_ */

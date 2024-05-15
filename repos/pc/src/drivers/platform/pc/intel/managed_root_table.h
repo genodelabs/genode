@@ -23,7 +23,7 @@
 #include <intel/context_table.h>
 #include <intel/domain_allocator.h>
 #include <intel/report_helper.h>
-#include <hw/page_table_allocator.h>
+#include <cpu/page_table_allocator.h>
 
 namespace Intel {
 	using namespace Genode;
@@ -36,7 +36,7 @@ class Intel::Managed_root_table : public Registered_translation_table
 {
 	public:
 
-		using Allocator = Hw::Page_table_allocator<4096>;
+		using Allocator = Genode::Page_table_allocator<4096>;
 
 	private:
 
