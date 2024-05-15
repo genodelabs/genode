@@ -20,8 +20,8 @@
 
 #include <cpu.h>
 #include <cpu/vcpu_state_virtualization.h>
-#include <hw/spec/x86_64/page_table.h>
 #include <hw/spec/x86_64/x86_64.h>
+#include <spec/x86_64/virtualization/ept.h>
 #include <spec/x86_64/virtualization/svm.h>
 #include <spec/x86_64/virtualization/vmx.h>
 
@@ -30,7 +30,7 @@ using Genode::uint64_t;
 
 namespace Board {
 
-	using Vm_page_table = Hw::Page_table;
+	using Vm_page_table = Hw::Ept;
 	using Vm_page_table_array =
 		Vm_page_table::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
 	struct Vcpu_context;
