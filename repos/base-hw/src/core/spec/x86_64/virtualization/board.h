@@ -1,4 +1,5 @@
 /*
+ *
  * \brief  Board with PC virtualization support
  * \author Benjamin Lamowski
  * \date   2022-10-14
@@ -21,7 +22,7 @@
 #include <cpu.h>
 #include <cpu/vcpu_state_virtualization.h>
 #include <hw/spec/x86_64/x86_64.h>
-#include <spec/x86_64/virtualization/ept.h>
+#include <spec/x86_64/virtualization/vm_page_table.h>
 #include <spec/x86_64/virtualization/svm.h>
 #include <spec/x86_64/virtualization/vmx.h>
 
@@ -29,10 +30,6 @@ using Genode::addr_t;
 using Genode::uint64_t;
 
 namespace Board {
-
-	using Vm_page_table = Hw::Ept;
-	using Vm_page_table_array =
-		Vm_page_table::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
 	struct Vcpu_context;
 	using Vcpu_data = Genode::Vcpu_data;
 	using Vcpu_state = Genode::Vcpu_state;
