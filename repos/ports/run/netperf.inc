@@ -175,7 +175,7 @@ build { app/netperf }
 set lx_ip_addr "10.0.2.55"
 
 set config {
-<config verbose="yes" prio_levels="2">
+<config verbose="yes" prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -193,12 +193,13 @@ set config {
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
+		<resource name="CPU" quantum="10"/>
 		<provides> <service name="Timer"/> </provides>
 	</start> }
 
 if { $use_wifi_driver } {
 	append config {
-	<start name="report_rom" caps="100">
+	<start name="report_rom" caps="100" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="ROM" />
@@ -210,11 +211,11 @@ if { $use_wifi_driver } {
 		</config>
 	</start>
 
-	<start name="acpi_drv" caps="250">
+	<start name="acpi_drv" caps="250" priority="-1">
 		<resource name="RAM" quantum="4M"/>
 	</start>
 
-	<start name="pci_decode" caps="350">
+	<start name="pci_decode" caps="350" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
@@ -222,7 +223,7 @@ if { $use_wifi_driver } {
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="100" managing_system="yes">
+	<start name="platform_drv" caps="100" managing_system="yes" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>
@@ -234,7 +235,7 @@ if { $use_wifi_driver } {
 		</config>
 	</start>
 
-	<start name="config_fs">
+	<start name="config_fs" priority="-1">
 		<binary name="vfs"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
@@ -253,7 +254,7 @@ append  config { </wifi_config>
 		</config>
 	</start>
 
-	<start name="config_rom">
+	<start name="config_rom" priority="-1">
 		<binary name="fs_rom"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="ROM"/></provides>
@@ -263,7 +264,7 @@ append  config { </wifi_config>
 		</route>
 	</start>
 
-	<start name="nic_drv" caps="300">
+	<start name="nic_drv" caps="340" priority="-1">
 		<binary name="wifi_drv"/>
 		<resource name="RAM" quantum="32M"/>
 		<config>
@@ -296,7 +297,7 @@ append  config { </wifi_config>
 
 	append config {
 
-	<start name="usb_drv" caps="1500" managing_system="yes">
+	<start name="usb_drv" caps="1500" managing_system="yes" priority="-1">
 		<binary name="init"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
@@ -309,7 +310,7 @@ append  config { </wifi_config>
 		</route>
 	</start>
 
-	<start name="nic_drv" caps="200">
+	<start name="nic_drv" caps="200" priority="-1">
 		<binary name="usb_net_drv"/>
 		<resource name="RAM" quantum="20M"/>
 		<config mac="02:00:00:00:01:01" />
@@ -323,7 +324,7 @@ append  config { </wifi_config>
 
 	append config {
 
-	<start name="nic_drv" caps="1200" managing_system="yes">
+	<start name="nic_drv" caps="1200" managing_system="yes" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>
@@ -337,7 +338,7 @@ append  config { </wifi_config>
 
 append config {
 
-	<start name="nic_router" caps="120">
+	<start name="nic_router" caps="120" priority="-1">
 		<resource name="RAM" quantum="5M"/>
 		<provides>
 			<service name="Nic"/>
@@ -382,7 +383,7 @@ append config {
 
 append_if $use_nic_bridge config {
 
-	<start name="nic_bridge">
+	<start name="nic_bridge" priority="-1">
 		<resource name="RAM" quantum="5M"/>
 		<provides><service name="Nic"/></provides>
 		<config mac="} $bridge_mac {">
@@ -396,7 +397,7 @@ append_if $use_nic_bridge config {
 
 append config {
 
-	<start name="netserver_genode" caps="320" priority="-1">
+	<start name="netserver_genode" caps="320" priority="-2">
 	<binary name="netserver"/>
 		<resource name="RAM" quantum="14M"/>
 		<config>
