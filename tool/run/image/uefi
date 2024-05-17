@@ -1,12 +1,15 @@
 source [genode_dir]/tool/run/grub2.inc
+source [genode_dir]/tool/run/shim.inc
 
 ##
 # Create GPT disk image with UEFI boot loaders and content of the run directory
 #
-# \param --image-uefi-size   disk size in MiB
+# \param --image-uefi_size   disk size in MiB
+# \param --image-disk_shim   nickname of certificate to use to sign GRUB2
 #
 
 proc image_uefi_size { } { return [get_cmd_arg --image-uefi_size 0] }
+proc image_uefi_shim { } { return [get_cmd_arg --image-uefi_shim ""] }
 
 
 ##
@@ -45,6 +48,11 @@ proc install_uefi_bootloader_to_run_dir { } {
 	exec mkdir -p [run_dir]/efi/boot
 	exec cp [get_grub2_dir]/boot/grub2/grub2_32.efi [run_dir]/efi/boot/bootia32.efi
 	exec cp [get_grub2_dir]/boot/grub2/grub2_64.efi [run_dir]/efi/boot/bootx64.efi
+
+	if {[image_uefi_shim] != ""} {
+		setup_shim_and_sign_grub2 [image_uefi_shim] [run_dir]/efi/boot
+	}
+
 	exec mkdir -p [run_dir]/boot/grub
 	exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
 
