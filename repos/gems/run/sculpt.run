@@ -1012,11 +1012,25 @@ proc augment_pkg_versions { path node } {
 	set content [read $fd]
 	close $fd
 
-	# filter 'pkg' attribute
-	set pattern "(\<$node\[^\>\]+?pkg=\")(\[^/\]+)(\")"
+	# filter 'pkg' attribute that is not <user>/pkg/<
+	set pattern "(\<$node\[^\>]+?pkg=\")"
+	append pattern {(?![\w\d\-]+/pkg/[\w\d\-_]+/[\w\d\-\._]+)(.*)}
+	append pattern "(\")"
 	while {[regexp $pattern $content dummy head pkg tail]} {
-		set pkg_path [depot_user]/pkg/[current_pkg $pkg]
-		regsub $pattern $content "$head$pkg_path$tail" content
+		if {[regexp [_depot_archive_path_pattern] $pkg dummy user type name]
+		    && $type == "pkg"} {
+				set pkg_path $user/pkg/[current_pkg $name]
+				regsub $pattern $content "$head$pkg_path$tail" content
+		} elseif {![regexp {/} $pkg dummy]} {
+			set pkg_path [depot_user]/pkg/[current_pkg $pkg]
+			regsub $pattern $content "$head$pkg_path$tail" content
+		} else {
+			puts stderr "Error: malformed depot-archive path '$pkg',"
+			puts stderr "       expected '<user>/pkg/<name>' or"
+			puts stderr "                '<name>' or"
+			puts stderr "                '<user>/pkg/<name>/<version>'"
+			exit
+		}
 	}
 
 	# write back the filtered launcher snippet, deploy config, or preset
