@@ -30,7 +30,9 @@ namespace Net {
  */
 struct Net::Port
 {
-	Genode::uint16_t value;
+	Genode::uint16_t value { 0UL };
+
+	Port() { }
 
 	explicit Port(Genode::uint16_t const value) : value(value) { }
 
