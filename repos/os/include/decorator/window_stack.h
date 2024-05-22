@@ -85,8 +85,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 			return result;
 		}
 
-		template <typename FN>
-		inline void update_model(Xml_node root_node, FN const &flush);
+		inline void update_model(Xml_node root_node, auto const &flush_fn);
 
 		bool schedule_animated_windows()
 		{
@@ -107,8 +106,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 		 *
 		 * The functor is called with 'Window_base &' as argument.
 		 */
-		template <typename FUNC>
-		void for_each_window(FUNC const &func) { _windows.for_each(func); }
+		void for_each_window(auto const &fn) { _windows.for_each(fn); }
 
 		void update_gui_views()
 		{
@@ -186,9 +184,8 @@ void Decorator::Window_stack::_draw_rec(Decorator::Canvas_base       &canvas,
 }
 
 
-template <typename FN>
 void Decorator::Window_stack::update_model(Genode::Xml_node root_node,
-                                           FN const &flush_window_stack_changes)
+                                           auto const &flush_window_stack_changes_fn)
 {
 	Abandoned_windows _abandoned_windows { };
 
@@ -280,7 +277,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node,
 	 * Apply window-creation operations before destroying windows to prevent
 	 * flickering.
 	 */
-	flush_window_stack_changes();
+	flush_window_stack_changes_fn();
 
 	/*
 	 * Destroy abandoned window objects

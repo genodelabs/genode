@@ -170,9 +170,9 @@ class Vfs::Dir_file_system : public File_system
 		 * \param fn  functor that takes a file-system reference and
 		 *            the path as arguments
 		 */
-		template <typename RES, typename FN>
+		template <typename RES>
 		RES _dir_op(RES const no_entry, RES const no_perm, RES const ok,
-		            char const *path, FN const &fn)
+		            char const *path, auto const &fn)
 		{
 			path = _sub_path(path);
 

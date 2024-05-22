@@ -29,8 +29,7 @@ namespace Genode {
 	/**
 	 * Return the number of characters needed when rendering 'args' as text
 	 */
-	template <typename... ARGS>
-	static unsigned printed_length(ARGS &&... args)
+	static unsigned printed_length(auto &&... args)
 	{
 		struct _Output : Output
 		{

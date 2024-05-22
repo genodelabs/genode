@@ -124,13 +124,12 @@ class Genode::Reporter
 		 */
 		struct Xml_generator : public Genode::Xml_generator
 		{
-			template <typename FUNC>
-			Xml_generator(Reporter &reporter, FUNC const &func)
+			Xml_generator(Reporter &reporter, auto const &fn)
 			:
 				Genode::Xml_generator(reporter._base(),
 				                      reporter._size(),
 				                      reporter._xml_name.string(),
-				                      func)
+				                      fn)
 			{
 				if (reporter.enabled())
 					reporter._conn->report.submit(used());
@@ -188,8 +187,7 @@ class Genode::Expanding_reporter
 		: _env(env), _type(type), _label(label), _buffer_size(size.value)
 		{ _construct(); }
 
-		template <typename FN>
-		void generate(FN const &fn)
+		void generate(auto const &fn)
 		{
 			retry<Xml_generator::Buffer_exceeded>(
 

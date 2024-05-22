@@ -37,12 +37,8 @@ namespace Genode {
 	}
 	template <typename>
 	class  Watch_handler;
-	template <typename FN>
-	void with_raw_file_content(Readonly_file const &,
-	                           Byte_range_ptr const &, FN const &);
-	template <typename FN>
-	void with_xml_file_content(Readonly_file const &,
-	                           Byte_range_ptr const &, FN const &);
+	void with_raw_file_content(Readonly_file const &, Byte_range_ptr const &, auto const &);
+	void with_xml_file_content(Readonly_file const &, Byte_range_ptr const &, auto const &);
 }
 
 
@@ -188,8 +184,7 @@ struct Genode::Directory : Noncopyable, Interface
 
 		~Directory() { if (_handle) _handle->ds().close(_handle); }
 
-		template <typename FN>
-		void for_each_entry(FN const &fn)
+		void for_each_entry(auto const &fn)
 		{
 			for (unsigned i = 0;; i++) {
 
@@ -231,8 +226,7 @@ struct Genode::Directory : Noncopyable, Interface
 			}
 		}
 
-		template <typename FN>
-		void for_each_entry(FN const &fn) const
+		void for_each_entry(auto const &fn) const
 		{
 			auto const_fn = [&] (Entry const &e) { fn(e); };
 			const_cast<Directory &>(*this).for_each_entry(const_fn);
@@ -608,9 +602,8 @@ class Genode::Readonly_file : public File
  *
  * \throw Truncated_during_read
  */
-template <typename FN>
 void Genode::with_raw_file_content(Readonly_file const &file,
-                                   Byte_range_ptr const &range, FN const &fn)
+                                   Byte_range_ptr const &range, auto const &fn)
 {
 	if (range.num_bytes == 0)
 		return;
@@ -628,9 +621,8 @@ void Genode::with_raw_file_content(Readonly_file const &file,
  * If the file does not contain valid XML, 'fn' is called with an
  * '<empty/>' node as argument.
  */
-template <typename FN>
 void Genode::with_xml_file_content(Readonly_file const &file,
-                                   Byte_range_ptr const &range, FN const &fn)
+                                   Byte_range_ptr const &range, auto const &fn)
 {
 	with_raw_file_content(file, range, [&] (char const *ptr, size_t num_bytes) {
 
@@ -713,8 +705,7 @@ class Genode::File_content
 		 * If the file does not contain valid XML, 'fn' is called with an
 		 * '<empty/>' node as argument.
 		 */
-		template <typename FN>
-		void xml(FN const &fn) const
+		void xml(auto const &fn) const
 		{
 			try {
 				if (_buffer.size) {
@@ -732,8 +723,8 @@ class Genode::File_content
 		 *
 		 * \param STRING  string type used for the line
 		 */
-		template <typename STRING, typename FN>
-		void for_each_line(FN const &fn) const
+		template <typename STRING>
+		void for_each_line(auto const &fn) const
 		{
 			char const *src           = _buffer.ptr;
 			char const *curr_line     = src;
@@ -766,8 +757,7 @@ class Genode::File_content
 		 *
 		 * If the buffer has a size of zero, 'fn' is not called.
 		 */
-		template <typename FN>
-		void bytes(FN const &fn) const
+		void bytes(auto const &fn) const
 		{
 			if (_buffer.size)
 				fn((char const *)_buffer.ptr, _buffer.size);

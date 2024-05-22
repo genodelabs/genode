@@ -37,8 +37,7 @@ class Trace_buffer
 		/**
 		 * Call functor for each entry that wasn't yet processed
 		 */
-		template <typename FUNC>
-		void for_each_new_entry(FUNC && functor, bool update = true)
+		void for_each_new_entry(auto const &fn, bool update = true)
 		{
 			using namespace Genode;
 
@@ -72,7 +71,7 @@ class Trace_buffer
 					continue;
 
 				/* functor may return false to continue processing later on */
-				if (!functor(entry))
+				if (!fn(entry))
 					break;
 			}
 

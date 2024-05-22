@@ -146,71 +146,61 @@ class Input::Event
 			return release() && _attr.release.key == key;
 		}
 
-		template <typename FN>
-		void handle_press(FN const &fn) const
+		void handle_press(auto const &fn) const
 		{
 			if (press() && _valid(_attr.press.key))
 				fn(_attr.press.key, _attr.press.codepoint);
 		}
 
-		template <typename FN>
-		void handle_repeat(FN const &fn) const
+		void handle_repeat(auto const &fn) const
 		{
 			if (key_press(KEY_UNKNOWN) && _attr.press.codepoint.valid())
 				fn(_attr.press.codepoint);
 		}
 
-		template <typename FN>
-		void handle_release(FN const &fn) const
+		void handle_release(auto const &fn) const
 		{
 			if (release() && _valid(_attr.release.key))
 				fn(_attr.release.key);
 		}
 
-		template <typename FN>
-		void handle_relative_motion(FN const &fn) const
+		void handle_relative_motion(auto const &fn) const
 		{
 			if (relative_motion())
 				fn(_attr.rel_motion.x, _attr.rel_motion.y);
 		}
 
-		template <typename FN>
-		void handle_absolute_motion(FN const &fn) const
+		void handle_absolute_motion(auto const &fn) const
 		{
 			if (absolute_motion())
 				fn(_attr.abs_motion.x, _attr.abs_motion.y);
 		}
 
-		template <typename FN>
-		void handle_wheel(FN const &fn) const
+		void handle_wheel(auto const &fn) const
 		{
 			if (wheel())
 				fn(_attr.wheel.x, _attr.wheel.y);
 		}
 
-		template <typename FN>
-		void handle_touch(FN const &fn) const
+		void handle_touch(auto const &fn) const
 		{
 			if (touch())
 				fn(_attr.touch.id, _attr.touch.x, _attr.touch.y);
 		}
 
-		template <typename FN>
-		void handle_touch_release(FN const &fn) const
+		void handle_touch_release(auto const &fn) const
 		{
 			if (touch_release())
 				fn(_attr.touch_release.id);
 		}
 
-		template <typename FN>
-		void handle_seq_number(FN const &fn) const
+		void handle_seq_number(auto const &fn) const
 		{
 			if (seq_number())
 				fn(_attr.seq_number);
 		}
 
-		template <typename FN>
-		void handle_axis(FN const &fn) const
+		void handle_axis(auto const &fn) const
 		{
 			if (axis())
 				fn(_attr.axis.id, _attr.axis.value);

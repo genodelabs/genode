@@ -53,8 +53,7 @@ class Genode::Buffered_xml
 		 *
 		 * \throw Allocation::Out_of_memory
 		 */
-		template <typename FN>
-		Allocation _generate(char const *node_name, FN const &fn, size_t size)
+		Allocation _generate(char const *node_name, auto const &fn, size_t size)
 		{
 			Allocation allocation { };
 
@@ -103,14 +102,12 @@ class Genode::Buffered_xml
 		 *
 		 * \throw Allocator::Out_of_memory
 		 */
-		template <typename FN>
-		Buffered_xml(Allocator &alloc, char const *name, FN const &fn, Min_size size)
+		Buffered_xml(Allocator &alloc, char const *name, auto const &fn, Min_size size)
 		:
 			_alloc(alloc), _allocation(_generate(name, fn, size.value))
 		{ }
 
-		template <typename FN>
-		Buffered_xml(Allocator &alloc, char const *name, FN const &fn)
+		Buffered_xml(Allocator &alloc, char const *name, auto const &fn)
 		:
 			Buffered_xml(alloc, name, fn, Min_size{4000})
 		{ }
@@ -125,8 +122,7 @@ class Genode::Buffered_xml
 		/**
 		 * Call functor 'fn' with 'Xml_node const &' as argument
 		 */
-		template <typename FN>
-		void with_xml_node(FN const &fn) const { fn(_xml); }
+		void with_xml_node(auto const &fn) const { fn(_xml); }
 };
 
 #endif /* _OS__BUFFERED_XML_H_ */

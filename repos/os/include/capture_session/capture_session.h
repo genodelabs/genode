@@ -98,8 +98,7 @@ struct Capture::Session : Genode::Session
 
 		Rect rects[NUM_RECTS];
 
-		template <typename FN>
-		void for_each_rect(FN const &fn) const
+		void for_each_rect(auto const &fn) const
 		{
 			for (unsigned i = 0; i < NUM_RECTS; i++)
 				if (rects[i].valid())

@@ -39,14 +39,13 @@ struct File_system::Connection : Genode::Connection<Session>, Session_client
 	 *
 	 * \noapi
 	 */
-	template <typename FUNC>
-	auto _retry(FUNC func) -> decltype(func())
+	auto _retry(auto const &fn) -> decltype(fn())
 	{
 		enum { UPGRADE_ATTEMPTS = ~0U };
 		return Genode::retry<Out_of_ram>(
 			[&] () {
 				return Genode::retry<Out_of_caps>(
-					[&] () { return func(); },
+					[&] () { return fn(); },
 					[&] () { File_system::Connection::upgrade_caps(2); },
 					UPGRADE_ATTEMPTS);
 			},

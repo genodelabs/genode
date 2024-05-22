@@ -42,8 +42,7 @@ class Usb::Connection : public Genode::Connection<Session>, public Usb::Client
 
 		void _handle_io() { }
 
-		template <typename FN>
-		Device_capability _wait_for_device(FN const & fn)
+		Device_capability _wait_for_device(auto const & fn)
 		{
 			for (;;) {
 				/* repeatedly check for availability of device */
@@ -84,8 +83,7 @@ class Usb::Connection : public Genode::Connection<Session>, public Usb::Client
 
 		void sigh(Signal_context_capability sigh) { _rom.sigh(sigh); }
 
-		template <typename FN>
-		void with_xml(FN const & fn)
+		void with_xml(auto const & fn)
 		{
 			update();
 			try {

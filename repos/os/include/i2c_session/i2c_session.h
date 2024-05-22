@@ -55,8 +55,7 @@ struct I2c::Session : public Genode::Session
 
 		Message() {}
 
-		template<typename ... ARGS>
-		Message(Type type, ARGS ... args)
+		Message(Type type, auto ... args)
 		: Byte_array(args...), type(type) {}
 	};
 

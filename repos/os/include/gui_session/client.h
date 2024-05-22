@@ -97,11 +97,8 @@ class Gui::Session_client : public Genode::Rpc_client<Session>
 		 * Only in the corner case when there is not space left in the command
 		 * buffer, the 'execute' is called to make room in the buffer.
 		 */
-		template <typename CMD, typename... ARGS>
-		void enqueue(ARGS... args)
-		{
-			enqueue(Command( CMD { args... } ));
-		}
+		template <typename CMD>
+		void enqueue(auto &&... args) { enqueue(Command( CMD { args... } )); }
 
 		void enqueue(Command const &command)
 		{

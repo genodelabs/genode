@@ -625,8 +625,7 @@ struct Pci::Config : Genode::Mmio<0x45>
 		       read<Base_class_code>() == Base_class_code::BRIDGE;
 	}
 
-	template <typename MEM_FN, typename IO_FN>
-	void for_each_bar(MEM_FN const & memory, IO_FN const & io)
+	void for_each_bar(auto const &memory_fn, auto const &io_fn)
 	{
 		Genode::size_t const reg_cnt  =
 			(read<Header_type::Type>()) ? BASE_ADDRESS_COUNT_TYPE_1
@@ -637,10 +636,10 @@ struct Pci::Config : Genode::Mmio<0x45>
 			if (!reg0.valid())
 				continue;
 			if (reg0.memory()) {
-				memory(reg0.addr(), reg0.size(), i, reg0.prefetchable());
+				memory_fn(reg0.addr(), reg0.size(), i, reg0.prefetchable());
 				if (reg0.bit64()) i++;
 			} else
-				io(reg0.addr(), reg0.size(), i);
+				io_fn(reg0.addr(), reg0.size(), i);
 		}
 	};
 

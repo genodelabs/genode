@@ -149,9 +149,8 @@ class Vfs::Vfs_handle
 		 *
 		 * XXX: may not be necesarry if the method above is virtual.
 		 */
-		template <typename FUNC>
-		void apply_handler(FUNC const &func) const {
-			if (_handler_ptr) func(*_handler_ptr); }
+		void apply_handler(auto const &fn) const {
+			if (_handler_ptr) fn(*_handler_ptr); }
 
 		/**
 		 * Notify application through response handler

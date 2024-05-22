@@ -56,17 +56,16 @@ class Input::Session_client : public Genode::Rpc_client<Session>
 		/**
 		 * Flush and apply functor to pending events
 		 *
-		 * \param func  functor in the form of f(Event const &e)
+		 * \param fn    functor in the form of f(Event const &e)
 		 * \return      number of events processed
 		 */
-		template <typename FUNC>
-		void for_each_event(FUNC const &func)
+		void for_each_event(auto const &fn)
 		{
 			Genode::size_t const n = Genode::min((Genode::size_t)call<Rpc_flush>(), _max_events);
 
 			Event const *ev_buf = _event_ds.local_addr<const Event>();
 			for (Genode::size_t i = 0; i < n; ++i)
-				func(ev_buf[i]);
+				fn(ev_buf[i]);
 		}
 };
 

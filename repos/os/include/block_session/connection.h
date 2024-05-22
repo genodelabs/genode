@@ -118,8 +118,7 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 						                            _operation.count - _position) };
 				}
 
-				template <typename FN>
-				static void _with_offset_and_length(Job &job, FN const &fn)
+				static void _with_offset_and_length(Job &job, auto const &fn)
 				{
 					if (!Operation::has_payload(job._operation.type))
 						return;
@@ -131,8 +130,7 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 					   Genode::min(job._payload.bytes, operation.count * block_size));
 				}
 
-				template <typename POLICY>
-				void _submit(POLICY &policy, _JOB &job, Tx::Source &tx)
+				void _submit(auto &policy, _JOB &job, Tx::Source &tx)
 				{
 					if (!_tag.constructed())
 						return;
@@ -210,16 +208,14 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 		 *
 		 * \return true if progress was made
 		 */
-		template <typename POLICY>
-		bool _try_process_ack(POLICY &, Tx::Source &);
+		bool _try_process_ack(auto &, Tx::Source &);
 
 		/**
 		 * Submit next pending job to server, if possible
 		 *
 		 * \return true if a job was successfully submitted
 		 */
-		template <typename POLICY>
-		bool _try_submit_pending_job(POLICY &, Tx::Source &);
+		bool _try_submit_pending_job(auto &, Tx::Source &);
 
 	public:
 
@@ -260,8 +256,7 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 		 *
 		 * \return  true if progress was made
 		 */
-		template <typename POLICY>
-		bool update_jobs(POLICY &policy)
+		bool update_jobs(auto &policy)
 		{
 			Tx::Source &tx = *_tx.source();
 
@@ -330,8 +325,7 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 		 * This method is intended for the destruction of the jobs associated
 		 * with the connection before destructing the 'Connection' object.
 		 */
-		template <typename FN>
-		void dissolve_all_jobs(FN const &fn)
+		void dissolve_all_jobs(auto const &fn)
 		{
 			_pending.dequeue_all([&] (Genode::Fifo_element<_JOB> &elem) {
 				fn(elem.object()); });

@@ -25,8 +25,7 @@ namespace Genode {
 
 struct Genode::Gdb_hex : Hex
 {
-	template <typename T>
-	explicit Gdb_hex(T value) : Hex(value, OMIT_PREFIX, PAD) { }
+	explicit Gdb_hex(auto value) : Hex(value, OMIT_PREFIX, PAD) { }
 };
 
 

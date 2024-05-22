@@ -98,8 +98,7 @@ class Block::Request_stream : Genode::Noncopyable
 				 * If the request does not carry any payload, 'fn' is not
 				 * called.
 				 */
-				template <typename FN>
-				void with_content(Block::Request request, FN const &fn) const
+				void with_content(Block::Request request, auto const &fn) const
 				{
 					if (_valid_range_and_alignment(request))
 						fn(_request_ptr(request), _request_size(request));
@@ -148,8 +147,7 @@ class Block::Request_stream : Genode::Noncopyable
 		 * The 'Payload' interface allows the functor to access the content
 		 * of a request by calling 'Payload::with_content'.
 		 */
-		template <typename FN>
-		void with_payload(FN const &fn) const { fn(_payload); }
+		void with_payload(auto const &fn) const { fn(_payload); }
 
 		/**
 		 * Call functor 'fn' with the pointer and size to the 'request' content
@@ -158,8 +156,7 @@ class Block::Request_stream : Genode::Noncopyable
 		 * in situations where the 'Payload' interface does not need to be
 		 * propagated as argument.
 		 */
-		template <typename FN>
-		void with_content(Request const &request, FN const &fn) const
+		void with_content(Request const &request, auto const &fn) const
 		{
 			_payload.with_content(request, fn);
 		}
@@ -174,8 +171,7 @@ class Block::Request_stream : Genode::Noncopyable
 		 * packet stream. If the request could not be accepted, the iteration
 		 * aborts and the request packet stays in the packet stream.
 		 */
-		template <typename FN>
-		void with_requests(FN const &fn)
+		void with_requests(auto const &fn)
 		{
 			Tx_sink &tx_sink = *_tx.sink();
 
@@ -287,8 +283,7 @@ class Block::Request_stream : Genode::Noncopyable
 		 * iteration stops when the acknowledgement queue is fully populated or if
 		 * the functor does not call 'Ack::submit'.
 		 */
-		template <typename FN>
-		void try_acknowledge(FN const &fn)
+		void try_acknowledge(auto const &fn)
 		{
 			Tx_sink &tx_sink = *_tx.sink();
 

@@ -217,13 +217,12 @@ class Net::Dhcp_packet
 
 				Dns_server(Genode::size_t len) : Option(CODE, (Genode::uint8_t)len) { }
 
-				template <typename FUNC>
-				void for_each_address(FUNC && func) const
+				void for_each_address(auto const &fn) const
 				{
 					for (unsigned idx = 0;
 					     idx < len() / sizeof(_dns_servers[0]); idx++) {
 
-						func(_dns_servers[idx]);
+						fn(_dns_servers[idx]);
 					}
 				}
 		};
@@ -243,10 +242,9 @@ class Net::Dhcp_packet
 
 				Domain_name (Genode::size_t len) : Option(CODE, (Genode::uint8_t)len) { }
 
-				template <typename FUNC>
-				void with_string(FUNC && func) const
+				void with_string(auto const &fn) const
 				{
-					func(_name, Option::len());
+					fn(_name, Option::len());
 				}
 		};
 
@@ -427,12 +425,11 @@ class Net::Dhcp_packet
 					_size_guard(size_guard)
 				{ }
 
-				template <typename OPTION, typename... ARGS>
-				void append_option(ARGS &&... args)
+				template <typename OPTION>
+				void append_option(auto &&... args)
 				{
 					_size_guard.consume_head(sizeof(OPTION));
-					Genode::construct_at<OPTION>((void *)_base,
-					                             static_cast<ARGS &&>(args)...);
+					Genode::construct_at<OPTION>((void *)_base, args...);
 					_base += sizeof(OPTION);
 				}
 
@@ -479,10 +476,9 @@ class Net::Dhcp_packet
 
 
 		/*
-		 * Call 'functor' of type 'FUNC' for each option (except END options)
+		 * Call 'fn' of type 'FUNC' for each option (except END options)
 		 */
-		template <typename FUNC>
-		void for_each_option(FUNC && functor) const
+		void for_each_option(auto const &fn) const
 		{
 			for (unsigned i = 0; ; ) {
 				Option &opt = *(Option*)&_opts[i];
@@ -491,7 +487,7 @@ class Net::Dhcp_packet
 				{
 					return;
 				}
-				functor(opt);
+				fn(opt);
 				i += 2 + opt.len();
 			}
 		}

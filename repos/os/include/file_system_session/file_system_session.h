@@ -248,8 +248,7 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 		size_t      length()    const { return _op != Opcode::WRITE_TIMESTAMP ? _length : 0;   }
 		bool        succeeded() const { return _success;  }
 
-		template <typename FN>
-		void with_timestamp(FN const &fn) const
+		void with_timestamp(auto const &fn) const
 		{
 			if (_op == Opcode::WRITE_TIMESTAMP)
 				fn(_modification_time);

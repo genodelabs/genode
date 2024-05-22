@@ -83,11 +83,7 @@ class Capture::Connection::Screen
 			size(size), _connection(connection), _ds(rm, _connection.dataspace())
 		{ }
 
-		template <typename FN>
-		void with_texture(FN const &fn) const
-		{
-			fn(_texture);
-		}
+		void with_texture(auto const &fn) const { fn(_texture); }
 
 		void apply_to_surface(Surface<Pixel> &surface)
 		{

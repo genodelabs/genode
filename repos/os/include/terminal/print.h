@@ -57,9 +57,7 @@ namespace Terminal {
 					flush_ok();
 			}
 
-			template <typename... ARGS>
-			void print(ARGS &&... args) {
-				Output::out_args(*this, args...); }
+			void print(auto &&... args) { Output::out_args(*this, args...); }
 	};
 
 	struct Ascii

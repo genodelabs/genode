@@ -55,8 +55,7 @@ class Platform::Connection : public Genode::Connection<Session>,
 
 		void _handle_io() {}
 
-		template <typename FN>
-		Capability<Device_interface> _wait_for_device(FN const & fn)
+		Capability<Device_interface> _wait_for_device(auto const &fn)
 		{
 			for (;;) {
 				/* repeatedly check for availability of device */
@@ -117,8 +116,7 @@ class Platform::Connection : public Genode::Connection<Session>,
 				return Client::alloc_dma_buffer(size, cache); });
 		}
 
-		template <typename FN>
-		void with_xml(FN const & fn)
+		void with_xml(auto const &fn)
 		{
 			try {
 				if (_ds.constructed() && _ds->local_addr<void const>()) {

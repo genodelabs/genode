@@ -129,13 +129,11 @@ class Usb::Urb_handler
 					                     : 0;
 				}
 
-				template <typename URB,
-				          typename OUT_FN,
-				          typename ISOC_OUT_FN>
-				void _submit(URB               &urb,
-				             Tx::Source        &tx,
-				             OUT_FN      const &out_fn,
-				             ISOC_OUT_FN const &isoc_out_fn)
+				template <typename URB>
+				void _submit(URB        &urb,
+				             Tx::Source &tx,
+				             auto const &out_fn,
+				             auto const &isoc_out_fn)
 				{
 					if (!_tag.constructed())
 						return;
@@ -169,14 +167,12 @@ class Usb::Urb_handler
 					tx.try_submit_packet(p);
 				}
 
-				template <typename URB,
-				          typename IN_FN,
-				          typename ISOC_IN_FN>
+				template <typename URB>
 				void _in_results(URB              &urb,
 				                 Packet_descriptor p,
 				                 Tx::Source       &tx,
-				                 IN_FN      const &in_fn,
-				                 ISOC_IN_FN const &isoc_in_fn)
+				                 auto       const &in_fn,
+				                 auto       const &isoc_in_fn)
 				{
 					if (!_isoc_packets) {
 						Const_byte_range_ptr src { (const char*)tx.packet_content(p),
@@ -235,18 +231,12 @@ class Usb::Urb_handler
 		Id_space<Urb>                _tags    { };
 		Fifo<Fifo_element<Urb>>      _pending { };
 
-		template <typename URB,
-		          typename IN_FN,
-		          typename ISOC_IN_FN,
-		          typename CPL_FN>
-		bool _try_process_ack(Tx::Source &, IN_FN const &,
-		                      ISOC_IN_FN const &, CPL_FN const &);
+		template <typename>
+		bool _try_process_ack(Tx::Source &, auto const &,
+		                      auto const &, auto const &);
 
-		template <typename URB,
-		          typename OUT_FN,
-		          typename ISOC_OUT_FN>
-		bool _try_submit_pending_urb(Tx::Source &, OUT_FN const &,
-		                             ISOC_OUT_FN const &);
+		template <typename>
+		bool _try_submit_pending_urb(Tx::Source &, auto const &, auto const &);
 
 	public:
 
@@ -261,17 +251,12 @@ class Usb::Urb_handler
 		 *
 		 * \return  true if progress was made
 		 */
-		template <typename URB,
-		          typename OUT_FN,
-		          typename IN_FN,
-		          typename ISOC_OUT_FN,
-		          typename ISOC_IN_FN,
-		          typename CPL_FN>
-		bool update_urbs(OUT_FN      const &out_fn,
-		                 IN_FN       const &in_fn,
-		                 ISOC_OUT_FN const &isoc_out_fn,
-		                 ISOC_IN_FN  const &isoc_in_fn,
-		                 CPL_FN      const &complete_fn)
+		template <typename URB>
+		bool update_urbs(auto const &out_fn,
+		                 auto const &in_fn,
+		                 auto const &isoc_out_fn,
+		                 auto const &isoc_in_fn,
+		                 auto const &complete_fn)
 		{
 			typename Tx::Source &tx = *_tx.source();
 
@@ -411,17 +396,12 @@ class Usb::Interface
 		void sigh(Signal_context_capability cap) {
 			_urb_handler.sigh(cap); }
 
-		template <typename URB,
-		          typename OUT_FN,
-		          typename IN_FN,
-		          typename ISOC_OUT_FN,
-		          typename ISOC_IN_FN,
-		          typename CPL_FN>
-		bool update_urbs(OUT_FN      const &out_fn,
-		                 IN_FN       const &in_fn,
-		                 ISOC_OUT_FN const &isoc_out_fn,
-		                 ISOC_IN_FN  const &isoc_in_fn,
-		                 CPL_FN      const &complete_fn)
+		template <typename URB>
+		bool update_urbs(auto const &out_fn,
+		                 auto const &in_fn,
+		                 auto const &isoc_out_fn,
+		                 auto const &isoc_in_fn,
+		                 auto const &complete_fn)
 		{
 			return _urb_handler.update_urbs<URB>(out_fn, in_fn, isoc_out_fn,
 			                                     isoc_in_fn, complete_fn);
@@ -575,12 +555,11 @@ struct Usb::Interface::Alt_setting : Device::Urb
 
 
 template <typename SESSION>
-template <typename URB, typename IN_FN, typename ISOC_IN_FN, typename CPL_FN>
-bool
-Usb::Urb_handler<SESSION>::_try_process_ack(Tx::Source       &tx,
-                                            IN_FN      const &in_fn,
-                                            ISOC_IN_FN const &isoc_in,
-                                            CPL_FN     const &complete_fn)
+template <typename URB>
+bool Usb::Urb_handler<SESSION>::_try_process_ack(Tx::Source &tx,
+                                                 auto const &in_fn,
+                                                 auto const &isoc_in,
+                                                 auto const &complete_fn)
 {
 	if (!tx.ack_avail())
 		return false;
@@ -610,11 +589,10 @@ Usb::Urb_handler<SESSION>::_try_process_ack(Tx::Source       &tx,
 
 
 template <typename SESSION>
-template <typename URB, typename OUT_FN, typename ISOC_FN>
-bool
-Usb::Urb_handler<SESSION>::_try_submit_pending_urb(Tx::Source &tx,
-                                                   OUT_FN const &out_fn,
-                                                   ISOC_FN const &isoc_fn)
+template <typename URB>
+bool Usb::Urb_handler<SESSION>::_try_submit_pending_urb(Tx::Source &tx,
+                                                        auto const &out_fn,
+                                                        auto const &isoc_fn)
 {
 	if (_pending.empty())
 		return false;
@@ -732,8 +710,7 @@ inline Usb::Device::Name Usb::Device::_first_device_name()
 }
 
 
-template <typename FN>
-void Usb::Device::_for_each_iface(FN const & fn)
+void Usb::Device::_for_each_iface(auto const & fn)
 {
 	_session.with_xml([&] (Xml_node & xml) {
 		xml.for_each_sub_node("device", [&] (Xml_node node) {

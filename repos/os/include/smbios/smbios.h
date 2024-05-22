@@ -146,18 +146,16 @@ struct Genode::Smbios_entry_point
 
 namespace Genode::Smbios_table
 {
-	template <typename PHY_MEM_FUNC,
-	          typename EP_FUNC>
-	bool smbios_3(addr_t       const  anchor,
-	              addr_t       const  ep_phy,
-	              PHY_MEM_FUNC const &phy_mem,
-	              EP_FUNC      const &handle_ep)
+	bool smbios_3(addr_t const  anchor,
+	              addr_t const  ep_phy,
+	              auto   const &phy_mem_fn,
+	              auto   const &handle_ep_fn)
 	{
 		if (memcmp((char *)anchor, "_SM3_", 5)) {
 			return false;
 		}
 		Smbios_3_entry_point const &ep { *(Smbios_3_entry_point *)
-			phy_mem(ep_phy, sizeof(Smbios_3_entry_point)) };
+			phy_mem_fn(ep_phy, sizeof(Smbios_3_entry_point)) };
 
 		if (!ep.length_valid()) {
 			warning("SMBIOS 3 entry point has bad length");
@@ -172,22 +170,20 @@ namespace Genode::Smbios_table
 			return false;
 		}
 		log("SMBIOS 3 table (entry point: ", Hex(anchor), " structures: ", Hex(ep.struct_table_addr), ")");
-		handle_ep(ep);
+		handle_ep_fn(ep);
 		return true;
 	}
 
-	template <typename PHY_MEM_FUNC,
-	          typename EP_FUNC>
-	bool smbios(addr_t       const  anchor,
-	            addr_t       const  ep_phy,
-	            PHY_MEM_FUNC const &phy_mem,
-	            EP_FUNC      const &handle_ep)
+	bool smbios(addr_t const  anchor,
+	            addr_t const  ep_phy,
+	            auto   const &phy_mem_fn,
+	            auto   const &handle_ep_fn)
 	{
 		if (memcmp((char *)anchor, "_SM_",  4)) {
 			return false;
 		}
 		Smbios_entry_point const &ep { *(Smbios_entry_point *)
-			phy_mem(ep_phy, sizeof(Smbios_entry_point)) };
+			phy_mem_fn(ep_phy, sizeof(Smbios_entry_point)) };
 
 		if (!ep.length_valid()) {
 			warning("SMBIOS entry point has bad length");
@@ -206,87 +202,77 @@ namespace Genode::Smbios_table
 			return false;
 		}
 		log("SMBIOS table (entry point: ", Hex(anchor), " structures: ", Hex(ep.struct_table_addr), ")");
-		handle_ep(ep);
+		handle_ep_fn(ep);
 		return true;
 	}
 
-	template <typename PHY_MEM_FUNC,
-	          typename EP_FUNC>
-	bool dmi(addr_t       const  anchor,
-	         addr_t       const  ep_phy,
-	         PHY_MEM_FUNC const &phy_mem,
-	         EP_FUNC      const &handle_ep)
+	bool dmi(addr_t const  anchor,
+	         addr_t const  ep_phy,
+	         auto   const &phy_mem_fn,
+	         auto   const &handle_ep_fn)
 	{
 		if (memcmp((char *)anchor, "_DMI_", 5)) {
 			return false;
 		}
 		Dmi_entry_point const &ep { *(Dmi_entry_point *)
-			phy_mem(ep_phy, sizeof(Dmi_entry_point)) };
+			phy_mem_fn(ep_phy, sizeof(Dmi_entry_point)) };
 
 		if (!ep.checksum_correct()) {
 			warning("DMI entry point has bad checksum");
 			return false;
 		}
 		log("DMI table (entry point: ", Hex(anchor), " structures: ", Hex(ep.struct_table_addr), ")");
-		handle_ep(ep);
+		handle_ep_fn(ep);
 		return true;
 	}
 
-	template <typename PHY_MEM_FUNC,
-	          typename SMBIOS_3_FUNC,
-	          typename SMBIOS_FUNC,
-	          typename DMI_FUNC>
-	void from_scan(PHY_MEM_FUNC  const &phy_mem,
-	               SMBIOS_3_FUNC const &handle_smbios_3_ep,
-	               SMBIOS_FUNC   const &handle_smbios_ep,
-	               DMI_FUNC      const &handle_dmi_ep)
+	void from_scan(auto const &phy_mem_fn,
+	               auto const &handle_smbios_3_ep_fn,
+	               auto const &handle_smbios_ep_fn,
+	               auto const &handle_dmi_ep_fn)
 	{
 		enum { SCAN_BASE_PHY    = 0xf0000 };
 		enum { SCAN_SIZE        = 0x10000 };
 		enum { SCAN_SIZE_SMBIOS =  0xfff0 };
 		enum { SCAN_STEP        =    0x10 };
 
-		addr_t const scan_base { (addr_t)phy_mem(SCAN_BASE_PHY, SCAN_SIZE) };
+		addr_t const scan_base { (addr_t)phy_mem_fn(SCAN_BASE_PHY, SCAN_SIZE) };
 		try {
 			addr_t const scan_end        { scan_base + SCAN_SIZE };
 			size_t const scan_end_smbios { scan_base + SCAN_SIZE_SMBIOS };
 
 			for (addr_t curr { scan_base }; curr < scan_end_smbios; curr += SCAN_STEP ) {
-				if (smbios_3(curr, SCAN_BASE_PHY + (curr - scan_base), phy_mem, handle_smbios_3_ep)) {
+				if (smbios_3(curr, SCAN_BASE_PHY + (curr - scan_base), phy_mem_fn, handle_smbios_3_ep_fn)) {
 					return;
 				}
 			}
 			for (addr_t curr { scan_base }; curr < scan_end_smbios; curr += SCAN_STEP ) {
-				if (smbios(curr, SCAN_BASE_PHY + (curr - scan_base), phy_mem, handle_smbios_ep)) {
+				if (smbios(curr, SCAN_BASE_PHY + (curr - scan_base), phy_mem_fn, handle_smbios_ep_fn)) {
 					return;
 				}
 			}
 			for (addr_t curr { scan_base }; curr < scan_end; curr += SCAN_STEP ) {
-				if (dmi(curr, SCAN_BASE_PHY + (curr - scan_base), phy_mem, handle_dmi_ep)) {
+				if (dmi(curr, SCAN_BASE_PHY + (curr - scan_base), phy_mem_fn, handle_dmi_ep_fn)) {
 					return;
 				}
 			}
 		} catch (...) { }
 	}
 
-	template <typename PHY_MEM_FUNC,
-	          typename SMBIOS_3_FUNC,
-	          typename SMBIOS_FUNC,
-	          typename DMI_FUNC>
-	void from_pointer(addr_t        const  table_phy,
-	                  PHY_MEM_FUNC  const &phy_mem,
-	                  SMBIOS_3_FUNC const &handle_smbios_3_ep,
-	                  SMBIOS_FUNC   const &handle_smbios_ep,
-	                  DMI_FUNC      const &handle_dmi_ep)
+	void from_pointer(addr_t const  table_phy,
+	                  auto   const &phy_mem_fn,
+	                  auto   const &handle_smbios_3_ep_fn,
+	                  auto   const &handle_smbios_ep_fn,
+	                  auto   const &handle_dmi_ep_fn)
 	{
-		addr_t const anchor { (addr_t)phy_mem(table_phy, 5) };
-		if (smbios_3(anchor, table_phy, phy_mem, handle_smbios_3_ep)) {
+		addr_t const anchor { (addr_t)phy_mem_fn(table_phy, 5) };
+		if (smbios_3(anchor, table_phy, phy_mem_fn, handle_smbios_3_ep_fn)) {
 			return;
 		}
-		if (smbios(anchor, table_phy, phy_mem, handle_smbios_ep)) {
+		if (smbios(anchor, table_phy, phy_mem_fn, handle_smbios_ep_fn)) {
 			return;
 		}
-		dmi(anchor, table_phy, phy_mem, handle_dmi_ep);
+		dmi(anchor, table_phy, phy_mem_fn, handle_dmi_ep_fn);
 	}
 };
 

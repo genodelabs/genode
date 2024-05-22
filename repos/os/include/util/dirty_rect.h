@@ -77,8 +77,7 @@ class Genode::Dirty_rect
 		 * The functor 'fn' takes a 'Rect const &' as argument.
 		 * This method resets the dirty rectangles.
 		 */
-		template <typename FN>
-		void flush(FN const &fn)
+		void flush(auto const &fn)
 		{
 			/*
 			 * Merge rectangles if their compound is smaller than sum of their

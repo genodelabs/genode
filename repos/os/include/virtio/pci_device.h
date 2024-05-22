@@ -104,8 +104,7 @@ class Virtio::Device
 		Device_mmio _isr        { _bar_range("irq_status") };
 		size_t      _notify_offset_multiplier { 0 };
 
-		template <typename FN>
-		void with_virtio_range(String<16> type, FN const & fn)
+		void with_virtio_range(String<16> type, auto const &fn)
 		{
 			_plat.update();
 			_plat.with_xml([&] (Xml_node xml) {

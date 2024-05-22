@@ -90,8 +90,7 @@ class Event::Session_client : public Genode::Rpc_client<Session>
 			_ds(local_rm, call<Rpc_dataspace>())
 		{ }
 
-		template <typename FN>
-		void with_batch(FN const &fn)
+		void with_batch(auto const &fn)
 		{
 			Batch_impl batch { *this };
 
