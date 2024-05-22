@@ -301,15 +301,16 @@ class Genode::Signal_receiver : Noncopyable
 
 				void remove(Signal_context const *re);
 
-				template <typename FUNC>
-				void for_each_locked(FUNC && functor) const
+				void for_each_locked(auto const &fn) const
 				{
 					Signal_context *context = _head;
-					if (!context) return;
+					if (!context)
+						return;
 
 					do {
 						Mutex::Guard mutex_guard(context->_mutex);
-						if (functor(*context)) return;
+						if (fn(*context))
+							return;
 						context = context->_next;
 					} while (context != _head);
 				}

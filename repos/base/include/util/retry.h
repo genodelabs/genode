@@ -17,9 +17,9 @@
 
 namespace Genode {
 
-	template <typename EXC, typename FUNC, typename HANDLER>
-	auto retry(FUNC func, HANDLER handler,
-	           unsigned attempts = ~0U) -> decltype(func());
+	template <typename EXC>
+	auto retry(auto const &fn, auto const &,
+	           unsigned attempts = ~0U) -> decltype(fn());
 }
 
 /**
@@ -29,20 +29,20 @@ namespace Genode {
  * is called and the function call is retried.
  *
  * \param EXC       exception type to handle
- * \param func      functor to execute
- * \param handler   exception handler executed if 'func' raised an exception
+ * \param fn        functor to execute
+ * \param exc_fn    exception handler executed if 'fn' raised an exception
  *                  of type 'EXC'
  * \param attempts  number of attempts to execute 'func' before giving up
  *                  and reflecting the exception 'EXC' to the caller. If not
  *                  specified, attempt infinitely.
  */
-template <typename EXC, typename FUNC, typename HANDLER>
-auto Genode::retry(FUNC func, HANDLER handler,
-                   unsigned attempts) -> decltype(func())
+template <typename EXC>
+auto Genode::retry(auto const &fn, auto const &exc_fn,
+                   unsigned attempts) -> decltype(fn())
 {
 	for (unsigned i = 0; attempts == ~0U || i < attempts; i++)
-		try { return func(); }
-		catch (EXC) { handler(); }
+		try { return fn(); }
+		catch (EXC) { exc_fn(); }
 
 	throw EXC();
 }

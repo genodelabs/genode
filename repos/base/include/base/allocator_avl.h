@@ -207,11 +207,9 @@ class Genode::Allocator_avl_base : public Range_allocator
 		 */
 		void _cut_from_block(Block &b, addr_t cut_addr, size_t cut_size, Two_blocks);
 
-		template <typename ANY_BLOCK_FN>
-		bool _revert_block_ranges(ANY_BLOCK_FN const &);
+		bool _revert_block_ranges(auto const &any_block_fn);
 
-		template <typename SEARCH_FN>
-		Alloc_result _allocate(size_t, unsigned, Range, SEARCH_FN const &);
+		Alloc_result _allocate(size_t, unsigned, Range, auto const &search_fn);
 
 	protected:
 
@@ -427,8 +425,7 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 		 * the method repeatedly without removing or inserting
 		 * members will produce the same member.
 		 */
-		template <typename FUNC>
-		bool apply_any(FUNC const &fn)
+		bool apply_any(auto const &fn)
 		{
 			addr_t addr = 0;
 			if (any_block_addr(&addr)) {

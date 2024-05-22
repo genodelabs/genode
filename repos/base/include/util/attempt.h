@@ -52,21 +52,19 @@ class Genode::Attempt
 		Attempt(Attempt const &)              = default;
 		Attempt &operator = (Attempt const &) = default;
 
-		template <typename RET, typename ACCESS_FN, typename FAIL_FN>
-		RET convert(ACCESS_FN const &access_fn, FAIL_FN const &fail_fn) const
+		template <typename RET>
+		RET convert(auto const &access_fn, auto const &fail_fn) const
 		{
 			return _ok ? RET { access_fn(_result) }
 			           : RET { fail_fn(_error) };
 		}
 
-		template <typename ACCESS_FN, typename FAIL_FN>
-		void with_result(ACCESS_FN const &access_fn, FAIL_FN const &fail_fn) const
+		void with_result(auto const &access_fn, auto const &fail_fn) const
 		{
 			_ok ? access_fn(_result) : fail_fn(_error);
 		}
 
-		template <typename FAIL_FN>
-		void with_error(FAIL_FN const &fail_fn) const
+		void with_error(auto const &fail_fn) const
 		{
 			if (!_ok)
 				fail_fn(_error);

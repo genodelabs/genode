@@ -43,15 +43,13 @@ struct Genode::Output : Interface
 	/**
 	 * Helper for the sequential output of a variable list of arguments
 	 */
-	template <typename HEAD, typename... TAIL>
-	static void out_args(Output &output, HEAD && head, TAIL &&... tail)
+	static void out_args(Output &output, auto && head, auto &&... tail)
 	{
 		print(output, head);
 		out_args(output, tail...);
 	}
 
-	template <typename LAST>
-	static void out_args(Output &output, LAST && last) { print(output, last); }
+	static void out_args(Output &output, auto && last) { print(output, last); }
 };
 
 
@@ -82,8 +80,7 @@ namespace Genode {
 	 * This function template takes precedence over the one that takes a
 	 * constant object reference as argument.
 	 */
-	template <typename T>
-	static inline void print(Output &output, T *ptr)
+	static inline void print(Output &output, auto *ptr)
 	{
 		print(output, (void const *)ptr);
 	}
@@ -173,9 +170,8 @@ namespace Genode {
 			 *                output. If set to 'PAD', the leading zeros will be
 			 *                printed.
 			 */
-			template <typename T>
-			explicit Hex(T value, Prefix prefix = PREFIX, Pad pad = NO_PAD)
-			: _value(value), _digits(2*sizeof(T)), _prefix(prefix), _pad(pad) { }
+			explicit Hex(auto value, Prefix prefix = PREFIX, Pad pad = NO_PAD)
+			: _value(value), _digits(2*sizeof(value)), _prefix(prefix), _pad(pad) { }
 
 			void print(Output &output) const;
 	};
@@ -224,8 +220,7 @@ namespace Genode {
 	 * method is able to access object-internal state, which can thereby be
 	 * incorporated into the textual output.
 	 */
-	template <typename T>
-	static inline void print(Output &output, T const &obj)
+	static inline void print(Output &output, auto const &obj)
 	{
 		obj.print(output);
 	}
@@ -233,8 +228,7 @@ namespace Genode {
 	/**
 	 * Print a variable number of arguments
 	 */
-	template <typename HEAD, typename... TAIL>
-	static inline void print(Output &output, HEAD const &head, TAIL &&... tail)
+	static inline void print(Output &output, auto const &head, auto &&... tail)
 	{
 		Output::out_args(output, head, tail...);
 	}

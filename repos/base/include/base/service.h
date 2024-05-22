@@ -77,8 +77,7 @@ class Genode::Service : public Ram_transfer::Account,
 		 * session state. All subsequent 'Session_state' arguments correspond
 		 * to the forwarded 'args'.
 		 */
-		template <typename... ARGS>
-		Session_state &create_session(Factory &client_factory, ARGS &&... args)
+		Session_state &create_session(Factory &client_factory, auto &&... args)
 		{
 			return _factory(client_factory).create(*this, args...);
 		}
@@ -151,8 +150,7 @@ class Genode::Local_service : public Service
 
 		Factory &_factory;
 
-		template <typename FUNC>
-		void _apply_to_rpc_obj(Session_state &session, FUNC const &fn)
+		void _apply_to_rpc_obj(Session_state &session, auto const &fn)
 		{
 			SESSION *rpc_obj = dynamic_cast<SESSION *>(session.local_ptr);
 

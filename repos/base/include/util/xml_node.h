@@ -156,8 +156,7 @@ class Genode::Xml_attribute
 		 * Note that the content of the buffer is not null-terminated but
 		 * delimited by the size argument.
 		 */
-		template <typename FN>
-		void with_raw_value(FN const &fn) const
+		void with_raw_value(auto const &fn) const
 		{
 			/*
 			 * Skip leading quote of the '_value' to access the actual value.
@@ -173,8 +172,7 @@ class Genode::Xml_attribute
 		 *           false if attribute is invalid or value
 		 *           conversion failed
 		 */
-		template <typename T>
-		bool value(T &out) const
+		bool value(auto &out) const
 		{
 			bool result = false;
 
@@ -678,8 +676,7 @@ class Genode::Xml_node
 		/**
 		 * Call functor 'fn' with the node data '(char const *, size_t)'
 		 */
-		template <typename FN>
-		void with_raw_node(FN const &fn) const
+		void with_raw_node(auto const &fn) const
 		{
 			char const *start_ptr = _tags.start.token().start();
 			fn(start_ptr, _tags.end.next_token().start() - start_ptr);
@@ -693,8 +690,7 @@ class Genode::Xml_node
 		 *
 		 * If the node has no content, the functor 'fn' is not called.
 		 */
-		template <typename FN>
-		void with_raw_content(FN const &fn) const
+		void with_raw_content(auto const &fn) const
 		{
 			if (_tags.start.type() == Tag::EMPTY)
 				return;
@@ -844,8 +840,7 @@ class Genode::Xml_node
 		 * The functor is called with the sub node as argument.
 		 * If no matching sub node exists, the functor is not called.
 		 */
-		template <typename FN>
-		void with_optional_sub_node(char const *type, FN const &fn) const
+		void with_optional_sub_node(char const *type, auto const &fn) const
 		{
 			if (has_sub_node(type))
 				fn(sub_node(type));
@@ -855,22 +850,20 @@ class Genode::Xml_node
 		 * Apply functor 'fn' to first sub node of specified type
 		 *
 		 * The functor is called with the sub node as argument.
-		 * If no matching sub node exists, the functor 'fn_nexists' is called.
+		 * If no matching sub node exists, the functor 'missing_fn' is called.
 		 */
-		template <typename FN, typename FN_NEXISTS>
-		void with_sub_node(char const *type, FN const &fn, FN_NEXISTS const &fn_nexists) const
+		void with_sub_node(char const *type, auto const &fn, auto const &missing_fn) const
 		{
 			if (has_sub_node(type))
 				fn(sub_node(type));
 			else
-				fn_nexists();
+				missing_fn();
 		}
 
 		/**
 		 * Execute functor 'fn' for each sub node of specified type
 		 */
-		template <typename FN>
-		void for_each_sub_node(char const *type, FN const &fn) const
+		void for_each_sub_node(char const *type, auto const &fn) const
 		{
 			if (!has_sub_node(type))
 				return;
@@ -887,8 +880,7 @@ class Genode::Xml_node
 		/**
 		 * Execute functor 'fn' for each sub node
 		 */
-		template <typename FN>
-		void for_each_sub_node(FN const &fn) const
+		void for_each_sub_node(auto const &fn) const
 		{
 			for_each_sub_node(nullptr, fn);
 		}
@@ -993,8 +985,7 @@ class Genode::Xml_node
 		/**
 		 * Execute functor 'fn' for each attribute
 		 */
-		template <typename FN>
-		void for_each_attribute(FN const &fn) const
+		void for_each_attribute(auto const &fn) const
 		{
 			if (!_tags.start.has_attribute())
 				return;

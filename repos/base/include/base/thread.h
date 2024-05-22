@@ -421,8 +421,7 @@ class Genode::Thread
 		/**
 		 * Log trace event as defined in base/trace/events.h
 		 */
-		template <typename EVENT>
-		static void trace(EVENT const *event) { _logger()->log(event); }
+		static void trace(auto const *event) { _logger()->log(event); }
 
 		/**
 		 * Thread affinity

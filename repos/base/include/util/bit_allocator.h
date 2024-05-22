@@ -17,7 +17,7 @@
 
 #include <util/bit_array.h>
 
-namespace Genode { template<unsigned> class Bit_allocator; } 
+namespace Genode { template<unsigned> class Bit_allocator; }
 
 
 template<unsigned BITS>

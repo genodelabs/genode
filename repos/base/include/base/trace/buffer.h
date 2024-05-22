@@ -160,8 +160,7 @@ class Genode::Trace::Simple_buffer
 			_head_entry()->mark(_Entry::HEAD);
 		}
 
-		template <typename WRAP_FUNC>
-		char *_reserve(size_t len, WRAP_FUNC && wrap)
+		char *_reserve(size_t len, auto const &wrap_fn)
 		{
 			if (_head_offset + sizeof(_Entry) + len <= _size)
 				return _head_entry()->data;
@@ -170,11 +169,10 @@ class Genode::Trace::Simple_buffer
 			if (_head_offset + sizeof(_Entry) <= _size)
 				_head_entry()->mark(_Entry::PADDING);
 
-			return wrap();
+			return wrap_fn();
 		}
 
-		template <typename WRAP_FUNC>
-		void _commit(size_t len, WRAP_FUNC && wrap)
+		void _commit(size_t len, auto const &wrap_fn)
 		{
 			/* omit empty entries */
 			if (len == 0)
@@ -190,7 +188,7 @@ class Genode::Trace::Simple_buffer
 			/* advance head offset, wrap when next entry does not fit into buffer */
 			_head_offset += sizeof(_Entry) + len;
 			if (_head_offset + sizeof(_Entry) > _size)
-				wrap();
+				wrap_fn();
 
 			/* mark entry next to new entry as head */
 			else if (_head_offset + sizeof(_Entry) <= _size)

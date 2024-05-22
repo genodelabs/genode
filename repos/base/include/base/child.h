@@ -214,9 +214,10 @@ struct Genode::Child_policy
 	 * the case for a debug monitor - the address space must be accessed by
 	 * component-local method calls instead.
 	 */
-	template <typename FN>
-	void with_address_space(Pd_session &pd, FN const &fn)
+	void with_address_space(Pd_session &pd, auto const &fn)
 	{
+		using FN = decltype(fn);
+
 		struct Impl : With_address_space_fn
 		{
 			FN const &_fn;
@@ -323,8 +324,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		Child_policy &_policy;
 
 		/* print error message with the child's name prepended */
-		template <typename... ARGS>
-		void _error(ARGS &&... args) { error(_policy.name(), ": ", args...); }
+		void _error(auto &&... args) { error(_policy.name(), ": ", args...); }
 
 		Region_map &_local_rm;
 
@@ -786,8 +786,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		void close_all_sessions();
 
-		template <typename FN>
-		void for_each_session(FN const &fn) const
+		void for_each_session(auto const &fn) const
 		{
 			_id_space.for_each<Session_state const>(fn);
 		}

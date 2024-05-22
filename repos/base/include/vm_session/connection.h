@@ -105,13 +105,12 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 		Rpc_client<Vm_session>(cap())
 	{ }
 
-	template <typename FUNC>
-	auto with_upgrade(FUNC func) -> decltype(func())
+	auto with_upgrade(auto const &fn) -> decltype(fn())
 	{
 		return Genode::retry<Genode::Out_of_ram>(
 			[&] () {
 				return Genode::retry<Genode::Out_of_caps>(
-					[&] () { return func(); },
+					[&] () { return fn(); },
 					[&] () { this->upgrade_caps(2); });
 			},
 			[&] () { this->upgrade_ram(4096); }

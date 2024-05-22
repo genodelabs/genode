@@ -53,8 +53,8 @@ class Genode::Page_table_allocator
 
 		virtual ~Page_table_allocator() { }
 
-		template <typename TABLE, typename FN1, typename FN2>
-		void with_table(addr_t phys_addr, FN1 && match_fn, FN2 no_match_fn)
+		template <typename TABLE>
+		void with_table(addr_t phys_addr, auto const &match_fn, auto const &no_match_fn)
 		{
 			static_assert((sizeof(TABLE) == TABLE_SIZE), "unexpected size");
 
@@ -108,8 +108,7 @@ class Genode::Page_table_allocator<TABLE_SIZE>::Array
 
 		Array() : _alloc((Table*)&_tables, (addr_t)&_tables, COUNT * TABLE_SIZE) {}
 
-		template <typename T>
-		explicit Array(T phys_addr)
+		explicit Array(auto phys_addr)
 		: _alloc(_tables, phys_addr((void*)_tables), COUNT * TABLE_SIZE) { }
 
 		Page_table_allocator<TABLE_SIZE> & alloc() { return _alloc; }

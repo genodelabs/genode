@@ -296,23 +296,20 @@ class Genode::Xml_generator
 
 	public:
 
-		template <typename FUNC>
-		Xml_generator(char *dst, size_t dst_len,
-		              char const *name, FUNC const &func)
+		Xml_generator(char *dst, size_t dst_len, char const *name, auto const &fn)
 		:
 			_out_buffer(dst, dst_len)
 		{
 			if (dst) {
-				node(name, func);
+				node(name, fn);
 				_out_buffer.append('\n');
 				_out_buffer.append('\0');
 			}
 		}
 
-		template <typename FUNC>
-		void node(char const *name, FUNC const &func = [] () { } )
+		void node(char const *name, auto const &fn = [] () { } )
 		{
-			Node(*this, name, func);
+			Node(*this, name, fn);
 		}
 
 		void node(char const *name) { Node(*this, name, [] () { }); }
@@ -394,8 +391,7 @@ class Genode::Xml_generator
 		 *
 		 * This method must not be followed by calls of 'attribute'.
 		 */
-		template <typename... ARGS>
-		void append_content(ARGS &&... args)
+		void append_content(auto &&... args)
 		{
 			struct Node_output : Genode::Output
 			{

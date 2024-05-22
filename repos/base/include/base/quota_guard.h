@@ -250,10 +250,10 @@ class Genode::Quota_guard
 			void acknowledge() { _ack = true; }
 		};
 
-		template <typename RET, typename FN, typename ERROR_FN>
-		RET with_reservation(UNIT     const amount,
-		                     FN       const &fn,
-		                     ERROR_FN const &error_fn)
+		template <typename RET>
+		RET with_reservation(UNIT const amount,
+		                     auto const &fn,
+		                     auto const &error_fn)
 		{
 			if (!_guard.try_withdraw(amount.value))
 				return error_fn();

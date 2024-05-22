@@ -52,7 +52,7 @@ Genode::Reconstructible : Noncopyable
 		 */
 		bool _constructed = false;
 
-		template <typename... ARGS> void _do_construct(ARGS &&... args)
+		void _do_construct(auto &&... args)
 		{
 			construct_at<MT>(_space, args...);
 			_constructed = true;
@@ -91,11 +91,7 @@ Genode::Reconstructible : Noncopyable
 		 * The arguments are forwarded to the constructor of the embedded
 		 * object.
 		 */
-		template <typename... ARGS>
-		Reconstructible(ARGS &&... args)
-		{
-			_do_construct(args...);
-		}
+		Reconstructible(auto &&... args) { _do_construct(args...); }
 
 		~Reconstructible() { destruct(); }
 
@@ -105,8 +101,7 @@ Genode::Reconstructible : Noncopyable
 		 * If the 'Reconstructible' already hosts a constructed object, the old
 		 * object will be destructed first.
 		 */
-		template <typename... ARGS>
-		void construct(ARGS &&... args)
+		void construct(auto &&... args)
 		{
 			destruct();
 			_do_construct(args...);
@@ -134,8 +129,7 @@ Genode::Reconstructible : Noncopyable
 		/**
 		 * Construct or destruct volatile object according to 'condition'
 		 */
-		template <typename... ARGS>
-		void conditional(bool condition, ARGS &&... args)
+		void conditional(bool condition, auto &&... args)
 		{
 			if (condition && !constructed())
 				construct(args...);

@@ -109,13 +109,14 @@ struct Genode::Registry : private Registry_base
 		: Registry_base::Element(registry, &obj) { }
 	};
 
-	template <typename FUNC>
-	void for_each(FUNC const &fn)
+	void for_each(auto const &fn)
 	{
+		using FN = decltype(fn);
+
 		struct Typed_functor : Registry_base::Untyped_functor
 		{
-			FUNC const &_fn;
-			Typed_functor(FUNC const &fn) : _fn(fn) { }
+			FN const &_fn;
+			Typed_functor(FN const &fn) : _fn(fn) { }
 
 			void call(void *obj_ptr) override
 			{
@@ -127,8 +128,7 @@ struct Genode::Registry : private Registry_base
 		Registry_base::_for_each(untyped_functor);
 	}
 
-	template <typename FUNC>
-	void for_each(FUNC const &fn) const
+	void for_each(auto const &fn) const
 	{
 		Mutex::Guard guard(_mutex);
 
@@ -170,8 +170,7 @@ class Genode::Registered : public T
 		 */
 		static_assert(__has_virtual_destructor(T), "registered object must have virtual destructor");
 
-		template <typename... ARGS>
-		Registered(Registry<Registered<T> > &registry, ARGS &&... args)
+		Registered(Registry<Registered<T> > &registry, auto &&... args)
 		: T(args...), _element(registry, *this) { }
 };
 
@@ -193,8 +192,7 @@ class Genode::Registered_no_delete : public T
 
 	public:
 
-		template <typename... ARGS>
-		Registered_no_delete(Registry<Registered_no_delete<T> > &registry, ARGS &&... args)
+		Registered_no_delete(Registry<Registered_no_delete<T> > &registry, auto &&... args)
 		: T(args...), _element(registry, *this) { }
 };
 

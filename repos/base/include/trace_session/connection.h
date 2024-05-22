@@ -24,10 +24,9 @@ namespace Genode { namespace Trace { struct Connection; } }
 struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
                                    Genode::Trace::Session_client
 {
-	template <typename FUNC>
-	auto _retry(FUNC func) -> decltype(func())
+	auto _retry(auto const &fn) -> decltype(fn())
 	{
-		return retry_with_upgrade(Ram_quota{8*1024}, Cap_quota{2}, func);
+		return retry_with_upgrade(Ram_quota{8*1024}, Cap_quota{2}, fn);
 	}
 
 	/**
@@ -60,8 +59,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 			return Session_client::subjects(dst, dst_len); });
 	}
 
-	template <typename FN>
-	For_each_subject_info_result for_each_subject_info(FN const &fn)
+	For_each_subject_info_result for_each_subject_info(auto const &fn)
 	{
 		return _retry([&] () {
 			return Session_client::for_each_subject_info(fn); });

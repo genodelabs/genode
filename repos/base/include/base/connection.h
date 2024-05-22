@@ -71,14 +71,13 @@ class Genode::Connection_base : Noncopyable, Interface
 		 *
 		 * \noapi
 		 */
-		template <typename FUNC>
-		auto retry_with_upgrade(Ram_quota ram, Cap_quota caps, FUNC func) -> decltype(func())
+		auto retry_with_upgrade(Ram_quota ram, Cap_quota caps, auto const &fn) -> decltype(fn())
 		{
 			enum { UPGRADE_ATTEMPTS = ~0U };
 			return Genode::retry<Out_of_ram>(
 				[&] () {
 					return Genode::retry<Out_of_caps>(
-						[&] () { return func(); },
+						[&] () { return fn(); },
 						[&] () { upgrade_caps(caps.value); },
 						UPGRADE_ATTEMPTS);
 				},

@@ -81,9 +81,9 @@ class Genode::Dictionary : Noncopyable
 		 * matching dictionary element. If no maching element exists,
 		 * 'no_match_fn' is called without argument.
 		 */
-		template <typename FN1, typename FN2>
-		auto with_element(NAME const &name, FN1 const &match_fn, FN2 const &no_match_fn)
-		-> typename Trait::Functor<decltype(&FN1::operator())>::Return_type
+		template <typename FN>
+		auto with_element(NAME const &name, FN const &match_fn, auto const &no_match_fn)
+		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
 		{
 			T *curr_ptr = _tree.first();
 			for (;;) {
@@ -106,9 +106,9 @@ class Genode::Dictionary : Noncopyable
 		 * matching dictionary element. If no maching element exists,
 		 * 'no_match_fn' is called without argument.
 		 */
-		template <typename FN1, typename FN2>
-		auto with_element(NAME const &name, FN1 const &match_fn, FN2 const &no_match_fn) const
-		-> typename Trait::Functor<decltype(&FN1::operator())>::Return_type
+		template <typename FN>
+		auto with_element(NAME const &name, FN const &match_fn, auto const &no_match_fn) const
+		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
 		{
 			auto const_match_fn = [&] (T const &e) { return match_fn(e); };
 			auto non_const_this = const_cast<Dictionary *>(this);
@@ -124,8 +124,7 @@ class Genode::Dictionary : Noncopyable
 		 * This method is intended for the orderly destruction of a dictionary.
 		 * It allows for the consecutive destruction of all elements.
 		 */
-		template <typename FUNC>
-		bool with_any_element(FUNC const &fn)
+		bool with_any_element(auto const &fn)
 		{
 			T *curr_ptr = _tree.first();
 			if (!curr_ptr)
@@ -135,8 +134,7 @@ class Genode::Dictionary : Noncopyable
 			return true;
 		}
 
-		template <typename FN>
-		void for_each(FN const &fn) const { _tree.for_each(fn); }
+		void for_each(auto const &fn) const { _tree.for_each(fn); }
 
 		bool exists(NAME const &name) const
 		{

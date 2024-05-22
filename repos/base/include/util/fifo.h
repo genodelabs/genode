@@ -75,10 +75,9 @@ class Genode::Fifo
 		Fifo() { }
 
 		/**
-		 * Call 'func' of type 'void (QT&)' the head element
+		 * Call 'fn' of type 'void (QT&)' the head element
 		 */
-		template <typename FUNC>
-		void head(FUNC const &func) const { if (_head) func(*_head); }
+		void head(auto const &fn) const { if (_head) fn(*_head); }
 
 		/**
 		 * Remove element explicitly from queue
@@ -130,25 +129,23 @@ class Genode::Fifo
 		}
 
 		/**
-		 * Call 'func' of type 'void (QT&)' for each element in order
+		 * Call 'fn' of type 'void (QT&)' for each element in order
 		 */
-		template <typename FUNC>
-		void for_each(FUNC const &func) const
+		void for_each(auto const &fn) const
 		{
 			QT *elem = _head;
 			while (elem != nullptr) {
-				/* take the next pointer so 'func' cannot modify it */
+				/* take the next pointer so 'fn' cannot modify it */
 				QT *next = elem->Fifo::Element::_next;;
-				func(*elem);
+				fn(*elem);
 				elem = next;
 			}
 		}
 
 		/**
-		 * Remove head and call 'func' of type 'void (QT&)'
+		 * Remove head and call 'fn' of type 'void (QT&)'
 		 */
-		template <typename FUNC>
-		void dequeue(FUNC const &func)
+		void dequeue(auto const &fn)
 		{
 			QT *result = _head;
 
@@ -165,7 +162,7 @@ class Genode::Fifo
 				result->Fifo::Element::_enqueued = false;
 
 				/* pass to caller */
-				func(*result);
+				fn(*result);
 			}
 		}
 
@@ -173,13 +170,12 @@ class Genode::Fifo
 		 * Remove all fifo elements
 		 *
 		 * This method removes all elements in order and calls the lambda
-		 * 'func' of type 'void (QT&)' for each element. It is intended to be
+		 * 'fn' of type 'void (QT&)' for each element. It is intended to be
 		 * used prior the destruction of the FIFO.
 		 */
-		template <typename FUNC>
-		void dequeue_all(FUNC const &func)
+		void dequeue_all(auto const &fn)
 		{
-			while (_head != nullptr) dequeue(func);
+			while (_head != nullptr) dequeue(fn);
 		}
 };
 

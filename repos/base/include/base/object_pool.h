@@ -120,11 +120,11 @@ class Genode::Object_pool : Interface, Noncopyable
 			_tree.remove(obj);
 		}
 
-		template <typename FUNC>
-		auto apply(unsigned long capid, FUNC func)
-		-> typename Trait::Functor<decltype(&FUNC::operator())>::Return_type
+		template <typename FN>
+		auto apply(unsigned long capid, FN const &fn)
+		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
 		{
-			using Functor        = Trait::Functor<decltype(&FUNC::operator())>;
+			using Functor        = Trait::Functor<decltype(&FN::operator())>;
 			using Object_pointer = typename Functor::template Argument<0>::Type;
 			using Weak_ptr       = Weak_ptr<typename Entry::Entry_lock>;
 			using Locked_ptr     = Locked_ptr<typename Entry::Entry_lock>;
@@ -144,19 +144,18 @@ class Genode::Object_pool : Interface, Noncopyable
 				Locked_ptr lock_ptr(ptr);
 				Object_pointer op = lock_ptr.valid()
 					? dynamic_cast<Object_pointer>(&lock_ptr->obj) : nullptr;
-				return func(op);
+				return fn(op);
 			}
 		}
 
-		template <typename FUNC>
-		auto apply(Untyped_capability cap, FUNC func)
-		-> typename Trait::Functor<decltype(&FUNC::operator())>::Return_type
+		template <typename FN>
+		auto apply(Untyped_capability cap, FN const &fn)
+		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
 		{
-			return apply(cap.local_name(), func);
+			return apply(cap.local_name(), fn);
 		}
 
-		template <typename FUNC>
-		void remove_all(FUNC func)
+		void remove_all(auto const &fn)
 		{
 			using Weak_ptr   = Weak_ptr<typename Entry::Entry_lock>;
 			using Locked_ptr = Locked_ptr<typename Entry::Entry_lock>;
@@ -178,7 +177,7 @@ class Genode::Object_pool : Interface, Noncopyable
 					}
 				}
 
-				func(obj);
+				fn(obj);
 			}
 		}
 };

@@ -99,26 +99,23 @@ class Genode::Array
 		 *
 		 * \throw Index_out_of_bounds
 		 */
-		template<typename ... TAIL>
-		void add(T obj, TAIL ... tail)
+		void add(T obj, auto &&... tail)
 		{
 			add(obj);
 			add(tail...);
 		}
 
-		template <typename FUNC>
-		void for_each(FUNC const &f)
+		void for_each(auto const &fn)
 		{
 			for (unsigned idx = 0; idx < _count; idx++)
-				f(idx, _objs[idx]);
+				fn(idx, _objs[idx]);
 		}
 
-		template <typename FUNC>
-		void for_each(FUNC const &f) const
+		void for_each(auto const &fn) const
 		{
 			for (unsigned idx = 0; idx < _count; idx++) {
 				T const & obj = _objs[idx];
-				f(idx, obj);
+				fn(idx, obj);
 			}
 		}
 };

@@ -225,14 +225,9 @@ class Genode::Vcpu_state
 
 				bool charged() const { return _charged; }
 
-				template <typename FN>
-				void with_state(FN const &fn) const
-				{
-					fn(_state);
-				}
+				void with_state(auto const &fn) const { fn(_state); }
 
-				template <typename FN>
-				void charge(FN const &fn)
+				void charge(auto const &fn)
 				{
 					_charged = true;
 					fn(_state);

@@ -771,12 +771,12 @@ class Genode::String
 		 * may fit perfectly into the buffer or may have been truncated.
 		 * In general, it would be safe to assume the latter.
 		 */
-		template <typename T, typename... TAIL>
-		String(T const &arg, TAIL &&... args)
+		template <typename T>
+		String(T const &head, auto &&... tail)
 		{
 			/* initialize string content */
 			Local_output output(_buf);
-			Genode::print(output, arg, args...);
+			Genode::print(output, head, tail...);
 
 			/* add terminating null */
 			_buf[output.num_chars()] = 0;

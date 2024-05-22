@@ -148,8 +148,7 @@ class Genode::Heap : public Allocator
 		/**
 		 * Call 'fn' with the start and size of each backing-store region
 		 */
-		template <typename FN>
-		void for_each_region(FN const &fn) const
+		void for_each_region(auto const &fn) const
 		{
 			Mutex::Guard guard(_mutex);
 			for (Dataspace const *ds = _ds_pool.first(); ds; ds = ds->next())

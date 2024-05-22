@@ -26,7 +26,7 @@ namespace Genode {
 	struct Allocator;
 	struct Range_allocator;
 
-	template <typename T, typename DEALLOC> void destroy(DEALLOC && dealloc, T *obj);
+	template <typename T> void destroy(auto && dealloc, T *obj);
 }
 
 
@@ -276,8 +276,8 @@ inline void operator delete (void *ptr, Genode::Allocator &a) {
  *                 was allocated
  * \param obj      object to destroy
  */
-template <typename T, typename DEALLOC>
-void Genode::destroy(DEALLOC && dealloc, T *obj)
+template <typename T>
+void Genode::destroy(auto && dealloc, T *obj)
 {
 	if (!obj)
 		return;

@@ -168,14 +168,13 @@ struct Genode::Avl_node : Avl_node_base
 	/**
 	 * Apply a functor (read-only) to every node within this subtree
 	 *
-	 * \param functor  function that takes a const NT reference
+	 * \param fn  function that takes a const NT reference
 	 */
-	template <typename FUNC>
-	void for_each(FUNC && functor) const
+	void for_each(auto const &fn) const
 	{
-		if (NT * l = child(Avl_node<NT>::LEFT))  l->for_each(functor);
-		functor(*static_cast<NT const *>(this));
-		if (NT * r = child(Avl_node<NT>::RIGHT)) r->for_each(functor);
+		if (NT * l = child(Avl_node<NT>::LEFT))  l->for_each(fn);
+		fn(*static_cast<NT const *>(this));
+		if (NT * r = child(Avl_node<NT>::RIGHT)) r->for_each(fn);
 	}
 };
 
@@ -229,13 +228,12 @@ class Genode::Avl_tree : Avl_node<NT>
 		/**
 		 * Apply a functor (read-only) to every node within the tree
 		 *
-		 * \param functor  function that takes a const NT reference
+		 * \param fn  function that takes a const NT reference
 		 *
 		 * The iteration order corresponds to the order of the keys
 		 */
-		template <typename FUNC>
-		void for_each(FUNC && functor) const {
-			if (first()) first()->for_each(functor); }
+		void for_each(auto const &fn) const {
+			if (first()) first()->for_each(fn); }
 };
 
 #endif /* _INCLUDE__UTIL__AVL_TREE_H_ */

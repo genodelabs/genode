@@ -73,8 +73,7 @@ struct Genode::Region_map : Interface
 
 		public:
 
-			template <typename T>
-			Local_addr(T ptr) : _ptr((void *)ptr) { }
+			Local_addr(auto ptr) : _ptr((void *)ptr) { }
 
 			Local_addr() { }
 

@@ -323,8 +323,7 @@ class Genode::Session_state::Factory : Noncopyable
 		 *
 		 * \throw Allocator::Out_of_memory
 		 */
-		template <typename... ARGS>
-		Session_state &create(ARGS &&... args)
+		Session_state &create(auto &&... args)
 		{
 			Session_state &session = *new (_slab) Session_state(args...);
 			session.owner(*this);

@@ -122,8 +122,7 @@ class Genode::List_model : Noncopyable
 		/**
 		 * Call functor 'fn' for each const element
 		 */
-		template <typename FN>
-		void for_each(FN const &fn) const
+		void for_each(auto const &fn) const
 		{
 			for (Element const *e = _elements.first(); e; e = e->next())
 				fn(static_cast<ELEM const &>(*e));
@@ -132,8 +131,7 @@ class Genode::List_model : Noncopyable
 		/**
 		 * Call functor 'fn' for each non-const element
 		 */
-		template <typename FN>
-		void for_each(FN const &fn)
+		void for_each(auto const &fn)
 		{
 			Element *next = nullptr;
 			for (Element *e = _elements.first(); e; e = next) {
@@ -150,8 +148,7 @@ class Genode::List_model : Noncopyable
 		 * list-model elements are visited via recursive function calls
 		 * instead of a 'for_each' loop.
 		 */
-		template <typename FN>
-		void with_first(FN const &fn) const
+		void with_first(auto const &fn) const
 		{
 			if (Element const *e = _elements.first())
 				fn(static_cast<ELEM const &>(*e));

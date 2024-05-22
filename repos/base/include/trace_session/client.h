@@ -88,8 +88,7 @@ struct Genode::Trace::Session_client : Genode::Rpc_client<Genode::Trace::Session
 
 		struct For_each_subject_info_result { size_t count; size_t limit; };
 
-		template <typename FN>
-		For_each_subject_info_result for_each_subject_info(FN const &fn)
+		For_each_subject_info_result for_each_subject_info(auto const &fn)
 		{
 			size_t const num_subjects = call<Rpc_subject_infos>();
 			size_t const max_subjects = _argument_buffer.size / (sizeof(Subject_info) + sizeof(Subject_id));

@@ -58,8 +58,7 @@ class Genode::Log
 
 		Log(Output &output) : _output(output) { }
 
-		template <typename... ARGS>
-		void output(Type type, ARGS &&... args)
+		void output(Type type, auto &&... args)
 		{
 			/*
 			 * This function is being inlined. Hence, we try to keep it as
@@ -82,8 +81,7 @@ class Genode::Log
 		 */
 		struct Log_fn
 		{
-			template <typename... ARGS>
-			Log_fn(ARGS && ... args) { log().output(LOG, args...); }
+			Log_fn(auto && ... args) { log().output(LOG, args...); }
 		};
 };
 
@@ -103,8 +101,7 @@ class Genode::Raw
 
 	public:
 
-		template <typename... ARGS>
-		static void output(ARGS &&... args)
+		static void output(auto &&... args)
 		{
 			_acquire();
 			Output::out_args(_output(), args...);
@@ -132,8 +129,7 @@ class Genode::Trace_output
 
 		Trace_output() { }
 
-		template <typename... ARGS>
-		void output(ARGS &&... args)
+		void output(auto &&... args)
 		{
 			Buffered_trace_output buffered_trace_output
 			{ Write_trace_fn() };
@@ -152,8 +148,7 @@ class Genode::Trace_output
 		 */
 		struct Fn
 		{
-			template <typename... ARGS>
-			Fn(ARGS && ... args)
+			Fn(auto && ... args)
 			{
 				trace_output().output(Trace::timestamp(), ": ", args...);
 			}
@@ -166,8 +161,7 @@ namespace Genode {
 	/**
 	 * Write 'args' as a regular message to the log
 	 */
-	template <typename... ARGS>
-	void log(ARGS &&... args) { Log::Log_fn(args...); }
+	void log(auto &&... args) { Log::Log_fn(args...); }
 
 
 	/**
@@ -177,8 +171,7 @@ namespace Genode {
 	 * the description of the 'error' function regarding the convention of
 	 * formatting error/warning messages.
 	 */
-	template <typename... ARGS>
-	void warning(ARGS &&... args) { Log::log().output(Log::WARNING, args...); }
+	void warning(auto &&... args) { Log::log().output(Log::WARNING, args...); }
 
 
 	/**
@@ -189,8 +182,7 @@ namespace Genode {
 	 * message. By convention, the actual message should be brief, starting
 	 * with a lower-case character.
 	 */
-	template <typename... ARGS>
-	void error(ARGS &&... args) { Log::log().output(Log::ERROR, args...); }
+	void error(auto &&... args) { Log::log().output(Log::ERROR, args...); }
 
 
 	/**
@@ -198,8 +190,7 @@ namespace Genode {
 	 *
 	 * This function is intended for temporarily debugging purposes only.
 	 */
-	template <typename... ARGS>
-	void raw(ARGS &&... args) { Raw::output(args...); }
+	void raw(auto &&... args) { Raw::output(args...); }
 
 
 	/**
@@ -207,8 +198,7 @@ namespace Genode {
 	 *
 	 * The message is prefixed with a timestamp value
 	 */
-	template <typename... ARGS>
-	void trace(ARGS && ... args) { Trace_output::Fn(args...); }
+	void trace(auto && ... args) { Trace_output::Fn(args...); }
 }
 
 

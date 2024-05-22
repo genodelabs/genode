@@ -44,8 +44,7 @@ class Genode::Synced_allocator : public Allocator
 
 		using Guard = typename Synced_interface<ALLOC, Mutex>::Guard;
 
-		template <typename... ARGS>
-		Synced_allocator(ARGS &&... args)
+		Synced_allocator(auto &&... args)
 		: _alloc(args...), _synced_object(_mutex, &_alloc) { }
 
 		Guard operator () ()       { return _synced_object(); }
