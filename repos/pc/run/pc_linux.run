@@ -1,0 +1,134 @@
+if {![have_include "load/ipxe"]} {
+	puts "run script requires load/ipxe"
+	exit 1
+}
+
+proc _arch { } {
+	if {[have_spec "x86_32"]} { return "x86_32" }
+	if {[have_spec "x86_64"]} { return "x86_64" }
+	puts "not supported architecture!"
+	exit 1
+}
+
+set arch    [_arch]
+set ramdisk [run_dir]/rootfs.cpio
+
+create_boot_directory
+
+build { pc_linux busybox }
+
+# Create expected boot directory, as we cannot use build_boot_image
+exec mkdir -p [run_dir]/boot
+
+#
+# Create script to run inside the initramfs under /etc/init.d/rcS
+#
+proc _init_rcs { } {
+	set file_path [run_dir]/rcS
+	set fd [open $file_path w]
+	puts $fd {#!bin/sh
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t tmpfs none /var
+mount -t tmpfs none /dev
+/sbin/mdev -s
+mkdir /var/log
+echo "****"
+echo "**** Please connect to console in a new terminal"
+echo "****"
+}
+	close $fd
+	return $file_path
+}
+
+set init_rcs [_init_rcs]
+
+#
+# CPIO content description used by `gen_init_cpio`
+#
+proc _cpio_desc { } {
+	global init_rcs arch
+	set bblist [open busybox/$arch/busybox.links r]
+	set file_path [run_dir]/cpio.desc
+	set fd        [open $file_path w]
+
+	puts $fd "dir  /bin         0755 0 0"
+	puts $fd "dir  /dev         0755 0 0"
+	puts $fd "dir  /etc         0755 0 0"
+	puts $fd "dir  /etc/init.d  0755 0 0"
+	puts $fd "dir  /proc        0755 0 0"
+	puts $fd "dir  /root        0700 0 0"
+	puts $fd "dir  /sbin        0755 0 0"
+	puts $fd "dir  /sys         0755 0 0"
+	puts $fd "dir  /usr         0755 0 0"
+	puts $fd "dir  /usr/bin     0755 0 0"
+	puts $fd "dir  /usr/sbin    0755 0 0"
+	puts $fd "dir  /var         0755 0 0"
+	puts $fd "nod  /dev/console 0622 0 0 c 5 1"
+	puts $fd "nod  /dev/null    0666 0 0 c 1 3"
+	puts $fd "file /bin/busybox busybox/$arch/busybox 0755 0 0"
+	puts $fd "file /etc/init.d/rcS $init_rcs 0755 0 0"
+
+	foreach line [split [read $bblist] \n] {
+		if {[string trim $line] != ""} {
+			puts $fd "slink $line /bin/busybox 0755 0 0"
+		}
+	}
+	close $bblist
+	close $fd
+
+	return $file_path
+}
+
+set cpio_desc [_cpio_desc]
+
+proc _uart { } {
+	if {[have_board "pc"]} { return "ttyS0" }
+	puts "not supported board!"
+	exit 1
+}
+
+set uart [_uart]
+
+create_ipxe_config
+update_ipxe_boot_dir
+
+proc _boot_script { } {
+	global uart
+	set file_path [run_dir]/boot.cfg
+	set fd [open $file_path w]
+	puts $fd "#!ipxe
+kernel bzImage console=$uart,115200 root=/dev/ram ip=dhcp debug rdinit=/linuxrc initrd=rootfs.cpio.gz
+initrd rootfs.cpio.gz
+boot
+"
+	close $fd
+	return $file_path
+}
+
+# example to amend rootfs with wifi firmware
+if {false} {
+	import_from_depot [depot_user]/raw/pc_wifi_firmware
+
+	exec tar -C [run_dir]/genode -xf [run_dir]/genode/pc_wifi_firmware.tar iwlwifi-QuZ-a0-hr-b0-68.ucode
+
+	set fd [open $cpio_desc a]
+	puts $fd "dir  /lib          0755 0 0"
+	puts $fd "dir  /lib/firmware 0755 0 0"
+	puts $fd "file /lib/firmware/iwlwifi-QuZ-a0-hr-b0-68.ucode [run_dir]/genode/iwlwifi-QuZ-a0-hr-b0-68.ucode 0755 0 0"
+	close $fd
+}
+
+set boot_script [_boot_script]
+
+
+# Provide kernel image and create initial-ram-filesystem
+file copy pc_linux/$arch/arch/x86/boot/bzImage [run_dir]/
+exec pc_linux/$arch/usr/gen_init_cpio $cpio_desc > $ramdisk
+exec gzip $ramdisk
+
+# Trick run tools that the kernel started
+proc run_boot_string { } { return "Booting Linux" }
+
+run_genode_until forever
+interact
