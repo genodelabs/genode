@@ -9,8 +9,7 @@ Genode is a construction kit for building special-purpose operating systems
 out of a number of components such as device drivers, protocol
 stacks, and applications. Those components are organized using only a few
 yet powerful architectual prinicples, and thereby, allow for the
-composition of a wide range of different systems. The live CD is meant to
-showcase how far the concept scales as of today.
+composition of a wide range of different systems.
 
 The following introduction will provide you with hands-on experience with
 the basics of Genode:
@@ -52,7 +51,7 @@ scout is not directly available to launchpad anymore.
   started the scout tutorial browser.
 
 In Figure [img/setup], you see an illustration of the current setup (slightly
-simplified, leaving out the main menu and the other parts of the live CD). At
+simplified). At
 the very bottom, there are the kernel, core, and init. Init has started the
 framebuffer driver, the timer driver, the nitpicker GUI server, and launchpad
 as it children. Launchpad, in turn, has started the second instance of scout as
@@ -202,15 +201,15 @@ can further be combined with compatibility to existing applications
 executed on virtual machines.
 
 More details, architectural and technical documents, our road
-map, and the complete source code are available at [http://genode.org].
+map, and the complete source code are available at [https://genode.org].
 
 The development of the Genode OS Framework is conducted as
 an open-source community project, coordinated by Genode Labs,
 a company founded by the original authors of Genode.
 If you are interested in supporting our project through
 participation or funding, please consider joining our
-community ([http://genode.org]) or contact Genode Labs
-([http://www.genode-labs.com]).
+community ([https://genode.org]) or contact Genode Labs
+([https://www.genode-labs.com]).
 
 ! info@genode-labs.com
 

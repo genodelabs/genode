@@ -75,8 +75,7 @@ Document *create_document()
 	b0->append_plaintext("out of a number of components such as device drivers, protocol", &plain_style);
 	b0->append_plaintext("stacks, and applications. Those components are organized using only a few", &plain_style);
 	b0->append_plaintext("yet powerful architectual prinicples, and thereby, allow for the", &plain_style);
-	b0->append_plaintext("composition of a wide range of different systems. The live CD is meant to", &plain_style);
-	b0->append_plaintext("showcase how far the concept scales as of today.", &plain_style);
+	b0->append_plaintext("composition of a wide range of different systems.", &plain_style);
 	doc->append(b0);
 
 	b0 = new Block();
@@ -174,7 +173,7 @@ Document *create_document()
 	b0->append_plaintext("In Figure", &plain_style);
 	b0->append_plaintext("setup", &link_style);
 	b0->append_plaintext(", you see an illustration of the current setup (slightly", &plain_style);
-	b0->append_plaintext("simplified, leaving out the main menu and the other parts of the live CD). At", &plain_style);
+	b0->append_plaintext("simplified). At", &plain_style);
 	b0->append_plaintext("the very bottom, there are the kernel, core, and init. Init has started the", &plain_style);
 	b0->append_plaintext("framebuffer driver, the timer driver, the nitpicker GUI server, and launchpad", &plain_style);
 	b0->append_plaintext("as it children. Launchpad, in turn, has started the second instance of scout as", &plain_style);
@@ -424,7 +423,7 @@ Document *create_document()
 	b0 = new Block();
 	b0->append_plaintext("More details, architectural and technical documents, our road", &plain_style);
 	b0->append_plaintext("map, and the complete source code are available at", &plain_style);
-	b0->append_plaintext("http://genode.org", &link_style);
+	b0->append_plaintext("https://genode.org", &link_style);
 	b0->append_plaintext(".", &plain_style);
 	chapter->append(b0);
 
@@ -435,10 +434,10 @@ Document *create_document()
 	b0->append_plaintext("If you are interested in supporting our project through", &plain_style);
 	b0->append_plaintext("participation or funding, please consider joining our", &plain_style);
 	b0->append_plaintext("community (", &plain_style);
-	b0->append_plaintext("http://genode.org", &link_style);
+	b0->append_plaintext("https://genode.org", &link_style);
 	b0->append_plaintext(") or contact Genode Labs", &plain_style);
 	b0->append_plaintext("(", &plain_style);
-	b0->append_plaintext("http://www.genode-labs.com", &link_style);
+	b0->append_plaintext("https://www.genode-labs.com", &link_style);
 	b0->append_plaintext(").", &plain_style);
 	chapter->append(b0);
 
