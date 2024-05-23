@@ -15,10 +15,9 @@ pubkey_path = $(firstword \
 
 # obtain key ID of 'depot/<user>/pubkey' to be used to select signing key
 pubkey_id = $(shell pubkey_file=$(call pubkey_path,$1); \
-                    $(GPG) --yes -o $$pubkey_file.dearmored --dearmor $$pubkey_file; \
-                    $(GPG) --with-colon --no-default-keyring --list-public-keys \
-                           --keyring $$pubkey_file.dearmored |\
-                    head -n 2 | tail -n 1 | cut -d: -f5; rm -f $$pubkey_file.dearmored)
+                    $(GPG) --dry-run --with-colon --import \
+                           --import-options import-show $$pubkey_file 2> /dev/null |\
+                    head -n 1 | cut -d: -f5)
 
 MISSING_PUBKEY_FILES := $(sort \
                            $(foreach A,$(ARCHIVES),\
