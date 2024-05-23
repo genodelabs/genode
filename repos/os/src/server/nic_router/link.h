@@ -256,7 +256,7 @@ class Net::Tcp_link : public Link
 {
 	private:
 
-		enum class State : Genode::uint8_t { OPEN, CLOSING, CLOSED, };
+		enum class State : Genode::uint8_t { OPENING, OPEN, CLOSING, CLOSED };
 
 		struct Peer
 		{
@@ -264,7 +264,7 @@ class Net::Tcp_link : public Link
 			bool fin_acked { false };
 		};
 
-		State _state  { State::OPEN };
+		State _state  { State::OPENING };
 		Peer  _client { };
 		Peer  _server { };
 
@@ -292,6 +292,8 @@ class Net::Tcp_link : public Link
 		void client_packet(Tcp_packet &tcp) { _tcp_packet(tcp, _client, _server); }
 
 		void server_packet(Tcp_packet &tcp);
+
+		bool can_early_drop() { return _state != State::OPEN; }
 };
 
 
@@ -311,6 +313,8 @@ struct Net::Udp_link : Link
 	void client_packet() { _packet(); }
 
 	void server_packet();
+
+	bool can_early_drop() { return true; }
 };
 
 
@@ -330,6 +334,8 @@ struct Net::Icmp_link : Link
 	void client_packet() { _packet(); }
 
 	void server_packet();
+
+	bool can_early_drop() { return true; }
 };
 
 #endif /* _LINK_H_ */

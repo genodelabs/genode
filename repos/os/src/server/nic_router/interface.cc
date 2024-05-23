@@ -24,6 +24,7 @@
 #include <configuration.h>
 #include <l3_protocol.h>
 #include <assertion.h>
+#include <retry.h>
 
 using namespace Net;
 using Genode::Deallocator;
@@ -98,10 +99,10 @@ static void _destroy_links(Link_list   &links,
 
 
 template <typename LINK_TYPE>
-static void _destroy_some_links(Link_list     &links,
-                                Link_list     &dissolved_links,
-                                Deallocator   &dealloc,
-                                unsigned long &max)
+static void _early_drop_links(Link_list     &links,
+                              Link_list     &dissolved_links,
+                              Deallocator   &dealloc,
+                              unsigned long &max)
 {
 	if (!max) {
 		return; }
@@ -112,10 +113,15 @@ static void _destroy_some_links(Link_list     &links,
 		if (!--max) {
 			return; }
 	}
-	while (Link *link = links.first()) {
-		_destroy_link<LINK_TYPE>(*link, links, dealloc);
-		if (!--max) {
-			return; }
+	Link *link_ptr = links.first();
+	while (link_ptr) {
+		Link *next_ptr = link_ptr->next();
+		if (static_cast<LINK_TYPE *>(link_ptr)->can_early_drop()) {
+			_destroy_link<LINK_TYPE>(*link_ptr, links, dealloc);
+			if (!--max) {
+				return; }
+		}
+		link_ptr = next_ptr;
 	}
 }
 
@@ -493,6 +499,15 @@ void Interface::_detach_from_domain()
 }
 
 
+void Interface::_try_emergency_free_quota()
+{
+	unsigned long max = MAX_FREE_OPS_PER_EMERGENCY;
+	_early_drop_links<Icmp_link>(_icmp_links, _dissolved_icmp_links, _alloc, max);
+	_early_drop_links<Udp_link> (_udp_links,  _dissolved_udp_links,  _alloc, max);
+	_early_drop_links<Tcp_link> (_tcp_links,  _dissolved_tcp_links,  _alloc, max);
+}
+
+
 Packet_result Interface::_new_link(L3_protocol          const  protocol,
                                    Domain                     &local_domain,
                                    Link_side_id         const &local,
@@ -503,49 +518,37 @@ Packet_result Interface::_new_link(L3_protocol          const  protocol,
 	Packet_result result { };
 	switch (protocol) {
 	case L3_protocol::TCP:
-		try {
-			new (_alloc)
+		retry_once<Out_of_ram, Out_of_caps>(
+			[&] {
+				new (_alloc)
 				Tcp_link { *this, local_domain, local, remote_port_alloc_ptr, remote_domain,
-				           remote, _timer, _config(), protocol, _tcp_stats };
-		}
-		catch (Out_of_ram)  {
-			_tcp_stats.refused_for_ram++;
-			result = packet_drop("out of RAM while creating TCP link");
-		}
-		catch (Out_of_caps) {
-			_tcp_stats.refused_for_ram++;
-			result = packet_drop("out of CAPs while creating TCP link");
-		}
+				           remote, _timer, _config(), protocol, _tcp_stats }; },
+			[&] { _try_emergency_free_quota(); },
+			[&] {
+				_tcp_stats.refused_for_ram++;
+				result = packet_drop("out of quota while creating TCP link"); });
 		break;
 	case L3_protocol::UDP:
-		try {
-			new (_alloc)
-				Udp_link { *this, local_domain, local, remote_port_alloc_ptr, remote_domain,
-				           remote, _timer, _config(), protocol, _udp_stats };
-		}
-		catch (Out_of_ram) {
-			_udp_stats.refused_for_ram++;
-			result = packet_drop("out of RAM while creating UDP link");
-		}
-		catch (Out_of_caps) {
-			_udp_stats.refused_for_ram++;
-			result = packet_drop("out of CAPs while creating UDP link");
-		}
+		retry_once<Out_of_ram, Out_of_caps>(
+			[&] {
+				new (_alloc)
+					Udp_link { *this, local_domain, local, remote_port_alloc_ptr, remote_domain,
+					           remote, _timer, _config(), protocol, _udp_stats }; },
+			[&] { _try_emergency_free_quota(); },
+			[&] {
+				_udp_stats.refused_for_ram++;
+				result = packet_drop("out of quota while creating UDP link"); });
 		break;
 	case L3_protocol::ICMP:
-		try {
-			new (_alloc)
-				Icmp_link { *this, local_domain, local, remote_port_alloc_ptr, remote_domain,
-				            remote, _timer, _config(), protocol, _icmp_stats };
-		}
-		catch (Out_of_ram) {
-			_icmp_stats.refused_for_ram++;
-			result = packet_drop("out of RAM while creating ICMP link");
-		}
-		catch (Out_of_caps) {
-			_icmp_stats.refused_for_ram++;
-			result = packet_drop("out of CAPs while creating ICMP link");
-		}
+		retry_once<Out_of_ram, Out_of_caps>(
+			[&] {
+				new (_alloc)
+					Icmp_link { *this, local_domain, local, remote_port_alloc_ptr, remote_domain,
+					            remote, _timer, _config(), protocol, _icmp_stats }; },
+			[&] { _try_emergency_free_quota(); },
+			[&] {
+				_icmp_stats.refused_for_ram++;
+				result = packet_drop("out of quota while creating ICMP link"); });
 		break;
 	default: ASSERT_NEVER_REACHED; }
 	return result;
@@ -606,12 +609,13 @@ Packet_result Interface::_adapt_eth(Ethernet_frame          &eth,
 					interface._broadcast_arp_request(
 						remote_ip_cfg.interface().address, hop_ip);
 				});
-				try {
-					new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt };
-					result = packet_postponed();
-				}
-				catch (Out_of_ram)  { result = packet_drop("out of RAM while creating ARP waiter"); }
-				catch (Out_of_caps) { result = packet_drop("out of CAPs while creating ARP waiter"); }
+				retry_once<Out_of_ram, Out_of_caps>(
+					[&] {
+						new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt };
+						result = packet_postponed();
+					},
+					[&] { _try_emergency_free_quota(); },
+					[&] { result = packet_drop("out of quota while creating ARP waiter"); });
 			}
 		);
 	};
@@ -774,26 +778,31 @@ Packet_result Interface::_new_dhcp_allocation(Ethernet_frame &eth,
                                               Domain         &local_domain)
 {
 	Packet_result result { };
-	auto ok_fn = [&] (Ipv4_address const &ip) {
-		Dhcp_allocation &allocation = *new (_alloc)
-			Dhcp_allocation { *this, ip, dhcp.client_mac(),
-			                  _timer, _config().dhcp_offer_timeout() };
+	dhcp_srv.alloc_ip().with_result(
+		[&] (Ipv4_address const &ip) {
+			retry_once<Out_of_ram, Out_of_caps>(
+				[&] {
+					Dhcp_allocation &allocation = *new (_alloc)
+						Dhcp_allocation { *this, ip, dhcp.client_mac(),
+						                  _timer, _config().dhcp_offer_timeout() };
 
-		_dhcp_allocations.insert(allocation);
-		if (_config().verbose()) {
-			log("[", local_domain, "] offer DHCP allocation: ", allocation); }
+					_dhcp_allocations.insert(allocation);
+					if (_config().verbose()) {
+						log("[", local_domain, "] offer DHCP allocation: ", allocation); }
 
-		_send_dhcp_reply(dhcp_srv, eth.src(), dhcp.client_mac(),
-		                 allocation.ip(),
-		                 Dhcp_packet::Message_type::OFFER,
-		                 dhcp.xid(),
-		                 local_domain.ip_config().interface());
+					_send_dhcp_reply(dhcp_srv, eth.src(), dhcp.client_mac(),
+					                 allocation.ip(),
+					                 Dhcp_packet::Message_type::OFFER,
+					                 dhcp.xid(),
+					                 local_domain.ip_config().interface());
 
-		result = packet_handled();
-	};
-	try { dhcp_srv.alloc_ip().with_result(ok_fn, [&] (auto) { result = packet_drop("failed to allocate IP for DHCP client"); }); }
-	catch (Out_of_ram)  { result = packet_drop("out of RAM while creating DHCP allocation"); }
-	catch (Out_of_caps) { result = packet_drop("out of CAPs while creating DHCP allocation"); }
+					result = packet_handled();
+				},
+				[&] { _try_emergency_free_quota(); },
+				[&] { result = packet_drop("out of quota while creating DHCP allocation"); });
+		},
+		[&] (auto) { result = packet_drop("failed to allocate IP for DHCP client"); });
+
 	return result;
 }
 

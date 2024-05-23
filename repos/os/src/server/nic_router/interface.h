@@ -128,7 +128,7 @@ class Net::Interface : private Interface_list::Element
 		using Signal_context_capability = Genode::Signal_context_capability;
 
 		enum { IPV4_TIME_TO_LIVE          = 64 };
-		enum { MAX_FREE_OPS_PER_EMERGENCY = 1024 };
+		enum { MAX_FREE_OPS_PER_EMERGENCY = 100 };
 
 		struct Update_domain
 		{
@@ -192,6 +192,8 @@ class Net::Interface : private Interface_list::Element
 
 		void _release_dhcp_allocation(Dhcp_allocation &allocation,
 		                              Domain          &local_domain);
+
+		void _try_emergency_free_quota();
 
 		[[nodiscard]] Packet_result _new_dhcp_allocation(Ethernet_frame &eth,
 		                                                Dhcp_packet    &dhcp,

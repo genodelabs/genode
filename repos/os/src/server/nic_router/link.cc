@@ -253,7 +253,7 @@ void Tcp_link::_tcp_packet(Tcp_packet &tcp,
 			}
 		}
 	}
-	if (_state == State::OPEN) {
+	if (_state == State::OPENING || _state == State::OPEN) {
 		_packet();
 	} else {
 		_dissolve_timeout.schedule(
@@ -266,6 +266,7 @@ void Tcp_link::server_packet(Tcp_packet &tcp)
 {
 	if (_opening) {
 		_opening = false;
+		_state = State::OPEN;
 		_stats_curr()--;
 		if (&_stats_curr() == &_stats.opening) { _stats_curr = _stats.open; }
 		_stats_curr()++;
