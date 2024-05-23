@@ -234,7 +234,7 @@ struct Sculpt::Deploy
 					if (name == "default_fs_rw")
 						return;
 
-					if (!_runtime_info.present_in_runtime(name))
+					if (!_runtime_info.present_in_runtime(name) || _children.blueprint_needed(name))
 						fn(name);
 				});
 			});
