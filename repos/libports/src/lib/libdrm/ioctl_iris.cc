@@ -352,7 +352,6 @@ struct Drm::Buffer
 
 	Drm::Buffer_id id() const
 	{
-		/* skip first id (0) */
 		return Drm::Buffer_id { _elem.id().value };
 	}
 };
@@ -586,9 +585,32 @@ struct Drm::Context
 		} catch (Buffer::Id_space::Unknown_id) { }
 	}
 
+	Genode::Mutex _exec_mutex { };
+	unsigned      _exec_counter { 0 };
+
+	struct Exec_mutex_check
+	{
+		unsigned &_counter;
+
+		Exec_mutex_check(unsigned &counter)
+		: _counter(counter)
+		{
+			_counter++;
+		}
+
+		~Exec_mutex_check() { _counter--; }
+	};
+
 	int exec_buffer(drm_i915_gem_exec_object2 *obj, uint64_t count,
 	                uint64_t batch_id, size_t batch_length)
 	{
+		if (_exec_counter > 0)
+			Genode::warning("Parallel calls to '", __func__, "' are ",
+			                "unsupported. This call may block forever");
+
+		Genode::Mutex::Guard guard      { _exec_mutex   };
+		Exec_mutex_check     exec_guard { _exec_counter };
+
 		Buffer *command_buffer = nullptr;
 
 		for (uint64_t i = 0; i < count; i++) {
@@ -784,6 +806,8 @@ class Drm::Call
 
 		int _device_gem_create(void *arg)
 		{
+			Genode::Mutex::Guard guard { _drm_mutex };
+
 			auto const p = reinterpret_cast<drm_i915_gem_create*>(arg);
 
 			uint64_t const size = (p->size + 0xfff) & ~0xfff;
@@ -804,6 +828,8 @@ class Drm::Call
 
 		int _device_gem_mmap(void *arg)
 		{
+			Genode::Mutex::Guard guard { _drm_mutex };
+
 			auto      const p      = reinterpret_cast<drm_i915_gem_mmap *>(arg);
 			Drm::Buffer_id const id { .value = p->handle };
 
@@ -938,6 +964,8 @@ class Drm::Call
 
 		int _device_gem_context_create(void *arg)
 		{
+			Genode::Mutex::Guard guard { _drm_mutex };
+
 			drm_i915_gem_context_create * const p = reinterpret_cast<drm_i915_gem_context_create*>(arg);
 
 			int fd = Libc::open("/dev/gpu", 0);
@@ -971,6 +999,8 @@ class Drm::Call
 
 		int _device_gem_context_destroy(void *arg)
 		{
+			Genode::Mutex::Guard guard { _drm_mutex };
+
 			unsigned long ctx_id = reinterpret_cast<drm_i915_gem_context_destroy *>(arg)->ctx_id;
 			Context_id const id  = Drm::Context::id(ctx_id);
 
@@ -1224,6 +1254,8 @@ class Drm::Call
 
 		int _generic_gem_close(void *arg)
 		{
+			Genode::Mutex::Guard guard { _drm_mutex };
+
 			auto      const p  = reinterpret_cast<drm_gem_close*>(arg);
 			Drm::Buffer_id const id { .value = p->handle };
 			return _free_buffer(id);
@@ -1425,9 +1457,6 @@ class Drm::Call
 			drm_syncobj_create reserve_id_0 { };
 			if (_generic_syncobj_create(&reserve_id_0))
 				Genode::warning("syncobject 0 not reserved");
-
-			/* make handle id 0 unavailable in buffer space */
-			_alloc_buffer(0x1000, [](Buffer &) { });
 		}
 
 		~Call()
@@ -1460,6 +1489,8 @@ class Drm::Call
 
 		void unmap_buffer(void *addr, size_t length)
 		{
+			Genode::Mutex::Guard guard { _drm_mutex };
+
 			bool found = false;
 
 			_buffer_space.for_each<Buffer>([&] (Buffer &b) {
@@ -1488,6 +1519,8 @@ class Drm::Call
 
 		void unmap_buffer_ppgtt(__u32 handle)
 		{
+			Genode::Mutex::Guard guard { _drm_mutex };
+
 			Drm::Buffer_id const id = { .value = handle };
 			_context_space.for_each<Drm::Context>([&](Drm::Context &context) {
 				context.unmap_buffer_gpu(id);
@@ -1496,8 +1529,6 @@ class Drm::Call
 
 		int ioctl(unsigned long request, void *arg)
 		{
-			Genode::Mutex::Guard guard { _drm_mutex };
-
 			bool const device = device_ioctl(request);
 			return device ? _device_ioctl(device_number(request), arg)
 			              : _generic_ioctl(command_number(request), arg);
