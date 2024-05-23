@@ -145,6 +145,10 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 	bool      msi_x   = cfg.msi_x_cap.constructed();
 	irq_pin_t irq_pin = cfg.read<Config::Irq_pin>();
 
+	/* disable MSI/MSI-X by default */
+	if (msi) cfg.msi_cap->write<Pci::Config::Msi_capability::Control::Enable>(0);
+	if (msi_x) cfg.msi_x_cap->write<Pci::Config::Msi_x_capability::Control::Enable>(0);
+
 	gen.node("device", [&]
 	{
 		auto string = [&] (uint64_t v) { return String<16>(Hex(v)); };
