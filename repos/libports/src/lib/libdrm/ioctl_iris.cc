@@ -187,6 +187,7 @@ static const char *command_name(unsigned long request)
 	case DRM_I915_GET_RESET_STATS:       return "DRM_I915_GET_RESET_STATS";
 	case DRM_I915_GEM_CONTEXT_CREATE:    return "DRM_I915_GEM_CONTEXT_CREATE";
 	case DRM_I915_GEM_CONTEXT_DESTROY:   return "DRM_I915_GEM_CONTEXT_DESTROY";
+	case DRM_I915_GEM_SET_CACHING:       return "DRM_I915_GEM_SET_CACHING";
 	default:
 		return "<unknown driver>";
 	}
@@ -1243,6 +1244,7 @@ class Drm::Call
 			case DRM_I915_QUERY:                return _device_query(arg);
 			case DRM_I915_GEM_CONTEXT_SETPARAM: return _device_gem_context_set_param(arg);
 			case DRM_I915_GEM_CONTEXT_GETPARAM: return _device_gem_context_get_param(arg);
+			case DRM_I915_GEM_SET_CACHING:      return 0;
 			default:
 				if (verbose_ioctl)
 					Genode::error("Unhandled device specific ioctl:", Genode::Hex(cmd));
