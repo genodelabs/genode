@@ -32,5 +32,10 @@ void Genode::cache_clean_invalidate_data(Genode::addr_t, Genode::size_t)
 
 void Genode::cache_invalidate_data(Genode::addr_t, Genode::size_t)
 {
-	error(__func__, " not implemented for this kernel!");
+	static bool warned_once;
+
+	if (!warned_once) {
+		error(__func__, " not implemented for this kernel!");
+		warned_once = true;
+	}
 }
