@@ -63,7 +63,7 @@ VBOX_CC_OPT += -DVBOX_WITH_GUEST_PROPS
 # prevent access to port content at the dependency stage of the build system
 ifeq ($(called_from_lib_mk),yes)
 include $(VIRTUALBOX_DIR)/Version.kmk
-CC_CXX_OPT_STD = -std=gnu++17
+CC_CXX_OPT_STD = -std=gnu++17 -fconcepts
 endif
 
 # if included from virtualbox6/target.mk provide version but leave CC_CXX_OPT_STD alone
