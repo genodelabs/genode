@@ -16,7 +16,6 @@
 #include <base/child.h>
 #include <rom_session/connection.h>
 #include <log_session/log_session.h>
-#include <loader_session/connection.h>
 #include <region_map/client.h>
 
 using namespace Genode;
@@ -151,120 +150,25 @@ struct Faulting_child_test
 };
 
 
-/******************************************************************
- ** Test for detecting failures in a child started by the loader **
- ******************************************************************/
-
-struct Faulting_loader_child_test
-{
-	static char const *name() { return "failure detection in loaded child"; }
-
-	Constructible<Loader::Connection> loader;
-
-	void start_iteration(Env &env, Signal_context_capability fault_sigh)
-	{
-		loader.construct(env, Ram_quota{1024*1024}, Cap_quota{100});
-
-		/* register fault handler at loader session */
-		loader->fault_sigh(fault_sigh);
-
-		/* start subsystem */
-		loader->start("test-segfault");
-	}
-};
-
-
-/***********************************************************************
- ** Test for detecting failures in a grandchild started by the loader **
- ***********************************************************************/
-
-struct Faulting_loader_grand_child_test
-{
-	static char const *name() { return "failure detection of loaded grand child"; }
-
-	static char const *config()
-	{
-		return
-			"<config>\n"
-			"  <parent-provides>\n"
-			"    <service name=\"ROM\"/>\n"
-			"    <service name=\"CPU\"/>\n"
-			"    <service name=\"PD\"/>\n"
-			"    <service name=\"LOG\"/>\n"
-			"  </parent-provides>\n"
-			"  <default-route>\n"
-			"    <any-service> <parent/> <any-child/> </any-service>\n"
-			"  </default-route>\n"
-			"  <start name=\"test-segfault\" caps=\"50\">\n"
-			"    <resource name=\"RAM\" quantum=\"2M\"/>\n"
-			"  </start>\n"
-			"</config>";
-	}
-
-	static size_t config_size() { return strlen(config()); }
-
-	Constructible<Loader::Connection> loader;
-
-	void start_iteration(Env &env, Signal_context_capability fault_sigh)
-	{
-		loader.construct(env, Ram_quota{4*1024*1024}, Cap_quota{130});
-
-		/* import config into loader session */
-		{
-			Attached_dataspace ds(env.rm(),
-			                      loader->alloc_rom_module("config", config_size()));
-			memcpy(ds.local_addr<char>(), config(), config_size());
-			loader->commit_rom_module("config");
-		}
-
-		/* register fault handler at loader session */
-		loader->fault_sigh(fault_sigh);
-
-		/* start subsystem */
-		loader->start("init", "init");
-	}
-};
-
-
 struct Main
 {
 	Env &_env;
 
-	Constructible<Iterative_test<Faulting_child_test> >              _test_1 { };
-	Constructible<Iterative_test<Faulting_loader_child_test> >       _test_2 { };
-	Constructible<Iterative_test<Faulting_loader_grand_child_test> > _test_3 { };
+	Constructible<Iterative_test<Faulting_child_test> > _test { };
 
-	Signal_handler<Main> _test_1_finished_handler {
-		_env.ep(), *this, &Main::_handle_test_1_finished };
+	Signal_handler<Main> _test_finished_handler {
+		_env.ep(), *this, &Main::_handle_test_finished };
 
-	Signal_handler<Main> _test_2_finished_handler {
-		_env.ep(), *this, &Main::_handle_test_2_finished };
-
-	Signal_handler<Main> _test_3_finished_handler {
-		_env.ep(), *this, &Main::_handle_test_3_finished };
-
-	void _handle_test_1_finished()
+	void _handle_test_finished()
 	{
-		_test_1.destruct();
-		_test_2.construct(_env, _test_2_finished_handler);
-	}
-
-	void _handle_test_2_finished()
-	{
-		_test_2.destruct();
-		_test_3.construct(_env, _test_3_finished_handler);
-	}
-
-	void _handle_test_3_finished()
-	{
-		_test_3.destruct();
+		_test.destruct();
 		log("--- finished fault_detection test ---");
 		_env.parent().exit(0);
 	}
 
 	Main(Env &env) : _env(env)
 	{
-		_test_1.construct(_env, _test_1_finished_handler);
+		_test.construct(_env, _test_finished_handler);
 	}
 };
 

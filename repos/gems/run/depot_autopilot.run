@@ -264,7 +264,6 @@ proc prepare_to_run_genode { } {
 		} [depot_user] {/src/report_rom
 		} [depot_user] {/src/fs_rom
 		} [depot_user] {/src/vfs
-		} [depot_user] {/src/loader
 		} [depot_user] {/src/init
 		} [depot_user] {/src/depot_query
 	}
@@ -658,7 +657,6 @@ set default_test_pkgs {
 	test-depot_query_index
 	test-ds_ownership
 	test-dynamic_config
-	test-dynamic_config_loader
 	test-entrypoint
 	test-expat
 	test-fault_detection

@@ -1,6 +1,5 @@
 base
 os
-loader_session
 gui_session
 framebuffer_session
 input_session

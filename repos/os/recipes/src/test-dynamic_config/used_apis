@@ -3,5 +3,4 @@ os
 input_session
 framebuffer_session
 gui_session
-loader_session
 timer_session
