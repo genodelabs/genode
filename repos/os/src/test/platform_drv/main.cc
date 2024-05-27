@@ -196,7 +196,8 @@ struct Main
 			{
 				Platform::Device dev (*platform, Platform::Device::Type({"dummy-device"}));
 				if (dev._cap.valid()) log("Found next valid device of dummy type");
-				Reporter::Xml_generator xml(config_reporter, [&] () {});
+				Reporter::Xml_generator xml(config_reporter, [&] {
+					xml.node("default-policy", [&] { }); });
 				break;
 			}
 		default:
