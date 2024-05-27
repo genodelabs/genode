@@ -1,38 +1,46 @@
                            The File Vault
                             Martin Stein
 
-Warning
-~~~~~~~
+Disclaimer
+~~~~~~~~~~
 
-The current version of the File Vault is not thought for productive use but
-for mere demonstrational purpose! Please refrain from storing sensitive data
-with it!
+The current version of the File Vault is not intended for productive use but
+for mere demonstrational purpose. Please refrain from storing sensitive data
+with it.
 
+Requires
+~~~~~~~~
 
-Functional description
-~~~~~~~~~~~~~~~~~~~~~~
+* A ROM session "ui_config" through which it can be controlled by a manager
+* A Report session "ui_report" through which it reflects its state to a manager
+* A file-system session to the back-end storage of the Trust Anchor:
+  * "tresor_trust_anchor_vfs -> storage_dir"
+* Five file-system sessions to the back-end image file:
+  * "tresor_init -> "
+  * "tresor"
+  * "image_fs_query -> "
+  * "tresor_vfs -> tresor_fs"
+  * "truncate_file -> tresor"
+* Several timer sessions
+* An RM session for the Rump kernel it spawns
 
-The File Vault is a front end for creating and controlling a block-encrypted
-ext2 file system inside a file (furthermore called encrypted container) using
-Genodes Tresor block encryption library and the Rump ext2 driver. That
-means it uses a file system back end for the encrypted container file and also
-provides a file-system front-end for access to the file system inside the
-encrypted container file.
+Provides
+~~~~~~~~
 
-Beside the file system front end, the File Vault also has a dedicated front end
-for administrating the encrypted container. Regarding this front end, the File
-Vault can be driven in one of two available modes: "menu view" or "config and
-report". In the "menu view" mode, the vault is controlled via a graphical
-dialog provided through an instance of Genodes Menu View component.  In "config
-and report" mode, the vault communicates with the user via XML strings by
-requesting a ROM session labelled "ui_config" for user input and a Report
-session labelled "ui_report" for user output.
+* A file-system service whenever it reports to be in the "unlocked" state. The
+  file system is formatted with ext2 and secured/managed via the Tresor
+  library.
 
-The file vault doesn't consider runtime modifications to its "normal"
-configuration (in contrast to modifications to the UI configuration in "config
-and report" mode). This is an example File Vault configuration:
+Function
+~~~~~~~~
 
-! <config verbose_state="no">
+The File Vault can be used to create and control a block-encrypted ext2 file
+system inside an image file using Genode's Tresor block-encryption library and
+the Rump ext2 driver. The file vault doesn't consider runtime updates of its
+"normal" configuration (however, it does so for its UI configuration). This is
+an example File Vault configuration with default values:
+
+! <config jitterentropy_available="yes">
 !   <vfs>
 !     <dir name="tresor">
 !       <fs label="tresor"/>
@@ -40,143 +48,149 @@ and report" mode). This is an example File Vault configuration:
 !   </vfs>
 ! </config>
 
-The verbosity attributes are all
-set to "no" by default. If "verbose_state" is set to "yes" the vault will
-reflect its internal state at the LOG session.
+The attribute jitterentropy_available should only be set to "no" in a
+non-productive context. It merely enables testing the File Vault on platforms
+without entropy source and in this case prompts the component to constantly warn
+about the insecure mode it is operated in.
 
-The vault currently still requires a directory named "tresor" to be present in its
-local VFS. The vault will store a very small file "./file_vault/state" inside
-this directory in order to keep track of the state it was terminated in last
-time. This is what the <vfs> tag in the example configuration is for.
+The File Vault requires a directory named "tresor" to be present in its
+local VFS in order to store the image file named tresor.img inside.
 
-This is an example UI report generated in "config and report" mode:
+UI configuration
+~~~~~~~~~~~~~~~~
 
-! <ui_report version="first_step"
-!            state="uninitialized"/>
+This is an example UI configuration for the File Vault:
 
-For the "version" attribute see the description of the UI configuration format
-below. The "state" attribute is a simplified reflection of the internal state
+! <ui_config passphrase="abcdefgh"
+!            client_fs_size="1M"
+!            journaling_buf_size="1M">
+!
+!   <rekey id="10"/>
+!   <extend id="4" tree="vbd" num_bytes="4096"/>
+!
+! </ui_config>
+
+The passphrase is an arbitrary string whereas client_fs_size and
+journaling_buf_size each are a number of bytes (number with no suffix or with
+suffix 'K', 'M', 'G'). The File Vault checks the values of these attributes
+against further critera to determine wether they are suitable.  The passphrase
+must contain at least 8 characters, the client_fs_size must be at least 100K
+and the journaling_buf_size must be at least client_fs_size >> 8 but no less
+than 100K.
+
+When the File Vault reports to be in the "uninitialized" state, and the UI
+configuration contains a suitable passphrase, client_fs_size and
+journaling_buf_size, the File Vault starts initializing a new image file.
+
+When the File Vault reports to be in the "locked" state, and the UI config
+contains a suitable passphrase, the File Vault starts unlocking the
+image file.
+
+When the File Vault reports to be in the "unlocked" state, and the UI config
+does not contain a suitable passphrase, the File Vault starts locking the image
+file.
+
+Only when the File Vault reports to be in the "unlocked" state, it considers
+<rekey> and <extend> tags in the UI configuration. If that is the case and
+there is a <rekey> tag and there is no rekey operation in progress and the ID
+in the tag is not the ID of the last finished rekey operation, then the File
+Vault will start a rekey operation with that ID.
+
+The same goes for the <extend> tag and extend operations. However, the tree
+attribute in the extend tag must define which tree of the Tresor container to
+extend ("vbd" extends the containers capacity and "ft" extends the containers
+journaling buffer) and the num_bytes attribute must define a suitable
+contingent of storage space to be used in the extend operation. The latter must
+be at least 4K. Note that extend operations with tree="vbd" can take place only
+when the File Vault reports to have no client at its file system service.
+
+UI report
+~~~~~~~~~
+
+This is an example UI report generated by the File Vault:
+
+! <ui_report state="unlocked"
+!            image_size="4M"
+!            capacity="1M"
+!            num_clients="2">
+!
+!   <rekey id="10" finished="false"/>
+!   <extend id="3" finished="true"/>
+!
+! </ui_report>
+
+The "state" attribute is a simplified reflection of the internal state
 of the vault and can contain one of the following values:
 
 :invalid:
-The File Vault is still determining its internal state. This occurs currently
-only on component startup and leads either to the "uninitialized" or the
-"locked" state without any user interaction.
+
+The File Vault is still determining its internal state. This occurs only on
+component startup and leads either to the "uninitialized" or the "locked" state
+without any user interaction.
 
 :uninitialized:
-There is yet no encrypted container in the file system that the File Vault is
-seeing. As soon as the File Vault receives suitable user input for creating a
-new encrypted container, it transitions to the "initializing" state.
+
+There is yet no image file in the file system that the File Vault is seeing. As
+soon as the File Vault receives suitable user input for creating a new image
+file, it transitions to the "initializing" state.
 
 :initializing:
-The file vault has received suitable user input for creating a new encrypted
-container and is in the process of doing so. If successful, the File Vault will
+
+The file vault has received suitable user input for creating a new image file
+and is in the process of doing so. If successful, the File Vault will
 transition to the "unlocked" state. If unsuccessful, the File Vault will
 discard the current UI configuration and transition to the "uninitialized"
 state.
 
-:locked: There is an encrypted container in the file system that the File Vault
-is seeing but it's not accessible for the user yet. As soon as the File Vault
-receives suitable user input for unlocking the encrypted container, it
-transitions to the "unlocking" state.
+:locked:
+
+There is an image file in the file system that the File Vault is seeing but
+it's not accessible for the user yet. As soon as the File Vault receives
+suitable user input for unlocking the image file, it transitions to the
+"unlocking" state.
 
 :unlocking:
-The file vault has received suitable user input for unlocking the encrypted
-container and is in the process of doing so. If successful, the File Vault will
+
+The file vault has received suitable user input for unlocking the image file
+and is in the process of doing so. If successful, the File Vault will
 transition to the "unlocked" state. If unsuccessful, the File Vault will
 discard the current UI configuration, wait for 3 seconds, and transition to the
 "locked" state.
 
 :unlocked:
-The encrypted container was unlocked and is now accessible via a File System
-service provided by the File Vault. As soon as the File Vault receives
-user input that is unsuitable for keeping the encrypted container unlocked,
-it transitions to the "locking" state.
+
+The image file was unlocked and is now accessible via a file-system service
+provided by the File Vault. As soon as the File Vault receives user input that
+is unsuitable for keeping the image file unlocked, it transitions to the
+"locking" state.
 
 :locking:
-The file vault has received user input unsuitable for keeping the encrypted
-container unlocked and is in the process of locking it. The File Vault will
-transition to the "locked" state without any user interaction.
 
-This is an example UI configuration in "config and report" mode:
+The file vault has received user input unsuitable for keeping the image file
+unlocked and is in the process of locking it. The File Vault will transition to
+the "locked" state without any user interaction.
 
-! <ui_config version="first_step"
-!            passphrase="abcdefgh"
-!            client_fs_size="1M"
-!            journaling_buf_size="1M"/>
+The image_size attribute keeps the user informed about the size of the image
+file, the capacity attribute about the capacity of the provided file system,
+and the num_clients attribute about the number of session clients at the
+provided file system service.
 
-The version attribute can be any string. The vault doesn't use this string
-itself but merely adds it to UI reports to allow users identifying the UI
-configuration that was active when a report was generated.
-
-When the File Vault reports to be in the "uninitialized" state, and the UI
-configuration contains suitable "passphrase", "client_fs_size" and
-"journaling_buf_size" attributes, the File Vault starts initializing a new
-encrypted container. The "passphrase" is an arbitrary string and must have at
-least 8 characters while "client_fs_size" and "journaling_buf_size" each are a
-number of bytes (number with no suffix or suffix K, M, G). Each must denote a
-size of 100K at least.
-
-When the File Vault reports to be in the "locked" state, and the UI config
-contains a suitable "passphrase" attribute, the File Vault starts unlocking the
-encrypted container. When the File Vault reports to be in the "unlocked" state,
-and the UI config does not contain a suitable "passphrase" attribute, the File
-Vault starts locking the encrypted container.
-
-
-Provided services and session requests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The vault provides a File System service to the ext2 file system once an
-encrypted container was successfully created and formatted respectively
-unlocked. Besides the common Genode environment sessions, the vault requests
-one File System session for the back-end storage of the Trust Anchor,
-several File System session to the file system that holds the encrypted
-container file and a small amount of File Vault data, several timer sessions
-and an RM session for the Rump kernel it spawns.
-
-Only in "menu view" mode, the File Vault additionally requests one Gui session
-and one File System session to a fonts file system. Only in "config and report"
-mode, the File Vault additionally requests a ROM session to the UI
-configuration and one Report session for UI reports.
-
+If a File Vault instance started an extend or rekey operation in the past, the
+report contains a corresponding <extend> or <rekey> tag stating the ID of the
+most recently started operation and wether that operation has yet finished or
+not. Note that failed operations stay unfinished forever but print an error to
+the log.
 
 Further resources
 ~~~~~~~~~~~~~~~~~
 
-The test scripts _gems/recipes/pkg/test-file_vault_ and _gems/run/file_vault.run_
-provide examples on how to manually integrate the file vault. The latter can
-also be used for analyzing and developing the vault - when targeting native
-Linux execution even with a persistent storage back-end. The file vault was
-also packaged in _gems/recipes/pkg/file_vault_ and can be deployed in Sculpt
-via _+ -> depot -> mstein -> Tools -> File Vault_.
+:Sculpt packages:
 
+* gems/recipes/pkg/file_vault
 
-Open issues
-~~~~~~~~~~~
+:Tests:
 
-* The vault should show the percentage of used and free blocks in the Tresor trees
-  in order to enable the user to resize or sync to prevent an out-of-resource
-  situation.
-* Although the Trust Anchor data (private key and superblock hash) can
-  already be stored on a separate device like an USB stick it still has to be
-  exposed to the system (device driver, file system driver, file vault)
-  during operation as the file vault yet can't access "real" Trust-Anchor
-  interfaces like OpenPGP-Smartcard.
-* While some device controls (rekeying, resizing, ...) can be controlled via
-  the vault only in a serial way (the button only shows up again as soon as
-  the operation is done) creating and discarding snapshots is controlled in a
-  fire-and-forget fashion (the button immediately shows up again). This is
-  because the Tresor VFS yet doesn't fully propagate the completely asynchronous
-  way of handling requests of the Tresor.
-* The creation of the Tresor image file is done yet in serial inside the vault
-  itself which causes the GUI to hang till the image creation is done.
-* Shrinking the client FS or the journaling buffer is not yet supported.
-* Creating, discarding, and accessing snapshots isn't supported by now in the
-  file vault, although the underlying Tresor and its VFS plugin have full support.
-* The Tresor might run into a ressource limit when writing block data or replacing
-  the block encryption key. This is because it doesn't take care yet whether
-  its Free Tree has enough free blocks left for finishing an operation. It will
-  just through an exception in the middle of the operation. This won't affect
-  the integrity of the vault on disk but might lead to the loss of cached
-  block data.
+* gems/run/file_vault.run
+* gems/run/file_vault_gui.run
+* gems/run/file_vault_client.run
+* gems/recipes/pkg/test-file_vault
