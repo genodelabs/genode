@@ -1,0 +1,68 @@
+                             File Vault GUI
+                              Martin Stein
+
+A graphical front end for the File Vault based on a sandboxed menu view
+component and the dialog API.
+
+Disclaimer
+~~~~~~~~~~
+
+The current version of the File Vault is not intended for productive use but
+for mere demonstrational purpose. Please refrain from storing sensitive data
+with it.
+
+Requires
+~~~~~~~~
+
+* A Report session "ui_config" that maps to the file_vault UI configuration
+* A ROM session "ui_report" that maps to the file_vault UI report
+* A File System session "menu_view -> fonts" to a fonts server
+* A Gui session for the Menu View it spawns
+* A Timer session
+
+Controls menus explained
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+:Capacity:
+
+Extend the capacity of the provided file system permanently. The number of
+bytes entered here is usually not the same amount by which the file system
+gets extended as the extension normally requires meta data. Doesn't interrupt
+user interaction with the provided file system.
+
+:Journaling buffer:
+
+Extend the size of the buffer that the File Vault can use for snapshots and
+copy-on-write permanently. As with the capacity, the number of bytes entered
+is usually not the same amount by which the buffer grows. Doesn't interrupt
+user interaction with the provided file system.
+
+:Encryption key:
+
+Generate a new random block encryption key, re-encrypt the entire File Vault
+container with it, and dispose of the old encryption key. Doesn't interrupt
+user interaction with the provided File System.
+
+Hotkeys
+~~~~~~~
+
+ Key      | Scope         |
+-----------------------------------------------------------------------
+ [Tab]    | Global        | Switch between prompts
+ [Enter]  | Global        | Start operation if parameters are suitable
+ [Escape] | Global        | Go up in menu hierarchy
+ [l]      | All controls  | Lock container
+ [c]      | Main controls | Enter capacity controls
+ [j]      | Main controls | Enter journaling buffer controls
+ [e]      | Main controls | Enter encryption key controls
+
+Further resources
+~~~~~~~~~~~~~~~~~
+
+:Sculpt packages:
+
+* gems/recipes/pkg/file_vault
+
+:Tests:
+
+* repos/gems/run/file_vault_gui.run
