@@ -82,7 +82,7 @@ regexp {checked [0-9]+ checksums} $output string_buf
 regexp {[0-9]+} $string_buf num_checked_checksums
 
 set tmp_file "$lx_fs_dir/tmp"
-exec $tshark -o ip.check_checksum:TRUE -o tcp.check_checksum:TRUE -o udp.check_checksum:TRUE -V -r $output_file | grep -e "Checksum Status:" -e "Header checksum status:" > $tmp_file
+exec $tshark -o ip.check_checksum:TRUE -o tcp.check_checksum:TRUE -o udp.check_checksum:TRUE -O ip,tcp,udp,icmp -r $output_file | grep -e "Checksum Status:" -e "Header checksum status:" > $tmp_file
 set num_output_checksums [exec wc -l < $tmp_file]
 if {$num_checked_checksums != $num_output_checksums} {
 	puts "\nError: number of checksums in $output_file ($num_output_checksums) differs from number of checked checksums ($num_checked_checksums)\n"
