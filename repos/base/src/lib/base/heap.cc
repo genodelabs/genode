@@ -291,7 +291,7 @@ void Heap::free(void *addr, size_t)
 			break;
 
 	if (!ds) {
-		warning("heap could not free memory block: invalid address");
+		warning("heap could not free memory block: invalid address ", addr);
 		return;
 	}
 
