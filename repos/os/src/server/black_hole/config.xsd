@@ -8,6 +8,7 @@
 				<xs:element name="play"/>
 				<xs:element name="usb"/>
 				<xs:element name="gpu"/>
+				<xs:element name="report"/>
 				<xs:element name="rom"/>
 				<xs:element name="uplink"/>
 				<xs:element name="uplink_client"/>
