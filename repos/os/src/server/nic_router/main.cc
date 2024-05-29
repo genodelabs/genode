@@ -40,10 +40,16 @@ class Net::Main
 		Genode::Heap                    _heap                { &_env.ram(), &_env.rm() };
 		Signal_handler<Main>            _report_handler      { _env.ep(), *this, &Main::_handle_report };
 		Genode::Attached_rom_dataspace  _config_rom          { _env, "config" };
-		Reference<Configuration>        _config              { *new (_heap) Configuration { _config_rom.xml(), _heap } };
+		Configuration                  *_config_ptr          { new (_heap) Configuration { _config_rom.xml(), _heap } };
 		Signal_handler<Main>            _config_handler      { _env.ep(), *this, &Main::_handle_config };
-		Nic_session_root                _nic_session_root    { _env, _timer, _heap, _config(), _shared_quota, _interfaces };
-		Uplink_session_root             _uplink_session_root { _env, _timer, _heap, _config(), _shared_quota, _interfaces };
+		Nic_session_root                _nic_session_root    { _env, _timer, _heap, *_config_ptr, _shared_quota, _interfaces };
+		Uplink_session_root             _uplink_session_root { _env, _timer, _heap, *_config_ptr, _shared_quota, _interfaces };
+
+		/*
+		 * Noncopyable
+		 */
+		Main(Main const &);
+		Main &operator = (Main const &);
 
 		void _handle_report();
 
@@ -55,7 +61,7 @@ class Net::Main
 			_interfaces.for_each([&] (Interface &interface) {
 				functor(interface);
 			});
-			_config().domains().for_each([&] (Domain &domain) {
+			_config_ptr->domains().for_each([&] (Domain &domain) {
 				domain.interfaces().for_each([&] (Interface &interface) {
 					functor(interface);
 				});
@@ -70,7 +76,7 @@ class Net::Main
 
 void Main::_handle_report()
 {
-	_config().with_report([&] (Report &r) { r.generate(); });
+	_config_ptr->with_report([&] (Report &r) { r.generate(); });
 }
 
 
@@ -86,7 +92,7 @@ Net::Main::Main(Env &env) : _env(env)
 void Net::Main::_handle_config()
 {
 	_config_rom.update();
-	Configuration &old_config = _config();
+	Configuration &old_config = *_config_ptr;
 	Configuration &new_config = *new (_heap)
 		Configuration {
 			_env, _config_rom.xml(), _heap, _report_handler, _timer,
@@ -96,7 +102,7 @@ void Net::Main::_handle_config()
 	_uplink_session_root.handle_config(new_config);
 	_for_each_interface([&] (Interface &intf) { intf.handle_config_1(new_config); });
 	_for_each_interface([&] (Interface &intf) { intf.handle_config_2(); });
-	_config = Reference<Configuration>(new_config);
+	_config_ptr = &new_config;
 	_for_each_interface([&] (Interface &intf) { intf.handle_config_3(); });
 
 	destroy(_heap, &old_config);

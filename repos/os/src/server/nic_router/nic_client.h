@@ -80,17 +80,23 @@ class Net::Nic_client_interface_base : public Interface_policy
 {
 	private:
 
-		Const_reference<Domain_name>  _domain_name;
-		Genode::Session_label  const  _label;
-		bool                   const &_session_link_state;
-		bool                          _domain_ready { false };
+		Domain_name           const *_domain_name_ptr;
+		Genode::Session_label const  _label;
+		bool                  const &_session_link_state;
+		bool                         _domain_ready { false };
+
+		/*
+		 * Noncopyable
+		 */
+		Nic_client_interface_base(Nic_client_interface_base const &);
+		Nic_client_interface_base &operator = (Nic_client_interface_base const &);
 
 
 		/***************************
 		 ** Net::Interface_policy **
 		 ***************************/
 
-		Domain_name determine_domain_name() const override { return _domain_name(); };
+		Domain_name determine_domain_name() const override { return *_domain_name_ptr; };
 		void handle_config(Configuration const &) override { }
 		Genode::Session_label const &label() const override { return _label; }
 		void handle_domain_ready_state(bool state) override;
@@ -111,7 +117,7 @@ class Net::Nic_client_interface_base : public Interface_policy
 		 ** Accessors **
 		 ***************/
 
-		void domain_name(Domain_name const &v) { _domain_name = v; }
+		void domain_name(Domain_name const &v) { _domain_name_ptr = &v; }
 };
 
 

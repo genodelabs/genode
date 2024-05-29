@@ -25,12 +25,12 @@ Arp_waiter::Arp_waiter(Interface               &src,
                        Ipv4_address      const &ip,
                        Packet_descriptor const &packet)
 :
-	_src_le(this), _src(src), _dst_le(this), _dst(dst), _ip(ip),
+	_src_le(this), _src(src), _dst_le(this), _dst_ptr(&dst), _ip(ip),
 	_packet(packet)
 {
 	_src.arp_stats().alive++;
 	_src.own_arp_waiters().insert(&_src_le);
-	_dst().foreign_arp_waiters().insert(&_dst_le);
+	_dst_ptr->foreign_arp_waiters().insert(&_dst_le);
 }
 
 
@@ -39,19 +39,19 @@ Arp_waiter::~Arp_waiter()
 	_src.arp_stats().alive--;
 	_src.arp_stats().destroyed++;
 	_src.own_arp_waiters().remove(&_src_le);
-	_dst().foreign_arp_waiters().remove(&_dst_le);
+	_dst_ptr->foreign_arp_waiters().remove(&_dst_le);
 }
 
 
 void Arp_waiter::handle_config(Domain &dst)
 {
-	_dst().foreign_arp_waiters().remove(&_dst_le);
-	_dst = dst;
-	_dst().foreign_arp_waiters().insert(&_dst_le);
+	_dst_ptr->foreign_arp_waiters().remove(&_dst_le);
+	_dst_ptr = &dst;
+	_dst_ptr->foreign_arp_waiters().insert(&_dst_le);
 }
 
 
 void Arp_waiter::print(Output &output) const
 {
-	Genode::print(output, "IP ", _ip, " DST ", _dst());
+	Genode::print(output, "IP ", _ip, " DST ", *_dst_ptr);
 }

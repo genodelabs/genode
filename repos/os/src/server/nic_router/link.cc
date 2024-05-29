@@ -53,7 +53,7 @@ Link_side::Link_side(Domain             &domain,
                      Link_side_id const &id,
                      Link               &link)
 :
-	_domain(domain), _id(id), _link(link)
+	_domain_ptr(&domain), _id(id), _link(link)
 {
 	if (link.config().verbose()) {
 		log("[", domain, "] new ", l3_protocol_name(link.protocol()),
@@ -97,7 +97,7 @@ Link::Link(Interface                     &cln_interface,
            Microseconds            const  dissolve_timeout,
            Interface_link_stats          &stats)
 :
-	_config(config),
+	_config_ptr(&config),
 	_client_interface(cln_interface),
 	_server_port_alloc_ptr(srv_port_alloc_ptr),
 	_dissolve_timeout(timer, *this, &Link::_handle_dissolve_timeout,
@@ -107,9 +107,9 @@ Link::Link(Interface                     &cln_interface,
 	_client(cln_domain, cln_id, *this),
 	_server(srv_domain, srv_id, *this),
 	_stats(stats),
-	_stats_curr(stats.opening)
+	_stats_ptr(&stats.opening)
 {
-	_stats_curr()++;
+	(*_stats_ptr)++;
 	_client_interface.links(_protocol).insert(this);
 	_client.domain().links(_protocol).insert(&_client);
 	_server.domain().links(_protocol).insert(&_server);
@@ -131,24 +131,24 @@ void Link::_handle_dissolve_timeout(Duration)
 void Link::dissolve(bool timeout)
 {
 
-	_stats_curr()--;
+	(*_stats_ptr)--;
 	if (timeout) {
-		if (&_stats_curr() == &_stats.opening) { _stats_curr = _stats.dissolved_timeout_opening; }
-		if (&_stats_curr() == &_stats.open)    { _stats_curr = _stats.dissolved_timeout_open; }
-		if (&_stats_curr() == &_stats.closing) { _stats_curr = _stats.dissolved_timeout_closing; }
-		if (&_stats_curr() == &_stats.closed)  { _stats_curr = _stats.dissolved_timeout_closed; }
+		if (_stats_ptr == &_stats.opening) { _stats_ptr = &_stats.dissolved_timeout_opening; }
+		if (_stats_ptr == &_stats.open)    { _stats_ptr = &_stats.dissolved_timeout_open; }
+		if (_stats_ptr == &_stats.closing) { _stats_ptr = &_stats.dissolved_timeout_closing; }
+		if (_stats_ptr == &_stats.closed)  { _stats_ptr = &_stats.dissolved_timeout_closed; }
 	} else {
-		_stats_curr = _stats.dissolved_no_timeout;
+		_stats_ptr = &_stats.dissolved_no_timeout;
 	}
-	_stats_curr()++;
+	(*_stats_ptr)++;
 
 	_client.domain().links(_protocol).remove(&_client);
 	_server.domain().links(_protocol).remove(&_server);
-	if (_config().verbose()) {
+	if (_config_ptr->verbose()) {
 		log("Dissolve ", l3_protocol_name(_protocol), " link: ", *this); }
 
 	if (_server_port_alloc_ptr) {
-		if (_config().verbose()) {
+		if (_config_ptr->verbose()) {
 			log("Free ", l3_protocol_name(_protocol),
 			    " port ", _server.dst_port(),
 			    " at ", _server.domain(),
@@ -177,9 +177,9 @@ void Link::handle_config(Domain               &cln_domain,
 	_client.domain().links(_protocol).remove(&_client);
 	_server.domain().links(_protocol).remove(&_server);
 
-	_config = config;
-	_client._domain = cln_domain;
-	_server._domain = srv_domain;
+	_config_ptr = &config;
+	_client._domain_ptr = &cln_domain;
+	_server._domain_ptr = &srv_domain;
 	_server_port_alloc_ptr = srv_port_alloc_ptr;
 
 	cln_domain.links(_protocol).insert(&_client);
@@ -215,18 +215,18 @@ Tcp_link::Tcp_link(Interface                  &cln_interface,
 void Tcp_link::_closing()
 {
 	_state = State::CLOSING;
-	_stats_curr()--;
-	_stats_curr = _stats.closing;
-	_stats_curr()++;
+	(*_stats_ptr)--;
+	_stats_ptr = &_stats.closing;
+	(*_stats_ptr)++;
 }
 
 
 void Tcp_link::_closed()
 {
 	_state = State::CLOSED;
-	_stats_curr()--;
-	_stats_curr = _stats.closed;
-	_stats_curr()++;
+	(*_stats_ptr)--;
+	_stats_ptr = &_stats.closed;
+	(*_stats_ptr)++;
 }
 
 
@@ -257,7 +257,7 @@ void Tcp_link::_tcp_packet(Tcp_packet &tcp,
 		_packet();
 	} else {
 		_dissolve_timeout.schedule(
-			Microseconds(_config().tcp_max_segm_lifetime().value << 1));
+			Microseconds(_config_ptr->tcp_max_segm_lifetime().value << 1));
 	}
 }
 
@@ -267,9 +267,9 @@ void Tcp_link::server_packet(Tcp_packet &tcp)
 	if (_opening) {
 		_opening = false;
 		_state = State::OPEN;
-		_stats_curr()--;
-		if (&_stats_curr() == &_stats.opening) { _stats_curr = _stats.open; }
-		_stats_curr()++;
+		(*_stats_ptr)--;
+		if (_stats_ptr == &_stats.opening) { _stats_ptr = &_stats.open; }
+		(*_stats_ptr)++;
 	}
 	_tcp_packet(tcp, _server, _client);
 }
@@ -299,9 +299,9 @@ void Udp_link::server_packet()
 {
 	if (_opening) {
 		_opening = false;
-		_stats_curr()--;
-		if (&_stats_curr() == &_stats.opening) { _stats_curr = _stats.open; }
-		_stats_curr()++;
+		(*_stats_ptr)--;
+		if (_stats_ptr == &_stats.opening) { _stats_ptr = &_stats.open; }
+		(*_stats_ptr)++;
 	}
 	_packet();
 }
@@ -331,9 +331,10 @@ void Icmp_link::server_packet()
 {
 	if (_opening) {
 		_opening = false;
-		_stats_curr()--;
-		if (&_stats_curr() == &_stats.opening) { _stats_curr = _stats.open; }
-		_stats_curr()++;
+		(*_stats_ptr)--;
+		if (_stats_ptr == &_stats.opening)
+			_stats_ptr = &_stats.open;
+		(*_stats_ptr)++;
 	}
 	_packet();
 }

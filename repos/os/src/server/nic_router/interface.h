@@ -148,7 +148,7 @@ class Net::Interface : private Interface_list::Element
 		Signal_handler                        _pkt_stream_signal_handler;
 		Mac_address                    const  _router_mac;
 		Mac_address                    const  _mac;
-		Reference<Configuration>              _config;
+		Configuration                        *_config_ptr;
 		Interface_policy                     &_policy;
 		Cached_timer                         &_timer;
 		Genode::Allocator                    &_alloc;
@@ -469,7 +469,7 @@ class Net::Interface : private Interface_list::Element
 		 ** Accessors **
 		 ***************/
 
-		Configuration       const &config()                    const { return _config(); }
+		Configuration       const &config()                    const { return *_config_ptr; }
 		Mac_address         const &router_mac()                const { return _router_mac; }
 		Mac_address         const &mac()                       const { return _mac; }
 		Arp_waiter_list           &own_arp_waiters()                 { return _own_arp_waiters; }

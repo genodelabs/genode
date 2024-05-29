@@ -50,7 +50,7 @@ Interface_policy::Interface_policy(Genode::Session_label const &label,
                                    Configuration         const &config)
 :
 	_label       { label },
-	_config      { config },
+	_config_ptr  { &config },
 	_session_env { session_env }
 {
 	_session_link_state_transition(DOWN);
@@ -62,13 +62,13 @@ Net::Nic_session_component::Interface_policy::determine_domain_name() const
 {
 	Domain_name domain_name { };
 	try {
-		Session_policy policy(_label, _config().node());
+		Session_policy policy(_label, _config_ptr->node());
 		domain_name = policy.attribute_value("domain", Domain_name());
-		if (domain_name == Domain_name() && _config().verbose())
+		if (domain_name == Domain_name() && _config_ptr->verbose())
 			log("[?] no domain attribute in policy for downlink label \"", _label, "\"");
 	}
 	catch (Session_policy::No_policy_defined) {
-		if (_config().verbose()) {
+		if (_config_ptr->verbose()) {
 			log("[?] no policy for downlink label \"", _label, "\""); }
 	}
 	return domain_name;
@@ -290,7 +290,7 @@ Net::Nic_session_root::Nic_session_root(Env               &env,
 	_env                                  { env },
 	_timer                                { timer },
 	_mac_alloc                            { MAC_ALLOC_BASE },
-	_config                               { config },
+	_config_ptr                           { &config },
 	_shared_quota                         { shared_quota },
 	_interfaces                           { interfaces }
 {
@@ -318,7 +318,7 @@ Nic_session_component *Net::Nic_session_root::_create_session(char const *args)
 								Arg_string::find_arg(args, "tx_buf_size").ulong_value(0),
 								Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
 								_timer, mac, *_router_mac, label, _interfaces,
-								_config(), ram_ds);
+								*_config_ptr, ram_ds);
 						}
 						catch (...) {
 							_mac_alloc.free(mac);
@@ -380,6 +380,6 @@ void Net::Nic_session_root::_destroy_session(Nic_session_component *session)
 
 void Net::Nic_session_root::_invalid_downlink(char const *reason)
 {
-	if (_config().verbose()) {
+	if (_config_ptr->verbose()) {
 		log("[?] invalid downlink (", reason, ")"); }
 }

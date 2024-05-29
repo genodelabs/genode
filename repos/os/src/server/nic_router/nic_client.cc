@@ -100,7 +100,7 @@ Net::Nic_client_interface_base::
                                Session_label const &label,
                                bool          const &session_link_state)
 :
-	_domain_name        { domain_name },
+	_domain_name_ptr    { &domain_name },
 	_label              { label },
 	_session_link_state { session_link_state }
 { }
