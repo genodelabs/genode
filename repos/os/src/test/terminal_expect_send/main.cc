@@ -34,14 +34,21 @@ struct Main
 
 	void handle_read_avail()
 	{
-		size_t num_bytes = terminal.read(read_buffer, sizeof(read_buffer));
+		size_t const num_bytes = terminal.read(read_buffer, sizeof(read_buffer));
 
 		for (size_t i = 0; i < num_bytes; i++) {
 
+			char const c = read_buffer[i];
+
 			/* copy over all characters other than line-end */
-			if (read_buffer[i] != '\n' &&
-			    read_buffer[i] != '\r') {
-				line[line_idx++] = read_buffer[i];
+			if (c != '\n' && c != '\r') {
+				line[line_idx++] = c;
+
+				if (line_idx >= MAX_LINE_LENGTH) {
+					warning("dropping characters (maximum line length exceeded)");
+					line_idx = 0;
+				}
+
 				line[line_idx] = 0;
 			}
 
@@ -52,7 +59,7 @@ struct Main
 			}
 
 			/* check for line end */
-			if (read_buffer[i] == '\n') {
+			if (c == '\n') {
 				if (verbose) log(Cstring(line));
 				line_idx = 0;
 				line[line_idx] = 0;
