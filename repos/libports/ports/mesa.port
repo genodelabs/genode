@@ -1,5 +1,5 @@
 LICENSE   := GPLv2
-VERSION   := 24.0.1
+VERSION   := 24.0.8
 DOWNLOADS := mesa.archive
 
 #
@@ -7,7 +7,7 @@ DOWNLOADS := mesa.archive
 #
 URL_BASE      := https://archive.mesa3d.org
 URL(mesa)     := $(URL_BASE)/mesa-$(VERSION).tar.xz
-SHA(mesa)     := f387192b08c471c545590dd12230a2a343244804b5fe866fec6aea02eab57613
+SHA(mesa)     := d1ed86a266d5b7b8c136ae587ef5618ed1a9837a43440f3713622bf0123bf5c1
 
 DIR(mesa)     := src/lib/mesa
 TAR_OPT(mesa) := --strip-components=1 --files-from $(REP_DIR)/src/lib/mesa/files.list
@@ -32,7 +32,7 @@ PATCH_OPT     := -p1
 # Generated Mesa sources
 #
 URL(generated) = https://github.com/ssumpf/mesa_generated.git
-REV(generated) = 2b684dc19480b4620fd57e98dc2993f540872a31
+REV(generated) = 4f4ab90a1703cab51fa8bc9a77eab2322c6bc6f6
 DIR(generated) = generated
 
 #
