@@ -16,7 +16,7 @@ Configuration
 
 The following config illustrates how the driver is configured:
 
-!<start name="nvme_drv">
+!<start name="nvme">
 !  <resource name="ram" quantum="24M"/>
 !  <provides><service name="Block"/></provides>
 !  <config max_hmb_size="16M">

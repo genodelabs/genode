@@ -4,10 +4,10 @@ create_boot_directory
 
 proc rtc_src { } {
 
-	if {[have_board linux]} { return "linux_rtc_drv" }
-	if {[have_board pc]}    { return "rtc_drv" }
+	if {[have_board linux]} { return "linux_rtc" }
+	if {[have_board pc]}    { return "pc_rtc" }
 
-	return "dummy_rtc_drv"
+	return "dummy_rtc"
 }
 
 import_from_depot [depot_user]/src/[base_src] \
@@ -17,10 +17,10 @@ import_from_depot [depot_user]/src/[base_src] \
 
 proc rtc_driver_start_attributes { } {
 
-	if {[have_board linux]} { return { name="linux_rtc_drv" ld="no" } }
-	if {[have_board pc]}    { return { name="rtc_drv" } }
+	if {[have_board linux]} { return { name="linux_rtc" ld="no" } }
+	if {[have_board pc]}    { return { name="pc_rtc" } }
 
-	return { name="dummy_rtc_drv" }
+	return { name="dummy_rtc" }
 }
 
 # RTC setting tested on Qemu only

@@ -37,11 +37,11 @@ Policy usage
 
 A policy may contain several nodes describing several devices.
 
-!<start name="platform_drv" managing_system="yes">
+!<start name="platform" managing_system="yes">
 ! <resource name="RAM" quantum="8M"/>
 ! ...
 ! <config>
-!  <policy label_prefix="usb_drv" info="yes">
+!  <policy label_prefix="usb_host" info="yes">
 !   <device name="ehci"/>
 !   <device name="uhci"/>
 !  </policy>
@@ -78,10 +78,10 @@ the device, but can either state a class of devices, or a vendor/device
 pair of identifiers inside a pci sub-node:
 
 ! <config>
-! <policy label="usb_drv -> ">
+! <policy label="usb_host -> ">
 !   <pci class="USB"/>
 ! </policy>
-! <policy label="nvme_drv -> ">
+! <policy label="nvme -> ">
 !   <pci vendor_id="0x1987" device_id="0x5007"/>
 ! </policy>
 

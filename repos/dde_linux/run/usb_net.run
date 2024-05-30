@@ -9,8 +9,8 @@
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/pkg/test_usb_host_drv-[board] \
-                  [depot_user]/src/usb_net_drv \
+                  [depot_user]/pkg/test_usb_host-[board] \
+                  [depot_user]/src/usb_net \
                   [depot_user]/src/nic_router \
                   [depot_user]/src/libc \
                   [depot_user]/src/vfs \
@@ -41,7 +41,7 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="usb_drv" caps="1500" managing_system="yes">
+	<start name="usb" caps="1500" managing_system="yes">
 		<binary name="init"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
@@ -53,7 +53,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="usb_net_drv">
+	<start name="usb_net">
 		<resource name="RAM" quantum="20M"/>
 		<config mac="02:00:00:00:01:01" />
 		<route>
@@ -71,7 +71,7 @@ install_config {
 		<config verbose_domain_state="yes">
 
 			<policy label_prefix="test-lwip_httpsrv" domain="downlink"/>
-			<policy label_prefix="usb_net_drv"       domain="uplink"/>
+			<policy label_prefix="usb_net"           domain="uplink"/>
 
 			<domain name="uplink">
 
@@ -112,13 +112,13 @@ install_config {
 #
 set config {<config bios_handoff="yes">}
 append_if [have_board rpi] config {
-	<policy label_prefix="usb_net_drv">
+	<policy label_prefix="usb_net">
 		<device vendor_id="0x0424" product_id="0xec00"/> </policy>}
 append_if [have_spec x86] config {
-	<policy label_prefix="usb_net_drv">
+	<policy label_prefix="usb_net">
 		<device vendor_id="0x0b95" product_id="0x1790"/> </policy> }
 append config {</config>}
-set fd [open [run_dir]/genode/usb_host_drv.config w]
+set fd [open [run_dir]/genode/usb_host.config w]
 puts $fd $config
 close $fd
 

@@ -81,12 +81,12 @@ Record session) node.
 The following snippet shows an examplary state-report:
 
 ! <state>
-!   <play label="audio_drv -> mic_right"/>
-!   <play label="audio_drv -> mic_left"/>
+!   <play label="audio -> mic_right"/>
+!   <play label="audio -> mic_left"/>
 !   <play label="waveform_player -> right"/>
 !   <play label="waveform_player -> left"/>
-!   <record label="audio_drv -> right"/>
-!   <record label="audio_drv -> left"/>
+!   <record label="audio -> right"/>
+!   <record label="audio -> left"/>
 ! </state>
 
 The state-report additionally also reflects the current version of the

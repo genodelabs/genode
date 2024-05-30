@@ -41,7 +41,7 @@ import_from_depot \
 	[depot_user]/src/nic_router \
 	[depot_user]/src/report_rom \
 	[depot_user]/src/vfs \
-	[depot_user]/src/linux_rtc_drv \
+	[depot_user]/src/linux_rtc \
 	[depot_user]/src/trace_recorder \
 	[depot_user]/raw/trace_recorder \
 	[depot_user]/src/trace_recorder_policy \
@@ -70,7 +70,7 @@ install_config {
 			<provides><service name="Timer"/></provides>
 		</start>
 
-		<start name="linux_rtc_drv" ld="no">
+		<start name="linux_rtc" ld="no">
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Rtc"/> </provides>
 		</start>

@@ -229,8 +229,8 @@
 						<child name="config_fs_report" label="managed -> fonts"/> </service>
 					<service name="Report" label="nic_router_config">
 						<child name="config_fs_report" label="managed -> nic_router"/> </service>
-					<service name="Report" label="fb_drv_config">
-						<child name="config_fs_report" label="managed -> fb_drv"/> </service>
+					<service name="Report" label="fb_config">
+						<child name="config_fs_report" label="managed -> fb"/> </service>
 					<service name="Report" label="usb_config">
 						<child name="config_fs_report" label="managed -> usb"/> </service>
 					<service name="Report" label="system_config">

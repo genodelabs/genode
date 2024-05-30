@@ -1,4 +1,4 @@
-_/src/lan9118_nic_drv
-_/src/platform_drv
+_/src/lan9118_nic
+_/src/platform
 _/raw/drivers_nic-pbxa9
 _/raw/pbxa9-devices

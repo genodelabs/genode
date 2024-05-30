@@ -1,4 +1,4 @@
-TARGET   = linux_audio_drv
+TARGET   = linux_audio
 REQUIRES = linux
 LIBS     = lx_hybrid
 SRC_CC   = main.cc

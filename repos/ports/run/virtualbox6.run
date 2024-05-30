@@ -28,7 +28,7 @@ lappend depot_archives [depot_user]/src/libdrm
 lappend depot_archives [depot_user]/src/libyuv
 lappend depot_archives [depot_user]/src/vfs_gpu
 
-lappend_if [expr $use_net] depot_archives [depot_user]/src/pc_nic_drv
+lappend_if [expr $use_net] depot_archives [depot_user]/src/pc_nic
 lappend_if [expr $use_net] depot_archives [depot_user]/src/nic_router
 
 import_from_depot $depot_archives
@@ -97,7 +97,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="rtc_drv" priority="-1">
+	<start name="pc_rtc" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
@@ -112,8 +112,8 @@ append_if [expr $use_net] config {
 			<service name="Uplink"/>
 		</provides>
 		<config verbose_domain_state="yes">
-			<policy label_prefix="vbox"    domain="downlink"/>
-			<policy label_prefix="nic_drv" domain="uplink"/>
+			<policy label_prefix="vbox" domain="downlink"/>
+			<policy label_prefix="nic"  domain="uplink"/>
 
 			<domain name="uplink">
 				<nat domain="downlink"
@@ -134,8 +134,8 @@ append_if [expr $use_net] config {
 		</config>
 	</start>
 
-	<start name="nic_drv" priority="-1">
-		<binary name="pc_nic_drv"/>
+	<start name="nic" priority="-1">
+		<binary name="pc_nic"/>
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Platform"> <child name="drivers"/> </service>
@@ -278,9 +278,9 @@ install_config $config
 copy_file [genode_dir]/repos/ports/run/virtualbox6.vbox bin/
 
 #
-# Instruct vesa_drv to use maximum resolution
+# Define VESA driver resolution
 #
-set fd [open bin/fb_drv.config w]
+set fd [open bin/fb.config w]
 puts $fd {<config buffered="yes" width="1280" height="1024"/>}
 close $fd
 
@@ -296,7 +296,7 @@ append boot_modules { test.iso virtualbox6.vbox }
 
 append_if [expr $use_overlay] boot_modules { overlay.vdi }
 
-lappend boot_modules pci_audio_drv
+lappend boot_modules pci_audio
 
 build_boot_image $boot_modules
 

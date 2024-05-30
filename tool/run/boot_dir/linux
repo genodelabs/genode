@@ -1,6 +1,6 @@
 proc binary_name_ld_lib_so { } { return "ld-linux.lib.so" }
-proc binary_name_core      { } { return "core-linux" }
-proc binary_name_timer     { } { return "linux_timer_drv" }
+proc binary_name_core      { } { return "core-linux"      }
+proc binary_name_timer     { } { return "linux_timer"     }
 
 
 ##
@@ -16,7 +16,7 @@ proc run_boot_dir {binaries} {
 		set dst_binary "[kernel_specific_binary $binary]"
 		if {$dst_binary == "core-linux"}      { set dst_binary "core" }
 		if {$dst_binary == "ld-linux.lib.so"} { set dst_binary "ld.lib.so" }
-		if {$dst_binary == "linux_timer_drv"} { set dst_binary "timer" }
+		if {$dst_binary == "linux_timer"}     { set dst_binary "timer" }
 
 		if {[file exists $src_binary_path]} {
 			exec ln -sf $src_binary_path [run_dir]/genode/$dst_binary

@@ -7,7 +7,7 @@
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="init"/>
-		<rom label="rtc_drv"/>
+		<rom label="pc_rtc"/>
 		<rom label="system_rtc"/>
 	</content>
 
@@ -30,7 +30,7 @@
 		<service name="Rtc">
 			<default-policy> <child name="system_rtc"/> </default-policy> </service>
 
-		<start name="rtc_drv">
+		<start name="pc_rtc">
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Rtc"/> </provides>
 			<config/>
@@ -44,7 +44,7 @@
 			<provides> <service name="Rtc"/> </provides>
 			<config/>
 			<route>
-				<service name="Rtc"> <child name="rtc_drv"/> </service>
+				<service name="Rtc"> <child name="pc_rtc"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>

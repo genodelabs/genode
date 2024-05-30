@@ -1,4 +1,4 @@
-TARGET   = signal_gpio_drv
+TARGET   = signal_gpio
 SRC_CC   = main.cc
 INC_DIR += $(PRG_DIR)
 LIBS     = base

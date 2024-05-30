@@ -65,7 +65,7 @@ if { [have_include power_on/qemu] } {
 
 	append_if [have_board pc] config {
 		<start name="terminal">
-			<binary name="pc_uart_drv"/>
+			<binary name="pc_uart"/>
 			<resource name="RAM" quantum="2M"/>
 			<provides>
 				<service name="Terminal"/>
@@ -79,7 +79,7 @@ if { [have_include power_on/qemu] } {
 
 	append_if [have_board rpi3] config {
 		<start name="terminal">
-			<binary name="rpi3_uart_drv"/>
+			<binary name="rpi3_uart"/>
 			<resource name="RAM" quantum="2M"/>
 			<provides>
 				<service name="Terminal"/>

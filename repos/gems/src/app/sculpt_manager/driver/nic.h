@@ -28,7 +28,7 @@ struct Sculpt::Nic_driver : private Noncopyable
 
 		xml.node("start", [&] {
 			_nic->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "nic_drv");
+			gen_named_node(xml, "binary", "nic");
 			xml.node("config", [&] { });
 			xml.node("route", [&] {
 				gen_service_node<Platform::Session>(xml, [&] {
@@ -38,8 +38,8 @@ struct Sculpt::Nic_driver : private Noncopyable
 					xml.node("child", [&] {
 						xml.attribute("name", "nic_router"); }); });
 				gen_common_routes(xml);
-				gen_parent_rom_route(xml, "nic_drv");
-				gen_parent_rom_route(xml, "nic_drv.dtb");
+				gen_parent_rom_route(xml, "nic");
+				gen_parent_rom_route(xml, "nic.dtb");
 				gen_parent_route<Rm_session>(xml);
 			});
 		});

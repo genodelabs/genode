@@ -45,7 +45,7 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="nic_drv" caps="1000" managing_system="yes">
+	<start name="nic" caps="1000" managing_system="yes">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<route>
@@ -65,7 +65,7 @@ install_config {
 		<config verbose_domain_state="yes">
 
 			<policy label_prefix="lighttpd" domain="downlink"/>
-			<policy label_prefix="nic_drv"  domain="uplink"/>
+			<policy label_prefix="nic"      domain="uplink"/>
 
 			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
 

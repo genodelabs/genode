@@ -43,7 +43,7 @@ struct Sculpt::Mmc_driver : private Noncopyable
 
 		xml.node("start", [&] {
 			_mmc->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "mmc_drv");
+			gen_named_node(xml, "binary", "mmc");
 			gen_provides<Block::Session>(xml);
 			xml.node("config", [&] {
 				xml.attribute("report", "yes");
@@ -58,8 +58,8 @@ struct Sculpt::Mmc_driver : private Noncopyable
 			});
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>(xml);
-				gen_parent_rom_route(xml, "dtb", "mmc_drv.dtb");
-				gen_parent_rom_route(xml, "mmc_drv");
+				gen_parent_rom_route(xml, "dtb", "mmc.dtb");
+				gen_parent_rom_route(xml, "mmc");
 				gen_common_routes(xml);
 			});
 		});

@@ -8,7 +8,7 @@
 
 	<content>
 		<rom label="ld.lib.so"/>
-		<rom label="rtc_drv"/>
+		<rom label="pc_rtc"/>
 		<rom label="test-rtc"/>
 	</content>
 
@@ -28,7 +28,7 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="rtc_drv" priority="-1">
+		<start name="pc_rtc" priority="-1">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Rtc"/></provides>
 		</start>

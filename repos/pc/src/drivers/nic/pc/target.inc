@@ -1,4 +1,4 @@
-TARGET  := pc_nic_drv
+TARGET  := pc_nic
 LIBS    := base pc_lx_emul jitterentropy
 
 INC_DIR += $(PRG_DIR)/../..

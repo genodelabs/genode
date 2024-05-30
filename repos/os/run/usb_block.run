@@ -10,9 +10,9 @@ if {[get_cmd_switch --autopilot] && ![have_include "power_on/qemu"]} {
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/pkg/test_usb_host_drv-[board] \
+                  [depot_user]/pkg/test_usb_host-[board] \
                   [depot_user]/src/report_rom \
-                  [depot_user]/src/usb_block_drv \
+                  [depot_user]/src/usb_block \
                   [depot_user]/src/init
 
 build { app/block_tester }
@@ -44,11 +44,11 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
-			<default-policy report="usb_drv -> usb_drv -> devices"/>
+			<default-policy report="usb -> usb -> devices"/>
 		</config>
 	</start>
 
-	<start name="usb_drv" caps="1500" managing_system="yes">
+	<start name="usb" caps="1500" managing_system="yes">
 		<binary name="init"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
@@ -61,12 +61,12 @@ install_config {
 		</route>
 	</start>
 
-	<start name="usb_block_drv">
+	<start name="usb_block">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Block"/> </provides>
 		<config report="yes" writeable="no"/>
 		<route>
-			<service name="Usb">    <child name="usb_drv"/>    </service>
+			<service name="Usb">    <child name="usb"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -78,12 +78,12 @@ install_config {
 			<tests>
 				<sequential length="8M" size="1M" io_buffer="8M" batch="4"/>
 
-				<!-- enable 'writeable="yes"' at usb_block_drv for write test -->
+				<!-- enable 'writeable="yes"' at usb_block for write test -->
 				<!-- <sequential write="yes" start="4000" length="2M" size="1M" io_buffer="8M" batch="4"/> -->
 			</tests>
 		</config>
 		<route>
-			<service name="Block"> <child name="usb_block_drv"/> </service>
+			<service name="Block"> <child name="usb_block"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -92,9 +92,9 @@ install_config {
 #
 # Define USB host controller config
 #
-set fd [open [run_dir]/genode/usb_host_drv.config w]
+set fd [open [run_dir]/genode/usb_host.config w]
 puts $fd { <config>
-	<policy label="usb_block_drv -> ">
+	<policy label="usb_block -> ">
 		<device name="usb-1-2"/>
 	</policy>
 </config> }

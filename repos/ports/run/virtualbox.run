@@ -85,7 +85,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="rtc_drv" priority="-1">
+	<start name="pc_rtc" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
@@ -93,8 +93,8 @@ append config {
 	</start>}
 
 append_if [expr $use_net] config {
-	<start name="nic_drv" priority="-1">
-		<binary name="pc_nic_drv"/>
+	<start name="nic" priority="-1">
+		<binary name="pc_nic"/>
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Uplink"> <child name="nic_router"/> </service>
@@ -110,8 +110,8 @@ append_if [expr $use_net] config {
 		</provides>
 		<config verbose_domain_state="yes">
 
-			<policy label_prefix="vbox"    domain="downlink"/>
-			<policy label_prefix="nic_drv" domain="uplink"/>
+			<policy label_prefix="vbox" domain="downlink"/>
+			<policy label_prefix="nic"  domain="uplink"/>
 
 			<domain name="uplink">
 

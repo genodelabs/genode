@@ -361,7 +361,7 @@ struct Drm::Buffer
 /*
  * Used to implement OpenGL contexts. Each context uses a dedictated GPU
  * session which provides  a separate GPU context (e.g., page tables, exec
- * lists, ...) within the intel_gpu_drv.
+ * lists, ...) within the intel_gpu driver.
  */
 struct Drm::Context
 {

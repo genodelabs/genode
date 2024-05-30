@@ -2,7 +2,7 @@ REQUIRES := x86
 
 REL_PRG_DIR := $(PRG_DIR)/../..
 
-TARGET  := pc_intel_fb_drv
+TARGET  := pc_intel_fb
 LIBS    := base pc_lx_emul blit jitterentropy
 
 INC_DIR += $(REL_PRG_DIR)

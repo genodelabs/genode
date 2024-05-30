@@ -1,6 +1,6 @@
 _/pkg/drivers_interactive-linux
 _/src/base-linux
 _/src/fb_sdl
-_/src/linux_nic_drv
-_/src/linux_rtc_drv
+_/src/linux_nic
+_/src/linux_rtc
 _/src/lx_fs

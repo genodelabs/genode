@@ -238,10 +238,10 @@ proc qt5_start_nodes { } {
 				<policy label="pointer -> xray"                     report="nitpicker -> xray"/>
 				<policy label="drivers -> event_filter -> capslock" report="global_keys_handler -> capslock"/>
 				<policy label="numlock_remap_rom -> numlock"        report="global_keys_handler -> numlock"/>
-				<policy label="ps2_drv -> capslock"                 report="global_keys_handler -> capslock"/>
-				<policy label="ps2_drv -> numlock"                  report="global_keys_handler -> numlock"/>
-				<policy label="usb_drv -> capslock"                 report="global_keys_handler -> capslock"/>
-				<policy label="usb_drv -> numlock"                  report="global_keys_handler -> numlock"/>
+				<policy label="ps2 -> capslock"                     report="global_keys_handler -> capslock"/>
+				<policy label="ps2 -> numlock"                      report="global_keys_handler -> numlock"/>
+				<policy label="usb -> capslock"                     report="global_keys_handler -> capslock"/>
+				<policy label="usb -> numlock"                      report="global_keys_handler -> numlock"/>
 			</config>
 		</start>
 

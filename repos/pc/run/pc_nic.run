@@ -12,11 +12,11 @@ import_from_depot \
 	[depot_user]/src/[base_src] \
 	[depot_user]/src/report_rom \
 	[depot_user]/src/init \
-	[depot_user]/src/acpi_drv \
+	[depot_user]/src/acpi \
 	[depot_user]/src/pci_decode \
-	[depot_user]/src/platform_drv \
+	[depot_user]/src/platform \
 	[depot_user]/src/nic_router \
-	[depot_user]/src/pc_nic_drv
+	[depot_user]/src/pc_nic
 
 append config {
 <config prio_levels="2">
@@ -50,12 +50,12 @@ append config {
 			<service name="ROM"/>
 		</provides>
 		<config verbose="no">
-			<policy label="pci_decode -> system" report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+			<policy label="pci_decode -> system" report="acpi -> acpi"/>
+			<policy label="platform -> devices"  report="pci_decode -> devices"/>
 		</config>
 	</start>
 
-	<start name="acpi_drv" caps="350">
+	<start name="acpi" caps="350">
 		<resource name="RAM" quantum="6M"/>
 		<route>
 			<service name="Report"> <child name="drivers_reports"/> </service>
@@ -72,14 +72,14 @@ append config {
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="400" managing_system="yes">
+	<start name="platform" caps="400" managing_system="yes">
 		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Platform"/>
 		</provides>
 		<config>
 			<report devices="yes"/>
-			<policy label_prefix="pc_nic_drv" info="yes"> <pci class="ETHERNET"/> </policy>
+			<policy label_prefix="pc_nic" info="yes"> <pci class="ETHERNET"/> </policy>
 		</config>
 		<route>
 			<service name="ROM" label="devices"> <child name="drivers_reports"/> </service>
@@ -88,7 +88,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="pc_nic_drv" priority="-1" caps="120">
+	<start name="pc_nic" priority="-1" caps="120">
 		<resource name="RAM" quantum="16M"/>
 		<config ld_verbose="yes"/>
 	</start>
@@ -101,7 +101,7 @@ append config {
 		</provides>
 		<config verbose="no" verbose_domain_state="yes" dhcp_discover_timeout_sec="10" dhcp_request_timeout_sec="6">
 
-			<policy label_prefix="pc_nic_drv" domain="uplink"/>
+			<policy label_prefix="pc_nic" domain="uplink"/>
 
 			<domain name="uplink" verbose_packets="no" verbose_packet_drop="no" icmp_echo_server="yes">
 

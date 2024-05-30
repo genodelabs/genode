@@ -22,17 +22,17 @@
 	<default caps="100"/>
 
 	<service name="Platform">
-		<default-policy> <child name="platform_drv"/> </default-policy> </service>
+		<default-policy> <child name="platform"/> </default-policy> </service>
 
 	<start name="report_rom">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
-			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> acpi"    report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
-			<policy label="rom_reporter -> acpi"    report="acpi_drv -> acpi"/>
-			<policy label="rom_reporter -> devices" report="platform_drv -> devices"/>
+			<policy label="pci_decode -> system"    report="acpi -> acpi"/>
+			<policy label="platform -> acpi"        report="acpi -> acpi"/>
+			<policy label="platform -> devices"     report="pci_decode -> devices"/>
+			<policy label="rom_reporter -> acpi"    report="acpi -> acpi"/>
+			<policy label="rom_reporter -> devices" report="platform -> devices"/>
 		</config>
 	</start>
 
@@ -54,7 +54,7 @@
 		</route>
 	</start>
 
-	<start name="acpi_drv" caps="350">
+	<start name="acpi" caps="350">
 		<resource name="RAM" quantum="7M"/>
 		<route>
 			<service name="Report" label="acpi"> <child name="report_rom"/> </service>
@@ -83,8 +83,8 @@
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="400" managing_system="yes">
-		<binary name="pc_platform_drv"/>
+	<start name="platform" caps="400" managing_system="yes">
+		<binary name="pc_platform"/>
 		<resource name="RAM" quantum="6M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>

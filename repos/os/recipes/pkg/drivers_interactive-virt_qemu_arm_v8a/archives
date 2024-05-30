@@ -1,6 +1,6 @@
-_/src/virtio_fb_drv
-_/src/virtio_input_drv
-_/src/platform_drv
+_/src/virtio_fb
+_/src/virtio_input
+_/src/platform
 _/src/event_filter
 _/src/virtdev_rom
 _/raw/drivers_interactive-virt_qemu_arm

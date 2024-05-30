@@ -195,7 +195,7 @@ generalize_target_names: $(CONTENT)
 	# apply kernel-agnostic convention of naming the timer and ld.lib.so
 	for subdir in ${call selected_content,LD_MK_DIRS}; do \
 		mv $$subdir/ld-hw.mk $$subdir/ld.mk; done
-	sed -i "s/hw_timer_drv/timer/" src/timer/hw/target.mk
+	sed -i "s/hw_timer/timer/" src/timer/hw/target.mk
 	# supplement BOARD definition that normally comes form the build dir
 	sed -i "s/\?= unknown/:= $(BOARD)/" src/core/hw/target.mk
 	sed -i "s/\?= unknown/:= $(BOARD)/" src/bootstrap/hw/target.mk

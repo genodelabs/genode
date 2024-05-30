@@ -1,9 +1,9 @@
 proc binary_name_ld_lib_so { } { return "ld-sel4.lib.so" }
 proc binary_name_core_a    { } { return "core-sel4.a" }
 proc binary_name_timer     { } {
-	if {[have_board imx6q_sabrelite]} { return "imx6_timer_drv" }
-	if {[have_board imx7d_sabre]}     { return "imx7_timer_drv" }
-	if {[have_board pc]}              { return "pit_timer_drv"  }
+	if {[have_board imx6q_sabrelite]} { return "imx6_timer" }
+	if {[have_board imx7d_sabre]}     { return "imx7_timer" }
+	if {[have_board pc]}              { return "pit_timer"  }
 	puts "unknown platform - no timer driver"
 	exit -1
 }

@@ -78,7 +78,7 @@ struct Main
 /*
  * If PCI devices happen to miss complete configuration after boot, i.e., have
  * a zero base address, we report a fixed address for known devices.
- * platform_drv in turn, will setup the address from the report when enabling
+ * platform in turn, will setup the address from the report when enabling
  * the device.
  *
  * The issue was discovered with Intel LPSS devices in Fujitsu notebooks.

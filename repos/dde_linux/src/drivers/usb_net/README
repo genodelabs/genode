@@ -18,7 +18,7 @@ NIC configuration
 
 Configuration snippet:
 
-!<start name="usb_net_drv">
+!<start name="usb_net">
 !  <resource name="RAM" quantum="10M"/>
 !  <config mac="2e:60:90:0c:4e:01 configuration="2" />
 !  <route>
@@ -44,11 +44,11 @@ LTE modem configuration
 Currently there is support for MBIM (Mobile Broadband Interface Model) devices.
 
 Tested devices:
-Huawai ME906s      (P/V: 12d1:15c1) - "configuration=3" for 'usb_net_drv'
+Huawai ME906s      (P/V: 12d1:15c1) - "configuration=3" for 'usb_net'
 Fibocom L830-EB-00 (P/V: 2cb7:0210) - automatically detected
 
 
-!<start name="usb_nic_drv">
+!<start name="usb_nic">
 !  <resource name="RAM" quantum="10M"/>
 !  <provides>
 !    <service name="Terminal"/>

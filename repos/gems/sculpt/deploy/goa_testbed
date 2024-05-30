@@ -110,7 +110,7 @@
 			<service name="ROM"    label="clipboard">     <child name="wm"/> </service>
 			<service name="ROM"    label="platform_info"> <parent label="platform_info"/> </service>
 			<service name="ROM"    label="capslock">      <parent label="capslock"/>      </service>
-			<service name="ROM" label="mesa_gpu_drv.lib.so"> <child name="mesa_gpu-intel"/> </service>
+			<service name="ROM"    label="mesa_gpu.lib.so"> <child name="mesa_gpu-intel"/> </service>
 		</route>
 	</start>
 

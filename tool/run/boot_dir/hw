@@ -1,6 +1,6 @@
 proc binary_name_ld_lib_so { } { return "ld-hw.lib.so" }
 proc binary_name_core_a    { } { return "core-hw.a"    }
-proc binary_name_timer     { } { return "hw_timer_drv" }
+proc binary_name_timer     { } { return "hw_timer"     }
 proc binary_name_image_elf { } { return "image-hw.elf" }
 
 

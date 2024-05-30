@@ -1,4 +1,4 @@
-TARGET    = vesa_fb_drv
+TARGET    = vesa_fb
 REQUIRES  = x86
 SRC_CC    = main.cc framebuffer.cc ifx86emu.cc hw_emul.cc
 LIBS      = base blit x86emu format

@@ -27,7 +27,7 @@ The platform driver must provide a device with the following configuration:
 !
 !</device>
 !
-!<policy label_prefix="imx8q_evk_i2c_drv"> <device name="i2c2"/> </policy>
+!<policy label_prefix="imx8q_evk_i2c"> <device name="i2c2"/> </policy>
 
 The io_mem address, irq number and clock might change from one I2C bus
 controller to another. The io_mem address for iomux configuration may
@@ -46,7 +46,7 @@ Configuration
 The driver acts as a server that must be configured via a policy, that states
 which client can access a certain device(s) on the bus:
 
-!<start name="imx8q_evk_i2c_drv">
+!<start name="imx8q_evk_i2c">
 !  <resource name="RAM" quantum="1M"/>
 !  <provides> <service name="I2c"/> </provides>
 !

@@ -29,7 +29,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
                                     Storage_device
 {
 	/**
-	 * Information that is reported asynchronously by 'usb_block_drv'
+	 * Information that is reported asynchronously by 'usb_block'
 	 */
 	struct Driver_info
 	{
@@ -48,7 +48,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 
 	Env &_env;
 
-	/* information provided asynchronously by usb_block_drv */
+	/* information provided asynchronously by usb_block */
 	Constructible<Driver_info> driver_info { };
 
 	Rom_handler<Usb_storage_device> _report {
@@ -70,17 +70,17 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		});
 	}
 
-	bool usb_block_drv_needed() const
+	bool usb_block_needed() const
 	{
-		bool drv_needed = false;
+		bool needed = false;
 		for_each_partition([&] (Partition const &partition) {
-			drv_needed |= partition.check_in_progress
-			           || partition.format_in_progress
-			           || partition.file_system.inspected
-			           || partition.relabel_in_progress()
-			           || partition.expand_in_progress(); });
+			needed |= partition.check_in_progress
+			       || partition.format_in_progress
+			       || partition.file_system.inspected
+			       || partition.relabel_in_progress()
+			       || partition.expand_in_progress(); });
 
-		return drv_needed || Storage_device::state == UNKNOWN;
+		return needed || Storage_device::state == UNKNOWN;
 	}
 
 	/**
@@ -89,7 +89,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 	 * This method is called as response to a failed USB-block-driver
 	 * initialization.
 	 */
-	void discard_usb_block_drv()
+	void discard_usb_block()
 	{
 		Storage_device::state = FAILED;
 
@@ -116,7 +116,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		_env(env)
 	{ }
 
-	inline void gen_usb_block_drv_start_content(Xml_generator &xml) const;
+	inline void gen_usb_block_start_content(Xml_generator &xml) const;
 
 	void gen_usb_policy(Xml_generator &xml) const
 	{
@@ -141,12 +141,12 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 };
 
 
-void Sculpt::Usb_storage_device::gen_usb_block_drv_start_content(Xml_generator &xml) const
+void Sculpt::Usb_storage_device::gen_usb_block_start_content(Xml_generator &xml) const
 {
 	gen_common_start_content(xml, driver, Cap_quota{100}, Ram_quota{6*1024*1024},
 	                         Priority::STORAGE);
 
-	gen_named_node(xml, "binary", "usb_block_drv");
+	gen_named_node(xml, "binary", "usb_block");
 
 	xml.node("config", [&] {
 		xml.attribute("report",    "yes");
@@ -160,7 +160,7 @@ void Sculpt::Usb_storage_device::gen_usb_block_drv_start_content(Xml_generator &
 			xml.node("child", [&] {
 				xml.attribute("name", "usb"); }); });
 
-		gen_parent_rom_route(xml, "usb_block_drv");
+		gen_parent_rom_route(xml, "usb_block");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session>    (xml);
 		gen_parent_route<Pd_session>     (xml);

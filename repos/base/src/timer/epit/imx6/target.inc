@@ -1,4 +1,4 @@
-TARGET   = imx6_timer_drv
+TARGET   = imx6_timer
 REQUIRES = arm_v7
 GEN_DIR := $(dir $(call select_from_repositories,src/timer/main.cc))
 INC_DIR += $(GEN_DIR)/epit

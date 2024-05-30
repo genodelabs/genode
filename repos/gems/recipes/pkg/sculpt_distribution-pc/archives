@@ -5,5 +5,5 @@ _/pkg/acpica
 _/pkg/system_clock-pc
 _/pkg/mesa_gpu-intel
 _/pkg/file_vault
-_/pkg/bsd_audio_drv
+_/pkg/bsd_audio
 _/pkg/gdb_x86

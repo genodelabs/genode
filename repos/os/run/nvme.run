@@ -96,12 +96,12 @@ append config {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+			<policy label="pci_decode -> system" report="acpi -> acpi"/>
+			<policy label="platform -> devices"  report="pci_decode -> devices"/>
 		</config>
 	</start>
 
-	<start name="acpi_drv" caps="350">
+	<start name="acpi" caps="350">
 		<resource name="RAM" quantum="4M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -128,7 +128,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="100" managing_system="yes">
+	<start name="platform" caps="100" managing_system="yes">
 		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="Platform"/>
@@ -147,23 +147,23 @@ append config {
 		</route>
 		<config>
 			<report devices="yes"/>
-			<policy label="nvme_drv -> " info="yes"> <pci class="NVME"/> </policy>
+			<policy label="nvme -> " info="yes"> <pci class="NVME"/> </policy>
 		</config>
 	</start>
 
-	<start name="nvme_drv" caps="120">
+	<start name="nvme" caps="120">
 		<resource name="RAM" quantum="24M"/>
 		<provides> <service name="Block"/> </provides>
 		<config max_hmb_size="16M" verbose_regs="yes" verbose_identify="yes">
 			<policy label_prefix="block_tester" writeable="} [writeable] {"/>
 		</config>
 		<route>
-			<service name="Platform"><child name="platform_drv"/> </service>
-			<service name="Timer">   <child name="timer"/>        </service>
-			<service name="CPU">     <parent/>                    </service>
-			<service name="ROM">     <parent/>                    </service>
-			<service name="PD">      <parent/>                    </service>
-			<service name="LOG">     <parent/>                    </service>
+			<service name="Platform"><child name="platform"/> </service>
+			<service name="Timer">   <child name="timer"/>    </service>
+			<service name="CPU">     <parent/>                </service>
+			<service name="ROM">     <parent/>                </service>
+			<service name="PD">      <parent/>                </service>
+			<service name="LOG">     <parent/>                </service>
 		</route>
 	</start>
 
@@ -235,7 +235,7 @@ append config {
 			</tests>
 		</config>
 		<route>
-			<service name="Block"><child name="nvme_drv"/></service>
+			<service name="Block"><child name="nvme"/></service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>

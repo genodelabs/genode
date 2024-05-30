@@ -39,4 +39,4 @@ content:
 	for spec in x86_32 x86_64 arm arm_64; do \
 	  mv lib/mk/spec/$$spec/ld-foc.mk lib/mk/spec/$$spec/ld.mk; \
 	  done;
-	sed -i "s/foc_timer_drv/timer/" src/timer/foc/target.mk
+	sed -i "s/foc_timer/timer/" src/timer/foc/target.mk

@@ -1,4 +1,4 @@
-TARGET   = pc_uart_drv
+TARGET   = pc_uart
 REQUIRES = x86
 
 include $(REP_DIR)/src/drivers/uart/target.inc

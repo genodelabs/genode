@@ -28,8 +28,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/libiconv \
                   [depot_user]/src/nitpicker \
                   [depot_user]/src/part_block \
-                  [depot_user]/src/platform_drv \
-                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/platform \
+                  [depot_user]/src/acpi \
                   [depot_user]/src/pci_decode \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/stdcxx \
@@ -43,8 +43,8 @@ if {$use_vms > 1} {
 }
 
 if {$use_usb} {
-	import_from_depot [depot_user]/src/pc_usb_host_drv \
-	                  [depot_user]/src/usb_hid_drv
+	import_from_depot [depot_user]/src/pc_usb_host \
+	                  [depot_user]/src/usb_hid
 }
 
 if {!$use_usb} {
@@ -122,12 +122,12 @@ append config {
 			<service name="ROM"/>
 		</provides>
 		<config>
-			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+			<policy label="pci_decode -> system" report="acpi -> acpi"/>
+			<policy label="platform -> devices"  report="pci_decode -> devices"/>
 		</config>
 	</start>
 
-	<start name="acpi_drv" caps="350">
+	<start name="acpi" caps="350">
 		<resource name="RAM" quantum="4M"/>
 		<route>
 			<service name="Report"> <child name="platform_reports"/> </service>
@@ -144,19 +144,19 @@ append config {
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="400" managing_system="yes">
+	<start name="platform" caps="400" managing_system="yes">
 		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Platform"/>
 		</provides>
 		<config>
-			<policy label_prefix="ps2_drv">  <device name="ps2"/>    </policy>
-			<policy label_prefix="ahci_drv"> <pci class="AHCI"/>     </policy>
-			<policy label_prefix="nic_drv" info="yes"> <pci class="ETHERNET"/> </policy>
-			<policy label_prefix="audio_drv">
+			<policy label_prefix="ps2">  <device name="ps2"/>    </policy>
+			<policy label_prefix="ahci"> <pci class="AHCI"/>     </policy>
+			<policy label_prefix="nic" info="yes"> <pci class="ETHERNET"/> </policy>
+			<policy label_prefix="audio">
 				<pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
-			<policy label_prefix="fb_drv"  info="yes"> <pci class="VGA"/> </policy>
-			<policy label_prefix="usb_drv" info="yes"> <pci class="USB"/> </policy>
+			<policy label_prefix="fb"  info="yes"> <pci class="VGA"/> </policy>
+			<policy label_prefix="usb" info="yes"> <pci class="USB"/> </policy>
 		</config>
 		<route>
 			<service name="ROM" label="devices"> <child name="platform_reports"/> </service>
@@ -164,7 +164,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="ahci_drv" priority="-1">
+	<start name="ahci" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Block"/></provides>
 		<config>
@@ -172,7 +172,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="ps2_drv" priority="-1">
+	<start name="ps2" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<config/>
 		<route>
@@ -181,13 +181,13 @@ append config {
 		</route>
 	</start>
 
-	<start name="fb_drv" priority="-1" caps="150">
-		<binary name="vesa_fb_drv"/>
+	<start name="fb" priority="-1" caps="150">
+		<binary name="vesa_fb"/>
 		<resource name="RAM" quantum="32M"/>
 		<config/>
 	</start>
 
-	<start name="rtc_drv" priority="-1">
+	<start name="pc_rtc" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
@@ -198,7 +198,7 @@ append config {
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Block"/></provides>
 		<route>
-			<any-service><child name="ahci_drv"/> <parent/><any-child/></any-service>
+			<any-service><child name="ahci"/> <parent/><any-child/></any-service>
 		</route>
 		<config>}
 append_if [expr $use_rumpfs] config {
@@ -335,8 +335,8 @@ append_if [expr $use_cpu_load] config {
 	</start>}
 
 append_if [expr $use_usb] config {
-	<start name="usb_drv" caps="200">
-		<binary name="pc_usb_host_drv"/>
+	<start name="usb" caps="200">
+		<binary name="pc_usb_host"/>
 		<resource name="RAM" quantum="20M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
@@ -345,7 +345,7 @@ append_if [expr $use_usb] config {
 		</route>
 		<config>
 			<report devices="yes"/>
-			<policy label_prefix="usb_hid_drv"><device class="0x3"/></policy>
+			<policy label_prefix="usb_hid"><device class="0x3"/></policy>
 			<policy label_prefix="vbox1">
 				<device vendor_id="0x13fe" product_id="0x5200"/> <!-- platinum stick -->
 				<device vendor_id="0x148f" product_id="0x2573"/> <!-- ralink wifi -->
@@ -370,19 +370,19 @@ append_if [expr $use_usb] config {
 		</config>
 	</start>
 
-	<start name="usb_hid_drv" priority="-1" caps="140">
+	<start name="usb_hid" priority="-1" caps="140">
 		<resource name="RAM" quantum="11M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Event"> <child name="event_filter" label="usb_hid"/> </service>
 			<service name="ROM" label="report"> <child name="report_rom"/> </service>
-			<service name="Usb"> <child name="usb_drv"/> </service>
+			<service name="Usb"> <child name="usb"/> </service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>}
 
 append_if [expr !$use_usb] config {
-	<start name="usb_drv" caps="200">
+	<start name="usb" caps="200">
 		<binary name="black_hole"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Usb"/> </provides>

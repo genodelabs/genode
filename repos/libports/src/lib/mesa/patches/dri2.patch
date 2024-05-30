@@ -9,7 +9,7 @@ index ad68f3b..fdd0936 100644
 -            whandle.type = WINSYS_HANDLE_TYPE_SHARED;
 +            /*
 +             * Change from SHARED to FD because we abuse etna_screen_create
-+             * to allocate the BO but the imx8q_gpu_drv is rendernode only.
++             * to allocate the BO but the imx8q_gpu driver is rendernode only.
 +             */
 +            whandle.type = WINSYS_HANDLE_TYPE_FD;
           else

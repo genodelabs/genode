@@ -1650,7 +1650,7 @@ struct Wifi::Frontend : Wifi::Rfkill_notification_handler
 	/**
 	 * Trigger RFKILL notification
 	 *
-	 * Used by the wifi_drv to notify front end.
+	 * Used by the wifi driver to notify front end.
 	 */
 	void rfkill_notify() override
 	{

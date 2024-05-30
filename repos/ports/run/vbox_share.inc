@@ -117,8 +117,8 @@ lappend boot_modules bash.tar coreutils.tar test.bin template.bat $vbox_file
 
 set config_of_app {
 
-	<start name="nic_drv" priority="-1">
-		<binary name="pc_nic_drv"/>
+	<start name="nic" priority="-1">
+		<binary name="pc_nic"/>
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Uplink"><child name="nic_router"/></service>
@@ -134,7 +134,7 @@ set config_of_app {
 		</provides>
 		<config verbose_domain_state="yes">
 
-			<policy label_prefix="nic_drv"      domain="uplink"/>
+			<policy label_prefix="nic"          domain="uplink"/>
 			<policy label_prefix="tcp_terminal" domain="downlink"/>
 
 			<domain name="uplink">
@@ -272,9 +272,9 @@ set config_of_app {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="pointer -> hover"                    report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"                     report="nitpicker -> xray"/>
-			<policy label="usb_hid_drv -> report"               report="usb_drv -> devices"/>
+			<policy label="pointer -> hover"  report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"   report="nitpicker -> xray"/>
+			<policy label="usb_hid -> report" report="usb_drv -> devices"/>
 		</config>
 	</start>
 

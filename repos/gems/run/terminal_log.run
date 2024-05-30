@@ -23,7 +23,7 @@ install_config {
 		<service name="Gui"> <child name="nitpicker"/> </service>
 		<service name="Timer">     <child name="timer"/> </service>
 		<service name="Terminal">  <child name="terminal"/> </service>
-		<service name="Platform">  <child name="platform_drv"/> </service>
+		<service name="Platform">  <child name="platform"/> </service>
 		<any-service><parent/></any-service>
 	</default-route>
 

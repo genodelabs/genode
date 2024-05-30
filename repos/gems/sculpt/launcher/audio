@@ -1,4 +1,4 @@
-<launcher pkg="bsd_audio_drv" priority="0">
+<launcher pkg="bsd_audio" priority="0">
 	<config report_mixer="yes" record_play="yes">
 		<!-- value range [0,255] -->
 		<mixer field="outputs.master" value="255"/>

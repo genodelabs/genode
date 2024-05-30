@@ -14,7 +14,7 @@ proc test_step_char_repeat { } {
 
 	# the legacy PIT timer driver is too inaccurate to produce stable results
 	# for the character-repeat test
-	if {[binary_name_timer] == "pit_timer_drv"} {
+	if {[binary_name_timer] == "pit_timer"} {
 		return { } }
 
 	return {

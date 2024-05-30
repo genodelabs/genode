@@ -13,7 +13,7 @@
 		<report label="shape"/>
 		<report label="clipboard"/>
 		<rom    label="clipboard"/>
-		<rom label="mesa_gpu_drv.lib.so"/>
+		<rom label="mesa_gpu.lib.so"/>
 		<rm/>
 		<rtc/>
 		<usb/>
@@ -83,8 +83,8 @@
 				  <parent label="virtualbox6-sharedclipboard.lib.so"/> </service>
 				<service name="ROM" label="VBoxSharedFolders.so">
 				  <parent label="virtualbox6-sharedfolders.lib.so"/> </service>
-				<service name="ROM" label="mesa_gpu_drv.lib.so">
-				  <parent label="mesa_gpu_drv.lib.so"/> </service>
+				<service name="ROM" label="mesa_gpu.lib.so">
+				  <parent label="mesa_gpu.lib.so"/> </service>
 				<service name="Nic">                        <parent/>                       </service>
 				<service name="Report" label="shape">       <parent label="shape"/>         </service>
 				<service name="ROM"    label="clipboard">   <parent label="clipboard"/>     </service>

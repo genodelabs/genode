@@ -43,7 +43,7 @@ struct Sculpt::Nvme_driver : private Noncopyable
 
 		xml.node("start", [&] {
 			_nvme->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "nvme_drv");
+			gen_named_node(xml, "binary", "nvme");
 			gen_provides<Block::Session>(xml);
 			xml.node("config", [&] {
 				xml.attribute("system", "yes");
@@ -55,7 +55,7 @@ struct Sculpt::Nvme_driver : private Noncopyable
 			});
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>(xml);
-				gen_parent_rom_route(xml, "nvme_drv");
+				gen_parent_rom_route(xml, "nvme");
 				gen_parent_rom_route(xml, "system",   "config -> managed/system");
 				gen_common_routes(xml);
 			});

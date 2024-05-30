@@ -21,16 +21,16 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/usb_webcam \
-                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/acpi \
                   [depot_user]/src/dynamic_rom \
                   [depot_user]/src/init \
                   [depot_user]/src/nitpicker \
-                  [depot_user]/src/pc_usb_host_drv \
+                  [depot_user]/src/pc_usb_host \
                   [depot_user]/src/pci_decode \
-                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/platform \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/rom_reporter \
-                  [depot_user]/src/vesa_drv
+                  [depot_user]/src/vesa_fb
 
 import_from_depot $test_imports
 
@@ -64,12 +64,12 @@ append config {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+			<policy label="pci_decode -> system" report="acpi -> acpi"/>
+			<policy label="platform -> devices"  report="pci_decode -> devices"/>
 		</config>
 	</start>
 
-	<start name="acpi_drv" caps="350">
+	<start name="acpi" caps="350">
 		<resource name="RAM" quantum="4M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -86,7 +86,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="100" managing_system="yes">
+	<start name="platform" caps="100" managing_system="yes">
 		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="Platform"/>
@@ -97,13 +97,13 @@ append config {
 			<any-service> <parent/> </any-service>
 		</route>
 		<config>
-			<policy label="usb_drv -> " info="yes"> <pci class="USB"/> </policy>
-			<policy label="fb_drv -> "  info="yes"> <pci class="VGA"/> </policy>
+			<policy label="usb -> " info="yes"> <pci class="USB"/> </policy>
+			<policy label="fb -> "  info="yes"> <pci class="VGA"/> </policy>
 		</config>
 	</start>
 
-	<start name="usb_drv" priority="0" caps="200">
-		<binary name="pc_usb_host_drv"/>
+	<start name="usb" priority="0" caps="200">
+		<binary name="pc_usb_host"/>
 		<resource name="RAM" quantum="16M"/>
 		<!-- <resource name="CPU" quantum="10"/> -->
 		<provides><service name="Usb"/></provides>
@@ -117,8 +117,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="fb_drv" priority="-1" caps="150">
-		<binary name="vesa_fb_drv"/>
+	<start name="fb" priority="-1" caps="150">
+		<binary name="vesa_fb"/>
 		<resource name="RAM" quantum="20M"/>
 		<config/>
 		<route>
@@ -205,7 +205,7 @@ append config {
 		<route>
 			<service name="ROM" label="config"> <parent label="usb_webcam.config"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Usb"> <child name="usb_drv"/> </service>
+			<service name="Usb">   <child name="usb"/>   </service>
 			<any-service> <parent /> </any-service>
 		</route>
 		<provides> <service name="Capture"/> <service name="Report"/> </provides>

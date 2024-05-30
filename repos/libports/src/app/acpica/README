@@ -58,7 +58,7 @@ Excerpt of important parts of the acpica configuration
 !  </route>
 !</start>
 !
-!<start name="platform_drv" >
+!<start name="platform" >
 !  ...
 !  <config acpi="yes" system="yes">
 !    <policy label_prefix="acpica"> <pci class="ALL"/> </policy>

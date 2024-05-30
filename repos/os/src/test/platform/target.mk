@@ -1,4 +1,4 @@
-TARGET  := test-platform_drv
+TARGET  := test-platform
 REQUIRES = arm
 SRC_CC   = main.cc
 LIBS     = base

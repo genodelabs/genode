@@ -1555,12 +1555,12 @@ struct Sculpt::Main : Input_event_handler,
 	                                                        _cached_runtime_config,
 	                                                        _file_browser_state, *this };
 
-	Managed_config<Main> _fb_drv_config {
-		_env, "config", "fb_drv", *this, &Main::_handle_fb_drv_config };
+	Managed_config<Main> _fb_config {
+		_env, "config", "fb", *this, &Main::_handle_fb_config };
 
-	void _handle_fb_drv_config(Xml_node const &node)
+	void _handle_fb_config(Xml_node const &node)
 	{
-		_fb_drv_config.generate([&] (Xml_generator &xml) {
+		_fb_config.generate([&] (Xml_generator &xml) {
 			xml.attribute("system", "yes");
 			copy_attributes(xml, node);
 			node.for_each_sub_node([&] (Xml_node const &sub_node) {
@@ -1649,7 +1649,7 @@ struct Sculpt::Main : Input_event_handler,
 		_gui.input()->sigh(_input_handler);
 		_gui.mode_sigh(_gui_mode_handler);
 		_handle_gui_mode();
-		_fb_drv_config.trigger_update();
+		_fb_config.trigger_update();
 
 		/*
 		 * Generate initial configurations
@@ -2158,7 +2158,7 @@ void Sculpt::Main::_handle_runtime_state(Xml_node const &state)
 	_storage._storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device &dev) {
 		Child_exit_state exit_state(state, dev.driver);
 		if (exit_state.exited) {
-			dev.discard_usb_block_drv();
+			dev.discard_usb_block();
 			reconfigure_runtime = true;
 			regenerate_dialog   = true;
 		}

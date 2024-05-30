@@ -2,7 +2,7 @@ REQUIRES := x86
 
 REL_PRG_DIR := $(PRG_DIR)/../..
 
-TARGET  := pc_usb_host_drv
+TARGET  := pc_usb_host
 LIBS    := base pc_lx_emul jitterentropy
 
 INC_DIR += $(REL_PRG_DIR)

@@ -1,4 +1,4 @@
-TARGET    = linux_rtc_drv
+TARGET    = linux_rtc
 REQUIRES  = linux
 LIBS      = lx_hybrid
 

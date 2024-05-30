@@ -1,9 +1,9 @@
-_/src/platform_drv
-_/src/acpi_drv
-_/src/ps2_drv
-_/src/pc_usb_host_drv
-_/src/usb_hid_drv
-_/src/vesa_drv
+_/src/platform
+_/src/acpi
+_/src/ps2
+_/src/pc_usb_host
+_/src/usb_hid
+_/src/vesa_fb
 _/src/report_rom
 _/src/rom_filter
 _/src/event_filter

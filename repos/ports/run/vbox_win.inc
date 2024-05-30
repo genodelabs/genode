@@ -75,8 +75,8 @@ set config_of_app {
 		Note: to get network access in the VM, the virtual network adapter
 		      needs to be enabled in the .vbox file (disabled by default)
 	-->
-	<start name="nic_drv" caps="150" priority="-1">
-		<binary name="pc_nic_drv"/>
+	<start name="nic" caps="150" priority="-1">
+		<binary name="pc_nic"/>
 		<resource name="RAM" quantum="8M" />
 		<route>
 			<service name="Uplink"> <child name="nic_router"/> </service>
@@ -92,8 +92,8 @@ set config_of_app {
 		</provides>
 		<config verbose_domain_state="yes">
 
-			<policy label_prefix="vbox"    domain="downlink"/>
-			<policy label_prefix="nic_drv" domain="uplink"/>
+			<policy label_prefix="vbox" domain="downlink"/>
+			<policy label_prefix="nic"  domain="uplink"/>
 
 			<domain name="uplink">
 
@@ -122,8 +122,8 @@ set config_of_app {
 		needs to be enabled in the .vbox file (disabled by default).
 		(Recording is configured to use the external mic.)
 	-->
-	<start name="audio_drv" priority="-1">
-		<binary name="pci_audio_drv"/>
+	<start name="audio" priority="-1">
+		<binary name="pci_audio"/>
 		<resource name="RAM" quantum="9M"/>
 		<provides>
 			<service name="Audio_out"/>
@@ -140,10 +140,10 @@ set config_of_app {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="pointer -> hover"                    report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"                     report="nitpicker -> xray"/>}
+			<policy label="pointer -> hover"  report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"   report="nitpicker -> xray"/>}
 append config_of_app {
-			<policy label="usb_hid_drv -> report"               report="usb_drv -> devices"/>
+			<policy label="usb_hid -> report" report="usb -> devices"/>
 }
 append_if [expr $use_cpu_load] config_of_app {
 			<policy label="cpu_load_display -> trace_subjects"

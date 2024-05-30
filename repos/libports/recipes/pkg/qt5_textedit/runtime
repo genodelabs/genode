@@ -6,7 +6,7 @@
 		<report label="shape"/>
 		<report label="clipboard"/>
 		<rom    label="clipboard"/>
-		<rom    label="mesa_gpu_drv.lib.so"/>
+		<rom    label="mesa_gpu.lib.so"/>
 		<timer/>
 	</requires>
 

@@ -223,10 +223,10 @@ if {[get_cmd_switch --autopilot]} {
 	grep_output {(requests resources: )|(Error)}
 
 	# remove Error messages which are not fatal, mostly
-	unify_output {(?n)^.*platform_drv] Error:.*ACPI table information is wrong.*$} ""
-	unify_output {(?n)^.*platform_drv] Error:  adjust size from.*$} ""
-	unify_output {(?n)^.*ps2_drv] Error: no data available.*$} ""
-	unify_output {(?n)^.*ps2_drv] Error: failed to read from port.*$} ""
+	unify_output {(?n)^.*platform] Error:.*ACPI table information is wrong.*$} ""
+	unify_output {(?n)^.*platform] Error:  adjust size from.*$} ""
+	unify_output {(?n)^.*ps2] Error: no data available.*$} ""
+	unify_output {(?n)^.*ps2] Error: failed to read from port.*$} ""
 	unify_output {(?n)^.*] Error: RAM preservation exceeds available memory.*$} ""
 
 	compare_output_to {}

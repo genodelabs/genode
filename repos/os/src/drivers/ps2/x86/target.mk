@@ -1,4 +1,4 @@
-TARGET   = ps2_drv
+TARGET   = ps2
 REQUIRES = x86
 SRC_CC   = main.cc
 LIBS     = base

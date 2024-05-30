@@ -21,5 +21,5 @@ content:
 	for spec in x86_32; do \
 	  mv lib/mk/spec/$$spec/ld-fiasco.mk lib/mk/spec/$$spec/ld.mk; \
 	  done;
-	sed -i "s/fiasco_timer_drv/timer/" src/timer/fiasco/target.mk
+	sed -i "s/fiasco_timer/timer/" src/timer/fiasco/target.mk
 

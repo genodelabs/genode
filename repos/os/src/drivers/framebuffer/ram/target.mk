@@ -1,4 +1,4 @@
-TARGET   = ram_fb_drv
+TARGET   = ram_fb
 SRC_CC   = main.cc
 LIBS     = base blit
 

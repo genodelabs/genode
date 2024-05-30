@@ -22,15 +22,15 @@ proc router_verbose_domain_state {} {
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/pc_wifi \
-                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/acpi \
                   [depot_user]/src/dynamic_rom \
                   [depot_user]/src/init \
-                  [depot_user]/src/pc_nic_drv \
+                  [depot_user]/src/pc_nic \
                   [depot_user]/src/nic_router \
                   [depot_user]/src/pci_decode \
-                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/platform \
                   [depot_user]/src/report_rom \
-                  [depot_user]/src/rtc_drv
+                  [depot_user]/src/pc_rtc
 
 build { app/ping }
 
@@ -58,12 +58,12 @@ install_config {
 			<service name="Report" />
 		</provides>
 		<config>
-			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+			<policy label="pci_decode -> system" report="acpi -> acpi"/>
+			<policy label="platform -> devices"  report="pci_decode -> devices"/>
 		</config>
 	</start>
 
-	<start name="acpi_drv" caps="250">
+	<start name="acpi" caps="250">
 		<resource name="RAM" quantum="4M"/>
 	</start>
 
@@ -76,7 +76,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="100" managing_system="yes">
+	<start name="platform" caps="100" managing_system="yes">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>
@@ -84,8 +84,8 @@ install_config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config>
-			<policy label_prefix="wifi_drv" info="yes"> <pci class="WIFI"/> </policy>
-			<policy label_prefix="nic_drv" info="yes"> <pci class="ETHERNET"/> </policy>
+			<policy label_prefix="wifi" info="yes"> <pci class="WIFI"/>     </policy>
+			<policy label_prefix="nic"  info="yes"> <pci class="ETHERNET"/> </policy>
 		</config>
 	</start>
 
@@ -94,15 +94,15 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="rtc_drv" priority="-1">
+	<start name="pc_rtc" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
 		</provides>
 	</start>
 
-	<start name="nic_drv" priority="-1" caps="250">
-		<binary name="pc_nic_drv"/>
+	<start name="nic" priority="-1" caps="250">
+		<binary name="pc_nic"/>
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Uplink"> <child name="router"/> </service>
@@ -110,7 +110,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="wifi_drv" caps="300" priority="-1">
+	<start name="wifi" caps="300" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<config ld_verbose="no">
 			<vfs>
@@ -171,8 +171,8 @@ install_config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<policy label_prefix="ping"    domain="downlink"/>
-						<policy label_prefix="nic_drv" domain="uplink"  />
+						<policy label_prefix="ping" domain="downlink"/>
+						<policy label_prefix="nic"  domain="uplink"  />
 
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
@@ -195,8 +195,8 @@ install_config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<policy label_prefix="ping"     domain="downlink"/>
-						<policy label_prefix="wifi_drv" domain="uplink"  />
+						<policy label_prefix="ping" domain="downlink"/>
+						<policy label_prefix="wifi" domain="uplink"  />
 
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
@@ -238,8 +238,8 @@ install_config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<policy label_prefix="ping"    domain="downlink"/>
-						<policy label_prefix="nic_drv" domain="uplink"  />
+						<policy label_prefix="ping" domain="downlink"/>
+						<policy label_prefix="nic"  domain="uplink"  />
 
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
@@ -262,8 +262,8 @@ install_config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<policy label_prefix="ping"    domain="downlink"/>
-						<policy label_prefix="nic_drv" domain="uplink"  />
+						<policy label_prefix="ping" domain="downlink"/>
+						<policy label_prefix="nic"  domain="uplink"  />
 
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
@@ -305,8 +305,8 @@ install_config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<policy label_prefix="ping"     domain="downlink"/>
-						<policy label_prefix="wifi_drv" domain="uplink"  />
+						<policy label_prefix="ping" domain="downlink"/>
+						<policy label_prefix="wifi" domain="uplink"  />
 
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
@@ -329,8 +329,8 @@ install_config {
 					        verbose_domain_state="} [router_verbose_domain_state] {"
 					        verbose_packets="}      [router_verbose_packets] {">
 
-						<policy label_prefix="ping"    domain="downlink"/>
-						<policy label_prefix="nic_drv" domain="uplink"  />
+						<policy label_prefix="ping" domain="downlink"/>
+						<policy label_prefix="nic"  domain="uplink"  />
 
 						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>

@@ -1,0 +1,10 @@
+<runtime ram="16M" caps="300" binary="ipxe_nic">
+
+	<config/>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="ipxe_nic"/>
+	</content>
+
+</runtime>

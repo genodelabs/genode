@@ -1,4 +1,4 @@
-TARGET   = fiasco_timer_drv
+TARGET   = fiasco_timer
 LIBS    += syscall-fiasco
 GEN_DIR := $(dir $(call select_from_repositories,src/timer/main.cc))
 INC_DIR += $(GEN_DIR)/periodic

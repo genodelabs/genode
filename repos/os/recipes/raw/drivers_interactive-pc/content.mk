@@ -1,6 +1,6 @@
-content: drivers.config fb_drv.config event_filter.config en_us.chargen special.chargen
+content: drivers.config fb.config event_filter.config en_us.chargen special.chargen
 
-drivers.config fb_drv.config event_filter.config:
+drivers.config fb.config event_filter.config:
 	cp $(REP_DIR)/recipes/raw/drivers_interactive-pc/$@ $@
 
 en_us.chargen special.chargen:

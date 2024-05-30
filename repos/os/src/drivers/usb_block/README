@@ -13,13 +13,13 @@ bulk-only interface it finds.
 
 The following configuration snippets demonstrates how to use the driver:
 
-!<start name="usb_block_drv">
+!<start name="usb_block">
 !  <resource name="RAM" quantum="4M"/>
 !  <provides> <service name="Block"/> </provides>
 !  <config label="usb_stick" report="yes" writeable="yes" interface="0"
 !          alt_setting="0" lun="0" reset_device="no" verbose_scsi="no"/>
 !  <route>
-!   <service name="Usb"> <child name="usb_drv"/> </service>
+!   <service name="Usb"> <child name="usb"/> </service>
 !   <any-service> <parent/> <any-child/> </any-service>
 !  </route>
 !</start>
@@ -29,12 +29,12 @@ attribute. This attribute specifies the label used when opening the Usb session
 connection. A matching policy has to be configured at the USB host controller
 driver:
 
-!<start name="usb_drv">
+!<start name="usb">
 !  <resource name="RAM" quantum="12M"/>
 !  <provides><service name="Usb"/></provides>
 !  <config>
 !    <raw>
-!        <policy label="usb_block_drv -> usb_stick" vendor_id="0x13fe" product_id="0x5200"/>
+!        <policy label="usb_block -> usb_stick" vendor_id="0x13fe" product_id="0x5200"/>
 !    </raw>
 !  </config>
 !</start>
@@ -42,8 +42,8 @@ driver:
 For static configurations the 'label' value may be chosen freely or may even
 be ommitted entirely. On the other hand it is best for dynamic configurations
 to choose a unique label, e.g. 'usb-<bus>-<dev>', at run-time (this most likely
-involves other components that generate configurations for the 'usb_block_drv'
-as well as the 'usb_drv').
+involves other components that generate configurations for the 'usb_block'
+as well as the USB host driver.
 
 
 The second attribute is 'report'. If its value is 'yes' the driver

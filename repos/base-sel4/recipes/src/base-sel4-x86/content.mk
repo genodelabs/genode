@@ -24,7 +24,7 @@ etc/board.conf:
 
 content:
 	mv lib/mk/spec/x86_64/ld-sel4.mk lib/mk/spec/x86_64/ld.mk;
-	sed -i "s/pit_timer_drv/timer/" src/timer/pit/target.inc
+	sed -i "s/pit_timer/timer/" src/timer/pit/target.inc
 	find lib/mk/spec -name kernel-sel4-*.mk -o -name syscall-sel4-*.mk |\
 		grep -v "sel4-pc.mk" | xargs rm -rf
 

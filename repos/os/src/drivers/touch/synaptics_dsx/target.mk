@@ -1,4 +1,4 @@
-TARGET    = imx8_synaptics_touch_drv
+TARGET    = imx8_synaptics_touch
 REQUIRES  = arm_v8
 SRC_CC    = main.cc
 LIBS      = base

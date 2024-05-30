@@ -16,7 +16,7 @@ the platform driver README for more details.
 Usage
 -----
 
-!<start name="acpi_drv">
+!<start name="acpi">
 !  <resource name="RAM" quantum="4M"/>
 !</start>
 !
@@ -27,11 +27,11 @@ Usage
 !    <service name="Report" />
 !  </provides>
 !  <config>
-!    <policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>
+!    <policy label="platform -> acpi" report="acpi -> acpi"/>
 !  </config>
 !</start>
 !
-!<start name="platform_drv">
+!<start name="platform">
 !  ...
 
 Config

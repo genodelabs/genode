@@ -32,7 +32,7 @@ install_config {
 			<service name="Report" label="shape">
 				<child name="pointer" label="wm -> tetrix -> shape"/>
 			</service>
-			<service name="ROM" label="mesa_gpu_drv.lib.so">
+			<service name="ROM" label="mesa_gpu.lib.so">
 				<parent label="mesa_gpu-softpipe.lib.so" />
 			</service>
 			<any-service> <parent /> <any-child/> </any-service>

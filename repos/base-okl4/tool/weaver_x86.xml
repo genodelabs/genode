@@ -66,11 +66,11 @@
 		<memsection name="testnit"   file="testnit"   direct="true" />
 		<memsection name="scout"     file="scout"     direct="true" />
 		<memsection name="launchpad" file="launchpad" direct="true" />
-		<memsection name="ps2_drv"   file="ps2_drv"   direct="true" />
-		<memsection name="pci_drv"   file="pci_drv"   direct="true" />
+		<memsection name="ps2"       file="ps2"       direct="true" />
+		<memsection name="pci"       file="pci"       direct="true" />
 		<memsection name="nitlog"    file="nitlog"    direct="true" />
 		<memsection name="liquid_fb" file="liquid_fb" direct="true" />
-		<memsection name="fb_drv"    file="fb_drv"    direct="true" />
+		<memsection name="fb"        file="fb"        direct="true" />
 	</pd>
 
 </image>

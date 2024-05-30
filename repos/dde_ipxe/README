@@ -14,7 +14,7 @@ build directory, for example
 ! REPOSITORIES += $(GENODE_DIR)/repos/dde_ipxe
 
 After a successful build the DDE iPXE based ethernet driver is located
-at 'bin/ipxe_nic_drv'.
+at 'bin/ipxe_nic'.
 
 The driver optionally reports the following information under the
 label "devices" if requested in the config as depicted.

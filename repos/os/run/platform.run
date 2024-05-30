@@ -1,0 +1,177 @@
+if { ![have_board pbxa9] } {
+	puts "Platform is unsupported."
+	exit 0
+}
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/fs_report \
+                  [depot_user]/src/fs_rom \
+                  [depot_user]/src/platform \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/vfs_import \
+                  [depot_user]/src/vfs
+
+build { test/platform }
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="report_fs">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<ram/>
+				<import>
+					<inline name="config"><config><default-policy/></config>
+					</inline>
+					<inline name="devices"><devices/>
+					</inline>
+				</import>
+			</vfs>
+			<policy label="fs_report -> "     root="/" writeable="yes"/>
+			<policy label="report_fs_rom -> " root="/"/>
+		</config>
+	</start>
+
+	<start name="fs_report">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> </provides>
+		<config> <vfs> <fs/> </vfs> </config>
+		<route>
+			<service name="File_system"> <child name="report_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="report_fs_rom">
+		<binary name="fs_rom"/>
+		<resource name="RAM" quantum="3M"/>
+		<provides> <service name="ROM"/> </provides>
+		<route>
+			<service name="File_system"> <child name="report_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="3M"/>
+		<provides>
+			<service name="ROM"/>
+			<service name="Report"/>
+		</provides>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+		<config verbose="no"/>
+	</start>
+
+	<start name="platform" managing_system="yes">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="ROM"    label="config"> <child name="report_fs_rom"/> </service>
+			<service name="ROM"    label="devices"><child name="report_fs_rom"/> </service>
+			<service name="Report">                <child name="report_rom"/>    </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="test-platform">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Report" label="config">
+				<child name="fs_report" label="config"/> </service>
+			<service name="Report" label="devices">
+				<child name="fs_report" label="devices"/> </service>
+			<service name="Platform"> <child name="platform"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+</config>}
+
+
+build_boot_image [build_artifacts]
+
+append qemu_args "-nographic "
+
+set good_string {
+[init -> test-platform] <devices version="1">
+[init -> test-platform] 	<device name="0" type="dummy-device" used="false">
+[init -> test-platform] 		<io_mem phys_addr="0x40000000" size="0x1000"/>
+[init -> test-platform] 		<irq number="32"/>
+[init -> test-platform] 	</device>
+[init -> test-platform] 	<device name="1" type="dummy-device" used="false">
+[init -> test-platform] 		<io_mem phys_addr="0x40001000" size="0x1000"/>
+[init -> test-platform] 		<irq number="33"/>
+[init -> test-platform] 	</device>
+[init -> test-platform] 	<device name="2" type="dummy-device" used="false">
+[init -> test-platform] 		<io_mem phys_addr="0x40002000" size="0x1000"/>
+[init -> test-platform] 		<irq number="34"/>
+[init -> test-platform] 	</device>
+[init -> test-platform] </devices>
+[init -> test-platform] <devices version="2">
+[init -> test-platform] 	<device name="0" type="dummy-device" used="true">
+[init -> test-platform] 		<io_mem phys_addr="0x40000000" size="0x1000"/>
+[init -> test-platform] 		<irq number="32"/>
+[init -> test-platform] 	</device>
+[init -> test-platform] 	<device name="1" type="dummy-device" used="true">
+[init -> test-platform] 		<io_mem phys_addr="0x40001000" size="0x1000"/>
+[init -> test-platform] 		<irq number="33"/>
+[init -> test-platform] 	</device>
+[init -> test-platform] </devices>
+[init -> test-platform] <devices version="3"/>
+[init -> test-platform] <devices version="4">
+[init -> test-platform] 	<device name="0" type="dummy-device" used="false">
+[init -> test-platform] 		<io_mem phys_addr="0x40000000" size="0x1000"/>
+[init -> test-platform] 		<irq number="32"/>
+[init -> test-platform] 	</device>
+[init -> test-platform] 	<device name="1" type="dummy-device" used="false">
+[init -> test-platform] 		<io_mem phys_addr="0x40001000" size="0x1000"/>
+[init -> test-platform] 		<irq number="33"/>
+[init -> test-platform] 	</device>
+[init -> test-platform] 	<device name="2" type="dummy-device" used="false">
+[init -> test-platform] 		<io_mem phys_addr="0x40002000" size="0x1000"/>
+[init -> test-platform] 		<irq number="34"/>
+[init -> test-platform] 	</device>
+[init -> test-platform] 	<device name="3" type="dummy-device" used="false">
+[init -> test-platform] 		<io_mem phys_addr="0x40003000" size="0x1000"/>
+[init -> test-platform] 		<irq number="35"/>
+[init -> test-platform] 	</device>
+[init -> test-platform] </devices>
+[init -> test-platform] <devices version="5"/>
+[init -> test-platform] <devices version="6">
+[init -> test-platform] 	<device name="0" type="dummy-device" used="false">
+[init -> test-platform] 		<io_mem phys_addr="0x40000100" size="0x1000"/>
+[init -> test-platform] 		<irq number="32"/>
+[init -> test-platform] 	</device>
+[init -> test-platform] </devices>
+[init -> test-platform] Found next valid device of dummy type
+[init -> test-platform] Test has ended!
+}
+
+run_genode_until "Test has ended!.*\n" 100
+grep_output  "init -> test-platform"
+compare_output_to $good_string

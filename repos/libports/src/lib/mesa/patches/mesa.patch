@@ -87,7 +87,7 @@ index 19c456c..bf90afe 100644
        len = next - p;
 -      snprintf(path, sizeof(path), "%.*s/tls/%s%s.so", len,
 -               p, driver_name, lib_suffix);
-+      snprintf(path, sizeof(path), "%.*s/mesa_gpu_drv.lib.so", len, p);
++      snprintf(path, sizeof(path), "%.*s/mesa_gpu.lib.so", len, p);
        driver = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
        if (driver == NULL) {
           snprintf(path, sizeof(path), "%.*s/%s%s.so", len,

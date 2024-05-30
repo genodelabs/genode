@@ -6,7 +6,7 @@ if {![have_board pbxa9]} {
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
-                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/platform \
                   [depot_user]/raw/pbxa9-devices
 
 build { drivers/sd_card app/block_tester }
@@ -24,11 +24,11 @@ install_config {
 	</parent-provides>
 	<default caps="100"/>
 
-	<start name="platform_drv" managing_system="yes">
+	<start name="platform" managing_system="yes">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Platform"/></provides>
 		<config>
-			<policy label="pl180_sd_card_drv -> ">
+			<policy label="pl180_sd_card -> ">
 				<device name="mmc0"/>
 			</policy>
 		</config>
@@ -43,7 +43,7 @@ install_config {
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
 
-	<start name="pl180_sd_card_drv">
+	<start name="pl180_sd_card">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Block"/></provides>
 		<route>

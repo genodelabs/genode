@@ -43,7 +43,7 @@ struct Sculpt::Ahci_driver : private Noncopyable
 
 		xml.node("start", [&] {
 			_ahci->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "ahci_drv");
+			gen_named_node(xml, "binary", "ahci");
 			gen_provides<Block::Session>(xml);
 			xml.node("config", [&] {
 				xml.attribute("system", "yes");
@@ -56,7 +56,7 @@ struct Sculpt::Ahci_driver : private Noncopyable
 			});
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>(xml);
-				gen_parent_rom_route(xml, "ahci_drv");
+				gen_parent_rom_route(xml, "ahci");
 				gen_parent_rom_route(xml, "system",   "config -> managed/system");
 				gen_common_routes(xml);
 			});

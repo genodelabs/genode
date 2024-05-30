@@ -61,7 +61,7 @@ nvme
 ping
 ping_nic_router
 nova
-platform_drv
+platform
 rtc
 rump_ext2
 sd_card_bench

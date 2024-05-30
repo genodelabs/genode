@@ -104,7 +104,7 @@ struct Main
 
 			cfg.node("policy", [&]
 			{
-				cfg.attribute("label", "test-platform_drv -> ");
+				cfg.attribute("label", "test-platform -> ");
 				cfg.attribute("info", true);
 				cfg.attribute("version", state);
 

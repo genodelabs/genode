@@ -1,6 +1,6 @@
 proc binary_name_ld_lib_so { } { return "ld-pistachio.lib.so" }
 proc binary_name_core_a    { } { return "core-pistachio.a"    }
-proc binary_name_timer     { } { return "pit_timer_drv" }
+proc binary_name_timer     { } { return "pit_timer"           }
 
 proc kernel_files { } { return { pistachio sigma0-pistachio kickstart-pistachio } }
 

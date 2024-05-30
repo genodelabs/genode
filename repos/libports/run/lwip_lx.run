@@ -61,7 +61,7 @@ install_config {
 		<config verbose="yes"/>
 	</start>
 
-	<start name="linux_nic_drv" ld="no">
+	<start name="linux_nic" ld="no">
 		<resource name="RAM" quantum="8M"/>
 		<config>
 			<report mac_address="true"/>
@@ -82,7 +82,7 @@ install_config {
 		<config verbose_domain_state="yes">
 
 			<policy label_prefix="test-lwip_httpsrv" domain="downlink"/>
-			<policy label_prefix="linux_nic_drv"     domain="uplink"/>
+			<policy label_prefix="linux_nic"         domain="uplink"/>
 
 			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
 

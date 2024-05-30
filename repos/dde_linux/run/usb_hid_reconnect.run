@@ -17,10 +17,10 @@ if {![have_include "power_on/qemu"]} {
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/pkg/test_usb_host_drv-[board] \
+                  [depot_user]/pkg/test_usb_host-[board] \
                   [depot_user]/src/dynamic_rom \
                   [depot_user]/src/report_rom \
-                  [depot_user]/src/usb_hid_drv \
+                  [depot_user]/src/usb_hid \
                   [depot_user]/src/init
 
 build { server/event_dump }
@@ -51,11 +51,11 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
-			<default-policy report="usb_drv -> usb_drv -> devices"/>
+			<default-policy report="usb -> usb -> devices"/>
 		</config>
 	</start>
 
-	<start name="usb_drv" caps="1500" managing_system="yes">
+	<start name="usb" caps="1500" managing_system="yes">
 		<binary name="init"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
@@ -68,7 +68,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="usb_hid_drv" caps="180">
+	<start name="usb_hid" caps="180">
 		<resource name="RAM" quantum="11M"/>
 		<config capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
 		<route>
@@ -123,11 +123,11 @@ install_config {
 #
 # Define USB host controller config
 #
-set fd [open [run_dir]/genode/usb_host_drv.config w]
+set fd [open [run_dir]/genode/usb_host.config w]
 puts $fd {
 <config bios_handoff="yes">
 	<report devices="yes"/>
-	<policy label_prefix="usb_hid_drv"> <device class="0x3"/> </policy>
+	<policy label_prefix="usb_hid"> <device class="0x3"/> </policy>
 </config>}
 close $fd
 

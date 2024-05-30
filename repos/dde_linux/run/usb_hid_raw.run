@@ -59,10 +59,10 @@ if { [get_cmd_switch --autopilot] &&
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/pkg/test_usb_host_drv-[board] \
+                  [depot_user]/pkg/test_usb_host-[board] \
                   [depot_user]/src/dynamic_rom \
                   [depot_user]/src/report_rom \
-                  [depot_user]/src/usb_hid_drv \
+                  [depot_user]/src/usb_hid \
                   [depot_user]/src/init
 
 build { server/event_dump }
@@ -93,14 +93,14 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<default-policy report="usb_drv -> usb_drv -> devices"/>
+			<default-policy report="usb -> usb -> devices"/>
 		</config>
 		<route>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
-	<start name="usb_drv" caps="1500" managing_system="yes">
+	<start name="usb" caps="1500" managing_system="yes">
 		<binary name="init"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
@@ -113,7 +113,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="usb_hid_drv" caps="180">
+	<start name="usb_hid" caps="180">
 		<resource name="RAM" quantum="11M"/>
 		<config capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
 		<route>
@@ -122,7 +122,7 @@ install_config {
 			<service name="ROM" label="scrlock">  <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="report"> <child name="report_rom"/> </service>
 			<service name="Event"> <child name="event_dump"/> </service>
-			<service name="Usb">   <child name="usb_drv"/> </service>
+			<service name="Usb">   <child name="usb"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
@@ -188,11 +188,11 @@ install_config {
 #
 # Define USB host controller config
 #
-set fd [open [run_dir]/genode/usb_host_drv.config w]
+set fd [open [run_dir]/genode/usb_host.config w]
 puts $fd {
 <config bios_handoff="no">
 	<report devices="yes"/>
-	<policy label_prefix="usb_hid_drv"> <device class="0x3"/> </policy>
+	<policy label_prefix="usb_hid"> <device class="0x3"/> </policy>
 </config>}
 close $fd
 
@@ -225,8 +225,8 @@ unify_output {(?n)hid-generic.*input:} "hid-generic: input:"
 unify_output {(?n)usb-[0-9]-[0-9]: USB disconnect, device number [0-9]} "usb-X-X: USB disconnect, device number X"
 unify_output {(?n)input[0-9]} "inputX"
 unify_output {(?n) as /devices/.*} ""
-unify_output {(?n)^\[init -\> usb_drv.*} ""
-unify_output {(?n)^\[init -\> usb_hid_drv\] Connected device: inputX \(ATEN CS1764A V1.1.110\).*} ""
+unify_output {(?n)^\[init -\> usb -\>.*} ""
+unify_output {(?n)^\[init -\> usb_hid\] Connected device: inputX \(ATEN CS1764A V1.1.110\).*} ""
 trim_lines
 
 compare_output_to {
@@ -235,15 +235,15 @@ compare_output_to {
 [init -> event_dump] Input event #2	REL_MOTION -1+1	key count: 0
 [init -> event_dump] Input event #3	PRESS BTN_LEFT 65534	key count: 1
 [init -> event_dump] Input event #4	RELEASE BTN_LEFT	key count: 0
-[init -> usb_hid_drv] usb usb-X-X: USB disconnect, device number X
-[init -> usb_hid_drv] Disconnected device: inputX
-[init -> usb_hid_drv] Disconnected device: inputX
-[init -> usb_hid_drv] input: Dean Camera LUFA Mouse and Keyboard Demo
-[init -> usb_hid_drv] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo)
-[init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Keyboard [Dean Camera LUFA Mouse and Keyboard Demo]
-[init -> usb_hid_drv] input: Dean Camera LUFA Mouse and Keyboard Demo
-[init -> usb_hid_drv] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo) MOUSE
-[init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Mouse [Dean Camera LUFA Mouse and Keyboard Demo]
+[init -> usb_hid] usb usb-X-X: USB disconnect, device number X
+[init -> usb_hid] Disconnected device: inputX
+[init -> usb_hid] Disconnected device: inputX
+[init -> usb_hid] input: Dean Camera LUFA Mouse and Keyboard Demo
+[init -> usb_hid] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo)
+[init -> usb_hid] hid-generic: input: USB HID v1.11 Keyboard [Dean Camera LUFA Mouse and Keyboard Demo]
+[init -> usb_hid] input: Dean Camera LUFA Mouse and Keyboard Demo
+[init -> usb_hid] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo) MOUSE
+[init -> usb_hid] hid-generic: input: USB HID v1.11 Mouse [Dean Camera LUFA Mouse and Keyboard Demo]
 [init -> event_dump] Input event #5	PRESS KEY_X 65534	key count: 1
 [init -> event_dump] Input event #6	RELEASE KEY_X	key count: 0
 [init -> event_dump] Input event #7	REL_MOTION -1+1	key count: 0

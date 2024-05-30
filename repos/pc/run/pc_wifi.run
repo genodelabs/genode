@@ -25,7 +25,7 @@ proc wifi_wpa { } {
 }
 
 #
-# widi_drv config generator (supporting a network list)
+# wifi-driver config generator (supporting a network list)
 #
 # You may script your tests with this function in the dynamic_rom config below.
 # The syntax for the networks parameter is
@@ -134,8 +134,8 @@ append config {
 			<service name="Report" />
 		</provides>
 		<config verbose="yes">
-			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+			<policy label="pci_decode -> system" report="acpi -> acpi"/>
+			<policy label="platform -> devices"  report="pci_decode -> devices"/>
 		</config>
 		<route>
 			<service name="LOG"> <parent/> </service>
@@ -145,7 +145,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="acpi_drv" caps="250">
+	<start name="acpi" caps="250">
 		<resource name="RAM" quantum="6M"/>
 		<route>
 			<service name="IO_MEM"> <parent/> </service>
@@ -174,7 +174,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="100" managing_system="yes">
+	<start name="platform" caps="100" managing_system="yes">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>
@@ -189,13 +189,13 @@ append config {
 			<service name="LOG">     <parent/> </service>
 		</route>
 		<config>
-			<policy label_prefix="wifi_drv" info="yes">
+			<policy label_prefix="wifi" info="yes">
 				<pci class="WIFI"/>
 			</policy>
 		</config>
 	</start>
 
-	<start name="rtc_drv">
+	<start name="pc_rtc">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Rtc"/> </provides>
 	</start>
@@ -264,7 +264,7 @@ append config {
 		<config verbose="no" verbose_domain_state="yes" dhcp_discover_timeout_sec="10" dhcp_request_timeout_sec="6">
 
 			<policy label_prefix="test-lwip_httpsrv" domain="downlink"/>
-			<policy label_prefix="wifi_drv"          domain="uplink"/>
+			<policy label_prefix="wifi"              domain="uplink"/>
 
 			<domain name="uplink" verbose_packets="no" verbose_packet_drop="no" icmp_echo_server="yes">
 
@@ -290,7 +290,7 @@ append config {
 		<config verbose="yes"/>
 	</start>
 
-	<start name="wifi_drv" caps="260" priority="-1">
+	<start name="wifi" caps="260" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<config ld_verbose="yes">
 			<report mac_address="true"/>

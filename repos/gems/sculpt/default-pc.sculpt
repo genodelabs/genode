@@ -1,7 +1,7 @@
 # configuration decisions
 drivers: pc
 system:  pc
-gpu_drv: intel
+gpu:     intel
 
 # supplemental depot content added to the system image
 import: pkg/sculpt_drivers-pc

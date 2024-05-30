@@ -1,5 +1,5 @@
 REQUIRES = x86
-TARGET   = pci_audio_drv
+TARGET   = pci_audio
 SRC_CC   = main.cc
 LIBS     = dde_bsd_audio base format
 INC_DIR += $(REP_DIR)/include

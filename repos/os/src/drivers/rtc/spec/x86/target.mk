@@ -1,4 +1,4 @@
-TARGET    = rtc_drv
+TARGET    = pc_rtc
 REQUIRES  = x86
 LIBS      = base
 

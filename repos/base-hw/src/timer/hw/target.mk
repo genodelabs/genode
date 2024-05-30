@@ -1,4 +1,4 @@
-TARGET       = hw_timer_drv
+TARGET       = hw_timer
 REQUIRES     = hw
 LIBS         = syscall-hw base
 REP_INC_DIR += src/include

@@ -1,4 +1,4 @@
-TARGET   = acpi_drv
+TARGET   = acpi
 REQUIRES = x86
 SRC_CC   = main.cc acpi.cc smbios_table_reporter.cc intel_opregion.cc
 LIBS     = base

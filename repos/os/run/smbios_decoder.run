@@ -41,11 +41,11 @@ install_config {
 			<service name="ROM"/>
 		</provides>
 		<config>
-			<policy label="smbios_decoder -> smbios_table" report="acpi_drv -> smbios_table"/>
+			<policy label="smbios_decoder -> smbios_table" report="acpi -> smbios_table"/>
 		</config>
 	</start>
 
-	<start name="acpi_drv" caps="350">
+	<start name="acpi" caps="350">
 		<resource name="RAM" quantum="4M"/>
 		<route>
 			<service name="Report"> <child name="acpi_report_rom"/> </service>

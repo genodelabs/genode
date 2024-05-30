@@ -44,15 +44,15 @@ if { ![expr [have_board linux] || [have_board pc]] } {
 }
 
 
-proc rtc_drv_binary_name { } {
+proc rtc_binary_name { } {
 	switch [board] {
-		linux { return "linux_rtc_drv" }
-		pc    { return "rtc_drv" }
+		linux { return "linux_rtc" }
+		pc    { return "pc_rtc" }
 	}
 }
 
 
-proc rtc_drv_use_ld { } {
+proc rtc_use_ld { } {
 	return [expr [have_board linux] ? "no" : "yes"]
 }
 
@@ -75,7 +75,7 @@ lappend depot_archives [depot_user]/src/nic_router
 lappend depot_archives [depot_user]/src/openssl
 lappend depot_archives [depot_user]/src/posix
 lappend depot_archives [depot_user]/src/report_rom
-lappend depot_archives [depot_user]/src/[rtc_drv_binary_name]
+lappend depot_archives [depot_user]/src/[rtc_binary_name]
 lappend depot_archives [depot_user]/src/vfs
 lappend depot_archives [depot_user]/src/vfs_jitterentropy
 lappend depot_archives [depot_user]/src/vfs_lwip
@@ -272,8 +272,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="rtc_drv" caps="100" ld="} [rtc_drv_use_ld] {">
-		<binary name="} [rtc_drv_binary_name] {"/>
+	<start name="rtc" caps="100" ld="} [rtc_use_ld] {">
+		<binary name="} [rtc_binary_name] {"/>
 		<resource name="RAM" quantum="1M" />
 		<provides>
 			<service name="Rtc"/>
@@ -319,7 +319,7 @@ append config {
 		<route>
 			<service name="Nic"> <child name="nic_router" label="server"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Rtc"> <child name="rtc_drv"/> </service>
+			<service name="Rtc"> <child name="rtc"/> </service>
 			<service name="Uplink"> <child name="nic_router" label="server"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
@@ -332,7 +332,7 @@ append config {
 		<route>
 			<service name="Nic"> <child name="nic_router" label="client"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Rtc"> <child name="rtc_drv"/> </service>
+			<service name="Rtc"> <child name="rtc"/> </service>
 			<service name="Uplink"> <child name="nic_router" label="client"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>

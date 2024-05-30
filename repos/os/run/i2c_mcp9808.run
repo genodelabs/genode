@@ -4,7 +4,7 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src]
 import_from_depot [depot_user]/src/init
-import_from_depot [depot_user]/src/platform_drv
+import_from_depot [depot_user]/src/platform
 
 build {
 	core
@@ -36,8 +36,8 @@ install_config {
 			<provides><service name="Timer"/></provides>
 		</start>
 
-		<start name="platform_drv" caps="800" managing_system="yes">
-			<binary name="imx8mq_platform_drv"/>
+		<start name="platform" caps="800" managing_system="yes">
+			<binary name="imx8mq_platform"/>
 			<resource name="RAM" quantum="4M"/>
 			<provides>
 				<service name="Platform"/>
@@ -45,12 +45,12 @@ install_config {
 			</provides>
 			<config>
 
-				<policy label_prefix="imx8q_evk_i2c_drv"> <device name="i2c2"/> </policy>
+				<policy label_prefix="imx8q_evk_i2c"> <device name="i2c2"/> </policy>
 
 			</config>
 		</start>
 
-		<start name="imx8q_evk_i2c_drv">
+		<start name="imx8q_evk_i2c">
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="I2c"/> </provides>
 
@@ -68,7 +68,7 @@ install_config {
 			<resource name="RAM" quantum="1M"/>
 
 			<route>
-				<service name="I2c"> <child name="imx8q_evk_i2c_drv" label="MCP_9808"/> </service>
+				<service name="I2c"> <child name="imx8q_evk_i2c" label="MCP_9808"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 

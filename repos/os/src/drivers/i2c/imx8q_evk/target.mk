@@ -1,4 +1,4 @@
-TARGET    = imx8q_evk_i2c_drv
+TARGET    = imx8q_evk_i2c
 
 REQUIRES  = arm_v8
 

@@ -87,8 +87,8 @@ append config {
 if { [have_include power_on/qemu] } {
 
 	append_if [have_board pc] config {
-		<start name="uart_drv">
-			<binary name="pc_uart_drv"/>
+		<start name="uart">
+			<binary name="pc_uart"/>
 			<resource name="RAM" quantum="2M"/>
 			<provides>
 				<service name="Terminal"/>
@@ -101,8 +101,8 @@ if { [have_include power_on/qemu] } {
 	}
 
 	append_if [have_board rpi3] config {
-		<start name="uart_drv">
-			<binary name="rpi3_uart_drv"/>
+		<start name="uart">
+			<binary name="rpi3_uart"/>
 			<resource name="RAM" quantum="2M"/>
 			<provides>
 				<service name="Terminal"/>
@@ -292,7 +292,7 @@ append config {
 			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
 			<service name="ROM" label_last="/bin/socat"> <child name="vfs_rom"/> </service>
 			<service name="Terminal" label="uart">
-				<child name="uart_drv"/>
+				<child name="uart"/>
 			</service>
 			<service name="Terminal" label="gdb">
 				<child name="terminal_gdb"/>

@@ -1,4 +1,4 @@
-TARGET   = rpi_gpio_drv
+TARGET   = rpi_gpio
 REQUIRES = arm_v6
 SRC_CC  += main.cc
 LIBS     = base

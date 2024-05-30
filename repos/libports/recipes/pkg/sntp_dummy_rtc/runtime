@@ -6,7 +6,7 @@
 	<content>
 		<rom label="sntp_client"/>
 		<rom label="report_rom"/>
-		<rom label="dummy_rtc_drv"/>
+		<rom label="dummy_rtc"/>
 		<rom label="ntp_rtc.config"/>
 		<rom label="init"/>
 	</content>

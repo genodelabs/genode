@@ -1,6 +1,6 @@
-_/src/platform_drv
-_/src/acpi_drv
-_/src/pc_nic_drv
+_/src/platform
+_/src/acpi
+_/src/pc_nic
 _/src/report_rom
 _/src/pci_decode
 _/raw/drivers_nic-pc

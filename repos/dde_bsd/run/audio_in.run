@@ -99,12 +99,12 @@ install_config {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+			<policy label="pci_decode -> system" report="acpi -> acpi"/>
+			<policy label="platform -> devices"  report="pci_decode -> devices"/>
 		</config>
 	</start>
 
-	<start name="acpi_drv" caps="350">
+	<start name="acpi" caps="350">
 		<resource name="RAM" quantum="4M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -121,7 +121,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="100" managing_system="yes">
+	<start name="platform" caps="100" managing_system="yes">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Platform"/>
@@ -132,12 +132,12 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</route>
 		<config>
-			<policy label="audio_drv -> "> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
+			<policy label="audio -> "> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
 		</config>
 	</start>
 
-	<start name="audio_drv">
-		<binary name="pci_audio_drv"/>
+	<start name="audio">
+		<binary name="pci_audio"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="Audio_out"/>

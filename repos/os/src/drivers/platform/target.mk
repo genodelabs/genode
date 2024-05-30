@@ -1,3 +1,3 @@
-TARGET = platform_drv
+TARGET = platform
 
 include $(PRG_DIR)/target.inc

@@ -118,9 +118,9 @@ void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 
 	_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device const &device) {
 
-		if (device.usb_block_drv_needed() || contains_used_fs(device))
+		if (device.usb_block_needed() || contains_used_fs(device))
 			xml.node("start", [&] {
-				device.gen_usb_block_drv_start_content(xml); });
+				device.gen_usb_block_start_content(xml); });
 	});
 
 	_storage_devices.for_each([&] (Storage_device const &device) {

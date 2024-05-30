@@ -64,7 +64,7 @@ The assignment of NIC clients to domains is controlled through the 'domain'
 attribute in the '<nic-client>' tag:
 
 ! <nic-client                    domain="home_net" />
-! <nic-client label="mobile_drv" domain="travel_net" />
+! <nic-client label="mobile"     domain="travel_net" />
 ! <nic-client label="nic_bridge" domain="home_net" />
 
 The assignment of NIC and Uplink servers is controlled through the tags
@@ -73,8 +73,8 @@ The assignment of NIC and Uplink servers is controlled through the tags
 ! <default-policy                domain="default" />
 ! <policy label_prefix="vbox_"   domain="servers" />
 ! <policy label_suffix="_server" domain="servers" />
-! <policy label="nic_drv -> "    domain="home_net" />
-! <policy label="wifi_drv -> "   domain="public" />
+! <policy label="nic -> "        domain="home_net" />
+! <policy label="wifi -> "       domain="public" />
 
 Each of these tags applies to all NIC and Uplink servers whose session label
 matches. A domain can be assigned any number of interfaces and interfaces of
@@ -941,7 +941,7 @@ following configuration:
 
 ! <policy label_prefix="virtnet_a" domain="virtnet_a" />
 ! <policy label_prefix="virtnet_b" domain="virtnet_b" />
-! <policy label_prefic="nic_drv"   domain="home_lan"  />
+! <policy label_prefic="nic"       domain="home_lan"  />
 !
 ! <domain name="home_lan" interface="10.0.2.55/24" gateway="10.0.2.1">
 !    <ip dst="192.168.1.0/24" domain="virtnet_a"/>
@@ -981,7 +981,7 @@ internet. The router would have the following configuration:
 
 ! <policy label_prefix="virtnet_a" domain="virtnet_a" />
 ! <policy label_prefix="virtnet_b" domain="virtnet_b" />
-! <policy label_prefic="nic_drv"   domain="home_lan"  />
+! <policy label_prefic="nic"       domain="home_lan"  />
 !
 ! <domain name="home_lan" interface="10.0.2.55/24" gateway="10.0.2.1">
 !    <nat domain="virtnet_a" tcp_ports="1000" udp_ports="1000">

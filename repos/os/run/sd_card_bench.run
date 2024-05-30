@@ -17,12 +17,12 @@ proc buffer_size_kib {} {
 	exit 0;
 }
 
-proc sd_card_drv {} {
-	if {[have_board pbxa9]}           { return pl180_sd_card_drv }
-	if {[have_board imx6q_sabrelite]} { return imx6_sd_card_drv  }
-	if {[have_board imx53_qsb]}       { return imx53_sd_card_drv }
-	if {[have_board imx53_qsb_tz]}    { return imx53_sd_card_drv }
-	if {[have_board rpi]}             { return rpi_sd_card_drv   }
+proc sd_card {} {
+	if {[have_board pbxa9]}           { return pl180_sd_card }
+	if {[have_board imx6q_sabrelite]} { return imx6_sd_card  }
+	if {[have_board imx53_qsb]}       { return imx53_sd_card }
+	if {[have_board imx53_qsb_tz]}    { return imx53_sd_card }
+	if {[have_board rpi]}             { return rpi_sd_card   }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
@@ -30,7 +30,7 @@ proc sd_card_drv {} {
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
-                  [depot_user]/src/platform_drv
+                  [depot_user]/src/platform
 
 install_config {
 <config verbose="yes">
@@ -45,11 +45,11 @@ install_config {
 	</parent-provides>
 	<default caps="100"/>
 
-	<start name="platform_drv" managing_system="yes">
+	<start name="platform" managing_system="yes">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Platform"/></provides>
 		<config>
-			<policy label="sd_card_drv -> "> <device name="mmc0"/> </policy>
+			<policy label="sd_card -> "> <device name="mmc0"/> </policy>
 		</config>
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
@@ -60,8 +60,8 @@ install_config {
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
 
-	<start name="sd_card_drv">
-		<binary name="} [sd_card_drv] {"/>
+	<start name="sd_card">
+		<binary name="} [sd_card] {"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Block"/></provides>
 		<config benchmark="yes" buffer_size_kib="} [buffer_size_kib] {"/>

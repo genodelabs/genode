@@ -28,10 +28,10 @@ struct Sculpt::Wifi_driver : private Noncopyable
 
 		xml.node("start", [&] {
 			_wifi->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "wifi_drv");
+			gen_named_node(xml, "binary", "wifi");
 
 			xml.node("config", [&] {
-				xml.attribute("dtb", "wifi_drv.dtb");
+				xml.attribute("dtb", "wifi.dtb");
 
 				xml.node("vfs", [&] {
 					gen_named_node(xml, "dir", "dev", [&] {
@@ -68,8 +68,8 @@ struct Sculpt::Wifi_driver : private Noncopyable
 						xml.attribute("name", "nic_router");
 						xml.attribute("label", "wifi -> "); }); });
 				gen_common_routes(xml);
-				gen_parent_rom_route(xml, "wifi_drv");
-				gen_parent_rom_route(xml, "wifi_drv.dtb");
+				gen_parent_rom_route(xml, "wifi");
+				gen_parent_rom_route(xml, "wifi.dtb");
 				gen_parent_rom_route(xml, "libcrypto.lib.so");
 				gen_parent_rom_route(xml, "vfs.lib.so");
 				gen_parent_rom_route(xml, "libc.lib.so");

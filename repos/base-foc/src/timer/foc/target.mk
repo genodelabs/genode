@@ -1,4 +1,4 @@
-TARGET   = foc_timer_drv
+TARGET   = foc_timer
 LIBS    += syscall-foc
 GEN_DIR := $(dir $(call select_from_repositories,src/timer/main.cc))
 INC_DIR += $(GEN_DIR)/periodic

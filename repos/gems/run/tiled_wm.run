@@ -118,7 +118,7 @@ install_config {
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape"> <child name="wm"/> </service>
-			<service name="ROM" label="mesa_gpu_drv.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
 
 			<service name="ROM" label="apps"> <child name="test_reports" /> </service>
 			<service name="ROM" label="overlay"> <child name="test_reports" /> </service>
@@ -144,7 +144,7 @@ install_config {
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape"> <child name="wm"/> </service>
-			<service name="ROM" label="mesa_gpu_drv.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
@@ -167,7 +167,7 @@ install_config {
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape"> <child name="wm"/> </service>
-			<service name="ROM" label="mesa_gpu_drv.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
@@ -190,7 +190,7 @@ install_config {
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape"> <child name="wm"/> </service>
-			<service name="ROM" label="mesa_gpu_drv.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
@@ -212,7 +212,7 @@ install_config {
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape"> <child name="wm"/> </service>
-			<service name="ROM" label="mesa_gpu_drv.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>

@@ -15,7 +15,7 @@ if { [have_include "power_on/qemu"] || ![have_spec nova] || ![have_spec x86_64]}
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/acpi \
                   [depot_user]/src/fs_rom \
                   [depot_user]/src/init \
                   [depot_user]/src/jpeg \
@@ -24,15 +24,15 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/libyuv \
                   [depot_user]/src/log_terminal \
                   [depot_user]/src/nitpicker \
-                  [depot_user]/src/pc_usb_host_drv \
+                  [depot_user]/src/pc_usb_host \
                   [depot_user]/src/pci_decode \
-                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/platform \
                   [depot_user]/src/posix \
-                  [depot_user]/src/ps2_drv \
+                  [depot_user]/src/ps2 \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/stdcxx \
                   [depot_user]/src/vbox5-nova \
-                  [depot_user]/src/vesa_drv \
+                  [depot_user]/src/vesa_fb \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_import \
                   [depot_user]/src/vfs_pipe \
@@ -59,14 +59,14 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
-			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
-			<policy label="pointer -> hover"        report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"         report="nitpicker -> xray"/>
+			<policy label="pci_decode -> system" report="acpi -> acpi"/>
+			<policy label="platform -> devices"  report="pci_decode -> devices"/>
+			<policy label="pointer -> hover"     report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"      report="nitpicker -> xray"/>
 		</config>
 	</start>
 
-	<start name="acpi_drv" caps="250">
+	<start name="acpi" caps="250">
 		<resource name="RAM" quantum="4M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -83,7 +83,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="100" managing_system="yes">
+	<start name="platform" caps="100" managing_system="yes">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>
@@ -92,9 +92,9 @@ install_config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 		<config>
-			<policy label_prefix="ps2_drv"> <device name="ps2"/> </policy>
-			<policy label_prefix="fb_drv"  info="yes"> <pci class="VGA"/>   </policy>
-			<policy label_prefix="usb_drv" info="yes"> <pci class="USB"/>   </policy>
+			<policy label_prefix="ps2"> <device name="ps2"/> </policy>
+			<policy label_prefix="fb"  info="yes"> <pci class="VGA"/>   </policy>
+			<policy label_prefix="usb" info="yes"> <pci class="USB"/>   </policy>
 		</config>
 	</start>
 
@@ -103,8 +103,8 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="usb_drv" priority="-1">
-		<binary name="pc_usb_host_drv"/>
+	<start name="usb" priority="-1">
+		<binary name="pc_usb_host"/>
 		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="Usb"/> </provides>
 		<config>
@@ -112,7 +112,7 @@ install_config {
 			<policy label_prefix="virtualbox"><device class="0x3"/></policy>
 		</config>
 		<route>
-			<service name="IRQ"><child name="acpi_drv" /></service>
+			<service name="IRQ"><child name="acpi" /></service>
 			<service name="Report"> <child name="report_rom" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -227,7 +227,7 @@ run_genode_until {.*\[init -\> event_dump\] Input event #11.*\n} 60 [output_spaw
 # pay only attention to the output of init and its children
 grep_output {^\[init }
 
-unify_output {(?n)^\[init -\> log_terminal\] \[init -\> usb_hid_drv\] usb usb-[0-9]-[0-9]: input irq status -19 received} ""
+unify_output {(?n)^\[init -\> log_terminal\] \[init -\> usb_hid\] usb usb-[0-9]-[0-9]: input irq status -19 received} ""
 unify_output {(?n) on usb-usbbus.*$} ""
 unify_output {(?n) at usb-usbbus.*\)} ")"
 unify_output {(?n)hid-generic.*input:} "hid-generic: input:"
@@ -235,8 +235,8 @@ unify_output {(?n)usb-[0-9]-[0-9]: USB disconnect, device number [0-9]} "usb-X-X
 unify_output {(?n)device number [0-9]+} "device number X"
 unify_output {(?n)input[0-9]} "inputX"
 unify_output {(?n) as /devices/.*} ""
-unify_output {(?n)^\[init -\> usb_drv.*} ""
-unify_output {(?n)^\[init -\> log_terminal\] \[init -\> usb_drv.*} ""
+unify_output {(?n)^\[init -\> usb.*} ""
+unify_output {(?n)^\[init -\> log_terminal\] \[init -\> usb.*} ""
 unify_output {(?n)^.*dangling allocation.*$} ""
 unify_output {(?n)^.*usbfs: process .* did not claim interface.*$} ""
 trim_lines
@@ -247,15 +247,15 @@ compare_output_to {
 [init -> log_terminal] [init -> event_dump] Input event #2	REL_MOTION -1+1	key count: 0
 [init -> log_terminal] [init -> event_dump] Input event #3	PRESS BTN_LEFT 65534	key count: 1
 [init -> log_terminal] [init -> event_dump] Input event #4	RELEASE BTN_LEFT	key count: 0
-[init -> log_terminal] [init -> usb_hid_drv] usb usb-X-X: USB disconnect, device number X
-[init -> log_terminal] [init -> usb_hid_drv] Disconnected device: inputX
-[init -> log_terminal] [init -> usb_hid_drv] Disconnected device: inputX
-[init -> log_terminal] [init -> usb_hid_drv] input: Dean Camera LUFA Mouse and Keyboard Demo
-[init -> log_terminal] [init -> usb_hid_drv] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo)
-[init -> log_terminal] [init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Keyboard [Dean Camera LUFA Mouse and Keyboard Demo]
-[init -> log_terminal] [init -> usb_hid_drv] input: Dean Camera LUFA Mouse and Keyboard Demo
-[init -> log_terminal] [init -> usb_hid_drv] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo) MOUSE
-[init -> log_terminal] [init -> usb_hid_drv] hid-generic: input: USB HID v1.11 Mouse [Dean Camera LUFA Mouse and Keyboard Demo]
+[init -> log_terminal] [init -> usb_hid] usb usb-X-X: USB disconnect, device number X
+[init -> log_terminal] [init -> usb_hid] Disconnected device: inputX
+[init -> log_terminal] [init -> usb_hid] Disconnected device: inputX
+[init -> log_terminal] [init -> usb_hid] input: Dean Camera LUFA Mouse and Keyboard Demo
+[init -> log_terminal] [init -> usb_hid] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo)
+[init -> log_terminal] [init -> usb_hid] hid-generic: input: USB HID v1.11 Keyboard [Dean Camera LUFA Mouse and Keyboard Demo]
+[init -> log_terminal] [init -> usb_hid] input: Dean Camera LUFA Mouse and Keyboard Demo
+[init -> log_terminal] [init -> usb_hid] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo) MOUSE
+[init -> log_terminal] [init -> usb_hid] hid-generic: input: USB HID v1.11 Mouse [Dean Camera LUFA Mouse and Keyboard Demo]
 [init -> log_terminal] [init -> event_dump] Input event #5	PRESS KEY_X 65534	key count: 1
 [init -> log_terminal] [init -> event_dump] Input event #6	RELEASE KEY_X	key count: 0
 [init -> log_terminal] [init -> event_dump] Input event #7	REL_MOTION -1+1	key count: 0

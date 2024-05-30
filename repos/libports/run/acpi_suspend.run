@@ -5,9 +5,9 @@
 #  Main test hardware so far:
 #  - Lenovo X201 - resume of intel/display + AHCI + PS/2 working
 #  - Lenovo T490 - resume of intel/display + NVME + PS/2 working + GPU
-#  - Qemu - resume happens, vesa_fb_drv fails, ahci fails, nvme fails
+#  - Qemu - resume happens, vesa_fb fails, ahci fails, nvme fails
 #
-#  Not working: vesa_fb_drv nor boot_fb_drv after resume
+#  Not working: vesa_fb nor boot_fb after resume
 #  Untested: all other drivers, e.g. nic, wifi, sd_card, usb ... all others
 #
 #  UART via Intel AMT SOL is most the time not working after resume. Using
@@ -64,10 +64,10 @@ proc display_config { } {
 
 	if {$board_non_intel} {
 		return {
-			<start name="fb_drv" caps="1000">
-				<binary name="vesa_fb_drv"/>
+			<start name="fb" caps="1000">
+				<binary name="vesa_fb"/>
 			<!--
-				<binary name="boot_fb_drv"/>
+				<binary name="boot_fb"/>
 			 -->
 				<resource name="RAM" quantum="60M"/>
 				<config ld_verbose="yes" width="1280" height="1024">
@@ -79,8 +79,8 @@ proc display_config { } {
 	}
 
 	return {
-		<start name="intel_fb_drv" caps="1000">
-			<binary name="pc_intel_fb_drv"/>
+		<start name="intel_fb" caps="1000">
+			<binary name="pc_intel_fb"/>
 			<resource name="RAM" quantum="60M"/>
 			<config ld_verbose="yes" width="1024" height="768" system="yes">
 				<report connectors="yes"/>
@@ -178,9 +178,9 @@ proc gui_config { } {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="pointer -> hover" report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"  report="nitpicker -> xray"/>
-			<policy label="usb_hid_drv -> report" report="usb_drv -> devices"/>
+			<policy label="pointer -> hover"  report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"   report="nitpicker -> xray"/>
+			<policy label="usb_hid -> report" report="usb -> devices"/>
 		</config>
 	</start>
 
@@ -206,7 +206,7 @@ proc gui_config { } {
 proc input_config { } {
 	return {
 
-	<start name="ps2_drv" caps="100">
+	<start name="ps2" caps="100">
 		<resource name="RAM" quantum="3M"/>
 		<config/>
 		<route>
@@ -316,7 +316,7 @@ proc ahci_config { } {
 	}
 
 	append return_ahci {
-		<start name="ahci_drv" caps="300" } [priority_drivers] {>
+		<start name="ahci" caps="300" } [priority_drivers] {>
 			<resource name="RAM" quantum="12M" />
 			<provides><service name="Block" /></provides>
 			<config atapi="yes" system="yes">
@@ -325,7 +325,7 @@ proc ahci_config { } {
 			</config>
 			<route>
 				<service name="Platform">
-					<child name="platform_drv"/>
+					<child name="platform"/>
 				</service>
 
 				<service name="ROM" label="system">
@@ -351,7 +351,7 @@ proc ahci_config { } {
 				</tests>
 			</config>
 			<route>
-				<service name="Block"><child name="ahci_drv"/></service>
+				<service name="Block"><child name="ahci"/></service>
 				<any-service> <parent/> <any-child /> </any-service>
 			</route>
 		</start>
@@ -372,7 +372,7 @@ proc nvme_config { } {
 	}
 
 	append return_nvme {
-		<start name="nvme_drv" caps="300" } [priority_drivers] {>
+		<start name="nvme" caps="300" } [priority_drivers] {>
 			<resource name="RAM" quantum="24M"/>
 			<provides> <service name="Block"/> </provides>
 			<config max_hmb_size="16M" verbose_regs="yes" verbose_identify="yes" system="yes">
@@ -380,7 +380,7 @@ proc nvme_config { } {
 			</config>
 			<route>
 				<service name="Platform">
-					<child name="platform_drv"/>
+					<child name="platform"/>
 				</service>
 
 				<service name="ROM" label="system">
@@ -406,7 +406,7 @@ proc nvme_config { } {
 				</tests>
 			</config>
 			<route>
-				<service name="Block"><child name="nvme_drv"/></service>
+				<service name="Block"><child name="nvme"/></service>
 				<any-service> <parent/> <any-child /> </any-service>
 			</route>
 		</start>
@@ -424,8 +424,8 @@ proc gpu_config { } {
 	set return_gpu ""
 
 	append return_gpu {
-		<start name="gpu_drv" caps="2000" } [priority_drivers] {>
-			<binary name="intel_gpu_drv"/>
+		<start name="gpu" caps="2000" } [priority_drivers] {>
+			<binary name="intel_gpu"/>
 			<resource name="RAM" quantum="40M"/>
 			<provides>
 				<service name="Gpu"/>
@@ -445,7 +445,7 @@ proc gpu_config { } {
 			</config>
 			<route>
 				<service name="Platform">
-					<child name="platform_drv" label="fb_drv"/>
+					<child name="platform" label="fb"/>
 				</service>
 
 				<service name="ROM" label="system">
@@ -488,10 +488,10 @@ proc gpu_client { } {
 				<env key="GALLIUM_HUD" value="fps"/>
 			</config>
 			<route>
-				<service name="Gpu">   <child name="gpu_drv"/> </service>
-				<service name="Gui">   <child name="wm"/>      </service>
-				<service name="Timer"> <child name="timer"/>   </service>
-				<service name="ROM" label="mesa_gpu_drv.lib.so">
+				<service name="Gpu">   <child name="gpu"/>   </service>
+				<service name="Gui">   <child name="wm"/>    </service>
+				<service name="Timer"> <child name="timer"/> </service>
+				<service name="ROM" label="mesa_gpu.lib.so">
 					<parent label="mesa_gpu-iris.lib.so"/>
 				</service>
 				<any-service> <parent /> </any-service>
@@ -524,7 +524,7 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/init \
                   [depot_user]/src/nitpicker \
-                  [depot_user]/src/ps2_drv \
+                  [depot_user]/src/ps2 \
                   [depot_user]/pkg/themed_wm \
                   [depot_user]/pkg/terminal \
                   [depot_user]/src/terminal_log \
@@ -572,15 +572,15 @@ append config {
 				<service name="ROM"/>
 			</provides>
 			<config verbose="no">
-				<policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>
-				<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
-				<policy label="pci_decode -> system" report="acpi_drv -> acpi"/>
-				<policy label="platform_drv -> sleep_states" report="acpica -> sleep_states"/>
-				<policy label="intel_fb_drv -> intel_opregion" report="acpi_drv -> intel_opregion"/>
+				<policy label="platform -> acpi" report="acpi -> acpi"/>
+				<policy label="platform -> devices" report="pci_decode -> devices"/>
+				<policy label="pci_decode -> system" report="acpi -> acpi"/>
+				<policy label="platform -> sleep_states" report="acpica -> sleep_states"/>
+				<policy label="intel_fb -> intel_opregion" report="acpi -> intel_opregion"/>
 			</config>
 		</start>
 
-		<start name="acpi_drv" caps="350" } [priority_base] {>
+		<start name="acpi" caps="350" } [priority_base] {>
 			<resource name="RAM" quantum="5M"/>
 			<config report="yes"/>
 			<route>
@@ -598,8 +598,8 @@ append config {
 			</route>
 		</start>
 
-		<start name="platform_drv" caps="300" managing_system="yes" } [priority_base] {>
-			<binary name="pc_platform_drv"/>
+		<start name="platform" caps="300" managing_system="yes" } [priority_base] {>
+			<binary name="pc_platform"/>
 			<resource name="RAM" quantum="8M"/>
 			<provides>
 				<service name="Platform"/>
@@ -607,18 +607,18 @@ append config {
 			<config system="yes">
 				<report devices="yes"/>
 
-				<policy label_prefix="ps2_drv">
+				<policy label_prefix="ps2">
 					<device name="ps2"/>
 				</policy>
-				<policy label_prefix="fb_drv" info="yes">
+				<policy label_prefix="fb" info="yes">
 					<pci class="VGA"/>
 					<pci class="ISABRIDGE"/>
 				</policy>
 				<policy label_prefix="acpica">
 					<device name="acpi"/>
 				</policy>
-				<policy label="ahci_drv -> "> <pci class="AHCI"/> </policy>
-				<policy label="nvme_drv -> " info="yes"> <pci class="NVME"/> </policy>
+				<policy label="ahci -> "> <pci class="AHCI"/> </policy>
+				<policy label="nvme -> " info="yes"> <pci class="NVME"/> </policy>
 			</config>
 			<route>
 				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
@@ -644,17 +644,17 @@ append config {
 				<service name="Report">
 					<child name="drivers_reports"/>
 				</service>
-				<service name="Platform" label_prefix="ps2_drv ->">
-					<child name="platform_drv" label="ps2_drv"/>
+				<service name="Platform" label_prefix="ps2 ->">
+					<child name="platform" label="ps2"/>
 				</service>
-				<service name="Platform" label_prefix="fb_drv ->">
-					<child name="platform_drv" label="fb_drv"/>
+				<service name="Platform" label_prefix="fb ->">
+					<child name="platform" label="fb"/>
 				</service>
-				<service name="Platform" label_prefix="intel_fb_drv ->">
-					<child name="gpu_drv"/>
+				<service name="Platform" label_prefix="intel_fb ->">
+					<child name="gpu"/>
 				</service>
-				<service name="ROM" label="intel_fb_drv -> intel_opregion">
-					<child name="drivers_reports" label="intel_fb_drv -> intel_opregion"/>
+				<service name="ROM" label="intel_fb -> intel_opregion">
+					<child name="drivers_reports" label="intel_fb -> intel_opregion"/>
 				</service>
 				<service name="ROM" label="config">
 					<child name="fb_config"/>
@@ -703,7 +703,7 @@ append config {
 			<config ld_verbose="yes" sleep="yes" reset="no" poweroff="no" report="yes" acpi_ready="no" use_gpe="} $use_gpe {">
 			</config>
 			<route>
-				<service name="Platform"> <child name="platform_drv"/> </service>
+				<service name="Platform"> <child name="platform"/> </service>
 				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
 				<service name="Report"> <child name="drivers_reports"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>

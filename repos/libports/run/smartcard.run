@@ -24,7 +24,7 @@ proc smartcard_product_id {} { return "0x5116" }
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/pkg/test_usb_host_drv-[board] \
+                  [depot_user]/pkg/test_usb_host-[board] \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/init
 build {
@@ -58,14 +58,14 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<default-policy report="usb_drv -> usb_drv -> devices"/>
+			<default-policy report="usb -> usb -> devices"/>
 		</config>
 		<route>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
-	<start name="usb_drv" caps="1500" managing_system="yes">
+	<start name="usb" caps="1500" managing_system="yes">
 		<binary name="init"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
@@ -108,7 +108,7 @@ append usb_config {
 	<report devices="yes"/>
 	<policy label="test-smartcard -> "><device vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/></policy>
 </config>}
-set fd [open [run_dir]/genode/usb_host_drv.config w]
+set fd [open [run_dir]/genode/usb_host.config w]
 puts $fd $usb_config
 close $fd
 

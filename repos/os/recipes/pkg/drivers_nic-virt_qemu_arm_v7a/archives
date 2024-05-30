@@ -1,4 +1,4 @@
 _/raw/drivers_nic-virt_qemu_arm
 _/src/virtdev_rom
-_/src/platform_drv
-_/src/virtio_nic_drv
+_/src/platform
+_/src/virtio_nic

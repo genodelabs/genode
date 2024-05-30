@@ -1,4 +1,4 @@
-TARGET = intel_gpu_drv
+TARGET = intel_gpu
 SRC_CC = main.cc mmio_dump.cc
 LIBS   = base
 

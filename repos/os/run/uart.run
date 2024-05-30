@@ -27,7 +27,7 @@ install_config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="pbxa9_uart_drv">
+		<start name="pbxa9_uart">
 			<resource name="RAM" quantum="1M"/>
 			<provides>
 				<service name="Uart"/>

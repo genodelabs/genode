@@ -4,7 +4,7 @@
 {
 	global:
 
-		/* needed by wifi_drv */
+		/* needed by wifi driver */
 		wpa_main;
 		wpa_reporter_init;
 		wpa_ctrl_set_fd;

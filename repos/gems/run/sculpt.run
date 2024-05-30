@@ -175,43 +175,43 @@ proc log_route { } {
 proc driver_routes { } {
 
 	set result(pc) {
-		<service name="ROM" label="nic_drv">           <parent label="pc_nic_drv"/> </service>
+		<service name="ROM" label="nic">               <parent label="pc_nic"/> </service>
 		<service name="ROM" label="wifi.lib.so">       <parent label="pc_wifi.lib.so"/> </service>
 		<service name="ROM" label="wifi_firmware.tar"> <parent label="pc_wifi_firmware.tar"/> </service>
-		<service name="ROM" label="usb_drv">           <parent label="pc_usb_host_drv"/> </service>
+		<service name="ROM" label="usb">               <parent label="pc_usb_host"/> </service>
 	}
 
 	set result(mnt_reform2) {
-		<service name="ROM" label="fb_drv">            <parent label="imx8mq_fb_drv"/> </service>
-		<service name="ROM" label="fb_drv.dtb">        <parent label="imx8mq_fb_drv-mnt_reform2.dtb"/> </service>
-		<service name="ROM" label="mmc_drv">           <parent label="imx8mq_sd_card_drv"/> </service>
-		<service name="ROM" label="mmc_drv.dtb">       <parent label="imx8mq_sd_card_drv-mnt_reform2.dtb"/> </service>
-		<service name="ROM" label="nic_drv">           <parent label="fec_nic_drv"/> </service>
-		<service name="ROM" label="nic_drv.dtb">       <parent label="fec_nic_drv-mnt_reform2.dtb"/> </service>
-		<service name="ROM" label="usb_drv">           <parent label="imx8mq_usb_host_drv"/> </service>
-		<service name="ROM" label="usb_drv.dtb">       <parent label="imx8mq_usb_host_drv-mnt_reform2.dtb"/> </service>
+		<service name="ROM" label="fb">                <parent label="imx8mq_fb"/> </service>
+		<service name="ROM" label="fb.dtb">            <parent label="imx8mq_fb-mnt_reform2.dtb"/> </service>
+		<service name="ROM" label="mmc">               <parent label="imx8mq_sd_card"/> </service>
+		<service name="ROM" label="mmc.dtb">           <parent label="imx8mq_sd_card-mnt_reform2.dtb"/> </service>
+		<service name="ROM" label="nic">               <parent label="fec_nic"/> </service>
+		<service name="ROM" label="nic.dtb">           <parent label="fec_nic-mnt_reform2.dtb"/> </service>
+		<service name="ROM" label="usb">               <parent label="imx8mq_usb_host"/> </service>
+		<service name="ROM" label="usb.dtb">           <parent label="imx8mq_usb_host-mnt_reform2.dtb"/> </service>
 		<service name="ROM" label="wifi.lib.so">       <parent label="imx8mq_wifi.lib.so"/> </service>
 		<service name="ROM" label="wifi_firmware.tar"> <parent label="imx8mq_wifi_firmware.tar"/> </service>
 		<service name="I2c"> <child name="drivers"/> </service>
 	}
 
 	set result(imx8q_evk) {
-		<service name="ROM" label="nic_drv">     <parent label="fec_nic_drv"/> </service>
-		<service name="ROM" label="nic_drv.dtb"> <parent label="fec_nic_drv-imx8q_evk.dtb"/> </service>
+		<service name="ROM" label="nic">     <parent label="fec_nic"/> </service>
+		<service name="ROM" label="nic.dtb"> <parent label="fec_nic-imx8q_evk.dtb"/> </service>
 	}
 
 	set result(pinephone) {
 		<service name="ROM" label="wifi.lib.so">       <parent label="a64_wifi.lib.so"/> </service>
-		<service name="ROM" label="wifi_drv.dtb">      <parent label="wifi-pinephone.dtb"/> </service>
+		<service name="ROM" label="wifi.dtb">          <parent label="wifi-pinephone.dtb"/> </service>
 		<service name="ROM" label="wifi_firmware.tar"> <parent label="a64_wifi_firmware.tar"/> </service>
-		<service name="ROM" label="usb_drv">           <parent label="a64_usb_host_drv"/> </service>
-		<service name="ROM" label="usb_drv.dtb">       <parent label="usb-pinephone.dtb"/> </service>
-		<service name="ROM" label="mmc_drv">           <parent label="a64_sd_card_drv"/> </service>
-		<service name="ROM" label="mmc_drv.dtb">       <parent label="sd_card-pinephone.dtb"/> </service>
-		<service name="ROM" label="fb_drv">            <parent label="de_fb_drv"/> </service>
-		<service name="ROM" label="fb_drv.dtb">        <parent label="de-pinephone.dtb"/> </service>
-		<service name="ROM" label="touch_drv">         <parent label="goodix_touch_drv"/> </service>
-		<service name="ROM" label="touch_drv.dtb">     <parent label="goodix-pinephone.dtb"/> </service>
+		<service name="ROM" label="usb">               <parent label="a64_usb_host"/> </service>
+		<service name="ROM" label="usb.dtb">           <parent label="usb-pinephone.dtb"/> </service>
+		<service name="ROM" label="mmc">               <parent label="a64_sd_card"/> </service>
+		<service name="ROM" label="mmc.dtb">           <parent label="sd_card-pinephone.dtb"/> </service>
+		<service name="ROM" label="fb">                <parent label="de_fb"/> </service>
+		<service name="ROM" label="fb.dtb">            <parent label="de-pinephone.dtb"/> </service>
+		<service name="ROM" label="touch">             <parent label="goodix_touch"/> </service>
+		<service name="ROM" label="touch.dtb">         <parent label="goodix-pinephone.dtb"/> </service>
 		<service name="IRQ" label_prefix="touch ->"> <child name="drivers" label="runtime -> touch -> PH4"/> </service>
 	}
 
@@ -433,8 +433,8 @@ install_config {
 			} [log_route] {
 			<service name="ROM" label="config">
 				<child name="config_fs_rom" label="drivers"/> </service>
-			<service name="ROM" label_last="gpu_drv.config">
-				<child name="config_fs_rom" label="gpu_drv"/> </service>
+			<service name="ROM" label_last="gpu.config">
+				<child name="config_fs_rom" label="gpu"/> </service>
 			<service name="ROM" label_last="system">
 				<child name="config_fs_rom" label="managed/system"/> </service>
 			<service name="ROM" label_last="modem.config">
@@ -750,7 +750,7 @@ set optional_configs {
 	event_filter
 	wifi
 	runtime
-	gpu_drv
+	gpu
 }
 
 foreach config $optional_configs {
@@ -764,7 +764,7 @@ foreach config $optional_configs {
 set required_configs {
 	nitpicker
 	deploy
-	fb_drv
+	fb
 	clipboard
 	drivers
 	numlock_remap
@@ -840,7 +840,7 @@ foreach config { fonts wifi runtime event_filter system } {
 	}
 }
 
-copy_file [file join [initial_config_dir] fb_drv] [managed_config_path fb_drv]
+copy_file [file join [initial_config_dir] fb] [managed_config_path fb]
 
 
 #

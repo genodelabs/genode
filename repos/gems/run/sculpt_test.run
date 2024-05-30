@@ -2,7 +2,7 @@ set use_nvme 0
 
 source ${genode_dir}/repos/gems/run/sculpt.run
 
-# enable Qemu networking, usable via the nic_drv
+# enable Qemu networking, usable via the nic driver
 append_qemu_nic_args
 append qemu_args " -m 1024 "
 

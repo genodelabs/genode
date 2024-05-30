@@ -124,7 +124,7 @@ install_config {
 		<resource name="RAM" quantum="32M"/>
 		<config verbose="yes" report="no" log="yes" stop_on_error="no">
 			<tests>
-				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci_drv -->
+				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci -->
 				<sequential copy="no" length="16M" size="4K"/>
 				<sequential copy="no" length="16M" size="4K"   batch="32"/>
 				<sequential copy="no" length="16M" size="4K"   batch="1000"/>
@@ -208,7 +208,7 @@ install_config {
 		<resource name="RAM" quantum="32M"/>
 		<config verbose="yes" report="no" log="yes" stop_on_error="no">
 			<tests>
-				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci_drv -->
+				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci -->
 				<sequential copy="no" length="16M" size="4K"/>
 				<sequential copy="no" length="16M" size="4K"   batch="32"/>
 				<sequential copy="no" length="16M" size="4K"   batch="1000"/>

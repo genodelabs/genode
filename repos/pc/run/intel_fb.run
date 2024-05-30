@@ -71,9 +71,9 @@ append config {
 			<service name="Report" />
 		</provides>
 		<config>
-			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
-			<policy label="intel_fb_drv -> intel_opregion" report="acpi_drv -> intel_opregion"/>
-			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+			<policy label="pci_decode -> system"    report="acpi -> acpi"/>
+			<policy label="intel_fb -> intel_opregion" report="acpi -> intel_opregion"/>
+			<policy label="platform -> devices" report="pci_decode -> devices"/>
 		</config>
 		<route>
 			<service name="LOG"> <parent/> </service>
@@ -83,7 +83,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="acpi_drv" caps="250">
+	<start name="acpi" caps="250">
 		<resource name="RAM" quantum="6M"/>
 		<route>
 			<service name="IO_MEM"> <parent/> </service>
@@ -112,7 +112,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="platform_drv" caps="100" managing_system="yes">
+	<start name="platform" caps="100" managing_system="yes">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>
@@ -127,11 +127,11 @@ append config {
 			<service name="Timer"> <child name="timer"/> </service>
 		</route>
 		<config>
-			<policy label_prefix="intel_fb_drv" info="yes">
+			<policy label_prefix="intel_fb" info="yes">
 				<pci class="VGA"/>
 				<pci class="ISABRIDGE"/>
 			</policy>
-			<policy label_prefix="intel_gpu_drv" info="yes">
+			<policy label_prefix="intel_gpu" info="yes">
 				<pci class="VGA"/>
 				<pci class="ISABRIDGE"/>
 			</policy>
@@ -148,9 +148,9 @@ append config {
 		<resource name="RAM" quantum="1000M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Platform"> <child name="platform_drv" label="intel_fb_drv"/> </service>
-			<service name="ROM" label="intel_fb_drv -> intel_opregion">
-				<child name="report_rom" label="intel_fb_drv -> intel_opregion"/>
+			<service name="Platform"> <child name="platform" label="intel_fb"/> </service>
+			<service name="ROM" label="intel_fb -> intel_opregion">
+				<child name="report_rom" label="intel_fb -> intel_opregion"/>
 			</service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -188,7 +188,7 @@ append config {
 				<resource name="RAM" quantum="2M"/>
 				<provides> <service name="Report" /> <service name="ROM" /> </provides>
 				<config verbose="yes">
-					<policy label="intel_fb_controller -> connectors" report="intel_fb_drv -> connectors"/>
+					<policy label="intel_fb_controller -> connectors" report="intel_fb -> connectors"/>
 				</config>
 			</start>
 
@@ -200,7 +200,7 @@ append config {
 					<vfs>
 						<ram/>
 						<import>
-							<inline name="fb_drv.config">
+							<inline name="fb.config">
 <config ld_verbose="yes" apply_on_hotplug="} $apply_on_hotplug {">
 	<report connectors="yes"/>
 </config>
@@ -223,7 +223,7 @@ append config {
 			</start>}
 
 append_if $use_gpu config {
-			<start name="intel_gpu_drv" caps="2000">
+			<start name="intel_gpu" caps="2000">
 				<resource name="RAM" quantum="90M"/>
 				<provides>
 					<service name="Gpu"/>
@@ -248,17 +248,17 @@ append_if $use_gpu config {
 			</start>}
 
 append config {
-			<start name="intel_fb_drv" caps="1000">
-				<binary name="pc_intel_fb_drv"/>
+			<start name="intel_fb" caps="1000">
+				<binary name="pc_intel_fb"/>
 				<resource name="RAM" quantum="90M"/>
 				<route>}
 
 append_if $use_gpu config {
-					<service name="Platform"> <child name="intel_gpu_drv"/> </service>}
+					<service name="Platform"> <child name="intel_gpu"/> </service>}
 
 append config {
 					<service name="ROM" label="config">
-						<child name="config_rom" label="fb_drv.config"/> </service>
+						<child name="config_rom" label="fb.config"/> </service>
 					<service name="Report"> <child name="report_rom"/> </service>
 					<any-service> <parent/> <any-child /> </any-service>
 				</route>
@@ -292,7 +292,7 @@ install_config $config
 build_boot_image [build_artifacts]
 
 if { [get_cmd_switch --autopilot] } {
-	run_genode_until {\[init -\> init_dynamic -\> intel_fb_drv\]   HDMI-A-2:  enable.*} 30
+	run_genode_until {\[init -\> init_dynamic -\> intel_fb\]   HDMI-A-2:  enable.*} 30
 } else {
 	run_genode_until forever
 }

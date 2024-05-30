@@ -1,4 +1,4 @@
-TARGET   = led_gpio_drv
+TARGET   = led_gpio
 SRC_CC   = main.cc
 LIBS     = base
 

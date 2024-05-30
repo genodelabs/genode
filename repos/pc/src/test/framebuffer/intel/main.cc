@@ -114,7 +114,7 @@ void Framebuffer_controller::_update_fb_config(Xml_node const &report)
 		buf[xml.used()] = 0;
 
 		{
-			New_file file { _root_dir, "fb_drv.config" };
+			New_file file { _root_dir, "fb.config" };
 
 			file.append(buf, xml.used());
 		}

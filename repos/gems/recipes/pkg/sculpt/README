@@ -688,7 +688,7 @@ displays and their supported resolutions by taking a look at the report at
 _/report/runtime/intel_fb/connectors_. This report is updated
 whenever a display is connected or disconnected. You can use this
 information to enable or disable a display in the driver's configuration,
-which you can find at _/config/fb_drv_.
+which you can find at _/config/fb_.
 
 For a quick test, change the attributes 'height="768"' to 'force_height="768"'
 and 'width="1024"' to 'force_width="1024"'. When saving the file, the screen

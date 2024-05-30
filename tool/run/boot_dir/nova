@@ -28,7 +28,7 @@ proc bender_intel_hwp_mode_option { } {
 
 proc binary_name_ld_lib_so { } { return "ld-nova.lib.so" }
 proc binary_name_core_a    { } { return "core-nova.a" }
-proc binary_name_timer     { } { return "nova_timer_drv" }
+proc binary_name_timer     { } { return "nova_timer" }
 
 proc kernel_files { } { return hypervisor }
 proc kernel_output { } { return "serial" }

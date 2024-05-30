@@ -10,6 +10,6 @@ content:
 	  mv lib/mk/spec/$$spec/ld-linux.mk lib/mk/spec/$$spec/ld.mk; done;
 	sed -i "/TARGET/s/core-linux/core/"       src/core/linux/target.mk
 	sed -i "s/BOARD.*unknown/BOARD := linux/" lib/mk/core-linux.inc
-	sed -i "s/linux_timer_drv/timer/"         src/timer/linux/target.mk
+	sed -i "s/linux_timer/timer/"             src/timer/linux/target.mk
 	rm -rf src/initramfs
 

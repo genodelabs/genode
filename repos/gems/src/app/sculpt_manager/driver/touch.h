@@ -28,12 +28,12 @@ struct Sculpt::Touch_driver : private Noncopyable
 
 		xml.node("start", [&] {
 			_soc->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "touch_drv");
+			gen_named_node(xml, "binary", "touch");
 			xml.node("config", [&] { });
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>   (xml);
-				gen_parent_rom_route(xml, "dtb", "touch_drv.dtb");
-				gen_parent_rom_route(xml, "touch_drv");
+				gen_parent_rom_route(xml, "dtb", "touch.dtb");
+				gen_parent_rom_route(xml, "touch");
 				gen_common_routes(xml);
 				gen_parent_route<Pin_control::Session>(xml);
 				gen_parent_route<Irq_session>         (xml);

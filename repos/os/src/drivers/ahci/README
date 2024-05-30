@@ -11,7 +11,6 @@ which client can access a certain device:
 
 
 !<start name="ahci">
-!  <binary name="ahci_drv" />
 !  <resource name="RAM" quantum="10M" />
 !  <provides><service name="Block" /></provides> }
 !  <route>
@@ -33,8 +32,8 @@ device at port 1, and finally the session "boot_fs" gains read-only access to
 port 2. ATAPI support is by default disabled and can be enabled by
 setting the config attribute "atapi" to "yes".
 
-ahci_drv supports reporting of active ports, which can be enabled via
-configuration sub-node like follows.
+The ahci driver supports the reporting of active ports, which can be enabled
+via configuration sub-node like follows.
 
 !<report ports="yes"/>
 

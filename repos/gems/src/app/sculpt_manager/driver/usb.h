@@ -117,18 +117,18 @@ struct Sculpt::Usb_driver : private Noncopyable
 					fn(); });
 		};
 
-		start_node(_hcd, "usb_drv", [&] {
+		start_node(_hcd, "usb", [&] {
 			gen_provides<Usb::Session>(xml);
 			xml.node("route", [&] {
 				gen_parent_route<Platform::Session>(xml);
-				gen_parent_rom_route(xml, "usb_drv");
+				gen_parent_rom_route(xml, "usb");
 				gen_parent_rom_route(xml, "config", "config -> managed/usb");
-				gen_parent_rom_route(xml, "dtb",    "usb_drv.dtb");
+				gen_parent_rom_route(xml, "dtb",    "usb.dtb");
 				gen_common_routes(xml);
 			});
 		});
 
-		start_node(_hid, "usb_hid_drv", [&] {
+		start_node(_hid, "usb_hid", [&] {
 			xml.node("config", [&] {
 				xml.attribute("capslock_led", "rom");
 				xml.attribute("numlock_led",  "rom");
@@ -136,7 +136,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 			xml.node("route", [&] {
 				gen_service_node<Usb::Session>(xml, [&] {
 					gen_named_node(xml, "child", "usb"); });
-				gen_parent_rom_route(xml, "usb_hid_drv");
+				gen_parent_rom_route(xml, "usb_hid");
 				gen_parent_rom_route(xml, "capslock", "capslock");
 				gen_parent_rom_route(xml, "numlock",  "numlock");
 				gen_common_routes(xml);
@@ -146,14 +146,14 @@ struct Sculpt::Usb_driver : private Noncopyable
 			});
 		});
 
-		start_node(_net, "usb_net_drv", [&] {
+		start_node(_net, "usb_net", [&] {
 			xml.node("config", [&] {
 				xml.attribute("mac", "02:00:00:00:01:05");
 			});
 			xml.node("route", [&] {
 				gen_service_node<Usb::Session>(xml, [&] {
 					gen_named_node(xml, "child", "usb"); });
-				gen_parent_rom_route(xml, "usb_net_drv");
+				gen_parent_rom_route(xml, "usb_net");
 				gen_common_routes(xml);
 				gen_service_node<Uplink::Session>(xml, [&] {
 					xml.node("child", [&] {

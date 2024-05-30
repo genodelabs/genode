@@ -1,4 +1,4 @@
-TARGET  = usb_hid_drv
+TARGET  = usb_hid
 LIBS    = base jitterentropy virt_lx_emul
 
 INC_DIR = $(PRG_DIR)/../.. $(REP_DIR)/src/lib/usb_client

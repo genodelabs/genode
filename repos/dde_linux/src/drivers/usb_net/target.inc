@@ -1,4 +1,4 @@
-TARGET  = usb_net_drv
+TARGET  = usb_net
 LIBS    = base jitterentropy virt_lx_emul
 
 INC_DIR = $(PRG_DIR)/../..

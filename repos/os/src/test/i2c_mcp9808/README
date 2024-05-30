@@ -1,14 +1,14 @@
 i2c_mcp9808 read ambient temperature from an mcp9808 sensor connected
 on an I2c bus and print it to standard output.
 
-Example config of a component using the imx8q_evk_i2c_drv driver:
+Example config of a component using the imx8q_evk_i2c driver:
 
 !<start name="i2c_mcp9808">
 !
 !  <resource name="RAM" quantum="1M"/>
 !
 !  <route>
-!    <service name="I2c"> <child name="imx8q_evk_i2c_drv" label="MCP_9808"/> </service>
+!    <service name="I2c"> <child name="imx8q_evk_i2c" label="MCP_9808"/> </service>
 !    <any-service> <parent/> </any-service>
 !  </route>
 !

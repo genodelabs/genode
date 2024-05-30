@@ -1,6 +1,6 @@
-proc binary_name_ld_lib_so { } { return "ld-foc.lib.so" }
+proc binary_name_ld_lib_so { } { return "ld-foc.lib.so"      }
 proc binary_name_core_a    { } { return "core-foc-[board].a" }
-proc binary_name_timer     { } { return "foc_timer_drv" }
+proc binary_name_timer     { } { return "foc_timer"          }
 
 proc kernel_files { } { return { foc sigma0-foc bootstrap-foc } }
 

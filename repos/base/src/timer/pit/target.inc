@@ -1,4 +1,4 @@
-TARGET   = pit_timer_drv
+TARGET   = pit_timer
 REQUIRES = x86
 SRC_CC  += main.cc
 LIBS    += base

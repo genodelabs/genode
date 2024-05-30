@@ -1,4 +1,4 @@
-TARGET     = virtio_mmio_input_drv
+TARGET     = virtio_mmio_input
 SRC_CC     = mmio_device.cc
 LIBS       = base
 INC_DIR    = $(REP_DIR)/src/drivers/input/virtio

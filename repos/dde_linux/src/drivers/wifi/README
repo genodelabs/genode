@@ -1,4 +1,4 @@
-The wifi_drv component is a port of the Linux mac802.11 stack as well as
+The wifi component is a port of the Linux mac802.11 stack as well as
 libnl and wpa_supplicant to Genode. Depending on the used platform it
 features a selection of drivers for wireless devices. For example on the
 PC platform it contains the ath9k, iwlwifi and rtlwifi drivers for PCI(e)
@@ -6,14 +6,14 @@ devices.
 
 In contrast to other DDE Linux based drivers the actual driver portion is
 confined to its own library to better isolate the various parts of the driver.
-The 'wifi_drv' binary is the generic management part that includes the Wifi
+The 'wifi' binary is the generic management part that includes the Wifi
 configuration interface and the 'wpa_supplicant'. A suitable driver library
 is loaded at run-time (see section [Debugging]).
 
 To start the component on the PC platform the following configuration snippet
 can be used:
 
-!<start name="wifi_drv" caps="250">
+!<start name="wifi" caps="250">
 !  <resource name="RAM" quantum="32M"/>
 !  <provides><service name="Nic"/></provides>
 !  <config>
@@ -41,7 +41,7 @@ can be used:
 On other platforms the wifi library will be different. The following
 snippet illustrates the use of the driver on the PinePhone:
 
-!<start name="wifi_drv" caps="250">
+!<start name="wifi" caps="250">
 !  <resource name="RAM" quantum="32M"/>
 !  <provides><service name="Nic"/></provides>
 !  <config>
@@ -118,7 +118,7 @@ a better fit accesspoint for the configured network.
 Also, the driver can be switched to verbose logging during runtime
 by setting the 'verbose' or 'verbose_state' attribute to 'true'.
 
-The wifi_drv creates two distinct reports to communicate its state and
+The wifi driver creates two distinct reports to communicate its state and
 information about the wireless infrastructure to other components. The
 first one is a list of all available accesspoints. The following examplary
 report shows its general structure:
@@ -166,7 +166,7 @@ label "devices" if requested in the config as depicted.
 Debugging
 ~~~~~~~~~
 
-As mentioned in the introduction the 'wifi_drv' component is special in the
+As mentioned in the introduction the 'wifi' component is special in the
 regard that the actual driver is provided as a shared-object to better isolate
 it from the the driver binary that is a Libc::Component managing the
 'wpa_supplicant'. Since this code and in return the binary is the same for each
@@ -185,7 +185,7 @@ is necessary to link the driver binary directly against the driver library
 rather then stub ABI library. This is achieved by adapting the driver's
 'target.mk' file. In
 
-!TARGET  := wifi_drv
+!TARGET  := wifi
 !SRC_CC  := main.cc wpa.cc access_firmware.cc
 !LIBS    := base wifi
 ![…]

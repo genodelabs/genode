@@ -1,5 +1,5 @@
 _/raw/sntp_dummy_rtc
 _/src/sntp_client
-_/src/dummy_rtc_drv
+_/src/dummy_rtc
 _/src/report_rom
 _/src/init

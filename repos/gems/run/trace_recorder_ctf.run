@@ -26,7 +26,7 @@ import_from_depot \
 	[depot_user]/src/rom_logger \
 	[depot_user]/src/report_rom \
 	[depot_user]/src/vfs \
-	[depot_user]/src/dummy_rtc_drv \
+	[depot_user]/src/dummy_rtc \
 	[depot_user]/src/trace_recorder \
 	[depot_user]/raw/trace_recorder \
 	[depot_user]/src/trace_recorder_policy \
@@ -113,7 +113,7 @@ install_config {
 			</route>
 		</start>
 
-		<start name="dummy_rtc_drv">
+		<start name="dummy_rtc">
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Rtc"/> </provides>
 		</start>

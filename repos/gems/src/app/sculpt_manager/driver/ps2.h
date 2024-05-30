@@ -29,7 +29,7 @@ struct Sculpt::Ps2_driver : private Noncopyable
 		xml.node("start", [&] {
 			_ps2->gen_start_node_content(xml);
 
-			gen_named_node(xml, "binary", "ps2_drv");
+			gen_named_node(xml, "binary", "ps2");
 
 			xml.node("config", [&] {
 				xml.attribute("capslock_led", "rom");
