@@ -265,6 +265,8 @@ class Net::Tcp_link : public Link
 
 		struct Peer
 		{
+			bool syn       { false };
+			bool syn_acked { false };
 			bool fin       { false };
 			bool fin_acked { false };
 		};
@@ -277,26 +279,31 @@ class Net::Tcp_link : public Link
 		                 Peer       &sender,
 		                 Peer       &receiver);
 
+		void _opening_tcp_packet(Tcp_packet const &tcp,
+		                         Peer             &sender,
+		                         Peer             &receiver);
+
 		void _closing();
 
 		void _closed();
 
 	public:
 
-		Tcp_link(Interface                     &cln_interface,
-		         Domain                        &cln_domain,
-		         Link_side_id            const &cln_id,
-		         Port_allocator_guard          *srv_port_alloc_ptr,
-		         Domain                        &srv_domain,
-		         Link_side_id            const &srv_id,
-		         Cached_timer                  &timer,
-		         Configuration                 &config,
-		         L3_protocol             const  protocol,
-		         Interface_link_stats          &stats);
+		Tcp_link(Interface                 &cln_interface,
+		         Domain                    &cln_domain,
+		         Link_side_id        const &cln_id,
+		         Port_allocator_guard      *srv_port_alloc_ptr,
+		         Domain                    &srv_domain,
+		         Link_side_id        const &srv_id,
+		         Cached_timer              &timer,
+		         Configuration             &config,
+		         L3_protocol         const  protocol,
+		         Interface_link_stats      &stats,
+		         Tcp_packet                &tcp);
 
 		void client_packet(Tcp_packet &tcp) { _tcp_packet(tcp, _client, _server); }
 
-		void server_packet(Tcp_packet &tcp);
+		void server_packet(Tcp_packet &tcp) { _tcp_packet(tcp, _server, _client); }
 
 		bool can_early_drop() { return _state != State::OPEN; }
 };

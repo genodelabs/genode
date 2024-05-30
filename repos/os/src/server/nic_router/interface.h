@@ -179,6 +179,7 @@ class Net::Interface : private Interface_list::Element
 		Interface &operator = (Interface const &);
 
 		[[nodiscard]] Packet_result _new_link(L3_protocol         const  protocol,
+		                                     void                *const  prot_base,
 		                                     Domain                     &local_domain,
 		                                     Link_side_id         const &local_id,
 		                                     Port_allocator_guard       *remote_port_alloc_ptr,

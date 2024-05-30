@@ -205,11 +205,14 @@ Tcp_link::Tcp_link(Interface                  &cln_interface,
                    Cached_timer               &timer,
                    Configuration              &config,
                    L3_protocol          const  protocol,
-                   Interface_link_stats       &stats)
+                   Interface_link_stats       &stats,
+                   Tcp_packet                 &tcp)
 :
 	Link(cln_interface, cln_domain, cln_id, srv_port_alloc_ptr, srv_domain, srv_id, timer,
 	     config, protocol, config.tcp_idle_timeout(), stats)
-{ }
+{
+	client_packet(tcp);
+}
 
 
 void Tcp_link::_closing()
@@ -234,6 +237,9 @@ void Tcp_link::_tcp_packet(Tcp_packet &tcp,
                            Peer       &sender,
                            Peer       &receiver)
 {
+	if (_state == State::OPENING)
+		_opening_tcp_packet(tcp, sender, receiver);
+
 	if (_state == State::CLOSED) {
 		return; }
 
@@ -262,16 +268,19 @@ void Tcp_link::_tcp_packet(Tcp_packet &tcp,
 }
 
 
-void Tcp_link::server_packet(Tcp_packet &tcp)
+void Tcp_link::_opening_tcp_packet(Tcp_packet const &tcp, Peer &sender, Peer &receiver)
 {
-	if (_opening) {
+	if (tcp.syn())
+		sender.syn = true;
+	if (tcp.ack() && receiver.syn && !receiver.syn_acked)
+		receiver.syn_acked = true;
+	if (sender.syn_acked && receiver.syn_acked) {
 		_opening = false;
 		_state = State::OPEN;
 		(*_stats_ptr)--;
 		if (_stats_ptr == &_stats.opening) { _stats_ptr = &_stats.open; }
 		(*_stats_ptr)++;
 	}
-	_tcp_packet(tcp, _server, _client);
 }
 
 
