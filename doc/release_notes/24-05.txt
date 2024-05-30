@@ -335,8 +335,8 @@ apparently was not prepared for the case that there are no initial inferiors
 and that the first inferior could appear spontaneously on the remote side
 instead of being actively started by GDB. We had to make some adaptations to
 the GDB source code to support this situation and some more adaptations might
-be necessary in the future, for example to update the output of the _info
-inferiors_ command when the first inferior appears.
+be necessary in the future, for example to update the output of the
+_info inferiors_ command when the first inferior appears.
 
 
 Base framework and OS-level infrastructure
@@ -483,14 +483,11 @@ As planned in our [https://genode.org/about/road-map - road map], we
 integrated the current state of x86 suspend/resume as a feature into Sculpt
 OS. The sculpt manager got enhanced to drive the system state and manage the
 life cycle of driver components during suspend-resume cycles.
-
-[image sculpt_24_04_system_power]
-
 The new
 [https://genode.org/documentation/articles/sculpt-24-04#System_power_control - power options]
 can be found in the _System_ menu once the ACPI support option is activated.
 
-[image sculpt_24_04_acpi_support]
+[image sculpt_24_04_system_power]
 
 Non-stateful drivers are removed from the runtime before suspending and are
 restarted during resume, e.g., network drivers. Stateful drivers like NVME,
@@ -576,8 +573,8 @@ instead of using the newer and far easier dialog API for this purpose.
 
 [image file_vault_gui]
 
-For the component that deals with the logic, we stayed with the name _file
-vault_ whereas the new front-end is the _file vault gui_.
+For the component that deals with the logic, we stayed with the name
+_file vault_ whereas the new front-end is the _file vault gui_.
 
 Putting all these changes together, the whole ecosystem around the tresor block
 encryption and the file vault becomes far more manageable and its code base
