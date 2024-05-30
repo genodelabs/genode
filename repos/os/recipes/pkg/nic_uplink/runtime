@@ -1,0 +1,14 @@
+<runtime ram="1M" caps="100" binary="nic_uplink">
+
+	<requires> <timer/> </requires>
+
+	<provides> <nic/> <uplink/> </provides>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="nic_uplink"/>
+	</content>
+
+	<config/>
+
+</runtime>
