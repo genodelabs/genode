@@ -434,26 +434,6 @@ void Gui_session::focus(Capability<Gui::Session> session_cap)
 }
 
 
-void Gui_session::session_control(Label suffix, Session_control control)
-{
-	switch (control) {
-	case SESSION_CONTROL_HIDE:
-		_visibility_controller.hide_matching_sessions(label(), suffix);
-		break;
-
-	case SESSION_CONTROL_SHOW:
-		_visibility_controller.show_matching_sessions(label(), suffix);
-		break;
-
-	case SESSION_CONTROL_TO_FRONT:
-		_view_stack.to_front(Label(label(), suffix).string());
-		break;
-	}
-
-	_hover_updater.update_hover();
-}
-
-
 Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode, bool use_alpha)
 {
 	Ram_quota const next_buffer_size { Chunky_texture<Pixel>::calc_num_bytes(mode.area, use_alpha) };

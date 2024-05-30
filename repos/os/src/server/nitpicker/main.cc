@@ -66,8 +66,7 @@ void Framebuffer::Session_component::refresh(int x, int y, int w, int h)
  ** Implementation of the GUI service **
  ***************************************/
 
-class Nitpicker::Gui_root : public Root_component<Gui_session>,
-                            public Visibility_controller
+class Nitpicker::Gui_root : public Root_component<Gui_session>
 {
 	private:
 
@@ -98,7 +97,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 				            session_diag_from_args(args), _view_stack,
 				            _focus_updater, _hover_updater, _pointer_origin,
 				            _builtin_background, provides_default_bg,
-				            _focus_reporter, *this);
+				            _focus_reporter);
 
 			session->apply_session_policy(_config.xml(), _domain_registry);
 			_session_list.insert(session);
@@ -167,33 +166,6 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>,
 			_focus_reporter(focus_reporter), _focus_updater(focus_updater),
 			_hover_updater(hover_updater)
 		{ }
-
-
-		/*************************************
-		 ** Visibility_controller interface **
-		 *************************************/
-
-		void _session_visibility(Session_label const &label, Suffix const &suffix,
-		                         bool visible)
-		{
-			Gui::Session::Label const selector(label, suffix);
-
-			for (Gui_session *s = _session_list.first(); s; s = s->next())
-				if (s->matches_session_label(selector))
-					s->visible(visible);
-
-			_view_stack.update_all_views();
-		}
-
-		void hide_matching_sessions(Session_label const &label, Suffix const &suffix) override
-		{
-			_session_visibility(label, suffix, false);
-		}
-	
-		void show_matching_sessions(Session_label const &label, Suffix const &suffix) override
-		{
-			_session_visibility(label, suffix, true);
-		}
 };
 
 

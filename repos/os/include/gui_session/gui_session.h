@@ -301,21 +301,6 @@ struct Gui::Session : Genode::Session
 
 	typedef Genode::String<160> Label;
 
-	enum Session_control { SESSION_CONTROL_HIDE, SESSION_CONTROL_SHOW,
-	                       SESSION_CONTROL_TO_FRONT };
-
-	/**
-	 * Perform control operation on one or multiple sessions
-	 *
-	 * The 'label' is used to select the sessions, on which the 'operation' is
-	 * performed. The GUI server creates a selector string by concatenating the
-	 * caller's session label with the supplied 'label' argument. A session is
-	 * selected if its label starts with the selector string. Thereby, the
-	 * operation is limited to the caller session or any child session of the
-	 * caller.
-	 */
-	virtual void session_control(Label, Session_control) { }
-
 	/**
 	 * Return number of bytes needed for virtual framebuffer of specified size
 	 */
@@ -348,7 +333,6 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_mode, Framebuffer::Mode, mode);
 	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_focus, void, focus, Genode::Capability<Session>);
-	GENODE_RPC(Rpc_session_control, void, session_control, Label, Session_control);
 	GENODE_RPC_THROW(Rpc_buffer, void, buffer, GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 Framebuffer::Mode, bool);
 
@@ -356,7 +340,7 @@ struct Gui::Session : Genode::Session
 	                     Rpc_create_view, Rpc_destroy_view, Rpc_view_handle,
 	                     Rpc_view_capability, Rpc_release_view_handle,
 	                     Rpc_command_dataspace, Rpc_execute, Rpc_mode,
-	                     Rpc_mode_sigh, Rpc_buffer, Rpc_focus, Rpc_session_control);
+	                     Rpc_mode_sigh, Rpc_buffer, Rpc_focus);
 };
 
 #endif /* _INCLUDE__GUI_SESSION__GUI_SESSION_H_ */

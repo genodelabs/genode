@@ -86,9 +86,6 @@ class Gui::Session_client : public Genode::Rpc_client<Session>
 		void focus(Gui::Session_capability session) override {
 			call<Rpc_focus>(session); }
 
-		void session_control(Label selector, Session_control operation) override {
-			call<Rpc_session_control>(selector, operation); }
-
 		/**
 		 * Enqueue command to command buffer
 		 *

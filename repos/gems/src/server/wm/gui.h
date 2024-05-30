@@ -463,13 +463,6 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 };
 
 
-struct Wm::Gui::Session_control_fn : Interface
-{
-	virtual void session_control(char const *selector, Session::Session_control) = 0;
-	
-};
-
-
 class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
                                    private List<Session_component>::Element,
                                    private Input_origin_changed_handler
@@ -487,7 +480,6 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		Gui::Connection        _session { _env, _session_label.string() };
 
 		Window_registry             &_window_registry;
-		Session_control_fn          &_session_control_fn;
 		Tslab<Top_level_view, 8000>  _top_level_view_alloc;
 		Tslab<Child_view, 6000>      _child_view_alloc;
 		List<Top_level_view>         _top_level_views { };
@@ -793,14 +785,12 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		                  Allocator             &session_alloc,
 		                  Session_label   const &session_label,
 		                  Pointer::Tracker      &pointer_tracker,
-		                  Click_handler         &click_handler,
-		                  Session_control_fn    &session_control_fn)
+		                  Click_handler         &click_handler)
 		:
 			_env(env),
 			_session_label(session_label),
 			_ram(ram),
 			_window_registry(window_registry),
-			_session_control_fn(session_control_fn),
 			_top_level_view_alloc(&session_alloc),
 			_child_view_alloc(&session_alloc),
 			_input_session_cap(env.ep().manage(_input_session)),
@@ -1068,19 +1058,11 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		}
 
 		void focus(Genode::Capability<Gui::Session>) override { }
-
-		void session_control(Label suffix, Session_control operation) override
-		{
-			Session_label const selector(_session_label, suffix);
-
-			_session_control_fn.session_control(selector.string(), operation);
-		}
 };
 
 
 class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
-                      public Decorator_content_callback,
-                      public Session_control_fn
+                      public Decorator_content_callback
 {
 	private:
 
@@ -1232,7 +1214,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 						Session_component(_env, _ram, _window_registry,
 						                  _md_alloc, session_label,
 						                  _pointer_tracker,
-						                  _click_handler, *this);
+						                  _click_handler);
 					_sessions.insert(session);
 					return _env.ep().manage(*session);
 				}
@@ -1351,49 +1333,6 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 				Genode::destroy(_md_alloc, _layouter_session);
 				return;
 			}
-		}
-
-
-		/**********************************
-		 ** Session_control_fn interface **
-		 **********************************/
-
-		void session_control(char const *selector, Session::Session_control operation) override
-		{
-			for (Session_component *s = _sessions.first(); s; s = s->next()) {
-
-				if (!s->matches_session_label(selector))
-					continue;
-
-				switch (operation) {
-				case Session::SESSION_CONTROL_SHOW:
-					s->hidden(false);
-					break;
-
-				case Session::SESSION_CONTROL_HIDE:
-					s->hidden(true);
-					break;
-
-				case Session::SESSION_CONTROL_TO_FRONT:
-
-					/* post focus request to the layouter */
-					Genode::Reporter::Xml_generator
-						xml(_focus_request_reporter, [&] () {
-							xml.attribute("label", s->session_label().string());
-							xml.attribute("id", ++_focus_request_cnt);
-						});
-
-					break;
-				}
-			}
-
-			_window_registry.flush();
-
-			/*
-			 * Forward the request to the GUI server's control session to apply
-			 * the show/hide/to-front operations on "direct" GUI sessions.
-			 */
-			_focus_gui_session.session_control(selector, operation);
 		}
 
 

@@ -34,22 +34,11 @@
 
 namespace Nitpicker {
 
-	class Visibility_controller;
 	class Gui_session;
 	class View;
 
 	typedef List<Gui_session> Session_list;
 }
-
-
-struct Nitpicker::Visibility_controller : Interface
-{
-	using Suffix = Gui::Session::Label;
-
-	virtual void hide_matching_sessions(Session_label const &, Suffix const &) = 0;
-
-	virtual void show_matching_sessions(Session_label const &, Suffix const &) = 0;
-};
 
 
 class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
@@ -139,8 +128,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Reporter &_focus_reporter;
 
-		Visibility_controller &_visibility_controller;
-
 		Gui_session *_forwarded_focus = nullptr;
 
 		/**
@@ -179,8 +166,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		            View                  &pointer_origin,
 		            View                  &builtin_background,
 		            bool                   provides_default_bg,
-		            Reporter              &focus_reporter,
-		            Visibility_controller &visibility_controller)
+		            Reporter              &focus_reporter)
 		:
 			Session_object(env.ep(), resources, label, diag),
 			_env(env),
@@ -195,8 +181,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			_input_session_cap(_env.ep().manage(_input_session_component)),
 			_provides_default_bg(provides_default_bg),
 			_view_handle_registry(_session_alloc),
-			_focus_reporter(focus_reporter),
-			_visibility_controller(visibility_controller)
+			_focus_reporter(focus_reporter)
 		{ }
 
 		~Gui_session()
@@ -382,8 +367,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		void buffer(Framebuffer::Mode mode, bool use_alpha) override;
 
 		void focus(Capability<Gui::Session> session_cap) override;
-
-		void session_control(Label suffix, Session_control control) override;
 
 
 		/*******************************
