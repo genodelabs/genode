@@ -1,0 +1,743 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 24.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+The main driver behind Genode 24.05 was the
+[https://genode.org/news/sculpt-os-release-24.04 - recent release] of Sculpt
+OS 24.04 ([https://genodians.org/nfeske/2024-04-26-sculpt-os - What's new?]).
+Among the many usability advances of Sculpt OS is the flexible assignment
+of USB devices to components and virtual machines.
+Section [Fine-grained and dynamic assignment of USB devices/interfaces]
+introduces the underpinnings that made our new quality of life possible.
+Another user-facing feature with a surprisingly deep technical reach is
+suspend/resume. Section [Suspend/resume infrastructure] details the changes of
+the framework on that account. The new ability of seamlessly using the GNU
+debugger on top of Sculpt OS is a game changer for developers
+(Section [On-target debugging using the GNU debugger (GDB)]).
+Further user-visible and user-audible topics are the support for
+high-resolution displays and the wrapped-up transition to our new audio stack
+(Section [Transition to the new audio interfaces introduced in 24.02]).
+
+Besides the many usability-motivated topics of our
+[https://genode.org/about/road-map - road map], however, we celebrate
+the break-through of running Sculpt OS directly on our custom microkernel
+alternatively to using a 3rd-party kernel.
+Section [First version of Sculpt OS based on Genode's custom kernel]
+details the background story, the showstoppers we had to overcome, and the
+prospects of this achievement.
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org/documentation/genode-foundations-24-05.pdf">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-foundations-title.png">
+:   </a>
+:  </div>
+: </p>
+
+The "Genode Foundations" book covers Genode's architecture, developer work
+flows, and reference material. In tandem with the current release, the
+document received its annual update, which includes not only adjustments
+to the most recent version but also new material about accessing GPIO pins,
+audio, debugging, and prominent APIs like the list model.
+
+Further topics of the current release reach from timing and network-throughput
+optimizations, over the profound rework of storage encryption, to updated
+3rd-party software such as Mesa, libSDL2, and Curl.
+
+: <div class="visualClear"><!-- --></div> <p></p>
+
+
+First version of Sculpt OS based on Genode's custom kernel
+##########################################################
+
+The ability to use a wide variety of kernels is certainly a distinctive
+feature of Genode. Since the very first version, the framework accommodated
+both a microkernel and the Linux kernel.
+Over the years, we embraced most members of the L4 family of kernels
+([https://genode.org/documentation/release-notes/9.05#Supporting_the_OKL4_kernel_as_new_base_platform - OKL4],
+[https://genode.org/documentation/release-notes/9.02#Genode_on_L4ka__Pistachio - Pistachio],
+[https://genode.org/news/genode-os-framework-release-8.08 - Fiasco],
+[https://genode.org/documentation/release-notes/10.02#Codezero_kernel_as_new_base_platform - Codezero]),
+all object-capability microkernels we could get our hands on
+([https://genode.org/documentation/release-notes/10.02#NOVA_hypervisor_as_new_base_platform - NOVA],
+[https://genode.org/documentation/release-notes/11.02#Support_for_Fiasco.OC - Fiasco.OC],
+[https://genode.org/documentation/release-notes/15.05#Proof-of-concept_support_for_the_seL4_kernel - seL4]),
+and even combined the framework with a static isolation kernel
+([https://genode.org/documentation/release-notes/15.08#Genode_on_top_of_the_Muen_Separation_Kernel - Muen]).
+
+Confronting the framework with largely different kernel mechanisms has
+undoubtedly strengthened Genode's software design, but also gave us a great
+depth of insights into the landscape of kernel designs and the implications of
+the respective design choices. It did not take us long to question some of
+these choices, and we started experimenting with custom kernel designs on our
+own. This work made its first appearance in version
+[https://genode.org/documentation/release-notes/11.02#Approaching_platform_support_for_Xilinx_MicroBlaze - 11.02]
+targeting Xilinx Microblaze softcore CPUs.
+Without haste, we steadily evolved this kernel as a research endeavour, mainly targeting ARM CPUs
+([https://genode.org/documentation/release-notes/14.05#Multi-processor_support - SMP],
+[https://genode.org/documentation/articles/trustzone - TrustZone],
+[https://genode.org/documentation/release-notes/15.02#Virtualization_on_ARM - virtualization],
+[https://genode.org/documentation/release-notes/19.08#64-bit_ARM_and_NXP_i.MX8 - 64 bit]),
+and later also addressing the
+[https://genode.org/documentation/release-notes/15.05#Feature_completion_of_our_custom_kernel__base-hw_ - x86]
+architecture.
+
+When we
+[https://genode.org/documentation/release-notes/18.02#Sculpt_for_Early_Adopters - started]
+creating Sculpt OS as a Genode-based operating system for commodity PCs, we
+picked NOVA as kernel of choice. NOVA's unique combination of microkernel and
+virtualization mechanisms served us extremely well. It is truly a technical
+marvel! But like any other 3rd-party kernel, it imposes certain complexities
+and points of friction onto the user land. In contrast to 3rd-party kernels
+like NOVA or seL4, which are self-sufficient programs, our custom kernel is
+melted with Genode's core component. This alleviates redundant data structures
+between kernel and user space and makes Genode's resource management directly
+applicable to kernel objects. In other words, it fits like a glove. Hence,
+looking ahead, we foresee a much simpler and ever more coherent trusted
+computing base of Sculpt OS.
+
+In order to realize this vision, we had to tackle a couple of long-time
+showstoppers. First of all, we needed to move IOMMU support out of the kernel
+into the user-level platform driver to render it kernel-agnostic. We completed
+a major part of this transition with
+[https://genode.org/documentation/release-notes/23.11#Kernel-agnostic_DMA_protection - release 23.11].
+
+Second, virtualization of commodity operating systems is a common use case for
+Sculpt installations, ours at Genode Labs included. Therefore, adding support
+for Intel's Virtual-Machine Extensions (VMX) was another important missing
+piece of the puzzle. Under the hood, we refactored and generalized the
+kernel's x86 hypervisor support to allow for the selection of the available
+virtualization technology at runtime and consolidated code for page-table
+handling. Even though we still have some way to go before the kernel is ready
+to replace the time-tested NOVA hypervisor as the default kernel for Sculpt
+OS, this release is a milestone in that direction.
+
+The Sculpt OS variant using our custom kernel is now available as a
+ready-to-use system image at [https://depot.genode.org/jschlatow/image]
+for Intel systems up to 8th generation core processors (Whiskey Lake).
+Note, when using Sculpt's integrated update mechanisms, you must already run
+at least Sculpt 24.04. The system image includes a launcher for running a
+Tiny-Core-Linux VM with a Firefox browser in VirtualBox. The launcher requires
+a window manager that is best deployed by switching to the corresponding
+preset. You also need to enable the _system clock_ and _mixer_ options.
+
+Note that there are still a few areas of improvement for this Sculpt variant:
+The IOMMU support currently omits IRQ remapping, which is important to shield
+the system from rogue devices sending arbitrary interrupts. Moreover, we plan
+to improve the kernel scheduling for interactive and time-critical workloads.
+
+
+Fine-grained and dynamic assignment of USB devices/interfaces
+#############################################################
+
+USB support has a long history within the Genode framework and for almost one
+decade its client session API has remained stable. Back in
+[https://genode.org/documentation/release-notes/15.02#USB_session_interface - 2015],
+we split the USB host-controller driver parts from other USB client device
+drivers. Since then, a USB client component could request exactly one USB
+device per session from the USB server resp. USB host-controller driver.
+Moreover, a client had to drive the device in its entirety.
+
+This former approach led to some limitations and intricateness. First, USB
+drivers capable of driving more than one device of the same class needed to
+know each device to request in advance. This information was not delivered by
+the USB session but by means of configuration. The out-of-band information
+path complicated the management of USB devices in complex systems like Sculpt
+OS, e.g., when passing arbitrary USB devices to a guest OS running inside a
+virtual machine.
+
+The second drawback was related to USB devices with multiple interfaces of
+different interface classes, most prominently, USB headsets with extra buttons
+for volume control. Such devices typically have several USB interfaces for
+audio playback and recording, and at least one interface for HID input events.
+Whereas the development of one driver for each interface class is certainly an
+attainable goal, creating driver mixtures for each potential combination of
+interfaces is unrealistic. Ultimately, we strive to freely operate different
+interfaces of a single device by dedicated drivers.
+
+These limitations accompanied us for quite some time, and a design to overcome
+them matured at the back of our minds. With the current release, the USB
+session eventually received its long-anticipated redesign.
+
+The new USB session API provides a _devices_ ROM to its client. Within this
+ROM a client can retrieve all relevant information about existing devices it
+is allowed to access. You can think of it as a virtual private USB bus for
+this client. When a new device gets connected that matches the client's policy
+of the USB host controller driver, the ROM gets updated appropriately. If a
+device gets removed physically, it'll vanish from the _devices_ ROM, which
+may, for example, look as follows.
+
+! <devices>
+!   <device name="usb-1-10" class="0x0" product="USB Optical Mouse"
+!           vendor_id="0x1bcf" product_id="0x5" speed="low" acquired="true">
+!     <config active="true" value="0x1">
+!       <interface active="true" number="0x0" alt_setting="0x0"
+!                  class="0x3" subclass="0x1" protocol="0x2">
+!         <endpoint address="0x81" attributes="0x3"
+!                   max_packet_size="0x7"/>
+!       </interface>
+!     </config>
+!   </device>
+! </devices>
+
+As can be seen in the example, the human-readable XML representation of the
+USB devices already contains most information that normally resides in the
+full-length device descriptor of the USB standard. That means a driver can
+parse relevant information about available configurations, interfaces, and
+endpoints - including their types and identifiers - without the need to
+communicate with the device in the first place.
+
+Besides the _devices_ ROM, the new USB-session API consists of an acquire
+function and a function to release a formerly acquired device. The acquisition
+of a device returns a capability to a new device RPC API. This distinct API
+includes a function to obtain a packet-stream buffer to exchange USB control
+requests with the USB host-controller driver. The host-controller driver
+sanity-checks the control requests, and potentially forwards them to the
+device. Thereby, a client can change the configuration of the device, enable
+an alternate interface, or request additional descriptors regarding
+device-class specific aspects.
+
+Moreover, the device RPC API provides functions to acquire or release an
+interface of the device. When acquiring an interface, a capability to the
+interface RPC API gets returned. This third new RPC API provides a
+packet-stream buffer to the client, which allows for the exchange of
+interrupt, bulk, or isochronous transfers with the host-controller driver.
+The host-controller driver checks these transfer requests for plausibility,
+and forwards them directly to the device and vice versa.
+
+The whole internals of the different RPC API layers, however, are not imposed
+on the developer. Instead, convenient helper utilities are provided within
+_repos/os/include/usb_session/device.h_. Those helper classes simplify the
+acquisition of USB devices and interfaces. Moreover, they support the notion
+of USB Request Blocks (Urbs) on the level of device (control) and interface
+(irq, bulk, isochronous). For an example component that makes use of these
+utilities, please refer to the USB block driver.
+
+All components that directly use the USB session have been adapted to the new
+API. This includes the Linux USB driver ports for host controllers, HID, USB
+Ethernet cards, the libusb library port, our XHCI model within VirtualBox, and
+the black-hole component.
+
+Practical considerations
+------------------------
+
+For users of the framework or Sculpt OS, the most notable change is that all
+USB clients use their own _devices_ ROM to react to device appearance and
+disappearance. No global information is required anymore. That means the
+addition of a new policy rule in the USB host-controller's configuration is
+sufficient to, e.g., let a device appear in a Linux guest. If the rule already
+exists, even the pure physical connect will result in the appearance of the
+device.
+
+Because one USB session can now control an arbitrary number of devices, the
+syntax of the policy rules for a USB host controller driver changed a bit:
+
+! <config>
+!   <policy label="usb_net">
+!     <device vendor_id="0x0424" product_id="0xec00"/>
+!   </policy>
+!   <policy label="usb_hid">
+!     <device class="0x3"/>
+!   </policy>
+!   <policy label="vm">
+!     <device name="usb-2-2"/>
+!     <device name="usb-2-4"/>
+!   </policy>
+! </config>
+
+As you might notice, there is no differentiation in the policy rules on the
+interface-level yet. In short, each device is still handled by only one
+driver. As a prerequisite to assign drivers to individual interfaces, drivers
+first have to become resilient against denied device-acquisition attempts.
+This is not the case for most ported drivers or virtualized guest OSes. Hence,
+even though the USB session API is now prepared for driving interfaces of one
+USB device by dedicated drivers, we decided against activating this feature on
+the policy level at the current time. Nonetheless, once a set of interface
+drivers gets in place, we can enable the added flexibility without touching
+the USB session API again.
+
+Sculpt OS
+---------
+
+The outcome of this line of work is already present in
+[https://genodians.org/nfeske/2024-04-26-sculpt-os - Sculpt OS 24.04], which makes the
+[https://genode.org/documentation/articles/sculpt-24-04#Assignment_of_USB_devices_to_components - assignment of USB devices]
+to components intuitive and secure.
+
+
+On-target debugging using the GNU debugger (GDB)
+################################################
+
+The renovation of our debugging monitor in
+[https://genode.org/documentation/release-notes/23.08#Multi-component_debug_monitor - Genode 23.08]
+was driven by the vision of easy on-target debugging on Sculpt OS. Just
+imagine, any runtime component from applications over device drivers to VMMs,
+like VirtualBox, could be started with debugging optionally enabled. The key
+to make this vision come true is the debug monitor at the heart of the Sculpt
+runtime. All other missing ingredients for viable on-target debugging - above
+all a GDB front end - are introduced with this release.
+
+The _debug monitor_ component got introduced in version
+[https://genode.org/documentation/release-notes/23.08#Multi-component_debug_monitor - 23.08].
+It is a drop-in replacement for the init component with the added ability to
+control the execution and memory content of selected child components using
+the GDB remote serial protocol. On Sculpt, the debug monitor now acts as the
+runtime init component. The user decides which components are made available
+to debugger control with a check mark in the launcher menu before the
+component is started. If the component is selected for debugging, the monitor
+configuration part for this component is added to the Sculpt runtime
+configuration.
+
+The [https://www.sourceware.org/gdb/ - GDB] component is the user-facing part
+of the debugging experience. It presents a command line interface in a
+graphical terminal window and communicates with the debug monitor in the
+background. The user can enter GDB commands for inspecting and modifying the
+state of monitored components.
+
+In order to debug a component in a meaningful way, GDB usually needs to
+evaluate the executable files of the component and profits hugely from
+additional debug information like symbol names and source-code location
+information generated by the compiler. As this information can take up a lot
+of space, we decided to store it in separate debug info files shipped in
+dedicated _dbg_ depot packages since version
+[https://genode.org/documentation/release-notes/23.11#Debug_information_for_depot_binaries - 23.11].
+Two small support components help to make this information available to GDB at
+runtime:
+
+The _dbg_download_ component can be started by the user by checking the
+_download debug info_ option in the Sculpt launcher menu. It evaluates the
+Sculpt runtime configuration in the background and downloads any missing _dbg_
+archive content of monitored components into the depot.
+
+The _gdb_support_ component is started automatically together with GDB. It
+evaluates the Sculpt runtime configuration in the background and dynamically
+creates directories with symbolic links to the depot binaries and debug info
+files of monitored components in a RAM file system shared with GDB, and
+thereby allows GDB to access these files in a convenient way.
+
+[image on_target_gdb]
+
+With this setup in place, the user can debug multiple components at once
+and control the execution of threads on an individual basis thanks to GDB's
+_non-stop_ mode.
+Learn how to integrate and use GDB on Sculpt with our article and screencast
+video on [https://genodians.org/chelmuth/2024-05-17-on-target-debugging - Genodians.org].
+
+One noteworthy challenge discovered while testing on Sculpt was that GDB
+apparently was not prepared for the case that there are no initial inferiors
+and that the first inferior could appear spontaneously on the remote side
+instead of being actively started by GDB. We had to make some adaptations to
+the GDB source code to support this situation and some more adaptations might
+be necessary in the future, for example to update the output of the _info
+inferiors_ command when the first inferior appears.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Transition to the new audio interfaces introduced in 24.02
+==========================================================
+
+In Genode's
+[https://genode.org/documentation/release-notes/24.02#Revised_audio_infrastructure - February release],
+we introduced new audio 'Record' and 'Play' sessions intended to supersede the
+old 'Audio_in' and 'Audio_out' interfaces. In the time following up to the
+current release, we worked on integrating the new sessions into the existing
+components. In fact, they are already exercised in the most recent
+[https://genode.org/news/sculpt-os-release-24.04 - Sculpt release].
+
+As most prominently used by ported software, the VFS OSS plugin plays a vital
+role in interfacing with Genode's native audio stack. The already existing
+VFS plugin got renamed to _legacy_oss_ while the new one takes its place and
+is usable as a drop-in replacement. Existing users have to adapt the session
+routes accordingly or change their VFS configuration to make use of the
+legacy plugin, if the use of the new sessions is not yet desirable.
+
+In contrast to the old plugin, it is possible to configure the fragment size a
+client is allowed to use via its configuration and thereby enforce its latency
+requirements. The fragment size ranges from 2048 to 8192 bytes, which equals a
+period length of around 11.6 to 46.4 ms when using a sample rate of 44.1 kHz.
+The plugin leverages the ability of the _report_play_mixer_ to convert sample
+rates. However, to constrain the resource requirements of the plugin, it is
+limited from 8 kHz to 48 kHz, which covers a reasonable range. Please consult
+the _repos/gems/src/lib/vfs/oss/README_ file for more information.
+
+The _black_hole_ component gained additional support for providing the play
+and record sessions so that it is able to perform its role when using the new
+sessions. We also removed the custom audio subsystem from our SDL1.2 port in
+favor of using its own OSS back end, which brings it in line with our SDL2
+port.
+
+As there are no critical components left that exclusively use the old sessions
+directly, the way is paved to remove them. However, we keep the legacy audio
+sessions intact to give users time to migrate their components and become
+comfortable with the new interfaces.
+
+
+Improved timing stability
+=========================
+
+Our recent work on real-time audio processing moved the timing characteristics
+of the framework into focus. Low latency cannot be attained in the presence of
+high jitter. But in a component-based system carrying general-purpose
+workloads, jitter can be induced for many reasons including kernel scheduling,
+spontaneous high-priority events, or the interference between clients of
+shared services. The timer driver in particular is such a shared service.
+While analyzing the timer's behaviour under stress, we indeed observed
+unwelcome interference between timer clients. E.g., the stability of a
+waveform generated at a period of 5 milliseconds would be effected by
+otherwise unrelated spontaneous USB-HID events. Those observations motivated
+the following improvements:
+
+First, we simplified the timer implementation to make it dead-simple to
+understand and straight-forward to trace its behavior. The timer no longer
+relies on TSC-interpolated measurements but only on ground-truth values
+obtained from the timing device (or from the underlying kernel). Second, to
+improve accuracy at the client side, the timer no longer limits the time
+resolution when the current time is queried. The deliberate limiting of the
+time resolution is applied only to the triggering of timeouts in order to cap
+the timer's CPU load induced by its clients. Third, to limit the rate of
+inter-component communication, the timer batches the wake-up of clients that
+have timeouts closely clustered together. Combined, those measures reduced the
+cross-client interferences between timer clients comfortably below the level
+relevant for our synthetic test setup using audio periods of 5 ms. Note that
+such small periods are not generally usable in practice because real-world
+audio applications are subjected to additional sources of jitter.
+
+The improvements are in effect for the timers used on NOVA, the base-hw
+kernel, and the PIT-based timer as used on seL4, OKL4, and Pistachio. Linux,
+Fiasco.OC, and L4/Fiasco are not covered yet.
+
+
+Device drivers
+##############
+
+Linux-device-driver environment (DDE)
+=====================================
+
+Porting Linux drivers to Genode is a multi-staged process with the
+configuration of a minimal yet functional platform-specific Linux kernel as
+an essential step. The device support in this kernel is the baseline and
+reference for the final Genode driver. To simplify the testing of minimal
+kernel images, we introduced new run scripts for i.MX boards and PCs. Now, a
+plain execution of 'make run/pc_linux' or 'make run/imx_linux' runs Linux on
+the test target as known from Genode scenarios. In case of i.MX, a FIT image
+is generated, whereas we provide an i.PXE-bootable image for PCs. The run
+scripts integrate busybox into an initial RAM disk and, for i.MX, amend this
+image with _memtool_, a tool by Pengutronix to inspect all kind of memory
+under Linux (via _/dev/mem_).
+
+Furthermore, we address some deficiencies in DDE Linux with this release.
+We improved support for fine-grained, sub-millisecond timing by enabling
+high-resolution timers and attended to a long-standing pc_nic_drv link reset
+bug that manifested in some situations on some platforms only. For driver
+developers, we added the 'lx_emul_trace_msg()' function for the generation
+of low-overhead trace entries that can be used to debug timing-sensitive or
+high-traffic scenarios.
+
+
+Intel framebuffer and GPU driver
+================================
+
+An essential prerequisite for providing a GUI as Sculpt OS does, is having a
+driver for the graphics controller. In Genode, this task is split between the
+framebuffer driver and the GPU driver. Exposing these to a growing range of
+devices led to a few robustness and compatibility improvements for the Intel
+framebuffer/GPU drivers.
+
+In the context of the latest Sculpt release, we made the accounting of maximum
+framebuffer memory configurable. Previously, this was derived from the
+component's RAM quota, which implicitly limited the maximum display
+resolution. The separate configuration explicitly sets the maximum framebuffer
+memory by default to 64 MiB, which suffices for resolutions of at least
+3840x2160. The actual memory used by the component depends on the configured
+display resolution. If the RAM quota is depleted, the component will issue a
+resource request. The configuration follows the scheme established for the GPU
+driver with
+[https://genode.org/documentation/release-notes/24.02#Dynamic_aperture_handling_for_high_resolution_framebuffers - release 24.02].
+
+In this release, we also incorporated a vendor check in the Intel framebuffer
+driver in order to ensure that it only operates Intel devices. Our central
+platform driver typically hands out all VGA-class devices to the driver,
+including GPUs of other vendors. This caused issues on platforms with an
+additional Nvidia GPU for multiple users. Thanks to Alice Domage for this
+contribution.
+
+Furthermore, we fixed a few issues that popped up when test-driving Sculpt OS
+on the ZimaBlade. By doing this, we added support for Intel HD Graphics 500 to
+the Intel framebuffer/GPU drivers. This GPU can be found in various Intel
+Processors in the Pentium/Celeron N-series.
+
+
+Suspend/resume infrastructure
+=============================
+
+As planned in our [https://genode.org/about/road-map - road map], we
+integrated the current state of x86 suspend/resume as a feature into Sculpt
+OS. The sculpt manager got enhanced to drive the system state and manage the
+life cycle of driver components during suspend-resume cycles.
+
+[image sculpt_24_04_system_power]
+
+The new
+[https://genode.org/documentation/articles/sculpt-24-04#System_power_control - power options]
+can be found in the _System_ menu once the ACPI support option is activated.
+
+[image sculpt_24_04_acpi_support]
+
+Non-stateful drivers are removed from the runtime before suspending and are
+restarted during resume, e.g., network drivers. Stateful drivers like NVME,
+AHCI, and GPU drivers participate cooperatively in the system states by
+stopping their processing and reporting their fulfillment. Currently, the USB
+host driver needs to be restarted forcefully on resume. To avoid data loss,
+the power suspend feature is not offered while a USB block device is in use.
+
+Additionally, during Sculpt integration, several drivers got enhanced. The
+acpica application now reflects the completion of the last action, which the
+sculpt manager monitors and incorporates into the system state machine. The PC
+platform driver saves and restores the IOMMU configurations before and after
+suspend. Additionally, the platform driver gained the ability to trigger the
+final suspend RPC to Genode's core. Furthermore, the Intel display driver now
+participates in the system state changes by switching off all connectors
+before suspend in order to reduce graphical noise on displays during the
+transition.
+
+
+Mesa updated to version 24.0.1
+==============================
+
+With the goal to add support for more recent Intel GPUs (Alder Lake+), we took
+the first step by updating our three-year-old Mesa 21 to version 24. Because
+Mesa is under heavy development, the effort to do so was more elaborate than
+anticipated. For the current release, we enabled all the previously supported
+GPUs, which are Intel Gen8 (Broadwell), Gen9 (Skylake up to Whiskey Lake),
+Gen12 (Tiger Lake) using the Iris Gallium driver, Vivante as found in i.MX8
+SoCs, and Mali on the PinePhone. There are still many improvements to be
+explored, like buffer life-time management, using Mesa's native build system
+(Meson) for simplifying future updates, testing Alder Lake, replacing softpipe
+with llvm for software rendering, and adding Vulkan support, to name a few.
+We are looking forward to tackle these topics in future Genode releases.
+
+
+Removed obsolete loader component and session interface
+=======================================================
+
+The loader was originally introduced in version
+[https://genode.org/documentation/release-notes/10.11#Qt4 - 10.11] as part of an
+early [https://genode.org/news/genode-live-demonstration-2010-11 - live CD].
+It later served the purpose of dynamically starting and stopping preconfigured
+subsystems. As of today, the latter use case has long been covered by the
+dynamically reconfigurable init component. The only substantial client of the
+loader remained to be the qpluginwidget in combination with the Arora web
+browser. But as the blending of plugins with websites never moved beyond a
+fancy tech demo and Arora was replaced by Falkon, the current release removes
+the now obsolete loader infrastructure.
+
+
+Libraries and applications
+##########################
+
+Consolidation of Tresor block encryptor and File Vault
+======================================================
+
+Genode [https://genode.org/documentation/release-notes/23.05#Revision_of_Genode_s_custom_block-encryption_infrastructure - 23.05]
+marked a big update of the core logic for block-data security and management
+behind the file vault. It replaced the former Ada/SPARK-based implementation
+called CBE with a C++-based, modernized library that we named _Tresor_. As a
+side effect of this endeavor, we improved testing and fixed many issues of the
+former approach. However, the tresor library also inherited some unwelcome
+traits from its predecessor. The CBE approach was shaped in many ways by the
+semantic restrictions imposed by SPARK and the tresor library had retained
+some of these at the expense of code redundancy. In addition, we had adopted a
+rather peculiar approach to execution flow that led to unforeseen
+implementation complexity down the road. In order to improve this situation,
+the current release comes with a comprehensive re-design of the tresor
+library, relieving it from legacy burdens, significantly shrinking the code
+base, and making it much easier to understand.
+
+Once warmed up with the topic, we stepped one level up in the block-encryption
+stack and continued reworking the tresor VFS plugin because it also suffered
+from over-complexity and redundancy. After finishing that, we noticed that the
+next higher layer - the File Vault - could also be improved in two ways:
+First, the file vault used to combine two unrelated tasks in one component:
+The logic for modeling typical user work-flows on the tresor VFS and the
+operation of a graphical user interface. We found that these are better
+assigned to separate components that work together via a narrow and
+well-defined interface. Second, the file vault used to operate directly on
+the low-level interface of the menu view component in order to drive its GUI
+instead of using the newer and far easier dialog API for this purpose.
+
+[image file_vault_gui]
+
+For the component that deals with the logic, we stayed with the name _file
+vault_ whereas the new front-end is the _file vault gui_.
+
+Putting all these changes together, the whole ecosystem around the tresor block
+encryption and the file vault becomes far more manageable and its code base
+has been cut in half while providing the same feature set as before:
+
+   component                    | 23.05 | 24.05 | difference
+  -----------------------------------------------------------
+  -----------------------------------------------------------
+   lib/tresor                   | 14374 |  5212 | -63%
+  -----------------------------------------------------------
+   lib/vfs/tresor               |  2728 |  1823 | -33%
+  -----------------------------------------------------------
+   lib/vfs/tresor_crypto        |  1162 |  1213 |
+  -----------------------------------------------------------
+   lib/vfs/tresor_trust_anchor  |  1800 |  1992 |
+  -----------------------------------------------------------
+   app/tresor_init              |   159 |    93 |
+  -----------------------------------------------------------
+   app/tresor_init_trust_anchor |   166 |   163 |
+  -----------------------------------------------------------
+   app/file_vault               |  5429 |  1256 | -76%
+  -----------------------------------------------------------
+   app/file_vault_gui           |     - |   617 |
+  -----------------------------------------------------------
+  -----------------------------------------------------------
+   total                        | 25818 | 12369 | -52%
+
+But the update is not only about cleaning up. We also consolidated the stack
+by, for instance, fixing and re-enabling asynchronous rekeying, implementing
+robust handling of corner-case configurations, patching several performance
+limitations, and further improving the test suite.
+
+Last but not least, the file vault received two handy usability enhancements.
+First, the new file-vault GUI is fully controllable via keyboard.
+The hotkeys are documented in _repos/gems/src/app/file_vault_gui/README_.
+Second, as an implication of separating GUI from logic, the text-based
+interface of the file vault became the canonical way to steer that component.
+In order to achieve that, the interface had to be extended to the full feature
+set, which has the welcome side effect of easing the combination of the file
+vault with alternative front ends. For instance, the file vault could now
+become an integrated part of the administrative user interface of Sculpt OS.
+The new interface is mostly backwards compatible (only the non-functional
+version attribute disappeared) and documented in
+_repos/gems/src/app/file_vault/README_.
+
+Despite the extensive overhaul, file vault version 24.05 remains compatible
+with old containers created via the 23.05 version and we also kept the
+structure and appearance of the new graphical front end close to that of the
+old version in order to make the transition as smooth as possible.
+
+
+VirtualBox network-throughput improvements
+==========================================
+
+The Uplink and NIC session interfaces provide means to batch several network
+packets before informing the other side to process the packets. The batching
+is crucial to achieve good network throughput and also to keep the CPU
+overhead per packet at a moderate level. Up to now, our ports of VirtualBox
+did not leverage this feature, which became noticeable on systems under high
+CPU load. By adding the batching of network packets to our VirtualBox ports,
+we were able to reduce the CPU load and achieve stable throughput
+measurements, which otherwise fluctuate more depending on other factors like
+scheduling.
+
+
+Seoul virtual machine monitor
+=============================
+
+Since the
+[https://genode.org/documentation/release-notes/24.02#Seoul_VMM - previous]
+release, the VMM received several improvements.
+
+Notably, the former global motherboard lock got replaced by fine-grained
+locking within each device model where appropriate. Thanks to the better CPU
+utilization, long-running work, for example compilation, now finishes earlier.
+The network binding got reworked and now reflects network link-state changes
+from the Genode interface into the guest VMs. The legacy audio-session binding
+got replaced by Genode's new Play interface.
+
+The so far unused ACPI model of the Seoul sources got enabled and adjusted
+to support so-called fixed ACPI events, e.g., power-button press event. On
+GUI window close, the event is now triggered and forwarded to the guest VM.
+Depending on the configuration of the guest, the VM may power down
+automatically, similar as done by our port of VirtualBox.
+
+Finally, a USB XHCI model powered by our qemu-usb library has been added to
+Seoul, which got developed during our recent
+[https://github.com/genodelabs/genode/issues/4989 - Hack'n'Hike] event.
+With this new model, USB devices can be passed through to the guest. It has
+been successfully tested with several USB storage, keyboard, and audio
+devices.
+
+
+SDL2 improvements
+=================
+
+We enhanced our SDL2 port by enabling more subsystems, improving its window
+handling, and adding support for its text-input API.
+
+This release adds preliminary support window resizing. It works well for some
+of the currently available ports but still has issues with others (especially
+those using an OpenGL context) as it depends to some degree on the component
+itself using the SDL2 library. As an additional feature, we added support for
+setting the initial window geometry via the '<initial>' node, e.g.:
+
+! <initial width="800" height="600"/>
+
+This allows for restricting the initial window size because otherwise the
+actual screen size will be used and that might be too large depending on the
+attached display.
+
+Support for using SDL2's text-input API has been enabled. Once the application
+enables text input, any key press that has a valid Unicode codepoint is sent
+as text input.
+
+
+Curl updated to version 8.7.1
+=============================
+
+We updated our cURL port to version 8.7.1 to support the use of
+elliptic-curve algorithms for TLS (CURLOPT_SSL_EC_CURVES).
+
+In setups where no service is employed to provide entropy, it might be
+necessary to increase the amount of statically configured entropy. Doubling
+the content of the '<inline>' VFS plugin as used in static configurations
+seems satisfactory. Furthermore, DNS resolving needs a configured '<pipe>'
+plugin to work properly. For an exemplary configuration, please look at the
+_repos/libports/run/fetchurl.inc_ run-script snippet.
+
+The 'fetchurl' component also gained a 'verbose' configuration option to
+enable verbose operations as a convenience feature to ease debugging.
+
+
+Platforms
+#########
+
+NOVA microhypervisor
+====================
+
+Some of the command-line options changed. The 'iommu' option is now split up
+into 'iommu_amd' and 'iommu_intel', so that they may be enabled/disabled
+separately. The 'novga' option turned into 'vga' since it is unused nowadays.
+The tagged TLB feature for virtual machines is now enabled by default.
+
+The kernel now supports the 'mwait' instruction besides the 'hlt' instruction,
+which can be used to give hints to the CPU to enter deeper sleep states.
+The feature is off by default and can be utilized via the 'Pd::system_control'
+interface.
+
+
+Build system and tools
+######################
+
+Goa SDK
+=======
+
+Aligned with the Sculpt release, the Goa tool has been updated with the
+corresponding depot archive versions for Sculpt 24.04. This also involved
+adding support for the new audio play and record sessions.
+
+The _Goa testbed_ package and preset have been updated accordingly so that
+an out-of-the-box Sculpt 24.04 lends itself as a
+[https://genode.org/documentation/release-notes/24.02#Sculpt_OS_as_remote_test_target_for_the_Goa_SDK - remote test target for Goa].
