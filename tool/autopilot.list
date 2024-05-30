@@ -60,7 +60,7 @@ nic_uplink
 nvme
 ping
 ping_nic_router
-platform
+nova
 platform_drv
 rtc
 rump_ext2
