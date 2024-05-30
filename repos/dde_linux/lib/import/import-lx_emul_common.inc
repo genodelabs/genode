@@ -172,11 +172,15 @@ vpath %.S $(LX_GEN_DIR)
 
 CUSTOM_TARGET_DEPS += $(TARGET_SOURCE_LIST)
 
-# Define helper to generate unique KBUILD_MODNAME from filename and the
-# last path element as using the file name is not enough for certain
-# drivers (e.g., rtlwifi)
+# Define a helper to generate a proper (see contrib 'scripts/Makefile.lib')
+# KBUILD_MODNAME from the file-name and also allow to set the modname.
+# We need to provide this hook because normally the Linux build-system
+# would evaluate the driver's Makefile to adapt the modname for multi-module
+# drivers, e.g., rtlwifi, where KBUILD_MODNAME is used directly and has to
+# be different (and we cannot use the file-name to derive the modname as the
+# file-name is the same).
 define GEN_KBUILD_MODNAME =
-$(lastword $(subst /, ,$(dir $(1))))-$(notdir $(1))
+$(if $(KBUILD_MODNAME_$(1)),$(KBUILD_MODNAME_$(1)),$(subst -,_,$(basename $(notdir $(1)))))
 endef
 
 # Define per-compilation-unit CC_OPT defines needed by MODULE* macros in Linux
