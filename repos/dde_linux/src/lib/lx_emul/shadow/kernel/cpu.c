@@ -44,3 +44,13 @@ const unsigned long cpu_bit_bitmap[BITS_PER_LONG+1][BITS_TO_LONGS(NR_CPUS)] = {
 
 const DECLARE_BITMAP(cpu_all_bits, NR_CPUS) = CPU_BITS_ALL;
 EXPORT_SYMBOL(cpu_all_bits);
+
+
+/*
+ * Provide this init function as a weak symbol so that
+ * drivers including 'drivers/base/auxiliary.c' in their
+ * source list can override it but all other drivers are
+ * indifferent to its existence.
+ */
+void auxiliary_bus_init(void) __attribute__((weak));
+void auxiliary_bus_init(void) { }

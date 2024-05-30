@@ -37,6 +37,7 @@ extern int devices_init(void);
 extern int buses_init(void);
 extern int classes_init(void);
 extern int platform_bus_init(void);
+extern int auxiliary_bus_init(void);
 
 /* definition from kernel/main.c implemented architecture specific */
 extern void time_init(void);
@@ -63,6 +64,8 @@ static int kernel_init(void * args)
 	classes_init();
 	of_core_init();
 	platform_bus_init();
+
+	auxiliary_bus_init();
 
 	lx_emul_initcalls();
 
