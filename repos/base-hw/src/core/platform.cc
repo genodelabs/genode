@@ -76,6 +76,22 @@ void Platform::_init_io_mem_alloc()
 	_io_mem_alloc.add_range(0, ~0x0UL);
 	_boot_info().ram_regions.for_each([this] (unsigned, Hw::Memory_region const &r) {
 		_io_mem_alloc.remove_range(r.base, r.size); });
+
+	/*
+	 * ACPI quirk for 12th Gen Framework laptop, Thinkpad X1 Nano Gen2 and
+	 * Thinkpad T490
+	 *
+	 * Although this RAM page is not marked as reserved, it apparently plays a
+	 * special role because ACPICA explicitly requests this physical range.
+	 */
+	{
+#ifdef __x86_64__
+		addr_t const start = 0x1'0bf0'0000, size = 0x1000;
+
+		_io_mem_alloc.add_range(start, size);
+		_core_mem_alloc.phys_alloc().remove_range(start, size);
+#endif
+	}
 };
 
 
