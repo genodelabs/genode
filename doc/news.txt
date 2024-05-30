@@ -4,6 +4,41 @@
                                ===========
 
 
+Genode OS Framework release 24.05 | 2024-05-30
+##############################################
+
+| The highlights of Genode 24.05 are the new ability to run Sculpt OS on
+| our custom kernel, GDB on Sculpt OS, suspend/resume, the redesign of
+| the framework's USB infrastructure, and the completed transition to
+| the new audio interfaces. The release is accompanied with the annual
+| update of the "Genode Foundations" book.
+
+With Genode 24.05, the underpinnings of the many usability improvements
+of the [https://genode.org/news/sculpt-os-release-24.04 - latest] Sculpt OS
+release found their way into the framework. Among them are a completely
+redesigned USB infrastructure that allows for fine-grained and dynamic
+assignment of USB devices to components and virtual machines, the consistent
+use of the audio facilities introduced in February, and the driver life-cycle
+management for suspend/resume.
+
+Beside those usability-related topics, two mile-stone achievements stand out.
+First, we have realized our long-time vision of running Sculpt OS on our
+custom kernel specifically designed for Genode. With Intel virtualization
+support, the release delivers the final missing piece of this puzzle.
+Second, our long-hedged dream of natural on-target debugging via the GNU
+debugger running directly on Sculpt OS has become true. This feature, which
+has been in the works for more than a year, enables Sculpt OS users to
+leverage GDB for the development of applications, services, and even device
+drivers.
+
+The release is accompanied by a new version of the "Genode Foundations" book,
+which is the go-to documentation of the framework.
+Further topics of the current release range from timing and network-throughput
+optimizations, over updated 3rd-party software like Mesa, libSDL2, and cURL,
+to developer tooling. Find these among many more topics covered in the detailed
+[https:/documentation/release-notes/24.05 - release documentation of version 24.05...]
+
+
 Sculpt OS release 24.04 | 2024-04-26
 ####################################
 
