@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-02-22
+ * \date   2024-07-16
  */
 
 #include <lx_emul.h>
@@ -182,6 +182,22 @@ void finish_rcuwait(struct rcuwait * w)
 }
 
 
+#include <linux/kernel.h>
+
+int get_option(char ** str,int * pint)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gfp.h>
+
+bool gfp_pfmemalloc_allowed(gfp_t gfp_mask)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/uuid.h>
 
 const u8 guid_index[16] = {};
@@ -346,14 +362,6 @@ void irq_work_tick(void)
 }
 
 
-#include <linux/slab.h>
-
-void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kobject.h>
 
 int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
@@ -423,6 +431,14 @@ const char * of_prop_next_string(struct property * prop,const char * cur)
 #include <linux/of.h>
 
 int of_property_read_string(const struct device_node * np,const char * propname,const char ** out_string)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/panic.h>
+
+void panic(const char * fmt,...)
 {
 	lx_emul_trace_and_stop(__func__);
 }

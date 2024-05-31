@@ -46,6 +46,7 @@ lib/kasprintf.c
 lib/klist.c
 lib/kobject.c
 lib/kstrtox.c
+lib/math/reciprocal_div.c
 lib/nlattr.c
 lib/once.c
 lib/percpu_counter.c
@@ -59,6 +60,9 @@ lib/timerqueue.c
 lib/vsprintf.c
 lib/win_minmax.c
 lib/xarray.c
+mm/memblock.c
+mm/slab_common.c
+mm/slub.c
 mm/util.c
 net/core/datagram.c
 net/core/dev.c

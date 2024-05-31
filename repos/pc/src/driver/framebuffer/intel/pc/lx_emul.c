@@ -228,15 +228,6 @@ size_t dma_max_mapping_size(struct device * dev)
 }
 
 
-#include <linux/slab.h>
-#include <../mm/slab.h>
-
-void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
-{
-	return kmalloc(cachep->size, flags);
-}
-
-
 unsigned long __FIXADDR_TOP = 0xfffff000;
 
 

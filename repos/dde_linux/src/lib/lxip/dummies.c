@@ -37,8 +37,6 @@ int __init buses_init(void)
 #include <linux/jump_label.h>
 #include <asm/processor.h>
 
-struct static_key_false init_on_alloc;
-
 unsigned long sysctl_net_busy_read;
 
 DEFINE_STATIC_KEY_FALSE(force_irqthreads_key);

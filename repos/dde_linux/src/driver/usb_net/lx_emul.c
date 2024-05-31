@@ -24,20 +24,6 @@ struct usb_driver usbfs_driver = {
 const struct attribute_group *usb_device_groups[] = { };
 
 
-#include <linux/slab.h>
-
-struct kmem_cache * kmem_cache_create_usercopy(const char * name,
-                                               unsigned int size,
-                                               unsigned int align,
-                                               slab_flags_t flags,
-                                               unsigned int useroffset,
-                                               unsigned int usersize,
-                                               void (* ctor)(void *))
-{
-	return kmem_cache_create(name, size, align, flags, ctor);
-}
-
-
 #include <net/netfilter/nf_conntrack.h>
 
 struct net init_net;

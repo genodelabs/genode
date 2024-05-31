@@ -198,6 +198,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_mm_compute_batch_init6",
 	"__initcall_workingset_init6",
 	"__initcall_proc_vmalloc_init6",
+	"__initcall_slab_sysfs_init6",
 	"__initcall_fcntl_init6",
 	"__initcall_proc_filesystems_init6",
 	"__initcall_start_dirtytime_writeback6",

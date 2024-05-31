@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-11-02
+ * \date   2024-07-16
  */
 
 #include <lx_emul.h>
@@ -86,14 +86,6 @@ void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
 #include <linux/fs.h>
 
 void __unregister_chrdev(unsigned int major,unsigned int baseminor,unsigned int count,const char * name)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/vmalloc.h>
-
-void * __vmalloc_node_range(unsigned long size,unsigned long align,unsigned long start,unsigned long end,gfp_t gfp_mask,pgprot_t prot,unsigned long vm_flags,int node,const void * caller)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -511,6 +503,14 @@ void gen6_gt_irq_handler(struct intel_gt * gt,u32 gt_iir)
 
 extern void gen6_rps_irq_handler(struct intel_rps * rps,u32 pm_iir);
 void gen6_rps_irq_handler(struct intel_rps * rps,u32 pm_iir)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gfp.h>
+
+bool gfp_pfmemalloc_allowed(gfp_t gfp_mask)
 {
 	lx_emul_trace_and_stop(__func__);
 }

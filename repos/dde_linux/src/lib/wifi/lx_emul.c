@@ -18,30 +18,6 @@
 #include <lx_emul/alloc.h>
 #include <lx_emul/io_mem.h>
 
-#include <linux/slab.h>
-
-struct kmem_cache * kmem_cache_create_usercopy(const char * name,
-                                               unsigned int size,
-                                               unsigned int align,
-                                               slab_flags_t flags,
-                                               unsigned int useroffset,
-                                               unsigned int usersize,
-                                               void (* ctor)(void *))
-{
-    return kmem_cache_create(name, size, align, flags, ctor);
-}
-
-
-void kmem_cache_free_bulk(struct kmem_cache *s, size_t size, void **p)
-{
-	size_t i;
-
-	for (i = 0; i < size; i++) {
-		kmem_cache_free(s, p[i]);
-	}
-}
-
-
 #include <linux/fs.h>
 
 int register_filesystem(struct file_system_type * fs)
@@ -255,21 +231,6 @@ int task_work_add(struct task_struct * task,struct callback_head * work,enum tas
 	return -1;
 }
 #endif
-
-
-#include <linux/slab.h>
-
-void kfree_sensitive(const void *p)
-{
-	size_t ks;
-	void *mem = (void *)p;
-
-	ks = ksize(mem);
-	if (ks)
-		memset(mem, 0, ks);
-
-	kfree(mem);
-}
 
 
 #include <linux/gfp.h>
@@ -520,24 +481,6 @@ void *dmam_alloc_attrs(struct device *dev, size_t size, dma_addr_t *dma_handle,
                        gfp_t gfp, unsigned long attrs)
 {
 	return dma_alloc_attrs(dev, size, dma_handle, gfp, attrs);
-}
-
-
-int kmem_cache_alloc_bulk(struct kmem_cache * s,gfp_t flags,size_t nr,void ** p)
-{
-	size_t i;
-	for (i = 0; i < nr; i++)
-		p[i] = kmem_cache_alloc(s, flags);
-
-	return nr;
-}
-
-
-#include <../mm/slab.h>
-
-void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
-{
-	return kmalloc(cachep->size, flags);
 }
 
 

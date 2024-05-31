@@ -26,6 +26,11 @@ static inline unsigned long __dummy_cpu_offset(void)
 #undef  __my_cpu_offset
 #define __my_cpu_offset __dummy_cpu_offset()
 
+#ifdef this_cpu_cmpxchg_double
+#undef this_cpu_cmpxchg_double
+#define this_cpu_cmpxchg_double this_cpu_generic_cmpxchg_double
+#endif
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* _LX_EMUL__SHADOW__ASM__PERCPU_H_ */

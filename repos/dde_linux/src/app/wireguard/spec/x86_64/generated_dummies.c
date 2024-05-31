@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-01-26
+ * \date   2024-07-16
  */
 
 #include <lx_emul.h>
@@ -321,22 +321,6 @@ void kernel_fpu_end(void)
 }
 
 
-#include <linux/slab.h>
-
-int kmem_cache_alloc_bulk(struct kmem_cache * s,gfp_t flags,size_t nr,void ** p)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kstrtox.h>
 
 noinline int kstrtoint(const char * s,unsigned int base,int * res)
@@ -514,3 +498,10 @@ void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
 	lx_emul_trace_and_stop(__func__);
 }
 
+
+#include <linux/panic.h>
+
+void panic(const char *fmt, ...)
+{
+	lx_emul_trace_and_stop(__func__);
+}

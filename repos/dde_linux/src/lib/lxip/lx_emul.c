@@ -133,20 +133,6 @@ __wsum csum_partial_copy_from_user(const void __user *src, void *dst, int len)
 }
 
 
-#include <linux/slab.h>
-
-struct kmem_cache * kmem_cache_create_usercopy(const char * name,
-                                               unsigned int size,
-                                               unsigned int align,
-                                               slab_flags_t flags,
-                                               unsigned int useroffset,
-                                               unsigned int usersize,
-                                               void (* ctor)(void *))
-{
-	return kmem_cache_create(name, size, align, flags, ctor);
-}
-
-
 #include <linux/stringhash.h>
 
 unsigned int full_name_hash(const void *salt, const char *name, unsigned int len)
@@ -364,3 +350,7 @@ static int sock_init(void)
 
 
 core_initcall(sock_init);
+
+
+/* mm/internal.h */
+bool mirrored_kernelcore = false;

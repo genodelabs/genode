@@ -50,9 +50,6 @@ asmlinkage __wsum csum_partial(const void * buff,int len,__wsum sum)
 #endif /* CONFIG_X86_32 */
 
 
-struct static_key_false init_on_alloc;
-
-
 #include <linux/proc_ns.h>
 
 int proc_alloc_inum(unsigned int * inum)
@@ -77,6 +74,14 @@ unsigned int get_next_ino(void)
 {
 	static unsigned int count = 0;
 	return ++count;
+}
+
+
+#include <linux/fs.h>
+
+void inode_init_once(struct inode * inode)
+{
+	lx_emul_trace(__func__);
 }
 
 

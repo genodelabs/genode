@@ -64,6 +64,7 @@ lib/ctype.c
 lib/find_bit.c
 lib/hweight.c
 lib/idr.c
+lib/math/reciprocal_div.c
 lib/nlattr.c
 lib/radix-tree.c
 lib/refcount.c
@@ -72,6 +73,10 @@ lib/siphash.c
 lib/string.c
 lib/vsprintf.c
 lib/xarray.c
+mm/memblock.c
+mm/slab_common.c
+mm/slub.c
+mm/util.c
 net/core/dst.c
 net/core/dst_cache.c
 net/core/flow_dissector.c

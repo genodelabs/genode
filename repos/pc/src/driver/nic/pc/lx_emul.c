@@ -73,38 +73,6 @@ void page_frag_free(void * addr)
 }
 
 
-#include <linux/slab.h>
-
-struct kmem_cache * kmem_cache_create_usercopy(const char * name,
-                                               unsigned int size,
-                                               unsigned int align,
-                                               slab_flags_t flags,
-                                               unsigned int useroffset,
-                                               unsigned int usersize,
-                                               void (* ctor)(void *))
-{
-	return kmem_cache_create(name, size, align, flags, ctor);
-}
-
-int kmem_cache_alloc_bulk(struct kmem_cache * s,gfp_t flags, size_t nr,void ** p)
-{
-	size_t i;
-	for (i = 0; i < nr; i++)
-		p[i] = kmem_cache_alloc(s, flags);
-
-	return nr;
-}
-
-
-void kmem_cache_free_bulk(struct kmem_cache * s, size_t size, void ** p)
-{
-	size_t i;
-
-	for (i = 0; i < size; i++)
-		kmem_cache_free(s, p[i]);
-}
-
-
 #include <asm/hardirq.h>
 
 void ack_bad_irq(unsigned int irq)

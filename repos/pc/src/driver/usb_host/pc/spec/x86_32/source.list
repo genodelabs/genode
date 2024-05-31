@@ -92,6 +92,7 @@ lib/kobject.c
 lib/kstrtox.c
 lib/list_sort.c
 lib/math/div64.c
+lib/math/reciprocal_div.c
 lib/radix-tree.c
 lib/rbtree.c
 lib/scatterlist.c
@@ -102,5 +103,8 @@ lib/string_helpers.c
 lib/timerqueue.c
 lib/vsprintf.c
 lib/xarray.c
+mm/memblock.c
 mm/mempool.c
+mm/slab_common.c
+mm/slub.c
 mm/util.c

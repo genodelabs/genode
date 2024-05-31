@@ -30,7 +30,6 @@ SRC_C   += lx_emul/shadow/kernel/irq/spurious.c
 SRC_C   += lx_emul/shadow/lib/devres.c
 SRC_C   += lx_emul/shadow/lib/smp_processor_id.c
 SRC_C   += lx_emul/shadow/mm/dmapool.c
-SRC_C   += lx_emul/shadow/mm/memblock.c
 SRC_C   += lx_emul/shadow/mm/page_alloc.c
 SRC_C   += lx_emul/shadow/mm/vmalloc.c
 SRC_C   += lx_emul/shadow/drivers/char/random.c

@@ -53,39 +53,6 @@ void * __kmalloc(size_t size, gfp_t flags)
 }
 
 
-struct kmem_cache * kmem_cache_create(const char * name,
-                                      unsigned int size,
-                                      unsigned int align,
-                                      slab_flags_t flags,
-                                      void (* ctor)(void *))
-{
-	struct kmem_cache * cache =
-		__kmalloc(sizeof(struct kmem_cache), GFP_KERNEL);
-	cache->size     = size;
-	cache->align    = align;
-	cache->refcount = 1;
-	return cache;
-}
-
-
-void kmem_cache_destroy(struct kmem_cache *cache)
-{
-	if (!cache)
-		return;
-
-	if (!cache->refcount) {
-		printk("%s unexpected case - potential memory leak\n", __func__);
-		return;
-	}
-
-	if (cache->refcount > 0)
-		cache->refcount --;
-
-	if (!cache->refcount)
-		lx_emul_mem_free(cache);
-}
-
-
 void kmem_cache_free(struct kmem_cache * s, void * x)
 {
 	lx_emul_mem_free(x);

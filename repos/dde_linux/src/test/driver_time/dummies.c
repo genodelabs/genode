@@ -72,14 +72,6 @@ int __init devices_init(void)
 }
 
 
-#include <linux/rcutree.h>
-
-void kvfree(const void * addr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/timekeeper_internal.h>
 
 void update_vsyscall(struct timekeeper * tk)

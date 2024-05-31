@@ -42,14 +42,6 @@ int __init devices_init(void)
 }
 
 
-#include <linux/rcutree.h>
-
-void kvfree(const void * addr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/timekeeper_internal.h>
 
 void update_vsyscall(struct timekeeper * tk)
@@ -209,3 +201,20 @@ void flush_dcache_page(struct page * page)
 	lx_emul_trace(__func__);
 }
 #endif
+
+pteval_t __default_kernel_pte_mask __read_mostly = ~0;
+
+
+#include <linux/kernel.h>
+
+bool parse_option_str(const char * str,const char * option)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+
+
+int get_option(char ** str,int * pint)
+{
+	lx_emul_trace_and_stop(__func__);
+}

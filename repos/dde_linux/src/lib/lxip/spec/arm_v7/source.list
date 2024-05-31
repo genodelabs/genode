@@ -47,6 +47,7 @@ lib/klist.c
 lib/kobject.c
 lib/kstrtox.c
 lib/math/div64.c
+lib/math/reciprocal_div.c
 lib/nlattr.c
 lib/once.c
 lib/radix-tree.c
@@ -59,6 +60,9 @@ lib/timerqueue.c
 lib/vsprintf.c
 lib/win_minmax.c
 lib/xarray.c
+mm/memblock.c
+mm/slab_common.c
+mm/slub.c
 mm/util.c
 net/core/datagram.c
 net/core/dev.c

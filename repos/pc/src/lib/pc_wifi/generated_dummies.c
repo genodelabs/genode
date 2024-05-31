@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-11-02
+ * \date   2024-07-16
  */
 
 #include <lx_emul.h>
@@ -111,14 +111,6 @@ u64 __sock_gen_cookie(struct sock * sk)
 #include <linux/srcu.h>
 
 void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/vmalloc.h>
-
-void * __vmalloc_node_range(unsigned long size,unsigned long align,unsigned long start,unsigned long end,gfp_t gfp_mask,pgprot_t prot,unsigned long vm_flags,int node,const void * caller)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -566,14 +558,6 @@ int import_single_range(int rw,void __user * buf,size_t len,struct iovec * iov,s
 #include <linux/init.h>
 
 bool initcall_debug;
-
-
-#include <linux/fs.h>
-
-void inode_init_once(struct inode * inode)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/sched.h>

@@ -70,6 +70,7 @@ lib/kasprintf.c
 lib/klist.c
 lib/kobject.c
 lib/kstrtox.c
+lib/math/reciprocal_div.c
 lib/radix-tree.c
 lib/rbtree.c
 lib/rhashtable.c
@@ -80,6 +81,9 @@ lib/string_helpers.c
 lib/timerqueue.c
 lib/vsprintf.c
 lib/xarray.c
+mm/memblock.c
+mm/slab_common.c
+mm/slub.c
 mm/util.c
 net/core/dev.c
 net/core/dev_addr_lists.c

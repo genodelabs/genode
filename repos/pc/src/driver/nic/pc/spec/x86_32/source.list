@@ -93,6 +93,7 @@ lib/kstrtox.c
 lib/list_sort.c
 lib/llist.c
 lib/math/div64.c
+lib/math/reciprocal_div.c
 lib/radix-tree.c
 lib/rbtree.c
 lib/refcount.c
@@ -105,7 +106,11 @@ lib/timerqueue.c
 lib/uuid.c
 lib/vsprintf.c
 lib/xarray.c
+mm/memblock.c
 mm/mempool.c
+mm/slab_common.c
+mm/slub.c
+mm/util.c
 mm/util.c
 net/core/datagram.c
 net/core/dev.c

@@ -11,6 +11,10 @@ LX_ENABLE  += NO_HZ_IDLE
 # initrd support
 LX_ENABLE += BINFMT_ELF BLK_DEV_INITRD
 
+# kmem_cache allocator
+LX_DISABLE += SLOB SLUB_DEBUG
+LX_ENABLE  += SLUB
+
 # network infrastructure
 LX_ENABLE += NET NETDEVICES
 

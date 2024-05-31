@@ -1,13 +1,11 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-01-22
+ * \date   2024-07-10
  */
 
 #include <lx_emul.h>
 
-
-#include <linux/gfp.h>
 
 #include <linux/cpumask.h>
 
@@ -65,14 +63,6 @@ void __put_task_struct(struct task_struct * tsk)
 #include <linux/skbuff.h>
 
 void __skb_get_hash(struct sk_buff * skb)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/vmalloc.h>
-
-void * __vmalloc_node_range(unsigned long size,unsigned long align,unsigned long start,unsigned long end,gfp_t gfp_mask,pgprot_t prot,unsigned long vm_flags,int node,const void * caller)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -242,6 +232,14 @@ int genphy_resume(struct phy_device * phydev)
 }
 
 
+#include <linux/kernel.h>
+
+int get_option(char ** str,int * pint)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/gfp.h>
 
 bool gfp_pfmemalloc_allowed(gfp_t gfp_mask)
@@ -345,30 +343,6 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 #include <linux/irq_work.h>
 
 void irq_work_tick(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-int kmem_cache_alloc_bulk(struct kmem_cache * s,gfp_t flags,size_t nr,void ** p)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-void kmem_cache_free_bulk(struct kmem_cache * s,size_t nr,void ** p)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -491,6 +465,14 @@ int nla_put(struct sk_buff * skb,int attrtype,int attrlen,const void * data)
 #include <linux/fs.h>
 
 loff_t noop_llseek(struct file * file,loff_t offset,int whence)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/panic.h>
+
+void panic(const char * fmt,...)
 {
 	lx_emul_trace_and_stop(__func__);
 }

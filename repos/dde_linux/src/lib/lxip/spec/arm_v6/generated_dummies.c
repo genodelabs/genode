@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-02-05
+ * \date   2024-07-26
  */
 
 #include <lx_emul.h>
@@ -184,14 +184,6 @@ pid_t __task_pid_nr_ns(struct task_struct * task,enum pid_type type,struct pid_n
 #include <linux/vmalloc.h>
 
 void * __vmalloc(unsigned long size,gfp_t gfp_mask)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/vmalloc.h>
-
-void * __vmalloc_node_range(unsigned long size,unsigned long align,unsigned long start,unsigned long end,gfp_t gfp_mask,pgprot_t prot,unsigned long vm_flags,int node,const void * caller)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -526,6 +518,14 @@ void finish_rcuwait(struct rcuwait * w)
 }
 
 
+#include <linux/mmzone.h>
+
+struct pglist_data * first_online_pgdat(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern void flush_dcache_page(struct page * page);
 void flush_dcache_page(struct page * page)
 {
@@ -608,6 +608,14 @@ int fwnode_property_read_u8_array(const struct fwnode_handle * fwnode,const char
 #include <linux/device.h>
 
 struct device * get_device(struct device * dev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/kernel.h>
+
+int get_option(char ** str,int * pint)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -830,54 +838,6 @@ int kernel_sock_shutdown(struct socket * sock,enum sock_shutdown_cmd how)
 }
 
 
-#include <linux/slab.h>
-
-void kfree_sensitive(const void * p)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-int kmem_cache_alloc_bulk(struct kmem_cache * s,gfp_t flags,size_t nr,void ** p)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-void kmem_cache_free_bulk(struct kmem_cache * s,size_t nr,void ** p)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-void kmem_dump_obj(void * object)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-bool kmem_valid_obj(void * object)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kobject.h>
 
 int kobject_uevent_env(struct kobject * kobj,enum kobject_action action,char * envp_ext[])
@@ -897,6 +857,18 @@ bool llist_add_batch(struct llist_node * new_first,struct llist_node * new_last,
 #include <linux/delay.h>
 
 unsigned long lpj_fine;
+
+
+#include <linux/mmzone.h>
+
+struct page *mem_map;
+
+
+extern void __init memblock_free_pages(struct page * page,unsigned long pfn,unsigned int order);
+void __init memblock_free_pages(struct page * page,unsigned long pfn,unsigned int order)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/string.h>
@@ -956,6 +928,14 @@ int netdev_queue_update_kobjects(struct net_device * dev,int old_num,int new_num
 
 extern void netdev_unregister_kobject(struct net_device * ndev);
 void netdev_unregister_kobject(struct net_device * ndev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mmzone.h>
+
+struct pglist_data * next_online_pgdat(struct pglist_data * pgdat)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1118,6 +1098,14 @@ bool refcount_dec_if_one(refcount_t * r)
 #include <linux/refcount.h>
 
 void refcount_warn_saturate(refcount_t * r,enum refcount_saturation_type t)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mm.h>
+
+void __meminit reserve_bootmem_region(phys_addr_t start,phys_addr_t end)
 {
 	lx_emul_trace_and_stop(__func__);
 }

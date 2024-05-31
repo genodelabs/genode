@@ -39,12 +39,6 @@ drivers/base/driver.c
 drivers/base/platform.c
 drivers/base/property.c
 drivers/net/loopback.c
-drivers/net/wireless/ath/dfs_pattern_detector.c
-drivers/net/wireless/ath/dfs_pri_detector.c
-drivers/net/wireless/ath/hw.c
-drivers/net/wireless/ath/key.c
-drivers/net/wireless/ath/main.c
-drivers/net/wireless/ath/regd.c
 drivers/net/wireless/ath/ath9k/ani.c
 drivers/net/wireless/ath/ath9k/antenna.c
 drivers/net/wireless/ath/ath9k/ar5008_phy.c
@@ -83,6 +77,12 @@ drivers/net/wireless/ath/ath9k/pci.c
 drivers/net/wireless/ath/ath9k/recv.c
 drivers/net/wireless/ath/ath9k/wmi.c
 drivers/net/wireless/ath/ath9k/xmit.c
+drivers/net/wireless/ath/dfs_pattern_detector.c
+drivers/net/wireless/ath/dfs_pri_detector.c
+drivers/net/wireless/ath/hw.c
+drivers/net/wireless/ath/key.c
+drivers/net/wireless/ath/main.c
+drivers/net/wireless/ath/regd.c
 drivers/net/wireless/intel/iwlwifi/cfg/1000.c
 drivers/net/wireless/intel/iwlwifi/cfg/2000.c
 drivers/net/wireless/intel/iwlwifi/cfg/22000.c
@@ -245,6 +245,7 @@ lib/klist.c
 lib/kobject.c
 lib/kstrtox.c
 lib/list_sort.c
+lib/math/reciprocal_div.c
 lib/nlattr.c
 lib/radix-tree.c
 lib/rbtree.c
@@ -258,7 +259,10 @@ lib/string_helpers.c
 lib/timerqueue.c
 lib/vsprintf.c
 lib/xarray.c
+mm/memblock.c
 mm/mempool.c
+mm/slab_common.c
+mm/slub.c
 mm/util.c
 net/core/datagram.c
 net/core/dev.c

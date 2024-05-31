@@ -37,3 +37,12 @@ bool is_vmalloc_addr(const void * x)
 {
 	return false;
 }
+
+
+void *__vmalloc_node_range(unsigned long size, unsigned long align,
+			unsigned long start, unsigned long end, gfp_t gfp_mask,
+			pgprot_t prot, unsigned long vm_flags, int node,
+			const void *caller)
+{
+	lx_emul_trace_and_stop(__func__);
+}

@@ -19,6 +19,16 @@
 #include <lx_emul/debug.h>
 #include <lx_emul/page_virt.h>
 
+/* The GFP flags allowed during early boot (mm/internal.h) */
+#define GFP_BOOT_MASK (__GFP_BITS_MASK & ~(__GFP_RECLAIM|__GFP_IO|__GFP_FS))
+
+gfp_t gfp_allowed_mask __read_mostly = GFP_BOOT_MASK;
+
+DEFINE_STATIC_KEY_MAYBE(CONFIG_INIT_ON_ALLOC_DEFAULT_ON, init_on_alloc);
+EXPORT_SYMBOL(init_on_alloc);
+
+DEFINE_STATIC_KEY_MAYBE(CONFIG_INIT_ON_FREE_DEFAULT_ON, init_on_free);
+EXPORT_SYMBOL(init_on_free);
 
 
 static void prepare_compound_page(struct page *page, unsigned int order, gfp_t gfp)

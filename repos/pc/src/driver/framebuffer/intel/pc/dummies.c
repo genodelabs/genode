@@ -697,14 +697,6 @@ void iomap_free(resource_size_t base, unsigned long size)
 }
 
 
-#include <linux/slab.h>
-
-void *kmalloc_large_node(size_t size, gfp_t flags, int node)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 void * high_memory;
 
 

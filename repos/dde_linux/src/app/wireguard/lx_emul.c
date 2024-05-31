@@ -47,14 +47,6 @@ u8 get_random_u8(void)
 }
 
 
-#include <linux/mm.h>
-
-void * kvmalloc_node(size_t size,gfp_t flags,int node)
-{
-	return kmalloc(size, flags);
-}
-
-
 #include <net/rtnetlink.h>
 
 extern void genode_wg_rtnl_link_ops(struct rtnl_link_ops * ops);
@@ -134,18 +126,12 @@ void udp_tunnel_xmit_skb(
 	 * for in the following. Furthermore, I assume that they should not be
 	 * relevant for the port anyway.
 	 */
-	if (xnet != false) {
-		pr_info("Error: XNET != false is not expected\n");
-		while (1) { }
-	}
-	if (nocheck != false) {
-		pr_info("Error: NOCHECK != false is not expected\n");
-		while (1) { }
-	}
-	if (df != 0) {
-		pr_info("Error: DF != 0 is not expected\n");
-		while (1) { }
-	}
+	if (xnet != false)
+		lx_emul_trace_and_stop("Error: XNET != false is not expected");
+	if (nocheck != false)
+		lx_emul_trace_and_stop("Error: NOCHECK != false is not expected");
+	if (df != 0)
+		lx_emul_trace_and_stop("Error: DF != 0 is not expected");
 	/*
 	 * FIXME
 	 *
@@ -154,10 +140,8 @@ void udp_tunnel_xmit_skb(
 	 * to be incorporated in order to make Wireguard provide a correct TTL
 	 * argument. However, it is simpler to set it manually.
 	 */
-	if (ttl != 0) {
-		pr_info("Error: TTL != 0 is not expected\n");
-		while (1) { }
-	}
+	if (ttl != 0)
+		lx_emul_trace_and_stop("Error: TTL != 0 is not expected");
 	ttl = 64;
 
 	/*
@@ -189,20 +173,6 @@ void udp_tunnel_xmit_skb(
 
 DEFINE_STATIC_KEY_FALSE(memalloc_socks_key);
 EXPORT_SYMBOL_GPL(memalloc_socks_key);
-
-
-#include <linux/slab.h>
-
-struct kmem_cache * kmem_cache_create_usercopy(const char * name,
-                                               unsigned int size,
-                                               unsigned int align,
-                                               slab_flags_t flags,
-                                               unsigned int useroffset,
-                                               unsigned int usersize,
-                                               void (* ctor)(void *))
-{
-	return kmem_cache_create(name, size, align, flags, ctor);
-}
 
 
 #include <net/ip_tunnels.h>
@@ -237,14 +207,6 @@ struct rtable * ip_route_output_flow(struct net * net,struct flowi4 * flp4,const
 		initialized = true;
 	}
 	return &rt;
-}
-
-
-#include <linux/slab.h>
-
-void kfree_sensitive(const void * p)
-{
-	kfree(p);
 }
 
 

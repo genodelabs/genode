@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-01-25
+ * \date   2024-07-16
  */
 
 #include <lx_emul.h>
@@ -160,6 +160,22 @@ void fwnode_handle_put(struct fwnode_handle * fwnode)
 }
 
 
+#include <linux/kernel.h>
+
+int get_option(char ** str,int * pint)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/gfp.h>
+
+bool gfp_pfmemalloc_allowed(gfp_t gfp_mask)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/uuid.h>
 
 const u8 guid_index[16] = {};
@@ -221,14 +237,6 @@ void irq_work_tick(void)
 }
 
 
-#include <linux/slab.h>
-
-void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kstrtox.h>
 
 noinline int kstrtoint(const char * s,unsigned int base,int * res)
@@ -253,17 +261,17 @@ char * kvasprintf(gfp_t gfp,const char * fmt,va_list ap)
 }
 
 
-#include <linux/siphash.h>
+#include <linux/panic.h>
 
-u64 siphash_1u64(const u64 first,const siphash_key_t * key)
+void panic(const char * fmt,...)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/string.h>
+#include <linux/siphash.h>
 
-char * skip_spaces(const char * str)
+u64 siphash_1u64(const u64 first,const siphash_key_t * key)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -288,14 +296,6 @@ int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
-
-
-#include <linux/string_helpers.h>
-
-int string_escape_mem(const char * src,size_t isz,char * dst,size_t osz,unsigned int flags,const char * only)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/uuid.h>

@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2023-11-21
+ * \date   2024-07-16
  */
 
 #include <lx_emul.h>
@@ -87,14 +87,6 @@ void __skb_get_hash(struct sk_buff * skb)
 #include <linux/srcu.h>
 
 void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/vmalloc.h>
-
-void * __vmalloc_node_range(unsigned long size,unsigned long align,unsigned long start,unsigned long end,gfp_t gfp_mask,pgprot_t prot,unsigned long vm_flags,int node,const void * caller)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -482,14 +474,6 @@ struct kobject *kernel_kobj;
 #include <linux/fs.h>
 
 void kill_anon_super(struct super_block * sb)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/slab.h>
-
-void * kmem_cache_alloc_lru(struct kmem_cache * cachep,struct list_lru * lru,gfp_t flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }

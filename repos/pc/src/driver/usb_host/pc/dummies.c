@@ -16,6 +16,13 @@
 const struct attribute_group pci_dev_acpi_attr_group;
 
 
+#include <asm/preempt.h>
+#include <asm/smp.h>
+
+struct smp_ops smp_ops = { };
+EXPORT_SYMBOL_GPL(smp_ops);
+
+
 #include <linux/syscore_ops.h>
 
 void register_syscore_ops(struct syscore_ops * ops)

@@ -217,6 +217,10 @@ include/asm-generic/rwonce.h
 include/asm-generic/sections.h
 include/asm-generic/topology.h
 include/asm-generic/unaligned.h
+include/kunit/assert.h
+include/kunit/resource.h
+include/kunit/test.h
+include/kunit/try-catch.h
 include/linux/acpi.h
 include/linux/alarmtimer.h
 include/linux/align.h
@@ -264,6 +268,7 @@ include/linux/clk/clk-conf.h
 include/linux/clockchips.h
 include/linux/clocksource.h
 include/linux/clocksource_ids.h
+include/linux/compaction.h
 include/linux/compat.h
 include/linux/compiler-gcc.h
 include/linux/compiler-version.h
@@ -406,6 +411,7 @@ include/linux/kernel_stat.h
 include/linux/kernfs.h
 include/linux/kexec.h
 include/linux/key.h
+include/linux/kfence.h
 include/linux/kfifo.h
 include/linux/kgdb.h
 include/linux/klist.h
@@ -452,6 +458,7 @@ include/linux/mdio.h
 include/linux/mem_encrypt.h
 include/linux/memblock.h
 include/linux/memcontrol.h
+include/linux/memory.h
 include/linux/memory_hotplug.h
 include/linux/mempolicy.h
 include/linux/mempool.h
@@ -579,6 +586,7 @@ include/linux/rcupdate.h
 include/linux/rcutree.h
 include/linux/rcuwait.h
 include/linux/reboot.h
+include/linux/reciprocal_div.h
 include/linux/ref_tracker.h
 include/linux/refcount.h
 include/linux/resource.h
@@ -648,6 +656,7 @@ include/linux/siphash.h
 include/linux/sizes.h
 include/linux/skbuff.h
 include/linux/slab.h
+include/linux/slub_def.h
 include/linux/smp.h
 include/linux/smp_types.h
 include/linux/smpboot.h
@@ -805,7 +814,9 @@ include/net/xdp.h
 include/trace/define_trace.h
 include/trace/events/error_report.h
 include/trace/events/irq.h
+include/trace/events/kmem.h
 include/trace/events/lock.h
+include/trace/events/mmflags.h
 include/trace/events/power.h
 include/trace/events/sched.h
 include/trace/events/timer.h
