@@ -20,6 +20,34 @@
 #include <lx_emul/page_virt.h>
 
 
+
+static void prepare_compound_page(struct page *page, unsigned int order, gfp_t gfp)
+{
+	int i;
+
+	if (!order || !(gfp & __GFP_COMP))
+		return;
+
+	__SetPageHead(page);
+	set_compound_order(page, order);
+	for (i = 1; i < compound_nr(page); i++)
+		set_compound_head(&page[i], page);
+}
+
+
+static void liquidate_compound_page(struct page *page)
+{
+	int i;
+
+	if (!PageHead(page))
+		return;
+
+	for (i = 1; i < compound_nr(page); i++)
+		clear_compound_head(&page[i]);
+	ClearPageHead(page);
+}
+
+
 static void lx_free_pages(struct page *page, bool force)
 {
 	void * const virt_addr = page_address(page);
@@ -28,6 +56,8 @@ static void lx_free_pages(struct page *page, bool force)
 		set_page_count(page, 0);
 	else if (!put_page_testzero(page))
 		return;
+
+	liquidate_compound_page(page);
 
 	lx_emul_mem_free(virt_addr);
 }
@@ -48,7 +78,7 @@ void free_pages(unsigned long addr,unsigned int order)
 
 static struct page * lx_alloc_pages(unsigned const nr_pages)
 {
-	void const  *ptr  = lx_emul_mem_alloc_aligned(PAGE_SIZE*nr_pages, PAGE_SIZE);
+	void const  *ptr  = lx_emul_mem_alloc_aligned(PAGE_SIZE*nr_pages, nr_pages*PAGE_SIZE);
 	struct page *page = lx_emul_virt_to_page(ptr);
 
 	init_page_count(page);
@@ -95,16 +125,25 @@ struct page * __alloc_pages(gfp_t gfp, unsigned int order, int preferred_nid,
                             nodemask_t * nodemask)
 #endif
 {
-	return lx_alloc_pages(1u << order);
+	struct page *page = lx_alloc_pages(1u << order);
+
+	if (!page)
+		return 0;
+
+	prepare_compound_page(page, order, gfp);
+
+	return page;
 }
 
 
-unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
+unsigned long __get_free_pages(gfp_t gfp, unsigned int order)
 {
 	struct page *page = lx_alloc_pages(1u << order);
 
 	if (!page)
 		return 0;
+
+	prepare_compound_page(page, order, gfp);
 
 	return (unsigned long)page_address(page);
 }
