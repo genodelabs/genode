@@ -1,0 +1,25 @@
+Freshly allocated BOs from libdrm have to be zeroed. Since the libdrm/iris
+caches VRAM allocations, we don't want to attach/detach parts of dataspaces at
+every allocation. Some objects are used long (through caching in the iris
+Gallium driver). Therefore, zero on object release where the region might
+already be mapped.
+diff --git a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
+index 98483f3..759e986 100644
+--- a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
++++ b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
+@@ -1461,6 +1461,15 @@ bo_close(struct iris_bo *bo)
+    simple_mtx_assert_locked(&bufmgr->lock);
+    assert(iris_bo_is_real(bo));
+ 
++#ifdef __GENODE__
++   /*
++    * Zero buffers released here because they will get re-used and we want to
++    * avoid attach/detach RM cycle if they are already mapped.
++    */
++   bo->zeroed = false;
++   zero_bo(bo->bufmgr, BO_ALLOC_ZEROED|MAP_ASYNC, bo);
++#endif
++
+    if (iris_bo_is_external(bo)) {
+       struct hash_entry *entry;
+ 

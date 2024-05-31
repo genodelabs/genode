@@ -17,6 +17,7 @@ PATCHES       := src/lib/mesa/patches/dri2.patch \
                  src/lib/mesa/patches/etnaviv.patch \
                  src/lib/mesa/patches/intel_gen.patch \
                  src/lib/mesa/patches/iris_bufmgr.patch \
+                 src/lib/mesa/patches/iris_bufmgr_zero.patch \
                  src/lib/mesa/patches/iris_utrace.patch \
                  src/lib/mesa/patches/lima.patch \
                  src/lib/mesa/patches/loader_fds.patch \
