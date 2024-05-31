@@ -6,13 +6,13 @@ index bf90afe..3cce4ce 100644
  {
     char *driver;
  
-+   if (fd == 42) {
++   if (fd == ETNAVIV_FD) {
 +      return strdup("etnaviv");
 +   }
-+   if (fd == 43) {
++   if (fd == IRIS_FD) {
 +      return strdup("iris");
 +   }
-+   if (fd == 44) {
++   if (fd == LIMA_FD) {
 +      return strdup("lima");
 +   }
 +

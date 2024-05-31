@@ -1613,9 +1613,10 @@ extern "C"  int genode_drmGetPciDevice(int fd, uint32_t flags, drmDevicePtr devi
 {
 	if (_call.constructed() == false) { errno = EIO; return -1; }
 
-	/* TODO create constant */
-	if (fd != 43) {
-		Genode::error(__func__, " fd is not Genode Iris (43)");
+	enum { IRIS_FD = 10043 };
+
+	if (fd != IRIS_FD) {
+		Genode::error(__func__, " fd is not Genode Iris (", unsigned(IRIS_FD), ")");
 		return -ENODEV;
 	}
 
