@@ -48,6 +48,7 @@ set use_gpu_client 1
 set use_gpe "no"
 set use_ahci 0
 set use_nvme 0
+set use_wifi 1
 
 proc priority_timer    { } { return {priority="0"} }
 proc priority_base     { } { return {priority="-1"} }
@@ -73,6 +74,9 @@ proc display_config { } {
 				<config ld_verbose="yes" width="1280" height="1024">
 					<report connectors="yes"/>
 				</config>
+				<route>
+					<any-service> <parent/> </any-service>
+				</route>
 			</start>}
 
 		return $return_display
@@ -88,7 +92,7 @@ proc display_config { } {
 			<route>
 				<service name="ROM" label="system">
 					<parent label="system"/> </service>
-				<any-service> <any-child/> <parent/> </any-service>
+				<any-service> <parent/> </any-service>
 			</route>
 		</start>}
 }
@@ -115,15 +119,16 @@ proc restartable_drivers { } {
 									<service name="Event"/>
 									<service name="Gui"/>
 								</parent-provides>
-								<default-route>
-									<any-service> <any-child/> <parent/> </any-service>
-								</default-route>
 
 	} [display_config] {
 	} [input_config] {
+	} [wifi_config] {
 
 								<start name="nano3d" caps="100">
 									<resource name="RAM" quantum="8M"/>
+									<route>
+										<any-service> <parent/> </any-service>
+									</route>
 								</start>
 
 							</inline>
@@ -502,6 +507,69 @@ proc gpu_client { } {
 	return $return_gpu
 }
 
+proc wifi_config { } {
+
+	global use_wifi
+
+	set return_wifi ""
+
+	if {!$use_wifi} { return $return_wifi }
+
+	append return_wifi {
+		<start name="pc_rtc" caps="100">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Rtc"/> </provides>
+			<route> <any-service> <parent/> </any-service> </route>
+		</start>
+
+		<start name="config_rom" caps="100">
+			<binary name="dynamic_rom"/>
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/></provides>
+			<config verbose="no">
+				<rom name="wifi_config">
+					<inline description="disconnect">
+					</inline>
+					<sleep milliseconds="15000"/>
+				</rom>
+			</config>
+			<route> <any-service> <parent/> </any-service> </route>
+		</start>
+
+		<start name="wifi" caps="260" priority="-1">
+			<resource name="RAM" quantum="32M"/>
+			<config ld_verbose="no">
+				<report mac_address="true"/>
+				<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/urandom"/>
+				<vfs>
+					<dir name="dev"> <log/> <null/> <rtc/>
+						<jitterentropy name="random"/>
+						<jitterentropy name="urandom"/>
+					</dir>
+					<dir name="firmware">
+						<tar name="wifi_firmware.tar"/>
+					</dir>
+				</vfs>
+			</config>
+			<route>
+				<service name="Uplink">   <parent/>    </service>
+				<service name="Rtc">      <any-child/> </service>
+				<service name="Report">   <parent/>    </service>
+				<service name="Report" label="accesspoints"> <parent/> </service>
+				<service name="Report" label="state"> <parent label="wifi_state"/> </service>
+				<service name="Report" label="devices"> <parent label="wifi_devices"/> </service>
+
+				<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
+				<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
+				<service name="ROM" label="wifi_firmware.tar"> <parent label="pc_wifi_firmware.tar"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+	}
+
+	return $return_wifi
+}
+
 build {
 	core timer init lib/ld
 	server/report_rom
@@ -515,6 +583,7 @@ build {
 	driver/gpu/intel
 	driver/ahci
 	driver/nvme
+	driver/rtc
 	app/acpica
 	app/pci_decode
 	app/block_tester
@@ -537,6 +606,11 @@ import_from_depot [depot_user]/src/init \
 
 if {$use_gpu_client} {
 	import_from_depot [depot_user]/pkg/glmark2
+}
+
+if {$use_wifi} {
+	import_from_depot [depot_user]/pkg/pc_wifi \
+	                  [depot_user]/raw/pc_wifi_firmware
 }
 
 set config ""
@@ -617,8 +691,9 @@ append config {
 				<policy label_prefix="acpica">
 					<device name="acpi"/>
 				</policy>
-				<policy label="ahci -> "> <pci class="AHCI"/> </policy>
+				<policy label="ahci -> ">            <pci class="AHCI"/> </policy>
 				<policy label="nvme -> " info="yes"> <pci class="NVME"/> </policy>
+				<policy label="wifi"     info="yes"> <pci class="WIFI"/> </policy>
 			</config>
 			<route>
 				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
@@ -647,6 +722,9 @@ append config {
 				<service name="Platform" label_prefix="ps2 ->">
 					<child name="platform" label="ps2"/>
 				</service>
+				<service name="Platform" label_prefix="wifi ->">
+					<child name="platform" label="wifi"/>
+				</service>
 				<service name="Platform" label_prefix="fb ->">
 					<child name="platform" label="fb"/>
 				</service>
@@ -657,7 +735,7 @@ append config {
 					<child name="drivers_reports" label="intel_fb -> intel_opregion"/>
 				</service>
 				<service name="ROM" label="config">
-					<child name="fb_config"/>
+					<child name="drivers_init_config"/>
 				</service>
 				<service name="Gui">
 					<child name="wm"/>
@@ -669,7 +747,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="fb_config" caps="100" } [priority_config] {>
+		<start name="drivers_init_config" caps="100" } [priority_config] {>
 			<binary name="rom_filter"/>
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="ROM"/> </provides>
@@ -679,6 +757,8 @@ append config {
 				</input>
 
 				<output node="config">
+					<attribute name="prio_levels" value="2"/>
+					<attribute name="verbose"     value="no"/>
 					<if> <has_value input="check_system" value=""/>
 						<then> } [restartable_drivers] { </then>
 						<else>
