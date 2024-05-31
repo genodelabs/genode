@@ -1,10 +1,6 @@
 assert_spec x86
 
-set build_components {
-	drivers/nic/pc
-}
-
-build $build_components
+build { driver/nic/pc }
 
 create_boot_directory
 

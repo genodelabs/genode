@@ -50,9 +50,9 @@ set build_components {
 	core init timer lib/ld
 	server/report_rom
 	app/pci_decode
-	drivers/acpi
-	drivers/platform
-	drivers/nvme
+	driver/acpi
+	driver/platform
+	driver/nvme
 	app/block_tester
 }
 

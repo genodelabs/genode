@@ -9,7 +9,7 @@ import_from_depot [depot_user]/src/platform
 build {
 	core
 	timer
-	drivers/i2c
+	driver/i2c
 	test/i2c_mcp9808
 }
 

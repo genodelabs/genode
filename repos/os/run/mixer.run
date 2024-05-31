@@ -5,9 +5,9 @@ if {[have_include "power_on/qemu"]} {
 
 build {
 	core init timer lib/ld
-	drivers/audio
-	drivers/platform
-	drivers/acpi
+	driver/audio
+	driver/platform
+	driver/acpi
 	server/mixer
 	server/dynamic_rom
 	server/report_rom

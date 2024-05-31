@@ -1,5 +1,5 @@
 /*
- * \brief  Replaces drivers/acpi/bus.c
+ * \brief  Replaces driver/acpi/bus.c
  * \author Josef Soentgen
  * \date   2022-05-06
  */

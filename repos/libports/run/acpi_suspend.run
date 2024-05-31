@@ -507,14 +507,14 @@ build {
 	server/report_rom
 	server/dynamic_rom
 	server/rom_filter
-	drivers/acpi
-	drivers/platform
-	drivers/framebuffer/intel/pc
-	drivers/framebuffer/vesa
-	drivers/framebuffer/boot
-	drivers/gpu/intel
-	drivers/ahci
-	drivers/nvme
+	driver/acpi
+	driver/platform
+	driver/framebuffer/intel/pc
+	driver/framebuffer/vesa
+	driver/framebuffer/boot
+	driver/gpu/intel
+	driver/ahci
+	driver/nvme
 	app/acpica
 	app/pci_decode
 	app/block_tester

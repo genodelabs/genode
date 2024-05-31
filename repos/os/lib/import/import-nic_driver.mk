@@ -1,1 +1,1 @@
-REP_INC_DIR += src/drivers/nic/include
+REP_INC_DIR += src/driver/nic/include

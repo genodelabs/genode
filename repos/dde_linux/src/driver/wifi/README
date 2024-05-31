@@ -1,0 +1,200 @@
+The wifi component is a port of the Linux mac802.11 stack as well as
+libnl and wpa_supplicant to Genode. Depending on the used platform it
+features a selection of drivers for wireless devices. For example on the
+PC platform it contains the ath9k, iwlwifi and rtlwifi drivers for PCI(e)
+devices.
+
+In contrast to other DDE Linux based drivers the actual driver portion is
+confined to its own library to better isolate the various parts of the driver.
+The 'wifi' binary is the generic management part that includes the Wifi
+configuration interface and the 'wpa_supplicant'. A suitable driver library
+is loaded at run-time (see section [Debugging]).
+
+To start the component on the PC platform the following configuration snippet
+can be used:
+
+!<start name="wifi" caps="250">
+!  <resource name="RAM" quantum="32M"/>
+!  <provides><service name="Nic"/></provides>
+!  <config>
+!    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
+!    <vfs>
+!      <dir name="dev"> <log/> <null/> <rtc/>
+!          <jitterentropy name="random"/>
+!          <jitterentropy name="urandom"/>
+!      </dir>
+!      <dir name="firmware"> <tar name="wifi_firmware.tar"/> </dir>
+!    </vfs>
+!  </config>
+!  <route>
+!    <service name="ROM" label="wifi.lib.so">
+!      <parent label="pc_wifi.lib.so"/>
+!    </service>
+!    <service name="ROM" label="wifi_firmware.tar">
+!      <parent label="pc_wifi_firmware.tar"/>
+!    </service>
+!    <service name="Rtc"> <any-child /> </service>
+!    <any-service> <parent/> <any-child /> </any-service>
+!  </route>
+!</start>
+
+On other platforms the wifi library will be different. The following
+snippet illustrates the use of the driver on the PinePhone:
+
+!<start name="wifi" caps="250">
+!  <resource name="RAM" quantum="32M"/>
+!  <provides><service name="Nic"/></provides>
+!  <config>
+!    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
+!    <vfs>
+!      <dir name="dev"> <log/> <null/> <rtc/>
+!        <jitterentropy name="random"/>
+!        <jitterentropy name="urandom"/>
+!      </dir>
+!      <dir name="firmware"> <tar name="wifi_firmware.tar"/> </dir>
+!    </vfs>
+!  </config>
+!  <route>
+!    <service name="ROM" label="wifi.lib.so">
+!      <parent label="a64_wifi.lib.so"/>
+!    </service>
+!    <service name="ROM" label="wifi_firmware.tar">
+!      <parent label="a64_wifi_firmware.tar"/>
+!    </service>
+!    <service name="ROM" label="dtb">
+!      <parent label="wifi-pinephone.dtb"/>
+!    </service>
+!    <service name="Rtc"> <any-child /> </service>
+!    <any-service> <parent/> <any-child /> </any-service>
+!  </route>
+!</start>
+
+Note the ROM route for the device-tree binary that is essential on
+ARM-based platforms. The name of the request DTB can by changed
+by setting the 'dtb' attribute in the config node.
+
+Depending on the used device additional firmware images might be
+required. The driver will request them by accessing the '/firmware'
+directory in the driver's local VFS. It is up to the configuration
+how those files are made available. In these examples they are
+contained in an '.tar' archive that is request as a ROM module.
+
+The driver will request access to the ROM module 'wifi_config' to
+connect to a network:
+
+!<wifi_config connected_scan_interval="30" scan_interval="10" rfkill="no">
+!  <network ssid="Foobar" protection="WPA2" passphrase="allyourbase"/>
+!</wifi_config>
+
+To temporarily prevent any radio activity, the 'rfkill' attribute
+can be set to 'true'.
+
+If the network is protected by, e.g., WPA/WPA2/WPA3, the protection type,
+either 'WPA', 'WPA2' or 'WPA3' as well as the the passphrase have to be
+specified.
+The 'bssid' attribute can be used to select a specifc accesspoint within a
+network. Of all attributes only the 'ssid' attribute is mandatory, all others
+are optional and should only be used when needed.
+
+The configuration may contain more than one network. In This case the driver
+will try to select the best one it gets a response from. To prevent it
+from automatically joining the network the 'auto_connect' attribute must be
+set to 'false'; the default value is 'true'. If the 'explicit_scan' attribute
+is set, the driver will pro-actively scan for a hidden network with the given
+SSID:
+
+!<wifi_config connected_scan_interval="30" scan_interval="10">
+!  <network ssid="Zero" protection="WPA2" passphrase="allyourbase"/>
+!  <network ssid="Skynet" protection="WPA" passphrase="12345678"
+!           explicit_scan="true" auto_connect="false"/>
+!</wifi_config>
+
+By default, the driver scans for available networks only when not
+connected. This can be changed with the 'connected_scan_interval'
+attribute, which specifies the interval for connected scans in
+seconds and directly influences any roaming decision, i.e., select
+a better fit accesspoint for the configured network.
+
+Also, the driver can be switched to verbose logging during runtime
+by setting the 'verbose' or 'verbose_state' attribute to 'true'.
+
+The wifi driver creates two distinct reports to communicate its state and
+information about the wireless infrastructure to other components. The
+first one is a list of all available accesspoints. The following examplary
+report shows its general structure:
+
+!<accesspoints>
+!  <accesspoint ssid="skynet" bssid="00:01:02:03:04:05" quality="40"/>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" protection="WPA2"/>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:07" quality="10" protection="WPA2"/>
+!</accesspoints>
+
+Each accesspoint node has attributes that contain the SSID and the BSSID
+of the accesspoint as well as the link quality (signal strength). These
+attributes are mandatory. If the network is protected, the node will also
+have an attribute describing the type of protection in addition.
+
+The second report provides information about the state of the connection
+to the currently connected accesspoint:
+
+!<state>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" freq="2418" state="connected"/>
+!</state>
+
+Valid state values are 'connected', 'disconnected', 'connecting'. Depending
+on the state, there are additional attributes that can be checked. In case
+of an authentication error, e.g. the passphrase is wrong, the 'auth_failure'
+attribute will be set to 'true'. The 'rfkilled' attribute is set to 'true'
+if a disconnect was triggered by disabling the radio activity via setting
+the 'rfkill' attribute.
+
+By subscribing to both reports and providing the required 'wifi_config' ROM
+module, a component is able control the wireless driver.
+
+Currently only WPA/WPA2/WPA3 protection using a passphrase is supported and
+the SSID is copied verbatim. At the moment, there is no way to express or
+escape non alphanumeric characters.
+
+The driver optionally reports the following information under the
+label "devices" if requested in the config as depicted.
+
+! <config> <report mac_address="true"/> </config>
+
+! <devices> <nic mac_address="02:00:00:00:00:01"/> </devices>
+
+
+Debugging
+~~~~~~~~~
+
+As mentioned in the introduction the 'wifi' component is special in the
+regard that the actual driver is provided as a shared-object to better isolate
+it from the the driver binary that is a Libc::Component managing the
+'wpa_supplicant'. Since this code and in return the binary is the same for each
+platform it is linked against an artifical 'wifi' library that only exists as
+an ABI stub created via 'lib/symbols/wifi'. In case the driver is integrated
+via depot archives this is, besides setting the proper ROM routes, of no
+concern. However, when the driver is built without the depot, the boot image
+assemble-mechanism tries to include the non-existent 'wifi.lib.so' library. To
+prevent that from failing one way is adding a dummy file - the
+'repos/pc/run/pc_wifi.run' illustrates how to do that.
+
+During development it might be necessary to automatically generate certain
+dummy functions as is normally the case with drivers ported over from Linux.
+To make the existing tooling (tool/dde_linux) work with the wifi driver it
+is necessary to link the driver binary directly against the driver library
+rather then stub ABI library. This is achieved by adapting the driver's
+'target.mk' file. In
+
+!TARGET  := wifi
+!SRC_CC  := main.cc wpa.cc access_firmware.cc
+!LIBS    := base wifi
+![…]
+
+'LIBS' must be changed as follows in case the PC wifi driver library is
+used:
+
+!LIBS    := base pc_wifi
+
+Afterwards the driver library is built by the 'driver/wifi' target and
+since it is now a direct dependency 'tool/dde_linux/create_dummies' can
+by used to created the 'generated_dummies.c' file.

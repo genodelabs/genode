@@ -17,8 +17,8 @@ proc build_targets { } {
 
 	set targets {
 		core init timer
-		drivers/acpi drivers/platform app/pci_decode server/report_rom
-		drivers/audio
+		driver/acpi driver/platform app/pci_decode server/report_rom
+		driver/audio
 	}
 
 	if {[use_record_play_sessions]} {

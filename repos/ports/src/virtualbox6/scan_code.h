@@ -16,7 +16,7 @@
 #define _SCAN_CODE_H_
 
 /* Genode includes */
-#include <scan_code_set_1.h> /* included from os/src/drivers/ps2 */
+#include <scan_code_set_1.h> /* included from os/src/driver/ps2 */
 
 
 class Scan_code

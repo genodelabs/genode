@@ -84,9 +84,9 @@ import_from_depot [depot_user]/pkg/pc_wifi \
 set build_components {
 	core init timer
 	app/pci_decode
-	drivers/acpi
-	drivers/platform
-	drivers/rtc
+	driver/acpi
+	driver/platform
+	driver/rtc
 	server/report_rom
 	server/dynamic_rom
 	server/nic_router
@@ -95,7 +95,7 @@ set build_components {
 }
 
 append_if $debug_driver build_components {
-	drivers/wifi
+	driver/wifi
 	lib/pc_wifi
 	lib/vfs_jitterentropy
 }

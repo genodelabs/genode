@@ -996,7 +996,7 @@ Block device
 A block-device resource allows for the block-level storage and retrieval
 of data whereas a block-device can be read-only or read-writeable. The base
 system's built-in block service hands out the devices listed at
-_/report/drivers/block_devices_ according to the label of the client's session.
+_/report/driver/block_devices_ according to the label of the client's session.
 The label must correspond to the name of the block device. Typically, the
 built-in block service is used via manually created launchers by using a route
 like this:

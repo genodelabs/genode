@@ -94,6 +94,6 @@ INC_DIR += $(REP_DIR)/src/virtualbox5/frontend
 INC_DIR += $(VIRTUALBOX_DIR)/VBoxAPIWrap
 
 # search path to 'scan_code_set_2.h'
-INC_DIR += $(call select_from_repositories,src/drivers/ps2)
+INC_DIR += $(call select_from_repositories,src/driver/ps2)
 
 CC_CXX_WARN_STRICT =

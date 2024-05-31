@@ -1,8 +1,8 @@
-SRC_DIR = src/drivers/rtc/spec/linux
+SRC_DIR = src/driver/rtc/spec/linux
 include $(GENODE_DIR)/repos/base/recipes/src/content.inc
 
-CONTENT = src/drivers/rtc/README src/drivers/rtc/rtc.h src/drivers/rtc/main.cc \
-          src/drivers/rtc/target.inc
+CONTENT = src/driver/rtc/README src/driver/rtc/rtc.h src/driver/rtc/main.cc \
+          src/driver/rtc/target.inc
 
 content: $(CONTENT)
 

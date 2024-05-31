@@ -1,5 +1,5 @@
 /*
- * \brief  Replaces drivers/acpi/glue.c
+ * \brief  Replaces driver/acpi/glue.c
  * \author Josef Soentgen
  * \date   2022-05-05
  */

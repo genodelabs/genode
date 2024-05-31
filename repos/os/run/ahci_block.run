@@ -3,9 +3,9 @@ assert_spec x86
 create_boot_directory
 build {
 	core init timer lib/ld
-	drivers/platform
-	drivers/acpi
-	drivers/ahci
+	driver/platform
+	driver/acpi
+	driver/ahci
 	app/pci_decode
 	server/report_rom
 	app/block_tester

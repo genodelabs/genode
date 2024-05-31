@@ -1,4 +1,4 @@
-SRC_DIR := src/drivers/framebuffer/vesa
+SRC_DIR := src/driver/framebuffer/vesa
 include $(GENODE_DIR)/repos/base/recipes/src/content.inc
 
 content: src/lib/x86emu include/x86emu lib/mk/x86emu.mk

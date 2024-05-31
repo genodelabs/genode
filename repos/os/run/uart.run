@@ -3,7 +3,7 @@ if { ![have_board pbxa9] } {
 	exit 0
 }
 
-build { core init timer lib/ld drivers/uart test/uart }
+build { core init timer lib/ld driver/uart test/uart }
 
 create_boot_directory
 

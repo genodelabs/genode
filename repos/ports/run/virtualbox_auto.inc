@@ -56,10 +56,10 @@ if {$use_rumpfs} {
 }
 
 append build_components {
-	drivers/ahci
-	drivers/framebuffer
-	drivers/rtc
-	drivers/ps2
+	driver/ahci
+	driver/framebuffer
+	driver/rtc
+	driver/ps2
 	lib/qemu-usb lib/libyuv
 	virtualbox5
 }

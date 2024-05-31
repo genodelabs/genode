@@ -6,7 +6,7 @@ LIB_MK := $(addprefix lib/mk/, $(MK_FILES)) \
           $(foreach SPEC,x86_32 x86_64,lib/mk/spec/$(SPEC)/dde_bsd_audio.mk) \
           lib/import/import-dde_bsd_audio_include.mk
 
-MIRROR_FROM_REP_DIR := $(LIB_MK) src/lib src/drivers patches include
+MIRROR_FROM_REP_DIR := $(LIB_MK) src/lib src/driver patches include
 
 MIRROR_FROM_PORT_DIR := $(addprefix src/lib/audio/, \
                           dev/pci/azalia_codec.c \

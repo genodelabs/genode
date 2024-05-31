@@ -25,17 +25,17 @@ if {$use_fb_controller} {
 
 set build_components {
 	core lib/ld init timer
-	drivers/acpi
-	drivers/platform
+	driver/acpi
+	driver/platform
 	app/pci_decode
-	drivers/framebuffer/intel/pc
+	driver/framebuffer/intel/pc
 	test/framebuffer
 	server/report_rom
 	server/vfs lib/vfs lib/vfs_import
 	server/fs_rom
 }
 
-append_if $use_gpu build_components { drivers/gpu/intel }
+append_if $use_gpu build_components { driver/gpu/intel }
 append_if $use_top build_components { app/top }
 
 build $build_components

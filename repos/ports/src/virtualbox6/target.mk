@@ -52,7 +52,7 @@ INC_DIR += $(VIRTUALBOX_DIR)/VBoxAPIWrap
 INC_DIR += $(VIRTUALBOX_DIR)/include/VBox/Graphics
 
 # search path to 'scan_code_set_1.h'
-INC_DIR += $(call select_from_repositories,src/drivers/ps2)
+INC_DIR += $(call select_from_repositories,src/driver/ps2)
 
 # export VirtualBox symbols to shared objects (e.g., VBoxSharedClipboard.so)
 LD_OPT = --export-dynamic

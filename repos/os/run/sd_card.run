@@ -9,7 +9,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/platform \
                   [depot_user]/raw/pbxa9-devices
 
-build { drivers/sd_card app/block_tester }
+build { driver/sd_card app/block_tester }
 
 install_config {
 <config>

@@ -2,7 +2,7 @@ assert_spec linux
 
 build {
 	core init timer lib/ld
-	drivers/framebuffer
+	driver/framebuffer
 	server/report_rom
 	server/dynamic_rom
 	server/nitpicker

@@ -11,7 +11,7 @@ set use_gui 0
 set build_components {
 	lib/libiconv lib/qemu-usb lib/libyuv
 	server/report_rom
-	drivers/framebuffer
+	driver/framebuffer
 	virtualbox5
 }
 
@@ -30,9 +30,9 @@ import_from_depot [depot_user]/src/[base_src] \
 
 lappend_if [expr $use_top]    build_components app/top
 lappend_if [expr $use_serial] build_components server/log_terminal
-lappend_if [have_spec x86]    build_components drivers/rtc
+lappend_if [have_spec x86]    build_components driver/rtc
 
-lappend_if [expr $use_net]    build_components drivers/nic
+lappend_if [expr $use_net]    build_components driver/nic
 lappend_if [expr $use_net]    build_components server/nic_router
 
 set config {

@@ -1,5 +1,5 @@
 MIRROR_FROM_REP_DIR := \
-	src/drivers/nic/include \
+	src/driver/nic/include \
 	lib/mk/nic_driver.mk \
 	lib/import/import-nic_driver.mk
 

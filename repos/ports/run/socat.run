@@ -25,7 +25,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/test-terminal_echo
 
 if {[have_include power_on/qemu]} {
-	build { drivers/uart }
+	build { driver/uart }
 } else {
 	import_from_depot [depot_user]/pkg/[drivers_nic_pkg] \
 	                  [depot_user]/src/nic_router \

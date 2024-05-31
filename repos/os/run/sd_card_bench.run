@@ -79,7 +79,7 @@ install_config {
 
 file copy [select_from_repositories board/[board]/devices] [run_dir]/genode/devices
 
-build { drivers/sd_card }
+build { driver/sd_card }
 
 build_boot_image [build_artifacts]
 

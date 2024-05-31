@@ -24,7 +24,7 @@ assert_spec linux
 
 build {
 	core init timer lib/ld lib/libc lib/vfs lib/vfs_lwip
-	drivers/nic test/lwip/http_srv server/nic_router server/report_rom
+	driver/nic test/lwip/http_srv server/nic_router server/report_rom
 }
 
 create_boot_directory

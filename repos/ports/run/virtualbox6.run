@@ -37,13 +37,13 @@ import_from_depot $depot_archives
 set build_components {
 	lib/libc lib/vfs lib/libiconv lib/stdcxx
 	lib/qemu-usb lib/virtualbox6-shaderlib
-	drivers/audio
+	driver/audio
 	virtualbox6
 }
 
 lappend_if [expr $use_top]    build_components app/top
 lappend_if [expr $use_serial] build_components server/log_terminal
-lappend_if [have_spec x86]    build_components drivers/rtc
+lappend_if [have_spec x86]    build_components driver/rtc
 
 build $build_components
 

@@ -9,8 +9,8 @@ if {
 
 set build_components {
 	core init timer
-	drivers/platform
-	drivers/acpi
+	driver/platform
+	driver/acpi
 	server/event_dump
 	app/pci_decode
 	app/acpica

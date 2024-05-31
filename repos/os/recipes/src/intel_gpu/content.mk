@@ -1,2 +1,2 @@
-SRC_DIR = src/drivers/gpu/intel
+SRC_DIR = src/driver/gpu/intel
 include $(GENODE_DIR)/repos/base/recipes/src/content.inc

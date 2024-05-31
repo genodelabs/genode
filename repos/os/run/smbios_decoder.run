@@ -5,7 +5,7 @@ if {![have_board pc] || [expr ![have_spec nova] && ![have_spec hw]] } {
 	exit 0
 }
 
-build { core init timer lib/ld drivers/acpi server/report_rom app/smbios_decoder }
+build { core init timer lib/ld driver/acpi server/report_rom app/smbios_decoder }
 
 create_boot_directory
 

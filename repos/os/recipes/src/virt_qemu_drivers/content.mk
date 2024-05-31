@@ -4,4 +4,4 @@ content: src/drivers
 
 src/drivers:
 	mkdir -p $@/framebuffer
-	cp    -r $(REP_DIR)/src/drivers/framebuffer/ram/*  $@/framebuffer
+	cp    -r $(REP_DIR)/src/driver/framebuffer/ram/*  $@/framebuffer

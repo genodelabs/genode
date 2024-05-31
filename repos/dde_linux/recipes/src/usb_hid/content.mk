@@ -1,4 +1,4 @@
-MIRROR_FROM_REP_DIR := src/drivers/usb_hid
+MIRROR_FROM_REP_DIR := src/driver/usb_hid
 
 content: $(MIRROR_FROM_REP_DIR)
 $(MIRROR_FROM_REP_DIR):

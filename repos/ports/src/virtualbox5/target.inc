@@ -55,4 +55,4 @@ INC_DIR += $(VBOX_DIR)/Main/xml
 INC_DIR += $(VBOX_DIR)/HostServices
 
 # search path to 'scan_code_set_2.h'
-INC_DIR += $(call select_from_repositories,src/drivers/ps2)
+INC_DIR += $(call select_from_repositories,src/driver/ps2)

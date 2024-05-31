@@ -1,4 +1,4 @@
-MIRROR_FROM_REP_DIR := src/drivers/nic/pc \
+MIRROR_FROM_REP_DIR := src/driver/nic/pc \
                        src/lib/pc/lx_emul \
                        src/include
 

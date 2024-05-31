@@ -25,7 +25,7 @@
 #include <report_session/connection.h>
 #include <timer_session/connection.h>
 
-/* included from os/src/drivers/ps2 */
+/* included from os/src/driver/ps2 */
 #include <scan_code_set_1.h>
 
 /* repos/ports includes */

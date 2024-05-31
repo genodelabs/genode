@@ -78,7 +78,7 @@ proc precise_ref_time { } {
 	return true
 }
 
-build { core init lib/ld drivers/platform timer test/timeout }
+build { core init lib/ld driver/platform timer test/timeout }
 
 #
 # Boot image

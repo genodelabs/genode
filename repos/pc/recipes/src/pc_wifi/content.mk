@@ -28,7 +28,7 @@ DDE_LINUX_LIB_MK := \
           $(addprefix lib/mk/,wpa_driver_nl80211.mk wpa_supplicant.mk)
 
 MIRROR_FROM_DDE_LINUX_DIR := $(DDE_LINUX_LIB_MK) \
-                             src/drivers/wifi \
+                             src/driver/wifi \
                              lib/import/import-libnl_include.mk \
                              lib/import/import-libnl.mk \
                              lib/symbols/wifi \

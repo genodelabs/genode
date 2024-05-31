@@ -12,7 +12,7 @@ if {[have_include "power_on/qemu"]} {
 
 build {
 	core init timer lib/ld lib/libc lib/vfs lib/posix lib/vfs_legacy_oss
-	drivers/acpi drivers/audio drivers/platform app/pci_decode
+	driver/acpi driver/audio driver/platform app/pci_decode
 	server/report_rom test/oss
 }
 

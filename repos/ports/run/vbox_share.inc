@@ -104,7 +104,7 @@ set build_components {
 	lib/vfs lib/libc lib/posix lib/vfs_lwip lib/vfs_pipe lib/vfs_import
 	server/event_filter server/report_rom server/fs_rom server/vfs
 	server/tcp_terminal server/nic_router
-	drivers/nic
+	driver/nic
 }
 
 #

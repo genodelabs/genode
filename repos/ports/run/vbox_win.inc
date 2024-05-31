@@ -38,8 +38,8 @@ if {![info exists webcam_vflip]} {
 set build_components {
 	server/nic_router
 	server/event_filter
-	drivers/nic/pc
-	drivers/audio
+	driver/nic/pc
+	driver/audio
 	server/report_rom
 	server/dynamic_rom
 }

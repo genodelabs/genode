@@ -1,5 +1,5 @@
 /*
- * \brief  Replaces drivers/acpi/device_sysfs.c
+ * \brief  Replaces driver/acpi/device_sysfs.c
  * \author Josef Soentgen
  * \date   2022-05-06
  */

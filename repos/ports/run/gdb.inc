@@ -50,7 +50,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/[gdb_pkg_name]
 
 if {[have_include power_on/qemu]} {
-	append build_components { drivers/uart }
+	append build_components { driver/uart }
 } else {
 	import_from_depot [depot_user]/pkg/[drivers_nic_pkg] \
                       [depot_user]/src/nic_router \
