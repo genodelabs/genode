@@ -104,7 +104,7 @@ Configuration::Configuration(Env                             &env,
 	_icmp_idle_timeout              { read_sec_attr(node,  "icmp_idle_timeout_sec",     10) },
 	_udp_idle_timeout               { read_sec_attr(node,  "udp_idle_timeout_sec",      30) },
 	_tcp_idle_timeout               { read_sec_attr(node,  "tcp_idle_timeout_sec",      600) },
-	_tcp_max_segm_lifetime          { read_sec_attr(node,  "tcp_max_segm_lifetime_sec", 30) },
+	_tcp_max_segm_lifetime          { read_sec_attr(node,  "tcp_max_segm_lifetime_sec", 15) },
 	_node                           { node }
 {
 	/* do parts of domain initialization that do not lookup other domains */
