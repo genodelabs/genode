@@ -154,6 +154,7 @@ class Net::Interface : private Interface_list::Element
 		Genode::Allocator                    &_alloc;
 		Domain                               *_domain_ptr                { };
 		Arp_waiter_list                       _own_arp_waiters           { };
+		Arp_waiter_list                       _timed_out_arp_waiters     { };
 		Link_list                             _tcp_links                 { };
 		Link_list                             _udp_links                 { };
 		Link_list                             _icmp_links                { };
@@ -195,6 +196,8 @@ class Net::Interface : private Interface_list::Element
 		                              Domain          &local_domain);
 
 		void _try_emergency_free_quota();
+
+		void _destroy_timed_out_arp_waiters();
 
 		[[nodiscard]] Packet_result _new_dhcp_allocation(Ethernet_frame &eth,
 		                                                Dhcp_packet    &dhcp,
@@ -474,6 +477,7 @@ class Net::Interface : private Interface_list::Element
 		Mac_address         const &router_mac()                const { return _router_mac; }
 		Mac_address         const &mac()                       const { return _mac; }
 		Arp_waiter_list           &own_arp_waiters()                 { return _own_arp_waiters; }
+		Arp_waiter_list           &timed_out_arp_waiters()           { return _timed_out_arp_waiters; }
 		Signal_context_capability  pkt_stream_signal_handler() const { return _pkt_stream_signal_handler; }
 		Interface_link_stats      &udp_stats()                       { return _udp_stats; }
 		Interface_link_stats      &tcp_stats()                       { return _tcp_stats; }

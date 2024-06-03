@@ -23,23 +23,39 @@ using namespace Genode;
 Arp_waiter::Arp_waiter(Interface               &src,
                        Domain                  &dst,
                        Ipv4_address      const &ip,
-                       Packet_descriptor const &packet)
+                       Packet_descriptor const &packet,
+                       Microseconds             timeout,
+                       Cached_timer            &timer)
 :
 	_src_le(this), _src(src), _dst_le(this), _dst_ptr(&dst), _ip(ip),
-	_packet(packet)
+	_packet(packet), _timeout(timer, *this, &Arp_waiter::_handle_timeout, timeout)
 {
 	_src.arp_stats().alive++;
 	_src.own_arp_waiters().insert(&_src_le);
 	_dst_ptr->foreign_arp_waiters().insert(&_dst_le);
+	_timeout.schedule(timeout);
 }
 
 
 Arp_waiter::~Arp_waiter()
 {
+	_dissolve();
 	_src.arp_stats().alive--;
 	_src.arp_stats().destroyed++;
+}
+
+
+void Arp_waiter::_dissolve()
+{
 	_src.own_arp_waiters().remove(&_src_le);
 	_dst_ptr->foreign_arp_waiters().remove(&_dst_le);
+}
+
+
+void Arp_waiter::_handle_timeout(Duration)
+{
+	_dissolve();
+	_src.timed_out_arp_waiters().insert(&_src_le);
 }
 
 

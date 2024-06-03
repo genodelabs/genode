@@ -46,6 +46,7 @@ Configuration::Configuration(Xml_node const  node,
 	_udp_idle_timeout               { 0 },
 	_tcp_idle_timeout               { 0 },
 	_tcp_max_segm_lifetime          { 0 },
+	_arp_request_timeout            { 0 },
 	_node                           { node }
 { }
 
@@ -105,6 +106,7 @@ Configuration::Configuration(Env                             &env,
 	_udp_idle_timeout               { read_sec_attr(node,  "udp_idle_timeout_sec",      30) },
 	_tcp_idle_timeout               { read_sec_attr(node,  "tcp_idle_timeout_sec",      600) },
 	_tcp_max_segm_lifetime          { read_sec_attr(node,  "tcp_max_segm_lifetime_sec", 15) },
+	_arp_request_timeout            { read_sec_attr(node,  "arp_request_timeout_sec",   10) },
 	_node                           { node }
 {
 	/* do parts of domain initialization that do not lookup other domains */

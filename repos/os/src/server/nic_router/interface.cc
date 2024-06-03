@@ -612,7 +612,7 @@ Packet_result Interface::_adapt_eth(Ethernet_frame          &eth,
 				});
 				retry_once<Out_of_ram, Out_of_caps>(
 					[&] {
-						new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt };
+						new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt, _config_ptr->arp_request_timeout(), _timer };
 						result = packet_postponed();
 					},
 					[&] { _try_emergency_free_quota(); },
@@ -1733,6 +1733,17 @@ void Interface::_destroy_released_dhcp_allocations(Domain &local_domain)
 }
 
 
+void Interface::_destroy_timed_out_arp_waiters()
+{
+	while (Arp_waiter_list_element *le = _timed_out_arp_waiters.first()) {
+		Arp_waiter &waiter = *le->object();
+		_drop_packet(waiter.packet(), "ARP request timed out");
+		_timed_out_arp_waiters.remove(le);
+		destroy(_alloc, &waiter);
+	}
+}
+
+
 Packet_result Interface::_handle_eth(Ethernet_frame           &eth,
                                      Size_guard               &size_guard,
                                      Packet_descriptor  const &pkt,
@@ -1806,6 +1817,7 @@ Packet_result Interface::_handle_eth(void              *const  eth_base,
 			_destroy_dissolved_links<Icmp_link>(_dissolved_icmp_links, _alloc);
 			_destroy_dissolved_links<Udp_link>(_dissolved_udp_links, _alloc);
 			_destroy_dissolved_links<Tcp_link>(_dissolved_tcp_links, _alloc);
+			_destroy_timed_out_arp_waiters();
 			_destroy_released_dhcp_allocations(domain);
 
 			/* log received packet if desired */
@@ -2089,6 +2101,7 @@ void Interface::handle_config_1(Configuration &config)
 		_destroy_dissolved_links<Icmp_link>(_dissolved_icmp_links, _alloc);
 		_destroy_dissolved_links<Udp_link> (_dissolved_udp_links,  _alloc);
 		_destroy_dissolved_links<Tcp_link> (_dissolved_tcp_links,  _alloc);
+		_destroy_timed_out_arp_waiters();
 		_destroy_released_dhcp_allocations(old_domain);
 
 		/* do not consider to reuse IP config if the domains differ */

@@ -49,6 +49,7 @@ class Net::Configuration
 		Genode::Microseconds    const  _udp_idle_timeout;
 		Genode::Microseconds    const  _tcp_idle_timeout;
 		Genode::Microseconds    const  _tcp_max_segm_lifetime;
+		Genode::Microseconds const  _arp_request_timeout;
 		Genode::Constructible<Report>  _report { };
 		Genode::Reporter              *_reporter_ptr { };
 		Domain_dict                    _domains { };
@@ -105,6 +106,7 @@ class Net::Configuration
 		Genode::Microseconds  udp_idle_timeout()               const { return _udp_idle_timeout; }
 		Genode::Microseconds  tcp_idle_timeout()               const { return _tcp_idle_timeout; }
 		Genode::Microseconds  tcp_max_segm_lifetime()          const { return _tcp_max_segm_lifetime; }
+		Genode::Microseconds  arp_request_timeout()            const { return _arp_request_timeout; }
 		Domain_dict          &domains()                              { return _domains; }
 		Genode::Xml_node      node()                           const { return _node; }
 };

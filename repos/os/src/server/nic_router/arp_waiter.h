@@ -16,6 +16,7 @@
 
 /* local includes */
 #include <list.h>
+#include <lazy_one_shot_timeout.h>
 
 /* Genode includes */
 #include <net/ipv4.h>
@@ -38,12 +39,13 @@ class Net::Arp_waiter
 {
 	private:
 
-		Arp_waiter_list_element  _src_le;
-		Interface               &_src;
-		Arp_waiter_list_element  _dst_le;
-		Domain                  *_dst_ptr;
-		Ipv4_address      const  _ip;
-		Packet_descriptor const  _packet;
+		Arp_waiter_list_element           _src_le;
+		Interface                        &_src;
+		Arp_waiter_list_element           _dst_le;
+		Domain                           *_dst_ptr;
+		Ipv4_address               const  _ip;
+		Packet_descriptor          const  _packet;
+		Lazy_one_shot_timeout<Arp_waiter> _timeout;
 
 		/*
 		 * Noncopyable
@@ -51,12 +53,18 @@ class Net::Arp_waiter
 		Arp_waiter(Arp_waiter const &);
 		Arp_waiter &operator = (Arp_waiter const &);
 
+		void _handle_timeout(Genode::Duration);
+
+		void _dissolve();
+
 	public:
 
 		Arp_waiter(Interface               &src,
 		           Domain                  &dst,
 		           Ipv4_address      const &ip,
-		           Packet_descriptor const &packet);
+		           Packet_descriptor const &packet,
+		           Genode::Microseconds     dissolve_timeout,
+		           Cached_timer            &timer);
 
 		~Arp_waiter();
 

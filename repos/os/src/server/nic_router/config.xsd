@@ -189,6 +189,7 @@
 			<xs:attribute name="dhcp_request_timeout_sec"       type="Seconds" />
 			<xs:attribute name="dhcp_offer_timeout_sec"         type="Seconds" />
 			<xs:attribute name="udp_idle_timeout_sec"           type="Seconds" />
+			<xs:attribute name="arp_request_timeout_sec"        type="Seconds" />
 			<xs:attribute name="tcp_idle_timeout_sec"           type="Seconds" />
 			<xs:attribute name="icmp_idle_timeout_sec"          type="Seconds" />
 			<xs:attribute name="tcp_max_segm_lifetime_sec"      type="Seconds" />

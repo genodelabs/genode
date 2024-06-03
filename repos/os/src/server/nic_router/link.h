@@ -31,7 +31,6 @@
 #define _LINK_H_
 
 /* Genode includes */
-#include <timer_session/connection.h>
 #include <util/avl_tree.h>
 #include <util/list.h>
 #include <net/ipv4.h>

@@ -843,8 +843,8 @@ When set to zero, the limit is deactivated, meaning that the router always
 handles all available packets of an interface.
 
 
-Disable requesting address resolutions via ARP
-----------------------------------------------
+Configuring ARP
+---------------
 
 By default, the NIC router requests required IP-to-MAC address resolutions at a
 domain using ARP. However this may be a problem in certain environments, e.g.,
@@ -862,6 +862,14 @@ MAC-address of the packet (instead of requesting the destination MAC-address
 via ARP). This behavior was observed in common Linux-based systems at network
 interfaces with the 'NOARP' flag set.
 
+If ARP is enabled, however, one can configure the request timeout through the
+following attribute (default value shown):
+
+! <config arp_request_timeout_sec="10">
+
+When the router does not receive a reply for a sent ARP request within this
+timeout, the packet that caused the ARP request and the ARP request state are
+dropped in order to re-use the resources.
 
 Behavior regarding the NIC-session link state
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
