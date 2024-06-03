@@ -259,11 +259,11 @@ void Tcp_link::_tcp_packet(Tcp_packet &tcp,
 			}
 		}
 	}
-	if (_state == State::OPENING || _state == State::OPEN) {
-		_packet();
-	} else {
-		_dissolve_timeout.schedule(
-			Microseconds(_config_ptr->tcp_max_segm_lifetime().value << 1));
+	switch (_state) {
+	case State::OPENING:
+	case State::OPEN: _packet(); break;
+	case State::CLOSED: _dissolve_timeout.schedule(Microseconds(0UL)); break;
+	default: _dissolve_timeout.schedule(Microseconds(_config_ptr->tcp_max_segm_lifetime().value << 1)); break;
 	}
 }
 
