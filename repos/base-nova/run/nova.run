@@ -1,4 +1,4 @@
-build { core init lib/ld test/platform }
+build { core init lib/ld test/nova }
 
 set check_pat 1
 if {[have_include power_on/qemu]} {
@@ -24,7 +24,7 @@ set config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="test-platform" caps="12350" ld="no">
+		<start name="test-nova" caps="12350" ld="no">
 			<resource name="RAM" quantum="128M"/>}
 
 append config "
