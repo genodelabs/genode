@@ -1265,31 +1265,19 @@ class Drm::Call
 				              " tiemout_nsec=", p.timeout_nsec,
 				              " flags=", p.flags);
 
-			if (p.count_handles > 1) {
-				Genode::error(__func__, " count handles > 1 - not supported");
-				return -1;
-			}
-
 			uint32_t * handles = reinterpret_cast<uint32_t *>(p.handles);
-			bool ok = false;
-
 			try {
-				Sync_obj::Id const id { .value = handles[0] };
-				_sync_objects.apply<Sync_obj>(id, [&](Sync_obj &) {
-					ok = true;
-				});
+				for (uint32_t i = 0; i < p.count_handles; i++) {
+					Sync_obj::Id const id { .value = handles[i] };
+					/* just make sure id's are valid */
+					_sync_objects.apply<Sync_obj>(id, [](Sync_obj &) {});
+				}
 			} catch (Sync_obj::Sync::Unknown_id) {
 				errno = EINVAL;
 				return -1;
 			}
 
-			if (ok) {
-				return 0;
-			} else
-				Genode::error("unknown sync object handle ", handles[0]);
-
-			errno = EINVAL;
-			return -1;
+			return 0;
 		}
 
 		int _generic_syncobj_destroy(void *arg)
