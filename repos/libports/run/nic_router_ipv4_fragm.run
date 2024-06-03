@@ -27,18 +27,13 @@ if {![have_board linux]} {
 	exit 0
 }
 
-set nping_missing [catch {
-	spawn nping --version
-	expect {
-		{Nping version}  { }
-		eof { return }
-		timeout { return }
-	}
-}]
+set nping  [installed_command nping]
+set setcap [installed_command setcap]
 
-if {$nping_missing} {
-	puts "\nPlease install 'nping' and try again\n"
-	exit 1;
+if {[catch { exec $setcap -v cap_net_raw+ep $nping }]} {
+	puts "Ensure nping is permitted to run UDP mode as user."
+	puts "  sudo setcap cap_net_raw=+ep $nping"
+	exit 1
 }
 
 create_boot_directory
@@ -151,14 +146,14 @@ run_genode_until {.*lwIP Nic interface up.*\n} 30
 set genode_id [output_spawn_id]
 
 # ping server without ipv4 fragmentation (should succeed)
-spawn nping -c 1 --privileged --udp --data-length 160 --mtu 800 -p 8000 10.0.2.55
+spawn $nping -c 1 --privileged --udp --data-length 160 --mtu 800 -p 8000 10.0.2.55
 set pattern_string ""
 append pattern_string {.*RCVD .* UDP 10\.0\.2\.55:8000 > 10\.0\.2\.1:53 .*\n}
 append pattern_string {.*Raw packets sent: 1 (188B) | Rcvd: 1 (188B) | Lost: 0.*\n}
 run_genode_until $pattern_string 30 $spawn_id
 
 # ping server with ipv4 fragmentation (should fail)
-spawn nping -c 1 --privileged --udp --data-length 1600 --mtu 800 -p 8000 10.0.2.55
+spawn $nping -c 1 --privileged --udp --data-length 1600 --mtu 800 -p 8000 10.0.2.55
 set pattern_string ""
 append pattern_string {.*RCVD .* ICMP .*10\.0\.2\.55 > 10\.0\.2\.1 Fragmentation required.*\n}
 append pattern_string {.*RCVD .* ICMP .*10\.0\.2\.55 > 10\.0\.2\.1 Fragmentation required.*\n}
