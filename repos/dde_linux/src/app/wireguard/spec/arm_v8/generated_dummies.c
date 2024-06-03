@@ -367,11 +367,6 @@ void irq_work_tick(void)
 }
 
 
-#include <linux/jiffies.h>
-
-unsigned long volatile __cacheline_aligned_in_smp __jiffy_arch_data jiffies;
-
-
 #include <linux/slab.h>
 
 int kmem_cache_alloc_bulk(struct kmem_cache * s,gfp_t flags,size_t nr,void ** p)

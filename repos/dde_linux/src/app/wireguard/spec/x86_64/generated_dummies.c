@@ -307,11 +307,6 @@ void irq_work_tick(void)
 }
 
 
-#include <linux/jiffies.h>
-
-unsigned long volatile __cacheline_aligned_in_smp __jiffy_arch_data jiffies;
-
-
 extern void kernel_fpu_begin_mask(unsigned int kfpu_mask);
 void kernel_fpu_begin_mask(unsigned int kfpu_mask)
 {

@@ -1,4 +1,5 @@
 MIRRORED_FROM_REP_DIR := \
+	lib/import/import-wireguard.mk \
 	lib/mk/spec/arm_v8/wireguard.mk \
 	lib/mk/spec/arm_v8/wireguard_lx_inc_dirs.mk \
 	lib/mk/spec/x86_64/wireguard.mk \
