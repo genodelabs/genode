@@ -93,7 +93,7 @@
 		<route>
 			<service name="TRACE">       <parent/> </service>
 			<service name="VM">          <parent/> </service>
-			<service name="Gpu">         <parent/> </service>
+			<service name="Gpu">         <child name="intel_gpu"/>       </service>
 			<service name="Gui">         <child name="wm"/>              </service>
 			<service name="Rtc">         <child name="system_clock"/>    </service>
 			<service name="Audio_in">    <child name="black_hole"/>      </service>
