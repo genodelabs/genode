@@ -670,12 +670,14 @@ struct Menu_view::Depgraph_widget : Widget
 
 				Color color;
 
+				auto dimmed_alpha = [&] (uint8_t s) { return uint8_t((s*alpha) >> 8); };
+
 				if (shadow) {
-					color = dep.primary() ? Color(0, 0, 0, (150*alpha)>>8)
-					                      : Color(0, 0, 0,  (50*alpha)>>8);
+					color = dep.primary() ? Color { 0, 0, 0, dimmed_alpha(150) }
+					                      : Color { 0, 0, 0, dimmed_alpha(50) };
 				} else {
-					color = dep.primary() ? Color(255, 255, 255, (190*alpha)>>8)
-					                      : Color(255, 255, 255, (120*alpha)>>8);
+					color = dep.primary() ? Color { 255, 255, 255, dimmed_alpha(190) }
+					                      : Color { 255, 255, 255, dimmed_alpha(120) };
 				}
 
 				dep.apply_to_server([&] (Node const &server) {

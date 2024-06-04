@@ -24,7 +24,7 @@ namespace Decorator { static Color color(Xml_node const &); }
  */
 static inline Genode::Color Decorator::color(Genode::Xml_node const &color)
 {
-	return color.attribute_value("color", Color(0, 0, 0));
+	return color.attribute_value("color", Color::black());
 }
 
 #endif /* _INCLUDE__DECORATOR__XML_UTILS_H_ */

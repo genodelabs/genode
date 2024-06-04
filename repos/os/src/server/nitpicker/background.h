@@ -24,7 +24,7 @@ namespace Nitpicker { struct Background; }
 
 struct Nitpicker::Background : private Texture_base, View
 {
-	static Color default_color() { return Color(25, 37, 50); }
+	static constexpr Color default_color() { return Color::rgb(25, 37, 50); }
 
 	Color color = default_color();
 

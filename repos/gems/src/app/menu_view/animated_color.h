@@ -69,7 +69,7 @@ class Genode::Animated_color : private Animator::Item, Noncopyable
 				}
 			}
 
-			int value() const { return _value >> 10; }
+			uint8_t value() const { return uint8_t(_value >> 10); }
 		};
 
 		Animated_channel _r { }, _g { }, _b { }, _a { };
@@ -85,7 +85,7 @@ class Genode::Animated_color : private Animator::Item, Noncopyable
 		{
 			_r.animate(); _g.animate(); _b.animate(); _a.animate();
 
-			_color = Color(_r.value(), _g.value(), _b.value(), _a.value());
+			_color = Color { _r.value(), _g.value(), _b.value(), _a.value() };
 
 			/* schedule / de-schedule animation */
 			Animator::Item::animated(_r.animated() || _g.animated() ||

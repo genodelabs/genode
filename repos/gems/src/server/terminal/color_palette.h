@@ -92,7 +92,7 @@ class Terminal::Color_palette
 		Color foreground(Index index, Highlighted highlighted) const
 		{
 			if (index.value >= NUM_COLORS/2)
-				return Color(0, 0, 0);
+				return Color::black();
 
 			Color const col =
 				_colors[index.value + (highlighted.value ? NUM_COLORS/2 : 0)];
@@ -105,7 +105,7 @@ class Terminal::Color_palette
 			Color const color = foreground(index, highlighted);
 
 			/* reduce the intensity of background colors */
-			return Color(color.r*3/4, color.g*3/4, color.b*3/4);
+			return Color::clamped_rgb(color.r*3/4, color.g*3/4, color.b*3/4);
 		}
 };
 

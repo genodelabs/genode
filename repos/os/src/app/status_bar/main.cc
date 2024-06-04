@@ -77,7 +77,7 @@ struct Status_bar::Buffer
 				if (i || j)
 					Text_painter::paint(surface,
 					                    Text_painter::Position(pos.x() + i, pos.y() + j),
-					                    _font, Color(0, 0, 0), s);
+					                    _font, Color::black(), s);
 	}
 
 	template <typename PT>
@@ -85,10 +85,10 @@ struct Status_bar::Buffer
 	                 Domain_name const &domain_name, Label const &label,
 	                 Color color)
 	{
-		Color const label_text_color((color.r + 255)/2,
-		                              (color.g + 255)/2,
-		                              (color.b + 255)/2);
-		Color const domain_text_color(255, 255, 255);
+		Color const label_text_color = Color::clamped_rgb((color.r + 255)/2,
+		                                                  (color.g + 255)/2,
+		                                                  (color.b + 255)/2);
+		Color const domain_text_color = Color::rgb(255, 255, 255);
 
 		pos = pos + Point(1, 1);
 
@@ -128,7 +128,7 @@ void Status_bar::Buffer::draw(Domain_name const &domain_name,
 
 	Rect const view_rect(Point(0, 0), area);
 
-	int r = color.r, g = color.g, b = color.b;
+	unsigned r = color.r, g = color.g, b = color.b;
 
 	/* dim session color a bit to improve the contrast of the label */
 	r = (r + 100)/2, g = (g + 100)/2, b = (b + 100)/2;
@@ -136,7 +136,7 @@ void Status_bar::Buffer::draw(Domain_name const &domain_name,
 	/* highlight first line with slightly brighter color */
 	Box_painter::paint(surface,
 	                   Rect(Point(0, 0), Area(view_rect.w(), 1)),
-	                   Color(r + (r / 2), g + (g / 2), b + (b / 2)));
+	                   Color::clamped_rgb(r + (r / 2), g + (g / 2), b + (b / 2)));
 
 	/* draw slightly shaded background */
 	for (unsigned i = 1; i < area.h() - 1; i++) {
@@ -146,13 +146,13 @@ void Status_bar::Buffer::draw(Domain_name const &domain_name,
 
 		Box_painter::paint(surface,
 		                   Rect(Point(0, i), Area(view_rect.w(), 1)),
-		                   Color(r, g, b));
+		                   Color::clamped_rgb(r, g, b));
 	}
 
 	/* draw last line darker */
 	Box_painter::paint(surface,
 	                   Rect(Point(0, view_rect.h() - 1), Area(view_rect.w(), 1)),
-	                    Color(r / 4, g / 4, b / 4));
+	                   Color::clamped_rgb(r / 4, g / 4, b / 4));
 
 	_draw_label(surface, view_rect.center(_label_size(domain_name, label)),
 	            domain_name, label, color);
@@ -220,7 +220,7 @@ void Status_bar::Main::_handle_focus()
 	/* reset status-bar properties */
 	_label       = Label();
 	_domain_name = Domain_name();
-	_color       = Color(0, 0, 0);
+	_color       = Color::black();
 
 	/* read new focus information from nitpicker's focus report */
 	try {
@@ -228,7 +228,7 @@ void Status_bar::Main::_handle_focus()
 
 		_label       = node.attribute_value("label",  Label());
 		_domain_name = node.attribute_value("domain", Domain_name());
-		_color       = node.attribute_value("color",  Color(0, 0, 0));
+		_color       = node.attribute_value("color",  Color::black());
 	}
 	catch (...) {
 		warning("could not parse focus report"); }

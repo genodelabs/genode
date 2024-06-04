@@ -42,21 +42,21 @@ namespace Scout {
 
 	static Tff_font &title_font = subsection_font;
 
-	static Color default_color  { 0, 0, 0 };
-	static Color text_color     { 20, 20, 20 };
-	static Color verbatim_bgcol { 0, 0, 0, 26 };
+	static constexpr Color default_color = Color::rgb( 0, 0, 0 );
+	static constexpr Color text_color    = Color::rgb( 20, 20, 20 );
+	static constexpr Color verbatim_bgcol { 0, 0, 0, 26 };
 
 	static Style plain_style      { &default_font, text_color, 0 };
 	static Style bold_style       { &default_font, text_color, Style::ATTR_BOLD };
 	static Style mono_style       { &mono_font,    text_color, 0 };
 	static Style italic_style     { &italic_font,  text_color, 0 };
 
-	static Style link_style       { &default_font, Color(0, 0, 255), 0 };
+	static Style link_style       { &default_font, Color::rgb(0, 0, 255), 0 };
 
 	static Style chapter_style    { &chapter_font,    default_color, 0 };
 	static Style section_style    { &section_font,    default_color, 0 };
 	static Style subsection_style { &subsection_font, default_color, 0 };
-	static Style navbar_style     { &default_font,    Color(0, 0, 0, 127), 0 };
+	static Style navbar_style     { &default_font,    Color { 0, 0, 0, 127 }, 0 };
 }
 
 #endif /* _STYLES_H_ */

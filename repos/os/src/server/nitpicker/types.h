@@ -34,11 +34,7 @@ namespace Nitpicker {
 	typedef Surface_base::Area  Area;
 	typedef Surface_base::Rect  Rect;
 
-	/*
-	 * Symbolic names for some important colors
-	 */
-	static inline Color black() { return Color(0, 0, 0); }
-	static inline Color white() { return Color(255, 255, 255); }
+	static constexpr Color white() { return Color::rgb(255, 255, 255); }
 
 	class Gui_session;
 	class View_stack;

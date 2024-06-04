@@ -189,8 +189,8 @@ class Scene : public Nano3d::Scene<PT>
 							                : points[i];
 
 						Color const color =
-							backward_facing ? Color(i*10, i*10, i*10, 230 - i*18)
-							                : Color(240, 10*i, 0, 10 + i*35);
+							backward_facing ? Color::clamped_rgba(i*10, i*10, i*10, 230 - i*18)
+							                : Color::clamped_rgba(240, 10*i, 0, 10 + i*35);
 
 						point = Shaded_point(v.x(), v.y(), color);
 					}

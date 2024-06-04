@@ -34,7 +34,7 @@ namespace Nitpicker {
 		for (int j = -1; j <= 1; j++)
 			for (int i = -1; i <= 1; i++)
 				if (i || j)
-					canvas.draw_text(pos + Point(i, j), font, black(), s);
+					canvas.draw_text(pos + Point(i, j), font, Color::black(), s);
 	}
 
 

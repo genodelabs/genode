@@ -148,12 +148,12 @@ class Log_entry
 		 */
 		void draw(Canvas_base &canvas, Font const &font, int y, int new_section = false)
 		{
-			Color label_fgcol = Color(Genode::min(255, _color.r + 200),
-			                          Genode::min(255, _color.g + 200),
-			                          Genode::min(255, _color.b + 200));
-			Color label_bgcol = Color(_color.r, _color.g, _color.b);
-			Color text_fgcol  = Color(180, 180, 180);
-			Color text_bgcol  = Color(_color.r / 2, _color.g / 2, _color.b / 2);
+			Color label_fgcol = Color::clamped_rgb(_color.r + 200,
+			                                       _color.g + 200,
+			                                       _color.b + 200);
+			Color label_bgcol = _color;
+			Color text_fgcol  = Color::rgb(180, 180, 180);
+			Color text_bgcol  = Color::rgb(_color.r / 2, _color.g / 2, _color.b / 2);
 
 			/* calculate label dimensions */
 			int label_w = font.string_width(_label).decimal();
@@ -162,11 +162,11 @@ class Log_entry
 			if (new_section) {
 				canvas.draw_box(Rect(Point(1, y), Area(label_w + 2, label_h - 1)), label_bgcol);
 				canvas.draw_string(Point(1, y - 1), font, label_fgcol, _label);
-				canvas.draw_box(Rect(Point(1, y + label_h - 1), Area(label_w + 2, 1)), Color(0, 0, 0));
+				canvas.draw_box(Rect(Point(1, y + label_h - 1), Area(label_w + 2, 1)), Color::black());
 				canvas.draw_box(Rect(Point(label_w + 2, y), Area(1, label_h - 1)), _color);
-				canvas.draw_box(Rect(Point(label_w + 3, y), Area(1, label_h - 1)), Color(0, 0, 0));
+				canvas.draw_box(Rect(Point(label_w + 3, y), Area(1, label_h - 1)), Color::black());
 				canvas.draw_box(Rect(Point(label_w + 4, y), Area(1000, label_h)), text_bgcol);
-				canvas.draw_box(Rect(Point(label_w + 4, y), Area(1000, 1)), Color(0, 0, 0));
+				canvas.draw_box(Rect(Point(label_w + 4, y), Area(1000, 1)), Color::black());
 			} else
 				canvas.draw_box(Rect(Point(1, y), Area(1000, label_h)), text_bgcol);
 
@@ -282,7 +282,7 @@ class Nitlog::Session_component : public Rpc_object<Log_session>
 			int g = (_bit(id, 4) + 2*_bit(id, 1))*scale + offset;
 			int b = (_bit(id, 5) + 2*_bit(id, 2))*scale + offset;
 
-			return Color(r, g, b);
+			return Color::clamped_rgb(r, g, b);
 		}
 
 		Color const _color = _session_color(_id);

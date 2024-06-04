@@ -65,11 +65,11 @@ static unsigned char *glow_icon_gfx[] = {
 
 /* color definitions for glowing effect of the icons */
 static Color glow_icon_col[] = {
-	Color(210, 210,   0),
-	Color(  0,   0, 160),
-	Color(  0,   0, 160),
-	Color(  0, 160,   0),
-	Color(160,   0,   0),
+	Color::rgb(210, 210,   0),
+	Color::rgb(  0,   0, 160),
+	Color::rgb(  0,   0, 160),
+	Color::rgb(  0, 160,   0),
+	Color::rgb(160,   0,   0),
 };
 
 

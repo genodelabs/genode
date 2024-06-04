@@ -230,7 +230,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 		 */
 		Lazy_value<int> _r { }, _g { }, _b { };
 
-		Color _color() const { return Color(_r >> 4, _g >> 4, _b >> 4); }
+		Color _color() const { return Color::clamped_rgb(_r >> 4, _g >> 4, _b >> 4); }
 
 		bool _show_decoration = _config.show_decoration(_title);
 
@@ -293,7 +293,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 					_theme.draw_element(pixel, alpha, area, element.type, element.alpha); });
 
 				Color const tint_color = _color();
-				if (tint_color != Color(0, 0, 0))
+				if (tint_color != Color::black())
 					Tint_painter::paint(pixel, Rect(Point(0, 0), area),
 					                    tint_color);
 			});

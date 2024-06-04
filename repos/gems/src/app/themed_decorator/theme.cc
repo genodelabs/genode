@@ -277,7 +277,7 @@ void Decorator::Theme::draw_title(Decorator::Pixel_surface &pixel_surface,
 	Point const pos = title_rect.center(label_area) - Point(0, 1);
 
 	Text_painter::paint(pixel_surface, Text_painter::Position(pos.x(), pos.y()),
-	                    font, Genode::Color(0, 0, 0), title);
+	                    font, Color::black(), title);
 }
 
 

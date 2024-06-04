@@ -169,13 +169,13 @@ class Scout::Link_token : public Token, private Link, public Event_handler,
 		{
 			_outline = Color(_style->color.r,
 			                 _style->color.g,
-			                 _style->color.b, _curr_value);
+			                 _style->color.b, Color::channel_t(_curr_value));
 
 			Token::draw(canvas, abs_position);
 
 			canvas.draw_box(_position.x() + abs_position.x(),
 			                _position.y() + abs_position.y() + _size.h() - 1,
-			                _size.w(), 1, Color(0,0,255));
+			                _size.w(), 1, Color::rgb(0,0,255));
 		}
 
 		void mfocus(bool flag) override

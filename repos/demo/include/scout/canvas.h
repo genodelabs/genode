@@ -145,7 +145,7 @@ class Scout::Canvas : public Canvas_base
 		{
 			Texture<PT> const &texture = static_cast<Texture<PT> const &>(texture_base);
 
-			Texture_painter::paint(_surface, texture, Color(0, 0, 0), pos,
+			Texture_painter::paint(_surface, texture, Color::black(), pos,
 			                       Texture_painter::SOLID, true);
 		}
 

@@ -216,7 +216,7 @@ struct Osci::Main
 			int      const y_pos = int(_attr.v_pos*area.h());
 			double   const screen_v_scale = _attr.v_scale*area.h()/2;
 
-			auto _horizontal_line = [&] (Color c, int y, int alpha)
+			auto _horizontal_line = [&] (Color c, int y, Color::channel_t alpha)
 			{
 				_line_painter.paint(pixel, Point { 0, y },
 				                           Point { int(w) - 2, y },
@@ -270,7 +270,7 @@ struct Osci::Main
 		Xml_node const config = _config.xml();
 
 		_size       = Area::from_xml(config);
-		_background = config.attribute_value("background", Color { 0, 0, 0 });
+		_background = config.attribute_value("background", Color::black());
 		_fps        = config.attribute_value("fps",        50u);
 		_phase_lock = config.attribute_value("phase_lock", false);
 
@@ -280,7 +280,7 @@ struct Osci::Main
 		Channel::Attr const channel_defaults = Channel::Attr::from_xml(config, {
 			.v_pos   = 0.5,
 			.v_scale = 0.6,
-			.color   = { 255, 255, 255 },
+			.color   = Color::rgb(255, 255, 255),
 		});
 
 		_gui_buffer.construct(_gui, _size, _env.ram(), _env.rm(),

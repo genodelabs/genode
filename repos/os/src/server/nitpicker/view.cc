@@ -49,10 +49,10 @@ namespace Nitpicker {
 	{
 		/* draw frame around the view */
 		int d = frame_size;
-		draw_rect(canvas, r.x1() - d, r.y1() - d, r.w() + 2*d, r.h() + 2*d, black());
+		draw_rect(canvas, r.x1() - d, r.y1() - d, r.w() + 2*d, r.h() + 2*d, Color::black());
 		while (--d > 1)
 			draw_rect(canvas, r.x1() - d, r.y1() - d, r.w() + 2*d, r.h() + 2*d, color);
-		draw_rect(canvas, r.x1() - d, r.y1() - d, r.w() + 2*d, r.h() + 2*d, black());
+		draw_rect(canvas, r.x1() - d, r.y1() - d, r.w() + 2*d, r.h() + 2*d, Color::black());
 	}
 
 
@@ -122,16 +122,16 @@ void Nitpicker::View::draw(Canvas_base &canvas, Font const &font, Focus const &f
 
 	/* draw view content */
 	Color const owner_color = _owner.color();
-	Color const mix_color = Color(owner_color.r >> 1,
-	                              owner_color.g >> 1,
-	                              owner_color.b >> 1);
+	Color const mix_color = Color::rgb(owner_color.r >> 1,
+	                                   owner_color.g >> 1,
+	                                   owner_color.b >> 1);
 
 	_texture.with_texture([&] (Texture_base const &texture) {
 		canvas.draw_texture(_buffer_off + view_rect.p1(), texture, op,
 		                    mix_color, allow_alpha); });
 
 	if (!_texture.valid())
-		canvas.draw_box(view_rect, black());
+		canvas.draw_box(view_rect, Color::black());
 
 	if (!_owner.label_visible()) return;
 

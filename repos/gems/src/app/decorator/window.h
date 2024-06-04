@@ -270,9 +270,12 @@ class Decorator::Window : public Window_base
 
 		static Color _mix_colors(Color c1, Color c2, int alpha)
 		{
-			return Color((c1.r*alpha + c2.r*(255 - alpha)) >> 8,
-			             (c1.g*alpha + c2.g*(255 - alpha)) >> 8,
-			             (c1.b*alpha + c2.b*(255 - alpha)) >> 8);
+			auto mix = [&] (auto const v1, auto const v2)
+			{
+				return Genode::uint8_t((v1*alpha + v2*(255 - alpha)) >> 8);
+			};
+
+			return Color::rgb(mix(c1.r, c2.r), mix(c1.g, c2.g), mix(c1.b, c2.b));
 		}
 
 		void _draw_title_box(Canvas_base &canvas, Rect rect, Attr attr) const
@@ -289,8 +292,10 @@ class Decorator::Window : public Window_base
 
 			int const mid_y = rect.h() / 2;
 
-			Color const upper_color = attr.pressed ? Color(0, 0, 0) : Color(255, 255, 255);
-			Color const lower_color = attr.pressed ? Color(127, 127, 127) : Color(0, 0, 0);
+			Color const upper_color = attr.pressed ? Color::black()
+			                                       : Color::rgb(255, 255, 255);
+			Color const lower_color = attr.pressed ? Color::rgb(127, 127, 127)
+			                                       : Color::black();
 
 			for (unsigned i = 0; i < rect.h(); i++) {
 
@@ -376,7 +381,7 @@ class Decorator::Window : public Window_base
 			case Control::TYPE_TITLE:       return _window_elem_attr(Element::TITLE);
 			case Control::TYPE_UNDEFINED:   break;
 			};
-			return Attr { .color = Color(0, 0, 0), .pressed = false };
+			return Attr { .color = Color::black(), .pressed = false };
 		}
 
 		Texture_id _window_control_texture(Control window_control) const

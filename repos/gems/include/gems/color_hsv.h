@@ -25,7 +25,7 @@ static inline Genode::Color color_from_hsv(unsigned h, unsigned s, unsigned v)
 	using uint8_t = Genode::uint8_t;
 
 	if (s == 0)
-		return Color(v, v, v);
+		return Color::clamped_rgb(v, v, v);
 
 	uint8_t const region    = (uint8_t)(h / 43);
 	uint8_t const remainder = (uint8_t)((h - (region*43)) * 6);
@@ -34,14 +34,14 @@ static inline Genode::Color color_from_hsv(unsigned h, unsigned s, unsigned v)
 	              t = (uint8_t)((v*(255 - ((s*(255 - remainder)) >> 8))) >> 8);
 
 	switch (region) {
-	case 0:  return Color(v, t, p);
-	case 1:  return Color(q, v, p);
-	case 2:  return Color(p, v, t);
-	case 3:  return Color(p, q, v);
-	case 4:  return Color(t, p, v);
+	case 0:  return Color::clamped_rgb(v, t, p);
+	case 1:  return Color::clamped_rgb(q, v, p);
+	case 2:  return Color::clamped_rgb(p, v, t);
+	case 3:  return Color::clamped_rgb(p, q, v);
+	case 4:  return Color::clamped_rgb(t, p, v);
 	}
 
-	return Color(v, p, q);
+	return Color::clamped_rgb(v, p, q);
 }
 
 #endif /* _INCLUDE__GEMS__COLOR_HSV_H_ */

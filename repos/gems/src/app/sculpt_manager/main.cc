@@ -2004,7 +2004,7 @@ void Sculpt::Main::_handle_gui_mode()
 				});
 			};
 
-			Color const background(0x1c, 0x22, 0x32);
+			Color const background = Color::rgb(0x1c, 0x22, 0x32);
 
 			gen_color(0, background);
 			gen_color(8, background);

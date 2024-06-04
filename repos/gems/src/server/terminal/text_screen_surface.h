@@ -268,18 +268,18 @@ class Terminal::Text_screen_surface
 							Color bg_color = _palette.background(bg_idx, highlighted);
 
 							if (selected) {
-								bg_color = Color(180, 180, 180);
-								fg_color = Color( 50, 50,   50);
+								bg_color = Color::rgb(180, 180, 180);
+								fg_color = Color::rgb( 50, 50,   50);
 							}
 
 							if (pointer) {
-								bg_color = Color(220, 220, 220);
-								fg_color = Color( 50, 50,   50);
+								bg_color = Color::rgb(220, 220, 220);
+								fg_color = Color::rgb( 50, 50,   50);
 							}
 
 							if (cell.has_cursor()) {
-								fg_color = Color( 63,  63,  63);
-								bg_color = Color(255, 255, 255);
+								fg_color = Color::rgb( 63,  63,  63);
+								bg_color = Color::rgb(255, 255, 255);
 							}
 
 							PT const pixel(fg_color.r, fg_color.g, fg_color.b);

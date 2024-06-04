@@ -187,10 +187,11 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 		canvas.draw_text(text_pos + Point(1, 1), default_font(),
 		                 Color(0, 0, 0, 128), text);
 
-		Color title_color = element(Element::TITLE).color();
+		Color const title_color = element(Element::TITLE).color();
 
+		auto const alpha = Genode::uint8_t((2*255 + title_color.r) / 3);
 		canvas.draw_text(text_pos, default_font(),
-		                 Color(255, 255, 255, (2*255 + title_color.r) / 3), text);
+		                 Color { 255, 255, 255, alpha }, text);
 	}
 }
 

@@ -123,8 +123,8 @@ struct Osci::Main
 		Xml_node const config = _config.xml();
 
 		_size       = Area::from_xml(config);
-		_background = config.attribute_value("background", Color { 0, 0, 0 });
-		_color      = config.attribute_value("color",      Color { 255, 255, 255 });
+		_background = config.attribute_value("background", Color::black());
+		_color      = config.attribute_value("color",      Color::rgb(255, 255, 255));
 		_v_scale    = config.attribute_value("v_scale",    3000);
 
 		_gui_buffer.construct(_gui, _size, _env.ram(), _env.rm(),

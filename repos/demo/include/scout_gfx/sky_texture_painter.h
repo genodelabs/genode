@@ -182,10 +182,10 @@ struct Sky_texture_painter
 				_multiply_buf(_bufs[2][0], TW*TH, 16*16*256);
 
 				/* create color table */
-				_create_coltab(_coltab, Color(255, 255, 255),
-				                        Color(  0,   0,   0),
-				                        Color(255, 255, 255),
-				                        Color( 80,  88, 112));
+				_create_coltab(_coltab, Color::rgb(255, 255, 255),
+				                        Color::rgb(  0,   0,   0),
+				                        Color::rgb(255, 255, 255),
+				                        Color::rgb( 80,  88, 112));
 
 				/* create fallback texture */
 				_compose(_fallback[0], TW, TH, 0, TW - 1,

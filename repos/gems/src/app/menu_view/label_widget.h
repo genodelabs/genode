@@ -132,8 +132,8 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		_selections.for_each([&] (Text_selection const &selection) {
 			selection.draw(pixel_surface, alpha_surface, at, text_size.h()); });
 
-		Color const color = _color.color();
-		int   const alpha = color.a;
+		Color   const color = _color.color();
+		uint8_t const alpha = color.a;
 
 		if (alpha) {
 			Text_painter::paint(pixel_surface,

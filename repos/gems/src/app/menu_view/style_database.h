@@ -71,7 +71,7 @@ class Menu_view::Style_database
 			                               Directory const &styles_dir,
 			                               Path const &path)
 			{
-				Label_style result { .color = Color(0, 0, 0) };
+				Label_style result { .color = Color::black() };
 
 				try {
 					File_content const content(alloc, styles_dir, path,

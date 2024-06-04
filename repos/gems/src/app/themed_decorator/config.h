@@ -67,7 +67,7 @@ class Decorator::Config
 		 */
 		Color base_color(Window_title const &title) const
 		{
-			Color result(0, 0, 0);
+			Color result = Color::black();
 
 			try {
 				Genode::Session_policy policy(title, _config);

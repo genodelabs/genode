@@ -40,7 +40,7 @@ struct Screenshot_trigger::Main
 	Point    _position { };
 	Area     _area     { };
 
-	Color const _color { 200, 0, 0 };
+	Color const _color = Color::rgb(200, 0, 0);
 
 	Input::Keycode const _keycode = Input::KEY_PRINT;
 

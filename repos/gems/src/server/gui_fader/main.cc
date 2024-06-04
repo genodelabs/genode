@@ -171,7 +171,7 @@ class Gui_fader::Framebuffer_session_component
 
 			Texture_painter::paint(_dst_buffer->pixel_surface(),
 			                       _src_buffer.texture(),
-			                       Genode::Color(0, 0, 0),
+			                       Genode::Color::black(),
 			                       Point(0, 0),
 			                       Texture_painter::SOLID,
 			                       false);

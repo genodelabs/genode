@@ -224,7 +224,7 @@ class Framebuffer_window : public Scout::Window
 			Parent_element::draw(canvas, abs_position);
 
 			/* border */
-			Color color(0, 0, 0);
+			Color const color = Color::black();
 			canvas.draw_box(0, 0, _size.w(), 1, color);
 			if (_config_decoration)
 				canvas.draw_box(0, _TH, _size.w(), 1, color);

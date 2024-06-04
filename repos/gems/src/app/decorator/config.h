@@ -164,7 +164,7 @@ class Decorator::Config
 		 */
 		Color base_color(Window_title const &title) const
 		{
-			Color result(68, 75, 95);
+			Color result = Color::rgb(68, 75, 95);
 
 			try {
 				Genode::Session_policy policy(title, _buffered_config->xml());

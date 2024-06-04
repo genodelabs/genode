@@ -226,8 +226,8 @@ Token::Token(Style *style, const char *str, size_t len)
 	_str(str),
 	_len(len),
 	_style(style),
-	_col(_style ? _style->color : Color(0, 0, 0)),
-	_outline(Color(0, 0, 0, 0))
+	_col(_style ? _style->color : Color::black()),
+	_outline(Color{})
 {
 	_flags.takes_focus = 0;
 

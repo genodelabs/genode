@@ -204,7 +204,7 @@ int Navbar::on_tick()
 
 	prev_icon->alpha(_curr_value);
 	next_icon->alpha(_curr_value);
-	navbar_style.color = Color(0, 0, 0, _curr_value);
+	navbar_style.color = Color { 0, 0, 0, Color::channel_t(_curr_value) };
 
 	refresh();
 	return 1;

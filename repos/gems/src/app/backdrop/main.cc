@@ -303,7 +303,7 @@ void Backdrop::Main::_apply_fill(Xml_node operation)
 	/* create texture with down-sampled scaled image */
 	typedef Pixel_rgb888 PT;
 
-	Color const color = operation.attribute_value("color", Color(0, 0, 0));
+	Color const color = operation.attribute_value("color", Color::black());
 
 	_buffer->apply_to_surface<PT>([&] (Surface<PT> &surface) {
 		Box_painter::paint(surface, Surface_base::Rect(Surface_base::Point(0, 0),

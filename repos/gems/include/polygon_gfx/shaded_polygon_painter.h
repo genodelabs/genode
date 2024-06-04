@@ -58,14 +58,14 @@ class Polygon::Shaded_painter : public Polygon::Painter_base
 				}
 			}
 
-			inline void edge_attr(int id, int value)
+			inline void edge_attr(int id, auto value)
 			{
 				switch (id) {
 				case ATTR_X: Point_base::edge_attr(id, value); return;
-				case ATTR_R: color.r = value; return;
-				case ATTR_G: color.g = value; return;
-				case ATTR_B: color.b = value; return;
-				case ATTR_A: color.a = value; return;
+				case ATTR_R: color.r = Color::channel_t(value); return;
+				case ATTR_G: color.g = Color::channel_t(value); return;
+				case ATTR_B: color.b = Color::channel_t(value); return;
+				case ATTR_A: color.a = Color::channel_t(value); return;
 				}
 			}
 		};
@@ -123,8 +123,8 @@ class Polygon::Shaded_painter : public Polygon::Painter_base
 			for (int y = bbox.y1(); y < bbox.y2(); y++) {
 
 				/* read left and right color values from corresponding edge buffers */
-				Color l_color = Color(r_l_edge[y], g_l_edge[y], b_l_edge[y], a_l_edge[y]);
-				Color r_color = Color(r_r_edge[y], g_r_edge[y], b_r_edge[y], a_r_edge[y]);
+				Color l_color = Color::clamped_rgba(r_l_edge[y], g_l_edge[y], b_l_edge[y], a_l_edge[y]);
+				Color r_color = Color::clamped_rgba(r_r_edge[y], g_r_edge[y], b_r_edge[y], a_r_edge[y]);
 
 				int const x_l = x_l_edge[y];
 				int const x_r = x_r_edge[y];

@@ -55,16 +55,12 @@ class Decorator::Window_element : public Animator::Item
 
 		static Color _add(Color c1, Color c2)
 		{
-			return Color(Genode::min(c1.r + c2.r, 255),
-			             Genode::min(c1.g + c2.g, 255),
-			             Genode::min(c1.b + c2.b, 255));
+			return Color::clamped_rgb(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b);
 		}
 
 		static Color _sub(Color c1, Color c2)
 		{
-			return Color(Genode::max(c1.r - c2.r, 0),
-			             Genode::max(c1.g - c2.g, 0),
-			             Genode::max(c1.b - c2.b, 0));
+			return Color::clamped_rgb(c1.r - c2.r, c1.g - c2.g, c1.b - c2.b);
 		}
 
 		Type const _type;
@@ -83,13 +79,13 @@ class Decorator::Window_element : public Animator::Item
 			Color result = state.base_color;
 
 			if (state.focused)
-				result = _add(result, Color(70, 70, 70));
+				result = _add(result, Color::rgb(70, 70, 70));
 
 			if (state.highlighted)
-				result = _add(result, Color(65, 60, 55));
+				result = _add(result, Color::rgb(65, 60, 55));
 
 			if (state.pressed)
-				result = _sub(result, Color(10, 10, 10));
+				result = _sub(result, Color::rgb(10, 10, 10));
 
 			return result;
 		}
@@ -145,7 +141,7 @@ class Decorator::Window_element : public Animator::Item
 			return "";
 		}
 
-		Color color() const { return Color(_r >> 4, _g >> 4, _b >> 4); }
+		Color color() const { return Color::clamped_rgb(_r >> 4, _g >> 4, _b >> 4); }
 
 		/**
 		 * \return true if state has changed

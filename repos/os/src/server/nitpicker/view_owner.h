@@ -53,7 +53,7 @@ struct Nitpicker::View_owner : Interface
 
 	virtual bool has_transient_focusable_domain() const { return false; }
 
-	virtual Color color() const { return black(); }
+	virtual Color color() const { return Color::black(); }
 
 	virtual bool content_client() const { return true; }
 
