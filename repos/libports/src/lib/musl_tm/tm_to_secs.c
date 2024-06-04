@@ -44,6 +44,10 @@ static int month_to_secs(int month, int is_leap)
 
 static long long year_to_secs(long long year, int *is_leap)
 {
+	int _is_leap = 0;
+	if (!is_leap)
+		is_leap = &_is_leap;
+
 	if (year-2ULL <= 136) {
 		int y = year;
 		int leaps = (y-68)>>2;
@@ -56,7 +60,6 @@ static long long year_to_secs(long long year, int *is_leap)
 
 	int cycles, centuries, leaps, rem;
 
-	if (!is_leap) is_leap = &(int){0};
 	cycles = (year-100) / 400;
 	rem = (year-100) % 400;
 	if (rem < 0) {
