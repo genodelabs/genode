@@ -1,39 +1,58 @@
-LIBS += base net jitterentropy wireguard_lx_inc_dirs
+#
+# This library is for avoiding clashes between Linux and Genode includes.
+# If we were to compile all the *.c files of this library directly with the
+# WireGuard library, there would be only one INC_DIR applied to *.cc files as
+# well as to *.c files. Some Genode headers, however, (e.g. 'net/udp.h' or
+# 'net/dhcp.h') exist with the same include identifier in both Linux and
+# Genode, and we would have the problem that we want the Linux variant in *.c
+# files and the Genode variant in *.cc files. Therefore, we create two
+# dedicated INC_DIR settings through separate libraries.
+#
 
-#VIRT_LINUX_INCLUDE_DIR := $(call select_from_repositories,src/include/virt_linux)
+SRC_C += $(notdir $(wildcard $(PRG_DIR)/generated_dummies.c))
+SRC_C += dummies.c
+SRC_C += lx_emul.c
+SRC_C += wireguard.c
+SRC_C += genode_c_api_arch.c
 
-DDE_LINUX_DIR := $(subst /src/include/lx_kit,,$(call select_from_repositories,src/include/lx_kit))
+vpath wireguard.c $(PRG_TOP_DIR)/genode_c_api
+vpath %.c         $(PRG_TOP_DIR)
+vpath %.c         $(PRG_DIR)
 
-MUSL_TM_DIR = $(call select_from_repositories,src/lib/musl_tm)
+INC_DIR += $(PRG_DIR)
+INC_DIR += $(PRG_TOP_DIR)
 
-INC_DIR += $(REP_DIR)/src/app/wireguard
-INC_DIR += $(DDE_LINUX_DIR)/src/include/virt_linux
-INC_DIR += $(DDE_LINUX_DIR)/src/include
-INC_DIR += $(MUSL_TM_DIR)
+LIBS += virt_lx_emul virt_linux_generated
 
-ifeq ($(filter-out $(SPECS),x86_64),)
-SPEC_ARCH := x86_64
-endif
-ifeq ($(filter-out $(SPECS),arm_v8),)
-SPEC_ARCH := arm_v8
-endif
+#
+# Some local files include linux headers that expect the KBUILD_* symbols to
+# be defined. However, the lx_emul mechanism for adding the definitions doesn't
+# apply to these files, which is why we have to do it manually.
+#
 
-INC_DIR += $(DDE_LINUX_DIR)/src/include/spec/$(SPEC_ARCH)
+WG_KBUILD_DEFS := -DKBUILD_MODFILE='"wireguard"' \
+                  -DKBUILD_BASENAME='"wireguard"' \
+                  -DKBUILD_MODNAME='"wireguard"'
 
-SRC_C += tm_to_secs.c
+CC_OPT_wireguard += $(WG_KBUILD_DEFS)
+CC_OPT_lx_emul   += $(WG_KBUILD_DEFS)
 
-SRC_CC += arp_cache.cc
-SRC_CC += arp_waiter.cc
-SRC_CC += base64.cc
-SRC_CC += config_model.cc
-SRC_CC += dhcp_client.cc
-SRC_CC += ipv4_address_prefix.cc
-SRC_CC += ipv4_config.cc
-SRC_CC += lx_emul/random.cc
-SRC_CC += main.cc
-SRC_CC += nic_connection.cc
-SRC_CC += uplink_connection.cc
+#
+# The lx_emul Makefiles have a generic mechanism for defining the
+# KBUILD_MODFILE, KBUILD_BASENAME, and KBUILD_MODNAME for each Linux
+# compilation unit to be unique. However, some WireGuard units expect
+# KBUILD_MODNAME to be the same for all WireGuard units. Therefore, we
+# let a target-specific variable override the CC_OPT_* variable for those
+# units.
+#
 
-vpath tm_to_secs.c $(MUSL_TM_DIR)
-vpath %.cc $(REP_DIR)/src/app/wireguard
-vpath %.cc $(DDE_LINUX_DIR)/src/lib
+OBJECTS_TO_FIX_CC_OPT_FOR := \
+	drivers/net/wireguard/device.o \
+	drivers/net/wireguard/netlink.o
+
+define FIX_OBJECT_CC_OPT =
+$(1): override CC_OPT_$(1:%.o=%) = $(WG_KBUILD_DEFS)
+endef
+
+$(foreach OBJECT,$(OBJECTS_TO_FIX_CC_OPT_FOR), \
+	$(eval $(call FIX_OBJECT_CC_OPT,$(OBJECT))))
