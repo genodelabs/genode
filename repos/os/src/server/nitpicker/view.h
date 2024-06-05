@@ -167,7 +167,7 @@ class Nitpicker::View : private Same_buffer_list_elem,
 		 */
 		Rect abs_geometry() const
 		{
-			return Rect(abs_position(), _geometry.area());
+			return Rect(abs_position(), _geometry.area);
 		}
 
 		/**
@@ -269,7 +269,7 @@ class Nitpicker::View : private Same_buffer_list_elem,
 
 		void buffer_off(Point buffer_off) { _buffer_off = buffer_off; }
 
-		void label_pos(Point pos) { _label_rect = Rect(pos, _label_rect.area()); }
+		void label_pos(Point pos) { _label_rect = Rect(pos, _label_rect.area); }
 
 		/**
 		 * Return true if input at screen position 'p' refers to the view

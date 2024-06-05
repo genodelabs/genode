@@ -44,8 +44,8 @@ struct Menu_view::Box_layout_widget : Widget
 		unsigned largest_size = 0;
 		_children.for_each([&] (Widget const &w) {
 			largest_size =
-				max(largest_size, _direction == VERTICAL ? w.min_size().w()
-				                                         : w.min_size().h()); });
+				max(largest_size, _direction == VERTICAL ? w.min_size().w
+				                                         : w.min_size().h); });
 
 		/* position children on one row/column */
 		Point position(0, 0);
@@ -57,16 +57,16 @@ struct Menu_view::Box_layout_widget : Widget
 			w.position(position);
 
 			/* don't account space for zero-sized child widgets */
-			if ((child_min_size.w() == 0) && (child_min_size.h() == 0))
+			if ((child_min_size.w == 0) && (child_min_size.h == 0))
 				return;
 
 			if (_direction == VERTICAL) {
 				unsigned const next_top_margin = w.next() ? w.next()->margin.top : 0;
-				unsigned const dy = child_min_size.h() - min(w.margin.bottom, next_top_margin);
+				unsigned const dy = child_min_size.h - min(w.margin.bottom, next_top_margin);
 				position = position + Point(0, dy);
 			} else {
 				unsigned const next_left_margin = w.next() ? w.next()->margin.left : 0;
-				unsigned const dx = child_min_size.w() - min(w.margin.right, next_left_margin);
+				unsigned const dx = child_min_size.w - min(w.margin.right, next_left_margin);
 				position = position + Point(dx, 0);
 			}
 
@@ -74,8 +74,8 @@ struct Menu_view::Box_layout_widget : Widget
 		});
 
 		_min_size = (_direction == VERTICAL)
-		          ? Area(largest_size, position.y())
-		          : Area(position.x(), largest_size);
+		          ? Area(largest_size, position.y)
+		          : Area(position.x, largest_size);
 	}
 
 	/**
@@ -85,8 +85,8 @@ struct Menu_view::Box_layout_widget : Widget
 	{
 		using Genode::max;
 		unsigned const unused_pixels =
-			_vertical() ? max(_geometry.h(), _min_size.h()) - _min_size.h()
-			            : max(_geometry.w(), _min_size.w()) - _min_size.w();
+			_vertical() ? max(_geometry.h(), _min_size.h) - _min_size.h
+			            : max(_geometry.w(), _min_size.w) - _min_size.w;
 
 		/* number of excess pixels at the end of the stack (fixpoint) */
 		unsigned const step_fp = (_count > 0) ? (unused_pixels << 8) / _count : 0;
@@ -99,10 +99,10 @@ struct Menu_view::Box_layout_widget : Widget
 			                                - (consumed_fp      >> 8);
 			if (_direction == VERTICAL) {
 				w.position(w.geometry().p1() + Point(0, consumed_fp >> 8));
-				w.size(Area(geometry().w(), w.min_size().h() + padding_pixels));
+				w.size(Area(geometry().w(), w.min_size().h + padding_pixels));
 			} else {
 				w.position(w.geometry().p1() + Point(consumed_fp >> 8, 0));
-				w.size(Area(w.min_size().w() + padding_pixels, geometry().h()));
+				w.size(Area(w.min_size().w + padding_pixels, geometry().h()));
 			}
 
 			/* don't account space for zero-sized child widgets */

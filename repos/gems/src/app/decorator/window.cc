@@ -33,35 +33,35 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 	_draw_corner(canvas, Rect(p1, corner), _border_size, true, true,
 	             _window_elem_attr(Element::TOP_LEFT));
 
-	_draw_corner(canvas, Rect(Point(p1.x(), p2.y() - _corner_size + 1), corner),
+	_draw_corner(canvas, Rect(Point(p1.x, p2.y - _corner_size + 1), corner),
 	             _border_size, true, false,
 	             _window_elem_attr(Element::BOTTOM_LEFT));
 
-	_draw_corner(canvas, Rect(Point(p2.x() - _corner_size + 1, p1.y()), corner),
+	_draw_corner(canvas, Rect(Point(p2.x - _corner_size + 1, p1.y), corner),
 	             _border_size, false, true,
 	             _window_elem_attr(Element::TOP_RIGHT));
 
-	_draw_corner(canvas, Rect(Point(p2.x() - _corner_size + 1, p2.y() - _corner_size + 1), corner),
+	_draw_corner(canvas, Rect(Point(p2.x - _corner_size + 1, p2.y - _corner_size + 1), corner),
 	             _border_size, false, false,
 	             _window_elem_attr(Element::BOTTOM_RIGHT));
 
-	_draw_raised_box(canvas, Rect(Point(p1.x() + _corner_size, p1.y()),
+	_draw_raised_box(canvas, Rect(Point(p1.x + _corner_size, p1.y),
 	                              Area(rect.w() - 2*_corner_size, _border_size)),
 	                              _window_elem_attr(Element::TOP));
 
-	_draw_raised_box(canvas, Rect(Point(p1.x() + _corner_size, p2.y() - _border_size + 1),
+	_draw_raised_box(canvas, Rect(Point(p1.x + _corner_size, p2.y - _border_size + 1),
 	                              Area(rect.w() - 2*_corner_size, _border_size)),
 	                              _window_elem_attr(Element::BOTTOM));
 
-	_draw_raised_box(canvas, Rect(Point(p1.x(), p1.y() + _corner_size),
+	_draw_raised_box(canvas, Rect(Point(p1.x, p1.y + _corner_size),
 	                              Area(_border_size, rect.h() - 2*_corner_size)),
 	                              _window_elem_attr(Element::LEFT));
 
-	_draw_raised_box(canvas, Rect(Point(p2.x() - _border_size + 1, p1.y() + _corner_size),
+	_draw_raised_box(canvas, Rect(Point(p2.x - _border_size + 1, p1.y + _corner_size),
 	                              Area(_border_size, rect.h() - 2*_corner_size)),
 	                              _window_elem_attr(Element::RIGHT));
 
-	Rect controls_rect(Point(p1.x() + _border_size, p1.y() + _border_size),
+	Rect controls_rect(Point(p1.x + _border_size, p1.y + _border_size),
 	                   Area(rect.w() - 2*_border_size, _title_height));
 
 
@@ -84,14 +84,14 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 		}
 
 		_draw_window_control(canvas, Rect(left_pos, _icon_size), control);
-		left_pos = left_pos + Point(_icon_size.w(), 0);
+		left_pos = left_pos + Point(_icon_size.w, 0);
 	}
 
 	/*
 	 * Draw right controls from right to left
 	 */
 
-	Point right_pos = controls_rect.p1() + Point(controls_rect.w() - _icon_size.w(), 0);
+	Point right_pos = controls_rect.p1() + Point(controls_rect.w() - _icon_size.w, 0);
 
 	if (_controls.num() > 0) {
 		for (int i = _controls.num() - 1; i >= 0; i--) {
@@ -103,11 +103,11 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 				break;
 
 			/* detect overlap with left controls */
-			if (right_pos.x() <= left_pos.x())
+			if (right_pos.x <= left_pos.x)
 				break;
 
 			_draw_window_control(canvas, Rect(right_pos, _icon_size), control);
-			right_pos = right_pos + Point(-_icon_size.w(), 0);
+			right_pos = right_pos + Point(-_icon_size.w, 0);
 		}
 	}
 
@@ -115,7 +115,7 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 	 * Draw title between left and right controls
 	 */
 
-	Rect title_rect(left_pos, Area(right_pos.x() - left_pos.x() + _icon_size.w(),
+	Rect title_rect(left_pos, Area(right_pos.x - left_pos.x + _icon_size.w,
 	                               _title_height));
 
 	_draw_title_box(canvas, title_rect, _window_elem_attr(Element::TITLE));
@@ -123,7 +123,7 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 	char const * const text = _title.string();
 
 	Area const label_area(default_font().string_width(text).decimal(),
-	                      default_font().bounding_box().h());
+	                      default_font().bounding_box().h);
 
 	/*
 	 * Position the text in the center of the window.
@@ -135,7 +135,7 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 	/*
 	 * Horizontal position of the title text
 	 */
-	int x = window_centered_text_pos.x();
+	int x = window_centered_text_pos.x;
 
 	/*
 	 * If the title bar is narrower than three times the label but the text
@@ -143,9 +143,9 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 	 * towards the center of the title bar. If the text fits twice in the
 	 * title bar, it is centered within the title bar.
 	 */
-	if (label_area.w() <= title_rect.w() && label_area.w()*3 > title_rect.w()) {
+	if (label_area.w <= title_rect.w() && label_area.w*3 > title_rect.w()) {
 
-		int ratio = ((label_area.w()*3 - title_rect.w()) << 8) / title_rect.w();
+		int ratio = ((label_area.w*3 - title_rect.w()) << 8) / title_rect.w();
 
 		if (ratio > 255)
 			ratio = 255;
@@ -153,8 +153,8 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 		Point const titlebar_centered_text_pos =
 			title_rect.center(label_area) - Point(0, 1);
 
-		x = (titlebar_centered_text_pos.x()*ratio +
-		     window_centered_text_pos.x()*(255 - ratio)) >> 8;
+		x = (titlebar_centered_text_pos.x*ratio +
+		     window_centered_text_pos.x*(255 - ratio)) >> 8;
 	}
 
 	/* minimum distance between the title text and the title border */
@@ -167,22 +167,22 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 		x = title_rect.x1() + min_horizontal_padding;
 
 	if (title_align == Control::ALIGN_RIGHT)
-		x = title_rect.x2() - label_area.w() - min_horizontal_padding;
+		x = title_rect.x2() - label_area.w - min_horizontal_padding;
 
 	/*
 	 * If the text does not fit into the title bar, align it to the left
 	 * border of the title bar to show the first part.
 	 */
-	if (label_area.w() + 2*min_horizontal_padding > title_rect.w())
+	if (label_area.w + 2*min_horizontal_padding > title_rect.w())
 		x = title_rect.x1() + min_horizontal_padding;
 
 	{
-		Rect const title_content_rect(title_rect.p1() + Point(1, 1),
-		                              title_rect.p2() - Point(1, 1));
+		Rect const title_content_rect = Rect::compound(title_rect.p1() + Point(1, 1),
+		                                               title_rect.p2() - Point(1, 1));
 
 		Clip_guard clip_guard(canvas, title_content_rect);
 
-		Point const text_pos(x, window_centered_text_pos.y());
+		Point const text_pos(x, window_centered_text_pos.y);
 
 		canvas.draw_text(text_pos + Point(1, 1), default_font(),
 		                 Color(0, 0, 0, 128), text);
@@ -302,22 +302,22 @@ Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
 
 	hover.window_id = id();
 
-	unsigned const x = abs_pos.x() - outer_geometry().x1(),
-	               y = abs_pos.y() - outer_geometry().y1();
+	unsigned const x = abs_pos.x - outer_geometry().x1(),
+	               y = abs_pos.y - outer_geometry().y1();
 
-	Area const area = outer_geometry().area();
+	Area const area = outer_geometry().area;
 
 	bool const at_border = x <  _border_size
-	                    || x >= area.w() - _border_size
+	                    || x >= area.w - _border_size
 	                    || y <  _border_size
-	                    || y >= area.h() - _border_size;
+	                    || y >= area.h - _border_size;
 
 	if (at_border) {
 
 		hover.left_sizer   = (x < _corner_size);
 		hover.top_sizer    = (y < _corner_size);
-		hover.right_sizer  = (x >= area.w() - _corner_size);
-		hover.bottom_sizer = (y >= area.h() - _corner_size);
+		hover.right_sizer  = (x >= area.w - _corner_size);
+		hover.bottom_sizer = (y >= area.h - _corner_size);
 
 	} else {
 
@@ -348,7 +348,7 @@ Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
 					if (Rect(pos, _icon_size).contains(Point(x + _border_size, y)))
 						hovered_control = _controls.control(i);
 
-					pos = pos + Point(_icon_size.w(), 0);
+					pos = pos + Point(_icon_size.w, 0);
 				}
 			}
 
@@ -356,7 +356,7 @@ Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
 			if (_controls.num() > 0) {
 
 				Point pos = titlbar_pos +
-				            Point(area.w() - _border_size - _icon_size.w(), 0);
+				            Point(area.w - _border_size - _icon_size.w, 0);
 
 				for (int i = _controls.num() - 1; i >= 0; i--) {
 
@@ -367,7 +367,7 @@ Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
 					if (Rect(pos, _icon_size).contains(Point(x + _border_size, y)))
 						hovered_control = _controls.control(i);
 
-					pos = pos + Point(-_icon_size.w(), 0);
+					pos = pos + Point(-_icon_size.w, 0);
 				}
 			}
 

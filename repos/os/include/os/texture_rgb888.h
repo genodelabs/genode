@@ -24,11 +24,11 @@ namespace Genode {
 	inline void
 	Texture<Pixel_rgb888>::rgba(unsigned char const *rgba, size_t len, int y)
 	{
-		if (len > size().w()) len = size().w();
-		if (y < 0 || y >= (int)size().h()) return;
+		if (len > size().w) len = size().w;
+		if (y < 0 || y >= (int)size().h) return;
 
-		Pixel_rgb888  *dst_pixel = pixel() + y*size().w();
-		unsigned char *dst_alpha = alpha() ? alpha() + y*size().w() : 0;
+		Pixel_rgb888  *dst_pixel = pixel() + y*size().w;
+		unsigned char *dst_alpha = alpha() ? alpha() + y*size().w : 0;
 
 		for (unsigned i = 0; i < len; i++) {
 

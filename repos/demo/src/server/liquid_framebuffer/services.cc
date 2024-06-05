@@ -61,7 +61,7 @@ class Window_content : public Scout::Element
 
 					Point mouse_position = ev.mouse_position - _element->abs_position();
 
-					auto motion = [&] (Point p) { return Input::Absolute_motion{p.x(), p.y()}; };
+					auto motion = [&] (Point p) { return Input::Absolute_motion{p.x, p.y}; };
 
 					if (ev.type == Event::MOTION)
 						_input_session.submit(motion(mouse_position));
@@ -193,10 +193,10 @@ class Window_content : public Scout::Element
 		void realloc_framebuffer()
 		{
 			/* skip reallocation if size has not changed */
-			if (_next_size.w() == _fb->w && _next_size.h() == _fb->h)
+			if (_next_size.w == _fb->w && _next_size.h == _fb->h)
 				return;
 
-			_fb.construct(_ram, _rm, _alloc, _next_size.w(), _next_size.h(), _config_alpha);
+			_fb.construct(_ram, _rm, _alloc, _next_size.w, _next_size.h, _config_alpha);
 		}
 
 		/**

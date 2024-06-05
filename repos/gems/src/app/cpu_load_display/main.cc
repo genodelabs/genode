@@ -333,7 +333,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 	private:
 
-		Polygon::Shaded_painter _shaded_painter { _heap, _size.h() };
+		Polygon::Shaded_painter _shaded_painter { _heap, _size.h };
 
 		long _activity_sum[Timeline::HISTORY_LEN];
 		long _y_level[Timeline::HISTORY_LEN];
@@ -433,8 +433,8 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 			Color const top_color    = Color(10, 10, 10, 20);
 			Color const bottom_color = Color(10, 10, 10, 100);
 
-			unsigned const w = pixel.size().w();
-			unsigned const h = pixel.size().h();
+			unsigned const w = pixel.size().w;
+			unsigned const h = pixel.size().h;
 
 			typedef Polygon::Shaded_painter::Point Point;
 			Point points[4];
@@ -453,8 +453,8 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 			/* plot graphs for the CPUs below each other */
 			enum { GAP = 8 };
-			Gui::Point const step(0, _size.h()/num_cpus);
-			Gui::Area  const size(_size.w(), step.y() - GAP);
+			Gui::Point const step(0, _size.h/num_cpus);
+			Gui::Area  const size(_size.w, step.y - GAP);
 			Gui::Point       point(0, GAP/2);
 
 			_cpu_registry.for_each_cpu([&] (Cpu const &cpu) {

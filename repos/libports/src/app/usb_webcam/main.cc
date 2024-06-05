@@ -78,7 +78,7 @@ class Viewer
 		uint8_t *framebuffer() { return _framebuffer; }
 
 		void refresh() {
-			_gui.framebuffer()->refresh(0, 0, _mode.area.w(), _mode.area.h());
+			_gui.framebuffer()->refresh(0, 0, _mode.area.w, _mode.area.h);
 		}
 
 		Framebuffer::Mode const &mode() { return _mode; }
@@ -91,8 +91,8 @@ static void cb(uvc_frame_t *frame, void *ptr)
 	if (!viewer) return;
 
 	int err = 0;
-	int width  = viewer->mode().area.w();
-	int height = viewer->mode().area.h();
+	int width  = viewer->mode().area.w;
+	int height = viewer->mode().area.h;
 
 	switch (frame->frame_format) {
 		case UVC_COLOR_FORMAT_MJPEG:
@@ -183,7 +183,7 @@ class Webcam
 
 				uvc_stream_ctrl_t control;
 				res = uvc_get_stream_ctrl_format_size(_handle, &control, format,
-				                                      mode.area.w(), mode.area.h(),
+				                                      mode.area.w, mode.area.h,
 				                                      fps);
 				if (res < 0) {
 					error("Unsupported mode: ", mode, " format: ", (unsigned)format, " fps: ", fps);

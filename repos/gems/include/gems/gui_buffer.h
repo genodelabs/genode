@@ -94,8 +94,8 @@ struct Gui_buffer : Genode::Noncopyable
 	           Genode::Color reset_color = default_reset_color())
 	:
 		ram(ram), rm(rm), gui(gui),
-		mode({ .area = { Genode::max(1U, size.w()),
-		                 Genode::max(1U, size.h()) } }),
+		mode({ .area = { Genode::max(1U, size.w),
+		                 Genode::max(1U, size.h) } }),
 		use_alpha(alpha == Alpha::ALPHA),
 		reset_color(reset_color.r, reset_color.g, reset_color.b, reset_color.a)
 	{

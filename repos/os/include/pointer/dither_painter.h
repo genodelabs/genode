@@ -34,13 +34,13 @@ struct Dither_painter
 
 		if (!clipped.valid()) return;
 
-		unsigned const offset = surface.size().w()*clipped.y1() + clipped.x1();
+		unsigned const offset = surface.size().w*clipped.y1() + clipped.x1();
 
 		DST_PT              *dst,       *dst_line       = surface.addr()  + offset;
 		SRC_PT        const *src_pixel, *src_pixel_line = texture.pixel() + offset;
 		unsigned char const *src_alpha, *src_alpha_line = texture.alpha() + offset;
 
-		unsigned const line_len = surface.size().w();
+		unsigned const line_len = surface.size().w;
 
 		for (int y = clipped.y1(), h = clipped.h() ; h--; y++) {
 

@@ -41,7 +41,7 @@ namespace Nitpicker {
 
 	static inline Area max_area(Area a1, Area a2)
 	{
-		return Area(max(a1.w(), a2.w()), max(a1.h(), a2.h()));
+		return Area(max(a1.w, a2.w), max(a1.h, a2.h));
 	}
 }
 

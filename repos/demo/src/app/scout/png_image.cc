@@ -134,9 +134,9 @@ void Png_image::fill_cache(Canvas_base &canvas)
 	memset(row_ptr, 0, curr_row_size);
 
 	/* fill texture */
-	for (unsigned j = 0; j < _min_size.h(); j++) {
+	for (unsigned j = 0; j < _min_size.h; j++) {
 		png_read_row(png_ptr, row_ptr, NULL);
-		canvas.set_rgba_texture(_texture, (unsigned char *)row_ptr, _min_size.w(), j);
+		canvas.set_rgba_texture(_texture, (unsigned char *)row_ptr, _min_size.w, j);
 	}
 }
 

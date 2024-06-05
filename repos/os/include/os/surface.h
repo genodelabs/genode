@@ -30,7 +30,7 @@ namespace Genode {
  * applied. All coordinates are specified in pixels. The coordinate origin
  * is the top-left corner of the surface.
  */
-class Genode::Surface_base
+class Genode::Surface_base : Interface
 {
 	private:
 
@@ -42,10 +42,9 @@ class Genode::Surface_base
 
 	public:
 
-		typedef Genode::Point<> Point;
-		typedef Genode::Area<>  Area;
-		typedef Genode::Rect<>  Rect;
-		typedef Genode::Color   Color;
+		using Rect  = Genode::Rect<>;
+		using Point = Rect::Point;
+		using Area  = Rect::Area;
 
 		enum Pixel_format { UNKNOWN, RGB565, RGB888, ALPHA8 };
 
@@ -56,20 +55,17 @@ class Genode::Surface_base
 
 	protected:
 
-		Rect         _clip;      /* clipping area         */
-		Area         _size;      /* boundaries of surface */
-		Pixel_format _format;
-		Flusher     *_flusher;
+		Area         const _size;      /* boundaries of surface */
+		Pixel_format const _format;
 
-		/**
-		 * Constructor
-		 */
+		Flusher *_flusher = nullptr;
+
+		Rect _clip = Rect(Point(), _size);
+
 		Surface_base(Area size, Pixel_format format)
-		: _clip(Point(0, 0), size), _size(size), _format(format), _flusher(0) { }
+		: _size(size), _format(format) { }
 
 	public:
-
-		virtual ~Surface_base() { }
 
 		/**
 		 * Register part of surface to be flushed
@@ -91,8 +87,10 @@ class Genode::Surface_base
 		/**
 		 * Define/request clipping rectangle
 		 */
-		void clip(Rect clip) {
-			_clip = Rect::intersect(Rect(Point(0, 0), _size), clip); }
+		void clip(Rect clip)
+		{
+			_clip = Rect::intersect(Rect(Point(), _size), clip);
+		}
 
 		Rect clip()       const { return _clip; }
 		bool clip_valid() const { return _clip.valid(); }

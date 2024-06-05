@@ -58,9 +58,9 @@ struct Tint_painter
 
 
 		PT pix(color.r, color.g, color.b);
-		PT *dst, *dst_line = surface.addr() + surface.size().w()*clipped.y1() + clipped.x1();
+		PT *dst, *dst_line = surface.addr() + surface.size().w*clipped.y1() + clipped.x1();
 
-		for (int w, h = clipped.h() ; h--; dst_line += surface.size().w())
+		for (int w, h = clipped.h() ; h--; dst_line += surface.size().w)
 			for (dst = dst_line, w = clipped.w(); w--; dst++) {
 				PT const pixel = *dst;
 				*dst = pixel_lut[pixel.r() + pixel.g() + pixel.b()];

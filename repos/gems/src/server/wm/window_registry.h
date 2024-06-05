@@ -131,8 +131,8 @@ class Wm::Window_registry
 						xml.attribute("id",     _id.value);
 						xml.attribute("label",  _attr.label.string());
 						xml.attribute("title",  _attr.title.string());
-						xml.attribute("width",  _attr.size.w());
-						xml.attribute("height", _attr.size.h());
+						xml.attribute("width",  _attr.size.w);
+						xml.attribute("height", _attr.size.h);
 
 						if (_attr.has_alpha == HAS_ALPHA)
 							xml.attribute("has_alpha", "yes");

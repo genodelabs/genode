@@ -152,13 +152,13 @@ void Nitpicker::View::apply_origin_policy(View &pointer_origin)
 }
 
 
-bool Nitpicker::View::input_response_at(Point p) const
+bool Nitpicker::View::input_response_at(Point const p) const
 {
 	Rect const view_rect = abs_geometry();
 
 	/* check if point lies outside view geometry */
-	if ((p.x() < view_rect.x1()) || (p.x() > view_rect.x2())
-	 || (p.y() < view_rect.y1()) || (p.y() > view_rect.y2()))
+	if ((p.x < view_rect.x1()) || (p.x > view_rect.x2())
+	 || (p.y < view_rect.y1()) || (p.y > view_rect.y2()))
 		return false;
 
 	/* if view uses an alpha channel, check the input mask */

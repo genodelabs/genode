@@ -199,8 +199,8 @@ class Menu_view::Widget : List_model<Widget>::Element
 		Rect edges() const
 		{
 			Rect const r = _animated_geometry.rect();
-			return Rect(Point(r.x1() + margin.left,  r.y1() + margin.top),
-		                Point(r.x2() - margin.right, r.y2() - margin.bottom));
+			return Rect::compound(Point(r.x1() + margin.left,  r.y1() + margin.top),
+			                      Point(r.x2() - margin.right, r.y2() - margin.bottom));
 		}
 
 		Widget(Name const &name, Unique_id const id,
@@ -244,7 +244,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		void position(Point position)
 		{
-			_geometry = Rect(position, _geometry.area());
+			_geometry = Rect(position, _geometry.area);
 		}
 
 		static Point _at_child(Point at, Widget const &w)

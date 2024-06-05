@@ -178,19 +178,19 @@ static Surface_base::Area calc_scaled_size(Xml_node operation,
 	 */
 	unsigned const ratio =
 		operation.attribute(attr).has_value("fit") ?
-			min((mode_size.w() << 16) / image_size.w(),
-			    (mode_size.h() << 16) / image_size.h()) :
+			min((mode_size.w << 16) / image_size.w,
+			    (mode_size.h << 16) / image_size.h) :
 		operation.attribute(attr).has_value("zoom") ?
-			max((mode_size.w() << 16) / image_size.w(),
-			    (mode_size.h() << 16) / image_size.h()) :
+			max((mode_size.w << 16) / image_size.w,
+			    (mode_size.h << 16) / image_size.h) :
 		1 << 16;
 
 	/*
 	 * We add 0.5 (1 << 15) to round instead of truncating the fractional
 	 * part when converting the fixpoint numbers to integers.
 	 */
-	return Surface_base::Area((image_size.w()*ratio + (1 << 15)) >> 16,
-	                          (image_size.h()*ratio + (1 << 15)) >> 16);
+	return Surface_base::Area((image_size.w*ratio + (1 << 15)) >> 16,
+	                          (image_size.h*ratio + (1 << 15)) >> 16);
 }
 
 
@@ -205,12 +205,12 @@ void Backdrop::Main::_paint_texture(Surface<PT> &surface, Texture<PT> const &tex
 	if (tiled) {
 
 		/* shortcuts */
-		int const w = texture.size().w(), surface_w = surface.size().w();
-		int const h = texture.size().h(), surface_h = surface.size().h();
+		int const w = texture.size().w, surface_w = surface.size().w;
+		int const h = texture.size().h, surface_h = surface.size().h;
 
 		/* draw tiles across the whole surface */
-		for (int y = (pos.y() % h) - h; y < surface_h + h; y += h)
-			for (int x = (pos.x() % w) - w; x < surface_w + w; x += w)
+		for (int y = (pos.y % h) - h; y < surface_h + h; y += h)
+			for (int x = (pos.x % w) - w; x < surface_w + w; x += w)
 				Texture_painter::paint(surface, texture, Color(),
 				                       Texture_painter::Point(x, y),
 				                       Texture_painter::SOLID,
@@ -248,8 +248,8 @@ void Backdrop::Main::_apply_image(Xml_node operation)
 	/*
 	 * Determine parameters of graphics operation
 	 */
-	int const h_gap = (int)_buffer->mode.area.w() - scaled_size.w(),
-	          v_gap = (int)_buffer->mode.area.h() - scaled_size.h();
+	int const h_gap = (int)_buffer->mode.area.w - scaled_size.w,
+	          v_gap = (int)_buffer->mode.area.h - scaled_size.h;
 
 	int const anchored_xpos = anchor.horizontal == Anchor::LOW    ? 0
 	                        : anchor.horizontal == Anchor::CENTER ? h_gap/2
@@ -318,8 +318,8 @@ void Backdrop::Main::_handle_config()
 
 	Framebuffer::Mode const phys_mode = _gui.mode();
 	Framebuffer::Mode const
-		mode { .area = { _config.xml().attribute_value("width",  phys_mode.area.w()),
-		                 _config.xml().attribute_value("height", phys_mode.area.h()) } };
+		mode { .area = { _config.xml().attribute_value("width",  phys_mode.area.w),
+		                 _config.xml().attribute_value("height", phys_mode.area.h) } };
 
 	_buffer.construct(_env, _gui, mode);
 

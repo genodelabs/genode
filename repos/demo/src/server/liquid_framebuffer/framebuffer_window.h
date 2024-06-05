@@ -71,8 +71,8 @@ class Framebuffer_window : public Scout::Window
 		                   bool                     config_decoration)
 		:
 			Scout::Window(gfx_backend, position,
-			              Scout::Area(content->min_size().w() + 2,
-			                          content->min_size().h() + 1 + _TH),
+			              Scout::Area(content->min_size().w + 2,
+			                          content->min_size().h + 1 + _TH),
 			              max_size, false),
 			_content(content), _config_alpha(config_alpha),
 			_config_resize_handle(config_resize_handle),
@@ -167,14 +167,14 @@ class Framebuffer_window : public Scout::Window
 		{
 			using namespace Scout;
 
-			unsigned w = size.w();
-			unsigned h = size.h();
+			unsigned w = size.w;
+			unsigned h = size.h;
 
 			/* limit window size to valid values */
-			w = max(w, min_size().w());
-			h = max(h, min_size().h());
-			w = min(w, max_size().w());
-			h = min(h, max_size().h());
+			w = max(w, min_size().w);
+			h = max(h, min_size().h);
+			w = min(w, max_size().w);
+			h = min(h, max_size().h);
 
 			_size = Scout::Area(w, h);
 
@@ -183,9 +183,9 @@ class Framebuffer_window : public Scout::Window
 			if (_config_decoration) {
 				_titlebar.format_fixed_width(w);
 				_titlebar.geometry(Rect(Point(1, y),
-				                        Area(_titlebar.min_size().w(),
-				                             _titlebar.min_size().h())));
-				y += _titlebar.min_size().h();
+				                        Area(_titlebar.min_size().w,
+				                             _titlebar.min_size().h)));
+				y += _titlebar.min_size().h;
 			}
 
 			int const content_h = ((int)h > y + 1) ? (h - y - 1) : 0;
@@ -196,12 +196,12 @@ class Framebuffer_window : public Scout::Window
 			_content->geometry(Rect(Point(content_x, y),
 			                   Area(content_w, content_h)));
 
-			_sizer.geometry(Rect(Point(_size.w() - 32, _size.h() - 32), Area(32, 32)));
+			_sizer.geometry(Rect(Point(_size.w - 32, _size.h - 32), Area(32, 32)));
 
 			if (_config_decoration)
 				Window::format(_size);
 			else
-				Window::format(Area(_size.w() - 2, _size.h() - 1 - _TH));
+				Window::format(Area(_size.w - 2, _size.h - 1 - _TH));
 
 			refresh();
 		}
@@ -225,12 +225,12 @@ class Framebuffer_window : public Scout::Window
 
 			/* border */
 			Color const color = Color::black();
-			canvas.draw_box(0, 0, _size.w(), 1, color);
+			canvas.draw_box(0, 0, _size.w, 1, color);
 			if (_config_decoration)
-				canvas.draw_box(0, _TH, _size.w(), 1, color);
-			canvas.draw_box(0, _size.h() - 1, _size.w(), 1, color);
-			canvas.draw_box(0, 1, 1, _size.h() - 2, color);
-			canvas.draw_box(_size.w() - 1, 1, 1, _size.h() - 2, color);
+				canvas.draw_box(0, _TH, _size.w, 1, color);
+			canvas.draw_box(0, _size.h - 1, _size.w, 1, color);
+			canvas.draw_box(0, 1, 1, _size.h - 2, color);
+			canvas.draw_box(_size.w - 1, 1, 1, _size.h - 2, color);
 		};
 };
 

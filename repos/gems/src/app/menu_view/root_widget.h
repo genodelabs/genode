@@ -33,7 +33,7 @@ struct Menu_view::Root_widget : Widget
 		Area result(1, 1);
 
 		_children.for_each([&] (Widget const &child) {
-			result = child.animated_geometry().area(); });
+			result = child.animated_geometry().area; });
 
 		return result;
 	}
@@ -76,7 +76,7 @@ struct Menu_view::Root_widget : Widget
 	{
 		_children.for_each([&] (Widget &child) {
 			child.position(Point(0, 0));
-			child.size(_geometry.area());
+			child.size(_geometry.area);
 		});
 	}
 };

@@ -74,8 +74,8 @@ struct Test::Main
 
 	static Gui::Area _area_from_xml(Xml_node node, Gui::Area default_area)
 	{
-		return Gui::Area(node.attribute_value("width",  default_area.w()),
-		                 node.attribute_value("height", default_area.h()));
+		return Gui::Area(node.attribute_value("width",  default_area.w),
+		                 node.attribute_value("height", default_area.h));
 	}
 
 	struct Output

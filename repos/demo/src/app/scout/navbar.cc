@@ -125,12 +125,12 @@ void Navbar::format_fixed_width(int w)
 	if (_prev_title) _prev_title->format_fixed_width(text_w);
 
 	/* determine right-alignment offset for right label */
-	int next_dx = _next_title ? text_w - _next_title->min_size().w() : 0;
+	int next_dx = _next_title ? text_w - _next_title->min_size().w : 0;
 
 	/* determine bounding box of navbar */
 	unsigned h = ARROW_H;
-	if (_next_title) h = max(h, _next_title->min_size().h());
-	if (_prev_title) h = max(h, _prev_title->min_size().h());
+	if (_next_title) h = max(h, _next_title->min_size().h);
+	if (_prev_title) h = max(h, _prev_title->min_size().h);
 	h += 16;
 
 	/* assign icons to this navbar instance */
@@ -150,14 +150,14 @@ void Navbar::format_fixed_width(int w)
 
 	/* place labels */
 	if (_next_title) {
-		ypos = (h - _next_title->min_size().h())/2 + 1;
+		ypos = (h - _next_title->min_size().h)/2 + 1;
 		_next_title->geometry(Rect(Point(w/2 + padx + next_dx, ypos),
-		                           Area(text_w, _next_title->min_size().h())));
+		                           Area(text_w, _next_title->min_size().h)));
 	}
 	if (_prev_title) {
-		ypos = (h - _prev_title->min_size().h())/2 + 1;
+		ypos = (h - _prev_title->min_size().h)/2 + 1;
 		_prev_title->geometry(Rect(Point(ARROW_W, ypos),
-		                           Area(text_w, _prev_title->min_size().h())));
+		                           Area(text_w, _prev_title->min_size().h)));
 	}
 
 	_min_size = Scout::Area(w, h);
@@ -170,10 +170,10 @@ void Navbar::draw(Canvas_base &canvas, Point abs_position)
 	int cx2 = canvas.clip().x2(), cy2 = canvas.clip().y2();
 
 	/* shrink clipping area to text area (cut too long words) */
-	int nx1 = max(cx1, _position.x() + abs_position.x() + ARROW_W);
-	int ny1 = max(cy1, _position.y() + abs_position.y());
-	int nx2 = min(cx2, nx1 + (int)_size.w() - 2*ARROW_W);
-	int ny2 = min(cy2, ny1 + (int)_size.h());
+	int nx1 = max(cx1, _position.x + abs_position.x + ARROW_W);
+	int ny1 = max(cy1, _position.y + abs_position.y);
+	int nx2 = min(cx2, nx1 + (int)_size.w - 2*ARROW_W);
+	int ny2 = min(cy2, ny1 + (int)_size.h);
 
 	canvas.clip(Rect(Point(nx1, ny1), Area(nx2 - nx1 + 1, ny2 - ny1 + 1)));
 	Parent_element::draw(canvas, abs_position);

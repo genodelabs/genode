@@ -134,7 +134,7 @@ class Scout::User_state : public Parent_element
 				case Event::WHEEL:
 
 					if (_key_cnt == 0)
-						_window->ypos(_window->ypos() + 23 * ev.mouse_position.y());
+						_window->ypos(_window->ypos() + 23 * ev.mouse_position.y);
 					break;
 
 				default:

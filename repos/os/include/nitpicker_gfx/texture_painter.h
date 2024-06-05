@@ -56,12 +56,12 @@ struct Texture_painter
 
 		if (!clipped.valid()) return;
 
-		int const src_w = texture.size().w();
-		int const dst_w = surface.size().w();
+		int const src_w = texture.size().w;
+		int const dst_w = surface.size().w;
 
 		/* calculate offset of first texture pixel to copy */
-		unsigned long tex_start_offset = (clipped.y1() - position.y())*src_w
-		                               +  clipped.x1() - position.x();
+		unsigned long tex_start_offset = (clipped.y1() - position.y)*src_w
+		                               +  clipped.x1() - position.x;
 
 		/* start address of source pixels */
 		PT const *src = texture.pixel() + tex_start_offset;

@@ -56,7 +56,7 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 		/* cursor position in pixels, only p1.x is used */
 		Animated_rect _position;
 
-		int _xpos() const { return _position.p1().x(); }
+		int _xpos() const { return _position.p1().x; }
 
 		static Name _node_name(Xml_node node)
 		{
@@ -70,7 +70,7 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 
 		void _move_to(int position, Steps steps)
 		{
-			_position.move_to(Rect(Point(position, 0), Point()), steps);
+			_position.move_to(Rect::compound(Point(position, 0), Point()), steps);
 		}
 
 		/*
@@ -101,8 +101,8 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 				                   Rect(at + Point(_xpos(), 0), Area(1, height)),
 				                   Color(0, 0, 0, 255));
 			} else {
-				unsigned const w = _texture->size().w();
-				Rect const rect(Point(_xpos() + at.x() - w/2 + 1, at.y()),
+				unsigned const w = _texture->size().w;
+				Rect const rect(Point(_xpos() + at.x - w/2 + 1, at.y),
 				                Area(w, height));
 
 				Icon_painter::paint(pixel_surface, rect, *_texture, 255);

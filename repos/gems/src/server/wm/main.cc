@@ -122,8 +122,8 @@ struct Wm::Main : Pointer::Tracker
 		Reporter::Xml_generator xml(pointer_reporter, [&] ()
 		{
 			if (pos.valid) {
-				xml.attribute("xpos", pos.value.x());
-				xml.attribute("ypos", pos.value.y());
+				xml.attribute("xpos", pos.value.x);
+				xml.attribute("ypos", pos.value.y);
 			}
 		});
 	}

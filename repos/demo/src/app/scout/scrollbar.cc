@@ -188,7 +188,7 @@ class Slider_event_handler : public Event_handler
 				_icon->rgba(_rgba, 1, 3);
 				_icon->refresh();
 
-				orig_my = curr_my = ev.mouse_position.y();
+				orig_my = curr_my = ev.mouse_position.y;
 				orig_slider_pos = _sb->slider_pos();
 			}
 
@@ -199,8 +199,8 @@ class Slider_event_handler : public Event_handler
 				_icon->refresh();
 			}
 
-			if (key_cnt && (ev.mouse_position.y() != curr_my)) {
-				curr_my = ev.mouse_position.y();
+			if (key_cnt && (ev.mouse_position.y != curr_my)) {
+				curr_my = ev.mouse_position.y;
 				_sb->slider_pos(orig_slider_pos + curr_my - orig_my);
 				_sb->notify_listener();
 			}
@@ -240,7 +240,7 @@ Scrollbar<PT>::Scrollbar()
 template <typename PT>
 int Scrollbar<PT>::slider_size()
 {
-	return max((unsigned)sb_elem_h, ((_size.h() - sb_elem_h*2)*_view_size)/_real_size);
+	return max((unsigned)sb_elem_h, ((_size.h - sb_elem_h*2)*_view_size)/_real_size);
 }
 
 
@@ -248,7 +248,7 @@ template <typename PT>
 int Scrollbar<PT>::slider_pos()
 {
 	int real_range   = _real_size - _view_size;
-	int slider_range = _size.h() - sb_elem_h*2 - slider_size();
+	int slider_range = _size.h - sb_elem_h*2 - slider_size();
 	int pos = real_range ? (slider_range*_view_pos)/real_range : 0;
 
 	return pos + sb_elem_h;
@@ -258,7 +258,7 @@ int Scrollbar<PT>::slider_pos()
 template <typename PT>
 void Scrollbar<PT>::slider_pos(int pos)
 {
-	int slider_bg_h = _size.h() - sb_elem_h*2;
+	int slider_bg_h = _size.h - sb_elem_h*2;
 
 	_view_pos = ((pos - sb_elem_h)*_real_size)/slider_bg_h;
 	_view_pos = max(0, min(_view_pos,  _real_size - _view_size));

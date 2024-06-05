@@ -126,8 +126,8 @@ struct Text_painter
 	                         char const          *string)
 	{
 		/* use sub-pixel positioning horizontally */
-		Fixpoint_number       x = position.x();
-		Fixpoint_number const y = position.y();
+		Fixpoint_number       x = position.x;
+		Fixpoint_number const y = position.y;
 
 		int const clip_top    = surface.clip().y1(),
 		          clip_bottom = surface.clip().y2() + 1,
@@ -149,7 +149,7 @@ struct Text_painter
 
 		int const x_start = x.decimal();
 
-		unsigned const dst_line_len = surface.size().w();
+		unsigned const dst_line_len = surface.size().w;
 
 		PT * const dst = surface.addr();
 
@@ -171,7 +171,7 @@ struct Text_painter
 
 		surface.flush_pixels(Rect(Point(x_start, y.decimal()),
 		                          Area(x.decimal() - x_start + 1,
-		                               font.bounding_box().h())));
+		                               font.bounding_box().h)));
 	}
 };
 

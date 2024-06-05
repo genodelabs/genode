@@ -82,15 +82,15 @@ Launchpad_window<PT>::Launchpad_window(Genode::Env &env,
 template <typename PT>
 void Launchpad_window<PT>::ypos_sb(int ypos, int update_scrollbar)
 {
-	if (ypos < -(int)(_docview.size().h() + _size.h()))
-		ypos = -_docview.size().h() + _size.h();
+	if (ypos < -(int)(_docview.size().h + _size.h))
+		ypos = -_docview.size().h + _size.h;
 
 	_ypos = ypos <= 0 ? ypos : 0;
 
-	_docview.geometry(Rect(Point(_docview.position().x(), _ypos), _docview.size()));
+	_docview.geometry(Rect(Point(_docview.position().x, _ypos), _docview.size()));
 
 	if (update_scrollbar)
-		_scrollbar.view(_docview.size().h(), _size.h(), -_ypos);
+		_scrollbar.view(_docview.size().h, _size.h, -_ypos);
 
 	refresh();
 }
@@ -104,52 +104,52 @@ template <typename PT>
 void Launchpad_window<PT>::format(Scout::Area size)
 {
 	/* limit window size to valid values */
-	unsigned w = size.w();
-	unsigned h = size.h();
+	unsigned w = size.w;
+	unsigned h = size.h;
 
-	w = max(w, min_size().w());
-	h = max(h, min_size().h());
-	w = min(w, max_size().w());
-	h = min(h, max_size().h());
+	w = max(w, min_size().w);
+	h = max(h, min_size().h);
+	w = min(w, max_size().w);
+	h = min(h, max_size().h);
 
 	/* determine old scrollbar visibility */
-	int old_sb_visibility = (_docview.min_size().h() > _size.h());
+	int old_sb_visibility = (_docview.min_size().h > _size.h);
 
 	/* assign new size to window */
 	_size = Scout::Area(w, h);
 
 	/* format document */
-	_docview.format_fixed_width(_size.w());
+	_docview.format_fixed_width(_size.w);
 
 	/* format titlebar */
-	_titlebar.format_fixed_width(_size.w());
+	_titlebar.format_fixed_width(_size.w);
 
 	/* determine new scrollbar visibility */
-	int new_sb_visibility = (_docview.min_size().h() > _size.h());
+	int new_sb_visibility = (_docview.min_size().h > _size.h);
 
 	/* reformat docview on change of scrollbar visibility */
 	if (old_sb_visibility ^ new_sb_visibility) {
-		_docview.right_pad(new_sb_visibility ? _scrollbar.min_size().w() : 0);
-		_docview.format_fixed_width(_size.w());
+		_docview.right_pad(new_sb_visibility ? _scrollbar.min_size().w : 0);
+		_docview.format_fixed_width(_size.w);
 	}
 
 	/* position docview */
 	_docview.geometry(Rect(Point(0, _ypos),
-	                       Area(_docview.min_size().w(),
-	                            max(_docview.min_size().h(), _size.h()))));
+	                       Area(_docview.min_size().w,
+	                            max(_docview.min_size().h, _size.h))));
 
 	/* start at top */
 	int y = 0;
 
 	/* position titlebar */
-	_titlebar.geometry(Rect(Point(y, 0), Area(_size.w(), _TH)));
+	_titlebar.geometry(Rect(Point(y, 0), Area(_size.w, _TH)));
 	y += _TH;
 
-	_scrollbar.geometry(Rect(Point(w - _scrollbar.min_size().w() - _SB_XPAD, y + _SB_YPAD),
-	                         Area(_scrollbar.min_size().w(), h - y - _SB_YPAD*2 - 8)));
+	_scrollbar.geometry(Rect(Point(w - _scrollbar.min_size().w - _SB_XPAD, y + _SB_YPAD),
+	                         Area(_scrollbar.min_size().w, h - y - _SB_YPAD*2 - 8)));
 	
 	
-	_sizer.geometry(Rect(Point(_size.w() - 32, _size.h() - 32), Area(32, 32)));
+	_sizer.geometry(Rect(Point(_size.w - 32, _size.h - 32), Area(32, 32)));
 
 	Window::format(_size);
 	ypos(_ypos);

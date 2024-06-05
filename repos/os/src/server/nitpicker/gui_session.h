@@ -260,11 +260,11 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			if (!_input_mask || !_texture.valid()) return 0;
 
 			/* check boundaries */
-			if ((unsigned)p.x() >= _texture.size().w()
-			 || (unsigned)p.y() >= _texture.size().h())
+			if ((unsigned)p.x >= _texture.size().w
+			 || (unsigned)p.y >= _texture.size().h)
 				return 0;
 
-			return _input_mask[p.y()*_texture.size().w() + p.x()];
+			return _input_mask[p.y*_texture.size().w + p.x];
 		}
 
 		void submit_input_event(Input::Event e) override;

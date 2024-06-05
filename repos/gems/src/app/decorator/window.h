@@ -77,7 +77,7 @@ class Decorator::Window : public Window_base
 			void place(Rect rect)
 			{
 				_gui.enqueue<Command::Geometry>(_handle, rect);
-				Point offset = Point(0, 0) - rect.p1();
+				Point offset = Point(0, 0) - rect.at;
 				_gui.enqueue<Command::Offset>(_handle, offset);
 			}
 		};
@@ -231,34 +231,34 @@ class Decorator::Window : public Window_base
 		                 bool at_left, bool at_right,
 		                 unsigned border, Color color) const
 		{
-			int const x1 = at_left  ? (pos.x())         : (pos.x() + w - border);
-			int const x2 = at_right ? (pos.x() + w - 1) : (pos.x() + border - 1);
+			int const x1 = at_left  ? (pos.x)         : (pos.x + w - border);
+			int const x2 = at_right ? (pos.x + w - 1) : (pos.x + border - 1);
 
-			canvas.draw_box(Rect(Point(x1, pos.y()),
-			                     Point(x2, pos.y())), color);
+			canvas.draw_box(Rect::compound(Point(x1, pos.y),
+			                               Point(x2, pos.y)), color);
 		}
 
 		void _draw_vline(Canvas_base &canvas, Point pos, unsigned h,
 		                 bool at_top, bool at_bottom,
 		                 unsigned border, Color color) const
 		{
-			int const y1 = at_top    ? (pos.y())         : (pos.y() + h - border);
-			int const y2 = at_bottom ? (pos.y() + h - 1) : (pos.y() + border - 1);
+			int const y1 = at_top    ? (pos.y)         : (pos.y + h - border);
+			int const y2 = at_bottom ? (pos.y + h - 1) : (pos.y + border - 1);
 
-			canvas.draw_box(Rect(Point(pos.x(), y1),
-			                     Point(pos.x(), y2)), color);
+			canvas.draw_box(Rect::compound(Point(pos.x, y1),
+			                               Point(pos.x, y2)), color);
 		}
 
 		void _draw_raised_frame(Canvas_base &canvas, Rect rect, bool pressed) const
 		{
 			Color const top_left_color = pressed ? _dimmed : _bright;
 
-			_draw_hline(canvas, rect.p1(), rect.w(), true, true, 0, top_left_color);
-			_draw_vline(canvas, rect.p1(), rect.h(), true, true, 0, top_left_color);
+			_draw_hline(canvas, rect.at, rect.w(), true, true, 0, top_left_color);
+			_draw_vline(canvas, rect.at, rect.h(), true, true, 0, top_left_color);
 
-			_draw_hline(canvas, Point(rect.p1().x(), rect.p2().y()), rect.w(),
+			_draw_hline(canvas, Point(rect.x1(), rect.y2()), rect.w(),
 			            true, true, 0, _dark);
-			_draw_vline(canvas, Point(rect.p2().x(), rect.p1().y()), rect.h(),
+			_draw_vline(canvas, Point(rect.x2(), rect.y1()), rect.h(),
 			            true, true, 0, _dark);
 		}
 
@@ -308,7 +308,7 @@ class Decorator::Window : public Window_base
 				Color const mix_color  = upper_half ? upper_color : lower_color;
 				Color const line_color = _mix_colors(mix_color, attr.color, alpha);
 
-				canvas.draw_box(Rect(rect.p1() + Point(0, i),
+				canvas.draw_box(Rect(rect.at + Point(0, i),
 				                     Area(rect.w(), 1)), line_color);
 			}
 
@@ -322,10 +322,10 @@ class Decorator::Window : public Window_base
 			bool const bottom = !top;
 			bool const right  = !left;
 
-			int const x1 = rect.p1().x();
-			int const y1 = rect.p1().y();
-			int const x2 = rect.p2().x();
-			int const y2 = rect.p2().y();
+			int const x1 = rect.x1();
+			int const y1 = rect.y1();
+			int const x2 = rect.x2();
+			int const y2 = rect.y2();
 			int const w  = rect.w();
 			int const h  = rect.h();
 
@@ -339,7 +339,7 @@ class Decorator::Window : public Window_base
 			                     Area(border, h - border)), attr.color);
 
 			/* top bright line */
-			_draw_hline(canvas, rect.p1(), w,
+			_draw_hline(canvas, rect.at, w,
 			            top || left, top || right, border, top_left_color);
 
 			/* inner horizontal line */
@@ -352,7 +352,7 @@ class Decorator::Window : public Window_base
 			            bottom || left, bottom || right, border, _dark);
 
 			/* left bright line */
-			_draw_vline(canvas, rect.p1(), h,
+			_draw_vline(canvas, rect.at, h,
 			            left || top, left || bottom, border, top_left_color);
 
 			/* inner vertical line */
@@ -405,7 +405,7 @@ class Decorator::Window : public Window_base
 		{
 			_draw_title_box(canvas, rect, _window_control_attr(control));
 
-			canvas.draw_texture(rect.p1() + Point(1,1),
+			canvas.draw_texture(rect.at + Point(1,1),
 			                    _window_control_texture(control));
 		}
 
@@ -461,13 +461,8 @@ class Decorator::Window : public Window_base
 
 		Rect outer_geometry() const override
 		{
-			return Rect(geometry().p1() - Point(_border.left,  _border.top),
-			            geometry().p2() + Point(_border.right, _border.bottom));
-		}
-
-		void border_rects(Rect *top, Rect *left, Rect *right, Rect *bottom) const
-		{
-			outer_geometry().cut(geometry(), top, left, right, bottom);
+			return Rect::compound(geometry().p1() - Point(_border.left,  _border.top),
+			                      geometry().p2() + Point(_border.right, _border.bottom));
 		}
 
 		void update_gui_views() override
@@ -475,14 +470,13 @@ class Decorator::Window : public Window_base
 			if (!_gui_views_up_to_date) {
 
 				/* update view positions */
-				Rect top, left, right, bottom;
-				border_rects(&top, &left, &right, &bottom);
+				auto const border = outer_geometry().cut(geometry());
 
 				_content_view.place(geometry());
-				_top_view    .place(top);
-				_left_view   .place(left);
-				_right_view  .place(right);
-				_bottom_view .place(bottom);
+				_top_view    .place(border.top);
+				_left_view   .place(border.left);
+				_right_view  .place(border.right);
+				_bottom_view .place(border.bottom);
 
 				_gui_views_up_to_date = true;
 			}

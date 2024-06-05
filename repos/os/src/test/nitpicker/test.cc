@@ -154,7 +154,7 @@ void Component::construct(Genode::Env &env)
 	Framebuffer::Mode const mode { .area = { 256, 256 } };
 	gui.buffer(mode, false);
 
-	int const scr_w = mode.area.w(), scr_h = mode.area.h();
+	int const scr_w = mode.area.w, scr_h = mode.area.h;
 
 	log("screen is ", mode);
 	if (!scr_w || !scr_h) {

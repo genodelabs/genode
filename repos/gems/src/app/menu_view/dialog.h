@@ -97,14 +97,14 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 	Area _root_widget_size() const
 	{
 		Area const min_size = _root_widget.min_size();
-		return Area(max(_configured_size.w(), min_size.w()),
-		            max(_configured_size.h(), min_size.h()));
+		return Area(max(_configured_size.w, min_size.w),
+		            max(_configured_size.h, min_size.h));
 	}
 
 	void _update_view(Rect geometry)
 	{
-		if (_view_geometry.p1()   == geometry.p1()
-		 && _view_geometry.area() == geometry.area())
+		if (_view_geometry.p1() == geometry.p1()
+		 && _view_geometry.area == geometry.area)
 			return;
 
 		using Command     = Gui::Session::Command;
@@ -154,13 +154,13 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 		Area const size = _root_widget_size();
 
-		unsigned const buffer_w = _buffer.constructed() ? _buffer->size().w() : 0,
-		               buffer_h = _buffer.constructed() ? _buffer->size().h() : 0;
+		unsigned const buffer_w = _buffer.constructed() ? _buffer->size().w : 0,
+		               buffer_h = _buffer.constructed() ? _buffer->size().h : 0;
 
-		Area const max_size(max(buffer_w, size.w()), max(buffer_h, size.h()));
+		Area const max_size(max(buffer_w, size.w), max(buffer_h, size.h));
 
-		bool const size_increased = (max_size.w() > buffer_w)
-		                         || (max_size.h() > buffer_h);
+		bool const size_increased = (max_size.w > buffer_w)
+		                         || (max_size.h > buffer_h);
 
 		if (!_buffer.constructed() || size_increased)
 			_buffer.construct(_gui, max_size, _env.ram(), _env.rm(),
@@ -178,7 +178,7 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 		});
 
 		_buffer->flush_surface();
-		_gui.framebuffer()->refresh(0, 0, _buffer->size().w(), _buffer->size().h());
+		_gui.framebuffer()->refresh(0, 0, _buffer->size().w, _buffer->size().h);
 		_update_view(Rect(_position, size));
 
 		_redraw_scheduled = false;

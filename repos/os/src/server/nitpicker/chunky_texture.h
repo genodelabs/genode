@@ -56,7 +56,7 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 			 * alpha value and one byte for the input mask value.
 			 */
 			size_t bytes_per_pixel = sizeof(PT) + (use_alpha ? 2 : 0);
-			return bytes_per_pixel*size.w()*size.h();
+			return bytes_per_pixel*size.count();
 		}
 
 		unsigned char const *input_mask_buffer() const

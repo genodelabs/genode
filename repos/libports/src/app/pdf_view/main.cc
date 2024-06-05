@@ -119,10 +119,10 @@ class Pdf_view
 
 			_nit_mode = _gui.mode();
 
-			unsigned max_x = Genode::max(_nit_mode.area.w(), _fb_mode.area.w());
-			unsigned max_y = Genode::max(_nit_mode.area.h(), _fb_mode.area.h());
+			unsigned max_x = Genode::max(_nit_mode.area.w, _fb_mode.area.w);
+			unsigned max_y = Genode::max(_nit_mode.area.h, _fb_mode.area.h);
 
-			if (max_x > _fb_mode.area.w() || max_y > _fb_mode.area.h()) {
+			if (max_x > _fb_mode.area.w || max_y > _fb_mode.area.h) {
 				_fb_mode = Mode { .area = { max_x, max_y } };
 				_gui.buffer(_fb_mode, NO_ALPHA);
 				if (_fb_ds.constructed())
@@ -130,8 +130,8 @@ class Pdf_view
 				_fb_ds.construct(_env.rm(), _framebuffer.dataspace());
 			}
 
-			_pdfapp.scrw = _nit_mode.area.w();
-			_pdfapp.scrh = _nit_mode.area.h();
+			_pdfapp.scrw = _nit_mode.area.w;
+			_pdfapp.scrh = _nit_mode.area.h;
 
 			/*
 			 * XXX replace heuristics with a meaningful computation
@@ -139,8 +139,8 @@ class Pdf_view
 			 * The magic values are hand-tweaked manually to accommodating the
 			 * use case of showing slides.
 			 */
-			_pdfapp.resolution = Genode::min(_nit_mode.area.w()/5,
-			                                 _nit_mode.area.h()/4);
+			_pdfapp.resolution = Genode::min(_nit_mode.area.w/5,
+			                                 _nit_mode.area.h/4);
 
 			typedef Gui::Session::Command Command;
 			_gui.enqueue<Command::Geometry>(_view, Rect(Point(), _nit_mode.area));
@@ -151,7 +151,7 @@ class Pdf_view
 		void _handle_nit_mode()
 		{
 			_rebuffer();
-			pdfapp_onresize(&_pdfapp, _nit_mode.area.w(), _nit_mode.area.h());
+			pdfapp_onresize(&_pdfapp, _nit_mode.area.w, _nit_mode.area.h);
 		}
 
 		pdfapp_t _pdfapp { };
@@ -219,7 +219,7 @@ class Pdf_view
 
 		void _refresh()
 		{
-			_framebuffer.refresh(0, 0, _nit_mode.area.w(), _nit_mode.area.h());
+			_framebuffer.refresh(0, 0, _nit_mode.area.w, _nit_mode.area.h);
 
 			/* handle one sync signal only */
 			_framebuffer.sync_sigh(Genode::Signal_context_capability());
@@ -290,8 +290,8 @@ void Pdf_view::show()
 		return (value >= diff) ? value - diff : 0; };
 
 	Framebuffer::Area const fb_size = _fb_mode.area;
-	int const x_max = Genode::min((int)fb_size.w(), reduce_by(_pdfapp.image->w, 2));
-	int const y_max = Genode::min((int)fb_size.h(), _pdfapp.image->h);
+	int const x_max = Genode::min((int)fb_size.w, reduce_by(_pdfapp.image->w, 2));
+	int const y_max = Genode::min((int)fb_size.h, _pdfapp.image->h);
 
 	/* clear framebuffer */
 	::memset((void *)_fb_base(), 0, _fb_ds->size());
@@ -299,7 +299,7 @@ void Pdf_view::show()
 	Genode::size_t src_line_bytes   = _pdfapp.image->n * _pdfapp.image->w;
 	unsigned char *src_line         = _pdfapp.image->samples;
 
-	Genode::size_t dst_line_width   = fb_size.w(); /* in pixels */
+	Genode::size_t dst_line_width   = fb_size.w; /* in pixels */
 	pixel_t *dst_line = _fb_base();
 
 	/* skip first two lines as they contain white (XXX) */
@@ -308,12 +308,12 @@ void Pdf_view::show()
 	int const tweaked_y_max = y_max - 2;
 
 	/* center vertically if the dst buffer is higher than the image */
-	if ((unsigned)_pdfapp.image->h < _nit_mode.area.h())
-		dst_line += dst_line_width*((_nit_mode.area.h() - _pdfapp.image->h)/2);
+	if ((unsigned)_pdfapp.image->h < _nit_mode.area.h)
+		dst_line += dst_line_width*((_nit_mode.area.h - _pdfapp.image->h)/2);
 
 	/* center horizontally if the dst buffer is wider than the image */
-	if ((unsigned)_pdfapp.image->w < _nit_mode.area.w())
-		dst_line += (_nit_mode.area.w() - _pdfapp.image->w)/2;
+	if ((unsigned)_pdfapp.image->w < _nit_mode.area.w)
+		dst_line += (_nit_mode.area.w - _pdfapp.image->w)/2;
 
 	for (int y = 0; y < tweaked_y_max; y++) {
 		copy_line_rgba(src_line, dst_line, x_max);

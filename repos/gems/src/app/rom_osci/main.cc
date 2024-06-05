@@ -212,9 +212,9 @@ struct Osci::Main
 			 */
 
 			Area     const area  = pixel.size();
-			unsigned const w     = area.w();
-			int      const y_pos = int(_attr.v_pos*area.h());
-			double   const screen_v_scale = _attr.v_scale*area.h()/2;
+			unsigned const w     = area.w;
+			int      const y_pos = int(_attr.v_pos*area.h);
+			double   const screen_v_scale = _attr.v_scale*area.h/2;
 
 			auto _horizontal_line = [&] (Color c, int y, Color::channel_t alpha)
 			{
@@ -314,7 +314,7 @@ struct Osci::Main
 		Phase_lock phase_lock { };
 		if (_phase_lock)
 			_channels.with_first([&] (Channel const &channel) {
-				phase_lock = channel.phase_lock(_size.w()/2, -0.1f, _size.w()/2); });
+				phase_lock = channel.phase_lock(_size.w/2, -0.1f, _size.w/2); });
 
 		_gui_buffer->reset_surface();
 		_gui_buffer->apply_to_surface([&] (auto &pixel, auto &alpha) {
@@ -322,7 +322,7 @@ struct Osci::Main
 				channel.render(pixel, alpha, phase_lock); }); });
 
 		_gui_buffer->flush_surface();
-		_gui.framebuffer()->refresh(0, 0, _size.w(), _size.h());
+		_gui.framebuffer()->refresh(0, 0, _size.w, _size.h);
 	}
 
 	Main(Env &env) : _env(env)

@@ -37,17 +37,17 @@ struct Box_painter
 		if (!clipped.valid()) return;
 
 		PT pix(color.r, color.g, color.b);
-		PT *dst, *dst_line = surface.addr() + surface.size().w()*clipped.y1() + clipped.x1();
+		PT *dst, *dst_line = surface.addr() + surface.size().w*clipped.y1() + clipped.x1();
 
 		int const alpha = color.a;
 
 		if (color.opaque())
-			for (int w, h = clipped.h() ; h--; dst_line += surface.size().w())
+			for (unsigned w, h = clipped.h() ; h--; dst_line += surface.size().w)
 				for (dst = dst_line, w = clipped.w(); w--; dst++)
 					*dst = pix;
 
 		else if (!color.transparent())
-			for (int w, h = clipped.h() ; h--; dst_line += surface.size().w())
+			for (unsigned w, h = clipped.h() ; h--; dst_line += surface.size().w)
 				for (dst = dst_line, w = clipped.w(); w--; dst++)
 					*dst = PT::mix(*dst, pix, alpha);
 

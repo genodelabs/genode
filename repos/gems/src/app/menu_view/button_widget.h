@@ -116,8 +116,8 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		/* don't get smaller than the background texture */
 		Area const texture_size = _curr_texture->size();
 
-		return Area(max(_space().w() + child_min_size.w(), texture_size.w()),
-		            max(_space().h() + child_min_size.h(), texture_size.h()));
+		return Area(max(_space().w + child_min_size.w, texture_size.w),
+		            max(_space().h + child_min_size.h, texture_size.h));
 	}
 
 	void draw(Surface<Pixel_rgb888> &pixel_surface,
@@ -182,14 +182,14 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 			child.position(Point(margin.left + _padding.left,
 			                     margin.top  + _padding.top));
 
-			Area const avail = geometry().area();
+			Area const avail = geometry().area;
 
 			unsigned const
-				w = avail.w() >= _space().w() ? avail.w() - _space().w() : 0,
-				h = avail.h() >= _space().h() ? avail.h() - _space().w() : 0;
+				w = avail.w >= _space().w ? avail.w - _space().w : 0,
+				h = avail.h >= _space().h ? avail.h - _space().w : 0;
 
-			child.size(Area(max(w, child.min_size().w()),
-			                max(h, child.min_size().h())));
+			child.size(Area(max(w, child.min_size().w),
+			                max(h, child.min_size().h)));
 		});
 	}
 

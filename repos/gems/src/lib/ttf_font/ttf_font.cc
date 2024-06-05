@@ -117,7 +117,7 @@ struct Ttf_font::Glyph_buffer
 			alloc(alloc),
 
 			/* glyphs are horizontally stretched by factor 4 */
-			capacity(4*(bounding_box.w() + PAD_X)*(bounding_box.h() + PAD_Y))
+			capacity(4*(bounding_box.w + PAD_X)*(bounding_box.h + PAD_Y))
 		{ }
 
 		~Glyph_buffer() { alloc.free(_values, _num_bytes()); }

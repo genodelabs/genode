@@ -47,7 +47,7 @@ namespace Nitpicker {
 	inline Area label_size(Font const &font, const char *sl, const char *vt) {
 		return Area(font.string_width(sl).decimal() + LABEL_GAP +
 		            font.string_width(vt).decimal() + 2,
-		            font.bounding_box().h() + 2); }
+		            font.bounding_box().h + 2); }
 
 
 	/**

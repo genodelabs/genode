@@ -171,8 +171,8 @@ class Icon_painter
 			int const cx2 = surface.clip().x2();
 			int const cy2 = surface.clip().y2();
 
-			unsigned const icon_w = icon.size().w(),
-			               icon_h = icon.size().h();
+			unsigned const icon_w = icon.size().w,
+			               icon_h = icon.size().h;
 
 			/* determine point positions */
 			int const x1 = rect.x1();
@@ -203,15 +203,15 @@ class Icon_painter
 
 			if (_clip(x1, y1, x2 - 1, y2 - 1, cx1, cy1, cx2, cy2, &dx, &dy, &w, &h))
 				_draw_cslice(src + tx1 + dy*icon_w + dx, src_a + tx1 + dy*icon_w + dx, icon_w, alpha,
-				            addr + (y1 + dy)*surface.size().w() + x1 + dx, surface.size().w(), w, h);
+				            addr + (y1 + dy)*surface.size().w + x1 + dx, surface.size().w, w, h);
 
 			if (_clip(x2, y1, x3 - 1, y2 - 1, cx1, cy1, cx2, cy2, &dx, &dy, &w, &h))
 				_draw_hslice(src + tx2 + dy*icon_w + dx, src_a + tx2 + dy*icon_w + dx, icon_w, alpha,
-				            addr + (y1 + dy)*surface.size().w() + x2 + dx, surface.size().w(), w, h);
+				            addr + (y1 + dy)*surface.size().w + x2 + dx, surface.size().w, w, h);
 
 			if (_clip(x3, y1, x4, y2 - 1, cx1, cy1, cx2, cy2, &dx, &dy, &w, &h))
 				_draw_cslice(src + tx3 + dy*icon_w + dx, src_a + tx3 + dy*icon_w + dx, icon_w, alpha,
-				            addr + (y1 + dy)*surface.size().w() + x3 + dx, surface.size().w(), w, h);
+				            addr + (y1 + dy)*surface.size().w + x3 + dx, surface.size().w, w, h);
 
 			/*
 			 * mid row
@@ -222,15 +222,15 @@ class Icon_painter
 
 			if (_clip(x1, y2, x2 - 1, y3 - 1, cx1, cy1, cx2, cy2, &dx, &dy, &w, &h))
 				_draw_vslice(src + tx1 + dx, src_a + tx1 + dx, icon_w, alpha,
-				            addr + (y2 + dy)*surface.size().w() + x1 + dx, surface.size().w(), w, h);
+				            addr + (y2 + dy)*surface.size().w + x1 + dx, surface.size().w, w, h);
 
 			if (_clip(x2, y2, x3 - 1, y3 - 1, cx1, cy1, cx2, cy2, &dx, &dy, &w, &h))
 				_draw_center(src + tx2, src_a + tx2, icon_w, alpha,
-				            addr + (y2 + dy)*surface.size().w() + x2 + dx, surface.size().w(), w, h);
+				            addr + (y2 + dy)*surface.size().w + x2 + dx, surface.size().w, w, h);
 
 			if (_clip(x3, y2, x4, y3 - 1, cx1, cy1, cx2, cy2, &dx, &dy, &w, &h))
 				_draw_vslice(src + tx3 + dx, src_a + tx3 + dx, icon_w, alpha,
-				            addr + (y2 + dy)*surface.size().w() + x3 + dx, surface.size().w(), w, h);
+				            addr + (y2 + dy)*surface.size().w + x3 + dx, surface.size().w, w, h);
 
 			/*
 			 * low row
@@ -241,15 +241,15 @@ class Icon_painter
 
 			if (_clip(x1, y3, x2 - 1, y4, cx1, cy1, cx2, cy2, &dx, &dy, &w, &h))
 				_draw_cslice(src + tx1 + dy*icon_w + dx, src_a + tx1 + dy*icon_w + dx, icon_w, alpha,
-				            addr + (y3 + dy)*surface.size().w() + x1 + dx, surface.size().w(), w, h);
+				            addr + (y3 + dy)*surface.size().w + x1 + dx, surface.size().w, w, h);
 
 			if (_clip(x2, y3, x3 - 1, y4, cx1, cy1, cx2, cy2, &dx, &dy, &w, &h))
 				_draw_hslice(src + tx2 + dy*icon_w + dx, src_a + tx2 + dy*icon_w + dx, icon_w, alpha,
-				            addr + (y3 + dy)*surface.size().w() + x2 + dx, surface.size().w(), w, h);
+				            addr + (y3 + dy)*surface.size().w + x2 + dx, surface.size().w, w, h);
 
 			if (_clip(x3, y3, x4, y4, cx1, cy1, cx2, cy2, &dx, &dy, &w, &h))
 				_draw_cslice(src + tx3 + dy*icon_w + dx, src_a + tx3 + dy*icon_w + dx, icon_w, alpha,
-				            addr + (y3 + dy)*surface.size().w() + x3 + dx, surface.size().w(), w, h);
+				            addr + (y3 + dy)*surface.size().w + x3 + dx, surface.size().w, w, h);
 		}
 };
 

@@ -109,12 +109,12 @@ class Polygon::Textured_painter : public Polygon::Painter_base
 			int * const v_l_edge = _edges.left (ATTR_V);
 			int * const v_r_edge = _edges.right(ATTR_V);
 
-			unsigned      const  src_w     = texture.size().w();
+			unsigned      const  src_w     = texture.size().w;
 			PT            const *src_pixel = texture.pixel();
 			unsigned char const *src_alpha = texture.alpha();
 
 			/* calculate begin of destination scanline */
-			unsigned const dst_w = pixel_surface.size().w();
+			unsigned const dst_w = pixel_surface.size().w;
 			PT        *dst_pixel = pixel_surface.addr() + dst_w*bbox.y1();
 			AT        *dst_alpha = alpha_surface.addr() + dst_w*bbox.y1();
 

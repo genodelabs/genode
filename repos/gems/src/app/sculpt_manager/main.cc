@@ -953,8 +953,8 @@ struct Sculpt::Main : Input_event_handler,
 
 			ev.handle_wheel([&] (int, int y) { dy = y*32; });
 
-			if (ev.key_press(Input::KEY_PAGEUP))   dy =  int(_gui.mode().area.h() / 3);
-			if (ev.key_press(Input::KEY_PAGEDOWN)) dy = -int(_gui.mode().area.h() / 3);
+			if (ev.key_press(Input::KEY_PAGEUP))   dy =  int(_gui.mode().area.h / 3);
+			if (ev.key_press(Input::KEY_PAGEDOWN)) dy = -int(_gui.mode().area.h / 3);
 
 			if (dy != 0) {
 				scroll_ypos += dy;
@@ -1720,7 +1720,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 	unsigned panel_height = 0;
 	_with_window(window_list, panel_view_label, [&] (Xml_node win) {
-		panel_height = win_size(win).h(); });
+		panel_height = win_size(win).h; });
 
 	/* suppress intermediate states during the restart of the panel */
 	if (panel_height == 0)
@@ -1733,20 +1733,20 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		return;
 
 	/* area reserved for the panel */
-	Rect const panel(Point(0, 0), Area(mode.area.w(), panel_height));
+	Rect const panel = Rect(Point(0, 0), Area(mode.area.w, panel_height));
 
 	/* available space on the right of the menu */
-	Rect avail(Point(0, panel.h()),
-	           Point(mode.area.w() - 1, mode.area.h() - 1));
+	Rect avail = Rect::compound(Point(0, panel.h()),
+	                            Point(mode.area.w - 1, mode.area.h - 1));
 
 	Point const log_offset = _log_visible
 	                       ? Point(0, 0)
 	                       : Point(log_min_w + margins.left + margins.right, 0);
 
-	Point const log_p1(avail.x2() - log_min_w - margins.right + 1 + log_offset.x(),
+	Point const log_p1(avail.x2() - log_min_w - margins.right + 1 + log_offset.x,
 	                   avail.y1() + margins.top);
-	Point const log_p2(mode.area.w() - margins.right  - 1 + log_offset.x(),
-	                   mode.area.h() - margins.bottom - 1);
+	Point const log_p2(mode.area.w - margins.right  - 1 + log_offset.x,
+	                   mode.area.h - margins.bottom - 1);
 
 	/* position of the inspect window */
 	Point const inspect_p1(avail.x1() + margins.left, avail.y1() + margins.top);
@@ -1771,18 +1771,18 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		/* window size limited to space unobstructed by the menu and log */
 		auto constrained_win_size = [&] (Xml_node const &win) {
 
-			unsigned const inspect_w = inspect_p2.x() - inspect_p1.x(),
-			               inspect_h = inspect_p2.y() - inspect_p1.y();
+			unsigned const inspect_w = inspect_p2.x - inspect_p1.x,
+			               inspect_h = inspect_p2.y - inspect_p1.y;
 
 			Area const size = win_size(win);
-			return Area(min(inspect_w, size.w()), min(inspect_h, size.h()));
+			return Area(min(inspect_w, size.w), min(inspect_h, size.h));
 		};
 
 		_with_window(window_list, panel_view_label, [&] (Xml_node const &win) {
 			gen_window(win, panel); });
 
 		_with_window(window_list, Label("log"), [&] (Xml_node const &win) {
-			gen_window(win, Rect(log_p1, log_p2)); });
+			gen_window(win, Rect::compound(log_p1, log_p2)); });
 
 		int system_right_xpos = 0;
 		if (system_available()) {
@@ -1790,11 +1790,11 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 				Area  const size = win_size(win);
 				Point const pos  = _system_visible
 				                 ? Point(0, avail.y1())
-				                 : Point(-size.w(), avail.y1());
+				                 : Point(-size.w, avail.y1());
 				gen_window(win, Rect(pos, size));
 
 				if (_system_visible)
-					system_right_xpos = size.w();
+					system_right_xpos = size.w;
 			});
 		}
 
@@ -1802,7 +1802,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			Area  const size = win_size(win);
 			Point const pos  = _settings_visible
 			                 ? Point(system_right_xpos, avail.y1())
-			                 : Point(-size.w(), avail.y1());
+			                 : Point(-size.w, avail.y1());
 
 			if (_settings.interactive_settings_available())
 				gen_window(win, Rect(pos, size));
@@ -1811,8 +1811,8 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		_with_window(window_list, network_view_label, [&] (Xml_node const &win) {
 			Area  const size = win_size(win);
 			Point const pos  = _network_visible
-			                 ? Point(log_p1.x() - size.w(), avail.y1())
-			                 : Point(mode.area.w(), avail.y1());
+			                 ? Point(log_p1.x - size.w, avail.y1())
+			                 : Point(mode.area.w, avail.y1());
 			gen_window(win, Rect(pos, size));
 		});
 
@@ -1820,10 +1820,10 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			if (_selected_tab == Panel_dialog::Tab::FILES) {
 
 				Area  const size = constrained_win_size(win);
-				Point const pos  = Rect(inspect_p1, inspect_p2).center(size);
+				Point const pos  = Rect::compound(inspect_p1, inspect_p2).center(size);
 
 				Point const offset = _file_browser_state.text_area.constructed()
-				                   ? Point((2*avail.w())/3 - pos.x(), 0)
+				                   ? Point((2*avail.w())/3 - pos.x, 0)
 				                   : Point(0, 0);
 
 				gen_window(win, Rect(pos - offset, size));
@@ -1833,10 +1833,10 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		_with_window(window_list, editor_view_label, [&] (Xml_node const &win) {
 			if (_selected_tab == Panel_dialog::Tab::FILES) {
 				Area  const size = constrained_win_size(win);
-				Point const pos  = Rect(inspect_p1 + Point(400, 0), inspect_p2).center(size);
+				Point const pos  = Rect::compound(inspect_p1 + Point(400, 0), inspect_p2).center(size);
 
 				Point const offset = _file_browser_state.text_area.constructed()
-				                   ? Point(avail.w()/3 - pos.x(), 0)
+				                   ? Point(avail.w()/3 - pos.x, 0)
 				                   : Point(0, 0);
 
 				gen_window(win, Rect(pos + offset, size));
@@ -1846,16 +1846,16 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		_with_window(window_list, diag_view_label, [&] (Xml_node const &win) {
 			if (_selected_tab == Panel_dialog::Tab::COMPONENTS) {
 				Area  const size = win_size(win);
-				Point const pos(0, avail.y2() - size.h());
+				Point const pos(0, avail.y2() - size.h);
 				gen_window(win, Rect(pos, size));
 			}
 		});
 
 		auto sanitize_scroll_position = [&] (Area const &win_size, int &scroll_ypos)
 		{
-			unsigned const inspect_h = unsigned(inspect_p2.y() - inspect_p1.y() + 1);
-			if (win_size.h() > inspect_h) {
-				int const out_of_view_h = win_size.h() - inspect_h;
+			unsigned const inspect_h = unsigned(inspect_p2.y - inspect_p1.y + 1);
+			if (win_size.h > inspect_h) {
+				int const out_of_view_h = win_size.h - inspect_h;
 				scroll_ypos = max(scroll_ypos, -out_of_view_h);
 				scroll_ypos = min(scroll_ypos, 0);
 			} else
@@ -1869,14 +1869,14 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		Point runtime_view_pos { };
 		_with_window(window_list, runtime_view_label, [&] (Xml_node const &win) {
 			Area const size = win_size(win);
-			Rect const inspect(inspect_p1, inspect_p2);
+			Rect const inspect = Rect::compound(inspect_p1, inspect_p2);
 
 			/* center graph if there is enough space, scroll otherwise */
-			if (size.h() < inspect.h()) {
+			if (size.h < inspect.h()) {
 				runtime_view_pos = inspect.center(size);
 			} else {
 				sanitize_scroll_position(size, _graph_scroll_ypos);
-				runtime_view_pos = { inspect.center(size).x(),
+				runtime_view_pos = { inspect.center(size).x,
 				                     int(panel.h()) + _graph_scroll_ypos };
 			}
 		});
@@ -1884,17 +1884,17 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		if (_popup.state == Popup::VISIBLE) {
 			_with_window(window_list, popup_view_label, [&] (Xml_node const &win) {
 				Area const size = win_size(win);
-				Rect const inspect(inspect_p1, inspect_p2);
+				Rect const inspect = Rect::compound(inspect_p1, inspect_p2);
 
-				int const x = runtime_view_pos.x() + _popup.anchor.x2();
+				int const x = runtime_view_pos.x + _popup.anchor.x2();
 
 				auto y = [&]
 				{
 					/* try to vertically align the popup at the '+' button */
-					if (size.h() < inspect.h()) {
+					if (size.h < inspect.h()) {
 						int const anchor_y = (_popup.anchor.y1() + _popup.anchor.y2())/2;
-						int const abs_anchor_y = runtime_view_pos.y() + anchor_y;
-						return max((int)panel_height, abs_anchor_y - (int)size.h()/2);
+						int const abs_anchor_y = runtime_view_pos.y + anchor_y;
+						return max((int)panel_height, abs_anchor_y - (int)size.h/2);
 					} else {
 						sanitize_scroll_position(size, _popup_scroll_ypos);
 						return int(panel.h()) + _popup_scroll_ypos;
@@ -1906,7 +1906,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 		_with_window(window_list, inspect_label, [&] (Xml_node const &win) {
 			if (_selected_tab == Panel_dialog::Tab::INSPECT)
-				gen_window(win, Rect(inspect_p1, inspect_p2)); });
+				gen_window(win, Rect::compound(inspect_p1, inspect_p2)); });
 
 		/*
 		 * Position runtime view centered within the inspect area, but allow
@@ -1918,7 +1918,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 		_with_window(window_list, logo_label, [&] (Xml_node const &win) {
 			Area  const size = win_size(win);
-			Point const pos(mode.area.w() - size.w(), mode.area.h() - size.h());
+			Point const pos(mode.area.w - size.w, mode.area.h - size.h);
 			gen_window(win, Rect(pos, size));
 		});
 	});
@@ -1956,7 +1956,7 @@ void Sculpt::Main::_handle_gui_mode()
 
 	if (!_settings.manual_fonts_config) {
 
-		_font_size_px = (double)mode.area.h() / 60.0;
+		_font_size_px = (double)mode.area.h / 60.0;
 
 		if (_settings.font_size == Settings::Font_size::SMALL) _font_size_px *= 0.85;
 		if (_settings.font_size == Settings::Font_size::LARGE) _font_size_px *= 1.35;
@@ -2012,7 +2012,7 @@ void Sculpt::Main::_handle_gui_mode()
 	}
 
 	_screen_size = mode.area;
-	_panel_dialog.min_width = _screen_size.w();
+	_panel_dialog.min_width = _screen_size.w;
 	unsigned const menu_width = max((unsigned)(_font_size_px*21.0), 320u);
 	_diag_dialog.min_width = menu_width;
 	_network_dialog.min_width = menu_width;

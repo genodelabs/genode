@@ -139,31 +139,31 @@ struct Scout::Refracted_icon_painter
 	                         bool                       detail,
 	                         bool                       filter_backbuf)
 	{
-		PT *dst = surface.addr() + surface.size().w()*(pos.y()) + pos.x();
+		PT *dst = surface.addr() + surface.size().w*(pos.y) + pos.x;
 
 		Rect const clipped = Rect::intersect(surface.clip(), Rect(pos, foreground.size()));
 
 		if (detail == false) {
-			copy(foreground.pixel(), foreground.size().w(),
-			     dst, surface.size().w(), clipped.w(), foreground.size().h());
+			copy(foreground.pixel(), foreground.size().w,
+			     dst, surface.size().w, clipped.w(), foreground.size().h);
 			return;
 		}
 
 		/* backup old canvas pixels */
 		if (filter_backbuf)
-			filter_src_to_backbuf(dst, surface.size().w(), tmp.pixel(),
-			                      tmp.size().w(), tmp.size().h(),
-			                      foreground.size().w());
+			filter_src_to_backbuf(dst, surface.size().w, tmp.pixel(),
+			                      tmp.size().w, tmp.size().h,
+			                      foreground.size().w);
 		else
-			copy_src_to_backbuf(dst, surface.size().w(),
-			                    tmp.pixel(), tmp.size().w(),
-			                    tmp.size().h(), foreground.size().w());
+			copy_src_to_backbuf(dst, surface.size().w,
+			                    tmp.pixel(), tmp.size().w,
+			                    tmp.size().h, foreground.size().w);
 
 		/* draw distorted pixels back to canvas */
 		distort<PT, DT>(tmp.pixel(),
-		                distmap.base(), distmap.size().w(), distmap.size().h(),
+		                distmap.base(), distmap.size().w, distmap.size().h,
 		                foreground.pixel(), foreground.alpha(),
-		                dst, surface.size().w(), clipped.w());
+		                dst, surface.size().w, clipped.w());
 	}
 };
 

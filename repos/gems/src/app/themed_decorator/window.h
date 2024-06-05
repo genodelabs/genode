@@ -261,14 +261,14 @@ class Decorator::Window : public Window_base, public Animator::Item
 		{
 			Area const outer_size = _outer_from_inner_size(inner_size);
 
-			return Area(outer_size.w(), _theme.background_size().h());
+			return Area(outer_size.w, _theme.background_size().h);
 		}
 
 		Area _visible_left_right_area(Area const inner_size) const
 		{
 			Area const outer_size = _outer_from_inner_size(inner_size);
 
-			return Area(outer_size.w() - inner_size.w(), outer_size.h());
+			return Area(outer_size.w - inner_size.w, outer_size.h);
 		}
 
 		Gui_view _bottom_view { _gui, _gui_top_bottom },
@@ -300,12 +300,12 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 			buffer.flush_surface();
 
-			buffer.gui.framebuffer()->refresh(0, 0, buffer.size().w(), buffer.size().h());
+			buffer.gui.framebuffer()->refresh(0, 0, buffer.size().w, buffer.size().h);
 		}
 
 		void _repaint_decorations()
 		{
-			Area const inner_size = _curr_inner_geometry().area();
+			Area const inner_size = _curr_inner_geometry().area;
 
 			_repaint_decorations(*_buffer_top_bottom, _visible_top_bottom_area(inner_size));
 			_repaint_decorations(*_buffer_left_right, _visible_left_right_area(inner_size));
@@ -315,14 +315,14 @@ class Decorator::Window : public Window_base, public Animator::Item
 		{
 			bool const use_alpha = true;
 
-			Area const size_top_bottom = _visible_top_bottom_area(geometry().area());
+			Area const size_top_bottom = _visible_top_bottom_area(geometry().area);
 
-			if (size_top_bottom.w() > _size_top_bottom.w()
-			 || size_top_bottom.h() > _size_top_bottom.h()
+			if (size_top_bottom.w > _size_top_bottom.w
+			 || size_top_bottom.h > _size_top_bottom.h
 			 || !_buffer_top_bottom.constructed()) {
 
-				_gui_top_bottom.buffer(Framebuffer::Mode { .area = { size_top_bottom.w(),
-				                                                     size_top_bottom.h() } },
+				_gui_top_bottom.buffer(Framebuffer::Mode { .area = { size_top_bottom.w,
+				                                                     size_top_bottom.h } },
 				                       use_alpha);
 
 				_buffer_top_bottom.construct(_gui_top_bottom, size_top_bottom,
@@ -331,14 +331,14 @@ class Decorator::Window : public Window_base, public Animator::Item
 				_size_top_bottom = size_top_bottom;
 			}
 
-			Area const size_left_right = _visible_left_right_area(geometry().area());
+			Area const size_left_right = _visible_left_right_area(geometry().area);
 
-			if (size_left_right.w() > _size_left_right.w()
-			 || size_left_right.h() > _size_left_right.h()
+			if (size_left_right.w > _size_left_right.w
+			 || size_left_right.h > _size_left_right.h
 			 || !_buffer_left_right.constructed()) {
 
-				_gui_left_right.buffer(Framebuffer::Mode { .area = { size_left_right.w(),
-				                                                     size_left_right.h() } },
+				_gui_left_right.buffer(Framebuffer::Mode { .area = { size_left_right.w,
+				                                                     size_left_right.h } },
 				                       use_alpha);
 
 				_buffer_left_right.construct(_gui_left_right, size_left_right,
@@ -422,8 +422,8 @@ class Decorator::Window : public Window_base, public Animator::Item
 		{
 			Theme::Margins const decor = _theme.decor_margins();
 
-			return Rect(_curr_inner_geometry().p1() - Point(decor.left, decor.top),
-			            _curr_inner_geometry().p2() + Point(decor.right, decor.bottom));
+			return Rect::compound(_curr_inner_geometry().p1() - Point(decor.left,  decor.top),
+			                      _curr_inner_geometry().p2() + Point(decor.right, decor.bottom));
 		}
 
 		Rect _outer_from_inner_geometry(Rect inner) const
@@ -436,13 +436,13 @@ class Decorator::Window : public Window_base, public Animator::Item
 			unsigned const top    = aura.top    + decor.top;
 			unsigned const bottom = aura.bottom + decor.bottom;
 
-			return Rect(inner.p1() - Point(left, top),
-			            inner.p2() + Point(right, bottom));
+			return Rect::compound(inner.p1() - Point(left, top),
+			                      inner.p2() + Point(right, bottom));
 		}
 
 		Area _outer_from_inner_size(Area inner) const
 		{
-			return _outer_from_inner_geometry(Rect(Point(0, 0), inner)).area();
+			return _outer_from_inner_geometry(Rect(Point(0, 0), inner)).area;
 		}
 
 		Rect outer_geometry() const override
@@ -463,14 +463,13 @@ class Decorator::Window : public Window_base, public Animator::Item
 				Rect const outer      = _outer_from_inner_geometry(inner);
 
 				/* update view positions */
-				Rect top, left, right, bottom;
-				outer.cut(inner, &top, &left, &right, &bottom);
+				Rect::Cut_remainder const r = outer.cut(inner);
 
 				_content_view.place(inner,  Point(0, 0));
-				_top_view    .place(top,    Point(0, 0));
-				_left_view   .place(left,   Point(0, -top.h()));
-				_right_view  .place(right,  Point(-right.w(), -top.h()));
-				_bottom_view .place(bottom, Point(0, -theme_size.h() + bottom.h()));
+				_top_view    .place(r.top,    Point(0, 0));
+				_left_view   .place(r.left,   Point(0, -r.top.h()));
+				_right_view  .place(r.right,  Point(-r.right.w(), -r.top.h()));
+				_bottom_view .place(r.bottom, Point(0, -theme_size.h + r.bottom.h()));
 
 				_gui.execute();
 

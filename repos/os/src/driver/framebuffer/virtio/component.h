@@ -191,7 +191,7 @@ class Virtio_fb::Driver
 				Fb_memory_resource &operator = (Fb_memory_resource const &) = delete;
 
 				static size_t _fb_size(Capture::Area const &area) {
-						return area.w() * area.h() * 4; }
+						return area.w * area.h * 4; }
 
 			public:
 
@@ -310,8 +310,8 @@ class Virtio_fb::Driver
 		void _configure_display() {
 			Control_header res2d_cmd { Control_header::CMD_RESOURCE_CREATE_2D };
 			Resource_create_2d res2d_data {
-				.width  = _display_area.w(),
-				.height = _display_area.h(),
+				.width  = _display_area.w,
+				.height = _display_area.h,
 			};
 
 			if (!_exec_cmd(res2d_cmd, res2d_data)) {
@@ -344,8 +344,8 @@ class Virtio_fb::Driver
 				.rect = {
 					.x = 0,
 					.y = 0,
-					.width  = _display_area.w(),
-					.height = _display_area.h(),
+					.width  = _display_area.w,
+					.height = _display_area.h,
 				},
 				.scanout_id = _selected_scanout_id,
 			};
@@ -486,8 +486,8 @@ class Virtio_fb::Driver
 				.rect = {
 					.x = 0,
 					.y = 0,
-					.width  = _display_area.w(),
-					.height = _display_area.h(),
+					.width  = _display_area.w,
+					.height = _display_area.h,
 				},
 				.offset = 0,
 			};
@@ -501,8 +501,8 @@ class Virtio_fb::Driver
 				.rect = {
 					.x = 0,
 					.y = 0,
-					.width  = _display_area.w(),
-					.height = _display_area.h(),
+					.width  = _display_area.w,
+					.height = _display_area.h,
 				},
 			};
 			if (!_exec_cmd(flush_cmd, flush_data)) {

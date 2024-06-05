@@ -45,7 +45,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		Genode::Dataspace_capability _init_fb_ds(Area max_size)
 		{
-			Framebuffer::Mode const mode { .area = { max_size.w(), max_size.h()*2 }};
+			Framebuffer::Mode const mode { .area = { max_size.w, max_size.h*2 }};
 
 			_gui.buffer(mode, false);
 
@@ -71,7 +71,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 			Gui::Rect rect(_position, _view_size);
 			_gui.enqueue<Command::Geometry>(_view, rect);
 
-			Gui::Point offset(0, _flip_state ? -_max_size.h() : 0);
+			Gui::Point offset(0, _flip_state ? -_max_size.h : 0);
 			_gui.enqueue<Command::Offset>(_view, offset);
 
 			_gui.execute();
@@ -79,7 +79,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		void _refresh_view(Rect rect)
 		{
-			int const y_offset = _flip_state ? _max_size.h() : 0;
+			int const y_offset = _flip_state ? _max_size.h : 0;
 			_gui.framebuffer()->refresh(rect.x1(), rect.y1() + y_offset,
 			                            rect.w(), rect.h());
 		}
@@ -137,13 +137,13 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 			PT const *src = _base<PT>( _back_idx());
 			PT       *dst = _base<PT>(_front_idx());
 
-			unsigned long const offset = rect.y1()*_max_size.w() + rect.x1();
+			unsigned long const offset = rect.y1()*_max_size.w + rect.x1();
 
 			src += offset;
 			dst += offset;
 
-			blit(src, (unsigned)sizeof(PT)*_max_size.w(), dst,
-			     (int)sizeof(PT)*_max_size.w(),
+			blit(src, (unsigned)sizeof(PT)*_max_size.w, dst,
+			     (int)sizeof(PT)*_max_size.w,
 			     (int)sizeof(PT)*rect.w(), rect.h());
 
 			_refresh_view(rect);

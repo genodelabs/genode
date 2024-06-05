@@ -170,13 +170,13 @@ void Decorator::Window_stack::_draw_rec(Decorator::Canvas_base       &canvas,
 
 	/* draw areas around the current window */
 	if (Window_base const * const next = win->next()) {
-		Rect top, left, right, bottom;
-		rect.cut(clipped, &top, &left, &right, &bottom);
 
-		if (top.valid())    _draw_rec(canvas, next, top);
-		if (left.valid())   _draw_rec(canvas, next, left);
-		if (right.valid())  _draw_rec(canvas, next, right);
-		if (bottom.valid()) _draw_rec(canvas, next, bottom);
+		Rect::Cut_remainder const r = rect.cut(clipped);
+
+		if (r.top.valid())    _draw_rec(canvas, next, r.top);
+		if (r.left.valid())   _draw_rec(canvas, next, r.left);
+		if (r.right.valid())  _draw_rec(canvas, next, r.right);
+		if (r.bottom.valid()) _draw_rec(canvas, next, r.bottom);
 	}
 
 	/* draw current window */

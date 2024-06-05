@@ -77,8 +77,8 @@ struct Glyph_painter
 	                         int const clip_left, int const clip_right,
 	                         PT const color, int const alpha)
 	{
-		Fixpoint_number const x = position.x();
-		int             const y = position.y().decimal();
+		Fixpoint_number const x = position.x;
+		int             const y = position.y.decimal();
 
 		int const dst_y1 = y + glyph.vpos,
 		          dst_y2 = dst_y1 + glyph.height;

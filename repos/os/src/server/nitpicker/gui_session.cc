@@ -76,7 +76,7 @@ void Gui_session::_execute_command(Command const &command)
 				pos = _phys_pos(pos, _view_stack.size());
 
 			if (view.valid())
-				_view_stack.geometry(*view, Rect(pos, cmd.rect.area()));
+				_view_stack.geometry(*view, Rect(pos, cmd.rect.area));
 
 			return;
 		}
@@ -221,11 +221,11 @@ void Gui_session::submit_input_event(Input::Event e)
 	 * Transpose absolute coordinates by session-specific vertical offset.
 	 */
 	e.handle_absolute_motion([&] (int x, int y) {
-		e = Absolute_motion{max(0, x - origin_offset.x()),
-		                    max(0, y - origin_offset.y())}; });
+		e = Absolute_motion{max(0, x - origin_offset.x),
+		                    max(0, y - origin_offset.y)}; });
 	e.handle_touch([&] (Touch_id id, float x, float y) {
-		e = Touch{ id, max(0.0f, x - (float)origin_offset.x()),
-		               max(0.0f, y - (float)origin_offset.y())}; });
+		e = Touch{ id, max(0.0f, x - (float)origin_offset.x),
+		               max(0.0f, y - (float)origin_offset.y)}; });
 
 	_input_session_component.submit(&e);
 }
@@ -401,7 +401,7 @@ Framebuffer::Mode Gui_session::mode()
 	 * the special case of 0x0, which can happen at boot time before the
 	 * framebuffer driver is running.
 	 */
-	return { .area = { max(screen.w(), 1u), max(screen.h(), 1u) } };
+	return { .area = { max(screen.w, 1u), max(screen.h, 1u) } };
 }
 
 

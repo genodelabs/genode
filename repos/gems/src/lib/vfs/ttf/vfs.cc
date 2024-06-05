@@ -113,8 +113,8 @@ struct Vfs_ttf::Local_factory : File_system_factory, Watch_response_handler
 	{
 		_baseline_fs  .value(_font->font.font().baseline());
 		_height_fs    .value(_font->font.font().height());
-		_max_width_fs .value(_font->font.font().bounding_box().w());
-		_max_height_fs.value(_font->font.font().bounding_box().h());
+		_max_width_fs .value(_font->font.font().bounding_box().w);
+		_max_height_fs.value(_font->font.font().bounding_box().h);
 	}
 
 	Local_factory(Vfs::Env &env, Xml_node config)

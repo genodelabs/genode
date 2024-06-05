@@ -116,7 +116,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 		Area _requested_size() const
 		{
 			return (_maximized || !_floating)
-			       ? _decorator_margins.inner_geometry(_target_geometry).area()
+			       ? _decorator_margins.inner_geometry(_target_geometry).area
 			       : _dragged_size;
 		}
 
@@ -209,7 +209,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 			_orig_geometry = _geometry;
 			_drag_geometry = _geometry;
 
-			_dragged_size = _geometry.area();
+			_dragged_size = _geometry.area;
 
 			_dragged = true;
 		}
@@ -222,7 +222,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 			/* move window */
 			if (!_drag_border()) {
 				_drag_geometry = Rect(_orig_geometry.p1() + offset,
-				                      _orig_geometry.area());
+				                      _orig_geometry.area);
 				return;
 			}
 
@@ -230,14 +230,14 @@ class Window_layouter::Window : public List_model<Window>::Element
 			int x1 = _orig_geometry.x1(), y1 = _orig_geometry.y1(),
 			    x2 = _orig_geometry.x2(), y2 = _orig_geometry.y2();
 
-			if (_drag_left_border)   x1 = min(x1 + offset.x(), x2);
-			if (_drag_right_border)  x2 = max(x2 + offset.x(), x1);
-			if (_drag_top_border)    y1 = min(y1 + offset.y(), y2);
-			if (_drag_bottom_border) y2 = max(y2 + offset.y(), y1);
+			if (_drag_left_border)   x1 = min(x1 + offset.x, x2);
+			if (_drag_right_border)  x2 = max(x2 + offset.x, x1);
+			if (_drag_top_border)    y1 = min(y1 + offset.y, y2);
+			if (_drag_bottom_border) y2 = max(y2 + offset.y, y1);
 
-			_drag_geometry = Rect(Point(x1, y1), Point(x2, y2));
+			_drag_geometry = Rect::compound(Point(x1, y1), Point(x2, y2));
 
-			_dragged_size = _drag_geometry.area();
+			_dragged_size = _drag_geometry.area;
 		}
 
 		/**
@@ -287,12 +287,12 @@ class Window_layouter::Window : public List_model<Window>::Element
 				return _drag_geometry;
 
 			/* resize window */
-			if (_drag_left_border)   x1 = x2 - _client_size.w() + 1;
-			if (_drag_right_border)  x2 = x1 + _client_size.w() - 1;
-			if (_drag_top_border)    y1 = y2 - _client_size.h() + 1;
-			if (_drag_bottom_border) y2 = y1 + _client_size.h() - 1;
+			if (_drag_left_border)   x1 = x2 - _client_size.w + 1;
+			if (_drag_right_border)  x2 = x1 + _client_size.w - 1;
+			if (_drag_top_border)    y1 = y2 - _client_size.h + 1;
+			if (_drag_bottom_border) y2 = y1 + _client_size.h - 1;
 
-			return Rect(Point(x1, y1), Point(x2, y2));
+			return Rect::compound(Point(x1, y1), Point(x2, y2));
 		}
 
 		/**
@@ -308,7 +308,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 			_geometry = _decorator_margins.inner_geometry(outer);
 
-			_dragged_size = _geometry.area();
+			_dragged_size = _geometry.area;
 		}
 
 		Rect outer_geometry() const
@@ -366,8 +366,8 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 			xml.node("window", [&] () {
 				xml.attribute("id",     _id.value);
-				xml.attribute("width",  size.w());
-				xml.attribute("height", size.h());
+				xml.attribute("width",  size.w);
+				xml.attribute("height", size.h);
 			});
 		}
 
@@ -417,12 +417,12 @@ class Window_layouter::Window : public List_model<Window>::Element
 				 * impersonate other applications.
 				 */
 				Area const size = _use_target_area()
-				                ? Area(min(rect.w(), _client_size.w()),
-				                       min(rect.h(), _client_size.h()))
+				                ? Area(min(rect.w(), _client_size.w),
+				                       min(rect.h(), _client_size.h))
 				                : _client_size;
 
-				xml.attribute("width",  size.w());
-				xml.attribute("height", size.h());
+				xml.attribute("width",  size.w);
+				xml.attribute("height", size.h);
 
 				if (_focused)
 					xml.attribute("focused", "yes");
@@ -471,7 +471,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 			_drag_top_border    = false;
 			_drag_bottom_border = false;
 			_geometry           = effective_inner_geometry();
-			_dragged_size       = _geometry.area();
+			_dragged_size       = _geometry.area;
 			_dragged            = false;
 		}
 

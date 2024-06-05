@@ -88,8 +88,8 @@ class Scout::Element
 		 */
 		virtual void geometry(Rect rect)
 		{
-			_position = rect.p1();
-			_size     = rect.area();
+			_position = rect.at;
+			_size     = rect.area;
 		}
 
 		/**
@@ -184,7 +184,7 @@ class Scout::Element
 		/**
 		 * Trigger the refresh of an element on screen
 		 */
-		void refresh() { redraw_area(0, 0, _size.w(), _size.h()); }
+		void refresh() { redraw_area(0, 0, _size.w, _size.h); }
 
 		/**
 		 * Handle user input or timer event

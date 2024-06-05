@@ -200,9 +200,9 @@ class Png_image
 				Chunky_texture<PT>(_ram, _rm, size());
 
 			/* fill texture with PNG image data */
-			for (unsigned i = 0; i < size().h(); i++) {
+			for (unsigned i = 0; i < size().h; i++) {
 				png_read_row(_read_struct.png_ptr, _row.row_ptr, NULL);
-				texture->rgba((unsigned char *)_row.row_ptr, size().w()*4, i);
+				texture->rgba((unsigned char *)_row.row_ptr, size().w*4, i);
 			}
 
 			return texture;

@@ -327,7 +327,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			Area                area;
 
 			size_t _size() const {
-				return align_addr(area.w() * area.h() * BYTES_PER_PIXEL, 12); }
+				return align_addr(area.w * area.h * BYTES_PER_PIXEL, 12); }
 
 			addr_t                 attach_off { 0UL };
 			Rm_connection          rm         { device._env };

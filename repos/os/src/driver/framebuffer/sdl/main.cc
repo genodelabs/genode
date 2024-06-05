@@ -84,7 +84,7 @@ struct Fb_sdl::Main
 		{
 			unsigned const window_flags = 0;
 
-			SDL_Window *window_ptr = SDL_CreateWindow("fb_sdl", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, _initial_size.w(), _initial_size.h(), window_flags);
+			SDL_Window *window_ptr = SDL_CreateWindow("fb_sdl", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, _initial_size.w, _initial_size.h, window_flags);
 			if (!window_ptr) {
 				error("SDL_CreateWindow failed (", Genode::Cstring(SDL_GetError()), ")");
 				throw Sdl_createwindow_failed();
@@ -133,7 +133,7 @@ struct Fb_sdl::Main
 			unsigned const blue_mask  = 0x000000FF;
 			unsigned const alpha_mask = 0xFF000000;
 
-			SDL_Surface *surface_ptr = SDL_CreateRGBSurface(flags, size.w(), size.h(), bpp, red_mask, green_mask, blue_mask, alpha_mask);
+			SDL_Surface *surface_ptr = SDL_CreateRGBSurface(flags, size.w, size.h, bpp, red_mask, green_mask, blue_mask, alpha_mask);
 			if (!surface_ptr) {
 				error("SDL_CreateRGBSurface failed (", Genode::Cstring(SDL_GetError()), ")");
 				throw Sdl_creatergbsurface_failed();
@@ -144,7 +144,7 @@ struct Fb_sdl::Main
 
 		SDL_Texture &_init_sdl_texture()
 		{
-			SDL_Texture *texture_ptr = SDL_CreateTexture(&renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, size.w(), size.h());
+			SDL_Texture *texture_ptr = SDL_CreateTexture(&renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, size.w, size.h);
 			if (!texture_ptr) {
 				error("SDL_CreateTexture failed (", Genode::Cstring(SDL_GetError()), ")");
 				throw Sdl_createtexture_failed();

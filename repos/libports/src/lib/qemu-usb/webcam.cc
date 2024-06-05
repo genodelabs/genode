@@ -72,12 +72,12 @@ struct Capture_webcam
 		if (!changed)
 			return false;
 
-		int const src_stride_argb = _area.w() * 4;
-		int const dst_stride_yuy2 = _area.w() * 2;
+		int const src_stride_argb = _area.w * 4;
+		int const dst_stride_yuy2 = _area.w * 2;
 
 		libyuv::ARGBToYUY2(_ds->local_addr<uint8_t>(), src_stride_argb,
 		                   reinterpret_cast<uint8_t*>(frame), dst_stride_yuy2,
-		                   _area.w(), _area.h());
+		                   _area.w, _area.h);
 
 		if (_force_update)
 			_force_update = false;
@@ -98,11 +98,11 @@ struct Capture_webcam
 		auto const &update_fn = ([&](auto &rect) {
 			changed = true;
 			for (int y = rect.y1(); y <= rect.y2(); y++) {
-				unsigned const row      = _vflip ? y : _area.h() - 1 - y;
-				unsigned const row_byte = (row * _area.w() * 3);
+				unsigned const row      = _vflip ? y : _area.h - 1 - y;
+				unsigned const row_byte = (row * _area.w * 3);
 
 				for (int x = rect.x1(); x < rect.x2(); x++) {
-					auto &pixel = data[y * _area.w() + x];
+					auto &pixel = data[y * _area.w + x];
 					bgr[row_byte + x * 3 + 0] = pixel.b();
 					bgr[row_byte + x * 3 + 1] = pixel.g();
 					bgr[row_byte + x * 3 + 2] = pixel.r();
@@ -217,8 +217,8 @@ extern "C" bool capture_yuv_frame(void * pixel)
 extern "C" void webcam_backend_config(struct webcam_config *config)
 {
 	config->fps    = capture->_fps;
-	config->width  = capture->_area.w();
-	config->height = capture->_area.h();
+	config->width  = capture->_area.w;
+	config->height = capture->_area.h;
 }
 
 

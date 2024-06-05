@@ -83,7 +83,6 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 		void mark_as_damaged(Rect rect)
 		{
-			// XXX not called yet
 			_dirty_rect.mark_as_dirty(rect);
 		}
 
@@ -150,7 +149,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 				_view_stack.draw(canvas, rect);
 
 				if (i < Affected_rects::NUM_RECTS) {
-					Rect const translated(rect.p1() - pos, rect.area());
+					Rect const translated(rect.p1() - pos, rect.area);
 					Rect const clipped = Rect::intersect(translated, buffer_rect);
 					affected.rects[i++] = clipped;
 				}

@@ -116,8 +116,8 @@ class Scene : public Nano3d::Scene<PT>
 
 	private:
 
-		Polygon::Shaded_painter   _shaded_painter   { _heap, _size.h() };
-		Polygon::Textured_painter _textured_painter { _heap, _size.h() };
+		Polygon::Shaded_painter   _shaded_painter   { _heap, _size.h };
+		Polygon::Textured_painter _textured_painter { _heap, _size.h };
 
 		Nano3d::Cube_shape         const _cube         { 7000 };
 		Nano3d::Dodecahedron_shape const _dodecahedron { 10000 };
@@ -156,7 +156,7 @@ class Scene : public Nano3d::Scene<PT>
 							backward_facing ? points[num_vertices - 1 - i]
 							                : points[i];
 
-						int const r = _texture.size.w()/2;
+						int const r = _texture.size.w/2;
 
 						int const u = r + (r*Nano3d::cos_frac16(angle) >> 16);
 						int const v = r + (r*Nano3d::sin_frac16(angle) >> 16);

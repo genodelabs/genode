@@ -58,11 +58,11 @@ struct Horizontal_shadow_painter
 		if (h > cy2 - y + 1)
 			h = cy2 - y + 1;
 
-		addr += surface.size().w()*y + x;
+		addr += surface.size().w*y + x;
 
 		PT shadow_color(0,0,0);
 
-		for (int j = 0; j < h; j++, addr += surface.size().w()) {
+		for (int j = 0; j < h; j++, addr += surface.size().w) {
 
 			PT *d = addr;
 

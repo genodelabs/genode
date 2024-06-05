@@ -49,7 +49,7 @@ class Scout::Titlebar : public Parent_element
 		{
 			_txt     = txt ? txt : "Scout";
 			_txt_w   = title_font.string_width(_txt, strlen(_txt)).decimal();
-			_txt_h   = title_font.bounding_box().h();
+			_txt_h   = title_font.bounding_box().h;
 			_txt_len = strlen(_txt);
 		}
 
@@ -83,15 +83,15 @@ class Scout::Titlebar : public Parent_element
 		void draw(Canvas_base &canvas, Point abs_position) override
 		{
 			const int b = 180, a = 200;
-			canvas.draw_box(abs_position.x() + _position.x(),
-			                abs_position.y() + _position.y(),
-			                _size.w(), _size.h(), Color(b, b, b, a));
+			canvas.draw_box(abs_position.x + _position.x,
+			                abs_position.y + _position.y,
+			                _size.w, _size.h, Color(b, b, b, a));
 
-			int _txt_x = abs_position.x() + _position.x()
-			           + (int)max((_size.w() - _txt_w)/2, 8U);
+			int _txt_x = abs_position.x + _position.x
+			           + (int)max((_size.w - _txt_w)/2, 8U);
 
-			int _txt_y = abs_position.y() + _position.y()
-			           + (int)max((_size.h() - _txt_h)/2, 0U) - 1;
+			int _txt_y = abs_position.y + _position.y
+			           + (int)max((_size.h - _txt_h)/2, 0U) - 1;
 
 			canvas.draw_string(_txt_x , _txt_y, &title_font, Color(0,0,0,200), _txt, strlen(_txt));
 			Parent_element::draw(canvas, abs_position);

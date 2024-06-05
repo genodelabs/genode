@@ -126,7 +126,8 @@ struct Line_painter
 		 * Reduce clipping area by one pixel as the antialiased line touches an
 		 * area of 2x2 for each pixel.
 		 */
-		Rect const clip(surface.clip().p1(), surface.clip().p2() + Point(-1, -1));
+		Rect const clip = Rect::compound(surface.clip().p1(),
+		                                 surface.clip().p2() + Point(-1, -1));
 
 		if (!clip.valid())
 			return;
@@ -158,7 +159,7 @@ struct Line_painter
 		int const alpha = color.a;
 
 		PT *     const dst   = surface.addr();
-		unsigned const dst_w = surface.size().w();
+		unsigned const dst_w = surface.size().w;
 
 		long x = x1.value << 8, y = y1.value << 8;
 
@@ -178,11 +179,11 @@ struct Line_painter
 	           Genode::Color color) const
 	{
 		paint(surface,
-		      Fixpoint::from_int(p1.x()), Fixpoint::from_int(p1.y()),
-		      Fixpoint::from_int(p2.x()), Fixpoint::from_int(p2.y()),
+		      Fixpoint::from_int(p1.x), Fixpoint::from_int(p1.y),
+		      Fixpoint::from_int(p2.x), Fixpoint::from_int(p2.y),
 		      color);
 
-		surface.flush_pixels(Rect(p1, p2));
+		surface.flush_pixels(Rect::compound(p1, p2));
 	}
 };
 

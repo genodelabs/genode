@@ -98,7 +98,7 @@ struct Scout::Horizontal_shadow : Element
 	 */
 	void draw(Canvas_base &, Point) override;
 	Element *find(Point) override { return 0; }
-	void format_fixed_width(int w) override { _min_size = Area(w, _min_size.h()); }
+	void format_fixed_width(int w) override { _min_size = Area(w, _min_size.h); }
 };
 
 

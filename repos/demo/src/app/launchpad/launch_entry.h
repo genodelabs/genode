@@ -55,7 +55,7 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 			append(&_loadbar);
 			append(&_block);
 
-			_min_size = Scout::Area(_PTW + 100, _min_size.h());
+			_min_size = Scout::Area(_PTW + 100, _min_size.h);
 		}
 
 
@@ -65,7 +65,7 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 
 		void loadbar_changed(int mx) override
 		{
-			int value = _loadbar.value_by_xpos(mx - _loadbar.abs_position().x());
+			int value = _loadbar.value_by_xpos(mx - _loadbar.abs_position().x);
 			_loadbar.value(value);
 			_loadbar.refresh();
 			_launcher.quota(1024 * (unsigned long)value);
@@ -81,13 +81,13 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 			using namespace Scout;
 
 			_block.format_fixed_width(_PTW);
-			_lh = _block.min_size().h();
-			_block.geometry(Rect(Point(max(10U, _PTW - _block.min_size().w()),
-			                           max(0U, (_lh - _block.min_size().h())/2)),
-			                     Area(min((unsigned)_PTW, _block.min_size().w()), _lh)));
+			_lh = _block.min_size().h;
+			_block.geometry(Rect(Point(max(10U, _PTW - _block.min_size().w),
+			                           max(0U, (_lh - _block.min_size().h)/2)),
+			                     Area(min((unsigned)_PTW, _block.min_size().w), _lh)));
 
 			int lw = max(0, w - 2*_PADX - _PTW - _PADR);
-			int ly = max(0U, (_lh - _loadbar.min_size().h())/2);
+			int ly = max(0U, (_lh - _loadbar.min_size().h)/2);
 			_loadbar.format_fixed_width(lw);
 			_loadbar.geometry(Rect(Point(_PADX + _PTW, ly), Area(lw, 16)));
 

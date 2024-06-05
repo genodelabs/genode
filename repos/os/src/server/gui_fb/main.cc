@@ -50,20 +50,20 @@ static Input::Event translate_event(Input::Event        ev,
 
 	/* function to clamp point to bounday */
 	auto clamp = [boundary] (Point p) {
-		return Point(Genode::min((int)boundary.w() - 1, Genode::max(0, p.x())),
-		             Genode::min((int)boundary.h() - 1, Genode::max(0, p.y()))); };
+		return Point(Genode::min((int)boundary.w - 1, Genode::max(0, p.x)),
+		             Genode::min((int)boundary.h - 1, Genode::max(0, p.y))); };
 
 	/* function to translate point to 'input_origin' */
 	auto translate = [input_origin] (Point p) { return p - input_origin; };
 
 	ev.handle_absolute_motion([&] (int x, int y) {
 		Point p = clamp(translate(Point(x, y)));
-		ev = Input::Absolute_motion{p.x(), p.y()};
+		ev = Input::Absolute_motion{p.x, p.y};
 	});
 
 	ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
 		Point p = clamp(translate(Point((int)x, (int)y)));
-		ev = Input::Touch{id, (float)p.x(), (float)p.y()};
+		ev = Input::Touch{id, (float)p.x, (float)p.y};
 	});
 
 	return ev;
@@ -148,7 +148,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	void size(Gui::Area size)
 	{
 		/* ignore calls that don't change the size */
-		if (Gui::Area(_next_mode.area.w(), _next_mode.area.h()) == size)
+		if (Gui::Area(_next_mode.area.w, _next_mode.area.h) == size)
 			return;
 
 		Framebuffer::Mode const mode { .area = size };
@@ -266,15 +266,15 @@ struct Nit_fb::Main : View_updater
 		unsigned width(Framebuffer::Mode const &mode) const
 		{
 			if (_width > 0) return (unsigned)_width;
-			if (_width < 0) return (unsigned)(mode.area.w() + _width);
-			return mode.area.w();
+			if (_width < 0) return (unsigned)(mode.area.w + _width);
+			return mode.area.w;
 		}
 
 		unsigned height(Framebuffer::Mode const &mode) const
 		{
 			if (_height > 0) return (unsigned)_height;
-			if (_height < 0) return (unsigned)(mode.area.h() + _height);
-			return mode.area.h();
+			if (_height < 0) return (unsigned)(mode.area.h + _height);
+			return mode.area.h;
 		}
 
 		bool valid() const { return _width != 0 && _height != 0; }
@@ -324,9 +324,9 @@ struct Nit_fb::Main : View_updater
 		Value const value = config.attribute_value(attr, Value());
 
 		if (value == "top_left")     return Point(0, 0);
-		if (value == "top_right")    return Point(mode.area.w(), 0);
-		if (value == "bottom_left")  return Point(0, mode.area.h());
-		if (value == "bottom_right") return Point(mode.area.w(), mode.area.h());
+		if (value == "top_right")    return Point(mode.area.w, 0);
+		if (value == "bottom_left")  return Point(0, mode.area.h);
+		if (value == "bottom_right") return Point(mode.area.w, mode.area.h);
 
 		warning("unsupported ", attr, " attribute value '", value, "'");
 		return Point(0, 0);
@@ -351,11 +351,11 @@ struct Nit_fb::Main : View_updater
 			_initial_size.set = true;
 		}
 
-		unsigned const gui_width  = gui_mode.area.w();
-		unsigned const gui_height = gui_mode.area.h();
+		unsigned const gui_width  = gui_mode.area.w;
+		unsigned const gui_height = gui_mode.area.h;
 
-		long width  = config.attribute_value("width",  (long)gui_mode.area.w()),
-		     height = config.attribute_value("height", (long)gui_mode.area.h());
+		long width  = config.attribute_value("width",  (long)gui_mode.area.w),
+		     height = config.attribute_value("height", (long)gui_mode.area.h);
 
 		if (!_initial_size.set && _initial_size.valid()) {
 			width  = _initial_size.width (gui_mode);

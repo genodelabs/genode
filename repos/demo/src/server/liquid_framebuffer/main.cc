@@ -186,7 +186,7 @@ class Liquid_fb::Main : public Scout::Event_handler
 		bool _background_animator_initialized = (_init_background_animator(), true);
 
 		User_state _user_state { &_fb_win, &_fb_win,
-		                         _initial_position.x(), _initial_position.y() };
+		                         _initial_position.x, _initial_position.y };
 
 		void _init_fb_win()
 		{

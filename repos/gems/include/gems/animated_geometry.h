@@ -51,12 +51,12 @@ class Genode::Animated_rect : private Animator::Item, Noncopyable
 			void move_to(Point p, Steps steps)
 			{
 				if (_initial) {
-					_x = Lazy_value(p.x() << 10);
-					_y = Lazy_value(p.y() << 10);
+					_x = Lazy_value(p.x << 10);
+					_y = Lazy_value(p.y << 10);
 					_initial = false;
 				} else {
-					_x.dst(p.x() << 10, steps.value);
-					_y.dst(p.y() << 10, steps.value);
+					_x.dst(p.x << 10, steps.value);
+					_y.dst(p.y << 10, steps.value);
 				}
 			}
 
@@ -79,7 +79,7 @@ class Genode::Animated_rect : private Animator::Item, Noncopyable
 		{
 			_p1.animate(); _p2.animate();
 
-			_rect = Rect(Point(_p1.x(), _p1.y()), Point(_p2.x(), _p2.y()));
+			_rect = Rect::compound(Point(_p1.x(), _p1.y()), Point(_p2.x(), _p2.y()));
 
 			if (_remaining.value > 1)
 				_remaining.value--;
@@ -113,7 +113,7 @@ class Genode::Animated_rect : private Animator::Item, Noncopyable
 		bool initialized() const { return _p1._initial == false; }
 
 		Rect  rect() const { return _rect; }
-		Area  area() const { return _rect.area(); }
+		Area  area() const { return _rect.area; }
 		Point p1()   const { return _rect.p1(); }
 		Point p2()   const { return _rect.p2(); }
 };

@@ -32,14 +32,14 @@ Element::~Element()
 
 void Element::redraw_area(int x, int y, int w, int h)
 {
-	x += _position.x();
-	y += _position.y();
+	x += _position.x;
+	y += _position.y;
 
 	/* intersect specified area with element geometry */
-	int x1 = max(x, _position.x());
-	int y1 = max(y, _position.y());
-	int x2 = min(x + w - 1, _position.x() + (int)_size.w() - 1);
-	int y2 = min(y + h - 1, _position.y() + (int)_size.h() - 1);
+	int x1 = max(x, _position.x);
+	int y1 = max(y, _position.y);
+	int x2 = min(x + w - 1, _position.x + (int)_size.w - 1);
+	int y2 = min(y + h - 1, _position.y + (int)_size.h - 1);
 
 	if (x1 > x2 || y1 > y2) return;
 
@@ -51,8 +51,8 @@ void Element::redraw_area(int x, int y, int w, int h)
 
 Element *Element::find(Point position)
 {
-	if (position.x() >= _position.x() && position.x() < _position.x() + (int)_size.w()
-	 && position.y() >= _position.y() && position.y() < _position.y() + (int)_size.h()
+	if (position.x >= _position.x && position.x < _position.x + (int)_size.w
+	 && position.y >= _position.y && position.y < _position.y + (int)_size.h
 	 && _flags.findable)
 		return this;
 
@@ -62,7 +62,7 @@ Element *Element::find(Point position)
 
 Element *Element::find_by_y(int y)
 {
-	return (y >= _position.y() && y < _position.y() + (int)_size.h()) ? this : 0;
+	return (y >= _position.y && y < _position.y + (int)_size.h) ? this : 0;
 }
 
 
@@ -142,7 +142,7 @@ int Parent_element::_format_children(int x, int w)
 	for (Element *e = _first; e; e = e->next) {
 		e->format_fixed_width(w);
 		e->geometry(Rect(Point(x, y), e->min_size()));
-		y += e->min_size().h();
+		y += e->min_size().h;
 	}
 
 	return y;
@@ -159,8 +159,8 @@ void Parent_element::draw(Canvas_base &canvas, Point abs_position)
 Element *Parent_element::find(Point position)
 {
 	/* check if position is outside the parent element */
-	if (position.x() < _position.x() || position.x() >= _position.x() + (int)_size.w()
-	 || position.y() < _position.y() || position.y() >= _position.y() + (int)_size.h())
+	if (position.x < _position.x || position.x >= _position.x + (int)_size.w
+	 || position.y < _position.y || position.y >= _position.y + (int)_size.h)
 		return 0;
 
 	position = position - _position;
@@ -179,10 +179,10 @@ Element *Parent_element::find(Point position)
 Element *Parent_element::find_by_y(int y)
 {
 	/* check if position is outside the parent element */
-	if (y < _position.y() || y >= _position.y() + (int)_size.h())
+	if (y < _position.y || y >= _position.y + (int)_size.h)
 		return 0;
 
-	y -= _position.y();
+	y -= _position.y;
 
 	/* check children */
 	for (Element *e = _first; e; e = e->next) {
@@ -200,8 +200,8 @@ void Parent_element::geometry(Rect rect)
 
 	if (!_last || !_last->bottom()) return;
 
-	_last->geometry(Rect(Point(_last->position().x(),
-	                           rect.h() - _last->size().h()), _last->size()));
+	_last->geometry(Rect(Point(_last->position().x,
+	                           rect.h() - _last->size().h), _last->size()));
 }
 
 
@@ -235,7 +235,7 @@ Token::Token(Style *style, const char *str, size_t len)
 
 	_min_size = Area(_style->font->string_width(str, len).decimal() +
 	                 _style->font->string_width(" ").decimal(),
-	                 _style->font->bounding_box().h());
+	                 _style->font->bounding_box().h);
 }
 
 
@@ -249,12 +249,12 @@ void Token::draw(Canvas_base &canvas, Point abs_position)
 
 	if (_outline.a)
 		for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++)
-			canvas.draw_string(_position.x() + abs_position.x() + i,
-			                   _position.y() + abs_position.y() + j,
+			canvas.draw_string(_position.x + abs_position.x + i,
+			                   _position.y + abs_position.y + j,
 			                   _style->font, _outline, _str, _len);
 
-	canvas.draw_string(_position.x() + abs_position.x(),
-	                   _position.y() + abs_position.y(),
+	canvas.draw_string(_position.x + abs_position.x,
+	                   _position.y + abs_position.y,
 	                   _style->font, _col, _str, _len);
 }
 
@@ -306,23 +306,23 @@ void Block::format_fixed_width(int w)
 	for (Element *e = _first; e; e = e->next) {
 
 		/* wrap at the end of the line */
-		if (x + (int)e->min_size().w() >= w) {
+		if (x + (int)e->min_size().w >= w) {
 			x  = _second_indent;
 			y += line_max_h;
 			line_max_h = 0;
 		}
 
 		/* position element */
-		if (max_w < x + e->min_size().w())
-			max_w = x + e->min_size().w();
+		if (max_w < x + e->min_size().w)
+			max_w = x + e->min_size().w;
 
 		e->geometry(Rect(Point(x, y), e->min_size()));
 
 		/* determine token with the biggest height of the line */
-		if (line_max_h < e->min_size().h())
-			line_max_h = e->min_size().h();
+		if (line_max_h < e->min_size().h)
+			line_max_h = e->min_size().h;
 
-		x += e->min_size().w();
+		x += e->min_size().w;
 	}
 
 	/*
@@ -334,23 +334,23 @@ void Block::format_fixed_width(int w)
 		for (Element *line = _first; line; ) {
 
 			Element *e;
-			int      cy = line->position().y();   /* y position of current line */
+			int      cy = line->position().y;     /* y position of current line */
 			int      max_x;                       /* rightmost position         */
 
 			/* determine free space at the end of the line */
-			for (max_x = 0, e = line; e && (e->position().y() == cy); e = e->next)
-				max_x = max(max_x, e->position().x() + (int)e->size().w() - 1);
+			for (max_x = 0, e = line; e && (e->position().y == cy); e = e->next)
+				max_x = max(max_x, e->position().x + (int)e->size().w - 1);
 
 			/* indent elements of the line according to the alignment */
 			int dx = 0;
 			if (_align == CENTER) dx = (int)max(0UL, (max_w - max_x)/2);
 			if (_align == RIGHT)  dx = (int)max(0UL, max_w - max_x);
-			for (e = line; e && (e->position().y() == cy); e = e->next)
-				e->geometry(Rect(Point(e->position().x() + dx, e->position().y()),
+			for (e = line; e && (e->position().y == cy); e = e->next)
+				e->geometry(Rect(Point(e->position().x + dx, e->position().y),
 				                 e->size()));
 
 			/* find first element of next line */
-			for (; line && (line->position().y() == cy); line = line->next);
+			for (; line && (line->position().y == cy); line = line->next);
 		}
 	}
 
@@ -367,21 +367,21 @@ void Block::format_fixed_width(int w)
 
 void Center::format_fixed_width(int w)
 {
-	_min_size = Area(_min_size.w(), _format_children(0, w));
+	_min_size = Area(_min_size.w, _format_children(0, w));
 
 	/* determine highest min with of children */
 	unsigned highest_min_w = 0;
 	for (Element *e = _first; e; e = e->next)
-		if (highest_min_w < e->min_size().w())
-			highest_min_w = e->min_size().w();
+		if (highest_min_w < e->min_size().w)
+			highest_min_w = e->min_size().w;
 
 	unsigned dx = (w - highest_min_w)>>1;
 
-	_min_size = Area(max((unsigned)w, highest_min_w), _min_size.h());
+	_min_size = Area(max((unsigned)w, highest_min_w), _min_size.h);
 
 	/* move children to center */
 	for (Element *e = _first; e; e = e->next)
-		e->geometry(Rect(Point(dx, e->position().y()), e->size()));
+		e->geometry(Rect(Point(dx, e->position().y), e->size()));
 }
 
 
@@ -393,16 +393,16 @@ void Verbatim::draw(Canvas_base &canvas, Point abs_position)
 {
 	static const int pad = 5;
 
-	canvas.draw_box(_position.x() + abs_position.x() + pad,
-	                _position.y() + abs_position.x() + pad,
-	                _size.w() - 2*pad, _size.h() - 2*pad, bgcol);
+	canvas.draw_box(_position.x + abs_position.x + pad,
+	                _position.y + abs_position.x + pad,
+	                _size.w - 2*pad, _size.h - 2*pad, bgcol);
 
 	int cx1 = canvas.clip().x1(), cy1 = canvas.clip().y1();
 	int cx2 = canvas.clip().x2(), cy2 = canvas.clip().y2();
 
-	canvas.clip(Rect(Point(_position.x() + abs_position.x() + pad,
-	                       _position.y() + abs_position.y() + pad),
-	                 Area(_size.w() - 2*pad, _size.h() - 2*pad)));
+	canvas.clip(Rect(Point(_position.x + abs_position.x + pad,
+	                       _position.y + abs_position.y + pad),
+	                 Area(_size.w - 2*pad, _size.h - 2*pad)));
 	Parent_element::draw(canvas, abs_position);
 
 	canvas.clip(Rect(Point(cx1, cy1), Area(cx2 - cx1 + 1, cy2 - cy1 + 1)));
@@ -418,7 +418,7 @@ void Verbatim::format_fixed_width(int w)
 		/* position element */
 		e->geometry(Rect(Point(10, y), e->min_size()));
 
-		y += e->min_size().h();
+		y += e->min_size().h;
 	}
 
 	_min_size = Area(w, y + 10);

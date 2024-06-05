@@ -88,7 +88,7 @@ class Canvas : public Canvas_base
 		void draw_string(Point p, Font const &font, Color color,
 		                 char const *sstr) override
 		{
-			Text_painter::paint(_surface, Text_painter::Position(p.x(), p.y()),
+			Text_painter::paint(_surface, Text_painter::Position(p.x, p.y),
 			                    font, color, sstr);
 		}
 
@@ -157,7 +157,7 @@ class Log_entry
 
 			/* calculate label dimensions */
 			int label_w = font.string_width(_label).decimal();
-			int label_h = font.bounding_box().h();
+			int label_h = font.bounding_box().h;
 
 			if (new_section) {
 				canvas.draw_box(Rect(Point(1, y), Area(label_w + 2, label_h - 1)), label_bgcol);
@@ -244,7 +244,7 @@ class Log_window
 				_dirty = false;
 			}
 
-			int line_h = _font.bounding_box().h();
+			int line_h = _font.bounding_box().h;
 			int curr_session_id = -1;
 
 			for (int i = 0, y = 0; i < LOG_H; i++, y += line_h) {
@@ -365,8 +365,8 @@ class Log_view
 		Log_view(Gui::Session_client &gui, Gui::Rect geometry)
 		:
 			_gui(gui),
-			_pos(geometry.p1()),
-			_size(geometry.area()),
+			_pos(geometry.at),
+			_size(geometry.area),
 			_handle(gui.create_view())
 		{
 			move(_pos);
@@ -401,8 +401,8 @@ struct Nitlog::Main
 	Tff_font _font { _binary_mono_tff_start, _glyph_buffer };
 
 	/* calculate size of log view in pixels */
-	unsigned const _win_w = _font.bounding_box().w() * LOG_W + 2;
-	unsigned const _win_h = _font.bounding_box().h() * LOG_H + 2;
+	unsigned const _win_w = _font.bounding_box().w * LOG_W + 2;
+	unsigned const _win_h = _font.bounding_box().h * LOG_H + 2;
 
 	/* init sessions to the required external services */
 	Gui::Connection   _gui   { _env };

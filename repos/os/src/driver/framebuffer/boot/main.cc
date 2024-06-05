@@ -83,7 +83,7 @@ struct Framebuffer::Main
 	bool const _checked_info = ( _check_info(), true );
 
 	Attached_io_mem_dataspace _fb_ds { _env, _info.addr,
-	                                   _info.pitch*_info.size.h(), true };
+	                                   _info.pitch*_info.size.h, true };
 
 	Capture::Connection _capture { _env };
 
@@ -95,7 +95,7 @@ struct Framebuffer::Main
 
 	void _handle_timer()
 	{
-		Area const phys_size { (uint32_t)(_info.pitch/sizeof(Pixel)), _info.size.h() };
+		Area const phys_size { (uint32_t)(_info.pitch/sizeof(Pixel)), _info.size.h };
 
 		Surface<Pixel> surface(_fb_ds.local_addr<Pixel>(), phys_size);
 

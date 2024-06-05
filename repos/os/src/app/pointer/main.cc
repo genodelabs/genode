@@ -39,14 +39,14 @@ void convert_default_pointer_data_to_pixels(PT *pixel, Gui::Area size)
 {
 	unsigned char *alpha = (unsigned char *)(pixel + size.count());
 
-	for (unsigned y = 0; y < size.h(); y++) {
-		for (unsigned x = 0; x < size.w(); x++) {
+	for (unsigned y = 0; y < size.h; y++) {
+		for (unsigned x = 0; x < size.w; x++) {
 
 			/* the source is known to be in RGB888 format */
 			Genode::Pixel_rgb565 src =
 				*(Genode::Pixel_rgb565 *)(&big_mouse.pixels[y][x]);
 
-			unsigned const i = y*size.w() + x;
+			unsigned const i = y*size.w + x;
 			pixel[i] = PT(src.r(), src.g(), src.b());
 			alpha[i] = src.r() ? 255 : 0;
 		}
@@ -155,7 +155,7 @@ void Pointer::Main::_show_default_pointer()
 		_resize_gui_buffer_if_needed(pointer_size);
 	} catch (...) {
 		Genode::error(__func__, ": could not resize the pointer buffer "
-		              "for ", pointer_size.w(), "x", pointer_size.h(), " pixels");
+		              "for ", pointer_size.w, "x", pointer_size.h, " pixels");
 		return;
 	}
 
@@ -163,7 +163,7 @@ void Pointer::Main::_show_default_pointer()
 
 	convert_default_pointer_data_to_pixels(ds.local_addr<Genode::Pixel_rgb888>(),
 	                                       pointer_size);
-	_gui.framebuffer()->refresh(0, 0, pointer_size.w(), pointer_size.h());
+	_gui.framebuffer()->refresh(0, 0, pointer_size.w, pointer_size.h);
 
 	Gui::Rect geometry(Gui::Point(0, 0), pointer_size);
 	_gui.enqueue<Gui::Session::Command::Geometry>(_view, geometry);
@@ -200,12 +200,12 @@ void Pointer::Main::_show_shape_pointer(Shape_report &shape_report)
 			        _texture_alpha_ds.local_addr<unsigned char>(),
 			        shape_size);
 
-		for (unsigned int y = 0; y < shape_size.h(); y++) {
+		for (unsigned int y = 0; y < shape_size.h; y++) {
 
 			/* import the RGBA-encoded line into the texture */
 			unsigned char *shape = shape_report.shape;
-			unsigned char *line  = &shape[y * shape_size.w() * 4];
-			texture.rgba(line, shape_size.w(), y);
+			unsigned char *line  = &shape[y * shape_size.w * 4];
+			texture.rgba(line, shape_size.w, y);
 		}
 
 		/* draw texture */
@@ -224,7 +224,7 @@ void Pointer::Main::_show_shape_pointer(Shape_report &shape_report)
 		Dither_painter::paint(alpha_surface, texture);
 	}
 
-	_gui.framebuffer()->refresh(0, 0, shape_size.w(), shape_size.h());
+	_gui.framebuffer()->refresh(0, 0, shape_size.w, shape_size.h);
 
 	Gui::Rect geometry(shape_hot, shape_size);
 	_gui.enqueue<Gui::Session::Command::Geometry>(_view, geometry);

@@ -68,15 +68,15 @@ class Nitpicker::Domain_registry
 					_origin(origin), _layer(layer), _offset(offset), _area(area)
 				{ }
 
-				Point _corner(Area screen_area) const
+				Point _corner(Area const screen_area) const
 				{
 					switch (_origin) {
 					case ORIGIN_POINTER:      return Point(0, 0);
 					case ORIGIN_TOP_LEFT:     return Point(0, 0);
-					case ORIGIN_TOP_RIGHT:    return Point(screen_area.w(), 0);
-					case ORIGIN_BOTTOM_LEFT:  return Point(0, screen_area.h());
-					case ORIGIN_BOTTOM_RIGHT: return Point(screen_area.w(),
-					                                       screen_area.h());
+					case ORIGIN_TOP_RIGHT:    return Point(screen_area.w, 0);
+					case ORIGIN_BOTTOM_LEFT:  return Point(0, screen_area.h);
+					case ORIGIN_BOTTOM_RIGHT: return Point(screen_area.w,
+					                                       screen_area.h);
 					}
 					return Point(0, 0);
 				}
@@ -106,13 +106,13 @@ class Nitpicker::Domain_registry
 
 				Area screen_area(Area phys_screen_area) const
 				{
-					int const w = _area.x() > 0
-					            ? _area.x()
-					            : max(0, (int)phys_screen_area.w() + _area.x());
+					int const w = _area.x > 0
+					            ? _area.x
+					            : max(0, (int)phys_screen_area.w + _area.x);
 
-					int const h = _area.y() > 0
-					            ? _area.y()
-					            : max(0, (int)phys_screen_area.h() + _area.y());
+					int const h = _area.y > 0
+					            ? _area.y
+					            : max(0, (int)phys_screen_area.h + _area.y);
 
 					return Area(w, h);
 				}

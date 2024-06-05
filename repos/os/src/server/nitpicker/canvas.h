@@ -82,17 +82,17 @@ class Nitpicker::Canvas : public Canvas_base, public Surface_base::Flusher
 		Rect clip() const override
 		{
 			Rect const clip_rect = _surface.clip();
-			return Rect(clip_rect.p1() + _offset, clip_rect.area());
+			return Rect(clip_rect.p1() + _offset, clip_rect.area);
 		}
 
 		void clip(Rect rect) override
 		{
-			_surface.clip(Rect(rect.p1() - _offset, rect.area()));
+			_surface.clip(Rect(rect.p1() - _offset, rect.area));
 		}
 
 		void draw_box(Rect rect, Color color) override
 		{
-			Box_painter::paint(_surface, Rect(rect.p1() - _offset, rect.area()), color);
+			Box_painter::paint(_surface, Rect(rect.p1() - _offset, rect.area), color);
 		}
 
 		void draw_texture(Point pos, Texture_base const &texture_base,
@@ -108,7 +108,7 @@ class Nitpicker::Canvas : public Canvas_base, public Surface_base::Flusher
 		               Color color, char const *string) override
 		{
 			pos = pos - _offset;
-			Text_painter::paint(_surface, Text_painter::Position(pos.x(), pos.y()),
+			Text_painter::paint(_surface, Text_painter::Position(pos.x, pos.y),
 			                    font, color, string);
 		}
 };

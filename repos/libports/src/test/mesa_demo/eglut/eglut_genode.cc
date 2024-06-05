@@ -89,7 +89,7 @@ struct Window : Genode_egl_window
 
 	void refresh()
 	{
-		gui.framebuffer()->refresh(0, 0, mode.area.w(), mode.area.h());
+		gui.framebuffer()->refresh(0, 0, mode.area.w, mode.area.h);
 	}
 };
 

@@ -41,8 +41,8 @@ class Genode::Dirty_rect
 		 */
 		static bool _should_be_merged(Rect const &r1, Rect const &r2)
 		{
-			size_t const cnt_sum      = r1.area().count() + r2.area().count();
-			size_t const cnt_compound = Rect::compound(r1, r2).area().count();
+			size_t const cnt_sum      = r1.area.count() + r2.area.count();
+			size_t const cnt_compound = Rect::compound(r1, r2).area.count();
 
 			return cnt_compound < cnt_sum;
 		}
@@ -57,7 +57,7 @@ class Genode::Dirty_rect
 			 * added rectangle.
 			 */
 			if (!existing.valid())
-				return added.area().count();
+				return added.area.count();
 
 			/*
 			 * If the existing rectangle is already populated, the costs
@@ -65,8 +65,8 @@ class Genode::Dirty_rect
 			 * existing rectangle by the compound of the existing and new
 			 * rectangles.
 			 */
-			return Rect::compound(existing, added).area().count()
-			     - existing.area().count();
+			return Rect::compound(existing, added).area.count()
+			     - existing.area.count();
 		}
 
 	public:

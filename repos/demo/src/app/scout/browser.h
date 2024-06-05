@@ -129,7 +129,7 @@ class Scout::Browser
 				_content(new_content);
 
 			ypos(0);
-			ypos(_ypos - anchor->abs_position().y() + _voffset);
+			ypos(_ypos - anchor->abs_position().y + _voffset);
 
 			if (new_content) {
 				new_content->refresh();

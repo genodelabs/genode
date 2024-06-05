@@ -219,8 +219,8 @@ struct Terminal::Main : Character_consumer
 
 		/* apply initial size from config, if provided */
 		_config.xml().with_optional_sub_node("initial", [&] (Xml_node const &initial) {
-			_fb_mode.area = Area(initial.attribute_value("width",  _fb_mode.area.w()),
-			                     initial.attribute_value("height", _fb_mode.area.h()));
+			_fb_mode.area = Area(initial.attribute_value("width",  _fb_mode.area.w),
+			                     initial.attribute_value("height", _fb_mode.area.h));
 		});
 
 		_handle_config();
@@ -330,7 +330,7 @@ void Terminal::Main::_handle_config()
 		_terminal_size = Area(0, 0);
 	}
 
-	_root.notify_resized(Session::Size(_terminal_size.w(), _terminal_size.h()));
+	_root.notify_resized(Session::Size(_terminal_size.w, _terminal_size.h));
 	_schedule_flush();
 }
 

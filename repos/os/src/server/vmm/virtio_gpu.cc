@@ -50,8 +50,8 @@ void Vmm::Virtio_gpu_control_request::_get_display_info()
 
 	dir.write<Display_info_response::X>(0);
 	dir.write<Display_info_response::Y>(0);
-	dir.write<Display_info_response::Width>(mode.area.w());
-	dir.write<Display_info_response::Height>(mode.area.h());
+	dir.write<Display_info_response::Width>(mode.area.w);
+	dir.write<Display_info_response::Height>(mode.area.h);
 	dir.write<Display_info_response::Enabled>(1);
 	dir.write<Display_info_response::Flags>(0);
 }
@@ -195,18 +195,18 @@ void Vmm::Virtio_gpu_control_request::_resource_flush()
 		uint32_t x = rf.read<Resource_flush::X>();
 		uint32_t y = rf.read<Resource_flush::Y>();
 		uint32_t w = min(rf.read<Resource_flush::Width>(),
-		                 _device._fb_mode.area.w() - x);
+		                 _device._fb_mode.area.w - x);
 		uint32_t h = min(rf.read<Resource_flush::Height>(),
-		                 _device._fb_mode.area.h() - y);
+		                 _device._fb_mode.area.h - y);
 
 		enum { BYTES_PER_PIXEL = Virtio_gpu_device::BYTES_PER_PIXEL };
 
-		if (x     > res.area.w()              ||
-		    y     > res.area.h()              ||
-		    w     > res.area.w()              ||
-		    h     > res.area.h()              ||
-		    x + w > res.area.w()              ||
-		    y + h > res.area.h()) {
+		if (x     > res.area.w  ||
+		    y     > res.area.h  ||
+		    w     > res.area.w  ||
+		    h     > res.area.h  ||
+		    x + w > res.area.w  ||
+		    y + h > res.area.h) {
 			response.write<Control_header::Type>(Control_header::Type::ERR_INVALID_PARAMETER);
 			return;
 		}
@@ -215,12 +215,12 @@ void Vmm::Virtio_gpu_control_request::_resource_flush()
 
 		void * src =
 			(void*)((addr_t)res.dst_ds.local_addr<void>() +
-			        (res.area.w() * y + x) * BYTES_PER_PIXEL);
+			        (res.area.w * y + x) * BYTES_PER_PIXEL);
 		void * dst =
 			(void*)((addr_t)_device._fb_ds->local_addr<void>() +
-			        (_device._fb_mode.area.w() * y + x) * BYTES_PER_PIXEL);
-		uint32_t line_src = res.area.w() * BYTES_PER_PIXEL;
-		uint32_t line_dst = _device._fb_mode.area.w() * BYTES_PER_PIXEL;
+			        (_device._fb_mode.area.w * y + x) * BYTES_PER_PIXEL);
+		uint32_t line_src = res.area.w * BYTES_PER_PIXEL;
+		uint32_t line_dst = _device._fb_mode.area.w * BYTES_PER_PIXEL;
 
 		blit(src, line_src, dst, line_dst, w*BYTES_PER_PIXEL, h);
 		_device._gui.framebuffer()->refresh(x, y, w, h);
@@ -250,15 +250,15 @@ void Vmm::Virtio_gpu_control_request::_transfer_to_host_2d()
 		uint32_t h = tth.read<Transfer_to_host_2d::Height>();
 		addr_t off = (addr_t)tth.read<Transfer_to_host_2d::Offset>();
 
-		if (x + w > res.area.w() || y + h > res.area.h()) {
+		if (x + w > res.area.w || y + h > res.area.h) {
 			response.write<Control_header::Type>(Control_header::Type::ERR_INVALID_PARAMETER);
 			return;
 		}
 
 		void * src  = (void*)((addr_t)res.src_ds.local_addr<void>() + off);
 		void * dst  = (void*)((addr_t)res.dst_ds.local_addr<void>() +
-		              (y * res.area.w() + x) * BYTES_PER_PIXEL);
-		uint32_t line = res.area.w() * BYTES_PER_PIXEL;
+		              (y * res.area.w + x) * BYTES_PER_PIXEL);
+		uint32_t line = res.area.w * BYTES_PER_PIXEL;
 
 		blit(src, line, dst, line, w*BYTES_PER_PIXEL, h);
 

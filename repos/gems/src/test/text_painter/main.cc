@@ -80,7 +80,7 @@ struct Test::Main
 
 	Vfs_font _font_4 { _heap, _root, "fonts/regular" };
 
-	void _refresh() { _fb.refresh(0, 0, _size.w(), _size.h()); }
+	void _refresh() { _fb.refresh(0, 0, _size.w, _size.h); }
 
 	Main(Env &env) : _env(env)
 	{
@@ -102,7 +102,7 @@ struct Test::Main
 		_surface.clip(Rect(Point(20, 15), Area(40, 300)));
 		Box_painter::paint(_surface, Rect(Point(0, 0), _size), Color::rgb(150, 20, 10));
 
-		for (int x = 0, y = -30; y < (int)_size.h() + 30; x++, y += _font_2.bounding_box().h())
+		for (int x = 0, y = -30; y < (int)_size.h + 30; x++, y += _font_2.bounding_box().h)
 			Text_painter::paint(_surface,
 			                    Text_painter::Position(x, y), _font_2,
 			                    Color::rgb(255, 255, 255),
@@ -111,9 +111,9 @@ struct Test::Main
 		/* test horizontal subpixel positioning */
 		_surface.clip(Rect(Point(90, 15), Area(100, 300)));
 		Box_painter::paint(_surface, Rect(Point(0, 0), _size), Color::rgb(150, 20, 10));
-		float const font_3_h = (float)_font_3.bounding_box().h();
+		float const font_3_h = (float)_font_3.bounding_box().h;
 
-		for (float x = 90, y = -30; y < (float)_size.h() + 30; x += 0.2f, y += font_3_h)
+		for (float x = 90, y = -30; y < (float)_size.h + 30; x += 0.2f, y += font_3_h)
 			Text_painter::paint(_surface,
 			                    Text_painter::Position(x, y), _font_3,
 			                    Color::rgb(255, 255, 255),
@@ -122,7 +122,7 @@ struct Test::Main
 		_surface.clip(Rect(Point(90, 320), Area(100, 300)));
 		Box_painter::paint(_surface, Rect(Point(0, 0), _size), Color::rgb(255, 255, 255));
 
-		for (float x = 90, y = 300; y < (float)_size.h() + 30; x += 0.2f, y += font_3_h)
+		for (float x = 90, y = 300; y < (float)_size.h + 30; x += 0.2f, y += font_3_h)
 			Text_painter::paint(_surface,
 			                    Text_painter::Position(x, y), _font_3,
 			                    Color::rgb(0, 0, 0),

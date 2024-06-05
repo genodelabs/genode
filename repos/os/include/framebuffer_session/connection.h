@@ -34,8 +34,8 @@ struct Framebuffer::Connection : Genode::Connection<Session>, Session_client
 	Connection(Genode::Env &env, Framebuffer::Mode mode)
 	:
 		Genode::Connection<Session>(env, Label(), Ram_quota { 8*1024 },
-		                            Args("fb_width=",  mode.area.w(), ", "
-		                                 "fb_height=", mode.area.h())),
+		                            Args("fb_width=",  mode.area.w, ", "
+		                                 "fb_height=", mode.area.h)),
 		Session_client(cap())
 	{ }
 };

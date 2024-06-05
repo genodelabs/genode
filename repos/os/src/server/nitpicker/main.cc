@@ -277,8 +277,8 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 				return;
 
 			xml.node("display", [&] () {
-				xml.attribute("width",  size.w());
-				xml.attribute("height", size.h());
+				xml.attribute("width",  size.w);
+				xml.attribute("height", size.h);
 			});
 		}
 };
@@ -616,7 +616,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 	void _update_pointer_position()
 	{
-		_view_stack.geometry(_pointer_origin, Rect(_user_state.pointer_pos(), Area()));
+		_view_stack.geometry(_pointer_origin, Rect(_user_state.pointer_pos(), Area{}));
 	}
 
 	Main(Env &env) : _env(env)
@@ -901,8 +901,8 @@ void Nitpicker::Main::_report_displays()
 	Reporter::Xml_generator xml(_displays_reporter, [&] () {
 		if (_fb_screen.constructed()) {
 			xml.node("display", [&] () {
-				xml.attribute("width",  _fb_screen->size.w());
-				xml.attribute("height", _fb_screen->size.h());
+				xml.attribute("width",  _fb_screen->size.w);
+				xml.attribute("height", _fb_screen->size.h);
 			});
 		}
 

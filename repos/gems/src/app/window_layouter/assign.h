@@ -116,13 +116,13 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 			Point const any_pos(150*win_id % 800, 30 + (100*win_id % 500));
 
-			Point const pos(_xpos_any ? any_pos.x() : _pos.x(),
-			                _ypos_any ? any_pos.y() : _pos.y());
+			Point const pos(_xpos_any ? any_pos.x : _pos.x,
+			                _ypos_any ? any_pos.y : _pos.y);
 
 			Rect const inner(pos, _size_defined ? _size : client_size);
 			Rect const outer = decorator_margins.outer_geometry(inner);
 
-			return Rect(outer.p1() + target_geometry.p1(), outer.area());
+			return Rect(outer.p1() + target_geometry.p1(), outer.area);
 		}
 
 		bool maximized() const { return _maximized; }
@@ -204,15 +204,15 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		{
 			if (_pos_defined) {
 				if (_xpos_any) xml.attribute("xpos", "any");
-				else           xml.attribute("xpos", _pos.x());
+				else           xml.attribute("xpos", _pos.x);
 
 				if (_ypos_any) xml.attribute("ypos", "any");
-				else           xml.attribute("ypos", _pos.y());
+				else           xml.attribute("ypos", _pos.y);
 			}
 
 			if (_size_defined) {
-				xml.attribute("width",  _size.w());
-				xml.attribute("height", _size.h());
+				xml.attribute("width",  _size.w);
+				xml.attribute("height", _size.h);
 			}
 
 			if (_maximized)

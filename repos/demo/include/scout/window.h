@@ -69,10 +69,10 @@ class Scout::Window : public Parent_element
 		/**
 		 * Return current window position
 		 */
-		int view_x() const { return _next_view_position.x(); }
-		int view_y() const { return _next_view_position.y(); }
-		int view_w() const { return _size.w(); }
-		int view_h() const { return _size.h(); }
+		int view_x() const { return _next_view_position.x; }
+		int view_y() const { return _next_view_position.y; }
+		int view_w() const { return _size.w; }
+		int view_h() const { return _size.h; }
 
 		Area max_size() const { return _max_size; }
 
@@ -118,7 +118,7 @@ class Scout::Window : public Parent_element
 			 */
 			if (_scout_quirk && y < 64 + 32) {
 				h = max(h + y, 64 + 32);
-				w = _size.w();
+				w = _size.w;
 				x = 0;
 				y = 0;
 			}
@@ -149,8 +149,8 @@ class Scout::Window : public Parent_element
 			/* get actual drawing area (clipped against canvas dimensions) */
 			int x1 = max(0, _dirty.x1());
 			int y1 = max(0, _dirty.y1());
-			int x2 = min((int)_size.w() - 1, _dirty.x2());
-			int y2 = min((int)_size.h() - 1, _dirty.y2());
+			int x2 = min((int)_size.w - 1, _dirty.x2());
+			int y2 = min((int)_size.h - 1, _dirty.y2());
 
 			if (x1 > x2 || y1 > y2) return;
 
@@ -167,8 +167,8 @@ class Scout::Window : public Parent_element
 			 */
 
 			/* detemine if the whole area must be drawn */
-			if (x1 == 0 && x2 == (int)_size.w() - 1
-			 && y1 == 0 && y2 == (int)_size.h() - 1) {
+			if (x1 == 0 && x2 == (int)_size.w - 1
+			 && y1 == 0 && y2 == (int)_size.h - 1) {
 
 				/* flip back end front buffers */
 				_gfx_backend.swap_back_and_front();
@@ -223,8 +223,8 @@ class Scout::Drag_event_handler : public Event_handler
 			}
 
 			/* check if mouse was moved */
-			if ((ev.mouse_position.x() == _current_mouse_position.x())
-			 && (ev.mouse_position.y() == _current_mouse_position.y()))
+			if ((ev.mouse_position.x == _current_mouse_position.x)
+			 && (ev.mouse_position.y == _current_mouse_position.y))
 			 	return;
 
 			/* remember current mouse position */
@@ -262,8 +262,8 @@ class Scout::Sizer_event_handler : public Drag_event_handler
 		void do_drag() override
 		{
 			/* calculate new window size */
-			int nbw = _obw + _current_mouse_position.x() - _old_mouse_position.x();
-			int nbh = _obh + _current_mouse_position.y() - _old_mouse_position.y();
+			int nbw = _obw + _current_mouse_position.x - _old_mouse_position.x;
+			int nbh = _obh + _current_mouse_position.y - _old_mouse_position.y;
 
 			_window->format(Area(nbw, nbh));
 		}
@@ -301,8 +301,8 @@ class Scout::Mover_event_handler : public Drag_event_handler
 
 		void do_drag() override
 		{
-			int nbx = _obx + _current_mouse_position.x() - _old_mouse_position.x();
-			int nby = _oby + _current_mouse_position.y() - _old_mouse_position.y();
+			int nbx = _obx + _current_mouse_position.x - _old_mouse_position.x;
+			int nby = _oby + _current_mouse_position.y - _old_mouse_position.y;
 
 			_window->vpos(nbx, nby);
 		}

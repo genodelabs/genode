@@ -87,8 +87,8 @@ class Nano3d::Scene
 				 * front buffer, and the back buffer.
 				 */
 				bool     const use_alpha = true;
-				unsigned const height    = size.h()*NUM_BUFFERS;
-				gui.buffer(Framebuffer::Mode { .area = { size.w(), height } },
+				unsigned const height    = size.h*NUM_BUFFERS;
+				gui.buffer(Framebuffer::Mode { .area = { size.w, height } },
 				                 use_alpha);
 
 				return *gui.framebuffer();
@@ -103,7 +103,7 @@ class Nano3d::Scene
 			 */
 			Gui::Area size() const
 			{
-				return Gui::Area(mode.area.w(), mode.area.h()/NUM_BUFFERS);
+				return Gui::Area(mode.area.w, mode.area.h/NUM_BUFFERS);
 			}
 
 			Genode::Attached_dataspace ds { rm, framebuffer.dataspace() };
@@ -254,7 +254,7 @@ class Nano3d::Scene
 			_swap_visible_and_front_surfaces();
 			_swap_back_and_front_surfaces();
 
-			int const h = _framebuffer.size().h();
+			int const h = _framebuffer.size().h;
 
 			int const buf_y = (_surface_visible == &_surface_0) ? 0
 			                : (_surface_visible == &_surface_1) ? -h

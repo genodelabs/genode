@@ -183,7 +183,7 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		using Genode::Weak_object<View>::weak_ptr;
 		using Genode::Weak_object<View>::lock_for_destruction;
 
-		Point virtual_position() const { return _geometry.p1(); }
+		Point virtual_position() const { return _geometry.at; }
 
 		virtual bool belongs_to_win_id(Window_registry::Id id) const = 0;
 
@@ -301,12 +301,12 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 				_window_registry.resizeable(_win_id, _resizeable);
 			}
 
-			_window_registry.size(_win_id, geometry.area());
+			_window_registry.size(_win_id, geometry.area);
 
 			View::geometry(geometry);
 		}
 
-		Area size() const { return _geometry.area(); }
+		Area size() const { return _geometry.area; }
 
 		void title(char const *title) override
 		{
@@ -327,12 +327,12 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 		Point input_anchor_position() const override
 		{
-			return _content_geometry.p1();
+			return _content_geometry.at;
 		}
 
 		void content_geometry(Rect rect)
 		{
-			bool const position_changed = _content_geometry.p1() != rect.p1();
+			bool const position_changed = _content_geometry.at != rect.at;
 
 			_content_geometry = rect;
 
@@ -541,13 +541,13 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		{
 			ev.handle_absolute_motion([&] (int x, int y) {
 				Point const p = Point(x, y) + origin;
-				ev = Input::Absolute_motion{p.x(), p.y()};
+				ev = Input::Absolute_motion{p.x, p.y};
 			});
 
 			ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
 				ev = Input::Touch { .id = id,
-				                    .x  = x + (float)origin.x(),
-				                    .y  = y + (float)origin.y() }; });
+				                    .x  = x + (float)origin.x,
+				                    .y  = y + (float)origin.y }; });
 
 			return ev;
 		}
@@ -643,7 +643,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 			Point const pos = _pointer_pos + _input_origin();
 
-			_input_session.submit(Input::Absolute_motion { pos.x(), pos.y() });
+			_input_session.submit(Input::Absolute_motion { pos.x, pos.y });
 		}
 
 		View &_create_view_object(View_handle parent_handle)
@@ -1105,7 +1105,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 				 * Supply artificial mouse click to the decorator's input session
 				 * (which is routed to the layouter).
 				 */
-				window_layouter_input.submit(Input::Absolute_motion{pos.x(), pos.y()});
+				window_layouter_input.submit(Input::Absolute_motion{pos.x, pos.y});
 				window_layouter_input.submit(Input::Press{Input::BTN_LEFT});
 				window_layouter_input.submit(Input::Release{Input::BTN_LEFT});
 			}

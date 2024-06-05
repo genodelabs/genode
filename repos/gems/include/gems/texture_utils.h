@@ -24,21 +24,21 @@ static void scale(Genode::Texture<PT> const &src, Genode::Texture<PT> &dst,
 	if (dst.size().count() == 0)
 		return;
 
-	Genode::size_t const row_num_bytes = dst.size().w()*4;
+	Genode::size_t const row_num_bytes = dst.size().w*4;
 	unsigned char *row = (unsigned char *)alloc.alloc(row_num_bytes);
 
-	unsigned const mx = (src.size().w() << 16) / dst.size().w();
-	unsigned const my = (src.size().h() << 16) / dst.size().h();
+	unsigned const mx = (src.size().w << 16) / dst.size().w;
+	unsigned const my = (src.size().h << 16) / dst.size().h;
 
-	for (unsigned y = 0, src_y = 0; y < dst.size().h(); y++, src_y += my) {
+	for (unsigned y = 0, src_y = 0; y < dst.size().h; y++, src_y += my) {
 
-		unsigned const src_line_offset = src.size().w()*(src_y >> 16);
+		unsigned const src_line_offset = src.size().w*(src_y >> 16);
 
 		PT            const *pixel_line = src.pixel() + src_line_offset;
 		unsigned char const *alpha_line = src.alpha() + src_line_offset;
 
 		unsigned char *d = row;
-		for (unsigned x = 0, src_x = 0; x < dst.size().w(); x++, src_x += mx) {
+		for (unsigned x = 0, src_x = 0; x < dst.size().w; x++, src_x += mx) {
 
 			unsigned const pixel_offset = src_x >> 16;
 
@@ -51,7 +51,7 @@ static void scale(Genode::Texture<PT> const &src, Genode::Texture<PT> &dst,
 			*d++ = (unsigned char)alpha;
 		}
 
-		dst.rgba(row, dst.size().w(), y);
+		dst.rgba(row, dst.size().w, y);
 	}
 
 	alloc.free(row, row_num_bytes);
@@ -68,11 +68,11 @@ static void convert_pixel_format(Genode::Texture<SRC_PT> const &src,
 	if (src.size() != dst.size())
 		return;
 
-	Genode::size_t const row_num_bytes = dst.size().w()*4;
+	Genode::size_t const row_num_bytes = dst.size().w*4;
 	unsigned char *row = (unsigned char *)alloc.alloc(row_num_bytes);
 
 	/* shortcuts */
-	unsigned const w = dst.size().w(), h = dst.size().h();
+	unsigned const w = dst.size().w, h = dst.size().h;
 
 	for (unsigned y = 0, line_offset = 0; y < h; y++, line_offset += w) {
 

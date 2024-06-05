@@ -95,11 +95,11 @@ void User_state::_handle_input_event(Input::Event ev)
 	/* transparently convert relative into absolute motion event */
 	ev.handle_relative_motion([&] (int x, int y) {
 
-		int const ox = _pointer_pos.x(),
-		          oy = _pointer_pos.y();
+		int const ox = _pointer_pos.x,
+		          oy = _pointer_pos.y;
 
-		int const ax = max(0, min((int)_view_stack.size().w() - 1, ox + x)),
-		          ay = max(0, min((int)_view_stack.size().h() - 1, oy + y));
+		int const ax = max(0, min((int)_view_stack.size().w - 1, ox + x)),
+		          ay = max(0, min((int)_view_stack.size().h - 1, oy + y));
 
 		ev = Absolute_motion{ax, ay};
 	});
@@ -188,8 +188,8 @@ void User_state::_handle_input_event(Input::Event ev)
 				_focused->submit_input_event(Focus_leave());
 
 			if (_hovered) {
-				_hovered->submit_input_event(Absolute_motion{_pointer_pos.x(),
-				                                             _pointer_pos.y()});
+				_hovered->submit_input_event(Absolute_motion{_pointer_pos.x,
+				                                             _pointer_pos.y});
 				_hovered->submit_input_event(Focus_enter());
 			}
 
@@ -411,8 +411,8 @@ void User_state::report_keystate(Xml_generator &xml) const
 
 void User_state::report_pointer_position(Xml_generator &xml) const
 {
-	xml.attribute("xpos", _pointer_pos.x());
-	xml.attribute("ypos", _pointer_pos.y());
+	xml.attribute("xpos", _pointer_pos.x);
+	xml.attribute("ypos", _pointer_pos.y);
 }
 
 
@@ -499,8 +499,8 @@ User_state::Update_hover_result User_state::update_hover()
 			old_hovered->submit_input_event(Hover_leave());
 
 		if (_hovered)
-			_hovered->submit_input_event(Absolute_motion{_pointer_pos.x(),
-			                                             _pointer_pos.y()});
+			_hovered->submit_input_event(Absolute_motion{_pointer_pos.x,
+			                                             _pointer_pos.y});
 	}
 
 	return { .hover_changed = (_hovered != old_hovered) };

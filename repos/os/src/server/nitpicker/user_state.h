@@ -221,14 +221,14 @@ class Nitpicker::User_state
 
 			/* center pointer initially */
 			if (!_initial_pointer_position_defined) {
-				_pointer_pos = Point(screen_size.w()/2, screen_size.h()/2);
+				_pointer_pos = Point(screen_size.w/2, screen_size.h/2);
 				_initial_pointer_position_defined = true;
 			}
 
 			/* ensure that pointer remains within screen boundaries */
 			if (screen_size.count() > 0)
-				_pointer_pos = Point(min((int)screen_size.w() - 1, _pointer_pos.x()),
-				                     min((int)screen_size.h() - 1, _pointer_pos.y()));
+				_pointer_pos = Point(min((int)screen_size.w - 1, _pointer_pos.x),
+				                     min((int)screen_size.h - 1, _pointer_pos.y));
 		}
 
 

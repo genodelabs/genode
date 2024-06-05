@@ -91,7 +91,7 @@ struct Menu_view::Depgraph_widget : Widget
 		void apply_layout_to_widget()
 		{
 			_widget.position(_widget_geometry.p1());
-			_widget.size(_widget_geometry.area());
+			_widget.size(_widget_geometry.area);
 		}
 
 		struct Dependency : Animator::Item
@@ -240,7 +240,7 @@ struct Menu_view::Depgraph_widget : Widget
 
 		unsigned depth_size(Depth_direction dir) const
 		{
-			return dir.horizontal() ? _widget.min_size().w() : _widget.min_size().h();
+			return dir.horizontal() ? _widget.min_size().w : _widget.min_size().h;
 		}
 
 		/**
@@ -263,7 +263,7 @@ struct Menu_view::Depgraph_widget : Widget
 		unsigned breadth_size(Depth_direction dir) const
 		{
 			unsigned const widget_size =
-				dir.horizontal() ? _widget.min_size().h() : _widget.min_size().w();
+				dir.horizontal() ? _widget.min_size().h : _widget.min_size().w;
 
 			unsigned const breadth_padding = 10;
 
@@ -616,7 +616,7 @@ struct Menu_view::Depgraph_widget : Widget
 		});
 	}
 
-	Area min_size() const override { return _bounding_box.area(); }
+	Area min_size() const override { return _bounding_box.area; }
 
 	void _draw_connect(Surface<Pixel_rgb888> &pixel_surface,
 	                   Surface<Pixel_alpha8> &alpha_surface,
@@ -635,17 +635,17 @@ struct Menu_view::Depgraph_widget : Widget
 			line_painter.paint(alpha_surface, fx1, fy1, fx2, fy2, color);
 		};
 
-		long const mid_x = (p1.x() + p2.x()) / 2,
-		           mid_y = (p1.y() + p2.y()) / 2;
+		long const mid_x = (p1.x + p2.x) / 2,
+		           mid_y = (p1.y + p2.y) / 2;
 
-		long const x1 = p1.x(),
-		           y1 = p1.y(),
-		           x2 = horizontal ? mid_x  : p1.x(),
-		           y2 = horizontal ? p1.y() : mid_y,
-		           x3 = horizontal ? mid_x  : p2.x(),
-		           y3 = horizontal ? p2.y() : mid_y,
-		           x4 = p2.x(),
-		           y4 = p2.y();
+		long const x1 = p1.x,
+		           y1 = p1.y,
+		           x2 = horizontal ? mid_x : p1.x,
+		           y2 = horizontal ? p1.y  : mid_y,
+		           x3 = horizontal ? mid_x : p2.x,
+		           y3 = horizontal ? p2.y  : mid_y,
+		           x4 = p2.x,
+		           y4 = p2.y;
 
 		auto abs = [] (auto v) { return v >= 0 ? v : -v; };
 
@@ -736,7 +736,7 @@ struct Menu_view::Depgraph_widget : Widget
 		 * Prompt each child to update its layout
 		 */
 		_children.for_each([&] (Widget &w) {
-			w.size(w.geometry().area()); });
+			w.size(w.geometry().area); });
 	}
 };
 

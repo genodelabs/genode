@@ -51,7 +51,7 @@ struct Status_bar::Buffer
 	 * The status bar is as wide as nitpicker's screen and has a fixed
 	 * height.
 	 */
-	Framebuffer::Mode const _mode { .area = { _nit_mode.area.w(), HEIGHT } };
+	Framebuffer::Mode const _mode { .area = { _nit_mode.area.w, HEIGHT } };
 
 	Dataspace_capability _init_buffer()
 	{
@@ -76,7 +76,7 @@ struct Status_bar::Buffer
 			for (int i = -1; i <= 1; i++)
 				if (i || j)
 					Text_painter::paint(surface,
-					                    Text_painter::Position(pos.x() + i, pos.y() + j),
+					                    Text_painter::Position(pos.x + i, pos.y + j),
 					                    _font, Color::black(), s);
 	}
 
@@ -93,13 +93,13 @@ struct Status_bar::Buffer
 		pos = pos + Point(1, 1);
 
 		_draw_outline(surface, pos, domain_name.string());
-		Text_painter::paint(surface, Text_painter::Position(pos.x(), pos.y()),
+		Text_painter::paint(surface, Text_painter::Position(pos.x, pos.y),
 		                    _font, domain_text_color, domain_name.string());
 
 		pos = pos + Point(_font.string_width(domain_name.string()).decimal() + LABEL_GAP, 0);
 
 		_draw_outline(surface, pos, label.string());
-		Text_painter::paint(surface, Text_painter::Position(pos.x(), pos.y()),
+		Text_painter::paint(surface, Text_painter::Position(pos.x, pos.y),
 		                    _font, label_text_color, label.string());
 	}
 
@@ -107,7 +107,7 @@ struct Status_bar::Buffer
 	{
 		return Area(_font.string_width(domain_name.string()).decimal() + LABEL_GAP
 		          + _font.string_width(label.string()).decimal() + 2,
-		            _font.bounding_box().h() + 2);
+		            _font.bounding_box().h + 2);
 	}
 
 	void draw(Domain_name const &, Label const &, Color);
@@ -139,7 +139,7 @@ void Status_bar::Buffer::draw(Domain_name const &domain_name,
 	                   Color::clamped_rgb(r + (r / 2), g + (g / 2), b + (b / 2)));
 
 	/* draw slightly shaded background */
-	for (unsigned i = 1; i < area.h() - 1; i++) {
+	for (unsigned i = 1; i < area.h - 1; i++) {
 		r -= r > 3 ? 4 : 0;
 		g -= g > 3 ? 4 : 0;
 		b -= b > 4 ? 4 : 0;
@@ -157,7 +157,7 @@ void Status_bar::Buffer::draw(Domain_name const &domain_name,
 	_draw_label(surface, view_rect.center(_label_size(domain_name, label)),
 	            domain_name, label, color);
 
-	_gui.framebuffer()->refresh(0, 0, area.w(), area.h());
+	_gui.framebuffer()->refresh(0, 0, area.w, area.h);
 }
 
 

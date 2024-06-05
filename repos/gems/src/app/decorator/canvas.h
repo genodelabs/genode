@@ -83,7 +83,7 @@ class Decorator::Canvas : public Decorator::Canvas_base
 		void draw_text(Point pos, Font const &font,
 		               Color color, char const *string) override
 		{
-			Text_painter::paint(_surface, Text_painter::Position(pos.x(), pos.y()),
+			Text_painter::paint(_surface, Text_painter::Position(pos.x, pos.y),
 			                    font, color, string);
 		}
 

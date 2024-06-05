@@ -130,8 +130,8 @@ void Vesa_driver::Main::_handle_config()
 				Genode::print(out, "VESA mode ", size, "@", (int)BITS_PER_PIXEL); }
 		};
 
-		unsigned width  = configured_size.w(),
-		         height = configured_size.h();
+		unsigned width  = configured_size.w,
+		         height = configured_size.h;
 
 		if (Framebuffer::set_mode(width, height, BITS_PER_PIXEL) != 0) {
 			warning("could not set ", Pretty_mode{configured_size});

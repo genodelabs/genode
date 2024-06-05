@@ -32,12 +32,12 @@ struct Menu_view::Float_widget : Widget
 		Area const child_min = child.min_size();
 
 		/* space around the minimal-sized child */
-		int const w_space = geometry().w() - child_min.w();
-		int const h_space = geometry().h() - child_min.h();
+		int const w_space = geometry().w() - child_min.w;
+		int const h_space = geometry().h() - child_min.h;
 
 		/* stretch child size opposite attributes are specified */
-		int const w = (_east  && _west)  ? geometry().w() : child_min.w();
-		int const h = (_north && _south) ? geometry().h() : child_min.h();
+		int const w = (_east  && _west)  ? geometry().w() : child_min.w;
+		int const h = (_north && _south) ? geometry().h() : child_min.h;
 
 		/* align / center child position */
 		int const x = _west  ? 0 : _east  ? w_space : w_space / 2;
@@ -79,7 +79,7 @@ struct Menu_view::Float_widget : Widget
 	{
 		_children.for_each([&] (Widget &child) {
 			_place_child(child);
-			child.size(child.geometry().area());
+			child.size(child.geometry().area);
 		});
 	}
 

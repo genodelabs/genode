@@ -124,29 +124,29 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 
 		Area text_size = min_size();
 
-		int const dx = (int)geometry().w() - text_size.w(),
-		          dy = (int)geometry().h() - text_size.h();
+		int const dx = (int)geometry().w() - text_size.w,
+		          dy = (int)geometry().h() - text_size.h;
 
 		Point const centered = at + Point(dx/2, dy/2);
 
 		_selections.for_each([&] (Text_selection const &selection) {
-			selection.draw(pixel_surface, alpha_surface, at, text_size.h()); });
+			selection.draw(pixel_surface, alpha_surface, at, text_size.h); });
 
 		Color   const color = _color.color();
 		uint8_t const alpha = color.a;
 
 		if (alpha) {
 			Text_painter::paint(pixel_surface,
-			                    Text_painter::Position(centered.x(), centered.y()),
+			                    Text_painter::Position(centered.x, centered.y),
 			                    *_font, color, _text.string());
 
 			Text_painter::paint(alpha_surface,
-			                    Text_painter::Position(centered.x(), centered.y()),
+			                    Text_painter::Position(centered.x, centered.y),
 			                    *_font, Color(alpha, alpha, alpha, alpha), _text.string());
 		}
 
 		_cursors.for_each([&] (Cursor const &cursor) {
-			cursor.draw(pixel_surface, alpha_surface, at, text_size.h()); });
+			cursor.draw(pixel_surface, alpha_surface, at, text_size.h); });
 	}
 
 	/**
@@ -173,7 +173,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 			return Hovered { .unique_id = hovered_id, .detail = { } };
 
 		return { .unique_id = hovered_id,
-		         .detail    = { _char_index_at_xpos(at.x()) } };
+		         .detail    = { _char_index_at_xpos(at.x) } };
 	}
 
 	void gen_hover_model(Xml_generator &xml, Point at) const override
@@ -184,7 +184,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 
 				_gen_common_hover_attr(xml);
 
-				xml.attribute("at", _char_index_at_xpos(at.x()));
+				xml.attribute("at", _char_index_at_xpos(at.x));
 			});
 		}
 	}

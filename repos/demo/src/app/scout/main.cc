@@ -115,7 +115,7 @@ struct Scout::Main : Scout::Event_handler
 	bool const _mouse_cursor_initialized = (_init_mouse_cursor(), true);
 
 	User_state _user_state { &_browser, &_browser,
-	                         _initial_position.x(), _initial_position.y() };
+	                         _initial_position.x, _initial_position.y };
 
 	bool const _browser_ypos_initialized = (_browser.ypos(0), true);
 
@@ -134,14 +134,14 @@ struct Scout::Main : Scout::Event_handler
 			ev.mouse_position = ev.mouse_position - _user_state.view_position();
 
 			/* update mouse cursor */
-			if (_config.mouse_cursor && (ev.mouse_position.x() != _mouse_position.x()
-			                          || ev.mouse_position.y() != _mouse_position.y())) {
-				int x1 = min(ev.mouse_position.x(), _mouse_position.x());
-				int y1 = min(ev.mouse_position.y(), _mouse_position.y());
-				int x2 = max(ev.mouse_position.x() + _mcursor.size().w() - 1,
-				             _mouse_position.x() + _mcursor.size().w() - 1);
-				int y2 = max(ev.mouse_position.y() + _mcursor.size().h() - 1,
-				             _mouse_position.y() + _mcursor.size().h() - 1);
+			if (_config.mouse_cursor && (ev.mouse_position.x != _mouse_position.x
+			                          || ev.mouse_position.y != _mouse_position.y)) {
+				int x1 = min(ev.mouse_position.x, _mouse_position.x);
+				int y1 = min(ev.mouse_position.y, _mouse_position.y);
+				int x2 = max(ev.mouse_position.x + _mcursor.size().w - 1,
+				             _mouse_position.x + _mcursor.size().w - 1);
+				int y2 = max(ev.mouse_position.y + _mcursor.size().h - 1,
+				             _mouse_position.y + _mcursor.size().h - 1);
 
 				_mcursor.geometry(Rect(ev.mouse_position, _mcursor.size()));
 				_browser.redraw_area(x1, y1, x2 - x1 + 1, y2 - y1 + 1);

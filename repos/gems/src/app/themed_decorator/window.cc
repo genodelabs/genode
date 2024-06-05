@@ -50,15 +50,15 @@ Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
 		return hover;
 	}
 
-	int const x = abs_pos.x();
-	int const y = abs_pos.y();
+	int const x = abs_pos.x;
+	int const y = abs_pos.y;
 
 	Area const theme_size = _theme.background_size();
 
-	hover.left_sizer   = x < outer_geometry().x1() + (int)theme_size.w()/2;
-	hover.right_sizer  = x > outer_geometry().x2() - (int)theme_size.w()/2;
-	hover.top_sizer    = y < outer_geometry().y1() + (int)theme_size.h()/2;
-	hover.bottom_sizer = y > outer_geometry().y2() - (int)theme_size.h()/2;
+	hover.left_sizer   = x < outer_geometry().x1() + (int)theme_size.w/2;
+	hover.right_sizer  = x > outer_geometry().x2() - (int)theme_size.w/2;
+	hover.top_sizer    = y < outer_geometry().y1() + (int)theme_size.h/2;
+	hover.bottom_sizer = y > outer_geometry().y2() - (int)theme_size.h/2;
 
 	return hover;
 }

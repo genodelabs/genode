@@ -28,7 +28,7 @@ void Docview::format_fixed_width(int w)
 
 	if (_cont) {
 		_cont->format_fixed_width(w - 2*_padx - _right_pad);
-		_min_size = Area(w, _voffset + _cont->min_size().h());
+		_min_size = Area(w, _voffset + _cont->min_size().h);
 	}
 
 	if (_bg)
@@ -57,7 +57,7 @@ void Docview::geometry(Rect rect)
 
 	if (_cont)
 		_cont->geometry(Rect(Point(_padx, _voffset),
-		                     Area(_cont->min_size().w(), rect.h() - _voffset)));
+		                     Area(_cont->min_size().w, rect.h() - _voffset)));
 }
 
 
@@ -182,18 +182,18 @@ Element *Icon<PT, W, H>::find(Point position)
 	position = position - _position;
 
 	/* check icon boundaries (the height is flexible) */
-	if ((position.x() < 0) || (position.x() >= W)
-	 || (position.y() < 0) || (position.y() >= (int)_size.h())) return 0;
+	if ((position.x < 0) || (position.x >= W)
+	 || (position.y < 0) || (position.y >= (int)_size.h)) return 0;
 
 	/* upper part of the icon */
-	if (position.y() <= H/2) return _alpha[position.y()][position.x()] ? this : 0;
+	if (position.y <= H/2) return _alpha[position.y][position.x] ? this : 0;
 
 	/* lower part of the icon */
-	if (position.y() > (int)_size.h() - H/2)
-		return _alpha[position.y() - _size.h() + H][position.x()] ? this : 0;
+	if (position.y > (int)_size.h - H/2)
+		return _alpha[position.y - _size.h + H][position.x] ? this : 0;
 
 	/* middle part of the icon */
-	if (_alpha[H/2][position.x()]) return this;
+	if (_alpha[H/2][position.x]) return this;
 
 	return 0;
 }

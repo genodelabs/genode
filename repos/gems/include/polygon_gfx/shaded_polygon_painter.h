@@ -116,7 +116,7 @@ class Polygon::Shaded_painter : public Polygon::Painter_base
 			int * const a_r_edge = _edges.right(ATTR_A);
 
 			/* calculate begin of first destination scanline */
-			unsigned const dst_w = pixel_surface.size().w();
+			unsigned const dst_w = pixel_surface.size().w;
 			PT        *dst_pixel = pixel_surface.addr() + dst_w*bbox.y1();
 			AT        *dst_alpha = alpha_surface.addr() + dst_w*bbox.y1();
 

@@ -143,13 +143,13 @@ struct Osci::Main
 		 * Draw captured audio from right to left.
 		 */
 
-		Point const centered { 0, int(pixel.size().h()/2) };
+		Point const centered { 0, int(pixel.size().h/2) };
 
 		Point previous_p { };
 
 		bool first_iteration = true;
 
-		unsigned const w = pixel.size().w();
+		unsigned const w = pixel.size().w;
 
 		for (unsigned i = 0; i < w; i++) {
 
@@ -176,7 +176,7 @@ struct Osci::Main
 
 		_gui_buffer->flush_surface();
 
-		_gui.framebuffer()->refresh(0, 0, _size.w(), _size.h());
+		_gui.framebuffer()->refresh(0, 0, _size.w, _size.h);
 	}
 
 	Main(Env &env) : _env(env)

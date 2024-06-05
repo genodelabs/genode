@@ -132,8 +132,8 @@ struct Screenshot_trigger::Main
 
 		/* fill alpha channel */
 		Pixel_alpha8 *base = alpha.addr();
-		for (unsigned y = 0; y < _area.h(); y++)
-			for (unsigned x = 0; x < _area.w(); x++)
+		for (unsigned y = 0; y < _area.h; y++)
+			for (unsigned x = 0; x < _area.w; x++)
 				*base++ = Pixel_alpha8 { 0, 0, 0, int(intensity(x, y)) };
 	}
 

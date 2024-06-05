@@ -56,8 +56,8 @@ struct Menu_view::Frame_widget : Widget
 		/* don't get smaller than the background texture */
 		Area const texture_size = texture ? texture->size() : Area(0, 0);
 
-		return Area(max(_space().w() + child_min_size.w(), texture_size.w()),
-		            max(_space().h() + child_min_size.h(), texture_size.h()));
+		return Area(max(_space().w + child_min_size.w, texture_size.w),
+		            max(_space().h + child_min_size.h, texture_size.h));
 	}
 
 	void draw(Surface<Pixel_rgb888> &pixel_surface,
@@ -82,14 +82,14 @@ struct Menu_view::Frame_widget : Widget
 			child.position(Point(margin.left + padding.left,
 			                     margin.top  + padding.top));
 
-			Area const avail = geometry().area();
+			Area const avail = geometry().area;
 
 			unsigned const
-				w = avail.w() >= _space().w() ? avail.w() - _space().w() : 0,
-				h = avail.h() >= _space().h() ? avail.h() - _space().w() : 0;
+				w = avail.w >= _space().w ? avail.w - _space().w : 0,
+				h = avail.h >= _space().h ? avail.h - _space().w : 0;
 
-			child.size(Area(max(w, child.min_size().w()),
-			                max(h, child.min_size().h())));
+			child.size(Area(max(w, child.min_size().w),
+			                max(h, child.min_size().h)));
 		});
 	}
 

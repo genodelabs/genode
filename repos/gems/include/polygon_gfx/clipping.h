@@ -52,12 +52,12 @@ struct Polygon::Point_base : Genode::Point<>
 	/**
 	 * Return edge attribute by ID
 	 */
-	inline int edge_attr(int) const { return x(); }
+	inline int edge_attr(int) const { return x; }
 
 	/**
 	 * Assign value to edge attribute with specified ID
 	 */
-	inline void edge_attr(int, int value) { *this = Point_base(value, y()); }
+	inline void edge_attr(int, int value) { *this = Point_base(value, y); }
 };
 
 
@@ -90,7 +90,7 @@ struct Polygon::Clipper_vertical
 	/**
 	 * Select clipping-sensitive attribute from polygon point
 	 */
-	static int clip_value(POINT p) { return p.x(); }
+	static int clip_value(POINT p) { return p.x; }
 
 	/**
 	 * Calculate intersection point
@@ -106,11 +106,11 @@ struct Polygon::Clipper_vertical
 		if (clip_value(p1) > clip_value(p2)) { POINT tmp = p1; p1 = p2; p2 = tmp; }
 
 		/* calculate ratio of the intersection of edge and clipping boundary */
-		int ratio = intersect_ratio(p1.x(), p2.x(), clip);
+		int ratio = intersect_ratio(p1.x, p2.x, clip);
 
 		/* calculate y value at intersection point */
 		POINT result;
-		*(Point_base *)&result = Point_base(clip, p1.y() + ((ratio*(p2.y() - p1.y()))>>16));
+		*(Point_base *)&result = Point_base(clip, p1.y + ((ratio*(p2.y - p1.y))>>16));
 
 		/* calculate intersection values for edge attributes other than x */
 		for (int i = 1; i < POINT::NUM_EDGE_ATTRIBUTES; i++) {
@@ -132,7 +132,7 @@ struct Polygon::Clipper_horizontal
 	/**
 	 * Select clipping-sensitive attribute from polygon point
 	 */
-	static int clip_value(POINT p) { return p.y(); }
+	static int clip_value(POINT p) { return p.y; }
 
 	/**
 	 * Calculate intersection point
@@ -146,7 +146,7 @@ struct Polygon::Clipper_horizontal
 
 		/* calculate y value at intersection point */
 		POINT result;
-		*(Point_base *)&result = Point_base(p1.x() + ((ratio*(p2.x() - p1.x()))>>16), clip);
+		*(Point_base *)&result = Point_base(p1.x + ((ratio*(p2.x - p1.x))>>16), clip);
 
 		/* calculate intersection values for edge attributes other than x */
 		for (int i = 1; i < POINT::NUM_EDGE_ATTRIBUTES; i++) {

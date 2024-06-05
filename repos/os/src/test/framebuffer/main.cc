@@ -119,7 +119,7 @@ class Test::Main
 
 void Test::Capture_session::_draw_frame(Pixel *p, Pixel c, Area area)
 {
-	unsigned const w = area.w(), h = area.h();
+	unsigned const w = area.w, h = area.h;
 
 	/* top and bottom */
 	for (unsigned i = 0; i < w; ++i)
@@ -144,7 +144,7 @@ void Test::Capture_session::_draw()
 	case STRIPES:
 		{
 			log("black & white stripes");
-			addr_t const stripe_width = _size.w() / 4;
+			addr_t const stripe_width = _size.w / 4;
 			addr_t stripe_o = 0;
 			bool stripe = 0;
 			for (addr_t o = 0; o < num_pixels; o++) {

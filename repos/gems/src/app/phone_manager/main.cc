@@ -2105,15 +2105,15 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 			Area  const size = win_size(win);
 			Point const pos  = _touch_keyboard.visible
-			                 ? Point(0, int(mode.area.h()) - int(size.h()))
-			                 : Point(0, int(mode.area.h()));
+			                 ? Point(0, int(mode.area.h) - int(size.h))
+			                 : Point(0, int(mode.area.h));
 
 			gen_window(win, Rect(pos, size));
 		});
 
 		_with_window(window_list, main_view_label, [&] (Xml_node win) {
 			Area  const size = win_size(win);
-			Point const pos(_leitzentrale_visible ? 0 : int(size.w()), 0);
+			Point const pos(_leitzentrale_visible ? 0 : int(size.w), 0);
 			gen_window(win, Rect(pos, size));
 		});
 	});
@@ -2130,8 +2130,8 @@ void Sculpt::Main::_handle_gui_mode()
 		_gui_mode_ready = true;
 
 	_screen_size = mode.area;
-	_main_view.min_width  = _screen_size.w();
-	_main_view.min_height = _screen_size.h();
+	_main_view.min_width  = _screen_size.w;
+	_main_view.min_height = _screen_size.h;
 
 	generate_runtime_config();
 	_update_window_layout();

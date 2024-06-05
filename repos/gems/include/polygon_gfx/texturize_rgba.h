@@ -43,12 +43,12 @@ static inline void Polygon::texturize_rgba(Genode::Point<> start, Genode::Point<
 	if (num_values <= 0) return;
 
 	/* use 16.16 fixpoint values for the calculation */
-	int tx_ascent = ((end.x() - start.x())<<16)/(int)num_values,
-	    ty_ascent = ((end.y() - start.y())<<16)/(int)num_values;
+	int tx_ascent = ((end.x - start.x)<<16)/(int)num_values,
+	    ty_ascent = ((end.y - start.y)<<16)/(int)num_values;
 
 	/* set start values for color components */
-	int tx = start.x()<<16,
-	    ty = start.y()<<16;
+	int tx = start.x<<16,
+	    ty = start.y<<16;
 
 	for ( ; num_values--; dst++, dst_alpha++) {
 
