@@ -88,6 +88,7 @@ class Net::Report
 		bool config()               const { return _config; }
 		bool bytes()                const { return _bytes; }
 		bool stats()                const { return _stats; }
+		bool quota()                const { return _quota; }
 		bool dropped_fragm_ipv4()   const { return _dropped_fragm_ipv4; }
 		bool link_state()           const { return _link_state; }
 		bool link_state_triggers()  const { return _link_state_triggers; }

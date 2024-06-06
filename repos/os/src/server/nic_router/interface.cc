@@ -2280,12 +2280,13 @@ Interface::~Interface()
 
 bool Interface::report_empty(Report const &report_cfg) const
 {
+	bool quota = report_cfg.quota() && !_policy.report_empty();
 	bool stats = report_cfg.stats() && (
-		!_policy.report_empty() || !_tcp_stats.report_empty() || !_udp_stats.report_empty() ||
-		!_icmp_stats.report_empty() || !_arp_stats.report_empty() || _dhcp_stats.report_empty());
+		!_tcp_stats.report_empty() || !_udp_stats.report_empty() || !_icmp_stats.report_empty() ||
+		!_arp_stats.report_empty() || _dhcp_stats.report_empty());
 	bool lnk_state = report_cfg.link_state();
 	bool fragm_ip = report_cfg.dropped_fragm_ipv4() && _dropped_fragm_ipv4;
-	return !lnk_state && !stats && !fragm_ip;
+	return !quota && !lnk_state && !stats && !fragm_ip;
 }
 
 
@@ -2295,8 +2296,10 @@ void Interface::report(Genode::Xml_generator &xml, Report const &report_cfg) con
 	if (report_cfg.link_state())
 		xml.attribute("link_state", link_state());
 
-	if (report_cfg.stats()) {
+	if (report_cfg.quota())
 		_policy.report(xml);
+
+	if (report_cfg.stats()) {
 		if (!_tcp_stats.report_empty())  xml.node("tcp-links",        [&] { _tcp_stats.report(xml);  });
 		if (!_udp_stats.report_empty())  xml.node("udp-links",        [&] { _udp_stats.report(xml);  });
 		if (!_icmp_stats.report_empty()) xml.node("icmp-links",       [&] { _icmp_stats.report(xml); });
