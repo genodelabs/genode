@@ -354,9 +354,26 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 			                                                     0xffff);
 			bool     bridge     = node.attribute_value("bridge", false);
 
+			auto io_base_limit = node.attribute_value("io_base_limit", uint16_t(0u));
+			auto memory_base   = node.attribute_value("memory_base", uint16_t(0u));
+			auto memory_limit  = node.attribute_value("memory_limit", uint16_t(0u));
+			auto prefetch_mb   = node.attribute_value("prefetch_memory_base", 0u);
+			auto prefetch_mb_u = node.attribute_value("prefetch_memory_base_upper", 0u);
+			auto prefetch_ml_u = node.attribute_value("prefetch_memory_limit_upper", 0u);
+
+			auto io_base_limit_upper = node.attribute_value("io_base_limit_upper", 0u);
+			auto expansion_rom_base  = node.attribute_value("expansion_rom_base", 0u);
+			auto bridge_control      = node.attribute_value("bridge_control", uint16_t(0u));
+
 			return *(new (alloc) Pci_config(addr, bus_num, dev_num, func_num,
 			                                vendor_id, device_id, class_code,
-			                                rev, sub_v_id, sub_d_id, bridge));
+			                                rev, sub_v_id, sub_d_id, bridge,
+			                                io_base_limit, memory_base,
+			                                memory_limit, prefetch_mb,
+			                                prefetch_mb_u, prefetch_ml_u,
+			                                io_base_limit_upper,
+			                                expansion_rom_base,
+			                                bridge_control));
 		},
 
 		/* destroy */

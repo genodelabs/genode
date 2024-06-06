@@ -229,17 +229,28 @@ class Driver::Device : private List_model<Device>::Element
 
 		struct Pci_config : List_model<Pci_config>::Element
 		{
-			addr_t        addr;
-			Pci::bus_t    bus_num;
-			Pci::dev_t    dev_num;
-			Pci::func_t   func_num;
-			Pci::vendor_t vendor_id;
-			Pci::device_t device_id;
-			Pci::class_t  class_code;
-			Pci::rev_t    revision;
-			Pci::vendor_t sub_vendor_id;
-			Pci::device_t sub_device_id;
-			bool          bridge;
+			addr_t        const addr;
+			Pci::bus_t    const bus_num;
+			Pci::dev_t    const dev_num;
+			Pci::func_t   const func_num;
+			Pci::vendor_t const vendor_id;
+			Pci::device_t const device_id;
+			Pci::class_t  const class_code;
+			Pci::rev_t    const revision;
+			Pci::vendor_t const sub_vendor_id;
+			Pci::device_t const sub_device_id;
+
+			/* bridge specific (header type 0x1) values */
+			bool     const bridge;
+			uint16_t const io_base_limit;
+			uint16_t const memory_base;
+			uint16_t const memory_limit;
+			uint16_t const bridge_control;
+			unsigned const prefetch_memory_base;
+			unsigned const prefetch_memory_base_upper;
+			unsigned const prefetch_memory_limit_upper;
+			unsigned const io_base_limit_upper;
+			unsigned const expansion_rom_base;
 
 			Pci_config(addr_t        addr,
 			           Pci::bus_t    bus_num,
@@ -251,7 +262,16 @@ class Driver::Device : private List_model<Device>::Element
 			           Pci::rev_t    revision,
 			           Pci::vendor_t sub_vendor_id,
 			           Pci::device_t sub_device_id,
-			           bool          bridge)
+			           bool          bridge,
+			           uint16_t      io_base_limit,
+			           uint16_t      memory_base,
+			           uint16_t      memory_limit,
+			           unsigned      prefetch_memory_base,
+			           unsigned      prefetch_memory_base_upper,
+			           unsigned      prefetch_memory_limit_upper,
+			           unsigned      io_base_limit_upper,
+			           unsigned      expansion_rom_base,
+			           uint16_t      bridge_control)
 			:
 				addr(addr),
 				bus_num(bus_num),
@@ -263,7 +283,16 @@ class Driver::Device : private List_model<Device>::Element
 				revision(revision),
 				sub_vendor_id(sub_vendor_id),
 				sub_device_id(sub_device_id),
-				bridge(bridge)
+				bridge(bridge),
+				io_base_limit(io_base_limit),
+				memory_base(memory_base),
+				memory_limit(memory_limit),
+				bridge_control(bridge_control),
+				prefetch_memory_base(prefetch_memory_base),
+				prefetch_memory_base_upper(prefetch_memory_base_upper),
+				prefetch_memory_limit_upper(prefetch_memory_limit_upper),
+				io_base_limit_upper(io_base_limit_upper),
+				expansion_rom_base(expansion_rom_base)
 			{ }
 
 			bool matches(Xml_node const &node) const
