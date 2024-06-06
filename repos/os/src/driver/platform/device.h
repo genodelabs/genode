@@ -28,7 +28,7 @@
 #include <clock.h>
 #include <reset.h>
 #include <power.h>
-#include <device_owner.h>
+#include <reserved_memory_handler.h>
 
 namespace Driver {
 
@@ -38,6 +38,7 @@ namespace Driver {
 	struct Device_reporter;
 	struct Device_model;
 	struct Device_owner;
+	struct Reserved_memory_handler;
 }
 
 
@@ -418,7 +419,7 @@ class Driver::Device : private List_model<Device>::Element
 
 		void generate(Xml_generator &, bool) const;
 
-		void update(Allocator &, Xml_node const &);
+		void update(Allocator &, Xml_node const &, Reserved_memory_handler &);
 
 		/**
 		 * List_model::Element
@@ -493,7 +494,7 @@ class Driver::Device_model
 	public:
 
 		void generate(Xml_generator & xml) const;
-		void update(Xml_node const & node);
+		void update(Xml_node const & node, Reserved_memory_handler &);
 		void device_status_changed();
 
 		Device_model(Env             & env,
@@ -502,7 +503,11 @@ class Driver::Device_model
 		             Device_owner    & owner)
 		: _env(env), _heap(heap), _reporter(reporter), _owner(owner) { }
 
-		~Device_model() { update(Xml_node("<empty/>")); }
+		~Device_model()
+		{
+			Reserved_memory_handler dummy { };
+			update(Xml_node("<empty/>"), dummy);
+		}
 
 		template <typename FN>
 		void for_each(FN const & fn) { _model.for_each(fn); }

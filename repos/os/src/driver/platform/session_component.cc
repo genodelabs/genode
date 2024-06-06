@@ -66,12 +66,15 @@ Session_component::_acquire(Device & device)
 
 void Session_component::_release_device(Device_component & dc)
 {
-	Device::Name name = dc.device();
 	_env.ep().rpc_ep().dissolve(&dc);
-	destroy(heap(), &dc);
 
+	/* release device (calls disable_device()) before destroying device component */
+	Device::Name name = dc.device();
 	_devices.for_each([&] (Device & dev) {
 		if (name == dev.name()) dev.release(*this); });
+
+	/* destroy device component */
+	destroy(heap(), &dc);
 
 	/* destroy unused domains */
 	_domain_registry.for_each([&] (Io_mmu_domain & wrapper) {
@@ -216,12 +219,6 @@ Genode::Heap & Session_component::heap() { return _md_alloc; }
 Driver::Io_mmu_domain_registry & Session_component::domain_registry()
 {
 	return _domain_registry;
-}
-
-
-Driver::Dma_allocator & Session_component::dma_allocator()
-{
-	return _dma_allocator;
 }
 
 
@@ -468,6 +465,17 @@ Session_component::Session_component(Env                          & env,
 				                                _cap_quota_guard());
 			}
 		});
+
+	/*
+	 * Iterate matching devices and reserve reserved memory regions at DMA
+	 * allocator.
+	 */
+	_devices.for_each([&] (Device const & dev) {
+		if (!matches(dev)) return;
+
+		dev.for_each_reserved_memory([&] (unsigned, Io_mmu::Range range) {
+			_dma_allocator.reserve(range.start, range.size); });
+	});
 }
 
 

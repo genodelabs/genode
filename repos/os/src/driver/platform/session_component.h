@@ -64,7 +64,6 @@ class Driver::Session_component
 
 		Heap                   & heap();
 		Io_mmu_domain_registry & domain_registry();
-		Dma_allocator          & dma_allocator();
 
 		void enable_dma_remapping() { _dma_allocator.enable_remapping(); }
 

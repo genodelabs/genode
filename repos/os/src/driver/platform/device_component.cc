@@ -40,11 +40,7 @@ void Driver::Device_component::_release_resources()
 	});
 
 	_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
-		/* unreserve at dma allocator */
-		_session.dma_allocator().unreserve(iomem.range.start, iomem.range.size);
-
-		destroy(_session.heap(), &iomem);
-	});
+		destroy(_session.heap(), &iomem); });
 
 	if (_pci_config.constructed()) _pci_config.destruct();
 
@@ -235,9 +231,6 @@ Device_component::Device_component(Registry<Device_component> & registry,
 				Io_mem(_reserved_mem_registry, {0}, idx, range, false));
 			iomem.io_mem.construct(_env, iomem.range.start,
 			                       iomem.range.size, false);
-
-			/*  reserve memory at dma allocator */
-			session.dma_allocator().reserve(iomem.range.start, iomem.range.size);
 		});
 
 		auto add_range_fn = [&] (Driver::Io_mmu::Domain & domain) {

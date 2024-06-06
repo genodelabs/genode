@@ -18,12 +18,14 @@
 #include <base/registry.h>
 #include <root/component.h>
 #include <session_component.h>
+#include <reserved_memory_handler.h>
 
 #include <device.h>
 
 namespace Driver { class Root; }
 
-class Driver::Root : public Root_component<Session_component>
+class Driver::Root : public Root_component<Session_component>,
+                     public Reserved_memory_handler
 {
 	public:
 
@@ -49,6 +51,13 @@ class Driver::Root : public Root_component<Session_component>
 			        sess.enable_dma_remapping();
 			});
 		}
+
+		/*****************************
+		 ** Reserved_memory_handler **
+		 *****************************/
+
+		void add_range(Device const &, Range const &) override;
+		void remove_range(Device const &, Range const &) override;
 
 	private:
 

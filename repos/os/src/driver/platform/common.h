@@ -159,7 +159,7 @@ void Driver::Common::acquire_io_mmu_devices()
 void Driver::Common::_handle_devices()
 {
 	_devices_rom.update();
-	_devices.update(_devices_rom.xml());
+	_devices.update(_devices_rom.xml(), _root);
 	acquire_io_mmu_devices();
 	update_report();
 	_root.update_policy();

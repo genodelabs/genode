@@ -184,7 +184,8 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 }
 
 
-void Driver::Device::update(Allocator &alloc, Xml_node const &node)
+void Driver::Device::update(Allocator &alloc, Xml_node const &node,
+                            Reserved_memory_handler & reserved_mem_handler)
 {
 	using Bar = Device::Pci_bar;
 
@@ -390,11 +391,16 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node)
 		{
 			addr_t addr = node.attribute_value("address", 0UL);
 			size_t size = node.attribute_value("size",    0UL);
+			reserved_mem_handler.add_range(*this, {addr, size});
 			return *(new (alloc) Reserved_memory({addr, size}));
 		},
 
 		/* destroy */
-		[&] (Reserved_memory &reserved) { destroy(alloc, &reserved); },
+		[&] (Reserved_memory &reserved)
+		{
+			reserved_mem_handler.remove_range(*this, reserved.range);
+			destroy(alloc, &reserved);
+		},
 
 		/* update */
 		[&] (Reserved_memory &, Xml_node const &) { }
@@ -445,7 +451,8 @@ void Driver::Device_model::generate(Xml_generator & xml) const
 }
 
 
-void Driver::Device_model::update(Xml_node const & node)
+void Driver::Device_model::update(Xml_node const & node,
+                                  Reserved_memory_handler & reserved_mem_handler)
 {
 	_model.update_from_xml(node,
 
@@ -461,7 +468,7 @@ void Driver::Device_model::update(Xml_node const & node)
 		/* destroy */
 		[&] (Device &device)
 		{
-			device.update(_heap, Xml_node("<empty/>"));
+			device.update(_heap, Xml_node("<empty/>"), reserved_mem_handler);
 			device.release(_owner);
 			destroy(_heap, &device);
 		},
@@ -469,7 +476,7 @@ void Driver::Device_model::update(Xml_node const & node)
 		/* update */
 		[&] (Device &device, Xml_node const &node)
 		{
-			device.update(_heap, node);
+			device.update(_heap, node, reserved_mem_handler);
 		}
 	);
 

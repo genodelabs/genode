@@ -69,6 +69,25 @@ void Driver::Root::_upgrade_session(Session_component * sc, const char * args)
 }
 
 
+void Driver::Root::add_range(Device const & dev, Range const & range)
+{
+	_sessions.for_each([&] (Session_component & sc) {
+		if (!sc.matches(dev)) return;
+		sc._dma_allocator.reserve(range.start, range.size);
+	});
+
+}
+
+
+void Driver::Root::remove_range(Device const & dev, Range const & range)
+{
+	_sessions.for_each([&] (Session_component & sc) {
+		if (!sc.matches(dev)) return;
+		sc._dma_allocator.unreserve(range.start, range.size);
+	});
+}
+
+
 Driver::Root::Root(Env                          & env,
                    Sliced_heap                  & sliced_heap,
                    Attached_rom_dataspace const & config,
