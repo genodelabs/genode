@@ -14,6 +14,7 @@
 #include <base/component.h>
 
 #include <common.h>
+#include <pci.h>
 #include <intel/io_mmu.h>
 
 namespace Driver { struct Main; };
@@ -111,6 +112,9 @@ void Driver::Main::_system_update()
 		_common.io_mmu_devices().for_each([&] (Driver::Io_mmu & io_mmu) {
 			io_mmu.resume();
 		});
+
+		Driver::pci_resume_bridges(_env, _common.devices());
+
 		/* report independent of result */
 		_common.report_resume();
 	}

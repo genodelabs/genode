@@ -41,6 +41,7 @@ namespace Driver {
 	                              Env           & env,
 	                              Device_model  & model,
 	                              Xml_generator & xml);
+	void pci_resume_bridges(Env &, Device_model &);
 }
 
 #endif /* _SRC__DRIVERS__PLATFORM__PCI_H_ */

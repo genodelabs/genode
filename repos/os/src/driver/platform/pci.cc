@@ -91,6 +91,14 @@ struct Config_helper
 			Config::Command::Io_space_enable::set(cmd, 1);
 		});
 
+		/* enable i/o space for bridges when I/O base/limit are defined */
+		if (_config.bridge() && (_cfg.io_base_limit || _cfg.io_base_limit_upper))
+			Config::Command::Io_space_enable::set(cmd, 1);
+
+		/* enable memory space for bridges when I/O mem limit is defined */
+		if (_config.bridge() && _cfg.memory_limit)
+			Config::Command::Memory_space_enable::set(cmd, 1);
+
 		_config.write<Config::Command>(cmd);
 	}
 
@@ -294,5 +302,41 @@ void Driver::pci_device_specific_info(Device const  & dev,
 	{
 		Driver::pci_intel_graphics_info(cfg, env, model, xml);
 		Driver::pci_virtio_info(dev, cfg, env, xml);
+	});
+}
+
+
+void Driver::pci_resume_bridges(Env & env, Device_model & devices)
+{
+	devices.for_each([&](Device & device) {
+		device.for_pci_config([&](Device::Pci_config const & pc) {
+
+			if (!pc.bridge)
+				return;
+
+			try {
+				Config_helper config(env, device, pc);
+				Config_type1  bridge(config._config.range());
+
+				using C1 = Config_type1;
+
+				bridge.write<C1::Io_base_limit>(pc.io_base_limit);
+				bridge.write<C1::Memory_base>  (pc.memory_base);
+				bridge.write<C1::Memory_limit> (pc.memory_limit);
+
+				bridge.write<C1::Prefetchable_memory_base>       (pc.prefetch_memory_base);
+				bridge.write<C1::Prefetchable_memory_base_upper> (pc.prefetch_memory_base_upper);
+				bridge.write<C1::Prefetchable_memory_limit_upper>(pc.prefetch_memory_limit_upper);
+				bridge.write<C1::Io_base_limit_upper>            (pc.io_base_limit_upper);
+				bridge.write<C1::Expansion_rom_base_addr>        (pc.expansion_rom_base);
+				bridge.write<C1::Bridge_control>                 (pc.bridge_control);
+
+				config.enable();
+
+			} catch (Genode::Service_denied) {
+				Bdf bdf(pc.bus_num, pc.dev_num, pc.func_num);
+				error("resuming bridge ", bdf, " failed");
+			}
+		});
 	});
 }
