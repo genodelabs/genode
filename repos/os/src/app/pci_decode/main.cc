@@ -160,6 +160,7 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 		{
 			using C  = Config;
 			using C0 = Config_type0;
+			using C1 = Config_type1;
 			using Cc = Config::Class_code_rev_id;
 
 			gen.attribute("address",       string(cfg_phys_base));
@@ -171,7 +172,28 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 			gen.attribute("class",         string(cfg.read<Cc::Class_code>()));
 			gen.attribute("revision",      string(cfg.read<Cc::Revision>()));
 			gen.attribute("bridge",        cfg.bridge() ? "yes" : "no");
-			if (!cfg.bridge()) {
+
+			if (cfg.bridge()) {
+				C1 cfg1(cfg.range());
+				gen.attribute("io_base_limit",
+				              string(cfg1.read<C1::Io_base_limit>()));
+				gen.attribute("memory_base",
+				              string(cfg1.read<C1::Memory_base>()));
+				gen.attribute("memory_limit",
+				              string(cfg1.read<C1::Memory_limit>()));
+				gen.attribute("prefetch_memory_base",
+				              string(cfg1.read<C1::Prefetchable_memory_base>()));
+				gen.attribute("prefetch_memory_base_upper",
+				              string(cfg1.read<C1::Prefetchable_memory_base_upper>()));
+				gen.attribute("prefetch_memory_limit_upper",
+				              string(cfg1.read<C1::Prefetchable_memory_limit_upper>()));
+				gen.attribute("io_base_limit_upper",
+				              string(cfg1.read<C1::Io_base_limit_upper>()));
+				gen.attribute("expansion_rom_base",
+				              string(cfg1.read<C1::Expansion_rom_base_addr>()));
+				gen.attribute("bridge_control",
+				              string(cfg1.read<C1::Bridge_control>()));
+			} else {
 				C0 cfg0(cfg.range());
 				gen.attribute("sub_vendor_id",
 				              string(cfg0.read<C0::Subsystem_vendor>()));
