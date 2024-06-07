@@ -50,7 +50,6 @@ GENODE_QMAKE_CFLAGS = \
 	-D__GENODE__ \
 	-ffunction-sections \
 	-fno-strict-aliasing \
-	-fconcepts \
 	$(CC_OPT_NOSTDINC) \
 	$(CC_MARCH) \
 	$(CC_OPT_PIC) \
