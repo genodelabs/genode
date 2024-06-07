@@ -70,12 +70,6 @@ struct Test::Main
 
 	Root_directory _root_dir { _env, _heap, _config.xml().sub_node("vfs") };
 
-	static Gui::Point _point_from_xml(Xml_node node)
-	{
-		return Gui::Point((int)node.attribute_value("xpos", 0L),
-		                  (int)node.attribute_value("ypos", 0L));
-	}
-
 	static Gui::Area _area_from_xml(Xml_node node, Gui::Area default_area)
 	{
 		return Gui::Area(node.attribute_value("width",  default_area.w),
@@ -115,7 +109,7 @@ struct Test::Main
 		{
 			auto view_rect = [&] (Xml_node node)
 			{
-				return Gui::Rect(_point_from_xml(node),
+				return Gui::Rect(Gui::Point::from_xml(node),
 				                 _area_from_xml(node, _mode.area));
 			};
 
@@ -164,7 +158,7 @@ struct Test::Main
 		              Xml_node const &config)
 		:
 			_env(env), _root_dir(root_dir), _area(area),
-			_at(_point_from_xml(config))
+			_at(Gui::Point::from_xml(config))
 		{ }
 
 		Affected_rects capture() {

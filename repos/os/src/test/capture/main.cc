@@ -66,12 +66,6 @@ struct Test::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	static Gui::Point _point_from_xml(Xml_node node)
-	{
-		return Gui::Point((int)node.attribute_value("xpos", 0L),
-		                  (int)node.attribute_value("ypos", 0L));
-	}
-
 	static Gui::Area _area_from_xml(Xml_node node, Gui::Area default_area)
 	{
 		return Gui::Area(node.attribute_value("width",  default_area.w),
@@ -111,7 +105,7 @@ struct Test::Main
 		{
 			auto view_rect = [&] (Xml_node node)
 			{
-				return Gui::Rect(_point_from_xml(node),
+				return Gui::Rect(Gui::Point::from_xml(node),
 				                 _area_from_xml(node, _mode.area));
 			};
 
@@ -155,7 +149,7 @@ struct Test::Main
 
 		Capture_input(Env &env, Gui::Area area, Xml_node const &config)
 		:
-			_env(env), _area(area), _at(_point_from_xml(config))
+			_env(env), _area(area), _at(Gui::Point::from_xml(config))
 		{ }
 
 		Affected_rects capture() { return _capture.capture_at(_at); }

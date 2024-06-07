@@ -338,9 +338,7 @@ struct Nit_fb::Main : View_updater
 
 		Framebuffer::Mode const gui_mode = gui.mode();
 
-		position = _coordinate_origin(gui_mode, config)
-		         + Point((int)config.attribute_value("xpos", 0L),
-		                 (int)config.attribute_value("ypos", 0L));
+		position = _coordinate_origin(gui_mode, config) + Point::from_xml(config);
 
 		bool const attr = config.has_attribute("width") ||
 		                  config.has_attribute("height");
