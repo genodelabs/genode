@@ -196,7 +196,15 @@ struct Gui::Session : Genode::Session
 	virtual Input::Session_capability input_session() = 0;
 
 	/**
-	 * Create a new view at the buffer
+	 * Create a new top-level view at the buffer
+	 *
+	 * \throw   Invalid_handle
+	 * \return  handle for new view
+	 */
+	virtual View_handle create_view() = 0;
+
+	/**
+	 * Create a new child view at the buffer
 	 *
 	 * \param parent  parent view
 	 *
@@ -205,10 +213,8 @@ struct Gui::Session : Genode::Session
 	 *
 	 * The 'parent' argument allows the client to use the location of an
 	 * existing view as the coordinate origin for the to-be-created view.
-	 * If an invalid handle is specified (default), the view will be a
-	 * top-level view.
 	 */
-	virtual View_handle create_view(View_handle parent = View_handle()) = 0;
+	virtual View_handle create_child_view(View_handle parent) = 0;
 
 	/**
 	 * Destroy view
@@ -307,6 +313,8 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_framebuffer_session, Framebuffer::Session_capability, framebuffer_session);
 	GENODE_RPC(Rpc_input_session, Input::Session_capability, input_session);
 	GENODE_RPC_THROW(Rpc_create_view, View_handle, create_view,
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps));
+	GENODE_RPC_THROW(Rpc_create_child_view, View_handle, create_child_view,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Invalid_handle), View_handle);
 	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_handle);
 	GENODE_RPC_THROW(Rpc_view_handle, View_handle, view_handle,
@@ -323,8 +331,8 @@ struct Gui::Session : Genode::Session
 	                 Framebuffer::Mode, bool);
 
 	GENODE_RPC_INTERFACE(Rpc_framebuffer_session, Rpc_input_session,
-	                     Rpc_create_view, Rpc_destroy_view, Rpc_view_handle,
-	                     Rpc_view_capability, Rpc_release_view_handle,
+	                     Rpc_create_view, Rpc_create_child_view, Rpc_destroy_view,
+	                     Rpc_view_handle, Rpc_view_capability, Rpc_release_view_handle,
 	                     Rpc_command_dataspace, Rpc_execute, Rpc_mode,
 	                     Rpc_mode_sigh, Rpc_buffer, Rpc_focus);
 };

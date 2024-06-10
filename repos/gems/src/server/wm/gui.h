@@ -437,7 +437,7 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 			if (!parent_handle.valid())
 				return;
 
-			_real_handle = _real_gui.create_view(parent_handle);
+			_real_handle = _real_gui.create_child_view(parent_handle);
 
 			_real_gui.release_view_handle(parent_handle);
 
@@ -658,35 +658,27 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			_input_session.submit(Input::Absolute_motion { pos.x, pos.y });
 		}
 
-		View &_create_view_object(View_handle parent_handle)
+		View &_create_view_object()
 		{
-			/*
-			 * Create child view
-			 */
-			if (parent_handle.valid()) {
+			Top_level_view *view = new (_top_level_view_alloc)
+				Top_level_view(_session, _session_label, _has_alpha,
+				               _window_registry, *this);
 
-				Weak_ptr<View> parent_ptr = _view_handle_registry.lookup(parent_handle);
+			view->resizeable(_mode_sigh.valid());
 
-				Child_view *view = new (_child_view_alloc)
-					Child_view(_session, _session_label, _has_alpha, parent_ptr);
+			_top_level_views.insert(view);
+			return *view;
+		}
 
-				_child_views.insert(view);
-				return *view;
-			}
+		View &_create_child_view_object(View_handle parent_handle)
+		{
+			Weak_ptr<View> parent_ptr = _view_handle_registry.lookup(parent_handle);
 
-			/*
-			 * Create top-level view
-			 */
-			else {
-				Top_level_view *view = new (_top_level_view_alloc)
-					Top_level_view(_session, _session_label, _has_alpha,
-					               _window_registry, *this);
+			Child_view *view = new (_child_view_alloc)
+				Child_view(_session, _session_label, _has_alpha, parent_ptr);
 
-				view->resizeable(_mode_sigh.valid());
-
-				_top_level_views.insert(view);
-				return *view;
-			}
+			_child_views.insert(view);
+			return *view;
 		}
 
 		void _destroy_top_level_view(Top_level_view &view)
@@ -939,10 +931,17 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			return _input_session_cap;
 		}
 
-		View_handle create_view(View_handle parent) override
+		View_handle create_view() override
+		{
+			View &view = _create_view_object();
+			_env.ep().manage(view);
+			return _view_handle_registry.alloc(view);
+		}
+
+		View_handle create_child_view(View_handle parent) override
 		{
 			try {
-				View &view = _create_view_object(parent);
+				View &view = _create_child_view_object(parent);
 				_env.ep().manage(view);
 				return _view_handle_registry.alloc(view);
 			}

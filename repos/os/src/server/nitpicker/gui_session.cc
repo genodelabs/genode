@@ -231,50 +231,49 @@ void Gui_session::submit_input_event(Input::Event e)
 }
 
 
-Gui_session::View_handle Gui_session::create_view(View_handle parent_handle)
+void Gui_session::_adopt_new_view(View &view)
 {
-	View *view = nullptr;
+	_view_stack.title(view, "");
+	view.apply_origin_policy(_pointer_origin);
 
-	/*
-	 * Create child view
-	 */
-	if (parent_handle.valid()) {
+	_view_list.insert(&view);
+	_env.ep().manage(view);
+}
 
-		try {
-			Locked_ptr<View> parent(_view_handle_registry.lookup(parent_handle));
-			if (!parent.valid())
-				return View_handle();
 
-			view = new (_view_alloc)
-				View(*this, _texture, { .transparent = false, .background = false }, &(*parent));
+Gui_session::View_handle Gui_session::create_view()
+{
+	View &view = *new (_view_alloc)
+		View(*this, _texture, { .transparent = false, .background = false }, nullptr);
 
-			parent->add_child(*view);
-		}
-		catch (View_handle_registry::Lookup_failed) { return View_handle(); }
-		catch (View_handle_registry::Out_of_memory) { throw Out_of_ram(); }
-	}
+	_adopt_new_view(view);
 
-	/*
-	 * Create top-level view
-	 */
-	else {
-		try {
-			view = new (_view_alloc)
-				View(*this, _texture, { .transparent = false, .background = false }, nullptr);
-		}
-		catch (Allocator::Out_of_memory) { throw Out_of_ram(); }
-	}
+	return _view_handle_registry.alloc(view);
+}
 
-	_view_stack.title(*view, "");
-	view->apply_origin_policy(_pointer_origin);
 
-	_view_list.insert(view);
-	_env.ep().manage(*view);
+Gui_session::View_handle Gui_session::create_child_view(View_handle const parent_handle)
+{
+	View *parent_view_ptr = nullptr;
 
 	try {
-		return _view_handle_registry.alloc(*view);
+		Locked_ptr<View> parent(_view_handle_registry.lookup(parent_handle));
+		if (parent.valid())
+			parent_view_ptr = &(*parent);
 	}
-	catch (View_handle_registry::Out_of_memory) { throw Out_of_ram(); }
+	catch (View_handle_registry::Lookup_failed) { }
+
+	if (!parent_view_ptr)
+		return View_handle();
+
+	View &view = *new (_view_alloc)
+		View(*this, _texture, { .transparent = false, .background = false }, parent_view_ptr);
+
+	parent_view_ptr->add_child(view);
+
+	_adopt_new_view(view);
+
+	return _view_handle_registry.alloc(view);
 }
 
 

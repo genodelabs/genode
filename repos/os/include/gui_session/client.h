@@ -47,8 +47,11 @@ class Gui::Session_client : public Rpc_client<Session>
 		Input::Session_capability input_session() override {
 			return call<Rpc_input_session>(); }
 
-		View_handle create_view(View_handle parent = View_handle()) override {
-			return call<Rpc_create_view>(parent); }
+		View_handle create_view() override {
+			return call<Rpc_create_view>(); }
+
+		View_handle create_child_view(View_handle parent) override {
+			return call<Rpc_create_child_view>(parent); }
 
 		void destroy_view(View_handle view) override {
 			call<Rpc_destroy_view>(view); }

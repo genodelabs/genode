@@ -36,13 +36,13 @@ class Test::View
 
 		using View_handle = Gui::Session::View_handle;
 
-		Gui::Session_client &_gui;
-		View_handle   const _handle = _gui.create_view(View_handle{});
-		Gui::Rect     const _rect;
+		Gui::Connection  &_gui;
+		View_handle const _handle = _gui.create_view();
+		Gui::Rect   const _rect;
 
 	public:
 
-		View(Gui::Session_client &gui, Gui::Rect rect) : _gui(gui), _rect(rect)
+		View(Gui::Connection &gui, Gui::Rect rect) : _gui(gui), _rect(rect)
 		{
 			using Command = Gui::Session::Command;
 

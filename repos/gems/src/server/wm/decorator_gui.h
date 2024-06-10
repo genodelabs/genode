@@ -357,9 +357,14 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 		return _dummy_input_component_cap;
 	}
 
-	View_handle create_view(View_handle parent) override
+	View_handle create_view() override
 	{
-		return _gui_session.create_view(parent);
+		return _gui_session.create_view();
+	}
+
+	View_handle create_child_view(View_handle parent) override
+	{
+		return _gui_session.create_child_view(parent);
 	}
 
 	void destroy_view(View_handle view) override

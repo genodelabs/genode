@@ -154,6 +154,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		void _destroy_view(View &);
 
+		void _adopt_new_view(View &);
+
 	public:
 
 		Gui_session(Env                   &env,
@@ -346,7 +348,9 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		Input::Session_capability input_session() override {
 			return _input_session_cap; }
 
-		View_handle create_view(View_handle parent_handle) override;
+		View_handle create_view() override;
+
+		View_handle create_child_view(View_handle parent_handle) override;
 
 		void destroy_view(View_handle handle) override;
 

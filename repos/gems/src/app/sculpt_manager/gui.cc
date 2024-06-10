@@ -117,8 +117,11 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 	Input::Session_capability input_session() override {
 		return _input_component.cap(); }
 
-	View_handle create_view(View_handle parent) override {
-		return _connection.create_view(parent); }
+	View_handle create_view() override {
+		return _connection.create_view(); }
+
+	View_handle create_child_view(View_handle parent) override {
+		return _connection.create_child_view(parent); }
 
 	void destroy_view(View_handle view) override {
 		_connection.destroy_view(view); }

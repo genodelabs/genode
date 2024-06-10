@@ -345,9 +345,16 @@ class Gui_fader::Gui_session_component
 			return _gui.input_session();
 		}
 
-		View_handle create_view(View_handle parent) override
+		View_handle create_view() override
 		{
-			_view_handle = _gui.create_view(parent);
+			_view_handle = _gui.create_view();
+			_update_view_visibility();
+			return _view_handle;
+		}
+
+		View_handle create_child_view(View_handle parent) override
+		{
+			_view_handle = _gui.create_child_view(parent);
 			_update_view_visibility();
 			return _view_handle;
 		}

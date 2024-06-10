@@ -60,9 +60,14 @@ class Wm::Direct_gui_session : public Genode::Rpc_object<Gui::Session>
 			return _session.input_session();
 		}
 
-		View_handle create_view(View_handle parent) override
+		View_handle create_view() override
 		{
-			return _session.create_view(parent);
+			return _session.create_view();
+		}
+
+		View_handle create_child_view(View_handle parent) override
+		{
+			return _session.create_child_view(parent);
 		}
 
 		void destroy_view(View_handle view) override
