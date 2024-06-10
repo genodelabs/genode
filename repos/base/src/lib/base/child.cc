@@ -125,11 +125,9 @@ create_session(Child_policy::Name const &child_name, Service &service,
 		error(child_name, " requested conflicting session ID ", id, " "
 		      "(service=", service.name(), " args=", args, ")");
 
-		try {
-			id_space.apply<Session_state>(id, [&] (Session_state &session) {
-				error("existing session: ", session); });
-		}
-		catch (Id_space<Parent::Client>::Unknown_id) { }
+		id_space.apply<Session_state>(id,
+			[&] (Session_state &session) { error("existing session: ", session); },
+			[&] /* missing */ { });
 	}
 	throw Service_denied();
 }
@@ -264,48 +262,46 @@ Session_capability Child::session(Parent::Client::Id id,
 
 Session_capability Child::session_cap(Client::Id id)
 {
-	Session_capability cap;
+	return _id_space.apply<Session_state>(id,
 
-	auto lamda = [&] (Session_state &session) {
+		[&] (Session_state &session) -> Session_capability {
 
-		if (session.phase == Session_state::SERVICE_DENIED
-		 || session.phase == Session_state::INSUFFICIENT_RAM_QUOTA
-		 || session.phase == Session_state::INSUFFICIENT_CAP_QUOTA) {
+			if (session.phase == Session_state::SERVICE_DENIED
+			 || session.phase == Session_state::INSUFFICIENT_RAM_QUOTA
+			 || session.phase == Session_state::INSUFFICIENT_CAP_QUOTA) {
 
-			Session_state::Phase const phase = session.phase;
+				Session_state::Phase const phase = session.phase;
 
-			/*
-			 * Implicity discard the session request when delivering an
-			 * exception because the exception will trigger the deallocation
-			 * of the session ID at the child anyway.
-			 */
-			_revert_quota_and_destroy(session);
+				/*
+				 * Implicity discard the session request when delivering an
+				 * exception because the exception will trigger the deallocation
+				 * of the session ID at the child anyway.
+				 */
+				_revert_quota_and_destroy(session);
 
-			switch (phase) {
-			case Session_state::SERVICE_DENIED:         throw Service_denied();
-			case Session_state::INSUFFICIENT_RAM_QUOTA: throw Insufficient_ram_quota();
-			case Session_state::INSUFFICIENT_CAP_QUOTA: throw Insufficient_cap_quota();
-			default: break;
+				switch (phase) {
+				case Session_state::SERVICE_DENIED:         throw Service_denied();
+				case Session_state::INSUFFICIENT_RAM_QUOTA: throw Insufficient_ram_quota();
+				case Session_state::INSUFFICIENT_CAP_QUOTA: throw Insufficient_cap_quota();
+				default: break;
+				}
 			}
+
+			if (!session.alive())
+				warning(_policy.name(), ": attempt to request cap for unavailable session: ", session);
+
+			if (session.cap.valid())
+				session.phase = Session_state::CAP_HANDED_OUT;
+
+			_policy.session_state_changed();
+
+			return session.cap;
+		},
+		[&] /* missing */ {
+			warning(_policy.name(), " requested session cap for unknown ID");
+			return Session_capability();
 		}
-
-		if (!session.alive())
-			warning(_policy.name(), ": attempt to request cap for unavailable session: ", session);
-
-		if (session.cap.valid())
-			session.phase = Session_state::CAP_HANDED_OUT;
-
-		cap = session.cap;
-	};
-
-	try {
-		_id_space.apply<Session_state>(id, lamda); }
-
-	catch (Id_space<Parent::Client>::Unknown_id) {
-		warning(_policy.name(), " requested session cap for unknown ID"); }
-
-	_policy.session_state_changed();
-	return cap;
+	);
 }
 
 
@@ -379,8 +375,7 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 		session.service().wakeup();
 	};
 
-	try { _id_space.apply<Session_state>(id, upgrade_session); }
-	catch (Id_space<Parent::Client>::Unknown_id) { }
+	_id_space.apply<Session_state>(id, upgrade_session, [&] /* missing */ { });
 
 	_policy.session_state_changed();
 	return result;
@@ -479,13 +474,9 @@ Child::Close_result Child::close(Client::Id id)
 	if (Parent::Env::session_id(id))
 		return CLOSE_DONE;
 
-	try {
-		Close_result result = CLOSE_PENDING;
-		auto lamda = [&] (Session_state &session) { result = _close(session); };
-		_id_space.apply<Session_state>(id, lamda);
-		return result;
-	}
-	catch (Id_space<Parent::Client>::Unknown_id) { return CLOSE_DONE; }
+	return _id_space.apply<Session_state>(id,
+		[&] (Session_state &session) -> Close_result { return _close(session); },
+		[&] /* missing */                            { return CLOSE_DONE; });
 }
 
 
@@ -596,11 +587,12 @@ void Child::session_response(Server::Id id, Session_response response)
 				}
 				break;
 			}
+		},
+		[&] /* missing ID */ {
+			warning("unexpected session response for unknown session");
 		});
 	}
 	catch (Child_policy::Nonexistent_id_space) { }
-	catch (Id_space<Parent::Client>::Unknown_id) {
-		warning("unexpected session response for unknown session"); }
 }
 
 
@@ -637,10 +629,10 @@ void Child::deliver_session_cap(Server::Id id, Session_capability cap)
 
 			if (session.ready_callback)
 				session.ready_callback->session_ready(session);
-		});
+		},
+		[&] /* missing ID */ { });
 	}
 	catch (Child_policy::Nonexistent_id_space) { }
-	catch (Id_space<Parent::Client>::Unknown_id) { }
 }
 
 
@@ -781,10 +773,9 @@ void Child::_try_construct_env_dependent_members()
 
 void Child::_discard_env_session(Id_space<Parent::Client>::Id id)
 {
-	auto discard_id_fn = [&] (Session_state &s) { s.discard_id_at_client(); };
-
-	try { _id_space.apply<Session_state>(id, discard_id_fn); }
-	catch (Id_space<Parent::Client>::Unknown_id) { }
+	_id_space.apply<Session_state>(id,
+		[&] (Session_state &s) { s.discard_id_at_client(); },
+		[&] /* missing */ { });
 }
 
 

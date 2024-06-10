@@ -656,9 +656,8 @@ void Nova_vcpu::_exit_entry(addr_t badge)
 
 	Vcpu_space::Id const vcpu_id { Badge(badge).vcpu_id() };
 
-	try {
-		_vcpu_space().apply<Nova_vcpu>(vcpu_id, [&] (Nova_vcpu &vcpu)
-		{
+	_vcpu_space().apply<Nova_vcpu>(vcpu_id,
+		[&] (Nova_vcpu &vcpu) {
 			vcpu._handle_exit(utcb);
 
 			vcpu._last_resume = vcpu._resume;
@@ -667,15 +666,13 @@ void Nova_vcpu::_exit_entry(addr_t badge)
 			} else {
 				nova_reply(myself, utcb, vcpu._sm_sel());
 			}
+		},
+		[&] /* missing */ {
+			/* somebody called us directly ? ... ignore/deny */
+			utcb.items = 0;
+			utcb.mtd   = 0;
+			nova_reply(myself, utcb);
 		});
-
-	} catch (Vcpu_space::Unknown_id &) {
-
-		/* somebody called us directly ? ... ignore/deny */
-		utcb.items = 0;
-		utcb.mtd   = 0;
-		nova_reply(myself, utcb);
-	}
 }
 
 

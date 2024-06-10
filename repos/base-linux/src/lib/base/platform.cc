@@ -77,25 +77,20 @@ Session_capability Local_parent::session(Parent::Client::Id  id,
 
 Parent::Close_result Local_parent::close(Client::Id id)
 {
-	auto close_local_fn = [&] (Local_session &local_session)
-	{
-		Capability<Rm_session> rm =
-			static_cap_cast<Rm_session>(local_session.local_session_cap());
-		destroy(_alloc, Local_capability<Rm_session>::deref(rm));
-	};
-
 	/*
 	 * Local RM sessions are present in the '_local_sessions_id_space'. If the
 	 * apply succeeds, 'id' referred to the local session. Otherwise, we
 	 * forward the request to the parent.
 	 */
-	try {
-		_local_sessions_id_space.apply<Local_session>(id, close_local_fn);
-		return CLOSE_DONE;
-	}
-	catch (Id_space<Client>::Unknown_id) { }
-
-	return Parent_client::close(id);
+	return _local_sessions_id_space.apply<Local_session>(id,
+		[&] (Local_session &local_session) -> Parent::Close_result {
+			Capability<Rm_session> rm =
+				static_cap_cast<Rm_session>(local_session.local_session_cap());
+			destroy(_alloc, Local_capability<Rm_session>::deref(rm));
+			return CLOSE_DONE;
+		},
+		[&] /* missing */ {
+			return Parent_client::close(id); });
 }
 
 
