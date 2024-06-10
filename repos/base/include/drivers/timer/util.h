@@ -28,7 +28,9 @@ namespace Genode {
 	 * to time with microseconds precision. Thus, we split the input in two and
 	 * translate both parts separately. This way, we can raise precision by
 	 * shifting the values to their optimal bit position. Afterwards, the
-	 * results are shifted back and merged together again.
+	 * results are shifted back and merged together again. Note, the remainder
+	 * of the upper-half division is factored into the lower-half calculation
+	 * (as upper-half value).
 	 *
 	 * Please ensure that the assertion
 	 * "ticks_per_ms >= TIMER_MIN_TICKS_PER_MS" is true when calling this
@@ -45,10 +47,15 @@ namespace Genode {
 			MSB_RSHIFT = 10,
 			LSB_LSHIFT = HALF_WIDTH - MSB_RSHIFT,
 		};
-		RESULT_T const msb = ((((ticks & MSB_MASK) >> MSB_RSHIFT)
-		                       * 1000) / ticks_per_ms) << MSB_RSHIFT;
-		RESULT_T const lsb = ((((ticks & LSB_MASK) << LSB_LSHIFT)
-		                       * 1000) / ticks_per_ms) >> LSB_LSHIFT;
+		/* upper half */
+		RESULT_T const msb0 = ((ticks & MSB_MASK) >> MSB_RSHIFT) * 1000;
+		RESULT_T const msb  = (msb0 / ticks_per_ms) << MSB_RSHIFT;
+		RESULT_T const rem  = (msb0 % ticks_per_ms) << MSB_RSHIFT;
+		/* lower half */
+		RESULT_T const lsb0 = ((ticks & LSB_MASK) << LSB_LSHIFT) * 1000
+		                    + (rem << LSB_LSHIFT);
+		RESULT_T const lsb  = (lsb0 / ticks_per_ms) >> LSB_LSHIFT;
+
 		return msb + lsb;
 	}
 }
