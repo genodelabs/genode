@@ -132,12 +132,8 @@ void Session_component::update_io_mmu_devices()
 			if (used_by_owned_device)
 				return;
 
-			dev.for_each_io_mmu(
-				[&] (Device::Io_mmu const & io_mmu) {
-					if (io_mmu.name == io_mmu_dev.name())
-						used_by_owned_device = true;
-				},
-				[&] () { });
+			dev.with_optional_io_mmu(io_mmu_dev.name(), [&] () {
+				used_by_owned_device = true; });
 		});
 
 		/* synchronise with IOMMU domains */

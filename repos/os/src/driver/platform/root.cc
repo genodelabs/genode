@@ -76,6 +76,18 @@ void Driver::Root::add_range(Device const & dev, Range const & range)
 		sc._dma_allocator.reserve(range.start, range.size);
 	});
 
+	/* add default mapping and enable for corresponding pci device */
+	_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+		dev.with_optional_io_mmu(io_mmu_dev.name(), [&] () {
+
+			io_mmu_dev.add_default_range(range, range.start);
+			dev.for_pci_config([&] (Device::Pci_config const & cfg) {
+				io_mmu_dev.enable_default_mappings(
+					{cfg.bus_num, cfg.dev_num, cfg.func_num});
+			});
+
+		});
+	});
 }
 
 
@@ -85,6 +97,12 @@ void Driver::Root::remove_range(Device const & dev, Range const & range)
 		if (!sc.matches(dev)) return;
 		sc._dma_allocator.unreserve(range.start, range.size);
 	});
+
+	/*
+	 * remark: There is no need to remove default mappings since once known
+	 *         default mappings should be preserved. Double-insertion in case
+	 *         mapping are re-added at a later point in time is taken care of.
+	 */
 }
 
 

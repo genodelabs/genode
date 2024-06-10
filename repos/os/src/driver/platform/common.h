@@ -90,6 +90,28 @@ class Driver::Common : Device_reporter,
 
 void Driver::Common::acquire_io_mmu_devices()
 {
+	auto init_default_mappings = [&] (Io_mmu & io_mmu_dev) {
+		_devices.for_each([&] (Device const & device) {
+			device.with_optional_io_mmu(io_mmu_dev.name(), [&] () {
+				bool has_reserved_mem = false;
+				device.for_each_reserved_memory([&] (unsigned,
+				                                     Io_mmu::Range range) {
+					io_mmu_dev.add_default_range(range, range.start);
+					has_reserved_mem = true;
+				});
+
+				if (!has_reserved_mem)
+					return;
+
+				/* enable default mappings for corresponding pci devices */
+				device.for_pci_config([&] (Device::Pci_config const & cfg) {
+					io_mmu_dev.enable_default_mappings(
+						{cfg.bus_num, cfg.dev_num, cfg.func_num});
+				});
+			});
+		});
+	};
+
 	_io_mmu_factories.for_each([&] (Io_mmu_factory & factory) {
 
 		_devices.for_each([&] (Device & dev) {
@@ -99,6 +121,11 @@ void Driver::Common::acquire_io_mmu_devices()
 			if (factory.matches(dev)) {
 				dev.acquire(*this);
 				factory.create(_heap, _io_mmu_devices, dev);
+
+				_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+					if (io_mmu_dev.name() == dev.name())
+						init_default_mappings(io_mmu_dev);
+				});
 			}
 		});
 
@@ -116,31 +143,6 @@ void Driver::Common::acquire_io_mmu_devices()
 
 	if (device_present && !mpu_present)
 		_root.enable_dma_remapping();
-
-	/* iterate devices and add default mappings */
-	_devices.for_each([&] (Device & device) {
-		device.for_each_io_mmu([&] (Device::Io_mmu const & io_mmu) {
-			_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
-				if (io_mmu_dev.name() == io_mmu.name) {
-					bool has_reserved_mem = false;
-					device.for_each_reserved_memory([&] (unsigned,
-					                                     Io_mmu::Range range) {
-						io_mmu_dev.add_default_range(range, range.start);
-						has_reserved_mem = true;
-					});
-
-					if (!has_reserved_mem)
-						return;
-
-					/* enable default mappings for corresponding pci devices */
-					device.for_pci_config([&] (Device::Pci_config const & cfg) {
-						io_mmu_dev.enable_default_mappings(
-							 {cfg.bus_num, cfg.dev_num, cfg.func_num});
-					});
-				}
-			});
-		}, [&] () { /* empty list fn */ });
-	});
 
 	bool kernel_iommu_present { false };
 	_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {

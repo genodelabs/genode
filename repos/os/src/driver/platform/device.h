@@ -417,6 +417,15 @@ class Driver::Device : private List_model<Device>::Element
 				empty_fn();
 		}
 
+		template <typename FN>
+		void with_optional_io_mmu(Io_mmu::Name const & name, FN && fn) const
+		{
+			_io_mmu_list.for_each([&] (Io_mmu const & io_mmu) {
+				if (io_mmu.name == name)
+					fn();
+			});
+		}
+
 		void generate(Xml_generator &, bool) const;
 
 		void update(Allocator &, Xml_node const &, Reserved_memory_handler &);
