@@ -183,6 +183,31 @@ class Genode::Id_space : public Noncopyable
 		}
 
 		/**
+		 * Apply functor 'fn' to object with given ID, or call 'missing_fn'
+		 *
+		 * See 'for_each' for a description of the 'ARG' argument.
+		 * If the ID is not known, 'missing_fn' is called instead of 'fn'.
+		 * Both 'fn' and 'missing_fn' must have the same return type.
+		 */
+		template <typename ARG, typename FN>
+		auto apply(Id id, FN const &fn, auto const &missing_fn)
+		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
+		{
+			T *obj_ptr = nullptr;
+			{
+				Mutex::Guard guard(_mutex);
+
+				if (_elements.first())
+					if (Element *e = _elements.first()->_lookup(id))
+						obj_ptr = &e->_obj;
+			}
+			if (obj_ptr)
+				return fn(static_cast<ARG &>(*obj_ptr));
+			else
+				return missing_fn();
+		}
+
+		/**
 		 * Apply functor 'fn' to object with given ID
 		 *
 		 * See 'for_each' for a description of the 'ARG' argument.
@@ -193,20 +218,8 @@ class Genode::Id_space : public Noncopyable
 		auto apply(Id id, FN const &fn)
 		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
 		{
-			T *obj = nullptr;
-			{
-				Mutex::Guard guard(_mutex);
-
-				if (!_elements.first())
-					throw Unknown_id();
-
-				if (Element *e = _elements.first()->_lookup(id))
-					obj = &e->_obj;
-			}
-			if (obj)
-				return fn(static_cast<ARG &>(*obj));
-			else
-				throw Unknown_id();
+			using Result = typename Trait::Functor<decltype(&FN::operator())>::Return_type;
+			return apply<ARG>(id, fn, [&] () -> Result { throw Unknown_id(); });
 		}
 
 		/**
