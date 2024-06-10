@@ -19,13 +19,13 @@
 #include <nitpicker_gfx/texture_painter.h>
 
 /* local includes */
-#include "types.h"
+#include <types.h>
 
 namespace Nitpicker {
 	struct Canvas_base;
 	template <typename PT> class Canvas;
 
-	typedef Text_painter::Font Font;
+	using Font = Text_painter::Font;
 }
 
 

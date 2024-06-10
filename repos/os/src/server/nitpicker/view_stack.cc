@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include "view_stack.h"
-#include "clip_guard.h"
+#include <view_stack.h>
+#include <clip_guard.h>
 
 using namespace Nitpicker;
 
@@ -314,7 +314,7 @@ void View_stack::remove_view(View const &view, bool /* redraw */)
 
 void View_stack::sort_views_by_layer()
 {
-	Genode::List<View_stack_elem> sorted;
+	List<View_stack_elem> sorted;
 
 	/* last element of the sorted list */
 	View_stack_elem *at = nullptr;

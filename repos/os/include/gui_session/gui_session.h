@@ -22,20 +22,17 @@
 
 namespace Gui {
 
-	using Genode::size_t;
+	using namespace Genode;
 
 	struct Session_client;
 	struct View;
 	struct Session;
 
-	typedef Genode::Capability<View> View_capability;
+	using View_capability = Capability<View>;
 
-	typedef Genode::Surface_base::Rect  Rect;
-	typedef Genode::Surface_base::Point Point;
-	typedef Genode::Surface_base::Area  Area;
-
-	typedef Genode::Out_of_ram  Out_of_ram;
-	typedef Genode::Out_of_caps Out_of_caps;
+	using Rect  = Surface_base::Rect;
+	using Point = Surface_base::Point;
+	using Area  = Surface_base::Area;
 }
 
 
@@ -55,15 +52,13 @@ struct Gui::Session : Genode::Session
 	static constexpr unsigned CAP_QUOTA = Framebuffer::Session::CAP_QUOTA
 	                                    + Input::Session::CAP_QUOTA + 3;
 
-	typedef Session_client Client;
-
 	/**
 	 * Session-local view handle
 	 *
 	 * When issuing commands to nitpicker via the 'execute' method, views
 	 * are referenced by session-local handles.
 	 */
-	typedef Genode::Handle<View> View_handle;
+	using View_handle = Handle<View>;
 
 
 	struct Command
@@ -71,10 +66,6 @@ struct Gui::Session : Genode::Session
 		enum Opcode { OP_GEOMETRY, OP_OFFSET,
 		              OP_TO_FRONT, OP_TO_BACK, OP_BACKGROUND,
 		              OP_TITLE, OP_NOP };
-
-		/*
-		 * Argument structures for nitpicker's command interface
-		 */
 
 		struct Nop { static Opcode opcode() { return OP_NOP; } };
 
@@ -116,7 +107,7 @@ struct Gui::Session : Genode::Session
 		{
 			static Opcode opcode() { return OP_TITLE; }
 			View_handle view;
-			Genode::String<64> title;
+			String<64> title;
 		};
 
 		Opcode opcode;
@@ -183,17 +174,14 @@ struct Gui::Session : Genode::Session
 
 			Command get(unsigned i)
 			{
-				if (i >= MAX_COMMANDS) return Command(Command::Nop());
-
-				return _commands[i];
+				return (i < MAX_COMMANDS) ? _commands[i] : Command(Command::Nop());
 			}
-
 	};
 
 	/**
 	 * Exception types
 	 */
-	struct Invalid_handle  : Genode::Exception { };
+	struct Invalid_handle  : Exception { };
 
 	virtual ~Session() { }
 
@@ -258,7 +246,7 @@ struct Gui::Session : Genode::Session
 	/**
 	 * Request dataspace used for issuing view commands to nitpicker
 	 */
-	virtual Genode::Dataspace_capability command_dataspace() = 0;
+	virtual Dataspace_capability command_dataspace() = 0;
 
 	/**
 	 * Execution batch of commands contained in the command dataspace
@@ -273,7 +261,7 @@ struct Gui::Session : Genode::Session
 	/**
 	 * Register signal handler to be notified about mode changes
 	 */
-	virtual void mode_sigh(Genode::Signal_context_capability) = 0;
+	virtual void mode_sigh(Signal_context_capability) = 0;
 
 	/**
 	 * Define dimensions of virtual framebuffer
@@ -297,9 +285,7 @@ struct Gui::Session : Genode::Session
 	 * referred to by its session capability, a common parent can manage the
 	 * focus among its children. But unrelated sessions cannot interfere.
 	 */
-	virtual void focus(Genode::Capability<Session> focused) = 0;
-
-	typedef Genode::String<160> Label;
+	virtual void focus(Capability<Session> focused) = 0;
 
 	/**
 	 * Return number of bytes needed for virtual framebuffer of specified size
@@ -327,12 +313,12 @@ struct Gui::Session : Genode::Session
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps), View_capability, View_handle);
 	GENODE_RPC(Rpc_view_capability, View_capability, view_capability, View_handle);
 	GENODE_RPC(Rpc_release_view_handle, void, release_view_handle, View_handle);
-	GENODE_RPC(Rpc_command_dataspace, Genode::Dataspace_capability, command_dataspace);
+	GENODE_RPC(Rpc_command_dataspace, Dataspace_capability, command_dataspace);
 	GENODE_RPC(Rpc_execute, void, execute);
 	GENODE_RPC(Rpc_background, int, background, View_capability);
 	GENODE_RPC(Rpc_mode, Framebuffer::Mode, mode);
-	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Genode::Signal_context_capability);
-	GENODE_RPC(Rpc_focus, void, focus, Genode::Capability<Session>);
+	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Signal_context_capability);
+	GENODE_RPC(Rpc_focus, void, focus, Capability<Session>);
 	GENODE_RPC_THROW(Rpc_buffer, void, buffer, GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 Framebuffer::Mode, bool);
 

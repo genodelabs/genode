@@ -18,7 +18,7 @@
 #include <input/keycodes.h>
 
 /* local includes */
-#include "gui_session.h"
+#include <gui_session.h>
 
 namespace Nitpicker { class Global_keys; }
 

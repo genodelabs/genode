@@ -20,7 +20,7 @@
 #include <input/event.h>
 
 /* local incudes */
-#include "types.h"
+#include <types.h>
 
 namespace Input {
 	using namespace Nitpicker;

@@ -18,21 +18,18 @@
 #include <util/xml_node.h>
 #include <util/color.h>
 #include <base/allocator.h>
-#include <base/log.h>
-#include <os/surface.h>
 #include <os/pixel_rgb888.h>
-
-namespace Gui { }
+#include <gui_session/gui_session.h>
 
 namespace Nitpicker {
 
-	using namespace Genode;
 	using namespace Gui;
+
 	using Pixel = Pixel_rgb888;
 
-	typedef Surface_base::Point Point;
-	typedef Surface_base::Area  Area;
-	typedef Surface_base::Rect  Rect;
+	using Point = Gui::Point;
+	using Area  = Gui::Area;
+	using Rect  = Gui::Rect;
 
 	static constexpr Color white() { return Color::rgb(255, 255, 255); }
 

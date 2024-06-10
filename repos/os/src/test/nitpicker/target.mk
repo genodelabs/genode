@@ -1,3 +1,3 @@
 TARGET = testnit
-SRC_CC = test.cc
+SRC_CC = main.cc
 LIBS   = base

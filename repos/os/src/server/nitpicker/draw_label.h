@@ -14,8 +14,8 @@
 #ifndef _DRAW_LABEL_H_
 #define _DRAW_LABEL_H_
 
-#include "canvas.h"
-#include "types.h"
+#include <canvas.h>
+#include <types.h>
 
 
 namespace Nitpicker {

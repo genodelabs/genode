@@ -154,7 +154,7 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 		 * Do not call 'Connection::buffer' to avoid paying session quota
 		 * from our own budget.
 		 */
-		_connection.Client::buffer(mode, use_alpha);
+		_connection.Session_client::buffer(mode, use_alpha);
 	}
 
 	void focus(Capability<Gui::Session> session) override {

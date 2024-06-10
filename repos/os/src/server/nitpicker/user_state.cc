@@ -14,7 +14,7 @@
 #include <input/event.h>
 #include <input/keycodes.h>
 
-#include "user_state.h"
+#include <user_state.h>
 
 using namespace Input;
 

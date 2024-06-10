@@ -26,7 +26,7 @@
 #include <os/texture.h>
 
 /* local includes */
-#include "types.h"
+#include <types.h>
 
 
 namespace Nitpicker { class View_owner; }

@@ -19,7 +19,7 @@
 #include <os/pixel_alpha8.h>
 
 /* local includes */
-#include "chunky_texture.h"
+#include <chunky_texture.h>
 
 namespace Nitpicker { template <typename> class Resizeable_texture; }
 
@@ -85,7 +85,7 @@ class Nitpicker::Resizeable_texture
 				/* copy alpha channel */
 				if (_textures[_current]->alpha() && _textures[next]->alpha()) {
 
-					typedef Pixel_alpha8 AT;
+					using AT = Pixel_alpha8;
 
 					Surface<AT> surface((AT *)_textures[next]->alpha(),
 					                    _textures[next]->Texture_base::size());

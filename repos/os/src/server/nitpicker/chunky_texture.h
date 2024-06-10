@@ -15,7 +15,7 @@
 #define _CHUNKY_TEXTURE_H_
 
 /* local includes */
-#include "buffer.h"
+#include <buffer.h>
 
 namespace Nitpicker { template <typename> class Chunky_texture; }
 

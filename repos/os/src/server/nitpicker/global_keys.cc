@@ -12,7 +12,7 @@
  */
 
 /* local includes */
-#include "global_keys.h"
+#include <global_keys.h>
 
 using namespace Nitpicker;
 
@@ -44,7 +44,7 @@ void Global_keys::apply_config(Xml_node config, Session_list &session_list)
 				continue;
 			}
 
-			typedef String<32> Name;
+			using Name = String<32>;
 			Name name = node.attribute_value("name", Name());
 			Policy * policy = _lookup_policy(name.string());
 			if (!policy) {

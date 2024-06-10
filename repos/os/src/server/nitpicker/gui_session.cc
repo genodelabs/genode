@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include "view_stack.h"
+#include <view_stack.h>
 
 using namespace Nitpicker;
 
@@ -246,7 +246,7 @@ Gui_session::View_handle Gui_session::create_view(View_handle parent_handle)
 				return View_handle();
 
 			view = new (_view_alloc)
-				View(*this, _texture, View::NOT_TRANSPARENT, View::NOT_BACKGROUND, &(*parent));
+				View(*this, _texture, { .transparent = false, .background = false }, &(*parent));
 
 			parent->add_child(*view);
 		}
@@ -260,7 +260,7 @@ Gui_session::View_handle Gui_session::create_view(View_handle parent_handle)
 	else {
 		try {
 			view = new (_view_alloc)
-				View(*this, _texture, View::NOT_TRANSPARENT, View::NOT_BACKGROUND, nullptr);
+				View(*this, _texture, { .transparent = false, .background = false }, nullptr);
 		}
 		catch (Allocator::Out_of_memory) { throw Out_of_ram(); }
 	}
@@ -292,7 +292,7 @@ void Gui_session::apply_session_policy(Xml_node config,
 			return;
 		}
 
-		typedef Domain_registry::Entry::Name Name;
+		using Name = Domain_registry::Entry::Name;
 
 		Name const name = policy.attribute_value("domain", Name());
 

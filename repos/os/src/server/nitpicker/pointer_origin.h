@@ -14,8 +14,8 @@
 #ifndef _POINTER_ORIGIN_H_
 #define _POINTER_ORIGIN_H_
 
-#include "view.h"
-#include "gui_session.h"
+#include <view.h>
+#include <gui_session.h>
 
 namespace Nitpicker { struct Pointer_origin; }
 
@@ -26,7 +26,7 @@ struct Nitpicker::Pointer_origin : View
 
 	Pointer_origin(View_owner &owner)
 	:
-		View(owner, _texture, View::TRANSPARENT, View::NOT_BACKGROUND, 0)
+		View(owner, _texture, { .transparent = true, .background = false }, 0)
 	{ }
 
 

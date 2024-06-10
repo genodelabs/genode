@@ -20,9 +20,9 @@
 
 #include <util/xml_generator.h>
 
-#include "focus.h"
-#include "view_stack.h"
-#include "global_keys.h"
+#include <focus.h>
+#include <view_stack.h>
+#include <global_keys.h>
 
 namespace Nitpicker { class User_state; }
 
@@ -150,7 +150,7 @@ class Nitpicker::User_state
 				return (key <= Input::KEY_MAX) && _states[key].pressed;
 			}
 
-			void report_state(Genode::Xml_generator &xml) const
+			void report_state(Xml_generator &xml) const
 			{
 				for (unsigned i = 0; i <= Input::KEY_MAX; i++)
 					if (_states[i].pressed)

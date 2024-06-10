@@ -29,14 +29,14 @@ class Gui::Connection : public Genode::Connection<Session>,
 
 		Framebuffer::Session_client _framebuffer;
 		Input::Session_client       _input;
-		Genode::size_t              _session_quota = 0;
+		size_t                      _session_quota = 0;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Connection(Genode::Env &env, Label const &label = Label())
+		Connection(Env &env, Label const &label = Label())
 		:
 			/* establish nitpicker session */
 			Genode::Connection<Session>(env, label, Ram_quota { 36*1024 }, Args()),
@@ -49,8 +49,8 @@ class Gui::Connection : public Genode::Connection<Session>,
 
 		void buffer(Framebuffer::Mode mode, bool use_alpha) override
 		{
-			Genode::size_t const needed = ram_quota(mode, use_alpha);
-			Genode::size_t const upgrade = needed > _session_quota
+			size_t const needed = ram_quota(mode, use_alpha);
+			size_t const upgrade = needed > _session_quota
 			                             ? needed - _session_quota
 			                             : 0;
 			if (upgrade > 0) {

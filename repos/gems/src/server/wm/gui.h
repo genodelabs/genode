@@ -1061,7 +1061,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 };
 
 
-class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
+class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session> >,
                       public Decorator_content_callback
 {
 	private:
@@ -1247,7 +1247,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 				}
 			}
 
-			return Session_capability();
+			return { };
 		}
 
 		void upgrade(Genode::Session_capability session_cap, Upgrade_args const &args) override
@@ -1395,13 +1395,13 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Session> >,
 				s->content_geometry(id, rect);
 		}
 
-		Capability<Session> lookup_gui_session(unsigned win_id)
+		Capability<Gui::Session> lookup_gui_session(unsigned win_id)
 		{
 			for (Session_component *s = _sessions.first(); s; s = s->next())
 				if (s->has_win_id(win_id))
 					return s->session();
 
-			return Capability<Session>();
+			return { };
 		}
 
 		void request_resize(unsigned win_id, Area size)

@@ -14,8 +14,8 @@
 #ifndef _FOCUS_H_
 #define _FOCUS_H_
 
-#include "types.h"
-#include "view.h"
+#include <types.h>
+#include <view.h>
 
 namespace Nitpicker {
 	struct Focus;

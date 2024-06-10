@@ -16,10 +16,10 @@
 #include <nitpicker_gfx/texture_painter.h>
 #include <nitpicker_gfx/box_painter.h>
 
-#include "view.h"
-#include "clip_guard.h"
-#include "gui_session.h"
-#include "draw_label.h"
+#include <view.h>
+#include <clip_guard.h>
+#include <gui_session.h>
+#include <draw_label.h>
 
 
 /***************

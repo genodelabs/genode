@@ -14,7 +14,7 @@
 #ifndef _DOMAIN_REGISTRY_
 #define _DOMAIN_REGISTRY_
 
-#include "types.h"
+#include <types.h>
 
 namespace Nitpicker { class Domain_registry; }
 
@@ -27,22 +27,18 @@ class Nitpicker::Domain_registry
 		{
 			public:
 
-				typedef String<64> Name;
+				using Name = String<64>;
 
-				enum Label   { LABEL_NO, LABEL_YES };
-				enum Content { CONTENT_CLIENT, CONTENT_TINTED };
-				enum Hover   { HOVER_FOCUSED, HOVER_ALWAYS };
-				enum Focus   { FOCUS_NONE, FOCUS_CLICK, FOCUS_TRANSIENT };
+				enum class Label   { NO, YES };
+				enum class Content { CLIENT, TINTED };
+				enum class Hover   { FOCUSED, ALWAYS };
+				enum class Focus   { NONE, CLICK, TRANSIENT };
 
 				/**
 				 * Origin of the domain's coordiate system
 				 */
-				enum Origin {
-					ORIGIN_POINTER,
-					ORIGIN_TOP_LEFT,
-					ORIGIN_TOP_RIGHT,
-					ORIGIN_BOTTOM_LEFT,
-					ORIGIN_BOTTOM_RIGHT };
+				enum class Origin { POINTER, TOP_LEFT, TOP_RIGHT,
+				                    BOTTOM_LEFT, BOTTOM_RIGHT };
 
 			private:
 
@@ -71,12 +67,12 @@ class Nitpicker::Domain_registry
 				Point _corner(Area const screen_area) const
 				{
 					switch (_origin) {
-					case ORIGIN_POINTER:      return Point(0, 0);
-					case ORIGIN_TOP_LEFT:     return Point(0, 0);
-					case ORIGIN_TOP_RIGHT:    return Point(screen_area.w, 0);
-					case ORIGIN_BOTTOM_LEFT:  return Point(0, screen_area.h);
-					case ORIGIN_BOTTOM_RIGHT: return Point(screen_area.w,
-					                                       screen_area.h);
+					case Origin::POINTER:      return Point(0, 0);
+					case Origin::TOP_LEFT:     return Point(0, 0);
+					case Origin::TOP_RIGHT:    return Point(screen_area.w, 0);
+					case Origin::BOTTOM_LEFT:  return Point(0, screen_area.h);
+					case Origin::BOTTOM_RIGHT: return Point(screen_area.w,
+					                                        screen_area.h);
 					}
 					return Point(0, 0);
 				}
@@ -91,13 +87,13 @@ class Nitpicker::Domain_registry
 				Content   content()   const { return _content; }
 				Hover     hover()     const { return _hover;   }
 
-				bool label_visible()   const { return _label == LABEL_YES; }
-				bool content_client()  const { return _content == CONTENT_CLIENT; }
-				bool hover_focused()   const { return _hover == HOVER_FOCUSED; }
-				bool hover_always()    const { return _hover == HOVER_ALWAYS; }
-				bool focus_click()     const { return _focus == FOCUS_CLICK; }
-				bool focus_transient() const { return _focus == FOCUS_TRANSIENT; }
-				bool origin_pointer()  const { return _origin == ORIGIN_POINTER; }
+				bool label_visible()   const { return _label   == Label::YES; }
+				bool content_client()  const { return _content == Content::CLIENT; }
+				bool hover_focused()   const { return _hover   == Hover::FOCUSED; }
+				bool hover_always()    const { return _hover   == Hover::ALWAYS; }
+				bool focus_click()     const { return _focus   == Focus::CLICK; }
+				bool focus_transient() const { return _focus   == Focus::TRANSIENT; }
+				bool origin_pointer()  const { return _origin  == Origin::POINTER; }
 
 				Point phys_pos(Point pos, Area screen_area) const
 				{
@@ -120,65 +116,65 @@ class Nitpicker::Domain_registry
 
 		static Entry::Label _label(Xml_node domain)
 		{
-			typedef String<32> Value;
+			using Value = String<32>;
 			Value const value = domain.attribute_value("label", Value("yes"));
 
-			if (value == "no")  return Entry::LABEL_NO;
-			if (value == "yes") return Entry::LABEL_YES;
+			if (value == "no")  return Entry::Label::NO;
+			if (value == "yes") return Entry::Label::YES;
 
 			warning("invalid value of label attribute in <domain>");
-			return Entry::LABEL_YES;
+			return Entry::Label::YES;
 		}
 
 		static Entry::Content _content(Xml_node domain)
 		{
-			typedef String<32> Value;
+			using Value = String<32>;
 			Value const value = domain.attribute_value("content", Value("tinted"));
 
-			if (value == "client") return Entry::CONTENT_CLIENT;
-			if (value == "tinted") return Entry::CONTENT_TINTED;
+			if (value == "client") return Entry::Content::CLIENT;
+			if (value == "tinted") return Entry::Content::TINTED;
 
-			return Entry::CONTENT_TINTED;
+			return Entry::Content::TINTED;
 		}
 
 		static Entry::Hover _hover(Xml_node domain)
 		{
-			typedef String<32> Value;
+			using Value = String<32>;
 			Value const value = domain.attribute_value("hover", Value("focused"));
 
-			if (value == "focused") return Entry::HOVER_FOCUSED;
-			if (value == "always")  return Entry::HOVER_ALWAYS;
+			if (value == "focused") return Entry::Hover::FOCUSED;
+			if (value == "always")  return Entry::Hover::ALWAYS;
 
 			warning("invalid value of hover attribute in <domain>");
-			return Entry::HOVER_FOCUSED;
+			return Entry::Hover::FOCUSED;
 		}
 
 		static Entry::Focus _focus(Xml_node domain)
 		{
-			typedef String<32> Value;
+			using Value = String<32>;
 			Value const value = domain.attribute_value("focus", Value("none"));
 
-			if (value == "none")      return Entry::FOCUS_NONE;
-			if (value == "click")     return Entry::FOCUS_CLICK;
-			if (value == "transient") return Entry::FOCUS_TRANSIENT;
+			if (value == "none")      return Entry::Focus::NONE;
+			if (value == "click")     return Entry::Focus::CLICK;
+			if (value == "transient") return Entry::Focus::TRANSIENT;
 
 			warning("invalid value of focus attribute in <domain>");
-			return Entry::FOCUS_NONE;
+			return Entry::Focus::NONE;
 		}
 
 		static Entry::Origin _origin(Xml_node domain)
 		{
-			typedef String<32> Value;
+			using Value = String<32>;
 			Value const value = domain.attribute_value("origin", Value("top_left"));
 
-			if (value == "top_left")     return Entry::ORIGIN_TOP_LEFT;
-			if (value == "top_right")    return Entry::ORIGIN_TOP_RIGHT;
-			if (value == "bottom_left")  return Entry::ORIGIN_BOTTOM_LEFT;
-			if (value == "bottom_right") return Entry::ORIGIN_BOTTOM_RIGHT;
-			if (value == "pointer")      return Entry::ORIGIN_POINTER;
+			if (value == "top_left")     return Entry::Origin::TOP_LEFT;
+			if (value == "top_right")    return Entry::Origin::TOP_RIGHT;
+			if (value == "bottom_left")  return Entry::Origin::BOTTOM_LEFT;
+			if (value == "bottom_right") return Entry::Origin::BOTTOM_RIGHT;
+			if (value == "pointer")      return Entry::Origin::POINTER;
 
 			warning("invalid value of origin attribute in <domain>");
-			return Entry::ORIGIN_BOTTOM_LEFT;
+			return Entry::Origin::BOTTOM_LEFT;
 		}
 
 		void _insert(Xml_node domain)
@@ -200,13 +196,13 @@ class Nitpicker::Domain_registry
 				return;
 			}
 
-			unsigned const layer = (unsigned)domain.attribute_value("layer", ~0UL);
+			unsigned const layer = domain.attribute_value("layer", ~0U);
 
-			Point const offset((int)domain.attribute_value("xpos", 0L),
-			                   (int)domain.attribute_value("ypos", 0L));
+			Point const offset(domain.attribute_value("xpos", 0),
+			                   domain.attribute_value("ypos", 0));
 
-			Point const area((int)domain.attribute_value("width",  0L),
-			                 (int)domain.attribute_value("height", 0L));
+			Point const area(domain.attribute_value("width",  0),
+			                 domain.attribute_value("height", 0));
 
 			Color const color = domain.attribute_value("color", white());
 

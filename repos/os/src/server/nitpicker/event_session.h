@@ -19,7 +19,7 @@
 #include <event_session/event_session.h>
 
 /* local includes */
-#include "user_state.h"
+#include <user_state.h>
 
 namespace Nitpicker { class Event_session; }
 

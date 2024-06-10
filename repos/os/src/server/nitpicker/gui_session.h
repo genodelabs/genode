@@ -25,19 +25,19 @@
 #include <gui_session/gui_session.h>
 
 /* local includes */
-#include "canvas.h"
-#include "domain_registry.h"
-#include "framebuffer_session.h"
-#include "input_session.h"
-#include "focus.h"
-#include "view.h"
+#include <canvas.h>
+#include <domain_registry.h>
+#include <framebuffer_session.h>
+#include <input_session.h>
+#include <focus.h>
+#include <view.h>
 
 namespace Nitpicker {
 
 	class Gui_session;
 	class View;
 
-	typedef List<Gui_session> Session_list;
+	using Session_list = List<Gui_session>;
 }
 
 
@@ -122,7 +122,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
 
-		typedef Handle_registry<View_handle, View> View_handle_registry;
+		using View_handle_registry = Handle_registry<View_handle, View>;
 
 		View_handle_registry _view_handle_registry;
 

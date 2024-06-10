@@ -14,9 +14,9 @@
 #ifndef _VIEW_STACK_H_
 #define _VIEW_STACK_H_
 
-#include "view.h"
-#include "gui_session.h"
-#include "canvas.h"
+#include <view.h>
+#include <gui_session.h>
+#include <canvas.h>
 
 namespace Nitpicker { class View_stack; }
 

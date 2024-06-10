@@ -26,14 +26,14 @@
 #include <util/dirty_rect.h>
 
 /* local includes */
-#include "types.h"
-#include "user_state.h"
-#include "background.h"
-#include "clip_guard.h"
-#include "pointer_origin.h"
-#include "domain_registry.h"
-#include "capture_session.h"
-#include "event_session.h"
+#include <types.h>
+#include <user_state.h>
+#include <background.h>
+#include <clip_guard.h>
+#include <pointer_origin.h>
+#include <domain_registry.h>
+#include <capture_session.h>
+#include <event_session.h>
 
 namespace Nitpicker {
 	class  Gui_root;
@@ -359,7 +359,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 	Constructible<Input_connection> _input { };
 
-	typedef Pixel_rgb888 PT;  /* physical pixel type */
+	using PT = Pixel_rgb888;  /* physical pixel type */
 
 	/*
 	 * Initialize framebuffer
@@ -379,7 +379,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 		Area size = screen.size();
 
-		typedef Genode::Dirty_rect<Rect, 3> Dirty_rect;
+		using Dirty_rect = Genode::Dirty_rect<Rect, 3>;
 
 		Dirty_rect dirty_rect { };
 
@@ -791,7 +791,7 @@ void Nitpicker::Main::_handle_focus()
 
 	_focus_rom->update();
 
-	typedef Gui::Session::Label Label;
+	using Label = String<160>;
 	Label const label = _focus_rom->xml().attribute_value("label", Label());
 
 	/*

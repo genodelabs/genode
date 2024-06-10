@@ -15,7 +15,7 @@
 #define _FRAMEBUFFER_SESSION_COMPONENT_H_
 
 /* local includes */
-#include "buffer.h"
+#include <buffer.h>
 
 namespace Framebuffer {
 

@@ -19,7 +19,7 @@
 #include <framebuffer_session/framebuffer_session.h>
 
 /* local includes */
-#include "types.h"
+#include <types.h>
 
 
 namespace Nitpicker { class Buffer; }

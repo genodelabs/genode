@@ -21,11 +21,11 @@
 namespace Gui { struct Session_client; }
 
 
-class Gui::Session_client : public Genode::Rpc_client<Session>
+class Gui::Session_client : public Rpc_client<Session>
 {
 	private:
 
-		Genode::Attached_dataspace _command_ds;
+		Attached_dataspace _command_ds;
 
 		Command_buffer &_command_buffer;
 
@@ -34,7 +34,7 @@ class Gui::Session_client : public Genode::Rpc_client<Session>
 		/**
 		 * Constructor
 		 */
-		Session_client(Genode::Region_map &rm, Session_capability session)
+		Session_client(Region_map &rm, Session_capability session)
 		:
 			Rpc_client<Session>(session),
 			_command_ds(rm, command_dataspace()),
@@ -65,7 +65,7 @@ class Gui::Session_client : public Genode::Rpc_client<Session>
 		void release_view_handle(View_handle handle) override {
 			call<Rpc_release_view_handle>(handle); }
 
-		Genode::Dataspace_capability command_dataspace() override {
+		Dataspace_capability command_dataspace() override {
 			return call<Rpc_command_dataspace>(); }
 
 		void execute() override
@@ -77,7 +77,7 @@ class Gui::Session_client : public Genode::Rpc_client<Session>
 		Framebuffer::Mode mode() override {
 			return call<Rpc_mode>(); }
 
-		void mode_sigh(Genode::Signal_context_capability sigh) override {
+		void mode_sigh(Signal_context_capability sigh) override {
 			call<Rpc_mode_sigh>(sigh); }
 
 		void buffer(Framebuffer::Mode mode, bool alpha) override {

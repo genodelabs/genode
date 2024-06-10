@@ -143,7 +143,7 @@ class Pdf_view
 			                                 _nit_mode.area.h/4);
 
 			typedef Gui::Session::Command Command;
-			_gui.enqueue<Command::Geometry>(_view, Rect(Point(), _nit_mode.area));
+			_gui.enqueue<Command::Geometry>(_view, Gui::Rect(Gui::Point(), _nit_mode.area));
 			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
 			_gui.execute();
 		}

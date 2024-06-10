@@ -21,9 +21,9 @@
 #include <base/rpc_server.h>
 
 /* local includes */
-#include "canvas.h"
-#include "view_owner.h"
-#include "resizeable_texture.h"
+#include <canvas.h>
+#include <view_owner.h>
+#include <resizeable_texture.h>
 
 namespace Nitpicker {
 
@@ -60,7 +60,7 @@ namespace Gui {
 	 * We use view capabilities as mere tokens to pass views between sessions.
 	 * There is no RPC interface associated with a view.
 	 */
-	struct View : Genode::Interface { GENODE_RPC_INTERFACE(); };
+	struct View : Interface { GENODE_RPC_INTERFACE(); };
 }
 
 
@@ -73,10 +73,7 @@ class Nitpicker::View : private Same_buffer_list_elem,
 {
 	public:
 
-		typedef String<32> Title;
-
-		enum Transparent { NOT_TRANSPARENT = 0, TRANSPARENT = 1 };
-		enum Background  { NOT_BACKGROUND  = 0, BACKGROUND  = 1 };
+		using Title = String<32>;
 
 		using Weak_object<View>::weak_ptr;
 		using Weak_object<View>::weak_ptr_const;
@@ -93,8 +90,8 @@ class Nitpicker::View : private Same_buffer_list_elem,
 		View(View const &);
 		View &operator = (View const &);
 
-		Transparent const _transparent;   /* background is partly visible */
-		Background        _background;    /* view is a background view    */
+		bool  const _transparent;     /* background is partly visible */
+		bool        _background;      /* view is a background view    */
 
 		View       *_parent;          /* parent view                          */
 		Rect        _geometry   { };  /* position and size relative to parent */
@@ -130,11 +127,13 @@ class Nitpicker::View : private Same_buffer_list_elem,
 
 	public:
 
+		struct Attr { bool transparent, background; };
+
 		View(View_owner &owner, Resizeable_texture<Pixel> const &texture,
-		     Transparent transparent, Background bg, View *parent)
+		     Attr attr, View *parent)
 		:
-			_transparent(transparent), _background(bg), _parent(parent),
-			_owner(owner), _texture(texture)
+			_transparent(attr.transparent), _background(attr.background),
+			_parent(parent), _owner(owner), _texture(texture)
 		{ }
 
 		virtual ~View()
@@ -239,8 +238,7 @@ class Nitpicker::View : private Same_buffer_list_elem,
 		 *
 		 * \param bg  true if view is background
 		 */
-		void background(bool bg) {
-			_background = bg ? BACKGROUND : NOT_BACKGROUND; }
+		void background(bool bg) { _background = bg; }
 
 		/**
 		 * Accessors

@@ -28,7 +28,7 @@
 #ifndef _CLIP_GUARD_H_
 #define _CLIP_GUARD_H_
 
-#include "canvas.h"
+#include <canvas.h>
 
 namespace Nitpicker { class Clip_guard; }
 

@@ -16,8 +16,8 @@
 
 #include <nitpicker_gfx/box_painter.h>
 
-#include "gui_session.h"
-#include "clip_guard.h"
+#include <gui_session.h>
+#include <clip_guard.h>
 
 namespace Nitpicker { struct Background; }
 
@@ -37,7 +37,7 @@ struct Nitpicker::Background : private Texture_base, View
 	Background(View_owner &owner, Area size)
 	:
 		Texture_base(Area(0, 0)),
-		View(owner, _texture, View::NOT_TRANSPARENT, View::BACKGROUND, 0)
+		View(owner, _texture, { .transparent = false, .background = true }, 0)
 	{
 		View::geometry(Rect(Point(0, 0), size));
 	}
