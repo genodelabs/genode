@@ -70,6 +70,8 @@ struct Sequence::Child : Genode::Child_policy
 
 	Registry<Parent_service> _parent_services { };
 
+	Id_space<Parent::Server> _server_ids { };
+
 	/* queue a child reload from the async Parent interface */
 	Signal_transmitter _exit_transmitter;
 
@@ -205,6 +207,8 @@ struct Sequence::Child : Genode::Child_policy
 		ref_pd().transfer_quota(pd_cap, Cap_quota{_env.pd().avail_caps().value >> 1});
 		ref_pd().transfer_quota(pd_cap, Ram_quota{_env.pd().avail_ram().value >> 1});
 	}
+
+	Id_space<Parent::Server> &server_id_space() override { return _server_ids; }
 };
 
 

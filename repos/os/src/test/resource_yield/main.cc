@@ -288,6 +288,8 @@ class Test::Parent
 			Ram_quota   const _ram_quota { 10*1024*1024 };
 			Binary_name const _binary_name { "test-resource_yield" };
 
+			Id_space<Genode::Parent::Server> _server_ids { };
+
 			/*
 			 * Config ROM service
 			 */
@@ -353,6 +355,8 @@ class Test::Parent
 
 				return route(*service_ptr);
 			}
+
+			Id_space<Genode::Parent::Server> &server_id_space() override { return _server_ids; }
 		};
 
 		Policy _policy { *this, _env };

@@ -428,6 +428,8 @@ struct Libc::Forked_child : Child_policy, Child_ready
 	Local_clone_service _local_clone_service;
 	Local_rom_service   _config_rom_service;
 
+	Id_space<Parent::Server> _server_ids { };
+
 	pid_t pid() const { return _pid; }
 
 	bool running() const { return _state == State::RUNNING; }
@@ -538,6 +540,8 @@ struct Libc::Forked_child : Child_policy, Child_ready
 		 */
 		Signal_transmitter(_exit_handler).submit();
 	}
+
+	Id_space<Parent::Server> &server_id_space() override { return _server_ids; }
 
 	Child _child;
 

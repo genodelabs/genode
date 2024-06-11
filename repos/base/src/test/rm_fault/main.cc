@@ -174,6 +174,7 @@ class Test_child_policy : public Child_policy
 
 		Env                            &_env;
 		Parent_services                &_parent_services;
+		Id_space<Parent::Server>        _server_ids { };
 		Signal_context_capability const _fault_handler_sigh;
 		Signal_context_capability const _fault_handler_stack_sigh;
 
@@ -239,6 +240,8 @@ class Test_child_policy : public Child_policy
 			               .label   = label,
 			               .diag    = diag };
 		}
+
+		Id_space<Parent::Server> &server_id_space() override { return _server_ids; }
 };
 
 

@@ -37,6 +37,8 @@ class Bomb_child : public Child_policy
 
 		Registry<Registered<Parent_service> > &_parent_services;
 
+		Id_space<Parent::Server> _server_ids { };
+
 		Child_policy_dynamic_rom_file _config_policy { _env.rm(), "config", _env.ep().rpc_ep(), &_env.ram() };
 
 		Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
@@ -108,6 +110,8 @@ class Bomb_child : public Child_policy
 			               .label   = label,
 			               .diag    = diag };
 		}
+
+		Id_space<Parent::Server> &server_id_space() override { return _server_ids; }
 };
 
 

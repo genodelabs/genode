@@ -75,6 +75,7 @@ class Test_child : public Genode::Child_policy
 		Parent_service            _pd_service  { _env,  Pd_session::service_name() };
 		Parent_service            _log_service { _env, Log_session::service_name() };
 		Parent_service            _rom_service { _env, Rom_session::service_name() };
+		Id_space<Parent::Server>  _server_ids { };
 		Child                     _child;
 
 	public:
@@ -134,6 +135,8 @@ class Test_child : public Genode::Child_policy
 
 			throw Service_denied();
 		}
+
+		Id_space<Parent::Server> &server_id_space() override { return _server_ids; }
 };
 
 

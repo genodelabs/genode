@@ -121,6 +121,8 @@ class Core_child : public Child_policy
 		Cap_quota const _cap_quota;
 		Ram_quota const _ram_quota;
 
+		Id_space<Parent::Server> _server_ids { };
+
 		Child _child;
 
 	public:
@@ -183,6 +185,8 @@ class Core_child : public Child_policy
 		Pd_session_capability ref_pd_cap() const override { return _core_pd_cap; }
 
 		size_t session_alloc_batch_size() const override { return 128; }
+
+		Id_space<Parent::Server> &server_id_space() override { return _server_ids; }
 };
 
 

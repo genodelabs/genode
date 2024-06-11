@@ -162,14 +162,10 @@ struct Genode::Child_policy
 	 */
 	virtual void init(Pd_session &, Capability<Pd_session>) { }
 
-	class Nonexistent_id_space : Exception { };
-
 	/**
 	 * ID space for sessions provided by the child
-	 *
-	 * \throw Nonexistent_id_space
 	 */
-	virtual Id_space<Parent::Server> &server_id_space() { throw Nonexistent_id_space(); }
+	virtual Id_space<Parent::Server> &server_id_space() = 0;
 
 	/**
 	 * Notification hook invoked each time a session state is modified

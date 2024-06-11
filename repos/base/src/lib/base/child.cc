@@ -506,133 +506,127 @@ void Child::session_closed(Session_state &session)
 
 void Child::session_response(Server::Id id, Session_response response)
 {
-	try {
-		_policy.server_id_space().apply<Session_state>(id, [&] (Session_state &session) {
+	_policy.server_id_space().apply<Session_state>(id, [&] (Session_state &session) {
 
-			switch (response) {
+		switch (response) {
 
-			case Parent::SESSION_CLOSED:
-				session.phase = Session_state::CLOSED;
+		case Parent::SESSION_CLOSED:
+			session.phase = Session_state::CLOSED;
+
+			/*
+			 * If the client exists, reflect the response to the client
+			 * via the 'closed_callback'. If the client has vanished,
+			 * i.e., if the close request was issued by ourself while
+			 * killing a child, we drop the session state immediately.
+			 */
+			if (session.closed_callback) {
+				session.closed_callback->session_closed(session);
+
+			} else {
 
 				/*
-				 * If the client exists, reflect the response to the client
-				 * via the 'closed_callback'. If the client has vanished,
-				 * i.e., if the close request was issued by ourself while
-				 * killing a child, we drop the session state immediately.
+				 * The client no longer exists. So we cannot take the
+				 * regular path of executing '_revert_quota_and_destroy' in
+				 * the context of the client. Instead, we immediately
+				 * withdraw the session quota from the server ('this') to
+				 * the reference account, and destroy the session object.
 				 */
-				if (session.closed_callback) {
-					session.closed_callback->session_closed(session);
+				Ram_transfer::Remote_account ref_ram_account(_policy.ref_pd(), _policy.ref_pd_cap());
+				Ram_transfer::Account   &service_ram_account = session.service();
 
-				} else {
+				Cap_transfer::Remote_account ref_cap_account(_policy.ref_pd(), _policy.ref_pd_cap());
+				Cap_transfer::Account   &service_cap_account = session.service();
 
-					/*
-					 * The client no longer exists. So we cannot take the
-					 * regular path of executing '_revert_quota_and_destroy' in
-					 * the context of the client. Instead, we immediately
-					 * withdraw the session quota from the server ('this') to
-					 * the reference account, and destroy the session object.
-					 */
-					Ram_transfer::Remote_account ref_ram_account(_policy.ref_pd(), _policy.ref_pd_cap());
-					Ram_transfer::Account   &service_ram_account = session.service();
+				try {
+					/* transfer session quota from the service to ourself */
+					Ram_transfer ram_donation_from_service(session.donated_ram_quota(),
+					                                       service_ram_account, ref_ram_account);
 
-					Cap_transfer::Remote_account ref_cap_account(_policy.ref_pd(), _policy.ref_pd_cap());
-					Cap_transfer::Account   &service_cap_account = session.service();
+					Cap_transfer cap_donation_from_service(session.donated_cap_quota(),
+					                                       service_cap_account, ref_cap_account);
 
-					try {
-						/* transfer session quota from the service to ourself */
-						Ram_transfer ram_donation_from_service(session.donated_ram_quota(),
-						                                       service_ram_account, ref_ram_account);
-
-						Cap_transfer cap_donation_from_service(session.donated_cap_quota(),
-						                                       service_cap_account, ref_cap_account);
-
-						ram_donation_from_service.acknowledge();
-						cap_donation_from_service.acknowledge();
-					}
-					catch (Ram_transfer::Quota_exceeded) {
-						warning(_policy.name(), " failed to return session RAM quota "
-						        "(", session.donated_ram_quota(), ")"); }
-					catch (Cap_transfer::Quota_exceeded) {
-						warning(_policy.name(), " failed to return session cap quota "
-						        "(", session.donated_cap_quota(), ")"); }
-
-					session.destroy();
-					_policy.session_state_changed();
+					ram_donation_from_service.acknowledge();
+					cap_donation_from_service.acknowledge();
 				}
-				break;
+				catch (Ram_transfer::Quota_exceeded) {
+					warning(_policy.name(), " failed to return session RAM quota "
+					        "(", session.donated_ram_quota(), ")"); }
+				catch (Cap_transfer::Quota_exceeded) {
+					warning(_policy.name(), " failed to return session cap quota "
+					        "(", session.donated_cap_quota(), ")"); }
 
-			case Parent::SERVICE_DENIED:
-				session.phase = Session_state::SERVICE_DENIED;
-				if (session.ready_callback)
-					session.ready_callback->session_ready(session);
-				break;
-
-			case Parent::INSUFFICIENT_RAM_QUOTA:
-				session.phase = Session_state::INSUFFICIENT_RAM_QUOTA;
-				if (session.ready_callback)
-					session.ready_callback->session_ready(session);
-				break;
-
-			case Parent::INSUFFICIENT_CAP_QUOTA:
-				session.phase = Session_state::INSUFFICIENT_CAP_QUOTA;
-				if (session.ready_callback)
-					session.ready_callback->session_ready(session);
-				break;
-
-			case Parent::SESSION_OK:
-				if (session.phase == Session_state::UPGRADE_REQUESTED) {
-					session.phase = Session_state::CAP_HANDED_OUT;
-					if (session.ready_callback)
-						session.ready_callback->session_ready(session);
-				}
-				break;
+				session.destroy();
+				_policy.session_state_changed();
 			}
-		},
-		[&] /* missing ID */ {
-			warning("unexpected session response for unknown session");
-		});
-	}
-	catch (Child_policy::Nonexistent_id_space) { }
+			break;
+
+		case Parent::SERVICE_DENIED:
+			session.phase = Session_state::SERVICE_DENIED;
+			if (session.ready_callback)
+				session.ready_callback->session_ready(session);
+			break;
+
+		case Parent::INSUFFICIENT_RAM_QUOTA:
+			session.phase = Session_state::INSUFFICIENT_RAM_QUOTA;
+			if (session.ready_callback)
+				session.ready_callback->session_ready(session);
+			break;
+
+		case Parent::INSUFFICIENT_CAP_QUOTA:
+			session.phase = Session_state::INSUFFICIENT_CAP_QUOTA;
+			if (session.ready_callback)
+				session.ready_callback->session_ready(session);
+			break;
+
+		case Parent::SESSION_OK:
+			if (session.phase == Session_state::UPGRADE_REQUESTED) {
+				session.phase = Session_state::CAP_HANDED_OUT;
+				if (session.ready_callback)
+					session.ready_callback->session_ready(session);
+			}
+			break;
+		}
+	},
+	[&] /* missing ID */ {
+		warning("unexpected session response for unknown session");
+	});
 }
 
 
 void Child::deliver_session_cap(Server::Id id, Session_capability cap)
 {
-	try {
-		_policy.server_id_space().apply<Session_state>(id, [&] (Session_state &session) {
+	_policy.server_id_space().apply<Session_state>(id, [&] (Session_state &session) {
 
-			/* ignore responses after 'close_all_sessions' of the client */
-			if (session.phase != Session_state::CREATE_REQUESTED)
-				return;
+		/* ignore responses after 'close_all_sessions' of the client */
+		if (session.phase != Session_state::CREATE_REQUESTED)
+			return;
 
-			if (session.cap.valid()) {
-				_error("attempt to assign session cap twice");
-				return;
-			}
+		if (session.cap.valid()) {
+			_error("attempt to assign session cap twice");
+			return;
+		}
 
-			/*
-			 * If the client vanished during the session creation, the
-			 * session-close state change must be reflected to the server
-			 * as soon as the session becomes available. This enables the
-			 * server to wind down the session. If we just discarded the
-			 * session, the server's ID space would become inconsistent
-			 * with ours.
-			 */
-			if (!session.client_exists()) {
-				session.phase = Session_state::CLOSE_REQUESTED;
-				session.service().initiate_request(session);
-				return;
-			}
+		/*
+		 * If the client vanished during the session creation, the
+		 * session-close state change must be reflected to the server
+		 * as soon as the session becomes available. This enables the
+		 * server to wind down the session. If we just discarded the
+		 * session, the server's ID space would become inconsistent
+		 * with ours.
+		 */
+		if (!session.client_exists()) {
+			session.phase = Session_state::CLOSE_REQUESTED;
+			session.service().initiate_request(session);
+			return;
+		}
 
-			session.cap   = cap;
-			session.phase = Session_state::AVAILABLE;
+		session.cap   = cap;
+		session.phase = Session_state::AVAILABLE;
 
-			if (session.ready_callback)
-				session.ready_callback->session_ready(session);
-		},
-		[&] /* missing ID */ { });
-	}
-	catch (Child_policy::Nonexistent_id_space) { }
+		if (session.ready_callback)
+			session.ready_callback->session_ready(session);
+	},
+	[&] /* missing ID */ { });
 }
 
 
@@ -866,11 +860,8 @@ void Child::close_all_sessions()
 	 * with the server. So the added complexity of reverting the session quotas
 	 * would be to no benefit.
 	 */
-	try {
-		auto lambda = [&] (Session_state &s) { _revert_quota_and_destroy(s); };
-		while (_policy.server_id_space().apply_any<Session_state>(lambda));
-	}
-	catch (Child_policy::Nonexistent_id_space) { }
+	auto lambda = [&] (Session_state &s) { _revert_quota_and_destroy(s); };
+	while (_policy.server_id_space().apply_any<Session_state>(lambda));
 
 	/*
 	 * Issue close requests to the providers of the environment sessions,

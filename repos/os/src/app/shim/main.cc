@@ -57,6 +57,8 @@ class Shim::Main : public Child_policy
 
 		Parent_services _parent_services { };
 
+		Id_space<Parent::Server> _server_ids { };
+
 		Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
 
 		Service &_matching_service(Service::Name const &name)
@@ -125,6 +127,8 @@ class Shim::Main : public Child_policy
 			                                           label.length()),
 			               .diag    = diag };
 		}
+
+		Id_space<Parent::Server> &server_id_space() override { return _server_ids; }
 };
 
 
