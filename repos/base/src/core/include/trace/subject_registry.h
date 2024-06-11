@@ -166,19 +166,6 @@ class Core::Trace::Subject
 			return Subject_info::UNATTACHED;
 		}
 
-		void _traceable_or_throw()
-		{
-			switch(_state()) {
-				case Subject_info::DEAD       : throw Source_is_dead();
-				case Subject_info::FOREIGN    : throw Traced_by_other_session();
-				case Subject_info::ERROR      : throw Source_is_dead();
-				case Subject_info::INVALID    : throw Nonexistent_subject();
-				case Subject_info::UNATTACHED : return;
-				case Subject_info::ATTACHED   : return;
-				case Subject_info::TRACED     : return;
-			}
-		}
-
 	public:
 
 		/**
@@ -206,31 +193,40 @@ class Core::Trace::Subject
 		 */
 		bool has_source_id(Source::Id id) const { return id.value == _source_id.value; }
 
+		enum class Trace_result { OK, OUT_OF_RAM, OUT_OF_CAPS, FOREIGN,
+		                          SOURCE_IS_DEAD, INVALID_SUBJECT };
+
 		/**
 		 * Start tracing
 		 *
 		 * \param size  trace buffer size
-		 *
-		 * \throw Out_of_ram
-		 * \throw Out_of_caps
-		 * \throw Source_is_dead
-		 * \throw Traced_by_other_session
 		 */
-		void trace(Policy_id policy_id, Dataspace_capability policy_ds,
-		           size_t policy_size, Ram_allocator &ram,
-		           Region_map &local_rm, size_t size)
+		Trace_result trace(Policy_id policy_id, Dataspace_capability policy_ds,
+		                   Policy_size policy_size, Ram_allocator &ram,
+		                   Region_map &local_rm, Buffer_size size)
 		{
-			/* check state and throw error in case subject is not traceable */
-			_traceable_or_throw();
-
-			_buffer.setup(ram, size); /* may throw */
+			/* check state and return error if subject is not traceable */
+			switch(_state()) {
+			case Subject_info::DEAD:      return Trace_result::SOURCE_IS_DEAD;
+			case Subject_info::ERROR:     return Trace_result::SOURCE_IS_DEAD;
+			case Subject_info::FOREIGN:   return Trace_result::FOREIGN;
+			case Subject_info::INVALID:   return Trace_result::INVALID_SUBJECT;
+			case Subject_info::UNATTACHED:
+			case Subject_info::ATTACHED:
+			case Subject_info::TRACED:    break;
+			}
 
 			try {
-				_policy.setup(ram, local_rm, policy_ds, policy_size);
-			} catch (...) {
-				_buffer.flush();
-				throw;
+				_buffer.setup(ram, size.num_bytes);
 			}
+			catch (Out_of_ram)  { return Trace_result::OUT_OF_RAM;  }
+			catch (Out_of_caps) { return Trace_result::OUT_OF_CAPS; }
+
+			try {
+				_policy.setup(ram, local_rm, policy_ds, policy_size.num_bytes);
+			}
+			catch (Out_of_ram)  { _buffer.flush(); return Trace_result::OUT_OF_RAM;  }
+			catch (Out_of_caps) { _buffer.flush(); return Trace_result::OUT_OF_CAPS; }
 
 			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
@@ -238,12 +234,13 @@ class Core::Trace::Subject
 			if (!source->try_acquire(*this)) {
 				_policy.flush();
 				_buffer.flush();
-				throw Traced_by_other_session();
+				return Trace_result::FOREIGN;
 			}
 
 			_policy_id = policy_id;
 
 			source->trace(_policy.dataspace(), _buffer.dataspace());
+			return Trace_result::OK;
 		}
 
 		void pause()
@@ -256,17 +253,13 @@ class Core::Trace::Subject
 
 		/**
 		 * Resume tracing of paused source
-		 *
-		 * \throw Source_is_dead
 		 */
 		void resume()
 		{
 			Locked_ptr<Source> source(_source);
 
-			if (!source.valid())
-				throw Source_is_dead();
-
-			source->enable();
+			if (source.valid())
+				source->enable();
 		}
 
 		Subject_info info()
@@ -331,24 +324,19 @@ class Core::Trace::Subject_registry
 		void _unsynchronized_destroy(Subject &s)
 		{
 			_entries.remove(&s);
-
 			s.release();
-
 			destroy(&_md_alloc, &s);
 		};
 
 		/**
 		 * Obtain subject from given session-local ID
-		 *
-		 * \throw Nonexistent_subject
 		 */
-		Subject &_unsynchronized_lookup_by_id(Subject_id id)
+		void _with_subject_unsynchronized(Subject_id id, auto const &fn)
 		{
-			for (Subject *s = _entries.first(); s; s = s->next())
-				if (s->id() == id)
-					return *s;
-
-			throw Nonexistent_subject();
+			Subject *ptr = _entries.first();
+			for (; ptr && (ptr->id().id != id.id); ptr = ptr->next());
+			if (ptr)
+				fn(*ptr);
 		}
 
 	public:
@@ -404,7 +392,7 @@ class Core::Trace::Subject_registry
 		/**
 		 * Retrieve existing subject IDs
 		 */
-		size_t subjects(Subject_id *dst, size_t dst_len)
+		unsigned subjects(Subject_id *dst, size_t dst_len)
 		{
 			Mutex::Guard guard(_mutex);
 
@@ -417,7 +405,7 @@ class Core::Trace::Subject_registry
 		/**
 		 * Retrieve Subject_infos batched
 		 */
-		size_t subjects(Subject_info * const dst, Subject_id * ids, size_t const len)
+		unsigned subjects(Subject_info * const dst, Subject_id * ids, size_t const len)
 		{
 			Mutex::Guard guard(_mutex);
 
@@ -450,15 +438,15 @@ class Core::Trace::Subject_registry
 		{
 			Mutex::Guard guard(_mutex);
 
-			Subject &subject = _unsynchronized_lookup_by_id(subject_id);
-			_unsynchronized_destroy(subject);
+			_with_subject_unsynchronized(subject_id, [&] (Subject &subject) {
+				_unsynchronized_destroy(subject); });
 		}
 
-		Subject &lookup_by_id(Subject_id id)
+		void with_subject(Subject_id id, auto const &fn)
 		{
 			Mutex::Guard guard(_mutex);
 
-			return _unsynchronized_lookup_by_id(id);
+			return _with_subject_unsynchronized(id, fn);
 		}
 };
 

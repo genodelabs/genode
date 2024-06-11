@@ -38,16 +38,17 @@ class Policy : public Policy_dict::Element
 		Genode::Rom_connection                  _rom  { _env, name };
 		Genode::Rom_dataspace_capability const  _ds   { _rom.dataspace() };
 		Genode::size_t                   const  _size { Genode::Dataspace_client(_ds).size() };
-		Genode::Trace::Policy_id         const  _id   { _trace.alloc_policy(_size) };
 
 	public:
+
+		using Id = Genode::Trace::Connection::Alloc_policy_result;
+
+		Id const id { _trace.alloc_policy({_size}) };
 
 		Policy(Genode::Env               &env,
 		       Genode::Trace::Connection &trace,
 		       Policy_dict               &dict,
 		       Policy_name         const &name);
-
-		Genode::Trace::Policy_id id() const { return _id; }
 };
 
 #endif /* _POLICY_H_ */

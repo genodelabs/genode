@@ -22,10 +22,20 @@ Policy::Policy(Env &env, Trace::Connection &trace, Policy_dict &dict,
 :
 	Policy_dict::Element(dict, name), _env(env), _trace(trace)
 {
-		Dataspace_capability dst_ds = _trace.policy(_id);
-		void *dst = _env.rm().attach(dst_ds);
-		void *src = _env.rm().attach(_ds);
-		memcpy(dst, src, _size);
-		_env.rm().detach(dst);
-		_env.rm().detach(src);
+	id.with_result(
+		[&] (Trace::Policy_id id) {
+			Dataspace_capability const dst_ds = _trace.policy(id);
+			if (dst_ds.valid()) {
+				void       * const dst = _env.rm().attach(dst_ds);
+				void const * const src = _env.rm().attach(_ds);
+				memcpy(dst, src, _size);
+				_env.rm().detach(dst);
+				_env.rm().detach(src);
+				return;
+			}
+			warning("failed to obtain policy buffer for '", name, "'");
+		},
+		[&] (Trace::Connection::Alloc_policy_error) {
+			warning("failed to allocate policy buffer for '", name, "'");
+		});
 }

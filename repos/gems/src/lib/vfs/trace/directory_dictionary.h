@@ -55,7 +55,7 @@ class Vfs::Trace_node : public Dictionary::Element
 	public:
 
 		Trace_node(Allocator &alloc, Dictionary &dict, Session_label const &label,
-		           Trace::Subject_id const id = 0)
+		           Trace::Subject_id const id = { })
 		:
 		  Dictionary::Element(dict, Label(label)),
 		  _alloc(alloc), _id(id)
@@ -85,7 +85,7 @@ class Vfs::Trace_node : public Dictionary::Element
 		void xml(Xml_generator &xml) const
 		{
 			_dict.for_each([&] (Trace_node const &node) {
-				if (node.id() == 0)
+				if (node.id().id == 0)
 					xml.node("dir", [&] () {
 						xml.attribute("name", node.name);
 						node.xml(xml);

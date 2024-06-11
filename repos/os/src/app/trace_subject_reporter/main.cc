@@ -58,8 +58,9 @@ struct Trace_subject_registry
 			return nullptr;
 		}
 
-		enum { MAX_SUBJECTS = 512 };
-		Genode::Trace::Subject_id _subjects[MAX_SUBJECTS];
+		static constexpr Genode::Trace::Num_subjects MAX_SUBJECTS { 512 };
+
+		Genode::Trace::Subject_id _subjects[MAX_SUBJECTS.value];
 
 		void _sort_by_recent_execution_time()
 		{
@@ -79,14 +80,6 @@ struct Trace_subject_registry
 			}
 
 			_entries = sorted;
-		}
-
-		unsigned update_subjects(Genode::Trace::Connection &trace)
-		{
-			return (unsigned)Genode::retry<Genode::Out_of_ram>(
-				[&] () { return trace.subjects(_subjects, MAX_SUBJECTS); },
-				[&] () { trace.upgrade_ram(4096); }
-			);
 		}
 
 	public:

@@ -64,9 +64,8 @@ class Cpu::Trace
 			 * stored trace ids are not valid if used with subject_info(id)
 			 * and we get exception thrown about unknown ids.
 			 */
-			_trace->_retry([&] () {
-				_trace->call<Genode::Trace::Session_client::Rpc_subjects>();
-			});
+			_trace->_retry<Genode::Trace::Session::Alloc_rpc_error>([&] {
+				return _trace->call<Genode::Trace::Session::Rpc_subjects>(); });
 
 			_subject_id_reread ++;
 		}

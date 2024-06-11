@@ -162,8 +162,7 @@ class Main
 			if (_config.verbose)
 				log("destroy monitor: subject ", monitor.subject_id().id);
 
-			try { _trace.free(monitor.subject_id()); }
-			catch (Trace::Nonexistent_subject) { }
+			_trace.free(monitor.subject_id());
 			monitors.remove(&monitor);
 			destroy(_heap, &monitor);
 		}
@@ -172,32 +171,30 @@ class Main
 		                  Trace::Subject_id const  id,
 		                  Xml_node          const &session_policy)
 		{
-			auto warn_msg = [] (auto reason) {
-				warning("Cannot activate tracing: ", reason); };
+			Trace::Buffer_size const buffer_size {
+				session_policy.attribute_value("buffer", Number_of_bytes(_config.default_buf_sz)) };
 
-			try {
-				Number_of_bytes const buffer_sz =
-					session_policy.attribute_value("buffer", Number_of_bytes(_config.default_buf_sz));
+			Policy_name const policy_name =
+				session_policy.attribute_value("policy", _config.default_policy_name);
 
-				Policy_name const policy_name =
-					session_policy.attribute_value("policy", _config.default_policy_name);
+			auto trace = [&] (Policy const &policy)
+			{
+				policy.id.with_result(
+					[&] (Trace::Policy_id const policy_id) {
+						_trace.trace(id, policy_id, buffer_size); },
+					[&] (auto) {
+						warning("skip tracing because of invalid policy '", policy_name, "'");
+					});
+			};
 
-				_policies.with_element(policy_name,
-					[&] (Policy const &policy) {
-						_trace.trace(id.id, policy.id(), buffer_sz);
-					},
-					[&] /* no match */ {
-						Policy &policy = *new (_heap) Policy(_env, _trace, _policies, policy_name);
-						_trace.trace(id.id, policy.id(), buffer_sz);
-					}
-				);
-				monitors.insert(new (_heap) Monitor(_trace, _env.rm(), id));
-			}
-			catch (Trace::Source_is_dead         ) { warn_msg("Source_is_dead"         ); return; }
-			catch (Trace::Nonexistent_policy     ) { warn_msg("Nonexistent_policy"     ); return; }
-			catch (Trace::Traced_by_other_session) { warn_msg("Traced_by_other_session"); return; }
-			catch (Trace::Nonexistent_subject    ) { warn_msg("Nonexistent_subject"    ); return; }
-			catch (Region_map::Invalid_dataspace ) { warn_msg("Loading policy failed"  ); return; }
+			_policies.with_element(policy_name,
+				[&] (Policy const &policy) {
+					trace(policy); },
+				[&] /* no match */ {
+					Policy &policy = *new (_heap) Policy(_env, _trace, _policies, policy_name);
+					trace(policy); });
+
+			monitors.insert(new (_heap) Monitor(_trace, _env.rm(), id));
 		}
 
 		void _handle_period(Duration)

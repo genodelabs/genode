@@ -23,18 +23,12 @@
 
 namespace Genode { namespace Trace {
 
-	/*********************
-	 ** Exception types **
-	 *********************/
+	using Thread_name = String<32>;
 
-	struct Policy_too_large        : Exception { };
-	struct Nonexistent_subject     : Exception { };
-	struct Source_is_dead          : Exception { };
-	struct Nonexistent_policy      : Exception { };
-	struct Traced_by_other_session : Exception { };
-	struct Subject_not_traced      : Exception { };
-
-	typedef String<32>  Thread_name;
+	struct Num_subjects { unsigned value; };
+	struct Policy_size { size_t num_bytes; };
+	struct Buffer_size { size_t num_bytes; };
+	struct Trace_ok { };
 
 	struct Policy_id;
 	struct Subject_id;
@@ -48,10 +42,7 @@ namespace Genode { namespace Trace {
  */
 struct Genode::Trace::Policy_id
 {
-	unsigned id;
-
-	Policy_id() : id(0) { }
-	Policy_id(unsigned id) : id(id) { }
+	unsigned id { };
 
 	bool operator == (Policy_id const &other) const { return id == other.id; }
 };
@@ -62,10 +53,7 @@ struct Genode::Trace::Policy_id
  */
 struct Genode::Trace::Subject_id
 {
-	unsigned id;
-
-	Subject_id() : id(0) { }
-	Subject_id(unsigned id) : id(id) { }
+	unsigned id { };
 
 	bool operator == (Subject_id const &other) const { return id == other.id; }
 };

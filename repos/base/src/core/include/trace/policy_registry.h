@@ -41,7 +41,7 @@ class Core::Trace::Policy : public List<Policy>::Element
 		Allocator           &_md_alloc;
 		Policy_id     const  _id;
 		Dataspace_capability _ds;
-		size_t        const  _size;
+		Policy_size   const  _size;
 
 		/**
 		 * Constructor
@@ -49,7 +49,7 @@ class Core::Trace::Policy : public List<Policy>::Element
 		 * \param md_alloc  allocator that holds the 'Policy' object
 		 */
 		Policy(Policy_owner const &owner, Policy_id const id,
-		       Allocator &md_alloc, Dataspace_capability ds, size_t size)
+		       Allocator &md_alloc, Dataspace_capability ds, Policy_size size)
 		:
 			_owner(owner), _md_alloc(md_alloc), _id(id), _ds(ds), _size(size)
 		{ }
@@ -66,7 +66,7 @@ class Core::Trace::Policy : public List<Policy>::Element
 	public:
 
 		Dataspace_capability dataspace() const { return _ds; }
-		size_t               size()      const { return _size; }
+		Policy_size          size()      const { return _size; }
 };
 
 
@@ -81,13 +81,12 @@ class Core::Trace::Policy_registry
 		Mutex        _mutex    { };
 		List<Policy> _policies { };
 
-		Policy &_unsynchronized_lookup(Policy_owner const &owner, Policy_id id)
+		void _with_policy_unsynchronized(Policy_owner const &owner,
+		                                 Policy_id const id, auto const &fn)
 		{
 			for (Policy *p = _policies.first(); p; p = p->next())
 				if (p->owned_by(owner) && p->has_id(id))
-					return *p;
-
-			throw Nonexistent_policy();
+					fn(*p);
 		}
 
 		Policy *_any_policy_owned_by(Policy_owner const &owner)
@@ -110,7 +109,7 @@ class Core::Trace::Policy_registry
 		}
 
 		void insert(Policy_owner const &owner, Policy_id const id,
-		            Allocator &md_alloc, Dataspace_capability ds, size_t size)
+		            Allocator &md_alloc, Dataspace_capability ds, Policy_size size)
 		{
 			Mutex::Guard guard(_mutex);
 
@@ -143,18 +142,22 @@ class Core::Trace::Policy_registry
 			}
 		}
 
-		Dataspace_capability dataspace(Policy_owner &owner, Policy_id id)
+		void with_dataspace(Policy_owner &owner, Policy_id id, auto const &fn)
 		{
 			Mutex::Guard guard(_mutex);
 
-			return _unsynchronized_lookup(owner, id).dataspace();
+			_with_policy_unsynchronized(owner, id, [&] (Policy &p) {
+				fn(p.dataspace()); });
 		}
 
-		size_t size(Policy_owner &owner, Policy_id id)
+		Policy_size size(Policy_owner &owner, Policy_id id)
 		{
 			Mutex::Guard guard(_mutex);
 
-			return _unsynchronized_lookup(owner, id).size();
+			Policy_size result { 0 };
+			_with_policy_unsynchronized(owner, id, [&] (Policy const &p) {
+				result = p.size(); });
+			return result;
 		}
 };
 

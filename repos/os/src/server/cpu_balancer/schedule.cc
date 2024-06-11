@@ -39,21 +39,24 @@ void Cpu::Session::update_threads(Trace &trace, Session_label const &cpu_balance
 		Execution_time     time    { };
 
 		/* request execution time and current location */
-		try {
-			trace.retrieve(subject_id.id, [&] (Execution_time const time_current,
-			                                   Affinity::Location const current_loc)
-			{
-				current = current_loc;
-				time    = time_current;
+		bool subject_exists = false;
+		trace.retrieve(subject_id, [&] (Execution_time const time_current,
+		                                Affinity::Location const current_loc)
+		{
+			subject_exists = true;
 
-				if (_verbose)
-					log("[", _label, "] name='", name, "' at ",
-					    current_loc.xpos(), "x", current_loc.ypos(),
-					    " has ec/sc time ", time.thread_context, "/",
-					                        time.scheduling_context,
-					    " policy=", policy.string());
-			});
-		} catch (Genode::Trace::Nonexistent_subject) {
+			current = current_loc;
+			time    = time_current;
+
+			if (_verbose)
+				log("[", _label, "] name='", name, "' at ",
+				    current_loc.xpos(), "x", current_loc.ypos(),
+				    " has ec/sc time ", time.thread_context, "/",
+				                        time.scheduling_context,
+				    " policy=", policy.string());
+		});
+
+		if (!subject_exists) {
 			/* how could that be ? */
 			error("[", _label, "] name='", name, "'"
 				    " subject id invalid ?? ", subject_id.id);

@@ -108,7 +108,7 @@ void Trace_recorder::Monitor::start(Xml_node config)
 	                       trace_config.session_arg_buffer);
 
 	/* find matching subjects according to config and start tracing */
-	using SC = Genode::Trace::Session_client;
+	using SC = Genode::Trace::Connection;
 	SC::For_each_subject_info_result const info_result =
 		_trace->for_each_subject_info([&] (Trace::Subject_id   const &id,
 		                                   Trace::Subject_info const &info) {
@@ -123,16 +123,28 @@ void Trace_recorder::Monitor::start(Xml_node config)
 			if (!session_policy.has_attribute("policy"))
 				return;
 
-			Number_of_bytes buffer_sz =
+			Trace::Buffer_size const buffer_size {
 				session_policy.attribute_value("buffer",
-				                               Number_of_bytes(trace_config.default_buf_sz));
+				                               Number_of_bytes(trace_config.default_buf_sz)) };
+
+			Policy::Name const policy_name = session_policy.attribute_value("policy", Policy::Name());
+
+			auto trace = [&] (Policy const &policy)
+			{
+				policy.id().with_result(
+					[&] (Trace::Policy_id const policy_id) {
+					if (_trace->trace(id, policy_id, buffer_size).failed())
+						warning("failed to enable tracing for policy '", policy_name, "'");
+					},
+					[&] (Trace::Connection::Alloc_policy_error) {
+						warning("skip tracing because of missing policy"); });
+			};
 
 			/* find and assign policy; create/insert if not present */
-			Policy::Name  const policy_name = session_policy.attribute_value("policy", Policy::Name());
 			bool const create =
 				_policies.with_element(policy_name,
 					[&] /* match */ (Policy & policy) {
-						_trace->trace(id, policy.id(), buffer_sz);
+						trace(policy);
 						return false;
 					},
 					[&] /* no_match */ { return true; }
@@ -141,7 +153,7 @@ void Trace_recorder::Monitor::start(Xml_node config)
 			/* create policy if it did not exist */
 			if (create) {
 				Policy &policy = *new (_alloc) Policy(_env, *_trace, policy_name, _policies);
-				_trace->trace(id, policy.id(), buffer_sz);
+				trace(policy);
 			}
 
 			log("Inserting trace policy \"", policy_name, "\" into ",
@@ -197,23 +209,19 @@ void Trace_recorder::Monitor::stop()
 	_timer.trigger_periodic(0);
 
 	_trace_buffers.for_each([&] (Attached_buffer &buf) {
-		try {
-			/* stop tracing */
-			_trace->pause(buf.subject_id());
-		} catch (Trace::Nonexistent_subject) { }
+
+		/* stop tracing */
+		_trace->pause(buf.subject_id());
 
 		/* read remaining events from buffers */
 		buf.process_events(*_trace_directory);
 
 		/* destroy writers */
 		buf.writers().for_each([&] (Writer_base &writer) {
-			destroy(_alloc, &writer);
-		});
+			destroy(_alloc, &writer); });
 
-		try {
-			/* detach buffer */
-			_trace->free(buf.subject_id());
-		} catch (Trace::Nonexistent_subject) { }
+		/* detach buffer */
+		_trace->free(buf.subject_id());
 
 		/* destroy buffer */
 		destroy(_alloc, &buf);

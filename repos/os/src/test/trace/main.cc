@@ -27,27 +27,27 @@ using namespace Genode;
 
 struct Test_thread : Thread
 {
-	Env               &env;
-	Timer::Connection  timer { env };
-	bool               stop  { false };
+	Env               &_env;
+	Timer::Connection  _timer { _env };
+	bool               _stop  { false };
 
 	void entry() override
 	{
-		for (unsigned i = 0; !stop; i++) {
+		for (unsigned i = 0; !_stop; i++) {
 			if (i & 0x3) {
-				Ram_dataspace_capability ds_cap = env.ram().alloc(1024);
-				env.ram().free(ds_cap);
+				Ram_dataspace_capability ds_cap = _env.ram().alloc(1024);
+				_env.ram().free(ds_cap);
 			}
-			timer.msleep(250);
+			_timer.msleep(250);
 		}
 	}
 
-	Test_thread(Env &env, Name &name)
-	: Thread(env, name, 1024 * sizeof(addr_t)), env(env) { start(); }
+	Test_thread(Env &env, Name const &name)
+	: Thread(env, name, 1024 * sizeof(addr_t)), _env(env) { start(); }
 
 	~Test_thread()
 	{
-		stop = true;
+		_stop = true;
 		this->join();
 	}
 
@@ -141,7 +141,7 @@ struct Test_out_of_metadata
 		 * error-handling procedure.
 		 */
 
-		enum { MAX_SUBJECT_IDS = 16 };
+		static constexpr unsigned MAX_SUBJECT_IDS = 16;
 		Trace::Subject_id subject_ids[MAX_SUBJECT_IDS];
 
 		try {
@@ -169,7 +169,7 @@ struct Test_out_of_metadata
 
 			Trace::Connection trace(env, sizeof(subject_ids) + 5*4096,
 			                        sizeof(subject_ids));
-			trace.subjects(subject_ids, MAX_SUBJECT_IDS);
+			trace.subjects(subject_ids, { MAX_SUBJECT_IDS });
 
 			/* we should never arrive here */
 			struct Unexpectedly_got_no_exception{};
@@ -185,66 +185,70 @@ struct Test_out_of_metadata
 
 struct Test_tracing
 {
-	Env                     &env;
-	Attached_rom_dataspace   config       { env, "config" };
-	Trace::Connection        trace        { env, 1024*1024, 64*1024 };
-	Timer::Connection        timer        { env };
-	Test_thread::Name        thread_name  { "test-thread" };
-	Test_thread              thread       { env, thread_name };
-	Trace::Policy_id         policy_id    { };
-
-	Constructible<Trace_buffer_monitor> test_monitor { };
-
+	using Policy_id = Trace::Connection::Alloc_policy_result;
 	using String = Genode::String<64>;
 
-	String policy_label  { };
-	String policy_module { };
-	String policy_thread { };
+	Env                   &_env;
+	Attached_rom_dataspace _config      { _env, "config" };
+	Trace::Connection      _trace       { _env, 1024*1024, 64*1024 };
+	Timer::Connection      _timer       { _env };
+	Test_thread::Name      _thread_name { "test-thread" };
+	Test_thread            _thread      { _env, _thread_name };
 
-	Rom_dataspace_capability  policy_module_rom_ds { };
+	static String _trace_policy_attr(Xml_node const &config, auto const &attr_name)
+	{
+		String result { };
+		config.with_optional_sub_node("trace_policy", [&] (Xml_node const &policy) {
+			result = policy.attribute_value(attr_name,  String()); });
+		return result;
+	}
+
+	String const _policy_label  = _trace_policy_attr(_config.xml(), "label");
+	String const _policy_module = _trace_policy_attr(_config.xml(), "module");
+	String const _policy_thread = _trace_policy_attr(_config.xml(), "thread");
+
+	Policy_id _init_policy()
+	{
+		log("test Tracing");
+
+		try {
+			log("load module: '", _policy_module, "' for label: '", _policy_label, "'");
+			Attached_rom_dataspace const rom { _env, _policy_module.string() };
+
+			Policy_id const policy_id = _trace.alloc_policy(Trace::Policy_size { rom.size() });
+
+			Dataspace_capability ds_cap { };
+			policy_id.with_result(
+				[&] (Trace::Policy_id id) { ds_cap = _trace.policy(id); },
+				[&] (Trace::Connection::Alloc_policy_error) { });
+
+			if (!ds_cap.valid()) {
+				error("failed to obtain policy buffer");
+				throw Failed();
+			}
+
+			Attached_dataspace dst { _env.rm(), ds_cap };
+			memcpy(dst.local_addr<char>(), rom.local_addr<char const>(), rom.size());
+
+			return policy_id;
+
+		} catch (...) {
+			error("could not load module '", _policy_module, "' for "
+			      "label '", _policy_label, "'");
+			throw Failed();
+		}
+	}
+
+	Policy_id const _policy_id = _init_policy();
+
+	Constructible<Trace_buffer_monitor> _test_monitor { };
 
 	struct Failed : Genode::Exception { };
 
-	Test_tracing(Env &env) : env(env)
+	Test_tracing(Env &env) : _env(env)
 	{
-		enum { MAX_SUBJECTS = 128 };
-
-		log("test Tracing");
-
-		config.xml().with_optional_sub_node("trace_policy", [&] (Xml_node const &policy) {
-			policy_label  = policy.attribute_value("label",  String());
-			policy_module = policy.attribute_value("module", String());
-			policy_thread = policy.attribute_value("thread", String());
-		});
-
-		try {
-			Rom_connection policy_rom(env, policy_module.string());
-			policy_module_rom_ds = policy_rom.dataspace();
-
-			size_t rom_size = Dataspace_client(policy_module_rom_ds).size();
-
-			policy_id = trace.alloc_policy(rom_size);
-			Dataspace_capability ds_cap = trace.policy(policy_id);
-
-			if (ds_cap.valid()) {
-				void *ram = env.rm().attach(ds_cap);
-				void *rom = env.rm().attach(policy_module_rom_ds);
-				memcpy(ram, rom, rom_size);
-
-				env.rm().detach(ram);
-				env.rm().detach(rom);
-			}
-
-			log("load module: '", policy_module, "' for "
-			    "label: '", policy_label, "'");
-		} catch (...) {
-			error("could not load module '", policy_module, "' for "
-			      "label '", policy_label, "'");
-			throw Failed();
-		}
-
 		/* wait some time before querying the subjects */
-		timer.msleep(1500);
+		_timer.msleep(1500);
 
 		auto print_info = [this] (Trace::Subject_id id, Trace::Subject_info info) {
 
@@ -259,7 +263,7 @@ struct Test_tracing
 			    "quantum:", info.execution_time().quantum);
 		};
 
-		trace.for_each_subject_info(print_info);
+		_trace.for_each_subject_info(print_info);
 
 		auto check_unattached = [this] (Trace::Subject_id id, Trace::Subject_info info) {
 
@@ -267,48 +271,59 @@ struct Test_tracing
 				error("Subject ", id.id, " is not UNATTACHED");
 		};
 
-		trace.for_each_subject_info(check_unattached);
+		_trace.for_each_subject_info(check_unattached);
 
 		/* enable tracing for test-thread */
 		auto enable_tracing = [this, &env] (Trace::Subject_id id,
 		                                    Trace::Subject_info info) {
 
-			if (info.session_label() != policy_label
-			 || info.thread_name()   != policy_thread) {
+			if (info.session_label() != _policy_label
+			 || info.thread_name()   != _policy_thread) {
 				return;
 			}
 
-			try {
-				log("enable tracing for "
-				    "thread:'", info.thread_name().string(), "' with "
-				    "policy:", policy_id.id);
+			_policy_id.with_result(
+				[&] (Trace::Policy_id policy_id) {
+					log("enable tracing for "
+					    "thread:'", info.thread_name(), "' with "
+					    "policy:", policy_id.id);
 
-				trace.trace(id.id, policy_id, 16384U);
+					Trace::Connection::Trace_result const trace_result =
+						_trace.trace(id, policy_id, Trace::Buffer_size{16384});
 
-				Dataspace_capability ds_cap = trace.buffer(id.id);
-				test_monitor.construct(env.rm(), id.id, ds_cap);
+					trace_result.with_result(
+						[&] (Trace::Trace_ok) {
+							Dataspace_capability ds_cap = _trace.buffer(id);
+							_test_monitor.construct(env.rm(), id, ds_cap);
+						},
+						[&] (Trace::Connection::Trace_error e) {
+							if (e == Trace::Connection::Trace_error::SOURCE_IS_DEAD)
+								error("source is dead");
 
-			} catch (Trace::Source_is_dead) {
-				error("source is dead");
-				throw Failed();
-			}
+							throw Failed();
+						});
+				},
+				[&] (Trace::Connection::Alloc_policy_error) {
+					error("policy alloc failed");
+					throw Failed();
+				});
 		};
 
-		trace.for_each_subject_info(enable_tracing);
+		_trace.for_each_subject_info(enable_tracing);
 
 		/* give the test thread some time to run */
-		timer.msleep(1000);
+		_timer.msleep(1000);
 
-		trace.for_each_subject_info(print_info);
+		_trace.for_each_subject_info(print_info);
 
 		/* read events from trace buffer */
-		if (test_monitor.constructed()) {
-			test_monitor->dump();
-			test_monitor.destruct();
+		if (_test_monitor.constructed()) {
+			_test_monitor->dump();
+			_test_monitor.destruct();
 			log("passed Tracing test");
 		}
 		else
-			error("Thread '", policy_thread, "' not found for session ", policy_label);
+			error("Thread '", _policy_thread, "' not found for session ", _policy_label);
 	}
 };
 

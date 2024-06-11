@@ -28,100 +28,139 @@ Dataspace_capability Session_component::dataspace()
 }
 
 
-size_t Session_component::subjects()
+Session_component::Subjects_rpc_result Session_component::subjects()
 {
-	_subjects.import_new_sources(_sources);
-
-	return _subjects.subjects(_argument_buffer.local_addr<Subject_id>(),
-	                          _argument_buffer.size()/sizeof(Subject_id));
-}
-
-
-size_t Session_component::subject_infos()
-{
-	_subjects.import_new_sources(_sources);
-
-	size_t const count  = _argument_buffer.size() / (sizeof(Subject_info) + sizeof(Subject_id));
-	Subject_info *infos = _argument_buffer.local_addr<Subject_info>();
-	Subject_id   *ids   = reinterpret_cast<Subject_id *>(infos + count);
-
-	return _subjects.subjects(infos, ids, count);
-}
-
-
-Policy_id Session_component::alloc_policy(size_t size)
-{
-	if (size > _argument_buffer.size())
-		throw Policy_too_large();
-
-	/*
-	 * Using prefix incrementation makes sure a policy with id == 0 is
-	 * invalid.
-	 */
-	Policy_id const id(++_policy_cnt);
-
-	Ram_dataspace_capability ds_cap = _ram.alloc(size); /* may throw */
-
 	try {
-		_policies.insert(*this, id, _policies_slab, ds_cap, size);
-	} catch (...) {
-		_ram.free(ds_cap);
-		throw;
+		_subjects.import_new_sources(_sources);
 	}
+	catch (Out_of_ram)  { return Alloc_rpc_error::OUT_OF_RAM; }
+	catch (Out_of_caps) { return Alloc_rpc_error::OUT_OF_CAPS; }
 
-	return id;
+	return Num_subjects { _subjects.subjects(_argument_buffer.local_addr<Subject_id>(),
+	                                         _argument_buffer.size()/sizeof(Subject_id)) };
 }
 
 
-Dataspace_capability Session_component::policy(Policy_id id)
-{
-	return _policies.dataspace(*this, id);
-}
-
-
-void Session_component::unload_policy(Policy_id id)
+Session_component::Infos_rpc_result Session_component::subject_infos()
 {
 	try {
-		Dataspace_capability ds_cap = _policies.dataspace(*this, id);
+		_subjects.import_new_sources(_sources);
+	}
+	catch (Out_of_ram)  { return Alloc_rpc_error::OUT_OF_RAM; }
+	catch (Out_of_caps) { return Alloc_rpc_error::OUT_OF_CAPS; }
+
+	unsigned const count = unsigned(_argument_buffer.size() /
+	                                (sizeof(Subject_info) + sizeof(Subject_id)));
+
+	Subject_info * const infos = _argument_buffer.local_addr<Subject_info>();
+	Subject_id   * const ids   = reinterpret_cast<Subject_id *>(infos + count);
+
+	return Num_subjects { _subjects.subjects(infos, ids, count) };
+}
+
+
+Session_component::Alloc_policy_rpc_result Session_component::alloc_policy(Policy_size size)
+{
+	size.num_bytes = min(size.num_bytes, _argument_buffer.size());
+
+	Policy_id const id { ++_policy_cnt };
+
+	return _ram.try_alloc(size.num_bytes).convert<Alloc_policy_rpc_result>(
+
+		[&] (Ram_dataspace_capability const ds_cap) -> Alloc_policy_rpc_result {
+			try {
+				_policies.insert(*this, id, _policies_slab, ds_cap, size);
+			}
+			catch (Out_of_ram)  { _ram.free(ds_cap); return Alloc_policy_rpc_error::OUT_OF_RAM; }
+			catch (Out_of_caps) { _ram.free(ds_cap); return Alloc_policy_rpc_error::OUT_OF_CAPS; }
+			return id;
+		},
+		[&] (Ram_allocator::Alloc_error const e) -> Alloc_policy_rpc_result {
+			switch (e) {
+			case Ram_allocator::Alloc_error::OUT_OF_RAM:  return Alloc_policy_rpc_error::OUT_OF_RAM;
+			case Ram_allocator::Alloc_error::OUT_OF_CAPS: return Alloc_policy_rpc_error::OUT_OF_CAPS;
+			case Ram_allocator::Alloc_error::DENIED:      break;
+			}
+			return Alloc_policy_rpc_error::INVALID;
+		});
+}
+
+
+Dataspace_capability Session_component::policy(Policy_id const id)
+{
+	Dataspace_capability result { };
+	_policies.with_dataspace(*this, id, [&] (Dataspace_capability ds) {
+		result = ds; });
+	return result;
+}
+
+
+void Session_component::unload_policy(Policy_id const id)
+{
+	_policies.with_dataspace(*this, id, [&] (Dataspace_capability ds) {
 		_policies.remove(*this, id);
-		_ram.free(static_cap_cast<Ram_dataspace>(ds_cap));
-	} catch (Nonexistent_policy) { }
+		_ram.free(static_cap_cast<Ram_dataspace>(ds)); });
 }
 
 
-void Session_component::trace(Subject_id subject_id, Policy_id policy_id,
-                              size_t buffer_size)
+Session_component::Trace_rpc_result
+Session_component::trace(Subject_id subject_id, Policy_id policy_id, Buffer_size size)
 {
-	size_t const policy_size  = _policies.size(*this, policy_id);
+	Policy_size const policy_size = _policies.size(*this, policy_id);
 
-	Trace::Subject &subject = _subjects.lookup_by_id(subject_id);
+	if (policy_size.num_bytes == 0)
+		return Trace_rpc_error::INVALID_POLICY;
 
-	subject.trace(policy_id, _policies.dataspace(*this, policy_id),
-	              policy_size, _ram, _local_rm, buffer_size);
+	Dataspace_capability const ds = policy(policy_id);
+
+	auto rpc_result = [] (Subject::Trace_result const result) -> Trace_rpc_result
+	{
+		using Result = Subject::Trace_result;
+		switch (result) {
+		case Result::OK:              return Trace_ok { };
+		case Result::OUT_OF_RAM:      return Trace_rpc_error::OUT_OF_RAM;
+		case Result::OUT_OF_CAPS:     return Trace_rpc_error::OUT_OF_CAPS;
+		case Result::FOREIGN:         return Trace_rpc_error::FOREIGN;
+		case Result::SOURCE_IS_DEAD:  return Trace_rpc_error::SOURCE_IS_DEAD;
+		case Result::INVALID_SUBJECT: break;
+		};
+		return Trace_rpc_error::INVALID_SUBJECT;
+	};
+
+	Trace_rpc_result result = Trace_rpc_error::INVALID_SUBJECT;
+
+	_subjects.with_subject(subject_id, [&] (Subject &subject) {
+		result = rpc_result(subject.trace(policy_id, ds, policy_size, _ram,
+		                                  _local_rm, size)); });
+
+	return result;
 }
 
 
-void Session_component::pause(Subject_id subject_id)
+void Session_component::pause(Subject_id id)
 {
-	_subjects.lookup_by_id(subject_id).pause();
+	_subjects.with_subject(id, [&] (Subject &subject) { subject.pause(); });
 }
 
 
-void Session_component::resume(Subject_id subject_id)
+void Session_component::resume(Subject_id id)
 {
-	_subjects.lookup_by_id(subject_id).resume();
+	_subjects.with_subject(id, [&] (Subject &subject) { subject.resume(); });
 }
 
 
-Dataspace_capability Session_component::buffer(Subject_id subject_id)
+Dataspace_capability Session_component::buffer(Subject_id id)
 {
-	return _subjects.lookup_by_id(subject_id).buffer();
+	Dataspace_capability result { };
+	_subjects.with_subject(id, [&] (Subject &subject) {
+		result = subject.buffer(); });
+	return result;
 }
 
 
-void Session_component::free(Subject_id subject_id)
+void Session_component::free(Subject_id id)
 {
-	_subjects.release(subject_id);
+	_subjects.release(id);
 }
 
 

@@ -30,8 +30,7 @@ namespace Core { namespace Trace { class Session_component; } }
 
 class Core::Trace::Session_component
 :
-	public Session_object<Trace::Session,
-	                      Trace::Session_component>,
+	public Session_object<Trace::Session, Trace::Session_component>,
 	public Trace::Policy_owner
 {
 	private:
@@ -81,17 +80,16 @@ class Core::Trace::Session_component
 		 ***********************/
 
 		Dataspace_capability dataspace();
-		size_t subjects();
-		size_t subject_infos();
-
-		Policy_id alloc_policy(size_t) override;
-		Dataspace_capability policy(Policy_id) override;
-		void unload_policy(Policy_id) override;
-		void trace(Subject_id, Policy_id, size_t) override;
-		void pause(Subject_id) override;
-		void resume(Subject_id) override;
-		Dataspace_capability buffer(Subject_id) override;
-		void free(Subject_id) override;
+		Subjects_rpc_result subjects();
+		Infos_rpc_result subject_infos();
+		Alloc_policy_rpc_result alloc_policy(Policy_size);
+		Dataspace_capability policy(Policy_id);
+		void unload_policy(Policy_id);
+		Trace_rpc_result trace(Subject_id, Policy_id, Buffer_size);
+		void pause(Subject_id);
+		void resume(Subject_id);
+		Dataspace_capability buffer(Subject_id);
+		void free(Subject_id);
 };
 
 #endif /* _CORE__INCLUDE__TRACE__SESSION_COMPONENT_H_ */

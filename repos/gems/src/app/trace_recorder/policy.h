@@ -33,6 +33,12 @@ namespace Trace_recorder {
  */
 class Trace_recorder::Policy : Policies::Element
 {
+	public:
+
+		using Id   = Genode::Trace::Connection::Alloc_policy_result;
+		using Name = Policy_name;
+		using Policies::Element::name;
+
 	private:
 		friend class Genode::Dictionary<Policy, Policy_name>;
 		friend class Genode::Avl_node<Policy>;
@@ -42,25 +48,27 @@ class Trace_recorder::Policy : Policies::Element
 		Genode::Trace::Connection              &_trace;
 		Genode::Rom_connection                  _rom;
 		Genode::Rom_dataspace_capability const  _ds   { _rom.dataspace() };
-		Genode::size_t                   const  _size { Genode::Dataspace_client(_ds).size() };
-		Genode::Trace::Policy_id         const  _id   { _trace.alloc_policy(_size) };
+		Genode::Trace::Policy_size       const  _size { Genode::Dataspace_client(_ds).size() };
+
+		Id _init_policy();
+		Id const _id = _init_policy();
 
 	public:
-
-		using Name = Policy_name;
-		using Policies::Element::name;
 
 		Policy(Genode::Env               &env,
 		       Genode::Trace::Connection &trace,
 		       Name                const &name,
-		       Policies                  &policies);
-
+		       Policies                  &policies)
+		:
+			Policies::Element(policies, name),
+			_env(env), _trace(trace), _rom(env, name.string())
+		{ }
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Genode::Trace::Policy_id  id()   const { return _id; }
+		Id id() const { return _id; }
 };
 
 #endif /* _POLICY_H_ */
