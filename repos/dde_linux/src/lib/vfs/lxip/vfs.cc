@@ -1619,34 +1619,31 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 				return;
 			}
 
-			try {
+			Addr ip_addr    = config.attribute_value("ip_addr", Addr());
+			Addr netmask    = config.attribute_value("netmask", Addr());
+			Addr gateway    = config.attribute_value("gateway", Addr());
+			Addr nameserver = config.attribute_value("nameserver", Addr());
 
-				Addr ip_addr    = config.attribute_value("ip_addr", Addr());
-				Addr netmask    = config.attribute_value("netmask", Addr());
-				Addr gateway    = config.attribute_value("gateway", Addr());
-				Addr nameserver = config.attribute_value("nameserver", Addr());
+			if (ip_addr == "") {
+				warning("Missing \"ip_addr\" attribute. Ignoring network interface config.");
+				return;
+			} else if (netmask == "") {
+				warning("Missing \"netmask\" attribute. Ignoring network interface config.");
+				return;
+			}
 
-				if (ip_addr == "") {
-					warning("Missing \"ip_addr\" attribute. Ignoring network interface config.");
-					throw Genode::Xml_node::Nonexistent_attribute();
-				} else if (netmask == "") {
-					warning("Missing \"netmask\" attribute. Ignoring network interface config.");
-					throw Genode::Xml_node::Nonexistent_attribute();
-				}
+			log("static network interface: ip_addr=",ip_addr," netmask=",netmask);
 
-				log("static network interface: ip_addr=",ip_addr," netmask=",netmask);
+			genode_socket_config address_config = {
+				.dhcp       = false,
+				.ip_addr    = ip_addr.string(),
+				.netmask    = netmask.string(),
+				.gateway    = gateway.string(),
+				.nameserver = nameserver.string(),
+			};
 
-				genode_socket_config address_config = {
-					.dhcp       = false,
-					.ip_addr    = ip_addr.string(),
-					.netmask    = netmask.string(),
-					.gateway    = gateway.string(),
-					.nameserver = nameserver.string(),
-				};
-
-				genode_socket_config_address(&address_config);
-			} catch (...) { }
-		 }
+			genode_socket_config_address(&address_config);
+		}
 
 
 		/*************************

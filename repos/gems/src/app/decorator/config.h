@@ -219,11 +219,9 @@ class Decorator::Config
 				if (node.has_type("maximizer")) type = Window_control::TYPE_MAXIMIZER;
 				if (node.has_type("minimizer")) type = Window_control::TYPE_MINIMIZER;
 
-				if (node.has_attribute("align")) {
-					Genode::Xml_attribute attr = node.attribute("align");
-					if (attr.has_value("left"))  align = Window_control::ALIGN_LEFT;
-					if (attr.has_value("right")) align = Window_control::ALIGN_RIGHT;
-				}
+				auto const align_attr = node.attribute_value("align", Genode::String<16>());
+				if (align_attr == "left")  align = Window_control::ALIGN_LEFT;
+				if (align_attr == "right") align = Window_control::ALIGN_RIGHT;
 
 				_window_controls[_num_window_controls++] =
 					new (_alloc) Window_control(type, align);

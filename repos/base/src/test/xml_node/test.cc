@@ -243,11 +243,8 @@ struct Formatted_xml_attribute
  */
 static void print_xml_attr_info(Output &output, Xml_node node, int indent = 0)
 {
-	try {
-		for (Xml_node::Attribute a = node.attribute(0U); ; a = a.next())
-			print(output, Formatted_xml_attribute(a, indent), "\n");
-
-	} catch (Xml_node::Nonexistent_attribute) { }
+	node.for_each_attribute([&] (Xml_attribute const &a) {
+		print(output, Formatted_xml_attribute(a, indent), "\n"); });
 }
 
 

@@ -41,30 +41,21 @@ struct Test_failed : Genode::Exception { };
 	}
 
 
-static void test_write_read(Genode::Xml_node node)
+static void test_write_read(Genode::Xml_node const &config)
 {
-	size_t rounds      = 4;
+	size_t rounds      = 4u;
 	size_t size        = 4*1024*1024;
 	size_t buffer_size = 32*1024;
 
-	try {
-		Genode::Xml_node config = node.sub_node("write-read");
+	config.with_optional_sub_node("write-read", [&] (Genode::Xml_node const &node) {
+		using Num_bytes = Genode::Number_of_bytes;
+		rounds      = node.attribute_value("rounds",      rounds);
+		size        = node.attribute_value("size",        Num_bytes{size});
+		buffer_size = node.attribute_value("buffer_size", Num_bytes{buffer_size});
+	});
 
-		rounds = config.attribute_value("rounds", rounds);
-
-		Genode::Number_of_bytes n { };
-		try {
-			config.attribute("size").value(n);
-			size = n;
-		} catch (...) { }
-		try {
-			config.attribute("buffer_size").value(n);
-			buffer_size = n;
-		} catch (...) { }
-	} catch (...) { }
-
-	void *buf = malloc(buffer_size);
-	char const *file_name = "write_read.tst";
+	void * const buf = malloc(buffer_size);
+	char const * const file_name = "write_read.tst";
 
 	printf("write-read test: %zu rounds of %zu MiB (buffer size %zu)\n",
 	       rounds, size/(1024*1024), buffer_size);
@@ -112,9 +103,8 @@ static void test(Genode::Xml_node node)
 
 	unsigned int iterations = 1;
 
-	try {
-		node.sub_node("iterations").attribute("value").value(iterations);
-	} catch(...) { }
+	node.with_optional_sub_node("iterations", [&] (Genode::Xml_node const &iter) {
+		iterations = iter.attribute_value("value", iterations); });
 
 	for (unsigned int i = 0; i < iterations; i++) {
 

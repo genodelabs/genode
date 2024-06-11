@@ -30,8 +30,6 @@ struct Send_failed       : Genode::Exception { };
 struct Receive_failed    : Genode::Exception { };
 struct Bind_failed       : Genode::Exception { };
 
-struct Read_port_attr_failed : Genode::Exception { };
-
 
 static void test(Libc::Env & env)
 {
@@ -42,12 +40,9 @@ static void test(Libc::Env & env)
 	}
 	/* read server port */
 	unsigned port = 0;
-	env.config([&] (Xml_node config_node) {
-		try { config_node.attribute("port").value(port); }
-		catch (...) {
-			throw Read_port_attr_failed();
-		}
-	});
+	env.config([&] (Xml_node const &config_node) {
+		port = config_node.attribute_value("port", 0u); });
+
 	/* create server socket address */
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;

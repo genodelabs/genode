@@ -442,18 +442,16 @@ Main_window::Main_window(Genode::Env &env)
 
 	using namespace Genode;
 
-	Attached_rom_dataspace config(env, "config");
-	try {
-		Xml_node config_node = config.xml();
-		_verbose = config_node.attribute("verbose").has_value("yes");
-	} catch (...) { _verbose = false; }
-
-	try {
-		Xml_node node = config.xml().sub_node("default");
-		_default_out_volume = node.attribute_value<long>("out_volume", 0);
-		_default_volume     = node.attribute_value<long>("volume", 0);
-		_default_muted      = node.attribute_value<long>("muted", 1);
-	} catch (...) { Genode::warning("no <default> node found, fallback is 'muted=1'"); }
+	Attached_rom_dataspace const config(env, "config");
+	_verbose = config.xml().attribute_value("verbose", false);
+	config.xml().with_sub_node("default",
+		[&] (Xml_node const &node) {
+			_default_out_volume = node.attribute_value("out_volume", 0L);
+			_default_volume     = node.attribute_value("volume", 0L);
+			_default_muted      = node.attribute_value("muted", 1L);
+		},
+		[&] { warning("no <default> node found, fallback is 'muted=1'"); }
+	);
 }
 
 

@@ -216,15 +216,16 @@ struct Tresor_tester::Request_node : Noncopyable
 	Operation read_op_attr(Xml_node const &node)
 	{
 		ASSERT(node.has_attribute("op"));
-		if (node.attribute("op").has_value("read")) return Operation::READ;
-		if (node.attribute("op").has_value("write")) return Operation::WRITE;
-		if (node.attribute("op").has_value("sync")) return Operation::SYNC;
-		if (node.attribute("op").has_value("create_snapshot")) return Operation::CREATE_SNAPSHOT;
-		if (node.attribute("op").has_value("discard_snapshot")) return Operation::DISCARD_SNAPSHOT;
-		if (node.attribute("op").has_value("extend_ft")) return Operation::EXTEND_FREE_TREE;
-		if (node.attribute("op").has_value("extend_vbd")) return Operation::EXTEND_VBD;
-		if (node.attribute("op").has_value("rekey")) return Operation::REKEY;
-		if (node.attribute("op").has_value("deinitialize")) return Operation::DEINITIALIZE;
+		auto const value = node.attribute_value("op", String<32>());
+		if (value == "read")             return Operation::READ;
+		if (value == "write")            return Operation::WRITE;
+		if (value == "sync")             return Operation::SYNC;
+		if (value == "create_snapshot")  return Operation::CREATE_SNAPSHOT;
+		if (value == "discard_snapshot") return Operation::DISCARD_SNAPSHOT;
+		if (value == "extend_ft")        return Operation::EXTEND_FREE_TREE;
+		if (value == "extend_vbd")       return Operation::EXTEND_VBD;
+		if (value == "rekey")            return Operation::REKEY;
+		if (value == "deinitialize")     return Operation::DEINITIALIZE;
 		ASSERT_NEVER_REACHED;
 	}
 

@@ -290,10 +290,9 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 			                               seek_offset);
 		});
 
-		gcov_env->fs.close(annotate_file_handle);	
+		gcov_env->fs.close(annotate_file_handle);
 	}
 	catch (Xml_node::Nonexistent_sub_node) { }
-	catch (Xml_attribute::Nonexistent_attribute) { }
 
 	return &gcov_env->file;
 }

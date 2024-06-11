@@ -500,11 +500,9 @@ void Gui_fader::Main::handle_config_update()
 {
 	config.update();
 
-	Genode::Xml_node config_xml = config.xml();
+	Genode::Xml_node const config_xml = config.xml();
 
-	unsigned new_alpha = alpha;
-	if (config_xml.has_attribute("alpha"))
-		config_xml.attribute("alpha").value(new_alpha);
+	unsigned const new_alpha = config_xml.attribute_value("alpha", 255u);
 
 	fade_in_steps         = config_xml.attribute_value("fade_in_steps",  20U);
 	fade_out_steps        = config_xml.attribute_value("fade_out_steps", 50U);

@@ -86,17 +86,15 @@ class Scene : public Nano3d::Scene<PT>
 		{
 			_config.update();
 
-			try {
-				_shape = SHAPE_DODECAHEDRON;
-				if (_config.xml().attribute("shape").has_value("cube"))
-					_shape = SHAPE_CUBE;
-			} catch (...) { }
+			using Value = Genode::String<32>;
 
-			try {
-				_painter = PAINTER_TEXTURED;
-				if (_config.xml().attribute("painter").has_value("shaded"))
-					_painter = PAINTER_SHADED;
-			} catch (...) { }
+			_shape = SHAPE_DODECAHEDRON;
+			if (_config.xml().attribute_value("shape", Value()) == "cube")
+				_shape = SHAPE_CUBE;
+
+			_painter = PAINTER_TEXTURED;
+			if (_config.xml().attribute_value("painter", Value()) == "shaded")
+				_painter = PAINTER_SHADED;
 		}
 
 		Genode::Signal_handler<Scene> _config_handler;

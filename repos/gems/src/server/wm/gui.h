@@ -1191,18 +1191,11 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 				Genode::Xml_node policy =
 					Genode::Session_policy(session_label, _config.xml());
 
-				char const *role_attr = "role";
-				if (policy.has_attribute(role_attr)) {
+				auto const value = policy.attribute_value("role", String<16>());
 
-					if (policy.attribute(role_attr).has_value("layouter"))
-						role = ROLE_LAYOUTER;
-
-					if (policy.attribute(role_attr).has_value("decorator"))
-						role = ROLE_DECORATOR;
-
-					if (policy.attribute(role_attr).has_value("direct"))
-						role = ROLE_DIRECT;
-				}
+				if (value == "layouter")  role = ROLE_LAYOUTER;
+				if (value == "decorator") role = ROLE_DECORATOR;
+				if (value == "direct")    role = ROLE_DIRECT;
 			}
 			catch (...) { }
 

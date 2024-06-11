@@ -394,18 +394,7 @@ class Vfs::Dir_file_system : public File_system
 					continue;
 				}
 
-				Genode::error("failed to create <", sub_node.type(), "> VFS node");
-				try {
-					for (unsigned i = 0; i < 16; ++i) {
-
-						Xml_attribute const attr = sub_node.attribute(i);
-
-						String<64> value { };
-						attr.value(value);
-
-						Genode::error("\t", attr.name(), "=\"", value, "\"");
-					}
-				} catch (Xml_node::Nonexistent_attribute) { }
+				Genode::error("failed to create VFS node: ", sub_node);
 			}
 		}
 

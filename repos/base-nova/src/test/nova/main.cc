@@ -649,13 +649,14 @@ Main::Main(Env &env) : env(env)
 {
 	log("testing base-nova platform");
 
-	try {
+	{
 		Attached_rom_dataspace config(env, "config");
-		config.xml().attribute("check_pat").value(check_pat);
-	} catch (...) {
-		Genode::error("no check_pat attribute found");
-		env.parent().exit(-__LINE__);
-		return;
+		if (!config.xml().has_attribute("check_pat")) {
+			Genode::error("no check_pat attribute found");
+			env.parent().exit(-__LINE__);
+			return;
+		}
+		check_pat = config.xml().attribute_value("check_pat", check_pat);
 	}
 
 	Thread * myself = Thread::myself();

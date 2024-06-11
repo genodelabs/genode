@@ -26,6 +26,13 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 	using Genode::Xml_node;
 	using Genode::Xml_attribute;
 
+	auto with_raw_attr = [] (Xml_node const &node, auto const attr_name, auto const &fn)
+	{
+		node.for_each_attribute([&] (Xml_attribute const &attr) {
+			if (attr.has_type(attr_name))
+				attr.with_raw_value(fn); });
+	};
+
 	env.config([&] (Xml_node const &node) {
 
 		int envc = 0;
@@ -62,9 +69,7 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 
 			/* insert an argument */
 			if (node.has_type("arg")) {
-
-				Xml_attribute attr = node.attribute("value");
-				attr.with_raw_value([&] (char const *start, size_t length) {
+				with_raw_attr(node, "value", [&] (char const *start, size_t length) {
 
 					size_t const size = length + 1; /* for null termination */
 
@@ -72,7 +77,6 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 
 					Genode::copy_cstring(argv[arg_i], start, size);
 				});
-
 				++arg_i;
 			}
 			else
@@ -87,17 +91,15 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 				check_attr(node, "key");
 				check_attr(node, "value");
 
-				Xml_attribute const key   = node.attribute("key");
-				Xml_attribute const value = node.attribute("value");
-
 				using namespace Genode;
 
 				/*
 				 * An environment variable has the form <key>=<value>, followed
 				 * by a terminating zero.
 				 */
-				size_t const var_size = key  .value_size() + 1
-				                      + value.value_size() + 1;
+				size_t var_size = 1 + 1;
+				with_raw_attr(node, "key",   [&] (char const *, size_t l) { var_size += l; });
+				with_raw_attr(node, "value", [&] (char const *, size_t l) { var_size += l; });
 
 				envp[env_i] = (char*)malloc(var_size);
 
@@ -116,19 +118,18 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 					pos += len;
 				};
 
-				key.with_raw_value([&] (char const *start, size_t length) {
+				with_raw_attr(node, "key", [&] (char const *start, size_t length) {
 					append(start, length); });
 
 				append("=", 1);
 
-				value.with_raw_value([&] (char const *start, size_t length) {
+				with_raw_attr(node, "value", [&] (char const *start, size_t length) {
 					append(start, length); });
 
 				++env_i;
 
 			}
 			catch (Xml_node::Nonexistent_sub_node)  { }
-			catch (Xml_node::Nonexistent_attribute) { }
 		});
 
 		/* argv and envp are both NULL terminated */

@@ -195,7 +195,8 @@ struct Test_tracing
 
 	Constructible<Trace_buffer_monitor> test_monitor { };
 
-	typedef Genode::String<64> String;
+	using String = Genode::String<64>;
+
 	String policy_label  { };
 	String policy_module { };
 	String policy_thread { };
@@ -210,12 +211,13 @@ struct Test_tracing
 
 		log("test Tracing");
 
-		try {
-			Xml_node policy = config.xml().sub_node("trace_policy");
-			policy.attribute("label").value(policy_label);
-			policy.attribute("module").value(policy_module);
-			policy.attribute("thread").value(policy_thread);
+		config.xml().with_optional_sub_node("trace_policy", [&] (Xml_node const &policy) {
+			policy_label  = policy.attribute_value("label",  String());
+			policy_module = policy.attribute_value("module", String());
+			policy_thread = policy.attribute_value("thread", String());
+		});
 
+		try {
 			Rom_connection policy_rom(env, policy_module.string());
 			policy_module_rom_ds = policy_rom.dataspace();
 

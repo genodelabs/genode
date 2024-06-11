@@ -33,30 +33,32 @@ struct Sculpt::Wifi_connection
 	/**
 	 * Create 'Wifi_connection' object from 'state' report
 	 */
-	static Wifi_connection from_xml(Xml_node node)
+	static Wifi_connection from_xml(Xml_node const &node)
 	{
-		bool const connected =
-			node.has_sub_node("accesspoint") &&
-			node.sub_node("accesspoint").attribute("state").has_value("connected");
-		bool const connecting =
-			node.has_sub_node("accesspoint") &&
-			node.sub_node("accesspoint").attribute("state").has_value("connecting");
-		bool const auth_failed =
-			node.has_sub_node("accesspoint") &&
-			node.sub_node("accesspoint").attribute_value("auth_failure", false);
+		Wifi_connection result { };
 
-		if (!connected && !connecting)
-			return { .state = DISCONNECTED,
-			         .auth_failed = auth_failed,
-			         .bssid = Access_point::Bssid{},
-			         .ssid  = Access_point::Bssid{} };
+		bool connected   = false;
+		bool connecting  = false;
+		bool auth_failed = false;
 
-		Xml_node const ap = node.sub_node("accesspoint");
+		node.with_optional_sub_node("accesspoint", [&] (Xml_node const &ap) {
+			connected   = (ap.attribute_value("state", String<32>()) == "connected");
+			connecting  = (ap.attribute_value("state", String<32>()) == "connecting");
+			auth_failed =  ap.attribute_value("auth_failed", false);
 
-		return { .state = connected ? CONNECTED : CONNECTING,
-		         .auth_failed = false,
-		         .bssid = ap.attribute_value("bssid", Access_point::Bssid()),
-		         .ssid  = ap.attribute_value("ssid",  Access_point::Ssid()) };
+			if (!connected && !connecting)
+				result = { .state = DISCONNECTED,
+				           .auth_failed = auth_failed,
+				           .bssid = Access_point::Bssid{},
+				           .ssid  = Access_point::Bssid{} };
+
+			else
+				result = { .state = connected ? CONNECTED : CONNECTING,
+				           .auth_failed = false,
+				           .bssid = ap.attribute_value("bssid", Access_point::Bssid()),
+				           .ssid  = ap.attribute_value("ssid",  Access_point::Ssid()) };
+		});
+		return result;
 	}
 
 	static Wifi_connection disconnected_wifi_connection()

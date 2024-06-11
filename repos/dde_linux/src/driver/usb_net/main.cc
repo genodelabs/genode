@@ -90,15 +90,12 @@ struct Main
 		usb_config = config_rom.xml().attribute_value("configuration", 0ul);
 
 		/* retrieve possible MAC */
-		try {
-			Nic::Mac_address mac;
-			Xml_node::Attribute mac_node = config_rom.xml().attribute("mac");
-			mac_node.value(mac);
+		use_mac_address = config_rom.xml().has_attribute("mac");
+		if (use_mac_address) {
+			auto const mac = config_rom.xml().attribute_value("mac", Nic::Mac_address{});
 			mac.copy(mac_address);
 			use_mac_address = true;
 			log("Trying to use configured mac: ", mac);
-		} catch (...) {
-			use_mac_address = false;
 		}
 	}
 };

@@ -1121,19 +1121,15 @@ Log_event::~Log_event()
 
 Log_prefix Log_event::_init_log_prefix(Xml_node const &xml)
 {
-	if (!xml.has_attribute("log_prefix"))
+	auto const log_prefix = xml.attribute_value("log_prefix", Log_prefix { });
+	if (log_prefix.length() <= 1)
 		return Log_prefix { };
 
-	char buf[Log_prefix::size()];
-	size_t buf_str_size { 0 };
-	xml.attribute("log_prefix").with_raw_value([&] (char const *src_ptr, size_t src_size) {
+	char buf[Log_prefix::size()] { }; /* mutable buffer for filter operation */
+	memcpy(buf, log_prefix.string(), log_prefix.length());
+	size_t const filtered_len = pattern_filters.apply_to(buf, log_prefix.length());
 
-		size_t const cpy_size = min(src_size, sizeof(buf) - 1);
-		memcpy(buf, src_ptr, cpy_size);
-		buf[cpy_size] = 0;
-		buf_str_size = pattern_filters.apply_to(buf, cpy_size + 1);
-	});
-	return Cstring { buf, buf_str_size };
+	return Log_prefix { Cstring { buf, filtered_len } };
 }
 
 

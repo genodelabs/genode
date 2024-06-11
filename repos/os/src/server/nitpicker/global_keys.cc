@@ -63,7 +63,7 @@ void Global_keys::apply_config(Xml_node config, Session_list &session_list)
 
 			/* assign policy to matching client session */
 			for (Gui_session *s = session_list.first(); s; s = s->next())
-				if (node.attribute("label").has_value(s->label().string()))
+				if (node.attribute_value("label", String<128>()) == s->label().string())
 					policy->client(s);
 		}
 

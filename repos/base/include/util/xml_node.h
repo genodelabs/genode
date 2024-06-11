@@ -93,7 +93,7 @@ class Genode::Xml_attribute
 		explicit Xml_attribute(Token t) : _tokens(t)
 		{
 			if (_tokens.name.type() != Token::IDENT)
-				throw Nonexistent_attribute();
+				throw Invalid_syntax();
 
 			if (!_tokens.valid())
 				throw Invalid_syntax();
@@ -110,8 +110,7 @@ class Genode::Xml_attribute
 		 ** Exception types **
 		 *********************/
 
-		class Invalid_syntax        : public Exception { };
-		class Nonexistent_attribute : public Exception { };
+		class Invalid_syntax : public Exception { };
 
 
 		typedef String<64> Name;
@@ -121,7 +120,7 @@ class Genode::Xml_attribute
 		/**
 		 * Return true if attribute has specified type
 		 */
-		bool has_type(char const *type) {
+		bool has_type(char const *type) const {
 			return strlen(type) == _tokens.name.len() &&
 			       strcmp(type, _tokens.name.start(), _tokens.name.len()) == 0; }
 
@@ -221,9 +220,7 @@ class Genode::Xml_node
 		 ** Exception types **
 		 *********************/
 
-		typedef Genode::Exception                    Exception;
-		typedef Xml_attribute::Nonexistent_attribute Nonexistent_attribute;
-		typedef Xml_attribute::Invalid_syntax        Invalid_syntax;
+		typedef Xml_attribute::Invalid_syntax Invalid_syntax;
 
 		class Nonexistent_sub_node  : public Exception { };
 
@@ -883,41 +880,6 @@ class Genode::Xml_node
 		void for_each_sub_node(auto const &fn) const
 		{
 			for_each_sub_node(nullptr, fn);
-		}
-
-		/**
-		 * Return Nth attribute of XML node
-		 *
-		 * \param idx                    attribute index,
-		 *                               first attribute has index 0
-		 * \throw Nonexistent_attribute  no such attribute exists
-		 * \return                       XML attribute
-		 */
-		Xml_attribute attribute(unsigned idx) const
-		{
-			Xml_attribute attr = _tags.start.attribute();
-			for (unsigned i = 0; i < idx; i++)
-				attr = Xml_attribute(attr._next_token());
-
-			return attr;
-		}
-
-		/**
-		 * Return attribute of specified type
-		 *
-		 * \param type                   name of attribute type
-		 * \throw Nonexistent_attribute  no such attribute exists
-		 * \return                       XML attribute
-		 */
-		Xml_attribute attribute(char const *type) const
-		{
-			for (Xml_attribute attr = _tags.start.attribute(); ;) {
-				if (attr.has_type(type))
-					return attr;
-
-				attr = Xml_attribute(attr._next_token());
-			}
-			throw Nonexistent_attribute();
 		}
 
 		/**

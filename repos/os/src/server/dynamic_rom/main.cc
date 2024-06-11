@@ -205,9 +205,9 @@ class Dynamic_rom::Root : public Genode::Root_component<Session_component>
 		{
 			/* lookup ROM module in config */
 			for (unsigned i = 0; i < _config_node.num_sub_nodes(); i++) {
-				Xml_node node = _config_node.sub_node(i);
-				if (node.has_attribute("name")
-				 && node.attribute("name").has_value(name.string()))
+				Xml_node const node = _config_node.sub_node(i);
+
+				if (node.attribute_value("name", Genode::String<64>()) == name)
 					return node;
 			}
 			throw Nonexistent_rom_module();

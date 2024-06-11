@@ -327,13 +327,14 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 				/* sessions are not writeable by default */
 				writeable = policy.attribute_value("writeable", false);
 
-			} catch (Xml_node::Nonexistent_attribute) {
-				error("policy does not define partition number for for '",
-				      label, "'");
-				throw Service_denied();
 			} catch (Session_policy::No_policy_defined) {
 				error("rejecting session request, no matching policy for '",
 				      label, "'");
+				throw Service_denied();
+			}
+
+			if (num == -1) {
+				error("policy does not define partition number for for '", label, "'");
 				throw Service_denied();
 			}
 

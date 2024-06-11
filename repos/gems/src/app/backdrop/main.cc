@@ -169,6 +169,8 @@ static Surface_base::Area calc_scaled_size(Xml_node operation,
 	if (!operation.has_attribute(attr))
 		return image_size;
 
+	auto const value = operation.attribute_value("scale", String<16>());
+
 	/* prevent division by zero, below */
 	if (image_size.count() == 0)
 		return image_size;
@@ -176,14 +178,13 @@ static Surface_base::Area calc_scaled_size(Xml_node operation,
 	/*
 	 * Determine scale ratio (in 16.16 fixpoint format)
 	 */
-	unsigned const ratio =
-		operation.attribute(attr).has_value("fit") ?
-			min((mode_size.w << 16) / image_size.w,
-			    (mode_size.h << 16) / image_size.h) :
-		operation.attribute(attr).has_value("zoom") ?
-			max((mode_size.w << 16) / image_size.w,
-			    (mode_size.h << 16) / image_size.h) :
-		1 << 16;
+	unsigned const ratio = (value == "fit")
+	                     ? min((mode_size.w << 16) / image_size.w,
+	                           (mode_size.h << 16) / image_size.h)
+	                     : (value == "zoom")
+	                     ? max((mode_size.w << 16) / image_size.w,
+	                           (mode_size.h << 16) / image_size.h)
+	                     : 1 << 16;
 
 	/*
 	 * We add 0.5 (1 << 15) to round instead of truncating the fractional

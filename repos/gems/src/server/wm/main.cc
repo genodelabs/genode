@@ -68,24 +68,21 @@ struct Wm::Main : Pointer::Tracker
 
 	void handle_focus_update()
 	{
-		try {
-			focus_rom.update();
-			if (!focus_rom.valid())
-				return;
+		focus_rom.update();
 
-			unsigned win_id = 0;
+		focus_rom.xml().with_optional_sub_node("window", [&] (Xml_node const &window) {
 
-			Xml_node(focus_rom.local_addr<char>()).sub_node("window")
-				.attribute("id").value(win_id);
+			unsigned const win_id = window.attribute_value("id", 0u);
 
 			if (win_id) {
-				Gui::Session_capability session_cap =
-					gui_root.lookup_gui_session(win_id);
+				try {
+					Gui::Session_capability session_cap =
+						gui_root.lookup_gui_session(win_id);
 
-				focus_gui_session.focus(session_cap);
+					focus_gui_session.focus(session_cap);
+				} catch (...) { }
 			}
-
-		} catch (...) { }
+		});
 	}
 
 	Genode::Signal_handler<Main> focus_handler = {

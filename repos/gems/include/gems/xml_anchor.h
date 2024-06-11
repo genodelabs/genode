@@ -54,10 +54,10 @@ class Anchor
 			if (!node.has_attribute(attr))
 				return;
 
-			Xml_node::Attribute const anchor = node.attribute(attr);
+			auto const v = node.attribute_value(attr, Genode::String<16>());
 
 			for (Value const *value = _values; value->value; value++) {
-				if (anchor.has_value(value->value)) {
+				if (v == value->value) {
 					horizontal = value->horizontal;
 					vertical   = value->vertical;
 					return;

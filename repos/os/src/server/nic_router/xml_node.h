@@ -25,14 +25,13 @@ namespace Genode {
 	                           char     const *name,
 	                           uint64_t const  default_sec);
 
-	template <typename FUNC>
-	void xml_node_with_attribute(Xml_node const  node,
+	void xml_node_with_attribute(Xml_node const &node,
 	                             char     const *name,
-	                             FUNC        &&  func)
+	                             auto     const &fn)
 	{
-		if (node.has_attribute(name)) {
-			func(node.attribute(name));
-		}
+		node.for_each_attribute([&] (Xml_attribute const &attr) {
+			if (attr.has_type(name))
+				fn(attr); });
 	}
 }
 
