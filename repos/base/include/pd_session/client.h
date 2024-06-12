@@ -39,8 +39,8 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	void free_signal_source(Signal_source_capability cap) override {
 		call<Rpc_free_signal_source>(cap); }
 
-	Signal_context_capability alloc_context(Signal_source_capability source,
-	                                        unsigned long imprint) override {
+	Alloc_context_result alloc_context(Signal_source_capability source,
+	                                   Imprint imprint) override {
 		return call<Rpc_alloc_context>(source, imprint); }
 
 	void free_context(Signal_context_capability cap) override {

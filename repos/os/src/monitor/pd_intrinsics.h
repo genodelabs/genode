@@ -46,7 +46,7 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 		void                   map(addr_t, addr_t)                       override { never_called(__func__); };
 		Sig_src_cap            alloc_signal_source()                     override { never_called(__func__); };
 		void                   free_signal_source(Sig_src_cap)           override { never_called(__func__); };
-		Sig_ctx_cap            alloc_context(Sig_src_cap, unsigned long) override { never_called(__func__); };
+		Alloc_context_result   alloc_context(Sig_src_cap, Imprint)       override { never_called(__func__); };
 		void                   free_context(Sig_ctx_cap)                 override { never_called(__func__); };
 		void                   submit(Sig_ctx_cap, unsigned)             override { never_called(__func__); };
 		Native_capability      alloc_rpc_cap(Native_capability)          override { never_called(__func__); };

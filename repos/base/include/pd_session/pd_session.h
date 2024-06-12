@@ -94,7 +94,6 @@ struct Genode::Pd_session : Session, Ram_allocator
 
 	class Invalid_session       : public Exception { };
 	class Undefined_ref_account : public Exception { };
-	class Invalid_signal_source : public Exception { };
 
 	/**
 	 * Create a new signal source
@@ -115,22 +114,22 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 */
 	virtual void free_signal_source(Signal_source_capability cap) = 0;
 
+	enum class Alloc_context_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID_SIGNAL_SOURCE };
+	using Alloc_context_result = Attempt<Capability<Signal_context>, Alloc_context_error>;
+
+	struct Imprint { addr_t value; };
+
 	/**
 	 * Allocate signal context
 	 *
 	 * \param source  signal source that shall provide the new context
 	 *
-	 *
 	 * \param imprint  opaque value that gets delivered with signals
 	 *                 originating from the allocated signal-context capability
 	 * \return new signal-context capability
-	 *
-	 * \throw Out_of_ram
-	 * \throw Out_of_caps
-	 * \throw Invalid_signal_source
 	 */
-	virtual Capability<Signal_context>
-	alloc_context(Signal_source_capability source, unsigned long imprint) = 0;
+	virtual Alloc_context_result alloc_context(Signal_source_capability source,
+	                                           Imprint imprint) = 0;
 
 	/**
 	 * Free signal-context
@@ -373,9 +372,8 @@ struct Genode::Pd_session : Session, Ram_allocator
 	                 alloc_signal_source,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps));
 	GENODE_RPC(Rpc_free_signal_source, void, free_signal_source, Signal_source_capability);
-	GENODE_RPC_THROW(Rpc_alloc_context, Capability<Signal_context>, alloc_context,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Invalid_signal_source),
-	                 Signal_source_capability, unsigned long);
+	GENODE_RPC(Rpc_alloc_context, Alloc_context_result, alloc_context,
+	           Signal_source_capability, Imprint);
 	GENODE_RPC(Rpc_free_context, void, free_context,
 	           Capability<Signal_context>);
 	GENODE_RPC(Rpc_submit, void, submit, Capability<Signal_context>, unsigned);

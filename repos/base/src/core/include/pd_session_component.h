@@ -223,21 +223,24 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			}
 		}
 
-		Signal_context_capability
-		alloc_context(Signal_source_capability sig_rec_cap, unsigned long imprint) override
+		Alloc_context_result
+		alloc_context(Signal_source_capability sig_rec_cap, Imprint imprint) override
 		{
-			Cap_quota_guard::Reservation cap_costs(_cap_quota_guard(), Cap_quota{1});
 			try {
-				/* may throw 'Out_of_ram' or 'Invalid_signal_source' */
+				Cap_quota_guard::Reservation cap_costs(_cap_quota_guard(), Cap_quota{1});
+
+				/* may throw 'Out_of_ram', 'Out_of_caps', or 'Invalid_signal_source' */
 				Signal_context_capability cap =
-					_signal_broker.alloc_context(sig_rec_cap, imprint);
+					_signal_broker.alloc_context(sig_rec_cap, imprint.value);
 
 				cap_costs.acknowledge();
 				diag("consumed signal-context cap (", _cap_account, ")");
 				return cap;
 			}
 			catch (Signal_broker::Invalid_signal_source) {
-				throw Pd_session::Invalid_signal_source(); }
+				return Alloc_context_error::INVALID_SIGNAL_SOURCE; }
+			catch (Out_of_ram)  { return Alloc_context_error::OUT_OF_RAM;  }
+			catch (Out_of_caps) { return Alloc_context_error::OUT_OF_CAPS; }
 		}
 
 		void free_context(Signal_context_capability cap) override

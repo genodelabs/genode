@@ -17,6 +17,7 @@
 #include <base/signal.h>
 #include <base/env.h>
 #include <base/trace/events.h>
+#include <base/sleep.h>
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
@@ -104,20 +105,41 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 	if (c->_receiver)
 		throw Context_already_in_use();
 
+	Signal_receiver &this_receiver = *this;
+
 	for (;;) {
 
 		Ram_quota ram_upgrade { 0 };
 		Cap_quota cap_upgrade { 0 };
 
-		try {
-			/* use signal context as imprint */
-			c->_cap = env().pd().alloc_context(_cap, (unsigned long)c);
-			c->_receiver = this;
-			_contexts.insert_as_tail(c);
+		using Error = Pd_session::Alloc_context_error;
+
+		/* use pointer to signal context as imprint */
+		Pd_session::Imprint const imprint { addr_t(c) };
+
+		_pd.alloc_context(_cap, imprint).with_result(
+			[&] (Capability<Signal_context> cap) {
+				c->_cap      = cap;
+				c->_receiver = &this_receiver;
+				_contexts.insert_as_tail(c);
+			},
+			[&] (Error e) {
+				switch (e) {
+				case Error::OUT_OF_RAM:
+					ram_upgrade = Ram_quota { 1024*sizeof(long) };
+					break;
+				case Error::OUT_OF_CAPS:
+					cap_upgrade = Cap_quota { 4 };
+					break;
+				case Error::INVALID_SIGNAL_SOURCE:
+					error("ill-attempt to create context for invalid signal source");
+					sleep_forever();
+					break;
+				}
+			});
+
+		if (c->_cap.valid())
 			return c->_cap;
-		}
-		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 1024*sizeof(long) }; }
-		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
 
 		env().upgrade(Parent::Env::pd(),
 		              String<100>("ram_quota=", ram_upgrade, ", "

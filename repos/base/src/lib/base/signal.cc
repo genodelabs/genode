@@ -214,33 +214,52 @@ Signal_receiver::Signal_receiver() : _pd(*_pd_ptr)
 }
 
 
-Signal_context_capability Signal_receiver::manage(Signal_context *context)
+Signal_context_capability Signal_receiver::manage(Signal_context *context_ptr)
 {
-	if (context->_receiver)
+	Signal_context &context = *context_ptr;
+
+	if (context._receiver)
 		throw Context_already_in_use();
 
-	context->_receiver = this;
+	context._receiver = this;
 
 	Mutex::Guard contexts_guard(_contexts_mutex);
 
 	/* insert context into context list */
-	_contexts.insert_as_tail(context);
+	_contexts.insert_as_tail(&context);
 
 	/* register context at process-wide registry */
-	signal_context_registry()->insert(&context->_registry_le);
+	signal_context_registry()->insert(&context._registry_le);
 
 	for (;;) {
 
 		Ram_quota ram_upgrade { 0 };
 		Cap_quota cap_upgrade { 0 };
 
-		try {
-			/* use signal context as imprint */
-			context->_cap = _pd.alloc_context(_cap, (long)context);
+		using Error = Pd_session::Alloc_context_error;
+
+		/* use pointer to signal context as imprint */
+		Pd_session::Imprint const imprint { addr_t(&context) };
+
+		_pd.alloc_context(_cap, imprint).with_result(
+			[&] (Capability<Signal_context> cap) { context._cap = cap; },
+			[&] (Error e) {
+				switch (e) {
+				case Error::OUT_OF_RAM:
+					ram_upgrade = Ram_quota { 1024*sizeof(long) };
+					break;
+				case Error::OUT_OF_CAPS:
+					cap_upgrade = Cap_quota { 4 };
+					break;
+				case Error::INVALID_SIGNAL_SOURCE:
+					error("ill-attempt to create context for invalid signal source");
+					sleep_forever();
+					break;
+				}
+			});
+
+		if (context._cap.valid())
 			break;
-		}
-		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 1024*sizeof(long) }; }
-		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
 
 		log("upgrading quota donation for PD session "
 		    "(", ram_upgrade, " bytes, ", cap_upgrade, " caps)");
@@ -249,8 +268,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 		                     String<100>("ram_quota=", ram_upgrade, ", "
 		                                 "cap_quota=", cap_upgrade).string());
 	}
-
-	return context->_cap;
+	return context._cap;
 }
 
 
