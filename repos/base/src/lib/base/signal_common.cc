@@ -164,34 +164,36 @@ Signal_receiver::~Signal_receiver()
 	Mutex::Guard contexts_guard(_contexts_mutex);
 
 	/* disassociate contexts from the receiver */
-	while (Signal_context *context = _contexts.head()) {
-		_platform_begin_dissolve(context);
-		_unsynchronized_dissolve(context);
-		_platform_finish_dissolve(context);
+	while (Signal_context *context_ptr = _contexts.head()) {
+		_platform_begin_dissolve(*context_ptr);
+		_unsynchronized_dissolve(*context_ptr);
+		_platform_finish_dissolve(*context_ptr);
 	}
 
 	_platform_destructor();
 }
 
 
-void Signal_receiver::_unsynchronized_dissolve(Signal_context * const context)
+void Signal_receiver::_unsynchronized_dissolve(Signal_context &context)
 {
 	/* tell core to stop sending signals referring to the context */
-	_pd.free_context(context->_cap);
+	_pd.free_context(context._cap);
 
 	/* restore default initialization of signal context */
-	context->_receiver = nullptr;
-	context->_cap      = Signal_context_capability();
+	context._receiver = nullptr;
+	context._cap      = Signal_context_capability();
 
 	/* remove context from context list */
-	_contexts.remove(context);
+	_contexts.remove(&context);
 }
 
 
-void Signal_receiver::dissolve(Signal_context *context)
+void Signal_receiver::dissolve(Signal_context &context)
 {
-	if (context->_receiver != this)
-		throw Context_not_associated();
+	if (context._receiver != this) {
+		error("ill-attempt to dissolve unmanaged signal context");
+		return;
+	}
 
 	{
 		/*
@@ -207,14 +209,14 @@ void Signal_receiver::dissolve(Signal_context *context)
 
 		_platform_begin_dissolve(context);
 
-		Mutex::Guard context_guard(context->_mutex);
+		Mutex::Guard context_guard(context._mutex);
 
 		_unsynchronized_dissolve(context);
 	}
 
 	_platform_finish_dissolve(context);
 
-	Mutex::Guard context_destroy_guard(context->_destroy_mutex);
+	Mutex::Guard context_destroy_guard(context._destroy_mutex);
 }
 
 

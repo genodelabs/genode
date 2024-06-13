@@ -34,14 +34,14 @@ struct Terminal::Connection : Genode::Connection<Session>, Session_client
 		/* create signal receiver, just for the single signal */
 		Signal_context            sig_ctx;
 		Signal_receiver           sig_rec;
-		Signal_context_capability sig_cap = sig_rec.manage(&sig_ctx);
+		Signal_context_capability sig_cap = sig_rec.manage(sig_ctx);
 
 		/* register signal handler */
 		cap.call<Rpc_connected_sigh>(sig_cap);
 
 		/* wati for signal */
 		sig_rec.wait_for_signal();
-		sig_rec.dissolve(&sig_ctx);
+		sig_rec.dissolve(sig_ctx);
 	}
 
 	Connection(Genode::Env &env, Label const &label = Label())

@@ -68,7 +68,7 @@ struct Genode::Component_env : Env
 
 		Blockade(Parent &parent) : _parent(parent)
 		{
-			_parent.session_sigh(_sig_rec.manage(&_sig_ctx));
+			_parent.session_sigh(_sig_rec.manage(_sig_ctx));
 		}
 
 		void block() { _sig_rec.wait_for_signal(); }

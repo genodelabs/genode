@@ -90,7 +90,7 @@ class Genode::Expanding_parent_client : public Parent_client
 		{
 			if (!_fallback_sig_cap.valid()) {
 				_fallback_sig_rcv.construct();
-				_fallback_sig_cap = _fallback_sig_rcv->manage(&_fallback_sig_ctx);
+				_fallback_sig_cap = _fallback_sig_rcv->manage(_fallback_sig_ctx);
 			}
 		}
 

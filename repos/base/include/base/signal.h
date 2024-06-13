@@ -343,7 +343,7 @@ class Genode::Signal_receiver : Noncopyable
 		 * and 'dissolve'. Note that '_contexts_mutex' must be held when
 		 * calling this method.
 		 */
-		void _unsynchronized_dissolve(Signal_context *context);
+		void _unsynchronized_dissolve(Signal_context &);
 
 		/**
 		 * Hook to platform specific destructor parts
@@ -353,25 +353,12 @@ class Genode::Signal_receiver : Noncopyable
 		/**
 		 * Hooks to platform specific dissolve parts
 		 */
-		void _platform_begin_dissolve(Signal_context * const c);
-		void _platform_finish_dissolve(Signal_context * const c);
+		void _platform_begin_dissolve (Signal_context &);
+		void _platform_finish_dissolve(Signal_context &);
 
 	public:
 
-		/**
-		 * Exception class
-		 */
-		class Context_already_in_use { };
-		class Context_not_associated { };
-
-		/**
-		 * Constructor
-		 */
 		Signal_receiver();
-
-		/**
-		 * Destructor
-		 */
 		~Signal_receiver();
 
 		/**
@@ -379,19 +366,17 @@ class Genode::Signal_receiver : Noncopyable
 		 *
 		 * \param context  context associated with signals delivered to the
 		 *                 receiver
-		 * \throw          'Context_already_in_use'
 		 * \return         new signal-context capability that can be
 		 *                 passed to a signal transmitter
 		 */
-		Signal_context_capability manage(Signal_context *context);
+		Signal_context_capability manage(Signal_context &context);
 
 		/**
 		 * Dissolve signal context from receiver
 		 *
 		 * \param context  context to remove from receiver
-		 * \throw          'Context_not_associated'
 		 */
-		void dissolve(Signal_context *context);
+		void dissolve(Signal_context &context);
 
 		/**
 		 * Block until a signal is received and return the signal
@@ -433,7 +418,7 @@ class Genode::Signal_receiver : Noncopyable
 		 * source associated with the process. It must not be used for other
 		 * purposes.
 		 */
-		static void dispatch_signals(Signal_source *);
+		static void dispatch_signals(Signal_source &);
 };
 
 

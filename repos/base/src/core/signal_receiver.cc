@@ -42,8 +42,8 @@ Signal_receiver::Signal_receiver() : _pd(*_pd_ptr)
 
 
 void Signal_receiver::_platform_destructor()                      { }
-void Signal_receiver::_platform_begin_dissolve (Signal_context *) { }
-void Signal_receiver::_platform_finish_dissolve(Signal_context *) { }
+void Signal_receiver::_platform_begin_dissolve (Signal_context &) { }
+void Signal_receiver::_platform_finish_dissolve(Signal_context &) { }
 
 
 void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &) { ASSERT_NEVER_CALLED; }
@@ -52,7 +52,7 @@ void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &) { ASSERT_NEVER_CAL
 typedef Signal_context_capability Sigh_cap;
 
 
-Sigh_cap Signal_receiver::manage(Signal_context *) { ASSERT_NEVER_CALLED; }
+Sigh_cap Signal_receiver::manage(Signal_context &) { ASSERT_NEVER_CALLED; }
 
 
 void Signal_receiver::block_for_signal()

@@ -134,12 +134,12 @@ class Handler : Thread
 		~Handler()
 		{
 			Signal_context            context;
-			Signal_context_capability context_cap { _receiver.manage(&context) };
+			Signal_context_capability context_cap { _receiver.manage(context) };
 
 			_stop = true;
 			Signal_transmitter(context_cap).submit();
 			Thread::join();
-			_receiver.dissolve(&context);
+			_receiver.dissolve(context);
 		}
 
 		void print(Output &output) const { Genode::print(output, "handler ", _id); }
@@ -185,7 +185,7 @@ struct Fast_sender_test : Signal_test
 	Signal_context     context  { };
 	Signal_receiver    receiver { };
 	Handler            handler  { env, receiver, HANDLER_INTERVAL_MS, false, 1 };
-	Sender             sender   { env, receiver.manage(&context),
+	Sender             sender   { env, receiver.manage(context),
 	                              SENDER_INTERVAL_MS, false };
 
 	Fast_sender_test(Env &env, int id) : Signal_test(id, brief), env(env)
@@ -218,7 +218,7 @@ struct Stress_test : Signal_test
 	Signal_context     context  { };
 	Signal_receiver    receiver { };
 	Handler            handler  { env, receiver, 0, false, 1 };
-	Sender             sender   { env, receiver.manage(&context), 0, false };
+	Sender             sender   { env, receiver.manage(context), 0, false };
 
 	Stress_test(Env &env, int id) : Signal_test(id, brief), env(env)
 	{
@@ -254,8 +254,8 @@ struct Lazy_receivers_test : Signal_test
 
 	Signal_context     context_1  { }, context_2  { };
 	Signal_receiver    receiver_1 { }, receiver_2 { };
-	Signal_transmitter transmitter_1 { receiver_1.manage(&context_1) };
-	Signal_transmitter transmitter_2 { receiver_2.manage(&context_2) };
+	Signal_transmitter transmitter_1 { receiver_1.manage(context_1) };
+	Signal_transmitter transmitter_2 { receiver_2.manage(context_2) };
 
 	Lazy_receivers_test(Env &, int id) : Signal_test(id, brief)
 	{
@@ -291,7 +291,7 @@ struct Context_management_test : Signal_test
 	Timer::Connection          timer       { env };
 	Signal_context             context     { };
 	Signal_receiver            receiver    { };
-	Signal_context_capability  context_cap { receiver.manage(&context) };
+	Signal_context_capability  context_cap { receiver.manage(context) };
 	Sender                     sender      { env, context_cap, 500, true };
 
 	Context_management_test(Env &env, int id) : Signal_test(id, brief), env(env)
@@ -306,7 +306,7 @@ struct Context_management_test : Signal_test
 			Signal signal = receiver.wait_for_signal();
 			log("got ", signal.num(), " signal(s) from ", signal.context());
 		}
-		receiver.dissolve(&context);
+		receiver.dissolve(context);
 
 		/* let sender spin for some time */
 		log("resume sender");
@@ -330,12 +330,12 @@ struct Synchronized_destruction_test : private Signal_test, Thread
 	Heap                heap        { env.ram(), env.rm() };
 	Signal_context     &context     { *new (heap) Signal_context };
 	Signal_receiver     receiver    { };
-	Signal_transmitter  transmitter { receiver.manage(&context) };
+	Signal_transmitter  transmitter { receiver.manage(context) };
 	bool                destroyed   { false };
 
 	void entry() override
 	{
-		receiver.dissolve(&context);
+		receiver.dissolve(context);
 		log("dissolve finished");
 		destroyed = true;
 		destroy(heap, &context);
@@ -380,11 +380,11 @@ struct Many_contexts_test : Signal_test
 
 			Signal_receiver receiver;
 			for (unsigned i = 0; i < nr_of_contexts; i++) {
-				if (!receiver.manage(new (heap) Registered<Signal_context>(contexts)).valid()) {
+				if (!receiver.manage(*new (heap) Registered<Signal_context>(contexts)).valid()) {
 					throw Manage_failed(); }
 			}
 			contexts.for_each([&] (Registered<Signal_context> &context) {
-				receiver.dissolve(&context);
+				receiver.dissolve(context);
 				destroy(heap, &context);
 			});
 		}

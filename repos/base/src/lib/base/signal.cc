@@ -48,7 +48,7 @@ class Signal_handler_thread : Thread, Blockade
 		{
 			_signal_source.construct(_cpu, _pd.alloc_signal_source());
 			wakeup();
-			Signal_receiver::dispatch_signals(&(*_signal_source));
+			Signal_receiver::dispatch_signals(*_signal_source);
 		}
 
 		enum { STACK_SIZE = 4*1024*sizeof(addr_t) };
@@ -214,12 +214,12 @@ Signal_receiver::Signal_receiver() : _pd(*_pd_ptr)
 }
 
 
-Signal_context_capability Signal_receiver::manage(Signal_context *context_ptr)
+Signal_context_capability Signal_receiver::manage(Signal_context &context)
 {
-	Signal_context &context = *context_ptr;
-
-	if (context._receiver)
-		throw Context_already_in_use();
+	if (context._receiver) {
+		error("ill-attempt to manage an already managed signal context");
+		return context._cap;
+	}
 
 	context._receiver = this;
 
@@ -340,10 +340,10 @@ void Signal_receiver::local_submit(Signal::Data data)
 }
 
 
-void Signal_receiver::dispatch_signals(Signal_source *signal_source)
+void Signal_receiver::dispatch_signals(Signal_source &signal_source)
 {
 	for (;;) {
-		Signal_source::Signal source_signal = signal_source->wait_for_signal();
+		Signal_source::Signal source_signal = signal_source.wait_for_signal();
 
 		/* look up context as pointed to by the signal imprint */
 		Signal_context *context = (Signal_context *)(source_signal.imprint());
@@ -372,18 +372,18 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 }
 
 
-void Signal_receiver::_platform_begin_dissolve(Signal_context *context)
+void Signal_receiver::_platform_begin_dissolve(Signal_context &context)
 {
 	/*
 	 * Because the 'remove' operation takes the registry mutex, the context
 	 * must not be acquired when calling this method. See the comment in
 	 * 'Signal_receiver::dissolve'.
 	 */
-	signal_context_registry()->remove(&context->_registry_le);
+	signal_context_registry()->remove(&context._registry_le);
 }
 
 
-void Signal_receiver::_platform_finish_dissolve(Signal_context *) { }
+void Signal_receiver::_platform_finish_dissolve(Signal_context &) { }
 
 
 void Signal_receiver::_platform_destructor() { }

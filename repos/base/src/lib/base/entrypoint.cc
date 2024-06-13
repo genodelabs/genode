@@ -220,7 +220,7 @@ bool Entrypoint::_wait_and_dispatch_one_io_signal(bool const dont_block)
 Signal_context_capability Entrypoint::manage(Signal_dispatcher_base &dispatcher)
 {
 	/* _sig_rec is invalid for a small window in _process_incoming_signals */
-	return _sig_rec.constructed() ? _sig_rec->manage(&dispatcher)
+	return _sig_rec.constructed() ? _sig_rec->manage(dispatcher)
 	                              : Signal_context_capability();
 }
 
@@ -229,7 +229,7 @@ void Genode::Entrypoint::dissolve(Signal_dispatcher_base &dispatcher)
 {
 	/* _sig_rec is invalid for a small window in _process_incoming_signals */
 	if (_sig_rec.constructed())
-		_sig_rec->dissolve(&dispatcher);
+		_sig_rec->dissolve(dispatcher);
 
 	/* also remove context from deferred signal list */
 	{

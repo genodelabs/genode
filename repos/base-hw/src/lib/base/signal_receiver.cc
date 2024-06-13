@@ -78,7 +78,7 @@ void Signal_receiver::_platform_destructor()
 }
 
 
-void Signal_receiver::_platform_begin_dissolve(Signal_context * const c)
+void Signal_receiver::_platform_begin_dissolve(Signal_context &context)
 {
 	/**
 	 * Mark the Signal_context as already pending to prevent the receiver
@@ -86,24 +86,27 @@ void Signal_receiver::_platform_begin_dissolve(Signal_context * const c)
 	 * processing
 	 */
 	{
-		Mutex::Guard context_guard(c->_mutex);
-		c->_pending     = true;
-		c->_curr_signal = Signal::Data();
+		Mutex::Guard context_guard(context._mutex);
+		context._pending     = true;
+		context._curr_signal = Signal::Data();
 	}
-	Kernel::kill_signal_context(Capability_space::capid(c->_cap));
+	Kernel::kill_signal_context(Capability_space::capid(context._cap));
 }
 
 
-void Signal_receiver::_platform_finish_dissolve(Signal_context *) { }
+void Signal_receiver::_platform_finish_dissolve(Signal_context &) { }
 
 
-Signal_context_capability Signal_receiver::manage(Signal_context * const c)
+Signal_context_capability Signal_receiver::manage(Signal_context &context)
 {
 	/* ensure that the context isn't managed already */
 	Mutex::Guard contexts_guard(_contexts_mutex);
-	Mutex::Guard context_guard(c->_mutex);
-	if (c->_receiver)
-		throw Context_already_in_use();
+	Mutex::Guard context_guard(context._mutex);
+
+	if (context._receiver) {
+		error("ill-attempt to manage an already managed signal context");
+		return context._cap;
+	}
 
 	Signal_receiver &this_receiver = *this;
 
@@ -115,13 +118,13 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 		using Error = Pd_session::Alloc_context_error;
 
 		/* use pointer to signal context as imprint */
-		Pd_session::Imprint const imprint { addr_t(c) };
+		Pd_session::Imprint const imprint { addr_t(&context) };
 
 		_pd.alloc_context(_cap, imprint).with_result(
 			[&] (Capability<Signal_context> cap) {
-				c->_cap      = cap;
-				c->_receiver = &this_receiver;
-				_contexts.insert_as_tail(c);
+				context._cap      = cap;
+				context._receiver = &this_receiver;
+				_contexts.insert_as_tail(&context);
 			},
 			[&] (Error e) {
 				switch (e) {
@@ -138,8 +141,8 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 				}
 			});
 
-		if (c->_cap.valid())
-			return c->_cap;
+		if (context._cap.valid())
+			return context._cap;
 
 		env().upgrade(Parent::Env::pd(),
 		              String<100>("ram_quota=", ram_upgrade, ", "

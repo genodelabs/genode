@@ -186,7 +186,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		Genode::Signal_context  _default_sigh_ctx { };
 
 		Genode::Signal_context_capability
-			_default_sigh_cap = _sig_rec.manage(&_default_sigh_ctx);
+			_default_sigh_cap = _sig_rec.manage(_default_sigh_ctx);
 
 		Genode::Signal_context_capability _custom_sigh_cap { };
 
@@ -266,7 +266,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		Connection(Genode::Env &env, Label const &label = Label())
 		: Connection(env, env.ep(), label) { }
 
-		~Connection() { _sig_rec.dissolve(&_default_sigh_ctx); }
+		~Connection() { _sig_rec.dissolve(_default_sigh_ctx); }
 
 		/*
 		 * Intercept 'sigh' to keep track of customized signal handlers

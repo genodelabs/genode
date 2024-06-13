@@ -81,7 +81,7 @@ class Test_terminal_crosslink::Partner : public Thread
 		: Thread(env, name, STACK_SIZE),
 		  _terminal(env)
 		{
-			_terminal.read_avail_sigh(_sig_rec.manage(&_sig_ctx));
+			_terminal.read_avail_sigh(_sig_rec.manage(_sig_ctx));
 		}
 };
 

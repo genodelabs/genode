@@ -67,7 +67,7 @@ Main::Main(Env &env) : env(env)
 	 * Initialize the pin IRQ signal
 	 */
 	Irq_session_client irq(signal_input.irq_session(Gpio::Session::HIGH_LEVEL));
-	irq.sigh(sig_rec.manage(&sig_ctx));
+	irq.sigh(sig_rec.manage(sig_ctx));
 	irq.ack_irq();
 
 	while(true)

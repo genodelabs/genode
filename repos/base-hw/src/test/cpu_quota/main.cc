@@ -30,9 +30,9 @@ struct Single_signal
 		Signal_context_capability cap;
 		Signal_transmitter        transmitter;
 
-		Single_signal() : cap(receiver.manage(&context)), transmitter(cap) { }
+		Single_signal() : cap(receiver.manage(context)), transmitter(cap) { }
 
-		~Single_signal() { receiver.dissolve(&context); }
+		~Single_signal() { receiver.dissolve(context); }
 		void receive()   { receiver.wait_for_signal(); }
 		void submit()    { transmitter.submit(); }
 };
