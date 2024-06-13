@@ -538,13 +538,16 @@ class Genode::Child : protected Rpc_object<Parent>,
 					_child._try_construct_env_dependent_members();
 				}
 
+				using Transfer_ram_quota_result = Pd_session::Transfer_ram_quota_result;
+				using Transfer_cap_quota_result = Pd_session::Transfer_ram_quota_result;
+
 				/**
 				 * Service (Ram_transfer::Account) interface
 				 */
-				void transfer(Pd_session_capability to, Ram_quota amount) override
+				Ram_transfer_result transfer(Pd_session_capability to, Ram_quota amount) override
 				{
 					Ram_transfer::Account &from = _service;
-					from.transfer(to, amount);
+					return from.transfer(to, amount);
 				}
 
 				/**
@@ -559,10 +562,10 @@ class Genode::Child : protected Rpc_object<Parent>,
 				/**
 				 * Service (Cap_transfer::Account) interface
 				 */
-				void transfer(Pd_session_capability to, Cap_quota amount) override
+				Cap_transfer_result transfer(Pd_session_capability to, Cap_quota amount) override
 				{
 					Cap_transfer::Account &from = _service;
-					from.transfer(to, amount);
+					return from.transfer(to, amount);
 				}
 
 				/**

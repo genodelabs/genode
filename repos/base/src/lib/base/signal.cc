@@ -46,12 +46,15 @@ class Signal_handler_thread : Thread, Blockade
 
 		void entry() override
 		{
-			_signal_source.construct(_cpu, _pd.alloc_signal_source());
-			wakeup();
-			Signal_receiver::dispatch_signals(*_signal_source);
+			_pd.signal_source().with_result([&] (Capability<Signal_source> source) {
+				_signal_source.construct(_cpu, source);
+				wakeup();
+				Signal_receiver::dispatch_signals(*_signal_source); },
+			[&] (Pd_session::Signal_source_error) {
+				error("failed to initialize signal-source interface"); });
 		}
 
-		enum { STACK_SIZE = 4*1024*sizeof(addr_t) };
+		static constexpr size_t STACK_SIZE = 4*1024*sizeof(addr_t);
 
 	public:
 

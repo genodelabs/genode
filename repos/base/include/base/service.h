@@ -41,6 +41,9 @@ class Genode::Service : public Ram_transfer::Account,
 
 		typedef Session_state::Name Name;
 
+		using Ram_transfer_result = Ram_transfer::Account::Transfer_result;
+		using Cap_transfer_result = Cap_transfer::Account::Transfer_result;
+
 	private:
 
 		Name const _name;
@@ -473,9 +476,10 @@ class Genode::Child_service : public Async_service
 		/**
 		 * Ram_transfer::Account interface
 		 */
-		void transfer(Pd_session_capability to, Ram_quota amount) override
+		Ram_transfer_result transfer(Pd_session_capability to, Ram_quota amount) override
 		{
-			if (to.valid()) _pd.transfer_quota(to, amount);
+			return to.valid() ? _pd.transfer_quota(to, amount)
+			                  : Ram_transfer_result::OK;
 		}
 
 		/**
@@ -486,9 +490,10 @@ class Genode::Child_service : public Async_service
 		/**
 		 * Cap_transfer::Account interface
 		 */
-		void transfer(Pd_session_capability to, Cap_quota amount) override
+		Cap_transfer_result transfer(Pd_session_capability to, Cap_quota amount) override
 		{
-			if (to.valid()) _pd.transfer_quota(to, amount);
+			return to.valid() ? _pd.transfer_quota(to, amount)
+			                  : Cap_transfer_result::OK;
 		}
 
 		/**

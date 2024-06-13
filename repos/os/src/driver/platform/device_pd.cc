@@ -83,7 +83,7 @@ void Device_pd::add_range(Io_mmu::Range        const & range,
 		_pd.attach_dma(cap, range.start).with_result(
 			[&] (Pd_session::Attach_dma_ok) {
 				/* trigger eager mapping of memory */
-				_pd.map(range.start, range.size);
+				_pd.map(Pd_session::Virt_range { range.start, range.size });
 				retry = false;
 			},
 			[&] (Pd_session::Attach_dma_error e) {
@@ -123,7 +123,7 @@ void Device_pd::enable_pci_device(Io_mem_dataspace_capability const io_mem_cap,
 		throw Region_map::Region_conflict();
 
 	/* trigger eager mapping of memory */
-	_pd.map(addr, 0x1000);
+	_pd.map(Pd_session::Virt_range { addr, 0x1000 });
 
 	/* try to assign pci device to this protection domain */
 	if (!_pd.assign_pci(addr, Pci::Bdf::rid(bdf)))

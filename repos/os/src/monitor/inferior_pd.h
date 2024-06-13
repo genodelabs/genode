@@ -198,16 +198,16 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 	bool assign_pci(addr_t pci_config_memory_address, uint16_t bdf) override {
 		return _real.call<Rpc_assign_pci>(pci_config_memory_address, bdf); }
 
-	void map(addr_t virt, addr_t size) override {
-		_real.call<Rpc_map>(virt, size); }
+	Map_result map(Virt_range range) override {
+		return _real.call<Rpc_map>(range); }
 
-	Signal_source_capability alloc_signal_source() override {
-		return _real.call<Rpc_alloc_signal_source>(); }
+	Signal_source_result signal_source() override {
+		return _real.call<Rpc_signal_source>(); }
 
-	void free_signal_source(Signal_source_capability cap) override {
+	void free_signal_source(Capability<Signal_source> cap) override {
 		_real.call<Rpc_free_signal_source>(cap); }
 
-	Alloc_context_result alloc_context(Signal_source_capability source,
+	Alloc_context_result alloc_context(Capability<Signal_source> source,
 	                                   Imprint imprint) override {
 		return _real.call<Rpc_alloc_context>(source, imprint); }
 
@@ -217,7 +217,7 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 	void submit(Signal_context_capability receiver, unsigned cnt = 1) override {
 		_real.call<Rpc_submit>(receiver, cnt); }
 
-	Native_capability alloc_rpc_cap(Native_capability ep) override {
+	Alloc_rpc_cap_result alloc_rpc_cap(Native_capability ep) override {
 		return _real.call<Rpc_alloc_rpc_cap>(ep); }
 
 	void free_rpc_cap(Native_capability cap) override {

@@ -198,24 +198,30 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 
 		bool assign_pci(addr_t, uint16_t) override;
 
-		void map(addr_t, addr_t) override;
+		Map_result map(Pd_session::Virt_range) override;
 
 
 		/****************
 		 ** Signalling **
 		 ****************/
 
-		Signal_source_capability alloc_signal_source() override
+		Signal_source_result signal_source() override
 		{
-			_consume_cap(SIG_SOURCE_CAP);
+			try { _consume_cap(SIG_SOURCE_CAP); }
+			catch (Out_of_caps) {
+				return Signal_source_error::OUT_OF_CAPS; }
+
+			Signal_source_result result = Capability<Signal_source>();
+
 			try { return _signal_broker.alloc_signal_source(); }
-			catch (Allocator::Out_of_memory) {
-				_released_cap_silent();
-				throw Out_of_ram();
-			}
+			catch (Out_of_ram)  { result = Signal_source_error::OUT_OF_RAM;  }
+			catch (Out_of_caps) { result = Signal_source_error::OUT_OF_CAPS; }
+
+			_released_cap_silent();
+			return result;
 		}
 
-		void free_signal_source(Signal_source_capability sig_rec_cap) override
+		void free_signal_source(Capability<Signal_source> sig_rec_cap) override
 		{
 			if (sig_rec_cap.valid()) {
 				_signal_broker.free_signal_source(sig_rec_cap);
@@ -224,7 +230,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		}
 
 		Alloc_context_result
-		alloc_context(Signal_source_capability sig_rec_cap, Imprint imprint) override
+		alloc_context(Capability<Signal_source> sig_rec_cap, Imprint imprint) override
 		{
 			try {
 				Cap_quota_guard::Reservation cap_costs(_cap_quota_guard(), Cap_quota{1});
@@ -257,14 +263,19 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		 ** RPC capability allocation **
 		 *******************************/
 
-		Native_capability alloc_rpc_cap(Native_capability ep) override
+		Alloc_rpc_cap_result alloc_rpc_cap(Native_capability ep) override
 		{
 			/* may throw 'Out_of_caps' */
-			_consume_cap(RPC_CAP);
+			try { _consume_cap(RPC_CAP); }
+			catch (Out_of_caps) {
+				return Alloc_rpc_cap_error::OUT_OF_CAPS; }
 
 			/* may throw 'Out_of_ram' */
-			try {  return _rpc_cap_factory.alloc(ep); }
-			catch (...) { _released_cap_silent(); throw; }
+			try {
+				return _rpc_cap_factory.alloc(ep); }
+			catch (...) {
+				_released_cap_silent();
+				return Alloc_rpc_cap_error::OUT_OF_RAM; }
 		}
 
 		void free_rpc_cap(Native_capability cap) override
@@ -292,10 +303,10 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		 ** Capability and RAM trading and accounting **
 		 ***********************************************/
 
-		void ref_account(Capability<Pd_session>) override;
+		Ref_account_result ref_account(Capability<Pd_session>) override;
 
-		void transfer_quota(Capability<Pd_session>, Cap_quota) override;
-		void transfer_quota(Capability<Pd_session>, Ram_quota) override;
+		Transfer_cap_quota_result transfer_quota(Capability<Pd_session>, Cap_quota) override;
+		Transfer_ram_quota_result transfer_quota(Capability<Pd_session>, Ram_quota) override;
 
 		Cap_quota cap_quota() const override
 		{

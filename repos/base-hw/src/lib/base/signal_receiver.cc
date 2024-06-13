@@ -57,12 +57,19 @@ Signal_receiver::Signal_receiver() : _pd(env().pd())
 		Ram_quota ram_upgrade { 0 };
 		Cap_quota cap_upgrade { 0 };
 
-		try {
-			_cap = env().pd().alloc_signal_source();
+		using Error = Pd_session::Signal_source_error;
+
+		env().pd().signal_source().with_result(
+			[&] (Capability<Signal_source> cap) { _cap = cap; },
+			[&] (Error e) {
+				switch (e) {
+				case Error::OUT_OF_RAM:  ram_upgrade = { 2*1024*sizeof(long) }; break;
+				case Error::OUT_OF_CAPS: cap_upgrade = { 4 };                   break;
+				}
+			});
+
+		if (_cap.valid())
 			break;
-		}
-		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 2*1024*sizeof(long) }; }
-		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
 
 		env().upgrade(Parent::Env::pd(),
 		              String<100>("ram_quota=", ram_upgrade, ", "

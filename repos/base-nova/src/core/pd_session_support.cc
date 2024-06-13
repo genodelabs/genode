@@ -43,7 +43,7 @@ bool Pd_session_component::assign_pci(addr_t pci_config_memory, uint16_t bdf)
 }
 
 
-void Pd_session_component::map(addr_t virt, addr_t size)
+Pd_session::Map_result Pd_session_component::map(Pd_session::Virt_range const virt_range)
 {
 	Platform_pd &target_pd = *_pd;
 	Nova::Utcb  &utcb      = *reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
@@ -74,6 +74,8 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 		}
 	};
 
+	addr_t virt = virt_range.start;
+	size_t size = virt_range.num_bytes;
 	try {
 		while (size) {
 
@@ -98,9 +100,13 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 				[&] (Region_map_component &, Fault const &) { /* don't reflect */ }
 			);
 		}
-	} catch (...) {
+	}
+	catch (Out_of_ram)  { return Map_result::OUT_OF_RAM;   }
+	catch (Out_of_caps) { return Map_result::OUT_OF_CAPS; }
+	catch (...) {
 		error(__func__, " failed ", Hex(virt), "+", Hex(size));
 	}
+	return Map_result::OK;
 }
 
 

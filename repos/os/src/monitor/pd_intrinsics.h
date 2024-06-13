@@ -35,7 +35,7 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 	{
 		using Monitored_pd_session::Monitored_pd_session;
 
-		using Sig_src_cap   = Signal_source_capability;
+		using Sig_src_cap   = Capability<Signal_source>;
 		using Sig_ctx_cap   = Signal_context_capability;
 		using Ram_ds_cap    = Ram_dataspace_capability;
 		using Mng_sys_state = Managing_system_state;
@@ -43,13 +43,13 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 
 		void                   assign_parent(Capability<Parent>)         override { never_called(__func__); };
 		bool                   assign_pci(addr_t, uint16_t)              override { never_called(__func__); };
-		void                   map(addr_t, addr_t)                       override { never_called(__func__); };
-		Sig_src_cap            alloc_signal_source()                     override { never_called(__func__); };
+		Map_result             map(Virt_range)                           override { never_called(__func__); };
+		Signal_source_result   signal_source()                           override { never_called(__func__); };
 		void                   free_signal_source(Sig_src_cap)           override { never_called(__func__); };
 		Alloc_context_result   alloc_context(Sig_src_cap, Imprint)       override { never_called(__func__); };
 		void                   free_context(Sig_ctx_cap)                 override { never_called(__func__); };
 		void                   submit(Sig_ctx_cap, unsigned)             override { never_called(__func__); };
-		Native_capability      alloc_rpc_cap(Native_capability)          override { never_called(__func__); };
+		Alloc_rpc_cap_result   alloc_rpc_cap(Native_capability)          override { never_called(__func__); };
 		void                   free_rpc_cap(Native_capability)           override { never_called(__func__); };
 		Capability<Region_map> address_space()                           override { never_called(__func__); };
 		Capability<Region_map> stack_area()                              override { never_called(__func__); };

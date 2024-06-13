@@ -45,9 +45,21 @@ Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd,
 		Ram_quota ram_upgrade { 0 };
 		Cap_quota cap_upgrade { 0 };
 
-		try { return pd.alloc_rpc_cap(_cap); }
-		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 2*1024*sizeof(long) }; }
-		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
+		using Error = Pd_session::Alloc_rpc_cap_error;
+
+		Native_capability result { };
+
+		pd.alloc_rpc_cap(_cap).with_result(
+			[&] (Native_capability cap) { result = cap; },
+			[&] (Error e) {
+				switch (e) {
+				case Error::OUT_OF_RAM:  ram_upgrade = { 2*1024*sizeof(long) }; break;
+				case Error::OUT_OF_CAPS: cap_upgrade = { 4 };                   break;
+				}
+			});
+
+		if (result.valid())
+			return result;
 
 		_parent().upgrade(Parent::Env::pd(),
 		                  String<100>("ram_quota=", ram_upgrade, ", "

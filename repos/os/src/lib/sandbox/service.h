@@ -118,9 +118,10 @@ class Sandbox::Routed_service : public Async_service, public Abandonable
 		/**
 		 * Ram_transfer::Account interface
 		 */
-		void transfer(Pd_session_capability to, Ram_quota amount) override
+		Ram_transfer_result transfer(Pd_session_capability to, Ram_quota amount) override
 		{
-			if (to.valid()) _pd_accessor.pd().transfer_quota(to, amount);
+			return to.valid() ? _pd_accessor.pd().transfer_quota(to, amount)
+			                  : Ram_transfer_result::OK;
 		}
 
 		/**
@@ -134,9 +135,10 @@ class Sandbox::Routed_service : public Async_service, public Abandonable
 		/**
 		 * Cap_transfer::Account interface
 		 */
-		void transfer(Pd_session_capability to, Cap_quota amount) override
+		Cap_transfer_result transfer(Pd_session_capability to, Cap_quota amount) override
 		{
-			if (to.valid()) _pd_accessor.pd().transfer_quota(to, amount);
+			return to.valid() ? _pd_accessor.pd().transfer_quota(to, amount)
+			                  : Cap_transfer_result::OK;
 		}
 
 		/**

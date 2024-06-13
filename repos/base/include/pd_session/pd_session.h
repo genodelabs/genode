@@ -17,7 +17,6 @@
 
 #include <util/attempt.h>
 #include <base/affinity.h>
-#include <base/exception.h>
 #include <cpu/cpu_state.h>
 #include <session/session.h>
 #include <region_map/region_map.h>
@@ -71,48 +70,39 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 */
 	virtual bool assign_pci(addr_t pci_config_memory_address, uint16_t bdf) = 0;
 
+	struct Virt_range { addr_t start; size_t num_bytes; };
+
+	enum class Map_result { OK, OUT_OF_RAM, OUT_OF_CAPS };
+
 	/**
-	 * Trigger eager insertion of page frames to page table within
-	 * specified virtual range.
+	 * Trigger eager population of page table within specified virtual range
 	 *
 	 * If the used kernel don't support this feature, the operation will
 	 * silently ignore the request.
-	 *
-	 * \param virt virtual address within the address space to start
-	 * \param size the virtual size of the region
-	 *
-	 * \throw Out_of_ram
-	 * \throw Out_of_caps
 	 */
-	virtual void map(addr_t virt, addr_t size) = 0;
+	virtual Map_result map(Virt_range) = 0;
+
 
 	/********************************
 	 ** Support for the signal API **
 	 ********************************/
 
-	typedef Capability<Signal_source> Signal_source_capability;
-
-	class Invalid_session       : public Exception { };
-	class Undefined_ref_account : public Exception { };
+	enum class Signal_source_error { OUT_OF_RAM, OUT_OF_CAPS };
+	using Signal_source_result = Attempt<Capability<Signal_source>, Signal_source_error>;
 
 	/**
-	 * Create a new signal source
-	 *
-	 * \return  a cap that acts as reference to the created source
+	 * Return signal source for the PD
 	 *
 	 * The signal source provides an interface to wait for incoming signals.
-	 *
-	 * \throw Out_of_ram
-	 * \throw Out_of_caps
 	 */
-	virtual Signal_source_capability alloc_signal_source() = 0;
+	virtual Signal_source_result signal_source() = 0;
 
 	/**
 	 * Free a signal source
 	 *
 	 * \param cap  capability of the signal source to destroy
 	 */
-	virtual void free_signal_source(Signal_source_capability cap) = 0;
+	virtual void free_signal_source(Capability<Signal_source> cap) = 0;
 
 	enum class Alloc_context_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID_SIGNAL_SOURCE };
 	using Alloc_context_result = Attempt<Capability<Signal_context>, Alloc_context_error>;
@@ -128,7 +118,7 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 *                 originating from the allocated signal-context capability
 	 * \return new signal-context capability
 	 */
-	virtual Alloc_context_result alloc_context(Signal_source_capability source,
+	virtual Alloc_context_result alloc_context(Capability<Signal_source> source,
 	                                           Imprint imprint) = 0;
 
 	/**
@@ -159,17 +149,17 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 ** Support for the RPC framework **
 	 ***********************************/
 
+	enum class Alloc_rpc_cap_error { OUT_OF_RAM, OUT_OF_CAPS };
+	using Alloc_rpc_cap_result = Attempt<Native_capability, Alloc_rpc_cap_error>;
+
 	/**
 	 * Allocate new RPC-object capability
 	 *
 	 * \param ep  entry point that will use this capability
 	 *
-	 * \throw Out_of_ram   if meta-data backing store is exhausted
-	 * \throw Out_of_caps  if 'cap_quota' is exceeded
-	 *
 	 * \return new RPC capability
 	 */
-	virtual Native_capability alloc_rpc_cap(Native_capability ep) = 0;
+	virtual Alloc_rpc_cap_result alloc_rpc_cap(Native_capability ep) = 0;
 
 	/**
 	 * Free RPC-object capability
@@ -205,12 +195,14 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 ** Accounting for capability allocations **
 	 *******************************************/
 
+	enum class Ref_account_result { OK, INVALID_SESSION };
+
 	/**
 	 * Define reference account for the PD session
-	 *
-	 * \throw Invalid_session
 	 */
-	virtual void ref_account(Capability<Pd_session>) = 0;
+	virtual Ref_account_result ref_account(Capability<Pd_session>) = 0;
+
+	enum class Transfer_cap_quota_result { OK, OUT_OF_CAPS, INVALID_SESSION, NO_REF_ACCOUNT };
 
 	/**
 	 * Transfer capability quota to another PD session
@@ -218,14 +210,11 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 * \param to      receiver of quota donation
 	 * \param amount  amount of quota to donate
 	 *
-	 * \throw Out_of_caps
-	 * \throw Invalid_session
-	 * \throw Undefined_ref_account
-	 *
 	 * Quota can only be transfered if the specified PD session is either the
 	 * reference account for this session or vice versa.
 	 */
-	virtual void transfer_quota(Capability<Pd_session> to, Cap_quota amount) = 0;
+	virtual Transfer_cap_quota_result transfer_quota(Capability<Pd_session> to,
+	                                                 Cap_quota amount) = 0;
 
 	/**
 	 * Return current capability-quota limit
@@ -255,20 +244,19 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 * which comprises the actual allocation and deallocation operations.
 	 */
 
+	enum class Transfer_ram_quota_result { OK, OUT_OF_RAM, INVALID_SESSION, NO_REF_ACCOUNT };
+
 	/**
 	 * Transfer quota to another RAM session
 	 *
 	 * \param to      receiver of quota donation
 	 * \param amount  amount of quota to donate
 	 *
-	 * \throw Out_of_ram
-	 * \throw Invalid_session
-	 * \throw Undefined_ref_account
-	 *
 	 * Quota can only be transfered if the specified PD session is either the
 	 * reference account for this session or vice versa.
 	 */
-	virtual void transfer_quota(Capability<Pd_session> to, Ram_quota amount) = 0;
+	virtual Transfer_ram_quota_result transfer_quota(Capability<Pd_session> to,
+	                                                 Ram_quota amount) = 0;
 
 	/**
 	 * Return current quota limit
@@ -364,55 +352,38 @@ struct Genode::Pd_session : Session, Ram_allocator
 
 	GENODE_RPC(Rpc_assign_parent, void, assign_parent, Capability<Parent>);
 	GENODE_RPC(Rpc_assign_pci,    bool, assign_pci,    addr_t, uint16_t);
-	GENODE_RPC_THROW(Rpc_map,     void, map,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
-	                 addr_t, addr_t);
-
-	GENODE_RPC_THROW(Rpc_alloc_signal_source, Signal_source_capability,
-	                 alloc_signal_source,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps));
-	GENODE_RPC(Rpc_free_signal_source, void, free_signal_source, Signal_source_capability);
+	GENODE_RPC(Rpc_map, Map_result, map, Virt_range);
+	GENODE_RPC(Rpc_signal_source, Signal_source_result, signal_source);
+	GENODE_RPC(Rpc_free_signal_source, void, free_signal_source, Capability<Signal_source>);
 	GENODE_RPC(Rpc_alloc_context, Alloc_context_result, alloc_context,
-	           Signal_source_capability, Imprint);
-	GENODE_RPC(Rpc_free_context, void, free_context,
-	           Capability<Signal_context>);
+	           Capability<Signal_source>, Imprint);
+	GENODE_RPC(Rpc_free_context, void, free_context, Capability<Signal_context>);
 	GENODE_RPC(Rpc_submit, void, submit, Capability<Signal_context>, unsigned);
-
-	GENODE_RPC_THROW(Rpc_alloc_rpc_cap, Native_capability, alloc_rpc_cap,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps), Native_capability);
+	GENODE_RPC(Rpc_alloc_rpc_cap, Alloc_rpc_cap_result, alloc_rpc_cap, Native_capability);
 	GENODE_RPC(Rpc_free_rpc_cap, void, free_rpc_cap, Native_capability);
-
 	GENODE_RPC(Rpc_address_space, Capability<Region_map>, address_space);
 	GENODE_RPC(Rpc_stack_area,    Capability<Region_map>, stack_area);
 	GENODE_RPC(Rpc_linker_area,   Capability<Region_map>, linker_area);
-
-	GENODE_RPC_THROW(Rpc_ref_account, void, ref_account,
-	                 GENODE_TYPE_LIST(Invalid_session), Capability<Pd_session>);
-	GENODE_RPC_THROW(Rpc_transfer_cap_quota, void, transfer_quota,
-	                 GENODE_TYPE_LIST(Out_of_caps, Invalid_session, Undefined_ref_account),
-	                 Capability<Pd_session>, Cap_quota);
+	GENODE_RPC(Rpc_ref_account, Ref_account_result, ref_account, Capability<Pd_session>);
+	GENODE_RPC(Rpc_transfer_cap_quota, Transfer_cap_quota_result, transfer_quota,
+	           Capability<Pd_session>, Cap_quota);
 	GENODE_RPC(Rpc_cap_quota, Cap_quota, cap_quota);
 	GENODE_RPC(Rpc_used_caps, Cap_quota, used_caps);
-
 	GENODE_RPC(Rpc_try_alloc, Alloc_result, try_alloc, size_t, Cache);
 	GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability);
-	GENODE_RPC_THROW(Rpc_transfer_ram_quota, void, transfer_quota,
-	                 GENODE_TYPE_LIST(Out_of_ram, Invalid_session, Undefined_ref_account),
-	                 Capability<Pd_session>, Ram_quota);
+	GENODE_RPC(Rpc_transfer_ram_quota, Transfer_ram_quota_result, transfer_quota,
+	           Capability<Pd_session>, Ram_quota);
 	GENODE_RPC(Rpc_ram_quota, Ram_quota, ram_quota);
 	GENODE_RPC(Rpc_used_ram, Ram_quota, used_ram);
-
 	GENODE_RPC(Rpc_native_pd, Capability<Native_pd>, native_pd);
-
 	GENODE_RPC(Rpc_system_control_cap, Capability<System_control>,
 	           system_control_cap, Affinity::Location);
-
 	GENODE_RPC(Rpc_dma_addr, addr_t, dma_addr, Ram_dataspace_capability);
 	GENODE_RPC(Rpc_attach_dma, Attach_dma_result, attach_dma,
 	           Dataspace_capability, addr_t);
 
 	GENODE_RPC_INTERFACE(Rpc_assign_parent, Rpc_assign_pci, Rpc_map,
-	                     Rpc_alloc_signal_source, Rpc_free_signal_source,
+	                     Rpc_signal_source, Rpc_free_signal_source,
 	                     Rpc_alloc_context, Rpc_free_context, Rpc_submit,
 	                     Rpc_alloc_rpc_cap, Rpc_free_rpc_cap, Rpc_address_space,
 	                     Rpc_stack_area, Rpc_linker_area, Rpc_ref_account,

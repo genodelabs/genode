@@ -23,7 +23,6 @@
 /* core includes */
 #include <platform.h>
 #include <signal_source_component.h>
-#include <signal_source/capability.h>
 #include <signal_context_slab.h>
 
 namespace Core { class Signal_broker; }
@@ -38,7 +37,7 @@ class Core::Signal_broker
 		Object_pool<Signal_context_component> _obj_pool { };
 		Rpc_entrypoint                       &_context_ep;
 		Signal_source_component               _source;
-		Signal_source_capability              _source_cap;
+		Capability<Signal_source>             _source_cap;
 		Signal_context_slab                   _context_slab { _md_alloc };
 
 	public:
@@ -66,15 +65,15 @@ class Core::Signal_broker
 				free_context(reinterpret_cap_cast<Signal_context>(r->cap()));
 		}
 
-		Signal_source_capability alloc_signal_source() { return _source_cap; }
+		Capability<Signal_source> alloc_signal_source() { return _source_cap; }
 
-		void free_signal_source(Signal_source_capability) { }
+		void free_signal_source(Capability<Signal_source>) { }
 
 		/*
 		 * \throw Allocator::Out_of_memory
 		 */
 		Signal_context_capability
-		alloc_context(Signal_source_capability, unsigned long imprint)
+		alloc_context(Capability<Signal_source>, unsigned long imprint)
 		{
 			/*
 			 * XXX  For now, we ignore the signal-source argument as we

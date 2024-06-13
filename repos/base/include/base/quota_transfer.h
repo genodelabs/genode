@@ -19,10 +19,10 @@
 
 namespace Genode {
 
-	template <typename SESSION, typename UNIT> class Quota_transfer;
+	template <typename SESSION, typename UNIT, typename RESULT> class Quota_transfer;
 
-	typedef Quota_transfer<Pd_session, Ram_quota> Ram_transfer;
-	typedef Quota_transfer<Pd_session, Cap_quota> Cap_transfer;
+	using Ram_transfer = Quota_transfer<Pd_session, Ram_quota, Pd_session::Transfer_ram_quota_result>;
+	using Cap_transfer = Quota_transfer<Pd_session, Cap_quota, Pd_session::Transfer_cap_quota_result>;
 }
 
 
@@ -38,15 +38,15 @@ namespace Genode {
  * exception), the destructor the transfer object reverts the transfer in
  * flight.
  */
-template <typename SESSION, typename UNIT>
+template <typename SESSION, typename UNIT, typename RESULT>
 class Genode::Quota_transfer
 {
 	public:
 
-		class Quota_exceeded : Exception { };
-
 		struct Account : Noncopyable, Interface
 		{
+			using Transfer_result = RESULT;
+
 			/**
 			 * Return capability used for transfers to the account
 			 *
@@ -61,13 +61,11 @@ class Genode::Quota_transfer
 
 			/**
 			 * Transfer quota to the specified account
-			 *
-			 * \throw Out_of_ram
-			 * \throw Out_of_caps
-			 * \throw Invalid_session
-			 * \throw Undefined_ref_account
 			 */
-			virtual void transfer(Capability<SESSION>, UNIT) { }
+			virtual Transfer_result transfer(Capability<SESSION>, UNIT)
+			{
+				return Transfer_result::OK;
+			}
 
 			/**
 			 * Try to transfer quota, ignoring possible exceptions
@@ -76,7 +74,7 @@ class Genode::Quota_transfer
 			 */
 			void try_transfer(Capability<SESSION> to, UNIT amount)
 			{
-				try { transfer(to, amount); } catch (...) { }
+				transfer(to, amount);
 			}
 		};
 
@@ -93,9 +91,12 @@ class Genode::Quota_transfer
 
 			Capability<SESSION> cap(UNIT) const override { return _cap; }
 
-			void transfer(Capability<SESSION> to, UNIT amount) override
+			using Transfer_result = RESULT;
+
+			Transfer_result transfer(Capability<SESSION> to, UNIT amount) override
 			{
-				if (to.valid()) _session.transfer_quota(to, amount);
+				return to.valid() ? _session.transfer_quota(to, amount)
+				                  : Transfer_result::OK;
 			}
 		};
 
@@ -106,7 +107,12 @@ class Genode::Quota_transfer
 		Account   &_from;
 		Account   &_to;
 
+		static bool _exceeded(Ram_quota, RESULT r) { return (r == RESULT::OUT_OF_RAM);  }
+		static bool _exceeded(Cap_quota, RESULT r) { return (r == RESULT::OUT_OF_CAPS); }
+
 	public:
+
+		class Quota_exceeded : Exception { };
 
 		/**
 		 * Constructor
@@ -114,6 +120,7 @@ class Genode::Quota_transfer
 		 * \param amount  amount of quota to transfer
 		 * \param from    donor account
 		 * \param to      receiving account
+		 * \throw         Quota_exceeded
 		 */
 		Quota_transfer(UNIT amount, Account &from, Account &to)
 		:
@@ -122,11 +129,8 @@ class Genode::Quota_transfer
 			if (!_from.cap(UNIT()).valid() || !_to.cap(UNIT()).valid())
 				return;
 
-			try { _from.transfer(_to.cap(UNIT()), amount); }
-			catch (typename SESSION::Undefined_ref_account) { }
-			catch (typename SESSION::Invalid_session) { }
-			catch (... /* 'Out_of_ram' / 'Out_of_caps' */) {
-				throw Quota_exceeded(); }
+			if (_exceeded(UNIT{}, _from.transfer(_to.cap(UNIT()), amount)))
+				throw Quota_exceeded();
 		}
 
 		/**

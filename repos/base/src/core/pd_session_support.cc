@@ -18,9 +18,14 @@
 
 using namespace Core;
 
+
 bool Pd_session_component::assign_pci(addr_t, uint16_t) { return true; }
 
-void Pd_session_component::map(addr_t, addr_t) { }
+
+Pd_session::Map_result Pd_session_component::map(Pd_session::Virt_range)
+{
+	return Map_result::OK;
+}
 
 
 class System_control_dummy : public System_control

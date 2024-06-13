@@ -83,26 +83,30 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 		}
 	}
 
-	void transfer_quota(Pd_session_capability pd_session, Ram_quota amount) override
+	Transfer_ram_quota_result transfer_quota(Pd_session_capability pd_session, Ram_quota amount) override
 	{
 		/*
 		 * Should the transfer fail because we don't have enough quota, request
 		 * the needed amount from the parent.
 		 */
-		enum { NUM_ATTEMPTS = 2 };
-		retry<Out_of_ram>(
-			[&] () { Pd_session_client::transfer_quota(pd_session, amount); },
-			[&] () { _request_ram_from_parent(amount.value); },
-			NUM_ATTEMPTS);
+		for (;;) {
+			auto const result = Pd_session_client::transfer_quota(pd_session, amount);
+			if (result != Transfer_ram_quota_result::OUT_OF_RAM)
+				return result;
+
+			_request_ram_from_parent(amount.value);
+		}
 	}
 
-	void transfer_quota(Pd_session_capability pd_session, Cap_quota amount) override
+	Transfer_cap_quota_result transfer_quota(Pd_session_capability pd_session, Cap_quota amount) override
 	{
-		enum { NUM_ATTEMPTS = 2 };
-		retry<Out_of_caps>(
-			[&] () { Pd_session_client::transfer_quota(pd_session, amount); },
-			[&] () { _request_caps_from_parent(amount.value); },
-			NUM_ATTEMPTS);
+		for (;;) {
+			auto const result = Pd_session_client::transfer_quota(pd_session, amount);
+			if (result != Transfer_cap_quota_result::OUT_OF_CAPS)
+				return result;
+
+			_request_caps_from_parent(amount.value);
+		}
 	}
 };
 

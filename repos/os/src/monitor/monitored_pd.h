@@ -44,29 +44,39 @@ struct Monitor::Monitored_pd_session : Monitored_rpc_object<Pd_session>
 	 ** Pd_session interface **
 	 **************************/
 
-	void ref_account(Capability<Pd_session> pd_cap) override
+	Ref_account_result ref_account(Capability<Pd_session> pd_cap) override
 	{
-		_with_pd_arg(pd_cap,
-			[&] (Monitored_pd_session &pd) { _real.call<Rpc_ref_account>(pd._real); },
-			[&]                            { _real.call<Rpc_ref_account>(pd_cap); });
-	}
-
-	void transfer_quota(Capability<Pd_session> pd_cap, Cap_quota amount) override
-	{
+		Ref_account_result result = Ref_account_result::INVALID_SESSION;
 		_with_pd_arg(pd_cap,
 			[&] (Monitored_pd_session &pd) {
-				_real.call<Rpc_transfer_cap_quota>(pd._real, amount); },
+				result = _real.call<Rpc_ref_account>(pd._real); },
 			[&] {
-				_real.call<Rpc_transfer_cap_quota>(pd_cap, amount); });
+				result = _real.call<Rpc_ref_account>(pd_cap); });
+		return result;
 	}
 
-	void transfer_quota(Pd_session_capability pd_cap, Ram_quota amount) override
+	Transfer_cap_quota_result transfer_quota(Capability<Pd_session> pd_cap,
+	                                         Cap_quota amount) override
 	{
+		Transfer_cap_quota_result result = Transfer_cap_quota_result::INVALID_SESSION;
 		_with_pd_arg(pd_cap,
 			[&] (Monitored_pd_session &pd) {
-				_real.call<Rpc_transfer_ram_quota>(pd._real, amount); },
+				result = _real.call<Rpc_transfer_cap_quota>(pd._real, amount); },
 			[&] {
-				_real.call<Rpc_transfer_ram_quota>(pd_cap, amount); });
+				result = _real.call<Rpc_transfer_cap_quota>(pd_cap, amount); });
+		return result;
+	}
+
+	Transfer_ram_quota_result transfer_quota(Pd_session_capability pd_cap,
+	                                         Ram_quota amount) override
+	{
+		Transfer_ram_quota_result result = Transfer_ram_quota_result::INVALID_SESSION;
+		_with_pd_arg(pd_cap,
+			[&] (Monitored_pd_session &pd) {
+				result = _real.call<Rpc_transfer_ram_quota>(pd._real, amount); },
+			[&] {
+				result = _real.call<Rpc_transfer_ram_quota>(pd_cap, amount); });
+		return result;
 	}
 };
 
