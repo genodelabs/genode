@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-	<xs:include schemaLocation="base_types.xsd"/>
-	<xs:include schemaLocation="net_types.xsd"/>
+	<xs:include schemaLocation="genode://base_types.xsd"/>
+	<xs:include schemaLocation="genode://net_types.xsd"/>
 
 	<xs:element name="config">
 		<xs:complexType>

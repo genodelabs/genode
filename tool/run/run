@@ -142,7 +142,7 @@ proc check_xml_syntax {xml_file} {
 #                         configurations of children of the component
 # \param nesting_level    level of recursive calls of this procedure
 #
-proc check_config {bin xml_file xsd_file label avail_xsd_files xsd_inc nesting_level} {
+proc check_config {bin xml_file xsd_file label avail_xsd_files nesting_level} {
 
 	# check prerequisites if this is not a recursive call
 	if {$nesting_level == 0} {
@@ -157,7 +157,7 @@ proc check_config {bin xml_file xsd_file label avail_xsd_files xsd_inc nesting_l
 
 	# check the given component configuration itself
 	puts "  CHECK $label"
-	if {[catch {exec xmllint --noout --path $xsd_inc -schema $xsd_file $xml_file} result]} {
+	if {[catch {exec xmllint --noout -schema $xsd_file $xml_file} result]} {
 
 		if {$result != "$xml_file validates"} {
 
@@ -226,7 +226,7 @@ proc check_config {bin xml_file xsd_file label avail_xsd_files xsd_inc nesting_l
 			# call this procedure again on the child config file
 			set child_label "$label -> $child_name"
 			check_config $child_bin $child_xml_file $child_xsd_file \
-			             $child_label $avail_xsd_files $xsd_inc \
+			             $child_label $avail_xsd_files \
 			             [expr $nesting_level+1]
 
 			# clean up
@@ -317,16 +317,23 @@ proc build_boot_image { binaries } {
 			set init_xsd_file $xsd_file
 		}
 	}
-	# determine include directories that can be used by the XSD files
+	# create catalog file
+	set catalog [file join [run_dir] genode catalog.xml]
+	catch { exec xmlcatalog --noout --create $catalog }
+
+	# determine paths of additional XSD files and add to catalog
 	global repositories;
-	set xsd_inc ""
 	foreach repo $repositories {
-		if {[file exists $repo/xsd]} {
-			append xsd_inc "$repo/xsd " }
+		foreach xsd_path [glob -nocomplain -type f $repo/xsd/*.xsd] {
+			set xsd_name [file tail $xsd_path]
+			catch { exec xmlcatalog --noout --add "uri" "genode://$xsd_name" "$xsd_path" $catalog }
+		}
 	}
+	set ::env(XML_CATALOG_FILES) $catalog
+
 	# check configurations of init and its children
 	puts "checking configuration syntax"
-	check_config init [run_dir]/genode/config $init_xsd_file init $xsd_files $xsd_inc 0
+	check_config init [run_dir]/genode/config $init_xsd_file init $xsd_files 0
 
 	run_boot_dir $binaries
 }

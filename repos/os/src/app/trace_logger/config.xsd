@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-	<xs:include schemaLocation="base_types.xsd"/>
-	<xs:include schemaLocation="timeout_types.xsd"/>
+	<xs:include schemaLocation="genode://base_types.xsd"/>
+	<xs:include schemaLocation="genode://timeout_types.xsd"/>
 
 	<xs:simpleType name="Trace_policy_name">
 		<xs:restriction base="xs:string">
