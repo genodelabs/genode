@@ -54,7 +54,8 @@ static int poll_plugins(Plugin::Pollfd pollfds[], int nfds)
 		int plugin_nfds = 0;
 
 		for (int pollfd_index = 0; pollfd_index < nfds; pollfd_index++)
-			if (pollfds[pollfd_index].fdo->plugin == plugin)
+			if (pollfds[pollfd_index].fdo &&
+			    pollfds[pollfd_index].fdo->plugin == plugin)
 				plugin_nfds++;
 
 		if (plugin_nfds == 0)
@@ -71,7 +72,8 @@ static int poll_plugins(Plugin::Pollfd pollfds[], int nfds)
 		     pollfd_index < nfds;
 		     pollfd_index++) {
 
-			if (pollfds[pollfd_index].fdo->plugin == plugin) {
+			if (pollfds[pollfd_index].fdo &&
+			    pollfds[pollfd_index].fdo->plugin == plugin) {
 				plugin_pollfds[plugin_pollfd_index] = pollfds[pollfd_index];
 				plugin_pollfd_index++;
 			}
@@ -96,6 +98,12 @@ poll(struct pollfd pollfds[], nfds_t nfds, int timeout_ms)
 	/*
 	 * Look up the file descriptor objects early-on to reduce repeated
 	 * overhead.
+	 *
+	 * According to POSIX poll(2), a poolfd entry is ignored if 'fd' is
+	 * negative, but 'revents' must be cleared (set to zero) nevertheless.
+	 * Note, negative file descriptors result in a nullptr in fdo on calls to
+	 * 'find_by_libc_fd()', which is checked against above and will result in
+	 * the file descriptor being skipped.
 	 */
 
 	Plugin::Pollfd plugins_pollfds[nfds];
