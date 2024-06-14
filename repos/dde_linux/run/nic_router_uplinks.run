@@ -7,18 +7,6 @@ proc wifi_ssid {} {
 proc wifi_psk {} {
 	return "$::env(GENODE_WIFI_PSK2)" }
 
-proc router_verbose {} {
-	return "no" }
-
-proc router_verbose_packet_drop {} {
-	return "no" }
-
-proc router_verbose_packets {} {
-	return "no" }
-
-proc router_verbose_domain_state {} {
-	return "yes" }
-
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/pc_wifi \
@@ -32,7 +20,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/pc_rtc
 
-build { app/ping }
+build { app/ping server/nic_router test/nic_router_uplinks }
 
 install_config {
 <config prio_levels="4">
@@ -52,14 +40,16 @@ install_config {
 	<default caps="100"/>
 
 	<start name="report_rom" caps="200">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="ROM" />
 			<service name="Report" />
 		</provides>
 		<config>
 			<policy label="pci_decode -> system" report="acpi -> acpi"/>
-			<policy label="platform -> devices"  report="pci_decode -> devices"/>
+			<policy label="platform -> devices" report="pci_decode -> devices"/>
+			<policy label="router -> config" report="test -> router_config"/>
+			<policy label="test -> ping_result" report="ping -> result"/>
 		</config>
 	</start>
 
@@ -110,7 +100,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="wifi" caps="300" priority="-1">
+	<start name="wifi" caps="600" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<config ld_verbose="no">
 			<vfs>
@@ -140,7 +130,7 @@ install_config {
 		<binary name="dynamic_rom"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="ROM"/></provides>
-		<config verbose="no">
+		<config>
 			<rom name="wifi_config">
 				<inline description="CONNECT">
 <wifi_config connected_scan_interval="0" scan_interval="5" rfkill="no" verbose="no" verbose_state="no">
@@ -148,221 +138,6 @@ install_config {
 </wifi_config>
 				</inline>
 				<sleep milliseconds="600000"/> <!-- 10 minutes -->
-			</rom>
-		</config>
-	</start>
-
-	<start name="dynamic_rom" priority="-1">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="ROM"/> </provides>
-		<config verbose="yes">
-			<rom name="router.config">
-
-				<!-- give the drivers time to come up -->
-				<inline> <config/> </inline>
-				<sleep milliseconds="15000"/>
-
-				<!-- start the actual test -->
-				<inline>
-
-					<config dhcp_discover_timeout_sec="1"
-					        verbose="}              [router_verbose] {"
-					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
-					        verbose_domain_state="} [router_verbose_domain_state] {"
-					        verbose_packets="}      [router_verbose_packets] {">
-
-						<policy label_prefix="ping" domain="downlink"/>
-						<policy label_prefix="nic"  domain="uplink"  />
-
-						<domain name="uplink">
-							<nat domain="downlink" icmp-ids="999"/>
-						</domain>
-
-						<domain name="downlink" interface="10.0.1.79/24">
-							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
-							<icmp dst="0.0.0.0/0" domain="uplink" />
-						</domain>
-
-					</config>
-
-				</inline>
-				<sleep milliseconds="5001"/>
-				<inline>
-
-					<config dhcp_discover_timeout_sec="1"
-					        verbose="}              [router_verbose] {"
-					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
-					        verbose_domain_state="} [router_verbose_domain_state] {"
-					        verbose_packets="}      [router_verbose_packets] {">
-
-						<policy label_prefix="ping" domain="downlink"/>
-						<policy label_prefix="wifi" domain="uplink"  />
-
-						<domain name="uplink">
-							<nat domain="downlink" icmp-ids="999"/>
-						</domain>
-
-						<domain name="downlink" interface="10.0.1.79/24">
-							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
-							<icmp dst="0.0.0.0/0" domain="uplink" />
-						</domain>
-
-					</config>
-
-				</inline>
-				<sleep milliseconds="5002"/>
-				<inline>
-
-					<config dhcp_discover_timeout_sec="1"
-					        verbose="yes"
-					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
-					        verbose_domain_state="} [router_verbose_domain_state] {"
-					        verbose_packets="}      [router_verbose_packets] {">
-
-						<policy label_prefix="ping" domain="downlink"/>
-
-						<domain name="downlink" interface="10.0.1.79/24">
-							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
-							<icmp dst="0.0.0.0/0" domain="uplink" />
-						</domain>
-
-					</config>
-
-				</inline>
-				<sleep milliseconds="5003"/>
-				<inline>
-
-					<config dhcp_discover_timeout_sec="1"
-					        verbose="}              [router_verbose] {"
-					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
-					        verbose_domain_state="} [router_verbose_domain_state] {"
-					        verbose_packets="}      [router_verbose_packets] {">
-
-						<policy label_prefix="ping" domain="downlink"/>
-						<policy label_prefix="nic"  domain="uplink"  />
-
-						<domain name="uplink">
-							<nat domain="downlink" icmp-ids="999"/>
-						</domain>
-
-						<domain name="downlink" interface="10.0.1.79/24">
-							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
-							<icmp dst="0.0.0.0/0" domain="uplink" />
-						</domain>
-
-					</config>
-
-				</inline>
-				<sleep milliseconds="5004"/>
-				<inline>
-
-					<config dhcp_discover_timeout_sec="1"
-					        verbose="}              [router_verbose] {"
-					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
-					        verbose_domain_state="} [router_verbose_domain_state] {"
-					        verbose_packets="}      [router_verbose_packets] {">
-
-						<policy label_prefix="ping" domain="downlink"/>
-						<policy label_prefix="nic"  domain="uplink"  />
-
-						<domain name="uplink">
-							<nat domain="downlink" icmp-ids="999"/>
-						</domain>
-
-						<domain name="downlink" interface="10.0.1.79/24">
-							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
-							<icmp dst="0.0.0.0/0" domain="uplink" />
-						</domain>
-
-					</config>
-
-				</inline>
-				<sleep milliseconds="5005"/>
-				<inline>
-
-					<config dhcp_discover_timeout_sec="1"
-					        verbose="yes"
-					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
-					        verbose_domain_state="} [router_verbose_domain_state] {"
-					        verbose_packets="}      [router_verbose_packets] {">
-
-						<policy label_prefix="ping" domain="downlink"/>
-
-						<domain name="downlink" interface="10.0.1.79/24">
-							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
-							<icmp dst="0.0.0.0/0" domain="uplink" />
-						</domain>
-
-					</config>
-
-				</inline>
-				<sleep milliseconds="5006"/>
-				<inline>
-
-					<config dhcp_discover_timeout_sec="1"
-					        verbose="}              [router_verbose] {"
-					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
-					        verbose_domain_state="} [router_verbose_domain_state] {"
-					        verbose_packets="}      [router_verbose_packets] {">
-
-						<policy label_prefix="ping" domain="downlink"/>
-						<policy label_prefix="wifi" domain="uplink"  />
-
-						<domain name="uplink">
-							<nat domain="downlink" icmp-ids="999"/>
-						</domain>
-
-						<domain name="downlink" interface="10.0.1.79/24">
-							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
-							<icmp dst="0.0.0.0/0" domain="uplink" />
-						</domain>
-
-					</config>
-
-				</inline>
-				<sleep milliseconds="5007"/>
-				<inline>
-
-					<config dhcp_discover_timeout_sec="1"
-					        verbose="}              [router_verbose] {"
-					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
-					        verbose_domain_state="} [router_verbose_domain_state] {"
-					        verbose_packets="}      [router_verbose_packets] {">
-
-						<policy label_prefix="ping" domain="downlink"/>
-						<policy label_prefix="nic"  domain="uplink"  />
-
-						<domain name="uplink">
-							<nat domain="downlink" icmp-ids="999"/>
-						</domain>
-
-						<domain name="downlink" interface="10.0.1.79/24">
-							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
-							<icmp dst="0.0.0.0/0" domain="uplink" />
-						</domain>
-
-					</config>
-
-				</inline>
-				<sleep milliseconds="5008"/>
-				<inline>
-
-					<config dhcp_discover_timeout_sec="1"
-					        verbose="}              [router_verbose] {"
-					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
-					        verbose_domain_state="} [router_verbose_domain_state] {"
-					        verbose_packets="}      [router_verbose_packets] {">
-
-						<policy label_prefix="ping" domain="downlink"/>
-
-						<domain name="downlink" interface="10.0.1.79/24">
-							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
-						</domain>
-
-					</config>
-
-				</inline>
-				<sleep milliseconds="600000"/>
 			</rom>
 		</config>
 	</start>
@@ -375,9 +150,17 @@ install_config {
 			<service name="Uplink"/>
 		</provides>
 		<route>
-			<service name="ROM" label="config">
-				<child name="dynamic_rom" label="router.config"/>
-			</service>
+			<service name="ROM" label="config"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="test" caps="200" priority="-2">
+		<binary name="test-nic_router_uplinks"/>
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="ROM" label="ping_result"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -386,8 +169,10 @@ install_config {
 		<resource name="RAM" quantum="8M"/>
 		<config dst_ip="1.1.1.1"
 		        period_sec="1"
+		        report="yes"
 		        count="999"/>
 		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Nic"> <child name="router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -396,42 +181,10 @@ install_config {
 </config>
 }
 
+append qemu_args " -nographic "
+
 build_boot_image [build_artifacts]
 
-append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 5001 milliseconds"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
-
-append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 5002 milliseconds"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
-
-append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 5003 milliseconds"
-append done_string ".*downlink.*invalid domain.*invalid ICMP rule"
-
-append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 5004 milliseconds"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
-
-append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 5005 milliseconds"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
-
-append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 5006 milliseconds"
-append done_string ".*downlink.*invalid domain.*invalid ICMP rule"
-
-append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 5007 milliseconds"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
-
-append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 5008 milliseconds"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
-
-append done_string ".*router.config: change"
-append done_string ".*router.config: sleep 600000 milliseconds"
-append done_string ".*From 10.0.1.79 icmp_seq=.* Destination Unreachable"
-
-run_genode_until $done_string 90
+run_genode_until "child \"test\" exited with exit value.*\n" 300
+grep_output {\[init\] child "test" exited with exit value}
+compare_output_to {[init] child "test" exited with exit value 0}
