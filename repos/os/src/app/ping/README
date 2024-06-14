@@ -16,6 +16,7 @@ value for each attribute except 'config.dst_ip' and 'config.interface':
 !         protocol="icmp"
 !         period_sec="5"
 !         verbose="no"
+!         report="yes"
 !         count="5" />
 
 This is a short description of the tags and attributes:
@@ -36,6 +37,9 @@ This is a short description of the tags and attributes:
 :config.verbose:
   Optional. Toggles wether the component shall log debugging information.
 
+:config.report:
+  Optional. Toggles wether the component shall report results.
+
 :config.count:
   Optional. After how many successful pings the component exits successfully.
 
@@ -46,6 +50,30 @@ This is a short description of the tags and attributes:
   Optional. Protocol to ping with. Can be one of 'icmp', 'udp'.
 
 
+Report
+~~~~~~
+
+If config attribute 'report' is set, the component generates a report named
+"last_received" that looks like this if the expected reply was received:
+
+:ICMP:
+! <result id="8" type="reply" bytes="64" from="10.0.2.2" ttl="64" time_ms="3.434" icmp_seq="2"/>
+
+:UDP:
+! <result id="8" type="reply" bytes="64" from="10.0.2.2" ttl="64" time_ms="3.434"/>
+
+When an ICMP error "destination unreachable" was received instead, the report
+looks like this:
+
+:ICMP:
+! <result id="10" type="destination_unreachable" from="10.0.1.79" icmp_seq="12"/>
+
+:UDP:
+! <result id="10" type="destination_unreachable" from="10.0.1.79"/>
+
+The id attribute in the report is incremented with each result.
+
+
 Sessions
 ~~~~~~~~
 
@@ -53,6 +81,7 @@ This is an overview of the sessions required and provided by the
 component apart from the environment sessions:
 
 * Requires one Timer session.
+* Requires one Report session if config attribute report is set.
 
 
 Examples

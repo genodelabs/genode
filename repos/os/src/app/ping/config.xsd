@@ -15,6 +15,7 @@
 	<xs:element name="config">
 		<xs:complexType>
 			<xs:attribute name="verbose"    type="Boolean" />
+			<xs:attribute name="report"     type="Boolean" />
 			<xs:attribute name="dst_ip"     type="Ipv4_address" />
 			<xs:attribute name="dst_port"   type="Port" />
 			<xs:attribute name="protocol"   type="Protocol" />

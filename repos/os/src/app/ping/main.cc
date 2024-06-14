@@ -18,6 +18,7 @@
 #include <protocol.h>
 
 /* Genode includes */
+#include <os/reporter.h>
 #include <net/ipv4.h>
 #include <net/ethernet.h>
 #include <net/arp.h>
@@ -58,26 +59,29 @@ class Main : public Nic_handler,
 		enum { DEFAULT_PERIOD_SEC = 5 };
 		enum { SRC_PORT           = 50000 };
 
-		Env                            &_env;
-		Attached_rom_dataspace          _config_rom    { _env, "config" };
-		Xml_node                        _config        { _config_rom.xml() };
-		Timer::Connection               _timer         { _env };
-		Microseconds                    _send_time     { 0 };
-		Microseconds                    _period_us     { read_sec_attr(_config, "period_sec", (uint64_t)DEFAULT_PERIOD_SEC) };
-		Constructible<Periodic_timeout> _period        { };
-		Heap                            _heap          { &_env.ram(), &_env.rm() };
-		bool                     const  _verbose       { _config.attribute_value("verbose", false) };
-		Net::Nic                        _nic           { _env, _heap, *this, _verbose };
-		Ipv4_address             const  _dst_ip        { _config.attribute_value("dst_ip",  Ipv4_address()) };
-		Mac_address                     _dst_mac       { };
-		uint16_t                        _icmp_seq      { 1 };
-		unsigned long                   _count         { _config.attribute_value("count", (unsigned long)DEFAULT_COUNT) };
-		Constructible<Dhcp_client>      _dhcp_client   { };
-		Reconstructible<Ipv4_config>    _ip_config     { _config.attribute_value("interface", Ipv4_address_prefix()),
-		                                                 _config.attribute_value("gateway",   Ipv4_address()),
-		                                                 Ipv4_address() };
-		Protocol                 const  _protocol      { _config.attribute_value("protocol", Protocol::ICMP) };
-		Port                     const  _dst_port      { _config.attribute_value("dst_port", Port(DEFAULT_DST_PORT)) };
+		Env                              &_env;
+		Attached_rom_dataspace            _config_rom    { _env, "config" };
+		Xml_node                          _config        { _config_rom.xml() };
+		Timer::Connection                 _timer         { _env };
+		Microseconds                      _send_time     { 0 };
+		Microseconds                      _period_us     { read_sec_attr(_config, "period_sec", (uint64_t)DEFAULT_PERIOD_SEC) };
+		Constructible<Periodic_timeout>   _period        { };
+		Heap                              _heap          { &_env.ram(), &_env.rm() };
+		bool                       const  _verbose       { _config.attribute_value("verbose", false) };
+		bool                       const  _report        { _config.attribute_value("report", false) };
+		unsigned long                     _report_id     { 0 };
+		Constructible<Expanding_reporter> _reporter      { };
+		Net::Nic                          _nic           { _env, _heap, *this, _verbose };
+		Ipv4_address               const  _dst_ip        { _config.attribute_value("dst_ip",  Ipv4_address()) };
+		Mac_address                       _dst_mac       { };
+		uint16_t                          _icmp_seq      { 1 };
+		unsigned long                     _count         { _config.attribute_value("count", (unsigned long)DEFAULT_COUNT) };
+		Constructible<Dhcp_client>        _dhcp_client   { };
+		Reconstructible<Ipv4_config>      _ip_config     { _config.attribute_value("interface", Ipv4_address_prefix()),
+		                                                   _config.attribute_value("gateway",   Ipv4_address()),
+		                                                   Ipv4_address() };
+		Protocol                   const  _protocol      { _config.attribute_value("protocol", Protocol::ICMP) };
+		Port                       const  _dst_port      { _config.attribute_value("dst_port", Port(DEFAULT_DST_PORT)) };
 
 		void _handle_ip(Ethernet_frame &eth,
 		                Size_guard     &size_guard);
@@ -156,6 +160,9 @@ Main::Main(Env &env) : _env(env)
 	/* else, start the DHCP client for requesting an IP config */
 	else {
 		_dhcp_client.construct(_timer, _nic, *this); }
+
+	if (_report)
+		_reporter.construct(env, "result", "result");
 }
 
 
@@ -281,6 +288,16 @@ void Main::_handle_icmp_echo_reply(Ipv4_packet &ip,
 	    ": icmp_seq=", icmp_seq, " ttl=", (uint64_t)IPV4_TIME_TO_LIVE,
 	    " time=", time_ms, ".", time_us ," ms");
 
+	if (_report)
+		_reporter->generate([&] (Xml_generator &xml) {
+			xml.attribute("id", _report_id++);
+			xml.attribute("type", "reply");
+			xml.attribute("bytes", ICMP_DATA_SIZE + sizeof(Icmp_packet));
+			xml.attribute("from", String<32>(ip.src()));
+			xml.attribute("ttl", (uint64_t)IPV4_TIME_TO_LIVE);
+			xml.attribute("time_ms", String<32>(time_ms, ".", time_us));
+			xml.attribute("icmp_seq", icmp_seq); });
+
 	/* raise ICMP sequence number and check exit condition */
 	_icmp_seq++;
 	_count--;
@@ -325,6 +342,12 @@ void Main::_handle_icmp_dst_unreachbl(Ipv4_packet &ip,
 				return;
 			}
 			log("From ", ip.src(), " icmp_seq=", embed_icmp_seq, " Destination Unreachable");
+			if (_report)
+				_reporter->generate([&] (Xml_generator &xml) {
+					xml.attribute("id", _report_id++);
+					xml.attribute("type", "destination_unreachable");
+					xml.attribute("from", String<32>(ip.src()));
+					xml.attribute("icmp_seq", embed_icmp_seq); });
 			break;
 		}
 	case Protocol::UDP:
@@ -349,6 +372,11 @@ void Main::_handle_icmp_dst_unreachbl(Ipv4_packet &ip,
 				return;
 			}
 			log("From ", ip.src(), " Destination Unreachable");
+			if (_report)
+				_reporter->generate([&] (Xml_generator &xml) {
+					xml.attribute("id", _report_id++);
+					xml.attribute("type", "destination_unreachable");
+					xml.attribute("from", String<32>(ip.src())); });
 			break;
 		}
 	}
@@ -413,6 +441,15 @@ void Main::_handle_udp(Ipv4_packet &ip,
 	/* print success message */
 	log(udp.length(), " bytes from ", ip.src(), " ttl=", (uint64_t)IPV4_TIME_TO_LIVE,
 	    " time=", time_ms, ".", time_us ," ms");
+
+	if (_report)
+		_reporter->generate([&] (Xml_generator &xml) {
+			xml.attribute("id", _report_id++);
+			xml.attribute("type", "reply");
+			xml.attribute("bytes", udp.length());
+			xml.attribute("from", String<32>(ip.src()));
+			xml.attribute("ttl", (uint64_t)IPV4_TIME_TO_LIVE);
+			xml.attribute("time_ms", String<32>(time_ms, ".", time_us)); });
 
 	/* check exit condition */
 	_count--;

@@ -58,6 +58,7 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_nic_pkg] \
                   [depot_user]/src/init \
+                  [depot_user]/src/report_rom \
                   [depot_user]/src/nic_router
 
 build { app/ping }
@@ -114,6 +115,15 @@ append config {
 		</route>
 	</start>
 
+	<start name="report_rom" caps="200">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="ROM" />
+			<service name="Report" />
+		</provides>
+		<config verbose="yes"/>
+	</start>
+
 	<start name="nic_router" caps="200">
 		<resource name="RAM" quantum="10M"/>
 		<provides>
@@ -168,9 +178,11 @@ append config {
 		<resource name="RAM" quantum="8M"/>
 		<config dst_ip="} [dst_ip] {"
 		        period_sec="1"
+		        report="yes"
 		        verbose="no"
 		        count="3"/>
 		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
