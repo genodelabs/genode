@@ -24,7 +24,7 @@ struct Genode::Rm_session_client : Rpc_client<Rm_session>
 {
 	explicit Rm_session_client(Rm_session_capability);
 
-	Capability<Region_map> create(size_t) override;
+	Create_result create(size_t) override;
 	void destroy(Capability<Region_map>) override;
 };
 

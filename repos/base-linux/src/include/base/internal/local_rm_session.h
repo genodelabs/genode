@@ -38,10 +38,14 @@ struct Genode::Local_rm_session : Rm_session, Local_session
 		_local_rm(local_rm), _md_alloc(md_alloc)
 	{ }
 
-	Capability<Region_map> create(size_t size) override
+	Create_result create(size_t size) override
 	{
-		Region_map *rm = new (_md_alloc) Region_map_mmap(true, size);
-		return Local_capability<Region_map>::local_cap(rm);
+		try {
+			Region_map *rm = new (_md_alloc) Region_map_mmap(true, size);
+			return Local_capability<Region_map>::local_cap(rm);
+		}
+		catch (Out_of_ram)  { return Create_error::OUT_OF_RAM; }
+		catch (Out_of_caps) { return Create_error::OUT_OF_CAPS; }
 	}
 
 	void destroy(Capability<Region_map> cap) override

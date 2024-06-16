@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__REGION_MAP__REGION_MAP_H_
 #define _INCLUDE__REGION_MAP__REGION_MAP_H_
 
+#include <util/attempt.h>
 #include <base/exception.h>
 #include <base/stdint.h>
 #include <base/signal.h>

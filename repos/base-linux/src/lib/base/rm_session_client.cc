@@ -35,7 +35,7 @@ Rm_session_client::Rm_session_client(Capability<Rm_session> session)
 : Rpc_client<Rm_session>(session) { }
 
 
-Capability<Region_map> Rm_session_client::create(size_t size) {
+Rm_session::Create_result Rm_session_client::create(size_t size) {
 	return _local(rpc_cap())->create(size); }
 
 

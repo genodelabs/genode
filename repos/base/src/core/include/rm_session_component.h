@@ -72,7 +72,7 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 		 ** Rm_session interface **
 		 **************************/
 
-		Capability<Region_map> create(size_t size) override
+		Create_result create(size_t size) override
 		{
 			Mutex::Guard guard(_region_maps_lock);
 
@@ -86,7 +86,8 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 
 				return rm->cap();
 			}
-			catch (Allocator::Out_of_memory) { throw Out_of_ram(); }
+			catch (Out_of_ram)  { return Create_error::OUT_OF_RAM; }
+			catch (Out_of_caps) { return Create_error::OUT_OF_CAPS; }
 		}
 
 		void destroy(Capability<Region_map> cap) override

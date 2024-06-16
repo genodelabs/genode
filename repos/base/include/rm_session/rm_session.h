@@ -33,15 +33,16 @@ struct Genode::Rm_session : Session
 	 */
 	enum { CAP_QUOTA = 2 };
 
+	enum class Create_error { OUT_OF_RAM, OUT_OF_CAPS };
+	using Create_result = Attempt<Capability<Region_map>, Create_error>;
+
 	/**
 	 * Create region map
 	 *
 	 * \param size  upper bound of region map
 	 * \return      region-map capability
-	 * \throw       Out_of_ram
-	 * \throw       Out_of_caps
 	 */
-	virtual Capability<Region_map> create(size_t size) = 0;
+	virtual Create_result create(size_t size) = 0;
 
 	/**
 	 * Destroy region map
@@ -53,8 +54,7 @@ struct Genode::Rm_session : Session
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC_THROW(Rpc_create, Capability<Region_map>, create,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps), size_t);
+	GENODE_RPC(Rpc_create, Create_result, create, size_t);
 	GENODE_RPC(Rpc_destroy, void, destroy, Capability<Region_map>);
 
 	GENODE_RPC_INTERFACE(Rpc_create, Rpc_destroy);
