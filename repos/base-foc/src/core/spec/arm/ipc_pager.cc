@@ -33,45 +33,45 @@ void Ipc_pager::_parse_exception()
 
 void Ipc_pager::get_regs(Foc_thread_state &state) const
 {
-	state.ip   = _regs.pc;
-	state.sp   = _regs.sp;
-	state.r0   = _regs.r[0];
-	state.r1   = _regs.r[1];
-	state.r2   = _regs.r[2];
-	state.r3   = _regs.r[3];
-	state.r4   = _regs.r[4];
-	state.r5   = _regs.r[5];
-	state.r6   = _regs.r[6];
-	state.r7   = _regs.r[7];
-	state.r8   = _regs.r[8];
-	state.r9   = _regs.r[9];
-	state.r10  = _regs.r[10];
-	state.r11  = _regs.r[11];
-	state.r12  = _regs.r[12];
-	state.lr   = _regs.ulr;
-	state.cpsr = _regs.cpsr;
+	state.cpu.ip   = _regs.pc;
+	state.cpu.sp   = _regs.sp;
+	state.cpu.r0   = _regs.r[0];
+	state.cpu.r1   = _regs.r[1];
+	state.cpu.r2   = _regs.r[2];
+	state.cpu.r3   = _regs.r[3];
+	state.cpu.r4   = _regs.r[4];
+	state.cpu.r5   = _regs.r[5];
+	state.cpu.r6   = _regs.r[6];
+	state.cpu.r7   = _regs.r[7];
+	state.cpu.r8   = _regs.r[8];
+	state.cpu.r9   = _regs.r[9];
+	state.cpu.r10  = _regs.r[10];
+	state.cpu.r11  = _regs.r[11];
+	state.cpu.r12  = _regs.r[12];
+	state.cpu.lr   = _regs.ulr;
+	state.cpu.cpsr = _regs.cpsr;
 }
 
 
 void Ipc_pager::set_regs(Foc_thread_state const &state)
 {
-	_regs.pc    = state.ip;
-	_regs.sp    = state.sp;
-	_regs.r[0]  = state.r0;
-	_regs.r[1]  = state.r1;
-	_regs.r[2]  = state.r2;
-	_regs.r[3]  = state.r3;
-	_regs.r[4]  = state.r4;
-	_regs.r[5]  = state.r5;
-	_regs.r[6]  = state.r6;
-	_regs.r[7]  = state.r7;
-	_regs.r[8]  = state.r8;
-	_regs.r[9]  = state.r9;
-	_regs.r[10] = state.r10;
-	_regs.r[11] = state.r11;
-	_regs.r[12] = state.r12;
-	_regs.ulr   = state.lr;
-	_regs.cpsr  = state.cpsr;
+	_regs.pc    = state.cpu.ip;
+	_regs.sp    = state.cpu.sp;
+	_regs.r[0]  = state.cpu.r0;
+	_regs.r[1]  = state.cpu.r1;
+	_regs.r[2]  = state.cpu.r2;
+	_regs.r[3]  = state.cpu.r3;
+	_regs.r[4]  = state.cpu.r4;
+	_regs.r[5]  = state.cpu.r5;
+	_regs.r[6]  = state.cpu.r6;
+	_regs.r[7]  = state.cpu.r7;
+	_regs.r[8]  = state.cpu.r8;
+	_regs.r[9]  = state.cpu.r9;
+	_regs.r[10] = state.cpu.r10;
+	_regs.r[11] = state.cpu.r11;
+	_regs.r[12] = state.cpu.r12;
+	_regs.ulr   = state.cpu.lr;
+	_regs.cpsr  = state.cpu.cpsr;
 }
 
 

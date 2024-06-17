@@ -35,7 +35,7 @@ Native_capability Native_cpu_component::native_cap(Thread_capability cap)
 Foc_thread_state Native_cpu_component::thread_state(Thread_capability cap)
 {
 	auto lambda = [&] (Cpu_thread_component *thread) {
-		return (!thread) ? Foc_thread_state()
+		return (!thread) ? Foc_thread_state { }
 		                 : thread->platform_thread().state(); };
 
 	return _thread_ep.apply(cap, lambda);

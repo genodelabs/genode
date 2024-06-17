@@ -280,30 +280,24 @@ struct Monitor::Gdb::State : Noncopyable
 
 	void with_current_thread_state(auto const &fn)
 	{
-		Thread_state thread_state { };
+		if (!_current.constructed() || !_current->thread.constructed())
+			return;
 
-		if (_current.constructed() && _current->thread.constructed()) {
-			try {
-				thread_state = _current->thread->thread._real.call<Cpu_thread::Rpc_get_state>();
-			} catch (Cpu_thread::State_access_failed) {
-				warning("unable to access state of thread ", _current->thread->thread.id());
-			}
+		Thread_state const thread_state = _current->thread->thread._real.call<Cpu_thread::Rpc_get_state>();
+		if (thread_state.state == Thread_state::State::UNAVAILABLE) {
+			warning("unable to access state of thread ", _current->thread->thread.id());
+			return;
 		}
-
 		fn(thread_state);
-	};
+	}
 
 	bool current_thread_state(Thread_state const &thread_state)
 	{
-		if (_current.constructed() && _current->thread.constructed()) {
-			try {
-				_current->thread->thread._real.call<Cpu_thread::Rpc_set_state>(thread_state);
-				return true;
-			} catch (Cpu_thread::State_access_failed) {
-				warning("unable to set state of thread ", _current->thread->thread.id());
-			}
-		}
-		return false;
+		if (!_current.constructed() || !_current->thread.constructed())
+			return false;
+
+		_current->thread->thread._real.call<Cpu_thread::Rpc_set_state>(thread_state);
+		return true;
 	}
 
 	State(Inferiors &inferiors, Memory_accessor &memory_accessor,
@@ -666,7 +660,7 @@ struct g : Command_without_separator
 
 		gdb_response(out, [&] (Output &out) {
 			state.with_current_thread_state([&] (Thread_state const &thread_state) {
-				print_registers(out, thread_state); }); });
+				print_registers(out, thread_state.cpu); }); });
 	}
 };
 
@@ -1140,9 +1134,9 @@ struct G : Command_without_separator
 		if (_verbose)
 			log("G command args: ", Cstring(args.start, args.num_bytes));
 
-		Thread_state thread_state;
+		Thread_state thread_state { };
 
-		parse_registers(args, thread_state);
+		parse_registers(args, thread_state.cpu);
 
 		if (state.current_thread_state(thread_state))
 			gdb_ok(out);

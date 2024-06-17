@@ -21,36 +21,36 @@ using namespace Core;
 
 void Ipc_pager::get_regs(Foc_thread_state &state) const
 {
-	state.ip     = _regs.ip;
-	state.sp     = _regs.sp;
-	state.edi    = _regs.edi;
-	state.esi    = _regs.esi;
-	state.ebp    = _regs.ebp;
-	state.ebx    = _regs.ebx;
-	state.edx    = _regs.edx;
-	state.ecx    = _regs.ecx;
-	state.eax    = _regs.eax;
-	state.gs     = _regs.gs;
-	state.fs     = _regs.fs;
-	state.eflags = _regs.flags;
-	state.trapno = _regs.trapno;
+	state.cpu.ip     = _regs.ip;
+	state.cpu.sp     = _regs.sp;
+	state.cpu.edi    = _regs.edi;
+	state.cpu.esi    = _regs.esi;
+	state.cpu.ebp    = _regs.ebp;
+	state.cpu.ebx    = _regs.ebx;
+	state.cpu.edx    = _regs.edx;
+	state.cpu.ecx    = _regs.ecx;
+	state.cpu.eax    = _regs.eax;
+	state.cpu.gs     = _regs.gs;
+	state.cpu.fs     = _regs.fs;
+	state.cpu.eflags = _regs.flags;
+	state.cpu.trapno = _regs.trapno;
 }
 
 
 void Ipc_pager::set_regs(Foc_thread_state const &state)
 {
-	_regs.ip     = state.ip;
-	_regs.sp     = state.sp;
-	_regs.edi    = state.edi;
-	_regs.esi    = state.esi;
-	_regs.ebp    = state.ebp;
-	_regs.ebx    = state.ebx;
-	_regs.edx    = state.edx;
-	_regs.ecx    = state.ecx;
-	_regs.eax    = state.eax;
-	_regs.gs     = state.gs;
-	_regs.fs     = state.fs;
-	_regs.flags  = state.eflags;
-	_regs.trapno = state.trapno;
+	_regs.ip     = state.cpu.ip;
+	_regs.sp     = state.cpu.sp;
+	_regs.edi    = state.cpu.edi;
+	_regs.esi    = state.cpu.esi;
+	_regs.ebp    = state.cpu.ebp;
+	_regs.ebx    = state.cpu.ebx;
+	_regs.edx    = state.cpu.edx;
+	_regs.ecx    = state.cpu.ecx;
+	_regs.eax    = state.cpu.eax;
+	_regs.gs     = state.cpu.gs;
+	_regs.fs     = state.cpu.fs;
+	_regs.flags  = state.cpu.eflags;
+	_regs.trapno = state.cpu.trapno;
 }
 

@@ -96,9 +96,8 @@ void Thread::start()
 	Foc_native_cpu_client native_cpu(_cpu_session->native_cpu());
 
 	/* get gate-capability and badge of new thread */
-	Foc_thread_state state;
-	try { state = native_cpu.thread_state(_thread_cap); }
-	catch (...) { throw Cpu_session::Thread_creation_failed(); }
+	Foc_thread_state state { };
+	state = native_cpu.thread_state(_thread_cap);
 
 	/* remember UTCB of the new thread */
 	Foc::l4_utcb_t * const foc_utcb = (Foc::l4_utcb_t *)state.utcb;

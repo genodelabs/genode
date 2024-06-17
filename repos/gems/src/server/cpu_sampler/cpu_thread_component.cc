@@ -69,15 +69,9 @@ void Cpu_sampler::Cpu_thread_component::take_sample()
 
 		_parent_cpu_thread.pause();
 
-		try {
-
-			Thread_state thread_state = _parent_cpu_thread.state();
-
-			_sample_buf[_sample_buf_index++] = thread_state.ip;
-
-		} catch (State_access_failed) {
-			continue;
-		}
+		Thread_state const thread_state = _parent_cpu_thread.state();
+		if (thread_state.state == Thread_state::State::VALID)
+			_sample_buf[_sample_buf_index++] = thread_state.cpu.ip;
 
 		_parent_cpu_thread.resume();
 

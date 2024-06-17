@@ -320,7 +320,7 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 		 */
 		void unresolved_page_fault_occurred()
 		{
-			_state.thread.unresolved_page_fault = true;
+			_state.thread.state = Thread_state::State::PAGE_FAULT;
 		}
 
 		/**

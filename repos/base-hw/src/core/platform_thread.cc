@@ -210,31 +210,30 @@ Core::Pager_object &Platform_thread::pager()
 
 Thread_state Platform_thread::state()
 {
-	Cpu_state cpu_state;
-	Kernel::get_cpu_state(*_kobj, cpu_state);
-	Thread_state state(cpu_state);
+	Cpu_state cpu { };
+	Kernel::get_cpu_state(*_kobj, cpu);
 
-	using Exception_state = Kernel::Thread::Exception_state;
+	auto state = [&] () -> Thread_state::State
+	{
+		using Exception_state = Kernel::Thread::Exception_state;
+		switch (exception_state()) {
+		case Exception_state::NO_EXCEPTION: return Thread_state::State::VALID;
+		case Exception_state::MMU_FAULT:    return Thread_state::State::PAGE_FAULT;
+		case Exception_state::EXCEPTION:    return Thread_state::State::EXCEPTION;
+		}
+		return Thread_state::State::UNAVAILABLE;
+	};
 
-	switch (exception_state()) {
-	case Exception_state::NO_EXCEPTION:
-		break;
-	case Exception_state::MMU_FAULT:
-		state.unresolved_page_fault = true;
-		break;
-	case Exception_state::EXCEPTION:
-		state.exception = true;
-		break;
-	}
-
-	return state;
+	return {
+		.state = state(),
+		.cpu   = cpu
+	};
 }
 
 
 void Platform_thread::state(Thread_state thread_state)
 {
-	Cpu_state cpu_state(thread_state);
-	Kernel::set_cpu_state(*_kobj, cpu_state);
+	Kernel::set_cpu_state(*_kobj, thread_state.cpu);
 }
 
 

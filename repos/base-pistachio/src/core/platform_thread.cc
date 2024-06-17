@@ -145,16 +145,12 @@ void Platform_thread::unbind()
 }
 
 
-void Platform_thread::state(Thread_state)
-{
-	warning(__func__, " not implemented");
-	throw Cpu_thread::State_access_failed();
-}
+void Platform_thread::state(Thread_state) { }
 
 
 Thread_state Platform_thread::state()
 {
-	Thread_state s;
+	Thread_state s { };
 
 	L4_Word_t     dummy;
 	L4_ThreadId_t dummy_tid;
@@ -169,8 +165,9 @@ Thread_state Platform_thread::state()
 	                     0, 0, 0, 0, L4_nilthread,
 	                     &dummy, &sp, &ip, &dummy, &dummy,
 	                     &dummy_tid);
-	s.ip = ip;
-	s.sp = sp;
+	s.cpu.ip = ip;
+	s.cpu.sp = sp;
+	s.state  = Thread_state::State::VALID;
 	return s;
 }
 

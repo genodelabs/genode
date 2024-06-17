@@ -21,50 +21,50 @@ using namespace Core;
 
 void Ipc_pager::get_regs(Foc_thread_state &state) const
 {
-	state.ip     = _regs.ip;
-	state.sp     = _regs.sp;
-	state.r8     = _regs.r8;
-	state.r9     = _regs.r9;
-	state.r10    = _regs.r10;
-	state.r11    = _regs.r11;
-	state.r12    = _regs.r12;
-	state.r13    = _regs.r13;
-	state.r14    = _regs.r14;
-	state.r15    = _regs.r15;
-	state.rax    = _regs.rax;
-	state.rbx    = _regs.rbx;
-	state.rcx    = _regs.rcx;
-	state.rdx    = _regs.rdx;
-	state.rdi    = _regs.rdi;
-	state.rsi    = _regs.rsi;
-	state.rbp    = _regs.rbp;
-	state.ss     = _regs.ss;
-	state.eflags = _regs.flags;
-	state.trapno = _regs.trapno;
+	state.cpu.ip     = _regs.ip;
+	state.cpu.sp     = _regs.sp;
+	state.cpu.r8     = _regs.r8;
+	state.cpu.r9     = _regs.r9;
+	state.cpu.r10    = _regs.r10;
+	state.cpu.r11    = _regs.r11;
+	state.cpu.r12    = _regs.r12;
+	state.cpu.r13    = _regs.r13;
+	state.cpu.r14    = _regs.r14;
+	state.cpu.r15    = _regs.r15;
+	state.cpu.rax    = _regs.rax;
+	state.cpu.rbx    = _regs.rbx;
+	state.cpu.rcx    = _regs.rcx;
+	state.cpu.rdx    = _regs.rdx;
+	state.cpu.rdi    = _regs.rdi;
+	state.cpu.rsi    = _regs.rsi;
+	state.cpu.rbp    = _regs.rbp;
+	state.cpu.ss     = _regs.ss;
+	state.cpu.eflags = _regs.flags;
+	state.cpu.trapno = _regs.trapno;
 }
 
 
 void Ipc_pager::set_regs(Foc_thread_state const &state)
 {
-	_regs.ip     = state.ip;
-	_regs.sp     = state.sp;
-	_regs.r8     = state.r8;
-	_regs.r9     = state.r9;
-	_regs.r10    = state.r10;
-	_regs.r11    = state.r11;
-	_regs.r12    = state.r12;
-	_regs.r13    = state.r13;
-	_regs.r14    = state.r14;
-	_regs.r15    = state.r15;
-	_regs.rax    = state.rax;
-	_regs.rbx    = state.rbx;
-	_regs.rcx    = state.rcx;
-	_regs.rdx    = state.rdx;
-	_regs.rdi    = state.rdi;
-	_regs.rsi    = state.rsi;
-	_regs.rbp    = state.rbp;
-	_regs.ss     = state.ss;
-	_regs.flags  = state.eflags;
-	_regs.trapno = state.trapno;
+	_regs.ip     = state.cpu.ip;
+	_regs.sp     = state.cpu.sp;
+	_regs.r8     = state.cpu.r8;
+	_regs.r9     = state.cpu.r9;
+	_regs.r10    = state.cpu.r10;
+	_regs.r11    = state.cpu.r11;
+	_regs.r12    = state.cpu.r12;
+	_regs.r13    = state.cpu.r13;
+	_regs.r14    = state.cpu.r14;
+	_regs.r15    = state.cpu.r15;
+	_regs.rax    = state.cpu.rax;
+	_regs.rbx    = state.cpu.rbx;
+	_regs.rcx    = state.cpu.rcx;
+	_regs.rdx    = state.cpu.rdx;
+	_regs.rdi    = state.cpu.rdi;
+	_regs.rsi    = state.cpu.rsi;
+	_regs.rbp    = state.cpu.rbp;
+	_regs.ss     = state.cpu.ss;
+	_regs.flags  = state.cpu.eflags;
+	_regs.trapno = state.cpu.trapno;
 }
 

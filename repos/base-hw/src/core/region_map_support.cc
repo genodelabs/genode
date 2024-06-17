@@ -49,7 +49,7 @@ void Pager_entrypoint::entry()
 				warning("unresolvable exception: "
 				        "pd='",     pt->pd()->label(), "', "
 				        "thread='", pt->label(),       "', "
-				        "ip=",      Hex(pt->state().ip));
+				        "ip=",      Hex(pt->state().cpu.ip));
 			continue;
 		}
 

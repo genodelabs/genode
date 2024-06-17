@@ -15,7 +15,6 @@
 #define _INCLUDE__CPU_THREAD__CPU_THREAD_H_
 
 #include <base/stdint.h>
-#include <base/exception.h>
 #include <base/thread_state.h>
 #include <base/signal.h>
 #include <base/affinity.h>
@@ -26,8 +25,6 @@ namespace Genode { struct Cpu_thread; }
 
 struct Genode::Cpu_thread : Interface
 {
-	class State_access_failed : public Exception { };
-
 	/**
 	 * Get dataspace of the thread's user-level thread-control block (UTCB)
 	 */
@@ -59,7 +56,6 @@ struct Genode::Cpu_thread : Interface
 	 * Get the current thread state
 	 *
 	 * \return  state of the targeted thread
-	 * \throw   State_access_failed
 	 */
 	virtual Thread_state state() = 0;
 
@@ -67,7 +63,6 @@ struct Genode::Cpu_thread : Interface
 	 * Override the current thread state
 	 *
 	 * \param state   state that shall be applied
-	 * \throw         State_access_failed
 	 */
 	virtual void state(Thread_state const &state) = 0;
 
@@ -136,11 +131,8 @@ struct Genode::Cpu_thread : Interface
 	GENODE_RPC(Rpc_start, void, start, addr_t, addr_t);
 	GENODE_RPC(Rpc_pause, void, pause);
 	GENODE_RPC(Rpc_resume, void, resume);
-	GENODE_RPC_THROW(Rpc_get_state, Thread_state, state,
-	                 GENODE_TYPE_LIST(State_access_failed));
-	GENODE_RPC_THROW(Rpc_set_state, void, state,
-	                 GENODE_TYPE_LIST(State_access_failed),
-	                 Thread_state const &);
+	GENODE_RPC(Rpc_get_state, Thread_state, state);
+	GENODE_RPC(Rpc_set_state, void, state, Thread_state const &);
 	GENODE_RPC(Rpc_exception_sigh, void, exception_sigh, Signal_context_capability);
 	GENODE_RPC(Rpc_single_step, void, single_step, bool);
 	GENODE_RPC(Rpc_affinity, void, affinity, Affinity::Location);

@@ -89,8 +89,8 @@ void Monitor::Monitored_thread::_handle_exception()
 
 	Thread_state thread_state = _real.call<Rpc_get_state>();
 
-	if (thread_state.trapno == Cpu_state::Cpu_exception::BREAKPOINT) {
-		thread_state.ip -= Gdb::breakpoint_instruction_len();
+	if (thread_state.cpu.trapno == Cpu_state::Cpu_exception::BREAKPOINT) {
+		thread_state.cpu.ip -= Gdb::breakpoint_instruction_len();
 		_real.call<Rpc_set_state>(thread_state);
 	}
 
@@ -100,7 +100,7 @@ void Monitor::Monitored_thread::_handle_exception()
 			                                      _original_first_instruction);
 		stop_reply_signal = Stop_reply_signal::STOP;
 	} else {
-		switch(thread_state.trapno) {
+		switch(thread_state.cpu.trapno) {
 		case Cpu_state::Cpu_exception::DIVIDE_ERROR:
 			stop_reply_signal = Stop_reply_signal::FPE;
 			break;

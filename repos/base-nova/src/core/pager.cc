@@ -131,9 +131,9 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 	 */
 	obj._state_lock.acquire();
 
-	obj._state.thread.ip     = ipc_pager.fault_ip();
-	obj._state.thread.sp     = 0;
-	obj._state.thread.trapno = PT_SEL_PAGE_FAULT;
+	obj._state.thread.cpu.ip     = ipc_pager.fault_ip();
+	obj._state.thread.cpu.sp     = 0;
+	obj._state.thread.cpu.trapno = PT_SEL_PAGE_FAULT;
 
 	obj._state.block();
 	obj._state.block_pause_sm();
@@ -208,7 +208,7 @@ void Pager_object::exception(uint8_t exit_id)
 	_state_lock.acquire();
 
 	/* remember exception type for Cpu_session::state() calls */
-	_state.thread.trapno = exit_id;
+	_state.thread.cpu.trapno = exit_id;
 
 	if (_exception_sigh.valid()) {
 		_state.submit_signal();
@@ -320,7 +320,7 @@ void Pager_object::_recall_handler(Pager_object &obj)
 		utcb.mtd = 0;
 
 	/* switch on/off single step */
-	bool singlestep_state = obj._state.thread.eflags & 0x100UL;
+	bool singlestep_state = obj._state.thread.cpu.eflags & 0x100UL;
 	if (obj._state.singlestep() && !singlestep_state) {
 		utcb.flags |= 0x100UL;
 		utcb.mtd |= Mtd::EFL;
@@ -477,7 +477,7 @@ void Pager_object::wake_up()
 	if (!_state.blocked())
 		return;
 
-	_state.thread.exception = false;
+	_state.thread.state = Thread_state::State::VALID;
 
 	_state.unblock();
 

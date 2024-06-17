@@ -202,11 +202,7 @@ void Platform_thread::resume()
 }
 
 
-void Platform_thread::state(Thread_state)
-{
-	warning(__PRETTY_FUNCTION__, " not implemented");
-	throw Cpu_thread::State_access_failed();
-}
+void Platform_thread::state(Thread_state) { }
 
 
 bool Platform_thread::install_mapping(Mapping const &mapping)

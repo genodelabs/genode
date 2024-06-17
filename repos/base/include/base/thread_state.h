@@ -18,13 +18,12 @@
 
 namespace Genode { struct Thread_state; }
 
-struct Genode::Thread_state : Cpu_state
-{
-	bool unresolved_page_fault = false;
-	bool exception = false;
 
-	Thread_state() { };
-	Thread_state(Cpu_state &c) : Cpu_state(c) { };
+struct Genode::Thread_state
+{
+	enum class State { VALID, UNAVAILABLE, PAGE_FAULT, EXCEPTION } state;
+
+	Cpu_state cpu;
 };
 
 #endif /* _INCLUDE__BASE__THREAD_STATE_H_ */

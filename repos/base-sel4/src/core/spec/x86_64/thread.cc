@@ -70,33 +70,30 @@ Thread_state Platform_thread::state()
 
 	long const ret = seL4_TCB_ReadRegisters(thread, suspend_source, arch_flags,
 	                                        register_count, &registers);
-	if (ret != seL4_NoError) {
-		error("reading thread state ", ret);
-		throw Cpu_thread::State_access_failed();
-	}
+	if (ret != seL4_NoError)
+		return { .state = Thread_state::State::UNAVAILABLE, .cpu = { } };
 
-	Thread_state state;
-	memset(&state, 0, sizeof(state));
+	Thread_state state { };
 
-	state.ip     = registers.rip;
-	state.sp     = registers.rsp;
-	state.rdi    = registers.rdi;
-	state.rsi    = registers.rsi;
-	state.rbp    = registers.rbp;
-	state.rbx    = registers.rbx;
-	state.rdx    = registers.rdx;
-	state.rcx    = registers.rcx;
-	state.rax    = registers.rax;
-	state.r8     = registers.r8;
-	state.r9     = registers.r9;
-	state.r10    = registers.r10;
-	state.r11    = registers.r11;
-	state.r12    = registers.r12;
-	state.r13    = registers.r13;
-	state.r14    = registers.r14;
-	state.r15    = registers.r15;
-	state.eflags = registers.rflags;
-	state.trapno = 0; /* XXX detect/track if in exception and report here */
+	state.cpu.ip     = registers.rip;
+	state.cpu.sp     = registers.rsp;
+	state.cpu.rdi    = registers.rdi;
+	state.cpu.rsi    = registers.rsi;
+	state.cpu.rbp    = registers.rbp;
+	state.cpu.rbx    = registers.rbx;
+	state.cpu.rdx    = registers.rdx;
+	state.cpu.rcx    = registers.rcx;
+	state.cpu.rax    = registers.rax;
+	state.cpu.r8     = registers.r8;
+	state.cpu.r9     = registers.r9;
+	state.cpu.r10    = registers.r10;
+	state.cpu.r11    = registers.r11;
+	state.cpu.r12    = registers.r12;
+	state.cpu.r13    = registers.r13;
+	state.cpu.r14    = registers.r14;
+	state.cpu.r15    = registers.r15;
+	state.cpu.eflags = registers.rflags;
+	state.cpu.trapno = 0; /* XXX detect/track if in exception and report here */
 	/* registers.tls_base unused */
 
 	return state;

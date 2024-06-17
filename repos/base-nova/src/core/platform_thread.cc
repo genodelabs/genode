@@ -275,26 +275,19 @@ void Platform_thread::resume()
 
 Thread_state Platform_thread::state()
 {
-	if (!_pager) throw Cpu_thread::State_access_failed();
-
-	Thread_state s;
-
-	if (_pager->copy_thread_state(&s))
+	Thread_state s { };
+	if (_pager && _pager->copy_thread_state(&s))
 		return s;
 
-	throw Cpu_thread::State_access_failed();
+	return { .state = Thread_state::State::UNAVAILABLE, .cpu = { } };
 }
 
 
 void Platform_thread::state(Thread_state s)
 {
-	if (!_pager) throw Cpu_thread::State_access_failed();
-
-	if (!_pager->copy_thread_state(s))
-		throw Cpu_thread::State_access_failed();
-
-	/* the new state is transferred to the kernel by the recall handler */
-	_pager->client_recall(false);
+	if (_pager && _pager->copy_thread_state(s))
+		/* the new state is transferred to the kernel by the recall handler */
+		_pager->client_recall(false);
 }
 
 

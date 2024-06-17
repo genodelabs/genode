@@ -102,16 +102,12 @@ void Platform_thread::unbind()
 }
 
 
-void Platform_thread::state(Thread_state)
-{
-	warning(__func__, " not implemented");
-	throw Cpu_thread::State_access_failed();
-}
+void Platform_thread::state(Thread_state) { }
 
 
 Thread_state Platform_thread::state()
 {
-	Thread_state s;
+	Thread_state s { };
 
 	l4_umword_t   old_eflags, ip, sp;
 	l4_threadid_t thread      = _l4_thread_id;
@@ -128,8 +124,9 @@ Thread_state Platform_thread::state()
 		        Hex(thread.id.task), ".", Hex(thread.id.lthread));
 
 	/* fill thread state structure */
-	s.ip = ip;
-	s.sp = sp;
+	s.cpu.ip = ip;
+	s.cpu.sp = sp;
+	s.state  = Thread_state::State::VALID;
 
 	return s;
 }

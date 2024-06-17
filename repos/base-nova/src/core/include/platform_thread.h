@@ -131,15 +131,11 @@ class Core::Platform_thread
 
 		/**
 		 * Override thread state with 's'
-		 *
-		 * \throw Cpu_session::State_access_failed
 		 */
 		void state(Thread_state s);
 
 		/**
 		 * Read thread state
-		 *
-		 * \throw Cpu_session::State_access_failed
 		 */
 		Thread_state state();
 

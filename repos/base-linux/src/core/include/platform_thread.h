@@ -101,15 +101,10 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 
 		Thread_state state()
 		{
-			warning("Not implemented");
-			throw Cpu_thread::State_access_failed();
+			return { .state = Thread_state::State::UNAVAILABLE, .cpu = { } };
 		}
 
-		void state(Thread_state)
-		{
-			warning("Not implemented");
-			throw Cpu_thread::State_access_failed();
-		}
+		void state(Thread_state) { }
 
 		const char   *name() { return _name; }
 

@@ -33,15 +33,15 @@ void Ipc_pager::_parse_exception()
 
 void Ipc_pager::get_regs(Foc_thread_state &state) const
 {
-	state.ip = _regs.pc;
-	state.sp = _regs.sp;
+	state.cpu.ip = _regs.pc;
+	state.cpu.sp = _regs.sp;
 }
 
 
 void Ipc_pager::set_regs(Foc_thread_state const &state)
 {
-	_regs.pc = state.ip;
-	_regs.sp = state.sp;
+	_regs.pc = state.cpu.ip;
+	_regs.sp = state.cpu.sp;
 }
 
 bool Ipc_pager::exec_fault() const

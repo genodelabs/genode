@@ -269,7 +269,7 @@ static void test_pause_resume(Env &env)
 
 	while (thread.loop < 1) { }
 
-	Thread_state state;
+	Thread_state state { };
 	Cpu_thread_client thread_client(thread.cap());
 
 	log("--- pausing ---");
@@ -278,11 +278,10 @@ static void test_pause_resume(Env &env)
 	log("--- paused ---");
 
 	log("--- reading thread state ---");
-	try {
-		state = thread_client.state();
-	} catch (Cpu_thread::State_access_failed) {
+	state = thread_client.state();
+	if (state.state == Thread_state::State::UNAVAILABLE)
 		throw -10;
-	}
+
 	if (loop_paused != thread.loop)
 		throw -11;
 

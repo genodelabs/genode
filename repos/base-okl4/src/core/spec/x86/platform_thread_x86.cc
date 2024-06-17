@@ -23,7 +23,7 @@ using namespace Okl4;
 
 Thread_state Platform_thread::state()
 {
-	Thread_state s;
+	Thread_state s { };
 
 	L4_Copy_regs_to_mrs(_l4_thread_id);
 
@@ -40,23 +40,19 @@ Thread_state Platform_thread::state()
 		MR_EAX    = 9,
 	};
 
-	L4_StoreMR(MR_EIP,    &s.ip);
-	L4_StoreMR(MR_EFLAGS, &s.eflags);
-	L4_StoreMR(MR_EDI,    &s.edi);
-	L4_StoreMR(MR_ESI,    &s.esi);
-	L4_StoreMR(MR_EBP,    &s.ebp);
-	L4_StoreMR(MR_ESP,    &s.sp);
-	L4_StoreMR(MR_EBX,    &s.ebx);
-	L4_StoreMR(MR_EDX,    &s.edx);
-	L4_StoreMR(MR_ECX,    &s.ecx);
-	L4_StoreMR(MR_EAX,    &s.eax);
+	L4_StoreMR(MR_EIP,    &s.cpu.ip);
+	L4_StoreMR(MR_EFLAGS, &s.cpu.eflags);
+	L4_StoreMR(MR_EDI,    &s.cpu.edi);
+	L4_StoreMR(MR_ESI,    &s.cpu.esi);
+	L4_StoreMR(MR_EBP,    &s.cpu.ebp);
+	L4_StoreMR(MR_ESP,    &s.cpu.sp);
+	L4_StoreMR(MR_EBX,    &s.cpu.ebx);
+	L4_StoreMR(MR_EDX,    &s.cpu.edx);
+	L4_StoreMR(MR_ECX,    &s.cpu.ecx);
+	L4_StoreMR(MR_EAX,    &s.cpu.eax);
 
 	return s;
 }
 
-void Platform_thread::state(Thread_state)
-{
-	warning("Platform_thread::state not implemented");
-	throw Cpu_thread::State_access_failed();
-}
 
+void Platform_thread::state(Thread_state) { }

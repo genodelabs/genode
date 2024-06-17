@@ -77,14 +77,10 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 			if (thread.stop_state != Monitored_thread::Stop_state::RUNNING)
 				return;
 
-			try {
-				Thread_state thread_state = thread.state();
-				if (thread_state.unresolved_page_fault) {
-					thread.handle_page_fault();
-					thread_found = true;
-				}
-			} catch (Cpu_thread::State_access_failed) {
-				/* this exception occurs for running threads */
+			Thread_state thread_state = thread.state();
+			if (thread_state.state == Thread_state::State::PAGE_FAULT) {
+				thread.handle_page_fault();
+				thread_found = true;
 			}
 		});
 
