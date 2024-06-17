@@ -38,19 +38,27 @@ struct Genode::Expanding_cpu_session_client : Upgradeable_client<Genode::Cpu_ses
 			(parent, static_cap_cast<Genode::Cpu_session_client::Rpc_interface>(cap), id)
 	{ }
 
-	Thread_capability
+	Create_thread_result
 	create_thread(Pd_session_capability pd, Name const &name,
 	              Affinity::Location location, Weight weight, addr_t utcb) override
 	{
-		return retry<Out_of_ram>(
-			[&] () {
-				return retry<Out_of_caps>(
-					[&] () {
-						return Cpu_session_client::create_thread(pd, name, location,
-						                                         weight, utcb); },
-					[&] () { upgrade_caps(2); });
-				},
-			[&] () { upgrade_ram(8*1024); });
+		Thread_capability result { };
+		bool denied = false;
+		while (!result.valid()) {
+			using Error = Cpu_session::Create_thread_error;
+			Cpu_session_client::create_thread(pd, name, location, weight, utcb).with_result(
+				[&] (Thread_capability cap) { result = cap; },
+				[&] (Error e) {
+					switch (e) {
+					case Error::OUT_OF_RAM:  upgrade_ram(8*1024); break;
+					case Error::OUT_OF_CAPS: upgrade_caps(2);     break;
+					case Error::DENIED:      denied = true;       break;
+					}
+				});
+			if (denied)
+				return Error::DENIED;
+		}
+		return result;
 	}
 };
 

@@ -14,9 +14,9 @@
 #ifndef _INCLUDE__CPU_SESSION__CPU_SESSION_H_
 #define _INCLUDE__CPU_SESSION__CPU_SESSION_H_
 
+#include <util/attempt.h>
 #include <cpu_session/capability.h>
 #include <cpu_thread/cpu_thread.h>
-#include <base/stdint.h>
 #include <base/rpc_args.h>
 #include <session/session.h>
 #include <dataspace/capability.h>
@@ -27,7 +27,7 @@ namespace Genode {
 	struct Cpu_session;
 	struct Cpu_session_client;
 
-	typedef Capability<Cpu_thread> Thread_capability;
+	using Thread_capability = Capability<Cpu_thread>;
 }
 
 
@@ -46,18 +46,13 @@ struct Genode::Cpu_session : Session
 	static constexpr unsigned CAP_QUOTA = 6;
 	static constexpr size_t   RAM_QUOTA = 36*1024;
 
-	typedef Cpu_session_client Client;
+	using Client = Cpu_session_client;
 
 
 	/*********************
 	 ** Exception types **
 	 *********************/
 
-	class Thread_creation_failed : public Exception { };
-	class Quota_exceeded         : public Thread_creation_failed { };
-
-
-	enum { THREAD_NAME_LEN = 32 };
 	enum { PRIORITY_LIMIT = 1 << 16 };
 	enum { QUOTA_LIMIT_LOG2 = 15 };
 	enum { QUOTA_LIMIT = 1 << QUOTA_LIMIT_LOG2 };
@@ -68,13 +63,13 @@ struct Genode::Cpu_session : Session
 	 */
 	struct Weight
 	{
-		enum { DEFAULT_WEIGHT = 10 };
+		static constexpr size_t DEFAULT_WEIGHT = 10;
 		size_t value = DEFAULT_WEIGHT;
 		Weight() { }
 		explicit Weight(size_t value) : value(value) { }
 	};
 
-	typedef String<THREAD_NAME_LEN> Name;
+	using Name = String<32>;
 
 	/**
 	 * Physical quota configuration
@@ -82,6 +77,9 @@ struct Genode::Cpu_session : Session
 	struct Quota;
 
 	virtual ~Cpu_session() { }
+
+	enum class Create_thread_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
+	using Create_thread_result = Attempt<Thread_capability, Create_thread_error>;
 
 	/**
 	 * Create a new thread
@@ -93,15 +91,12 @@ struct Genode::Cpu_session : Session
 	 * \param weight    CPU quota that shall be granted to the thread
 	 * \param utcb      base of the UTCB that will be used by the thread
 	 * \return          capability representing the new thread
-	 * \throw           Thread_creation_failed
-	 * \throw           Out_of_ram
-	 * \throw           Out_of_caps
 	 */
-	virtual Thread_capability create_thread(Capability<Pd_session> pd,
-	                                        Name const            &name,
-	                                        Affinity::Location     affinity,
-	                                        Weight                 weight,
-	                                        addr_t                 utcb = 0) = 0;
+	virtual Create_thread_result create_thread(Capability<Pd_session> pd,
+	                                           Name const            &name,
+	                                           Affinity::Location     affinity,
+	                                           Weight                 weight,
+	                                           addr_t                 utcb = 0) = 0;
 
 	/**
 	 * Kill an existing thread
@@ -233,10 +228,9 @@ struct Genode::Cpu_session : Session
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC_THROW(Rpc_create_thread, Thread_capability, create_thread,
-	                 GENODE_TYPE_LIST(Thread_creation_failed, Out_of_ram, Out_of_caps),
-	                 Capability<Pd_session>, Name const &, Affinity::Location,
-	                 Weight, addr_t);
+	GENODE_RPC(Rpc_create_thread, Create_thread_result, create_thread,
+	           Capability<Pd_session>, Name const &, Affinity::Location,
+	           Weight, addr_t);
 	GENODE_RPC(Rpc_kill_thread, void, kill_thread, Thread_capability);
 	GENODE_RPC(Rpc_exception_sigh, void, exception_sigh, Signal_context_capability);
 	GENODE_RPC(Rpc_affinity_space, Affinity::Space, affinity_space);

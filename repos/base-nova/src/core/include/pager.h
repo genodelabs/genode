@@ -31,8 +31,6 @@
 
 namespace Core {
 
-	typedef Cpu_session::Thread_creation_failed Invalid_thread;
-
 	class Pager_entrypoint;
 	class Pager_object;
 	class Exception_handlers;

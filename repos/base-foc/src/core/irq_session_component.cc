@@ -52,7 +52,7 @@ class Core::Interrupt_handler : public Thread
 		static Foc::l4_cap_idx_t handler_cap()
 		{
 			static Interrupt_handler handler;
-			return handler._thread_cap.data()->kcap();
+			return handler.cap().data()->kcap();
 		}
 
 };

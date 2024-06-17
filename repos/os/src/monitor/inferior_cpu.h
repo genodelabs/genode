@@ -51,29 +51,33 @@ struct Monitor::Inferior_cpu : Monitored_cpu_session
 	 ** Cpu_session interface **
 	 ***************************/
 
-	Thread_capability
+	Create_thread_result
 	create_thread(Capability<Pd_session> pd, Cpu_session::Name const &name,
 	              Affinity::Location affinity, Weight weight, addr_t utcb) override
 	{
-		Thread_capability result { };
+		Create_thread_result result = Create_thread_error::DENIED;
 
 		Inferior_pd::with_inferior_pd(_ep, pd,
+
 			[&] (Inferior_pd &inferior_pd) {
+				_real.call<Rpc_create_thread>(inferior_pd._real, name, affinity,
+				                              weight, utcb).with_result(
 
-				Capability<Cpu_thread> real_thread =
-					_real.call<Rpc_create_thread>(inferior_pd._real,
-					                              name, affinity, weight, utcb);
+					[&] (Thread_capability real_thread) {
 
-				Threads::Id thread_id { inferior_pd.alloc_thread_id() };
-				bool wait = inferior_pd._policy.wait &&
-				            (thread_id == Threads::Id { 1 });
+						Threads::Id thread_id { inferior_pd.alloc_thread_id() };
+						bool const wait = inferior_pd._policy.wait
+						               && (thread_id == Threads::Id { 1 });
 
-				Monitored_thread &monitored_thread = *new (_alloc)
-					Monitored_thread(_ep, real_thread, name,
-					                 inferior_pd._threads, thread_id,
-					                 pd, _thread_monitor, wait);
+						Monitored_thread &monitored_thread = *new (_alloc)
+							Monitored_thread(_ep, real_thread, name,
+							                 inferior_pd._threads, thread_id,
+							                 pd, _thread_monitor, wait);
 
-				result = monitored_thread.cap();
+						result = monitored_thread.cap();
+					},
+					[&] (Create_thread_error e) { result = e; }
+				);
 			},
 			[&] {
 				result = _real.call<Rpc_create_thread>(pd, name, affinity, weight, utcb);

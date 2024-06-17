@@ -74,7 +74,7 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 
 		using Sig_ctx_cap   = Signal_context_capability;
 
-		Thread_capability
+		Create_thread_result
 		create_thread(Capability<Pd_session>, Cpu_session::Name const &,
 		              Affinity::Location, Weight, addr_t)     override { never_called(__func__); }
 		void                   kill_thread(Thread_capability) override { never_called(__func__); }

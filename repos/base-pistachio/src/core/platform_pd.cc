@@ -185,10 +185,9 @@ bool Platform_pd::bind_thread(Platform_thread &thread)
 	L4_ThreadId_t l4_thread_id;
 
 	int t = _alloc_thread(thread_id, thread);
-	if (t < 0) {
-		error("thread alloc failed");
+	if (t < 0)
 		return false;
-	}
+
 	thread_id = t;
 	l4_thread_id = make_l4_id(_pd_id, thread_id, _version);
 

@@ -58,8 +58,8 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 
 		/* create server object */
 		addr_t const utcb = (addr_t)&_stack->utcb();
-		_thread_cap = _cpu_session->create_thread(pd_session_cap(),
-		                                          name(), _affinity,
+
+		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name(), _affinity,
 		                                          Weight(weight), utcb);
 		return;
 	}
@@ -88,7 +88,9 @@ void Thread::_deinit_platform_thread()
 		return;
 	}
 
-	_cpu_session->kill_thread(_thread_cap);
+	_thread_cap.with_result(
+		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Cpu_session::Create_thread_error) { });
 
 	/* detach userland stack */
 	size_t const size = sizeof(_stack->utcb());
@@ -98,21 +100,28 @@ void Thread::_deinit_platform_thread()
 }
 
 
-void Thread::start()
+Thread::Start_result Thread::start()
 {
-	/* attach userland stack */
-	try {
-		Dataspace_capability ds = Cpu_thread_client(_thread_cap).utcb();
-		size_t const size = sizeof(_stack->utcb());
-		addr_t dst = Stack_allocator::addr_to_base(_stack) +
-		             stack_virtual_size() - size - stack_area_virtual_base();
-		env_stack_area_region_map->attach_at(ds, dst, size);
-	} catch (...) {
-		error("failed to attach userland stack");
-		sleep_forever();
-	}
-	/* start thread with its initial IP and aligned SP */
-	Cpu_thread_client(_thread_cap).start((addr_t)_thread_start, _stack->top());
+	return _thread_cap.convert<Start_result>(
+		[&] (Thread_capability cap) {
+			Cpu_thread_client cpu_thread(cap);
+
+			/* attach UTCB at top of stack */
+			size_t const size = sizeof(_stack->utcb());
+			addr_t dst = Stack_allocator::addr_to_base(_stack) +
+			             stack_virtual_size() - size - stack_area_virtual_base();
+			try {
+				env_stack_area_region_map->attach_at(cpu_thread.utcb(), dst, size);
+			} catch (...) {
+				error("failed to attach userland stack");
+				sleep_forever();
+			}
+			/* start execution with initial IP and aligned SP */
+			cpu_thread.start((addr_t)_thread_start, _stack->top());
+			return Start_result::OK;
+		},
+		[&] (Cpu_session::Create_thread_error) { return Start_result::DENIED; }
+	);
 }
 
 

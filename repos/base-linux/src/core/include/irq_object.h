@@ -43,7 +43,7 @@ class Core::Irq_object : public Thread
 		void sigh(Signal_context_capability cap);
 		void ack_irq();
 
-		void start() override;
+		Start_result start() override;
 
 };
 

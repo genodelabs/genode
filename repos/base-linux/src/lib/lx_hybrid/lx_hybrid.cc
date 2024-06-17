@@ -493,12 +493,13 @@ Thread *Thread::myself()
 }
 
 
-void Thread::start()
+Thread::Start_result Thread::start()
 {
 	/*
 	 * Unblock thread that is supposed to slumber in 'thread_start'.
 	 */
 	native_thread().meta_data->started();
+	return Start_result::OK;
 }
 
 
@@ -531,9 +532,14 @@ Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
 
 	_thread_cap = _cpu_session->create_thread(_env_ptr->pd_session_cap(), name,
 	                                          Location(), Weight(weight));
-
-	Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
-	native_cpu.thread_id(_thread_cap, native_thread().pid, native_thread().tid);
+	_thread_cap.with_result(
+		[&] (Thread_capability cap) {
+			Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
+			native_cpu.thread_id(cap, native_thread().pid, native_thread().tid);
+		},
+		[&] (Cpu_session::Create_thread_error) {
+			error("failed to create hybrid thread"); }
+	);
 }
 
 
@@ -573,7 +579,9 @@ Thread::~Thread()
 	_native_thread = nullptr;
 
 	/* inform core about the killed thread */
-	_cpu_session->kill_thread(_thread_cap);
+	_thread_cap.with_result(
+		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Cpu_session::Create_thread_error) { });
 }
 
 

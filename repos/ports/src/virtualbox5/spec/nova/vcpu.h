@@ -861,8 +861,10 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 
 		unsigned int cpu_id() { return _cpu_id; }
 
-		void start() {
+		Start_result start() override
+		{
 			_vcpu.start(_ec_sel);
+			return Start_result::OK;
 		}
 
 		void recall(Vcpu_handler * other = nullptr)

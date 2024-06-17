@@ -312,26 +312,33 @@ static void test_create_as_many_threads(Env &env)
 	Heap heap(env.ram(), env.rm());
 
 	unsigned i = 0;
-	try {
-		for (; i < max; i++) {
-			try {
-				threads[i] = new (heap) Cpu_helper(env, Thread::Name(i + 1), env.cpu());
-				threads[i]->start();
-				threads[i]->join();
-			} catch (Cpu_session::Thread_creation_failed) {
-				throw "Thread_creation_failed";
-			} catch (Thread::Out_of_stack_space) {
-				throw "Out_of_stack_space";
-			} catch (Genode::Native_capability::Reference_count_overflow) {
-				throw "Native_capability::Reference_count_overflow";
+	bool denied = false;
+	bool out_of_stack_space = false;
+	for (; i < max; i++) {
+		try {
+			threads[i] = new (heap) Cpu_helper(env, Thread::Name(i + 1), env.cpu());
+			if (threads[i]->start() == Thread::Start_result::DENIED) {
+				denied = true;
+				break;
 			}
+			threads[i]->join();
+		} catch (Thread::Out_of_stack_space) {
+			out_of_stack_space = true;
+			break;
+		} catch (Genode::Native_capability::Reference_count_overflow) {
+			warning("Native_capability::Reference_count_overflow");
+			denied = true;
+			break;
 		}
-	} catch (const char * ex) {
-		log("created ", i, " threads before I got '", ex, "'");
-		for (unsigned j = i; j > 0; j--) {
-			destroy(heap, threads[j - 1]);
-			threads[j - 1] = nullptr;
-		}
+	}
+
+	for (unsigned j = i; j > 0; j--) {
+		destroy(heap, threads[j - 1]);
+		threads[j - 1] = nullptr;
+	}
+
+	if (denied) {
+		log("created ", i, " threads before thread creation got denied");
 		return;
 	}
 
@@ -339,7 +346,8 @@ static void test_create_as_many_threads(Env &env)
 	 * We have to get a Out_of_stack_space message, because we can't create
 	 * up to max threads, because already the main thread is running ...
 	 */
-	throw -21;
+	if (!out_of_stack_space)
+		throw -21;
 }
 
 

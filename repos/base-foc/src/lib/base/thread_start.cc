@@ -50,11 +50,14 @@ void Thread::_deinit_platform_thread()
 {
 	using namespace Foc;
 
-	if (native_thread().kcap && _thread_cap.valid()) {
+	if (native_thread().kcap) {
 		Cap_index *i = (Cap_index*)l4_utcb_tcr_u(utcb()->foc_utcb)->user[UTCB_TCR_BADGE];
 		cap_map().remove(i);
-		_cpu_session->kill_thread(_thread_cap);
 	}
+
+	_thread_cap.with_result(
+		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Cpu_session::Create_thread_error) { });
 }
 
 
@@ -65,14 +68,8 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	if (type == NORMAL) {
 
 		/* create thread at core */
-		_thread_cap = _cpu_session->create_thread(pd_session_cap(),
-		                                          name(), _affinity,
-		                                          Weight(weight));
-
-		/* assign thread to protection domain */
-		if (!_thread_cap.valid())
-			throw Cpu_session::Thread_creation_failed();
-
+		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name(),
+		                                          _affinity, Weight(weight));
 		return;
 	}
 
@@ -80,8 +77,10 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	native_thread().kcap = Foc::MAIN_THREAD_CAP;
 	_thread_cap = main_thread_cap();
 
-	if (!_thread_cap.valid())
-		throw Cpu_session::Thread_creation_failed();
+	if (_thread_cap.failed()) {
+		error("failed to re-initialize main thread");
+		return;
+	}
 
 	/* make thread object known to the Fiasco.OC environment */
 	addr_t const t = (addr_t)this;
@@ -89,29 +88,36 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 }
 
 
-void Thread::start()
+Thread::Start_result Thread::start()
 {
 	using namespace Foc;
 
-	Foc_native_cpu_client native_cpu(_cpu_session->native_cpu());
+	return _thread_cap.convert<Start_result>(
+		[&] (Thread_capability cap) {
+			Foc_native_cpu_client native_cpu(_cpu_session->native_cpu());
 
-	/* get gate-capability and badge of new thread */
-	Foc_thread_state state { };
-	state = native_cpu.thread_state(_thread_cap);
+			/* get gate-capability and badge of new thread */
+			Foc_thread_state state { };
+			state = native_cpu.thread_state(cap);
 
-	/* remember UTCB of the new thread */
-	Foc::l4_utcb_t * const foc_utcb = (Foc::l4_utcb_t *)state.utcb;
-	utcb()->foc_utcb = foc_utcb;
+			/* remember UTCB of the new thread */
+			Foc::l4_utcb_t * const foc_utcb = (Foc::l4_utcb_t *)state.utcb;
+			utcb()->foc_utcb = foc_utcb;
 
-	native_thread() = Native_thread(state.kcap);
+			native_thread() = Native_thread(state.kcap);
 
-	Cap_index *i = cap_map().insert(state.id, state.kcap);
-	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_BADGE]      = (unsigned long) i;
-	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
+			Cap_index *i = cap_map().insert(state.id, state.kcap);
+			l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_BADGE]      = (unsigned long) i;
+			l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
-	/* register initial IP and SP at core */
-	Cpu_thread_client cpu_thread(_thread_cap);
-	cpu_thread.start((addr_t)_thread_start, _stack->top());
+			/* register initial IP and SP at core */
+			Cpu_thread_client cpu_thread(cap);
+			cpu_thread.start((addr_t)_thread_start, _stack->top());
+
+			return Start_result::OK;
+		},
+		[&] (Cpu_session::Create_thread_error) { return Start_result::DENIED; }
+	);
 }
 
 

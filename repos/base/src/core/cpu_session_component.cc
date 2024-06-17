@@ -25,73 +25,66 @@
 using namespace Core;
 
 
-Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd_cap,
-                                                       Name const &name,
-                                                       Affinity::Location affinity,
-                                                       Weight weight,
-                                                       addr_t utcb)
+Cpu_session::Create_thread_result
+Cpu_session_component::create_thread(Capability<Pd_session> pd_cap,
+                                     Name const &name, Affinity::Location affinity,
+                                     Weight weight, addr_t utcb)
 {
-	Trace::Thread_name thread_name(name.string());
+	if (!try_withdraw(Ram_quota{_utcb_quota_size()}))
+		return Create_thread_error::OUT_OF_RAM;
 
-	withdraw(Ram_quota{_utcb_quota_size()});
+	if (weight.value == 0) {
+		warning("Thread ", name, ": Bad weight 0, using default weight instead.");
+		weight = Weight();
+	}
+	if (weight.value > QUOTA_LIMIT) {
+		warning("Thread ", name, ": Oversized weight ", weight.value, ", using limit instead.");
+		weight = Weight(QUOTA_LIMIT);
+	}
 
-	try {
+	Mutex::Guard thread_list_lock_guard(_thread_list_lock);
 
-		Cpu_thread_component *thread = 0;
+	Create_thread_result result = Create_thread_error::DENIED;
 
-		if (weight.value == 0) {
-			warning("Thread ", name, ": Bad weight 0, using default weight instead.");
-			weight = Weight();
+	_incr_weight(weight.value);
+
+	_thread_ep.apply(pd_cap, [&] (Pd_session_component *pd) {
+
+		if (!pd) {
+			error("create_thread: invalid PD argument");
+			return;
 		}
-		if (weight.value > QUOTA_LIMIT) {
-			warning("Thread ", name, ": Oversized weight ", weight.value, ", using limit instead.");
-			weight = Weight(QUOTA_LIMIT);
-		}
 
-		Mutex::Guard thread_list_lock_guard(_thread_list_lock);
+		Mutex::Guard slab_lock_guard(_thread_alloc_lock);
 
-		/*
-		 * Create thread associated with its protection domain
-		 */
-		auto create_thread_lambda = [&] (Pd_session_component *pd) {
-			if (!pd) {
-				error("create_thread: invalid PD argument");
-				throw Thread_creation_failed();
-			}
-
-			Mutex::Guard slab_lock_guard(_thread_alloc_lock);
-			thread = new (&_thread_alloc)
+		try {
+			Cpu_thread_component &thread = *new (&_thread_alloc)
 				Cpu_thread_component(
 					cap(), _thread_ep, _pager_ep, *pd, _trace_control_area,
 					_trace_sources, weight, _weight_to_quota(weight.value),
-					_thread_affinity(affinity), _label, thread_name,
+					_thread_affinity(affinity), _label, name,
 					_priority, utcb);
-		};
 
-		try {
-			_incr_weight(weight.value);
-			_thread_ep.apply(pd_cap, create_thread_lambda);
-		} catch (Allocator::Out_of_memory) {
-			_decr_weight(weight.value);
-			throw Out_of_ram();
-		} catch (Native_capability::Reference_count_overflow) {
-			_decr_weight(weight.value);
-			throw Thread_creation_failed();
-		} catch (...) {
-			_decr_weight(weight.value);
-			throw;
+			if (!thread.valid()) {
+				destroy(_thread_alloc, &thread);
+				return;
+			}
+
+			thread.session_exception_sigh(_exception_sigh);
+
+			_thread_list.insert(&thread);
+			result = thread.cap();
 		}
+		catch (Out_of_ram)  { result = Create_thread_error::OUT_OF_RAM;  }
+		catch (Out_of_caps) { result = Create_thread_error::OUT_OF_CAPS; }
+		catch (...)         { result = Create_thread_error::DENIED;      }
+	});
 
-		thread->session_exception_sigh(_exception_sigh);
-
-		_thread_list.insert(thread);
-
-		return thread->cap();
-
-	} catch (...) {
+	if (result.failed()) {
+		_decr_weight(weight.value);
 		replenish(Ram_quota{_utcb_quota_size()});
-		throw;
 	}
+	return result;
 }
 
 

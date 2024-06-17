@@ -99,7 +99,7 @@ void Thread::_thread_start()
 }
 
 
-void Thread::start()
+Thread::Start_result Thread::start()
 {
 	/* write ipcbuffer address to utcb*/
 	utcb()->ipcbuffer(addr_t(utcb()));
@@ -142,6 +142,8 @@ void Thread::start()
 
 	new (platform().core_mem_alloc())
 		Core_trace_source(Core::Trace::sources(), *this);
+
+	return Start_result::OK;
 }
 
 

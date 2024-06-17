@@ -75,9 +75,10 @@ void Irq_object::ack_irq()
 }
 
 
-void Irq_object::start()
+Thread::Start_result Irq_object::start()
 {
 	warning(__func__, " not implemented");
+	return Start_result::DENIED;
 }
 
 

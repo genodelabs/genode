@@ -52,7 +52,7 @@ class Core::Irq_object : public Thread {
 		void notify() { Signal_transmitter(_sig_cap).submit(1); }
 		void ack_irq();
 
-		void start() override;
+		Start_result start() override;
 		bool associate(Irq_session::Trigger const, Irq_session::Polarity const);
 };
 

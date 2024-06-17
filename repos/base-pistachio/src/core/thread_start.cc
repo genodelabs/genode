@@ -35,7 +35,7 @@ void Thread::_thread_start()
 }
 
 
-void Thread::start()
+Thread::Start_result Thread::start()
 {
 	/* create and start platform thread */
 	native_thread().pt = new (platform().core_mem_alloc())
@@ -47,6 +47,8 @@ void Thread::start()
 	native_thread().l4id = native_thread().pt->native_thread_id();
 
 	native_thread().pt->start((void *)_thread_start, stack_top());
+
+	return Start_result::OK;
 }
 
 

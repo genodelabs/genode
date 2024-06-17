@@ -25,7 +25,7 @@ struct Genode::Cpu_session_client : Rpc_client<Cpu_session>
 	explicit Cpu_session_client(Cpu_session_capability session)
 	: Rpc_client<Cpu_session>(session) { }
 
-	Thread_capability
+	Create_thread_result
 	create_thread(Capability<Pd_session> pd, Name const &name,
 	              Affinity::Location affinity, Weight weight, addr_t utcb = 0) override {
 		return call<Rpc_create_thread>(pd, name, affinity, weight, utcb); }

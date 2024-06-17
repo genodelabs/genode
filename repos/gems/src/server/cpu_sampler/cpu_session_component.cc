@@ -21,7 +21,7 @@ using namespace Genode;
 using namespace Cpu_sampler;
 
 
-Thread_capability
+Cpu_session::Create_thread_result
 Cpu_sampler::Cpu_session_component::create_thread(Pd_session_capability  pd,
                                                   Name            const &name,
                                                   Affinity::Location     affinity,

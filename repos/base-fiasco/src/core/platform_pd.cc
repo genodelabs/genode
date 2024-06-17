@@ -200,10 +200,9 @@ bool Platform_pd::bind_thread(Platform_thread &thread)
 	l4_threadid_t l4_thread_id;
 
 	int t = _alloc_thread(thread_id, thread);
-	if (t < 0) {
-		error("thread alloc failed");
+	if (t < 0)
 		return false;
-	}
+
 	thread_id = t;
 
 	enum { LTHREAD_MASK = (1 << 7) - 1 };

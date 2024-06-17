@@ -38,14 +38,29 @@ struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
 		Cpu_session_client(cap())
 	{ }
 
-	Thread_capability create_thread(Capability<Pd_session> pd,
-	                                Name const            &name,
-	                                Affinity::Location     affinity,
-	                                Weight                 weight,
-	                                addr_t                 utcb = 0) override
+	Create_thread_result create_thread(Capability<Pd_session> pd,
+	                                   Name const            &name,
+	                                   Affinity::Location     affinity,
+	                                   Weight                 weight,
+	                                   addr_t                 utcb = 0) override
 	{
-		return retry_with_upgrade(Ram_quota{8*1024}, Cap_quota{2}, [&] () {
-			return Cpu_session_client::create_thread(pd, name, affinity, weight, utcb); });
+		Thread_capability result { };
+		bool denied = false;
+		while (!result.valid()) {
+			using Error = Cpu_session::Create_thread_error;
+			Cpu_session_client::create_thread(pd, name, affinity, weight, utcb).with_result(
+				[&] (Thread_capability cap) { result = cap; },
+				[&] (Error e) {
+					switch (e) {
+					case Error::OUT_OF_RAM:  upgrade_ram(8*1024); break;
+					case Error::OUT_OF_CAPS: upgrade_caps(2);     break;
+					case Error::DENIED:      denied = true;       break;
+					}
+				});
+			if (denied)
+				return Error::DENIED;
+		}
+		return result;
 	}
 };
 

@@ -76,13 +76,29 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 		{
 			using namespace Genode;
 
-			Thread_capability vcpu_vm =
-				_cpu_connection->retry_with_upgrade(Ram_quota{8*1024}, Cap_quota{2},
-				                                    [&] ()
-				{
-					return _cpu_connection->create_thread(_pd_cap, "vCPU", _location,
-					                                      Cpu_session::Weight());
-				});
+			Thread_capability vcpu_vm { };
+
+			while (!vcpu_vm.valid()) {
+
+				bool denied = false;
+
+				using Error = Cpu_session::Create_thread_error;
+				_cpu_connection->create_thread(_pd_cap, "vCPU", _location,
+				                               Cpu_session::Weight()).with_result(
+						[&] (Thread_capability cap) { vcpu_vm = cap; },
+						[&] (Error e) {
+							if      (e == Error::OUT_OF_RAM)  _cpu_connection->upgrade_ram(8*1024);
+							else if (e == Error::OUT_OF_CAPS) _cpu_connection->upgrade_caps(2);
+							else
+								denied = true;
+						}
+					);
+
+				if (denied) {
+					error("Vcpu_other_pd: failed to create vCPU");
+					return;
+				}
+			}
 
 			/* tell parent that this will be a vCPU */
 			Cpu_session::Native_cpu::Thread_type thread_type { Cpu_session::Native_cpu::Thread_type::VCPU };

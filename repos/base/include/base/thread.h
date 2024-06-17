@@ -96,11 +96,12 @@ class Genode::Thread
 	protected:
 
 		/**
-		 * Capability for this thread (set by _start())
+		 * Capability for this thread or creation error (set by _start())
 		 *
 		 * Used if thread creation involves core's CPU service.
 		 */
-		Thread_capability _thread_cap { };
+		Cpu_session::Create_thread_result _thread_cap =
+			Cpu_session::Create_thread_error::DENIED;
 
 		/**
 		 * Pointer to cpu session used for this thread
@@ -271,13 +272,15 @@ class Genode::Thread
 		 */
 		virtual void entry() = 0;
 
+		enum class Start_result { OK, DENIED };
+
 		/**
 		 * Start execution of the thread
 		 *
 		 * This method is virtual to enable the customization of threads
 		 * used as server activation.
 		 */
-		virtual void start();
+		virtual Start_result start();
 
 		/**
 		 * Request name of thread
@@ -316,7 +319,15 @@ class Genode::Thread
 		/**
 		 * Request capability of thread
 		 */
-		Thread_capability cap() const { return _thread_cap; }
+		Thread_capability cap() const
+		{
+			return _thread_cap.convert<Thread_capability>(
+				[&] (Thread_capability cap) { return cap; },
+				[&] (auto) {
+					error("attempt to obtain cap of incomplete thread");
+					return Thread_capability();
+				});
+		}
 
 		/**
 		 * Return kernel-specific thread meta data

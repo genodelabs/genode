@@ -17,14 +17,14 @@
 using namespace Genode;
 using namespace Cpu;
 
-Thread_capability
+Cpu_session::Create_thread_result
 Cpu::Session::create_thread(Pd_session_capability const  pd,
                             Name                  const &name_by_client,
                             Affinity::Location    const  location,
                             Weight                const  weight,
                             addr_t                const  utcb)
 {
-	Thread_capability cap { };
+	Create_thread_result result = Create_thread_error::DENIED;
 
 	Name name = name_by_client;
 	if (!name.valid())
@@ -33,9 +33,9 @@ Cpu::Session::create_thread(Pd_session_capability const  pd,
 	/* quirk since init can't handle Out_of_* during first create_thread call */
 	if ((_reclaim_ram.value || _reclaim_cap.value) && _one_valid_thread()) {
 		if (_reclaim_ram.value)
-			throw Out_of_ram();
+			return Create_thread_error::OUT_OF_RAM;
 		if (_reclaim_cap.value)
-			throw Out_of_caps();
+			return Create_thread_error::OUT_OF_CAPS;
 	}
 
 	/* read in potential existing policy for thread */
@@ -47,33 +47,39 @@ Cpu::Session::create_thread(Pd_session_capability const  pd,
 		if (store_cap.valid())
 			return false;
 
-		cap = _parent.create_thread(pd, name, location, weight, utcb);
-		if (!cap.valid())
-			/* stop creation attempt by saying done */
-			return true;
+		result = _parent.create_thread(pd, name, location, weight, utcb);
+		return result.convert<bool>(
 
-		/* policy and name are set beforehand */
-		store_cap  = cap;
+			[&] (Thread_capability cap) {
+				/* policy and name are set beforehand */
+				store_cap  = cap;
 
-		/* for static case with valid location, don't overwrite config */
-		policy.thread_create(location);
+				/* for static case with valid location, don't overwrite config */
+				policy.thread_create(location);
 
-		if (_verbose)
-			log("[", _label, "] new thread at ",
-			    policy.location.xpos(), "x", policy.location.ypos(),
-			    ", policy=", policy, ", name='", name, "'");
+				if (_verbose)
+					log("[", _label, "] new thread at ",
+					    policy.location.xpos(), "x", policy.location.ypos(),
+					    ", policy=", policy, ", name='", name, "'");
 
-		return true;
+				return true;
+			},
+
+			[&] (Create_thread_error) {
+				/* stop creation attempt by saying done */
+				return true;
+			}
+		);
 	});
 
-	if (cap.valid()) {
+	if (result.ok()) {
 		_report = true;
-		return cap;
+		return result;
 	}
 
-	cap = _parent.create_thread(pd, name, location, weight, utcb);
-	if (!cap.valid())
-		return cap;
+	result = _parent.create_thread(pd, name, location, weight, utcb);
+	if (result.failed())
+		return result;
 
 	/* unknown thread without any configuration */
 	construct(_default_policy, [&](Thread_capability &store_cap,
@@ -81,20 +87,24 @@ Cpu::Session::create_thread(Pd_session_capability const  pd,
 	{
 		policy.location = location;
 
-		store_cap = cap;
-		store_name = name;
+		result.with_result(
+			[&] (Thread_capability cap) {
+				store_cap = cap;
+				store_name = name;
 
-		if (_verbose)
-			log("[", _label, "] new thread at ",
-			    location.xpos(), "x", location.ypos(),
-			    ", no policy defined",
-			    ", name='", name, "'");
+			if (_verbose)
+				log("[", _label, "] new thread at ",
+				    location.xpos(), "x", location.ypos(),
+				    ", no policy defined",
+				    ", name='", name, "'");
+			},
+			[&] (Create_thread_error) { });
 	});
 
-	if (cap.valid())
+	if (result.ok())
 		_report = true;
 
-	return cap;
+	return result;
 }
 
 

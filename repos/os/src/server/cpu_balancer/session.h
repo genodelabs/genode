@@ -328,10 +328,10 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 		 ** CPU session interface **
 		 ***************************/
 
-		Thread_capability create_thread(Pd_session_capability,
-		                                Thread::Name const &,
-		                                Affinity::Location, Weight,
-		                                addr_t) override;
+		Create_thread_result create_thread(Pd_session_capability,
+		                                   Thread::Name const &,
+		                                   Affinity::Location, Weight,
+		                                   addr_t) override;
 		void kill_thread(Thread_capability) override;
 		void exception_sigh(Signal_context_capability) override;
 		Affinity::Space affinity_space() const override;

@@ -24,6 +24,16 @@
 using namespace Genode;
 
 
+static Thread_capability create_thread(auto &pd, auto &cpu, auto const &name)
+{
+	return cpu.create_thread(pd, name, { }, { }).template convert<Thread_capability>(
+		[&] (Thread_capability cap) { return cap; },
+		[&] (Cpu_session::Create_thread_error) {
+			error("failed to create thread via CPU session");
+			return Thread_capability(); });
+}
+
+
 /*
  * Register main thread at core
  *
@@ -35,8 +45,7 @@ Child::Initial_thread::Initial_thread(Cpu_session          &cpu,
                                       Pd_session_capability pd,
                                       Name           const &name)
 :
-	_cpu(cpu),
-	_cap(cpu.create_thread(pd, name, Affinity::Location(), Cpu_session::Weight()))
+	_cpu(cpu), _cap(create_thread(pd, cpu, name))
 { }
 
 

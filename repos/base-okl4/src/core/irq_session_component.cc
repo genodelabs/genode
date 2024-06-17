@@ -80,10 +80,11 @@ void Irq_object::_wait_for_irq()
 }
 
 
-void Irq_object::start()
+Thread::Start_result Irq_object::start()
 {
-	::Thread::start();
+	Start_result const result = ::Thread::start();
 	_sync_bootup.block();
+	return result;
 }
 
 

@@ -118,17 +118,19 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	revoke(Mem_crd(utcb >> 12, 0, rwx));
 
 	native_thread().exc_pt_sel = cap_map().insert(NUM_INITIAL_PT_LOG2);
-	if (native_thread().exc_pt_sel == Native_thread::INVALID_INDEX)
-		throw Cpu_session::Thread_creation_failed();
-
+	if (native_thread().exc_pt_sel == Native_thread::INVALID_INDEX) {
+		error("failed allocate exception-portal selector for new thread");
+		return;
+	}
 
 	_init_cpu_session_and_trace_control();
 
 	/* create thread at core */
-	_thread_cap = _cpu_session->create_thread(pd_session_cap(), name(),
-	                                          _affinity, Weight(weight));
-	if (!_thread_cap.valid())
-		throw Cpu_session::Thread_creation_failed();
+	_cpu_session->create_thread(pd_session_cap(), name(),
+	                            _affinity, Weight(weight)).with_result(
+		[&] (Thread_capability cap) { _thread_cap = cap; },
+		[&] (Cpu_session::Create_thread_error) {
+			error("failed to create new thread for local PD"); });
 }
 
 
@@ -141,22 +143,28 @@ void Thread::_deinit_platform_thread()
 	}
 
 	/* de-announce thread */
-	if (_thread_cap.valid())
-		_cpu_session->kill_thread(_thread_cap);
+	_thread_cap.with_result(
+		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Cpu_session::Create_thread_error) { });
 
 	cap_map().remove(native_thread().exc_pt_sel, NUM_INITIAL_PT_LOG2);
 }
 
 
-void Thread::start()
+Thread::Start_result Thread::start()
 {
-	if (native_thread().ec_sel < Native_thread::INVALID_INDEX - 1)
-		throw Cpu_session::Thread_creation_failed();
+	if (native_thread().ec_sel < Native_thread::INVALID_INDEX - 1) {
+		error("Thread::start failed due to invalid exception portal selector");
+		return Start_result::DENIED;
+	}
+
+	if (_thread_cap.failed())
+		return Start_result::DENIED;
 
 	/*
 	 * Default: create global thread - ec.sel == INVALID_INDEX
 	 *          create  local thread - ec.sel == INVALID_INDEX - 1
-	 */ 
+	 */
 	bool global = native_thread().ec_sel == Native_thread::INVALID_INDEX;
 
 	using namespace Genode;
@@ -174,13 +182,16 @@ void Thread::start()
 		Cpu_session::Native_cpu::Exception_base exception_base { native_thread().exc_pt_sel };
 
 		Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
-		native_cpu.thread_type(_thread_cap, thread_type, exception_base);
-	} catch (...) { throw Cpu_session::Thread_creation_failed(); }
+		native_cpu.thread_type(cap(), thread_type, exception_base);
+	} catch (...) {
+		error("Thread::start failed to set thread type");
+		return Start_result::DENIED;
+	}
 
 	/* local thread have no start instruction pointer - set via portal entry */
 	addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : native_thread().initial_ip;
 
-	Cpu_thread_client cpu_thread(_thread_cap);
+	Cpu_thread_client cpu_thread(cap());
 	cpu_thread.start(thread_ip, _stack->top());
 
 	/* request native EC thread cap */ 
@@ -203,6 +214,8 @@ void Thread::start()
 	if (global)
 		/* request creation of SC to let thread run*/
 		cpu_thread.resume();
+
+	return Start_result::OK;
 }
 
 

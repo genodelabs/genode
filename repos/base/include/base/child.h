@@ -304,7 +304,6 @@ class Genode::Child : protected Rpc_object<Parent>,
 				/**
 				 * Constructor
 				 *
-				 * \throw Cpu_session::Thread_creation_failed
 				 * \throw Out_of_ram
 				 * \throw Out_of_caps
 				 */

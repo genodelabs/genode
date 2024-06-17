@@ -30,8 +30,6 @@
 
 namespace Core {
 
-	typedef Cpu_session::Thread_creation_failed Invalid_thread;
-
 	/**
 	 * Special server object for paging
 	 *
@@ -84,8 +82,6 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 		 * Constructor
 		 *
 		 * \param location  affinity of paged thread to physical CPU
-		 *
-		 * \throw Invalid_thread
 		 */
 		Pager_object(Cpu_session_capability cpu_sesion,
 		             Thread_capability thread,

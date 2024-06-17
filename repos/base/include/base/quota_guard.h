@@ -88,7 +88,7 @@ class Genode::Quota_guard_untyped
 		 * \return true if quota limit could be reduced, or
 		 *         false if the requested amount exceeds the available quota
 		 */
-		bool try_downgrade(size_t const amount)
+		[[nodiscard]] bool try_downgrade(size_t const amount)
 		{
 			if (avail() < amount)
 				return false;
@@ -103,7 +103,7 @@ class Genode::Quota_guard_untyped
 		 * \return true on success, or
 		 *         false if the amount exceeds the available quota
 		 */
-		bool try_withdraw(size_t const amount)
+		[[nodiscard]] bool try_withdraw(size_t const amount)
 		{
 			if (amount > avail())
 				return false;
@@ -184,6 +184,14 @@ class Genode::Quota_guard
 		 * Increase quota limit by specified amount
 		 */
 		void upgrade(UNIT amount) { _guard.upgrade(amount.value); }
+
+		/**
+		 * Try to withdraw quota by specified amount
+		 */
+		bool try_withdraw(UNIT amount)
+		{
+			return _guard.try_withdraw(amount.value);
+		}
 
 		/**
 		 * Try to decrease quota limit by specified amount

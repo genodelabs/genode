@@ -32,13 +32,16 @@ using namespace Core;
 namespace Hw { extern Untyped_capability _main_thread_cap; }
 
 
-void Thread::start()
+Thread::Start_result Thread::start()
 {
 	/* start thread with stack pointer at the top of stack */
 	if (native_thread().platform_thread->start((void *)&_thread_start, stack_top())) {
 		error("failed to start thread");
-		return;
+		return Start_result::DENIED;
 	}
+
+	if (_thread_cap.failed())
+		return Start_result::DENIED;
 
 	struct Trace_source : public  Core::Trace::Source::Info_accessor,
 	                      private Core::Trace::Control,
@@ -73,6 +76,8 @@ void Thread::start()
 
 	/* create trace sources for core threads */
 	new (platform().core_mem_alloc()) Trace_source(Core::Trace::sources(), *this);
+
+	return Start_result::OK;
 }
 
 

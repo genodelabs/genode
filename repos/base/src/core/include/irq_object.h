@@ -43,7 +43,7 @@ class Core::Irq_object : public Thread
 		void sigh(Signal_context_capability cap) { _sig_cap = cap; }
 		void ack_irq() { _sync_ack.wakeup(); }
 
-		void start() override;
+		Start_result start() override;
 };
 
 #endif /* _CORE__INCLUDE__IRQ_OBJECT_H_ */

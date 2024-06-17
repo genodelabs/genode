@@ -36,7 +36,12 @@ Cpu_sampler::Cpu_thread_component::Cpu_thread_component(
 	_cpu_session_component(cpu_session_component), _env(env), _md_alloc(md_alloc),
 	_parent_cpu_thread(
 		_cpu_session_component.parent_cpu_session()
-		                      .create_thread(pd, name, affinity, weight, utcb)),
+		                      .create_thread(pd, name, affinity, weight, utcb)
+		                      .convert<Thread_capability>(
+		                        [&] (Thread_capability cap) { return cap; },
+		                        [&] (auto) {
+		                          error("failed to create CPU thread");
+		                          return Thread_capability(); })),
 	_label(_cpu_session_component.session_label().string(), " -> ", thread_name),
 	_log_session_label("samples -> ", _label, ".", thread_id)
 {

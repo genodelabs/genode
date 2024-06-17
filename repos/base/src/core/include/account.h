@@ -193,6 +193,17 @@ class Core::Account
 		}
 
 		/**
+		 * Withdraw quota from account
+		 *
+		 * \return true if withdrawal of 'amount' succeeded
+		 */
+		[[nodiscard]] bool try_withdraw(UNIT amount)
+		{
+			Mutex::Guard guard(_mutex);
+			return _quota_guard.try_withdraw(amount);
+		}
+
+		/**
 		 * Replenish quota to account
 		 *
 		 * Called when releasing physical resources

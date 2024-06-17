@@ -34,7 +34,7 @@ void Thread::_thread_start()
 }
 
 
-void Thread::start()
+Thread::Start_result Thread::start()
 {
 	/* create and start platform thread */
 	native_thread().pt = new (Core::platform_specific().thread_slab())
@@ -43,6 +43,8 @@ void Thread::start()
 	Core::platform_specific().core_pd().bind_thread(*native_thread().pt);
 
 	native_thread().pt->start((void *)_thread_start, stack_top());
+
+	return Start_result::OK;
 }
 
 

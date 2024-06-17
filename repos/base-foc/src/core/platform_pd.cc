@@ -86,7 +86,6 @@ bool Platform_pd::bind_thread(Platform_thread &thread)
 		return true;
 	}
 
-	error("thread alloc failed");
 	return false;
 }
 

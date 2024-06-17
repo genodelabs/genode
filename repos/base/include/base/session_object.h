@@ -31,6 +31,8 @@ class Genode::Session_object : private Ram_quota_guard,
 		typedef Session::Diag      Diag;
 		typedef Session::Resources Resources;
 
+		using Ram_quota_guard::try_withdraw;
+		using Cap_quota_guard::try_withdraw;
 		using Ram_quota_guard::withdraw;
 		using Cap_quota_guard::withdraw;
 		using Ram_quota_guard::replenish;

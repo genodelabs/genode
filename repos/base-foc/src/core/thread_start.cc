@@ -39,7 +39,7 @@ void Thread::_deinit_platform_thread()
 void Thread::_init_platform_thread(size_t, Type) { }
 
 
-void Thread::start()
+Thread::Start_result Thread::start()
 {
 	using namespace Foc;
 
@@ -113,4 +113,6 @@ void Thread::start()
 
 	new (platform().core_mem_alloc()) Core_trace_source(Core::Trace::sources(),
 	                                                    *this, pt);
+
+	return Start_result::OK;
 }

@@ -222,8 +222,10 @@ Trace::Logger *Thread::_logger()
 	if (!logger.initialized()) {
 		logger.init_pending(true);
 
-		Thread_capability thread_cap = myself ? myself->_thread_cap
-		                                      : _env().parent().main_thread_cap();
+		using Create_result = Cpu_session::Create_thread_result;
+		Create_result const thread_cap =
+			myself ? myself->_thread_cap
+			       : Create_result(_env().parent().main_thread_cap());
 
 		Cpu_session &cpu = myself ? *myself->_cpu_session : _env().cpu();
 
@@ -234,8 +236,11 @@ Trace::Logger *Thread::_logger()
 					main_trace_control = _env().rm().attach(ds);
 			}
 
-		logger.init(thread_cap, &cpu,
-		            myself ? myself->_trace_control : main_trace_control);
+		thread_cap.with_result(
+			[&] (Thread_capability cap) {
+				logger.init(cap, &cpu, myself ? myself->_trace_control
+				                              : main_trace_control); },
+			[&] (Cpu_session::Create_thread_error) { });
 	}
 
 	return &logger;

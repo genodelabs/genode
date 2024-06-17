@@ -755,13 +755,12 @@ void Child::_try_construct_env_dependent_members()
 			                   *_initial_thread, _initial_thread_start,
 			                   _local_rm, address_space, cap()); });
 	}
-	catch (Out_of_ram)                          { _error("out of RAM during ELF loading"); }
-	catch (Out_of_caps)                         { _error("out of caps during ELF loading"); }
-	catch (Cpu_session::Thread_creation_failed) { _error("unable to create initial thread"); }
-	catch (Process::Missing_dynamic_linker)     { _error("dynamic linker unavailable"); }
-	catch (Process::Invalid_executable)         { _error("invalid ELF executable"); }
-	catch (Region_map::Invalid_dataspace)       { _error("ELF loading failed (Invalid_dataspace)"); }
-	catch (Region_map::Region_conflict)         { _error("ELF loading failed (Region_conflict)"); }
+	catch (Out_of_ram)                      { _error("out of RAM during ELF loading"); }
+	catch (Out_of_caps)                     { _error("out of caps during ELF loading"); }
+	catch (Process::Missing_dynamic_linker) { _error("dynamic linker unavailable"); }
+	catch (Process::Invalid_executable)     { _error("invalid ELF executable"); }
+	catch (Region_map::Invalid_dataspace)   { _error("ELF loading failed (Invalid_dataspace)"); }
+	catch (Region_map::Region_conflict)     { _error("ELF loading failed (Region_conflict)"); }
 }
 
 

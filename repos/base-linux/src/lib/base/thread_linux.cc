@@ -110,10 +110,12 @@ void Thread::_init_platform_thread(size_t /* weight */, Type type)
 
 	/* for normal threads create an object at the CPU session */
 	if (type == NORMAL) {
-		_thread_cap = _cpu_session->create_thread(pd_session_cap(),
-		                                          _stack->name().string(),
-		                                          Affinity::Location(),
-		                                          Weight());
+		_cpu_session->create_thread(pd_session_cap(), _stack->name().string(),
+		                            Affinity::Location(), Weight()).with_result(
+			[&] (Thread_capability cap) { _thread_cap = cap; },
+			[&] (Cpu_session::Create_thread_error) {
+				error("Thread::_init_platform_thread: create_thread failed");
+			});
 		return;
 	}
 	/* adjust initial object state for main threads */
@@ -152,11 +154,13 @@ void Thread::_deinit_platform_thread()
 	}
 
 	/* inform core about the killed thread */
-	_cpu_session->kill_thread(_thread_cap);
+	_thread_cap.with_result(
+		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Cpu_session::Create_thread_error) { });
 }
 
 
-void Thread::start()
+Thread::Start_result Thread::start()
 {
 	/* synchronize calls of the 'start' function */
 	static Mutex mutex;
@@ -181,6 +185,8 @@ void Thread::start()
 
 	/* wait until the 'thread_start' function got entered */
 	startup_lock().block();
+
+	return Start_result::OK;
 }
 
 
