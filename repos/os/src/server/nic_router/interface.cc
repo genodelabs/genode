@@ -605,14 +605,14 @@ Packet_result Interface::_adapt_eth(Ethernet_frame          &eth,
 			},
 			[&] /* handle_no_match */ ()
 			{
-				remote_domain.interfaces().for_each([&] (Interface &interface)
-				{
-					interface._broadcast_arp_request(
-						remote_ip_cfg.interface().address, hop_ip);
-				});
 				retry_once<Out_of_ram, Out_of_caps>(
 					[&] {
 						new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt, _config_ptr->arp_request_timeout(), _timer };
+						remote_domain.interfaces().for_each([&] (Interface &interface)
+						{
+							interface._broadcast_arp_request(
+								remote_ip_cfg.interface().address, hop_ip);
+						});
 						result = packet_postponed();
 					},
 					[&] { _try_emergency_free_quota(); },
