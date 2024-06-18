@@ -21,11 +21,7 @@ if {[have_spec linux]} {
 	set not_linux 1
 }
 
-#
-# Note that in the not_linux case, the file size is rounded
-# down to a multiple of 100.
-#
-set file_size_in_bytes 1000000
+set file_size_in_bytes [expr 16*1024*1024]
 
 create_boot_directory
 
@@ -36,6 +32,7 @@ import_from_depot [depot_user]/src/libc \
                   [depot_user]/src/posix \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_lwip \
+                  [depot_user]/src/vfs_pipe \
                   [depot_user]/src/zlib \
                   [depot_user]/pkg/wireguard
 
@@ -71,6 +68,7 @@ append config {
 		<binary name="report_rom"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="no"/>
 		<route>
 			<service name="ROM"> <parent/> </service>
 			<service name="PD">  <parent/> </service>
@@ -100,7 +98,7 @@ append config {
 
 	<start name="fetchurl" caps="300">
 		<resource name="RAM" quantum="50M"/>
-		<config>
+		<config verbose="no">
 			<report progress="yes"/>
 			<vfs>
 				<dir name="dev">
@@ -111,6 +109,7 @@ append config {
 				<dir name="socket">
 					<lwip dhcp="yes"/>
 				</dir>
+				<dir name="pipe"> <pipe/> </dir>
 				<dir name="vm"> }
 
 append_if $linux config {
@@ -125,8 +124,9 @@ append config {
 
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket" pipe="/pipe"/>
 			<fetch url="10.0.9.2" path="/vm/index.html" retry="3"/>
+			<fetch url="10.0.9.2/index.html" path="/vm/data" retry="3"/>
 		</config>
 		<route>
 			<service name="File_system"> <child name="lx_fs"/> </service>
@@ -142,7 +142,7 @@ append config {
 
 	<start name="peer1_wireguard" caps="200">
 		<binary name="wireguard"/>
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="11M"/>
 		<config private_key="0CtU34qsl97IGiYKSO4tMaF/SJvy04zzeQkhZEbZSk0="
 		        listen_port="49001">
 
@@ -218,7 +218,7 @@ append config {
 
 	<start name="peer2_wireguard" caps="200">
 		<binary name="wireguard"/>
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="11M"/>
 		<config private_key="8GRSQZMgG1uuvz4APIBqrDmiLj8L886r++hzixjjHFc="
 		        listen_port="49002">
 
@@ -332,15 +332,9 @@ append_if $linux config {
 
 					<fs/> }
 
-if {$not_linux} {
+append_if $not_linux config {
 
-	append config {<inline name="index.html">}
-	for {set i 0} {$i < $file_size_in_bytes} {incr i 64} {
-
-		# append 100 bytes of "0"
-		append config {0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000}
-	}
-	append config {</inline>}
+	<rom name="index.html" label="wg_fetchurl.data"/>
 }
 
 append config {
@@ -373,8 +367,8 @@ append targets {
 	core init timer lib/ld server/nic_router server/report_rom lib/curl
 	app/fetchurl }
 
+set boot_modules { }
 if $linux {
-
 	append targets { server/lx_fs }
 
 	# create the lx_fs root of fetchurl where it will store the downloaded file
@@ -385,17 +379,21 @@ if $linux {
 	# create the lx_fs root of lighttpd and the downloadable file inside it
 	exec rm -rf [lx_fs_root]/lighttpd_fs
 	exec mkdir -p [lx_fs_root]/lighttpd_fs
-	exec head -c $file_size_in_bytes /dev/zero > [lx_fs_root]/lighttpd_fs/index.html
+	copy_file bin/wg_fetchurl.data  [lx_fs_root]/lighttpd_fs/index.html
+} else {
+	append boot_modules { wg_fetchurl.data }
 }
 
 build $targets
 
-build_boot_image [build_artifacts]
+exec head -c $file_size_in_bytes < /dev/urandom > bin/wg_fetchurl.data
+
+build_boot_image [list {*}[build_artifacts] {*}$boot_modules]
 
 append qemu_args "-nographic "
 
 # run the scenario till fetchurl succeeded to download the file
-run_genode_until "fetchurl. exited with exit value 0.*\n" 60
+run_genode_until "fetchurl. exited with exit value 0.*\n" 90
 
 if {$linux} {
 
