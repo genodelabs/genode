@@ -50,8 +50,8 @@ const struct trace_print_flags pageflag_names[] = { {0,NULL}};
 #include <asm/processor.h>
 
 /*
- * Early_identify_cpu() in linux sets this up normally, used by drm_cache
- * as well as arch/x86/lib/delay.c.
+ * Early_identify_cpu() in linux sets this up normally, used by drm_cache,
+ * arch/x86/lib/delay.c, and slub allocator.
  */
 struct cpuinfo_x86 boot_cpu_data =
 {
