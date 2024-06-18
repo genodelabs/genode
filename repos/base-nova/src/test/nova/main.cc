@@ -22,6 +22,7 @@
 #include <region_map/client.h>
 
 #include <base/attached_rom_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 
 #include <trace/timestamp.h>
 
@@ -298,9 +299,9 @@ void test_pat(Genode::Env &env)
 
 	enum { DS_ORDER = 12, PAGE_4K = 12 };
 
-	Ram_dataspace_capability ds = env.ram().alloc (1 << (DS_ORDER + PAGE_4K),
-	                                               WRITE_COMBINED);
-	addr_t map_addr = env.rm().attach(ds);
+	Attached_dataspace ds { env.rm(), env.ram().alloc (1 << (DS_ORDER + PAGE_4K),
+	                                                   WRITE_COMBINED) };
+	addr_t const map_addr = addr_t(ds.local_addr<void>());
 
 	enum { STACK_SIZE = 4096 };
 
@@ -309,7 +310,10 @@ void test_pat(Genode::Env &env)
 
 	Genode::Rm_connection rm(env);
 	Genode::Region_map_client rm_free_area(rm.create(1 << (DS_ORDER + PAGE_4K)));
-	addr_t remap_addr = env.rm().attach(rm_free_area.dataspace());
+
+	Attached_dataspace remap { env.rm(), rm_free_area.dataspace() };
+
+	addr_t const remap_addr = addr_t(remap.local_addr<void>());
 
 	/* trigger mapping of whole area */
 	for (addr_t i = map_addr; i < map_addr + (1 << (DS_ORDER + PAGE_4K)); i += (1 << PAGE_4K))
@@ -435,7 +439,7 @@ class Pager : private Genode::Thread {
 	private:
 
 		Native_capability _call_to_map { };
-		Ram_dataspace_capability _ds;
+		Attached_ram_dataspace _ds;
 		static addr_t _ds_mem;
 
 		void entry() override { }
@@ -468,9 +472,10 @@ class Pager : private Genode::Thread {
 		Pager(Genode::Env &env, Location location)
 		:
 			Thread(env, "pager", 0x1000, location, Weight(), env.cpu()),
-			_ds(env.ram().alloc (4096))
+			_ds(env.ram(), env.rm(), 4096)
 		{
-			_ds_mem = env.rm().attach(_ds);
+			_ds_mem = addr_t(_ds.local_addr<void>());
+
 			touch_read(reinterpret_cast<unsigned char *>(_ds_mem));
 
 			/* request creation of a 'local' EC */
@@ -503,7 +508,8 @@ class Cause_mapping : public Genode::Thread {
 		Native_capability  _call_to_map { };
 		Rm_connection      _rm;
 		Region_map_client  _sub_rm;
-		addr_t             _mem_nd;
+		Attached_dataspace _mem_ds;
+		addr_t             _mem_nd = addr_t(_mem_ds.local_addr<void>());
 		addr_t             _mem_st;
 		Nova::Rights const _mapping_rwx = {true, true, true};
 
@@ -518,7 +524,7 @@ class Cause_mapping : public Genode::Thread {
 			_call_to_map(call_to_map),
 			_rm(env),
 			_sub_rm(_rm.create(0x2000)),
-			_mem_nd(env.rm().attach(_sub_rm.dataspace())),
+			_mem_ds(env.rm(), _sub_rm.dataspace()),
 			_mem_st(mem_st)
 		{ }
 
@@ -606,7 +612,13 @@ class Greedy : public Genode::Thread {
 
 			for (unsigned i = 0; i < SUB_RM_SIZE / 4096; i++) {
 
-				addr_t map_to = _env.rm().attach(ds);
+				addr_t const map_to = _env.rm().attach(ds, { }).convert<addr_t>(
+					[&] (Region_map::Range r) { return r.start; },
+					[&] (Region_map::Attach_error) {
+						error("Greedy: failed to attach RAM dataspace");
+						return 0UL;
+					}
+				);
 
 				/* check that we really got the mapping */
 				touch_read(reinterpret_cast<unsigned char *>(map_to));

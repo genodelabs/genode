@@ -34,22 +34,15 @@ struct Genode::Expanding_region_map_client : Region_map_client
 	                            Parent::Client::Id pd_id)
 	: Region_map_client(rm), _pd_client(parent, pd, pd_id) { }
 
-	Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
-	                  bool use_local_addr, Local_addr local_addr,
-	                  bool executable, bool writeable) override
+	Attach_result attach(Dataspace_capability ds, Attr const &attr) override
 	{
-		return retry<Out_of_ram>(
-			[&] () {
-				return retry<Out_of_caps>(
-					[&] {
-						return Region_map_client::attach(ds, size, offset,
-						                                 use_local_addr,
-						                                 local_addr,
-						                                 executable,
-						                                 writeable); },
-					[&] { _pd_client.upgrade_caps(2); });
-			},
-			[&] () { _pd_client.upgrade_ram(8*1024); });
+		for (;;) {
+			Attach_result const result = Region_map_client::attach(ds, attr);
+			if      (result == Attach_error::OUT_OF_RAM)  _pd_client.upgrade_ram(8*1024);
+			else if (result == Attach_error::OUT_OF_CAPS) _pd_client.upgrade_caps(2);
+			else
+				return result;
+		}
 	}
 };
 

@@ -49,10 +49,8 @@ static inline void flush_stack_area()
 	Genode::size_t const size = stack_area_virtual_size();
 
 	int ret;
-	if ((ret = lx_munmap(base, size)) < 0) {
+	if ((ret = lx_munmap(base, size)) < 0)
 		error(__func__, ": failed ret=", ret);
-		throw Region_map::Region_conflict();
-	}
 }
 
 
@@ -71,10 +69,8 @@ static inline Genode::addr_t reserve_stack_area()
 	if (addr_in != addr_out) {
 		lx_munmap((void *)addr_out, size);
 		error(__func__, ": failed addr_in=", addr_in, " addr_out=", addr_out);
-		throw Region_map::Region_conflict();
 	}
-
-	return (addr_t) addr_out;
+	return (addr_t)addr_out;
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__STACK_AREA_H_ */

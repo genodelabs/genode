@@ -52,17 +52,27 @@ void Component::construct(Env &env)
 
 	for (unsigned r = 0; r < ROUNDS; ++r) {
 		for (unsigned i = 0; i < sizeof(page)/sizeof(*page); ++i) {
-			off_t const offset = 0;
+			addr_t const offset = 0;
 
-			unsigned char volatile const *v =
-				env.rm().attach(page[i].cap(), page[i].size(), offset);
+			uint8_t volatile const *v =
+				env.rm().attach(page[i].cap(), {
+					.size       = page[i].size(),
+					.offset     = offset,
+					.use_at     = { },
+					.at         = { },
+					.executable = false,
+					.writeable  = true
+				}).convert<uint8_t *>(
+					[&] (Region_map::Range range) { return (uint8_t *)range.start; },
+					[&] (Region_map::Attach_error) { return nullptr; }
+				);
 
 			if (page[i].color != *v) {
 				error("value @ ", v, "  ", X(*v), " != ", X(page[i].color), " in round ", r);
 				env.parent().exit(-1);
 			}
 
-			env.rm().detach(Region_map::Local_addr(v));
+			env.rm().detach(addr_t(v));
 		}
 	}
 

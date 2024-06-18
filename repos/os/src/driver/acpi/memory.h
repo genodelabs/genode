@@ -185,9 +185,14 @@ class Acpi::Memory
 			 * address is the offset of loop_region.base() from
 			 * _io_region.base().
 			 */
-			_acpi_window.attach_at(
-				_range.metadata((void *)loop_region.base())->connection->dataspace(),
-				loop_region.base() - _io_region->base(), loop_region.size());
+			_acpi_window.attach(_range.metadata((void *)loop_region.base())->connection->dataspace(), {
+				.size       = loop_region.size(),
+				.offset     = { },
+				.use_at     = true,
+				.at         = loop_region.base() - _io_region->base(),
+				.executable = { },
+				.writeable  = { }
+			});
 
 			return _acpi_ptr(req_base);
 		}

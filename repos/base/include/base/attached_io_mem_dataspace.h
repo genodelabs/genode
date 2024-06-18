@@ -15,7 +15,7 @@
 #define _INCLUDE__BASE__ATTACHED_IO_MEM_DATASPACE_H_
 
 #include <io_mem_session/connection.h>
-#include <base/env.h>
+#include <base/attached_dataspace.h>
 
 namespace Genode { class Attached_io_mem_dataspace; }
 
@@ -34,11 +34,23 @@ class Genode::Attached_io_mem_dataspace
 		Region_map                 &_env_rm;
 		Io_mem_connection           _mmio;
 		Io_mem_dataspace_capability _ds;
-		Region_map::Local_addr      _local_addr;
+		addr_t                const _at;
 
-		static void *_with_sub_page_offset(void *local, addr_t io_base)
+		static addr_t _with_sub_page_offset(addr_t local, addr_t io_base)
 		{
-			return (void *)((addr_t)local | (io_base & (addr_t)0xfff));
+			return local | (io_base & 0xfffUL);
+		}
+
+		addr_t _attach()
+		{
+			return _env_rm.attach(_ds, {
+				.size       = { }, .offset     = { },
+				.use_at     = { }, .at         = { },
+				.executable = { }, .writeable  = true
+			}).convert<addr_t>(
+				[&] (Region_map::Range range)  { return range.start; },
+				[&] (Region_map::Attach_error) { return 0UL;  }
+			);
 		}
 
 	public:
@@ -55,8 +67,8 @@ class Genode::Attached_io_mem_dataspace
 		 * \throw Insufficient_cap_quota
 		 * \throw Out_of_ram
 		 * \throw Out_of_caps
-		 * \throw Region_map::Region_conflict
-		 * \throw Region_map::Invalid_dataspace
+		 * \throw Attached_dataspace::Region_conflict
+		 * \throw Attached_dataspace::Invalid_dataspace
 		 */
 		Attached_io_mem_dataspace(Env &env, Genode::addr_t base, Genode::size_t size,
 		                          bool write_combined = false)
@@ -64,13 +76,16 @@ class Genode::Attached_io_mem_dataspace
 			_env_rm(env.rm()),
 			_mmio(env, base, size, write_combined),
 			_ds(_mmio.dataspace()),
-			_local_addr(_with_sub_page_offset(env.rm().attach(_ds), base))
-		{ }
+			_at(_with_sub_page_offset(_attach(), base))
+		{
+			if (!_ds.valid()) throw Attached_dataspace::Invalid_dataspace();
+			if (!_at)         throw Attached_dataspace::Region_conflict();
+		}
 
 		/**
 		 * Destructor
 		 */
-		~Attached_io_mem_dataspace() { _env_rm.detach(_local_addr); }
+		~Attached_io_mem_dataspace() { if (_at) _env_rm.detach(_at); }
 
 		/**
 		 * Return capability of the used RAM dataspace
@@ -84,7 +99,7 @@ class Genode::Attached_io_mem_dataspace
 		 * A newly allocated I/O MEM dataspace is untyped memory anyway.
 		 */
 		template <typename T>
-		T *local_addr() { return static_cast<T *>(_local_addr); }
+		T *local_addr() { return reinterpret_cast<T *>(_at); }
 };
 
 #endif /* _INCLUDE__BASE__ATTACHED_IO_MEM_DATASPACE_H_ */

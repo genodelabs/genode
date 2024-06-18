@@ -39,12 +39,11 @@ static char const *test_pattern_2() {
 
 
 static void fill_ds_with_test_pattern(Env &env, char const *pattern,
-                                      Dataspace_capability ds, size_t offset)
+                                      Dataspace_capability ds_cap, size_t offset)
 {
 	log("fill dataspace with information");
-	char *content = env.rm().attach(ds);
-	copy_cstring(content + offset, pattern, ~0);
-	env.rm().detach(content);
+	Attached_dataspace ds { env.rm(), ds_cap };
+	copy_cstring(ds.local_addr<char>() + offset, pattern, ~0);
 }
 
 
@@ -62,7 +61,7 @@ void Component::construct(Env &env)
 	log("--- sub-rm test ---");
 
 	log("create RM connection");
-	enum { SUB_RM_SIZE = 1024*1024 };
+	size_t const SUB_RM_SIZE = 1024*1024;
 	Rm_connection rm(env);
 
 	/*
@@ -80,7 +79,7 @@ void Component::construct(Env &env)
 	 */
 	log("create managed dataspace");
 	Region_map_client sub_rm(rm.create(SUB_RM_SIZE));
-	enum { DS_SIZE = 4*4096 };
+	size_t const DS_SIZE = 4*4096;
 	Ram_dataspace_capability ds = env.ram().alloc(DS_SIZE);
 
 	/*
@@ -91,19 +90,32 @@ void Component::construct(Env &env)
 
 	if (!config.xml().attribute_value("support_attach_sub_any", true)) {
 		log("attach RAM ds to any position at sub rm - this should fail");
-		try {
-			sub_rm.attach(ds, 0, 0, false, (addr_t)0);
-			fail("sub rm attach_any unexpectedly did not fail");
-		}
-		catch (Region_map::Region_conflict) {
-			log("attach failed as expected"); }
+		sub_rm.attach(ds, {
+			.size       = { },  .offset    = { },
+			.use_at     = { },  .at        = { },
+			.executable = { },  .writeable = true
+		}).with_result(
+			[&] (Region_map::Range) {
+				fail("sub rm attach_any unexpectedly did not fail"); },
+			[&] (Region_map::Attach_error e) {
+				if (e == Region_map::Attach_error::REGION_CONFLICT)
+					log("attach failed as expected"); }
+		);
 	}
 
 	log("attach RAM ds to a fixed position at sub rm");
 
-	enum { DS_SUB_OFFSET = 4096 };
-	if ((addr_t)sub_rm.attach_at(ds, DS_SUB_OFFSET, 0, 0) != DS_SUB_OFFSET)
-		fail("attach_at return-value mismatch");
+	addr_t const DS_SUB_OFFSET = 4096;
+	sub_rm.attach(ds, {
+		.size       = { },   .offset    = { },
+		.use_at     = true,  .at        = DS_SUB_OFFSET,
+		.executable = { },   .writeable = { }
+	}).with_result(
+		[&] (Region_map::Range const range) {
+			if (range.start != DS_SUB_OFFSET)
+				fail("attach-at return-value mismatch"); },
+		[&] (Region_map::Attach_error) { }
+	);
 
 	log("attach sub rm at local address space");
 
@@ -117,8 +129,15 @@ void Component::construct(Env &env)
 	 */
 	addr_t const local_attach_addr =
 		config.xml().attribute_value("local_attach_addr", (addr_t)0);
-	char *sub_rm_base = env.rm().attach_at(sub_rm.dataspace(),
-	                                       local_attach_addr);
+
+	char * const sub_rm_base = env.rm().attach(sub_rm.dataspace(), {
+		.size       = { },   .offset    = { },
+		.use_at     = true,  .at        = local_attach_addr,
+		.executable = { },   .writeable = true
+	}).convert<char *>(
+		[&] (Region_map::Range const range) { return (char *)range.start; },
+		[&] (Region_map::Attach_error)      { return nullptr; }
+	);
 
 	log("validate pattern in sub rm");
 	validate_pattern_at(test_pattern(), sub_rm_base + DS_SUB_OFFSET);
@@ -129,9 +148,17 @@ void Component::construct(Env &env)
 	 */
 
 	log("attach RAM ds at another fixed position at sub rm");
-	enum { DS_SUB_OFFSET_2 = 0x40000 };
-	if ((addr_t)sub_rm.attach_at(ds, DS_SUB_OFFSET_2, 0, 0) != DS_SUB_OFFSET_2)
-		fail("attach_at return-value mismatch");
+	addr_t const DS_SUB_OFFSET_2 = 0x40000;
+	sub_rm.attach(ds, {
+		.size       = { },   .offset    = { },
+		.use_at     = true,  .at        = DS_SUB_OFFSET_2,
+		.executable = { },   .writeable = { }
+	}).with_result(
+		[&] (Region_map::Range const range) {
+			if (range.start != DS_SUB_OFFSET_2)
+				fail("attach-at return-value mismatch"); },
+		[&] (Region_map::Attach_error) { }
+	);
 
 	log("validate pattern in second mapping in sub rm");
 	validate_pattern_at(test_pattern(), sub_rm_base + DS_SUB_OFFSET_2);
@@ -140,35 +167,50 @@ void Component::construct(Env &env)
 	 * Try to cross the boundaries of the sub RM session. This should
 	 * produce an error.
 	 */
-	try {
-		sub_rm.attach_at(ds, SUB_RM_SIZE - 4096, 0, 0);
-		fail("undetected boundary conflict\n");
-	}
-	catch (Region_map::Region_conflict) {
-		log("attaching beyond sub RM boundary failed as expected"); }
+	sub_rm.attach(ds, {
+		.size       = { },  .offset    = { },
+		.use_at     = true, .at        = SUB_RM_SIZE - 4096,
+		.executable = { },  .writeable = true
+	}).with_result(
+		[&] (Region_map::Range) {
+			fail("undetected boundary conflict\n"); },
+		[&] (Region_map::Attach_error e) {
+			if (e == Region_map::Attach_error::REGION_CONFLICT)
+				log("attaching beyond sub RM boundary failed as expected"); }
+	);
 
 	/*
 	 * Check for working region - conflict detection
 	 */
 	log("attaching RAM ds to a conflicting region");
-	try {
-		sub_rm.attach_at(ds, DS_SUB_OFFSET + 4096, 0, 0);
-		fail("region conflict went undetected\n");
-	}
-	catch (Region_map::Region_conflict) {
-		log("attaching conflicting region failed as expected"); }
+	sub_rm.attach(ds, {
+		.size       = { },  .offset    = { },
+		.use_at     = true, .at        = DS_SUB_OFFSET + 4096,
+		.executable = { },  .writeable = true
+	}).with_result(
+		[&] (Region_map::Range) {
+			fail("region conflict went undetected"); },
+		[&] (Region_map::Attach_error e) {
+			if (e == Region_map::Attach_error::REGION_CONFLICT)
+				log("attaching conflicting region failed as expected"); }
+	);
 
 	if (config.xml().attribute_value("attach_twice_forbidden", false)) {
 		/*
 		 * Try to double-attach the same sub RM session. This should fail
 		 */
 		log("attach sub rm again at local address space");
-		try {
-			env.rm().attach(sub_rm.dataspace());
-			fail("double attachment of sub RM session went undetected\n");
-		}
-		catch (Region_map::Region_conflict) {
-			log("doubly attaching sub RM session failed as expected"); }
+		sub_rm.attach(ds, {
+			.size       = { },  .offset    = { },
+			.use_at     = { },  .at        = { },
+			.executable = { },  .writeable = true
+		}).with_result(
+			[&] (Region_map::Range) {
+				fail("double attachment of sub RM session went undetected"); },
+			[&] (Region_map::Attach_error e) {
+				if (e == Region_map::Attach_error::REGION_CONFLICT)
+					log("doubly attaching sub RM session failed as expected"); }
+		);
 	}
 
 	/*
@@ -178,8 +220,12 @@ void Component::construct(Env &env)
 	 * page.
 	 */
 	log("attach RAM ds with offset");
-	enum { DS_SUB_OFFSET_3 = 0x80000 };
-	sub_rm.attach_at(ds, DS_SUB_OFFSET_3, 0, 4096);
+	addr_t const DS_SUB_OFFSET_3 = 0x80000;
+	sub_rm.attach(ds, {
+		.size       = { },   .offset    = 4096,
+		.use_at     = true,  .at        = DS_SUB_OFFSET_3,
+		.executable = { },   .writeable = true
+	});
 	validate_pattern_at(test_pattern_2(), sub_rm_base + DS_SUB_OFFSET_3);
 
 	/*
@@ -187,15 +233,19 @@ void Component::construct(Env &env)
 	 * starting with the second page.
 	 */
 	log("attach RAM ds with offset and size");
-	enum { DS_SUB_OFFSET_4 = 0xc0000 };
-	sub_rm.attach_at(ds, DS_SUB_OFFSET_4, 2*4096, 4096);
+	addr_t const DS_SUB_OFFSET_4 = 0xc0000;
+	sub_rm.attach(ds, {
+		.size       = 2*4096,  .offset    = 4096,
+		.use_at     = true,    .at        = DS_SUB_OFFSET_4,
+		.executable = { },     .writeable = true
+	});
 	validate_pattern_at(test_pattern_2(), sub_rm_base + DS_SUB_OFFSET_4);
 
 	/*
 	 * Detach the first attachment (to be validated by the run script by
 	 * inspecting '/proc/pid/maps' after running the test.
 	 */
-	sub_rm.detach((void *)DS_SUB_OFFSET);
+	sub_rm.detach(DS_SUB_OFFSET);
 
 	log("--- end of sub-rm test ---");
 

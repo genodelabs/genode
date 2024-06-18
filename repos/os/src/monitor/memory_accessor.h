@@ -52,14 +52,29 @@ class Monitor::Memory_accessor : Noncopyable
 
 			struct { uint8_t * const _local_ptr; };
 
+			uint8_t *_attach()
+			{
+				return _local_rm.attach(_pd._address_space.dataspace(), {
+					.size       = WINDOW_SIZE,
+					.offset     = _offset,
+					.use_at     = { },
+					.at         = { },
+					.executable = false,
+					.writeable  = true
+				}).convert<uint8_t *>(
+					[&] (Region_map::Range range)  { return (uint8_t *)range.start; },
+					[&] (Region_map::Attach_error) { return nullptr; }
+				);
+			}
+
 			Curr_view(Region_map &local_rm, Inferior_pd &pd, addr_t offset)
 			:
-				_local_rm(local_rm), _pd(pd), _offset(offset),
-				_local_ptr(_local_rm.attach(pd._address_space.dataspace(),
-				                            WINDOW_SIZE, offset))
+				_local_rm(local_rm), _pd(pd), _offset(offset), _local_ptr(_attach())
 			{ }
 
-			~Curr_view() { _local_rm.detach(_local_ptr); }
+			~Curr_view() { if (_local_ptr) _local_rm.detach(addr_t(_local_ptr)); }
+
+			bool valid() const { return (_local_ptr != nullptr); };
 
 			bool _in_curr_range(Virt_addr at) const
 			{
@@ -271,8 +286,9 @@ class Monitor::Memory_accessor : Noncopyable
 
 			if (!_curr_view.constructed()) {
 				addr_t const offset = at.value & ~(WINDOW_SIZE - 1);
-				try { _curr_view.construct(_env.rm(), pd, offset); }
-				catch (Region_map::Region_conflict) {
+				_curr_view.construct(_env.rm(), pd, offset);
+				if (!_curr_view->valid()) {
+					_curr_view.destruct();
 					warning("attempt to access memory outside the virtual address space: ",
 					        Hex(at.value));
 					return 0;

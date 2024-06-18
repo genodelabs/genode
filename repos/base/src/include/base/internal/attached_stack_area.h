@@ -33,11 +33,16 @@ struct Genode::Attached_stack_area : Expanding_region_map_client
 		Expanding_region_map_client(parent, pd, Pd_session_client(pd).stack_area(),
 		                            Parent::Env::pd())
 	{
-		Region_map_client address_space(Pd_session_client(pd).address_space());
+		Region_map_client local_rm(Pd_session_client(pd).address_space());
 
-		address_space.attach_at(Expanding_region_map_client::dataspace(),
-		                        stack_area_virtual_base(),
-		                        stack_area_virtual_size());
+		local_rm.attach(Expanding_region_map_client::dataspace(), Region_map::Attr {
+			.size       = stack_area_virtual_size(),
+			.offset     = { },
+			.use_at     = true,
+			.at         = stack_area_virtual_base(),
+			.executable = false,
+			.writeable  = true
+		});
 	}
 };
 

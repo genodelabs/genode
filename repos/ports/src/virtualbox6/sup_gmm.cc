@@ -34,8 +34,30 @@ void Sup::Gmm::_add_one_slice()
 
 	Ram_dataspace_capability ds = _env.ram().alloc(slice_size);
 
-	_map.connection.retry_with_upgrade(Ram_quota{8192}, Cap_quota{2}, [&] () {
-		_map.rm.attach_rwx(ds, attach_base, slice_size); });
+	for (;;) {
+
+		Region_map::Attach_result const result = _map.rm.attach(ds, {
+			.size       = slice_size,
+			.offset     = { },
+			.use_at     = true,
+			.at         = attach_base,
+			.executable = true,
+			.writeable  = true
+		});
+
+		if (result.ok())
+			break;
+
+		using Error = Region_map::Attach_error;
+
+		if      (result == Error::OUT_OF_RAM)  _map.connection.upgrade_ram(8*1024);
+		else if (result == Error::OUT_OF_CAPS) _map.connection.upgrade_caps(2);
+		else {
+			error("Gmm::_add_one_slice failed to attach slice to map");
+			_env.ram().free(ds);
+			return;
+		}
+	}
 
 	_slices[_slice_index(Offset{attach_base})] = ds;
 

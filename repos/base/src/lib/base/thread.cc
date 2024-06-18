@@ -49,19 +49,35 @@ void Stack::size(size_t const size)
 
 	/* allocate and attach backing store for the stack enhancement */
 	addr_t const ds_addr = _base - ds_size - stack_area_virtual_base();
-	try {
-		Ram_allocator * const ram = env_stack_area_ram_allocator;
-		Ram_dataspace_capability const ds_cap = ram->alloc(ds_size);
-		Region_map * const rm = env_stack_area_region_map;
-		void * const attach_addr = rm->attach_at(ds_cap, ds_addr, ds_size);
 
-		if (ds_addr != (addr_t)attach_addr)
-			throw Thread::Out_of_stack_space();
-	}
-	catch (Out_of_ram) { throw Thread::Stack_alloc_failed(); }
+	Ram_allocator &ram = *env_stack_area_ram_allocator;
+	Region_map    &rm  = *env_stack_area_region_map;
 
-	/* update stack information */
-	_base -= ds_size;
+	ram.try_alloc(ds_size).with_result(
+		[&] (Ram_dataspace_capability ds_cap) {
+
+			rm.attach(ds_cap, Region_map::Attr {
+				.size       = ds_size,
+				.offset     = 0,
+				.use_at     = true,
+				.at         = ds_addr,
+				.executable = { },
+				.writeable  = true,
+			}).with_result(
+				[&] (Region_map::Range r) {
+					if (r.start != ds_addr)
+						throw Thread::Stack_alloc_failed();
+
+					/* update stack information */
+					_base -= ds_size;
+				},
+				[&] (Region_map::Attach_error) {
+					throw Thread::Stack_alloc_failed(); }
+			);
+		},
+		[&] (Ram_allocator::Alloc_error) {
+			throw Thread::Stack_alloc_failed(); }
+	);
 }
 
 
@@ -93,27 +109,53 @@ Thread::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 	if (sizeof(Native_utcb) >= (1 << PAGE_SIZE_LOG2))
 		ds_addr -= sizeof(Native_utcb);
 
+	Ram_allocator &ram = *env_stack_area_ram_allocator;
+
 	/* allocate and attach backing store for the stack */
-	Ram_dataspace_capability ds_cap;
-	try {
-		ds_cap = env_stack_area_ram_allocator->alloc(ds_size);
-		addr_t attach_addr = ds_addr - stack_area_virtual_base();
-		if (attach_addr != (addr_t)env_stack_area_region_map->attach_at(ds_cap, attach_addr, ds_size))
-			throw Stack_alloc_failed();
-	}
-	catch (Out_of_ram) { throw Stack_alloc_failed(); }
+	return ram.try_alloc(ds_size).convert<Stack *>(
 
-	/*
-	 * Now the stack is backed by memory, so it is safe to access its members.
-	 *
-	 * We need to initialize the stack object's memory with zeroes, otherwise
-	 * the ds_cap isn't invalid. That would cause trouble when the assignment
-	 * operator of Native_capability is used.
-	 */
-	construct_at<Stack>(stack, name, *this, ds_addr, ds_cap);
+		[&] (Ram_dataspace_capability const ds_cap)
+		{
+			addr_t const attach_addr = ds_addr - stack_area_virtual_base();
 
-	Abi::init_stack(stack->top());
-	return stack;
+			return env_stack_area_region_map->attach(ds_cap, Region_map::Attr {
+				.size       = ds_size,
+				.offset     = { },
+				.use_at     = true,
+				.at         = attach_addr,
+				.executable = { },
+				.writeable  = true
+			}).convert<Stack *>(
+
+				[&] (Region_map::Range const range) -> Stack * {
+					if (range.start != attach_addr) {
+						ram.free(ds_cap);
+						throw Stack_alloc_failed();
+					}
+
+					/*
+					 * Now the stack is backed by memory, it is safe to access
+					 * its members.
+					 *
+					 * We need to initialize the stack object's memory with
+					 * zeroes, otherwise the ds_cap isn't invalid. That would
+					 * cause trouble when the assignment operator of
+					 * Native_capability is used.
+					 */
+					construct_at<Stack>(stack, name, *this, ds_addr, ds_cap);
+
+					Abi::init_stack(stack->top());
+					return stack;
+				},
+				[&] (Region_map::Attach_error) -> Stack * {
+					ram.free(ds_cap);
+					throw Stack_alloc_failed();
+				}
+			);
+		},
+		[&] (Ram_allocator::Alloc_error) -> Stack * {
+			throw Stack_alloc_failed(); }
+	);
 }
 
 
@@ -125,7 +167,7 @@ void Thread::_free_stack(Stack *stack)
 	/* call de-constructor explicitly before memory gets detached */
 	stack->~Stack();
 
-	Genode::env_stack_area_region_map->detach((void *)ds_addr);
+	Genode::env_stack_area_region_map->detach(ds_addr);
 	Genode::env_stack_area_ram_allocator->free(ds_cap);
 
 	/* stack ready for reuse */
@@ -226,7 +268,15 @@ void Thread::_init_cpu_session_and_trace_control()
 	/* initialize trace control now that the CPU session must be valid */
 	Dataspace_capability ds = _cpu_session->trace_control();
 	if (ds.valid()) {
-		_trace_control = local_rm_ptr->attach(ds); }
+		Region_map::Attr attr { };
+		attr.writeable = true;
+		local_rm_ptr->attach(ds, attr).with_result(
+			[&] (Region_map::Range range) {
+				_trace_control = reinterpret_cast<Trace::Control *>(range.start); },
+			[&] (Region_map::Attach_error) {
+				error("failed to initialize trace control for new thread"); }
+		);
+	}
 }
 
 
@@ -270,7 +320,7 @@ Thread::~Thread()
 	 * detached trace control dataspace.
 	 */
 	if (_trace_control && local_rm_ptr)
-		local_rm_ptr->detach(_trace_control);
+		local_rm_ptr->detach(addr_t(_trace_control));
 }
 
 

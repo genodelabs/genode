@@ -148,24 +148,21 @@ class Genode::Session_env : public Ram_allocator,
 		 ** Region_map **
 		 ****************/
 
-		Local_addr attach(Dataspace_capability ds,
-		                  size_t               size = 0,
-		                  off_t                offset = 0,
-		                  bool                 use_local_addr = false,
-		                  Local_addr           local_addr = (void *)0,
-		                  bool                 executable = false,
-		                  bool                 writeable = true) override
+		Attach_result attach(Dataspace_capability ds, Attr const &attr) override
 		{
 			enum { MAX_SHARED_CAP = 2 };
 			enum { MAX_SHARED_RAM = 4 * 4096 };
 
-			void *ptr;
-			_consume(0, MAX_SHARED_RAM, 0, MAX_SHARED_CAP, [&] () {
-				ptr = _env.rm().attach(ds, size, offset, use_local_addr,
-				                       local_addr, executable, writeable);
-			});
-			return ptr;
-		};
+			Attach_result result = Attach_error::REGION_CONFLICT;
+			try {
+				_consume(0, MAX_SHARED_RAM, 0, MAX_SHARED_CAP, [&] {
+					result = _env.rm().attach(ds, attr);
+				});
+			}
+			catch (Out_of_ram)  { result = Attach_error::OUT_OF_RAM; }
+			catch (Out_of_caps) { result = Attach_error::OUT_OF_CAPS; }
+			return result;
+		}
 
 		bool report_empty() const { return false; }
 
@@ -183,13 +180,13 @@ class Genode::Session_env : public Ram_allocator,
 			});
 		}
 
-		void detach(Local_addr local_addr) override
+		void detach(addr_t at) override
 		{
-			_replenish(0, 0, [&] () { _env.rm().detach(local_addr); });
+			_replenish(0, 0, [&] { _env.rm().detach(at); });
 		}
 
 		void fault_handler(Signal_context_capability handler) override { _env.rm().fault_handler(handler); }
-		State state() override { return _env.rm().state(); }
+		Fault fault() override { return _env.rm().fault(); }
 		Dataspace_capability dataspace() override { return _env.rm().dataspace(); }
 
 

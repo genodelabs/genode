@@ -50,13 +50,15 @@ namespace Libc {
 				MAX_CHUNK_SIZE = 1024*1024
 			};
 
+			using Range = Region_map::Range;
+
 			struct Dataspace : List<Dataspace>::Element
 			{
 				Ram_dataspace_capability cap;
-				void *local_addr;
+				Range range;
 
-				Dataspace(Ram_dataspace_capability c, void *a)
-				: cap(c), local_addr(a) {}
+				Dataspace(Ram_dataspace_capability cap, Range range)
+				: cap(cap), range(range) { }
 			};
 
 			class Dataspace_pool : public List<Dataspace>

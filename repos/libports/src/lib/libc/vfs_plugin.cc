@@ -2424,9 +2424,19 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 			return MAP_FAILED;
 		}
 
-		try {
-			addr = region_map().attach(ds_cap, length, offset);
-		} catch (...) {
+		region_map().attach(ds_cap, {
+			.size       = length,
+			.offset     = addr_t(offset),
+			.use_at     = { },
+			.at         = { },
+			.executable = { },
+			.writeable  = true
+		}).with_result(
+			[&] (Region_map::Range range)  { addr = (void *)range.start; },
+			[&] (Region_map::Attach_error) { addr = nullptr; }
+		);
+
+		if (!addr) {
 			monitor().monitor([&] {
 				reference_handle->close();
 				return Fn::COMPLETE;
@@ -2469,7 +2479,7 @@ int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 		if (entry.start == addr) {
 			reference_handle = entry.reference_handle;
 			destroy(_alloc, &entry);
-			region_map().detach(addr);
+			region_map().detach(addr_t(addr));
 		}
 	});
 

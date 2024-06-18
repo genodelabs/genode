@@ -346,21 +346,21 @@ extern "C" dde_addr_t dde_dma_get_physaddr(void *virt) {
 
 extern "C" dde_uint8_t dde_inb(dde_addr_t port)
 {
-	dde_uint8_t v;
+	dde_uint8_t v { };
 	pci_drv().with_io_port([&] (Io_port & iop) { v = iop.inb(port); });
 	return v;
 }
 
 extern "C" dde_uint16_t dde_inw(dde_addr_t port)
 {
-	dde_uint16_t v;
+	dde_uint16_t v { };
 	pci_drv().with_io_port([&] (Io_port & iop) { v = iop.inw(port); });
 	return v;
 }
 
 extern "C" dde_uint32_t dde_inl(dde_addr_t port)
 {
-	dde_uint32_t v;
+	dde_uint32_t v { };
 	pci_drv().with_io_port([&] (Io_port & iop) { v = iop.inl(port); });
 	return v;
 }
@@ -384,17 +384,16 @@ struct Slab_backend_alloc : public Genode::Allocator,
                             public Genode::Rm_connection,
                             public Genode::Region_map_client
 {
-	enum {
-		VM_SIZE    = 2 * 1024 * 1024,
-		BLOCK_SIZE =       64 * 1024,
-		ELEMENTS   = VM_SIZE / BLOCK_SIZE,
-	};
+	static constexpr Genode::size_t VM_SIZE    = 2 * 1024 * 1024,
+	                                BLOCK_SIZE =       64 * 1024,
+	                                ELEMENTS   = VM_SIZE / BLOCK_SIZE;
 
-	Genode::addr_t                    _base;
-	Genode::Ram_dataspace_capability  _ds_cap[ELEMENTS];
-	int                               _index;
-	Genode::Allocator_avl             _range;
-	Genode::Ram_allocator            &_ram;
+	Genode::Attached_dataspace       _managed_ds;
+	Genode::addr_t                   _base = Genode::addr_t(_managed_ds.local_addr<void>());
+	Genode::Ram_dataspace_capability _ds_cap[ELEMENTS];
+	unsigned                         _index = 0;
+	Genode::Allocator_avl            _range;
+	Genode::Ram_allocator           &_ram;
 
 	struct Extend_ok { };
 	using Extend_result = Genode::Attempt<Extend_ok, Alloc_error>;
@@ -414,30 +413,41 @@ struct Slab_backend_alloc : public Genode::Allocator,
 
 				_ds_cap[_index] = ds;
 
-				Alloc_error error = Alloc_error::DENIED;
+				return Region_map_client::attach(_ds_cap[_index], {
+					.size       = BLOCK_SIZE,
+					.offset     = { },
+					.use_at     = true,
+					.at         = _index*BLOCK_SIZE,
+					.executable = false,
+					.writeable  = true
+				}).convert<Extend_result>(
 
-				try {
-					Region_map_client::attach_at(_ds_cap[_index],
-					                             _index * BLOCK_SIZE,
-					                             BLOCK_SIZE, 0);
-					/* return base + offset in VM area */
-					addr_t block_base = _base + (_index * BLOCK_SIZE);
-					++_index;
+					[&] (Region_map::Range range) {
 
-					_range.add_range(block_base, BLOCK_SIZE);
+						_index++;
 
-					return Extend_ok();
-				}
-				catch (Out_of_ram)  { error = Alloc_error::OUT_OF_RAM; }
-				catch (Out_of_caps) { error = Alloc_error::OUT_OF_CAPS; }
-				catch (...)         { error = Alloc_error::DENIED; }
+						return _range.add_range(_base + range.start, range.num_bytes)
+							.convert<Extend_result>(
+								[&] (Range_allocator::Range_ok) { return Extend_ok(); },
+								[&] (Alloc_error e)             { return e; });
+					},
 
-				Genode::error("Slab_backend_alloc: local attach_at failed");
+					[&] (Region_map::Attach_error e) {
 
-				_ram.free(ds);
-				_ds_cap[_index] = { };
+						Genode::error("Slab_backend_alloc: local attach_at failed");
+						_ram.free(ds);
+						_ds_cap[_index] = { };
 
-				return error;
+						using Error = Region_map::Attach_error;
+						switch (e) {
+						case Error::OUT_OF_RAM:        return Alloc_error::OUT_OF_RAM;
+						case Error::OUT_OF_CAPS:       return Alloc_error::OUT_OF_CAPS;
+						case Error::INVALID_DATASPACE: break;
+						case Error::REGION_CONFLICT:   break;
+						}
+						return Alloc_error::DENIED;
+					}
+				);
 			},
 
 			[&] (Alloc_error e) -> Extend_result {
@@ -451,11 +461,8 @@ struct Slab_backend_alloc : public Genode::Allocator,
 	:
 		Rm_connection(env),
 		Region_map_client(Rm_connection::create(VM_SIZE)),
-		_index(0), _range(&md_alloc), _ram(ram)
-	{
-		/* reserver attach us, anywere */
-		_base = rm.attach(dataspace());
-	}
+		_managed_ds(rm, dataspace()), _range(&md_alloc), _ram(ram)
+	{ }
 
 	Genode::addr_t start() const { return _base; }
 	Genode::addr_t end()   const { return _base + VM_SIZE - 1; }

@@ -21,18 +21,16 @@
 using namespace Core;
 
 
-Region_map::Local_addr
-Core_region_map::attach(Dataspace_capability ds_cap, size_t, off_t, bool,
-                        Region_map::Local_addr, bool, bool)
+Region_map::Attach_result
+Core_region_map::attach(Dataspace_capability ds_cap, Attr const &)
 {
-	auto lambda = [] (Dataspace_component *ds) {
+	return _ep.apply(ds_cap, [] (Dataspace_component *ds) -> Attach_result {
 		if (!ds)
-			throw Invalid_dataspace();
+			return Attach_error::INVALID_DATASPACE;
 
-		return (void *)ds->phys_addr();
-	};
-	return _ep.apply(ds_cap, lambda);
+		return Range { .start = ds->phys_addr(), .num_bytes = ds->size() };
+	});
 }
 
 
-void Core_region_map::detach(Local_addr) { }
+void Core_region_map::detach(addr_t) { }

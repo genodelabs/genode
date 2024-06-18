@@ -31,6 +31,7 @@ void Dataspace_component::detached_from(Rm_region &region)
 	_regions.remove(&region);
 }
 
+
 void Dataspace_component::detach_from_rm_sessions()
 {
 	_mutex.acquire();
@@ -44,12 +45,13 @@ void Dataspace_component::detach_from_rm_sessions()
 		 * removes the current region from the '_regions' list.
 		 */
 		_mutex.release();
-		r->rm().reserve_and_flush((void *)r->base());
+		r->rm().reserve_and_flush(r->base());
 		_mutex.acquire();
 	}
 
 	_mutex.release();
 }
+
 
 Dataspace_component::~Dataspace_component()
 {

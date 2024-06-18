@@ -236,14 +236,14 @@ static void *alloc_mem(size_t cb, const char *pszTag, bool executable = false)
 		Ram_dataspace_capability ds = genode_env().ram().alloc(cb);
 		Assert(ds.valid());
 
-		Genode::size_t const whole_size = 0;
-		Genode::off_t  const offset     = 0;
-		bool           const any_addr   = false;
-		void *               any_local_addr = nullptr;
-
-		void * local_addr = rt_memory.attach(ds, whole_size, offset,
-		                                     any_addr, any_local_addr,
-		                                     executable);
+		void * const local_addr = rt_memory.attach(ds, {
+			.size       = { },        .offset    = { },
+			.use_at     = { },        .at        = { },
+			.executable = executable, .writeable = true
+		}).convert<void *>(
+			[&] (Region_map::Range range)  { return (void *)range.start; },
+			[&] (Region_map::Attach_error) { return nullptr; }
+		);
 
 		Assert(local_addr);
 

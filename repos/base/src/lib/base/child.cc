@@ -759,8 +759,6 @@ void Child::_try_construct_env_dependent_members()
 	catch (Out_of_caps)                     { _error("out of caps during ELF loading"); }
 	catch (Process::Missing_dynamic_linker) { _error("dynamic linker unavailable"); }
 	catch (Process::Invalid_executable)     { _error("invalid ELF executable"); }
-	catch (Region_map::Invalid_dataspace)   { _error("ELF loading failed (Invalid_dataspace)"); }
-	catch (Region_map::Region_conflict)     { _error("ELF loading failed (Region_conflict)"); }
 }
 
 

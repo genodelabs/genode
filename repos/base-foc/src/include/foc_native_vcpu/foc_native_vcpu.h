@@ -22,7 +22,7 @@
 
 struct Genode::Vm_session::Native_vcpu : Interface
 {
-	GENODE_RPC(Rpc_foc_vcpu_state, Region_map::Local_addr, foc_vcpu_state);
+	GENODE_RPC(Rpc_foc_vcpu_state, addr_t, foc_vcpu_state);
 	GENODE_RPC(Rpc_task_index, Foc::l4_cap_idx_t, task_index);
 
 	GENODE_RPC_INTERFACE(Rpc_task_index, Rpc_foc_vcpu_state);

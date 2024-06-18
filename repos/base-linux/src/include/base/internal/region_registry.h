@@ -28,7 +28,7 @@ class Genode::Region
 	private:
 
 		addr_t               _start  { 0 };
-		off_t                _offset { 0 };
+		addr_t               _offset { 0 };
 		Dataspace_capability _ds     {   };
 		size_t               _size   { 0 };
 
@@ -41,7 +41,7 @@ class Genode::Region
 
 		Region() { }
 
-		Region(addr_t start, off_t offset, Dataspace_capability ds, size_t size)
+		Region(addr_t start, addr_t offset, Dataspace_capability ds, size_t size)
 		: _start(start), _offset(offset), _ds(ds), _size(size) { }
 
 		bool                 used()      const { return _size > 0; }

@@ -76,7 +76,7 @@
 #include <base/env.h>
 #include <base/signal.h>
 #include <base/allocator.h>
-#include <dataspace/client.h>
+#include <base/attached_dataspace.h>
 #include <util/string.h>
 #include <util/construct_at.h>
 
@@ -492,8 +492,7 @@ class Genode::Packet_stream_base
 
 		Genode::Region_map          &_rm;
 		Genode::Dataspace_capability _ds_cap;
-		void                        *_ds_local_base;
-		Genode::size_t               _ds_size { 0 };
+		Genode::Attached_dataspace   _ds { _rm, _ds_cap };
 
 		Genode::off_t  _submit_queue_offset;
 		Genode::off_t  _ack_queue_offset;
@@ -515,43 +514,24 @@ class Genode::Packet_stream_base
 			_rm(rm), _ds_cap(transport_ds),
 
 			/* map dataspace locally */
-			_ds_local_base(rm.attach(_ds_cap)),
 			_submit_queue_offset(0),
 			_ack_queue_offset(_submit_queue_offset + submit_queue_size),
 			_bulk_buffer_offset(align_addr(_ack_queue_offset + ack_queue_size, 6))
 		{
-			Genode::size_t ds_size = Genode::Dataspace_client(_ds_cap).size();
-
-			if ((Genode::size_t)_bulk_buffer_offset >= ds_size)
+			if ((Genode::size_t)_bulk_buffer_offset >= _ds.size())
 				throw Transport_dataspace_too_small();
 
-			_ds_size = ds_size;
-			_bulk_buffer_size = ds_size - _bulk_buffer_offset;
-		}
-
-		/**
-		 * Destructor
-		 */
-		~Packet_stream_base()
-		{
-			/*
-			 * Prevent throwing exceptions from the destructor. Otherwise,
-			 * the compiler may generate implicit calls to 'std::terminate'.
-			 */
-			try {
-				/* unmap transport dataspace locally */
-				_rm.detach(_ds_local_base);
-			} catch (...) { }
+			_bulk_buffer_size = _ds.size() - _bulk_buffer_offset;
 		}
 
 		void *_submit_queue_local_base() {
-			return (void *)((Genode::addr_t)_ds_local_base + _submit_queue_offset); }
+			return _ds.local_addr<char>() + _submit_queue_offset; }
 
 		void *_ack_queue_local_base() {
-			return (void *)((Genode::addr_t)_ds_local_base + _ack_queue_offset); }
+			return _ds.local_addr<char>() + _ack_queue_offset; }
 
 		Genode::addr_t _bulk_buffer_local_base() {
-			return (Genode::addr_t)_ds_local_base + _bulk_buffer_offset; }
+			return (Genode::addr_t)_ds.local_addr<char>() + _bulk_buffer_offset; }
 
 		/**
 		 * Hook for unit testing
@@ -578,11 +558,11 @@ class Genode::Packet_stream_base
 			if (!packet_valid(packet) || packet.size() < sizeof(CONTENT_TYPE))
 				throw Packet_descriptor::Invalid_packet();
 
-			return (CONTENT_TYPE *)((Genode::addr_t)_ds_local_base + packet.offset());
+			return (CONTENT_TYPE *)(_ds.local_addr<char>() + packet.offset());
 		}
 
-		Genode::addr_t ds_local_base() const { return (Genode::addr_t)_ds_local_base; }
-		Genode::addr_t ds_size()       const { return _ds_size; }
+		Genode::addr_t ds_local_base() const { return (Genode::addr_t)_ds.local_addr<char>(); }
+		Genode::addr_t ds_size()       const { return _ds.size(); }
 };
 
 
@@ -853,8 +833,8 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		Genode::Dataspace_capability dataspace() {
 			return Packet_stream_base::_dataspace(); }
 
-		Genode::addr_t ds_local_base() const { return reinterpret_cast<Genode::addr_t>(_ds_local_base); }
-		Genode::addr_t ds_size()       const { return Packet_stream_base::_ds_size; }
+		Genode::addr_t ds_local_base() const { return (Genode::addr_t)_ds.local_addr<void>(); }
+		Genode::addr_t ds_size()       const { return Packet_stream_base::_ds.size(); }
 };
 
 
@@ -1030,8 +1010,8 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		Genode::Dataspace_capability dataspace() {
 			return Packet_stream_base::_dataspace(); }
 
-		Genode::addr_t ds_local_base() const { return reinterpret_cast<Genode::addr_t>(_ds_local_base); }
-		Genode::addr_t ds_size()       const { return Packet_stream_base::_ds_size; }
+		Genode::addr_t ds_local_base() const { return (Genode::addr_t)_ds.local_addr<char>(); }
+		Genode::addr_t ds_size()       const { return Packet_stream_base::_ds.size(); }
 };
 
 #endif /* _INCLUDE__OS__PACKET_STREAM_H_ */

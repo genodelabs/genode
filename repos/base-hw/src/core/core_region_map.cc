@@ -23,67 +23,63 @@
 using namespace Core;
 
 
-Region_map::Local_addr
-Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
-                        off_t offset, bool use_local_addr,
-                        Region_map::Local_addr, bool, bool writeable)
+Region_map::Attach_result
+Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 {
-	return _ep.apply(ds_cap, [&] (Dataspace_component *ds_ptr) -> Local_addr {
+	return _ep.apply(ds_cap, [&] (Dataspace_component *ds_ptr) -> Attach_result {
 
 		if (!ds_ptr)
-			throw Invalid_dataspace();
+			return Attach_error::INVALID_DATASPACE;
 
 		Dataspace_component &ds = *ds_ptr;
 
-		if (size == 0)
-			size = ds.size();
+		size_t const size = (attr.size == 0) ? ds.size() : attr.size;
+		size_t const page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
 
-		size_t page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
-
-		if (use_local_addr) {
-			error("Parameter 'use_local_addr' not supported within core");
-			return nullptr;
-		}
-
-		if (offset) {
-			error("Parameter 'offset' not supported within core");
-			return nullptr;
-		}
+		/* attach attributes 'use_at' and 'offset' not supported within core */
+		if (attr.use_at || attr.offset)
+			return Attach_error::REGION_CONFLICT;
 
 		unsigned const align = get_page_size_log2();
 
 		/* allocate range in core's virtual address space */
-		Allocator::Alloc_result virt =
+		Allocator::Alloc_result const virt =
 			platform().region_alloc().alloc_aligned(page_rounded_size, align);
 
 		if (virt.failed()) {
 			error("could not allocate virtual address range in core of size ",
 			      page_rounded_size);
-			return nullptr;
+			return Attach_error::REGION_CONFLICT;
 		}
 
 		using namespace Hw;
 
 		/* map the dataspace's physical pages to corresponding virtual addresses */
-		unsigned num_pages = (unsigned)(page_rounded_size >> get_page_size_log2());
-		Page_flags const flags { (writeable && ds.writeable()) ? RW : RO,
-		                         NO_EXEC, KERN, GLOBAL,
-		                         ds.io_mem() ? DEVICE : RAM,
-		                         ds.cacheability() };
+		unsigned const num_pages = unsigned(page_rounded_size >> get_page_size_log2());
 
-		return virt.convert<Local_addr>(
+		Page_flags const flags {
+			.writeable  = (attr.writeable && ds.writeable()) ? RW : RO,
+			.executable = NO_EXEC,
+			.privileged = KERN,
+			.global     = GLOBAL,
+			.type       = ds.io_mem() ? DEVICE : RAM,
+			.cacheable  = ds.cacheability()
+		};
 
-			[&] (void *virt_addr) -> void * {
+		return virt.convert<Attach_result>(
+
+			[&] (void *virt_addr) -> Attach_result {
 				if (map_local(ds.phys_addr(), (addr_t)virt_addr, num_pages, flags))
-					return virt_addr;
+					return Range { .start     = addr_t(virt_addr),
+					               .num_bytes = page_rounded_size };
 
 				platform().region_alloc().free(virt_addr, page_rounded_size);
-				return nullptr; },
+				return Attach_error::REGION_CONFLICT; },
 
 			[&] (Allocator::Alloc_error) {
-				return nullptr; });
+				return Attach_error::REGION_CONFLICT; });
 	});
 }
 
 
-void Core_region_map::detach(Local_addr) { }
+void Core_region_map::detach(addr_t) { }

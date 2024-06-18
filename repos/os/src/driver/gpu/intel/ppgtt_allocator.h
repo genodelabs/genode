@@ -77,28 +77,44 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 			catch (Gpu::Session::Out_of_caps) { throw; }
 			catch (...) { return Alloc_error::DENIED; }
 
-			Alloc_error alloc_error = Alloc_error::DENIED;
+			return _rm.attach(ds, {
+				.size       = { },
+				.offset     = { },
+				.use_at     = { },
+				.at         = { },
+				.executable = { },
+				.writeable  = true
+			}).convert<Alloc_result>(
 
-			try {
-				void * const va = _rm.attach(ds);
-				void * const pa = (void*)_backend.dma_addr(ds);
+				[&] (Genode::Region_map::Range const range) -> Alloc_result {
 
-				if (_map.add(ds, pa, va, alloc_size) == true) {
-					_range.add_range((Genode::addr_t)va, alloc_size);
-					result = _range.alloc_aligned(size, 12);
-					return result;
+					void * const va = (void*)range.start;
+					void * const pa = (void*)_backend.dma_addr(ds);
+
+					if (_map.add(ds, pa, va, range.num_bytes) == true) {
+						if (_range.add_range(range.start, range.num_bytes).ok())
+							return _range.alloc_aligned(size, 12);
+
+						Genode::error("Ppgtt_allocator failed to extend meta data");
+					}
+
+					/* _map.add failed, roll back _rm.attach */
+					_rm.detach(range.start);
+					_backend.free(ds);
+					return Alloc_error::DENIED;
+				},
+
+				[&] (Genode::Region_map::Attach_error e) {
+
+					_backend.free(ds);
+
+					using Error = Genode::Region_map::Attach_error;
+
+					if (e == Error::OUT_OF_RAM)  return Alloc_error::OUT_OF_RAM;
+					if (e == Error::OUT_OF_CAPS) return Alloc_error::OUT_OF_CAPS;
+					return Alloc_error::DENIED;
 				}
-
-				/* _map.add failed, roll back _rm.attach */
-				_rm.detach(va);
-			}
-			catch (Genode::Out_of_ram)  { alloc_error = Alloc_error::OUT_OF_RAM;  }
-			catch (Genode::Out_of_caps) { alloc_error = Alloc_error::OUT_OF_CAPS; }
-			catch (...)                 { alloc_error = Alloc_error::DENIED; }
-
-			/* roll back allocation */
-			_backend.free(ds);
-			return alloc_error;
+			);
 		}
 
 		void free(void *addr, size_t size) override

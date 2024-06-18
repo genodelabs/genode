@@ -36,12 +36,12 @@ Libc::Mem_alloc_impl::Dataspace_pool::~Dataspace_pool()
 		 */
 
 		Ram_dataspace_capability ds_cap = ds->cap;
-		void const * const local_addr = ds->local_addr;
+		Range              const range  = ds->range;
 
 		remove(ds);
 		delete ds;
 
-		_region_map->detach(local_addr);
+		_region_map->detach(range.start);
 		_ram->free(ds_cap);
 	}
 }
@@ -49,33 +49,58 @@ Libc::Mem_alloc_impl::Dataspace_pool::~Dataspace_pool()
 
 int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *alloc)
 {
-	Ram_dataspace_capability new_ds_cap;
-	void *local_addr;
-
 	/* make new ram dataspace available at our local address space */
-	try {
-		new_ds_cap = _ram->alloc(size);
 
-		enum { MAX_SIZE = 0, NO_OFFSET = 0, ANY_LOCAL_ADDR = false };
-		local_addr = _region_map->attach(new_ds_cap, MAX_SIZE, NO_OFFSET,
-		                                 ANY_LOCAL_ADDR, nullptr, _executable);
-	}
-	catch (Out_of_ram) { return -2; }
-	catch (Out_of_caps) { return -4; }
-	catch (Region_map::Region_conflict) {
+	Ram_dataspace_capability new_ds_cap { };
+	int result = 0;
+	_ram->try_alloc(size).with_result(
+		[&] (Ram_dataspace_capability cap) { new_ds_cap = cap; },
+		[&] (Ram_allocator::Alloc_error e) {
+			switch (e) {
+			case Ram_allocator::Alloc_error::OUT_OF_RAM:  result = -2; break;
+			case Ram_allocator::Alloc_error::OUT_OF_CAPS: result = -4; break;
+			case Ram_allocator::Alloc_error::DENIED:      break;
+			}
+			result = -5;
+		});
+
+	if (result < 0)
+		return result;
+
+	Region_map::Range const range = _region_map->attach(new_ds_cap, {
+		.size       = { },
+		.offset     = { },
+		.use_at     = { },
+		.at         = { },
+		.executable = _executable,
+		.writeable  = true
+	}).convert<Region_map::Range>(
+		[&] (Region_map::Range range) { return range; },
+		[&] (Region_map::Attach_error e) {
+			switch (e) {
+			case Region_map::Attach_error::OUT_OF_RAM:        result = -2; break;
+			case Region_map::Attach_error::OUT_OF_CAPS:       result = -4; break;
+			case Region_map::Attach_error::INVALID_DATASPACE: result = -6; break;
+			case Region_map::Attach_error::REGION_CONFLICT:   break;
+			}
+			result = -7;
+			return Region_map::Range { };
+		});
+
+	if (result < 0) {
 		_ram->free(new_ds_cap);
-		return -3;
+		return result;
 	}
 
 	/* add new local address range to our local allocator */
-	alloc->add_range((addr_t)local_addr, size);
+	alloc->add_range(range.start, range.num_bytes);
 
 	/* now that we have new backing store, allocate Dataspace structure */
 	return alloc->alloc_aligned(sizeof(Dataspace), 2).convert<int>(
 
 		[&] (void *ptr) {
 			/* add dataspace information to list of dataspaces */
-			Dataspace *ds  = construct_at<Dataspace>(ptr, new_ds_cap, local_addr);
+			Dataspace *ds  = construct_at<Dataspace>(ptr, new_ds_cap, range);
 			insert(ds);
 			return 0; },
 

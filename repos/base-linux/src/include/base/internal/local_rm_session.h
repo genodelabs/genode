@@ -55,7 +55,7 @@ struct Genode::Local_rm_session : Rm_session, Local_session
 		/* detach sub region map from local address space */
 		Region_map_mmap &rm = static_cast<Region_map_mmap &>(*rm_ptr);
 		rm.with_attached_sub_rm_base_ptr([&] (void *base_ptr) {
-			_local_rm.detach(base_ptr); });
+			_local_rm.detach(addr_t(base_ptr)); });
 
 		Genode::destroy(_md_alloc, &rm);
 	}

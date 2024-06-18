@@ -74,7 +74,7 @@ struct Cached_fs_rom::Cached_rom final
 	 * Read-only region map exposed as ROM module to the client
 	 */
 	Region_map_client      rm { rm_connection.create(ram_ds.size()) };
-	Region_map::Local_addr rm_attachment { };
+	addr_t                 rm_attachment { };
 	Dataspace_capability   rm_ds { };
 
 	Path const path;
@@ -117,10 +117,20 @@ struct Cached_fs_rom::Cached_rom final
 	void complete()
 	{
 		/* attach dataspace read-only into region map */
-		enum { OFFSET = 0, LOCAL_ADDR = false, EXEC = true, WRITE = false };
-		rm_attachment = rm.attach(
-			ram_ds.cap(), ram_ds.size(), OFFSET,
-			LOCAL_ADDR, (addr_t)~0, EXEC, WRITE);
+		rm_attachment = rm.attach(ram_ds.cap(), {
+			.size       = ram_ds.size(),
+			.offset     = { },
+			.use_at     = { },
+			.at         = { },
+			.executable = true,
+			.writeable  = false
+		}).convert<addr_t>(
+			[&] (Region_map::Range range)  { return range.start; },
+			[&] (Region_map::Attach_error) {
+				error("Cached_rom failed to locally attach managed dataspace");
+				return 0UL;
+			}
+		);
 		rm_ds = rm.dataspace();
 	}
 

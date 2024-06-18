@@ -67,9 +67,26 @@ namespace Allocator {
 			addr_t                   _base;              /* virt. base address */
 			Cache                    _cache;             /* non-/cached RAM */
 			Ram_dataspace_capability _ds_cap[ELEMENTS];  /* dataspaces to put in VM */
-			int                      _index = 0;         /* current index in ds_cap */
+			unsigned                 _index = 0;         /* current index in ds_cap */
 			Allocator_avl            _range;             /* manage allocations */
 			bool                     _quota_exceeded = false;
+
+			addr_t _attach_managed_ds(Region_map &local_rm)
+			{
+				return local_rm.attach(dataspace(), {
+					.size   = { },
+					.offset = { },
+					.use_at = { },
+					.at     = { },
+					.executable = false,
+					.writeable  = true
+				}).convert<addr_t>(
+					[&] (Range range) { return range.start; },
+					[&] (Attach_error) {
+						error("rump backend allocator failed to attach managed dataspace");
+						return 0UL; }
+				);
+			}
 
 			bool _alloc_block()
 			{
@@ -83,29 +100,39 @@ namespace Allocator {
 
 				Policy_guard<POLICY> guard;
 
-				try {
-					_ds_cap[_index] =  Rump::env().env().ram().alloc(BLOCK_SIZE, _cache);
-					/* attach at index * BLOCK_SIZE */
-					Region_map_client::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
-				} catch (Genode::Out_of_ram) {
-					warning("backend allocator exhausted (out of RAM)");
-					_quota_exceeded = true;
-					return false;
-				} catch (Genode::Out_of_caps) {
-					warning("backend allocator exhausted (out of caps)");
-					_quota_exceeded = true;
-					return false;
-				} catch (Genode::Region_map::Region_conflict) {
-					warning("backend VM region exhausted");
-					_quota_exceeded = true;
+				_ds_cap[_index] =  Rump::env().env().ram().try_alloc(BLOCK_SIZE, _cache)
+					.template convert<Ram_dataspace_capability>(
+						[&] (Ram_dataspace_capability cap) { return cap; },
+						[&] (Allocator::Alloc_error)       { return Ram_dataspace_capability(); }
+					);
+
+				if (!_ds_cap[_index].valid()) {
+					warning("backend allocator exhausted");
 					return false;
 				}
 
-				/* return base + offset in VM area */
-				addr_t block_base = _base + (_index * BLOCK_SIZE);
-				++_index;
+				if (Region_map_client::attach(_ds_cap[_index], {
+					.size       = BLOCK_SIZE,
+					.offset     = { },
+					.use_at     = true,
+					.at         = _index*BLOCK_SIZE,
+					.executable = false,
+					.writeable  = true
+				}).failed()) {
+					warning("failed to locally attach backend memory");
+					Rump::env().env().ram().free(_ds_cap[_index]);
+					return false;
+				}
 
-				_range.add_range(block_base, BLOCK_SIZE);
+				addr_t const block_base = _base + _index*BLOCK_SIZE;
+				if (_range.add_range(block_base, BLOCK_SIZE).failed()) {
+					warning("failed to extend backend allocator metadata");
+					Region_map_client::detach(_index*BLOCK_SIZE);
+					Rump::env().env().ram().free(_ds_cap[_index]);
+					_ds_cap[_index] = { };
+					return false;
+				}
+				++_index;
 				return true;
 			}
 
@@ -115,12 +142,10 @@ namespace Allocator {
 			:
 				Rm_connection(Rump::env().env()),
 				Region_map_client(Rm_connection::create(VM_SIZE)),
+				_base(_attach_managed_ds(Rump::env().env().rm())),
 				_cache(cache),
 				_range(&Rump::env().heap())
-			{
-				/* reserver attach us, anywere */
-				_base = Rump::env().env().rm().attach(dataspace());
-			}
+			{ }
 
 			/**
 			 * Allocate

@@ -56,7 +56,18 @@ class Net::Session_creation
 
 			/* alloc/attach ram ds and move session env to the base of it */
 			_ram_ds.construct(_tmp_session_env->alloc(sizeof(Session_env) + sizeof(SESSION_COMPONENT), CACHED));
-			_ram_ptr = _tmp_session_env->attach(*_ram_ds);
+			_tmp_session_env->attach(*_ram_ds, {
+				.size       = { },  .offset    = { },
+				.use_at     = { },  .at        = { },
+				.executable = { },  .writeable = true
+			}).with_result(
+				[&] (Region_map::Range range)  { _ram_ptr = (void *)range.start; },
+				[&] (Region_map::Attach_error e) {
+					if (e == Region_map::Attach_error::OUT_OF_RAM)  throw Out_of_ram();
+					if (e == Region_map::Attach_error::OUT_OF_CAPS) throw Out_of_caps();
+					error("failed to attach Session_creation::_ram_ds"); }
+			);
+
 			_session_env_ptr = construct_at<Session_env>(_ram_ptr, *_tmp_session_env);
 
 			/* create session right behind the session env inside the ram ds */
@@ -76,14 +87,14 @@ class Net::Session_creation
 				if (_ram_ds.constructed())
 					tmp_session_env.free(*_ram_ds);
 				if (_ram_ptr)
-					tmp_session_env.detach(_ram_ptr);
+					tmp_session_env.detach(addr_t(_ram_ptr));
 
 			} else if (_tmp_session_env.constructed()) {
 
 				if (_ram_ds.constructed())
 					_tmp_session_env->free(*_ram_ds);
 				if (_ram_ptr)
-					_tmp_session_env->detach(_ram_ptr);
+					_tmp_session_env->detach(addr_t(_ram_ptr));
 			}
 		}
 };

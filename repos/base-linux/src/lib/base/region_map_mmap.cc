@@ -74,12 +74,12 @@ static Mutex &mutex()
 
 
 Region_map_mmap::Reserve_local_result
-Region_map_mmap::_reserve_local(bool use_local_addr, addr_t local_addr, size_t size)
+Region_map_mmap::_reserve_local(bool use_at, addr_t at, size_t size)
 {
 	/* special handling for stack area */
-	if (use_local_addr
-	 && local_addr == stack_area_virtual_base()
-	 && size       == stack_area_virtual_size()) {
+	if (use_at
+	 && at   == stack_area_virtual_base()
+	 && size == stack_area_virtual_size()) {
 
 		/*
 		 * On the first request to reserve the stack area, we flush the
@@ -96,19 +96,19 @@ Region_map_mmap::_reserve_local(bool use_local_addr, addr_t local_addr, size_t s
 			}
 		} inst;
 
-		return local_addr;
+		return at;
 	}
 
 	int const flags       = MAP_ANONYMOUS | MAP_PRIVATE;
 	int const prot        = PROT_NONE;
-	void * const addr_in  = use_local_addr ? (void *)local_addr : 0;
+	void * const addr_in  = use_at ? (void *)at : 0;
 	void * const addr_out = lx_mmap(addr_in, size, prot, flags, -1, 0);
 
 	/* reserve at local address failed - unmap incorrect mapping */
-	if (use_local_addr && addr_in != addr_out)
+	if (use_at && addr_in != addr_out)
 		lx_munmap((void *)addr_out, size);
 
-	if ((use_local_addr && addr_in != addr_out)
+	if ((use_at && addr_in != addr_out)
 	 || (((long)addr_out < 0) && ((long)addr_out > -4095))) {
 		error("_reserve_local: lx_mmap failed "
 		      "(addr_in=", addr_in, ",addr_out=", addr_out, "/", (long)addr_out, ")");
@@ -123,8 +123,8 @@ Region_map_mmap::Map_local_result
 Region_map_mmap::_map_local(Dataspace_capability ds,
                             size_t               size,
                             addr_t               offset,
-                            bool                 use_local_addr,
-                            addr_t               local_addr,
+                            bool                 use_at,
+                            addr_t               at,
                             bool                 executable,
                             bool                 overmap,
                             bool                 writeable)
@@ -136,7 +136,7 @@ Region_map_mmap::_map_local(Dataspace_capability ds,
 	int  const  prot      = PROT_READ
 	                      | (writeable  ? PROT_WRITE : 0)
 	                      | (executable ? PROT_EXEC  : 0);
-	void * const addr_in  = use_local_addr ? (void*)local_addr : 0;
+	void * const addr_in  = use_at ? (void*)at : 0;
 	void * const addr_out = lx_mmap(addr_in, size, prot, flags, fd, offset);
 
 	/*
@@ -148,10 +148,10 @@ Region_map_mmap::_map_local(Dataspace_capability ds,
 	lx_close(fd);
 
 	/* attach at local address failed - unmap incorrect mapping */
-	if (use_local_addr && addr_in != addr_out)
+	if (use_at && addr_in != addr_out)
 		lx_munmap((void *)addr_out, size);
 
-	if ((use_local_addr && addr_in != addr_out)
+	if ((use_at && addr_in != addr_out)
 	 || (((long)addr_out < 0) && ((long)addr_out > -4095))) {
 		error("_map_local: lx_mmap failed"
 		      "(addr_in=", addr_in, ", addr_out=", addr_out, "/", (long)addr_out, ") "
@@ -192,28 +192,23 @@ struct Inhibit_tracing_guard
 
 
 Region_map_mmap::Attach_result
-Region_map_mmap::attach(Dataspace_capability ds, Attach_attr const &attr)
+Region_map_mmap::attach(Dataspace_capability ds, Attr const &attr)
 {
 	Mutex::Guard mutex_guard(mutex());
 
 	Inhibit_tracing_guard it_guard { };
 
 	/* only support attach_at for sub RM sessions */
-	if (_sub_rm && !attr.use_local_addr) {
+	if (_sub_rm && !attr.use_at) {
 		error("Region_map_mmap::attach: attaching w/o local addr not supported");
-		return Attach_error::REGION_CONFLICT;
-	}
-
-	if (attr.offset < 0) {
-		error("Region_map_mmap::attach: negative offset not supported");
 		return Attach_error::REGION_CONFLICT;
 	}
 
 	if (!ds.valid())
 		return Attach_error::INVALID_DATASPACE;
 
-	size_t const remaining_ds_size = _dataspace_size(ds) > (addr_t)attr.offset
-	                               ? _dataspace_size(ds) - (addr_t)attr.offset : 0;
+	size_t const remaining_ds_size = _dataspace_size(ds) > attr.offset
+	                               ? _dataspace_size(ds) - attr.offset : 0;
 
 	/* determine size of virtual address region */
 	size_t const region_size = attr.size ? min(remaining_ds_size, attr.size)
@@ -248,12 +243,12 @@ Region_map_mmap::attach(Dataspace_capability ds, Attach_attr const &attr)
 		 * Check for the dataspace to not exceed the boundaries of the
 		 * sub RM session
 		 */
-		if (region_size + (addr_t)attr.local_addr > _size) {
+		if (region_size + attr.at > _size) {
 			error("Region_map_mmap::attach: dataspace does not fit in sub RM session");
 			return Attach_error::REGION_CONFLICT;
 		}
 
-		if (!_add_to_rmap(Region((addr_t)attr.local_addr, attr.offset, ds, region_size)))
+		if (!_add_to_rmap(Region(attr.at, attr.offset, ds, region_size)))
 			return Attach_error::REGION_CONFLICT;
 
 		/*
@@ -266,10 +261,10 @@ Region_map_mmap::attach(Dataspace_capability ds, Attach_attr const &attr)
 		 */
 		if (_is_attached())
 			_map_local(ds, region_size, attr.offset,
-			           true, _base + (addr_t)attr.local_addr,
+			           true, _base + attr.at,
 			           attr.executable, true, attr.writeable);
 
-		return Local_addr(attr.local_addr);
+		return Range { .start = attr.at, .num_bytes = region_size };
 
 	} else {
 
@@ -296,8 +291,7 @@ Region_map_mmap::attach(Dataspace_capability ds, Attach_attr const &attr)
 			 * Reserve local address range that can hold the entire sub RM
 			 * session.
 			 */
-			return _reserve_local(attr.use_local_addr, (addr_t)attr.local_addr,
-			                      region_size)
+			return _reserve_local(attr.use_at, attr.at, region_size)
 				.convert<Attach_result>(
 
 				[&] (addr_t base) -> Attach_result
@@ -328,7 +322,7 @@ Region_map_mmap::attach(Dataspace_capability ds, Attach_attr const &attr)
 						           attr.executable, true, attr.writeable);
 					}
 
-					return Local_addr(rm->_base);
+					return Range { .start = rm->_base, .num_bytes = region_size };
 				},
 				[&] (Reserve_local_error e) {
 					switch (e) { case Reserve_local_error::REGION_CONFLICT: break; }
@@ -344,14 +338,13 @@ Region_map_mmap::attach(Dataspace_capability ds, Attach_attr const &attr)
 			 * Boring, a plain dataspace is attached to a root RM session.
 			 * Note, we do not overmap.
 			 */
-			return _map_local(ds, region_size, attr.offset, attr.use_local_addr,
-			                  (addr_t)attr.local_addr, attr.executable, false,
-			                  attr.writeable)
+			return _map_local(ds, region_size, attr.offset, attr.use_at,
+			                  attr.at, attr.executable, false, attr.writeable)
 				.convert<Attach_result>(
 
 				[&] (void *addr) -> Attach_result {
 					if (_add_to_rmap(Region((addr_t)addr, attr.offset, ds, region_size)))
-						return Local_addr(addr);
+						return Range { .start = (addr_t)addr, .num_bytes = region_size };
 
 					return Attach_error::REGION_CONFLICT;
 				},
@@ -366,7 +359,7 @@ Region_map_mmap::attach(Dataspace_capability ds, Attach_attr const &attr)
 }
 
 
-void Region_map_mmap::detach(Region_map::Local_addr local_addr)
+void Region_map_mmap::detach(addr_t at)
 {
 	Mutex::Guard mutex_guard(mutex());
 
@@ -381,14 +374,14 @@ void Region_map_mmap::detach(Region_map::Local_addr local_addr)
 	 *   2.2 we are attached to a root RM
 	 */
 
-	Region region = _rmap.lookup(local_addr);
+	Region region = _rmap.lookup(at);
 	if (!region.used())
 		return;
 
 	/*
 	 * Remove meta data from region map
 	 */
-	_rmap.remove_region(local_addr);
+	_rmap.remove_region(at);
 
 	if (_sub_rm) {
 
@@ -404,8 +397,8 @@ void Region_map_mmap::detach(Region_map::Local_addr local_addr)
 		 * needed.
 		 */
 		if (_is_attached()) {
-			lx_munmap((void *)((addr_t)local_addr + _base), region.size());
-			_reserve_local(true, (addr_t)local_addr + _base, region.size());
+			lx_munmap((void *)(at + _base), region.size());
+			_reserve_local(true, at + _base, region.size());
 		}
 
 	} else {
@@ -417,7 +410,7 @@ void Region_map_mmap::detach(Region_map::Local_addr local_addr)
 		 * sub RM session. In both cases, we simply mark the local address
 		 * range as free.
 		 */
-		lx_munmap(local_addr, region.size());
+		lx_munmap((void *)at, region.size());
 	}
 
 	/*

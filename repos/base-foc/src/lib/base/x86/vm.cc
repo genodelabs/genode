@@ -90,7 +90,7 @@ struct Foc_native_vcpu_rpc : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 		Foc::l4_cap_idx_t task_index() { return call<Rpc_task_index>(); }
 
 		Foc::l4_vcpu_state_t * foc_vcpu_state() {
-			return static_cast<Foc::l4_vcpu_state_t *>(call<Rpc_foc_vcpu_state>()); }
+			return reinterpret_cast<Foc::l4_vcpu_state_t *>(call<Rpc_foc_vcpu_state>()); }
 };
 
 

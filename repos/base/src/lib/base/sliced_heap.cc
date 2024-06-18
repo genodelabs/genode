@@ -63,28 +63,42 @@ Allocator::Alloc_result Sliced_heap::try_alloc(size_t size)
 			struct Attach_guard
 			{
 				Region_map &rm;
-				struct { void *ptr = nullptr; };
+				Region_map::Range range { };
 				bool keep = false;
 
 				Attach_guard(Region_map &rm) : rm(rm) { }
 
-				~Attach_guard() { if (!keep && ptr) rm.detach(ptr); }
+				~Attach_guard() { if (!keep && range.start) rm.detach(range.start); }
 
 			} attach_guard(_region_map);
 
-			try {
-				attach_guard.ptr = _region_map.attach(ds_cap);
+			Region_map::Attr attr { };
+			attr.writeable = true;
+			Region_map::Attach_result const result = _region_map.attach(ds_cap, attr);
+			if (result.failed()) {
+				using Error = Region_map::Attach_error;
+				return result.convert<Alloc_error>(
+					[&] (auto) /* never called */ { return Alloc_error::DENIED; },
+					[&] (Error e) {
+						switch (e) {
+						case Error::OUT_OF_RAM:  return Alloc_error::OUT_OF_RAM;
+						case Error::OUT_OF_CAPS: return Alloc_error::OUT_OF_CAPS;
+						case Error::REGION_CONFLICT:   break;
+						case Error::INVALID_DATASPACE: break;
+						}
+						return Alloc_error::DENIED;
+					});
 			}
-			catch (Out_of_ram)                    { return Alloc_error::OUT_OF_RAM; }
-			catch (Out_of_caps)                   { return Alloc_error::OUT_OF_CAPS; }
-			catch (Region_map::Invalid_dataspace) { return Alloc_error::DENIED; }
-			catch (Region_map::Region_conflict)   { return Alloc_error::DENIED; }
+
+			result.with_result(
+				[&] (Region_map::Range range) { attach_guard.range = range; },
+				[&] (auto) { /* handled above */ });
 
 			/* serialize access to block list */
 			Mutex::Guard guard(_mutex);
 
-			Block * const block = construct_at<Block>(attach_guard.ptr, ds_cap, size);
-
+			Block * const block = construct_at<Block>((void *)attach_guard.range.start,
+			                                          ds_cap, size);
 			_consumed += size;
 			_blocks.insert(block);
 
@@ -126,7 +140,7 @@ void Sliced_heap::free(void *addr, size_t)
 		block->~Block();
 	}
 
-	_region_map.detach(local_addr);
+	_region_map.detach(addr_t(local_addr));
 	_ram_alloc.free(ds_cap);
 }
 

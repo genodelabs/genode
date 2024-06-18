@@ -112,10 +112,25 @@ class Sup::Gmm
 
 			Region_map_client rm { connection.create(size.value) };
 
-			Vmm_addr const base { (addr_t)env.rm().attach(rm.dataspace()) };
+			addr_t _attach()
+			{
+				return env.rm().attach(rm.dataspace(), {
+					.size = { },  .offset     = { },  .use_at     = { },
+					.at   = { },  .executable = { },  .writeable  = true
+				}).convert<addr_t>(
+					[&] (Region_map::Range range)  { return range.start; },
+					[&] (Region_map::Attach_error) { return 0UL; }
+				);
+			}
+
+			Vmm_addr const base { _attach() };
 			Vmm_addr const end  { base.value + size.value - 1 };
 
-			Map(Env &env, Bytes size) : env(env), size(size) { }
+			Map(Env &env, Bytes size) : env(env), size(size)
+			{
+				if (!base.value)
+					error("Gmm::Map failed to locally attach managed dataspace");
+			}
 
 		} _map { _env, _map_size };
 

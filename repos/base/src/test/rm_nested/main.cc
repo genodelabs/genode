@@ -46,19 +46,22 @@ class Local_fault_handler : public Entrypoint
 
 		void _handle_fault()
 		{
-			Region_map::State state = _region_map.state();
+			Region_map::Fault fault = _region_map.fault();
 
 			_fault_cnt = _fault_cnt + 1;
 
-			log("region-map state is ",
-			       state.type == Region_map::State::READ_FAULT  ? "READ_FAULT"  :
-			       state.type == Region_map::State::WRITE_FAULT ? "WRITE_FAULT" :
-			       state.type == Region_map::State::EXEC_FAULT  ? "EXEC_FAULT"  : "READY",
-			       ", pf_addr=", Hex(state.addr, Hex::PREFIX));
+			log("region-map fault is ",
+			    fault.type == Region_map::Fault::Type::READ  ? "READ_FAULT"  :
+			    fault.type == Region_map::Fault::Type::WRITE ? "WRITE_FAULT" :
+			    fault.type == Region_map::Fault::Type::EXEC  ? "EXEC_FAULT"  : "READY",
+			    ", pf_addr=", Hex(fault.addr, Hex::PREFIX));
 
 			log("allocate dataspace and attach it to sub region map");
 			Dataspace_capability ds = _env.ram().alloc(PAGE_SIZE);
-			_region_map.attach_at(ds, state.addr & ~(PAGE_SIZE - 1));
+			_region_map.attach(ds, {
+				.size       = { },   .offset    = { },
+				.use_at     = true,  .at        = fault.addr & ~(PAGE_SIZE - 1),
+				.executable = { },   .writeable = true });
 
 			log("returning from handle_fault");
 		}
@@ -83,6 +86,25 @@ class Local_fault_handler : public Entrypoint
 };
 
 
+static void *ptr_from_attach_result(Region_map::Attach_result const &result)
+{
+	return result.convert<void *>(
+		[&] (Region_map::Range range) { return (void *)range.start; },
+		[&] (Region_map::Attach_error) {
+			error("read-only attach unexpectedly failed");
+			return nullptr; });
+}
+
+
+static void *attach_rw(Region_map &rm, Dataspace_capability ds)
+{
+	return ptr_from_attach_result(rm.attach(ds, {
+		.size       = { },  .offset    = { },
+		.use_at     = { },  .at        = { },
+		.executable = { },  .writeable = true }));
+}
+
+
 void nested_regions(Genode::Env &env)
 {
 	enum {
@@ -98,7 +120,7 @@ void nested_regions(Genode::Env &env)
 	Region_map_client rm_top(rm.create(MANAGED_REGION_TOP_SIZE));
 	Dataspace_client  rm_top_client(rm_top.dataspace());
 
-	void         *ptr_top  = env.rm().attach(rm_top.dataspace());
+	void         *ptr_top  = attach_rw(env.rm(), rm_top.dataspace());
 	addr_t const  addr_top = reinterpret_cast<addr_t>(ptr_top);
 	log(" region top        ",
 	    Hex_range<addr_t>(addr_top, rm_top_client.size()));
@@ -106,13 +128,13 @@ void nested_regions(Genode::Env &env)
 	/* shim region 1 */
 	Region_map_client rm_shim1(rm.create(MANAGED_REGION_SHIM1_SIZE));
 	Dataspace_client  rm_shim1_client(rm_shim1.dataspace());
-	void         *ptr_shim1  = rm_top.attach(rm_shim1.dataspace());
+	void         *ptr_shim1  = attach_rw(rm_top, rm_shim1.dataspace());
 	addr_t const  addr_shim1 = reinterpret_cast<addr_t>(ptr_shim1);
 
 	/* shim region 2 */
 	Region_map_client rm_shim2(rm.create(MANAGED_REGION_SHIM2_SIZE));
 	Dataspace_client  rm_shim2_client(rm_shim2.dataspace());
-	void         *ptr_shim2  = rm_top.attach(rm_shim2.dataspace());
+	void         *ptr_shim2  = attach_rw(rm_top, rm_shim2.dataspace());
 	addr_t const  addr_shim2 = reinterpret_cast<addr_t>(ptr_shim2);
 
 	log(" region shim       ",
@@ -122,16 +144,12 @@ void nested_regions(Genode::Env &env)
 	/* attach some memory to region 2 as readonly and touch/map it */
 	size_t const         shim2_ram_size = PAGE_SIZE * 2;
 	Dataspace_capability shim2_ram_ds = env.ram().alloc(shim2_ram_size);
-	enum {
-		COMPLETE_SIZE = 0, OFFSET_0 = 0, OFFSET_1000 = 0x1000,
-		USE_LOCAL_ADDR = true, LOCAL_ADDR_0 = 0, LOCAL_ADDR_1000 = 0x1000,
-		NON_EXECUTABLE = false,
-		READONLY = false, WRITEABLE = true
-	};
-	void * ptr_shim2_ram = rm_shim2.attach(shim2_ram_ds, COMPLETE_SIZE,
-	                                       OFFSET_0, USE_LOCAL_ADDR,
-	                                       LOCAL_ADDR_1000, NON_EXECUTABLE,
-	                                       READONLY);
+	void * const ptr_shim2_ram =
+		ptr_from_attach_result(rm_shim2.attach(shim2_ram_ds, {
+			.size       = { },   .offset    = { },
+			.use_at     = true,  .at        = 0x1000,
+			.executable = { },   .writeable = { } }));
+
 	addr_t const addr_shim2_ram = reinterpret_cast<addr_t>(ptr_shim2_ram);
 	addr_t const read_shim2     = addr_top + addr_shim2 + addr_shim2_ram;
 
@@ -148,7 +166,13 @@ void nested_regions(Genode::Env &env)
 	Region_map_client rm_bottom(rm.create(MANAGED_REGION_BOTTOM_SIZE));
 	Dataspace_client  rm_bottom_client(rm_bottom.dataspace());
 	size_t const  size_bottom = MANAGED_REGION_BOTTOM_SIZE - MANAGED_REGION_SHIM2_SIZE;
-	void   const *ptr_bottom  = rm_shim1.attach(rm_bottom.dataspace(), size_bottom);
+
+	void const * const ptr_bottom =
+		ptr_from_attach_result(rm_shim1.attach(rm_bottom.dataspace(), {
+			.size       = size_bottom,  .offset    = { },
+			.use_at     = { },          .at        = { },
+			.executable = { },          .writeable = { } }));
+
 	addr_t const  addr_bottom = reinterpret_cast<addr_t>(ptr_bottom);
 
 	log("   bottom shim (r) ",
@@ -159,14 +183,17 @@ void nested_regions(Genode::Env &env)
 	/* attach some memory to bottom as writeable */
 	Dataspace_capability bottom_ram_ds = env.ram().alloc(MANAGED_REGION_BOTTOM_SIZE);
 	{
-		void * base_rw = env.rm().attach(bottom_ram_ds);
+		void * base_rw = attach_rw(env.rm(), bottom_ram_ds);
 		memset(base_rw, 0xff, MANAGED_REGION_BOTTOM_SIZE);
-		env.rm().detach(base_rw);
+		env.rm().detach(addr_t(base_rw));
 	}
-	void * ptr_bottom_ram = rm_bottom.attach(bottom_ram_ds, COMPLETE_SIZE,
-	                                         OFFSET_0, USE_LOCAL_ADDR,
-	                                         LOCAL_ADDR_0, NON_EXECUTABLE,
-	                                         WRITEABLE);
+
+	void const * const ptr_bottom_ram =
+		ptr_from_attach_result(rm_bottom.attach(bottom_ram_ds, {
+			.size       = { },   .offset    = { },
+			.use_at     = true,  .at        = 0,
+			.executable = { },   .writeable = true }));
+
 	addr_t const addr_bottom_ram = reinterpret_cast<addr_t>(ptr_bottom_ram);
 	addr_t const write_bottom    = addr_top + addr_shim1 + addr_bottom + addr_bottom_ram;
 
@@ -212,7 +239,7 @@ void Component::construct(Genode::Env & env)
 		/*
 		 * Attach region map as dataspace to the local address space.
 		 */
-		void *addr = env.rm().attach(region_map.dataspace());
+		void *addr = attach_rw(env.rm(), region_map.dataspace());
 
 		log("attached sub dataspace at local address ", addr);
 		Dataspace_client client(region_map.dataspace());

@@ -25,31 +25,17 @@
 
 using namespace Driver;
 
-Device_pd::Region_map_client::Local_addr
-Device_pd::Region_map_client::attach(Dataspace_capability ds,
-                                     size_t               size,
-                                     off_t                offset,
-                                     bool                 use_local_addr,
-                                     Local_addr           local_addr,
-                                     bool                 executable,
-                                     bool                 writeable)
+
+Device_pd::Region_map_client::Attach_result
+Device_pd::Region_map_client::attach(Dataspace_capability ds, Attr const &attr)
 {
-	return retry<Out_of_ram>(
-		[&] () {
-			return retry<Out_of_caps>(
-				[&] () {
-					return Genode::Region_map_client::attach(ds, size, offset,
-					                                         use_local_addr,
-					                                         local_addr,
-					                                         executable,
-					                                         writeable); },
-				[&] () {
-					upgrade_caps();
-				}
-			);
-		},
-		[&] () { upgrade_ram(); }
-	);
+	for (;;) {
+		Attach_result const result = Genode::Region_map_client::attach(ds, attr);
+		if      (result == Attach_error::OUT_OF_RAM)  upgrade_ram();
+		else if (result == Attach_error::OUT_OF_CAPS) upgrade_caps();
+		else
+			return result;
+	}
 }
 
 
@@ -116,21 +102,26 @@ void Device_pd::remove_range(Io_mmu::Range const & range)
 void Device_pd::enable_pci_device(Io_mem_dataspace_capability const io_mem_cap,
                                   Pci::Bdf                    const & bdf)
 {
-	addr_t addr = _address_space.attach(io_mem_cap, 0x1000);
+	_address_space.attach(io_mem_cap, {
+		.size       = 0x1000,  .offset    = { },
+		.use_at     = { },     .at        = { },
+		.executable = { },     .writeable = true
+	}).with_result(
+		[&] (Region_map::Range range) {
 
-	/* sanity check */
-	if (!addr)
-		throw Region_map::Region_conflict();
+			/* trigger eager mapping of memory */
+			_pd.map(Pd_session::Virt_range { range.start, range.num_bytes });
 
-	/* trigger eager mapping of memory */
-	_pd.map(Pd_session::Virt_range { addr, 0x1000 });
+			/* try to assign pci device to this protection domain */
+			if (!_pd.assign_pci(range.start, Pci::Bdf::rid(bdf)))
+				log("Assignment of PCI device ", bdf, " to device PD failed, no IOMMU?!");
 
-	/* try to assign pci device to this protection domain */
-	if (!_pd.assign_pci(addr, Pci::Bdf::rid(bdf)))
-		log("Assignment of PCI device ", bdf, " to device PD failed, no IOMMU?!");
-
-	/* we don't need the mapping anymore */
-	_address_space.detach(addr);
+			/* we don't need the mapping anymore */
+			_address_space.detach(range.start);
+		},
+		[&] (Region_map::Attach_error) {
+			error("failed to attach PCI device to device PD"); }
+	);
 }
 
 

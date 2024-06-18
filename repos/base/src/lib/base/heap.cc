@@ -44,7 +44,7 @@ void Heap::Dataspace_pool::remove_and_free(Dataspace &ds)
 	 */
 
 	Ram_dataspace_capability ds_cap = ds.cap;
-	void *ds_local_addr             = ds.local_addr;
+	addr_t const at = addr_t(ds.local_addr);
 
 	remove(&ds);
 
@@ -56,7 +56,7 @@ void Heap::Dataspace_pool::remove_and_free(Dataspace &ds)
 	 */
 	ds.~Dataspace();
 
-	region_map->detach(ds_local_addr);
+	region_map->detach(at);
 	ram_alloc->free(ds_cap);
 }
 
@@ -102,22 +102,36 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 			struct Attach_guard
 			{
 				Region_map &rm;
-				struct { void *ptr = nullptr; };
+				Region_map::Range range { };
 				bool keep = false;
 
 				Attach_guard(Region_map &rm) : rm(rm) { }
 
-				~Attach_guard() { if (!keep && ptr) rm.detach(ptr); }
+				~Attach_guard() { if (!keep && range.start) rm.detach(range.start); }
 
 			} attach_guard(*_ds_pool.region_map);
 
-			try {
-				attach_guard.ptr = _ds_pool.region_map->attach(ds_cap);
+			Region_map::Attr attr { };
+			attr.writeable = true;
+			Region_map::Attach_result const result = _ds_pool.region_map->attach(ds_cap, attr);
+			if (result.failed()) {
+				using Error = Region_map::Attach_error;
+				return result.convert<Alloc_error>(
+					[&] (auto) /* never called */ { return Alloc_error::DENIED; },
+					[&] (Error e) {
+						switch (e) {
+						case Error::OUT_OF_RAM:  return Alloc_error::OUT_OF_RAM;
+						case Error::OUT_OF_CAPS: return Alloc_error::OUT_OF_CAPS;
+						case Error::REGION_CONFLICT:   break;
+						case Error::INVALID_DATASPACE: break;
+						}
+						return Alloc_error::DENIED;
+					});
 			}
-			catch (Out_of_ram)                    { return Alloc_error::OUT_OF_RAM; }
-			catch (Out_of_caps)                   { return Alloc_error::OUT_OF_CAPS; }
-			catch (Region_map::Invalid_dataspace) { return Alloc_error::DENIED; }
-			catch (Region_map::Region_conflict)   { return Alloc_error::DENIED; }
+
+			result.with_result(
+				[&] (Region_map::Range range) { attach_guard.range = range; },
+				[&] (auto) { /* handled above */ });
 
 			Alloc_result metadata = Alloc_error::DENIED;
 
@@ -128,7 +142,7 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 			} else {
 
 				/* add new local address range to our local allocator */
-				_alloc->add_range((addr_t)attach_guard.ptr, size).with_result(
+				_alloc->add_range(attach_guard.range.start, size).with_result(
 					[&] (Range_allocator::Range_ok) {
 						metadata = _alloc->alloc_aligned(sizeof(Heap::Dataspace), log2(16U)); },
 					[&] (Alloc_error error) {
@@ -138,7 +152,7 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 			return metadata.convert<Result>(
 				[&] (void *md_ptr) -> Result {
 					Dataspace &ds = *construct_at<Dataspace>(md_ptr, ds_cap,
-					                                         attach_guard.ptr, size);
+					                                         (void *)attach_guard.range.start, size);
 					_ds_pool.insert(&ds);
 					alloc_guard.keep = attach_guard.keep = true;
 					return &ds;

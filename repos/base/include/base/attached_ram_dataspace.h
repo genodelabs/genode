@@ -17,6 +17,7 @@
 #include <util/touch.h>
 #include <base/ram_allocator.h>
 #include <base/env.h>
+#include <base/attached_dataspace.h>
 
 namespace Genode { class Attached_ram_dataspace; }
 
@@ -34,11 +35,11 @@ class Genode::Attached_ram_dataspace
 {
 	private:
 
-		size_t                    _size = 0;
-		Ram_allocator            *_ram  = nullptr;
-		Region_map               *_rm   = nullptr;
+		size_t                    _size  = 0;
+		Ram_allocator            *_ram   = nullptr;
+		Region_map               *_rm    = nullptr;
 		Ram_dataspace_capability  _ds { };
-		void                     *_local_addr = nullptr;
+		addr_t                    _at    = 0;
 		Cache               const _cache = CACHED;
 
 		template <typename T>
@@ -46,8 +47,8 @@ class Genode::Attached_ram_dataspace
 
 		void _detach_and_free_dataspace()
 		{
-			if (_local_addr)
-				_rm->detach(_local_addr);
+			if (_at)
+				_rm->detach(_at);
 
 			if (_ds.valid())
 				_ram->free(_ds);
@@ -57,13 +58,19 @@ class Genode::Attached_ram_dataspace
 		{
 			if (!_size) return;
 
-			try {
-				_ds         = _ram->alloc(_size, _cache);
-				_local_addr = _rm->attach(_ds);
-			}
-			/* revert allocation if attaching the dataspace failed */
-			catch (Region_map::Region_conflict)   { _ram->free(_ds); throw; }
-			catch (Region_map::Invalid_dataspace) { _ram->free(_ds); throw; }
+			_ds = _ram->alloc(_size, _cache);
+
+			Region_map::Attr attr { };
+			attr.writeable = true;
+			_rm->attach(_ds, attr).with_result(
+				[&] (Region_map::Range range) { _at = range.start; },
+				[&] (Region_map::Attach_error e) {
+					/* revert allocation if attaching the dataspace failed */
+					_ram->free(_ds);
+					if (e == Region_map::Attach_error::OUT_OF_RAM)  throw Out_of_ram();
+					if (e == Region_map::Attach_error::OUT_OF_CAPS) throw Out_of_caps();
+					throw Attached_dataspace::Region_conflict();
+				});
 
 			/*
 			 * Eagerly map dataspace if used for DMA
@@ -77,7 +84,7 @@ class Genode::Attached_ram_dataspace
 			 */
 			if (_cache != CACHED) {
 				enum { PAGE_SIZE = 4096 };
-				unsigned char volatile *base = (unsigned char volatile *)_local_addr;
+				unsigned char volatile *base = (unsigned char volatile *)_at;
 				for (size_t i = 0; i < _size; i += PAGE_SIZE)
 					touch_read_write(base + i);
 			}
@@ -96,8 +103,8 @@ class Genode::Attached_ram_dataspace
 		 *
 		 * \throw Out_of_ram
 		 * \throw Out_of_caps
-		 * \throw Region_map::Region_conflict
-		 * \throw Region_map::Invalid_dataspace
+		 * \throw Attached_dataspace::Region_conflict
+		 * \throw Attached_dataspace::Invalid_dataspace
 		 */
 		Attached_ram_dataspace(Ram_allocator &ram, Region_map &rm,
 		                       size_t size, Cache cache = CACHED)
@@ -125,7 +132,7 @@ class Genode::Attached_ram_dataspace
 		 * untyped memory anyway.
 		 */
 		template <typename T>
-		T *local_addr() const { return static_cast<T *>(_local_addr); }
+		T *local_addr() const { return reinterpret_cast<T *>(_at); }
 
 		/**
 		 * Return size
@@ -134,10 +141,10 @@ class Genode::Attached_ram_dataspace
 
 		void swap(Attached_ram_dataspace &other)
 		{
-			_swap(_size,        other._size);
-			_swap(_ram,         other._ram);
-			_swap(_ds,          other._ds);
-			_swap(_local_addr,  other._local_addr);
+			_swap(_size, other._size);
+			_swap(_ram,  other._ram);
+			_swap(_ds,   other._ds);
+			_swap(_at,   other._at);
 		}
 
 		/**

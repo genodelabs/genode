@@ -33,39 +33,48 @@ class Sub_rm_connection : private Genode::Rm_connection,
 		Genode::addr_t const _offset;
 		Genode::size_t const _size;
 
+		Genode::addr_t _attach(Genode::Region_map &local_rm)
+		{
+			return local_rm.attach(dataspace(), {
+				.size       = { },
+				.offset     = { },
+				.use_at     = { },
+				.at         = { },
+				.executable = true,
+				.writeable  = true
+			}).convert<Genode::addr_t>(
+				[&] (Range range)  { return range.start; },
+				[&] (Attach_error) {
+				Genode::error("failed to attach Sub_rm_connection to local address space");
+					return 0UL; }
+			);
+		}
+
 	public:
 
 		Sub_rm_connection(Genode::Env &env, Genode::size_t size)
 		:
 			Rm_connection(env),
 			Genode::Region_map_client(Rm_connection::create(size)),
-			_offset(env.rm().attach(dataspace(), 0, 0, false, nullptr, true, true)),
+			_offset(_attach(env.rm())),
 			_size(size)
 		{ }
 
-		Local_addr attach(Genode::Dataspace_capability ds,
-		                  Genode::size_t size = 0, Genode::off_t offset = 0,
-		                  bool use_local_addr = false,
-		                  Local_addr local_addr = (void *)0,
-		                  bool executable = false,
-		                  bool writeable = true) override
+		Attach_result attach(Genode::Dataspace_capability ds, Attr const &attr) override
 		{
-			Local_addr addr = Genode::retry<Genode::Out_of_ram>(
-				[&] () {
-					return Genode::retry<Genode::Out_of_caps>(
-						[&] () {
-							return Region_map_client::attach(ds, size, offset,
-							                                 use_local_addr,
-							                                 local_addr,
-							                                 executable,
-							                                 writeable); },
-						[&] () { upgrade_caps(2); });
-					},
-				[&] () { upgrade_ram(8192); });
+			Attach_result result = Attach_error::REGION_CONFLICT;
+			for (;;) {
+				result = Region_map_client::attach(ds, attr);
+				if      (result == Attach_error::OUT_OF_RAM)  upgrade_ram(8*1024);
+				else if (result == Attach_error::OUT_OF_CAPS) upgrade_caps(2);
+				else
+					break;
+			}
 
-			Genode::addr_t new_addr = addr;
-			new_addr += _offset;
-			return Local_addr(new_addr);
+			return result.convert<Attach_result>(
+				[&] (Range const r)  { return Range { .start = r.start + _offset,
+				                                      .num_bytes = r.num_bytes }; },
+				[&] (Attach_error e) { return e; });
 		}
 
 		bool contains(void * ptr) const

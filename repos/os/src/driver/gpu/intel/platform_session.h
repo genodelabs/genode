@@ -322,7 +322,7 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 
 				/* GTT starts at half of the mmio memory */
 				size_t const gttm_half_size = mmio.size() / 2;
-				off_t  const gtt_offset     = gttm_half_size;
+				addr_t const gtt_offset     = gttm_half_size;
 
 				if (gttm_half_size < gtt_reserved()) {
 					Genode::error("GTTM size too small");
@@ -331,15 +331,36 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 
 				/* attach actual iomem + reserved */
 				_rm_gttmm.detach(0ul);
-				_rm_gttmm.attach_at(mmio.cap(), 0ul, gtt_offset);
+				if (_rm_gttmm.attach(mmio.cap(), {
+					.size       = gtt_offset,
+					.offset     = { },
+					.use_at     = true,
+					.at         = 0,
+					.executable = { },
+					.writeable  = true
+				}).failed()) error("failed to re-attach mmio to gttmm");
 
 				/* attach beginning of GTT */
 				_rm_gttmm.detach(gtt_offset);
-				_rm_gttmm.attach_at(mmio.cap(), gtt_offset,
-				                    gtt_reserved(), gtt_offset);
+				if (_rm_gttmm.attach(mmio.cap(), {
+					.size       = size_t(gtt_reserved()),
+					.offset     = gtt_offset,
+					.use_at     = true,
+					.at         = gtt_offset,
+					.executable = { },
+					.writeable  = true
+				 }).failed()) error("failed to re-attach mmio at gtt offset to gttmm");
 
 				_rm_gmadr.detach(0ul);
-				_rm_gmadr.attach_at(gmadr.cap(), 0ul, aperture_reserved());
+				if (_rm_gmadr.attach(gmadr.cap(), {
+					.size       = size_t(aperture_reserved()),
+					.offset     = { },
+					.use_at     = true,
+					.at         = 0,
+					.executable = { },
+					.writeable  = true
+				}).failed()) error("failed to re-attach gmadr");
+
 			}, []() {
 				error("reinit failed");
 			});
@@ -407,12 +428,32 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 			auto const dummmy_gtt_ds = _env.ram().alloc(Igd::PAGE_SIZE);
 			auto       remainder     = gttm_half_size - gtt_reserved();
 
-			for (off_t offset = gtt_offset + gtt_reserved();
+			for (addr_t offset = gtt_offset + gtt_reserved();
 			     remainder > 0;
 			     offset += Igd::PAGE_SIZE, remainder -= Igd::PAGE_SIZE) {
 
-				rm.retry_with_upgrade({Igd::PAGE_SIZE}, Cap_quota{8}, [&]() {
-					_rm_gttmm.attach_at(dummmy_gtt_ds, offset, Igd::PAGE_SIZE); });
+				for (;;) {
+					Region_map::Attach_result const result =
+						_rm_gttmm.attach(dummmy_gtt_ds, {
+							.size       = Igd::PAGE_SIZE,
+							.offset     = { },
+							.use_at     = true,
+							.at         = offset,
+							.executable = false,
+							.writeable  = true
+						});
+					if (result.ok())
+						break;
+
+					using Error = Region_map::Attach_error;
+
+					if      (result == Error::OUT_OF_RAM)  rm.upgrade_ram(Igd::PAGE_SIZE);
+					else if (result == Error::OUT_OF_CAPS) rm.upgrade_caps(8);
+					else {
+						error("failed to fill up GTT as dummy RAM");
+						break;
+					}
+				}
 			}
 		}
 

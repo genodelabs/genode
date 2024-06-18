@@ -67,14 +67,18 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	size_t const utcb_size  = sizeof(Native_utcb);
 	addr_t const stack_area = stack_area_virtual_base();
 	addr_t const utcb_new   = (addr_t)&_stack->utcb() - stack_area;
-	Region_map * const rm   = env_stack_area_region_map;
 
 	/* remap initial main-thread UTCB according to stack-area spec */
-	try { rm->attach_at(Hw::_main_thread_utcb_ds, utcb_new, utcb_size); }
-	catch(...) {
-		error("failed to re-map UTCB");
-		while (1) ;
-	}
+	if (env_stack_area_region_map->attach(Hw::_main_thread_utcb_ds, {
+		.size       = utcb_size,
+		.offset     = { },
+		.use_at     = true,
+		.at         = utcb_new,
+		.executable = { },
+		.writeable  = true
+	}).failed())
+		error("failed to attach UTCB to local address space");
+
 	/* adjust initial object state in case of a main thread */
 	native_thread().cap = Hw::_main_thread_cap;
 	_thread_cap = main_thread_cap();
@@ -108,17 +112,25 @@ Thread::Start_result Thread::start()
 
 			/* attach UTCB at top of stack */
 			size_t const size = sizeof(_stack->utcb());
-			addr_t dst = Stack_allocator::addr_to_base(_stack) +
-			             stack_virtual_size() - size - stack_area_virtual_base();
-			try {
-				env_stack_area_region_map->attach_at(cpu_thread.utcb(), dst, size);
-			} catch (...) {
-				error("failed to attach userland stack");
-				sleep_forever();
-			}
-			/* start execution with initial IP and aligned SP */
-			cpu_thread.start((addr_t)_thread_start, _stack->top());
-			return Start_result::OK;
+			return env_stack_area_region_map->attach(cpu_thread.utcb(), {
+				.size       = size,
+				.offset     = { },
+				.use_at     = true,
+				.at         = Stack_allocator::addr_to_base(_stack)
+				            + stack_virtual_size() - size - stack_area_virtual_base(),
+				.executable = { },
+				.writeable  = true
+			}).convert<Start_result>(
+				[&] (Region_map::Range) {
+					/* start execution with initial IP and aligned SP */
+					cpu_thread.start((addr_t)_thread_start, _stack->top());
+					return Start_result::OK;
+				},
+				[&] (Region_map::Attach_error) {
+					error("failed to attach userland stack");
+					return Start_result::DENIED;
+				}
+			);
 		},
 		[&] (Cpu_session::Create_thread_error) { return Start_result::DENIED; }
 	);

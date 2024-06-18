@@ -333,17 +333,28 @@ struct Drm::Buffer
 
 	bool mmap(Genode::Env &env)
 	{
-		if (_local_addr) return true;
+		using Region_map = Genode::Region_map;
 
-		_local_addr = Gpu::addr_t(env.rm().attach(_allocation.cap, _allocation.size,
-		                                          _allocation.offset));
-		return true;
+		if (!_local_addr)
+			env.rm().attach(_allocation.cap, {
+				.size       = _allocation.size,
+				.offset     = Genode::addr_t(_allocation.offset),
+				.use_at     = { },
+				.at         = { },
+				.executable = { },
+				.writeable  = true
+			}).with_result(
+				[&] (Region_map::Range range)  { _local_addr = range.start; },
+				[&] (Region_map::Attach_error) { Genode::error("Drm::Buffer::mmap failed"); }
+			);
+
+		return (_local_addr != 0);
 	}
 
 	void unmap()
 	{
 		if (_local_addr)
-			_env.rm().detach((void *)_local_addr);
+			_env.rm().detach(_local_addr);
 
 		_local_addr = 0;
 	}

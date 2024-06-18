@@ -898,38 +898,42 @@ class Vfs::Ram_file_system : public Vfs::File_system
 		{
 			using namespace Vfs_ram;
 
-			Ram_dataspace_capability ds_cap;
-
 			Node * const node = lookup(path);
 			if (!node)
-				return ds_cap;
+				return { };
 
 			File * const file = dynamic_cast<File *>(node);
 			if (!file)
-				return ds_cap;
+				return { };
 
-			size_t len = file->length();
+			size_t const len = file->length();
 
-			char *local_addr = nullptr;
-			try {
-				ds_cap = _env.env().ram().alloc(len);
-
-				local_addr = _env.env().rm().attach(ds_cap);
-				file->read(Byte_range_ptr(local_addr, file->length()), Seek{0});
-				_env.env().rm().detach(local_addr);
-
-			} catch(...) {
-				_env.env().rm().detach(local_addr);
-				_env.env().ram().free(ds_cap);
-				return Dataspace_capability();
-			}
-			return ds_cap;
+			return _env.env().ram().try_alloc(len).convert<Dataspace_capability>(
+				[&] (Ram_dataspace_capability ds_cap) {
+					return _env.env().rm().attach(ds_cap, {
+						.size = { },  .offset     = { },  .use_at    = { },
+						.at   = { },  .executable = { },  .writeable = true
+					}).convert<Dataspace_capability>(
+						[&] (Region_map::Range const range) {
+							file->read(Byte_range_ptr((char *)range.start, len), Seek{0});
+							_env.env().rm().detach(range.start);
+							return ds_cap;
+						},
+						[&] (Region_map::Attach_error) {
+							_env.env().ram().free(ds_cap);
+							return Dataspace_capability();
+						}
+					);
+				},
+				[&] (Ram_allocator::Alloc_error) { return Dataspace_capability(); }
+			);
 		}
 
-		void release(char const *, Dataspace_capability ds_cap) override {
+		void release(char const *, Dataspace_capability ds_cap) override
+		{
 			_env.env().ram().free(
-				static_cap_cast<Genode::Ram_dataspace>(ds_cap)); }
-
+				static_cap_cast<Genode::Ram_dataspace>(ds_cap));
+		}
 
 		Watch_result watch(char const * const path, Vfs_watch_handle **handle,
 		                   Allocator &alloc) override

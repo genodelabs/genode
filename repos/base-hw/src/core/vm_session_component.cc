@@ -42,7 +42,7 @@ void Vm_session_component::Vcpu::exception_handler(Signal_context_capability han
 
 	unsigned const cpu = location.xpos();
 
-	if (!kobj.create(cpu, ds_addr, Capability_space::capid(handler), id))
+	if (!kobj.create(cpu, (void *)ds_addr, Capability_space::capid(handler), id))
 		warning("Cannot instantiate vm kernel object, invalid signal context?");
 }
 
@@ -65,7 +65,18 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 
 	try {
 		vcpu.ds_cap = _constrained_md_ram_alloc.alloc(_ds_size(), Cache::UNCACHED);
-		vcpu.ds_addr = _alloc_vcpu_data(_region_map.attach(vcpu.ds_cap));
+
+		Region_map::Attr attr { };
+		attr.writeable = true;
+		vcpu.ds_addr = _region_map.attach(vcpu.ds_cap, attr).convert<addr_t>(
+			[&] (Region_map::Range range) { return _alloc_vcpu_data(range.start); },
+			[&] (Region_map::Attach_error) -> addr_t {
+				error("failed to attach VCPU data within core");
+				if (vcpu.ds_cap.valid())
+					_constrained_md_ram_alloc.free(vcpu.ds_cap);
+				_vcpus[_vcpu_id_alloc].destruct();
+				return 0;
+			});
 	} catch (...) {
 		if (vcpu.ds_cap.valid())
 			_constrained_md_ram_alloc.free(vcpu.ds_cap);

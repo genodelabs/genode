@@ -98,7 +98,11 @@ struct Test::Main
 		Rm_connection rm_connection { _env };
 		Region_map_client rm { rm_connection.create(8*1024) };
 		Attached_ram_dataspace ram_ds { _env.ram(), _env.rm(), 4*1024 };
-		rm.attach_at(ram_ds.cap(), 0);
+		assert(rm.attach(ram_ds.cap(), {
+			.size       = { },    .offset     = { },
+			.use_at     = true,   .at         = 0,
+			.executable = false,  .writeable  = true 
+		}).ok(), "failed to map ram_ds at address 0");
 		Attached_dataspace managed_ds { _env.rm(), rm.dataspace() };
 
 		/* try to read 100 bytes at page boundary, expect to stop after 50 bytes */

@@ -563,19 +563,30 @@ class Vfs::Tar_file_system : public File_system
 				return Dataspace_capability();
 			}
 
-			try {
-				Ram_dataspace_capability ds_cap =
-					_env.ram().alloc((size_t)record->size());
+			size_t const len = size_t(record->size());
 
-				void *local_addr = _env.rm().attach(ds_cap);
-				memcpy(local_addr, record->data(), (size_t)record->size());
-				_env.rm().detach(local_addr);
+			using Region_map = Genode::Region_map;
 
-				return ds_cap;
-			}
-			catch (...) { Genode::warning(__func__, " could not create new dataspace"); }
-
-			return Dataspace_capability();
+			return _env.ram().try_alloc(len).convert<Dataspace_capability>(
+				[&] (Ram_dataspace_capability ds_cap) {
+					return _env.rm().attach(ds_cap, {
+						.size = { },  .offset     = { },  .use_at    = { },
+						.at   = { },  .executable = { },  .writeable = true
+					}).convert<Dataspace_capability>(
+						[&] (Region_map::Range const range) {
+							memcpy((void *)range.start, record->data(), len);
+							_env.rm().detach(range.start);
+							return ds_cap;
+						},
+						[&] (Region_map::Attach_error) {
+							_env.ram().free(ds_cap);
+							return Dataspace_capability();
+						}
+					);
+				},
+				[&] (Genode::Ram_allocator::Alloc_error) {
+					return Dataspace_capability(); }
+			);
 		}
 
 		void release(char const *, Dataspace_capability ds_cap) override

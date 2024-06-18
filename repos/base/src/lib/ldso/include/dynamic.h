@@ -72,9 +72,9 @@ class Linker::Dynamic
 
 		struct Needed : Fifo<Needed>::Element
 		{
-			off_t offset;
+			addr_t offset;
 
-			Needed(off_t offset) : offset(offset) { }
+			Needed(addr_t offset) : offset(offset) { }
 
 			char const *path(char const *strtab)
 			{

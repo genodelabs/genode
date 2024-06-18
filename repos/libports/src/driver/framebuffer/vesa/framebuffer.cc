@@ -161,10 +161,20 @@ int Framebuffer::map_io_mem(addr_t base, size_t size, bool write_combined,
 	if (!io_ds.valid())
 		return -2;
 
-	try {
-		*out_addr = genode_env().rm().attach(io_ds, size, 0, addr != 0, addr);
-	}
-	catch (Region_map::Region_conflict) { return -3; }
+	genode_env().rm().attach(io_ds, {
+		.size       = size,
+		.offset     = { },
+		.use_at     = (addr != 0),
+		.at         = addr,
+		.executable = false,
+		.writeable  = true
+	}).with_result(
+		[&] (Region_map::Range range)  { *out_addr = (void *)range.start; },
+		[&] (Region_map::Attach_error) { }
+	);
+
+	if (*out_addr == nullptr)
+		return -3;
 
 	log("fb mapped to ", *out_addr);
 

@@ -353,17 +353,26 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 				if (attach_off + sz > _size())
 					return;
 
-				retry<Out_of_ram>(
-					[&] () {
-						retry<Out_of_caps>(
-							[&] {
-								region_map.attach(device._ram_ds.cap(),
-								                  sz, off, true, attach_off);
-								attach_off += sz;
-							},
-							[&] { rm.upgrade_caps(2); });
-					},
-					[&] () { rm.upgrade_ram(8*1024); });
+				for (;;) {
+					Region_map::Attach_result const result =
+						region_map.attach(device._ram_ds.cap(), {
+							.size       = sz,
+							.offset     = off,
+							.use_at     = true,
+							.at         = attach_off,
+							.executable = false,
+							.writeable  = true
+						});
+					if (result.ok())
+						break;
+					using Error = Region_map::Attach_error;
+					if      (result == Error::OUT_OF_RAM)  rm.upgrade_ram(8*1024);
+					else if (result == Error::OUT_OF_CAPS) rm.upgrade_caps(2);
+					else {
+						error("failed to locally attach Virtio_gpu_device resource");
+						break;
+					}
+				}
 			}
 		};
 

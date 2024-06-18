@@ -19,7 +19,9 @@
 
 /* Genode includes */
 #include <base/trace/types.h>
+#include <base/attached_dataspace.h>
 #include <trace/trace_buffer.h>
+#include <trace_session/connection.h>
 
 namespace Genode { namespace Trace { class Connection; } }
 
@@ -33,13 +35,15 @@ class Monitor_base
 
 		Genode::Trace::Connection &_trace;
 		Genode::Region_map        &_rm;
-		Genode::Trace::Buffer     &_buffer_raw;
+		Genode::Attached_dataspace _ds;
+		Genode::Trace::Buffer     &_buffer_raw = *_ds.local_addr<Genode::Trace::Buffer>();
 
 		Monitor_base(Genode::Trace::Connection &trace,
 		             Genode::Region_map        &rm,
-		             Genode::Trace::Subject_id  subject_id);
-
-		~Monitor_base();
+		             Genode::Trace::Subject_id  subject_id)
+		:
+			_trace(trace), _rm(rm), _ds(rm, _trace.buffer(subject_id))
+		{ }
 };
 
 

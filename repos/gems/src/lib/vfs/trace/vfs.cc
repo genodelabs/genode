@@ -55,14 +55,23 @@ class Vfs_trace::Trace_buffer_file_system : public Single_file_system
 
 			void setup(Dataspace_capability ds)
 			{
-				_buffer.construct(*((Trace::Buffer *)_env.env().rm().attach(ds)));
+				_env.env().rm().attach(ds, {
+					.size       = { },  .offset    = { },
+					.use_at     = { },  .at        = { },
+					.executable = { },  .writeable = true
+				}).with_result(
+					[&] (Region_map::Range range) {
+						_buffer.construct(*(Trace::Buffer *)range.start); },
+					[&] (Region_map::Attach_error) {
+						error("failed to attach trace buffer"); }
+				);
 			}
 
 			void flush()
 			{
 				if (!_buffer.constructed()) return;
 
-				_env.env().rm().detach(_buffer->address());
+				_env.env().rm().detach(addr_t(_buffer->address()));
 				_buffer.destruct();
 			}
 

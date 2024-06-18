@@ -38,10 +38,20 @@ static void test_out_of_bounds_access(Env &env)
 	Attached_ram_dataspace buf_ds(env.ram(), env.rm(), BUF_SIZE);
 
 	/* attach buffer at start of managed dataspace, leave 2nd page as guard */
-	sub_rm.attach_at(buf_ds.cap(), 0);
+	sub_rm.attach(buf_ds.cap(), {
+		.size       = { },   .offset    = { },
+		.use_at     = true,  .at        = 0,
+		.executable = { },   .writeable = true });
 
 	/* locally attach managed dataspace */
-	char * const buf_ptr = env.rm().attach(sub_rm.dataspace());
+	char * const buf_ptr = env.rm().attach(sub_rm.dataspace(), {
+		.size       = { },   .offset    = { },
+		.use_at     = { },   .at        = { },
+		.executable = { },   .writeable = true }
+	).convert<char *>(
+		[&] (Region_map::Range range)  { return (char *)range.start; },
+		[&] (Region_map::Attach_error) { return nullptr; }
+	);
 
 	auto tokenize_two_tokens_at_end_of_buffer = [&] (char const * const input)
 	{

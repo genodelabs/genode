@@ -64,49 +64,64 @@ Main::Main(Env &env) : heap(env.ram(), env.rm())
 	log("blob region region ", Hex_range<addr_t>(beg, size), " size=", size);
 
 	/* RAM dataspace attachment overlapping binary */
-	try {
-		Ram_dataspace_capability ds(env.ram().alloc(size));
-
-		log("before RAM dataspace attach");
-		env.rm().attach_at(ds, beg);
-		error("after RAM dataspace attach -- ERROR");
-		env.parent().exit(-1);
-	} catch (Region_map::Region_conflict) {
-		log("OK caught Region_conflict exception");
-	}
+	log("before RAM dataspace attach");
+	env.rm().attach(env.ram().alloc(size), {
+		.size       = { },   .offset    = { },
+		.use_at     = true,  .at        = beg,
+		.executable = { },   .writeable = true
+	}).with_result(
+		[&] (Region_map::Range) {
+			error("after RAM dataspace attach -- ERROR");
+			env.parent().exit(-1); },
+		[&] (Region_map::Attach_error e) {
+			if (e == Region_map::Attach_error::REGION_CONFLICT)
+				log("OK caught Region_conflict exception"); }
+	);
 
 	/* empty managed dataspace overlapping binary */
-	try {
-		Rm_connection        rm_connection(env);
-		Region_map_client    rm(rm_connection.create(size));
-		Dataspace_capability ds(rm.dataspace());
+	{
+		Rm_connection     rm_connection(env);
+		Region_map_client rm(rm_connection.create(size));
 
 		log("before sub-RM dataspace attach");
-		env.rm().attach_at(ds, beg);
-		error("after sub-RM dataspace attach -- ERROR");
-		env.parent().exit(-1);
-	} catch (Region_map::Region_conflict) {
-		log("OK caught Region_conflict exception");
+		env.rm().attach(rm.dataspace(), {
+			.size       = { },   .offset    = { },
+			.use_at     = true,  .at        = beg,
+			.executable = { },   .writeable = true
+		}).with_result(
+			[&] (Region_map::Range) {
+				error("after sub-RM dataspace attach -- ERROR");
+				env.parent().exit(-1); },
+			[&] (Region_map::Attach_error e) {
+				if (e == Region_map::Attach_error::REGION_CONFLICT)
+					log("OK caught Region_conflict exception"); }
+		);
 	}
 
 	/* sparsely populated managed dataspace in free VM area */
-	try {
+	{
 		Rm_connection rm_connection(env);
 		Region_map_client rm(rm_connection.create(0x100000));
 
-		rm.attach_at(env.ram().alloc(0x1000), 0x1000);
-
-		Dataspace_capability ds(rm.dataspace());
+		rm.attach(env.ram().alloc(0x1000), {
+			.size       = { },   .offset    = { },
+			.use_at     = true,  .at        = 0x1000,
+			.executable = { },   .writeable = true
+		});
 
 		log("before populated sub-RM dataspace attach");
-		char *addr = (char *)env.rm().attach(ds) + 0x1000;
+		char * const addr = env.rm().attach(rm.dataspace(), {
+				.size       = { },   .offset    = { },
+				.use_at     = { },   .at        = { },
+				.executable = { },   .writeable = true
+			}).convert<char *>(
+				[&] (Region_map::Range r)      { return (char *)r.start + 0x1000; },
+				[&] (Region_map::Attach_error) { return nullptr; }
+			);
 		log("after populated sub-RM dataspace attach / before touch");
 		char const val = *addr;
 		*addr = 0x55;
 		log("after touch (", val, "/", *addr, ")");
-	} catch (Region_map::Region_conflict) {
-		error("Caught Region_conflict exception -- ERROR");
-		env.parent().exit(-1);
 	}
 	env.parent().exit(0);
 }

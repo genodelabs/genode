@@ -39,11 +39,6 @@ namespace Linker {
  */
 class Linker::Region_map
 {
-	public:
-
-		typedef Region_map_client::Local_addr      Local_addr;
-		typedef Region_map_client::Region_conflict Region_conflict;
-
 	private:
 
 		Env              &_env;
@@ -56,15 +51,27 @@ class Linker::Region_map
 
 		Region_map(Env &env, Allocator &md_alloc, addr_t base)
 		:
-			_env(env), _range(&md_alloc),
-			_base((addr_t)_env.rm().attach_rwx(_rm.dataspace(), base))
+			_env(env), _range(&md_alloc), _base(base)
 		{
-			_range.add_range(base, Pd_session::LINKER_AREA_SIZE);
+			_env.rm().attach(_rm.dataspace(), Genode::Region_map::Attr {
+				.size       = 0,
+				.offset     = 0,
+				.use_at     = true,
+				.at         = _base,
+				.executable = true,
+				.writeable  = true
+			}).with_result(
+				[&] (Genode::Region_map::Range) {
+					_range.add_range(base, Pd_session::LINKER_AREA_SIZE);
 
-			if (Linker::verbose)
-				log("  ",   Hex(base),
-				    " .. ", Hex(base + Pd_session::LINKER_AREA_SIZE - 1),
-				    ": linker area");
+					if (Linker::verbose)
+						log("  ",   Hex(base),
+						    " .. ", Hex(base + Pd_session::LINKER_AREA_SIZE - 1),
+						    ": linker area");
+				},
+				[&] (Genode::Region_map::Attach_error) {
+					error("failed to locally attach linker area"); }
+			);
 		}
 
 	public:
@@ -73,63 +80,55 @@ class Linker::Region_map
 
 		static Constructible_region_map &r();
 
+		using Alloc_region_error  = Ram_allocator::Alloc_error;
+		using Alloc_region_result = Attempt<addr_t, Alloc_region_error>;
+		using Attach_result       = Genode::Region_map::Attach_result;
+		using Attr                = Genode::Region_map::Attr;
+
 		/**
 		 * Allocate region anywhere within the region map
-		 *
-		 * XXX propagate OUT_OF_RAM, OUT_OF_CAPS
 		 */
-		addr_t alloc_region(size_t size)
+		Alloc_region_result alloc_region(size_t size)
 		{
-			return _range.alloc_aligned(size, get_page_size_log2()).convert<addr_t>(
-				[&] (void *ptr)                        { return (addr_t)ptr; },
-				[&] (Allocator::Alloc_error) -> addr_t { throw Region_conflict(); });
+			return _range.alloc_aligned(size, get_page_size_log2()).convert<Alloc_region_result>(
+				[&] (void *ptr)                { return (addr_t)ptr; },
+				[&] (Allocator::Alloc_error e) { return e; });
 		}
 
 		/**
 		 * Allocate region at specified 'vaddr'
 		 */
-		void alloc_region_at(size_t size, addr_t vaddr)
+		Alloc_region_result alloc_region_at(size_t size, addr_t vaddr)
 		{
-			if (_range.alloc_addr(size, vaddr).failed())
-				throw Region_conflict();
+			return _range.alloc_addr(size, vaddr).convert<Alloc_region_result>(
+				[&] (void *ptr)                { return (addr_t)ptr; },
+				[&] (Allocator::Alloc_error e) { return e; });
 		}
 
-		addr_t alloc_region_at_end(size_t size)
+		Alloc_region_result alloc_region_at_end(size_t size)
 		{
 			_end -= align_addr(size, get_page_size_log2());
-			alloc_region_at(size, _end);
-			return _end;
+			return alloc_region_at(size, _end);
 		}
 
 		void free_region(addr_t vaddr) { _range.free((void *)vaddr); }
 
-		/**
-		 * Overwritten from 'Region_map_client'
-		 */
-		Local_addr attach_at(Dataspace_capability ds, addr_t local_addr,
-		                     size_t size = 0, off_t offset = 0)
+		Attach_result attach(Dataspace_capability ds, Attr attr)
 		{
-			return retry<Genode::Out_of_ram>(
-				[&] () {
-					return _rm.attach_at(ds, local_addr - _base, size, offset);
+			if (!attr.use_at)
+				error("unexpected arguments of Linker::Region_map::attach");
+
+			attr.at -= _base;
+			return _rm.attach(ds, attr).convert<Attach_result>(
+				[&] (Genode::Region_map::Range range) {
+					range.start += _base;
+					return range;
 				},
-				[&] () { _env.upgrade(Parent::Env::pd(), "ram_quota=8K"); });
+				[&] (Genode::Region_map::Attach_error e) { return e; }
+			);
 		}
 
-		/**
-		 * Overwritten from 'Region_map_client'
-		 */
-		Local_addr attach_executable(Dataspace_capability ds, addr_t local_addr,
-		                             size_t size = 0, off_t offset = 0)
-		{
-			return retry<Genode::Out_of_ram>(
-				[&] () {
-					return _rm.attach_executable(ds, local_addr - _base, size, offset);
-				},
-				[&] () { _env.upgrade(Parent::Env::pd(), "ram_quota=8K"); });
-		}
-
-		void detach(Local_addr local_addr) { _rm.detach((addr_t)local_addr - _base); }
+		void detach(addr_t local_addr) { _rm.detach(local_addr - _base); }
 };
 
 #endif /* _INCLUDE__REGION_MAP_H_ */

@@ -652,25 +652,32 @@ void Genode::init_ldso_phdr(Env &env)
 	{
 		struct Not_implemented : Exception { };
 
-		Local_addr attach(Dataspace_capability ds, size_t, off_t,
-		                  bool, Local_addr, bool, bool) override
+		Attach_result attach(Dataspace_capability ds, Attr const &) override
 		{
 			size_t const size = Dataspace_client(ds).size();
 
 			Linker::Region_map &linker_area = *Linker::Region_map::r();
 
-			addr_t const at = linker_area.alloc_region_at_end(size);
-
-			(void)linker_area.attach_at(ds, at, size, 0UL);
-
-			return at;
+			return linker_area.alloc_region_at_end(size).convert<Attach_result>(
+				[&] (addr_t const at) {
+					return linker_area.attach(ds, Region_map::Attr {
+						.size       = size,
+						.offset     = { },
+						.use_at     = true,
+						.at         = at,
+						.executable = { },
+						.writeable  = true });
+				},
+				[&] (Linker::Region_map::Alloc_region_error) {
+					return Attach_error::REGION_CONFLICT; }
+			);
 		}
 
-		void detach(Local_addr) override { throw Not_implemented(); }
+		void detach(addr_t) override { throw Not_implemented(); }
 
 		void fault_handler(Signal_context_capability) override { }
 
-		State state() override { throw Not_implemented(); }
+		Fault fault() override { throw Not_implemented(); }
 
 		Dataspace_capability dataspace() override { throw Not_implemented(); }
 

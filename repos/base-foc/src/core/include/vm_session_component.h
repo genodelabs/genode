@@ -49,7 +49,7 @@ struct Core::Vcpu : Rpc_object<Vm_session::Native_vcpu, Vcpu>
 		Vcpu_id_allocator              &_vcpu_ids;
 		Cap_mapping                     _recall            { true };
 		Foc::l4_cap_idx_t               _task_index_client { };
-		Region_map::Local_addr          _foc_vcpu_state    { };
+		addr_t                          _foc_vcpu_state    { };
 
 	public:
 
@@ -64,8 +64,8 @@ struct Core::Vcpu : Rpc_object<Vm_session::Native_vcpu, Vcpu>
 		 ** Native_vcpu RPC interface **
 		 *******************************/
 
-		Foc::l4_cap_idx_t      task_index()     const { return _task_index_client; }
-		Region_map::Local_addr foc_vcpu_state() const { return _foc_vcpu_state; }
+		Foc::l4_cap_idx_t task_index()     const { return _task_index_client; }
+		addr_t            foc_vcpu_state() const { return _foc_vcpu_state; }
 };
 
 
@@ -93,7 +93,7 @@ class Core::Vm_session_component
 		/* helpers for vm_session_common.cc */
 		void _attach_vm_memory(Dataspace_component &, addr_t, Attach_attr);
 		void _detach_vm_memory(addr_t, size_t);
-		void _with_region(Region_map::Local_addr, auto const &);
+		void _with_region(addr_t, auto const &);
 
 	protected:
 
@@ -116,9 +116,9 @@ class Core::Vm_session_component
 		 *********************************/
 
 		/* used on destruction of attached dataspaces */
-		void detach(Region_map::Local_addr) override;            /* vm_session_common.cc */
-		void unmap_region(addr_t, size_t) override;              /* vm_session_common.cc */
-		void reserve_and_flush(Region_map::Local_addr) override; /* vm_session_common.cc */
+		void detach_at         (addr_t)         override;
+		void unmap_region      (addr_t, size_t) override;
+		void reserve_and_flush (addr_t)         override;
 
 
 		/**************************

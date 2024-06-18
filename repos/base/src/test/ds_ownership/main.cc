@@ -36,7 +36,7 @@ void Component::construct(Genode::Env &env)
 	pd_2.free(ds);
 
 	log("try to attach dataspace to see if it still exists");
-	env.rm().attach(ds);
+	env.rm().attach(ds, { });
 
 	log("attach operation succeeded");
 

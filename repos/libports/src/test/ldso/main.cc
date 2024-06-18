@@ -247,7 +247,7 @@ void Libc::Component::construct(Libc::Env &env)
 		lib_1_exception();
 		error("undelivered exception in shared lib");
 	}
-	catch (Region_map::Region_conflict) { log("exception in shared lib: caught"); }
+	catch (Lib_1_exception) { log("exception in shared lib: caught"); }
 
 	try {
 		__ldso_raise_exception();

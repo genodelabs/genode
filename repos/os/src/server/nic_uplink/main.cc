@@ -624,14 +624,6 @@ Net::Uplink_session_root::_create_session(char const *args)
 				return &session;
 			});
 	}
-	catch (Region_map::Invalid_dataspace) {
-		log_if(_main.verbose(), "[uplink] failed to attach RAM");
-		throw Service_denied();
-	}
-	catch (Region_map::Region_conflict) {
-		log_if(_main.verbose(), "[uplink] failed to attach RAM");
-		throw Service_denied();
-	}
 	catch (Out_of_ram) {
 		log_if(_main.verbose(), "[uplink] insufficient session RAM quota");
 		throw Insufficient_ram_quota();
@@ -653,8 +645,8 @@ void Net::Uplink_session_root::_destroy_session(Uplink_session_component *sessio
 
 	/* copy session env to stack and detach/free all session data */
 	Session_env session_env_stack { session_env };
-	session_env_stack.detach(session_ptr);
-	session_env_stack.detach(&session_env);
+	session_env_stack.detach(addr_t(session_ptr));
+	session_env_stack.detach(addr_t(&session_env));
 	session_env_stack.free(ram_ds);
 
 	/* check for leaked quota */
@@ -703,14 +695,6 @@ Nic_session_component *Net::Nic_session_root::_create_session(char const *args)
 			}
 		);
 	}
-	catch (Region_map::Invalid_dataspace) {
-		log_if(_main.verbose(), "[nic] failed to attach RAM");
-		throw Service_denied();
-	}
-	catch (Region_map::Region_conflict) {
-		log_if(_main.verbose(), "[nic] failed to attach RAM");
-		throw Service_denied();
-	}
 	catch (Out_of_ram) {
 		log_if(_main.verbose(), "[nic] insufficient session RAM quota");
 		throw Insufficient_ram_quota();
@@ -732,8 +716,8 @@ void Net::Nic_session_root::_destroy_session(Nic_session_component *session_ptr)
 
 	/* copy session env to stack and detach/free all session data */
 	Session_env session_env_stack { session_env };
-	session_env_stack.detach(session_ptr);
-	session_env_stack.detach(&session_env);
+	session_env_stack.detach(addr_t(session_ptr));
+	session_env_stack.detach(addr_t(&session_env));
 	session_env_stack.free(ram_ds);
 
 	/* check for leaked quota */

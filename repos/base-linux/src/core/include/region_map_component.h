@@ -52,15 +52,14 @@ class Core::Region_map_component : public Rpc_object<Region_map>,
 		void add_client(Rm_client &) { }
 		void remove_client(Rm_client &) { }
 
-		Local_addr attach(Dataspace_capability, size_t, off_t, bool,
-		                  Local_addr, bool, bool) override {
-			return (addr_t)0; }
+		Attach_result attach(Dataspace_capability, Attr const &) override {
+			return Attach_error::REGION_CONFLICT; }
 
-		void detach(Local_addr) override { }
+		void detach(addr_t) override { }
 
 		void fault_handler(Signal_context_capability) override { }
 
-		State state() override { return State(); }
+		Fault fault() override { return { }; }
 
 		Dataspace_capability dataspace() override { return Dataspace_capability(); }
 

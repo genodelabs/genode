@@ -42,38 +42,35 @@ class Stack_area_region_map : public Genode::Region_map
 		/**
 		 * Attach backing store to stack area
 		 */
-		Local_addr attach(Genode::Dataspace_capability, Genode::size_t size,
-		                  Genode::off_t, bool, Local_addr local_addr, bool,
-		                  bool) override
+		Attach_result attach(Genode::Dataspace_capability, Attr const &attr) override
 		{
 			using namespace Genode;
 
 			/* convert stack-area-relative to absolute virtual address */
-			addr_t addr = (addr_t)local_addr + stack_area_virtual_base();
+			addr_t const addr = attr.at + stack_area_virtual_base();
 
 			/* use anonymous mmap for allocating stack backing store */
 			int   flags = MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE;
 			int   prot  = PROT_READ | PROT_WRITE;
-			void *res   = lx_mmap((void*)addr, size, prot, flags, -1, 0);
+			void *res   = lx_mmap((void*)addr, attr.size, prot, flags, -1, 0);
 
 			if ((addr_t)res != addr)
-				throw Region_conflict();
+				return Attach_error::REGION_CONFLICT;
 
-			return local_addr;
+			return Range { .start = attr.at, .num_bytes = attr.size };
 		}
 
-		void detach(Local_addr local_addr) override
+		void detach(Genode::addr_t at) override
 		{
-			Genode::warning("stack area detach from ", (void*)local_addr,
+			Genode::warning("stack area detach from ", (void*)at,
 			                " - not implemented");
 		}
 
 		void fault_handler(Genode::Signal_context_capability) override { }
 
-		State state() override { return State(); }
+		Fault fault() override { return { }; }
 
-		Genode::Dataspace_capability dataspace() override {
-			return Genode::Dataspace_capability(); }
+		Genode::Dataspace_capability dataspace() override { return { }; }
 };
 
 

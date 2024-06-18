@@ -126,54 +126,13 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 		 ** Region map interface **
 		 **************************/
 
-		struct Attach_attr
-		{
-			size_t size;
-			off_t  offset;
-			bool   use_local_addr;
-			void  *local_addr;
-			bool   executable;
-			bool   writeable;
-		};
+		Attach_result attach(Dataspace_capability, Attr const &) override;
 
-		enum class Attach_error
-		{
-			INVALID_DATASPACE, REGION_CONFLICT, OUT_OF_RAM, OUT_OF_CAPS
-		};
-
-		using Attach_result = Attempt<Local_addr, Attach_error>;
-
-		Attach_result attach(Dataspace_capability, Attach_attr const &);
-
-		Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
-		                  bool use_local_addr, Local_addr local_addr,
-		                  bool executable, bool writeable) override
-		{
-			Attach_attr const attr { .size           = size,
-			                         .offset         = offset,
-			                         .use_local_addr = use_local_addr,
-			                         .local_addr     = local_addr,
-			                         .executable     = executable,
-			                         .writeable      = writeable };
-
-			return attach(ds, attr).convert<Local_addr>(
-				[&] (Local_addr local_addr) { return local_addr; },
-				[&] (Attach_error e) -> Local_addr {
-					switch (e) {
-					case Attach_error::INVALID_DATASPACE: throw Invalid_dataspace();
-					case Attach_error::REGION_CONFLICT:   throw Region_conflict();
-					case Attach_error::OUT_OF_RAM:        throw Out_of_ram();
-					case Attach_error::OUT_OF_CAPS:       throw Out_of_caps();
-					}
-					throw Region_conflict();
-				});
-		}
-
-		void detach(Local_addr) override;
+		void detach(addr_t) override;
 
 		void fault_handler(Signal_context_capability) override { }
 
-		State state() override { return State(); }
+		Fault fault() override { return { }; }
 
 
 		/*************************

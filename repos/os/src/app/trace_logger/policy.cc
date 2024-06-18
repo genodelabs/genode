@@ -11,6 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
+#include <base/attached_dataspace.h>
+
 /* local includes */
 #include <policy.h>
 
@@ -26,11 +29,9 @@ Policy::Policy(Env &env, Trace::Connection &trace, Policy_dict &dict,
 		[&] (Trace::Policy_id id) {
 			Dataspace_capability const dst_ds = _trace.policy(id);
 			if (dst_ds.valid()) {
-				void       * const dst = _env.rm().attach(dst_ds);
-				void const * const src = _env.rm().attach(_ds);
-				memcpy(dst, src, _size);
-				_env.rm().detach(dst);
-				_env.rm().detach(src);
+				Attached_dataspace dst { _env.rm(), dst_ds },
+				                   src { _env.rm(), _ds };
+				memcpy(dst.local_addr<void>(), src.local_addr<void>(), _size);
 				return;
 			}
 			warning("failed to obtain policy buffer for '", name, "'");

@@ -49,58 +49,50 @@ static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 	return virt_addr;
 }
 
-Region_map::Local_addr
-Core_region_map::attach(Dataspace_capability ds_cap, size_t,
-                        off_t offset, bool use_local_addr,
-                        Region_map::Local_addr,
-                        bool executable, bool writeable)
+Region_map::Attach_result
+Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 {
-	auto lambda = [&] (Dataspace_component *ds_ptr) -> Local_addr {
+	return _ep.apply(ds_cap, [&] (Dataspace_component * const ds_ptr) -> Attach_result {
+
 		if (!ds_ptr)
-			throw Invalid_dataspace();
+			return Attach_error::INVALID_DATASPACE;
 
 		Dataspace_component &ds = *ds_ptr;
 
-		if (use_local_addr) {
-			error("Parameter 'use_local_addr' not supported within core");
-			return nullptr;
-		}
-
-		if (offset) {
-			error("Parameter 'offset' not supported within core");
-			return nullptr;
-		}
+		/* attach attributes 'use_at' and 'offset' not supported within core */
+		if (attr.use_at || attr.offset)
+			return Attach_error::REGION_CONFLICT;
 
 		const size_t page_rounded_size = align_addr(ds.size(), get_page_size_log2());
 
 		/* allocate the virtual region contiguous for the dataspace */
 		void * virt_ptr = alloc_region(ds, page_rounded_size);
 		if (!virt_ptr)
-			throw Out_of_ram();
+			return Attach_error::OUT_OF_RAM;
 
 		/* map it */
 		Nova::Utcb &utcb = *reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
-		const Nova::Rights rights(true, writeable && ds.writeable(), executable);
+		const Nova::Rights rights(true, attr.writeable && ds.writeable(), attr.executable);
 
 		if (map_local(platform_specific().core_pd_sel(), utcb,
 		              ds.phys_addr(), reinterpret_cast<addr_t>(virt_ptr),
 		              page_rounded_size >> get_page_size_log2(), rights, true)) {
 			platform().region_alloc().free(virt_ptr, page_rounded_size);
-			throw Out_of_ram();
+
+			return Attach_error::OUT_OF_RAM;
 		}
 
-		return virt_ptr;
-	};
-	return _ep.apply(ds_cap, lambda);
+		return Range { .start = addr_t(virt_ptr), .num_bytes = page_rounded_size };
+	});
 }
 
 
-void Core_region_map::detach(Local_addr core_local_addr)
+void Core_region_map::detach(addr_t core_local_addr)
 {
-	size_t size = platform_specific().region_alloc_size_at(core_local_addr);
+	size_t size = platform_specific().region_alloc_size_at((void *)core_local_addr);
 
 	unmap_local(*reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
 	            core_local_addr, size >> get_page_size_log2());
 
-	platform().region_alloc().free(core_local_addr);
+	platform().region_alloc().free((void *)core_local_addr);
 }

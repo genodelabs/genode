@@ -408,7 +408,7 @@ Vm_session_component::~Vm_session_component()
 		if (!_map.any_block_addr(&out_addr))
 			break;
 
-		detach(out_addr);
+		detach_at(out_addr);
 	}
 
 	if (_pd_sel && _pd_sel != invalid_sel())

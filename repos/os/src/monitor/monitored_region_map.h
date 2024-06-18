@@ -66,7 +66,7 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 		}
 
 		Dataspace_capability create_writable_copy(Dataspace_capability orig_ds,
-		                                          off_t offset, size_t size)
+		                                          addr_t offset, size_t size)
 		{
 			Attached_dataspace ds { _local_rm, orig_ds };
 
@@ -86,6 +86,12 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 
 	Constructible<Writeable_text_segments> _writeable_text_segments { };
 
+	static bool _intersects(Range const &a, Range const &b)
+	{
+		addr_t const a_end = a.start + a.num_bytes - 1;
+		addr_t const b_end = b.start + b.num_bytes - 1;
+		return (b.start <= a_end) && (b_end >= a.start);
+	}
 
 	void writeable_text_segments(Allocator     &alloc,
 	                             Ram_allocator &ram,
@@ -97,27 +103,16 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 
 	struct Region : Registry<Region>::Element
 	{
-		struct Range
-		{
-			addr_t addr;
-			size_t size;
-
-			bool intersects(Range const &other) const
-			{
-				addr_t end = addr + size - 1;
-				addr_t other_end = other.addr + other.size - 1;
-				return ((other.addr <= end) && (other_end >= addr));
-			}
-		};
-
 		Dataspace_capability cap;
 		Range                range;
 		bool                 writeable;
 
 		Region(Registry<Region> &registry, Dataspace_capability cap,
-		       addr_t addr, size_t size, bool writeable)
-		: Registry<Region>::Element(registry, *this),
-		  cap(cap), range(addr, size), writeable(writeable) { }
+		       Range range, bool writeable)
+		:
+			Registry<Region>::Element(registry, *this),
+			cap(cap), range(range), writeable(writeable)
+		{ }
 	};
 
 	Registry<Region> _regions { };
@@ -125,8 +120,7 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 	void for_each_region(auto const &fn) const
 	{
 		_regions.for_each([&] (Region const &region) {
-			fn(region);
-		});
+			fn(region); });
 	}
 
 	Allocator &_alloc;
@@ -147,57 +141,52 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 	 ** Region_map interface **
 	 **************************/
 
-	Local_addr attach(Dataspace_capability ds, size_t size = 0,
-	                  off_t offset = 0, bool use_local_addr = false,
-	                  Local_addr local_addr = (void *)0,
-	                  bool executable = false,
-	                  bool writeable = true) override
+	Attach_result attach(Dataspace_capability ds, Attr const &orig_attr) override
 	{
-		if (executable && !writeable && _writeable_text_segments.constructed()) {
-			ds = _writeable_text_segments->create_writable_copy(ds, offset, size);
-			offset = 0;
-			writeable = true;
+		Attr attr = orig_attr;
+		if (attr.executable && !attr.writeable && _writeable_text_segments.constructed()) {
+			ds = _writeable_text_segments->create_writable_copy(ds, attr.offset, attr.size);
+			attr.offset = 0;
+			attr.writeable = true;
 		}
 
-		Local_addr attached_addr = _real.call<Rpc_attach>(ds, size, offset,
-		                                                  use_local_addr,
-		                                                  local_addr,
-		                                                  executable,
-		                                                  writeable);
-		size_t region_size = size ? size :
-		                     (Dataspace_client(ds).size() - offset);
-		enum { PAGE_SIZE_LOG2 = 12 };
-		region_size = align_addr(region_size, PAGE_SIZE_LOG2);
+		return _real.call<Rpc_attach>(ds, attr).convert<Attach_result>(
+			[&] (Range const range) -> Attach_result {
+				/*
+				 * It can happen that previous attachments got implicitly
+				 * removed by destruction of the dataspace without knowledge
+				 * of the monitor. The newly obtained region could then
+				 * overlap with outdated region registry entries which must
+				 * be removed before inserting the new region.
+				 */
+				_regions.for_each([&] (Region &region) {
+					if (_intersects(region.range, range))
+						destroy(_alloc, &region); });
 
-		/*
-		 * It can happen that previous attachments got implicitly
-		 * removed by destruction of the dataspace without knowledge
-		 * of the monitor. The newly obtained region could then
-		 * overlap with outdated region registry entries which must
-		 * be removed before inserting the new region.
-		 */
-
-		Region::Range range { attached_addr, region_size };
-
-		_regions.for_each([&] (Region &region) {
-			if (region.range.intersects(range))
-				destroy(_alloc, &region);
-		});
-
-		new (_alloc) Region(_regions, ds, (addr_t)attached_addr,
-		                    region_size, writeable);
-
-		return attached_addr;
+				try {
+					new (_alloc) Region(_regions, ds, range, attr.writeable);
+				}
+				catch (Out_of_ram)  {
+					_real.call<Rpc_detach>(range.start);
+					return Attach_error::OUT_OF_RAM;
+				}
+				catch (Out_of_caps) {
+					_real.call<Rpc_detach>(range.start);
+					return Attach_error::OUT_OF_CAPS;
+				}
+				return range;
+			},
+			[&] (Attach_error e) { return e; }
+		);
 	}
 
-	void detach(Local_addr local_addr) override
+	void detach(addr_t const at) override
 	{
-		_real.call<Rpc_detach>(local_addr);
+		_real.call<Rpc_detach>(at);
 
 		_regions.for_each([&] (Region &region) {
-			if (region.range.intersects(Region::Range { local_addr, 1 }))
-				destroy(_alloc, &region);
-		});
+			if (_intersects(region.range, Range { at, 1 }))
+				destroy(_alloc, &region); });
 	}
 
 	void fault_handler(Signal_context_capability) override
@@ -205,10 +194,7 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 		warning("Monitored_region_map: ignoring custom fault_handler for ", _name);
 	}
 
-	State state() override
-	{
-		return _real.call<Rpc_state>();
-	}
+	Fault fault() override { return _real.call<Rpc_fault>(); }
 
 	Dataspace_capability dataspace() override
 	{

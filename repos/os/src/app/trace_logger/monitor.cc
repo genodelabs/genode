@@ -15,7 +15,6 @@
 #include <monitor.h>
 
 /* Genode includes */
-#include <trace_session/connection.h>
 #include <util/formatted_output.h>
 
 using namespace Genode;
@@ -78,25 +77,6 @@ struct Conditional
 			Genode::print(out, _arg);
 	}
 };
-
-
-/******************
- ** Monitor_base **
- ******************/
-
-Monitor_base::Monitor_base(Trace::Connection &trace,
-                           Region_map        &rm,
-                           Trace::Subject_id  subject_id)
-:
-	_trace(trace), _rm(rm),
-	_buffer_raw(*(Trace::Buffer *)rm.attach(_trace.buffer(subject_id)))
-{ }
-
-
-Monitor_base::~Monitor_base()
-{
-	_rm.detach(&_buffer_raw);
-}
 
 
 /*************

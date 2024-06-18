@@ -43,10 +43,22 @@ class Genodefb :
 		 * The mode currently used by the VM. Can be smaller than the
 		 * framebuffer mode.
 		 */
-		Fb_Genode::Mode        _virtual_fb_mode;
+		Fb_Genode::Mode _virtual_fb_mode;
 
-		void                  *_fb_base;
-		RTCRITSECT             _fb_lock;
+		void *_attach()
+		{
+			return _env.rm().attach(_fb.dataspace(), {
+				.size = { },  .offset     = { },  .use_at     = { },
+				.at   = { },  .executable = { },  .writeable  = true
+			}).convert<void *>(
+				[&] (Genode::Region_map::Range range)  { return (void *)range.start; },
+				[&] (Genode::Region_map::Attach_error) { return nullptr; }
+			);
+		}
+
+		void *_fb_base = _attach();
+
+		RTCRITSECT _fb_lock;
 
 		ComPtr<IDisplay>             _display;
 		ComPtr<IDisplaySourceBitmap> _display_bitmap;
@@ -95,7 +107,6 @@ class Genodefb :
 			_gui(gui),
 			_fb(*gui.framebuffer()),
 			_virtual_fb_mode(_initial_setup()),
-			_fb_base(env.rm().attach(_fb.dataspace())),
 			_display(display)
 		{
 			int rc = RTCritSectInit(&_fb_lock);
@@ -112,15 +123,11 @@ class Genodefb :
 			_fb_mode = mode;
 
 			if (_fb_base)
-				_env.rm().detach(_fb_base);
+				_env.rm().detach(Genode::addr_t(_fb_base));
 
 			_adjust_buffer();
 
-			try {
-				_fb_base = _env.rm().attach(_fb.dataspace());
-			} catch (...) {
-				_fb_base = nullptr;
-			}
+			_fb_base = _attach();
 
 			Unlock();
 		}

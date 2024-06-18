@@ -342,13 +342,13 @@ void Libc::Kernel::_handle_user_interrupt()
 
 void Libc::Kernel::_clone_state_from_parent()
 {
-	struct Range { void *at; size_t size; };
+	using Range = Region_map::Range;
 
-	auto range_attr = [&] (Xml_node node)
+	auto range_attr = [&] (Xml_node const &node)
 	{
 		return Range {
-			.at   = (void *)node.attribute_value("at",   0UL),
-			.size =         node.attribute_value("size", 0UL)
+			.start     = node.attribute_value("at",   0UL),
+			.num_bytes = node.attribute_value("size", 0UL)
 		};
 	};
 
@@ -365,7 +365,7 @@ void Libc::Kernel::_clone_state_from_parent()
 		new (_heap)
 			Registered<Cloned_malloc_heap_range>(_cloned_heap_ranges,
 			                                     _env.ram(), _env.rm(),
-			                                     range.at, range.size); });
+			                                     range); });
 
 	_clone_connection.construct(_env);
 
@@ -385,7 +385,7 @@ void Libc::Kernel::_clone_state_from_parent()
 
 		auto copy_from_parent = [&] (Range range)
 		{
-			_clone_connection->memory_content(range.at, range.size);
+			_clone_connection->memory_content((void *)range.start, range.num_bytes);
 		};
 
 		/* clone application stack */

@@ -185,7 +185,7 @@ Vm_session_component::~Vm_session_component()
 		if (!_map.any_block_addr(&out_addr))
 			break;
 
-		detach(out_addr);
+		detach_at(out_addr);
 	}
 
 	if (_vm_page_table.value())
@@ -300,7 +300,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 				if (!_map.any_block_addr(&out_addr))
 					break;
 
-				detach(out_addr);
+				detach_at(out_addr);
 			}
 
 			_vm_space.map_guest(page.addr, page.hotspot,

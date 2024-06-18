@@ -20,6 +20,8 @@ void lib_1_good();
 void lib_1_exception();
 void lib_2_exception();
 
+struct Lib_1_exception { };
+
 struct Lib_1_local_3
 {
 	int x { 0x12345678 };

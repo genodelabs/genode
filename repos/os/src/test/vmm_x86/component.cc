@@ -253,11 +253,10 @@ class Vmm::Vm
 			}
 
 			/* prepare guest memory with some instructions for testing */
-			uint8_t * guest = env.rm().attach(_memory);
-
-			memcpy(guest, &_binary_guest_bin_start, 4096);
-
-			env.rm().detach(guest);
+			{
+				Attached_dataspace guest { env.rm(), _memory };
+				memcpy(guest.local_addr<void>(), &_binary_guest_bin_start, 4096);
+			}
 
 			/* VMM ready for all the vCPUs */
 			_vmm_ready.up();

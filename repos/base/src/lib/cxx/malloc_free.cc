@@ -32,8 +32,11 @@ static Heap *cxx_heap_ptr;
 Heap &cxx_heap()
 {
 	class Cxx_heap_uninitialized : Exception { };
-	if (!cxx_heap_ptr)
+	if (!cxx_heap_ptr) {
+		raw("Cxx_heap_uninitialized");
+		for (;;);
 		throw Cxx_heap_uninitialized();
+	}
 
 	return *cxx_heap_ptr;
 }

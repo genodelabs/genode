@@ -332,14 +332,6 @@ Nic_session_component *Net::Nic_session_root::_create_session(char const *args)
 				return result;
 			});
 	}
-	catch (Region_map::Invalid_dataspace) {
-		_invalid_downlink("Failed to attach RAM");
-		throw Service_denied();
-	}
-	catch (Region_map::Region_conflict) {
-		_invalid_downlink("Failed to attach RAM");
-		throw Service_denied();
-	}
 	catch (Out_of_ram) {
 		_invalid_downlink("NIC session RAM quota");
 		throw Insufficient_ram_quota();
@@ -362,8 +354,8 @@ void Net::Nic_session_root::_destroy_session(Nic_session_component *session)
 
 	/* copy session env to stack and detach/free all session data */
 	Session_env session_env_stack { session_env };
-	session_env_stack.detach(session);
-	session_env_stack.detach(&session_env);
+	session_env_stack.detach(addr_t(session));
+	session_env_stack.detach(addr_t(&session_env));
 	session_env_stack.free(ram_ds);
 
 	_mac_alloc.free(mac);

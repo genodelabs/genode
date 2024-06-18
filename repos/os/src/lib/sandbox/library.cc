@@ -402,11 +402,8 @@ bool Genode::Sandbox::Library::ready_to_create_child(Start_model::Name    const 
 		warning("local capabilities exhausted during child creation"); }
 	catch (Child::Missing_name_attribute) {
 		warning("skipped startup of nameless child"); }
-	catch (Region_map::Region_conflict) {
+	catch (Attached_dataspace::Region_conflict) {
 		warning("failed to attach dataspace to local address space "
-		        "during child construction"); }
-	catch (Region_map::Invalid_dataspace) {
-		warning("attempt to attach invalid dataspace to local address space "
 		        "during child construction"); }
 	catch (Service_denied) {
 		warning("failed to create session during child construction"); }

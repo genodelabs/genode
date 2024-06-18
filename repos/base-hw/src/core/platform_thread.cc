@@ -108,7 +108,14 @@ Platform_thread::Platform_thread(size_t             const  quota,
 		error("failed to allocate UTCB");
 		throw Out_of_ram();
 	}
-	_utcb_core_addr = (Native_utcb *)core_env().rm_session()->attach(_utcb);
+
+	Region_map::Attr attr { };
+	attr.writeable = true;
+	core_env().rm_session()->attach(_utcb, attr).with_result(
+		[&] (Region_map::Range range) {
+			_utcb_core_addr = (Native_utcb *)range.start; },
+		[&] (Region_map::Attach_error) {
+			error("failed to attach UTCB of new thread within core"); });
 }
 
 

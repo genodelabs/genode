@@ -30,28 +30,45 @@ struct Libc::Cloned_malloc_heap_range
 
 	Ram_dataspace_capability ds;
 
-	size_t const size;
-	addr_t const local_addr;
+	using Range = Region_map::Range;
 
-	Cloned_malloc_heap_range(Ram_allocator &ram, Region_map &rm,
-	                         void *start, size_t size)
-	try :
-		ram(ram), rm(rm), ds(ram.alloc(size)), size(size),
-		local_addr(rm.attach_at(ds, (addr_t)start))
-	{ }
-	catch (Region_map::Region_conflict) {
-		error("could not clone heap region ", Hex_range((addr_t)start, size));
-		throw;
+	Range const range;
+
+	Cloned_malloc_heap_range(Ram_allocator &ram, Region_map &rm, Range const range)
+	:
+		ram(ram), rm(rm), ds(ram.alloc(range.num_bytes)), range(range)
+	{
+		rm.attach(ds, {
+			.size       = { },
+			.offset     = { },
+			.use_at     = true,
+			.at         = range.start,
+			.executable = { },
+			.writeable  = true
+		}).with_result(
+			[&] (Range) { },
+			[&] (Region_map::Attach_error e) {
+				using Error = Region_map::Attach_error;
+				switch (e) {
+				case Error::OUT_OF_RAM:        throw Out_of_ram();
+				case Error::OUT_OF_CAPS:       throw Out_of_caps();
+				case Error::INVALID_DATASPACE: break;
+				case Error::REGION_CONFLICT:   break;
+				}
+				error("failed to clone heap region ",
+				      Hex_range(range.start, range.num_bytes));
+			}
+		);
 	}
 
 	void import_content(Clone_connection &clone_connection)
 	{
-		clone_connection.memory_content((void *)local_addr, size);
+		clone_connection.memory_content((void *)range.start, range.num_bytes);
 	}
 
 	virtual ~Cloned_malloc_heap_range()
 	{
-		rm.detach(local_addr);
+		rm.detach(range.start);
 		ram.free(ds);
 	}
 };

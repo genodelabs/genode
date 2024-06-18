@@ -56,45 +56,43 @@ class Stack_area_region_map : public Region_map
 		/**
 		 * Allocate and attach on-the-fly backing store to the stack area
 		 */
-		Local_addr attach(Dataspace_capability, size_t size, off_t,
-		                  bool, Local_addr local_addr, bool, bool) override
+		Attach_result attach(Dataspace_capability, Attr const &attr) override
 		{
 			using namespace Core;
 
-			size = round_page(size);
+			size_t const size      = round_page(attr.size);
+			size_t const num_pages = size >> get_page_size_log2();
 
 			/* allocate physical memory */
 			Range_allocator &phys_alloc = Core::platform_specific().ram_alloc();
-			size_t const num_pages = size >> get_page_size_log2();
 			addr_t const phys = Untyped_memory::alloc_pages(phys_alloc, num_pages);
 			Untyped_memory::convert_to_page_frames(phys, num_pages);
 
 			Dataspace_component &ds = *new (&_ds_slab)
 				Dataspace_component(size, 0, phys, CACHED, true, 0);
 
-			addr_t const core_local_addr =
-				stack_area_virtual_base() + (addr_t)local_addr;
+			addr_t const core_local_addr = stack_area_virtual_base() + attr.at;
 
 			if (!map_local(ds.phys_addr(), core_local_addr,
 			               ds.size() >> get_page_size_log2())) {
 				error(__func__, ": could not map phys ", Hex(ds.phys_addr()), " "
 				      "at local ", Hex(core_local_addr));
-				return (addr_t)0;
+				return Attach_error::INVALID_DATASPACE;
 			}
 
 			ds.assign_core_local_addr((void*)core_local_addr);
 
-			return local_addr;
+			return Range { .start = attr.at, .num_bytes = size };
 		}
 
-		void detach(Local_addr local_addr) override
+		void detach(addr_t at) override
 		{
 			using namespace Core;
 
-			if ((addr_t)local_addr >= stack_area_virtual_size())
+			if (at >= stack_area_virtual_size())
 				return;
 
-			addr_t const detach = stack_area_virtual_base() + (addr_t)local_addr;
+			addr_t const detach = stack_area_virtual_base() + at;
 			addr_t const stack  = stack_virtual_size();
 			addr_t const pages  = ((detach & ~(stack - 1)) + stack - detach)
 			                      >> get_page_size_log2();
@@ -107,9 +105,9 @@ class Stack_area_region_map : public Region_map
 
 		void fault_handler(Signal_context_capability) override { }
 
-		State state() override { return State(); }
+		Fault fault() override { return { }; }
 
-		Dataspace_capability dataspace() override { return Dataspace_capability(); }
+		Dataspace_capability dataspace() override { return { }; }
 };
 
 

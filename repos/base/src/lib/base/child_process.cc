@@ -41,12 +41,17 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 		throw Missing_dynamic_linker();
 	}
 
-	addr_t elf_addr = 0;
-	try { elf_addr = local_rm.attach(ldso_ds); }
-	catch (Region_map::Invalid_dataspace) {
-		error("dynamic linker is an invalid dataspace"); throw; }
-	catch (Region_map::Region_conflict) {
-		error("region conflict while attaching dynamic linker"); throw; }
+	addr_t const elf_addr = local_rm.attach(ldso_ds, Region_map::Attr{}).convert<addr_t>(
+		[&] (Region_map::Range range) { return range.start; },
+		[&] (Region_map::Attach_error const e) -> addr_t {
+			if (e == Region_map::Attach_error::INVALID_DATASPACE)
+				error("dynamic linker is an invalid dataspace");
+			if (e == Region_map::Attach_error::REGION_CONFLICT)
+				error("region conflict while attaching dynamic linker");
+			return 0; });
+
+	if (!elf_addr)
+		return;
 
 	Elf_binary elf(elf_addr);
 
@@ -66,7 +71,6 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 		size_t const size = seg.mem_size();
 
 		bool const write = seg.flags().w;
-		bool const exec = seg.flags().x;
 
 		if (write) {
 
@@ -89,14 +93,17 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 				error("allocation of read-write segment failed"); throw; };
 
 			/* attach dataspace */
-			void *base;
-			try { base = local_rm.attach(ds_cap); }
-			catch (Region_map::Invalid_dataspace) {
-				error("attempt to attach invalid segment dataspace"); throw; }
-			catch (Region_map::Region_conflict) {
-				error("region conflict while locally attaching ELF segment"); throw; }
+			Region_map::Attr attr { };
+			attr.writeable = true;
+			void * const ptr = local_rm.attach(ds_cap, attr).convert<void *>(
+				[&] (Region_map::Range range) { return (void *)range.start; },
+				[&] (Region_map::Attach_error const e) {
+					if (e == Region_map::Attach_error::INVALID_DATASPACE)
+						error("attempt to attach invalid segment dataspace");
+					if (e == Region_map::Attach_error::REGION_CONFLICT)
+						error("region conflict while locally attaching ELF segment");
+					return nullptr; });
 
-			void * const ptr = base;
 			addr_t const laddr = elf_addr + seg.file_offset();
 
 			/* copy contents and fill with zeros */
@@ -115,15 +122,21 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 			}
 
 			/* detach dataspace */
-			local_rm.detach(base);
+			local_rm.detach(addr_t(ptr));
 
-			off_t const offset = 0;
-			try { remote_rm.attach_at(ds_cap, addr, size, offset); }
-			catch (Region_map::Region_conflict) {
-				error("region conflict while remotely attaching ELF segment");
-				error("addr=", (void *)addr, " size=", (void *)size, " offset=", (void *)offset);
-				throw; }
-
+			remote_rm.attach(ds_cap, Region_map::Attr {
+				.size       = size,
+				.offset     = { },
+				.use_at     = true,
+				.at         = addr,
+				.executable = false,
+				.writeable  = true
+			}).with_result(
+				[&] (Region_map::Range) { },
+				[&] (Region_map::Attach_error) {
+					error("region conflict while remotely attaching ELF segment");
+					error("addr=", (void *)addr, " size=", (void *)size); }
+			);
 		} else {
 
 			/* read-only segment */
@@ -131,27 +144,28 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 			if (seg.file_size() != seg.mem_size())
 				warning("filesz and memsz for read-only segment differ");
 
-			off_t const offset = seg.file_offset();
-			try {
-				if (exec)
-					remote_rm.attach_executable(ldso_ds, addr, size, offset);
-				else
-					remote_rm.attach_at(ldso_ds, addr, size, offset);
-			}
-			catch (Region_map::Region_conflict) {
-				error("region conflict while remotely attaching read-only ELF segment");
-				error("addr=", (void *)addr, " size=", (void *)size, " offset=", (void *)offset);
-				throw;
-			}
-			catch (Region_map::Invalid_dataspace) {
-				error("attempt to attach invalid read-only segment dataspace");
-				throw;
-			}
+			remote_rm.attach(ldso_ds, Region_map::Attr {
+				.size       = size,
+				.offset     = seg.file_offset(),
+				.use_at     = true,
+				.at         = addr,
+				.executable = seg.flags().x,
+				.writeable  = false
+			}).with_result(
+				[&] (Region_map::Range) { },
+				[&] (Region_map::Attach_error const e) {
+					if (e == Region_map::Attach_error::REGION_CONFLICT)
+						error("region conflict while remotely attaching read-only ELF segment");
+					if (e == Region_map::Attach_error::INVALID_DATASPACE)
+						error("attempt to attach invalid read-only segment dataspace");
+					error("addr=", (void *)addr, " size=", (void *)size);
+				}
+			);
 		}
 	}
 
 	/* detach ELF */
-	local_rm.detach((void *)elf_addr);
+	local_rm.detach(elf_addr);
 }
 
 

@@ -73,6 +73,7 @@ class Trace_recorder::Monitor
 			private:
 
 				Env                               &_env;
+				Attached_dataspace                 _ds;
 				Trace_buffer                       _buffer;
 				Registry<Attached_buffer>::Element _element;
 				Subject_info                       _info;
@@ -86,17 +87,14 @@ class Trace_recorder::Monitor
 				                Genode::Dataspace_capability ds,
 				                Trace::Subject_info    const &info,
 				                Trace::Subject_id            id)
-				: _env(env),
-				  _buffer(*((Trace::Buffer*)_env.rm().attach(ds))),
-				  _element(registry, *this),
-				  _info(info),
-				  _subject_id(id)
+				:
+					_env(env),
+					_ds(env.rm(), ds),
+					_buffer(*_ds.local_addr<Trace::Buffer>()),
+					_element(registry, *this),
+					_info(info),
+					_subject_id(id)
 				{ }
-
-				~Attached_buffer()
-				{
-					_env.rm().detach(_buffer.address());
-				}
 
 				void process_events(Trace_directory &);
 

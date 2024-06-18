@@ -65,52 +65,53 @@ class Stack_area_region_map : public Region_map
 		/**
 		 * Allocate and attach on-the-fly backing store to stack area
 		 */
-		Local_addr attach(Dataspace_capability, size_t size, off_t,
-		                  bool, Local_addr local_addr, bool, bool) override
+		Attach_result attach(Dataspace_capability, Attr const &attr) override
 		{
 			/* allocate physical memory */
-			size = round_page(size);
+			size_t const size = round_page(attr.size);
 
 			Range_allocator &phys = platform_specific().ram_alloc();
 
-			return phys.alloc_aligned(size, get_page_size_log2()).convert<Local_addr>(
+			return phys.alloc_aligned(size, get_page_size_log2()).convert<Attach_result>(
 
-				[&] (void *phys_ptr) {
+				[&] (void *phys_ptr) -> Attach_result {
 
-					addr_t const phys_base = (addr_t)phys_ptr;
+					try {
+						addr_t const phys_base = (addr_t)phys_ptr;
 
-					Dataspace_component &ds = *new (&_ds_slab)
-						Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
+						Dataspace_component &ds = *new (&_ds_slab)
+							Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
 
-					addr_t const core_local_addr = stack_area_virtual_base()
-					                             + (addr_t)local_addr;
+						addr_t const core_local_addr = stack_area_virtual_base()
+						                             + attr.at;
 
-					if (!map_local(ds.phys_addr(), core_local_addr,
-					               ds.size() >> get_page_size_log2())) {
-						error("could not map phys ", Hex(ds.phys_addr()),
-						      " at local ", Hex(core_local_addr));
+						if (!map_local(ds.phys_addr(), core_local_addr,
+						               ds.size() >> get_page_size_log2())) {
+							error("could not map phys ", Hex(ds.phys_addr()),
+							      " at local ", Hex(core_local_addr));
 
-						phys.free(phys_ptr);
-						return Local_addr { (addr_t)0 };
+							phys.free(phys_ptr);
+							return Attach_error::INVALID_DATASPACE;
+						}
+
+						ds.assign_core_local_addr((void*)core_local_addr);
+
+						return Range { .start = attr.at, .num_bytes = size };
 					}
-
-					ds.assign_core_local_addr((void*)core_local_addr);
-
-					return local_addr;
+					catch (Out_of_ram)  { return Attach_error::OUT_OF_RAM; }
+					catch (Out_of_caps) { return Attach_error::OUT_OF_CAPS; }
 				},
 				[&] (Range_allocator::Alloc_error) {
 					error("could not allocate backing store for new stack");
-					return (addr_t)0; });
+					return Attach_error::REGION_CONFLICT; });
 		}
 
-		void detach(Local_addr local_addr) override
+		void detach(addr_t const at) override
 		{
-			using Genode::addr_t;
-
-			if ((addr_t)local_addr >= stack_area_virtual_size())
+			if (at >= stack_area_virtual_size())
 				return;
 
-			addr_t const detach = stack_area_virtual_base() + (addr_t)local_addr;
+			addr_t const detach = stack_area_virtual_base() + at;
 			addr_t const stack  = stack_virtual_size();
 			addr_t const pages  = ((detach & ~(stack - 1)) + stack - detach)
 			                      >> get_page_size_log2();
@@ -120,9 +121,9 @@ class Stack_area_region_map : public Region_map
 
 		void fault_handler(Signal_context_capability) override { }
 
-		State state() override { return State(); }
+		Fault fault() override { return { }; }
 
-		Dataspace_capability dataspace() override { return Dataspace_capability(); }
+		Dataspace_capability dataspace() override { return { }; }
 };
 
 

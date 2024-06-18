@@ -62,12 +62,12 @@ Pager_object::Pager_result Rm_client::pager(Ipc_pager &pager)
 
 		[&] (Region_map_component &rm, Fault const &fault) /* reflect to user space */
 		{
-			using Type = Region_map::State::Fault_type;
-			Type const type = (fault.access == Access::READ)  ? Type::READ_FAULT
-			                : (fault.access == Access::WRITE) ? Type::WRITE_FAULT
-			                :                                   Type::EXEC_FAULT;
+			using Type = Region_map::Fault::Type;
+			Type const type = (fault.access == Access::READ)  ? Type::READ
+			                : (fault.access == Access::WRITE) ? Type::WRITE
+			                :                                   Type::EXEC;
 			/* deliver fault info to responsible region map */
-			rm.fault(*this, fault.hotspot.value, type);
+			rm.fault(*this, { .type = type, .addr = fault.hotspot.value });
 		}
 	);
 
@@ -118,12 +118,12 @@ Pager_object::Pager_result Rm_client::pager(Ipc_pager &pager)
  *************/
 
 void Rm_faulter::fault(Region_map_component &faulting_region_map,
-                       Region_map::State     fault_state)
+                       Region_map::Fault     fault)
 {
 	Mutex::Guard lock_guard(_mutex);
 
 	_faulting_region_map = faulting_region_map.weak_ptr();
-	_fault_state         = fault_state;
+	_fault               = fault;
 
 	_pager_object.unresolved_page_fault_occurred();
 }
@@ -154,7 +154,7 @@ void Rm_faulter::continue_after_resolved_fault()
 
 	_pager_object.wake_up();
 	_faulting_region_map = Weak_ptr<Core::Region_map_component>();
-	_fault_state = Region_map::State();
+	_fault = { };
 }
 
 
@@ -162,55 +162,54 @@ void Rm_faulter::continue_after_resolved_fault()
  ** Region-map component **
  **************************/
 
-Region_map::Local_addr
-Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const attr)
+Region_map::Attach_result
+Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const core_attr)
 {
+	Attr const attr = core_attr.attr;
+
 	/* serialize access */
 	Mutex::Guard lock_guard(_mutex);
 
-	/* offset must be positive and page-aligned */
-	if (attr.offset < 0 || align_addr(attr.offset, get_page_size_log2()) != attr.offset)
-		throw Region_conflict();
+	/* offset must be page-aligned */
+	if (align_addr(attr.offset, get_page_size_log2()) != attr.offset)
+		return Attach_error::REGION_CONFLICT;
 
-	auto lambda = [&] (Dataspace_component *dsc) {
+	auto lambda = [&] (Dataspace_component *dsc) -> Attach_result {
 
 		using Alloc_error = Range_allocator::Alloc_error;
 
 		/* check dataspace validity */
 		if (!dsc)
-			throw Invalid_dataspace();
+			return Attach_error::INVALID_DATASPACE;
 
 		unsigned const min_align_log2 = get_page_size_log2();
 
-		size_t const off = attr.offset;
-		if (off >= dsc->size())
-			throw Region_conflict();
+		size_t const ds_size = dsc->size();
 
-		size_t size = attr.size;
+		if (attr.offset >= ds_size)
+			return Attach_error::REGION_CONFLICT;
 
-		if (!size)
-			size = dsc->size() - attr.offset;
+		size_t size = attr.size ? attr.size : ds_size - attr.offset;
 
 		/* work with page granularity */
 		size = align_addr(size, min_align_log2);
 
 		/* deny creation of regions larger then the actual dataspace */
-		if (dsc->size() < size + attr.offset)
-			throw Region_conflict();
+		if (ds_size < size + attr.offset)
+			return Attach_error::REGION_CONFLICT;
 
 		/* allocate region for attachment */
-		void *attach_at = nullptr;
-		if (attr.use_local_addr) {
-			_map.alloc_addr(size, attr.local_addr).with_result(
-				[&] (void *ptr) { attach_at = ptr; },
-				[&] (Range_allocator::Alloc_error error) {
-					switch (error) {
-					case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
-					case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
-					case Alloc_error::DENIED:      break;
-					}
-					throw Region_conflict();
-				});
+		bool at_defined = false;
+		addr_t at { };
+		if (attr.use_at) {
+			Alloc_error error = Alloc_error::DENIED;
+			_map.alloc_addr(size, attr.at).with_result(
+				[&] (void *ptr)     { at = addr_t(ptr); at_defined = true; },
+				[&] (Alloc_error e) { error = e; });
+
+			if (error == Alloc_error::OUT_OF_RAM)  return Attach_error::OUT_OF_RAM;
+			if (error == Alloc_error::OUT_OF_CAPS) return Attach_error::OUT_OF_CAPS;
+
 		} else {
 
 			/*
@@ -222,8 +221,7 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const att
 			if (align_log2 >= sizeof(void *)*8)
 				align_log2 = min_align_log2;
 
-			bool done = false;
-			for (; !done && (align_log2 >= min_align_log2); align_log2--) {
+			for (; !at_defined && (align_log2 >= min_align_log2); align_log2--) {
 
 				/*
 				 * Don't use an alignment higher than the alignment of the backing
@@ -233,60 +231,52 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const att
 				if (((dsc->map_src_addr() + attr.offset) & ((1UL << align_log2) - 1)) != 0)
 					continue;
 
-				/* try allocating the align region */
-				_map.alloc_aligned(size, (unsigned)align_log2).with_result(
+				/* try allocating the aligned region */
+				Alloc_error error = Alloc_error::DENIED;
+				_map.alloc_aligned(size, unsigned(align_log2)).with_result(
+					[&] (void *ptr) { at = addr_t(ptr); at_defined = true; },
+					[&] (Alloc_error e) { error = e; });
 
-					[&] (void *ptr) {
-						attach_at = ptr;
-						done      = true; },
-
-					[&] (Range_allocator::Alloc_error error) {
-						switch (error) {
-						case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
-						case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
-						case Alloc_error::DENIED:      break; /* no fit */
-						}
-						/* try smaller alignment in next iteration... */
-					});
+				if (error == Alloc_error::OUT_OF_RAM)  return Attach_error::OUT_OF_RAM;
+				if (error == Alloc_error::OUT_OF_CAPS) return Attach_error::OUT_OF_CAPS;
 			}
-
-			if (!done)
-				throw Region_conflict();
 		}
+		if (!at_defined)
+			return Attach_error::REGION_CONFLICT;
 
 		Rm_region::Attr const region_attr
 		{
-			.base  = (addr_t)attach_at,
+			.base  = at,
 			.size  = size,
 			.write = attr.writeable,
 			.exec  = attr.executable,
 			.off   = attr.offset,
-			.dma   = attr.dma,
+			.dma   = core_attr.dma,
 		};
 
 		/* store attachment info in meta data */
 		try {
-			_map.construct_metadata(attach_at, *dsc, *this, region_attr);
+			_map.construct_metadata((void *)at, *dsc, *this, region_attr);
 		}
 		catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
 			error("failed to store attachment info");
-			throw Invalid_dataspace();
+			return Attach_error::INVALID_DATASPACE;
 		}
 
 		/* inform dataspace about attachment */
-		Rm_region * const region_ptr = _map.metadata(attach_at);
+		Rm_region * const region_ptr = _map.metadata((void *)at);
 		if (region_ptr)
 			dsc->attached_to(*region_ptr);
 
 		/* check if attach operation resolves any faulting region-manager clients */
 		_faulters.for_each([&] (Rm_faulter &faulter) {
-			if (faulter.fault_in_addr_range((addr_t)attach_at, size)) {
+			if (faulter.fault_in_addr_range(at, size)) {
 				_faulters.remove(faulter);
 				faulter.continue_after_resolved_fault();
 			}
 		});
 
-		return attach_at;
+		return Range { .start = at, .num_bytes = size };
 	};
 
 	return _ds_ep.apply(ds_cap, lambda);
@@ -351,23 +341,10 @@ void Region_map_component::unmap_region(addr_t base, size_t size)
 }
 
 
-Region_map::Local_addr
-Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
-                             off_t offset, bool use_local_addr,
-                             Region_map::Local_addr local_addr,
-                             bool executable, bool writeable)
+Region_map::Attach_result
+Region_map_component::attach(Dataspace_capability ds_cap, Attr const &attr)
 {
-	Attach_attr const attr {
-		.size           = size,
-		.offset         = offset,
-		.use_local_addr = use_local_addr,
-		.local_addr     = local_addr,
-		.executable     = executable,
-		.writeable      = writeable,
-		.dma            = false,
-	};
-
-	return  _attach(ds_cap, attr);
+	return _attach(ds_cap, { .attr = attr, .dma = false });
 }
 
 
@@ -375,25 +352,30 @@ Region_map_component::Attach_dma_result
 Region_map_component::attach_dma(Dataspace_capability ds_cap, addr_t at)
 {
 	Attach_attr const attr {
-		.size           = 0,
-		.offset         = 0,
-		.use_local_addr = true,
-		.local_addr     = at,
-		.executable     = false,
-		.writeable      = true,
+		.attr = {
+			.size       = { },
+			.offset     = { },
+			.use_at     = true,
+			.at         = at,
+			.executable = false,
+			.writeable  = true,
+		},
 		.dma            = true,
 	};
 
 	using Attach_dma_error = Pd_session::Attach_dma_error;
 
-	try {
-		_attach(ds_cap, attr);
-		return Pd_session::Attach_dma_ok();
-	}
-	catch (Invalid_dataspace) { return Attach_dma_error::DENIED; }
-	catch (Region_conflict)   { return Attach_dma_error::DENIED; }
-	catch (Out_of_ram)        { return Attach_dma_error::OUT_OF_RAM; }
-	catch (Out_of_caps)       { return Attach_dma_error::OUT_OF_CAPS; }
+	return _attach(ds_cap, attr).convert<Attach_dma_result>(
+		[&] (Range) { return Pd_session::Attach_dma_ok(); },
+		[&] (Attach_error e) {
+			switch (e) {
+			case Attach_error::OUT_OF_RAM:  return Attach_dma_error::OUT_OF_RAM;
+			case Attach_error::OUT_OF_CAPS: return Attach_dma_error::OUT_OF_CAPS;
+			case Attach_error::REGION_CONFLICT:   break;
+			case Attach_error::INVALID_DATASPACE: break;
+			}
+			return Attach_dma_error::DENIED;
+		});
 }
 
 
@@ -448,23 +430,23 @@ void Region_map_component::_reserve_and_flush_unsynchronized(Rm_region &region)
 /*
  * Flush the region, but keep it reserved until 'detach()' is called.
  */
-void Region_map_component::reserve_and_flush(Local_addr local_addr)
+void Region_map_component::reserve_and_flush(addr_t const at)
 {
 	/* serialize access */
 	Mutex::Guard lock_guard(_mutex);
 
-	_with_region(local_addr, [&] (Rm_region &region) {
+	_with_region(at, [&] (Rm_region &region) {
 		_reserve_and_flush_unsynchronized(region);
 	});
 }
 
 
-void Region_map_component::detach(Local_addr local_addr)
+void Region_map_component::detach_at(addr_t const at)
 {
 	/* serialize access */
 	Mutex::Guard lock_guard(_mutex);
 
-	_with_region(local_addr, [&] (Rm_region &region) {
+	_with_region(at, [&] (Rm_region &region) {
 		if (!region.reserved())
 			_reserve_and_flush_unsynchronized(region);
 		/* free the reserved region */
@@ -490,11 +472,10 @@ void Region_map_component::remove_client(Rm_client &rm_client)
 }
 
 
-void Region_map_component::fault(Rm_faulter &faulter, addr_t pf_addr,
-                                 Region_map::State::Fault_type pf_type)
+void Region_map_component::fault(Rm_faulter &faulter, Region_map::Fault fault)
 {
 	/* remember fault state in faulting thread */
-	faulter.fault(*this, Region_map::State(pf_type, pf_addr));
+	faulter.fault(*this, fault);
 
 	/* enqueue faulter */
 	_faulters.enqueue(faulter);
@@ -520,17 +501,15 @@ void Region_map_component::fault_handler(Signal_context_capability sigh)
 }
 
 
-Region_map::State Region_map_component::state()
+Region_map::Fault Region_map_component::fault()
 {
 	/* serialize access */
 	Mutex::Guard lock_guard(_mutex);
 
-	/* return ready state if there are not current faulters */
-	Region_map::State result;
-
-	/* otherwise return fault information regarding the first faulter */
+	/* return fault information regarding the first faulter */
+	Region_map::Fault result { };
 	_faulters.head([&] (Rm_faulter &faulter) {
-		result = faulter.fault_state(); });
+		result = faulter.fault(); });
 	return result;
 }
 
@@ -609,7 +588,7 @@ Region_map_component::~Region_map_component()
 				break;
 		}
 
-		detach(out_addr);
+		detach_at(out_addr);
 	}
 
 	/* revoke dataspace representation */

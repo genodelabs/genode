@@ -40,11 +40,11 @@ enum {
 	SHUTDOWN     = EXEC_TEST  - 1
 };
 
-static char const *state_name(Region_map::State &state)
+static char const *fault_name(Region_map::Fault const &fault)
 {
-	return state.type == Region_map::State::READ_FAULT  ? "READ_FAULT"  :
-	       state.type == Region_map::State::WRITE_FAULT ? "WRITE_FAULT" :
-	       state.type == Region_map::State::EXEC_FAULT  ? "EXEC_FAULT"  : "READY";
+	return fault.type == Region_map::Fault::Type::READ  ? "READ_FAULT"  :
+	       fault.type == Region_map::Fault::Type::WRITE ? "WRITE_FAULT" :
+	       fault.type == Region_map::Fault::Type::EXEC  ? "EXEC_FAULT"  : "READY";
 }
 
 
@@ -295,6 +295,15 @@ struct Main_parent
 	long volatile &_child_value() { return *_ds.local_addr<long volatile>(); }
 	long volatile &_child_stop()  { return *(_ds.local_addr<long volatile>() + 1); }
 
+	void _attach_at(Dataspace_capability ds, addr_t at)
+	{
+		if (_address_space.attach(ds, {
+			.size       = { },   .offset    = { },
+			.use_at     = true,  .at        = at,
+			.executable = { },   .writeable = true
+		}).failed()) error("_attach_at unexpectedly failed");
+	}
+
 	void _test_read_fault(addr_t const child_virt_addr)
 	{
 		/* allocate dataspace to resolve the fault */
@@ -302,7 +311,7 @@ struct Main_parent
 
 		_child_value() = READ_TEST;
 
-		_address_space.attach_at(_ds.cap(), child_virt_addr);
+		_attach_at(_ds.cap(), child_virt_addr);
 
 		/* poll until our child modifies the dataspace content */
 		while (_child_value() == READ_TEST);
@@ -311,7 +320,7 @@ struct Main_parent
 		    Hex(_child_value()));
 
 		log("revoke dataspace from child");
-		_address_space.detach((void *)child_virt_addr);
+		_address_space.detach(child_virt_addr);
 	}
 
 	void _test_write_fault(addr_t const child_virt_addr, unsigned round)
@@ -322,7 +331,7 @@ struct Main_parent
 
 			_child_value() = WRITE_TEST;
 
-			_address_space.attach_at(_binary.dataspace(), child_virt_addr);
+			_attach_at(_binary.dataspace(), child_virt_addr);
 			return;
 		}
 
@@ -337,36 +346,35 @@ struct Main_parent
 		                                             : " unknown");
 
 		/* detach region where fault happened */
-		_address_space.detach((void *)child_virt_addr);
+		_address_space.detach(child_virt_addr);
 
 		if (round == ROUND_FAULT_ON_ROM_BINARY) {
 			/* attach a RAM dataspace read-only */
-			enum {
-				SIZE = 4096, OFFSET = 0, ATTACH_AT = true, NON_EXEC = false,
-				READONLY = false
-			};
+			if (_address_space.attach(_ds.cap(), {
+				.size       = 4096,  .offset    = { },
+				.use_at     = true,  .at        = child_virt_addr,
+				.executable = { },   .writeable = { }
+			}).failed()) error("attach of ROUND_FAULT_ON_ROM_BINARY failed");
 
-			_address_space.attach(_ds.cap(), SIZE, OFFSET, ATTACH_AT,
-			                      child_virt_addr, NON_EXEC, READONLY);
 		} else
 		if (round == ROUND_FAULT_ON_RO_RAM) {
 			/* let client continue by attaching RAM dataspace writeable */
-			_address_space.attach_at(_ds.cap(), child_virt_addr);
+			_attach_at(_ds.cap(), child_virt_addr);
 		}
 	}
 
-	void _test_exec_fault(Region_map::State &state)
+	void _test_exec_fault(Region_map::Fault const &fault)
 	{
 		if (_child_value() == WRITE_TEST) {
 			_child_value() = EXEC_TEST;
 			return;
 		}
 
-		if (state.type != Region_map::State::EXEC_FAULT ||
-		    state.addr != MANAGED_ADDR)
+		if (fault.type != Region_map::Fault::Type::EXEC ||
+		    fault.addr != MANAGED_ADDR)
 		{
-			error("exec test failed ", (int)state.type,
-			      " addr=", Hex(state.addr));
+			error("exec test failed ", (int)fault.type,
+			      " addr=", Hex(fault.addr));
 			return;
 		}
 
@@ -381,17 +389,17 @@ struct Main_parent
 
 		log("received region-map fault signal, request fault state");
 
-		Region_map::State state = _address_space.state();
+		Region_map::Fault const fault = _address_space.fault();
 
-		log("rm session state is ", state_name(state), ", pf_addr=", Hex(state.addr));
+		log("rm session state is ", fault_name(fault), ", pf_addr=", Hex(fault.addr));
 
 		/* ignore spurious fault signal */
-		if (state.type == Region_map::State::READY) {
+		if (fault.type == Region_map::Fault::Type::NONE) {
 			log("ignoring spurious fault signal");
 			return;
 		}
 
-		addr_t child_virt_addr = state.addr & ~(4096 - 1);
+		addr_t child_virt_addr = fault.addr & ~(4096 - 1);
 
 		if (_fault_cnt < FAULT_CNT_READ)
 			_test_read_fault(child_virt_addr);
@@ -404,7 +412,7 @@ struct Main_parent
 			_handle_fault_stack();
 
 		if (_fault_cnt > FAULT_CNT_WRITE)
-			_test_exec_fault(state);
+			_test_exec_fault(fault);
 
 		_fault_cnt++;
 	}
@@ -413,9 +421,9 @@ struct Main_parent
 	{
 		/* sanity check that we got exec fault */
 		if (_config.xml().attribute_value("executable_fault_test", true)) {
-			Region_map::State state = _address_space.state();
-			if (state.type != Region_map::State::EXEC_FAULT) {
-				error("unexpected state ", state_name(state));
+			Region_map::Fault const fault = _address_space.fault();
+			if (fault.type != Region_map::Fault::Type::EXEC) {
+				error("unexpected state ", fault_name(fault));
 				return;
 			}
 

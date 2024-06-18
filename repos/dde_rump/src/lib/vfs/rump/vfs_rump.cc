@@ -456,39 +456,59 @@ class Vfs::Rump_file_system : public File_system
 
 		Genode::Dataspace_capability dataspace(char const *path) override
 		{
-			Genode::Env &env = _env.env();
+			struct stat s { };
+			if (rump_sys_lstat(path, &s) != 0)
+				return { };
 
-			int fd = rump_sys_open(path, O_RDONLY);
-			if (fd == -1) return Genode::Dataspace_capability();
+			using Region_map = Genode::Region_map;
 
-			struct stat s;
-			if (rump_sys_lstat(path, &s) != 0) return Genode::Dataspace_capability();
-			size_t const ds_size = s.st_size;
-
-			char *local_addr = nullptr;
-			Ram_dataspace_capability ds_cap;
-			try {
-				ds_cap = env.ram().alloc(ds_size);
-
-				local_addr = env.rm().attach(ds_cap);
-
-				enum { CHUNK_SIZE = 16U << 10 };
-
-				for (size_t i = 0; i < ds_size;) {
-					ssize_t n = rump_sys_read(fd, &local_addr[i], min(ds_size-i, CHUNK_SIZE));
-					if (n == -1)
-						throw n;
-					i += n;
+			auto read_file_content = [&path] (Region_map::Range const range) -> bool
+			{
+				int const fd = rump_sys_open(path, O_RDONLY);
+				size_t i = 0; /* bytes read */
+				if (fd >= 0) {
+					while (i < range.num_bytes) {
+						size_t  const CHUNK_SIZE = 16U << 10;
+						ssize_t const n = rump_sys_read(fd, (void *)(range.start + i),
+						                                min(range.num_bytes - i, CHUNK_SIZE));
+						if (n <= 0)
+							break;
+						i += n;
+					}
+					rump_sys_close(fd);
 				}
+				return (i == range.num_bytes);
+			};
 
-				env.rm().detach(local_addr);
-			} catch(...) {
-				if (local_addr)
-					env.rm().detach(local_addr);
-				env.ram().free(ds_cap);
-			}
-			rump_sys_close(fd);
-			return ds_cap;
+			return _env.env().ram().try_alloc(s.st_size).convert<Dataspace_capability>(
+				[&] (Ram_dataspace_capability const ds_cap) {
+					return _env.env().rm().attach(ds_cap, {
+						.size = { },  .offset     = { },  .use_at    = { },
+						.at   = { },  .executable = { },  .writeable = true
+					}).convert<Dataspace_capability>(
+						[&] (Region_map::Range const range) -> Dataspace_capability {
+
+							bool const complete = read_file_content(range);
+							_env.env().rm().detach(range.start);
+
+							if (complete)
+								return ds_cap;
+
+							Genode::error("rump failed to read content into VFS dataspace");
+							_env.env().ram().free(ds_cap);
+							return Dataspace_capability();
+						},
+						[&] (Region_map::Attach_error) {
+							_env.env().ram().free(ds_cap);
+							return Dataspace_capability();
+						}
+					);
+				},
+				[&] (Genode::Ram_allocator::Alloc_error) {
+					Genode::error("rump failed to allocate VFS dataspace of size ", s.st_size);
+					return Dataspace_capability();
+				}
+			);
 		}
 
 		void release(char const *path,

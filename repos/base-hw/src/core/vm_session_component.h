@@ -55,9 +55,9 @@ class Core::Vm_session_component
 			Kernel::Vm::Identity      &id;
 			Rpc_entrypoint            &ep;
 			Ram_dataspace_capability   ds_cap   { };
-			Region_map::Local_addr     ds_addr  { nullptr };
-			Kernel_object<Kernel::Vm>  kobj     {};
-			Affinity::Location         location {};
+			addr_t                     ds_addr  { };
+			Kernel_object<Kernel::Vm>  kobj     { };
+			Affinity::Location         location { };
 
 			Vcpu(Kernel::Vm::Identity &id, Rpc_entrypoint &ep) : id(id), ep(ep)
 			{
@@ -94,14 +94,13 @@ class Core::Vm_session_component
 		static size_t _ds_size();
 		static size_t _alloc_vcpu_data(Genode::addr_t ds_addr);
 
-		void *        _alloc_table();
-		void          _attach(addr_t phys_addr, addr_t vm_addr, size_t size);
+		void *_alloc_table();
+		void  _attach(addr_t phys_addr, addr_t vm_addr, size_t size);
 
 		/* helpers for vm_session_common.cc */
-		void          _attach_vm_memory(Dataspace_component &, addr_t,
-		                                Attach_attr);
-		void          _detach_vm_memory(addr_t, size_t);
-		void          _with_region(Region_map::Local_addr, auto const &);
+		void _attach_vm_memory(Dataspace_component &, addr_t, Attach_attr);
+		void _detach_vm_memory(addr_t, size_t);
+		void _with_region(addr_t, auto const &);
 
 	protected:
 
@@ -119,13 +118,15 @@ class Core::Vm_session_component
 		                     Trace::Source_registry &);
 		~Vm_session_component();
 
+
 		/*********************************
 		 ** Region_map_detach interface **
 		 *********************************/
 
-		void detach(Region_map::Local_addr) override;            /* vm_session_common.cc */
-		void unmap_region(addr_t, size_t) override;              /* vm_session_common.cc */
-		void reserve_and_flush(Region_map::Local_addr) override; /* vm_session_common.cc */
+		void detach_at         (addr_t)         override;
+		void unmap_region      (addr_t, size_t) override;
+		void reserve_and_flush (addr_t)         override;
+
 
 		/**************************
 		 ** Vm session interface **

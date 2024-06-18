@@ -180,14 +180,23 @@ class Acpica::Io_mem
 				/* create managed dataspace to let virt region reserved */
 				Genode::Region_map_client managed_region(rm_conn->create(io_mem._size));
 				/* remember virt, since it get invalid during invalidate() */
-				Genode::addr_t const re_attach_virt = reinterpret_cast<Genode::addr_t>(io_mem._virt);
+				Genode::addr_t const orig_virt = reinterpret_cast<Genode::addr_t>(io_mem._virt);
 
 				/* drop I/O mem and virt region get's freed */
 				io_mem.invalidate();
 
 				/* re-attach dummy managed dataspace to virt region */
-				Genode::addr_t const re_attached_virt = Acpica::env().rm().attach_at(managed_region.dataspace(), re_attach_virt);
-				if (re_attach_virt != re_attached_virt)
+				Genode::addr_t const re_attached_virt =
+					Acpica::env().rm().attach(managed_region.dataspace(), {
+						.size       = { },    .offset    = { },
+						.use_at     = true,   .at        = orig_virt,
+						.executable = false,  .writeable = true
+					}).convert<Genode::addr_t>(
+						[&] (Genode::Region_map::Range range)  { return range.start; },
+						[&] (Genode::Region_map::Attach_error) { return 0UL; }
+					);
+
+				if (orig_virt != re_attached_virt)
 					FAIL(0);
 
 				if (!io_mem.unused() || io_mem.stale())
@@ -235,7 +244,7 @@ class Acpica::Io_mem
 				return;
 
 			if (!stale()) {
-				Acpica::env().rm().detach(_virt);
+				Acpica::env().rm().detach(Genode::addr_t(_virt));
 				Genode::destroy(Acpica::heap(), _io_mem);
 			}
 
@@ -294,8 +303,14 @@ class Acpica::Io_mem
 			if (!io_mem)
 				return 0UL;
 
-			io_mem->_virt = Acpica::env().rm().attach(io_mem->_io_mem->dataspace(),
-			                                          io_mem->_size);
+			io_mem->_virt = Acpica::env().rm().attach(io_mem->_io_mem->dataspace(), {
+				.size       = io_mem->_size,  .offset    = { },
+				.use_at     = { },            .at        = { },
+				.executable = { },            .writeable = true
+			}).convert<Genode::uint8_t *>(
+				[&] (Genode::Region_map::Range r)      { return (Genode::uint8_t *)r.start; },
+				[&] (Genode::Region_map::Attach_error) { return nullptr; }
+			);
 
 			return reinterpret_cast<Genode::addr_t>(io_mem->_virt);
 		}
@@ -303,7 +318,7 @@ class Acpica::Io_mem
 		Genode::addr_t pre_expand(ACPI_PHYSICAL_ADDRESS p, ACPI_SIZE s)
 		{
 			if (_io_mem) {
-				Acpica::env().rm().detach(_virt);
+				Acpica::env().rm().detach(Genode::addr_t(_virt));
 				Genode::destroy(Acpica::heap(), _io_mem);
 			}
 
@@ -317,7 +332,7 @@ class Acpica::Io_mem
 		Genode::addr_t post_expand(ACPI_PHYSICAL_ADDRESS p, ACPI_SIZE s)
 		{
 			if (_io_mem) {
-				Acpica::env().rm().detach(_virt);
+				Acpica::env().rm().detach(Genode::addr_t(_virt));
 				Genode::destroy(Acpica::heap(), _io_mem);
 			}
 
@@ -352,14 +367,28 @@ class Acpica::Io_mem
 					Genode::addr_t virt = reinterpret_cast<Genode::addr_t>(io2._virt);
 
 					Acpica::env().rm().detach(virt);
-					Acpica::env().rm().attach_at(io_ds, virt, io2._size, off_phys);
+					if (Acpica::env().rm().attach(io_ds, {
+						.size       = io2._size,  .offset    = off_phys,
+						.use_at     = true,       .at        = virt,
+						.executable = { },        .writeable = true
+					}).failed()) Genode::error("re-attach io2 failed");
 				});
 
 				if (io_mem._virt)
 					FAIL(0UL);
 
 				/* attach whole memory */
-				io_mem._virt = Acpica::env().rm().attach(io_ds);
+				io_mem._virt = Acpica::env().rm().attach(io_ds, {
+					.size       = { },  .offset    = { },
+					.use_at     = { },  .at        = { },
+					.executable = { },  .writeable = true
+				}).convert<Genode::uint8_t *>(
+					[&] (Genode::Region_map::Range range)  { return (Genode::uint8_t *)range.start; },
+					[&] (Genode::Region_map::Attach_error) {
+						Genode::error("attaching while io_ds failed");
+						return nullptr;
+					}
+				);
 				return io_mem.to_virt(p);
 			});
 

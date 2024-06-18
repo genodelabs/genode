@@ -110,13 +110,10 @@ class Core::Trace::Subject
 					_size    = size;
 
 					/* copy content */
-					void *src = local_rm.attach(from_ds),
-					     *dst = local_rm.attach(_ds);
+					Attached_dataspace from { local_rm, from_ds },
+					                   to   { local_rm, _ds };
 
-					Genode::memcpy(dst, src, _size);
-
-					local_rm.detach(src);
-					local_rm.detach(dst);
+					Genode::memcpy(to.local_addr<char>(), from.local_addr<char const>(), _size);
 				}
 
 				/**

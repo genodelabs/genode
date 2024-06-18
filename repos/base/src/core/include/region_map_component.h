@@ -40,7 +40,7 @@
 #include <base/internal/stack_area.h>
 
 namespace Core {
-	class  Region_map_detach;
+	struct Region_map_detach;
 	class  Rm_region;
 	struct Fault;
 	class  Cpu_thread_component;
@@ -52,13 +52,19 @@ namespace Core {
 }
 
 
-class Core::Region_map_detach : Interface
+struct Core::Region_map_detach : Interface
 {
-	public:
+	virtual void detach_at(addr_t) = 0;
 
-		virtual void detach(Region_map::Local_addr) = 0;
-		virtual void unmap_region(addr_t base, size_t size) = 0;
-		virtual void reserve_and_flush(Region_map::Local_addr) = 0;
+	/**
+	 * Unmap memory area from all address spaces referencing it
+	 *
+	 * \param base  base address of region to unmap
+	 * \param size  size of region to unmap in bytes
+	 */
+	virtual void unmap_region(addr_t base, size_t size) = 0;
+
+	virtual void reserve_and_flush(addr_t) = 0;
 };
 
 
@@ -81,7 +87,7 @@ class Core::Rm_region : public List<Rm_region>::Element
 			size_t size;
 			bool   write;
 			bool   exec;
-			off_t  off;
+			addr_t off;
 			bool   dma;
 
 			void print(Output &out) const
@@ -110,7 +116,7 @@ class Core::Rm_region : public List<Rm_region>::Element
 		size_t                  size() const { return _attr.size;  }
 		bool                   write() const { return _attr.write; }
 		bool              executable() const { return _attr.exec;  }
-		off_t                 offset() const { return _attr.off;   }
+		addr_t                offset() const { return _attr.off;   }
 		bool                     dma() const { return _attr.dma;   }
 		Region_map_detach        &rm() const { return _rm;  }
 
@@ -213,7 +219,7 @@ class Core::Rm_faulter : Fifo<Rm_faulter>::Element, Interface
 		Pager_object                   &_pager_object;
 		Mutex                           _mutex { };
 		Weak_ptr<Region_map_component>  _faulting_region_map { };
-		Region_map::State               _fault_state { };
+		Region_map::Fault               _fault { };
 
 		friend class Fifo<Rm_faulter>;
 
@@ -231,8 +237,7 @@ class Core::Rm_faulter : Fifo<Rm_faulter>::Element, Interface
 		/**
 		 * Assign fault state
 		 */
-		void fault(Region_map_component &faulting_region_map,
-		           Region_map::State     fault_state);
+		void fault(Region_map_component &faulting_region_map, Region_map::Fault);
 
 		/**
 		 * Disassociate faulter from the faulted region map
@@ -246,12 +251,12 @@ class Core::Rm_faulter : Fifo<Rm_faulter>::Element, Interface
 		 * Return true if page fault occurred in specified address range
 		 */
 		bool fault_in_addr_range(addr_t addr, size_t size) {
-			return (_fault_state.addr >= addr) && (_fault_state.addr <= addr + size - 1); }
+			return (_fault.addr >= addr) && (_fault.addr <= addr + size - 1); }
 
 		/**
 		 * Return fault state as exported via the region-map interface
 		 */
-		Region_map::State fault_state() { return _fault_state; }
+		Region_map::Fault fault() { return _fault; }
 
 		/**
 		 * Wake up faulter by answering the pending page fault
@@ -412,7 +417,7 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		 * Called recursively when resolving a page fault in nested region maps.
 		 */
 		With_mapping_result _with_region_at_fault(Recursion_limit const  recursion_limit,
-		                                          Fault           const &fault,
+		                                          Core::Fault     const &fault,
 		                                          auto            const &resolved_fn,
 		                                          auto            const &reflect_fn)
 		{
@@ -441,7 +446,7 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 			Rm_region const &region = *region_ptr;
 
 			/* fault information relative to 'region' */
-			Fault const relative_fault = fault.within_region(region);
+			Core::Fault const relative_fault = fault.within_region(region);
 
 			Result result = Result::NO_REGION;
 
@@ -476,7 +481,7 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 				}
 
 				/* traverse into managed dataspace */
-				Fault const sub_region_map_relative_fault =
+				Core::Fault const sub_region_map_relative_fault =
 					relative_fault.within_sub_region_map(region.offset(),
 				                                         dataspace.size());
 
@@ -497,30 +502,25 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 
 		struct Attach_attr
 		{
-			size_t size;
-			off_t  offset;
-			bool   use_local_addr;
-			addr_t local_addr;
-			bool   executable;
-			bool   writeable;
-			bool   dma;
+			Attr attr;
+			bool dma;
 		};
 
-		Local_addr _attach(Dataspace_capability, Attach_attr);
+		Attach_result _attach(Dataspace_capability, Attach_attr);
 
-		void _with_region(Local_addr local_addr, auto const &fn)
+		void _with_region(addr_t at, auto const &fn)
 		{
 			/* read meta data for address */
-			Rm_region *region_ptr = _map.metadata(local_addr);
+			Rm_region * const region_ptr = _map.metadata((void *)at);
 
 			if (!region_ptr) {
 				if (_diag.enabled)
-					warning("_with_region: no attachment at ", (void *)local_addr);
+					warning("_with_region: no attachment at ", (void *)at);
 				return;
 			}
 
-			if ((region_ptr->base() != static_cast<addr_t>(local_addr)) && _diag.enabled)
-				warning("_with_region: ", static_cast<void *>(local_addr), " is not "
+			if ((region_ptr->base() != static_cast<addr_t>(at)) && _diag.enabled)
+				warning("_with_region: ", reinterpret_cast<void *>(at), " is not "
 				        "the beginning of the region ", Hex(region_ptr->base()));
 
 			fn(*region_ptr);
@@ -529,16 +529,6 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		void _reserve_and_flush_unsynchronized(Rm_region &);
 
 	public:
-
-		/*
-		 * Unmaps a memory area from all address spaces referencing it.
-		 *
-		 * \param base base address of region to unmap
-		 * \param size size of region to unmap
-		 */
-		void unmap_region(addr_t base, size_t size) override;
-
-		void reserve_and_flush(Local_addr) override;
 
 		/**
 		 * Constructor
@@ -572,11 +562,9 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		 * for resolution.
 		 *
 		 * \param  faulter  faulting region-manager client
-		 * \param  pf_addr  page-fault address
-		 * \param  pf_type  type of page fault (read/write/execute)
+		 * \param  fault    fault information
 		 */
-		void fault(Rm_faulter &faulter, addr_t pf_addr,
-		           Region_map::State::Fault_type pf_type);
+		void fault(Rm_faulter &faulter, Fault);
 
 		/**
 		 * Dissolve faulter from region map
@@ -596,16 +584,16 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		 * /param reflect_fn  functor called to reflect a missing mapping
 		 *                    to user space if a fault handler is registered
 		 */
-		With_mapping_result with_mapping_for_fault(Fault const &fault,
-		                                           auto  const &apply_fn,
-		                                           auto  const &reflect_fn)
+		With_mapping_result with_mapping_for_fault(Core::Fault const &fault,
+		                                           auto const &apply_fn,
+		                                           auto const &reflect_fn)
 		{
 			return _with_region_at_fault(Recursion_limit { 5 }, fault,
-				[&] (Rm_region const &region, Fault const &region_relative_fault)
+				[&] (Rm_region const &region, Core::Fault const &region_relative_fault)
 				{
 					With_mapping_result result = With_mapping_result::NO_REGION;
 					region.with_dataspace([&] (Dataspace_component &dataspace) {
-						Fault const ram_relative_fault =
+						Core::Fault const ram_relative_fault =
 							region_relative_fault.within_ram(region.offset(), dataspace.attr());
 
 						Log2_range src_range { ram_relative_fault.hotspot };
@@ -661,15 +649,23 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		Attach_dma_result attach_dma(Dataspace_capability, addr_t);
 
 
+		/*********************************
+		 ** Region_map_detach interface **
+		 *********************************/
+
+		void unmap_region      (addr_t, size_t) override;
+		void detach_at         (addr_t)         override;
+		void reserve_and_flush (addr_t)         override;
+
+
 		/**************************
 		 ** Region map interface **
 		 **************************/
 
-		Local_addr       attach        (Dataspace_capability, size_t, off_t,
-		                                bool, Local_addr, bool, bool) override;
-		void             detach        (Local_addr) override;
-		void             fault_handler (Signal_context_capability handler) override;
-		State            state         () override;
+		Attach_result attach        (Dataspace_capability, Attr const &) override;
+		void          detach        (addr_t at) override { detach_at(at); }
+		void          fault_handler (Signal_context_capability) override;
+		Fault         fault         () override;
 
 		Dataspace_capability dataspace () override { return _ds_cap; }
 };

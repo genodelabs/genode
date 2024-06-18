@@ -66,13 +66,7 @@ class Driver::Device_pd : public Io_mmu::Domain
 				_ram_guard(ram_guard), _cap_guard(cap_guard)
 			{ }
 
-			Local_addr attach(Dataspace_capability ds,
-			                  size_t     size           = 0,
-			                  off_t      offset         = 0,
-			                  bool       use_local_addr = false,
-			                  Local_addr local_addr     = (void *)0,
-			                  bool       executable     = false,
-			                  bool       writeable      = true) override;
+			Attach_result attach(Dataspace_capability ds, Attr const &attr) override;
 
 			void upgrade_ram();
 			void upgrade_caps();

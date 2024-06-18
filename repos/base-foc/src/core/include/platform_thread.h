@@ -152,10 +152,10 @@ class Core::Platform_thread : Interface
 		Affinity::Location affinity() const;
 
 		/**
-		 * Make thread to vCPU
+		 * Turn thread into vCPU
 		 */
 		Foc::l4_cap_idx_t setup_vcpu(unsigned, Cap_mapping const &,
-		                             Cap_mapping &, Region_map::Local_addr &);
+		                             Cap_mapping &, addr_t &);
 
 
 		/************************

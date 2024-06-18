@@ -60,13 +60,13 @@ bool Trace::Logger::_evaluate_control()
 
 			/* unload policy */
 			if (policy_module) {
-				_env().rm().detach(policy_module);
+				_env().rm().detach(addr_t(policy_module));
 				policy_module = 0;
 			}
 
 			/* unmap trace buffer */
 			if (buffer) {
-				_env().rm().detach(buffer);
+				_env().rm().detach(addr_t(buffer));
 				buffer = 0;
 			}
 
@@ -97,29 +97,31 @@ bool Trace::Logger::_evaluate_control()
 			return false;
 		}
 
-		try {
-			max_event_size = 0;
-			policy_module  = 0;
+		max_event_size = 0;
+		policy_module  = nullptr;
 
-			enum {
-				MAX_SIZE = 0, NO_OFFSET = 0, ANY_LOCAL_ADDR = false,
-				EXECUTABLE = true
-			};
+		_env().rm().attach(policy_ds, {
+			.size       = { },   .offset     = { },
+			.use_at     = { },   .at         = { },
+			.executable = true,  .writeable  = true,
+		}).with_result(
+			[&] (Region_map::Range range)  {
+				policy_module = reinterpret_cast<Policy_module *>(range.start); },
+			[&] (Region_map::Attach_error) { error("failed to attach trace policy"); }
+		);
 
-			policy_module = _env().rm().attach(policy_ds, MAX_SIZE, NO_OFFSET,
-			                                   ANY_LOCAL_ADDR, nullptr, EXECUTABLE);
+		if (!policy_module)
+			return false;
 
-			/* relocate function pointers of policy callback table */
-			for (unsigned i = 0; i < sizeof(Trace::Policy_module)/sizeof(void *); i++) {
-				((addr_t *)policy_module)[i] += (addr_t)(policy_module);
-			}
+		/* relocate function pointers of policy callback table */
+		for (unsigned i = 0; i < sizeof(Trace::Policy_module)/sizeof(void *); i++) {
+			((addr_t *)policy_module)[i] += (addr_t)(policy_module);
+		}
 
-			max_event_size = policy_module->max_event_size();
-
-		} catch (...) { }
+		max_event_size = policy_module->max_event_size();
 
 		/* obtain buffer */
-		buffer = 0;
+		buffer = nullptr;
 		Dataspace_capability buffer_ds = Cpu_thread_client(thread_cap).trace_buffer();
 
 		if (!buffer_ds.valid()) {
@@ -129,11 +131,16 @@ bool Trace::Logger::_evaluate_control()
 			return false;
 		}
 
-		try {
-			buffer = _env().rm().attach(buffer_ds);
-			buffer->init(Dataspace_client(buffer_ds).size());
-		} catch (...) { }
+		Region_map::Attr attr { };
+		attr.writeable = true;
+		_env().rm().attach(buffer_ds, attr).with_result(
+			[&] (Region_map::Range range) {
+				buffer = reinterpret_cast<Buffer *>(range.start); },
+			[&] (Region_map::Attach_error) { error("failed to attach trace buffer"); });
+		if (!buffer)
+			return false;
 
+		buffer->init(Dataspace_client(buffer_ds).size());
 		policy_version = control->policy_version();
 	}
 
@@ -229,12 +236,18 @@ Trace::Logger *Thread::_logger()
 
 		Cpu_session &cpu = myself ? *myself->_cpu_session : _env().cpu();
 
-		if (!myself)
-			if (!main_trace_control) {
-				Dataspace_capability ds = _env().cpu().trace_control();
-				if (ds.valid())
-					main_trace_control = _env().rm().attach(ds);
+		if (!myself && !main_trace_control) {
+			Dataspace_capability ds = _env().cpu().trace_control();
+			if (ds.valid()) {
+				Region_map::Attr attr { };
+				attr.writeable = true;
+				_env().rm().attach(ds, attr).with_result(
+					[&] (Region_map::Range range) {
+						main_trace_control = reinterpret_cast<Trace::Control *>(range.start); },
+					[&] (Region_map::Attach_error) {
+						error("failed to attach trace control"); });
 			}
+		}
 
 		thread_cap.with_result(
 			[&] (Thread_capability cap) {
