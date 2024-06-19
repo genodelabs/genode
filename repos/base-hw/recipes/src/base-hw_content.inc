@@ -24,7 +24,7 @@ BOARD := $(patsubst base-hw-%,%,$(_BOARD))
 #
 
 LIB_MK_SPECS(arm_v6)  := arm arm_v6
-LIB_MK_SPECS(arm_v7a) := arm arm_v7 cortex_a8 cortex_a9 cortex_a15
+LIB_MK_SPECS(arm_v7a) := arm arm_v7 cortex_a9 cortex_a15
 LIB_MK_SPECS(arm_v8a) := arm_64 arm_v8
 LIB_MK_SPECS(x86_64)  := x86_64
 LIB_MK_SPECS(riscv)   := riscv

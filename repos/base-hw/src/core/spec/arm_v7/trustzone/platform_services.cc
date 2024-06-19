@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/service.h>
-#include <drivers/defs/imx53_trustzone.h>
 
 /* core includes */
 #include <platform.h>
