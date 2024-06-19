@@ -32,8 +32,7 @@ class Net::Dictionary : public Genode::Dictionary<OBJECT_T, NAME_T>
 
 	public:
 
-		template <typename FUNCTION_T>
-		void for_each(FUNCTION_T const &function) const
+		void for_each(auto const &function) const
 		{
 			Dict::for_each(
 				[&] (OBJECT_T const &obj)

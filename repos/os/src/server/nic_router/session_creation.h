@@ -38,11 +38,10 @@ class Net::Session_creation
 
 	public:
 
-		template <typename CREATE_SESSION_FN>
 		SESSION_COMPONENT *execute(Env &env,
 		                           Quota &shared_quota,
 		                           char const *session_args,
-		                           CREATE_SESSION_FN && create_session_fn)
+		                           auto const &create_session_fn)
 		{
 			/*
 			 * Note that this cannot be done in the constructor of this class

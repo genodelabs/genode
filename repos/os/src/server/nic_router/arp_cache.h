@@ -42,12 +42,7 @@ class Net::Arp_cache_entry : public Genode::Avl_node<Arp_cache_entry>
 
 		Arp_cache_entry(Ipv4_address const &ip, Mac_address const &mac);
 
-		template <typename HANDLE_MATCH_FN,
-		          typename HANDLE_NO_MATCH_FN>
-
-		void find_by_ip(Ipv4_address    const &ip,
-		                HANDLE_MATCH_FN    &&  handle_match,
-		                HANDLE_NO_MATCH_FN &&  handle_no_match) const
+		void find_by_ip(Ipv4_address const &ip, auto const &handle_match, auto const &handle_no_match) const
 		{
 			if (ip != _ip) {
 
@@ -115,12 +110,7 @@ class Net::Arp_cache : public Genode::Avl_tree<Arp_cache_entry>
 
 		void destroy_entries_with_mac(Mac_address const &mac);
 
-		template <typename HANDLE_MATCH_FN,
-		          typename HANDLE_NO_MATCH_FN>
-
-		void find_by_ip(Ipv4_address    const &ip,
-		                HANDLE_MATCH_FN    &&  handle_match,
-		                HANDLE_NO_MATCH_FN &&  handle_no_match) const
+		void find_by_ip(Ipv4_address const &ip, auto const &handle_match, auto const &handle_no_match) const
 		{
 			if (first() != nullptr) {
 

@@ -54,12 +54,7 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 
 		~Transport_rule();
 
-		template <typename HANDLE_MATCH_FN,
-		          typename HANDLE_NO_MATCH_FN>
-		void
-		find_permit_rule_by_port(Port            const port,
-		                         HANDLE_MATCH_FN    && handle_match,
-		                         HANDLE_NO_MATCH_FN && handle_no_match) const
+		void find_permit_rule_by_port(Port port, auto const &handle_match, auto const &handle_no_match) const
 		{
 			if (_permit_any_rule_ptr) {
 
@@ -84,13 +79,10 @@ class Net::Transport_rule_list : public Direct_rule_list<Transport_rule>
 {
 	public:
 
-		template <typename HANDLE_MATCH_FN,
-		          typename HANDLE_NO_MATCH_FN>
-
-		void find_best_match(Ipv4_address    const &ip,
-		                     Port            const port,
-		                     HANDLE_MATCH_FN    && handle_match,
-		                     HANDLE_NO_MATCH_FN && handle_no_match) const
+		void find_best_match(Ipv4_address const &ip,
+		                     Port         const  port,
+		                     auto         const &handle_match,
+		                     auto         const &handle_no_match) const
 		{
 			find_longest_prefix_match(
 				ip,

@@ -105,12 +105,7 @@ class Net::Link_side : public Genode::Avl_node<Link_side>
 		          Link_side_id const &id,
 		          Link               &link);
 
-		template <typename HANDLE_MATCH_FN,
-		          typename HANDLE_NO_MATCH_FN>
-
-		void find_by_id(Link_side_id    const &id,
-		                HANDLE_MATCH_FN    &&  handle_match,
-		                HANDLE_NO_MATCH_FN &&  handle_no_match) const
+		void find_by_id(Link_side_id const &id, auto const &handle_match, auto const &handle_no_match) const
 		{
 			if (id != _id) {
 
@@ -165,12 +160,7 @@ class Net::Link_side : public Genode::Avl_node<Link_side>
 
 struct Net::Link_side_tree : Genode::Avl_tree<Link_side>
 {
-	template <typename HANDLE_MATCH_FN,
-	          typename HANDLE_NO_MATCH_FN>
-
-	void find_by_id(Link_side_id    const &id,
-	                HANDLE_MATCH_FN    &&  handle_match,
-	                HANDLE_NO_MATCH_FN &&  handle_no_match) const
+	void find_by_id(Link_side_id const &id, auto const &handle_match, auto const &handle_no_match) const
 	{
 		if (first() != nullptr) {
 

@@ -55,8 +55,7 @@ class Net::Main
 
 		void _handle_config();
 
-		template <typename FUNC>
-		void _for_each_interface(FUNC && functor)
+		void _for_each_interface(auto const &functor)
 		{
 			_interfaces.for_each([&] (Interface &interface) {
 				functor(interface);

@@ -71,12 +71,10 @@ struct Net::Direct_rule_list : List<T>
 {
 	using Base = List<T>;
 
-	template <typename HANDLE_MATCH_FN,
-	          typename HANDLE_NO_MATCH_FN>
 	void
-	find_longest_prefix_match(Ipv4_address    const &ip,
-	                          HANDLE_MATCH_FN    &&  handle_match,
-	                          HANDLE_NO_MATCH_FN &&  handle_no_match) const
+	find_longest_prefix_match(Ipv4_address const &ip,
+	                          auto         const &handle_match,
+	                          auto         const &handle_no_match) const
 	{
 		/*
 		 * Simply handling the first match is sufficient as the list is

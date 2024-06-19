@@ -46,13 +46,10 @@ class Net::Dns_server : private Genode::Noncopyable,
 
 	public:
 
-		template <typename HANDLE_SUCCESS_FN,
-		          typename HANDLE_FAILURE_FN>
-
 		static void construct(Genode::Allocator       &alloc,
 		                      Net::Ipv4_address const &ip,
-		                      HANDLE_SUCCESS_FN     && handle_success,
-		                      HANDLE_FAILURE_FN     && handle_failure)
+		                      auto              const &handle_success,
+		                      auto              const &handle_failure)
 		{
 			if (!ip.valid()) {
 				handle_failure();
@@ -107,8 +104,7 @@ class Net::Dns_domain_name : private Genode::Noncopyable
 
 		bool valid() const { return _string_ptr; }
 
-		template <typename FUNC>
-		void with_string(FUNC && func) const
+		void with_string(auto const &func) const
 		{
 			if (_string_ptr)
 				func(*_string_ptr);

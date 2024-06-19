@@ -148,8 +148,7 @@ class Net::Domain : public List<Domain>::Element,
 
 		void _finish_reconstructing_ip_config();
 
-		template <typename FUNC>
-		void _reconstruct_ip_config(FUNC && functor)
+		void _reconstruct_ip_config(auto const &functor)
 		{
 			_prepare_reconstructing_ip_config();
 			functor(_ip_config);

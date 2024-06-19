@@ -30,12 +30,11 @@ class Genode::Session_env : public Ram_allocator,
 		Ram_quota_guard         _ram_guard;
 		Cap_quota_guard         _cap_guard;
 
-		template <typename FUNC>
-		void _consume(size_t  own_ram,
-		              size_t  max_shared_ram,
-		              size_t  own_cap,
-		              size_t  max_shared_cap,
-		              FUNC && functor)
+		void _consume(size_t      own_ram,
+		              size_t      max_shared_ram,
+		              size_t      own_cap,
+		              size_t      max_shared_cap,
+		              auto const &functor)
 		{
 			size_t const max_ram_consumpt { own_ram + max_shared_ram };
 			size_t const max_cap_consumpt { own_cap + max_shared_cap };
@@ -69,10 +68,9 @@ class Genode::Session_env : public Ram_allocator,
 			_cap_guard.replenish( Cap_quota { max_shared_cap } );
 		}
 
-		template <typename FUNC>
-		void _replenish(size_t  accounted_ram,
-		                size_t  accounted_cap,
-		                FUNC && functor)
+		void _replenish(size_t      accounted_ram,
+		                size_t      accounted_cap,
+		                auto const &functor)
 		{
 			size_t ram_replenish { _env.pd().used_ram().value };
 			size_t cap_replenish { _env.pd().used_caps().value };

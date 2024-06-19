@@ -99,12 +99,7 @@ class Net::Permit_single_rule : public  Permit_rule,
 
 		Permit_single_rule(Port port, Domain &domain);
 
-		template <typename HANDLE_MATCH_FN,
-		          typename HANDLE_NO_MATCH_FN>
-
-		void find_by_port(Port            const port,
-		                  HANDLE_MATCH_FN    && handle_match,
-		                  HANDLE_NO_MATCH_FN && handle_no_match) const
+		void find_by_port(Port port, auto const &handle_match, auto const &handle_no_match) const
 		{
 			if (port.value != _port.value) {
 
@@ -161,12 +156,7 @@ struct Net::Permit_single_rule_tree : private Avl_tree<Permit_single_rule>
 
 	using Genode::Avl_tree<Permit_single_rule>::first;
 
-	template <typename HANDLE_MATCH_FN,
-	          typename HANDLE_NO_MATCH_FN>
-
-	void find_by_port(Port            const port,
-	                  HANDLE_MATCH_FN    && handle_match,
-	                  HANDLE_NO_MATCH_FN && handle_no_match) const
+	void find_by_port(Port port, auto const &handle_match, auto const &handle_no_match) const
 	{
 		if (first() != nullptr) {
 

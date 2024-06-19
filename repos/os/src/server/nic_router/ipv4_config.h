@@ -78,8 +78,7 @@ class Net::Ipv4_config
 			return !(*this != other);
 		}
 
-		template <typename FUNC>
-		void for_each_dns_server(FUNC && func) const
+		void for_each_dns_server(auto const &func) const
 		{
 			_dns_servers.for_each([&] (Dns_server const &dns_server) {
 				func(dns_server);

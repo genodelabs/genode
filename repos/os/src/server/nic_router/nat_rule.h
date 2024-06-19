@@ -53,12 +53,7 @@ class Net::Nat_rule : public Genode::Avl_node<Nat_rule>
 
 		Nat_rule &find_by_domain(Domain &domain);
 
-		template <typename HANDLE_MATCH_FN,
-		          typename HANDLE_NO_MATCH_FN>
-
-		void find_by_domain(Domain                &domain,
-		                    HANDLE_MATCH_FN    &&  handle_match,
-		                    HANDLE_NO_MATCH_FN &&  handle_no_match)
+		void find_by_domain(Domain &domain, auto const &handle_match, auto const &handle_no_match)
 		{
 			if (&domain != &_domain) {
 
@@ -112,12 +107,7 @@ class Net::Nat_rule : public Genode::Avl_node<Nat_rule>
 
 struct Net::Nat_rule_tree : Avl_tree<Nat_rule>
 {
-	template <typename HANDLE_MATCH_FN,
-	          typename HANDLE_NO_MATCH_FN>
-
-	void find_by_domain(Domain                &domain,
-	                    HANDLE_MATCH_FN    &&  handle_match,
-	                    HANDLE_NO_MATCH_FN &&  handle_no_match)
+	void find_by_domain(Domain &domain, auto const &handle_match, auto const &handle_no_match)
 	{
 		if (first() != nullptr) {
 

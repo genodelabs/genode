@@ -26,8 +26,7 @@ struct Net::List : Genode::List<LT>
 {
 	using Base = Genode::List<LT>;
 
-	template <typename FUNC>
-	void for_each(FUNC && functor)
+	void for_each(auto const &functor)
 	{
 		for (LT *elem = Base::first(); elem; )
 		{
@@ -37,8 +36,7 @@ struct Net::List : Genode::List<LT>
 		}
 	}
 
-	template <typename FUNC>
-	void for_each(FUNC && functor) const
+	void for_each(auto const &functor) const
 	{
 		for (LT const *elem = Base::first(); elem; )
 		{

@@ -394,8 +394,7 @@ class Net::Interface : private Interface_list::Element
 
 		void dhcp_allocation_expired(Dhcp_allocation &allocation);
 
-		template <typename FUNC>
-		void send(Genode::size_t pkt_size, FUNC && write_to_pkt)
+		void send(Genode::size_t pkt_size, auto const &write_to_pkt)
 		{
 			if (!link_state()) {
 				_failed_to_send_packet_link();

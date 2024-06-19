@@ -113,8 +113,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 
 		bool has_invalid_remote_dns_cfg() const;
 
-		template <typename FUNC>
-		void for_each_dns_server_ip(FUNC && functor) const
+		void for_each_dns_server_ip(auto const &functor) const
 		{
 			if (_dns_config_from_ptr) {
 
@@ -262,8 +261,7 @@ struct Net::Dhcp_allocation_tree
 
 		Dhcp_allocation *first() { return _tree.first(); }
 
-		template <typename FUNC>
-		void for_each(FUNC && functor)
+		void for_each(auto const &functor)
 		{
 			using List_item = Dhcp_allocation_list::Element;
 			for (Dhcp_allocation *item = _list.first(); item; )

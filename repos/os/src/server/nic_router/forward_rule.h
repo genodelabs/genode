@@ -51,12 +51,7 @@ class Net::Forward_rule : public Genode::Avl_node<Forward_rule>
 
 		Forward_rule(Port port, Ipv4_address to_ip, Port to_port, Domain &domain);
 
-		template <typename HANDLE_MATCH_FN,
-		          typename HANDLE_NO_MATCH_FN>
-
-		void find_by_port(Port            const port,
-		                  HANDLE_MATCH_FN    && handle_match,
-		                  HANDLE_NO_MATCH_FN && handle_no_match) const
+		void find_by_port(Port port, auto const &handle_match, auto const &handle_no_match) const
 		{
 			if (port.value != _port.value) {
 
@@ -106,12 +101,7 @@ class Net::Forward_rule : public Genode::Avl_node<Forward_rule>
 
 struct Net::Forward_rule_tree : Avl_tree<Forward_rule>
 {
-	template <typename HANDLE_MATCH_FN,
-	          typename HANDLE_NO_MATCH_FN>
-
-	void find_by_port(Port            const port,
-	                  HANDLE_MATCH_FN    && handle_match,
-	                  HANDLE_NO_MATCH_FN && handle_no_match) const
+	void find_by_port(Port port, auto const &handle_match, auto const &handle_no_match) const
 	{
 		if (first() != nullptr) {
 
