@@ -1,9 +1,0 @@
-This is a small example virtual machine monitor, that uses the base-hw kernel
-as secure-world micro-hypervisor on ARM TrustZone platforms.  The VMM
-configures TrustZone hardware in a way, that allows a guest to access nearly
-all devices, and the DDR-RAM. Only few resources needed by the kernel (timer,
-SRAM) aren't accessable by the virtual-machine.
-
-Moreover, the VMM prepares the guest memory with a Linux image, and ramdisk,
-and boots it. For the Linux guest to work properly a small patch, and tweaked
-configuration is needed.
