@@ -596,7 +596,30 @@ Packet_result Interface::_adapt_eth(Ethernet_frame          &eth,
 	if (!remote_domain.use_arp())
 		return result;
 
-	auto with_next_hop = [&] (Ipv4_address const &hop_ip) {
+	auto with_next_hop = [&] (Ipv4_address const &hop_ip)
+	{
+		auto send_arp_fn = [&]
+		{
+			Packet_list_element &packet_le = *new (_alloc) Packet_list_element(pkt);
+			auto create_new_arp_waiter = [&]
+			{
+				new (_alloc) Arp_waiter(
+					*this, remote_domain, hop_ip, packet_le, _config_ptr->arp_request_timeout(), _timer);
+
+				remote_domain.interfaces().for_each([&] (Interface &interface) {
+					interface._broadcast_arp_request(remote_ip_cfg.interface().address, hop_ip); });
+
+				result = packet_postponed();
+			};
+			remote_domain.foreign_arp_waiters().find_by_ip(hop_ip,
+				[&] (Arp_waiter &waiter) { waiter.add_packet(packet_le); },
+				[&] {
+					retry_once<Out_of_ram, Out_of_caps>(
+						create_new_arp_waiter,
+						[&] { _try_emergency_free_quota(); },
+						[&] { result = packet_drop("out of quota while creating ARP waiter"); });
+				});
+		};
 		remote_domain.arp_cache().find_by_ip(
 			hop_ip,
 			[&] /* handle_match */ (Arp_cache_entry const &entry)
@@ -606,17 +629,9 @@ Packet_result Interface::_adapt_eth(Ethernet_frame          &eth,
 			[&] /* handle_no_match */ ()
 			{
 				retry_once<Out_of_ram, Out_of_caps>(
-					[&] {
-						new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt, _config_ptr->arp_request_timeout(), _timer };
-						remote_domain.interfaces().for_each([&] (Interface &interface)
-						{
-							interface._broadcast_arp_request(
-								remote_ip_cfg.interface().address, hop_ip);
-						});
-						result = packet_postponed();
-					},
+					send_arp_fn,
 					[&] { _try_emergency_free_quota(); },
-					[&] { result = packet_drop("out of quota while creating ARP waiter"); });
+					[&] { result = packet_drop("out of quota while creating ARP packet list element"); });
 			}
 		);
 	};
@@ -1491,7 +1506,8 @@ void Interface::_handle_arp_reply(Ethernet_frame &eth,
 				Arp_waiter &waiter = *waiter_le->object();
 				waiter_le = waiter_le->next();
 				if (ip != waiter.ip()) { continue; }
-				waiter.src()._continue_handle_eth(waiter.packet());
+				waiter.flush_packets(waiter.src()._alloc, [&] (Packet_descriptor const &packet) {
+					waiter.src()._continue_handle_eth(packet); });
 				destroy(waiter.src()._alloc, &waiter);
 			}
 		}
@@ -1737,7 +1753,8 @@ void Interface::_destroy_timed_out_arp_waiters()
 {
 	while (Arp_waiter_list_element *le = _timed_out_arp_waiters.first()) {
 		Arp_waiter &waiter = *le->object();
-		_drop_packet(waiter.packet(), "ARP request timed out");
+		waiter.flush_packets(_alloc, [&] (Packet_descriptor const &packet) {
+			_drop_packet(packet, "ARP request timed out"); });
 		_timed_out_arp_waiters.remove(le);
 		destroy(_alloc, &waiter);
 	}
@@ -2264,7 +2281,9 @@ void Interface::_ack_packet(Packet_descriptor const &pkt)
 
 void Interface::cancel_arp_waiting(Arp_waiter &waiter)
 {
-	_drop_packet(waiter.packet(), "ARP got cancelled");
+
+	waiter.flush_packets(_alloc, [&] (Packet_descriptor const &packet) {
+		_drop_packet(packet, "ARP got cancelled"); });
 	destroy(_alloc, &waiter);
 }
 

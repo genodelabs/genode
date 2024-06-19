@@ -20,20 +20,21 @@ using namespace Net;
 using namespace Genode;
 
 
-Arp_waiter::Arp_waiter(Interface               &src,
-                       Domain                  &dst,
-                       Ipv4_address      const &ip,
-                       Packet_descriptor const &packet,
-                       Microseconds             timeout,
-                       Cached_timer            &timer)
+Arp_waiter::Arp_waiter(Interface                 &src,
+                       Domain                    &dst,
+                       Ipv4_address        const &ip,
+                       Packet_list_element       &packet_le,
+                       Microseconds               timeout,
+                       Cached_timer              &timer)
 :
 	_src_le(this), _src(src), _dst_le(this), _dst_ptr(&dst), _ip(ip),
-	_packet(packet), _timeout(timer, *this, &Arp_waiter::_handle_timeout, timeout)
+	_timeout(timer, *this, &Arp_waiter::_handle_timeout, timeout)
 {
 	_src.arp_stats().alive++;
 	_src.own_arp_waiters().insert(&_src_le);
 	_dst_ptr->foreign_arp_waiters().insert(&_dst_le);
 	_timeout.schedule(timeout);
+	add_packet(packet_le);
 }
 
 

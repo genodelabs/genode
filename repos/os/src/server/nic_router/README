@@ -868,8 +868,10 @@ following attribute (default value shown):
 ! <config arp_request_timeout_sec="10">
 
 When the router does not receive a reply for a sent ARP request within this
-timeout, the packet that caused the ARP request and the ARP request state are
-dropped in order to re-use the resources.
+timeout, the packets that were waiting for the reply and the ARP request state
+are dropped in order to re-use the resources. Note that this is also the
+rate-limit for the router sending ARP requests for one IP address at one
+domain.
 
 Behavior regarding the NIC-session link state
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
