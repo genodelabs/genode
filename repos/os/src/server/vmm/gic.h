@@ -19,7 +19,6 @@
 #include <state.h>
 
 #include <base/env.h>
-#include <drivers/defs/arm_v7.h>
 #include <vm_session/connection.h>
 #include <util/list.h>
 #include <util/register.h>
