@@ -17,7 +17,7 @@
 
 /* base-hw core includes */
 #include <spec/arm/cpu_support.h>
-#include <spec/arm_v6/translation_table.h>
+#include <spec/arm_v6/page_table.h>
 
 namespace Core { struct Cpu; }
 

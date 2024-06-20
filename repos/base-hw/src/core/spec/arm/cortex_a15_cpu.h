@@ -17,7 +17,7 @@
 
 /* base-hw core includes */
 #include <spec/arm_v7/cpu_support.h>
-#include <spec/cortex_a15/translation_table.h>
+#include <hw/spec/arm/lpae.h>
 
 namespace Core { class Cpu; }
 

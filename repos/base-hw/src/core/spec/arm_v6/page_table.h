@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__SPEC__ARM_V6__TRANSLATION_TABLE_H_
-#define _CORE__SPEC__ARM_V6__TRANSLATION_TABLE_H_
+#ifndef _CORE__SPEC__ARM_V6__PAGE_TABLE_H_
+#define _CORE__SPEC__ARM_V6__PAGE_TABLE_H_
 
 #include <hw/spec/arm/page_table.h>
 #include <spec/arm/cpu_support.h>
@@ -32,4 +32,4 @@ void Hw::Page_table::_table_changed(unsigned long addr, unsigned long size)
 	Core::Arm_cpu::cache_clean_data_region(addr, size);
 }
 
-#endif /* _CORE__SPEC__ARM_V6__TRANSLATION_TABLE_H_ */
+#endif /* _CORE__SPEC__ARM_V6__PAGE_TABLE_H_ */

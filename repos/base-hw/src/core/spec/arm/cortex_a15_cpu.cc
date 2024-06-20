@@ -13,7 +13,7 @@
 
 /* base-hw core includes */
 #include <kernel/thread.h>
-#include <spec/cortex_a15/cpu.h>
+#include <spec/arm/cortex_a15_cpu.h>
 
 using namespace Core;
 

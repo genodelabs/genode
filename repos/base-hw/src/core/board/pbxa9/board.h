@@ -20,7 +20,7 @@
 
 /* base-hw core includes */
 #include <spec/arm/cortex_a9_global_timer.h>
-#include <spec/cortex_a9/cpu.h>
+#include <spec/arm/cortex_a9_cpu.h>
 
 namespace Board {
 

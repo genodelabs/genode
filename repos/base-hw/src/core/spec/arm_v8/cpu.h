@@ -27,7 +27,7 @@
 /* base-hw internal includes */
 #include <hw/spec/arm_64/cpu.h>
 #include <spec/arm_v8/address_space_id_allocator.h>
-#include <spec/arm_v8/translation_table.h>
+#include <hw/spec/arm/lpae.h>
 
 namespace Kernel { struct Thread_fault; }
 

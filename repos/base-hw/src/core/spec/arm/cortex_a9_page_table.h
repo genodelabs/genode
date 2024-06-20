@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__SPEC__CORTEX_A9__TRANSLATION_TABLE_H_
-#define _CORE__SPEC__CORTEX_A9__TRANSLATION_TABLE_H_
+#ifndef _CORE__SPEC__ARM__CORTEX_A9_PAGE_TABLE_H_
+#define _CORE__SPEC__ARM__CORTEX_A9_PAGE_TABLE_H_
 
 #include <hw/spec/arm/page_table.h>
 
@@ -27,4 +27,4 @@ constexpr bool Hw::Page_table::Descriptor_base::_smp() { return true; }
 
 void Hw::Page_table::_table_changed(unsigned long, unsigned long) { }
 
-#endif /* _CORE__SPEC__CORTEX_A9__TRANSLATION_TABLE_H_ */
+#endif /* _CORE__SPEC__ARM__CORTEX_A9_PAGE_TABLE_H_ */

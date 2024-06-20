@@ -31,7 +31,7 @@
 #include <types.h>
 #include <spec/x86_64/fpu.h>
 #include <spec/x86_64/address_space_id_allocator.h>
-#include <spec/x86_64/translation_table.h>
+#include <hw/spec/x86_64/page_table.h>
 
 namespace Kernel { struct Thread_fault; }
 

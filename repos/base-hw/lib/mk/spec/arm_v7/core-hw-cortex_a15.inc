@@ -5,7 +5,7 @@
 #
 
 # add C++ sources
-SRC_CC += spec/cortex_a15/cpu.cc
+SRC_CC += spec/arm/cortex_a15_cpu.cc
 SRC_CC += kernel/cpu_mp.cc
 SRC_CC += spec/arm/kernel/lock.cc
 
