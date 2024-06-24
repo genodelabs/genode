@@ -86,7 +86,6 @@ tz_vmm
 usb_block
 usb_hid_raw
 usb_hid_reconnect
-vbox5_genode_usb_hid_raw
 vbox5_ubuntu_16_04_32
 vbox5_ubuntu_16_04_64
 vbox5_win10_64
@@ -95,6 +94,7 @@ vbox5_win7_64
 vbox5_win7_64_multiple
 vbox5_win7_64_raw
 vbox5_win7_64_share
+vbox6_genode_usb_hid_raw
 verify
 vfs_cfg
 vfs_import
