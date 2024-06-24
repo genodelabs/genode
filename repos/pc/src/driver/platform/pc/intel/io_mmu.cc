@@ -74,10 +74,23 @@ void Intel::Io_mmu::Domain<TABLE>::add_range(Range const & range,
 	Page_flags flags { RW, NO_EXEC, USER, NO_GLOBAL,
 	                   RAM, Genode::CACHED };
 
-	_translation_table.insert_translation(vaddr, paddr, size, flags,
-	                                      _table_allocator,
-	                                      !_intel_iommu.coherent_page_walk(),
-	                                      _intel_iommu.supported_page_sizes());
+	auto cleanup_partial_translations = [&] () {
+		_translation_table.remove_translation(vaddr, size, _table_allocator,
+		                                      !_intel_iommu.coherent_page_walk());
+	};
+
+	try {
+		_translation_table.insert_translation(vaddr, paddr, size, flags,
+		                                      _table_allocator,
+		                                      !_intel_iommu.coherent_page_walk(),
+		                                      _intel_iommu.supported_page_sizes());
+	} catch (Out_of_ram) {
+		cleanup_partial_translations();
+		throw;
+	} catch (Out_of_caps) {
+		cleanup_partial_translations();
+		throw;
+	}
 
 	if (_skip_invalidation)
 		return;
