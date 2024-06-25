@@ -59,8 +59,8 @@ build: qmake_prepared.tag
 	@# create tar archives
 	@#
 
-	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqtvirtualkeyboardplugin.tar --transform='s/\.stripped//' -C install qt/plugins/platforminputcontexts/libqtvirtualkeyboardplugin.lib.so.stripped
-	$(VERBOSE)tar chf $(PWD)/bin/qt5_virtualkeyboard_qml.tar --exclude='*.lib.so' --transform='s/\.stripped//' -C install qt/qml
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqtvirtualkeyboardplugin.tar $(TAR_OPT) --transform='s/\.stripped//' -C install qt/plugins/platforminputcontexts/libqtvirtualkeyboardplugin.lib.so.stripped
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_virtualkeyboard_qml.tar $(TAR_OPT) --exclude='*.lib.so' --transform='s/\.stripped//' -C install qt/qml
 
 .PHONY: build
 

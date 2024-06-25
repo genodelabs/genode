@@ -53,7 +53,7 @@ build: qmake_prepared.tag
 	@# create tar archives
 	@#
 
-	$(VERBOSE)tar chf $(PWD)/bin/qt5_quickcontrols_qml.tar --exclude='*.lib.so' --transform='s/\.stripped//' -C install qt/qml
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_quickcontrols_qml.tar $(TAR_OPT) --exclude='*.lib.so' --transform='s/\.stripped//' -C install qt/qml
 
 .PHONY: build
 

@@ -53,7 +53,7 @@ build: qmake_prepared.tag
 	@# create tar archives
 	@#
 
-	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqsvg.tar --transform='s/\.stripped//' -C install qt/plugins/imageformats/libqsvg.lib.so.stripped
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqsvg.tar $(TAR_OPT) --transform='s/\.stripped//' -C install qt/plugins/imageformats/libqsvg.lib.so.stripped
 
 .PHONY: build
 

@@ -78,9 +78,9 @@ build: qmake_prepared.tag qmake_root/lib/ld.lib.so
 	@# create tar archives
 	@#
 
-	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqgenode.tar --transform='s/\.stripped//' -C install qt/plugins/platforms/libqgenode.lib.so.stripped
-	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqjpeg.tar   --transform='s/\.stripped//' -C install qt/plugins/imageformats/libqjpeg.lib.so.stripped
-	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqsqlite.tar --transform='s/\.stripped//' -C install qt/plugins/sqldrivers/libqsqlite.lib.so.stripped
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqgenode.tar $(TAR_OPT) --transform='s/\.stripped//' -C install qt/plugins/platforms/libqgenode.lib.so.stripped
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqjpeg.tar   $(TAR_OPT) --transform='s/\.stripped//' -C install qt/plugins/imageformats/libqjpeg.lib.so.stripped
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqsqlite.tar $(TAR_OPT) --transform='s/\.stripped//' -C install qt/plugins/sqldrivers/libqsqlite.lib.so.stripped
 
 .PHONY: build
 
