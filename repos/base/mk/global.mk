@@ -244,6 +244,11 @@ LD_SCRIPT_SO ?= $(BASE_DIR)/src/ld/genode_rel.ld
 #
 AS_OPT += $(AS_MARCH)
 
+#
+# Default tar options
+#
+TAR_OPT ?= --owner=1 --group=1 --mtime=@0
+
 ALL_INC_DIR := .
 ALL_INC_DIR += $(INC_DIR)
 ALL_INC_DIR += $(foreach DIR,$(REP_INC_DIR), $(foreach REP,$(REPOSITORIES),$(REP)/$(DIR)))
