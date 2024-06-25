@@ -98,6 +98,7 @@ class Isoc_cache
 		Allocator     &_alloc;
 		uint8_t        _read  { 0 };
 		uint8_t        _wrote { 0 };
+		uint16_t       _sizes[MAX_PACKETS];
 		unsigned char *_buffer;
 
 		Constructible<Urb> _urbs[URBS];
@@ -531,28 +532,31 @@ void Isoc_cache::_copy_to_host(USBPacket *p)
 	if (!size || _level() >= MAX_PACKETS-1)
 		return;
 
-	size_t offset = _wrote++ * _ep.max_packet_size();
+	size_t offset = _wrote * _ep.max_packet_size();
 
-	if (size != _ep.max_packet_size()) {
+	if (size > _ep.max_packet_size()) {
 		error("Assumption about QEmu Isochronous out packets wrong!");
 		size = _ep.max_packet_size();
 	}
 
+
 	usb_packet_copy(p, _buffer+offset, size);
+	_sizes[_wrote] = size;
+	_wrote++;
 }
 
 
 void Isoc_cache::_copy_to_guest(USBPacket *p)
 {
-	size_t count = p->iov.size / _ep.max_packet_size();
+	size_t size = p->iov.size;
 
-	if (!count || !_level())
-		return;
-
-	size_t offset = _read * _ep.max_packet_size();
-	_read += count;
-
-	usb_packet_copy(p, _buffer+offset, count * _ep.max_packet_size());
+	while (size && _level()) {
+		size_t offset = _read * _ep.max_packet_size();
+		if (size < _sizes[_read])
+			return;
+		size -= _sizes[_read];
+		usb_packet_copy(p, _buffer+offset, _sizes[_read++]);
+	}
 }
 
 
@@ -569,16 +573,16 @@ size_t Isoc_cache::read(Byte_range_ptr &dst)
 	if (_ep.in())
 		return _ep.max_packet_size();
 
-	size_t offset = _read++ * _ep.max_packet_size();
-	Genode::memcpy(dst.start, (void*)(_buffer+offset), _ep.max_packet_size());
-	return _ep.max_packet_size();
+	size_t offset = _read * _ep.max_packet_size();
+	Genode::memcpy(dst.start, (void*)(_buffer+offset), _sizes[_read]);
+	return _sizes[_read++];
 }
 
 
 void Isoc_cache::write(Const_byte_range_ptr const &src)
 {
 	size_t offset = _wrote * _ep.max_packet_size();
-	_wrote       += src.num_bytes / _ep.max_packet_size();
+	_sizes[_wrote++] = src.num_bytes;
 	Genode::memcpy((void*)(_buffer+offset), src.start, src.num_bytes);
 }
 
