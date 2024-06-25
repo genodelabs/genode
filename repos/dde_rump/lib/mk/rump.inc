@@ -219,7 +219,7 @@ INC_DIR += $(REP_DIR)/src/include \
 # generic
 #
 vers.c:
-	$(VERBOSE_MK)cd $(RUMP_BASE) && /bin/sh $(RUMP_PORT_DIR)/src/sys/conf/newvers.sh -iRUMP_ROAST -n
+	$(VERBOSE_MK)cd $(RUMP_BASE) && /bin/sh $(RUMP_PORT_DIR)/src/sys/conf/newvers.sh -r -iRUMP_ROAST -n
 
 # trigger build
 $(SRC_O): vers.c
