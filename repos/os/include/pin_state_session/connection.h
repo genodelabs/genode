@@ -16,6 +16,7 @@
 
 #include <pin_state_session/pin_state_session.h>
 #include <base/connection.h>
+#include <base/rpc_client.h>
 
 namespace Pin_state { struct Connection; }
 
