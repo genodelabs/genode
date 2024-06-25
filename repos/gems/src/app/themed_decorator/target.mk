@@ -11,5 +11,5 @@ BUILD_ARTIFACTS := $(TARGET) plain_decorator_theme.tar
 
 plain_decorator_theme.tar:
 	$(MSG_CONVERT)$@
-	$(VERBOSE)tar -cf $@ -C $(PRG_DIR) theme
+	$(VERBOSE)tar -cf $@ $(TAR_OPT) -C $(PRG_DIR) theme
 	$(VERBOSE)ln -sf $(BUILD_BASE_DIR)/$(PRG_REL_DIR)/$@ $(INSTALL_DIR)/$@
