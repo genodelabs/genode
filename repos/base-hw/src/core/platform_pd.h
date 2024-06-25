@@ -163,6 +163,7 @@ class Core::Cap_space
 		Cap_slab & capability_slab() { return _slab; }
 
 		void upgrade_slab(Allocator &alloc);
+		size_t avail_slab() { return _slab.avail_entries(); }
 };
 
 
@@ -208,6 +209,7 @@ class Core::Platform_pd : public Hw::Address_space, private Cap_space
 
 		using Cap_space::capability_slab;
 		using Cap_space::upgrade_slab;
+		using Cap_space::avail_slab;
 
 		/**
 		 * Bind thread to protection domain

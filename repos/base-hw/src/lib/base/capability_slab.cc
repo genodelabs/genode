@@ -32,6 +32,12 @@ void Genode::init_cap_slab(Pd_session &pd, Parent &parent)
 }
 
 
+size_t Genode::avail_capability_slab()
+{
+	return native_pd_ptr ? native_pd_ptr->avail_cap_slab() : 0UL;
+}
+
+
 void Genode::upgrade_capability_slab()
 {
 	if (!native_pd_ptr || !parent_ptr) {

@@ -14,12 +14,16 @@
 #ifndef _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_
 #define _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_
 
+#include <base/stdint.h>
+
 namespace Genode {
 
 	/**
 	 * Upgrade quota of the PD session's capability slab allocator
 	 */
 	void upgrade_capability_slab();
+
+	size_t avail_capability_slab();
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_ENV_H_ */

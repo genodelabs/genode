@@ -27,6 +27,9 @@ struct Genode::Hw_native_pd_client : Rpc_client<Pd_session::Native_pd>
 
 	void upgrade_cap_slab() override {
 		call<Rpc_upgrade_cap_slab>(); }
+
+	size_t avail_cap_slab() override {
+		return call<Rpc_avail_cap_slab>(); }
 };
 
 #endif /* _INCLUDE__HW_NATIVE_PD__CLIENT_H_ */

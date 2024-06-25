@@ -22,6 +22,7 @@
 /* base-internal includes */
 #include <base/internal/stack_allocator.h>
 #include <base/internal/native_utcb.h>
+#include <base/internal/native_env.h>
 #include <base/internal/globals.h>
 
 using namespace Genode;
@@ -106,6 +107,9 @@ void Thread::_deinit_platform_thread()
 
 Thread::Start_result Thread::start()
 {
+	while (avail_capability_slab() < 5)
+		upgrade_capability_slab();
+
 	return _thread_cap.convert<Start_result>(
 		[&] (Thread_capability cap) {
 			Cpu_thread_client cpu_thread(cap);

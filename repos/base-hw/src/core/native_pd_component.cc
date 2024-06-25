@@ -23,6 +23,12 @@ void Native_pd_component::upgrade_cap_slab()
 }
 
 
+size_t Native_pd_component::avail_cap_slab()
+{
+	return _pd_session._pd->avail_slab();
+}
+
+
 Native_pd_component::Native_pd_component(Pd_session_component &pd, char const *)
 :
 	_pd_session(pd)
