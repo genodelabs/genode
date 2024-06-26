@@ -35,7 +35,8 @@ etc/board.conf:
 
 content:
 	mv lib/mk/spec/arm/ld-sel4.mk lib/mk/spec/arm/ld.mk;
-	sed -i "s/imx6_timer/timer/" src/timer/epit/imx6/target.inc
+	cp -r $(GENODE_DIR)/repos/imx/src/timer/epit src/timer/epit
+	sed -i "s/imx6_timer/timer/" src/timer/epit/target.mk
 	find lib/mk/spec -name kernel-sel4-*.mk -o -name syscall-sel4-*.mk |\
 		grep -v "sel4-imx6q_sabrelite.mk" | xargs rm -rf
 
