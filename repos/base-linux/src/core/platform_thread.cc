@@ -22,80 +22,24 @@
 using namespace Core;
 
 
-typedef Token<Scanner_policy_identifier_with_underline> Tid_token;
-
-
-/*******************************
- ** Platform_thread::Registry **
- *******************************/
-
-void Platform_thread::Registry::insert(Platform_thread *thread)
+void Platform_thread::submit_exception(unsigned pid)
 {
-	Mutex::Guard guard(_mutex);
-	_list.insert(thread);
-}
-
-
-void Platform_thread::Registry::remove(Platform_thread *thread)
-{
-	Mutex::Guard guard(_mutex);
-	_list.remove(thread);
-}
-
-
-void Platform_thread::Registry::submit_exception(unsigned long pid)
-{
-	Mutex::Guard guard(_mutex);
-
-	/* traverse list to find 'Platform_thread' with matching PID */
-	for (Platform_thread *curr = _list.first(); curr; curr = curr->next()) {
-
-		if (curr->_tid == pid) {
-			Signal_context_capability sigh = curr->_pager._sigh;
-
-			if (sigh.valid())
-				Signal_transmitter(sigh).submit();
-
+	bool submitted = false;
+	_registry().for_each([&] (Platform_thread const &thread) {
+		if (submitted || thread._tid != pid)
 			return;
-		}
-	}
+
+		Signal_context_capability sigh = thread._pager._sigh;
+		if (sigh.valid())
+			Signal_transmitter(sigh).submit();
+
+		submitted = true;
+	});
 }
 
 
-Platform_thread::Registry &Platform_thread::_registry()
+Registry<Platform_thread> &Platform_thread::_registry()
 {
-	static Platform_thread::Registry registry;
+	static Registry<Platform_thread> registry { };
 	return registry;
 }
-
-
-/*********************
- ** Platform_thread **
- *********************/
-
-Platform_thread::Platform_thread(size_t, const char *name, unsigned,
-                                 Affinity::Location, addr_t)
-{
-	copy_cstring(_name, name, min(sizeof(_name), Genode::strlen(name) + 1));
-
-	_registry().insert(this);
-}
-
-
-Platform_thread::~Platform_thread()
-{
-	_registry().remove(this);
-}
-
-
-void Platform_thread::pause()
-{
-	warning(__func__, "not implemented");
-}
-
-
-void Platform_thread::resume()
-{
-	warning(__func__, "not implemented");
-}
-

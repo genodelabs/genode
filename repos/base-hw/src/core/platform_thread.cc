@@ -62,7 +62,7 @@ void Platform_thread::quota(size_t const quota)
 Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
 :
 	_label(label),
-	_pd(&_kernel_main_get_core_platform_pd()),
+	_pd(_kernel_main_get_core_platform_pd()),
 	_pager(nullptr),
 	_utcb_core_addr(&utcb),
 	_utcb_pd_addr(&utcb),
@@ -86,19 +86,20 @@ Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
 }
 
 
-Platform_thread::Platform_thread(size_t             const  quota,
+Platform_thread::Platform_thread(Platform_pd              &pd,
+                                 size_t             const  quota,
                                  Label              const &label,
                                  unsigned           const  virt_prio,
                                  Affinity::Location const  location,
                                  addr_t             const  utcb)
 :
 	_label(label),
-	_pd(nullptr),
+	_pd(pd),
 	_pager(nullptr),
 	_utcb_pd_addr((Native_utcb *)utcb),
 	_priority(_scale_priority(virt_prio)),
 	_quota((unsigned)quota),
-	_main_thread(false),
+	_main_thread(!pd.has_any_thread),
 	_location(location),
 	_kobj(_kobj.CALLED_FROM_CORE, _priority, _quota, _label.string())
 {
@@ -116,22 +117,9 @@ Platform_thread::Platform_thread(size_t             const  quota,
 			_utcb_core_addr = (Native_utcb *)range.start; },
 		[&] (Region_map::Attach_error) {
 			error("failed to attach UTCB of new thread within core"); });
-}
 
-
-void Platform_thread::join_pd(Platform_pd * pd, bool const main_thread,
-                              Weak_ptr<Address_space> address_space)
-{
-	/* check if thread is already in another protection domain */
-	if (_pd && _pd != pd) {
-		error("thread already in another protection domain");
-		return;
-	}
-
-	/* join protection domain */
-	_pd = pd;
-	_main_thread = main_thread;
-	_address_space = address_space;
+	_address_space = pd.weak_ptr();
+	pd.has_any_thread = true;
 }
 
 
@@ -144,7 +132,7 @@ void Platform_thread::affinity(Affinity::Location const &)
 Affinity::Location Platform_thread::affinity() const { return _location; }
 
 
-int Platform_thread::start(void * const ip, void * const sp)
+void Platform_thread::start(void * const ip, void * const sp)
 {
 	/* attach UTCB in case of a main thread */
 	if (_main_thread) {
@@ -168,7 +156,8 @@ int Platform_thread::start(void * const ip, void * const sp)
 			}
 			return 0;
 		};
-		if (core_env().entrypoint().apply(_utcb, lambda)) return -1;
+		if (core_env().entrypoint().apply(_utcb, lambda))
+			return;
 	}
 
 	/* initialize thread registers */
@@ -176,11 +165,6 @@ int Platform_thread::start(void * const ip, void * const sp)
 	_kobj->regs->sp = reinterpret_cast<addr_t>(sp);
 
 	/* start executing new thread */
-	if (!_pd) {
-		error("no protection domain associated!");
-		return -1;
-	}
-
 	unsigned const cpu = _location.xpos();
 
 	Native_utcb &utcb = *Thread::myself()->utcb();
@@ -189,11 +173,10 @@ int Platform_thread::start(void * const ip, void * const sp)
 	utcb.cap_cnt(0);
 	utcb.cap_add(Capability_space::capid(_kobj.cap()));
 	if (_main_thread) {
-		utcb.cap_add(Capability_space::capid(_pd->parent()));
+		utcb.cap_add(Capability_space::capid(_pd.parent()));
 		utcb.cap_add(Capability_space::capid(_utcb));
 	}
-	Kernel::start_thread(*_kobj, cpu, _pd->kernel_pd(), *_utcb_core_addr);
-	return 0;
+	Kernel::start_thread(*_kobj, cpu, _pd.kernel_pd(), *_utcb_core_addr);
 }
 
 

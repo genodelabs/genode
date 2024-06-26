@@ -56,35 +56,54 @@ class Core::Platform_thread : Interface
 		Platform_thread(Platform_thread const &);
 		Platform_thread &operator = (Platform_thread const &);
 
-		typedef String<32> Name;
+		using Name = String<32>;
 
-		int                _thread_id = THREAD_INVALID;
-		L4_ThreadId_t      _l4_thread_id = L4_nilthread;
 		Name         const _name;  /* thread name at kernel debugger */
-		Platform_pd       *_platform_pd = nullptr;
-		unsigned           _priority = 0;
+		Platform_pd       &_pd;
+		unsigned     const _priority = 0;
 		Pager_object      *_pager = nullptr;
-		Affinity::Location _location;
+		Affinity::Location _location { };
+
+		using Id = Platform_pd::Alloc_thread_id_result;
+
+		Id const _id { _pd.alloc_thread_id(*this) };
+
+		Pistachio::L4_ThreadId_t _l4_id_from_pd_thread_id() const
+		{
+			using namespace Pistachio;
+			return _id.convert<L4_ThreadId_t>(
+				[&] (Platform_pd::Thread_id id) { return _pd.l4_thread_id(id); },
+				[&] (Platform_pd::Alloc_thread_id_error) { return L4_nilthread; }
+			);
+		}
+
+		Pistachio::L4_ThreadId_t const _l4_id = _l4_id_from_pd_thread_id();
 
 	public:
 
-		enum { THREAD_INVALID = -1 };
 		enum { DEFAULT_PRIORITY = 128 };
 
 		/**
 		 * Constructor
 		 */
-		Platform_thread(size_t, char const *name, unsigned priority,
+		Platform_thread(Platform_pd &pd, size_t, char const *name, unsigned priority,
 		                Affinity::Location location, addr_t)
 		:
-			_name(name), _priority(priority), _location(location)
+			_name(name), _pd(pd), _priority(priority), _location(location)
+		{ }
+
+		/**
+		 * Constructor used for initial roottask thread "core.main"
+		 */
+		Platform_thread(Platform_pd &pd, Pistachio::L4_ThreadId_t l4_id)
+		:
+			_name("core.main"), _pd(pd), _l4_id(l4_id)
 		{ }
 
 		/**
 		 * Constructor used for core-internal threads
 		 */
-		Platform_thread(char const *name)
-		: _name(name), _location(Affinity::Location()) { }
+		Platform_thread(Platform_pd &pd, char const *name) : _name(name), _pd(pd) { }
 
 		/**
 		 * Destructor
@@ -92,50 +111,37 @@ class Core::Platform_thread : Interface
 		~Platform_thread();
 
 		/**
+		 * Return true if thread creation suceeded
+		 */
+		bool valid() const { return _id.ok(); }
+
+		/**
 		 * Start thread
 		 *
 		 * \param ip      instruction pointer to start at
 		 * \param sp      stack pointer to use
-		 *
-		 * \retval  0  successful
-		 * \retval -1  thread could not be started
 		 */
-		int start(void *ip, void *sp);
+		void start(void *ip, void *sp);
 
 		/**
 		 * Pause this thread
 		 */
-		void pause();
+		void pause() { /* not implemented */ }
 
 		/**
 		 * Enable/disable single stepping
 		 */
-		void single_step(bool) { }
+		void single_step(bool) { /* not implemented */ }
 
 		/**
 		 * Resume this thread
 		 */
-		void resume();
-
-		/**
-		 * This thread is about to be bound
-		 *
-		 * \param thread_id     local thread ID
-		 * \param l4_thread_id  final L4 thread ID
-		 * \param pd            platform pd, thread is bound to
-		 */
-		void bind(int thread_id, Pistachio::L4_ThreadId_t l4_thread_id,
-		          Platform_pd &pd);
-
-		/**
-		 * Unbind this thread
-		 */
-		void unbind();
+		void resume() { /* not implemented */ }
 
 		/**
 		 * Override thread state with 's'
 		 */
-		void state(Thread_state s);
+		void state(Thread_state) { /* not implemented */ }
 
 		/**
 		 * Read thread state
@@ -165,7 +171,7 @@ class Core::Platform_thread : Interface
 		 */
 		unsigned long pager_object_badge() const
 		{
-			return convert_native_thread_id_to_badge(_l4_thread_id);
+			return convert_native_thread_id_to_badge(native_thread_id());
 		}
 
 		/**
@@ -193,12 +199,9 @@ class Core::Platform_thread : Interface
 		 ** Pistachio-specific Accessors **
 		 **********************************/
 
-		int                      thread_id()        const { return _thread_id; }
-		Pistachio::L4_ThreadId_t native_thread_id() const { return _l4_thread_id; }
-		Name                     name()             const { return _name; }
+		Pistachio::L4_ThreadId_t native_thread_id() const { return _l4_id; }
 
-		/* use only for core... */
-		void set_l4_thread_id(Pistachio::L4_ThreadId_t id) { _l4_thread_id = id; }
+		Name name() const { return _name; }
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */

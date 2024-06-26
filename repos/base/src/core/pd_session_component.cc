@@ -13,6 +13,7 @@
 
 /* core includes */
 #include <pd_session_component.h>
+#include <cpu_session_component.h>
 
 using namespace Core;
 
@@ -206,4 +207,16 @@ Pd_session_component::attach_dma(Dataspace_capability ds_cap, addr_t at)
 		return Attach_dma_error::DENIED;
 
 	return _address_space.attach_dma(ds_cap, at);
+}
+
+
+Pd_session_component::~Pd_session_component()
+{
+	/*
+	 * As `Platform_thread` objects point to their corresponding `Platform_pd`
+	 * objects, we need to destroy the threads when the `Platform_pd` ceases to
+	 * exist.
+	 */
+	_threads.for_each([&] (Cpu_thread_component &thread) {
+		thread.destroy(); });
 }

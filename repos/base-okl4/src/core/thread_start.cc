@@ -38,9 +38,7 @@ Thread::Start_result Thread::start()
 {
 	/* create and start platform thread */
 	native_thread().pt = new (Core::platform_specific().thread_slab())
-		Core::Platform_thread(_stack->name().string());
-
-	Core::platform_specific().core_pd().bind_thread(*native_thread().pt);
+		Core::Platform_thread(Core::platform_specific().core_pd(), _stack->name().string());
 
 	native_thread().pt->start((void *)_thread_start, stack_top());
 

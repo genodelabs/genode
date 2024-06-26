@@ -38,7 +38,10 @@
 #include <platform_generic.h>
 #include <account.h>
 
-namespace Core { class Pd_session_component; }
+namespace Core {
+	class Pd_session_component;
+	class Cpu_thread_component;
+}
 
 
 class Core::Pd_session_component : public Session_object<Pd_session>
@@ -46,6 +49,8 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 	public:
 
 		enum class Managing_system { DENIED, PERMITTED };
+
+		using Threads = Registry<Cpu_thread_component>;
 
 	private:
 
@@ -70,6 +75,8 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		Region_map_component _linker_area;
 
 		Managing_system _managing_system;
+
+		Threads _threads { };
 
 		friend class Native_pd_component;
 
@@ -159,6 +166,8 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			}
 		}
 
+		~Pd_session_component();
+
 		/**
 		 * Initialize cap and RAM accounts without providing a reference account
 		 *
@@ -171,19 +180,15 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			_ram_account.construct(_ram_quota_guard(), _label);
 		}
 
-		/**
-		 * Associate thread with PD
-		 *
-		 * \return true on success
-		 *
-		 * This function may fail for platform-specific reasons such as a
-		 * limit on the number of threads per protection domain or a limited
-		 * thread ID namespace.
-		 */
-		bool bind_thread(Platform_thread &thread)
+		void with_platform_pd(auto const &fn)
 		{
-			return _pd->bind_thread(thread);
+			if (_pd.constructed())
+				fn(*_pd);
+			else
+				error("unexpected call for 'with_platform_pd'");
 		}
+
+		void with_threads(auto const &fn) { fn(_threads); }
 
 		Region_map_component &address_space_region_map()
 		{

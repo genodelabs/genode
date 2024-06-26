@@ -32,7 +32,7 @@ using namespace Core;
 
 void Thread::_init_platform_thread(size_t, Type type)
 {
-	addr_t const utcb_virt_addr = (addr_t)&_stack->utcb();
+	Utcb_virt const utcb_virt { (addr_t)&_stack->utcb() };
 
 	if (type == MAIN) {
 		native_thread().tcb_sel = seL4_CapInitThreadTCB;
@@ -41,12 +41,12 @@ void Thread::_init_platform_thread(size_t, Type type)
 	}
 
 	Thread_info thread_info;
-	thread_info.init(utcb_virt_addr, CONFIG_NUM_PRIORITIES - 1);
+	thread_info.init(utcb_virt, CONFIG_NUM_PRIORITIES - 1);
 
-	if (!map_local(thread_info.ipc_buffer_phys, utcb_virt_addr, 1)) {
+	if (!map_local(thread_info.ipc_buffer_phys.addr, utcb_virt.addr, 1)) {
 		error(__func__, ": could not map IPC buffer "
-		      "phys=",   Hex(thread_info.ipc_buffer_phys), " "
-		      "local=%", Hex(utcb_virt_addr));
+		      "phys=",   Hex(thread_info.ipc_buffer_phys.addr), " "
+		      "local=%", Hex(utcb_virt.addr));
 	}
 
 	native_thread().tcb_sel  = thread_info.tcb_sel.value();
@@ -102,7 +102,7 @@ void Thread::_thread_start()
 Thread::Start_result Thread::start()
 {
 	/* write ipcbuffer address to utcb*/
-	utcb()->ipcbuffer(addr_t(utcb()));
+	utcb()->ipcbuffer(Native_utcb::Virt { addr_t(utcb()) });
 
 	start_sel4_thread(Cap_sel(native_thread().tcb_sel), (addr_t)&_thread_start,
 	                  (addr_t)stack_top(), _affinity.xpos(), addr_t(utcb()));

@@ -98,21 +98,20 @@ void Platform_thread::prepare_migration()
 }
 
 
-int Platform_thread::start(void *ip, void *sp)
+void Platform_thread::start(void *ip, void *sp)
 {
 	using namespace Nova;
 
 	if (!_pager) {
 		error("pager undefined");
-		return -1;
+		return;
 	}
 
 	Pager_object &pager = *_pager;
 
-	if (!_pd || (main_thread() && !vcpu() &&
-	             _pd->parent_pt_sel() == Native_thread::INVALID_INDEX)) {
+	if (main_thread() && !vcpu() && (_pd.parent_pt_sel() == Native_thread::INVALID_INDEX)) {
 		error("protection domain undefined");
-		return -2;
+		return;
 	}
 
 	Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
@@ -121,7 +120,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 	if (!_create_and_map_oom_portal(utcb)) {
 		error("setup of out-of-memory notification portal - failed");
-		return -8;
+		return;
 	}
 
 	if (!main_thread()) {
@@ -130,19 +129,19 @@ int Platform_thread::start(void *ip, void *sp)
 
 		if (_sel_exc_base == Native_thread::INVALID_INDEX) {
 			error("exception base not specified");
-			return -3;
+			return;
 		}
 
 		uint8_t res = syscall_retry(pager,
 			[&]() {
-				return create_ec(_sel_ec(), _pd->pd_sel(), kernel_cpu_id,
+				return create_ec(_sel_ec(), _pd.pd_sel(), kernel_cpu_id,
 				                 utcb_addr, initial_sp, _sel_exc_base,
 				                 !worker());
 			});
 
 		if (res != Nova::NOVA_OK) {
 			error("creation of new thread failed ", res);
-			return -4;
+			return;
 		}
 
 		if (!vcpu())
@@ -151,7 +150,7 @@ int Platform_thread::start(void *ip, void *sp)
 		if (res != NOVA_OK) {
 			revoke(Obj_crd(_sel_ec(), 0));
 			error("creation of new thread/vcpu failed ", res);
-			return -3;
+			return;
 		}
 
 		if (worker()) {
@@ -162,13 +161,12 @@ int Platform_thread::start(void *ip, void *sp)
 		pager.initial_eip((addr_t)ip);
 		pager.initial_esp(initial_sp);
 		pager.client_set_ec(_sel_ec());
-
-		return 0;
+		return;
 	}
 
 	if (!vcpu() && _sel_exc_base != Native_thread::INVALID_INDEX) {
 		error("thread already started");
-		return -5;
+		return;
 	}
 
 	addr_t pd_utcb = 0;
@@ -178,7 +176,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 		pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
 
-		addr_t remap_src[] = { _pd->parent_pt_sel() };
+		addr_t remap_src[] = { _pd.parent_pt_sel() };
 		addr_t remap_dst[] = { PT_SEL_PARENT };
 
 		/* remap exception portals for first thread */
@@ -186,18 +184,18 @@ int Platform_thread::start(void *ip, void *sp)
 			if (map_local(source_pd, utcb,
 			              Obj_crd(remap_src[i], 0),
 			              Obj_crd(pager.exc_pt_sel_client() + remap_dst[i], 0)))
-				return -6;
+				return;
 		}
 	}
 
 	/* create first thread in task */
 	enum { THREAD_GLOBAL = true };
-	uint8_t res = create_ec(_sel_ec(), _pd->pd_sel(), kernel_cpu_id,
+	uint8_t res = create_ec(_sel_ec(), _pd.pd_sel(), kernel_cpu_id,
 	                        pd_utcb, 0, _sel_exc_base,
 	                        THREAD_GLOBAL);
 	if (res != NOVA_OK) {
 		error("create_ec returned ", res);
-		return -7;
+		return;
 	}
 
 	pager.client_set_ec(_sel_ec());
@@ -213,7 +211,7 @@ int Platform_thread::start(void *ip, void *sp)
 		res = syscall_retry(pager,
 			[&]() {
 				/* let the thread run */
-				return create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
+				return create_sc(_sel_sc(), _pd.pd_sel(), _sel_ec(),
 				                 Qpd(Qpd::DEFAULT_QUANTUM, _priority));
 			});
 	}
@@ -227,12 +225,10 @@ int Platform_thread::start(void *ip, void *sp)
 
 		/* cap_selector free for _sel_ec is done in de-constructor */
 		revoke(Obj_crd(_sel_ec(), 0));
-		return -8;
+		return;
 	}
 
 	_features |= SC_CREATED;
-
-	return 0;
 }
 
 
@@ -255,14 +251,14 @@ void Platform_thread::resume()
 		return;
 	}
 
-	if (!_pd || !_pager) {
-		error("protection domain undefined - resuming thread failed");
+	if (!_pager) {
+		error("pager undefined - resuming thread failed");
 		return;
 	}
 
 	uint8_t res = syscall_retry(*_pager,
 		[&]() {
-			return create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
+			return create_sc(_sel_sc(), _pd.pd_sel(), _sel_ec(),
 			                 Qpd(Qpd::DEFAULT_QUANTUM, _priority));
 		});
 
@@ -298,8 +294,8 @@ void Platform_thread::single_step(bool on)
 	_pager->single_step(on);
 }
 
-const char * Platform_thread::pd_name() const {
-	return _pd ? _pd->name() : "unknown"; }
+
+const char * Platform_thread::pd_name() const { return _pd.name(); }
 
 
 Trace::Execution_time Platform_thread::execution_time() const
@@ -326,7 +322,7 @@ Trace::Execution_time Platform_thread::execution_time() const
 void Platform_thread::pager(Pager_object &pager)
 {
 	_pager = &pager;
-	_pager->assign_pd(_pd->pd_sel());
+	_pager->assign_pd(_pd.pd_sel());
 }
 
 
@@ -347,16 +343,21 @@ void Platform_thread::thread_type(Cpu_session::Native_cpu::Thread_type thread_ty
 }
 
 
-Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
-                                 Affinity::Location affinity, addr_t)
+Platform_thread::Platform_thread(Platform_pd &pd, size_t, const char *name,
+                                 unsigned prio, Affinity::Location affinity, addr_t)
 :
-	_pd(0), _pager(0), _id_base(cap_map().insert(2)),
+	_pd(pd), _pager(0), _id_base(cap_map().insert(2)),
 	_sel_exc_base(Native_thread::INVALID_INDEX),
 	_location(platform_specific().sanitize(affinity)),
 	_features(0),
 	_priority((uint8_t)(scale_priority(prio, name))),
 	_name(name)
-{ }
+{
+	if (!pd.has_any_threads)
+		_features |= MAIN_THREAD;
+
+	pd.has_any_threads = true;
+}
 
 
 Platform_thread::~Platform_thread()

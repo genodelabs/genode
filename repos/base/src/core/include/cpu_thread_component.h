@@ -28,7 +28,10 @@
 #include <trace/control_area.h>
 #include <trace/source_registry.h>
 
-namespace Core { class Cpu_thread_component; }
+namespace Core {
+	class Cpu_session_component;
+	class Cpu_thread_component;
+}
 
 
 class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
@@ -39,6 +42,8 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 
 		typedef Trace::Thread_name Thread_name;
 
+		using Pd_threads = Pd_session_component::Threads;
+
 	private:
 
 		friend class List<Cpu_thread_component>;
@@ -46,17 +51,13 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 
 		Rpc_entrypoint           &_ep;
 		Pager_entrypoint         &_pager_ep;
+		Cpu_session_component    &_cpu;
 		Region_map_component     &_address_space_region_map;
 		Cpu_session::Weight const _weight;
 		Session_label       const _session_label;
 		Thread_name         const _name;
+		Pd_threads::Element       _pd_element;
 		Platform_thread           _platform_thread;
-		bool                const _bound_to_pd;
-
-		bool _bind_to_pd(Pd_session_component &pd)
-		{
-			return pd.bind_thread(_platform_thread);
-		}
 
 		/**
 		 * Exception handler as defined by 'Cpu_session::exception_sigh'
@@ -138,9 +139,12 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 		 * \param utcb       user-local UTCB base
 		 */
 		Cpu_thread_component(Cpu_session_capability     cpu_session_cap,
+		                     Cpu_session_component     &cpu,
 		                     Rpc_entrypoint            &ep,
 		                     Pager_entrypoint          &pager_ep,
 		                     Pd_session_component      &pd,
+		                     Platform_pd               &platform_pd,
+		                     Pd_threads                &pd_threads,
 		                     Trace::Control_area       &trace_control_area,
 		                     Trace::Source_registry    &trace_sources,
 		                     Cpu_session::Weight        weight,
@@ -151,12 +155,12 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 		                     unsigned                   priority,
 		                     addr_t                     utcb)
 		:
-			_ep(ep), _pager_ep(pager_ep),
+			_ep(ep), _pager_ep(pager_ep), _cpu(cpu),
 			_address_space_region_map(pd.address_space_region_map()),
 			_weight(weight),
 			_session_label(label), _name(name),
-			_platform_thread(quota, name.string(), priority, location, utcb),
-			_bound_to_pd(_bind_to_pd(pd)),
+			_pd_element(pd_threads, *this),
+			_platform_thread(platform_pd, quota, name.string(), priority, location, utcb),
 			_trace_control_slot(trace_control_area),
 			_trace_sources(trace_sources),
 			_managed_thread_cap(_ep, *this),
@@ -181,7 +185,9 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 			_address_space_region_map.remove_client(_rm_client);
 		}
 
-		bool valid() const { return _bound_to_pd; };
+		bool valid() { return _platform_thread.valid(); }
+
+		void destroy(); /* solely called by ~Pd_session_component */
 
 
 		/********************************************

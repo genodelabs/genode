@@ -32,8 +32,6 @@ struct Core::Platform_pd
 {
 	Platform_pd(Allocator &, char const *) { }
 
-	bool bind_thread(Platform_thread &) { return true; }
-
 	void assign_parent(Capability<Parent>) { }
 };
 

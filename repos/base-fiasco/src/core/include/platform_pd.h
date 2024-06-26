@@ -21,7 +21,6 @@
 #include <base/allocator.h>
 
 /* core includes */
-#include <platform_thread.h>
 #include <address_space.h>
 
 /* L4/Fiasco includes */
@@ -36,6 +35,13 @@ namespace Core {
 
 class Core::Platform_pd : public Address_space
 {
+	public:
+
+		struct Thread_id { unsigned value; };
+
+		enum class Alloc_thread_id_error { EXHAUSTED };
+		using Alloc_thread_id_result = Attempt<Thread_id, Alloc_thread_id_error>;
+
 	private:
 
 		/*
@@ -60,35 +66,11 @@ class Core::Platform_pd : public Address_space
 		Fiasco::l4_taskid_t _l4_task_id { };  /* L4 task ID */
 
 
-		/**********************************************
-		 ** Threads of this protection domain object **
-		 **********************************************/
+		/***************************************
+		 ** Threads of this protection domain **
+		 ***************************************/
 
-		Platform_thread *_threads[THREAD_MAX];
-
-		/**
-		 * Initialize thread allocator
-		 */
-		void _init_threads();
-
-		/**
-		 * Thread iteration for one task
-		 */
-		Platform_thread *_next_thread();
-
-		/**
-		 * Thread allocation
-		 *
-		 * Again a special case for Core thread0.
-		 */
-		int _alloc_thread(int thread_id, Platform_thread &thread);
-
-		/**
-		 * Thread deallocation
-		 *
-		 * No special case for Core thread0 here - we just never call it.
-		 */
-		void _free_thread(int thread_id);
+		Platform_thread *_threads[THREAD_MAX] { };
 
 
 		/******************
@@ -179,18 +161,25 @@ class Core::Platform_pd : public Address_space
 		static void init();
 
 		/**
-		 * Bind thread to protection domain
-		 *
-		 * \return true on success
+		 * Allocate PD-local ID for a new 'Platform_thread'
 		 */
-		bool bind_thread(Platform_thread &thread);
+		Alloc_thread_id_result alloc_thread_id(Platform_thread &);
 
 		/**
-		 * Unbind thread from protection domain
-		 *
-		 * Free the thread's slot and update thread object.
+		 * Release PD-local thread ID at destruction of 'Platform_thread'
 		 */
-		void unbind_thread(Platform_thread &thread);
+		void free_thread_id(Thread_id);
+
+		/**
+		 * Return L4 thread ID from the PD's task ID and the PD-local thread ID
+		 */
+		Fiasco::l4_threadid_t l4_thread_id(Thread_id const id) const
+		{
+			Fiasco::l4_threadid_t result = _l4_task_id;
+			enum { LTHREAD_MASK = (1 << 7) - 1 };
+			result.id.lthread = id.value & LTHREAD_MASK;
+			return result;
+		}
 
 		/**
 		 * Assign parent interface to protection domain

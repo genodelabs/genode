@@ -178,11 +178,9 @@ Core::Platform::Platform()
 	 * not destroy this task, it should be no problem.
 	 */
 	Platform_thread &core_thread =
-		*new (&_thread_slab) Platform_thread("core.main");
+		*new (&_thread_slab) Platform_thread(*_core_pd, "core.main");
 
 	core_thread.set_l4_thread_id(Okl4::L4_rootserver);
-
-	_core_pd->bind_thread(core_thread);
 
 	/* core log as ROM module */
 	{

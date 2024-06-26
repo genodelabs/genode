@@ -60,6 +60,7 @@ class Core::Platform_thread : Interface
 		Platform_pd  *_platform_pd;    /* protection domain thread is bound to */
 		Pager_object *_pager_obj;
 		unsigned      _prio;
+		bool          _bound_to_pd = false;
 
 		Affinity::Location _location { };
 
@@ -74,7 +75,7 @@ class Core::Platform_thread : Interface
 		/**
 		 * Constructor for non-core threads
 		 */
-		Platform_thread(size_t, const char *name, unsigned priority,
+		Platform_thread(Platform_pd &, size_t, const char *name, unsigned priority,
 		                Affinity::Location, addr_t);
 
 		/**
@@ -94,15 +95,17 @@ class Core::Platform_thread : Interface
 		~Platform_thread();
 
 		/**
+		 * Return true if thread creation succeeded
+		 */
+		bool valid() const { return _bound_to_pd; }
+
+		/**
 		 * Start thread
 		 *
 		 * \param ip  instruction pointer to start at
 		 * \param sp  stack pointer to use
-		 *
-		 * \retval  0  successful
-		 * \retval -1  thread could not be started
 		 */
-		int start(void *ip, void *sp);
+		void start(void *ip, void *sp);
 
 		/**
 		 * Pause this thread

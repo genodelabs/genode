@@ -30,6 +30,16 @@ namespace Core { class Platform_pd; }
 
 class Core::Platform_pd : public Address_space
 {
+	public:
+
+		/*
+		 * Allocator for core-managed selectors within the PD's CSpace
+		 */
+		struct Sel_alloc : Bit_allocator<1 << NUM_CORE_MANAGED_SEL_LOG2>
+		{
+			Sel_alloc() { _reserve(0, INITIAL_SEL_END); }
+		};
+
 	private:
 
 		unsigned const _id;  /* used as index in top-level CNode */
@@ -47,21 +57,8 @@ class Core::Platform_pd : public Address_space
 
 		Native_capability _parent { };
 
-		/*
-		 * Allocator for core-managed selectors within the PD's CSpace
-		 */
-		typedef Bit_allocator<1 << NUM_CORE_MANAGED_SEL_LOG2> Sel_bit_alloc;
-
-		struct Sel_alloc : Sel_bit_alloc
-		{
-			Sel_alloc() { _reserve(0, INITIAL_SEL_END); }
-		};
-
 		Sel_alloc _sel_alloc { };
 		Mutex _sel_alloc_mutex { };
-
-		Cap_sel alloc_sel();
-		void free_sel(Cap_sel sel);
 
 		addr_t _init_page_directory() const;
 		void   _deinit_page_directory(addr_t) const;
@@ -79,16 +76,24 @@ class Core::Platform_pd : public Address_space
 		~Platform_pd();
 
 		/**
-		 * Bind thread to protection domain
+		 * Allocate capability selector
 		 */
-		bool bind_thread(Platform_thread &);
+		Cap_sel alloc_sel();
 
 		/**
-		 * Unbind thread from protection domain
-		 *
-		 * Free the thread's slot and update thread object.
+		 * Release capability selector
 		 */
-		void unbind_thread(Platform_thread &);
+		void free_sel(Cap_sel);
+
+		/**
+		 * Map physical IPC buffer to virtual UTCB address
+		 */
+		void map_ipc_buffer(Ipc_buffer_phys, Utcb_virt);
+
+		/**
+		 * Unmap IPC buffer from PD, at 'Platform_thread' destruction time
+		 */
+		void unmap_ipc_buffer(Utcb_virt);
 
 		/**
 		 * Assign parent interface to protection domain

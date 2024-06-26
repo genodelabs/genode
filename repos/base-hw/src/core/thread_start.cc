@@ -35,10 +35,7 @@ namespace Hw { extern Untyped_capability _main_thread_cap; }
 Thread::Start_result Thread::start()
 {
 	/* start thread with stack pointer at the top of stack */
-	if (native_thread().platform_thread->start((void *)&_thread_start, stack_top())) {
-		error("failed to start thread");
-		return Start_result::DENIED;
-	}
+	native_thread().platform_thread->start((void *)&_thread_start, stack_top());
 
 	if (_thread_cap.failed())
 		return Start_result::DENIED;

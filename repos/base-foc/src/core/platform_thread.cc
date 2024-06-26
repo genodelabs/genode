@@ -38,7 +38,7 @@ Trace::Execution_time Platform_thread::execution_time() const
 }
 
 
-int Platform_thread::start(void *ip, void *sp)
+void Platform_thread::start(void *ip, void *sp)
 {
 	if (!_platform_pd) {
 
@@ -62,7 +62,7 @@ int Platform_thread::start(void *ip, void *sp)
 	if (l4_msgtag_has_error(tag)) {
 		warning("l4_thread_control_commit for ",
 		        Hex(_thread.local.data()->kcap()), " failed!");
-		return -1;
+		return;
 	}
 
 	_state = RUNNING;
@@ -72,10 +72,8 @@ int Platform_thread::start(void *ip, void *sp)
 	                        (l4_addr_t) sp, 0);
 	if (l4_msgtag_has_error(tag)) {
 		warning("l4_thread_ex_regs failed!");
-		return -1;
+		return;
 	}
-
-	return 0;
 }
 
 
@@ -280,7 +278,7 @@ void Platform_thread::_finalize_construction()
 }
 
 
-Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
+Platform_thread::Platform_thread(Platform_pd &pd, size_t, const char *name, unsigned prio,
                                  Affinity::Location location, addr_t)
 :
 	_name(name),
@@ -298,6 +296,7 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
 	_create_thread();
 	_finalize_construction();
 	affinity(location);
+	_bound_to_pd = pd.bind_thread(*this);
 }
 
 

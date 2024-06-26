@@ -38,7 +38,9 @@ struct Genode::Native_utcb
 
 	static addr_t constexpr tls_ipcbuffer_offset = (ELEMENTS - 3) * sizeof(_raw[0]);
 
-	void ipcbuffer(addr_t const addr) { _raw[ELEMENTS - 3] = addr; }
+	struct Virt { addr_t addr; };
+
+	void ipcbuffer(Virt const virt) { _raw[ELEMENTS - 3] = virt.addr; }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_ */

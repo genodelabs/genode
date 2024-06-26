@@ -214,14 +214,13 @@ Core::Platform::Sigma0 &Core::Platform::sigma0()
 
 Core::Platform::Core_pager::Core_pager(Platform_pd &core_pd)
 :
-	Platform_thread("core.pager"),
+	Platform_thread(core_pd, "core.pager"),
 	Pager_object(Cpu_session_capability(), Thread_capability(),
 	             0, Affinity::Location(),
 	             Session_label(), Cpu_session::Name(name()))
 {
 	Platform_thread::pager(sigma0());
 
-	core_pd.bind_thread(*this);
 	cap(Capability_space::import(native_thread_id(), Rpc_obj_key()));
 
 	/* stack begins at the top end of the '_core_pager_stack' array */
@@ -594,12 +593,9 @@ Core::Platform::Platform()
 	 * thread_id of first task. But since we do not destroy this
 	 * task, it should be no problem.
 	 */
-	static Platform_thread core_thread("core.main");
+	static Platform_thread core_thread(core_pd(), Pistachio::L4_MyGlobalId());
 
-	core_thread.set_l4_thread_id(Pistachio::L4_MyGlobalId());
 	core_thread.pager(sigma0());
-
-	core_pd().bind_thread(core_thread);
 
 	auto export_page_as_rom_module = [&] (auto rom_name, auto content_fn)
 	{

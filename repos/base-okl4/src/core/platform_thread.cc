@@ -29,17 +29,16 @@ using namespace Core;
 using namespace Okl4;
 
 
-int Platform_thread::start(void *ip, void *sp, unsigned)
+void Platform_thread::start(void *ip, void *sp)
 {
-	if (!_platform_pd) {
+	if (!_bound_to_pd) {
 		warning("thread ", _thread_id, " is not bound to a PD");
-		return -1;
+		return;
 	}
 
 	/* activate local thread by assigning a UTCB address and thread ID */
-	int           space_no           = _platform_pd->pd_id();
-	L4_ThreadId_t new_thread_id      = _platform_pd->make_l4_id(space_no,
-	                                                            _thread_id);
+	int           space_no           = _pd.pd_id();
+	L4_ThreadId_t new_thread_id      = _pd.make_l4_id(space_no, _thread_id);
 	L4_SpaceId_t  space_id           = L4_SpaceId(space_no);
 	L4_ThreadId_t scheduler          = L4_rootserver;
 
@@ -51,7 +50,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned)
 	L4_Word_t     resources          = 0;
 	L4_Word_t     utcb_size_per_task = L4_GetUtcbSize()*(1 << Thread_id_bits::THREAD);
 	L4_Word_t     utcb_location      = platform_specific().utcb_base()
-	                                 + _platform_pd->pd_id()*utcb_size_per_task
+	                                 + _pd.pd_id()*utcb_size_per_task
 	                                 + _thread_id*L4_GetUtcbSize();
 	/*
 	 * On some ARM architectures, UTCBs are allocated by the kernel.
@@ -68,8 +67,8 @@ int Platform_thread::start(void *ip, void *sp, unsigned)
 	 *
 	 * Note: This is used by OKLinux only
 	 */
-	if(_platform_pd && _platform_pd->space_pager()) {
-		pager = _platform_pd->space_pager()->_l4_thread_id;
+	if(_pd.space_pager()) {
+		pager = _pd.space_pager()->_l4_thread_id;
 		exception_handler = pager;
 	}
 
@@ -79,7 +78,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned)
 	                           resources, (void *)utcb_location);
 	if (ret != 1) {
 		error("L4_ThreadControl returned ", ret, ", error=", ret, L4_ErrorCode());
-		return -1;
+		return;
 	}
 
 	/* make the symbolic thread name known to the kernel debugger */
@@ -102,7 +101,6 @@ int Platform_thread::start(void *ip, void *sp, unsigned)
 		warning("could not set thread prioritry to default");
 
 	set_l4_thread_id(new_thread_id);
-	return 0;
 }
 
 
@@ -118,12 +116,10 @@ void Platform_thread::resume()
 }
 
 
-void Platform_thread::bind(int thread_id, L4_ThreadId_t l4_thread_id,
-                           Platform_pd &pd)
+void Platform_thread::bind(int thread_id, L4_ThreadId_t l4_thread_id)
 {
 	_thread_id    = thread_id;
 	_l4_thread_id = l4_thread_id;
-	_platform_pd  = &pd;
 }
 
 
@@ -134,10 +130,6 @@ void Platform_thread::unbind()
 
 	if (res != 1)
 		error("deleting thread ", Hex(_l4_thread_id.raw), " failed");
-
-	_thread_id    = THREAD_INVALID;
-	_l4_thread_id = L4_nilthread;
-	_platform_pd  = nullptr;
 }
 
 
@@ -147,13 +139,14 @@ unsigned long Platform_thread::pager_object_badge() const
 }
 
 
-Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
-                                 Affinity::Location, addr_t)
+Platform_thread::Platform_thread(Platform_pd &pd, size_t, const char *name,
+                                 unsigned prio, Affinity::Location, addr_t)
 :
-	_l4_thread_id(L4_nilthread), _platform_pd(0),
-	_priority(prio), _pager(0)
+	_l4_thread_id(L4_nilthread), _pd(pd), _priority(prio), _pager(0)
 {
 	copy_cstring(_name, name, sizeof(_name));
+
+	_bound_to_pd = pd.bind_thread(*this);
 }
 
 
@@ -163,6 +156,6 @@ Platform_thread::~Platform_thread()
 	 * We inform our protection domain about thread destruction, which will end up in
 	 * Thread::unbind()
 	 */
-	if (_platform_pd)
-		_platform_pd->unbind_thread(*this);
+	if (_bound_to_pd)
+		_pd.unbind_thread(*this);
 }

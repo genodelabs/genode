@@ -142,14 +142,13 @@ Core::Platform::Sigma0 &Core::Platform::sigma0()
 
 Core::Platform::Core_pager::Core_pager(Platform_pd &core_pd)
 :
-	Platform_thread("core.pager"),
+	Platform_thread(core_pd, "core.pager"),
 	Pager_object(Cpu_session_capability(), Thread_capability(),
 	             0, Affinity::Location(), Session_label(),
 	             Cpu_session::Name(name()))
 {
 	Platform_thread::pager(sigma0());
 
-	core_pd.bind_thread(*this);
 	cap(Capability_space::import(native_thread_id(), Rpc_obj_key()));
 
 	/* pager needs to know core's pd ID */
@@ -432,10 +431,9 @@ Core::Platform::Platform()
 	 * interface that allows us to specify the lthread number.
 	 */
 	Platform_thread &core_thread = *new (core_mem_alloc())
-		Platform_thread("core.main");
+		Platform_thread(*_core_pd, "core.main");
 
 	core_thread.pager(sigma0());
-	_core_pd->bind_thread(core_thread);
 
 	/* we never call _core_thread.start(), so set name directly */
 	fiasco_register_thread_name(core_thread.native_thread_id(),

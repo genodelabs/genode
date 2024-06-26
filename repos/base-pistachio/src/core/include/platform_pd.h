@@ -21,7 +21,6 @@
 #include <base/internal/pistachio.h>
 
 /* core includes */
-#include <platform_thread.h>
 #include <address_space.h>
 
 namespace Core {
@@ -33,6 +32,13 @@ namespace Core {
 
 class Core::Platform_pd : public Address_space
 {
+	public:
+
+		struct Thread_id { unsigned value; };
+
+		enum class Alloc_thread_id_error { EXHAUSTED };
+		using Alloc_thread_id_result = Attempt<Thread_id, Alloc_thread_id_error>;
+
 	private:
 
 		/*
@@ -67,9 +73,9 @@ class Core::Platform_pd : public Address_space
 		/**
 		 * Manually construct L4 thread ID from its components
 		 */
-		Pistachio::L4_ThreadId_t make_l4_id(unsigned pd_no,
-		                                    unsigned thread_no,
-		                                    unsigned version)
+		static Pistachio::L4_ThreadId_t make_l4_id(unsigned pd_no,
+		                                           unsigned thread_no,
+		                                           unsigned version)
 		{
 			/*
 			 * We have to make sure that the 6 lower version bits are
@@ -87,31 +93,7 @@ class Core::Platform_pd : public Address_space
 		 ** Threads of this protection domain object **
 		 **********************************************/
 
-		Platform_thread *_threads[THREAD_MAX];
-
-		/**
-		 * Initialize thread allocator
-		 */
-		void _init_threads();
-
-		/**
-		 * Thread iteration for one PD
-		 */
-		Platform_thread *_next_thread();
-
-		/**
-		 * Thread allocation
-		 *
-		 * Again a special case for Core thread0.
-		 */
-		int _alloc_thread(int thread_id, Platform_thread &thread);
-
-		/**
-		 * Thread deallocation
-		 *
-		 * No special case for Core thread0 here - we just never call it.
-		 */
-		void _free_thread(int thread_id);
+		Platform_thread *_threads[THREAD_MAX] { };
 
 
 		/******************
@@ -210,24 +192,28 @@ class Core::Platform_pd : public Address_space
 		 */
 		void upgrade_ram_quota(size_t) { }
 
+		/**
+		 * Allocate PD-local ID for a new 'Platform_thread'
+		 */
+		Alloc_thread_id_result alloc_thread_id(Platform_thread &);
+
+		/**
+		 * Release PD-local thread ID at destruction of 'Platform_thread'
+		 */
+		void free_thread_id(Thread_id);
+
+		/**
+		 * Return L4 thread ID from the PD's task ID and the PD-local thread ID
+		 */
+		Pistachio::L4_ThreadId_t l4_thread_id(Thread_id const id) const
+		{
+			return make_l4_id(_pd_id, id.value, _version);
+		}
+
 		static Pistachio::L4_Word_t _core_utcb_ptr;
 		static void touch_utcb_space();
 
-		/**
-		 * Bind thread to protection domain
-		 *
-		 * This function allocates the physical L4 thread ID.
-		 */
-		bool bind_thread(Platform_thread &thread);
-
 		int bind_initial_thread(Platform_thread &thread);
-
-		/**
-		 * Unbind thread from protection domain
-		 *
-		 * Free the thread's slot and update thread object.
-		 */
-		void unbind_thread(Platform_thread &thread);
 
 		/**
 		 * Assign parent interface to protection domain

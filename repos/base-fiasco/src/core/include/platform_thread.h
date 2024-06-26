@@ -44,34 +44,32 @@ class Core::Platform_thread : Interface
 		Platform_thread(Platform_thread const &);
 		Platform_thread &operator = (Platform_thread const &);
 
-		int _thread_id = THREAD_INVALID;       /* plain thread number */
+		using Name = String<32>;
 
-		Fiasco::l4_threadid_t _l4_thread_id;
+		Name const _name; /* name to be registered at the kernel debugger */
 
-		typedef String<32> Name;
-		Name const _name;                      /* thread name that will be
-		                                          registered at the kernel
-		                                          debugger */
-		Platform_pd *_platform_pd = nullptr;   /* protection domain thread
-		                                          is bound to */
+		Platform_pd &_pd;
+
+		using Id = Platform_pd::Alloc_thread_id_result;
+
+		Id const _id { _pd.alloc_thread_id(*this) };
+
 		Pager_object *_pager = nullptr;
 
 	public:
 
-		enum {
-			THREAD_INVALID = -1,  /* invalid thread number */
-		};
-
 		/**
 		 * Constructor
 		 */
-		Platform_thread(size_t, const char *name, unsigned priority,
-		                Affinity::Location, addr_t utcb);
+		Platform_thread(Platform_pd &pd, size_t, const char *name,
+		                unsigned, Affinity::Location, addr_t)
+		: _name(name), _pd(pd) { }
 
 		/**
 		 * Constructor used for core-internal threads
 		 */
-		Platform_thread(const char *name);
+		Platform_thread(Platform_pd &pd, const char *name)
+		: _name(name), _pd(pd) { }
 
 		/**
 		 * Destructor
@@ -79,50 +77,37 @@ class Core::Platform_thread : Interface
 		~Platform_thread();
 
 		/**
+		 * Return false if thread IDs are exhausted
+		 */
+		bool valid() const { return _id.ok(); }
+
+		/**
 		 * Start thread
 		 *
 		 * \param ip  instruction pointer to start at
 		 * \param sp  stack pointer to use
-		 *
-		 * \retval  0  successful
-		 * \retval -1  thread could not be started
 		 */
-		int start(void *ip, void *sp);
+		void start(void *ip, void *sp);
 
 		/**
 		 * Pause this thread
 		 */
-		void pause();
+		void pause() { /* not implemented */ }
 
 		/**
 		 * Enable/disable single stepping
 		 */
-		void single_step(bool) { }
+		void single_step(bool) { /* not implemented */ }
 
 		/**
 		 * Resume this thread
 		 */
-		void resume();
-
-		/**
-		 * This thread is about to be bound
-		 *
-		 * \param thread_id     local thread ID
-		 * \param l4_thread_id  final L4 thread ID
-		 * \param pd            platform pd, thread is bound to
-		 */
-		void bind(int thread_id, Fiasco::l4_threadid_t l4_thread_id,
-		          Platform_pd &pd);
-
-		/**
-		 * Unbind this thread
-		 */
-		void unbind();
+		void resume() { /* not implemented */ }
 
 		/**
 		 * Override thread state with 's'
 		 */
-		void state(Thread_state s);
+		void state(Thread_state) { /* not implemented */ }
 
 		/**
 		 * Read thread state
@@ -163,7 +148,7 @@ class Core::Platform_thread : Interface
 		 * Return identification of thread when faulting
 		 */
 		unsigned long pager_object_badge() const {
-			return convert_native_thread_id_to_badge(_l4_thread_id); }
+			return convert_native_thread_id_to_badge(native_thread_id()); }
 
 		/**
 		 * Set CPU quota of the thread to 'quota'
@@ -180,9 +165,16 @@ class Core::Platform_thread : Interface
 		 ** Fiasco-specific Accessors **
 		 *******************************/
 
-		int                   thread_id()        const { return _thread_id; }
-		Fiasco::l4_threadid_t native_thread_id() const { return _l4_thread_id; }
-		Name                  name()             const { return _name; }
+		Fiasco::l4_threadid_t native_thread_id() const
+		{
+			using namespace Fiasco;
+			return _id.convert<l4_threadid_t>(
+				[&] (Platform_pd::Thread_id id) { return _pd.l4_thread_id(id); },
+				[&] (Platform_pd::Alloc_thread_id_error) { return L4_INVALID_ID; }
+			);
+		}
+
+		Name name() const { return _name; }
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */

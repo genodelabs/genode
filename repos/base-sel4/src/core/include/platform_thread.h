@@ -53,7 +53,7 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 		 * The value for the PD's main thread is INITIAL_IPC_BUFFER_VIRT.
 		 * For all other threads, the value is somewhere within the stack area.
 		 */
-		addr_t const _utcb;
+		Utcb_virt const _utcb;
 
 		Thread_info _info { };
 
@@ -72,21 +72,23 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 
 		friend class Platform_pd;
 
-		Platform_pd *_pd = nullptr;
+		Platform_pd &_pd;
 
 		enum { INITIAL_IPC_BUFFER_VIRT = 0x1000 };
 
 		Affinity::Location _location;
 		uint16_t           _priority;
 
-		bool main_thread() const { return _utcb == INITIAL_IPC_BUFFER_VIRT; }
+		bool _bound_to_pd = false;
+
+		bool main_thread() const { return _utcb.addr == INITIAL_IPC_BUFFER_VIRT; }
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Platform_thread(size_t, const char *name, unsigned priority,
+		Platform_thread(Platform_pd &pd, size_t, const char *name, unsigned priority,
 		                Affinity::Location, addr_t utcb);
 
 		/**
@@ -95,16 +97,18 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 		~Platform_thread();
 
 		/**
+		 * Return true if thread creation succeeded
+		 */
+		bool valid() const { return _bound_to_pd; }
+
+		/**
 		 * Start thread
 		 *
 		 * \param ip      instruction pointer to start at
 		 * \param sp      stack pointer to use
 		 * \param cpu_no  target cpu
-		 *
-		 * \retval  0  successful
-		 * \retval -1  thread could not be started
 		 */
-		int start(void *ip, void *sp, unsigned int cpu_no = 0);
+		void start(void *ip, void *sp, unsigned int cpu_no = 0);
 
 		/**
 		 * Pause this thread

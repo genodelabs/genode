@@ -14,7 +14,7 @@
 
 /* Genode includes */
 #include <util.h>
-#include <platform_pd.h>
+#include <platform_thread.h>
 
 /* base-internal includes */
 #include <base/internal/pistachio.h>
@@ -116,96 +116,27 @@ void Platform_pd::_free_pd()
 }
 
 
-void Platform_pd::_init_threads()
+Platform_pd::Alloc_thread_id_result Platform_pd::alloc_thread_id(Platform_thread &thread)
 {
-	unsigned i;
-
-	for (i = 0; i < THREAD_MAX; ++i)
-		_threads[i] = 0;
-}
-
-
-Platform_thread* Platform_pd::_next_thread()
-{
-	unsigned i;
-
-	/* look for bound thread */
-	for (i = 0; i < THREAD_MAX; ++i)
-		if (_threads[i]) break;
-
-	/* no bound threads */
-	if (i == THREAD_MAX) return 0;
-
-	return _threads[i];
-}
-
-
-int Platform_pd::_alloc_thread(int thread_id, Platform_thread &thread)
-{
-	int i = thread_id;
-
-	/* look for free thread */
-	if (thread_id == Platform_thread::THREAD_INVALID) {
-
-		/* start from 1 here, because thread 0 is our placeholder thread */
-		for (i = 1; i < THREAD_MAX; ++i)
-			if (!_threads[i]) break;
-
-		/* no free threads available */
-		if (i == THREAD_MAX) return -1;
-	} else {
-		if (_threads[i]) return -2;
+	for (unsigned i = 0; i < THREAD_MAX; i++) {
+		if (_threads[i] == nullptr) {
+			_threads[i] = &thread;
+			return Thread_id { i };
+		}
 	}
-
-	_threads[i] = &thread;
-
-	return i;
+	return Alloc_thread_id_error::EXHAUSTED;
 }
 
 
-void Platform_pd::_free_thread(int thread_id)
+void Platform_pd::free_thread_id(Thread_id const id)
 {
-	if (!_threads[thread_id])
-		warning("double-free of thread ", Hex(_pd_id), ".", Hex(thread_id), " detected");
+	if (id.value >= THREAD_MAX)
+		return;
 
-	_threads[thread_id] = 0;
-}
+	if (!_threads[id.value])
+		warning("double-free of thread ", Hex(_pd_id), ".", Hex(id.value), " detected");
 
-
-/***************************
- ** Public object members **
- ***************************/
-
-bool Platform_pd::bind_thread(Platform_thread &thread)
-{
-	using namespace Pistachio;
-
-	/* thread_id is THREAD_INVALID by default - only core is the special case */
-	int thread_id = thread.thread_id();
-	L4_ThreadId_t l4_thread_id;
-
-	int t = _alloc_thread(thread_id, thread);
-	if (t < 0)
-		return false;
-
-	thread_id = t;
-	l4_thread_id = make_l4_id(_pd_id, thread_id, _version);
-
-	/* finally inform thread about binding */
-	thread.bind(thread_id, l4_thread_id, *this);
-
-	return true;
-}
-
-
-void Platform_pd::unbind_thread(Platform_thread &thread)
-{
-	int thread_id = thread.thread_id();
-
-	/* unbind thread before proceeding */
-	thread.unbind();
-
-	_free_thread(thread_id);
+	_threads[id.value] = nullptr;
 }
 
 
@@ -302,8 +233,6 @@ Platform_pd::Platform_pd(bool) : _l4_task_id(L4_MyGlobalId())
 	 */
 	Pd_alloc free(false, true, 2);
 
-	_init_threads();
-
 	/* init remainder */
 	for (unsigned i = 0 ; i < PD_MAX; ++i) _pds()[i] = free;
 
@@ -322,8 +251,6 @@ Platform_pd::Platform_pd(Allocator &, char const *, signed pd_id, bool create)
 	if (!create)
 		panic("create must be true.");
 
-	_init_threads();
-
 	int const id = _alloc_pd(pd_id);
 	if (id < 0) {
 		error("pd alloc failed");
@@ -338,10 +265,6 @@ Platform_pd::Platform_pd(Allocator &, char const *, signed pd_id, bool create)
 
 Platform_pd::~Platform_pd()
 {
-	/* unbind all threads */
-	while (Platform_thread *t = _next_thread())
-		unbind_thread(*t);
-
 	_destroy_pd();
 	_free_pd();
 }

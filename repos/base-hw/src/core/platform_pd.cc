@@ -154,16 +154,6 @@ void Cap_space::upgrade_slab(Allocator &alloc)
  ** Platform_pd implementation **
  ********************************/
 
-bool Platform_pd::bind_thread(Platform_thread &t)
-{
-	/* is this the first and therefore main thread in this PD? */
-	bool main_thread = !_thread_associated;
-	_thread_associated = true;
-	t.join_pd(this, main_thread, Address_space::weak_ptr());
-	return true;
-}
-
-
 void Platform_pd::assign_parent(Native_capability parent)
 {
 	if (!_parent.valid() && parent.valid())

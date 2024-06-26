@@ -195,6 +195,8 @@ class Core::Platform_pd : public Hw::Address_space, private Cap_space
 
 	public:
 
+		bool has_any_thread = false;
+
 		/**
 		 * Constructor used for objects other than the Core PD
 		 *

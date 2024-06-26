@@ -57,27 +57,33 @@ Cpu_session_component::create_thread(Capability<Pd_session> pd_cap,
 
 		Mutex::Guard slab_lock_guard(_thread_alloc_lock);
 
-		try {
-			Cpu_thread_component &thread = *new (&_thread_alloc)
-				Cpu_thread_component(
-					cap(), _thread_ep, _pager_ep, *pd, _trace_control_area,
-					_trace_sources, weight, _weight_to_quota(weight.value),
-					_thread_affinity(affinity), _label, name,
-					_priority, utcb);
+		pd->with_threads([&] (Pd_session_component::Threads &pd_threads) {
+			pd->with_platform_pd([&] (Platform_pd &platform_pd) {
+				try {
+					Cpu_thread_component &thread = *new (&_thread_alloc)
+						Cpu_thread_component(
+							cap(), *this, _thread_ep, _pager_ep, *pd, platform_pd,
+							pd_threads, _trace_control_area, _trace_sources,
+							weight, _weight_to_quota(weight.value),
+							_thread_affinity(affinity), _label, name,
+							_priority, utcb);
 
-			if (!thread.valid()) {
-				destroy(_thread_alloc, &thread);
-				return;
-			}
+					if (!thread.valid()) { /* 'Platform_thread' creation failed */
+						destroy(&_thread_alloc, &thread);
+						result = Create_thread_error::DENIED;
+						return;
+					}
 
-			thread.session_exception_sigh(_exception_sigh);
+					thread.session_exception_sigh(_exception_sigh);
 
-			_thread_list.insert(&thread);
-			result = thread.cap();
-		}
-		catch (Out_of_ram)  { result = Create_thread_error::OUT_OF_RAM;  }
-		catch (Out_of_caps) { result = Create_thread_error::OUT_OF_CAPS; }
-		catch (...)         { result = Create_thread_error::DENIED;      }
+					_thread_list.insert(&thread);
+					result = thread.cap();
+				}
+				catch (Out_of_ram)  { result = Create_thread_error::OUT_OF_RAM;  }
+				catch (Out_of_caps) { result = Create_thread_error::OUT_OF_CAPS; }
+				catch (...)         { result = Create_thread_error::DENIED;      }
+			});
+		});
 	});
 
 	if (result.failed()) {

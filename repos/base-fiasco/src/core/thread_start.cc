@@ -38,9 +38,7 @@ Thread::Start_result Thread::start()
 {
 	/* create and start platform thread */
 	native_thread().pt = new (platform().core_mem_alloc())
-		Platform_thread(_stack->name().string());
-
-	platform_specific().core_pd().bind_thread(*native_thread().pt);
+		Platform_thread(platform_specific().core_pd(), _stack->name().string());
 
 	native_thread().pt->pager(platform_specific().core_pager());
 	native_thread().l4id = native_thread().pt->native_thread_id();

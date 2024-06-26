@@ -17,13 +17,17 @@
 /* Genode includes */
 #include <base/thread_state.h>
 #include <base/trace/types.h>
+#include <base/registry.h>
 #include <base/weak_ptr.h>
 #include <cpu_session/cpu_session.h>
 
 /* core includes */
 #include <pager.h>
 
-namespace Core { class Platform_thread; }
+namespace Core {
+	class Platform_thread;
+	class Platform_pd;
+}
 
 
 /*
@@ -34,32 +38,17 @@ namespace Core { class Platform_thread; }
  * turn, we find the exception handler's 'Signal_context_capability'.
  */
 
-class Core::Platform_thread : public List<Platform_thread>::Element
+class Core::Platform_thread : Noncopyable
 {
+	using Location = Affinity::Location;
+	using Execution_time = Trace::Execution_time;
+
 	private:
-
-		struct Registry
-		{
-			Mutex                 _mutex { };
-			List<Platform_thread> _list  { };
-
-			void insert(Platform_thread *thread);
-			void remove(Platform_thread *thread);
-
-			/**
-			 * Trigger exception handler for 'Platform_thread' with matching PID.
-			 */
-			void submit_exception(unsigned long pid);
-		};
-
-		/**
-		 * Return singleton instance of 'Platform_thread::Registry'
-		 */
-		static Registry &_registry();
 
 		unsigned long _tid = -1;
 		unsigned long _pid = -1;
-		char          _name[32] { };
+
+		String<32> const _name;
 
 		/*
 		 * Dummy pager object that is solely used for storing the
@@ -67,84 +56,60 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 		 */
 		Pager_object _pager { };
 
+		/**
+		 * Singleton instance of platform-thread registry used to deliver
+		 * exceptions.
+		 */
+		static Registry<Platform_thread> &_registry();
+
+		Registry<Platform_thread>::Element _elem { _registry(), *this };
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Platform_thread(size_t, const char *name, unsigned priority,
-		                Affinity::Location, addr_t);
-
-		~Platform_thread();
+		Platform_thread(Platform_pd &, size_t, auto const &name, auto...)
+		: _name(name) { }
 
 		/**
-		 * Pause this thread
+		 * Return true if thread creation succeeded
 		 */
-		void pause();
+		bool valid() const { return true; }
+
+		const char *name() { return _name.string(); }
 
 		/**
-		 * Enable/disable single stepping
+		 * Notify Genode::Signal handler about sigchld
 		 */
-		void single_step(bool) { }
-
-		/**
-		 * Resume this thread
-		 */
-		void resume();
-
-		/**
-		 * Dummy implementation of platform-thread interface
-		 */
-		Pager_object &pager() { return _pager; }
-		void          pager(Pager_object &) { }
-		int           start(void *, void *) { return 0; }
-
-		Thread_state state()
-		{
-			return { .state = Thread_state::State::UNAVAILABLE, .cpu = { } };
-		}
-
-		void state(Thread_state) { }
-
-		const char   *name() { return _name; }
-
-		/**
-		 * Set the executing CPU for this thread
-		 *
-		 * SMP is currently not directly supported on Genode/Linux
-		 * (but indirectly by the Linux kernel).
-		 */
-		void affinity(Affinity::Location) { }
-
-		/**
-		 * Request the affinity of this thread
-		 */
-		Affinity::Location affinity() const { return Affinity::Location(); }
+		static void submit_exception(unsigned pid);
 
 		/**
 		 * Register process ID and thread ID of thread
 		 */
 		void thread_id(int pid, int tid) { _pid = pid, _tid = tid; }
 
-		/**
-		 * Notify Genode::Signal handler about sigchld
+		/*
+		 * Part of the platform-thread interface that is not used on Linux
 		 */
-		static void submit_exception(int pid)
+
+		void           pause()                    { };
+		void           single_step(bool)          { }
+		void           resume()                   { }
+		Pager_object  &pager()                    { return _pager; }
+		void           pager(Pager_object &)      { }
+		void           start(void *, void *)      { }
+		void           affinity(Location)         { }
+		Location       affinity() const           { return { }; }
+		void           quota(size_t)              { }
+		void           state(Thread_state)        { }
+		Execution_time execution_time() const     { return { 0, 0 }; }
+		unsigned long  pager_object_badge() const { return 0; }
+
+		Thread_state state()
 		{
-			_registry().submit_exception(pid);
+			return { .state = Thread_state::State::UNAVAILABLE, .cpu = { } };
 		}
-
-		/**
-		 * Set CPU quota of the thread to 'quota'
-		 */
-		void quota(size_t const) { /* not supported*/ }
-
-		/**
-		 * Return execution time consumed by the thread
-		 */
-		Trace::Execution_time execution_time() const { return { 0, 0 }; }
-
-		unsigned long pager_object_badge() const { return 0; }
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */

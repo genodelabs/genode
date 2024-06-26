@@ -67,8 +67,8 @@ void Pager_object::unresolved_page_fault_occurred() { }
 void Pager_object::print(Output &out) const
 {
 	Platform_thread * const pt = (Platform_thread *)badge();
-	if (pt && pt->pd())
-		Genode::print(out, "pager_object: pd='", pt->pd()->label(),
+	if (pt)
+		Genode::print(out, "pager_object: pd='", pt->pd().label(),
 		                   "' thread='", pt->label(), "'");
 }
 

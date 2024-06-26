@@ -30,7 +30,6 @@ class Core::Platform_pd : public Address_space
 	private:
 
 		Native_capability _parent { };
-		int               _thread_cnt;
 		addr_t const      _pd_sel;
 		const char *      _label;
 
@@ -42,6 +41,8 @@ class Core::Platform_pd : public Address_space
 
 	public:
 
+		bool has_any_threads = false;
+
 		/**
 		 * Constructors
 		 */
@@ -52,18 +53,6 @@ class Core::Platform_pd : public Address_space
 		 * Destructor
 		 */
 		~Platform_pd();
-
-		/**
-		 * Bind thread to protection domain
-		 */
-		bool bind_thread(Platform_thread &thread);
-
-		/**
-		 * Unbind thread from protection domain
-		 *
-		 * Free the thread's slot and update thread object.
-		 */
-		void unbind_thread(Platform_thread &thread);
 
 		/**
 		 * Assign parent interface to protection domain
