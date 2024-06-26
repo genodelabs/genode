@@ -460,6 +460,7 @@ class Usb::Device
 				Type::access_t _request_type;
 				uint16_t       _value;
 				uint16_t       _index;
+				size_t         _timeout;
 
 				Packet_descriptor _create() const override
 				{
@@ -468,6 +469,7 @@ class Usb::Device
 					p.request      = _request;
 					p.value        = _value;
 					p.index        = _index;
+					p.timeout      = _timeout;
 					return p;
 				}
 
@@ -475,14 +477,15 @@ class Usb::Device
 
 				Urb(Device &device,
 				    uint8_t  request, Type::access_t request_type,
-				    uint16_t value, uint16_t index, size_t size = 0)
+				    uint16_t value, uint16_t index, size_t size = 0,
+				    size_t timeout = 0)
 				:
 					Base(device._urb_handler,
 					     Type::D::get(request_type) ? Endpoint::IN
 					                                : Endpoint::OUT,
 					     size),
 					_request(request), _request_type(request_type),
-					_value(value), _index(index) {}
+					_value(value), _index(index), _timeout(timeout) {}
 		};
 
 	private:

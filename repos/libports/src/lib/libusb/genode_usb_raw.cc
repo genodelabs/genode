@@ -489,7 +489,8 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 				Usb_device::Urb(addr, setup->wLength, itransfer,
 				                device()._device, setup->bRequest,
 				                setup->bmRequestType, setup->wValue,
-				                setup->wIndex, setup->wLength);
+				                setup->wIndex, setup->wLength,
+				                transfer->timeout);
 			device().handle_events();
 			return LIBUSB_SUCCESS;
 		}
