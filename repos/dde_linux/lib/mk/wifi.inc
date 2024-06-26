@@ -1,4 +1,4 @@
-WIFI_DRV_DIR := $(call select_from_ports,linux)/src/lib/wifi
+WIFI_DRV_DIR := $(call select_from_ports,legacy_linux)/src/lib/wifi
 ifeq ($(wildcard $(WIFI_DRV_DIR)),)
 WIFI_DRV_DIR := $(call select_from_repositories,src/lib/wifi)
 endif

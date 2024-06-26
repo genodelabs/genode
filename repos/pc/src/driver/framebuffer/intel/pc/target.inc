@@ -28,7 +28,7 @@ vpath %.cc $(REL_PRG_DIR)
 vpath %.c  $(REP_DIR)/src/lib/pc
 vpath %.cc $(REP_DIR)/src/lib/pc
 
-LX_SRC_DIR := $(call select_from_ports,linux)/src/linux
+LX_SRC_DIR := $(call select_from_ports,legacy_linux)/src/linux
 ifeq ($(wildcard $(LX_SRC_DIR)),)
 LX_SRC_DIR := $(call select_from_repositories,src/linux)
 endif

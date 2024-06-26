@@ -1,0 +1,30 @@
+LICENSE   := GPLv2
+VERSION   := 6.1.20
+DOWNLOADS := linux.archive
+
+URL(linux) := https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(VERSION).tar.xz
+SHA(linux) := 76322de8c01a3c63b42c4d1e9b9e7d1897ddb91276e10d73d1f9df3562f031f0
+DIR(linux) := src/linux
+
+#
+# Patches
+#
+PATCH_FILES := legacy_i915_irq.patch \
+               legacy_iwlwifi_enable_irq_before_pnvm.patch \
+               legacy_iwlwifi_limit_rx_bufs.patch \
+               legacy_usb_host_devio_sg.patch \
+               legacy_lxip_checksum_32.patch \
+               legacy_lxip_ip_config.patch \
+               legacy_usb_net_pinephone.patch \
+               legacy_usb_net_cdc_ncm.patch \
+               legacy_usb_net_smsc95xx.patch \
+               legacy_workqueue_deadlock.patch
+PATCHES += $(addprefix patches/,$(PATCH_FILES))
+
+PATCH_OPT(patches/legacy_i915_irq.patch)           := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/legacy_lxip_checksum_32.patch)   := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/legacy_lxip_ip_config.patch)     := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/legacy_usb_net_pinephone.patch)  := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/legacy_usb_net_cdc_ncm.patch)    := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/legacy_usb_net_smsc95xx.patch)   := -p1 -d${DIR(linux)}
+PATCH_OPT(patches/legacy_workqueue_deadlock.patch) := -p1 -d${DIR(linux)}
