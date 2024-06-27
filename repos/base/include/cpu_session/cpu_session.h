@@ -204,9 +204,8 @@ struct Genode::Cpu_session : Session
 	/**
 	 * Scale down 'value' from the 'QUOTA_LIMIT' space to a space with 'limit'
 	 */
-	template<typename T = size_t>
 	static size_t quota_lim_downscale(size_t const value, size_t const limit) {
-		return (size_t)(((T)value * limit) >> Cpu_session::QUOTA_LIMIT_LOG2); }
+		return (size_t)(((uint64_t)value * limit) >> Cpu_session::QUOTA_LIMIT_LOG2); }
 
 
 	/*****************************************

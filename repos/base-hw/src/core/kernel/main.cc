@@ -92,9 +92,6 @@ void Kernel::main_handle_kernel_entry()
 
 void Kernel::main_initialize_and_handle_kernel_entry()
 {
-	static_assert(sizeof(Core::sizet_arithm_t) >= 2 * sizeof(size_t),
-		"Bad result type for size_t arithmetics.");
-
 	using Boot_info = Hw::Boot_info<Board::Boot_info>;
 
 	static volatile bool     instance_initialized   { false };

@@ -42,7 +42,6 @@ namespace Board { class Address_space_id_allocator; }
 namespace Core {
 
 	class Cpu;
-	using sizet_arithm_t = __uint128_t;
 }
 
 

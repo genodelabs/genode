@@ -38,8 +38,7 @@ namespace Board { class Address_space_id_allocator; }
 namespace Core {
 
 	struct Cpu;
-	using sizet_arithm_t = __uint128_t;
-	using uint128_t      = __uint128_t;
+	using uint128_t = __uint128_t;
 }
 
 

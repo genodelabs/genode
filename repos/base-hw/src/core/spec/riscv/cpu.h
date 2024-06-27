@@ -43,8 +43,6 @@ namespace Core {
 	 * CPU driver for core
 	 */
 	class Cpu;
-
-	using sizet_arithm_t = __uint128_t;
 }
 
 
