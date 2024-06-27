@@ -1,0 +1,73 @@
+This patch makes the boot DHCP re-connectable.
+
+diff --git src/linux/net/ipv4/ipconfig.c src/linux/net/ipv4/ipconfig.c
+index c56b6fe6f..cdb9cd83e 100644
+--- src/linux/net/ipv4/ipconfig.c
++++ src/linux/net/ipv4/ipconfig.c
+@@ -130,7 +130,7 @@ int ic_proto_enabled __initdata = 0
+ static int ic_host_name_set __initdata;	/* Host name set by us? */
+ 
+ __be32 ic_myaddr = NONE;		/* My IP address */
+-static __be32 ic_netmask = NONE;	/* Netmask for local subnet */
++__be32 ic_netmask = NONE;	/* Netmask for local subnet */
+ __be32 ic_gateway = NONE;	/* Gateway IP address */
+ 
+ #ifdef IPCONFIG_DYNAMIC
+@@ -156,7 +156,7 @@ static int ic_proto_used;			/* Protocol used, if any */
+ #else
+ #define ic_proto_used 0
+ #endif
+-static __be32 ic_nameservers[CONF_NAMESERVERS_MAX]; /* DNS Server IP addresses */
++__be32 ic_nameservers[CONF_NAMESERVERS_MAX]; /* DNS Server IP addresses */
+ static __be32 ic_ntp_servers[CONF_NTP_SERVERS_MAX]; /* NTP server IP addresses */
+ static u8 ic_domain[64];		/* DNS (not NIS) domain name */
+ 
+@@ -431,6 +431,33 @@ static int __init ic_setup_routes(void)
+ 	return 0;
+ }
+ 
++static int __init ic_delete_routes(void)
++{
++	/* No need to delete device routes, only the default route... */
++
++	if (ic_gateway != NONE) {
++		struct rtentry rm;
++		int err;
++
++		memset(&rm, 0, sizeof(rm));
++		if ((ic_gateway ^ ic_myaddr) & ic_netmask) {
++			pr_err("IP-Config: Gateway not on directly connected network\n");
++			return -1;
++		}
++		set_sockaddr((struct sockaddr_in *) &rm.rt_dst, 0, 0);
++		set_sockaddr((struct sockaddr_in *) &rm.rt_genmask, 0, 0);
++		set_sockaddr((struct sockaddr_in *) &rm.rt_gateway, ic_gateway, 0);
++		rm.rt_flags = RTF_UP | RTF_GATEWAY;
++		if ((err = ip_rt_ioctl(&init_net, SIOCDELRT, &rm)) < 0) {
++			pr_err("IP-Config: Cannot delete default route (%d)\n",
++			       err);
++			return -1;
++		}
++	}
++
++	return 0;
++}
++
+ /*
+  *	Fill in default values for all missing parameters.
+  */
+@@ -1725,6 +1752,14 @@ static int __init ip_auto_config_setup(char *addrs)
+ 	ic_set_manually = 1;
+ 	ic_enable = 1;
+ 
++	ic_delete_routes();
++
++	ic_myaddr = NONE;
++	ic_netmask = NONE;
++	ic_gateway = NONE;
++	ic_servaddr = NONE;
++	ic_got_reply = 0;
++
+ 	/*
+ 	 * If any dhcp, bootp etc options are set, leave autoconfig on
+ 	 * and skip the below static IP processing.

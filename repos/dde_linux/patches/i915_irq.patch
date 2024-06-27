@@ -1,0 +1,14 @@
+intel_fb: avoid pagefault in fliphandler
+
+--- src/linux/drivers/gpu/drm/i915/display/intel_display_irq.c
++++ src/linux/drivers/gpu/drm/i915/display/intel_display_irq.c
+@@ -349,7 +349,8 @@ static void flip_done_handler(struct drm_i915_private *i915,
+ 
+ 	crtc_state->event = NULL;
+ 
+-	drm_crtc_send_vblank_event(&crtc->base, e);
++	if (e)
++		drm_crtc_send_vblank_event(&crtc->base, e);
+ 
+ 	spin_unlock_irqrestore(&dev->event_lock, irqflags);
+ }

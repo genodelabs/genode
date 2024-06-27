@@ -1,0 +1,43 @@
+From b4024bb479b2ee9b34125b65472a0537043c8dc4 Mon Sep 17 00:00:00 2001
+From: Chris Rogers <crogers122@gmail.com>
+Date: Thu, 1 Sep 2022 15:56:14 +0200
+Subject: [PATCH] Re-enable interrupts before loading PNVM.
+
+For cards in the AX210+ family that advertise a SKU and try to load a PNVM,
+in the non-MSIX (MSI) case the normal firmware load flow disables all interrupts
+from the card except ALIVE and RX. This is primarily to enforce the driver's
+assumption that we will not receive RF_KILL before the firmware has finished
+loading, or else an unintelligible error is dumped.
+
+This unfortunately also prevents us from responding to an interrupt from the
+card after 'kicking the doorbell' (UREG_DOORBELL_TO_ISR6_PNVM). We therefore
+wait until the specified timeout and report "Timeout waiting for PNVM load!"
+and fail out of driver initialization.
+
+This patch re-enables interrupts prior to loading the PNVM so we can respond
+properly when the card notifies us of a successful PNVM load. Since the FW is
+technically 'ALIVE' at this point, it should be ok to also re-enable RF_KILL.
+---
+ drivers/net/wireless/intel/iwlwifi/mvm/fw.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/net/wireless/intel/iwlwifi/mvm/fw.c b/drivers/net/wireless/intel/iwlwifi/mvm/fw.c
+index f041e77af059..ec982ddce196 100644
+--- src/linux/drivers/net/wireless/intel/iwlwifi/mvm/fw.c
++++ src/linux/drivers/net/wireless/intel/iwlwifi/mvm/fw.c
+@@ -423,6 +423,15 @@ static int iwl_mvm_load_ucode_wait_alive(struct iwl_mvm *mvm,
+ 	/* if reached this point, Alive notification was received */
+ 	iwl_mei_alive_notif(true);
+ 
++	/*
++	 * re-enable interrupts so we can get a response from
++	 * the card when kicking the doorbell during pnvm load.
++	 * This is only needed in the non-msix case. FW is
++	 * technically alive at this point so re-enabling rf-kill
++	 * interrupt is probably ok.
++	 */
++	iwl_trans_interrupts(mvm->trans, true);
++
+ 	ret = iwl_pnvm_load(mvm->trans, &mvm->notif_wait,
+ 			    &mvm->fw->ucode_capa);
+ 	if (ret) {

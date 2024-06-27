@@ -1,0 +1,20 @@
+This patch increases the amount of worker that will be spawned upon a work queue
+when a work is submitted. The patch implies that three workers will be used for
+three works (before it was one). The fourth work will be queued.
+
+diff --git src/linux/kernel/workqueue.c src/linux/kernel/workqueue.c
+index 8c7bafbee..053eed60c 100644
+--- src/linux/kernel/workqueue.c
++++ src/linux/kernel/workqueue.c
+@@ -826,7 +826,10 @@ static bool work_is_canceling(struct work_struct *work)
+  */
+ static bool need_more_worker(struct worker_pool *pool)
+ {
+-	return !list_empty(&pool->worklist) && !pool->nr_running;
++	/*
++	 * Assume two works can deadlock and make a third available
++	 */
++	return !list_empty(&pool->worklist) && pool->nr_running < 3;
+ }
+ 
+ /* Can I start working?  Called from busy but !running workers. */
