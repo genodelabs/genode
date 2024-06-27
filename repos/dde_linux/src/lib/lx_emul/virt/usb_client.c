@@ -46,6 +46,7 @@ static void * register_device(genode_usb_client_dev_handle_t handle,
 	int err;
 	static int num = 0;
 	struct usb_device * udev;
+	struct usb_device_descriptor *descr = NULL;
 
 	udev = usb_alloc_dev(NULL, &dummy_hc_device()->self, 0);
 	if (!udev) {
@@ -87,12 +88,17 @@ static void * register_device(genode_usb_client_dev_handle_t handle,
 	dev_set_name(&udev->dev, "%s", label);
 	device_set_wakeup_capable(&udev->dev, 1);
 	udev->ep0.desc.wMaxPacketSize = cpu_to_le16(64);
-	err = usb_get_device_descriptor(udev, USB_DT_DEVICE_SIZE);
-	if (err < 0) {
-		dev_err(&udev->dev, "can't read device descriptor: %d\n", err);
+
+	descr = usb_get_device_descriptor(udev);
+	if (PTR_ERR(descr) < 0) {
+		dev_err(&udev->dev, "can't read device descriptor: %ld\n", PTR_ERR(descr));
+		kfree(descr);
 		usb_put_dev(udev);
 		return NULL;
 	}
+
+	udev->descriptor = *descr;
+	kfree(descr);
 
 	err = usb_new_device(udev);
 	if (err) {
@@ -160,6 +166,10 @@ static void unregister_device(genode_usb_client_dev_handle_t handle, void *data)
 	struct usb_device *udev = (struct usb_device *)data;
 	genode_usb_client_device_update(urb_out, urb_in, isoc_urb_out,
 	                                isoc_urb_in, urb_complete);
+
+	/* inform driver about ongoing unregister before disconnection */
+	lx_emul_usb_client_device_unregister_callback(udev);
+
 	udev->filelist.prev = NULL;
 	usb_disconnect(&udev);
 	usb_put_dev(udev);
@@ -200,10 +210,10 @@ void lx_emul_usb_client_init(void)
 {
 	pid_t pid;
 
-	pid = kernel_thread(usb_rom_loop, NULL, CLONE_FS | CLONE_FILES);
+	pid = kernel_thread(usb_rom_loop, NULL, "usb_rom_task", CLONE_FS | CLONE_FILES);
 	usb_rom_task = find_task_by_pid_ns(pid, NULL);
 
-	pid = kernel_thread(usb_loop, NULL, CLONE_FS | CLONE_FILES);
+	pid = kernel_thread(usb_loop, NULL, "usb_task", CLONE_FS | CLONE_FILES);
 	usb_task = find_task_by_pid_ns(pid, NULL);
 }
 

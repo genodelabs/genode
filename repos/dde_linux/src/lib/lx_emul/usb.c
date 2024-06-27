@@ -92,7 +92,14 @@ static void open_usb_dev(struct usb_device * udev)
 		data = kmalloc(sizeof(struct usb_per_dev_data), GFP_KERNEL);
 		data->dev = udev;
 		data->kill_task = false;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
+		pid = kernel_thread(poll_usb_device, data, "poll_device",
+		                    CLONE_FS | CLONE_FILES);
+#else
 		pid = kernel_thread(poll_usb_device, data, CLONE_FS | CLONE_FILES);
+#endif
+
 		data->task = find_task_by_pid_ns(pid, NULL);
 		init_usb_anchor(&data->submitted);
 		dev_set_drvdata(&udev->dev, data);
@@ -458,8 +465,13 @@ void lx_user_handle_io(void)
 
 void lx_user_init(void)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
+	int pid = kernel_thread(usb_poll_empty_sessions, NULL,
+	                        "usb_poll", CLONE_FS | CLONE_FILES);
+#else
 	int pid = kernel_thread(usb_poll_empty_sessions, NULL,
 	                        CLONE_FS | CLONE_FILES);
+#endif
 	lx_user_task = find_task_by_pid_ns(pid, NULL);
 }
 

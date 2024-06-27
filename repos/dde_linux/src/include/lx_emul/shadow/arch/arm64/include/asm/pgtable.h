@@ -28,7 +28,16 @@
 extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
 #define ZERO_PAGE(vaddr) ((void)(vaddr),virt_to_page(empty_zero_page))
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,5,0)
+struct vm_area_struct;
+
+#ifndef pte_mkwrite
+pte_t pte_mkwrite(pte_t pte, struct vm_area_struct *vma);
+#endif
+
+#else
 pte_t pte_mkwrite(pte_t pte);
+#endif
 
 pte_t pte_get(pte_t pte);
 pte_t pte_wrprotect(pte_t pte);

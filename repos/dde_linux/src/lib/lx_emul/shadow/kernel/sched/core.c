@@ -61,7 +61,7 @@ void set_user_nice(struct task_struct * p, long nice)
 }
 
 
-static int
+int
 try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 {
 	if (!p) lx_emul_trace_and_stop(__func__);
@@ -190,7 +190,8 @@ int wake_up_state(struct task_struct * p, unsigned int state)
 }
 
 
-#ifdef CONFIG_SMP
+/* Linux 6.4+ uses full-fat wait_task_inactive for the UP case */
+#if defined CONFIG_SMP || LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
 unsigned long wait_task_inactive(struct task_struct * p,
                                  wait_task_inactive_match_state_t match_state)
 {
@@ -212,8 +213,9 @@ unsigned long wait_task_inactive(struct task_struct * p,
 
 	return 1;
 }
+#endif /* CONFIG_SMP || LINUX_VERSION_CODE */
 
-
+#ifdef CONFIG_SMP
 int set_cpus_allowed_ptr(struct task_struct * p,
                          const struct cpumask * new_mask)
 {

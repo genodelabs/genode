@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-16
+ * \date   2024-07-30
  */
 
 #include <lx_emul.h>
@@ -84,14 +84,6 @@ noinline unsigned int _parse_integer_limit(const char * s,unsigned int base,unsi
 #include <linux/printk.h>
 
 int _printk_deferred(const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/spinlock_api_smp.h>
-
-noinline int __lockfunc _raw_spin_trylock_bh(raw_spinlock_t * lock)
 {
 	lx_emul_trace_and_stop(__func__);
 }

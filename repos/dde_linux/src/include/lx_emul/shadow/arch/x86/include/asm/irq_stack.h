@@ -4,8 +4,8 @@
  * \date   2022-06-29
  */
 
-#ifndef _LX_EMUL__SHADOW__ARCH__X89__INCLUDE__ASM__IRQ_STACK_H_
-#define _LX_EMUL__SHADOW__ARCH__X89__INCLUDE__ASM__IRQ_STACK_H_
+#ifndef _LX_EMUL__SHADOW__ARCH__X86__INCLUDE__ASM__IRQ_STACK_H_
+#define _LX_EMUL__SHADOW__ARCH__X86__INCLUDE__ASM__IRQ_STACK_H_
 
 #include_next <asm/irq_stack.h>
 
@@ -42,4 +42,4 @@
 	__do_softirq(); \
 }
 
-#endif /* _LX_EMUL__SHADOW__ARCH__X89__INCLUDE__ASM__IRQ_STACK_H_ */
+#endif /* _LX_EMUL__SHADOW__ARCH__X86__INCLUDE__ASM__IRQ_STACK_H_ */

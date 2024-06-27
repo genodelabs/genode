@@ -15,6 +15,7 @@
 #define __ASM_PGTABLE_H
 
 #include <linux/const.h>
+#include <linux/version.h>
 #include <asm/proc-fns.h>
 #include <asm-generic/pgtable-nopud.h>
 #include <asm-generic/pgtable_uffd.h>
@@ -26,7 +27,11 @@
 extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
 #define ZERO_PAGE(vaddr) ((void)(vaddr),virt_to_page(empty_zero_page))
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,5,0)
+pte_t pte_mkwrite(pte_t pte, struct vm_area_struct *vma);
+#else
 pte_t pte_mkwrite(pte_t pte);
+#endif
 
 int pte_none(pte_t pte);
 int pte_present(pte_t pte);
@@ -41,7 +46,7 @@ int pte_write(pte_t ptr);
 #define __swp_entry(type, offset) ( lx_emul_trace_and_stop(__func__), (swp_entry_t) { 0 } )
 #define __swp_entry_to_pte(swp)	((pte_t) { (swp).val })
 
-#define pmd_page(pmd) NULL
+struct page *pmd_page(pmd_t pmd);
 
 #define PAGE_KERNEL 0UL
 

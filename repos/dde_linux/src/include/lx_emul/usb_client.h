@@ -9,6 +9,9 @@ void  lx_emul_usb_client_init(void);
 void  lx_emul_usb_client_rom_update(void);
 void  lx_emul_usb_client_ticker(void);
 
+struct usb_device;
+void  lx_emul_usb_client_device_unregister_callback(struct usb_device *);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

@@ -70,6 +70,19 @@ int __lockfunc _raw_spin_trylock(raw_spinlock_t * lock)
 #endif
 
 
+#ifndef CONFIG_INLINE_SPIN_TRYLOCK_BH
+noinline int __lockfunc _raw_spin_trylock_bh(raw_spinlock_t *lock)
+{
+	__local_bh_disable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
+	if (_raw_spin_trylock(lock))
+		return 1;
+
+	__local_bh_enable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
+	return 0;
+}
+#endif
+
+
 #ifdef CONFIG_UNINLINE_SPIN_UNLOCK
 void __lockfunc _raw_spin_unlock(raw_spinlock_t * lock)
 {

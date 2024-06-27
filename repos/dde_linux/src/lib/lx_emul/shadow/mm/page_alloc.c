@@ -30,6 +30,9 @@ EXPORT_SYMBOL(init_on_alloc);
 DEFINE_STATIC_KEY_MAYBE(CONFIG_INIT_ON_FREE_DEFAULT_ON, init_on_free);
 EXPORT_SYMBOL(init_on_free);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+#include <../mm/internal.h>
+#endif
 
 static void prepare_compound_page(struct page *page, unsigned int order, gfp_t gfp)
 {
@@ -39,7 +42,17 @@ static void prepare_compound_page(struct page *page, unsigned int order, gfp_t g
 		return;
 
 	__SetPageHead(page);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+	if (!page_folio(page)) {
+		printk("BUG: %s:%d folio is NULL\n", __func__, __LINE__);
+		lx_emul_backtrace();
+	}
+
+	folio_set_order(page_folio(page), order);
+#else
 	set_compound_order(page, order);
+#endif
+
 	for (i = 1; i < compound_nr(page); i++)
 		set_compound_head(&page[i], page);
 }

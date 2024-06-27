@@ -12,4 +12,10 @@ unsigned long raw_copy_to_user(void *to, const void *from, unsigned long n);
 
 int __copy_from_user_inatomic_nocache(void *dst, const void __user *src,
                                       unsigned size);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
+unsigned long __must_check clear_user(void __user *mem, unsigned long len);
+unsigned long __must_check __clear_user(void __user *mem, unsigned long len);
+#endif
+
 #endif /* _ASM__UACCESS_32_H_ */

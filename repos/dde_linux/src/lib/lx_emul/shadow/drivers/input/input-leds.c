@@ -79,7 +79,13 @@ static struct task_struct *led_task = NULL;
 
 void lx_emul_input_leds_init(void)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
+	int pid = kernel_thread(led_task_loop, &led_task, "led_task",
+	                        CLONE_FS | CLONE_FILES);
+#else
 	int pid = kernel_thread(led_task_loop, &led_task, CLONE_FS | CLONE_FILES);
+#endif
+
 	led_task = find_task_by_pid_ns(pid, NULL);
 }
 

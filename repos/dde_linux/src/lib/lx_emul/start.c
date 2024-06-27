@@ -25,12 +25,15 @@
 #include <linux/kernel.h>
 #include <linux/kthread.h>
 #include <linux/slab.h>
+#include <linux/sched/clock.h>
 #include <linux/tick.h>
 #include <linux/of.h>
 #include <linux/of_clk.h>
 #include <linux/of_fdt.h>
 #include <linux/version.h>
 #include <net/net_namespace.h>
+
+#include <../mm/slab.h>
 
 /* definitions in drivers/base/base.h */
 extern int devices_init(void);
@@ -135,6 +138,11 @@ int lx_emul_init_task_function(void * dtb)
 	kmem_cache_init();
 	wait_bit_init();
 	radix_tree_init();
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,2,0)
+	maple_tree_init();
+#endif
+
 	workqueue_init_early();
 
 	skb_init();
@@ -155,9 +163,16 @@ int lx_emul_init_task_function(void * dtb)
 	net_ns_init();
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
+	kernel_thread(kernel_init, NULL, "init", CLONE_FS);
+	kernel_thread(kernel_idle, NULL, "idle", CLONE_FS);
+	pid = kernel_thread(kthreadd, NULL, "kthreadd", CLONE_FS | CLONE_FILES);
+#else
 	kernel_thread(kernel_init, NULL, CLONE_FS);
 	kernel_thread(kernel_idle, NULL, CLONE_FS);
 	pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
+#endif
+
 	kthreadd_task = find_task_by_pid_ns(pid, NULL);;
 
 	system_state = SYSTEM_SCHEDULING;
