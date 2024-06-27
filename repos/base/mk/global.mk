@@ -124,6 +124,12 @@ endif
 CC_OPT += -fprofile-arcs -ftest-coverage -fprofile-dir=$(PROFILE_DIR)
 endif
 
+ifneq ($(findstring /depot/,$(CURDIR)),)
+DEBUG_PREFIX = $(shell echo $(CURDIR) | \
+                       sed -e 's|/depot/.*$$|/depot/|')
+CC_OPT += -fdebug-prefix-map=$(DEBUG_PREFIX)=/depot/
+endif
+
 #
 # Enable the undefined behavior sanitizer if requested
 #
