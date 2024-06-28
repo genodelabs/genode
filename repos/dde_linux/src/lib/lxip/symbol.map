@@ -1,0 +1,35 @@
+{
+	global:
+
+		genode_socket;
+		genode_socket_accept;
+		genode_socket_bind;
+		genode_socket_config_address;
+		genode_socket_configure_mtu;
+		genode_socket_connect;
+		genode_socket_getpeername;
+		genode_socket_getsockname;
+		genode_socket_getsockopt;
+		genode_socket_init;
+		genode_socket_listen;
+		genode_socket_poll;
+		genode_socket_pollex_set;
+		genode_socket_pollin_set;
+		genode_socket_pollout_set;
+		genode_socket_recvmsg;
+		genode_socket_release;
+		genode_socket_sendmsg;
+		genode_socket_setsockopt;
+		genode_socket_shutdown;
+		genode_socket_wait_for_progress;
+
+		/* dhcp */
+		ic_myaddr;
+		ic_netmask;
+		ic_gateway;
+		ic_nameservers;
+
+	local:
+
+		*;
+};

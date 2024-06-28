@@ -372,3 +372,14 @@ int send_sig(int sig,struct task_struct * p,int priv)
 	lx_emul_trace(__func__);
 	return -1;
 }
+
+
+#ifdef CONFIG_SWIOTLB
+#include <linux/swiotlb.h>
+
+bool is_swiotlb_allocated(void)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+#endif

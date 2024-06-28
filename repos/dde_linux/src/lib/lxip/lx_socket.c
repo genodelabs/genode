@@ -385,9 +385,9 @@ static struct msghdr *_create_msghdr(struct genode_msghdr *msg, bool write)
 
 	/* iovec iterator */
 	msghdr->msg_iter.iter_type   = ITER_IOVEC;
-	msghdr->msg_iter.data_source = write;
+	msghdr->msg_iter.data_source = !write;
 	msghdr->msg_iter.nr_segs     = msg->iovlen;
-	msghdr->msg_iter.iov         = (struct iovec *)msg->iov;
+	msghdr->msg_iter.__iov       = (struct iovec *)msg->iov;
 
 	for (unsigned i = 0; i < msg->iovlen; i++)
 		total += msg->iov[i].size;
@@ -404,7 +404,6 @@ sock_addr:
 msghdr:
 
 	return NULL;
-
 }
 
 

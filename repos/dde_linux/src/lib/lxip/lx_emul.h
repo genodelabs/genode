@@ -15,3 +15,7 @@
 
 #include <linux/init.h>
 #include <linux/sched/debug.h>
+
+
+/* kernel/sched/sched.h */
+struct affinity_context;

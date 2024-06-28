@@ -206,8 +206,10 @@ struct Lx_accept : Lx_call
 		}
 
 		err = lx_socket_accept(handle.sock, client.sock, &addr);
-		if (err)
+		if (err) {
 			lx_sock_release(client.sock);
+			client.sock = nullptr;
+		}
 
 		finished = true;
 	}
@@ -399,6 +401,21 @@ struct Lx_release : Lx_call
 };
 
 
+struct Lx_sock_release : Lx_call
+{
+	Lx_sock_release(genode_socket_handle &handle) : Lx_call(handle)
+	{
+		schedule();
+	}
+
+	void execute() override
+	{
+		lx_sock_release(handle.sock);
+		finished = true;
+	}
+};
+
+
 /*
  * Dispatch socket calls in Linux task
  */
@@ -443,7 +460,9 @@ static genode_socket_handle * _create_handle()
 
 static void _destroy_handle(genode_socket_handle *handle)
 {
-	if (handle->sock) lx_sock_release(handle->sock);
+	if (handle->sock) {
+		Lx_sock_release release { *handle };
+	}
 
 	destroy(Lx_kit::env().heap, handle);
 }

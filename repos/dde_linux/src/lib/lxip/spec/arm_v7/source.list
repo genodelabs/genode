@@ -52,6 +52,7 @@ lib/nlattr.c
 lib/once.c
 lib/radix-tree.c
 lib/rbtree.c
+lib/rcuref.c
 lib/rhashtable.c
 lib/siphash.c
 lib/string.c
@@ -79,6 +80,7 @@ net/core/gen_estimator.c
 net/core/gen_stats.c
 net/core/gro.c
 net/core/gro_cells.c
+net/core/gso.c
 net/core/link_watch.c
 net/core/neighbour.c
 net/core/net_namespace.c

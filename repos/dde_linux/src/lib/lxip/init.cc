@@ -50,6 +50,12 @@ struct Main
 	void handle_nic_client()
 	{
 
+		/*
+		 * Try to execute scheduler, in case ksoftirqd is pending, before unblocking
+		 * the rx_task.
+		 */
+		Lx_kit::env().scheduler.execute();
+
 		lx_emul_task_unblock(lx_nic_client_rx_task());
 		Lx_kit::env().scheduler.execute();
 

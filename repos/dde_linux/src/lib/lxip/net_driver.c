@@ -192,7 +192,7 @@ static int __init virtio_net_driver_init(void)
 	}
 
 	/* create RX task */
-	pid = kernel_thread(rx_task_function, dev, CLONE_FS | CLONE_FILES);
+	pid = kernel_thread(rx_task_function, dev, "rx_task", CLONE_FS | CLONE_FILES);
 
 	nic_rx_task_struct_ptr = find_task_by_pid_ns(pid, NULL);
 

@@ -497,6 +497,7 @@ include/linux/bpf-cgroup.h
 include/linux/bpf-netns.h
 include/linux/bpf.h
 include/linux/bpf_local_storage.h
+include/linux/bpf_mem_alloc.h
 include/linux/bpf_trace.h
 include/linux/bpf_verifier.h
 include/linux/bpfilter.h
@@ -647,7 +648,7 @@ include/linux/instrumentation.h
 include/linux/instrumented.h
 include/linux/interrupt.h
 include/linux/io.h
-include/linux/ioasid.h
+include/linux/io_uring.h
 include/linux/iocontext.h
 include/linux/iopoll.h
 include/linux/ioport.h
@@ -754,6 +755,7 @@ include/linux/moduleparam.h
 include/linux/mount.h
 include/linux/mpls.h
 include/linux/mroute.h
+include/linux/mroute6.h
 include/linux/mroute_base.h
 include/linux/mutex.h
 include/linux/mutex_api.h
@@ -825,7 +827,9 @@ include/linux/perf_event.h
 include/linux/perf_regs.h
 include/linux/personality.h
 include/linux/pfn.h
+include/linux/phonet.h
 include/linux/phy.h
+include/linux/phylib_stubs.h
 include/linux/phylink.h
 include/linux/pid.h
 include/linux/pid_namespace.h
@@ -1083,6 +1087,7 @@ include/net/compat.h
 include/net/devlink.h
 include/net/dropreason.h
 include/net/dsa.h
+include/net/dsa_stubs.h
 include/net/dsfield.h
 include/net/dst.h
 include/net/dst_cache.h
@@ -1166,7 +1171,7 @@ include/net/netns/xfrm.h
 include/net/netprio_cgroup.h
 include/net/netrom.h
 include/net/nexthop.h
-include/net/page_pool.h
+include/net/phonet/phonet.h
 include/net/ping.h
 include/net/pkt_cls.h
 include/net/pkt_sched.h
@@ -1317,6 +1322,7 @@ include/uapi/linux/in.h
 include/uapi/linux/in6.h
 include/uapi/linux/in_route.h
 include/uapi/linux/inet_diag.h
+include/uapi/linux/io_uring.h
 include/uapi/linux/ioctl.h
 include/uapi/linux/ioprio.h
 include/uapi/linux/ip.h
@@ -1345,6 +1351,7 @@ include/uapi/linux/mii.h
 include/uapi/linux/mman.h
 include/uapi/linux/mpls.h
 include/uapi/linux/mroute.h
+include/uapi/linux/mroute6.h
 include/uapi/linux/neighbour.h
 include/uapi/linux/net.h
 include/uapi/linux/net_namespace.h
@@ -1377,6 +1384,7 @@ include/uapi/linux/pci_regs.h
 include/uapi/linux/perf_event.h
 include/uapi/linux/personality.h
 include/uapi/linux/pfkeyv2.h
+include/uapi/linux/phonet.h
 include/uapi/linux/pkt_cls.h
 include/uapi/linux/pkt_sched.h
 include/uapi/linux/poll.h

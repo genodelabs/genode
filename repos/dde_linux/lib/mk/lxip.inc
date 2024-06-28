@@ -19,6 +19,8 @@ SRC_C += dummies.c \
 
 SRC_CC += genode_c_api/nic_client.cc
 
+LD_OPT += --version-script=$(LXIP_DIR)/symbol.map
+
 #
 # Don't create jump slots for everything compiled in here since there are
 # function calls from inline assembly (i.e., __sw_hweight64) with unaligned sp

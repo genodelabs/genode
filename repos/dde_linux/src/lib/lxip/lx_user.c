@@ -17,9 +17,10 @@
 #include "lx_user.h"
 
 
-struct task_struct *lx_user_new_task(int (*func)(void*), void *args)
+struct task_struct *lx_user_new_task(int (*func)(void*), void *args,
+                                     char const *name)
 {
-	int pid = kernel_thread(func, args, CLONE_FS | CLONE_FILES);
+	int pid = kernel_thread(func, args, name, CLONE_FS | CLONE_FILES);
 	return find_task_by_pid_ns(pid, NULL);
 }
 
@@ -62,6 +63,7 @@ void lx_user_configure_ip_stack(void)
 void lx_user_init(void)
 {
 	_socket_dispatch_root = lx_user_new_task(lx_socket_dispatch,
-	                                         lx_socket_dispatch_queue());
+	                                         lx_socket_dispatch_queue(),
+	                                         "lx_socket_dispatch");
 	_startup_finished = 1;
 }
