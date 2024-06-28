@@ -296,7 +296,7 @@ class Genode::Page_directory
 						table.insert_translation(vo - (vo & PAGE_MASK), pa, size,
 						                         flags, alloc, flush, supported_sizes);
 					},
-					[&] () {
+					[&] {
 						error("Unable to get mapped table address for ",
 						      Genode::Hex(Td::Pa::masked(desc)));
 					});
@@ -334,7 +334,7 @@ class Genode::Page_directory
 									desc = 0;
 								}
 							},
-							[&] () {
+							[&] {
 								error("Unable to get mapped table address for ",
 								      Genode::Hex(table_phys));
 							});
@@ -490,7 +490,7 @@ class Genode::Pml4_table
 						table.insert_translation(table_vo, pa, size, flags, alloc,
 						                         flush, supported_sizes);
 					},
-					[&] () {
+					[&] {
 						error("Unable to get mapped table address for ",
 						      Genode::Hex(table_phys));
 					});
@@ -525,7 +525,7 @@ class Genode::Pml4_table
 									clflush(&desc);
 							}
 						},
-						[&] () {
+						[&] {
 							error("Unable to get mapped table address for ",
 							      Genode::Hex(table_phys));
 						});

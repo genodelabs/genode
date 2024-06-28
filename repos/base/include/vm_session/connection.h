@@ -108,12 +108,12 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 	auto with_upgrade(auto const &fn) -> decltype(fn())
 	{
 		return Genode::retry<Genode::Out_of_ram>(
-			[&] () {
+			[&] {
 				return Genode::retry<Genode::Out_of_caps>(
-					[&] () { return fn(); },
-					[&] () { this->upgrade_caps(2); });
+					[&] { return fn(); },
+					[&] { this->upgrade_caps(2); });
 			},
-			[&] () { this->upgrade_ram(4096); }
+			[&] { this->upgrade_ram(4096); }
 		);
 	}
 
@@ -124,7 +124,7 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 
 	void attach(Dataspace_capability ds, addr_t vm_addr, Attach_attr attr) override
 	{
-		with_upgrade([&] () {
+		with_upgrade([&] {
 			call<Rpc_attach>(ds, vm_addr, attr); });
 	}
 

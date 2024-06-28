@@ -102,11 +102,11 @@ static bool cpu_name(char const * name)
 void Platform::_setup_platform_info(Xml_generator &xml,
                                     Foc::l4_kernel_info_t &kip)
 {
-	xml.node("features", [&] () {
+	xml.node("features", [&] {
 		/* XXX better detection required, best told us by kernel !? */
 		xml.attribute("svm", cpu_name("AuthenticAMD"));
 		xml.attribute("vmx", cpu_name("GenuineIntel")); });
 
-	xml.node("tsc", [&] () {
+	xml.node("tsc", [&] {
 		xml.attribute("freq_khz" , kip.frequency_cpu); });
 }

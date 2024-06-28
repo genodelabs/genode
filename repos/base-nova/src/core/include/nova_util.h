@@ -244,7 +244,7 @@ inline Nova::uint8_t async_map(Core::Pager_object &pager,
 	(void)ok;
 
 	return syscall_retry(pager,
-		[&]() {
+		[&] {
 			return Nova::delegate(source_pd, target_pd, target_initial_caps);
 		});
 }

@@ -505,17 +505,17 @@ Core::Platform::Platform()
 
 	export_page_as_rom_module("platform_info",
 		[&] (char *core_local_ptr, size_t size) {
-			Xml_generator xml(core_local_ptr, size, "platform_info", [&] ()
+			Xml_generator xml(core_local_ptr, size, "platform_info", [&]
 			{
-				xml.node("kernel", [&] () {
+				xml.node("kernel", [&] {
 					xml.attribute("name", "foc");
 					xml.attribute("acpi", true);
 					xml.attribute("msi" , true);
 				});
-				xml.node("hardware", [&] () {
+				xml.node("hardware", [&] {
 					_setup_platform_info(xml, sigma0_map_kip()); });
 
-				xml.node("affinity-space", [&] () {
+				xml.node("affinity-space", [&] {
 					xml.attribute("width", affinity_space().width());
 					xml.attribute("height", affinity_space().height()); });
 			});

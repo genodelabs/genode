@@ -80,8 +80,8 @@ class Genode::Page_table_allocator
 					table.~TABLE();
 					_free((unsigned)(_offset(table) / sizeof(TABLE)));
 				},
-				[&] () {
-				Genode::error("Trying to destruct foreign table at ", Genode::Hex(phys_addr));
+				[&] {
+					Genode::error("Trying to destruct foreign table at ", Genode::Hex(phys_addr));
 				});
 		}
 

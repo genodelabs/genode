@@ -24,11 +24,11 @@ using namespace Core;
 void Platform::_init_additional_platform_info(Xml_generator &xml)
 {
 	if (_boot_info().plat_info.efi_system_table != 0) {
-		xml.node("efi-system-table", [&] () {
+		xml.node("efi-system-table", [&] {
 			xml.attribute("address", String<32>(Hex(_boot_info().plat_info.efi_system_table)));
 		});
 	}
-	xml.node("acpi", [&] () {
+	xml.node("acpi", [&] {
 		uint32_t const revision = _boot_info().plat_info.acpi_rsdp.revision;
 		uint32_t const rsdt     = _boot_info().plat_info.acpi_rsdp.rsdt;
 		uint64_t const xsdt     = _boot_info().plat_info.acpi_rsdp.xsdt;
@@ -42,8 +42,8 @@ void Platform::_init_additional_platform_info(Xml_generator &xml)
 				xml.attribute("xsdt", String<32>(Hex(xsdt)));
 		}
 	});
-	xml.node("boot", [&] () {
-		xml.node("framebuffer", [&] () {
+	xml.node("boot", [&] {
+		xml.node("framebuffer", [&] {
 			Hw::Framebuffer const &boot_fb = _boot_info().plat_info.framebuffer;
 			xml.attribute("phys",   String<32>(Hex(boot_fb.addr)));
 			xml.attribute("width",  boot_fb.width);
@@ -53,12 +53,12 @@ void Platform::_init_additional_platform_info(Xml_generator &xml)
 			xml.attribute("pitch",  boot_fb.pitch);
 		});
 	});
-	xml.node("hardware", [&]() {
-		xml.node("features", [&] () {
+	xml.node("hardware", [&] {
+		xml.node("features", [&] {
 			xml.attribute("svm", Hw::Virtualization_support::has_svm());
 			xml.attribute("vmx", Hw::Virtualization_support::has_vmx());
 		});
-		xml.node("tsc", [&]() {
+		xml.node("tsc", [&] {
 			xml.attribute("invariant", Hw::Lapic::invariant_tsc());
 			xml.attribute("freq_khz", Hw::Lapic::tsc_freq());
 		});

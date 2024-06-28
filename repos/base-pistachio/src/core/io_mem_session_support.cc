@@ -60,7 +60,7 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 {
 	using namespace Pistachio;
 
-	auto alloc_virt_range = [&] ()
+	auto alloc_virt_range = [&]
 	{
 		/* special case for the null page */
 		if (is_conventional_memory(base))

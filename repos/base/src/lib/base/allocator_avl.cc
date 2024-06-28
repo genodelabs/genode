@@ -195,7 +195,7 @@ bool Allocator_avl_base::_revert_block_ranges(auto const &any_block_fn)
 
 bool Allocator_avl_base::_revert_unused_ranges()
 {
-	return _revert_block_ranges([&] () {
+	return _revert_block_ranges([&] {
 		return _find_any_unused_block(_addr_tree.first()); });
 }
 
@@ -218,7 +218,7 @@ void Allocator_avl_base::_revert_allocations_and_ranges()
 		        " at allocator destruction time");
 
 	/* destroy all remaining blocks */
-	_revert_block_ranges([&] () { return _addr_tree.first(); });
+	_revert_block_ranges([&] { return _addr_tree.first(); });
 }
 
 

@@ -231,8 +231,8 @@ Core::Platform::Platform()
 						if (map_local(phys_addr, core_local_addr, pages)) {
 
 							Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
-							                  size, "platform_info", [&] () {
-								xml.node("kernel", [&] () { xml.attribute("name", "okl4"); });
+							                  size, "platform_info", [&] {
+								xml.node("kernel", [&] { xml.attribute("name", "okl4"); });
 							});
 
 							new (core_mem_alloc())

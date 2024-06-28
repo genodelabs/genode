@@ -56,15 +56,15 @@ void Genode::upgrade_capability_slab()
 	};
 
 	retry<Genode::Out_of_caps>(
-		[&] () {
+		[&] {
 			retry<Genode::Out_of_ram>(
-				[&] () {
+				[&] {
 					native_pd_ptr->upgrade_cap_slab(); },
-				[&] () {
+				[&] {
 					request_resources_from_parent(Ram_quota{8192}, Cap_quota{0});
 				});
 		},
-		[&] () {
+		[&] {
 			request_resources_from_parent(Ram_quota{0}, Cap_quota{2});
 		});
 }

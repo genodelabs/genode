@@ -64,7 +64,7 @@ struct Hw_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 Hw_vcpu::Hw_vcpu(Env &env, Vm_connection &vm, Vcpu_handler_base &handler)
 :
 	Rpc_client<Native_vcpu>(_create_vcpu(vm, handler)),
-	_state(env.rm(), vm.with_upgrade([&] () { return call<Rpc_state>(); }))
+	_state(env.rm(), vm.with_upgrade([&] { return call<Rpc_state>(); }))
 {
 	_ep_handler = reinterpret_cast<Thread *>(&handler.rpc_ep());
 	call<Rpc_exception_handler>(handler.signal_cap());
@@ -90,7 +90,7 @@ Capability<Vm_session::Native_vcpu> Hw_vcpu::_create_vcpu(Vm_connection     &vm,
 {
 	Thread &tep { *reinterpret_cast<Thread *>(&handler.rpc_ep()) };
 
-	return vm.with_upgrade([&] () {
+	return vm.with_upgrade([&] {
 		return vm.call<Vm_session::Rpc_create_vcpu>(tep.cap()); });
 }
 

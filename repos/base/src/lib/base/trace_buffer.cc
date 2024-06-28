@@ -110,4 +110,4 @@ char *Trace::Partitioned_buffer::reserve(size_t len)
 
 
 void Trace::Partitioned_buffer::commit(size_t len) {
-	_producer()._commit(len, [&] () { _switch_producer(); }); }
+	_producer()._commit(len, [&] { _switch_producer(); }); }

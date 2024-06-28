@@ -151,15 +151,15 @@ class Genode::Expanding_parent_client : public Parent_client
 			using Arg = String<64>;
 
 			return retry<Out_of_ram>(
-				[&] () {
+				[&] {
 					return retry<Out_of_caps>(
-						[&] () { return Parent_client::upgrade(id, args); },
-						[&] () {
+						[&] { return Parent_client::upgrade(id, args); },
+						[&] {
 							Arg cap_arg("cap_quota=", amount.cap_quota);
 							resource_request(Resource_args(cap_arg.string()));
 						});
 				},
-				[&] () {
+				[&] {
 					Arg ram_arg("ram_quota=", amount.ram_quota);
 					resource_request(Resource_args(ram_arg.string()));
 				});

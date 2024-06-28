@@ -281,7 +281,7 @@ bool Pager_object::_migrate_thread()
 
 		/* syscall to migrate */
 		unsigned const migrate_to = platform_specific().kernel_cpu_id(_location);
-		uint8_t res = syscall_retry(*this, [&]() {
+		uint8_t res = syscall_retry(*this, [&] {
 			return ec_ctrl(EC_MIGRATE, _state.sel_client_ec, migrate_to,
 			               Obj_crd(EC_SEL_THREAD, 0, Obj_crd::RIGHT_EC_RECALL));
 		});
@@ -553,7 +553,7 @@ static uint8_t create_portal(addr_t pt, addr_t pd, addr_t ec, Mtd mtd,
                              addr_t eip, Pager_object * oom_handler)
 {
 	uint8_t res = syscall_retry(*oom_handler,
-		[&]() { return create_pt(pt, pd, ec, mtd, eip); });
+		[&] { return create_pt(pt, pd, ec, mtd, eip); });
 
 	if (res != NOVA_OK)
 		return res;

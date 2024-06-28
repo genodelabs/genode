@@ -49,7 +49,7 @@ struct Sel4_native_rpc : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 		Capability<Vm_session::Native_vcpu> _create_vcpu(Vm_connection &vm,
 		                                                 Thread_capability &cap)
 		{
-			return vm.with_upgrade([&] () {
+			return vm.with_upgrade([&] {
 				return vm.call<Vm_session::Rpc_create_vcpu>(cap); });
 		}
 

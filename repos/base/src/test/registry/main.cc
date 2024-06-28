@@ -48,7 +48,7 @@ static void test_exception_during_for_each()
 	Registered<Item> second(items, "second");
 	Registered<Item> third (items, "third");
 
-	auto num_items = [&] () {
+	auto num_items = [&] {
 		unsigned cnt = 0;
 		items.for_each([&] (Item &) { cnt++; });
 		return cnt;

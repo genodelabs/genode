@@ -63,19 +63,19 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 
 	case CREATE_REQUESTED:
 
-		xml.node("create", [&] () {
+		xml.node("create", [&] {
 			xml.attribute("id", id_at_server->id().value);
 			xml.attribute("service", _service.name());
 			xml.attribute("label", _label);
-			xml.node("args", [&] () {
+			xml.node("args", [&] {
 				xml.append_sanitized(Server_args(*this).string());
 			});
-			xml.node("affinity", [&] () {
-				xml.node("space", [&] () {
+			xml.node("affinity", [&] {
+				xml.node("space", [&] {
 					xml.attribute("width",  _affinity.space().width());
 					xml.attribute("height", _affinity.space().height());
 				});
-				xml.node("location", [&] () {
+				xml.node("location", [&] {
 					xml.attribute("xpos",   _affinity.location().xpos());
 					xml.attribute("ypos",   _affinity.location().ypos());
 					xml.attribute("width",  _affinity.location().width());
@@ -87,7 +87,7 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 
 	case UPGRADE_REQUESTED:
 
-		xml.node("upgrade", [&] () {
+		xml.node("upgrade", [&] {
 			xml.attribute("id", id_at_server->id().value);
 			xml.attribute("ram_quota", ram_upgrade.value);
 			xml.attribute("cap_quota", cap_upgrade.value);
@@ -96,7 +96,7 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 
 	case CLOSE_REQUESTED:
 
-		xml.node("close", [&] () {
+		xml.node("close", [&] {
 			xml.attribute("id", id_at_server->id().value); });
 		break;
 
@@ -120,7 +120,7 @@ void Session_state::generate_client_side_info(Xml_generator &xml, Detail detail)
 	xml.attribute("caps", String<32>(_donated_cap_quota));
 
 	if (detail.args == Detail::ARGS)
-		xml.node("args", [&] () { xml.append_sanitized(_args.string()); });
+		xml.node("args", [&] { xml.append_sanitized(_args.string()); });
 }
 
 

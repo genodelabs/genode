@@ -307,12 +307,12 @@ class Genode::Xml_generator
 			}
 		}
 
-		void node(char const *name, auto const &fn = [] () { } )
+		void node(char const *name, auto const &fn = [] { } )
 		{
 			Node(*this, name, fn);
 		}
 
-		void node(char const *name) { Node(*this, name, [] () { }); }
+		void node(char const *name) { Node(*this, name, [] { }); }
 
 		void attribute(char const *name, char const *str)
 		{

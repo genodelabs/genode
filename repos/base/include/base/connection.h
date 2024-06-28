@@ -75,13 +75,13 @@ class Genode::Connection_base : Noncopyable, Interface
 		{
 			enum { UPGRADE_ATTEMPTS = ~0U };
 			return Genode::retry<Out_of_ram>(
-				[&] () {
+				[&] {
 					return Genode::retry<Out_of_caps>(
-						[&] () { return fn(); },
-						[&] () { upgrade_caps(caps.value); },
+						[&] { return fn(); },
+						[&] { upgrade_caps(caps.value); },
 						UPGRADE_ATTEMPTS);
 				},
-				[&] () { upgrade_ram(ram.value); },
+				[&] { upgrade_ram(ram.value); },
 				UPGRADE_ATTEMPTS);
 		}
 };

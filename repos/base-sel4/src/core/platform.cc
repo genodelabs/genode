@@ -377,23 +377,23 @@ void Core::Platform::_init_rom_modules()
 
 				tsc_freq const * boot_freq = reinterpret_cast<tsc_freq const *>(reinterpret_cast<addr_t>(element) + sizeof(* element));
 
-				xml.node("kernel", [&] () {
+				xml.node("kernel", [&] {
 					xml.attribute("name", "sel4");
 					xml.attribute("acpi", true);
 				});
-				xml.node("hardware", [&] () {
-					xml.node("features", [&] () {
+				xml.node("hardware", [&] {
+					xml.node("features", [&] {
 						#ifdef CONFIG_VTX
 						xml.attribute("vmx", true);
 						#else
 						xml.attribute("vmx", false);
 						#endif
 					});
-					xml.node("tsc", [&] () {
+					xml.node("tsc", [&] {
 						xml.attribute("freq_khz" , boot_freq->freq_mhz * 1000UL);
 					});
 				});
-				xml.node("affinity-space", [&] () {
+				xml.node("affinity-space", [&] {
 					xml.attribute("width", affinity_space().width());
 					xml.attribute("height", affinity_space().height());
 				});
@@ -416,8 +416,8 @@ void Core::Platform::_init_rom_modules()
 
 				mbi2_framebuffer const * boot_fb = reinterpret_cast<mbi2_framebuffer const *>(reinterpret_cast<addr_t>(element) + sizeof(*element));
 
-				xml.node("boot", [&] () {
-					xml.node("framebuffer", [&] () {
+				xml.node("boot", [&] {
+					xml.node("framebuffer", [&] {
 						xml.attribute("phys",   String<32>(Hex(boot_fb->addr)));
 						xml.attribute("width",  boot_fb->width);
 						xml.attribute("height", boot_fb->height);
@@ -431,7 +431,7 @@ void Core::Platform::_init_rom_modules()
 			if (element->id != SEL4_BOOTINFO_HEADER_X86_ACPI_RSDP)
 				continue;
 
-			xml.node("acpi", [&] () {
+			xml.node("acpi", [&] {
 
 				struct Acpi_rsdp
 				{
@@ -520,7 +520,7 @@ void Core::Platform::_init_rom_modules()
 	};
 
 	export_page_as_rom_module("platform_info", [&] (char *ptr, size_t size) {
-		Xml_generator xml(ptr, size, "platform_info", [&] () {
+		Xml_generator xml(ptr, size, "platform_info", [&] {
 			gen_platform_info(xml); }); });
 
 	export_page_as_rom_module("core_log", [&] (char *ptr, size_t size) {

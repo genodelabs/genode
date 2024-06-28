@@ -195,7 +195,7 @@ Native_capability Native_thread::Epoll::alloc_rpc_cap()
 
 	dst.foreign = false;
 
-	_exec_control([&] () { _add(socketpair.local); });
+	_exec_control([&] { _add(socketpair.local); });
 
 	return Capability_space::import(dst, Rpc_obj_key(socketpair.local.value));
 }
@@ -205,5 +205,5 @@ void Native_thread::Epoll::free_rpc_cap(Native_capability cap)
 {
 	int const local_socket = (int)Capability_space::ipc_cap_data(cap).rpc_obj_key.value();
 
-	_exec_control([&] () { _remove(Lx_sd{local_socket}); });
+	_exec_control([&] { _remove(Lx_sd{local_socket}); });
 }

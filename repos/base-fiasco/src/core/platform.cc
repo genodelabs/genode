@@ -472,8 +472,8 @@ Core::Platform::Platform()
 		[&] (void *core_local_ptr, size_t size) {
 			Xml_generator xml(reinterpret_cast<char *>(core_local_ptr),
 			                  size, "platform_info",
-				[&] () {
-					xml.node("kernel", [&] () {
+				[&] {
+					xml.node("kernel", [&] {
 						xml.attribute("name", "fiasco"); }); }); });
 }
 

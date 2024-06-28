@@ -679,20 +679,20 @@ Core::Platform::Platform()
 
 	export_pages_as_rom_module("platform_info", 1 + (MAX_SUPPORTED_CPUS / 32),
 		[&] (char * const ptr, size_t const size) {
-			Xml_generator xml(ptr, size, "platform_info", [&] ()
+			Xml_generator xml(ptr, size, "platform_info", [&]
 			{
-				xml.node("kernel", [&] () {
+				xml.node("kernel", [&] {
 					xml.attribute("name", "nova");
 					xml.attribute("acpi", true);
 					xml.attribute("msi" , true);
 					xml.attribute("iommu", hip.has_feature_iommu());
 				});
 				if (efi_sys_tab_phy) {
-					xml.node("efi-system-table", [&] () {
+					xml.node("efi-system-table", [&] {
 						xml.attribute("address", String<32>(Hex(efi_sys_tab_phy)));
 					});
 				}
-				xml.node("acpi", [&] () {
+				xml.node("acpi", [&] {
 
 					xml.attribute("revision", 2); /* XXX */
 
@@ -702,18 +702,18 @@ Core::Platform::Platform()
 					if (xsdt)
 						xml.attribute("xsdt", String<32>(Hex(xsdt)));
 				});
-				xml.node("affinity-space", [&] () {
+				xml.node("affinity-space", [&] {
 					xml.attribute("width", _cpus.width());
 					xml.attribute("height", _cpus.height());
 				});
-				xml.node("boot", [&] () {
+				xml.node("boot", [&] {
 					if (!boot_fb)
 						return;
 
 					if (!efi_boot && (Resolution::Type::get(boot_fb->size) != Resolution::Type::VGA_TEXT))
 						return;
 
-					xml.node("framebuffer", [&] () {
+					xml.node("framebuffer", [&] {
 						xml.attribute("phys",   String<32>(Hex(boot_fb->addr)));
 						xml.attribute("width",  Resolution::Width::get(boot_fb->size));
 						xml.attribute("height", Resolution::Height::get(boot_fb->size));
@@ -722,16 +722,16 @@ Core::Platform::Platform()
 						xml.attribute("pitch",  boot_fb->aux);
 					});
 				});
-				xml.node("hardware", [&] () {
-					xml.node("features", [&] () {
+				xml.node("hardware", [&] {
+					xml.node("features", [&] {
 						xml.attribute("svm", hip.has_feature_svm());
 						xml.attribute("vmx", hip.has_feature_vmx());
 					});
-					xml.node("tsc", [&] () {
+					xml.node("tsc", [&] {
 						xml.attribute("invariant", cpuid_invariant_tsc());
 						xml.attribute("freq_khz" , hip.tsc_freq);
 					});
-					xml.node("cpus", [&] () {
+					xml.node("cpus", [&] {
 						for_each_location([&](Affinity::Location &location) {
 							unsigned const kernel_cpu_id = Platform::kernel_cpu_id(location);
 							auto const cpu_ptr = hip.cpu_desc_of_cpu(kernel_cpu_id);
@@ -741,7 +741,7 @@ Core::Platform::Platform()
 
 							auto const &cpu = *cpu_ptr;
 
-							xml.node("cpu", [&] () {
+							xml.node("cpu", [&] {
 								xml.attribute("xpos",     location.xpos());
 								xml.attribute("ypos",     location.ypos());
 								xml.attribute("id",       kernel_cpu_id);

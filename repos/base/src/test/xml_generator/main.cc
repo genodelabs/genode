@@ -26,32 +26,32 @@ static size_t fill_buffer_with_xml(char *dst, size_t dst_len)
 		xml.attribute("xpos", "27");
 		xml.attribute("ypos", "34");
 
-		xml.node("box", [&]()
+		xml.node("box", [&]
 		{
 			xml.attribute("width",  "320");
 			xml.attribute("height", "240");
 		});
-		xml.node("label", [&] ()
+		xml.node("label", [&]
 		{
 			xml.attribute("name", "a test");
 			xml.node("sub_label");
-			xml.node("another_sub_label", [&] ()
+			xml.node("another_sub_label", [&]
 			{
 				xml.node("sub_sub_label");
 			});
 		});
-		xml.node("bool", [&] ()
+		xml.node("bool", [&]
 		{
 			xml.attribute("true",  true);
 			xml.attribute("false", false);
 		});
-		xml.node("signed", [&] ()
+		xml.node("signed", [&]
 		{
 			xml.attribute("int",      -1);
 			xml.attribute("long",     -2L);
 			xml.attribute("longlong", -3LL);
 		});
-		xml.node("unsigned", [&] ()
+		xml.node("unsigned", [&]
 		{
 			xml.attribute("int",      1U);
 			xml.attribute("long",     2UL);
@@ -67,61 +67,61 @@ static size_t xml_with_exceptions(char *dst, size_t dst_len)
 {
 	Genode::Xml_generator xml(dst, dst_len, "config", [&]
 	{
-		xml.node("level1", [&] ()
+		xml.node("level1", [&]
 		{
-			xml.node("level2", [&] ()
+			xml.node("level2", [&]
 			{
 				xml.attribute("attr1", 0x87654321ULL);
 				for (unsigned i=0; i < 3; i++) {
 					try {
-						xml.node("level3_exception", [&] ()
+						xml.node("level3_exception", [&]
 						{
 							xml.attribute("attr1", 1234);
 							xml.attribute("attr2", 4321);
 							xml.attribute("attr3", 2143);
-							xml.node("level4_exception", [&] ()
+							xml.node("level4_exception", [&]
 							{
 								xml.attribute("attr1", "Hallo");
-								xml.node("level5_exception_1", [&] ()
+								xml.node("level5_exception_1", [&]
 								{
 									xml.attribute("attr1", true);
 									xml.attribute("attr2", false);
 								});
-								xml.node("level5_exception_2", [&] () { });
+								xml.node("level5_exception_2", [&] { });
 								throw 10 + i;
 							});
 						});
 					} catch (unsigned error) {
 						Genode::log("exception with value ", error, " on level 4 (expected error)");
 					}
-					xml.node("level3", [&] ()
+					xml.node("level3", [&]
 					{
 						xml.attribute("attr1", "Hallo");
 						xml.attribute("attr2", 123000 + i);
-						xml.node("level4_1", [&] () {
+						xml.node("level4_1", [&] {
 							xml.attribute("attr1", true);
 							xml.attribute("attr2", "Welt");
 						});
 						try {
-							xml.node("level4_exception", [&] ()
+							xml.node("level4_exception", [&]
 							{
 								xml.attribute("attr1", "Welt");
 								xml.attribute("attr2", 2143);
 								xml.attribute("attr3", false);
 								xml.attribute("attr3", 0x12345678ULL);
-								xml.node("level5_exception_1", [&] () { });
-								xml.node("level5_exception_2", [&] () { });
-								xml.node("level5_exception_3", [&] ()
+								xml.node("level5_exception_1", [&] { });
+								xml.node("level5_exception_2", [&] { });
+								xml.node("level5_exception_3", [&]
 								{
-									xml.node("level6_exception", [&] ()
+									xml.node("level6_exception", [&]
 									{
 										xml.attribute("attr1", 0x12345678ULL);
-										xml.node("level7_exception_3", [&] ()
+										xml.node("level7_exception_3", [&]
 										{
-											xml.node("level8_exception_1", [&] () { });
-											xml.node("level8_exception_2", [&] () { });
-											xml.node("level8_exception_3", [&] () { });
-											xml.node("level8_exception_4", [&] ()
+											xml.node("level8_exception_1", [&] { });
+											xml.node("level8_exception_2", [&] { });
+											xml.node("level8_exception_3", [&] { });
+											xml.node("level8_exception_4", [&]
 											{
 												throw 20 + i;
 											});
@@ -132,9 +132,9 @@ static size_t xml_with_exceptions(char *dst, size_t dst_len)
 						} catch (unsigned error) {
 							Genode::log("exception with value ", error, " on level 8 (expected error)");
 						}
-						xml.node("level4_2", [&] () { });
+						xml.node("level4_2", [&] { });
 						try {
-							xml.node("level4_exception", [&] ()
+							xml.node("level4_exception", [&]
 							{
 								xml.attribute("attr1", "Welt");
 								xml.attribute("attr2", 2143);
@@ -147,7 +147,7 @@ static size_t xml_with_exceptions(char *dst, size_t dst_len)
 				}
 			});
 			try {
-				xml.node("level2_exception", [&] ()
+				xml.node("level2_exception", [&]
 				{
 					throw 40;
 				});
@@ -205,7 +205,7 @@ void Component::construct(Genode::Env &env)
 			pattern[i] = (char)i;
 
 		/* generate XML with the pattern as content */
-		Xml_generator xml(dst, sizeof(dst), "data", [&] () {
+		Xml_generator xml(dst, sizeof(dst), "data", [&] {
 			xml.append_sanitized(pattern, sizeof(pattern)); });
 
 		/* parse the generated XML data */
@@ -230,7 +230,7 @@ void Component::construct(Genode::Env &env)
 	 * Test arbitrary content
 	 */
 	{
-		Xml_generator xml(dst, sizeof(dst), "data", [&] () {
+		Xml_generator xml(dst, sizeof(dst), "data", [&] {
 			xml.append_content(" ", 2 + 2, " == 2 + 2 == ", 4.0, " ");
 		});
 

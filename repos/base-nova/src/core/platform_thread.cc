@@ -133,7 +133,7 @@ void Platform_thread::start(void *ip, void *sp)
 		}
 
 		uint8_t res = syscall_retry(pager,
-			[&]() {
+			[&] {
 				return create_ec(_sel_ec(), _pd.pd_sel(), kernel_cpu_id,
 				                 utcb_addr, initial_sp, _sel_exc_base,
 				                 !worker());
@@ -209,7 +209,7 @@ void Platform_thread::start(void *ip, void *sp)
 
 	if (res == NOVA_OK) {
 		res = syscall_retry(pager,
-			[&]() {
+			[&] {
 				/* let the thread run */
 				return create_sc(_sel_sc(), _pd.pd_sel(), _sel_ec(),
 				                 Qpd(Qpd::DEFAULT_QUANTUM, _priority));
@@ -257,7 +257,7 @@ void Platform_thread::resume()
 	}
 
 	uint8_t res = syscall_retry(*_pager,
-		[&]() {
+		[&] {
 			return create_sc(_sel_sc(), _pd.pd_sel(), _sel_ec(),
 			                 Qpd(Qpd::DEFAULT_QUANTUM, _priority));
 		});

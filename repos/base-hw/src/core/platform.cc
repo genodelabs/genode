@@ -154,15 +154,15 @@ void Platform::_init_platform_info()
 		return;
 	}
 
-	Xml_generator xml(reinterpret_cast<char *>(virt_addr), rom_size, rom_name, [&] ()
+	Xml_generator xml(reinterpret_cast<char *>(virt_addr), rom_size, rom_name, [&]
 	{
-		xml.node("kernel", [&] () {
+		xml.node("kernel", [&] {
 			xml.attribute("name", "hw");
 			xml.attribute("acpi", true);
 			xml.attribute("msi",  true);
 		});
 		_init_additional_platform_info(xml);
-		xml.node("affinity-space", [&] () {
+		xml.node("affinity-space", [&] {
 			xml.attribute("width", affinity_space().width());
 			xml.attribute("height", affinity_space().height());
 		});

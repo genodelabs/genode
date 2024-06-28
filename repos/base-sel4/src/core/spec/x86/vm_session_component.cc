@@ -208,7 +208,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 			return;
 
 		/* code to revert partial allocations in case of Out_of_ram/_quota */
-		auto free_up = [&] () { if (vcpu) destroy(_heap, vcpu); };
+		auto free_up = [&] { if (vcpu) destroy(_heap, vcpu); };
 
 		try {
 			vcpu = new (_heap) Registered<Vcpu>(_vcpus,
