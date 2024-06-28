@@ -48,7 +48,7 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 
 		enum { VM_EXIT_STARTUP = 0xfe, VM_EXIT_RECALL = 0xff };
 
-		typedef Id_space<Nova_vcpu> Vcpu_space;
+		using Vcpu_space = Id_space<Nova_vcpu>;
 
 		static Vcpu_space &_vcpu_space()
 		{
@@ -168,8 +168,8 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 
 void Nova_vcpu::_read_nova_state(Nova::Utcb &utcb)
 {
-	typedef Genode::Vcpu_state::Segment Segment;
-	typedef Genode::Vcpu_state::Range Range;
+	using Segment = Genode::Vcpu_state::Segment;
+	using Range   = Genode::Vcpu_state::Range;
 
 	_vcpu_state.discharge();
 	_vcpu_state.exit_reason = static_cast<unsigned int>(utcb.exit_reason);

@@ -53,12 +53,12 @@ class Genode::Parent
 
 	public:
 
-		typedef Rpc_in_buffer<64>  Service_name;
-		typedef Rpc_in_buffer<160> Session_args;
-		typedef Rpc_in_buffer<160> Upgrade_args;
+		using Service_name = Rpc_in_buffer<64>;
+		using Session_args = Rpc_in_buffer<160>;
+		using Upgrade_args = Rpc_in_buffer<160>;
 
-		struct Client : Interface { typedef Id_space<Client>::Id Id; };
-		struct Server : Interface { typedef Id_space<Server>::Id Id; };
+		struct Client : Interface { using Id = Id_space<Client>::Id; };
+		struct Server : Interface { using Id = Id_space<Server>::Id; };
 
 		/**
 		 * Predefined session IDs corresponding to the environment sessions
@@ -84,7 +84,7 @@ class Genode::Parent
 		 * Use 'String' instead of 'Rpc_in_buffer' because 'Resource_args'
 		 * is used as both in and out parameter.
 		 */
-		typedef String<160> Resource_args;
+		using Resource_args = String<160>;
 
 		virtual ~Parent() { }
 
@@ -125,7 +125,7 @@ class Genode::Parent
 		template <typename ROOT_INTERFACE>
 		void announce(Capability<ROOT_INTERFACE> const &service_root)
 		{
-			typedef typename ROOT_INTERFACE::Session_type Session;
+			using Session = typename ROOT_INTERFACE::Session_type;
 			announce(Session::service_name(), service_root);
 
 			/*
@@ -353,11 +353,11 @@ Genode::Parent::_announce_base(Genode::Capability<ROOT_INTERFACE> const &service
                                Genode::Meta::Bool_to_type<true> *)
 {
 	/* shortcut for inherited session type */
-	typedef typename ROOT_INTERFACE::Session_type::Rpc_inherited_interface
-	        Session_type_inherited;
+	using Session_type_inherited =
+		typename ROOT_INTERFACE::Session_type::Rpc_inherited_interface;
 
 	/* shortcut for root interface type matching the inherited session type */
-	typedef Typed_root<Session_type_inherited> Root_inherited;
+	using Root_inherited = Typed_root<Session_type_inherited>;
 
 	/* convert root capability to match the inherited session type */
 	Capability<Root>           root           = service_root;

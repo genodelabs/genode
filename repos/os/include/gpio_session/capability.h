@@ -18,6 +18,6 @@
 #include <base/capability.h>
 #include <gpio_session/gpio_session.h>
 
-namespace Gpio { typedef Genode::Capability<Session> Session_capability; }
+namespace Gpio { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _INCLUDE__GPIO_SESSION__CAPABILITY_H_ */

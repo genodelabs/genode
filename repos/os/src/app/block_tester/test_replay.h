@@ -32,7 +32,7 @@ struct Test::Replay : Test_base
 
 				auto op_type = [&] ()
 				{
-					typedef String<8> Type;
+					using Type = String<8>;
 
 					if (request.attribute_value("type", Type()) == "read")
 						return Block::Operation::Type::READ;

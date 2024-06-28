@@ -24,7 +24,7 @@ class Window_layouter::Target : Noncopyable
 {
 	public:
 
-		typedef String<64> Name;
+		using Name = String<64>;
 
 		enum class Visible { YES, NO };
 

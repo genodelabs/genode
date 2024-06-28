@@ -24,7 +24,7 @@ namespace Genode { namespace Capability_space {
 
 	static constexpr unsigned long INVALID_INDEX = ~0UL;
 
-	typedef Nova::Crd Ipc_cap_data;
+	using Ipc_cap_data = Nova::Crd;
 
 	static inline Nova::Crd crd(Native_capability const &cap)
 	{

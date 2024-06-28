@@ -39,7 +39,7 @@ class Genode::Handle
 
 	public:
 
-		typedef T Type;
+		using Type = T;
 
 		Handle() { }
 

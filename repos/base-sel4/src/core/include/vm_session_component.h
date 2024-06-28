@@ -61,7 +61,7 @@ class Core::Vm_session_component
 				Capability<Dataspace> state() const { return _ds_cap; }
 		};
 
-		typedef Allocator_avl_tpl<Rm_region> Avl_region;
+		using Avl_region = Allocator_avl_tpl<Rm_region>;
 
 		Rpc_entrypoint            &_ep;
 		Constrained_ram_allocator  _constrained_md_ram_alloc;

@@ -27,7 +27,7 @@ namespace Block {
 	using namespace Genode;
 
 	struct Job;
-	typedef Block::Connection<Job> Block_connection;
+	using Block_connection = Block::Connection<Job>;
 }
 
 #endif /* _PART_BLOCK__TYPES_H_ */

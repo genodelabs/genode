@@ -167,7 +167,7 @@ void QGenodeViewWidget::hideEvent(QHideEvent *event)
 		QEmbeddedViewWidget::View_geometry const view_geometry =
 			QEmbeddedViewWidget::_calc_view_geometry();
 
-		typedef Gui::Session::Command Command;
+		using Command = Gui::Session::Command;
 
 		Gui::Rect const geometry(Gui::Point(mapToGlobal(pos()).x(),
 		                                    mapToGlobal(pos()).y()),
@@ -192,7 +192,7 @@ void QGenodeViewWidget::paintEvent(QPaintEvent *event)
 	QEmbeddedViewWidget::View_geometry const view_geometry =
 		QEmbeddedViewWidget::_calc_view_geometry();
 
-	typedef Gui::Session::Command Command;
+	using Command = Gui::Session::Command;
 
 	/* argument to mapToGlobal() is relative to the Widget's origin
 	 * the plugin view starts at (0, 0)

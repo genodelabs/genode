@@ -42,7 +42,7 @@ extern "C" {
 
 #pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
-typedef Genode::Pixel_rgb888 pixel_t;
+using pixel_t = Genode::Pixel_rgb888;
 
 
 static void copy_line_rgba(const unsigned char *rgba_src,
@@ -83,7 +83,7 @@ class Pdf_view
 		class Non_supported_framebuffer_mode { };
 		class Unexpected_document_color_depth { };
 
-		typedef Framebuffer::Mode Mode;
+		using Mode = Framebuffer::Mode;
 
 	private:
 
@@ -142,7 +142,7 @@ class Pdf_view
 			_pdfapp.resolution = Genode::min(_nit_mode.area.w/5,
 			                                 _nit_mode.area.h/4);
 
-			typedef Gui::Session::Command Command;
+			using Command = Gui::Session::Command;
 			_gui.enqueue<Command::Geometry>(_view, Gui::Rect(Gui::Point(), _nit_mode.area));
 			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
 			_gui.execute();
@@ -273,7 +273,7 @@ class Pdf_view
 
 		void title(char const *msg)
 		{
-			typedef Gui::Session::Command Command;
+			using Command = Gui::Session::Command;
 			_gui.enqueue<Command::Title>(_view, msg);
 			_gui.execute();
 		}

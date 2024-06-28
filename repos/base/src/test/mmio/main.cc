@@ -439,7 +439,7 @@ void Component::construct(Genode::Env &env)
 	 **********************************/
 	{
 		/* whole register */
-		typedef Test_mmio::Reg_64 Reg;
+		using Reg = Test_mmio::Reg_64;
 		enum { REG = 0x0123456789abcdef };
 		static uint8_t cmp_mem[MMIO_SIZE] = {
 			0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01 };
@@ -506,7 +506,7 @@ void Component::construct(Genode::Env &env)
 		}
 
 		/* bitsets */
-		typedef Test_mmio::Bitset_64 Bitset;
+		using Bitset = Test_mmio::Bitset_64;
 		enum { BITSET = 0x4abcdef056789123 };
 		zero_mem(mmio_mem, MMIO_SIZE);
 		mmio.write<Bitset>(BITSET);

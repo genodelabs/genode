@@ -26,7 +26,7 @@
 #include "services.h"
 
 
-typedef Genode::Texture<Genode::Pixel_rgb888> Texture_rgb888;
+using Texture_rgb888 = Genode::Texture<Genode::Pixel_rgb888>;
 
 
 class Window_content : public Scout::Element

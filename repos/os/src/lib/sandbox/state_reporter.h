@@ -29,7 +29,7 @@ class Sandbox::State_reporter : public Report_update_trigger
 {
 	public:
 
-		typedef String<64> Version;
+		using Version = String<64>;
 
 		struct Producer : Interface
 		{

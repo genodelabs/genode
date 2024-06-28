@@ -516,8 +516,8 @@ void Vmm::Vcpu::_cpu_init(Vcpu_state & state)
 
 	/* http://www.sandpile.org/x86/initial.htm */
 
-	typedef Vcpu_state::Segment Segment;
-	typedef Vcpu_state::Range   Range;
+	using Segment = Vcpu_state::Segment;
+	using Range   = Vcpu_state::Range;
 
 	state.flags.charge(2);
 	state.ip.   charge(0xfff0);

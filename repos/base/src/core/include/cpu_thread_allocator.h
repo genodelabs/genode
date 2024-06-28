@@ -34,8 +34,8 @@ namespace Core {
 	 * We take the knowledge about the used backing-store allocator (sliced
 	 * heap) into account to make sure that slab blocks fill whole pages.
 	 */
-	typedef Tslab<Cpu_thread_component, get_page_size() - Sliced_heap::meta_data_size(), 2>
-	        Cpu_thread_allocator;
+	using Cpu_thread_allocator =
+		Tslab<Cpu_thread_component, get_page_size() - Sliced_heap::meta_data_size(), 2>;
 }
 
 #endif /* _CORE__INCLUDE__CPU_THREAD_ALLOCATOR_H_ */

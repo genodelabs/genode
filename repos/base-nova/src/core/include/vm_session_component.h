@@ -37,8 +37,8 @@ class Core::Vm_session_component
 {
 	private:
 
-		typedef Constrained_ram_allocator Con_ram_allocator;
-		typedef Allocator_avl_tpl<Rm_region> Avl_region;
+		using Con_ram_allocator = Constrained_ram_allocator;
+		using Avl_region        = Allocator_avl_tpl<Rm_region>;
 
 		class Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
 		             public Trace::Source::Info_accessor

@@ -67,9 +67,9 @@ namespace Wm { namespace Gui {
 	class Session_component;
 	class Root;
 
-	typedef Genode::Surface_base::Rect  Rect;
-	typedef Genode::Surface_base::Point Point;
-	typedef Genode::Session_label       Session_label;
+	using Rect          = Genode::Surface_base::Rect;
+	using Point         = Genode::Surface_base::Point;
+	using Session_label = Genode::Session_label;
 } }
 
 
@@ -509,8 +509,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		/*
 		 * View handle registry
 		 */
-		typedef Genode::Handle_registry<View_handle, View>
-			View_handle_registry;
+		using View_handle_registry = Genode::Handle_registry<View_handle, View>;
 
 		View_handle_registry _view_handle_registry;
 

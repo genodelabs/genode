@@ -93,7 +93,7 @@ class Capture::Session_component : public Session_object<Capture::Session>
 
 
 namespace Capture {
-	typedef Genode::Root_component<Session_component, Genode::Multiple_clients> Root_component;
+	using Root_component = Genode::Root_component<Session_component, Genode::Multiple_clients>;
 }
 
 

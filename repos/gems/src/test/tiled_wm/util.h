@@ -36,7 +36,7 @@
 /* qt5_component includes */
 #include <qt5_component/qpa_init.h>
 
-typedef Genode::String<32> Name;
+using Name = Genode::String<32>;
 
 
 /*

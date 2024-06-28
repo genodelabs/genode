@@ -35,7 +35,7 @@ namespace Sandbox {
 		void print(Output &out) const { Genode::print(out, percent, "%"); }
 	};
 
-	typedef List<List_element<Child> > Child_list;
+	using Child_list = List<List_element<Child> >;
 
 	template <typename T>
 	struct Resource_info
@@ -46,7 +46,7 @@ namespace Sandbox {
 
 		void generate(Xml_generator &xml) const
 		{
-			typedef String<32> Value;
+			using Value = String<32>;
 			xml.attribute("quota", Value(quota));
 			xml.attribute("used",  Value(used));
 			xml.attribute("avail", Value(avail));
@@ -60,8 +60,8 @@ namespace Sandbox {
 		}
 	};
 
-	typedef Resource_info<Ram_quota> Ram_info;
-	typedef Resource_info<Cap_quota> Cap_info;
+	using Ram_info = Resource_info<Ram_quota>;
+	using Cap_info = Resource_info<Cap_quota>;
 
 	template <>
 	inline Ram_info Ram_info::from_pd(Pd_session const &pd)

@@ -28,7 +28,7 @@ struct Rom_reporter::Rom_module
 {
 	Env &_env;
 
-	typedef String<160> Label;
+	using Label = String<160>;
 	Label const _label;
 
 	Attached_rom_dataspace _rom_ds { _env, _label.string() };

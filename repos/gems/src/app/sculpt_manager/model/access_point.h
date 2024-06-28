@@ -21,14 +21,14 @@ namespace Sculpt {
 	struct Access_point;
 	struct Access_point_update_policy;
 
-	typedef List_model<Access_point> Access_points;
+	using Access_points = List_model<Access_point>;
 };
 
 
 struct Sculpt::Access_point : List_model<Access_point>::Element
 {
-	typedef String<32> Bssid;
-	typedef String<32> Ssid;
+	using Bssid = String<32>;
+	using Ssid = String<32>;
 
 	enum Protection { UNKNOWN, UNPROTECTED, WPA_PSK };
 

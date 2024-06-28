@@ -35,7 +35,7 @@ namespace Uart {
 	class Session_component;
 	class Root;
 
-	typedef Root_component<Session_component, Multiple_clients> Root_component;
+	using Root_component = Root_component<Session_component, Multiple_clients>;
 };
 
 

@@ -23,7 +23,7 @@ namespace Sculpt {
 	struct Partition;
 	struct Partition_update_policy;
 
-	typedef List_model<Partition> Partitions;
+	using Partitions = List_model<Partition>;
 };
 
 
@@ -43,8 +43,8 @@ struct Sculpt::File_system
 
 struct Sculpt::Partition : List_model<Partition>::Element
 {
-	typedef String<16> Number;
-	typedef String<32> Label;
+	using Number = String<16>;
+	using Label  = String<32>;
 
 	enum Expandable { FIXED_SIZE, EXPANDABLE };
 

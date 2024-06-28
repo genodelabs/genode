@@ -29,7 +29,7 @@ namespace Timer {
 
 struct Timer::Session : Genode::Session
 {
-	typedef Genode::Signal_context_capability Signal_context_capability;
+	using Signal_context_capability = Genode::Signal_context_capability;
 
 	/**
 	 * \noapi

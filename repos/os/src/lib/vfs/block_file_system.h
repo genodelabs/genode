@@ -29,7 +29,7 @@ namespace Vfs { class Block_file_system; }
 
 struct Vfs::Block_file_system
 {
-	typedef String<64> Name;
+	using Name = String<64>;
 
 	struct Local_factory;
 	struct Data_file_system;
@@ -428,7 +428,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 struct Vfs::Block_file_system::Local_factory : File_system_factory
 {
-	typedef Genode::String<64> Label;
+	using Label = Genode::String<64>;
 	Label const _label;
 
 	Name const _name;

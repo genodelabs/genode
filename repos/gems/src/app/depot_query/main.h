@@ -30,7 +30,7 @@ namespace Depot_query {
 
 	using namespace Depot;
 
-	typedef String<64> Rom_label;
+	using Rom_label = String<64>;
 
 	struct Require_verify;
 	struct Directory_cache;
@@ -298,7 +298,7 @@ struct Depot_query::Main
 	Signal_handler<Main> _query_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
-	typedef Constructible<Expanding_reporter> Constructible_reporter;
+	using Constructible_reporter = Constructible<Expanding_reporter>;
 
 	Constructible_reporter _scan_reporter         { };
 	Constructible_reporter _blueprint_reporter    { };
@@ -318,8 +318,8 @@ struct Depot_query::Main
 			obj.destruct();
 	}
 
-	typedef String<16> Architecture;
-	typedef String<32> Version;
+	using Architecture = String<16>;
+	using Version      = String<32>;
 
 	Architecture _architecture  { };
 

@@ -35,7 +35,7 @@ class Input::Event_queue
 		 */
 		enum { QUEUE_SIZE = 512U };
 
-		typedef Genode::Ring_buffer<Input::Event, QUEUE_SIZE> Ring_buffer;
+		using Ring_buffer = Genode::Ring_buffer<Input::Event, QUEUE_SIZE>;
 
 	private:
 
@@ -47,7 +47,7 @@ class Input::Event_queue
 
 	public:
 
-		typedef Ring_buffer::Overflow Overflow;
+		using Overflow = Ring_buffer::Overflow;
 
 		void enabled(bool enabled) { _enabled = enabled; }
 

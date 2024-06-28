@@ -33,8 +33,8 @@
 namespace Decorator {
 
 	class Window;
-	typedef Genode::String<200> Window_title;
-	typedef Genode::Attached_dataspace Attached_dataspace;
+	using Window_title = Genode::String<200>;
+	using Attached_dataspace = Genode::Attached_dataspace;
 }
 
 
@@ -143,7 +143,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 		struct Gui_view
 		{
-			typedef Gui::Session::Command Command;
+			using Command = Gui::Session::Command;
 
 			bool const _view_is_remote;
 

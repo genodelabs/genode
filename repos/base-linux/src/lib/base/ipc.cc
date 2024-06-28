@@ -110,7 +110,7 @@ namespace {
 
 		private:
 
-			typedef Genode::size_t size_t;
+			using size_t = Genode::size_t;
 
 			msghdr      _msg   { };
 			iovec       _iovec { };

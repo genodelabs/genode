@@ -58,7 +58,7 @@ class Pointer::Main : public Rom::Reader
 {
 	private:
 
-		typedef Genode::String<128> String;
+		using String = Genode::String<128>;
 
 		Genode::Env &_env;
 
@@ -357,7 +357,7 @@ Pointer::Main::Main(Genode::Env &env) : _env(env)
 		}
 	}
 
-	typedef Gui::Session::View_handle View_handle;
+	using View_handle = Gui::Session::View_handle;
 	_gui.enqueue<Gui::Session::Command::To_front>(_view, View_handle());
 	_gui.execute();
 

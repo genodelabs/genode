@@ -307,7 +307,7 @@ class Test::Parent
 			                                      ref_pd(), _env.rm(),
 			                                      _config_producer };
 
-			typedef Genode::Local_service<Dynamic_rom_session> Config_service;
+			using Config_service = Genode::Local_service<Dynamic_rom_session>;
 
 			Config_service::Single_session_factory _config_factory { _config_session };
 			Config_service                         _config_service { _config_factory };

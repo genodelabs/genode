@@ -27,7 +27,7 @@ struct Formatted_phase
 	void print(Output &output) const
 	{
 		using Genode::print;
-		typedef Genode::Session_state State;
+		using State = Genode::Session_state;
 
 		switch (_phase) {
 		case State::CREATE_REQUESTED:       print(output, "CREATE_REQUESTED");       break;

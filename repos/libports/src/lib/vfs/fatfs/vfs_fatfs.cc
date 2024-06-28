@@ -40,15 +40,16 @@ class Fatfs::File_system : public Vfs::File_system
 {
 	private:
 
-		typedef Genode::Path<FF_MAX_LFN> Path;
+		using Path = Genode::Path<FF_MAX_LFN>;
 
 		struct Fatfs_file_handle;
 		struct Fatfs_dir_handle;
 		struct Fatfs_file_watch_handle;
 		struct Fatfs_dir_watch_handle;
-		typedef Genode::List<Fatfs_file_handle>       Fatfs_file_handles;
-		typedef Genode::List<Fatfs_dir_watch_handle>  Fatfs_dir_watch_handles;
-		typedef Genode::List<Fatfs_file_watch_handle> Fatfs_watch_handles;
+
+		using Fatfs_file_handles      = Genode::List<Fatfs_file_handle>;
+		using Fatfs_dir_watch_handles = Genode::List<Fatfs_dir_watch_handle>;
+		using Fatfs_watch_handles     = Genode::List<Fatfs_file_watch_handle>;
 
 		/**
 		 * The FatFS library does not support opening a file

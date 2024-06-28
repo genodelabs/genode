@@ -67,7 +67,7 @@ struct Genode::Xml_node_label_score
 			label_match = node.attribute_value("label", String<N>()) == label;
 
 		if (prefix_present) {
-			typedef String<N> Prefix;
+			using Prefix = String<N>;
 			Prefix const prefix = node.attribute_value("label_prefix", Prefix());
 
 			if (!strcmp(label.string(), prefix.string(), prefix.length() - 1))
@@ -75,7 +75,7 @@ struct Genode::Xml_node_label_score
 		}
 
 		if (suffix_present) {
-			typedef String<N> Suffix;
+			using Suffix = String<N>;
 			Suffix const suffix = node.attribute_value("label_suffix", Suffix());
 
 			if (label.length() >= suffix.length()) {

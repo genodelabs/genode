@@ -39,7 +39,7 @@
 #include <base/log.h>
 
 
-typedef Mixer::Channel Channel;
+using Channel = Mixer::Channel;
 
 
 static constexpr int LEFT         = Channel::Number::LEFT;
@@ -94,7 +94,7 @@ namespace Audio_out
 	class Mixer;
 
 	enum { MAX_CHANNEL_NAME_LEN = 16, MAX_LABEL_LEN = 128 };
-	typedef Genode::String<MAX_LABEL_LEN> Label;
+	using Label = Genode::String<MAX_LABEL_LEN>;
 }
 
 
@@ -673,7 +673,7 @@ class Audio_out::Session_component : public Audio_out::Session_elem
 
 
 namespace Audio_out {
-	typedef Genode::Root_component<Session_component, Genode::Multiple_clients> Root_component;
+	using Root_component = Genode::Root_component<Session_component, Genode::Multiple_clients>;
 }
 
 

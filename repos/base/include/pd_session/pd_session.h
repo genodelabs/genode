@@ -49,7 +49,7 @@ struct Genode::Pd_session : Session, Ram_allocator
 	static constexpr unsigned CAP_QUOTA = 6 + 7;
 	static constexpr size_t   RAM_QUOTA = 24*1024*sizeof(long);
 
-	typedef Pd_session_client Client;
+	using Client = Pd_session_client;
 
 	virtual ~Pd_session() { }
 

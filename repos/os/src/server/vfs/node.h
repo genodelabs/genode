@@ -29,11 +29,10 @@ namespace Vfs_server {
 	using namespace File_system;
 	using namespace Vfs;
 
-	typedef Vfs::File_io_service::Write_result Write_result;
-	typedef Vfs::File_io_service::Read_result Read_result;
-	typedef Vfs::File_io_service::Sync_result Sync_result;
-
-	typedef ::File_system::Session::Tx::Sink Packet_stream;
+	using Write_result  = Vfs::File_io_service::Write_result;
+	using Read_result   = Vfs::File_io_service::Read_result;
+	using Sync_result   = Vfs::File_io_service::Sync_result;
+	using Packet_stream = ::File_system::Session::Tx::Sink;
 
 	class Node;
 	class Io_node;
@@ -42,15 +41,15 @@ namespace Vfs_server {
 	class File;
 	class Symlink;
 
-	typedef Genode::Id_space<Node> Node_space;
-	typedef Genode::Fifo<Node>     Node_queue;
+	using Node_space = Genode::Id_space<Node>;
+	using Node_queue = Genode::Fifo<Node>;
 
 	/* Vfs::MAX_PATH is shorter than File_system::MAX_PATH */
 	enum { MAX_PATH_LEN = Vfs::MAX_PATH_LEN };
 
-	typedef Genode::Path<MAX_PATH_LEN> Path;
+	using Path = Genode::Path<MAX_PATH_LEN>;
 
-	typedef Genode::Allocator::Out_of_memory Out_of_memory;
+	using Out_of_memory = Genode::Allocator::Out_of_memory;
 
 	struct Payload_ptr { char *ptr; };
 
@@ -58,21 +57,21 @@ namespace Vfs_server {
 	 * Type trait for determining the node type for a given handle type
 	 */
 	template<typename T> struct Node_type;
-	template<> struct Node_type<Node_handle>    { typedef Io_node    Type; };
-	template<> struct Node_type<Dir_handle>     { typedef Directory  Type; };
-	template<> struct Node_type<File_handle>    { typedef File       Type; };
-	template<> struct Node_type<Symlink_handle> { typedef Symlink    Type; };
-	template<> struct Node_type<Watch_handle>   { typedef Watch_node Type; };
+	template<> struct Node_type<Node_handle>    { using Type = Io_node; };
+	template<> struct Node_type<Dir_handle>     { using Type = Directory; };
+	template<> struct Node_type<File_handle>    { using Type = File; };
+	template<> struct Node_type<Symlink_handle> { using Type = Symlink; };
+	template<> struct Node_type<Watch_handle>   { using Type = Watch_node; };
 
 	/**
 	 * Type trait for determining the handle type for a given node type
 	 */
 	template<typename T> struct Handle_type;
-	template<> struct Handle_type<Io_node>   { typedef Node_handle    Type; };
-	template<> struct Handle_type<Directory> { typedef Dir_handle     Type; };
-	template<> struct Handle_type<File>      { typedef File_handle    Type; };
-	template<> struct Handle_type<Symlink>   { typedef Symlink_handle Type; };
-	template<> struct Handle_type<Watch>     { typedef Watch_handle   Type; };
+	template<> struct Handle_type<Io_node>   { using Type = Node_handle; };
+	template<> struct Handle_type<Directory> { using Type = Dir_handle; };
+	template<> struct Handle_type<File>      { using Type = File_handle; };
+	template<> struct Handle_type<Symlink>   { using Type = Symlink_handle; };
+	template<> struct Handle_type<Watch>     { using Type = Watch_handle; };
 
 	/*
 	 * Note that the file objects are created at the
@@ -584,7 +583,7 @@ struct Vfs_server::Symlink : Io_node
 {
 	private:
 
-		typedef Genode::String<MAX_PATH_LEN + 1> Write_buffer;
+		using Write_buffer = Genode::String<MAX_PATH_LEN + 1>;
 
 		Write_buffer _write_buffer { };
 
@@ -707,12 +706,12 @@ class Vfs_server::File : public Io_node
 
 		char const * const _leaf_path = nullptr; /* offset pointer to Node::_path */
 
-		typedef Directory_service::Stat Stat;
+		using Stat = Directory_service::Stat;
 
 		template <typename FN>
 		void _with_stat(FN const &fn)
 		{
-			typedef Directory_service::Stat_result Result;
+			using Result = Directory_service::Stat_result;
 
 			Vfs::Directory_service::Stat stat { };
 			if (_handle.ds().stat(_leaf_path, stat) == Result::STAT_OK)
@@ -864,8 +863,8 @@ struct Vfs_server::Directory : Io_node
 
 		Session_writeable const _writeable;
 
-		typedef Directory_service::Dirent    Vfs_dirent;
-		typedef ::File_system::Directory_entry Fs_dirent;
+		using Vfs_dirent = Directory_service::Dirent;
+		using Fs_dirent  = ::File_system::Directory_entry;
 
 		bool _position_and_length_aligned_with_dirent_size()
 		{

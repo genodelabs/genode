@@ -125,7 +125,7 @@ void Monitor::apply_formatting(Formatting &formatting) const
 		n = max(n, printed_length(arg));
 	};
 
-	typedef Trace::Subject_info Subject_info;
+	using Subject_info = Trace::Subject_info;
 
 	expand(formatting.thread_name, Formatted("Thread ", Quoted_name{_info.thread_name()}));
 	expand(formatting.affinity,    Formatted_affinity{_info.affinity()});
@@ -145,7 +145,7 @@ void Monitor::print(Formatting fmt, Level_of_detail detail)
 		return;
 
 	/* print general subject information */
-	typedef Trace::Subject_info Subject_info;
+	using Subject_info = Trace::Subject_info;
 	Subject_info::State const state = _info.state();
 
 	log(Left_aligned(fmt.thread_name, Formatted("Thread ", Quoted_name{_info.thread_name()})),

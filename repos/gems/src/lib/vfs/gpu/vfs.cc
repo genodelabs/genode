@@ -87,7 +87,7 @@ struct Vfs_gpu::File_system : Single_file_system
 
 	Vfs::Env &_env;
 
-	typedef String<32> Config;
+	using Config = String<32>;
 
 	Id_space<Gpu_vfs_handle>     _handle_space { };
 	Id_space<Gpu_vfs_handle>::Id _last_id { .value = ~0ul };

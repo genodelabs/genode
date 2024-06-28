@@ -43,7 +43,7 @@ class Decorator::Window : public Window_base
 
 			View_handle _handle { _gui.create_view() };
 
-			typedef Gui::Session::Command Command;
+			using Command = Gui::Session::Command;
 
 			Gui_view(Gui::Session_client &gui, unsigned id = 0)
 			:
@@ -124,7 +124,7 @@ class Decorator::Window : public Window_base
 		 */
 		Lazy_value<int> _gradient_percent = _config.gradient_percent(_title);
 
-		typedef Window_element Element;
+		using Element = Window_element;
 
 		/*
 		 * The element order must correspond to the order of enum values
@@ -162,7 +162,7 @@ class Decorator::Window : public Window_base
 			return element(type).apply_state(state);
 		}
 
-		typedef Config::Window_control Control;
+		using Control = Config::Window_control;
 
 		class Controls
 		{

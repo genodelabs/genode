@@ -41,7 +41,7 @@ struct Test::Base : Interface
 {
 	public:
 
-		typedef String<64> Name;
+		using Name = String<64>;
 
 		virtual void handle_nic() = 0;
 
@@ -111,7 +111,7 @@ struct Test::Roundtrip : Base
 	/*
 	 * Each character of the string is used as pattern for one iteration.
 	 */
-	typedef String<16> Patterns;
+	using Patterns = String<16>;
 
 	Patterns const _patterns;
 

@@ -23,15 +23,15 @@ namespace Decorator {
 
 	class Theme;
 
-	typedef Genode::Pixel_rgb888 Pixel_rgb888;
-	typedef Genode::Pixel_alpha8 Pixel_alpha8;
+	using Pixel_rgb888 = Genode::Pixel_rgb888;
+	using Pixel_alpha8 = Genode::Pixel_alpha8;
 
-	typedef Genode::Surface<Pixel_rgb888> Pixel_surface;
-	typedef Genode::Surface<Pixel_alpha8> Alpha_surface;
+	using Pixel_surface = Genode::Surface<Pixel_rgb888>;
+	using Alpha_surface = Genode::Surface<Pixel_alpha8>;
 
-	typedef Genode::Surface_base::Area  Area;
-	typedef Genode::Surface_base::Point Point;
-	typedef Genode::Surface_base::Rect  Rect;
+	using Area  = Genode::Surface_base::Area;
+	using Point = Genode::Surface_base::Point;
+	using Rect  = Genode::Surface_base::Rect;
 }
 
 

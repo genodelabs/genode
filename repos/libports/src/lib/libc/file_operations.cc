@@ -99,7 +99,7 @@ static Absolute_path &cwd()
 }
 
 
-typedef Token<Vfs::Scanner_policy_path_element> Path_element_token;
+using Path_element_token = Token<Vfs::Scanner_policy_path_element>;
 
 
 /**

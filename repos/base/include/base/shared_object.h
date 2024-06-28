@@ -128,7 +128,7 @@ class Genode::Dynamic_linker
 		struct Object_info
 		{
 			/* name of shared library, or "binary" for the main program */
-			typedef String<64> Name;
+			using Name = String<64>;
 			Name name;
 
 			Rom_dataspace_capability ds_cap;
@@ -177,8 +177,8 @@ class Genode::Dynamic_linker
 		 */
 		static void keep(Env &, char const *name);
 
-		typedef Shared_object::Invalid_rom_module Invalid_rom_module;
-		typedef Shared_object::Invalid_symbol     Invalid_symbol;
+		using Invalid_rom_module = Shared_object::Invalid_rom_module;
+		using Invalid_symbol     = Shared_object::Invalid_symbol;
 
 		/**
 		 * Replace executable binary

@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <framebuffer_session/framebuffer_session.h>
 
-namespace Framebuffer { typedef Genode::Capability<Session> Session_capability; }
+namespace Framebuffer { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _INCLUDE__FRAMEBUFFER_SESSION__CAPABILITY_H_ */

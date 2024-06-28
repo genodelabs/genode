@@ -118,7 +118,7 @@ class Net::Session_component : private Net::Stream_allocator,
 
 	public:
 
-		typedef Genode::String<32> Ip_addr;
+		using Ip_addr = Genode::String<32>;
 
 		/**
 		 * Constructor

@@ -219,7 +219,7 @@ class Lwip::Nic_netif
 		{
 			_dhcp = config.attribute_value("dhcp", false);
 
-			typedef Genode::String<IPADDR_STRLEN_MAX> Str;
+			using Str = Genode::String<IPADDR_STRLEN_MAX>;
 			Str ip_str = config.attribute_value("ip_addr", Str());
 
 			if (_dhcp && ip_str != "") {
@@ -476,7 +476,7 @@ static void nic_netif_status_callback(struct netif *netif)
 			Genode::log("lwIP Nic interface up"
 			            ", address=",(char const*)ip6addr_ntoa(netif_ip6_addr(netif, 0)));
 		} else if (!ip4_addr_isany(netif_ip4_addr(netif))) {
-			typedef Genode::String<IPADDR_STRLEN_MAX> Str;
+			using Str = Genode::String<IPADDR_STRLEN_MAX>;
 			Str address((char const*)ip4addr_ntoa(netif_ip4_addr(netif)));
 			Str netmask((char const*)ip4addr_ntoa(netif_ip4_netmask(netif)));
 			Str gateway((char const*)ip4addr_ntoa(netif_ip4_gw(netif)));

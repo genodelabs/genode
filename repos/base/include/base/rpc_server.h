@@ -60,7 +60,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 	 * Shortcut for the type list of RPC functions provided by this server
 	 * component
 	 */
-	typedef typename RPC_INTERFACE::Rpc_functions Rpc_functions;
+	using Rpc_functions = typename RPC_INTERFACE::Rpc_functions;
 
 	protected:
 
@@ -69,7 +69,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		                    Meta::Overload_selector<ARG_LIST>)
 		{
 			typename Trait::Rpc_direction<typename ARG_LIST::Head>::Type direction;
-			typedef typename ARG_LIST::Stored_head Arg;
+			using Arg = typename ARG_LIST::Stored_head;
 			Arg arg = _read_arg<Arg>(msg, direction);
 
 			Meta::Overload_selector<typename ARG_LIST::Tail> tail_selector;
@@ -124,7 +124,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 				EXCEPTION_CODE = Rpc_exception_code::EXCEPTION_BASE
 				               - Meta::Length<EXC_TL>::Value;
 			try {
-				typedef typename EXC_TL::Tail Exc_tail;
+				using Exc_tail = typename EXC_TL::Tail;
 				return _do_serve(args,
 				                 Meta::Overload_selector<RPC_FUNCTION, Exc_tail>());
 			} catch (typename EXC_TL::Head) {
@@ -142,7 +142,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		_do_serve(typename RPC_FUNCTION::Server_args &args,
 		          Meta::Overload_selector<RPC_FUNCTION, Meta::Empty>)
 		{
-			typedef typename RPC_FUNCTION::Ret_type Ret_type;
+			using Ret_type = typename RPC_FUNCTION::Ret_type;
 			SERVER *me = static_cast<SERVER *>(this);
 			return RPC_FUNCTION::template serve<SERVER, Ret_type>(*me, args);
 		}
@@ -154,12 +154,12 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		{
 			using namespace Meta;
 
-			typedef typename RPC_FUNCTIONS_TO_CHECK::Head This_rpc_function;
+			using This_rpc_function = typename RPC_FUNCTIONS_TO_CHECK::Head;
 
 			if (opcode.value == Index_of<Rpc_functions, This_rpc_function>::Value) {
 
 				/* read arguments from incoming message */
-				typedef typename This_rpc_function::Server_args Server_args;
+				using Server_args = typename This_rpc_function::Server_args;
 				Meta::Overload_selector<Server_args> arg_selector;
 				Server_args args = _read_args(in, arg_selector);
 
@@ -173,10 +173,10 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 				 * select the overload.
 				 */
 
-				typedef typename This_rpc_function::Ret_type Ret_type;
+				using Ret_type = typename This_rpc_function::Ret_type;
 				Rpc_exception_code exc(Rpc_exception_code::SUCCESS);
 				try {
-					typedef typename This_rpc_function::Exceptions Exceptions;
+					using Exceptions = typename This_rpc_function::Exceptions;
 					Overload_selector<This_rpc_function, Exceptions> overloader;
 					Ret_type ret = _do_serve(args, overloader);
 
@@ -198,7 +198,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 				return exc;
 			}
 
-			typedef typename RPC_FUNCTIONS_TO_CHECK::Tail Tail;
+			using Tail = typename RPC_FUNCTIONS_TO_CHECK::Tail;
 			return _do_dispatch(opcode, in, out, Overload_selector<Tail>());
 		}
 

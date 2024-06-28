@@ -27,7 +27,7 @@ class Vfs::Tar_file_system : public File_system
 	Genode::Env       &_env;
 	Genode::Allocator &_alloc;
 
-	typedef Genode::String<64> Rom_name;
+	using Rom_name = Genode::String<64>;
 	Rom_name _rom_name;
 
 	Genode::Attached_rom_dataspace _tar_ds { _env, _rom_name.string() };
@@ -284,7 +284,7 @@ class Vfs::Tar_file_system : public File_system
 	};
 
 
-	typedef Genode::Token<Scanner_policy_path_element> Path_element_token;
+	using Path_element_token = Genode::Token<Scanner_policy_path_element>;
 
 
 	struct Node : List<Node>, List<Node>::Element

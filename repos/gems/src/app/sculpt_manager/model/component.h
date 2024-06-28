@@ -24,10 +24,10 @@ namespace Sculpt { struct Component; }
 
 struct Sculpt::Component : Noncopyable
 {
-	typedef Depot::Archive::Path Path;
-	typedef Depot::Archive::Name Name;
-	typedef String<100>          Info;
-	typedef Start_name           Service;
+	using Path    = Depot::Archive::Path;
+	using Name    = Depot::Archive::Name;
+	using Info    = String<100>;
+	using Service = Start_name;
 
 	Allocator &_alloc;
 

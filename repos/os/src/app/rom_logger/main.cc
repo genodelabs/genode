@@ -29,7 +29,7 @@ struct Rom_logger::Main
 
 	Genode::Constructible<Genode::Attached_rom_dataspace> _rom_ds { };
 
-	typedef Genode::String<100> Rom_name;
+	using Rom_name = Genode::String<100>;
 
 	/**
 	 * Name of currently requested ROM module
@@ -76,7 +76,7 @@ void Rom_logger::Main::_handle_update()
 
 	Rom_name const rom_name = config.attribute_value("rom", Rom_name());
 
-	typedef Genode::String<8> Format_string;
+	using Format_string = Genode::String<8>;
 	Format_string const format = config.attribute_value("format", Format_string("text"));
 
 	/*

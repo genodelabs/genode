@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <block_session/block_session.h>
 
-namespace Block { typedef Genode::Capability<Session> Session_capability; }
+namespace Block { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _INCLUDE__BLOCK_SESSION__CAPABILITY_H_ */

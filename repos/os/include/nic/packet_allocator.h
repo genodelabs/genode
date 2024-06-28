@@ -47,7 +47,7 @@ struct Nic::Packet_allocator : Genode::Packet_allocator
 		OFFSET_PACKET_SIZE = DEFAULT_PACKET_SIZE - OFFSET,
 	};
 
-	typedef Genode::size_t size_t;
+	using size_t = Genode::size_t;
 
 	/**
 	 * Constructor

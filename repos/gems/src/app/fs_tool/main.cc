@@ -56,7 +56,7 @@ struct Fs_tool::Main
 
 	bool _verbose = false;
 
-	typedef Directory::Path Path;
+	using Path = Directory::Path;
 
 	void _copy_file(Path const &from, Path const &to, Byte_range_ptr const &);
 

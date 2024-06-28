@@ -18,7 +18,7 @@
 
 namespace Genode { namespace Trace {
 
-	typedef uint64_t Timestamp;
+	using Timestamp = uint64_t;
 
 	/*
 	 * In Linux/AARCH64, the 'mrs' instruction cannot be executed in user land.

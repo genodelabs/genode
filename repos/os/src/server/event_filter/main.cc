@@ -84,7 +84,7 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 	{
 		struct Rom
 		{
-			typedef Include_accessor::Name Name;
+			using Name = Include_accessor::Name;
 
 			Registry<Rom>::Element    _reg_elem;
 			Name             const    _name;

@@ -25,11 +25,11 @@ extern "C" {
 
 
 #ifdef _LP64
-typedef Elf64_Dyn Elf_Dyn;
-typedef Elf64_Sym Elf_Sym;
+using Elf_Dyn = Elf64_Dyn;
+using Elf_Sym = Elf64_Sym;
 #else
-typedef Elf32_Dyn Elf_Dyn;
-typedef Elf32_Sym Elf_Sym;
+using Elf_Dyn = Elf32_Dyn;
+using Elf_Sym = Elf32_Sym;
 #endif
 
 static bool const verbose = false;

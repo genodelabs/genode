@@ -31,17 +31,17 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		Vfs::Env              &_env;
 		Genode::Allocator_avl  _fs_packet_alloc { &_env.alloc() };
 
-		typedef Genode::String<64> Label_string;
+		using Label_string = Genode::String<64>;
 		Label_string _label;
 
-		typedef Genode::String<::File_system::MAX_NAME_LEN> Root_string;
+		using Root_string = Genode::String<::File_system::MAX_NAME_LEN>;
 		Root_string _root;
 
 		::File_system::Connection _fs;
 
 		bool _write_would_block = false;
 
-		typedef Genode::Id_space<::File_system::Node> Handle_space;
+		using Handle_space = Genode::Id_space<::File_system::Node>;
 
 		Handle_space _handle_space { };
 		Handle_space _watch_handle_space { };
@@ -60,7 +60,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		};
 
 		struct Fs_vfs_handle;
-		typedef Genode::Fifo<Fs_vfs_handle> Fs_vfs_handle_queue;
+		using Fs_vfs_handle_queue = Genode::Fifo<Fs_vfs_handle>;
 
 		Remote_io::Peer _peer { _env.deferred_wakeups(), *this };
 

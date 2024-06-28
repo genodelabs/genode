@@ -22,22 +22,22 @@ namespace Genode {
 		 ** Reference and non-reference types **
 		 ***************************************/
 
-		template <typename T> struct Reference     { typedef T& Type; };
-		template <typename T> struct Reference<T*> { typedef T* Type; };
-		template <typename T> struct Reference<T&> { typedef T& Type; };
+		template <typename T> struct Reference     { using Type = T&; };
+		template <typename T> struct Reference<T*> { using Type = T*; };
+		template <typename T> struct Reference<T&> { using Type = T&; };
 
-		template <typename T> struct Non_reference     { typedef T Type; };
-		template <typename T> struct Non_reference<T*> { typedef T Type; };
-		template <typename T> struct Non_reference<T&> { typedef T Type; };
+		template <typename T> struct Non_reference     { using Type = T; };
+		template <typename T> struct Non_reference<T*> { using Type = T; };
+		template <typename T> struct Non_reference<T&> { using Type = T; };
 
-		template <typename T> struct Non_const          { typedef T Type; };
-		template <typename T> struct Non_const<T const> { typedef T Type; };
+		template <typename T> struct Non_const          { using Type = T; };
+		template <typename T> struct Non_const<T const> { using Type = T; };
 
 		/**
 		 * Determine plain-old-data type corresponding to type 'T'
 		 */
 		template <typename T> struct Pod {
-			typedef typename Non_const<typename Non_reference<T>::Type>::Type Type; };
+			using Type = typename Non_const<typename Non_reference<T>::Type>::Type; };
 
 	} /* namespace Trait */
 
@@ -80,8 +80,8 @@ namespace Genode {
 		template <typename HEAD, typename TAIL>
 		struct Type_tuple
 		{
-			typedef HEAD Head;
-			typedef TAIL Tail;
+			using Head = HEAD;
+			using Tail = TAIL;
 		};
 
 		/**
@@ -91,7 +91,7 @@ namespace Genode {
 		struct Type_list;
 
 		template <>
-		struct Type_list<> { typedef Empty Head; };
+		struct Type_list<> { using Head = Empty; };
 
 		template <typename T>
 		struct Type_list<T> : Type_tuple<T, Empty> { };
@@ -136,18 +136,18 @@ namespace Genode {
 		class Append
 		{
 			/* pass appendix towards the end of the typelist */
-			typedef typename Append<typename TL::Tail, APPENDIX>::Type _Tail;
+			using _Tail = typename Append<typename TL::Tail, APPENDIX>::Type;
 
 			public:
 
 				/* keep head, replace tail */
-				typedef Type_tuple<typename TL::Head, _Tail> Type;
+				using Type = Type_tuple<typename TL::Head, _Tail>;
 		};
 
 
 		/* replace end of type list ('Empty' type) with appendix */
 		template <typename APPENDIX>
-		struct Append<Empty, APPENDIX> { typedef APPENDIX Type; };
+		struct Append<Empty, APPENDIX> { using Type = APPENDIX; };
 
 
 		/**
@@ -155,17 +155,17 @@ namespace Genode {
 		 */
 		template <typename TL, unsigned I>
 		struct Type_at {
-			typedef typename Type_at<typename TL::Tail, I - 1>::Type Type; };
+			using Type = typename Type_at<typename TL::Tail, I - 1>::Type; };
 
 		/* end recursion if we reached the type */
 		template <typename TL>
-		struct Type_at<TL, 0U> { typedef typename TL::Head Type; };
+		struct Type_at<TL, 0U> { using Type = typename TL::Head; };
 
 		/* end recursion at the end of type list */
-		template <unsigned I> struct Type_at<Empty, I> { typedef void Type; };
+		template <unsigned I> struct Type_at<Empty, I> { using Type = void; };
 
 		/* resolve ambiguous specializations */
-		template <> struct Type_at<Empty, 0> { typedef void Type; };
+		template <> struct Type_at<Empty, 0> { using Type = void; };
 
 
 		/**
@@ -300,12 +300,12 @@ namespace Genode {
 		template <typename HEAD, typename TAIL>
 		struct Pod_tuple
 		{
-			typedef typename Trait::Pod<HEAD>::Type Stored_head;
+			using Stored_head = typename Trait::Pod<HEAD>::Type;
 			Stored_head _1;
 			TAIL _2;
 
-			typedef HEAD Head;
-			typedef TAIL Tail;
+			using Head = HEAD;
+			using Tail = TAIL;
 
 			/**
 			 * Accessor for requesting the data reference to '_1'
@@ -324,12 +324,12 @@ namespace Genode {
 		template <typename HEAD, typename TAIL>
 		struct Pod_tuple<HEAD *, TAIL>
 		{
-			typedef typename Trait::Non_reference<HEAD>::Type Stored_head;
+			using Stored_head = typename Trait::Non_reference<HEAD>::Type;
 			Stored_head _1;
 			TAIL _2;
 
-			typedef HEAD* Head;
-			typedef TAIL Tail;
+			using Head = HEAD*;
+			using Tail = TAIL;
 
 			HEAD *get() { return &_1; }
 		};
@@ -355,35 +355,35 @@ namespace Genode {
 
 		template <>
 		struct Ref_args<Void> {
-			typedef Empty Type; };
+			using Type = Empty; };
 
 		template <typename T1>
 		struct Ref_args<T1, Void> {
-			typedef Ref_tuple<T1, Empty> Type; };
+			using Type = Ref_tuple<T1, Empty>; };
 
 		template <typename T1, typename T2>
 		struct Ref_args<T1, T2, Void> {
-			typedef Ref_tuple_3<T1, T2, Empty> Type; };
+			using Type = Ref_tuple_3<T1, T2, Empty>; };
 
 		template <typename T1, typename T2, typename T3>
 		struct Ref_args<T1, T2, T3, Void> {
-			typedef Ref_tuple_4<T1, T2, T3, Empty> Type; };
+			using Type = Ref_tuple_4<T1, T2, T3, Empty>; };
 
 		template <typename T1, typename T2, typename T3, typename T4>
 		struct Ref_args<T1, T2, T3, T4, Void> {
-			typedef Ref_tuple_5<T1, T2, T3, T4, Empty> Type; };
+			using Type = Ref_tuple_5<T1, T2, T3, T4, Empty>; };
 
 		template <typename T1, typename T2, typename T3, typename T4, typename T5>
 		struct Ref_args<T1, T2, T3, T4, T5, Void> {
-			typedef Ref_tuple_6<T1, T2, T3, T4, T5, Empty> Type; };
+			using Type = Ref_tuple_6<T1, T2, T3, T4, T5, Empty>; };
 
 		template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
 		struct Ref_args<T1, T2, T3, T4, T5, T6, Void> {
-			typedef Ref_tuple_7<T1, T2, T3, T4, T5, T6, Empty> Type; };
+			using Type = Ref_tuple_7<T1, T2, T3, T4, T5, T6, Empty>; };
 
 		template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
 		struct Ref_args<T1, T2, T3, T4, T5, T6, T7, Void> {
-			typedef Ref_tuple_8<T1, T2, T3, T4, T5, T6, T7, Empty> Type; };
+			using Type = Ref_tuple_8<T1, T2, T3, T4, T5, T6, T7, Empty>; };
 
 
 		/**
@@ -398,28 +398,28 @@ namespace Genode {
 		struct Pod_args;
 
 		template <>
-		struct Pod_args<Void> { typedef Empty Type; };
+		struct Pod_args<Void> { using Type = Empty; };
 
 		template <typename T1>
-		struct Pod_args<T1, Void> { typedef Pod_tuple<T1, Empty> Type; };
+		struct Pod_args<T1, Void> { using Type = Pod_tuple<T1, Empty>; };
 
 		template <typename T1, typename T2>
-		struct Pod_args<T1, T2, Void> { typedef Pod_tuple<T1, typename Pod_args<T2, Void>::Type> Type; };
+		struct Pod_args<T1, T2, Void> { using Type = Pod_tuple<T1, typename Pod_args<T2, Void>::Type>; };
 
 		template <typename T1, typename T2, typename T3>
-		struct Pod_args<T1, T2, T3, Void> { typedef Pod_tuple<T1, typename Pod_args<T2, T3, Void>::Type> Type; };
+		struct Pod_args<T1, T2, T3, Void> { using Type = Pod_tuple<T1, typename Pod_args<T2, T3, Void>::Type>; };
 
 		template <typename T1, typename T2, typename T3, typename T4>
-		struct Pod_args<T1, T2, T3, T4, Void> { typedef Pod_tuple<T1, typename Pod_args<T2, T3, T4, Void>::Type> Type; };
+		struct Pod_args<T1, T2, T3, T4, Void> { using Type = Pod_tuple<T1, typename Pod_args<T2, T3, T4, Void>::Type>; };
 
 		template <typename T1, typename T2, typename T3, typename T4, typename T5>
-		struct Pod_args<T1, T2, T3, T4, T5, Void> { typedef Pod_tuple<T1, typename Pod_args<T2, T3, T4, T5, Void>::Type> Type; };
+		struct Pod_args<T1, T2, T3, T4, T5, Void> { using Type = Pod_tuple<T1, typename Pod_args<T2, T3, T4, T5, Void>::Type>; };
 
 		template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-		struct Pod_args<T1, T2, T3, T4, T5, T6, Void> { typedef Pod_tuple<T1, typename Pod_args<T2, T3, T4, T5, T6, Void>::Type> Type; };
+		struct Pod_args<T1, T2, T3, T4, T5, T6, Void> { using Type = Pod_tuple<T1, typename Pod_args<T2, T3, T4, T5, T6, Void>::Type>; };
 
 		template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-		struct Pod_args<T1, T2, T3, T4, T5, T6, T7, Void> { typedef Pod_tuple<T1, typename Pod_args<T2, T3, T4, T5, T6, T7, Void>::Type> Type; };
+		struct Pod_args<T1, T2, T3, T4, T5, T6, T7, Void> { using Type = Pod_tuple<T1, typename Pod_args<T2, T3, T4, T5, T6, T7, Void>::Type>; };
 
 
 		/**
@@ -619,8 +619,8 @@ namespace Genode {
 			 * Make class unique for different template arguments. The types
 			 * are never used.
 			 */
-			typedef T1 _T1;
-			typedef T2 _T2;
+			using _T1 = T1;
+			using _T2 = T2;
 
 			/* prevent zero initialization of objects */
 			Overload_selector() { }

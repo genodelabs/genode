@@ -33,11 +33,11 @@
 enum { LOG_W = 80 };  /* number of visible characters per line */
 enum { LOG_H = 25 };  /* number of lines of log window         */
 
-typedef Text_painter::Font          Font;
-typedef Genode::Surface_base::Point Point;
-typedef Genode::Surface_base::Area  Area;
-typedef Genode::Surface_base::Rect  Rect;
-typedef Genode::Color               Color;
+using Font  = Text_painter::Font;
+using Point = Genode::Surface_base::Point;
+using Area  = Genode::Surface_base::Area;
+using Rect  = Genode::Surface_base::Rect;
+using Color = Genode::Color;
 
 
 /*
@@ -357,8 +357,8 @@ class Log_view
 		Gui::Area                 _size;
 		Gui::Session::View_handle _handle;
 
-		typedef Gui::Session::Command     Command;
-		typedef Gui::Session::View_handle View_handle;
+		using Command     = Gui::Session::Command;
+		using View_handle = Gui::Session::View_handle;
 
 	public:
 

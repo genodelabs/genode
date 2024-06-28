@@ -105,8 +105,7 @@ void Genode::init_log(Parent &parent)
 		}
 	};
 
-	typedef Buffered_output<Log_session::MAX_STRING_LEN, Write_fn>
-	        Buffered_log_output;
+	using Buffered_log_output = Buffered_output<Log_session::MAX_STRING_LEN, Write_fn>;
 
 	static Buffered_log_output *buffered_log_output =
 		unmanaged_singleton<Buffered_log_output>(Write_fn());

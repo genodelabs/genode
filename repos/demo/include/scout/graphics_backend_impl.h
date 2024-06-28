@@ -56,7 +56,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		Genode::Attached_dataspace _fb_ds { _local_rm, _init_fb_ds(_max_size) };
 
-		typedef Gui::Session::View_handle View_handle;
+		using View_handle = Gui::Session::View_handle;
 
 		Point        _position;
 		Area         _view_size;
@@ -66,7 +66,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		void _update_viewport()
 		{
-			typedef Gui::Session::Command Command;
+			using Command = Gui::Session::Command;
 
 			Gui::Rect rect(_position, _view_size);
 			_gui.enqueue<Command::Geometry>(_view, rect);
@@ -113,7 +113,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 		{
 			bring_to_front();
 
-			typedef Genode::Pixel_rgb888 PT;
+			using PT = Genode::Pixel_rgb888;
 			static Canvas<PT> canvas_0(_base<PT>(0), max_size, alloc);
 			static Canvas<PT> canvas_1(_base<PT>(1), max_size, alloc);
 
@@ -132,7 +132,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 		void copy_back_to_front(Rect rect) override
 		{
 
-			typedef Genode::Pixel_rgb888 PT;
+			using PT = Genode::Pixel_rgb888;
 
 			PT const *src = _base<PT>( _back_idx());
 			PT       *dst = _base<PT>(_front_idx());
@@ -163,8 +163,8 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		void bring_to_front() override
 		{
-			typedef Gui::Session::Command     Command;
-			typedef Gui::Session::View_handle View_handle;
+			using Command     = Gui::Session::Command;
+			using View_handle = Gui::Session::View_handle;
 			_gui.enqueue<Command::To_front>(_view, View_handle());
 			_gui.execute();
 		}

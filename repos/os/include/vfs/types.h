@@ -36,10 +36,10 @@ namespace Vfs {
 	using Genode::copy_cstring;
 	using Genode::strcmp;
 	using Genode::strlen;
-	typedef long long file_offset;
+	using file_offset = long long;
 	using Genode::memcpy;
 	using Genode::memset;
-	typedef unsigned long long file_size;
+	using file_size = unsigned long long;
 	using Genode::List;
 	using Genode::Xml_node;
 	using Genode::Signal_context_capability;
@@ -90,7 +90,7 @@ namespace Vfs {
 		                                 .executable = true }; }
 	};
 
-	typedef Genode::Path<MAX_PATH_LEN> Absolute_path;
+	using Absolute_path = Genode::Path<MAX_PATH_LEN>;
 
 	struct Scanner_policy_path_element
 	{

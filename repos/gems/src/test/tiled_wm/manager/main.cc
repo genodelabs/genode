@@ -21,7 +21,7 @@
 #include <os/reporter.h>
 
 
-typedef Genode::String<32> Name;
+using Name = Genode::String<32>;
 
 
 namespace Test { struct Manager; }

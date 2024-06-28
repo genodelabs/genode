@@ -19,7 +19,7 @@
 
 struct Box_painter
 {
-	typedef Genode::Surface_base::Rect Rect;
+	using Rect = Genode::Surface_base::Rect;
 
 	/**
 	 * Draw filled box

@@ -19,7 +19,7 @@
 
 namespace Genode {
 
-	typedef Okl4::L4_ThreadId_t Rpc_destination;
+	using Rpc_destination = Okl4::L4_ThreadId_t;
 
 	static inline Rpc_destination invalid_rpc_destination()
 	{

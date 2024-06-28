@@ -24,7 +24,7 @@ namespace Libc { struct Malloc_ram_allocator; }
 
 struct Libc::Malloc_ram_allocator : Ram_allocator
 {
-	typedef Genode::Allocator Allocator;
+	using Allocator = Genode::Allocator;
 
 	Allocator     &_md_alloc;
 	Ram_allocator &_ram;

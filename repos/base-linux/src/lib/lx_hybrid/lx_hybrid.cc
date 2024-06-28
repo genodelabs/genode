@@ -427,7 +427,7 @@ namespace {
 
 	struct Global_allocator : Allocator
 	{
-		typedef Genode::size_t size_t;
+		using size_t = Genode::size_t;
 
 		Alloc_result try_alloc(size_t size) override { return malloc(size); }
 

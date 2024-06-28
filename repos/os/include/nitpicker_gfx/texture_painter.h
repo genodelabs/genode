@@ -39,8 +39,8 @@ struct Texture_painter
 	};
 
 
-	typedef Genode::Surface_base::Point Point;
-	typedef Genode::Surface_base::Rect  Rect;
+	using Point = Genode::Surface_base::Point;
+	using Rect  = Genode::Surface_base::Rect;
 
 
 	template <typename PT>

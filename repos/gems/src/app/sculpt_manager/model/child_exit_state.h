@@ -29,8 +29,8 @@ struct Sculpt::Child_exit_state
 	bool responsive = true;
 	int  code       = 0;
 
-	typedef String<64> Name;
-	typedef String<16> Version;
+	using Name = String<64>;
+	using Version = String<16>;
 
 	Version version { };
 

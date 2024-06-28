@@ -228,7 +228,7 @@ struct Audio_out::Root_policy
 
 
 namespace Audio_out {
-	typedef Root_component<Session_component, Root_policy> Root_component;
+	using Root_component = Root_component<Session_component, Root_policy>;
 }
 
 
@@ -273,7 +273,7 @@ struct Audio_out::Main
 
 	Main(Genode::Env &env) : env(env)
 	{
-		typedef Genode::String<32> Dev;
+		using Dev = Genode::String<32>;
 		Dev const dev = config.xml().attribute_value("alsa_device", Dev("hw"));
 
 		/* init ALSA */

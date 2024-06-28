@@ -121,9 +121,8 @@ class Genode::Trace_output
 
 		/* cannot include log_session.h here because of recursion */
 		enum { LOG_SESSION_MAX_STRING_LEN = 232 };
-		typedef Buffered_output<LOG_SESSION_MAX_STRING_LEN,
-		                        Write_trace_fn>
-		        Buffered_trace_output;
+		using Buffered_trace_output =
+			Buffered_output<LOG_SESSION_MAX_STRING_LEN, Write_trace_fn>;
 
 	public:
 
@@ -210,7 +209,7 @@ class Genode::Log_tsc_probe : Noncopyable
 {
 	private:
 
-		typedef Trace::Timestamp Timestamp;
+		using Timestamp = Trace::Timestamp;
 
 		struct Pretty_tsc
 		{

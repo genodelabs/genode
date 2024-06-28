@@ -37,36 +37,36 @@ extern "C" {
 #include <base/stdint.h>
 
 /* type for a 16-bit quantity.  */
-typedef genode_uint16_t Elf32_Half;
-typedef genode_uint16_t Elf64_Half;
+using Elf32_Half = genode_uint16_t;
+using Elf64_Half = genode_uint16_t;
 
 /* types for signed and unsigned 32-bit quantities */
-typedef genode_uint32_t Elf32_Word;
-typedef genode_int32_t  Elf32_Sword;
-typedef genode_uint32_t Elf64_Word;
-typedef genode_int32_t  Elf64_Sword;
+using Elf32_Word = genode_uint32_t;
+using Elf32_Sword = genode_int32_t;
+using Elf64_Word = genode_uint32_t;
+using Elf64_Sword = genode_int32_t;
 
 /* types for signed and unsigned 64-bit quantities */
-typedef genode_uint64_t Elf32_Xword;
-typedef genode_int64_t  Elf32_Sxword;
-typedef genode_uint64_t Elf64_Xword;
-typedef genode_int64_t  Elf64_Sxword;
+using Elf32_Xword  = genode_uint64_t;
+using Elf32_Sxword = genode_int64_t;
+using Elf64_Xword  = genode_uint64_t;
+using Elf64_Sxword = genode_int64_t;
 
 /* type of addresses */
-typedef genode_uint32_t Elf32_Addr;
-typedef genode_uint64_t Elf64_Addr;
+using Elf32_Addr = genode_uint32_t;
+using Elf64_Addr = genode_uint64_t;
 
 /* type of file offsets */
-typedef genode_uint32_t Elf32_Off;
-typedef genode_uint64_t Elf64_Off;
+using Elf32_Off = genode_uint32_t;
+using Elf64_Off = genode_uint64_t;
 
 /* type for section indices, which are 16-bit quantities */
-typedef genode_uint16_t Elf32_Section;
-typedef genode_uint16_t Elf64_Section;
+using Elf32_Section = genode_uint16_t;
+using Elf64_Section = genode_uint16_t;
 
 /* type for version symbol information */
-typedef Elf32_Half Elf32_Versym;
-typedef Elf64_Half Elf64_Versym;
+using Elf32_Versym = Elf32_Half;
+using Elf64_Versym = Elf64_Half;
 
 
 /**
@@ -74,7 +74,7 @@ typedef Elf64_Half Elf64_Versym;
  */
 enum { EI_NIDENT = 16 };
 
-typedef struct
+struct Elf32_Ehdr
 {
 	unsigned char e_ident[EI_NIDENT];   /* Magic number and other info */
 	Elf32_Half    e_type;               /* Object file type */
@@ -90,9 +90,9 @@ typedef struct
 	Elf32_Half    e_shentsize;          /* Section header table entry size */
 	Elf32_Half    e_shnum;              /* Section header table entry count */
 	Elf32_Half    e_shstrndx;           /* Section header string table index */
-} Elf32_Ehdr;
+};
 
-typedef struct
+struct Elf64_Ehdr
 {
 	unsigned char e_ident[EI_NIDENT];   /* magic number and other info       */
 	Elf64_Half    e_type;               /* object file type                  */
@@ -108,7 +108,7 @@ typedef struct
 	Elf64_Half    e_shentsize;          /* section header table entry size   */
 	Elf64_Half    e_shnum;              /* section header table entry count  */
 	Elf64_Half    e_shstrndx;           /* section header string table index */
-} Elf64_Ehdr;
+};
 
 /**
  * Fields in the e_ident array.  The EI_* macros are indices into the
@@ -183,7 +183,7 @@ enum {
 /**
  * Program segment header
  */
-typedef struct
+struct Elf32_Phdr
 {
 	Elf32_Word    p_type;     /* segment type             */
 	Elf32_Off     p_offset;   /* segment file offset      */
@@ -193,9 +193,9 @@ typedef struct
 	Elf32_Word    p_memsz;    /* segment size in memory   */
 	Elf32_Word    p_flags;    /* segment flags            */
 	Elf32_Word    p_align;    /* segment alignment        */
-} Elf32_Phdr;
+};
 
-typedef struct
+struct Elf64_Phdr
 {
 	Elf64_Word    p_type;     /* segment type             */
 	Elf64_Word    p_flags;    /* segment flags            */
@@ -205,7 +205,7 @@ typedef struct
 	Elf64_Xword   p_filesz;   /* segment size in file     */
 	Elf64_Xword   p_memsz;    /* segment size in memory   */
 	Elf64_Xword   p_align;    /* segment alignment        */
-} Elf64_Phdr;
+};
 
 /**
  * Legal values for p_type (segment type)
@@ -242,12 +242,12 @@ enum {
  */
 
 #ifdef _LP64
-typedef Elf64_Ehdr Elf_Ehdr;
-typedef Elf64_Phdr Elf_Phdr;
+using Elf_Ehdr = Elf64_Ehdr;
+using Elf_Phdr = Elf64_Phdr;
 #define ELFCLASS ELFCLASS64
 #else
-typedef Elf32_Ehdr Elf_Ehdr;
-typedef Elf32_Phdr Elf_Phdr;
+using Elf_Ehdr = Elf32_Ehdr;
+using Elf_Phdr = Elf32_Phdr;
 #define ELFCLASS ELFCLASS32
 #endif /* _LP64 */
 

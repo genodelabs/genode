@@ -195,7 +195,7 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 			     : Xml_node("<pthread/>");
 		}
 
-		typedef String<Vfs::MAX_PATH_LEN> Config_attr;
+		using Config_attr = String<Vfs::MAX_PATH_LEN>;
 
 		Config_attr const _rtc_path = _libc_env.libc_config().attribute_value("rtc", Config_attr());
 
@@ -652,7 +652,7 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 		Vfs::Vfs_watch_handle *alloc_watch_handle(char const *path) override
 		{
 			Vfs::Vfs_watch_handle *watch_handle { nullptr };
-			typedef Vfs::Directory_service::Watch_result Result;
+			using Result = Vfs::Directory_service::Watch_result;
 			return _libc_env.vfs().watch(path, &watch_handle, _heap) == Result::WATCH_OK
 				? watch_handle : nullptr;
 		}

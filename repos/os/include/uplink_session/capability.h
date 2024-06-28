@@ -18,9 +18,6 @@
 #include <base/capability.h>
 #include <uplink_session/uplink_session.h>
 
-namespace Uplink {
-
-	typedef Genode::Capability<Session> Session_capability;
-}
+namespace Uplink { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _UPLINK_SESSION__CAPABILITY_H_ */

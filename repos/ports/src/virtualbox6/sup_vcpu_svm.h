@@ -153,7 +153,7 @@ void Sup::Svm::transfer_state_to_vbox(Genode::Vcpu_state const &state, VMCPU &vm
 
 void Sup::Svm::transfer_state_to_vcpu(Genode::Vcpu_state &state, CPUMCTX const &ctx)
 {
-	typedef Genode::Vcpu_state::Segment Segment;
+	using Segment = Genode::Vcpu_state::Segment;
 
 	state.efer.charge(state.efer.value() | MSR_K6_EFER_SVME);
 

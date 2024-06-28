@@ -92,7 +92,7 @@ class Test::Subsystem
 
 		Env &_env;
 
-		typedef String<100> Label;
+		using Label = String<100>;
 
 		Label _name;
 
@@ -201,7 +201,7 @@ class Test::Subsystem
 		{
 			using namespace Genode;
 			try {
-				typedef String<100> String;
+				using String = String<100>;
 
 				String const expected(str);
 				String const imported = _imported_text().decoded_content<String>();

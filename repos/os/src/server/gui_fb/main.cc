@@ -29,9 +29,9 @@ namespace Nit_fb {
 	using Genode::Xml_node;
 	using Genode::size_t;
 
-	typedef Genode::Surface_base::Point Point;
-	typedef Genode::Surface_base::Area  Area;
-	typedef Genode::Surface_base::Rect  Rect;
+	using Point = Genode::Surface_base::Point;
+	using Area  = Genode::Surface_base::Area;
+	using Rect  = Genode::Surface_base::Rect;
 }
 
 
@@ -103,7 +103,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	 */
 	Framebuffer::Mode _next_mode;
 
-	typedef Genode::size_t size_t;
+	using size_t = Genode::size_t;
 
 	/*
 	 * Number of bytes used for backing the current virtual framebuffer at
@@ -244,7 +244,7 @@ struct Nit_fb::Main : View_updater
 
 	unsigned refresh_rate = 0;
 
-	typedef Gui::Session::View_handle View_handle;
+	using View_handle = Gui::Session::View_handle;
 
 	View_handle view = gui.create_view();
 
@@ -304,7 +304,7 @@ struct Nit_fb::Main : View_updater
 	 */
 	void update_view() override
 	{
-		typedef Gui::Session::Command Command;
+		using Command = Gui::Session::Command;
 		gui.enqueue<Command::Geometry>(view, Rect(position, fb_session.size()));
 		gui.enqueue<Command::To_front>(view, View_handle());
 		gui.execute();
@@ -320,7 +320,7 @@ struct Nit_fb::Main : View_updater
 		if (!config.has_attribute(attr))
 			return Point(0, 0);
 
-		typedef Genode::String<32> Value;
+		using Value = Genode::String<32>;
 		Value const value = config.attribute_value(attr, Value());
 
 		if (value == "top_left")     return Point(0, 0);

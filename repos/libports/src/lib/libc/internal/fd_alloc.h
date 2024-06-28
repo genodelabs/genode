@@ -45,7 +45,7 @@ namespace Libc {
 	{
 		Genode::Mutex mutex { };
 
-		typedef Genode::Id_space<File_descriptor> Id_space;
+		using Id_space = Genode::Id_space<File_descriptor>;
 		Id_space::Element _elem;
 
 		int const libc_fd = _elem.id().value;
@@ -75,7 +75,7 @@ namespace Libc {
 
 			Genode::Allocator &_alloc;
 
-			typedef File_descriptor::Id_space Id_space;
+			using Id_space = File_descriptor::Id_space;
 
 			Id_space _id_space;
 

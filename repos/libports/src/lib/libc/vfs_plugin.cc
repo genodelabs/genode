@@ -156,7 +156,7 @@ namespace Libc {
 	{
 		private:
 
-			typedef String<Vfs::MAX_PATH_LEN> Value;
+			using Value = String<Vfs::MAX_PATH_LEN>;
 			Value const _value;
 
 		public:
@@ -282,7 +282,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open_from_kernel(const char *path, int 
 
 		Vfs::Vfs_handle *handle = 0;
 
-		typedef Vfs::Directory_service::Opendir_result Opendir_result;
+		using Opendir_result = Vfs::Directory_service::Opendir_result;
 
 		switch (_root_fs.opendir(path, false, &handle, _alloc)) {
 		case Opendir_result::OPENDIR_OK:                      break;
@@ -317,7 +317,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open_from_kernel(const char *path, int 
 		return nullptr;
 	}
 
-	typedef Vfs::Directory_service::Open_result Result;
+	using Result = Vfs::Directory_service::Open_result;
 
 	Vfs::Vfs_handle *handle = 0;
 
@@ -414,7 +414,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags)
 
 				Vfs::Vfs_handle *handle = 0;
 
-				typedef Vfs::Directory_service::Opendir_result Opendir_result;
+				using Opendir_result = Vfs::Directory_service::Opendir_result;
 
 				switch (_root_fs.opendir(path, false, &handle, _alloc)) {
 				case Opendir_result::OPENDIR_OK:                      break;
@@ -449,7 +449,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags)
 			}
 
 			/* handle open for files */
-			typedef Vfs::Directory_service::Open_result Result;
+			using Result = Vfs::Directory_service::Open_result;
 
 			Vfs::Vfs_handle *handle = 0;
 
@@ -630,7 +630,7 @@ int Libc::Vfs_plugin::dup2(File_descriptor *fd,
 {
 	Vfs::Vfs_handle *handle = nullptr;
 
-	typedef Vfs::Directory_service::Open_result Result;
+	using Result = Vfs::Directory_service::Open_result;
 
 	int result = -1;
 	monitor().monitor([&] {
@@ -659,7 +659,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::dup(File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = nullptr;
 
-	typedef Vfs::Directory_service::Open_result Result;
+	using Result = Vfs::Directory_service::Open_result;
 
 	Libc::File_descriptor *result = nullptr;
 	int result_errno = 0;
@@ -744,7 +744,7 @@ int Libc::Vfs_plugin::mkdir(const char *path, mode_t mode)
 {
 	Vfs::Vfs_handle *dir_handle { 0 };
 
-	typedef Vfs::Directory_service::Opendir_result Opendir_result;
+	using Opendir_result = Vfs::Directory_service::Opendir_result;
 
 	int result = -1;
 	int result_errno = 0;
@@ -779,7 +779,7 @@ int Libc::Vfs_plugin::stat_from_kernel(const char *path, struct stat *buf)
 		return Errno(EFAULT);
 
 
-	typedef Vfs::Directory_service::Stat_result Result;
+	using Result = Vfs::Directory_service::Stat_result;
 
 	Vfs::Directory_service::Stat stat;
 
@@ -800,7 +800,7 @@ int Libc::Vfs_plugin::stat(char const *path, struct stat *buf)
 		return Errno(EFAULT);
 	}
 
-	typedef Vfs::Directory_service::Stat_result Result;
+	using Result = Vfs::Directory_service::Stat_result;
 
 	Vfs::Directory_service::Stat stat;
 
@@ -829,7 +829,7 @@ int Libc::Vfs_plugin::stat(char const *path, struct stat *buf)
 ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
                                 ::size_t count)
 {
-	typedef Vfs::File_io_service::Write_result Result;
+	using Result = Vfs::File_io_service::Write_result;
 
 	if ((fd->flags & O_ACCMODE) == O_RDONLY) {
 		return Errno(EBADF);
@@ -867,7 +867,7 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 				return false;
 			}
 
-			typedef Vfs::Directory_service::Stat_result Result;
+			using Result = Vfs::Directory_service::Stat_result;
 
 			Vfs::Directory_service::Stat stat { };
 
@@ -959,7 +959,7 @@ ssize_t Libc::Vfs_plugin::read(File_descriptor *fd, void *buf,
 		return Errno(EBADF);
 	}
 
-	typedef Vfs::File_io_service::Read_result Result;
+	using Result = Vfs::File_io_service::Read_result;
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
@@ -1015,11 +1015,11 @@ ssize_t Libc::Vfs_plugin::getdirentries(File_descriptor *fd, char *buf,
 		return -1;
 	}
 
-	typedef Vfs::File_io_service::Read_result Result;
+	using Result = Vfs::File_io_service::Read_result;
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
-	typedef Vfs::Directory_service::Dirent Dirent;
+	using Dirent = Vfs::Directory_service::Dirent;
 
 	Dirent dirent_out;
 
@@ -2014,7 +2014,7 @@ int Libc::Vfs_plugin::ftruncate(File_descriptor *fd, ::off_t length)
 			fd->modified = false;
 		}
 
-		typedef Vfs::File_io_service::Ftruncate_result Result;
+		using Result = Vfs::File_io_service::Ftruncate_result;
 
 		switch (handle->fs().ftruncate(handle, length)) {
 		case Result::FTRUNCATE_ERR_NO_PERM:   result_errno = EPERM;  break;
@@ -2110,7 +2110,7 @@ int Libc::Vfs_plugin::symlink(const char *target_path, const char *link_path)
 		int result_errno { 0 };
 		monitor().monitor([&] {
 
-			typedef Vfs::Directory_service::Openlink_result Openlink_result;
+			using Openlink_result = Vfs::Directory_service::Openlink_result;
 
 			Openlink_result openlink_result =
 				_root_fs.openlink(link_path, true, &handle, _alloc);
@@ -2209,7 +2209,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *link_path, char *buf, ::size_t bu
 		switch (stage) {
 		case Stage::OPEN:
 			{
-				typedef Vfs::Directory_service::Openlink_result Openlink_result;
+				using Openlink_result = Vfs::Directory_service::Openlink_result;
 
 				Openlink_result openlink_result =
 					_root_fs.openlink(link_path, false, &handle, _alloc);
@@ -2278,7 +2278,7 @@ int Libc::Vfs_plugin::rmdir(char const *path)
 
 int Libc::Vfs_plugin::unlink(char const *path)
 {
-	typedef Vfs::Directory_service::Unlink_result Result;
+	using Result = Vfs::Directory_service::Unlink_result;
 
 	bool succeeded = false;
 	int result_errno = 0;
@@ -2300,7 +2300,7 @@ int Libc::Vfs_plugin::unlink(char const *path)
 
 int Libc::Vfs_plugin::rename(char const *from_path, char const *to_path)
 {
-	typedef Vfs::Directory_service::Rename_result Result;
+	using Result = Vfs::Directory_service::Rename_result;
 
 	bool succeeded = false;
 	int result_errno = false;
@@ -2393,7 +2393,7 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 		/* create another VFS handle to keep the file open as long as the mapping exists */
 
 		Vfs::Vfs_handle *reference_handle = nullptr;
-		typedef Vfs::Directory_service::Open_result Result;
+		using Result = Vfs::Directory_service::Open_result;
 		Result vfs_open_result;
 		monitor().monitor([&] {
 			vfs_open_result = _root_fs.open(fd->fd_path, fd->flags,

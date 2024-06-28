@@ -48,7 +48,7 @@ class Core::Platform_thread : Interface
 {
 	private:
 
-		typedef Pistachio::L4_ThreadId_t L4_ThreadId_t;
+		using L4_ThreadId_t = Pistachio::L4_ThreadId_t;
 
 		/*
 		 * Noncopyable

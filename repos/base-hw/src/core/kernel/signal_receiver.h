@@ -59,7 +59,7 @@ class Kernel::Signal_handler
 		Signal_handler(Signal_handler const &);
 		Signal_handler &operator = (Signal_handler const &);
 
-		typedef Genode::Fifo_element<Signal_handler> Fifo_element;
+		using Fifo_element = Genode::Fifo_element<Signal_handler>;
 
 		Thread          &_thread;
 		Fifo_element     _handlers_fe { *this   };
@@ -119,7 +119,7 @@ class Kernel::Signal_context
 		Signal_context(Signal_context const &);
 		Signal_context &operator = (Signal_context const &);
 
-		typedef Genode::Fifo_element<Signal_context> Fifo_element;
+		using Fifo_element = Genode::Fifo_element<Signal_context>;
 
 		Kernel::Object          _kernel_object { *this };
 		Fifo_element            _deliver_fe    { *this };
@@ -226,7 +226,7 @@ class Kernel::Signal_receiver
 
 	private:
 
-		typedef Genode::Signal Signal;
+		using Signal = Genode::Signal;
 
 		template <typename T> class Fifo : public Genode::Fifo<T> { };
 

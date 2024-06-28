@@ -107,7 +107,7 @@ struct genode_uplink : private Noncopyable, private Interface
 			if (!tx_source.ready_to_submit(1))
 				return progress;
 
-			typedef Uplink::Packet_descriptor Packet_descriptor;
+			using Packet_descriptor = Uplink::Packet_descriptor;
 
 			Packet_descriptor packet { };
 			size_t const max_bytes = Nic::Packet_allocator::OFFSET_PACKET_SIZE;
@@ -143,7 +143,7 @@ struct genode_uplink : private Noncopyable, private Interface
 				if (!rx_sink.packet_avail() || !rx_sink.ack_slots_free())
 					break;
 
-				typedef Uplink::Packet_descriptor Packet_descriptor;
+				using Packet_descriptor = Uplink::Packet_descriptor;
 
 				Packet_descriptor const packet = rx_sink.peek_packet();
 

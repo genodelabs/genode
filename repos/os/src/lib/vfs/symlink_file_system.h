@@ -24,7 +24,7 @@ class Vfs::Symlink_file_system : public Single_file_system
 {
 	private:
 
-		typedef Genode::String<MAX_PATH_LEN> Target;
+		using Target = Genode::String<MAX_PATH_LEN>;
 
 		Target const _target;
 

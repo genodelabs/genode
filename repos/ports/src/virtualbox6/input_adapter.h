@@ -32,7 +32,7 @@ struct Input_adapter
 
 		bool _key_status[Input::KEY_MAX + 1];
 
-		typedef Genode::Surface_base::Point Point;
+		using Point = Genode::Surface_base::Point;
 
 		Point _abs_pos { 0, 0 };
 

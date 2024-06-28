@@ -43,7 +43,7 @@ namespace Framebuffer {
 
 struct Framebuffer::Driver
 {
-	typedef Constructible<Attached_rom_dataspace> Attached_rom_system;
+	using Attached_rom_system = Constructible<Attached_rom_dataspace>;
 
 	Env                    &env;
 	Timer::Connection       timer    { env };
@@ -324,7 +324,7 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 
 	/* iterate independently of force* ever to get brightness and hz */
 	config.xml().for_each_sub_node("connector", [&] (Xml_node &node) {
-		typedef String<32> Name;
+		using Name = String<32>;
 		Name const con_policy = node.attribute_value("name", Name());
 		if (con_policy != name)
 			return;

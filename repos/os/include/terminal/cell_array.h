@@ -42,7 +42,7 @@ class Cell_array
 		CELL             **_array      = nullptr;
 		bool              *_line_dirty = nullptr;
 
-		typedef CELL *Char_cell_line;
+		using Char_cell_line = CELL *;
 
 		void _clear_line(Char_cell_line line)
 		{

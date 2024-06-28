@@ -73,7 +73,7 @@ namespace Mp_server_test {
 		Genode::Native_capability test_cap_reply(Genode::Native_capability);
 	};
 
-	typedef Genode::Capability<Session> Capability;
+	using Capability = Genode::Capability<Session>;
 
 	struct Cpu_compound
 	{

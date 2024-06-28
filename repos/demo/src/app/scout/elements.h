@@ -45,7 +45,7 @@ namespace Scout {
 	 * An anchor marks a location within a document that can be addressed by a
 	 * link.
 	 */
-	typedef Element Anchor;
+	using Anchor = Element;
 }
 
 
@@ -232,7 +232,7 @@ class Scout::Launcher : public Anchor
 {
 	public:
 
-		typedef Genode::String<64> Name;
+		using Name = Genode::String<64>;
 
 	private:
 

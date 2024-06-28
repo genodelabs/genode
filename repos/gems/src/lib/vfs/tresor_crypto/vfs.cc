@@ -330,7 +330,7 @@ class Vfs_tresor_crypto::Key_file_system : private Key_local_factory,
 
 		uint32_t _key_id;
 
-		typedef String<128> Config;
+		using Config = String<128>;
 
 		static Config _config(uint32_t key_id)
 		{
@@ -1096,7 +1096,7 @@ class Vfs_tresor_crypto::File_system : private Local_factory,
 {
 	private:
 
-		typedef String<128> Config;
+		using Config = String<128>;
 
 		static Config _config(Xml_node node)
 		{

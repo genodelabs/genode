@@ -30,11 +30,11 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 {
 	public:
 
-		typedef Genode::String<64> Name;
+		using Name = Genode::String<64>;
 
 	private:
 
-		typedef Genode::String<BUF_SIZE + 1> Buffer;
+		using Buffer = Genode::String<BUF_SIZE + 1>;
 
 		Name const _file_name;
 
@@ -116,7 +116,7 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 			});
 		}
 
-		typedef Genode::String<200> Config;
+		using Config = Genode::String<200>;
 		Config _config(Name const &name) const
 		{
 			char buf[Config::capacity()] { };

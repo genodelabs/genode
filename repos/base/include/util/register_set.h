@@ -165,13 +165,13 @@ class Genode::Register_set : public Register_set_base
 			{
 				private:
 
-					typedef typename T::access_t access_t;
+					using access_t = typename T::access_t;
 
 					access_t const _reference_val;
 
 				public:
 
-					typedef T Object;
+					using Object = T;
 
 					/**
 					 * Constructor
@@ -235,11 +235,8 @@ class Genode::Register_set : public Register_set_base
 			 * that solely must not be redefined by the deriving
 			 * class to ensure correct template selection.
 			 */
-			typedef Register<_OFFSET, _ACCESS_WIDTH, _STRICT_WRITE>
-				Register_base;
-
-			typedef typename Genode::Register<_ACCESS_WIDTH>::access_t
-				access_t;
+			using Register_base = Register<_OFFSET, _ACCESS_WIDTH, _STRICT_WRITE>;
+			using access_t = typename Genode::Register<_ACCESS_WIDTH>::access_t;
 
 			static_assert(OFFSET + sizeof(access_t) <= REGISTER_SET_SIZE);
 
@@ -260,13 +257,11 @@ class Genode::Register_set : public Register_set_base
 				public Conditions<Bitfield<_SHIFT, _WIDTH> >
 			{
 				/* analogous to 'Register_set::Register::Register_base' */
-				typedef Bitfield<_SHIFT, _WIDTH> Bitfield_base;
+				using Bitfield_base = Bitfield<_SHIFT, _WIDTH>;
 
 				/* back reference to containing register */
-				typedef Register<_OFFSET, _ACCESS_WIDTH, _STRICT_WRITE>
-					Compound_reg;
-
-				typedef Compound_reg::access_t access_t;
+				using Compound_reg = Register<_OFFSET, _ACCESS_WIDTH, _STRICT_WRITE>;
+				using access_t = Compound_reg::access_t;
 			};
 		};
 
@@ -306,8 +301,8 @@ class Genode::Register_set : public Register_set_base
 		struct Register_array : public Register<_OFFSET, _ACCESS_WIDTH,
 		                                        _STRICT_WRITE>
 		{
-			typedef typename Trait::Uint_width<_ACCESS_WIDTH>::
-			                 template Divisor<_ITEM_WIDTH> Item;
+			using Item = typename Trait::Uint_width<_ACCESS_WIDTH>
+			                           ::template Divisor<_ITEM_WIDTH>;
 
 			enum {
 				STRICT_WRITE    = _STRICT_WRITE,
@@ -322,12 +317,11 @@ class Genode::Register_set : public Register_set_base
 			};
 
 			/* analogous to 'Register_set::Register::Register_base' */
-			typedef Register_array<OFFSET, ACCESS_WIDTH, ITEMS,
-			                       ITEM_WIDTH, STRICT_WRITE>
-				Register_array_base;
+			using Register_array_base = Register_array<OFFSET, ACCESS_WIDTH, ITEMS,
+			                                           ITEM_WIDTH, STRICT_WRITE>;
 
-			typedef typename Register<OFFSET, ACCESS_WIDTH, STRICT_WRITE>::
-			                 access_t access_t;
+			using access_t =
+				typename Register<OFFSET, ACCESS_WIDTH, STRICT_WRITE>:: access_t;
 
 			/**
 			 * A bit region within a register array item
@@ -343,12 +337,11 @@ class Genode::Register_set : public Register_set_base
 				       template Bitfield<_SHIFT, _SIZE>
 			{
 				/* analogous to 'Register_set::Register::Register_base' */
-				typedef Bitfield<_SHIFT, _SIZE> Array_bitfield_base;
+				using Array_bitfield_base = Bitfield<_SHIFT, _SIZE>;
 
 				/* back reference to containing register array */
-				typedef Register_array<OFFSET, ACCESS_WIDTH, ITEMS,
-				                       ITEM_WIDTH, STRICT_WRITE>
-					Compound_array;
+				using Compound_array = Register_array<OFFSET, ACCESS_WIDTH, ITEMS,
+				                                      ITEM_WIDTH, STRICT_WRITE>;
 			};
 
 
@@ -406,8 +399,8 @@ class Genode::Register_set : public Register_set_base
 		template <typename T>
 		inline typename T::Register_base::access_t read() const
 		{
-			typedef typename T::Register_base Register;
-			typedef typename Register::access_t access_t;
+			using Register = typename T::Register_base;
+			using access_t = typename Register::access_t;
 			return Plain_access::read<access_t>(_plain_access,
 			                                    Register::OFFSET);
 		}
@@ -419,8 +412,8 @@ class Genode::Register_set : public Register_set_base
 		inline void
 		write(typename T::Register_base::access_t const value)
 		{
-			typedef typename T::Register_base Register;
-			typedef typename Register::access_t access_t;
+			using Register = typename T::Register_base;
+			using access_t = typename Register::access_t;
 			Plain_access::write<access_t>(_plain_access, Register::OFFSET,
 			                              value);
 		}
@@ -436,9 +429,9 @@ class Genode::Register_set : public Register_set_base
 		inline typename T::Bitfield_base::bitfield_t
 		read() const
 		{
-			typedef typename T::Bitfield_base Bitfield;
-			typedef typename Bitfield::Compound_reg Register;
-			typedef typename Register::access_t access_t;
+			using Bitfield = typename T::Bitfield_base;
+			using Register = typename Bitfield::Compound_reg;
+			using access_t = typename Register::access_t;
 			return
 				Bitfield::get(Plain_access::read<access_t>(_plain_access,
 				                                           Register::OFFSET));
@@ -453,9 +446,9 @@ class Genode::Register_set : public Register_set_base
 		inline void
 		write(typename T::Bitfield_base::Compound_reg::access_t const value)
 		{
-			typedef typename T::Bitfield_base Bitfield;
-			typedef typename Bitfield::Compound_reg Register;
-			typedef typename Register::access_t access_t;
+			using Bitfield = typename T::Bitfield_base;
+			using Register = typename Bitfield::Compound_reg;
+			using access_t = typename Register::access_t;
 
 			/* initialize the pattern written finally to the register */
 			access_t write_value;
@@ -488,8 +481,8 @@ class Genode::Register_set : public Register_set_base
 		inline typename T::Register_array_base::access_t
 		read(unsigned long const index) const
 		{
-			typedef typename T::Register_array_base Array;
-			typedef typename Array::access_t access_t;
+			using Array = typename T::Register_array_base;
+			using access_t = typename Array::access_t;
 
 			/* reads outside the array return 0 */
 			if (index > Array::MAX_INDEX) return 0;
@@ -519,8 +512,8 @@ class Genode::Register_set : public Register_set_base
 		write(typename T::Register_array_base::access_t const value,
 		      unsigned long const index)
 		{
-			typedef typename T::Register_array_base Array;
-			typedef typename Array::access_t access_t;
+			using Array = typename T::Register_array_base;
+			using access_t = typename Array::access_t;
 
 			/* ignore writes outside the array */
 			if (index > Array::MAX_INDEX) return;
@@ -569,8 +562,8 @@ class Genode::Register_set : public Register_set_base
 		inline typename T::Array_bitfield_base::bitfield_t
 		read(unsigned long const index) const
 		{
-			typedef typename T::Array_bitfield_base Bitfield;
-			typedef typename Bitfield::Compound_array Array;
+			using Bitfield = typename T::Array_bitfield_base;
+			using Array    = typename Bitfield::Compound_array;
 			return Bitfield::get(read<Array>(index));
 		}
 
@@ -585,9 +578,9 @@ class Genode::Register_set : public Register_set_base
 		write(typename T::Array_bitfield_base::Compound_array::access_t const value,
 		      long unsigned const index)
 		{
-			typedef typename T::Array_bitfield_base Bitfield;
-			typedef typename Bitfield::Compound_array Array;
-			typedef typename Array::access_t access_t;
+			using Bitfield = typename T::Array_bitfield_base;
+			using Array    = typename Bitfield::Compound_array;
+			using access_t = typename Array::access_t;
 
 			/* initialize the pattern written finally to the register */
 			access_t write_value;
@@ -617,9 +610,9 @@ class Genode::Register_set : public Register_set_base
 		template <typename T>
 		inline typename T::Bitset_2_base::access_t const read()
 		{
-			typedef typename T::Bitset_2_base::Bits_0 Bits_0;
-			typedef typename T::Bitset_2_base::Bits_1 Bits_1;
-			typedef typename T::Bitset_2_base::access_t access_t;
+			using Bits_0 = typename T::Bitset_2_base::Bits_0;
+			using Bits_1 = typename T::Bitset_2_base::Bits_1;
+			using access_t = typename T::Bitset_2_base::access_t;
 			enum { V1_SHIFT = Bits_0::BITFIELD_WIDTH };
 			access_t const v0 = read<Bits_0>();
 			access_t const v1 = read<Bits_1>();
@@ -634,8 +627,8 @@ class Genode::Register_set : public Register_set_base
 		template <typename T>
 		inline void write(typename T::Bitset_2_base::access_t v)
 		{
-			typedef typename T::Bitset_2_base::Bits_0 Bits_0;
-			typedef typename T::Bitset_2_base::Bits_1 Bits_1;
+			using Bits_0 = typename T::Bitset_2_base::Bits_0;
+			using Bits_1 = typename T::Bitset_2_base::Bits_1;
 			write<Bits_0>(typename Bits_0::access_t(v));
 			write<Bits_1>(typename Bits_1::access_t(v >> Bits_0::BITFIELD_WIDTH));
 		}
@@ -646,10 +639,10 @@ class Genode::Register_set : public Register_set_base
 		template <typename T>
 		inline typename T::Bitset_3_base::access_t const read()
 		{
-			typedef typename T::Bitset_3_base::Bits_0 Bits_0;
-			typedef typename T::Bitset_3_base::Bits_1 Bits_1;
-			typedef typename T::Bitset_3_base::Bits_2 Bits_2;
-			typedef typename T::Bitset_3_base::access_t access_t;
+			using Bits_0 = typename T::Bitset_3_base::Bits_0;
+			using Bits_1 = typename T::Bitset_3_base::Bits_1;
+			using Bits_2 = typename T::Bitset_3_base::Bits_2;
+			using access_t = typename T::Bitset_3_base::access_t;
 
 			static constexpr size_t BITS_0_WIDTH = Bits_0::BITFIELD_WIDTH;
 			static constexpr size_t BITS_1_WIDTH = Bits_1::BITFIELD_WIDTH;
@@ -668,9 +661,9 @@ class Genode::Register_set : public Register_set_base
 		template <typename T>
 		inline void write(typename T::Bitset_3_base::access_t v)
 		{
-			typedef typename T::Bitset_3_base::Bits_0 Bits_0;
-			typedef typename T::Bitset_3_base::Bits_1 Bits_1;
-			typedef typename T::Bitset_3_base::Bits_2 Bits_2;
+			using Bits_0 = typename T::Bitset_3_base::Bits_0;
+			using Bits_1 = typename T::Bitset_3_base::Bits_1;
+			using Bits_2 = typename T::Bitset_3_base::Bits_2;
 			write<Bitset_2<Bits_0, Bits_1> >(typename Bitset_2<Bits_0, Bits_1>::access_t(v));
 			write<Bits_2>(typename Bits_2::access_t(v >> (Bits_0::BITFIELD_WIDTH +
 			                                              Bits_1::BITFIELD_WIDTH)));

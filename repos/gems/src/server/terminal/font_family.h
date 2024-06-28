@@ -18,7 +18,7 @@
 #include "types.h"
 
 namespace Terminal {
-	typedef Text_painter::Font Font;
+	using Font = Text_painter::Font;
 	class Font_family;
 }
 

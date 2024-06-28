@@ -40,7 +40,7 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 {
 	public:
 
-		typedef Trace::Thread_name Thread_name;
+		using Thread_name = Trace::Thread_name;
 
 		using Pd_threads = Pd_session_component::Threads;
 

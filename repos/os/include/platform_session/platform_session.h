@@ -61,7 +61,7 @@ struct Platform::Session : Genode::Session
 
 	virtual ~Session() { }
 
-	typedef String<64> Device_name;
+	using Device_name = String<64>;
 
 	/**
 	 * Request ROM session containing the information about available devices.

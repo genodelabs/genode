@@ -41,8 +41,8 @@ namespace Test {
 
 static inline bool Test::xml_attribute_matches(Xml_node condition, Xml_node node)
 {
-	typedef String<32> Name;
-	typedef String<64> Value;
+	using Name  = String<32>;
+	using Value = String<64>;
 
 	Name const name = condition.attribute_value("name",  Name());
 
@@ -81,7 +81,7 @@ static inline bool Test::xml_matches(Xml_node expected, Xml_node node)
 
 		if (condition.type() == "node") {
 
-			typedef String<32> Name;
+			using Name = String<32>;
 			Name const name = condition.attribute_value("name", Name());
 
 			bool at_least_one_sub_node_matches = false;
@@ -101,7 +101,7 @@ static inline bool Test::xml_matches(Xml_node expected, Xml_node node)
 
 struct Test::Log_message_handler : Interface
 {
-	typedef String<Log_session::MAX_STRING_LEN> Message;
+	using Message = String<Log_session::MAX_STRING_LEN>;
 
 	enum Result { EXPECTED, UNEXPECTED, IGNORED };
 
@@ -193,7 +193,7 @@ struct Test::Main : Log_message_handler
 
 	void _publish_report(Reporter &reporter, Xml_node node)
 	{
-		typedef String<64> Version;
+		using Version = String<64>;
 		Version const version = node.attribute_value("version", Version());
 
 		Reporter::Xml_generator xml(reporter, [&] () {
@@ -276,7 +276,7 @@ struct Test::Main : Log_message_handler
 			}
 
 			if (step.type() == "message") {
-				typedef String<80> Message;
+				using Message = String<80>;
 				Message const message = step.attribute_value("string", Message());
 				log("\n--- ", message, " ---");
 				_advance_step();

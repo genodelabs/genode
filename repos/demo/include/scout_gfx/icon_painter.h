@@ -154,8 +154,8 @@ class Icon_painter
 
 	public:
 
-		typedef Genode::Surface_base::Area Area;
-		typedef Genode::Surface_base::Rect Rect;
+		using Area = Genode::Surface_base::Area;
+		using Rect = Genode::Surface_base::Rect;
 
 
 		template <typename SPT, typename TPT>

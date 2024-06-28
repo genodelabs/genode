@@ -50,7 +50,7 @@ class Genode::Xml_attribute
 		/**
 		 * Define tokenizer that matches XML tags (with hyphens) as identifiers
 		 */
-		typedef ::Genode::Token<Scanner_policy_xml_identifier> Token;
+		using Token = ::Genode::Token<Scanner_policy_xml_identifier>;
 
 		struct Tokens
 		{
@@ -113,7 +113,7 @@ class Genode::Xml_attribute
 		class Invalid_syntax : public Exception { };
 
 
-		typedef String<64> Name;
+		using Name = String<64>;
 		Name name() const {
 			return Name(Cstring(_tokens.name.start(), _tokens.name.len())); }
 
@@ -205,7 +205,7 @@ class Genode::Xml_node
 {
 	private:
 
-		typedef Xml_attribute::Token Token;
+		using Token = Xml_attribute::Token;
 
 		/**
 		 * Forward declaration needed for befriending Tag with Xml_attribute
@@ -220,7 +220,7 @@ class Genode::Xml_node
 		 ** Exception types **
 		 *********************/
 
-		typedef Xml_attribute::Invalid_syntax Invalid_syntax;
+		using Invalid_syntax = Xml_attribute::Invalid_syntax;
 
 		class Nonexistent_sub_node  : public Exception { };
 
@@ -228,7 +228,7 @@ class Genode::Xml_node
 		/**
 		 * Type definition for maintaining backward compatibility
 		 */
-		typedef Xml_attribute Attribute;
+		using Attribute = Xml_attribute;
 
 	private:
 
@@ -655,7 +655,7 @@ class Genode::Xml_node
 		/**
 		 * Request type name of XML node as null-terminated string
 		 */
-		typedef String<64> Type;
+		using Type = String<64>;
 		Type type() const
 		{
 			Token name = _tags.start.name();

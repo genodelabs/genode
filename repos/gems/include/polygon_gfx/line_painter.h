@@ -20,8 +20,8 @@
 
 struct Line_painter
 {
-	typedef Genode::Surface_base::Rect  Rect;
-	typedef Genode::Surface_base::Point Point;
+	using Rect  = Genode::Surface_base::Rect;
+	using Point = Genode::Surface_base::Point;
 
 	/**
 	 * Fixpoint number with 8 fractional bits

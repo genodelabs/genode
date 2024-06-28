@@ -21,7 +21,7 @@ struct Shape
 {
 	enum { WIDTH = 16, HEIGHT = 16 };
 
-	typedef Genode::String<16> Id;
+	using Id = Genode::String<16>;
 
 	Id            const id;
 	bool          const visible;

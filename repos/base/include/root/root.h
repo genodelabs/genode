@@ -29,8 +29,8 @@ namespace Genode {
 
 struct Genode::Root
 {
-	typedef Rpc_in_buffer<160> Session_args;
-	typedef Rpc_in_buffer<160> Upgrade_args;
+	using Session_args = Rpc_in_buffer<160>;
+	using Upgrade_args = Rpc_in_buffer<160>;
 
 	virtual ~Root() { }
 
@@ -84,7 +84,7 @@ struct Genode::Root
 template <typename SESSION_TYPE>
 struct Genode::Typed_root : Root
 {
-	typedef SESSION_TYPE Session_type;
+	using Session_type = SESSION_TYPE;
 };
 
 #endif /* _INCLUDE__ROOT__ROOT_H_ */

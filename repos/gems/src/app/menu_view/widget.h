@@ -27,7 +27,7 @@ namespace Menu_view {
 	struct Margin;
 	struct Widget;
 
-	typedef Margin Padding;
+	using Padding = Margin;
 }
 
 

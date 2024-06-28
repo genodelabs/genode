@@ -27,7 +27,7 @@ class Vfs::Single_file_system : public File_system
 		Node_type const _type;
 		Node_rwx  const _rwx;
 
-		typedef String<64> Filename;
+		using Filename = String<64>;
 
 		Filename _filename { };
 

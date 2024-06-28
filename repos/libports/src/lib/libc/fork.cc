@@ -50,7 +50,7 @@ namespace Libc {
 		virtual void child_ready() = 0;
 	};
 
-	typedef Registry<Registered<Forked_child> > Forked_children;
+	using Forked_children = Registry<Registered<Forked_child> >;
 }
 
 using namespace Libc;
@@ -125,7 +125,7 @@ struct Libc::Child_config
 
 void Libc::Child_config::_generate(Xml_generator &xml, Xml_node config)
 {
-	typedef String<30> Addr;
+	using Addr = String<30>;
 
 	/*
 	 * Disarm the dynamic linker's sanity check for the
@@ -139,7 +139,7 @@ void Libc::Child_config::_generate(Xml_generator &xml, Xml_node config)
 
 		xml.attribute("pid", _pid);
 
-		typedef String<Vfs::MAX_PATH_LEN> Path;
+		using Path = String<Vfs::MAX_PATH_LEN>;
 		config.with_optional_sub_node("libc", [&] (Xml_node node) {
 			if (node.has_attribute("rtc"))
 				xml.attribute("rtc", node.attribute_value("rtc", Path()));
@@ -167,7 +167,7 @@ void Libc::Child_config::_generate(Xml_generator &xml, Xml_node config)
 		xml.node("stack", [&] () {
 			gen_range_attr(_user_stack_base_ptr, _user_stack_size); });
 
-		typedef Dynamic_linker::Object_info Info;
+		using Info = Dynamic_linker::Object_info;
 		Dynamic_linker::for_each_loaded_object(_env, [&] (Info const &info) {
 			xml.node("rw", [&] () {
 				xml.attribute("name", info.name);
@@ -200,7 +200,7 @@ class Libc::Parent_services : Noncopyable
 		Env       &_env;
 		Allocator &_alloc;
 
-		typedef Registered<Parent_service> Registered_service;
+		using Registered_service = Registered<Parent_service>;
 
 		Registry<Registered_service> _services { };
 
@@ -235,7 +235,7 @@ class Libc::Parent_services : Noncopyable
 
 struct Libc::Local_rom_service : Noncopyable
 {
-	typedef Session_label Rom_name;
+	using Rom_name = Session_label;
 
 	struct Session : Session_object<Rom_session>
 	{
@@ -259,7 +259,7 @@ struct Libc::Local_rom_service : Noncopyable
 
 	} _session;
 
-	typedef Local_service<Session> Service;
+	using Service = Local_service<Session>;
 
 	Service::Single_session_factory _factory { _session };
 
@@ -282,7 +282,7 @@ struct Libc::Local_rom_services : Noncopyable
 {
 	Allocator &_alloc;
 
-	typedef Registered<Local_rom_service> Registered_service;
+	using Registered_service = Registered<Local_rom_service>;
 
 	Registry<Registered_service> _services { };
 
@@ -290,7 +290,7 @@ struct Libc::Local_rom_services : Noncopyable
 	:
 		_alloc(alloc)
 	{
-		typedef Dynamic_linker::Object_info Info;
+		using Info = Dynamic_linker::Object_info;
 		Dynamic_linker::for_each_loaded_object(env, [&] (Info const &info) {
 			new (alloc)
 				Registered_service(_services, fork_ep, info.name, info.ds_cap); });
@@ -352,7 +352,7 @@ struct Libc::Local_clone_service : Noncopyable
 
 	} _session;
 
-	typedef Local_service<Session> Service;
+	using Service = Local_service<Session>;
 
 	Child_ready &_child_ready;
 

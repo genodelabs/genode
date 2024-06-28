@@ -487,10 +487,10 @@ void Vmcs::prepare_vmcs()
 
 void Vmcs::write_vcpu_state(Genode::Vcpu_state &state)
 {
-	typedef Genode::Vcpu_state::Range   Range;
-	typedef Genode::Vcpu_state::Segment Segment;
+	using Range   = Genode::Vcpu_state::Range;
+	using Segment = Genode::Vcpu_state::Segment;
+	using Cpu     = Hw::X86_64_cpu;
 
-	using Cpu = Hw::X86_64_cpu;
 	using Genode::uint16_t;
 	using Genode::uint32_t;
 

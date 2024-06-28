@@ -229,7 +229,7 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 
 Rpc_entrypoint::~Rpc_entrypoint()
 {
-	typedef Object_pool<Rpc_object_base> Pool;
+	using Pool = Object_pool<Rpc_object_base>;
 
 	Pool::remove_all([&] (Rpc_object_base *obj) {
 		warning("object pool not empty in ", __func__);

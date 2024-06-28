@@ -60,7 +60,7 @@ struct Monitor::Gdb::State : Noncopyable
 
 		Memory_map(Inferior_pd &inferior)
 		{
-			typedef String<16> Value;
+			using Value = String<16>;
 
 			Xml_generator xml(_buf, sizeof(_buf), "memory-map", [&] {
 

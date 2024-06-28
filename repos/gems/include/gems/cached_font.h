@@ -24,9 +24,9 @@ class Genode::Cached_font : public Text_painter::Font
 {
 	private:
 
-		typedef Text_painter::Area  Area;
-		typedef Text_painter::Font  Font;
-		typedef Text_painter::Glyph Glyph;
+		using Area  = Text_painter::Area;
+		using Font  = Text_painter::Font;
+		using Glyph = Text_painter::Glyph;
 
 		struct Cached_glyph : Glyph, Noncopyable
 		{
@@ -105,7 +105,7 @@ class Genode::Cached_font : public Text_painter::Font
 
 		Padding_allocator _padding_alloc;
 
-		typedef Lru_cache<Codepoint, Cached_glyph> Cache;
+		using Cache = Lru_cache<Codepoint, Cached_glyph>;
 
 		Cache mutable _cache;
 

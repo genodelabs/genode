@@ -26,7 +26,7 @@ namespace File_system {
 
 	struct Node
 	{
-		typedef Genode::Id_space<Node>::Id Id;
+		using Id = Genode::Id_space<Node>::Id;
 	};
 
 	struct File : Node
@@ -61,11 +61,11 @@ namespace File_system {
 		};
 	};
 
-	typedef Node::Id      Node_handle;
-	typedef File::Id      File_handle;
-	typedef Directory::Id Dir_handle;
-	typedef Symlink::Id   Symlink_handle;
-	typedef Watch::Id     Watch_handle;
+	using Node_handle    = Node::Id;
+	using File_handle    = File::Id;
+	using Dir_handle     = Directory::Id;
+	using Symlink_handle = Symlink::Id;
+	using Watch_handle   = Watch::Id;
 
 	enum class Node_type {
 		DIRECTORY,
@@ -83,8 +83,8 @@ namespace File_system {
 
 	using Genode::size_t;
 
-	typedef Genode::uint64_t seek_off_t;
-	typedef Genode::uint64_t file_size_t;
+	using seek_off_t  = Genode::uint64_t;
+	using file_size_t = Genode::uint64_t;
 
 	struct Timestamp
 	{
@@ -106,8 +106,8 @@ namespace File_system {
 		Genode::int64_t value;
 	};
 
-	typedef Genode::Out_of_ram  Out_of_ram;
-	typedef Genode::Out_of_caps Out_of_caps;
+	using Out_of_ram  = Genode::Out_of_ram;
+	using Out_of_caps = Genode::Out_of_caps;
 
 	class Packet_descriptor;
 
@@ -130,8 +130,8 @@ namespace File_system {
 	 */
 	enum { SEEK_TAIL = ~0ULL };
 
-	typedef Genode::Rpc_in_buffer<MAX_NAME_LEN> Name;
-	typedef Genode::Rpc_in_buffer<MAX_PATH_LEN> Path;
+	using Name = Genode::Rpc_in_buffer<MAX_NAME_LEN>;
+	using Path = Genode::Rpc_in_buffer<MAX_PATH_LEN>;
 
 	struct Status;
 	struct Control;
@@ -318,11 +318,11 @@ struct File_system::Session : public Genode::Session
 {
 	enum { TX_QUEUE_SIZE = 32 };
 
-	typedef Genode::Packet_stream_policy<File_system::Packet_descriptor,
-	                                     TX_QUEUE_SIZE, TX_QUEUE_SIZE,
-	                                     char> Tx_policy;
+	using Tx_policy = Genode::Packet_stream_policy<File_system::Packet_descriptor,
+	                                               TX_QUEUE_SIZE, TX_QUEUE_SIZE,
+	                                               char>;
 
-	typedef Packet_stream_tx::Channel<Tx_policy> Tx;
+	using Tx = Packet_stream_tx::Channel<Tx_policy>;
 
 	/**
 	 * \noapi

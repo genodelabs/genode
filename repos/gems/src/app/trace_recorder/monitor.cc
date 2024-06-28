@@ -18,7 +18,7 @@ using namespace Genode;
 
 Directory::Path Trace_recorder::Monitor::Trace_directory::subject_path(::Subject_info const &info)
 {
-	typedef Path<Session_label::capacity()> Label_path;
+	using Label_path = Path<Session_label::capacity()>;
 
 	Label_path      label_path = path_from_label<Label_path>(info.session_label().string());
 	Directory::Path subject_path(Directory::join(_path, label_path.string()));

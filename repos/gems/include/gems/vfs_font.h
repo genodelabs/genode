@@ -24,7 +24,7 @@ class Genode::Vfs_font : public Text_painter::Font
 {
 	public:
 
-		typedef Glyph_painter::Glyph Glyph;
+		using Glyph = Glyph_painter::Glyph;
 
 		static constexpr Vfs::file_size GLYPH_SLOT_BYTES = 64*1024;
 
@@ -70,9 +70,9 @@ class Genode::Vfs_font : public Text_painter::Font
 
 	private:
 
-		typedef Text_painter::Codepoint Codepoint;
-		typedef Text_painter::Area      Area;
-		typedef Directory::Path         Path;
+		using Codepoint = Text_painter::Codepoint;
+		using Area      = Text_painter::Area;
+		using Path      = Directory::Path;
 
 		Directory const _font_dir;
 		unsigned  const _baseline;

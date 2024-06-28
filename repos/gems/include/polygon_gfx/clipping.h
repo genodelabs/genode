@@ -207,10 +207,10 @@ struct Polygon::Clipper : CLIPPER_DIRECTION, CLIPPER_MINMAX
 template <typename POINT>
 struct Polygon::Clipper_2d
 {
-	typedef Clipper<Clipper_horizontal<POINT>, Clipper_min, POINT> Top;
-	typedef Clipper<Clipper_horizontal<POINT>, Clipper_max, POINT> Bottom;
-	typedef Clipper<Clipper_vertical<POINT>,   Clipper_min, POINT> Left;
-	typedef Clipper<Clipper_vertical<POINT>,   Clipper_max, POINT> Right;
+	using Top    = Clipper<Clipper_horizontal<POINT>, Clipper_min, POINT>;
+	using Bottom = Clipper<Clipper_horizontal<POINT>, Clipper_max, POINT>;
+	using Left   = Clipper<Clipper_vertical<POINT>,   Clipper_min, POINT>;
+	using Right  = Clipper<Clipper_vertical<POINT>,   Clipper_max, POINT>;
 };
 
 #endif /* _INCLUDE__POLYGON_GFX__CLIPPING_H_ */

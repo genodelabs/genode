@@ -79,7 +79,7 @@ struct Genode::Directory : Noncopyable, Interface
 					print(out, ")");
 				}
 
-				typedef String<Vfs::Directory_service::Dirent::Name::MAX_LEN> Name;
+				using Name = String<Vfs::Directory_service::Dirent::Name::MAX_LEN>;
 
 				Name name() const { return Name(Cstring(_dirent.name.buf)); }
 
@@ -92,7 +92,7 @@ struct Genode::Directory : Noncopyable, Interface
 
 		enum { MAX_PATH_LEN = 256 };
 
-		typedef String<MAX_PATH_LEN> Path;
+		using Path = String<MAX_PATH_LEN>;
 
 		static Path join(Path const &x, Path const &y)
 		{
@@ -453,7 +453,7 @@ struct Genode::File : Noncopyable, Interface
 
 	struct Truncated_during_read : Exception { };
 
-	typedef Directory::Path Path;
+	using Path = Directory::Path;
 };
 
 
@@ -676,10 +676,9 @@ class Genode::File_content
 
 	public:
 
-		typedef Directory::Nonexistent_file Nonexistent_file;
-		typedef File::Truncated_during_read Truncated_during_read;
-
-		typedef Directory::Path Path;
+		using Nonexistent_file      = Directory::Nonexistent_file;
+		using Truncated_during_read = File::Truncated_during_read;
+		using Path                  = Directory::Path;
 
 		/**
 		 * Constructor

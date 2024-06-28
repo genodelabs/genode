@@ -20,22 +20,23 @@
 
 namespace Vfs_pipe {
 	using namespace Vfs;
-	typedef Vfs::Directory_service::Open_result Open_result;
-	typedef Vfs::File_io_service::Write_result Write_result;
-	typedef Vfs::File_io_service::Read_result Read_result;
-	typedef Genode::Path<Vfs::MAX_PATH_LEN> Path;
+	using Open_result  = Vfs::Directory_service::Open_result;
+	using Write_result = Vfs::File_io_service::Write_result;
+	using Read_result  = Vfs::File_io_service::Read_result;
+	using Path         = Genode::Path<Vfs::MAX_PATH_LEN>;
 
 	enum { PIPE_BUF_SIZE = 8192U };
-	typedef Genode::Ring_buffer<unsigned char, PIPE_BUF_SIZE+1> Pipe_buffer;
+	using Pipe_buffer = Genode::Ring_buffer<unsigned char, PIPE_BUF_SIZE+1>;
 
 	struct Pipe_handle;
-	typedef Genode::Fifo_element<Pipe_handle> Handle_element;
-	typedef Genode::Fifo<Handle_element> Handle_fifo;
-	typedef Genode::Registry<Pipe_handle>::Element Pipe_handle_registry_element;
-	typedef Genode::Registry<Pipe_handle> Pipe_handle_registry;
+	using Handle_element = Genode::Fifo_element<Pipe_handle>;
+	using Handle_fifo    = Genode::Fifo<Handle_element>;
+
+	using Pipe_handle_registry_element = Genode::Registry<Pipe_handle>::Element;
+	using Pipe_handle_registry         = Genode::Registry<Pipe_handle>;
 
 	struct Pipe;
-	typedef Genode::Id_space<Pipe> Pipe_space;
+	using Pipe_space = Genode::Id_space<Pipe>;
 
 	struct New_pipe_handle;
 
@@ -104,7 +105,7 @@ struct Vfs_pipe::Pipe
 
 	~Pipe() = default;
 
-	typedef Genode::String<8> Name;
+	using Name = Genode::String<8>;
 	Name name() const
 	{
 		return Name(space_elem.id().value);

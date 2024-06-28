@@ -43,7 +43,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 			: Registry<Member>::Element(registry, *this), window(window) { }
 		};
 
-		typedef String<80> Label;
+		using Label = String<80>;
 
 	private:
 

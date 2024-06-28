@@ -50,7 +50,7 @@ using namespace Libc;
 extern "C" __attribute__((weak))
 int clock_gettime(clockid_t clk_id, struct timespec *ts)
 {
-	typedef Libc::uint64_t uint64_t;
+	using uint64_t = Libc::uint64_t;
 
 	if (!ts) return Errno(EFAULT);
 

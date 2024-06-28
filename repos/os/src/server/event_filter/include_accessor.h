@@ -27,8 +27,8 @@ class Event_filter::Include_accessor : Interface
 {
 	public:
 
-		typedef String<64> Name;
-		typedef String<32> Type;
+		using Name = String<64>;
+		using Type = String<32>;
 
 		struct Include_unavailable : Exception { };
 

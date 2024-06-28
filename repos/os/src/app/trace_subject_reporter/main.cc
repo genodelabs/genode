@@ -117,7 +117,7 @@ struct Trace_subject_registry
 					xml.attribute("thread", e->info.thread_name().string());
 					xml.attribute("id", e->id.id);
 
-					typedef Genode::Trace::Subject_info Subject_info;
+					using Subject_info = Genode::Trace::Subject_info;
 					Subject_info::State const state = e->info.state();
 					xml.attribute("state", Subject_info::state_name(state));
 

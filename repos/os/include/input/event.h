@@ -21,7 +21,7 @@
 
 namespace Input {
 
-	typedef Genode::Codepoint Codepoint;
+	using Codepoint = Genode::Codepoint;
 
 	struct Touch_id { unsigned value; };
 

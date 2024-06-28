@@ -55,7 +55,7 @@ void Gpio::process_config(Genode::Xml_node const &config, Gpio::Driver &driver)
 			return;
 		}
 
-		typedef Genode::String<2> Mode;
+		using Mode = Genode::String<2>;
 		Mode const mode = gpio_node.attribute_value("mode", Mode());
 
 		unsigned value = 0;

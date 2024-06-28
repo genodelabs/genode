@@ -29,7 +29,7 @@ namespace Vfs { class Terminal_file_system; }
 
 struct Vfs::Terminal_file_system
 {
-	typedef String<64> Name;
+	using Name = String<64>;
 
 	struct Local_factory;
 	struct Data_file_system;
@@ -68,8 +68,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 		enum { READ_BUFFER_SIZE = 4000 };
 
-		typedef Genode::Ring_buffer<char, READ_BUFFER_SIZE + 1,
-		                            Genode::Ring_buffer_unsynchronized> Read_buffer;
+		using Read_buffer = Genode::Ring_buffer<char, READ_BUFFER_SIZE + 1,
+		                                        Genode::Ring_buffer_unsynchronized>;
 
 		Read_buffer _read_buffer { };
 
@@ -174,8 +174,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			}
 		};
 
-		typedef Genode::Registered<Terminal_vfs_handle> Registered_handle;
-		typedef Genode::Registry<Registered_handle>     Handle_registry;
+		using Registered_handle = Genode::Registered<Terminal_vfs_handle>;
+		using Handle_registry   = Genode::Registry<Registered_handle>;
 
 		Handle_registry _handle_registry { };
 
@@ -265,7 +265,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
                                                   Data_file_system::Interrupt_handler
 {
-	typedef Genode::String<64> Label;
+	using Label = Genode::String<64>;
 	Label const _label;
 
 	Name const _name;
@@ -361,9 +361,9 @@ class Vfs::Terminal_file_system::Compound_file_system : private Local_factory,
 {
 	private:
 
-		typedef Terminal_file_system::Name Name;
+		using Name = Terminal_file_system::Name;
 
-		typedef String<200> Config;
+		using Config = String<200>;
 		static Config _config(Name const &name)
 		{
 			char buf[Config::capacity()] { };

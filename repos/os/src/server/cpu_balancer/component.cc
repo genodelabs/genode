@@ -69,8 +69,8 @@ auto retry(T &env, FUNC func, HANDLER handler,
 	return;
 }
 
-typedef Genode::Registry<Genode::Registered<Cpu::Sleeper> >   Sleeper_list;
-typedef Genode::Tslab<Genode::Registered<Cpu::Sleeper>, 4096> Tslab_sleeper;
+using Sleeper_list  = Genode::Registry<Genode::Registered<Cpu::Sleeper> >;
+using Tslab_sleeper = Genode::Tslab<Genode::Registered<Cpu::Sleeper>, 4096>;
 
 namespace Cpu {
 

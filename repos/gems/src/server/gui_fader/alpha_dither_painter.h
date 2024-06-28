@@ -21,10 +21,9 @@
 
 struct Alpha_dither_painter
 {
-	typedef Genode::Pixel_alpha8 Pixel_alpha8;
-
-	typedef Genode::Surface_base::Rect  Rect;
-	typedef Genode::Surface_base::Point Point;
+	using Pixel_alpha8 = Genode::Pixel_alpha8;
+	using Rect         = Genode::Surface_base::Rect;
+	using Point        = Genode::Surface_base::Point;
 
 	/*
 	 * \param fade  fade value in 16.16 fixpoint format

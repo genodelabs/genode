@@ -32,11 +32,11 @@ class Platform::Device : Interface, Noncopyable
 		struct Irq;
 		struct Io_port_range;
 
-		typedef Platform::Session::Device_name Name;
+		using Name = Platform::Session::Device_name;
 
 	private:
 
-		typedef Device_interface::Range Range;
+		using Range = Device_interface::Range;
 
 		::Platform::Connection &_platform;
 

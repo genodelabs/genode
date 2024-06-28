@@ -592,7 +592,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 			Session_component *session = nullptr;
 
 			if (policy.has_attribute("ip")) {
-				typedef Genode::String<16> Ip;
+				using Ip = Genode::String<16>;
 				Ip ip_addr = policy.attribute_value("ip", Ip());
 				Libc::with_libc([&] () {
 					session = new (md_alloc())

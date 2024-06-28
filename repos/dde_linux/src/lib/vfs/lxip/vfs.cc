@@ -157,7 +157,7 @@ namespace Vfs {
 	class Lxip_vfs_dir_handle;
 	class Lxip_file_system;
 
-	typedef Genode::List<List_element<Lxip_vfs_file_handle> > Lxip_vfs_file_handles;
+	using Lxip_vfs_file_handles = Genode::List<List_element<Lxip_vfs_file_handle> >;
 }
 
 
@@ -228,7 +228,7 @@ struct Vfs::Directory : Vfs::Node
 	virtual Vfs::Node *child(char const *)                        = 0;
 	virtual file_size num_dirent()                                = 0;
 
-	typedef Vfs::Directory_service::Open_result Open_result;
+	using Open_result = Vfs::Directory_service::Open_result;
 	virtual Open_result open(Vfs::File_system &fs,
 	                         Genode::Allocator &alloc,
 	                         char const*, unsigned, Vfs::Vfs_handle**) = 0;
@@ -253,7 +253,7 @@ struct Lxip::Protocol_dir : Vfs::Directory
 
 struct Lxip::Socket_dir : Vfs::Directory
 {
-	typedef Vfs::Directory_service::Open_result Open_result;
+	using Open_result = Vfs::Directory_service::Open_result;
 
 	virtual Protocol_dir &parent() = 0;
 	virtual char const *top_dir() = 0;
@@ -272,9 +272,9 @@ struct Lxip::Socket_dir : Vfs::Directory
 
 struct Vfs::Lxip_vfs_handle : Vfs::Vfs_handle
 {
-	typedef File_io_service:: Read_result Read_result;
-	typedef File_io_service::Write_result Write_result;
-	typedef File_io_service::Sync_result Sync_result;
+	using Read_result  = File_io_service:: Read_result;
+	using Write_result = File_io_service::Write_result;
+	using Sync_result  = File_io_service::Sync_result;
 
 	Lxip_vfs_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags)
 	: Vfs::Vfs_handle(fs, fs, alloc, status_flags) { }
@@ -303,8 +303,8 @@ struct Vfs::Lxip_vfs_file_handle final : Vfs::Lxip_vfs_handle
 	List_element<Lxip_vfs_file_handle> file_le { this };
 
 	/* notification elements */
-	typedef Genode::Fifo_element<Lxip_vfs_file_handle> Fifo_element;
-	typedef Genode::Fifo<Fifo_element> Fifo;
+	using Fifo_element = Genode::Fifo_element<Lxip_vfs_file_handle>;
+	using Fifo         = Genode::Fifo<Fifo_element>;
 
 	Fifo_element read_ready_elem { *this };
 
@@ -1055,7 +1055,7 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 		long read(Byte_range_ptr const &dst,
 		                   file_size seek_offset) override
 		{
-			typedef Vfs::Directory_service::Dirent Dirent;
+			using Dirent = Vfs::Directory_service::Dirent;
 
 			if (dst.num_bytes < sizeof(Dirent))
 				return -1;
@@ -1379,7 +1379,7 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 		long read(Vfs::Byte_range_ptr const &dst,
 		                   Vfs::file_size seek_offset) override
 		{
-			typedef Vfs::Directory_service::Dirent Dirent;
+			using Dirent = Vfs::Directory_service::Dirent;
 
 			if (dst.num_bytes < sizeof(Dirent))
 				return -1;
@@ -1408,7 +1408,7 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 				return -1;
 			}
 
-			typedef Vfs::Directory_service::Dirent_type Dirent_type;
+			using Dirent_type = Vfs::Directory_service::Dirent_type;
 
 			Dirent_type const type =
 				dynamic_cast<Vfs::Directory*>(node) ? Dirent_type::DIRECTORY :
@@ -1602,7 +1602,7 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 
 		void apply_config(Genode::Xml_node const &config) override
 		{
-			typedef String<16> Addr;
+			using Addr = String<16>;
 
 			unsigned const mtu = config.attribute_value("mtu", 0U);
 			if (mtu) {

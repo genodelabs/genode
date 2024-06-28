@@ -23,7 +23,7 @@ namespace Vfs_capture
 	using namespace Genode;
 	using namespace Vfs;
 
-	typedef String<64> Name;
+	using Name = String<64>;
 
 	struct Data_file_system;
 	struct Local_factory;
@@ -37,7 +37,7 @@ class Vfs_capture::Data_file_system : public Single_file_system
 
 		Name const &_name;
 
-		typedef Genode::String<64> Label;
+		using Label = Genode::String<64>;
 		Label const &_label;
 
 		Genode::Env &_env;
@@ -89,8 +89,8 @@ class Vfs_capture::Data_file_system : public Single_file_system
 			}
 		};
 
-		typedef Genode::Registered<Capture_vfs_handle> Registered_handle;
-		typedef Genode::Registry<Registered_handle>    Handle_registry;
+		using Registered_handle = Genode::Registered<Capture_vfs_handle>;
+		using Handle_registry   = Genode::Registry<Registered_handle>;
 
 		Handle_registry _handle_registry { };
 
@@ -174,7 +174,7 @@ class Vfs_capture::Data_file_system : public Single_file_system
 
 struct Vfs_capture::Local_factory : File_system_factory
 {
-	typedef Genode::String<64> Label;
+	using Label = Genode::String<64>;
 	Label const _label;
 
 	Name const _name;
@@ -209,9 +209,9 @@ class Vfs_capture::File_system : private Local_factory,
 {
 	private:
 
-		typedef Vfs_capture::Name Name;
+		using Name = Vfs_capture::Name;
 
-		typedef String<200> Config;
+		using Config = String<200>;
 		static Config _config(Name const &name)
 		{
 			char buf[Config::capacity()] { };

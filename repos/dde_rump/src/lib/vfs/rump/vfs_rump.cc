@@ -63,17 +63,17 @@ class Vfs::Rump_file_system : public File_system
 
 		enum { BUFFER_SIZE = 4096 };
 
-		typedef Genode::Path<MAX_PATH_LEN> Path;
+		using Path = Genode::Path<MAX_PATH_LEN>;
 
 		Vfs::Env &_env;
 
 		struct Rump_vfs_dir_handle;
 		struct Rump_watch_handle;
-		typedef Genode::List<Rump_watch_handle> Rump_watch_handles;
+		using Rump_watch_handles = Genode::List<Rump_watch_handle>;
 		Rump_watch_handles _watchers { };
 
 		struct Rump_vfs_file_handle;
-		typedef Genode::List<Rump_vfs_file_handle> Rump_vfs_file_handles;
+		using Rump_vfs_file_handles = Genode::List<Rump_vfs_file_handle>;
 		Rump_vfs_file_handles _file_handles;
 
 		struct Rump_vfs_handle : public Vfs_handle
@@ -414,7 +414,7 @@ class Vfs::Rump_file_system : public File_system
 		Rump_file_system(Vfs::Env &env, Xml_node const &config)
 		: _env(env)
 		{
-			typedef Genode::String<16> Fs_type;
+			using Fs_type = Genode::String<16>;
 
 			Fs_type fs_type = config.attribute_value("fs", Fs_type());
 

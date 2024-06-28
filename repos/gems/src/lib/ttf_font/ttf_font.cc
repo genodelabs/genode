@@ -99,7 +99,7 @@ struct Ttf_font::Glyph_buffer
 
 		Allocator &alloc;
 
-		typedef Glyph_painter::Glyph::Opacity Opacity;
+		using Opacity = Glyph_painter::Glyph::Opacity;
 
 		/**
 		 * Maximum number of opacity values that fit in the buffer

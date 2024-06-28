@@ -94,8 +94,8 @@ namespace Libc { namespace Socket_fs {
 	};
 
 	template <int> class String;
-	typedef String<NI_MAXHOST> Host_string;
-	typedef String<NI_MAXSERV> Port_string;
+	using Host_string = String<NI_MAXHOST>;
+	using Port_string = String<NI_MAXSERV>;
 	struct Sockaddr_string;
 
 	struct New_socket_failed : Exception { };
@@ -1168,7 +1168,7 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 	}
 
 	/* socket is ensured to be TCP or UDP */
-	typedef Socket_fs::Context::Proto Proto;
+	using Proto = Socket_fs::Context::Proto;
 	Proto proto = (sock_type == SOCK_STREAM) ? Proto::TCP : Proto::UDP;
 	Socket_fs::Context *context = nullptr;
 	try {

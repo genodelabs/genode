@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <timer_session/timer_session.h>
 
-namespace Timer { typedef Genode::Capability<Session> Session_capability; }
+namespace Timer { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _INCLUDE__TIMER_SESSION__CAPABILITY_H_ */

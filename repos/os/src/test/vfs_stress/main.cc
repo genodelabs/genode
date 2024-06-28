@@ -45,7 +45,7 @@ using namespace Genode;
 
 inline void assert_open(Vfs::Directory_service::Open_result r)
 {
-	typedef Vfs::Directory_service::Open_result Result;
+	using Result = Vfs::Directory_service::Open_result;
 	switch (r) {
 	case Result::OPEN_OK: return;
 	case Result::OPEN_ERR_NAME_TOO_LONG:
@@ -68,7 +68,7 @@ inline void assert_open(Vfs::Directory_service::Open_result r)
 
 inline void assert_opendir(Vfs::Directory_service::Opendir_result r)
 {
-	typedef Vfs::Directory_service::Opendir_result Result;
+	using Result = Vfs::Directory_service::Opendir_result;
 	switch (r) {
 	case Result::OPENDIR_OK: return;
 	case Result::OPENDIR_ERR_LOOKUP_FAILED:
@@ -91,7 +91,7 @@ inline void assert_opendir(Vfs::Directory_service::Opendir_result r)
 
 inline void assert_write(Vfs::File_io_service::Write_result r)
 {
-	typedef Vfs::File_io_service::Write_result Result;
+	using Result = Vfs::File_io_service::Write_result;
 	switch (r) {
 	case Result::WRITE_OK: return;
 	case Result::WRITE_ERR_WOULD_BLOCK:
@@ -106,7 +106,7 @@ inline void assert_write(Vfs::File_io_service::Write_result r)
 
 inline void assert_read(Vfs::File_io_service::Read_result r)
 {
-	typedef Vfs::File_io_service::Read_result Result;
+	using Result = Vfs::File_io_service::Read_result;
 	switch (r) {
 	case Result::READ_OK: return;
 	case Result::READ_QUEUED:
@@ -123,7 +123,7 @@ inline void assert_read(Vfs::File_io_service::Read_result r)
 
 inline void assert_unlink(Vfs::Directory_service::Unlink_result r)
 {
-	typedef Vfs::Directory_service::Unlink_result Result;
+	using Result = Vfs::Directory_service::Unlink_result;
 	switch (r) {
 	case Result::UNLINK_OK: return;
 	case Result::UNLINK_ERR_NO_ENTRY:
@@ -138,7 +138,7 @@ inline void assert_unlink(Vfs::Directory_service::Unlink_result r)
 
 static int MAX_DEPTH;
 
-typedef Genode::Path<Vfs::MAX_PATH_LEN> Path;
+using Path = Genode::Path<Vfs::MAX_PATH_LEN>;
 
 
 struct Stress_test
@@ -483,7 +483,7 @@ struct Unlink_test : public Stress_test
 	:
 		Stress_test(vfs, alloc, parent), _io(io)
 	{
-		typedef Vfs::Directory_service::Unlink_result Result;
+		using Result = Vfs::Directory_service::Unlink_result;
 		try {
 			Result r = vfs.unlink(path.base());
 			switch (r) {

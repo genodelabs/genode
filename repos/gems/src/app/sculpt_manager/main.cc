@@ -1702,7 +1702,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 	unsigned const log_min_w = 400;
 
-	typedef String<128> Label;
+	using Label = String<128>;
 	Label const
 		inspect_label          ("runtime -> leitzentrale -> inspect"),
 		runtime_view_label     ("runtime -> leitzentrale -> runtime_dialog"),

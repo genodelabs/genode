@@ -53,7 +53,7 @@ class Core::Platform_thread : Noncopyable
 		Platform_thread(Platform_thread const &);
 		Platform_thread &operator = (Platform_thread const &);
 
-		typedef String<32> Label;
+		using Label = String<32>;
 
 		Label              const _label;
 		Platform_pd             &_pd;

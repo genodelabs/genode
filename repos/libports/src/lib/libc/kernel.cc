@@ -71,7 +71,7 @@ void Libc::Kernel::reset_malloc_heap()
 
 void Libc::Kernel::_init_file_descriptors()
 {
-	typedef Genode::Token<Vfs::Scanner_policy_path_element> Path_element_token;
+	using Path_element_token = Genode::Token<Vfs::Scanner_policy_path_element>;
 
 	/* guard used to print an offending libc config when leaving the scope */
 	struct Diag_guard
@@ -171,7 +171,7 @@ void Libc::Kernel::_init_file_descriptors()
 		return Symlinks_resolved_ok();
 	};
 
-	typedef String<Vfs::MAX_PATH_LEN> Path;
+	using Path = String<Vfs::MAX_PATH_LEN>;
 
 	struct Absolute_path_resolved_ok { };
 	struct Absolute_path_resolve_error { };
@@ -394,7 +394,7 @@ void Libc::Kernel::_clone_state_from_parent()
 
 		/* clone RW segment of a shared library or the binary */
 		if (node.type() == "rw") {
-			typedef String<64> Name;
+			using Name = String<64>;
 			Name const name = node.attribute_value("name", Name());
 
 			/*

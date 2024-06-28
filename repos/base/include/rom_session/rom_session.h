@@ -27,7 +27,7 @@ namespace Genode {
 	struct Rom_session;
 	struct Rom_session_client;
 
-	typedef Capability<Rom_dataspace> Rom_dataspace_capability;
+	using Rom_dataspace_capability = Capability<Rom_dataspace>;
 }
 
 
@@ -49,7 +49,7 @@ struct Genode::Rom_session : Session
 	static constexpr unsigned CAP_QUOTA = 3;
 	static constexpr size_t   RAM_QUOTA = 6*1024;
 
-	typedef Rom_session_client Client;
+	using Client = Rom_session_client;
 
 	virtual ~Rom_session() { }
 

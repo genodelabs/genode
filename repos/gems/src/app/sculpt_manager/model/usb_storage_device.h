@@ -21,7 +21,7 @@ namespace Sculpt {
 	struct Usb_storage_device;
 	struct Usb_storage_device_update_policy;
 
-	typedef List_model<Usb_storage_device> Usb_storage_devices;
+	using Usb_storage_devices = List_model<Usb_storage_device>;
 };
 
 
@@ -33,8 +33,8 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 	 */
 	struct Driver_info
 	{
-		typedef String<28> Vendor;
-		typedef String<48> Product;
+		using Vendor  = String<28>;
+		using Product = String<48>;
 
 		Vendor   const vendor;
 		Product  const product;

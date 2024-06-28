@@ -37,7 +37,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 {
 	public:
 
-		typedef String<80> Version;
+		using Version = String<80>;
 
 		/**
 		 * Exception types
@@ -62,9 +62,9 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			virtual QUOTA resource_limit(QUOTA const &) const = 0;
 		};
 
-		typedef Resource_limit_accessor<Ram_quota> Ram_limit_accessor;
-		typedef Resource_limit_accessor<Cap_quota> Cap_limit_accessor;
-		typedef Resource_limit_accessor<Cpu_quota> Cpu_limit_accessor;
+		using Ram_limit_accessor = Resource_limit_accessor<Ram_quota>;
+		using Cap_limit_accessor = Resource_limit_accessor<Cap_quota>;
+		using Cpu_limit_accessor = Resource_limit_accessor<Cpu_quota>;
 
 		struct Cpu_quota_transfer : Interface
 		{
@@ -193,7 +193,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			throw Missing_name_attribute();
 		}
 
-		typedef String<64> Name;
+		using Name = String<64>;
 		Name const _unique_name { _name_from_xml(_start_node->xml()) };
 
 		static Binary_name _binary_from_xml(Xml_node start_node,
@@ -277,7 +277,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 			start_node.for_each_sub_node("resource", [&] (Xml_node rsc) {
 
-				typedef String<8> Name;
+				using Name = String<8>;
 				Name const name = rsc.attribute_value("name", Name());
 
 				if (name == "RAM")
@@ -322,7 +322,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		struct Inline_config_rom_service : Abandonable, Dynamic_rom_session::Content_producer
 		{
-			typedef Genode::Local_service<Dynamic_rom_session> Service;
+			using Service = Genode::Local_service<Dynamic_rom_session>;
 
 			Child &_child;
 

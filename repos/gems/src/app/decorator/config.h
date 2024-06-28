@@ -26,7 +26,7 @@
 namespace Decorator {
 
 	class Config;
-	typedef Genode::String<200> Window_title;
+	using Window_title = Genode::String<200>;
 
 	using Genode::Allocator;
 	using Genode::Reconstructible;

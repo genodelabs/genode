@@ -57,7 +57,7 @@ struct Framebuffer::Session : Genode::Session
 	 */
 	static constexpr unsigned CAP_QUOTA = 3;
 
-	typedef Session_client Client;
+	using Client = Session_client;
 
 	virtual ~Session() { }
 

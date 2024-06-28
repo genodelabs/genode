@@ -76,7 +76,7 @@ class Linker::Region_map
 
 	public:
 
-		typedef Constructible<Region_map> Constructible_region_map;
+		using Constructible_region_map = Constructible<Region_map>;
 
 		static Constructible_region_map &r();
 

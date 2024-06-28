@@ -33,7 +33,7 @@ namespace Libc {
 	
 	class File_descriptor;
 
-	typedef Genode::Path<PATH_MAX> Absolute_path;
+	using Absolute_path = Genode::Path<PATH_MAX>;
 
 	class Plugin : public List<Plugin>::Element
 	{
@@ -41,7 +41,7 @@ namespace Libc {
 
 			int _priority;
 
-			typedef Genode::size_t size_t;
+			using size_t = Genode::size_t;
 
 			/* Resume all libc threads blocked for I/O */
 			void resume_all();

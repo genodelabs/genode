@@ -43,7 +43,7 @@ namespace Genode {
 	template <typename, typename> class Signal_handler;
 	template <typename, typename> class Io_signal_handler;
 
-	typedef Capability<Signal_context> Signal_context_capability;
+	using Signal_context_capability = Capability<Signal_context>;
 }
 
 

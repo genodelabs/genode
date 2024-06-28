@@ -15,7 +15,7 @@
 #include <stdlib.h>
 
 
-typedef void * (*type_malloc)(unsigned long); 
+typedef void * (*type_malloc)(unsigned long);
 typedef void   (*type_free  )(void *);
 
 

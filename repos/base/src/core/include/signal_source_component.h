@@ -29,7 +29,7 @@ namespace Core {
 	class Signal_context_component;
 	class Signal_source_component;
 
-	typedef Fifo<Signal_context_component> Signal_queue;
+	using Signal_queue = Fifo<Signal_context_component>;
 
 	struct Signal_context_slab;
 }

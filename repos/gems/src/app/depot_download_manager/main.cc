@@ -34,7 +34,7 @@ struct Depot_download_manager::Child_exit_state
 	bool exited = false;
 	int  code   = 0;
 
-	typedef String<64> Name;
+	using Name = String<64>;
 
 	Child_exit_state(Xml_node init_state, Name const &name)
 	{

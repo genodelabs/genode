@@ -28,7 +28,7 @@ namespace Genode {
 	 */
 	inline size_t memcpy_cpu(void * dst, const void * src, size_t size)
 	{
-		typedef unsigned long word_t;
+		using word_t = unsigned long;
 
 		enum {
 			LEN  = sizeof(word_t),

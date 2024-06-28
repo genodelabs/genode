@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <io_port_session/io_port_session.h>
 
-namespace Genode { typedef Capability<Io_port_session> Io_port_session_capability; }
+namespace Genode { using Io_port_session_capability = Capability<Io_port_session>; }
 
 #endif /* _INCLUDE__IO_PORT_SESSION__CAPABILITY_H_ */

@@ -44,7 +44,7 @@ class Lx_block_driver : public Block::Driver
 
 		Block::Session::Info const _info;
 
-		typedef Genode::String<256> File_name;
+		using File_name = Genode::String<256>;
 
 		static File_name _file_name(Genode::Xml_node const &config)
 		{

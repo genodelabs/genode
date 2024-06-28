@@ -445,7 +445,7 @@ class Vfs_replay
 
 		void kick_off(Genode::Allocator &alloc, char const *file)
 		{
-			typedef Vfs::Directory_service::Open_result Open_result;
+			using Open_result = Vfs::Directory_service::Open_result;
 
 			Open_result res = _vfs.open(file,
 			                            Vfs::Directory_service::OPEN_MODE_RDWR,

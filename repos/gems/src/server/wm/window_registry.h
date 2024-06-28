@@ -34,9 +34,9 @@ namespace Wm {
 	using Genode::Xml_generator;
 	using Genode::Reporter;
 
-	typedef Genode::Surface_base::Area  Area;
-	typedef Genode::Surface_base::Point Point;
-	typedef Genode::Surface_base::Rect  Rect;
+	using Area  = Genode::Surface_base::Area;
+	using Point = Genode::Surface_base::Point;
+	using Rect  = Genode::Surface_base::Rect;
 }
 
 
@@ -61,8 +61,8 @@ class Wm::Window_registry
 		{
 			public:
 
-				typedef Genode::String<200>   Title;
-				typedef Genode::Session_label Session_label;
+				using Title         = Genode::String<200>;
+				using Session_label = Genode::Session_label;
 
 				enum Has_alpha { HAS_ALPHA, HAS_NO_ALPHA };
 

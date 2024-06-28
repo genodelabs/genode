@@ -21,7 +21,7 @@ class Scout::Tick
 {
 	public:
 
-		typedef unsigned long time;
+		using time = unsigned long;
 
 	private:
 

@@ -35,7 +35,7 @@ namespace Sculpt { struct Deploy; }
 
 struct Sculpt::Deploy
 {
-	typedef Depot_deploy::Child::Prio_levels Prio_levels;
+	using Prio_levels = Depot_deploy::Child::Prio_levels;
 
 	Env &_env;
 
@@ -58,7 +58,7 @@ struct Sculpt::Deploy
 
 	Download_queue &_download_queue;
 
-	typedef String<16> Arch;
+	using Arch = String<16>;
 	Arch _arch { };
 
 	Child_state cached_depot_rom_state {

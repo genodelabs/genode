@@ -57,7 +57,7 @@ void Depot_download_manager::gen_extract_start_content(Xml_generator       &xml,
 
 		import.for_each_verified_or_blessed_archive([&] (Archive::Path const &path) {
 
-			typedef String<160> Path;
+			using Path = String<160>;
 
 			xml.node("extract", [&] () {
 				xml.attribute("archive", Path("/public/", Archive::download_file_path(path)));

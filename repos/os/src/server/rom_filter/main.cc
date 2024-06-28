@@ -38,7 +38,7 @@ namespace Rom_filter {
 	class  Root;
 	struct Main;
 
-	typedef Genode::List<Session_component> Session_list;
+	using Session_list = Genode::List<Session_component>;
 }
 
 
@@ -294,7 +294,7 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 
 		if (node.has_type("attribute")) {
 
-			typedef Genode::String<128> String;
+			using String = Genode::String<128>;
 
 			/* assign input value to attribute value */
 			if (node.has_attribute("input")) {

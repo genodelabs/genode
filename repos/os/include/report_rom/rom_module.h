@@ -32,9 +32,9 @@ namespace Rom {
 	class Reader;
 	class Buffer;
 
-	typedef Genode::List<Module> Module_list;
-	typedef Genode::List<Reader> Reader_list;
-	typedef Genode::List<Writer> Writer_list;
+	using Module_list = Genode::List<Module>;
+	using Reader_list = Genode::List<Reader>;
+	using Writer_list = Genode::List<Writer>;
 }
 
 
@@ -110,7 +110,7 @@ struct Rom::Module : private Module_list::Element, Readable_module
 
 		using Module_list::Element::next;
 
-		typedef Genode::String<200> Name;
+		using Name = Genode::String<200>;
 
 		struct Read_policy : Interface
 		{

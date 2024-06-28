@@ -95,7 +95,7 @@ class Sandbox::Route_model : Noncopyable
 
 				struct Selector
 				{
-					typedef String<Session_label::capacity()> Label;
+					using Label = String<Session_label::capacity()>;
 
 					enum class Type
 					{

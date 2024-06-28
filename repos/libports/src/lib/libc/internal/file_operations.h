@@ -26,7 +26,7 @@
 
 namespace Libc {
 
-	typedef Genode::Path<PATH_MAX> Absolute_path;
+	using Absolute_path = Genode::Path<PATH_MAX>;
 
 	struct Symlinks_resolved_ok { };
 	struct Symlink_resolve_error { };

@@ -20,7 +20,7 @@
 
 struct Tint_painter
 {
-	typedef Genode::Surface_base::Rect Rect;
+	using Rect = Genode::Surface_base::Rect;
 
 	/**
 	 * Tint box with specified color

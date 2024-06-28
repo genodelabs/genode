@@ -74,7 +74,7 @@ class Genode::Stack
 {
 	public:
 
-		typedef Cpu_session::Name Name;
+		using Name = Cpu_session::Name;
 
 	private:
 

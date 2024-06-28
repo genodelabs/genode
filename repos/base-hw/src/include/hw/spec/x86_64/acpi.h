@@ -378,7 +378,7 @@ void Hw::for_each_rsdt_entry(Hw::Acpi_generic &rsdt, auto const &fn)
 	if (Genode::memcmp(rsdt.signature, "RSDT", 4))
 		return;
 
-	typedef Genode::uint32_t entry_t;
+	using entry_t = Genode::uint32_t;
 
 	unsigned const table_size  = rsdt.size;
 	unsigned const entry_count = (unsigned)((table_size - sizeof(rsdt)) / sizeof(entry_t));
@@ -394,7 +394,7 @@ void Hw::for_each_xsdt_entry(Hw::Acpi_generic &xsdt, auto const &fn)
 	if (Genode::memcmp(xsdt.signature, "XSDT", 4))
 		return;
 
-	typedef Genode::uint64_t entry_t;
+	using entry_t = Genode::uint64_t;
 
 	unsigned const table_size  = xsdt.size;
 	unsigned const entry_count = (unsigned)((table_size - sizeof(xsdt)) / sizeof(entry_t));

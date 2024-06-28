@@ -30,7 +30,7 @@ using namespace Genode;
 
 struct Lx_call;
 
-typedef Fifo<Lx_call> Socket_queue;
+using Socket_queue = Fifo<Lx_call>;
 
 
 struct genode_socket_handle

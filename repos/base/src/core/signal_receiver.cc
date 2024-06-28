@@ -49,7 +49,7 @@ void Signal_receiver::_platform_finish_dissolve(Signal_context &) { }
 void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &) { ASSERT_NEVER_CALLED; }
 
 
-typedef Signal_context_capability Sigh_cap;
+using Sigh_cap = Signal_context_capability;
 
 
 Sigh_cap Signal_receiver::manage(Signal_context &) { ASSERT_NEVER_CALLED; }

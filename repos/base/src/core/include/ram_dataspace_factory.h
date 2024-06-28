@@ -32,7 +32,7 @@ class Core::Ram_dataspace_factory : public Ram_allocator,
 {
 	public:
 
-		typedef Range_allocator::Range Phys_range;
+		using Phys_range = Range_allocator::Range;
 
 		static Phys_range any_phys_range() { return { 0UL, ~0UL }; }
 

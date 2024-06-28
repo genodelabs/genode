@@ -31,7 +31,7 @@ class Genode::Reporter
 {
 	public:
 
-		typedef String<100> Name;
+		using Name = String<100>;
 
 	private:
 
@@ -152,8 +152,8 @@ class Genode::Expanding_reporter
 {
 	public:
 
-		typedef Session_label Label;
-		typedef String<64>    Node_type;
+		using Label     = Session_label;
+		using Node_type = String<64>;
 
 		struct Initial_buffer_size { size_t value; };
 

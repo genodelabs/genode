@@ -188,7 +188,7 @@ class File_system::Chunk_index : public Chunk_base
 {
 	public:
 
-		typedef ENTRY_TYPE Entry;
+		using Entry = ENTRY_TYPE;
 
 		enum { ENTRY_SIZE = ENTRY_TYPE::SIZE,
 		       SIZE       = ENTRY_SIZE*NUM_ENTRIES };
@@ -279,7 +279,7 @@ class File_system::Chunk_index : public Chunk_base
 			 * operand type is const or non-const Entry. The correct type
 			 * is embedded as a trait in the 'FUNC' functor type.
 			 */
-			typedef typename FUNC::Entry Const_qualified_entry;
+			using Const_qualified_entry = typename FUNC::Entry;
 
 			auto   data_ptr = range_ptr.start;
 			size_t len      = range_ptr.num_bytes;
@@ -319,7 +319,7 @@ class File_system::Chunk_index : public Chunk_base
 
 		struct Write_func
 		{
-			typedef ENTRY_TYPE Entry;
+			using Entry = ENTRY_TYPE;
 
 			static Entry &lookup(Chunk_index &chunk, unsigned i) {
 				return chunk._entry_for_writing(i); }
@@ -332,7 +332,7 @@ class File_system::Chunk_index : public Chunk_base
 
 		struct Read_func
 		{
-			typedef ENTRY_TYPE const Entry;
+			using Entry = ENTRY_TYPE const;
 
 			static Entry &lookup(Chunk_index const &chunk, unsigned i) {
 				return chunk._entry_for_reading(i); }

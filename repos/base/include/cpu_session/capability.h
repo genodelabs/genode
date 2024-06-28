@@ -19,7 +19,7 @@
 namespace Genode
 {
 	class Cpu_session;
-	typedef Capability<Cpu_session> Cpu_session_capability;
+	using Cpu_session_capability = Capability<Cpu_session>;
 }
 
 #endif /* _INCLUDE__CPU_SESSION__CAPABILITY_H_ */

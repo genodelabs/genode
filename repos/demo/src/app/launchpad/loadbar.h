@@ -229,7 +229,7 @@ class Kbyte_loadbar : public Loadbar<PT>
 {
 	private:
 
-		typedef Genode::String<32> Label;
+		using Label = Genode::String<32>;
 
 		Label _label { };
 

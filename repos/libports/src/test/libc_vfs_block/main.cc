@@ -119,7 +119,7 @@ class Test::Block_device
 
 	public:
 
-		typedef Genode::String<128> Path;
+		using Path = Genode::String<128>;
 
 		class Unavailable : Genode::Exception { };
 
@@ -205,7 +205,7 @@ struct Test::Main
 
 	Genode::Attached_rom_dataspace _config { _env, "config" };
 
-	typedef Genode::String<128> Content;
+	using Content = Genode::String<128>;
 
 	class Step_failed : Genode::Exception { };
 

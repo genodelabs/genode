@@ -23,12 +23,11 @@ namespace Rom_filter {
 
 	class Input_rom_registry;
 
-	typedef Genode::String<100> Input_rom_name;
-	typedef Genode::String<100> Input_name;
-	typedef Genode::String<100> Input_value;
-
-	typedef Genode::String<80> Node_type_name;
-	typedef Genode::String<80> Attribute_name;
+	using Input_rom_name = Genode::String<100>;
+	using Input_name     = Genode::String<100>;
+	using Input_value    = Genode::String<100>;
+	using Node_type_name = Genode::String<80>;
+	using Attribute_name = Genode::String<80>;
 
 	using Genode::Signal_context_capability;
 	using Genode::Signal_handler;
@@ -96,7 +95,7 @@ class Rom_filter::Input_rom_registry
 				                                   Xml_node const &path,
 				                                   Xml_node const &content)
 				{
-					typedef Input_value Attribute_value;
+					using Attribute_value = Input_value;
 
 					Xml_node sub_node = content.sub_node(type.string());
 

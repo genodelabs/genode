@@ -28,9 +28,9 @@ class Genode::Animated_rect : private Animator::Item, Noncopyable
 
 		struct Steps { unsigned value; };
 
-		typedef Surface_base::Rect  Rect;
-		typedef Surface_base::Area  Area;
-		typedef Surface_base::Point Point;
+		using Rect  = Surface_base::Rect;
+		using Area  = Surface_base::Area;
+		using Point = Surface_base::Point;
 
 	private:
 

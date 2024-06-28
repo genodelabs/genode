@@ -25,7 +25,7 @@ namespace {
 
 	struct Service
 	{
-		typedef Session_state::Name Name;
+		using Name = Session_state::Name;
 
 		Name             name;
 		Capability<Root> root;
@@ -159,14 +159,14 @@ void Root_proxy::_handle_session_request(Xml_node request, char const *type)
 
 	Parent::Server::Id const id { request.attribute_value("id", 0UL) };
 
-	typedef Service::Session Session;
+	using Session = Service::Session;
 
 	if (request.has_type("create")) {
 
 		if (!request.has_sub_node("args"))
 			return;
 
-		typedef Session_state::Args Args;
+		using Args = Session_state::Args;
 		Args const args = request.sub_node("args").decoded_content<Args>();
 
 		/* construct session */

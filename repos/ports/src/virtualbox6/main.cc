@@ -72,7 +72,7 @@ struct Event_listener
 	}
 };
 
-typedef ListenerImpl<Event_listener, Event_handler &> Event_listener_impl;
+using Event_listener_impl = ListenerImpl<Event_listener, Event_handler &>;
 
 VBOX_LISTENER_DECLARE(Event_listener_impl)
 
@@ -85,7 +85,7 @@ struct Main : Event_handler
 
 	struct Vbox_file_path
 	{
-		typedef String<128> Path;
+		using Path = String<128>;
 
 		Path const _path;
 

@@ -420,8 +420,8 @@ struct Menu_view::Depgraph_widget : Widget
 		}
 	};
 
-	typedef Registered<Node>          Registered_node;
-	typedef Registry<Registered_node> Node_registry;
+	using Registered_node = Registered<Node>;
+	using Node_registry   = Registry<Registered_node>;
 
 	Node_registry _nodes { };
 
@@ -453,7 +453,7 @@ struct Menu_view::Depgraph_widget : Widget
 	{
 		/* update depth direction */
 		{
-			typedef String<10> Dir_name;
+			using Dir_name = String<10>;
 			Dir_name dir_name = node.attribute_value("direction", Dir_name());
 			_depth_direction = { Depth_direction::EAST };
 			if (dir_name == "north") _depth_direction = { Depth_direction::NORTH };
@@ -516,7 +516,7 @@ struct Menu_view::Depgraph_widget : Widget
 
 			bool const primary = !node.has_type("dep");
 
-			typedef String<64> Node_name;
+			using Node_name = String<64>;
 			Node_name client_name, server_name;
 			bool dep_visible = true;
 			if (primary) {

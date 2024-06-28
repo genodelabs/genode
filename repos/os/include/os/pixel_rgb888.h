@@ -18,9 +18,8 @@
 
 namespace Genode {
 
-	typedef Pixel_rgba<uint32_t, Surface_base::RGB888,
-	                  0xff0000, 16, 0xff00, 8, 0xff, 0, 0, 0>
-	        Pixel_rgb888;
+	using Pixel_rgb888 = Pixel_rgba<uint32_t, Surface_base::RGB888,
+	                                0xff0000, 16, 0xff00, 8, 0xff, 0, 0, 0>;
 
 	template <>
 	inline Pixel_rgb888 Pixel_rgb888::avr(Pixel_rgb888 p1, Pixel_rgb888 p2)

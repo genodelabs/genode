@@ -25,7 +25,7 @@ struct Sculpt::Capacity
 	void print(Output &out) const
 	{
 		uint64_t const KB = 1024, MB = 1024*KB, GB = 1024*MB;
-		typedef String<64> Text;
+		using Text = String<64>;
 		Text const text = (value > GB) ? Text((float)value/GB, " GiB")
 		                : (value > MB) ? Text((float)value/MB, " MiB")
 		                : (value > KB) ? Text((float)value/KB, " KiB")

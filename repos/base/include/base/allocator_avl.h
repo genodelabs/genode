@@ -39,7 +39,7 @@ namespace Genode {
 	 * Define AVL-based allocator without any meta data attached to each block
 	 */
 	class Empty { };
-	typedef Allocator_avl_tpl<Empty> Allocator_avl;
+	using Allocator_avl = Allocator_avl_tpl<Empty>;
 }
 
 

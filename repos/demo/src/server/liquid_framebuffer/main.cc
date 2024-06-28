@@ -79,7 +79,7 @@ static long     config_fb_y      = 260;
 /**
  * Window title
  */
-typedef Genode::String<128> Title;
+using Title = Genode::String<128>;
 static Title config_title { "Liquid Framebuffer" };
 
 /**

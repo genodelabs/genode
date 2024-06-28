@@ -24,7 +24,7 @@ namespace Genode {
 
 	struct Ram_dataspace : Dataspace { };
 
-	typedef Capability<Ram_dataspace> Ram_dataspace_capability;
+	using Ram_dataspace_capability = Capability<Ram_dataspace>;
 
 	struct Ram_allocator;
 

@@ -22,7 +22,7 @@ namespace Event_filter {
 
 	struct Unknown_key : Genode::Exception { };
 
-	typedef Genode::String<20> Key_name;
+	using Key_name = Genode::String<20>;
 
 	/*
 	 * \throw Unknown_key

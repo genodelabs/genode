@@ -39,7 +39,7 @@ class Genode::Msgbuf_base : Noncopyable
 		 * Resolve ambiguity if the header is included from a libc-using
 		 * program.
 		 */
-		typedef Genode::size_t size_t;
+		using size_t = Genode::size_t;
 
 		/*
 		 * Capabilities to be transferred

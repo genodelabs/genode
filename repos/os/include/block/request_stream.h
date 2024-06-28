@@ -111,7 +111,7 @@ class Block::Request_stream : Genode::Noncopyable
 
 		Packet_stream_tx::Rpc_object<Block::Session::Tx> _tx;
 
-		typedef Genode::Packet_stream_sink<Block::Session::Tx_policy> Tx_sink;
+		using Tx_sink = Genode::Packet_stream_sink<Block::Session::Tx_policy>;
 
 		Payload const _payload;
 
@@ -182,7 +182,7 @@ class Block::Request_stream : Genode::Noncopyable
 				if (!tx_sink.packet_avail())
 					return;
 
-				typedef Block::Packet_descriptor Packet_descriptor;
+				using Packet_descriptor = Block::Packet_descriptor;
 
 				Packet_descriptor const packet = tx_sink.peek_packet();
 
@@ -261,7 +261,7 @@ class Block::Request_stream : Genode::Noncopyable
 						return;
 					}
 
-					typedef Block::Packet_descriptor Packet_descriptor;
+					using Packet_descriptor = Block::Packet_descriptor;
 					Packet_descriptor::Payload
 						payload { .offset = request.offset,
 						          .bytes  = request.operation.count * _block_size };

@@ -32,9 +32,9 @@ namespace Ctf {
 		struct Extension : Bitfield<_PWIDTH, 64-_PWIDTH> { };
 	};
 
-	typedef _Timestamp<sizeof(Trace::Timestamp)*8> Timestamp;
+	using Timestamp = _Timestamp<sizeof(Trace::Timestamp)*8>;
 
-	typedef uint64_t __attribute__((aligned(1))) Timestamp_base;
+	using Timestamp_base = uint64_t __attribute__((aligned(1)));
 }
 
 #endif /* _CTF__TIMESTAMP_H_ */

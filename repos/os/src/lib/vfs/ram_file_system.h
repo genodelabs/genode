@@ -40,7 +40,7 @@ namespace Vfs_ram {
 
 	enum { MAX_NAME_LEN = 128 };
 
-	typedef Genode::Allocator::Out_of_memory Out_of_memory;
+	using Out_of_memory = Genode::Allocator::Out_of_memory;
 
 	/**
 	 * Return base-name portion of null-terminated path string
@@ -255,10 +255,10 @@ class Vfs_ram::File : public Vfs_ram::Node
 {
 	private:
 
-		typedef Chunk      <num_level_3_entries()>                Chunk_level_3;
-		typedef Chunk_index<num_level_2_entries(), Chunk_level_3> Chunk_level_2;
-		typedef Chunk_index<num_level_1_entries(), Chunk_level_2> Chunk_level_1;
-		typedef Chunk_index<num_level_0_entries(), Chunk_level_1> Chunk_level_0;
+		using Chunk_level_3 = Chunk      <num_level_3_entries()>;
+		using Chunk_level_2 = Chunk_index<num_level_2_entries(), Chunk_level_3>;
+		using Chunk_level_1 = Chunk_index<num_level_1_entries(), Chunk_level_2>;
+		using Chunk_level_0 = Chunk_index<num_level_0_entries(), Chunk_level_1>;
 
 		Chunk_level_0 _chunk;
 
@@ -441,7 +441,7 @@ class Vfs_ram::Directory : public Vfs_ram::Node
 		                                                Seek const seek,
 		                                                size_t &out_count) override
 		{
-			typedef Vfs::Directory_service::Dirent Dirent;
+			using Dirent = Vfs::Directory_service::Dirent;
 
 			if (dst.num_bytes < sizeof(Dirent))
 				return Vfs::File_io_service::READ_ERR_INVALID;

@@ -23,7 +23,7 @@ class Chunky_texture : Genode::Attached_ram_dataspace, public Genode::Texture<PT
 {
 	private:
 
-		typedef Genode::Surface_base::Area Area;
+		using Area = Genode::Surface_base::Area;
 
 		/**
 		 * Calculate memory needed to store the texture

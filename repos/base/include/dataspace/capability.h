@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <dataspace/dataspace.h>
 
-namespace Genode { typedef Capability<Dataspace> Dataspace_capability; }
+namespace Genode { using Dataspace_capability = Capability<Dataspace>; }
 
 #endif /* _INCLUDE__DATASPACE__CAPABILITY_H_ */

@@ -97,7 +97,7 @@ struct Linker::Elf_file : File
 	Ram_dataspace_capability      ram_cap[Phdr::MAX_PHDR];
 	bool                    const loaded;
 
-	typedef String<64> Name;
+	using Name = String<64>;
 
 	Rom_dataspace_capability _rom_dataspace(Name const &name)
 	{

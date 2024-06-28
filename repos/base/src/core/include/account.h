@@ -87,7 +87,7 @@ class Core::Account
 
 	public:
 
-		typedef typename Quota_guard<UNIT>::Limit_exceeded Limit_exceeded;
+		using Limit_exceeded = typename Quota_guard<UNIT>::Limit_exceeded;
 
 		class Unrelated_account : Exception { };
 

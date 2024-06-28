@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <platform_session/platform_session.h>
 
-namespace Platform { typedef Genode::Capability<Session> Session_capability; }
+namespace Platform { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _INCLUDE__PLATFORM_SESSION__CAPABILITY_H_ */

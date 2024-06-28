@@ -18,9 +18,8 @@
 
 namespace Genode {
 
-	typedef Genode::Pixel_rgba<uint8_t, Genode::Surface_base::ALPHA8,
-	                           0, 0, 0, 0, 0, 0, 0xff, 0>
-	        Pixel_alpha8;
+	using Pixel_alpha8 = Genode::Pixel_rgba<uint8_t, Genode::Surface_base::ALPHA8,
+	                                        0, 0, 0, 0, 0, 0, 0xff, 0>;
 
 
 	/*

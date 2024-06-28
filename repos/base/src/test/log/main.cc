@@ -30,7 +30,7 @@ void Component::construct(Genode::Env &env)
 
 	log("floating point:     ", 1700.0 / 1000);
 
-	typedef String<128> Label;
+	using Label = String<128>;
 	log("multiarg string:    ", Label(Char('"'), "parent -> child.", 7, Char('"')));
 
 	String<32> hex(Hex(3));

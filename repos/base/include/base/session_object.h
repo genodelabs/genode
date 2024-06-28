@@ -27,9 +27,9 @@ class Genode::Session_object : private Ram_quota_guard,
 {
 	public:
 
-		typedef Session::Label     Label;
-		typedef Session::Diag      Diag;
-		typedef Session::Resources Resources;
+		using Label     = Session::Label;
+		using Diag      = Session::Diag;
+		using Resources = Session::Resources;
 
 		using Ram_quota_guard::try_withdraw;
 		using Cap_quota_guard::try_withdraw;

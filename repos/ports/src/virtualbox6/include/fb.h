@@ -25,7 +25,7 @@
 #include <VirtualBoxBase.h>
 #include <DisplayWrap.h>
 
-typedef Gui::Session::View_handle View_handle;
+using View_handle = Gui::Session::View_handle;
 
 class Genodefb :
 	VBOX_SCRIPTABLE_IMPL(IFramebuffer)
@@ -75,7 +75,7 @@ class Genodefb :
 		{
 			_gui.buffer(_fb_mode, false);
 
-			typedef Gui::Session::Command Command;
+			using Command = Gui::Session::Command;
 
 			Gui::Rect rect(Gui::Point(0, 0), _fb_mode.area);
 
@@ -85,7 +85,7 @@ class Genodefb :
 
 		Fb_Genode::Mode _initial_setup()
 		{
-			typedef Gui::Session::Command Command;
+			using Command = Gui::Session::Command;
 
 			_view = _gui.create_view();
 
@@ -237,8 +237,8 @@ class Genodefb :
 
 			using namespace Genode;
 
-			typedef Pixel_rgb888 Pixel_src;
-			typedef Pixel_rgb888 Pixel_dst;
+			using Pixel_src = Pixel_rgb888;
+			using Pixel_dst = Pixel_rgb888;
 
 			Texture<Pixel_src> texture((Pixel_src *)pAddress, nullptr, area_vm);
 			Surface<Pixel_dst> surface((Pixel_dst *)_fb_base, area_fb);
@@ -274,8 +274,8 @@ class Genodefb :
 
 			using namespace Genode;
 
-			typedef Pixel_rgb888 Pixel_src;
-			typedef Pixel_rgb888 Pixel_dst;
+			using Pixel_src = Pixel_rgb888;
+			using Pixel_dst = Pixel_rgb888;
 
 			Texture<Pixel_src> texture((Pixel_src *)image, nullptr, area_vm);
 			Surface<Pixel_dst> surface((Pixel_dst *)_fb_base, area_fb);

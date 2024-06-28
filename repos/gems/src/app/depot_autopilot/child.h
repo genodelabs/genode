@@ -240,13 +240,13 @@ class Depot_deploy::Child : public List_model<Child>::Element
 {
 	public:
 
-		typedef String<100> Name;
-		typedef String<80>  Binary_name;
-		typedef String<80>  Config_name;
-		typedef String<32>  Depot_rom_server;
-		typedef String<16>  State_name;
-		typedef String<100> Launcher_name;
-		typedef String<128> Conclusion;
+		using Name             = String<100>;
+		using Binary_name      = String<80>;
+		using Config_name      = String<80>;
+		using Depot_rom_server = String<32>;
+		using State_name       = String<16>;
+		using Launcher_name    = String<100>;
+		using Conclusion       = String<128>;
 
 	private:
 

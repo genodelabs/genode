@@ -134,7 +134,7 @@ void Sup::Vmx::transfer_state_to_vbox(Vcpu_state const &state, VMCPU &vmcpu, CPU
 
 void Sup::Vmx::transfer_state_to_vcpu(Vcpu_state &state, CPUMCTX const &ctx)
 {
-	typedef Vcpu_state::Segment Segment;
+	using Segment = Vcpu_state::Segment;
 
 	GENODE_WRITE_SELREG(cs);
 	GENODE_WRITE_SELREG(ds);

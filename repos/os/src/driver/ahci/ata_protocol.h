@@ -145,8 +145,8 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 		Util::Slots<Request, 32> _slots { };
 		unsigned                 _slot_states = 0;
 
-		typedef String<Identity::Serial_number> Serial_string;
-		typedef String<Identity::Model_number>  Model_string;
+		using Serial_string = String<Identity::Serial_number>;
+		using Model_string  = String<Identity::Model_number>;
 
 		Constructible<Identity>      _identity { };
 		bool                         _writeable { false };

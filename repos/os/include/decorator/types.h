@@ -27,11 +27,10 @@
 
 namespace Decorator {
 
-	typedef Genode::Surface_base::Point Point;
-	typedef Genode::Surface_base::Area  Area;
-	typedef Genode::Surface_base::Rect  Rect;
-
-	typedef Genode::Dirty_rect<Rect, 3> Dirty_rect;
+	using Point      = Genode::Surface_base::Point;
+	using Area       = Genode::Surface_base::Area;
+	using Rect       = Genode::Surface_base::Rect;
+	using Dirty_rect = Genode::Dirty_rect<Rect, 3>;
 
 	using Genode::size_t;
 	using Genode::Color;

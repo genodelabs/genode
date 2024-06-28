@@ -31,7 +31,7 @@ struct Genode::Local_connection_base : Noncopyable
 {
 	public:
 
-		typedef Session_state::Args Args;
+		using Args = Session_state::Args;
 
 	protected:
 
@@ -114,7 +114,7 @@ class Genode::Local_connection : Local_connection_base
 {
 	private:
 
-		typedef typename CONNECTION::Session_type SESSION;
+		using SESSION = typename CONNECTION::Session_type;
 
 		Constructible <typename SESSION::Client> _client { };
 

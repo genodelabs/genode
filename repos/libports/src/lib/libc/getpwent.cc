@@ -28,7 +28,7 @@ namespace Libc {
 
 	struct Passwd_fields;
 
-	typedef String<128> Passwd_string;
+	using Passwd_string = String<128>;
 }
 
 

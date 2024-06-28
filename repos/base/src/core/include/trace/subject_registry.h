@@ -306,7 +306,7 @@ class Core::Trace::Subject_registry
 {
 	private:
 
-		typedef List<Subject> Subjects;
+		using Subjects = List<Subject>;
 
 		Allocator       &_md_alloc;
 		Source_registry &_sources;

@@ -29,11 +29,11 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 {
 	public:
 
-		typedef Genode::String<64> Name;
+		using Name = Genode::String<64>;
 
 	private:
 
-		typedef Genode::String<BUF_SIZE + 1> Buffer;
+		using Buffer = Genode::String<BUF_SIZE + 1>;
 
 		Name const _file_name;
 
@@ -75,7 +75,7 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 			bool write_ready() const override { return false; }
 		};
 
-		typedef Genode::String<200> Config;
+		using Config = Genode::String<200>;
 		Config _config(Name const &name) const
 		{
 			char buf[Config::capacity()] { };
@@ -84,8 +84,8 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 			return Config(Genode::Cstring(buf));
 		}
 
-		typedef Genode::Registered<Vfs_watch_handle>      Registered_watch_handle;
-		typedef Genode::Registry<Registered_watch_handle> Watch_handle_registry;
+		using Registered_watch_handle = Genode::Registered<Vfs_watch_handle>;
+		using Watch_handle_registry   = Genode::Registry<Registered_watch_handle>;
 
 		Watch_handle_registry _handle_registry { };
 

@@ -318,9 +318,9 @@ class Vfs::Tap_file_system::Compound_file_system : private Local_factory<FS>,
 {
 	private:
 
-		typedef Tap_file_system::Name Name;
+		using Name = Tap_file_system::Name;
 
-		typedef String<200> Config;
+		using Config = String<200>;
 		static Config _config(Name const &name)
 		{
 			char buf[Config::capacity()] { };

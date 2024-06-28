@@ -38,8 +38,8 @@ namespace Block {
 
 	template <unsigned ITEMS> struct Job_queue;
 
-	typedef Constructible<Job> Job_object;
-	using   Response = Request_stream::Response;
+	using Job_object = Constructible<Job>;
+	using Response   = Request_stream::Response;
 };
 
 

@@ -18,7 +18,7 @@
 
 namespace Genode {
 
-	typedef Pistachio::L4_ThreadId_t Rpc_destination;
+	using Rpc_destination = Pistachio::L4_ThreadId_t;
 
 	static inline Rpc_destination invalid_rpc_destination()
 	{

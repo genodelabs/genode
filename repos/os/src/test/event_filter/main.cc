@@ -195,7 +195,7 @@ class Test::Input_to_filter
 		Constructible<Event::Connection> _ps2 { };
 		Constructible<Event::Connection> _usb { };
 
-		typedef String<20> Key_name;
+		using Key_name = String<20>;
 
 		Input::Keycode _code(Key_name const &key_name)
 		{
@@ -394,7 +394,7 @@ struct Test::Main : Input_from_filter::Event_handler
 			}
 
 			if (step.type() == "message") {
-				typedef String<80> Message;
+				using Message = String<80>;
 				Message const message = step.attribute_value("string", Message());
 				log("\n--- ", message, " ---");
 				_advance_step();
@@ -432,7 +432,7 @@ struct Test::Main : Input_from_filter::Event_handler
 	 */
 	void handle_event_from_filter(Input::Event const &ev) override
 	{
-		typedef Genode::String<20> Value;
+		using Value = Genode::String<20>;
 
 		Xml_node const step = _curr_step_xml();
 

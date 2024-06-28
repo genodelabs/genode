@@ -27,7 +27,7 @@
 
 namespace Event_filter {
 
-	typedef String<Session_label::capacity()> Input_name;
+	using Input_name = String<Session_label::capacity()>;
 
 	class Event_session;
 	class Event_root;

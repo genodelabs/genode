@@ -51,7 +51,7 @@ class Vfs::Dir_file_system : public File_system
 		{
 			struct Subdir_handle_element;
 
-			typedef Genode::Registry<Subdir_handle_element> Subdir_handle_registry;
+			using Subdir_handle_registry = Genode::Registry<Subdir_handle_element>;
 
 			struct Subdir_handle_element : Subdir_handle_registry::Element
 			{
@@ -98,7 +98,7 @@ class Vfs::Dir_file_system : public File_system
 		{
 			struct Watch_handle_element;
 
-			typedef Genode::Registry<Watch_handle_element> Watch_handle_registry;
+			using Watch_handle_registry = Genode::Registry<Watch_handle_element>;
 
 			struct Watch_handle_element : Watch_handle_registry::Element
 			{
@@ -156,7 +156,7 @@ class Vfs::Dir_file_system : public File_system
 		/**
 		 * Directory name
 		 */
-		typedef String<MAX_NAME_LEN> Name;
+		using Name = String<MAX_NAME_LEN>;
 		Name const _name;
 
 		/**

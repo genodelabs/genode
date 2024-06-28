@@ -115,7 +115,7 @@ class Bomb_child : public Child_policy
 };
 
 
-typedef Registry<Registered<Bomb_child> > Children;
+using Children = Registry<Registered<Bomb_child> >;
 
 
 /**

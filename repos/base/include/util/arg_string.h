@@ -44,7 +44,7 @@ class Genode::Arg
 	 *
 	 * Argument-string tokens accept C-style identifiers.
 	 */
-	typedef ::Genode::Token<Scanner_policy_identifier_with_underline> Token;
+	using Token = ::Genode::Token<Scanner_policy_identifier_with_underline>;
 
 	friend class Arg_string;
 
@@ -202,7 +202,7 @@ class Genode::Arg
 
 class Genode::Arg_string
 {
-	typedef Arg::Token Token;
+	using Token = Arg::Token;
 
 	private:
 

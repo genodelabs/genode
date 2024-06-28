@@ -29,7 +29,7 @@ namespace Net {
 
 	using ::Nic::Packet_stream_sink;
 	using ::Nic::Packet_stream_source;
-	typedef ::Nic::Packet_descriptor Packet_descriptor;
+	using Packet_descriptor = ::Nic::Packet_descriptor;
 }
 
 /**

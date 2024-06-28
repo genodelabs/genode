@@ -24,7 +24,7 @@
 
 namespace Decorator {
 
-	typedef Text_painter::Font Font;
+	using Font = Text_painter::Font;
 	Font &default_font();
 
 	enum Texture_id {

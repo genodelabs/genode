@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <rom_session/rom_session.h>
 
-namespace Genode { typedef Capability<Rom_session> Rom_session_capability; }
+namespace Genode { using Rom_session_capability = Capability<Rom_session>; }
 
 #endif /* _INCLUDE__ROM_SESSION__CAPABILITY_H_ */

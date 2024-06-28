@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <pd_session/pd_session.h>
 
-namespace Genode { typedef Capability<Pd_session> Pd_session_capability; }
+namespace Genode { using Pd_session_capability = Capability<Pd_session>; }
 
 #endif /* _INCLUDE__PD_SESSION__CAPABILITY_H_ */

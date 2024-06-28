@@ -147,7 +147,7 @@ struct Text_area::Main : Text_area_widget::Action
 			File_content content(_heap, _vfs, _path(), File_content::Limit{1024*1024});
 
 			enum { MAX_LINE_LEN = 1000 };
-			typedef String<MAX_LINE_LEN + 1> Content_line;
+			using Content_line = String<MAX_LINE_LEN + 1>;
 
 			_dialog.text.clear();
 			content.for_each_line<Content_line>([&] (Content_line const &line) {

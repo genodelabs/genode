@@ -28,7 +28,7 @@ namespace Genode {
 	void ipc_reply(Native_capability caller, Rpc_exception_code,
 	               Msgbuf_base &snd_msg);
 
-	typedef Native_capability Reply_capability;
+	using Reply_capability = Native_capability;
 
 	struct Rpc_request
 	{

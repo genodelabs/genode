@@ -37,9 +37,9 @@ namespace Gui_fader {
 	class Framebuffer_session_component;
 	class Gui_session_component;
 
-	typedef Genode::Surface_base::Area  Area;
-	typedef Genode::Surface_base::Point Point;
-	typedef Genode::Surface_base::Rect  Rect;
+	using Area  = Genode::Surface_base::Area;
+	using Point = Genode::Surface_base::Point;
+	using Rect  = Genode::Surface_base::Rect;
 
 	using Genode::size_t;
 	using Genode::Xml_node;
@@ -50,8 +50,8 @@ namespace Gui_fader {
 	using Genode::Reconstructible;
 	using Genode::Constructible;
 
-	typedef Genode::Pixel_rgb888 Pixel_rgb888;
-	typedef Genode::Pixel_alpha8 Pixel_alpha8;
+	using Pixel_rgb888 = Genode::Pixel_rgb888;
+	using Pixel_alpha8 = Genode::Pixel_alpha8;
 }
 
 
@@ -62,7 +62,7 @@ class Gui_fader::Src_buffer
 {
 	private:
 
-		typedef Pixel_rgb888 Pixel;
+		using Pixel = Pixel_rgb888;
 
 		bool             const _use_alpha;
 		Attached_ram_dataspace _ds;
@@ -259,8 +259,8 @@ class Gui_fader::Gui_session_component
 {
 	private:
 
-		typedef Gui::View_capability      View_capability;
-		typedef Gui::Session::View_handle View_handle;
+		using View_capability = Gui::View_capability;
+		using View_handle     = Gui::Session::View_handle;
 
 		Genode::Env &_env;
 
@@ -288,7 +288,7 @@ class Gui_fader::Gui_session_component
 			if (!_view_handle.valid() || (_view_visible == _fb_session.visible()))
 				return;
 
-			typedef Gui::Session::Command Command;
+			using Command = Gui::Session::Command;
 
 			if (_fb_session.visible())
 				_gui.enqueue<Command::Geometry>(_view_handle, _view_geometry);

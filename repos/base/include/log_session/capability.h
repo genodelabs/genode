@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <log_session/log_session.h>
 
-namespace Genode { typedef Capability<Log_session> Log_session_capability; }
+namespace Genode { using Log_session_capability = Capability<Log_session>; }
 
 #endif /* _INCLUDE__LOG_SESSION__CAPABILITY_H_ */

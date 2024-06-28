@@ -24,7 +24,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 
 	xml.node("config", [&] () {
 		xml.attribute("version", version.value);
-		typedef String<32> Arch;
+		using Arch = String<32>;
 		xml.attribute("arch", installation.attribute_value("arch", Arch()));
 		xml.node("vfs", [&] () {
 			xml.node("dir", [&] () {

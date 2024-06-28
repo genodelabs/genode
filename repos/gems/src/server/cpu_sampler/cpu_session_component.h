@@ -27,8 +27,9 @@
 namespace Cpu_sampler {
 	using namespace Genode;
 	class Cpu_session_component;
-	typedef List<List_element<Cpu_thread_component>> Thread_list;
-	typedef List_element<Cpu_thread_component>       Thread_element;
+
+	using Thread_list    = List<List_element<Cpu_thread_component>>;
+	using Thread_element = List_element<Cpu_thread_component>;
 
 	template <typename FN>
 	void for_each_thread(Thread_list &thread_list, FN const &fn);

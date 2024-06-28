@@ -250,7 +250,7 @@ namespace Terminal {
 					throw Service_denied();
 				}
 
-				typedef String<256> File_name;
+				using File_name = String<256>;
 				File_name const file_name =
 					policy.attribute_value("filename", File_name());
 

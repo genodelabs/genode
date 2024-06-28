@@ -86,7 +86,7 @@ class Virtio::Queue
 
 	protected:
 
-		typedef HEADER_TYPE Header_type;
+		using Header_type = HEADER_TYPE;
 
 		struct Descriptor
 		{

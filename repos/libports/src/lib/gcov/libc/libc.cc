@@ -29,7 +29,7 @@ extern "C" {
 
 using namespace Genode;
 
-typedef Path<File_system::MAX_PATH_LEN> Absolute_path;
+using Absolute_path = Path<File_system::MAX_PATH_LEN>;
 
 struct FILE { };
 
@@ -276,7 +276,7 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 
 		libgcov_node.for_each_sub_node("annotate", [&] (Xml_node annotate_node) {
 
-			typedef String<File_system::MAX_PATH_LEN> Source;
+			using Source = String<File_system::MAX_PATH_LEN>;
 			Source const source = annotate_node.attribute_value("source", Source());
 
 			seek_offset += gcov_env->write(annotate_file_handle,

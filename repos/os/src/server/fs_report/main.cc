@@ -32,12 +32,12 @@ namespace Fs_report {
 	class  Root;
 	struct Main;
 
-	typedef Genode::Path<Session_label::capacity()> Path;
+	using Path = Genode::Path<Session_label::capacity()>;
 
 	static bool create_parent_dir(Vfs::Directory_service &vfs, Path const &child,
 	                              Genode::Allocator &alloc)
 	{
-		typedef Vfs::Directory_service::Opendir_result Opendir_result;
+		using Opendir_result = Vfs::Directory_service::Opendir_result;
 
 		Path parent = child;
 		parent.strip_last_element();
@@ -84,7 +84,7 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 
 		template <typename FN> void _file_op(FN const &fn)
 		{
-			typedef Vfs::Directory_service::Open_result Open_result;
+			using Open_result = Vfs::Directory_service::Open_result;
 
 			Vfs_handle *handle;
 			Open_result res = _vfs.open(_path.base(),
@@ -146,7 +146,7 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 		{
 			auto fn = [&] (Vfs_handle *handle) {
 
-				typedef Vfs::File_io_service::Write_result Write_result;
+				using Write_result = Vfs::File_io_service::Write_result;
 
 				if (_file_size != length)
 					handle->fs().ftruncate(handle, length);

@@ -54,11 +54,10 @@ class Tff_font : public Text_painter::Font
 
 	private:
 
-		typedef Genode::int32_t int32_t;
-
-		typedef Text_painter::Codepoint Codepoint;
-		typedef Text_painter::Area      Area;
-		typedef Text_painter::Glyph     Glyph;
+		using int32_t   = Genode::int32_t;
+		using Codepoint = Text_painter::Codepoint;
+		using Area      = Text_painter::Area;
+		using Glyph     = Text_painter::Glyph;
 
 		Glyph_buffer &_buf;
 

@@ -26,7 +26,7 @@ namespace Block {
 	 *
 	 * \deprecated  use block_number_t instead
 	 */
-	typedef Genode::uint64_t sector_t;
+	using sector_t = Genode::uint64_t;
 
 	class Packet_descriptor;
 	struct Session;
@@ -55,7 +55,7 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 		 */
 		enum Alignment { PACKET_ALIGNMENT = 11 };
 
-		typedef Request::Tag Tag;
+		using Tag = Request::Tag;
 
 		/**
 		 * Payload location within the packet stream
@@ -161,13 +161,13 @@ struct Block::Session : public Genode::Session
 {
 	enum { TX_QUEUE_SIZE = 256 };
 
-	typedef Genode::Packet_stream_policy<Block::Packet_descriptor,
-	                                     TX_QUEUE_SIZE, TX_QUEUE_SIZE,
-	                                     char> Tx_policy;
+	using Tx_policy = Genode::Packet_stream_policy<Block::Packet_descriptor,
+	                                               TX_QUEUE_SIZE, TX_QUEUE_SIZE,
+	                                               char>;
 
-	typedef Packet_stream_tx::Channel<Tx_policy> Tx;
+	using Tx = Packet_stream_tx::Channel<Tx_policy>;
 
-	typedef Request::Tag Tag;
+	using Tag = Request::Tag;
 
 	struct Info
 	{

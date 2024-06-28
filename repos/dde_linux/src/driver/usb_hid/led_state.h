@@ -25,7 +25,7 @@ struct Usb::Led_state
 {
 	Genode::Env &_env;
 
-	typedef Genode::String<32> Name;
+	using Name = Genode::String<32>;
 
 	Name const _name;
 
@@ -37,8 +37,8 @@ struct Usb::Led_state
 
 	void update(Genode::Xml_node config, Genode::Signal_context_capability sigh)
 	{
-		typedef Genode::String<32> Attr;
-		typedef Genode::String<16> Value;
+		using Attr  = Genode::String<32>;
+		using Value = Genode::String<16>;
 
 		Attr  const attr(_name, "_led");
 		Value const value = config.attribute_value(attr.string(), Value());

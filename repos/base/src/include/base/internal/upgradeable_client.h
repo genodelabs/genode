@@ -26,7 +26,7 @@ namespace Genode { template <typename> struct Upgradeable_client; }
 template <typename CLIENT>
 struct Genode::Upgradeable_client : CLIENT
 {
-	typedef Genode::Capability<typename CLIENT::Rpc_interface> Capability;
+	using Capability = Genode::Capability<typename CLIENT::Rpc_interface>;
 
 	Parent &_parent;
 	Parent::Client::Id _id;

@@ -158,7 +158,7 @@ class Core::Platform : public Platform_generic
 		 * XXX Consider making Bit_allocator::_reserve public so that we can
 		 *     turn the bit allocator into a private member of 'Core_sel_alloc'.
 		 */
-		typedef Bit_allocator<1 << Core_cspace::NUM_CORE_SEL_LOG2> Core_sel_bit_alloc;
+		using Core_sel_bit_alloc = Bit_allocator<1 << Core_cspace::NUM_CORE_SEL_LOG2>;
 
 		struct Core_sel_alloc : Cap_sel_alloc, private Core_sel_bit_alloc
 		{

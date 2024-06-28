@@ -108,8 +108,8 @@ struct Extract::Extracted_archive : Noncopyable
 		}
 	} dst { };
 
-	typedef String<256> Path;
-	typedef String<80>  Raw_name;
+	using Path     = String<256>;
+	using Raw_name = String<80>;
 
 	struct Exception    : Genode::Exception { };
 	struct Open_failed  : Exception { };
@@ -235,8 +235,8 @@ struct Extract::Main
 {
 	Env &_env;
 
-	typedef Extracted_archive::Path     Path;
-	typedef Extracted_archive::Raw_name Raw_name;
+	using Path     = Extracted_archive::Path;
+	using Raw_name = Extracted_archive::Raw_name;
 
 	Attached_rom_dataspace _config { _env, "config" };
 

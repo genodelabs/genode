@@ -94,8 +94,7 @@ class Vfs_trace::Trace_buffer_file_system : public Single_file_system
 		size_t             _stat_size { 0 };
 		Trace_entries      _entries { _env };
 
-
-		typedef String<32> Config;
+		using Config = String<32>;
 
 		static Config _config()
 		{
@@ -291,7 +290,7 @@ class Vfs_trace::Subject : private Subject_factory,
 {
 	private:
 
-		typedef String<200> Config;
+		using Config = String<200>;
 
 		Io::Watch_handler<Subject> _enable_handler {
 		  _enabled_fs, "/enable",
@@ -439,7 +438,7 @@ class Vfs_trace::File_system : private Local_factory,
 {
 	private:
 
-		typedef String<512*1024> Config;
+		using Config = String<512*1024>;
 
 		static char const *_config(Vfs::Env &vfs_env, Trace_directory &directory)
 		{

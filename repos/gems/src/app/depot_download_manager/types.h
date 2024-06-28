@@ -22,9 +22,9 @@ namespace Depot_download_manager {
 
 	using namespace Depot;
 
-	typedef String<32>  Rom_name;
-	typedef String<160> Url;
-	typedef String<160> Path;
+	using Rom_name = String<32>;
+	using Url      = String<160>;
+	using Path     = String<160>;
 
 	struct Depot_query_version { unsigned value; };
 	struct Fetchurl_version    { unsigned value; };

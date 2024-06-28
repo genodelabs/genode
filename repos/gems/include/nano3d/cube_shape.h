@@ -25,13 +25,13 @@ class Nano3d::Cube_shape
 
 		enum { NUM_VERTICES = 8, NUM_FACES = 6 };
 
-		typedef Nano3d::Vertex_array<NUM_VERTICES> Vertex_array;
+		using Vertex_array = Nano3d::Vertex_array<NUM_VERTICES>;
 
 		Vertex_array _vertices { };
 
 		enum { VERTICES_PER_FACE = 4 };
 
-		typedef unsigned Face[VERTICES_PER_FACE];
+		using Face = unsigned[VERTICES_PER_FACE];
 
 		Face _faces[NUM_FACES] { { 0, 1, 3, 2 },
 		                         { 6, 7, 5, 4 },

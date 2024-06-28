@@ -26,9 +26,9 @@ namespace Scout { struct Refracted_icon_painter; }
  */
 struct Scout::Refracted_icon_painter
 {
-	typedef Genode::Surface_base::Point Point;
-	typedef Genode::Surface_base::Area  Area;
-	typedef Genode::Surface_base::Rect  Rect;
+	using Point = Genode::Surface_base::Point;
+	using Area  = Genode::Surface_base::Area;
+	using Rect  = Genode::Surface_base::Rect;
 
 
 	template <typename DT>

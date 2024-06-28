@@ -32,13 +32,13 @@ namespace Vfs_ttf {
 	class Local_factory;
 	class File_system;
 
-	typedef Text_painter::Font Font;
+	using Font = Text_painter::Font;
 }
 
 
 struct Vfs_ttf::Font_from_file
 {
-	typedef Directory::Path Path;
+	using Path = Directory::Path;
 
 	Directory    const _dir;
 	File_content const _content;
@@ -164,13 +164,13 @@ class Vfs_ttf::File_system : private Local_factory,
 {
 	private:
 
-		typedef String<200> Config;
+		using Config = String<200>;
 		static Config _config(Xml_node node)
 		{
 			char buf[Config::capacity()] { };
 
 			Xml_generator xml(buf, sizeof(buf), "dir", [&] () {
-				typedef String<64> Name;
+				using Name = String<64>;
 				xml.attribute("name", node.attribute_value("name", Name()));
 				xml.node("glyphs", [&] () { });
 				xml.node("readonly_value", [&] () { xml.attribute("name", "baseline");   });

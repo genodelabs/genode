@@ -91,8 +91,8 @@ class Polygon::Painter_base
 
 	public:
 
-		typedef Genode::Rect<> Rect;
-		typedef Genode::Area<> Area;
+		using Rect = Genode::Rect<>;
+		using Area = Genode::Area<>;
 
 		/**
 		 * Buffers used for storing interpolated attribute values along a left
@@ -191,7 +191,7 @@ class Polygon::Painter_base
 			c0[num_points] = c0[0];
 
 			/* clip against top, left, bottom, and right clipping boundaries */
-			typedef Clipper_2d<POINT> Clipper;
+			using Clipper = Clipper_2d<POINT>;
 			num_points = _clip_1d<typename Clipper::Top>   (c0, num_points, c1, clip.y1());
 			num_points = _clip_1d<typename Clipper::Left>  (c1, num_points, c0, clip.x1());
 			num_points = _clip_1d<typename Clipper::Bottom>(c0, num_points, c1, clip.y2());

@@ -25,12 +25,12 @@ struct Mixer::Channel
 {
 	struct Invalid_channel { };
 
-	typedef Genode::String<128> Label;
-	typedef Genode::String<32>  Name;
+	using Label = Genode::String<128>;
+	using Name  = Genode::String<32>;
 
-	typedef enum { INVALID = -1, LEFT, RIGHT, MAX_CHANNELS } Number;
-	typedef enum { TYPE_INVALID, INPUT, OUTPUT } Type;
-	typedef enum { MIN = 0, MAX = 100 } Volume_level;
+	enum Number { INVALID = -1, LEFT, RIGHT, MAX_CHANNELS };
+	enum Type { TYPE_INVALID, INPUT, OUTPUT };
+	enum Volume_level { MIN = 0, MAX = 100 };
 
 	Type   type   { TYPE_INVALID };
 	Number number { INVALID };
@@ -41,7 +41,7 @@ struct Mixer::Channel
 
 	Channel(Genode::Xml_node const &node)
 	{
-		typedef Genode::String<8> Type;
+		using Type = Genode::String<8>;
 		Type const type_name = node.attribute_value("type", Type());
 
 		if      (type_name == "input")  type = INPUT;

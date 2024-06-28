@@ -576,7 +576,7 @@ class Lx_fs::Root : public Root_component<Session_component>
 			 * Determine directory that is used as root directory of
 			 * the session.
 			 */
-			typedef String<256> Root;
+			using Root = String<256>;
 			Root const root = policy.attribute_value("root", Root());
 
 			/*

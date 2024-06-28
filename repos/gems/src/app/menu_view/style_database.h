@@ -56,9 +56,9 @@ class Menu_view::Style_database
 		 */
 		bool mutable _out_of_date = false;
 
-		typedef String<PATH_MAX_LEN> Path;
+		using Path = String<PATH_MAX_LEN>;
 
-		typedef ::File::Reading_failed Reading_failed;
+		using Reading_failed = ::File::Reading_failed;
 
 		struct Label_style_entry : List<Label_style_entry>::Element, Noncopyable
 		{
@@ -198,7 +198,7 @@ class Menu_view::Style_database
 		 */
 		static Path _construct_png_path(Xml_node node, char const *name)
 		{
-			typedef String<64> Style;
+			using Style = String<64>;
 			Style const style = node.attribute_value("style", Style("default"));
 
 			return Path(node.type(), "/", style, "/", name, ".png");
@@ -209,7 +209,7 @@ class Menu_view::Style_database
 		 */
 		static Path _widget_style_path(Xml_node const &node)
 		{
-			typedef String<64> Style;
+			using Style = String<64>;
 			Style const style = node.attribute_value("style", Style("default"));
 
 			return Path(node.type(), "/", style, "/", "style");

@@ -68,7 +68,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool, private Timeout
 {
 	private:
 
-		typedef Cpu_job Job;
+		using Job = Cpu_job;
 
 		/**
 		 * Inter-processor-interrupt object of the cpu

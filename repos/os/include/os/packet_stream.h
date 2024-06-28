@@ -96,8 +96,8 @@ namespace Genode {
 	/**
 	 * Default configuration for packet-descriptor queues
 	 */
-	typedef Packet_stream_policy<Packet_descriptor, 64, 64, char>
-	        Default_packet_stream_policy;
+	using Default_packet_stream_policy =
+		Packet_stream_policy<Packet_descriptor, 64, 64, char>;
 
 	template <typename POLICY = Default_packet_stream_policy>
 	class Packet_stream_source;
@@ -172,7 +172,7 @@ class Genode::Packet_descriptor_queue
 
 	public:
 
-		typedef PACKET_DESCRIPTOR Packet_descriptor;
+		using Packet_descriptor = PACKET_DESCRIPTOR;
 
 		enum Role { PRODUCER, CONSUMER };
 
@@ -575,15 +575,11 @@ template <typename PACKET_DESCRIPTOR,
           typename CONTENT_TYPE>
 struct Genode::Packet_stream_policy
 {
-	typedef CONTENT_TYPE Content_type;
+	using Content_type      = CONTENT_TYPE;
+	using Packet_descriptor = PACKET_DESCRIPTOR;
 
-	typedef PACKET_DESCRIPTOR Packet_descriptor;
-
-	typedef Packet_descriptor_queue<PACKET_DESCRIPTOR, SUBMIT_QUEUE_SIZE>
-	        Submit_queue;
-
-	typedef Packet_descriptor_queue<PACKET_DESCRIPTOR, ACK_QUEUE_SIZE>
-	        Ack_queue;
+	using Submit_queue = Packet_descriptor_queue<PACKET_DESCRIPTOR, SUBMIT_QUEUE_SIZE>;
+	using Ack_queue    = Packet_descriptor_queue<PACKET_DESCRIPTOR, ACK_QUEUE_SIZE>;
 };
 
 
@@ -595,13 +591,13 @@ class Genode::Packet_stream_source : private Packet_stream_base
 {
 	public:
 
-		typedef typename POLICY::Packet_descriptor Packet_descriptor;
+		using Packet_descriptor = typename POLICY::Packet_descriptor;
 
 	private:
 
-		typedef typename POLICY::Submit_queue Submit_queue;
-		typedef typename POLICY::Ack_queue    Ack_queue;
-		typedef typename POLICY::Content_type Content_type;
+		using Submit_queue = typename POLICY::Submit_queue;
+		using Ack_queue    = typename POLICY::Ack_queue;
+		using Content_type = typename POLICY::Content_type;
 
 		enum { PACKET_ALIGNMENT = POLICY::Packet_descriptor::PACKET_ALIGNMENT };
 
@@ -846,10 +842,10 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 {
 	public:
 
-		typedef typename POLICY::Submit_queue      Submit_queue;
-		typedef typename POLICY::Ack_queue         Ack_queue;
-		typedef typename POLICY::Packet_descriptor Packet_descriptor;
-		typedef typename POLICY::Content_type      Content_type;
+		using Submit_queue      = typename POLICY::Submit_queue;
+		using Ack_queue         = typename POLICY::Ack_queue;
+		using Packet_descriptor = typename POLICY::Packet_descriptor;
+		using Content_type      = typename POLICY::Content_type;
 
 		/**
 		 * Exception types

@@ -40,8 +40,8 @@ namespace Fetchurl {
 
 	using namespace Genode;
 
-	typedef String<256> Url;
-	typedef Path<256>   Path;
+	using Url  = String<256>;
+	using Path = Path<256>;
 }
 
 static size_t write_callback(char   *ptr,

@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <irq_session/irq_session.h>
 
-namespace Genode { typedef Capability<Irq_session> Irq_session_capability; }
+namespace Genode { using Irq_session_capability = Capability<Irq_session>; }
 
 #endif /* _INCLUDE__IRQ_SESSION__CAPABILITY_H_ */

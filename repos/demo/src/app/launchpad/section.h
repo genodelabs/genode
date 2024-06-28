@@ -22,7 +22,7 @@ class Section : public Scout::Parent_element
 {
 	private:
 
-		typedef Scout::size_t size_t;
+		using size_t = Scout::size_t;
 
 		/*
 		 * Noncopyable

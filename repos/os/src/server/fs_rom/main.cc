@@ -35,9 +35,9 @@ namespace Fs_rom {
 	class Rom_session_component;
 	class Rom_root;
 
-	typedef Id_space<Rom_session_component> Sessions;
+	using Sessions = Id_space<Rom_session_component>;
 
-	typedef File_system::Session_client::Tx::Source Tx_source;
+	using Tx_source = File_system::Session_client::Tx::Source;
 }
 
 
@@ -58,7 +58,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 		Constructible<Sessions::Element> _watch_elem { };
 
 		enum { PATH_MAX_LEN = 512 };
-		typedef Genode::Path<PATH_MAX_LEN> Path;
+		using Path = Genode::Path<PATH_MAX_LEN>;
 
 		/**
 		 * Name of requested file, interpreted at path into the file system

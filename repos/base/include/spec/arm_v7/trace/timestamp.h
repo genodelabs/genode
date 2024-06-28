@@ -20,7 +20,7 @@
 
 namespace Genode { namespace Trace {
 
-	typedef uint32_t Timestamp;
+	using Timestamp = uint32_t;
 
 	inline Timestamp timestamp()
 	{

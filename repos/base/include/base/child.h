@@ -45,9 +45,9 @@ namespace Genode {
  */
 struct Genode::Child_policy
 {
-	typedef String<64> Name;
-	typedef String<64> Binary_name;
-	typedef String<64> Linker_name;
+	using Name        = String<64>;
+	using Binary_name = String<64>;
+	using Linker_name = String<64>;
 
 	virtual ~Child_policy() { }
 
@@ -299,7 +299,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 				using Initial_thread_base::Start;
 
-				typedef Cpu_session::Name Name;
+				using Name = Cpu_session::Name;
 
 				/**
 				 * Constructor
@@ -351,7 +351,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		Session_state::Factory _session_factory { _session_md_alloc,
 		                                          _session_batch_size };
 
-		typedef Session_state::Args Args;
+		using Args = Session_state::Args;
 
 		/*
 		 * Members that are initialized not before the child's environment is
@@ -457,7 +457,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 			Id_space<Parent::Client>::Id const _client_id;
 
-			typedef String<64> Label;
+			using Label = String<64>;
 
 			Args const _args;
 
@@ -643,7 +643,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 					      "environment session denied (", _args.string(), ")"); }
 			}
 
-			typedef typename CONNECTION::Session_type SESSION;
+			using SESSION = typename CONNECTION::Session_type;
 
 			SESSION       &session()       { return _connection->session(); }
 			SESSION const &session() const { return _connection->session(); }

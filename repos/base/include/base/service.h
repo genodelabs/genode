@@ -39,7 +39,7 @@ class Genode::Service : public Ram_transfer::Account,
 {
 	public:
 
-		typedef Session_state::Name Name;
+		using Name = Session_state::Name;
 
 		using Ram_transfer_result = Ram_transfer::Account::Transfer_result;
 		using Cap_transfer_result = Cap_transfer::Account::Transfer_result;
@@ -50,7 +50,7 @@ class Genode::Service : public Ram_transfer::Account,
 
 	protected:
 
-		typedef Session_state::Factory Factory;
+		using Factory = Session_state::Factory;
 
 		/**
 		 * Return factory to use for creating 'Session_state' objects
@@ -114,7 +114,7 @@ class Genode::Local_service : public Service
 
 		struct Factory : Interface
 		{
-			typedef Session_state::Args Args;
+			using Args = Session_state::Args;
 
 			/**
 			 * Create session
@@ -136,7 +136,7 @@ class Genode::Local_service : public Service
 		{
 			private:
 
-				typedef Session_state::Args Args;
+				using Args = Session_state::Args;
 
 				SESSION &_s;
 

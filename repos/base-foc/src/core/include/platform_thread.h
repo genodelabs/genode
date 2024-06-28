@@ -45,7 +45,7 @@ class Core::Platform_thread : Interface
 
 		enum State { DEAD, RUNNING };
 
-		typedef String<32> Name;
+		using Name = String<32>;
 
 		friend class Platform_pd;
 

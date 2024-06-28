@@ -18,6 +18,6 @@
 #include <base/capability.h>
 #include <i2c_session/i2c_session.h>
 
-namespace I2c { typedef Genode::Capability<Session> Session_capability; }
+namespace I2c { using Session_capability = Genode::Capability<Session>; }
 
 #endif /*_INCLUDE__I2C_SESSION__CAPABILITY_H_ */

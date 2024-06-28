@@ -44,9 +44,9 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 
 	public:
 
-		typedef Genode::String<128> Fs_type_name;
-		typedef Genode::String<128> Node_name;
-		typedef Genode::String<128> Library_name;
+		using Fs_type_name = Genode::String<128>;
+		using Node_name    = Genode::String<128>;
+		using Library_name = Genode::String<128>;
 
 		struct Entry_base;
 

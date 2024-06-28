@@ -55,7 +55,7 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 
 	Sandbox _sandbox { _env, _state_handler };
 
-	typedef Sandbox::Local_service<Log_session_component> Log_service;
+	using Log_service = Sandbox::Local_service<Log_session_component>;
 
 	Log_service _log_service { _sandbox, *this };
 

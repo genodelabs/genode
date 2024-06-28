@@ -108,7 +108,7 @@ Sandbox::Child::apply_config(Xml_node start_node)
 			if (!_provided_by_this(service))
 				return;
 
-			typedef Service::Name Name;
+			using Name = Service::Name;
 			Name const name = service.name();
 
 			bool still_provided = false;
@@ -556,7 +556,7 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
 		 * client's identity by a custom label via the 'label'
 		 * attribute.
 		 */
-		typedef String<Session_label::capacity()> Label;
+		using Label = String<Session_label::capacity()>;
 		Label const target_label =
 			target.attribute_value("label", Label(label.string()));
 
@@ -583,7 +583,7 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
 
 		if (target.has_type("child")) {
 
-			typedef Name_registry::Name Name;
+			using Name = Name_registry::Name;
 			Name server_name = target.attribute_value("name", Name());
 			server_name = _name_registry.deref_alias(server_name);
 

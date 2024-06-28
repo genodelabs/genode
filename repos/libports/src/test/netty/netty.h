@@ -56,7 +56,7 @@ static inline void print(Genode::Output &output, sockaddr_in const &addr)
 
 namespace Netty {
 
-	typedef Genode::String<32> String;
+	using String = Genode::String<32>;
 
 	struct Test;
 }

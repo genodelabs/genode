@@ -21,7 +21,7 @@ namespace Sculpt { struct Nic_state; }
 
 struct Sculpt::Nic_state
 {
-	typedef String<32> Ipv4;
+	using Ipv4 = String<32>;
 
 	Ipv4 ipv4;
 

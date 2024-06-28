@@ -14,7 +14,7 @@
 
 #include <base/stdint.h>
 
-typedef Genode::size_t size_t;
+using size_t = Genode::size_t;
 
 namespace Genode {
 	struct Msgbuf_base;

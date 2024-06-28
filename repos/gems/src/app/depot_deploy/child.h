@@ -31,11 +31,11 @@ class Depot_deploy::Child : public List_model<Child>::Element
 {
 	public:
 
-		typedef String<100> Name;
-		typedef String<80>  Binary_name;
-		typedef String<80>  Config_name;
-		typedef String<32>  Depot_rom_server;
-		typedef String<100> Launcher_name;
+		using Name             = String<100>;
+		using Binary_name      = String<80>;
+		using Config_name      = String<80>;
+		using Depot_rom_server = String<32>;
+		using Launcher_name    = String<100>;
 
 		struct Prio_levels
 		{
@@ -426,7 +426,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 		}
 
 		{
-			typedef String<64> Version;
+			using Version = String<64>;
 			Version const version = _start_xml->xml().attribute_value("version", Version());
 			if (version.valid())
 				xml.attribute("version", version);
@@ -631,7 +631,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 	if (!_pkg_xml.constructed())
 		return;
 
-	typedef String<160> Path;
+	using Path = String<160>;
 
 	/*
 	 * Add routes given in the start node.
@@ -710,7 +710,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 			xml.node("service", [&] {
 				xml.attribute("name",  "ROM");
 				xml.attribute("label", "config");
-				typedef String<160> Path;
+				using Path = String<160>;
 				Path const path = rom.attribute_value("path", Path());
 
 				if (cached_depot_rom.valid())
@@ -739,7 +739,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 		if (!rom.has_attribute("path"))
 			return;
 
-		typedef Name Label;
+		using Label = Name;
 		Path  const path  = rom.attribute_value("path",  Path());
 		Label const label = rom.attribute_value("label", Label());
 		Label const as    = rom.attribute_value("as",    label);

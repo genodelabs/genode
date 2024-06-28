@@ -30,12 +30,12 @@ class Packet_stream_rx::Client : public Genode::Rpc_client<CHANNEL>
 		/*
 		 * Type shortcuts
 		 */
-		typedef Genode::Rpc_client<CHANNEL>        Base;
-		typedef typename Base::Rpc_dataspace       Rpc_dataspace;
-		typedef typename Base::Rpc_packet_avail    Rpc_packet_avail;
-		typedef typename Base::Rpc_ready_to_ack    Rpc_ready_to_ack;
-		typedef typename Base::Rpc_ready_to_submit Rpc_ready_to_submit;
-		typedef typename Base::Rpc_ack_avail       Rpc_ack_avail;
+		using Base                = Genode::Rpc_client<CHANNEL>;
+		using Rpc_dataspace       = typename Base::Rpc_dataspace;
+		using Rpc_packet_avail    = typename Base::Rpc_packet_avail;
+		using Rpc_ready_to_ack    = typename Base::Rpc_ready_to_ack;
+		using Rpc_ready_to_submit = typename Base::Rpc_ready_to_submit;
+		using Rpc_ack_avail       = typename Base::Rpc_ack_avail;
 
 	public:
 

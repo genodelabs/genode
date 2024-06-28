@@ -68,9 +68,9 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 		});
 
 		import.for_each_download([&] (Archive::Path const &path) {
-			typedef String<160> Remote;
-			typedef String<160> Local;
-			typedef String<100> File_path;
+			using Remote    = String<160>;
+			using Local     = String<160>;
+			using File_path = String<100>;
 
 			File_path const file_path = Archive::download_file_path(path);
 			Remote    const remote (current_user_url, "/", file_path);

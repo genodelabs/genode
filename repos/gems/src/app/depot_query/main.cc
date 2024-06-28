@@ -215,7 +215,7 @@ void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
 	}
 
 	case Archive::SRC: {
-		typedef String<160> Api;
+		using Api = String<160>;
 		_with_file_content(path, "used_apis", [&] (File_content const &used_apis) {
 			used_apis.for_each_line<Archive::Path>([&] (Api const &api) {
 				dependencies.record(Archive::Path(Archive::user(path), "/api/", api),
@@ -303,13 +303,13 @@ void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xm
 		Directory user_dir(_root, Directory::Path("depot/", user));
 
 		File_content download(_heap, user_dir, "download", File_content::Limit{4*1024});
-		typedef String<256> Url;
+		using Url = String<256>;
 		download.for_each_line<Url>([&] (Url const &url) {
 			xml.node("url", [&] () { xml.append_sanitized(url.string()); }); });
 
 		File_content pubkey(_heap, user_dir, "pubkey", File_content::Limit{8*1024});
 		xml.node("pubkey", [&] () {
-			typedef String<80> Line;
+			using Line = String<80>;
 			pubkey.for_each_line<Line>([&] (Line const &line) {
 				xml.append_sanitized(line.string());
 				xml.append("\n");

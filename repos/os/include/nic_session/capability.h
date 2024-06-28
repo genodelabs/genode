@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <nic_session/nic_session.h>
 
-namespace Nic { typedef Genode::Capability<Session> Session_capability; }
+namespace Nic { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _INCLUDE__NIC_SESSION__CAPABILITY_H_ */

@@ -126,7 +126,7 @@ class Scene : public Nano3d::Scene<PT>
 		                   SHAPE const &shape, unsigned frame,
 		                   bool backward_facing)
 		{
-			typedef Genode::Color Color;
+			using Color = Genode::Color;
 
 			auto vertices = shape.vertex_array();
 
@@ -138,7 +138,7 @@ class Scene : public Nano3d::Scene<PT>
 
 			if (_painter == PAINTER_TEXTURED) {
 
-				typedef Polygon::Textured_painter::Point Textured_point;
+				using Textured_point = Polygon::Textured_painter::Point;
 
 				shape.for_each_face([&] (unsigned const vertex_indices[],
 				                         unsigned num_vertices) {
@@ -171,7 +171,7 @@ class Scene : public Nano3d::Scene<PT>
 
 			if (_painter == PAINTER_SHADED) {
 
-				typedef Polygon::Shaded_painter::Point Shaded_point;
+				using Shaded_point = Polygon::Shaded_painter::Point;
 
 				shape.for_each_face([&] (unsigned const vertex_indices[],
 				                         unsigned num_vertices) {

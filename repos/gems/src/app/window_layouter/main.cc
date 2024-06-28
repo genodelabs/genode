@@ -558,7 +558,7 @@ void Window_layouter::Main::_gen_rules_with_frontmost_screen(Target::Name const 
 static Window_layouter::Window::Element
 _element_from_hover_model(Genode::Xml_node hover_window_xml)
 {
-	typedef Window_layouter::Window::Element::Type Type;
+	using Type = Window_layouter::Window::Element::Type;
 
 	bool const left_sizer   = hover_window_xml.has_sub_node("left_sizer"),
 	           right_sizer  = hover_window_xml.has_sub_node("right_sizer"),

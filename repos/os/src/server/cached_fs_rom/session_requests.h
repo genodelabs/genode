@@ -54,8 +54,8 @@ class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 				Parent::Server::Id const id {
 					request.attribute_value("id", ~0UL) };
 
-				typedef Session_state::Name Name;
-				typedef Session_state::Args Args;
+				using Name = Session_state::Name;
+				using Args = Session_state::Args;
 
 				Name name { };
 				Args args { };
@@ -87,7 +87,7 @@ class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 				Parent::Server::Id const id {
 					request.attribute_value("id", ~0UL) };
 
-				typedef Session_state::Args Args;
+				using Args = Session_state::Args;
 				Args args { };
 				try { args = request.sub_node("args").decoded_content<Args>(); }
 				catch (...) {

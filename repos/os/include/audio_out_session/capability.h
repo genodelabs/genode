@@ -25,7 +25,7 @@ namespace Audio_out {
 	 * because this file relies on the 'Audio_out::Session_capability' type.
 	 */
 	class Session;
-	typedef Genode::Capability<Session> Session_capability;
+	using Session_capability = Genode::Capability<Session>;
 }
 
 #endif /* _INCLUDE__AUDIO_OUT_SESSION__CAPABILITY_H_ */

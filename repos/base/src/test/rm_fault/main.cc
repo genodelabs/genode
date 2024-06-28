@@ -167,8 +167,8 @@ class Test_child_policy : public Child_policy
 {
 	public:
 
-		typedef Registered<Genode::Parent_service> Parent_service;
-		typedef Registry<Parent_service>           Parent_services;
+		using Parent_service  = Registered<Genode::Parent_service>;
+		using Parent_services = Registry<Parent_service>;
 
 	private:
 

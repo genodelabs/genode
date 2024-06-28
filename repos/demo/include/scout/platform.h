@@ -27,9 +27,9 @@
 
 namespace Scout {
 
-	typedef Genode::Point<> Point;
-	typedef Genode::Area<>  Area;
-	typedef Genode::Rect<>  Rect;
+	using Point = Genode::Point<>;
+	using Area  = Genode::Area<>;
+	using Rect  = Genode::Rect<>;
 
 	class Platform;
 }

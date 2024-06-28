@@ -25,10 +25,10 @@ namespace Depot {
 
 struct Depot::Archive
 {
-	typedef String<100> Path;
-	typedef String<64>  User;
-	typedef String<80>  Name;
-	typedef String<40>  Version;
+	using Path    = String<100>;
+	using User    = String<64>;
+	using Name    = String<80>;
+	using Version = String<40>;
 
 	enum Type { PKG, RAW, SRC, BIN, DBG, IMAGE };
 
@@ -78,7 +78,7 @@ struct Depot::Archive
 	 */
 	static Type type(Path const &path)
 	{
-		typedef String<8> Name;
+		using Name = String<8>;
 		Name const name = _path_element<Name>(path, 1);
 
 		if (name == "src")   return SRC;

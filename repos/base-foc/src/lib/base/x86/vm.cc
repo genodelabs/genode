@@ -585,8 +585,8 @@ struct Foc_vcpu : Thread, Noncopyable
 			using Foc::l4_vm_vmx_read_16;
 			using Foc::l4_vm_vmx_read_32;
 			using Foc::l4_vm_vmx_read_nat;
-			typedef Vcpu_state::Segment Segment;
-			typedef Vcpu_state::Range Range;
+			using Segment = Vcpu_state::Segment;
+			using Range   = Vcpu_state::Range;
 
 			{
 				Segment cs { l4_vm_vmx_read_16(vmcs, Vmcs::CS_SEL),
@@ -754,7 +754,7 @@ struct Foc_vcpu : Thread, Noncopyable
 					vmcb_cr4_shadow = state.cr4.value();
 			}
 
-			typedef Vcpu_state::Segment Segment;
+			using Segment = Vcpu_state::Segment;
 
 			state.cs.charge(Segment{vmcb->state_save_area.cs.selector,
 			                        vmcb->state_save_area.cs.attrib,
@@ -796,7 +796,7 @@ struct Foc_vcpu : Thread, Noncopyable
 			                          vmcb->state_save_area.ldtr.limit,
 			                          (addr_t)vmcb->state_save_area.ldtr.base});
 
-			typedef Vcpu_state::Range Range;
+			using Range = Vcpu_state::Range;
 
 			state.gdtr.charge(Range{.limit = vmcb->state_save_area.gdtr.limit,
 			                        .base  = (addr_t)vmcb->state_save_area.gdtr.base });

@@ -45,7 +45,7 @@ class Genode::Session_requester
 			}
 		} _content_producer { _id_space };
 
-		typedef Local_service<Dynamic_rom_session> Service;
+		using Service = Local_service<Dynamic_rom_session>;
 
 		Dynamic_rom_session             _session;
 		Service::Single_session_factory _factory { _session };
@@ -53,7 +53,7 @@ class Genode::Session_requester
 
 	public:
 
-		typedef String<32> Rom_name;
+		using Rom_name = String<32>;
 
 		static Rom_name rom_name() { return "session_requests"; }
 

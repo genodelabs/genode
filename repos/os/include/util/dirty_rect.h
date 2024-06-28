@@ -31,8 +31,8 @@ class Genode::Dirty_rect
 {
 	private:
 
-		typedef RECT Rect;
-		typedef Genode::size_t size_t;
+		using Rect = RECT;
+		using size_t = Genode::size_t;
 
 		Rect _rects[NUM_RECTS];
 

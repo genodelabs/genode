@@ -484,7 +484,7 @@ namespace Input {
 		return "KEY_UNKNOWN";
 	}
 
-	typedef Genode::String<22> Key_name;
+	using Key_name = Genode::String<22>;
 
 	/**
 	 * Return key code for name (linear search)

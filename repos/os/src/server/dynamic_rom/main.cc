@@ -74,7 +74,7 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 			if (!_verbose)
 				return;
 
-			typedef Genode::String<160> Name;
+			using Name = Genode::String<160>;
 			Genode::log(_rom_node.attribute_value("name", Name()), ": ", args...);
 		}
 
@@ -94,7 +94,7 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 				_notify_client();
 
 				if (curr_step.has_attribute("description")) {
-					typedef Genode::String<200> Desc;
+					using Desc = Genode::String<200>;
 					Desc desc = curr_step.attribute_value("description", Desc());
 					_log("change (", desc.string(), ")");
 				} else {
@@ -148,7 +148,7 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 
 		Entrypoint &_ep;
 
-		typedef Session_component This;
+		using This = Session_component;
 		Signal_handler<This> _timer_handler = { _ep, *this, &This::_handle_timer };
 
 	public:

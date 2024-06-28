@@ -101,7 +101,7 @@ namespace Libc {
 	void init_malloc_cloned(Clone_connection &);
 	void reinit_malloc(Genode::Allocator &);
 
-	typedef String<Vfs::MAX_PATH_LEN> Rtc_path;
+	using Rtc_path = String<Vfs::MAX_PATH_LEN>;
 
 	/**
 	 * Init timing facilities

@@ -122,8 +122,8 @@ class Virtio_input::Driver
 
 		enum { QUEUE_SIZE = 64, QUEUE_ELM_SIZE = sizeof(Event) };
 
-		typedef Virtio::Queue<Event, Events_queue_traits> Events_virtqueue;
-		typedef Virtio::Queue<Event, Status_queue_traits> Status_virtqueue;
+		using Events_virtqueue = Virtio::Queue<Event, Events_queue_traits>;
+		using Status_virtqueue = Virtio::Queue<Event, Status_queue_traits>;
 
 		Driver(Driver const &);
 		Driver &operator = (Driver const &);

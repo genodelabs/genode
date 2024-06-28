@@ -109,7 +109,7 @@ namespace Genode {
 		 * '_unmarshal_result' is selected depending on the RPC
 		 * direction.
 		 */
-		typedef typename Trait::Rpc_direction<typename ATL::Head>::Type Rpc_dir;
+		using Rpc_dir = typename Trait::Rpc_direction<typename ATL::Head>::Type;
 		_unmarshal_result(unmarshaller, args.get(), Meta::Overload_selector<Rpc_dir>());
 
 		/* unmarshal remaining arguments */
@@ -137,7 +137,7 @@ namespace Genode {
 		Msgbuf<REPLY_MSG_SIZE + PROTOCOL_OVERHEAD> reply_buf;
 
 		/* determine opcode of RPC function */
-		typedef typename RPC_INTERFACE::Rpc_functions Rpc_functions;
+		using Rpc_functions = typename RPC_INTERFACE::Rpc_functions;
 		Rpc_opcode opcode(static_cast<int>(Meta::Index_of<Rpc_functions, IF>::Value));
 
 		/* marshal opcode and RPC input arguments */
@@ -194,7 +194,7 @@ class Genode::Rpc_client : public RPC_INTERFACE
 
 	public:
 
-		typedef RPC_INTERFACE Rpc_interface;
+		using Rpc_interface = RPC_INTERFACE;
 
 		Rpc_client(Capability<RPC_INTERFACE> const &cap) : _cap(cap) { }
 

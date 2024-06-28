@@ -41,13 +41,11 @@ class Launchpad_child : public  Genode::Child_policy,
 
 	public:
 
-		typedef Genode::Child_policy::Name Name;
-
-		typedef Genode::Registered<Genode::Child_service>  Child_service;
-		typedef Genode::Registered<Genode::Parent_service> Parent_service;
-
-		typedef Genode::Registry<Child_service>  Child_services;
-		typedef Genode::Registry<Parent_service> Parent_services;
+		using Name            = Genode::Child_policy::Name;
+		using Child_service   = Genode::Registered<Genode::Child_service>;
+		using Parent_service  = Genode::Registered<Genode::Parent_service>;
+		using Child_services  = Genode::Registry<Child_service>;
+		using Parent_services = Genode::Registry<Parent_service>;
 
 	private:
 
@@ -244,8 +242,8 @@ class Launchpad
 
 	public:
 
-		typedef Genode::Cap_quota Cap_quota;
-		typedef Genode::Ram_quota Ram_quota;
+		using Cap_quota = Genode::Cap_quota;
+		using Ram_quota = Genode::Ram_quota;
 
 		Launchpad(Genode::Env &env, unsigned long initial_quota);
 

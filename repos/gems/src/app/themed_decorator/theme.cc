@@ -33,7 +33,7 @@ enum Texture_id { TEXTURE_ID_DEFAULT, TEXTURE_ID_CLOSER, TEXTURE_ID_MAXIMIZER };
 
 struct Texture_from_png_file
 {
-	typedef Genode::Texture<Genode::Pixel_rgb888> Texture;
+	using Texture = Genode::Texture<Genode::Pixel_rgb888>;
 
 	File       png_file;
 	Png_image  png_image;
@@ -202,8 +202,8 @@ void Decorator::Theme::draw_background(Decorator::Pixel_surface &pixel_surface,
 	Genode::Texture<Pixel_rgb888> const &texture =
 		texture_by_id(_ram, _rm, _alloc, TEXTURE_ID_DEFAULT);
 
-	typedef Genode::Surface_base::Point Point;
-	typedef Genode::Surface_base::Rect  Rect;
+	using Point = Genode::Surface_base::Point;
+	using Rect  = Genode::Surface_base::Rect;
 
 	unsigned const left  = aura_margins().left  + decor_margins().left;
 	unsigned const right = aura_margins().right + decor_margins().right;

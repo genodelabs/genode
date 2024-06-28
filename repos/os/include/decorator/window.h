@@ -29,8 +29,8 @@ namespace Decorator {
 	class Canvas_base;
 	class Window_base;
 
-	typedef Genode::List<Genode::List_element<Window_base> > Abandoned_windows;
-	typedef Genode::List<Genode::List_element<Window_base> > Reversed_windows;
+	using Abandoned_windows = Genode::List<Genode::List_element<Window_base> >;
+	using Reversed_windows  = Genode::List<Genode::List_element<Window_base> >;
 }
 
 
@@ -38,7 +38,7 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 {
 	public:
 
-		typedef Gui::Session::View_handle View_handle;
+		using View_handle = Gui::Session::View_handle;
 
 		struct Border
 		{

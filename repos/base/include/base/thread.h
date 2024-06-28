@@ -45,9 +45,9 @@ class Genode::Thread
 		class Stack_too_large    : public Exception { };
 		class Stack_alloc_failed : public Exception { };
 
-		typedef Affinity::Location  Location;
-		typedef Cpu_session::Name   Name;
-		typedef Cpu_session::Weight Weight;
+		using Location = Affinity::Location;
+		using Name     = Cpu_session::Name;
+		using Weight   = Cpu_session::Weight;
 
 		struct Stack_info { addr_t base; addr_t top;
 		                    addr_t libc_tls_pointer_offset; };

@@ -37,10 +37,10 @@
  */
 #define GENODE_RPC_THROW(rpc_name, ret_type, func_name, exc_types, ...) \
 	struct rpc_name { \
-		typedef ::Genode::Meta::Ref_args<__VA_ARGS__>::Type  Client_args; \
-		typedef ::Genode::Meta::Pod_args<__VA_ARGS__>::Type  Server_args; \
-		typedef ::Genode::Trait::Exc_list<exc_types>::Type   Exceptions; \
-		typedef ::Genode::Trait::Call_return<ret_type>::Type Ret_type; \
+		using Client_args = ::Genode::Meta::Ref_args<__VA_ARGS__>::Type;  \
+		using Server_args = ::Genode::Meta::Pod_args<__VA_ARGS__>::Type;  \
+		using Exceptions  = ::Genode::Trait::Exc_list<exc_types>::Type;   \
+		using Ret_type    = ::Genode::Trait::Call_return<ret_type>::Type; \
 		\
 		template <typename SERVER, typename RET> \
 		static RET serve(SERVER &server, Server_args &args) { \
@@ -66,7 +66,7 @@
  * this type list.
  */
 #define GENODE_RPC_INTERFACE(...) \
-	typedef GENODE_TYPE_LIST(__VA_ARGS__) Rpc_functions
+	using Rpc_functions = GENODE_TYPE_LIST(__VA_ARGS__)
 
 /**
  * Macro for declaring a RPC interface derived from another RPC interface
@@ -80,10 +80,9 @@
  * the inherited RPC functions are preserved.
  */
 #define GENODE_RPC_INTERFACE_INHERIT(base, ...) \
-	typedef ::Genode::Meta::Append<base::Rpc_functions, \
-	                               GENODE_TYPE_LIST(__VA_ARGS__) >::Type \
-		Rpc_functions; \
-	typedef base Rpc_inherited_interface;
+	using Rpc_functions = ::Genode::Meta::Append<base::Rpc_functions, \
+	                                             GENODE_TYPE_LIST(__VA_ARGS__) >::Type; \
+	using Rpc_inherited_interface = base;
 
 
 namespace Genode {
@@ -101,11 +100,11 @@ namespace Genode {
 		template <typename T> struct Rpc_direction;
 
 
-		template <typename T> struct Rpc_direction            { typedef Rpc_arg_in    Type; };
-		template <typename T> struct Rpc_direction<T const *> { typedef Rpc_arg_in    Type; };
-		template <typename T> struct Rpc_direction<T const &> { typedef Rpc_arg_in    Type; };
-		template <typename T> struct Rpc_direction<T*>        { typedef Rpc_arg_inout Type; };
-		template <typename T> struct Rpc_direction<T&>        { typedef Rpc_arg_inout Type; };
+		template <typename T> struct Rpc_direction            { using Type = Rpc_arg_in; };
+		template <typename T> struct Rpc_direction<T const *> { using Type = Rpc_arg_in; };
+		template <typename T> struct Rpc_direction<T const &> { using Type = Rpc_arg_in; };
+		template <typename T> struct Rpc_direction<T*>        { using Type = Rpc_arg_inout; };
+		template <typename T> struct Rpc_direction<T&>        { using Type = Rpc_arg_inout; };
 
 		/**
 		 * Representation of function return type
@@ -115,8 +114,8 @@ namespace Genode {
 		 * regardless of the presence of a return type with the same meta
 		 * program.
 		 */
-		template <typename T> struct Call_return       { typedef T Type; };
-		template <>           struct Call_return<void> { typedef Meta::Empty Type; };
+		template <typename T> struct Call_return       { using Type = T; };
+		template <>           struct Call_return<void> { using Type = Meta::Empty; };
 
 		/**
 		 * Representation of the list of exception types
@@ -124,8 +123,8 @@ namespace Genode {
 		 * This template maps the special case of a 'Type_list' with no arguments
 		 * to the 'Empty' type.
 		 */
-		template <typename T> struct Exc_list { typedef T Type; };
-		template <> struct Exc_list<Meta::Type_list<> > { typedef Meta::Empty Type; };
+		template <typename T> struct Exc_list           { using Type = T; };
+		template <> struct Exc_list<Meta::Type_list<> > { using Type = Meta::Empty; };
 	}
 
 
@@ -202,7 +201,7 @@ namespace Genode {
 	 */
 	template <typename ARGS, bool IN, bool OUT>
 	struct Rpc_args_size {
-		typedef typename ARGS::Head This;
+		using This = typename ARGS::Head;
 		enum { This_size = Rpc_transfer_size<This>::Value };
 		enum { Value = (IN  && Trait::Rpc_direction<This>::Type::IN  ? This_size : 0)
 		             + (OUT && Trait::Rpc_direction<This>::Type::OUT ? This_size : 0)
@@ -235,7 +234,7 @@ namespace Genode {
 	 */
 	template <typename RPC_FUNCTION, bool IN, bool OUT>
 	struct Rpc_msg_payload_size {
-		typedef typename RPC_FUNCTION::Server_args Args;
+		using Args = typename RPC_FUNCTION::Server_args;
 		enum { Value = Rpc_args_size<Args, IN, OUT>::Value }; };
 
 
@@ -305,7 +304,7 @@ namespace Genode {
 	 */
 	template <typename RPC_IF, Rpc_msg_type MSG_TYPE>
 	struct Rpc_interface_msg_size {
-		typedef typename RPC_IF::Rpc_functions Rpc_functions;
+		using Rpc_functions = typename RPC_IF::Rpc_functions;
 		enum { Value = Rpc_function_list_msg_size<Rpc_functions, MSG_TYPE>::Value }; };
 
 
@@ -315,8 +314,8 @@ namespace Genode {
 	template <typename INTERFACE>
 	struct Rpc_interface_is_inherited
 	{
-		typedef char yes[1];
-		typedef char  no[2];
+		using yes = char[1];
+		using no  = char[2];
 
 		template <typename IF>
 		static yes &test(typename IF::Rpc_inherited_interface *);

@@ -26,7 +26,7 @@ class Anchor
 
 	private:
 
-		typedef Genode::Xml_node Xml_node;
+		using Xml_node = Genode::Xml_node;
 
 		struct Value
 		{

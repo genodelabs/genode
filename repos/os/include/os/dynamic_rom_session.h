@@ -44,7 +44,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 		{
 			public:
 
-				typedef String<64> Node_name;
+				using Node_name = String<64>;
 
 			private:
 

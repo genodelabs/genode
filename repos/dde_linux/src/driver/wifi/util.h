@@ -17,14 +17,14 @@
 /* Genode includes */
 #include <util/string.h>
 
-typedef unsigned long  size_t;
-typedef long long      ssize_t;
-typedef unsigned char  uint8_t;
+using size_t  = unsigned long;
+using ssize_t = long long;
+using uint8_t = unsigned char;
 
 
 namespace Util {
 
-	using size_t = Genode::size_t;
+	using size_t  = Genode::size_t;
 	using uint8_t = Genode::uint8_t;
 
 	size_t next_char(char const *s, size_t start, char const c)

@@ -42,7 +42,7 @@ class Core::Vm_session_component
 {
 	private:
 
-		typedef Allocator_avl_tpl<Rm_region> Avl_region;
+		using Avl_region = Allocator_avl_tpl<Rm_region>;
 
 		/*
 		 * Noncopyable

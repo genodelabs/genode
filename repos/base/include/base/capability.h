@@ -32,7 +32,7 @@ namespace Genode {
 	/**
 	 * Capability that is not associated with a specific RPC interface
 	 */
-	typedef Native_capability Untyped_capability;
+	using Untyped_capability = Native_capability;
 
 	template <typename> class Capability;
 
@@ -123,7 +123,7 @@ class Genode::Capability : public Untyped_capability
 		template <typename IF, unsigned I>
 		struct Arg
 		{
-			typedef typename Meta::Type_at<typename IF::Client_args, I>::Type Type;
+			using Type = typename Meta::Type_at<typename IF::Client_args, I>::Type;
 		};
 
 		template <typename FROM_RPC_INTERFACE>
@@ -138,7 +138,7 @@ class Genode::Capability : public Untyped_capability
 
 	public:
 
-		typedef RPC_INTERFACE Rpc_interface;
+		using Rpc_interface = RPC_INTERFACE;
 
 		/**
 		 * Constructor

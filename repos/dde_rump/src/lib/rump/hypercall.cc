@@ -254,7 +254,7 @@ struct Allocator_policy
 };
 
 
-typedef Allocator::Fap<MAX_VIRTUAL_MEMORY, Allocator_policy> Rump_alloc;
+using Rump_alloc = Allocator::Fap<MAX_VIRTUAL_MEMORY, Allocator_policy>;
 
 static Genode::Mutex & alloc_mutex()
 {

@@ -38,8 +38,8 @@ class Terminal::Text_screen_surface
 
 		class Invalid_framebuffer_size : Genode::Exception { };
 
-		typedef Text_painter::Font             Font;
-		typedef Glyph_painter::Fixpoint_number Fixpoint_number;
+		using Font            = Text_painter::Font;
+		using Fixpoint_number = Glyph_painter::Fixpoint_number;
 
 		struct Geometry
 		{

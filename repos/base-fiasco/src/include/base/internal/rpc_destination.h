@@ -19,7 +19,7 @@
 
 namespace Genode {
 
-	typedef Fiasco::l4_threadid_t Rpc_destination;
+	using Rpc_destination = Fiasco::l4_threadid_t;
 
 	static inline Rpc_destination invalid_rpc_destination()
 	{

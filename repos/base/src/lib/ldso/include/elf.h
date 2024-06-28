@@ -23,36 +23,36 @@ namespace Linker {
 	/* standard ELF types.  */
 
 	/* type for a 16-bit quantity.  */
-	typedef genode_uint16_t Elf32_Half;
-	typedef genode_uint16_t Elf64_Half;
+	using Elf32_Half = genode_uint16_t;
+	using Elf64_Half = genode_uint16_t;
 
 	/* types for signed and unsigned 32-bit quantities */
-	typedef genode_uint32_t Elf32_Word;
-	typedef genode_int32_t  Elf32_Sword;
-	typedef genode_uint32_t Elf64_Word;
-	typedef genode_int32_t  Elf64_Sword;
+	using Elf32_Word  = genode_uint32_t;
+	using Elf32_Sword = genode_int32_t;
+	using Elf64_Word  = genode_uint32_t;
+	using Elf64_Sword = genode_int32_t;
 
 	/* types for signed and unsigned 64-bit quantities */
-	typedef genode_uint64_t Elf32_Xword;
-	typedef genode_int64_t  Elf32_Sxword;
-	typedef genode_uint64_t Elf64_Xword;
-	typedef genode_int64_t  Elf64_Sxword;
+	using Elf32_Xword  = genode_uint64_t;
+	using Elf32_Sxword = genode_int64_t;
+	using Elf64_Xword  = genode_uint64_t;
+	using Elf64_Sxword = genode_int64_t;
 
 	/* type of addresses */
-	typedef genode_uint32_t Elf32_Addr;
-	typedef genode_uint64_t Elf64_Addr;
+	using Elf32_Addr = genode_uint32_t;
+	using Elf64_Addr = genode_uint64_t;
 
 	/* type of file offsets */
-	typedef genode_uint32_t Elf32_Off;
-	typedef genode_uint64_t Elf64_Off;
+	using Elf32_Off = genode_uint32_t;
+	using Elf64_Off = genode_uint64_t;
 
 	/* type for section indices, which are 16-bit quantities */
-	typedef genode_uint16_t Elf32_Section;
-	typedef genode_uint16_t Elf64_Section;
+	using Elf32_Section = genode_uint16_t;
+	using Elf64_Section = genode_uint16_t;
 
 	/* type for version symbol information */
-	typedef Elf32_Half Elf32_Versym;
-	typedef Elf64_Half Elf64_Versym;
+	using Elf32_Versym = Elf32_Half;
+	using Elf64_Versym = Elf64_Half;
 
 	/**
 	 * Fields in the e_ident array of ELF file header The EI_* macros are indices
@@ -210,10 +210,10 @@ namespace Linker {
 
 	namespace Elf32 {
 
-		typedef Elf32_Addr Addr;
-		typedef Elf32_Word Hashelt;
-		typedef Elf32_Word Size;
-		typedef Elf32_Half Half;
+		using Addr = Elf32_Addr;
+		using Hashelt = Elf32_Word;
+		using Size = Elf32_Word;
+		using Half = Elf32_Half;
 
 		/**
 		 * The ELF file header
@@ -329,10 +329,10 @@ namespace Linker {
 
 	namespace Elf64 {
 
-		typedef Elf64_Addr  Addr;
-		typedef Elf64_Word  Hashelt;
-		typedef Elf64_Xword Size;
-		typedef Elf64_Half  Half;
+		using Addr    = Elf64_Addr;
+		using Hashelt = Elf64_Word;
+		using Size    = Elf64_Xword;
+		using Half    = Elf64_Half;
 
 		/**
 		 * ELF header

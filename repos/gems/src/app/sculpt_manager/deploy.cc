@@ -38,8 +38,8 @@ void Sculpt::Deploy::view_diag(Scope<> &s) const
 	/*
 	 * Collect messages in registry, avoiding duplicates
 	 */
-	typedef String<64> Message;
-	typedef Registered_no_delete<Message> Registered_message;
+	using Message = String<64>;
+	using Registered_message = Registered_no_delete<Message>;
 	Registry<Registered_message> messages { };
 
 	auto gen_missing_dependencies = [&] (Xml_node start, Start_name const &name)
@@ -112,7 +112,7 @@ void Sculpt::Deploy::_handle_managed_deploy(Xml_node const &managed_deploy)
 					if (file.attribute_value("xml", false) == false)
 						return;
 
-					typedef Depot_deploy::Child::Launcher_name Name;
+					using Name = Depot_deploy::Child::Launcher_name;
 					Name const name = file.attribute_value("name", Name());
 
 					file.for_each_sub_node("launcher", [&] (Xml_node const &launcher) {

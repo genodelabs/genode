@@ -67,7 +67,7 @@ class Genode::Avl_node_base : Noncopyable
 
 	public:
 
-		typedef bool Side;
+		using Side = bool;
 
 		enum { LEFT = false, RIGHT = true };
 

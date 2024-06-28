@@ -275,7 +275,7 @@ namespace Genode {
 	 __attribute((optimize("no-tree-loop-distribute-patterns")))
 	inline void *memset(void *dst, uint8_t i, size_t size)
 	{
-		typedef unsigned long word_t;
+		using word_t = unsigned long;
 
 		enum {
 			LEN  = sizeof(word_t),

@@ -21,7 +21,7 @@ namespace Nano3d {
 	template <typename> class Vec2;
 	template <typename> class Vec3;
 
-	typedef Vec3<int> Vertex;
+	using Vertex = Vec3<int>;
 
 	template <unsigned> class Vertex_array;
 }

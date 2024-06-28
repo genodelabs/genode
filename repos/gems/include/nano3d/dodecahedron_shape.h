@@ -66,7 +66,7 @@ class Nano3d::Dodecahedron_shape
 				int edge(unsigned i) const { return _edges[i]; }
 		};
 
-		typedef Nano3d::Vertex_array<NUM_VERTICES> Vertex_array;
+		using Vertex_array = Nano3d::Vertex_array<NUM_VERTICES>;
 
 		Vertex_array _vertices { };
 

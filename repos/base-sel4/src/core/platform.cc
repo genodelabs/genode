@@ -152,7 +152,7 @@ void Core::Platform::_init_allocators()
 	                                stack_area_virtual_size());
 
 	if (verbose_boot_info) {
-		typedef Hex_range<addr_t> Hex_range;
+		using Hex_range = Hex_range<addr_t>;
 		log("virtual address layout of core:");
 		log(" overall    ", Hex_range(_vm_base, _vm_size));
 		log(" core image ", Hex_range(core_virt_beg, image_elf_size));

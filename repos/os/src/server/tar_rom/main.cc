@@ -230,7 +230,7 @@ struct Tar_rom::Main
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	typedef String<64> Name;
+	using Name = String<64>;
 
 	/**
 	 * Read name of tar archive from config

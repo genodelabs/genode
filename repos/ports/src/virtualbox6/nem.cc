@@ -51,7 +51,7 @@ struct Sup::Nem
 {
 	Gmm &_gmm;
 
-	typedef Sup::Gmm::Protection Protection;
+	using Protection = Sup::Gmm::Protection;
 
 	struct Range
 	{

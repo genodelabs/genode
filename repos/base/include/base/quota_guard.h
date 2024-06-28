@@ -289,11 +289,11 @@ class Genode::Quota_guard
 
 namespace Genode {
 
-	typedef Quota_guard<Ram_quota> Ram_quota_guard;
-	typedef Quota_guard<Cap_quota> Cap_quota_guard;
+	using Ram_quota_guard = Quota_guard<Ram_quota>;
+	using Cap_quota_guard = Quota_guard<Cap_quota>;
 
-	typedef Ram_quota_guard::Limit_exceeded Out_of_ram;
-	typedef Cap_quota_guard::Limit_exceeded Out_of_caps;
+	using Out_of_ram = Ram_quota_guard::Limit_exceeded;
+	using Out_of_caps = Cap_quota_guard::Limit_exceeded;
 }
 
 #endif /* _INCLUDE__BASE__QUOTA_GUARD_H_ */

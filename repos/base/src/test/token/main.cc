@@ -61,7 +61,7 @@ static void test_out_of_bounds_access(Env &env)
 		char * const token_ptr = buf_ptr + BUF_SIZE - input_len;
 		memcpy(token_ptr, input, input_len);
 
-		typedef ::Genode::Token<Scanner_policy_identifier_with_underline> Token;
+		using Token = ::Genode::Token<Scanner_policy_identifier_with_underline>;
 
 		Token t(token_ptr, input_len);
 

@@ -27,7 +27,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 
 	enum { LABEL_MAX_LEN = 256 };
 
-	typedef String<200> Text;
+	using Text = String<200>;
 	Text _text { };
 
 	Animated_color _color;

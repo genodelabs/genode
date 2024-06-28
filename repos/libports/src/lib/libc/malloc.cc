@@ -79,8 +79,8 @@ class Libc::Malloc
 {
 	private:
 
-		typedef Genode::size_t size_t;
-		typedef Genode::addr_t addr_t;
+		using size_t = Genode::size_t;
+		using addr_t = Genode::addr_t;
 
 		enum {
 			SLAB_START    = 5,  /* 32 bytes (log2) */

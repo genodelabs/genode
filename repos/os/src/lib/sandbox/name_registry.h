@@ -26,7 +26,7 @@ struct Sandbox::Name_registry
 {
 	virtual ~Name_registry() { }
 
-	typedef Child_policy::Name Name;
+	using Name = Child_policy::Name;
 
 	/**
 	 * Return child name for a given alias name

@@ -29,7 +29,7 @@ class Event_filter::Log_source : public Source, Source::Filter
 {
 	private:
 
-		typedef String<32> Prefix;
+		using Prefix = String<32>;
 
 		Prefix _prefix = "";
 

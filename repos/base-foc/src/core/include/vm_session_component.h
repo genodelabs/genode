@@ -35,7 +35,7 @@ namespace Core {
 
 	enum { MAX_VCPU_IDS = (Platform::VCPU_VIRT_EXT_END -
 	                       Platform::VCPU_VIRT_EXT_START) / L4_PAGESIZE };
-	typedef Bit_allocator<MAX_VCPU_IDS> Vcpu_id_allocator;
+	using Vcpu_id_allocator = Bit_allocator<MAX_VCPU_IDS>;
 }
 
 
@@ -78,8 +78,8 @@ class Core::Vm_session_component
 {
 	private:
 
-		typedef Constrained_ram_allocator    Con_ram_allocator;
-		typedef Allocator_avl_tpl<Rm_region> Avl_region;
+		using Con_ram_allocator = Constrained_ram_allocator;
+		using Avl_region        = Allocator_avl_tpl<Rm_region>;
 
 		Rpc_entrypoint    &_ep;
 		Con_ram_allocator  _constrained_md_ram_alloc;

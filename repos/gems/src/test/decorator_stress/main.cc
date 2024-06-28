@@ -22,9 +22,9 @@
 /* libc includes */
 #include <math.h>
 
-typedef Genode::Surface_base::Point Point;
-typedef Genode::Surface_base::Area  Area;
-typedef Genode::Surface_base::Rect  Rect;
+using Point = Genode::Surface_base::Point;
+using Area  = Genode::Surface_base::Area;
+using Rect  = Genode::Surface_base::Rect;
 
 
 struct Param

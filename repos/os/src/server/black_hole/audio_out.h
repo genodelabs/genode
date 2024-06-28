@@ -112,7 +112,7 @@ class Audio_out::Session_component : Audio_out::Session_component_base,
 
 
 namespace Audio_out {
-	typedef Genode::Root_component<Session_component, Genode::Multiple_clients> Root_component;
+	using Root_component = Genode::Root_component<Session_component, Genode::Multiple_clients>;
 }
 
 

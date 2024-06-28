@@ -25,11 +25,11 @@ namespace Status_bar {
 
 	using namespace Genode;
 
-	typedef String<128>         Domain_name;
-	typedef String<128>         Label;
-	typedef Surface_base::Area  Area;
-	typedef Surface_base::Point Point;
-	typedef Surface_base::Rect  Rect;
+	using Domain_name = String<128>;
+	using Label       = String<128>;
+	using Area        = Surface_base::Area;
+	using Point       = Surface_base::Point;
+	using Rect        = Surface_base::Rect;
 
 	struct Buffer;
 	struct Main;
@@ -120,7 +120,7 @@ void Status_bar::Buffer::draw(Domain_name const &domain_name,
                               Label       const &label,
                               Color              color)
 {
-	typedef Pixel_rgb888 PT;
+	using PT = Pixel_rgb888;
 
 	Area const area = _mode.area;
 
@@ -200,7 +200,7 @@ struct Status_bar::Main
 		_gui.mode_sigh(_mode_handler);
 
 		/* schedule initial view-stacking command, needed only once */
-		typedef Gui::Session::View_handle View_handle;
+		using View_handle = Gui::Session::View_handle;
 		_gui.enqueue<Gui::Session::Command::To_front>(_view, View_handle());
 
 		/* import initial state */

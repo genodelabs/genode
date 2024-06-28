@@ -35,7 +35,7 @@
  ** helper **
  ************/
 
-typedef Mixer::Channel Channel;
+using Channel = Mixer::Channel;
 
 static struct Names {
 	char const      *name;

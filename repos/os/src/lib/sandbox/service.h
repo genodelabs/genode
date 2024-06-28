@@ -63,7 +63,7 @@ class Sandbox::Routed_service : public Async_service, public Abandonable
 {
 	public:
 
-		typedef Child_policy::Name Child_name;
+		using Child_name = Child_policy::Name;
 
 		struct Pd_accessor : Interface
 		{

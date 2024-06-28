@@ -128,7 +128,7 @@ struct Terminal::Main : Character_consumer
 
 	struct Paste_buffer { char buffer[READ_BUFFER_SIZE]; } _paste_buffer { };
 
-	typedef Pixel_rgb888 PT;
+	using PT = Pixel_rgb888;
 
 	Constructible<Text_screen_surface<PT>> _text_screen_surface { };
 
@@ -161,7 +161,7 @@ struct Terminal::Main : Character_consumer
 		/* update view geometry after mode change */
 		if (_fb_mode.area != _flushed_fb_mode.area) {
 
-			typedef Gui::Session::Command Command;
+			using Command = Gui::Session::Command;
 			_gui.enqueue<Command::Geometry>(_view, Rect(Point(0, 0), _fb_mode.area));
 			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
 			_gui.execute();
@@ -280,7 +280,7 @@ void Terminal::Main::_handle_config()
 		                          _text_screen_surface->size() != new_geometry.size();
 		if (reconstruct) {
 
-			typedef Text_screen_surface<PT>::Snapshot Snapshot;
+			using Snapshot = Text_screen_surface<PT>::Snapshot;
 			Constructible<Snapshot> snapshot { };
 
 			size_t const snapshot_bytes  = _text_screen_surface.constructed()

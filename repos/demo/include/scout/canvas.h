@@ -32,7 +32,7 @@ namespace Scout {
 	using Genode::Color;
 	using Genode::Pixel_rgba;
 
-	typedef Text_painter::Font Font;
+	using Font = Text_painter::Font;
 
 	struct Canvas_base;
 	template <typename PT> class Canvas;

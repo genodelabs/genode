@@ -99,7 +99,7 @@ void Launchpad::process_config(Genode::Xml_node config_node)
 	 */
 	config_node.for_each_sub_node("launcher", [&] (Xml_node node) {
 
-		typedef Launchpad_child::Name Name;
+		using Name = Launchpad_child::Name;
 		Name *name = new (_heap) Name(node.attribute_value("name", Name()));
 
 		Number_of_bytes default_ram_quota =
@@ -112,7 +112,7 @@ void Launchpad::process_config(Genode::Xml_node config_node)
 		 */
 		Dataspace_capability config_ds;
 
-		typedef String<128> Rom_name;
+		using Rom_name = String<128>;
 
 		if (node.has_sub_node("configfile")) {
 

@@ -59,7 +59,7 @@ class Init::Child_policy_provide_rom_file
 
 		Session_label const _module_name;
 
-		typedef Local_service<Local_rom_session_component> Service;
+		using Service = Local_service<Local_rom_session_component>;
 
 		Service::Single_session_factory _session_factory { _session };
 		Service                         _service { _session_factory };

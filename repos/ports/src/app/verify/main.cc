@@ -35,8 +35,8 @@ struct Verify::Main
 
 	Constructible<Expanding_reporter> _reporter { };
 
-	typedef String<256> Path;
-	typedef String<64>  Message;
+	using Path    = String<256>;
+	using Message = String<64>;
 
 	static Message _message(Gnupg_verify_result result)
 	{

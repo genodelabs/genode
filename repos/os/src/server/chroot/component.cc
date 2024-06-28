@@ -32,7 +32,7 @@ namespace Chroot {
 struct Chroot::Main
 {
 	enum { PATH_MAX_LEN = 128 };
-	typedef Genode::Path<PATH_MAX_LEN> Path;
+	using Path = Genode::Path<PATH_MAX_LEN>;
 
 	/**
 	 * Object to bind ids between parent and client space.
@@ -107,7 +107,7 @@ struct Chroot::Main
 	                                   Session_state::Args const &args,
 	                                   Affinity            const  affinity)
 	{
-		typedef String<PATH_MAX_LEN> Prefix;
+		using Prefix = String<PATH_MAX_LEN>;
 
 		Path root_path;
 
@@ -198,7 +198,7 @@ void Chroot::Main::handle_session_request(Xml_node request)
 		if (!request.has_sub_node("args"))
 			return;
 
-		typedef Session_state::Args Args;
+		using Args = Session_state::Args;
 		Args const args = request.sub_node("args").decoded_content<Args>();
 
 		Session *session = nullptr;

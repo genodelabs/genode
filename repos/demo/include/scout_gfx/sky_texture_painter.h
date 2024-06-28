@@ -20,9 +20,9 @@
 
 struct Sky_texture_painter
 {
-	typedef Genode::Surface_base::Area Area;
-	typedef Genode::Surface_base::Rect Rect;
-	typedef Genode::Color              Color;
+	using Area  = Genode::Surface_base::Area;
+	using Rect  = Genode::Surface_base::Rect;
+	using Color = Genode::Color;
 
 
 	template <typename PT>

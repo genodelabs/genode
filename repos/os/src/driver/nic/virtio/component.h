@@ -143,8 +143,8 @@ class Virtio_nic::Device : Noncopyable
 			static const bool has_data_payload = true;
 		};
 
-		typedef Virtio::Queue<Virtio_net_header, Rx_queue_traits> Rx_queue_type;
-		typedef Virtio::Queue<Virtio_net_header, Tx_queue_traits> Tx_queue_type;
+		using Rx_queue_type = Virtio::Queue<Virtio_net_header, Rx_queue_traits>;
+		using Tx_queue_type = Virtio::Queue<Virtio_net_header, Tx_queue_traits>;
 
 		bool                const _verbose;
 		Virtio::Device           &_device;

@@ -58,7 +58,7 @@ class Linker::Config : Noncopyable
 		bool verbose()     const { return _verbose; }
 		bool check_ctors() const { return _check_ctors; }
 
-		typedef String<100> Rom_name;
+		using Rom_name = String<100>;
 
 		/**
 		 * Call fn for each library specified in the configuration

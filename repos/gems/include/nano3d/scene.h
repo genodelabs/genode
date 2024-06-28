@@ -48,7 +48,7 @@ class Nano3d::Scene
 
 		class Unsupported_color_depth { };
 
-		typedef Genode::Pixel_alpha8 Pixel_alpha8;
+		using Pixel_alpha8 = Genode::Pixel_alpha8;
 
 		virtual void render(Genode::Surface<PT>           &pixel_surface,
 		                    Genode::Surface<Pixel_alpha8> &alpha_surface) = 0;
@@ -146,8 +146,8 @@ class Nano3d::Scene
 
 		Gui::Session::View_handle _view_handle = _gui.create_view();
 
-		typedef Genode::Surface<PT>                   Pixel_surface;
-		typedef Genode::Surface<Genode::Pixel_alpha8> Alpha_surface;
+		using Pixel_surface = Genode::Surface<PT>;
+		using Alpha_surface = Genode::Surface<Genode::Pixel_alpha8>;
 
 		struct Surface
 		{
@@ -270,7 +270,7 @@ class Nano3d::Scene
 		Genode::Signal_handler<Scene> _sync_handler {
 			_env.ep(), *this, &Scene::_handle_sync };
 
-		typedef Gui::Session::Command Command;
+		using Command = Gui::Session::Command;
 
 	public:
 
@@ -279,7 +279,7 @@ class Nano3d::Scene
 		:
 			_env(env), _pos(pos), _size(size)
 		{
-			typedef Gui::Session::View_handle View_handle;
+			using View_handle = Gui::Session::View_handle;
 
 			Gui::Rect rect(_pos, _size);
 			_gui.enqueue<Command::Geometry>(_view_handle, rect);

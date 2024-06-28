@@ -39,7 +39,7 @@
 
 namespace Genode {
 
-	typedef Native_capability::Data Cap_index;
+	using Cap_index = Native_capability::Data;
 
 	class Cap_index_allocator;
 

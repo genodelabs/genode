@@ -115,8 +115,8 @@ struct Backdrop::Main
 	void _update_view()
 	{
 		/* display view behind all others */
-		typedef Gui::Session::Command     Command;
-		typedef Gui::Session::View_handle View_handle;
+		using Command     = Gui::Session::Command;
+		using View_handle = Gui::Session::View_handle;
 
 		_gui.enqueue<Command::Background>(_view_handle);
 		Gui::Rect rect(Gui::Point(), _buffer->size());
@@ -227,15 +227,15 @@ void Backdrop::Main::_paint_texture(Surface<PT> &surface, Texture<PT> const &tex
 
 void Backdrop::Main::_apply_image(Xml_node operation)
 {
-	typedef Surface_base::Point Point;
-	typedef Surface_base::Area  Area;
+	using Point = Surface_base::Point;
+	using Area  = Surface_base::Area;
 
 	if (!operation.has_attribute("png")) {
 		Genode::warning("missing 'png' attribute in <image> node");
 		return;
 	}
 
-	typedef String<256> File_name;
+	using File_name = String<256>;
 	File_name const png_file_name = operation.attribute_value("png", File_name());
 
 	File file(png_file_name.string(), _heap);
@@ -284,7 +284,7 @@ void Backdrop::Main::_apply_image(Xml_node operation)
 	 */
 
 	/* create texture with down-sampled scaled image */
-	typedef Pixel_rgb888 PT;
+	using PT = Pixel_rgb888;
 	Chunky_texture<PT> texture(_env.ram(), _env.rm(), scaled_size);
 	convert_pixel_format(scaled_texture, texture, alpha, _heap);
 
@@ -302,7 +302,7 @@ void Backdrop::Main::_apply_fill(Xml_node operation)
 	 */
 
 	/* create texture with down-sampled scaled image */
-	typedef Pixel_rgb888 PT;
+	using PT = Pixel_rgb888;
 
 	Color const color = operation.attribute_value("color", Color::black());
 

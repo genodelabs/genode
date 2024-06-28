@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <root/root.h>
 
-namespace Genode { typedef Capability<Root> Root_capability; }
+namespace Genode { using Root_capability = Capability<Root>; }
 
 #endif /* _INCLUDE__ROOT__CAPABILITY_H_ */

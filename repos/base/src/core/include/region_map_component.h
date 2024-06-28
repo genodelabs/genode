@@ -392,8 +392,7 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		 * Dimension slab allocator for regions such that backing store is
 		 * allocated at the granularity of pages.
 		 */
-		typedef Tslab<Rm_region_ref, get_page_size() - Sliced_heap::meta_data_size()>
-		        Ref_slab;
+		using Ref_slab = Tslab<Rm_region_ref, get_page_size() - Sliced_heap::meta_data_size()>;
 
 		Allocator_avl_tpl<Rm_region>  _map;          /* region map for attach,
 		                                                detach, pagefaults */

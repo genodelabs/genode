@@ -119,7 +119,7 @@ struct Test::Test_base : private Genode::Fifo<Test_base>::Element
 
 		Xml_node const _node;
 
-		typedef Block::block_number_t block_number_t;
+		using block_number_t = Block::block_number_t;
 
 		bool     const _verbose;
 		size_t   const _io_buffer;
@@ -134,7 +134,7 @@ struct Test::Test_base : private Genode::Fifo<Test_base>::Element
 		Allocator_avl _block_alloc { &_alloc };
 
 		struct Job;
-		typedef Block::Connection<Job> Block_connection;
+		using Block_connection = Block::Connection<Job>;
 
 		Constructible<Block_connection> _block { };
 

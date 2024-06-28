@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <file_system_session/file_system_session.h>
 
-namespace File_system { typedef Genode::Capability<Session> Session_capability; }
+namespace File_system { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _INCLUDE__FILE_SYSTEM_SESSION__CAPABILITY_H_ */

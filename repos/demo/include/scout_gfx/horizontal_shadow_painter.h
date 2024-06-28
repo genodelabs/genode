@@ -18,7 +18,7 @@
 
 struct Horizontal_shadow_painter
 {
-	typedef Genode::Surface_base::Rect Rect;
+	using Rect = Genode::Surface_base::Rect;
 
 	template <typename PT>
 	static inline void paint(Genode::Surface<PT> &surface, Rect rect,

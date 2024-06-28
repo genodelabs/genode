@@ -27,19 +27,15 @@
 
 struct Gui_buffer : Genode::Noncopyable
 {
-	typedef Genode::Pixel_rgb888 Pixel_rgb888;
-	typedef Genode::Pixel_alpha8 Pixel_alpha8;
-
-	typedef Genode::Surface<Pixel_rgb888> Pixel_surface;
-	typedef Genode::Surface<Pixel_alpha8> Alpha_surface;
-
-	typedef Genode::Surface_base::Area  Area;
-	typedef Genode::Surface_base::Rect  Rect;
-	typedef Genode::Surface_base::Point Point;
-
-	typedef Genode::Attached_ram_dataspace Ram_ds;
-
-	using size_t = Genode::size_t;
+	using Pixel_rgb888  = Genode::Pixel_rgb888;
+	using Pixel_alpha8  = Genode::Pixel_alpha8;
+	using Pixel_surface = Genode::Surface<Pixel_rgb888>;
+	using Alpha_surface = Genode::Surface<Pixel_alpha8>;
+	using Area          = Genode::Surface_base::Area;
+	using Rect          = Genode::Surface_base::Rect;
+	using Point         = Genode::Surface_base::Point;
+	using Ram_ds        = Genode::Attached_ram_dataspace;
+	using size_t        = Genode::size_t;
 
 	Genode::Ram_allocator &ram;
 	Genode::Region_map    &rm;

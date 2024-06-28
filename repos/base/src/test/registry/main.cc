@@ -28,7 +28,7 @@ static void test_exception_during_for_each()
 
 	struct Item : Interface
 	{
-		typedef String<10> Name;
+		using Name = String<10>;
 		Name const name;
 
 		Item(Name const &name) : name(name) { }

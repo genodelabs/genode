@@ -62,7 +62,7 @@ class Core::Platform : public Platform_generic
 		/*
 		 * Shortcut for the type of allocator instances for physical resources
 		 */
-		typedef Synced_range_allocator<Allocator_avl> Phys_allocator;
+		using Phys_allocator = Synced_range_allocator<Allocator_avl>;
 
 		Platform_pd     *_core_pd = nullptr; /* core protection domain object */
 		Phys_allocator   _ram_alloc;         /* RAM allocator */

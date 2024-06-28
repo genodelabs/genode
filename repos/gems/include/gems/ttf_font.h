@@ -21,12 +21,11 @@ class Ttf_font : public Text_painter::Font
 {
 	private:
 
-		typedef Genode::int32_t   int32_t;
-		typedef Genode::Allocator Allocator;
-
-		typedef Text_painter::Codepoint Codepoint;
-		typedef Text_painter::Area      Area;
-		typedef Text_painter::Glyph     Glyph;
+		using int32_t   = Genode::int32_t;
+		using Allocator = Genode::Allocator;
+		using Codepoint = Text_painter::Codepoint;
+		using Area      = Text_painter::Area;
+		using Glyph     = Text_painter::Glyph;
 
 		struct Stbtt_font_info;
 

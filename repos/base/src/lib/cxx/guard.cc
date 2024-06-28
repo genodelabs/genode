@@ -21,7 +21,7 @@
 #include <base/internal/unmanaged_singleton.h>
 
 
-typedef Genode::Registry<Genode::Registered_no_delete<Genode::Semaphore> > Blockers;
+using Blockers = Genode::Registry<Genode::Registered_no_delete<Genode::Semaphore> >;
 
 
 static Blockers *blockers_ptr;
@@ -53,7 +53,7 @@ namespace __cxxabiv1
 	 * registry and will be woken up by the thread releasing a guard.
 	 */
 
-	typedef int __guard;
+	using __guard = int;
 
 	extern "C" int __cxa_guard_acquire(__guard *guard)
 	{

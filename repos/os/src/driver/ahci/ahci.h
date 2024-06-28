@@ -943,20 +943,19 @@ struct Ahci::Port : private Port_base
 		mmio.write<Port_mmio::Fbu>((uint32_t)(phys >> 32));
 	}
 
-	typedef Port_mmio::Is   Is;
-	typedef Port_mmio::Ie   Ie;
-	typedef Port_mmio::Cmd  Cmd;
-	typedef Port_mmio::Tfd  Tfd;
-	typedef Port_mmio::Ssts Ssts;
-	typedef Port_mmio::Serr Serr;
-	typedef Port_mmio::Sctl Sctl;
-	typedef Port_mmio::Sact Sact;
-	typedef Port_mmio::Ci   Ci;
+	using Is   = Port_mmio::Is;
+	using Ie   = Port_mmio::Ie;
+	using Cmd  = Port_mmio::Cmd;
+	using Tfd  = Port_mmio::Tfd;
+	using Ssts = Port_mmio::Ssts;
+	using Serr = Port_mmio::Serr;
+	using Sctl = Port_mmio::Sctl;
+	using Sact = Port_mmio::Sact;
+	using Ci   = Port_mmio::Ci;
 
-	typedef Port_mmio::Register_set::Polling_timeout Polling_timeout;
-	typedef Port_mmio::Register_set::Attempts        Attempts;
-	typedef Port_mmio::Register_set::Microseconds    Microseconds;
-
+	using Polling_timeout = Port_mmio::Register_set::Polling_timeout;
+	using Attempts        = Port_mmio::Register_set::Attempts;
+	using Microseconds    = Port_mmio::Register_set::Microseconds;
 
 	void ack_irq(Port_mmio &mmio)
 	{

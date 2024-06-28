@@ -39,7 +39,7 @@ class Menu_view::Text_selection : List_model<Text_selection>::Element
 		Glyph_position &_glyph_position;
 
 		enum { NAME_MAX_LEN = 32 };
-		typedef String<NAME_MAX_LEN> Name;
+		using Name = String<NAME_MAX_LEN>;
 
 		Name const _name;
 

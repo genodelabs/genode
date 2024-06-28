@@ -40,13 +40,13 @@ namespace Sculpt {
 
 	using namespace Genode;
 
-	typedef String<64>  Rom_name;
-	typedef String<128> Path;
-	typedef String<36>  Start_name;
+	using Rom_name   = String<64>;
+	using Path       = String<128>;
+	using Start_name = String<36>;
 
-	typedef Gui::Point Point;
-	typedef Gui::Rect  Rect;
-	typedef Gui::Area  Area;
+	using Point = Gui::Point;
+	using Rect  = Gui::Rect;
+	using Area  = Gui::Area;
 
 	enum Writeable { WRITEABLE, READ_ONLY };
 

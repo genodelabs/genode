@@ -44,7 +44,7 @@ namespace Core {
 	 */
 	class Cpu;
 
-	typedef __uint128_t sizet_arithm_t;
+	using sizet_arithm_t = __uint128_t;
 }
 
 

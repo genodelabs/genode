@@ -27,8 +27,8 @@ namespace Core {
 	class Signal_context_component;
 	class Signal_source_component;
 
-	typedef Object_pool<Signal_context_component> Signal_context_pool;
-	typedef Object_pool<Signal_source_component>  Signal_source_pool;
+	using Signal_context_pool = Object_pool<Signal_context_component>;
+	using Signal_source_pool  = Object_pool<Signal_source_component>;
 }
 
 

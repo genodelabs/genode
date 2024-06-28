@@ -38,7 +38,7 @@ struct Rom_to_file::Main
 
 	Constructible<Attached_rom_dataspace> _rom_ds { };
 
-	typedef String<100> Rom_name;
+	using Rom_name = String<100>;
 
 	/**
 	 * Name of currently requested ROM module

@@ -33,22 +33,22 @@
 namespace Cached_fs_rom {
 
 	using namespace Genode;
-	typedef Genode::Path<File_system::MAX_PATH_LEN> Path;
-	typedef File_system::Session_client::Tx::Source Tx_source;
+	using Path = Genode::Path<File_system::MAX_PATH_LEN>;
+	using Tx_source = File_system::Session_client::Tx::Source;
 
 	struct Cached_rom;
-	typedef Genode::Id_space<Cached_rom> Cache_space;
+	using Cache_space = Genode::Id_space<Cached_rom>;
 
 	struct Transfer;
-	typedef Genode::Id_space<Transfer> Transfer_space;
+	using Transfer_space = Genode::Id_space<Transfer>;
 
 	class Session_component;
-	typedef Genode::Id_space<Session_component> Session_space;
+	using Session_space = Genode::Id_space<Session_component>;
 
 	struct Main;
 
-	typedef File_system::Session::Tx::Source::Packet_alloc_failed Packet_alloc_failed;
-	typedef File_system::File_handle File_handle;
+	using Packet_alloc_failed = File_system::Session::Tx::Source::Packet_alloc_failed;
+	using File_handle = File_system::File_handle;
 }
 
 

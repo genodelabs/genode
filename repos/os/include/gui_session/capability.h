@@ -17,9 +17,6 @@
 #include <base/capability.h>
 #include <gui_session/gui_session.h>
 
-namespace Gui {
-
-	typedef Genode::Capability<Session> Session_capability;
-}
+namespace Gui { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _INCLUDE__GUI_SESSION__CAPABILITY_H_ */

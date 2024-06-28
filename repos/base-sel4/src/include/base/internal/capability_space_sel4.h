@@ -139,7 +139,7 @@ class Genode::Capability_space_sel4
 
 	private:
 
-		typedef CAP_DATA Data;
+		using Data = CAP_DATA;
 
 		/**
 		 * Supplement Native_capability::Data with the meta data needed to

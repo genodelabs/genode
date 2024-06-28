@@ -100,7 +100,7 @@ class Window_layouter::Key_sequence_tracker
 			char const *node_type = entry.type == Stack::Entry::PRESS
 			                      ? "press" : "release";
 
-			typedef String<32> Key_name;
+			using Key_name = String<32>;
 			Key_name const key(Input::key_name(entry.keycode));
 
 			Xml_node result("<none/>");
@@ -160,7 +160,7 @@ class Window_layouter::Key_sequence_tracker
 			if (!node.has_attribute("action"))
 				return;
 
-			typedef String<32> Action;
+			using Action = String<32>;
 			Action action = node.attribute_value("action", Action());
 
 			using Name = Window_layouter::Target::Name;

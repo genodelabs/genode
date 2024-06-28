@@ -74,7 +74,7 @@ struct Dummy::Log_service
 			Genode::String<16> const pattern("\033[0m\n");
 			for (char const *s = string.string(); s[n] && pattern != s + n; n++);
 
-			typedef Genode::String<100> Message;
+			using Message = Genode::String<100>;
 			Message const message("[", _label, "] ", Cstring(string.string(), n));
 			log(message);
 		}
@@ -144,7 +144,7 @@ struct Dummy::Log_connections
 
 	Sliced_heap _heap { _env.ram(), _env.rm() };
 
-	typedef Registered<Log_connection> Connection;
+	using Connection = Registered<Log_connection>;
 
 	Registry<Connection> _connections { };
 
@@ -303,7 +303,7 @@ struct Dummy::Main
 
 	unsigned _config_cnt = 0;
 
-	typedef String<50> Version;
+	using Version = String<50>;
 
 	Version _config_version { };
 

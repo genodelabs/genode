@@ -21,9 +21,9 @@ namespace Window_layouter {
 
 	using namespace Genode;
 
-	typedef Surface_base::Point Point;
-	typedef Surface_base::Area  Area;
-	typedef Surface_base::Rect  Rect;
+	using Point = Surface_base::Point;
+	using Area  = Surface_base::Area;
+	using Rect  = Surface_base::Rect;
 
 	struct Window_id
 	{

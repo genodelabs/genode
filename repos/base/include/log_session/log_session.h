@@ -40,14 +40,14 @@ struct Genode::Log_session : Session
 	static constexpr unsigned CAP_QUOTA = 2;
 	static constexpr size_t   RAM_QUOTA = 8*1024;
 
-	typedef Log_session_client Client;
+	using Client = Log_session_client;
 
 	virtual ~Log_session() { }
 
 	/* the lowest platform-specific maximum IPC payload size (OKL4) */
 	enum { MAX_STRING_LEN = 232 };
 
-	typedef Rpc_in_buffer<MAX_STRING_LEN> String;
+	using String = Rpc_in_buffer<MAX_STRING_LEN>;
 
 	/**
 	 * Output null-terminated string

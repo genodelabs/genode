@@ -60,9 +60,9 @@ namespace Allocator {
 				ELEMENTS   = VM_SIZE / BLOCK_SIZE, /* MAX number of dataspaces in VM */
 			};
 
-			typedef Genode::addr_t addr_t;
-			typedef Genode::Ram_dataspace_capability Ram_dataspace_capability;
-			typedef Genode::Allocator_avl Allocator_avl;
+			using addr_t                   = Genode::addr_t;
+			using Ram_dataspace_capability = Genode::Ram_dataspace_capability;
+			using Allocator_avl            = Genode::Allocator_avl;
 
 			addr_t                   _base;              /* virt. base address */
 			Cache                    _cache;             /* non-/cached RAM */
@@ -202,7 +202,7 @@ namespace Allocator {
 	{
 		private:
 
-			typedef Allocator::Backend_alloc<VM_SIZE, POLICY> Backend_alloc;
+			using Backend_alloc = Allocator::Backend_alloc<VM_SIZE, POLICY>;
 
 			Backend_alloc  _back_allocator;
 

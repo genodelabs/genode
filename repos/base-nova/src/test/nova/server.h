@@ -74,7 +74,7 @@ struct Test::Component : Genode::Rpc_object<Test::Session, Test::Component>
 	Genode::Native_capability cap_cap(Genode::addr_t);
 };
 
-namespace Test { typedef Genode::Capability<Test::Session> Capability; }
+namespace Test { using Capability = Genode::Capability<Test::Session>; }
 
 /**
  * Session implementation

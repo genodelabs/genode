@@ -22,7 +22,7 @@ namespace Genode {
 	struct Io_mem_dataspace;
 	struct Io_mem_session;
 
-	typedef Capability<Io_mem_dataspace> Io_mem_dataspace_capability;
+	using Io_mem_dataspace_capability = Capability<Io_mem_dataspace>;
 }
 
 

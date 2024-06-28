@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <parent/parent.h>
 
-namespace Genode { typedef Capability<Parent> Parent_capability; }
+namespace Genode { using Parent_capability = Capability<Parent>; }
 
 #endif /* _INCLUDE__PARENT__CAPABILITY_H_ */

@@ -39,7 +39,7 @@ class Terminal::Buffered_output
 
 		enum { SIZE = Genode::Log_session::String::MAX_SIZE };
 
-		typedef Genode::size_t size_t;
+		using size_t = Genode::size_t;
 
 		char _buf[SIZE + 1 /* room for null-termination */ ];
 

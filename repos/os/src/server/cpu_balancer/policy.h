@@ -21,9 +21,9 @@
 
 namespace Cpu
 {
-	typedef Genode::Affinity::Location Location;
-	typedef Genode::Trace::Execution_time Execution_time;
-	typedef Genode::Cpu_session::Name Name;
+	using Location       = Genode::Affinity::Location;
+	using Execution_time = Genode::Trace::Execution_time;
+	using Name           = Genode::Cpu_session::Name;
 
 	class Policy;
 	class Policy_none;
@@ -64,7 +64,7 @@ class Cpu::Policy {
 
 	public:
 
-		typedef Genode::String<16> Name;
+		using Name = Genode::String<16>;
 
 		Location location { };
 

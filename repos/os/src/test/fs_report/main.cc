@@ -51,7 +51,7 @@ struct Test::Main
 	Constructible<Reporter> _devices_reporter { };
 	Constructible<Reporter> _focus_reporter   { };
 
-	typedef String<80> Version;
+	using Version = String<80>;
 
 	void _report(Reporter &reporter, Version const &version)
 	{

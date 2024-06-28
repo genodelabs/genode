@@ -30,8 +30,8 @@ class Window_layouter::Window : public List_model<Window>::Element
 {
 	public:
 
-		typedef String<256> Title;
-		typedef String<256> Label;
+		using Title = String<256>;
+		using Label = String<256>;
 
 		struct Element
 		{

@@ -122,8 +122,8 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 
 	public:
 
-		typedef Ram_dataspace_factory::Phys_range Phys_range;
-		typedef Ram_dataspace_factory::Virt_range Virt_range;
+		using Phys_range = Ram_dataspace_factory::Phys_range;
+		using Virt_range = Ram_dataspace_factory::Virt_range;
 
 		/**
 		 * Constructor

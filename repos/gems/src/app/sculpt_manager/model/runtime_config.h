@@ -298,8 +298,8 @@ class Sculpt::Runtime_config
 
 		struct Parent_services
 		{
-			typedef Registered_no_delete<Service> Parent_service;
-			typedef Service::Type Type;
+			using Parent_service = Registered_no_delete<Service>;
+			using Type = Service::Type;
 
 			Registry<Parent_service> _r { };
 

@@ -65,7 +65,7 @@ struct Global_keys_handler::Main
 	{
 		Registry<Bool_state>::Element _element;
 
-		typedef String<64> Name;
+		using Name = String<64>;
 
 		Name const _name;
 
@@ -86,7 +86,7 @@ struct Global_keys_handler::Main
 			if (event.attribute_value("bool", Bool_state::Name()) != _name)
 				return;
 
-			typedef String<16> Change;
+			using Change = String<16>;
 			Change const change = event.attribute_value("change", Change());
 
 			if (change == "on")     _state = true;
@@ -103,7 +103,7 @@ struct Global_keys_handler::Main
 	{
 		Deallocator &_alloc;
 
-		typedef String<64> Name;
+		using Name = String<64>;
 		Name const _name;
 
 		Registry<Report>::Element _element;
@@ -139,7 +139,7 @@ struct Global_keys_handler::Main
 		{
 			Registry<Hover_condition>::Element _element;
 
-			typedef String<160> Domain;
+			using Domain = String<160>;
 
 			Domain const _domain;
 
@@ -301,7 +301,7 @@ void Global_keys_handler::Main::_apply_input_events(unsigned num_ev,
 		/* ignore key combinations */
 		if (_key_cnt > 1) continue;
 
-		typedef Xml_node Xml_node;
+		using Xml_node = Xml_node;
 
 		auto lambda = [&] (Xml_node node) {
 
@@ -312,7 +312,7 @@ void Global_keys_handler::Main::_apply_input_events(unsigned num_ev,
 			 * XML node applies for current event type, check if the key
 			 * matches.
 			 */
-			typedef String<32> Key_name;
+			using Key_name = String<32>;
 			Key_name const expected = node.attribute_value("name", Key_name());
 
 			bool key_matches = false;
@@ -402,7 +402,7 @@ void Global_keys_handler::Main::_handle_input()
 		_apply_input_events(num_ev, _ev_ds.local_addr<Input::Event const>());
 
 	/* determine currently hovered domain */
-	typedef Report::Hover_condition::Domain Domain;
+	using Domain = Report::Hover_condition::Domain;
 	Domain hovered_domain;
 	if (_hover_ds.constructed()) {
 		_hover_ds->update();

@@ -63,7 +63,7 @@ void Genode::init_cxx_heap(Ram_allocator &ram, Region_map &rm)
 }
 
 
-typedef unsigned long Block_header;
+using Block_header = unsigned long;
 
 
 extern "C" void *malloc(size_t size)

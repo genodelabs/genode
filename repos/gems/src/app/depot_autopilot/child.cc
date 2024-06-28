@@ -278,7 +278,7 @@ void Child::gen_start_node(Xml_generator          &xml,
 
 		xml.attribute("caps", caps);
 
-		typedef String<64> Version;
+		using Version = String<64>;
 		Version const version = _start_xml->xml().attribute_value("version", Version());
 		if (version.valid())
 			xml.attribute("version", version);
@@ -423,7 +423,7 @@ void Child::_gen_routes(Xml_generator          &xml,
 	if (!_pkg_xml.constructed())
 		return;
 
-	typedef String<160> Path;
+	using Path = String<160>;
 
 	/*
 	 * Add routes given in the start node.
@@ -474,7 +474,7 @@ void Child::_gen_routes(Xml_generator          &xml,
 			xml.node("service", [&] () {
 				xml.attribute("name",  "ROM");
 				xml.attribute("label", "config");
-				typedef String<160> Path;
+				using Path = String<160>;
 				Path const path = rom.attribute_value("path", Path());
 
 				if (cached_depot_rom.valid())
@@ -503,7 +503,7 @@ void Child::_gen_routes(Xml_generator          &xml,
 		if (!rom.has_attribute("path"))
 			return;
 
-		typedef Name Label;
+		using Label = Name;
 		Path  const path  = rom.attribute_value("path",  Path());
 		Label const label = rom.attribute_value("label", Label());
 

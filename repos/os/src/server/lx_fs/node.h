@@ -42,7 +42,7 @@ class Lx_fs::Node : public File_system::Node_base
 	public:
 
 		using Path = Genode::Path<MAX_PATH_LEN>;
-		typedef char Name[128];
+		using Name = char[128];
 
 	private:
 

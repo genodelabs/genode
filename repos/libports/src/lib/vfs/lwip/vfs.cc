@@ -39,11 +39,10 @@ extern "C" {
 
 	using namespace Vfs;
 
-	typedef Vfs::File_io_service::Read_result Read_result;
-	typedef Vfs::File_io_service::Write_result Write_result;
-	typedef Vfs::File_io_service::Sync_result Sync_result;
-
-	typedef Genode::String<8> Socket_name;
+	using Read_result  = Vfs::File_io_service::Read_result;
+	using Write_result = Vfs::File_io_service::Write_result;
+	using Sync_result  = Vfs::File_io_service::Sync_result;
+	using Socket_name  = Genode::String<8>;
 
 	char const *get_port(char const *s)
 	{
@@ -92,15 +91,15 @@ extern "C" {
 	struct Lwip_file_handle;
 	struct Lwip_dir_handle;
 
-	typedef Genode::Registry<Lwip_nameserver_handle> Nameserver_registry;
+	using Nameserver_registry = Genode::Registry<Lwip_nameserver_handle>;
 
 	#define Lwip_handle_list List<Lwip_file_handle>
 
 	class File_system;
 
-	typedef Vfs::Directory_service::Open_result    Open_result;
-	typedef Vfs::Directory_service::Opendir_result Opendir_result;
-	typedef Vfs::Directory_service::Unlink_result  Unlink_result;
+	using Open_result    = Vfs::Directory_service::Open_result;
+	using Opendir_result = Vfs::Directory_service::Opendir_result;
+	using Unlink_result  = Vfs::Directory_service::Unlink_result;
 
 	extern "C" {
 		static void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
@@ -114,7 +113,7 @@ extern "C" {
 		static void  tcp_err_callback(void *arg, err_t err);
 	}
 
-	typedef Genode::Path<24> Path;
+	using Path = Genode::Path<24>;
 
 	enum {
 		PORT_STRLEN_MAX = 6, /* :65536 */
@@ -298,8 +297,9 @@ struct Lwip::Lwip_file_handle final : Lwip_handle, private Lwip_handle_list::Ele
 
 	Socket_dir *socket;
 
-	typedef Genode::Fifo_element<Lwip_file_handle> Fifo_element;
-	typedef Genode::Fifo<Lwip_file_handle::Fifo_element> Fifo;
+	using Fifo_element = Genode::Fifo_element<Lwip_file_handle>;
+	using Fifo         = Genode::Fifo<Lwip_file_handle::Fifo_element>;
+
 	Fifo_element  _read_ready_waiter { *this };
 	Fifo_element _io_progress_waiter { *this };
 
@@ -735,8 +735,8 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 };
 
 namespace Lwip {
-	typedef Protocol_dir_impl<Udp_socket_dir, udp_pcb> Udp_proto_dir;
-	typedef Protocol_dir_impl<Tcp_socket_dir, tcp_pcb> Tcp_proto_dir;
+	using Udp_proto_dir = Protocol_dir_impl<Udp_socket_dir, udp_pcb>;
+	using Tcp_proto_dir = Protocol_dir_impl<Tcp_socket_dir, tcp_pcb>;
 }
 
 
@@ -1105,7 +1105,7 @@ class Lwip::Tcp_socket_dir final :
 		Genode::Entrypoint  &_ep;
 		Vfs::Env::User      &_vfs_user;
 
-		typedef Genode::List<Pcb_pending> Pcb_pending_list;
+		using Pcb_pending_list = Genode::List<Pcb_pending>;
 
 		Pcb_pending_list     _pcb_pending { };
 		tcp_pcb             *_pcb;
@@ -1766,8 +1766,8 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 
 			Nameserver_registry nameserver_handles { };
 
-			typedef Genode::Fifo_element<Vfs_handle> Handle_element;
-			typedef Genode::Fifo<Vfs_netif::Handle_element> Handle_queue;
+			using Handle_element = Genode::Fifo_element<Vfs_handle>;
+			using Handle_queue   = Genode::Fifo<Vfs_netif::Handle_element>;
 
 			Vfs_netif(Vfs::Env &vfs_env, Genode::Xml_node config,
 			          Lwip::Nic_netif::Wakeup_scheduler &wakeup_scheduler)

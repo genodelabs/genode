@@ -145,7 +145,7 @@ class Linker::Object : private Fifo<Object>::Element,
 
 	public:
 
-		typedef String<128> Name;
+		using Name = String<128>;
 		class   Object_list;
 
 	protected:

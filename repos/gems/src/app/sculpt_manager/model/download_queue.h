@@ -126,7 +126,7 @@ struct Sculpt::Download_queue : Noncopyable
 				if (download.path != path)
 					return;
 
-				typedef String<16> State;
+				using State = String<16>;
 				State const state = elem.attribute_value("state", State());
 
 				download.percent = percent;

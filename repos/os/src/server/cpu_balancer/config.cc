@@ -18,7 +18,7 @@
 
 void Cpu::Config::apply(Xml_node const &start, Child_list &sessions)
 {
-	typedef String<Session_label::capacity()> Label;
+	using Label = String<Session_label::capacity()>;
 
 	start.for_each_sub_node("component", [&](Xml_node const &node) {
 		if (!node.has_attribute("label"))
@@ -60,7 +60,7 @@ void Cpu::Config::apply(Xml_node const &start, Child_list &sessions)
 void Cpu::Config::apply_for_thread(Xml_node const &start, Cpu::Session &session,
                                    Thread::Name const &target_thread)
 {
-	typedef String<Session_label::capacity()> Label;
+	using Label = String<Session_label::capacity()>;
 
 	start.for_each_sub_node("component", [&](Xml_node const &node) {
 		if (!node.has_attribute("label"))

@@ -25,7 +25,7 @@
 
 struct Sandbox::Server::Service : Service_model
 {
-	typedef Genode::Service::Name Name;
+	using Name = Genode::Service::Name;
 
 	Name const _name;
 
@@ -98,7 +98,7 @@ Sandbox::Server::Service::resolve_session_request(Session_label const &label)
 		Child_policy::Name const child_name =
 			target_node.attribute_value("name", Child_policy::Name());
 
-		typedef String<Session_label::capacity()> Label;
+		using Label = String<Session_label::capacity()>;
 		Label const target_label =
 			target_node.attribute_value("label", Label(label.string()));
 
@@ -220,7 +220,7 @@ void Sandbox::Server::_handle_create_session_request(Xml_node request,
 	if (!request.has_sub_node("args"))
 		return;
 
-	typedef Session_state::Args Args;
+	using Args = Session_state::Args;
 	Args const args = request.sub_node("args").decoded_content<Args>();
 
 	Service::Name const name = request.attribute_value("service", Service::Name());

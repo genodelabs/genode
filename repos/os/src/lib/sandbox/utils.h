@@ -69,7 +69,7 @@ namespace Sandbox {
 		if (!service_matches)
 			return false;
 
-		typedef String<Session_label::capacity()> Label;
+		using Label = String<Session_label::capacity()>;
 
 		char const *unscoped_attr   = "unscoped_label";
 		char const *label_last_attr = "label_last";
@@ -209,7 +209,7 @@ namespace Sandbox {
 	inline Affinity::Location
 	affinity_location_from_xml(Affinity::Space const &space, Xml_node start_node)
 	{
-		typedef Affinity::Location Location;
+		using Location = Affinity::Location;
 
 		Location result = Location(0, 0, space.width(), space.height());
 

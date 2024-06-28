@@ -109,7 +109,7 @@ class Audio_in::Session_component : Audio_in::Session_component_base,
 
 
 namespace Audio_in {
-	typedef Genode::Root_component<Session_component, Genode::Multiple_clients> Root_component;
+	using Root_component = Genode::Root_component<Session_component, Genode::Multiple_clients>;
 }
 
 

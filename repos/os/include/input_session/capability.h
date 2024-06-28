@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <input_session/input_session.h>
 
-namespace Input { typedef Genode::Capability<Session> Session_capability; }
+namespace Input { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _INCLUDE__INPUT_SESSION__CAPABILITY_H_ */

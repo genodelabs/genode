@@ -27,8 +27,8 @@ namespace Vfs {
 
 	class Glyphs_file_system;
 
-	typedef Text_painter::Font     Font;
-	typedef Vfs_font::Glyph_header Glyph_header;
+	using Font         = Text_painter::Font;
+	using Glyph_header = Vfs_font::Glyph_header;
 }
 
 
@@ -112,8 +112,8 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 			bool write_ready() const override { return false; }
 		};
 
-		typedef Registered<Vfs_watch_handle>      Registered_watch_handle;
-		typedef Registry<Registered_watch_handle> Watch_handle_registry;
+		using Registered_watch_handle = Registered<Vfs_watch_handle>;
+		using Watch_handle_registry   = Registry<Registered_watch_handle>;
 
 		Watch_handle_registry _handle_registry { };
 

@@ -51,9 +51,9 @@ struct Genode::Ring_buffer_unsynchronized
 
 struct Genode::Ring_buffer_synchronized
 {
-	typedef Genode::Semaphore Sem;
-	typedef Genode::Mutex Mutex;
-	typedef Genode::Mutex::Guard Mutex_guard;
+	using Sem         = Genode::Semaphore;
+	using Mutex       = Genode::Mutex;
+	using Mutex_guard = Genode::Mutex::Guard;
 };
 
 

@@ -32,10 +32,10 @@ namespace Linker {
 
 	class Reloc_non_plt;
 
-	typedef Plt_got_generic<2>                               Plt_got;
-	typedef Reloc_plt_generic<Elf::Rela, DT_RELA, R_JMPSLOT> Reloc_plt;
-	typedef Reloc_jmpslot_generic<Elf::Rela, DT_RELA, false> Reloc_jmpslot;
-	typedef Reloc_bind_now_generic<Elf::Rela, DT_RELA>       Reloc_bind_now;
+	using Plt_got        = Plt_got_generic<2>;
+	using Reloc_plt      = Reloc_plt_generic<Elf::Rela, DT_RELA, R_JMPSLOT>;
+	using Reloc_jmpslot  = Reloc_jmpslot_generic<Elf::Rela, DT_RELA, false>;
+	using Reloc_bind_now = Reloc_bind_now_generic<Elf::Rela, DT_RELA>;
 };
 
 class Linker::Reloc_non_plt : public Reloc_non_plt_generic

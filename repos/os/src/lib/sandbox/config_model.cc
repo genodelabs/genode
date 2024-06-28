@@ -200,7 +200,7 @@ struct Config_model::Resource_node : Node
 
 	static Category _category_from_xml(Xml_node const &xml)
 	{
-		typedef String<16> Name;
+		using Name = String<16>;
 		Name const name = xml.attribute_value("name", Name());
 
 		if (name == "RAM") return Category::RAM;

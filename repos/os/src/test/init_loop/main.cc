@@ -137,7 +137,7 @@ struct Test::Main
 
 	struct Ram_tracker
 	{
-		typedef String<32> Name;
+		using Name = String<32>;
 
 		Name const _name;
 
@@ -177,7 +177,7 @@ struct Test::Main
 		return state.sub_node("ram").attribute_value("quota", Number_of_bytes());
 	}
 
-	typedef String<32> Name;
+	using Name = String<32>;
 
 	template <typename FN>
 	void _apply_child(Xml_node state, Name const &name, FN const &fn)

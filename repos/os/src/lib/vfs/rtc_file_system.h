@@ -106,8 +106,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 				bool write_ready() const override { return false; }
 		};
 
-		typedef Genode::Registered<Vfs_watch_handle>      Registered_watch_handle;
-		typedef Genode::Registry<Registered_watch_handle> Watch_handle_registry;
+		using Registered_watch_handle = Genode::Registered<Vfs_watch_handle>;
+		using Watch_handle_registry   = Genode::Registry<Registered_watch_handle>;
 
 		Rtc::Connection _rtc;
 

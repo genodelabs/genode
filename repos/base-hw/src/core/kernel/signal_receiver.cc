@@ -191,7 +191,7 @@ void Signal_receiver::_listen()
 			return;
 
 		/* create a signal data-object */
-		typedef Genode::Signal_context * Signal_imprint;
+		using Signal_imprint = Genode::Signal_context *;
 
 		_deliver.dequeue([&] (Signal_context::Fifo_element &elem) {
 			auto const context = &elem.object();

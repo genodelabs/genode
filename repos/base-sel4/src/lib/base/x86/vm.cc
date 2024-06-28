@@ -676,8 +676,8 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 					_write_vmcs(service, Vmcs::CR4_SHADOW, state.cr4.value());
 			}
 
-			typedef Genode::Vcpu_state::Segment Segment;
-			typedef Genode::Vcpu_state::Range Range;
+			using Segment = Genode::Vcpu_state::Segment;
+			using Range   = Genode::Vcpu_state::Range;
 
 			state.cs.charge(Segment{_read_vmcs_16(service, Vmcs::CS_SEL),
 			                       _convert_ar_16(_read_vmcs(service, Vmcs::CS_AR)),

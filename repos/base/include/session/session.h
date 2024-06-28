@@ -51,7 +51,7 @@ struct Genode::Session
 
 	struct Diag { bool enabled; };
 
-	typedef Session_label Label;
+	using Label = Session_label;
 
 	/*
 	 * Each session interface must implement the class function 'service_name'

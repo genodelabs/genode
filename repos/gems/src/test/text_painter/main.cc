@@ -33,9 +33,9 @@
 namespace Test {
 	using namespace Genode;
 
-	typedef Surface_base::Point Point;
-	typedef Surface_base::Area  Area;
-	typedef Surface_base::Rect  Rect;
+	using Point = Surface_base::Point;
+	using Area  = Surface_base::Area;
+	using Rect  = Surface_base::Rect;
 	struct Main;
 };
 
@@ -55,7 +55,7 @@ struct Test::Main
 
 	Attached_dataspace _fb_ds { _env.rm(), _fb.dataspace() };
 
-	typedef Pixel_rgb888 PT;
+	using PT = Pixel_rgb888;
 
 	Surface_base::Area const _size = _fb.mode().area;
 

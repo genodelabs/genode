@@ -37,7 +37,7 @@ class Core::Cnode_base
 
 	public:
 
-		typedef Cnode_index Index;
+		using Index = Cnode_index;
 
 		Cap_sel sel()       const { return _sel; }
 		uint8_t size_log2() const { return _size_log2; }

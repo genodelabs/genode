@@ -44,7 +44,7 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 
 		class Job;
 
-		typedef Genode::size_t size_t;
+		using size_t = Genode::size_t;
 
 	private:
 
@@ -53,14 +53,14 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 		 * template argument but falls back to 'Job' if no template argument
 		 * is given.
 		 */
-		template <typename T, typename> struct Fallback           { typedef T  Type; };
-		template <typename FB>          struct Fallback<void, FB> { typedef FB Type; };
+		template <typename T, typename> struct Fallback           { using Type = T; };
+		template <typename FB>          struct Fallback<void, FB> { using Type = FB; };
 
-		typedef typename Fallback<JOB, Job>::Type _JOB;
+		using _JOB = typename Fallback<JOB, Job>::Type;
 
-		typedef Genode::Id_space<_JOB> Tag_id_space;
+		using Tag_id_space = Genode::Id_space<_JOB>;
 
-		typedef Packet_descriptor::Payload Payload;
+		using Payload = Packet_descriptor::Payload;
 
 	public:
 

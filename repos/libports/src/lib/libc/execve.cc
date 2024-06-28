@@ -135,7 +135,7 @@ struct Libc::Interpreter
 		}
 	}
 
-	typedef String<Vfs::MAX_PATH_LEN> Path;
+	using Path = String<Vfs::MAX_PATH_LEN>;
 
 	Path path() const
 	{
@@ -205,7 +205,7 @@ struct Libc::Interpreter
  */
 struct Libc::String_array : Noncopyable
 {
-	typedef Genode::Allocator Allocator;
+	using Allocator = Genode::Allocator;
 
 	Allocator &_alloc;
 

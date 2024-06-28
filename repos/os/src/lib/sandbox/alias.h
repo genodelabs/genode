@@ -21,8 +21,8 @@ namespace Sandbox { struct Alias; }
 
 struct Sandbox::Alias : List<Alias>::Element, Noncopyable
 {
-	typedef Child_policy::Name Name;
-	typedef Child_policy::Name Child;
+	using Name  = Child_policy::Name;
+	using Child = Child_policy::Name;
 
 	Name const name;
 

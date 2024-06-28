@@ -70,7 +70,7 @@ static int map_local(Genode::addr_t const pd, Nova::Utcb &utcb,
 	Nova::uint8_t res = Nova::delegate(pd, pd, dst_crd);
 	if (res != Nova::NOVA_OK) {
 
-		typedef Genode::Hex Hex;
+		using Hex = Genode::Hex;
 		error("map_local failed ",
 		      Hex(src_crd.addr()), ":", Hex(src_crd.order()), ":", Hex(src_crd.type()), "->",
 		      Hex(dst_crd.addr()), ":", Hex(dst_crd.order()), ":", Hex(dst_crd.type()), " - ",

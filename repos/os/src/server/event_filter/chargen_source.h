@@ -29,7 +29,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 {
 	private:
 
-		typedef Input::Event Event;
+		using Event = Input::Event;
 
 		Allocator        &_alloc;
 		Timer_accessor   &_timer_accessor;
@@ -43,7 +43,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 		{
 			enum Id { MOD1 = 0, MOD2 = 1, MOD3 = 2, MOD4 = 3, UNDEFINED };
 
-			typedef String<8> Name;
+			using Name = String<8>;
 
 			Registry<Modifier>::Element _element;
 
@@ -75,7 +75,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 
 		struct Modifier_rom
 		{
-			typedef String<32> Name;
+			using Name = String<32>;
 
 			Registry<Modifier_rom>::Element _element;
 
@@ -255,7 +255,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 
 			if (node.has_attribute("char")) {
 
-				typedef String<2> Value;
+				using Value = String<2>;
 				Value value = node.attribute_value("char", Value());
 
 				unsigned char const ascii = value.string()[0];
@@ -424,7 +424,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 
 				struct Rule
 				{
-					typedef Sequence::Match Match;
+					using Match = Sequence::Match;
 
 					Registry<Rule>::Element element;
 					Sequence          const sequence;
@@ -704,7 +704,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 
 			node.for_each_sub_node("rom", [&] (Xml_node rom_node) {
 
-				typedef Modifier_rom::Name Rom_name;
+				using Rom_name = Modifier_rom::Name;
 				Rom_name const rom_name = rom_node.attribute_value("name", Rom_name());
 
 				new (_alloc) Modifier_rom(_modifier_roms, id, _include_accessor, rom_name);

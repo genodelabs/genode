@@ -19,7 +19,7 @@
 
 using namespace Genode;
 
-typedef String<32> Mac_name;
+using Mac_name = String<32>;
 
 struct Mac_address : Registry<Mac_address>::Element
 {

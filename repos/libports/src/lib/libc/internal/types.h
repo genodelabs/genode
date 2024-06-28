@@ -22,8 +22,8 @@ namespace Libc {
 
 	using namespace Genode;
 
-	typedef Genode::uint64_t uint64_t;
-	typedef String<64> Binary_name;
+	using uint64_t = Genode::uint64_t;
+	using Binary_name = String<64>;
 }
 
 #endif /* _LIBC__INTERNAL__TYPES_H_ */

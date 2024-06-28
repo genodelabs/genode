@@ -138,7 +138,7 @@ struct Acpica::Statechange
 		Xml_node system(_system_state.local_addr<char>(),
 		                _system_state.size());
 
-		typedef String<32> State;
+		using State = String<32>;
 		State const state = system.attribute_value("state", State());
 
 		if (_enable_poweroff && state == "poweroff") {

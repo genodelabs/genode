@@ -27,7 +27,7 @@ namespace File_system {
 
 			Genode::List<Listener> _listeners { };
 
-			typedef Listener::Version Version;
+			using Version = Listener::Version;
 
 			Version _curr_version { 0 };
 

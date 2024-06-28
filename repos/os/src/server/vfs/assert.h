@@ -24,8 +24,7 @@ namespace File_system {
 
 	static inline void assert_open(Directory_service::Open_result r)
 	{
-		typedef Directory_service::Open_result Result;
-
+		using Result = Directory_service::Open_result;
 		switch (r) {
 		case Result::OPEN_ERR_NAME_TOO_LONG: throw Invalid_name();
 		case Result::OPEN_ERR_UNACCESSIBLE:  throw Lookup_failed();
@@ -40,8 +39,7 @@ namespace File_system {
 
 	static inline void assert_opendir(Directory_service::Opendir_result r)
 	{
-		typedef Directory_service::Opendir_result Result;
-
+		using Result = Directory_service::Opendir_result;
 		switch (r) {
 		case Result::OPENDIR_ERR_LOOKUP_FAILED:       throw Lookup_failed();
 		case Result::OPENDIR_ERR_NAME_TOO_LONG:       throw Invalid_name();
@@ -56,8 +54,7 @@ namespace File_system {
 
 	static inline void assert_openlink(Directory_service::Openlink_result r)
 	{
-		typedef Directory_service::Openlink_result Result;
-
+		using Result = Directory_service::Openlink_result;
 		switch (r) {
 		case Result::OPENLINK_ERR_LOOKUP_FAILED:       throw Lookup_failed();
 		case Result::OPENLINK_ERR_NAME_TOO_LONG:       throw Invalid_name();
@@ -72,8 +69,7 @@ namespace File_system {
 
 	static inline void assert_truncate(File_io_service::Ftruncate_result r)
 	{
-		typedef File_io_service::Ftruncate_result Result;
-
+		using Result = File_io_service::Ftruncate_result;
 		switch (r) {
 		case Result::FTRUNCATE_ERR_INTERRUPT: throw Invalid_handle();
 		case Result::FTRUNCATE_ERR_NO_SPACE:  throw No_space();
@@ -84,7 +80,7 @@ namespace File_system {
 
 	static inline void assert_unlink(Directory_service::Unlink_result r)
 	{
-		typedef Directory_service::Unlink_result Result;
+		using Result = Directory_service::Unlink_result;
 		switch (r) {
 		case Result::UNLINK_ERR_NO_ENTRY:  throw Lookup_failed();
 		case Result::UNLINK_ERR_NO_PERM:   throw Permission_denied();
@@ -95,7 +91,7 @@ namespace File_system {
 
 	static inline void assert_stat(Directory_service::Stat_result r)
 	{
-		typedef Directory_service::Stat_result Result;
+		using Result = Directory_service::Stat_result;
 		switch (r) {
 		case Result::STAT_ERR_NO_ENTRY: throw Lookup_failed();
 		case Result::STAT_ERR_NO_PERM:  throw Permission_denied();
@@ -105,7 +101,7 @@ namespace File_system {
 
 	static inline void assert_rename(Directory_service::Rename_result r)
 	{
-		typedef Directory_service::Rename_result Result;
+		using Result = Directory_service::Rename_result;
 		switch (r) {
 		case Result::RENAME_ERR_NO_ENTRY: throw Lookup_failed();
 		case Result::RENAME_ERR_CROSS_FS: throw Permission_denied();

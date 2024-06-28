@@ -178,7 +178,7 @@ class Virtio_fb::Driver
 			static const bool has_data_payload = true;
 		};
 
-		typedef Virtio::Queue<Control_header, Control_queue_traits> Control_queue;
+		using Control_queue = Virtio::Queue<Control_header, Control_queue_traits>;
 
 		class Fb_memory_resource : public Platform::Dma_buffer
 		{

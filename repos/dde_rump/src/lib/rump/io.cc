@@ -34,7 +34,7 @@ class Io_signal_blockade : public Genode::Io_signal_handler<Io_signal_blockade>
 
 		bool _signal_handler_called { false };
 
-		typedef Genode::Registered_no_delete<Genode::Blockade> Registered_blockade;
+		using Registered_blockade = Genode::Registered_no_delete<Genode::Blockade>;
 		Genode::Registry<Registered_blockade> _blockades;
 
 		void _handle_io_signal()

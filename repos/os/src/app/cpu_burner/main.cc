@@ -48,7 +48,7 @@ struct Cpu_burn : Thread
 
 struct Cpu_burner
 {
-	typedef List<List_element<Cpu_burn> >  Thread_list;
+	using Thread_list = List<List_element<Cpu_burn> >;
 
 	Env              &_env;
 	Heap              _heap   { _env.ram(), _env.rm() };

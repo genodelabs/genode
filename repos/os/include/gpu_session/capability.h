@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <gpu_session/gpu_session.h>
 
-namespace Gpu { typedef Genode::Capability<Session> Session_capability; }
+namespace Gpu { using Session_capability = Genode::Capability<Session>; }
 
 #endif /* _INCLUDE__GPU_SESSION__CAPABILITY_H_ */
