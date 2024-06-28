@@ -638,8 +638,7 @@ void Nova_vcpu::with_state(Call_with_state &cw)
 }
 
 
-template <typename... ARGS>
-static void nova_reply(Thread &myself, Nova::Utcb &utcb, ARGS &&... args)
+static void nova_reply(Thread &myself, Nova::Utcb &utcb, auto &&... args)
 {
 	Receive_window &rcv_window = myself.native_thread().server_rcv_window;
 
@@ -648,6 +647,7 @@ static void nova_reply(Thread &myself, Nova::Utcb &utcb, ARGS &&... args)
 
 	Nova::reply(myself.stack_top(), args...);
 }
+
 
 void Nova_vcpu::_exit_entry(addr_t badge)
 {

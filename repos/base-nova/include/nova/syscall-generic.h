@@ -228,8 +228,7 @@ namespace Nova {
 		/**
 		 * Iterate over all CPUs in a _ever_ _consistent_ order.
 		 */
-		template <typename FUNC>
-		bool for_all_cpus(FUNC const &func) const
+		bool for_all_cpus(auto const &fn) const
 		{
 			for (uint16_t package = 0; package <= 255; package++) {
 				for (uint16_t core = 0; core <= 255; core++) {
@@ -246,7 +245,7 @@ namespace Nova {
 							      cpu->thread == thread))
 								continue;
 
-							bool done = func(*cpu, i);
+							bool done = fn(*cpu, i);
 							if (done)
 								return done;
 						}
@@ -256,14 +255,13 @@ namespace Nova {
 			return false;
 		}
 
-		template <typename FUNC>
-		void for_each_enabled_cpu(FUNC const &func) const
+		void for_each_enabled_cpu(auto const &fn) const
 		{
 			for (unsigned i = 0; i < cpu_max(); i++) {
 				Cpu_desc const * cpu = cpu_desc_of_cpu(i);
 				if (!is_cpu_enabled(i)) continue;
 				if (!cpu) return;
-				func(*cpu, i);
+				fn(*cpu, i);
 			}
 		}
 

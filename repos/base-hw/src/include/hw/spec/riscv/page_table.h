@@ -184,8 +184,7 @@ class Sv39::Level_x_translation_table
 			return align_addr<size_t>(region, (unsigned)alignment) / (1UL << alignment); }
 
 
-		template <typename FUNC>
-		void _range_op(addr_t vo, addr_t pa, size_t size, FUNC &&func)
+		void _range_op(addr_t vo, addr_t pa, size_t size, auto const &fn)
 		{
 			/* sanity check vo bits 38 to 63 must be equal */
 			addr_t sanity = vo >> 38;
@@ -202,7 +201,7 @@ class Sv39::Level_x_translation_table
 				addr_t end = (vo + BLOCK_SIZE) & BLOCK_MASK;
 				size_t sz  = min(size, end-vo);
 
-				func(vo, pa, sz, _entries[i]);
+				fn(vo, pa, sz, _entries[i]);
 
 				/* flush cached table entry address */
 				_translation_added((addr_t)&_entries[i], sz);
@@ -228,7 +227,7 @@ class Sv39::Level_x_translation_table
 			void operator () (addr_t const          vo,
 			                  addr_t const          pa,
 			                  size_t const          size,
-			                  typename Descriptor::access_t &desc)
+			                  typename Descriptor::access_t &desc) const
 			{
 				using Td = Table_descriptor;
 
@@ -280,7 +279,7 @@ class Sv39::Level_x_translation_table
 			void operator () (addr_t const    vo,
 			                  addr_t const /* pa */,
 			                  size_t const    size,
-			                  typename Descriptor::access_t &desc)
+			                  typename Descriptor::access_t &desc) const
 			{
 				using Td = Table_descriptor;
 
@@ -375,7 +374,7 @@ namespace Sv39 {
 		void operator () (addr_t const          vo,
 		                  addr_t const          pa,
 		                  size_t const          size,
-		                  Descriptor::access_t &desc)
+		                  Descriptor::access_t &desc) const
 		{
 			if ((vo & ~BLOCK_MASK) || (pa & ~BLOCK_MASK) ||
 			    size < BLOCK_SIZE) {
@@ -401,7 +400,7 @@ namespace Sv39 {
 		void operator () (addr_t /* vo */,
 		                  addr_t /* pa */,
 		                  size_t /* size */,
-		                  Descriptor::access_t &desc) {
+		                  Descriptor::access_t &desc) const {
 			desc = 0; }
 	};
 }

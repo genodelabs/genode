@@ -28,7 +28,6 @@ namespace Genode {
 	class Thread;
 	class Stack;
 	class Env;
-	template <unsigned> class Thread_deprecated;
 }
 
 
@@ -168,11 +167,6 @@ class Genode::Thread
 		 * Constructor
 		 *
 		 * \noapi
-		 *
-		 * FIXME: With type = Forked_main_thread the stack allocation
-		 *        gets skipped but we should at least set Stack::ds_cap in a
-		 *        way that it references the dataspace of the already attached
-		 *        stack.
 		 *
 		 * \deprecated  superseded by the 'Thread(Env &...' constructor
 		 */

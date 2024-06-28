@@ -219,12 +219,11 @@ inline void unmap_local(Nova::Utcb &, Genode::addr_t start,
 }
 
 
-template <typename FUNC>
-inline Nova::uint8_t syscall_retry(Core::Pager_object &pager, FUNC func)
+inline Nova::uint8_t syscall_retry(Core::Pager_object &pager, auto const &fn)
 {
 	Nova::uint8_t res;
 	do {
-		res = func();
+		res = fn();
 	} while (res == Nova::NOVA_PD_OOM && Nova::NOVA_OK == pager.handle_oom());
 
 	return res;

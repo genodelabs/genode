@@ -19,11 +19,10 @@
 using namespace Kernel;
 
 
-template <typename FN>
-static void for_cachelines(addr_t           base,
-                           size_t const     size,
-                           Kernel::Thread & thread,
-                           FN const       & fn)
+static void for_cachelines(addr_t          base,
+                           size_t const    size,
+                           Kernel::Thread &thread,
+                           auto const     &fn)
 {
 	/**
 	 * sanity check that only one small page is affected,

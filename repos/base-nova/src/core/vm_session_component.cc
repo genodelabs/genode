@@ -66,13 +66,12 @@ static Nova::uint8_t kernel_quota_upgrade(addr_t const pd_target)
 }
 
 
-template <typename FUNC>
 static uint8_t _with_kernel_quota_upgrade(addr_t const pd_target,
-                                          FUNC const &func)
+                                          auto const &fn)
 {
 	uint8_t res;
 	do {
-		res = func();
+		res = fn();
 	} while (res == Nova::NOVA_PD_OOM &&
 	         Nova::NOVA_OK == kernel_quota_upgrade(pd_target));
 	return res;

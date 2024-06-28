@@ -143,7 +143,7 @@ class Hw::Level_4_translation_table
 
 			void operator () (addr_t const vo, addr_t const pa,
 			                  size_t const size,
-			                  Descriptor::access_t &desc)
+			                  Descriptor::access_t &desc) const
 			{
 				if ((vo & ~PAGE_MASK) || (pa & ~PAGE_MASK) ||
 				    size < PAGE_SIZE)
@@ -165,12 +165,11 @@ class Hw::Level_4_translation_table
 		struct Remove_func
 		{
 			void operator () (addr_t /* vo */, addr_t /* pa */, size_t /* size */,
-			                  Descriptor::access_t &desc)
+			                  Descriptor::access_t &desc) const
 			{ desc = 0; }
 		};
 
-		template <typename FUNC>
-		void _range_op(addr_t vo, addr_t pa, size_t size, FUNC &&func)
+		void _range_op(addr_t vo, addr_t pa, size_t size, auto const &fn)
 		{
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
 			     i = vo >> PAGE_SIZE_LOG2) {
@@ -178,7 +177,7 @@ class Hw::Level_4_translation_table
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = Genode::min(size, end-vo);
 
-				func(vo, pa, sz, _entries[i]);
+				fn(vo, pa, sz, _entries[i]);
 
 				/* check whether we wrap */
 				if (end < vo) return;
@@ -352,7 +351,7 @@ class Hw::Page_directory
 
 			void operator () (addr_t const vo, addr_t const pa,
 			                  size_t const size,
-			                  typename Descriptor::access_t &desc)
+			                  typename Descriptor::access_t &desc) const
 			{
 				using Td = Table_descriptor;
 				using access_t = typename Descriptor::access_t;
@@ -397,7 +396,7 @@ class Hw::Page_directory
 
 			void operator () (addr_t const vo, addr_t /* pa */,
 			                  size_t const size,
-			                  typename Base_descriptor::access_t &desc)
+			                  typename Base_descriptor::access_t &desc) const
 			{
 				if (Base_descriptor::present(desc)) {
 					if (Base_descriptor::maps_page(desc)) {
@@ -418,8 +417,7 @@ class Hw::Page_directory
 			}
 		};
 
-		template <typename FUNC>
-		void _range_op(addr_t vo, addr_t pa, size_t size, FUNC &&func)
+		void _range_op(addr_t vo, addr_t pa, size_t size, auto const &fn)
 		{
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
 			     i = vo >> PAGE_SIZE_LOG2)
@@ -428,7 +426,7 @@ class Hw::Page_directory
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = Genode::min(size, end-vo);
 
-				func(vo, pa, sz, _entries[i]);
+				fn(vo, pa, sz, _entries[i]);
 
 				/* check whether we wrap */
 				if (end < vo) return;
@@ -553,7 +551,7 @@ class Hw::Pml4_table
 
 			void operator () (addr_t const vo, addr_t const pa,
 			                  size_t const size,
-			                  Descriptor::access_t &desc)
+			                  Descriptor::access_t &desc) const
 			{
 				/* we need to use a next level table */
 				if (!Descriptor::present(desc)) {
@@ -577,7 +575,7 @@ class Hw::Pml4_table
 
 			void operator () (addr_t const vo, addr_t /* pa */,
 			                  size_t const size,
-			                  Descriptor::access_t &desc)
+			                  Descriptor::access_t &desc) const
 			{
 				if (Descriptor::present(desc)) {
 					/* use allocator to retrieve virt address of table */
@@ -592,8 +590,7 @@ class Hw::Pml4_table
 			}
 		};
 
-		template <typename FUNC>
-		void _range_op(addr_t vo, addr_t pa, size_t size, FUNC &&func)
+		void _range_op(addr_t vo, addr_t pa, size_t size, auto const &fn)
 		{
 			for (size_t i = (vo & SIZE_MASK) >> PAGE_SIZE_LOG2; size > 0;
 			     i = (vo & SIZE_MASK) >> PAGE_SIZE_LOG2) {
@@ -601,7 +598,7 @@ class Hw::Pml4_table
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = Genode::min(size, end-vo);
 
-				func(vo, pa, sz, _entries[i]);
+				fn(vo, pa, sz, _entries[i]);
 
 				/* check whether we wrap */
 				if (end < vo) return;

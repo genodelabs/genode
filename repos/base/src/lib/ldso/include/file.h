@@ -74,8 +74,7 @@ struct Linker::File
 
 	unsigned elf_phdr_count() const { return phdr.count; }
 
-	template <typename FN>
-	void with_rw_phdr(FN const &fn) const
+	void with_rw_phdr(auto const &fn) const
 	{
 		for (unsigned i = 0; i < phdr.count; i++) {
 			if (is_rw(phdr.phdr[i])) {

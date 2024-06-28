@@ -169,8 +169,7 @@ class Core::Vm_space
 			return Cap_sel((uint32_t)((_id << 20) | idx));
 		}
 
-		template <typename FN>
-		void _flush(bool const flush_support, FN const &fn)
+		void _flush(bool const flush_support, auto const &fn)
 		{
 			if (!flush_support) {
 				warning("mapping cache full, but can't flush");
@@ -183,9 +182,8 @@ class Core::Vm_space
 			_page_table_registry.flush_pages(fn);
 		}
 
-		template <typename FN>
 		bool _map_frame(addr_t const from_phys, addr_t const to_dest,
-		                Map_attr const attr, bool guest, FN const &fn)
+		                Map_attr const attr, bool guest, auto const &fn)
 		{
 			if (_page_table_registry.page_frame_at(to_dest)) {
 				/*

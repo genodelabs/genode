@@ -90,8 +90,7 @@ class Genode::Capability_space_tpl
 		 */
 		struct Tree_managed_data : Data, Avl_node<Tree_managed_data>
 		{
-			template <typename... ARGS>
-			Tree_managed_data(ARGS... args) : Data(args...) { }
+			Tree_managed_data(auto... args) : Data(args...) { }
 
 			Tree_managed_data() { }
 
@@ -143,8 +142,7 @@ class Genode::Capability_space_tpl
 		 * The arguments are passed to the constructor of the
 		 * 'Native_capability::Data' type.
 		 */
-		template <typename... ARGS>
-		Native_capability::Data &create_capability(ARGS... args)
+		Native_capability::Data &create_capability(auto... args)
 		{
 			Mutex::Guard guard(_mutex);
 

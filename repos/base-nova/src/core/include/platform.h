@@ -131,8 +131,7 @@ class Core::Platform : public Platform_generic
 		 */
 		unsigned core_pd_sel() const { return _core_pd_sel; }
 
-		template <typename FUNC>
-		void for_each_location(FUNC const &fn)
+		void for_each_location(auto const &fn)
 		{
 			for (unsigned x = 0; x < _cpus.width(); x++) {
 				for (unsigned y = 0; y < _cpus.height(); y++) {

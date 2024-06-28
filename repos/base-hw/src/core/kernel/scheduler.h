@@ -106,13 +106,13 @@ class Kernel::Scheduler
 
 			public:
 
-				template <typename F> void for_each(F const &fn)
+				void for_each(auto const &fn)
 				{
 					for (List_element * le = _list.first(); le; le = le->next())
 						fn(*le->object());
 				}
 
-				template <typename F> void for_each(F const &fn) const
+				void for_each(auto const &fn) const
 				{
 					for (List_element const * le = _list.first(); le;
 					     le = le->next()) fn(*le->object());
@@ -176,10 +176,10 @@ class Kernel::Scheduler
 		Context &_idle;
 		Context *_current { nullptr };
 
-		template <typename F> void _each_prio_until(F f)
+		void _each_prio_until(auto const &fn)
 		{
 			for (unsigned p = Priority::max(); p != Priority::min()-1; p--)
-				if (f(p))
+				if (fn(p))
 					return;
 		}
 

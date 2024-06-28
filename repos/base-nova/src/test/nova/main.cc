@@ -636,8 +636,7 @@ class Greedy : public Genode::Thread {
 };
 
 
-template <typename... ARGS>
-void check(uint8_t res, ARGS &&... args)
+void check(uint8_t res, auto &&... args)
 {
 	String<128> msg(args...);
 
@@ -649,6 +648,7 @@ void check(uint8_t res, ARGS &&... args)
 		log("res=", res, " ", msg);
 }
 
+
 struct Main
 {
 	Genode::Env  &env;
@@ -656,6 +656,7 @@ struct Main
 
 	Main(Env &env);
 };
+
 
 Main::Main(Env &env) : env(env)
 {

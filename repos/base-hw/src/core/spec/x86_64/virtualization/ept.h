@@ -29,7 +29,7 @@ namespace Hw {
 	 * Table 29-2. Format of an EPT PML4 Entry (PML4E) that References an
 	 * EPT Page-Directory-Pointer Table
 	 */
-        struct Ept_common_descriptor : Genode::Register<64>
+	struct Ept_common_descriptor : Genode::Register<64>
 	{
 		struct R   : Bitfield< 0,1> { }; /* Read */
 		struct W   : Bitfield< 1,1> { }; /* Write */
@@ -59,7 +59,6 @@ namespace Hw {
 			return value;
 		}
 	};
-
 
 
 	template <unsigned _PAGE_SIZE_LOG2, unsigned _SIZE_LOG2>

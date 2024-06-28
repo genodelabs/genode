@@ -113,15 +113,15 @@ class Kernel::Ipc_node
 		Thread &helping_destination();
 
 		/**
-		 * Call function 'f' of type 'void (Ipc_node *)' for each helper
+		 * Call 'fn' of type 'void (Ipc_node *)' for each helper
 		 */
-		template <typename F> void for_each_helper(F f)
+		void for_each_helper(auto const &fn)
 		{
-			_in.queue.for_each([f] (Queue_item &item) {
+			_in.queue.for_each([fn] (Queue_item &item) {
 				Ipc_node &node { item.object() };
 
 				if (node._helping())
-					f(node._thread);
+					fn(node._thread);
 			});
 		}
 

@@ -39,8 +39,7 @@ class Genode::Align_at
 
 	public:
 
-		template <typename... ARGS>
-		Align_at(ARGS &&... args)
+		Align_at(auto &&... args)
 		: _obj(*construct_at<T>(_start_addr(), args...)) { }
 
 		~Align_at() { _obj.~T(); }

@@ -151,8 +151,7 @@ class Core::Platform : public Platform_generic
 
 		static addr_t core_main_thread_phys_utcb();
 
-		template <typename T>
-		static void apply_with_boot_info(T const &fn)
+		static void apply_with_boot_info(auto const &fn)
 		{
 			fn(_boot_info());
 		}

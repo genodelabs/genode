@@ -72,14 +72,10 @@ class Genode::Multiboot2_info : Mmio<0x8>
 
 		Multiboot2_info(addr_t mbi) : Mmio({(char *)mbi, Mmio::SIZE}) { }
 
-		template <typename FUNC_MEM,
-		          typename FUNC_ACPI,
-		          typename FUNC_FB,
-		          typename FUNC_SYSTAB64>
-		void for_each_tag(FUNC_MEM      mem_fn,
-		                  FUNC_ACPI     acpi_fn,
-		                  FUNC_FB       fb_fn,
-		                  FUNC_SYSTAB64 systab64_fn)
+		void for_each_tag(auto const &mem_fn,
+		                  auto const &acpi_fn,
+		                  auto const &fb_fn,
+		                  auto const &systab64_fn)
 		{
 			addr_t const size = read<Multiboot2_info::Size>();
 

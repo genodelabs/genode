@@ -106,8 +106,7 @@ class Linker::Reloc_non_plt_generic
 		 * safely here since all other DSO are loaded, relocated, and constructed at
 		 * this point
 		 */
-		template <typename REL>
-		void _copy(REL const *rel, Elf::Addr *addr)
+		void _copy(auto const *rel, Elf::Addr *addr)
 		{
 			if (!_dep.obj().is_binary()) {
 				error("LD: copy relocation in DSO "

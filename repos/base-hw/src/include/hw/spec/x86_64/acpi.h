@@ -23,14 +23,9 @@ namespace Hw {
 	struct Acpi_fadt;
 	struct Acpi_facs;
 
-	template <typename FUNC>
-	void for_each_rsdt_entry(Hw::Acpi_generic &, FUNC);
-
-	template <typename FUNC>
-	void for_each_xsdt_entry(Hw::Acpi_generic &, FUNC);
-
-	template <typename FUNC>
-	void for_each_apic_struct(Acpi_generic &, FUNC);
+	void for_each_rsdt_entry (Hw::Acpi_generic &, auto const &);
+	void for_each_xsdt_entry (Hw::Acpi_generic &, auto const &);
+	void for_each_apic_struct(Acpi_generic     &, auto const &);
 }
 
 
@@ -378,8 +373,7 @@ struct Hw::Acpi_facs : Genode::Mmio<64>
 };
 
 
-template <typename FUNC>
-void Hw::for_each_rsdt_entry(Hw::Acpi_generic &rsdt, FUNC fn)
+void Hw::for_each_rsdt_entry(Hw::Acpi_generic &rsdt, auto const &fn)
 {
 	if (Genode::memcmp(rsdt.signature, "RSDT", 4))
 		return;
@@ -395,8 +389,7 @@ void Hw::for_each_rsdt_entry(Hw::Acpi_generic &rsdt, FUNC fn)
 }
 
 
-template <typename FUNC>
-void Hw::for_each_xsdt_entry(Hw::Acpi_generic &xsdt, FUNC fn)
+void Hw::for_each_xsdt_entry(Hw::Acpi_generic &xsdt, auto const &fn)
 {
 	if (Genode::memcmp(xsdt.signature, "XSDT", 4))
 		return;
@@ -412,8 +405,7 @@ void Hw::for_each_xsdt_entry(Hw::Acpi_generic &xsdt, FUNC fn)
 }
 
 
-template <typename FUNC>
-void Hw::for_each_apic_struct(Hw::Acpi_generic &apic_madt, FUNC fn)
+void Hw::for_each_apic_struct(Hw::Acpi_generic &apic_madt, auto const &fn)
 {
 	if (Genode::memcmp(apic_madt.signature, "APIC", 4))
 		return;

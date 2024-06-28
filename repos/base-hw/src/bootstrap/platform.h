@@ -83,13 +83,12 @@ class Bootstrap::Platform
 				void add(Memory_region const &);
 				void remove(Memory_region const &);
 
-				template <typename FUNC>
-				void for_each_free_region(FUNC functor)
+				void for_each_free_region(auto const &fn)
 				{
 					_block_tree().for_each([&] (Block const & b)
 					{
 						if (!b.used())
-							functor(Memory_region(b.addr(), b.size()));
+							fn(Memory_region(b.addr(), b.size()));
 					});
 				}
 		};
@@ -117,13 +116,13 @@ class Bootstrap::Platform
 		{
 			Elf(addr_t const addr) : Genode::Elf_binary(addr) { }
 
-			template <typename T> void for_each_segment(T functor)
+			void for_each_segment(auto const &fn)
 			{
 				Genode::Elf_segment segment;
 				for (unsigned i = 0; (segment = get_segment(i)).valid(); i++) {
 					if (segment.flags().skip)    continue;
 					if (segment.mem_size() == 0) continue;
-					functor(segment);
+					fn(segment);
 				}
 			}
 		};

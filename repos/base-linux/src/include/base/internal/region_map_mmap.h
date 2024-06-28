@@ -114,8 +114,7 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 		Region_map_mmap(bool sub_rm, size_t size = ~0)
 		: _sub_rm(sub_rm), _size(size), _base(0) { }
 
-		template <typename FN>
-		void with_attached_sub_rm_base_ptr(FN const &fn)
+		void with_attached_sub_rm_base_ptr(auto const &fn)
 		{
 			if (_sub_rm && _is_attached())
 				fn((void *)_base);

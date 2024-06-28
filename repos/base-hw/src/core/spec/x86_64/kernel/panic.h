@@ -18,8 +18,8 @@
 #include <base/log.h>
 
 namespace Kernel {
-	template <typename... ARGS>
-	inline void panic(ARGS &&... args)
+
+	inline void panic(auto &&... args)
 	{
 		Genode::error("Kernel panic: ", args...);
 		/* This is CPU local, but should be sufficient for now. */

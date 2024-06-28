@@ -80,8 +80,7 @@ class Genode::Native_thread
 				/*
 				 * Execute functor 'fn' in the context of the 'poll' method.
 				 */
-				template <typename FN>
-				void _exec_control(FN const &);
+				void _exec_control(auto const &fn);
 
 			public:
 

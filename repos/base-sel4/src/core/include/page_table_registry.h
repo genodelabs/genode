@@ -186,8 +186,8 @@ class Core::Page_table_registry
 			}
 		}
 
-		template <typename FN, typename T>
-		void _flush_high(FN const &fn, Avl_tree<T> &tree, Allocator &alloc)
+		template <typename T>
+		void _flush_high(auto const &fn, Avl_tree<T> &tree, Allocator &alloc)
 		{
 			for (T *element; (element = tree.first());) {
 
@@ -248,8 +248,7 @@ class Core::Page_table_registry
 		 * The functor is called with the selector of the page table entry
 		 * (the copy of the phys frame selector) as argument.
 		 */
-		template <typename FN>
-		void flush_page(addr_t vaddr, FN const &fn)
+		void flush_page(addr_t vaddr, auto const &fn)
 		{
 			Frame * frame = Frame::lookup(_frames, vaddr, LEVEL_0);
 			if (!frame)
@@ -260,8 +259,7 @@ class Core::Page_table_registry
 			destroy(_alloc_frames, frame);
 		}
 
-		template <typename FN>
-		void flush_pages(FN const &fn)
+		void flush_pages(auto const &fn)
 		{
 			Avl_tree<Frame> tmp;
 
@@ -282,8 +280,7 @@ class Core::Page_table_registry
 			}
 		}
 
-		template <typename PG, typename LV>
-		void flush_all(PG const &pages, LV const &level)
+		void flush_all(auto const &pages, auto const &level)
 		{
 			flush_pages(pages);
 			_flush_high(level, _level1, _alloc_high);

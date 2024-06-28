@@ -20,12 +20,11 @@
 
 using namespace Core;
 
-template <typename FUNC>
-inline Nova::uint8_t retry_syscall(addr_t pd_sel, FUNC func)
+inline Nova::uint8_t retry_syscall(addr_t pd_sel, auto const &fn)
 {
 	Nova::uint8_t res;
 	do {
-		res = func();
+		res = fn();
 	} while (res == Nova::NOVA_PD_OOM &&
 	         Nova::NOVA_OK == Pager_object::handle_oom(Pager_object::SRC_CORE_PD,
 	                                                   pd_sel,
@@ -127,8 +126,7 @@ class System_control_impl : public Core::System_control
 
 		System_control_component objects [Core::Platform::MAX_SUPPORTED_CPUS] { };
 
-		template <typename T>
-		auto with_location(auto const &location, T const &fn)
+		auto with_location(auto const &location, auto const &fn)
 		{
 			unsigned const index = platform_specific().pager_index(location);
 
@@ -138,8 +136,7 @@ class System_control_impl : public Core::System_control
 			return Capability<Pd_session::System_control> { };
 		}
 
-		template <typename T>
-		auto with_location(auto const &location, T const &fn) const
+		auto with_location(auto const &location, auto const &fn) const
 		{
 			unsigned const index = platform_specific().pager_index(location);
 

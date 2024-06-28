@@ -54,9 +54,8 @@ struct Core::Pager_entrypoint
 {
 	Pager_entrypoint(Rpc_cap_factory &) { }
 
-	template <typename FUNC>
-	auto apply(Pager_capability, FUNC f) -> decltype(f(nullptr)) {
-		return f(nullptr); }
+	auto apply(Pager_capability, auto const &fn) -> decltype(fn(nullptr)) {
+		return fn(nullptr); }
 
 	Pager_capability manage(Pager_object &) { return Pager_capability(); }
 

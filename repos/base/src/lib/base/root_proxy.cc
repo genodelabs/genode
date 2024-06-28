@@ -72,8 +72,7 @@ namespace {
 			/**
 			 * Call functor 'fn' with root capability for a given service name
 			 */
-			template <typename FUNC>
-			void apply(Service::Name const &name, FUNC const &fn)
+			void apply(Service::Name const &name, auto const &fn)
 			{
 				/*
 				 * Protect '_services' but execute 'fn' with the mutex released.

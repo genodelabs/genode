@@ -72,7 +72,7 @@ class Core::Initial_untyped_pool
 		/**
 		 * Calculate free index after allocation
 		 */
-		addr_t _align_offset(Range &range, unsigned size_log2)
+		addr_t _align_offset(Range const &range, unsigned size_log2)
 		{
 			/*
 			 * The seL4 kernel naturally aligns allocations within untuped
@@ -90,13 +90,12 @@ class Core::Initial_untyped_pool
 		 *
 		 * The functor is called with 'Range &' as argument.
 		 */
-		template <typename FUNC>
-		void for_each_range(FUNC const &func)
+		void for_each_range(auto const &fn)
 		{
 			seL4_BootInfo const &bi = sel4_boot_info();
 			for (addr_t sel = bi.untyped.start; sel < bi.untyped.end; sel++) {
 				Range range(*this, (unsigned)sel);
-				func(range);
+				fn(range);
 			}
 		}
 
@@ -124,7 +123,7 @@ class Core::Initial_untyped_pool
 			 * Go through the known initial untyped memory ranges to find
 			 * a range that is able to host a kernel object of 'size'.
 			 */
-			for_each_range([&] (Range &range) {
+			for_each_range([&] (Range const &range) {
 				/* ignore device memory */
 				if (range.device)
 					return;
@@ -176,13 +175,12 @@ class Core::Initial_untyped_pool
 		 * Convert (remainder) of the initial untyped memory into untyped
 		 * objects of size_log2 and up to a maximum as specified by max_memory
 		 */
-		template <typename FUNC>
 		void turn_into_untyped_object(addr_t  const node_index,
-		                              FUNC    const & func,
+		                              auto    const &fn,
 		                              size_t  const size_log2 = get_page_size_log2(),
 		                              addr_t  max_memory = 0UL - 0x1000UL)
 		{
-			for_each_range([&] (Range &range) {
+			for_each_range([&] (Range const &range) {
 
 				/*
 				 * The kernel limits the maximum number of kernel objects to
@@ -226,8 +224,8 @@ class Core::Initial_untyped_pool
 					}
 
 					/* invoke callback about the range */
-					bool const used = func(phys_addr, num_pages << size_log2,
-					                       range.device);
+					bool const used = fn(phys_addr, num_pages << size_log2,
+					                     range.device);
 
 					if (!used)
 						return;

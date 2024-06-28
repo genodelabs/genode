@@ -32,8 +32,7 @@ static inline char ascii(int digit, int uppercase = 0)
 /**
  * Output signed value with the specified base
  */
-template <typename T, typename OUT_CHAR_FN>
-static inline void out_signed(T value, unsigned base, OUT_CHAR_FN const &out_char)
+static inline void out_signed(auto value, unsigned base, auto const &out_char_fn)
 {
 	/**
 	 * for base 8, the number of digits is the number of value bytes times 3
@@ -61,20 +60,19 @@ static inline void out_signed(T value, unsigned base, OUT_CHAR_FN const &out_cha
 
 	/* add sign to buffer for negative values */
 	if (neg)
-		out_char('-');
+		out_char_fn('-');
 
 	/* output buffer in reverse order */
 	for (; i--; )
-		out_char(buf[i]);
+		out_char_fn(buf[i]);
 }
 
 
 /**
  * Output unsigned value with the specified base and padding
  */
-template <typename T, typename OUT_CHAR_FN>
-static inline void out_unsigned(T value, unsigned base, int pad,
-                                OUT_CHAR_FN const &out_char)
+static inline void out_unsigned(auto value, unsigned base, int pad,
+                                auto const &out_char_fn)
 {
 	/**
 	 * for base 8, the number of digits is the number of value bytes times 3
@@ -97,19 +95,19 @@ static inline void out_unsigned(T value, unsigned base, int pad,
 
 	/* add padding zeros */
 	for (; pad-- > 0; )
-		out_char(ascii(0));
+		out_char_fn(ascii(0));
 
 	/* output buffer in reverse order */
 	for (; i--; )
-		out_char(buf[i]);
+		out_char_fn(buf[i]);
 }
 
 
 /**
  * Output floating point value
  */
-template <typename T, typename OUT_CHAR_FN>
-static inline void out_float(T value, unsigned base, unsigned length, OUT_CHAR_FN const &out_char)
+template <typename T>
+static inline void out_float(T value, unsigned base, unsigned length, auto const &out_char_fn)
 {
 	using namespace Genode;
 
@@ -136,10 +134,10 @@ static inline void out_float(T value, unsigned base, unsigned length, OUT_CHAR_F
 	uint64_t integer = (uint64_t)volatile_value;
 
 	if (neg)
-		out_char('-');
+		out_char_fn('-');
 
-	out_unsigned(integer, base, 0, out_char);
-	out_char('.');
+	out_unsigned(integer, base, 0, out_char_fn);
+	out_char_fn('.');
 
 	if (length) {
 		do {
@@ -147,7 +145,7 @@ static inline void out_float(T value, unsigned base, unsigned length, OUT_CHAR_F
 			volatile_value = (T)(volatile_value * (T)base);
 
 			integer = (uint64_t)volatile_value;
-			out_char(ascii((int)integer));
+			out_char_fn(ascii((int)integer));
 
 			length--;
 		} while (length && (volatile_value > 0.0));

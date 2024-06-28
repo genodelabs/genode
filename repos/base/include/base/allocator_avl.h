@@ -384,10 +384,9 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 		/**
 		 * Construct meta-data object in place
 		 *
-		 * \param ARGS  arguments passed to the meta-data constuctor
+		 * \param args  arguments passed to the meta-data constuctor
 		 */
-		template <typename... ARGS>
-		void construct_metadata(void *addr, ARGS &&... args)
+		void construct_metadata(void *addr, auto &&... args)
 		{
 			Block * const b = static_cast<Block *>(_find_by_address((addr_t)addr));
 			if (b) construct_at<BMDT>(static_cast<BMDT *>(b), args...);

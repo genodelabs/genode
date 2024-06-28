@@ -60,10 +60,10 @@ class Scheduler_test::Context : public Kernel::Scheduler::Context
 
 struct Scheduler_test::Scheduler : Kernel::Scheduler
 {
-	template <typename F> void _each_prio_until(F f) const
+	void _each_prio_until(auto const &fn) const
 	{
 		for (unsigned p = Priority::max(); p != Priority::min()-1; p--)
-			if (f(p))
+			if (fn(p))
 				return;
 	}
 

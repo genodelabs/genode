@@ -307,14 +307,13 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		void _call_exception_state();
 		void _call_single_step();
 
-		template <typename T, typename... ARGS>
-		void _call_new(ARGS &&... args)
+		template <typename T>
+		void _call_new(auto &&... args)
 		{
 			Core::Kernel_object<T> & kobj = *(Core::Kernel_object<T>*)user_arg_1();
 			kobj.construct(_core_pd, args...);
 			user_arg_0(kobj->core_capid());
 		}
-
 
 		template <typename T>
 		void _call_delete()

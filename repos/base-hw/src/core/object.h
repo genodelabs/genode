@@ -49,8 +49,7 @@ class Core::Kernel_object : public Constructible<Kernel::Core_object<T>>
 		/**
 		 * Creates a kernel object via a syscall
 		 */
-		template <typename... ARGS>
-		Kernel_object(Called_from_core, ARGS &&... args)
+		Kernel_object(Called_from_core, auto &&... args)
 		:
 			_cap(Capability_space::import(T::syscall_create(*this, args...)))
 		{ }
@@ -58,8 +57,7 @@ class Core::Kernel_object : public Constructible<Kernel::Core_object<T>>
 		/**
 		 * Creates a kernel object directly
 		 */
-		template <typename... ARGS>
-		Kernel_object(Called_from_kernel, ARGS &&... args)
+		Kernel_object(Called_from_kernel, auto &&... args)
 		:
 			_cap(Capability_space::import(Kernel::cap_id_invalid()))
 		{
@@ -77,8 +75,7 @@ class Core::Kernel_object : public Constructible<Kernel::Core_object<T>>
 		/**
 		 * Create the kernel object explicitely via this function
 		 */
-		template <typename... ARGS>
-		bool create(ARGS &&... args)
+		bool create(auto &&... args)
 		{
 			if (Constructible<Kernel::Core_object<T>>::constructed())
 				return false;

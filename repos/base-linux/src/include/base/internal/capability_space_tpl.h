@@ -89,8 +89,7 @@ class Genode::Capability_space_tpl : Noncopyable
 		 */
 		struct Tree_managed_data : Data, Avl_node<Tree_managed_data>
 		{
-			template <typename... ARGS>
-			Tree_managed_data(ARGS... args) : Data(args...) { }
+			Tree_managed_data(auto &&... args) : Data(args...) { }
 
 			Tree_managed_data() { }
 
@@ -142,8 +141,7 @@ class Genode::Capability_space_tpl : Noncopyable
 		 * The arguments are passed to the constructor of the
 		 * 'Native_capability::Data' type.
 		 */
-		template <typename... ARGS>
-		Native_capability::Data &_create_capability_unsynchronized(ARGS &&... args)
+		Native_capability::Data &_create_capability_unsynchronized(auto &&... args)
 		{
 			addr_t const index = _alloc.alloc();
 

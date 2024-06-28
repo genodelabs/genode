@@ -65,8 +65,7 @@ class Linker::Config : Noncopyable
 		 *
 		 * The functor 'fn' is called with 'Rom_name', 'Keep' as arguments.
 		 */
-		template <typename FN>
-		void for_each_library(FN const &fn) const
+		void for_each_library(auto const &fn) const
 		{
 			_config.with_optional_sub_node("ld", [&] (Xml_node ld) {
 

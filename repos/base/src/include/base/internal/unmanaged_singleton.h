@@ -54,8 +54,8 @@ struct Unmanaged_singleton_constructor
 	/**
 	 * Call the constructor of 'T' with arguments 'args' at 'dst'
 	 */
-	template <typename T, typename... ARGS>
-	static void call(char * const dst, ARGS &&... args) { new (dst) T(args...); }
+	template <typename T>
+	static void call(char * const dst, auto &&... args) { new (dst) T(args...); }
 };
 
 /**
@@ -67,8 +67,8 @@ struct Unmanaged_singleton_constructor
  *
  * \return  object pointer
  */
-template <typename T, int ALIGNMENT = sizeof(Genode::addr_t), typename... ARGS>
-static inline T * unmanaged_singleton(ARGS &&... args)
+template <typename T, int ALIGNMENT = sizeof(Genode::addr_t)>
+static inline T * unmanaged_singleton(auto &&... args)
 {
 	/*
 	 * Each instantiation of the function template with a different type 'T'

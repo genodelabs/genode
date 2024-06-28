@@ -260,10 +260,9 @@ class Kernel::Cpu_pool
 		 */
 		Cpu & executing_cpu() { return cpu(Cpu::executing_id()); }
 
-		template <typename FUNC>
-		void for_each_cpu(FUNC const &func)
+		void for_each_cpu(auto const &fn)
 		{
-			for (unsigned i = 0; i < _nr_of_cpus; i++) func(cpu(i));
+			for (unsigned i = 0; i < _nr_of_cpus; i++) fn(cpu(i));
 		}
 
 		Inter_processor_work_list & work_list() {

@@ -90,15 +90,14 @@ size_t Cpu::cache_line_size()
 }
 
 
-template <typename FUNC>
-static inline void cache_maintainance(addr_t const base,
-                                      size_t const size,
-                                      FUNC & func)
+static inline void cache_maintainance(addr_t const  base,
+                                      size_t const  size,
+                                      auto   const &fn)
 {
 	/* align the start address to catch all related cache lines */
 	addr_t start     = (addr_t)base & ~(Cpu::cache_line_size()-1UL);
 	addr_t const end = base + size;
-	for (; start < end; start += Cpu::cache_line_size()) func(start);
+	for (; start < end; start += Cpu::cache_line_size()) fn(start);
 }
 
 

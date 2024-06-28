@@ -90,7 +90,7 @@ class Genode::Final_table
 
 			void operator () (addr_t const vo, addr_t const pa,
 			                  size_t const size,
-			                  DESCRIPTOR::access_t &desc)
+			                  DESCRIPTOR::access_t &desc) const
 			{
 				if ((vo & ~PAGE_MASK) || (pa & ~PAGE_MASK) ||
 				    size < PAGE_SIZE)
@@ -119,7 +119,7 @@ class Genode::Final_table
 			Remove_func(bool flush) : flush(flush) { }
 
 			void operator () (addr_t /* vo */, addr_t /* pa */, size_t /* size */,
-			                  DESCRIPTOR::access_t &desc)
+			                  DESCRIPTOR::access_t &desc) const
 			{
 				desc = 0;
 
@@ -128,15 +128,14 @@ class Genode::Final_table
 			}
 		};
 
-		template <typename FUNC>
-		void _range_op(addr_t vo, addr_t pa, size_t size, FUNC &&func)
+		void _range_op(addr_t vo, addr_t pa, size_t size, auto const &fn)
 		{
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
 			     i = vo >> PAGE_SIZE_LOG2) {
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = Genode::min(size, end-vo);
 
-				func(vo, pa, sz, _entries[i]);
+				fn(vo, pa, sz, _entries[i]);
 
 				/* check whether we wrap */
 				if (end < vo) return;
@@ -173,8 +172,7 @@ class Genode::Final_table
 			return true;
 		}
 
-		template <typename FN>
-		void for_each_entry(FN && fn)
+		void for_each_entry(auto const &fn)
 		{
 			for (unsigned long i = 0; i < MAX_ENTRIES; i++) {
 				if (Descriptor::present(_entries[i]))
@@ -257,7 +255,7 @@ class Genode::Page_directory
 
 			void operator () (addr_t const vo, addr_t const pa,
 			                  size_t const size,
-			                  typename Descriptor::access_t &desc)
+			                  typename Descriptor::access_t &desc) const
 			{
 				using Td = Descriptor::Table;
 				using access_t = typename Descriptor::access_t;
@@ -316,7 +314,7 @@ class Genode::Page_directory
 
 			void operator () (addr_t const vo, addr_t /* pa */,
 			                  size_t const size,
-			                  typename Descriptor::access_t &desc)
+			                  typename Descriptor::access_t &desc) const
 			{
 				if (Descriptor::present(desc)) {
 					if (Descriptor::maps_page(desc)) {
@@ -348,8 +346,7 @@ class Genode::Page_directory
 			}
 		};
 
-		template <typename FUNC>
-		void _range_op(addr_t vo, addr_t pa, size_t size, FUNC &&func)
+		void _range_op(addr_t vo, addr_t pa, size_t size, auto const &fn)
 		{
 			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
 			     i = vo >> PAGE_SIZE_LOG2)
@@ -357,7 +354,7 @@ class Genode::Page_directory
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = Genode::min(size, end-vo);
 
-				func(vo, pa, sz, _entries[i]);
+				fn(vo, pa, sz, _entries[i]);
 
 				/* check whether we wrap */
 				if (end < vo) return;
@@ -392,8 +389,7 @@ class Genode::Page_directory
 			return true;
 		}
 
-		template <typename FN>
-		void for_each_entry(FN && fn)
+		void for_each_entry(auto const &fn)
 		{
 			for (unsigned long i = 0; i < MAX_ENTRIES; i++)
 				if (Descriptor::present(_entries[i]))
@@ -417,9 +413,11 @@ class Genode::Page_directory
 		void insert_translation(addr_t vo, addr_t pa, size_t size,
 		                        Page_flags const & flags, ALLOCATOR & alloc,
 		                        bool flush = false,
-					uint32_t supported_sizes = (1U << 30 | 1U << 21 | 1U << 12)) {
+		                        uint32_t supported_sizes = (1U << 30 | 1U << 21 | 1U << 12))
+		{
 			_range_op(vo, pa, size,
-			          Insert_func(flags, alloc, flush, supported_sizes)); }
+			          Insert_func(flags, alloc, flush, supported_sizes));
+		}
 
 		/**
 		 * Remove translations that overlap with a given virtual region
@@ -472,7 +470,7 @@ class Genode::Pml4_table
 
 			void operator () (addr_t const vo, addr_t const pa,
 			                  size_t const size,
-			                  Descriptor::access_t &desc)
+			                  Descriptor::access_t &desc) const
 			{
 				/* we need to use a next level table */
 				if (!Descriptor::present(desc)) {
@@ -510,7 +508,7 @@ class Genode::Pml4_table
 
 			void operator () (addr_t const vo, addr_t /* pa */,
 			                  size_t const size,
-			                  Descriptor::access_t &desc)
+			                  Descriptor::access_t &desc) const
 			{
 				if (Descriptor::present(desc)) {
 					/* use allocator to retrieve virt address of table */
@@ -535,15 +533,14 @@ class Genode::Pml4_table
 			}
 		};
 
-		template <typename FUNC>
-		void _range_op(addr_t vo, addr_t pa, size_t size, FUNC &&func)
+		void _range_op(addr_t vo, addr_t pa, size_t size, auto const &fn)
 		{
 			for (size_t i = (vo & SIZE_MASK) >> PAGE_SIZE_LOG2; size > 0;
 			     i = (vo & SIZE_MASK) >> PAGE_SIZE_LOG2) {
 				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
 				size_t sz  = Genode::min(size, end-vo);
 
-				func(vo, pa, sz, _entries[i]);
+				fn(vo, pa, sz, _entries[i]);
 
 				/* check whether we wrap */
 				if (end < vo) return;
@@ -596,8 +593,7 @@ class Genode::Pml4_table
 			return true;
 		}
 
-		template <typename FN>
-		void for_each_entry(FN && fn)
+		void for_each_entry(auto const &fn)
 		{
 			for (unsigned long i = 0; i < MAX_ENTRIES; i++) {
 				if (Descriptor::present(_entries[i]))

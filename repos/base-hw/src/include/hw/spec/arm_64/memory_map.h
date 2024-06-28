@@ -19,8 +19,7 @@
 namespace Hw {
 	namespace Mm {
 
-		template <typename T>
-		Genode::addr_t el2_addr(T t)
+		Genode::addr_t el2_addr(auto t)
 		{
 			static constexpr Genode::addr_t OFF = 0xffffff8000000000UL;
 			return (Genode::addr_t)t - OFF;

@@ -171,8 +171,7 @@ void Allocator_avl_base::_cut_from_block(Block &b, addr_t addr, size_t size, Two
 }
 
 
-template <typename FN>
-bool Allocator_avl_base::_revert_block_ranges(FN const &any_block_fn)
+bool Allocator_avl_base::_revert_block_ranges(auto const &any_block_fn)
 {
 	size_t blocks = 0;
 	for (bool loop = true; loop; blocks++) {
@@ -309,10 +308,9 @@ Allocator_avl_base::Range_result Allocator_avl_base::remove_range(addr_t base, s
 }
 
 
-template <typename SEARCH_FN>
 Allocator::Alloc_result
 Allocator_avl_base::_allocate(size_t const size, unsigned align, Range range,
-                              SEARCH_FN const &search_fn)
+                              auto const &search_fn)
 {
 	return _alloc_two_blocks_metadata().convert<Alloc_result>(
 

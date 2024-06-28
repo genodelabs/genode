@@ -197,18 +197,16 @@ class Linker::Object : private Fifo<Object>::Element,
 					_fifo.remove(obj);
 				}
 
-				template <typename FUNC>
-				void for_each(FUNC const &func)
+				void for_each(auto const &fn)
 				{
 					Mutex::Guard guard(_mutex);
-					_fifo.for_each(func);
+					_fifo.for_each(fn);
 				}
 		};
 
-		template <typename FUNC>
-		static void with_object_list(FUNC const func)
+		static void with_object_list(auto const &fn)
 		{
-			func(_object_list());
+			fn(_object_list());
 		}
 
 		virtual ~Object() { }
@@ -267,11 +265,10 @@ namespace Linker {
 	/**
 	 * Apply func to each object
 	 */
-	template <typename FUNC>
-	void for_each_object(FUNC const &func)
+	void for_each_object(auto const &fn)
 	{
 		Object::with_object_list([&] (Object::Object_list &list) {
-			list.for_each(func); });
+			list.for_each(fn); });
 	}
 }
 

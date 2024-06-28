@@ -109,18 +109,17 @@ void Arm_cpu::switch_to(Arm_cpu::Mmu_context & ctx)
 }
 
 
-template <typename FUNC>
-static inline void cache_maintainance(addr_t const base,
-                                      size_t const size,
-                                      size_t const cache_line_size,
-                                      FUNC & func)
+static inline void cache_maintainance(addr_t const  base,
+                                      size_t const  size,
+                                      size_t const  cache_line_size,
+                                      auto   const &fn)
 {
 	/* align the start address to catch all related cache lines */
 	addr_t start     = base & ~(cache_line_size-1);
 	addr_t const end = base + size;
 
 	/* iterate over all cachelines of the given region and apply the functor */
-	for (; start < end; start += cache_line_size) func(start);
+	for (; start < end; start += cache_line_size) fn(start);
 }
 
 

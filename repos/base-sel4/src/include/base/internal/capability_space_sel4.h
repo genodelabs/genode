@@ -147,8 +147,7 @@ class Genode::Capability_space_sel4
 		 */
 		struct Tree_managed_data : Data, Avl_node<Tree_managed_data>
 		{
-			template <typename... ARGS>
-			Tree_managed_data(ARGS... args) : Data(args...) { }
+			Tree_managed_data(auto &&... args) : Data(args...) { }
 
 			Tree_managed_data() { }
 
@@ -210,8 +209,7 @@ class Genode::Capability_space_sel4
 		 * The arguments following the selector are passed to the constructor
 		 * of the 'Native_capability::Data' type.
 		 */
-		template <typename... ARGS>
-		Native_capability::Data &create_capability(Cap_sel cap_sel, ARGS... args)
+		Native_capability::Data &create_capability(Cap_sel cap_sel, auto &&... args)
 		{
 			addr_t const sel = cap_sel.value();
 

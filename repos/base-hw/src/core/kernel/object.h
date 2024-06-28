@@ -265,9 +265,7 @@ class Kernel::Core_object : public T, Kernel::Core_object_identity<T>
 		/**
 		 * Constructor used for objects other than the Core PD
 		 */
-		template <typename... ARGS>
-		Core_object(Pd         &core_pd,
-		            ARGS &&...  args)
+		Core_object(Pd &core_pd, auto &&... args)
 		:
 			T(args...),
 			Core_object_identity<T>(core_pd, *static_cast<T*>(this))
@@ -276,8 +274,7 @@ class Kernel::Core_object : public T, Kernel::Core_object_identity<T>
 		/**
 		 * Constructor used for Core PD object
 		 */
-		template <typename... ARGS>
-		Core_object(ARGS &&... args)
+		Core_object(auto &&... args)
 		:
 			T(args...),
 			Core_object_identity<T>(*static_cast<T*>(this))

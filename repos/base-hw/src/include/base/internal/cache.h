@@ -18,10 +18,9 @@
 #include <util/misc_math.h>
 #include <util/touch.h>
 
-template <typename FN>
 static inline void for_each_page(Genode::addr_t addr,
                                  Genode::size_t size,
-                                 FN const     & fn)
+                                 auto const    &fn)
 {
 	using namespace Genode;
 
@@ -36,10 +35,9 @@ static inline void for_each_page(Genode::addr_t addr,
 }
 
 
-template <typename FN>
 static inline void for_each_cache_line(Genode::addr_t addr,
                                        Genode::size_t size,
-                                       FN const     & fn)
+                                       auto const    &fn)
 {
 	using namespace Genode;
 
