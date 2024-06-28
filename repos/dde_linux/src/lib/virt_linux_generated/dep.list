@@ -3,6 +3,7 @@ Makefile
 arch/arm/Makefile
 arch/arm/include/asm/Kbuild
 arch/arm/include/asm/archrandom.h
+arch/arm/include/asm/arm_pmuv3.h
 arch/arm/include/asm/atomic.h
 arch/arm/include/asm/auxvec.h
 arch/arm/include/asm/barrier.h
@@ -67,6 +68,7 @@ arch/arm/include/asm/thread_info.h
 arch/arm/include/asm/timex.h
 arch/arm/include/asm/tlbflush.h
 arch/arm/include/asm/topology.h
+arch/arm/include/asm/traps.h
 arch/arm/include/asm/uaccess.h
 arch/arm/include/asm/ucontext.h
 arch/arm/include/asm/unified.h
@@ -106,6 +108,7 @@ arch/arm64/include/asm/alternative.h
 arch/arm64/include/asm/arch_gicv3.h
 arch/arm64/include/asm/arch_timer.h
 arch/arm64/include/asm/archrandom.h
+arch/arm64/include/asm/arm_pmuv3.h
 arch/arm64/include/asm/asm-bug.h
 arch/arm64/include/asm/asm-extable.h
 arch/arm64/include/asm/asm-offsets.h
@@ -194,6 +197,7 @@ arch/arm64/include/asm/syscall_wrapper.h
 arch/arm64/include/asm/sysreg.h
 arch/arm64/include/asm/thread_info.h
 arch/arm64/include/asm/timex.h
+arch/arm64/include/asm/tlbbatch.h
 arch/arm64/include/asm/tlbflush.h
 arch/arm64/include/asm/topology.h
 arch/arm64/include/asm/uaccess.h
@@ -260,6 +264,7 @@ arch/x86/include/asm/compat.h
 arch/x86/include/asm/cpu_entry_area.h
 arch/x86/include/asm/cpufeature.h
 arch/x86/include/asm/cpufeatures.h
+arch/x86/include/asm/cpuid.h
 arch/x86/include/asm/cpumask.h
 arch/x86/include/asm/current.h
 arch/x86/include/asm/desc.h
@@ -307,6 +312,8 @@ arch/x86/include/asm/page_64.h
 arch/x86/include/asm/page_64_types.h
 arch/x86/include/asm/page_types.h
 arch/x86/include/asm/paravirt.h
+arch/x86/include/asm/paravirt.h
+arch/x86/include/asm/paravirt_types.h
 arch/x86/include/asm/percpu.h
 arch/x86/include/asm/pgtable-2level.h
 arch/x86/include/asm/pgtable-2level_types.h
@@ -336,6 +343,7 @@ arch/x86/include/asm/segment.h
 arch/x86/include/asm/shared/msr.h
 arch/x86/include/asm/shared/tdx.h
 arch/x86/include/asm/shmparam.h
+arch/x86/include/asm/shstk.h
 arch/x86/include/asm/sigframe.h
 arch/x86/include/asm/signal.h
 arch/x86/include/asm/smap.h
@@ -511,6 +519,9 @@ include/asm-generic/unaligned.h
 include/asm-generic/user.h
 include/asm-generic/vmlinux.lds.h
 include/clocksource/arm_arch_timer.h
+include/crypto/aria.h
+include/crypto/utils.h
+include/kunit/test-bug.h
 include/kvm/arm_arch_timer.h
 include/kvm/arm_pmu.h
 include/kvm/arm_vgic.h
@@ -520,6 +531,7 @@ include/linux/alarmtimer.h
 include/linux/align.h
 include/linux/apm_bios.h
 include/linux/arch_topology.h
+include/linux/args.h
 include/linux/arm-smccc.h
 include/linux/arm_sdei.h
 include/linux/assoc_array.h
@@ -551,6 +563,7 @@ include/linux/cc_platform.h
 include/linux/cdev.h
 include/linux/cgroup-defs.h
 include/linux/cgroup.h
+include/linux/cleanup.h
 include/linux/clocksource.h
 include/linux/clocksource_ids.h
 include/linux/compat.h
@@ -567,6 +580,7 @@ include/linux/context_tracking_irq.h
 include/linux/context_tracking_state.h
 include/linux/cper.h
 include/linux/cpu.h
+include/linux/cpu_smt.h
 include/linux/cpuhotplug.h
 include/linux/cpumask.h
 include/linux/crash_core.h
@@ -587,6 +601,7 @@ include/linux/dma-mapping.h
 include/linux/dqblk_qtree.h
 include/linux/dqblk_v1.h
 include/linux/dqblk_v2.h
+include/linux/dynamic_debug.h
 include/linux/edd.h
 include/linux/efi.h
 include/linux/elf.h
@@ -617,6 +632,7 @@ include/linux/gpio/consumer.h
 include/linux/hardirq.h
 include/linux/hash.h
 include/linux/hashtable.h
+include/linux/hex.h
 include/linux/highmem-internal.h
 include/linux/highmem.h
 include/linux/highuid.h
@@ -632,7 +648,6 @@ include/linux/instrumented.h
 include/linux/interrupt.h
 include/linux/interval_tree.h
 include/linux/io.h
-include/linux/ioasid.h
 include/linux/iocontext.h
 include/linux/ioport.h
 include/linux/ioprio.h
@@ -693,6 +708,7 @@ include/linux/linkage.h
 include/linux/list.h
 include/linux/list_bl.h
 include/linux/list_lru.h
+include/linux/livepatch_sched.h
 include/linux/llist.h
 include/linux/local_lock.h
 include/linux/local_lock_internal.h
@@ -720,10 +736,12 @@ include/linux/mmzone.h
 include/linux/mnt_idmapping.h
 include/linux/mod_devicetable.h
 include/linux/module.h
+include/linux/module_symbol.h
 include/linux/moduleparam.h
 include/linux/mount.h
 include/linux/msi.h
 include/linux/mutex.h
+include/linux/net_tstamp.h
 include/linux/nfs_fs_i.h
 include/linux/node.h
 include/linux/nodemask.h
@@ -734,6 +752,7 @@ include/linux/nsproxy.h
 include/linux/numa.h
 include/linux/nvmem-provider.h
 include/linux/objtool.h
+include/linux/objtool_types.h
 include/linux/of.h
 include/linux/once.h
 include/linux/once_lite.h
@@ -754,6 +773,7 @@ include/linux/percpu-refcount.h
 include/linux/percpu-rwsem.h
 include/linux/percpu.h
 include/linux/percpu_counter.h
+include/linux/perf/arm_pmuv3.h
 include/linux/perf_event.h
 include/linux/perf_regs.h
 include/linux/personality.h
@@ -794,6 +814,7 @@ include/linux/rculist.h
 include/linux/rculist_bl.h
 include/linux/rcupdate.h
 include/linux/rcupdate_wait.h
+include/linux/rcuref.h
 include/linux/rcutiny.h
 include/linux/rcutree.h
 include/linux/rcuwait.h
@@ -851,6 +872,7 @@ include/linux/spinlock_types.h
 include/linux/spinlock_types_raw.h
 include/linux/spinlock_types_up.h
 include/linux/spinlock_up.h
+include/linux/sprintf.h
 include/linux/srcu.h
 include/linux/srcutiny.h
 include/linux/srcutree.h
@@ -863,6 +885,7 @@ include/linux/static_key.h
 include/linux/stdarg.h
 include/linux/stddef.h
 include/linux/string.h
+include/linux/string_choices.h
 include/linux/string_helpers.h
 include/linux/stringhash.h
 include/linux/stringify.h
@@ -956,6 +979,7 @@ include/uapi/linux/edd.h
 include/uapi/linux/elf-em.h
 include/uapi/linux/elf.h
 include/uapi/linux/errno.h
+include/uapi/linux/eventfd.h
 include/uapi/linux/eventpoll.h
 include/uapi/linux/fcntl.h
 include/uapi/linux/fs.h
@@ -973,6 +997,8 @@ include/uapi/linux/kvm_para.h
 include/uapi/linux/libc-compat.h
 include/uapi/linux/limits.h
 include/uapi/linux/magic.h
+include/uapi/linux/mei.h
+include/uapi/linux/mei_uuid.h
 include/uapi/linux/mempolicy.h
 include/uapi/linux/openat2.h
 include/uapi/linux/param.h
@@ -1035,6 +1061,7 @@ kernel/rcu/srcutiny.c
 kernel/time/timeconst.bc
 lib/ctype.c
 lib/gen_crc32table.c
+lib/radix-tree.h
 lib/rbtree.c
 lib/string.c
 lib/vdso/Makefile
@@ -1045,6 +1072,7 @@ scripts/Makefile
 scripts/Makefile.asm-generic
 scripts/Makefile.build
 scripts/Makefile.compiler
+scripts/Makefile.defconf
 scripts/Makefile.extrawarn
 scripts/Makefile.host
 scripts/Makefile.lib
@@ -1053,7 +1081,6 @@ scripts/basic/Makefile
 scripts/basic/fixdep.c
 scripts/cc-can-link.sh
 scripts/cc-version.sh
-scripts/check-local-export
 scripts/checksyscalls.sh
 scripts/config
 scripts/dtc/Makefile
@@ -1118,6 +1145,7 @@ scripts/mod/mk_elfconfig.c
 scripts/mod/modpost.c
 scripts/mod/modpost.h
 scripts/mod/sumversion.c
+scripts/mod/symsearch.c
 scripts/pahole-flags.sh
 scripts/pahole-version.sh
 scripts/remove-stale-files
@@ -1176,7 +1204,7 @@ tools/include/linux/kernel.h
 tools/include/linux/list.h
 tools/include/linux/log2.h
 tools/include/linux/math.h
-tools/include/linux/objtool.h
+tools/include/linux/objtool_types.h
 tools/include/linux/poison.h
 tools/include/linux/rbtree.h
 tools/include/linux/rbtree_augmented.h
@@ -1202,7 +1230,6 @@ tools/objtool/arch/x86/include
 tools/objtool/arch/x86/include/arch
 tools/objtool/arch/x86/include/arch/cfi_regs.h
 tools/objtool/arch/x86/include/arch/elf.h
-tools/objtool/arch/x86/include/arch/endianness.h
 tools/objtool/arch/x86/include/arch/special.h
 tools/objtool/arch/x86/special.c
 tools/objtool/builtin-check.c

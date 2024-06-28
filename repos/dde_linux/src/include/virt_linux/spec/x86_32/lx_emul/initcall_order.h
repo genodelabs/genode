@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2024-02-05
+ * \date   2024-06-28
  */
 
 #pragma once
@@ -10,7 +10,10 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_init_hw_perf_eventsearly",
 	"__initcall_start",
 	"__initcall_do_init_real_modeearly",
+	"__initcall_init_sigframe_sizeearly",
+	"__initcall_cache_ap_registerearly",
 	"__initcall_bp_init_aperfmperfearly",
+	"__initcall_smp_init_primary_thread_maskearly",
 	"__initcall_register_nmi_cpu_backtrace_handlerearly",
 	"__initcall_spawn_ksoftirqdearly",
 	"__initcall_migration_initearly",
@@ -53,6 +56,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_init_pit_clocksource3",
 	"__initcall_intel_pconfig_init3",
 	"__initcall_pci_arch_init3",
+	"__initcall_init_vdso_image_324",
 	"__initcall_fixup_ht_bug4",
 	"__initcall_topology_init4",
 	"__initcall_uid_cache_init4",
@@ -63,6 +67,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_init_user_reserve4",
 	"__initcall_init_admin_reserve4",
 	"__initcall_init_reserve_notifier4",
+	"__initcall_sha3_generic_mod_init4",
 	"__initcall_aes_init4",
 	"__initcall_prng_mod_init4",
 	"__initcall_misc_init4",
@@ -75,11 +80,13 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_net_dev_init4",
 	"__initcall_neigh_init4",
 	"__initcall_fib_notifier_init4",
+	"__initcall_netdev_genl_init4",
 	"__initcall_ethnl_init4",
 	"__initcall_nexthop_init4",
 	"__initcall_pci_subsys_init4",
 	"__initcall_vsprintf_init_hashval4",
 	"__initcall_nmi_warning_debugfs5",
+	"__initcall_save_microcode_in_initrd5",
 	"__initcall_init_amd_nbs5",
 	"__initcall_iomem_init_inode5",
 	"__initcall_clocksource_done_booting5",
@@ -137,6 +144,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_blackhole_netdev_init6",
 	"__initcall_phylink_init6",
 	"__initcall_phy_module_init6",
+	"__initcall_phy_module_init6",
 	"__initcall_virtio_net_driver_init6",
 	"__initcall_asix_driver_init6",
 	"__initcall_ax88179_178a_driver_init6",
@@ -168,6 +176,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_inet_diag_init6",
 	"__initcall_tcp_diag_init6",
 	"__initcall_cubictcp_register6",
+	"__initcall_microcode_init7",
 	"__initcall_start_sync_check_timer7",
 	"__initcall_update_mp_table7",
 	"__initcall_lapic_insert_resource7",
@@ -182,6 +191,9 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_pci_sysfs_init7",
 	"__initcall_sync_state_resume_initcall7",
 	"__initcall_deferred_probe_initcall7",
+	"__initcall_bpf_kfunc_init7",
+	"__initcall_init_subsystem7",
+	"__initcall_xdp_metadata_init7",
 	"__initcall_tcp_congestion_default7",
 	"__initcall_udp_tunnel_nic_init_module7",
 	"__initcall_ip_auto_config7",

@@ -13,6 +13,15 @@
 
 #include <lx_emul.h>
 
+#if defined(__x86_64__) || defined(__i386__)
+#include <asm/processor.h>
+unsigned long __end_init_task[0];
+
+#include <asm/current.h>
+DEFINE_PER_CPU(struct pcpu_hot, pcpu_hot);
+#endif
+
+
 #include <asm-generic/sections.h>
 
 char __start_rodata[] = {};

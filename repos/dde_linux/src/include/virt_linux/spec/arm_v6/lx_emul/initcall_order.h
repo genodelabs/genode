@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2024-02-05
+ * \date   2024-06-28
  */
 
 #pragma once
@@ -61,6 +61,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_init_reserve_notifier4",
 	"__initcall_init_admin_reserve4",
 	"__initcall_init_user_reserve4",
+	"__initcall_sha3_generic_mod_init4",
 	"__initcall_aes_init4",
 	"__initcall_prng_mod_init4",
 	"__initcall_misc_init4",
@@ -74,6 +75,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_net_dev_init4",
 	"__initcall_neigh_init4",
 	"__initcall_fib_notifier_init4",
+	"__initcall_netdev_genl_init4",
 	"__initcall_ethnl_init4",
 	"__initcall_nexthop_init4",
 	"__initcall_vsprintf_init_hashval4",
@@ -164,6 +166,9 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_pci_sysfs_init7",
 	"__initcall_sync_state_resume_initcall7",
 	"__initcall_deferred_probe_initcall7",
+	"__initcall_init_subsystem7",
+	"__initcall_bpf_kfunc_init7",
+	"__initcall_xdp_metadata_init7",
 	"__initcall_tcp_congestion_default7",
 	"__initcall_udp_tunnel_nic_init_module7",
 	"__initcall_ip_auto_config7",
