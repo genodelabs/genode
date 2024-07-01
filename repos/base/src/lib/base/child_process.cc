@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -24,24 +24,13 @@
 using namespace Genode;
 
 
-Child::Process::Loaded_executable::Loaded_executable(Type type,
-                                                     Dataspace_capability ldso_ds,
-                                                     Ram_allocator &ram,
-                                                     Region_map &local_rm,
-                                                     Region_map &remote_rm,
-                                                     Parent_capability parent_cap)
+Child::Load_result Child::_load_static_elf(Dataspace_capability elf_ds,
+                                           Ram_allocator       &ram,
+                                           Region_map          &local_rm,
+                                           Region_map          &remote_rm,
+                                           Parent_capability    parent_cap)
 {
-	/* skip loading when called during fork */
-	if (type == TYPE_FORKED)
-		return;
-
-	/* locally attach ELF binary of the dynamic linker */
-	if (!ldso_ds.valid()) {
-		error("attempt to start dynamic executable without dynamic linker");
-		throw Missing_dynamic_linker();
-	}
-
-	addr_t const elf_addr = local_rm.attach(ldso_ds, Region_map::Attr{}).convert<addr_t>(
+	addr_t const elf_addr = local_rm.attach(elf_ds, Region_map::Attr{}).convert<addr_t>(
 		[&] (Region_map::Range range) { return range.start; },
 		[&] (Region_map::Attach_error const e) -> addr_t {
 			if (e == Region_map::Attach_error::INVALID_DATASPACE)
@@ -51,11 +40,19 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 			return 0; });
 
 	if (!elf_addr)
-		return;
+		return Load_error::INVALID;
+
+	/* detach ELF binary from local address space when leaving the scope */
+	struct Elf_detach_guard
+	{
+		Region_map &local_rm;
+		addr_t const addr;
+		~Elf_detach_guard() { local_rm.detach(addr); }
+	} elf_detach_guard { .local_rm = local_rm, .addr = elf_addr };
 
 	Elf_binary elf(elf_addr);
 
-	entry = elf.entry();
+	Entry const entry { elf.entry() };
 
 	/* setup region map for the new pd */
 	Elf_segment seg;
@@ -87,10 +84,20 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 			 */
 
 			/* alloc dataspace */
-			Dataspace_capability ds_cap;
-			try { ds_cap = ram.alloc(size); }
-			catch (Out_of_ram) {
-				error("allocation of read-write segment failed"); throw; };
+			Ram_allocator::Alloc_result const alloc_result = ram.try_alloc(size);
+
+			if (alloc_result.failed())
+				error("allocation of read-write segment failed");
+
+			using Alloc_error = Ram_allocator::Alloc_error;
+
+			if (alloc_result == Alloc_error::OUT_OF_RAM)  return Load_error::OUT_OF_RAM;
+			if (alloc_result == Alloc_error::OUT_OF_CAPS) return Load_error::OUT_OF_CAPS;
+			if (alloc_result.failed())                    return Load_error::INVALID;
+
+			Dataspace_capability ds_cap = alloc_result.convert<Dataspace_capability>(
+				[&] (Ram_dataspace_capability cap)    { return cap; },
+				[&] (Alloc_error) { /* handled above */ return Dataspace_capability(); });
 
 			/* attach dataspace */
 			Region_map::Attr attr { };
@@ -103,6 +110,8 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 					if (e == Region_map::Attach_error::REGION_CONFLICT)
 						error("region conflict while locally attaching ELF segment");
 					return nullptr; });
+			if (!ptr)
+				return Load_error::INVALID;
 
 			addr_t const laddr = elf_addr + seg.file_offset();
 
@@ -124,19 +133,19 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 			/* detach dataspace */
 			local_rm.detach(addr_t(ptr));
 
-			remote_rm.attach(ds_cap, Region_map::Attr {
+			auto remote_attach_result = remote_rm.attach(ds_cap, Region_map::Attr {
 				.size       = size,
 				.offset     = { },
 				.use_at     = true,
 				.at         = addr,
 				.executable = false,
 				.writeable  = true
-			}).with_result(
-				[&] (Region_map::Range) { },
-				[&] (Region_map::Attach_error) {
-					error("region conflict while remotely attaching ELF segment");
-					error("addr=", (void *)addr, " size=", (void *)size); }
-			);
+			});
+			if (remote_attach_result.failed()) {
+				error("failed to remotely attach writable ELF segment");
+				error("addr=", (void *)addr, " size=", (void *)size);
+				return Load_error::INVALID;
+			}
 		} else {
 
 			/* read-only segment */
@@ -144,28 +153,22 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 			if (seg.file_size() != seg.mem_size())
 				warning("filesz and memsz for read-only segment differ");
 
-			remote_rm.attach(ldso_ds, Region_map::Attr {
+			auto remote_attach_result = remote_rm.attach(elf_ds, Region_map::Attr {
 				.size       = size,
 				.offset     = seg.file_offset(),
 				.use_at     = true,
 				.at         = addr,
 				.executable = seg.flags().x,
 				.writeable  = false
-			}).with_result(
-				[&] (Region_map::Range) { },
-				[&] (Region_map::Attach_error const e) {
-					if (e == Region_map::Attach_error::REGION_CONFLICT)
-						error("region conflict while remotely attaching read-only ELF segment");
-					if (e == Region_map::Attach_error::INVALID_DATASPACE)
-						error("attempt to attach invalid read-only segment dataspace");
-					error("addr=", (void *)addr, " size=", (void *)size);
-				}
-			);
+			});
+			if (remote_attach_result.failed()) {
+				error("failed to remotely attach read-only ELF segment");
+				error("addr=", (void *)addr, " size=", (void *)size);
+				return Load_error::INVALID;
+			}
 		}
 	}
-
-	/* detach ELF */
-	local_rm.detach(elf_addr);
+	return entry;
 }
 
 
@@ -199,31 +202,26 @@ void Child::Initial_thread::start(addr_t ip, Start &start)
 }
 
 
-Child::Process::Process(Type                   type,
-                        Dataspace_capability   ldso_ds,
-                        Pd_session            &pd,
-                        Initial_thread_base   &initial_thread,
-                        Initial_thread::Start &start,
-                        Region_map            &local_rm,
-                        Region_map            &remote_rm,
-                        Parent_capability      parent_cap)
-:
-	loaded_executable(type, ldso_ds, pd, local_rm, remote_rm, parent_cap)
+Child::Start_result Child::_start_process(Dataspace_capability   ldso_ds,
+                                          Pd_session            &pd,
+                                          Initial_thread_base   &initial_thread,
+                                          Initial_thread::Start &start,
+                                          Region_map            &local_rm,
+                                          Region_map            &remote_rm,
+                                          Parent_capability      parent_cap)
 {
-	/* register parent interface for new protection domain */
-	pd.assign_parent(parent_cap);
-
-	/*
-	 * Inhibit start of main thread if the new process happens to be forked
-	 * from another. In this case, the main thread will get manually
-	 * started after constructing the 'Process'.
-	 */
-	if (type == TYPE_FORKED)
-		return;
-
-	/* start main thread */
-	initial_thread.start(loaded_executable.entry, start);
+	return _load_static_elf(ldso_ds, pd, local_rm, remote_rm, parent_cap).convert<Start_result>(
+		[&] (Entry entry) {
+			initial_thread.start(entry.ip, start);
+			return Start_result::OK;
+		},
+		[&] (Load_error e)  {
+			switch (e) {
+			case Load_error::OUT_OF_RAM:  return Start_result::OUT_OF_RAM;
+			case Load_error::OUT_OF_CAPS: return Start_result::OUT_OF_CAPS;
+			case Load_error::INVALID:     break;
+			}
+			return Start_result::INVALID;
+		}
+	);
 }
-
-
-Child::Process::~Process() { }

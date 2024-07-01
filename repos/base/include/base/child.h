@@ -375,76 +375,28 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		} _initial_thread_start { _policy };
 
-		struct Process
-		{
-			class Missing_dynamic_linker : Exception { };
-			class Invalid_executable     : Exception { };
+		struct Entry { addr_t ip; };
 
-			enum Type { TYPE_LOADED, TYPE_FORKED };
+		enum class Load_error { INVALID, OUT_OF_RAM, OUT_OF_CAPS };
+		using Load_result = Attempt<Entry, Load_error>;
 
-			struct Loaded_executable
-			{
-				/**
-				 * Initial instruction pointer of the new process, as defined
-				 * in the header of the executable.
-				 */
-				addr_t entry { 0 };
+		static Load_result _load_static_elf(Dataspace_capability elf_ds,
+		                                    Ram_allocator       &ram,
+		                                    Region_map          &local_rm,
+		                                    Region_map          &remote_rm,
+		                                    Parent_capability    parent_cap);
 
-				/**
-				 * Constructor parses the executable and sets up segment
-				 * dataspaces
-				 *
-				 * \param local_rm  local address space, needed to make the
-				 *                  segment dataspaces temporarily visible in
-				 *                  the local address space to initialize their
-				 *                  content with the data from the 'elf_ds'
-				 *
-				 * \throw Region_map::Region_conflict
-				 * \throw Region_map::Invalid_dataspace
-				 * \throw Invalid_executable
-				 * \throw Missing_dynamic_linker
-				 * \throw Out_of_ram
-				 * \throw Out_of_caps
-				 */
-				Loaded_executable(Type type,
-				                  Dataspace_capability ldso_ds,
-				                  Ram_allocator &ram,
-				                  Region_map &local_rm,
-				                  Region_map &remote_rm,
-				                  Parent_capability parent_cap);
-			} loaded_executable;
+		enum class Start_result { UNKNOWN, OK, OUT_OF_RAM, OUT_OF_CAPS, INVALID };
 
-			/**
-			 * Constructor
-			 *
-			 * \throw Missing_dynamic_linker
-			 * \throw Invalid_executable
-			 * \throw Region_map::Region_conflict
-			 * \throw Region_map::Invalid_dataspace
-			 * \throw Out_of_ram
-			 * \throw Out_of_caps
-			 *
-			 * On construction of a protection domain, the initial thread is
-			 * started immediately.
-			 *
-			 * The 'type' 'TYPE_FORKED' creates an empty process. In this case,
-			 * all process initialization steps except for the creation of the
-			 * initial thread must be done manually, i.e., as done for
-			 * implementing fork.
-			 */
-			Process(Type                   type,
-			        Dataspace_capability   ldso_ds,
-			        Pd_session            &pd,
-			        Initial_thread_base   &,
-			        Initial_thread::Start &,
-			        Region_map            &local_rm,
-			        Region_map            &remote_rm,
-			        Parent_capability      parent);
+		static Start_result _start_process(Dataspace_capability   ldso_ds,
+		                                   Pd_session            &pd,
+		                                   Initial_thread_base   &,
+		                                   Initial_thread::Start &,
+		                                   Region_map            &local_rm,
+		                                   Region_map            &remote_rm,
+		                                   Parent_capability      parent);
 
-			~Process();
-		};
-
-		Constructible<Process> _process { };
+		Start_result _start_result { };
 
 		/*
 		 * The child's environment sessions
@@ -732,7 +684,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 * environment sessions could not be established, e.g., the ROM session
 		 * of the binary could not be obtained.
 		 */
-		bool active() const { return _process.constructed(); }
+		bool active() const { return _start_result == Start_result::OK; }
 
 		/**
 		 * Initialize the child's PD session

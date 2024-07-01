@@ -754,24 +754,32 @@ void Child::_try_construct_env_dependent_members()
 		if (session.phase == Session_state::AVAILABLE)
 			session.phase =  Session_state::CAP_HANDED_OUT; });
 
-	if (_process.constructed())
+	if (_start_result == Start_result::OK || _start_result == Start_result::INVALID)
 		return;
 
 	_policy.init(_cpu.session(), _cpu.cap());
 
-	Process::Type const type = _policy.forked()
-	                         ? Process::TYPE_FORKED : Process::TYPE_LOADED;
 	try {
 		_initial_thread.construct(_cpu.session(), _pd.cap(), _policy.name());
-		_policy.with_address_space(_pd.session(), [&] (Region_map &address_space) {
-			_process.construct(type, _linker_dataspace(), _pd.session(),
-			                   *_initial_thread, _initial_thread_start,
-			                   _local_rm, address_space, cap()); });
 	}
-	catch (Out_of_ram)                      { _error("out of RAM during ELF loading"); }
-	catch (Out_of_caps)                     { _error("out of caps during ELF loading"); }
-	catch (Process::Missing_dynamic_linker) { _error("dynamic linker unavailable"); }
-	catch (Process::Invalid_executable)     { _error("invalid ELF executable"); }
+	catch (Out_of_ram)  { _error("out of RAM while creating initial child thread");  }
+	catch (Out_of_caps) { _error("out of caps while creating initial child thread"); }
+
+	_pd.session().assign_parent(cap());
+
+	if (_policy.forked()) {
+		_start_result = Start_result::OK;
+	} else {
+		_policy.with_address_space(_pd.session(), [&] (Region_map &address_space) {
+			_start_result = _start_process(_linker_dataspace(), _pd.session(),
+			                               *_initial_thread, _initial_thread_start,
+			                               _local_rm, address_space, cap());
+		});
+	}
+
+	if (_start_result == Start_result::OUT_OF_RAM)  _error("out of RAM during ELF loading");
+	if (_start_result == Start_result::OUT_OF_CAPS) _error("out of caps during ELF loading");
+	if (_start_result == Start_result::INVALID)     _error("attempt to load an invalid executable");
 }
 
 
@@ -929,6 +937,4 @@ Child::Child(Region_map      &local_rm,
 Child::~Child()
 {
 	close_all_sessions();
-	_process.destruct();
 }
-
