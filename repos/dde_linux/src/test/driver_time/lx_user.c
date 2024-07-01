@@ -36,7 +36,7 @@ static int timing_tests(void *);
 
 void lx_user_init(void)
 {
-	kernel_thread(timing_tests, NULL, CLONE_FS | CLONE_FILES);
+	kernel_thread(timing_tests, NULL, "lx_user", CLONE_FS | CLONE_FILES);
 }
 
 

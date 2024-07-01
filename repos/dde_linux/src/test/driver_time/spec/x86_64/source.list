@@ -29,6 +29,7 @@ lib/find_bit.c
 lib/hexdump.c
 lib/idr.c
 lib/math/reciprocal_div.c
+lib/kasprintf.c
 lib/radix-tree.c
 lib/rbtree.c
 lib/refcount.c

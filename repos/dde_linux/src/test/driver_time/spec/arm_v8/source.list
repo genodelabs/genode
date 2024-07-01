@@ -35,6 +35,7 @@ lib/hexdump.c
 lib/hweight.c
 lib/idr.c
 lib/math/reciprocal_div.c
+lib/kasprintf.c
 lib/radix-tree.c
 lib/rbtree.c
 lib/refcount.c

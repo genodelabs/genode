@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-16
+ * \date   2024-07-30
  */
 
 #include <lx_emul.h>
@@ -83,6 +83,22 @@ void ack_bad_irq(unsigned int irq)
 #include <linux/arch_topology.h>
 
 const struct cpumask * cpu_clustergroup_mask(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/cpumask.h>
+
+unsigned int cpumask_any_and_distribute(const struct cpumask * src1p,const struct cpumask * src2p)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched/topology.h>
+
+bool cpus_share_cache(int this_cpu,int that_cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -253,12 +269,9 @@ noinline int kstrtoll(const char * s,unsigned int base,long long * res)
 }
 
 
-#include <linux/kernel.h>
+#include <linux/delay.h>
 
-char * kvasprintf(gfp_t gfp,const char * fmt,va_list ap)
-{
-	lx_emul_trace_and_stop(__func__);
-}
+unsigned long loops_per_jiffy;
 
 
 #include <linux/panic.h>
@@ -267,6 +280,39 @@ void panic(const char * fmt,...)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+extern void raw_spin_rq_lock_nested(struct rq * rq,int subclass);
+void raw_spin_rq_lock_nested(struct rq * rq,int subclass)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void raw_spin_rq_unlock(struct rq * rq);
+void raw_spin_rq_unlock(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void set_rq_offline(struct rq * rq);
+void set_rq_offline(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void set_rq_online(struct rq * rq);
+void set_rq_online(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/smp.h>
+
+unsigned int setup_max_cpus;
 
 
 #include <linux/siphash.h>
@@ -296,6 +342,13 @@ int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
+
+
+extern void update_group_capacity(struct sched_domain * sd,int cpu);
+void update_group_capacity(struct sched_domain * sd,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/uuid.h>
