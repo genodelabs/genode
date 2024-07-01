@@ -22,9 +22,10 @@
 #include <usb_net.h>
 
 
-struct task_struct *lx_user_new_usb_task(int (*func)(void*), void *args)
+struct task_struct *lx_user_new_usb_task(int (*func)(void*), void *args,
+                                         char const *name)
 {
-	int pid = kernel_thread(func, args, CLONE_FS | CLONE_FILES);
+	int pid = kernel_thread(func, args, name, CLONE_FS | CLONE_FILES);
 	return find_task_by_pid_ns(pid, NULL);
 }
 
@@ -165,6 +166,37 @@ static genode_uplink_rx_result_t uplink_rx_one_packet(struct genode_uplink_rx_co
 }
 
 
+/*
+ * custom MAC address
+ */
+bool          use_mac_address;
+unsigned char mac_address[6];
+static bool   mac_address_configured = false;
+
+static void handle_mac_address(struct net_device *dev)
+{
+	int err;
+	struct sockaddr addr;
+	struct genode_mac_address dev_addr;
+
+	if (mac_address_configured || !netif_device_present(dev)) return;
+
+	if (use_mac_address) {
+		memcpy(&addr.sa_data, mac_address, ETH_ALEN);
+		addr.sa_family = dev->type;
+		err = dev_set_mac_address(dev, &addr,  NULL);
+		if (err < 0)
+			printk("Warning: Could not set configured MAC address: %pM (err=%d)\n",
+			       mac_address, err);
+	}
+
+	memcpy(dev_addr.addr, dev->dev_addr, sizeof(dev_addr));
+	genode_mac_address_register(dev->name, dev_addr);
+
+	mac_address_configured =true;
+}
+
+
 static int network_loop(void *arg)
 {
 	for (;;) {
@@ -172,13 +204,11 @@ static int network_loop(void *arg)
 		struct net_device *dev;
 
 		for_each_netdev(&init_net, dev) {
-			struct genode_mac_address dev_addr;
+
+			handle_mac_address(dev);
 
 			/* enable link sensing, repeated calls are handled by testing IFF_UP */
 			dev_open(dev, 0);
-
-			memcpy(dev_addr.addr, dev->dev_addr, sizeof(dev_addr));
-			genode_mac_address_register(dev->name, dev_addr);
 
 			/* install rx handler once */
 			if (!netdev_is_rx_handler_busy(dev))
@@ -214,7 +244,8 @@ void lx_user_init(void)
 
 	lx_emul_usb_client_init();
 
-	pid = kernel_thread(network_loop, NULL, CLONE_FS | CLONE_FILES);
+	pid = kernel_thread(network_loop, NULL, "network_loop",
+	                    CLONE_FS | CLONE_FILES);
 	net_task = find_task_by_pid_ns(pid, NULL);
 }
 
@@ -232,9 +263,11 @@ void lx_user_handle_io(void)
  * Called whenever the link state changes
  */
 
-bool force_uplink_destroy = false;
+static bool force_uplink_destroy = false;
 
-void rtmsg_ifinfo(int type, struct net_device * dev, unsigned int change, gfp_t flags)
+void rtmsg_ifinfo(int type, struct net_device * dev,
+                  unsigned int change, gfp_t flags,
+                  u32 portid, const struct nlmsghdr *nlh)
 {
 	/* trigger handle_create_uplink / handle_destroy_uplink */
 	if (net_task) lx_emul_task_unblock(net_task);
@@ -243,7 +276,15 @@ void rtmsg_ifinfo(int type, struct net_device * dev, unsigned int change, gfp_t 
 		struct genode_uplink *uplink = dev_genode_uplink(dev);
 		printk("force destroy uplink for net device %s\n", &dev->name[0]);
 		genode_uplink_destroy(uplink);
+		force_uplink_destroy = false;
 	}
+}
+
+
+void lx_emul_usb_client_device_unregister_callback(struct usb_device *)
+{
+	force_uplink_destroy   = true;
+	mac_address_configured = false;
 }
 
 

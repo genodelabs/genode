@@ -20,7 +20,8 @@ extern "C" {
 struct task_struct;
 
 int                 lx_user_main_task(void *);
-struct task_struct *lx_user_new_usb_task(int (*func)(void*), void *args);
+struct task_struct *lx_user_new_usb_task(int (*func)(void*), void *args,
+                                         char const *name);
 
 struct lx_wdm
 {

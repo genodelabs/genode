@@ -1,23 +1,23 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-16
+ * \date   2024-07-30
  */
 
 #include <lx_emul.h>
 
 
-#include <linux/cpumask.h>
+#include <linux/ratelimit_types.h>
 
-struct cpumask __cpu_active_mask;
-
-
-#include <linux/phy.h>
-
-int __devm_mdiobus_register(struct device * dev,struct mii_bus * bus,struct module * owner)
+int ___ratelimit(struct ratelimit_state * rs,const char * func)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/cpumask.h>
+
+struct cpumask __cpu_active_mask;
 
 
 #include <net/ipv6.h>
@@ -63,6 +63,14 @@ void __put_task_struct(struct task_struct * tsk)
 #include <linux/skbuff.h>
 
 void __skb_get_hash(struct sk_buff * skb)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <net/gso.h>
+
+struct sk_buff * __skb_gso_segment(struct sk_buff * skb,netdev_features_t features,bool tx_path)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -128,6 +136,22 @@ const struct cpumask * cpu_clustergroup_mask(int cpu)
 }
 
 
+#include <linux/cpumask.h>
+
+unsigned int cpumask_any_and_distribute(const struct cpumask * src1p,const struct cpumask * src2p)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched/topology.h>
+
+bool cpus_share_cache(int this_cpu,int that_cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/context_tracking_irq.h>
 
 noinstr void ct_irq_enter(void)
@@ -139,14 +163,6 @@ noinstr void ct_irq_enter(void)
 #include <linux/context_tracking_irq.h>
 
 noinstr void ct_irq_exit(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/phy.h>
-
-struct mii_bus * devm_mdiobus_alloc_size(struct device * dev,int sizeof_priv)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -195,6 +211,14 @@ void dst_release(struct dst_entry * dst)
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+asmlinkage __visible void dump_stack_lvl(const char * log_lvl)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -398,6 +422,11 @@ int kobject_uevent_env(struct kobject * kobj,enum kobject_action action,char * e
 struct pernet_operations __net_initdata loopback_net_ops;
 
 
+#include <linux/delay.h>
+
+unsigned long loops_per_jiffy;
+
+
 #include <linux/phy.h>
 
 void mdiobus_free(struct mii_bus * bus)
@@ -597,7 +626,7 @@ int phylink_connect_phy(struct phylink * pl,struct phy_device * phy)
 
 #include <linux/phylink.h>
 
-struct phylink * phylink_create(struct phylink_config * config,struct fwnode_handle * fwnode,phy_interface_t iface,const struct phylink_mac_ops * mac_ops)
+struct phylink * phylink_create(struct phylink_config * config,const struct fwnode_handle * fwnode,phy_interface_t iface,const struct phylink_mac_ops * mac_ops)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -637,14 +666,6 @@ int phylink_ethtool_set_pauseparam(struct phylink * pl,struct ethtool_pauseparam
 
 #include <linux/phylink.h>
 
-void phylink_generic_validate(struct phylink_config * config,unsigned long * supported,struct phylink_link_state * state)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/phylink.h>
-
 void phylink_resume(struct phylink * pl)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -675,6 +696,28 @@ void phylink_suspend(struct phylink * pl,bool mac_wol)
 }
 
 
+extern void raw_spin_rq_lock_nested(struct rq * rq,int subclass);
+void raw_spin_rq_lock_nested(struct rq * rq,int subclass)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void raw_spin_rq_unlock(struct rq * rq);
+void raw_spin_rq_unlock(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/rcuref.h>
+
+bool rcuref_get_slowpath(rcuref_t * ref)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/refcount.h>
 
 void refcount_warn_saturate(refcount_t * r,enum refcount_saturation_type t)
@@ -685,23 +728,34 @@ void refcount_warn_saturate(refcount_t * r,enum refcount_saturation_type t)
 
 #include <linux/rtnetlink.h>
 
-void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags)
+void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags,u32 portid,const struct nlmsghdr * nlh)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+extern void set_rq_offline(struct rq * rq);
+void set_rq_offline(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void set_rq_online(struct rq * rq);
+void set_rq_online(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/smp.h>
+
+unsigned int setup_max_cpus;
 
 
 #include <net/sock.h>
 
 void sk_error_report(struct sock * sk)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/netdevice.h>
-
-struct sk_buff * skb_mac_gso_segment(struct sk_buff * skb,netdev_features_t features)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -744,6 +798,13 @@ int sysctl_tstamp_allow_data;
 #include <linux/tcp.h>
 
 struct sk_buff * tcp_get_timestamping_opt_stats(const struct sock * sk,const struct sk_buff * orig_skb,const struct sk_buff * ack_skb)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void update_group_capacity(struct sched_domain * sd,int cpu);
+void update_group_capacity(struct sched_domain * sd,int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -796,6 +857,13 @@ void usb_major_cleanup(void)
 #include <linux/usb/ch9.h>
 
 const char * usb_speed_string(enum usb_device_speed speed)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int usb_update_wireless_status_attr(struct usb_interface * intf);
+int usb_update_wireless_status_attr(struct usb_interface * intf)
 {
 	lx_emul_trace_and_stop(__func__);
 }

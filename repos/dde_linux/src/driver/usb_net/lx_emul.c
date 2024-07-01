@@ -12,7 +12,7 @@
  */
 
 #include <lx_emul.h>
-
+#include <linux/net.h>
 
 pteval_t __default_kernel_pte_mask __read_mostly = ~0;
 
@@ -116,15 +116,7 @@ unsigned long arm_copy_from_user(void *to, const void *from, unsigned long n)
 
 
 
-/*
- * custom MAC address
- */
-
-bool use_mac_address;
-unsigned char mac_address[6];
-
 int netdev_register_kobject(struct net_device * ndev)
 {
-	if (use_mac_address) eth_hw_addr_set(ndev, mac_address);
 	return 0;
 }

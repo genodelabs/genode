@@ -152,6 +152,7 @@ arch/x86/include/asm/fpu/api.h
 arch/x86/include/asm/fpu/types.h
 arch/x86/include/asm/fsgsbase.h
 arch/x86/include/asm/ftrace.h
+arch/x86/include/asm/gsseg.h
 arch/x86/include/asm/hardirq.h
 arch/x86/include/asm/hw_breakpoint.h
 arch/x86/include/asm/hw_irq.h
@@ -408,8 +409,10 @@ include/linux/bottom_half.h
 include/linux/bpf-cgroup-defs.h
 include/linux/bpf-cgroup.h
 include/linux/bpf.h
+include/linux/bpf_mprog.h
 include/linux/bpf_trace.h
 include/linux/bpfptr.h
+include/linux/bsearch.h
 include/linux/btf.h
 include/linux/bug.h
 include/linux/build_bug.h
@@ -546,7 +549,6 @@ include/linux/instrumentation.h
 include/linux/instrumented.h
 include/linux/interrupt.h
 include/linux/io.h
-include/linux/ioasid.h
 include/linux/iocontext.h
 include/linux/iopoll.h
 include/linux/ioport.h
@@ -560,6 +562,7 @@ include/linux/irq_work.h
 include/linux/irqchip.h
 include/linux/irqdesc.h
 include/linux/irqdomain.h
+include/linux/irqdomain_defs.h
 include/linux/irqflags.h
 include/linux/irqhandler.h
 include/linux/irqnr.h
@@ -586,6 +589,7 @@ include/linux/kernel_stat.h
 include/linux/kernfs.h
 include/linux/kexec.h
 include/linux/key.h
+include/linux/kfence.h
 include/linux/kgdb.h
 include/linux/klist.h
 include/linux/kmemleak.h
@@ -651,6 +655,7 @@ include/linux/module.h
 include/linux/moduleparam.h
 include/linux/mount.h
 include/linux/mpls.h
+include/linux/msi_api.h
 include/linux/mutex.h
 include/linux/mutex_api.h
 include/linux/net.h
@@ -969,6 +974,7 @@ include/net/arp.h
 include/net/busy_poll.h
 include/net/checksum.h
 include/net/devlink.h
+include/net/dropreason-core.h
 include/net/dropreason.h
 include/net/dsa.h
 include/net/dsfield.h
@@ -985,6 +991,7 @@ include/net/gen_stats.h
 include/net/gre.h
 include/net/gro.h
 include/net/gro_cells.h
+include/net/gso.h
 include/net/if_inet6.h
 include/net/inet_connection_sock.h
 include/net/inet_dscp.h
@@ -1014,6 +1021,7 @@ include/net/neighbour.h
 include/net/net_debug.h
 include/net/net_namespace.h
 include/net/net_trackers.h
+include/net/netdev_rx_queue.h
 include/net/netfilter/ipv4/nf_conntrack_ipv4.h
 include/net/netfilter/ipv6/nf_conntrack_ipv6.h
 include/net/netfilter/nf_conntrack.h
@@ -1041,7 +1049,8 @@ include/net/netns/xdp.h
 include/net/netns/xfrm.h
 include/net/netprio_cgroup.h
 include/net/nexthop.h
-include/net/page_pool.h
+include/net/page_pool/helpers.h
+include/net/page_pool/types.h
 include/net/pkt_cls.h
 include/net/pkt_sched.h
 include/net/pptp.h
@@ -1058,6 +1067,7 @@ include/net/sock_reuseport.h
 include/net/switchdev.h
 include/net/tcp.h
 include/net/tcp_states.h
+include/net/tcx.h
 include/net/timewait_sock.h
 include/net/udp.h
 include/net/udp_tunnel.h
@@ -1074,6 +1084,7 @@ include/trace/events/lock.h
 include/trace/events/mmflags.h
 include/trace/events/napi.h
 include/trace/events/net.h
+include/trace/events/notifier.h
 include/trace/events/power.h
 include/trace/events/qdisc.h
 include/trace/events/sched.h
@@ -1134,6 +1145,7 @@ include/uapi/linux/errqueue.h
 include/uapi/linux/ethtool.h
 include/uapi/linux/ethtool_netlink.h
 include/uapi/linux/eventpoll.h
+include/uapi/linux/fanotify.h
 include/uapi/linux/fcntl.h
 include/uapi/linux/fib_rules.h
 include/uapi/linux/filter.h
@@ -1183,6 +1195,7 @@ include/uapi/linux/neighbour.h
 include/uapi/linux/net.h
 include/uapi/linux/net_namespace.h
 include/uapi/linux/net_tstamp.h
+include/uapi/linux/netdev.h
 include/uapi/linux/netdevice.h
 include/uapi/linux/netfilter.h
 include/uapi/linux/netfilter/nf_conntrack_common.h

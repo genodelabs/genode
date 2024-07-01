@@ -43,9 +43,14 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 
 		struct lx_wdm _wdm_data { &_data_avail, buffer(), this, 1 };
 
-		task_struct *_write_task  { lx_user_new_usb_task(lx_wdm_write, &_wdm_data) };
-		task_struct *_read_task   { lx_user_new_usb_task(lx_wdm_read, &_wdm_data)  };
-		task_struct *_device_task { lx_user_new_usb_task(lx_wdm_device, nullptr)     };
+		task_struct *_write_task {
+			lx_user_new_usb_task(lx_wdm_write, &_wdm_data, "wdm_write")};
+
+		task_struct *_read_task {
+			lx_user_new_usb_task(lx_wdm_read, &_wdm_data,  "wdm_read")};
+
+		task_struct *_device_task {
+			lx_user_new_usb_task(lx_wdm_device, nullptr, "device_task")};
 
 		/* non-copyable */
 		Session_component(const Session_component&) = delete;
@@ -148,7 +153,8 @@ class Terminal::Root : public Genode::Root_component<Session_component, Genode::
 
 		Genode::Env &_env;
 
-		task_struct *_create_task  { lx_user_new_usb_task(_create_session, this) };
+		task_struct *_create_task  {
+			lx_user_new_usb_task(_create_session, this, "terminal_session")};
 
 		Genode::Constructible<Session_component> _session { };
 
