@@ -18,6 +18,20 @@
 DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);
 EXPORT_PER_CPU_SYMBOL(cpu_sibling_map);
 
+DEFINE_PER_CPU(unsigned long, cpu_scale);
+
+#ifdef __aarch64__
+DECLARE_BITMAP(system_cpucaps, ARM64_NCAPS);
+EXPORT_SYMBOL(system_cpucaps);
+#endif
+
+
+/* mm/debug.c */
+const struct trace_print_flags pagetype_names[] = {
+	{0, NULL}
+};
+
+
 extern int __init buses_init(void);
 int __init buses_init(void)
 {
@@ -194,6 +208,47 @@ unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from
 }
 
 
+/* kernel/sched/cpudeadline.h */
+struct cpudl;
+int  cpudl_init(struct cpudl *cp)
+{
+	lx_emul_trace_and_stop(__func__);
+	return -1;
+}
+
+
+void cpudl_cleanup(struct cpudl *cp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+/* kernel/sched/sched.h */
+bool sched_smp_initialized = true;
+
+struct dl_bw;
+void init_dl_bw(struct dl_bw *dl_b)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+struct irq_work;
+extern void rto_push_irq_work_func(struct irq_work *work);
+void rto_push_irq_work_func(struct irq_work *work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+/* include/linux/sched/topology.h */
+int arch_asym_cpu_priority(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+	return 0;
+}
+
+
 #ifdef CONFIG_ARM64
 extern void flush_dcache_page(struct page * page);
 void flush_dcache_page(struct page * page)
@@ -218,3 +273,14 @@ int get_option(char ** str,int * pint)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#ifdef CONFIG_SWIOTLB
+#include <linux/swiotlb.h>
+
+bool is_swiotlb_allocated(void)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+#endif

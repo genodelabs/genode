@@ -252,6 +252,7 @@ arch/x86/include/uapi/asm/stat.h
 arch/x86/include/uapi/asm/swab.h
 arch/x86/include/uapi/asm/unistd.h
 arch/x86/include/uapi/asm/vsyscall.h
+crypto/hash.h
 crypto/internal.h
 drivers/net/wireguard/allowedips.h
 drivers/net/wireguard/cookie.h
@@ -554,7 +555,6 @@ include/linux/instrumentation.h
 include/linux/instrumented.h
 include/linux/interrupt.h
 include/linux/io.h
-include/linux/ioasid.h
 include/linux/iocontext.h
 include/linux/iopoll.h
 include/linux/ioport.h
@@ -1007,7 +1007,6 @@ include/net/netns/xdp.h
 include/net/netns/xfrm.h
 include/net/netprio_cgroup.h
 include/net/nexthop.h
-include/net/page_pool.h
 include/net/pptp.h
 include/net/protocol.h
 include/net/request_sock.h

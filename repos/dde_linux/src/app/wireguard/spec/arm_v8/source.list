@@ -11,6 +11,7 @@ arch/arm64/lib/strlen.S
 crypto/algapi.c
 crypto/api.c
 crypto/scatterwalk.c
+crypto/shash.c
 crypto/skcipher.c
 drivers/net/wireguard/allowedips.c
 drivers/net/wireguard/cookie.c
@@ -65,12 +66,14 @@ lib/find_bit.c
 lib/hweight.c
 lib/idr.c
 lib/math/reciprocal_div.c
+lib/kasprintf.c
 lib/nlattr.c
 lib/radix-tree.c
 lib/refcount.c
 lib/scatterlist.c
 lib/siphash.c
 lib/string.c
+lib/string_helpers.c
 lib/vsprintf.c
 lib/xarray.c
 mm/memblock.c

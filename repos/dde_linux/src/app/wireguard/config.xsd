@@ -19,6 +19,7 @@
 
 			</xs:choice>
 			<xs:attribute name="private_key" type="xs:string"/>
+			<xs:attribute name="ld_verbose"  type="Boolean" />
 			<xs:attribute name="listen_port" type="Port" />
 			<xs:attribute name="use_rtc" type="Boolean" />
 		</xs:complexType>
