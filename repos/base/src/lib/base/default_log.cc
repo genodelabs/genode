@@ -34,8 +34,12 @@ namespace {
 	{
 		Log_session_client _client;
 
-		static Session_capability _cap(Parent &parent) {
-			return parent.session_cap(Parent::Env::log()); }
+		static Session_capability _cap(Parent &parent)
+		{
+			return parent.session_cap(Parent::Env::log()).convert<Capability<Session>>(
+				[&] (Capability<Session> cap)   { return cap; },
+				[&] (Parent::Session_cap_error) { return Capability<Session>(); });
+		}
 
 		Back_end(Parent &parent)
 		: _client(reinterpret_cap_cast<Log_session>(_cap(parent))) { }

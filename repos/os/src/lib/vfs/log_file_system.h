@@ -33,15 +33,21 @@ class Vfs::Log_file_system : public Single_file_system
 
 		Genode::Log_session & _log_session(Genode::Env &env)
 		{
+			using namespace Genode;
+
 			if (_label.valid()) {
 				_log_connection.construct(env, _label);
 				return *_log_connection;
-			} else {
-				_log_client.construct(
-					Genode::reinterpret_cap_cast<Genode::Log_session>
-					(env.parent().session_cap(Genode::Parent::Env::log())));
-				return *_log_client;
 			}
+
+			_log_client.construct(
+				env.parent().session_cap(Parent::Env::log())
+					.convert<Capability<Log_session>>(
+						[&] (Capability<Session> cap) {
+							return static_cap_cast<Log_session>(cap); },
+						[&] (Parent::Session_cap_error) {
+							return Capability<Log_session>(); }));
+			return *_log_client;
 		}
 
 		Genode::Log_session &_log;

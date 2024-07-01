@@ -113,10 +113,10 @@ class Genode::Expanding_parent_client : public Parent_client
 			}
 		}
 
-		Session_capability session(Client::Id          id,
-		                           Service_name const &name,
-		                           Session_args const &args,
-		                           Affinity     const &affinity) override
+		Session_result session(Client::Id          id,
+		                       Service_name const &name,
+		                       Session_args const &args,
+		                       Affinity     const &affinity) override
 		{
 			return Parent_client::session(id, name, args, affinity);
 		}
@@ -130,39 +130,28 @@ class Genode::Expanding_parent_client : public Parent_client
 			 */
 			if (id == Env::pd()) {
 				resource_request(Resource_args(args.string()));
-				return UPGRADE_DONE;
+				return Upgrade_result::OK;
 			}
 
 			/*
-			 * If the upgrade fails, attempt to issue a resource request twice.
-			 *
-			 * If the default fallback for resource-available signals is used,
-			 * the first request will block until the resources are upgraded.
-			 * The second attempt to upgrade will succeed.
-			 *
-			 * If a custom handler is installed, the resource quest will return
-			 * immediately. The second upgrade attempt may fail too if the
-			 * parent handles the resource request asynchronously. In this
-			 * case, we escalate the problem to caller by propagating the
-			 * 'Out_of_ram' or 'Out_of_caps' exception. Now, it is the job of
-			 * the caller to issue (and respond to) a resource request.
+			 * If the upgrade fails, attempt to issue a resource request
 			 */
 			Session::Resources const amount = session_resources_from_args(args.string());
 			using Arg = String<64>;
 
-			return retry<Out_of_ram>(
-				[&] {
-					return retry<Out_of_caps>(
-						[&] { return Parent_client::upgrade(id, args); },
-						[&] {
-							Arg cap_arg("cap_quota=", amount.cap_quota);
-							resource_request(Resource_args(cap_arg.string()));
-						});
-				},
-				[&] {
+			for (;;) {
+				Upgrade_result const result = Parent_client::upgrade(id, args);
+				if (result == Upgrade_result::OUT_OF_RAM) {
 					Arg ram_arg("ram_quota=", amount.ram_quota);
 					resource_request(Resource_args(ram_arg.string()));
-				});
+				}
+				else if (result == Upgrade_result::OUT_OF_CAPS) {
+					Arg cap_arg("cap_quota=", amount.cap_quota);
+					resource_request(Resource_args(cap_arg.string()));
+				}
+				else
+					return result;
+			}
 		}
 
 		void resource_avail_sigh(Signal_context_capability sigh) override

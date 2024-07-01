@@ -119,13 +119,36 @@ struct Genode::Component_env : Env
 
 		Mutex::Guard guard(_mutex);
 
-		Session_capability cap = _parent.session(id, name, args, affinity);
+		return _parent.session(id, name, args, affinity).convert<Capability<Session>>(
+			[&] (Capability<Session> cap) -> Capability<Session> {
+				if (cap.valid())
+					return cap;
 
-		if (cap.valid())
-			return cap;
+				_block_for_session();
 
-		_block_for_session();
-		return _parent.session_cap(id);
+				return _parent.session_cap(id).convert<Capability<Session>>(
+					[&] (Capability<Session> cap) { return cap; },
+					[&] (Parent::Session_cap_error const e) -> Capability<Session> {
+						using Error = Parent::Session_cap_error;
+						switch (e) {
+						case Error::INSUFFICIENT_RAM_QUOTA: throw Insufficient_ram_quota();
+						case Error::INSUFFICIENT_CAP_QUOTA: throw Insufficient_cap_quota();
+						case Error::DENIED:                 break;
+						}
+						throw Service_denied(); }
+				);
+			},
+			[&] (Parent::Session_error const e) -> Capability<Session> {
+				using Error = Parent::Session_error;
+				switch (e) {
+				case Error::OUT_OF_RAM:             throw Out_of_ram();
+				case Error::OUT_OF_CAPS:            throw Out_of_caps();
+				case Error::INSUFFICIENT_RAM_QUOTA: throw Insufficient_ram_quota();
+				case Error::INSUFFICIENT_CAP_QUOTA: throw Insufficient_cap_quota();
+				case Error::DENIED:                 break;
+				}
+				throw Service_denied();
+			});
 	}
 
 	Session_capability session(Parent::Service_name const &name,
@@ -194,7 +217,7 @@ struct Genode::Component_env : Env
 	{
 		Mutex::Guard guard(_mutex);
 
-		if (_parent.upgrade(id, args) == Parent::UPGRADE_PENDING)
+		if (_parent.upgrade(id, args) == Parent::Upgrade_result::PENDING)
 			_block_for_session();
 	}
 
@@ -202,7 +225,7 @@ struct Genode::Component_env : Env
 	{
 		Mutex::Guard guard(_mutex);
 
-		if (_parent.close(id) == Parent::CLOSE_PENDING)
+		if (_parent.close(id) == Parent::Close_result::PENDING)
 			_block_for_session();
 	}
 

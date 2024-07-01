@@ -33,7 +33,9 @@ struct Genode::Platform : Noncopyable
 
 	template <typename T> Capability<T> _request(Parent::Client::Id id)
 	{
-		return static_cap_cast<T>(parent.session_cap(id));
+		return parent.session_cap(id).convert<Capability<T>>(
+			[&] (Capability<Session> cap)   { return static_cap_cast<T>(cap); },
+			[&] (Parent::Session_cap_error) { return Capability<T>(); });
 	}
 
 	Expanding_pd_session_client pd {

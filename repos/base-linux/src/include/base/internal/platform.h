@@ -40,11 +40,15 @@ struct Genode::Platform
 
 	Local_parent parent { _obtain_parent_cap(), rm, heap };
 
-	Pd_session_capability pd_cap =
-		static_cap_cast<Pd_session>(parent.session_cap(Parent::Env::pd()));
+	Capability<Pd_session> pd_cap =
+		parent.session_cap(Parent::Env::pd()).convert<Capability<Pd_session>>(
+			[&] (Capability<Session> cap)   { return static_cap_cast<Pd_session>(cap); },
+			[&] (Parent::Session_cap_error) { return Capability<Pd_session>(); });
 
-	Cpu_session_capability cpu_cap =
-		static_cap_cast<Cpu_session>(parent.session_cap(Parent::Env::cpu()));
+	Capability<Cpu_session> cpu_cap =
+		parent.session_cap(Parent::Env::cpu()).convert<Capability<Cpu_session>>(
+			[&] (Capability<Session> cap)   { return static_cap_cast<Cpu_session>(cap); },
+			[&] (Parent::Session_cap_error) { return Capability<Cpu_session>(); });
 
 	Local_pd_session pd { parent, pd_cap };
 

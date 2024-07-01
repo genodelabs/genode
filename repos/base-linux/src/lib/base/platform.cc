@@ -58,10 +58,10 @@ bool Region_map_mmap::_dataspace_writeable(Dataspace_capability ds)
  ** Local_parent **
  ******************/
 
-Session_capability Local_parent::session(Parent::Client::Id  id,
-                                         Service_name const &service_name,
-                                         Session_args const &args,
-                                         Affinity     const &affinity)
+Parent::Session_result Local_parent::session(Parent::Client::Id  id,
+                                             Service_name const &service_name,
+                                             Session_args const &args,
+                                             Affinity     const &affinity)
 {
 	if (strcmp(service_name.string(), Rm_session::service_name()) == 0) {
 
@@ -87,7 +87,7 @@ Parent::Close_result Local_parent::close(Client::Id id)
 			Capability<Rm_session> rm =
 				static_cap_cast<Rm_session>(local_session.local_session_cap());
 			destroy(_alloc, Local_capability<Rm_session>::deref(rm));
-			return CLOSE_DONE;
+			return Parent::Close_result::DONE;
 		},
 		[&] /* missing */ {
 			return Parent_client::close(id); });

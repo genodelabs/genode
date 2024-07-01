@@ -33,13 +33,13 @@ struct Genode::Parent_client : Rpc_client<Parent>
 	void session_sigh(Signal_context_capability sigh) override {
 		call<Rpc_session_sigh>(sigh); }
 
-	Session_capability session(Client::Id          id,
-	                           Service_name const &service,
-	                           Session_args const &args,
-	                           Affinity     const &affinity) override {
+	Session_result session(Client::Id          id,
+	                       Service_name const &service,
+	                       Session_args const &args,
+	                       Affinity     const &affinity) override {
 		return call<Rpc_session>(id, service, args, affinity); }
 
-	Session_capability session_cap(Client::Id id) override {
+	Session_cap_result session_cap(Client::Id id) override {
 		return call<Rpc_session_cap>(id); }
 
 	Upgrade_result upgrade(Client::Id to_session, Upgrade_args const &args) override {

@@ -102,18 +102,22 @@ struct Linker::Elf_file : File
 	Rom_dataspace_capability _rom_dataspace(Name const &name)
 	{
 		/* request the linker and binary from the component environment */
-		Session_capability cap;
+		Parent::Session_cap_result cap = Parent::Session_cap_error::DENIED;
 		if (name == binary_name())
 			cap = env.parent().session_cap(Parent::Env::binary());
 		if (name == linker_name())
 			cap = env.parent().session_cap(Parent::Env::linker());
-		if (cap.valid()) {
-			Rom_session_client client(reinterpret_cap_cast<Rom_session>(cap));
-			return client.dataspace();
-		}
 
-		rom_connection.construct(env, name.string());
-		return rom_connection->dataspace();
+		return cap.convert<Rom_dataspace_capability>(
+			[&] (Capability<Session> cap) {
+				Rom_session_client client(reinterpret_cap_cast<Rom_session>(cap));
+				return client.dataspace();
+			},
+			[&] (Parent::Session_cap_error) {
+				rom_connection.construct(env, name.string());
+				return rom_connection->dataspace();
+			}
+		);
 	}
 
 	void _allocate_region_within_linker_area(Name const &name)

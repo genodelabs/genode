@@ -853,9 +853,9 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		void announce(Service_name const &) override;
 		void session_sigh(Signal_context_capability) override;
-		Session_capability session(Client::Id, Service_name const &,
-		                           Session_args const &, Affinity const &) override;
-		Session_capability session_cap(Client::Id) override;
+		Session_result session(Client::Id, Service_name const &,
+		                       Session_args const &, Affinity const &) override;
+		Session_cap_result session_cap(Client::Id) override;
 		Upgrade_result upgrade(Client::Id, Upgrade_args const &) override;
 		Close_result close(Client::Id) override;
 		void exit(int) override;
