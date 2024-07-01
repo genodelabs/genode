@@ -115,6 +115,12 @@ attribute, which specifies the interval for connected scans in
 seconds and directly influences any roaming decision, i.e., select
 a better fit accesspoint for the configured network.
 
+In addition, by specifing 'update_quality_interval', the driver will
+every so often update the current signal quality of the established
+connection to the accesspoint. Note that this option is only useable when
+the 'connected_scan_interval' is set to '0' as both options are mutually
+exclusive.
+
 Also, the driver can be switched to verbose logging during runtime
 by setting the 'verbose' or 'verbose_state' attribute to 'true'.
 
@@ -146,7 +152,8 @@ on the state, there are additional attributes that can be checked. In case
 of an authentication error, e.g. the passphrase is wrong, the 'auth_failure'
 attribute will be set to 'true'. The 'rfkilled' attribute is set to 'true'
 if a disconnect was triggered by disabling the radio activity via setting
-the 'rfkill' attribute.
+the 'rfkill' attribute. It can also contain the optional 'quality' attribute
+to denote the current signal quality (see 'update_quality_interval').
 
 By subscribing to both reports and providing the required 'wifi_config' ROM
 module, a component is able control the wireless driver.
