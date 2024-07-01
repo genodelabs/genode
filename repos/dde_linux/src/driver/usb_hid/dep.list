@@ -610,7 +610,6 @@ include/linux/instrumentation.h
 include/linux/instrumented.h
 include/linux/interrupt.h
 include/linux/io.h
-include/linux/ioasid.h
 include/linux/iocontext.h
 include/linux/iopoll.h
 include/linux/ioport.h
@@ -1034,7 +1033,6 @@ include/net/netns/unix.h
 include/net/netns/xdp.h
 include/net/netns/xfrm.h
 include/net/netprio_cgroup.h
-include/net/page_pool.h
 include/net/request_sock.h
 include/net/rtnetlink.h
 include/net/scm.h
@@ -1243,3 +1241,4 @@ lib/kstrtox.h
 mm/internal.h
 mm/slab.h
 mm/swap.h
+include/linux/hid_bpf.h

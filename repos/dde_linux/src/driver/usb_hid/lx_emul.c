@@ -26,4 +26,11 @@ pteval_t __default_kernel_pte_mask __read_mostly = ~0;
 struct usb_driver usbfs_driver = {
 	.name = "usbfs"
 };
+
+#include <linux/percpu.h>
+
+DEFINE_PER_CPU(unsigned long, cpu_scale);
+
 const struct attribute_group *usb_device_groups[] = { };
+
+void lx_emul_usb_client_device_unregister_callback(struct usb_device *udev) { }

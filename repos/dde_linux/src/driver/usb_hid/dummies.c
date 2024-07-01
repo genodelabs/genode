@@ -17,6 +17,18 @@
 
 DEFINE_STATIC_KEY_FALSE(force_irqthreads_key);
 
+/* driver/usb/core/usb.h */
+const struct class usbmisc_class = {
+	.name = "usbmisc",
+};
+
+
+/* mm/debug.c */
+const struct trace_print_flags pagetype_names[] = {
+	{0, NULL}
+};
+
+
 #ifdef __arm__
 #include <asm/uaccess.h>
 
@@ -241,6 +253,48 @@ void skb_init()
 }
 
 
+/* kernel/sched/cpudeadline.h */
+struct cpudl;
+int  cpudl_init(struct cpudl *cp)
+{
+	lx_emul_trace_and_stop(__func__);
+	return -1;
+}
+
+
+void cpudl_cleanup(struct cpudl *cp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+
+/* kernel/sched/sched.h */
+bool sched_smp_initialized = true;
+
+struct dl_bw;
+void init_dl_bw(struct dl_bw *dl_b)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+struct irq_work;
+extern void rto_push_irq_work_func(struct irq_work *work);
+void rto_push_irq_work_func(struct irq_work *work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+/* include/linux/sched/topology.h */
+int arch_asym_cpu_priority(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+	return 0;
+}
+
+
 extern void software_node_notify(struct device * dev);
 void software_node_notify(struct device * dev)
 {
@@ -361,5 +415,22 @@ bool usb_of_has_combined_node(struct usb_device * udev)
 {
 	lx_emul_trace(__func__);
 	return true;
+}
+#endif
+
+
+#ifdef CONFIG_SWIOTLB
+#include <linux/swiotlb.h>
+
+void swiotlb_dev_init(struct device * dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+bool is_swiotlb_allocated(void)
+{
+	lx_emul_trace(__func__);
+	return false;
 }
 #endif
