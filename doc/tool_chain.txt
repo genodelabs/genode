@@ -30,16 +30,18 @@ tool chain. It can be obtained in two ways: as pre-compiled binaries or
 manually compiled:
 
 :Pre-compiled:
-  Our pre-compiled tool chain is runnable on Linux x86_32 and x86_64. The
-  archives for both versions will be extracted to
-  _/usr/local/genode/tool/<version>_.
+  [https://github.com/genodelabs/genode/releases/download/23.05/genode-toolchain-23.05.tar.xz - Download the tool chain]
+  pre-compiled for Linux x86_64.
+
+  ! SHA256 880886efba0f592a3d3c5ffb9fa63e692cb6bd643e13c5c468d0da027c22716e
+
   To extract the archive, use the following command:
+
   ! sudo tar xPf genode-toolchain-<version>-<arch>.tar.xz
+
   The use of the 'P' option ensures that the tool chain will be installed at
-  the correct absolute path where the build system expects it to reside by
-  default. Please note, Genode OS Framework releases require a Genode tool
-  chain with an equal or next smaller version number.
-  [https://sourceforge.net/projects/genode/files/genode-toolchain/ - Download the pre-compiled tool chain...]
+  _/usr/local/genode/tool/<version>_, which is the location expected by
+  Genode's build system.
 
 :Compile from source:
   For those of you who prefer compiling the tool chain from source, we provide
