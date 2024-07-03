@@ -136,7 +136,7 @@ void Local_interrupt_controller::send_ipi(unsigned const cpu_id)
 	Icr_high::access_t icr_high = 0;
 	Icr_low::access_t  icr_low  = 0;
 
-	Icr_high::Destination::set(icr_high, _global_irq_ctrl.lapic_id(cpu_id));
+	Icr_high::Destination::set(icr_high, cpu_id);
 
 	Icr_low::Vector::set(icr_low, Local_interrupt_controller::IPI);
 	Icr_low::Level_assert::set(icr_low);
@@ -150,19 +150,6 @@ void Local_interrupt_controller::send_ipi(unsigned const cpu_id)
 /****************************************
  ** Board::Global_interrupt_controller **
  ****************************************/
-
-uint8_t Global_interrupt_controller::lapic_id(unsigned cpu_id) const
-{
-	return _lapic_id[cpu_id];
-}
-
-
-void Global_interrupt_controller::lapic_id(unsigned cpu_id,
-                                           uint8_t  lapic_id)
-{
-	_lapic_id[cpu_id] = lapic_id;
-}
-
 
 void Global_interrupt_controller::irq_mode(unsigned irq_number,
                                            unsigned trigger,

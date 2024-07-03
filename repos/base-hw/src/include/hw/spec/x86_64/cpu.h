@@ -310,6 +310,10 @@ struct Hw::X86_64_cpu
 
 	X86_64_CPUID_REGISTER(Cpuid_1_eax, 1, eax);
 
+	X86_64_CPUID_REGISTER(Cpuid_1_ebx, 1, ebx,
+		struct Apic_id : Bitfield<24, 8> { };
+	);
+
 	X86_64_CPUID_REGISTER(Cpuid_1_ecx, 1, ecx,
 		struct Vmx          : Bitfield< 5, 1> { };
 		struct Tsc_deadline : Bitfield<24, 1> { };

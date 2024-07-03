@@ -13,6 +13,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+.include "stack_switch.s"
+
 .section ".text"
 
 	/***********************
@@ -22,20 +24,7 @@
 	.global _start
 	_start:
 
-	/* load kernel stack size */
-	movq kernel_stack_size@GOTPCREL(%rip), %rbx
-	movq (%rbx), %rax
-
-	/* calculate stack top (rdi contains cpu_id), stack top is stored in rax */
-	movq %rdi, %rbx
-	inc %rbx
-	mulq %rbx
-
-	/* switch to kernel stack */
-	movq kernel_stack@GOTPCREL(%rip), %rbx
-	addq %rbx, %rax
-	subq $8, %rax
-	movq %rax, %rsp
+	switch_to_kernel_stack
 
 	/* jump to C entry code */
 	jmp _ZN6Kernel39main_initialize_and_handle_kernel_entryEv

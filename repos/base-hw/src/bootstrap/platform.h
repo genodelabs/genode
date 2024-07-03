@@ -46,8 +46,8 @@ class Bootstrap::Platform
 			Memory_region_array early_ram_regions { };
 			Memory_region_array late_ram_regions  { };
 			Mmio_space          core_mmio;
-			unsigned            cpus              { ::Board::NR_OF_CPUS };
-			::Board::Boot_info  info              { };
+			unsigned            cpus { };
+			::Board::Boot_info  info { };
 
 			Board();
 		};
@@ -134,7 +134,9 @@ class Bootstrap::Platform
 		addr_t                    core_elf_addr;
 		Elf                       core_elf;
 
-		Mapping _load_elf();
+		Mapping  _load_elf();
+		void     _prepare_cpu_memory_area(size_t id);
+		unsigned _prepare_cpu_memory_area();
 
 	public:
 

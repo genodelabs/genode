@@ -14,16 +14,16 @@
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
 
+#include <hw/memory_consts.h>
 #include <hw/memory_map.h>
 
 using Hw::Memory_region;
 using Genode::addr_t;
 using Genode::Native_utcb;
 
-static constexpr addr_t USER_START   = Genode::user_utcb_main_thread()
-                                       + sizeof(Native_utcb);
-static constexpr addr_t USER_END     = (1ULL << (39 - 1));
-static constexpr addr_t KERNEL_START = 0xffffffc000000000UL;
+static constexpr addr_t USER_START = Genode::user_utcb_main_thread()
+                                     + sizeof(Native_utcb);
+static constexpr addr_t USER_END   = (1ULL << (39 - 1));
 
 
 Memory_region const Hw::Mm::user() {
@@ -52,6 +52,10 @@ Memory_region const Hw::Mm::hypervisor_exception_vector() {
 
 Memory_region const Hw::Mm::hypervisor_stack() {
 	return Memory_region(0xffffffe060000000UL, 0x10000UL); }
+
+Memory_region const Hw::Mm::cpu_local_memory() {
+	return Memory_region(CPU_LOCAL_MEMORY_AREA_START,
+	                     CPU_LOCAL_MEMORY_AREA_SIZE); }
 
 Memory_region const Hw::Mm::supervisor_exception_vector() {
 	return Memory_region(KERNEL_START, 0x1000UL); }

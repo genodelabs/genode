@@ -11,6 +11,20 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+.include "memory_consts.s"
+
+/**
+ * Store CPU number in register x0
+ */
+.macro _cpu_number
+	mrs x0, mpidr_el1
+	and x8, x0, #(1<<24) /* MT bit */
+	cbz x8, 1f
+	lsr x0, x0, #8
+1:
+	and x0, x0, #0b11111111
+.endm
+
 .section ".text"
 
 	/***********************
@@ -21,20 +35,22 @@
 	_start:
 
 	/* switch to cpu-specific kernel stack */
-	/*adr   r1, _kernel_stack
-	adr   r2, _kernel_stack_size
-	ldr   r1, [r1]
-	ldr   r2, [r2]
-	ldr   r2, [r2]
-	add   r0, #1
-	mul   r0, r0, r2
-	add   sp, r1, r0*/
+	_cpu_number
+	ldr x1, =_cpus_base
+	ldr x1, [x1]
+	mov x2, #HW_MM_CPU_LOCAL_MEMORY_SLOT_SIZE
+	mul x0, x0, x2
+	add x1, x1, x0
+	mov x2, #HW_MM_KERNEL_STACK_SIZE
+	add x1, x1, x2
+	mov x2, #0x10 /* minus 16-byte to be aligned in stack */
+	sub x1, x1, x2
+	mov sp, x1
 
 	/* jump into init C code */
 	b _ZN6Kernel39main_initialize_and_handle_kernel_entryEv
 
-	_kernel_stack:      .quad kernel_stack
-	_kernel_stack_size: .quad kernel_stack_size
+	_cpus_base: .quad HW_MM_CPU_LOCAL_MEMORY_AREA_START
 
 
 	/*********************************

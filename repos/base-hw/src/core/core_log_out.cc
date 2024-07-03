@@ -21,7 +21,7 @@
 
 /* core includes */
 #include <core_log.h>
-#include <kernel/cpu.h>
+#include <hw/memory_map.h>
 #include <kernel/log.h>
 
 using namespace Core;
@@ -41,17 +41,13 @@ void Genode::raw_write_string(char const *str)
  ** Utility to check whether kernel or core code is active **
  ************************************************************/
 
-extern void const * const kernel_stack;
-
 static inline bool running_in_kernel()
 {
-	addr_t const stack_base = reinterpret_cast<addr_t>(&kernel_stack);
-	static constexpr size_t stack_size =
-		Board::NR_OF_CPUS * Kernel::Cpu::KERNEL_STACK_SIZE;
+	Hw::Memory_region const cpu_region = Hw::Mm::cpu_local_memory();
 
-	/* check stack variable against kernel stack area */
-	return ((addr_t)&stack_base) >= stack_base &&
-	       ((addr_t)&stack_base) < (stack_base + stack_size);
+	/* check stack variable against kernel's cpu local memory area */
+	return ((addr_t)&cpu_region) >= cpu_region.base &&
+	       ((addr_t)&cpu_region) < cpu_region.end();
 }
 
 

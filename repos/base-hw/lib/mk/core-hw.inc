@@ -72,3 +72,5 @@ BASE_HW_DIR := $(TMP:%/lib/mk/core-hw.inc=%)
 vpath % $(BASE_HW_DIR)/src/core
 vpath % $(BASE_DIR)/src/core
 vpath % $(BASE_DIR)/src/lib/startup
+
+include $(call select_from_repositories,lib/mk/consts-hw.inc)

@@ -65,11 +65,16 @@ struct Hw::Apic_madt
 
 	struct Lapic : Genode::Mmio<0x8>
 	{
-		struct Flags : Register <0x04, 32> { enum { VALID = 1 }; };
+		struct Apic_id : Register<0x3, 8> {};
+		struct Flags   : Register<0x4, 32>
+		{
+			enum { VALID = 1 };
+		};
 
 		Lapic(Apic_madt const * a) : Mmio({(char *)a, Mmio::SIZE}) { }
 
 		bool valid() { return read<Flags>() & Flags::VALID; };
+		Genode::uint8_t id() { return read<Apic_id>(); }
 	};
 
 } __attribute__((packed));

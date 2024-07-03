@@ -11,6 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+.include "memory_consts.s"
+
 .section ".text"
 
 	/***********************
@@ -21,20 +23,22 @@
 	_start:
 
 	/* switch to cpu-specific kernel stack */
-	adr   r1, _kernel_stack
-	adr   r2, _kernel_stack_size
+	adr   r1, _cpu_mem_area_base
+	adr   r2, _cpu_mem_slot_size
+	adr   r3, _kernel_stack_size
 	ldr   r1, [r1]
 	ldr   r2, [r2]
-	ldr   r2, [r2]
-	add   r0, #1
+	ldr   r3, [r3]
 	mul   r0, r0, r2
-	add   sp, r1, r0
+	add   r0, r0, r1
+	add   sp, r0, r3
 
 	/* jump into init C code */
 	b _ZN6Kernel39main_initialize_and_handle_kernel_entryEv
 
-	_kernel_stack:      .long kernel_stack
-	_kernel_stack_size: .long kernel_stack_size
+	_cpu_mem_area_base: .long HW_MM_CPU_LOCAL_MEMORY_AREA_START
+	_cpu_mem_slot_size: .long HW_MM_CPU_LOCAL_MEMORY_SLOT_SIZE
+	_kernel_stack_size: .long HW_MM_KERNEL_STACK_SIZE
 
 
 	/*********************************

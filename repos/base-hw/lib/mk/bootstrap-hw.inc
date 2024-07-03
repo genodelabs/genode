@@ -30,3 +30,5 @@ vpath bootstrap/%   $(BASE_HW_DIR)/src
 vpath hw/%          $(BASE_HW_DIR)/src/lib
 vpath lib/base/%    $(BASE_HW_DIR)/src
 vpath lib/base/%    $(BASE_DIR)/src
+
+include $(call select_from_repositories,lib/mk/consts-hw.inc)

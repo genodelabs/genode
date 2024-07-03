@@ -87,7 +87,6 @@ class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_ma
 		};
 
 		unsigned _irte_count = 0;       /* number of redirection table entries */
-		uint8_t  _lapic_id[Board::NR_OF_CPUS]; /* unique name of the LAPIC of each CPU */
 		Irq_mode _irq_mode[IRQ_COUNT];
 
 		/**
@@ -137,15 +136,6 @@ class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_ma
 		void irq_mode(unsigned irq_number,
 		              unsigned trigger,
 		              unsigned polarity);
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		void lapic_id(unsigned cpu_id, uint8_t lapic_id);
-
-		uint8_t lapic_id(unsigned cpu_id) const;
 };
 
 
@@ -189,14 +179,6 @@ class Board::Local_interrupt_controller : private Hw::Local_apic
 		void mask(unsigned const i);
 
 		void irq_mode(unsigned irq, unsigned trigger, unsigned polarity);
-
-		void store_apic_id(unsigned const cpu_id)
-		{
-			if (cpu_id < Board::NR_OF_CPUS) {
-				Id::access_t const lapic_id = read<Id>();
-				_global_irq_ctrl.lapic_id(cpu_id, (unsigned char)((lapic_id >> 24) & 0xff));
-			}
-		}
 
 		void send_ipi(unsigned const);
 

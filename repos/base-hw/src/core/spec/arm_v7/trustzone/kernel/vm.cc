@@ -67,7 +67,6 @@ bool secure_irq(unsigned const i);
 
 
 extern "C" void monitor_mode_enter_normal_world(Genode::Vcpu_state&, void*);
-extern void * kernel_stack;
 
 
 void Vm::proceed(Cpu & cpu)

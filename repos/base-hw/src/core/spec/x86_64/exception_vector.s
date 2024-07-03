@@ -14,13 +14,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+.include "stack_switch.s"
+
 /* offsets of member variables in a CPU context */
 .set IP_OFFSET, 17 * 8
 .set SP_OFFSET, 20 * 8
 
 /* virtual addresses */
-.set BASE, 0xffffffc000000000
-.set ISR,  BASE
+.set ISR,  HW_MM_KERNEL_START
 .set ISR_ENTRY_SIZE, 12
 
 .set IDT_FLAGS_PRIVILEGED,   0x8e01
@@ -114,13 +115,12 @@
 
 	/**
 	 * Calculate offset into Kernel_stack member of Cpu::Context as defined
-	 * in cpu.h - struct Context : Cpu_state, Kernel_stack, Fpu_context
+	 * in cpu.h - struct Context : Cpu_state, Fpu_context
 	 */
 	.set REGISTER_COUNT, 22
 	.set REGISTER_SIZE, 8
 	.set SIZEOF_CPU_STATE, REGISTER_COUNT * REGISTER_SIZE /* sizeof (Cpu_state) */
-	.set KERNEL_STACK_OFFSET, SIZEOF_CPU_STATE
-	.set FPU_CONTEXT_OFFSET, KERNEL_STACK_OFFSET + 8
+	.set FPU_CONTEXT_OFFSET, SIZEOF_CPU_STATE
 	/* rsp contains pointer to Cpu::Context */
 
 	/* save FPU context */
@@ -129,10 +129,7 @@
 	movq (%rax), %rax
 	fxsave (%rax)
 
-	/* Restore kernel stack and continue kernel execution */
-	movq %rsp, %rax
-	addq $KERNEL_STACK_OFFSET, %rax
-	movq (%rax), %rsp
+	switch_to_kernel_stack
 
 	_load_address _ZN6Kernel24main_handle_kernel_entryEv rcx
 	jmp *%rcx

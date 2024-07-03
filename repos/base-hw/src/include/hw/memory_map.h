@@ -28,6 +28,7 @@ namespace Hw {
 		Memory_region const core_page_tables();
 		Memory_region const core_mmio();
 		Memory_region const core_heap();
+		Memory_region const cpu_local_memory();
 		Memory_region const system_exception_vector();
 		Memory_region const hypervisor_exception_vector();
 		Memory_region const hypervisor_stack();

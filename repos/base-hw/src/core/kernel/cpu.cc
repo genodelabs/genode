@@ -12,6 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <cpu/consts.h>
+
 /* core includes */
 #include <kernel/cpu.h>
 #include <kernel/thread.h>
@@ -162,14 +164,10 @@ Cpu_job & Cpu::schedule()
 }
 
 
-Genode::size_t  kernel_stack_size = Cpu::KERNEL_STACK_SIZE;
-Genode::uint8_t kernel_stack[Board::NR_OF_CPUS][Cpu::KERNEL_STACK_SIZE]
-__attribute__((aligned(Genode::get_page_size())));
-
-
 addr_t Cpu::stack_start()
 {
-	return (addr_t)&kernel_stack + KERNEL_STACK_SIZE * (_id + 1);
+	return Abi::stack_align(Hw::Mm::cpu_local_memory().base +
+	                        (1024*1024*_id) + (64*1024));
 }
 
 

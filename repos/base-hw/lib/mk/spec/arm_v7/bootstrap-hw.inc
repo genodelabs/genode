@@ -1,5 +1,5 @@
+SRC_CC  += bootstrap/platform_cpu_memory_area.cc
 SRC_CC  += bootstrap/spec/arm/arm_v7_cpu.cc
-SRC_CC  += hw/spec/32bit/memory_map.cc
 SRC_S   += bootstrap/spec/arm/crt0.s
 
 #
@@ -7,5 +7,7 @@ SRC_S   += bootstrap/spec/arm/crt0.s
 # and alignment restrictions are relaxed
 #
 CC_MARCH = -march=armv7-a+nofp -mfpu=vfpv3
+
+ARCH_WIDTH_PATH := spec/32bit
 
 include $(call select_from_repositories,lib/mk/bootstrap-hw.inc)

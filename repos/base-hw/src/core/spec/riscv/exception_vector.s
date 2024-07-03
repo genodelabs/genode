@@ -12,6 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+.include "memory_consts.s"
+
 .set CPU_IP,        0
 .set CPU_EXCEPTION, 8
 .set CPU_X1,        2*8
@@ -45,9 +47,10 @@ _kernel_entry:
 	csrr x30, sscratch
 	sd   x30, CPU_X1 + 8 * 30(x31)
 
-	la x29, kernel_stack
-	la x30, kernel_stack_size
-	ld x30, (x30)
+	li x29, HW_MM_CPU_LOCAL_MEMORY_AREA_START
+	li x30, HW_MM_CPU_LOCAL_MEMORY_SLOT_STACK_OFFSET
+	add x29, x29, x30
+	li x30, HW_MM_KERNEL_STACK_SIZE
 	add sp, x29, x30
 	la x30, _ZN6Kernel24main_handle_kernel_entryEv
 

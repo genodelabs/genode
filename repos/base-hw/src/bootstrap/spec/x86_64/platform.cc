@@ -19,6 +19,7 @@
 #include <multiboot.h>
 #include <multiboot2.h>
 
+#include <hw/memory_consts.h>
 #include <hw/spec/x86_64/acpi.h>
 #include <hw/spec/x86_64/apic.h>
 
@@ -62,31 +63,6 @@ static Hw::Acpi_rsdp search_rsdp(addr_t area, addr_t area_size)
 
 	Hw::Acpi_rsdp invalid;
 	return invalid;
-}
-
-
-static Genode::uint8_t apic_id()
-{
-	X86_64_CPUID_REGISTER(Cpuid_1_ebx, 1, ebx,
-		struct Apic_id : Bitfield<24, 8> { };
-	);
-
-	return uint8_t(Cpuid_1_ebx::Apic_id::get(Cpuid_1_ebx::read()));
-}
-
-
-unsigned apic_to_cpu_id(Genode::uint8_t apic_id, Genode::uint8_t dense_id)
-{
-	static Genode::uint8_t cpu_id[256] { };
-	static bool            valid [256] { };
-
-	/* if apic_id is valid, return stored cpu_id and ignore new dense_id */
-	if (!valid[apic_id]) {
-		cpu_id[apic_id] = dense_id;
-		valid [apic_id] = true;
-	}
-
-	return cpu_id[apic_id];
 }
 
 
@@ -213,7 +189,8 @@ Bootstrap::Platform::Board::Board()
 	}
 
 	/* remember max supported CPUs and use ACPI to get the actual number */
-	unsigned const max_cpus = cpus;
+	unsigned const max_cpus =
+		Hw::Mm::CPU_LOCAL_MEMORY_AREA_SIZE / Hw::Mm::CPU_LOCAL_MEMORY_SLOT_SIZE;
 	cpus = 0;
 
 	/* scan ACPI tables to find out number of CPUs in this machine */
@@ -316,12 +293,8 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base));
 
-	addr_t const stack_base = reinterpret_cast<addr_t>(&bootstrap_stack);
-	addr_t const this_stack = reinterpret_cast<addr_t>(&stack_base);
-	addr_t const stack_id   = (this_stack - stack_base) / bootstrap_stack_size;
-
-	/* determine dense packed cpu_id based on apic_id */
-	auto const cpu_id = apic_to_cpu_id(apic_id(), uint8_t(stack_id));
+	auto const cpu_id =
+		Cpu::Cpuid_1_ebx::Apic_id::get(Cpu::Cpuid_1_ebx::read());
 
 	/* we like to use local APIC */
 	Cpu::IA32_apic_base::access_t lapic_msr = Cpu::IA32_apic_base::read();
@@ -370,3 +343,13 @@ Board::Serial::Serial(addr_t, size_t, unsigned baudrate)
 :
 	X86_uart(Bios_data_area::singleton()->serial_port(), 0, baudrate)
 { }
+
+
+unsigned Bootstrap::Platform::_prepare_cpu_memory_area()
+{
+	using namespace Genode;
+
+	for (size_t id = 0; id < board.cpus; id++)
+		_prepare_cpu_memory_area(id);
+	return board.cpus;
+}

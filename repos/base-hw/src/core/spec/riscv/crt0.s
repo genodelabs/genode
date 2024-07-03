@@ -11,6 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+.include "memory_consts.s"
+
 .section ".text"
 
 	/***********************
@@ -20,9 +22,10 @@
 	.global _start
 	_start:
 
-	la x29, kernel_stack
-	la x30, kernel_stack_size
-	ld x30, (x30)
+	li x29, HW_MM_CPU_LOCAL_MEMORY_AREA_START
+	li x30, HW_MM_CPU_LOCAL_MEMORY_SLOT_STACK_OFFSET
+	add x29, x29, x30
+	li x30, HW_MM_KERNEL_STACK_SIZE
 	add sp, x29, x30
 	la x30, _ZN6Kernel39main_initialize_and_handle_kernel_entryEv
 

@@ -145,9 +145,6 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool, private Timeout
 
 		State state() { return _state; }
 
-		static constexpr size_t KERNEL_STACK_SIZE =
-			16 * 1024 * sizeof(Genode::addr_t);
-
 		/**
 		 * Construct object for CPU 'id'
 		 */
