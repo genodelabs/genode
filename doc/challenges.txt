@@ -192,6 +192,10 @@ Platforms
   [https://en.wikipedia.org/wiki/Rockchip - Rockchip] SoCs are getting
   popular in products by open-source hardware vendors such as
   [https://pine64.com/ - Pine64] and [https://mntre.com/ - MNT].
+  The first steps have been [https://github.com/mickenx/genode-rockchip - already taken]
+  by [https://genodians.org/mickenx/index - Michael Grunditz]!
+  Another example is the Mediatek SoC family, which is popular in
+  affordable consumer smartphones.
   Another example is the Mediatek SoC family, which is popular in
   affordable consumer smartphones.
 
