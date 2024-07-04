@@ -40,7 +40,7 @@ class Kernel::Main
 		static Main *_instance;
 
 		Lock                                    _data_lock           { };
-		Cpu_pool                                _cpu_pool;
+		Cpu_pool                                _cpu_pool            { };
 		Irq::Pool                               _user_irq_pool       { };
 		Board::Address_space_id_allocator       _addr_space_id_alloc { };
 		Core::Core_platform_pd                  _core_platform_pd    { _addr_space_id_alloc };
@@ -52,8 +52,6 @@ class Kernel::Main
 
 		void _handle_kernel_entry();
 
-		Main(unsigned nr_of_cpus);
-
 	public:
 
 		static Core::Platform_pd &core_platform_pd();
@@ -61,12 +59,6 @@ class Kernel::Main
 
 
 Kernel::Main *Kernel::Main::_instance;
-
-
-Kernel::Main::Main(unsigned nr_of_cpus)
-:
-	_cpu_pool { nr_of_cpus }
-{ }
 
 
 void Kernel::Main::_handle_kernel_entry()
@@ -94,7 +86,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 {
 	using Boot_info = Hw::Boot_info<Board::Boot_info>;
 
-	static volatile bool     instance_initialized   { false };
+	static Lock              init_lock;
 	static volatile unsigned nr_of_initialized_cpus { 0 };
 	static volatile bool     kernel_initialized     { false };
 
@@ -102,34 +94,27 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		*reinterpret_cast<Boot_info*>(Hw::Mm::boot_info().base) };
 
 	unsigned const nr_of_cpus  { boot_info.cpus };
-	bool     const primary_cpu { Cpu::executing_id() == Cpu::primary_id() };
 
-	if (primary_cpu) {
+	/**
+	 * Let the first CPU create a Main object and initialize the static
+	 * reference to it.
+	 */
+	{
+		Lock::Guard guard(init_lock);
 
-		/**
-		 * Let the primary CPU create a Main object and initialize the static
-		 * reference to it.
-		 */
-		static Main instance { nr_of_cpus };
+		static Main instance;
 		Main::_instance = &instance;
 
-	} else {
-
-		/**
-		 * Let secondary CPUs block until the primary CPU has managed to set
-		 * up the Main instance.
-		 */
-		while (!instance_initialized) { }
 	}
 
-	if (Main::_instance->_cpu_pool.cpu_valid(Cpu::executing_id())) {
-		/* the CPU resumed since the cpu object is already valid */
+	/* the CPU resumed if the kernel is already initialized */
+	if (kernel_initialized) {
+
 		{
 			Lock::Guard guard(Main::_instance->_data_lock);
 
-			if (kernel_initialized) {
+			if (nr_of_initialized_cpus == nr_of_cpus) {
 				nr_of_initialized_cpus = 0;
-				kernel_initialized     = false;
 
 				Main::_instance->_serial.init();
 				Main::_instance->_global_irq_ctrl.init();
@@ -140,12 +125,11 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 			Main::_instance->_cpu_pool.cpu(Cpu::executing_id()).reinit_cpu();
 
 			if (nr_of_initialized_cpus == nr_of_cpus) {
-				kernel_initialized = true;
 				Genode::raw("kernel resumed");
 			}
 		}
 
-		while (!kernel_initialized) { }
+		while (nr_of_initialized_cpus < nr_of_cpus) { }
 
 		Main::_instance->_handle_kernel_entry();
 		/* never reached */
@@ -158,7 +142,6 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		 * CPU pool.
 		 */
 		Lock::Guard guard(Main::_instance->_data_lock);
-		instance_initialized = true;
 		Main::_instance->_cpu_pool.initialize_executing_cpu(
 			Main::_instance->_addr_space_id_alloc,
 			Main::_instance->_user_irq_pool,
@@ -174,41 +157,39 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 	 */
 	while (nr_of_initialized_cpus < nr_of_cpus) { }
 
-	if (primary_cpu) {
-
-		/**
-		 * Let the primary CPU initialize the core main thread and finish
-		 * initialization of the boot info.
-		 */
-
+	/**
+	 * Let the primary CPU initialize the core main thread and finish
+	 * initialization of the boot info.
+	 */
+	{
 		Lock::Guard guard(Main::_instance->_data_lock);
 
-		Main::_instance->_cpu_pool.for_each_cpu([&] (Kernel::Cpu &cpu) {
-			boot_info.kernel_irqs.add(cpu.timer().interrupt_id());
-		});
-		boot_info.kernel_irqs.add((unsigned)Board::Pic::IPI);
+		if (Cpu::executing_id() == Main::_instance->_cpu_pool.primary_cpu().id()) {
+			Main::_instance->_cpu_pool.for_each_cpu([&] (Kernel::Cpu &cpu) {
+				boot_info.kernel_irqs.add(cpu.timer().interrupt_id());
+			});
+			boot_info.kernel_irqs.add((unsigned)Board::Pic::IPI);
 
-		Main::_instance->_core_main_thread.construct(
-			Main::_instance->_addr_space_id_alloc,
-			Main::_instance->_user_irq_pool,
-			Main::_instance->_cpu_pool,
-			Main::_instance->_core_platform_pd.kernel_pd());
+			Main::_instance->_core_main_thread.construct(
+				Main::_instance->_addr_space_id_alloc,
+				Main::_instance->_user_irq_pool,
+				Main::_instance->_cpu_pool,
+				Main::_instance->_core_platform_pd.kernel_pd());
 
-		boot_info.core_main_thread_utcb =
-			(addr_t)Main::_instance->_core_main_thread->utcb();
+			boot_info.core_main_thread_utcb =
+				(addr_t)Main::_instance->_core_main_thread->utcb();
 
-		Genode::log("");
-		Genode::log("kernel initialized");
-		kernel_initialized = true;
-
-	} else {
-
-		/**
-		 * Let secondary CPUs block until the primary CPU has initialized the
-		 * core main thread and finished initialization of the boot info.
-		 */
-		while (!kernel_initialized) {;}
+			Genode::log("");
+			Genode::log("kernel initialized");
+			kernel_initialized = true;
+		}
 	}
+
+	/**
+	 * Let secondary CPUs block until the primary CPU has initialized the
+	 * core main thread and finished initialization of the boot info.
+	 */
+	while (!kernel_initialized) {;}
 
 	Main::_instance->_handle_kernel_entry();
 }

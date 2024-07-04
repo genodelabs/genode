@@ -19,20 +19,15 @@
 /* PC virtualization */
 #include <spec/x86_64/virtualization/board.h>
 
-/*
- * As long as Board::NR_OF_CPUS is used as constant within pic.h
- * we sadly have to include Hw::Pc_board into the namespace
- * before including pic.h. This will change as soon as the number
- * O CPUs is only define per function
-*/
-namespace Board { using namespace Hw::Pc_board; };
-
 /* base-hw core includes */
 #include <spec/x86_64/pic.h>
 #include <spec/x86_64/pit.h>
 #include <spec/x86_64/cpu.h>
 
 namespace Board {
+
+	using namespace Hw::Pc_board;
+
 	class Pic : public Local_interrupt_controller
 	{ using Local_interrupt_controller::Local_interrupt_controller; };
 

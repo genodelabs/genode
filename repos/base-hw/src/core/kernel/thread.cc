@@ -718,9 +718,8 @@ void Thread::_call_new_irq()
 	Genode::Irq_session::Polarity polarity =
 		(Genode::Irq_session::Polarity) (user_arg_3() & 0b11);
 
-	_call_new<User_irq>(
-		(unsigned)user_arg_2(), trigger, polarity, *c,
-		_cpu_pool.executing_cpu().pic(), _user_irq_pool);
+	_call_new<User_irq>((unsigned)user_arg_2(), trigger, polarity, *c,
+	                    _cpu->pic(), _user_irq_pool);
 }
 
 

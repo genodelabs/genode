@@ -22,6 +22,7 @@
 #include <board.h>
 #include <hw/assert.h>
 #include <hw/boot_info.h>
+#include <hw/memory_consts.h>
 
 using namespace Kernel;
 
@@ -154,7 +155,7 @@ Cpu_job & Cpu::schedule()
 		_timer.process_timeouts();
 		_scheduler.update(_timer.time());
 		time_t t = _scheduler.current_time_left();
-		_timer.set_timeout(this, t);
+		_timer.set_timeout(&_timeout, t);
 		time_t duration = _timer.schedule_timeout();
 		old_job.update_execution_time(duration);
 	}
@@ -188,12 +189,32 @@ Cpu::Cpu(unsigned                     const  id,
 	_global_work_list { cpu_pool.work_list() }
 {
 	_arch_init();
+
+	/*
+	 * We insert the cpu objects in order into the cpu_pool's list
+	 * to ensure that the cpu with the lowest given id is the first
+	 * one.
+	 */
+	Cpu * cpu = cpu_pool._cpus.first();
+	while (cpu && cpu->next() && (cpu->next()->id() < _id))
+		cpu = cpu->next();
+	cpu = (cpu && cpu->id() < _id) ? cpu : nullptr;
+	cpu_pool._cpus.insert(this, cpu);
 }
 
 
 /**************
  ** Cpu_pool **
  **************/
+
+template <typename T>
+static inline T* cpu_object_by_id(unsigned const id)
+{
+	using namespace Hw::Mm;
+	addr_t base = CPU_LOCAL_MEMORY_AREA_START + id*CPU_LOCAL_MEMORY_SLOT_SIZE;
+	return (T*)(base + CPU_LOCAL_MEMORY_SLOT_OBJECT_OFFSET);
+}
+
 
 void
 Cpu_pool::
@@ -203,22 +224,13 @@ initialize_executing_cpu(Board::Address_space_id_allocator  &addr_space_id_alloc
                          Board::Global_interrupt_controller &global_irq_ctrl)
 {
 	unsigned id = Cpu::executing_id();
-	_cpus[id].construct(
-		id, addr_space_id_alloc, user_irq_pool, *this, core_pd, global_irq_ctrl);
+	Genode::construct_at<Cpu>(cpu_object_by_id<void>(id), id,
+	                          addr_space_id_alloc, user_irq_pool,
+	                          *this, core_pd, global_irq_ctrl);
 }
 
 
 Cpu & Cpu_pool::cpu(unsigned const id)
 {
-	assert(id < _nr_of_cpus && _cpus[id].constructed());
-	return *_cpus[id];
+	return *cpu_object_by_id<Cpu>(id);
 }
-
-
-using Boot_info = Hw::Boot_info<Board::Boot_info>;
-
-
-Cpu_pool::Cpu_pool(unsigned nr_of_cpus)
-:
-	_nr_of_cpus(nr_of_cpus)
-{ }

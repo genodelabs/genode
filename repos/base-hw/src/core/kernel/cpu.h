@@ -36,35 +36,8 @@ namespace Kernel {
 }
 
 
-/*
- * The 'Cpu' class violates the "Effective C++" practices because it publicly
- * inherits the 'Genode::Cpu' base class, which does not have a virtual
- * destructor. Since 'Cpu' implements the 'Timeout' interface, however, it has
- * a vtable.
- *
- * Adding a virtual destructor in the base class would be unnatural as the base
- * class hierarchy does not represent an abstract interface.
- *
- * Inheriting the 'Genode::Cpu' class privately is not an option because the
- * user of 'Cpu' class expects architecture-specific register definitions to be
- * provided by 'Cpu'. Hence, all those architecture- specific definitions would
- * end up as 'using' clauses in the generic class.
- *
- * XXX Remove the disabled warning, e.g., by one of the following approaches:
- *
- * * Prevent 'Cpu' to have virtual methods by making 'Timeout' a member instead
- *   of a base class.
- *
- * * Change the class hierarchy behind 'Genode::Cpu' such that
- *   architecture-specific bits do no longer need to implicitly become part
- *   of the public interface of 'Cpu'. For example, register-definition types
- *   could all be embedded in an 'Arch_regs' type, which the 'Cpu' class could
- *   publicly provide via a 'typedef Genode::Cpu::Arch_regs Arch_regs'.
- *   Then, the 'Genode::Cpu' could be inherited privately.
- */
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-
-class Kernel::Cpu : public Core::Cpu, private Irq::Pool, private Timeout
+class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
+                    public Genode::List<Cpu>::Element
 {
 	private:
 
@@ -126,6 +99,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool, private Timeout
 		State          _state { RUN };
 		unsigned const _id;
 		Board::Pic     _pic;
+		Timeout        _timeout {};
 		Timer          _timer;
 		Scheduler      _scheduler;
 		Idle_thread    _idle;
@@ -154,8 +128,6 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool, private Timeout
 		    Cpu_pool                           &cpu_pool,
 		    Pd                                 &core_pd,
 		    Board::Global_interrupt_controller &global_irq_ctrl);
-
-		static inline unsigned primary_id() { return 0; }
 
 		/**
 		 * Raise the IPI of the CPU
@@ -212,23 +184,16 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool, private Timeout
 };
 
 
-/*
- * See the comment above the 'Cpu' class definition.
- */
-#pragma GCC diagnostic pop
-
-
 class Kernel::Cpu_pool
 {
 	private:
 
 		Inter_processor_work_list  _global_work_list {};
-		unsigned                   _nr_of_cpus;
-		Genode::Constructible<Cpu> _cpus[Board::NR_OF_CPUS];
+		Genode::List<Cpu>          _cpus {};
+
+		friend class Cpu;
 
 	public:
-
-		Cpu_pool(unsigned nr_of_cpus);
 
 		void
 		initialize_executing_cpu(Board::Address_space_id_allocator  &addr_space_id_alloc,
@@ -236,36 +201,24 @@ class Kernel::Cpu_pool
 		                         Pd                                 &core_pd,
 		                         Board::Global_interrupt_controller &global_irq_ctrl);
 
-		/**
-		 * Return whether CPU object is valid and is constructed.
-		 */
-		bool cpu_valid(unsigned const id) const {
-			return id < _nr_of_cpus && _cpus[id].constructed(); }
-
-		/**
-		 * Return object of CPU 'id'
-		 */
 		Cpu & cpu(unsigned const id);
 
 		/**
 		 * Return object of primary CPU
 		 */
-		Cpu & primary_cpu() { return cpu(Cpu::primary_id()); }
-
-		/**
-		 * Return object of current CPU
-		 */
-		Cpu & executing_cpu() { return cpu(Cpu::executing_id()); }
+		Cpu & primary_cpu() { return *_cpus.first(); }
 
 		void for_each_cpu(auto const &fn)
 		{
-			for (unsigned i = 0; i < _nr_of_cpus; i++) fn(cpu(i));
+			Cpu * c = _cpus.first();
+			while (c) {
+				fn(*c);
+				c = c->next();
+			}
 		}
 
 		Inter_processor_work_list & work_list() {
 			return _global_work_list; }
-
-		unsigned nr_of_cpus() { return _nr_of_cpus; }
 };
 
 #endif /* _CORE__KERNEL__CPU_H_ */

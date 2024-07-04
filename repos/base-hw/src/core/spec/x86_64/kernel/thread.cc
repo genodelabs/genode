@@ -142,9 +142,8 @@ void Kernel::Thread::_call_suspend()
 
 	/* single core CPU case */
 	if (cpu_count == 1) {
-		auto &cpu = _cpu_pool.executing_cpu();
-		/* this CPU triggers final ACPI suspend outside kernel lock */
-		cpu.next_state_suspend();
+		/* current CPU triggers final ACPI suspend outside kernel lock */
+		_cpu->next_state_suspend();
 		return;
 	}
 

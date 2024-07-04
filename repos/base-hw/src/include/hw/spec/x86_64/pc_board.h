@@ -24,7 +24,11 @@ namespace Hw::Pc_board {
 	struct Serial;
 	enum Dummies { UART_BASE, UART_CLOCK };
 
-	static constexpr Genode::size_t NR_OF_CPUS = 32;
+	/**
+	 * The constant 'NR_OF_CPUS' defines the _maximum_ of cpus currently
+	 * supported on x86. The actual number is detected at booting.
+	 */
+	static constexpr Genode::size_t NR_OF_CPUS = 256;
 }
 
 
