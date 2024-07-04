@@ -236,7 +236,12 @@ struct Libc::Socket_fs::Context : Plugin_context
 
 		~Context()
 		{
-			_fd_apply([] (int fd) { ::close(fd); });
+			for (unsigned i = 0; i < Fd::MAX; ++i) {
+				file_descriptor_allocator()->free(_fd[i].file);
+				_fd[i].file = nullptr;
+				::close(_fd[i].num);
+				_fd[i].num = -1;
+			}
 			::close(_handle_fd);
 		}
 
