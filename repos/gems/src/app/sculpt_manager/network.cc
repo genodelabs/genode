@@ -40,6 +40,8 @@ void Sculpt::Network::_generate_nic_router_uplink(Xml_generator &xml,
 
 		tcp_forward(80 /* HTTP */   , "http",   "10.0.80.2");
 		tcp_forward(23 /* telnet */ , "telnet", "10.0.23.2");
+		tcp_forward(9999 /* gdb */   , "gdb",   "10.0.99.2");
+		tcp_forward(5900 /* VNC */   , "vnc",   "10.0.59.2");
 	});
 }
 
@@ -148,6 +150,8 @@ void Sculpt::Network::_generate_nic_router_config()
 		};
 		tcp_service_domain("http",   "10.0.80");
 		tcp_service_domain("telnet", "10.0.23");
+		tcp_service_domain("gdb",    "10.0.99");
+		tcp_service_domain("vnc",    "10.0.59");
 	});
 }
 

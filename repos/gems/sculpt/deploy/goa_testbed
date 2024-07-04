@@ -89,7 +89,7 @@
 		</config>
 	</start>
 
-	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2024-04-22" priority="-2">
+	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2024-07-15" priority="-2">
 		<route>
 			<service name="TRACE">       <parent/> </service>
 			<service name="VM">          <parent/> </service>
@@ -102,8 +102,9 @@
 			<service name="Event">       <child name="black_hole"/>      </service>
 			<service name="Capture">     <child name="black_hole"/>      </service>
 			<service name="File_system"> <child name="recall_fs"/>       </service>
-			<service name="Nic" label_prefix="tcp_terminal"> <child name="nic_router" label="telnet"/> </service>
-			<service name="Nic" label_prefix="lighttpd">     <child name="nic_router" label="http"/>   </service>
+			<service name="Nic" label_prefix="telnet"> <child name="nic_router" label="telnet"/> </service>
+			<service name="Nic" label_prefix="http">   <child name="nic_router" label="http"/>   </service>
+			<service name="Nic" label_prefix="gdb">    <child name="nic_router" label="gdb"/>    </service>
 			<service name="Nic"> <!-- for test scenario -->  <child name="nic_router"/>                </service>
 			<service name="Report" label="clipboard">     <child name="wm"/> </service>
 			<service name="Report" label="shape">         <child name="wm"/> </service>
