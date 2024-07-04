@@ -455,8 +455,16 @@ Open_socket::Open_socket(char const * ip_addr, int tcp_port)
 
 Open_socket::~Open_socket()
 {
-	if (_sd != -1) close(_sd);
-	open_socket_pool()->remove(this);
+	Libc::with_libc([&] () {
+
+		if (_sd != -1)
+			close(_sd);
+
+		if (_listen_sd != -1)
+			close(_listen_sd);
+
+		open_socket_pool()->remove(this);
+	});
 }
 
 
