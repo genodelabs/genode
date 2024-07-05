@@ -17,7 +17,7 @@
 #include <region_map/client.h>
 #include <sandbox/sandbox.h>
 #include <os/reporter.h>
-#include <terminal_session/connection.h>
+#include <terminal_connection.h>
 
 /* local includes */
 #include <pd_intrinsics.h>
@@ -115,7 +115,7 @@ struct Monitor::Main : Sandbox::State_handler,
 	{
 		Env &_env;
 
-		Terminal::Connection _terminal { _env };
+		Terminal_connection _terminal  { _env };
 
 		Signal_handler<Gdb_stub> _terminal_read_avail_handler {
 			_env.ep(), *this, &Gdb_stub::_handle_terminal_read_avail };
@@ -130,7 +130,7 @@ struct Monitor::Main : Sandbox::State_handler,
 		{
 			struct Write_fn
 			{
-				Terminal::Connection &_terminal;
+				Terminal_connection &_terminal;
 				void operator () (char const *str)
 				{
 					size_t const num_bytes = strlen(str);
