@@ -24,9 +24,9 @@ namespace Gpio { struct Connection; }
 
 struct Gpio::Connection : Genode::Connection<Session>, Session_client
 {
-	Connection(Genode::Env &env, unsigned long gpio_pin)
+	Connection(Genode::Env &env, unsigned long gpio_pin, Label label = "")
 	:
-		Genode::Connection<Session>(env, Label(), Ram_quota { 8*1024 },
+		Genode::Connection<Session>(env, label, Ram_quota { 8*1024 },
 		                            Args("gpio=", gpio_pin)),
 		Session_client(cap())
 	{ }
