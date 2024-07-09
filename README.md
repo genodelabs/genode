@@ -113,3 +113,31 @@ Labs. The company offers commercial licensing, trainings, support, and
 contracted development work:
 
 - [Genode Labs website](https://www.genode-labs.com)
+
+
+## Screenshots
+
+<p align="center">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2024-04-25-sculpt.png">
+</p>
+<p align="center">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2020-09-16-sculpt.png">
+</p>
+<p align="center">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2019-03-19-sculpt-ce.png">
+</p>
+<p align="center">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2018-06-13-desktop-tc.png">
+</p>
+<p align="center">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2018-06-13-overlay-tc.png">
+</p>
+<p align="center">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2015-11-27-turmvilla.png">
+</p>
+<p align="center">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2014-02-27-seoul-vbox.png">
+</p>
+<p align="center">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2013-08-15-qt5.png">
+</p>
