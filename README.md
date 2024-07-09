@@ -2,8 +2,9 @@
 <img alt="Genode-Logo" width="700" src="https://genode.org/css/site_title.png">
 </p>
 
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 ![GitHub Repo stars](https://img.shields.io/github/stars/genodelabs/genode?style=flat)
+![GitHub watchers](https://img.shields.io/github/watchers/genodelabs/genode)
+
 
 This is the source code of Genode, which is a framework for creating
 component-based operating systems. It combines capability-based security,
