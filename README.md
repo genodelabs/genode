@@ -62,7 +62,7 @@ The source tree is composed of the following subdirectories:
 `repos`
 
   This directory contains the source code, organized in so-called source-code
-  repositories. Please refer to the README file in the 'repos' directory to
+  repositories. Please refer to the `README` file in the 'repos' directory to
   learn more about the roles of the individual repositories.
 
 `tool`
