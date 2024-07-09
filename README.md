@@ -36,11 +36,7 @@ usage scenario.
 
 ## Documentation
 
-The primary documentation is the book "Genode Foundations", which is available
-on the front page of the Genode website:
-
-- [Download the book "Genode Foundations"](https://genode.org)
-
+The primary documentation is the book [Genode Foundations](https://genode.org). 
 The book describes Genode in a holistic and comprehensive way. It equips you
 with a thorough understanding of the architecture, assists developers with the
 explanation of the development environment and system configuration, and
