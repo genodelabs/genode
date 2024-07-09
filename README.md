@@ -58,18 +58,18 @@ section of the project website:
 
 The source tree is composed of the following subdirectories:
 
-:'doc':
+`doc`
 
   This directory contains general documentation along with a comprehensive
   collection of release notes.
 
-:'repos':
+`repos`
 
   This directory contains the source code, organized in so-called source-code
   repositories. Please refer to the README file in the 'repos' directory to
   learn more about the roles of the individual repositories.
 
-:'tool':
+`tool`
 
   Source-code management tools and scripts. Please refer to the README file
   contained in the directory.
