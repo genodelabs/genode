@@ -1,7 +1,10 @@
+<p align="center">
+<img alt="Genode-Logo" width="700" src="https://genode.org/css/site_title.png">
+</p>
 
-                      =================================
-                      Genode Operating System Framework
-                      =================================
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+![GitHub Repo stars](https://img.shields.io/github/stars/genodelabs/genode?style=flat)
+
 
 
 This is the source code of Genode, which is a framework for creating
@@ -10,9 +13,8 @@ microkernel technology, sandboxed device drivers, and virtualization with
 a novel operating system architecture. For a general overview about the
 architecture, please refer to the project's official website:
 
-:Website for the Genode OS Framework:
-
-  [https://genode.org/documentation/general-overview]
+- [Website for the Genode OS Framework](https://genode.org/documentation/general-overview)
+- [Genode Foundations Book](https://genode.org/documentation/genode-foundations/index)
 
 Genode-based operating systems can be compiled for a variety of kernels: Linux,
 L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, seL4, and a custom "hw"
@@ -35,15 +37,15 @@ the kernel that fits best with the requirements at hand for the particular
 usage scenario.
 
 
+
+
 Documentation
 #############
 
 The primary documentation is the book "Genode Foundations", which is available
 on the front page of the Genode website:
 
-:Download the book "Genode Foundations":
-
-  [https://genode.org]
+- [Download the book "Genode Foundations"](https://genode.org)
 
 The book describes Genode in a holistic and comprehensive way. It equips you
 with a thorough understanding of the architecture, assists developers with the
@@ -55,9 +57,7 @@ The project has a quarterly release cycle. Each version is accompanied with
 detailed release documentation, which is available at the documentation
 section of the project website:
 
-:Release documentation:
-
-  [https://genode.org/documentation/release-notes/]
+- [Release documentation](https://genode.org/documentation/release-notes/)
 
 
 Directory overview
@@ -88,9 +88,7 @@ Additional hardware support
 The framework supports a variety of hardware platforms such as different ARM
 SoC families via supplemental repositories.
 
-:Repositories maintained by Genode Labs:
-
-  [https://github.com/orgs/genodelabs/repositories]
+- [Repositories maintained by Genode Labs](https://github.com/orgs/genodelabs/repositories)
 
 
 Additional community-maintained components
@@ -100,9 +98,7 @@ The components found within the main source tree are complemented by a growing
 library of additional software, which can be seamlessly integrated into Genode
 system scenarios.
 
-:Genode-world repository:
-
-  [https://github.com/genodelabs/genode-world]
+- [Genode-world repository](https://github.com/genodelabs/genode-world)
 
 
 Community blog
@@ -111,9 +107,7 @@ Community blog
 Genodians.org presents ideas, announcements, experience stories, and tutorials
 around Genode, informally written by Genode users and developers.
 
-:Genodians.org:
-
-  [https://genodians.org]
+- [Genodians.org](https://genodians.org)
 
 
 Contact
@@ -122,9 +116,8 @@ Contact
 The best way to get in touch with Genode developers and users is the project's
 mailing list. Please feel welcome to join in!
 
-:Genode Mailing Lists:
 
-  [https://genode.org/community/mailing-lists]
+- [Genode Mailing Lists](https://genode.org/community/mailing-lists)
 
 
 Commercial support
@@ -134,7 +127,5 @@ The driving force behind the Genode OS Framework is the German company Genode
 Labs. The company offers commercial licensing, trainings, support, and
 contracted development work:
 
-:Genode Labs website:
-
-  [https://www.genode-labs.com]
+- [Genode Labs website](https://www.genode-labs.com)
 
