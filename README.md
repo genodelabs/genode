@@ -44,7 +44,7 @@ provides a look under the hood of the framework. Furthermore, it contains the
 specification of the framework's programming interface.
 
 The project has a quarterly release cycle. Each version is accompanied with
-detailed [release documentation](https://genode.org/documentation/release-notes/)
+detailed [release documentation](https://genode.org/documentation/release-notes/).
 
 ## Directory overview
 
