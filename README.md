@@ -95,7 +95,7 @@ The best way to get in touch with Genode developers and users is the project's
 
 The driving force behind the Genode OS Framework is the German company [Genode
 Labs](https://www.genode-labs.com). The company offers commercial licensing, trainings, support, and
-contracted development work:
+contracted development work.
 
 ## Screenshots
 
