@@ -63,7 +63,7 @@ The source tree is composed of the following subdirectories:
 
 `tool`
 
-  Source-code management tools and scripts. Please refer to the README file
+  Source-code management tools and scripts. Please refer to the `README` file
   contained in the directory.
 
 
