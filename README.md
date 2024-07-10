@@ -6,8 +6,6 @@
 ![GitHub forks](https://img.shields.io/github/forks/genodelabs/genode)
 ![GitHub watchers](https://img.shields.io/github/watchers/genodelabs/genode)
 
-
-
 This is the source code of Genode, which is a framework for creating
 component-based operating systems. It combines capability-based security,
 microkernel technology, sandboxed device drivers, and virtualization with
@@ -66,7 +64,6 @@ The source tree is composed of the following subdirectories:
   Source-code management tools and scripts. Please refer to the `README` file
   contained in the directory.
 
-
 ## Additional hardware support
 
 The framework supports a variety of hardware platforms such as different ARM
@@ -81,7 +78,6 @@ library of additional software, which can be seamlessly integrated into Genode
 system scenarios.
 
 - [Genode-world repository](https://github.com/genodelabs/genode-world)
-
 
 ## Community blog
 
@@ -103,25 +99,11 @@ contracted development work.
 
 <p align="center">
 <img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2024-04-25-sculpt.png">
-</p>
-<p align="center">
 <img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2020-09-16-sculpt.png">
-</p>
-<p align="center">
 <img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2019-03-19-sculpt-ce.png">
-</p>
-<p align="center">
 <img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2018-06-13-desktop-tc.png">
-</p>
-<p align="center">
 <img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2018-06-13-overlay-tc.png">
-</p>
-<p align="center">
 <img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2015-11-27-turmvilla.png">
-</p>
-<p align="center">
 <img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2014-02-27-seoul-vbox.png">
-</p>
-<p align="center">
 <img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2013-08-15-qt5.png">
 </p>
