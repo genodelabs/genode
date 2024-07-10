@@ -3,7 +3,9 @@
 </p>
 
 ![GitHub Repo stars](https://img.shields.io/github/stars/genodelabs/genode?style=flat)
+![GitHub forks](https://img.shields.io/github/forks/genodelabs/genode)
 ![GitHub watchers](https://img.shields.io/github/watchers/genodelabs/genode)
+
 
 
 This is the source code of Genode, which is a framework for creating
