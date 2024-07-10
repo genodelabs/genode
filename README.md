@@ -10,9 +10,7 @@ This is the source code of Genode, which is a framework for creating
 component-based operating systems. It combines capability-based security,
 microkernel technology, sandboxed device drivers, and virtualization with
 a novel operating system architecture. For a general overview about the
-architecture, please refer to the project's official website:
-
-- [Website for the Genode OS Framework](https://genode.org/documentation/general-overview)
+architecture, please refer to the project's [official website](https://genode.org/documentation/general-overview).
 
 Genode-based operating systems can be compiled for a variety of kernels: Linux,
 L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, seL4, and a custom "hw"
@@ -44,11 +42,7 @@ provides a look under the hood of the framework. Furthermore, it contains the
 specification of the framework's programming interface.
 
 The project has a quarterly release cycle. Each version is accompanied with
-detailed release documentation, which is available at the documentation
-section of the project website:
-
-- [Release documentation](https://genode.org/documentation/release-notes/)
-
+detailed [release documentation](https://genode.org/documentation/release-notes/)
 
 ## Directory overview
 
@@ -78,7 +72,6 @@ SoC families via supplemental repositories.
 
 - [Repositories maintained by Genode Labs](https://github.com/orgs/genodelabs/repositories)
 
-
 ## Additional community-maintained components
 
 The components found within the main source tree are complemented by a growing
@@ -90,27 +83,19 @@ system scenarios.
 
 ## Community blog
 
-Genodians.org presents ideas, announcements, experience stories, and tutorials
+[Genodians.org](https://genodians.org) presents ideas, announcements, experience stories, and tutorials
 around Genode, informally written by Genode users and developers.
-
-- [Genodians.org](https://genodians.org)
-
 
 ## Contact
 
 The best way to get in touch with Genode developers and users is the project's
-mailing list. Please feel welcome to join in!
-
-- [Genode Mailing Lists](https://genode.org/community/mailing-lists)
+[mailing list](https://genode.org/community/mailing-lists). Please feel welcome to join in!
 
 ## Commercial support
 
-The driving force behind the Genode OS Framework is the German company Genode
-Labs. The company offers commercial licensing, trainings, support, and
+The driving force behind the Genode OS Framework is the German company [Genode
+Labs](https://www.genode-labs.com). The company offers commercial licensing, trainings, support, and
 contracted development work:
-
-- [Genode Labs website](https://www.genode-labs.com)
-
 
 ## Screenshots
 
