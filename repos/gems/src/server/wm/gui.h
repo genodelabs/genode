@@ -522,6 +522,9 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		Signal_handler<Session_component> _input_handler {
 			_env.ep(), *this, &Session_component::_handle_input };
 
+		Signal_handler<Session_component> _mode_handler {
+			_env.ep(), *this, &Session_component::_handle_mode_change };
+
 		Point _input_origin() const
 		{
 			if (Top_level_view const *v = _top_level_views.first())
@@ -630,6 +633,16 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 					_input_session.submit(_translate_event(ev, input_origin));
 				}
 			}
+		}
+
+		void _handle_mode_change()
+		{
+			/*
+			 * Inform a viewless client about the upstream
+			 * mode change.
+			 */
+			if (_mode_sigh.valid() && !_top_level_views.first())
+				Signal_transmitter(_mode_sigh).submit();
 		}
 
 		/**
@@ -798,6 +811,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			_view_handle_registry(session_alloc)
 		{
 			_gui_input.sigh(_input_handler);
+			_session.mode_sigh(_mode_handler);
 			_input_session.event_queue().enabled(true);
 		}
 
