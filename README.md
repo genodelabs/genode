@@ -1,18 +1,16 @@
+<p align="center">
+<img alt="Genode-Logo" width="700" src="https://genode.org/css/site_title.png">
+</p>
 
-                      =================================
-                      Genode Operating System Framework
-                      =================================
-
+![GitHub Repo stars](https://img.shields.io/github/stars/genodelabs/genode?style=flat)
+![GitHub forks](https://img.shields.io/github/forks/genodelabs/genode)
+![GitHub watchers](https://img.shields.io/github/watchers/genodelabs/genode)
 
 This is the source code of Genode, which is a framework for creating
 component-based operating systems. It combines capability-based security,
 microkernel technology, sandboxed device drivers, and virtualization with
 a novel operating system architecture. For a general overview about the
-architecture, please refer to the project's official website:
-
-:Website for the Genode OS Framework:
-
-  [https://genode.org/documentation/general-overview]
+architecture, please refer to the project's [official website](https://genode.org/documentation/general-overview).
 
 Genode-based operating systems can be compiled for a variety of kernels: Linux,
 L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, seL4, and a custom "hw"
@@ -34,17 +32,9 @@ possible otherwise. For users and system integrators, it enables the choice of
 the kernel that fits best with the requirements at hand for the particular
 usage scenario.
 
+## Documentation
 
-Documentation
-#############
-
-The primary documentation is the book "Genode Foundations", which is available
-on the front page of the Genode website:
-
-:Download the book "Genode Foundations":
-
-  [https://genode.org]
-
+The primary documentation is the book [Genode Foundations](https://genode.org). 
 The book describes Genode in a holistic and comprehensive way. It equips you
 with a thorough understanding of the architecture, assists developers with the
 explanation of the development environment and system configuration, and
@@ -52,89 +42,68 @@ provides a look under the hood of the framework. Furthermore, it contains the
 specification of the framework's programming interface.
 
 The project has a quarterly release cycle. Each version is accompanied with
-detailed release documentation, which is available at the documentation
-section of the project website:
+detailed [release documentation](https://genode.org/documentation/release-notes/).
 
-:Release documentation:
-
-  [https://genode.org/documentation/release-notes/]
-
-
-Directory overview
-##################
+## Directory overview
 
 The source tree is composed of the following subdirectories:
 
-:'doc':
+`doc`
 
   This directory contains general documentation along with a comprehensive
   collection of release notes.
 
-:'repos':
+`repos`
 
   This directory contains the source code, organized in so-called source-code
-  repositories. Please refer to the README file in the 'repos' directory to
+  repositories. Please refer to the `README` file in the `repos` directory to
   learn more about the roles of the individual repositories.
 
-:'tool':
+`tool`
 
-  Source-code management tools and scripts. Please refer to the README file
+  Source-code management tools and scripts. Please refer to the `README` file
   contained in the directory.
 
-
-Additional hardware support
-###########################
+## Additional hardware support
 
 The framework supports a variety of hardware platforms such as different ARM
 SoC families via supplemental repositories.
 
-:Repositories maintained by Genode Labs:
+- [Repositories maintained by Genode Labs](https://github.com/orgs/genodelabs/repositories)
 
-  [https://github.com/orgs/genodelabs/repositories]
-
-
-Additional community-maintained components
-##########################################
+## Additional community-maintained components
 
 The components found within the main source tree are complemented by a growing
 library of additional software, which can be seamlessly integrated into Genode
 system scenarios.
 
-:Genode-world repository:
+- [Genode-world repository](https://github.com/genodelabs/genode-world)
 
-  [https://github.com/genodelabs/genode-world]
+## Community blog
 
-
-Community blog
-##############
-
-Genodians.org presents ideas, announcements, experience stories, and tutorials
+[Genodians.org](https://genodians.org) presents ideas, announcements, experience stories, and tutorials
 around Genode, informally written by Genode users and developers.
 
-:Genodians.org:
-
-  [https://genodians.org]
-
-
-Contact
-#######
+## Contact
 
 The best way to get in touch with Genode developers and users is the project's
-mailing list. Please feel welcome to join in!
+[mailing list](https://genode.org/community/mailing-lists). Please feel welcome to join in!
 
-:Genode Mailing Lists:
+## Commercial support
 
-  [https://genode.org/community/mailing-lists]
+The driving force behind the Genode OS Framework is the German company [Genode
+Labs](https://www.genode-labs.com). The company offers commercial licensing, trainings, support, and
+contracted development work.
 
+## Screenshots
 
-Commercial support
-##################
-
-The driving force behind the Genode OS Framework is the German company Genode
-Labs. The company offers commercial licensing, trainings, support, and
-contracted development work:
-
-:Genode Labs website:
-
-  [https://www.genode-labs.com]
-
+<p align="center">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2024-04-25-sculpt.png">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2020-09-16-sculpt.png">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2019-03-19-sculpt-ce.png">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2018-06-13-desktop-tc.png">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2018-06-13-overlay-tc.png">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2015-11-27-turmvilla.png">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2014-02-27-seoul-vbox.png">
+<img alt="Sculpt-OS-Screenshots" width="800" src="https://genode.org/about/2013-08-15-qt5.png">
+</p>
