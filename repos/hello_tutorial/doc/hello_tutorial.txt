@@ -193,6 +193,7 @@ the applications as a class called 'Main' with its constructor taking the
 component's environment as argument.
 
 !#include <base/component.h>
+!#include <base/heap.h>
 !
 !namespace Hello { struct Main; }
 !
@@ -407,7 +408,7 @@ script, which can be executed directly from within your build directory.
 A run script for the hello client-server scenario should be placed
 at the _run/hello.run_ and look as follows:
 
-!build { core init hello }
+!build { core lib/ld init hello }
 !
 !create_boot_directory
 !
@@ -415,6 +416,9 @@ at the _run/hello.run_ and look as follows:
 !<config>
 !  <parent-provides>
 !    <service name="LOG"/>
+!    <service name="PD"/>
+!    <service name="CPU"/>
+!    <service name="ROM"/>
 !  </parent-provides>
 !  <default-route>
 !    <any-service> <parent/> <any-child/> </any-service>
@@ -429,7 +433,7 @@ at the _run/hello.run_ and look as follows:
 !  </start>
 !</config>}
 !
-!build_boot_image { core ld.lib.so init hello_client hello_server }
+!build_boot_image [build_artifacts]
 !
 !append qemu_args " -nographic "
 !
