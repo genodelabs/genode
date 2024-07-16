@@ -33,7 +33,6 @@ DEFINE_PER_CPU(unsigned long, cpu_scale);
 pgd_t reserved_pg_dir[PTRS_PER_PGD];
 #endif
 
-bool arm64_use_ng_mappings = false;
 
 pteval_t __default_kernel_pte_mask __read_mostly = ~0;
 

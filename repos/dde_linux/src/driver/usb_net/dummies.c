@@ -24,8 +24,6 @@ EXPORT_PER_CPU_SYMBOL(cpu_sibling_map);
 
 unsigned long __FIXADDR_TOP = 0xfffff000;
 
-bool arm64_use_ng_mappings = false;
-
 const struct ipv6_stub *ipv6_stub;
 
 

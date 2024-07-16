@@ -1,6 +1,7 @@
 /*
  * \brief  Replaces arch/arm64/kernel/cpufeature.c
  * \author Martin Stein
+ * \author Christian Helmuth
  * \date   2022-05-09
  */
 
@@ -36,3 +37,5 @@ EXPORT_SYMBOL(cpu_hwcap_keys);
 
 DECLARE_BITMAP(cpu_hwcaps, ARM64_NCAPS);
 EXPORT_SYMBOL(cpu_hwcaps);
+
+bool arm64_use_ng_mappings = false;

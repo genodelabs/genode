@@ -71,7 +71,6 @@ LX_ARCH   := x86
 GEN_ARCH  := x86
 SPEC_ARCH := x86_64
 
-
 SRC_C += lx_emul/shadow/arch/x86/kernel/irq.c
 SRC_C += lx_emul/shadow/arch/x86/kernel/setup_percpu.c
 endif
@@ -92,6 +91,9 @@ ifeq ($(filter-out $(SPECS),arm_v8),)
 LX_ARCH   := arm64
 GEN_ARCH  := arm
 SPEC_ARCH := arm_v8
+
+SRC_C += lx_emul/shadow/arch/arm64/kernel/cacheinfo.c
+SRC_C += lx_emul/shadow/arch/arm64/kernel/cpufeature.c
 endif
 
 ifneq ($(SHARED_LIB),)
