@@ -367,6 +367,8 @@ append targets {
 	core init timer lib/ld server/nic_router server/report_rom lib/curl
 	app/fetchurl }
 
+exec head -c $file_size_in_bytes < /dev/urandom > bin/wg_fetchurl.data
+
 set boot_modules { }
 if $linux {
 	append targets { server/lx_fs }
@@ -385,8 +387,6 @@ if $linux {
 }
 
 build $targets
-
-exec head -c $file_size_in_bytes < /dev/urandom > bin/wg_fetchurl.data
 
 build_boot_image [list {*}[build_artifacts] {*}$boot_modules]
 
