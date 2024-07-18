@@ -672,6 +672,7 @@ set default_test_pkgs {
 	test-init_loop
 	test-ldso
 	test-libc
+	test-libc_alarm
 	test-libc_connect_lwip
 	test-libc_connect_lxip
 	test-libc_connect_vfs_server_lwip
@@ -681,7 +682,7 @@ set default_test_pkgs {
 	test-libc_fifo_pipe
 	test-libc_fork
 	test-libc_getenv
-	test-libc_alarm
+	test-libc_kqueue
 	test-libc_pipe
 	test-libc_vfs
 	test-libc_vfs_audit

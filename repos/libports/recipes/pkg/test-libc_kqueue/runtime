@@ -1,0 +1,24 @@
+<runtime ram="3M" caps="200" binary="test-libc_kqueue">
+
+	<requires> <timer/> </requires>
+
+	<fail after_seconds="8"/>
+	<succeed>--- test succeeded ---</succeed>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="test-libc_kqueue"/>
+		<rom label="vfs.lib.so"/>
+	</content>
+
+	<config>
+		<vfs> <dir name="dev"> <log/> <inline name="rtc">2019-08-20 15:01</inline> </dir> </vfs>
+		<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+		<arg value="test-libc_kqueue"/>
+		<arg value="/dev/log"/>
+	</config>
+
+</runtime>

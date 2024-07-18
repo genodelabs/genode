@@ -156,6 +156,11 @@ namespace Libc {
 	 * Atexit handling
 	 */
 	void init_atexit(Atexit &);
+
+	/**
+	 * Kqueue support
+	 */
+	void init_kqueue(Genode::Allocator &, Monitor &);
 }
 
 #endif /* _LIBC__INTERNAL__INIT_H_ */

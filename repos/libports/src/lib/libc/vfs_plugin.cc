@@ -220,6 +220,13 @@ namespace Libc {
 		return handle->fs().read_ready(*handle);
 	}
 
+	void notify_read_ready_from_kernel(File_descriptor *fd)
+	{
+		Vfs::Vfs_handle *handle = vfs_handle(fd);
+		if (handle)
+			handle->fs().notify_read_ready(handle);
+	}
+
 	bool write_ready_from_kernel(File_descriptor *fd)
 	{
 		Vfs::Vfs_handle const *handle = vfs_handle(fd);

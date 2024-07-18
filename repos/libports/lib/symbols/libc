@@ -5,6 +5,7 @@
 #
 # libc
 #
+_Exit T
 ___mb_cur_max D 50
 ___runetype T
 ___tolower T
@@ -39,7 +40,6 @@ __stdoutp D 8
 __swbuf T
 __test_sse T
 __xuname T
-_Exit T
 _exit T
 _getlong T
 _getshort T
@@ -412,8 +412,10 @@ iswupper T
 iswxdigit T
 isxdigit T
 jrand48 T
+kevent T
 kill W
 killpg T
+kqueue T
 ksem_init T
 l64a T
 l64a_r T
@@ -500,8 +502,8 @@ posix_fadvise T
 posix_madvise T
 posix_memalign T
 posix_spawn T
-posix_spawn_file_actions_addclose T
 posix_spawn_file_actions_addchdir_np T
+posix_spawn_file_actions_addclose T
 posix_spawn_file_actions_adddup2 T
 posix_spawn_file_actions_addopen T
 posix_spawn_file_actions_destroy T
