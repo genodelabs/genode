@@ -229,3 +229,40 @@ extern "C" int raise(int sig)
 		return Libc::Errno(EINVAL);
 	};
 }
+
+
+extern "C" int sigaltstack(stack_t const * const ss, stack_t * const old_ss)
+{
+	if (!_signal_ptr)
+		return Errno(EINVAL);
+
+	auto &signal = *_signal_ptr;
+
+	if (ss) {
+		auto myself = Thread::myself();
+		if (!myself)
+			return Errno(EINVAL);
+
+		if (ss->ss_flags & SS_DISABLE) {
+			/* on disable use the default signal stack */
+			signal.use_alternative_stack(nullptr);
+
+			warning("leaking secondary stack memory");
+
+		} else {
+			if (ss->ss_sp)
+				warning(__func__, " using self chosen stack is not"
+				                  " supported - stack ptr is ignored !!!");
+
+			void * stack = myself->alloc_secondary_stack("sigaltstack",
+			                                             ss->ss_size);
+
+			signal.use_alternative_stack(stack);
+		}
+	}
+
+	if (old_ss && ss && !(ss->ss_flags & SS_DISABLE))
+		old_ss->ss_flags = SS_DISABLE;
+
+	return 0;
+}
