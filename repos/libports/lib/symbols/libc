@@ -705,6 +705,7 @@ setuid W
 setusershell T
 setvbuf T
 shutdown T
+_sigaction W
 sigaction W
 sigaddset T
 sigaltstack T
