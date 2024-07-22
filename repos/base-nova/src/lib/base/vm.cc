@@ -134,6 +134,7 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 			mtd |= Nova::Mtd::SYSCALL_SWAPGS;
 			mtd |= Nova::Mtd::TPR;
 			mtd |= Nova::Mtd::QUAL;
+			mtd |= Nova::Mtd::XSAVE;
 			mtd |= Nova::Mtd::FPU;
 
 			return Nova::Mtd(mtd);
@@ -333,6 +334,11 @@ void Nova_vcpu::_read_nova_state(Nova::Utcb &utcb)
 	if (utcb.mtd & Nova::Mtd::TPR) {
 		_vcpu_state.tpr.charge(utcb.read_tpr());
 		_vcpu_state.tpr_threshold.charge(utcb.read_tpr_threshold());
+	}
+
+	if (utcb.mtd & Nova::Mtd::XSAVE) {
+		_vcpu_state.xcr0.charge(utcb.xcr0);
+		_vcpu_state.xss.charge(utcb.xss);
 	}
 }
 
@@ -539,6 +545,13 @@ void Nova_vcpu::_write_nova_state(Nova::Utcb &utcb)
 		utcb.mtd |= Nova::Mtd::TPR;
 		utcb.write_tpr(_vcpu_state.tpr.value());
 		utcb.write_tpr_threshold(_vcpu_state.tpr_threshold.value());
+	}
+
+	if (_vcpu_state.xcr0.charged() || _vcpu_state.xss.charged()) {
+		utcb.xcr0 = _vcpu_state.xcr0.value();
+		utcb.xss  = _vcpu_state.xss.value();
+
+		utcb.mtd |= Nova::Mtd::XSAVE;
 	}
 
 	if (_vcpu_state.fpu.charged()) {

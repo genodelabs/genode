@@ -725,7 +725,7 @@ Core::Platform::Platform()
 	/* show all warnings/errors after init_core_log setup core_log */
 	if (warn_reorder)
 		warning("re-ordering of CPU ids for SMT and P/E cores failed");
-	if (hip.api_version != 9)
+	if (hip.api_version != 10)
 		error("running on a unsupported kernel API version ", hip.api_version);
 	if (binaries_end != core_virt_end)
 		error("mismatch in address layout of binaries with core");

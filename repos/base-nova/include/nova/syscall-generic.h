@@ -417,6 +417,7 @@ namespace Nova {
 				SYSCALL_SWAPGS = 1U << 23,  /* SYSCALL and SWAPGS MSRs */
 				TPR            = 1U << 24,  /* TPR and TPR threshold */
 				TSC_AUX        = 1U << 25,  /* IA32_TSC_AUX used by rdtscp */
+				XSAVE          = 1U << 26,  /* XCR and XSS used with XSAVE */
 				FPU            = 1U << 31,  /* FPU state */
 
 				IRQ   = EFL | STA | INJ | TSC,
@@ -660,8 +661,8 @@ namespace Nova {
 #endif
 				unsigned long long qual[2];  /* exit qualification */
 				unsigned ctrl[2];
-				unsigned long long reserved;
 				mword_t cr0, cr2, cr3, cr4;
+				unsigned long long xcr0, xss;
 				mword_t pdpte[4];
 #ifdef __x86_64__
 				mword_t cr8, efer;
