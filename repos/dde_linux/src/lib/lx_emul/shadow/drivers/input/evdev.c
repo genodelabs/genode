@@ -378,6 +378,10 @@ static bool record_key(struct evdev *evdev, struct input_value const *v)
 	if (v->type != EV_KEY)
 		return false;
 
+	/* silently drop KEY_FN as hardware switch */
+	if (v->code == KEY_FN)
+		return true;
+
 	if (is_tool_key(v->code)) {
 		evdev->tool = v->value ? v->code : 0;
 	} else {
