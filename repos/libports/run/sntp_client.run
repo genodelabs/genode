@@ -106,6 +106,8 @@ build_boot_image [build_artifacts]
 append qemu_args "  -nographic "
 append_qemu_nic_args
 
-set done_string "report_rom]   <set_rtc year.*?report_rom]   <set_rtc year.*?\n"
+set done_string {report_rom\]   <set_rtc year.*?\n}
 
 run_genode_until $done_string 90
+set serial_id [output_spawn_id]
+run_genode_until $done_string 70 $serial_id
