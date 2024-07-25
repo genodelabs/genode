@@ -18,14 +18,9 @@
 #include <base/thread.h>
 
 __attribute__((always_inline))
-inline void nova_die(const char * text = 0)
+inline void nova_die()
 {
-	/*
-	 * If thread is de-constructed the sessions are already gone.
-	 * Be careful when enabling printf here.
-	 */
-	while (1)
-		asm volatile ("ud2a" : : "a"(text));
+	asm volatile ("ud2a");
 }
 
 

@@ -307,12 +307,10 @@ Core::Platform::Platform()
 	_irq_alloc(&core_mem_alloc()),
 	_vm_base(0x1000), _vm_size(0), _cpus(Affinity::Space(1,1))
 {
-	bool warn_reorder = false;
+	bool warn_reorder  = false;
+	bool error_overlap = false;
 
 	Hip const &hip = *(Hip *)__initial_sp;
-	/* check for right API version */
-	if (hip.api_version != 9)
-		nova_die();
 
 	/* determine number of available CPUs */
 	_cpus = setup_affinity_space(hip);
@@ -341,13 +339,6 @@ Core::Platform::Platform()
 	 * Now that we can access the I/O ports for comport 0, printf works...
 	 */
 
-	/*
-	 * Mark successful boot of hypervisor for automatic tests. This must be
-	 * done before core_log is initialized to prevent unexpected-reboot
-	 * detection.
-	 */
-	log("\nHypervisor ", String<sizeof(hip.signature)+1>((char const *)&hip.signature),
-	    " (API v", hip.api_version, ")");
 
 	/*
 	 * remap main utcb to default utcb address
@@ -357,35 +348,20 @@ Core::Platform::Platform()
 	if (map_local(_core_pd_sel, *__main_thread_utcb, (addr_t)__main_thread_utcb,
 	              (addr_t)main_thread_utcb(), 1, Rights(true, true, false))) {
 		error("could not remap utcb of main thread");
-		nova_die();
 	}
 
-	/* sanity checks */
-	if (hip.sel_exc + 3 > NUM_INITIAL_PT_RESERVED) {
-		error("configuration error (NUM_INITIAL_PT_RESERVED)");
-		nova_die();
-	}
+	/*
+	 * Mark successful boot of hypervisor for automatic tests. This must be
+	 * done before core_log is initialized to prevent unexpected-reboot
+	 * detection.
+	 */
+	log("\nHypervisor ", String<sizeof(hip.signature)+1>((char const *)&hip.signature),
+	    " (API v", hip.api_version, ")");
 
 	/* init genode cpu ids based on kernel cpu ids (used for syscalls) */
 	warn_reorder = !hip.remap_cpu_ids(map_cpu_ids,
 	                                  sizeof(map_cpu_ids) / sizeof(map_cpu_ids[0]),
 	                                  (unsigned)boot_cpu());
-
-	/* map idle SCs */
-	unsigned const log2cpu = log2(hip.cpu_max());
-	if ((1U << log2cpu) != hip.cpu_max()) {
-		error("number of max CPUs is not of power of 2");
-		nova_die();
-	}
-
-	addr_t sc_idle_base = cap_map().insert(log2cpu + 1);
-	if (sc_idle_base & ((1UL << log2cpu) - 1)) {
-		error("unaligned sc_idle_base value ", Hex(sc_idle_base));
-		nova_die();
-	}
-	if (map_local(_core_pd_sel, *__main_thread_utcb, Obj_crd(0, log2cpu),
-	              Obj_crd(sc_idle_base, log2cpu), true))
-		nova_die();
 
 	/* configure virtual address spaces */
 #ifdef __x86_64__
@@ -416,16 +392,6 @@ Core::Platform::Platform()
 
 	size_t const core_size     = binaries_beg - core_virt_beg;
 	region_alloc().remove_range(core_virt_beg, core_size);
-
-	if (verbose_boot_info || binaries_end != core_virt_end) {
-		log("core     image  ",
-		    Hex_range<addr_t>(core_virt_beg, core_virt_end - core_virt_beg));
-		log("binaries region ",
-		    Hex_range<addr_t>(binaries_beg,  binaries_end - binaries_beg),
-		    " free for reuse");
-	}
-	if (binaries_end != core_virt_end)
-		nova_die();
 
 	/* ROM modules are un-used by core - de-detach region */
 	addr_t const binaries_size  = binaries_end - binaries_beg;
@@ -460,7 +426,8 @@ Core::Platform::Platform()
 			      Hex_range<addr_t>(stack_area_virtual_base(),
 			                        stack_area_virtual_size()), " vs ",
 			      Hex(check[i]));
-			nova_die();
+
+			error_overlap = true;
 		}
 	}
  
@@ -489,13 +456,6 @@ Core::Platform::Platform()
 
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
-		if (verbose_boot_info) {
-			uint64_t const base = mem_desc->addr;
-			uint64_t const size = mem_desc->size;
-			log("detected physical memory: ", Hex(base, Hex::PREFIX, Hex::PAD),
-			    " - size: ", Hex(size, Hex::PREFIX, Hex::PAD));
-		}
-
 		if (!mem_desc->size) continue;
 
 		/* skip regions above 4G on 32 bit, no op on 64 bit */
@@ -508,10 +468,6 @@ Core::Platform::Platform()
 			size = trunc_page(~0ULL - mem_desc->addr + 1);
 		else
 			size = trunc_page(mem_desc->addr + mem_desc->size) - base;
-
-		if (verbose_boot_info)
-			log("use      physical memory: ", Hex(base, Hex::PREFIX, Hex::PAD),
-			    " - size: ", Hex(size, Hex::PREFIX, Hex::PAD));
 
 		_io_mem_alloc.remove_range((addr_t)base, (size_t)size);
 		ram_alloc().add_range((addr_t)base, (size_t)size);
@@ -544,10 +500,6 @@ Core::Platform::Platform()
 			/* calculate size of framebuffer */
 			size = pitch * height;
 		}
-
-		if (verbose_boot_info)
-			log("reserved memory: ", Hex(mem_desc->addr), " - size: ",
-			    Hex(size), " type=", (int)mem_desc->type);
 
 		/* skip regions above 4G on 32 bit, no op on 64 bit */
 		if (mem_desc->addr > ~0UL) continue;
@@ -617,7 +569,8 @@ Core::Platform::Platform()
 			      "(", (int)mem_desc->type, ") with ",
 			      Hex_range<addr_t>((addr_t)mem_d->addr, (size_t)mem_d->size), " "
 			      "(", (int)mem_d->type, ")");
-			nova_die();
+
+			error_overlap = true;
 		}
 	}
 
@@ -772,6 +725,23 @@ Core::Platform::Platform()
 	/* show all warnings/errors after init_core_log setup core_log */
 	if (warn_reorder)
 		warning("re-ordering of CPU ids for SMT and P/E cores failed");
+	if (hip.api_version != 9)
+		error("running on a unsupported kernel API version ", hip.api_version);
+	if (binaries_end != core_virt_end)
+		error("mismatch in address layout of binaries with core");
+	if (error_overlap)
+		error("memory overlap issues detected");
+	if (hip.sel_exc + 3 > NUM_INITIAL_PT_RESERVED)
+		error("configuration error (NUM_INITIAL_PT_RESERVED)");
+
+	/* map idle SCs */
+	auto const log2cpu      = log2(hip.cpu_max());
+	auto const sc_idle_base = cap_map().insert(log2cpu + 1);
+
+	if (map_local(_core_pd_sel, *__main_thread_utcb, Obj_crd(0, log2cpu),
+	              Obj_crd(sc_idle_base, log2cpu), true))
+		error("idle SC information unavailable");
+
 
 	if (verbose_boot_info) {
 		if (hip.has_feature_iommu())
