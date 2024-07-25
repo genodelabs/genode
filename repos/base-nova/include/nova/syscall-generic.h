@@ -178,21 +178,39 @@ namespace Nova {
 		}
 
 		/**
-		 * Map kernel cpu ids to virtual cpu ids.
+		 * Resort CPU ids such, that
+		 * - the boot CPU id is ever logical CPU id 0
+		 * - SMT threads of one CPU have logical CPU ids close together
+		 * - P-Core has a smaller logical CPU id than E-Core CPUs
+		 *
+		 * Returns true, if re-mapping succeeded otherwise false.
+		 *
+		 * In case of failure, map_cpus will contain a 1:1 fallback mapping
+		 * without any sorting as mentioned above.
 		 */
-		bool remap_cpu_ids(uint16_t *map_cpus, unsigned const boot_cpu) const
+		bool remap_cpu_ids(uint16_t *map_cpus, unsigned const max_cpus,
+		                   unsigned const boot_cpu) const
 		{
 			unsigned const num_cpus = cpus();
+			bool too_many_cpus = false;
 			unsigned cpu_i = 0;
+
+			/* fallback lambda in case re-ordering fails */
+			auto remap_failure = [&] {
+				for (uint16_t i = 0; i < max_cpus; i++) { map_cpus[i] = i; }
+				return false;
+			};
 
 			/* assign boot cpu ever the virtual cpu id 0 */
 			Cpu_desc const * const boot = cpu_desc_of_cpu(boot_cpu);
-			if (!boot || !is_cpu_enabled(boot_cpu) || boot->e_core())
-				return false;
+			if (!boot)
+				return remap_failure();
 
 			map_cpus[cpu_i++] = (uint8_t)boot_cpu;
 			if (cpu_i >= num_cpus)
 				return true;
+			if (cpu_i >= max_cpus)
+				return remap_failure();
 
 			/* assign cores + SMT threads first and skip E-cores */
 			bool done = for_all_cpus([&](auto const &cpu, auto const kernel_cpu_id) {
@@ -204,25 +222,32 @@ namespace Nova {
 					return false;
 
 				map_cpus[cpu_i++] = (uint8_t)kernel_cpu_id;
-				return (cpu_i >= num_cpus);
+
+				too_many_cpus = !!(cpu_i >= max_cpus);
+
+				return (cpu_i >= num_cpus || too_many_cpus);
 			});
 
+			if (done)
+				return too_many_cpus ? remap_failure() : true;
+
 			/* assign remaining E-cores */
-			if (!done) {
-				done = for_all_cpus([&](auto &cpu, auto &kernel_cpu_id) {
-						if (kernel_cpu_id == boot_cpu)
-							return false;
+			done = for_all_cpus([&](auto &cpu, auto &kernel_cpu_id) {
+				if (kernel_cpu_id == boot_cpu)
+					return false;
 
-						/* handle solely E-core */
-						if (!cpu.e_core())
-							return false;
+				/* handle solely E-core */
+				if (!cpu.e_core())
+					return false;
 
-						map_cpus[cpu_i++] = (uint16_t)kernel_cpu_id;
-						return (cpu_i >= num_cpus);
-					});
-			}
+				map_cpus[cpu_i++] = (uint16_t)kernel_cpu_id;
 
-			return done;
+				too_many_cpus = !!(cpu_i >= max_cpus);
+
+				return (cpu_i >= num_cpus || too_many_cpus);
+			});
+
+			return too_many_cpus ? remap_failure() : done;
 		}
 
 		/**

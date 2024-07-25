@@ -307,6 +307,8 @@ Core::Platform::Platform()
 	_irq_alloc(&core_mem_alloc()),
 	_vm_base(0x1000), _vm_size(0), _cpus(Affinity::Space(1,1))
 {
+	bool warn_reorder = false;
+
 	Hip const &hip = *(Hip *)__initial_sp;
 	/* check for right API version */
 	if (hip.api_version != 9)
@@ -365,15 +367,9 @@ Core::Platform::Platform()
 	}
 
 	/* init genode cpu ids based on kernel cpu ids (used for syscalls) */
-	if (sizeof(map_cpu_ids) / sizeof(map_cpu_ids[0]) < hip.cpu_max()) {
-		error("number of max CPUs is larger than expected - ", hip.cpu_max(),
-		      " vs ", sizeof(map_cpu_ids) / sizeof(map_cpu_ids[0]));
-		nova_die();
-	}
-	if (!hip.remap_cpu_ids(map_cpu_ids, (unsigned)boot_cpu())) {
-		error("re-ording cpu_id failed");
-		nova_die();
-	}
+	warn_reorder = !hip.remap_cpu_ids(map_cpu_ids,
+	                                  sizeof(map_cpu_ids) / sizeof(map_cpu_ids[0]),
+	                                  (unsigned)boot_cpu());
 
 	/* map idle SCs */
 	unsigned const log2cpu = log2(hip.cpu_max());
@@ -772,6 +768,10 @@ Core::Platform::Platform()
 	if (hyp_log && hyp_log_size)
 		new (core_mem_alloc())
 			Rom_module(_rom_fs, "kernel_log", hyp_log, hyp_log_size);
+
+	/* show all warnings/errors after init_core_log setup core_log */
+	if (warn_reorder)
+		warning("re-ordering of CPU ids for SMT and P/E cores failed");
 
 	if (verbose_boot_info) {
 		if (hip.has_feature_iommu())
