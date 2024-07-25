@@ -1447,7 +1447,7 @@ class Lwip::Tcp_socket_dir final :
 			switch (handle.kind) {
 			case Lwip_file_handle::DATA:
 
-				return tcp_sndbuf(_pcb);
+				return _pcb ? tcp_sndbuf(_pcb) : false;
 
 			case Lwip_file_handle::PEEK:
 			case Lwip_file_handle::ACCEPT:
