@@ -1097,14 +1097,21 @@ void Session_component::_device_policy(genode_usb_device const &d,
 			              (product == d.desc.product_id)) ||
 			             (d.label() == label));
 
+			enum { CLASS_AUDIO = 0x1, CLASS_HID = 0x3 };
 			if (!match) {
 				uint8_t cla = node.attribute_value<uint8_t>("class", 0);
+				bool found_audio = false;
 				d.configs.for_each([&] (genode_usb_configuration const &c) {
 					if (!c.active)
 						return;
 					c.interfaces.for_each([&] (genode_usb_interface const &i) {
-						if (i.desc.iclass == cla) match = true; });
+						if (i.desc.iclass == cla) match = true;
+						if (i.desc.iclass == CLASS_AUDIO) found_audio = true;
+					});
 				});
+				/* do not match HID in AUDIO devices */
+				if (match && cla == CLASS_HID && found_audio)
+					match = false;
 			}
 
 			if (match) fn(node);
