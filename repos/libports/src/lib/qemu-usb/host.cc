@@ -535,7 +535,7 @@ void Isoc_cache::_copy_to_host(USBPacket *p)
 	size_t offset = _wrote * _ep.max_packet_size();
 
 	if (size > _ep.max_packet_size()) {
-		error("Assumption about QEmu Isochronous out packets wrong!");
+		error("Assumption about QEmu Isochronous out packets wrong (size=", size, " max=", _ep.max_packet_size(), ")!");
 		size = _ep.max_packet_size();
 	}
 
