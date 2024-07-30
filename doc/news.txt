@@ -4,6 +4,31 @@
                                ===========
 
 
+Meet us at FroSCon during August 17-18 | 2024-07-30
+###################################################
+
+| The Genode project will host a booth at this year's Free
+| and Open-Source Software Conference in Sankt Augustin.
+
+Besides FOSDEM, public appearances of Genode are rather rare.
+All the more delighted we are about the opportunity to host
+a booth at the upcoming FrOScon conference.
+
+*FrOScon Free and Open-Source Software Conference*
+
+*August 18 and 17 in Sankt Augustin*
+
+[https://froscon.org]
+
+The Genode stand will be maintained by the Genode team members
+Stefan Kalkowski, Johannes Schlatow, Christian Helmuth, and
+Norman Feske. It goes without saying that we will have Sculpt
+OS in various forms and flavors with us to showcase. Whether
+you like to get acquainted with our project or touch base with
+us developers in person, FrOScon might present the perfect
+opportunity!
+
+
 Genode OS Framework release 24.05 | 2024-05-30
 ##############################################
 
