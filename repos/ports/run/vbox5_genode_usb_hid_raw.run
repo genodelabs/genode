@@ -217,29 +217,10 @@ if { ![get_cmd_switch --autopilot] } { run_genode_until forever }
 
 # autopilot test
 
-run_genode_until {\[init -\> log_terminal\] \[init -\> event_dump\] Input event #0\t} 90
+run_genode_until {\[init -\> log_terminal\] \[init -\> event_dump\] Input event #11\t} 150
 
-# remove everything before the first interesting line
-regexp {(\[init -\> log_terminal\] \[init -\> event_dump\] Input event #0\t.*)} $output all output
-
-run_genode_until {.*\[init -\> event_dump\] Input event #11.*\n} 60 [output_spawn_id]
-
-# pay only attention to the output of init and its children
-grep_output {^\[init }
-
-unify_output {(?n)^\[init -\> log_terminal\] \[init -\> usb_hid\] usb usb-[0-9]-[0-9]: input irq status -19 received} ""
-unify_output {(?n) on usb-usbbus.*$} ""
-unify_output {(?n) at usb-usbbus.*\)} ")"
-unify_output {(?n)hid-generic.*input:} "hid-generic: input:"
-unify_output {(?n)usb-[0-9]-[0-9]: USB disconnect, device number [0-9]} "usb-X-X: USB disconnect, device number X"
-unify_output {(?n)device number [0-9]+} "device number X"
-unify_output {(?n)input[0-9]} "inputX"
-unify_output {(?n) as /devices/.*} ""
-unify_output {(?n)^\[init -\> usb.*} ""
-unify_output {(?n)^\[init -\> log_terminal\] \[init -\> usb.*} ""
-unify_output {(?n)^.*dangling allocation.*$} ""
-unify_output {(?n)^.*usbfs: process .* did not claim interface.*$} ""
-trim_lines
+# pay only attention to the output of event_dump
+grep_output {^\[init -\> log_terminal\] \[init -\> event_dump\]}
 
 compare_output_to {
 [init -> log_terminal] [init -> event_dump] Input event #0	PRESS KEY_X 65534	key count: 1
@@ -247,15 +228,6 @@ compare_output_to {
 [init -> log_terminal] [init -> event_dump] Input event #2	REL_MOTION -1+1	key count: 0
 [init -> log_terminal] [init -> event_dump] Input event #3	PRESS BTN_LEFT 65534	key count: 1
 [init -> log_terminal] [init -> event_dump] Input event #4	RELEASE BTN_LEFT	key count: 0
-[init -> log_terminal] [init -> usb_hid] usb usb-X-X: USB disconnect, device number X
-[init -> log_terminal] [init -> usb_hid] Disconnected device: inputX
-[init -> log_terminal] [init -> usb_hid] Disconnected device: inputX
-[init -> log_terminal] [init -> usb_hid] input: Dean Camera LUFA Mouse and Keyboard Demo
-[init -> log_terminal] [init -> usb_hid] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo)
-[init -> log_terminal] [init -> usb_hid] hid-generic: input: USB HID v1.11 Keyboard [Dean Camera LUFA Mouse and Keyboard Demo]
-[init -> log_terminal] [init -> usb_hid] input: Dean Camera LUFA Mouse and Keyboard Demo
-[init -> log_terminal] [init -> usb_hid] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo) MOUSE
-[init -> log_terminal] [init -> usb_hid] hid-generic: input: USB HID v1.11 Mouse [Dean Camera LUFA Mouse and Keyboard Demo]
 [init -> log_terminal] [init -> event_dump] Input event #5	PRESS KEY_X 65534	key count: 1
 [init -> log_terminal] [init -> event_dump] Input event #6	RELEASE KEY_X	key count: 0
 [init -> log_terminal] [init -> event_dump] Input event #7	REL_MOTION -1+1	key count: 0

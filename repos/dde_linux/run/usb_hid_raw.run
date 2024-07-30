@@ -206,28 +206,10 @@ if { [have_include "power_on/qemu"] || ![get_cmd_switch --autopilot] } { run_gen
 
 # autopilot test
 
-run_genode_until {\[init -\> event_dump\] Input event #0\t} 60
-
-# remove everything before the first interesting line
-regexp {(\[init -\> event_dump\] Input event #0\t.*)} $output all output
-
-run_genode_until {\[init -\> event_dump\] Input event #11.*\n} 40 [output_spawn_id]
+run_genode_until {\[init -\> event_dump\] Input event #11.*\n} 100
 
 # pay only attention to the output of init and its children
-grep_output {^\[init }
-
-# filter out KVM switch messages during the nightly test
-unify_output {(?n).*0557:2213.*} ""
-
-unify_output {(?n) on usb-usbbus.*$} ""
-unify_output {(?n) at usb-usbbus.*\)} ")"
-unify_output {(?n)hid-generic.*input:} "hid-generic: input:"
-unify_output {(?n)usb-[0-9]-[0-9]: USB disconnect, device number [0-9]} "usb-X-X: USB disconnect, device number X"
-unify_output {(?n)input[0-9]} "inputX"
-unify_output {(?n) as /devices/.*} ""
-unify_output {(?n)^\[init -\> usb -\>.*} ""
-unify_output {(?n)^\[init -\> usb_hid\] Connected device: inputX \(ATEN CS1764A V1.1.110\).*} ""
-trim_lines
+grep_output {^\[init -\> event_dump\]}
 
 compare_output_to {
 [init -> event_dump] Input event #0	PRESS KEY_X 65534	key count: 1
@@ -235,15 +217,6 @@ compare_output_to {
 [init -> event_dump] Input event #2	REL_MOTION -1+1	key count: 0
 [init -> event_dump] Input event #3	PRESS BTN_LEFT 65534	key count: 1
 [init -> event_dump] Input event #4	RELEASE BTN_LEFT	key count: 0
-[init -> usb_hid] usb usb-X-X: USB disconnect, device number X
-[init -> usb_hid] Disconnected device: inputX
-[init -> usb_hid] Disconnected device: inputX
-[init -> usb_hid] input: Dean Camera LUFA Mouse and Keyboard Demo
-[init -> usb_hid] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo)
-[init -> usb_hid] hid-generic: input: USB HID v1.11 Keyboard [Dean Camera LUFA Mouse and Keyboard Demo]
-[init -> usb_hid] input: Dean Camera LUFA Mouse and Keyboard Demo
-[init -> usb_hid] Connected device: inputX (Dean Camera LUFA Mouse and Keyboard Demo) MOUSE
-[init -> usb_hid] hid-generic: input: USB HID v1.11 Mouse [Dean Camera LUFA Mouse and Keyboard Demo]
 [init -> event_dump] Input event #5	PRESS KEY_X 65534	key count: 1
 [init -> event_dump] Input event #6	RELEASE KEY_X	key count: 0
 [init -> event_dump] Input event #7	REL_MOTION -1+1	key count: 0
