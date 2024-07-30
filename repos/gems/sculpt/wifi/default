@@ -1,3 +1,3 @@
-<wifi connected_scan_interval="0" scan_interval="5" use_11n="no" rfkill="no" verbose="no">
+<wifi connected_scan_interval="0" scan_interval="5" rfkill="no" verbose="no">
 	<network ssid="" protection="NONE" passphrase=""/>
 </wifi>

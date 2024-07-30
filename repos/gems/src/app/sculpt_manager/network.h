@@ -144,7 +144,6 @@ struct Sculpt::Network : Noncopyable
 				xml.attribute("connected_scan_interval", 0U);
 				xml.attribute("scan_interval", 10U);
 				xml.attribute("update_quality_interval", 30U);
-				xml.attribute("use_11n", false);
 
 				xml.attribute("verbose_state", false);
 				xml.attribute("verbose",       false);
@@ -175,7 +174,7 @@ struct Sculpt::Network : Noncopyable
 
 			xml.attribute("connected_scan_interval", 0U);
 			xml.attribute("scan_interval", 10U);
-			xml.attribute("use_11n", false);
+			xml.attribute("update_quality_interval", 30U);
 
 			xml.attribute("verbose_state", false);
 			xml.attribute("verbose",       false);
