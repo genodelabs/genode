@@ -1,0 +1,1031 @@
+                          The Tresor library
+
+                             Martin Stein
+
+The Tresor library provides tools for creating and using data-storage
+containers that are managed and encrypted on the block level according to the
+Tresor scheme. The features of these containers include:
+
+* Protection against unauthorized data access,
+* detection of any intentional or unintentional data modifications,
+* recovery from system crashes to a consistent state,
+* trust-anchor-based authorization,
+* online replacement of encryption keys,
+* online extending,
+* management of incremental, read-only snapshots,
+* and a container capacity of up to 4 terabyte.
+
+
+Basic terminology
+=================
+
+* Back-end storage: The medium that the container is stored on. It is assumed
+  to act like a Block device.
+
+* VBD: Virtual block device. The medium that the container provides to the
+  user. The data it stores is, in the background, managed and encrypted via
+  the Tresor scheme.
+
+* On disc: At the back-end storage.
+* Physical block: A block at the backing storage.
+* Virtual block: A block at the VBD.
+* PBA: Physical block address
+* VBA: Virtual block address
+
+* Block encryption key: A secret random number that is used to encrypt the
+  user data stored in the VBD. On disc, the key is stored encrypted as part of
+  the container. The block encryption key of a container can be transparently
+  replaced by the user through rekeying.
+
+* Master key: A secret random number that authenticates the container user,
+  is assumed to be known only to the trust anchor, and is used to encrypt
+  the block encryption keys of a container.
+
+* TA: Trust anchor. A software or hardware component that stores the
+  master key and the master hash. It is assumed that the trust anchor is the
+  only component in the system, that knows these two values or can make correct
+  assumptions about them. The trust anchor provides an interface for performing
+  certain operations with these values without compromising the before
+  mentioned condition.
+
+* EVD block: Encrypted VBD data block. A block of user data that is stored in
+  the VBD and that was encrypted with the block encryption key.
+
+* COW: Copy-On-Write. The blocks that make up a container are never directly
+  overridden. Instead, the new state is written into a free physical block
+  and references to both blocks are kept at first.
+
+* SB: Superblock.
+
+* Snapshot: One of the types of hash trees held in the container. A snapshot
+  represents one state of the VBD (incrementally). One container can hold
+  multiple snapshots. The most recent snapshot represents the VBD state that is
+  observed by the user under normal access.
+
+* FT: Free tree. One of the hash trees held in the container. Enables efficient
+  allocation of PBAs for COW at the VBD meta data and payload data.
+
+* MT: Meta tree. One of the hash trees held in the container. Enables efficient
+  allocation of PBAs for COW at the FT and MT meta data.
+
+* To secure the SB: The act of flushing the block caches, writing out
+  the superblock to the back-end storage, and eventually storing the
+  superblock hash at the TA. This transitions the containers on-disc structures
+  from an older to a new consistent state and results in a momentary
+  synchronization of user state and on-disc state.
+
+* Generation: An integer value that identifies a VBD state. Each snapshot
+  corresponds to a unique generation value. The VBD starts at generation 0 and
+  then increments the generation value for each new snapshot.
+
+* Root node: A reference to the heighest (meta-data- resp. inner-) block in a tree.
+* Root block: The block referenced by the root node of a tree
+
+
+On-disc structure of a container
+================================
+
+Both the physical block size and the virtual block size are fixed to 4096
+bytes per block.
+
+On-disc block layout of a container:
+
+!            Physical
+!       block address
+!                   0  +------------------------------------+
+!                      | Superblock #1                      |
+!                   1  +------------------------------------+
+!                   .  |    .                               |
+!                   .       .
+!                   .  |    .                               |
+!                   7  +------------------------------------+
+!                      | Superblock #8                      |
+!                   8  +------------------------------------+
+!                      | Other block type                   |
+!                   9  +------------------------------------+
+!                   .  |    .                               |
+!                   .       .
+!                   .  |    .                               |
+! [Physical Blocks]-1  +------------------------------------+
+!                      | Other block type                   |
+!   [Physical Blocks]  +------------------------------------+
+
+The PBA range of the container is always contiguous and starts always at 0.
+Extending the container always uses the PBAs that come right after the current
+end of the PBA range in order to not violate this condition.
+
+The superblocks are always located in the first 8 physical blocks. The one
+superblock to use for the container can be found by iterating over all
+superblocks and find the one whose hash matches the superblock hash stored in
+the TA. If this fails, then the container is rendered unusable most probably
+because it has been altered unauthorized since the last time of securing the
+SB.
+
+Although there are 8 superblocks, in reality, at most 2 of them at a time
+reference an intact container and most of the time only one does. A freshly
+initialized container has its current superblock at PBA 0. Whenever a new
+superblock state is written out to the back-end storage, the next higher PBA
+module 8 is overwritten. So, the PBAs 0 to 7 are used in a round-robin fashion.
+During the timespan between writing out a new superblock to the back-end
+storage and updating the superblock hash at the TA both the most recent and the
+previous SB PBA contain a valid superblock. This allows for a roll-back to the
+previous superblock state when storing the superblock hash at the TA failed.
+However, when the new superblock hash was stored successfully at the TA,
+software will also select the new superblock for accessing the container and
+soon render the previous one unusable by re-assigning PBAs that still form
+part of the older superblock's hash trees.
+
+There are 3 other types of blocks that live in the area that comes after the
+superblocks: data blocks, type 1 blocks, and type 2 blocks.
+
+On-disc layout of a superblock:
+
+! Byte offset                                          Size in bytes
+!           0  +------------------------------------+
+!              | State                              |  1
+!           1  +------------------------------------+
+!              | Rekeying VBA                       |  8
+|           9  +------------------------------------+
+!              | Resizing: Number of PBAs           |  8
+!          17  +------------------------------------+
+!              | Resizing: Number of leaves         |  8
+!          25  +------------------------------------+
+!              | Previous key                       |  36
+!          61  +------------------------------------+
+!              | Current key                        |  36
+!          97  +------------------------------------+
+!              | Snapshot root node #1              |  72
+!         169  +------------------------------------+
+!           .  |    .                               |  .
+!           .       .                                  .
+!           .  |    .                               |  .
+!        3481  +------------------------------------+
+!              | Snapshot root node #48             |  72
+!        3553  +------------------------------------+
+!              | Last secured generation            |  8
+!        3561  +------------------------------------+
+!              | Current snapshot index             |  4
+!        3565  +------------------------------------+
+!              | Snapshot degree                    |  4
+!        3569  +------------------------------------+
+!              | First PBA                          |  8
+!        3577  +------------------------------------+
+!              | Number of PBAs                     |  8
+!        3585  +------------------------------------+
+!              | Free tree root node                |  64
+!        3649  +------------------------------------+
+!              | Meta tree root node                |  64
+!        3713  +------------------------------------+
+
+On-disc superblock state values:
+
+! 0 = Invalid superblock
+! 1 = Valid superblock; No special operations in progress
+! 2 = Valid superblock; Rekeying in progress
+! 3 = Valid superblock; Extending virtual block device in progress
+! 4 = Valid superblock; Extending free tree in progress
+
+On-disc layout of a key:
+
+! Byte offset                                          Size in bytes
+!           0  +------------------------------------+
+!              | Value                              |  32
+!          32  +------------------------------------+
+!              | ID                                 |  4
+!          36  +------------------------------------+
+
+On-disc layout of a snapshot root node:
+
+! Byte offset                                          Size in bytes
+!           0  +------------------------------------+
+!              | Hash                               |  32
+!          32  +------------------------------------+
+!              | PBA                                |  8
+!          40  +------------------------------------+
+!              | Generation                         |  8
+!          48  +------------------------------------+
+!              | Number of tree leaves              |  8
+!          56  +------------------------------------+
+!              | Maximum tree level index           |  4
+!          60  +------------------------------------+
+!              | Valid (boolean)                    |  1
+!          61  +------------------------------------+
+!              | Snapshot ID                        |  4
+!          65  +------------------------------------+
+!              | Keep snapshot (boolean)            |  1
+!          66  +------------------------------------+
+!              | 0*                                 |  6
+!          72  +------------------------------------+
+
+On-disc boolean values:
+
+! 0 = False
+! 1 = True
+
+On-disc layout of an FT or MT root node:
+
+! Byte offset                                          Size in bytes
+!           0  +------------------------------------+
+!              | Generation                         |  8
+!           8  +------------------------------------+
+!              | PBA                                |  8
+!          16  +------------------------------------+
+!              | Hash                               |  32
+!          48  +------------------------------------+
+!              | Maximum tree level index           |  4
+!          52  +------------------------------------+
+!              | Tree degree                        |  4
+!          56  +------------------------------------+
+!              | Number of tree leaves              |  8
+!          64  +------------------------------------+
+
+On-disc layout of a type 1 block:
+
+! Byte offset                                          Size in bytes
+!           0  +------------------------------------+
+!              | Type 1 node #1                     |  64
+!          64  +------------------------------------+
+!           .  |    .                               |  .
+!           .       .                                  .
+!           .  |    .                               |  .
+!      X*64-1  +------------------------------------+
+!              | Type 2 node #X                     |  64
+!        X*64  +------------------------------------+
+!              | 0*                                 |  4096-X*64
+!        4096  +------------------------------------+
+!
+! With X <= Degree
+
+On-disc layout of a type 1 node:
+
+! Byte offset                                          Size in bytes
+!           0  +------------------------------------+
+!              | PBA                                |  8
+!           8  +------------------------------------+
+!              | Generation                         |  8
+!          16  +------------------------------------+
+!              | Hash                               |  32
+!          48  +------------------------------------+
+!              | 0*                                 |  16
+!          64  +------------------------------------+
+
+On-disc layout of a type 2 block:
+
+! Byte offset                                          Size in bytes
+!           0  +------------------------------------+
+!              | Type 2 node #1                     |  64
+!          64  +------------------------------------+
+!           .  |    .                               |  .
+!           .       .                                  .
+!           .  |    .                               |  .
+!      X*64-1  +------------------------------------+
+!              | Type 2 node #X                     |  64
+!        X*64  +------------------------------------+
+!              | 0*                                 |  4096-X*64
+!        4096  +------------------------------------+
+!
+! With X <= Degree
+
+On-disc layout of a type 2 node:
+
+! Byte offset                                          Size in bytes
+!           0  +------------------------------------+
+!              | PBA                                |  8
+!           8  +------------------------------------+
+!              | Last VBA                           |  8
+!          16  +------------------------------------+
+!              | Alloc generation                   |  8
+!          24  +------------------------------------+
+!              | Free generation                    |  8
+!          32  +------------------------------------+
+!              | Last key ID                        |  4
+!          36  +------------------------------------+
+!              | Reserved (boolean)                 |  1
+!          37  +------------------------------------+
+!              | 0*                                 |  27
+!          64  +------------------------------------+
+
+Layout of a snapshot hash tree:
+
+!       |  (Root node)
+! Level |    |
+! index |    |
+!       |  +---------------+
+! Max=3 |  | Type 1 block  |
+!       |  +---------------+
+!       |    |    ...    |
+!       |    |           `--------.
+!       |    |                    |
+!       |  +---------------+    +---------------+
+!     2 |  | Type 1 block  | .. | Type 1 block  |
+!       |  +---------------+    +---------------+
+!       |    |    ...    |             ..
+!       |    |           `--------.
+!       |    |                    |
+!       |  +---------------+    +---------------+
+!     1 |  | Type 2 block  | .. | Type 2 block  |     ...
+!       |  +---------------+    +---------------+
+!       |    |    ...    |             ..
+!       |    |           `--------.
+!       |    |                    |
+!       |  +---------------+    +---------------+            +---------------+
+!     0 |  | EVD block     | .. | EVD block     |     ...    | EVD block     |
+!       |  +---------------+    +---------------+            +---------------+
+!
+! -----------------------------------------------------------------------------
+! Virtual
+! block            0                   1              ...          Leaves-1
+! address
+
+On-disc layout of an FT or MT hash tree:
+
+!       |  (Root node)
+! Level |    |
+! index |    |
+!       |  +---------------+
+! Max=3 |  | Type 1 block  |
+!       |  +---------------+
+!       |    |    ...    |
+!       |    |           `--------.
+!       |    |                    |
+!       |  +---------------+    +---------------+
+!     2 |  | Type 1 block  | .. | Type 1 block  |
+!       |  +---------------+    +---------------+
+!       |    |    ...    |             ..
+!       |    |           `--------.
+!       |    |                    |
+!       |  +---------------+    +---------------+
+!     1 |  | Type 2 block  | .. | Type 2 block  |     ...
+!       |  +---------------+    +---------------+
+!       |    |    ...    |             ..
+!       |    |           `--------.
+!       |    |                    |
+!       |  +---------------+    +---------------+            +---------------+
+!     0 |  | Managed block | .. | Managed block |     ...    | Managed block |
+!       |  +---------------+    +---------------+            +---------------+
+
+The dimension parameters of all trees are restricted as follows:
+
+  * Degree >= 2
+  * Degree <= 64
+  * Degree is a power of 2
+  * Maximum level index >= 5
+  * Maximum level index <= 5
+  * Number of leaves >= 1
+  * Number of leaves <= (Degree^[Maximum level index]) - 1
+
+The VBD consists of up to 48 incremental snapshots that are referenced by the
+superblock. There are two types of valid snapshots: Those with the Keep flag
+unset and those with the Keep flag set. Of the former, there should never be
+more than 2 present. They are the most recent and the second-most recent
+snapshot and software manages them automatically in order to keep track of the
+most recent VBD state over the "secure SB" cycle. Of the latter, the Keep
+snapshots, there can be up to 46 present. They are explicitly marked with the
+Keep flag by the user and can be removed only explicitly by the user. This
+means that they are the only VBD states beside the most recent one that the
+user can access. However, in contrast to the most recent VBD state, these older
+VBD states are read-only and must be addressed explicitly.
+
+By convention, this manual depicts trees always with node indices increasing
+from the left to the right. This means that node #1 is always the left-most in
+a block and VBA 0 is always the left-most at the trees leaf-level. Each node
+in a snapshot hash-tree references its child block by its PBA. Furthermore it
+holds the hash of the data in that block. Whenever the child block is read by
+software, it must be checked against this hash before being used. This ensures
+data integrity on every level of operation in the container. Finally, each
+node also contains a generation value indicating which is the VBD state
+(snapshot) with which the referenced child block was added to the VBD.  Note
+that a block in a tree might always be part of multiple snapshots as snapshots
+work incrementally, meaning each snapshot only adds what has changed since the
+last snapshot:
+
+!              Snapshot                  Snapshot            Snapshot
+!              Generation 5              Generation 7        Generation 11
+!                  |                         |                   |
+!               ___O___                   ___O___             ___O___
+!              /       \   _____________ /_______\___________/_______\
+!             /         \ /             /                   /
+!            O           O             O                   O
+!           / \   _____ /_\ __________/_\                 / \
+!          /   \ /     /   \         /                   /   \
+!         O     O     O     O       O                   O     O
+!        / \   / \   / \   /       / \  _______________/_\   / \
+!       /   \ /   \ /   \ /       /   \/              /     /   \
+!       O   O O   O O   O O       O   O               O     O   O
+! ----------------------------------------------------------------------------
+! VBA   0   1 2   3 4   5 6       0   1               0     2   3
+
+In the example, generation 7 alters only the block data at VBAs 0 and 1 whereas
+in generation 11 only the block data at VBAs 0, 2, and 3 was modified. Note,
+that snapshots are not necessarily of the same dimensions or virtual storage
+capacity. A snapshot tree is also not necessarily using all of the topology
+possible with its dimensional parameters. A snapshot tree only spans as far as
+it is needed to provide the storage capacity configured by the user (although
+there might be one additional unfinished branch created by an extension
+operation). The rest of the topology is spared out as a contiguous area
+reaching out from the bottom-right corner of the tree:
+
+!                    |
+!                ____O____
+!               /         \
+!              /           \
+!           __O             O
+!          /   \           /  .
+!         /     \         /  . .
+!        O       O       O  . . . <------ Unused area
+!       / \     / \     / \  . . .
+!      O   O   O   O   O   O <----------- Unfinished branch due to
+!     / \ / \ / \ / \ / \  . . . . .      extension operation
+!     O O O O O O O O O O . . . . . .
+!
+! VBA 0 1 2 3 4 5 6 7 8 9 <-------------- Highest VBA
+!                                         ((storage capacity / block size) - 1)
+
+The nodes that would reach into the spared-out area are marked invalid, i.e.,
+set to all zeroes. The VBA range of a snapshot always starts at VBA 0 and than
+continues contiguously without skipping any index at any tree level.
+
+The set of blocks at level 0 of the free tree is always equal to set of blocks
+that form the snapshot trees minus all blocks that form the tree of the most
+recent snapshot. When a snapshot gets invalidated, all blocks in its tree that
+are not part of any other valid snapshot are said to become "free". That means
+they become available for re-assignment and, at the same time, unknown to the
+VBD meta data. That said, the core functions of the free tree are to keep a
+reference to these blocks and enable detecting whether one of these blocks is
+free already or still in use.
+
+
+Description of container operations
+===================================
+
+VBA access
+~~~~~~~~~~
+
+Reading a VBA
+-------------
+
+For reading a virtual block, software has to walk down the one branch of the
+most recent snapshot of the VBD that contains the corresponding EVD block. It
+starts by reading the PBA that is noted in the snapshot root node. The read
+block is a type 1 block, but before doing anything with it, the block data must
+be checked against the hash noted in the root node. If the hashes match,
+software can select the type 1 node that leads towards the desired EVD block
+from the read block. It does so by using the VBA, the tree level index and the
+tree dimensions from the root node to determine the correct node index. This
+process is repeated until reaching tree level 0.
+
+Once the hash for the level 0 block (the EVD block) was checked, it can be
+decrypted using the key from the superblock and the resulting plain VBD data
+can be delivered to the user.  If the lowest type 1 node in the branch (tree
+level 1) indicates that the EVD block is of generation 0 (the initial
+generation), then the EVD block is not initialized yet and must be considered
+to contain random data. In that case, software should refrain from reading and
+hash-checking the EVD block and instead return one block of zeroes to the user.
+
+Writing a VBA
+-------------
+
+The procedure of writing a VBA starts the same as reading a VBA. However, once
+the lowest type 1 node of the branch (tree level 1) was determined, instead of
+reading the EVD block, software determines how many free PBAs are required to
+update the branch according to the write operation. This number differs because
+software might have updated parts of that branch already during previous write
+operations since the last synchronization with the back-end storage (secure SB
+operation).
+
+This part is called volatile and can safely be modified again without doing
+COW. Note that, if there is a volatile part, it always starts at the highest
+tree level and ends at a lower level. This includes level 0 in case that the
+exact same VBA was already written since the last synchronization.  For each
+level that requires COW, however, the free tree is consulted in order to
+allocate a free PBA for the new block data. The allocation algorithm is
+described in detail in the paragraph "PBA allocation".
+
+If the allocations succeeded, software encrypts the new virtual block data.
+Then the algorithm walks up the tree branch again starting with level 0. At
+each level, it first writes it out the new block to the new or old but volatile
+PBA and then updates the corresponding type 1 node at the above level. The
+hash is always updated while the PBA and generation need an update only if in
+the part of the branch that was not yet volatile. When the algorithm has
+updated the root node of the snapshot in the superblock, the write operation
+is complete. Note that it is not necessary to directly secure the updated
+superblock. It can keep accumulating further write opertions in the increasinly
+volatile snapshot (that is yet not known to the back-end storage) until another
+operation requires a synchronization or the user explicitely requests one.
+
+PBA allocation
+--------------
+
+A VBA write operation creates not only a new version of the EVD block of the
+VBA but also of each type 1 block in the snapshot branch that leads to this EVD
+block. For each of these new block versions, a free PBA is required where the
+data can be written to without overwriting data that is still in use. This is
+how each PBA is allocated at the free tree: The PBA of the original block (the
+one that shall be "replaced") is given to the free tree. When the free tree has
+found a new physical block to hand out, it replaces the type 2 node of the new
+block with a type 2 node for the old block. The new type 2 node indicates that
+the old block remains reserved. This means although the old block isn't part of
+the current VBD state anymore, it is potentially still used by older snapshots.
+
+Therefore the type 2 node of the old block carries the names of the generations
+during which the block was allocated respectively freed. As long as there is
+still a snapshot with a generation number greater or equal the allocation
+generation and less the free generation of the block, the block stays reserved
+in the free tree. Note, however, that this is only checked on-demand, when
+trying to allocate a PBA.
+
+Rekeying
+~~~~~~~~
+
+The main goal of a rekeying operation is to dissolve the currently used block
+encryption key from the container and replace it with a new key. This means
+essentially decrypting all data that was encrypted with the current key and
+re-encrypt it with the new one. This is assumed to be computation- and
+time-intensive but not time-critical. Furthermore, rekeying is supposed to be
+done online, i.e., as a background task while the user can keep accessing the
+VBD. As a third requirement, it should be possible to keep the VBD performance
+at a sensible level during rekeying.
+
+In order to meet the above stated requirements, the Tresor scheme provides
+that rekeying is split up into smaller atomic operations, called steps, that
+can be interleaved with, e.g., VBD access operations. After each rekeying step,
+the container remains in a consistent state from which any other operation,
+except resizing operations and rekeying, can be started. The original rekeying
+can be continued at any time the container is idle again.
+
+There are two types of rekeying steps: The initialization step and VBA rekeying
+steps. The initialization step transitions the container from the Normal to the
+Rekeying state and initializes rekeying parameters. A VBA rekeying step adapts
+all EVD blocks of a single VBA. Note that the VBD may contain multiple EVD
+blocks per VBA, which each refer to a different state of the corresponding
+virtual block over time:
+
+! Time ---T1--------T2-------------T3--------T4=Now------>
+!
+!        Snapshot  Snapshot       Snapshot  Snapshot
+!             / \  / \                / \    / \
+!            /   \/   \              /   \  /   \
+!           /    /\    \            /     \/     \
+!          /    /  \    \          /      /\      \
+!         /____/____\____\        /______/__\______\
+!                |                   |          |
+!          +-----------+     +-----------+  +-----------+
+!          | EVD block |     | EVD block |  | EVD block |
+!          | VBA 5 @T1 |     | VBA 5 @T3 |  | VBA 5 @T4 |
+!          +-----------+     +-----------+  +-----------+
+
+The VBA rekeying steps start with VBA 0 and increment the VBA after each step.
+Therefore, after each VBA rekeying step, the VBD can be divided into two
+sections regarding the used block encryption key:
+
+   VBA               | Annotation                       | EVD encrypted with
+  ---------------------------------------------------------------------------
+  ---------------------------------------------------------------------------
+   0                 | Was the first to be rekeyed      | new block
+  ------------------------------------------------------- encryption key
+   1                 |                                  |
+  -------------------------------------------------------
+   ...               |                                  |
+  -------------------------------------------------------
+   X                 | Was rekeyed just now             |
+                     | (Superblock: Rekeying VBA = X)   |
+  ---------------------------------------------------------------------------
+   X+1               | Will be rekeyed next             | old block
+  ------------------------------------------------------- encryption key
+   ...               |                                  |
+  -------------------------------------------------------
+   [Max number of    | Will be the last to be rekeyed   |
+    leaves of any    | (every VBA of any version of the |
+    snapshot] - 1    | VBD must be processed)           |
+  ---------------------------------------------------------------------------
+
+This is important as it allows for efficiently selecting the correct key for
+VBD access and performing COW allocations during a rekeying operation. This
+will be explained in detail in a moment.
+
+This illustrates the process of rekeying one VBA over 4 snapshots of a VBD
+(type 1 blocks are divided into nodes with the PBA shown for each node):
+
+!       Start
+!         |
+!         | Generation 15                  Generation 14
+!         |                         +--->|                         +---> ...
+!         |Read blocks              |    |Read blocks              |
+!    Tree |to branch buffer         |    |to branch buffer         |
+!   Level |                         |    |                         |
+!   ----- |  +----+                 |    |  +----+                 |
+!    Root |  | 77 |                 |    |  | 12 |                 |
+!         |  +-|--+                 |    |  +-|--+                 |
+!         |   _|                    |    |   _|                    |
+!         |  |                      |    |  |                      |
+!         |  V                      |    |  V                      |
+!         |  +-------------------+  |    |  +-------------------+  |Update and
+!       3 |  | 18 | 20 | 93 | 75 |  |    |  | 18 | 36 | 29 | 90 |  |COW-write
+!         |  +-|-----------------+  |    |  +-|-----------------+  |Type 1 blocks
+!         |   _|                    |    |    |                    |
+!         |  |                      |    |    V                    |
+!         |  V                      |    |  Already rekeyed        |
+!         |  +-------------------+  |    |  with generation 15     |
+!       2 |  | 13 | 44 | 69 | 41 |  |    V                         |
+!         |  +-----------|-------+  |    --------------------------+
+!         |   ___________|          |    Allocate PBAs
+!         |  |                      |    at free tree
+!         |  V                      |
+!         |  +-------------------+  |
+!       1 |  | 34 | 10 | 81 | 72 |  |
+!         |  +------|------------+  |
+!         |   ______|               |Update and
+!         |  |                      |COW-write
+!         |  V                      |Type 1 blocks
+!         |  +-------------------+  |
+!       0 |  | EVD block         |  |
+!         |  +-------------------+  |
+!         V                         |
+!         --------------------------+
+!         Allocate PBAs    Re-encrypt
+!         at free tree      EVD block
+
+Continuation:
+
+!            Generation 8                    Generation 6
+! ... --->>|                          +--->|                          +---> End
+!          |                          |    |                          |
+!    Tree  |                          |    |                          |
+!   Level  |                          |    |                          |
+!   -----  |R  +----+                 |    |R  +----+                 |
+!    Root  |e  | 84 | Generation 15   |    |e  | 12 | Generation 14   |
+!          |a  +-|--+                 |    |a  +-|--+                 |
+!          |d   _|                    |    |d   _|                    |
+!          |   |                      |    |   |                      |
+!          |   V                      |    |   V                      |
+!          |   +-------------------+  |    |   +-------------------+  |
+!       3  |   | 40 | 51 | 56 | 78 |  |    |   | 60 | 49 | 42 | 22 |  |
+!          |   +-|-----------------+  |    |   +-|-----------------+  |
+!          |    _|                    |    |    _|                    |
+!          |   |                      |    |   |                      |
+!          |   V                      |    |   V                      |
+!          |   +-------------------+  |U   |   +-------------------+  |
+!       2  |   | 82 | 88 | 69 | 70 |  |p   |   | 17 | 11 | 31 | 30 |  |
+!          |   +-----------|-------+  |d   |   +-----------|-------+  |
+!          |               |          |a   |    ___________|          |
+!          |               V          |t   |   |                      |
+!          |     Already rekeyed      |e   |   V                      |
+!          |     with generation 15   |    |   +-------------------+  |
+!       1  V                          |    |   | 66 | 89 | 19 | 28 |  |
+!          ---------------------------+    |   +------|------------+  |
+!          Allocate                        |    ______|               |U
+!                                          |   |                      |p
+!                                          |   V                      |d
+!                                          |   +-------------------+  |a
+!       0                                  |   | EVD block         |  |t
+!                                          |   +-------------------+  |e
+!                                          V                          |
+!                                          ---------------------------+
+!                                          Allocate          Re-encrypt
+
+PBA allocation for rekeying
+---------------------------
+
+The allocation of physical blocks for rekeying is different from the allocation
+of physical blocks for VBA access. When rekeying does COW, it doesn't do it to
+preserve the old device state for later user access. It doesn't create new
+snapshots, it merely re-writes the existing ones in place. Rekeying does COW
+because, in the process of rekeying a VBA for one snapshot, it has to be
+considered that the other, yet to be rekeyed snapshots still reference the
+updated blocks with their original hashes. And if rekeying would update the
+blocks without COW, it would break the remaining snapshots and run into a hash
+mismatch before the end of the current VBA rekeying step.
+
+This makes clear why the common allocation strategy wouldn't work for rekeying.
+The criterion when to revert the reservation of the old blocks in the free tree
+is not the vanishing of certain snapshots but whether rekeying has reached a
+certain point. In order to know this point for a specific block, two situations
+must be distinguished. Either, the block forms part of the current device state
+(I'll call this an effective block) or it doesn't and is relevant for older
+snapshots only (I'll call this a superseded block).
+
+Let's look at effective blocks first. When the rekeying replaces them, they can
+be re-allocated as soon as rekeying is done with the current VBA, because by
+then the rekeying has replaced them in all snapshots. That said, a
+COW-allocation adds the old block directly as "non-reserved" to the free tree.
+This causes the block to become re-allocatable as soon as the current
+generation is secured, which is done at the end of the VBA-rekeying step.
+
+With superseded blocks things are more complicated: When being replaced by
+rekeying, they could become re-allocatable in the next generation as well.
+However, in contrast to effective blocks, for a superseded block there is
+already an entry in the free tree indicating that the block is reserved. Even
+more, because of the way the free tree is designed, there is no efficient way
+to find this entry. But we have to do something about this entry. Otherwise it
+would keep the block reserved until all generations that used to reference it
+disappeared (despite the fact that they are not referencing it anymore).
+
+Let's call these pseudo-reserved blocks and see how we can deal with them:
+Luckily, we can make use of the ascending order in which VBAs are rekeyed.
+Because pseudo-reserved blocks always belong to a VBA less than the current
+rekeying VBA. So, in each free tree entry, the Tresor additionally stores the
+VBA for which the block was used last for. For leaf nodes of the VBD, the last
+VBA is obvious. For a type 1 node, the last VBA is the lowest VBA of the
+sub-tree under that node. Furthermore, the ID of the last block encryption key
+of the block is remembered. With these two additional values, pseudo-reserved
+entries become detectable. If, during an allocation, the superblock is in the
+"Rekeying" state, the free tree checks for reserved entries whether they have
+the old key ID and a VBA less than the current rekeying VBA. If so, a
+pseudo-reserved block was found that can be treated like a non-reserved block.
+As a result, such blocks become re-allocatable as soon as the rekeying of their
+VBA is finished. When the superblock returns to the "Normal" state, i.e., the
+entire rekeying is complete, the remaining pseudo-reserved blocks stay
+re-allocatable because rekeying raised the generation value of each snapshot.
+So, the allocation algorithm now correctly concludes that these blocks are not
+part of any snapshot anymore.
+
+Unfortunately, there is more to it. The above mentioned scheme elegantly solves
+things for the old PBAs of the superseded blocks (that were allocated during
+the era of the old block encryption key, i.e., before the rekeying started).
+But we haven't spoken yet about the new PBAs that rekeying allocates to replace
+them. Usually, PBA allocations exchange the old type 2 node of the allocated
+PBA with the new type 2 node of the now reserved PBA. However, in case of
+rekeying a superseded block, the allocation result will not form part of the
+most recent VBD state and becomes therefore reserved as well. Furthermore,
+we already discussed that the PBA that is about to be replaced already has a
+type 2 node somewhere in the free tree. So, we just stay with the existing
+type 2 nodes as they are? That's .
+
+Let's illustrate this with an example: Rekeying has just rekeyed VBA 0 and
+thereby replaced a superseded inner node of the VBD, physical block 10, with
+physical block 20. Block 10 is still in the free tree but will be recognized as
+pseudo-reserved because it is marked with the old key ID. Assume that we were
+to mark the free tree entry of block 20 with the new key ID. Later, during the
+rekeying of VBA 1, block 20 must be replaced again. This time, the
+pseudo-reserved free-tree entry of block 20 will remain undetected because of
+the new key ID. Alright. So, let's go back to the rekeying of VBA 0 and use the
+old key ID for the free-tree entry instead. This won't work neither because
+now, the entry for block 20 is freed too soon, when the rekeying of VBA 0 is
+done.
+
+We have to find another criterion for freeing such superseded blocks that were
+allocated by rekeying itself. Luckily, this is possible because we know that
+such a block is always replaced in the next VBA-rekeying step, given that the
+current rekeying VBA is not the last one covered by the corresponding node in
+the virtual block device. So, we can mark the free tree entry with the old key
+ID and the next VBA that is to be rekeyed. In the above example, this would
+cause block 20 to be freed again as soon as the rekeying of VBA 1 is complete,
+which is exactly what we want.
+
+The only thing left is what happens when the current rekeying VBA is the last
+one covered by the VBD node. In this case, the block that is allocated for COW
+will not become pseudo-reserved because it will contain the last version of the
+VBD node that is created by the running rekeying process. Its free-tree entry
+can therefore be a "commonly" reserved one with the new key ID.
+
+Resizing
+~~~~~~~~
+
+The Tresor is currently resizable in two ways. The virtual block device can be
+extended and the free tree can be extended. As both operations have a lot in
+common, I'll describe the basic idea first and will go into the pecularities
+later.
+
+Directly at the Tresor interface, an extension operation is communicated like
+any other operation by submitting a request. The request has either the
+operation type "Extend Virtual Block Device" or "Extend Free Tree". The request
+carries one parameter that is the number of physical blocks that shall be added
+to the Tresor. Note that the set of physical blocks that the Tresor uses is
+always given as contiguous range of block addresses that starts with block
+address 0. The Tresor furthermore remembers this range in the superblock. That
+said, when telling the Tresor to extend itself using N additional physical
+blocks and A is the highest physical block address currently used, the Tresor
+will incorporate the physical block addresses A + 1 to A + N.
+
+As an extension operation might require the Tresor to update and write many
+branches of different trees, the operation can be time intensive depending on
+the number of added physical blocks. Extension operations are therefore
+implemented as a sequence of many small extension steps. After step, the Tresor
+container returns to a consitsent state where "Read", "Write", "Sync", and
+"Discard Snapshot" requests can be mixed in. Note that "Create Snapshot",
+"Extend Free Tree", "Extend Virtual Block Device", and "Rekeying" requests cannot
+be executed in parallel to an extension operation.
+
+Breaking up extensions into small steps also has the benefit that there are many
+container states during an extension that can be secured to the physical block
+device and the trust anchor. Should the system be turned off during an
+extension, the progress isn't lost (except the last unfinished step of course)
+and the extension operation can be continued on next startup. Better said, it
+has to be continued on next startup, because the virtual block device would
+otherwise remain in a state that limits the functionality of the Tresor.
+
+That said, the Tresor has to remember inside the superblock that an extension
+operation is pending and in which state it is. And it will automatically
+continue a pending extension operation on startup.
+
+There are two types of extension steps: The initialization of the extension
+process and the extension of the targeted tree by a number of leaf blocks that
+is, at max, the tree's degree. After the initialization step, the Tresor keeps
+doing extension steps on the targeted tree until the contingent of new physical
+blocks is depleted. At the end of each extension step, the Tresor updates the
+superblock and secures the device state. 
+
+Resizing steps
+--------------
+
+In order to initiate the extension process, the Tresor first sets the superblock
+to state "Extending Virtual Block Device" or "Extending Free Tree" depending on
+the targeted tree. Furthermore, it remembers in the superblock the contingent of
+new physical superblocks that is left for the extension operation. Initially,
+this is the number of physical blocks given in the extension request of the user
+but throughout the extension process it will be decreased more and more.
+
+When doing an extension step at the targeted tree, the Tresor first determines
+the identifier of the right-most complete branch in the tree. For the virtual
+block device, this is the highest virtual block address covered. Fot the free
+tree, it is technically the same: the combination of node indices along the way
+of the branch. But as the branches in the free tree are not related to block
+addresses, we call it branch identifier instead. The left-most branch always has
+the identifier 0, the second left-most the identifier 1, and so on.
+
+So, the identifier of the right-most branch in the tree is known. The Tresor now
+wants to add a new branch to the right of the right-most branch. Consequently,
+this new branch would have the identifier X + 1, where X is the identifier of
+the right-most branch. With this identifier known, two situations must be
+distinguished. For this distinction we need to know about the trees current
+geometry - the number of tree levels and the number of nodes per inner block.
+This geometry defines a maximum for the number of branches that the tree can
+contain.
+
+If the identifier of the new branch is greater or equal to this maximum, the
+current tree geometry doesn't suffice for adding another branch. In this case,
+a new block is inserted between the current root block and the root node of the
+tree before the new branch can be added (i.e., a new level is added to the
+tree). The first node of this new root block references the previous root
+block while the rest of its nodes are now available for extending the tree. The
+physical block address for the new root is taken from the contingent of the
+extension operation.
+
+If the identifier of the new branch, however, is less than the maximum number of
+branches that the tree can contain, the current tree geometry is sufficient and
+can therefore remain unmodified. Note that in this case, the blocks for the new
+branch already exist down to a certain tree level. We don't know down to which
+level but we know that at least the leaf block does not exist so far.
+
+Now that we have the tree geometry right, adding the new branch is performed by
+doing a tree walk for the identifier of the branch. Whenever we find a yet
+unset node during this tree walk, the lowest physical block address is taken
+from the resizing contingent and the node initialized to reference the
+corresponding block. This also applies for the missing leaf block at the end
+of the tree walk. In the virtual block device, the new leaf block is marked
+with generation 0 to indicate that its data is yet uninitialized. In the free
+tree, the new leaf block is marked as not reserved with the current generation
+as free generation. I.e., the new leaf block can be allocated as soon as the
+next superblock securing is through.
+
+But wait! Once we are down here, we can utilize the situation better: If the
+lowest inner block of the tree walk has multiple unset nodes, they can be used
+to add further branches with almost no effort as each of them merely misses the
+leaf.  So, to say it more generally, at the end of the tree walk, we will
+simply fill up all unused nodes of the lowest inner block with new leaf blocks
+from the extension contingent.
+
+At this point, all inner blocks of the tree walk are in memory. Their hashes need
+to be updated and then they can be written back to the physical block device.
+Just as after a normal write request. Of course, for those blocks of the tree
+walk that already existed and that are not yet volatile (not of the current
+generation) a copy-on-write must be done in order to update them. The blocks that
+were just added, however, need no copy-on-write. If we are in an "Extend Virtual
+Block Device" request, the COW blocks are allocated at the free tree. If we are
+in an "Extend Free Tree" request the COW blocks come from the meta tree instead.
+After having allocated the COW blocks, the Tresor walks up again through the
+loaded blocks, updates the hashes in the updated nodes, and does the
+write-back.
+
+If the targeted tree is the virtual block device and the most recent device
+state (the one which we did the tree walk on) was not yet volatile (no
+unsynchronized writes so far), a new, volatile device state must be created
+in order to reference the resized tree in the superblock.
+
+Finally, the number of remaining physical blocks for the extension operation is
+updated in the superblock. If the number reaches 0, the Tresor returns to the
+state "Normal" and the extension request finished successfully. On the other
+hand, if there are still physical blocks left in the extension contingennt the
+superblock remains in the "Extend Virtual Block Device" respectively "Extend
+Free Tree" state. To complete the extension step, the updated superblock is
+secured.
+
+The outcome of each step of an "Extend VBD" operation visualized (blocks that
+were just added are marked with A, blocks that were updated with U):
+
+!      Init ----------> Extend #1 --------------> Extend #2 --------> ...
+!
+!      Superblock       Superblock                Superblock
+!      State: Extend    State: Extend             State: Extend
+!      Blocks: 10       Blocks: 8                 Blocks: 1
+!           |                |                         |
+!         __o___           __U___                 _____A______
+!        / | |  \         / | |  \               /            \
+!       o  o o   o       o  o o __U__         __o___           A
+!      ...      / \     ...    / | | \       / | |  \           \
+!              o   o          o  o A  A     o  o o __o__       __A__
+!                                          ...    / | | \     / | | \
+!                                                o  o o  o   A  A A  A
+! ------------------------------------------------------------------------
+! VBA  ...    12  13    ...  12 13 14 15   ...  12 13 14 15 16 17 18 19
+!
+!
+!
+!
+!      ... -------> Extend #3
+!
+!                   Superblock
+!                   State: Normal
+!                        |
+!                   _____U___________
+!                  /                 \
+!               __o___               _U_
+!              / | |  \             /   \
+!             o  o o __o__       __o__   A
+!            ...    / | | \     / | | \
+!                  o  o o  o   o  o o  o
+! ------------------------------------------------------------------------
+! VBA        ...  12 13 14 15 16 17 18 19
+
+Meta-tree extension
+-------------------
+
+When extending the free tree, there is one thing that is missing in the above
+description of the algorithm. The meta tree, that manages the sparse blocks for
+the COW in the free tree, must always be dimensioned according to the size of
+the free tree. It is assumed that an allocation at the meta tree for COW in the
+free tree never fails. Adding the fact that there are never more than two
+versions of the free-tree meta-data, this means that the meta tree must have at
+least as many leaves as there are inner blocks in the free tree. The same as for
+the free tree meta data also applies for the meta data of the meta tree itself.
+So, to sum it up, the number of leaves in the meta tree must be at least the
+number of inner blocks in the free tree plus the number of inner blocks in the
+meta tree.
+
+That said, whenever the Tresor is at the point of adding the first new inner
+block during a free-tree extension-step, the meta tree must be extended as a
+prerequisite. This is not implemented so far but as is technically necessary
+and, therefore, the envisioned algorithm for this aspect is described here:
+
+First, we have to know how many leaves the meta tree must have so that we can
+continue the extension step. For this, we have to know the total number N1 of
+inner blocks that the free tree will have with the new branch. This number can
+be calculated because, at this point, we already know how many leaves the free
+tree will have after the extension step. Then, we can determine the number N2
+of inner blocks that the meta tree would have with N1 leaves. After that, we
+calculate the number N3 of inner blocks that the meta tree would have with N1 +
+N2 leaves. And so on and so on, until we reach the point where the assumed
+number of leaves in the meta tree doesn't change anymore. This final number of
+leaves is then set as goal for the meta-tree extension.
+
+Now, we check whether the meta tree already fulfills this goal or not. If not,
+we issue one meta tree extension step, and afterwards check again. If the goal
+is still not reached, we continue issuing meta tree extension steps until there
+are enough leaves. Note that all this is done as part of the atomic free tree
+extension step and no other request can be scheduled in between. After that,
+the Tresor can continue with adding the new inner blocks to the free tree.
+
+An extension step at the meta tree is done using the same algorithm as for the
+free tree and the virtual block device. The only difference is that, for doing
+the CoW, we allocate blocks directly from the lowest inner block of the new
+meta-tree branch. This is always possible because the degree of the meta tree is
+always greater than its number of levels. Either the lowest inner block is a new
+block, then we can add new leaves as required. Or, the lowest inner block already
+existed, which leaves us with two further situations. If one of the leaves of
+the lowest inner block is already allocated, the branch needs no CoW anymore.
+Otherwise we have enough leaves to do the CoW.
+
+Contingent depletion
+--------------------
+
+A remaining topic is how the depletion of the contingent of new physical blocks
+is handled. The extension algorithm assumes that the contingent of new physical
+blocks can be of any size and that it will always be incorporated completely by
+the Tresor. So, the possibility of having no blocks left must be considered at
+any point in the algorithm were a block shall be taken from the contingent.
+
+Obviously, the easiest situation is that the continguent is consumed exactly
+when having filled up all nodes of the lowest inner block of the extension tree
+walk in the targeted tree. Then, the extension step can be finished as
+described. The same goes for the case that we filled up some but not all of the
+nodes of the lowest inner block. A future extension request will deal just fine
+with the remaining unset nodes.
+
+More interesting is the situation that the contingent becomes empty when we want
+to add an inner block to the targeted tree. But fortunately our algorithm is well
+prepared for that. If the parent block of the missing inner block is not a new
+block, this means that the extension step has done nothing to the targeted tree
+so far. We can simply jump to securing the superblock without updating the
+targeted tree (the meta tree or free tree however, might have changed nonetheless).
+If the parent block of the missing inner block is a new block, we have to stop and walk
+up again updating the hashes and doing the write back. The unfinished new branch
+remains in the targeted tree with its lowest inner block having all nodes unset
+(if it is not a new root block). The Tresor has no problem with this as it only
+translates VBAs that are in its range. It will simply never do a tree walk that
+leads into these new inner blocks. A future extension request on this tree,
+however, expects finding an unset node during its tree walk for the lowest
+invalid VBA. The position of this node is not relevant.
+
+If the contingent becomes depleted during the extension of the meta tree, all
+this applies as well. The corresponding extension step at the free tree has done
+nothing to the free tree so far.
