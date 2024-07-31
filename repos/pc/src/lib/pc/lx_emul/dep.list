@@ -19,6 +19,7 @@ arch/x86/include/asm/cpu.h
 arch/x86/include/asm/cpu_entry_area.h
 arch/x86/include/asm/cpufeature.h
 arch/x86/include/asm/cpufeatures.h
+arch/x86/include/asm/cpuid.h
 arch/x86/include/asm/cpumask.h
 arch/x86/include/asm/delay.h
 arch/x86/include/asm/desc.h
@@ -38,6 +39,7 @@ arch/x86/include/asm/fpu/api.h
 arch/x86/include/asm/fpu/types.h
 arch/x86/include/asm/fsgsbase.h
 arch/x86/include/asm/ftrace.h
+arch/x86/include/asm/gsseg.h
 arch/x86/include/asm/hardirq.h
 arch/x86/include/asm/hw_breakpoint.h
 arch/x86/include/asm/hw_irq.h
@@ -72,6 +74,8 @@ arch/x86/include/asm/numa.h
 arch/x86/include/asm/orc_types.h
 arch/x86/include/asm/page_types.h
 arch/x86/include/asm/paravirt.h
+arch/x86/include/asm/paravirt.h
+arch/x86/include/asm/paravirt_types.h
 arch/x86/include/asm/pci.h
 arch/x86/include/asm/percpu.h
 arch/x86/include/asm/perf_event.h
@@ -90,6 +94,7 @@ arch/x86/include/asm/segment.h
 arch/x86/include/asm/shared/msr.h
 arch/x86/include/asm/shared/tdx.h
 arch/x86/include/asm/shmparam.h
+arch/x86/include/asm/shstk.h
 arch/x86/include/asm/signal.h
 arch/x86/include/asm/smap.h
 arch/x86/include/asm/smp.h
@@ -120,6 +125,7 @@ arch/x86/include/asm/vmalloc.h
 arch/x86/include/asm/vmxfeatures.h
 arch/x86/include/asm/word-at-a-time.h
 arch/x86/include/asm/x86_init.h
+arch/x86/include/asm/xen/hypervisor.h
 arch/x86/include/uapi/asm/auxvec.h
 arch/x86/include/uapi/asm/bitsperlong.h
 arch/x86/include/uapi/asm/bootparam.h
@@ -166,7 +172,6 @@ include/acpi/actbl1.h
 include/acpi/actbl2.h
 include/acpi/actbl3.h
 include/acpi/actypes.h
-include/acpi/pdc_intel.h
 include/acpi/platform/acenv.h
 include/acpi/platform/acenvex.h
 include/acpi/platform/acgcc.h
@@ -193,7 +198,6 @@ include/asm-generic/error-injection.h
 include/asm-generic/export.h
 include/asm-generic/fixmap.h
 include/asm-generic/getorder.h
-include/asm-generic/gpio.h
 include/asm-generic/int-ll64.h
 include/asm-generic/io.h
 include/asm-generic/ioctl.h
@@ -217,8 +221,11 @@ include/asm-generic/rwonce.h
 include/asm-generic/sections.h
 include/asm-generic/topology.h
 include/asm-generic/unaligned.h
+include/crypto/aria.h
+include/crypto/utils.h
 include/kunit/assert.h
 include/kunit/resource.h
+include/kunit/test-bug.h
 include/kunit/test.h
 include/kunit/try-catch.h
 include/linux/acpi.h
@@ -226,6 +233,7 @@ include/linux/alarmtimer.h
 include/linux/align.h
 include/linux/apm_bios.h
 include/linux/arch_topology.h
+include/linux/args.h
 include/linux/assoc_array.h
 include/linux/async.h
 include/linux/atomic.h
@@ -262,6 +270,7 @@ include/linux/cdev.h
 include/linux/cgroup-defs.h
 include/linux/cgroup.h
 include/linux/cgroup_api.h
+include/linux/cleanup.h
 include/linux/clk-provider.h
 include/linux/clk.h
 include/linux/clk/clk-conf.h
@@ -286,6 +295,7 @@ include/linux/context_tracking.h
 include/linux/context_tracking_irq.h
 include/linux/context_tracking_state.h
 include/linux/cpu.h
+include/linux/cpu_smt.h
 include/linux/cpufreq.h
 include/linux/cpuhotplug.h
 include/linux/cpumask.h
@@ -352,6 +362,7 @@ include/linux/hardirq.h
 include/linux/hash.h
 include/linux/hashtable.h
 include/linux/hashtable_api.h
+include/linux/hex.h
 include/linux/highmem-internal.h
 include/linux/highmem.h
 include/linux/highuid.h
@@ -374,7 +385,6 @@ include/linux/instrumentation.h
 include/linux/instrumented.h
 include/linux/interrupt.h
 include/linux/io.h
-include/linux/ioasid.h
 include/linux/iocontext.h
 include/linux/iommu.h
 include/linux/iopoll.h
@@ -387,6 +397,7 @@ include/linux/irq_work.h
 include/linux/irqchip.h
 include/linux/irqdesc.h
 include/linux/irqdomain.h
+include/linux/irqdomain_defs.h
 include/linux/irqflags.h
 include/linux/irqhandler.h
 include/linux/irqnr.h
@@ -442,6 +453,7 @@ include/linux/list_lru.h
 include/linux/list_nulls.h
 include/linux/list_sort.h
 include/linux/livepatch.h
+include/linux/livepatch_sched.h
 include/linux/llist.h
 include/linux/local_lock.h
 include/linux/local_lock_internal.h
@@ -478,9 +490,11 @@ include/linux/mmzone.h
 include/linux/mnt_idmapping.h
 include/linux/mod_devicetable.h
 include/linux/module.h
+include/linux/module_symbol.h
 include/linux/moduleparam.h
 include/linux/mount.h
 include/linux/msi.h
+include/linux/msi_api.h
 include/linux/mutex.h
 include/linux/mutex_api.h
 include/linux/net.h
@@ -500,6 +514,7 @@ include/linux/nsproxy.h
 include/linux/numa.h
 include/linux/nvmem-provider.h
 include/linux/objtool.h
+include/linux/objtool_types.h
 include/linux/of.h
 include/linux/of_address.h
 include/linux/of_clk.h
@@ -583,6 +598,7 @@ include/linux/rculist.h
 include/linux/rculist_bl.h
 include/linux/rculist_nulls.h
 include/linux/rcupdate.h
+include/linux/rcuref.h
 include/linux/rcutree.h
 include/linux/rcuwait.h
 include/linux/reboot.h
@@ -670,6 +686,7 @@ include/linux/spinlock_api_smp.h
 include/linux/spinlock_types.h
 include/linux/spinlock_types_raw.h
 include/linux/splice.h
+include/linux/sprintf.h
 include/linux/srcu.h
 include/linux/srcutree.h
 include/linux/stackdepot.h
@@ -682,6 +699,7 @@ include/linux/stdarg.h
 include/linux/stddef.h
 include/linux/stop_machine.h
 include/linux/string.h
+include/linux/string_choices.h
 include/linux/string_helpers.h
 include/linux/stringhash.h
 include/linux/stringify.h
@@ -762,6 +780,7 @@ include/linux/ww_mutex.h
 include/linux/xarray.h
 include/net/addrconf.h
 include/net/checksum.h
+include/net/dropreason-core.h
 include/net/dropreason.h
 include/net/dst.h
 include/net/dst_ops.h
@@ -802,7 +821,6 @@ include/net/netns/unix.h
 include/net/netns/xdp.h
 include/net/netns/xfrm.h
 include/net/netprio_cgroup.h
-include/net/page_pool.h
 include/net/request_sock.h
 include/net/rtnetlink.h
 include/net/scm.h
@@ -816,6 +834,7 @@ include/trace/events/error_report.h
 include/trace/events/irq.h
 include/trace/events/kmem.h
 include/trace/events/lock.h
+include/trace/events/maple_tree.h
 include/trace/events/mmflags.h
 include/trace/events/power.h
 include/trace/events/sched.h
@@ -865,6 +884,7 @@ include/uapi/linux/elf-em.h
 include/uapi/linux/elf.h
 include/uapi/linux/errno.h
 include/uapi/linux/ethtool.h
+include/uapi/linux/eventfd.h
 include/uapi/linux/eventpoll.h
 include/uapi/linux/fcntl.h
 include/uapi/linux/fib_rules.h
@@ -895,6 +915,8 @@ include/uapi/linux/limits.h
 include/uapi/linux/magic.h
 include/uapi/linux/major.h
 include/uapi/linux/mdio.h
+include/uapi/linux/mei.h
+include/uapi/linux/mei_uuid.h
 include/uapi/linux/membarrier.h
 include/uapi/linux/mempolicy.h
 include/uapi/linux/mii.h
@@ -902,6 +924,7 @@ include/uapi/linux/mman.h
 include/uapi/linux/neighbour.h
 include/uapi/linux/net.h
 include/uapi/linux/net_tstamp.h
+include/uapi/linux/netdev.h
 include/uapi/linux/netdevice.h
 include/uapi/linux/netfilter.h
 include/uapi/linux/netfilter/nf_tables.h
@@ -1005,6 +1028,7 @@ kernel/time/timekeeping_internal.h
 kernel/workqueue_internal.h
 lib/crc32defs.h
 lib/kstrtox.h
+lib/radix-tree.h
 mm/internal.h
 mm/slab.h
 mm/swap.h

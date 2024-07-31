@@ -1,6 +1,6 @@
 CUSTOM_TARGET_DEPS := kernel_build.phony
 
-LX_DIR := $(call select_from_ports,legacy_linux)/src/linux
+LX_DIR := $(call select_from_ports,linux)/src/linux
 PWD    := $(shell pwd)
 
 LX_MK_ARGS = ARCH=$(LINUX_ARCH) CROSS_COMPILE=$(CROSS_DEV_PREFIX)

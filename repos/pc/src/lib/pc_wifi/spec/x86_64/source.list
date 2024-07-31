@@ -17,7 +17,6 @@ crypto/crypto_null.c
 crypto/ctr.c
 crypto/gcm.c
 crypto/geniv.c
-crypto/gf128mul.c
 crypto/ghash-generic.c
 crypto/hash_info.c
 crypto/kpp.c
@@ -231,6 +230,7 @@ lib/bitmap.c
 lib/bsearch.c
 lib/crc32.c
 lib/crypto/aes.c
+lib/crypto/gf128mul.c
 lib/crypto/memneq.c
 lib/ctype.c
 lib/debug_locks.c

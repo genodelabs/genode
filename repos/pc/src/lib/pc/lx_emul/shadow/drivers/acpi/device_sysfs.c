@@ -16,7 +16,7 @@
 #include <linux/acpi.h>
 
 
-int acpi_device_uevent_modalias(struct device *dev, struct kobj_uevent_env *event)
+int acpi_device_uevent_modalias(const struct device *dev, struct kobj_uevent_env *event)
 {
 	lx_emul_trace(__func__);
 	return -1;
