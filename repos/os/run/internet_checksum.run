@@ -17,13 +17,21 @@ proc exit {{code 0}} {
 build { core init lib/ld lib/vfs test/internet_checksum server/lx_fs }
 create_boot_directory
 
-set seed ""
+proc gen_seed { } {
+	set min_seed 0
+	set max_seed [expr 2**32]
+	return [expr int($min_seed + floor(rand() * $max_seed))]
+}
+
+set seed 0
 if {[info exists ::env(SEED)]} {
 	set seed $::env(SEED)
 } else {
-	set min_seed 0
-	set max_seed [expr 2**32]
-	set seed [expr int($min_seed + floor(rand() * $max_seed))]
+	# in some cases trafgen generates bad checksums in encapsulated packets
+	set bad_seeds [list 0 875727356 ]
+	while {[lsearch -exact $bad_seeds $seed] != -1} {
+		set seed [gen_seed]
+	}
 }
 puts "\nUse script with SEED=$seed in order to get reproducible results\n"
 
