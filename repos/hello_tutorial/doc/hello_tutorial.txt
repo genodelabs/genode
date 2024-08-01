@@ -258,7 +258,7 @@ entry to init's 'config' file, which is located at 'build/bin/config'.
 !   </default-route>
 !   <default caps="60"/>
 !   <start name="hello_server">
-!     <resource name="RAM" quantum="10M"/>
+!     <resource name="RAM" quantum="1M"/>
 !     <provides> <service name="Hello"/> </provides>
 !   </start>
 ! </config>
@@ -395,7 +395,7 @@ Add a 'target.mk' file with the following content to 'src/hello/client/':
 Extend your init _config_ as follows to also start the hello-client component:
 
 ! <start name="hello_client">
-!   <resource name="RAM" quantum="10M"/>
+!   <resource name="RAM" quantum="1M"/>
 ! </start>
 
 
@@ -425,11 +425,11 @@ at the _run/hello.run_ and look as follows:
 !  </default-route>
 !  <default caps="60"/>
 !  <start name="hello_server">
-!    <resource name="RAM" quantum="10M"/>
+!    <resource name="RAM" quantum="1M"/>
 !    <provides> <service name="Hello"/> </provides>
 !  </start>
 !  <start name="hello_client">
-!    <resource name="RAM" quantum="10M"/>
+!    <resource name="RAM" quantum="1M"/>
 !  </start>
 !</config>}
 !
