@@ -28,9 +28,15 @@ extern struct net init_net;
 
 void socketcall_init(void)
 {
-	int pid = kernel_thread(socketcall_task_function,
-	                        NULL,
-	                        CLONE_FS | CLONE_FILES);
+	int pid =
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,3,0)
+		kernel_thread(socketcall_task_function, NULL,
+		              CLONE_FS | CLONE_FILES);
+#else
+		kernel_thread(socketcall_task_function, NULL,
+		              "sockcall_task",
+		              CLONE_FS | CLONE_FILES);
+#endif
 	socketcall_task_struct_ptr = find_task_by_pid_ns(pid, NULL);
 }
 
@@ -95,7 +101,11 @@ int lx_sock_recvmsg(struct socket *sock, struct lx_msghdr *lx_msg,
 
 	msg->msg_name         = lx_msg->msg_name;
 	msg->msg_namelen      = lx_msg->msg_namelen;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
 	msg->msg_iter.iov     = iov;
+#else
+	msg->msg_iter.__iov   = iov;
+#endif
 	msg->msg_iter.nr_segs = iov_count;
 	msg->msg_iter.count   = iovlen;
 
@@ -145,7 +155,11 @@ int lx_sock_sendmsg(struct socket *sock, struct lx_msghdr* lx_msg,
 
 	msg->msg_name         = lx_msg->msg_name;
 	msg->msg_namelen      = lx_msg->msg_namelen;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
 	msg->msg_iter.iov     = iov;
+#else
+	msg->msg_iter.__iov   = iov;
+#endif
 	msg->msg_iter.nr_segs = iov_count;
 	msg->msg_iter.count   = iovlen;
 
@@ -177,49 +191,25 @@ int lx_sock_setsockopt(struct socket *sock, int level, int optname,
 }
 
 
-#include <linux/version.h>
-
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,12,0)
-int dev_get_mac_address(struct sockaddr *sa, struct net *net, char *dev_name)
-{
-	size_t size = sizeof(sa->sa_data);
-	struct net_device *dev = dev_get_by_name_rcu(net, dev_name);
-
-	if (!dev)
-		return -ENODEV;
-
-	if (!dev->addr_len)
-		memset(sa->sa_data, 0, size);
-	else
-		memcpy(sa->sa_data, dev->dev_addr,
-		       min_t(size_t, size, dev->addr_len));
-	sa->sa_family = dev->type;
-
-	return 0;
-}
-EXPORT_SYMBOL(dev_get_mac_address);
-#endif
-
-
 unsigned char const* lx_get_mac_addr()
 {
 	static char mac_addr_buffer[16];
 
 	struct sockaddr addr;
 	int err;
-	size_t length;
 
-	memset(mac_addr_buffer, 0, sizeof (mac_addr_buffer));
-	memset(addr.sa_data, 0, sizeof (addr.sa_data));
+	memset(mac_addr_buffer, 0, sizeof(mac_addr_buffer));
+	memset(&addr, 0, sizeof(addr));
 
 	err = dev_get_mac_address(&addr, &init_net, "wlan0");
 	if (err)
 		return NULL;
 
-	length = sizeof (mac_addr_buffer) < sizeof (addr.sa_data)
-		                              ? sizeof (mac_addr_buffer)
-		                              : sizeof (addr.sa_data);
-	memcpy(mac_addr_buffer, addr.sa_data, length);
+	/*
+ 	 * The 'struct sockaddr' sa_data union is at least 14 bytes
+	 * and we at most copy 6.
+	 */
+	memcpy(mac_addr_buffer, addr.sa_data, 6);
 
 	return mac_addr_buffer;
 }

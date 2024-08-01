@@ -90,6 +90,9 @@ drivers/net/wireless/intel/iwlwifi/cfg/6000.c
 drivers/net/wireless/intel/iwlwifi/cfg/7000.c
 drivers/net/wireless/intel/iwlwifi/cfg/8000.c
 drivers/net/wireless/intel/iwlwifi/cfg/9000.c
+drivers/net/wireless/intel/iwlwifi/cfg/ax210.c
+drivers/net/wireless/intel/iwlwifi/cfg/bz.c
+drivers/net/wireless/intel/iwlwifi/cfg/sc.c
 drivers/net/wireless/intel/iwlwifi/dvm/calib.c
 drivers/net/wireless/intel/iwlwifi/dvm/devices.c
 drivers/net/wireless/intel/iwlwifi/dvm/lib.c
@@ -128,13 +131,19 @@ drivers/net/wireless/intel/iwlwifi/mvm/coex.c
 drivers/net/wireless/intel/iwlwifi/mvm/ftm-initiator.c
 drivers/net/wireless/intel/iwlwifi/mvm/ftm-responder.c
 drivers/net/wireless/intel/iwlwifi/mvm/fw.c
+drivers/net/wireless/intel/iwlwifi/mvm/link.c
 drivers/net/wireless/intel/iwlwifi/mvm/mac-ctxt.c
 drivers/net/wireless/intel/iwlwifi/mvm/mac80211.c
+drivers/net/wireless/intel/iwlwifi/mvm/mld-key.c
+drivers/net/wireless/intel/iwlwifi/mvm/mld-mac.c
+drivers/net/wireless/intel/iwlwifi/mvm/mld-mac80211.c
+drivers/net/wireless/intel/iwlwifi/mvm/mld-sta.c
 drivers/net/wireless/intel/iwlwifi/mvm/nvm.c
 drivers/net/wireless/intel/iwlwifi/mvm/offloading.c
 drivers/net/wireless/intel/iwlwifi/mvm/ops.c
 drivers/net/wireless/intel/iwlwifi/mvm/phy-ctxt.c
 drivers/net/wireless/intel/iwlwifi/mvm/power.c
+drivers/net/wireless/intel/iwlwifi/mvm/ptp.c
 drivers/net/wireless/intel/iwlwifi/mvm/quota.c
 drivers/net/wireless/intel/iwlwifi/mvm/rfi.c
 drivers/net/wireless/intel/iwlwifi/mvm/rs-fw.c
@@ -146,6 +155,7 @@ drivers/net/wireless/intel/iwlwifi/mvm/sf.c
 drivers/net/wireless/intel/iwlwifi/mvm/sta.c
 drivers/net/wireless/intel/iwlwifi/mvm/tdls.c
 drivers/net/wireless/intel/iwlwifi/mvm/time-event.c
+drivers/net/wireless/intel/iwlwifi/mvm/time-sync.c
 drivers/net/wireless/intel/iwlwifi/mvm/tt.c
 drivers/net/wireless/intel/iwlwifi/mvm/tx.c
 drivers/net/wireless/intel/iwlwifi/mvm/utils.c
@@ -245,6 +255,7 @@ lib/klist.c
 lib/kobject.c
 lib/kstrtox.c
 lib/list_sort.c
+lib/maple_tree.c
 lib/math/reciprocal_div.c
 lib/nlattr.c
 lib/radix-tree.c

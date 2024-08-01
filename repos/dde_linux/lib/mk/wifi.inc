@@ -1,5 +1,8 @@
-WIFI_DRV_DIR := $(call select_from_ports,legacy_linux)/src/lib/wifi
-ifeq ($(wildcard $(WIFI_DRV_DIR)),)
+# if CONTRIB_DIR is empty we are building depot archives,
+# otherwise we use the build-system (see mk/util.inc comment)
+ifeq ($(CONTRIB_DIR),)
+WIFI_DRV_DIR := $(REP_DIR)/src/lib/wifi
+else
 WIFI_DRV_DIR := $(call select_from_repositories,src/lib/wifi)
 endif
 

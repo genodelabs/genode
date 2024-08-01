@@ -220,7 +220,7 @@ acpi_status acpi_evaluate_object(acpi_handle handle,
 }
 
 
-acpi_status acpi_get_handle(acpi_handle parent,acpi_string pathname,acpi_handle * ret_handle)
+acpi_status acpi_get_handle(acpi_handle parent,char const* pathname,acpi_handle * ret_handle)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -424,15 +424,6 @@ bool dev_add_physical_location(struct device * dev)
 }
 
 
-#include <linux/sysctl.h>
-
-struct ctl_table_header * register_sysctl(const char * path,struct ctl_table * table)
-{
-	lx_emul_trace(__func__);
-	return NULL;
-}
-
-
 #include <net/gen_stats.h>
 
 void gnet_stats_basic_sync_init(struct gnet_stats_basic_sync * b)
@@ -487,7 +478,7 @@ void pcim_iounmap(struct pci_dev *pdev, void __iomem *addr)
 
 #include <linux/sysctl.h>
 
-void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name)
+void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name, size_t table_size)
 {
 	lx_emul_trace(__func__);
 }
@@ -512,10 +503,18 @@ int pcim_iomap_regions(struct pci_dev *pdev, int mask, const char *name)
 }
 
 
-int pcie_capability_clear_and_set_word(struct pci_dev *dev, int pos,
-                                       u16 clear, u16 set)
+int pcie_capability_clear_and_set_word_locked(struct pci_dev *dev, int pos,
+                                              u16 clear, u16 set)
 {
-	lx_emul_trace_and_stop(__func__);
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+int pcie_capability_clear_and_set_word_unlocked(struct pci_dev *dev, int pos,
+                                                u16 clear, u16 set)
+{
+	lx_emul_trace(__func__);
 	return 0;
 }
 
@@ -552,7 +551,7 @@ void *iwl_uefi_get_pnvm(struct iwl_trans *trans, size_t *len)
 }
 
 
-void *iwl_uefi_get_reduced_power(struct iwl_trans *trans, size_t *len)
+u8 *iwl_uefi_get_reduced_power(struct iwl_trans *trans, size_t *len)
 {
 	lx_emul_trace(__func__);
 	return ERR_PTR(-EOPNOTSUPP);
@@ -564,6 +563,23 @@ void iwl_uefi_get_sgom_table(struct iwl_trans *trans, struct iwl_fw_runtime *fwr
 	lx_emul_trace(__func__);
 }
 
+
+void iwl_uefi_get_step_table(struct iwl_trans * trans)
+{
+	lx_emul_trace(__func__);
+}
+
+
+int iwl_uefi_handle_tlv_mem_desc(struct iwl_trans * trans,const u8 * data,u32 tlv_len,struct iwl_pnvm_image * pnvm_data)
+{
+	return -EINVAL;;
+}
+
+
+int iwl_uefi_reduce_power_parse(struct iwl_trans * trans,const u8 * data,size_t len,struct iwl_pnvm_image * pnvm_data)
+{
+	return -ENOENT;;
+}
 
 #include <linux/property.h>
 
@@ -731,7 +747,7 @@ void led_classdev_unregister(struct led_classdev * led_cdev)
 
 #include <linux/leds.h>
 
-void led_trigger_blink_oneshot(struct led_trigger * trig,unsigned long * delay_on,unsigned long * delay_off,int invert)
+void led_trigger_blink_oneshot(struct led_trigger * trig,unsigned long delay_on,unsigned long delay_off,int invert)
 {
 	lx_emul_trace(__func__);
 }
@@ -742,4 +758,19 @@ void led_trigger_blink_oneshot(struct led_trigger * trig,unsigned long * delay_o
 void led_trigger_unregister(struct led_trigger * trig)
 {
 	lx_emul_trace(__func__);
+}
+
+
+#include <linux/mnt_idmapping.h>
+
+struct mnt_idmap { unsigned dummy; };
+struct mnt_idmap nop_mnt_idmap;
+
+
+#include <linux/thermal.h>
+
+struct thermal_zone_device * thermal_zone_device_register_with_trips(const char * type,struct thermal_trip * trips,int num_trips,int mask,void * devdata,struct thermal_zone_device_ops * ops,const struct thermal_zone_params * tzp,int passive_delay,int polling_delay)
+{
+	lx_emul_trace(__func__);
+	return ERR_PTR(-EINVAL);
 }
