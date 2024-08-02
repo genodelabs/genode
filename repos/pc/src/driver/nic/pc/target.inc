@@ -2,6 +2,7 @@ TARGET  := pc_nic
 LIBS    := base pc_lx_emul jitterentropy
 
 INC_DIR += $(PRG_DIR)/../..
+INC_DIR += $(LX_SRC_DIR)/drivers/net/ethernet/intel/e1000e
 SRC_CC  += main.cc
 SRC_C   += dummies.c
 SRC_C   += lx_emul.c

@@ -29,6 +29,7 @@ drivers/net/ethernet/intel/e1000e/80003es2lan.h
 drivers/net/ethernet/intel/e1000e/82571.h
 drivers/net/ethernet/intel/e1000e/defines.h
 drivers/net/ethernet/intel/e1000e/e1000.h
+drivers/net/ethernet/intel/e1000e/e1000e_trace.h
 drivers/net/ethernet/intel/e1000e/hw.h
 drivers/net/ethernet/intel/e1000e/ich8lan.h
 drivers/net/ethernet/intel/e1000e/mac.h
@@ -39,6 +40,7 @@ drivers/net/ethernet/intel/e1000e/regs.h
 drivers/net/ethernet/realtek/r8169.h
 drivers/net/ethernet/realtek/r8169_firmware.h
 drivers/net/phy/mdio-boardinfo.h
+drivers/net/phy/mdio-open-alliance.h
 drivers/net/phy/swphy.h
 include/asm-generic/asm-prototypes.h
 include/asm-generic/bitops/fls64.h
@@ -51,6 +53,7 @@ include/crypto/sha1.h
 include/linux/aer.h
 include/linux/bpf-cgroup.h
 include/linux/bpf.h
+include/linux/bpf_mprog.h
 include/linux/bpf_trace.h
 include/linux/bpfptr.h
 include/linux/btf.h
@@ -76,7 +79,9 @@ include/linux/ip.h
 include/linux/ipv6_route.h
 include/linux/irqchip/chained_irq.h
 include/linux/kcov.h
+include/linux/micrel_phy.h
 include/linux/mpls.h
+include/linux/net_tstamp.h
 include/linux/netfilter.h
 include/linux/netfilter_netdev.h
 include/linux/netpoll.h
@@ -86,6 +91,7 @@ include/linux/of_mdio.h
 include/linux/of_net.h
 include/linux/phy_fixed.h
 include/linux/phy_led_triggers.h
+include/linux/phylib_stubs.h
 include/linux/phylink.h
 include/linux/pinctrl/pinconf-generic.h
 include/linux/pinctrl/pinctrl.h
@@ -115,6 +121,7 @@ include/net/flow_offload.h
 include/net/gen_stats.h
 include/net/gro.h
 include/net/gro_cells.h
+include/net/gso.h
 include/net/inet_ecn.h
 include/net/inet_hashtables.h
 include/net/inetpeer.h
@@ -131,7 +138,11 @@ include/net/mctp.h
 include/net/mpls.h
 include/net/mptcp.h
 include/net/ndisc.h
+include/net/netdev_queues.h
+include/net/netdev_rx_queue.h
 include/net/netns/generic.h
+include/net/page_pool/helpers.h
+include/net/page_pool/types.h
 include/net/pkt_cls.h
 include/net/pkt_sched.h
 include/net/protocol.h
@@ -140,6 +151,7 @@ include/net/sch_generic.h
 include/net/sock_reuseport.h
 include/net/switchdev.h
 include/net/tcp.h
+include/net/tcx.h
 include/net/udp.h
 include/net/udp_tunnel.h
 include/net/xdp_priv.h
@@ -153,6 +165,7 @@ include/trace/events/napi.h
 include/trace/events/neigh.h
 include/trace/events/net.h
 include/trace/events/net_probe_common.h
+include/trace/events/notifier.h
 include/trace/events/qdisc.h
 include/trace/events/skb.h
 include/trace/events/sock.h
@@ -165,6 +178,7 @@ include/uapi/linux/btf.h
 include/uapi/linux/devlink.h
 include/uapi/linux/errqueue.h
 include/uapi/linux/ethtool_netlink.h
+include/uapi/linux/fanotify.h
 include/uapi/linux/filter.h
 include/uapi/linux/gen_stats.h
 include/uapi/linux/if_arp.h

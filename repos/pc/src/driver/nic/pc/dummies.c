@@ -53,15 +53,7 @@ int proc_alloc_inum(unsigned int * inum)
 
 #include <linux/sysctl.h>
 
-struct ctl_table_header * register_sysctl(const char * path,struct ctl_table * table)
-{
-	lx_emul_trace(__func__);
-	return NULL;
-}
-
-#include <linux/sysctl.h>
-
-void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name)
+void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name,size_t table_size)
 {
 	lx_emul_trace(__func__);
 }

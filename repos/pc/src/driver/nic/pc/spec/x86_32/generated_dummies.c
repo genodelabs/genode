@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-16
+ * \date   2024-08-20
  */
 
 #include <lx_emul.h>
@@ -84,6 +84,14 @@ void __skb_get_hash(struct sk_buff * skb)
 }
 
 
+#include <net/gso.h>
+
+struct sk_buff * __skb_gso_segment(struct sk_buff * skb,netdev_features_t features,bool tx_path)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/srcu.h>
 
 void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
@@ -116,8 +124,8 @@ int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
 }
 
 
-extern void arch_trigger_cpumask_backtrace(const cpumask_t * mask,bool exclude_self);
-void arch_trigger_cpumask_backtrace(const cpumask_t * mask,bool exclude_self)
+extern void arch_trigger_cpumask_backtrace(const cpumask_t * mask,int exclude_cpu);
+void arch_trigger_cpumask_backtrace(const cpumask_t * mask,int exclude_cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -200,6 +208,22 @@ void cpu_latency_qos_remove_request(struct pm_qos_request * req)
 }
 
 
+#include <linux/cpumask.h>
+
+unsigned int cpumask_any_and_distribute(const struct cpumask * src1p,const struct cpumask * src2p)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched/topology.h>
+
+bool cpus_share_cache(int this_cpu,int that_cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/property.h>
 
 int device_create_managed_software_node(struct device * dev,const struct property_entry * properties,const struct software_node * parent)
@@ -219,6 +243,14 @@ void do_trace_netlink_extack(const char * msg)
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+asmlinkage __visible void dump_stack_lvl(const char * log_lvl)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -450,11 +482,6 @@ long __sched io_schedule_timeout(long timeout)
 }
 
 
-#include <linux/swiotlb.h>
-
-struct io_tlb_mem io_tlb_default_mem;
-
-
 #include <linux/irq_work.h>
 
 void irq_work_tick(void)
@@ -495,6 +522,11 @@ int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
 #include <linux/netdevice.h>
 
 struct pernet_operations __net_initdata loopback_net_ops;
+
+
+#include <linux/delay.h>
+
+unsigned long loops_per_jiffy;
 
 
 #include <linux/preempt.h>
@@ -626,6 +658,14 @@ void pci_release_selected_regions(struct pci_dev * pdev,int bars)
 
 #include <linux/pci.h>
 
+int pci_reset_bus(struct pci_dev * pdev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
 int pci_set_power_state(struct pci_dev * dev,pci_power_t state)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -672,6 +712,11 @@ int pcix_set_mmrbc(struct pci_dev * dev,int mmrbc)
 }
 
 
+#include <linux/phylib_stubs.h>
+
+const struct phylib_stubs *phylib_stubs;
+
+
 #include <linux/interrupt.h>
 
 int probe_irq_off(unsigned long val)
@@ -712,6 +757,28 @@ void proc_free_inum(unsigned int inum)
 }
 
 
+extern void raw_spin_rq_lock_nested(struct rq * rq,int subclass);
+void raw_spin_rq_lock_nested(struct rq * rq,int subclass)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void raw_spin_rq_unlock(struct rq * rq);
+void raw_spin_rq_unlock(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/rcuref.h>
+
+bool rcuref_get_slowpath(rcuref_t * ref)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/reboot.h>
 
 enum reboot_mode reboot_mode;
@@ -735,7 +802,7 @@ struct rhash_lock_head __rcu ** rht_bucket_nested(const struct bucket_table * tb
 
 #include <linux/rtnetlink.h>
 
-struct sk_buff * rtmsg_ifinfo_build_skb(int type,struct net_device * dev,unsigned int change,u32 event,gfp_t flags,int * new_nsid,int new_ifindex)
+struct sk_buff * rtmsg_ifinfo_build_skb(int type,struct net_device * dev,unsigned int change,u32 event,gfp_t flags,int * new_nsid,int new_ifindex,u32 portid,const struct nlmsghdr * nlh)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -743,7 +810,7 @@ struct sk_buff * rtmsg_ifinfo_build_skb(int type,struct net_device * dev,unsigne
 
 #include <linux/rtnetlink.h>
 
-void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags)
+void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags,u32 portid,const struct nlmsghdr * nlh)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -759,7 +826,7 @@ struct net * rtnl_get_net_ns_capable(struct sock * sk,int netnsid)
 
 #include <linux/rtnetlink.h>
 
-void rtnl_notify(struct sk_buff * skb,struct net * net,u32 pid,u32 group,struct nlmsghdr * nlh,gfp_t flags)
+void rtnl_notify(struct sk_buff * skb,struct net * net,u32 pid,u32 group,const struct nlmsghdr * nlh,gfp_t flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -795,6 +862,25 @@ void seq_printf(struct seq_file * m,const char * f,...)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+extern void set_rq_offline(struct rq * rq);
+void set_rq_offline(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void set_rq_online(struct rq * rq);
+void set_rq_online(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/smp.h>
+
+unsigned int setup_max_cpus;
 
 
 #include <linux/sched/debug.h>
@@ -882,7 +968,7 @@ int task_work_add(struct task_struct * task,struct callback_head * work,enum tas
 
 #include <linux/task_work.h>
 
-struct callback_head * task_work_cancel(struct task_struct * task,task_work_func_t func)
+struct callback_head * task_work_cancel_func(struct task_struct * task,task_work_func_t func)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -890,6 +976,13 @@ struct callback_head * task_work_cancel(struct task_struct * task,task_work_func
 
 extern void unregister_handler_proc(unsigned int irq,struct irqaction * action);
 void unregister_handler_proc(unsigned int irq,struct irqaction * action)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void update_group_capacity(struct sched_domain * sd,int cpu);
+void update_group_capacity(struct sched_domain * sd,int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }

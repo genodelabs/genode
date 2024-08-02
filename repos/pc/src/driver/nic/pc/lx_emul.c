@@ -138,10 +138,16 @@ int pcie_capability_write_word(struct pci_dev * dev, int pos, u16 val)
 }
 
 
-int pcie_capability_clear_and_set_word(struct pci_dev *dev, int pos, u16 clear, u16 set)
+int pcie_capability_clear_and_set_word_unlocked(struct pci_dev *dev, int pos, u16 clear, u16 set)
 {
 	printk("%s: unsupported pos=%x\n", __func__, pos);
 	return PCIBIOS_FUNC_NOT_SUPPORTED;
+}
+
+
+int pcie_capability_clear_and_set_word_locked(struct pci_dev *dev, int pos, u16 clear, u16 set)
+{
+	return pcie_capability_clear_and_set_word_unlocked(dev, pos, clear, set);
 }
 
 
@@ -210,6 +216,13 @@ int pci_alloc_irq_vectors_affinity(struct pci_dev *dev, unsigned int min_vecs,
 	if ((flags & PCI_IRQ_LEGACY) && min_vecs == 1 && dev->irq)
 		return 1;
 	return -ENOSPC;
+}
+
+
+int pci_alloc_irq_vectors(struct pci_dev *dev, unsigned int min_vecs,
+                          unsigned int max_vecs, unsigned int flags)
+{
+	return pci_alloc_irq_vectors_affinity(dev, min_vecs, max_vecs, flags, NULL);
 }
 
 

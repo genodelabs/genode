@@ -94,6 +94,7 @@ lib/kobject.c
 lib/kstrtox.c
 lib/list_sort.c
 lib/llist.c
+lib/maple_tree.c
 lib/math/reciprocal_div.c
 lib/radix-tree.c
 lib/rbtree.c
