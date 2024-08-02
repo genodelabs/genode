@@ -126,3 +126,14 @@ unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 	memcpy(to, from, n);
 	return 0;
 }
+
+
+#include <linux/pci.h>
+
+int pci_alloc_irq_vectors(struct pci_dev * dev, unsigned int min_vecs,
+                          unsigned int max_vecs,unsigned int flags)
+{
+	if ((flags & PCI_IRQ_LEGACY) && min_vecs == 1 && dev->irq)
+		return 1;
+	return -ENOSPC;
+}

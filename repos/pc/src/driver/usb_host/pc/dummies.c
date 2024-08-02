@@ -54,6 +54,15 @@ struct irq_domain *pci_host_bridge_acpi_msi_domain(struct pci_bus *bus)
 }
 
 
+
+pci_power_t pci_choose_state(struct pci_dev * dev,pm_message_t state)
+{
+	lx_emul_trace(__func__);
+	return PCI_UNKNOWN;
+}
+
+
+
 int usb_acpi_register(void)
 {
 	lx_emul_trace(__func__);
@@ -124,15 +133,6 @@ bool dev_add_physical_location(struct device * dev)
 }
 
 
-#include <linux/sysctl.h>
-
-struct ctl_table_header * register_sysctl(const char * path,struct ctl_table * table)
-{
-	lx_emul_trace(__func__);
-	return NULL;
-}
-
-
 #include <linux/iommu.h>
 
 int iommu_device_use_default_domain(struct device * dev)
@@ -140,6 +140,15 @@ int iommu_device_use_default_domain(struct device * dev)
 	lx_emul_trace(__func__);
 	return 0;
 }
+
+
+
+struct iommu_domain * iommu_get_domain_for_dev(struct device * dev)
+{
+	lx_emul_trace(__func__);
+	return NULL;
+}
+
 
 
 #include <linux/usb.h>
@@ -153,7 +162,8 @@ int usb_acpi_port_lpm_incapable(struct usb_device * hdev,int index)
 
 #include <linux/sysctl.h>
 
-void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name)
+void __init __register_sysctl_init(const char * path,struct ctl_table * table,
+                                   const char * table_name, size_t table_size)
 {
 	lx_emul_trace(__func__);
 }
@@ -292,6 +302,24 @@ int pinctrl_init_done(struct device * dev)
 #include <linux/cdev.h>
 
 void cdev_init(struct cdev * cdev, const struct file_operations * fops)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/kernfs.h>
+
+struct kernfs_node *
+kernfs_find_and_get_ns(struct kernfs_node * parent,const char * name,
+                       const void * ns)
+{
+	static struct kernfs_node _node;
+	lx_emul_trace(__func__);
+	return &_node;
+}
+
+
+void kernfs_notify(struct kernfs_node * kn)
 {
 	lx_emul_trace(__func__);
 }

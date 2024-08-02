@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-16
+ * \date   2024-08-20
  */
 
 #include <lx_emul.h>
@@ -91,24 +91,8 @@ int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
 }
 
 
-extern void arch_trigger_cpumask_backtrace(const cpumask_t * mask,bool exclude_self);
-void arch_trigger_cpumask_backtrace(const cpumask_t * mask,bool exclude_self)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/async.h>
-
-async_cookie_t async_schedule_node(async_func_t func,void * data,int node)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/async.h>
-
-void async_synchronize_full(void)
+extern void arch_trigger_cpumask_backtrace(const cpumask_t * mask,int exclude_cpu);
+void arch_trigger_cpumask_backtrace(const cpumask_t * mask,int exclude_cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -154,6 +138,22 @@ const struct cpumask * cpu_clustergroup_mask(int cpu)
 }
 
 
+#include <linux/cpumask.h>
+
+unsigned int cpumask_any_and_distribute(const struct cpumask * src1p,const struct cpumask * src2p)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched/topology.h>
+
+bool cpus_share_cache(int this_cpu,int that_cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/property.h>
 
 int device_create_managed_software_node(struct device * dev,const struct property_entry * properties,const struct software_node * parent)
@@ -173,6 +173,14 @@ int dma_mmap_attrs(struct device * dev,struct vm_area_struct * vma,void * cpu_ad
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+asmlinkage __visible void dump_stack_lvl(const char * log_lvl)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -260,6 +268,14 @@ struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magi
 bool initcall_debug;
 
 
+#include <linux/fs.h>
+
+struct timespec64 inode_set_ctime_current(struct inode * inode)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/sched.h>
 
 void __sched io_schedule(void)
@@ -290,11 +306,6 @@ long __sched io_schedule_timeout(long timeout)
 {
 	lx_emul_trace_and_stop(__func__);
 }
-
-
-#include <linux/swiotlb.h>
-
-struct io_tlb_mem io_tlb_default_mem;
 
 
 #include <linux/iommu.h>
@@ -348,6 +359,11 @@ int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/delay.h>
+
+unsigned long loops_per_jiffy;
 
 
 #include <linux/irq.h>
@@ -440,6 +456,20 @@ int proc_douintvec(struct ctl_table * table,int write,void * buffer,size_t * len
 }
 
 
+extern void raw_spin_rq_lock_nested(struct rq * rq,int subclass);
+void raw_spin_rq_lock_nested(struct rq * rq,int subclass)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void raw_spin_rq_unlock(struct rq * rq);
+void raw_spin_rq_unlock(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/reboot.h>
 
 enum reboot_mode reboot_mode;
@@ -467,6 +497,25 @@ void seq_printf(struct seq_file * m,const char * f,...)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+extern void set_rq_offline(struct rq * rq);
+void set_rq_offline(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void set_rq_online(struct rq * rq);
+void set_rq_online(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/smp.h>
+
+unsigned int setup_max_cpus;
 
 
 #include <linux/sched/debug.h>
@@ -508,6 +557,30 @@ int suppress_printk;
 const int sysctl_vals[] = {};
 
 
+#include <linux/sysfs.h>
+
+struct kernfs_node * sysfs_break_active_protection(struct kobject * kobj,const struct attribute * attr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysfs.h>
+
+void sysfs_unbreak_active_protection(struct kernfs_node * kn)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysfs.h>
+
+int sysfs_update_group(struct kobject * kobj,const struct attribute_group * grp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/task_work.h>
 
 int task_work_add(struct task_struct * task,struct callback_head * work,enum task_work_notify_mode notify)
@@ -518,7 +591,7 @@ int task_work_add(struct task_struct * task,struct callback_head * work,enum tas
 
 #include <linux/task_work.h>
 
-struct callback_head * task_work_cancel(struct task_struct * task,task_work_func_t func)
+struct callback_head * task_work_cancel_func(struct task_struct * task,task_work_func_t func)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -534,6 +607,13 @@ void unregister_chrdev_region(dev_t from,unsigned count)
 
 extern void unregister_handler_proc(unsigned int irq,struct irqaction * action);
 void unregister_handler_proc(unsigned int irq,struct irqaction * action)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void update_group_capacity(struct sched_domain * sd,int cpu);
+void update_group_capacity(struct sched_domain * sd,int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }

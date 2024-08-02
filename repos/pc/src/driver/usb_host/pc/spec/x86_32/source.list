@@ -44,6 +44,7 @@ drivers/usb/host/xhci-ring.c
 drivers/usb/host/xhci-trace.c
 drivers/usb/host/xhci.c
 fs/nls/nls_base.c
+kernel/async.c
 kernel/irq/chip.c
 kernel/irq/devres.c
 kernel/irq/handle.c
@@ -91,6 +92,7 @@ lib/klist.c
 lib/kobject.c
 lib/kstrtox.c
 lib/list_sort.c
+lib/maple_tree.c
 lib/math/div64.c
 lib/math/reciprocal_div.c
 lib/radix-tree.c

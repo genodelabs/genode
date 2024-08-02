@@ -51,6 +51,8 @@ include/linux/usb/otg.h
 include/linux/usb/phy.h
 include/linux/usb/quirks.h
 include/linux/usbdevice_fs.h
+include/trace/events/notifier.h
+include/uapi/linux/fanotify.h
 include/uapi/linux/kcov.h
 include/uapi/linux/usb/audio.h
 include/uapi/linux/usb/cdc.h
