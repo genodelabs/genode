@@ -553,7 +553,7 @@ struct Usb::Interface::Alt_setting : Device::Urb
 		            P::Request::SET_INTERFACE,
 		            Rt::value(P::Recipient::IFACE, P::Type::STANDARD,
 		                      P::Direction::IN),
-		            iface.index().number, iface.index().alt_setting) {}
+		            iface.index().alt_setting, iface.index().number) {}
 };
 
 
