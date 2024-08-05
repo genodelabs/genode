@@ -60,7 +60,7 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 		Vfs::Env::User       &_vfs_user;
 		Nic::Packet_allocator _pkt_alloc;
 		Nic::Connection       _nic;
-		bool                  _link_state;
+		bool                  _link_state { false };
 
 		bool _notifying = false;
 		bool _blocked   = false;
@@ -111,10 +111,10 @@ class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
 		  _env(env),
 		  _vfs_user(vfs_user),
 		  _pkt_alloc(&alloc),
-		  _nic(_env, &_pkt_alloc, BUF_SIZE, BUF_SIZE, label.string()),
-		  _link_state(_nic.link_state())
+		  _nic(_env, &_pkt_alloc, BUF_SIZE, BUF_SIZE, label.string())
 		{
 			_nic.link_state_sigh(_link_state_handler);
+			_link_state = _nic.link_state();
 			_nic.tx_channel()->sigh_ack_avail      (_ack_avail_handler);
 			_nic.rx_channel()->sigh_ready_to_ack   (_read_avail_handler);
 			_nic.rx_channel()->sigh_packet_avail   (_read_avail_handler);
