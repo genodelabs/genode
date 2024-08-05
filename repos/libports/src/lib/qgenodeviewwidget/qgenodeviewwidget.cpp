@@ -137,7 +137,7 @@ QGenodeViewWidget::QGenodeViewWidget(QWidget *parent)
 { }
 
 
-void QGenodeViewWidget::setGenodeView(Gui::Session_client *new_gui,
+void QGenodeViewWidget::setGenodeView(Gui::Connection *new_gui,
                                       Gui::Session::View_handle new_view_handle,
                                       int buf_x, int buf_y, int w, int h)
 {
@@ -236,5 +236,5 @@ void QGenodeViewWidget::focusInEvent(QFocusEvent *)
 	QGenodePlatformWindow *platform_window =
 		dynamic_cast<QGenodePlatformWindow*>(window()->windowHandle()->handle());
 
-	platform_window->gui_session().focus(gui->rpc_cap());
+	platform_window->gui_session().focus(gui->cap());
 }

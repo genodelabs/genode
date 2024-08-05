@@ -16,7 +16,7 @@
 
 #include <QtWidgets>
 
-#include <gui_session/client.h>
+#include <gui_session/connection.h>
 
 
 class QEmbeddedViewWidget : public QWidget
@@ -66,7 +66,7 @@ class QGenodeViewWidget : public QEmbeddedViewWidget
 
 protected:
 
-	Gui::Session_client      *gui;
+	Gui::Connection          *gui;
 	Gui::Session::View_handle view_handle;
 
 	virtual void showEvent(QShowEvent *event);
@@ -78,7 +78,7 @@ public:
 
 	QGenodeViewWidget(QWidget *parent =0);
 	~QGenodeViewWidget();
-	void setGenodeView(Gui::Session_client *gui,
+	void setGenodeView(Gui::Connection *gui,
 	                   Gui::Session::View_handle view_handle,
 	                   int buf_x, int buf_y, int w, int h);
 };

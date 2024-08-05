@@ -116,7 +116,7 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		using View_handle = Gui::Session::View_handle;
 
 		Session_label        _session_label;
-		Gui::Session_client &_real_gui;
+		Real_gui            &_real_gui;
 		View_handle          _real_handle     { };
 		Title                _title           { };
 		Rect                 _geometry        { };
@@ -125,7 +125,7 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		bool                 _neighbor_behind { };
 		bool                 _has_alpha;
 
-		View(Gui::Session_client &real_gui,
+		View(Real_gui            &real_gui,
 		     Session_label const &session_label,
 		     bool                 has_alpha)
 		:
@@ -153,7 +153,10 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 			View_handle real_neighbor_handle;
 
 			if (neighbor.valid())
-				real_neighbor_handle = _real_gui.view_handle(neighbor->real_view_cap());
+				_real_gui.session.view_handle(neighbor->real_view_cap()).with_result(
+					[&] (View_handle handle) { real_neighbor_handle = handle; },
+					[&] (auto) { warning("unable to obtain real_neighbor_handle"); }
+				);
 
 			if (_neighbor_behind)
 				_real_gui.enqueue<Command::To_front>(_real_handle, real_neighbor_handle);
@@ -163,7 +166,7 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 			_real_gui.execute();
 
 			if (real_neighbor_handle.valid())
-				_real_gui.release_view_handle(real_neighbor_handle);
+				_real_gui.session.release_view_handle(real_neighbor_handle);
 		}
 
 		void _apply_view_config()
@@ -177,7 +180,7 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		~View()
 		{
 			if (_real_handle.valid())
-				_real_gui.destroy_view(_real_handle);
+				_real_gui.session.destroy_view(_real_handle);
 		}
 
 		using Genode::Weak_object<View>::weak_ptr;
@@ -218,7 +221,7 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 
 		View_capability real_view_cap()
 		{
-			return _real_gui.view_capability(_real_handle);
+			return _real_gui.session.view_capability(_real_handle);
 		}
 
 		void buffer_offset(Point buffer_offset)
@@ -255,23 +258,23 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 		bool _resizeable = false;
 
-		Title         _window_title { };
-		Session_label _session_label;
+		Title _window_title { };
+
+		Session_label const _session_label;
 
 		using Command = Gui::Session::Command;
 
 	public:
 
-		Top_level_view(Gui::Session_client          &real_gui,
-		               Session_label          const &session_label,
+		Top_level_view(Real_gui                     &real_gui,
 		               bool                          has_alpha,
 		               Window_registry              &window_registry,
 		               Input_origin_changed_handler &input_origin_changed_handler)
 		:
-			View(real_gui, session_label, has_alpha),
+			View(real_gui, real_gui.label, has_alpha),
 			_window_registry(window_registry),
 			_input_origin_changed_handler(input_origin_changed_handler),
-			_session_label(session_label)
+			_session_label(real_gui.label)
 		{ }
 
 		~Top_level_view()
@@ -347,14 +350,22 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 				/*
 				 * Create and configure physical GUI view.
 				 */
-				_real_handle = _real_gui.create_view();
+				_real_gui.session.create_view().with_result(
+					[&] (View_handle handle) {
+						_real_handle = handle;
+						_real_gui.enqueue<Command::Offset>(_real_handle, _buffer_offset);
+						_real_gui.enqueue<Command::Title> (_real_handle, _title.string());
+						_real_gui.execute();
+					},
+					[&] (Gui::Session::Create_view_error) { }
+				);
 
-				_real_gui.enqueue<Command::Offset>(_real_handle, _buffer_offset);
-				_real_gui.enqueue<Command::Title> (_real_handle, _title.string());
-				_real_gui.execute();
+				if (!_real_handle.valid()) {
+					warning("failed to created content view for ", _title);
+					return { };
+				}
 			}
-
-			return _real_gui.view_capability(_real_handle);
+			return _real_gui.session.view_capability(_real_handle);
 		}
 
 		void hidden(bool hidden) { _window_registry.hidden(_win_id, hidden); }
@@ -379,12 +390,11 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 
 	public:
 
-		Child_view(Gui::Session_client &real_gui,
-		           Session_label const &session_label,
-		           bool                 has_alpha,
-		           Weak_ptr<View>       parent)
+		Child_view(Real_gui      &real_gui,
+		           bool           has_alpha,
+		           Weak_ptr<View> parent)
 		:
-			View(real_gui, session_label, has_alpha), _parent(parent)
+			View(real_gui, real_gui.label, has_alpha), _parent(parent)
 		{
 			try_to_init_real_view();
 		}
@@ -433,13 +443,26 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 			if (!parent.valid())
 				return;
 
-			View_handle parent_handle = _real_gui.view_handle(parent->real_view_cap());
-			if (!parent_handle.valid())
+			View_handle parent_handle { };
+			_real_gui.session.view_handle(parent->real_view_cap()).with_result(
+				[&] (View_handle handle) { parent_handle = handle; },
+				[&] (Gui::Session::View_handle_error) { }
+			);
+			if (!parent_handle.valid()) {
+				warning("try_to_init_real_view failed to obtain parent handle");
 				return;
+			}
 
-			_real_handle = _real_gui.create_child_view(parent_handle);
+			_real_gui.session.create_child_view(parent_handle).with_result(
+				[&] (View_handle handle) { _real_handle = handle; },
+				[&] (Gui::Session::Create_child_view_error) { }
+			);
+			if (!_real_handle.valid()) {
+				warning("try_to_init_real_view failed to create child view");
+				return;
+			}
 
-			_real_gui.release_view_handle(parent_handle);
+			_real_gui.session.release_view_handle(parent_handle);
 
 			if (_neighbor_ptr == _parent)
 				_unsynchronized_apply_view_config(parent);
@@ -457,7 +480,7 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 			if (!_real_handle.valid())
 				return;
 
-			_real_gui.destroy_view(_real_handle);
+			_real_gui.session.destroy_view(_real_handle);
 			_real_handle = { };
 		}
 };
@@ -475,10 +498,9 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		Genode::Env &_env;
 
-		Session_label          _session_label;
-		Genode::Ram_allocator &_ram;
-		Gui::Connection        _session { _env, _session_label.string() };
-
+		Session_label                _session_label;
+		Genode::Ram_allocator       &_ram;
+		Real_gui                     _real_gui { _env, _session_label };
 		Window_registry             &_window_registry;
 		Tslab<Top_level_view, 8000>  _top_level_view_alloc;
 		Tslab<Child_view, 6000>      _child_view_alloc;
@@ -516,7 +538,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		/*
 		 * Input
 		 */
-		Input::Session_client _gui_input    { _env.rm(), _session.input_session() };
+		Input::Session_client _gui_input    { _env.rm(), _real_gui.session.input_session() };
 		Attached_dataspace    _gui_input_ds { _env.rm(), _gui_input.dataspace() };
 
 		Signal_handler<Session_component> _input_handler {
@@ -661,7 +683,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		View &_create_view_object()
 		{
 			Top_level_view *view = new (_top_level_view_alloc)
-				Top_level_view(_session, _session_label, _has_alpha,
+				Top_level_view(_real_gui, _has_alpha,
 				               _window_registry, *this);
 
 			view->resizeable(_mode_sigh.valid());
@@ -675,7 +697,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			Weak_ptr<View> parent_ptr = _view_handle_registry.lookup(parent_handle);
 
 			Child_view *view = new (_child_view_alloc)
-				Child_view(_session, _session_label, _has_alpha, parent_ptr);
+				Child_view(_real_gui, _has_alpha, parent_ptr);
 
 			_child_views.insert(view);
 			return *view;
@@ -803,7 +825,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			_view_handle_registry(session_alloc)
 		{
 			_gui_input.sigh(_input_handler);
-			_session.mode_sigh(_mode_handler);
+			_real_gui.session.mode_sigh(_mode_handler);
 			_input_session.event_queue().enabled(true);
 		}
 
@@ -822,7 +844,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		void upgrade(char const *args)
 		{
-			_session.upgrade(Genode::session_resources_from_args(args));
+			_real_gui.connection.upgrade(Genode::session_resources_from_args(args));
 		}
 
 		void try_to_init_real_child_views()
@@ -914,7 +936,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		/**
 		 * Return session capability to real GUI session
 		 */
-		Capability<Session> session() { return _session.rpc_cap(); }
+		Capability<Session> session() { return _real_gui.connection.cap(); }
 
 
 		/***************************
@@ -923,7 +945,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		
 		Framebuffer::Session_capability framebuffer_session() override
 		{
-			return _session.framebuffer_session();
+			return _real_gui.session.framebuffer_session();
 		}
 
 		Input::Session_capability input_session() override
@@ -931,20 +953,26 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			return _input_session_cap;
 		}
 
-		View_handle create_view() override
+		Create_view_result create_view() override
 		{
-			View &view = _create_view_object();
-			_env.ep().manage(view);
-			return _view_handle_registry.alloc(view);
+			try {
+				View &view = _create_view_object();
+				_env.ep().manage(view);
+				return _view_handle_registry.alloc(view);
+			}
+			catch (Out_of_ram)  { return Create_view_error::OUT_OF_RAM; }
+			catch (Out_of_caps) { return Create_view_error::OUT_OF_CAPS; }
 		}
 
-		View_handle create_child_view(View_handle parent) override
+		Create_child_view_result create_child_view(View_handle parent) override
 		{
 			try {
 				View &view = _create_child_view_object(parent);
 				_env.ep().manage(view);
 				return _view_handle_registry.alloc(view);
 			}
+			catch (Out_of_ram)  { return Create_child_view_error::OUT_OF_RAM; }
+			catch (Out_of_caps) { return Create_child_view_error::OUT_OF_CAPS; }
 			catch (View_handle_registry::Lookup_failed) {
 				return View_handle(); }
 		}
@@ -972,11 +1000,15 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			} catch (View_handle_registry::Lookup_failed) { }
 		}
 
-		View_handle view_handle(View_capability view_cap, View_handle handle) override
+		View_handle_result view_handle(View_capability view_cap, View_handle handle) override
 		{
-			return _env.ep().rpc_ep().apply(view_cap, [&] (View *view) {
-				return (view) ? _view_handle_registry.alloc(*view, handle)
-				              : View_handle(); });
+			try {
+				return _env.ep().rpc_ep().apply(view_cap, [&] (View *view) {
+					return (view) ? _view_handle_registry.alloc(*view, handle)
+					              : View_handle(); });
+			}
+			catch (Out_of_ram)  { return View_handle_error::OUT_OF_RAM; }
+			catch (Out_of_caps) { return View_handle_error::OUT_OF_CAPS; }
 		}
 
 		View_capability view_capability(View_handle handle) override
@@ -1017,7 +1049,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		Framebuffer::Mode mode() override
 		{
-			Framebuffer::Mode const real_mode = _session.mode();
+			Framebuffer::Mode const real_mode = _real_gui.session.mode();
 
 			/*
 			 * While resizing the window, return requested window size as
@@ -1054,7 +1086,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 				v->resizeable(resizeable);
 		}
 
-		void buffer(Framebuffer::Mode mode, bool has_alpha) override
+		Buffer_result buffer(Framebuffer::Mode mode, bool has_alpha) override
 		{
 			/*
 			 * We must not perform the 'buffer' operation on the connection
@@ -1065,8 +1097,8 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			 * wrapped GUI session. Otherwise, we would perform session
 			 * upgrades initiated by the wm client's buffer operation twice.
 			 */
-			Gui::Session_client(_env.rm(), _session.cap()).buffer(mode, has_alpha);
 			_has_alpha = has_alpha;
+			return _real_gui.session.buffer(mode, has_alpha);
 		}
 
 		void focus(Genode::Capability<Gui::Session>) override { }
@@ -1139,7 +1171,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 		/**
 		 * GUI session used to perform session-control operations
 		 */
-		Gui::Session &_focus_gui_session;
+		Gui::Connection &_focus_gui_session;
 
 	public:
 
@@ -1150,7 +1182,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 		     Window_registry &window_registry, Allocator &md_alloc,
 		     Genode::Ram_allocator &ram,
 		     Pointer::Tracker &pointer_tracker, Reporter &focus_request_reporter,
-		     Gui::Session &focus_gui_session)
+		     Gui::Connection &focus_gui_session)
 		:
 			_env(env),
 			_md_alloc(md_alloc), _ram(ram),

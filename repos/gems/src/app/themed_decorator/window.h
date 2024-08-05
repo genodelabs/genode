@@ -147,11 +147,11 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 			bool const _view_is_remote;
 
-			Gui::Session_client &_gui;
+			Gui::Connection &_gui;
 
 			View_handle _handle;
 
-			Gui_view(Gui::Session_client &gui, unsigned id = 0)
+			Gui_view(Gui::Connection &gui, unsigned id = 0)
 			:
 				_view_is_remote(false),
 				_gui(gui),
@@ -165,7 +165,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 					                             Genode::String<128>(id).string());
 			}
 
-			View_handle _create_remote_view(Gui::Session_client &remote_gui)
+			View_handle _create_remote_view(Gui::Connection &remote_gui)
 			{
 				/* create view at the remote GUI session */
 				View_handle handle = remote_gui.create_view();
@@ -179,8 +179,8 @@ class Decorator::Window : public Window_base, public Animator::Item
 			 * Constructor called for creating a view that refers to a buffer
 			 * of another GUI session
 			 */
-			Gui_view(Gui::Session_client &gui,
-			         Gui::Session_client &remote_gui)
+			Gui_view(Gui::Connection &gui,
+			         Gui::Connection &remote_gui)
 			:
 				_view_is_remote(true),
 				_gui(gui),
@@ -217,7 +217,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 		/**
 		 * GUI session used as a global namespace of view handles
 		 */
-		Gui::Session_client &_gui;
+		Gui::Connection &_gui;
 
 		Config const &_config;
 
@@ -369,7 +369,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 	public:
 
-		Window(Genode::Env &env, unsigned id, Gui::Session_client &gui,
+		Window(Genode::Env &env, unsigned id, Gui::Connection &gui,
 		       Animator &animator, Theme const &theme, Config const &config)
 		:
 			Window_base(id),

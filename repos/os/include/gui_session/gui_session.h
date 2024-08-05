@@ -195,31 +195,35 @@ struct Gui::Session : Genode::Session
 	 */
 	virtual Input::Session_capability input_session() = 0;
 
+	enum class Create_view_error { OUT_OF_RAM, OUT_OF_CAPS };
+	using      Create_view_result = Attempt<View_handle, Create_view_error>;
+
 	/**
 	 * Create a new top-level view at the buffer
-	 *
-	 * \throw   Invalid_handle
-	 * \return  handle for new view
 	 */
-	virtual View_handle create_view() = 0;
+	virtual Create_view_result create_view() = 0;
+
+	enum class Create_child_view_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID };
+	using      Create_child_view_result = Attempt<View_handle, Create_child_view_error>;
 
 	/**
 	 * Create a new child view at the buffer
 	 *
-	 * \param parent  parent view
-	 *
-	 * \throw   Invalid_handle
+	 * \param   parent  parent view
 	 * \return  handle for new view
 	 *
 	 * The 'parent' argument allows the client to use the location of an
 	 * existing view as the coordinate origin for the to-be-created view.
 	 */
-	virtual View_handle create_child_view(View_handle parent) = 0;
+	virtual Create_child_view_result create_child_view(View_handle parent) = 0;
 
 	/**
 	 * Destroy view
 	 */
 	virtual void destroy_view(View_handle) = 0;
+
+	enum class View_handle_error { OUT_OF_RAM, OUT_OF_CAPS };
+	using      View_handle_result = Attempt<View_handle, View_handle_error>;
 
 	/**
 	 * Return session-local handle for the specified view
@@ -229,12 +233,9 @@ struct Gui::Session : Genode::Session
 	 *
 	 * \param handle  designated view handle to be assigned to the imported
 	 *                view. By default, a new handle will be allocated.
-	 *
-	 * \throw Out_of_ram
-	 * \throw Out_of_caps
 	 */
-	virtual View_handle view_handle(View_capability,
-	                                View_handle handle = View_handle()) = 0;
+	virtual View_handle_result view_handle(View_capability,
+	                                       View_handle handle = View_handle()) = 0;
 
 	/**
 	 * Request view capability for a given handle
@@ -269,14 +270,12 @@ struct Gui::Session : Genode::Session
 	 */
 	virtual void mode_sigh(Signal_context_capability) = 0;
 
+	enum class Buffer_result { OK, OUT_OF_RAM, OUT_OF_CAPS };
+
 	/**
 	 * Define dimensions of virtual framebuffer
-	 *
-	 * \throw Out_of_ram  session quota does not suffice for specified
-	 *                    buffer dimensions
-	 * \throw Out_of_caps
 	 */
-	virtual void buffer(Framebuffer::Mode mode, bool use_alpha) = 0;
+	virtual Buffer_result buffer(Framebuffer::Mode mode, bool use_alpha) = 0;
 
 	/**
 	 * Set focused session
@@ -312,13 +311,10 @@ struct Gui::Session : Genode::Session
 
 	GENODE_RPC(Rpc_framebuffer_session, Framebuffer::Session_capability, framebuffer_session);
 	GENODE_RPC(Rpc_input_session, Input::Session_capability, input_session);
-	GENODE_RPC_THROW(Rpc_create_view, View_handle, create_view,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps));
-	GENODE_RPC_THROW(Rpc_create_child_view, View_handle, create_child_view,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Invalid_handle), View_handle);
+	GENODE_RPC(Rpc_create_view, Create_view_result, create_view);
+	GENODE_RPC(Rpc_create_child_view, Create_child_view_result, create_child_view, View_handle);
 	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_handle);
-	GENODE_RPC_THROW(Rpc_view_handle, View_handle, view_handle,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps), View_capability, View_handle);
+	GENODE_RPC(Rpc_view_handle, View_handle_result, view_handle, View_capability, View_handle);
 	GENODE_RPC(Rpc_view_capability, View_capability, view_capability, View_handle);
 	GENODE_RPC(Rpc_release_view_handle, void, release_view_handle, View_handle);
 	GENODE_RPC(Rpc_command_dataspace, Dataspace_capability, command_dataspace);
@@ -327,8 +323,7 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_mode, Framebuffer::Mode, mode);
 	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Signal_context_capability);
 	GENODE_RPC(Rpc_focus, void, focus, Capability<Session>);
-	GENODE_RPC_THROW(Rpc_buffer, void, buffer, GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
-	                 Framebuffer::Mode, bool);
+	GENODE_RPC(Rpc_buffer, Buffer_result, buffer, Framebuffer::Mode, bool);
 
 	GENODE_RPC_INTERFACE(Rpc_framebuffer_session, Rpc_input_session,
 	                     Rpc_create_view, Rpc_create_child_view, Rpc_destroy_view,

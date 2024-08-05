@@ -342,17 +342,17 @@ class Gui_fader::Gui_session_component
 
 		Input::Session_capability input_session() override
 		{
-			return _gui.input_session();
+			return _gui.cap().call<Gui::Session::Rpc_input_session>();
 		}
 
-		View_handle create_view() override
+		Create_view_result create_view() override
 		{
 			_view_handle = _gui.create_view();
 			_update_view_visibility();
 			return _view_handle;
 		}
 
-		View_handle create_child_view(View_handle parent) override
+		Create_child_view_result create_child_view(View_handle parent) override
 		{
 			_view_handle = _gui.create_child_view(parent);
 			_update_view_visibility();
@@ -364,8 +364,8 @@ class Gui_fader::Gui_session_component
 			return _gui.destroy_view(handle);
 		}
 
-		View_handle view_handle(View_capability view_cap,
-		                        View_handle handle) override
+		View_handle_result view_handle(View_capability view_cap,
+		                               View_handle handle) override
 		{
 			return _gui.view_handle(view_cap, handle);
 		}
@@ -420,7 +420,7 @@ class Gui_fader::Gui_session_component
 			_gui.mode_sigh(sigh);
 		}
 
-		void buffer(Framebuffer::Mode mode, bool use_alpha) override
+		Buffer_result buffer(Framebuffer::Mode mode, bool use_alpha) override
 		{
 			Area const size = mode.area;
 
@@ -429,6 +429,7 @@ class Gui_fader::Gui_session_component
 			_gui.buffer(mode, true);
 
 			_fb_session.dst_buffer(_gui.framebuffer()->dataspace(), size);
+			return Buffer_result::OK;
 		}
 
 		void focus(Genode::Capability<Session> focused) override

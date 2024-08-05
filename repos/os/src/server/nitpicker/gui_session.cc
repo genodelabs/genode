@@ -241,18 +241,22 @@ void Gui_session::_adopt_new_view(View &view)
 }
 
 
-Gui_session::View_handle Gui_session::create_view()
+Gui_session::Create_view_result Gui_session::create_view()
 {
-	View &view = *new (_view_alloc)
-		View(*this, _texture, { .transparent = false, .background = false }, nullptr);
+	try {
+		View &view = *new (_view_alloc)
+			View(*this, _texture, { .transparent = false, .background = false }, nullptr);
 
-	_adopt_new_view(view);
+		_adopt_new_view(view);
 
-	return _view_handle_registry.alloc(view);
+		return _view_handle_registry.alloc(view);
+	}
+	catch (Out_of_ram)  { return Create_view_error::OUT_OF_RAM; }
+	catch (Out_of_caps) { return Create_view_error::OUT_OF_CAPS; }
 }
 
 
-Gui_session::View_handle Gui_session::create_child_view(View_handle const parent_handle)
+Gui_session::Create_child_view_result Gui_session::create_child_view(View_handle const parent_handle)
 {
 	View *parent_view_ptr = nullptr;
 
@@ -264,16 +268,20 @@ Gui_session::View_handle Gui_session::create_child_view(View_handle const parent
 	catch (View_handle_registry::Lookup_failed) { }
 
 	if (!parent_view_ptr)
-		return View_handle();
+		return Create_child_view_error::INVALID;
 
-	View &view = *new (_view_alloc)
-		View(*this, _texture, { .transparent = false, .background = false }, parent_view_ptr);
+	try {
+		View &view = *new (_view_alloc)
+			View(*this, _texture, { .transparent = false, .background = false }, parent_view_ptr);
 
-	parent_view_ptr->add_child(view);
+		parent_view_ptr->add_child(view);
 
-	_adopt_new_view(view);
+		_adopt_new_view(view);
 
-	return _view_handle_registry.alloc(view);
+		return _view_handle_registry.alloc(view);
+	}
+	catch (Out_of_ram)  { return Create_child_view_error::OUT_OF_RAM; }
+	catch (Out_of_caps) { return Create_child_view_error::OUT_OF_CAPS; }
 }
 
 
@@ -341,19 +349,17 @@ void Gui_session::destroy_view(View_handle handle)
 }
 
 
-Gui_session::View_handle
+Gui_session::View_handle_result
 Gui_session::view_handle(View_capability view_cap, View_handle handle)
 {
-	auto lambda = [&] (View *view)
-	{
-		return (view) ? _view_handle_registry.alloc(*view, handle)
-		              : View_handle();
-	};
-
 	try {
-		return _env.ep().rpc_ep().apply(view_cap, lambda);
+		return _env.ep().rpc_ep().apply(view_cap, [&] (View *view) {
+			return (view) ? _view_handle_registry.alloc(*view, handle)
+			              : View_handle(); });
 	}
-	catch (View_handle_registry::Out_of_memory) { throw Out_of_ram(); }
+	catch (View_handle_registry::Out_of_memory)  { return View_handle_error::OUT_OF_RAM; }
+	catch (Out_of_ram)                           { return View_handle_error::OUT_OF_RAM; }
+	catch (Out_of_caps)                          { return View_handle_error::OUT_OF_RAM; }
 }
 
 
@@ -404,17 +410,18 @@ Framebuffer::Mode Gui_session::mode()
 }
 
 
-void Gui_session::buffer(Framebuffer::Mode mode, bool use_alpha)
+Gui_session::Buffer_result Gui_session::buffer(Framebuffer::Mode mode, bool use_alpha)
 {
 	/* check if the session quota suffices for the specified mode */
 	if (_buffer_size + _ram_quota_guard().avail().value < ram_quota(mode, use_alpha))
-		throw Out_of_ram();
+		return Buffer_result::OUT_OF_RAM;
 
 	/* buffer re-allocation may consume new dataspace capability if buffer is new */
 	if (_cap_quota_guard().avail().value < 1)
-		throw Out_of_caps();
+		throw Buffer_result::OUT_OF_CAPS;
 
 	_framebuffer_session_component.notify_mode_change(mode, use_alpha);
+	return Buffer_result::OK;
 }
 
 

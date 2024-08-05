@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <decorator/window.h>
+#include <gui_session/connection.h>
 
 /* local includes */
 #include "config.h"
@@ -29,7 +30,7 @@ class Decorator::Window : public Window_base
 {
 	private:
 
-		Gui::Session_client &_gui;
+		Gui::Connection &_gui;
 
 		/*
 		 * Flag indicating that the current window position has been propagated
@@ -39,13 +40,13 @@ class Decorator::Window : public Window_base
 
 		struct Gui_view
 		{
-			Gui::Session_client &_gui;
+			Gui::Connection &_gui;
 
 			View_handle _handle { _gui.create_view() };
 
 			using Command = Gui::Session::Command;
 
-			Gui_view(Gui::Session_client &gui, unsigned id = 0)
+			Gui_view(Gui::Connection &gui, unsigned id = 0)
 			:
 				_gui(gui)
 			{
@@ -419,7 +420,7 @@ class Decorator::Window : public Window_base
 
 	public:
 
-		Window(unsigned id, Gui::Session_client &gui,
+		Window(unsigned id, Gui::Connection &gui,
 		       Animator &animator, Config const &config)
 		:
 			Window_base(id),

@@ -183,22 +183,9 @@ struct Decorator::Main : Window_factory_base
 	 */
 	Window_base *create(Xml_node window_node) override
 	{
-		for (;;) {
-			try {
-				return new (_heap)
-					Window(window_node.attribute_value("id", 0U),
-					       _gui, _animator, _decorator_config);
-			}
-			catch (Genode::Out_of_ram) {
-				Genode::log("Handle Out_of_ram of GUI session - upgrade by 8K");
-				_gui.upgrade_ram(8192);
-			}
-			catch (Genode::Out_of_caps) {
-				Genode::log("Handle Out_of_caps of GUI session - upgrade by 2");
-				_gui.upgrade_caps(2);
-			}
-		}
-		return nullptr;
+		return new (_heap)
+			Window(window_node.attribute_value("id", 0U),
+			       _gui, _animator, _decorator_config);
 	}
 
 	/**

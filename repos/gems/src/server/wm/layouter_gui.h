@@ -62,13 +62,13 @@ struct Wm::Layouter_gui_session : Genode::Rpc_object<Gui::Session>
 		return _input_session_cap;
 	}
 
-	View_handle create_view() override { return View_handle(); }
+	Create_view_result create_view() override { return View_handle(); }
 
-	View_handle create_child_view(View_handle) override { return View_handle(); }
+	Create_child_view_result create_child_view(View_handle) override { return View_handle(); }
 
 	void destroy_view(View_handle) override { }
 
-	View_handle view_handle(View_capability, View_handle) override
+	View_handle_result view_handle(View_capability, View_handle) override
 	{
 		return View_handle();
 	}
@@ -100,7 +100,7 @@ struct Wm::Layouter_gui_session : Genode::Rpc_object<Gui::Session>
 		_mode_sigh_gui.mode_sigh(sigh);
 	}
 
-	void buffer(Framebuffer::Mode, bool) override { }
+	Buffer_result buffer(Framebuffer::Mode, bool) override { return Buffer_result::OK; }
 
 	void focus(Genode::Capability<Gui::Session>) override { }
 };

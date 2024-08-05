@@ -348,13 +348,13 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		Input::Session_capability input_session() override {
 			return _input_session_cap; }
 
-		View_handle create_view() override;
+		Create_view_result create_view() override;
 
-		View_handle create_child_view(View_handle parent_handle) override;
+		Create_child_view_result create_child_view(View_handle parent_handle) override;
 
 		void destroy_view(View_handle handle) override;
 
-		View_handle view_handle(View_capability view_cap, View_handle handle) override;
+		View_handle_result view_handle(View_capability view_cap, View_handle handle) override;
 
 		View_capability view_capability(View_handle handle) override;
 
@@ -368,7 +368,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		void mode_sigh(Signal_context_capability sigh) override { _mode_sigh = sigh; }
 
-		void buffer(Framebuffer::Mode mode, bool use_alpha) override;
+		Buffer_result buffer(Framebuffer::Mode mode, bool use_alpha) override;
 
 		void focus(Capability<Gui::Session> session_cap) override;
 

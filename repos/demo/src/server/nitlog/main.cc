@@ -352,7 +352,7 @@ class Log_view
 {
 	private:
 
-		Gui::Session_client      &_gui;
+		Gui::Connection          &_gui;
 		Gui::Point                _pos;
 		Gui::Area                 _size;
 		Gui::Session::View_handle _handle;
@@ -362,7 +362,7 @@ class Log_view
 
 	public:
 
-		Log_view(Gui::Session_client &gui, Gui::Rect geometry)
+		Log_view(Gui::Connection &gui, Gui::Rect geometry)
 		:
 			_gui(gui),
 			_pos(geometry.at),

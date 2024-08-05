@@ -336,7 +336,7 @@ struct Window_layouter::Main : Operations,
 		_env.ep(), *this, &Main::_handle_mode_change };
 
 
-	Input::Session_client _input { _env.rm(), _gui.input_session() };
+	Input::Session_client &_input = *_gui.input();
 
 	Attached_dataspace _input_ds { _env.rm(), _input.dataspace() };
 
