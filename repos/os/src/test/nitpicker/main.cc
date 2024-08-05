@@ -149,8 +149,10 @@ class Test::View_stack : Noncopyable
 			 */
 			bool hit(Gui::Point const at) const
 			{
-				return ptr
-				    && Rect(Point(0, 0), size).contains(at)
+				if (!ptr)
+					return true;
+
+				return Rect(Point(0, 0), size).contains(at)
 				    && ptr[size.w*at.y + at.x];
 			}
 		};
