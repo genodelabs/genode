@@ -466,7 +466,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 
 			using Command = Gui::Session::Command;
 			_gui.enqueue<Command::Geometry>(_view, Rect(Point(0, 0), _fb_mode.area));
-			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
+			_gui.enqueue<Command::Front>(_view);
 			_gui.execute();
 			return _gui.mode();
 		}

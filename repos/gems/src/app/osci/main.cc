@@ -59,7 +59,7 @@ struct Osci::Main
 		{
 			using Command = Gui::Session::Command;
 			_gui.enqueue<Command::Geometry>(_handle, Rect(position, size));
-			_gui.enqueue<Command::To_front>(_handle, Gui::Session::View_handle());
+			_gui.enqueue<Command::Front>(_handle);
 			_gui.execute();
 		}
 

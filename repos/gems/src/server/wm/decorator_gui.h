@@ -233,7 +233,7 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 	{
 		switch (cmd.opcode) {
 
-		case Command::OP_TITLE:
+		case Command::TITLE:
 			{
 				unsigned id = 0;
 				Genode::ascii_to(cmd.title.title.string(), id);
@@ -244,14 +244,15 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 				return;
 			}
 
-		case Command::OP_TO_FRONT:
-		case Command::OP_TO_BACK:
+		case Command::FRONT:
+		case Command::BACK:
+		case Command::FRONT_OF:
+		case Command::BEHIND_OF:
 
 			try {
 
-				View_handle const view_handle = (cmd.opcode == Command::OP_TO_FRONT)
-				                              ?  cmd.to_front.view
-				                              :  cmd.to_back.view;
+				/* the first argument is the same for all stacking operations */
+				View_handle const view_handle = cmd.front.view;
 
 				/*
 				 * If the content view is re-stacked, replace it by the real
@@ -287,7 +288,7 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 			return;
 
-		case Command::OP_GEOMETRY:
+		case Command::GEOMETRY:
 
 			try {
 
@@ -306,7 +307,7 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 			_gui.enqueue(cmd);
 			return;
 
-		case Command::OP_OFFSET:
+		case Command::OFFSET:
 
 			try {
 
@@ -321,8 +322,8 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 			}
 			return;
 
-		case Command::OP_BACKGROUND:
-		case Command::OP_NOP:
+		case Command::BACKGROUND:
+		case Command::NOP:
 
 			_gui.enqueue(cmd);
 			return;

@@ -69,7 +69,7 @@ struct Window : Genode_egl_window
 		mode_change();
 
 		gui.enqueue<Command::Title>(view, "eglut");
-		gui.enqueue<Command::To_front>(view, View_handle());
+		gui.enqueue<Command::Front>(view);
 		gui.execute();
 	}
 

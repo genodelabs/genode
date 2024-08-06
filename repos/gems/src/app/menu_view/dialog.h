@@ -107,12 +107,11 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 		 && _view_geometry.area == geometry.area)
 			return;
 
-		using Command     = Gui::Session::Command;
-		using View_handle = Gui::Session::View_handle;
+		using Command = Gui::Session::Command;
 
 		_view_geometry = geometry;
 		_gui.enqueue<Command::Geometry>(_view_handle, _view_geometry);
-		_gui.enqueue<Command::To_front>(_view_handle, View_handle());
+		_gui.enqueue<Command::Front>(_view_handle);
 		_gui.execute();
 	}
 

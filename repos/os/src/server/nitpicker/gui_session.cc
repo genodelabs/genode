@@ -62,7 +62,7 @@ void Gui_session::_execute_command(Command const &command)
 {
 	switch (command.opcode) {
 
-	case Command::OP_GEOMETRY:
+	case Command::GEOMETRY:
 		{
 			Command::Geometry const &cmd = command.geometry;
 			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
@@ -81,7 +81,7 @@ void Gui_session::_execute_command(Command const &command)
 			return;
 		}
 
-	case Command::OP_OFFSET:
+	case Command::OFFSET:
 		{
 			Command::Offset const &cmd = command.offset;
 			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
@@ -92,33 +92,46 @@ void Gui_session::_execute_command(Command const &command)
 			return;
 		}
 
-	case Command::OP_TO_FRONT:
+	case Command::FRONT:
 		{
-			Command::To_front const &cmd = command.to_front;
+			Command::Front const &cmd = command.front;
+
+			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
+			if (view.valid())
+				_view_stack.stack(*view, nullptr, true);
+			return;
+		}
+
+	case Command::BACK:
+		{
+			Command::Back const &cmd = command.back;
+
+			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
+			if (view.valid())
+				_view_stack.stack(*view, nullptr, false);
+			return;
+		}
+
+	case Command::FRONT_OF:
+		{
+			Command::Front_of const &cmd = command.front_of;
 			if (_views_are_equal(cmd.view, cmd.neighbor))
 				return;
 
 			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 			if (!view.valid())
 				return;
-
-			/* bring to front if no neighbor is specified */
-			if (!cmd.neighbor.valid()) {
-				_view_stack.stack(*view, nullptr, true);
-				return;
-			}
 
 			/* stack view relative to neighbor */
 			Locked_ptr<View> neighbor(_view_handle_registry.lookup(cmd.neighbor));
 			if (neighbor.valid())
 				_view_stack.stack(*view, &(*neighbor), false);
-
 			return;
 		}
 
-	case Command::OP_TO_BACK:
+	case Command::BEHIND_OF:
 		{
-			Command::To_back const &cmd = command.to_back;
+			Command::Behind_of const &cmd = command.behind_of;
 			if (_views_are_equal(cmd.view, cmd.neighbor))
 				return;
 
@@ -126,21 +139,14 @@ void Gui_session::_execute_command(Command const &command)
 			if (!view.valid())
 				return;
 
-			/* bring to front if no neighbor is specified */
-			if (!cmd.neighbor.valid()) {
-				_view_stack.stack(*view, nullptr, false);
-				return;
-			}
-
 			/* stack view relative to neighbor */
 			Locked_ptr<View> neighbor(_view_handle_registry.lookup(cmd.neighbor));
 			if (neighbor.valid())
 				_view_stack.stack(*view, &(*neighbor), true);
-
 			return;
 		}
 
-	case Command::OP_BACKGROUND:
+	case Command::BACKGROUND:
 		{
 			Command::Background const &cmd = command.background;
 			if (_provides_default_bg) {
@@ -171,7 +177,7 @@ void Gui_session::_execute_command(Command const &command)
 			return;
 		}
 
-	case Command::OP_TITLE:
+	case Command::TITLE:
 		{
 			Command::Title const &cmd = command.title;
 			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
@@ -182,7 +188,7 @@ void Gui_session::_execute_command(Command const &command)
 			return;
 		}
 
-	case Command::OP_NOP:
+	case Command::NOP:
 		return;
 	}
 }

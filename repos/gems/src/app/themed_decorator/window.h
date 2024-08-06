@@ -199,13 +199,12 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 			void stack(View_handle neighbor)
 			{
-				_gui.enqueue<Command::To_front>(_handle, neighbor);
+				_gui.enqueue<Command::Front_of>(_handle, neighbor);
 			}
 
-			void stack_back_most()
-			{
-				_gui.enqueue<Command::To_back>(_handle, View_handle());
-			}
+			void stack_front_most() { _gui.enqueue<Command::Front>(_handle); }
+
+			void stack_back_most()  { _gui.enqueue<Command::Back>(_handle); }
 
 			void place(Rect rect, Point offset)
 			{
@@ -390,7 +389,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 		}
 		void stack_front_most() override
 		{
-			_content_view.stack(View_handle());
+			_content_view.stack_front_most();
 			_stack_decoration_views();
 		}
 

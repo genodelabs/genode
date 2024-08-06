@@ -115,13 +115,12 @@ struct Backdrop::Main
 	void _update_view()
 	{
 		/* display view behind all others */
-		using Command     = Gui::Session::Command;
-		using View_handle = Gui::Session::View_handle;
+		using Command = Gui::Session::Command;
 
 		_gui.enqueue<Command::Background>(_view_handle);
 		Gui::Rect rect(Gui::Point(), _buffer->size());
 		_gui.enqueue<Command::Geometry>(_view_handle, rect);
-		_gui.enqueue<Command::To_back>(_view_handle, View_handle());
+		_gui.enqueue<Command::Back>(_view_handle);
 		_gui.execute();
 	}
 

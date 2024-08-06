@@ -158,10 +158,17 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 					[&] (auto) { warning("unable to obtain real_neighbor_handle"); }
 				);
 
-			if (_neighbor_behind)
-				_real_gui.enqueue<Command::To_front>(_real_handle, real_neighbor_handle);
-			else
-				_real_gui.enqueue<Command::To_back>(_real_handle, real_neighbor_handle);
+			if (real_neighbor_handle.valid()) {
+				if (_neighbor_behind)
+					_real_gui.enqueue<Command::Front_of>(_real_handle, real_neighbor_handle);
+				else
+					_real_gui.enqueue<Command::Behind_of>(_real_handle, real_neighbor_handle);
+			} else {
+				if (_neighbor_behind)
+					_real_gui.enqueue<Command::Front>(_real_handle);
+				else
+					_real_gui.enqueue<Command::Back>(_real_handle);
+			}
 
 			_real_gui.execute();
 
@@ -730,7 +737,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		{
 			switch (command.opcode) {
 
-			case Command::OP_GEOMETRY:
+			case Command::GEOMETRY:
 				{
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.geometry.view));
 					if (view.valid())
@@ -738,7 +745,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 					return;
 				}
 
-			case Command::OP_OFFSET:
+			case Command::OFFSET:
 				{
 					Locked_ptr<View> view(_view_handle_registry.lookup(command.offset.view));
 					if (view.valid())
@@ -747,35 +754,30 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 					return;
 				}
 
-			case Command::OP_TO_FRONT:
+			case Command::FRONT:
 				{
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.to_front.view));
+					Locked_ptr<View> view(_view_handle_registry.lookup(command.front.view));
+					if (view.valid())
+						view->stack(Weak_ptr<View>(), true);
+					return;
+				}
+
+			case Command::FRONT_OF:
+				{
+					Locked_ptr<View> view(_view_handle_registry.lookup(command.front_of.view));
 					if (!view.valid())
 						return;
 
-					/* bring to front if no neighbor is specified */
-					if (!command.to_front.neighbor.valid()) {
-						view->stack(Weak_ptr<View>(), true);
+					if (!command.front_of.neighbor.valid())
 						return;
-					}
 
 					/* stack view relative to neighbor */
-					view->stack(_view_handle_registry.lookup(command.to_front.neighbor),
+					view->stack(_view_handle_registry.lookup(command.front_of.neighbor),
 					            true);
 					return;
 				}
 
-			case Command::OP_TO_BACK:
-				{
-					return;
-				}
-
-			case Command::OP_BACKGROUND:
-				{
-					return;
-				}
-
-			case Command::OP_TITLE:
+			case Command::TITLE:
 				{
 					char sanitized_title[command.title.title.capacity()];
 
@@ -793,7 +795,10 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 					return;
 				}
 
-			case Command::OP_NOP:
+			case Command::BACK:
+			case Command::BEHIND_OF:
+			case Command::BACKGROUND:
+			case Command::NOP:
 				return;
 			}
 		}

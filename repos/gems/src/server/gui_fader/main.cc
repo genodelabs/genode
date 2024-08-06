@@ -393,7 +393,7 @@ class Gui_fader::Gui_session_component
 
 				bool forward_command = true;
 
-				if (command.opcode == Gui::Session::Command::OP_GEOMETRY) {
+				if (command.opcode == Gui::Session::Command::GEOMETRY) {
 
 					/* remember view geometry as defined by the client */
 					_view_geometry = command.geometry.rect;

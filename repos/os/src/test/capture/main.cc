@@ -47,7 +47,7 @@ class Test::View
 			using Command = Gui::Session::Command;
 
 			_gui.enqueue<Command::Geometry>(_handle, rect);
-			_gui.enqueue<Command::To_front>(_handle, View_handle());
+			_gui.enqueue<Command::Front>(_handle);
 			_gui.execute();
 		}
 

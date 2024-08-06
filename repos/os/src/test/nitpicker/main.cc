@@ -65,7 +65,7 @@ class Test::View : private List<View>::Element, Interface
 			using namespace Gui;
 
 			_gui.enqueue<Command::Geometry>(_handle, Gui::Rect { _pos, _attr.size });
-			_gui.enqueue<Command::To_front>(_handle, View_handle());
+			_gui.enqueue<Command::Front>(_handle);
 			_gui.enqueue<Command::Title>(_handle, _attr.title);
 			_gui.execute();
 		}
@@ -77,7 +77,7 @@ class Test::View : private List<View>::Element, Interface
 
 		void top()
 		{
-			_gui.enqueue<Command::To_front>(_handle, View_handle());
+			_gui.enqueue<Command::Front>(_handle);
 			_gui.execute();
 		}
 

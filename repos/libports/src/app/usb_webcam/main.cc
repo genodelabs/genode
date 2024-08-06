@@ -70,7 +70,7 @@ class Viewer
 			using namespace Gui;
 
 			_gui.enqueue<Command::Geometry>(_view, Gui::Rect(Gui::Point(0, 0), _mode.area));
-			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
+			_gui.enqueue<Command::Front>(_view);
 			_gui.enqueue<Command::Title>(_view, "webcam");
 			_gui.execute();
 		}

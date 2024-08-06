@@ -375,7 +375,7 @@ class Log_view
 
 		void top()
 		{
-			_gui.enqueue<Command::To_front>(_handle, View_handle());
+			_gui.enqueue<Command::Front>(_handle);
 			_gui.execute();
 		}
 

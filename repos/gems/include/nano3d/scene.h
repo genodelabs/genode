@@ -279,11 +279,9 @@ class Nano3d::Scene
 		:
 			_env(env), _pos(pos), _size(size)
 		{
-			using View_handle = Gui::Session::View_handle;
-
 			Gui::Rect rect(_pos, _size);
 			_gui.enqueue<Command::Geometry>(_view_handle, rect);
-			_gui.enqueue<Command::To_front>(_view_handle, View_handle());
+			_gui.enqueue<Command::Front>(_view_handle);
 			_gui.execute();
 
 			_gui.input.sigh(_input_handler);

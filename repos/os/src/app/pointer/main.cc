@@ -357,8 +357,7 @@ Pointer::Main::Main(Genode::Env &env) : _env(env)
 		}
 	}
 
-	using View_handle = Gui::Session::View_handle;
-	_gui.enqueue<Gui::Session::Command::To_front>(_view, View_handle());
+	_gui.enqueue<Gui::Session::Command::Front>(_view);
 	_gui.execute();
 
 	_update_pointer();

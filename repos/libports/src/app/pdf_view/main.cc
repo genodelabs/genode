@@ -142,7 +142,7 @@ class Pdf_view
 
 			using Command = Gui::Session::Command;
 			_gui.enqueue<Command::Geometry>(_view, Gui::Rect(Gui::Point(), _nit_mode.area));
-			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
+			_gui.enqueue<Command::Front>(_view);
 			_gui.execute();
 		}
 

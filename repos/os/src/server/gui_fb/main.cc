@@ -304,7 +304,7 @@ struct Nit_fb::Main : View_updater
 	{
 		using Command = Gui::Session::Command;
 		gui.enqueue<Command::Geometry>(view, Rect(position, fb_session.size()));
-		gui.enqueue<Command::To_front>(view, View_handle());
+		gui.enqueue<Command::Front>(view);
 		gui.execute();
 	}
 

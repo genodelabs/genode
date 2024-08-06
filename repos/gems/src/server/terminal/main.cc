@@ -163,7 +163,7 @@ struct Terminal::Main : Character_consumer
 
 			using Command = Gui::Session::Command;
 			_gui.enqueue<Command::Geometry>(_view, Rect(Point(0, 0), _fb_mode.area));
-			_gui.enqueue<Command::To_front>(_view, Gui::Session::View_handle());
+			_gui.enqueue<Command::Front>(_view);
 			_gui.execute();
 
 			_flushed_fb_mode = _fb_mode;

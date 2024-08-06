@@ -74,23 +74,19 @@ class Genodefb :
 		{
 			_gui.buffer(_fb_mode, false);
 
-			using Command = Gui::Session::Command;
-
 			Gui::Rect rect(Gui::Point(0, 0), _fb_mode.area);
 
-			_gui.enqueue<Command::Geometry>(_view, rect);
+			_gui.enqueue<Gui::Session::Command::Geometry>(_view, rect);
 			_gui.execute();
 		}
 
 		Fb_Genode::Mode _initial_setup()
 		{
-			using Command = Gui::Session::Command;
-
 			_view = _gui.create_view();
 
 			_adjust_buffer();
 
-			_gui.enqueue<Command::To_front>(_view, View_handle());
+			_gui.enqueue<Gui::Session::Command::Front>(_view);
 			_gui.execute();
 
 			return _fb_mode;

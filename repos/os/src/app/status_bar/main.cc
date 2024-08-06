@@ -200,8 +200,7 @@ struct Status_bar::Main
 		_gui.mode_sigh(_mode_handler);
 
 		/* schedule initial view-stacking command, needed only once */
-		using View_handle = Gui::Session::View_handle;
-		_gui.enqueue<Gui::Session::Command::To_front>(_view, View_handle());
+		_gui.enqueue<Gui::Session::Command::Front>(_view);
 
 		/* import initial state */
 		_handle_mode();

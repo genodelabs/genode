@@ -163,9 +163,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		void bring_to_front() override
 		{
-			using Command     = Gui::Session::Command;
-			using View_handle = Gui::Session::View_handle;
-			_gui.enqueue<Command::To_front>(_view, View_handle());
+			_gui.enqueue<Gui::Session::Command::Front>(_view);
 			_gui.execute();
 		}
 

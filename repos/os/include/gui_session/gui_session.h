@@ -63,52 +63,29 @@ struct Gui::Session : Genode::Session
 
 	struct Command
 	{
-		enum Opcode { OP_GEOMETRY, OP_OFFSET,
-		              OP_TO_FRONT, OP_TO_BACK, OP_BACKGROUND,
-		              OP_TITLE, OP_NOP };
+		enum Opcode { GEOMETRY, OFFSET, FRONT, BACK, FRONT_OF, BEHIND_OF,
+		              BACKGROUND, TITLE, NOP };
 
-		struct Nop { static Opcode opcode() { return OP_NOP; } };
+		struct Nop { static constexpr Opcode opcode = NOP; };
 
-		struct Geometry
+		/**
+		 * Operation that takes a view as first argument
+		 */
+		template <Opcode OPCODE>
+		struct View_op
 		{
-			static Opcode opcode() { return OP_GEOMETRY; }
-			View_handle view;
-			Rect        rect;
-		};
-
-		struct Offset
-		{
-			static Opcode opcode() { return OP_OFFSET; }
-			View_handle view;
-			Point       offset;
-		};
-
-		struct To_front
-		{
-			static Opcode opcode() { return OP_TO_FRONT; }
-			View_handle view;
-			View_handle neighbor;
-		};
-
-		struct To_back
-		{
-			static Opcode opcode() { return OP_TO_BACK; }
-			View_handle view;
-			View_handle neighbor;
-		};
-
-		struct Background
-		{
-			static Opcode opcode() { return OP_BACKGROUND; }
+			static constexpr Opcode opcode = OPCODE;
 			View_handle view;
 		};
 
-		struct Title
-		{
-			static Opcode opcode() { return OP_TITLE; }
-			View_handle view;
-			String<64> title;
-		};
+		struct Geometry   : View_op<GEOMETRY>   { Rect rect; };
+		struct Offset     : View_op<OFFSET>     { Point offset; };
+		struct Front      : View_op<FRONT>      { };
+		struct Back       : View_op<BACK>       { };
+		struct Front_of   : View_op<FRONT_OF>   { View_handle neighbor; };
+		struct Behind_of  : View_op<BEHIND_OF>  { View_handle neighbor; };
+		struct Background : View_op<BACKGROUND> { };
+		struct Title      : View_op<TITLE>      { String<64> title; };
 
 		Opcode opcode;
 		union
@@ -116,16 +93,18 @@ struct Gui::Session : Genode::Session
 			Nop        nop;
 			Geometry   geometry;
 			Offset     offset;
-			To_front   to_front;
-			To_back    to_back;
+			Front      front;
+			Back       back;
+			Front_of   front_of;
+			Behind_of  behind_of;
 			Background background;
 			Title      title;
 		};
 
-		Command() : opcode(OP_NOP) { }
+		Command() : opcode(Opcode::NOP) { }
 
 		template <typename ARGS>
-		Command(ARGS args) : opcode(ARGS::opcode())
+		Command(ARGS args) : opcode(ARGS::opcode)
 		{
 			reinterpret_cast<ARGS &>(nop) = args;
 		}
