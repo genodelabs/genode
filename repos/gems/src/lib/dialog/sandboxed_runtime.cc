@@ -134,6 +134,9 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 	void destroy_view(View_handle view) override {
 		_gui_session.destroy_view(view); }
 
+	Alloc_view_handle_result alloc_view_handle(View_capability view_cap) override {
+		return _gui_session.alloc_view_handle(view_cap); }
+
 	View_handle_result view_handle(View_capability view_cap, View_handle handle) override {
 		return _gui_session.view_handle(view_cap, handle); }
 

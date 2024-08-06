@@ -201,20 +201,23 @@ struct Gui::Session : Genode::Session
 	 */
 	virtual void destroy_view(View_handle) = 0;
 
-	enum class View_handle_error { OUT_OF_RAM, OUT_OF_CAPS };
-	using      View_handle_result = Attempt<View_handle, View_handle_error>;
+	enum class Alloc_view_handle_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID };
+	using      Alloc_view_handle_result = Attempt<View_handle, Alloc_view_handle_error>;
 
 	/**
 	 * Return session-local handle for the specified view
 	 *
 	 * The handle returned by this method can be used to issue commands
 	 * via the 'execute' method.
-	 *
-	 * \param handle  designated view handle to be assigned to the imported
-	 *                view. By default, a new handle will be allocated.
 	 */
-	virtual View_handle_result view_handle(View_capability,
-	                                       View_handle handle = View_handle()) = 0;
+	virtual Alloc_view_handle_result alloc_view_handle(View_capability) = 0;
+
+	enum class View_handle_result { OK, OUT_OF_RAM, OUT_OF_CAPS, INVALID };
+
+	/**
+	 * Associate view with the specified handle
+	 */
+	virtual View_handle_result view_handle(View_capability, View_handle) = 0;
 
 	/**
 	 * Request view capability for a given handle
@@ -293,6 +296,7 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_create_view, Create_view_result, create_view);
 	GENODE_RPC(Rpc_create_child_view, Create_child_view_result, create_child_view, View_handle);
 	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_handle);
+	GENODE_RPC(Rpc_alloc_view_handle, Alloc_view_handle_result, alloc_view_handle, View_capability);
 	GENODE_RPC(Rpc_view_handle, View_handle_result, view_handle, View_capability, View_handle);
 	GENODE_RPC(Rpc_view_capability, View_capability, view_capability, View_handle);
 	GENODE_RPC(Rpc_release_view_handle, void, release_view_handle, View_handle);
@@ -306,7 +310,8 @@ struct Gui::Session : Genode::Session
 
 	GENODE_RPC_INTERFACE(Rpc_framebuffer, Rpc_input,
 	                     Rpc_create_view, Rpc_create_child_view, Rpc_destroy_view,
-	                     Rpc_view_handle, Rpc_view_capability, Rpc_release_view_handle,
+	                     Rpc_alloc_view_handle, Rpc_view_handle,
+	                     Rpc_view_capability, Rpc_release_view_handle,
 	                     Rpc_command_dataspace, Rpc_execute, Rpc_mode,
 	                     Rpc_mode_sigh, Rpc_buffer, Rpc_focus);
 };

@@ -39,8 +39,12 @@ struct Gui::Session_client : Rpc_client<Session>
 	void destroy_view(View_handle view) override {
 		call<Rpc_destroy_view>(view); }
 
-	View_handle_result view_handle(View_capability view,
-	                               View_handle handle = View_handle()) override
+	Alloc_view_handle_result alloc_view_handle(View_capability view) override
+	{
+		return call<Rpc_alloc_view_handle>(view);
+	}
+
+	View_handle_result view_handle(View_capability view, View_handle handle) override
 	{
 		return call<Rpc_view_handle>(view, handle);
 	}

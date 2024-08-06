@@ -120,23 +120,40 @@ class Gui::Connection : private Genode::Connection<Session>
 			return _client.view_capability(handle);
 		}
 
-		View_handle view_handle(View_capability view, View_handle handle = { })
+		View_handle alloc_view_handle(View_capability view)
 		{
 			View_handle result { };
 			for (bool retry = false; ; ) {
-				using Error = Session_client::View_handle_error;
-				_client.view_handle(view, handle).with_result(
+				using Error = Session_client::Alloc_view_handle_error;
+				_client.alloc_view_handle(view).with_result(
 					[&] (View_handle handle) { result = handle; },
 					[&] (Error e) {
 						switch (e) {
 						case Error::OUT_OF_RAM:  upgrade_ram(8*1024); retry = true; return;
 						case Error::OUT_OF_CAPS: upgrade_caps(2);     retry = true; return;
+						case Error::INVALID: break;
 						}
+						warning("attempt to alloc handle for invalid view");
 					});
 				if (!retry)
 					break;
 			}
 			return result;
+		}
+
+		void view_handle(View_capability view, View_handle handle)
+		{
+			using Result = Session::View_handle_result;
+			for (;;) {
+				switch (_client.view_handle(view, handle)) {
+				case Result::OUT_OF_RAM:  upgrade_ram(8*1024); break;
+				case Result::OUT_OF_CAPS: upgrade_caps(2);     break;
+				case Result::OK:          return;
+				case Result::INVALID:
+					warning("attempt to create handle for invalid view");
+					return;
+				}
+			}
 		}
 
 		void buffer(Framebuffer::Mode mode, bool use_alpha)

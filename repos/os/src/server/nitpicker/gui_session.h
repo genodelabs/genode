@@ -354,6 +354,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		void destroy_view(View_handle handle) override;
 
+		Alloc_view_handle_result alloc_view_handle(View_capability view_cap) override;
+
 		View_handle_result view_handle(View_capability view_cap, View_handle handle) override;
 
 		View_capability view_capability(View_handle handle) override;

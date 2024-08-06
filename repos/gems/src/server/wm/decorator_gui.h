@@ -386,6 +386,11 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 		_gui.session.destroy_view(view);
 	}
 
+	Alloc_view_handle_result alloc_view_handle(View_capability view_cap) override
+	{
+		return _gui.session.alloc_view_handle(view_cap);
+	}
+
 	View_handle_result view_handle(View_capability view_cap, View_handle handle) override
 	{
 		return _gui.session.view_handle(view_cap, handle);

@@ -172,7 +172,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 				Gui::View_capability view_cap = remote_gui.view_capability(handle);
 
 				/* import remote view into local GUI session */
-				return _gui.view_handle(view_cap);
+				return _gui.alloc_view_handle(view_cap);
 			}
 
 			/**

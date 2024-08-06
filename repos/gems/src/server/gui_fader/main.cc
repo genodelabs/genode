@@ -364,10 +364,16 @@ class Gui_fader::Gui_session_component
 			return _gui.destroy_view(handle);
 		}
 
+		Alloc_view_handle_result alloc_view_handle(View_capability view_cap) override
+		{
+			return _gui.alloc_view_handle(view_cap);
+		}
+
 		View_handle_result view_handle(View_capability view_cap,
 		                               View_handle handle) override
 		{
-			return _gui.view_handle(view_cap, handle);
+			_gui.view_handle(view_cap, handle);
+			return View_handle_result::OK;
 		}
 
 		View_capability view_capability(View_handle handle) override

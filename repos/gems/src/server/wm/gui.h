@@ -153,7 +153,7 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 			View_handle real_neighbor_handle;
 
 			if (neighbor.valid())
-				_real_gui.session.view_handle(neighbor->real_view_cap()).with_result(
+				_real_gui.session.alloc_view_handle(neighbor->real_view_cap()).with_result(
 					[&] (View_handle handle) { real_neighbor_handle = handle; },
 					[&] (auto) { warning("unable to obtain real_neighbor_handle"); }
 				);
@@ -451,9 +451,9 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 				return;
 
 			View_handle parent_handle { };
-			_real_gui.session.view_handle(parent->real_view_cap()).with_result(
+			_real_gui.session.alloc_view_handle(parent->real_view_cap()).with_result(
 				[&] (View_handle handle) { parent_handle = handle; },
-				[&] (Gui::Session::View_handle_error) { }
+				[&] (Gui::Session::Alloc_view_handle_error) { }
 			);
 			if (!parent_handle.valid()) {
 				warning("try_to_init_real_view failed to obtain parent handle");
@@ -1005,15 +1005,27 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			} catch (View_handle_registry::Lookup_failed) { }
 		}
 
-		View_handle_result view_handle(View_capability view_cap, View_handle handle) override
+		Alloc_view_handle_result alloc_view_handle(View_capability view_cap) override
 		{
 			try {
 				return _env.ep().rpc_ep().apply(view_cap, [&] (View *view) {
-					return (view) ? _view_handle_registry.alloc(*view, handle)
+					return (view) ? _view_handle_registry.alloc(*view)
 					              : View_handle(); });
 			}
-			catch (Out_of_ram)  { return View_handle_error::OUT_OF_RAM; }
-			catch (Out_of_caps) { return View_handle_error::OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return Alloc_view_handle_error::OUT_OF_RAM; }
+			catch (Out_of_caps) { return Alloc_view_handle_error::OUT_OF_CAPS; }
+		}
+
+		View_handle_result view_handle(View_capability view_cap, View_handle handle) override
+		{
+			try {
+				_env.ep().rpc_ep().apply(view_cap, [&] (View *view) {
+					if (view)
+						_view_handle_registry.alloc(*view, handle); });
+				return View_handle_result::OK;
+			}
+			catch (Out_of_ram)  { return View_handle_result::OUT_OF_RAM; }
+			catch (Out_of_caps) { return View_handle_result::OUT_OF_CAPS; }
 		}
 
 		View_capability view_capability(View_handle handle) override

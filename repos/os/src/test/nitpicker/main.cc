@@ -114,7 +114,7 @@ struct Test::Child_view : View
 		View(gui, attr,
 			[&] /* create_fn */ {
 				using View_handle = Gui::Session::View_handle;
-				View_handle const parent_handle = gui.view_handle(parent.view_cap());
+				View_handle const parent_handle = gui.alloc_view_handle(parent.view_cap());
 				View_handle const handle = gui.create_child_view(parent_handle);
 				gui.release_view_handle(parent_handle);
 				return handle;

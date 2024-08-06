@@ -80,6 +80,11 @@ class Wm::Direct_gui_session : public Genode::Rpc_object<Gui::Session>
 			_session.destroy_view(view);
 		}
 
+		Alloc_view_handle_result alloc_view_handle(Gui::View_capability view_cap) override
+		{
+			return _session.alloc_view_handle(view_cap);
+		}
+
 		View_handle_result view_handle(Gui::View_capability view_cap, View_handle handle) override
 		{
 			return _session.view_handle(view_cap, handle);

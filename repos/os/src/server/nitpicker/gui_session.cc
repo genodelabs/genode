@@ -355,17 +355,35 @@ void Gui_session::destroy_view(View_handle handle)
 }
 
 
+Gui_session::Alloc_view_handle_result
+Gui_session::alloc_view_handle(View_capability view_cap)
+{
+	try {
+		return _env.ep().rpc_ep().apply(view_cap, [&] (View *view_ptr) -> Alloc_view_handle_result {
+			if (!view_ptr)
+				return Alloc_view_handle_error::INVALID;
+			return _view_handle_registry.alloc(*view_ptr); });
+	}
+	catch (View_handle_registry::Out_of_memory)  { return Alloc_view_handle_error::OUT_OF_RAM; }
+	catch (Out_of_ram)                           { return Alloc_view_handle_error::OUT_OF_RAM; }
+	catch (Out_of_caps)                          { return Alloc_view_handle_error::OUT_OF_RAM; }
+}
+
+
 Gui_session::View_handle_result
 Gui_session::view_handle(View_capability view_cap, View_handle handle)
 {
 	try {
-		return _env.ep().rpc_ep().apply(view_cap, [&] (View *view) {
-			return (view) ? _view_handle_registry.alloc(*view, handle)
-			              : View_handle(); });
+		return _env.ep().rpc_ep().apply(view_cap, [&] (View *view_ptr) -> View_handle_result {
+			if (!view_ptr)
+				return View_handle_result::INVALID;
+			_view_handle_registry.alloc(*view_ptr, handle);
+			return View_handle_result::OK;
+		});
 	}
-	catch (View_handle_registry::Out_of_memory)  { return View_handle_error::OUT_OF_RAM; }
-	catch (Out_of_ram)                           { return View_handle_error::OUT_OF_RAM; }
-	catch (Out_of_caps)                          { return View_handle_error::OUT_OF_RAM; }
+	catch (View_handle_registry::Out_of_memory)  { return View_handle_result::OUT_OF_RAM; }
+	catch (Out_of_ram)                           { return View_handle_result::OUT_OF_RAM; }
+	catch (Out_of_caps)                          { return View_handle_result::OUT_OF_RAM; }
 }
 
 

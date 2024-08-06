@@ -222,7 +222,7 @@ void QGenodeViewWidget::paintEvent(QPaintEvent *event)
 		dynamic_cast<QGenodePlatformWindow*>(window()->windowHandle()->handle());
 
 	Gui::Session::View_handle const neighbor_handle =
-		gui->view_handle(platform_window->view_cap());
+		gui->alloc_view_handle(platform_window->view_cap());
 
 	gui->enqueue<Command::Front_of>(view_handle, neighbor_handle);
 	gui->execute();

@@ -68,9 +68,14 @@ struct Wm::Layouter_gui_session : Genode::Rpc_object<Gui::Session>
 
 	void destroy_view(View_handle) override { }
 
-	View_handle_result view_handle(View_capability, View_handle) override
+	Alloc_view_handle_result alloc_view_handle(View_capability) override
 	{
 		return View_handle();
+	}
+
+	View_handle_result view_handle(View_capability, View_handle) override
+	{
+		return View_handle_result::OK;
 	}
 
 	View_capability view_capability(View_handle) override
