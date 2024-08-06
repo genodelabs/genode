@@ -63,7 +63,7 @@ class Viewer
 		{
 			_gui.buffer(mode, false);
 
-			_fb_ds.construct(_env.rm(), _gui.framebuffer()->dataspace());
+			_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());
 			_framebuffer = _fb_ds->local_addr<uint8_t>();
 
 			using Command = Gui::Session::Command;
@@ -78,7 +78,7 @@ class Viewer
 		uint8_t *framebuffer() { return _framebuffer; }
 
 		void refresh() {
-			_gui.framebuffer()->refresh(0, 0, _mode.area.w, _mode.area.h);
+			_gui.framebuffer.refresh(0, 0, _mode.area.w, _mode.area.h);
 		}
 
 		Framebuffer::Mode const &mode() { return _mode; }

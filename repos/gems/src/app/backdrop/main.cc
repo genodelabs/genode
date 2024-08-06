@@ -61,7 +61,7 @@ struct Backdrop::Main
 			/* setup virtual framebuffer mode */
 			gui.buffer(mode, false);
 
-			return gui.framebuffer()->dataspace();
+			return gui.framebuffer.dataspace();
 		}
 
 		Attached_dataspace fb_ds;
@@ -345,7 +345,7 @@ void Backdrop::Main::_handle_config()
 	});
 
 	/* schedule buffer refresh */
-	_gui.framebuffer()->sync_sigh(_sync_handler);
+	_gui.framebuffer.sync_sigh(_sync_handler);
 }
 
 
@@ -357,7 +357,7 @@ void Backdrop::Main::_handle_sync()
 	});
 
 	/* disable sync signal until the next call of 'handle_config' */
-	_gui.framebuffer()->sync_sigh(Signal_context_capability());
+	_gui.framebuffer.sync_sigh(Signal_context_capability());
 }
 
 

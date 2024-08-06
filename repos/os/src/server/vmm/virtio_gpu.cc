@@ -223,7 +223,7 @@ void Vmm::Virtio_gpu_control_request::_resource_flush()
 		uint32_t line_dst = _device._fb_mode.area.w * BYTES_PER_PIXEL;
 
 		blit(src, line_src, dst, line_dst, w*BYTES_PER_PIXEL, h);
-		_device._gui.framebuffer()->refresh(x, y, w, h);
+		_device._gui.framebuffer.refresh(x, y, w, h);
 	});
 }
 

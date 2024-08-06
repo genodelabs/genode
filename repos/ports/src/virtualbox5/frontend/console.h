@@ -114,7 +114,6 @@ class GenodeConsole : public Console {
 	private:
 
 		Gui::Connection                        _gui;
-		Input::Session_client                 &_input;
 		unsigned                               _ax, _ay;
 		bool                                   _last_received_motion_event_was_absolute;
 		Report::Connection                     _shape_report_connection;
@@ -143,7 +142,6 @@ class GenodeConsole : public Console {
 		:
 			Console(),
 			_gui(genode_env()),
-			_input(*_gui.input()),
 			_ax(0), _ay(0),
 			_last_received_motion_event_was_absolute(false),
 			_shape_report_connection(genode_env(), "shape",
@@ -162,7 +160,7 @@ class GenodeConsole : public Console {
 			for (unsigned i = 0; i <= Input::KEY_MAX; i++)
 				_key_status[i] = false;
 
-			_input.sigh(_input_signal_dispatcher);
+			_gui.input.sigh(_input_signal_dispatcher);
 
 			Genode::Attached_rom_dataspace config(genode_env(), "config");
 

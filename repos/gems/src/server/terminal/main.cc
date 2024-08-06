@@ -155,7 +155,7 @@ struct Terminal::Main : Character_consumer
 
 			Rect const dirty = _text_screen_surface->redraw(surface);
 
-			_gui.framebuffer()->refresh(dirty.x1(), dirty.y1(), dirty.w(), dirty.h());
+			_gui.framebuffer.refresh(dirty.x1(), dirty.y1(), dirty.w(), dirty.h());
 		}
 
 		/* update view geometry after mode change */
@@ -212,7 +212,7 @@ struct Terminal::Main : Character_consumer
 		_timer .sigh(_flush_handler);
 		_config.sigh(_config_handler);
 
-		_gui.input()->sigh(_input_handler);
+		_gui.input.sigh(_input_handler);
 		_gui.mode_sigh(_mode_change_handler);
 
 		_fb_mode = _gui.mode();
@@ -260,7 +260,7 @@ void Terminal::Main::_handle_config()
 	_gui.buffer(_fb_mode, false);
 
 	if (_fb_mode.area.count() > 0)
-		_fb_ds.construct(_env.rm(), _gui.framebuffer()->dataspace());
+		_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());
 
 	/*
 	 * Distinguish the case where the framebuffer change affects the character
@@ -337,7 +337,7 @@ void Terminal::Main::_handle_config()
 
 void Terminal::Main::_handle_input()
 {
-	_gui.input()->for_each_event([&] (Input::Event const &event) {
+	_gui.input.for_each_event([&] (Input::Event const &event) {
 
 		event.handle_absolute_motion([&] (int x, int y) {
 

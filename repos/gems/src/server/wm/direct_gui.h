@@ -55,14 +55,14 @@ class Wm::Direct_gui_session : public Genode::Rpc_object<Gui::Session>
 		 ** GUI session interface **
 		 ***************************/
 		
-		Framebuffer::Session_capability framebuffer_session() override
+		Framebuffer::Session_capability framebuffer() override
 		{
-			return _session.framebuffer_session();
+			return _session.framebuffer();
 		}
 
-		Input::Session_capability input_session() override
+		Input::Session_capability input() override
 		{
-			return _session.input_session();
+			return _session.input();
 		}
 
 		Create_view_result create_view() override

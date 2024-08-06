@@ -131,7 +131,7 @@ void GenodeConsole::_handle_input()
 	if (vm_down && (_vbox_mouse || _vbox_keyboard)) {
 		_vbox_mouse    = nullptr;
 		_vbox_keyboard = nullptr;
-		_input.sigh(Genode::Signal_context_capability());
+		_gui.input.sigh(Genode::Signal_context_capability());
 	}
 
 	static LONG64 mt_events [64];
@@ -145,7 +145,7 @@ void GenodeConsole::_handle_input()
 		_vbox_mouse->COMGETTER(MultiTouchSupported)(&guest_multi);
 	}
 
-	_input.for_each_event([&] (Input::Event const &ev) {
+	_gui.input.for_each_event([&] (Input::Event const &ev) {
 		/* if keyboard/mouse not available, consume input events and drop it */
 		if (!_vbox_keyboard || !_vbox_mouse)
 			return;

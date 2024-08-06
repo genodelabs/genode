@@ -56,7 +56,7 @@ struct Gui_buffer : Genode::Noncopyable
 		/* setup virtual framebuffer mode */
 		gui.buffer(mode, use_alpha);
 
-		return gui.framebuffer()->dataspace();
+		return gui.framebuffer.dataspace();
 	}
 
 	Genode::Attached_dataspace fb_ds { rm, _ds_cap(gui) };

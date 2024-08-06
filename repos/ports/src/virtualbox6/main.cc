@@ -301,7 +301,7 @@ struct Main : Event_handler
 
 			Gui::Connection &gui = *new Registered<Gui::Connection>(_gui_connections, _env, label.string());
 
-			gui.input()->sigh(_input_handler);
+			gui.input.sigh(_input_handler);
 			gui.mode_sigh(_fb_mode_handler);
 
 			Genodefb *fb = new Genodefb(_env, gui, _idisplay);
@@ -423,7 +423,7 @@ void Main::_handle_input()
 
 	Libc::with_libc([&] {
 		_gui_connections.for_each([&] (Gui::Connection &gui) {
-			gui.input()->for_each_event([&] (Input::Event const &ev) {
+			gui.input.for_each_event([&] (Input::Event const &ev) {
 				handle_one_event(ev); }); }); });
 }
 

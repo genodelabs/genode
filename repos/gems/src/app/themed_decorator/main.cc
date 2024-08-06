@@ -101,7 +101,7 @@ struct Decorator::Main : Window_factory_base
 
 	void _trigger_sync_handling()
 	{
-		_gui.framebuffer()->sync_sigh(_gui_sync_handler);
+		_gui.framebuffer.sync_sigh(_gui_sync_handler);
 	}
 
 	Attached_rom_dataspace _config { _env, "config" };
@@ -304,7 +304,7 @@ void Decorator::Main::_handle_gui_sync()
 	 * Disable sync handling when becoming idle
 	 */
 	if (!_animator.active())
-		_gui.framebuffer()->sync_sigh(Signal_context_capability());
+		_gui.framebuffer.sync_sigh(Signal_context_capability());
 }
 
 

@@ -34,7 +34,6 @@ class Genodefb :
 
 		Genode::Env        &_env;
 		Gui::Connection    &_gui;
-		Fb_Genode::Session &_fb;
 		View_handle         _view;
 		Fb_Genode::Mode     _fb_mode { .area = { 1024, 768 } };
 
@@ -46,7 +45,7 @@ class Genodefb :
 
 		void *_attach()
 		{
-			return _env.rm().attach(_fb.dataspace(), {
+			return _env.rm().attach(_gui.framebuffer.dataspace(), {
 				.size = { },  .offset     = { },  .use_at     = { },
 				.at   = { },  .executable = { },  .writeable  = true
 			}).convert<void *>(
@@ -68,7 +67,7 @@ class Genodefb :
 			size_t const max_h = Genode::min(_fb_mode.area.h, _virtual_fb_mode.area.h);
 			size_t const num_pixels = _fb_mode.area.w * max_h;
 			memset(_fb_base, 0, num_pixels * _fb_mode.bytes_per_pixel());
-			_fb.refresh(0, 0, _virtual_fb_mode.area.w, _virtual_fb_mode.area.h);
+			_gui.framebuffer.refresh(0, 0, _virtual_fb_mode.area.w, _virtual_fb_mode.area.h);
 		}
 
 		void _adjust_buffer()
@@ -105,7 +104,6 @@ class Genodefb :
 		:
 			_env(env),
 			_gui(gui),
-			_fb(*gui.framebuffer()),
 			_virtual_fb_mode(_initial_setup()),
 			_display(display)
 		{
@@ -254,7 +252,7 @@ class Genodefb :
 			                       Texture_painter::SOLID,
 			                       false);
 
-			_fb.refresh(o_x, o_y, width, height);
+			_gui.framebuffer.refresh(o_x, o_y, width, height);
 
 			Unlock();
 
@@ -288,7 +286,7 @@ class Genodefb :
 			                       Texture_painter::SOLID,
 			                       false);
 
-			_fb.refresh(o_x, o_y, area_vm.w, area_vm.h);
+			_gui.framebuffer.refresh(o_x, o_y, area_vm.w, area_vm.h);
 
 			Unlock();
 

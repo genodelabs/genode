@@ -48,7 +48,7 @@ struct Global_keys_handler::Main
 	/**
 	 * Input-event buffer
 	 */
-	Attached_dataspace _ev_ds { _env.rm(), _nitpicker.input()->dataspace() };
+	Attached_dataspace _ev_ds { _env.rm(), _nitpicker.input.dataspace() };
 
 	/**
 	 * Number of pressed keys, used to distinguish primary keys from key
@@ -277,7 +277,7 @@ struct Global_keys_handler::Main
 	Main(Env &env) : _env(env)
 	{
 		_config_ds.sigh(_config_handler);
-		_nitpicker.input()->sigh(_input_handler);
+		_nitpicker.input.sigh(_input_handler);
 
 		_handle_config();
 		_handle_input();
@@ -398,7 +398,7 @@ void Global_keys_handler::Main::_handle_config()
 
 void Global_keys_handler::Main::_handle_input()
 {
-	while (unsigned const num_ev = _nitpicker.input()->flush())
+	while (unsigned const num_ev = _nitpicker.input.flush())
 		_apply_input_events(num_ev, _ev_ds.local_addr<Input::Event const>());
 
 	/* determine currently hovered domain */

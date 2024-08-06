@@ -113,7 +113,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_input()
 	{
-		_gui.input()->for_each_event([&] (Input::Event const &ev) {
+		_gui.input.for_each_event([&] (Input::Event const &ev) {
 			handle_input_event(ev); });
 	}
 
@@ -1646,7 +1646,7 @@ struct Sculpt::Main : Input_event_handler,
 	Main(Env &env) : _env(env)
 	{
 		_drivers.update_soc(_soc);
-		_gui.input()->sigh(_input_handler);
+		_gui.input.sigh(_input_handler);
 		_gui.mode_sigh(_gui_mode_handler);
 		_handle_gui_mode();
 		_fb_config.trigger_update();

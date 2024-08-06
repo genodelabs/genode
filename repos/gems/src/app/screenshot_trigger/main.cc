@@ -85,7 +85,7 @@ struct Screenshot_trigger::Main
 
 	void _handle_input()
 	{
-		_gui.input()->for_each_event([&] (Input::Event const &ev) {
+		_gui.input.for_each_event([&] (Input::Event const &ev) {
 
 			if (!_visible) /* ignore events while the view is invisble */
 				return;
@@ -164,7 +164,7 @@ struct Screenshot_trigger::Main
 		_config.sigh(_config_handler);
 		_handle_config();
 
-		_gui.input()->sigh(_input_handler);
+		_gui.input.sigh(_input_handler);
 		_timer.sigh(_timer_handler);
 
 		visible(true);

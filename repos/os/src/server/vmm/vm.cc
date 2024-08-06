@@ -150,7 +150,7 @@ Vm::Vm(Genode::Env & env, Heap & heap, Config & config)
 				Virtio_input_device(dev.name.string(), (uint64_t)dev.mmio_start,
 				                    dev.mmio_size, dev.irq, boot_cpu(),
 				                    _bus, _ram, _device_list, env,
-				                    heap, *_gui->input());
+				                    heap, _gui->input);
 		default:
 			return;
 		};

@@ -91,7 +91,7 @@ class Nano3d::Scene
 				gui.buffer(Framebuffer::Mode { .area = { size.w, height } },
 				                 use_alpha);
 
-				return *gui.framebuffer();
+				return gui.framebuffer;
 			}
 
 			Framebuffer::Session &framebuffer;
@@ -192,7 +192,7 @@ class Nano3d::Scene
 
 		Timer::Connection _timer { _env };
 
-		Genode::Attached_dataspace _input_ds { _env.rm(), _gui.input()->dataspace() };
+		Genode::Attached_dataspace _input_ds { _env.rm(), _gui.input.dataspace() };
 
 		Input_handler *_input_handler_callback = nullptr;
 
@@ -201,7 +201,7 @@ class Nano3d::Scene
 			if (!_input_handler_callback)
 				return;
 
-			while (int num = _gui.input()->flush()) {
+			while (int num = _gui.input.flush()) {
 
 				auto const *ev_buf = _input_ds.local_addr<Input::Event>();
 
@@ -286,7 +286,7 @@ class Nano3d::Scene
 			_gui.enqueue<Command::To_front>(_view_handle, View_handle());
 			_gui.execute();
 
-			_gui.input()->sigh(_input_handler);
+			_gui.input.sigh(_input_handler);
 
 			_timer.sigh(_periodic_handler);
 			_timer.trigger_periodic(1000*update_rate_ms);

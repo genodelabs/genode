@@ -86,7 +86,7 @@ struct Main : Scout::Event_handler
 
 	Gui::Connection _gui { _env };
 
-	Platform _platform { _env, *_gui.input() };
+	Platform _platform { _env, _gui.input };
 
 	bool const _event_handler_registered = (_platform.event_handler(*this), true);
 

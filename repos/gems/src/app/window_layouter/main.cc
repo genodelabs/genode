@@ -312,9 +312,9 @@ struct Window_layouter::Main : Operations,
 
 	void _handle_input()
 	{
-		while (_input.pending())
+		while (_gui.input.pending())
 			_user_state.handle_input(_input_ds.local_addr<Input::Event>(),
-			                         _input.flush(), _config.xml());
+			                         _gui.input.flush(), _config.xml());
 	}
 
 	Signal_handler<Main> _input_handler {
@@ -336,9 +336,7 @@ struct Window_layouter::Main : Operations,
 		_env.ep(), *this, &Main::_handle_mode_change };
 
 
-	Input::Session_client &_input = *_gui.input();
-
-	Attached_dataspace _input_ds { _env.rm(), _input.dataspace() };
+	Attached_dataspace _input_ds { _env.rm(), _gui.input.dataspace() };
 
 	Expanding_reporter _window_layout_reporter  { _env, "window_layout",  "window_layout"};
 	Expanding_reporter _resize_request_reporter { _env, "resize_request", "resize_request"};
@@ -382,7 +380,7 @@ struct Window_layouter::Main : Operations,
 
 		_hover.sigh(_hover_handler);
 		_decorator_margins_rom.sigh(_decorator_margins_handler);
-		_input.sigh(_input_handler);
+		_gui.input.sigh(_input_handler);
 		_focus_request.sigh(_focus_request_handler);
 
 		_window_list.initial_import();

@@ -207,7 +207,7 @@ class Gui_fader::Framebuffer_session_component
 
 			transfer_src_to_dst_alpha(rect);
 
-			_gui.framebuffer()->refresh(rect.x1(), rect.y1(), rect.w(), rect.h());
+			_gui.framebuffer.refresh(rect.x1(), rect.y1(), rect.w(), rect.h());
 
 			/* keep animating as long as the destination value is not reached */
 			return _fade != _fade.dst();
@@ -230,12 +230,12 @@ class Gui_fader::Framebuffer_session_component
 
 		Framebuffer::Mode mode() const override
 		{
-			return _gui.framebuffer()->mode();
+			return _gui.framebuffer.mode();
 		}
 
 		void mode_sigh(Genode::Signal_context_capability sigh) override
 		{
-			_gui.framebuffer()->mode_sigh(sigh);
+			_gui.framebuffer.mode_sigh(sigh);
 		}
 
 		void refresh(int x, int y, int w, int h) override
@@ -243,12 +243,12 @@ class Gui_fader::Framebuffer_session_component
 			transfer_src_to_dst_pixel(Rect(Point(x, y), Area(w, h)));
 			transfer_src_to_dst_alpha(Rect(Point(x, y), Area(w, h)));
 
-			_gui.framebuffer()->refresh(x, y, w, h);
+			_gui.framebuffer.refresh(x, y, w, h);
 		}
 
 		void sync_sigh(Genode::Signal_context_capability sigh) override
 		{
-			_gui.framebuffer()->sync_sigh(sigh);
+			_gui.framebuffer.sync_sigh(sigh);
 		}
 };
 
@@ -335,14 +335,14 @@ class Gui_fader::Gui_session_component
 		 ** Gui::Session interface **
 		 ****************************/
 
-		Framebuffer::Session_capability framebuffer_session() override
+		Framebuffer::Session_capability framebuffer() override
 		{
 			return _fb_cap;
 		}
 
-		Input::Session_capability input_session() override
+		Input::Session_capability input() override
 		{
-			return _gui.cap().call<Gui::Session::Rpc_input_session>();
+			return _gui.input.rpc_cap();
 		}
 
 		Create_view_result create_view() override
@@ -428,7 +428,7 @@ class Gui_fader::Gui_session_component
 
 			_gui.buffer(mode, true);
 
-			_fb_session.dst_buffer(_gui.framebuffer()->dataspace(), size);
+			_fb_session.dst_buffer(_gui.framebuffer.dataspace(), size);
 			return Buffer_result::OK;
 		}
 

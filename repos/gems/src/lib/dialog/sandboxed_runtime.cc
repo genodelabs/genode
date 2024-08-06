@@ -63,7 +63,7 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 
 	Gui::Session_client _gui_session { _connection.cap() };
 
-	Input::Session_client _gui_input { _env.rm(), _gui_session.input_session() };
+	Input::Session_client _gui_input { _env.rm(), _gui_session.input() };
 
 	Input::Session_component _input_component { _env, _env.ram() };
 
@@ -119,10 +119,10 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 		_connection.upgrade(resources);
 	}
 
-	Framebuffer::Session_capability framebuffer_session() override {
-		return _gui_session.framebuffer_session(); }
+	Framebuffer::Session_capability framebuffer() override {
+		return _gui_session.framebuffer(); }
 
-	Input::Session_capability input_session() override {
+	Input::Session_capability input() override {
 		return _input_component.cap(); }
 
 	Create_view_result create_view() override {

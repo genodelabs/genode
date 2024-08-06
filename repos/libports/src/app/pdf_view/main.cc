@@ -91,9 +91,7 @@ class Pdf_view
 
 		Genode::Env &_env;
 
-		Gui::Connection        _gui { _env };
-		Framebuffer::Session  &_framebuffer = *_gui.framebuffer();
-		Input::Session_client &_input       = *_gui.input();
+		Gui::Connection _gui { _env };
 
 		Framebuffer::Mode _nit_mode = _gui.mode();
 		Framebuffer::Mode  _fb_mode {};
@@ -127,7 +125,7 @@ class Pdf_view
 				_gui.buffer(_fb_mode, NO_ALPHA);
 				if (_fb_ds.constructed())
 					_fb_ds.destruct();
-				_fb_ds.construct(_env.rm(), _framebuffer.dataspace());
+				_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());
 			}
 
 			_pdfapp.scrw = _nit_mode.area.w;
@@ -213,16 +211,16 @@ class Pdf_view
 		void _handle_input_events()
 		{
 			Libc::with_libc([&] () {
-				_input.for_each_event([&] (Input::Event const &ev) {
+				_gui.input.for_each_event([&] (Input::Event const &ev) {
 					_handle_input_event(ev); }); });
 		}
 
 		void _refresh()
 		{
-			_framebuffer.refresh(0, 0, _nit_mode.area.w, _nit_mode.area.h);
+			_gui.framebuffer.refresh(0, 0, _nit_mode.area.w, _nit_mode.area.h);
 
 			/* handle one sync signal only */
-			_framebuffer.sync_sigh(Genode::Signal_context_capability());
+			_gui.framebuffer.sync_sigh(Genode::Signal_context_capability());
 		}
 
 	public:
@@ -236,7 +234,7 @@ class Pdf_view
 		Pdf_view(Genode::Env &env) : _env(env)
 		{
 			_gui.mode_sigh(_nit_mode_handler);
-			_input.sigh(_input_handler);
+			_gui.input.sigh(_input_handler);
 
 			pdfapp_init(&_pdfapp);
 			_pdfapp.userdata = this;
@@ -322,7 +320,7 @@ void Pdf_view::show()
 	}
 
 	/* refresh after the next sync signal */
-	_framebuffer.sync_sigh(_sync_handler);
+	_gui.framebuffer.sync_sigh(_sync_handler);
 }
 
 

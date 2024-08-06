@@ -176,7 +176,7 @@ struct Osci::Main
 
 		_gui_buffer->flush_surface();
 
-		_gui.framebuffer()->refresh(0, 0, _size.w, _size.h);
+		_gui.framebuffer.refresh(0, 0, _size.w, _size.h);
 	}
 
 	Main(Env &env) : _env(env)

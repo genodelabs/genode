@@ -89,8 +89,6 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	Gui::Connection &_gui;
 
-	Framebuffer::Session &_gui_fb = *_gui.framebuffer();
-
 	Genode::Signal_context_capability _mode_sigh { };
 
 	Genode::Signal_context_capability _sync_sigh { };
@@ -189,7 +187,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 		 */
 		_dataspace_is_new = true;
 
-		return _gui_fb.dataspace();
+		return _gui.framebuffer.dataspace();
 	}
 
 	Mode mode() const override
@@ -210,7 +208,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 			_dataspace_is_new = false;
 		}
 
-		_gui_fb.refresh(x, y, w, h);
+		_gui.framebuffer.refresh(x, y, w, h);
 	}
 
 	void sync_sigh(Genode::Signal_context_capability sigh) override
@@ -223,7 +221,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 		 */
 		_sync_sigh = sigh;
 
-		_gui_fb.sync_sigh(sigh);
+		_gui.framebuffer.sync_sigh(sigh);
 	}
 };
 
@@ -248,7 +246,7 @@ struct Nit_fb::Main : View_updater
 
 	View_handle view = gui.create_view();
 
-	Genode::Attached_dataspace input_ds { env.rm(), gui.input()->dataspace() };
+	Genode::Attached_dataspace input_ds { env.rm(), gui.input.dataspace() };
 
 	struct Initial_size
 	{
@@ -397,7 +395,7 @@ struct Nit_fb::Main : View_updater
 	{
 		Input::Event const * const events = input_ds.local_addr<Input::Event>();
 
-		unsigned const num = gui.input()->flush();
+		unsigned const num = gui.input.flush();
 		bool update = false;
 
 		for (unsigned i = 0; i < num; i++) {
@@ -436,7 +434,7 @@ struct Nit_fb::Main : View_updater
 		 */
 		config_rom.sigh(config_update_handler);
 		gui.mode_sigh(mode_update_handler);
-		gui.input()->sigh(input_handler);
+		gui.input.sigh(input_handler);
 	}
 };
 

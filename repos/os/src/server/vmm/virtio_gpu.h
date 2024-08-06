@@ -462,8 +462,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			_gui.buffer(_fb_mode, false);
 
 			if (_fb_mode.area.count() > 0)
-				_fb_ds.construct(_env.rm(),
-				                 _gui.framebuffer()->dataspace());
+				_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());
 
 			using Command = Gui::Session::Command;
 			_gui.enqueue<Command::Geometry>(_view, Rect(Point(0, 0), _fb_mode.area));

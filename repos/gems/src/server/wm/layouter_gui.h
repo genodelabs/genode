@@ -52,12 +52,12 @@ struct Wm::Layouter_gui_session : Genode::Rpc_object<Gui::Session>
 	 ** GUI session interface **
 	 ***************************/
 	
-	Framebuffer::Session_capability framebuffer_session() override
+	Framebuffer::Session_capability framebuffer() override
 	{
 		return Framebuffer::Session_capability();
 	}
 
-	Input::Session_capability input_session() override
+	Input::Session_capability input() override
 	{
 		return _input_session_cap;
 	}

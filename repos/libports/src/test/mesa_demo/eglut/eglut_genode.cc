@@ -78,7 +78,7 @@ struct Window : Genode_egl_window
 		if (ds.constructed())
 			ds.destruct();
 
-		ds.construct(env.rm(), gui.framebuffer()->dataspace());
+		ds.construct(env.rm(), gui.framebuffer.dataspace());
 
 		addr = ds->local_addr<unsigned char>();
 
@@ -89,7 +89,7 @@ struct Window : Genode_egl_window
 
 	void refresh()
 	{
-		gui.framebuffer()->refresh(0, 0, mode.area.w, mode.area.h);
+		gui.framebuffer.refresh(0, 0, mode.area.w, mode.area.h);
 	}
 };
 

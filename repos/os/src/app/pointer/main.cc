@@ -137,7 +137,7 @@ void Pointer::Main::_resize_gui_buffer_if_needed(Gui::Area pointer_size)
 
 	_gui.buffer(mode, true /* use alpha */);
 
-	_pointer_ds = _gui.framebuffer()->dataspace();
+	_pointer_ds = _gui.framebuffer.dataspace();
 
 	_current_pointer_size = pointer_size;
 }
@@ -163,7 +163,7 @@ void Pointer::Main::_show_default_pointer()
 
 	convert_default_pointer_data_to_pixels(ds.local_addr<Genode::Pixel_rgb888>(),
 	                                       pointer_size);
-	_gui.framebuffer()->refresh(0, 0, pointer_size.w, pointer_size.h);
+	_gui.framebuffer.refresh(0, 0, pointer_size.w, pointer_size.h);
 
 	Gui::Rect geometry(Gui::Point(0, 0), pointer_size);
 	_gui.enqueue<Gui::Session::Command::Geometry>(_view, geometry);
@@ -224,7 +224,7 @@ void Pointer::Main::_show_shape_pointer(Shape_report &shape_report)
 		Dither_painter::paint(alpha_surface, texture);
 	}
 
-	_gui.framebuffer()->refresh(0, 0, shape_size.w, shape_size.h);
+	_gui.framebuffer.refresh(0, 0, shape_size.w, shape_size.h);
 
 	Gui::Rect geometry(shape_hot, shape_size);
 	_gui.enqueue<Gui::Session::Command::Geometry>(_view, geometry);

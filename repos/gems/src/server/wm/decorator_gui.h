@@ -167,7 +167,7 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 	Real_gui _gui { _env, "decorator" };
 
-	Input::Session_client _input_session { _env.rm(), _gui.session.input_session() };
+	Input::Session_client _input_session { _env.rm(), _gui.session.input() };
 
 	Genode::Signal_context_capability _mode_sigh { };
 
@@ -344,12 +344,12 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 	 ** GUI session interface **
 	 ***************************/
 	
-	Framebuffer::Session_capability framebuffer_session() override
+	Framebuffer::Session_capability framebuffer() override
 	{
-		return _gui.session.framebuffer_session();
+		return _gui.session.framebuffer();
 	}
 
-	Input::Session_capability input_session() override
+	Input::Session_capability input() override
 	{
 		/*
 		 * Deny input to the decorator. User input referring to the

@@ -56,7 +56,7 @@ struct Status_bar::Buffer
 	Dataspace_capability _init_buffer()
 	{
 		_gui.buffer(_mode, false);
-		return _gui.framebuffer()->dataspace();
+		return _gui.framebuffer.dataspace();
 	}
 
 	Attached_dataspace _fb_ds;
@@ -157,7 +157,7 @@ void Status_bar::Buffer::draw(Domain_name const &domain_name,
 	_draw_label(surface, view_rect.center(_label_size(domain_name, label)),
 	            domain_name, label, color);
 
-	_gui.framebuffer()->refresh(0, 0, area.w, area.h);
+	_gui.framebuffer.refresh(0, 0, area.w, area.h);
 }
 
 

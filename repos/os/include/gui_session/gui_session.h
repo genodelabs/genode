@@ -186,14 +186,14 @@ struct Gui::Session : Genode::Session
 	virtual ~Session() { }
 
 	/**
-	 * Request framebuffer sub-session
+	 * Request framebuffer RPC interface
 	 */
-	virtual Framebuffer::Session_capability framebuffer_session() = 0;
+	virtual Framebuffer::Session_capability framebuffer() = 0;
 
 	/**
-	 * Request input sub-session
+	 * Request input RPC interface
 	 */
-	virtual Input::Session_capability input_session() = 0;
+	virtual Input::Session_capability input() = 0;
 
 	enum class Create_view_error { OUT_OF_RAM, OUT_OF_CAPS };
 	using      Create_view_result = Attempt<View_handle, Create_view_error>;
@@ -309,8 +309,8 @@ struct Gui::Session : Genode::Session
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC(Rpc_framebuffer_session, Framebuffer::Session_capability, framebuffer_session);
-	GENODE_RPC(Rpc_input_session, Input::Session_capability, input_session);
+	GENODE_RPC(Rpc_framebuffer, Framebuffer::Session_capability, framebuffer);
+	GENODE_RPC(Rpc_input, Input::Session_capability, input);
 	GENODE_RPC(Rpc_create_view, Create_view_result, create_view);
 	GENODE_RPC(Rpc_create_child_view, Create_child_view_result, create_child_view, View_handle);
 	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_handle);
@@ -325,7 +325,7 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_focus, void, focus, Capability<Session>);
 	GENODE_RPC(Rpc_buffer, Buffer_result, buffer, Framebuffer::Mode, bool);
 
-	GENODE_RPC_INTERFACE(Rpc_framebuffer_session, Rpc_input_session,
+	GENODE_RPC_INTERFACE(Rpc_framebuffer, Rpc_input,
 	                     Rpc_create_view, Rpc_create_child_view, Rpc_destroy_view,
 	                     Rpc_view_handle, Rpc_view_capability, Rpc_release_view_handle,
 	                     Rpc_command_dataspace, Rpc_execute, Rpc_mode,

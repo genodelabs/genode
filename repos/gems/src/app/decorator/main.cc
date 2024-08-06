@@ -51,7 +51,7 @@ struct Decorator::Main : Window_factory_base
 		:
 			mode(gui.mode()),
 			fb_ds(env.rm(),
-			      (gui.buffer(mode, false), gui.framebuffer()->dataspace())),
+			      (gui.buffer(mode, false), gui.framebuffer.dataspace())),
 			canvas(fb_ds.local_addr<Pixel_rgb888>(), mode.area, env.ram(), env.rm())
 		{ }
 	};
@@ -69,7 +69,7 @@ struct Decorator::Main : Window_factory_base
 		Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
 
 		dirty.flush([&] (Rect const &r) {
-			_gui.framebuffer()->refresh(r.x1(), r.y1(), r.w(), r.h()); });
+			_gui.framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h()); });
 	}
 
 	Window_stack _window_stack = { *this };
@@ -125,7 +125,7 @@ struct Decorator::Main : Window_factory_base
 
 	void _trigger_sync_handling()
 	{
-		_gui.framebuffer()->sync_sigh(_gui_sync_handler);
+		_gui.framebuffer.sync_sigh(_gui_sync_handler);
 	}
 
 	Signal_handler<Main> _gui_sync_handler = {
@@ -318,13 +318,13 @@ void Decorator::Main::_handle_gui_sync()
 	_gui.execute();
 
 	dirty.flush([&] (Rect const &r) {
-		_gui.framebuffer()->refresh(r.x1(), r.y1(), r.w(), r.h()); });
+		_gui.framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h()); });
 
 	/*
 	 * Disable sync handling when becoming idle
 	 */
 	if (!_animator.active())
-		_gui.framebuffer()->sync_sigh(Signal_context_capability());
+		_gui.framebuffer.sync_sigh(Signal_context_capability());
 }
 
 

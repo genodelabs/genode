@@ -247,7 +247,7 @@ struct Test::Main
 
 Test::Main::Main(Genode::Env &env) : _env(env)
 {
-	_gui.input()->sigh(_input_handler);
+	_gui.input.sigh(_input_handler);
 
 	Gui::Area const size { 256, 256 };
 
@@ -257,7 +257,7 @@ Test::Main::Main(Genode::Env &env) : _env(env)
 
 	_gui.buffer(mode, _config.alpha);
 
-	_fb_ds.construct(_env.rm(), _gui.framebuffer()->dataspace());
+	_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());
 
 	/*
 	 * Paint into pixel buffer, fill alpha channel and input-mask buffer
@@ -291,9 +291,9 @@ Test::Main::Main(Genode::Env &env) : _env(env)
 
 void Test::Main::_handle_input()
 {
-	while (_gui.input()->pending()) {
+	while (_gui.input.pending()) {
 
-		_gui.input()->for_each_event([&] (Input::Event const &ev) {
+		_gui.input.for_each_event([&] (Input::Event const &ev) {
 
 			if (ev.press())   _key_cnt++;
 			if (ev.release()) _key_cnt--;

@@ -36,13 +36,19 @@ class Gui::Connection : private Genode::Connection<Session>
 
 		Command_buffer &_command_buffer { *_command_ds.local_addr<Command_buffer>() };
 
-		Framebuffer::Session_client _framebuffer { _client.framebuffer_session() };
-
-		Input::Session_client _input { _env.rm(), _client.input_session() };
-
 		Ram_quota _ram_quota { }; /* session quota donated for virtual frame buffer */
 
 	public:
+
+		/**
+		 * Framebuffer access
+		 */
+		Framebuffer::Session_client framebuffer { _client.framebuffer() };
+
+		/**
+		 * Input access
+		 */
+		Input::Session_client input { _env.rm(), _client.input() };
 
 		using View_handle = Session::View_handle;
 		using Genode::Connection<Session>::cap;
@@ -58,16 +64,6 @@ class Gui::Connection : private Genode::Connection<Session>
 			Genode::Connection<Session>(env, label, Ram_quota { 36*1024 }, Args()),
 			_env(env)
 		{ }
-
-		/**
-		 * Return sub session for GUI's input service
-		 */
-		Input::Session_client *input() { return &_input; }
-
-		/**
-		 * Return sub session for session's frame buffer
-		 */
-		Framebuffer::Session *framebuffer() { return &_framebuffer; }
 
 		View_handle create_view()
 		{

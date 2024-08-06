@@ -538,7 +538,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		/*
 		 * Input
 		 */
-		Input::Session_client _gui_input    { _env.rm(), _real_gui.session.input_session() };
+		Input::Session_client _gui_input    { _env.rm(), _real_gui.session.input() };
 		Attached_dataspace    _gui_input_ds { _env.rm(), _gui_input.dataspace() };
 
 		Signal_handler<Session_component> _input_handler {
@@ -943,12 +943,12 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		 ** GUI session interface **
 		 ***************************/
 		
-		Framebuffer::Session_capability framebuffer_session() override
+		Framebuffer::Session_capability framebuffer() override
 		{
-			return _real_gui.session.framebuffer_session();
+			return _real_gui.session.framebuffer();
 		}
 
-		Input::Session_capability input_session() override
+		Input::Session_capability input() override
 		{
 			return _input_session_cap;
 		}

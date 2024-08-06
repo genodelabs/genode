@@ -65,7 +65,7 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 	Gui::Connection _gui { _env, _name };
 
-	Attached_dataspace _input_ds { _env.rm(), _gui.input()->dataspace() };
+	Attached_dataspace _input_ds { _env.rm(), _gui.input.dataspace() };
 
 	Signal_handler<Dialog> _input_handler = {
 		_env.ep(), *this, &Dialog::_handle_input};
@@ -133,7 +133,7 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 	{
 		_dialog_rom.sigh(_dialog_handler);
 		_dialog_handler.local_submit();
-		_gui.input()->sigh(_input_handler);
+		_gui.input.sigh(_input_handler);
 	}
 
 	Widget::Hovered hovered_widget() const
@@ -178,7 +178,7 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 		});
 
 		_buffer->flush_surface();
-		_gui.framebuffer()->refresh(0, 0, _buffer->size().w, _buffer->size().h);
+		_gui.framebuffer.refresh(0, 0, _buffer->size().w, _buffer->size().h);
 		_update_view(Rect(_position, size));
 
 		_redraw_scheduled = false;
@@ -244,7 +244,7 @@ void Menu_view::Dialog::_handle_input()
 
 	bool seq_number_changed = false;
 
-	_gui.input()->for_each_event([&] (Input::Event const &ev) {
+	_gui.input.for_each_event([&] (Input::Event const &ev) {
 
 		ev.handle_seq_number([&] (Input::Seq_number seq_number) {
 			seq_number_changed = true;

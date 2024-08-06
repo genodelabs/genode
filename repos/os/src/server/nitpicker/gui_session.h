@@ -338,14 +338,14 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		}
 
 
-		/*********************************
+		/***************************
 		 ** GUI session interface **
-		 *********************************/
+		 ***************************/
 
-		Framebuffer::Session_capability framebuffer_session() override {
+		Framebuffer::Session_capability framebuffer() override {
 			return _framebuffer_session_cap; }
 
-		Input::Session_capability input_session() override {
+		Input::Session_capability input() override {
 			return _input_session_cap; }
 
 		Create_view_result create_view() override;

@@ -418,7 +418,7 @@ struct Nitlog::Main
 	Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 	/* create log window */
-	Attached_dataspace _fb_ds { _env.rm(), _gui.framebuffer()->dataspace() };
+	Attached_dataspace _fb_ds { _env.rm(), _gui.framebuffer.dataspace() };
 
 	Canvas<Pixel_rgb888> _canvas { _fb_ds.local_addr<Pixel_rgb888>(),
 	                               ::Area(_win_w, _win_h) };
@@ -445,7 +445,7 @@ struct Nitlog::Main
 	/* create root interface for service */
 	Root _root { _env.ep(), _sliced_heap, _log_window };
 
-	Attached_dataspace _ev_ds { _env.rm(), _gui.input()->dataspace() };
+	Attached_dataspace _ev_ds { _env.rm(), _gui.input.dataspace() };
 
 	Gui::Point const _initial_mouse_pos { -1, -1 };
 
@@ -460,7 +460,7 @@ struct Nitlog::Main
 	{
 		Input::Event const *ev_buf = _ev_ds.local_addr<Input::Event const>();
 
-		for (int i = 0, num_ev = _gui.input()->flush(); i < num_ev; i++) {
+		for (int i = 0, num_ev = _gui.input.flush(); i < num_ev; i++) {
 
 			Input::Event const &ev = ev_buf[i];
 
@@ -491,7 +491,7 @@ struct Nitlog::Main
 	void _handle_timer()
 	{
 		if (_log_window.draw())
-			_gui.framebuffer()->refresh(0, 0, _win_w, _win_h);
+			_gui.framebuffer.refresh(0, 0, _win_w, _win_h);
 	}
 
 	Main(Env &env) : _env(env)
@@ -502,7 +502,7 @@ struct Nitlog::Main
 		_timer.sigh(_timer_handler);
 		_timer.trigger_periodic(20*1000);
 
-		_gui.input()->sigh(_input_handler);
+		_gui.input.sigh(_input_handler);
 	}
 };
 

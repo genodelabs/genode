@@ -94,7 +94,7 @@ struct Test::Main
 
 		bool _gui_buffer_init = ( _validate_mode(), _gui.buffer(_mode, false), true );
 
-		Attached_dataspace _fb_ds { _env.rm(), _gui.framebuffer()->dataspace() };
+		Attached_dataspace _fb_ds { _env.rm(), _gui.framebuffer.dataspace() };
 
 		Registry<Registered<View>> _views { };
 
@@ -190,8 +190,8 @@ struct Test::Main
 				});
 
 				affected.for_each_rect([&] (Gui::Rect const rect) {
-					_output->_gui.framebuffer()->refresh(rect.x1(), rect.y1(),
-					                                     rect.w(), rect.h());
+					_output->_gui.framebuffer.refresh(rect.x1(), rect.y1(),
+					                                  rect.w(), rect.h());
 				});
 			});
 		});

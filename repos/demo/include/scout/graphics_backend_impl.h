@@ -49,7 +49,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 			_gui.buffer(mode, false);
 
-			return _gui.framebuffer()->dataspace();
+			return _gui.framebuffer.dataspace();
 		}
 
 		Area _max_size;
@@ -80,8 +80,8 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 		void _refresh_view(Rect rect)
 		{
 			int const y_offset = _flip_state ? _max_size.h : 0;
-			_gui.framebuffer()->refresh(rect.x1(), rect.y1() + y_offset,
-			                            rect.w(), rect.h());
+			_gui.framebuffer.refresh(rect.x1(), rect.y1() + y_offset,
+			                         rect.w(), rect.h());
 		}
 
 		template <typename PT>
