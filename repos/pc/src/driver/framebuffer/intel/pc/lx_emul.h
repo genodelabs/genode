@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2021 Genode Labs GmbH
+ * Copyright (C) 2021-2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -19,12 +19,10 @@
 extern "C" {
 #endif
 
-
 /* fix for wait_for_completion_timeout where the __sched include is missing */
 #include <linux/sched/debug.h>
 
-struct dma_fence_work;
-struct dma_fence_work_ops;
+struct intel_dsb;
 
 void * intel_io_mem_map(unsigned long offset, unsigned long size);
 

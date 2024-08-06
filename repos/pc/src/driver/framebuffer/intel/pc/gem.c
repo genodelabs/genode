@@ -5,9 +5,9 @@
  */
 
 /*
- * Copyright © 2008-2023 Intel Corporation
+ * Copyright © 2008-2024 Intel Corporation
  *
- * Copyright (C) 2022-2023 Genode Labs GmbH
+ * Copyright (C) 2022-2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -16,9 +16,9 @@
 #include <lx_emul.h>
 #include "i915_drv.h"
 
-#include "intel_pm.h"
 #include "../drivers/gpu/drm/i915/gt/intel_gt.h"
 #include "../drivers/gpu/drm/i915/i915_file_private.h"
+#include "intel_clock_gating.h"
 
 
 int i915_gem_object_unbind(struct drm_i915_gem_object *obj,
@@ -242,6 +242,19 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 	unsigned int i;
 	int ret;
 
+	/*
+	 * In the proccess of replacing cache_level with pat_index a tricky
+	 * dependency is created on the definition of the enum i915_cache_level.
+	 * in case this enum is changed, PTE encode would be broken.
+	 * Add a WARNING here. And remove when we completely quit using this
+	 * enum
+	 */
+	BUILD_BUG_ON(I915_CACHE_NONE != 0 ||
+		     I915_CACHE_LLC != 1 ||
+		     I915_CACHE_L3_LLC != 2 ||
+		     I915_CACHE_WT != 3 ||
+		     I915_MAX_CACHE_LEVEL != 4);
+
 	/* We need to fallback to 4K pages if host doesn't support huge gtt. */
 /*
 	if (intel_vgpu_active(dev_priv) && !intel_vgpu_has_huge_gtt(dev_priv))
@@ -252,10 +265,13 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 	if (ret)
 		return ret;
 
-/*
-	intel_uc_fetch_firmwares(&to_gt(dev_priv)->uc);
-	intel_wopcm_init(&dev_priv->wopcm);
-*/
+	for_each_gt(gt, dev_priv, i) {
+		intel_uc_fetch_firmwares(&gt->uc);
+		intel_wopcm_init(&gt->wopcm);
+		if (GRAPHICS_VER(dev_priv) >= 8)
+			setup_private_pat(gt);
+	}
+
 	ret = i915_init_ggtt(dev_priv);
 	if (ret) {
 		GEM_BUG_ON(ret == -EIO);
@@ -263,7 +279,7 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 	}
 
 	/*
-	 * Despite its name intel_init_clock_gating applies both display
+	 * Despite its name intel_clock_gating_init applies both display
 	 * clock gating workarounds; GT mmio workarounds and the occasional
 	 * GT power context workaround. Worse, sometimes it includes a context
 	 * register workaround which we need to apply before we record the
@@ -271,8 +287,7 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 	 *
 	 * FIXME: break up the workarounds and apply them at the right time!
 	 */
-
-	intel_init_clock_gating(dev_priv);
+	intel_clock_gating_init(dev_priv);
 
 /*
 	for_each_gt(gt, dev_priv, i) {
@@ -281,6 +296,16 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 			goto err_unlock;
 	}
 */
+
+	/*
+	 * Register engines early to ensure the engine list is in its final
+	 * rb-tree form, lowering the amount of code that has to deal with
+	 * the intermediate llist state.
+	 */
+/*
+	intel_engines_driver_register(dev_priv);
+*/
+
 
 	return 0;
 
@@ -291,16 +316,18 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 	 * driver doesn't explode during runtime.
 	 */
 err_unlock:
+/*
 	i915_gem_drain_workqueue(dev_priv);
+*/
 
 	if (ret != -EIO) {
+		/*
 		for_each_gt(gt, dev_priv, i) {
 			intel_gt_driver_remove(gt);
 			intel_gt_driver_release(gt);
-			/*
 			intel_uc_cleanup_firmwares(&gt->uc);
-			*/
 		}
+		*/
 	}
 
 	if (ret == -EIO) {
@@ -322,7 +349,7 @@ err_unlock:
 		/* Minimal basic recovery for KMS */
 		ret = i915_ggtt_enable_hw(dev_priv);
 		i915_ggtt_resume(to_gt(dev_priv)->ggtt);
-		intel_init_clock_gating(dev_priv);
+		intel_clock_gating_init(dev_priv);
 	}
 
 	i915_gem_drain_freed_objects(dev_priv);
@@ -330,10 +357,12 @@ err_unlock:
 	return ret;
 }
 
+
 void i915_gem_driver_register(struct drm_i915_private * i915)
 {
 	lx_emul_trace(__func__);
 }
+
 
 static void i915_gem_init__mm(struct drm_i915_private *i915)
 {
@@ -354,8 +383,6 @@ void i915_gem_init_early(struct drm_i915_private *dev_priv)
 	i915_gem_init__contexts(dev_priv);
 */
 
-	lx_emul_trace(__func__);
-
 	spin_lock_init(&dev_priv->display.fb_tracking.lock);
 
 	/*
@@ -369,27 +396,24 @@ void i915_gem_init_early(struct drm_i915_private *dev_priv)
 	totalram_pages_add(emul_avail_ram() / 4096);
 }
 
-
 int i915_gem_open(struct drm_i915_private *i915, struct drm_file *file)
 {
 	struct drm_i915_file_private *file_priv;
 	struct i915_drm_client *client;
 	int ret = -ENOMEM;
 
-	DRM_DEBUG("\n");
+	drm_dbg(&i915->drm, "\n");
 
 	file_priv = kzalloc(sizeof(*file_priv), GFP_KERNEL);
 	if (!file_priv)
 		goto err_alloc;
 
-	client = i915_drm_client_add(&i915->clients);
-	if (IS_ERR(client)) {
-		ret = PTR_ERR(client);
+	client = i915_drm_client_alloc();
+	if (!client)
 		goto err_client;
-	}
 
 	file->driver_priv = file_priv;
-	file_priv->dev_priv = i915;
+	file_priv->i915 = i915;
 	file_priv->file = file;
 	file_priv->client = client;
 
@@ -404,10 +428,8 @@ int i915_gem_open(struct drm_i915_private *i915, struct drm_file *file)
 
 	return 0;
 
-	/*
 err_context:
 	i915_drm_client_put(client);
-	*/
 err_client:
 	kfree(file_priv);
 err_alloc:

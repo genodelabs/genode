@@ -15,9 +15,12 @@
 
 #include "i915_drv.h"
 
-#include <acpi/video.h>
+#include <asm/smp.h>
+
+#include <linux/acpi.h>
 #include <linux/clocksource.h>
 #include <linux/cpuhotplug.h>
+#include <linux/firmware.h>
 #include <linux/kernel_stat.h>
 #include <linux/kernfs.h>
 #include <linux/kobject.h>
@@ -27,9 +30,31 @@
 #include <linux/rcupdate.h>
 #include <linux/sched/loadavg.h>
 #include <linux/sched/signal.h>
+#include <linux/skbuff.h>
 #include <linux/syscore_ops.h>
+#include <linux/sysctl.h>
 #include <linux/timekeeper_internal.h>
 
+#include <net/net_namespace.h>
+
+
+struct net     init_net = { };
+struct smp_ops smp_ops  = { };
+
+const struct attribute_group dev_attr_physical_location_group = {};
+
+EXPORT_SYMBOL_GPL(smp_ops);
+
+DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);
+
+#ifndef __x86_64__
+void * high_memory = NULL;
+
+void iomap_free(resource_size_t base, unsigned long size)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+#endif
 
 void register_syscore_ops(struct syscore_ops * ops)
 {
@@ -57,15 +82,11 @@ int drm_aperture_remove_conflicting_pci_framebuffers(struct pci_dev * pdev,
 }
 
 
-#include <linux/firmware.h>
-
 void release_firmware(const struct firmware * fw)
 {
 	lx_emul_trace(__func__);
 }
 
-
-#include <linux/firmware.h>
 
 int request_firmware(const struct firmware ** firmware_p,const char * name,struct device * device)
 {
@@ -73,8 +94,6 @@ int request_firmware(const struct firmware ** firmware_p,const char * name,struc
 	return -1;
 }
 
-
-#include <linux/firmware.h>
 
 int request_firmware_direct(const struct firmware ** firmware_p,const char * name,struct device * device)
 {
@@ -95,13 +114,6 @@ int ___ratelimit(struct ratelimit_state * rs, const char * func)
 }
 
 
-#include <net/net_namespace.h>
-
-struct net init_net;
-
-
-#include <net/net_namespace.h>
-
 int register_pernet_subsys(struct pernet_operations * ops)
 {
 	lx_emul_trace(__func__);
@@ -116,7 +128,6 @@ int set_pages_uc(struct page * page,int numpages)
 }
 
 
-
 bool irq_work_queue(struct irq_work * work)
 {
 	lx_emul_trace(__func__);
@@ -124,26 +135,16 @@ bool irq_work_queue(struct irq_work * work)
 }
 
 
-void acpi_video_unregister(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/acpi.h>
-
-acpi_status acpi_remove_address_space_handler(acpi_handle device,
-                                              acpi_adr_space_type space_id,
-                                              acpi_adr_space_handler handler)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 int acpi_video_register(void)
 {
 	lx_emul_trace(__func__);
 	return 0;
+}
+
+
+void acpi_video_unregister(void)
+{
+	lx_emul_trace_and_stop(__func__);
 }
 
 
@@ -176,12 +177,6 @@ bool cpu_latency_qos_request_active(struct pm_qos_request *req)
 void cpu_latency_qos_remove_request(struct pm_qos_request *req)
 {
 	lx_emul_trace(__func__);
-}
-
-
-enum acpi_backlight_type acpi_video_get_backlight_type(void)
-{
-	lx_emul_trace_and_stop(__func__);
 }
 
 
@@ -262,10 +257,56 @@ int intel_gt_init_mmio(struct intel_gt * gt)
 }
 
 
+void intel_gt_invalidate_tlb_full(struct intel_gt * gt,u32 seqno)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_gt_driver_register(struct intel_gt * gt)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void intel_gt_info_print(const struct intel_gt_info * info,struct drm_printer * p)
+{
+	lx_emul_trace(__func__);
+}
+
+
+int intel_gt_tiles_init(struct drm_i915_private * i915)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void intel_gt_flush_ggtt_writes(struct intel_gt * gt)
+{
+	lx_emul_trace(__func__);
+}
+
+
 int __intel_gt_reset(struct intel_gt * gt, intel_engine_mask_t engine_mask)
 {
 	lx_emul_trace(__func__);
 	return 0;
+}
+
+
+extern u32 intel_gt_mcr_read_any(struct intel_gt * gt,i915_mcr_reg_t reg);
+u32 intel_gt_mcr_read_any(struct intel_gt * gt,i915_mcr_reg_t reg)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern void intel_gt_mcr_multicast_write(struct intel_gt * gt,i915_mcr_reg_t reg,u32 value);
+void intel_gt_mcr_multicast_write(struct intel_gt * gt,i915_mcr_reg_t reg,u32 value)
+{
+	lx_emul_trace(__func__);
 }
 
 
@@ -335,12 +376,6 @@ void i915_perf_register(struct drm_i915_private * i915)
 }
 
 
-void intel_gt_driver_register(struct intel_gt * gt)
-{
-	lx_emul_trace(__func__);
-}
-
-
 void i915_perf_sysctl_register(void)
 {
 	lx_emul_trace(__func__);
@@ -361,22 +396,10 @@ int intel_vgt_balloon(struct i915_ggtt * ggtt)
 }
 
 
-void intel_gt_info_print(const struct intel_gt_info * info,struct drm_printer * p)
-{
-	lx_emul_trace(__func__);
-}
-
-
 void i915_gem_object_release_mmap_offset(struct drm_i915_gem_object * obj)
 {
 	lx_emul_trace(__func__);
 }
-
-
-#include <asm/smp.h>
-
-struct smp_ops smp_ops = { };
-EXPORT_SYMBOL_GPL(smp_ops);
 
 
 int wbinvd_on_all_cpus(void)
@@ -422,27 +445,6 @@ void pci_disable_msi(struct pci_dev *dev)
 }
 
 
-#include <asm/smp.h>
-
-DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);
-
-
-const struct attribute_group dev_attr_physical_location_group = {};
-
-
-typedef u32 acpi_status;
-struct acpi_resource;
-
-extern acpi_status acpi_buffer_to_resource(u8 * aml_buffer,u16 aml_buffer_length,struct acpi_resource ** resource_ptr);
-acpi_status acpi_buffer_to_resource(u8 * aml_buffer,u16 aml_buffer_length,struct acpi_resource ** resource_ptr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-struct acpi_device;
-
-extern int acpi_bus_get_status(struct acpi_device * device);
 int acpi_bus_get_status(struct acpi_device * device)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -455,7 +457,6 @@ void acpi_device_notify(struct device * dev)
 }
 
 
-extern bool dev_add_physical_location(struct device * dev);
 bool dev_add_physical_location(struct device * dev)
 {
 	lx_emul_trace(__func__);
@@ -463,24 +464,11 @@ bool dev_add_physical_location(struct device * dev)
 }
 
 
-#include <linux/skbuff.h>
-
 void __fix_address kfree_skb_reason(struct sk_buff * skb,enum skb_drop_reason reason)
 {
 	lx_emul_trace(__func__);
 }
 
-
-#include <linux/sysctl.h>
-
-struct ctl_table_header * register_sysctl(const char * path,struct ctl_table * table)
-{
-	lx_emul_trace(__func__);
-	return NULL;
-}
-
-
-#include <acpi/acpi_bus.h>
 
 int register_acpi_bus_type(struct acpi_bus_type * type)
 {
@@ -489,24 +477,21 @@ int register_acpi_bus_type(struct acpi_bus_type * type)
 }
 
 
-#include <linux/sysctl.h>
-
-void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name)
+void __init __register_sysctl_init(const char * path, struct ctl_table * table,
+                                   const char * table_name, size_t table_size)
 {
 	lx_emul_trace(__func__);
 }
 
 
-#include <linux/sysfs.h>
-
-int sysfs_add_file_to_group(struct kobject * kobj,const struct attribute * attr,const char * group)
+int sysfs_add_file_to_group(      struct kobject   * kobj,
+                            const struct attribute * attr,
+                            const   char           * group)
 {
 	lx_emul_trace(__func__);
 	return 0;
 }
 
-
-#include <linux/random.h>
 
 u16 get_random_u16(void)
 {
@@ -514,55 +499,12 @@ u16 get_random_u16(void)
 }
 
 
-#include <acpi/acpi_bus.h>
-
-int acpi_bus_attach_private_data(acpi_handle handle,void * data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <acpi/acpi_bus.h>
-
-void acpi_bus_detach_private_data(acpi_handle handle)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <acpi/acpi_bus.h>
-
-int acpi_bus_get_private_data(acpi_handle handle,void ** data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <acpi/acpi_bus.h>
-
 void acpi_dev_clear_dependencies(struct acpi_device * supplier)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-extern acpi_status acpi_install_address_space_handler(acpi_handle device,acpi_adr_space_type space_id,acpi_adr_space_handler handler,acpi_adr_space_setup setup,void * context);
-acpi_status acpi_install_address_space_handler(acpi_handle device,acpi_adr_space_type space_id,acpi_adr_space_handler handler,acpi_adr_space_setup setup,void * context)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <drm/drm_drv.h>
-
-bool drm_firmware_drivers_only(void)
-{
-	lx_emul_trace(__func__);
-	return 0;
-}
-
-
-extern int __init i915_context_module_init(void);
 int __init i915_context_module_init(void)
 {
 	lx_emul_trace(__func__);
@@ -570,7 +512,6 @@ int __init i915_context_module_init(void)
 }
 
 
-extern int __init i915_gem_context_module_init(void);
 int __init i915_gem_context_module_init(void)
 {
 	lx_emul_trace(__func__);
@@ -578,7 +519,6 @@ int __init i915_gem_context_module_init(void)
 }
 
 
-extern int __init i915_request_module_init(void);
 int __init i915_request_module_init(void)
 {
 	lx_emul_trace(__func__);
@@ -586,15 +526,12 @@ int __init i915_request_module_init(void)
 }
 
 
-extern int __init i915_scheduler_module_init(void);
 int __init i915_scheduler_module_init(void)
 {
 	lx_emul_trace(__func__);
 	return 0;
 }
 
-
-#include <linux/iommu.h>
 
 int iommu_device_use_default_domain(struct device * dev)
 {
@@ -603,23 +540,18 @@ int iommu_device_use_default_domain(struct device * dev)
 }
 
 
-#include <linux/iommu.h>
-
 void iommu_device_unuse_default_domain(struct device * dev)
 {
 	lx_emul_trace(__func__);
 }
 
 
-extern struct ttm_device_funcs * i915_ttm_driver(void);
 struct ttm_device_funcs * i915_ttm_driver(void)
 {
 	lx_emul_trace(__func__);
 	return NULL;
 }
 
-
-#include <linux/shrinker.h>
 
 int register_shrinker(struct shrinker * shrinker,const char * fmt,...)
 {
@@ -628,25 +560,15 @@ int register_shrinker(struct shrinker * shrinker,const char * fmt,...)
 }
 
 
-extern void intel_guc_init_early(struct intel_guc * guc);
 void intel_guc_init_early(struct intel_guc * guc)
 {
 	lx_emul_trace(__func__);
 }
 
 
-extern void intel_huc_init_early(struct intel_huc * huc);
 void intel_huc_init_early(struct intel_huc * huc)
 {
 	lx_emul_trace(__func__);
-}
-
-
-extern int intel_gt_tiles_init(struct drm_i915_private * i915);
-int intel_gt_tiles_init(struct drm_i915_private * i915)
-{
-	lx_emul_trace(__func__);
-	return 0;
 }
 
 
@@ -656,15 +578,11 @@ void rt_mutex_setprio(struct task_struct *p, struct task_struct *pi_task)
 }
 
 
-#include <linux/context_tracking_irq.h>
-
 noinstr void ct_irq_enter(void)
 {
 	lx_emul_trace(__func__);
 }
 
-
-#include <linux/context_tracking_irq.h>
 
 noinstr void ct_irq_exit(void)
 {
@@ -672,32 +590,16 @@ noinstr void ct_irq_exit(void)
 }
 
 
-#include <acpi/video.h>
-
-bool acpi_video_backlight_use_native(void)
+void acpi_video_register_backlight(void)
 {
 	lx_emul_trace(__func__);
-	return 1;
 }
 
-
-#include <net/net_namespace.h>
 
 void net_ns_init(void)
 {
 	lx_emul_trace(__func__);
 }
-
-
-#include <asm/iomap.h>
-
-void iomap_free(resource_size_t base, unsigned long size)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-void * high_memory;
 
 
 void intel_dsb_prepare(struct intel_crtc_state *crtc_state)
@@ -725,13 +627,6 @@ void intel_dsb_reg_write(const struct intel_crtc_state *crtc_state,
 }
 
 
-void intel_dsb_indexed_reg_write(const struct intel_crtc_state *crtc_state,
-                                 i915_reg_t reg, u32 val)
-{
-	lx_emul_trace(__func__);
-}
-
-
 void acpi_device_notify_remove(struct device * dev)
 {
 	lx_emul_trace(__func__);
@@ -744,24 +639,11 @@ void software_node_notify_remove(struct device * dev)
 }
 
 
-#include <linux/cdev.h>
-
-void cdev_init(struct cdev * cdev,const struct file_operations * fops)
-{
-	lx_emul_trace(__func__);
-}
-
-
-
-#include <linux/skbuff.h>
-
 void skb_init()
 {
 	lx_emul_trace(__func__);
 }
 
-
-#include <linux/fs.h>
 
 int __register_chrdev(unsigned int major,unsigned int baseminor,unsigned int count,const char * name,const struct file_operations * fops)
 {
@@ -770,16 +652,12 @@ int __register_chrdev(unsigned int major,unsigned int baseminor,unsigned int cou
 }
 
 
-#include <linux/property.h>
-
 int software_node_notify(struct device * dev,unsigned long action)
 {
 	lx_emul_trace(__func__);
 	return 0;
 }
 
-
-#include <linux/pinctrl/devinfo.h>
 
 int pinctrl_bind_pins(struct device * dev)
 {
@@ -788,16 +666,12 @@ int pinctrl_bind_pins(struct device * dev)
 }
 
 
-#include <linux/pinctrl/devinfo.h>
-
 int pinctrl_init_done(struct device * dev)
 {
 	lx_emul_trace(__func__);
 	return 0;
 }
 
-
-#include <linux/pinctrl/consumer.h>
 
 struct pinctrl * devm_pinctrl_get(struct device * dev)
 {
@@ -806,40 +680,43 @@ struct pinctrl * devm_pinctrl_get(struct device * dev)
 }
 
 
-#include <linux/pinctrl/consumer.h>
-
 void devm_pinctrl_put(struct pinctrl * p)
 {
 	lx_emul_trace(__func__);
 }
 
 
-void check_move_unevictable_pages(struct pagevec * pvec)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void intel_gt_flush_ggtt_writes(struct intel_gt * gt)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void intel_gt_invalidate_tlb(struct intel_gt * gt,u32 seqno)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void mark_page_accessed(struct page * page)
-{
-	lx_emul_trace(__func__);
-}
-
-
-extern void i915_vm_free_pt_stash(struct i915_address_space * vm,struct i915_vm_pt_stash * stash);
 void i915_vm_free_pt_stash(struct i915_address_space * vm,struct i915_vm_pt_stash * stash)
 {
 	lx_emul_trace(__func__);
+}
+
+
+void intel_gsc_uc_init_early(struct intel_gsc_uc * gsc)
+{
+	lx_emul_trace(__func__);
+}
+
+
+bool intel_hdcp_gsc_cs_required(struct drm_i915_private * i915)
+{
+	if (DISPLAY_VER(i915) >= 14)
+		printk("%s UNSUPPORTED - more linux code to incorporate ?!\n", __func__);
+
+	return DISPLAY_VER(i915) >= 14;
+}
+
+
+int intel_pxp_init(struct drm_i915_private *i915)
+{
+	lx_emul_trace(__func__);
+	return -ENODEV;
+}
+
+
+int intel_pxp_key_check(struct intel_pxp *pxp, struct drm_i915_gem_object *obj,
+                        bool assign)
+{
+	lx_emul_trace(__func__);
+	return -ENODEV;
 }

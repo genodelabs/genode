@@ -77,6 +77,7 @@ drivers/gpu/drm/i915/display/g4x_dp.c
 drivers/gpu/drm/i915/display/g4x_hdmi.c
 drivers/gpu/drm/i915/display/hsw_ips.c
 drivers/gpu/drm/i915/display/i9xx_plane.c
+drivers/gpu/drm/i915/display/i9xx_wm.c
 drivers/gpu/drm/i915/display/icl_dsi.c
 drivers/gpu/drm/i915/display/intel_acpi.c
 drivers/gpu/drm/i915/display/intel_atomic.c
@@ -93,12 +94,17 @@ drivers/gpu/drm/i915/display/intel_crt.c
 drivers/gpu/drm/i915/display/intel_crtc.c
 drivers/gpu/drm/i915/display/intel_crtc_state_dump.c
 drivers/gpu/drm/i915/display/intel_cursor.c
+drivers/gpu/drm/i915/display/intel_cx0_phy.c
 drivers/gpu/drm/i915/display/intel_ddi.c
 drivers/gpu/drm/i915/display/intel_ddi_buf_trans.c
 drivers/gpu/drm/i915/display/intel_display.c
+drivers/gpu/drm/i915/display/intel_display_device.c
+drivers/gpu/drm/i915/display/intel_display_driver.c
+drivers/gpu/drm/i915/display/intel_display_irq.c
 drivers/gpu/drm/i915/display/intel_display_power.c
 drivers/gpu/drm/i915/display/intel_display_power_map.c
 drivers/gpu/drm/i915/display/intel_display_power_well.c
+drivers/gpu/drm/i915/display/intel_display_rps.c
 drivers/gpu/drm/i915/display/intel_display_trace.c
 drivers/gpu/drm/i915/display/intel_dkl_phy.c
 drivers/gpu/drm/i915/display/intel_dmc.c
@@ -128,9 +134,12 @@ drivers/gpu/drm/i915/display/intel_gmbus.c
 drivers/gpu/drm/i915/display/intel_hdcp.c
 drivers/gpu/drm/i915/display/intel_hdmi.c
 drivers/gpu/drm/i915/display/intel_hotplug.c
+drivers/gpu/drm/i915/display/intel_hotplug_irq.c
+drivers/gpu/drm/i915/display/intel_hti.c
 drivers/gpu/drm/i915/display/intel_lpe_audio.c
 drivers/gpu/drm/i915/display/intel_lspcon.c
 drivers/gpu/drm/i915/display/intel_lvds.c
+drivers/gpu/drm/i915/display/intel_modeset_lock.c
 drivers/gpu/drm/i915/display/intel_modeset_setup.c
 drivers/gpu/drm/i915/display/intel_modeset_verify.c
 drivers/gpu/drm/i915/display/intel_opregion.c
@@ -139,6 +148,7 @@ drivers/gpu/drm/i915/display/intel_panel.c
 drivers/gpu/drm/i915/display/intel_pch_display.c
 drivers/gpu/drm/i915/display/intel_pch_refclk.c
 drivers/gpu/drm/i915/display/intel_plane_initial.c
+drivers/gpu/drm/i915/display/intel_pmdemand.c
 drivers/gpu/drm/i915/display/intel_pps.c
 drivers/gpu/drm/i915/display/intel_psr.c
 drivers/gpu/drm/i915/display/intel_qp_tables.c
@@ -148,9 +158,11 @@ drivers/gpu/drm/i915/display/intel_snps_phy.c
 drivers/gpu/drm/i915/display/intel_sprite.c
 drivers/gpu/drm/i915/display/intel_tc.c
 drivers/gpu/drm/i915/display/intel_tv.c
+drivers/gpu/drm/i915/display/intel_vblank.c
 drivers/gpu/drm/i915/display/intel_vdsc.c
 drivers/gpu/drm/i915/display/intel_vga.c
 drivers/gpu/drm/i915/display/intel_vrr.c
+drivers/gpu/drm/i915/display/intel_wm.c
 drivers/gpu/drm/i915/display/skl_scaler.c
 drivers/gpu/drm/i915/display/skl_universal_plane.c
 drivers/gpu/drm/i915/display/skl_watermark.c
@@ -173,6 +185,7 @@ drivers/gpu/drm/i915/gt/intel_ggtt.c
 drivers/gpu/drm/i915/gt/intel_ggtt_fencing.c
 drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c
 drivers/gpu/drm/i915/gt/intel_gtt.c
+drivers/gpu/drm/i915/gt/intel_wopcm.c
 drivers/gpu/drm/i915/gt/uc/intel_uc.c
 drivers/gpu/drm/i915/i915_active.c
 drivers/gpu/drm/i915/i915_config.c
@@ -196,6 +209,7 @@ drivers/gpu/drm/i915/i915_user_extensions.c
 drivers/gpu/drm/i915/i915_utils.c
 drivers/gpu/drm/i915/i915_vma.c
 drivers/gpu/drm/i915/i915_vma_resource.c
+drivers/gpu/drm/i915/intel_clock_gating.c
 drivers/gpu/drm/i915/intel_device_info.c
 drivers/gpu/drm/i915/intel_memory_region.c
 drivers/gpu/drm/i915/intel_pcode.c
@@ -205,6 +219,9 @@ drivers/gpu/drm/i915/intel_sbi.c
 drivers/gpu/drm/i915/intel_step.c
 drivers/gpu/drm/i915/intel_uncore.c
 drivers/gpu/drm/i915/intel_wakeref.c
+drivers/gpu/drm/i915/soc/intel_dram.c
+drivers/gpu/drm/i915/soc/intel_gmch.c
+drivers/gpu/drm/i915/soc/intel_pch.c
 drivers/gpu/drm/i915/vlv_sideband.c
 drivers/gpu/drm/i915/vlv_suspend.c
 drivers/gpu/drm/ttm/ttm_bo.c
@@ -219,9 +236,11 @@ drivers/i2c/i2c-core-acpi.c
 drivers/i2c/i2c-core-base.c
 drivers/pci/pci-driver.c
 drivers/video/backlight/backlight.c
+drivers/video/cmdline.c
 drivers/video/fbdev/core/fb_notify.c
 drivers/video/fbdev/core/fbcmap.c
 drivers/video/hdmi.c
+drivers/video/nomodeset.c
 kernel/async.c
 kernel/irq/chip.c
 kernel/irq/devres.c
@@ -275,6 +294,7 @@ lib/kobject_uevent.c
 lib/kstrtox.c
 lib/list_sort.c
 lib/llist.c
+lib/maple_tree.c
 lib/math/div64.c
 lib/math/reciprocal_div.c
 lib/radix-tree.c

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2021-2022 Genode Labs GmbH
+ * Copyright (C) 2021-2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -14,7 +14,8 @@
 #include <lx_emul.h>
 #include <lx_emul/io_mem.h>
 #include <lx_emul/page_virt.h>
-#include <lx_emul/shmem_file.h>
+
+#include <acpi/video.h>
 
 #include <linux/dma-fence.h>
 #include <linux/fs.h>
@@ -22,8 +23,12 @@
 #include <linux/slab.h>
 #include <linux/proc_fs.h>
 
+#include "shmem_intel.h"
+
 #include "i915_drv.h"
 #include "intel_pci_config.h"
+#include "i915/gem/i915_gem_lmem.h"
+#include "i915/gt/intel_gt.h"
 #include <drm/drm_managed.h>
 
 
@@ -78,7 +83,6 @@ pgprot_t pgprot_writecombine(pgprot_t prot)
 }
 
 
-extern int intel_root_gt_init_early(struct drm_i915_private * i915);
 int intel_root_gt_init_early(struct drm_i915_private * i915)
 {
 	struct intel_gt *gt = to_gt(i915);
@@ -131,7 +135,6 @@ int intel_root_gt_init_early(struct drm_i915_private * i915)
 }
 
 
-extern int intel_gt_probe_all(struct drm_i915_private * i915);
 int intel_gt_probe_all(struct drm_i915_private * i915)
 {
 	struct pci_dev *pdev = to_pci_dev(i915->drm.dev);
@@ -140,7 +143,7 @@ int intel_gt_probe_all(struct drm_i915_private * i915)
 	unsigned int mmio_bar;
 	int ret;
 
-	mmio_bar = GRAPHICS_VER(i915) == 2 ? GEN2_GTTMMADR_BAR : GTTMMADR_BAR;
+	mmio_bar = intel_mmio_bar(GRAPHICS_VER(i915));
 	phys_addr = pci_resource_start(pdev, mmio_bar);
 
 	/*
@@ -150,8 +153,9 @@ int intel_gt_probe_all(struct drm_i915_private * i915)
 	 */
 	gt->i915 = i915;
 	gt->name = "Primary GT";
-	gt->info.engine_mask = RUNTIME_INFO(i915)->platform_engine_mask;
+	gt->info.engine_mask = INTEL_INFO(i915)->platform_engine_mask;
 
+	/*  intel_gt_tile_setup() emulation - start */
 	intel_uncore_init_early(gt->uncore, gt);
 
 	ret = intel_uncore_setup_mmio(gt->uncore, phys_addr);
@@ -159,6 +163,7 @@ int intel_gt_probe_all(struct drm_i915_private * i915)
 		return ret;
 
 	gt->phys_addr = phys_addr;
+	/*  intel_gt_tile_setup() emulation - end */
 
 	i915->gt[0] = gt;
 
@@ -166,12 +171,28 @@ int intel_gt_probe_all(struct drm_i915_private * i915)
 }
 
 
-extern int intel_gt_assign_ggtt(struct intel_gt * gt);
 int intel_gt_assign_ggtt(struct intel_gt * gt)
 {
 	gt->ggtt = drmm_kzalloc(&gt->i915->drm, sizeof(*gt->ggtt), GFP_KERNEL);
 
 	return gt->ggtt ? 0 : -ENOMEM;
+}
+
+
+enum i915_map_type intel_gt_coherent_map_type(struct intel_gt *gt,
+					      struct drm_i915_gem_object *obj,
+					      bool always_coherent)
+{
+	/*
+	 * Wa_22016122933: always return I915_MAP_WC for Media
+	 * version 13.0 when the object is on the Media GT
+	 */
+	if (i915_gem_object_is_lmem(obj) || intel_gt_needs_wa_22016122933(gt))
+		return I915_MAP_WC;
+	if (HAS_LLC(gt->i915) || always_coherent)
+		return I915_MAP_WB;
+	else
+		return I915_MAP_WC;
 }
 
 
@@ -211,7 +232,6 @@ void intel_vgpu_detect(struct drm_i915_private * dev_priv)
 	 * probe/boot up are not trigged (INTEL_PPGTT_ALIASING, Lenovo T420)
 	 */
 
-	//struct intel_device_info *info = mkwrite_device_info(dev_priv);
 	struct intel_runtime_info *rinfo = RUNTIME_INFO(dev_priv);
 	rinfo->ppgtt_type = INTEL_PPGTT_NONE;
 
@@ -247,4 +267,151 @@ unsigned long _copy_to_user(void __user * to, const void * from, unsigned long n
 {
 	memcpy(to, from, n);
 	return 0;
+}
+
+
+enum acpi_backlight_type __acpi_video_get_backlight_type(bool native,
+                                                         bool * auto_detect)
+{
+	enum acpi_backlight_type const type = acpi_backlight_native;
+
+	printk("\n%s -> %s\n", __func__,
+	       type == acpi_backlight_native ? "native" :
+	       type == acpi_backlight_vendor ? "vendor" : "unknown");
+
+	return type;
+}
+
+
+
+/*
+ * Very very basic folio free-up emulation
+ */
+
+
+void folio_mark_accessed(struct folio *folio)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void check_move_unevictable_folios(struct folio_batch *fbatch)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void free_huge_folio(struct folio *folio)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+void folio_undo_large_rmappable(struct folio *folio)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+void free_unref_page(struct page *page, unsigned int order)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+/*
+ * see linux/src/linux/mm/page_alloc.c - mostly original code, beside __folio_put
+ */
+void destroy_large_folio(struct folio *folio)
+{
+	if (folio_test_hugetlb(folio)) {
+		free_huge_folio(folio);
+		return;
+	}
+
+	if (folio_test_large_rmappable(folio))
+		folio_undo_large_rmappable(folio);
+
+	mem_cgroup_uncharge(folio);
+
+	__folio_put(folio);
+}
+
+
+/*
+ * see linux/src/linux/mm/swap.c - this is a very shorten version of it
+ */
+static void __page_cache_release(struct folio *folio)
+{
+	if (folio_test_lru(folio)) {
+		lx_emul_trace_and_stop(__func__);
+	}
+	/* See comment on folio_test_mlocked in release_pages() */
+	if (unlikely(folio_test_mlocked(folio))) {
+		lx_emul_trace_and_stop(__func__);
+	}
+}
+
+
+/*
+ * see linux/src/linux/mm/swap.c - original code
+ */
+static void __folio_put_large(struct folio *folio)
+{
+	/*
+	 * __page_cache_release() is supposed to be called for thp, not for
+	 * hugetlb. This is because hugetlb page does never have PageLRU set
+	 * (it's never listed to any LRU lists) and no memcg routines should
+	 * be called for hugetlb (it has a separate hugetlb_cgroup.)
+	 */
+	if (!folio_test_hugetlb(folio))
+		__page_cache_release(folio);
+	destroy_large_folio(folio);
+}
+
+
+/*
+ * see linux/src/linux/mm/swap.c - this is a very shorten version of it
+ */
+void release_pages(release_pages_arg arg, int nr)
+{
+	int i;
+	struct encoded_page **encoded = arg.encoded_pages;
+
+	for (i = 0; i < nr; i++) {
+		struct folio *folio;
+
+		/* Turn any of the argument types into a folio */
+		folio = page_folio(encoded_page_ptr(encoded[i]));
+
+		if (is_huge_zero_page(&folio->page))
+			continue;
+
+		if (folio_is_zone_device(folio))
+			lx_emul_trace_and_stop(__func__);
+
+		if (!folio_put_testzero(folio))
+			continue;
+
+		if (folio_test_large(folio)) {
+			lx_emul_trace(__func__);
+			__folio_put_large(folio);
+			continue;
+		}
+
+		if (folio_test_lru(folio))
+			lx_emul_trace_and_stop(__func__);
+
+		if (unlikely(folio_test_mlocked(folio)))
+			lx_emul_trace_and_stop(__func__);
+	}
+}
+
+
+void __folio_batch_release(struct folio_batch *fbatch)
+{
+	lx_emul_trace(__func__);
+
+	release_pages(fbatch->folios, folio_batch_count(fbatch));
+	folio_batch_reinit(fbatch);
 }

@@ -475,7 +475,8 @@ static int configure_connectors(void * data)
 
 void lx_user_init(void)
 {
-	int pid = kernel_thread(configure_connectors, NULL, CLONE_FS | CLONE_FILES);
+	int pid = kernel_thread(configure_connectors, NULL, "lx_user",
+	                        CLONE_FS | CLONE_FILES);
 	lx_user_task = find_task_by_pid_ns(pid, NULL);;
 }
 
@@ -580,7 +581,7 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 	                                          0 /* auto height */);
 	if (result) {
 		printk("%s: error on modeset probe %d\n", __func__, result);
-		return result;
+		return 0;
 	}
 
 	/*
@@ -612,7 +613,7 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 	if (fb)
 		drm_framebuffer_put(fb);
 
-	return result;
+	return 0;
 }
 
 
