@@ -57,19 +57,13 @@ void Ipc_node::_cancel_send()
 }
 
 
-bool Ipc_node::_helping() const
-{
-	return _out.state == Out::SEND_HELPING && _out.node;
-}
-
-
 bool Ipc_node::ready_to_send() const
 {
 	return _out.state == Out::READY && !_in.waiting();
 }
 
 
-void Ipc_node::send(Ipc_node &node, bool help)
+void Ipc_node::send(Ipc_node &node)
 {
 	node._in.queue.enqueue(_queue_item);
 
@@ -78,13 +72,7 @@ void Ipc_node::send(Ipc_node &node, bool help)
 		node._thread.ipc_await_request_succeeded();
 	}
 	_out.node  = &node;
-	_out.state = help ? Out::SEND_HELPING : Out::SEND;
-}
-
-
-Thread &Ipc_node::helping_destination()
-{
-	return _helping() ? _out.node->helping_destination() : _thread;
+	_out.state = Out::SEND;
 }
 
 

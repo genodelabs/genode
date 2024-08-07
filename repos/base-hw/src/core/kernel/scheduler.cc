@@ -19,6 +19,38 @@
 using namespace Kernel;
 
 
+void Scheduler::Context::help(Scheduler::Context &c)
+{
+	_destination = &c;
+	c._helper_list.insert(&_helper_le);
+}
+
+
+void Scheduler::Context::helping_finished()
+{
+	if (!_destination)
+		return;
+
+	_destination->_helper_list.remove(&_helper_le);
+	_destination = nullptr;
+}
+
+
+Scheduler::Context& Scheduler::Context::helping_destination()
+{
+	return (_destination) ? _destination->helping_destination() : *this;
+}
+
+
+Scheduler::Context::~Context()
+{
+	helping_finished();
+
+	for (Context::List_element *h = _helper_list.first(); h; h = h->next())
+		h->object()->helping_finished();
+}
+
+
 void Scheduler::_consumed(unsigned const time)
 {
 	if (_super_period_left > time) {
@@ -149,7 +181,10 @@ void Scheduler::update(time_t time)
 
 void Scheduler::ready(Context &c)
 {
-	assert(!c.ready() && &c != &_idle);
+	assert(&c != &_idle);
+
+	if (c.ready())
+		return;
 
 	c._ready = true;
 
@@ -170,23 +205,33 @@ void Scheduler::ready(Context &c)
 	_slack_list.insert_head(&c._slack_le);
 
 	if (!keep_current && _state == UP_TO_DATE) _state = OUT_OF_DATE;
+
+	for (Context::List_element *helper = c._helper_list.first();
+	     helper; helper = helper->next())
+		if (!helper->object()->ready()) ready(*helper->object());
 }
 
 
 void Scheduler::unready(Context &c)
 {
-	assert(c.ready() && &c != &_idle);
+	assert(&c != &_idle);
+
+	if (!c.ready())
+		return;
 
 	if (&c == _current && _state == UP_TO_DATE) _state = OUT_OF_DATE;
 
 	c._ready = false;
 	_slack_list.remove(&c._slack_le);
 
-	if (!c._quota)
-		return;
+	if (c._quota) {
+		_rpl[c._priority].remove(&c._priotized_le);
+		_upl[c._priority].insert_tail(&c._priotized_le);
+	}
 
-	_rpl[c._priority].remove(&c._priotized_le);
-	_upl[c._priority].insert_tail(&c._priotized_le);
+	for (Context::List_element *helper = c._helper_list.first();
+	     helper; helper = helper->next())
+		if (helper->object()->ready()) unready(*helper->object());
 }
 
 

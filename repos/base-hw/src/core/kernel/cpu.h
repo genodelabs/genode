@@ -88,10 +88,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 			Halt_job() : Job (0, 0) { }
 
 			void exception(Kernel::Cpu &) override { }
-
 			void proceed(Kernel::Cpu &) override;
-
-			Kernel::Cpu_job* helping_destination() override { return this; }
 		} _halt_job { };
 
 		enum State { RUN, HALT, SUSPEND };
@@ -161,7 +158,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 		 * Returns the currently active job
 		 */
 		Job & scheduled_job() {
-			return *static_cast<Job *>(&_scheduler.current())->helping_destination(); }
+			return static_cast<Job&>(_scheduler.current().helping_destination()); }
 
 		unsigned id() const { return _id; }
 		Scheduler &scheduler() { return _scheduler; }

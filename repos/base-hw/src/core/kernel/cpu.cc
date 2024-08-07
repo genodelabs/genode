@@ -31,10 +31,10 @@ using namespace Kernel;
  ** Cpu_job **
  *************/
 
-void Cpu_job::_activate_own_share() { _cpu->schedule(this); }
+void Cpu_job::_activate() { _cpu->schedule(this); }
 
 
-void Cpu_job::_deactivate_own_share()
+void Cpu_job::_deactivate()
 {
 	assert(_cpu->id() == Cpu::executing_id());
 	_cpu->scheduler().unready(*this);
@@ -124,7 +124,7 @@ Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_a
 
 void Cpu::schedule(Job * const job)
 {
-	_scheduler.ready(job->context());
+	_scheduler.ready(*static_cast<Scheduler::Context*>(job));
 	if (_id != executing_id() && _scheduler.need_to_schedule())
 		trigger_ip_interrupt();
 }

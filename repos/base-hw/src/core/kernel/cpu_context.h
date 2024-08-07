@@ -56,12 +56,12 @@ class Kernel::Cpu_job : private Scheduler::Context
 		/**
 		 * Activate our own CPU-share
 		 */
-		void _activate_own_share();
+		void _activate();
 
 		/**
 		 * Deactivate our own CPU-share
 		 */
-		void _deactivate_own_share();
+		void _deactivate();
 
 		/**
 		 * Yield the currently scheduled CPU share of this context
@@ -72,6 +72,11 @@ class Kernel::Cpu_job : private Scheduler::Context
 		 * Return wether we are allowed to help job 'j' with our CPU-share
 		 */
 		bool _helping_possible(Cpu_job const &j) const { return j._cpu == _cpu; }
+
+		using Context::ready;
+		using Context::helping_finished;
+
+		void help(Cpu_job &job) { Context::help(job); }
 
 	public:
 
@@ -87,11 +92,6 @@ class Kernel::Cpu_job : private Scheduler::Context
 		 * Continue execution on CPU 'id'
 		 */
 		virtual void proceed(Cpu & cpu) = 0;
-
-		/**
-		 * Return which job currently uses our CPU-share
-		 */
-		virtual Cpu_job * helping_destination() = 0;
 
 		/**
 		 * Construct a job with scheduling priority 'p' and time quota 'q'
@@ -114,11 +114,6 @@ class Kernel::Cpu_job : private Scheduler::Context
 		void quota(unsigned const q);
 
 		/**
-		 * Return wether our CPU-share is currently active
-		 */
-		bool own_share_active() { return Context::ready(); }
-
-		/**
 		 * Update total execution time
 		 */
 		void update_execution_time(time_t duration) { _execution_time += duration; }
@@ -134,8 +129,6 @@ class Kernel::Cpu_job : private Scheduler::Context
 		 ***************/
 
 		void cpu(Cpu &cpu) { _cpu = &cpu; }
-
-		Context &context() { return *this; }
 };
 
 #endif /* _CORE__KERNEL__CPU_CONTEXT_H_ */

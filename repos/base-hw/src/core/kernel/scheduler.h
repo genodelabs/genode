@@ -65,6 +65,7 @@ class Kernel::Scheduler
 				friend class Scheduler_test::Context;
 
 				using List_element = Genode::List_element<Context>;
+				using List         = Genode::List<List_element>;
 
 				unsigned     _priority;
 				unsigned     _quota;
@@ -74,9 +75,19 @@ class Kernel::Scheduler
 				List_element _slack_le { this };
 				unsigned     _slack_time_left { 0 };
 
+				List_element _helper_le   { this };
+				List         _helper_list {};
+				Context     *_destination { nullptr };
+
 				bool _ready { false };
 
 				void _reset() { _priotized_time_left = _quota; }
+
+				/**
+				 * Noncopyable
+				 */
+				Context(const Context&) = delete;
+				Context& operator=(const Context&) = delete;
 
 			public:
 
@@ -85,9 +96,14 @@ class Kernel::Scheduler
 				:
 					_priority(priority.value),
 					_quota(quota) { }
+				~Context();
 
 				bool ready() const { return _ready; }
 				void quota(unsigned const q) { _quota = q; }
+
+				void help(Context &c);
+				void helping_finished();
+				Context& helping_destination();
 		};
 
 	private:

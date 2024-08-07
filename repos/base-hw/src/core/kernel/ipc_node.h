@@ -50,14 +50,14 @@ class Kernel::Ipc_node
 
 		struct Out
 		{
-			enum State { READY, SEND, SEND_HELPING, DESTRUCT };
+			enum State { READY, SEND, DESTRUCT };
 
 			State     state { READY   };
 			Ipc_node *node  { nullptr };
 
 			bool sending() const
 			{
-				return state == SEND_HELPING || state == SEND;
+				return state == SEND;
 			}
 		};
 
@@ -75,11 +75,6 @@ class Kernel::Ipc_node
 		 * Cancel an ongoing send operation
 		 */
 		void _cancel_send();
-
-		/**
-		 * Return wether this IPC node is helping another one
-		 */
-		bool _helping() const;
 
 		/**
 		 * Noncopyable
@@ -102,28 +97,8 @@ class Kernel::Ipc_node
 		 * Send a message and wait for the according reply
 		 *
 		 * \param node  targeted IPC node
-		 * \param help  wether the request implies a helping relationship
 		 */
-		void send(Ipc_node &node, bool help);
-
-		/**
-		 * Return final destination of the helping-chain
-		 * this IPC node is part of, or its own thread otherwise
-		 */
-		Thread &helping_destination();
-
-		/**
-		 * Call 'fn' of type 'void (Ipc_node *)' for each helper
-		 */
-		void for_each_helper(auto const &fn)
-		{
-			_in.queue.for_each([fn] (Queue_item &item) {
-				Ipc_node &node { item.object() };
-
-				if (node._helping())
-					fn(node._thread);
-			});
-		}
+		void send(Ipc_node &node);
 
 		/**
 		 * Return whether this IPC node is ready to wait for messages

@@ -66,7 +66,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		void _pause_vcpu()
 		{
 			if (_scheduled != INACTIVE)
-				Cpu_job::_deactivate_own_share();
+				Cpu_job::_deactivate();
 
 			_scheduled = INACTIVE;
 		}
@@ -135,7 +135,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		void run()
 		{
 			_sync_from_vmm();
-			if (_scheduled != ACTIVE) Cpu_job::_activate_own_share();
+			if (_scheduled != ACTIVE) Cpu_job::_activate();
 			_scheduled = ACTIVE;
 		}
 
@@ -152,7 +152,6 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 
 		void exception(Cpu & cpu)       override;
 		void proceed(Cpu &  cpu)        override;
-		Cpu_job * helping_destination() override { return this; }
 };
 
 #endif /* _CORE__KERNEL__VM_H_ */

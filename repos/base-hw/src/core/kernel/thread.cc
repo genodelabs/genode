@@ -239,7 +239,8 @@ void Thread::ipc_send_request_succeeded()
 	assert(_state == AWAITS_IPC);
 	user_arg_0(0);
 	_state = ACTIVE;
-	if (!Cpu_job::own_share_active()) { _activate_used_shares(); }
+	_activate();
+	helping_finished();
 }
 
 
@@ -248,7 +249,8 @@ void Thread::ipc_send_request_failed()
 	assert(_state == AWAITS_IPC);
 	user_arg_0(-1);
 	_state = ACTIVE;
-	if (!Cpu_job::own_share_active()) { _activate_used_shares(); }
+	_activate();
+	helping_finished();
 }
 
 
@@ -268,41 +270,21 @@ void Thread::ipc_await_request_failed()
 }
 
 
-void Thread::_deactivate_used_shares()
-{
-	Cpu_job::_deactivate_own_share();
-	_ipc_node.for_each_helper([&] (Thread &thread) {
-		thread._deactivate_used_shares(); });
-}
-
-
-void Thread::_activate_used_shares()
-{
-	Cpu_job::_activate_own_share();
-	_ipc_node.for_each_helper([&] (Thread &thread) {
-		thread._activate_used_shares(); });
-}
-
-
 void Thread::_become_active()
 {
-	if (_state != ACTIVE && !_paused) { _activate_used_shares(); }
+	if (_state != ACTIVE && !_paused) Cpu_job::_activate();
 	_state = ACTIVE;
 }
 
 
 void Thread::_become_inactive(State const s)
 {
-	if (_state == ACTIVE && !_paused) { _deactivate_used_shares(); }
+	if (_state == ACTIVE && !_paused) Cpu_job::_deactivate();
 	_state = s;
 }
 
 
 void Thread::_die() { _become_inactive(DEAD); }
-
-
-Cpu_job * Thread::helping_destination() {
-	return &_ipc_node.helping_destination(); }
 
 
 size_t Thread::_core_to_kernel_quota(size_t const quota) const
@@ -367,8 +349,8 @@ void Thread::_call_start_thread()
 void Thread::_call_pause_thread()
 {
 	Thread &thread = *reinterpret_cast<Thread*>(user_arg_1());
-	if (thread._state == ACTIVE && !thread._paused) {
-		thread._deactivate_used_shares(); }
+	if (thread._state == ACTIVE && !thread._paused)
+		thread._deactivate();
 
 	thread._paused = true;
 }
@@ -377,8 +359,8 @@ void Thread::_call_pause_thread()
 void Thread::_call_resume_thread()
 {
 	Thread &thread = *reinterpret_cast<Thread*>(user_arg_1());
-	if (thread._state == ACTIVE && thread._paused) {
-		thread._activate_used_shares(); }
+	if (thread._state == ACTIVE && thread._paused)
+		thread._activate();
 
 	thread._paused = false;
 }
@@ -572,11 +554,12 @@ void Thread::_call_send_request_msg()
 			return;
 		}
 		_ipc_capid = oir ? oir->capid() : cap_id_invalid();
-		_ipc_node.send(dst->_ipc_node, help);
+		_ipc_node.send(dst->_ipc_node);
 	}
 
 	_state = AWAITS_IPC;
-	if (!help || !dst->own_share_active()) { _deactivate_used_shares(); }
+	if (help) Cpu_job::help(*dst);
+	if (!help || !dst->ready()) _deactivate();
 }
 
 
