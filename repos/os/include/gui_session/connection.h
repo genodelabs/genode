@@ -50,7 +50,6 @@ class Gui::Connection : private Genode::Connection<Session>
 		 */
 		Input::Session_client input { _env.rm(), _client.input() };
 
-		using View_handle = Session::View_handle;
 		using Genode::Connection<Session>::cap;
 		using Genode::Connection<Session>::upgrade;
 		using Genode::Connection<Session>::upgrade_ram;

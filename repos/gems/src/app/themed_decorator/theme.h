@@ -15,6 +15,7 @@
 #define _THEME_H_
 
 /* Genode includes */
+#include <base/allocator.h>
 #include <os/texture.h>
 #include <os/pixel_alpha8.h>
 #include <os/pixel_rgb888.h>

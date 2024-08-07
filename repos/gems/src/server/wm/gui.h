@@ -98,9 +98,6 @@ struct Wm::Gui::Input_origin_changed_handler : Interface
 };
 
 
-struct Gui::View : Genode::Interface { GENODE_RPC_INTERFACE(); };
-
-
 class Wm::Gui::View : private Genode::Weak_object<View>,
                       public  Genode::Rpc_object< ::Gui::View>
 {
@@ -115,15 +112,15 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		using Command     = Gui::Session::Command;
 		using View_handle = Gui::Session::View_handle;
 
-		Session_label        _session_label;
-		Real_gui            &_real_gui;
-		View_handle          _real_handle     { };
-		Title                _title           { };
-		Rect                 _geometry        { };
-		Point                _buffer_offset   { };
-		Weak_ptr<View>       _neighbor_ptr    { };
-		bool                 _neighbor_behind { };
-		bool                 _has_alpha;
+		Session_label              _session_label;
+		Real_gui                  &_real_gui;
+		Constructible<View_handle> _real_handle     { };
+		Title                      _title           { };
+		Rect                       _geometry        { };
+		Point                      _buffer_offset   { };
+		Weak_ptr<View>             _neighbor_ptr    { };
+		bool                       _neighbor_behind { };
+		bool                       _has_alpha;
 
 		View(Real_gui            &real_gui,
 		     Session_label const &session_label,
@@ -143,37 +140,37 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		 */
 		void _unsynchronized_apply_view_config(Locked_ptr<View> &neighbor)
 		{
-			if (!_real_handle.valid())
+			if (!_real_handle.constructed())
 				return;
 
 			_propagate_view_geometry();
-			_real_gui.enqueue<Command::Offset>(_real_handle, _buffer_offset);
-			_real_gui.enqueue<Command::Title> (_real_handle, _title.string());
+			_real_gui.enqueue<Command::Offset>(*_real_handle, _buffer_offset);
+			_real_gui.enqueue<Command::Title> (*_real_handle, _title.string());
 
-			View_handle real_neighbor_handle;
+			Constructible<View_handle> real_neighbor_handle { };
 
 			if (neighbor.valid())
 				_real_gui.session.alloc_view_handle(neighbor->real_view_cap()).with_result(
-					[&] (View_handle handle) { real_neighbor_handle = handle; },
+					[&] (View_handle handle) { real_neighbor_handle.construct(handle); },
 					[&] (auto) { warning("unable to obtain real_neighbor_handle"); }
 				);
 
-			if (real_neighbor_handle.valid()) {
+			if (real_neighbor_handle.constructed()) {
 				if (_neighbor_behind)
-					_real_gui.enqueue<Command::Front_of>(_real_handle, real_neighbor_handle);
+					_real_gui.enqueue<Command::Front_of>(*_real_handle, *real_neighbor_handle);
 				else
-					_real_gui.enqueue<Command::Behind_of>(_real_handle, real_neighbor_handle);
+					_real_gui.enqueue<Command::Behind_of>(*_real_handle, *real_neighbor_handle);
 			} else {
 				if (_neighbor_behind)
-					_real_gui.enqueue<Command::Front>(_real_handle);
+					_real_gui.enqueue<Command::Front>(*_real_handle);
 				else
-					_real_gui.enqueue<Command::Back>(_real_handle);
+					_real_gui.enqueue<Command::Back>(*_real_handle);
 			}
 
 			_real_gui.execute();
 
-			if (real_neighbor_handle.valid())
-				_real_gui.session.release_view_handle(real_neighbor_handle);
+			if (real_neighbor_handle.constructed())
+				_real_gui.session.release_view_handle(*real_neighbor_handle);
 		}
 
 		void _apply_view_config()
@@ -186,8 +183,8 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 
 		~View()
 		{
-			if (_real_handle.valid())
-				_real_gui.session.destroy_view(_real_handle);
+			if (_real_handle.constructed())
+				_real_gui.session.destroy_view(*_real_handle);
 		}
 
 		using Genode::Weak_object<View>::weak_ptr;
@@ -204,7 +201,7 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 			/*
 			 * Propagate new size to real GUI view but
 			 */
-			if (_real_handle.valid()) {
+			if (_real_handle.constructed()) {
 				_propagate_view_geometry();
 				_real_gui.execute();
 			}
@@ -214,8 +211,8 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		{
 			_title = Title(title);
 
-			if (_real_handle.valid()) {
-				_real_gui.enqueue<Command::Title>(_real_handle, title);
+			if (_real_handle.constructed()) {
+				_real_gui.enqueue<Command::Title>(*_real_handle, title);
 				_real_gui.execute();
 			}
 		}
@@ -224,19 +221,19 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 
 		virtual void stack(Weak_ptr<View>, bool) { }
 
-		View_handle real_handle() const { return _real_handle; }
-
 		View_capability real_view_cap()
 		{
-			return _real_gui.session.view_capability(_real_handle);
+			return _real_handle.constructed()
+			     ? _real_gui.session.view_capability(*_real_handle)
+			     : View_capability();
 		}
 
 		void buffer_offset(Point buffer_offset)
 		{
 			_buffer_offset = buffer_offset;
 
-			if (_real_handle.valid()) {
-				_real_gui.enqueue<Command::Offset>(_real_handle, _buffer_offset);
+			if (_real_handle.constructed()) {
+				_real_gui.enqueue<Command::Offset>(*_real_handle, _buffer_offset);
 				_real_gui.execute();
 			}
 		}
@@ -293,6 +290,31 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 		}
 
 		using List<Top_level_view>::Element::next;
+
+		void init_real_gui_view()
+		{
+			if (_real_handle.constructed())
+				return;
+
+			/*
+			 * Create and configure physical GUI view.
+			 */
+			_real_gui.session.create_view().with_result(
+				[&] (View_handle handle) {
+					_real_handle.construct(handle);
+					_real_gui.enqueue<Command::Offset>(handle, _buffer_offset);
+					_real_gui.enqueue<Command::Title> (handle, _title.string());
+					_real_gui.execute();
+				},
+				[&] (Gui::Session::Create_view_error) {
+					warning("init_real_view failed");
+				}
+			);
+
+			if (!_real_handle.constructed()) {
+				warning("failed to created content view for ", _title);
+			}
+		}
 
 		void _propagate_view_geometry() override { }
 
@@ -352,27 +374,13 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 		View_capability content_view()
 		{
-			if (!_real_handle.valid()) {
+			init_real_gui_view();
 
-				/*
-				 * Create and configure physical GUI view.
-				 */
-				_real_gui.session.create_view().with_result(
-					[&] (View_handle handle) {
-						_real_handle = handle;
-						_real_gui.enqueue<Command::Offset>(_real_handle, _buffer_offset);
-						_real_gui.enqueue<Command::Title> (_real_handle, _title.string());
-						_real_gui.execute();
-					},
-					[&] (Gui::Session::Create_view_error) { }
-				);
+			if (_real_handle.constructed())
+				return _real_gui.session.view_capability(*_real_handle);
 
-				if (!_real_handle.valid()) {
-					warning("failed to created content view for ", _title);
-					return { };
-				}
-			}
-			return _real_gui.session.view_capability(_real_handle);
+			error("content_view was unable to obtain real view");
+			return { };
 		}
 
 		void hidden(bool hidden) { _window_registry.hidden(_win_id, hidden); }
@@ -415,7 +423,8 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 
 		void _propagate_view_geometry() override
 		{
-			_real_gui.enqueue<Command::Geometry>(_real_handle, _geometry);
+			if (_real_handle.constructed())
+				_real_gui.enqueue<Command::Geometry>(*_real_handle, _geometry);
 		}
 
 		void stack(Weak_ptr<View> neighbor_ptr, bool behind) override
@@ -443,33 +452,35 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 
 		void try_to_init_real_view()
 		{
-			if (_real_handle.valid())
+			if (_real_handle.constructed())
 				return;
 
 			Locked_ptr<View> parent(_parent);
 			if (!parent.valid())
 				return;
 
-			View_handle parent_handle { };
+			Constructible<View_handle> parent_handle { };
 			_real_gui.session.alloc_view_handle(parent->real_view_cap()).with_result(
-				[&] (View_handle handle) { parent_handle = handle; },
-				[&] (Gui::Session::Alloc_view_handle_error) { }
+				[&] (View_handle handle) { parent_handle.construct(handle); },
+				[&] (Gui::Session::Alloc_view_handle_error e) {
+					warning("try_to_init_real_view could not alloc parent handle e=", (int)e);
+				}
 			);
-			if (!parent_handle.valid()) {
+			if (!parent_handle.constructed()) {
 				warning("try_to_init_real_view failed to obtain parent handle");
 				return;
 			}
 
-			_real_gui.session.create_child_view(parent_handle).with_result(
-				[&] (View_handle handle) { _real_handle = handle; },
+			_real_gui.session.create_child_view(*parent_handle).with_result(
+				[&] (View_handle handle) { _real_handle.construct(handle); },
 				[&] (Gui::Session::Create_child_view_error) { }
 			);
-			if (!_real_handle.valid()) {
+			if (!_real_handle.constructed()) {
 				warning("try_to_init_real_view failed to create child view");
 				return;
 			}
 
-			_real_gui.session.release_view_handle(parent_handle);
+			_real_gui.session.release_view_handle(*parent_handle);
 
 			if (_neighbor_ptr == _parent)
 				_unsynchronized_apply_view_config(parent);
@@ -484,11 +495,11 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 
 		void hide()
 		{
-			if (!_real_handle.valid())
+			if (!_real_handle.constructed())
 				return;
 
-			_real_gui.session.destroy_view(_real_handle);
-			_real_handle = { };
+			_real_gui.session.destroy_view(*_real_handle);
+			_real_handle.destruct();
 		}
 };
 
@@ -503,6 +514,37 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		using View_handle = Gui::Session::View_handle;
 
+		using View_ids = Id_space<Gui::View_ref>;
+
+		struct View_ref : Gui::View_ref
+		{
+			Weak_ptr<View> _weak_ptr;
+
+			View_ids::Element id;
+
+			View_ref(Weak_ptr<View> view, View_ids &ids)
+			: _weak_ptr(view), id(*this, ids) { }
+
+			View_ref(Weak_ptr<View> view, View_ids &ids, View_handle id)
+			: _weak_ptr(view), id(*this, ids, id) { }
+
+			auto with_view(auto const &fn, auto const &missing_fn) -> decltype(missing_fn())
+			{
+				/*
+				 * Release the lock before calling 'fn' to allow the nesting of
+				 * 'with_view' calls. The locking aspect of the weak ptr is not
+				 * needed here because the component is single-threaded.
+				 */
+				View *ptr = nullptr;
+				{
+					Locked_ptr<View> view(_weak_ptr);
+					if (view.valid())
+						ptr = view.operator->();
+				}
+				return ptr ? fn(*ptr) : missing_fn();
+			}
+		};
+
 		Genode::Env &_env;
 
 		Session_label                _session_label;
@@ -511,8 +553,10 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		Window_registry             &_window_registry;
 		Tslab<Top_level_view, 8000>  _top_level_view_alloc;
 		Tslab<Child_view, 6000>      _child_view_alloc;
+		Tslab<View_ref, 4000>        _view_ref_alloc;
 		List<Top_level_view>         _top_level_views { };
 		List<Child_view>             _child_views { };
+		View_ids                     _view_ids { };
 		Input::Session_component     _input_session { _env, _ram };
 		Input::Session_capability    _input_session_cap;
 		Click_handler               &_click_handler;
@@ -526,6 +570,18 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		Point                        _virtual_pointer_pos { };
 		unsigned                     _key_cnt = 0;
 
+		auto _with_view(View_handle handle, auto const &fn, auto const &missing_fn)
+		-> decltype(missing_fn())
+		{
+			return _view_ids.apply<View_ref>(handle,
+				[&] (View_ref &view_ref) {
+					return view_ref.with_view(
+						[&] (View &view)        { return fn(view); },
+						[&] /* view vanished */ { return missing_fn(); });
+				},
+				[&] /* ID does not exist */ { return missing_fn(); });
+		}
+
 		/*
 		 * Command buffer
 		 */
@@ -534,13 +590,6 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		Attached_ram_dataspace _command_ds { _ram, _env.rm(), sizeof(Command_buffer) };
 
 		Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
-
-		/*
-		 * View handle registry
-		 */
-		using View_handle_registry = Genode::Handle_registry<View_handle, View>;
-
-		View_handle_registry _view_handle_registry;
 
 		/*
 		 * Input
@@ -687,29 +736,6 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			_input_session.submit(Input::Absolute_motion { pos.x, pos.y });
 		}
 
-		View &_create_view_object()
-		{
-			Top_level_view *view = new (_top_level_view_alloc)
-				Top_level_view(_real_gui, _has_alpha,
-				               _window_registry, *this);
-
-			view->resizeable(_mode_sigh.valid());
-
-			_top_level_views.insert(view);
-			return *view;
-		}
-
-		View &_create_child_view_object(View_handle parent_handle)
-		{
-			Weak_ptr<View> parent_ptr = _view_handle_registry.lookup(parent_handle);
-
-			Child_view *view = new (_child_view_alloc)
-				Child_view(_real_gui, _has_alpha, parent_ptr);
-
-			_child_views.insert(view);
-			return *view;
-		}
-
 		void _destroy_top_level_view(Top_level_view &view)
 		{
 			_top_level_views.remove(&view);
@@ -724,62 +750,51 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			Genode::destroy(&_child_view_alloc, &view);
 		}
 
-		void _destroy_view_object(View &view)
-		{
-			if (Top_level_view *v = dynamic_cast<Top_level_view *>(&view))
-				_destroy_top_level_view(*v);
-
-			if (Child_view *v = dynamic_cast<Child_view *>(&view))
-				_destroy_child_view(*v);
-		}
-
 		void _execute_command(Command const &command)
 		{
+			auto with_this = [&] (auto const &args, auto const &fn)
+			{
+				Session_component::_with_view(args.view,
+					[&] (View &view) { fn(view, args); },
+					[&] /* ignore operations on non-existing views */ { });
+			};
+
 			switch (command.opcode) {
 
 			case Command::GEOMETRY:
-				{
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.geometry.view));
-					if (view.valid())
-						view->geometry(command.geometry.rect);
-					return;
-				}
+
+				with_this(command.geometry, [&] (View &view, Command::Geometry const &args) {
+					view.geometry(args.rect); });
+				return;
 
 			case Command::OFFSET:
-				{
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.offset.view));
-					if (view.valid())
-						view->buffer_offset(command.offset.offset);
 
-					return;
-				}
+				with_this(command.offset, [&] (View &view, Command::Offset const &args) {
+					view.buffer_offset(args.offset); });
+				return;
 
 			case Command::FRONT:
-				{
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.front.view));
-					if (view.valid())
-						view->stack(Weak_ptr<View>(), true);
-					return;
-				}
+
+				with_this(command.front, [&] (View &view, auto const &) {
+					view.stack(Weak_ptr<View>(), true); });
+				return;
 
 			case Command::FRONT_OF:
-				{
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.front_of.view));
-					if (!view.valid())
-						return;
 
-					if (!command.front_of.neighbor.valid())
-						return;
-
-					/* stack view relative to neighbor */
-					view->stack(_view_handle_registry.lookup(command.front_of.neighbor),
-					            true);
-					return;
-				}
+				with_this(command.front_of, [&] (View &view, Command::Front_of const &args) {
+					Session_component::_with_view(args.neighbor,
+						[&] (View &neighbor) {
+							if (&view != &neighbor)
+								view.stack(neighbor.weak_ptr(), true); },
+						[&] { });
+				});
+				return;
 
 			case Command::TITLE:
-				{
-					char sanitized_title[command.title.title.capacity()];
+
+				with_this(command.title, [&] (View &view, Command::Title const &args) {
+
+					char sanitized_title[args.title.capacity()];
 
 					Genode::copy_cstring(sanitized_title, command.title.title.string(),
 					                     sizeof(sanitized_title));
@@ -788,12 +803,9 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 						if (*c == '"')
 							*c = '\'';
 
-					Locked_ptr<View> view(_view_handle_registry.lookup(command.title.view));
-					if (view.valid())
-						view->title(sanitized_title);
-
-					return;
-				}
+					view.title(sanitized_title);
+				});
+				return;
 
 			case Command::BACK:
 			case Command::BEHIND_OF:
@@ -824,10 +836,10 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			_window_registry(window_registry),
 			_top_level_view_alloc(&session_alloc),
 			_child_view_alloc(&session_alloc),
+			_view_ref_alloc(&session_alloc),
 			_input_session_cap(env.ep().manage(_input_session)),
 			_click_handler(click_handler),
-			_pointer_state(pointer_tracker),
-			_view_handle_registry(session_alloc)
+			_pointer_state(pointer_tracker)
 		{
 			_gui_input.sigh(_input_handler);
 			_real_gui.session.mode_sigh(_mode_handler);
@@ -836,11 +848,14 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		~Session_component()
 		{
+			while (_view_ids.apply_any<View_ref>([&] (View_ref &view_ref) {
+				destroy(_view_ref_alloc, &view_ref); }));
+
 			while (Top_level_view *view = _top_level_views.first())
-				_destroy_view_object(*view);
+				_destroy_top_level_view(*view);
 
 			while (Child_view *view = _child_views.first())
-				_destroy_view_object(*view);
+				_destroy_child_view(*view);
 
 			_env.ep().dissolve(_input_session);
 		}
@@ -958,92 +973,160 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			return _input_session_cap;
 		}
 
-		Create_view_result create_view() override
+		template <typename VIEW>
+		Create_view_result _create_view_with_id(auto &dealloc, auto const &create_fn)
 		{
+			Create_view_error error { };
+
+			VIEW *view_ptr = nullptr;
 			try {
-				View &view = _create_view_object();
-				_env.ep().manage(view);
-				return _view_handle_registry.alloc(view);
+				view_ptr = create_fn();
 			}
-			catch (Out_of_ram)  { return Create_view_error::OUT_OF_RAM; }
-			catch (Out_of_caps) { return Create_view_error::OUT_OF_CAPS; }
+			catch (Out_of_ram)  { error = Create_view_error::OUT_OF_RAM;  }
+			catch (Out_of_caps) { error = Create_view_error::OUT_OF_CAPS; }
+			if (!view_ptr)
+				return error;
+
+			View_ref *view_ref_ptr = nullptr;
+			try {
+				view_ref_ptr =
+					new (_view_ref_alloc) View_ref(view_ptr->weak_ptr(), _view_ids);
+			}
+			catch (Out_of_ram)  { error = Create_view_error::OUT_OF_RAM;  }
+			catch (Out_of_caps) { error = Create_view_error::OUT_OF_CAPS; }
+			if (!view_ref_ptr) {
+				destroy(dealloc, view_ptr);
+				return error;
+			}
+
+			_env.ep().manage(*view_ptr);
+
+			return view_ref_ptr->id.id();
 		}
 
-		Create_child_view_result create_child_view(View_handle parent) override
+		Create_view_result create_view() override
 		{
-			try {
-				View &view = _create_child_view_object(parent);
-				_env.ep().manage(view);
-				return _view_handle_registry.alloc(view);
+			Top_level_view *view_ptr = nullptr;
+
+			Create_view_result const result =
+				_create_view_with_id<Top_level_view>(_top_level_view_alloc,
+					[&] {
+						view_ptr = new (_top_level_view_alloc)
+							Top_level_view(_real_gui, _has_alpha,
+							               _window_registry, *this);
+						return view_ptr;
+					});
+
+			if (result.ok() && view_ptr) {
+
+				view_ptr->init_real_gui_view();
+
+				view_ptr->resizeable(_mode_sigh.valid());
+				_top_level_views.insert(view_ptr);
 			}
-			catch (Out_of_ram)  { return Create_child_view_error::OUT_OF_RAM; }
-			catch (Out_of_caps) { return Create_child_view_error::OUT_OF_CAPS; }
-			catch (View_handle_registry::Lookup_failed) {
-				return View_handle(); }
+			return result;
+		}
+
+		Create_child_view_result create_child_view(View_handle const parent) override
+		{
+			using Error = Create_child_view_error;
+			return _with_view(parent,
+				[&] (View &parent) -> Create_child_view_result {
+
+					Child_view *view_ptr = nullptr;
+
+					Create_view_result const result =
+						_create_view_with_id<Child_view>(_child_view_alloc,
+							[&] {
+								view_ptr = new (_child_view_alloc)
+									Child_view(_real_gui, _has_alpha, parent.weak_ptr());
+								return view_ptr;
+							});
+
+					return result.convert<Create_child_view_result>(
+						[&] (View_handle handle) {
+							if (view_ptr)
+								_child_views.insert(view_ptr);
+							return handle;
+						},
+						[&] (Create_view_error e) {
+							switch (e) {
+							case Create_view_error::OUT_OF_RAM:  return Error::OUT_OF_RAM;
+							case Create_view_error::OUT_OF_CAPS: return Error::OUT_OF_CAPS;
+							};
+							return Error::INVALID;
+						}
+					);
+				},
+				[&] () -> Create_child_view_result { return Error::INVALID; });
 		}
 
 		void destroy_view(View_handle handle) override
 		{
-			try {
-				/*
-				 * Lookup the view but release the lock to prevent the view
-				 * destructor from taking the lock a second time. The locking
-				 * aspect of the weak ptr is not needed within the wm because
-				 * the component is single-threaded.
-				 */
-				View *view_ptr = nullptr;
-				{
-					Locked_ptr<View> view(_view_handle_registry.lookup(handle));
-					if (view.valid())
-						view_ptr = view.operator->();
-				}
-
-				if (view_ptr)
-					_destroy_view_object(*view_ptr);
-
-				_view_handle_registry.free(handle);
-			} catch (View_handle_registry::Lookup_failed) { }
+			_with_view(handle,
+				[&] (View &view) {
+					for (Child_view *v = _child_views.first(); v; v = v->next())
+						if (&view == v) {
+							_destroy_child_view(*v);
+							return;
+						}
+					for (Top_level_view *v = _top_level_views.first(); v; v = v->next())
+						if (&view == v) {
+							_destroy_top_level_view(*v);
+							return;
+						}
+				},
+				[&] /* ID exists but view vanished */ { }
+			);
+			release_view_handle(handle);
 		}
 
 		Alloc_view_handle_result alloc_view_handle(View_capability view_cap) override
 		{
-			try {
-				return _env.ep().rpc_ep().apply(view_cap, [&] (View *view) {
-					return (view) ? _view_handle_registry.alloc(*view)
-					              : View_handle(); });
-			}
-			catch (Out_of_ram)  { return Alloc_view_handle_error::OUT_OF_RAM; }
-			catch (Out_of_caps) { return Alloc_view_handle_error::OUT_OF_CAPS; }
+			return _env.ep().rpc_ep().apply(view_cap,
+				[&] (View *view_ptr) -> Alloc_view_handle_result {
+					if (!view_ptr)
+						return Alloc_view_handle_error::INVALID;
+					try {
+						View_ref &view_ref = *new (_view_ref_alloc)
+							View_ref(view_ptr->weak_ptr(), _view_ids);
+						return view_ref.id.id();
+					}
+					catch (Out_of_ram)  { return Alloc_view_handle_error::OUT_OF_RAM;  }
+					catch (Out_of_caps) { return Alloc_view_handle_error::OUT_OF_CAPS; }
+				});
 		}
 
 		View_handle_result view_handle(View_capability view_cap, View_handle handle) override
 		{
-			try {
-				_env.ep().rpc_ep().apply(view_cap, [&] (View *view) {
-					if (view)
-						_view_handle_registry.alloc(*view, handle); });
-				return View_handle_result::OK;
-			}
-			catch (Out_of_ram)  { return View_handle_result::OUT_OF_RAM; }
-			catch (Out_of_caps) { return View_handle_result::OUT_OF_CAPS; }
+			/* prevent ID conflict in 'View_ids::Element' constructor */
+			release_view_handle(handle);
+
+			return _env.ep().rpc_ep().apply(view_cap,
+				[&] (View *view_ptr) -> View_handle_result {
+					if (!view_ptr)
+						return View_handle_result::INVALID;
+					try {
+						new (_view_ref_alloc) View_ref(view_ptr->weak_ptr(), _view_ids, handle);
+						return View_handle_result::OK;
+					}
+					catch (Out_of_ram)  { return View_handle_result::OUT_OF_RAM;  }
+					catch (Out_of_caps) { return View_handle_result::OUT_OF_CAPS; }
+				});
 		}
 
 		View_capability view_capability(View_handle handle) override
 		{
-			Locked_ptr<View> view(_view_handle_registry.lookup(handle));
-
-			return view.valid() ? view->cap() : View_capability();
+			return _with_view(handle,
+				[&] (View &view)               { return view.cap(); },
+				[&] /* view does not exist */  { return View_capability(); });
 		}
 
 		void release_view_handle(View_handle handle) override
 		{
-			try {
-				_view_handle_registry.free(handle); }
-
-			catch (View_handle_registry::Lookup_failed) {
-				Genode::warning("view lookup failed while releasing view handle");
-				return;
-			}
+			_view_ids.apply<View_ref>(handle,
+				[&] (View_ref &view_ref) { destroy(_view_ref_alloc, &view_ref); },
+				[&] { });
 		}
 
 		Genode::Dataspace_capability command_dataspace() override
@@ -1053,12 +1136,8 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		void execute() override
 		{
-			for (unsigned i = 0; i < _command_buffer.num(); i++) {
-				try {
-					_execute_command(_command_buffer.get(i)); }
-				catch (View_handle_registry::Lookup_failed) {
-					Genode::warning("view lookup failed during command execution"); }
-			}
+			for (unsigned i = 0; i < _command_buffer.num(); i++)
+				_execute_command(_command_buffer.get(i));
 
 			/* propagate window-list changes to the layouter */
 			_window_registry.flush();

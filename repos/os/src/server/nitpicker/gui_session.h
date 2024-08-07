@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -47,6 +47,37 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
                                private Session_list::Element
 {
 	private:
+
+		using View_ids = Id_space<Gui::View_ref>;
+
+		struct View_ref : Gui::View_ref
+		{
+			Weak_ptr<View> _weak_ptr;
+
+			View_ids::Element id;
+
+			View_ref(Weak_ptr<View> view, View_ids &ids)
+			: _weak_ptr(view), id(*this, ids) { }
+
+			View_ref(Weak_ptr<View> view, View_ids &ids, View_handle id)
+			: _weak_ptr(view), id(*this, ids, id) { }
+
+			auto with_view(auto const &fn, auto const &missing_fn) -> decltype(missing_fn())
+			{
+				/*
+				 * Release the lock before calling 'fn' to allow the nesting of
+				 * 'with_view' calls. The locking aspect of the weak ptr is not
+				 * needed here because the component is single-threaded.
+				 */
+				View *ptr = nullptr;
+				{
+					Locked_ptr<View> view(_weak_ptr);
+					if (view.valid())
+						ptr = view.operator->();
+				}
+				return ptr ? fn(*ptr) : missing_fn();
+			}
+		};
 
 		friend class List<Gui_session>;
 
@@ -105,6 +136,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Tslab<View, 4000> _view_alloc { &_session_alloc };
 
+		Tslab<View_ref, 4000> _view_ref_alloc { &_session_alloc };
+
 		/* capabilities for sub sessions */
 		Framebuffer::Session_capability _framebuffer_session_cap;
 		Input::Session_capability       _input_session_cap;
@@ -122,9 +155,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
 
-		using View_handle_registry = Handle_registry<View_handle, View>;
-
-		View_handle_registry _view_handle_registry;
+		View_ids _view_ids { };
 
 		Reporter &_focus_reporter;
 
@@ -156,6 +187,20 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		void _adopt_new_view(View &);
 
+		Create_view_result _create_view_with_id(auto const &);
+
+		auto _with_view(View_handle handle, auto const &fn, auto const &missing_fn)
+		-> decltype(missing_fn())
+		{
+			return _view_ids.apply<View_ref>(handle,
+				[&] (View_ref &view_ref) {
+					return view_ref.with_view(
+						[&] (View &view)        { return fn(view); },
+						[&] /* view vanished */ { return missing_fn(); });
+				},
+				[&] /* ID does not exist */ { return missing_fn(); });
+		}
+
 	public:
 
 		Gui_session(Env                   &env,
@@ -182,7 +227,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			_framebuffer_session_cap(_env.ep().manage(_framebuffer_session_component)),
 			_input_session_cap(_env.ep().manage(_input_session_component)),
 			_provides_default_bg(provides_default_bg),
-			_view_handle_registry(_session_alloc),
 			_focus_reporter(focus_reporter)
 		{ }
 
@@ -190,6 +234,9 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		{
 			_env.ep().dissolve(_framebuffer_session_component);
 			_env.ep().dissolve(_input_session_component);
+
+			while (_view_ids.apply_any<View_ref>([&] (View_ref &view_ref) {
+				destroy(_view_ref_alloc, &view_ref); }));
 
 			destroy_all_views();
 		}

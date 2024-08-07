@@ -14,9 +14,9 @@
 #ifndef _INCLUDE__GUI_SESSION__GUI_SESSION_H_
 #define _INCLUDE__GUI_SESSION__GUI_SESSION_H_
 
+#include <base/id_space.h>
 #include <session/session.h>
 #include <os/surface.h>
-#include <os/handle_registry.h>
 #include <framebuffer_session/capability.h>
 #include <input_session/capability.h>
 
@@ -28,7 +28,16 @@ namespace Gui {
 	struct View;
 	struct Session;
 
+	/*
+	 * View capabilities are used as tokens to share views between sessions.
+	 * There is no RPC interface associated with a view. View operations refer
+	 * to views via session-local IDs.
+	 */
+	struct View     : Interface { GENODE_RPC_INTERFACE(); };
+	struct View_ref : Interface { };
+
 	using View_capability = Capability<View>;
+	using View_handle     = Id_space<View_ref>::Id;
 
 	using Rect  = Surface_base::Rect;
 	using Point = Surface_base::Point;
@@ -52,14 +61,7 @@ struct Gui::Session : Genode::Session
 	static constexpr unsigned CAP_QUOTA = Framebuffer::Session::CAP_QUOTA
 	                                    + Input::Session::CAP_QUOTA + 3;
 
-	/**
-	 * Session-local view handle
-	 *
-	 * When issuing commands to nitpicker via the 'execute' method, views
-	 * are referenced by session-local handles.
-	 */
-	using View_handle = Handle<View>;
-
+	using View_handle = Gui::View_handle;
 
 	struct Command
 	{

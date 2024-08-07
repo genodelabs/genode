@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,6 +19,8 @@
 #include <util/list.h>
 #include <base/weak_ptr.h>
 #include <base/rpc_server.h>
+#include <base/registry.h>
+#include <base/tslab.h>
 
 /* local includes */
 #include <canvas.h>
@@ -54,16 +56,6 @@ namespace Nitpicker {
 }
 
 
-namespace Gui {
-
-	/*
-	 * We use view capabilities as mere tokens to pass views between sessions.
-	 * There is no RPC interface associated with a view.
-	 */
-	struct View : Interface { GENODE_RPC_INTERFACE(); };
-}
-
-
 class Nitpicker::View : private Same_buffer_list_elem,
                         private Session_view_list_elem,
                         private View_stack_elem,
@@ -76,7 +68,6 @@ class Nitpicker::View : private Same_buffer_list_elem,
 		using Title = String<32>;
 
 		using Weak_object<View>::weak_ptr;
-		using Weak_object<View>::weak_ptr_const;
 
 	private:
 

@@ -16,18 +16,6 @@
 using namespace Nitpicker;
 
 
-bool Gui_session::_views_are_equal(View_handle v1, View_handle v2)
-{
-	if (!v1.valid() || !v2.valid())
-		return false;
-
-	Weak_ptr<View> v1_ptr = _view_handle_registry.lookup(v1);
-	Weak_ptr<View> v2_ptr = _view_handle_registry.lookup(v2);
-
-	return  v1_ptr == v2_ptr;
-}
-
-
 View_owner &Gui_session::forwarded_focus()
 {
 	Gui_session *next_focus = this;
@@ -60,102 +48,75 @@ View_owner &Gui_session::forwarded_focus()
 
 void Gui_session::_execute_command(Command const &command)
 {
+	auto with_this = [&] (auto const &args, auto const &fn)
+	{
+		Gui_session::_with_view(args.view,
+			[&] (View &view) { fn(view, args); },
+			[&] /* ignore operations on non-existing views */ { });
+	};
+
 	switch (command.opcode) {
 
 	case Command::GEOMETRY:
-		{
-			Command::Geometry const &cmd = command.geometry;
-			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
-			if (!view.valid())
-				return;
 
-			Point pos = cmd.rect.p1();
+		with_this(command.geometry, [&] (View &view, Command::Geometry const &args) {
+			Point pos = args.rect.p1();
 
 			/* transpose position of top-level views by vertical session offset */
-			if (view->top_level())
+			if (view.top_level())
 				pos = _phys_pos(pos, _view_stack.size());
 
-			if (view.valid())
-				_view_stack.geometry(*view, Rect(pos, cmd.rect.area));
-
-			return;
-		}
+			_view_stack.geometry(view, Rect(pos, args.rect.area));
+		});
+		return;
 
 	case Command::OFFSET:
-		{
-			Command::Offset const &cmd = command.offset;
-			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 
-			if (view.valid())
-				_view_stack.buffer_offset(*view, cmd.offset);
-
-			return;
-		}
+		with_this(command.offset, [&] (View &view, Command::Offset const &args) {
+			_view_stack.buffer_offset(view, args.offset); });
+		return;
 
 	case Command::FRONT:
-		{
-			Command::Front const &cmd = command.front;
 
-			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
-			if (view.valid())
-				_view_stack.stack(*view, nullptr, true);
-			return;
-		}
+		with_this(command.front, [&] (View &view, auto const &) {
+			_view_stack.stack(view, nullptr, true); });
+		return;
 
 	case Command::BACK:
-		{
-			Command::Back const &cmd = command.back;
 
-			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
-			if (view.valid())
-				_view_stack.stack(*view, nullptr, false);
-			return;
-		}
+		with_this(command.back, [&] (View &view, auto const &) {
+			_view_stack.stack(view, nullptr, false); });
+		return;
 
 	case Command::FRONT_OF:
-		{
-			Command::Front_of const &cmd = command.front_of;
-			if (_views_are_equal(cmd.view, cmd.neighbor))
-				return;
 
-			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
-			if (!view.valid())
-				return;
-
-			/* stack view relative to neighbor */
-			Locked_ptr<View> neighbor(_view_handle_registry.lookup(cmd.neighbor));
-			if (neighbor.valid())
-				_view_stack.stack(*view, &(*neighbor), false);
-			return;
-		}
+		with_this(command.front_of, [&] (View &view, Command::Front_of const &args) {
+			Gui_session::_with_view(args.neighbor,
+				[&] (View &neighbor) {
+					if (&view != &neighbor)
+						_view_stack.stack(view, &neighbor, false); },
+				[&] { });
+		});
+		return;
 
 	case Command::BEHIND_OF:
-		{
-			Command::Behind_of const &cmd = command.behind_of;
-			if (_views_are_equal(cmd.view, cmd.neighbor))
-				return;
 
-			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
-			if (!view.valid())
-				return;
-
-			/* stack view relative to neighbor */
-			Locked_ptr<View> neighbor(_view_handle_registry.lookup(cmd.neighbor));
-			if (neighbor.valid())
-				_view_stack.stack(*view, &(*neighbor), true);
-			return;
-		}
+		with_this(command.behind_of, [&] (View &view, Command::Behind_of const &args) {
+			Gui_session::_with_view(args.neighbor,
+				[&] (View &neighbor) {
+					if (&view != &neighbor)
+						_view_stack.stack(view, &neighbor, false); },
+				[&] /* neighbor view does not exist */ { });
+		});
+		return;
 
 	case Command::BACKGROUND:
-		{
-			Command::Background const &cmd = command.background;
-			if (_provides_default_bg) {
-				Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
-				if (!view.valid())
-					return;
 
-				view->background(true);
-				_view_stack.default_background(*view);
+		with_this(command.background, [&] (View &view, auto const &) {
+
+			if (_provides_default_bg) {
+				view.background(true);
+				_view_stack.default_background(view);
 				return;
 			}
 
@@ -164,29 +125,19 @@ void Gui_session::_execute_command(Command const &command)
 				_background->background(false);
 
 			/* assign session background */
-			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
-			if (!view.valid())
-				return;
-
-			_background = &(*view);
+			_background = &view;
 
 			/* switch background view to background mode */
 			if (background())
-				view->background(true);
-
-			return;
-		}
+				view.background(true);
+		});
+		return;
 
 	case Command::TITLE:
-		{
-			Command::Title const &cmd = command.title;
-			Locked_ptr<View> view(_view_handle_registry.lookup(cmd.view));
 
-			if (view.valid())
-				_view_stack.title(*view, cmd.title.string());
-
-			return;
-		}
+		with_this(command.title, [&] (View &view, Command::Title const &args) {
+			_view_stack.title(view, args.title.string()); });
+		return;
 
 	case Command::NOP:
 		return;
@@ -247,47 +198,72 @@ void Gui_session::_adopt_new_view(View &view)
 }
 
 
-Gui_session::Create_view_result Gui_session::create_view()
+Gui_session::Create_view_result Gui_session::_create_view_with_id(auto const &create_fn)
 {
+	Create_view_error error { };
 	try {
-		View &view = *new (_view_alloc)
-			View(*this, _texture, { .transparent = false, .background = false }, nullptr);
-
-		_adopt_new_view(view);
-
-		return _view_handle_registry.alloc(view);
+		View &view = create_fn();
+		try {
+			View_ref &view_ref =
+				*new (_view_ref_alloc) View_ref(view.weak_ptr(), _view_ids);
+			_adopt_new_view(view);
+			return view_ref.id.id();
+		}
+		catch (Out_of_ram)  { error = Create_view_error::OUT_OF_RAM;  }
+		catch (Out_of_caps) { error = Create_view_error::OUT_OF_CAPS; }
+		destroy(_view_alloc, &view);
 	}
-	catch (Out_of_ram)  { return Create_view_error::OUT_OF_RAM; }
-	catch (Out_of_caps) { return Create_view_error::OUT_OF_CAPS; }
+	catch (Out_of_ram)  { error = Create_view_error::OUT_OF_RAM;  }
+	catch (Out_of_caps) { error = Create_view_error::OUT_OF_CAPS; }
+	return error;
 }
 
 
-Gui_session::Create_child_view_result Gui_session::create_child_view(View_handle const parent_handle)
+Gui_session::Create_view_result Gui_session::create_view()
 {
-	View *parent_view_ptr = nullptr;
+	return _create_view_with_id([&] () -> View & {
+		return *new (_view_alloc)
+			View(*this, _texture,
+			     { .transparent = false, .background = false },
+			     nullptr);
+	});
+}
 
-	try {
-		Locked_ptr<View> parent(_view_handle_registry.lookup(parent_handle));
-		if (parent.valid())
-			parent_view_ptr = &(*parent);
-	}
-	catch (View_handle_registry::Lookup_failed) { }
 
-	if (!parent_view_ptr)
-		return Create_child_view_error::INVALID;
+Gui_session::Create_child_view_result Gui_session::create_child_view(View_handle const parent)
+{
+	using Error = Create_child_view_error;
 
-	try {
-		View &view = *new (_view_alloc)
-			View(*this, _texture, { .transparent = false, .background = false }, parent_view_ptr);
+	return _with_view(parent,
+		[&] (View &parent) -> Create_child_view_result {
 
-		parent_view_ptr->add_child(view);
+			View *view_ptr = nullptr;
+			Create_view_result const result = _create_view_with_id(
+				[&] () -> View & {
+					view_ptr = new (_view_alloc)
+						View(*this, _texture,
+						     { .transparent = false, .background = false },
+						     &parent);
+					return *view_ptr;
+				});
 
-		_adopt_new_view(view);
-
-		return _view_handle_registry.alloc(view);
-	}
-	catch (Out_of_ram)  { return Create_child_view_error::OUT_OF_RAM; }
-	catch (Out_of_caps) { return Create_child_view_error::OUT_OF_CAPS; }
+			return result.convert<Create_child_view_result>(
+				[&] (View_handle handle) {
+					if (view_ptr)
+						parent.add_child(*view_ptr);
+					return handle;
+				},
+				[&] (Create_view_error e) {
+					switch (e) {
+					case Create_view_error::OUT_OF_RAM:  return Error::OUT_OF_RAM;
+					case Create_view_error::OUT_OF_CAPS: return Error::OUT_OF_CAPS;
+					};
+					return Error::INVALID;
+				});
+		},
+		[&] /* parent view does not exist */ () -> Create_child_view_result {
+			return Error::INVALID; }
+	);
 }
 
 
@@ -320,36 +296,22 @@ void Gui_session::apply_session_policy(Xml_node config,
 }
 
 
-void Gui_session::destroy_view(View_handle handle)
+void Gui_session::destroy_view(View_handle const handle)
 {
 	/*
-	 * Search view object given the handle
-	 *
-	 * We cannot look up the view directly from the
-	 * '_view_handle_registry' because we would obtain a weak
-	 * pointer to the view object. If we called the object's
-	 * destructor from the corresponding locked pointer, the
-	 * call of 'lock_for_destruction' in the view's destructor
-	 * would attempt to take the lock again.
+	 * Search among the session's own views the one with the given handle
 	 */
-	for (Session_view_list_elem *v = _view_list.first(); v; v = v->next()) {
-
-		auto handle_matches = [&] (View const &view)
-		{
-			try { return _view_handle_registry.has_handle(view, handle); }
-
-			/* 'Handle_registry::has_handle' may throw */
-			catch (...) { return false; };
-		};
-
-		View &view = *static_cast<View *>(v);
-
-		if (handle_matches(view)) {
-			_destroy_view(view);
-			_view_handle_registry.free(handle);
-			break;
-		}
-	}
+	_with_view(handle,
+		[&] (View &view) {
+			for (Session_view_list_elem *v = _view_list.first(); v; v = v->next())
+				if (&view == v) {
+					_destroy_view(view);
+					break;
+				}
+		},
+		[&] /* ID exists but view vanished */ { }
+	);
+	release_view_handle(handle);
 
 	_hover_updater.update_hover();
 }
@@ -358,65 +320,62 @@ void Gui_session::destroy_view(View_handle handle)
 Gui_session::Alloc_view_handle_result
 Gui_session::alloc_view_handle(View_capability view_cap)
 {
-	try {
-		return _env.ep().rpc_ep().apply(view_cap, [&] (View *view_ptr) -> Alloc_view_handle_result {
+	return _env.ep().rpc_ep().apply(view_cap,
+		[&] (View *view_ptr) -> Alloc_view_handle_result {
 			if (!view_ptr)
 				return Alloc_view_handle_error::INVALID;
-			return _view_handle_registry.alloc(*view_ptr); });
-	}
-	catch (View_handle_registry::Out_of_memory)  { return Alloc_view_handle_error::OUT_OF_RAM; }
-	catch (Out_of_ram)                           { return Alloc_view_handle_error::OUT_OF_RAM; }
-	catch (Out_of_caps)                          { return Alloc_view_handle_error::OUT_OF_RAM; }
+			try {
+				View_ref &view_ref = *new (_view_ref_alloc)
+					View_ref(view_ptr->weak_ptr(), _view_ids);
+				return view_ref.id.id();
+			}
+			catch (Out_of_ram)  { return Alloc_view_handle_error::OUT_OF_RAM;  }
+			catch (Out_of_caps) { return Alloc_view_handle_error::OUT_OF_CAPS; }
+		});
 }
 
 
 Gui_session::View_handle_result
 Gui_session::view_handle(View_capability view_cap, View_handle handle)
 {
-	try {
-		return _env.ep().rpc_ep().apply(view_cap, [&] (View *view_ptr) -> View_handle_result {
+	/* prevent ID conflict in 'View_ids::Element' constructor */
+	release_view_handle(handle);
+
+	return _env.ep().rpc_ep().apply(view_cap,
+		[&] (View *view_ptr) -> View_handle_result {
 			if (!view_ptr)
 				return View_handle_result::INVALID;
-			_view_handle_registry.alloc(*view_ptr, handle);
-			return View_handle_result::OK;
+			try {
+				new (_view_ref_alloc) View_ref(view_ptr->weak_ptr(), _view_ids, handle);
+				return View_handle_result::OK;
+			}
+			catch (Out_of_ram)  { return View_handle_result::OUT_OF_RAM;  }
+			catch (Out_of_caps) { return View_handle_result::OUT_OF_CAPS; }
 		});
-	}
-	catch (View_handle_registry::Out_of_memory)  { return View_handle_result::OUT_OF_RAM; }
-	catch (Out_of_ram)                           { return View_handle_result::OUT_OF_RAM; }
-	catch (Out_of_caps)                          { return View_handle_result::OUT_OF_RAM; }
 }
 
 
 View_capability Gui_session::view_capability(View_handle handle)
 {
-	try {
-		Locked_ptr<View> view(_view_handle_registry.lookup(handle));
-		return view.valid() ? view->cap() : View_capability();
-	}
-	catch (View_handle_registry::Lookup_failed) { return View_capability(); }
+	return _with_view(handle,
+		[&] (View &view)               { return view.cap(); },
+		[&] /* view does not exist */  { return View_capability(); });
 }
 
 
 void Gui_session::release_view_handle(View_handle handle)
 {
-	try {
-		_view_handle_registry.free(handle); }
-
-	catch (View_handle_registry::Lookup_failed) {
-		warning("view lookup failed while releasing view handle");
-		return;
-	}
+	_view_ids.apply<View_ref>(handle,
+		[&] (View_ref &view_ref) { destroy(_view_ref_alloc, &view_ref); },
+		[&] { });
 }
 
 
 void Gui_session::execute()
 {
-	for (unsigned i = 0; i < _command_buffer.num(); i++) {
-		try {
-			_execute_command(_command_buffer.get(i)); }
-		catch (View_handle_registry::Lookup_failed) {
-			warning("view lookup failed during command execution"); }
-	}
+	for (unsigned i = 0; i < _command_buffer.num(); i++)
+		_execute_command(_command_buffer.get(i));
+
 	_hover_updater.update_hover();
 }
 

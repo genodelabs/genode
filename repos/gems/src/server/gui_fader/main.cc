@@ -278,22 +278,22 @@ class Gui_fader::Gui_session_component
 
 		Framebuffer::Session_capability _fb_cap { _env.ep().manage(_fb_session) };
 
-		Gui::Session::View_handle _view_handle { };
+		Constructible<Gui::Session::View_handle> _view_handle { };
 
 		bool _view_visible = false;
 		Rect _view_geometry { };
 
 		void _update_view_visibility()
 		{
-			if (!_view_handle.valid() || (_view_visible == _fb_session.visible()))
+			if (!_view_handle.constructed() || (_view_visible == _fb_session.visible()))
 				return;
 
 			using Command = Gui::Session::Command;
 
 			if (_fb_session.visible())
-				_gui.enqueue<Command::Geometry>(_view_handle, _view_geometry);
+				_gui.enqueue<Command::Geometry>(*_view_handle, _view_geometry);
 			else
-				_gui.enqueue<Command::Geometry>(_view_handle, Rect());
+				_gui.enqueue<Command::Geometry>(*_view_handle, Rect());
 
 			_gui.execute();
 
@@ -347,16 +347,16 @@ class Gui_fader::Gui_session_component
 
 		Create_view_result create_view() override
 		{
-			_view_handle = _gui.create_view();
+			_view_handle.construct(_gui.create_view());
 			_update_view_visibility();
-			return _view_handle;
+			return *_view_handle;
 		}
 
 		Create_child_view_result create_child_view(View_handle parent) override
 		{
-			_view_handle = _gui.create_child_view(parent);
+			_view_handle.construct(_gui.create_child_view(parent));
 			_update_view_visibility();
-			return _view_handle;
+			return *_view_handle;
 		}
 
 		void destroy_view(View_handle handle) override

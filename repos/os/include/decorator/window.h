@@ -18,6 +18,7 @@
 #include <util/string.h>
 #include <util/xml_generator.h>
 #include <util/list_model.h>
+#include <util/reconstructible.h>
 #include <gui_session/client.h>
 
 /* decorator includes */
@@ -109,7 +110,7 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		/*
 		 * View immediately behind the window
 		 */
-		View_handle _neighbor { };
+		Genode::Constructible<View_handle> _neighbor { };
 
 		Genode::List_element<Window_base> _abandoned { this };
 
@@ -138,18 +139,20 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 
 		void stacking_neighbor(View_handle neighbor)
 		{
-			_neighbor = neighbor;
+			_neighbor.construct(neighbor);
 			_stacked  = true;
 		}
 
 		bool back_most() const
 		{
-			return _stacked && !_neighbor.valid();
+			return _stacked && !_neighbor.constructed();
 		}
 
 		bool in_front_of(Window_base const &neighbor) const
 		{
-			return _stacked && (_neighbor == neighbor.frontmost_view());
+			return _stacked
+			    && _neighbor.constructed()
+			    && (*_neighbor == neighbor.frontmost_view());
 		}
 
 		void geometry(Rect geometry) { _geometry = geometry; }
