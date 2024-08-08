@@ -143,7 +143,6 @@ static void request_firmware_work_func(struct work_struct *work)
 	fw_work->cont(fw, fw_work->context);
 
 	kfree(fw_work);
-	kfree(fw);
 }
 
 
