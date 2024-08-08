@@ -64,13 +64,13 @@ class Gui::Connection : private Genode::Connection<Session>
 			_env(env)
 		{ }
 
-		View_handle create_view()
+		View_id create_view()
 		{
-			View_handle result { };
+			View_id result { };
 			for (bool retry = false; ; ) {
 				using Error = Session_client::Create_view_error;
 				_client.create_view().with_result(
-					[&] (View_handle handle) { result = handle; },
+					[&] (View_id id) { result = id; },
 					[&] (Error e) {
 						switch (e) {
 						case Error::OUT_OF_RAM:  upgrade_ram(8*1024); retry = true; return;
@@ -83,13 +83,13 @@ class Gui::Connection : private Genode::Connection<Session>
 			return result;
 		}
 
-		View_handle create_child_view(View_handle parent)
+		View_id create_child_view(View_id parent)
 		{
-			View_handle result { };
+			View_id result { };
 			for (bool retry = false; ; ) {
 				using Error = Session_client::Create_child_view_error;
 				_client.create_child_view(parent).with_result(
-					[&] (View_handle handle) { result = handle; },
+					[&] (View_id id) { result = id; },
 					[&] (Error e) {
 						switch (e) {
 						case Error::OUT_OF_RAM:  upgrade_ram(8*1024); retry = true; return;
@@ -104,35 +104,35 @@ class Gui::Connection : private Genode::Connection<Session>
 			return result;
 		}
 
-		void destroy_view(View_handle view)
+		void destroy_view(View_id view)
 		{
 			_client.destroy_view(view);
 		}
 
-		void release_view_handle(View_handle handle)
+		void release_view_id(View_id id)
 		{
-			_client.release_view_handle(handle);
+			_client.release_view_id(id);
 		}
 
-		View_capability view_capability(View_handle handle)
+		View_capability view_capability(View_id id)
 		{
-			return _client.view_capability(handle);
+			return _client.view_capability(id);
 		}
 
-		View_handle alloc_view_handle(View_capability view)
+		View_id alloc_view_id(View_capability view)
 		{
-			View_handle result { };
+			View_id result { };
 			for (bool retry = false; ; ) {
-				using Error = Session_client::Alloc_view_handle_error;
-				_client.alloc_view_handle(view).with_result(
-					[&] (View_handle handle) { result = handle; },
+				using Error = Session_client::Alloc_view_id_error;
+				_client.alloc_view_id(view).with_result(
+					[&] (View_id id) { result = id; },
 					[&] (Error e) {
 						switch (e) {
 						case Error::OUT_OF_RAM:  upgrade_ram(8*1024); retry = true; return;
 						case Error::OUT_OF_CAPS: upgrade_caps(2);     retry = true; return;
 						case Error::INVALID: break;
 						}
-						warning("attempt to alloc handle for invalid view");
+						warning("attempt to alloc ID for invalid view");
 					});
 				if (!retry)
 					break;
@@ -140,16 +140,16 @@ class Gui::Connection : private Genode::Connection<Session>
 			return result;
 		}
 
-		void view_handle(View_capability view, View_handle handle)
+		void view_id(View_capability view, View_id id)
 		{
-			using Result = Session::View_handle_result;
+			using Result = Session::View_id_result;
 			for (;;) {
-				switch (_client.view_handle(view, handle)) {
+				switch (_client.view_id(view, id)) {
 				case Result::OUT_OF_RAM:  upgrade_ram(8*1024); break;
 				case Result::OUT_OF_CAPS: upgrade_caps(2);     break;
 				case Result::OK:          return;
 				case Result::INVALID:
-					warning("attempt to create handle for invalid view");
+					warning("attempt to create ID for invalid view");
 					return;
 				}
 			}

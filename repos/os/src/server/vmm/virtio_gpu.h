@@ -297,7 +297,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 		Cpu::Signal_handler<Virtio_gpu_device> _handler;
 		Constructible<Attached_dataspace>      _fb_ds { };
 		Framebuffer::Mode                      _fb_mode { _gui.mode() };
-		Gui::Session::View_handle              _view = _gui.create_view();
+		Gui::View_id                           _view = _gui.create_view();
 
 		using Area = Genode::Area<>;
 		using Rect = Genode::Rect<>;

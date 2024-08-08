@@ -107,7 +107,7 @@ class Pdf_view
 		Genode::Signal_handler<Pdf_view> _input_handler {
 			_env.ep(), *this, &Pdf_view::_handle_input_events };
 
-		Gui::Session::View_handle _view = _gui.create_view();
+		Gui::View_id _view = _gui.create_view();
 
 		pixel_t *_fb_base() { return _fb_ds->local_addr<pixel_t>(); }
 

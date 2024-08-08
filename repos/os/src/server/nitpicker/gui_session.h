@@ -59,7 +59,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			View_ref(Weak_ptr<View> view, View_ids &ids)
 			: _weak_ptr(view), id(*this, ids) { }
 
-			View_ref(Weak_ptr<View> view, View_ids &ids, View_handle id)
+			View_ref(Weak_ptr<View> view, View_ids &ids, View_id id)
 			: _weak_ptr(view), id(*this, ids, id) { }
 
 			auto with_view(auto const &fn, auto const &missing_fn) -> decltype(missing_fn())
@@ -172,15 +172,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			return _domain ? _domain->phys_pos(pos, screen_area) : Point(0, 0);
 		}
 
-		/**
-		 * Helper for performing sanity checks in OP_TO_FRONT and OP_TO_BACK
-		 *
-		 * We have to check for the equality of both the specified view and
-		 * neighbor. If both arguments refer to the same view, the creation of
-		 * locked pointers for both views would result in a deadlock.
-		 */
-		bool _views_are_equal(View_handle, View_handle);
-
 		void _execute_command(Command const &);
 
 		void _destroy_view(View &);
@@ -189,10 +180,10 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Create_view_result _create_view_with_id(auto const &);
 
-		auto _with_view(View_handle handle, auto const &fn, auto const &missing_fn)
+		auto _with_view(View_id id, auto const &fn, auto const &missing_fn)
 		-> decltype(missing_fn())
 		{
-			return _view_ids.apply<View_ref>(handle,
+			return _view_ids.apply<View_ref>(id,
 				[&] (View_ref &view_ref) {
 					return view_ref.with_view(
 						[&] (View &view)        { return fn(view); },
@@ -397,17 +388,17 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Create_view_result create_view() override;
 
-		Create_child_view_result create_child_view(View_handle parent_handle) override;
+		Create_child_view_result create_child_view(View_id) override;
 
-		void destroy_view(View_handle handle) override;
+		void destroy_view(View_id) override;
 
-		Alloc_view_handle_result alloc_view_handle(View_capability view_cap) override;
+		Alloc_view_id_result alloc_view_id(View_capability) override;
 
-		View_handle_result view_handle(View_capability view_cap, View_handle handle) override;
+		View_id_result view_id(View_capability, View_id) override;
 
-		View_capability view_capability(View_handle handle) override;
+		View_capability view_capability(View_id) override;
 
-		void release_view_handle(View_handle handle) override;
+		void release_view_id(View_id) override;
 
 		Dataspace_capability command_dataspace() override { return _command_ds.cap(); }
 
@@ -417,9 +408,9 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		void mode_sigh(Signal_context_capability sigh) override { _mode_sigh = sigh; }
 
-		Buffer_result buffer(Framebuffer::Mode mode, bool use_alpha) override;
+		Buffer_result buffer(Framebuffer::Mode, bool) override;
 
-		void focus(Capability<Gui::Session> session_cap) override;
+		void focus(Capability<Gui::Session>) override;
 
 
 		/*******************************

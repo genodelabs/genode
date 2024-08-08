@@ -46,10 +46,10 @@ class Viewer
 
 		using PT = Genode::Pixel_rgb888;
 
-		Genode::Env               &_env;
-		Gui::Connection            _gui  { _env, "webcam" };
-		Gui::Session::View_handle  _view { _gui.create_view() };
-		Framebuffer::Mode const    _mode;
+		Genode::Env            &_env;
+		Gui::Connection         _gui  { _env, "webcam" };
+		Gui::View_id            _view { _gui.create_view() };
+		Framebuffer::Mode const _mode;
 
 		Constructible<Genode::Attached_dataspace> _fb_ds { };
 		uint8_t *_framebuffer { nullptr };

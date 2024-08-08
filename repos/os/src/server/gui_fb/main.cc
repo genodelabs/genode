@@ -242,9 +242,7 @@ struct Nit_fb::Main : View_updater
 
 	unsigned refresh_rate = 0;
 
-	using View_handle = Gui::Session::View_handle;
-
-	View_handle view = gui.create_view();
+	Gui::View_id view = gui.create_view();
 
 	Genode::Attached_dataspace input_ds { env.rm(), gui.input.dataspace() };
 

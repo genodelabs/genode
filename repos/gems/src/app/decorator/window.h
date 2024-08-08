@@ -42,7 +42,7 @@ class Decorator::Window : public Window_base
 		{
 			Gui::Connection &_gui;
 
-			View_handle _handle { _gui.create_view() };
+			Gui::View_id _id { _gui.create_view() };
 
 			using Command = Gui::Session::Command;
 
@@ -54,31 +54,30 @@ class Decorator::Window : public Window_base
 				 * We supply the window ID as label for the anchor view.
 				 */
 				if (id)
-					_gui.enqueue<Command::Title>(_handle,
-					                             Genode::String<128>(id).string());
+					_gui.enqueue<Command::Title>(_id, Genode::String<128>(id).string());
 			}
 
 			~Gui_view()
 			{
-				_gui.destroy_view(_handle);
+				_gui.destroy_view(_id);
 			}
 
-			View_handle handle() const { return _handle; }
+			Gui::View_id id() const { return _id; }
 
-			void stack(View_handle neighbor)
+			void stack(Gui::View_id neighbor)
 			{
-				_gui.enqueue<Command::Front_of>(_handle, neighbor);
+				_gui.enqueue<Command::Front_of>(_id, neighbor);
 			}
 
-			void stack_front_most() { _gui.enqueue<Command::Front>(_handle); }
+			void stack_front_most() { _gui.enqueue<Command::Front>(_id); }
 
-			void stack_back_most()  { _gui.enqueue<Command::Back>(_handle); }
+			void stack_back_most()  { _gui.enqueue<Command::Back>(_id); }
 
 			void place(Rect rect)
 			{
-				_gui.enqueue<Command::Geometry>(_handle, rect);
+				_gui.enqueue<Command::Geometry>(_id, rect);
 				Point offset = Point(0, 0) - rect.at;
-				_gui.enqueue<Command::Offset>(_handle, offset);
+				_gui.enqueue<Command::Offset>(_id, offset);
 			}
 		};
 
@@ -411,10 +410,10 @@ class Decorator::Window : public Window_base
 
 		void _stack_decoration_views()
 		{
-			_top_view.stack(_content_view.handle());
-			_left_view.stack(_top_view.handle());
-			_right_view.stack(_left_view.handle());
-			_bottom_view.stack(_right_view.handle());
+			_top_view.stack(_content_view.id());
+			_left_view.stack(_top_view.id());
+			_right_view.stack(_left_view.id());
+			_bottom_view.stack(_right_view.id());
 		}
 
 	public:
@@ -436,7 +435,7 @@ class Decorator::Window : public Window_base
 			              _border_size, _border_size, _border_size);
 		}
 
-		void stack(View_handle neighbor) override
+		void stack(Gui::View_id neighbor) override
 		{
 			_content_view.stack(neighbor);
 			_stack_decoration_views();
@@ -454,9 +453,9 @@ class Decorator::Window : public Window_base
 			_stack_decoration_views();
 		}
 
-		View_handle frontmost_view() const override
+		Gui::View_id frontmost_view() const override
 		{
-			return _bottom_view.handle();
+			return _bottom_view.id();
 		}
 
 		Rect outer_geometry() const override

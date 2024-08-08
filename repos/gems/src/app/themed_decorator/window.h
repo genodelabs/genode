@@ -149,30 +149,30 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 			Gui::Connection &_gui;
 
-			View_handle _handle;
+			Gui::View_id _id;
 
-			Gui_view(Gui::Connection &gui, unsigned id = 0)
+			Gui_view(Gui::Connection &gui, unsigned win_id = 0)
 			:
 				_view_is_remote(false),
 				_gui(gui),
-				_handle(_gui.create_view())
+				_id(_gui.create_view())
 			{
 				/*
 				 * We supply the window ID as label for the anchor view.
 				 */
-				if (id)
-					_gui.enqueue<Command::Title>(_handle,
-					                             Genode::String<128>(id).string());
+				if (win_id)
+					_gui.enqueue<Command::Title>(_id,
+					                             Genode::String<128>(win_id).string());
 			}
 
-			View_handle _create_remote_view(Gui::Connection &remote_gui)
+			Gui::View_id _create_remote_view(Gui::Connection &remote_gui)
 			{
 				/* create view at the remote GUI session */
-				View_handle handle = remote_gui.create_view();
-				Gui::View_capability view_cap = remote_gui.view_capability(handle);
+				Gui::View_id id = remote_gui.create_view();
+				Gui::View_capability view_cap = remote_gui.view_capability(id);
 
 				/* import remote view into local GUI session */
-				return _gui.alloc_view_handle(view_cap);
+				return _gui.alloc_view_id(view_cap);
 			}
 
 			/**
@@ -184,37 +184,37 @@ class Decorator::Window : public Window_base, public Animator::Item
 			:
 				_view_is_remote(true),
 				_gui(gui),
-				_handle(_create_remote_view(remote_gui))
+				_id(_create_remote_view(remote_gui))
 			{ }
 
 			~Gui_view()
 			{
 				if (_view_is_remote)
-					_gui.release_view_handle(_handle);
+					_gui.release_view_id(_id);
 				else
-					_gui.destroy_view(_handle);
+					_gui.destroy_view(_id);
 			}
 
-			View_handle handle() const { return _handle; }
+			Gui::View_id id() const { return _id; }
 
-			void stack(View_handle neighbor)
+			void stack(Gui::View_id neighbor)
 			{
-				_gui.enqueue<Command::Front_of>(_handle, neighbor);
+				_gui.enqueue<Command::Front_of>(_id, neighbor);
 			}
 
-			void stack_front_most() { _gui.enqueue<Command::Front>(_handle); }
+			void stack_front_most() { _gui.enqueue<Command::Front>(_id); }
 
-			void stack_back_most()  { _gui.enqueue<Command::Back>(_handle); }
+			void stack_back_most()  { _gui.enqueue<Command::Back>(_id); }
 
 			void place(Rect rect, Point offset)
 			{
-				_gui.enqueue<Command::Geometry>(_handle, rect);
-				_gui.enqueue<Command::Offset>(_handle, offset);
+				_gui.enqueue<Command::Geometry>(_id, rect);
+				_gui.enqueue<Command::Offset>(_id, offset);
 			}
 		};
 
 		/**
-		 * GUI session used as a global namespace of view handles
+		 * GUI session used as a global namespace of view ID
 		 */
 		Gui::Connection &_gui;
 
@@ -359,10 +359,10 @@ class Decorator::Window : public Window_base, public Animator::Item
 		void _stack_decoration_views()
 		{
 			if (_show_decoration) {
-				_top_view.stack(_content_view.handle());
-				_left_view.stack(_top_view.handle());
-				_right_view.stack(_left_view.handle());
-				_bottom_view.stack(_right_view.handle());
+				_top_view.stack(_content_view.id());
+				_left_view.stack(_top_view.id());
+				_right_view.stack(_left_view.id());
+				_bottom_view.stack(_right_view.id());
 			}
 		}
 
@@ -381,7 +381,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			animate();
 		}
 
-		void stack(View_handle neighbor) override
+		void stack(Gui::View_id neighbor) override
 		{
 			_content_view.stack(neighbor);
 			_stack_decoration_views();
@@ -399,9 +399,9 @@ class Decorator::Window : public Window_base, public Animator::Item
 			_stack_decoration_views();
 		}
 
-		View_handle frontmost_view() const override
+		Gui::View_id frontmost_view() const override
 		{
-			return _show_decoration ? _bottom_view.handle() : _content_view.handle();
+			return _show_decoration ? _bottom_view.id() : _content_view.id();
 		}
 
 		/**

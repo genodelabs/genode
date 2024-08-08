@@ -27,7 +27,7 @@ namespace Wm {
 struct Wm::Layouter_gui_session : Genode::Rpc_object<Gui::Session>
 {
 	using View_capability = Gui::View_capability;
-	using View_handle     = Gui::Session::View_handle;
+	using View_id         = Gui::View_id;
 
 	Input::Session_capability _input_session_cap;
 
@@ -62,28 +62,28 @@ struct Wm::Layouter_gui_session : Genode::Rpc_object<Gui::Session>
 		return _input_session_cap;
 	}
 
-	Create_view_result create_view() override { return View_handle(); }
+	Create_view_result create_view() override { return View_id(); }
 
-	Create_child_view_result create_child_view(View_handle) override { return View_handle(); }
+	Create_child_view_result create_child_view(View_id) override { return View_id(); }
 
-	void destroy_view(View_handle) override { }
+	void destroy_view(View_id) override { }
 
-	Alloc_view_handle_result alloc_view_handle(View_capability) override
+	Alloc_view_id_result alloc_view_id(View_capability) override
 	{
-		return View_handle();
+		return View_id();
 	}
 
-	View_handle_result view_handle(View_capability, View_handle) override
+	View_id_result view_id(View_capability, View_id) override
 	{
-		return View_handle_result::OK;
+		return View_id_result::OK;
 	}
 
-	View_capability view_capability(View_handle) override
+	View_capability view_capability(View_id) override
 	{
 		return View_capability();
 	}
 
-	void release_view_handle(View_handle) override { }
+	void release_view_id(View_id) override { }
 
 	Genode::Dataspace_capability command_dataspace() override
 	{

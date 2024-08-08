@@ -110,17 +110,17 @@ struct Backdrop::Main
 
 	Constructible<Buffer> _buffer { };
 
-	Gui::Session::View_handle _view_handle = _gui.create_view();
+	Gui::View_id _view_id = _gui.create_view();
 
 	void _update_view()
 	{
 		/* display view behind all others */
 		using Command = Gui::Session::Command;
 
-		_gui.enqueue<Command::Background>(_view_handle);
+		_gui.enqueue<Command::Background>(_view_id);
 		Gui::Rect rect(Gui::Point(), _buffer->size());
-		_gui.enqueue<Command::Geometry>(_view_handle, rect);
-		_gui.enqueue<Command::Back>(_view_handle);
+		_gui.enqueue<Command::Geometry>(_view_id, rect);
+		_gui.enqueue<Command::Back>(_view_id);
 		_gui.execute();
 	}
 

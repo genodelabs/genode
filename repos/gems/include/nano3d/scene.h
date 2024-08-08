@@ -144,7 +144,7 @@ class Nano3d::Scene
 
 		} _framebuffer { _gui, _size, _env.rm() };
 
-		Gui::Session::View_handle _view_handle = _gui.create_view();
+		Gui::View_id _view_id = _gui.create_view();
 
 		using Pixel_surface = Genode::Surface<PT>;
 		using Alpha_surface = Genode::Surface<Genode::Pixel_alpha8>;
@@ -261,7 +261,7 @@ class Nano3d::Scene
 			                : -2*h;
 
 			Gui::Point const offset(0, buf_y);
-			_gui.enqueue<Command::Offset>(_view_handle, offset);
+			_gui.enqueue<Command::Offset>(_view_id, offset);
 			_gui.execute();
 
 			_do_sync = false;
@@ -280,8 +280,8 @@ class Nano3d::Scene
 			_env(env), _pos(pos), _size(size)
 		{
 			Gui::Rect rect(_pos, _size);
-			_gui.enqueue<Command::Geometry>(_view_handle, rect);
-			_gui.enqueue<Command::Front>(_view_handle);
+			_gui.enqueue<Command::Geometry>(_view_id, rect);
+			_gui.enqueue<Command::Front>(_view_id);
 			_gui.execute();
 
 			_gui.input.sigh(_input_handler);

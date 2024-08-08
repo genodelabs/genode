@@ -33,27 +33,23 @@ struct Gui::Session_client : Rpc_client<Session>
 	Create_view_result create_view() override {
 		return call<Rpc_create_view>(); }
 
-	Create_child_view_result create_child_view(View_handle parent) override {
+	Create_child_view_result create_child_view(View_id parent) override {
 		return call<Rpc_create_child_view>(parent); }
 
-	void destroy_view(View_handle view) override {
+	void destroy_view(View_id view) override {
 		call<Rpc_destroy_view>(view); }
 
-	Alloc_view_handle_result alloc_view_handle(View_capability view) override
-	{
-		return call<Rpc_alloc_view_handle>(view);
-	}
+	Alloc_view_id_result alloc_view_id(View_capability view) override {
+		return call<Rpc_alloc_view_id>(view); }
 
-	View_handle_result view_handle(View_capability view, View_handle handle) override
-	{
-		return call<Rpc_view_handle>(view, handle);
-	}
+	View_id_result view_id(View_capability view, View_id id) override {
+		return call<Rpc_view_id>(view, id); }
 
-	View_capability view_capability(View_handle handle) override {
-		return call<Rpc_view_capability>(handle); }
+	View_capability view_capability(View_id id) override {
+		return call<Rpc_view_capability>(id); }
 
-	void release_view_handle(View_handle handle) override {
-		call<Rpc_release_view_handle>(handle); }
+	void release_view_id(View_id id) override {
+		call<Rpc_release_view_id>(id); }
 
 	Dataspace_capability command_dataspace() override {
 		return call<Rpc_command_dataspace>(); }

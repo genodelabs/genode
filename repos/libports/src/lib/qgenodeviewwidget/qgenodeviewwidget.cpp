@@ -138,13 +138,13 @@ QGenodeViewWidget::QGenodeViewWidget(QWidget *parent)
 
 
 void QGenodeViewWidget::setGenodeView(Gui::Connection *new_gui,
-                                      Gui::Session::View_handle new_view_handle,
+                                      Gui::View_id new_view_id,
                                       int buf_x, int buf_y, int w, int h)
 {
 	QEmbeddedViewWidget::_orig_geometry(w, h, buf_x, buf_y);
 
 	gui = new_gui;
-	view_handle = new_view_handle;
+	view_id = new_view_id;
 	setFixedSize(w, h);
 }
 
@@ -172,10 +172,10 @@ void QGenodeViewWidget::hideEvent(QHideEvent *event)
 		Gui::Rect const geometry(Gui::Point(mapToGlobal(pos()).x(),
 		                                    mapToGlobal(pos()).y()),
 		                         Gui::Area(0, 0));
-		gui->enqueue<Command::Geometry>(view_handle, geometry);
+		gui->enqueue<Command::Geometry>(view_id, geometry);
 
 		Gui::Point const offset(view_geometry.buf_x, view_geometry.buf_y);
-		gui->enqueue<Command::Offset>(view_handle, offset);
+		gui->enqueue<Command::Offset>(view_id, offset);
 
 		gui->execute();
 	}
@@ -201,9 +201,9 @@ void QGenodeViewWidget::paintEvent(QPaintEvent *event)
 
 		Gui::Rect const geometry(Gui::Point(view_geometry.x, view_geometry.y),
 		                         Gui::Area(view_geometry.w, view_geometry.h));
-		gui->enqueue<Command::Geometry>(view_handle, geometry);
+		gui->enqueue<Command::Geometry>(view_id, geometry);
 		Gui::Point const offset(view_geometry.buf_x, view_geometry.buf_y);
-		gui->enqueue<Command::Offset>(view_handle, offset);
+		gui->enqueue<Command::Offset>(view_id, offset);
 	} else {
 
 		Gui::Rect const
@@ -211,23 +211,23 @@ void QGenodeViewWidget::paintEvent(QPaintEvent *event)
 			                    mapToGlobal(mask().boundingRect().topLeft()).y()),
 			         Gui::Area(mask().boundingRect().width(),
 			                   mask().boundingRect().height()));
-		gui->enqueue<Command::Geometry>(view_handle, geometry);
+		gui->enqueue<Command::Geometry>(view_id, geometry);
 
 		Gui::Point const offset(view_geometry.buf_x, view_geometry.buf_y);
-		gui->enqueue<Command::Offset>(view_handle, offset);
+		gui->enqueue<Command::Offset>(view_id, offset);
 	}
 
 	/* bring the plugin view to the front of the Qt window */
 	QGenodePlatformWindow *platform_window =
 		dynamic_cast<QGenodePlatformWindow*>(window()->windowHandle()->handle());
 
-	Gui::Session::View_handle const neighbor_handle =
-		gui->alloc_view_handle(platform_window->view_cap());
+	Gui::View_id const neighbor_id =
+		gui->alloc_view_id(platform_window->view_cap());
 
-	gui->enqueue<Command::Front_of>(view_handle, neighbor_handle);
+	gui->enqueue<Command::Front_of>(view_id, neighbor_id);
 	gui->execute();
 
-	gui->release_view_handle(neighbor_handle);
+	gui->release_view_id(neighbor_id);
 }
 
 

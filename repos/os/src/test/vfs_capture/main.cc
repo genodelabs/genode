@@ -36,11 +36,9 @@ class Test::View
 {
 	private:
 
-		using View_handle = Gui::Session::View_handle;
-
-		Gui::Connection  &_gui;
-		View_handle const _handle = _gui.create_view();
-		Gui::Rect   const _rect;
+		Gui::Connection   &_gui;
+		Gui::View_id const _id = _gui.create_view();
+		Gui::Rect    const _rect;
 
 	public:
 
@@ -48,8 +46,8 @@ class Test::View
 		{
 			using Command = Gui::Session::Command;
 
-			_gui.enqueue<Command::Geometry>(_handle, rect);
-			_gui.enqueue<Command::Front>(_handle);
+			_gui.enqueue<Command::Geometry>(_id, rect);
+			_gui.enqueue<Command::Front>(_id);
 			_gui.execute();
 		}
 

@@ -37,7 +37,7 @@ namespace Gui {
 	struct View_ref : Interface { };
 
 	using View_capability = Capability<View>;
-	using View_handle     = Id_space<View_ref>::Id;
+	using View_id         = Id_space<View_ref>::Id;
 
 	using Rect  = Surface_base::Rect;
 	using Point = Surface_base::Point;
@@ -61,8 +61,6 @@ struct Gui::Session : Genode::Session
 	static constexpr unsigned CAP_QUOTA = Framebuffer::Session::CAP_QUOTA
 	                                    + Input::Session::CAP_QUOTA + 3;
 
-	using View_handle = Gui::View_handle;
-
 	struct Command
 	{
 		enum Opcode { GEOMETRY, OFFSET, FRONT, BACK, FRONT_OF, BEHIND_OF,
@@ -77,15 +75,15 @@ struct Gui::Session : Genode::Session
 		struct View_op
 		{
 			static constexpr Opcode opcode = OPCODE;
-			View_handle view;
+			View_id view;
 		};
 
 		struct Geometry   : View_op<GEOMETRY>   { Rect rect; };
 		struct Offset     : View_op<OFFSET>     { Point offset; };
 		struct Front      : View_op<FRONT>      { };
 		struct Back       : View_op<BACK>       { };
-		struct Front_of   : View_op<FRONT_OF>   { View_handle neighbor; };
-		struct Behind_of  : View_op<BEHIND_OF>  { View_handle neighbor; };
+		struct Front_of   : View_op<FRONT_OF>   { View_id neighbor; };
+		struct Behind_of  : View_op<BEHIND_OF>  { View_id neighbor; };
 		struct Background : View_op<BACKGROUND> { };
 		struct Title      : View_op<TITLE>      { String<64> title; };
 
@@ -159,11 +157,6 @@ struct Gui::Session : Genode::Session
 			}
 	};
 
-	/**
-	 * Exception types
-	 */
-	struct Invalid_handle  : Exception { };
-
 	virtual ~Session() { }
 
 	/**
@@ -177,7 +170,7 @@ struct Gui::Session : Genode::Session
 	virtual Input::Session_capability input() = 0;
 
 	enum class Create_view_error { OUT_OF_RAM, OUT_OF_CAPS };
-	using      Create_view_result = Attempt<View_handle, Create_view_error>;
+	using      Create_view_result = Attempt<View_id, Create_view_error>;
 
 	/**
 	 * Create a new top-level view at the buffer
@@ -185,54 +178,51 @@ struct Gui::Session : Genode::Session
 	virtual Create_view_result create_view() = 0;
 
 	enum class Create_child_view_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID };
-	using      Create_child_view_result = Attempt<View_handle, Create_child_view_error>;
+	using      Create_child_view_result = Attempt<View_id, Create_child_view_error>;
 
 	/**
 	 * Create a new child view at the buffer
 	 *
-	 * \param   parent  parent view
-	 * \return  handle for new view
-	 *
 	 * The 'parent' argument allows the client to use the location of an
 	 * existing view as the coordinate origin for the to-be-created view.
 	 */
-	virtual Create_child_view_result create_child_view(View_handle parent) = 0;
+	virtual Create_child_view_result create_child_view(View_id parent) = 0;
 
 	/**
 	 * Destroy view
 	 */
-	virtual void destroy_view(View_handle) = 0;
+	virtual void destroy_view(View_id) = 0;
 
-	enum class Alloc_view_handle_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID };
-	using      Alloc_view_handle_result = Attempt<View_handle, Alloc_view_handle_error>;
+	enum class Alloc_view_id_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID };
+	using      Alloc_view_id_result = Attempt<View_id, Alloc_view_id_error>;
 
 	/**
-	 * Return session-local handle for the specified view
+	 * Return session-local ID for the specified view
 	 *
-	 * The handle returned by this method can be used to issue commands
-	 * via the 'execute' method.
+	 * The ID returned by this method can be used to issue commands via the
+	 * 'execute' method.
 	 */
-	virtual Alloc_view_handle_result alloc_view_handle(View_capability) = 0;
+	virtual Alloc_view_id_result alloc_view_id(View_capability) = 0;
 
-	enum class View_handle_result { OK, OUT_OF_RAM, OUT_OF_CAPS, INVALID };
+	enum class View_id_result { OK, OUT_OF_RAM, OUT_OF_CAPS, INVALID };
 
 	/**
-	 * Associate view with the specified handle
+	 * Associate view with the specified ID
 	 */
-	virtual View_handle_result view_handle(View_capability, View_handle) = 0;
+	virtual View_id_result view_id(View_capability, View_id) = 0;
 
 	/**
-	 * Request view capability for a given handle
+	 * Request view capability for a given ID
 	 *
 	 * The returned view capability can be used to share the view with another
 	 * session.
 	 */
-	virtual View_capability view_capability(View_handle) = 0;
+	virtual View_capability view_capability(View_id) = 0;
 
 	/**
-	 * Release session-local view handle
+	 * Release session-local view ID
 	 */
-	virtual void release_view_handle(View_handle) = 0;
+	virtual void release_view_id(View_id) = 0;
 
 	/**
 	 * Request dataspace used for issuing view commands to nitpicker
@@ -296,12 +286,12 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_framebuffer, Framebuffer::Session_capability, framebuffer);
 	GENODE_RPC(Rpc_input, Input::Session_capability, input);
 	GENODE_RPC(Rpc_create_view, Create_view_result, create_view);
-	GENODE_RPC(Rpc_create_child_view, Create_child_view_result, create_child_view, View_handle);
-	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_handle);
-	GENODE_RPC(Rpc_alloc_view_handle, Alloc_view_handle_result, alloc_view_handle, View_capability);
-	GENODE_RPC(Rpc_view_handle, View_handle_result, view_handle, View_capability, View_handle);
-	GENODE_RPC(Rpc_view_capability, View_capability, view_capability, View_handle);
-	GENODE_RPC(Rpc_release_view_handle, void, release_view_handle, View_handle);
+	GENODE_RPC(Rpc_create_child_view, Create_child_view_result, create_child_view, View_id);
+	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_id);
+	GENODE_RPC(Rpc_alloc_view_id, Alloc_view_id_result, alloc_view_id, View_capability);
+	GENODE_RPC(Rpc_view_id, View_id_result, view_id, View_capability, View_id);
+	GENODE_RPC(Rpc_view_capability, View_capability, view_capability, View_id);
+	GENODE_RPC(Rpc_release_view_id, void, release_view_id, View_id);
 	GENODE_RPC(Rpc_command_dataspace, Dataspace_capability, command_dataspace);
 	GENODE_RPC(Rpc_execute, void, execute);
 	GENODE_RPC(Rpc_background, int, background, View_capability);
@@ -312,8 +302,8 @@ struct Gui::Session : Genode::Session
 
 	GENODE_RPC_INTERFACE(Rpc_framebuffer, Rpc_input,
 	                     Rpc_create_view, Rpc_create_child_view, Rpc_destroy_view,
-	                     Rpc_alloc_view_handle, Rpc_view_handle,
-	                     Rpc_view_capability, Rpc_release_view_handle,
+	                     Rpc_alloc_view_id, Rpc_view_id,
+	                     Rpc_view_capability, Rpc_release_view_id,
 	                     Rpc_command_dataspace, Rpc_execute, Rpc_mode,
 	                     Rpc_mode_sigh, Rpc_buffer, Rpc_focus);
 };

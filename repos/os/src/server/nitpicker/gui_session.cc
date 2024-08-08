@@ -230,7 +230,7 @@ Gui_session::Create_view_result Gui_session::create_view()
 }
 
 
-Gui_session::Create_child_view_result Gui_session::create_child_view(View_handle const parent)
+Gui_session::Create_child_view_result Gui_session::create_child_view(View_id const parent)
 {
 	using Error = Create_child_view_error;
 
@@ -248,10 +248,10 @@ Gui_session::Create_child_view_result Gui_session::create_child_view(View_handle
 				});
 
 			return result.convert<Create_child_view_result>(
-				[&] (View_handle handle) {
+				[&] (View_id id) {
 					if (view_ptr)
 						parent.add_child(*view_ptr);
-					return handle;
+					return id;
 				},
 				[&] (Create_view_error e) {
 					switch (e) {
@@ -296,12 +296,12 @@ void Gui_session::apply_session_policy(Xml_node config,
 }
 
 
-void Gui_session::destroy_view(View_handle const handle)
+void Gui_session::destroy_view(View_id const id)
 {
 	/*
-	 * Search among the session's own views the one with the given handle
+	 * Search among the session's own views the one with the given ID
 	 */
-	_with_view(handle,
+	_with_view(id,
 		[&] (View &view) {
 			for (Session_view_list_elem *v = _view_list.first(); v; v = v->next())
 				if (&view == v) {
@@ -311,61 +311,61 @@ void Gui_session::destroy_view(View_handle const handle)
 		},
 		[&] /* ID exists but view vanished */ { }
 	);
-	release_view_handle(handle);
+	release_view_id(id);
 
 	_hover_updater.update_hover();
 }
 
 
-Gui_session::Alloc_view_handle_result
-Gui_session::alloc_view_handle(View_capability view_cap)
+Gui_session::Alloc_view_id_result
+Gui_session::alloc_view_id(View_capability view_cap)
 {
 	return _env.ep().rpc_ep().apply(view_cap,
-		[&] (View *view_ptr) -> Alloc_view_handle_result {
+		[&] (View *view_ptr) -> Alloc_view_id_result {
 			if (!view_ptr)
-				return Alloc_view_handle_error::INVALID;
+				return Alloc_view_id_error::INVALID;
 			try {
 				View_ref &view_ref = *new (_view_ref_alloc)
 					View_ref(view_ptr->weak_ptr(), _view_ids);
 				return view_ref.id.id();
 			}
-			catch (Out_of_ram)  { return Alloc_view_handle_error::OUT_OF_RAM;  }
-			catch (Out_of_caps) { return Alloc_view_handle_error::OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return Alloc_view_id_error::OUT_OF_RAM;  }
+			catch (Out_of_caps) { return Alloc_view_id_error::OUT_OF_CAPS; }
 		});
 }
 
 
-Gui_session::View_handle_result
-Gui_session::view_handle(View_capability view_cap, View_handle handle)
+Gui_session::View_id_result
+Gui_session::view_id(View_capability view_cap, View_id id)
 {
 	/* prevent ID conflict in 'View_ids::Element' constructor */
-	release_view_handle(handle);
+	release_view_id(id);
 
 	return _env.ep().rpc_ep().apply(view_cap,
-		[&] (View *view_ptr) -> View_handle_result {
+		[&] (View *view_ptr) -> View_id_result {
 			if (!view_ptr)
-				return View_handle_result::INVALID;
+				return View_id_result::INVALID;
 			try {
-				new (_view_ref_alloc) View_ref(view_ptr->weak_ptr(), _view_ids, handle);
-				return View_handle_result::OK;
+				new (_view_ref_alloc) View_ref(view_ptr->weak_ptr(), _view_ids, id);
+				return View_id_result::OK;
 			}
-			catch (Out_of_ram)  { return View_handle_result::OUT_OF_RAM;  }
-			catch (Out_of_caps) { return View_handle_result::OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return View_id_result::OUT_OF_RAM;  }
+			catch (Out_of_caps) { return View_id_result::OUT_OF_CAPS; }
 		});
 }
 
 
-View_capability Gui_session::view_capability(View_handle handle)
+View_capability Gui_session::view_capability(View_id id)
 {
-	return _with_view(handle,
+	return _with_view(id,
 		[&] (View &view)               { return view.cap(); },
 		[&] /* view does not exist */  { return View_capability(); });
 }
 
 
-void Gui_session::release_view_handle(View_handle handle)
+void Gui_session::release_view_id(View_id id)
 {
-	_view_ids.apply<View_ref>(handle,
+	_view_ids.apply<View_ref>(id,
 		[&] (View_ref &view_ref) { destroy(_view_ref_alloc, &view_ref); },
 		[&] { });
 }

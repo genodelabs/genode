@@ -42,14 +42,13 @@ Genode::Env *genode_env;
 
 struct Window : Genode_egl_window
 {
-	using View_handle = Gui::Session::View_handle;
 	using Command = Gui::Session::Command;
 
 	Genode::Env      &env;
 	Framebuffer::Mode mode;
 	Gui::Connection   gui { env };
 	Genode::Constructible<Genode::Attached_dataspace> ds { };
-	View_handle       view { };
+	Gui::View_id      view { };
 
 	Genode::addr_t fb_addr { 0 };
 	Genode::addr_t fb_size { 0 };

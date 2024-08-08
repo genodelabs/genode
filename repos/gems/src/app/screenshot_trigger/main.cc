@@ -56,17 +56,17 @@ struct Screenshot_trigger::Main
 	{
 		Gui::Connection &_gui;
 
-		Gui::Session::View_handle _handle { _gui.create_view() };
+		Gui::View_id _id { _gui.create_view() };
 
 		View(Gui::Connection &gui, Point position, Area size) : _gui(gui)
 		{
 			using Command = Gui::Session::Command;
-			_gui.enqueue<Command::Geometry>(_handle, Rect(position, size));
-			_gui.enqueue<Command::Front>(_handle);
+			_gui.enqueue<Command::Geometry>(_id, Rect(position, size));
+			_gui.enqueue<Command::Front>(_id);
 			_gui.execute();
 		}
 
-		~View() { _gui.destroy_view(_handle); }
+		~View() { _gui.destroy_view(_id); }
 	};
 
 	Constructible<View> _view { };

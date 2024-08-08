@@ -56,11 +56,9 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		Genode::Attached_dataspace _fb_ds { _local_rm, _init_fb_ds(_max_size) };
 
-		using View_handle = Gui::Session::View_handle;
-
 		Point        _position;
 		Area         _view_size;
-		View_handle  _view { _gui.create_view() };
+		Gui::View_id _view { _gui.create_view() };
 		Canvas_base *_canvas[2];
 		bool         _flip_state = { false };
 

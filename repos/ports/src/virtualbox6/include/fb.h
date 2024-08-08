@@ -25,17 +25,15 @@
 #include <VirtualBoxBase.h>
 #include <DisplayWrap.h>
 
-using View_handle = Gui::Session::View_handle;
-
 class Genodefb :
 	VBOX_SCRIPTABLE_IMPL(IFramebuffer)
 {
 	private:
 
-		Genode::Env        &_env;
-		Gui::Connection    &_gui;
-		View_handle         _view;
-		Fb_Genode::Mode     _fb_mode { .area = { 1024, 768 } };
+		Genode::Env     &_env;
+		Gui::Connection &_gui;
+		Gui::View_id     _view;
+		Fb_Genode::Mode  _fb_mode { .area = { 1024, 768 } };
 
 		/*
 		 * The mode currently used by the VM. Can be smaller than the

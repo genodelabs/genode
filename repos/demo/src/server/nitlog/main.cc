@@ -352,13 +352,12 @@ class Log_view
 {
 	private:
 
-		Gui::Connection          &_gui;
-		Gui::Point                _pos;
-		Gui::Area                 _size;
-		Gui::Session::View_handle _handle;
+		Gui::Connection   &_gui;
+		Gui::Point         _pos;
+		Gui::Area          _size;
+		Gui::View_id const _view = _gui.create_view();
 
-		using Command     = Gui::Session::Command;
-		using View_handle = Gui::Session::View_handle;
+		using Command = Gui::Session::Command;
 
 	public:
 
@@ -366,8 +365,7 @@ class Log_view
 		:
 			_gui(gui),
 			_pos(geometry.at),
-			_size(geometry.area),
-			_handle(gui.create_view())
+			_size(geometry.area)
 		{
 			move(_pos);
 			top();
@@ -375,7 +373,7 @@ class Log_view
 
 		void top()
 		{
-			_gui.enqueue<Command::Front>(_handle);
+			_gui.enqueue<Command::Front>(_view);
 			_gui.execute();
 		}
 
@@ -384,7 +382,7 @@ class Log_view
 			_pos = pos;
 
 			Gui::Rect rect(_pos, _size);
-			_gui.enqueue<Command::Geometry>(_handle, rect);
+			_gui.enqueue<Command::Geometry>(_view, rect);
 			_gui.execute();
 		}
 

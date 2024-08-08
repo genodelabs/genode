@@ -39,8 +39,6 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 {
 	public:
 
-		using View_handle = Gui::Session::View_handle;
-
 		struct Border
 		{
 			unsigned top, left, right, bottom;
@@ -110,7 +108,7 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		/*
 		 * View immediately behind the window
 		 */
-		Genode::Constructible<View_handle> _neighbor { };
+		Genode::Constructible<Gui::View_id> _neighbor { };
 
 		Genode::List_element<Window_base> _abandoned { this };
 
@@ -137,7 +135,7 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		unsigned id()       const { return _id; }
 		Rect     geometry() const { return _geometry; }
 
-		void stacking_neighbor(View_handle neighbor)
+		void stacking_neighbor(Gui::View_id neighbor)
 		{
 			_neighbor.construct(neighbor);
 			_stacked  = true;
@@ -159,13 +157,13 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 
 		virtual Rect outer_geometry() const = 0;
 
-		virtual void stack(View_handle neighbor) = 0;
+		virtual void stack(Gui::View_id neighbor) = 0;
 
 		virtual void stack_front_most() = 0;
 
 		virtual void stack_back_most() = 0;
 
-		virtual View_handle frontmost_view() const = 0;
+		virtual Gui::View_id frontmost_view() const = 0;
 
 		/**
 		 * Draw window elements

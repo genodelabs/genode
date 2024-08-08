@@ -48,43 +48,42 @@ class Test::View : private List<View>::Element, Interface
 		friend class View_stack;
 		friend class List<View>;
 
-		using View_handle = Gui::Session::View_handle;
-		using Command     = Gui::Session::Command;
+		using Command = Gui::Session::Command;
 
-		Gui::Connection  &_gui;
-		View_handle const _handle;
-		Attr        const _attr;
-		Gui::Point        _pos = _attr.pos;
+		Gui::Connection   &_gui;
+		Gui::View_id const _id;
+		Attr         const _attr;
+		Gui::Point         _pos = _attr.pos;
 
 	public:
 
 		View(Gui::Connection &gui, Attr const attr, auto const &create_fn)
 		:
-			_gui(gui), _handle(create_fn()), _attr(attr)
+			_gui(gui), _id(create_fn()), _attr(attr)
 		{
 			using namespace Gui;
 
-			_gui.enqueue<Command::Geometry>(_handle, Gui::Rect { _pos, _attr.size });
-			_gui.enqueue<Command::Front>(_handle);
-			_gui.enqueue<Command::Title>(_handle, _attr.title);
+			_gui.enqueue<Command::Geometry>(_id, Gui::Rect { _pos, _attr.size });
+			_gui.enqueue<Command::Front>(_id);
+			_gui.enqueue<Command::Title>(_id, _attr.title);
 			_gui.execute();
 		}
 
 		Gui::View_capability view_cap()
 		{
-			return _gui.view_capability(_handle);
+			return _gui.view_capability(_id);
 		}
 
 		void top()
 		{
-			_gui.enqueue<Command::Front>(_handle);
+			_gui.enqueue<Command::Front>(_id);
 			_gui.execute();
 		}
 
 		virtual void move(Gui::Point const pos)
 		{
 			_pos = pos;
-			_gui.enqueue<Command::Geometry>(_handle, Gui::Rect { _pos, _attr.size });
+			_gui.enqueue<Command::Geometry>(_id, Gui::Rect { _pos, _attr.size });
 			_gui.execute();
 		}
 
@@ -113,11 +112,10 @@ struct Test::Child_view : View
 	:
 		View(gui, attr,
 			[&] /* create_fn */ {
-				using View_handle = Gui::Session::View_handle;
-				View_handle const parent_handle = gui.alloc_view_handle(parent.view_cap());
-				View_handle const handle = gui.create_child_view(parent_handle);
-				gui.release_view_handle(parent_handle);
-				return handle;
+				Gui::View_id const parent_id = gui.alloc_view_id(parent.view_cap());
+				Gui::View_id const id = gui.create_child_view(parent_id);
+				gui.release_view_id(parent_id);
+				return id;
 			}
 		), _parent(parent)
 	{ }

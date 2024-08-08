@@ -74,7 +74,7 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 	Constructible<Gui_buffer> _buffer { };
 
-	Gui::Session::View_handle const _view_handle = _gui.create_view();
+	Gui::View_id const _view_id = _gui.create_view();
 
 	Point _position { };
 
@@ -110,8 +110,8 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 		using Command = Gui::Session::Command;
 
 		_view_geometry = geometry;
-		_gui.enqueue<Command::Geometry>(_view_handle, _view_geometry);
-		_gui.enqueue<Command::Front>(_view_handle);
+		_gui.enqueue<Command::Geometry>(_view_id, _view_geometry);
+		_gui.enqueue<Command::Front>(_view_id);
 		_gui.execute();
 	}
 

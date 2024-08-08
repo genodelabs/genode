@@ -69,16 +69,16 @@ class Wm::Decorator_content_registry
 
 	private:
 
-		using View_handle = Gui::Session::View_handle;
+		using View_id = Gui::View_id;
 
 		struct Entry : List<Entry>::Element
 		{
-			View_handle         const decorator_view_handle;
+			View_id             const decorator_view_id;
 			Window_registry::Id const win_id;
 
-			Entry(View_handle decorator_view_handle, Window_registry::Id win_id)
+			Entry(View_id decorator_view_id, Window_registry::Id win_id)
 			:
-				decorator_view_handle(decorator_view_handle),
+				decorator_view_id(decorator_view_id),
 				win_id(win_id)
 			{ }
 		};
@@ -86,10 +86,10 @@ class Wm::Decorator_content_registry
 		List<Entry>  _list { };
 		Allocator   &_entry_alloc;
 
-		Entry const &_lookup(View_handle view_handle) const
+		Entry const &_lookup(View_id view_id) const
 		{
 			for (Entry const *e = _list.first(); e; e = e->next()) {
-				if (e->decorator_view_handle == view_handle)
+				if (e->decorator_view_id == view_id)
 					return *e;
 			}
 
@@ -115,9 +115,9 @@ class Wm::Decorator_content_registry
 				_remove(*e);
 		}
 
-		void insert(View_handle decorator_view_handle, Window_registry::Id win_id)
+		void insert(View_id decorator_view_id, Window_registry::Id win_id)
 		{
-			Entry *e = new (_entry_alloc) Entry(decorator_view_handle, win_id);
+			Entry *e = new (_entry_alloc) Entry(decorator_view_id, win_id);
 			_list.insert(e);
 		}
 
@@ -126,14 +126,14 @@ class Wm::Decorator_content_registry
 		 *
 		 * \throw Lookup_failed
 		 */
-		Window_registry::Id lookup(View_handle view_handle) const
+		Window_registry::Id lookup(View_id view_id) const
 		{
-			return _lookup(view_handle).win_id;
+			return _lookup(view_id).win_id;
 		}
 
-		bool registered(View_handle view_handle) const
+		bool registered(View_id view_id) const
 		{
-			try { lookup(view_handle); return true; } catch (...) { }
+			try { lookup(view_id); return true; } catch (...) { }
 			return false;
 		}
 
@@ -142,9 +142,9 @@ class Wm::Decorator_content_registry
 		 *
 		 * \throw Lookup_failed
 		 */
-		void remove(View_handle view_handle)
+		void remove(View_id view_id)
 		{
-			_remove(_lookup(view_handle));
+			_remove(_lookup(view_id));
 		}
 };
 
@@ -156,7 +156,7 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 	using List<Decorator_gui_session>::Element::next;
 
 	using View_capability = Gui::View_capability;
-	using View_handle     = Gui::Session::View_handle;
+	using View_id         = Gui::View_id;
 	using Command_buffer  = Gui::Session::Command_buffer;
 
 	Genode::Env &_env;
@@ -252,7 +252,7 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 			try {
 
 				/* the first argument is the same for all stacking operations */
-				View_handle const view_handle = cmd.front.view;
+				View_id const view_id = cmd.front.view;
 
 				/*
 				 * If the content view is re-stacked, replace it by the real
@@ -261,7 +261,7 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 				 * The lookup fails with an exception for non-content views.
 				 * In this case, forward the command.
 				 */
-				Window_registry::Id win_id = _content_registry.lookup(view_handle);
+				Window_registry::Id win_id = _content_registry.lookup(view_id);
 
 				/*
 				 * Replace content view originally created by the decorator
@@ -269,8 +269,8 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 				 */
 				View_capability view_cap = _content_callback.content_view(win_id);
 
-				_gui.session.destroy_view(view_handle);
-				_gui.session.view_handle(view_cap, view_handle);
+				_gui.session.destroy_view(view_id);
+				_gui.session.view_id(view_cap, view_id);
 
 				_gui.enqueue(cmd);
 				_gui.execute();
@@ -364,12 +364,12 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 		return _gui.session.create_view();
 	}
 
-	Create_child_view_result create_child_view(View_handle parent) override
+	Create_child_view_result create_child_view(View_id parent) override
 	{
 		return _gui.session.create_child_view(parent);
 	}
 
-	void destroy_view(View_handle view) override
+	void destroy_view(View_id view) override
 	{
 		/*
 		 * Reset view geometry when destroying a content view
@@ -386,25 +386,25 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 		_gui.session.destroy_view(view);
 	}
 
-	Alloc_view_handle_result alloc_view_handle(View_capability view_cap) override
+	Alloc_view_id_result alloc_view_id(View_capability view_cap) override
 	{
-		return _gui.session.alloc_view_handle(view_cap);
+		return _gui.session.alloc_view_id(view_cap);
 	}
 
-	View_handle_result view_handle(View_capability view_cap, View_handle handle) override
+	View_id_result view_id(View_capability view_cap, View_id id) override
 	{
-		return _gui.session.view_handle(view_cap, handle);
+		return _gui.session.view_id(view_cap, id);
 	}
 
-	View_capability view_capability(View_handle view) override
+	View_capability view_capability(View_id view) override
 	{
 		return _gui.session.view_capability(view);
 	}
 
-	void release_view_handle(View_handle view) override
+	void release_view_id(View_id view) override
 	{
 		/* XXX dealloc View_ptr */
-		_gui.session.release_view_handle(view);
+		_gui.session.release_view_id(view);
 	}
 
 	Genode::Dataspace_capability command_dataspace() override

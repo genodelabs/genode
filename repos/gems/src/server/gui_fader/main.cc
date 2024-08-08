@@ -260,7 +260,7 @@ class Gui_fader::Gui_session_component
 	private:
 
 		using View_capability = Gui::View_capability;
-		using View_handle     = Gui::Session::View_handle;
+		using View_id         = Gui::View_id;
 
 		Genode::Env &_env;
 
@@ -278,22 +278,22 @@ class Gui_fader::Gui_session_component
 
 		Framebuffer::Session_capability _fb_cap { _env.ep().manage(_fb_session) };
 
-		Constructible<Gui::Session::View_handle> _view_handle { };
+		Constructible<Gui::View_id> _view_id { };
 
 		bool _view_visible = false;
 		Rect _view_geometry { };
 
 		void _update_view_visibility()
 		{
-			if (!_view_handle.constructed() || (_view_visible == _fb_session.visible()))
+			if (!_view_id.constructed() || (_view_visible == _fb_session.visible()))
 				return;
 
 			using Command = Gui::Session::Command;
 
 			if (_fb_session.visible())
-				_gui.enqueue<Command::Geometry>(*_view_handle, _view_geometry);
+				_gui.enqueue<Command::Geometry>(*_view_id, _view_geometry);
 			else
-				_gui.enqueue<Command::Geometry>(*_view_handle, Rect());
+				_gui.enqueue<Command::Geometry>(*_view_id, Rect());
 
 			_gui.execute();
 
@@ -347,43 +347,42 @@ class Gui_fader::Gui_session_component
 
 		Create_view_result create_view() override
 		{
-			_view_handle.construct(_gui.create_view());
+			_view_id.construct(_gui.create_view());
 			_update_view_visibility();
-			return *_view_handle;
+			return *_view_id;
 		}
 
-		Create_child_view_result create_child_view(View_handle parent) override
+		Create_child_view_result create_child_view(View_id parent) override
 		{
-			_view_handle.construct(_gui.create_child_view(parent));
+			_view_id.construct(_gui.create_child_view(parent));
 			_update_view_visibility();
-			return *_view_handle;
+			return *_view_id;
 		}
 
-		void destroy_view(View_handle handle) override
+		void destroy_view(View_id id) override
 		{
-			return _gui.destroy_view(handle);
+			return _gui.destroy_view(id);
 		}
 
-		Alloc_view_handle_result alloc_view_handle(View_capability view_cap) override
+		Alloc_view_id_result alloc_view_id(View_capability view_cap) override
 		{
-			return _gui.alloc_view_handle(view_cap);
+			return _gui.alloc_view_id(view_cap);
 		}
 
-		View_handle_result view_handle(View_capability view_cap,
-		                               View_handle handle) override
+		View_id_result view_id(View_capability view_cap, View_id id) override
 		{
-			_gui.view_handle(view_cap, handle);
-			return View_handle_result::OK;
+			_gui.view_id(view_cap, id);
+			return View_id_result::OK;
 		}
 
-		View_capability view_capability(View_handle handle) override
+		View_capability view_capability(View_id id) override
 		{
-			return _gui.view_capability(handle);
+			return _gui.view_capability(id);
 		}
 
-		void release_view_handle(View_handle handle) override
+		void release_view_id(View_id id) override
 		{
-			_gui.release_view_handle(handle);
+			_gui.release_view_id(id);
 		}
 
 		Dataspace_capability command_dataspace() override

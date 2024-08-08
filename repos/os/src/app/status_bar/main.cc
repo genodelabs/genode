@@ -186,7 +186,7 @@ struct Status_bar::Main
 
 	Reconstructible<Buffer> _buffer { _env.rm(), _gui };
 
-	Gui::Session::View_handle const _view { _gui.create_view() };
+	Gui::View_id const _view { _gui.create_view() };
 
 	void _draw_status_bar()
 	{

@@ -34,6 +34,9 @@ class Wm::Direct_gui_session : public Genode::Rpc_object<Gui::Session>
 
 		Gui::Session_client _session { _connection.cap() };
 
+		using View_capability = Gui::View_capability;
+		using View_id         = Gui::View_id;
+
 	public:
 
 		/**
@@ -70,34 +73,34 @@ class Wm::Direct_gui_session : public Genode::Rpc_object<Gui::Session>
 			return _session.create_view();
 		}
 
-		Create_child_view_result create_child_view(View_handle parent) override
+		Create_child_view_result create_child_view(View_id parent) override
 		{
 			return _session.create_child_view(parent);
 		}
 
-		void destroy_view(View_handle view) override
+		void destroy_view(View_id view) override
 		{
 			_session.destroy_view(view);
 		}
 
-		Alloc_view_handle_result alloc_view_handle(Gui::View_capability view_cap) override
+		Alloc_view_id_result alloc_view_id(View_capability view_cap) override
 		{
-			return _session.alloc_view_handle(view_cap);
+			return _session.alloc_view_id(view_cap);
 		}
 
-		View_handle_result view_handle(Gui::View_capability view_cap, View_handle handle) override
+		View_id_result view_id(View_capability view_cap, View_id id) override
 		{
-			return _session.view_handle(view_cap, handle);
+			return _session.view_id(view_cap, id);
 		}
 
-		Gui::View_capability view_capability(View_handle view) override
+		View_capability view_capability(View_id view) override
 		{
 			return _session.view_capability(view);
 		}
 
-		void release_view_handle(View_handle view) override
+		void release_view_id(View_id view) override
 		{
-			_session.release_view_handle(view);
+			_session.release_view_id(view);
 		}
 
 		Genode::Dataspace_capability command_dataspace() override

@@ -68,7 +68,7 @@ class Pointer::Main : public Rom::Reader
 
 		Gui::Connection _gui { _env };
 
-		Gui::Session::View_handle _view = _gui.create_view();
+		Gui::View_id _view = _gui.create_view();
 
 		bool _default_pointer_visible = false;
 
