@@ -1,0 +1,14 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMR3/CPUMR3CpuId.cpp
+--- b/src/app/virtualbox/src/VBox/VMM/VMMR3/CPUMR3CpuId.cpp
+@@ -1735,6 +1735,11 @@
+         pFeatures->fClFlush             = RT_BOOL(pStd1Leaf->uEdx & X86_CPUID_FEATURE_EDX_CLFSH);
+         pFeatures->fPcid                = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_PCID);
+ 
++        if (pFeatures->fXSaveRstor) {
++            RTLogPrintf("disable XSAVE feature forcefully\n");
++            pFeatures->fXSaveRstor = 0;
++        }
++
+         /* Structured extended features. */
+         PCCPUMCPUIDLEAF const pSxfLeaf0 = cpumR3CpuIdFindLeafEx(paLeaves, cLeaves, 7, 0);
+         if (pSxfLeaf0)

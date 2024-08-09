@@ -38,3 +38,4 @@ register.patch
 changeset82265.patch
 drvvd.patch
 narrowing.patch
+xsave.patch
