@@ -221,13 +221,15 @@ void QGenodeViewWidget::paintEvent(QPaintEvent *event)
 	QGenodePlatformWindow *platform_window =
 		dynamic_cast<QGenodePlatformWindow*>(window()->windowHandle()->handle());
 
-	Gui::View_id const neighbor_id =
-		gui->alloc_view_id(platform_window->view_cap());
+	Gui::View_ref tmp_view_ref { };
+	Gui::View_ids::Element neighbor_id { tmp_view_ref, gui->view_ids };
 
-	gui->enqueue<Command::Front_of>(view_id, neighbor_id);
+	gui->view_id(platform_window->view_cap(), neighbor_id.id());
+
+	gui->enqueue<Command::Front_of>(view_id, neighbor_id.id());
 	gui->execute();
 
-	gui->release_view_id(neighbor_id);
+	gui->release_view_id(neighbor_id.id());
 }
 
 

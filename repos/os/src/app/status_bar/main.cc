@@ -186,7 +186,7 @@ struct Status_bar::Main
 
 	Reconstructible<Buffer> _buffer { _env.rm(), _gui };
 
-	Gui::View_id const _view { _gui.create_view() };
+	Gui::Top_level_view const _view { _gui };
 
 	void _draw_status_bar()
 	{
@@ -198,9 +198,6 @@ struct Status_bar::Main
 		/* register signal handlers */
 		_focus_ds.sigh(_focus_handler);
 		_gui.mode_sigh(_mode_handler);
-
-		/* schedule initial view-stacking command, needed only once */
-		_gui.enqueue<Gui::Session::Command::Front>(_view);
 
 		/* import initial state */
 		_handle_mode();
@@ -244,7 +241,7 @@ void Status_bar::Main::_handle_mode()
 
 	Rect const geometry(Point(0, 0), _buffer->mode().area);
 
-	_gui.enqueue<Gui::Session::Command::Geometry>(_view, geometry);
+	_gui.enqueue<Gui::Session::Command::Geometry>(_view.id(), geometry);
 	_gui.execute();
 }
 

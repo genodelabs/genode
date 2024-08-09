@@ -74,7 +74,8 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 	Constructible<Gui_buffer> _buffer { };
 
-	Gui::View_id const _view_id = _gui.create_view();
+	Gui::View_ref _view_ref { };
+	Gui::View_ids::Element const _view { _view_ref, _gui.view_ids };
 
 	Point _position { };
 
@@ -110,8 +111,8 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 		using Command = Gui::Session::Command;
 
 		_view_geometry = geometry;
-		_gui.enqueue<Command::Geometry>(_view_id, _view_geometry);
-		_gui.enqueue<Command::Front>(_view_id);
+		_gui.enqueue<Command::Geometry>(_view.id(), _view_geometry);
+		_gui.enqueue<Command::Front>(_view.id());
 		_gui.execute();
 	}
 
@@ -130,10 +131,14 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 		_env(env), _global_widget_factory(widget_factory), _action(action),
 		_name(_name_from_attr(node))
 	{
+		_gui.view(_view.id(), { });
+
 		_dialog_rom.sigh(_dialog_handler);
 		_dialog_handler.local_submit();
 		_gui.input.sigh(_input_handler);
 	}
+
+	~Dialog() { _gui.destroy_view(_view.id()); }
 
 	Widget::Hovered hovered_widget() const
 	{

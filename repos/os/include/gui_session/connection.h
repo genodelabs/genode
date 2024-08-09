@@ -19,7 +19,10 @@
 #include <input_session/client.h>
 #include <base/connection.h>
 
-namespace Gui { class Connection; }
+namespace Gui {
+	class  Connection;
+	struct Top_level_view;
+}
 
 
 class Gui::Connection : private Genode::Connection<Session>
@@ -39,6 +42,8 @@ class Gui::Connection : private Genode::Connection<Session>
 		Ram_quota _ram_quota { }; /* session quota donated for virtual frame buffer */
 
 	public:
+
+		View_ids view_ids { };
 
 		/**
 		 * Framebuffer access
@@ -64,44 +69,33 @@ class Gui::Connection : private Genode::Connection<Session>
 			_env(env)
 		{ }
 
-		View_id create_view()
+		void view(View_id id, Session::View_attr const &attr)
 		{
-			View_id result { };
-			for (bool retry = false; ; ) {
-				using Error = Session_client::Create_view_error;
-				_client.create_view().with_result(
-					[&] (View_id id) { result = id; },
-					[&] (Error e) {
-						switch (e) {
-						case Error::OUT_OF_RAM:  upgrade_ram(8*1024); retry = true; return;
-						case Error::OUT_OF_CAPS: upgrade_caps(2);     retry = true; return;
-						}
-					});
-				if (!retry)
-					break;
+			for (;;) {
+				using Result = Session::View_result;
+				switch (_client.view(id, attr)) {
+				case Result::OUT_OF_RAM:  upgrade_ram(8*1024); break;
+				case Result::OUT_OF_CAPS: upgrade_caps(2);     break;
+				case Result::OK:
+					return;
+				}
 			}
-			return result;
 		}
 
-		View_id create_child_view(View_id parent)
+		void child_view(View_id id, View_id parent, Session::View_attr const &attr)
 		{
-			View_id result { };
-			for (bool retry = false; ; ) {
-				using Error = Session_client::Create_child_view_error;
-				_client.create_child_view(parent).with_result(
-					[&] (View_id id) { result = id; },
-					[&] (Error e) {
-						switch (e) {
-						case Error::OUT_OF_RAM:  upgrade_ram(8*1024); retry = true; return;
-						case Error::OUT_OF_CAPS: upgrade_caps(2);     retry = true; return;
-						case Error::INVALID:     break;
-						}
-						error("failed to create child view for invalid parent view");
-					});
-				if (!retry)
-					break;
+			for (;;) {
+				using Result = Session::Child_view_result;
+				switch (_client.child_view(id, parent, attr)) {
+				case Result::OUT_OF_RAM:  upgrade_ram(8*1024); break;
+				case Result::OUT_OF_CAPS: upgrade_caps(2);     break;
+				case Result::OK:
+					return;
+				case Result::INVALID:
+					error("failed to create child view for invalid parent view");
+					return;
+				}
 			}
-			return result;
 		}
 
 		void destroy_view(View_id view)
@@ -117,27 +111,6 @@ class Gui::Connection : private Genode::Connection<Session>
 		View_capability view_capability(View_id id)
 		{
 			return _client.view_capability(id);
-		}
-
-		View_id alloc_view_id(View_capability view)
-		{
-			View_id result { };
-			for (bool retry = false; ; ) {
-				using Error = Session_client::Alloc_view_id_error;
-				_client.alloc_view_id(view).with_result(
-					[&] (View_id id) { result = id; },
-					[&] (Error e) {
-						switch (e) {
-						case Error::OUT_OF_RAM:  upgrade_ram(8*1024); retry = true; return;
-						case Error::OUT_OF_CAPS: upgrade_caps(2);     retry = true; return;
-						case Error::INVALID: break;
-						}
-						warning("attempt to alloc ID for invalid view");
-					});
-				if (!retry)
-					break;
-			}
-			return result;
 		}
 
 		void view_id(View_capability view, View_id id)
@@ -200,17 +173,62 @@ class Gui::Connection : private Genode::Connection<Session>
 			_command_buffer.reset();
 		}
 
-	/**
-	 * Return physical screen mode
-	 */
-	Framebuffer::Mode mode() { return _client.mode(); }
+		/**
+		 * Return physical screen mode
+		 */
+		Framebuffer::Mode mode() { return _client.mode(); }
 
-	/**
-	 * Register signal handler to be notified about mode changes
-	 */
-	void mode_sigh(Signal_context_capability sigh) { _client.mode_sigh(sigh); }
+		/**
+		 * Register signal handler to be notified about mode changes
+		 */
+		void mode_sigh(Signal_context_capability sigh) { _client.mode_sigh(sigh); }
 
-	void focus(Capability<Session> focused) { _client.focus(focused); }
+		void focus(Capability<Session> focused) { _client.focus(focused); }
+};
+
+
+/**
+ * Helper for the common case of creating a top-level view
+ */
+class Gui::Top_level_view : View_ref, View_ids::Element
+{
+	private:
+
+		Connection &_gui;
+
+		Rect _rect;
+
+	public:
+
+		using View_ids::Element::id;
+
+		Top_level_view(Connection &gui, Rect rect = { })
+		:
+			View_ids::Element(*this, gui.view_ids), _gui(gui), _rect(rect)
+		{
+			_gui.view(id(), { .title = { }, .rect = rect, .front = true });
+		}
+
+		~Top_level_view() { _gui.destroy_view(id()); }
+
+		void front()
+		{
+			_gui.enqueue<Session::Command::Front>(id());
+			_gui.execute();
+		}
+
+		void geometry(Rect rect)
+		{
+			_rect = rect;
+			_gui.enqueue<Session::Command::Geometry>(id(), _rect);
+			_gui.execute();
+		}
+
+		void area(Area area) { geometry(Rect { _rect.at, area } ); }
+		void at  (Point at)  { geometry(Rect { at, _rect.area } ); }
+
+		Area  area() const { return _rect.area; }
+		Point at()   const { return _rect.at;   }
 };
 
 #endif /* _INCLUDE__GUI_SESSION__CONNECTION_H_ */

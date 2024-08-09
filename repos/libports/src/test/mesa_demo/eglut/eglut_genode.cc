@@ -48,7 +48,8 @@ struct Window : Genode_egl_window
 	Framebuffer::Mode mode;
 	Gui::Connection   gui { env };
 	Genode::Constructible<Genode::Attached_dataspace> ds { };
-	Gui::View_id      view { };
+
+	Gui::Top_level_view view { gui };
 
 	Genode::addr_t fb_addr { 0 };
 	Genode::addr_t fb_size { 0 };
@@ -63,13 +64,8 @@ struct Window : Genode_egl_window
 		type   = WINDOW;
 
 		gui.buffer(mode, false);
-		view = gui.create_view();
 
 		mode_change();
-
-		gui.enqueue<Command::Title>(view, "eglut");
-		gui.enqueue<Command::Front>(view);
-		gui.execute();
 	}
 
 	void mode_change()
@@ -81,9 +77,7 @@ struct Window : Genode_egl_window
 
 		addr = ds->local_addr<unsigned char>();
 
-		Gui::Rect rect { Gui::Point { 0, 0 }, mode.area };
-		gui.enqueue<Command::Geometry>(view, rect);
-		gui.execute();
+		view.area(mode.area);
 	}
 
 	void refresh()

@@ -116,7 +116,7 @@ struct Terminal::Main : Character_consumer
 
 	Framebuffer::Mode _fb_mode { };
 
-	Gui::View_id _view = _gui.create_view();
+	Gui::View_id _view { };
 
 	Point _pointer { }; /* pointer positon in pixels */
 
@@ -209,6 +209,8 @@ struct Terminal::Main : Character_consumer
 
 	Main(Env &env) : _env(env)
 	{
+		_gui.view(_view, { });
+
 		_timer .sigh(_flush_handler);
 		_config.sigh(_config_handler);
 

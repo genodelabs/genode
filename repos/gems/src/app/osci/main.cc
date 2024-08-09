@@ -49,24 +49,7 @@ struct Osci::Main
 
 	Constructible<Gui_buffer> _gui_buffer { };
 
-	struct View
-	{
-		Gui::Connection &_gui;
-
-		Gui::View_id _id { _gui.create_view() };
-
-		View(Gui::Connection &gui, Point position, Area size) : _gui(gui)
-		{
-			using Command = Gui::Session::Command;
-			_gui.enqueue<Command::Geometry>(_id, Rect(position, size));
-			_gui.enqueue<Command::Front>(_id);
-			_gui.execute();
-		}
-
-		~View() { _gui.destroy_view(_id); }
-	};
-
-	Constructible<View> _view { };
+	Constructible<Gui::Top_level_view> _view { };
 
 	Signal_handler<Main> _timer_handler { _env.ep(), *this, &Main::_handle_timer };
 
@@ -130,7 +113,7 @@ struct Osci::Main
 		_gui_buffer.construct(_gui, _size, _env.ram(), _env.rm(),
 		                      Gui_buffer::Alpha::OPAQUE, _background);
 
-		_view.construct(_gui, Point::from_xml(config), _size);
+		_view.construct(_gui, Rect { Point::from_xml(config), _size });
 
 		_timer.trigger_periodic(1000*config.attribute_value("period_ms",  20));
 	}

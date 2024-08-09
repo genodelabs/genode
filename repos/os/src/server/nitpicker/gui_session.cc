@@ -198,30 +198,39 @@ void Gui_session::_adopt_new_view(View &view)
 }
 
 
-Gui_session::Create_view_result Gui_session::_create_view_with_id(auto const &create_fn)
+Gui_session::View_result
+Gui_session::_create_view_and_ref(View_id const id, View_attr const &attr, auto const &create_fn)
 {
-	Create_view_error error { };
+	release_view_id(id);
+
+	View_result error { }; /* assigned only in the error case */
 	try {
 		View &view = create_fn();
 		try {
-			View_ref &view_ref =
-				*new (_view_ref_alloc) View_ref(view.weak_ptr(), _view_ids);
+			new (_view_ref_alloc) View_ref(view.weak_ptr(), _view_ids, id);
 			_adopt_new_view(view);
-			return view_ref.id.id();
+
+			/* apply initial view attributes */
+			_execute_command(Command::Title    { id, attr.title });
+			_execute_command(Command::Geometry { id, attr.rect  });
+			if (attr.front)
+				_execute_command(Command::Front { id });
+
+			return View_result::OK;
 		}
-		catch (Out_of_ram)  { error = Create_view_error::OUT_OF_RAM;  }
-		catch (Out_of_caps) { error = Create_view_error::OUT_OF_CAPS; }
+		catch (Out_of_ram)  { error = View_result::OUT_OF_RAM;  }
+		catch (Out_of_caps) { error = View_result::OUT_OF_CAPS; }
 		destroy(_view_alloc, &view);
 	}
-	catch (Out_of_ram)  { error = Create_view_error::OUT_OF_RAM;  }
-	catch (Out_of_caps) { error = Create_view_error::OUT_OF_CAPS; }
+	catch (Out_of_ram)  { error = View_result::OUT_OF_RAM;  }
+	catch (Out_of_caps) { error = View_result::OUT_OF_CAPS; }
 	return error;
 }
 
 
-Gui_session::Create_view_result Gui_session::create_view()
+Gui_session::View_result Gui_session::view(View_id const id, View_attr const &attr)
 {
-	return _create_view_with_id([&] () -> View & {
+	return _create_view_and_ref(id, attr, [&] () -> View & {
 		return *new (_view_alloc)
 			View(*this, _texture,
 			     { .transparent = false, .background = false },
@@ -230,39 +239,32 @@ Gui_session::Create_view_result Gui_session::create_view()
 }
 
 
-Gui_session::Create_child_view_result Gui_session::create_child_view(View_id const parent)
+Gui_session::Child_view_result
+Gui_session::child_view(View_id const id, View_id const parent, View_attr const &attr)
 {
-	using Error = Create_child_view_error;
-
 	return _with_view(parent,
-		[&] (View &parent) -> Create_child_view_result {
+		[&] (View &parent) -> Child_view_result {
 
 			View *view_ptr = nullptr;
-			Create_view_result const result = _create_view_with_id(
-				[&] () -> View & {
-					view_ptr = new (_view_alloc)
-						View(*this, _texture,
-						     { .transparent = false, .background = false },
-						     &parent);
-					return *view_ptr;
-				});
+			View_result const result = _create_view_and_ref(id, attr, [&] () -> View & {
+				view_ptr = new (_view_alloc)
+					View(*this, _texture,
+					     { .transparent = false, .background = false },
+					     &parent);
+				return *view_ptr;
+			});
 
-			return result.convert<Create_child_view_result>(
-				[&] (View_id id) {
-					if (view_ptr)
-						parent.add_child(*view_ptr);
-					return id;
-				},
-				[&] (Create_view_error e) {
-					switch (e) {
-					case Create_view_error::OUT_OF_RAM:  return Error::OUT_OF_RAM;
-					case Create_view_error::OUT_OF_CAPS: return Error::OUT_OF_CAPS;
-					};
-					return Error::INVALID;
-				});
+			switch (result) {
+			case View_result::OUT_OF_RAM:  return Child_view_result::OUT_OF_RAM;
+			case View_result::OUT_OF_CAPS: return Child_view_result::OUT_OF_CAPS;
+			case View_result::OK:          break;
+			}
+			if (view_ptr)
+				parent.add_child(*view_ptr);
+			return Child_view_result::OK;
 		},
-		[&] /* parent view does not exist */ () -> Create_child_view_result {
-			return Error::INVALID; }
+		[&] /* parent view does not exist */ () -> Child_view_result {
+			return Child_view_result::INVALID; }
 	);
 }
 
@@ -314,24 +316,6 @@ void Gui_session::destroy_view(View_id const id)
 	release_view_id(id);
 
 	_hover_updater.update_hover();
-}
-
-
-Gui_session::Alloc_view_id_result
-Gui_session::alloc_view_id(View_capability view_cap)
-{
-	return _env.ep().rpc_ep().apply(view_cap,
-		[&] (View *view_ptr) -> Alloc_view_id_result {
-			if (!view_ptr)
-				return Alloc_view_id_error::INVALID;
-			try {
-				View_ref &view_ref = *new (_view_ref_alloc)
-					View_ref(view_ptr->weak_ptr(), _view_ids);
-				return view_ref.id.id();
-			}
-			catch (Out_of_ram)  { return Alloc_view_id_error::OUT_OF_RAM;  }
-			catch (Out_of_caps) { return Alloc_view_id_error::OUT_OF_CAPS; }
-		});
 }
 
 

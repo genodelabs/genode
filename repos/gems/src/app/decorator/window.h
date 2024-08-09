@@ -38,46 +38,47 @@ class Decorator::Window : public Window_base
 		 */
 		bool _gui_views_up_to_date = false;
 
-		struct Gui_view
+		struct Gui_view : Genode::Noncopyable
 		{
 			Gui::Connection &_gui;
 
-			Gui::View_id _id { _gui.create_view() };
+			Gui::View_ref _view_ref { };
+
+			Gui::View_ids::Element _id { _view_ref, _gui.view_ids };
 
 			using Command = Gui::Session::Command;
 
-			Gui_view(Gui::Connection &gui, unsigned id = 0)
-			:
-				_gui(gui)
+			Gui_view(Gui::Connection &gui, unsigned win_id = 0) : _gui(gui)
 			{
 				/*
 				 * We supply the window ID as label for the anchor view.
 				 */
-				if (id)
-					_gui.enqueue<Command::Title>(_id, Gui::Title { id });
+				_gui.view(_id.id(), { .title = { win_id },
+				                      .rect  = { },
+				                      .front = false });
 			}
 
 			~Gui_view()
 			{
-				_gui.destroy_view(_id);
+				_gui.destroy_view(id());
 			}
 
-			Gui::View_id id() const { return _id; }
+			Gui::View_id id() const { return _id.id(); }
 
 			void stack(Gui::View_id neighbor)
 			{
-				_gui.enqueue<Command::Front_of>(_id, neighbor);
+				_gui.enqueue<Command::Front_of>(id(), neighbor);
 			}
 
-			void stack_front_most() { _gui.enqueue<Command::Front>(_id); }
+			void stack_front_most() { _gui.enqueue<Command::Front>(id()); }
 
-			void stack_back_most()  { _gui.enqueue<Command::Back>(_id); }
+			void stack_back_most()  { _gui.enqueue<Command::Back>(id()); }
 
 			void place(Rect rect)
 			{
-				_gui.enqueue<Command::Geometry>(_id, rect);
+				_gui.enqueue<Command::Geometry>(id(), rect);
 				Point offset = Point(0, 0) - rect.at;
-				_gui.enqueue<Command::Offset>(_id, offset);
+				_gui.enqueue<Command::Offset>(id(), offset);
 			}
 		};
 

@@ -52,24 +52,7 @@ struct Screenshot_trigger::Main
 
 	Constructible<Gui_buffer> _gui_buffer { };
 
-	struct View
-	{
-		Gui::Connection &_gui;
-
-		Gui::View_id _id { _gui.create_view() };
-
-		View(Gui::Connection &gui, Point position, Area size) : _gui(gui)
-		{
-			using Command = Gui::Session::Command;
-			_gui.enqueue<Command::Geometry>(_id, Rect(position, size));
-			_gui.enqueue<Command::Front>(_id);
-			_gui.execute();
-		}
-
-		~View() { _gui.destroy_view(_id); }
-	};
-
-	Constructible<View> _view { };
+	Constructible<Gui::Top_level_view> _view { };
 
 	Signal_handler<Main> _timer_handler { _env.ep(), *this, &Main::_handle_timer };
 	Signal_handler<Main> _input_handler { _env.ep(), *this, &Main::_handle_input };
@@ -80,7 +63,7 @@ struct Screenshot_trigger::Main
 	void visible(bool visible)
 	{
 		_visible = visible;
-		_view.conditional(visible, _gui, _position, _area);
+		_view.conditional(visible, _gui, Rect { _position, _area });
 	}
 
 	void _handle_input()

@@ -30,10 +30,10 @@ class Genodefb :
 {
 	private:
 
-		Genode::Env     &_env;
-		Gui::Connection &_gui;
-		Gui::View_id     _view;
-		Fb_Genode::Mode  _fb_mode { .area = { 1024, 768 } };
+		Genode::Env        &_env;
+		Gui::Connection    &_gui;
+		Gui::Top_level_view _view { _gui };
+		Fb_Genode::Mode     _fb_mode { .area = { 1024, 768 } };
 
 		/*
 		 * The mode currently used by the VM. Can be smaller than the
@@ -71,22 +71,13 @@ class Genodefb :
 		void _adjust_buffer()
 		{
 			_gui.buffer(_fb_mode, false);
-
-			Gui::Rect rect(Gui::Point(0, 0), _fb_mode.area);
-
-			_gui.enqueue<Gui::Session::Command::Geometry>(_view, rect);
-			_gui.execute();
+			_view.area(_fb_mode.area);
 		}
 
 		Fb_Genode::Mode _initial_setup()
 		{
-			_view = _gui.create_view();
-
 			_adjust_buffer();
-
-			_gui.enqueue<Gui::Session::Command::Front>(_view);
-			_gui.execute();
-
+			_view.front();
 			return _fb_mode;
 		}
 

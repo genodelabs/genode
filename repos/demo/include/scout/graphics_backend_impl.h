@@ -58,19 +58,20 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		Point        _position;
 		Area         _view_size;
-		Gui::View_id _view { _gui.create_view() };
 		Canvas_base *_canvas[2];
 		bool         _flip_state = { false };
+
+		Gui::Top_level_view _view { _gui, { _position, _view_size } };
 
 		void _update_viewport()
 		{
 			using Command = Gui::Session::Command;
 
 			Gui::Rect rect(_position, _view_size);
-			_gui.enqueue<Command::Geometry>(_view, rect);
+			_gui.enqueue<Command::Geometry>(_view.id(), rect);
 
 			Gui::Point offset(0, _flip_state ? -_max_size.h : 0);
-			_gui.enqueue<Command::Offset>(_view, offset);
+			_gui.enqueue<Command::Offset>(_view.id(), offset);
 
 			_gui.execute();
 		}
@@ -109,8 +110,6 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 			_position(position),
 			_view_size(view_size)
 		{
-			bring_to_front();
-
 			using PT = Genode::Pixel_rgb888;
 			static Canvas<PT> canvas_0(_base<PT>(0), max_size, alloc);
 			static Canvas<PT> canvas_1(_base<PT>(1), max_size, alloc);
@@ -161,8 +160,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		void bring_to_front() override
 		{
-			_gui.enqueue<Gui::Session::Command::Front>(_view);
-			_gui.execute();
+			_view.front();
 		}
 
 		void view_area(Area area) override

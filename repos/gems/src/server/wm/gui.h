@@ -111,21 +111,42 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		using Command = Gui::Session::Command;
 		using View_id = Gui::View_id;
 
-		Session_label          _session_label;
-		Real_gui              &_real_gui;
-		Constructible<View_id> _real_view       { };
-		Title                  _title           { };
-		Rect                   _geometry        { };
-		Point                  _buffer_offset   { };
-		Weak_ptr<View>         _neighbor_ptr    { };
-		bool                   _neighbor_behind { };
-		bool                   _has_alpha;
+		Session_label           _session_label;
+		Real_gui               &_real_gui;
+		Gui::View_ref           _real_view_ref { };
+		View_ids::Element const _real_view;
+		Title                   _title           { };
+		Rect                    _geometry        { };
+		Point                   _buffer_offset   { };
+		Weak_ptr<View>          _neighbor_ptr    { };
+		bool                    _neighbor_behind { };
+		bool                    _has_alpha;
+
+		void _with_temporary_view_id(View_capability cap, auto const &fn)
+		{
+			Gui::View_ref          ref { };
+			Gui::View_ids::Element tmp { ref, _real_gui.view_ids };
+
+			switch (_real_gui.session.view_id(cap, tmp.id())) {
+			case Gui::Session::View_id_result::OUT_OF_RAM:
+			case Gui::Session::View_id_result::OUT_OF_CAPS:
+			case Gui::Session::View_id_result::INVALID:
+				warning("unable to obtain view ID for given view capability");
+				return;
+			case Gui::Session::View_id_result::OK:
+				break;
+			}
+			fn(tmp.id());
+			_real_gui.session.release_view_id(tmp.id());
+		};
 
 		View(Real_gui            &real_gui,
+		     View_id       const &real_view_id,
 		     Session_label const &session_label,
 		     bool                 has_alpha)
 		:
 			_session_label(session_label), _real_gui(real_gui),
+			_real_view(_real_view_ref, _real_gui.view_ids, real_view_id),
 			_has_alpha(has_alpha)
 		{ }
 
@@ -139,37 +160,28 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		 */
 		void _unsynchronized_apply_view_config(Locked_ptr<View> &neighbor)
 		{
-			if (!_real_view.constructed())
-				return;
-
 			_propagate_view_geometry();
-			_real_gui.enqueue<Command::Offset>(*_real_view, _buffer_offset);
-			_real_gui.enqueue<Command::Title> (*_real_view, _title);
+			_real_gui.enqueue<Command::Offset>(_real_view.id(), _buffer_offset);
+			_real_gui.enqueue<Command::Title> (_real_view.id(), _title);
 
-			Constructible<View_id> real_neighbor_id { };
+			if (neighbor.valid()) {
+				_with_temporary_view_id(neighbor->real_view_cap(), [&] (View_id id) {
+					if (_neighbor_behind)
+						_real_gui.enqueue<Command::Front_of>(_real_view.id(), id);
+					else
+						_real_gui.enqueue<Command::Behind_of>(_real_view.id(), id);
 
-			if (neighbor.valid())
-				_real_gui.session.alloc_view_id(neighbor->real_view_cap()).with_result(
-					[&] (View_id id) { real_neighbor_id.construct(id); },
-					[&] (auto) { warning("unable to obtain real_neighbor_id"); }
-				);
+					_real_gui.execute();
+				});
 
-			if (real_neighbor_id.constructed()) {
-				if (_neighbor_behind)
-					_real_gui.enqueue<Command::Front_of>(*_real_view, *real_neighbor_id);
-				else
-					_real_gui.enqueue<Command::Behind_of>(*_real_view, *real_neighbor_id);
 			} else {
 				if (_neighbor_behind)
-					_real_gui.enqueue<Command::Front>(*_real_view);
+					_real_gui.enqueue<Command::Front>(_real_view.id());
 				else
-					_real_gui.enqueue<Command::Back>(*_real_view);
+					_real_gui.enqueue<Command::Back>(_real_view.id());
+
+				_real_gui.execute();
 			}
-
-			_real_gui.execute();
-
-			if (real_neighbor_id.constructed())
-				_real_gui.session.release_view_id(*real_neighbor_id);
 		}
 
 		void _apply_view_config()
@@ -182,8 +194,7 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 
 		~View()
 		{
-			if (_real_view.constructed())
-				_real_gui.session.destroy_view(*_real_view);
+			_real_gui.session.destroy_view(_real_view.id());
 		}
 
 		using Genode::Weak_object<View>::weak_ptr;
@@ -196,24 +207,16 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		virtual void geometry(Rect geometry)
 		{
 			_geometry = geometry;
-
-			/*
-			 * Propagate new size to real GUI view but
-			 */
-			if (_real_view.constructed()) {
-				_propagate_view_geometry();
-				_real_gui.execute();
-			}
+			_propagate_view_geometry();
+			_real_gui.execute();
 		}
 
 		virtual void title(Title const &title)
 		{
 			_title = title;
 
-			if (_real_view.constructed()) {
-				_real_gui.enqueue<Command::Title>(*_real_view, title);
-				_real_gui.execute();
-			}
+			_real_gui.enqueue<Command::Title>(_real_view.id(), title);
+			_real_gui.execute();
 		}
 
 		virtual Point input_anchor_position() const = 0;
@@ -222,19 +225,15 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 
 		View_capability real_view_cap()
 		{
-			return _real_view.constructed()
-			     ? _real_gui.session.view_capability(*_real_view)
-			     : View_capability();
+			return _real_gui.session.view_capability(_real_view.id());
 		}
 
 		void buffer_offset(Point buffer_offset)
 		{
 			_buffer_offset = buffer_offset;
 
-			if (_real_view.constructed()) {
-				_real_gui.enqueue<Command::Offset>(*_real_view, _buffer_offset);
-				_real_gui.execute();
-			}
+			_real_gui.enqueue<Command::Offset>(_real_view.id(), _buffer_offset);
+			_real_gui.execute();
 		}
 
 		bool has_alpha() const { return _has_alpha; }
@@ -270,15 +269,23 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 	public:
 
 		Top_level_view(Real_gui                     &real_gui,
+		               View_id                       view_id,
 		               bool                          has_alpha,
 		               Window_registry              &window_registry,
 		               Input_origin_changed_handler &input_origin_changed_handler)
 		:
-			View(real_gui, real_gui.label, has_alpha),
+			View(real_gui, view_id, real_gui.label, has_alpha),
 			_window_registry(window_registry),
 			_input_origin_changed_handler(input_origin_changed_handler),
 			_session_label(real_gui.label)
-		{ }
+		{
+			/*
+			 * Create and configure physical GUI view.
+			 */
+			_real_gui.session.view(_real_view.id(), { .title = _title,
+			                                          .rect  = { },
+			                                          .front = false });
+		}
 
 		~Top_level_view()
 		{
@@ -289,31 +296,6 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 		}
 
 		using List<Top_level_view>::Element::next;
-
-		void init_real_gui_view()
-		{
-			if (_real_view.constructed())
-				return;
-
-			/*
-			 * Create and configure physical GUI view.
-			 */
-			_real_gui.session.create_view().with_result(
-				[&] (View_id id) {
-					_real_view.construct(id);
-					_real_gui.enqueue<Command::Offset>(id, _buffer_offset);
-					_real_gui.enqueue<Command::Title> (id, _title.string());
-					_real_gui.execute();
-				},
-				[&] (Gui::Session::Create_view_error) {
-					warning("init_real_view failed");
-				}
-			);
-
-			if (!_real_view.constructed()) {
-				warning("failed to created content view for ", _title);
-			}
-		}
 
 		void _propagate_view_geometry() override { }
 
@@ -373,13 +355,7 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 		View_capability content_view()
 		{
-			init_real_gui_view();
-
-			if (_real_view.constructed())
-				return _real_gui.session.view_capability(*_real_view);
-
-			error("content_view was unable to obtain real view");
-			return { };
+			return _real_gui.session.view_capability(_real_view.id());
 		}
 
 		void hidden(bool hidden) { _window_registry.hidden(_win_id, hidden); }
@@ -402,13 +378,16 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 
 		Weak_ptr<View> mutable _parent;
 
+		bool _visible = false;
+
 	public:
 
 		Child_view(Real_gui      &real_gui,
+		           View_id        real_gui_id,
 		           bool           has_alpha,
 		           Weak_ptr<View> parent)
 		:
-			View(real_gui, real_gui.label, has_alpha), _parent(parent)
+			View(real_gui, real_gui_id, real_gui.label, has_alpha), _parent(parent)
 		{
 			try_to_init_real_view();
 		}
@@ -422,8 +401,7 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 
 		void _propagate_view_geometry() override
 		{
-			if (_real_view.constructed())
-				_real_gui.enqueue<Command::Geometry>(*_real_view, _geometry);
+			_real_gui.enqueue<Command::Geometry>(_real_view.id(), _geometry);
 		}
 
 		void stack(Weak_ptr<View> neighbor_ptr, bool behind) override
@@ -451,35 +429,30 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 
 		void try_to_init_real_view()
 		{
-			if (_real_view.constructed())
-				return;
-
 			Locked_ptr<View> parent(_parent);
 			if (!parent.valid())
 				return;
 
-			Constructible<View_id> parent_id { };
-			_real_gui.session.alloc_view_id(parent->real_view_cap()).with_result(
-				[&] (View_id id) { parent_id.construct(id); },
-				[&] (Gui::Session::Alloc_view_id_error e) {
-					warning("try_to_init_real_view could not alloc parent ID e=", (int)e);
-				}
-			);
-			if (!parent_id.constructed()) {
-				warning("try_to_init_real_view failed to obtain parent ID");
-				return;
-			}
+			_with_temporary_view_id(parent->real_view_cap(), [&] (View_id parent_id) {
 
-			_real_gui.session.create_child_view(*parent_id).with_result(
-				[&] (View_id id) { _real_view.construct(id); },
-				[&] (Gui::Session::Create_child_view_error) { }
-			);
-			if (!_real_view.constructed()) {
-				warning("try_to_init_real_view failed to create child view");
-				return;
-			}
+				if (_visible)
+					return;
 
-			_real_gui.session.release_view_id(*parent_id);
+				Gui::Session::View_attr const attr { .title = _title,
+				                                     .rect  = _geometry,
+				                                     .front = false };
+
+				switch (_real_gui.session.child_view(_real_view.id(), parent_id, attr)) {
+				case Gui::Session::Child_view_result::OUT_OF_RAM:
+				case Gui::Session::Child_view_result::OUT_OF_CAPS:
+				case Gui::Session::Child_view_result::INVALID:
+					warning("unable to create child view");
+					return;
+				case Gui::Session::Child_view_result::OK:
+					break;
+				};
+				_visible = true;
+			});
 
 			if (_neighbor_ptr == _parent)
 				_unsynchronized_apply_view_config(parent);
@@ -494,11 +467,8 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 
 		void hide()
 		{
-			if (!_real_view.constructed())
-				return;
-
-			_real_gui.session.destroy_view(*_real_view);
-			_real_view.destruct();
+			_real_gui.session.destroy_view(_real_view.id());
+			_visible = false;
 		}
 };
 
@@ -511,8 +481,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		friend class List<Session_component>;
 
-		using View_id  = Gui::View_id;
-		using View_ids = Id_space<Gui::View_ref>;
+		using View_id = Gui::View_id;
 
 		struct View_ref : Gui::View_ref
 		{
@@ -550,7 +519,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		Real_gui                     _real_gui { _env, _session_label };
 		Window_registry             &_window_registry;
 		Tslab<Top_level_view, 8000>  _top_level_view_alloc;
-		Tslab<Child_view, 6000>      _child_view_alloc;
+		Tslab<Child_view, 7000>      _child_view_alloc;
 		Tslab<View_ref, 4000>        _view_ref_alloc;
 		List<Top_level_view>         _top_level_views { };
 		List<Child_view>             _child_views { };
@@ -972,26 +941,28 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 		}
 
 		template <typename VIEW>
-		Create_view_result _create_view_with_id(auto &dealloc, auto const &create_fn)
+		View_result _create_view_with_id(auto &dealloc, View_id id, View_attr const &attr, auto const &create_fn)
 		{
-			Create_view_error error { };
+			release_view_id(id);
+
+			View_result error { };
 
 			VIEW *view_ptr = nullptr;
 			try {
-				view_ptr = create_fn();
+				view_ptr = &create_fn();
 			}
-			catch (Out_of_ram)  { error = Create_view_error::OUT_OF_RAM;  }
-			catch (Out_of_caps) { error = Create_view_error::OUT_OF_CAPS; }
+			catch (Out_of_ram)  { error = View_result::OUT_OF_RAM;  }
+			catch (Out_of_caps) { error = View_result::OUT_OF_CAPS; }
 			if (!view_ptr)
 				return error;
 
 			View_ref *view_ref_ptr = nullptr;
 			try {
 				view_ref_ptr =
-					new (_view_ref_alloc) View_ref(view_ptr->weak_ptr(), _view_ids);
+					new (_view_ref_alloc) View_ref(view_ptr->weak_ptr(), _view_ids, id);
 			}
-			catch (Out_of_ram)  { error = Create_view_error::OUT_OF_RAM;  }
-			catch (Out_of_caps) { error = Create_view_error::OUT_OF_CAPS; }
+			catch (Out_of_ram)  { error = View_result::OUT_OF_RAM;  }
+			catch (Out_of_caps) { error = View_result::OUT_OF_CAPS; }
 			if (!view_ref_ptr) {
 				destroy(dealloc, view_ptr);
 				return error;
@@ -999,64 +970,64 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 			_env.ep().manage(*view_ptr);
 
-			return view_ref_ptr->id.id();
+			/* apply initial view attributes */
+			_execute_command(Command::Title    { id, attr.title });
+			_execute_command(Command::Geometry { id, attr.rect  });
+			if (attr.front) {
+				_execute_command(Command::Front { id });
+				_window_registry.flush();
+			}
+
+			return View_result::OK;
 		}
 
-		Create_view_result create_view() override
+		View_result view(View_id id, View_attr const &attr) override
 		{
 			Top_level_view *view_ptr = nullptr;
 
-			Create_view_result const result =
-				_create_view_with_id<Top_level_view>(_top_level_view_alloc,
-					[&] {
+			View_result const result =
+				_create_view_with_id<Top_level_view>(_top_level_view_alloc, id, attr,
+					[&] () -> Top_level_view & {
 						view_ptr = new (_top_level_view_alloc)
-							Top_level_view(_real_gui, _has_alpha,
+							Top_level_view(_real_gui, id, _has_alpha,
 							               _window_registry, *this);
-						return view_ptr;
+						return *view_ptr;
 					});
 
-			if (result.ok() && view_ptr) {
-
-				view_ptr->init_real_gui_view();
-
+			if (result == View_result::OK && view_ptr) {
 				view_ptr->resizeable(_mode_sigh.valid());
 				_top_level_views.insert(view_ptr);
 			}
 			return result;
 		}
 
-		Create_child_view_result create_child_view(View_id const parent) override
+		Child_view_result child_view(View_id const id, View_id const parent, View_attr const &attr) override
 		{
-			using Error = Create_child_view_error;
 			return _with_view(parent,
-				[&] (View &parent) -> Create_child_view_result {
+				[&] (View &parent) -> Child_view_result {
 
 					Child_view *view_ptr = nullptr;
 
-					Create_view_result const result =
-						_create_view_with_id<Child_view>(_child_view_alloc,
-							[&] {
+					View_result const result =
+						_create_view_with_id<Child_view>(_child_view_alloc, id, attr,
+							[&] () -> Child_view & {
 								view_ptr = new (_child_view_alloc)
-									Child_view(_real_gui, _has_alpha, parent.weak_ptr());
-								return view_ptr;
+									Child_view(_real_gui, id, _has_alpha, parent.weak_ptr());
+								return *view_ptr;
 							});
 
-					return result.convert<Create_child_view_result>(
-						[&] (View_id id) {
-							if (view_ptr)
-								_child_views.insert(view_ptr);
-							return id;
-						},
-						[&] (Create_view_error e) {
-							switch (e) {
-							case Create_view_error::OUT_OF_RAM:  return Error::OUT_OF_RAM;
-							case Create_view_error::OUT_OF_CAPS: return Error::OUT_OF_CAPS;
-							};
-							return Error::INVALID;
-						}
-					);
+					switch (result) {
+					case View_result::OUT_OF_RAM:  return Child_view_result::OUT_OF_RAM;
+					case View_result::OUT_OF_CAPS: return Child_view_result::OUT_OF_CAPS;
+					case View_result::OK:          break;
+					}
+
+					if (view_ptr)
+						_child_views.insert(view_ptr);
+
+					return Child_view_result::OK;
 				},
-				[&] () -> Create_child_view_result { return Error::INVALID; });
+				[&] () -> Child_view_result { return Child_view_result::INVALID; });
 		}
 
 		void destroy_view(View_id id) override
@@ -1077,22 +1048,6 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 				[&] /* ID exists but view vanished */ { }
 			);
 			release_view_id(id);
-		}
-
-		Alloc_view_id_result alloc_view_id(View_capability view_cap) override
-		{
-			return _env.ep().rpc_ep().apply(view_cap,
-				[&] (View *view_ptr) -> Alloc_view_id_result {
-					if (!view_ptr)
-						return Alloc_view_id_error::INVALID;
-					try {
-						View_ref &view_ref = *new (_view_ref_alloc)
-							View_ref(view_ptr->weak_ptr(), _view_ids);
-						return view_ref.id.id();
-					}
-					catch (Out_of_ram)  { return Alloc_view_id_error::OUT_OF_RAM;  }
-					catch (Out_of_caps) { return Alloc_view_id_error::OUT_OF_CAPS; }
-				});
 		}
 
 		View_id_result view_id(View_capability view_cap, View_id id) override
@@ -1192,7 +1147,11 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			 * upgrades initiated by the wm client's buffer operation twice.
 			 */
 			_has_alpha = has_alpha;
-			return _real_gui.session.buffer(mode, has_alpha);
+
+			Buffer_result const result = _real_gui.session.buffer(mode, has_alpha);
+
+			_window_registry.flush();
+			return result;
 		}
 
 		void focus(Genode::Capability<Gui::Session>) override { }

@@ -30,17 +30,14 @@ struct Gui::Session_client : Rpc_client<Session>
 	Input::Session_capability input() override {
 		return call<Rpc_input>(); }
 
-	Create_view_result create_view() override {
-		return call<Rpc_create_view>(); }
+	View_result view(View_id id, View_attr const &attr) override {
+		return call<Rpc_view>(id, attr); }
 
-	Create_child_view_result create_child_view(View_id parent) override {
-		return call<Rpc_create_child_view>(parent); }
+	Child_view_result child_view(View_id id, View_id parent, View_attr const &attr) override {
+		return call<Rpc_child_view>(id, parent, attr); }
 
 	void destroy_view(View_id view) override {
 		call<Rpc_destroy_view>(view); }
-
-	Alloc_view_id_result alloc_view_id(View_capability view) override {
-		return call<Rpc_alloc_view_id>(view); }
 
 	View_id_result view_id(View_capability view, View_id id) override {
 		return call<Rpc_view_id>(view, id); }

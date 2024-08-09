@@ -68,7 +68,7 @@ class Pointer::Main : public Rom::Reader
 
 		Gui::Connection _gui { _env };
 
-		Gui::View_id _view = _gui.create_view();
+		Gui::Top_level_view _view { _gui };
 
 		bool _default_pointer_visible = false;
 
@@ -166,7 +166,7 @@ void Pointer::Main::_show_default_pointer()
 	_gui.framebuffer.refresh(0, 0, pointer_size.w, pointer_size.h);
 
 	Gui::Rect geometry(Gui::Point(0, 0), pointer_size);
-	_gui.enqueue<Gui::Session::Command::Geometry>(_view, geometry);
+	_gui.enqueue<Gui::Session::Command::Geometry>(_view.id(), geometry);
 	_gui.execute();
 
 	_default_pointer_visible = true;
@@ -227,7 +227,7 @@ void Pointer::Main::_show_shape_pointer(Shape_report &shape_report)
 	_gui.framebuffer.refresh(0, 0, shape_size.w, shape_size.h);
 
 	Gui::Rect geometry(shape_hot, shape_size);
-	_gui.enqueue<Gui::Session::Command::Geometry>(_view, geometry);
+	_gui.enqueue<Gui::Session::Command::Geometry>(_view.id(), geometry);
 	_gui.execute();
 
 	_default_pointer_visible = false;
@@ -357,7 +357,7 @@ Pointer::Main::Main(Genode::Env &env) : _env(env)
 		}
 	}
 
-	_gui.enqueue<Gui::Session::Command::Front>(_view);
+	_gui.enqueue<Gui::Session::Command::Front>(_view.id());
 	_gui.execute();
 
 	_update_pointer();

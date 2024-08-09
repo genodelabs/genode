@@ -37,6 +37,7 @@ namespace Gui {
 	struct View_ref : Interface { };
 
 	using View_capability = Capability<View>;
+	using View_ids        = Id_space<View_ref>;
 	using View_id         = Id_space<View_ref>::Id;
 
 	using Title = String<64>;
@@ -170,16 +171,21 @@ struct Gui::Session : Genode::Session
 	 */
 	virtual Input::Session_capability input() = 0;
 
-	enum class Create_view_error { OUT_OF_RAM, OUT_OF_CAPS };
-	using      Create_view_result = Attempt<View_id, Create_view_error>;
+	struct View_attr
+	{
+		Title title;
+		Rect  rect;
+		bool  front;
+	};
+
+	enum class View_result { OK, OUT_OF_RAM, OUT_OF_CAPS };
 
 	/**
 	 * Create a new top-level view at the buffer
 	 */
-	virtual Create_view_result create_view() = 0;
+	virtual View_result view(View_id, View_attr const &) = 0;
 
-	enum class Create_child_view_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID };
-	using      Create_child_view_result = Attempt<View_id, Create_child_view_error>;
+	enum class Child_view_result { OK, OUT_OF_RAM, OUT_OF_CAPS, INVALID };
 
 	/**
 	 * Create a new child view at the buffer
@@ -187,23 +193,12 @@ struct Gui::Session : Genode::Session
 	 * The 'parent' argument allows the client to use the location of an
 	 * existing view as the coordinate origin for the to-be-created view.
 	 */
-	virtual Create_child_view_result create_child_view(View_id parent) = 0;
+	virtual Child_view_result child_view(View_id, View_id parent, View_attr const &) = 0;
 
 	/**
 	 * Destroy view
 	 */
 	virtual void destroy_view(View_id) = 0;
-
-	enum class Alloc_view_id_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID };
-	using      Alloc_view_id_result = Attempt<View_id, Alloc_view_id_error>;
-
-	/**
-	 * Return session-local ID for the specified view
-	 *
-	 * The ID returned by this method can be used to issue commands via the
-	 * 'execute' method.
-	 */
-	virtual Alloc_view_id_result alloc_view_id(View_capability) = 0;
 
 	enum class View_id_result { OK, OUT_OF_RAM, OUT_OF_CAPS, INVALID };
 
@@ -286,10 +281,9 @@ struct Gui::Session : Genode::Session
 
 	GENODE_RPC(Rpc_framebuffer, Framebuffer::Session_capability, framebuffer);
 	GENODE_RPC(Rpc_input, Input::Session_capability, input);
-	GENODE_RPC(Rpc_create_view, Create_view_result, create_view);
-	GENODE_RPC(Rpc_create_child_view, Create_child_view_result, create_child_view, View_id);
+	GENODE_RPC(Rpc_view, View_result, view, View_id, View_attr const &);
+	GENODE_RPC(Rpc_child_view, Child_view_result, child_view, View_id, View_id, View_attr const &);
 	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_id);
-	GENODE_RPC(Rpc_alloc_view_id, Alloc_view_id_result, alloc_view_id, View_capability);
 	GENODE_RPC(Rpc_view_id, View_id_result, view_id, View_capability, View_id);
 	GENODE_RPC(Rpc_view_capability, View_capability, view_capability, View_id);
 	GENODE_RPC(Rpc_release_view_id, void, release_view_id, View_id);
@@ -302,8 +296,7 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_buffer, Buffer_result, buffer, Framebuffer::Mode, bool);
 
 	GENODE_RPC_INTERFACE(Rpc_framebuffer, Rpc_input,
-	                     Rpc_create_view, Rpc_create_child_view, Rpc_destroy_view,
-	                     Rpc_alloc_view_id, Rpc_view_id,
+	                     Rpc_view, Rpc_child_view, Rpc_destroy_view, Rpc_view_id,
 	                     Rpc_view_capability, Rpc_release_view_id,
 	                     Rpc_command_dataspace, Rpc_execute, Rpc_mode,
 	                     Rpc_mode_sigh, Rpc_buffer, Rpc_focus);

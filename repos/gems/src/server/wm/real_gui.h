@@ -54,6 +54,8 @@ struct Wm::Real_gui
 
 	public:
 
+		Gui::View_ids view_ids { };
+
 		template <typename CMD>
 		void enqueue(auto &&... args) { enqueue(Gui::Session::Command( CMD { args... } )); }
 

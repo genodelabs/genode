@@ -58,97 +58,6 @@ struct Wm::Decorator_content_callback : Interface
 };
 
 
-class Wm::Decorator_content_registry
-{
-	public:
-
-		/**
-		 * Exception type
-		 */
-		struct Lookup_failed { };
-
-	private:
-
-		using View_id = Gui::View_id;
-
-		struct Entry : List<Entry>::Element
-		{
-			View_id             const decorator_view_id;
-			Window_registry::Id const win_id;
-
-			Entry(View_id decorator_view_id, Window_registry::Id win_id)
-			:
-				decorator_view_id(decorator_view_id),
-				win_id(win_id)
-			{ }
-		};
-
-		List<Entry>  _list { };
-		Allocator   &_entry_alloc;
-
-		Entry const &_lookup(View_id view_id) const
-		{
-			for (Entry const *e = _list.first(); e; e = e->next()) {
-				if (e->decorator_view_id == view_id)
-					return *e;
-			}
-
-			throw Lookup_failed();
-		}
-
-		void _remove(Entry const &e)
-		{
-			_list.remove(&e);
-			destroy(_entry_alloc, const_cast<Entry *>(&e));
-		}
-
-	public:
-
-		Decorator_content_registry(Allocator &entry_alloc)
-		:
-			_entry_alloc(entry_alloc)
-		{ }
-
-		~Decorator_content_registry()
-		{
-			while (Entry *e = _list.first())
-				_remove(*e);
-		}
-
-		void insert(View_id decorator_view_id, Window_registry::Id win_id)
-		{
-			Entry *e = new (_entry_alloc) Entry(decorator_view_id, win_id);
-			_list.insert(e);
-		}
-
-		/**
-		 * Lookup window ID for a given decorator content view
-		 *
-		 * \throw Lookup_failed
-		 */
-		Window_registry::Id lookup(View_id view_id) const
-		{
-			return _lookup(view_id).win_id;
-		}
-
-		bool registered(View_id view_id) const
-		{
-			try { lookup(view_id); return true; } catch (...) { }
-			return false;
-		}
-
-		/**
-		 * Remove entry
-		 *
-		 * \throw Lookup_failed
-		 */
-		void remove(View_id view_id)
-		{
-			_remove(_lookup(view_id));
-		}
-};
-
-
 struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
                                    private List<Decorator_gui_session>::Element
 {
@@ -158,6 +67,18 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 	using View_capability = Gui::View_capability;
 	using View_id         = Gui::View_id;
 	using Command_buffer  = Gui::Session::Command_buffer;
+
+	struct Content_view_ref : Gui::View_ref
+	{
+		Gui::View_ids::Element id;
+
+		Window_registry::Id win_id;
+
+		Content_view_ref(Window_registry::Id win_id, Gui::View_ids &ids, View_id id)
+		: id(*this, ids, id), win_id(win_id) { }
+	};
+
+	Gui::View_ids _content_view_ids { };
 
 	Genode::Env &_env;
 
@@ -181,9 +102,6 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 	Decorator_content_callback &_content_callback;
 
-	/* XXX don't allocate content-registry entries from heap */
-	Decorator_content_registry _content_registry { _heap };
-
 	Allocator &_md_alloc;
 
 	/* Gui::Connection requires a valid input session */
@@ -193,6 +111,13 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 	Signal_handler<Decorator_gui_session>
 		_input_handler { _env.ep(), *this, &Decorator_gui_session::_handle_input };
+
+	Window_registry::Id _win_id_from_title(Gui::Title const &title)
+	{
+		unsigned value = 0;
+		Genode::ascii_to(title.string(), value);
+		return { value };
+	}
 
 	/**
 	 * Constructor
@@ -233,75 +158,17 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 	{
 		switch (cmd.opcode) {
 
-		case Command::TITLE:
-			{
-				unsigned id = 0;
-				Genode::ascii_to(cmd.title.title.string(), id);
-
-				if (id > 0)
-					_content_registry.insert(cmd.title.view,
-					                         Window_registry::Id(id));
-				return;
-			}
-
-		case Command::FRONT:
-		case Command::BACK:
-		case Command::FRONT_OF:
-		case Command::BEHIND_OF:
-
-			try {
-
-				/* the first argument is the same for all stacking operations */
-				View_id const view_id = cmd.front.view;
-
-				/*
-				 * If the content view is re-stacked, replace it by the real
-				 * window content.
-				 *
-				 * The lookup fails with an exception for non-content views.
-				 * In this case, forward the command.
-				 */
-				Window_registry::Id win_id = _content_registry.lookup(view_id);
-
-				/*
-				 * Replace content view originally created by the decorator
-				 * by view that shows the real window content.
-				 */
-				View_capability view_cap = _content_callback.content_view(win_id);
-
-				_gui.session.destroy_view(view_id);
-				_gui.session.view_id(view_cap, view_id);
-
-				_gui.enqueue(cmd);
-				_gui.execute();
-
-				/*
-				 * Now that the physical content view exists, it is time
-				 * to revisit the child views.
-				 */
-				_content_callback.update_content_child_views(win_id);
-
-			} catch (Decorator_content_registry::Lookup_failed) {
-
-				_gui.enqueue(cmd);
-			}
-
-			return;
-
 		case Command::GEOMETRY:
 
-			try {
-
-				/*
-				 * If the content view changes position, propagate the new
-				 * position to the GUI service to properly transform absolute
-				 * input coordinates.
-				 */
-				Window_registry::Id win_id = _content_registry.lookup(cmd.geometry.view);
-
-				_content_callback.content_geometry(win_id, cmd.geometry.rect);
-			}
-			catch (Decorator_content_registry::Lookup_failed) { }
+			/*
+			 * If the content view changes position, propagate the new position
+			 * to the GUI service to properly transform absolute input
+			 * coordinates.
+			 */
+			_content_view_ids.apply<Content_view_ref const>(cmd.geometry.view,
+				[&] (Content_view_ref const &view_ref) {
+					_content_callback.content_geometry(view_ref.win_id, cmd.geometry.rect); },
+				[&] { });
 
 			/* forward command */
 			_gui.enqueue(cmd);
@@ -309,19 +176,29 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 		case Command::OFFSET:
 
-			try {
-
-				/*
-				 * If non-content views change their offset (if the lookup
-				 * fails), propagate the event
-				 */
-				_content_registry.lookup(cmd.geometry.view);
-			}
-			catch (Decorator_content_registry::Lookup_failed) {
-				_gui.enqueue(cmd);
-			}
+			/*
+			 * If non-content views change their offset (if the lookup
+			 * fails), propagate the event
+			 */
+			_content_view_ids.apply<Content_view_ref const>(cmd.geometry.view,
+				[&] (Content_view_ref const &) { },
+				[&] { _gui.enqueue(cmd); });
 			return;
 
+		case Command::FRONT:
+		case Command::BACK:
+		case Command::FRONT_OF:
+		case Command::BEHIND_OF:
+
+			_content_view_ids.apply<Content_view_ref const>(cmd.front.view,
+				[&] (Content_view_ref const &view_ref) {
+					_content_callback.update_content_child_views(view_ref.win_id); },
+				[&] { });
+
+			_gui.enqueue(cmd);
+			return;
+
+		case Command::TITLE:
 		case Command::BACKGROUND:
 		case Command::NOP:
 
@@ -359,14 +236,40 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 		return _dummy_input_component_cap;
 	}
 
-	Create_view_result create_view() override
+	View_result view(View_id id, View_attr const &attr) override
 	{
-		return _gui.session.create_view();
+		/*
+		 * The decorator marks a content view by specifying the window ID
+		 * as view title. For such views, we import the view from the
+		 * corresponding GUI cient instead of creating a new view.
+		 */
+		Window_registry::Id const win_id = _win_id_from_title(attr.title);
+		if (win_id.valid()) {
+			try {
+				Content_view_ref &view_ref_ptr = *new (_heap)
+					Content_view_ref(Window_registry::Id(win_id), _content_view_ids, id);
+
+				View_capability view_cap = _content_callback.content_view(win_id);
+				View_id_result result = _gui.session.view_id(view_cap, id);
+				if (result != View_id_result::OK)
+					destroy(_heap, &view_ref_ptr);
+
+				switch (result) {
+				case View_id_result::OUT_OF_RAM:  return View_result::OUT_OF_RAM;
+				case View_id_result::OUT_OF_CAPS: return View_result::OUT_OF_CAPS;
+				case View_id_result::OK:          return View_result::OK;
+				case View_id_result::INVALID:     break; /* fall back to regular view */
+				};
+			}
+			catch (Genode::Out_of_ram)  { return View_result::OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return View_result::OUT_OF_CAPS; }
+		}
+		return _gui.session.view(id, attr);
 	}
 
-	Create_child_view_result create_child_view(View_id parent) override
+	Child_view_result child_view(View_id id, View_id parent, View_attr const &attr) override
 	{
-		return _gui.session.create_child_view(parent);
+		return _gui.session.child_view(id, parent, attr);
 	}
 
 	void destroy_view(View_id view) override
@@ -374,21 +277,20 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 		/*
 		 * Reset view geometry when destroying a content view
 		 */
-		if (_content_registry.registered(view)) {
-			Gui::Rect rect(Gui::Point(0, 0), Gui::Area(0, 0));
-			_gui.enqueue<Gui::Session::Command::Geometry>(view, rect);
-			_gui.execute();
+		_content_view_ids.apply<Content_view_ref>(view,
+			[&] (Content_view_ref &view_ref) {
 
-			Window_registry::Id win_id = _content_registry.lookup(view);
-			_content_callback.hide_content_child_views(win_id);
-		}
+				_content_callback.hide_content_child_views(view_ref.win_id);
+
+				Gui::Rect rect(Gui::Point(0, 0), Gui::Area(0, 0));
+				_gui.enqueue<Gui::Session::Command::Geometry>(view, rect);
+				_gui.execute();
+
+				destroy(_heap, &view_ref);
+			},
+			[&] { });
 
 		_gui.session.destroy_view(view);
-	}
-
-	Alloc_view_id_result alloc_view_id(View_capability view_cap) override
-	{
-		return _gui.session.alloc_view_id(view_cap);
 	}
 
 	View_id_result view_id(View_capability view_cap, View_id id) override
@@ -403,7 +305,10 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 	void release_view_id(View_id view) override
 	{
-		/* XXX dealloc View_ptr */
+		_content_view_ids.apply<Content_view_ref>(view,
+			[&] (Content_view_ref &view_ref) { destroy(_heap, &view_ref); },
+			[&] { });
+
 		_gui.session.release_view_id(view);
 	}
 
@@ -414,14 +319,9 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 
 	void execute() override
 	{
-		for (unsigned i = 0; i < _client_command_buffer.num(); i++) {
-			try {
-				_execute_command(_client_command_buffer.get(i));
-			}
-			catch (...) {
-				Genode::warning("unhandled exception while processing command from decorator");
-			}
-		}
+		for (unsigned i = 0; i < _client_command_buffer.num(); i++)
+			_execute_command(_client_command_buffer.get(i));
+
 		_gui.execute();
 	}
 

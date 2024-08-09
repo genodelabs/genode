@@ -68,24 +68,19 @@ class Wm::Direct_gui_session : public Genode::Rpc_object<Gui::Session>
 			return _session.input();
 		}
 
-		Create_view_result create_view() override
+		View_result view(View_id id, View_attr const &attr) override
 		{
-			return _session.create_view();
+			return _session.view(id, attr);
 		}
 
-		Create_child_view_result create_child_view(View_id parent) override
+		Child_view_result child_view(View_id id, View_id parent, View_attr const &attr) override
 		{
-			return _session.create_child_view(parent);
+			return _session.child_view(id, parent, attr);
 		}
 
 		void destroy_view(View_id view) override
 		{
 			_session.destroy_view(view);
-		}
-
-		Alloc_view_id_result alloc_view_id(View_capability view_cap) override
-		{
-			return _session.alloc_view_id(view_cap);
 		}
 
 		View_id_result view_id(View_capability view_cap, View_id id) override

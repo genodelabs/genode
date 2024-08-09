@@ -62,16 +62,17 @@ struct Wm::Layouter_gui_session : Genode::Rpc_object<Gui::Session>
 		return _input_session_cap;
 	}
 
-	Create_view_result create_view() override { return View_id(); }
+	View_result view(View_id, View_attr const &) override
+	{
+		return View_result::OK;
+	}
 
-	Create_child_view_result create_child_view(View_id) override { return View_id(); }
+	Child_view_result child_view(View_id, View_id, View_attr const &) override
+	{
+		return Child_view_result::OK;
+	}
 
 	void destroy_view(View_id) override { }
-
-	Alloc_view_id_result alloc_view_id(View_capability) override
-	{
-		return View_id();
-	}
 
 	View_id_result view_id(View_capability, View_id) override
 	{

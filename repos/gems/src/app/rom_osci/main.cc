@@ -86,24 +86,7 @@ struct Osci::Main
 
 	Constructible<Gui_buffer> _gui_buffer { };
 
-	struct View
-	{
-		Gui::Connection &_gui;
-
-		Gui::View_id _id { _gui.create_view() };
-
-		View(Gui::Connection &gui, Point position, Area size) : _gui(gui)
-		{
-			using Command = Gui::Session::Command;
-			_gui.enqueue<Command::Geometry>(_id, Rect(position, size));
-			_gui.enqueue<Command::Front>(_id);
-			_gui.execute();
-		}
-
-		~View() { _gui.destroy_view(_id); }
-	};
-
-	Constructible<View> _view { };
+	Constructible<Gui::Top_level_view> _view { };
 
 	Attached_rom_dataspace _config    { _env, "config" };
 	Attached_rom_dataspace _recording { _env, "recording" };
@@ -286,7 +269,7 @@ struct Osci::Main
 		_gui_buffer.construct(_gui, _size, _env.ram(), _env.rm(),
 		                      Gui_buffer::Alpha::OPAQUE, _background);
 
-		_view.construct(_gui, Point::from_xml(config), _size);
+		_view.construct(_gui, Rect { Point::from_xml(config), _size });
 
 		_channels.update_from_xml(config,
 			[&] (Xml_node const &node) -> Registered<Channel> & {

@@ -107,7 +107,7 @@ class Pdf_view
 		Genode::Signal_handler<Pdf_view> _input_handler {
 			_env.ep(), *this, &Pdf_view::_handle_input_events };
 
-		Gui::View_id _view = _gui.create_view();
+		Gui::Top_level_view _view { _gui };
 
 		pixel_t *_fb_base() { return _fb_ds->local_addr<pixel_t>(); }
 
@@ -140,10 +140,8 @@ class Pdf_view
 			_pdfapp.resolution = Genode::min(_nit_mode.area.w/5,
 			                                 _nit_mode.area.h/4);
 
-			using Command = Gui::Session::Command;
-			_gui.enqueue<Command::Geometry>(_view, Gui::Rect(Gui::Point(), _nit_mode.area));
-			_gui.enqueue<Command::Front>(_view);
-			_gui.execute();
+			_view.area(_nit_mode.area);
+			_view.front();
 		}
 
 		void _handle_nit_mode()
@@ -272,7 +270,7 @@ class Pdf_view
 		void title(Gui::Title const &msg)
 		{
 			using Command = Gui::Session::Command;
-			_gui.enqueue<Command::Title>(_view, msg);
+			_gui.enqueue<Command::Title>(_view.id(), msg);
 			_gui.execute();
 		}
 

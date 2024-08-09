@@ -297,7 +297,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 		Cpu::Signal_handler<Virtio_gpu_device> _handler;
 		Constructible<Attached_dataspace>      _fb_ds { };
 		Framebuffer::Mode                      _fb_mode { _gui.mode() };
-		Gui::View_id                           _view = _gui.create_view();
+		Gui::Top_level_view                    _view { _gui, { { }, _fb_mode.area } };
 
 		using Area = Genode::Area<>;
 		using Rect = Genode::Rect<>;
@@ -465,8 +465,8 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 				_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());
 
 			using Command = Gui::Session::Command;
-			_gui.enqueue<Command::Geometry>(_view, Rect(Point(0, 0), _fb_mode.area));
-			_gui.enqueue<Command::Front>(_view);
+			_gui.enqueue<Command::Geometry>(_view.id(), Rect(Point(0, 0), _fb_mode.area));
+			_gui.enqueue<Command::Front>(_view.id());
 			_gui.execute();
 			return _gui.mode();
 		}

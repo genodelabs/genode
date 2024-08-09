@@ -25,32 +25,8 @@ namespace Test {
 
 	using namespace Genode;
 
-	struct View;
 	struct Main;
 }
-
-
-class Test::View
-{
-	private:
-
-		Gui::Connection   &_gui;
-		Gui::View_id const _id = _gui.create_view();
-		Gui::Rect    const _rect;
-
-	public:
-
-		View(Gui::Connection &gui, Gui::Rect rect) : _gui(gui), _rect(rect)
-		{
-			using Command = Gui::Session::Command;
-
-			_gui.enqueue<Command::Geometry>(_id, rect);
-			_gui.enqueue<Command::Front>(_id);
-			_gui.execute();
-		}
-
-		virtual ~View() { }
-};
 
 
 struct Test::Main
@@ -94,7 +70,7 @@ struct Test::Main
 
 		Attached_dataspace _fb_ds { _env.rm(), _gui.framebuffer.dataspace() };
 
-		Registry<Registered<View>> _views { };
+		Registry<Registered<Gui::Top_level_view>> _views { };
 
 		Output(Env &env, Allocator &alloc, Xml_node const &config)
 		:
@@ -109,12 +85,12 @@ struct Test::Main
 
 			config.for_each_sub_node("view", [&] (Xml_node node) {
 				new (_alloc)
-					Registered<View>(_views, _gui, view_rect(node)); });
+					Registered<Gui::Top_level_view>(_views, _gui, view_rect(node)); });
 		}
 
 		~Output()
 		{
-			_views.for_each([&] (Registered<View> &view) {
+			_views.for_each([&] (Registered<Gui::Top_level_view> &view) {
 				destroy(_alloc, &view); });
 		}
 

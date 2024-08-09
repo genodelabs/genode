@@ -348,48 +348,6 @@ class Nitlog::Root : public Root_component<Session_component>
 };
 
 
-class Log_view
-{
-	private:
-
-		Gui::Connection   &_gui;
-		Gui::Point         _pos;
-		Gui::Area          _size;
-		Gui::View_id const _view = _gui.create_view();
-
-		using Command = Gui::Session::Command;
-
-	public:
-
-		Log_view(Gui::Connection &gui, Gui::Rect geometry)
-		:
-			_gui(gui),
-			_pos(geometry.at),
-			_size(geometry.area)
-		{
-			move(_pos);
-			top();
-		}
-
-		void top()
-		{
-			_gui.enqueue<Command::Front>(_view);
-			_gui.execute();
-		}
-
-		void move(Gui::Point pos)
-		{
-			_pos = pos;
-
-			Gui::Rect rect(_pos, _size);
-			_gui.enqueue<Command::Geometry>(_view, rect);
-			_gui.execute();
-		}
-
-		Gui::Point pos() const { return _pos; }
-};
-
-
 struct Nitlog::Main
 {
 	Env &_env;
@@ -435,10 +393,7 @@ struct Nitlog::Main
 
 	bool const _canvas_initialized = (_init_canvas(), true);
 
-	/* create view for log window */
-	Gui::Rect const _view_geometry { Gui::Point(20, 20),
-	                                 Gui::Area(_win_w, _win_h) };
-	Log_view _view { _gui, _view_geometry };
+	Gui::Top_level_view _view { _gui, { { 20, 20 }, { _win_w, _win_h } } };
 
 	/* create root interface for service */
 	Root _root { _env.ep(), _sliced_heap, _log_window };
@@ -471,14 +426,14 @@ struct Nitlog::Main
 				Gui::Point const mouse_pos(x, y);
 
 				if (_key_cnt && _old_mouse_pos != _initial_mouse_pos)
-					_view.move(_view.pos() + mouse_pos - _old_mouse_pos);
+					_view.at(_view.at() + mouse_pos - _old_mouse_pos);
 
 				_old_mouse_pos = mouse_pos;
 			});
 
 			/* find selected view and bring it to front */
 			if (ev.press() && _key_cnt == 1)
-				_view.top();
+				_view.front();
 
 		}
 	}

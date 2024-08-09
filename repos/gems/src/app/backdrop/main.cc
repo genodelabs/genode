@@ -110,7 +110,7 @@ struct Backdrop::Main
 
 	Constructible<Buffer> _buffer { };
 
-	Gui::View_id _view_id = _gui.create_view();
+	Gui::View_id const _view_id { 1 };
 
 	void _update_view()
 	{
@@ -148,6 +148,8 @@ struct Backdrop::Main
 
 	Main(Genode::Env &env) : _env(env)
 	{
+		_gui.view(_view_id, { });
+
 		_gui.mode_sigh(_config_handler);
 
 		_config.sigh(_config_handler);

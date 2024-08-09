@@ -141,74 +141,63 @@ class Decorator::Window : public Window_base, public Animator::Item
 			func(_maximizer);
 		}
 
-		struct Gui_view
+		struct Gui_view : Genode::Noncopyable
 		{
 			using Command = Gui::Session::Command;
 
-			bool const _view_is_remote;
+			Gui::Connection       &_gui;
+			Gui::View_ref          _view_ref { };
+			Gui::View_ids::Element _id { _view_ref, _gui.view_ids };
 
-			Gui::Connection &_gui;
+			Gui_view(Gui::Connection &gui) : _gui(gui) { }
 
-			Gui::View_id _id;
-
-			Gui_view(Gui::Connection &gui, unsigned win_id = 0)
-			:
-				_view_is_remote(false),
-				_gui(gui),
-				_id(_gui.create_view())
-			{
-				/*
-				 * We supply the window ID as label for the anchor view.
-				 */
-				if (win_id)
-					_gui.enqueue<Command::Title>(_id, Gui::Title { win_id });
-			}
-
-			Gui::View_id _create_remote_view(Gui::Connection &remote_gui)
-			{
-				/* create view at the remote GUI session */
-				Gui::View_id id = remote_gui.create_view();
-				Gui::View_capability view_cap = remote_gui.view_capability(id);
-
-				/* import remote view into local GUI session */
-				return _gui.alloc_view_id(view_cap);
-			}
-
-			/**
-			 * Constructor called for creating a view that refers to a buffer
-			 * of another GUI session
-			 */
-			Gui_view(Gui::Connection &gui,
-			         Gui::Connection &remote_gui)
-			:
-				_view_is_remote(true),
-				_gui(gui),
-				_id(_create_remote_view(remote_gui))
-			{ }
-
-			~Gui_view()
-			{
-				if (_view_is_remote)
-					_gui.release_view_id(_id);
-				else
-					_gui.destroy_view(_id);
-			}
-
-			Gui::View_id id() const { return _id; }
+			Gui::View_id id() const { return _id.id(); }
 
 			void stack(Gui::View_id neighbor)
 			{
-				_gui.enqueue<Command::Front_of>(_id, neighbor);
+				_gui.enqueue<Command::Front_of>(id(), neighbor);
 			}
 
-			void stack_front_most() { _gui.enqueue<Command::Front>(_id); }
+			void stack_front_most() { _gui.enqueue<Command::Front>(id()); }
 
-			void stack_back_most()  { _gui.enqueue<Command::Back>(_id); }
+			void stack_back_most()  { _gui.enqueue<Command::Back>(id()); }
 
 			void place(Rect rect, Point offset)
 			{
-				_gui.enqueue<Command::Geometry>(_id, rect);
-				_gui.enqueue<Command::Offset>(_id, offset);
+				_gui.enqueue<Command::Geometry>(id(), rect);
+				_gui.enqueue<Command::Offset>(id(), offset);
+			}
+		};
+
+		struct Content_view : Gui_view
+		{
+			Content_view(Gui::Connection &gui, unsigned win_id = 0) : Gui_view(gui)
+			{
+				/* supply the window ID as label for the anchor view */
+				_gui.view(id(), { .title = { win_id },
+				                  .rect  = { },
+				                  .front = false });
+			}
+
+			~Content_view() { _gui.destroy_view(id()); }
+		};
+
+		struct Remote_view : Gui_view
+		{
+			Gui::Connection &_remote_gui;
+
+			Remote_view(Gui::Connection &gui, Gui::Connection &remote_gui)
+			:
+				Gui_view(gui), _remote_gui(remote_gui)
+			{
+				remote_gui.view(id(), { });
+				gui.view_id(remote_gui.view_capability(id()), id());
+			}
+
+			~Remote_view()
+			{
+				_gui.release_view_id(id());
+				_remote_gui.destroy_view(id());
 			}
 		};
 
@@ -269,12 +258,12 @@ class Decorator::Window : public Window_base, public Animator::Item
 			return Area(outer_size.w - inner_size.w, outer_size.h);
 		}
 
-		Gui_view _bottom_view { _gui, _gui_top_bottom },
-		         _right_view  { _gui, _gui_left_right },
-		         _left_view   { _gui, _gui_left_right },
-		         _top_view    { _gui, _gui_top_bottom };
+		Remote_view _bottom_view { _gui, _gui_top_bottom },
+		            _right_view  { _gui, _gui_left_right },
+		            _left_view   { _gui, _gui_left_right },
+		            _top_view    { _gui, _gui_top_bottom };
 
-		Gui_view _content_view { _gui, (unsigned)id() };
+		Content_view _content_view { _gui, (unsigned)id() };
 
 		void _repaint_decorations(Gui_buffer &buffer, Area area)
 		{

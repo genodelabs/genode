@@ -48,8 +48,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 {
 	private:
 
-		using View_ids = Id_space<Gui::View_ref>;
-
 		struct View_ref : Gui::View_ref
 		{
 			Weak_ptr<View> _weak_ptr;
@@ -178,7 +176,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		void _adopt_new_view(View &);
 
-		Create_view_result _create_view_with_id(auto const &);
+		View_result _create_view_and_ref(View_id, View_attr const &attr, auto const &);
 
 		auto _with_view(View_id id, auto const &fn, auto const &missing_fn)
 		-> decltype(missing_fn())
@@ -386,13 +384,11 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		Input::Session_capability input() override {
 			return _input_session_cap; }
 
-		Create_view_result create_view() override;
+		View_result view(View_id, View_attr const &attr) override;
 
-		Create_child_view_result create_child_view(View_id) override;
+		Child_view_result child_view(View_id, View_id, View_attr const &attr) override;
 
 		void destroy_view(View_id) override;
-
-		Alloc_view_id_result alloc_view_id(View_capability) override;
 
 		View_id_result view_id(View_capability, View_id) override;
 

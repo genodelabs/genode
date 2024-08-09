@@ -48,8 +48,8 @@ class Viewer
 
 		Genode::Env            &_env;
 		Gui::Connection         _gui  { _env, "webcam" };
-		Gui::View_id            _view { _gui.create_view() };
 		Framebuffer::Mode const _mode;
+		Gui::Top_level_view     _view { _gui, { { }, _mode.area } };
 
 		Constructible<Genode::Attached_dataspace> _fb_ds { };
 		uint8_t *_framebuffer { nullptr };
@@ -65,14 +65,6 @@ class Viewer
 
 			_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());
 			_framebuffer = _fb_ds->local_addr<uint8_t>();
-
-			using Command = Gui::Session::Command;
-			using namespace Gui;
-
-			_gui.enqueue<Command::Geometry>(_view, Gui::Rect(Gui::Point(0, 0), _mode.area));
-			_gui.enqueue<Command::Front>(_view);
-			_gui.enqueue<Command::Title>(_view, "webcam");
-			_gui.execute();
 		}
 
 		uint8_t *framebuffer() { return _framebuffer; }

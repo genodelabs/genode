@@ -242,7 +242,7 @@ struct Nit_fb::Main : View_updater
 
 	unsigned refresh_rate = 0;
 
-	Gui::View_id view = gui.create_view();
+	Gui::Top_level_view const view { gui };
 
 	Genode::Attached_dataspace input_ds { env.rm(), gui.input.dataspace() };
 
@@ -301,8 +301,8 @@ struct Nit_fb::Main : View_updater
 	void update_view() override
 	{
 		using Command = Gui::Session::Command;
-		gui.enqueue<Command::Geometry>(view, Rect(position, fb_session.size()));
-		gui.enqueue<Command::Front>(view);
+		gui.enqueue<Command::Geometry>(view.id(), Rect(position, fb_session.size()));
+		gui.enqueue<Command::Front>(view.id());
 		gui.execute();
 	}
 

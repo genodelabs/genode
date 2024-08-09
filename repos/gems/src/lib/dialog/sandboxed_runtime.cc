@@ -58,6 +58,7 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 	Registry<Gui_session>::Element _element;
 
 	using View_capability = Gui::View_capability;
+	using View_id         = Gui::View_id;
 
 	Genode::Connection<Gui::Session> _connection;
 
@@ -125,25 +126,22 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 	Input::Session_capability input() override {
 		return _input_component.cap(); }
 
-	Create_view_result create_view() override {
-		return _gui_session.create_view(); }
+	View_result view(View_id id, View_attr const &attr) override {
+		return _gui_session.view(id, attr); }
 
-	Create_child_view_result create_child_view(Gui::View_id parent) override {
-		return _gui_session.create_child_view(parent); }
+	Child_view_result child_view(View_id id, View_id parent, View_attr const &attr) override {
+		return _gui_session.child_view(id, parent, attr); }
 
-	void destroy_view(Gui::View_id view) override {
+	void destroy_view(View_id view) override {
 		_gui_session.destroy_view(view); }
 
-	Alloc_view_id_result alloc_view_id(View_capability view_cap) override {
-		return _gui_session.alloc_view_id(view_cap); }
-
-	View_id_result view_id(View_capability view_cap, Gui::View_id id) override {
+	View_id_result view_id(View_capability view_cap, View_id id) override {
 		return _gui_session.view_id(view_cap, id); }
 
-	View_capability view_capability(Gui::View_id view) override {
+	View_capability view_capability(View_id view) override {
 		return _gui_session.view_capability(view); }
 
-	void release_view_id(Gui::View_id view) override {
+	void release_view_id(View_id view) override {
 		_gui_session.release_view_id(view); }
 
 	Dataspace_capability command_dataspace() override {

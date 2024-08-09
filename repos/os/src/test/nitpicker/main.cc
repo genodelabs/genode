@@ -34,12 +34,7 @@ class Test::View : private List<View>::Element, Interface
 {
 	public:
 
-		struct Attr
-		{
-			Gui::Point pos;
-			Gui::Area  size;
-			Gui::Title title;
-		};
+		using Attr = Gui::Session::View_attr;
 
 	private:
 
@@ -48,24 +43,18 @@ class Test::View : private List<View>::Element, Interface
 
 		using Command = Gui::Session::Command;
 
-		Gui::Connection   &_gui;
+		Gui::Connection &_gui;
+
 		Gui::View_id const _id;
-		Attr         const _attr;
-		Gui::Point         _pos = _attr.pos;
+		Gui::Area    const _size;
+		Gui::Point         _pos;
 
 	public:
 
-		View(Gui::Connection &gui, Attr const attr, auto const &create_fn)
+		View(Gui::Connection &gui, Gui::View_id const id, Attr const attr)
 		:
-			_gui(gui), _id(create_fn()), _attr(attr)
-		{
-			using namespace Gui;
-
-			_gui.enqueue<Command::Geometry>(_id, Gui::Rect { _pos, _attr.size });
-			_gui.enqueue<Command::Front>(_id);
-			_gui.enqueue<Command::Title>(_id, _attr.title);
-			_gui.execute();
-		}
+			_gui(gui), _id(id), _size(attr.rect.area), _pos(attr.rect.at)
+		{ }
 
 		Gui::View_capability view_cap()
 		{
@@ -81,13 +70,13 @@ class Test::View : private List<View>::Element, Interface
 		virtual void move(Gui::Point const pos)
 		{
 			_pos = pos;
-			_gui.enqueue<Command::Geometry>(_id, Gui::Rect { _pos, _attr.size });
+			_gui.enqueue<Command::Geometry>(_id, Gui::Rect { _pos, _size });
 			_gui.execute();
 		}
 
 		virtual Gui::Point pos() const { return _pos; }
 
-		Gui::Rect rect() const { return { pos(), _attr.size }; }
+		Gui::Rect rect() const { return { pos(), _size }; }
 
 		bool contains(Gui::Point pos) { return rect().contains(pos); }
 };
@@ -95,10 +84,12 @@ class Test::View : private List<View>::Element, Interface
 
 struct Test::Top_level_view : View
 {
-	Top_level_view(Gui::Connection &gui, Attr const &attr)
+	Top_level_view(Gui::Connection &gui, Gui::View_id const id, Attr const &attr)
 	:
-		View(gui, attr, [&] { return gui.create_view(); })
-	{ }
+		View(gui, id, attr)
+	{
+		gui.view(id, attr);
+	}
 };
 
 
@@ -106,17 +97,15 @@ struct Test::Child_view : View
 {
 	View &_parent;
 
-	Child_view(Gui::Connection &gui, View &parent, Attr const &attr)
+	Child_view(Gui::Connection &gui, Gui::View_id const id, View &parent, Attr const &attr)
 	:
-		View(gui, attr,
-			[&] /* create_fn */ {
-				Gui::View_id const parent_id = gui.alloc_view_id(parent.view_cap());
-				Gui::View_id const id = gui.create_child_view(parent_id);
-				gui.release_view_id(parent_id);
-				return id;
-			}
-		), _parent(parent)
-	{ }
+		View(gui, id, attr), _parent(parent)
+	{
+		Gui::View_id const parent_id { 0 }; /* temporary */
+		gui.view_id(parent.view_cap(), parent_id);
+		gui.child_view(id, parent_id, attr);
+		gui.release_view_id(parent_id);
+	}
 
 	void move(Gui::Point const pos) override
 	{
@@ -219,17 +208,17 @@ struct Test::Main
 	/*
 	 * View '_v1' is used as coordinate origin of '_v2' and '_v3'.
 	 */
-	Top_level_view _v1 { _gui,  { .pos   = { 150, 100 },
-	                              .size  = { 230, 200 },
-	                              .title = "Eins" } };
+	Top_level_view _v1 { _gui,  { 1 }, { .title = "Eins",
+	                                     .rect  = { { 150, 100 }, { 230, 200 } },
+	                                     .front = true } };
 
-	Child_view _v2 { _gui, _v1, { .pos   = {  20,  20 },
-	                              .size  = { 230, 210 },
-	                              .title = "Zwei" } };
+	Child_view _v2 { _gui, { 2 }, _v1, { .title = "Zwei",
+	                                     .rect  = { {  20,  20 }, { 230, 210 } },
+	                                     .front = true } };
 
-	Child_view _v3 { _gui, _v1, { .pos   = { 40,  40 },
-	                              .size  = { 230, 220 },
-	                              .title = "Drei" } };
+	Child_view _v3 { _gui, { 3 }, _v1, { .title = "Drei",
+	                                     .rect  = { {  40,  40 }, { 230, 220 } },
+	                                     .front = true } };
 
 	Signal_handler<Main> _input_handler { _env.ep(), *this, &Main::_handle_input };
 
