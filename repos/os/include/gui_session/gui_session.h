@@ -39,6 +39,7 @@ namespace Gui {
 	using View_capability = Capability<View>;
 	using View_id         = Id_space<View_ref>::Id;
 
+	using Title = String<64>;
 	using Rect  = Surface_base::Rect;
 	using Point = Surface_base::Point;
 	using Area  = Surface_base::Area;
@@ -85,7 +86,7 @@ struct Gui::Session : Genode::Session
 		struct Front_of   : View_op<FRONT_OF>   { View_id neighbor; };
 		struct Behind_of  : View_op<BEHIND_OF>  { View_id neighbor; };
 		struct Background : View_op<BACKGROUND> { };
-		struct Title      : View_op<TITLE>      { String<64> title; };
+		struct Title      : View_op<TITLE>      { Gui::Title title; };
 
 		Opcode opcode;
 		union

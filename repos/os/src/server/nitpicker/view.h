@@ -65,8 +65,6 @@ class Nitpicker::View : private Same_buffer_list_elem,
 {
 	public:
 
-		using Title = String<32>;
-
 		using Weak_object<View>::weak_ptr;
 
 	private:

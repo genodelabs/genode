@@ -269,7 +269,7 @@ class Pdf_view
 			Genode::log(Genode::Cstring(pdfapp_version(&_pdfapp)));
 		}
 
-		void title(char const *msg)
+		void title(Gui::Title const &msg)
 		{
 			using Command = Gui::Session::Command;
 			_gui.enqueue<Command::Title>(_view, msg);
@@ -405,7 +405,7 @@ void winreloadfile(pdfapp_t *)
 void wintitle(pdfapp_t *pdfapp, char *s)
 {
 	Pdf_view *pdf_view = (Pdf_view *)pdfapp->userdata;
-	pdf_view->title(s);
+	pdf_view->title((char const *)s);
 }
 
 

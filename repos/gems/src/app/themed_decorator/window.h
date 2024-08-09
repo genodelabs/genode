@@ -161,8 +161,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 				 * We supply the window ID as label for the anchor view.
 				 */
 				if (win_id)
-					_gui.enqueue<Command::Title>(_id,
-					                             Genode::String<128>(win_id).string());
+					_gui.enqueue<Command::Title>(_id, Gui::Title { win_id });
 			}
 
 			Gui::View_id _create_remote_view(Gui::Connection &remote_gui)

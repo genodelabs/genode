@@ -208,7 +208,7 @@ class Nitpicker::View_stack
 		/**
 		 * Set view title
 		 */
-		void title(View &view, char const *title);
+		void title(View &view, Title const &title);
 
 		/**
 		 * Find view at specified position

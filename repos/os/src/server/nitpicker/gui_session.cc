@@ -136,7 +136,7 @@ void Gui_session::_execute_command(Command const &command)
 	case Command::TITLE:
 
 		with_this(command.title, [&] (View &view, Command::Title const &args) {
-			_view_stack.title(view, args.title.string()); });
+			_view_stack.title(view, args.title); });
 		return;
 
 	case Command::NOP:

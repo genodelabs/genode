@@ -107,9 +107,9 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 
 	protected:
 
-		using Title       = Genode::String<100>;
-		using Command     = Gui::Session::Command;
-		using View_id     = Gui::View_id;
+		using Title   = Gui::Title;
+		using Command = Gui::Session::Command;
+		using View_id = Gui::View_id;
 
 		Session_label          _session_label;
 		Real_gui              &_real_gui;
@@ -144,7 +144,7 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 
 			_propagate_view_geometry();
 			_real_gui.enqueue<Command::Offset>(*_real_view, _buffer_offset);
-			_real_gui.enqueue<Command::Title> (*_real_view, _title.string());
+			_real_gui.enqueue<Command::Title> (*_real_view, _title);
 
 			Constructible<View_id> real_neighbor_id { };
 
@@ -206,9 +206,9 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 			}
 		}
 
-		virtual void title(char const *title)
+		virtual void title(Title const &title)
 		{
-			_title = Title(title);
+			_title = title;
 
 			if (_real_view.constructed()) {
 				_real_gui.enqueue<Command::Title>(*_real_view, title);
@@ -326,7 +326,7 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 			 */
 			if (!_win_id.valid()) {
 				_win_id = _window_registry.create();
-				_window_registry.title(_win_id, _window_title.string());
+				_window_registry.title(_win_id, _window_title);
 				_window_registry.label(_win_id, _session_label);
 				_window_registry.has_alpha(_win_id, View::has_alpha());
 				_window_registry.resizeable(_win_id, _resizeable);
@@ -339,14 +339,14 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 		Area size() const { return _geometry.area; }
 
-		void title(char const *title) override
+		void title(Title const &title) override
 		{
 			View::title(title);
 
-			_window_title = Title(title);
+			_window_title = title;
 
 			if (_win_id.valid())
-				_window_registry.title(_win_id, _window_title.string());
+				_window_registry.title(_win_id, _window_title);
 		}
 
 		bool has_win_id(Window_registry::Id id) const { return id == _win_id; }

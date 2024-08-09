@@ -277,7 +277,7 @@ void View_stack::stack(View &view, View const *neighbor, bool behind)
 }
 
 
-void View_stack::title(View &view, const char *title)
+void View_stack::title(View &view, Title const &title)
 {
 	view.title(_font, title);
 	_place_labels(view.abs_geometry());

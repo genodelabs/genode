@@ -54,7 +54,7 @@ class Decorator::Window : public Window_base
 				 * We supply the window ID as label for the anchor view.
 				 */
 				if (id)
-					_gui.enqueue<Command::Title>(_id, Genode::String<128>(id).string());
+					_gui.enqueue<Command::Title>(_id, Gui::Title { id });
 			}
 
 			~Gui_view()

@@ -34,13 +34,11 @@ class Test::View : private List<View>::Element, Interface
 {
 	public:
 
-		using Title = String<32>;
-
 		struct Attr
 		{
 			Gui::Point pos;
 			Gui::Area  size;
-			Title      title;
+			Gui::Title title;
 		};
 
 	private:

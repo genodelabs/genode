@@ -61,7 +61,7 @@ class Wm::Window_registry
 		{
 			public:
 
-				using Title         = Genode::String<200>;
+				using Title         = Gui::Title;
 				using Session_label = Genode::Session_label;
 
 				enum Has_alpha { HAS_ALPHA, HAS_NO_ALPHA };
@@ -261,9 +261,9 @@ class Wm::Window_registry
 
 		void size(Id id, Area size) { _set_attr(id, size); }
 
-		void title(Id id, Window::Title title) { _set_attr(id, title); }
+		void title(Id id, Window::Title const &title) { _set_attr(id, title); }
 
-		void label(Id id, Window::Session_label label) { _set_attr(id, label); }
+		void label(Id id, Window::Session_label const &label) { _set_attr(id, label); }
 
 		void has_alpha(Id id, bool has_alpha)
 		{
