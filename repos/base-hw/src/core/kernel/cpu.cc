@@ -27,35 +27,35 @@
 using namespace Kernel;
 
 
-/*************
- ** Cpu_job **
- *************/
+/*****************
+ ** Cpu_context **
+ *****************/
 
-void Cpu_job::_activate() { _cpu->schedule(this); }
+void Cpu_context::_activate() { _cpu().schedule(*this); }
 
 
-void Cpu_job::_deactivate()
+void Cpu_context::_deactivate()
 {
-	assert(_cpu->id() == Cpu::executing_id());
-	_cpu->scheduler().unready(*this);
+	assert(_cpu().id() == Cpu::executing_id());
+	_cpu().scheduler().unready(*this);
 }
 
 
-void Cpu_job::_yield()
+void Cpu_context::_yield()
 {
-	assert(_cpu->id() == Cpu::executing_id());
-	_cpu->scheduler().yield();
+	assert(_cpu().id() == Cpu::executing_id());
+	_cpu().scheduler().yield();
 }
 
 
-void Cpu_job::_interrupt(Irq::Pool &user_irq_pool, unsigned const /* cpu_id */)
+void Cpu_context::_interrupt(Irq::Pool &user_irq_pool)
 {
 	/* let the IRQ controller take a pending IRQ for handling, if any */
 	unsigned irq_id;
-	if (_cpu->pic().take_request(irq_id))
+	if (_cpu().pic().take_request(irq_id))
 
-		/* let the CPU of this job handle the IRQ if it is a CPU-local one */
-		if (!_cpu->handle_if_cpu_local_interrupt(irq_id)) {
+		/* let the CPU of this context handle the IRQ if it is a CPU-local one */
+		if (!_cpu().handle_if_cpu_local_interrupt(irq_id)) {
 
 			/* it isn't a CPU-local IRQ, so, it must be a user IRQ */
 			User_irq * irq = User_irq::object(user_irq_pool, irq_id);
@@ -64,38 +64,37 @@ void Cpu_job::_interrupt(Irq::Pool &user_irq_pool, unsigned const /* cpu_id */)
 		}
 
 	/* let the IRQ controller finish the currently taken IRQ */
-	_cpu->pic().finish_request();
+	_cpu().pic().finish_request();
 }
 
 
-void Cpu_job::affinity(Cpu &cpu)
+void Cpu_context::affinity(Cpu &cpu)
 {
-	_cpu = &cpu;
-	_cpu->scheduler().insert(*this);
+	_cpu().scheduler().remove(*this);
+	_cpu_ptr = &cpu;
+	_cpu().scheduler().insert(*this);
 }
 
 
-void Cpu_job::quota(unsigned const q)
+void Cpu_context::quota(unsigned const q)
 {
-	if (_cpu)
-		_cpu->scheduler().quota(*this, q);
-	else
-		Context::quota(q);
+	_cpu().scheduler().quota(*this, q);
 }
 
 
-Cpu_job::Cpu_job(Priority const p, unsigned const q)
+Cpu_context::Cpu_context(Cpu           &cpu,
+                         Priority const priority,
+                         unsigned const quota)
 :
-	Context(p, q), _cpu(0)
-{ }
-
-
-Cpu_job::~Cpu_job()
+	Context(priority, quota), _cpu_ptr(&cpu)
 {
-	if (!_cpu)
-		return;
+	_cpu().scheduler().insert(*this);
+}
 
-	_cpu->scheduler().remove(*this);
+
+Cpu_context::~Cpu_context()
+{
+	_cpu().scheduler().remove(*this);
 }
 
 
@@ -112,19 +111,17 @@ Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_a
                               Cpu                               &cpu,
                               Pd                                &core_pd)
 :
-	Thread { addr_space_id_alloc, user_irq_pool, cpu_pool, core_pd,
-	         Priority::min(), 0, "idle", Thread::IDLE }
+	Thread { addr_space_id_alloc, user_irq_pool, cpu_pool, cpu,
+	         core_pd, Priority::min(), 0, "idle", Thread::IDLE }
 {
 	regs->ip = (addr_t)&idle_thread_main;
-
-	affinity(cpu);
 	Thread::_pd = &core_pd;
 }
 
 
-void Cpu::schedule(Job * const job)
+void Cpu::schedule(Context &context)
 {
-	_scheduler.ready(*static_cast<Scheduler::Context*>(job));
+	_scheduler.ready(static_cast<Scheduler::Context&>(context));
 	if (_id != executing_id() && _scheduler.need_to_schedule())
 		trigger_ip_interrupt();
 }
@@ -142,26 +139,26 @@ bool Cpu::handle_if_cpu_local_interrupt(unsigned const irq_id)
 }
 
 
-Cpu_job & Cpu::schedule()
+Cpu::Context & Cpu::handle_exception_and_schedule()
 {
-	/* update scheduler */
-	Job & old_job = scheduled_job();
-	old_job.exception(*this);
+	Context &context = current_context();
+	context.exception();
 
 	if (_state == SUSPEND || _state == HALT)
 		return _halt_job;
 
+	/* update schedule if necessary */
 	if (_scheduler.need_to_schedule()) {
 		_timer.process_timeouts();
 		_scheduler.update(_timer.time());
 		time_t t = _scheduler.current_time_left();
 		_timer.set_timeout(&_timeout, t);
 		time_t duration = _timer.schedule_timeout();
-		old_job.update_execution_time(duration);
+		context.update_execution_time(duration);
 	}
 
-	/* return new job */
-	return scheduled_job();
+	/* return current context */
+	return current_context();
 }
 
 

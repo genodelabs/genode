@@ -169,7 +169,7 @@ Thread::Destroy::Destroy(Thread & caller, Core::Kernel_object<Thread> & to_delet
 :
 	caller(caller), thread_to_destroy(to_delete)
 {
-	thread_to_destroy->_cpu->work_list().insert(&_le);
+	thread_to_destroy->_cpu().work_list().insert(&_le);
 	caller._become_inactive(AWAITS_RESTART);
 }
 
@@ -177,7 +177,7 @@ Thread::Destroy::Destroy(Thread & caller, Core::Kernel_object<Thread> & to_delet
 void
 Thread::Destroy::execute(Cpu &)
 {
-	thread_to_destroy->_cpu->work_list().remove(&_le);
+	thread_to_destroy->_cpu().work_list().remove(&_le);
 	thread_to_destroy.destruct();
 	caller._restart();
 }
@@ -272,14 +272,14 @@ void Thread::ipc_await_request_failed()
 
 void Thread::_become_active()
 {
-	if (_state != ACTIVE && !_paused) Cpu_job::_activate();
+	if (_state != ACTIVE && !_paused) Cpu_context::_activate();
 	_state = ACTIVE;
 }
 
 
 void Thread::_become_inactive(State const s)
 {
-	if (_state == ACTIVE && !_paused) Cpu_job::_deactivate();
+	if (_state == ACTIVE && !_paused) Cpu_context::_deactivate();
 	_state = s;
 }
 
@@ -293,7 +293,7 @@ size_t Thread::_core_to_kernel_quota(size_t const quota) const
 
 	/* we assert at timer construction that cpu_quota_us in ticks fits size_t */
 	size_t const ticks = (size_t)
-		_cpu->timer().us_to_ticks(Kernel::cpu_quota_us);
+		_cpu().timer().us_to_ticks(Kernel::cpu_quota_us);
 	return Cpu_session::quota_lim_downscale(quota, ticks);
 }
 
@@ -301,24 +301,20 @@ size_t Thread::_core_to_kernel_quota(size_t const quota) const
 void Thread::_call_thread_quota()
 {
 	Thread * const thread = (Thread *)user_arg_1();
-	thread->Cpu_job::quota((unsigned)(_core_to_kernel_quota(user_arg_2())));
+	thread->Cpu_context::quota((unsigned)(_core_to_kernel_quota(user_arg_2())));
 }
 
 
 void Thread::_call_start_thread()
 {
-	/* lookup CPU */
-	Cpu & cpu = _cpu_pool.cpu((unsigned)user_arg_2());
 	user_arg_0(0);
 	Thread &thread = *(Thread*)user_arg_1();
 
 	assert(thread._state == AWAITS_START);
 
-	thread.affinity(cpu);
-
 	/* join protection domain */
-	thread._pd = (Pd *) user_arg_3();
-	switch (thread._ipc_init(*(Native_utcb *)user_arg_4(), *this)) {
+	thread._pd = (Pd *) user_arg_2();
+	switch (thread._ipc_init(*(Native_utcb *)user_arg_3(), *this)) {
 	case Ipc_alloc_result::OK:
 		break;
 	case Ipc_alloc_result::EXHAUSTED:
@@ -338,7 +334,8 @@ void Thread::_call_start_thread()
 	 * semantic changes, and additional core threads are started
 	 * across cpu cores.
 	 */
-	if (thread._pd == &_core_pd && cpu.id() != _cpu_pool.primary_cpu().id())
+	if (thread._pd == &_core_pd &&
+	    thread._cpu().id() != _cpu_pool.primary_cpu().id())
 	        Genode::raw("Error: do not start core threads"
 	                    " on CPU cores different than boot cpu");
 
@@ -433,7 +430,7 @@ void Thread::_cancel_blocking()
 
 void Thread::_call_yield_thread()
 {
-	Cpu_job::_yield();
+	Cpu_context::_yield();
 }
 
 
@@ -443,12 +440,11 @@ void Thread::_call_delete_thread()
 		*(Core::Kernel_object<Thread>*)user_arg_1();
 
 	/**
-	 * Delete a thread immediately if it has no cpu assigned yet,
-	 * or it is assigned to this cpu, or the assigned cpu did not scheduled it.
+	 * Delete a thread immediately if it is assigned to this cpu,
+	 * or the assigned cpu did not scheduled it.
 	 */
-	if (!to_delete->_cpu ||
-	    (to_delete->_cpu->id() == Cpu::executing_id() ||
-	     &to_delete->_cpu->scheduled_job() != &*to_delete)) {
+	if (to_delete->_cpu().id() == Cpu::executing_id() ||
+	    &to_delete->_cpu().current_context() != &*to_delete) {
 		_call_delete<Thread>();
 		return;
 	}
@@ -457,7 +453,7 @@ void Thread::_call_delete_thread()
 	 * Construct a cross-cpu work item and send an IPI
 	 */
 	_destroy.construct(*this, to_delete);
-	to_delete->_cpu->trigger_ip_interrupt();
+	to_delete->_cpu().trigger_ip_interrupt();
 }
 
 
@@ -466,8 +462,8 @@ void Thread::_call_delete_pd()
 	Core::Kernel_object<Pd> & pd =
 		*(Core::Kernel_object<Pd>*)user_arg_1();
 
-	if (_cpu->active(pd->mmu_regs))
-		_cpu->switch_to(_core_pd.mmu_regs);
+	if (_cpu().active(pd->mmu_regs))
+		_cpu().switch_to(_core_pd.mmu_regs);
 
 	_call_delete<Pd>();
 }
@@ -499,7 +495,7 @@ void Thread::_call_await_request_msg()
 
 void Thread::_call_timeout()
 {
-	Timer & t = _cpu->timer();
+	Timer & t = _cpu().timer();
 	_timeout_sigid = (Kernel::capid_t)user_arg_2();
 	t.set_timeout(this, t.us_to_ticks(user_arg_1()));
 }
@@ -507,13 +503,13 @@ void Thread::_call_timeout()
 
 void Thread::_call_timeout_max_us()
 {
-	user_ret_time(_cpu->timer().timeout_max_us());
+	user_ret_time(_cpu().timer().timeout_max_us());
 }
 
 
 void Thread::_call_time()
 {
-	Timer & t = _cpu->timer();
+	Timer & t = _cpu().timer();
 	user_ret_time(t.ticks_to_us(t.time()));
 }
 
@@ -540,7 +536,7 @@ void Thread::_call_send_request_msg()
 		_become_inactive(DEAD);
 		return;
 	}
-	bool const help = Cpu_job::_helping_possible(*dst);
+	bool const help = Cpu_context::_helping_possible(*dst);
 	oir = oir->find(dst->pd());
 
 	if (!_ipc_node.ready_to_send()) {
@@ -558,7 +554,7 @@ void Thread::_call_send_request_msg()
 	}
 
 	_state = AWAITS_IPC;
-	if (help) Cpu_job::help(*dst);
+	if (help) Cpu_context::_help(*dst);
 	if (!help || !dst->ready()) _deactivate();
 }
 
@@ -727,7 +723,7 @@ void Thread::_call_new_irq()
 		(Genode::Irq_session::Polarity) (user_arg_3() & 0b11);
 
 	_call_new<User_irq>((unsigned)user_arg_2(), trigger, polarity, *c,
-	                    _cpu->pic(), _user_irq_pool);
+	                    _cpu().pic(), _user_irq_pool);
 }
 
 
@@ -869,13 +865,15 @@ void Thread::_call()
 	switch (call_id) {
 	case call_id_new_thread():
 		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
-		                  _core_pd, (unsigned) user_arg_2(),
-		                  (unsigned) _core_to_kernel_quota(user_arg_3()),
-		                  (char const *) user_arg_4(), USER);
+		                  _cpu_pool.cpu((unsigned)user_arg_2()),
+		                  _core_pd, (unsigned) user_arg_3(),
+		                  (unsigned) _core_to_kernel_quota(user_arg_4()),
+		                  (char const *) user_arg_5(), USER);
 		return;
 	case call_id_new_core_thread():
 		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
-		                  _core_pd, (char const *) user_arg_2());
+		                  _cpu_pool.cpu((unsigned)user_arg_2()),
+		                  _core_pd, (char const *) user_arg_3());
 		return;
 	case call_id_thread_quota():           _call_thread_quota(); return;
 	case call_id_delete_thread():          _call_delete_thread(); return;
@@ -972,6 +970,7 @@ void Thread::_exception()
 Thread::Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
                Irq::Pool                         &user_irq_pool,
                Cpu_pool                          &cpu_pool,
+               Cpu                               &cpu,
                Pd                                &core_pd,
                unsigned                    const  priority,
                unsigned                    const  quota,
@@ -979,7 +978,7 @@ Thread::Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
                Type                               type)
 :
 	Kernel::Object       { *this },
-	Cpu_job              { priority, quota },
+	Cpu_context          { cpu, priority, quota },
 	_addr_space_id_alloc { addr_space_id_alloc },
 	_user_irq_pool       { user_irq_pool },
 	_cpu_pool            { cpu_pool },
@@ -1016,8 +1015,8 @@ Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
                  Cpu_pool                          &cpu_pool,
                  Pd                                &core_pd)
 :
-	Core_object<Thread>(
-		core_pd, addr_space_id_alloc, user_irq_pool, cpu_pool, core_pd, "core")
+	Core_object<Thread>(core_pd, addr_space_id_alloc, user_irq_pool, cpu_pool,
+	                    cpu_pool.primary_cpu(), core_pd, "core")
 {
 	using namespace Core;
 
@@ -1033,7 +1032,6 @@ Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
 	regs->sp = (addr_t)&__initial_stack_base[0] + DEFAULT_STACK_SIZE;
 	regs->ip = (addr_t)&_core_start;
 
-	affinity(_cpu_pool.primary_cpu());
 	_utcb       = &_utcb_instance;
 	Thread::_pd = &core_pd;
 	_become_active();

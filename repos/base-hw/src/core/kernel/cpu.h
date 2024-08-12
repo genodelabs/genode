@@ -39,9 +39,11 @@ namespace Kernel {
 class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
                     public Genode::List<Cpu>::Element
 {
-	private:
+	public:
 
-		using Job = Cpu_job;
+		using Context = Cpu_context;
+
+	private:
 
 		/**
 		 * Inter-processor-interrupt object of the cpu
@@ -83,13 +85,14 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 			            Pd                                &core_pd);
 		};
 
-		struct Halt_job : Job
+		struct Halt_job : Cpu_context
 		{
-			Halt_job() : Job (0, 0) { }
+			Halt_job(Cpu &cpu)
+			: Cpu_context(cpu, 0, 0) { }
 
-			void exception(Kernel::Cpu &) override { }
-			void proceed(Kernel::Cpu &) override;
-		} _halt_job { };
+			void exception() override { }
+			void proceed()   override;
+		} _halt_job { *this };
 
 		enum State { RUN, HALT, SUSPEND };
 
@@ -140,14 +143,14 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 		bool handle_if_cpu_local_interrupt(unsigned const irq_id);
 
 		/**
-		 * Schedule 'job' at this CPU
+		 * Schedule 'context' at this CPU
 		 */
-		void schedule(Job * const job);
+		void schedule(Context& context);
 
 		/**
-		 * Return the job that should be executed at next
+		 * Return the context that should be executed next
 		 */
-		Cpu_job& schedule();
+		Context& handle_exception_and_schedule();
 
 		Board::Pic & pic()   { return _pic; }
 		Timer      & timer() { return _timer; }
@@ -155,10 +158,10 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 		addr_t stack_start();
 
 		/**
-		 * Returns the currently active job
+		 * Returns the currently scheduled context
 		 */
-		Job & scheduled_job() {
-			return static_cast<Job&>(_scheduler.current().helping_destination()); }
+		Context & current_context() {
+			return static_cast<Context&>(_scheduler.current().helping_destination()); }
 
 		unsigned id() const { return _id; }
 		Scheduler &scheduler() { return _scheduler; }

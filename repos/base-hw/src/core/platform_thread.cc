@@ -93,7 +93,7 @@ Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
 	_utcb((addr_t)&utcb),
 	_main_thread(false),
 	_location(Affinity::Location()),
-	_kobj(_kobj.CALLED_FROM_CORE, _label.string())
+	_kobj(_kobj.CALLED_FROM_CORE, _location.xpos(), _label.string())
 { }
 
 
@@ -115,7 +115,8 @@ Platform_thread::Platform_thread(Platform_pd              &pd,
 	_quota((unsigned)quota),
 	_main_thread(!pd.has_any_thread),
 	_location(location),
-	_kobj(_kobj.CALLED_FROM_CORE, _priority, _quota, _label.string())
+	_kobj(_kobj.CALLED_FROM_CORE, _location.xpos(),
+	      _priority, _quota, _label.string())
 {
 	_address_space = pd.weak_ptr();
 	pd.has_any_thread = true;
@@ -171,9 +172,6 @@ void Platform_thread::start(void * const ip, void * const sp)
 	_kobj->regs->ip = reinterpret_cast<addr_t>(ip);
 	_kobj->regs->sp = reinterpret_cast<addr_t>(sp);
 
-	/* start executing new thread */
-	unsigned const cpu = _location.xpos();
-
 	Native_utcb &utcb = *Thread::myself()->utcb();
 
 	/* reset capability counter */
@@ -183,7 +181,9 @@ void Platform_thread::start(void * const ip, void * const sp)
 		utcb.cap_add(Capability_space::capid(_pd.parent()));
 		utcb.cap_add(Capability_space::capid(_utcb._ds));
 	}
-	Kernel::start_thread(*_kobj, cpu, _pd.kernel_pd(), *(Native_utcb*)_utcb.core_addr);
+
+	Kernel::start_thread(*_kobj, _pd.kernel_pd(),
+	                     *(Native_utcb*)_utcb.core_addr);
 }
 
 

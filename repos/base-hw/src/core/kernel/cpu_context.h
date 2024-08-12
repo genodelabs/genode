@@ -22,45 +22,38 @@
 namespace Kernel {
 
 	class Cpu;
-
-	/**
-	 * Context of a job (thread, VM, idle) that shall be executed by a CPU
-	 */
-	class Cpu_job;
+	class Cpu_context;
 }
 
 
-class Kernel::Cpu_job : private Scheduler::Context
+/**
+ * Context (thread, vcpu) that shall be executed by a CPU
+ */
+class Kernel::Cpu_context : private Scheduler::Context
 {
 	private:
 
-		friend class Cpu; /* static_cast from 'Scheduler::Context' to 'Cpu_job' */
+		friend class Cpu;
 
 		time_t _execution_time { 0 };
+		Cpu   *_cpu_ptr;
 
 		/*
 		 * Noncopyable
 		 */
-		Cpu_job(Cpu_job const &);
-		Cpu_job &operator = (Cpu_job const &);
+		Cpu_context(Cpu_context const &);
+		Cpu_context &operator = (Cpu_context const &);
 
 	protected:
 
-		Cpu * _cpu;
+		Cpu &_cpu() const { return *_cpu_ptr; }
 
 		/**
-		 * Handle interrupt exception that occured during execution on CPU 'id'
+		 * Handle interrupt exception
 		 */
-		void _interrupt(Irq::Pool &user_irq_pool, unsigned const id);
+		void _interrupt(Irq::Pool &user_irq_pool);
 
-		/**
-		 * Activate our own CPU-share
-		 */
 		void _activate();
-
-		/**
-		 * Deactivate our own CPU-share
-		 */
 		void _deactivate();
 
 		/**
@@ -69,47 +62,34 @@ class Kernel::Cpu_job : private Scheduler::Context
 		void _yield();
 
 		/**
-		 * Return wether we are allowed to help job 'j' with our CPU-share
+		 * Return possibility to help context 'j' scheduling-wise
 		 */
-		bool _helping_possible(Cpu_job const &j) const { return j._cpu == _cpu; }
+		bool _helping_possible(Cpu_context const &j) const {
+			return j._cpu_ptr == _cpu_ptr; }
+
+		void _help(Cpu_context &context) { Context::help(context); }
 
 		using Context::ready;
 		using Context::helping_finished;
-
-		void help(Cpu_job &job) { Context::help(job); }
 
 	public:
 
 		using Context  = Scheduler::Context;
 		using Priority = Scheduler::Priority;
 
-		/**
-		 * Handle exception that occured during execution on CPU 'id'
-		 */
-		virtual void exception(Cpu & cpu) = 0;
+		Cpu_context(Cpu           &cpu,
+		            Priority const priority,
+		            unsigned const quota);
+
+		virtual ~Cpu_context();
 
 		/**
-		 * Continue execution on CPU 'id'
-		 */
-		virtual void proceed(Cpu & cpu) = 0;
-
-		/**
-		 * Construct a job with scheduling priority 'p' and time quota 'q'
-		 */
-		Cpu_job(Priority const p, unsigned const q);
-
-		/**
-		 * Destructor
-		 */
-		virtual ~Cpu_job();
-
-		/**
-		 * Link job to CPU 'cpu'
+		 * Link context to CPU 'cpu'
 		 */
 		void affinity(Cpu &cpu);
 
 		/**
-		 * Set CPU quota of the job to 'q'
+		 * Set CPU quota of the context to 'q'
 		 */
 		void quota(unsigned const q);
 
@@ -123,12 +103,15 @@ class Kernel::Cpu_job : private Scheduler::Context
 		 */
 		time_t execution_time() const { return _execution_time; }
 
+		/**
+		 * Handle exception that occured during execution of this context
+		 */
+		virtual void exception() = 0;
 
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		void cpu(Cpu &cpu) { _cpu = &cpu; }
+		/**
+		 * Continue execution of this context
+		 */
+		virtual void proceed() = 0;
 };
 
 #endif /* _CORE__KERNEL__CPU_CONTEXT_H_ */

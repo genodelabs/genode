@@ -41,15 +41,12 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
        Identity               & id)
 :
 	Kernel::Object { *this },
-	Cpu_job(Scheduler::Priority::min(), 0),
+	Cpu_context(cpu, Scheduler::Priority::min(), 0),
 	_user_irq_pool(user_irq_pool),
 	_state(*data.vcpu_state),
 	_context(context),
 	_id(id),
-	_vcpu_context(id.id, data)
-{
-	affinity(cpu);
-}
+	_vcpu_context(id.id, data) { }
 
 
 Vm::~Vm()
@@ -57,10 +54,10 @@ Vm::~Vm()
 }
 
 
-void Vm::proceed(Cpu & cpu)
+void Vm::proceed()
 {
 	using namespace Board;
-	cpu.switch_to(*_vcpu_context.regs);
+	_cpu().switch_to(*_vcpu_context.regs);
 
 	if (_vcpu_context.exit_reason == EXIT_INIT) {
 		_vcpu_context.regs->trapno = TRAP_VMSKIP;
@@ -83,7 +80,7 @@ void Vm::proceed(Cpu & cpu)
 }
 
 
-void Vm::exception(Cpu & cpu)
+void Vm::exception()
 {
 	using namespace Board;
 
@@ -121,18 +118,18 @@ void Vm::exception(Cpu & cpu)
 			 * it needs to handle an exit.
 			 */
 			if (_vcpu_context.exit_reason == EXIT_PAUSED)
-				_interrupt(_user_irq_pool, cpu.id());
+				_interrupt(_user_irq_pool);
 			else
 				pause = true;
 			break;
 		case Cpu_state::INTERRUPTS_START ... Cpu_state::INTERRUPTS_END:
-			_interrupt(_user_irq_pool, cpu.id());
+			_interrupt(_user_irq_pool);
 			break;
 		case TRAP_VMSKIP:
 			/* vCPU is running for the first time */
-			_vcpu_context.initialize(cpu,
+			_vcpu_context.initialize(_cpu(),
 			    reinterpret_cast<addr_t>(_id.table));
-			_vcpu_context.tsc_aux_host = cpu.id();
+			_vcpu_context.tsc_aux_host = _cpu().id();
 			/*
 			 * We set the artificial startup exit code, stop the
 			 * vCPU thread and ask the VMM to handle it.

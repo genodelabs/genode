@@ -25,21 +25,21 @@ void Thread::Tlb_invalidation::execute(Cpu &) { }
 void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
-void Cpu::Halt_job::proceed(Kernel::Cpu &) { }
+void Cpu::Halt_job::proceed() { }
 
 
-void Thread::exception(Cpu & cpu)
+void Thread::exception()
 {
 	using Context = Core::Cpu::Context;
 	using Stval   = Core::Cpu::Stval;
 
 	if (regs->is_irq()) {
 		/* cpu-local timer interrupt */
-		if (regs->irq() == cpu.timer().interrupt_id()) {
-			cpu.handle_if_cpu_local_interrupt(cpu.timer().interrupt_id());
+		if (regs->irq() == _cpu().timer().interrupt_id()) {
+			_cpu().handle_if_cpu_local_interrupt(_cpu().timer().interrupt_id());
 		} else {
 			/* interrupt controller */
-			_interrupt(_user_irq_pool, 0);
+			_interrupt(_user_irq_pool);
 		}
 		return;
 	}
@@ -113,7 +113,7 @@ void Kernel::Thread::_call_cache_line_size()
 }
 
 
-void Kernel::Thread::proceed(Cpu & cpu)
+void Kernel::Thread::proceed()
 {
 	/*
 	 * The sstatus register defines to which privilege level
@@ -123,8 +123,8 @@ void Kernel::Thread::proceed(Cpu & cpu)
 	Cpu::Sstatus::Spp::set(v, (type() == USER) ? 0 : 1);
 	Cpu::Sstatus::write(v);
 
-	if (!cpu.active(pd().mmu_regs) && type() != CORE)
-		cpu.switch_to(_pd->mmu_regs);
+	if (!_cpu().active(pd().mmu_regs) && type() != CORE)
+		_cpu().switch_to(_pd->mmu_regs);
 
 	asm volatile("csrw sscratch, %1                                \n"
 	             "mv   x31, %0                                     \n"

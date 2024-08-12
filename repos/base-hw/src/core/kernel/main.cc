@@ -63,16 +63,16 @@ Kernel::Main *Kernel::Main::_instance;
 
 void Kernel::Main::_handle_kernel_entry()
 {
-	Cpu &cpu = _cpu_pool.cpu(Cpu::executing_id());
-	Cpu_job * new_job;
+	Cpu::Context * context;
 
 	{
 		Lock::Guard guard(_data_lock);
 
-		new_job = &cpu.schedule();
+		context =
+			&_cpu_pool.cpu(Cpu::executing_id()).handle_exception_and_schedule();
 	}
 
-	new_job->proceed(cpu);
+	context->proceed();
 }
 
 

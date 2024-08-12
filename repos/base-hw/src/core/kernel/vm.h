@@ -31,7 +31,7 @@ namespace Kernel {
 }
 
 
-class Kernel::Vm : private Kernel::Object, public Cpu_job
+class Kernel::Vm : private Kernel::Object, public Cpu_context
 {
 	public:
 
@@ -66,7 +66,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		void _pause_vcpu()
 		{
 			if (_scheduled != INACTIVE)
-				Cpu_job::_deactivate();
+				Cpu_context::_deactivate();
 
 			_scheduled = INACTIVE;
 		}
@@ -135,7 +135,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		void run()
 		{
 			_sync_from_vmm();
-			if (_scheduled != ACTIVE) Cpu_job::_activate();
+			if (_scheduled != ACTIVE) Cpu_context::_activate();
 			_scheduled = ACTIVE;
 		}
 
@@ -146,12 +146,12 @@ class Kernel::Vm : private Kernel::Object, public Cpu_job
 		}
 
 
-		/*************
-		 ** Cpu_job **
-		 *************/
+		/*****************
+		 ** Cpu_context **
+		 *****************/
 
-		void exception(Cpu & cpu)       override;
-		void proceed(Cpu &  cpu)        override;
+		void exception() override;
+		void proceed() override;
 };
 
 #endif /* _CORE__KERNEL__VM_H_ */

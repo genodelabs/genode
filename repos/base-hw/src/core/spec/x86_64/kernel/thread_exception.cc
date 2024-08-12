@@ -20,7 +20,7 @@
 using namespace Kernel;
 
 
-void Thread::exception(Cpu & cpu)
+void Thread::exception()
 {
 	using Genode::Cpu_state;
 
@@ -45,7 +45,7 @@ void Thread::exception(Cpu & cpu)
 
 	if (regs->trapno >= Cpu_state::INTERRUPTS_START &&
 	    regs->trapno <= Cpu_state::INTERRUPTS_END) {
-		_interrupt(_user_irq_pool, cpu.id());
+		_interrupt(_user_irq_pool);
 		return;
 	}
 

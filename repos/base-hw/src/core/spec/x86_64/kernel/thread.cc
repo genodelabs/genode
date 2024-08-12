@@ -55,9 +55,9 @@ void Kernel::Thread::Flush_and_stop_cpu::execute(Cpu &cpu)
 }
 
 
-void Kernel::Cpu::Halt_job::Halt_job::proceed(Kernel::Cpu &cpu)
+void Kernel::Cpu::Halt_job::Halt_job::proceed()
 {
-	switch (cpu.state()) {
+	switch (_cpu().state()) {
 	case HALT:
 		while (true) {
 			asm volatile ("hlt"); }
@@ -83,7 +83,7 @@ void Kernel::Cpu::Halt_job::Halt_job::proceed(Kernel::Cpu &cpu)
 			/* adhere to ACPI specification */
 			asm volatile ("wbinvd" : : : "memory");
 
-			fadt.suspend(cpu.suspend.typ_a, cpu.suspend.typ_b);
+			fadt.suspend(_cpu().suspend.typ_a, _cpu().suspend.typ_b);
 
 			Genode::raw("kernel: unexpected resume");
 		});
@@ -143,7 +143,7 @@ void Kernel::Thread::_call_suspend()
 	/* single core CPU case */
 	if (cpu_count == 1) {
 		/* current CPU triggers final ACPI suspend outside kernel lock */
-		_cpu->next_state_suspend();
+		_cpu().next_state_suspend();
 		return;
 	}
 
@@ -176,12 +176,12 @@ void Kernel::Thread::_call_cache_line_size()
 }
 
 
-void Kernel::Thread::proceed(Cpu & cpu)
+void Kernel::Thread::proceed()
 {
-	if (!cpu.active(pd().mmu_regs) && type() != CORE)
-		cpu.switch_to(pd().mmu_regs);
+	if (!_cpu().active(pd().mmu_regs) && type() != CORE)
+		_cpu().switch_to(pd().mmu_regs);
 
-	cpu.switch_to(*regs);
+	_cpu().switch_to(*regs);
 
 	asm volatile("fxrstor (%1)    \n"
 	             "mov  %0, %%rsp  \n"

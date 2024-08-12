@@ -76,7 +76,7 @@ void Board::Vcpu_context::Vm_irq::handle(Vm & vm, unsigned irq) {
 
 void Board::Vcpu_context::Vm_irq::occurred()
 {
-	Vm *vm = dynamic_cast<Vm*>(&_cpu.scheduled_job());
+	Vm *vm = dynamic_cast<Vm*>(&_cpu.current_context());
 	if (!vm) Genode::raw("VM interrupt while VM is not runnning!");
 	else     handle(*vm, _irq_nr);
 }
@@ -115,15 +115,13 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
        Identity               & id)
 :
 	Kernel::Object { *this },
-	Cpu_job(Scheduler::Priority::min(), 0),
+	Cpu_context(cpu, Scheduler::Priority::min(), 0),
 	_user_irq_pool(user_irq_pool),
 	_state(data),
 	_context(context),
 	_id(id),
 	_vcpu_context(cpu)
 {
-	affinity(cpu);
-
 	_state.id_aa64isar0_el1 = Cpu::Id_aa64isar0_el1::read();
 	_state.id_aa64isar1_el1 = Cpu::Id_aa64isar1_el1::read();
 	_state.id_aa64mmfr0_el1 = Cpu::Id_aa64mmfr0_el1::read();
@@ -167,14 +165,14 @@ Vm::~Vm()
 }
 
 
-void Vm::exception(Cpu & cpu)
+void Vm::exception()
 {
 	switch (_state.exception_type) {
 	case Cpu::IRQ_LEVEL_EL0: [[fallthrough]];
 	case Cpu::IRQ_LEVEL_EL1: [[fallthrough]];
 	case Cpu::FIQ_LEVEL_EL0: [[fallthrough]];
 	case Cpu::FIQ_LEVEL_EL1:
-		_interrupt(_user_irq_pool, cpu.id());
+		_interrupt(_user_irq_pool);
 		break;
 	case Cpu::SYNC_LEVEL_EL0: [[fallthrough]];
 	case Cpu::SYNC_LEVEL_EL1: [[fallthrough]];
@@ -188,17 +186,17 @@ void Vm::exception(Cpu & cpu)
 		            " not implemented!");
 	};
 
-	if (cpu.pic().ack_virtual_irq(_vcpu_context.pic))
+	if (_cpu().pic().ack_virtual_irq(_vcpu_context.pic))
 		inject_irq(Board::VT_MAINTAINANCE_IRQ);
 	_vcpu_context.vtimer_irq.disable();
 }
 
 
-void Vm::proceed(Cpu & cpu)
+void Vm::proceed()
 {
 	if (_state.timer.irq) _vcpu_context.vtimer_irq.enable();
 
-	cpu.pic().insert_virtual_irq(_vcpu_context.pic, _state.irqs.virtual_irq);
+	_cpu().pic().insert_virtual_irq(_vcpu_context.pic, _state.irqs.virtual_irq);
 
 	/*
 	 * the following values have to be enforced by the hypervisor
@@ -208,7 +206,7 @@ void Vm::proceed(Cpu & cpu)
 	Cpu::Vttbr_el2::Asid::set(vttbr_el2, _id.id);
 	addr_t guest = Hw::Mm::el2_addr(&_state);
 	addr_t pic   = Hw::Mm::el2_addr(&_vcpu_context.pic);
-	addr_t host  = Hw::Mm::el2_addr(&host_context(cpu));
+	addr_t host  = Hw::Mm::el2_addr(&host_context(_cpu()));
 
 	Hypervisor::switch_world(guest, host, pic, vttbr_el2);
 }

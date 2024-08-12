@@ -101,7 +101,7 @@ void Board::Vcpu_context::Vm_irq::handle(Vm & vm, unsigned irq) {
 
 void Board::Vcpu_context::Vm_irq::occurred()
 {
-	Vm *vm = dynamic_cast<Vm*>(&_cpu.scheduled_job());
+	Vm *vm = dynamic_cast<Vm*>(&_cpu.current_context());
 	if (!vm) Genode::raw("VM interrupt while VM is not runnning!");
 	else     handle(*vm, _irq_nr);
 }
@@ -140,14 +140,13 @@ Kernel::Vm::Vm(Irq::Pool              & user_irq_pool,
                Identity               & id)
 :
 	Kernel::Object { *this },
-	Cpu_job(Scheduler::Priority::min(), 0),
+	Cpu_context(cpu, Scheduler::Priority::min(), 0),
 	_user_irq_pool(user_irq_pool),
 	_state(data),
 	_context(context),
 	_id(id),
 	_vcpu_context(cpu)
 {
-	affinity(cpu);
 	/* once constructed, exit with a startup exception */
 	pause();
 	_state.cpu_exception = Genode::VCPU_EXCEPTION_STARTUP;
@@ -164,29 +163,29 @@ Kernel::Vm::~Vm()
 }
 
 
-void Kernel::Vm::exception(Cpu & cpu)
+void Kernel::Vm::exception()
 {
 	switch(_state.cpu_exception) {
 	case Genode::Cpu_state::INTERRUPT_REQUEST:
 	case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-		_interrupt(_user_irq_pool, cpu.id());
+		_interrupt(_user_irq_pool);
 		break;
 	default:
 		pause();
 		_context.submit(1);
 	}
 
-	if (cpu.pic().ack_virtual_irq(_vcpu_context.pic))
+	if (_cpu().pic().ack_virtual_irq(_vcpu_context.pic))
 		inject_irq(Board::VT_MAINTAINANCE_IRQ);
 	_vcpu_context.vtimer_irq.disable();
 }
 
 
-void Kernel::Vm::proceed(Cpu & cpu)
+void Kernel::Vm::proceed()
 {
 	if (_state.timer.irq) _vcpu_context.vtimer_irq.enable();
 
-	cpu.pic().insert_virtual_irq(_vcpu_context.pic, _state.irqs.virtual_irq);
+	_cpu().pic().insert_virtual_irq(_vcpu_context.pic, _state.irqs.virtual_irq);
 
 	/*
 	 * the following values have to be enforced by the hypervisor
@@ -202,7 +201,7 @@ void Kernel::Vm::proceed(Cpu & cpu)
 	_state.esr_el2   = Cpu::Hstr::init();
 	_state.hpfar_el2 = Cpu::Hcr::init();
 
-	Hypervisor::switch_world(_state, host_context(cpu));
+	Hypervisor::switch_world(_state, host_context(_cpu()));
 }
 
 

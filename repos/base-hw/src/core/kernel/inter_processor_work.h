@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__KERNEL__SMP_H_
-#define _CORE__KERNEL__SMP_H_
+#ifndef _CORE__KERNEL__INTER_PROCESSOR_WORK_H_
+#define _CORE__KERNEL__INTER_PROCESSOR_WORK_H_
 
 #include <util/interface.h>
 
@@ -32,11 +32,11 @@ class Kernel::Inter_processor_work : Genode::Interface
 {
 	public:
 
-		virtual void execute(Cpu &) = 0;
+		virtual void execute(Cpu & cpu) = 0;
 
 	protected:
 
 		Genode::List_element<Inter_processor_work> _le { this };
 };
 
-#endif /* _CORE__KERNEL__SMP_H_ */
+#endif /* _CORE__KERNEL__INTER_PROCESSOR_WORK_H_ */

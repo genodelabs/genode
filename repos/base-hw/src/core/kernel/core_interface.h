@@ -137,10 +137,9 @@ namespace Kernel {
 	 * \retval   0  suceeded
 	 * \retval !=0  failed
 	 */
-	inline int start_thread(Thread & thread, unsigned const cpu_id,
-	                        Pd & pd, Native_utcb & utcb)
+	inline int start_thread(Thread & thread, Pd & pd, Native_utcb & utcb)
 	{
-		return (int)call(call_id_start_thread(), (Call_arg)&thread, cpu_id,
+		return (int)call(call_id_start_thread(), (Call_arg)&thread,
 		                 (Call_arg)&pd, (Call_arg)&utcb);
 	}
 

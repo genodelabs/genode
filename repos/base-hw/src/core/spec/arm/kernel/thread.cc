@@ -23,32 +23,35 @@
 
 using namespace Kernel;
 
-extern "C" void kernel_to_user_context_switch(Cpu::Context*, Cpu::Fpu_context*);
+extern "C" void kernel_to_user_context_switch(Core::Cpu::Context*,
+                                              Core::Cpu::Fpu_context*);
 
 
 void Thread::_call_suspend() { }
 
 
-void Thread::exception(Cpu & cpu)
+void Thread::exception()
 {
+	using Ctx = Core::Cpu::Context;
+
 	switch (regs->cpu_exception) {
-	case Cpu::Context::SUPERVISOR_CALL:
+	case Ctx::SUPERVISOR_CALL:
 		_call();
 		return;
-	case Cpu::Context::PREFETCH_ABORT:
-	case Cpu::Context::DATA_ABORT:
+	case Ctx::PREFETCH_ABORT:
+	case Ctx::DATA_ABORT:
 		_mmu_exception();
 		return;
-	case Cpu::Context::INTERRUPT_REQUEST:
-	case Cpu::Context::FAST_INTERRUPT_REQUEST:
-		_interrupt(_user_irq_pool, cpu.id());
+	case Ctx::INTERRUPT_REQUEST:
+	case Ctx::FAST_INTERRUPT_REQUEST:
+		_interrupt(_user_irq_pool);
 		return;
-	case Cpu::Context::UNDEFINED_INSTRUCTION:
+	case Ctx::UNDEFINED_INSTRUCTION:
 		Genode::raw(*this, ": undefined instruction at ip=",
 		            Genode::Hex(regs->ip));
 		_die();
 		return;
-	case Cpu::Context::RESET:
+	case Ctx::RESET:
 		return;
 	default:
 		Genode::raw(*this, ": triggered an unknown exception ",
@@ -71,17 +74,17 @@ void Kernel::Thread::Tlb_invalidation::execute(Cpu &) { }
 void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
-void Cpu::Halt_job::proceed(Kernel::Cpu &) { }
+void Cpu::Halt_job::proceed() { }
 
 
-void Thread::proceed(Cpu & cpu)
+void Thread::proceed()
 {
-	if (!cpu.active(pd().mmu_regs) && type() != CORE)
-		cpu.switch_to(pd().mmu_regs);
+	if (!_cpu().active(pd().mmu_regs) && type() != CORE)
+		_cpu().switch_to(pd().mmu_regs);
 
-	regs->cpu_exception = cpu.stack_start();
-	kernel_to_user_context_switch((static_cast<Cpu::Context*>(&*regs)),
-	                              (static_cast<Cpu::Fpu_context*>(&*regs)));
+	regs->cpu_exception = _cpu().stack_start();
+	kernel_to_user_context_switch((static_cast<Core::Cpu::Context*>(&*regs)),
+	                              (static_cast<Core::Cpu::Fpu_context*>(&*regs)));
 }
 
 
