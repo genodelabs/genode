@@ -8,6 +8,7 @@ MIRROR_FROM_REP_DIR := \
                        lib/mk/isl_gen.inc \
                        lib/mk/glapi.mk \
                        lib/mk/mesa.inc \
+                       lib/mk/mesa.mk \
                        lib/mk/mesa_api.mk \
                        lib/mk/mesa-common.inc \
                        lib/mk/softpipe.mk \
