@@ -1,0 +1,32 @@
+The lighttpd code expects continous and constrained fd numbering as it
+is directly used for accessing array elements. As our libc consumes
+itself fds internally, e.g. socket_fs, overallocate the fdarray and add
+check that limits used fds.
+--- src/app/lighttpd/src/fdevent_impl.c
++++ src/app/lighttpd/src/fdevent_impl.c
+@@ -188,6 +188,15 @@
+             maxfds = (uint32_t)FD_SETSIZE - 200;
+     }
+       #endif
++
++    if (maxfds > 63) {
++        maxfds = 63;
++        log_error(errh, __FILE__, __LINE__,
++                  "%s: limit maxfds to %u to prevent "
++                  "invalid array access",
++                  __func__, maxfds);
++    }
++
+     *max_fds = (int)maxfds;
+     ++maxfds; /*(+1 for event-handler fd)*/
+ 
+@@ -195,7 +204,8 @@
+     ev->errh = errh;
+     ev->cur_fds = cur_fds;
+     ev->event_handler = event_handler;
+-    ev->fdarray = ck_calloc(maxfds, sizeof(*ev->fdarray));
++    /* over allocate fdarray and rely on the maxfds check above */
++    ev->fdarray = ck_calloc(1024, sizeof(*ev->fdarray));
+     ev->maxfds = maxfds;
+ 
+     switch(type) {

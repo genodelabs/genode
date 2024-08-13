@@ -6,4 +6,4 @@ URL(lighttpd) := http://download.lighttpd.net/lighttpd/releases-1.4.x/lighttpd-$
 SHA(lighttpd) := 816cbec71e8d02d874f1d5c798d76d091a76d5acbeb6e017ba76aeb4263d6995
 DIR(lighttpd) := src/app/lighttpd
 
-PATCHES := $(addprefix src/app/lighttpd/,fd_cloexec.patch mod_dirlisting.patch mod_webdav.patch no_o_nonblock.patch)
+PATCHES := $(addprefix src/app/lighttpd/,fd_cloexec.patch invalid_fdarray_access.patch mod_dirlisting.patch mod_webdav.patch no_o_nonblock.patch)
