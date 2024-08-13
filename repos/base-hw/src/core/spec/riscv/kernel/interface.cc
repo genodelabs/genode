@@ -49,6 +49,10 @@ using namespace Kernel;
 	CALL_4_FILL_ARG_REGS \
 	register Call_arg arg_4_reg asm("a4") = arg_4;
 
+#define CALL_6_FILL_ARG_REGS \
+	CALL_5_FILL_ARG_REGS \
+	register Call_arg arg_5_reg asm("a5") = arg_5;
+
 extern Genode::addr_t _kernel_entry;
 
 /*
@@ -75,6 +79,7 @@ extern Genode::addr_t _kernel_entry;
 #define CALL_3_SWI CALL_2_SWI,  "r" (arg_2_reg)
 #define CALL_4_SWI CALL_3_SWI,  "r" (arg_3_reg)
 #define CALL_5_SWI CALL_4_SWI,  "r" (arg_4_reg)
+#define CALL_6_SWI CALL_5_SWI,  "r" (arg_5_reg)
 
 
 /******************
@@ -135,5 +140,18 @@ Call_ret Kernel::call(Call_arg arg_0,
 {
 	CALL_5_FILL_ARG_REGS
 	asm volatile(CALL_5_SWI : "ra");
+	return arg_0_reg;
+}
+
+
+Call_ret Kernel::call(Call_arg arg_0,
+                      Call_arg arg_1,
+                      Call_arg arg_2,
+                      Call_arg arg_3,
+                      Call_arg arg_4,
+                      Call_arg arg_5)
+{
+	CALL_6_FILL_ARG_REGS
+	asm volatile(CALL_6_SWI : "ra");
 	return arg_0_reg;
 }
