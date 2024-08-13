@@ -4,6 +4,24 @@
                                ===========
 
 
+New community forum at Discourse | 2024-08-13
+#############################################
+
+| Our new community forum is organized by Genode users to share ideas
+| and experiences, help newcomers, and discuss Genode-related projects.
+
+The new forum complements the existing
+[http:/community/mailing-lists - mailing list] and
+[https://github.com/genodelabs/genode - issue tracker]
+with a place for casual conversation among newcomers, seasoned users,
+and developers.
+
+[https://genode.discourse.group]
+
+As the forum is a place for users, it is moderated by users. Thanks a lot
+to Spencer and Cedric for constituting the initial moderation team!
+
+
 Meet us at FroSCon during August 17-18 | 2024-07-30
 ###################################################
 
