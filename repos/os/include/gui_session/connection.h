@@ -113,11 +113,11 @@ class Gui::Connection : private Genode::Connection<Session>
 			return _client.view_capability(id);
 		}
 
-		void view_id(View_capability view, View_id id)
+		void associate(View_id id, View_capability view)
 		{
-			using Result = Session::View_id_result;
+			using Result = Session::Associate_result;
 			for (;;) {
-				switch (_client.view_id(view, id)) {
+				switch (_client.associate(id, view)) {
 				case Result::OUT_OF_RAM:  upgrade_ram(8*1024); break;
 				case Result::OUT_OF_CAPS: upgrade_caps(2);     break;
 				case Result::OK:          return;

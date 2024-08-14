@@ -39,8 +39,8 @@ struct Gui::Session_client : Rpc_client<Session>
 	void destroy_view(View_id view) override {
 		call<Rpc_destroy_view>(view); }
 
-	View_id_result view_id(View_capability view, View_id id) override {
-		return call<Rpc_view_id>(view, id); }
+	Associate_result associate(View_id id, View_capability view) override {
+		return call<Rpc_associate>(id, view); }
 
 	View_capability view_capability(View_id id) override {
 		return call<Rpc_view_capability>(id); }

@@ -366,10 +366,10 @@ class Gui_fader::Gui_session_component
 			return _gui.destroy_view(id);
 		}
 
-		View_id_result view_id(View_capability view_cap, View_id id) override
+		Associate_result associate(View_id id, View_capability view_cap) override
 		{
-			_gui.view_id(view_cap, id);
-			return View_id_result::OK;
+			_gui.associate(id, view_cap);
+			return Associate_result::OK;
 		}
 
 		View_capability view_capability(View_id id) override

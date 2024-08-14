@@ -200,12 +200,12 @@ struct Gui::Session : Genode::Session
 	 */
 	virtual void destroy_view(View_id) = 0;
 
-	enum class View_id_result { OK, OUT_OF_RAM, OUT_OF_CAPS, INVALID };
+	enum class Associate_result { OK, OUT_OF_RAM, OUT_OF_CAPS, INVALID };
 
 	/**
-	 * Associate view with the specified ID
+	 * Associate existing view with the specified ID
 	 */
-	virtual View_id_result view_id(View_capability, View_id) = 0;
+	virtual Associate_result associate(View_id, View_capability) = 0;
 
 	/**
 	 * Request view capability for a given ID
@@ -284,7 +284,7 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_view, View_result, view, View_id, View_attr const &);
 	GENODE_RPC(Rpc_child_view, Child_view_result, child_view, View_id, View_id, View_attr const &);
 	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_id);
-	GENODE_RPC(Rpc_view_id, View_id_result, view_id, View_capability, View_id);
+	GENODE_RPC(Rpc_associate, Associate_result, associate, View_id, View_capability);
 	GENODE_RPC(Rpc_view_capability, View_capability, view_capability, View_id);
 	GENODE_RPC(Rpc_release_view_id, void, release_view_id, View_id);
 	GENODE_RPC(Rpc_command_dataspace, Dataspace_capability, command_dataspace);
@@ -296,7 +296,7 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_buffer, Buffer_result, buffer, Framebuffer::Mode, bool);
 
 	GENODE_RPC_INTERFACE(Rpc_framebuffer, Rpc_input,
-	                     Rpc_view, Rpc_child_view, Rpc_destroy_view, Rpc_view_id,
+	                     Rpc_view, Rpc_child_view, Rpc_destroy_view, Rpc_associate,
 	                     Rpc_view_capability, Rpc_release_view_id,
 	                     Rpc_command_dataspace, Rpc_execute, Rpc_mode,
 	                     Rpc_mode_sigh, Rpc_buffer, Rpc_focus);

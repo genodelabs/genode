@@ -74,9 +74,9 @@ struct Wm::Layouter_gui_session : Genode::Rpc_object<Gui::Session>
 
 	void destroy_view(View_id) override { }
 
-	View_id_result view_id(View_capability, View_id) override
+	Associate_result associate(View_id, View_capability) override
 	{
-		return View_id_result::OK;
+		return Associate_result::OK;
 	}
 
 	View_capability view_capability(View_id) override

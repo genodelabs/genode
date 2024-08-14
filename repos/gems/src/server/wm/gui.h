@@ -127,13 +127,13 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 			Gui::View_ref          ref { };
 			Gui::View_ids::Element tmp { ref, _real_gui.view_ids };
 
-			switch (_real_gui.session.view_id(cap, tmp.id())) {
-			case Gui::Session::View_id_result::OUT_OF_RAM:
-			case Gui::Session::View_id_result::OUT_OF_CAPS:
-			case Gui::Session::View_id_result::INVALID:
+			switch (_real_gui.session.associate(tmp.id(), cap)) {
+			case Gui::Session::Associate_result::OUT_OF_RAM:
+			case Gui::Session::Associate_result::OUT_OF_CAPS:
+			case Gui::Session::Associate_result::INVALID:
 				warning("unable to obtain view ID for given view capability");
 				return;
-			case Gui::Session::View_id_result::OK:
+			case Gui::Session::Associate_result::OK:
 				break;
 			}
 			fn(tmp.id());
@@ -1050,21 +1050,21 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			release_view_id(id);
 		}
 
-		View_id_result view_id(View_capability view_cap, View_id id) override
+		Associate_result associate(View_id id, View_capability view_cap) override
 		{
 			/* prevent ID conflict in 'View_ids::Element' constructor */
 			release_view_id(id);
 
 			return _env.ep().rpc_ep().apply(view_cap,
-				[&] (View *view_ptr) -> View_id_result {
+				[&] (View *view_ptr) -> Associate_result {
 					if (!view_ptr)
-						return View_id_result::INVALID;
+						return Associate_result::INVALID;
 					try {
 						new (_view_ref_alloc) View_ref(view_ptr->weak_ptr(), _view_ids, id);
-						return View_id_result::OK;
+						return Associate_result::OK;
 					}
-					catch (Out_of_ram)  { return View_id_result::OUT_OF_RAM;  }
-					catch (Out_of_caps) { return View_id_result::OUT_OF_CAPS; }
+					catch (Out_of_ram)  { return Associate_result::OUT_OF_RAM;  }
+					catch (Out_of_caps) { return Associate_result::OUT_OF_CAPS; }
 				});
 		}
 

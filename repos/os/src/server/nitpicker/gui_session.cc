@@ -319,22 +319,22 @@ void Gui_session::destroy_view(View_id const id)
 }
 
 
-Gui_session::View_id_result
-Gui_session::view_id(View_capability view_cap, View_id id)
+Gui_session::Associate_result
+Gui_session::associate(View_id id, View_capability view_cap)
 {
 	/* prevent ID conflict in 'View_ids::Element' constructor */
 	release_view_id(id);
 
 	return _env.ep().rpc_ep().apply(view_cap,
-		[&] (View *view_ptr) -> View_id_result {
+		[&] (View *view_ptr) -> Associate_result {
 			if (!view_ptr)
-				return View_id_result::INVALID;
+				return Associate_result::INVALID;
 			try {
 				new (_view_ref_alloc) View_ref(view_ptr->weak_ptr(), _view_ids, id);
-				return View_id_result::OK;
+				return Associate_result::OK;
 			}
-			catch (Out_of_ram)  { return View_id_result::OUT_OF_RAM;  }
-			catch (Out_of_caps) { return View_id_result::OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return Associate_result::OUT_OF_RAM;  }
+			catch (Out_of_caps) { return Associate_result::OUT_OF_CAPS; }
 		});
 }
 

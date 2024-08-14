@@ -191,7 +191,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 				Gui_view(gui), _remote_gui(remote_gui)
 			{
 				remote_gui.view(id(), { });
-				gui.view_id(remote_gui.view_capability(id()), id());
+				gui.associate(id(), remote_gui.view_capability(id()));
 			}
 
 			~Remote_view()

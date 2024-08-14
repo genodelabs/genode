@@ -250,15 +250,15 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 					Content_view_ref(Window_registry::Id(win_id), _content_view_ids, id);
 
 				View_capability view_cap = _content_callback.content_view(win_id);
-				View_id_result result = _gui.session.view_id(view_cap, id);
-				if (result != View_id_result::OK)
+				Associate_result result = _gui.session.associate(id, view_cap);
+				if (result != Associate_result::OK)
 					destroy(_heap, &view_ref_ptr);
 
 				switch (result) {
-				case View_id_result::OUT_OF_RAM:  return View_result::OUT_OF_RAM;
-				case View_id_result::OUT_OF_CAPS: return View_result::OUT_OF_CAPS;
-				case View_id_result::OK:          return View_result::OK;
-				case View_id_result::INVALID:     break; /* fall back to regular view */
+				case Associate_result::OUT_OF_RAM:  return View_result::OUT_OF_RAM;
+				case Associate_result::OUT_OF_CAPS: return View_result::OUT_OF_CAPS;
+				case Associate_result::OK:          return View_result::OK;
+				case Associate_result::INVALID:     break; /* fall back to regular view */
 				};
 			}
 			catch (Genode::Out_of_ram)  { return View_result::OUT_OF_RAM; }
@@ -293,9 +293,9 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 		_gui.session.destroy_view(view);
 	}
 
-	View_id_result view_id(View_capability view_cap, View_id id) override
+	Associate_result associate(View_id id, View_capability view_cap) override
 	{
-		return _gui.session.view_id(view_cap, id);
+		return _gui.session.associate(id, view_cap);
 	}
 
 	View_capability view_capability(View_id view) override

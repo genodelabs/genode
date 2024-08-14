@@ -224,7 +224,7 @@ void QGenodeViewWidget::paintEvent(QPaintEvent *event)
 	Gui::View_ref tmp_view_ref { };
 	Gui::View_ids::Element neighbor_id { tmp_view_ref, gui->view_ids };
 
-	gui->view_id(platform_window->view_cap(), neighbor_id.id());
+	gui->associate(neighbor_id.id(), platform_window->view_cap());
 
 	gui->enqueue<Command::Front_of>(view_id, neighbor_id.id());
 	gui->execute();

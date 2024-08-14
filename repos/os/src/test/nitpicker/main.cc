@@ -102,7 +102,7 @@ struct Test::Child_view : View
 		View(gui, id, attr), _parent(parent)
 	{
 		Gui::View_id const parent_id { 0 }; /* temporary */
-		gui.view_id(parent.view_cap(), parent_id);
+		gui.associate(parent_id, parent.view_cap());
 		gui.child_view(id, parent_id, attr);
 		gui.release_view_id(parent_id);
 	}

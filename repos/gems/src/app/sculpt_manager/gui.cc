@@ -130,8 +130,8 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 	void destroy_view(View_id view) override {
 		_gui_session.destroy_view(view); }
 
-	View_id_result view_id(View_capability view_cap, View_id id) override {
-		return _gui_session.view_id(view_cap, id); }
+	Associate_result associate(View_id id, View_capability view_cap) override {
+		return _gui_session.associate(id, view_cap); }
 
 	View_capability view_capability(View_id view) override {
 		return _gui_session.view_capability(view); }
