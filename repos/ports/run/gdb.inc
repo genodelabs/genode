@@ -303,7 +303,7 @@ append config {
 
 	<start name="gdb" caps="300">
 		<binary name="/bin/} [gdb_prefix] {gdb"/>
-		<resource name="RAM" quantum="40M"/>
+		<resource name="RAM" quantum="42M"/>
 		<config ld_verbose="yes">
 			<vfs>
 				<dir name="dev">
