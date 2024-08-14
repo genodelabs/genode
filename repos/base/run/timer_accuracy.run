@@ -33,6 +33,17 @@ build_boot_image [build_artifacts]
 
 append qemu_args "  -nographic"
 
+if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"] && [have_spec nova]} {
+	# NOVA requires a CPU with invariant TSC support, which is by default not
+	# supported. KVM has support by explicitly enabling this feature, but by
+	# now the nightly test machines is not permitted to use KVM
+
+	# append qemu_args " -accel kvm -cpu host,migratable=no,+invtsc"
+
+	puts "Run script does not support autopilot mode on Qemu"
+	exit 0
+}
+
 set err_cnt      0
 set test_timeout 20
 set rounds       9
