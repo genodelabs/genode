@@ -372,7 +372,7 @@ class Gui_fader::Gui_session_component
 			return Associate_result::OK;
 		}
 
-		View_capability view_capability(View_id id) override
+		View_capability_result view_capability(View_id id) override
 		{
 			return _gui.view_capability(id);
 		}

@@ -88,7 +88,7 @@ class Wm::Direct_gui_session : public Genode::Rpc_object<Gui::Session>
 			return _session.associate(id, view_cap);
 		}
 
-		View_capability view_capability(View_id view) override
+		View_capability_result view_capability(View_id view) override
 		{
 			return _session.view_capability(view);
 		}

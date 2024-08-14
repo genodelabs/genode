@@ -339,7 +339,7 @@ Gui_session::associate(View_id id, View_capability view_cap)
 }
 
 
-View_capability Gui_session::view_capability(View_id id)
+Gui_session::View_capability_result Gui_session::view_capability(View_id id)
 {
 	return _with_view(id,
 		[&] (View &view)               { return view.cap(); },

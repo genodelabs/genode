@@ -392,7 +392,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Associate_result associate(View_id, View_capability) override;
 
-		View_capability view_capability(View_id) override;
+		View_capability_result view_capability(View_id) override;
 
 		void release_view_id(View_id) override;
 

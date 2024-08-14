@@ -133,7 +133,7 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 	Associate_result associate(View_id id, View_capability view_cap) override {
 		return _gui_session.associate(id, view_cap); }
 
-	View_capability view_capability(View_id view) override {
+	View_capability_result view_capability(View_id view) override {
 		return _gui_session.view_capability(view); }
 
 	void release_view_id(View_id view) override {

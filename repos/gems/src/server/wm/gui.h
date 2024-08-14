@@ -225,7 +225,11 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 
 		View_capability real_view_cap()
 		{
-			return _real_gui.session.view_capability(_real_view.id());
+			return _real_gui.session.view_capability(_real_view.id()).convert<View_capability>(
+				[&] (View_capability cap)   { return cap; },
+				[&] (Gui::Session::View_capability_error) {
+					warning("real_view_cap unable to obtain view capability");
+					return View_capability(); });
 		}
 
 		void buffer_offset(Point buffer_offset)
@@ -353,10 +357,7 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 				_input_origin_changed_handler.input_origin_changed();
 		}
 
-		View_capability content_view()
-		{
-			return _real_gui.session.view_capability(_real_view.id());
-		}
+		View_capability content_view() { return real_view_cap(); }
 
 		void hidden(bool hidden) { _window_registry.hidden(_win_id, hidden); }
 
@@ -1068,7 +1069,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 				});
 		}
 
-		View_capability view_capability(View_id id) override
+		View_capability_result view_capability(View_id id) override
 		{
 			return _with_view(id,
 				[&] (View &view)               { return view.cap(); },

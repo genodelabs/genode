@@ -207,13 +207,16 @@ struct Gui::Session : Genode::Session
 	 */
 	virtual Associate_result associate(View_id, View_capability) = 0;
 
+	enum class View_capability_error { OUT_OF_RAM, OUT_OF_CAPS };
+	using View_capability_result = Attempt<View_capability, View_capability_error>;
+
 	/**
 	 * Request view capability for a given ID
 	 *
 	 * The returned view capability can be used to share the view with another
 	 * session.
 	 */
-	virtual View_capability view_capability(View_id) = 0;
+	virtual View_capability_result view_capability(View_id) = 0;
 
 	/**
 	 * Release session-local view ID
@@ -285,7 +288,7 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_child_view, Child_view_result, child_view, View_id, View_id, View_attr const &);
 	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_id);
 	GENODE_RPC(Rpc_associate, Associate_result, associate, View_id, View_capability);
-	GENODE_RPC(Rpc_view_capability, View_capability, view_capability, View_id);
+	GENODE_RPC(Rpc_view_capability, View_capability_result, view_capability, View_id);
 	GENODE_RPC(Rpc_release_view_id, void, release_view_id, View_id);
 	GENODE_RPC(Rpc_command_dataspace, Dataspace_capability, command_dataspace);
 	GENODE_RPC(Rpc_execute, void, execute);

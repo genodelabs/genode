@@ -298,7 +298,7 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 		return _gui.session.associate(id, view_cap);
 	}
 
-	View_capability view_capability(View_id view) override
+	View_capability_result view_capability(View_id view) override
 	{
 		return _gui.session.view_capability(view);
 	}

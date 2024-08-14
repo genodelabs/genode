@@ -79,7 +79,7 @@ struct Wm::Layouter_gui_session : Genode::Rpc_object<Gui::Session>
 		return Associate_result::OK;
 	}
 
-	View_capability view_capability(View_id) override
+	View_capability_result view_capability(View_id) override
 	{
 		return View_capability();
 	}

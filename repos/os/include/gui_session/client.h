@@ -42,7 +42,7 @@ struct Gui::Session_client : Rpc_client<Session>
 	Associate_result associate(View_id id, View_capability view) override {
 		return call<Rpc_associate>(id, view); }
 
-	View_capability view_capability(View_id id) override {
+	View_capability_result view_capability(View_id id) override {
 		return call<Rpc_view_capability>(id); }
 
 	void release_view_id(View_id id) override {

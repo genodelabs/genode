@@ -110,7 +110,21 @@ class Gui::Connection : private Genode::Connection<Session>
 
 		View_capability view_capability(View_id id)
 		{
-			return _client.view_capability(id);
+			for (;;) {
+				View_capability result { };
+				using Error = Session::View_capability_error;
+				bool const retry = _client.view_capability(id).convert<bool>(
+					[&] (View_capability cap) { result = cap; return false; },
+					[&] (Error e) {
+						switch (e) {
+						case Error::OUT_OF_CAPS: upgrade_caps(2);     return true;
+						case Error::OUT_OF_RAM:  upgrade_ram(8*1024); return true;
+						}
+						return false;
+					});
+				if (!retry)
+					return result;
+			}
 		}
 
 		void associate(View_id id, View_capability view)
