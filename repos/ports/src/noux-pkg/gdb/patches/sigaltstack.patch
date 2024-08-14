@@ -1,0 +1,30 @@
+sigaltstack.patch
+
+diff --git a/gdbsupport/alt-stack.h b/gdbsupport/alt-stack.h
+index 1424793..49332a6 100644
+--- a/gdbsupport/alt-stack.h
++++ b/gdbsupport/alt-stack.h
+@@ -37,7 +37,23 @@ class alternate_signal_stack
+   alternate_signal_stack ()
+   {
+ #ifdef HAVE_SIGALTSTACK
++
++#ifdef __GENODE__
++    /*
++     * Stack is allocated within sigaltstack invocation on Genode's Libc,
++     * see issue #5305
++     *
++     * The actual stack pointer is stored in m_stack, which is private,
++     * and thus seems not to be used directly by gdb code in any form.
++     *
++     * The m_stack is a smart pointer, which on destruction frees up the
++     * stored pointer (nullptr). xfree explicitly checks for nullptr and
++     * ignore the attempt, so it should be fine here to use nullptr.
++     */
++    m_stack.reset (nullptr);
++#else
+     m_stack.reset ((char *) xmalloc (SIGSTKSZ));
++#endif
+ 
+     stack_t stack;
+     stack.ss_sp = m_stack.get ();

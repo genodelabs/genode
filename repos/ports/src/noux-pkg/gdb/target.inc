@@ -8,6 +8,8 @@ CONFIGURE_ARGS += --program-prefix=$(PROGRAM_PREFIX) \
 CONFIGURE_ARGS += --without-expat
 CPPFLAGS += -DHAVE_LIBEXPAT=1
 
+CPPFLAGS += -D__GENODE__
+
 # prevent use of host libgmp in configure test
 CONFIGURE_ARGS += --without-libgmp-prefix
 
