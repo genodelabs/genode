@@ -285,7 +285,7 @@ void User_state::_handle_input_event(Input::Event ev)
 		if (!_input_receiver)
 			return;
 
-		if (!_mouse_button(key)
+		if (!_mouse_button(key) || _global_key_sequence
 		 || (_hovered
 		  && (_hovered->has_focusable_domain()
 		   || _hovered->has_same_domain(_focused))))
