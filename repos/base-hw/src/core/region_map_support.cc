@@ -20,7 +20,7 @@
 using namespace Core;
 
 
-void Pager_entrypoint::entry()
+void Pager_entrypoint::Thread::entry()
 {
 	Untyped_capability cap;
 

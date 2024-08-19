@@ -30,6 +30,8 @@
 
 namespace Core {
 
+	class Platform;
+
 	/**
 	 * Interface used by generic region_map code
 	 */
@@ -55,6 +57,8 @@ namespace Core {
 	enum { PAGER_EP_STACK_SIZE = sizeof(addr_t) * 2048 };
 
 	extern void init_page_fault_handling(Rpc_entrypoint &);
+
+	void init_pager_thread_per_cpu_memory(unsigned const cpus, void * mem);
 }
 
 
@@ -104,6 +108,7 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 	private:
 
 		unsigned long    const _badge;
+		Affinity::Location     _location;
 		Cpu_session_capability _cpu_session_cap;
 		Thread_capability      _thread_cap;
 
@@ -129,6 +134,8 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 		 * User identification of pager object
 		 */
 		unsigned long badge() const { return _badge; }
+
+		Affinity::Location location() { return _location; }
 
 		/**
 		 * Resume faulter
@@ -198,20 +205,40 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 };
 
 
-class Core::Pager_entrypoint : public  Object_pool<Pager_object>,
-                               public  Thread,
-                               private Ipc_pager
+class Core::Pager_entrypoint
 {
 	private:
 
-		Kernel_object<Kernel::Signal_receiver> _kobj;
+		friend class Platform;
+
+		class Thread : public  Object_pool<Pager_object>,
+		               public  Genode::Thread,
+		               private Ipc_pager
+		{
+			private:
+
+				friend class Pager_entrypoint;
+
+				Kernel_object<Kernel::Signal_receiver> _kobj;
+
+			public:
+
+				explicit Thread(Affinity::Location);
+
+
+				/**********************
+				 ** Thread interface **
+				 **********************/
+
+				void entry() override;
+		};
+
+		unsigned const _cpus;
+		Thread        *_threads;
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Pager_entrypoint(Rpc_cap_factory &);
+		explicit Pager_entrypoint(Rpc_cap_factory &);
 
 		/**
 		 * Associate pager object 'obj' with entry point
@@ -222,13 +249,6 @@ class Core::Pager_entrypoint : public  Object_pool<Pager_object>,
 		 * Dissolve pager object 'obj' from entry point
 		 */
 		void dissolve(Pager_object &obj);
-
-
-		/**********************
-		 ** Thread interface **
-		 **********************/
-
-		void entry() override;
 };
 
 #endif /* _CORE__PAGER_H_ */

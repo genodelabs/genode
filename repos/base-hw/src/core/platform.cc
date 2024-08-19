@@ -19,6 +19,7 @@
 
 /* base-hw core includes */
 #include <map_local.h>
+#include <pager.h>
 #include <platform.h>
 #include <platform_pd.h>
 #include <kernel/main.h>
@@ -252,6 +253,10 @@ Platform::Platform()
 			[&] (Range_allocator::Alloc_error) { }
 		);
 	}
+
+	unsigned const cpus = _boot_info().cpus;
+	size_t size = cpus * sizeof(Pager_entrypoint::Thread);
+	init_pager_thread_per_cpu_memory(cpus, _core_mem_alloc.alloc(size));
 
 	class Idle_thread_trace_source : public  Trace::Source::Info_accessor,
 	                                 private Trace::Control,
