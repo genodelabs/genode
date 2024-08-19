@@ -36,6 +36,13 @@ void Core::init_pager_thread_per_cpu_memory(unsigned const cpus, void * mem)
 void Core::init_page_fault_handling(Rpc_entrypoint &) { }
 
 
+/*************
+ ** Mapping **
+ *************/
+
+void Mapping::prepare_map_operation() const { }
+
+
 /***************
  ** Ipc_pager **
  ***************/
@@ -100,6 +107,77 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 /**********************
  ** Pager_entrypoint **
  **********************/
+
+void Pager_entrypoint::Thread::entry()
+{
+	Untyped_capability cap;
+
+	while (1) {
+
+		if (cap.valid()) Kernel::ack_signal(Capability_space::capid(cap));
+
+		/* receive fault */
+		if (Kernel::await_signal(Capability_space::capid(_kobj.cap()))) continue;
+
+		Pager_object *po = *(Pager_object**)Thread::myself()->utcb()->data();
+		cap = po->cap();
+
+		if (!po) continue;
+
+		/* fetch fault data */
+		Platform_thread * const pt = (Platform_thread *)po->badge();
+		if (!pt) {
+			warning("failed to get platform thread of faulter");
+			continue;
+		}
+
+		if (pt->exception_state() ==
+		    Kernel::Thread::Exception_state::EXCEPTION) {
+			if (!po->submit_exception_signal())
+				warning("unresolvable exception: "
+				        "pd='",     pt->pd().label(), "', "
+				        "thread='", pt->label(),       "', "
+				        "ip=",      Hex(pt->state().cpu.ip));
+			continue;
+		}
+
+		_fault = pt->fault_info();
+
+		/* try to resolve fault directly via local region managers */
+		if (po->pager(*this) == Pager_object::Pager_result::STOP)
+			continue;
+
+		/* apply mapping that was determined by the local region managers */
+		{
+			Locked_ptr<Address_space> locked_ptr(pt->address_space());
+			if (!locked_ptr.valid()) continue;
+
+			Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
+
+			Cache cacheable = Genode::CACHED;
+			if (!_mapping.cached)
+				cacheable = Genode::UNCACHED;
+			if (_mapping.write_combined)
+				cacheable = Genode::WRITE_COMBINED;
+
+			Hw::Page_flags const flags {
+				.writeable  = _mapping.writeable  ? Hw::RW   : Hw::RO,
+				.executable = _mapping.executable ? Hw::EXEC : Hw::NO_EXEC,
+				.privileged = Hw::USER,
+				.global     = Hw::NO_GLOBAL,
+				.type       = _mapping.io_mem ? Hw::DEVICE : Hw::RAM,
+				.cacheable  = cacheable
+			};
+
+			as->insert_translation(_mapping.dst_addr, _mapping.src_addr,
+			                       1UL << _mapping.size_log2, flags);
+		}
+
+		/* let pager object go back to no-fault state */
+		po->wake_up();
+	}
+}
+
 
 Pager_entrypoint::Thread::Thread(Affinity::Location cpu)
 :
