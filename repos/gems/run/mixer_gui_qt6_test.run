@@ -1,0 +1,83 @@
+source ${genode_dir}/repos/libports/run/qt6_common.inc
+
+import_from_depot [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/mixer_gui_qt6
+
+#
+# Generate config
+#
+
+install_config {
+<config>
+	<parent-provides>
+		} [qt6_parent_provides] {
+	</parent-provides>
+	<default caps="100"/>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	} [qt6_start_nodes] {
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="yes">
+			<rom name="channel_list">
+				<sleep milliseconds="1000" />
+				<inline description="first config update">
+<channel_list>
+	<channel type="input" label="test-audio_out0" name="right" number="1" active="1" volume="0" muted="0"/>
+	<channel type="input" label="test-audio_out_click" name="left" number="0" active="1" volume="75" muted="0"/>
+	<channel type="input" label="fancy_init -> test-audio_out1" name="left" number="0" active="1" volume="75" muted="0"/>
+	<channel type="input" label="test-audio_out0" name="left" number="0" active="1" volume="0" muted="0"/>
+	<channel type="input" label="test-audio_out_click" name="right" number="1" active="1" volume="75" muted="0"/>
+	<channel type="input" label="fancy_init -> test-audio_out1" name="right" number="1" active="1" volume="75" muted="0"/>
+	<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="0"/>
+	<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+</channel_list>
+				</inline>
+				<sleep milliseconds="1000" />
+				<inline description="second config update">
+<channel_list>
+	<channel type="input" label="test-audio_out0" name="right" number="1" active="1" volume="100" muted="0"/>
+	<channel type="input" label="test-audio_out_click" name="left" number="0" active="1" volume="75" muted="1"/>
+	<channel type="input" label="fancy_init -> test-audio_out1" name="left" number="0" active="1" volume="25" muted="0"/>
+	<channel type="input" label="test-audio_out0" name="left" number="0" active="1" volume="100" muted="0"/>
+	<channel type="input" label="test-audio_out_click" name="right" number="1" active="1" volume="15" muted="1"/>
+	<channel type="input" label="fancy_init -> test-audio_out1" name="right" number="1" active="1" volume="25" muted="0"/>
+	<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="0"/>
+	<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="0"/>
+</channel_list>
+				</inline>
+			</rom>
+		</config>
+	</start>
+
+	<start name="mixer_gui_qt" caps="200">
+		<resource name="RAM" quantum="32M"/>
+		<config>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+				<tar name="qt6_dejavusans.tar"/>
+				<tar name="qt6_libqgenode.tar"/>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+		</config>
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM" label="channel_list"> <child name="dynamic_rom" /> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+build_boot_image [qt6_boot_modules]
+
+run_genode_until forever
+
+# vi: set ft=tcl :

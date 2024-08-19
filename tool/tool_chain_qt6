@@ -1,0 +1,156 @@
+#!/usr/bin/make -f
+#
+# \brief  Tool for preparing the Qt6 tool-chain for the Genode OS Framework
+# \author Christian Prochaska
+# \date   2024-07-29
+#
+
+SHELL   = bash
+ECHO    = @echo -e
+VERBOSE = @
+
+help:
+	$(ECHO)
+	$(ECHO) "Build Qt6 tools for the Genode OS Framework tool chain"
+	$(ECHO)
+	$(ECHO) "--- available commands ---"
+	$(ECHO) "build         - build Qt6 tools"
+	$(ECHO) "install       - install Qt6 tools to '$(INSTALL_LOCATION)'"
+	$(ECHO) "clean         - clean everything except contrib sources"
+	$(ECHO)
+	$(ECHO) "--- available command line options ---"
+	$(ECHO) "MAKE_JOBS=4 - number of parallel make jobs (default: 4)"
+	$(ECHO)
+
+.PHONY: build help install
+
+#
+# Enable parallel build for 2nd-level $(MAKE) by default
+#
+
+MAKE_JOBS ?= 4
+
+#
+# Source, build and install location
+#
+
+GENODE_DIR               ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
+CONTRIB_DIR               = $(shell $(GENODE_DIR)/tool/ports/current qt6-host)
+QT6_DIR                   = $(CONTRIB_DIR)/src/lib/qt6
+TOOL_VERSION              = 23.05
+BUILD_DIR                 = $(GENODE_DIR)/build/tool/qt6/$(TOOL_VERSION)
+DEFAULT_INSTALL_LOCATION  = /usr/local/genode/tool/$(TOOL_VERSION)/qt6
+INSTALL_LOCATION         ?= $(DEFAULT_INSTALL_LOCATION)
+SUDO                     ?= sudo
+
+$(QT6_DIR):
+	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port qt6-host
+
+$(BUILD_DIR):
+	$(VERBOSE)mkdir -p $@
+
+build: $(BUILD_DIR) $(QT6_DIR)
+
+	$(VERBOSE)cd $(BUILD_DIR) && cmake \
+	-G "Unix Makefiles" \
+	-DQT_SILENCE_CMAKE_GENERATOR_WARNING=ON \
+	-DCMAKE_INSTALL_PREFIX=$(BUILD_DIR)/install \
+	-DBUILD_WITH_PCH=OFF \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DFEATURE_androiddeployqt=OFF \
+	-DFEATURE_dbus=OFF \
+	-DFEATURE_eglfs=OFF \
+	-DFEATURE_fontconfig=OFF \
+	-DFEATURE_freetype=OFF \
+	-DFEATURE_glib=OFF \
+	-DFEATURE_libudev=OFF \
+	-DFEATURE_system_libpng16=OFF \
+	-DFEATURE_system_pcre2=OFF \
+	-DFEATURE_system_zlib=OFF \
+	-DFEATURE_vulkan=OFF \
+	-DQT_FEATURE_brotli=OFF \
+	-DQT_FEATURE_widgets=OFF \
+	-DBUILD_qt3d=OFF \
+	-DBUILD_qt5compat=OFF \
+	-DBUILD_qtactiveqt=OFF \
+	-DBUILD_qtbase=ON \
+	-DBUILD_qtcharts=OFF \
+	-DBUILD_qtcoap=OFF \
+	-DBUILD_qtconnectivity=OFF \
+	-DBUILD_qtdatavis3d=OFF \
+	-DBUILD_qtdeclarative=ON \
+	-DBUILD_qtdoc=OFF \
+	-DBUILD_qtgraphs=OFF \
+	-DBUILD_qtgrpc=OFF \
+	-DBUILD_qthttpserver=OFF \
+	-DBUILD_qtimageformats=OFF \
+	-DBUILD_qtlanguageserver=OFF \
+	-DBUILD_qtlocation=OFF \
+	-DBUILD_qtlottie=OFF \
+	-DBUILD_qtmqtt=OFF \
+	-DBUILD_qtmultimedia=OFF \
+	-DBUILD_qtnetworkauth=OFF \
+	-DBUILD_qtopcua=OFF \
+	-DBUILD_qtpositioning=OFF \
+	-DBUILD_qtquick3d=OFF \
+	-DBUILD_qtquick3dphysics=OFF \
+	-DBUILD_qtquickeffectmaker=OFF \
+	-DBUILD_qtquicktimeline=OFF \
+	-DBUILD_qtremoteobjects=OFF \
+	-DBUILD_qtscxml=OFF \
+	-DBUILD_qtsensors=OFF \
+	-DBUILD_qtserialbus=OFF \
+	-DBUILD_qtserialport=OFF \
+	-DBUILD_qtshadertools=ON \
+	-DBUILD_qtspeech=OFF \
+	-DBUILD_qtsvg=OFF \
+	-DBUILD_qttools=ON \
+	-DBUILD_qttranslations=OFF \
+	-DBUILD_qtvirtualkeyboard=OFF \
+	-DBUILD_qtwayland=OFF \
+	-DBUILD_qtwebchannel=OFF \
+	-DBUILD_qtwebengine=OFF \
+	-DBUILD_qtwebsockets=OFF \
+	-DBUILD_qtwebview=OFF \
+	$(QT6_DIR) \
+
+	$(VERBOSE)cmake \
+	--build $(BUILD_DIR) \
+	--parallel $(MAKE_JOBS)
+
+	$(VERBOSE)cmake \
+	--install $(BUILD_DIR) \
+	--strip
+
+	# build 'gn' for QtWebEngine
+
+	$(VERBOSE)cmake \
+	-B $(BUILD_DIR)/qtwebengine/gn \
+	$(QT6_DIR)/qtwebengine/src/gn \
+	-DCMAKE_INSTALL_PREFIX=$(BUILD_DIR)/install
+
+	$(VERBOSE)cmake \
+	--build $(BUILD_DIR)/qtwebengine/gn \
+	--parallel $(MAKE_JOBS)
+
+	$(VERBOSE)cmake \
+	--install $(BUILD_DIR)/qtwebengine/gn \
+	--strip
+
+	$(VERBOSE)mv $(BUILD_DIR)/install/bin/gn $(BUILD_DIR)/install/libexec/gn
+
+install:
+	$(VERBOSE)$(SUDO) mkdir -p $(INSTALL_LOCATION)
+	$(VERBOSE)$(SUDO) cp -a $(BUILD_DIR)/install/bin $(INSTALL_LOCATION)/
+	$(VERBOSE)$(SUDO) cp -a $(BUILD_DIR)/install/libexec $(INSTALL_LOCATION)/
+	$(VERBOSE)$(SUDO) mkdir -p $(INSTALL_LOCATION)/lib
+	$(VERBOSE)$(SUDO) cp -a $(BUILD_DIR)/install/lib/cmake $(INSTALL_LOCATION)/lib/
+	$(VERBOSE)$(SUDO) cp -a $(BUILD_DIR)/install/lib/libQt6Core.so* $(INSTALL_LOCATION)/lib/
+	$(VERBOSE)$(SUDO) cp -a $(BUILD_DIR)/install/lib/libQt6Gui.so* $(INSTALL_LOCATION)/lib/
+	$(VERBOSE)$(SUDO) cp -a $(BUILD_DIR)/install/lib/libQt6Network.so* $(INSTALL_LOCATION)/lib/
+	$(VERBOSE)$(SUDO) cp -a $(BUILD_DIR)/install/lib/libQt6Qml.so* $(INSTALL_LOCATION)/lib/
+	$(VERBOSE)$(SUDO) cp -a $(BUILD_DIR)/install/lib/libQt6QmlCompiler.so* $(INSTALL_LOCATION)/lib/
+	$(VERBOSE)$(SUDO) cp -a $(BUILD_DIR)/install/lib/libQt6ShaderTools.so* $(INSTALL_LOCATION)/lib/
+
+clean:
+	rm -rf $(BUILD_DIR)

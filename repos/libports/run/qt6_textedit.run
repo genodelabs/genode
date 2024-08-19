@@ -1,0 +1,82 @@
+source ${genode_dir}/repos/libports/run/qt6_common.inc
+
+import_from_depot [depot_user]/src/qt6_component \
+                  [depot_user]/src/qt6_textedit \
+                  [depot_user]/src/vfs
+
+install_config {
+<config>
+	<parent-provides>
+		} [qt6_parent_provides] {
+	</parent-provides>
+	<default caps="100"/>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	} [qt6_start_nodes] {
+	<start name="ram_fs">
+		<resource name="RAM" quantum="10M"/>
+		<binary name="vfs"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<vfs> <ram/> </vfs>
+			<!-- constrain sessions according to their labels -->
+			<policy label_prefix="textedit" root="/" writeable="yes" />
+			<policy label_prefix="textedit2" root="/" writeable="yes" />
+		</config>
+	</start>
+	<start name="textedit" caps="300">
+		<resource name="RAM" quantum="70M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+				<dir name="fs">	<fs/> </dir>
+				<tar name="qt6_dejavusans.tar"/>
+				<tar name="qt6_libqgenode.tar"/>
+			</vfs>
+		</config>
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM" label="mesa_gpu.lib.so">
+				<parent label="mesa_gpu-softpipe.lib.so" />
+			</service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="textedit2" caps="300">
+		<binary name="textedit" />
+		<resource name="RAM" quantum="70M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+				<dir name="fs">	<fs/> </dir>
+				<tar name="qt6_dejavusans.tar"/>
+				<tar name="qt6_libqgenode.tar"/>
+			</vfs>
+		</config>
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM" label="mesa_gpu.lib.so">
+				<parent label="mesa_gpu-softpipe.lib.so" />
+			</service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+build_boot_image [qt6_boot_modules]
+
+run_genode_until forever

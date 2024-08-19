@@ -1,0 +1,82 @@
+source ${genode_dir}/repos/libports/run/qt6_common.inc
+
+import_from_depot [depot_user]/src/qt6_component \
+                  [depot_user]/src/qt6_calculatorform \
+                  [depot_user]/src/qt6_launchpad \
+                  [depot_user]/src/qt6_tetrix
+
+install_config {
+<config>
+	<parent-provides>
+		} [qt6_parent_provides] {
+	</parent-provides>
+	<default caps="100"/>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	} [qt6_start_nodes] {
+	<start name="qt_launchpad" caps="600">
+		<resource name="RAM" quantum="80M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+				<tar name="qt6_dejavusans.tar"/>
+				<tar name="qt6_libqgenode.tar"/>
+			</vfs>
+			<launcher name="calculatorform" ram_quota="30M" caps="200">
+				<config>
+					<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+					<vfs>
+						<dir name="dev">
+							<log/>
+							<inline name="rtc">2018-01-01 00:01</inline>
+						</dir>
+						<dir name="pipe"> <pipe/> </dir>
+						<tar name="qt6_dejavusans.tar"/>
+						<tar name="qt6_libqgenode.tar"/>
+					</vfs>
+				</config>
+			</launcher>
+			<launcher name="tetrix" ram_quota="40M" caps="200">
+				<config>
+					<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+					<vfs>
+						<dir name="dev">
+							<log/>
+							<inline name="rtc">2018-01-01 00:01</inline>
+						</dir>
+						<dir name="pipe"> <pipe/> </dir>
+						<tar name="qt6_dejavusans.tar"/>
+						<tar name="qt6_libqgenode.tar"/>
+					</vfs>
+				</config>
+			</launcher>
+		</config>
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="Report" label="calculatorform -> shape">
+				<child name="pointer" label="wm -> qt_launchpad -> calculatorform -> shape"/>
+			</service>
+			<service name="Report" label="tetrix -> shape">
+				<child name="pointer" label="wm -> qt_launchpad -> tetrix -> shape"/>
+			</service>
+			<service name="Report" label="shape">
+				<child name="pointer" label="wm -> qt_launchpad -> shape"/>
+			</service>
+			<service name="ROM" label_suffix="mesa_gpu.lib.so">
+				<parent label="mesa_gpu-softpipe.lib.so" />
+			</service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+build_boot_image [qt6_boot_modules]
+
+run_genode_until forever

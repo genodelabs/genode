@@ -1,0 +1,22 @@
+Panel, Overlay, App { min-width: 100px; min-height: 100px; }
+
+QFrame { padding: 5px; }
+QLabel { color: white; }
+/*QPushButton { border: none; outline: none; }*/
+
+Panel {
+	background-color: rgb(51, 93, 128);
+}
+
+Panel_button      Icon { qproperty-iconSize: 18px; }
+Panel_button#wifi Icon { qproperty-iconFile: url(:/wifi.png); }
+
+Overlay {
+	background-color: rgba(25, 69, 105, 100);
+}
+
+App {
+	background-color: rgb(96, 130, 159);
+}
+
+/* vi: set ft=css : */

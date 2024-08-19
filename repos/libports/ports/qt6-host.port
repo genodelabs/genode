@@ -1,0 +1,8 @@
+LICENSE := GPL
+VERSION := 6.6.2
+
+DOWNLOADS := qt6.archive
+
+URL(qt6) := https://download.qt.io/official_releases/qt/6.6/6.6.2/single/qt-everywhere-src-6.6.2.tar.xz
+SHA(qt6) := 3c1e42b3073ade1f7adbf06863c01e2c59521b7cc2349df2f74ecd7ebfcb922d
+DIR(qt6) := src/lib/qt6

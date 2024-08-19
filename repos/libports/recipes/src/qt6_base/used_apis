@@ -1,0 +1,15 @@
+base
+blit
+expat
+framebuffer_session
+gui_session
+input_session
+libc
+mesa
+os
+qoost
+qt6_component
+report_session
+so
+stdcxx
+timer_session

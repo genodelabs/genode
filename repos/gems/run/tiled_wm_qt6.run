@@ -1,0 +1,228 @@
+source ${genode_dir}/repos/libports/run/qt6_common.inc
+
+import_from_depot [depot_user]/src/qt6_component \
+                  [depot_user]/src/qt6_textedit \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/test-tiled_wm_qt6
+
+#
+# Generate config
+#
+
+proc qt6_layouter_config { } {
+	return { <config rules="rom"> <report rules="no"/> </config>}
+}
+
+proc qt6_decorator_binary { } { return "themed_decorator" }
+
+proc qt6_decorator_config { } {
+	return {
+		<config>
+			<vfs>
+				<dir name="theme">
+					<inline name="metadata">
+						<theme>
+							<aura  top="0" bottom="0" left="0" right="0"/>
+							<decor top="0" bottom="0" left="0" right="0"/>
+						</theme>
+					</inline>
+				</dir>
+			</vfs>
+			<libc/>
+			<default-policy/>
+		</config>}
+}
+
+install_config {
+<config>
+	<parent-provides>} [qt6_parent_provides] {
+	</parent-provides>
+	<default caps="100"/>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>} [qt6_start_nodes] {
+
+	<start name="test_reports">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<policy label="test-tiled_wm-panel -> apps"              report="test-tiled_wm-manager -> apps"/>
+			<policy label="test-tiled_wm-panel -> overlay"           report="test-tiled_wm-manager -> overlay"/>
+			<policy label="test-tiled_wm-manager -> content_request" report="test-tiled_wm-panel -> content_request"/>
+			<policy label="test-tiled_wm-manager -> overlay_request" report="test-tiled_wm-panel -> overlay_request"/>
+		</config>
+	</start>
+	<start name="wifi_reports">
+		<binary name="dynamic_rom"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<rom name="accesspoints">
+				<inline>
+					<accesspoints>
+						<accesspoint ssid="skynet" bssid="00:01:02:03:04:05" quality="40"/>
+						<accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" protection="WPA2"/>
+						<accesspoint ssid="foobar" bssid="01:02:03:04:05:07" quality="10" protection="WPA2"/>
+					</accesspoints>
+				</inline>
+				<sleep milliseconds="60000" />
+				<inline>
+					<accesspoints>
+					</accesspoints>
+				</inline>
+				<sleep milliseconds="60000" />
+			</rom>
+			<rom name="state">
+				<inline>
+					<state>
+						<accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" freq="2418" state="disconnected"/>
+					</state>
+				</inline>
+				<sleep milliseconds="60000" />
+				<inline>
+					<state>
+						<accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" freq="2418" state="connecting"/>
+					</state>
+				</inline>
+				<sleep milliseconds="60000" />
+			</rom>
+		</config>
+	</start>
+
+	<start name="test-tiled_wm-manager" caps="120">
+		<resource name="RAM" quantum="8M"/>
+		<route>
+			<service name="ROM" label="content_request"> <child name="test_reports" /> </service>
+			<service name="ROM" label="overlay_request"> <child name="test_reports" /> </service>
+			<service name="Report" label="layout_rules"> <child name="wm_report_rom" label="layout_rules"/> </service>
+			<service name="Report"> <child name="test_reports"/> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-tiled_wm-panel" caps="250">
+		<resource name="RAM" quantum="32M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+				<dir name="fs"> <ram/> </dir>
+				<tar name="qt6_dejavusans.tar"/>
+				<tar name="qt6_libqgenode.tar"/>
+			</vfs>
+		</config>
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+
+			<service name="ROM" label="apps"> <child name="test_reports" /> </service>
+			<service name="ROM" label="overlay"> <child name="test_reports" /> </service>
+			<service name="Report"> <child name="test_reports"/> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-tiled_wm-overlay" caps="250">
+		<resource name="RAM" quantum="32M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+				<dir name="fs"> <ram/> </dir>
+				<tar name="qt6_dejavusans.tar"/>
+				<tar name="qt6_libqgenode.tar"/>
+			</vfs>
+		</config>
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-tiled_wm-app-1" caps="250">
+		<binary name="test-tiled_wm-app"/>
+		<resource name="RAM" quantum="32M"/>
+		<config name="app1">
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+				<dir name="fs"> <ram/> </dir>
+				<tar name="qt6_dejavusans.tar"/>
+				<tar name="qt6_libqgenode.tar"/>
+			</vfs>
+		</config>
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-tiled_wm-app-2" caps="250">
+		<binary name="test-tiled_wm-app"/>
+		<resource name="RAM" quantum="32M"/>
+		<config name="app2">
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+				<dir name="fs"> <ram/> </dir>
+				<tar name="qt6_dejavusans.tar"/>
+				<tar name="qt6_libqgenode.tar"/>
+			</vfs>
+		</config>
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="textedit" caps="250">
+		<resource name="RAM" quantum="70M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+				<dir name="fs"> <ram/> </dir>
+				<tar name="qt6_dejavusans.tar"/>
+				<tar name="qt6_libqgenode.tar"/>
+			</vfs>
+		</config>
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="ROM" label="mesa_gpu.lib.so"> <parent label="mesa_gpu-softpipe.lib.so" /> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+build_boot_image [qt6_boot_modules]
+
+append qemu_args " -device nec-usb-xhci,id=xhci -device usb-tablet"
+
+run_genode_until forever
+
+# vi: set ft=tcl :

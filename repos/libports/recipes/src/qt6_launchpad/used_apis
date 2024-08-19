@@ -1,0 +1,9 @@
+base
+libc
+mesa
+os
+qt6_base
+qt6_component
+stdcxx
+timer_session
+vfs

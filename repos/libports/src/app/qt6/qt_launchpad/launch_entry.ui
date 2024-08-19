@@ -1,0 +1,133 @@
+<ui version="4.0" >
+ <class>Launch_entryClass</class>
+ <widget class="QWidget" name="Launch_entryClass" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>396</width>
+    <height>40</height>
+   </rect>
+  </property>
+  <layout class="QHBoxLayout" >
+   <property name="spacing" >
+    <number>4</number>
+   </property>
+   <property name="leftMargin" >
+    <number>0</number>
+   </property>
+   <property name="topMargin" >
+    <number>0</number>
+   </property>
+   <property name="rightMargin" >
+    <number>0</number>
+   </property>
+   <property name="bottomMargin" >
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QPushButton" name="launchButton" >
+     <property name="minimumSize" >
+      <size>
+       <width>100</width>
+       <height>40</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer>
+     <property name="orientation" >
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" >
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="Kbyte_loadbar" name="quotaBar" >
+     <property name="minimumSize" >
+      <size>
+       <width>240</width>
+       <height>40</height>
+      </size>
+     </property>
+     <property name="maximumSize" >
+      <size>
+       <width>240</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="value" >
+      <number>0</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDial" name="quotaDial" >
+     <property name="maximumSize" >
+      <size>
+       <width>40</width>
+       <height>40</height>
+      </size>
+     </property>
+     <property name="maximum" >
+      <number>100</number>
+     </property>
+     <property name="wrapping" >
+      <bool>false</bool>
+     </property>
+     <property name="notchesVisible" >
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>Kbyte_loadbar</class>
+   <extends>QProgressBar</extends>
+   <header>kbyte_loadbar.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>quotaDial</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>quotaBar</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>395</x>
+     <y>43</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>355</x>
+     <y>43</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>quotaDial</sender>
+   <signal>rangeChanged(int,int)</signal>
+   <receiver>quotaBar</receiver>
+   <slot>setRange(int,int)</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>395</x>
+     <y>30</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>355</x>
+     <y>30</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

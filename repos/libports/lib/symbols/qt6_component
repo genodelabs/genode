@@ -1,0 +1,7 @@
+_ZN4Libc9Component9constructERNS_3EnvE T
+#
+# Make sure there is an undefined reference to "main". Because Qt6 apps don't
+# link the posix library (where main is also undefined), we need this so "main"
+# does not get garbage collected during linking.
+#
+main U
