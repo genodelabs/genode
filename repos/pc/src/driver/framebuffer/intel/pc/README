@@ -70,19 +70,24 @@ in the configuration as follows:
 The exported report has the following format:
 
 ! <connectors>
-!   <connector name="eDP-1" connected="true" brightness="50">
-!     <mode width="1920" height="1080" hz="60" mode_id="1" preferred="true"/>
+!   <connector name="eDP-1" connected="true" brightness="50" width_mm="290" height_mm="170">
+!     <mode width="1920" height="1080" hz="60" mode_id="1" preferred="true" used="true" width_mm="288" height_mm="165"/>
 !     ...
 !   </connector>
-!   <connector name="DP-1" connected="true">
-!     <mode width="1920" height="1200" hz="60" mode_id="1" preferred="true"/>
-!     <mode width="1920" height="1080" hz="60" mode_id="2"/>
+!   <connector name="DP-1" connected="true" width_mm="280" height_mm="160">
+!     <mode width="1920" height="1200" hz="60" mode_id="1" preferred="true" width_mm="280" height_mm="160"/>
+!     <mode width="1920" height="1080" hz="60" mode_id="2" used="true" width_mm="278" height_mm="158"/>
 !     <mode width="1280" height="1024" hz="60" mode_id="3"/>
 !     <mode width="1024" height="768"  hz="60" mode_id="4"/>
 !     ...
 !   </connector>
 !   <connector name="HDMI-A-1" connected="false"/>
 ! </connectors>
+
+The physical dimension of the display is reported as width_mm and height_mm
+in millimeter per connector and if available, also per mode. The values can
+be used as input to DPI calculations. The currently used mode of the connector
+is tagged in the report explicitly.
 
 The brightness attribute is reported only if the hardware supports it.
 
