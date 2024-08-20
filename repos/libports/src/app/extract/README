@@ -1,0 +1,28 @@
+The 'extract' component extracts archives using libarchive.
+
+Configuration
+~~~~~~~~~~~~~
+
+The following snippet shows how to configure the component to extract
+multiple archives one at a time:
+
+!<config verbose="false">
+!  <libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/null"
+!        update_mtime="no"/>
+!  <vfs>
+!          <dir name="download"> <fs label="download"/> </dir>
+!          <dir name="content"> <fs label="content" writeable="yes"/> </dir>
+!          <dir name="dev"> <log/> <null/> </dir>
+!  </vfs>
+!  <extract archive="/download/foo.zip" to="/content/foo123/" strip="1"/>
+!  <extract archive="/download/bar.zip" to="/content/bar/" strip="1"/>
+!  <extract archive="/download/README.xz" to="/content/" name="README"/>
+!</config>
+
+Each 'extract' node contains the source path to the archive in its 'archive'
+attribute. The destination path, where the content of the archive should be
+placed, is specified by the 'to' attribute. The 'strip' attribute denotes
+how many path elements should be removed from the files stored in the archive
+during extraction. In this example the top directory would be omitted. The
+'name' attribute is used for naming compressed files that are not part of an
+archive.
