@@ -26,3 +26,15 @@ how many path elements should be removed from the files stored in the archive
 during extraction. In this example the top directory would be omitted. The
 'name' attribute is used for naming compressed files that are not part of an
 archive.
+
+The 'ignore_failures' attribute of the 'config' node instructs the component
+to attempt to extract all given archives and even in the case of failures to
+report success. This option is intended for batch-operations where only the
+overall success is of importance.
+
+The 'stop_on_failure' attribute of the 'config' node instructs the component
+to stop processing any archive after the extraction of one has already failed.
+
+In the default configuration 'ignore_failures' is 'false' while 'stop_on_failure'
+is 'true' so processing a batch of archives will stop on the first failure and
+leads to exiting with a non-zero exit-value.
