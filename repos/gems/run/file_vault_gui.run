@@ -27,7 +27,7 @@ append archives "
 	[depot_user]/src/fs_tool
 	[depot_user]/src/fs_utils
 	[depot_user]/src/posix
-	[depot_user]/src/rump
+	[depot_user]/src/vfs_rump
 	[depot_user]/src/sandbox"
 
 append_if [jent_avail] archives " [depot_user]/src/vfs_jitterentropy "

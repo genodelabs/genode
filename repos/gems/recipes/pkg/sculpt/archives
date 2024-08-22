@@ -26,7 +26,7 @@ _/src/vfs
 _/src/vfs_import
 _/src/vfs_lxip
 _/src/vfs_pipe
-_/src/rump
+_/src/vfs_rump
 _/src/chroot
 _/src/fetchurl
 _/src/curl

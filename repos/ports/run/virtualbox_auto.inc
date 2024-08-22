@@ -52,7 +52,7 @@ if {!$use_usb} {
 }
 
 if {$use_rumpfs} {
-	import_from_depot [depot_user]/src/rump
+	import_from_depot [depot_user]/src/vfs_rump
 }
 
 append build_components {
