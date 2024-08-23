@@ -111,28 +111,23 @@ struct Extract::Extracted_archive : Noncopyable
 	using Path     = String<256>;
 	using Raw_name = String<80>;
 
-	struct Exception    : Genode::Exception { };
-	struct Open_failed  : Exception { };
-	struct Read_failed  : Exception { };
-	struct Write_failed : Exception { };
-
 	struct Strip { unsigned value; };
 
+	struct Extract_ok { };
+	enum class Extract_error : uint32_t {
+		OPEN_FAILED, READ_FAILED, WRITE_FAILED, };
+	using Extract_result = Attempt<Extract_ok, Extract_error>;
+
 	/**
-	 * Constructor
-	 *
+	 * \param path      path to archive file
 	 * \param strip     number of leading path elements to strip
 	 * \param raw_name  destination file name when uncompressing raw file
 	 *
-	 * \throw Open_failed
-	 * \throw Read_failed
-	 * \throw Write_failed
-	 *
 	 * The 'raw_name' is unused when extracting an archive.
 	 */
-	explicit Extracted_archive(Path     const &path,
-	                           Strip    const strip,
-	                           Raw_name const &raw_name)
+	Extract_result extract(Path     const &path,
+	                       Strip    const strip,
+	                       Raw_name const &raw_name)
 	{
 		archive_read_support_format_all(src.ptr);
 		archive_read_support_format_raw(src.ptr);
@@ -141,7 +136,7 @@ struct Extract::Extracted_archive : Noncopyable
 		size_t const block_size = 10240;
 
 		if (archive_read_open_filename(src.ptr, path.string(), block_size))
-			throw Open_failed();
+			return Extract_error::OPEN_FAILED;
 
 		for (;;) {
 
@@ -154,7 +149,7 @@ struct Extract::Extracted_archive : Noncopyable
 					break;
 
 				if (ret != ARCHIVE_OK)
-					throw Read_failed();
+					return Extract_error::READ_FAILED;
 			}
 
 			bool const raw = archive_format(src.ptr) == ARCHIVE_FORMAT_RAW;
@@ -163,7 +158,7 @@ struct Extract::Extracted_archive : Noncopyable
 			if (raw) {
 				if (!raw_name.valid()) {
 					error("name of uncompressed file for ", path, " not specified");
-					throw Write_failed();
+					return Extract_error::WRITE_FAILED;
 				}
 
 				archive_entry_copy_pathname(entry, raw_name.string());
@@ -203,7 +198,7 @@ struct Extract::Extracted_archive : Noncopyable
 			}
 
 			if (archive_write_header(dst.ptr, entry) != ARCHIVE_OK)
-				throw Write_failed();
+				return Extract_error::WRITE_FAILED;
 
 			for (;;) {
 				void const *buf    = nullptr;
@@ -217,16 +212,18 @@ struct Extract::Extracted_archive : Noncopyable
 						break;
 
 					if (ret != ARCHIVE_OK)
-						throw Read_failed();
+						return Extract_error::READ_FAILED;
 				}
 
 				if (archive_write_data_block(dst.ptr, buf, size, offset) != ARCHIVE_OK)
-					throw Write_failed();
+					return Extract_error::WRITE_FAILED;
 			}
 
 			if (archive_write_finish_entry(dst.ptr) != ARCHIVE_OK)
-				throw Write_failed();
+				return Extract_error::WRITE_FAILED;
 		}
+
+		return Extract_ok();
 	}
 };
 
@@ -256,12 +253,12 @@ struct Extract::Main
 
 		_stop_on_failure = config.attribute_value("stop_on_failure", true);
 
-		bool overall_success = true;
+		bool success = true;
 
 		config.for_each_sub_node("extract", [&] (Xml_node node) {
 
-			/* ignore any following archives after one failed */
-			if (!overall_success && _stop_on_failure)
+			/* ignore any following archives after one has failed */
+			if (!success && _stop_on_failure)
 				return;
 
 			Path     const src_path = node.attribute_value("archive", Path());
@@ -270,40 +267,44 @@ struct Extract::Main
 
 			Extracted_archive::Strip const strip { node.attribute_value("strip", 0U) };
 
-			bool success = false;
+			if (!create_directories(dst_path)) {
+				success = false;
 
-			struct Create_directories_failed { };
-
-			try {
-				if (!create_directories(dst_path))
-					throw Create_directories_failed();
-
-				chdir("/");
-				chdir(dst_path.string());
-
-				Extracted_archive extracted_archive(src_path, strip, raw_name);
-
-				success = true;
-			}
-			catch (Create_directories_failed) {
-				warning("failed to created directory '", dst_path, "'"); }
-			catch (Extracted_archive::Read_failed) {
-				warning("reading from archive ", src_path, " failed"); }
-			catch (Extracted_archive::Open_failed) {
-				warning("could not open archive ", src_path); }
-			catch (Extracted_archive::Write_failed) {
-				warning("writing to directory ", dst_path, " failed"); }
-
-			if (!success) {
-				overall_success = false;
+				warning("failed to created directory '", dst_path, "'");
 				return;
 			}
 
-			if (_verbose)
-				log("extracted '", src_path, "' to '", dst_path, "'");
+			chdir("/");
+			chdir(dst_path.string());
+
+			Extracted_archive archive;
+			archive.extract(src_path, strip, raw_name).with_result(
+				[&] (Extracted_archive::Extract_ok) {
+
+					if (_verbose)
+						log("extracted '", src_path, "' to '", dst_path, "'");
+				},
+				[&] (Extracted_archive::Extract_error e) {
+					success = false;
+
+					using Error = Extracted_archive::Extract_error;
+
+					switch (e) {
+					case Error::OPEN_FAILED:
+						warning("could not open archive ", src_path);
+						break;
+					case Error::READ_FAILED:
+						warning("reading from archive ", src_path, " failed");
+						break;
+					case Error::WRITE_FAILED:
+						warning("writing to directory ", dst_path, " failed");
+						break;
+					}
+				}
+			);
 		});
 
-		return overall_success;
+		return success;
 	}
 
 	Main(Env &env) : _env(env)
