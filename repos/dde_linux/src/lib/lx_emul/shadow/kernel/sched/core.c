@@ -260,6 +260,19 @@ void wake_q_add(struct wake_q_head *head, struct task_struct *task)
 }
 
 
+/*
+ * CAUTION: This check is not an actual requirement. It should be removed when
+ * all other *_linux have been updated to 6.6 or when this function has been
+ * removed from their respective generated_dummies.c
+ */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,6,0)
+void wake_q_add_safe(struct wake_q_head *head, struct task_struct *task)
+{
+	if (!__wake_q_add(head, task))
+		put_task_struct(task);
+}
+#endif
+
 void wake_up_q(struct wake_q_head *head)
 {
 	struct wake_q_node *node = head->first;

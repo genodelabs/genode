@@ -947,14 +947,6 @@ int usb_update_wireless_status_attr(struct usb_interface * intf)
 const u8 uuid_index[16] = {};
 
 
-#include <linux/sched/wake_q.h>
-
-void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/filter.h>
 
 int xdp_do_generic_redirect(struct net_device * dev,struct sk_buff * skb,struct xdp_buff * xdp,struct bpf_prog * xdp_prog)

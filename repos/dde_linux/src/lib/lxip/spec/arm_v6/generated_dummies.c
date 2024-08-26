@@ -839,14 +839,6 @@ void __init wait_for_init_devices_probe(void)
 }
 
 
-#include <linux/sched/wake_q.h>
-
-void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/sched.h>
 
 void __sched yield(void)

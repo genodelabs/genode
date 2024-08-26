@@ -622,12 +622,3 @@ void update_group_capacity(struct sched_domain * sd,int cpu)
 #include <linux/uuid.h>
 
 const u8 uuid_index[16] = {};
-
-
-#include <linux/sched/wake_q.h>
-
-void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-

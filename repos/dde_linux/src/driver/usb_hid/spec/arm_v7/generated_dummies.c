@@ -540,14 +540,6 @@ const u8 uuid_index[16] = {};
 atomic_long_t vm_node_stat[NR_VM_NODE_STAT_ITEMS] = {};
 
 
-#include <linux/sched/wake_q.h>
-
-void wake_q_add_safe(struct wake_q_head * head,struct task_struct * task)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/rcupdate_wait.h>
 
 void wakeme_after_rcu(struct rcu_head * head)
