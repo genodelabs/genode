@@ -1128,6 +1128,19 @@ Libc::Vfs_plugin::_ioctl_tio(File_descriptor *fd, unsigned long request, char *a
 		termios->c_ospeed = 0;
 
 		handled = true;
+	
+	} else if (request == TIOCSETA) {
+
+		/*
+		 * As TIOCGETA above only returns the for now required
+		 * options ignore any attempt to set them.
+		 */
+
+		handled = true;
+
+	} else if (request == TIOCFLUSH) {
+
+		handled = true;
 	}
 
 	return { handled, 0 };
@@ -1921,7 +1934,9 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *ar
 
 	switch (request) {
 	case TIOCGWINSZ:
+	case TIOCFLUSH:
 	case TIOCGETA:
+	case TIOCSETA:
 		result = _ioctl_tio(fd, request, argp);
 		break;
 	case DIOCGMEDIASIZE:
