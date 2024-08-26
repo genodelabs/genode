@@ -504,8 +504,12 @@ void framebuffer_dirty(void)
 static int update_content(void *)
 {
 	while (true) {
-		framebuffer_dirty();
-		lx_emul_task_schedule(true /* block task */);
+
+		if (lx_emul_i915_blit())
+			framebuffer_dirty();
+
+		/* schedule_timeout(jiffes) or hrtimer or msleep */
+		msleep(20);
 	}
 
 	return 0;

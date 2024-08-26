@@ -32,6 +32,7 @@ struct genode_mode {
 	char name[32];
 };
 
+int  lx_emul_i915_blit(void);
 void lx_emul_i915_report(void * genode_xml);
 void lx_emul_i915_hotplug_connector(void);
 void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
