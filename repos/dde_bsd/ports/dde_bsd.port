@@ -6,10 +6,9 @@ DOWNLOADS := audio.archive
 # Audio drivers from OpenBSD
 #
 SRC_DIR_AUDIO  := src/lib/audio
-VERSION(audio) := 7.5
-BASE_URL       := https://cdn.openbsd.org/pub/OpenBSD
-URL(audio)     := $(BASE_URL)/${VERSION(audio)}/sys.tar.gz
-SHA(audio)     := 5bed83f290c277f1d89d9280d369f827798f3deb9f06dac043a4b5e50863dae5
+VERSION(audio) := 8571a5a
+URL(audio)     := https://distfiles.sysret.de/Genode/dde_bsd-8571a5a.tar.xz
+SHA(audio)     := 4a0de8a026d3a844022135c25bab5aabfd5f77146aaedaa6d7253b2cc110efca
 DIR(audio)     := $(SRC_DIR_AUDIO)
 TAR_OPT(audio) := --strip-components=1 --files-from $(REP_DIR)/audio.list
 HASH_INPUT     += $(REP_DIR)/audio.list
