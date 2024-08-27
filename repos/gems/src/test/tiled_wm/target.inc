@@ -1,13 +1,12 @@
 QT5_PORT_LIBS = libQt5Core libQt5Gui libQt5Widgets
 
-LIBS = base libc libm mesa stdcxx qoost $(QT5_PORT_LIBS)
+LIBS = qt5_qmake base libc libm mesa stdcxx qoost
 
-include $(call select_from_repositories,lib/import/import-qt5_qmake.mk)
+QT5_COMPONENT_LIB_SO =
 
 QT5_GENODE_LIBS_APP += ld.lib.so
-QT5_GENODE_LIBS_APP := $(filter-out qt5_component.lib.so,$(QT5_GENODE_LIBS_APP))
 
-qmake_prepared.tag: qmake_root/lib/ld.lib.so
+qmake_prepared.tag: $(addprefix build_dependencies/lib/,$(QT5_GENODE_LIBS_APP))
 
 INC_DIR += $(PRG_DIR)/..
 

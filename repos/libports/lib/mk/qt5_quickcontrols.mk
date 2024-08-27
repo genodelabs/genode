@@ -1,23 +1,21 @@
-include $(call select_from_repositories,lib/import/import-qt5_qmake.mk)
-
 QT5_PORT_LIBS += libQt5Core libQt5Gui libQt5Network libQt5Widgets
 QT5_PORT_LIBS += libQt5Qml libQt5QmlModels libQt5Quick
 
-LIBS = libc libm mesa stdcxx $(QT5_PORT_LIBS)
+LIBS = qt5_qmake libc libm mesa stdcxx
 
 INSTALL_LIBS = qml/QtQuick/Controls/libqtquickcontrolsplugin.lib.so
 
 BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
                   qt5_quickcontrols_qml.tar
 
-build: qmake_prepared.tag
+build: qmake_prepared.tag qt5_so_files
 
 	@#
 	@# run qmake
 	@#
 
 	$(VERBOSE)source env.sh && $(QMAKE) \
-		-qtconf qmake_root/mkspecs/$(QMAKE_PLATFORM)/qt.conf \
+		-qtconf build_dependencies/mkspecs/$(QT_PLATFORM)/qt.conf \
 		$(QT_DIR)/qtquickcontrols/qtquickcontrols.pro \
 		$(QT5_OUTPUT_FILTER)
 
@@ -33,7 +31,7 @@ build: qmake_prepared.tag
 
 	$(VERBOSE)$(MAKE) INSTALL_ROOT=$(CURDIR)/install sub-src-install_subtargets $(QT5_OUTPUT_FILTER)
 
-	$(VERBOSE)ln -sf .$(CURDIR)/qmake_root install/qt
+	$(VERBOSE)ln -sf .$(CURDIR)/build_dependencies install/qt
 
 	@#
 	@# strip libs and create symlinks in 'bin' and 'debug' directories

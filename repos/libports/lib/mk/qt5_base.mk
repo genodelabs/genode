@@ -1,6 +1,4 @@
-include $(call select_from_repositories,lib/import/import-qt5_qmake.mk)
-
-LIBS = base libc libm stdcxx qt5_component egl mesa qoost
+LIBS = qt5_qmake base ldso_so_support libc libm stdcxx qt5_component egl mesa qoost
 
 INSTALL_LIBS = lib/libQt5Core.lib.so \
                lib/libQt5Gui.lib.so \
@@ -19,18 +17,18 @@ BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
                   qt5_libqjpeg.tar \
                   qt5_libqsqlite.tar
 
-build: qmake_prepared.tag qmake_root/lib/ld.lib.so
+build: qmake_prepared.tag build_dependencies/lib/ld.lib.so
 
 	@#
 	@# run qmake
 	@#
 
 	$(VERBOSE)source env.sh && $(QMAKE) \
-		-qtconf qmake_root/mkspecs/$(QMAKE_PLATFORM)/qt.conf \
+		-qtconf build_dependencies/mkspecs/$(QT_PLATFORM)/qt.conf \
 		$(QT_DIR)/qtbase/qtbase.pro \
 		-- \
 		-prefix /qt \
-		-xplatform $(QMAKE_PLATFORM) \
+		-xplatform $(QT_PLATFORM) \
 		-qpa genode \
 		-opensource \
 		-confirm-license \
@@ -58,7 +56,7 @@ build: qmake_prepared.tag qmake_root/lib/ld.lib.so
 
 	$(VERBOSE)$(MAKE) INSTALL_ROOT=$(CURDIR)/install sub-src-install_subtargets $(QT5_OUTPUT_FILTER)
 
-	$(VERBOSE) ln -sf .$(CURDIR)/qmake_root install/qt
+	$(VERBOSE) ln -sf .$(CURDIR)/build_dependencies install/qt
 
 	@#
 	@# strip libs and create symlinks in 'bin' and 'debug' directories
