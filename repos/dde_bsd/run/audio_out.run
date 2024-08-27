@@ -14,14 +14,18 @@ if {[have_spec linux]} {
 proc use_record_play_sessions { } { return 1 }
 
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/acpi \
+                  [depot_user]/src/bsd_audio \
+                  [depot_user]/src/init \
+                  [depot_user]/src/pci_decode \
+                  [depot_user]/src/platform \
+                  [depot_user]/src/report_rom
+
 
 proc build_targets { } {
 
-	set targets {
-		core init timer
-		driver/acpi driver/platform app/pci_decode server/report_rom
-		driver/audio
-	}
+	set targets { driver/audio/pci }
 
 	if {[use_record_play_sessions]} {
 		lappend targets server/record_play_mixer app/waveform_player \
@@ -48,7 +52,7 @@ proc record_play_start_nodes { } {
 		return "" }
 
 	return {
-	<start name="mixer">
+	<start name="mixer" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<resource name="CPU" quantum="20"/>
 		<binary name="record_play_mixer"/>
@@ -58,12 +62,12 @@ proc record_play_start_nodes { } {
 			<mix name="left">  <play label_suffix="left" /> </mix>
 			<mix name="right"> <play label_suffix="right"/> </mix>
 
-			<policy label_suffix="left"   record="left"  volume="1.0"/>
-			<policy label_suffix="right"  record="right" volume="1.0"/>
+			<policy label_suffix="left"   record="left"  period_ms="12" jitter_ms="5" volume="1.0"/>
+			<policy label_suffix="right"  record="right" period_ms="12" jitter_ms="5" volume="1.0"/>
 		</config>
 	</start>
 
-	<start name="test-audio_play">
+	<start name="test-audio_play" priority="-2">
 		<resource name="RAM" quantum="40M"/>
 		<config sample_path="sample.f32">
 			<vfs> <rom name="sample.f32"/> </vfs>
@@ -94,7 +98,7 @@ proc audio_in_out_start_nodes { } {
 }
 
 install_config {
-<config verbose="yes">
+<config verbose="yes" prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -108,7 +112,7 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
-	<start name="timer">
+	<start name="timer" priority="0">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
@@ -122,15 +126,15 @@ install_config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="350">
-		<resource name="RAM" quantum="4M"/>
+	<start name="acpi" caps="350" priority="-1">
+		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
-	<start name="pci_decode" caps="350">
+	<start name="pci_decode" caps="350" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="Report">             <child name="report_rom"/> </service>
@@ -139,7 +143,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="platform" caps="100" managing_system="yes">
+	<start name="platform" caps="100" managing_system="yes" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Platform"/>
@@ -154,7 +158,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="audio">
+	<start name="audio" caps="150" priority="-1">
 		<binary name="pci_audio"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Audio_out"/> <service name="Audio_in"/> </provides>
