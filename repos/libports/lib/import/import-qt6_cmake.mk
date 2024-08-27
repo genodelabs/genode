@@ -1,10 +1,12 @@
 #
 # The following externally defined variables are evaluated:
 #
-# CMAKE_LISTS_DIR:      path to the CMakeLists.txt file
-# CMAKE_TARGET_BINARIES binaries to be stripped and linked into 'bin' and 'debug' directories
-# QT6_PORT_LIBS:        Qt6 libraries used from port (for example libQt6Core)
-# QT6_COMPONENT_LIB_SO: if defined empty, disables linking with qt6_component.lib.so
+# CMAKE_LISTS_DIR:       path to the CMakeLists.txt file
+# CMAKE_TARGET_BINARIES  binaries to be stripped and linked into 'bin' and 'debug' directories
+# QT6_PORT_LIBS:         Qt6 libraries used from port (for example libQt6Core)
+# QT6_COMPONENT_LIB_SO:  if defined empty, disables linking with qt6_component.lib.so
+# QT6_TARGET_DEPS:       default is 'build_with_cmake'
+# QT6_EXTRA_TARGET_DEPS: additional target dependencies
 #
 
 include $(call select_from_repositories,lib/import/import-qt6.inc)
@@ -135,8 +137,11 @@ endif
 BUILD_ARTIFACTS += $(notdir $(CMAKE_TARGET_BINARIES))
 
 #
-# build applications with CMake
+# build with CMake by default
 #
+
+QT6_TARGET_DEPS ?= build_with_cmake
+
 TARGET ?= $(CMAKE_LISTS_DIR).cmake_target
 .PHONY: $(TARGET)
-$(TARGET): build_with_cmake $(QT6_EXTRA_TARGET_DEPS)
+$(TARGET): $(QT6_TARGET_DEPS) $(QT6_EXTRA_TARGET_DEPS)

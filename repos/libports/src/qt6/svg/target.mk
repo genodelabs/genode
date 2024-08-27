@@ -1,8 +1,10 @@
-QT6_PORT_LIBS = libQt6Core libQt6Gui
+TARGET = qt6_svg.cmake_target
+
+QT6_PORT_LIBS = libQt6Core libQt6Gui libQt6Widgets
 
 LIBS = qt6_cmake ldso_so_support libc libm egl mesa qt6_component stdcxx
 
-INSTALL_LIBS = lib/libQt6ShaderTools.lib.so
+INSTALL_LIBS = lib/libQt6Svg.lib.so
 
 BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS))
 
@@ -27,7 +29,7 @@ build: cmake_prepared.tag qt6_so_files
 		-DCMAKE_MODULE_LINKER_FLAGS="$(GENODE_CMAKE_LFLAGS_SHLIB)" \
 		-DQT_QMAKE_TARGET_MKSPEC=$(QT_PLATFORM) \
 		-DCMAKE_INSTALL_PREFIX=/qt \
-		$(QT_DIR)/qtshadertools \
+		$(QT_DIR)/qtsvg \
 		$(QT6_OUTPUT_FILTER)
 
 	@#
@@ -66,6 +68,4 @@ build: cmake_prepared.tag qt6_so_files
 
 .PHONY: build
 
-ifeq ($(called_from_lib_mk),yes)
-all: build
-endif
+QT6_TARGET_DEPS = build

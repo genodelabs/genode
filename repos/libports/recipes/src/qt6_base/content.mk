@@ -1,4 +1,4 @@
-MIRROR_FROM_REP_DIR := lib/mk/qt6_base.mk
+MIRROR_FROM_REP_DIR := src/qt6/base/target.mk
 
 content: $(MIRROR_FROM_REP_DIR)
 

@@ -1,3 +1,5 @@
+TARGET = qt6_declarative.cmake_target
+
 QT6_PORT_LIBS = libQt6Core libQt6Gui libQt6OpenGL libQt6Network libQt6Sql libQt6Test libQt6Widgets
 
 LIBS = qt6_cmake ldso_so_support libc libm mesa egl qt6_component stdcxx
@@ -135,6 +137,4 @@ build: cmake_prepared.tag qt6_so_files
 
 .PHONY: build
 
-ifeq ($(called_from_lib_mk),yes)
-all: build
-endif
+QT6_TARGET_DEPS = build

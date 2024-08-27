@@ -1,3 +1,5 @@
+TARGET = qt6_base.cmake_target
+
 LIBS = qt6_cmake ldso_so_support libc libm stdcxx qt6_component egl mesa base qoost
 
 INSTALL_LIBS = lib/libQt6Concurrent.lib.so \
@@ -113,6 +115,4 @@ build: cmake_prepared.tag
 
 .PHONY: build
 
-ifeq ($(called_from_lib_mk),yes)
-all: build
-endif
+QT6_TARGET_DEPS = build

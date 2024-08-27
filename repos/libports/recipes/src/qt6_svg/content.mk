@@ -1,4 +1,4 @@
-MIRROR_FROM_REP_DIR := lib/mk/qt6_svg.mk
+MIRROR_FROM_REP_DIR := src/qt6/svg/target.mk
 
 content: $(MIRROR_FROM_REP_DIR)
 

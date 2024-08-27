@@ -1,10 +1,12 @@
 #
 # The following externally defined variables are evaluated:
 #
-# QMAKE_PROJECT_FILE:   path to the qmake project file (for applications with target.mk)
-# QMAKE_TARGET_BINARIES binaries to be stripped and linked into 'bin' and 'debug' directories
-# QT6_PORT_LIBS:        Qt6 libraries used from port (for example libQt6Core)
-# QT6_COMPONENT_LIB_SO: if defined empty, disables linking with qt6_component.lib.so
+# QMAKE_PROJECT_FILE:    path to the qmake project file (for applications with target.mk)
+# QMAKE_TARGET_BINARIES  binaries to be stripped and linked into 'bin' and 'debug' directories
+# QT6_PORT_LIBS:         Qt6 libraries used from port (for example libQt6Core)
+# QT6_COMPONENT_LIB_SO:  if defined empty, disables linking with qt6_component.lib.so
+# QT6_TARGET_DEPS:       default is 'build_with_qmake'
+# QT6_EXTRA_TARGET_DEPS: additional target dependencies
 #
 
 include $(call select_from_repositories,lib/import/import-qt6.inc)
@@ -169,8 +171,11 @@ build_with_qmake: qmake_prepared.tag qt6_so_files
 BUILD_ARTIFACTS += $(notdir $(QMAKE_TARGET_BINARIES))
 
 #
-# build applications with qmake
+# build with qmake by default
 #
+
+QT6_TARGET_DEPS ?= build_with_qmake
+
 TARGET ?= $(notdir $(QMAKE_PROJECT_FILE)).qmake_target
 .PHONY: $(TARGET)
-$(TARGET): build_with_qmake $(QT6_EXTRA_TARGET_DEPS)
+$(TARGET): $(QT6_TARGET_DEPS) $(QT6_EXTRA_TARGET_DEPS)
