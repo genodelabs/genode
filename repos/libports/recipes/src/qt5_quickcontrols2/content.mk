@@ -1,4 +1,4 @@
-MIRROR_FROM_REP_DIR := lib/mk/qt5_quickcontrols2.mk
+MIRROR_FROM_REP_DIR := src/qt5/quickcontrols2/target.mk
 
 content: $(MIRROR_FROM_REP_DIR)
 

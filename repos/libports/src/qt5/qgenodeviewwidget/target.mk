@@ -10,7 +10,3 @@ build_dependencies/include/qgenodeviewwidget: build_dependencies/include
 	ln -snf $(call select_from_repositories,include/qgenodeviewwidget) $@
 
 qmake_prepared.tag: build_dependencies/include/qgenodeviewwidget
-
-ifeq ($(called_from_lib_mk),yes)
-all: build_with_qmake
-endif

@@ -1,12 +1,20 @@
-QT5_PORT_LIBS += libQt5Core libQt5Gui libQt5Network libQt5Widgets
+TARGET = qt5_virtualkeyboard.qmake_target
+
+QT5_PORT_LIBS  = libQt5Core libQt5Gui libQt5Network libQt5Widgets
 QT5_PORT_LIBS += libQt5Qml libQt5QmlModels libQt5Quick
+QT5_PORT_LIBS += libQt5Svg
 
 LIBS = qt5_qmake libc libm mesa stdcxx
 
-INSTALL_LIBS = qml/QtQuick/Controls/libqtquickcontrolsplugin.lib.so
+INSTALL_LIBS = lib/libQt5VirtualKeyboard.lib.so \
+               plugins/platforminputcontexts/libqtvirtualkeyboardplugin.lib.so \
+               qml/QtQuick/VirtualKeyboard/libqtquickvirtualkeyboardplugin.lib.so \
+               qml/QtQuick/VirtualKeyboard/Settings/libqtquickvirtualkeyboardsettingsplugin.lib.so \
+               qml/QtQuick/VirtualKeyboard/Styles/libqtquickvirtualkeyboardstylesplugin.lib.so
 
 BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
-                  qt5_quickcontrols_qml.tar
+                  qt5_libqtvirtualkeyboardplugin.tar \
+                  qt5_virtualkeyboard_qml.tar
 
 build: qmake_prepared.tag qt5_so_files
 
@@ -16,7 +24,7 @@ build: qmake_prepared.tag qt5_so_files
 
 	$(VERBOSE)source env.sh && $(QMAKE) \
 		-qtconf build_dependencies/mkspecs/$(QT_PLATFORM)/qt.conf \
-		$(QT_DIR)/qtquickcontrols/qtquickcontrols.pro \
+		$(QT_DIR)/qtvirtualkeyboard/qtvirtualkeyboard.pro \
 		$(QT5_OUTPUT_FILTER)
 
 	@#
@@ -51,10 +59,9 @@ build: qmake_prepared.tag qt5_so_files
 	@# create tar archives
 	@#
 
-	$(VERBOSE)tar chf $(PWD)/bin/qt5_quickcontrols_qml.tar $(TAR_OPT) --exclude='*.lib.so' --transform='s/\.stripped//' -C install qt/qml
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_libqtvirtualkeyboardplugin.tar $(TAR_OPT) --transform='s/\.stripped//' -C install qt/plugins/platforminputcontexts/libqtvirtualkeyboardplugin.lib.so.stripped
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_virtualkeyboard_qml.tar $(TAR_OPT) --exclude='*.lib.so' --transform='s/\.stripped//' -C install qt/qml
 
 .PHONY: build
 
-ifeq ($(called_from_lib_mk),yes)
-all: build
-endif
+QT5_TARGET_DEPS = build

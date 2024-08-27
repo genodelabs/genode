@@ -1,13 +1,14 @@
-QT5_PORT_LIBS += libQt5Core libQt5Gui libQt5Network
+TARGET = qt5_quickcontrols.qmake_target
+
+QT5_PORT_LIBS += libQt5Core libQt5Gui libQt5Network libQt5Widgets
 QT5_PORT_LIBS += libQt5Qml libQt5QmlModels libQt5Quick
 
 LIBS = qt5_qmake libc libm mesa stdcxx
 
-INSTALL_LIBS = qml/QtGraphicalEffects/libqtgraphicaleffectsplugin.lib.so \
-               qml/QtGraphicalEffects/private/libqtgraphicaleffectsprivate.lib.so
+INSTALL_LIBS = qml/QtQuick/Controls/libqtquickcontrolsplugin.lib.so
 
 BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
-                  qt5_graphicaleffects_qml.tar
+                  qt5_quickcontrols_qml.tar
 
 build: qmake_prepared.tag qt5_so_files
 
@@ -17,7 +18,7 @@ build: qmake_prepared.tag qt5_so_files
 
 	$(VERBOSE)source env.sh && $(QMAKE) \
 		-qtconf build_dependencies/mkspecs/$(QT_PLATFORM)/qt.conf \
-		$(QT_DIR)/qtgraphicaleffects/qtgraphicaleffects.pro \
+		$(QT_DIR)/qtquickcontrols/qtquickcontrols.pro \
 		$(QT5_OUTPUT_FILTER)
 
 	@#
@@ -52,10 +53,8 @@ build: qmake_prepared.tag qt5_so_files
 	@# create tar archives
 	@#
 
-	$(VERBOSE)tar chf $(PWD)/bin/qt5_graphicaleffects_qml.tar $(TAR_OPT) --exclude='*.lib.so' --transform='s/\.stripped//' -C install qt/qml
+	$(VERBOSE)tar chf $(PWD)/bin/qt5_quickcontrols_qml.tar $(TAR_OPT) --exclude='*.lib.so' --transform='s/\.stripped//' -C install qt/qml
 
 .PHONY: build
 
-ifeq ($(called_from_lib_mk),yes)
-all: build
-endif
+QT5_TARGET_DEPS = build

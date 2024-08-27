@@ -1,4 +1,4 @@
-MIRROR_FROM_REP_DIR := lib/mk/libqgenodeviewwidget.mk \
+MIRROR_FROM_REP_DIR := src/qt5/qgenodeviewwidget/target.mk \
                        src/lib/qgenodeviewwidget
 
 content: $(MIRROR_FROM_REP_DIR) LICENSE

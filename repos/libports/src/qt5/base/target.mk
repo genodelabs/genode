@@ -1,3 +1,5 @@
+TARGET = qt5_base.qmake_target
+
 LIBS = qt5_qmake base ldso_so_support libc libm stdcxx qt5_component egl mesa qoost
 
 INSTALL_LIBS = lib/libQt5Core.lib.so \
@@ -82,6 +84,4 @@ build: qmake_prepared.tag build_dependencies/lib/ld.lib.so
 
 .PHONY: build
 
-ifeq ($(called_from_lib_mk),yes)
-all: build
-endif
+QT5_TARGET_DEPS = build

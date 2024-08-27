@@ -1,10 +1,12 @@
 #
 # The following externally defined variables are evaluated:
 #
-# QMAKE_PROJECT_FILE:   path to the qmake project file (for applications with target.mk)
-# QMAKE_TARGET_BINARIES binaries to be stripped and linked into 'bin' and 'debug' directories
-# QT5_PORT_LIBS:        Qt5 libraries used from port (for example libQt5Core)
-# QT5_COMPONENT_LIB_SO: if defined empty, disables linking with qt5_component.lib.so
+# QMAKE_PROJECT_FILE:    path to the qmake project file (for applications with target.mk)
+# QMAKE_TARGET_BINARIES  binaries to be stripped and linked into 'bin' and 'debug' directories
+# QT5_PORT_LIBS:         Qt5 libraries used from port (for example libQt5Core)
+# QT5_COMPONENT_LIB_SO:  if defined empty, disables linking with qt5_component.lib.so
+# QT5_TARGET_DEPS:       default is 'build_with_qmake'
+# QT5_EXTRA_TARGET_DEPS: additional target dependencies
 #
 
 include $(call select_from_repositories,lib/import/import-qt5.inc)
@@ -160,8 +162,11 @@ build_with_qmake: qmake_prepared.tag qt5_so_files
 BUILD_ARTIFACTS += $(notdir $(QMAKE_TARGET_BINARIES))
 
 #
-# build applications with qmake
+# build with qmake by default
 #
+
+QT5_TARGET_DEPS ?= build_with_qmake
+
 TARGET ?= $(notdir $(QMAKE_PROJECT_FILE)).qmake_target
 .PHONY: $(TARGET)
-$(TARGET): build_with_qmake $(QT5_EXTRA_TARGET_DEPS)
+$(TARGET): $(QT5_TARGET_DEPS) $(QT5_EXTRA_TARGET_DEPS)

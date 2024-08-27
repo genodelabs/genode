@@ -1,4 +1,4 @@
-MIRROR_FROM_REP_DIR := lib/mk/qt5_virtualkeyboard.mk
+MIRROR_FROM_REP_DIR := src/qt5/virtualkeyboard/target.mk
 
 content: $(MIRROR_FROM_REP_DIR)
 

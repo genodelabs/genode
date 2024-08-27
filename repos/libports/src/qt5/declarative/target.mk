@@ -1,3 +1,5 @@
+TARGET = qt5_declarative.qmake_target
+
 QT5_PORT_LIBS = libQt5Core libQt5Gui libQt5Network libQt5Sql libQt5Test libQt5Widgets
 
 LIBS = qt5_qmake ldso_so_support libc libm mesa stdcxx
@@ -80,6 +82,4 @@ build: qmake_prepared.tag qt5_so_files
 
 .PHONY: build
 
-ifeq ($(called_from_lib_mk),yes)
-all: build
-endif
+QT5_TARGET_DEPS = build
