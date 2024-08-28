@@ -16,9 +16,7 @@
 
 /* Genode includes */
 #include <os/vfs.h>
-
-/* local includes */
-#include <sorted_for_each.h>
+#include <util/dictionary.h>
 
 namespace Genode {
 
@@ -31,43 +29,35 @@ template <typename FN>
 static void Genode::for_each_subdir_name(Allocator &alloc, Directory const &dir,
                                          FN const &fn)
 {
-	using Dirname = Directory::Entry::Name;
+	using Name = Directory::Entry::Name;
 
-	struct Name : Interface, private Dirname
+	struct Dirname : Dictionary<Dirname, Name>::Element
 	{
-		using Dirname::string;
-
-		Name(Dirname const &name) : Dirname(name) { }
-
-		bool higher(Name const &other) const
-		{
-			return (strcmp(other.string(), string()) > 0);
-		}
+		Dirname(Dictionary<Dirname, Name> & dict, Name const & name)
+		: Dictionary<Dirname, Name>::Element(dict, name)
+		{ }
 	};
 
-	/* obtain list of sub directory names */
-	Registry<Registered<Name>> names { };
+	/* obtain dictionary of sub directory names */
+	Dictionary<Dirname, Name> names { };
 	dir.for_each_entry([&] (Directory::Entry const &entry) {
 		if (entry.dir())
-			new (alloc) Registered<Name>(names, entry.name()); });
+			new (alloc) Dirname(names, entry.name()); });
 
-	auto destroy_names = [&] ()
-	{
-		names.for_each([&] (Registered<Name> &name) {
-			destroy(alloc, &name); });
-	};
+	auto destroy_element = [&] (Dirname &element) {
+		destroy(alloc, &element); };
 
-	/* iterate over sorted list */
+	/* iterate over dictionary */
 	try {
-		sorted_for_each(alloc, names, [&] (Name const &name) {
-			fn(name.string()); });
+		names.for_each([&] (Dirname const &element) {
+			fn(element.name.string()); });
 	}
 	catch (...) {
-		destroy_names();
+		while (names.with_any_element(destroy_element)) { }
 		throw;
 	}
 
-	destroy_names();
+	while (names.with_any_element(destroy_element)) { }
 }
 
 #endif /* _FOR_EACH_SUBDIR_NAME_H_ */

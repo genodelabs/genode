@@ -21,6 +21,7 @@
 #include <os/vfs.h>
 
 /* local includes */
+#include <sorted_for_each.h>
 #include <for_each_subdir_name.h>
 
 namespace Fs_query {
@@ -39,10 +40,9 @@ struct Fs_query::Watched_file
 	/**
 	 * Support for 'sorted_for_each'
 	 */
-	bool higher(Watched_file const &other) const
-	{
-		return (strcmp(other._name.string(), _name.string()) > 0);
-	}
+	using Name = File_content::Path;
+
+	Name const &name() const { return _name; }
 
 	Node_rwx const _rwx;
 

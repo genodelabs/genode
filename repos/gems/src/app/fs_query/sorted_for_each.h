@@ -16,6 +16,7 @@
 
 #include <base/registry.h>
 #include <base/allocator.h>
+#include <util/dictionary.h>
 
 namespace Genode {
 	template <typename T, typename FN>
@@ -26,55 +27,52 @@ namespace Genode {
 /**
  * Execute 'fn' for each registry element
  *
- * The type T must be equipped with a method that defines the sort criterion:
+ * The type T must be equipped with a method name() and a type Name:
  *
- *   bool higher(T const &other) const
+ *   const & Name name() const
  *
- * It must implement a strict order over all registry elements. E.g., if the
- * registry contains a set of names, no name must occur twice. The allocator
- * passed as 'alloc' is used to for temporary allocations.
+ * The allocator passed as 'alloc' is used to for temporary allocations.
  */
 template <typename T, typename FN>
 static inline void Genode::sorted_for_each(Allocator         &alloc,
                                            Registry<T> const &registry,
                                            FN          const &fn)
 {
-	struct Sorted_item : Avl_node<Sorted_item>
+	using Name = T::Name;
+	struct SortedItem : Dictionary<SortedItem, Name>::Element
 	{
 		T const &element;
 
-		Sorted_item(T const &element) : element(element) { }
-
-		bool higher(Sorted_item const *item) const
-		{
-			return item ? element.higher(item->element) : false;
-		}
+		SortedItem(Dictionary<SortedItem, Name> & dict, Name const & name, T const & element)
+		: Dictionary<SortedItem, Name>::Element(dict, name),
+		  element(element)
+		{ }
 	};
 
-	/* build temporary AVL tree of sorted elements */
-	Avl_tree<Sorted_item> sorted { };
+	/* build temporary Dictionary of sorted and unique elements */
+	using Dict = Dictionary<SortedItem, Name>;
+	Dict sorted { };
 	registry.for_each([&] (T const &element) {
-		sorted.insert(new (alloc) Sorted_item(element)); });
+		/* skip duplicates */
+		if (sorted.exists(element.name())) return;
 
-	auto destroy_sorted = [&] ()
-	{
-		while (Sorted_item *item = sorted.first()) {
-			sorted.remove(item);
-			destroy(alloc, item);
-		}
-	};
+		new (alloc) SortedItem(sorted, element.name(), element);
+	});
+
+	auto destroy_element = [&] (SortedItem &item) {
+		destroy(alloc, &item); };
 
 	/* iterate over sorted elements, 'fn' may throw */
 	try {
-		sorted.for_each([&] (Sorted_item const &item) {
+		sorted.for_each([&] (SortedItem const &item) {
 			fn(item.element); });
 	}
 	catch (...) {
-		destroy_sorted();
+		while (sorted.with_any_element(destroy_element)) { }
 		throw;
 	}
 
-	destroy_sorted();
+	while (sorted.with_any_element(destroy_element)) { }
 }
 
 #endif /* _SORTED_FOR_EACH_H_ */
