@@ -65,7 +65,7 @@ of them is briefly characterized as follows:
 Device drivers
 ##############
 
-Device drivers usually reside in the _src/drivers/_ subdirectory of source-code
+Device drivers usually reside in the _src/driver/_ subdirectory of source-code
 repositories. The most predominant repositories hosting device drivers are
 'os', 'dde_ipxe', 'dde_linux', 'pc'. The main source tree is accompanied
 by a variety of optional source-code repositories, each hosting the support of
@@ -79,14 +79,14 @@ a different SoC family such as NXP's i.MX, Allwinner, Xilinx Zynq, or RISC-V.
 Platform devices
 ================
 
-:_os/src/drivers/platform/_: Platform drivers for various platforms.
+:_os/src/driver/platform/_: Platform drivers for various platforms.
   On x86, the platform driver uses the PCI controller as found on x86 PC
   hardware. A client can probe for a particular device and request information
   about physical device resources (using the 'platform_device' interface). I/O
   resources for MMIO regions, I/O ports, and interrupts can be requested by the
   provided device abstraction.
 
-:_os/src/drivers/acpi/_:
+:_os/src/driver/acpi/_:
   On x86 platforms that use the APIC (namely Fiasco.OC, NOVA, and hw_x86_64)
   this simple ACPI parser traverses the ACPI tables and reports device-resource
   information (e.g., interrupt lines of PCI devices).
@@ -114,10 +114,10 @@ UART devices
 
 The UART device drivers implement the UART-session interface.
 
-:_os/src/drivers/uart/spec/pbxa9/_:
+:_os/src/driver/uart/spec/pbxa9/_:
   Driver for the PL011 UART as found on many ARM-based platforms.
 
-:_os/src/drivers/uart/spec/x86/_:
+:_os/src/driver/uart/spec/x86/_:
   Driver for the i8250 UART as found on PC hardware.
 
 
@@ -127,11 +127,11 @@ Framebuffer and input drivers
 Framebuffer and input drivers are implemented as clients of the
 capture-session and event-session interfaces respectively.
 
-:_os/src/drivers/ps2/x86/_:
+:_os/src/driver/ps2/x86/_:
   Driver for the 'i8042' PS/2 controller as found in x86 PCs. It supports both
   mouse (including ImPS/2, ExPS/2) and keyboard.
 
-:_os/src/drivers/ps2/pl050/_:
+:_os/src/driver/ps2/pl050/_:
   Driver for the PL050 PS/2 controller as found on ARM platforms such as
   VersatilePB. The physical base address used by the driver is obtained at
   compile time from a header file called _pl050_defs.h_. The version of the
@@ -139,36 +139,36 @@ capture-session and event-session interfaces respectively.
   is made available to the driver via the SPECS machinery of the Genode build
   system.
 
-:_libports/src/drivers/framebuffer/vesa/_:
+:_libports/src/driver/framebuffer/vesa/_:
   Driver using VESA mode setting on x86 PCs. For more information, please refer
   to the README file in the driver directory.
 
-:_libports/src/drivers/framebuffer/boot/_:
+:_libports/src/driver/framebuffer/boot/_:
   Driver for boot-time initialized framebuffers (e.g., UEFI GOP)
   discovered from the 'platform_info' ROM
 
-:_os/src/drivers/framebuffer/pl11x/_:
+:_os/src/driver/framebuffer/pl11x/_:
   Driver for the PL110/PL111 LCD display.
 
-:_os/src/drivers/framebuffer/sdl/_:
+:_os/src/driver/framebuffer/sdl/_:
   Serves as both framebuffer and input driver on Linux using libSDL. This
   driver is only usable on the Linux base platform.
 
-:_os/src/drivers/framebuffer/virtio/_:
+:_os/src/driver/framebuffer/virtio/_:
   Driver for the Virtio virtual graphics device as supported by Qemu.
 
-:_os/src/drivers/gpu/intel/_:
+:_os/src/driver/gpu/intel/_:
   An Intel Graphics GPU multiplexer for Broadwell and newer.
 
-:_pc/src/drivers/framebuffer/intel/_:
+:_pc/src/driver/framebuffer/intel/_:
   Framebuffer driver for Intel i915 compatible graphic cards based on
   the Linux Intel KMS driver.
 
-:_pc/src/drivers/usb_host/_:
+:_pc/src/driver/usb_host/_:
   USB host-controller driver that provides an USB session interface to
   USB drivers.
 
-:_dde_linux/src/drivers/usb_hid/_:
+:_dde_linux/src/driver/usb_hid/_:
   USB Human Interface Device driver using the USB session interface.
 
 
@@ -199,10 +199,10 @@ Audio drivers use the audio mixer's record session interface defined at
 _os/include/record_session/_ for audio output and optionally the play
 session interface _os/include/play_session/_ for audio input.
 
-:_os/src/drivers/audio/spec/linux/_:
+:_os/src/driver/audio/spec/linux/_:
   Uses ALSA as back-end on the Linux base platform and supports only playback.
 
-:_dde_bsd/src/drivers/audio/_:
+:_dde_bsd/src/driver/audio/_:
   Sound drivers ported from OpenBSD. Currently, the repository
   includes support for Intel HD Audio as well as for Ensoniq AudioPCI
   (ES1370) compatible sound cards.
@@ -214,21 +214,17 @@ Block drivers
 All block drivers implement the block-session interface defined at
 _os/include/block_session/_.
 
-:_os/src/drivers/sd_card/pl180/_:
+:_os/src/driver/sd_card/pl180/_:
   Driver for SD-cards connected via the PL180 device as found on the PBX-A9
   platform.
 
-:_os/src/drivers/sd_card/imx53/_:
-  Driver for SD-cards connected to the Freescale i.MX53 platform like the
-  Quick Start Board or the USB armory device.
-
-:_os/src/drivers/ahci/_:
+:_os/src/driver/ahci/_:
   Driver for SATA disks and CD-ROMs on x86 PCs.
 
-:_os/src/drivers/nvme/_:
+:_os/src/driver/nvme/_:
   Driver for NVMe block devices on x86 PCs.
 
-:_os/src/drivers/usb_block/_:
+:_os/src/driver/usb_block/_:
   USB Mass Storage Bulk-Only driver using the USB session interface and provides
   a block-session interface.
 
@@ -239,27 +235,27 @@ Network interface drivers
 All network interface drivers implement the NIC session interface
 defined at _os/include/nic_session/_.
 
-:_os/src/drivers/nic/spec/linux/_:
+:_os/src/driver/nic/spec/linux/_:
   Driver that uses a Linux tap device as back end. It is only useful on the
   Linux base platform.
 
-:_os/src/drivers/nic/lan9118/_:
+:_os/src/driver/nic/lan9118/_:
   Native device driver for the LAN9118 network adaptor as featured on the
   PBX-A9 platform.
 
-:_dde_ipxe/src/drivers/nic/_:
+:_dde_ipxe/src/driver/nic/_:
   Device drivers ported from the iPXE project. Supported devices are Intel
   E1000 and pcnet32.
 
-:_pc/src/drivers/nic/pc/_:
+:_pc/src/driver/nic/pc/_:
   The PC NIC-driver component uses network driver code of the Linux kernel
   to drive common network cards as found in commodity PC hardware.
 
-:_pc/src/drivers/wifi/_:
+:_pc/src/driver/wifi/_:
   The wifi driver component is a port of the Linux mac802.11 stack, including the
   iwlwifi driver. It enables the use of Intel Wireless 6xxx and 7xxx cards.
 
-:_dde_linux/src/drivers/usb_net/_:
+:_dde_linux/src/driver/usb_net/_:
   USB network driver using the USB session interface.
 
 
@@ -504,8 +500,8 @@ Libraries
   Library for implementing pseudo-graphical applications (i.e., VIM) that
   run on a text terminal.
 
-:_libports/lib/mk/qt5_*/_:
-  Qt5 framework, using GUI session and NIC session as back end.
+:_libports/qt6/_:
+  Qt6 application framework.
 
 :_libports/lib/mk/vfs_jitterentropy.mk_:
   A VFS plugin that makes a jitter-based random-number generator available
@@ -543,14 +539,14 @@ located in their respective directory.
 :_demo/src/app/scout/_:
   Graphical hypertext browser used for Genode's default demonstration scenario.
 
-:_ports/src/app/gdb_monitor/_:
-  Application that allows the debugging of a process via GDB over a remote
-  connection.
+:_os/src/monitor/_:
+  Variant of init that allows for the debugging of components via GDB over a
+  remote connection.
 
-:_libports/src/app/qt5/qt_launchpad/_:
+:_libports/src/app/qt6/qt_launchpad/_:
   Graphical application starter implemented using Qt.
 
-:_libports/src/app/qt5/examples/_:
+:_libports/src/app/qt6/examples/_:
   Several example applications that come with Qt.
 
 :_os/src/app/sequence/_:
