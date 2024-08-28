@@ -14,6 +14,9 @@ if {[get_cmd_switch --autopilot] && [have_board linux]} {
 # Build
 #
 
+create_boot_directory
+
+set use_usb 1
 set use_gpu 1
 set use_top 0
 set use_fb_controller 0
@@ -23,6 +26,15 @@ if {$use_fb_controller} {
 	set apply_on_hotplug "yes"
 }
 
+if {$use_usb} {
+	import_from_depot [depot_user]/src/pc_usb_host
+}
+
+import_from_depot [depot_user]/src/fs_rom \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_import \
+                  [depot_user]/src/report_rom
+
 set build_components {
 	core lib/ld init timer
 	driver/acpi
@@ -30,17 +42,12 @@ set build_components {
 	app/pci_decode
 	driver/framebuffer/intel/pc
 	test/framebuffer
-	server/report_rom
-	server/vfs lib/vfs lib/vfs_import
-	server/fs_rom
 }
 
 append_if $use_gpu build_components { driver/gpu/intel }
 append_if $use_top build_components { app/top }
 
 build $build_components
-
-create_boot_directory
 
 #
 # Generate config
@@ -135,6 +142,9 @@ append config {
 				<pci class="VGA"/>
 				<pci class="ISABRIDGE"/>
 			</policy>
+			<policy label_prefix="usb" info="yes">
+				<pci class="USB"/>
+			</policy>
 		</config>
 	</start>
 
@@ -148,6 +158,7 @@ append config {
 		<resource name="RAM" quantum="1000M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Platform" label="usb"> <child name="platform" label="usb"/> </service>
 			<service name="Platform"> <child name="platform" label="intel_fb"/> </service>
 			<service name="ROM" label="intel_fb -> intel_opregion">
 				<child name="report_rom" label="intel_fb -> intel_opregion"/>
@@ -189,6 +200,14 @@ append config {
 				<provides> <service name="Report" /> <service name="ROM" /> </provides>
 				<config verbose="yes">
 					<policy label="intel_fb_controller -> connectors" report="intel_fb -> connectors"/>
+				</config>
+			</start>
+
+			<start name="report_rom_usb" priority="-1">
+				<binary name="report_rom"/>
+				<resource name="RAM" quantum="2M"/>
+				<provides> <service name="Report" /> <service name="ROM" /> </provides>
+				<config verbose="no">
 				</config>
 			</start>
 
@@ -261,6 +280,21 @@ append config {
 						<child name="config_rom" label="fb.config"/> </service>
 					<service name="Report"> <child name="report_rom"/> </service>
 					<any-service> <parent/> <any-child /> </any-service>
+				</route>
+			</start>}
+
+append_if $use_usb config {
+			<start name="usb" priority="0" caps="200">
+				<binary name="pc_usb_host"/>
+				<resource name="RAM" quantum="12M"/>
+				<provides> <service name="Usb"/> </provides>
+				<config bios_handoff="no">
+					<report devices="yes"/>
+				</config>
+				<route>
+					<service name="Platform"> <parent label="usb"/> </service>
+					<service name="Report"> <child name="report_rom_usb"/> </service>
+					<any-service><parent/><any-child/></any-service>
 				</route>
 			</start>}
 
