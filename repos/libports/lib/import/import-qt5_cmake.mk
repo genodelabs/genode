@@ -23,7 +23,7 @@ GENODE_CMAKE_CFLAGS += \
 	$(CC_OPT_NOSTDINC) \
 	$(CC_MARCH) \
 	$(CC_OPT_PIC) \
-	$(filter-out -I.,$(INCLUDES)) \
+	$(filter-out -I. $(foreach i,$(INCLUDES),$(if $(findstring /base-$(KERNEL)/include,$(i)),$(i))),$(INCLUDES)) \
 	-I$(CURDIR)/build_dependencies/include/QtCore/spec/$(QT_PLATFORM)
 
 GENODE_CMAKE_LFLAGS_APP += \
