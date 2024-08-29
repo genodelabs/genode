@@ -119,10 +119,18 @@ around Genode, informally written by Genode users and developers.
 Contact
 #######
 
-The best way to get in touch with Genode developers and users is the project's
-mailing list. Please feel welcome to join in!
+The community forum is organized by Genode users to help newcomers, share ideas
+and experiences, and discuss Genode-related projects.
 
-:Genode Mailing Lists:
+:Community forum:
+
+  [https://genode.discourse.group]
+
+The mailing list is the primary way for reaching out to Genode's core
+developers, for receiving announcements, and for the project's annual road-map
+discussion.
+
+:Genode Mailing List:
 
   [https://genode.org/community/mailing-lists]
 
