@@ -4,6 +4,33 @@
                                ===========
 
 
+Genode OS Framework release 24.08 | 2024-08-29
+##############################################
+
+| Genode 24.08 introduces the Qt6 application framework, updates all
+| Linux-based components and PC device drivers to Linux version 6.6.47,
+| equips the Goa SDK with remote debugging support, modernizes the base
+| and GUI interfaces of the framework, extends the board support for
+| i.MX-based devices, and explores AVX on x86.
+
+The highlights of Genode 24.08 are the addition of the Qt6 application
+framework in addition to the time-tested Qt5 and the major update of all
+Linux-based components and PC device drivers. So Genode users can enjoy
+current-generation commodity software and drivers across all kernels supported
+by the framework.
+
+For developers, the new combination of Genode's recent advances in
+on-target debugging with the Goa SDK enables seamless remote debugging.
+
+Regarding hardware support, the new version broadens the driver landscape for
+NXP i.MX-based devices, paving the way for Sculpt OS on the
+[https://shop.mntre.com/products/mnt-pocket-reform - MNT Pocket Reform]
+open-source hardware laptop.
+
+For the full picture, please refer to the
+[https:/documentation/release-notes/24.08 - release documentation of version 24.08...]
+
+
 New community forum at Discourse | 2024-08-13
 #############################################
 
