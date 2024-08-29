@@ -7,6 +7,7 @@ _/src/compat-libc
 _/src/coreutils
 _/src/event_filter
 _/src/file_terminal
+_/src/fs_query
 _/src/fs_report
 _/src/fs_rom
 _/src/gui_fb
@@ -28,12 +29,16 @@ _/src/sed
 _/src/stdcxx
 _/src/stdin2out
 _/src/terminal
+_/src/terminal_crosslink
 _/src/terminal_log
 _/src/vfs
+_/src/vfs_audit
+_/src/vfs_block
 _/src/vfs_import
 _/src/vfs_jitterentropy
 _/src/vfs_lwip
 _/src/vfs_pipe
+_/src/vfs_rump
 _/src/vfs_ttf
 _/src/vim
 _/src/zlib
