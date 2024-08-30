@@ -840,7 +840,7 @@ init_previous_results
 #
 set max_nr_of_tests_per_boot 0
 if {[have_spec sel4]} {
-	set max_nr_of_tests_per_boot 20
+	set max_nr_of_tests_per_boot 22
 }
 
 # generic preparation for each system boot
