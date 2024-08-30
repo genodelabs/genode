@@ -508,6 +508,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_vfs_plugin(*this, _env.rm());
 	init_file_operations(*this, _libc_env);
 	init_time(*this, *this);
+	init_alarm(_timer_accessor, _signal);
 	init_poll(_signal, *this);
 	init_select(*this);
 	init_socket_fs(*this, *this);

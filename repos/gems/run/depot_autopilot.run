@@ -681,6 +681,7 @@ set default_test_pkgs {
 	test-libc_fifo_pipe
 	test-libc_fork
 	test-libc_getenv
+	test-libc_alarm
 	test-libc_pipe
 	test-libc_vfs
 	test-libc_vfs_audit

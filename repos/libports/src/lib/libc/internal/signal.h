@@ -16,10 +16,13 @@
 
 /* Genode includes */
 #include <util/noncopyable.h>
+#include <util/reconstructible.h>
 #include <base/registry.h>
+#include <base/thread.h>
 
 /* libc includes */
 #include <signal.h>
+#include <stdlib.h>
 
 /* libc-internal includes */
 #include <internal/call_func.h>

@@ -108,6 +108,7 @@ namespace Libc {
 	 */
 	void init_sleep(Monitor &);
 	void init_time(Current_time &, Current_real_time &);
+	void init_alarm(Timer_accessor &, Signal &);
 
 	/**
 	 * Socket fs
