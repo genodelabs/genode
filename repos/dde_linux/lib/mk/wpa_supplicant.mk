@@ -31,6 +31,7 @@ SRC_C_wpa_supplicant = bssid_ignore.c   \
                        scan.c           \
                        sme.c            \
                        wmm_ac.c         \
+                       wnm_sta.c        \
                        wpa_supplicant.c \
                        wpas_glue.c
 #
@@ -45,7 +46,7 @@ CC_OPT  += -DCONFIG_BACKEND_FILE -DCONFIG_NO_CONFIG_WRITE \
            -DCONFIG_SME -DCONFIG_CTRL_IFACE \
            -DCONFIG_BGSCAN -DCONFIG_BGSCAN_SIMPLE \
            -DCONFIG_OPENSSL_CMAC -DCONFIG_SHA256 \
-           -DCONFIG_SAE -DCONFIG_ECC
+           -DCONFIG_SAE -DCONFIG_ECC -DCONFIG_WNM
 
 CC_OPT  += -DTLS_DEFAULT_CIPHERS=\"DEFAULT:!EXP:!LOW\"
 
@@ -53,7 +54,7 @@ INC_DIR += $(WS_CONTRIB_DIR)/src/
 
 # common
 SRC_C_common = ieee802_11_common.c wpa_common.c hw_features_common.c \
-               ctrl_iface_common.c sae.c dragonfly.c
+               ctrl_iface_common.c sae.c dragonfly.c ptksa_cache.c
 SRC_C += $(addprefix src/common/, $(SRC_C_common))
 INC_DIR += $(WS_CONTRIB_DIR)/src/common
 

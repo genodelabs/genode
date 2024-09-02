@@ -1,8 +1,38 @@
-diff --git a/src/drivers/driver_nl80211.c b/src/drivers/driver_nl80211.c
-index aec179a..6c07c73 100644
+The nl80211 driver patch contains the following changes:
+
+- Convert inline error values from Linux to libc (FreeBSD) as otherwise
+  wpa_supplicant might come to the wrong conclusions.
+
+- Show RFKILL operations at INFO level (so that the always appear in the
+  log) and generate a interface dis-/enable event that will be handled
+  by the management layer.
+
+- Remove netlink messages that rely on newer libnl versions, e.g. signed
+  value where introduced in 3.2.27.
+
+- Hardcode the I/O control socket rather than calling socket because it
+  is not used anyway (see wpa_driver_nl80211/ioctl.cc).
 --- a/src/drivers/driver_nl80211.c
-+++ b/src/drivers/driver_nl80211.c
-@@ -1985,13 +1985,13 @@ static void wpa_driver_nl80211_rfkill_blocked(void *ctx)
++++ a/src/drivers/driver_nl80211.c
+@@ -487,6 +487,8 @@
+ }
+ 
+ 
++extern int convert_errno_from_linux(int linux_errno);
++
+ int send_and_recv(struct nl80211_global *global,
+ 		  struct nl_sock *nl_handle, struct nl_msg *msg,
+ 		  int (*valid_handler)(struct nl_msg *, void *),
+@@ -579,7 +581,7 @@
+ 	/* Always clear the message as it can potentially contain keys */
+ 	nl80211_nlmsg_clear(msg);
+ 	nlmsg_free(msg);
+-	return err.err;
++	return convert_errno_from_linux(err.err);
+ }
+ 
+ 
+@@ -2088,13 +2090,13 @@
  {
  	struct wpa_driver_nl80211_data *drv = ctx;
  
@@ -18,7 +48,7 @@ index aec179a..6c07c73 100644
  		wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_DISABLED, NULL);
  }
  
-@@ -1999,7 +1999,7 @@ static void wpa_driver_nl80211_rfkill_blocked(void *ctx)
+@@ -2102,7 +2104,7 @@
  static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
  {
  	struct wpa_driver_nl80211_data *drv = ctx;
@@ -27,7 +57,7 @@ index aec179a..6c07c73 100644
  	if (i802_set_iface_flags(drv->first_bss, 1)) {
  		wpa_printf(MSG_DEBUG, "nl80211: Could not set interface UP "
  			   "after rfkill unblock");
-@@ -2013,7 +2013,7 @@ static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
+@@ -2116,7 +2118,7 @@
  	 * rtnetlink ifup handler will report interfaces other than the P2P
  	 * Device interface as enabled.
  	 */
@@ -36,7 +66,29 @@ index aec179a..6c07c73 100644
  		wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_ENABLED, NULL);
  }
  
-@@ -8709,7 +8709,7 @@ static void * nl80211_global_init(void *ctx)
+@@ -7826,7 +7828,7 @@
+ 		[NL80211_STA_INFO_BEACON_SIGNAL_AVG] = { .type = NLA_U8},
+ 		[NL80211_STA_INFO_RX_DURATION] = { .type = NLA_U64 },
+ 		[NL80211_STA_INFO_ACK_SIGNAL] = { .type = NLA_U8 },
+-		[NL80211_STA_INFO_ACK_SIGNAL_AVG] = { .type = NLA_S8 },
++		[NL80211_STA_INFO_ACK_SIGNAL_AVG] = { .type = NLA_U8 },
+ 		[NL80211_STA_INFO_RX_MPDUS] = { .type = NLA_U32 },
+ 		[NL80211_STA_INFO_FCS_ERROR_COUNT] = { .type = NLA_U32 },
+ 		[NL80211_STA_INFO_TX_DURATION] = { .type = NLA_U64 },
+@@ -7930,9 +7932,9 @@
+ 			nla_get_u8(stats[NL80211_STA_INFO_ACK_SIGNAL]);
+ 		data->flags |= STA_DRV_DATA_LAST_ACK_RSSI;
+ 	}
+-	if (stats[NL80211_STA_INFO_ACK_SIGNAL_AVG])
+-		data->avg_ack_signal =
+-			nla_get_s8(stats[NL80211_STA_INFO_ACK_SIGNAL_AVG]);
++	// if (stats[NL80211_STA_INFO_ACK_SIGNAL_AVG])
++	// 	data->avg_ack_signal =
++	// 		nla_get_s8(stats[NL80211_STA_INFO_ACK_SIGNAL_AVG]);
+ 	if (stats[NL80211_STA_INFO_RX_MPDUS])
+ 		data->rx_mpdus = nla_get_u32(stats[NL80211_STA_INFO_RX_MPDUS]);
+ 	if (stats[NL80211_STA_INFO_FCS_ERROR_COUNT])
+@@ -9939,7 +9941,7 @@
  	if (wpa_driver_nl80211_init_nl_global(global) < 0)
  		goto err;
  

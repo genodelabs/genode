@@ -1,12 +1,12 @@
 LICENSE     := BSD-3-Clause
-VERSION     := 2.10
+VERSION     := 2.11
 DOWNLOADS   := wpa_supplicant.archive
 
 #
 # wpa_supplicant sources
 #
-URL(wpa_supplicant) := https://w1.fi/releases/wpa_supplicant-2.10.tar.gz
-SHA(wpa_supplicant) := 20df7ae5154b3830355f8ab4269123a87affdea59fe74fe9292a91d0d7e17b2f
+URL(wpa_supplicant) := https://w1.fi/releases/wpa_supplicant-2.11.tar.gz
+SHA(wpa_supplicant) := 912ea06f74e30a8e36fbb68064d6cdff218d8d591db0fc5d75dee6c81ac7fc0a
 DIR(wpa_supplicant) := src/app/wpa_supplicant
 
 #

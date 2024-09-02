@@ -11,17 +11,22 @@
 
 		/* needed by wpa_driver_nl80211 */
 		__hide_aliasing_typecast;
+		channel_width_to_int;
 		eloop_*;
+		fc2str*;
 		get_hdr_bssid;
+		get_ie*;
+		get_ml_ie;
 		ieee80211_freq_to_chan;
 		ieee80211_radiotap_*;
+		ieee802_11_defrag;
+		ieee802_11_parse_elems;
+		is_6ghz_freq;
+		is_same_band;
 		os_*;
+		sha1_vector*;
 		wpa_*;
 		wpabuf_*;
-		sha1_vector*;
-		get_ie*;
-		fc2str*;
-		is_6ghz_freq;
 
 	local:
 
