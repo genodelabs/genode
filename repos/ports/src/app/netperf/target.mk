@@ -9,17 +9,14 @@ SRC_C   = netserver.c netlib.c netsh.c nettest_bsd.c dscp.c
 SRC_C  += nettest_omni.c net_uuid.c
 SRC_C  += netsys_none.c netsec_none.c netdrv_none.c netrt_none.c netslot_none.c netcpu_none.c
 
-SRC_CC += timer.cc
-
 INC_DIR += $(PRG_DIR)
-CC_OPT  += -DHAVE_CONFIG_H -DGENODE_BUILD
+CC_OPT  += -DHAVE_CONFIG_H
 
 CC_WARN = -Wall -Wno-unused -Wno-maybe-uninitialized -Wno-format-truncation \
           -Wno-stringop-truncation -Wno-stringop-overflow
 
 CC_CXX_WARN_STRICT =
 
-vpath timer.cc $(PRG_DIR)
-vpath %.c      $(NETPERF_DIR)/src
+vpath %.c $(NETPERF_DIR)/src
 
 # vi: set ft=make :

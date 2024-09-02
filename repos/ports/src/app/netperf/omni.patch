@@ -83,32 +83,3 @@ index 826167a..3c10d0a 100644
  
    int	timed_out = 0;
    int   pad_time = 0;
-@@ -5312,6 +5312,28 @@ recv_omni()
-       need_to_accept = 0;
-       connected = 1;
- 
-+#ifdef GENODE_BUILD
-+	/*
-+	 * We don't support setitimer which uses signals. Instead set timeouts on
-+	 * the send and recv socket functions to be able to terminate if the host
-+	 * went away.
-+	 */
-+	struct timeval timeout;
-+	/* XXX LWIP expect ms instead of seconds */
-+	timeout.tv_sec = 10 * 1000;
-+	timeout.tv_usec = 0;
-+
-+  	int sock_error = setsockopt(data_socket, SOL_SOCKET, SO_SNDTIMEO, &timeout,
-+	                            sizeof(timeout));
-+	if (sock_error)
-+		fprintf(where, "could not send timeout for send - test may not terminate\n");
-+
-+  	sock_error = setsockopt(data_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout,
-+	                        sizeof(timeout));
-+	if (sock_error)
-+		fprintf(where, "could not send timeout for recv - test may not terminate\n");
-+#endif
-+
- #ifdef KLUDGE_SOCKET_OPTIONS
-       /* this is for those systems which *INCORRECTLY* fail to pass
- 	 attributes across an accept() call. Including this goes
