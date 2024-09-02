@@ -7,14 +7,6 @@
 #include <lx_emul.h>
 
 
-#include <linux/ratelimit_types.h>
-
-int ___ratelimit(struct ratelimit_state * rs,const char * func)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/cpumask.h>
 
 struct cpumask __cpu_active_mask;

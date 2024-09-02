@@ -774,3 +774,12 @@ struct thermal_zone_device * thermal_zone_device_register_with_trips(const char 
 	lx_emul_trace(__func__);
 	return ERR_PTR(-EINVAL);
 }
+
+
+#include <linux/ratelimit_types.h>
+
+int ___ratelimit(struct ratelimit_state * rs,const char * func)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
