@@ -28,6 +28,7 @@
 enum { MAX_BRIGHTNESS = 100, INVALID_BRIGHTNESS = MAX_BRIGHTNESS + 1 };
 
 
+       struct task_struct    * lx_update_task = NULL;
        struct task_struct    * lx_user_task = NULL;
 static struct drm_client_dev * dev_client   = NULL;
 
@@ -473,11 +474,53 @@ static int configure_connectors(void * data)
 }
 
 
+void framebuffer_dirty(void)
+{
+	struct drm_framebuffer      *fb    = NULL;
+	struct drm_clip_rect        *clips = NULL;
+	struct drm_mode_fb_dirty_cmd r     = { };
+
+	unsigned flags     = 0;
+	int      num_clips = 0;
+	int      ret       = 0;
+
+	if (!dev_client || !dumb_fb.fb_id)
+		return;
+
+	fb = drm_framebuffer_lookup(dev_client->dev, dev_client->file,
+	                            dumb_fb.fb_id);
+
+	if (!fb || !fb->funcs || !fb->funcs->dirty)
+		return;
+
+	ret = fb->funcs->dirty(fb, dev_client->file, flags, r.color, clips,
+	                       num_clips);
+
+	if (ret)
+		printk("%s failed %d\n", __func__, ret);
+}
+
+
+static int update_content(void *)
+{
+	while (true) {
+		framebuffer_dirty();
+		lx_emul_task_schedule(true /* block task */);
+	}
+
+	return 0;
+}
+
+
 void lx_user_init(void)
 {
-	int pid = kernel_thread(configure_connectors, NULL, "lx_user",
-	                        CLONE_FS | CLONE_FILES);
-	lx_user_task = find_task_by_pid_ns(pid, NULL);;
+	int pid  = kernel_thread(configure_connectors, NULL, "lx_user",
+	                         CLONE_FS | CLONE_FILES);
+	int pid2 = kernel_thread(update_content, NULL, "lx_update",
+	                         CLONE_FS | CLONE_FILES);
+
+	lx_user_task   = find_task_by_pid_ns(pid, NULL);;
+	lx_update_task = find_task_by_pid_ns(pid2, NULL);;
 }
 
 
@@ -598,10 +641,17 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 	 * commit the change.
 	 */
 	if (fb) {
+		bool mode_too_large = false;
+
 		mutex_lock(&client->modeset_mutex);
 		drm_client_for_each_modeset(modeset, client) {
 			if (!modeset || !modeset->num_connectors)
 				continue;
+
+			if (!mode_too_large && modeset->mode &&
+			    (modeset->mode->hdisplay > fb->width ||
+			     modeset->mode->vdisplay > fb->height))
+				mode_too_large = true;
 
 			modeset->fb = fb;
 		}
@@ -610,7 +660,7 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 		/* triggers disablement of encoders attached to disconnected ports */
 		result = drm_client_modeset_commit(client);
 
-		if (result) {
+		if (result && !(mode_too_large && result == -ENOSPC)) {
 			printk("%s: error on modeset commit %d%s\n", __func__, result,
 			       (result == -ENOSPC) ? " - ENOSPC" : " - unknown error");
 		}

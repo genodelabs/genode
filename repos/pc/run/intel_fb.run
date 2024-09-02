@@ -26,10 +26,6 @@ if {$use_fb_controller} {
 	set apply_on_hotplug "yes"
 }
 
-if {$use_usb} {
-	import_from_depot [depot_user]/src/pc_usb_host
-}
-
 import_from_depot [depot_user]/src/fs_rom \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_import \
@@ -44,6 +40,7 @@ set build_components {
 	test/framebuffer
 }
 
+append_if $use_usb build_components { driver/usb_host }
 append_if $use_gpu build_components { driver/gpu/intel }
 append_if $use_top build_components { app/top }
 

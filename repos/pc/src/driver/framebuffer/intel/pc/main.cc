@@ -33,6 +33,7 @@ extern "C" {
 
 
 extern struct task_struct * lx_user_task;
+extern struct task_struct * lx_update_task;
 
 
 namespace Framebuffer {
@@ -88,6 +89,12 @@ struct Framebuffer::Driver
 				using Pixel = Capture::Pixel;
 				Surface<Pixel> surface((Pixel*)_base, _size_phys);
 				_captured_screen.apply_to_surface(surface);
+
+				if (!lx_update_task)
+					return;
+
+				lx_emul_task_unblock(lx_update_task);
+				Lx_kit::env().scheduler.execute();
 			}
 
 			Fb(Env & env, void * base, Capture::Area size,

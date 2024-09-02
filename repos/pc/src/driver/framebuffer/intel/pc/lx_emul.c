@@ -105,9 +105,6 @@ int intel_root_gt_init_early(struct drm_i915_private * i915)
 
 	intel_uc_init_early(&gt->uc);
 
-	/* disable panel self refresh (required for FUJITSU S937/S938) */
-	i915->params.enable_psr = 0;
-
 	/*
 	 * Tells driver that IOMMU, e.g. VT-d, is on, so that scratch page
 	 * workaround is applied by Intel display driver:
