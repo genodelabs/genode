@@ -18,6 +18,7 @@
 
 		/* interface for libnl/wpa_driver_nl82011 */
 		wifi_if*;
+		convert_errno_from_linux;
 
 	local:
 

@@ -54,7 +54,7 @@ enum : int {
 };
 
 
-static int convert_errno_from_linux(int linux_errno)
+extern "C" int convert_errno_from_linux(int linux_errno)
 {
 	if (linux_errno >= 0)
 		return linux_errno;
@@ -100,9 +100,7 @@ static int convert_errno_from_linux(int linux_errno)
 	case ENODEV:           return -(int)Libc::Errno::BSD_ENODEV;
 	case ENOENT:           return -(int)Libc::Errno::BSD_ENOENT;
 	case ENOEXEC:          return -(int)Libc::Errno::BSD_ENOEXEC;
-	case ENOLINK:
-	                       error("ENOLINK (", (int) ENOLINK, ") -> ", (int)Libc::Errno::BSD_ENOLINK);
-	                       return -(int)Libc::Errno::BSD_ENOLINK;
+	case ENOLINK:          return -(int)Libc::Errno::BSD_ENOLINK;
 	case ENOMEM:           return -(int)Libc::Errno::BSD_ENOMEM;
 	case ENOMSG:           return -(int)Libc::Errno::BSD_ENOMSG;
 	case ENOPROTOOPT:      return -(int)Libc::Errno::BSD_ENOPROTOOPT;
