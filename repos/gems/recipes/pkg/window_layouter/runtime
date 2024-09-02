@@ -1,4 +1,4 @@
-<runtime ram="7M" caps="400" binary="init">
+<runtime ram="10M" caps="450" binary="init">
 
 	<requires>
 		<gui/>
@@ -49,7 +49,7 @@
 			</route>
 		</start>
 
-		<start name="window_layouter">
+		<start name="window_layouter" caps="120">
 			<resource name="RAM" quantum="6M"/>
 			<route>
 				<service name="ROM" label="config">

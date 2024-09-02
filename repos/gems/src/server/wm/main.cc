@@ -29,11 +29,6 @@ namespace Wm {
 
 	class Main;
 
-	using Genode::size_t;
-	using Genode::Rom_session_client;
-	using Genode::Rom_connection;
-	using Genode::Xml_node;
-	using Genode::Attached_rom_dataspace;
 }
 
 
@@ -62,7 +57,7 @@ struct Wm::Main : Pointer::Tracker
 
 	Gui::Connection focus_gui_session { env };
 
-	Gui::Root gui_root { env, window_registry, heap, env.ram(),
+	Gui::Root gui_root { env, window_registry,
 	                     *this, focus_request_reporter,
 	                     focus_gui_session };
 

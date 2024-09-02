@@ -142,8 +142,8 @@
 				</config>
 			</start>
 
-			<start name="wm" caps="300" priority="-1">
-				<resource name="RAM" quantum="4M"/>
+			<start name="wm" caps="150" priority="-1">
+				<resource name="RAM" quantum="2M"/>
 				<provides>
 					<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
 				</provides>
@@ -160,7 +160,7 @@
 				</route>
 			</start>
 
-			<start name="decorator" caps="400" priority="-1">
+			<start name="decorator" caps="450" priority="-1">
 				<binary name="themed_decorator"/>
 				<resource name="RAM" quantum="20M"/>
 				<resource name="CPU" quantum="20"/>
@@ -264,7 +264,7 @@
 				</route>
 			</start>
 
-			<start name="log_terminal" priority="-1">
+			<start name="log_terminal" priority="-1" caps="120">
 				<binary name="terminal"/>
 				<resource name="RAM" quantum="8M"/>
 				<provides> <service name="Terminal"/> </provides>

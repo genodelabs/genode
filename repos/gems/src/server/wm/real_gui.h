@@ -34,6 +34,8 @@ struct Wm::Real_gui
 
 		using Command_buffer = Gui::Session::Command_buffer;
 
+		static constexpr Genode::size_t RAM_QUOTA = 36*1024;
+
 	public:
 
 		Real_gui(Genode::Env &env, Genode::Session_label const &label)
@@ -42,7 +44,7 @@ struct Wm::Real_gui
 		{ }
 
 		Genode::Connection<Gui::Session> connection {
-			_env, label, Genode::Ram_quota { 36*1024 }, /* Args */ { } };
+			_env, label, Genode::Ram_quota { RAM_QUOTA }, /* Args */ { } };
 
 		Gui::Session_client session { connection.cap() };
 

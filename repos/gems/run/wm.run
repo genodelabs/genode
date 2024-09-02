@@ -108,7 +108,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="backdrop" priority="-1">
+	<start name="backdrop" priority="-1" caps="120">
 		<resource name="RAM" quantum="24M"/>
 		<config>
 			<libc/>
@@ -127,7 +127,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="wm_backdrop" priority="-1">
+	<start name="wm_backdrop" priority="-1" caps="120">
 		<binary name="backdrop" />
 		<resource name="RAM" quantum="32M"/>
 		<config>
