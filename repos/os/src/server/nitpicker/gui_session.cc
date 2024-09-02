@@ -155,7 +155,10 @@ void Gui_session::_destroy_view(View &view)
 		_view_stack.default_background(_builtin_background);
 
 	_view_stack.remove_view(view);
-	_env.ep().dissolve(view);
+	if (view.cap().valid()) {
+		_env.ep().dissolve(view);
+		replenish(Cap_quota { 1 });
+	}
 	_view_list.remove(&view);
 	destroy(_view_alloc, &view);
 }
@@ -194,7 +197,6 @@ void Gui_session::_adopt_new_view(View &view)
 	view.apply_origin_policy(_pointer_origin);
 
 	_view_list.insert(&view);
-	_env.ep().manage(view);
 }
 
 
@@ -342,8 +344,17 @@ Gui_session::associate(View_id id, View_capability view_cap)
 Gui_session::View_capability_result Gui_session::view_capability(View_id id)
 {
 	return _with_view(id,
-		[&] (View &view)               { return view.cap(); },
-		[&] /* view does not exist */  { return View_capability(); });
+		[&] (View &view) -> View_capability_result
+		{
+			if (!view.cap().valid()) {
+				if (!try_withdraw(Cap_quota { 1 }))
+					return View_capability_error::OUT_OF_CAPS;
+
+				_env.ep().manage(view);
+			}
+			return view.cap();
+		},
+		[&] () -> View_capability_result { return View_capability(); });
 }
 
 
