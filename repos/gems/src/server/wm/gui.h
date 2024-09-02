@@ -141,12 +141,11 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 		};
 
 		View(Real_gui            &real_gui,
-		     View_id       const &real_view_id,
 		     Session_label const &session_label,
 		     bool                 has_alpha)
 		:
 			_session_label(session_label), _real_gui(real_gui),
-			_real_view(_real_view_ref, _real_gui.view_ids, real_view_id),
+			_real_view(_real_view_ref, _real_gui.view_ids),
 			_has_alpha(has_alpha)
 		{ }
 
@@ -273,12 +272,11 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 	public:
 
 		Top_level_view(Real_gui                     &real_gui,
-		               View_id                       view_id,
 		               bool                          has_alpha,
 		               Window_registry              &window_registry,
 		               Input_origin_changed_handler &input_origin_changed_handler)
 		:
-			View(real_gui, view_id, real_gui.label, has_alpha),
+			View(real_gui, real_gui.label, has_alpha),
 			_window_registry(window_registry),
 			_input_origin_changed_handler(input_origin_changed_handler),
 			_session_label(real_gui.label)
@@ -384,11 +382,10 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 	public:
 
 		Child_view(Real_gui      &real_gui,
-		           View_id        real_gui_id,
 		           bool           has_alpha,
 		           Weak_ptr<View> parent)
 		:
-			View(real_gui, real_gui_id, real_gui.label, has_alpha), _parent(parent)
+			View(real_gui, real_gui.label, has_alpha), _parent(parent)
 		{
 			try_to_init_real_view();
 		}
@@ -990,7 +987,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 				_create_view_with_id<Top_level_view>(_top_level_view_alloc, id, attr,
 					[&] () -> Top_level_view & {
 						view_ptr = new (_top_level_view_alloc)
-							Top_level_view(_real_gui, id, _has_alpha,
+							Top_level_view(_real_gui, _has_alpha,
 							               _window_registry, *this);
 						return *view_ptr;
 					});
@@ -1013,7 +1010,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 						_create_view_with_id<Child_view>(_child_view_alloc, id, attr,
 							[&] () -> Child_view & {
 								view_ptr = new (_child_view_alloc)
-									Child_view(_real_gui, id, _has_alpha, parent.weak_ptr());
+									Child_view(_real_gui, _has_alpha, parent.weak_ptr());
 								return *view_ptr;
 							});
 
