@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <base/registry.h>
+#include <util/reconstructible.h>
 
 /* libc-internal includes */
 #include <internal/types.h>
@@ -83,25 +84,45 @@ class Libc::Monitor : Interface
 		}
 
 		/**
+		 * Monitor asynchronous job execution
+		 *
+		 * Returns immediately after the job is registered for execution.
+		 */
+		virtual void monitor_async(Job &job) = 0;
+
+		/**
 		 * Trigger examination of monitored functions
 		 */
 		void trigger_monitor_examination() { _trigger_monitor_examination(); }
 };
 
 
-struct Libc::Monitor::Job
+class Libc::Monitor::Job
 {
 	private:
 
+		friend class Pool;
+
 		Monitor::Function &_fn;
 		Blockade          &_blockade;
+
+		Constructible<Registry<Job>::Element> _async_element;
+
+		void _register_async(Registry<Job> &registry)
+		{
+			_async_element.construct(registry, *this);
+		}
 
 	public:
 
 		Job(Monitor::Function &fn, Blockade &blockade)
 		: _fn(fn), _blockade(blockade) { }
 
-		virtual ~Job() { }
+		virtual ~Job()
+		{
+			if (_async_element.constructed())
+				_async_element.destruct();
+		}
 
 		bool execute() { return _fn.execute() == Function_result::COMPLETE; }
 
@@ -124,7 +145,12 @@ struct Libc::Monitor::Pool
 
 		Pool(Monitor &monitor) : _monitor(monitor) { }
 
-		/* called by monitor-user context */
+		/**
+		 * Monitor synchronous job execution
+		 *
+		 * The function is called by the monitor-user context and returns after
+		 * job completion.
+		 */
 		void monitor(Job &job)
 		{
 			Registry<Job>::Element element { _jobs, job };
@@ -132,6 +158,18 @@ struct Libc::Monitor::Pool
 			_monitor.trigger_monitor_examination();
 
 			job.wait_for_completion();
+		}
+
+		/**
+		 * Monitor asynchronous job execution
+		 *
+		 * The function is called by the monitor-user context and returns after
+		 * job is registered for execution. Jobs are removed from the pool on
+		 * destruction.
+		 */
+		void monitor_async(Job &job)
+		{
+			job._register_async(_jobs);
 		}
 
 		enum class State { JOBS_PENDING, ALL_COMPLETE };

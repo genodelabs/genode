@@ -17,6 +17,7 @@
 #define _LIBC__INTERNAL__KERNEL_H_
 
 /* base-internal includes */
+#include <util/reconstructible.h>
 #include <internal/call_func.h>
 
 /* libc includes */
@@ -582,6 +583,14 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 				return job.completed() ? Monitor::Result::COMPLETE
 				                       : Monitor::Result::TIMEOUT;
 			}
+		}
+
+		/**
+		 * Monitor interface
+		 */
+		void monitor_async(Job &job) override
+		{
+			_monitors.monitor_async(job);
 		}
 
 		void _trigger_monitor_examination() override
