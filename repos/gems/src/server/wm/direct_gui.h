@@ -21,13 +21,11 @@
 namespace Wm { class Direct_gui_session; }
 
 
-class Wm::Direct_gui_session : public Genode::Rpc_object<Gui::Session>
+class Wm::Direct_gui_session : public Genode::Session_object<Gui::Session>
 {
 	private:
 
 		Genode::Env &_env;
-
-		Genode::Session_label _label;
 
 		Genode::Connection<Gui::Session> _connection {
 			_env, _label, Genode::Ram_quota { 36*1024 }, /* Args */ { } };
@@ -39,12 +37,10 @@ class Wm::Direct_gui_session : public Genode::Rpc_object<Gui::Session>
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Direct_gui_session(Genode::Env &env, Genode::Session_label const &label)
+		Direct_gui_session(Genode::Env &env, auto &&... args)
 		:
-			_env(env), _label(label)
+			Session_object<Gui::Session>(env.ep(), args...),
+			_env(env)
 		{ }
 
 		void upgrade(char const *args)

@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/list.h>
 #include <base/tslab.h>
+#include <base/session_object.h>
 #include <os/surface.h>
 #include <base/attached_ram_dataspace.h>
 #include <os/session_policy.h>
@@ -471,7 +472,7 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 };
 
 
-class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
+class Wm::Gui::Session_component : public Session_object<Gui::Session>,
                                    private List<Session_component>::Element,
                                    private Input_origin_changed_handler
 {
@@ -512,9 +513,8 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 		Genode::Env &_env;
 
-		Session_label                _session_label;
 		Genode::Ram_allocator       &_ram;
-		Real_gui                     _real_gui { _env, _session_label };
+		Real_gui                     _real_gui { _env, _label };
 		Window_registry             &_window_registry;
 		Tslab<Top_level_view, 8000>  _top_level_view_alloc;
 		Tslab<Child_view, 7000>      _child_view_alloc;
@@ -782,21 +782,18 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 
 	public:
 
-		/**
-		 * Constructor
-		 *
-		 * \param ep  entrypoint used for managing the views
-		 */
-		Session_component(Genode::Env &env,
+		Session_component(Genode::Env           &env,
 		                  Genode::Ram_allocator &ram,
+		                  Resources       const &resources,
+		                  Label           const &label,
+		                  Diag            const  diag,
 		                  Window_registry       &window_registry,
 		                  Allocator             &session_alloc,
-		                  Session_label   const &session_label,
 		                  Pointer::Tracker      &pointer_tracker,
 		                  Click_handler         &click_handler)
 		:
+			Session_object<Gui::Session>(env.ep(), resources, label, diag),
 			_env(env),
-			_session_label(session_label),
 			_ram(ram),
 			_window_registry(window_registry),
 			_top_level_view_alloc(&session_alloc),
@@ -881,8 +878,6 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			return false;
 		}
 
-		Session_label session_label() const { return _session_label; }
-
 		bool matches_session_label(char const *selector) const
 		{
 			using namespace Genode;
@@ -893,7 +888,7 @@ class Wm::Gui::Session_component : public Rpc_object<Gui::Session>,
 			 *
 			 * The code snippet originates from nitpicker's 'gui_session.h'.
 			 */
-			String<Session_label::capacity() + 4> const label(_session_label, " ->");
+			String<Session_label::capacity() + 4> const label(_label, " ->");
 			return strcmp(label.string(), selector, strlen(selector)) == 0;
 		}
 
@@ -1273,8 +1268,9 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 		Genode::Session_capability session(Session_args const &args,
 		                                   Affinity     const &) override
 		{
-			Genode::Session_label const session_label =
-				Genode::label_from_args(args.string());
+			Genode::Session::Label     const label     = Genode::label_from_args(args.string());
+			Genode::Session::Resources const resources = Genode::session_resources_from_args(args.string());
+			Genode::Session::Diag      const diag      = Genode::session_diag_from_args(args.string());
 
 			enum Role { ROLE_DECORATOR, ROLE_LAYOUTER, ROLE_REGULAR, ROLE_DIRECT };
 			Role role = ROLE_REGULAR;
@@ -1284,7 +1280,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 			 */
 			try {
 				Genode::Xml_node policy =
-					Genode::Session_policy(session_label, _config.xml());
+					Genode::Session_policy(label, _config.xml());
 
 				auto const value = policy.attribute_value("role", String<16>());
 
@@ -1298,40 +1294,42 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 
 			case ROLE_REGULAR:
 				{
-					auto session = new (_md_alloc)
-						Session_component(_env, _ram, _window_registry,
-						                  _md_alloc, session_label,
+					Session_component &session = *new (_md_alloc)
+						Session_component(_env, _ram, resources, label, diag,
+						                  _window_registry, _md_alloc,
 						                  _pointer_tracker,
 						                  _click_handler);
-					_sessions.insert(session);
-					return _env.ep().manage(*session);
+					_sessions.insert(&session);
+					return session.cap();
 				}
 
 			case ROLE_DECORATOR:
 				{
-					auto session = new (_md_alloc)
-						Decorator_gui_session(_env, _ram, _md_alloc,
+					Decorator_gui_session &session = *new (_md_alloc)
+						Decorator_gui_session(_env, _ram, resources, label, diag,
+						                      _md_alloc,
 						                      _pointer_tracker,
 						                      _window_layouter_input,
 						                      *this);
-					_decorator_sessions.insert(session);
-					return _env.ep().manage(*session);
+					_decorator_sessions.insert(&session);
+					return session.cap();
 				}
 
 			case ROLE_LAYOUTER:
 				{
 					_layouter_session = new (_md_alloc)
-						Layouter_gui_session(_env, _window_layouter_input_cap);
+						Layouter_gui_session(_env, resources, label, diag,
+						                     _window_layouter_input_cap);
 
-					return _env.ep().manage(*_layouter_session);
+					return _layouter_session->cap();
 				}
 
 			case ROLE_DIRECT:
 				{
-					Direct_gui_session *session = new (_md_alloc)
-						Direct_gui_session(_env, session_label);
+					Direct_gui_session &session = *new (_md_alloc)
+						Direct_gui_session(_env, resources, label, diag);
 
-					return _env.ep().manage(*session);
+					return session.cap();
 				}
 			}
 
@@ -1375,10 +1373,8 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 
 			Session_component *regular_session =
 				ep.apply(session_cap, [this] (Session_component *session) {
-					if (session) {
+					if (session)
 						_sessions.remove(session);
-						_env.ep().dissolve(*session);
-					}
 					return session;
 				});
 			if (regular_session) {
@@ -1388,9 +1384,6 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 
 			Direct_gui_session *direct_session =
 				ep.apply(session_cap, [this] (Direct_gui_session *session) {
-					if (session) {
-						_env.ep().dissolve(*session);
-					}
 					return session;
 				});
 			if (direct_session) {
@@ -1400,10 +1393,8 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 
 			Decorator_gui_session *decorator_session =
 				ep.apply(session_cap, [this] (Decorator_gui_session *session) {
-					if (session) {
+					if (session)
 						_decorator_sessions.remove(session);
-						_env.ep().dissolve(*session);
-					}
 					return session;
 				});
 			if (decorator_session) {
@@ -1412,7 +1403,6 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 			}
 
 			auto layouter_lambda = [this] (Layouter_gui_session *session) {
-				this->_env.ep().dissolve(*_layouter_session);
 				_layouter_session = nullptr;
 				return session;
 			};

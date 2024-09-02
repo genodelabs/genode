@@ -58,7 +58,7 @@ struct Wm::Decorator_content_callback : Interface
 };
 
 
-struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
+struct Wm::Decorator_gui_session : Genode::Session_object<Gui::Session>,
                                    private List<Decorator_gui_session>::Element
 {
 	friend class List<Decorator_gui_session>;
@@ -119,18 +119,17 @@ struct Wm::Decorator_gui_session : Genode::Rpc_object<Gui::Session>,
 		return { value };
 	}
 
-	/**
-	 * Constructor
-	 *
-	 * \param ep  entrypoint used for dispatching signals
-	 */
-	Decorator_gui_session(Genode::Env &env,
-	                      Genode::Ram_allocator &ram,
-	                      Allocator &md_alloc,
-	                      Pointer::Tracker &pointer_tracker,
-	                      Input::Session_component &window_layouter_input,
+	Decorator_gui_session(Genode::Env                &env,
+	                      Genode::Ram_allocator      &ram,
+	                      Resources            const &resources,
+	                      Label                const &label,
+	                      Diag                 const &diag,
+	                      Allocator                  &md_alloc,
+	                      Pointer::Tracker           &pointer_tracker,
+	                      Input::Session_component   &window_layouter_input,
 	                      Decorator_content_callback &content_callback)
 	:
+		Session_object<Gui::Session>(env.ep(), resources, label, diag),
 		_env(env),
 		_ram(ram),
 		_pointer_state(pointer_tracker),
