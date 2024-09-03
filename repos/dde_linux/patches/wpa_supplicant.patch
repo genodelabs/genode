@@ -93,7 +93,7 @@ The nl80211 driver patch contains the following changes:
  		goto err;
  
 -	global->ioctl_sock = socket(PF_INET, SOCK_DGRAM, 0);
-+	global->ioctl_sock = 42;
++	global->ioctl_sock = 12345; /* arbitrarily chosen number b/c it won't be used anyway */
  	if (global->ioctl_sock < 0) {
  		wpa_printf(MSG_ERROR, "nl80211: socket(PF_INET,SOCK_DGRAM) failed: %s",
  			   strerror(errno));

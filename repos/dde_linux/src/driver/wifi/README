@@ -1,5 +1,5 @@
-The wifi component is a port of the Linux mac802.11 stack as well as
-libnl and wpa_supplicant to Genode. Depending on the used platform it
+The wifi component consists of a port of the Linux mac802.11 stack as well
+as libnl and wpa_supplicant to Genode. Depending on the used platform it
 features a selection of drivers for wireless devices. For example on the
 PC platform it contains the ath9k, iwlwifi and rtlwifi drivers for PCI(e)
 devices.
@@ -10,14 +10,18 @@ The 'wifi' binary is the generic management part that includes the Wifi
 configuration interface and the 'wpa_supplicant'. A suitable driver library
 is loaded at run-time (see section [Debugging]).
 
-To start the component on the PC platform the following configuration snippet
-can be used:
+
+Configuration
+~~~~~~~~~~~~~
+
+This configuration snippet shows how to start the component on the PC
+platform.
 
 !<start name="wifi" caps="250">
 !  <resource name="RAM" quantum="32M"/>
 !  <provides><service name="Nic"/></provides>
 !  <config>
-!    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
+!    <libc stdout="/dev/log" stderr="/dev/null" rtc="/dev/rtc"/>
 !    <vfs>
 !      <dir name="dev"> <log/> <null/> <rtc/>
 !          <jitterentropy name="random"/>
@@ -38,14 +42,14 @@ can be used:
 !  </route>
 !</start>
 
-On other platforms the wifi library will be different. The following
-snippet illustrates the use of the driver on the PinePhone:
+On other platforms the wifi library will be different. So, the
+following snippet illustrates the use of the driver on the PinePhone.
 
 !<start name="wifi" caps="250">
 !  <resource name="RAM" quantum="32M"/>
 !  <provides><service name="Nic"/></provides>
 !  <config>
-!    <libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
+!    <libc stdout="/dev/log" stderr="/dev/null" rtc="/dev/rtc"/>
 !    <vfs>
 !      <dir name="dev"> <log/> <null/> <rtc/>
 !        <jitterentropy name="random"/>
@@ -79,55 +83,95 @@ directory in the driver's local VFS. It is up to the configuration
 how those files are made available. In these examples they are
 contained in an '.tar' archive that is request as a ROM module.
 
-The driver will request access to the ROM module 'wifi_config' to
-connect to a network:
+The driver will request access to the 'wifi_config' ROM module that
+contains its actual configuration in the '<wifi_config>' node. This
+node features the following attributes.
 
-!<wifi_config connected_scan_interval="30" scan_interval="10" rfkill="no">
-!  <network ssid="Foobar" protection="WPA2" passphrase="allyourbase"/>
-!</wifi_config>
+* :scan_interval: sets the time interval in seconds in which scan
+  operations are requested and is used when not already connected
+  to a network. The default is 5 seconds.
 
-To temporarily prevent any radio activity, the 'rfkill' attribute
-can be set to 'true'.
+* :update_quality_interval: sets the time interval in which the current
+  signal quality of the connected access point is updated (RSSI polling).
+  The default value is 30 seconds.
 
-If the network is protected by, e.g., WPA/WPA2/WPA3, the protection type,
-either 'WPA', 'WPA2' or 'WPA3' as well as the the passphrase have to be
-specified.
-The 'bssid' attribute can be used to select a specifc accesspoint within a
-network. Of all attributes only the 'ssid' attribute is mandatory, all others
-are optional and should only be used when needed.
+* :rfkill: allows to temporarily prevent any radio activity. The
+  default is 'false'.
 
-The configuration may contain more than one network. In This case the driver
-will try to select the best one it gets a response from. To prevent it
-from automatically joining the network the 'auto_connect' attribute must be
-set to 'false'; the default value is 'true'. If the 'explicit_scan' attribute
-is set, the driver will pro-actively scan for a hidden network with the given
-SSID:
+* :bgscan: is an expert option that configures the way the
+  supplicant performs background scanning to steer or rather optimize
+  roaming decisions within the same network (SSID). The syntax of the
+  option string corresponds to the original WPA-supplicant 'bgscan' option.
+  The default value is set to 'simple:30:-70:600'. This functionality can
+  be disabled by specifying an empty value, e.g. 'bgscan=""'. If bgscan is
+  disabled the 'accesspoints' report will not be updated while the
+  supplicant is connected to a network.
 
-!<wifi_config connected_scan_interval="30" scan_interval="10">
-!  <network ssid="Zero" protection="WPA2" passphrase="allyourbase"/>
+* :log_level: allows for steering the verbosity of the supplicant
+  and may assist while diagnosing problems with the driver.
+  Valid values correspond to levels used by the supplicant
+  and are as follows 'excessive', 'msgdump', 'debug', 'info',
+  'warning' and 'error'. The default value is 'error' and configures
+  the least amount of verbosity.
+
+* :verbose: allows for logging of diagnostic messages generated
+  by the managing portion of the driver. The default is 'false'.
+
+Besides those attributes the '<wifi_config>' node can host one or
+more '<network>' nodes. Such a node describes the parameters of
+a network and has the following attributes.
+
+* :ssid: sets the name of the network.
+
+  Note: the SSID is copied verbatim and at the moment, there is no way
+        to express or escape non alphanumeric characters.
+
+* :bssid: can be used to select a specific access point within a
+  network.
+
+* :protection: specifies the used protection mechanism of the
+  network. Valid values are 'WPA', 'WPA2', 'WPA3' and 'NONE'.
+  The last one is used in case the network uses other means of
+  protection and access is open.
+
+  Note: currently only personal WPA protection using a pre-shared-key
+        (PSK) is supported.
+
+* :passphrase: sets the PSK that is required should the
+  network be protected.
+
+* :auto_connect: allows for joining a network automatically. The
+  default value is 'true'. When more than one network is configured
+  with enabled 'auto_connect' the driver will try to select the best
+  one it gets a response from.
+
+  Note:  If configured auto-connect networks overlap in locality, the
+         driver might switch dynamically between the networks.
+
+* :explicit_scan: must be set to explicitly scan for hidden networks.
+  The default is 'false' and it should only be set for networks
+  that are hidden indeed.
+
+Of all attributes solely the 'ssid' attribute is mandatory and all
+others are optional. They should be used when needed only.
+
+The following exemplary snippet showcases a config for two networks where
+the first one should be automatically considered for joining and uses 'WPA2'
+while the second one is hidden but should show up in the scan results and
+uses 'WPA'.
+
+!<wifi_config scan_interval="10" update_quality_interval="30">
+!  <network ssid="Zero" protection="WPA2" passphrase="allyourbase"
+!           auto_connect="true"/>
 !  <network ssid="Skynet" protection="WPA" passphrase="12345678"
-!           explicit_scan="true" auto_connect="false"/>
+!           explicit_scan="true"/>
 !</wifi_config>
 
-By default, the driver scans for available networks only when not
-connected. This can be changed with the 'connected_scan_interval'
-attribute, which specifies the interval for connected scans in
-seconds and directly influences any roaming decision, i.e., select
-a better fit accesspoint for the configured network.
 
-In addition, by specifing 'update_quality_interval', the driver will
-every so often update the current signal quality of the established
-connection to the accesspoint. Note that this option is only useable when
-the 'connected_scan_interval' is set to '0' as both options are mutually
-exclusive.
-
-Also, the driver can be switched to verbose logging during runtime
-by setting the 'verbose' or 'verbose_state' attribute to 'true'.
-
-The wifi driver creates two distinct reports to communicate its state and
-information about the wireless infrastructure to other components. The
-first one is a list of all available accesspoints. The following examplary
-report shows its general structure:
+The wifi driver uses two distinct reports, 'state' and 'accesspoints',
+to communicate its state of connectivity and information about the wireless
+access points in the vicinity to other components.
+This exemplary 'accesspoints' report shows its general structure.
 
 !<accesspoints>
 !  <accesspoint ssid="skynet" bssid="00:01:02:03:04:05" quality="40"/>
@@ -135,32 +179,50 @@ report shows its general structure:
 !  <accesspoint ssid="foobar" bssid="01:02:03:04:05:07" quality="10" protection="WPA2"/>
 !</accesspoints>
 
-Each accesspoint node has attributes that contain the SSID and the BSSID
-of the accesspoint as well as the link quality (signal strength). These
-attributes are mandatory. If the network is protected, the node will also
-have an attribute describing the type of protection in addition.
+The '<accesspoints>' node can contain a fluctuating number of '<accesspoint>'
+nodes that describe an access point with the following attributes.
 
-The second report provides information about the state of the connection
-to the currently connected accesspoint:
+* :ssid: specifies the name of the network the access point advertises.
+  Empty SSIDs are not reported.
+
+* :bssid: specifies the physical address of the access point.
+
+* :freq: specifies the frequency used by the access point.
+
+* :quality: specifies the approximated link quality (calculated from the
+  RSSI value).
+
+* :protection: specifies which kind of protection is employed by the access
+  point.
+
+  Note: when a mixed protection is used by the network, like WPA2-PSK and
+        WPA3-PSK mixed-mode, only the strongest protection (WPA3-PSK) is
+        advertised.
+
+The 'state' report provides information about the state of the connectivity
+and looks as follows.
 
 !<state>
 !  <accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" freq="2418" state="connected"/>
 !</state>
 
-Valid state values are 'connected', 'disconnected', 'connecting'. Depending
-on the state, there are additional attributes that can be checked. In case
-of an authentication error, e.g. the passphrase is wrong, the 'auth_failure'
-attribute will be set to 'true'. The 'rfkilled' attribute is set to 'true'
-if a disconnect was triggered by disabling the radio activity via setting
-the 'rfkill' attribute. It can also contain the optional 'quality' attribute
-to denote the current signal quality (see 'update_quality_interval').
+The '<state>' node encompasses one '<accesspoint>' node that has the
+following additional attributes beside the ones already discussed.
 
-By subscribing to both reports and providing the required 'wifi_config' ROM
-module, a component is able control the wireless driver.
+* :state: specifies the actual state of connectivity. Valid values
+  are 'connected', 'connecting' and 'disconnected'.
 
-Currently only WPA/WPA2/WPA3 protection using a passphrase is supported and
-the SSID is copied verbatim. At the moment, there is no way to express or
-escape non alphanumeric characters.
+* :auth_failure: is an optional attribute and set to 'true' in case
+  the PSK was wrong
+
+* :rfkilled: is an optional attribute and set to 'true' whenever
+  radio activity was temporarily disabled.
+
+* :not_found: is an optional attribute and is only set when a single
+  auto-connect network was configured but could not be found.
+
+By subscribing to both reports and providing the required 'wifi_config'
+ROM module, a component is able control the wireless driver.
 
 The driver optionally reports the following information under the
 label "devices" if requested in the config as depicted.
@@ -177,7 +239,7 @@ As mentioned in the introduction the 'wifi' component is special in the
 regard that the actual driver is provided as a shared-object to better isolate
 it from the the driver binary that is a Libc::Component managing the
 'wpa_supplicant'. Since this code and in return the binary is the same for each
-platform it is linked against an artifical 'wifi' library that only exists as
+platform it is linked against an artificial 'wifi' library that only exists as
 an ABI stub created via 'lib/symbols/wifi'. In case the driver is integrated
 via depot archives this is, besides setting the proper ROM routes, of no
 concern. However, when the driver is built without the depot, the boot image
@@ -198,7 +260,7 @@ rather then stub ABI library. This is achieved by adapting the driver's
 ![…]
 
 'LIBS' must be changed as follows in case the PC wifi driver library is
-used:
+used.
 
 !LIBS    := base pc_wifi
 

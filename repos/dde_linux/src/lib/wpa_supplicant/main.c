@@ -1,5 +1,5 @@
 /*
- * \brief  WPA Supplicant frontend
+ * \brief  Custom WPA Supplicant main routine
  * \author Josef Soentgen
  * \date   2014-12-08
  */
@@ -45,8 +45,7 @@ int wpa_main(void)
 
 	memset(&params, 0, sizeof(params));
 
-	// TODO use CTRL interface for setting debug level
-	params.wpa_debug_level = 1 ? MSG_DEBUG : MSG_INFO;
+	params.wpa_debug_level = MSG_ERROR;
 	params.ctrl_interface = "GENODE";
 
 	global = wpa_supplicant_init(&params);

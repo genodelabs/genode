@@ -14,33 +14,90 @@
 #ifndef _WIFI__CTRL_H_
 #define _WIFI__CTRL_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#include <util/string.h>
 
-#define WPA_CTRL_FD 51
+namespace Wifi {
 
-struct Msg_buffer
+	/*
+	 * FD used to poll CTRL state from the supplicant.
+	 */
+	enum { CTRL_FD = 51, };
+
+	struct Msg_buffer;
+
+	struct Notify_interface : Genode::Interface
+	{
+		virtual void submit_response() = 0;
+		virtual void submit_event() = 0;
+		virtual void block_for_processing() = 0;
+	};
+
+	void ctrl_init(Msg_buffer &);
+
+} /* namespace Wifi */
+
+
+struct Wifi::Msg_buffer
 {
-	unsigned char recv[4096*8];
-	unsigned char send[4096];
-	unsigned recv_id;
+	char send[4096];
 	unsigned send_id;
-	unsigned char event[1024];
+
+	char recv[4096*8];
+	unsigned recv_id;
+	unsigned last_recv_id;
+
+	char event[1024];
 	unsigned event_id;
-} __attribute__((packed));
+	unsigned last_event_id;
+
+	Notify_interface &_notify;
+
+	Msg_buffer(Notify_interface &notify)
+	: _notify { notify } { }
+
+	/*
+	 * Member functions below are called by the
+	 * CTRL interface.
+	 */
+
+	void notify_response() const {
+		_notify.submit_response(); }
+
+	void notify_event() const {
+		_notify.submit_event(); }
+
+	void block_for_processing() {
+		_notify.block_for_processing(); }
+
+	/*
+	 * Member functions below are called by the
+	 * Manager.
+	 */
+
+	void with_new_reply(auto const &fn)
+	{
+		char const *msg = reinterpret_cast<char const*>(recv);
+		/* return early */
+		if (last_recv_id == recv_id)
+			return;
+
+		last_recv_id = recv_id;
+		fn(msg);
+	}
+
+	void with_new_event(auto const &fn)
+	{
+		char const *msg = reinterpret_cast<char const*>(event);
+
+		if (last_event_id == event_id)
+			return;
+
+		last_event_id = event_id;
+		fn(msg);
+	}
+};
 
 
 void wpa_ctrl_set_fd(void);
-
-void *wifi_get_buffer(void);
-void  wifi_notify_cmd_result(void);
-void  wifi_block_for_processing(void);
-void  wifi_notify_event(void);
-
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
 
 #endif /* _WIFI__CTRL_H_ */

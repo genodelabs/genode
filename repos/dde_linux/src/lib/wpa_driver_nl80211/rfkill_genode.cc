@@ -54,6 +54,8 @@ static void rfkill_receive(int sock, void *eloop_ctx, void *sock_ctx)
 		} else {
 			rfkill->cfg->unblocked_cb(rfkill->cfg->ctx);
 		}
+
+		Wifi::rfkill_notify();
 	}
 }
 

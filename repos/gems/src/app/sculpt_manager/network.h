@@ -141,7 +141,6 @@ struct Sculpt::Network : Noncopyable
 
 			_wlan_config.generate([&] (Xml_generator &xml) {
 
-				xml.attribute("connected_scan_interval", 0U);
 				xml.attribute("scan_interval", 10U);
 				xml.attribute("update_quality_interval", 30U);
 
@@ -172,7 +171,6 @@ struct Sculpt::Network : Noncopyable
 
 		_wlan_config.generate([&] (Xml_generator &xml) {
 
-			xml.attribute("connected_scan_interval", 0U);
 			xml.attribute("scan_interval", 10U);
 			xml.attribute("update_quality_interval", 30U);
 

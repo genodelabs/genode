@@ -342,7 +342,11 @@ void Wifi::set_rfkill(bool blocked)
 	 */
 	lx_emul_task_unblock(uplink_task_struct_ptr);
 	Lx_kit::env().scheduler.execute();
+}
 
+
+void Wifi::rfkill_notify()
+{
 	if (_wlan_ptr->rfkill_helper.constructed())
 		_wlan_ptr->rfkill_helper->submit_notification();
 }

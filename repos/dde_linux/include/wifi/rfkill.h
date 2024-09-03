@@ -36,11 +36,19 @@ namespace Wifi {
 	bool rfkill_blocked();
 
 	/**
-	 * Set RFKILL state from the frontend
+	 * Set RFKILL state from the manager
 	 *
 	 * May be only called from an EP context.
 	 */
 	void set_rfkill(bool);
+
+	/**
+	 * Trigger RFKILL notification signal
+	 *
+	 * Used by the supplicants RFKILL driver to notify
+	 * the management-layer.
+	 */
+	void rfkill_notify();
 
 } /* namespace Wifi */
 

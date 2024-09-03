@@ -10,7 +10,8 @@ CC_OPT += -Wno-unused-function
 
 CC_CXX_OPT += -fpermissive
 
-SRC_C   += main.c ctrl_iface_genode.c
+SRC_C   += main.c
+SRC_CC  += ctrl_iface_genode.cc
 INC_DIR += $(REP_DIR)/include
 
 

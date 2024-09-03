@@ -22,6 +22,7 @@ wifi_ifname T
 _ZN4Wifi20firmware_get_requestEv T
 _ZN4Wifi26firmware_establish_handlerERNS_24Firmware_request_handlerE T
 _ZN4Wifi10set_rfkillEb T
+_ZN4Wifi13rfkill_notifyEv T
 _ZN4Wifi14rfkill_blockedEv T
 _ZN4Wifi24rfkill_establish_handlerERNS_27Rfkill_notification_handlerE T
 convert_errno_from_linux T

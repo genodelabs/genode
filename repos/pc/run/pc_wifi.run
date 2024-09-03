@@ -30,29 +30,27 @@ proc wifi_wpa { } {
 # You may script your tests with this function in the dynamic_rom config below.
 # The syntax for the networks parameter is
 #
-#   { ssid protection passphrase explicit_scan }
+#   { ssid protection passphrase auto_connect explicit_scan }
 #
 # Example dynamic_rom config:
 #
 #   {<inline description="auto-connect both networks">
-#   } [wifi_config 30 5 no [list "net1 WPA2 net1_psk no" "net2 WPA2 net2_psk no"]] {
+#   } [wifi_config 5 no [list "net1 WPA2 net1_psk yes no" "net2 WPA2 net2_psk yes no"]] {
 #   </inline>
 #   <inline description="aquto-connect both, but net2 explicitly">
-#   } [wifi_config 30 5 no [list "net1 WPA2 net1_psk no" "net2 WPA2 net2_psk yes"]] {
+#   } [wifi_config 5 no [list "net1 WPA2 net1_psk yes no" "net2 WPA2 net2_psk yes yes"]] {
 #   </inline>}
 
-set wifi_verbose       false
-set wifi_verbose_state false
+set wifi_verbose false
 
-proc wifi_config { connected_scan_interval scan_interval rfkill networks } {
+proc wifi_config { scan_interval update_quality_interval rfkill networks } {
 	global wifi_verbose
 	global wifi_verbose_state
 
 	set    config "<wifi_config"
 	append config " verbose=\"$wifi_verbose\""
-	append config " verbose_state=\"$wifi_verbose_state\""
-	append config " connected_scan_interval=\"$connected_scan_interval\""
 	append config " scan_interval=\"$scan_interval\""
+	append config " update_quality_interval=\"$update_quality_interval\""
 	append config " rfkill=\"$rfkill\""
 	append config ">\n"
 	foreach n $networks {
@@ -60,7 +58,8 @@ proc wifi_config { connected_scan_interval scan_interval rfkill networks } {
 		append config " ssid=\"[lindex $n 0]\""
 		append config " protection=\"[lindex $n 1]\""
 		append config " passphrase=\"[lindex $n 2]\""
-		append config " explicit_scan=\"[lindex $n 3]\""
+		append config " auto_connect=\"[lindex $n 3]\""
+		append config " explicit_scan=\"[lindex $n 4]\""
 		append config "/>\n"
 	}
 	append config "</wifi_config>\n"
@@ -236,19 +235,19 @@ append config {
 		<config verbose="yes">
 			<rom name="wifi_config">
 				<inline description="disconnect">
-} [wifi_config 30 5 no {}] {
+} [wifi_config 5 10 no {}] {
 				</inline>
 				<sleep milliseconds="15000"/>
 				<inline description="connect">
-} [wifi_config 30 5 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes"]] {
+} [wifi_config 5 10 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes no "]] {
 				</inline>
 				<sleep milliseconds="60000"/>
 				<inline description="rfkill block">
-} [wifi_config 30 5 yes [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes"]] {
+} [wifi_config 5 10 yes [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes no "]] {
 				</inline>
 				<sleep milliseconds="30000"/>
 				<inline description="rfkill unblock">
-} [wifi_config 30 5 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes"]] {
+} [wifi_config 5 10 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes no "]] {
 				</inline>
 				<sleep milliseconds="30000"/>
 			</rom>
@@ -327,7 +326,7 @@ install_config $config
 # boot-module assembly
 #
 if {$debug_driver} {
-exec rm bin/wifi.lib.so
+catch {exec rm bin/wifi.lib.so}
 exec echo dummy > bin/wifi.lib.so
 }
 

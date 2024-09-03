@@ -244,8 +244,8 @@ if { $use_wifi_driver } {
 				<ram/>
 				<import>
 					<inline name="wifi_config">
-<wifi_config connected_scan_interval="0" scan_interval="10" rfkill="no" verbose="no" verbose_state="no">}
-append config "<network ssid=\"$wifi_ssid\" protection=\"WPA2\" passphrase=\"$wifi_psk\"/>"
+<wifi_config>}
+append config "<network ssid=\"$wifi_ssid\" protection=\"WPA2\" passphrase=\"$wifi_psk\" auto_connect=\"true\"/>"
 append  config { </wifi_config>
 					</inline>
 				</import>

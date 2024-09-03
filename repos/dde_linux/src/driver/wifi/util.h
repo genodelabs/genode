@@ -1,5 +1,5 @@
 /*
- * \brief  Wifi front end utilities
+ * \brief  Wifi manager utilities
  * \author Josef Soentgen
  * \date   2018-07-23
  */
@@ -59,9 +59,9 @@ namespace Util {
 		}
 	}
 
-	/**********************************
-	 ** Front end specific utilities **
-	 **********************************/
+	/********************************
+	 ** Manager-specific utilities **
+	 ********************************/
 
 	inline unsigned approximate_quality(char const *str)
 	{
