@@ -41,6 +41,17 @@ class Gui::Connection : private Genode::Connection<Session>
 
 		Ram_quota _ram_quota { }; /* session quota donated for virtual frame buffer */
 
+		/*
+		 * Session quota at the construction time of the connection
+		 *
+		 * The 'Gui::Session::CAP_QUOTA' value is based the needs of the
+		 * nitpicker GUI server. To accommodate the common case where a client
+		 * is served by the wm, which in turn wraps a nitpicker session, extend
+		 * the session quota according to the needs of the wm.
+		 */
+		static constexpr Ram_quota _RAM_QUOTA { 96*1024 };
+		static constexpr Cap_quota _CAP_QUOTA { Session::CAP_QUOTA + 9 };
+
 	public:
 
 		View_ids view_ids { };
@@ -65,7 +76,8 @@ class Gui::Connection : private Genode::Connection<Session>
 		 */
 		Connection(Env &env, Session_label const &label = { })
 		:
-			Genode::Connection<Session>(env, label, Ram_quota { 36*1024 }, Args()),
+			Genode::Connection<Session>(env, label, _RAM_QUOTA, _CAP_QUOTA,
+			                            Affinity { }, Args { }),
 			_env(env)
 		{ }
 
