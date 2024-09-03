@@ -91,9 +91,16 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 
 			bool const provides_default_bg = (label == "backdrop");
 
+			Genode::Session::Resources resources = session_resources_from_args(args);
+
+			/* account caps for input and framebuffer RPC objects */
+			if (resources.cap_quota.value < 2)
+				throw Insufficient_cap_quota();
+			resources.cap_quota.value -= 2;
+
 			Gui_session *session = new (md_alloc())
 				Gui_session(_env,
-				            session_resources_from_args(args), label,
+				            resources, label,
 				            session_diag_from_args(args), _view_stack,
 				            _focus_updater, _hover_updater, _pointer_origin,
 				            _builtin_background, provides_default_bg,

@@ -39,6 +39,8 @@ class Input::Session_component : public Rpc_object<Session>
 
 	private:
 
+		Entrypoint &_ep;
+
 		/*
 		 * Exported event buffer dataspace
 		 */
@@ -58,8 +60,12 @@ class Input::Session_component : public Rpc_object<Session>
 
 		Session_component(Env &env)
 		:
-			_ev_ram_ds(env.ram(), env.rm(), ev_ds_size())
-		{ }
+			_ep(env.ep()), _ev_ram_ds(env.ram(), env.rm(), ev_ds_size())
+		{
+			_ep.manage(*this);
+		}
+
+		~Session_component() { _ep.dissolve(*this); }
 
 		/**
 		 * Wake up client

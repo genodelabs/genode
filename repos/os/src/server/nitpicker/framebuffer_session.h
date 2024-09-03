@@ -38,6 +38,7 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 		Session_component(Session_component const &);
 		Session_component &operator = (Session_component const &);
 
+		Entrypoint               &_ep;
 		View_stack               &_view_stack;
 		Nitpicker::Gui_session   &_session;
 		Buffer_provider          &_buffer_provider;
@@ -51,14 +52,20 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 		/**
 		 * Constructor
 		 */
-		Session_component(View_stack             &view_stack,
+		Session_component(Entrypoint             &ep,
+		                  View_stack             &view_stack,
 		                  Nitpicker::Gui_session &session,
 		                  Buffer_provider        &buffer_provider)
 		:
+			_ep(ep),
 			_view_stack(view_stack),
 			_session(session),
 			_buffer_provider(buffer_provider)
-		{ }
+		{
+			_ep.manage(*this);
+		}
+
+		~Session_component() { _ep.dissolve(*this); }
 
 		/**
 		 * Change virtual framebuffer mode

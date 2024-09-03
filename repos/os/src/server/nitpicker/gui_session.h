@@ -136,10 +136,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Tslab<View_ref, 4000> _view_ref_alloc { &_session_alloc };
 
-		/* capabilities for sub sessions */
-		Framebuffer::Session_capability _framebuffer_session_cap;
-		Input::Session_capability       _input_session_cap;
-
 		bool const _provides_default_bg;
 
 		/* size of currently allocated virtual framebuffer, in bytes */
@@ -208,22 +204,17 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			_env(env),
 			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
 			_session_alloc(_ram, env.rm()),
-			_framebuffer_session_component(view_stack, *this, *this),
+			_framebuffer_session_component(env.ep(), view_stack, *this, *this),
 			_view_stack(view_stack),
 			_focus_updater(focus_updater), _hover_updater(hover_updater),
 			_pointer_origin(pointer_origin),
 			_builtin_background(builtin_background),
-			_framebuffer_session_cap(_env.ep().manage(_framebuffer_session_component)),
-			_input_session_cap(_env.ep().manage(_input_session_component)),
 			_provides_default_bg(provides_default_bg),
 			_focus_reporter(focus_reporter)
 		{ }
 
 		~Gui_session()
 		{
-			_env.ep().dissolve(_framebuffer_session_component);
-			_env.ep().dissolve(_input_session_component);
-
 			while (_view_ids.apply_any<View_ref>([&] (View_ref &view_ref) {
 				destroy(_view_ref_alloc, &view_ref); }));
 
@@ -379,10 +370,10 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		 ***************************/
 
 		Framebuffer::Session_capability framebuffer() override {
-			return _framebuffer_session_cap; }
+			return _framebuffer_session_component.cap(); }
 
 		Input::Session_capability input() override {
-			return _input_session_cap; }
+			return _input_session_component.cap(); }
 
 		View_result view(View_id, View_attr const &attr) override;
 
