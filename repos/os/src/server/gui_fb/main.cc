@@ -289,11 +289,30 @@ struct Nit_fb::Main : View_updater
 	Input::Session_component       input_session { env, env.ram() };
 	Framebuffer::Session_component fb_session { env.pd(), gui, *this, _initial_mode() };
 
+	Static_root<Input::Session> input_root { env.ep().manage(input_session) };
+
 	/*
 	 * Attach root interfaces to the entry point
 	 */
-	Static_root<Input::Session>       input_root { env.ep().manage(input_session) };
-	Static_root<Framebuffer::Session> fb_root    { env.ep().manage(fb_session) };
+
+	struct Fb_root : Static_root<Framebuffer::Session>
+	{
+		Main &_main;
+
+		Fb_root(Main &main)
+		:
+			Static_root<Framebuffer::Session>(main.env.ep().manage(main.fb_session)),
+			_main(main)
+		{ }
+
+		void close(Genode::Capability<Genode::Session>) override
+		{
+			_main.fb_session.sync_sigh(Genode::Signal_context_capability());
+			_main.fb_session.mode_sigh(Genode::Signal_context_capability());
+		}
+	};
+
+	Fb_root fb_root { *this };
 
 	/**
 	 * View_updater interface
