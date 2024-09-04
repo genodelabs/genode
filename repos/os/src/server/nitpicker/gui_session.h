@@ -132,9 +132,20 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		List<Session_view_list_elem> _view_list { };
 
-		Tslab<View, 4000> _view_alloc { &_session_alloc };
+		/*
+		 * Slab allocator that includes an initial block as member
+		 */
+		template <size_t BLOCK_SIZE>
+		struct Initial_slab_block { uint8_t buf[BLOCK_SIZE]; };
+		template <typename T, size_t BLOCK_SIZE>
+		struct Slab : private Initial_slab_block<BLOCK_SIZE>, Tslab<T, BLOCK_SIZE>
+		{
+			Slab(Allocator &block_alloc)
+			: Tslab<T, BLOCK_SIZE>(block_alloc, Initial_slab_block<BLOCK_SIZE>::buf) { };
+		};
 
-		Tslab<View_ref, 4000> _view_ref_alloc { &_session_alloc };
+		Slab<View,     4000> _view_alloc     { _session_alloc };
+		Slab<View_ref, 4000> _view_ref_alloc { _session_alloc };
 
 		bool const _provides_default_bg;
 
