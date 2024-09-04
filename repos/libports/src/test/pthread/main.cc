@@ -536,7 +536,7 @@ struct Test_mutex_stress
 				}
 
 				/* stay in mutex for some time */
-				for (unsigned volatile d = 0; d < 30000; ++d) ;
+				for (unsigned volatile d = 0; d < 30000; ) d = d + 3;
 
 				if (MUTEX_TYPE == PTHREAD_MUTEX_RECURSIVE) {
 					_unlock();
@@ -1099,7 +1099,7 @@ static bool key_destructor_func_called = false;
 
 static void test_tls_data()
 {
-	int test;
+	int test = 0;
 
 	if (pthread_setspecific(key, &test) != 0) {
 		Genode::error("pthread_setspecific() failed");
