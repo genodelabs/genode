@@ -107,13 +107,14 @@ class Genode::Connection : public Connection_base
 		                                         Client_id     const &id,
 		                                         Session_label const &label,
 		                                         Ram_quota     const &ram_quota,
+		                                         Cap_quota     const &cap_quota,
 		                                         Affinity      const &affinity,
 		                                         Args          const &args)
 		{
 			/* supplement session quotas and label as session arguments */
 			Args const complete_args("label=\"",   label, "\", "
 			                         "ram_quota=", ram_quota, ", "
-			                         "cap_quota=", unsigned(SESSION_TYPE::CAP_QUOTA), ", ",
+			                         "cap_quota=", cap_quota, ", ",
 			                         args);
 
 			if (complete_args.length() == Args::capacity())
@@ -138,12 +139,26 @@ class Genode::Connection : public Connection_base
 		Connection(Env                 &env,
 		           Session_label const &label,
 		           Ram_quota     const &ram_quota,
+		           Cap_quota     const &cap_quota,
 		           Affinity      const &affinity,
 		           Args          const &args)
 		:
 			Connection_base(env),
 			_cap(_request(env, _id_space_element.id(),
-			              label, ram_quota, affinity, args))
+			              label, ram_quota, cap_quota, affinity, args))
+		{ }
+
+		/**
+		 * Constructor using the cap quota declared in as SESSION_TYPE::CAP_QUOTA
+		 */
+		Connection(Env                 &env,
+		           Session_label const &label,
+		           Ram_quota     const &ram_quota,
+		           Affinity      const &affinity,
+		           Args          const &args)
+		:
+			Connection(env, label, ram_quota, Cap_quota { unsigned(SESSION_TYPE::CAP_QUOTA) },
+			           affinity, args)
 		{ }
 
 		/**
