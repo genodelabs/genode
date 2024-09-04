@@ -222,7 +222,7 @@ void Board::Vcpu_context::read_vcpu_state(Vcpu_state &state)
 	if (state.fpu.charged()) {
 		state.fpu.with_state(
 		    [&](Vcpu_state::Fpu::State const &fpu) {
-			    memcpy((void *) regs->fpu_context(), &fpu, sizeof(fpu));
+			    memcpy((void *) regs->fpu_context(), &fpu, regs->fpu_size());
 		    });
 	}
 }
@@ -233,7 +233,8 @@ void Board::Vcpu_context::write_vcpu_state(Vcpu_state &state)
 	state.exit_reason = (unsigned) exit_reason;
 
 	state.fpu.charge([&](Vcpu_state::Fpu::State &fpu) {
-		memcpy(&fpu, (void *) regs->fpu_context(), sizeof(fpu));
+		memcpy(&fpu, (void *) regs->fpu_context(), regs->fpu_size());
+		return regs->fpu_size();
 	});
 
 	/* SVM will overwrite rax but VMX doesn't. */

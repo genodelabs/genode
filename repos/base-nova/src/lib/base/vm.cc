@@ -177,7 +177,10 @@ void Nova_vcpu::_read_nova_state(Nova::Utcb &utcb)
 
 	if (utcb.mtd & Nova::Mtd::FPU) {
 		_vcpu_state.fpu.charge([&] (Vcpu_state::Fpu::State &fpu) {
-			memcpy(&fpu, utcb.fpu, sizeof(fpu));
+			auto const fpu_size = unsigned(min(_vcpu_state.fpu.size(),
+			                                   sizeof(utcb.fpu)));
+			memcpy(&fpu, utcb.fpu, fpu_size);
+			return fpu_size;
 		});
 	}
 

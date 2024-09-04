@@ -206,15 +206,16 @@ class Genode::Vcpu_state
 
 				struct State
 				{
-					uint8_t _buffer[512] { };
-				} __attribute__((aligned(16)));
+					uint8_t _buffer[2560] { };
+				} __attribute__((aligned(64)));
 
 			private:
 
 				friend class Vcpu_state;
 
-				State _state   { };
-				bool  _charged { false };
+				State    _state      { };
+				bool     _charged    { false };
+				uint64_t _state_size { };
 
 				/* see comment for Register::operator=() */
 				Fpu & operator = (Fpu const &)
@@ -232,12 +233,14 @@ class Genode::Vcpu_state
 
 				void charge(auto const &fn)
 				{
-					_charged = true;
-					fn(_state);
+					_charged    = true;
+					_state_size = fn(_state);
 				}
+
+				auto size() const { return _state_size; }
 		};
 
-		Fpu fpu __attribute__((aligned(16))) { };
+		Fpu fpu __attribute__((aligned(64))) { };
 
 		/*
 		 * Registers transfered by hypervisor from guest on VM exit are charged.

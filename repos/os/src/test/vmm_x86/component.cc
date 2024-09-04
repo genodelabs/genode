@@ -120,8 +120,10 @@ class Vmm::Vcpu
 		void force_fpu_state_transfer(Vcpu_state & state)
 		{
 			/* force FPU-state transfer on next entry */
-			state.fpu.charge([] (Vcpu_state::Fpu::State &) {
-				/* don't change state */ });
+			state.fpu.charge([] (Vcpu_state::Fpu::State &state) {
+				/* don't change state */
+				return sizeof(state);
+			});
 		}
 
 		/*

@@ -400,6 +400,7 @@ struct Foc_vcpu : Thread, Noncopyable
 				if (state.fpu.charged()) {
 					state.fpu.charge([&] (Vcpu_state::Fpu::State &fpu) {
 						asm volatile ("fxrstor %0" : : "m" (fpu) : "memory");
+						return 512;
 					});
 				} else
 					asm volatile ("fxrstor %0" : : "m" (_fpu_vcpu) : "memory");
@@ -412,6 +413,7 @@ struct Foc_vcpu : Thread, Noncopyable
 				state.fpu.charge([&] (Vcpu_state::Fpu::State &fpu) {
 					asm volatile ("fxsave %0" : "=m" (fpu) :: "memory");
 					asm volatile ("fxsave %0" : "=m" (_fpu_vcpu) :: "memory");
+					return 512;
 				});
 				asm volatile ("fxrstor %0" : : "m" (_fpu_ep) : "memory");
 

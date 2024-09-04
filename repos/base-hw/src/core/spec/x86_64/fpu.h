@@ -60,6 +60,7 @@ class Genode::Fpu_context
 		}
 
 		addr_t fpu_context() const { return _fxsave_addr; }
+		addr_t fpu_size()    const { return sizeof(_fxsave_area); }
 };
 
 #endif /* _CORE__SPEC__X86_64__FPU_H_ */

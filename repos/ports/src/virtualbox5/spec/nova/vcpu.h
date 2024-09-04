@@ -85,7 +85,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 
 	private:
 
-		X86FXSTATE _emt_fpu_state __attribute__((aligned(0x10)));
+		X86FXSTATE _emt_fpu_state __attribute__((aligned(64)));
 
 		pthread         _pthread;
 		pthread_cond_t  _cond_wait;
@@ -968,7 +968,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			/* save current FPU state */
 			fpu_save(reinterpret_cast<char *>(&_emt_fpu_state));
 			/* write FPU state from pCtx to utcb */
-			memcpy(utcb->fpu, pCtx->pXStateR3, sizeof(utcb->fpu));
+			memcpy(utcb->fpu, pCtx->pXStateR3, sizeof(X86FXSTATE));
 			/* tell kernel to transfer current fpu registers to vCPU */
 			utcb->mtd |= Mtd::FPU;
 
@@ -984,7 +984,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			_current_vcpu = 0;
 
 			/* write FPU state of vCPU in utcb to pCtx */
-			static_assert(sizeof(X86FXSTATE) == sizeof(utcb->fpu), "fpu size mismatch");
+			static_assert(sizeof(X86FXSTATE) <= sizeof(utcb->fpu), "fpu size mismatch");
 			Genode::memcpy(pCtx->pXStateR3, utcb->fpu, sizeof(X86FXSTATE));
 
 			/* load saved FPU state of EMT thread */
