@@ -1307,52 +1307,119 @@ extern "C" {
 
 	typeof(pthread_cond_broadcast) _pthread_cond_broadcast
 		__attribute__((alias("pthread_cond_broadcast")));
+}
 
 
-	int pthread_once(pthread_once_t *once, void (*init_once)(void))
+/*
+ * This implementation is inspired by base/src/lib/cxx/guard.cc and uses the
+ * same terms for IN_INIT and WAITERS.
+ */
+struct Pthread_once
+{
+	using Waiters = Registry<Libc::Blockade>;
+
+	template <typename T>
+	struct Waiter : T
 	{
-		if (!once || ((once->state != PTHREAD_NEEDS_INIT) &&
-		              (once->state != PTHREAD_DONE_INIT)))
-			return EINVAL;
+		Waiters::Element _element;
 
-		if (!once->mutex) {
-			pthread_mutex_t p;
-			pthread_mutex_init(&p, nullptr);
-			if (!p) return EINVAL;
+		Waiter(Waiters &waiters, auto &&... args)
+		: T(args...), _element(waiters, *this) { }
+	};
 
-			{
-				static Mutex mutex;
-				Mutex::Guard guard(mutex);
+	int    volatile _state; /* pthread_once_t:  state */
+	addr_t volatile _flags; /* pthread_once_t: *mutex */
 
-				if (!once->mutex) {
-					once->mutex = p;
-					p = nullptr;
-				}
-			}
+	bool _in_init() const { return _flags & 0b01; }
+	bool _waiters() const { return _flags & 0b10; }
 
-			/*
-			 * If another thread concurrently allocated a mutex and was faster,
-			 * free our mutex since it is not used.
-			 */
-			if (p) pthread_mutex_destroy(&p);
-		}
+	void _set_in_init() { _flags |= 0b01; }
+	void _set_waiters() { _flags |= 0b10; }
 
-		once->mutex->lock();
+	/* mutex should be locked - returns true if init_once() was called */
+	bool init(Mutex &mutex, void (*init_once)(void), Waiters &waiters)
+	{
+		if (_state == PTHREAD_DONE_INIT || _in_init())
+			return false;
 
-		if (once->state == PTHREAD_DONE_INIT) {
-			once->mutex->unlock();
-			return 0;
-		}
+		_set_in_init();
 
+		mutex.release();
 		init_once();
+		mutex.acquire();
 
-		once->state = PTHREAD_DONE_INIT;
+		_state = PTHREAD_DONE_INIT;
 
-		once->mutex->unlock();
+		if (_waiters())
+			waiters.for_each([](Libc::Blockade &b) { b.wakeup(); });
 
-		return 0;
+		return true;
 	}
 
-	typeof(pthread_once) _pthread_once
-		__attribute__((alias("pthread_once")));
+	/* mutex should be locked */
+	void wait_for_completion(Mutex &mutex, Waiters &waiters)
+	{
+		auto block = [&] (Libc::Blockade &waiter) {
+			_set_waiters();
+
+			mutex.release();
+			while (_state != PTHREAD_DONE_INIT)
+				waiter.block();
+			mutex.acquire();
+		};
+
+		if (Libc::Kernel::kernel().main_context()) {
+			Waiter<Main_blockade> w { waiters, 0 };
+			block(w);
+		} else {
+			Waiter<Pthread_blockade> w { waiters, *_timer_accessor_ptr, 0 };
+			block(w);
+		}
+	}
+};
+
+static_assert(sizeof(Pthread_once) <= sizeof(pthread_once_t));
+
+/*
+ * Semantic of pthread_once according to the POSIX standard:
+ *
+ * - The first call to pthread_once() by any thread in a process, with a given
+ *   'once', shall call 'init_once' with no arguments.
+ *
+ * - Subsequent * calls of pthread_once() with the same 'once' shall not call
+ *   the 'init_once'.
+ *
+ * - On return from pthread_once(), 'init_once' shall have completed.
+ *
+ * - 'once' shall determine whether the associated  initialization routine has
+ *   been called.
+ *
+ * - Recursive calls to pthread_once() (from 'init_once' or after longjmp())
+ *   will not return.
+ */
+extern "C" int pthread_once(pthread_once_t *once, void (*init_once)(void))
+{
+	static Mutex mutex { };
+	static Pthread_once::Waiters waiters { };
+
+	/*
+	 * POSIX states: The [EINVAL] error for an uninitialized pthread_once_t
+	 * object is removed; this condition results in undefined behavior.
+	 */
+	if (!once || ((once->state != PTHREAD_NEEDS_INIT) &&
+	              (once->state != PTHREAD_DONE_INIT)))
+		return EINVAL;
+
+	Mutex::Guard guard(mutex);
+
+	if (once->state == PTHREAD_DONE_INIT)
+		return 0;
+
+	Pthread_once &o = *(Pthread_once *)once;
+	if (!o.init(mutex, init_once, waiters))
+		o.wait_for_completion(mutex, waiters);
+
+	return 0;
 }
+
+extern "C" typeof(pthread_once) _pthread_once __attribute__((alias("pthread_once")));
