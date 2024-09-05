@@ -25,6 +25,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/sleep.h>
+#include <cpu/atomic.h>
 
 
 struct Thread_args {
@@ -1193,6 +1194,156 @@ static void test_thread_local_destructor()
 }
 
 
+/* test_pthread_once() counters */
+static int volatile once_init, once_round, once_round_complete;
+
+static int inc(int volatile *counter)
+{
+	int next = *counter + 1;
+	while (!Genode::cmpxchg(counter, next - 1, next))
+		next++;
+	return next;
+}
+
+static void init_once1() { inc(&once_init); }
+static void init_once2() { inc(&once_init); }
+static void init_once3() { inc(&once_init); }
+
+static void init_once_nested()
+{
+	pthread_once_t once_nested = PTHREAD_ONCE_INIT;
+
+	pthread_once(&once_nested, init_once1);
+
+	inc(&once_init);
+}
+
+struct Once_thread
+{
+	enum { ROUNDS = 1'000 };
+
+	struct Arg
+	{
+		pthread_once_t *once;
+		void (*init_once)(void);
+	};
+
+	unsigned _tag;
+
+	Cond                        &_cond;
+	Mutex<PTHREAD_MUTEX_NORMAL> &_mutex;
+
+	Arg _once1, _once2, _once3;
+
+	pthread_t _thread;
+
+	static void * _entry_trampoline(void *arg)
+	{
+		Once_thread *t = (Once_thread *)arg;
+		t->_entry();
+		return nullptr;
+	}
+
+	void _entry()
+	{
+		for (int i = 1; i <= ROUNDS; ++i) {
+			pthread_mutex_lock(_mutex.mutex());
+			while (once_round != i)
+				pthread_cond_wait(_cond.cond(), _mutex.mutex());
+			pthread_mutex_unlock(_mutex.mutex());
+
+			pthread_once(_once1.once, _once1.init_once);
+			pthread_once(_once2.once, _once2.init_once);
+			pthread_once(_once3.once, _once3.init_once);
+
+			inc(&once_round_complete);
+		}
+	}
+
+	Once_thread(unsigned tag, Cond &cond, Mutex<PTHREAD_MUTEX_NORMAL> &mutex,
+	            Arg once1, Arg once2, Arg once3)
+	: _tag(tag), _cond(cond), _mutex(mutex), _once1(once1), _once2(once2), _once3(once3)
+	{
+		if (pthread_create(&_thread, 0, _entry_trampoline, this) != 0) {
+			printf("Error: pthread_create() failed\n");
+			exit(-1);
+		}
+	}
+
+	void join() { pthread_join(_thread, nullptr); }
+};
+
+
+static void check_pthread_once(int num_init)
+{
+	if (once_init == num_init) return;
+
+	Genode::error("unxpected pthread_once initializer call count ",
+	              once_init, "/", num_init);
+	exit(-1);
+}
+
+static void test_pthread_once()
+{
+	printf("main thread: test pthread_once()\n");
+
+	pthread_once_t once1, once2, once3;
+
+	/* test one thread and double-init prevention */
+	once_init = 0; once1 = once2 = once3 = PTHREAD_ONCE_INIT;
+	pthread_once(&once1, init_once1);
+	pthread_once(&once1, init_once1);
+	check_pthread_once(1);
+
+	/* test one thread with consecutive onces */
+	once_init = 0; once1 = once2 = once3 = PTHREAD_ONCE_INIT;
+	pthread_once(&once1, init_once1);
+	pthread_once(&once2, init_once2);
+	pthread_once(&once3, init_once3);
+	check_pthread_once(3);
+
+	/* test one thread and nested pthread_once() with different onces */
+	once_init = 0; once1 = once2 = once3 = PTHREAD_ONCE_INIT;
+	pthread_once(&once1, init_once_nested);
+	check_pthread_once(2);
+
+	Cond cond;
+
+	Mutex<PTHREAD_MUTEX_NORMAL> mutex;
+
+	enum { NUM_THREADS = 6 };
+	Once_thread threads[NUM_THREADS] = {
+		{ 1, cond, mutex, { &once1, init_once1 }, { &once2, init_once2 }, { &once3, init_once3 } },
+		{ 2, cond, mutex, { &once3, init_once3 }, { &once1, init_once1 }, { &once2, init_once2 } },
+		{ 3, cond, mutex, { &once2, init_once2 }, { &once3, init_once3 }, { &once1, init_once1 } },
+		{ 4, cond, mutex, { &once1, init_once1 }, { &once2, init_once2 }, { &once3, init_once3 } },
+		{ 5, cond, mutex, { &once3, init_once3 }, { &once1, init_once1 }, { &once2, init_once2 } },
+		{ 6, cond, mutex, { &once2, init_once2 }, { &once3, init_once3 }, { &once1, init_once1 } },
+	};
+
+	for (int i = 1; i <= Once_thread::ROUNDS; ++i) {
+		pthread_mutex_lock(mutex.mutex());
+
+		once_round = i; once_init = 0; once_round_complete = 0;
+		once1 = once2 = once3 = PTHREAD_ONCE_INIT;
+		pthread_cond_broadcast(cond.cond());
+
+		pthread_mutex_unlock(mutex.mutex());
+
+		pthread_once(&once1, init_once1);
+		pthread_once(&once2, init_once2);
+		pthread_once(&once3, init_once3);
+
+		while (once_round_complete != NUM_THREADS)
+			usleep(1000);
+
+		check_pthread_once(3);
+	}
+
+	for (Once_thread &t : threads) t.join();
+}
+
+
 int main(int argc, char **argv)
 {
 	printf("--- pthread test ---\n");
@@ -1212,6 +1363,7 @@ int main(int argc, char **argv)
 	test_cleanup();
 	test_tls();
 	test_thread_local_destructor();
+	test_pthread_once();
 
 	printf("--- returning from main ---\n");
 	return 0;
