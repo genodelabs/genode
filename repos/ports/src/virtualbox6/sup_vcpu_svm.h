@@ -77,6 +77,7 @@ Genode::Vm_connection::Exit_config const Sup::Svm::exit_config { /* ... */ };
                                        | SVM_CTRL_INTERCEPT_WBINVD
                                        | SVM_CTRL_INTERCEPT_MONITOR
                                        | SVM_CTRL_INTERCEPT_RDTSCP
+                                       | SVM_CTRL_INTERCEPT_XSETBV
                                        | SVM_CTRL_INTERCEPT_MWAIT;
 
 unsigned Sup::Svm::ctrl_primary()

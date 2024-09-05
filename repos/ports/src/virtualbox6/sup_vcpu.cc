@@ -265,12 +265,27 @@ template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vcpu(CPUM
 			state.tpr_threshold.charge(pending_priority);
 	}
 
-	/* export FPU state */
+	/* export FPU state - start */
+	state.xcr0.charge(ctx.aXcr[0]);
+
+	{
+		::uint64_t ia32_xss = 0;
+		auto const rc = CPUMQueryGuestMsr(&_vmcpu, 0xDA0 /* MSR_IA32_XSS */,
+		                                  &ia32_xss);
+
+		if (rc == VINF_SUCCESS)
+			state.xss.charge(ia32_xss);
+	}
+
 	_state->ref.fpu.charge([&](Vcpu_state::Fpu::State &fpu) {
-		static_assert(sizeof(*ctx.pXStateR3) >= sizeof(fpu._buffer));
-		::memcpy(fpu._buffer, ctx.pXStateR3, sizeof(X86FXSTATE));
-		return sizeof(X86FXSTATE);
+		unsigned fpu_size = min(_vm.cpum.s.HostFeatures.cbMaxExtendedState,
+		                        sizeof(fpu._buffer));
+
+		::memcpy(fpu._buffer, ctx.pXStateR3, fpu_size);
+
+		return fpu_size;
 	});
+	/* export FPU state - end */
 
 	{
 		::uint64_t tsc_aux = 0;
@@ -413,12 +428,20 @@ template <typename VIRT> void Sup::Vcpu_impl<VIRT>::_transfer_state_to_vbox(CPUM
 
 	APICSetTpr(pVCpu, tpr);
 
-	/* import FPU state */
+	/* import FPU state - start */
 	_state->ref.fpu.with_state([&](Vcpu_state::Fpu::State const &fpu) {
-		static_assert(sizeof(*ctx.pXStateR3) >= sizeof(fpu._buffer));
-		::memcpy(ctx.pXStateR3, fpu._buffer, sizeof(X86FXSTATE));
+		unsigned fpu_size = min(_vm.cpum.s.HostFeatures.cbMaxExtendedState,
+		                        sizeof(fpu._buffer));
+
+		::memcpy(ctx.pXStateR3, fpu._buffer, fpu_size);
+
 		return true;
 	});
+
+	CPUMSetGuestMsr (pVCpu, 0xDA0 /* MSR_IA32_XSS */, state.xss.value());
+	CPUMSetGuestXcr0(pVCpu, state.xcr0.value());
+
+	/* import FPU state - end */
 
 	/* do SVM/VMX-specific transfers */
 	VIRT::transfer_state_to_vbox(state, _vmcpu, ctx);

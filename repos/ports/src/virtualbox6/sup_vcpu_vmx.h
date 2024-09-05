@@ -81,6 +81,7 @@ unsigned Sup::Vmx::ctrl_secondary()
 	       | VMX_PROC_CTLS2_RDTSCP
 	       | VMX_PROC_CTLS2_EPT
 	       | VMX_PROC_CTLS2_INVPCID
+	       | VMX_PROC_CTLS2_XSAVES_XRSTORS
 	       ;
 }
 

@@ -1,0 +1,66 @@
+--- a/src/virtualbox6/src/VBox/VMM/VMMR3/CPUMR3CpuId.cpp
++++ b/src/virtualbox6/src/VBox/VMM/VMMR3/CPUMR3CpuId.cpp
+@@ -2470,6 +2470,8 @@
+                                    pCpum->GuestFeatures.cbMaxExtendedState),
+                                   VERR_CPUM_IPE_1);
+             pVCpu0->cpum.s.Guest.aoffXState[iComponent] = pSubLeaf->uEbx;
++            /* store uEax to later on detect compact mode */
++//            pVCpu0->cpum.s.Guest.aoffXState[iComponent] = pSubLeaf->uEax;
+         }
+ 
+     /* Copy the CPU #0  data to the other CPUs. */
+@@ -3558,6 +3560,8 @@
+                                               VERR_CPUM_IPE_2);
+                         continue;
+                     case 1:
++                        /* permit compact AVX mode, Intel: 13.2 ENUMERATION OF CPU SUPPORT FOR XSAVE INSTRUCTIONS AND XSAVE- SUPPORTED FEATURES */
++//                        pCurLeaf->uEax &= 1 | 2;
+                         pCurLeaf->uEax &= 0;
+                         pCurLeaf->uEcx &= 0;
+                         pCurLeaf->uEdx &= 0;
+@@ -4285,7 +4289,8 @@
+     rc = cpumR3CpuIdReadIsaExtCfgLegacy(pVM, pIsaExts, pCpumCfg, "SSE4.2", &pConfig->enmSse42, true);
+     AssertLogRelRCReturn(rc, rc);
+ 
+-    bool const fMayHaveXSave = fNestedPagingAndFullGuestExec
++    bool const fEnforceHWusage = true;
++    bool const fMayHaveXSave = fEnforceHWusage
+                             && pVM->cpum.s.HostFeatures.fXSaveRstor
+                             && pVM->cpum.s.HostFeatures.fOpSysXSaveRstor;
+     uint64_t const fXStateHostMask = pVM->cpum.s.fXStateHostMask;
+@@ -4296,7 +4301,7 @@
+      * unrestricted guest execution mode.  Not possible to force this one without
+      * host support at the moment.
+      */
+-    rc = cpumR3CpuIdReadIsaExtCfgEx(pVM, pIsaExts, "XSAVE", &pConfig->enmXSave, fNestedPagingAndFullGuestExec,
++    rc = cpumR3CpuIdReadIsaExtCfgEx(pVM, pIsaExts, "XSAVE", &pConfig->enmXSave, fEnforceHWusage,
+                                     fMayHaveXSave /*fAllowed*/);
+     AssertLogRelRCReturn(rc, rc);
+ 
+@@ -4305,7 +4310,7 @@
+      * XSAVE is exposed too.  For the time being the default is to only expose this
+      * to VMs with nested paging and AMD-V or unrestricted guest execution mode.
+      */
+-    rc = cpumR3CpuIdReadIsaExtCfgEx(pVM, pIsaExts, "AVX", &pConfig->enmAvx, fNestedPagingAndFullGuestExec,
++    rc = cpumR3CpuIdReadIsaExtCfgEx(pVM, pIsaExts, "AVX", &pConfig->enmAvx, fEnforceHWusage,
+                                     fMayHaveXSave && pConfig->enmXSave && (fXStateHostMask & XSAVE_C_YMM)  /*fAllowed*/);
+     AssertLogRelRCReturn(rc, rc);
+ 
+@@ -4314,7 +4319,7 @@
+      * XSAVE is exposed too. For the time being the default is to only expose this
+      * to VMs with nested paging and AMD-V or unrestricted guest execution mode.
+      */
+-    rc = cpumR3CpuIdReadIsaExtCfgEx(pVM, pIsaExts, "AVX2", &pConfig->enmAvx2, fNestedPagingAndFullGuestExec /* temporarily */,
++    rc = cpumR3CpuIdReadIsaExtCfgEx(pVM, pIsaExts, "AVX2", &pConfig->enmAvx2, fEnforceHWusage /* temporarily */,
+                                     fMayHaveXSave && pConfig->enmXSave && (fXStateHostMask & XSAVE_C_YMM) /*fAllowed*/);
+     AssertLogRelRCReturn(rc, rc);
+ 
+@@ -4425,7 +4430,7 @@
+      * being the default is to only do this for VMs with nested paging and AMD-V or
+      * unrestricted guest mode.
+      */
+-    rc = cpumR3CpuIdReadIsaExtCfg(pVM, pIsaExts, "SSE4A", &pConfig->enmSse4A, fNestedPagingAndFullGuestExec);
++    rc = cpumR3CpuIdReadIsaExtCfg(pVM, pIsaExts, "SSE4A", &pConfig->enmSse4A, fEnforceHWusage);
+     AssertLogRelRCReturn(rc, rc);
+ 
+     /** @cfgm{/CPUM/IsaExts/MISALNSSE, isaextcfg, depends}
