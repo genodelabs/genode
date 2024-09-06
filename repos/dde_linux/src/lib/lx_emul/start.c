@@ -132,8 +132,6 @@ int lx_emul_init_task_function(void * dtb)
 	 * Here we do the minimum normally done start_kernel() of init/main.c
 	 */
 
-	lx_emul_setup_arch(dtb);
-
 	jump_label_init();
 	kmem_cache_init();
 	wait_bit_init();
@@ -142,6 +140,12 @@ int lx_emul_init_task_function(void * dtb)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6,2,0)
 	maple_tree_init();
 #endif
+
+	/*
+	 * unflatten_device tree requires memblock, so kmem_cache_init has to be
+	 * called before lx_emul_setup_arch on ARM platforms
+	 */
+	lx_emul_setup_arch(dtb);
 
 	workqueue_init_early();
 
