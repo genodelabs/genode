@@ -73,7 +73,8 @@ class Genode::Multiboot2_info : Mmio<0x8>
 		Multiboot2_info(addr_t mbi) : Mmio({(char *)mbi, Mmio::SIZE}) { }
 
 		void for_each_tag(auto const &mem_fn,
-		                  auto const &acpi_fn,
+		                  auto const &acpi_rsdp_v1_fn,
+		                  auto const &acpi_rsdp_v2_fn,
 		                  auto const &fb_fn,
 		                  auto const &systab64_fn)
 		{
@@ -103,6 +104,7 @@ class Genode::Multiboot2_info : Mmio<0x8>
 
 				if (tag.read<Tag::Type>() == Tag::Type::ACPI_RSDP_V1 ||
 				    tag.read<Tag::Type>() == Tag::Type::ACPI_RSDP_V2) {
+
 					size_t const sizeof_tag = 1UL << Tag::LOG2_SIZE;
 					addr_t const rsdp_addr  = tag_addr + sizeof_tag;
 
@@ -113,10 +115,12 @@ class Genode::Multiboot2_info : Mmio<0x8>
 						Hw::Acpi_rsdp rsdp_v1;
 						memset (&rsdp_v1, 0, sizeof(rsdp_v1));
 						memcpy (&rsdp_v1, rsdp, 20);
-						acpi_fn(rsdp_v1);
+						acpi_rsdp_v1_fn(rsdp_v1);
+					} else
+					if (sizeof(*rsdp) <= tag.read<Tag::Size>() - sizeof_tag) {
+						/* ACPI RSDP v2 */
+						acpi_rsdp_v2_fn(*rsdp);
 					}
-					if (sizeof(*rsdp) <= tag.read<Tag::Size>() - sizeof_tag)
-						acpi_fn(*rsdp);
 				}
 
 				if (tag.read<Tag::Type>() == Tag::Type::FRAMEBUFFER) {

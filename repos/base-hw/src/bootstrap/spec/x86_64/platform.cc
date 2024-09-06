@@ -61,7 +61,7 @@ static Hw::Acpi_rsdp search_rsdp(addr_t area, addr_t area_size)
 		}
 	}
 
-	Hw::Acpi_rsdp invalid;
+	Hw::Acpi_rsdp invalid { };
 	return invalid;
 }
 
@@ -143,10 +143,14 @@ Bootstrap::Platform::Board::Board()
 
 			lambda(base, size);
 		},
-		[&] (Hw::Acpi_rsdp const &rsdp) {
-			/* prefer higher acpi revisions */
-			if (!acpi_rsdp.valid() || acpi_rsdp.revision < rsdp.revision)
-				acpi_rsdp = rsdp;
+		[&] (Hw::Acpi_rsdp const &rsdp_v1) {
+			/* only use ACPI RSDP v1 if nothing available/valid by now */
+			if (!acpi_rsdp.valid())
+				acpi_rsdp = rsdp_v1;
+		},
+		[&] (Hw::Acpi_rsdp const &rsdp_v2) {
+			/* prefer v2 ever, override stored previous rsdp v1 potentially */
+			acpi_rsdp = rsdp_v2;
 		},
 		[&] (Hw::Framebuffer const &fb) {
 			info.framebuffer = fb;
