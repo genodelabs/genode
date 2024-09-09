@@ -15,14 +15,6 @@
 #define _GUI_H_
 
 /* Genode includes */
-#include <util/list.h>
-#include <base/tslab.h>
-#include <base/session_object.h>
-#include <os/surface.h>
-#include <base/attached_ram_dataspace.h>
-#include <os/session_policy.h>
-#include <os/reporter.h>
-#include <os/session_policy.h>
 #include <root/component.h>
 #include <gui_session/connection.h>
 #include <input_session/capability.h>
@@ -33,26 +25,6 @@
 #include <decorator_gui.h>
 #include <layouter_gui.h>
 #include <direct_gui.h>
-
-
-namespace Wm {
-
-	using Genode::Rpc_object;
-	using Genode::List;
-	using Genode::Allocator;
-	using Genode::Affinity;
-	using Genode::static_cap_cast;
-	using Genode::Signal_handler;
-	using Genode::Weak_ptr;
-	using Genode::Locked_ptr;
-	using Genode::Tslab;
-	using Genode::Attached_ram_dataspace;
-	using Genode::Signal_context_capability;
-	using Genode::Signal_transmitter;
-	using Genode::Reporter;
-	using Genode::Capability;
-	using Genode::Interface;
-}
 
 namespace Wm { namespace Gui {
 
@@ -66,10 +38,6 @@ namespace Wm { namespace Gui {
 	class Session_control_fn;
 	class Session_component;
 	class Root;
-
-	using Rect          = Genode::Surface_base::Rect;
-	using Point         = Genode::Surface_base::Point;
-	using Session_label = Genode::Session_label;
 } }
 
 
@@ -98,13 +66,12 @@ struct Wm::Gui::Input_origin_changed_handler : Interface
 };
 
 
-class Wm::Gui::View : private Genode::Weak_object<View>,
-                      public  Genode::Rpc_object< ::Gui::View>
+class Wm::Gui::View : private Weak_object<View>, public Rpc_object< ::Gui::View>
 {
 	private:
 
-		friend class Genode::Weak_ptr<View>;
-		friend class Genode::Locked_ptr<View>;
+		friend class Weak_ptr<View>;
+		friend class Locked_ptr<View>;
 
 	protected:
 
@@ -197,8 +164,8 @@ class Wm::Gui::View : private Genode::Weak_object<View>,
 			_real_gui.session.destroy_view(_real_view.id());
 		}
 
-		using Genode::Weak_object<View>::weak_ptr;
-		using Genode::Weak_object<View>::lock_for_destruction;
+		using Weak_object<View>::weak_ptr;
+		using Weak_object<View>::lock_for_destruction;
 
 		Point virtual_position() const { return _geometry.at; }
 
@@ -254,7 +221,7 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 		friend class List<Top_level_view>;
 
-		Window_registry::Id _win_id { };
+		Window_registry::Create_result _win_id = Window_registry::Create_error::IDS_EXHAUSTED;
 
 		Window_registry &_window_registry;
 
@@ -283,6 +250,12 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 		using Command = Gui::Session::Command;
 
+		void _with_optional_win_id(auto const &fn) const
+		{
+			_win_id.with_result([&] (Window_registry::Id id) { fn(id); },
+			                    [&] (Window_registry::Create_error) { });
+		}
+
 	public:
 
 		Top_level_view(Real_gui                     &real_gui,
@@ -298,8 +271,8 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 		~Top_level_view()
 		{
-			if (_win_id.valid())
-				_window_registry.destroy(_win_id);
+			_with_optional_win_id([&] (Window_registry::Id id) {
+				_window_registry.destroy(id); });
 
 			View::lock_for_destruction();
 		}
@@ -317,15 +290,19 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 			 * defer the creation of the window ID until the time when the
 			 * initial geometry is known.
 			 */
-			if (!_win_id.valid()) {
-				_win_id = _window_registry.create();
-				_window_registry.title(_win_id, _window_title);
-				_window_registry.label(_win_id, _session_label);
-				_window_registry.has_alpha(_win_id, View::has_alpha());
-				_window_registry.resizeable(_win_id, _resizeable);
+			if (!_win_id.ok()) {
+				_win_id = _window_registry.create({
+					.title      = _window_title,
+					.label      = _session_label,
+					.area       = geometry.area,
+					.alpha      = { View::has_alpha() },
+					.hidden     = { },
+					.resizeable = { _resizeable }
+				});
+			} else {
+				_with_optional_win_id([&] (Window_registry::Id id) {
+					_window_registry.area(id, geometry.area); });
 			}
-
-			_window_registry.size(_win_id, geometry.area);
 
 			View::geometry(geometry);
 		}
@@ -338,11 +315,17 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 			_window_title = title;
 
-			if (_win_id.valid())
-				_window_registry.title(_win_id, _window_title);
+			_with_optional_win_id([&] (Window_registry::Id id) {
+				_window_registry.title(id, _window_title); });
 		}
 
-		bool has_win_id(Window_registry::Id id) const { return id == _win_id; }
+		bool has_win_id(Window_registry::Id id) const
+		{
+			bool result = false;
+			_with_optional_win_id([&] (Window_registry::Id this_id) {
+				result = (this_id == id); });
+			return result;
+		}
 
 		bool belongs_to_win_id(Window_registry::Id id) const override
 		{
@@ -366,14 +349,18 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 		View_capability content_view() { return real_view_cap(); }
 
-		void hidden(bool hidden) { _window_registry.hidden(_win_id, hidden); }
+		void hidden(bool hidden)
+		{
+			_with_optional_win_id([&] (Window_registry::Id id) {
+				_window_registry.hidden(id, hidden); });
+		}
 
 		void resizeable(bool resizeable)
 		{
 			_resizeable = resizeable;
 
-			if (_win_id.valid())
-				_window_registry.resizeable(_win_id, resizeable);
+			_with_optional_win_id([&] (Window_registry::Id id) {
+				_window_registry.resizeable(id, resizeable); });
 		}
 };
 
@@ -530,12 +517,12 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			}
 		};
 
-		Genode::Env &_env;
+		Env &_env;
 
-		Genode::Constrained_ram_allocator _ram {
+		Constrained_ram_allocator _ram {
 			_env.ram(), _ram_quota_guard(), _cap_quota_guard() };
 
-		Genode::Sliced_heap          _session_alloc { _ram, _env.rm() };
+		Sliced_heap                  _session_alloc { _ram, _env.rm() };
 		Real_gui                     _real_gui { _env, _label };
 		Window_registry             &_window_registry;
 		Slab<Top_level_view, 8000>   _top_level_view_alloc { _session_alloc };
@@ -748,14 +735,14 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		{
 			_top_level_views.remove(&view);
 			_dissolve_view_from_ep(view);
-			Genode::destroy(&_top_level_view_alloc, &view);
+			destroy(&_top_level_view_alloc, &view);
 		}
 
 		void _destroy_child_view(Child_view &view)
 		{
 			_child_views.remove(&view);
 			_dissolve_view_from_ep(view);
-			Genode::destroy(&_child_view_alloc, &view);
+			destroy(&_child_view_alloc, &view);
 		}
 
 		void _execute_command(Command const &command)
@@ -804,8 +791,8 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 
 					char sanitized_title[args.title.capacity()];
 
-					Genode::copy_cstring(sanitized_title, command.title.title.string(),
-					                     sizeof(sanitized_title));
+					copy_cstring(sanitized_title, command.title.title.string(),
+					             sizeof(sanitized_title));
 
 					for (char *c = sanitized_title; *c; c++)
 						if (*c == '"')
@@ -825,7 +812,7 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 
 	public:
 
-		Session_component(Genode::Env      &env,
+		Session_component(Env              &env,
 		                  Resources  const &resources,
 		                  Label      const &label,
 		                  Diag       const  diag,
@@ -897,13 +884,13 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		View_capability content_view(Window_registry::Id id)
 		{
 			for (Top_level_view *v = _top_level_views.first(); v; v = v->next())
-				if (v->has_win_id(id.value))
+				if (v->has_win_id(id))
 					return v->content_view();
 
 			return View_capability();
 		}
 
-		bool has_win_id(unsigned id) const
+		bool has_win_id(Window_registry::Id id) const
 		{
 			for (Top_level_view const *v = _top_level_views.first(); v; v = v->next())
 				if (v->has_win_id(id))
@@ -1146,7 +1133,7 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 				[&] { });
 		}
 
-		Genode::Dataspace_capability command_dataspace() override
+		Dataspace_capability command_dataspace() override
 		{
 			return _command_ds.cap();
 		}
@@ -1185,7 +1172,7 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			return real_mode;
 		}
 
-		void mode_sigh(Genode::Signal_context_capability sigh) override
+		void mode_sigh(Signal_context_capability sigh) override
 		{
 			_mode_sigh = sigh;
 
@@ -1218,11 +1205,11 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			return result;
 		}
 
-		void focus(Genode::Capability<Gui::Session>) override { }
+		void focus(Capability<Gui::Session>) override { }
 };
 
 
-class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session> >,
+class Wm::Gui::Root : public Rpc_object<Typed_root<Gui::Session> >,
                       public Decorator_content_callback
 {
 	private:
@@ -1233,19 +1220,15 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 		Root(Root const &);
 		Root &operator = (Root const &);
 
-		Genode::Env &_env;
+		Env &_env;
 
-		Genode::Attached_rom_dataspace _config { _env, "config" };
+		Attached_rom_dataspace _config { _env, "config" };
 
 		Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 		enum { STACK_SIZE = 1024*sizeof(long) };
 
 		Pointer::Tracker &_pointer_tracker;
-
-		Reporter &_focus_request_reporter;
-
-		unsigned _focus_request_cnt = 0;
 
 		Window_registry &_window_registry;
 
@@ -1293,13 +1276,12 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 		/**
 		 * Constructor
 		 */
-		Root(Genode::Env &env, Window_registry &window_registry,
-		     Pointer::Tracker &pointer_tracker, Reporter &focus_request_reporter,
+		Root(Env &env, Window_registry &window_registry,
+		     Pointer::Tracker &pointer_tracker,
 		     Gui::Connection &focus_gui_session)
 		:
 			_env(env),
 			_pointer_tracker(pointer_tracker),
-			_focus_request_reporter(focus_request_reporter),
 			_window_registry(window_registry),
 			_focus_gui_session(focus_gui_session)
 		{
@@ -1336,9 +1318,11 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 		Genode::Session_capability session(Session_args const &args,
 		                                   Affinity     const &) override
 		{
-			Genode::Session::Label     label     = Genode::label_from_args(args.string());
-			Genode::Session::Resources resources = Genode::session_resources_from_args(args.string());
-			Genode::Session::Diag      diag      = Genode::session_diag_from_args(args.string());
+			using Session = Genode::Session;
+
+			Session::Label     label     = label_from_args(args.string());
+			Session::Resources resources = session_resources_from_args(args.string());
+			Session::Diag      diag      = session_diag_from_args(args.string());
 
 			enum Role { ROLE_DECORATOR, ROLE_LAYOUTER, ROLE_REGULAR, ROLE_DIRECT };
 			Role role = ROLE_REGULAR;
@@ -1347,8 +1331,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 			 * Determine session policy
 			 */
 			try {
-				Genode::Xml_node policy =
-					Genode::Session_policy(label, _config.xml());
+				Xml_node policy = Session_policy(label, _config.xml());
 
 				auto const value = policy.attribute_value("role", String<16>());
 
@@ -1441,7 +1424,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 
 			auto lambda = [&] (Rpc_object_base *session) {
 				if (!session) {
-					Genode::warning("session lookup failed");
+					warning("session lookup failed");
 					return;
 				}
 
@@ -1468,7 +1451,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 
 		void close(Genode::Session_capability session_cap) override
 		{
-			Genode::Rpc_entrypoint &ep = _env.ep().rpc_ep();
+			Rpc_entrypoint &ep = _env.ep().rpc_ep();
 
 			Session_component *regular_session =
 				ep.apply(session_cap, [this] (Session_component *session) {
@@ -1477,7 +1460,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 					return session;
 				});
 			if (regular_session) {
-				Genode::destroy(_sliced_heap, regular_session);
+				destroy(_sliced_heap, regular_session);
 				return;
 			}
 
@@ -1486,7 +1469,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 					return session;
 				});
 			if (direct_session) {
-				Genode::destroy(_sliced_heap, direct_session);
+				destroy(_sliced_heap, direct_session);
 				return;
 			}
 
@@ -1497,7 +1480,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 					return session;
 				});
 			if (decorator_session) {
-				Genode::destroy(_sliced_heap, decorator_session);
+				destroy(_sliced_heap, decorator_session);
 				return;
 			}
 
@@ -1507,7 +1490,7 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 			};
 
 			if (ep.apply(session_cap, layouter_lambda) == _layouter_session) {
-				Genode::destroy(_sliced_heap, _layouter_session);
+				destroy(_sliced_heap, _layouter_session);
 				return;
 			}
 		}
@@ -1530,8 +1513,8 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 			 * calling 's->content_view'.
 			 */
 			for (Session_component *s = _sessions.first(); s; s = s->next())
-				if (s->has_win_id(id.value))
-					return s->content_view(id.value);
+				if (s->has_win_id(id))
+					return s->content_view(id);
 
 			return View_capability();
 		}
@@ -1572,16 +1555,16 @@ class Wm::Gui::Root : public Genode::Rpc_object<Genode::Typed_root<Gui::Session>
 				s->content_geometry(id, rect);
 		}
 
-		Capability<Gui::Session> lookup_gui_session(unsigned win_id)
+		void with_gui_session(Window_registry::Id id, auto const &fn)
 		{
 			for (Session_component *s = _sessions.first(); s; s = s->next())
-				if (s->has_win_id(win_id))
-					return s->session();
-
-			return { };
+				if (s->has_win_id(id)) {
+					fn(s->session());
+					return;
+				}
 		}
 
-		void request_resize(unsigned win_id, Area size)
+		void request_resize(Window_registry::Id win_id, Area size)
 		{
 			for (Session_component *s = _sessions.first(); s; s = s->next())
 				if (s->has_win_id(win_id))

@@ -15,19 +15,25 @@
 #define _TYPES_H_
 
 /* Genode includes */
+#include <util/reconstructible.h>
+#include <util/list.h>
 #include <base/tslab.h>
 #include <base/attached_rom_dataspace.h>
+#include <base/attached_ram_dataspace.h>
+#include <base/heap.h>
+#include <base/session_object.h>
+#include <os/surface.h>
+#include <os/reporter.h>
+#include <os/session_policy.h>
+#include <gui_session/gui_session.h>
 
 namespace Wm {
 
-	using Genode::uint8_t;
-	using Genode::size_t;
-	using Genode::Rom_connection;
-	using Genode::Xml_node;
-	using Genode::Attached_rom_dataspace;
-	using Genode::Tslab;
-	using Genode::Cap_quota;
-	using Genode::Ram_quota;
+	using namespace Genode;
+
+	using Area  = Surface_base::Area;
+	using Point = Surface_base::Point;
+	using Rect  = Surface_base::Rect;
 
 	/*
 	 * Slab allocator that includes an initial block as member
@@ -41,7 +47,7 @@ namespace Wm {
 		: Tslab<T, BLOCK_SIZE>(block_alloc, Initial_slab_block<BLOCK_SIZE>::buf) { };
 	};
 
-	struct Upgradeable : Genode::Noncopyable
+	struct Upgradeable : Noncopyable
 	{
 		bool _starved_for_ram = false, _starved_for_caps = false;
 

@@ -32,19 +32,17 @@ namespace Wm { struct Report_forwarder; }
 
 struct Wm::Report_forwarder
 {
-	struct Session : Genode::Rpc_object<Report::Session>
+	struct Session : Session_object<Report::Session>
 	{
-		Genode::Env &_env;
 		Report::Connection _connection;
 
-		Session(Genode::Env &env, Genode::Session_label const &label,
-		        size_t buffer_size)
-		: _env(env), _connection(env, label.string(), buffer_size)
-		{ _env.ep().manage(*this); }
+		Session(Env &env, size_t buffer_size, auto &&... args)
+		:
+			Session_object<Report::Session>(env.ep(), args...),
+			_connection(env, label(), buffer_size)
+		{ }
 
-		~Session() { _env.ep().dissolve(*this); }
-
-		void upgrade(Genode::Session::Resources const &resources)
+		void upgrade(Session::Resources const &resources)
 		{
 			_connection.upgrade(resources);
 		}
@@ -54,47 +52,49 @@ struct Wm::Report_forwarder
 		 ** Report::Session interface **
 		 *******************************/
 
-		Genode::Dataspace_capability dataspace() override
+		Dataspace_capability dataspace() override
 		{
 			return _connection.dataspace();
 		}
 
-		void submit(Genode::size_t length) override
+		void submit(size_t length) override
 		{
 			_connection.submit(length);
 		}
 
-		void response_sigh(Genode::Signal_context_capability sigh) override
+		void response_sigh(Signal_context_capability sigh) override
 		{
 			_connection.response_sigh(sigh);
 		}
 
-		Genode::size_t obtain_response() override
+		size_t obtain_response() override
 		{
 			return _connection.obtain_response();
 		}
 	};
 
-	struct Root : Genode::Root_component<Session>
+	struct Root : Root_component<Session>
 	{
-		Genode::Env       &_env;
-		Genode::Allocator &_alloc;
+		Env       &_env;
+		Allocator &_alloc;
 
 		Session *_create_session(char const *args) override
 		{
 			return new (md_alloc())
-				Session(_env, Genode::label_from_args(args),
-			            Arg_string::find_arg(args, "buffer_size").ulong_value(0));
+				Session(_env, Arg_string::find_arg(args, "buffer_size").ulong_value(0),
+			                  session_resources_from_args(args),
+			                  session_label_from_args(args),
+			                  session_diag_from_args(args));
 		}
 
 		void _upgrade_session(Session *session, const char *args) override
 		{
-			session->upgrade(Genode::session_resources_from_args(args));
+			session->upgrade(session_resources_from_args(args));
 		}
 
-		Root(Genode::Env &env, Genode::Allocator &alloc)
+		Root(Env &env, Allocator &alloc)
 		:
-			Genode::Root_component<Session>(env.ep(), alloc),
+			Root_component<Session>(env.ep(), alloc),
 			_env(env), _alloc(alloc)
 		{
 			_env.parent().announce(env.ep().manage(*this));
@@ -102,8 +102,7 @@ struct Wm::Report_forwarder
 
 	} _root;
 
-	Report_forwarder(Genode::Env &env, Genode::Allocator &alloc)
-	: _root(env, alloc) { }
+	Report_forwarder(Env &env, Allocator &alloc) : _root(env, alloc) { }
 };
 
 #endif /* _REPORT_FORWARDER_H_ */

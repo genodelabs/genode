@@ -27,18 +27,17 @@ namespace Wm { struct Rom_forwarder; }
 
 struct Wm::Rom_forwarder
 {
-	struct Session : Genode::Rpc_object<Genode::Rom_session>
+	struct Session : Session_object<Rom_session>
 	{
-		Genode::Env &_env;
-		Genode::Rom_connection _connection;
+		Rom_connection _connection;
 
-		Session(Genode::Env &env, Genode::Session_label const &label)
-		: _env(env), _connection(env, label.string())
-		{ _env.ep().manage(*this); }
+		Session(Env &env, auto &&... args)
+		:
+			Session_object<Rom_session>(env.ep(), args...),
+			_connection(env, label())
+		{ }
 
-		~Session() { _env.ep().dissolve(*this); }
-
-		void upgrade(Genode::Session::Resources const &resources)
+		void upgrade(Session::Resources const &resources)
 		{
 			_connection.upgrade(resources);
 		}
@@ -48,7 +47,7 @@ struct Wm::Rom_forwarder
 		 ** Rom_session interface **
 		 ***************************/
 
-		Genode::Rom_dataspace_capability dataspace() override
+		Rom_dataspace_capability dataspace() override
 		{
 			return _connection.dataspace();
 		}
@@ -64,24 +63,26 @@ struct Wm::Rom_forwarder
 		}
 	};
 
-	struct Root : Genode::Root_component<Session>
+	struct Root : Root_component<Session>
 	{
-		Genode::Env       &_env;
-		Genode::Allocator &_alloc;
+		Env       &_env;
+		Allocator &_alloc;
 
 		Session *_create_session(char const *args) override
 		{
-			return new (md_alloc()) Session(_env, Genode::label_from_args(args));
+			return new (md_alloc()) Session(_env, session_resources_from_args(args),
+			                                      session_label_from_args(args),
+			                                      session_diag_from_args(args));
 		}
 
 		void _upgrade_session(Session *session, const char *args) override
 		{
-			session->upgrade(Genode::session_resources_from_args(args));
+			session->upgrade(session_resources_from_args(args));
 		}
 
-		Root(Genode::Env &env, Genode::Allocator &alloc)
+		Root(Env &env, Allocator &alloc)
 		:
-			Genode::Root_component<Session>(env.ep(), alloc),
+			Root_component<Session>(env.ep(), alloc),
 			_env(env), _alloc(alloc)
 		{
 			_env.parent().announce(env.ep().manage(*this));
@@ -89,8 +90,7 @@ struct Wm::Rom_forwarder
 
 	} _root;
 
-	Rom_forwarder(Genode::Env &env, Genode::Allocator &alloc)
-	: _root(env, alloc) { }
+	Rom_forwarder(Env &env, Allocator &alloc) : _root(env, alloc) { }
 };
 
 #endif /* _ROM_FORWARDER_H_ */

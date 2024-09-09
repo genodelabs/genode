@@ -21,14 +21,14 @@
 namespace Wm { class Direct_gui_session; }
 
 
-class Wm::Direct_gui_session : public Genode::Session_object<Gui::Session>
+class Wm::Direct_gui_session : public Session_object<Gui::Session>
 {
 	private:
 
-		Genode::Env &_env;
+		Env &_env;
 
-		Genode::Connection<Gui::Session> _connection {
-			_env, _label, Genode::Ram_quota { 36*1024 }, /* Args */ { } };
+		Connection<Gui::Session> _connection {
+			_env, _label, Ram_quota { 36*1024 }, /* Args */ { } };
 
 		Gui::Session_client _session { _connection.cap() };
 
@@ -37,7 +37,7 @@ class Wm::Direct_gui_session : public Genode::Session_object<Gui::Session>
 
 	public:
 
-		Direct_gui_session(Genode::Env &env, auto &&... args)
+		Direct_gui_session(Env &env, auto &&... args)
 		:
 			Session_object<Gui::Session>(env.ep(), args...),
 			_env(env)
@@ -94,7 +94,7 @@ class Wm::Direct_gui_session : public Genode::Session_object<Gui::Session>
 			_session.release_view_id(view);
 		}
 
-		Genode::Dataspace_capability command_dataspace() override
+		Dataspace_capability command_dataspace() override
 		{
 			return _session.command_dataspace();
 		}
@@ -109,7 +109,7 @@ class Wm::Direct_gui_session : public Genode::Session_object<Gui::Session>
 			return _session.mode();
 		}
 
-		void mode_sigh(Genode::Signal_context_capability sigh) override
+		void mode_sigh(Signal_context_capability sigh) override
 		{
 			_session.mode_sigh(sigh);
 		}
@@ -119,7 +119,7 @@ class Wm::Direct_gui_session : public Genode::Session_object<Gui::Session>
 			return _session.buffer(mode, use_alpha);
 		}
 
-		void focus(Genode::Capability<Gui::Session> session) override
+		void focus(Capability<Gui::Session> session) override
 		{
 			_session.focus(session);
 		}

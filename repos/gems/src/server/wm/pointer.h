@@ -14,7 +14,8 @@
 #ifndef _POINTER_H_
 #define _POINTER_H_
 
-#include <util/noncopyable.h>
+/* local includes */
+#include <types.h>
 
 namespace Wm { struct Pointer; }
 
@@ -28,13 +29,13 @@ struct Wm::Pointer
 	};
 
 
-	struct Tracker : Genode::Interface, Genode::Noncopyable
+	struct Tracker : Interface, Noncopyable
 	{
 		virtual void update_pointer_report() = 0;
 	};
 
 
-	class State : Genode::Noncopyable
+	class State : Noncopyable
 	{
 		private:
 

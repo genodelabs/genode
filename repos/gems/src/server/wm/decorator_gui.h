@@ -26,20 +26,9 @@
 #include <pointer.h>
 #include <real_gui.h>
 
-namespace Wm { class Main;
-	using Genode::Allocator;
-	using Genode::Arg_string;
-	using Genode::Object_pool;
-	using Genode::Attached_dataspace;
-	using Genode::Attached_ram_dataspace;
-	using Genode::Signal_handler;
-	using Genode::Reporter;
-	using Genode::Interface;
-}
-
-
 namespace Wm {
 
+	class  Main;
 	struct Decorator_gui_session;
 	struct Decorator_content_callback;
 	struct Decorator_content_registry;
@@ -58,7 +47,7 @@ struct Wm::Decorator_content_callback : Interface
 };
 
 
-struct Wm::Decorator_gui_session : Genode::Session_object<Gui::Session>,
+struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
                                    private List<Decorator_gui_session>::Element,
                                    private Upgradeable
 {
@@ -81,11 +70,11 @@ struct Wm::Decorator_gui_session : Genode::Session_object<Gui::Session>,
 
 	Gui::View_ids _content_view_ids { };
 
-	Genode::Env &_env;
+	Env &_env;
 
-	Genode::Constrained_ram_allocator _ram { _env.ram(), _ram_quota_guard(), _cap_quota_guard() };
+	Constrained_ram_allocator _ram { _env.ram(), _ram_quota_guard(), _cap_quota_guard() };
 
-	Genode::Sliced_heap _session_alloc { _ram, _env.rm() };
+	Sliced_heap _session_alloc { _ram, _env.rm() };
 
 	Slab<Content_view_ref, 4000> _content_view_ref_alloc { _session_alloc };
 
@@ -93,7 +82,7 @@ struct Wm::Decorator_gui_session : Genode::Session_object<Gui::Session>,
 
 	Input::Session_client _input_session { _env.rm(), _real_gui.session.input() };
 
-	Genode::Signal_context_capability _mode_sigh { };
+	Signal_context_capability _mode_sigh { };
 
 	Attached_ram_dataspace _client_command_ds { _ram, _env.rm(), sizeof(Command_buffer) };
 
@@ -113,14 +102,14 @@ struct Wm::Decorator_gui_session : Genode::Session_object<Gui::Session>,
 	Signal_handler<Decorator_gui_session>
 		_input_handler { _env.ep(), *this, &Decorator_gui_session::_handle_input };
 
-	Window_registry::Id _win_id_from_title(Gui::Title const &title)
+	void _with_win_id_from_title(Gui::Title const &title, auto const &fn)
 	{
 		unsigned value = 0;
-		Genode::ascii_to(title.string(), value);
-		return { value };
+		if (ascii_to(title.string(), value))
+			fn(Window_registry::Id { value });
 	}
 
-	Decorator_gui_session(Genode::Env                &env,
+	Decorator_gui_session(Env                        &env,
 	                      Resources            const &resources,
 	                      Label                const &label,
 	                      Diag                 const &diag,
@@ -239,8 +228,8 @@ struct Wm::Decorator_gui_session : Genode::Session_object<Gui::Session>,
 		 * as view title. For such views, we import the view from the
 		 * corresponding GUI cient instead of creating a new view.
 		 */
-		Window_registry::Id const win_id = _win_id_from_title(attr.title);
-		if (win_id.valid()) {
+		bool out_of_ram = false, out_of_caps = false, associated = false;
+		_with_win_id_from_title(attr.title, [&] (Window_registry::Id win_id) {
 			try {
 				Content_view_ref &view_ref_ptr = *new (_content_view_ref_alloc)
 					Content_view_ref(Window_registry::Id(win_id), _content_view_ids, id);
@@ -251,21 +240,20 @@ struct Wm::Decorator_gui_session : Genode::Session_object<Gui::Session>,
 					destroy(_content_view_ref_alloc, &view_ref_ptr);
 
 				switch (result) {
-				case Associate_result::OUT_OF_RAM:  return View_result::OUT_OF_RAM;
-				case Associate_result::OUT_OF_CAPS: return View_result::OUT_OF_CAPS;
-				case Associate_result::OK:          return View_result::OK;
+				case Associate_result::OUT_OF_RAM:  out_of_ram  = true; break;
+				case Associate_result::OUT_OF_CAPS: out_of_caps = true; break;
+				case Associate_result::OK:          associated  = true; break;
 				case Associate_result::INVALID:     break; /* fall back to regular view */
 				};
 			}
-			catch (Genode::Out_of_ram)  {
-				_starved_for_ram = true;
-				return View_result::OUT_OF_RAM;
-			}
-			catch (Genode::Out_of_caps) {
-				_starved_for_caps = true;
-				return View_result::OUT_OF_CAPS;
-			}
-		}
+			catch (Out_of_ram)  { _starved_for_ram  = out_of_ram  = true; }
+			catch (Out_of_caps) { _starved_for_caps = out_of_caps = true; }
+		});
+
+		if (out_of_ram)  return View_result::OUT_OF_RAM;
+		if (out_of_caps) return View_result::OUT_OF_CAPS;
+		if (associated)  return View_result::OK;
+
 		return _real_gui.session.view(id, attr);
 	}
 
@@ -314,7 +302,7 @@ struct Wm::Decorator_gui_session : Genode::Session_object<Gui::Session>,
 		_real_gui.session.release_view_id(view);
 	}
 
-	Genode::Dataspace_capability command_dataspace() override
+	Dataspace_capability command_dataspace() override
 	{
 		return _client_command_ds.cap();
 	}
@@ -332,7 +320,7 @@ struct Wm::Decorator_gui_session : Genode::Session_object<Gui::Session>,
 		return _real_gui.session.mode();
 	}
 
-	void mode_sigh(Genode::Signal_context_capability sigh) override
+	void mode_sigh(Signal_context_capability sigh) override
 	{
 		/*
 		 * Remember signal-context capability to keep NOVA from revoking
@@ -347,7 +335,7 @@ struct Wm::Decorator_gui_session : Genode::Session_object<Gui::Session>,
 		return _real_gui.session.buffer(mode, use_alpha);
 	}
 
-	void focus(Genode::Capability<Gui::Session>) override { }
+	void focus(Capability<Gui::Session>) override { }
 };
 
 #endif /* _DECORATOR_GUI_H_ */

@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <base/connection.h>
 #include <base/attached_dataspace.h>
-#include <gui_session/client.h>
 
 namespace Wm { struct Real_gui; }
 
@@ -26,31 +25,31 @@ struct Wm::Real_gui
 {
 	private:
 
-		Genode::Env &_env;
+		Env &_env;
 
 	public:
 
-		Genode::Session_label const &label;
+		Session_label const &label;
 
 		using Command_buffer = Gui::Session::Command_buffer;
 
-		static constexpr Genode::size_t RAM_QUOTA = 36*1024;
+		static constexpr size_t RAM_QUOTA = 36*1024;
 
 	public:
 
-		Real_gui(Genode::Env &env, Genode::Session_label const &label)
+		Real_gui(Env &env, Session_label const &label)
 		:
 			_env(env), label(label)
 		{ }
 
-		Genode::Connection<Gui::Session> connection {
+		Connection<Gui::Session> connection {
 			_env, label, Genode::Ram_quota { RAM_QUOTA }, /* Args */ { } };
 
 		Gui::Session_client session { connection.cap() };
 
 	private:
 
-		Genode::Attached_dataspace _command_ds { _env.rm(), session.command_dataspace() };
+		Attached_dataspace _command_ds { _env.rm(), session.command_dataspace() };
 
 		Command_buffer &_command_buffer { *_command_ds.local_addr<Command_buffer>() };
 
