@@ -1,6 +1,6 @@
 build {
-	lib/libc lib/vfs lib/openjpeg lib/freetype lib/libpng lib/zlib lib/jbig2dec
-	lib/mupdf lib/jpeg app/pdf_view
+	lib/libc lib/libm lib/vfs lib/openjpeg lib/freetype lib/libpng lib/zlib
+	lib/jbig2dec lib/mupdf lib/jpeg app/pdf_view
 }
 
 create_boot_directory
