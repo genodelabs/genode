@@ -257,7 +257,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node,
 		reversed.remove(back_most);
 		Window_base &window = *back_most->object();
 		stack_back_most_window(window);
-		window.stacking_neighbor(Gui::View_id());
+		window.forget_neighbor();
 
 		Window_base *neighbor = &window;
 

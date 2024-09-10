@@ -141,6 +141,8 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 			_stacked  = true;
 		}
 
+		void forget_neighbor() { _neighbor.destruct(); }
+
 		bool back_most() const
 		{
 			return _stacked && !_neighbor.constructed();
