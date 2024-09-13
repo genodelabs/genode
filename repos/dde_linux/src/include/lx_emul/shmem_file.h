@@ -91,8 +91,15 @@ err_inode:
 }
 
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
+#define folio_cast
 struct page *shmem_read_mapping_page_gfp(struct address_space *mapping,
                                          pgoff_t index, gfp_t gfp)
+#else
+#define folio_cast (struct folio *)
+struct folio *shmem_read_folio_gfp(struct address_space *mapping,
+                                   pgoff_t index, gfp_t gfp)
+#endif
 {
 	struct page *p;
 	struct shmem_file_buffer *private_data;
@@ -103,17 +110,27 @@ struct page *shmem_read_mapping_page_gfp(struct address_space *mapping,
 	private_data = mapping->private_data;
 
 	p = private_data->pages;
-	return (p + index);
+	return folio_cast(p + index);
 }
 
 
 #include <linux/pagevec.h>
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
 void __pagevec_release(struct pagevec * pvec)
 {
 	/* XXX check if we have to call release_pages */
 	pagevec_reinit(pvec);
 }
+#else
+void __folio_batch_release(struct folio_batch *fbatch)
+{
+	lx_emul_trace(__func__);
+
+	/* XXX check if we have to call release_pages */
+	folio_batch_reinit(fbatch);
+}
+#endif
 
 
 #include <linux/file.h>
