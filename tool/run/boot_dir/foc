@@ -92,7 +92,9 @@ proc run_boot_dir_x86 {binaries} {
 
 	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
 
-	if {[have_include "image/iso"] || [have_include "image/disk"]} {
+	set options_bender "[boot_output]"
+
+	if {[have_include "image/iso"] || [have_include "image/disk"] || [have_include image/uefi]} {
 
 		if {[have_include "image/disk"]} {
 			install_disk_bootloader_to_run_dir
@@ -100,6 +102,11 @@ proc run_boot_dir_x86 {binaries} {
 
 		if {[have_include "image/iso"]} {
 			install_iso_bootloader_to_run_dir
+		}
+
+		if {[have_include image/uefi]} {
+			install_uefi_bootloader_to_run_dir
+			append options_bender " serial_fallback"
 		}
 
 		#
@@ -112,7 +119,7 @@ proc run_boot_dir_x86 {binaries} {
 		#
 		puts $fh "menuentry 'Genode on Fiasco.OC' {"
 		puts $fh " insmod multiboot"
-		puts $fh " multiboot /boot/bender [boot_output]"
+		puts $fh " multiboot /boot/bender $options_bender"
 		puts $fh " module /boot/bootstrap"
 		puts $fh " module /boot/kernel fiasco [fiasco_serial_esc_arg]"
 		puts $fh " module /boot/sigma0"
@@ -126,7 +133,7 @@ proc run_boot_dir_x86 {binaries} {
 	#
 	run_image
 
-	if {[have_include "load/tftp"]} {
+	if {[have_spec x86] && [have_include "load/tftp"]} {
 		#
 		# Install PXE bootloader pulsar
 		#
@@ -136,7 +143,7 @@ proc run_boot_dir_x86 {binaries} {
 		# Generate pulsar config file
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-		puts $fh " exec /boot/bender [boot_output]"
+		puts $fh " exec /boot/bender $options_bender"
 		puts $fh " load /boot/bootstrap"
 		puts $fh " load /boot/kernel -serial_esc"
 		puts $fh " load /boot/sigma0"
@@ -146,7 +153,7 @@ proc run_boot_dir_x86 {binaries} {
 		generate_tftp_config
 	}
 
-	if {[have_include "load/ipxe"]} {
+	if {[have_spec x86] && [have_include "load/ipxe"]} {
 		create_ipxe_config
 		update_ipxe_boot_dir
 		create_symlink_for_iso

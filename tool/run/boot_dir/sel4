@@ -69,7 +69,7 @@ proc run_boot_dir {binaries} {
 
 		if {[have_include image/uefi]} {
 			install_uefi_bootloader_to_run_dir
-			set options_bender " serial_fallback"
+			append options_bender " serial_fallback"
 		}
 
 		#
