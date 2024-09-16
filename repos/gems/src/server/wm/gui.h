@@ -89,6 +89,7 @@ class Wm::Gui::View : private Weak_object<View>, public Rpc_object< ::Gui::View>
 		Weak_ptr<View>          _neighbor_ptr    { };
 		bool                    _neighbor_behind { };
 		bool                    _has_alpha;
+		bool                    _layouted = false;
 
 		void _with_temporary_view_id(View_capability cap, auto const &fn)
 		{
@@ -208,6 +209,8 @@ class Wm::Gui::View : private Weak_object<View>, public Rpc_object< ::Gui::View>
 		}
 
 		bool has_alpha() const { return _has_alpha; }
+
+		bool layouted() const { return _layouted; }
 };
 
 
@@ -343,6 +346,8 @@ class Wm::Gui::Top_level_view : public View, private List<Top_level_view>::Eleme
 
 			_content_geometry = rect;
 
+			_layouted = true;
+
 			if (position_changed)
 				_input_origin_changed_handler.input_origin_changed();
 		}
@@ -409,7 +414,14 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 			_neighbor_ptr    = neighbor_ptr;
 			_neighbor_behind = behind;
 
-			_apply_view_config();
+			auto parent_position_known = [&]
+			{
+				Locked_ptr<View> parent(_parent);
+				return parent.valid() && parent->layouted();
+			};
+
+			if (parent_position_known())
+				_apply_view_config();
 		}
 
 		bool belongs_to_win_id(Window_registry::Id id) const override
@@ -456,10 +468,12 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 				_visible = true;
 			});
 
-			if (_neighbor_ptr == _parent)
-				_unsynchronized_apply_view_config(parent);
-			else
-				_apply_view_config();
+			if (parent->layouted()) {
+				if (_neighbor_ptr == _parent)
+					_unsynchronized_apply_view_config(parent);
+				else
+					_apply_view_config();
+			}
 
 			return result;
 		}
