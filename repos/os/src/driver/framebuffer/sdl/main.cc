@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -31,63 +31,100 @@
 
 namespace Fb_sdl {
 	class Main;
+	class Sdl;
+
 	using namespace Genode;
-}
-
-
-/* fatal exceptions */
-struct Sdl_init_failed               : Genode::Exception { };
-struct Sdl_videodriver_not_supported : Genode::Exception { };
-struct Sdl_createwindow_failed       : Genode::Exception { };
-struct Sdl_createrenderer_failed     : Genode::Exception { };
-struct Sdl_creatergbsurface_failed   : Genode::Exception { };
-struct Sdl_createtexture_failed      : Genode::Exception { };
-
-
-struct Fb_sdl::Main
-{
-	Env &_env;
-
-	Attached_rom_dataspace _config { _env, "config" };
-
-	Timer::Connection _timer { _env };
-	Event::Connection _event { _env };
 
 	using Area           = Capture::Area;
-	using Point          = Capture::Area;
+	using Rect           = Capture::Rect;
 	using Pixel          = Capture::Pixel;
 	using Affected_rects = Capture::Session::Affected_rects;
 	using Event_batch    = Event::Session_client::Batch;
 
-	void _init_sdl()
+	static constexpr int USER_EVENT_CAPTURE_WAKEUP = 99;
+}
+
+
+/**
+ * Interplay with libSDL
+ */
+struct Fb_sdl::Sdl : Noncopyable
+{
+	Event::Connection   &_event;
+	Capture::Connection &_capture;
+	Region_map          &_rm;
+
+	struct Ticks { Uint32 ms; };
+
+	struct Attr
 	{
-		/*
-		 * Initialize libSDL window
-		 */
-		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-			error("SDL_Init failed (", Genode::Cstring(SDL_GetError()), ")");
-			throw Sdl_init_failed();
+		Area initial_size;
+
+		double   fps;  /* frames per second */
+		unsigned idle; /* disable capturing after 'idle' frames of no progress */
+
+		static Attr from_xml(Xml_node const &node)
+		{
+			return {
+				.initial_size = { .w = node.attribute_value("width",  1024u),
+				                  .h = node.attribute_value("height",  768u) },
+				.fps  = node.attribute_value("fps", 60.0),
+				.idle = node.attribute_value("idle", ~0U)
+			};
 		}
 
-		SDL_ShowCursor(0);
+		Ticks period() const
+		{
+			return { (fps > 0) ? unsigned(1000.0/fps) : 20u };
+		}
+	};
+
+	Attr const _attr;
+
+	/* fatal exceptions */
+	struct Init_failed               : Exception { };
+	struct Createthread_failed       : Exception { };
+	struct Videodriver_not_supported : Exception { };
+	struct Createwindow_failed       : Exception { };
+	struct Createrenderer_failed     : Exception { };
+	struct Creatergbsurface_failed   : Exception { };
+	struct Createtexture_failed      : Exception { };
+
+	void _thread();
+
+	static int _entry(void *data_ptr)
+	{
+		((Sdl *)data_ptr)->_thread();
+		return 0;
 	}
 
-	bool const _sdl_initialized = ( _init_sdl(), true );
+	SDL_Thread &_init_thread()
+	{
+		SDL_Thread *ptr = SDL_CreateThread(_entry, "SDL", this);
+		if (ptr)
+			return *ptr;
 
-	struct Sdl_window
+		throw Createthread_failed();
+	}
+
+	SDL_Thread &_sdl_thread = _init_thread();
+
+	struct Window
 	{
 		Area const _initial_size;
 
-		SDL_Renderer &_sdl_renderer = _init_sdl_renderer();
+		SDL_Renderer &renderer = _init_renderer();
 
-		SDL_Renderer &_init_sdl_renderer()
+		SDL_Renderer &_init_renderer()
 		{
 			unsigned const window_flags = 0;
 
-			SDL_Window *window_ptr = SDL_CreateWindow("fb_sdl", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, _initial_size.w, _initial_size.h, window_flags);
+			SDL_Window * const window_ptr =
+				SDL_CreateWindow("fb_sdl", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+				                 _initial_size.w, _initial_size.h, window_flags);
 			if (!window_ptr) {
-				error("SDL_CreateWindow failed (", Genode::Cstring(SDL_GetError()), ")");
-				throw Sdl_createwindow_failed();
+				error("SDL_CreateWindow failed (", Cstring(SDL_GetError()), ")");
+				throw Createwindow_failed();
 			}
 
 			SDL_SetWindowResizable(window_ptr, SDL_TRUE);
@@ -96,35 +133,30 @@ struct Fb_sdl::Main
 			unsigned const renderer_flags = SDL_RENDERER_SOFTWARE;
 			SDL_Renderer *renderer_ptr = SDL_CreateRenderer(window_ptr, index, renderer_flags);
 			if (!renderer_ptr) {
-				error("SDL_CreateRenderer failed (", Genode::Cstring(SDL_GetError()), ")");
-				throw Sdl_createrenderer_failed();
+				error("SDL_CreateRenderer failed (", Cstring(SDL_GetError()), ")");
+				throw Createrenderer_failed();
 			}
 
 			return *renderer_ptr;
 		}
 
-		Sdl_window(Area size) : _initial_size(size) { }
+		Window(Area size) : _initial_size(size) { }
 
-		~Sdl_window()
+		~Window()
 		{
-			SDL_DestroyRenderer(&_sdl_renderer);
-		}
-
-		SDL_Renderer &renderer()
-		{
-			return _sdl_renderer;
+			SDL_DestroyRenderer(&renderer);
 		}
 	};
 
-	struct Sdl_screen
+	struct Screen
 	{
 		Area const size;
 		SDL_Renderer &renderer;
 
-		SDL_Surface &_sdl_surface = _init_sdl_surface();
-		SDL_Texture &_sdl_texture = _init_sdl_texture();
+		SDL_Surface &_surface = _init_surface();
+		SDL_Texture &_texture = _init_texture();
 
-		SDL_Surface &_init_sdl_surface()
+		SDL_Surface &_init_surface()
 		{
 			unsigned const flags      = 0;
 			unsigned const bpp        = 32;
@@ -133,132 +165,215 @@ struct Fb_sdl::Main
 			unsigned const blue_mask  = 0x000000FF;
 			unsigned const alpha_mask = 0xFF000000;
 
-			SDL_Surface *surface_ptr = SDL_CreateRGBSurface(flags, size.w, size.h, bpp, red_mask, green_mask, blue_mask, alpha_mask);
+			SDL_Surface * const surface_ptr =
+				SDL_CreateRGBSurface(flags, size.w, size.h, bpp,
+				                     red_mask, green_mask, blue_mask, alpha_mask);
 			if (!surface_ptr) {
-				error("SDL_CreateRGBSurface failed (", Genode::Cstring(SDL_GetError()), ")");
-				throw Sdl_creatergbsurface_failed();
+				error("SDL_CreateRGBSurface failed (", Cstring(SDL_GetError()), ")");
+				throw Creatergbsurface_failed();
 			}
 
 			return *surface_ptr;
 		}
 
-		SDL_Texture &_init_sdl_texture()
+		SDL_Texture &_init_texture()
 		{
-			SDL_Texture *texture_ptr = SDL_CreateTexture(&renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, size.w, size.h);
+			SDL_Texture * const texture_ptr =
+				SDL_CreateTexture(&renderer, SDL_PIXELFORMAT_ARGB8888,
+				                  SDL_TEXTUREACCESS_STREAMING, size.w, size.h);
 			if (!texture_ptr) {
-				error("SDL_CreateTexture failed (", Genode::Cstring(SDL_GetError()), ")");
-				throw Sdl_createtexture_failed();
+				error("SDL_CreateTexture failed (", Cstring(SDL_GetError()), ")");
+				throw Createtexture_failed();
 			}
 
 			return *texture_ptr;
 		}
 
-		Sdl_screen(Area size, SDL_Renderer &renderer) : size(size), renderer(renderer) { }
+		Screen(Area size, SDL_Renderer &renderer) : size(size), renderer(renderer) { }
 
-		~Sdl_screen()
+		~Screen()
 		{
-			SDL_FreeSurface(&_sdl_surface);
-			SDL_DestroyTexture(&_sdl_texture);
+			SDL_FreeSurface(&_surface);
+			SDL_DestroyTexture(&_texture);
 		}
 
-		template <typename FN>
-		void with_surface(FN const &fn)
+		void with_surface(auto const &fn)
 		{
-			Surface<Pixel> surface { (Pixel *)_sdl_surface.pixels, size };
+			Surface<Pixel> surface { (Pixel *)_surface.pixels, size };
 			fn(surface);
 		}
 
-		void flush()
+		void flush(Capture::Rect const bounding_box)
 		{
-			SDL_UpdateTexture(&_sdl_texture, nullptr, _sdl_surface.pixels, _sdl_surface.pitch);
-			SDL_RenderClear(&renderer);
-			SDL_RenderCopy(&renderer, &_sdl_texture, nullptr, nullptr);
+			SDL_Rect const rect { .x = bounding_box.at.x,
+			                      .y = bounding_box.at.y,
+			                      .w = int(bounding_box.area.w),
+			                      .h = int(bounding_box.area.h) };
+
+			SDL_UpdateTexture(&_texture, nullptr, _surface.pixels, _surface.pitch);
+			SDL_RenderCopy(&renderer, &_texture, &rect, &rect);
 			SDL_RenderPresent(&renderer);
 		}
+
+		void flush_all() { flush(Rect { { 0, 0 }, size }); }
 	};
 
-	Constructible<Sdl_window> _sdl_window { };
-	Constructible<Sdl_screen> _sdl_screen { };
-
-	Capture::Connection _capture { _env };
+	Constructible<Window> _window { };
+	Constructible<Screen> _screen { };
 
 	Constructible<Capture::Connection::Screen> _captured_screen { };
 
-	Signal_handler<Main> _timer_handler {
-		_env.ep(), *this, &Main::_handle_timer };
-
 	int _mx = 0, _my = 0;
 
-	void _handle_sdl_event(Event_batch &, SDL_Event const &);
-	void _handle_sdl_events();
+	unsigned _capture_woken_up = 0;
 
-	void _update_sdl_screen_from_capture()
+	struct Previous_frame
 	{
-		Affected_rects const affected = _capture.capture_at(Capture::Point(0, 0));
+		Ticks timestamp;
+		Ticks remaining;    /* remaining ticks to next frame */
+		unsigned idle;      /* capture attempts without progress */
 
-		_sdl_screen->with_surface([&] (Surface<Pixel> &surface) {
+		Ticks age() const { return { SDL_GetTicks() - timestamp.ms }; }
+	};
 
-			_captured_screen->with_texture([&] (Texture<Pixel> const &texture) {
+	/* if constructed, the processing of a next frame is scheduled */
+	Constructible<Previous_frame> _previous_frame { };
 
-				affected.for_each_rect([&] (Capture::Rect const rect) {
+	void _schedule_next_frame()
+	{
+		_previous_frame.construct(
+			Previous_frame { .timestamp = { SDL_GetTicks() },
+			                 .remaining = { _attr.period() },
+			                 .idle      = { } });
+	}
 
-					surface.clip(rect);
+	void _handle_event(Event_batch &, SDL_Event const &);
 
-					Blit_painter::paint(surface, texture, Capture::Point(0, 0));
-				});
-			});
+	bool _update_screen_from_capture()
+	{
+		bool progress = false;
+		_screen->with_surface([&] (Surface<Pixel> &surface) {
+
+			Rect const bounding_box = _captured_screen->apply_to_surface(surface);
+
+			progress = (bounding_box.area.count() > 0);
+
+			if (progress)
+				_screen->flush(bounding_box);
 		});
-
-		/* flush pixels in SDL window */
-		_sdl_screen->flush();
+		return progress;
 	}
 
-	void _handle_timer()
+	void _resize(Area const size)
 	{
-		_handle_sdl_events();
-
-		_update_sdl_screen_from_capture();
-	}
-
-	void _resize(Area size)
-	{
-		_sdl_screen.construct(size, _sdl_window->renderer());
+		_screen.construct(size, _window->renderer);
 
 		using Attr = Capture::Connection::Screen::Attr;
-		_captured_screen.construct(_capture, _env.rm(), Attr {
+		_captured_screen.construct(_capture, _rm, Attr {
 			.px = size,
 			.mm = { } });
 
-		_update_sdl_screen_from_capture();
+		_update_screen_from_capture();
+		_schedule_next_frame();
 	}
 
-	Main(Env &env) : _env(env)
-	{
-		Area size = Area(_config.xml().attribute_value("width", 1024U),
-		                 _config.xml().attribute_value("height", 768U));
-		_sdl_window.construct(size);
-		_resize(size);
-
-		_timer.sigh(_timer_handler);
-		_timer.trigger_periodic(100000000 / 5994); /* 59.94Hz */
-	}
+	/*
+	 * Construction executed by the main thread
+	 */
+	Sdl(Event::Connection &event, Capture::Connection &capture, Region_map &rm,
+	    Attr const attr)
+	:
+		_event(event), _capture(capture), _rm(rm), _attr(attr)
+	{ }
 };
 
 
-void Fb_sdl::Main::_handle_sdl_event(Event_batch &batch, SDL_Event const &event)
+void Fb_sdl::Sdl::_thread()
+{
+	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+		error("SDL_Init failed (", Cstring(SDL_GetError()), ")");
+		throw Init_failed();
+	}
+
+	SDL_ShowCursor(0);
+
+	_window.construct(_attr.initial_size);
+	_resize(_attr.initial_size);
+
+	/* mainloop */
+	for (;;) {
+
+		if (_previous_frame.constructed())
+			SDL_WaitEventTimeout(nullptr, _previous_frame->remaining.ms);
+		else
+			SDL_WaitEvent(nullptr);
+
+		unsigned const orig_capture_woken_up = _capture_woken_up;
+
+		_event.with_batch([&] (Event_batch &batch) {
+			SDL_Event event { };
+			while (SDL_PollEvent(&event))
+				_handle_event(batch, event); });
+
+		Ticks const period = _attr.period();
+
+		bool const woken_up      = (_capture_woken_up != orig_capture_woken_up);
+		bool const frame_elapsed = _previous_frame.constructed()
+		                        && _previous_frame->age().ms >= period.ms;
+
+		if (woken_up || frame_elapsed) {
+
+			bool const progress = _update_screen_from_capture();
+			bool const idle     = !progress && !woken_up;
+
+			if (idle) {
+				if (_previous_frame.constructed()) {
+					_previous_frame->idle++;
+					if ((_attr.idle < ~0u) && (_previous_frame->idle > _attr.idle))
+						_previous_frame.destruct(); /* stop capturing */
+				}
+			} else {
+				_schedule_next_frame();
+			}
+
+		} else {
+			/*
+			 * Events occurred in-between two frames.
+			 * Update timeout for next call of 'SDL_WaitEventTimeout'.
+			 */
+			if (_previous_frame.constructed())
+				_previous_frame->remaining = {
+					min(period.ms, period.ms - _previous_frame->age().ms) };
+		}
+	}
+}
+
+
+void Fb_sdl::Sdl::_handle_event(Event_batch &batch, SDL_Event const &event)
 {
 	using namespace Input;
 
-	if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
+	if (event.type == SDL_WINDOWEVENT) {
 
-		int w = event.window.data1;
-		int h = event.window.data2;
-		if (w < 0 || h < 0) {
-			warning("attempt to resize to negative size");
-			return;
+		if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+
+			int const w = event.window.data1,
+			          h = event.window.data2;
+
+			if (w <= 0 || h <= 0) {
+				warning("attempt to resize to invalid size");
+				return;
+			}
+			_resize({ unsigned(w), unsigned(h) });
 		}
 
-		_resize(Area((unsigned)w, (unsigned)h));
+		_screen->flush_all();
+		return;
+	}
+
+	if (event.type == SDL_USEREVENT) {
+		if (event.user.code == USER_EVENT_CAPTURE_WAKEUP)
+			_capture_woken_up++;
 		return;
 	}
 
@@ -299,7 +414,6 @@ void Fb_sdl::Main::_handle_sdl_event(Event_batch &batch, SDL_Event const &event)
 		}
 	}
 
-	/* determine event type */
 	switch (event.type) {
 
 	case SDL_KEYUP:
@@ -328,16 +442,33 @@ void Fb_sdl::Main::_handle_sdl_event(Event_batch &batch, SDL_Event const &event)
 }
 
 
-void Fb_sdl::Main::_handle_sdl_events()
+struct Fb_sdl::Main
 {
-	SDL_Event event { };
+	Env &_env;
 
-	_event.with_batch([&] (Event_batch &batch) {
+	Attached_rom_dataspace _config { _env, "config" };
 
-		while (SDL_PollEvent(&event))
-			_handle_sdl_event(batch, event);
-	});
-}
+	Event::Connection   _event   { _env };
+	Capture::Connection _capture { _env };
+
+	void _handle_capture_wakeup()
+	{
+		SDL_Event ev { };
+		ev.user = SDL_UserEvent { .type      = SDL_USEREVENT,
+		                          .timestamp = SDL_GetTicks(),
+		                          .windowID  = { },
+		                          .code      = USER_EVENT_CAPTURE_WAKEUP,
+		                          .data1     = { },
+		                          .data2     = { } };
+
+		if (SDL_PushEvent(&ev) == 0)
+			warning("SDL_PushEvent failed (", Cstring(SDL_GetError()), ")");
+	}
+
+	Sdl _sdl { _event, _capture, _env.rm(), Sdl::Attr::from_xml(_config.xml()) };
+
+	Main(Env &env) : _env(env) { }
+};
 
 
 void Component::construct(Genode::Env &env) { static Fb_sdl::Main inst(env); }
