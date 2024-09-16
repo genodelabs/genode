@@ -180,12 +180,13 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 		case Command::FRONT_OF:
 		case Command::BEHIND_OF:
 
+			_real_gui.enqueue(cmd);
 			_content_view_ids.apply<Content_view_ref const>(cmd.front.view,
 				[&] (Content_view_ref const &view_ref) {
+					_real_gui.execute();
 					_content_callback.update_content_child_views(view_ref.win_id); },
 				[&] { });
 
-			_real_gui.enqueue(cmd);
 			return;
 
 		case Command::TITLE:
