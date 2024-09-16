@@ -65,8 +65,9 @@ class Main
 
 		Capture::Area const _size { SCR_WIDTH, SCR_HEIGHT };
 		Capture::Connection _capture { _env };
-		Capture::Connection::Screen _captured_screen { _capture, _env.rm(), _size };
-
+		Capture::Connection::Screen _captured_screen { _capture, _env.rm(), {
+		                                               .px = _size,
+		                                               .mm = { } } };
 		Timer::Connection _timer { _env };
 
 		Signal_handler<Main> _timer_handler { _env.ep(), *this, &Main::_handle_timer };

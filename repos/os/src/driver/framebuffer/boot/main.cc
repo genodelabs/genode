@@ -87,8 +87,9 @@ struct Framebuffer::Main
 
 	Capture::Connection _capture { _env };
 
-	Capture::Connection::Screen _captured_screen { _capture, _env.rm(), _info.size };
-
+	Capture::Connection::Screen _captured_screen { _capture, _env.rm(), {
+	                                               .px = _info.size,
+	                                               .mm = { } } };
 	Timer::Connection _timer { _env };
 
 	Signal_handler<Main> _timer_handler { _env.ep(), *this, &Main::_handle_timer };

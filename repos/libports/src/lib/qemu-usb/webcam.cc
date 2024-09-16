@@ -130,7 +130,7 @@ struct Capture_webcam
 		/* construct/destruct capture connection and dataspace */
 		if (on) {
 			_capture.construct(_env, "webcam");
-			_capture->buffer(_area);
+			_capture->buffer({ .px = _area, .mm = { } });
 			_ds.construct(_env.rm(), _capture->dataspace());
 		} else {
 			_ds.destruct();

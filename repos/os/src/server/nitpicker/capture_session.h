@@ -44,7 +44,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 		View_stack const &_view_stack;
 
-		Area _buffer_size { };
+		Buffer_attr _buffer_attr { };
 
 		Constructible<Attached_ram_dataspace> _buffer { };
 
@@ -79,7 +79,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 		 ** Interface used by 'Nitpicker::Main' **
 		 *****************************************/
 
-		Area buffer_size() const { return _buffer_size; }
+		Area buffer_size() const { return _buffer_attr.px; }
 
 		void mark_as_damaged(Rect rect)
 		{
@@ -104,23 +104,26 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			_screen_size_sigh = sigh;
 		}
 
-		void buffer(Area size) override
+		Buffer_result buffer(Buffer_attr const attr) override
 		{
-			_buffer_size = Area { };
+			Buffer_result result = Buffer_result::OK;
 
-			if (size.count() == 0) {
+			_buffer_attr = { };
+
+			if (attr.px.count() == 0) {
 				_buffer.destruct();
-				return;
+				return result;
 			}
 
 			try {
-				_buffer.construct(_ram, _env.rm(), buffer_bytes(size));
-				_buffer_size = size;
-				_handler.capture_buffer_size_changed();
-			} catch (...) {
-				_handler.capture_buffer_size_changed();
-				throw;
+				_buffer.construct(_ram, _env.rm(), buffer_bytes(attr.px));
+				_buffer_attr = attr;
 			}
+			catch (Out_of_ram)  { result = Buffer_result::OUT_OF_RAM; }
+			catch (Out_of_caps) { result = Buffer_result::OUT_OF_CAPS; }
+
+			_handler.capture_buffer_size_changed();
+			return result;
 		}
 
 		Dataspace_capability dataspace() override
@@ -138,9 +141,9 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 			using Pixel = Pixel_rgb888;
 
-			Canvas<Pixel> canvas = { _buffer->local_addr<Pixel>(), pos, _buffer_size };
+			Canvas<Pixel> canvas = { _buffer->local_addr<Pixel>(), pos, _buffer_attr.px };
 
-			Rect const buffer_rect(Point(0, 0), _buffer_size);
+			Rect const buffer_rect(Point(0, 0), _buffer_attr.px);
 
 			Affected_rects affected { };
 			unsigned i = 0;

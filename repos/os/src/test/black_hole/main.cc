@@ -261,7 +261,9 @@ class Black_hole_test::Capture_test
 		Capture::Area                _screen_size { 1, 1 };
 		Capture::Pixel               _pixels[1];
 		Surface<Capture::Pixel>      _surface     { _pixels, _screen_size };
-		Capture::Connection::Screen  _screen      { _connection, _env.rm(), _screen_size };
+		Capture::Connection::Screen  _screen      { _connection, _env.rm(),
+		                                            { .px = _screen_size,
+		                                              .mm = { } } };
 		bool                         _finished    { false };
 
 	public:

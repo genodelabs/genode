@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__CAPTURE_SESSION__CONNECTION_H_
 #define _INCLUDE__CAPTURE_SESSION__CONNECTION_H_
 
-#include <capture_session/client.h>
+#include <capture_session/capture_session.h>
 #include <base/connection.h>
 #include <base/attached_dataspace.h>
 #include <os/texture.h>
@@ -23,8 +23,7 @@
 namespace Capture { class Connection; }
 
 
-class Capture::Connection : public Genode::Connection<Session>,
-                            public Session_client
+class Capture::Connection : private Genode::Connection<Session>
 {
 	private:
 
@@ -32,19 +31,20 @@ class Capture::Connection : public Genode::Connection<Session>,
 
 	public:
 
+		using Label = Genode::Session_label;
+
 		/**
 		 * Constructor
 		 */
 		Connection(Genode::Env &env, Label const &label = Label())
 		:
 			Genode::Connection<Capture::Session>(env, label,
-			                                     Ram_quota { 36*1024 }, Args()),
-			Session_client(cap())
+			                                     Ram_quota { 36*1024 }, Args())
 		{ }
 
-		void buffer(Area size) override
+		void buffer(Session::Buffer_attr attr)
 		{
-			size_t const needed  = buffer_bytes(size);
+			size_t const needed  = Session::buffer_bytes(attr.px);
 			size_t const upgrade = needed > _session_quota
 			                     ? needed - _session_quota
 			                     : 0;
@@ -53,10 +53,35 @@ class Capture::Connection : public Genode::Connection<Session>,
 				_session_quota += upgrade;
 			}
 
-			Session_client::buffer(size);
+			for (;;) {
+				using Result = Session::Buffer_result;
+				switch (cap().call<Session::Rpc_buffer>(attr)) {
+				case Result::OUT_OF_RAM:  upgrade_ram(8*1024); break;
+				case Result::OUT_OF_CAPS: upgrade_caps(2);     break;
+				case Result::OK:
+					return;
+				}
+			}
 		}
 
 		struct Screen;
+
+		Area screen_size() const { return cap().call<Session::Rpc_screen_size>(); }
+
+		void screen_size_sigh(Signal_context_capability sigh)
+		{
+			cap().call<Session::Rpc_screen_size_sigh>(sigh);
+		}
+
+		Genode::Dataspace_capability dataspace()
+		{
+			return cap().call<Session::Rpc_dataspace>();
+		}
+
+		Session::Affected_rects capture_at(Point pos)
+		{
+			return cap().call<Session::Rpc_capture_at>(pos);
+		}
 };
 
 
@@ -64,29 +89,38 @@ class Capture::Connection::Screen
 {
 	public:
 
-		Area const size;
+		struct Attr
+		{
+			Area px;  /* buffer area in pixels */
+			Area mm;  /* physical size in millimeters */
+		};
+
+		Attr const attr;
 
 	private:
 
 		Capture::Connection &_connection;
 
-		bool const _buffer_initialized = ( _connection.buffer(size), true );
+		bool const _buffer_initialized = (
+			_connection.buffer({ .px = attr.px, .mm = attr.mm }), true );
 
 		Attached_dataspace _ds;
 
-		Texture<Pixel> const _texture { _ds.local_addr<Pixel>(), nullptr, size };
+		Texture<Pixel> const _texture { _ds.local_addr<Pixel>(), nullptr, attr.px };
 
 	public:
 
-		Screen(Capture::Connection &connection, Region_map &rm, Area size)
+		Screen(Capture::Connection &connection, Region_map &rm, Attr attr)
 		:
-			size(size), _connection(connection), _ds(rm, _connection.dataspace())
+			attr(attr), _connection(connection), _ds(rm, _connection.dataspace())
 		{ }
 
 		void with_texture(auto const &fn) const { fn(_texture); }
 
 		void apply_to_surface(Surface<Pixel> &surface)
 		{
+			using Affected_rects = Session::Affected_rects;
+
 			Affected_rects const affected = _connection.capture_at(Capture::Point(0, 0));
 
 			with_texture([&] (Texture<Pixel> const &texture) {

@@ -68,18 +68,21 @@ struct Capture::Session : Genode::Session
 	 */
 	virtual void screen_size_sigh(Signal_context_capability) = 0;
 
+	enum class Buffer_result { OK, OUT_OF_RAM, OUT_OF_CAPS };
+
+	struct Buffer_attr
+	{
+		Area px;  /* buffer area in pixels */
+		Area mm;  /* physical size in millimeters */
+	};
+
 	/**
 	 * Define dimensions of the shared pixel buffer
 	 *
 	 * The 'size' controls the server-side allocation of the shared pixel
-	 * buffer and may affect the screen size of the GUI server. The screen
-	 * size is bounding box of the pixel buffers of all capture clients.
-	 *
-	 * \throw Out_of_ram  session quota does not suffice for specified
-	 *                    buffer dimensions
-	 * \throw Out_of_caps
+	 * buffer and may affect the screen size of the GUI server.
 	 */
-	virtual void buffer(Area size) = 0;
+	virtual Buffer_result buffer(Buffer_attr) = 0;
 
 	/**
 	 * Request dataspace of the shared pixel buffer defined via 'buffer'
@@ -121,8 +124,7 @@ struct Capture::Session : Genode::Session
 
 	GENODE_RPC(Rpc_screen_size, Area, screen_size);
 	GENODE_RPC(Rpc_screen_size_sigh, void, screen_size_sigh, Signal_context_capability);
-	GENODE_RPC_THROW(Rpc_buffer, void, buffer,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps), Area);
+	GENODE_RPC(Rpc_buffer, Buffer_result, buffer, Buffer_attr);
 	GENODE_RPC(Rpc_dataspace, Dataspace_capability, dataspace);
 	GENODE_RPC(Rpc_capture_at, Affected_rects, capture_at, Point);
 

@@ -67,14 +67,19 @@ class Capture::Session_component : public Session_object<Capture::Session>
 
 		void screen_size_sigh(Signal_context_capability) override { }
 
-		void buffer(Area size) override
+		Buffer_result buffer(Buffer_attr attr) override
 		{
-			if (size.count() == 0) {
+			if (attr.px.count() == 0) {
 				_buffer.destruct();
-				return;
+				return Buffer_result::OK;
 			}
 
-			_buffer.construct(_ram, _env.rm(), buffer_bytes(size));
+			try {
+				_buffer.construct(_ram, _env.rm(), buffer_bytes(attr.px));
+			}
+			catch (Out_of_ram)  { return Buffer_result::OUT_OF_RAM;  }
+			catch (Out_of_caps) { return Buffer_result::OUT_OF_CAPS; }
+			return Buffer_result::OK;
 		}
 
 		Dataspace_capability dataspace() override

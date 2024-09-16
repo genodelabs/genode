@@ -223,7 +223,12 @@ struct Fb_sdl::Main
 	void _resize(Area size)
 	{
 		_sdl_screen.construct(size, _sdl_window->renderer());
-		_captured_screen.construct(_capture, _env.rm(), size);
+
+		using Attr = Capture::Connection::Screen::Attr;
+		_captured_screen.construct(_capture, _env.rm(), Attr {
+			.px = size,
+			.mm = { } });
+
 		_update_sdl_screen_from_capture();
 	}
 

@@ -150,7 +150,11 @@ void Vesa_driver::Main::_handle_config()
 
 	/* enable pixel capturing */
 	_fb_ds.construct(_env.rm(), Framebuffer::hw_framebuffer());
-	_captured_screen.construct(_capture, _env.rm(), _size);
+
+	using Attr = Capture::Connection::Screen::Attr;
+	_captured_screen.construct(_capture, _env.rm(), Attr {
+		.px = _size,
+		.mm = { } });
 
 	unsigned long const period_ms = config.attribute_value("period_ms", 20U);
 	_timer.trigger_periodic(period_ms*1000);

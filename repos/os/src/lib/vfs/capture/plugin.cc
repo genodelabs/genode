@@ -121,7 +121,7 @@ class Vfs_capture::Data_file_system : public Single_file_system
 				} catch (Genode::Service_denied) {
 					return OPEN_ERR_UNACCESSIBLE;
 				}
-				_capture->buffer(_capture_area);
+				_capture->buffer({ .px = _capture_area, .mm = { } });
 				_capture_ds.construct(_env.rm(), _capture->dataspace());
 			}
 

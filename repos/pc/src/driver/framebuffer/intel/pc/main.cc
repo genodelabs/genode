@@ -110,7 +110,7 @@ struct Framebuffer::Driver
 				_capture(env),
 				_size(size),
 				_size_phys(size_phys),
-				_captured_screen(_capture, env.rm(), _size),
+				_captured_screen(_capture, env.rm(), { .px = _size, .mm = { } }),
 				_base(base) {}
 
 			bool same_setup(void * base, Capture::Area &size,

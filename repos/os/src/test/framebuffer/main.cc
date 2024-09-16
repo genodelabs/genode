@@ -72,11 +72,17 @@ struct Test::Capture_session : Rpc_object<Capture::Session>
 
 	void screen_size_sigh(Signal_context_capability) override { }
 
-	void buffer(Area size) override
+	Buffer_result buffer(Buffer_attr attr) override
 	{
-		_ds.construct(_env.ram(), _env.rm(), buffer_bytes(size));
-		_size = size;
+		try {
+			_ds.construct(_env.ram(), _env.rm(), buffer_bytes(attr.px));
+		}
+		catch (Out_of_ram)  { return Buffer_result::OUT_OF_RAM;  }
+		catch (Out_of_caps) { return Buffer_result::OUT_OF_CAPS; }
+
+		_size = attr.px;
 		_draw();
+		return Buffer_result::OK;
 	}
 
 	Dataspace_capability dataspace() override

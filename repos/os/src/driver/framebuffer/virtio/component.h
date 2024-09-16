@@ -355,7 +355,10 @@ class Virtio_fb::Driver
 				throw Display_init_failed();
 			}
 
-			_captured_screen.construct(_capture, _env.rm(), _display_area);
+			using Attr = Capture::Connection::Screen::Attr;
+			_captured_screen.construct(_capture, _env.rm(), Attr {
+				.px = _display_area,
+				.mm = { } });
 		}
 
 		void _shutdown_display()

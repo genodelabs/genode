@@ -113,7 +113,7 @@ struct Test::Main
 
 		Capture::Connection _capture { _env, "" };
 
-		bool _capture_buffer_init = ( _capture.buffer(_area), true );
+		bool _capture_buffer_init = ( _capture.buffer({ .px = _area, .mm = { }}), true );
 
 		Attached_dataspace _capture_ds { _env.rm(), _capture.dataspace() };
 
