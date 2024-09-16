@@ -52,7 +52,7 @@ struct Sculpt::Wifi_driver : private Noncopyable
 				});
 
 				xml.node("libc", [&] {
-					xml.attribute("stdout", "/dev/null");
+					xml.attribute("stdout", "/dev/log");
 					xml.attribute("stderr", "/dev/null");
 					xml.attribute("rtc",    "/dev/rtc");
 				});

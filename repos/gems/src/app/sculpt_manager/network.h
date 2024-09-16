@@ -144,8 +144,8 @@ struct Sculpt::Network : Noncopyable
 				xml.attribute("scan_interval", 10U);
 				xml.attribute("update_quality_interval", 30U);
 
-				xml.attribute("verbose_state", false);
-				xml.attribute("verbose",       false);
+				xml.attribute("verbose", false);
+				xml.attribute("log_level", "error");
 
 				xml.node("network", [&]() {
 					xml.attribute("ssid", ap.ssid);
@@ -174,14 +174,15 @@ struct Sculpt::Network : Noncopyable
 			xml.attribute("scan_interval", 10U);
 			xml.attribute("update_quality_interval", 30U);
 
-			xml.attribute("verbose_state", false);
-			xml.attribute("verbose",       false);
+			xml.attribute("verbose", false);
+			xml.attribute("log_level", "error");
 
 			xml.node("network", [&]() {
 				/* generate attributes to ease subsequent manual tweaking */
 				xml.attribute("ssid", "");
 				xml.attribute("protection", "NONE");
 				xml.attribute("passphrase", "");
+				xml.attribute("auto_connect", false);
 			});
 		});
 
