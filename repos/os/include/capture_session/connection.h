@@ -117,8 +117,10 @@ class Capture::Connection::Screen
 
 		void with_texture(auto const &fn) const { fn(_texture); }
 
-		void apply_to_surface(Surface<Pixel> &surface)
+		Rect apply_to_surface(Surface<Pixel> &surface)
 		{
+			Rect bounding_box { };
+
 			using Affected_rects = Session::Affected_rects;
 
 			Affected_rects const affected = _connection.capture_at(Capture::Point(0, 0));
@@ -130,8 +132,13 @@ class Capture::Connection::Screen
 					surface.clip(rect);
 
 					Blit_painter::paint(surface, texture, Capture::Point(0, 0));
+
+					bounding_box = bounding_box.area.count()
+					             ? Rect::compound(bounding_box, rect)
+					             : rect;
 				});
 			});
+			return bounding_box;
 		}
 };
 
