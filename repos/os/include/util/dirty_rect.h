@@ -136,6 +136,15 @@ class Genode::Dirty_rect
 
 			rect = rect.valid() ? Rect::compound(rect, added) : added;
 		}
+
+		bool empty() const
+		{
+			for (unsigned i = 0; i < NUM_RECTS; i++)
+				if (_rects[i].area.count())
+					return false;
+
+			return true;
+		}
 };
 
 #endif /* _INCLUDE__UTIL__DIRTY_RECT_H_ */
