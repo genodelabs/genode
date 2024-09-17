@@ -55,6 +55,15 @@
                                      fMayHaveXSave && pConfig->enmXSave && (fXStateHostMask & XSAVE_C_YMM) /*fAllowed*/);
      AssertLogRelRCReturn(rc, rc);
  
+@@ -4323,7 +4328,7 @@
+      * default is to only do this for VMs with nested paging and AMD-V or
+      * unrestricted guest mode.
+      */
+-    rc = cpumR3CpuIdReadIsaExtCfg(pVM, pIsaExts, "AESNI", &pConfig->enmAesNi, fNestedPagingAndFullGuestExec);
++    rc = cpumR3CpuIdReadIsaExtCfg(pVM, pIsaExts, "AESNI", &pConfig->enmAesNi, fEnforceHWusage);
+     AssertLogRelRCReturn(rc, rc);
+ 
+     /** @cfgm{/CPUM/IsaExts/PCLMUL, isaextcfg, depends}
 @@ -4425,7 +4430,7 @@
       * being the default is to only do this for VMs with nested paging and AMD-V or
       * unrestricted guest mode.
