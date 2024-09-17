@@ -69,7 +69,7 @@ struct Fb_sdl::Sdl : Noncopyable
 				.initial_size = { .w = node.attribute_value("width",  1024u),
 				                  .h = node.attribute_value("height",  768u) },
 				.fps  = node.attribute_value("fps", 60.0),
-				.idle = node.attribute_value("idle", ~0U)
+				.idle = node.attribute_value("idle", 3U)
 			};
 		}
 
@@ -329,8 +329,10 @@ void Fb_sdl::Sdl::_thread()
 			if (idle) {
 				if (_previous_frame.constructed()) {
 					_previous_frame->idle++;
-					if ((_attr.idle < ~0u) && (_previous_frame->idle > _attr.idle))
-						_previous_frame.destruct(); /* stop capturing */
+					if (_previous_frame->idle > _attr.idle) {
+						_previous_frame.destruct();
+						_capture.capture_stopped();
+					}
 				}
 			} else {
 				_schedule_next_frame();
@@ -465,9 +467,15 @@ struct Fb_sdl::Main
 			warning("SDL_PushEvent failed (", Cstring(SDL_GetError()), ")");
 	}
 
+	Signal_handler<Main> _capture_wakeup_handler {
+		_env.ep(), *this, &Main::_handle_capture_wakeup };
+
 	Sdl _sdl { _event, _capture, _env.rm(), Sdl::Attr::from_xml(_config.xml()) };
 
-	Main(Env &env) : _env(env) { }
+	Main(Env &env) : _env(env)
+	{
+		_capture.wakeup_sigh(_capture_wakeup_handler);
+	}
 };
 
 

@@ -50,9 +50,21 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 		Signal_context_capability _screen_size_sigh { };
 
+		Signal_context_capability _wakeup_sigh { };
+
+		bool _stopped = false;
+
 		using Dirty_rect = Genode::Dirty_rect<Rect, Affected_rects::NUM_RECTS>;
 
 		Dirty_rect _dirty_rect { };
+
+		void _wakeup_if_needed()
+		{
+			if (_stopped && !_dirty_rect.empty() && _wakeup_sigh.valid()) {
+				Signal_transmitter(_wakeup_sigh).submit();
+				_stopped = false;
+			}
+		}
 
 	public:
 
@@ -84,6 +96,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 		void mark_as_damaged(Rect rect)
 		{
 			_dirty_rect.mark_as_dirty(rect);
+			_wakeup_if_needed();
 		}
 
 		void screen_size_changed()
@@ -102,6 +115,12 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 		void screen_size_sigh(Signal_context_capability sigh) override
 		{
 			_screen_size_sigh = sigh;
+		}
+
+		void wakeup_sigh(Signal_context_capability sigh) override
+		{
+			_wakeup_sigh = sigh;
+			_wakeup_if_needed();
 		}
 
 		Buffer_result buffer(Buffer_attr const attr) override
@@ -123,6 +142,10 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			catch (Out_of_caps) { result = Buffer_result::OUT_OF_CAPS; }
 
 			_handler.capture_buffer_size_changed();
+
+			/* report complete buffer as dirty on next call of 'capture_at' */
+			mark_as_damaged({ { 0, 0 }, attr.px });
+
 			return result;
 		}
 
@@ -159,6 +182,14 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			});
 
 			return affected;
+		}
+
+		void capture_stopped() override
+		{
+			_stopped = true;
+
+			/* dirty pixels may be pending */
+			_wakeup_if_needed();
 		}
 };
 

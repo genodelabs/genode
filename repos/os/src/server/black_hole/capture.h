@@ -67,6 +67,8 @@ class Capture::Session_component : public Session_object<Capture::Session>
 
 		void screen_size_sigh(Signal_context_capability) override { }
 
+		void wakeup_sigh(Signal_context_capability) override { }
+
 		Buffer_result buffer(Buffer_attr attr) override
 		{
 			if (attr.px.count() == 0) {
@@ -94,6 +96,8 @@ class Capture::Session_component : public Session_object<Capture::Session>
 		{
 			return Affected_rects();
 		}
+
+		void capture_stopped() override { }
 };
 
 

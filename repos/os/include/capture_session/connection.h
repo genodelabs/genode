@@ -73,6 +73,11 @@ class Capture::Connection : private Genode::Connection<Session>
 			cap().call<Session::Rpc_screen_size_sigh>(sigh);
 		}
 
+		void wakeup_sigh(Signal_context_capability sigh)
+		{
+			cap().call<Session::Rpc_wakeup_sigh>(sigh);
+		}
+
 		Genode::Dataspace_capability dataspace()
 		{
 			return cap().call<Session::Rpc_dataspace>();
@@ -82,6 +87,8 @@ class Capture::Connection : private Genode::Connection<Session>
 		{
 			return cap().call<Session::Rpc_capture_at>(pos);
 		}
+
+		void capture_stopped() { cap().call<Session::Rpc_capture_stopped>(); }
 };
 
 
