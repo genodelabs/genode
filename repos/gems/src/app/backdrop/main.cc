@@ -135,11 +135,6 @@ struct Backdrop::Main
 	Signal_handler<Main> _config_handler = {
 		_env.ep(), *this, &Main::_handle_config_signal };
 
-	void _handle_sync();
-
-	Signal_handler<Main> _sync_handler = {
-		_env.ep(), *this, &Main::_handle_sync};
-
 	template <typename PT>
 	void _paint_texture(Surface<PT> &, Texture<PT> const &, Surface_base::Point, bool);
 
@@ -345,20 +340,10 @@ void Backdrop::Main::_handle_config()
 		}
 	});
 
-	/* schedule buffer refresh */
-	_gui.framebuffer.sync_sigh(_sync_handler);
-}
-
-
-void Backdrop::Main::_handle_sync()
-{
 	Libc::with_libc([&] () {
 		_buffer->flush_surface();
 		_update_view();
 	});
-
-	/* disable sync signal until the next call of 'handle_config' */
-	_gui.framebuffer.sync_sigh(Signal_context_capability());
 }
 
 

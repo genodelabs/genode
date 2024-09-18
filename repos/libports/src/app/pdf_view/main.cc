@@ -101,9 +101,6 @@ class Pdf_view
 		Genode::Signal_handler<Pdf_view> _nit_mode_handler {
 			_env.ep(), *this, &Pdf_view::_handle_nit_mode };
 
-		Genode::Signal_handler<Pdf_view> _sync_handler {
-			_env.ep(), *this, &Pdf_view::_refresh };
-
 		Genode::Signal_handler<Pdf_view> _input_handler {
 			_env.ep(), *this, &Pdf_view::_handle_input_events };
 
@@ -213,14 +210,6 @@ class Pdf_view
 					_handle_input_event(ev); }); });
 		}
 
-		void _refresh()
-		{
-			_gui.framebuffer.refresh(0, 0, _nit_mode.area.w, _nit_mode.area.h);
-
-			/* handle one sync signal only */
-			_gui.framebuffer.sync_sigh(Genode::Signal_context_capability());
-		}
-
 	public:
 
 		/**
@@ -317,8 +306,7 @@ void Pdf_view::show()
 		dst_line += dst_line_width;
 	}
 
-	/* refresh after the next sync signal */
-	_gui.framebuffer.sync_sigh(_sync_handler);
+	_gui.framebuffer.refresh(0, 0, _nit_mode.area.w, _nit_mode.area.h);
 }
 
 
