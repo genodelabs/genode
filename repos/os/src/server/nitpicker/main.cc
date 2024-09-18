@@ -348,56 +348,112 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 	Timer::Connection _timer { _env };
 
-	Signal_handler<Main> _timer_handler = { _env.ep(), *this, &Main::_handle_period };
+	struct Ticks { uint64_t ms; };
 
-	unsigned long _timer_period_ms = 10;
+	Ticks _now() { return { .ms = _timer.curr_time().trunc_to_plain_ms().value }; }
 
-	Constructible<Framebuffer::Connection> _framebuffer { };
-
-	struct Input_connection
+	struct Input_connection : Noncopyable
 	{
-		Input::Connection connection;
+		Env  &_env;
+		Main &_main;
 
-		Attached_dataspace ev_ds;
+		Input::Connection _connection { _env };
 
-		Input_connection(Env &env)
-		: connection(env), ev_ds(env.rm(), connection.dataspace()) { }
+		Attached_dataspace _ev_ds { _env.rm(), _connection.dataspace() };
+
+		void _handle()
+		{
+			size_t const max_events = _ev_ds.size() / sizeof(Input::Event);
+
+			User_state::Input_batch const batch {
+				.events = _ev_ds.local_addr<Input::Event>(),
+				.count  = min(max_events, (size_t)_connection.flush()) };
+
+			_main.handle_input_events(batch);
+		}
+
+		Signal_handler<Input_connection> _handler {
+			_env.ep(), *this, &Input_connection::_handle };
+
+		Input_connection(Env &env, Main &main) : _env(env), _main(main)
+		{
+			_connection.sigh(_handler);
+		}
+
+		~Input_connection()
+		{
+			_connection.sigh(Signal_context_capability());
+		}
 	};
 
 	Constructible<Input_connection> _input { };
 
 	using PT = Pixel_rgb888;  /* physical pixel type */
 
-	/*
-	 * Initialize framebuffer
-	 *
-	 * The framebuffer is encapsulated in a volatile object to allow its
-	 * reconstruction at runtime as a response to resolution changes.
+	/**
+	 * Framebuffer connection used when operating in 'request_framebuffer' mode
 	 */
 	struct Framebuffer_screen
 	{
-		Framebuffer::Session &framebuffer;
+		Env  &_env;
+		Main &_main;
 
-		Framebuffer::Mode const mode = framebuffer.mode();
+		Framebuffer::Connection _fb { _env, { } };
 
-		Attached_dataspace fb_ds;
+		Framebuffer::Mode const _mode = _fb.mode();
 
-		Canvas<PT> screen = { fb_ds.local_addr<PT>(), Point(0, 0), mode.area };
+		Attached_dataspace _fb_ds { _env.rm(), _fb.dataspace() };
 
-		Area size = screen.size();
+		Canvas<PT> _screen { _fb_ds.local_addr<PT>(), Point(0, 0), _mode.area };
+
+		Area const _size = _screen.size();
 
 		using Dirty_rect = Genode::Dirty_rect<Rect, 3>;
 
-		Dirty_rect dirty_rect { };
+		Dirty_rect _dirty_rect { };
 
-		/**
-		 * Constructor
-		 */
-		Framebuffer_screen(Region_map &rm, Framebuffer::Session &fb)
-		:
-			framebuffer(fb), fb_ds(rm, framebuffer.dataspace())
+		Ticks _previous_sync { };
+
+		Signal_handler<Framebuffer_screen> _sync_handler {
+			_env.ep(), *this, &Framebuffer_screen::_handle_sync };
+
+		void _handle_sync()
 		{
-			dirty_rect.mark_as_dirty(Rect(Point(0, 0), size));
+			/* call 'Dirty_rect::flush' on a copy to preserve the state */
+			Dirty_rect dirty_rect = _dirty_rect;
+			dirty_rect.flush([&] (Rect const &rect) {
+				_main._view_stack.draw(_screen, rect); });
+
+			/* flush pixels to the framebuffer, reset dirty_rect */
+			_dirty_rect.flush([&] (Rect const &rect) {
+				_fb.refresh(rect.x1(), rect.y1(), rect.w(),  rect.h()); });
+
+			/* deliver framebuffer synchronization events */
+			for (Gui_session *s = _main._session_list.first(); s; s = s->next())
+				s->submit_sync();
+
+			_previous_sync = _main._now();
+		}
+
+		Framebuffer_screen(Env &env, Main &main) : _env(env), _main(main)
+		{
+			_fb.mode_sigh(_main._fb_screen_mode_handler);
+			_fb.sync_sigh(_sync_handler);
+			mark_as_dirty(Rect { Point { 0, 0 }, _size });
+		}
+
+		~Framebuffer_screen()
+		{
+			_fb.mode_sigh(Signal_context_capability());
+			_fb.sync_sigh(Signal_context_capability());
+		}
+
+		void mark_as_dirty(Rect rect)
+		{
+			_dirty_rect.mark_as_dirty(rect);
+
+			if (_main._now().ms - _previous_sync.ms > 40)
+				_handle_sync();
 		}
 	};
 
@@ -406,10 +462,20 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 	Constructible<Framebuffer_screen> _fb_screen { };
 
-	void _handle_fb_mode();
-	void _report_displays();
+	Signal_handler<Main> _fb_screen_mode_handler {
+		_env.ep(), *this, &Main::_reconstruct_fb_screen };
 
-	Signal_handler<Main> _fb_mode_handler = { _env.ep(), *this, &Main::_handle_fb_mode };
+	void _reconstruct_fb_screen()
+	{
+		_fb_screen.destruct();
+
+		if (_request_framebuffer)
+			_fb_screen.construct(_env, *this);
+
+		capture_buffer_size_changed();
+	}
+
+	void _report_displays();
 
 	/*
 	 * User-input policy
@@ -482,9 +548,8 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	 */
 	void mark_as_damaged(Rect rect) override
 	{
-		if (_fb_screen.constructed()) {
-			_fb_screen->dirty_rect.mark_as_dirty(rect);
-		}
+		if (_fb_screen.constructed())
+			_fb_screen->mark_as_dirty(rect);
 
 		_capture_root.mark_as_damaged(rect);
 	}
@@ -492,7 +557,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	void _update_input_connection()
 	{
 		bool const output_present = (_view_stack.size().count() > 0);
-		_input.conditional(_request_input && output_present, _env);
+		_input.conditional(_request_input && output_present, _env, *this);
 	}
 
 	/**
@@ -508,7 +573,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 		Area new_size { 0, 0 };
 
 		if (_fb_screen.constructed())
-			new_size = max_area(new_size, _fb_screen->size);
+			new_size = max_area(new_size, _fb_screen->_size);
 
 		new_size = max_area(new_size, _capture_root.bounding_box());
 
@@ -530,6 +595,16 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 		_report_displays();
 		_update_input_connection();
+	}
+
+	/**
+	 * Capture_session::Handler interface
+	 */
+	void capture_requested(Capture_session::Label const &) override
+	{
+		/* deliver video-sync events */
+		for (Gui_session *s = _session_list.first(); s; s = s->next())
+			s->submit_sync();
 	}
 
 	/**
@@ -585,41 +660,16 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	void _update_motion_and_focus_activity_reports();
 
 	/**
-	 * Signal handler periodically invoked for the reception of user input and redraw
+	 * Track when the user was active the last time
 	 */
-	void _handle_period();
-
-	Signal_handler<Main> _input_period = { _env.ep(), *this, &Main::_handle_period };
-
-	/**
-	 * Counter that is incremented periodically
-	 */
-	unsigned _period_cnt = 0;
+	Ticks _last_button_activity { },
+	      _last_motion_activity { };
 
 	/**
-	 * Period counter when the user was active the last time
+	 * Number of milliseconds since the last user interaction, after which
+	 * we regard the user as inactive
 	 */
-	unsigned _last_button_activity_period = 0,
-	         _last_motion_activity_period = 0;
-
-	/**
-	 * Number of periods after the last user activity when we regard the user
-	 * as becoming inactive
-	 */
-	unsigned const _activity_threshold = 50;
-
-	/**
-	 * True if the user has recently interacted with buttons or keys
-	 *
-	 * This state is reported as part of focus reports to allow the clipboard
-	 * to dynamically adjust its information-flow policy to the user activity.
-	 */
-	bool _button_activity = false;
-
-	/**
-	 * True if the user recently moved the pointer
-	 */
-	bool _motion_activity = false;
+	Ticks const _activity_threshold { .ms = 500 };
 
 	void _update_pointer_position()
 	{
@@ -636,9 +686,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 		_config_rom.sigh(_config_handler);
 		_handle_config();
 
-		_timer.sigh(_timer_handler);
-
-		_handle_fb_mode();
+		_reconstruct_fb_screen();
 
 		_env.parent().announce(_env.ep().manage(_gui_root));
 
@@ -648,12 +696,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 		if (_config_rom.xml().has_sub_node("event"))
 			_env.parent().announce(_env.ep().manage(_event_root));
 
-		/*
-		 * Detect initial motion activity such that the first hover report
-		 * contains the boot-time activity of the user in the very first
-		 * report.
-		 */
-		_handle_period();
+		_update_motion_and_focus_activity_reports();
 
 		_report_displays();
 	}
@@ -662,18 +705,13 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 {
+	Ticks const now = _now();
+
 	User_state::Handle_input_result const result =
 		_user_state.handle_input_events(batch);
 
-	if (result.button_activity) {
-		_last_button_activity_period = _period_cnt;
-		_button_activity             = true;
-	}
-
-	if (result.motion_activity) {
-		_last_motion_activity_period = _period_cnt;
-		_motion_activity             = true;
-	}
+	if (result.button_activity) _last_button_activity = now;
+	if (result.motion_activity) _last_motion_activity = now;
 
 	/*
 	 * Report information about currently pressed keys whenever the key state
@@ -710,71 +748,34 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 	/* update pointer position */
 	if (result.motion_activity)
 		_update_pointer_position();
+
+	_update_motion_and_focus_activity_reports();
 }
 
 
 void Nitpicker::Main::_update_motion_and_focus_activity_reports()
 {
-	/* flag user as inactive after activity threshold is reached */
-	if (_period_cnt == _last_button_activity_period + _activity_threshold)
-		_button_activity = false;
+	Ticks const now = _now();
 
-	if (_period_cnt == _last_motion_activity_period + _activity_threshold)
-		_motion_activity = false;
+	bool const button_activity = (now.ms - _last_button_activity.ms < _activity_threshold.ms);
+	bool const motion_activity = (now.ms - _last_motion_activity.ms < _activity_threshold.ms);
 
 	bool const hover_changed = (_reported_hover_count != _hover_count);
-	if (hover_changed || (_reported_motion_activity != _motion_activity)) {
-		Reporter::Xml_generator xml(_hover_reporter, [&] () {
-			_user_state.report_hovered_view_owner(xml, _motion_activity); });
+	if (hover_changed || (_reported_motion_activity != motion_activity)) {
+		Reporter::Xml_generator xml(_hover_reporter, [&] {
+			_user_state.report_hovered_view_owner(xml, motion_activity); });
 	}
 
 	bool const focus_changed = (_reported_focus_count != _focus_count);
-	if (focus_changed || (_reported_button_activity != _button_activity)) {
-		Reporter::Xml_generator xml(_focus_reporter, [&] () {
-			_user_state.report_focused_view_owner(xml, _button_activity); });
+	if (focus_changed || (_reported_button_activity != button_activity)) {
+		Reporter::Xml_generator xml(_focus_reporter, [&] {
+			_user_state.report_focused_view_owner(xml, button_activity); });
 	}
 
-	_reported_motion_activity = _motion_activity;
-	_reported_button_activity = _button_activity;
+	_reported_motion_activity = motion_activity;
+	_reported_button_activity = button_activity;
 	_reported_hover_count     = _hover_count;
 	_reported_focus_count     = _focus_count;
-}
-
-
-void Nitpicker::Main::_handle_period()
-{
-	_period_cnt++;
-
-	/* handle batch of pending events */
-	if (_input.constructed()) {
-
-		size_t const max_events = _input->ev_ds.size() / sizeof(Input::Event);
-
-		User_state::Input_batch const batch {
-			.events = _input->ev_ds.local_addr<Input::Event>(),
-			.count  = min(max_events, (size_t)_input->connection.flush()) };
-
-		handle_input_events(batch);
-	}
-
-	_update_motion_and_focus_activity_reports();
-
-	/* perform redraw */
-	if (_framebuffer.constructed() && _fb_screen.constructed()) {
-		/* call 'Dirty_rect::flush' on a copy to preserve the state */
-		Dirty_rect dirty_rect = _fb_screen->dirty_rect;
-		dirty_rect.flush([&] (Rect const &rect) {
-			_view_stack.draw(_fb_screen->screen, rect); });
-
-		/* flush pixels to the framebuffer, reset dirty_rect */
-		_fb_screen->dirty_rect.flush([&] (Rect const &rect) {
-			_framebuffer->refresh(rect.x1(), rect.y1(),
-			                      rect.w(),  rect.h()); });
-	}
-
-	/* deliver framebuffer synchronization events */
-	for (Gui_session *s = _session_list.first(); s; s = s->next())
-		s->submit_sync();
 }
 
 
@@ -880,13 +881,14 @@ void Nitpicker::Main::_handle_config()
 
 	/* update focus report since the domain colors might have changed */
 	Reporter::Xml_generator xml(_focus_reporter, [&] () {
-		_user_state.report_focused_view_owner(xml, _button_activity); });
+		bool const button_activity = (_now().ms - _last_button_activity.ms < _activity_threshold.ms);
+		_user_state.report_focused_view_owner(xml, button_activity); });
 
 	/* update framebuffer output back end */
 	bool const request_framebuffer = config.attribute_value("request_framebuffer", false);
 	if (request_framebuffer != _request_framebuffer) {
 		_request_framebuffer = request_framebuffer;
-		_handle_fb_mode();
+		_reconstruct_fb_screen();
 	}
 
 	/*
@@ -908,39 +910,13 @@ void Nitpicker::Main::_report_displays()
 	Reporter::Xml_generator xml(_displays_reporter, [&] () {
 		if (_fb_screen.constructed()) {
 			xml.node("display", [&] () {
-				xml.attribute("width",  _fb_screen->size.w);
-				xml.attribute("height", _fb_screen->size.h);
+				xml.attribute("width",  _fb_screen->_size.w);
+				xml.attribute("height", _fb_screen->_size.h);
 			});
 		}
 
 		_capture_root.report_displays(xml);
 	});
-}
-
-
-void Nitpicker::Main::_handle_fb_mode()
-{
-	if (_request_framebuffer && !_framebuffer.constructed()) {
-		_framebuffer.construct(_env, Framebuffer::Mode{});
-		_framebuffer->mode_sigh(_fb_mode_handler);
-		_framebuffer->sync_sigh(_timer_handler);
-		_timer.trigger_periodic(0);
-	}
-
-	/* reconstruct '_fb_screen' with updated mode */
-	if (_request_framebuffer && _framebuffer.constructed())
-		_fb_screen.construct(_env.rm(), *_framebuffer);
-
-	if (!_request_framebuffer && _fb_screen.constructed())
-		_fb_screen.destruct();
-
-	if (!_request_framebuffer && _framebuffer.constructed())
-		_framebuffer.destruct();
-
-	if (!_request_framebuffer)
-		_timer.trigger_periodic(_timer_period_ms*1000);
-
-	capture_buffer_size_changed();
 }
 
 

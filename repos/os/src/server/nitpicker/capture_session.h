@@ -32,6 +32,8 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			 * present capture buffers.
 			 */
 			virtual void capture_buffer_size_changed() = 0;
+
+			virtual void capture_requested(Label const &) = 0;
 		};
 
 	private:
@@ -159,6 +161,8 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 		Affected_rects capture_at(Point pos) override
 		{
+			_handler.capture_requested(label());
+
 			if (!_buffer.constructed())
 				return Affected_rects { };
 
