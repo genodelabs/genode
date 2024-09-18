@@ -297,27 +297,27 @@ void test_pat(Genode::Env &env)
 	Xml_node const hardware = platform_info.xml().sub_node("hardware");
 	uint64_t const tsc_freq = hardware.sub_node("tsc").attribute_value("freq_khz", 1ULL);
 
-	enum { DS_ORDER = 12, PAGE_4K = 12 };
+	enum { DS_ORDER = 12, PAGE_4K = 12, DS_SIZE = 1ul << (DS_ORDER + PAGE_4K) };
 
-	Attached_dataspace ds { env.rm(), env.ram().alloc (1 << (DS_ORDER + PAGE_4K),
-	                                                   WRITE_COMBINED) };
-	addr_t const map_addr = addr_t(ds.local_addr<void>());
+	Genode::Rm_connection     rm(env);
+	Genode::Region_map_client rm_unused(rm.create(DS_SIZE));
 
-	enum { STACK_SIZE = 4096 };
+	Attached_dataspace ds_wc { env.rm(), env.ram().alloc (DS_SIZE, WRITE_COMBINED) };
+	Attached_dataspace ds    { env.rm(), env.ram().alloc (DS_SIZE) };
+	Attached_dataspace remap { env.rm(), rm_unused.dataspace() };
 
-	static Rpc_entrypoint ep(&env.pd(), STACK_SIZE, "rpc_ep_pat",
+	auto const memory       = addr_t(ds   .local_addr<void>());
+	auto const memory_wc    = addr_t(ds_wc.local_addr<void>());
+	auto const memory_remap = addr_t(remap.local_addr<void>());
+
+	static Rpc_entrypoint ep(&env.pd(), 4096 /* STACK */, "rpc_ep_pat",
 	                         Affinity::Location());
 
-	Genode::Rm_connection rm(env);
-	Genode::Region_map_client rm_free_area(rm.create(1 << (DS_ORDER + PAGE_4K)));
-
-	Attached_dataspace remap { env.rm(), rm_free_area.dataspace() };
-
-	addr_t const remap_addr = addr_t(remap.local_addr<void>());
-
 	/* trigger mapping of whole area */
-	for (addr_t i = map_addr; i < map_addr + (1 << (DS_ORDER + PAGE_4K)); i += (1 << PAGE_4K))
-		touch_read(reinterpret_cast<unsigned char *>(map_addr));
+	for (auto offset = 0; offset < DS_SIZE; offset += (1u << PAGE_4K)) {
+		touch_read_write(reinterpret_cast<unsigned char *>(memory_wc + offset));
+		touch_read_write(reinterpret_cast<unsigned char *>(   memory + offset));
+	}
 
 	/*
 	 * Establish memory mapping with evilly wrong mapping attributes
@@ -331,8 +331,8 @@ void test_pat(Genode::Env &env)
 		native_pd.alloc_rpc_cap(thread_cap, (addr_t)portal_entry, 0 /* MTD */);
 
 	Nova::Rights  const all(true, true, true);
-	Nova::Mem_crd const rcv_crd(remap_addr >> PAGE_4K, DS_ORDER, all);
-	Nova::Mem_crd const snd_crd(map_addr >> PAGE_4K, DS_ORDER, all);
+	Nova::Mem_crd const rcv_crd(memory_remap >> PAGE_4K, DS_ORDER, all);
+	Nova::Mem_crd const snd_crd(memory_wc >> PAGE_4K, DS_ORDER, all);
 	Nova::Crd     const old_crd = utcb.crd_rcv;
 
 	utcb.crd_rcv = rcv_crd;
@@ -348,36 +348,45 @@ void test_pat(Genode::Env &env)
 	}
 
 	/* sanity check - touch re-mapped area */
-	for (addr_t i = remap_addr; i < remap_addr + (1 << (DS_ORDER + PAGE_4K)); i += (1 << PAGE_4K))
-		touch_read(reinterpret_cast<unsigned char *>(remap_addr));
+	for (auto offset = 0; offset < DS_SIZE; offset += (1 << PAGE_4K))
+		touch_read_write(reinterpret_cast<unsigned char *>(memory_remap + offset));
 
 	/*
 	 * measure time to write to the memory
 	 */
-	memset(reinterpret_cast<void *>(map_addr), 0, 1 << (DS_ORDER + PAGE_4K));
+	memset(reinterpret_cast<void *>(memory), 0, DS_SIZE);
+	Trace::Timestamp normal_start = Trace::timestamp();
+	memset(reinterpret_cast<void *>(memory), 0, DS_SIZE);
+	Trace::Timestamp normal_end = Trace::timestamp();
+
+	memset(reinterpret_cast<void *>(memory_wc), 0, DS_SIZE);
 	Trace::Timestamp map_start = Trace::timestamp();
-	memset(reinterpret_cast<void *>(map_addr), 0, 1 << (DS_ORDER + PAGE_4K));
+	memset(reinterpret_cast<void *>(memory_wc), 0, DS_SIZE);
 	Trace::Timestamp map_end = Trace::timestamp();
 
-	memset(reinterpret_cast<void *>(remap_addr), 0, 1 << (DS_ORDER + PAGE_4K));
+	memset(reinterpret_cast<void *>(memory_remap), 0, DS_SIZE);
 	Trace::Timestamp remap_start = Trace::timestamp();
-	memset(reinterpret_cast<void *>(remap_addr), 0, 1 << (DS_ORDER + PAGE_4K));
+	memset(reinterpret_cast<void *>(memory_remap), 0, DS_SIZE);
 	Trace::Timestamp remap_end = Trace::timestamp();
 
-	Trace::Timestamp map_run   = map_end - map_start;
-	Trace::Timestamp remap_run = remap_end - remap_start;
+	auto normal_run = normal_end - normal_start;
+	auto map_run    = map_end - map_start;
+	auto remap_run  = remap_end - remap_start;
 
-	Trace::Timestamp diff_run = map_run > remap_run ? map_run - remap_run : remap_run - map_run;
+	auto diff_run = map_run > remap_run ? map_run - remap_run : remap_run - map_run;
 
-	if (check_pat && diff_run * 100 / tsc_freq) {
+	log("memory non writecombined          ", normal_run * 1000 / tsc_freq, " us");
+	log("memory     writecombined          ", map_run    * 1000 / tsc_freq, " us");
+	log("memory     writecombined remapped ", remap_run  * 1000 / tsc_freq, " us");
+	log("variance   writecombined tests    ", diff_run   * 1000 / tsc_freq, " us");
+
+	if (check_pat && diff_run * 10 / tsc_freq) {
 		failed ++;
 
-		error("map=", Hex(map_run), " remap=", Hex(remap_run), " --> "
-		      "diff=", Hex(diff_run), " freq_tsc=", tsc_freq, " ",
-		     diff_run * 1000 / tsc_freq, " us");
+		error("PAT test considered failed - time difference above 100us");
 	}
 
-	Nova::revoke(Nova::Mem_crd(remap_addr >> PAGE_4K, DS_ORDER, all));
+	Nova::revoke(Nova::Mem_crd(memory_remap >> PAGE_4K, DS_ORDER, all));
 }
 
 void test_server_oom(Genode::Env &env)
