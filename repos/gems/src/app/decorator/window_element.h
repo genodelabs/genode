@@ -99,10 +99,10 @@ class Decorator::Window_element : public Animator::Item
 			/* medium fade-in when gaining the focus or hover highlight */
 			if ((!_state.focused     && state.focused)
 			 || (!_state.highlighted && state.highlighted))
-				return 15;
+				return 30;
 
 			/* slow fade-out when leaving focus or hover highlight */
-			return 20;
+			return 40;
 		}
 
 	public:

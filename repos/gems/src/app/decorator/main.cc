@@ -17,6 +17,7 @@
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <gui_session/connection.h>
+#include <timer_session/connection.h>
 #include <os/pixel_rgb888.h>
 #include <os/reporter.h>
 
@@ -38,6 +39,18 @@ namespace Decorator {
 struct Decorator::Main : Window_factory_base
 {
 	Env &_env;
+
+	Timer::Connection _timer { _env };
+
+	/*
+	 * Time base for animations, which are computed in steps of 10 ms
+	 */
+	struct Ticks { uint64_t cs; /* centi-seconds (10 ms) */ };
+
+	Ticks _now()
+	{
+		return { .cs = _timer.curr_time().trunc_to_plain_ms().value / 10 };
+	}
 
 	Gui::Connection _gui { _env };
 
@@ -104,32 +117,30 @@ struct Decorator::Main : Window_factory_base
 
 	Animator _animator { };
 
-	/**
-	 * Process the update every 'frame_period' GUI sync signals. The
-	 * 'frame_cnt' holds the counter of the GUI sync signals.
-	 *
-	 * A lower 'frame_period' value makes the decorations more responsive
-	 * but it also puts more load on the system.
-	 *
-	 * If the GUI sync signal fires every 10 milliseconds, a
-	 * 'frame_period' of 2 results in an update rate of 1000/20 = 50 frames per
-	 * second.
-	 */
-	unsigned _frame_cnt = 0;
-	unsigned _frame_period = 2;
-
-	/**
-	 * Install handler for responding to GUI sync events
-	 */
-	void _handle_gui_sync();
-
-	void _trigger_sync_handling()
-	{
-		_gui.framebuffer.sync_sigh(_gui_sync_handler);
-	}
+	Ticks _previous_sync { };
 
 	Signal_handler<Main> _gui_sync_handler = {
 		_env.ep(), *this, &Main::_handle_gui_sync };
+
+	void _handle_gui_sync();
+
+	bool _gui_sync_enabled = false;
+
+	void _trigger_gui_sync()
+	{
+		Ticks const now  = _now();
+		bool  const idle = now.cs - _previous_sync.cs > 3;
+
+		if (!_gui_sync_enabled) {
+			_gui.framebuffer.sync_sigh(_gui_sync_handler);
+			_gui_sync_enabled = true;
+		}
+
+		if (idle) {
+			_previous_sync = now;
+			_gui_sync_handler.local_submit();
+		}
+	}
 
 	Heap _heap { _env.ram(), _env.rm() };
 
@@ -267,16 +278,15 @@ void Decorator::Main::_handle_window_layout_update()
 
 	_window_layout_update_needed = true;
 
-	_trigger_sync_handling();
+	_trigger_gui_sync();
 }
 
 
 void Decorator::Main::_handle_gui_sync()
 {
-	if (_frame_cnt++ < _frame_period)
-		return;
+	Ticks const now = _now();
 
-	_frame_cnt = 0;
+	Ticks const passed_ticks { now.cs - _previous_sync.cs };
 
 	bool model_updated = false;
 
@@ -300,31 +310,30 @@ void Decorator::Main::_handle_gui_sync()
 
 	bool const windows_animated = _window_stack.schedule_animated_windows();
 
-	/*
-	 * To make the perceived animation speed independent from the setting of
-	 * 'frame_period', we update the animation as often as the GUI
-	 * sync signal occurs.
-	 */
-	for (unsigned i = 0; i < _frame_period; i++)
+	for (unsigned i = 0; i < passed_ticks.cs; i++)
 		_animator.animate();
 
-	if (!model_updated && !windows_animated)
-		return;
+	if (model_updated || windows_animated) {
 
-	Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
+		Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
 
-	_window_stack.update_gui_views();
+		_window_stack.update_gui_views();
 
-	_gui.execute();
+		_gui.execute();
 
-	dirty.flush([&] (Rect const &r) {
-		_gui.framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h()); });
+		dirty.flush([&] (Rect const &r) {
+			_gui.framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h()); });
+	}
 
 	/*
 	 * Disable sync handling when becoming idle
 	 */
-	if (!_animator.active())
+	if (!_animator.active()) {
 		_gui.framebuffer.sync_sigh(Signal_context_capability());
+		_gui_sync_enabled = false;
+	}
+
+	_previous_sync = now;
 }
 
 

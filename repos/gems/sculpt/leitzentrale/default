@@ -178,15 +178,15 @@
 						</dir>
 						<dir name="dev"> <log/> </dir>
 					</vfs>
-					<policy label="log" decoration="yes" motion="20"/>
-					<policy label="runtime -> leitzentrale -> settings_dialog"     decoration="no" motion="20"/>
-					<policy label="runtime -> leitzentrale -> system_dialog"       decoration="no" motion="20"/>
-					<policy label="runtime -> leitzentrale -> file_browser_dialog" decoration="no" motion="30"/>
-					<policy label="runtime -> leitzentrale -> network_dialog"      decoration="no" motion="20"/>
-					<policy label="runtime -> leitzentrale -> runtime_dialog"      decoration="no" motion="30"/>
-					<policy label="runtime -> leitzentrale -> diag_dialog"         decoration="no" motion="30"/>
-					<policy label="runtime -> leitzentrale -> popup_dialog"        decoration="no" motion="20"/>
-					<policy label="runtime -> leitzentrale -> panel_dialog"        decoration="no" motion="20"/>
+					<policy label="log" decoration="yes" motion="40"/>
+					<policy label="runtime -> leitzentrale -> settings_dialog"     decoration="no" motion="40"/>
+					<policy label="runtime -> leitzentrale -> system_dialog"       decoration="no" motion="40"/>
+					<policy label="runtime -> leitzentrale -> file_browser_dialog" decoration="no" motion="60"/>
+					<policy label="runtime -> leitzentrale -> network_dialog"      decoration="no" motion="40"/>
+					<policy label="runtime -> leitzentrale -> runtime_dialog"      decoration="no" motion="60"/>
+					<policy label="runtime -> leitzentrale -> diag_dialog"         decoration="no" motion="60"/>
+					<policy label="runtime -> leitzentrale -> popup_dialog"        decoration="no" motion="40"/>
+					<policy label="runtime -> leitzentrale -> panel_dialog"        decoration="no" motion="40"/>
 					<policy label_prefix="logo" decoration="no"/>
 					<default-policy/>
 				</config>
