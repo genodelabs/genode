@@ -89,7 +89,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		_hover      = node.attribute_value("hover", false);
 
 		_factory.styles.with_label_style(node, [&] (Label_style style) {
-			_color.fade_to(style.color, Animated_color::Steps{80}); });
+			_color.fade_to(style.color, Animated_color::Steps{40}); });
 
 		if (node.has_attribute("text")) {
 			_text       = node.attribute_value("text", _text);

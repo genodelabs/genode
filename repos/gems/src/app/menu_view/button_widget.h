@@ -85,7 +85,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 				 * or changing the selection state of a button, the transition
 				 * must be quick to provide a responsive feel.
 				 */
-				enum { SLOW = 80, MEDIUM = 40, FAST = 3 };
+				enum { SLOW = 40, MEDIUM = 20, FAST = 2 };
 				int steps = SLOW;
 				if (_hovered && !new_hovered)  steps = MEDIUM;
 				if (!_hovered && new_hovered)  steps = FAST;

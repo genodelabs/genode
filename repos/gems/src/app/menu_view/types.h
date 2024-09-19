@@ -36,6 +36,8 @@ namespace Menu_view {
 	using Point = Surface_base::Point;
 	using Area  = Surface_base::Area;
 	using Rect  = Surface_base::Rect;
+
+	struct Ticks { uint64_t cs; /* centi-seconds (10 ms) */ };
 }
 
 #endif /* _TYPES_H_ */

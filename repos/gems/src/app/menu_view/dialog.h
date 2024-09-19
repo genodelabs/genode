@@ -47,9 +47,9 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 	struct Action : Interface
 	{
-		virtual void trigger_redraw() = 0;
 		virtual void hover_changed() = 0;
 		virtual void observed_seq_number(Input::Seq_number) = 0;
+		virtual Ticks now() = 0;
 	};
 
 	Action &_action;
@@ -71,6 +71,15 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 		_env.ep(), *this, &Dialog::_handle_input};
 
 	void _handle_input();
+
+	Signal_handler<Dialog> _gui_sync_handler {
+		_env.ep(), *this, &Dialog::_handle_gui_sync };
+
+	void _handle_gui_sync();
+
+	bool _gui_sync_enabled = false;
+
+	Ticks _previous_sync { };
 
 	Constructible<Gui_buffer> _buffer { };
 
@@ -151,7 +160,7 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 			_root_widget.gen_hover_model(xml, _hovered_position);
 	}
 
-	void redraw()
+	void _redraw()
 	{
 		if (!_redraw_scheduled)
 			return;
@@ -190,7 +199,7 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 	bool hovered() const { return _hovered; }
 
-	void animate()
+	void _animate()
 	{
 		bool const progress = _local_animator.active();
 
@@ -200,9 +209,14 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 			_redraw_scheduled = true;
 	}
 
-	bool animation_in_progress() const { return _local_animator.active(); }
+	void enforce_font_sytle_change()
+	{
+		_handle_dialog();
 
-	bool redraw_scheduled() const { return _redraw_scheduled; }
+		/* fast-forward geometry animation */
+		while (_local_animator.active())
+			_animate();
+	}
 
 	/*
 	 * List_model
@@ -237,7 +251,13 @@ void Menu_view::Dialog::_handle_dialog()
 	_redraw_scheduled = true;
 
 	_action.hover_changed();
-	_action.trigger_redraw();
+
+	if (!_gui_sync_enabled) {
+		_gui.framebuffer.sync_sigh(_gui_sync_handler);
+		_gui_sync_enabled = true;
+	}
+
+	_handle_gui_sync();
 }
 
 
@@ -285,6 +305,27 @@ void Menu_view::Dialog::_handle_input()
 
 	if (hover_changed || seq_number_changed)
 		_action.hover_changed();
+}
+
+
+void Menu_view::Dialog::_handle_gui_sync()
+{
+	Ticks const now = _action.now();
+
+	Ticks const passed_ticks { now.cs - _previous_sync.cs };
+
+	for (unsigned i = 0; i < passed_ticks.cs; i++)
+		_animate();
+
+	if (passed_ticks.cs)
+		_redraw();
+
+	/* deactivate sync signalling when idle */
+	if (_gui_sync_enabled && !_local_animator.active()) {
+		_gui.framebuffer.sync_sigh(Signal_context_capability());
+		_gui_sync_enabled = false;
+	}
+	_previous_sync = now;
 }
 
 #endif /* _DIALOG_H_ */
