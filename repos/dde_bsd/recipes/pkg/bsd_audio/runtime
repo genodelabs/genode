@@ -1,6 +1,6 @@
 <runtime ram="2M" caps="105" binary="pci_audio">
 
-	<requires> <platform/> <rm/> <timer/> </requires>
+	<requires> <platform/> <timer/> </requires>
 
 	<provides>
 		<audio_out/>

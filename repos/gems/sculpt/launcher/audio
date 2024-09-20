@@ -13,6 +13,5 @@
 		<service name="Record">   <child name="mixer"/>  </service>
 		<service name="Play">     <child name="mixer"/>  </service>
 		<service name="Report">   <parent/>              </service>
-		<service name="RM">       <parent/>              </service>
 	</route>
 </launcher>
