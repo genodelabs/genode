@@ -285,7 +285,27 @@ void init_services(Genode::Env &env, Input::Session_component &input_component)
 	using namespace Genode;
 
 	static Framebuffer::Session_component fb_session(env, *_window_content);
-	static Static_root<Framebuffer::Session> fb_root(env.ep().manage(fb_session));
+
+	env.ep().manage(fb_session);
+
+	struct Fb_root : Static_root<Framebuffer::Session>
+	{
+		Framebuffer::Session_component &_fb_session;
+
+		Fb_root(Framebuffer::Session_component &fb_session)
+		:
+			Static_root<Framebuffer::Session>(fb_session.cap()),
+			_fb_session(fb_session)
+		{ }
+
+		void close(Genode::Capability<Genode::Session>) override
+		{
+			_fb_session.sync_sigh(Genode::Signal_context_capability());
+			_fb_session.mode_sigh(Genode::Signal_context_capability());
+		}
+	};
+
+	static Fb_root fb_root { fb_session };
 
 	static Input::Root_component input_root(env.ep().rpc_ep(), input_component);
 
