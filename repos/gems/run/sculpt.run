@@ -188,8 +188,8 @@ proc driver_routes { } {
 		<service name="ROM" label="mmc.dtb">           <parent label="imx8mq_sd_card-mnt_reform2.dtb"/> </service>
 		<service name="ROM" label="nic">               <parent label="fec_nic"/> </service>
 		<service name="ROM" label="nic.dtb">           <parent label="fec_nic-mnt_reform2.dtb"/> </service>
-		<service name="ROM" label="usb">               <parent label="imx8mq_usb_host"/> </service>
-		<service name="ROM" label="usb.dtb">           <parent label="imx8mq_usb_host-mnt_reform2.dtb"/> </service>
+		<service name="ROM" label="usb">               <parent label="imx8m_usb_host"/> </service>
+		<service name="ROM" label="usb.dtb">           <parent label="imx8m_usb_host-mnt_reform2.dtb"/> </service>
 		<service name="ROM" label="wifi.lib.so">       <parent label="imx8mq_wifi.lib.so"/> </service>
 		<service name="ROM" label="wifi_firmware.tar"> <parent label="imx8mq_wifi_firmware.tar"/> </service>
 		<service name="I2c"> <child name="drivers"/> </service>
