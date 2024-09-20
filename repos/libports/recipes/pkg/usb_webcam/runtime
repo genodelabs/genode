@@ -1,6 +1,6 @@
 <runtime binary="init" caps="800" ram="64M" config="usb_webcam.config">
 	<provides> <capture /> </provides>
-	<requires> <timer /> <usb /> <rm /> </requires>
+	<requires> <timer /> <usb /> </requires>
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="init"/>
