@@ -5,3 +5,5 @@ CONFIG    += c++2a
 SOURCES   += main.cpp overlay.cpp
 HEADERS   += overlay.h ../util.h
 RESOURCES  = overlay.qrc
+
+INCLUDEPATH = ..
