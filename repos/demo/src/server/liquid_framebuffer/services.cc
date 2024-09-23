@@ -266,6 +266,17 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		{
 			_window_content.redraw_area(rect.x1(), rect.y1(), rect.w(), rect.h());
 		}
+
+		Blit_result blit(Blit_batch const &) override
+		{
+			warning("Framebuffer::Session::blit not supported");
+			return Blit_result::OK;
+		}
+
+		void panning(Point) override
+		{
+			warning("Framebuffer::Session::panning not supported");
+		}
 };
 
 

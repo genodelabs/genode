@@ -131,6 +131,13 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 		return used + usable > needed + preserved;
 	}
 
+	void _update_view()
+	{
+		if (_dataspace_is_new) {
+			_view_updater.update_view();
+			_dataspace_is_new = false;
+		}
+	}
 
 	/**
 	 * Constructor
@@ -203,12 +210,20 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	void refresh(Rect rect) override
 	{
-		if (_dataspace_is_new) {
-			_view_updater.update_view();
-			_dataspace_is_new = false;
-		}
-
+		_update_view();
 		_gui.framebuffer.refresh(rect);
+	}
+
+	Blit_result blit(Blit_batch const &batch) override
+	{
+		_update_view();
+		return _gui.framebuffer.blit(batch);
+	}
+
+	void panning(Point pos) override
+	{
+		_update_view();
+		_gui.framebuffer.panning(pos);
 	}
 
 	void sync_sigh(Signal_context_capability sigh) override

@@ -22,19 +22,15 @@ namespace Framebuffer { struct Session_client; }
 
 struct Framebuffer::Session_client : Rpc_client<Session>
 {
-	explicit Session_client(Session_capability session)
-	: Rpc_client<Session>(session) { }
+	explicit Session_client(Session_capability cap) : Rpc_client<Session>(cap) { }
 
-	Dataspace_capability dataspace() override {
-		return call<Rpc_dataspace>(); }
+	Dataspace_capability dataspace() override { return call<Rpc_dataspace>(); }
 
 	Mode mode() const override { return call<Rpc_mode>(); }
 
-	void mode_sigh(Signal_context_capability sigh) override {
-		call<Rpc_mode_sigh>(sigh); }
+	void mode_sigh(Signal_context_capability sigh) override { call<Rpc_mode_sigh>(sigh); }
 
-	void sync_sigh(Signal_context_capability sigh) override {
-		call<Rpc_sync_sigh>(sigh); }
+	void sync_sigh(Signal_context_capability sigh) override { call<Rpc_sync_sigh>(sigh); }
 
 	void refresh(Rect rect) override { call<Rpc_refresh>(rect); }
 
@@ -49,6 +45,19 @@ struct Framebuffer::Session_client : Rpc_client<Session>
 		refresh(Rect { { x, y }, { unsigned(w), unsigned(h) } });
 	}
 
+	Blit_result blit(Blit_batch const &batch) override { return call<Rpc_blit>(batch); }
+
+	/**
+	 * Transfer a single pixel region within the framebuffer
+	 */
+	Blit_result blit(Rect from, Point to)
+	{
+		Blit_batch batch { };
+		batch.transfer[0] = { from, to };
+		return blit(batch);
+	}
+
+	void panning(Point pos) override { call<Rpc_panning>(pos); }
 };
 
 #endif /* _INCLUDE__FRAMEBUFFER_SESSION__CLIENT_H_ */

@@ -151,7 +151,8 @@ class Nitpicker::View_stack
 				 * Determine view portion that displays the buffer portion
 				 * specified by 'rect'.
 				 */
-				Point const offset = view->abs_position() + view->buffer_off();
+				Point const offset = view->abs_position() + view->buffer_off()
+				                   - session.panning();
 				Rect const r = Rect::intersect(Rect::compound(rect.p1() + offset,
 				                                              rect.p2() + offset),
 				                               view->abs_geometry());

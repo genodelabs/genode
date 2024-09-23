@@ -14,6 +14,11 @@
 #ifndef _CHUNKY_TEXTURE_H_
 #define _CHUNKY_TEXTURE_H_
 
+/* Genode includes */
+#include <os/pixel_rgb888.h>
+#include <os/pixel_alpha8.h>
+#include <blit/painter.h>
+
 /* local includes */
 #include <buffer.h>
 
@@ -34,6 +39,64 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 
 			/* alpha values come right after the pixel values */
 			return (unsigned char *)local_addr() + calc_num_bytes(size, false);
+		}
+
+		Area _area() const { return Texture<PT>::size(); }
+
+		void _with_pixel_surface(auto const &fn)
+		{
+			Surface<Pixel_rgb888> pixel { (Pixel_rgb888 *)local_addr(), _area() };
+			fn(pixel);
+		}
+
+		static void _with_alpha_ptr(auto &obj, auto const &fn)
+		{
+			Pixel_alpha8 * const ptr = (Pixel_alpha8 *)(obj.Texture<PT>::alpha());
+			if (ptr)
+				fn(ptr);
+		}
+
+		void _with_alpha_surface(auto const &fn)
+		{
+			_with_alpha_ptr(*this, [&] (Pixel_alpha8 * const ptr) {
+				Surface<Pixel_alpha8> alpha { ptr, _area() };
+				fn(alpha); });
+		}
+
+		void _with_alpha_texture(auto const &fn) const
+		{
+			_with_alpha_ptr(*this, [&] (Pixel_alpha8 * const ptr) {
+				Texture<Pixel_alpha8> texture { ptr, nullptr, _area() };
+				fn(texture); });
+		}
+
+		static void _with_input_ptr(auto &obj, auto const &fn)
+		{
+			Pixel_alpha8 * const ptr = (Pixel_alpha8 *)(obj.input_mask_buffer());
+			if (ptr)
+				fn(ptr);
+		}
+
+		void _with_input_surface(auto const &fn)
+		{
+			_with_input_ptr(*this, [&] (Pixel_alpha8 * const ptr) {
+				Surface<Pixel_alpha8> input { ptr, _area() };
+				fn(input); });
+		}
+
+		void _with_input_texture(auto const &fn) const
+		{
+			_with_input_ptr(*this, [&] (Pixel_alpha8 * const ptr) {
+				Texture<Pixel_alpha8> texture { ptr, nullptr, _area() };
+				fn(texture); });
+		}
+
+		template <typename T>
+		void _blit_channel(Surface<T> &surface, Texture<T> const &texture,
+		                   Rect const from, Point const to)
+		{
+			surface.clip({ to, from.area });
+			Blit_painter::paint(surface, texture, to - from.p1());
 		}
 
 	public:
@@ -68,6 +131,20 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 			/* input-mask values come right after the alpha values */
 			return (unsigned char const *)local_addr() + calc_num_bytes(size, false)
 			                                           + size.count();
+		}
+
+		void blit(Rect from, Point to)
+		{
+			_with_pixel_surface([&] (Surface<Pixel_rgb888> &surface) {
+				_blit_channel(surface, *this, from, to); });
+
+			_with_alpha_surface([&] (Surface<Pixel_alpha8> &surface) {
+				_with_alpha_texture([&] (Texture<Pixel_alpha8> &texture) {
+					_blit_channel(surface, texture, from, to); }); });
+
+			_with_input_surface([&] (Surface<Pixel_alpha8> &surface) {
+				_with_input_texture([&] (Texture<Pixel_alpha8> &texture) {
+					_blit_channel(surface, texture, from, to); }); });
 		}
 };
 

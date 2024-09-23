@@ -22,7 +22,6 @@
 
 namespace Framebuffer {
 
-	struct Mode;
 	struct Session;
 	struct Session_client;
 
@@ -31,20 +30,47 @@ namespace Framebuffer {
 	using Area  = Surface_base::Area;
 	using Point = Surface_base::Point;
 	using Rect  = Surface_base::Rect;
+
+	struct Mode
+	{
+		Area area;
+
+		size_t bytes_per_pixel() const { return 4; }
+
+		void print(Output &out) const { Genode::print(out, area); }
+	};
+
+	struct Transfer
+	{
+		Rect  from;  /* source rectangle */
+		Point   to;  /* destination position */
+
+		/**
+		 * Return true if transfer is applicable to 'mode'
+		 *
+		 * Pixels are transferred only if the source rectangle lies within
+		 * the bounds of the framebuffer, and source does not overlap the
+		 * destination.
+		 */
+		bool valid(Mode const &mode) const
+		{
+			Rect const fb   { { }, mode.area };
+			Rect const dest { to,  from.area };
+
+			return from.area.valid()
+			    && fb.contains(from.p1()) && fb.contains(from.p2())
+			    && fb.contains(dest.p1()) && fb.contains(dest.p2())
+			    && !Rect::intersect(from, dest).valid();
+		}
+	};
+
+	struct Blit_batch
+	{
+		static constexpr unsigned N = 4;
+
+		Transfer transfer[N];
+	};
 }
-
-
-/**
- * Framebuffer mode info as returned by 'Framebuffer::Session::mode()'
- */
-struct Framebuffer::Mode
-{
-	Area area;
-
-	size_t bytes_per_pixel() const { return 4; }
-
-	void print(Output &out) const { Genode::print(out, area); }
-};
 
 
 struct Framebuffer::Session : Genode::Session
@@ -102,6 +128,23 @@ struct Framebuffer::Session : Genode::Session
 	 */
 	virtual void refresh(Rect rect) = 0;
 
+	enum class Blit_result { OK, OVERLOADED };
+
+	/**
+	 * Transfer pixel regions within the framebuffer
+	 */
+	virtual Blit_result blit(Blit_batch const &) = 0;
+
+	/**
+	 * Define panning position of the framebuffer
+	 *
+	 * The panning position is the point within the framebuffer that
+	 * corresponds to the top-left corner of the output. It is designated
+	 * for implementing buffer flipping of double-buffered output, and for
+	 * scrolling.
+	 */
+	virtual void panning(Point pos) = 0;
+
 	/**
 	 * Register signal handler for refresh synchronization
 	 */
@@ -115,11 +158,13 @@ struct Framebuffer::Session : Genode::Session
 	GENODE_RPC(Rpc_dataspace, Dataspace_capability, dataspace);
 	GENODE_RPC(Rpc_mode, Mode, mode);
 	GENODE_RPC(Rpc_refresh, void, refresh, Rect);
+	GENODE_RPC(Rpc_blit, Blit_result, blit, Blit_batch const &);
+	GENODE_RPC(Rpc_panning, void, panning, Point);
 	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Signal_context_capability);
 	GENODE_RPC(Rpc_sync_sigh, void, sync_sigh, Signal_context_capability);
 
 	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_mode, Rpc_mode_sigh, Rpc_refresh,
-	                     Rpc_sync_sigh);
+	                     Rpc_blit, Rpc_panning, Rpc_sync_sigh);
 };
 
 #endif /* _INCLUDE__FRAMEBUFFER_SESSION__FRAMEBUFFER_SESSION_H_ */

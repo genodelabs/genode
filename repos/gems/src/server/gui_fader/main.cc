@@ -23,6 +23,7 @@
 #include <os/static_root.h>
 #include <util/reconstructible.h>
 #include <nitpicker_gfx/texture_painter.h>
+#include <blit/painter.h>
 #include <util/lazy_value.h>
 #include <timer_session/connection.h>
 
@@ -67,11 +68,18 @@ class Gui_fader::Src_buffer
 		bool             const _use_alpha;
 		Attached_ram_dataspace _ds;
 		Texture<Pixel>         _texture;
+		bool                   _warned_once = false;
 
 		static size_t _needed_bytes(Area size)
 		{
 			/* account for alpha channel, input mask, and pixels */
 			return size.count() * (1 + 1 + sizeof(Pixel));
+		}
+
+		void _with_pixel_surface(auto const &fn)
+		{
+			Surface<Pixel_rgb888> pixel { _ds.local_addr<Pixel_rgb888>(), _texture.size() };
+			fn(pixel);
 		}
 
 	public:
@@ -93,6 +101,18 @@ class Gui_fader::Src_buffer
 		Texture<Pixel> const &texture() const { return _texture; }
 
 		bool use_alpha() const { return _use_alpha; }
+
+		void blit(Rect from, Point to)
+		{
+			if (_use_alpha && !_warned_once) {
+				Genode::warning("Framebuffer::Session::blit does not support alpha blending");
+				_warned_once = true;
+			}
+
+			_with_pixel_surface([&] (Surface<Pixel_rgb888> &surface) {
+				surface.clip({ to, from.area });
+				Blit_painter::paint(surface, _texture, to - from.p1()); });
+		}
 };
 
 
@@ -141,7 +161,6 @@ class Gui_fader::Framebuffer_session_component
 		Src_buffer      &_src_buffer;
 
 		Constructible<Dst_buffer> _dst_buffer { };
-
 
 		Lazy_value<int> _fade { };
 
@@ -244,6 +263,29 @@ class Gui_fader::Framebuffer_session_component
 			transfer_src_to_dst_alpha(rect);
 
 			_gui.framebuffer.refresh(rect);
+		}
+
+		Blit_result blit(Framebuffer::Blit_batch const &batch) override
+		{
+			Framebuffer::Mode const mode { .area = _src_buffer.texture().size() };
+			for (Framebuffer::Transfer const &transfer : batch.transfer) {
+				if (transfer.valid(mode)) {
+					_src_buffer.blit(transfer.from, transfer.to);
+					Rect const to_rect { transfer.to, transfer.from.area };
+					refresh(to_rect);
+				}
+			}
+			return Blit_result::OK;
+		}
+
+		void panning(Point pos) override
+		{
+			Rect const rect { { }, _src_buffer.texture().size() };
+
+			transfer_src_to_dst_pixel(rect);
+			transfer_src_to_dst_alpha(rect);
+
+			_gui.framebuffer.panning(pos);
 		}
 
 		void sync_sigh(Genode::Signal_context_capability sigh) override

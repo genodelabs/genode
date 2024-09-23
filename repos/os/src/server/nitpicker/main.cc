@@ -60,6 +60,27 @@ void Framebuffer::Session_component::refresh(Rect rect)
 }
 
 
+Framebuffer::Session::Blit_result
+Framebuffer::Session_component::blit(Blit_batch const &batch)
+{
+	for (Transfer const &transfer : batch.transfer) {
+		if (transfer.valid(_mode)) {
+			_buffer_provider.blit(transfer.from, transfer.to);
+			Rect const to_rect { transfer.to, transfer.from.area };
+			_view_stack.mark_session_views_as_dirty(_session, to_rect);
+		}
+	}
+	return Blit_result::OK;
+}
+
+
+void Framebuffer::Session_component::panning(Point pos)
+{
+	_buffer_provider.panning(pos);
+	_view_stack.mark_session_views_as_dirty(_session, { { 0, 0 }, _mode.area });
+}
+
+
 /***************************************
  ** Implementation of the GUI service **
  ***************************************/

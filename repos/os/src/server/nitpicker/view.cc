@@ -126,9 +126,32 @@ void Nitpicker::View::draw(Canvas_base &canvas, Font const &font, Focus const &f
 	                                   owner_color.g >> 1,
 	                                   owner_color.b >> 1);
 
+	auto for_each_tile_pos = [&] (auto const &fn)
+	{
+		int const view_w = view_rect.w(),
+		          view_h = view_rect.h();
+
+		int const texture_w = int(_texture.size().w),
+		          texture_h = int(_texture.size().h);
+
+		if (!texture_w || !texture_h)
+			return;
+
+		int off_x = (_buffer_off.x - _texture.panning.x) % texture_w;
+		int off_y = (_buffer_off.y - _texture.panning.y) % texture_h;
+
+		if (off_x > 0) off_x -= texture_w;
+		if (off_y > 0) off_y -= texture_h;
+
+		for (int y = off_y; y < view_h; y += texture_h)
+			for (int x = off_x; x < view_w; x += texture_w)
+				fn(Point { x, y });
+	};
+
 	_texture.with_texture([&] (Texture_base const &texture) {
-		canvas.draw_texture(_buffer_off + view_rect.p1(), texture, op,
-		                    mix_color, allow_alpha); });
+		for_each_tile_pos([&] (Point const pos) {
+			canvas.draw_texture(view_rect.p1() + pos, texture, op,
+			                    mix_color, allow_alpha); }); });
 
 	if (!_texture.valid())
 		canvas.draw_box(view_rect, Color::black());
@@ -163,7 +186,7 @@ bool Nitpicker::View::input_response_at(Point const p) const
 
 	/* if view uses an alpha channel, check the input mask */
 	if (_owner.content_client() && _owner.uses_alpha())
-		return _owner.input_mask_at(p - view_rect.p1() - _buffer_off);
+		return _owner.input_mask_at(p - view_rect.p1() - _buffer_off + _texture.panning);
 
 	return true;
 }

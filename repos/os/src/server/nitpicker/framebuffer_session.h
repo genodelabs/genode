@@ -116,6 +116,10 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 		}
 
 		void refresh(Rect) override;
+
+		Blit_result blit(Blit_batch const &) override;
+
+		void panning(Point) override;
 };
 
 #endif /* _FRAMEBUFFER_SESSION_COMPONENT_H_ */

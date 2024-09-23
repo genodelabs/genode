@@ -20,8 +20,6 @@
 #include <base/heap.h>
 #include <os/session_policy.h>
 #include <os/reporter.h>
-#include <os/pixel_rgb888.h>
-#include <blit/painter.h>
 #include <gui_session/gui_session.h>
 
 /* local includes */
@@ -292,6 +290,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		bool origin_pointer() const override { return _domain && _domain->origin_pointer(); }
 
+
 		/**
 		 * Return input mask value at specified buffer position
 		 */
@@ -375,6 +374,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 				_forwarded_focus = nullptr;
 		}
 
+		Point panning() const { return _texture.panning; }
+
 
 		/***************************
 		 ** GUI session interface **
@@ -416,6 +417,10 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		 *******************************/
 
 		Dataspace_capability realloc_buffer(Framebuffer::Mode mode, bool use_alpha) override;
+
+		void blit(Rect from, Point to) override { _texture.blit(from, to); }
+
+		void panning(Point pos) override { _texture.panning = pos; }
 };
 
 #endif /* _GUI_SESSION_H_ */
