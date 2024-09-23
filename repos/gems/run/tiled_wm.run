@@ -1,5 +1,7 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
+build { test/tiled_wm }
+
 import_from_depot [depot_user]/src/qt5_component \
                   [depot_user]/src/qt5_textedit \
                   [depot_user]/src/dynamic_rom \
@@ -219,7 +221,7 @@ install_config {
 </config>
 }
 
-build_boot_image [qt5_boot_modules]
+build_boot_image [list {*}[build_artifacts] {*}[qt5_boot_modules]]
 
 append qemu_args " -device nec-usb-xhci,id=xhci -device usb-tablet"
 
