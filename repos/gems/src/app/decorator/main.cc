@@ -82,7 +82,7 @@ struct Decorator::Main : Window_factory_base
 		Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
 
 		dirty.flush([&] (Rect const &r) {
-			_gui.framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h()); });
+			_gui.framebuffer.refresh(r); });
 	}
 
 	Window_stack _window_stack = { *this };
@@ -322,7 +322,7 @@ void Decorator::Main::_handle_gui_sync()
 		_gui.execute();
 
 		dirty.flush([&] (Rect const &r) {
-			_gui.framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h()); });
+			_gui.framebuffer.refresh(r); });
 	}
 
 	/*

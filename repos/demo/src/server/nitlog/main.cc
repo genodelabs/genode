@@ -444,7 +444,7 @@ struct Nitlog::Main
 	void _handle_timer()
 	{
 		if (_log_window.draw())
-			_gui.framebuffer.refresh(0, 0, _win_w, _win_h);
+			_gui.framebuffer.refresh({ { 0, 0 }, { _win_w, _win_h } });
 	}
 
 	Main(Env &env) : _env(env)

@@ -31,7 +31,7 @@ struct Framebuffer::Connection : Genode::Connection<Session>, Session_client
 	 * session, you should validate the actual frame-buffer attributes
 	 * by calling the 'info' method of the frame-buffer interface.
 	 */
-	Connection(Genode::Env &env, Framebuffer::Mode mode)
+	Connection(Env &env, Framebuffer::Mode mode)
 	:
 		Genode::Connection<Session>(env, Label(), Ram_quota { 8*1024 },
 		                            Args("fb_width=",  mode.area.w, ", "

@@ -26,7 +26,11 @@ namespace Framebuffer {
 	struct Session;
 	struct Session_client;
 
-	using Area = Genode::Surface_base::Area;
+	using namespace Genode;
+
+	using Area  = Surface_base::Area;
+	using Point = Surface_base::Point;
+	using Rect  = Surface_base::Rect;
 }
 
 
@@ -37,9 +41,9 @@ struct Framebuffer::Mode
 {
 	Area area;
 
-	Genode::size_t bytes_per_pixel() const { return 4; }
+	size_t bytes_per_pixel() const { return 4; }
 
-	void print(Genode::Output &out) const { Genode::print(out, area); }
+	void print(Output &out) const { Genode::print(out, area); }
 };
 
 
@@ -70,7 +74,7 @@ struct Framebuffer::Session : Genode::Session
 	 * have detached the previously requested dataspace from its local
 	 * address space.
 	 */
-	virtual Genode::Dataspace_capability dataspace() = 0;
+	virtual Dataspace_capability dataspace() = 0;
 
 	/**
 	 * Request display-mode properties of the framebuffer ready to be
@@ -89,30 +93,30 @@ struct Framebuffer::Session : Genode::Session
 	 * method. However, from the client's perspective, the original mode
 	 * stays in effect until the it calls 'dataspace()' again.
 	 */
-	virtual void mode_sigh(Genode::Signal_context_capability sigh) = 0;
+	virtual void mode_sigh(Signal_context_capability sigh) = 0;
 
 	/**
 	 * Flush specified pixel region
 	 *
-	 * \param x,y,w,h  region to be updated on physical frame buffer
+	 * \param rect  region to be updated on physical frame buffer
 	 */
-	virtual void refresh(int x, int y, int w, int h) = 0;
+	virtual void refresh(Rect rect) = 0;
 
 	/**
 	 * Register signal handler for refresh synchronization
 	 */
-	virtual void sync_sigh(Genode::Signal_context_capability) = 0;
+	virtual void sync_sigh(Signal_context_capability) = 0;
 
 
 	/*********************
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC(Rpc_dataspace, Genode::Dataspace_capability, dataspace);
+	GENODE_RPC(Rpc_dataspace, Dataspace_capability, dataspace);
 	GENODE_RPC(Rpc_mode, Mode, mode);
-	GENODE_RPC(Rpc_refresh, void, refresh, int, int, int, int);
-	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Genode::Signal_context_capability);
-	GENODE_RPC(Rpc_sync_sigh, void, sync_sigh, Genode::Signal_context_capability);
+	GENODE_RPC(Rpc_refresh, void, refresh, Rect);
+	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Signal_context_capability);
+	GENODE_RPC(Rpc_sync_sigh, void, sync_sigh, Signal_context_capability);
 
 	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_mode, Rpc_mode_sigh, Rpc_refresh,
 	                     Rpc_sync_sigh);

@@ -155,7 +155,7 @@ struct Terminal::Main : Character_consumer
 
 			Rect const dirty = _text_screen_surface->redraw(surface);
 
-			_gui.framebuffer.refresh(dirty.x1(), dirty.y1(), dirty.w(), dirty.h());
+			_gui.framebuffer.refresh(dirty);
 		}
 
 		/* update view geometry after mode change */

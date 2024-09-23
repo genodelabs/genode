@@ -191,7 +191,7 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 		});
 
 		_buffer->flush_surface();
-		_gui.framebuffer.refresh(0, 0, _buffer->size().w, _buffer->size().h);
+		_gui.framebuffer.refresh({ { 0, 0 }, _buffer->size() });
 		_update_view(Rect(_position, size));
 
 		_redraw_scheduled = false;

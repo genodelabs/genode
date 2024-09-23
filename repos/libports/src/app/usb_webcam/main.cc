@@ -69,9 +69,7 @@ class Viewer
 
 		uint8_t *framebuffer() { return _framebuffer; }
 
-		void refresh() {
-			_gui.framebuffer.refresh(0, 0, _mode.area.w, _mode.area.h);
-		}
+		void refresh() { _gui.framebuffer.refresh({ { 0, 0 }, _mode.area }); }
 
 		Framebuffer::Mode const &mode() { return _mode; }
 };

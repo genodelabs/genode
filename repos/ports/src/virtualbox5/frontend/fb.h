@@ -67,7 +67,7 @@ class Genodefb :
 			size_t const max_h = Genode::min(_fb_mode.area.h, _virtual_fb_mode.area.h);
 			size_t const num_pixels = _fb_mode.area.w * max_h;
 			memset(_fb_base, 0, num_pixels * _fb_mode.bytes_per_pixel());
-			_gui.framebuffer.refresh(0, 0, _virtual_fb_mode.area.w, _virtual_fb_mode.area.h);
+			_gui.framebuffer.refresh({ { 0, 0 }, _virtual_fb_mode.area });
 		}
 
 		void _adjust_buffer()

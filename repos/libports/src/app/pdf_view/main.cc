@@ -306,7 +306,7 @@ void Pdf_view::show()
 		dst_line += dst_line_width;
 	}
 
-	_gui.framebuffer.refresh(0, 0, _nit_mode.area.w, _nit_mode.area.h);
+	_gui.framebuffer.refresh({ { 0, 0 }, _nit_mode.area });
 }
 
 

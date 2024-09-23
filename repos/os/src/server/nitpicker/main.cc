@@ -54,10 +54,8 @@ extern char _binary_default_tff_start[];
  ** Framebuffer::Session_component **
  ************************************/
 
-void Framebuffer::Session_component::refresh(int x, int y, int w, int h)
+void Framebuffer::Session_component::refresh(Rect rect)
 {
-	Rect const rect(Point(x, y), Area(w, h));
-
 	_view_stack.mark_session_views_as_dirty(_session, rect);
 }
 
@@ -426,7 +424,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 			/* flush pixels to the framebuffer, reset dirty_rect */
 			_dirty_rect.flush([&] (Rect const &rect) {
-				_fb.refresh(rect.x1(), rect.y1(), rect.w(),  rect.h()); });
+				_fb.refresh(rect); });
 
 			/* deliver framebuffer synchronization events */
 			for (Gui_session *s = _main._session_list.first(); s; s = s->next())

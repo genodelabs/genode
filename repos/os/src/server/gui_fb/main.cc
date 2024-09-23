@@ -201,14 +201,14 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 		_mode_sigh = sigh;
 	}
 
-	void refresh(int x, int y, int w, int h) override
+	void refresh(Rect rect) override
 	{
 		if (_dataspace_is_new) {
 			_view_updater.update_view();
 			_dataspace_is_new = false;
 		}
 
-		_gui.framebuffer.refresh(x, y, w, h);
+		_gui.framebuffer.refresh(rect);
 	}
 
 	void sync_sigh(Signal_context_capability sigh) override

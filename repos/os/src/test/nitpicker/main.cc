@@ -265,7 +265,7 @@ Test::Main::Main(Genode::Env &env) : _env(env)
 			}
 		}
 
-	_gui.framebuffer.refresh(0, 0, size.w, size.h);
+	_gui.framebuffer.refresh({ { 0, 0 }, size });
 
 	_view_stack.construct(View_stack::Input_mask_ptr { .size = size,
 	                                                   .ptr  = input_mask });

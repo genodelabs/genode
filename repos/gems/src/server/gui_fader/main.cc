@@ -207,7 +207,7 @@ class Gui_fader::Framebuffer_session_component
 
 			transfer_src_to_dst_alpha(rect);
 
-			_gui.framebuffer.refresh(rect.x1(), rect.y1(), rect.w(), rect.h());
+			_gui.framebuffer.refresh(rect);
 
 			/* keep animating as long as the destination value is not reached */
 			return _fade != _fade.dst();
@@ -238,12 +238,12 @@ class Gui_fader::Framebuffer_session_component
 			_gui.framebuffer.mode_sigh(sigh);
 		}
 
-		void refresh(int x, int y, int w, int h) override
+		void refresh(Rect rect) override
 		{
-			transfer_src_to_dst_pixel(Rect(Point(x, y), Area(w, h)));
-			transfer_src_to_dst_alpha(Rect(Point(x, y), Area(w, h)));
+			transfer_src_to_dst_pixel(rect);
+			transfer_src_to_dst_alpha(rect);
 
-			_gui.framebuffer.refresh(x, y, w, h);
+			_gui.framebuffer.refresh(rect);
 		}
 
 		void sync_sigh(Genode::Signal_context_capability sigh) override

@@ -262,9 +262,9 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 			_timer.trigger_periodic(10*1000);
 		}
 
-		void refresh(int x, int y, int w, int h) override
+		void refresh(Rect rect) override
 		{
-			_window_content.redraw_area(x, y, w, h);
+			_window_content.redraw_area(rect.x1(), rect.y1(), rect.w(), rect.h());
 		}
 };
 

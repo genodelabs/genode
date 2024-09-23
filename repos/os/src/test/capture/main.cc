@@ -164,9 +164,7 @@ struct Test::Main
 				});
 
 				affected.for_each_rect([&] (Gui::Rect const rect) {
-					_output->_gui.framebuffer.refresh(rect.x1(), rect.y1(),
-					                                  rect.w(), rect.h());
-				});
+					_output->_gui.framebuffer.refresh(rect); });
 			});
 		});
 

@@ -80,7 +80,7 @@ struct Test::Main
 
 	Vfs_font _font_4 { _heap, _root, "fonts/regular" };
 
-	void _refresh() { _fb.refresh(0, 0, _size.w, _size.h); }
+	void _refresh() { _fb.refresh({ { 0, 0 }, _size }); }
 
 	Main(Env &env) : _env(env)
 	{

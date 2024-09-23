@@ -115,7 +115,7 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 			_sync_sigh = sigh;
 		}
 
-		void refresh(int x, int y, int w, int h) override;
+		void refresh(Rect) override;
 };
 
 #endif /* _FRAMEBUFFER_SESSION_COMPONENT_H_ */
