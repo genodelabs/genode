@@ -837,24 +837,66 @@ static void mark_framebuffer_dirty(struct drm_framebuffer * const fb)
 }
 
 
+/* track per connector (16 max) the empty capture attempts before stopping */
+enum { CAPTURE_RATE_MS = 10, ATTEMPTS_BEFORE_STOP = 7 };
+static unsigned unchanged[16] = { };
+
+void lx_emul_i915_wakeup(unsigned const connector_id)
+{
+	bool const valid_id  = connector_id < sizeof(unchanged) / sizeof(*unchanged);
+
+	if (!valid_id) {
+		printk("%s: connector id invalid %d\n", __func__, connector_id);
+		return;
+	}
+
+	unchanged[connector_id] = 0;
+
+	/* wake potential sleeping update task */
+	lx_emul_task_unblock(lx_update_task);
+}
+
+
 static int update_content(void *)
 {
 	while (true) {
 		struct drm_connector_list_iter  conn_iter;
-		struct drm_connector           *connector = NULL;
-		struct drm_device const        *dev       = dev_client->dev;
+		struct drm_connector           *connector  = NULL;
+		struct drm_device const        *dev        = dev_client->dev;
+		bool                            block_task = true;
 
 		drm_connector_list_iter_begin(dev, &conn_iter);
 		drm_client_for_each_connector_iter(connector, &conn_iter) {
+
 			struct drm_modeset_acquire_ctx  ctx;
 			struct drm_framebuffer         *fb  = NULL;
-			int                             err = -1;
+
+			int        err       = -1;
+			bool       may_sleep = false;
+			bool const valid_id  = connector->index < sizeof(unchanged) / sizeof(*unchanged);
 
 			if (connector->status != connector_status_connected)
 				continue;
 
-			if (!lx_emul_i915_blit(connector->index))
+			if (valid_id) {
+				unchanged[connector->index] ++;
+
+				if (unchanged[connector->index] > ATTEMPTS_BEFORE_STOP)
+					continue;
+			}
+			else
+				printk("%s: connector id invalid %d\n", __func__, connector->index);
+
+			block_task = false;
+
+			if (valid_id)
+				may_sleep = unchanged[connector->index] >= ATTEMPTS_BEFORE_STOP;
+
+			if (!lx_emul_i915_blit(connector->index, may_sleep))
 				continue;
+
+			if (valid_id)
+				unchanged[connector->index] = 0;
 
 			if (!connector->state || !connector->state->crtc)
 				continue;
@@ -872,8 +914,11 @@ static int update_content(void *)
 		}
 		drm_connector_list_iter_end(&conn_iter);
 
-		/* schedule_timeout(jiffes) or hrtimer or msleep */
-		msleep(20);
+		if (block_task)
+			lx_emul_task_schedule(true /* block task */);
+		else
+			/* schedule_timeout(jiffes) or hrtimer or msleep */
+			msleep(CAPTURE_RATE_MS);
 	}
 
 	return 0;

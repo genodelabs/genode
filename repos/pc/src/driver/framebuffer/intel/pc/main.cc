@@ -67,9 +67,8 @@ struct Framebuffer::Driver
 		using Space = Id_space<Connector>;
 		using Id    = Space::Id;
 
-		Space::Element id_element;
-
-		Connector(Space &space, Id id) : id_element(*this, space, id) { }
+		Space::Element            id_element;
+		Signal_handler<Connector> capture_wakeup;
 
 		addr_t        base      { };
 		Capture::Area size      { };
@@ -78,11 +77,23 @@ struct Framebuffer::Driver
 
 		Constructible<Capture::Connection>         capture { };
 		Constructible<Capture::Connection::Screen> screen  { };
+
+		Connector(Env &env, Space &space, Id id)
+		:
+			id_element(*this, space, id),
+			capture_wakeup(env.ep(), *this, &Connector::wakeup_handler)
+		{ }
+
+		void wakeup_handler()
+		{
+			lx_emul_i915_wakeup(unsigned(id_element.id().value));
+			Lx_kit::env().scheduler.execute();
+		}
 	};
 
 	Connector::Space ids { };
 
-	bool capture(Connector::Space &ids, Connector::Id const &id)
+	bool capture(Connector::Space &ids, Connector::Id const &id, bool const may_stop)
 	{
 		using Pixel = Capture::Pixel;
 
@@ -109,6 +120,10 @@ struct Framebuffer::Driver
 					dirty = true;
 				});
 			});
+
+			if (!dirty && may_stop)
+				connector.capture->capture_stopped();
+
 		}, [&](){ /* unknown connector id */ });
 
 		return dirty;
@@ -136,6 +151,8 @@ struct Framebuffer::Driver
 			Capture::Connection::Screen::Attr attr = { .px = conn.size, .mm = conn.size_mm };
 			conn.capture.construct(env, label);
 			conn.screen .construct(*conn.capture, env.rm(), attr);
+
+			conn.capture->wakeup_sigh(conn.capture_wakeup);
 		} else {
 			conn.screen .destruct();
 			conn.capture.destruct();
@@ -450,7 +467,9 @@ void lx_emul_i915_framebuffer_ready(unsigned const connector_id,
 		if (!base)
 			return;
 
-		new (drv.heap) Connector (drv.ids, id);
+		new (drv.heap) Connector (env, drv.ids, id);
+
+		lx_emul_i915_wakeup(unsigned(id.value));
 	});
 
 	drv.ids.apply<Connector>(id, [&](Connector &conn) {
@@ -549,13 +568,13 @@ void lx_emul_i915_report_modes(void * genode_xml, struct genode_mode *mode)
 }
 
 
-int lx_emul_i915_blit(unsigned connector_id)
+int lx_emul_i915_blit(unsigned const connector_id, char const may_stop)
 {
 	auto &drv = driver(Lx_kit::env().env);
 
 	auto const id = Framebuffer::Driver::Connector::Id { connector_id };
 
-	return drv.capture(drv.ids, id);
+	return drv.capture(drv.ids, id, may_stop);
 }
 
 

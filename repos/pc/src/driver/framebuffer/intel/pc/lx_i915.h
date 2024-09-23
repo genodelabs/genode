@@ -33,10 +33,12 @@ struct genode_mode {
 	char name[32];
 };
 
-int  lx_emul_i915_blit(unsigned);
+int  lx_emul_i915_blit(unsigned const connector_id, char const may_sleep);
+void lx_emul_i915_wakeup(unsigned connector_id);
 void lx_emul_i915_report_discrete(void * genode_xml);
 void lx_emul_i915_report_non_discrete(void * genode_xml);
 void lx_emul_i915_hotplug_connector(void);
+
 void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
                                    char const *name, char connected,
                                    unsigned brightness,
