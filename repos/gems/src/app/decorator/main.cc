@@ -60,16 +60,48 @@ struct Decorator::Main : Window_factory_base
 		Attached_dataspace              fb_ds;
 		Decorator::Canvas<Pixel_rgb888> canvas;
 
+		/*
+		 * The GUI connection's buffer is split into two parts. The upper
+		 * part contains the front buffer displayed by the GUI server
+		 * whereas the lower part contains the back buffer targeted by
+		 * the Decorator::Canvas.
+		 */
+		Framebuffer::Mode _mode_doubled() const
+		{
+			return { { .w = mode.area.w, .h = mode.area.h*2 } };
+		}
+
+		Pixel_rgb888 *_canvas_pixels_ptr()
+		{
+			return fb_ds.local_addr<Pixel_rgb888>() + mode.area.count();
+		}
+
 		Canvas(Env &env, Gui::Connection &gui)
 		:
 			mode(gui.mode()),
 			fb_ds(env.rm(),
-			      (gui.buffer(mode, false), gui.framebuffer.dataspace())),
-			canvas(fb_ds.local_addr<Pixel_rgb888>(), mode.area, env.ram(), env.rm())
+			      (gui.buffer(_mode_doubled(), false), gui.framebuffer.dataspace())),
+			canvas(_canvas_pixels_ptr(), mode.area, env.ram(), env.rm())
 		{ }
 	};
 
 	Reconstructible<Canvas> _canvas { _env, _gui };
+
+	void _back_to_front(Dirty_rect dirty)
+	{
+		if (!_canvas.constructed())
+			return;
+
+		Rect const canvas_rect { { }, _canvas->mode.area };
+
+		dirty.flush([&] (Rect const &r) {
+
+			Rect  const clipped = Rect::intersect(r, canvas_rect);
+			Point const from_p1 = clipped.p1() + Point { 0, int(canvas_rect.h()) };
+			Point const to_p1   = clipped.p1();
+
+			_gui.framebuffer.blit({ from_p1, clipped.area }, to_p1); });
+	}
 
 	Signal_handler<Main> _mode_handler { _env.ep(), *this, &Main::_handle_mode };
 
@@ -77,12 +109,13 @@ struct Decorator::Main : Window_factory_base
 	{
 		_canvas.construct(_env, _gui);
 
-		_window_stack.mark_as_dirty(Rect(Point(0, 0), _canvas->mode.area));
+		Area const canvas_area = _canvas->mode.area;
+
+		_window_stack.mark_as_dirty(Rect(Point(0, 0), canvas_area));
 
 		Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
 
-		dirty.flush([&] (Rect const &r) {
-			_gui.framebuffer.refresh(r); });
+		_back_to_front(dirty);
 	}
 
 	Window_stack _window_stack = { *this };
@@ -316,13 +349,10 @@ void Decorator::Main::_handle_gui_sync()
 	if (model_updated || windows_animated) {
 
 		Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
+		_back_to_front(dirty);
 
 		_window_stack.update_gui_views();
-
 		_gui.execute();
-
-		dirty.flush([&] (Rect const &r) {
-			_gui.framebuffer.refresh(r); });
 	}
 
 	/*
