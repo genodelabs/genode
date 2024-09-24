@@ -58,36 +58,21 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		Point        _position;
 		Area         _view_size;
-		Canvas_base *_canvas[2];
 		bool         _flip_state = { false };
 
 		Gui::Top_level_view _view { _gui, { _position, _view_size } };
-
-		void _update_viewport()
-		{
-			using Command = Gui::Session::Command;
-
-			Gui::Rect rect(_position, _view_size);
-			_gui.enqueue<Command::Geometry>(_view.id(), rect);
-
-			Gui::Point offset(0, _flip_state ? -_max_size.h : 0);
-			_gui.enqueue<Command::Offset>(_view.id(), offset);
-
-			_gui.execute();
-		}
-
-		void _refresh_view(Rect rect)
-		{
-			int const y_offset = _flip_state ? _max_size.h : 0;
-			_gui.framebuffer.refresh({ { rect.x1(), rect.y1() + y_offset },
-			                             rect.area });
-		}
 
 		template <typename PT>
 		PT *_base(unsigned idx)
 		{
 			return (PT *)_fb_ds.local_addr<PT>() + idx*_max_size.count();
 		}
+
+		using PT = Genode::Pixel_rgb888;
+
+		Canvas<PT> _canvas_0, _canvas_1;
+
+		Canvas_base *_canvas[2] { &_canvas_0, &_canvas_1 };
 
 		unsigned _front_idx() const { return _flip_state ? 1 : 0; }
 		unsigned  _back_idx() const { return _flip_state ? 0 : 1; }
@@ -108,15 +93,10 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 			_gui(gui),
 			_max_size(max_size),
 			_position(position),
-			_view_size(view_size)
-		{
-			using PT = Genode::Pixel_rgb888;
-			static Canvas<PT> canvas_0(_base<PT>(0), max_size, alloc);
-			static Canvas<PT> canvas_1(_base<PT>(1), max_size, alloc);
-
-			_canvas[0] = &canvas_0;
-			_canvas[1] = &canvas_1;
-		}
+			_view_size(view_size),
+			_canvas_0(_base<PT>(0), max_size, alloc),
+			_canvas_1(_base<PT>(1), max_size, alloc)
+		{ }
 
 
 		/********************************
@@ -128,34 +108,22 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		void copy_back_to_front(Rect rect) override
 		{
+			Point const from = rect.p1() + Point { 0, int( _back_idx()*_max_size.h) };
+			Point const to   = rect.p1() + Point { 0, int(_front_idx()*_max_size.h) };
 
-			using PT = Genode::Pixel_rgb888;
-
-			PT const *src = _base<PT>( _back_idx());
-			PT       *dst = _base<PT>(_front_idx());
-
-			unsigned long const offset = rect.y1()*_max_size.w + rect.x1();
-
-			src += offset;
-			dst += offset;
-
-			blit(src, (unsigned)sizeof(PT)*_max_size.w, dst,
-			     (int)sizeof(PT)*_max_size.w,
-			     (int)sizeof(PT)*rect.w(), rect.h());
-
-			_refresh_view(rect);
+			_gui.framebuffer.blit({ from, rect.area }, to);
 		}
 
 		void swap_back_and_front() override
 		{
 			_flip_state = !_flip_state;
-			_update_viewport();
+			_gui.framebuffer.panning({ 0, int(_front_idx()*_max_size.h) });
 		}
 
 		void position(Point p) override
 		{
 			_position = p;
-			_update_viewport();
+			_view.at(p);
 		}
 
 		void bring_to_front() override
@@ -166,6 +134,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 		void view_area(Area area) override
 		{
 			_view_size = area;
+			_view.area(area);
 		}
 };
 
