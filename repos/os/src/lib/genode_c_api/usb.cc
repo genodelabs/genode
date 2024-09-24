@@ -112,6 +112,15 @@ struct Reg_list
 				fn(e->_object);
 			}
 		}
+
+		void apply(auto const &condition, auto const & fn)
+		{
+			for (Element *e = _elements.first(); e; e = e->next())
+				if (condition(e->_object)) {
+					fn(e->_object);
+					return;
+				}
+		}
 };
 
 
@@ -907,8 +916,11 @@ Device_component::_handle_request(Constructible<Packet_descriptor> &cpd,
 		granted = true;
 		break;
 	case P::SET_INTERFACE:
-		_interfaces.for_each([&] (Interface_component & ic) {
-			if (ic._iface_idx == cpd->index) granted = true; });
+		_interfaces.apply(
+			[&] (Interface_component & ic) {
+				return ic._iface_idx == cpd->index;
+			},
+			[&] (Interface_component &) { granted = true; });
 		if (granted) break;
 		[[fallthrough]];
 	default: granted = _controls;
@@ -947,8 +959,10 @@ void Device_component::release_interface(Interface_capability cap)
 	if (!cap.valid())
 		return;
 
-	_interfaces.for_each([&] (Interface_component & ic) {
-		if (cap.local_name() == ic.cap().local_name())
+	_interfaces.apply(
+		[&] (Interface_component & ic) {
+			return cap.local_name() == ic.cap().local_name(); },
+		[&] (Interface_component & ic) {
 			destroy(_heap, &ic); });
 }
 
@@ -958,8 +972,10 @@ bool Device_component::request(genode_usb_req_callback_t const callback,
 {
 	bool ret = false;
 
-	_interfaces.for_each([&] (Interface_component & ic) {
-		if (ic.request(callback, opaque_data)) ret = true; });
+	_interfaces.apply(
+		[&] (Interface_component & ic) {
+			return ic.request(callback, opaque_data); },
+		[&] (Interface_component &) { ret = true; });
 
 	return ret ? ret : Base::request(callback, opaque_data);
 }
@@ -1003,10 +1019,11 @@ Device_component::handle_response(genode_usb_request_handle_t handle,
 		[&] (Packet_error) {});
 
 	if (!ret)
-		_interfaces.for_each([&] (Interface_component & ic) {
-			if (ret) return;
-			if (ic.handle_response(handle, value, actual_sizes)) ret = true;
-		});
+		_interfaces.apply(
+			[&] (Interface_component & ic) {
+				return ic.handle_response(handle, value, actual_sizes); },
+			[&] (Interface_component &) {
+				ret = true; });
 
 	return ret;
 }
@@ -1143,12 +1160,13 @@ void Session_component::_release(Device_component &dc)
 	genode_usb_device::Label name = dc._device_label;
 	destroy(_heap, &dc);
 
-	_devices.for_each([&] (genode_usb_device & device) {
-		if (device.label() != name)
-			return;
-		_sessions.for_each([&] (Session_component &sc) {
-			if (sc._matches(device)) sc.update_devices_rom(); });
-		_root.report();
+	_devices.apply(
+		[&] (genode_usb_device & device) {
+			return device.label() == name; },
+		[&] (genode_usb_device & device) {
+			_sessions.for_each([&] (Session_component &sc) {
+				if (sc._matches(device)) sc.update_devices_rom(); });
+			_root.report();
 	});
 }
 
@@ -1157,22 +1175,24 @@ void Session_component::set_interface(genode_usb_device::Label label,
                                       uint16_t num, uint16_t alt)
 {
 	bool changed = false;
-	_devices.for_each([&] (genode_usb_device & d) {
-		if (d.label() != label)
-			return;
-		d.configs.for_each([&] (genode_usb_configuration & c) {
-			if (!c.active)
-				return;
-			c.interfaces.for_each([&] (genode_usb_interface & i) {
-				if (i.desc.number != num)
-					return;
-
-				if (i.active != (i.desc.alt_settings == alt)) {
-					i.active = (i.desc.alt_settings == alt);
-					changed = true;
-				}
+	_devices.apply(
+		[&] (genode_usb_device & d) {
+			return d.label() == label; },
+		[&] (genode_usb_device & d) {
+			d.configs.apply(
+				[&] (genode_usb_configuration & c) {
+					return c.active; },
+				[&] (genode_usb_configuration & c) {
+					c.interfaces.apply(
+						[&] (genode_usb_interface & i) {
+							return i.desc.number == num; },
+						[&] (genode_usb_interface & i) {
+							if (i.active != (i.desc.alt_settings == alt)) {
+								i.active = (i.desc.alt_settings == alt);
+								changed = true;
+							}
+					});
 			});
-		});
 	});
 
 	if (changed) {
@@ -1186,15 +1206,17 @@ void Session_component::set_configuration(genode_usb_device::Label label,
                                           uint16_t num)
 {
 	bool changed = false;
-	_devices.for_each([&] (genode_usb_device & d) {
-		if (d.label() != label)
-			return;
-		d.configs.for_each([&] (genode_usb_configuration & c) {
-			if (c.active != (c.desc.config_value == num)) {
-				c.active = (c.desc.config_value == num);
-				changed = true;
-			}
-		});
+	_devices.apply(
+		[&] (genode_usb_device & d) {
+			return d.label() == label; },
+		[&] (genode_usb_device & d) {
+			d.configs.apply(
+				[&] (genode_usb_configuration & c) {
+					return c.active != (c.desc.config_value == num); },
+				[&] (genode_usb_configuration & c) {
+					c.active = (c.desc.config_value == num);
+					changed = true;
+			});
 	});
 
 	if (changed) {
@@ -1211,18 +1233,19 @@ bool Session_component::matches(genode_usb_device::Label label, uint8_t iface)
 	 * all interfaces are allowed, otherwise check for the iface number
 	 */
 	bool ret = false;
-	_devices.for_each([&] (genode_usb_device const & d) {
-		if (d.label() != label)
-			return;
-		_device_policy(d, [&] (Xml_node dev_node) {
-			if (!dev_node.has_sub_node("interface"))
-				ret = true;
-			else
-				dev_node.for_each_sub_node("interface", [&] (Xml_node & node) {
-					if (node.attribute_value<uint8_t>("number", 255) == iface)
-						ret = true;
-				});
-		});
+	_devices.apply(
+		[&] (genode_usb_device const & d) {
+			return d.label() == label; },
+		[&] (genode_usb_device const & d) {
+			_device_policy(d, [&] (Xml_node dev_node) {
+				if (!dev_node.has_sub_node("interface"))
+					ret = true;
+				else
+					dev_node.for_each_sub_node("interface", [&] (Xml_node & node) {
+						if (node.attribute_value<uint8_t>("number", 255) == iface)
+							ret = true;
+					});
+			});
 	});
 	return ret;
 }
@@ -1232,17 +1255,21 @@ template <typename FN>
 void Session_component::for_each_ep(genode_usb_device::Label label,
                                     uint8_t iface_idx, FN const & fn)
 {
-	_devices.for_each([&] (genode_usb_device const & d) {
-		if (d.label() != label)
-			return;
-		d.configs.for_each([&] (genode_usb_configuration const & cfg) {
-			if (!cfg.active)
-				return;
-			cfg.interfaces.for_each([&] (genode_usb_interface const & iface) {
-				if (iface.desc.number == iface_idx)
-					iface.endpoints.for_each(fn);
+	_devices.apply(
+		[&] (genode_usb_device const & d) {
+			return d.label() == label; },
+		[&] (genode_usb_device & d) {
+			d.configs.apply(
+				[&] (genode_usb_configuration const & cfg) {
+					return cfg.active; },
+				[&] (genode_usb_configuration & cfg) {
+					cfg.interfaces.apply(
+						[&] (genode_usb_interface const & iface) {
+							return iface.desc.number == iface_idx; },
+						[&] (genode_usb_interface const & iface) {
+							iface.endpoints.for_each(fn);
+					});
 			});
-		});
 	});
 }
 
@@ -1255,11 +1282,12 @@ void Session_component::announce_device(genode_usb_device const & device)
 
 void Session_component::discontinue_device(genode_usb_device const & device)
 {
-	_device_sessions.for_each([&] (Device_component & dc) {
-		if (dc._device_label != device.label())
-			return;
-		dc.disconnect();
-		update_devices_rom();
+	_device_sessions.apply(
+		[&] (Device_component & dc) {
+			return dc._device_label == device.label(); },
+		[&] (Device_component & dc) {
+			dc.disconnect();
+			update_devices_rom();
 	});
 }
 
@@ -1267,13 +1295,14 @@ void Session_component::discontinue_device(genode_usb_device const & device)
 void Session_component::update_policy()
 {
 	_device_sessions.for_each([&] (Device_component & dc) {
-		_devices.for_each([&] (genode_usb_device const & device) {
-			if (device.label() != dc._device_label)
-				return;
-			if (!_matches(device)) {
-				dc.disconnect();
-				_release_fn(device.bus, device.dev);
-			}
+		_devices.apply(
+			[&] (genode_usb_device const & device) {
+				return device.label() == dc._device_label; },
+			[&] (genode_usb_device const & device) {
+				if (!_matches(device)) {
+					dc.disconnect();
+					_release_fn(device.bus, device.dev);
+				}
 		});
 	});
 	update_devices_rom();
@@ -1298,8 +1327,11 @@ bool Session_component::acquired(genode_usb_device const &dev)
 		return false;
 
 	bool ret = false;
-	_device_sessions.for_each([&] (Device_component & dc) {
-		if (dc._device_label == dev.label()) ret = dc.connected(); });
+	_device_sessions.apply(
+		[&] (Device_component & dc) {
+			return dc._device_label == dev.label(); },
+		[&] (Device_component & dc) {
+			ret = dc.connected(); });
 	return ret;
 }
 
@@ -1309,10 +1341,11 @@ bool Session_component::request(genode_usb_device         const &dev,
                                 void                            *opaque_data)
 {
 	bool ret = false;
-	_device_sessions.for_each([&] (Device_component & dc) {
-		if (dc._device_label == dev.label())
-			if (dc.request(callback, opaque_data)) ret = true;
-	});
+	_device_sessions.apply(
+		[&] (Device_component & dc) {
+			return dc._device_label == dev.label(); },
+		[&] (Device_component & dc) {
+			if (dc.request(callback, opaque_data)) ret = true; });
 	return ret;
 }
 
@@ -1323,8 +1356,10 @@ Session_component::handle_response(genode_usb_request_handle_t handle,
                                    uint32_t                   *actual_sizes)
 {
 	bool handled = false;
-	_device_sessions.for_each([&] (Device_component & dc) {
-		if (!handled) handled = dc.handle_response(handle, v, actual_sizes); });
+	_device_sessions.apply(
+		[&] (Device_component & dc) {
+			return dc.handle_response(handle, v, actual_sizes); },
+		[&] (Device_component &) { handled = true; });
 	return handled;
 }
 
@@ -1341,23 +1376,27 @@ Device_capability Session_component::acquire_device(Device_name const &name)
 	Device_capability cap;
 	bool found = false;
 
-	_devices.for_each([&] (genode_usb_device & device) {
-		if (device.label() != name || !_matches(device))
-			return;
+	_devices.apply(
+		[&] (genode_usb_device & device) {
+			return device.label() == name && _matches(device); },
 
-		found = true;
-		_sessions.for_each([&] (Session_component &sc) {
-			if (sc.acquired(device)) found = false; });
+		[&] (genode_usb_device & device) {
+			found = true;
+			_sessions.apply(
+				[&] (Session_component &sc) {
+					return sc.acquired(device); },
+				[&] (Session_component &) {
+					found = false; });
 
-		if (!found) {
-			warning("USB device ", name,
-			        "already acquired by another session");
-		}
+			if (!found) {
+				warning("USB device ", name,
+				        "already acquired by another session");
+			}
 
-		cap = _acquire(device.label(), true);
-		_sessions.for_each([&] (Session_component &sc) {
-			if (sc._matches(device)) sc.update_devices_rom(); });
-		_root.report();
+			cap = _acquire(device.label(), true);
+			_sessions.for_each([&] (Session_component &sc) {
+				if (sc._matches(device)) sc.update_devices_rom(); });
+			_root.report();
 	});
 
 	if (!found)
@@ -1371,21 +1410,25 @@ Device_capability Session_component::acquire_device(Device_name const &name)
 Device_capability Session_component::acquire_single_device()
 {
 	Device_capability cap;
-	_devices.for_each([&] (genode_usb_device & device) {
-		if (cap.valid() || !_matches(device))
-			return;
+	_devices.apply(
+		[&] (genode_usb_device & device) {
+			return !cap.valid() && _matches(device); },
+		[&] (genode_usb_device & device) {
 
-		bool acquired = false;
-		_sessions.for_each([&] (Session_component &sc) {
-			if (sc.acquired(device)) acquired = true; });
+			bool acquired = false;
+			_sessions.apply(
+				[&] (Session_component &sc) {
+					return sc.acquired(device); },
+				[&] (Session_component &) {
+					acquired = true; });
 
-		if (acquired)
-			return;
+			if (acquired)
+				return;
 
-		cap = _acquire(device.label(), true);
-		_sessions.for_each([&] (Session_component &sc) {
-			if (sc._matches(device)) sc.update_devices_rom(); });
-		_root.report();
+			cap = _acquire(device.label(), true);
+			_sessions.for_each([&] (Session_component &sc) {
+				if (sc._matches(device)) sc.update_devices_rom(); });
+			_root.report();
 	});
 	return cap;
 }
@@ -1396,8 +1439,10 @@ void Session_component::release_device(Device_capability cap)
 	if (!cap.valid())
 		return;
 
-	_device_sessions.for_each([&] (Device_component & dc) {
-		if (cap.local_name() == dc.cap().local_name())
+	_device_sessions.apply(
+		[&] (Device_component & dc) {
+			return cap.local_name() == dc.cap().local_name(); },
+		[&] (Device_component & dc) {
 			_release(dc); });
 }
 
@@ -1409,8 +1454,10 @@ void Session_component::produce_xml(Xml_generator &xml)
 			return;
 
 		bool acquired_by_other_session = false;
-		_sessions.for_each([&] (Session_component &sc) {
-			if (sc.acquired(device) && &sc != this)
+		_sessions.apply(
+			[&] (Session_component &sc) {
+				return sc.acquired(device) && &sc != this; },
+			[&] (Session_component &) {
 				acquired_by_other_session = true;
 		});
 		if (acquired_by_other_session)
@@ -1458,8 +1505,10 @@ Session_component::~Session_component()
 {
 	_state = IN_DESTRUCTION;
 	_device_sessions.for_each([&] (Device_component & dc) {
-		_devices.for_each([&] (genode_usb_device & device) {
-			if (device.label() == dc._device_label)
+		_devices.apply(
+			[&] (genode_usb_device & device) {
+				return device.label() == dc._device_label; },
+			[&] (genode_usb_device & device) {
 				_release_fn(device.bus, device.dev); });
 
 		_release(dc);
@@ -1507,8 +1556,11 @@ void ::Root::report()
 	_device_reporter->generate([&] (Reporter::Xml_generator &xml) {
 		_devices.for_each([&] (genode_usb_device & d) {
 			bool acquired = false;
-			_sessions.for_each([&] (Session_component &sc) {
-				if (sc.acquired(d)) acquired = true; });
+			_sessions.apply(
+				[&] (Session_component &sc) {
+					return sc.acquired(d); },
+				[&] (Session_component &) {
+					acquired = true; });
 			d.generate(xml, acquired);
 		});
 	});
@@ -1627,23 +1679,23 @@ void ::Root::announce_device(genode_usb_bus_num_t         bus,
 void ::Root::discontinue_device(genode_usb_bus_num_t bus,
                                 genode_usb_dev_num_t dev)
 {
-	_devices.for_each([&] (genode_usb_device & device)
-	{
-		if (device.bus != bus || device.dev != dev)
-			return;
+	_devices.apply(
+		[&] (genode_usb_device & device) {
+			return device.bus == bus && device.dev == dev; },
 
-		_sessions.for_each([&] (Session_component & sc) {
-			sc.discontinue_device(device); });
+		[&] (genode_usb_device & device) {
+			_sessions.for_each([&] (Session_component & sc) {
+				sc.discontinue_device(device); });
 
-		device.configs.for_each([&] (genode_usb_configuration & cfg) {
-			cfg.interfaces.for_each([&] (genode_usb_interface & iface) {
-				iface.endpoints.for_each([&] (genode_usb_endpoint & endp) {
-					Genode::destroy(_heap, &endp); });
-				Genode::destroy(_heap, &iface);
+			device.configs.for_each([&] (genode_usb_configuration & cfg) {
+				cfg.interfaces.for_each([&] (genode_usb_interface & iface) {
+					iface.endpoints.for_each([&] (genode_usb_endpoint & endp) {
+						Genode::destroy(_heap, &endp); });
+					Genode::destroy(_heap, &iface);
+				});
+				Genode::destroy(_heap, &cfg);
 			});
-			Genode::destroy(_heap, &cfg);
-		});
-		Genode::destroy(_heap, &device);
+			Genode::destroy(_heap, &device);
 	});
 	report();
 }
@@ -1652,10 +1704,15 @@ void ::Root::discontinue_device(genode_usb_bus_num_t bus,
 bool ::Root::acquired(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev)
 {
 	bool ret = false;
-	_devices.for_each([&] (genode_usb_device & device) {
-		if (device.bus == bus && device.dev == dev)
-			_sessions.for_each([&] (Session_component & sc) {
-				if (sc.acquired(device)) ret = true; });
+	_devices.apply(
+		[&] (genode_usb_device & device) {
+			return device.bus == bus && device.dev == dev; },
+		[&] (genode_usb_device & device) {
+			_sessions.apply(
+				[&] (Session_component & sc) {
+					return sc.acquired(device); },
+				[&] (Session_component &) {
+					ret = true; });
 	});
 	return ret;
 }
@@ -1667,13 +1724,15 @@ bool ::Root::request(genode_usb_bus_num_t            bus,
                      void                           *opaque_data)
 {
 	bool ret = false;
-	_devices.for_each([&] (genode_usb_device & device)
-	{
-		if (device.bus != bus || device.dev != dev)
-			return;
+	_devices.apply(
+		[&] (genode_usb_device & device) {
+			return device.bus == bus && device.dev == dev; },
 
-		_sessions.for_each([&] (Session_component & sc) {
-			if (sc.request(device, callback, opaque_data)) ret = true; });
+		[&] (genode_usb_device & device) {
+			_sessions.apply(
+				[&] (Session_component & sc) {
+					return sc.request(device, callback, opaque_data); },
+				[&] (Session_component &) { ret = true; });
 	});
 	return ret;
 }
@@ -1683,10 +1742,10 @@ void ::Root::handle_response(genode_usb_request_handle_t id,
                              genode_usb_request_ret_t    ret,
                              uint32_t                   *actual_sizes)
 {
-	bool handled = false;
-	_sessions.for_each([&] (Session_component & sc) {
-		if (!handled) handled = sc.handle_response(id, ret, actual_sizes);
-	});
+	_sessions.apply(
+		[&] (Session_component & sc) {
+			return sc.handle_response(id, ret, actual_sizes); },
+		[&] (Session_component &) { });
 }
 
 
