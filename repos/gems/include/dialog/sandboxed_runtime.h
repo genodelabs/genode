@@ -102,7 +102,7 @@ class Dialog::Sandboxed_runtime : Noncopyable
 		{
 			Start_name const name;
 			Ram_quota  const initial_ram  { 4*1024*1024 };
-			Cap_quota  const initial_caps { 100 };
+			Cap_quota  const initial_caps { 130 };
 
 			Ram_quota ram  = initial_ram;
 			Cap_quota caps = initial_caps;
