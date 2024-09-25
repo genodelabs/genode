@@ -22,6 +22,8 @@ namespace Genode {
 
 	class Surface_base;
 	template <typename> class Surface;
+
+	struct Surface_window { unsigned y, h; };
 }
 
 
@@ -133,6 +135,23 @@ class Genode::Surface : public Surface_base
 		 */
 		Surface(PT *addr, Area size)
 		: Surface_base(size, PT::format()), _addr(addr) { }
+
+		/**
+		 * Call 'fn' with a sub-window surface as argument
+		 *
+		 * This method is useful for managing multiple surfaces within one
+		 * larger surface, for example for organizing a back buffer and a front
+		 * buffer within one virtual framebuffer.
+		 */
+		void with_window(Surface_window const win, auto const &fn) const
+		{
+			/* clip window coordinates against surface boundaries */
+			Rect const rect = Rect::intersect({ { 0, 0 },          { 1, size().h } },
+			                                  { { 0, int(win.y) }, { 1, win.h    } });
+
+			Surface surface { _addr + rect.y1()*size().w, { size().w, rect.h() } };
+			fn(surface);
+		}
 };
 
 #endif /* _INCLUDE__OS__SURFACE_H_ */
