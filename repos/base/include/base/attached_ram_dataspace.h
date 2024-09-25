@@ -163,6 +163,11 @@ class Genode::Attached_ram_dataspace
 
 			_alloc_and_attach();
 		}
+
+		/**
+		 * Return byte range of locally mapped dataspace
+		 */
+		Byte_range_ptr bytes() const { return { local_addr<char>(), size() }; }
 };
 
 #endif /* _INCLUDE__BASE__ATTACHED_RAM_DATASPACE_H_ */

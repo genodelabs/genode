@@ -54,12 +54,6 @@ class Genode::Attached_dataspace : Noncopyable
 				[&] (Region_map::Attach_error) { return nullptr; });
 		}
 
-		/*
-		 * Noncopyable
-		 */
-		Attached_dataspace(Attached_dataspace const &);
-		Attached_dataspace &operator = (Attached_dataspace const &);
-
 	public:
 
 		/**
@@ -117,6 +111,11 @@ class Genode::Attached_dataspace : Noncopyable
 				[&] (Region_map::Range range)  { return range.num_bytes; },
 				[&] (Region_map::Attach_error) { return 0UL; });
 		}
+
+		/**
+		 * Return byte range of locally mapped dataspace
+		 */
+		Byte_range_ptr bytes() const { return { _ptr<char>(), size() }; }
 
 		/**
 		 * Forget dataspace, thereby skipping the detachment on destruction
