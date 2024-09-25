@@ -46,7 +46,7 @@ class Genode::Surface_base : Interface
 		using Point = Rect::Point;
 		using Area  = Rect::Area;
 
-		enum Pixel_format { UNKNOWN, RGB565, RGB888, ALPHA8 };
+		enum Pixel_format { UNKNOWN, RGB565, RGB888, ALPHA8, INPUT8 };
 
 		struct Flusher : Interface
 		{

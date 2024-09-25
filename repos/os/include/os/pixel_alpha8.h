@@ -18,9 +18,11 @@
 
 namespace Genode {
 
-	using Pixel_alpha8 = Genode::Pixel_rgba<uint8_t, Genode::Surface_base::ALPHA8,
-	                                        0, 0, 0, 0, 0, 0, 0xff, 0>;
+	using Pixel_alpha8 = Pixel_rgba<uint8_t, Surface_base::ALPHA8,
+	                                0, 0, 0, 0, 0, 0, 0xff, 0>;
 
+	using Pixel_input8 = Pixel_rgba<uint8_t, Surface_base::INPUT8,
+	                                0, 0, 0, 0, 0, 0, 0xff, 0>;
 
 	/*
 	 * The second pixel parameter is ignored. It can be of any pixel type.
