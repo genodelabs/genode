@@ -105,8 +105,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		 */
 		unsigned char const *_input_mask = nullptr;
 
-		bool _uses_alpha = false;
-		bool _visible    = true;
+		bool _visible = true;
 
 		Sliced_heap _session_alloc;
 
@@ -284,7 +283,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		View const *background() const override { return _background; }
 
-		bool uses_alpha() const override { return _texture.valid() && _uses_alpha; }
+		bool uses_alpha() const override { return _texture.alpha(); }
 
 		unsigned layer() const override { return _domain ? _domain->layer() : ~0U; }
 
@@ -407,7 +406,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		void mode_sigh(Signal_context_capability sigh) override { _mode_sigh = sigh; }
 
-		Buffer_result buffer(Framebuffer::Mode, bool) override;
+		Buffer_result buffer(Framebuffer::Mode) override;
 
 		void focus(Capability<Gui::Session>) override;
 
@@ -416,7 +415,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		 ** Buffer_provider interface **
 		 *******************************/
 
-		Dataspace_capability realloc_buffer(Framebuffer::Mode mode, bool use_alpha) override;
+		Dataspace_capability realloc_buffer(Framebuffer::Mode mode) override;
 
 		void blit(Rect from, Point to) override { _texture.blit(from, to); }
 

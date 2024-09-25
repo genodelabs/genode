@@ -1170,7 +1170,8 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			 * mode
 			 */
 			if (_resize_requested)
-				return Framebuffer::Mode { .area = _requested_size };
+				return Framebuffer::Mode { .area  = _requested_size,
+				                           .alpha = real_mode.alpha };
 
 			/*
 			 * If the first top-level view has a defined size, use it
@@ -1178,7 +1179,8 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			 */
 			if (Top_level_view const *v = _top_level_views.first())
 				if (v->size().valid())
-					return Framebuffer::Mode { .area = v->size() };
+					return Framebuffer::Mode { .area  = v->size(),
+					                           .alpha = real_mode.alpha};
 
 			/*
 			 * If top-level view has yet been defined, return the real mode.
@@ -1200,7 +1202,7 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 				v->resizeable(resizeable);
 		}
 
-		Buffer_result buffer(Framebuffer::Mode mode, bool has_alpha) override
+		Buffer_result buffer(Framebuffer::Mode mode) override
 		{
 			/*
 			 * We must not perform the 'buffer' operation on the connection
@@ -1211,9 +1213,9 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			 * wrapped GUI session. Otherwise, we would perform session
 			 * upgrades initiated by the wm client's buffer operation twice.
 			 */
-			_has_alpha = has_alpha;
+			_has_alpha = mode.alpha;
 
-			Buffer_result const result = _real_gui.session.buffer(mode, has_alpha);
+			Buffer_result const result = _real_gui.session.buffer(mode);
 
 			_window_registry.flush();
 			return result;

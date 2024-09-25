@@ -384,21 +384,22 @@ Framebuffer::Mode Gui_session::mode()
 	 * the special case of 0x0, which can happen at boot time before the
 	 * framebuffer driver is running.
 	 */
-	return { .area = { max(screen.w, 1u), max(screen.h, 1u) } };
+	return { .area  = { max(screen.w, 1u), max(screen.h, 1u) },
+	         .alpha = uses_alpha() };
 }
 
 
-Gui_session::Buffer_result Gui_session::buffer(Framebuffer::Mode mode, bool use_alpha)
+Gui_session::Buffer_result Gui_session::buffer(Framebuffer::Mode mode)
 {
 	/* check if the session quota suffices for the specified mode */
-	if (_buffer_size + _ram_quota_guard().avail().value < ram_quota(mode, use_alpha))
+	if (_buffer_size + _ram_quota_guard().avail().value < ram_quota(mode))
 		return Buffer_result::OUT_OF_RAM;
 
 	/* buffer re-allocation may consume new dataspace capability if buffer is new */
 	if (_cap_quota_guard().avail().value < 1)
 		throw Buffer_result::OUT_OF_CAPS;
 
-	_framebuffer_session_component.notify_mode_change(mode, use_alpha);
+	_framebuffer_session_component.notify_mode_change(mode);
 	return Buffer_result::OK;
 }
 
@@ -418,9 +419,9 @@ void Gui_session::focus(Capability<Gui::Session> session_cap)
 }
 
 
-Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode, bool use_alpha)
+Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode)
 {
-	Ram_quota const next_buffer_size { Chunky_texture<Pixel>::calc_num_bytes(mode.area, use_alpha) };
+	Ram_quota const next_buffer_size { Chunky_texture<Pixel>::calc_num_bytes(mode) };
 	Ram_quota const orig_buffer_size { _buffer_size };
 
 	/*
@@ -439,7 +440,6 @@ Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode, bool us
 	}
 
 	_buffer_size = 0;
-	_uses_alpha  = false;
 	_input_mask  = nullptr;
 
 	Ram_quota const temporary_ram_upgrade = _texture.valid()
@@ -447,7 +447,7 @@ Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode, bool us
 
 	_ram_quota_guard().upgrade(temporary_ram_upgrade);
 
-	if (!_texture.try_construct_next(_env.ram(), _env.rm(), mode.area, use_alpha)) {
+	if (!_texture.try_construct_next(_env.ram(), _env.rm(), mode)) {
 		_texture.release_current();
 		replenish(orig_buffer_size);
 		_ram_quota_guard().try_downgrade(temporary_ram_upgrade);
@@ -470,7 +470,6 @@ Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode, bool us
 	}
 
 	_buffer_size = next_buffer_size.value;
-	_uses_alpha  = use_alpha;
 	_input_mask  = _texture.input_mask_buffer();
 
 	return _texture.dataspace();

@@ -45,8 +45,6 @@ struct Gui_buffer : Genode::Noncopyable
 
 	Framebuffer::Mode const mode;
 
-	bool const use_alpha;
-
 	Pixel_rgb888 const reset_color;
 
 	/**
@@ -58,7 +56,8 @@ struct Gui_buffer : Genode::Noncopyable
 		 * Setup virtual framebuffer, the upper part containing the front
 		 * buffer, the lower part containing the back buffer.
 		 */
-		gui.buffer({ .area = { mode.area.w, mode.area.h*2 } }, use_alpha);
+		gui.buffer({ .area  = { mode.area.w, mode.area.h*2 },
+		             .alpha = mode.alpha });
 
 		return gui.framebuffer.dataspace();
 	}
@@ -66,8 +65,8 @@ struct Gui_buffer : Genode::Noncopyable
 	Genode::Attached_dataspace _fb_ds { rm, _ds_cap(gui) };
 
 	size_t _pixel_num_bytes() const { return size().count()*sizeof(Pixel_rgb888); }
-	size_t _alpha_num_bytes() const { return use_alpha ? size().count() : 0; }
-	size_t _input_num_bytes() const { return use_alpha ? size().count() : 0; }
+	size_t _alpha_num_bytes() const { return mode.alpha ? size().count() : 0; }
+	size_t _input_num_bytes() const { return mode.alpha ? size().count() : 0; }
 
 	void _with_pixel_ptr(auto const &fn)
 	{
@@ -78,7 +77,7 @@ struct Gui_buffer : Genode::Noncopyable
 
 	void _with_alpha_ptr(auto const &fn)
 	{
-		if (!use_alpha)
+		if (!mode.alpha)
 			return;
 
 		/* skip pixel front buffer, pixel back buffer, and alpha front buffer */
@@ -89,7 +88,7 @@ struct Gui_buffer : Genode::Noncopyable
 
 	void _with_input_ptr(auto const &fn)
 	{
-		if (!use_alpha)
+		if (!mode.alpha)
 			return;
 
 		/* skip pixel buffers, alpha buffers, and input front buffer */
@@ -120,8 +119,8 @@ struct Gui_buffer : Genode::Noncopyable
 	:
 		ram(ram), rm(rm), gui(gui),
 		mode({ .area = { Genode::max(1U, size.w),
-		                 Genode::max(1U, size.h) } }),
-		use_alpha(alpha == Alpha::ALPHA),
+		                 Genode::max(1U, size.h) },
+		       .alpha = (alpha == Alpha::ALPHA) }),
 		reset_color(reset_color.r, reset_color.g, reset_color.b, reset_color.a)
 	{
 		reset_surface();

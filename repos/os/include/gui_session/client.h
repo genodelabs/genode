@@ -59,8 +59,8 @@ struct Gui::Session_client : Rpc_client<Session>
 	void mode_sigh(Signal_context_capability sigh) override {
 		call<Rpc_mode_sigh>(sigh); }
 
-	[[nodiscard]] Buffer_result buffer(Framebuffer::Mode mode, bool alpha) override {
-		return call<Rpc_buffer>(mode, alpha); }
+	[[nodiscard]] Buffer_result buffer(Framebuffer::Mode mode) override {
+		return call<Rpc_buffer>(mode); }
 
 	void focus(Gui::Session_capability session) override {
 		call<Rpc_focus>(session); }

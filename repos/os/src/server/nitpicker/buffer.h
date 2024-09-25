@@ -61,11 +61,11 @@ namespace Nitpicker { struct Buffer_provider; }
 /**
  * Interface for triggering the re-allocation of a virtual framebuffer
  *
- * Used by 'Framebuffer::Session_component', * implemented by 'Gui_session'
+ * Used by 'Framebuffer::Session_component', implemented by 'Gui_session'
  */
 struct Nitpicker::Buffer_provider : Interface
 {
-	virtual Dataspace_capability realloc_buffer(Framebuffer::Mode, bool use_alpha) = 0;
+	virtual Dataspace_capability realloc_buffer(Framebuffer::Mode) = 0;
 
 	virtual void blit(Rect from, Point to) = 0;
 

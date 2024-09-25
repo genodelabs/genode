@@ -114,9 +114,9 @@ class Wm::Direct_gui_session : public Session_object<Gui::Session>
 			_session.mode_sigh(sigh);
 		}
 
-		Buffer_result buffer(Framebuffer::Mode mode, bool use_alpha) override
+		Buffer_result buffer(Framebuffer::Mode mode) override
 		{
-			return _session.buffer(mode, use_alpha);
+			return _session.buffer(mode);
 		}
 
 		void focus(Capability<Gui::Session> session) override

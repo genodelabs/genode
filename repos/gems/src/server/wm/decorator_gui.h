@@ -331,9 +331,9 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 		_real_gui.session.mode_sigh(sigh);
 	}
 
-	Buffer_result buffer(Framebuffer::Mode mode, bool use_alpha) override
+	Buffer_result buffer(Framebuffer::Mode mode) override
 	{
-		return _real_gui.session.buffer(mode, use_alpha);
+		return _real_gui.session.buffer(mode);
 	}
 
 	void focus(Capability<Gui::Session>) override { }

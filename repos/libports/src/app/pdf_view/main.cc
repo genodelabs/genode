@@ -87,8 +87,6 @@ class Pdf_view
 
 	private:
 
-		enum { NO_ALPHA = false };
-
 		Genode::Env &_env;
 
 		Gui::Connection _gui { _env };
@@ -118,8 +116,8 @@ class Pdf_view
 			unsigned max_y = Genode::max(_nit_mode.area.h, _fb_mode.area.h);
 
 			if (max_x > _fb_mode.area.w || max_y > _fb_mode.area.h) {
-				_fb_mode = Mode { .area = { max_x, max_y } };
-				_gui.buffer(_fb_mode, NO_ALPHA);
+				_fb_mode = Mode { .area = { max_x, max_y }, .alpha = false };
+				_gui.buffer(_fb_mode);
 				if (_fb_ds.constructed())
 					_fb_ds.destruct();
 				_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());

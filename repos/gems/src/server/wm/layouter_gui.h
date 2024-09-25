@@ -107,7 +107,7 @@ struct Wm::Layouter_gui_session : Session_object<Gui::Session>
 		_mode_sigh_gui.mode_sigh(sigh);
 	}
 
-	Buffer_result buffer(Framebuffer::Mode, bool) override { return Buffer_result::OK; }
+	Buffer_result buffer(Framebuffer::Mode) override { return Buffer_result::OK; }
 
 	void focus(Capability<Gui::Session>) override { }
 };

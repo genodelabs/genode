@@ -47,14 +47,15 @@ class Nitpicker::Resizeable_texture
 			               : Area { };
 		}
 
+		bool alpha() const { return valid() && _textures[_current]->alpha(); }
+
 		void release_current() { _textures[_current].destruct(); }
 
-		bool try_construct_next(Ram_allocator &ram, Region_map &rm,
-		                        Area size, bool use_alpha)
+		bool try_construct_next(Ram_allocator &ram, Region_map &rm, Framebuffer::Mode mode)
 		{
 			try {
 				unsigned const next = !_current;
-				_textures[next].construct(ram, rm, size, use_alpha);
+				_textures[next].construct(ram, rm, mode);
 				return true;
 			} catch (...) { }
 			return false;

@@ -124,7 +124,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	{
 		/* calculation in bytes */
 		size_t const used      = _buffer_num_bytes,
-		             needed    = Gui::Session::ram_quota(mode, false),
+		             needed    = Gui::Session::ram_quota(mode),
 		             usable    = _pd.avail_ram().value,
 		             preserved = 64*1024;
 
@@ -157,7 +157,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 		if (Gui::Area(_next_mode.area.w, _next_mode.area.h) == size)
 			return;
 
-		Framebuffer::Mode const mode { .area = size };
+		Framebuffer::Mode const mode { .area = size, .alpha = false };
 
 		if (!_ram_suffices_for_mode(mode)) {
 			warning("insufficient RAM for mode ", mode);
@@ -182,10 +182,10 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	Dataspace_capability dataspace() override
 	{
-		_gui.buffer(_active_mode, false);
+		_gui.buffer(_active_mode);
 
 		_buffer_num_bytes =
-			max(_buffer_num_bytes, Gui::Session::ram_quota(_active_mode, false));
+			max(_buffer_num_bytes, Gui::Session::ram_quota(_active_mode));
 
 		/*
 		 * We defer the update of the view until the client calls refresh the
@@ -294,8 +294,11 @@ struct Gui_fb::Main : View_updater
 
 	Framebuffer::Mode _initial_mode()
 	{
-		return Framebuffer::Mode { .area = { _initial_size.width (_gui.mode()),
-		                                     _initial_size.height(_gui.mode()) } };
+		return {
+			.area = { _initial_size.width (_gui.mode()),
+			          _initial_size.height(_gui.mode()) },
+			.alpha = false
+		};
 	}
 
 	/*

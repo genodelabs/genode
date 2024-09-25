@@ -151,8 +151,8 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 	void mode_sigh(Signal_context_capability sigh) override {
 		_gui_session.mode_sigh(sigh); }
 
-	Buffer_result buffer(Framebuffer::Mode mode, bool use_alpha) override {
-		return _gui_session.buffer(mode, use_alpha); }
+	Buffer_result buffer(Framebuffer::Mode mode) override {
+		return _gui_session.buffer(mode); }
 
 	void focus(Capability<Gui::Session> session) override {
 		_gui_session.focus(session); }

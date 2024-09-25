@@ -133,9 +133,7 @@ void Pointer::Main::_resize_gui_buffer_if_needed(Gui::Area pointer_size)
 	if (pointer_size == _current_pointer_size)
 		return;
 
-	Framebuffer::Mode const mode { .area = pointer_size };
-
-	_gui.buffer(mode, true /* use alpha */);
+	_gui.buffer({ .area = pointer_size, .alpha = true });
 
 	_pointer_ds = _gui.framebuffer.dataspace();
 
@@ -333,9 +331,9 @@ Pointer::Main::Main(Genode::Env &env) : _env(env)
 	 * pointer size to let the user know right from the start if the
 	 * RAM quota is too low.
 	 */
-	Framebuffer::Mode const mode { .area = { Pointer::MAX_WIDTH, Pointer::MAX_HEIGHT } };
 
-	_gui.buffer(mode, true /* use alpha */);
+	_gui.buffer({ .area  = { Pointer::MAX_WIDTH, Pointer::MAX_HEIGHT },
+	              .alpha = true });
 
 	if (_shapes_enabled) {
 		try {

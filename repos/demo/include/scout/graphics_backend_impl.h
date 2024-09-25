@@ -45,9 +45,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 
 		Genode::Dataspace_capability _init_fb_ds(Area max_size)
 		{
-			Framebuffer::Mode const mode { .area = { max_size.w, max_size.h*2 }};
-
-			_gui.buffer(mode, false);
+			_gui.buffer({ .area = { max_size.w, max_size.h*2 }, .alpha = false });
 
 			return _gui.framebuffer.dataspace();
 		}

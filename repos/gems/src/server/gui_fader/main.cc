@@ -43,6 +43,7 @@ namespace Gui_fader {
 	using Rect  = Genode::Surface_base::Rect;
 
 	using Genode::size_t;
+	using Genode::uint8_t;
 	using Genode::Xml_node;
 	using Genode::Dataspace_capability;
 	using Genode::Attached_ram_dataspace;
@@ -65,7 +66,6 @@ class Gui_fader::Src_buffer
 
 		using Pixel = Pixel_rgb888;
 
-		bool             const _use_alpha;
 		Attached_ram_dataspace _ds;
 		Texture<Pixel>         _texture;
 		bool                   _warned_once = false;
@@ -84,27 +84,24 @@ class Gui_fader::Src_buffer
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Src_buffer(Genode::Env &env, Area size, bool use_alpha)
+		Src_buffer(Genode::Env &env, Framebuffer::Mode mode)
 		:
-			_use_alpha(use_alpha),
-			_ds(env.ram(), env.rm(), _needed_bytes(size)),
+			_ds(env.ram(), env.rm(), _needed_bytes(mode.area)),
 			_texture(_ds.local_addr<Pixel>(),
-			         _ds.local_addr<unsigned char>() + size.count()*sizeof(Pixel),
-			         size)
+			         mode.alpha ? _ds.local_addr<uint8_t>() + mode.area.count()*sizeof(Pixel)
+			                    : nullptr,
+			         mode.area)
 		{ }
 
 		Dataspace_capability dataspace() { return _ds.cap(); }
 
 		Texture<Pixel> const &texture() const { return _texture; }
 
-		bool use_alpha() const { return _use_alpha; }
+		bool use_alpha() const { return _texture.alpha(); }
 
 		void blit(Rect from, Point to)
 		{
-			if (_use_alpha && !_warned_once) {
+			if (_texture.alpha() && !_warned_once) {
 				Genode::warning("Framebuffer::Session::blit does not support alpha blending");
 				_warned_once = true;
 			}
@@ -267,7 +264,8 @@ class Gui_fader::Framebuffer_session_component
 
 		Blit_result blit(Framebuffer::Blit_batch const &batch) override
 		{
-			Framebuffer::Mode const mode { .area = _src_buffer.texture().size() };
+			Framebuffer::Mode const mode { .area  = _src_buffer.texture().size(),
+			                               .alpha = false };
 			for (Framebuffer::Transfer const &transfer : batch.transfer) {
 				if (transfer.valid(mode)) {
 					_src_buffer.blit(transfer.from, transfer.to);
@@ -306,7 +304,8 @@ class Gui_fader::Gui_session_component
 
 		Genode::Env &_env;
 
-		Reconstructible<Src_buffer> _src_buffer { _env, Area(1, 1), false };
+		Reconstructible<Src_buffer> _src_buffer {
+			_env, Framebuffer::Mode { .area  = { 1, 1 }, .alpha = false } };
 
 		Gui::Connection _gui { _env };
 
@@ -464,15 +463,13 @@ class Gui_fader::Gui_session_component
 			_gui.mode_sigh(sigh);
 		}
 
-		Buffer_result buffer(Framebuffer::Mode mode, bool use_alpha) override
+		Buffer_result buffer(Framebuffer::Mode mode) override
 		{
-			Area const size = mode.area;
+			_src_buffer.construct(_env, mode);
 
-			_src_buffer.construct(_env, size, use_alpha);
+			_gui.buffer({ .area = mode.area, .alpha = true });
 
-			_gui.buffer(mode, true);
-
-			_fb_session.dst_buffer(_gui.framebuffer.dataspace(), size);
+			_fb_session.dst_buffer(_gui.framebuffer.dataspace(), mode.area);
 			return Buffer_result::OK;
 		}
 

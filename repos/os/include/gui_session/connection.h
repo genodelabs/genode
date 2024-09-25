@@ -154,9 +154,9 @@ class Gui::Connection : private Genode::Connection<Session>
 			}
 		}
 
-		void buffer(Framebuffer::Mode mode, bool use_alpha)
+		void buffer(Framebuffer::Mode mode)
 		{
-			size_t const needed  = Session_client::ram_quota(mode, use_alpha);
+			size_t const needed  = Session_client::ram_quota(mode);
 			size_t const upgrade = needed > _ram_quota.value
 			                     ? needed - _ram_quota.value : 0u;
 			if (upgrade > 0) {
@@ -166,7 +166,7 @@ class Gui::Connection : private Genode::Connection<Session>
 
 			for (bool retry = false; ; ) {
 				using Result = Session_client::Buffer_result;
-				auto const result = _client.buffer(mode, use_alpha);
+				auto const result = _client.buffer(mode);
 				if (result == Result::OUT_OF_RAM)  { upgrade_ram(8*1024); retry = true; }
 				if (result == Result::OUT_OF_CAPS) { upgrade_caps(2);     retry = true; }
 				if (!retry)

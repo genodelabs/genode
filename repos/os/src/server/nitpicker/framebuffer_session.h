@@ -45,7 +45,6 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 		Signal_context_capability _mode_sigh { };
 		Signal_context_capability _sync_sigh { };
 		Framebuffer::Mode         _mode { };
-		bool                      _alpha = false;
 
 	public:
 
@@ -78,10 +77,9 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 		 * client calls 'dataspace' the next time, the new mode becomes
 		 * effective.
 		 */
-		void notify_mode_change(Framebuffer::Mode mode, bool alpha)
+		void notify_mode_change(Framebuffer::Mode mode)
 		{
-			_mode  = mode;
-			_alpha = alpha;
+			_mode = mode;
 
 			if (_mode_sigh.valid())
 				Signal_transmitter(_mode_sigh).submit();
@@ -100,7 +98,7 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 
 		Dataspace_capability dataspace() override
 		{
-			return _buffer_provider.realloc_buffer(_mode, _alpha);
+			return _buffer_provider.realloc_buffer(_mode);
 		}
 
 		Mode mode() const override { return _mode; }

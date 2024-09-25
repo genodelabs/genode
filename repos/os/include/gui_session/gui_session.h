@@ -248,7 +248,7 @@ struct Gui::Session : Genode::Session
 	/**
 	 * Define dimensions of virtual framebuffer
 	 */
-	virtual Buffer_result buffer(Framebuffer::Mode mode, bool use_alpha) = 0;
+	virtual Buffer_result buffer(Framebuffer::Mode mode) = 0;
 
 	/**
 	 * Set focused session
@@ -268,13 +268,13 @@ struct Gui::Session : Genode::Session
 	/**
 	 * Return number of bytes needed for virtual framebuffer of specified size
 	 */
-	static size_t ram_quota(Framebuffer::Mode mode, bool use_alpha)
+	static size_t ram_quota(Framebuffer::Mode mode)
 	{
 		/*
 		 * If alpha blending is used, each pixel requires an additional byte
 		 * for the alpha value and a byte holding the input mask.
 		 */
-		return (mode.bytes_per_pixel() + 2*use_alpha)*mode.area.count();
+		return (mode.bytes_per_pixel() + 2*mode.alpha)*mode.area.count();
 	}
 
 
@@ -296,7 +296,7 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_mode, Framebuffer::Mode, mode);
 	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Signal_context_capability);
 	GENODE_RPC(Rpc_focus, void, focus, Capability<Session>);
-	GENODE_RPC(Rpc_buffer, Buffer_result, buffer, Framebuffer::Mode, bool);
+	GENODE_RPC(Rpc_buffer, Buffer_result, buffer, Framebuffer::Mode);
 
 	GENODE_RPC_INTERFACE(Rpc_framebuffer, Rpc_input,
 	                     Rpc_view, Rpc_child_view, Rpc_destroy_view, Rpc_associate,

@@ -86,10 +86,9 @@ class Nano3d::Scene
 				 * visible view because it contains the visible buffer, the
 				 * front buffer, and the back buffer.
 				 */
-				bool     const use_alpha = true;
-				unsigned const height    = size.h*NUM_BUFFERS;
-				gui.buffer(Framebuffer::Mode { .area = { size.w, height } },
-				                 use_alpha);
+				gui.buffer({ .area  = { .w = size.w,
+				                        .h = size.h*NUM_BUFFERS },
+				             .alpha = true });
 
 				return gui.framebuffer;
 			}

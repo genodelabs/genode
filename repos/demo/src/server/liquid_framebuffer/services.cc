@@ -239,10 +239,10 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 	public:
 
-		Session_component(Genode::Env &env, Window_content &window_content)
+		Session_component(Env &env, Window_content &window_content)
 		: _timer(env), _window_content(window_content) { }
 
-		Genode::Dataspace_capability dataspace() override
+		Dataspace_capability dataspace() override
 		{
 			_window_content.realloc_framebuffer();
 			return _window_content.fb_ds_cap();
@@ -250,13 +250,15 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 
 		Mode mode() const override
 		{
-			return Mode { .area = _window_content.mode_size() };
+			return { .area = _window_content.mode_size(), .alpha = false };
 		}
 
-		void mode_sigh(Genode::Signal_context_capability sigh) override {
-			_window_content.mode_sigh(sigh); }
+		void mode_sigh(Signal_context_capability sigh) override
+		{
+			_window_content.mode_sigh(sigh);
+		}
 
-		void sync_sigh(Genode::Signal_context_capability sigh) override
+		void sync_sigh(Signal_context_capability sigh) override
 		{
 			_timer.sigh(sigh);
 			_timer.trigger_periodic(10*1000);

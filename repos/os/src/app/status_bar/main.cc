@@ -51,11 +51,12 @@ struct Status_bar::Buffer
 	 * The status bar is as wide as nitpicker's screen and has a fixed
 	 * height.
 	 */
-	Framebuffer::Mode const _mode { .area = { _nit_mode.area.w, HEIGHT } };
+	Framebuffer::Mode const _mode { .area  = { _nit_mode.area.w, HEIGHT },
+	                                .alpha = false };
 
 	Dataspace_capability _init_buffer()
 	{
-		_gui.buffer(_mode, false);
+		_gui.buffer(_mode);
 		return _gui.framebuffer.dataspace();
 	}
 

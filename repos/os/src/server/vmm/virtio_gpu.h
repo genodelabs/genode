@@ -459,7 +459,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			_fb_ds.destruct();
 
 			_fb_mode = _gui.mode();
-			_gui.buffer(_fb_mode, false);
+			_gui.buffer(_fb_mode);
 
 			if (_fb_mode.area.count() > 0)
 				_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());

@@ -34,6 +34,7 @@ namespace Framebuffer {
 	struct Mode
 	{
 		Area area;
+		bool alpha;
 
 		size_t bytes_per_pixel() const { return 4; }
 

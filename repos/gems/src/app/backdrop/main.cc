@@ -59,7 +59,7 @@ struct Backdrop::Main
 		Dataspace_capability _ds_cap(Gui::Connection &gui)
 		{
 			/* setup virtual framebuffer mode */
-			gui.buffer(mode, false);
+			gui.buffer(mode);
 
 			return gui.framebuffer.dataspace();
 		}
@@ -314,9 +314,11 @@ void Backdrop::Main::_handle_config()
 	_config.update();
 
 	Framebuffer::Mode const phys_mode = _gui.mode();
-	Framebuffer::Mode const
-		mode { .area = { _config.xml().attribute_value("width",  phys_mode.area.w),
-		                 _config.xml().attribute_value("height", phys_mode.area.h) } };
+	Framebuffer::Mode const mode {
+		.area = { _config.xml().attribute_value("width",  phys_mode.area.w),
+		          _config.xml().attribute_value("height", phys_mode.area.h) },
+		.alpha = false
+	};
 
 	_buffer.construct(_env, _gui, mode);
 

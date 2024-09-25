@@ -33,12 +33,13 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 		/**
 		 * Return base address of alpha channel or 0 if no alpha channel exists
 		 */
-		unsigned char *_alpha_base(Area size, bool use_alpha)
+		unsigned char *_alpha_base(Framebuffer::Mode mode)
 		{
-			if (!use_alpha) return 0;
+			if (!mode.alpha) return nullptr;
 
 			/* alpha values come right after the pixel values */
-			return (unsigned char *)local_addr() + calc_num_bytes(size, false);
+			return (unsigned char *)local_addr()
+			     + calc_num_bytes({ .area = mode.area, .alpha = false });
 		}
 
 		Area _area() const { return Texture<PT>::size(); }
@@ -104,13 +105,13 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 		/**
 		 * Constructor
 		 */
-		Chunky_texture(Ram_allocator &ram, Region_map &rm, Area size, bool use_alpha)
+		Chunky_texture(Ram_allocator &ram, Region_map &rm, Framebuffer::Mode mode)
 		:
-			Buffer(ram, rm, size, calc_num_bytes(size, use_alpha)),
-			Texture<PT>((PT *)local_addr(),
-			            _alpha_base(size, use_alpha), size) { }
+			Buffer(ram, rm, mode.area, calc_num_bytes(mode)),
+			Texture<PT>((PT *)local_addr(), _alpha_base(mode), mode.area)
+		{ }
 
-		static size_t calc_num_bytes(Area size, bool use_alpha)
+		static size_t calc_num_bytes(Framebuffer::Mode mode)
 		{
 			/*
 			 * If using an alpha channel, the alpha buffer follows the
@@ -118,19 +119,17 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 			 * mask buffer. Hence, we have to account one byte per
 			 * alpha value and one byte for the input mask value.
 			 */
-			size_t bytes_per_pixel = sizeof(PT) + (use_alpha ? 2 : 0);
-			return bytes_per_pixel*size.count();
+			size_t bytes_per_pixel = sizeof(PT) + (mode.alpha ? 2 : 0);
+			return bytes_per_pixel*mode.area.count();
 		}
 
-		unsigned char const *input_mask_buffer() const
+		uint8_t const *input_mask_buffer() const
 		{
 			if (!Texture<PT>::alpha()) return 0;
 
-			Area const size = Texture<PT>::size();
-
 			/* input-mask values come right after the alpha values */
-			return (unsigned char const *)local_addr() + calc_num_bytes(size, false)
-			                                           + size.count();
+			Framebuffer::Mode const mode { .area = _area(), .alpha = false };
+			return (uint8_t const *)local_addr() + calc_num_bytes(mode) + _area().count();
 		}
 
 		void blit(Rect from, Point to)

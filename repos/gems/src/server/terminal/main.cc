@@ -217,7 +217,7 @@ struct Terminal::Main : Character_consumer
 		_gui.input.sigh(_input_handler);
 		_gui.mode_sigh(_mode_change_handler);
 
-		_fb_mode = _gui.mode();
+		_fb_mode = { .area = _gui.mode().area, .alpha = false };
 
 		/* apply initial size from config, if provided */
 		_config.xml().with_optional_sub_node("initial", [&] (Xml_node const &initial) {
@@ -259,7 +259,7 @@ void Terminal::Main::_handle_config()
 	/*
 	 * Adapt terminal to font or framebuffer mode changes
 	 */
-	_gui.buffer(_fb_mode, false);
+	_gui.buffer(_fb_mode);
 
 	if (_fb_mode.area.count() > 0)
 		_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());

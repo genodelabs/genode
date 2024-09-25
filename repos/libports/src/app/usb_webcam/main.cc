@@ -61,7 +61,7 @@ class Viewer
 			_env    { env },
 			_mode   { mode }
 		{
-			_gui.buffer(mode, false);
+			_gui.buffer(mode);
 
 			_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());
 			_framebuffer = _fb_ds->local_addr<uint8_t>();
@@ -275,10 +275,10 @@ class Main
 			if (_webcam.constructed())
 				_webcam.destruct();
 
+			Framebuffer::Mode mode { .area = { width, height }, .alpha = false };
 			if (enabled) {
 				try {
-					_webcam.construct(_env, Framebuffer::Mode {
-						.area = { width, height } }, frame_format, fps);
+					_webcam.construct(_env, mode, frame_format, fps);
 				}  catch (...) { }
 			}
 		}

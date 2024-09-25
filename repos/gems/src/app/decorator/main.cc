@@ -66,9 +66,10 @@ struct Decorator::Main : Window_factory_base
 		 * whereas the lower part contains the back buffer targeted by
 		 * the Decorator::Canvas.
 		 */
-		Framebuffer::Mode _mode_doubled() const
+		static Framebuffer::Mode _doubled(Framebuffer::Mode const mode)
 		{
-			return { { .w = mode.area.w, .h = mode.area.h*2 } };
+			return { .area  = { .w = mode.area.w, .h = mode.area.h*2 },
+			         .alpha = mode.alpha };
 		}
 
 		Pixel_rgb888 *_canvas_pixels_ptr()
@@ -80,7 +81,7 @@ struct Decorator::Main : Window_factory_base
 		:
 			mode(gui.mode()),
 			fb_ds(env.rm(),
-			      (gui.buffer(_mode_doubled(), false), gui.framebuffer.dataspace())),
+			      (gui.buffer(_doubled(mode)), gui.framebuffer.dataspace())),
 			canvas(_canvas_pixels_ptr(), mode.area, env.ram(), env.rm())
 		{ }
 	};
