@@ -84,6 +84,15 @@ struct Genode::Byte_range_ptr : Noncopyable
 
 	Byte_range_ptr(char *start, size_t num_bytes)
 	: start(start), num_bytes(num_bytes) { }
+
+	void with_skipped_bytes(size_t const n, auto const &fn)
+	{
+		if (num_bytes <= n)
+			return;
+
+		Byte_range_ptr const remainder { start + n, num_bytes - n };
+		fn(remainder);
+	}
 };
 
 
