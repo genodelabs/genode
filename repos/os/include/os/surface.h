@@ -126,15 +126,32 @@ class Genode::Surface : public Surface_base
 
 		PT *_addr;   /* base address of pixel buffer   */
 
+		static Area _sanitized(Area area, size_t const num_bytes)
+		{
+			/* prevent division by zero */
+			if (area.w == 0)
+				return { };
+
+			size_t const bytes_per_line = area.w*sizeof(PT);
+
+			return { .w = area.w,
+			         .h = unsigned(min(num_bytes/bytes_per_line, area.h)) };
+		}
+
 	public:
 
 		PT *addr() { return _addr; }
 
-		/**
-		 * Constructor
+		/*
+		 * \deprecated
 		 */
-		Surface(PT *addr, Area size)
-		: Surface_base(size, PT::format()), _addr(addr) { }
+		Surface(PT *addr, Area size) : Surface_base(size, PT::format()), _addr(addr) { }
+
+		Surface(Byte_range_ptr const &bytes, Area const area)
+		:
+			Surface_base(_sanitized(area, bytes.num_bytes), PT::format()),
+			_addr((PT *)bytes.start)
+		{ }
 
 		/**
 		 * Call 'fn' with a sub-window surface as argument

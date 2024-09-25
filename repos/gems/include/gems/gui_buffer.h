@@ -15,14 +15,8 @@
 #define _INCLUDE__GEMS__GUI_BUFFER_H_
 
 /* Genode includes */
-#include <base/ram_allocator.h>
 #include <gui_session/connection.h>
-#include <base/attached_dataspace.h>
 #include <base/attached_ram_dataspace.h>
-#include <os/surface.h>
-#include <os/pixel_alpha8.h>
-#include <os/pixel_rgb888.h>
-#include <blit/painter.h>
 
 
 struct Gui_buffer : Genode::Noncopyable
@@ -38,76 +32,36 @@ struct Gui_buffer : Genode::Noncopyable
 	using size_t        = Genode::size_t;
 	using uint8_t       = Genode::uint8_t;
 
-	Genode::Ram_allocator &ram;
-	Genode::Region_map    &rm;
+	Genode::Ram_allocator &_ram;
+	Genode::Region_map    &_rm;
 
-	Gui::Connection &gui;
+	Gui::Connection &_gui;
 
 	Framebuffer::Mode const mode;
 
+	/*
+	 * Make the GUI mode twice as high as the requested mode. The upper part
+	 * of the GUI framebuffer contains the front buffer, the lower part
+	 * contains the back buffer.
+	 */
+	Framebuffer::Mode const _gui_mode { .area  = { mode.area.w, mode.area.h*2 },
+	                                    .alpha = mode.alpha };
+
+	Genode::Surface_window const _backbuffer { .y = mode.area.h, .h = mode.area.h };
+
 	Pixel_rgb888 const reset_color;
 
-	/**
-	 * Return dataspace capability for virtual framebuffer
-	 */
-	Genode::Dataspace_capability _ds_cap(Gui::Connection &gui)
-	{
-		/*
-		 * Setup virtual framebuffer, the upper part containing the front
-		 * buffer, the lower part containing the back buffer.
-		 */
-		gui.buffer({ .area  = { mode.area.w, mode.area.h*2 },
-		             .alpha = mode.alpha });
-
-		return gui.framebuffer.dataspace();
-	}
-
-	Genode::Attached_dataspace _fb_ds { rm, _ds_cap(gui) };
-
-	size_t _pixel_num_bytes() const { return size().count()*sizeof(Pixel_rgb888); }
-	size_t _alpha_num_bytes() const { return mode.alpha ? size().count() : 0; }
-	size_t _input_num_bytes() const { return mode.alpha ? size().count() : 0; }
-
-	void _with_pixel_ptr(auto const &fn)
-	{
-		/* skip pixel front buffer */
-		uint8_t * const ptr = _fb_ds.local_addr<uint8_t>() + _pixel_num_bytes();
-		fn((Pixel_rgb888 *)ptr);
-	}
-
-	void _with_alpha_ptr(auto const &fn)
-	{
-		if (!mode.alpha)
-			return;
-
-		/* skip pixel front buffer, pixel back buffer, and alpha front buffer */
-		uint8_t * const ptr = _fb_ds.local_addr<uint8_t>()
-		                    + _pixel_num_bytes()*2 + _alpha_num_bytes();
-		fn((Pixel_alpha8 *)ptr);
-	}
-
-	void _with_input_ptr(auto const &fn)
-	{
-		if (!mode.alpha)
-			return;
-
-		/* skip pixel buffers, alpha buffers, and input front buffer */
-		uint8_t * const ptr = _fb_ds.local_addr<uint8_t>()
-		                    + _pixel_num_bytes()*2 + _alpha_num_bytes()*2 + _input_num_bytes();
-		fn(ptr);
-	}
+	Genode::Attached_dataspace _fb_ds {
+		_rm, ( _gui.buffer(_gui_mode), _gui.framebuffer.dataspace() ) };
 
 	enum class Alpha { OPAQUE, ALPHA };
 
-	static Genode::Color default_reset_color()
-	{
-		/*
-		 * Do not use black by default to limit the bleeding of black into
-		 * antialiased drawing operations applied onto an initially transparent
-		 * background.
-		 */
-		return Genode::Color(127, 127, 127, 255);
-	}
+	/*
+	 * Do not use black by default to limit the bleeding of black into
+	 * antialiased drawing operations applied onto an initially transparent
+	 * background.
+	 */
+	static constexpr Genode::Color default_reset_color = { 127, 127, 127, 255 };
 
 	/**
 	 * Constructor
@@ -115,9 +69,9 @@ struct Gui_buffer : Genode::Noncopyable
 	Gui_buffer(Gui::Connection &gui, Area size,
 	           Genode::Ram_allocator &ram, Genode::Region_map &rm,
 	           Alpha alpha = Alpha::ALPHA,
-	           Genode::Color reset_color = default_reset_color())
+	           Genode::Color reset_color = default_reset_color)
 	:
-		ram(ram), rm(rm), gui(gui),
+		_ram(ram), _rm(rm), _gui(gui),
 		mode({ .area = { Genode::max(1U, size.w),
 		                 Genode::max(1U, size.h) },
 		       .alpha = (alpha == Alpha::ALPHA) }),
@@ -133,16 +87,21 @@ struct Gui_buffer : Genode::Noncopyable
 
 	void with_alpha_surface(auto const &fn)
 	{
-		_with_alpha_ptr([&] (Pixel_alpha8 *ptr) {
-			Alpha_surface alpha { ptr, size() };
-			fn(alpha); });
+		if (!_gui_mode.alpha) {
+			Alpha_surface dummy { nullptr, Gui::Area { } };
+			fn(dummy);
+			return;
+		}
+		_gui_mode.with_alpha_surface(_fb_ds, [&] (Alpha_surface &surface) {
+			surface.with_window(_backbuffer, [&] (Alpha_surface &surface) {
+				fn(surface); }); });
 	}
 
 	void with_pixel_surface(auto const &fn)
 	{
-		_with_pixel_ptr([&] (Pixel_rgb888 *ptr) {
-			Pixel_surface pixel { ptr, size() };
-			fn(pixel); });
+		_gui_mode.with_pixel_surface(_fb_ds, [&] (Pixel_surface &surface) {
+			surface.with_window(_backbuffer, [&] (Pixel_surface &surface) {
+				fn(surface); }); });
 	}
 
 	void apply_to_surface(auto const &fn)
@@ -155,7 +114,7 @@ struct Gui_buffer : Genode::Noncopyable
 	void reset_surface()
 	{
 		with_alpha_surface([&] (Alpha_surface &alpha) {
-			Genode::memset(alpha.addr(), 0, _alpha_num_bytes()); });
+			Genode::memset(alpha.addr(), 0, alpha.size().count()); });
 
 		with_pixel_surface([&] (Pixel_surface &pixel) {
 
@@ -169,20 +128,28 @@ struct Gui_buffer : Genode::Noncopyable
 
 	void _update_input_mask()
 	{
-		_with_alpha_ptr([&] (Pixel_alpha8 const * const alpha_ptr) {
-			_with_input_ptr([&] (uint8_t *dst) {
+		with_alpha_surface([&] (Alpha_surface &alpha) {
 
-				/*
-				 * Set input mask for all pixels where the alpha value is above
-				 * a given threshold. The threshold is defined such that
-				 * typical drop shadows are below the value.
-				 */
-				uint8_t const   threshold  = 100;
-				uint8_t const * src        = (uint8_t const *)alpha_ptr;
-				size_t  const   num_pixels = size().count();
+			using Input_surface = Genode::Surface<Genode::Pixel_input8>;
 
-				for (unsigned i = 0; i < num_pixels; i++)
-					*dst++ = (*src++) > threshold;
+			_gui_mode.with_input_surface(_fb_ds, [&] (Input_surface &input) {
+				input.with_window(_backbuffer, [&] (Input_surface &input) {
+
+					uint8_t const * src = (uint8_t *)alpha.addr();
+					uint8_t       * dst = (uint8_t *)input.addr();
+
+					/*
+					 * Set input mask for all pixels where the alpha value is
+					 * above a given threshold. The threshold is defined such
+					 * that typical drop shadows are below the value.
+					 */
+					uint8_t const threshold  = 100;
+					size_t  const num_pixels = Genode::min(alpha.size().count(),
+					                                       input.size().count());
+
+					for (unsigned i = 0; i < num_pixels; i++)
+						*dst++ = (*src++) > threshold;
+				});
 			});
 		});
 	}
@@ -192,7 +159,7 @@ struct Gui_buffer : Genode::Noncopyable
 		_update_input_mask();
 
 		/* copy lower part of virtual framebuffer to upper part */
-		gui.framebuffer.blit({ { 0, int(size().h) }, size() }, { 0, 0 });
+		_gui.framebuffer.blit({ { 0, int(size().h) }, size() }, { 0, 0 });
 	}
 };
 

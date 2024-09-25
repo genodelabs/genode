@@ -82,7 +82,7 @@ struct Nitpicker::View_owner : Interface
 	/**
 	 * Return input-mask value at given position
 	 */
-	virtual unsigned char input_mask_at(Point) const { return 0; }
+	virtual bool input_mask_at(Point) const { return false; }
 
 	virtual void submit_input_event(Input::Event) { }
 

@@ -94,17 +94,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		Domain_registry::Entry const *_domain     = nullptr;
 		View                         *_background = nullptr;
 
-		/*
-		 * The input mask buffer containing a byte value per texture pixel,
-		 * which describes the policy of handling user input referring to the
-		 * pixel. If set to zero, the input is passed through the view such
-		 * that it can be handled by one of the subsequent views in the view
-		 * stack. If set to one, the input is consumed by the view. If
-		 * 'input_mask' is a null pointer, user input is unconditionally
-		 * consumed by the view.
-		 */
-		unsigned char const *_input_mask = nullptr;
-
 		bool _visible = true;
 
 		Sliced_heap _session_alloc;
@@ -289,20 +278,22 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		bool origin_pointer() const override { return _domain && _domain->origin_pointer(); }
 
-
 		/**
 		 * Return input mask value at specified buffer position
 		 */
-		unsigned char input_mask_at(Point p) const override
+		bool input_mask_at(Point const p) const override
 		{
-			if (!_input_mask || !_texture.valid()) return 0;
+			bool result = false;
+			_texture.with_input_mask([&] (Const_byte_range_ptr const &bytes) {
 
-			/* check boundaries */
-			if ((unsigned)p.x >= _texture.size().w
-			 || (unsigned)p.y >= _texture.size().h)
-				return 0;
+				unsigned const x = p.x % _texture.size().w,
+				               y = p.y % _texture.size().h;
 
-			return _input_mask[p.y*_texture.size().w + p.x];
+				size_t const offset = y*_texture.size().w + x;
+				if (offset < bytes.num_bytes)
+					result = bytes.start[offset];
+			});
+			return result;
 		}
 
 		void submit_input_event(Input::Event e) override;

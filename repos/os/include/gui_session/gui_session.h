@@ -274,7 +274,7 @@ struct Gui::Session : Genode::Session
 		 * If alpha blending is used, each pixel requires an additional byte
 		 * for the alpha value and a byte holding the input mask.
 		 */
-		return (mode.bytes_per_pixel() + 2*mode.alpha)*mode.area.count();
+		return (sizeof(Pixel_rgb888) + 2*mode.alpha)*mode.area.count();
 	}
 
 

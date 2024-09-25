@@ -18,7 +18,6 @@
 #include <util/xml_node.h>
 #include <util/color.h>
 #include <base/allocator.h>
-#include <os/pixel_rgb888.h>
 #include <gui_session/gui_session.h>
 
 namespace Nitpicker {

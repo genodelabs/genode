@@ -66,11 +66,6 @@ struct Backdrop::Main
 
 		Attached_dataspace fb_ds;
 
-		Genode::size_t surface_num_bytes() const
-		{
-			return size().count()*mode.bytes_per_pixel();
-		}
-
 		Attached_ram_dataspace surface_ds;
 
 		/**
@@ -79,7 +74,7 @@ struct Backdrop::Main
 		Buffer(Genode::Env &env, Gui::Connection &gui, Framebuffer::Mode mode)
 		:	gui(gui), mode(mode),
 			fb_ds(env.rm(), _ds_cap(gui)),
-			surface_ds(env.ram(), env.rm(), surface_num_bytes())
+			surface_ds(env.ram(), env.rm(), mode.num_bytes())
 		{ }
 
 		/**
@@ -100,11 +95,10 @@ struct Backdrop::Main
 		void flush_surface()
 		{
 			/* blit back to front buffer */
-			blit(surface_ds.local_addr<void>(),
-			     (unsigned)surface_num_bytes(),
-			     fb_ds.local_addr<void>(),
-			     (unsigned)surface_num_bytes(),
-			     (unsigned)surface_num_bytes(), 1);
+			unsigned const num_bytes = unsigned(mode.num_bytes());
+			blit(surface_ds.local_addr<void>(), num_bytes,
+			     fb_ds.local_addr<void>(), num_bytes,
+			     num_bytes, 1);
 		}
 	};
 

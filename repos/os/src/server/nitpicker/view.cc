@@ -11,8 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <os/pixel_rgb888.h>
-
 #include <nitpicker_gfx/texture_painter.h>
 #include <nitpicker_gfx/box_painter.h>
 

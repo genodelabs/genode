@@ -421,7 +421,7 @@ void Gui_session::focus(Capability<Gui::Session> session_cap)
 
 Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode)
 {
-	Ram_quota const next_buffer_size { Chunky_texture<Pixel>::calc_num_bytes(mode) };
+	Ram_quota const next_buffer_size { mode.num_bytes() };
 	Ram_quota const orig_buffer_size { _buffer_size };
 
 	/*
@@ -440,7 +440,6 @@ Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode)
 	}
 
 	_buffer_size = 0;
-	_input_mask  = nullptr;
 
 	Ram_quota const temporary_ram_upgrade = _texture.valid()
 	                                      ? next_buffer_size : Ram_quota{0};
@@ -470,7 +469,6 @@ Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode)
 	}
 
 	_buffer_size = next_buffer_size.value;
-	_input_mask  = _texture.input_mask_buffer();
 
 	return _texture.dataspace();
 }

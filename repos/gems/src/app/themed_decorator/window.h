@@ -286,8 +286,6 @@ class Decorator::Window : public Window_base, public Animator::Item
 			});
 
 			buffer.flush_surface();
-
-			buffer.gui.framebuffer.refresh({ { 0, 0 }, buffer.size() });
 		}
 
 		void _repaint_decorations()

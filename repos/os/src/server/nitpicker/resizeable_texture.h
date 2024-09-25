@@ -105,13 +105,13 @@ class Nitpicker::Resizeable_texture
 
 		Dataspace_capability dataspace()
 		{
-			return valid() ? _textures[_current]->ds_cap() : Ram_dataspace_capability();
+			return valid() ? _textures[_current]->cap() : Ram_dataspace_capability();
 		}
 
-		unsigned char const *input_mask_buffer() const
+		void with_input_mask(auto const &fn) const
 		{
-			return valid() ? _textures[_current]->input_mask_buffer()
-			               : nullptr;
+			if (valid())
+				_textures[_current]->with_input_mask(fn);
 		}
 
 		void blit(Rect from, Point to)

@@ -15,8 +15,6 @@
 #define _CHUNKY_TEXTURE_H_
 
 /* Genode includes */
-#include <os/pixel_rgb888.h>
-#include <os/pixel_alpha8.h>
 #include <blit/painter.h>
 
 /* local includes */
@@ -26,69 +24,36 @@ namespace Nitpicker { template <typename> class Chunky_texture; }
 
 
 template <typename PT>
-class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
+class Nitpicker::Chunky_texture : Buffer, public Texture<PT>
 {
 	private:
+
+		Framebuffer::Mode const _mode;
 
 		/**
 		 * Return base address of alpha channel or 0 if no alpha channel exists
 		 */
-		unsigned char *_alpha_base(Framebuffer::Mode mode)
+		static uint8_t *_alpha_base(Buffer &buffer, Framebuffer::Mode mode)
 		{
-			if (!mode.alpha) return nullptr;
-
-			/* alpha values come right after the pixel values */
-			return (unsigned char *)local_addr()
-			     + calc_num_bytes({ .area = mode.area, .alpha = false });
-		}
-
-		Area _area() const { return Texture<PT>::size(); }
-
-		void _with_pixel_surface(auto const &fn)
-		{
-			Surface<Pixel_rgb888> pixel { (Pixel_rgb888 *)local_addr(), _area() };
-			fn(pixel);
-		}
-
-		static void _with_alpha_ptr(auto &obj, auto const &fn)
-		{
-			Pixel_alpha8 * const ptr = (Pixel_alpha8 *)(obj.Texture<PT>::alpha());
-			if (ptr)
-				fn(ptr);
-		}
-
-		void _with_alpha_surface(auto const &fn)
-		{
-			_with_alpha_ptr(*this, [&] (Pixel_alpha8 * const ptr) {
-				Surface<Pixel_alpha8> alpha { ptr, _area() };
-				fn(alpha); });
+			uint8_t *result = nullptr;
+			mode.with_alpha_bytes(buffer, [&] (Byte_range_ptr const &bytes) {
+				result = (uint8_t *)bytes.start; });
+			return result;
 		}
 
 		void _with_alpha_texture(auto const &fn) const
 		{
-			_with_alpha_ptr(*this, [&] (Pixel_alpha8 * const ptr) {
-				Texture<Pixel_alpha8> texture { ptr, nullptr, _area() };
+			Buffer const &buffer = *this;
+			_mode.with_alpha_bytes(buffer, [&] (Byte_range_ptr const &bytes) {
+				Texture<Pixel_alpha8> texture { (Pixel_alpha8 *)bytes.start, nullptr, _mode.area };
 				fn(texture); });
-		}
-
-		static void _with_input_ptr(auto &obj, auto const &fn)
-		{
-			Pixel_alpha8 * const ptr = (Pixel_alpha8 *)(obj.input_mask_buffer());
-			if (ptr)
-				fn(ptr);
-		}
-
-		void _with_input_surface(auto const &fn)
-		{
-			_with_input_ptr(*this, [&] (Pixel_alpha8 * const ptr) {
-				Surface<Pixel_alpha8> input { ptr, _area() };
-				fn(input); });
 		}
 
 		void _with_input_texture(auto const &fn) const
 		{
-			_with_input_ptr(*this, [&] (Pixel_alpha8 * const ptr) {
-				Texture<Pixel_alpha8> texture { ptr, nullptr, _area() };
+			Buffer const &buffer = *this;
+			_mode.with_input_bytes(buffer, [&] (Byte_range_ptr const &bytes) {
+				Texture<Pixel_input8> texture { (Pixel_input8 *)bytes.start, nullptr, _mode.area };
 				fn(texture); });
 		}
 
@@ -102,47 +67,36 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 
 	public:
 
-		/**
-		 * Constructor
-		 */
+		using Buffer::cap;
+
 		Chunky_texture(Ram_allocator &ram, Region_map &rm, Framebuffer::Mode mode)
 		:
-			Buffer(ram, rm, mode.area, calc_num_bytes(mode)),
-			Texture<PT>((PT *)local_addr(), _alpha_base(mode), mode.area)
+			Buffer(ram, rm, mode.num_bytes()),
+			Texture<PT>((PT *)Buffer::bytes().start, _alpha_base(*this, mode), mode.area),
+			_mode(mode)
 		{ }
 
-		static size_t calc_num_bytes(Framebuffer::Mode mode)
+		void with_input_mask(auto const &fn) const
 		{
-			/*
-			 * If using an alpha channel, the alpha buffer follows the
-			 * pixel buffer. The alpha buffer is followed by an input
-			 * mask buffer. Hence, we have to account one byte per
-			 * alpha value and one byte for the input mask value.
-			 */
-			size_t bytes_per_pixel = sizeof(PT) + (mode.alpha ? 2 : 0);
-			return bytes_per_pixel*mode.area.count();
-		}
-
-		uint8_t const *input_mask_buffer() const
-		{
-			if (!Texture<PT>::alpha()) return 0;
-
-			/* input-mask values come right after the alpha values */
-			Framebuffer::Mode const mode { .area = _area(), .alpha = false };
-			return (uint8_t const *)local_addr() + calc_num_bytes(mode) + _area().count();
+			Buffer const &buffer = *this;
+			_mode.with_input_bytes(buffer, [&] (Byte_range_ptr const &bytes) {
+				Const_byte_range_ptr const_bytes { bytes.start, bytes.num_bytes };
+				fn(const_bytes); });
 		}
 
 		void blit(Rect from, Point to)
 		{
-			_with_pixel_surface([&] (Surface<Pixel_rgb888> &surface) {
+			Buffer &buffer = *this;
+
+			_mode.with_pixel_surface(buffer, [&] (Surface<Pixel_rgb888> &surface) {
 				_blit_channel(surface, *this, from, to); });
 
-			_with_alpha_surface([&] (Surface<Pixel_alpha8> &surface) {
+			_mode.with_alpha_surface(buffer, [&] (Surface<Pixel_alpha8> &surface) {
 				_with_alpha_texture([&] (Texture<Pixel_alpha8> &texture) {
 					_blit_channel(surface, texture, from, to); }); });
 
-			_with_input_surface([&] (Surface<Pixel_alpha8> &surface) {
-				_with_input_texture([&] (Texture<Pixel_alpha8> &texture) {
+			_mode.with_input_surface(buffer, [&] (Surface<Pixel_input8> &surface) {
+				_with_input_texture([&] (Texture<Pixel_input8> &texture) {
 					_blit_channel(surface, texture, from, to); }); });
 		}
 };

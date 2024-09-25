@@ -19,6 +19,8 @@
 #include <dataspace/capability.h>
 #include <session/session.h>
 #include <os/surface.h>
+#include <os/pixel_rgb888.h>
+#include <os/pixel_alpha8.h>
 
 namespace Framebuffer {
 
@@ -36,9 +38,66 @@ namespace Framebuffer {
 		Area area;
 		bool alpha;
 
-		size_t bytes_per_pixel() const { return 4; }
-
 		void print(Output &out) const { Genode::print(out, area); }
+
+		/*
+		 * If using an alpha channel, the alpha buffer follows the pixel
+		 * buffer. The alpha buffer is followed by an input-mask buffer.
+		 *
+		 * The input-mask buffer contains a byte value per texture pixel,
+		 * which describes the policy of handling user input referring to the
+		 * pixel. If set to zero, the input is passed through the view such
+		 * that it can be handled by one of the subsequent views in the view
+		 * stack. If set to one, the input is consumed by the view.
+		 */
+
+		void with_pixel_surface(auto &ds, auto const &fn) const
+		{
+			Surface<Pixel_rgb888> surface { ds.bytes(), area };
+			fn(surface);
+		}
+
+		void with_alpha_bytes(auto &ds, auto const &fn) const
+		{
+			if (!alpha)
+				return;
+
+			size_t const offset = area.count()*sizeof(Pixel_rgb888);
+			ds.bytes().with_skipped_bytes(offset, [&] (Byte_range_ptr const &bytes) {
+				fn(bytes); });
+		}
+
+		void with_alpha_surface(auto &ds, auto const &fn) const
+		{
+			with_alpha_bytes(ds, [&] (Byte_range_ptr const &bytes) {
+				Surface<Pixel_alpha8> surface { bytes, area };
+				fn(surface); });
+		}
+
+		void with_input_bytes(auto &ds, auto const &fn) const
+		{
+			if (!alpha)
+				return;
+
+			size_t const offset = area.count()*sizeof(Pixel_rgb888) + area.count();
+			ds.bytes().with_skipped_bytes(offset, [&] (Byte_range_ptr const &bytes) {
+				fn(bytes); });
+		}
+
+		void with_input_surface(auto &ds, auto const &fn) const
+		{
+			with_input_bytes(ds, [&] (Byte_range_ptr const &bytes) {
+				Surface<Pixel_input8> surface { bytes, area };
+				fn(surface); });
+		}
+
+		size_t num_bytes() const
+		{
+			size_t const bytes_per_pixel =
+				sizeof(Pixel_rgb888) + alpha*(sizeof(Pixel_alpha8) + sizeof(Pixel_input8));
+
+			return area.count()*bytes_per_pixel;
+		}
 	};
 
 	struct Transfer

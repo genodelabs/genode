@@ -25,33 +25,22 @@
 namespace Nitpicker { class Buffer; }
 
 
-class Nitpicker::Buffer
+struct Nitpicker::Buffer : private Attached_ram_dataspace
 {
-	private:
+	/**
+	 * Constructor - allocate and map dataspace for virtual frame buffer
+	 *
+	 * \throw Out_of_ram
+	 * \throw Out_of_caps
+	 * \throw Region_map::Region_conflict
+	 */
+	Buffer(Ram_allocator &ram, Region_map &rm, size_t num_bytes)
+	:
+		Attached_ram_dataspace(ram, rm, num_bytes)
+	{ }
 
-		Area                   _size;
-		Attached_ram_dataspace _ram_ds;
-
-	public:
-
-		/**
-		 * Constructor - allocate and map dataspace for virtual frame buffer
-		 *
-		 * \throw Out_of_ram
-		 * \throw Out_of_caps
-		 * \throw Region_map::Region_conflict
-		 */
-		Buffer(Ram_allocator &ram, Region_map &rm, Area size, size_t bytes)
-		:
-			_size(size), _ram_ds(ram, rm, bytes)
-		{ }
-
-		/**
-		 * Accessors
-		 */
-		Ram_dataspace_capability ds_cap() const { return _ram_ds.cap(); }
-		Area                       size() const { return _size; }
-		void                *local_addr() const { return _ram_ds.local_addr<void>(); }
+	using Attached_ram_dataspace::bytes;
+	using Attached_ram_dataspace::cap;
 };
 
 
