@@ -59,7 +59,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="backdrop">
+	<start name="backdrop" caps="130">
 		<resource name="RAM" quantum="20M"/>
 		<config>
 			<libc/>
