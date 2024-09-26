@@ -113,6 +113,8 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 			_sync_sigh = sigh;
 		}
 
+		void sync_source(Session_label const &) override { }
+
 		void refresh(Rect) override;
 
 		Blit_result blit(Blit_batch const &) override;

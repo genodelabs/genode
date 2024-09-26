@@ -264,6 +264,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 			_timer.trigger_periodic(10*1000);
 		}
 
+		void sync_source(Session_label const &) override { }
+
 		void refresh(Rect rect) override
 		{
 			_window_content.redraw_area(rect.x1(), rect.y1(), rect.w(), rect.h());

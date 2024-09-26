@@ -32,6 +32,8 @@ struct Framebuffer::Session_client : Rpc_client<Session>
 
 	void sync_sigh(Signal_context_capability sigh) override { call<Rpc_sync_sigh>(sigh); }
 
+	void sync_source(Session_label const &source) override { call<Rpc_sync_source>(source); }
+
 	void refresh(Rect rect) override { call<Rpc_refresh>(rect); }
 
 	/**

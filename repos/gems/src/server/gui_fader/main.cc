@@ -290,6 +290,8 @@ class Gui_fader::Framebuffer_session_component
 		{
 			_gui.framebuffer.sync_sigh(sigh);
 		}
+
+		void sync_source(Genode::Session_label const &) override { }
 };
 
 

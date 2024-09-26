@@ -210,6 +210,19 @@ struct Framebuffer::Session : Genode::Session
 	 */
 	virtual void sync_sigh(Signal_context_capability) = 0;
 
+	/**
+	 * Define the preferred source of sync signals
+	 *
+	 * In the presence of multiple capture clients at the GUI server, each
+	 * client captures the GUI at independent refresh rates. Hence, there is
+	 * no single source of sync signals but there can be multiple. From the
+	 * application's perspective, the most adequate sync source may depend on
+	 * the positions of the capture clients at the GUI server and the position
+	 * of the application's view. By specifying a capture client's label as
+	 * 'sync_sigh', the application can take an informed decision.
+	 */
+	virtual void sync_source(Session_label const &) = 0;
+
 
 	/*********************
 	 ** RPC declaration **
@@ -222,9 +235,10 @@ struct Framebuffer::Session : Genode::Session
 	GENODE_RPC(Rpc_panning, void, panning, Point);
 	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Signal_context_capability);
 	GENODE_RPC(Rpc_sync_sigh, void, sync_sigh, Signal_context_capability);
+	GENODE_RPC(Rpc_sync_source, void, sync_source, Session_label const &);
 
 	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_mode, Rpc_mode_sigh, Rpc_refresh,
-	                     Rpc_blit, Rpc_panning, Rpc_sync_sigh);
+	                     Rpc_blit, Rpc_panning, Rpc_sync_sigh, Rpc_sync_source);
 };
 
 #endif /* _INCLUDE__FRAMEBUFFER_SESSION__FRAMEBUFFER_SESSION_H_ */

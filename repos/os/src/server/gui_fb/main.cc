@@ -238,6 +238,8 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 		_gui.framebuffer.sync_sigh(sigh);
 	}
+
+	void sync_source(Session_label const &) override { }
 };
 
 
