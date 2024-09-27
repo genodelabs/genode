@@ -286,7 +286,7 @@ proc qt6_start_nodes { } {
 			</route>
 		</start>
 
-		<start name="layouter">
+		<start name="layouter" caps="150">
 			<binary name="window_layouter"/>
 			<resource name="RAM" quantum="4M"/>} [qt6_layouter_config] {
 			<route>

@@ -15,7 +15,7 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	} [qt5_start_nodes] {
-	<start name="samegame" caps="350">
+	<start name="samegame" caps="400">
 		<resource name="RAM" quantum="128M"/>
 		<config>
 			<vfs>

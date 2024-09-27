@@ -17,7 +17,7 @@ install_config {
 		<any-service> <parent/> <child name="wm"/> <any-child/> </any-service>
 	</default-route>
 	} [qt5_start_nodes] {
-	<start name="basic" caps="450">
+	<start name="basic" caps="500">
 		<resource name="RAM" quantum="100M"/>
 		<config>
 			<vfs>
