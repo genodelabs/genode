@@ -36,6 +36,65 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			virtual void capture_requested(Label const &) = 0;
 		};
 
+		struct Policy
+		{
+			template <typename T>
+			struct Attr
+			{
+				bool _defined { };
+				T    _value   { };
+
+				Attr() { }
+
+				Attr(T value) : _defined(true), _value(value) { }
+
+				Attr(Xml_node const node, auto const &attr)
+				{
+					if (node.has_attribute(attr)) {
+						_value   = node.attribute_value(attr, T { });
+						_defined = true;
+					}
+				}
+
+				/**
+				 * Return defined attribute value, or default value
+				 */
+				T or_default(T def) const { return _defined ? _value : def; }
+			};
+
+			Attr<int>      x, y;       /* placement within panorama */
+			Attr<unsigned> w, h;       /* capture contraints */
+			Attr<unsigned> w_mm, h_mm; /* physical size overrides */
+
+			static Policy from_xml(Xml_node const &policy)
+			{
+				return { .x    = { policy, "xpos"      },
+				         .y    = { policy, "ypos"      },
+				         .w    = { policy, "width"     },
+				         .h    = { policy, "height"    },
+				         .w_mm = { policy, "width_mm"  },
+				         .h_mm = { policy, "height_mm" } };
+			}
+
+			static Policy unconstrained() { return { }; }
+
+			static Policy blocked()
+			{
+				Policy result { };
+				result.w = 0, result.h = 0;
+				return result;
+			}
+		};
+
+		static void gen_attr(Xml_generator &xml, Rect const rect)
+		{
+			if (rect.x1()) xml.attribute("xpos", rect.x1());
+			if (rect.y1()) xml.attribute("ypos", rect.y1());
+
+			xml.attribute("width",  rect.w());
+			xml.attribute("height", rect.h());
+		}
+
 	private:
 
 		Env &_env;
@@ -45,6 +104,8 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 		Handler &_handler;
 
 		View_stack const &_view_stack;
+
+		Policy _policy = Policy::blocked();
 
 		Buffer_attr _buffer_attr { };
 
@@ -68,6 +129,18 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			}
 		}
 
+		Point _anchor_point() const
+		{
+			return { .x = _policy.x.or_default(0),
+			         .y = _policy.y.or_default(0) };
+		}
+
+		Area _area_bounds() const
+		{
+			return { .w = _policy.w.or_default(_buffer_attr.px.w),
+			         .h = _policy.h.or_default(_buffer_attr.px.h) };
+		}
+
 	public:
 
 		Capture_session(Env              &env,
@@ -83,7 +156,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			_handler(handler),
 			_view_stack(view_stack)
 		{
-			_dirty_rect.mark_as_dirty(Rect(Point(0, 0), view_stack.size()));
+			_dirty_rect.mark_as_dirty(view_stack.bounding_box());
 		}
 
 		~Capture_session() { }
@@ -93,7 +166,10 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 		 ** Interface used by 'Nitpicker::Main' **
 		 *****************************************/
 
-		Area buffer_size() const { return _buffer_attr.px; }
+		/**
+		 * Geometry within the panorama, depending on policy and client buffer
+		 */
+		Rect bounding_box() const { return { _anchor_point(), _area_bounds() }; }
 
 		void mark_as_damaged(Rect rect)
 		{
@@ -107,12 +183,17 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 				Signal_transmitter(_screen_size_sigh).submit();
 		}
 
+		void apply_policy(Policy const &policy) { _policy = policy; }
+
 
 		/*******************************
 		 ** Capture session interface **
 		 *******************************/
 
-		Area screen_size() const override { return _view_stack.size(); }
+		Area screen_size() const override
+		{
+			return Rect::intersect(_view_stack.bounding_box(), bounding_box()).area;
+		}
 
 		void screen_size_sigh(Signal_context_capability sigh) override
 		{
@@ -131,7 +212,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 			_buffer_attr = { };
 
-			if (attr.px.count() == 0) {
+			if (!attr.px.valid()) {
 				_buffer.destruct();
 				return result;
 			}
@@ -146,7 +227,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			_handler.capture_buffer_size_changed();
 
 			/* report complete buffer as dirty on next call of 'capture_at' */
-			mark_as_damaged({ { 0, 0 }, attr.px });
+			mark_as_damaged({ _anchor_point(), attr.px });
 
 			return result;
 		}
@@ -159,18 +240,19 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			return Dataspace_capability();
 		}
 
-		Affected_rects capture_at(Point pos) override
+		Affected_rects capture_at(Point const pos) override
 		{
 			_handler.capture_requested(label());
 
 			if (!_buffer.constructed())
 				return Affected_rects { };
 
-			using Pixel = Pixel_rgb888;
+			Canvas<Pixel_rgb888> canvas { _buffer->local_addr<Pixel_rgb888>(),
+			                              _anchor_point() + pos, _buffer_attr.px };
 
-			Canvas<Pixel> canvas = { _buffer->local_addr<Pixel>(), pos, _buffer_attr.px };
+			canvas.clip(Rect::intersect(bounding_box(), _view_stack.bounding_box()));
 
-			Rect const buffer_rect(Point(0, 0), _buffer_attr.px);
+			Rect const buffer_rect { { }, _buffer_attr.px };
 
 			Affected_rects affected { };
 			unsigned i = 0;
@@ -179,7 +261,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 				_view_stack.draw(canvas, rect);
 
 				if (i < Affected_rects::NUM_RECTS) {
-					Rect const translated(rect.p1() - pos, rect.area);
+					Rect const translated(rect.p1() - _anchor_point() - pos, rect.area);
 					Rect const clipped = Rect::intersect(translated, buffer_rect);
 					affected.rects[i++] = clipped;
 				}

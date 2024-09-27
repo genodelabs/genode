@@ -244,6 +244,47 @@ client. This report is useful for a focus-managing component to implement a
 focus-on-click policy.
 
 
+Multi-monitor support
+~~~~~~~~~~~~~~~~~~~~~
+
+Display drivers obtain pixel data from the nitpicker GUI server using
+nitpicker's capture service. For each connected monitor, the driver creates a
+distinct capture session labeled after the name of the connector. Therefore,
+from nitpicker's perspective, each monitor corresponds to one capture client.
+Each capture client can have a different size, which corresponds to the
+respective display resolution. Together, all capture clients span a panorama,
+which is the bounding box of all capture clients. Each capture client shows a
+part of the panorama.
+
+By default, when configuring nitpicker with an empty '<capture/>' node, the
+top-left corner of each capture client corresponds to the coordinate origin
+(0, 0) of the panorama. Hence, each client obtains a mirror of the panorama.
+This default policy can be overridden by explicit rules as follows:
+
+! <capture>
+!   <policy label="intel_fb -> eDP-1" width_mm="160" height_mm="90" />
+!   <policy label="intel_fb -> HDMI-A-1" xpos="1024" ypos="0"
+!                                        width="1280" height="800"/>
+!   <default-policy/>
+! </capture>
+
+The policy for the 'eDP-1' connector merely overrides the physical dimensions
+of the display as reported by the driver. This is useful in situations where
+the display's EDID information are incorrect. Apart from that tweak, the
+client obtains the default part of the panorama at the coordinate origin.
+
+The policy for the HDMI-A-1 connector dictates an explicit placement within
+the panorama. So a data projector connected via HDMI shows a mere window of
+the panorama where the top-left corner corresponds to the panorama position
+(1024, 0). The client won't observe any pixels outside the specified window.
+It is possible to specify only a subset of attributes. E.g., by only
+specifying the 'xpos', the width and height remain unconstrained.
+
+The default policy tells nitpicker to regard any other capture client as a
+mirror of the panorama's coordinate origin. If absent, a client with no
+policy, won't obtain any picture.
+
+
 Cascaded usage scenarios
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

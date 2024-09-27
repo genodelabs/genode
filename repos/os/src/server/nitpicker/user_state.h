@@ -29,6 +29,19 @@ namespace Nitpicker { class User_state; }
 
 class Nitpicker::User_state
 {
+	public:
+
+		struct Action : Interface
+		{
+			/**
+			 * Return the pointer position when attempting to move to 'pos'
+			 *
+			 * This policy hook enables the restriction of pointer movements
+			 * to those areas that are captured.
+			 */
+			virtual Pointer sanitized_pointer_position(Pointer orig, Point pos) = 0;
+		};
+
 	private:
 
 		/*
@@ -65,6 +78,8 @@ class Nitpicker::User_state
 		 */
 		bool _focus_via_click = true;
 
+		Action &_action;
+
 		/**
 		 * Input-focus information propagated to the view stack
 		 */
@@ -80,16 +95,10 @@ class Nitpicker::User_state
 		 */
 		View_stack &_view_stack;
 
-		/**
-		 * True once the initial screen size becomes known and used as the
-		 * initial (centered) pointer position.
-		 */
-		bool _initial_pointer_position_defined = false;
-
 		/*
 		 * Current pointer position
 		 */
-		Point _pointer_pos { };
+		Pointer _pointer = Nowhere { };
 
 		/*
 		 * Currently pointed-at view owner
@@ -199,6 +208,11 @@ class Nitpicker::User_state
 			}
 		}
 
+		void _try_move_pointer(Point next)
+		{
+			_pointer = _action.sanitized_pointer_position(_pointer, next);
+		}
+
 	public:
 
 		/**
@@ -207,29 +221,16 @@ class Nitpicker::User_state
 		 * \param focus  exported focus information, to be consumed by the
 		 *               view stack to tailor its view drawing operations
 		 */
-		User_state(Focus &focus, Global_keys &global_keys, View_stack &view_stack)
+		User_state(Action &action, Focus &focus, Global_keys &global_keys,
+		           View_stack &view_stack)
 		:
-			_focus(focus), _global_keys(global_keys), _view_stack(view_stack)
+			_action(action), _focus(focus), _global_keys(global_keys),
+			_view_stack(view_stack)
 		{ }
 
-		/**
-		 * Called whenever the view-stack size has changed
-		 */
-		void sanitize_pointer_position()
-		{
-			Area const screen_size = _view_stack.size();
+		void pointer(Pointer p) { _pointer = p; }
 
-			/* center pointer initially */
-			if (!_initial_pointer_position_defined) {
-				_pointer_pos = Point(screen_size.w/2, screen_size.h/2);
-				_initial_pointer_position_defined = true;
-			}
-
-			/* ensure that pointer remains within screen boundaries */
-			if (screen_size.count() > 0)
-				_pointer_pos = Point(min((int)screen_size.w - 1, _pointer_pos.x),
-				                     min((int)screen_size.h - 1, _pointer_pos.y));
-		}
+		Pointer pointer() const { return _pointer; }
 
 
 		/****************************************
@@ -271,8 +272,6 @@ class Nitpicker::User_state
 		void report_hovered_view_owner(Xml_generator &, bool motion_active) const;
 		void report_focused_view_owner(Xml_generator &, bool button_active) const;
 		void report_last_clicked_view_owner(Xml_generator &) const;
-
-		Point pointer_pos() { return _pointer_pos; }
 
 		/**
 		 * Enable/disable direct focus changes by clicking on a client

@@ -64,7 +64,7 @@ void Gui_session::_execute_command(Command const &command)
 
 			/* transpose position of top-level views by vertical session offset */
 			if (view.top_level())
-				pos = _phys_pos(pos, _view_stack.size());
+				pos = _phys_pos(pos, _view_stack.bounding_box());
 
 			_view_stack.geometry(view, Rect(pos, args.rect.area));
 		});
@@ -175,7 +175,7 @@ void Gui_session::submit_input_event(Input::Event e)
 {
 	using namespace Input;
 
-	Point const origin_offset = _phys_pos(Point(0, 0), _view_stack.size());
+	Point const origin_offset = _phys_pos({ 0, 0 }, _view_stack.bounding_box());
 
 	/*
 	 * Transpose absolute coordinates by session-specific vertical offset.
@@ -377,14 +377,14 @@ void Gui_session::execute()
 
 Framebuffer::Mode Gui_session::mode()
 {
-	Area const screen = screen_area(_view_stack.size());
+	Rect const screen = screen_rect(_view_stack.bounding_box().area);
 
 	/*
 	 * Return at least a size of 1x1 to spare the clients the need to handle
 	 * the special case of 0x0, which can happen at boot time before the
 	 * framebuffer driver is running.
 	 */
-	return { .area  = { max(screen.w, 1u), max(screen.h, 1u) },
+	return { .area  = { max(screen.w(), 1u), max(screen.h(), 1u) },
 	         .alpha = uses_alpha() };
 }
 

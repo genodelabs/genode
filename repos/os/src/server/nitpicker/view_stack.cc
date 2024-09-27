@@ -145,7 +145,7 @@ void View_stack::_place_labels(Rect rect)
 			Rect old = view->label_rect(), best;
 
 			/* calculate best visible label position */
-			Rect rect = Rect::intersect(Rect(Point(), _size), view_rect);
+			Rect rect = Rect::intersect(_bounding_box, view_rect);
 			if (start) _optimize_label_rec(start, view, rect, &best);
 
 			/*
@@ -239,13 +239,13 @@ void View_stack::geometry(View &view, Rect const rect)
 	 * views. The 'refresh_view' function takes care to constrain the
 	 * refresh to the actual view geometry.
 	 */
-	refresh_view(view, Rect(Point(), _size));
+	refresh_view(view, _bounding_box);
 
 	/* change geometry */
 	view.geometry(Rect(rect));
 
 	/* refresh new view geometry */
-	refresh_view(view, Rect(Point(), _size));
+	refresh_view(view, _bounding_box);
 
 	Rect const compound = Rect::compound(old_outline, _outline(view));
 
@@ -259,7 +259,7 @@ void View_stack::buffer_offset(View &view, Point const buffer_off)
 {
 	view.buffer_off(buffer_off);
 
-	refresh_view(view, Rect(Point(), _size));
+	refresh_view(view, _bounding_box);
 }
 
 

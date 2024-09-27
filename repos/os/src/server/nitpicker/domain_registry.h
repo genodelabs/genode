@@ -64,17 +64,16 @@ class Nitpicker::Domain_registry
 					_origin(origin), _layer(layer), _offset(offset), _area(area)
 				{ }
 
-				Point _corner(Area const screen_area) const
+				Point _corner(Rect const rect) const
 				{
 					switch (_origin) {
-					case Origin::POINTER:      return Point(0, 0);
-					case Origin::TOP_LEFT:     return Point(0, 0);
-					case Origin::TOP_RIGHT:    return Point(screen_area.w, 0);
-					case Origin::BOTTOM_LEFT:  return Point(0, screen_area.h);
-					case Origin::BOTTOM_RIGHT: return Point(screen_area.w,
-					                                        screen_area.h);
+					case Origin::POINTER:      return { 0, 0 };
+					case Origin::TOP_LEFT:     return { rect.x1(), rect.y1() };
+					case Origin::TOP_RIGHT:    return { rect.x2(), rect.y1() };
+					case Origin::BOTTOM_LEFT:  return { rect.x1(), rect.y2() };
+					case Origin::BOTTOM_RIGHT: return { rect.x2(), rect.y2() };
 					}
-					return Point(0, 0);
+					return { 0, 0 };
 				}
 
 			public:
@@ -95,22 +94,22 @@ class Nitpicker::Domain_registry
 				bool focus_transient() const { return _focus   == Focus::TRANSIENT; }
 				bool origin_pointer()  const { return _origin  == Origin::POINTER; }
 
-				Point phys_pos(Point pos, Area screen_area) const
+				Point phys_pos(Point pos, Rect panorama) const
 				{
-					return pos + _corner(screen_area) + _offset;
+					return pos + _corner(panorama) + _offset;
 				}
 
-				Area screen_area(Area phys_screen_area) const
+				Rect screen_rect(Area screen_area) const
 				{
-					int const w = _area.x > 0
-					            ? _area.x
-					            : max(0, (int)phys_screen_area.w + _area.x);
+					/* align value to zero or to limit, depending on its sign */
+					auto aligned = [&] (unsigned limit, int v)
+					{
+						return unsigned((v > 0) ? v : max(0, int(limit) + v));
+					};
 
-					int const h = _area.y > 0
-					            ? _area.y
-					            : max(0, (int)phys_screen_area.h + _area.y);
-
-					return Area(w, h);
+					return { .at   = _offset,
+					         .area = { .w = aligned(screen_area.w, _area.x),
+					                   .h = aligned(screen_area.h, _area.y) } };
 				}
 		};
 

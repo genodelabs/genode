@@ -153,14 +153,14 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		Gui_session *_forwarded_focus = nullptr;
 
 		/**
-		 * Calculate session-local coordinate to physical screen position
+		 * Calculate session-local coordinate to position within panorama
 		 *
-		 * \param pos          coordinate in session-local coordinate system
-		 * \param screen_area  session-local screen size
+		 * \param pos   coordinate in session-local coordinate system
+		 * \param rect  geometry within panorama
 		 */
-		Point _phys_pos(Point pos, Area screen_area) const
+		Point _phys_pos(Point pos, Rect panorama) const
 		{
-			return _domain ? _domain->phys_pos(pos, screen_area) : Point(0, 0);
+			return _domain ? _domain->phys_pos(pos, panorama) : Point(0, 0);
 		}
 
 		void _execute_command(Command const &);
@@ -320,13 +320,11 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		void visible(bool visible) { _visible = visible; }
 
 		/**
-		 * Return session-local screen area
-		 *
-		 * \param phys_pos  size of physical screen
+		 * Return session-local screen geometry
 		 */
-		Area screen_area(Area phys_area) const
+		Rect screen_rect(Area screen_area) const
 		{
-			return _domain ? _domain->screen_area(phys_area) : Area(0, 0);
+			return _domain ? _domain->screen_rect(screen_area) : Rect { };
 		}
 
 		void reset_domain() { _domain = nullptr; }
