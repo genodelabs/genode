@@ -224,9 +224,25 @@ struct Genode::Rect
 	 */
 	Point center(Area const area) const
 	{
-		return Point((CT(w()) - CT(area.w))/2,
-		             (CT(h()) - CT(area.h))/2) + at;
+		return Point { .x = (CT(w()) - CT(area.w))/2,
+		               .y = (CT(h()) - CT(area.h))/2 } + at;
 	}
+
+	Point clamp(Point const p) const
+	{
+		return Point { .x = max(x1(), min(x2(), p.x)),
+		               .y = max(y1(), min(y2(), p.y)) };
+	}
+
+	/**
+	 * Operator for testing non-equality of two rectangled
+	 */
+	bool operator != (Rect const &r) const { return r.at != at || r.area != area; }
+
+	/**
+	 * Operator for testing equality of two rectangles
+	 */
+	bool operator == (Rect const &r) const { return r.at == at && r.area == area; }
 
 	/**
 	 * Print rectangle coordinates
