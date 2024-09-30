@@ -179,7 +179,7 @@ int request_firmware_common(const struct firmware **firmware_p,
 {
 	struct firmware *fw;
 
-	if (!*firmware_p)
+	if (!firmware_p)
 		return -1;
 
 	fw = kzalloc(sizeof(struct firmware), GFP_KERNEL);
