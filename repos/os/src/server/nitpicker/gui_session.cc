@@ -375,20 +375,6 @@ void Gui_session::execute()
 }
 
 
-Framebuffer::Mode Gui_session::mode()
-{
-	Rect const screen = screen_rect(_view_stack.bounding_box().area);
-
-	/*
-	 * Return at least a size of 1x1 to spare the clients the need to handle
-	 * the special case of 0x0, which can happen at boot time before the
-	 * framebuffer driver is running.
-	 */
-	return { .area  = { max(screen.w(), 1u), max(screen.h(), 1u) },
-	         .alpha = uses_alpha() };
-}
-
-
 Gui_session::Buffer_result Gui_session::buffer(Framebuffer::Mode mode)
 {
 	/* check if the session quota suffices for the specified mode */
@@ -471,4 +457,14 @@ Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode)
 	_buffer_size = next_buffer_size.value;
 
 	return _texture.dataspace();
+}
+
+
+void Gui_session::produce_xml(Xml_generator &xml)
+{
+	Rect const domain_panorama =
+		_domain ? _domain->screen_rect(_view_stack.bounding_box())
+		        : Rect { };
+
+	_action.gen_capture_info(xml, domain_panorama);
 }

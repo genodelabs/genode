@@ -222,6 +222,11 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 		return _dummy_input_component_cap;
 	}
 
+	Info_result info() override
+	{
+		return _real_gui.session.info();
+	}
+
 	View_result view(View_id id, View_attr const &attr) override
 	{
 		/*
@@ -314,21 +319,6 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 			_execute_command(_client_command_buffer.get(i));
 
 		_real_gui.execute();
-	}
-
-	Framebuffer::Mode mode() override
-	{
-		return _real_gui.session.mode();
-	}
-
-	void mode_sigh(Signal_context_capability sigh) override
-	{
-		/*
-		 * Remember signal-context capability to keep NOVA from revoking
-		 * transitive delegations of the capability.
-		 */
-		_mode_sigh = sigh;
-		_real_gui.session.mode_sigh(sigh);
 	}
 
 	Buffer_result buffer(Framebuffer::Mode mode) override

@@ -263,6 +263,15 @@ struct Gui_fb::Main : View_updater
 
 	Attached_dataspace _input_ds { _env.rm(), _gui.input.dataspace() };
 
+	Gui::Rect _gui_window()
+	{
+		return _gui.window().convert<Gui::Rect>(
+			[&] (Gui::Rect rect) { return rect; },
+			[&] (Gui::Undefined) { return _gui.panorama().convert<Gui::Rect>(
+				[&] (Gui::Rect rect) { return rect; },
+				[&] (Gui::Undefined) { return Gui::Rect { { }, { 1, 1 } }; }); });
+	}
+
 	struct Initial_size
 	{
 		long const _width  { 0 };
@@ -276,18 +285,18 @@ struct Gui_fb::Main : View_updater
 			_height(config.attribute_value("initial_height", 0L))
 		{ }
 
-		unsigned width(Framebuffer::Mode const &mode) const
+		unsigned width(Gui::Area const &gui_area) const
 		{
 			if (_width > 0) return (unsigned)_width;
-			if (_width < 0) return (unsigned)(mode.area.w + _width);
-			return mode.area.w;
+			if (_width < 0) return (unsigned)(gui_area.w + _width);
+			return gui_area.w;
 		}
 
-		unsigned height(Framebuffer::Mode const &mode) const
+		unsigned height(Gui::Area const &gui_area) const
 		{
 			if (_height > 0) return (unsigned)_height;
-			if (_height < 0) return (unsigned)(mode.area.h + _height);
-			return mode.area.h;
+			if (_height < 0) return (unsigned)(gui_area.h + _height);
+			return gui_area.h;
 		}
 
 		bool valid() const { return _width != 0 && _height != 0; }
@@ -296,9 +305,10 @@ struct Gui_fb::Main : View_updater
 
 	Framebuffer::Mode _initial_mode()
 	{
+		Gui::Area const gui_area = _gui_window().area;
 		return {
-			.area = { _initial_size.width (_gui.mode()),
-			          _initial_size.height(_gui.mode()) },
+			.area = { _initial_size.width (gui_area),
+			          _initial_size.height(gui_area) },
 			.alpha = false
 		};
 	}
@@ -348,7 +358,7 @@ struct Gui_fb::Main : View_updater
 	/**
 	 * Return screen-coordinate origin, depening on the config and screen mode
 	 */
-	static Point _coordinate_origin(Framebuffer::Mode mode, Xml_node config)
+	static Point _coordinate_origin(Gui::Area gui_area, Xml_node config)
 	{
 		char const * const attr = "origin";
 
@@ -359,9 +369,9 @@ struct Gui_fb::Main : View_updater
 		Value const value = config.attribute_value(attr, Value());
 
 		if (value == "top_left")     return Point(0, 0);
-		if (value == "top_right")    return Point(mode.area.w, 0);
-		if (value == "bottom_left")  return Point(0, mode.area.h);
-		if (value == "bottom_right") return Point(mode.area.w, mode.area.h);
+		if (value == "top_right")    return Point(gui_area.w, 0);
+		if (value == "bottom_left")  return Point(0, gui_area.h);
+		if (value == "bottom_right") return Point(gui_area.w, gui_area.h);
 
 		warning("unsupported ", attr, " attribute value '", value, "'");
 		return Point(0, 0);
@@ -371,9 +381,9 @@ struct Gui_fb::Main : View_updater
 	{
 		Xml_node const config = _config_rom.xml();
 
-		Framebuffer::Mode const gui_mode = _gui.mode();
+		Gui::Area const gui_area = _gui_window().area;
 
-		_position = _coordinate_origin(gui_mode, config) + Point::from_xml(config);
+		_position = _coordinate_origin(gui_area, config) + Point::from_xml(config);
 
 		bool const attr = config.has_attribute("width") ||
 		                  config.has_attribute("height");
@@ -384,15 +394,12 @@ struct Gui_fb::Main : View_updater
 			_initial_size.set = true;
 		}
 
-		unsigned const gui_width  = gui_mode.area.w;
-		unsigned const gui_height = gui_mode.area.h;
-
-		long width  = config.attribute_value("width",  (long)gui_mode.area.w),
-		     height = config.attribute_value("height", (long)gui_mode.area.h);
+		long width  = config.attribute_value("width",  long(gui_area.w)),
+		     height = config.attribute_value("height", long(gui_area.h));
 
 		if (!_initial_size.set && _initial_size.valid()) {
-			width  = _initial_size.width (gui_mode);
-			height = _initial_size.height(gui_mode);
+			width  = _initial_size.width (gui_area);
+			height = _initial_size.height(gui_area);
 
 			_initial_size.set = true;
 		} else {
@@ -401,8 +408,8 @@ struct Gui_fb::Main : View_updater
 			 * If configured width / height values are negative, the effective
 			 * width / height is deduced from the screen size.
 			 */
-			if (width  < 0) width  = gui_width  + width;
-			if (height < 0) height = gui_height + height;
+			if (width  < 0) width  = gui_area.w + width;
+			if (height < 0) height = gui_area.h + height;
 		}
 
 		_fb_session.size(Area((unsigned)width, (unsigned)height));
@@ -466,7 +473,7 @@ struct Gui_fb::Main : View_updater
 		 * Register signal handlers
 		 */
 		_config_rom.sigh(_config_update_handler);
-		_gui.mode_sigh(_mode_update_handler);
+		_gui.info_sigh(_mode_update_handler);
 		_gui.input.sigh(_input_handler);
 	}
 };

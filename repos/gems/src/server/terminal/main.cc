@@ -100,9 +100,16 @@ struct Terminal::Main : Character_consumer
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
+	Gui::Rect _gui_window_rect()
+	{
+		return _gui.window().convert<Gui::Rect>(
+			[&] (Gui::Rect rect) { return rect; },
+			[&] (Gui::Undefined) { return Gui::Rect { { }, { 1, 1 } }; });
+	}
+
 	void _handle_mode_change()
 	{
-		_fb_mode = _gui.mode();
+		_win_rect = _gui_window_rect();
 		_handle_config();
 	}
 
@@ -114,7 +121,7 @@ struct Terminal::Main : Character_consumer
 
 	Constructible<Attached_dataspace> _fb_ds { };
 
-	Framebuffer::Mode _fb_mode { };
+	Gui::Rect _win_rect { };
 
 	Gui::View_id _view { };
 
@@ -143,7 +150,7 @@ struct Terminal::Main : Character_consumer
 
 	bool _flush_scheduled = false;
 
-	Framebuffer::Mode _flushed_fb_mode { };
+	Gui::Rect _flushed_win_rect { };
 
 	void _handle_flush()
 	{
@@ -151,7 +158,7 @@ struct Terminal::Main : Character_consumer
 
 		if (_text_screen_surface.constructed() && _fb_ds.constructed()) {
 
-			Surface<PT> surface(_fb_ds->local_addr<PT>(), _fb_mode.area);
+			Surface<PT> surface(_fb_ds->local_addr<PT>(), _win_rect.area);
 
 			Rect const dirty = _text_screen_surface->redraw(surface);
 
@@ -159,14 +166,14 @@ struct Terminal::Main : Character_consumer
 		}
 
 		/* update view geometry after mode change */
-		if (_fb_mode.area != _flushed_fb_mode.area) {
+		if (_win_rect != _flushed_win_rect) {
 
 			using Command = Gui::Session::Command;
-			_gui.enqueue<Command::Geometry>(_view, Rect(Point(0, 0), _fb_mode.area));
+			_gui.enqueue<Command::Geometry>(_view, _win_rect);
 			_gui.enqueue<Command::Front>(_view);
 			_gui.execute();
 
-			_flushed_fb_mode = _fb_mode;
+			_flushed_win_rect = _win_rect;
 		}
 	}
 
@@ -215,14 +222,14 @@ struct Terminal::Main : Character_consumer
 		_config.sigh(_config_handler);
 
 		_gui.input.sigh(_input_handler);
-		_gui.mode_sigh(_mode_change_handler);
+		_gui.info_sigh(_mode_change_handler);
 
-		_fb_mode = { .area = _gui.mode().area, .alpha = false };
+		_win_rect = _gui_window_rect();
 
 		/* apply initial size from config, if provided */
 		_config.xml().with_optional_sub_node("initial", [&] (Xml_node const &initial) {
-			_fb_mode.area = Area(initial.attribute_value("width",  _fb_mode.area.w),
-			                     initial.attribute_value("height", _fb_mode.area.h));
+			_win_rect.area = { initial.attribute_value("width",  _win_rect.w()),
+			                   initial.attribute_value("height", _win_rect.h()) };
 		});
 
 		_handle_config();
@@ -259,9 +266,9 @@ void Terminal::Main::_handle_config()
 	/*
 	 * Adapt terminal to font or framebuffer mode changes
 	 */
-	_gui.buffer(_fb_mode);
+	_gui.buffer({ .area = _win_rect.area, .alpha = false });
 
-	if (_fb_mode.area.count() > 0)
+	if (_win_rect.valid())
 		_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());
 
 	/*
@@ -276,7 +283,7 @@ void Terminal::Main::_handle_config()
 	 */
 
 	try {
-		Text_screen_surface<PT>::Geometry const new_geometry(_font->font(), _fb_mode.area);
+		Text_screen_surface<PT>::Geometry const new_geometry(_font->font(), _win_rect.area);
 
 		bool const reconstruct = !_text_screen_surface.constructed() ||
 		                          _text_screen_surface->size() != new_geometry.size();
@@ -307,7 +314,7 @@ void Terminal::Main::_handle_config()
 			                               : Position();
 
 			_text_screen_surface.construct(_heap, _font->font(),
-			                               _color_palette, _fb_mode.area);
+			                               _color_palette, _win_rect.area);
 
 			if (snapshot.constructed())
 				_text_screen_surface->import(*snapshot);

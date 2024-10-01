@@ -99,7 +99,7 @@ class Nitpicker::Domain_registry
 					return pos + _corner(panorama) + _offset;
 				}
 
-				Rect screen_rect(Area screen_area) const
+				Rect screen_rect(Rect const panorama) const
 				{
 					/* align value to zero or to limit, depending on its sign */
 					auto aligned = [&] (unsigned limit, int v)
@@ -107,9 +107,9 @@ class Nitpicker::Domain_registry
 						return unsigned((v > 0) ? v : max(0, int(limit) + v));
 					};
 
-					return { .at   = _offset,
-					         .area = { .w = aligned(screen_area.w, _area.x),
-					                   .h = aligned(screen_area.h, _area.y) } };
+					return { .at   = _offset + panorama.at,
+					         .area = { .w = aligned(panorama.w(), _area.x),
+					                   .h = aligned(panorama.h(), _area.y) } };
 				}
 		};
 

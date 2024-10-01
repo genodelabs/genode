@@ -150,11 +150,8 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 	void execute() override {
 		_gui_session.execute(); }
 
-	Framebuffer::Mode mode() override {
-		return _gui_session.mode(); }
-
-	void mode_sigh(Signal_context_capability sigh) override {
-		_gui_session.mode_sigh(sigh); }
+	Info_result info() override {
+		return _gui_session.info(); }
 
 	Buffer_result buffer(Framebuffer::Mode mode) override {
 		return _gui_session.buffer(mode); }

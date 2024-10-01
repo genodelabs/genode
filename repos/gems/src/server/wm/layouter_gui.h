@@ -33,8 +33,6 @@ struct Wm::Layouter_gui_session : Session_object<Gui::Session>
 	 */
 	Gui::Connection _mode_sigh_gui;
 
-	Signal_context_capability _mode_sigh { };
-
 	Attached_ram_dataspace _command_ds;
 
 	Layouter_gui_session(Env                      &env,
@@ -61,6 +59,11 @@ struct Wm::Layouter_gui_session : Session_object<Gui::Session>
 	Input::Session_capability input() override
 	{
 		return _input_session_cap;
+	}
+
+	Info_result info() override
+	{
+		return _mode_sigh_gui.info_rom_cap();
 	}
 
 	View_result view(Gui::View_id, View_attr const &) override
@@ -93,19 +96,6 @@ struct Wm::Layouter_gui_session : Session_object<Gui::Session>
 	}
 
 	void execute() override { }
-
-	Framebuffer::Mode mode() override { return _mode_sigh_gui.mode(); }
-
-	void mode_sigh(Signal_context_capability sigh) override
-	{
-		/*
-		 * Remember signal-context capability to keep NOVA from revoking
-		 * transitive delegations of the capability.
-		 */
-		_mode_sigh = sigh;
-
-		_mode_sigh_gui.mode_sigh(sigh);
-	}
 
 	Buffer_result buffer(Framebuffer::Mode) override { return Buffer_result::OK; }
 

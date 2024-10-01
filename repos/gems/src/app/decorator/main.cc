@@ -56,9 +56,12 @@ struct Decorator::Main : Window_factory_base
 
 	struct Canvas
 	{
-		Framebuffer::Mode         const mode;
-		Attached_dataspace              fb_ds;
-		Decorator::Canvas<Pixel_rgb888> canvas;
+		Env             &_env;
+		Gui::Connection &_gui;
+
+		Gui::Area const scr_area = _gui.panorama().convert<Gui::Area>(
+			[&] (Gui::Rect rect) { return rect.area; },
+			[&] (Gui::Undefined) { return Gui::Area { 1, 1 }; });
 
 		/*
 		 * The GUI connection's buffer is split into two parts. The upper
@@ -66,24 +69,24 @@ struct Decorator::Main : Window_factory_base
 		 * whereas the lower part contains the back buffer targeted by
 		 * the Decorator::Canvas.
 		 */
-		static Framebuffer::Mode _doubled(Framebuffer::Mode const mode)
+		Dataspace_capability _buffer_ds() const
 		{
-			return { .area  = { .w = mode.area.w, .h = mode.area.h*2 },
-			         .alpha = mode.alpha };
+			_gui.buffer({ .area  = { .w = scr_area.w, .h = scr_area.h*2 },
+			              .alpha = false });
+			return _gui.framebuffer.dataspace();
 		}
+
+		Attached_dataspace fb_ds { _env.rm(), _buffer_ds() };
 
 		Pixel_rgb888 *_canvas_pixels_ptr()
 		{
-			return fb_ds.local_addr<Pixel_rgb888>() + mode.area.count();
+			return fb_ds.local_addr<Pixel_rgb888>() + scr_area.count();
 		}
 
-		Canvas(Env &env, Gui::Connection &gui)
-		:
-			mode(gui.mode()),
-			fb_ds(env.rm(),
-			      (gui.buffer(_doubled(mode)), gui.framebuffer.dataspace())),
-			canvas(_canvas_pixels_ptr(), mode.area, env.ram(), env.rm())
-		{ }
+		Decorator::Canvas<Pixel_rgb888> canvas {
+			_canvas_pixels_ptr(), scr_area, _env.ram(), _env.rm() };
+
+		Canvas(Env &env, Gui::Connection &gui) : _env(env), _gui(gui) { }
 	};
 
 	Reconstructible<Canvas> _canvas { _env, _gui };
@@ -93,7 +96,7 @@ struct Decorator::Main : Window_factory_base
 		if (!_canvas.constructed())
 			return;
 
-		Rect const canvas_rect { { }, _canvas->mode.area };
+		Rect const canvas_rect { { }, _canvas->scr_area };
 
 		dirty.flush([&] (Rect const &r) {
 
@@ -110,9 +113,7 @@ struct Decorator::Main : Window_factory_base
 	{
 		_canvas.construct(_env, _gui);
 
-		Area const canvas_area = _canvas->mode.area;
-
-		_window_stack.mark_as_dirty(Rect(Point(0, 0), canvas_area));
+		_window_stack.mark_as_dirty(Rect(Point(0, 0), _canvas->scr_area));
 
 		Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
 
@@ -195,7 +196,7 @@ struct Decorator::Main : Window_factory_base
 		_config.sigh(_config_handler);
 		_handle_config();
 
-		_gui.mode_sigh(_mode_handler);
+		_gui.info_sigh(_mode_handler);
 
 		_window_layout.sigh(_window_layout_handler);
 		_pointer.sigh(_pointer_handler);

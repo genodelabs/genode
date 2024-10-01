@@ -104,14 +104,9 @@ class Wm::Direct_gui_session : public Session_object<Gui::Session>
 			_session.execute();
 		}
 
-		Framebuffer::Mode mode() override
+		Info_result info() override
 		{
-			return _session.mode();
-		}
-
-		void mode_sigh(Signal_context_capability sigh) override
-		{
-			_session.mode_sigh(sigh);
+			return _session.info();
 		}
 
 		Buffer_result buffer(Framebuffer::Mode mode) override

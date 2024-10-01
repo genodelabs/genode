@@ -43,15 +43,15 @@ void Vmm::Virtio_gpu_queue::notify(Virtio_gpu_device & dev)
 
 void Vmm::Virtio_gpu_control_request::_get_display_info()
 {
-	Framebuffer::Mode mode = _device.resize();
+	Gui::Area const mode = _device.resize();
 	Display_info_response dir { _desc_range(1) };
 	memset((void*)dir.base(), 0, Display_info_response::SIZE);
 	dir.write<Control_header::Type>(Control_header::Type::OK_DISPLAY_INFO);
 
 	dir.write<Display_info_response::X>(0);
 	dir.write<Display_info_response::Y>(0);
-	dir.write<Display_info_response::Width>(mode.area.w);
-	dir.write<Display_info_response::Height>(mode.area.h);
+	dir.write<Display_info_response::Width>(mode.w);
+	dir.write<Display_info_response::Height>(mode.h);
 	dir.write<Display_info_response::Enabled>(1);
 	dir.write<Display_info_response::Flags>(0);
 }
@@ -195,9 +195,9 @@ void Vmm::Virtio_gpu_control_request::_resource_flush()
 		uint32_t x = rf.read<Resource_flush::X>();
 		uint32_t y = rf.read<Resource_flush::Y>();
 		uint32_t w = min(rf.read<Resource_flush::Width>(),
-		                 _device._fb_mode.area.w - x);
+		                 _device._gui_win.area.w - x);
 		uint32_t h = min(rf.read<Resource_flush::Height>(),
-		                 _device._fb_mode.area.h - y);
+		                 _device._gui_win.area.h - y);
 
 		enum { BYTES_PER_PIXEL = Virtio_gpu_device::BYTES_PER_PIXEL };
 
@@ -218,9 +218,9 @@ void Vmm::Virtio_gpu_control_request::_resource_flush()
 			        (res.area.w * y + x) * BYTES_PER_PIXEL);
 		void * dst =
 			(void*)((addr_t)_device._fb_ds->local_addr<void>() +
-			        (_device._fb_mode.area.w * y + x) * BYTES_PER_PIXEL);
+			        (_device._gui_win.area.w * y + x) * BYTES_PER_PIXEL);
 		uint32_t line_src = res.area.w * BYTES_PER_PIXEL;
-		uint32_t line_dst = _device._fb_mode.area.w * BYTES_PER_PIXEL;
+		uint32_t line_dst = _device._gui_win.area.w * BYTES_PER_PIXEL;
 
 		blit(src, line_src, dst, line_dst, w*BYTES_PER_PIXEL, h);
 		_device._gui.framebuffer.refresh({ { int(x), int(y) }, { w, h } });

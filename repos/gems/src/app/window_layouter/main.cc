@@ -325,9 +325,9 @@ struct Window_layouter::Main : Operations,
 	void _handle_mode_change()
 	{
 		/* determine maximized window geometry */
-		Framebuffer::Mode const mode = _gui.mode();
-
-		_screen_size = mode.area;
+		_screen_size = _gui.panorama().convert<Gui::Area>(
+			[&] (Gui::Rect rect) { return rect.area; },
+			[&] (Gui::Undefined) { return Gui::Area { 1, 1 }; });
 
 		_update_window_layout();
 	}
@@ -373,7 +373,7 @@ struct Window_layouter::Main : Operations,
 	 */
 	Main(Env &env) : _env(env)
 	{
-		_gui.mode_sigh(_mode_change_handler);
+		_gui.info_sigh(_mode_change_handler);
 		_handle_mode_change();
 
 		_drop_timer.sigh(_drop_timer_handler);

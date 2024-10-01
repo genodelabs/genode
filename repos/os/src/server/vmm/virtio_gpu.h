@@ -296,8 +296,16 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 		Gui::Connection                      & _gui;
 		Cpu::Signal_handler<Virtio_gpu_device> _handler;
 		Constructible<Attached_dataspace>      _fb_ds { };
-		Framebuffer::Mode                      _fb_mode { _gui.mode() };
-		Gui::Top_level_view                    _view { _gui, { { }, _fb_mode.area } };
+
+		Gui::Rect _request_gui_window()
+		{
+			return _gui.window().convert<Gui::Rect>(
+				[&] (Gui::Rect rect) { return rect; },
+				[&] (Gui::Undefined) { return Gui::Rect { { }, { 640, 480 } }; });
+		}
+
+		Gui::Rect           _gui_win = _request_gui_window();
+		Gui::Top_level_view _view { _gui, _gui_win };
 
 		using Area = Genode::Area<>;
 		using Rect = Genode::Rect<>;
@@ -446,7 +454,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			_env(env), _heap(heap), _ram_ds(ram_ds), _gui(gui),
 			_handler(cpu, env.ep(), *this, &Virtio_gpu_device::_mode_change)
 		{
-			_gui.mode_sigh(_handler);
+			_gui.info_sigh(_handler);
 		}
 
 		void buffer_notification()
@@ -454,21 +462,21 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			_buffer_notification();
 		}
 
-		Framebuffer::Mode resize()
+		Gui::Area resize()
 		{
 			_fb_ds.destruct();
 
-			_fb_mode = _gui.mode();
-			_gui.buffer(_fb_mode);
+			_gui_win = _request_gui_window();
+			_gui.buffer({ .area = _gui_win.area, .alpha = false });
 
-			if (_fb_mode.area.count() > 0)
+			if (_gui_win.valid())
 				_fb_ds.construct(_env.rm(), _gui.framebuffer.dataspace());
 
 			using Command = Gui::Session::Command;
-			_gui.enqueue<Command::Geometry>(_view.id(), Rect(Point(0, 0), _fb_mode.area));
+			_gui.enqueue<Command::Geometry>(_view.id(), _gui_win);
 			_gui.enqueue<Command::Front>(_view.id());
 			_gui.execute();
-			return _gui.mode();
+			return _gui_win.area;
 		}
 };
 

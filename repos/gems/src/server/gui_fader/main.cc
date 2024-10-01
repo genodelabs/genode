@@ -455,15 +455,7 @@ class Gui_fader::Gui_session_component
 			return _gui.execute();
 		}
 
-		Framebuffer::Mode mode() override
-		{
-			return _gui.mode();
-		}
-
-		void mode_sigh(Genode::Signal_context_capability sigh) override
-		{
-			_gui.mode_sigh(sigh);
-		}
+		Info_result info() override { return _gui.info_rom_cap(); }
 
 		Buffer_result buffer(Framebuffer::Mode mode) override
 		{

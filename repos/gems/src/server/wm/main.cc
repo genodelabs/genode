@@ -24,7 +24,7 @@
 namespace Wm { class Main; }
 
 
-struct Wm::Main : Pointer::Tracker
+struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 {
 	Env &_env;
 
@@ -46,7 +46,28 @@ struct Wm::Main : Pointer::Tracker
 
 	Gui::Connection _focus_gui_session { _env };
 
-	Gui::Root _gui_root { _env, _window_registry, *this, _focus_gui_session };
+	Gui::Area _screen_area { };
+
+	Signal_handler<Main> _mode_handler {
+		_env.ep(), *this, &Main::_handle_mode };
+
+	void _handle_mode()
+	{
+		_focus_gui_session.with_info([&] (Xml_node const &info) {
+			_screen_area = Area::from_xml(info); });
+		_gui_root.propagate_mode_change();
+	}
+
+	/**
+	 * Gui::Session_component::Action interface
+	 */
+	void gen_screen_area_info(Xml_generator &xml) const override
+	{
+		xml.attribute("width",  _screen_area.w);
+		xml.attribute("height", _screen_area.h);
+	}
+
+	Gui::Root _gui_root { _env, *this, _window_registry, *this, _focus_gui_session };
 
 	static void _with_win_id_from_xml(Xml_node const &window, auto const &fn)
 	{
@@ -117,6 +138,8 @@ struct Wm::Main : Pointer::Tracker
 
 		_focus_rom.sigh(_focus_handler);
 		_resize_request_rom.sigh(_resize_request_handler);
+		_focus_gui_session.info_sigh(_mode_handler);
+		_handle_mode();
 	}
 };
 

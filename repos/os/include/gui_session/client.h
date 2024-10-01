@@ -30,6 +30,9 @@ struct Gui::Session_client : Rpc_client<Session>
 	Input::Session_capability input() override {
 		return call<Rpc_input>(); }
 
+	Info_result info() override {
+		return call<Rpc_info>(); }
+
 	[[nodiscard]] View_result view(View_id id, View_attr const &attr) override {
 		return call<Rpc_view>(id, attr); }
 
@@ -52,12 +55,6 @@ struct Gui::Session_client : Rpc_client<Session>
 		return call<Rpc_command_dataspace>(); }
 
 	void execute() override { call<Rpc_execute>(); }
-
-	Framebuffer::Mode mode() override {
-		return call<Rpc_mode>(); }
-
-	void mode_sigh(Signal_context_capability sigh) override {
-		call<Rpc_mode_sigh>(sigh); }
 
 	[[nodiscard]] Buffer_result buffer(Framebuffer::Mode mode) override {
 		return call<Rpc_buffer>(mode); }

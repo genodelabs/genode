@@ -291,7 +291,13 @@ void GenodeConsole::_handle_mode_change()
 
 	Genodefb *fb = dynamic_cast<Genodefb *>(pFramebuffer);
 
-	fb->update_mode(_gui.mode());
+	Gui::Rect const gui_win = _gui.window().convert<Gui::Rect>(
+		[&] (Gui::Rect rect) { return rect; },
+		[&] (Gui::Undefined) { return _gui.panorama().convert<Gui::Rect>(
+			[&] (Gui::Rect rect) { return rect; },
+			[&] (Gui::Undefined) { return Gui::Rect { { }, { 800, 600 } }; }); });
+
+	fb->update_mode(gui_win);
 	update_video_mode();
 }
 
@@ -340,7 +346,7 @@ void GenodeConsole::init_backends(IKeyboard * gKeyboard, IMouse * gMouse)
 	HRESULT rc = i_getDisplay()->QueryFramebuffer(0, &pFramebuffer);
 	Assert(SUCCEEDED(rc) && pFramebuffer);
 
-	_gui.mode_sigh(_mode_change_signal_dispatcher);
+	_gui.info_sigh(_mode_change_signal_dispatcher);
 
 	_handle_mode_change();
 }

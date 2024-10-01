@@ -20,6 +20,7 @@
 #include <base/heap.h>
 #include <os/session_policy.h>
 #include <os/reporter.h>
+#include <os/dynamic_rom_session.h>
 #include <gui_session/gui_session.h>
 
 /* local includes */
@@ -42,8 +43,19 @@ namespace Nitpicker {
 class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
                                public  View_owner,
                                public  Buffer_provider,
-                               private Session_list::Element
+                               private Session_list::Element,
+                               private Dynamic_rom_session::Xml_producer
 {
+	public:
+
+		struct Action : Interface
+		{
+			/*
+			 * \param rect  domain-specific panorama rectangle
+			 */
+			virtual void gen_capture_info(Xml_generator &xml, Rect rect) const = 0;
+		};
+
 	private:
 
 		struct View_ref : Gui::View_ref
@@ -85,7 +97,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		Gui_session(Gui_session const &);
 		Gui_session &operator = (Gui_session const &);
 
-		Env &_env;
+		Env    &_env;
+		Action &_action;
 
 		Constrained_ram_allocator _ram;
 
@@ -110,7 +123,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		Focus_updater &_focus_updater;
 		Hover_updater &_hover_updater;
 
-		Signal_context_capability _mode_sigh { };
+		Constructible<Dynamic_rom_session> _info_rom { };
 
 		View &_pointer_origin;
 
@@ -183,9 +196,15 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 				[&] /* ID does not exist */ { return missing_fn(); });
 		}
 
+		/**
+		 * Dynamic_rom_session::Xml_producer interface
+		 */
+		void produce_xml(Xml_generator &) override;
+
 	public:
 
 		Gui_session(Env                   &env,
+		            Action                &action,
 		            Resources       const &resources,
 		            Label           const &label,
 		            Diag            const &diag,
@@ -198,7 +217,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		            Reporter              &focus_reporter)
 		:
 			Session_object(env.ep(), resources, label, diag),
-			_env(env),
+			Xml_producer("panorama"),
+			_env(env), _action(action),
 			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
 			_session_alloc(_ram, env.rm()),
 			_framebuffer_session_component(env.ep(), view_stack, *this, *this),
@@ -319,14 +339,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		 */
 		void visible(bool visible) { _visible = visible; }
 
-		/**
-		 * Return session-local screen geometry
-		 */
-		Rect screen_rect(Area screen_area) const
-		{
-			return _domain ? _domain->screen_rect(screen_area) : Rect { };
-		}
-
 		void reset_domain() { _domain = nullptr; }
 
 		/**
@@ -344,8 +356,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		 */
 		void notify_mode_change()
 		{
-			if (_mode_sigh.valid())
-				Signal_transmitter(_mode_sigh).submit();
+			if (_info_rom.constructed())
+				_info_rom->trigger_update();
 		}
 
 		/**
@@ -375,6 +387,30 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		Input::Session_capability input() override {
 			return _input_session_component.cap(); }
 
+		Info_result info() override
+		{
+			if (!_info_rom.constructed()) {
+				Cap_quota const needed_caps { 2 };
+				if (!try_withdraw(needed_caps))
+					return Info_error::OUT_OF_CAPS;
+
+				bool out_of_caps = false, out_of_ram = false;
+				try {
+					Dynamic_rom_session::Content_producer &rom_producer = *this;
+					_info_rom.construct(_env.ep(), _ram, _env.rm(), rom_producer);
+				}
+				catch (Out_of_ram)  { out_of_ram  = true; }
+				catch (Out_of_caps) { out_of_caps = true; }
+
+				if (out_of_ram || out_of_ram) {
+					replenish(needed_caps);
+					if (out_of_ram)  return Info_error::OUT_OF_RAM;
+					if (out_of_caps) return Info_error::OUT_OF_CAPS;
+				}
+			}
+			return _info_rom->cap();
+		}
+
 		View_result view(View_id, View_attr const &attr) override;
 
 		Child_view_result child_view(View_id, View_id, View_attr const &attr) override;
@@ -390,10 +426,6 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		Dataspace_capability command_dataspace() override { return _command_ds.cap(); }
 
 		void execute() override;
-
-		Framebuffer::Mode mode() override;
-
-		void mode_sigh(Signal_context_capability sigh) override { _mode_sigh = sigh; }
 
 		Buffer_result buffer(Framebuffer::Mode) override;
 

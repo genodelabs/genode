@@ -33,13 +33,13 @@ class Genodefb :
 		Genode::Env        &_env;
 		Gui::Connection    &_gui;
 		Gui::Top_level_view _view { _gui };
-		Fb_Genode::Mode     _fb_mode { .area = { 1024, 768 } };
+		Gui::Rect           _gui_win { { }, { 1024, 768 } };
 
 		/*
 		 * The mode currently used by the VM. Can be smaller than the
 		 * framebuffer mode.
 		 */
-		Fb_Genode::Mode _virtual_fb_mode;
+		Gui::Area _virtual_fb_mode;
 
 		void *_attach()
 		{
@@ -62,23 +62,23 @@ class Genodefb :
 		{
 			if (!_fb_base) return;
 
-			size_t const max_h = Genode::min(_fb_mode.area.h, _virtual_fb_mode.area.h);
-			size_t const num_pixels = _fb_mode.area.w * max_h;
+			size_t const max_h = Genode::min(_gui_win.area.h, _virtual_fb_mode.h);
+			size_t const num_pixels = _gui_win.area.w * max_h;
 			memset(_fb_base, 0, num_pixels * sizeof(Genode::Pixel_rgb888));
-			_gui.framebuffer.refresh({ { 0, 0 }, _virtual_fb_mode.area });
+			_gui.framebuffer.refresh({ _gui_win.at, _virtual_fb_mode });
 		}
 
 		void _adjust_buffer()
 		{
-			_gui.buffer(_fb_mode);
-			_view.area(_fb_mode.area);
+			_gui.buffer({ .area = _gui_win.area, .alpha = false });
+			_view.area(_gui_win.area);
 		}
 
-		Fb_Genode::Mode _initial_setup()
+		Gui::Area _initial_setup()
 		{
 			_adjust_buffer();
 			_view.front();
-			return _fb_mode;
+			return _gui_win.area;
 		}
 
 	public:
@@ -98,14 +98,14 @@ class Genodefb :
 
 		virtual ~Genodefb() { }
 
-		int w() const { return _fb_mode.area.w; }
-		int h() const { return _fb_mode.area.h; }
+		int w() const { return _gui_win.area.w; }
+		int h() const { return _gui_win.area.h; }
 
-		void update_mode(Fb_Genode::Mode mode)
+		void update_mode(Gui::Rect gui_win)
 		{
 			Lock();
 
-			_fb_mode = mode;
+			_gui_win = gui_win;
 
 			if (_fb_base)
 				_env.rm().detach(Genode::addr_t(_fb_base));
@@ -137,32 +137,32 @@ class Genodefb :
 			/* save the new bitmap reference */
 			_display->QuerySourceBitmap(screen, _display_bitmap.asOutParam());
 
-			bool const ok = (w <= (ULONG)_fb_mode.area.w) &&
-			                (h <= (ULONG)_fb_mode.area.h);
+			bool const ok = (w <= (ULONG)_gui_win.area.w) &&
+			                (h <= (ULONG)_gui_win.area.h);
 
-			bool const changed = (w != (ULONG)_virtual_fb_mode.area.w) ||
-			                     (h != (ULONG)_virtual_fb_mode.area.h);
+			bool const changed = (w != (ULONG)_virtual_fb_mode.w) ||
+			                     (h != (ULONG)_virtual_fb_mode.h);
 
 			if (ok && changed) {
 				Genode::log("fb resize : [", screen, "] ",
-				            _virtual_fb_mode.area, " -> ",
+				            _virtual_fb_mode, " -> ",
 				            w, "x", h,
-				            " (host: ", _fb_mode.area, ")");
+				            " (host: ", _gui_win.area, ")");
 
-				if ((w < (ULONG)_fb_mode.area.w) ||
-				    (h < (ULONG)_fb_mode.area.h)) {
+				if ((w < (ULONG)_gui_win.area.w) ||
+				    (h < (ULONG)_gui_win.area.h)) {
 					/* clear the old content around the new, smaller area. */
 					_clear_screen();
 				}
 
-				_virtual_fb_mode = Fb_Genode::Mode { .area = { w, h } };
+				_virtual_fb_mode = { w, h };
 
 				result = S_OK;
 			} else if (changed) {
 				Genode::log("fb resize : [", screen, "] ",
-				            _virtual_fb_mode.area, " -> ",
+				            _virtual_fb_mode, " -> ",
 				            w, "x", h, " ignored"
-				            " (host: ", _fb_mode.area, ")");
+				            " (host: ", _gui_win.area, ")");
 			}
 
 			Unlock();
@@ -215,8 +215,8 @@ class Genodefb :
 			                                 &ulBytesPerLine,
 			                                 &bitmapFormat);
 
-			Gui::Area const area_fb = Gui::Area(_fb_mode.area.w,
-			                                    _fb_mode.area.h);
+			Gui::Area const area_fb = Gui::Area(_gui_win.area.w,
+			                                    _gui_win.area.h);
 			Gui::Area const area_vm = Gui::Area(ulWidth, ulHeight);
 
 			using namespace Genode;
@@ -253,7 +253,7 @@ class Genodefb :
 
 			Lock();
 
-			Gui::Area const area_fb = _fb_mode.area;
+			Gui::Area const area_fb = _gui_win.area;
 			Gui::Area const area_vm = Gui::Area(width, height);
 
 			using namespace Genode;
@@ -292,8 +292,8 @@ class Genodefb :
 			if (!supported)
 				return E_POINTER;
 
-			*supported = ((width <= (ULONG)_fb_mode.area.w) &&
-			              (height <= (ULONG)_fb_mode.area.h));
+			*supported = ((width <= (ULONG)_gui_win.area.w) &&
+			              (height <= (ULONG)_gui_win.area.h));
 
 			return S_OK;
 		}

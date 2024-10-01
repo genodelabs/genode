@@ -19,6 +19,7 @@
 #include <os/surface.h>
 #include <framebuffer_session/capability.h>
 #include <input_session/capability.h>
+#include <rom_session/rom_session.h>
 
 namespace Gui {
 
@@ -44,6 +45,8 @@ namespace Gui {
 	using Rect  = Surface_base::Rect;
 	using Point = Surface_base::Point;
 	using Area  = Surface_base::Area;
+
+	struct Undefined { };
 }
 
 
@@ -171,6 +174,14 @@ struct Gui::Session : Genode::Session
 	 */
 	virtual Input::Session_capability input() = 0;
 
+	enum class Info_error { OUT_OF_RAM, OUT_OF_CAPS };
+	using Info_result = Attempt<Capability<Rom_session>, Info_error>;
+
+	/**
+	 * Request ROM session containing the mode information
+	 */
+	virtual Info_result info() = 0;
+
 	struct View_attr
 	{
 		Title title;
@@ -233,16 +244,6 @@ struct Gui::Session : Genode::Session
 	 */
 	virtual void execute() = 0;
 
-	/**
-	 * Return physical screen mode
-	 */
-	virtual Framebuffer::Mode mode() = 0;
-
-	/**
-	 * Register signal handler to be notified about mode changes
-	 */
-	virtual void mode_sigh(Signal_context_capability) = 0;
-
 	enum class Buffer_result { OK, OUT_OF_RAM, OUT_OF_CAPS };
 
 	/**
@@ -284,6 +285,7 @@ struct Gui::Session : Genode::Session
 
 	GENODE_RPC(Rpc_framebuffer, Framebuffer::Session_capability, framebuffer);
 	GENODE_RPC(Rpc_input, Input::Session_capability, input);
+	GENODE_RPC(Rpc_info, Info_result, info);
 	GENODE_RPC(Rpc_view, View_result, view, View_id, View_attr const &);
 	GENODE_RPC(Rpc_child_view, Child_view_result, child_view, View_id, View_id, View_attr const &);
 	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_id);
@@ -293,16 +295,13 @@ struct Gui::Session : Genode::Session
 	GENODE_RPC(Rpc_command_dataspace, Dataspace_capability, command_dataspace);
 	GENODE_RPC(Rpc_execute, void, execute);
 	GENODE_RPC(Rpc_background, int, background, View_capability);
-	GENODE_RPC(Rpc_mode, Framebuffer::Mode, mode);
-	GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Signal_context_capability);
 	GENODE_RPC(Rpc_focus, void, focus, Capability<Session>);
 	GENODE_RPC(Rpc_buffer, Buffer_result, buffer, Framebuffer::Mode);
 
-	GENODE_RPC_INTERFACE(Rpc_framebuffer, Rpc_input,
+	GENODE_RPC_INTERFACE(Rpc_framebuffer, Rpc_input, Rpc_info,
 	                     Rpc_view, Rpc_child_view, Rpc_destroy_view, Rpc_associate,
 	                     Rpc_view_capability, Rpc_release_view_id,
-	                     Rpc_command_dataspace, Rpc_execute, Rpc_mode,
-	                     Rpc_mode_sigh, Rpc_buffer, Rpc_focus);
+	                     Rpc_command_dataspace, Rpc_execute, Rpc_buffer, Rpc_focus);
 };
 
 #endif /* _INCLUDE__GUI_SESSION__GUI_SESSION_H_ */

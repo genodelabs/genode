@@ -86,15 +86,6 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			}
 		};
 
-		static void gen_attr(Xml_generator &xml, Rect const rect)
-		{
-			if (rect.x1()) xml.attribute("xpos", rect.x1());
-			if (rect.y1()) xml.attribute("ypos", rect.y1());
-
-			xml.attribute("width",  rect.w());
-			xml.attribute("height", rect.h());
-		}
-
 	private:
 
 		Env &_env;
@@ -184,6 +175,19 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 		}
 
 		void apply_policy(Policy const &policy) { _policy = policy; }
+
+		void gen_capture_attr(Xml_generator &xml) const
+		{
+			xml.attribute("name", label());
+
+			gen_attr(xml, bounding_box());
+
+			unsigned const w_mm = _policy.w_mm.or_default(_buffer_attr.mm.w),
+			               h_mm = _policy.h_mm.or_default(_buffer_attr.mm.h);
+
+			if (w_mm) xml.attribute("width_mm",  w_mm);
+			if (h_mm) xml.attribute("height_mm", h_mm);
+		}
 
 
 		/*******************************

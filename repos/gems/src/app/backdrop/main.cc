@@ -47,6 +47,8 @@ struct Backdrop::Main
 
 	Gui::Connection _gui { _env, "backdrop" };
 
+	Gui::Rect _gui_win { };
+
 	struct Buffer
 	{
 		Gui::Connection &gui;
@@ -112,7 +114,7 @@ struct Backdrop::Main
 		using Command = Gui::Session::Command;
 
 		_gui.enqueue<Command::Background>(_view_id);
-		Gui::Rect rect(Gui::Point(), _buffer->size());
+		Gui::Rect rect(_gui_win.at, _buffer->size());
 		_gui.enqueue<Command::Geometry>(_view_id, rect);
 		_gui.enqueue<Command::Back>(_view_id);
 		_gui.execute();
@@ -139,8 +141,7 @@ struct Backdrop::Main
 	{
 		_gui.view(_view_id, { });
 
-		_gui.mode_sigh(_config_handler);
-
+		_gui.info_sigh(_config_handler);
 		_config.sigh(_config_handler);
 
 		_handle_config();
@@ -307,12 +308,14 @@ void Backdrop::Main::_handle_config()
 {
 	_config.update();
 
-	Framebuffer::Mode const phys_mode = _gui.mode();
-	Framebuffer::Mode const mode {
-		.area = { _config.xml().attribute_value("width",  phys_mode.area.w),
-		          _config.xml().attribute_value("height", phys_mode.area.h) },
-		.alpha = false
-	};
+	_gui_win = _gui.window().convert<Gui::Rect>(
+		[&] (Gui::Rect rect) { return rect; },
+		[&] (Gui::Undefined) { return Gui::Rect { { }, { 640, 480 } }; });
+
+	_gui_win.area = { _config.xml().attribute_value("width",  _gui_win.w()),
+	                  _config.xml().attribute_value("height", _gui_win.h()) };
+
+	Framebuffer::Mode const mode { .area = _gui_win.area, .alpha = false };
 
 	_buffer.construct(_env, _gui, mode);
 

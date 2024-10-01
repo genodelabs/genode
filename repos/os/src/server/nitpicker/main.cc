@@ -90,6 +90,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 	private:
 
 		Env                          &_env;
+		Gui_session::Action          &_action;
 		Attached_rom_dataspace const &_config;
 		Session_list                 &_session_list;
 		Domain_registry const        &_domain_registry;
@@ -118,7 +119,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 			resources.cap_quota.value -= 2;
 
 			Gui_session *session = new (md_alloc())
-				Gui_session(_env,
+				Gui_session(_env, _action,
 				            resources, label,
 				            session_diag_from_args(args), _view_stack,
 				            _focus_updater, _hover_updater, _pointer_origin,
@@ -170,6 +171,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 		 * Constructor
 		 */
 		Gui_root(Env &env,
+		         Gui_session::Action          &action,
 		         Attached_rom_dataspace const &config,
 		         Session_list                 &session_list,
 		         Domain_registry        const &domain_registry,
@@ -184,7 +186,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 		         Hover_updater                &hover_updater)
 		:
 			Root_component<Gui_session>(&env.ep().rpc_ep(), &md_alloc),
-			_env(env), _config(config), _session_list(session_list),
+			_env(env), _action(action), _config(config), _session_list(session_list),
 			_domain_registry(domain_registry), _global_keys(global_keys),
 			_view_stack(view_stack), _user_state(user_state),
 			_pointer_origin(pointer_origin),
@@ -346,14 +348,11 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 				session.mark_as_damaged(rect); });
 		}
 
-		void report_displays(Xml_generator &xml) const
+		void report_displays(Xml_generator &xml, Rect const domain_panorama) const
 		{
-			Capture_session::gen_attr(xml, _view_stack.bounding_box());
-
+			gen_attr(xml, domain_panorama);
 			_sessions.for_each([&] (Capture_session const &capture) {
-				xml.node("capture", [&] {
-					xml.attribute("name", capture.label());
-					Capture_session::gen_attr(xml, capture.bounding_box()); }); });
+				xml.node("capture", [&] { capture.gen_capture_attr(xml); }); });
 		}
 };
 
@@ -411,7 +410,8 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
                          Capture_session::Handler,
                          Event_session::Handler,
                          Capture_root::Action,
-                         User_state::Action
+                         User_state::Action,
+                         Gui_session::Action
 
 {
 	Env &_env;
@@ -613,10 +613,18 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 	Constructible<Attached_rom_dataspace> _focus_rom { };
 
-	Gui_root _gui_root { _env, _config_rom, _session_list, *_domain_registry,
+	Gui_root _gui_root { _env, *this, _config_rom, _session_list, *_domain_registry,
 	                     _global_keys, _view_stack, _user_state, _pointer_origin,
 	                     _builtin_background, _sliced_heap,
 	                     _focus_reporter, *this, *this };
+
+	/**
+	 * Gui_session::Action interface
+	 */
+	void gen_capture_info(Xml_generator &xml, Rect const domain_panorama) const override
+	{
+		_capture_root.report_displays(xml, domain_panorama);
+	}
 
 	Capture_root _capture_root { _env, *this, _sliced_heap, _view_stack, *this };
 
@@ -1041,7 +1049,7 @@ void Nitpicker::Main::_report_displays()
 		if (_fb_screen.constructed())
 			xml.node("display", [&] { gen_attr(xml, _fb_screen->_rect); });
 
-		_capture_root.report_displays(xml);
+		_capture_root.report_displays(xml, _view_stack.bounding_box());
 	});
 }
 

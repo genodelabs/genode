@@ -104,7 +104,10 @@ struct Sculpt::Main : Input_event_handler,
 
 	Gui::Connection _gui { _env, "input" };
 
-	bool _gui_mode_ready = false;  /* becomes true once the graphics driver is up */
+	Gui::Connection::Panorama_result _panorama = Gui::Undefined { };
+
+	/* becomes true once the graphics driver is up */
+	bool _gui_mode_ready() const { return _panorama.ok(); };
 
 	Gui::Root _gui_root { _env, _heap, *this, _global_input_seq_number };
 
@@ -953,8 +956,10 @@ struct Sculpt::Main : Input_event_handler,
 
 			ev.handle_wheel([&] (int, int y) { dy = y*32; });
 
-			if (ev.key_press(Input::KEY_PAGEUP))   dy =  int(_gui.mode().area.h / 3);
-			if (ev.key_press(Input::KEY_PAGEDOWN)) dy = -int(_gui.mode().area.h / 3);
+			int const vscroll_step = int(_screen_size.h) / 3;
+
+			if (ev.key_press(Input::KEY_PAGEUP))   dy =  vscroll_step;
+			if (ev.key_press(Input::KEY_PAGEDOWN)) dy = -vscroll_step;
 
 			if (dy != 0) {
 				scroll_ypos += dy;
@@ -1647,7 +1652,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_drivers.update_soc(_soc);
 		_gui.input.sigh(_input_handler);
-		_gui.mode_sigh(_gui_mode_handler);
+		_gui.info_sigh(_gui_mode_handler);
 		_handle_gui_mode();
 		_fb_config.trigger_update();
 
@@ -1680,7 +1685,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
                                          Xml_node const &window_list)
 {
 	/* skip window-layout handling (and decorator activity) while booting */
-	if (!_gui_mode_ready)
+	if (!_gui_mode_ready())
 		return;
 
 	struct Decorator_margins
@@ -1726,18 +1731,16 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 	if (panel_height == 0)
 		return;
 
-	Framebuffer::Mode const mode = _gui.mode();
-
 	/* suppress intermediate boot-time states before the framebuffer driver is up */
-	if (mode.area.count() <= 1)
+	if (!_screen_size.valid())
 		return;
 
 	/* area reserved for the panel */
-	Rect const panel = Rect(Point(0, 0), Area(mode.area.w, panel_height));
+	Rect const panel = Rect(Point(0, 0), Area(_screen_size.w, panel_height));
 
 	/* available space on the right of the menu */
 	Rect avail = Rect::compound(Point(0, panel.h()),
-	                            Point(mode.area.w - 1, mode.area.h - 1));
+	                            Point(_screen_size.w - 1, _screen_size.h - 1));
 
 	Point const log_offset = _log_visible
 	                       ? Point(0, 0)
@@ -1745,8 +1748,8 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 	Point const log_p1(avail.x2() - log_min_w - margins.right + 1 + log_offset.x,
 	                   avail.y1() + margins.top);
-	Point const log_p2(mode.area.w - margins.right  - 1 + log_offset.x,
-	                   mode.area.h - margins.bottom - 1);
+	Point const log_p2(_screen_size.w - margins.right  - 1 + log_offset.x,
+	                   _screen_size.h - margins.bottom - 1);
 
 	/* position of the inspect window */
 	Point const inspect_p1(avail.x1() + margins.left, avail.y1() + margins.top);
@@ -1812,7 +1815,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			Area  const size = win_size(win);
 			Point const pos  = _network_visible
 			                 ? Point(log_p1.x - size.w, avail.y1())
-			                 : Point(mode.area.w, avail.y1());
+			                 : Point(_screen_size.w, avail.y1());
 			gen_window(win, Rect(pos, size));
 		});
 
@@ -1918,7 +1921,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 		_with_window(window_list, logo_label, [&] (Xml_node const &win) {
 			Area  const size = win_size(win);
-			Point const pos(mode.area.w - size.w, mode.area.h - size.h);
+			Point const pos(_screen_size.w - size.w, _screen_size.h - size.h);
 			gen_window(win, Rect(pos, size));
 		});
 	});
@@ -1945,10 +1948,11 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 void Sculpt::Main::_handle_gui_mode()
 {
-	Framebuffer::Mode const mode = _gui.mode();
+	_panorama = _gui.panorama();
 
-	if (mode.area.count() > 1)
-		_gui_mode_ready = true;
+	_screen_size = _panorama.convert<Gui::Area>(
+		[&] (Gui::Rect rect) { return rect.area; },
+		[&] (Gui::Undefined) { return Gui::Area { 1024, 768 }; });
 
 	_update_window_layout();
 
@@ -1956,7 +1960,7 @@ void Sculpt::Main::_handle_gui_mode()
 
 	if (!_settings.manual_fonts_config) {
 
-		_font_size_px = (double)mode.area.h / 60.0;
+		_font_size_px = (double)_screen_size.h / 60.0;
 
 		if (_settings.font_size == Settings::Font_size::SMALL) _font_size_px *= 0.85;
 		if (_settings.font_size == Settings::Font_size::LARGE) _font_size_px *= 1.35;
@@ -2011,7 +2015,6 @@ void Sculpt::Main::_handle_gui_mode()
 		});
 	}
 
-	_screen_size = mode.area;
 	_panel_dialog.min_width = _screen_size.w;
 	unsigned const menu_width = max((unsigned)(_font_size_px*21.0), 320u);
 	_diag_dialog.min_width = menu_width;

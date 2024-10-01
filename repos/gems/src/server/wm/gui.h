@@ -19,6 +19,7 @@
 #include <gui_session/connection.h>
 #include <input_session/capability.h>
 #include <input/component.h>
+#include <os/dynamic_rom_session.h>
 
 /* local includes */
 #include <window_registry.h>
@@ -494,8 +495,16 @@ class Wm::Gui::Child_view : public View, private List<Child_view>::Element
 class Wm::Gui::Session_component : public Session_object<Gui::Session>,
                                    private List<Session_component>::Element,
                                    private Input_origin_changed_handler,
-                                   private Upgradeable
+                                   private Upgradeable,
+                                   private Dynamic_rom_session::Xml_producer
 {
+	public:
+
+		struct Action : Interface
+		{
+			virtual void gen_screen_area_info(Xml_generator &) const = 0;
+		};
+
 	private:
 
 		friend class List<Session_component>;
@@ -531,7 +540,8 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			}
 		};
 
-		Env &_env;
+		Env    &_env;
+		Action &_action;
 
 		Constrained_ram_allocator _ram {
 			_env.ram(), _ram_quota_guard(), _cap_quota_guard() };
@@ -561,15 +571,39 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 
 		Input_session                _input_session { _env, _ram };
 		Click_handler               &_click_handler;
-		Signal_context_capability    _mode_sigh { };
-		Area                         _requested_size { };
-		bool                         _resize_requested = false;
-		bool                         _has_alpha = false;
-		Pointer::State               _pointer_state;
-		Point                  const _initial_pointer_pos { -1, -1 };
-		Point                        _pointer_pos = _initial_pointer_pos;
-		Point                        _virtual_pointer_pos { };
-		unsigned                     _key_cnt = 0;
+
+		struct Info_rom_session : Dynamic_rom_session
+		{
+			Session_component &_session;
+
+			Info_rom_session(Session_component &session, auto &&... args)
+			: Dynamic_rom_session(args...), _session(session) { }
+
+			void sigh(Signal_context_capability sigh) override
+			{
+				Dynamic_rom_session::sigh(sigh);
+
+				/*
+				 * We consider a window as resizable if the client shows interest
+				 * in mode-change notifications.
+				 */
+				_session._resizeable = sigh.valid();
+				for (Top_level_view *v = _session._top_level_views.first(); v; v = v->next())
+					v->resizeable(_session._resizeable);
+			}
+		};
+
+		Constructible<Info_rom_session> _info_rom { };
+
+		bool           _resizeable = false;
+		Area           _requested_size { };
+		bool           _resize_requested = false;
+		bool           _has_alpha = false;
+		Pointer::State _pointer_state;
+		Point    const _initial_pointer_pos { -1, -1 };
+		Point          _pointer_pos = _initial_pointer_pos;
+		Point          _virtual_pointer_pos { };
+		unsigned       _key_cnt = 0;
 
 		auto _with_view(View_id id, auto const &fn, auto const &missing_fn)
 		-> decltype(missing_fn())
@@ -600,9 +634,6 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 
 		Signal_handler<Session_component> _input_handler {
 			_env.ep(), *this, &Session_component::_handle_input };
-
-		Signal_handler<Session_component> _mode_handler {
-			_env.ep(), *this, &Session_component::_handle_mode_change };
 
 		Point _input_origin() const
 		{
@@ -714,14 +745,42 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			}
 		}
 
-		void _handle_mode_change()
+		/**
+		 * Dynamic_rom_session::Xml_producer interface
+		 */
+		void produce_xml(Xml_generator &xml) override
 		{
-			/*
-			 * Inform a viewless client about the upstream
-			 * mode change.
-			 */
-			if (_mode_sigh.valid() && !_top_level_views.first())
-				Signal_transmitter(_mode_sigh).submit();
+			_action.gen_screen_area_info(xml);
+
+			auto virtual_capture_area = [&]
+			{
+				/*
+				 * While resizing the window, return requested window size as
+				 * mode
+				 */
+				if (_resize_requested)
+					return _requested_size;
+
+				/*
+				 * If the first top-level view has a defined size, use it
+				 * as the size of the virtualized GUI session.
+				 */
+				if (Top_level_view const *v = _top_level_views.first())
+					if (v->size().valid())
+						return v->size();
+
+				return Area { };
+			};
+
+			auto gen_attr = [&] (Area const area)
+			{
+				if (area.valid()) {
+					xml.attribute("width",  area.w);
+					xml.attribute("height", area.h);
+				}
+			};
+
+			xml.node("capture", [&] { gen_attr(virtual_capture_area()); });
 		}
 
 		/**
@@ -827,6 +886,7 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 	public:
 
 		Session_component(Env              &env,
+		                  Action           &action,
 		                  Resources  const &resources,
 		                  Label      const &label,
 		                  Diag       const  diag,
@@ -835,13 +895,13 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		                  Click_handler    &click_handler)
 		:
 			Session_object<Gui::Session>(env.ep(), resources, label, diag),
-			_env(env),
+			Xml_producer("panorama"),
+			_env(env), _action(action),
 			_window_registry(window_registry),
 			_click_handler(click_handler),
 			_pointer_state(pointer_tracker)
 		{
 			_gui_input.sigh(_input_handler);
-			_real_gui.session.mode_sigh(_mode_handler);
 			_input_session.event_queue().enabled(true);
 		}
 
@@ -933,8 +993,8 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			_resize_requested = true;
 
 			/* notify client */
-			if (_mode_sigh.valid())
-				Signal_transmitter(_mode_sigh).submit();
+			if (_info_rom.constructed())
+				_info_rom->trigger_update();
 		}
 
 		void hidden(bool hidden)
@@ -952,6 +1012,12 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		 * Return session capability to real GUI session
 		 */
 		Capability<Session> session() { return _real_gui.connection.cap(); }
+
+		void propagate_mode_change()
+		{
+			if (_info_rom.constructed())
+				_info_rom->trigger_update();
+		}
 
 
 		/***************************
@@ -1048,7 +1114,7 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 					});
 
 			if (result == View_result::OK && view_ptr) {
-				view_ptr->resizeable(_mode_sigh.valid());
+				view_ptr->resizeable(_resizeable);
 				_top_level_views.insert(view_ptr);
 			}
 			return result;
@@ -1161,45 +1227,35 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			_window_registry.flush();
 		}
 
-		Framebuffer::Mode mode() override
+		Info_result info() override
 		{
-			Framebuffer::Mode const real_mode = _real_gui.session.mode();
+			if (!_info_rom.constructed()) {
+				Cap_quota const needed_caps { 2 };
+				if (!_cap_quota_guard().have_avail(needed_caps)) {
+					_starved_for_caps = true;
+					return Info_error::OUT_OF_CAPS;
+				}
 
-			/*
-			 * While resizing the window, return requested window size as
-			 * mode
-			 */
-			if (_resize_requested)
-				return Framebuffer::Mode { .area  = _requested_size,
-				                           .alpha = real_mode.alpha };
+				Ram_quota const needed_ram { 8*1024 };
+				if (!_ram_quota_guard().have_avail(needed_ram)) {
+					_starved_for_ram = true;
+					return Info_error::OUT_OF_RAM;
+				}
 
-			/*
-			 * If the first top-level view has a defined size, use it
-			 * as the size of the virtualized GUI session.
-			 */
-			if (Top_level_view const *v = _top_level_views.first())
-				if (v->size().valid())
-					return Framebuffer::Mode { .area  = v->size(),
-					                           .alpha = real_mode.alpha};
+				try {
+					Dynamic_rom_session::Content_producer &rom_producer = *this;
+					_info_rom.construct(*this, _env.ep(), _ram, _env.rm(), rom_producer);
+					_info_rom->dataspace(); /* eagerly consume RAM and caps */
+				}
+				catch (Out_of_ram)  { _starved_for_ram  = true; }
+				catch (Out_of_caps) { _starved_for_caps = true; }
 
-			/*
-			 * If top-level view has yet been defined, return the real mode.
-			 */
-			return real_mode;
-		}
-
-		void mode_sigh(Signal_context_capability sigh) override
-		{
-			_mode_sigh = sigh;
-
-			/*
-			 * We consider a window as resizable if the client shows interest
-			 * in mode-change notifications.
-			 */
-			bool const resizeable = _mode_sigh.valid();
-
-			for (Top_level_view *v = _top_level_views.first(); v; v = v->next())
-				v->resizeable(resizeable);
+				if (_starved_for_ram || _starved_for_caps) {
+					if (_starved_for_ram)  return Info_error::OUT_OF_RAM;
+					if (_starved_for_caps) return Info_error::OUT_OF_CAPS;
+				}
+			}
+			return _info_rom->cap();
 		}
 
 		Buffer_result buffer(Framebuffer::Mode mode) override
@@ -1237,6 +1293,8 @@ class Wm::Gui::Root : public Rpc_object<Typed_root<Gui::Session> >,
 		Root &operator = (Root const &);
 
 		Env &_env;
+
+		Session_component::Action &_action;
 
 		Attached_rom_dataspace _config { _env, "config" };
 
@@ -1292,11 +1350,12 @@ class Wm::Gui::Root : public Rpc_object<Typed_root<Gui::Session> >,
 		/**
 		 * Constructor
 		 */
-		Root(Env &env, Window_registry &window_registry,
+		Root(Env &env, Session_component::Action &action,
+		     Window_registry  &window_registry,
 		     Pointer::Tracker &pointer_tracker,
-		     Gui::Connection &focus_gui_session)
+		     Gui::Connection  &focus_gui_session)
 		:
-			_env(env),
+			_env(env), _action(action),
 			_pointer_tracker(pointer_tracker),
 			_window_registry(window_registry),
 			_focus_gui_session(focus_gui_session)
@@ -1376,7 +1435,6 @@ class Wm::Gui::Root : public Rpc_object<Typed_root<Gui::Session> >,
 					1 +  /* Input_session events dataspace (_input_session)  */
 					1 +  /* Command buffer                 (_command_buffer) */
 					1 +  /* Input signal handler           (_input_handler)  */
-					1 +  /* Mode signal handler            (_mode_handler)   */
 					1;   /* Content-view capability                          */
 
 				if (resources.cap_quota.value < needed_caps)
@@ -1390,7 +1448,7 @@ class Wm::Gui::Root : public Rpc_object<Typed_root<Gui::Session> >,
 			case ROLE_REGULAR:
 				try {
 					Session_component &session = *new (_sliced_heap)
-						Session_component(_env, resources, label, diag,
+						Session_component(_env, _action, resources, label, diag,
 						                  _window_registry,
 						                  _pointer_tracker,
 						                  _click_handler);
@@ -1585,6 +1643,12 @@ class Wm::Gui::Root : public Rpc_object<Typed_root<Gui::Session> >,
 			for (Session_component *s = _sessions.first(); s; s = s->next())
 				if (s->has_win_id(win_id))
 					return s->request_resize(size);
+		}
+
+		void propagate_mode_change()
+		{
+			for (Session_component *s = _sessions.first(); s; s = s->next())
+				s->propagate_mode_change();
 		}
 };
 
