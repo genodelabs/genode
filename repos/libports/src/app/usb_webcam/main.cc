@@ -19,6 +19,7 @@
 #include <base/log.h>
 #include <gui_session/connection.h>
 #include <libc/component.h>
+#include <libc/args.h>
 #include <os/pixel_rgb888.h>
 
 #pragma GCC diagnostic push
@@ -295,7 +296,17 @@ class Main
 };
 
 
+extern char **environ;
+
 void Libc::Component::construct(Libc::Env &env)
 {
+	int argc    = 0;
+	char **argv = nullptr;
+	char **envp = nullptr;
+
+	populate_args_and_env(env, argc, argv, envp);
+
+	environ = envp;
+
 	static Main main(env);
 }
