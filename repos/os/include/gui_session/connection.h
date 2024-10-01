@@ -164,13 +164,12 @@ class Gui::Connection : private Genode::Connection<Session>
 				_ram_quota.value += upgrade;
 			}
 
-			for (bool retry = false; ; ) {
+			for (;;) {
 				using Result = Session_client::Buffer_result;
 				auto const result = _client.buffer(mode);
-				if (result == Result::OUT_OF_RAM)  { upgrade_ram(8*1024); retry = true; }
-				if (result == Result::OUT_OF_CAPS) { upgrade_caps(2);     retry = true; }
-				if (!retry)
-					break;
+				if (result == Result::OUT_OF_RAM)  { upgrade_ram(8*1024); continue; }
+				if (result == Result::OUT_OF_CAPS) { upgrade_caps(2);     continue; }
+				break;
 			}
 		}
 
