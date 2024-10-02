@@ -36,6 +36,7 @@ proc image_uboot_gzip_opt { } {
 # Build U-boot bootloader specific uImage
 #
 proc run_image { } {
+	set dtc [installed_command dtc]
 
 	set elf_img [file join [run_dir] boot [kernel_specific_binary image.elf]]
 
@@ -67,8 +68,18 @@ proc run_image { } {
 	if {[image_uboot_use_fit]} {
 		# create image.itb
 		set uboot_img [file join [run_dir] boot image.itb]
+
+		# create dummy dtb for version of u-boot requiring it in the fit image
+		set fd [open [run_dir]/dummy.dts w]
+		puts $fd "/dts-v1/;\n / {};"
+		close $fd
+		exec $dtc [run_dir]/dummy.dts -o [run_dir]/dummy.dtb
+
 		exec mkimage -f auto -A $arch -O linux -T kernel -C $compress_type -a $load_addr \
-		             -e $entrypoint -d $bin_img$bin_ext $uboot_img
+		             -e $entrypoint -b [run_dir]/dummy.dtb  -d $bin_img$bin_ext $uboot_img
+
+		# cleanup dummy files
+		file delete -force [run_dir]/dummy.dts [run_dir]/dummy.dtb
 	} else {
 		# create uImage
 		set uboot_img [file join [run_dir] boot uImage]
