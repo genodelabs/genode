@@ -94,10 +94,15 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 
 	Decorator_content_callback &_content_callback;
 
+	struct Dummy_input_action : Input::Session_component::Action
+	{
+		void exclusive_input_requested(bool) override { };
+
+	} _input_action { };
+
 	/* Gui::Connection requires a valid input session */
-	Input::Session_component  _dummy_input_component { _env, _env.ram() };
-	Input::Session_capability _dummy_input_component_cap =
-		_env.ep().manage(_dummy_input_component);
+	Input::Session_component _dummy_input_component {
+		_env.ep(), _env.ram(), _env.rm(), _input_action };
 
 	Signal_handler<Decorator_gui_session>
 		_input_handler { _env.ep(), *this, &Decorator_gui_session::_handle_input };
@@ -124,11 +129,6 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 		_content_callback(content_callback)
 	{
 		_input_session.sigh(_input_handler);
-	}
-
-	~Decorator_gui_session()
-	{
-		_env.ep().dissolve(_dummy_input_component);
 	}
 
 	void upgrade_local_or_remote(Resources const &resources)
@@ -219,7 +219,7 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 		 * Deny input to the decorator. User input referring to the
 		 * window decorations is routed to the window manager.
 		 */
-		return _dummy_input_component_cap;
+		return _dummy_input_component.cap();
 	}
 
 	Info_result info() override

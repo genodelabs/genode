@@ -496,7 +496,8 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
                                    private List<Session_component>::Element,
                                    private Input_origin_changed_handler,
                                    private Upgradeable,
-                                   private Dynamic_rom_session::Xml_producer
+                                   private Dynamic_rom_session::Xml_producer,
+                                   private Input::Session_component::Action
 {
 	public:
 
@@ -556,21 +557,15 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		List<Child_view>             _child_views { };
 		View_ids                     _view_ids { };
 
-		struct Input_session : Input::Session_component
-		{
-			Entrypoint &_ep;
+		Input::Session_component _input_session {
+			_env.ep(), _ram, _env.rm(), *this };
 
-			Input_session(Env &env, Ram_allocator &ram)
-			: Input::Session_component(env, ram), _ep(env.ep())
-			{
-				_ep.manage(*this);
-			}
+		/**
+		 * Input::Session_component::Action interface
+		 */
+		void exclusive_input_requested(bool) override { }
 
-			~Input_session() { _ep.dissolve(*this); }
-		};
-
-		Input_session                _input_session { _env, _ram };
-		Click_handler               &_click_handler;
+		Click_handler &_click_handler;
 
 		struct Info_rom_session : Dynamic_rom_session
 		{
@@ -1281,8 +1276,9 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 };
 
 
-class Wm::Gui::Root : public Rpc_object<Typed_root<Gui::Session> >,
-                      public Decorator_content_callback
+class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
+                      public  Decorator_content_callback,
+                      private Input::Session_component::Action
 {
 	private:
 
@@ -1306,9 +1302,13 @@ class Wm::Gui::Root : public Rpc_object<Typed_root<Gui::Session> >,
 
 		Window_registry &_window_registry;
 
-		Input::Session_component _window_layouter_input { _env, _env.ram() };
+		Input::Session_component _window_layouter_input {
+			_env.ep(), _env.ram(), _env.rm(), *this };
 
-		Input::Session_capability _window_layouter_input_cap { _env.ep().manage(_window_layouter_input) };
+		/**
+		 * Input::Session_component::Action interface
+		 */
+		void exclusive_input_requested(bool) override { }
 
 		/* handler that forwards clicks into unfocused windows to the layouter */
 		struct Click_handler : Gui::Click_handler
@@ -1475,7 +1475,7 @@ class Wm::Gui::Root : public Rpc_object<Typed_root<Gui::Session> >,
 				{
 					_layouter_session = new (_sliced_heap)
 						Layouter_gui_session(_env, resources, label, diag,
-						                     _window_layouter_input_cap);
+						                     _window_layouter_input.cap());
 
 					return _layouter_session->cap();
 				}

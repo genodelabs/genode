@@ -22,26 +22,25 @@
 namespace Input { struct Session_client; }
 
 
-class Input::Session_client : public Genode::Rpc_client<Session>
+class Input::Session_client : public Rpc_client<Session>
 {
 	private:
 
-		Genode::Attached_dataspace _event_ds;
+		Attached_dataspace _event_ds;
 
-		Genode::size_t const _max_events =
-			_event_ds.size() / sizeof(Input::Event);
+		size_t const _max_events = _event_ds.size() / sizeof(Input::Event);
 
 		friend class Input::Binding;
 
 	public:
 
-		Session_client(Genode::Region_map &local_rm, Session_capability session)
+		Session_client(Region_map &local_rm, Session_capability session)
 		:
-			Genode::Rpc_client<Session>(session),
+			Rpc_client<Session>(session),
 			_event_ds(local_rm, call<Rpc_dataspace>())
 		{ }
 
-		Genode::Dataspace_capability dataspace() override {
+		Dataspace_capability dataspace() override {
 			return call<Rpc_dataspace>(); }
 
 		bool pending() const override {
@@ -50,8 +49,11 @@ class Input::Session_client : public Genode::Rpc_client<Session>
 		int flush() override {
 			return call<Rpc_flush>(); }
 
-		void sigh(Genode::Signal_context_capability sigh) override {
+		void sigh(Signal_context_capability sigh) override {
 			call<Rpc_sigh>(sigh); }
+
+		void exclusive(bool enabled) override {
+			call<Rpc_exclusive>(enabled); }
 
 		/**
 		 * Flush and apply functor to pending events
@@ -61,10 +63,10 @@ class Input::Session_client : public Genode::Rpc_client<Session>
 		 */
 		void for_each_event(auto const &fn)
 		{
-			Genode::size_t const n = Genode::min((Genode::size_t)call<Rpc_flush>(), _max_events);
+			size_t const n = min((size_t)call<Rpc_flush>(), _max_events);
 
 			Event const *ev_buf = _event_ds.local_addr<const Event>();
-			for (Genode::size_t i = 0; i < n; ++i)
+			for (size_t i = 0; i < n; ++i)
 				fn(ev_buf[i]);
 		}
 };

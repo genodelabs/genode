@@ -25,11 +25,21 @@
 namespace Input { class Session_component; }
 
 
-class Input::Session_component : public Genode::Rpc_object<Input::Session>
+class Input::Session_component : public Rpc_object<Input::Session>
 {
+	public:
+
+		struct Action : Interface
+		{
+			virtual void exclusive_input_requested(bool) = 0;
+		};
+
 	private:
 
-		Genode::Attached_ram_dataspace _ds;
+		Entrypoint &_ep;
+		Action     &_action;
+
+		Attached_ram_dataspace _ds;
 
 		Event_queue _event_queue { };
 
@@ -38,12 +48,18 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 		/**
 		 * Constructor
 		 *
-		 * \param ram  allocator for the session buffer
+		 * \param ram  allocator for the shared-memory input buffer
 		 */
-		Session_component(Genode::Env &env, Genode::Ram_allocator &ram)
+		Session_component(Entrypoint &ep, Ram_allocator &ram,
+		                  Region_map &rm, Action &action)
 		:
-			_ds(ram, env.rm(), Event_queue::QUEUE_SIZE*sizeof(Input::Event))
-		{ }
+			_ep(ep), _action(action),
+			_ds(ram, rm, Event_queue::QUEUE_SIZE*sizeof(Input::Event))
+		{
+			_ep.manage(*this);
+		}
+
+		~Session_component() { _ep.dissolve(*this); }
 
 		/**
 		 * Return reference to event queue of the session
@@ -58,7 +74,7 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 			try {
 				_event_queue.add(event);
 			} catch (Input::Event_queue::Overflow) {
-				Genode::warning("input overflow - resetting queue");
+				warning("input overflow - resetting queue");
 				_event_queue.reset();
 			}
 		}
@@ -68,7 +84,7 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 		 ** Input::Session interface **
 		 ******************************/
 
-		Genode::Dataspace_capability dataspace() override { return _ds.cap(); }
+		Dataspace_capability dataspace() override { return _ds.cap(); }
 
 		bool pending() const override { return !_event_queue.empty(); }
 
@@ -83,9 +99,14 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 			return cnt;
 		}
 
-		void sigh(Genode::Signal_context_capability sigh) override
+		void sigh(Signal_context_capability sigh) override
 		{
 			_event_queue.sigh(sigh);
+		}
+
+		void exclusive(bool enabled) override
+		{
+			_action.exclusive_input_requested(enabled);
 		}
 };
 

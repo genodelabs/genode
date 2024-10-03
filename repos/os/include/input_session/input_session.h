@@ -19,7 +19,12 @@
 #include <session/session.h>
 #include <base/signal.h>
 
-namespace Input { struct Session; }
+namespace Input {
+
+	using namespace Genode;
+
+	struct Session;
+}
 
 
 struct Input::Session : Genode::Session
@@ -41,7 +46,7 @@ struct Input::Session : Genode::Session
 	/**
 	 * Return capability to event buffer dataspace
 	 */
-	virtual Genode::Dataspace_capability dataspace() = 0;
+	virtual Dataspace_capability dataspace() = 0;
 
 	/**
 	 * Request input state
@@ -60,19 +65,26 @@ struct Input::Session : Genode::Session
 	/**
 	 * Register signal handler to be notified on arrival of new input
 	 */
-	virtual void sigh(Genode::Signal_context_capability) = 0;
+	virtual void sigh(Signal_context_capability) = 0;
+
+	/**
+	 * Express intent to receive relative pointer events exclusively
+	 */
+	virtual void exclusive(bool) = 0;
 
 
 	/*********************
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC(Rpc_dataspace, Genode::Dataspace_capability, dataspace);
-	GENODE_RPC(Rpc_pending, bool, pending);
-	GENODE_RPC(Rpc_flush, int, flush);
-	GENODE_RPC(Rpc_sigh, void, sigh, Genode::Signal_context_capability);
+	GENODE_RPC(Rpc_dataspace, Dataspace_capability, dataspace);
+	GENODE_RPC(Rpc_pending,   bool, pending);
+	GENODE_RPC(Rpc_flush,     int,  flush);
+	GENODE_RPC(Rpc_sigh,      void, sigh, Signal_context_capability);
+	GENODE_RPC(Rpc_exclusive, void, exclusive, bool);
 
-	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_pending, Rpc_flush, Rpc_sigh);
+	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_pending, Rpc_flush, Rpc_sigh,
+	                     Rpc_exclusive);
 };
 
 #endif /* _INCLUDE__INPUT_SESSION__INPUT_SESSION_H_ */

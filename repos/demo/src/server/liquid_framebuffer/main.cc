@@ -125,7 +125,8 @@ namespace Liquid_fb {
 }
 
 
-class Liquid_fb::Main : public Scout::Event_handler
+class Liquid_fb::Main : public  Scout::Event_handler,
+                        private Input::Session_component::Action
 {
 	private:
 
@@ -162,7 +163,16 @@ class Liquid_fb::Main : public Scout::Event_handler
 			_graphics_backend { _env.rm(), _gui, _heap, _max_size,
 			                    _initial_position, _initial_size };
 
-		Input::Session_component _input_session_component { _env, _env.ram() };
+		Input::Session_component _input_session_component {
+			_env.ep(), _env.ram(), _env.rm(), *this };
+
+		/**
+		 * Input::Session_component::Action interface
+		 */
+		void exclusive_input_requested(bool enabled) override
+		{
+			_gui.input.exclusive(enabled);
+		}
 
 		bool const _window_content_initialized =
 			(init_window_content(_env.ram(), _env.rm(), _heap, _input_session_component,

@@ -49,7 +49,8 @@ static bool clack(Input::Event const &event)
 }
 
 
-struct Gui::Session_component : Rpc_object<Gui::Session>
+struct Gui::Session_component : Rpc_object<Gui::Session>,
+                                private Input::Session_component::Action
 {
 	Env &_env;
 
@@ -63,7 +64,16 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 
 	Input::Session_client _gui_input { _env.rm(), _gui_session.input() };
 
-	Input::Session_component _input_component { _env, _env.ram() };
+	Input::Session_component _input_component {
+		_env.ep(), _env.ram(), _env.rm(), *this };
+
+	/**
+	 * Input::Session_component::Action interface
+	 */
+	void exclusive_input_requested(bool enabled) override
+	{
+		_gui_input.exclusive(enabled);
+	}
 
 	Signal_handler<Session_component> _input_handler {
 		_env.ep(), *this, &Session_component::_handle_input };
@@ -104,11 +114,8 @@ struct Gui::Session_component : Rpc_object<Gui::Session>
 		_connection(env, session_label_from_args(args), Ram_quota { 36*1024 }, { })
 	{
 		_gui_input.sigh(_input_handler);
-		_env.ep().manage(_input_component);
 		_input_component.event_queue().enabled(true);
 	}
-
-	~Session_component() { _env.ep().dissolve(_input_component); }
 
 	void upgrade(Session::Resources const &resources)
 	{

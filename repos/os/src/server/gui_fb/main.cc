@@ -247,7 +247,7 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
  ** Main program **
  ******************/
 
-struct Gui_fb::Main : View_updater
+struct Gui_fb::Main : View_updater, Input::Session_component::Action
 {
 	Env &_env;
 
@@ -316,10 +316,19 @@ struct Gui_fb::Main : View_updater
 	/*
 	 * Input and framebuffer sessions provided to our client
 	 */
-	Input::Session_component       _input_session { _env, _env.ram() };
+	Input::Session_component _input_session { _env.ep(), _env.ram(), _env.rm(), *this };
+
+	/**
+	 * Input::Session_component::Action interface
+	 */
+	void exclusive_input_requested(bool enabled) override
+	{
+		_gui.input.exclusive(enabled);
+	}
+
 	Framebuffer::Session_component _fb_session { _env.pd(), _gui, *this, _initial_mode() };
 
-	Static_root<Input::Session> _input_root { _env.ep().manage(_input_session) };
+	Static_root<Input::Session> _input_root { _input_session.cap() };
 
 	/*
 	 * Attach root interfaces to the entry point

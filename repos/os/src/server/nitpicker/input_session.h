@@ -113,6 +113,8 @@ class Input::Session_component : public Rpc_object<Session>
 		}
 
 		void sigh(Signal_context_capability sigh) override { _sigh = sigh; }
+
+		void exclusive(bool) override { }
 };
 
 #endif /* _INPUT_SESSION_COMPONENT_H_ */
