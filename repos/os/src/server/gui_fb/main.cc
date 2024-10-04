@@ -328,7 +328,23 @@ struct Gui_fb::Main : View_updater, Input::Session_component::Action
 
 	Framebuffer::Session_component _fb_session { _env.pd(), _gui, *this, _initial_mode() };
 
-	Static_root<Input::Session> _input_root { _input_session.cap() };
+	struct Input_root : Static_root<Input::Session>
+	{
+		Main &_main;
+
+		Input_root(Main &main)
+		:
+			Static_root<Input::Session>(main._input_session.cap()),
+			_main(main)
+		{ }
+
+		void close(Capability<Session>) override
+		{
+			_main._input_session.sigh(Signal_context_capability());
+		}
+	};
+
+	Input_root _input_root { *this };
 
 	/*
 	 * Attach root interfaces to the entry point
