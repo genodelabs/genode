@@ -70,7 +70,7 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 
 		void _move_to(int position, Steps steps)
 		{
-			_position.move_to(Rect::compound(Point(position, 0), Point()), steps);
+			_position.move_to(Rect { { position, 0 }, { 1, 1 } }, steps);
 		}
 
 		/*
