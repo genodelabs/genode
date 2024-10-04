@@ -31,8 +31,8 @@ struct Test
 	Timer::Connection        timer   { env };
 	Heap                     heap    { env.ram(), env.rm() };
 	Framebuffer::Connection  fb      { env, Framebuffer::Mode { } };
-	Attached_dataspace       fb_ds   { env.rm(), fb.dataspace() };
 	Framebuffer::Mode const  fb_mode { fb.mode() };
+	Attached_dataspace       fb_ds   { env.rm(), fb.dataspace() };
 	char                    *buf[2];
 
 	Test(Env &env, int id, char const *brief) : env(env), id(id)
