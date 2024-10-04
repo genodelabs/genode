@@ -1,4 +1,4 @@
-<runtime ram="16M" caps="400" binary="decorator">
+<runtime ram="32M" caps="400" binary="decorator">
 
 	<requires>
 		<rom label="window_layout"/>
