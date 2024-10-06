@@ -252,6 +252,12 @@ class Nitpicker::User_state
 
 		Handle_input_result handle_input_events(Input_batch);
 
+		bool exclusive_input() const
+		{
+			return (_focused        &&        _focused->exclusive_input_requested())
+			    || (_input_receiver && _input_receiver->exclusive_input_requested());
+		}
+
 		/**
 		 * Discard all references to specified view owner
 		 */

@@ -760,6 +760,22 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 		capture_buffer_size_changed();
 	}
 
+	bool _exclusive_input = false;
+
+	/**
+	 * Input::Session_component::Action interface
+	 */
+	void exclusive_input_changed() override
+	{
+		if (_user_state.exclusive_input() != _exclusive_input) {
+			_exclusive_input = _user_state.exclusive_input();
+
+			/* toggle pointer visibility */
+			_update_pointer_position();
+			_view_stack.update_all_views();
+		}
+	}
+
 	/**
 	 * Signal handler for externally triggered focus changes
 	 */
@@ -797,6 +813,11 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 	void _update_pointer_position()
 	{
+		/* move pointer out of the way while a client receives exclusive input */
+		if (_user_state.exclusive_input()) {
+			_view_stack.geometry(_pointer_origin, Rect { { -1000*1000, 0 }, { } });
+			return;
+		}
 		_user_state.pointer().with_result(
 			[&] (Point p) {
 				_view_stack.geometry(_pointer_origin, Rect(p, Area{})); },

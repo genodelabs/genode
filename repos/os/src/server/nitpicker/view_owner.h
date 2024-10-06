@@ -86,6 +86,8 @@ struct Nitpicker::View_owner : Interface
 
 	virtual void submit_input_event(Input::Event) { }
 
+	virtual bool exclusive_input_requested() const { return false; }
+
 	/**
 	 * Produce report with the owner's information
 	 */

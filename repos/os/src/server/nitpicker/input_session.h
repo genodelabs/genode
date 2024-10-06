@@ -32,6 +32,11 @@ class Input::Session_component : public Rpc_object<Session>
 {
 	public:
 
+		struct Action : Interface
+		{
+			virtual void exclusive_input_requested(bool) = 0;
+		};
+
 		enum { MAX_EVENTS = 200 };
 
 		static size_t ev_ds_size() {
@@ -40,6 +45,7 @@ class Input::Session_component : public Rpc_object<Session>
 	private:
 
 		Entrypoint &_ep;
+		Action     &_action;
 
 		/*
 		 * Exported event buffer dataspace
@@ -58,9 +64,10 @@ class Input::Session_component : public Rpc_object<Session>
 
 	public:
 
-		Session_component(Env &env)
+		Session_component(Env &env, Action &action)
 		:
-			_ep(env.ep()), _ev_ram_ds(env.ram(), env.rm(), ev_ds_size())
+			_ep(env.ep()), _action(action),
+			_ev_ram_ds(env.ram(), env.rm(), ev_ds_size())
 		{
 			_ep.manage(*this);
 		}
@@ -114,7 +121,10 @@ class Input::Session_component : public Rpc_object<Session>
 
 		void sigh(Signal_context_capability sigh) override { _sigh = sigh; }
 
-		void exclusive(bool) override { }
+		void exclusive(bool requested) override
+		{
+			_action.exclusive_input_requested(requested);
+		}
 };
 
 #endif /* _INPUT_SESSION_COMPONENT_H_ */

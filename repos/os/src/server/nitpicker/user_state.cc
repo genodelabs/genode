@@ -93,13 +93,13 @@ void User_state::_handle_input_event(Input::Event ev)
 		_last_seq_number.construct(seq); });
 
 	/* transparently convert relative into absolute motion event */
-	ev.handle_relative_motion([&] (int x, int y) {
-		_pointer.with_result(
-			[&] (Point orig_pos) {
-				Point const p = orig_pos + Point { x, y };
-				ev = Absolute_motion { p.x, p.y }; },
-			[&] (Nowhere) { });
-	});
+	if (!exclusive_input())
+		ev.handle_relative_motion([&] (int x, int y) {
+			_pointer.with_result(
+				[&] (Point orig_pos) {
+					Point const p = orig_pos + Point { x, y };
+					ev = Absolute_motion { p.x, p.y }; },
+				[&] (Nowhere) { }); });
 
 	/* respond to motion events by updating the pointer position */
 	ev.handle_absolute_motion([&] (int x, int y) {
@@ -249,27 +249,31 @@ void User_state::_handle_input_event(Input::Event ev)
 	/*
 	 * Deliver event to session
 	 */
-	bool const forward_to_session = (ev.absolute_motion() || ev.wheel() ||
-	                                 ev.touch() || ev.touch_release() ||
-	                                 ev.seq_number());
+	bool const forward_to_session = ev.absolute_motion() || ev.relative_motion()
+	                             || ev.touch() || ev.touch_release()
+	                             || ev.wheel() || ev.seq_number();
 	if (forward_to_session) {
 
-		if (_key_cnt == 0) {
+		View_owner *receiver = _input_receiver;
 
-			if (_hovered) {
+		if (_key_cnt == 0 && _hovered) {
+			/*
+			 * Unless the domain of the pointed session is configured to
+			 * always receive hover events, we deliver motion events only
+			 * to the focused domain.
+			 */
+			if (_hovered->hover_always() || _hovered->has_same_domain(_focused))
+				receiver = _hovered;
+		}
 
-				/*
-				 * Unless the domain of the pointed session is configured to
-				 * always receive hover events, we deliver motion events only
-				 * to the focused domain.
-				 */
-				if (_hovered->hover_always()
-				 || _hovered->has_same_domain(_focused))
-					_hovered->submit_input_event(ev);
-			}
+		/*
+		 * Route relative motion (exclusive input) to the focused client
+		 */
+		if (ev.relative_motion() && _focused)
+			receiver = _focused;
 
-		} else if (_input_receiver)
-			_input_receiver->submit_input_event(ev);
+		if (receiver)
+			receiver->submit_input_event(ev);
 	}
 
 	/*

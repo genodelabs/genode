@@ -44,7 +44,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
                                public  View_owner,
                                public  Buffer_provider,
                                private Session_list::Element,
-                               private Dynamic_rom_session::Xml_producer
+                               private Dynamic_rom_session::Xml_producer,
+                               private Input::Session_component::Action
 {
 	public:
 
@@ -54,6 +55,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			 * \param rect  domain-specific panorama rectangle
 			 */
 			virtual void gen_capture_info(Xml_generator &xml, Rect rect) const = 0;
+
+			virtual void exclusive_input_changed() = 0;
 		};
 
 	private:
@@ -116,7 +119,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		bool const _input_session_accounted = (
 			withdraw(Ram_quota{Input::Session_component::ev_ds_size()}), true );
 
-		Input::Session_component _input_session_component { _env };
+		Input::Session_component _input_session_component { _env, *this };
 
 		View_stack &_view_stack;
 
@@ -200,6 +203,19 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		 * Dynamic_rom_session::Xml_producer interface
 		 */
 		void produce_xml(Xml_generator &) override;
+
+		bool _exclusive_input_requested = false;
+
+		/**
+		 * Input::Session_component::Action interface
+		 */
+		void exclusive_input_requested(bool const requested) override
+		{
+			bool const orig = _exclusive_input_requested;
+			_exclusive_input_requested = requested;
+			if (orig != requested)
+				_action.exclusive_input_changed();
+		}
 
 	public:
 
@@ -317,6 +333,11 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		}
 
 		void submit_input_event(Input::Event e) override;
+
+		bool exclusive_input_requested() const override
+		{
+			return _exclusive_input_requested;
+		}
 
 		void report(Xml_generator &xml) const override
 		{
