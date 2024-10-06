@@ -49,6 +49,7 @@ class Window_layouter::Action
 			PREV_TAB,
 			TOOGLE_OVERLAY,
 			SCREEN,
+			RELEASE_GRAB,
 		};
 
 	private:
@@ -64,6 +65,7 @@ class Window_layouter::Action
 			if (string == "raise_window")      return RAISE_WINDOW;
 			if (string == "toggle_fullscreen") return TOGGLE_FULLSCREEN;
 			if (string == "screen")            return SCREEN;
+			if (string == "release_grab")      return RELEASE_GRAB;
 
 			Genode::warning("cannot convert \"", string, "\" to action type");
 			return NONE;

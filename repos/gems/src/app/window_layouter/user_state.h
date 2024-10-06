@@ -332,6 +332,10 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 				_operations.screen(action.target_name());
 				return;
 
+			case Action::RELEASE_GRAB:
+				_operations.release_grab();
+				return;
+
 			default:
 				warning("action ", (int)action.type(), " unhanded");
 			}

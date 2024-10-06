@@ -196,6 +196,12 @@ struct Window_layouter::Main : Operations,
 		_gen_focus();
 	}
 
+	void release_grab() override
+	{
+		/* wm revokes exclusive input on each focus update */
+		_gen_focus();
+	}
+
 	void toggle_fullscreen(Window_id id) override
 	{
 		/* make sure that the specified window is the front-most one */

@@ -77,6 +77,7 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 
 	void _handle_focus_update()
 	{
+		_gui_root.revoke_exclusive_input();
 		_focus_rom.update();
 		_focus_rom.xml().with_optional_sub_node("window", [&] (Xml_node const &window) {
 			_with_win_id_from_xml(window, [&] (Window_registry::Id id) {

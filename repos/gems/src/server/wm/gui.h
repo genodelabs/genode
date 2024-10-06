@@ -560,10 +560,35 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		Input::Session_component _input_session {
 			_env.ep(), _ram, _env.rm(), *this };
 
+		bool _exclusive_input_requested = false,
+		     _exclusive_input_granted   = false;
+
+		/* used for hiding the click-to-grab event from the client */
+		bool _consume_one_btn_left_release = false;
+
 		/**
 		 * Input::Session_component::Action interface
 		 */
-		void exclusive_input_requested(bool) override { }
+		void exclusive_input_requested(bool const requested) override
+		{
+			if (requested == _exclusive_input_requested)
+				return;
+
+			/*
+			 * Allow immediate changes when
+			 *
+			 * 1. Exclusive input is already granted by the user having clicked
+			 *    into the window, or
+			 * 2. The client yields the exclusivity, or
+			 * 3. Transient exclusive input is requested while a button is held.
+			 *    In this case, exclusive input will be revoked as soon as the
+			 *    last button/key is released.
+			 */
+			if (_exclusive_input_granted || _key_cnt || !requested)
+				_gui_input.exclusive(requested);
+
+			_exclusive_input_requested = requested;
+		}
 
 		Click_handler &_click_handler;
 
@@ -733,6 +758,31 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 
 					if (propagate_to_pointer_state)
 						_pointer_state.apply_event(ev);
+
+					/*
+					 * Handle pointer grabbing/ungrabbing
+					 */
+
+					/* revoke transient exclusive input (while clicked) */
+					if (ev.release() && _key_cnt == 0)
+						if (_exclusive_input_requested && !_exclusive_input_granted)
+							_gui_input.exclusive(false);
+
+					/* grant exclusive input when clicking into window */
+					if (ev.key_press(Input::BTN_LEFT) && _key_cnt == 1) {
+						if (_exclusive_input_requested && !_exclusive_input_granted) {
+							_gui_input.exclusive(true);
+							_exclusive_input_granted = true;
+							_consume_one_btn_left_release = true;
+							continue;
+						}
+					}
+					if (ev.key_release(Input::BTN_LEFT)) {
+						if (_consume_one_btn_left_release) {
+							_consume_one_btn_left_release = false;
+							continue;
+						}
+					}
 
 					/* submit event to the client */
 					_input_session.submit(_translate_event(ev, input_origin));
@@ -1012,6 +1062,14 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		{
 			if (_info_rom.constructed())
 				_info_rom->trigger_update();
+		}
+
+		void revoke_exclusive_input()
+		{
+			if (_exclusive_input_granted) {
+				_gui_input.exclusive(false);
+				_exclusive_input_granted = false;
+			}
 		}
 
 
@@ -1649,6 +1707,12 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 		{
 			for (Session_component *s = _sessions.first(); s; s = s->next())
 				s->propagate_mode_change();
+		}
+
+		void revoke_exclusive_input()
+		{
+			for (Session_component *s = _sessions.first(); s; s = s->next())
+				s->revoke_exclusive_input();
 		}
 };
 

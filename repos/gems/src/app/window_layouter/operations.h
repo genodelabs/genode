@@ -28,6 +28,7 @@ struct Window_layouter::Operations : Interface
 	virtual void close(Window_id) = 0;
 	virtual void toggle_fullscreen(Window_id) = 0;
 	virtual void focus(Window_id) = 0;
+	virtual void release_grab() = 0;
 	virtual void to_front(Window_id) = 0;
 	virtual void drag(Window_id, Window::Element, Point clicked, Point curr) = 0;
 	virtual void finalize_drag(Window_id, Window::Element, Point clicked, Point final) = 0;
